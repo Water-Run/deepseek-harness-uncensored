@@ -24,15 +24,15 @@ describe('resolveSubmitMode', () => {
 })
 
 describe('ComposerSubmissionPolicy', () => {
-  it('defaults to Queue and publishes preference changes', () => {
+  it('defaults to Steer and publishes preference changes', () => {
     const policy = new ComposerSubmissionPolicy()
     expect(policy.busyEnter.getSnapshot()).toBe(DEFAULT_BUSY_ENTER_BEHAVIOR)
 
     const changed = vi.fn()
     policy.busyEnter.subscribe(changed)
-    policy.setBusyEnter('steer')
+    policy.setBusyEnter('queue')
     expect(changed).toHaveBeenCalledTimes(1)
-    expect(policy.busyEnter.getSnapshot()).toBe('steer')
+    expect(policy.busyEnter.getSnapshot()).toBe('queue')
   })
 
   it('writes an explicit change through the scope after publishing it locally', () => {
@@ -48,9 +48,9 @@ describe('ComposerSubmissionPolicy', () => {
     }
     const policy = new ComposerSubmissionPolicy(scope)
     liveBehavior = () => policy.busyEnter.getSnapshot()
-    policy.setBusyEnter('steer')
-    expect(observed).toEqual(['busyEnter=steer:steer'])
-    expect(host.set).toHaveBeenCalledWith('busyEnter', 'steer')
+    policy.setBusyEnter('queue')
+    expect(observed).toEqual(['busyEnter=queue:queue'])
+    expect(host.set).toHaveBeenCalledWith('busyEnter', 'queue')
     expect(host.set).toHaveBeenCalledOnce()
   })
 

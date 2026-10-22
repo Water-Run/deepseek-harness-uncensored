@@ -58,7 +58,7 @@ describe('dsh path helpers', () => {
   })
 
   it('labels a resolved home by whether it is the default root', () => {
-    expect(dshHomeDisplay(resolve(defaultDshHome()))).toBe('~/.dsh')
+    expect(dshHomeDisplay(resolve(defaultDshHome()))).toBe('~/.dsh-uncensored')
     expect(dshHomeDisplay('/some/other/root')).toBe('$DSH_HOME')
   })
 
