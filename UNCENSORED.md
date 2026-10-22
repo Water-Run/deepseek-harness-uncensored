@@ -9,7 +9,7 @@ Uncensored 是这个仓库的唯一产品形态：它不是一个装在官方 DS
 | 产品名 | DeepSeek Harness | DeepSeek Harness Uncensored |
 | 用户数据目录 | `~/.dsh` | `~/.dsh-uncensored` |
 | CLI | `dsh` | `dsh-uncensored` |
-| `dsh web` 默认端口 | `3080` | `3099` |
+| `dsh web` 默认端口 | `3080` | `6666` |
 | OS 深链 | `dsh://` | `dshu://` |
 | 桌面 appId | 由 `DSH_DESKTOP_APP_ID` 决定 | `com.deepseek.dsh.uncensored`（打包时设置） |
 | 图标 | 白底黑鲸 | 黑底白鲸 |

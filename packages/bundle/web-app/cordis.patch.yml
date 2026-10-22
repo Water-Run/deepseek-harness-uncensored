@@ -182,7 +182,7 @@
       inject: [webStartup]
       config:
         host: !!js ctx.webStartup.host ?? '127.0.0.1'
-        port: !!js ctx.webStartup.port ?? 3099
+        port: !!js ctx.webStartup.port ?? 6666
         tls: !!js ctx.webStartup.tls
         compression: gzip
         compressionLevel: 1
