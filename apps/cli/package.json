@@ -114,7 +114,7 @@
     "@deepseek-ai/dsh-tool-ralph": "workspace:*",
     "@deepseek-ai/dsh-hooks-codex": "workspace:*",
     "@deepseek-ai/dsh-hooks-claude-code": "workspace:*",
-    "@agentclientprotocol/sdk": "1.4.0",
+    "@agentclientprotocol/sdk": "1.5.0",
     "@deepseek-ai/dsh-acp": "workspace:*",
     "@deepseek-ai/dsh-agent": "workspace:*",
     "@deepseek-ai/dsh-agent-loop": "workspace:*",
