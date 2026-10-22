@@ -15,12 +15,10 @@ export type AgentPresetSettingsKey =
   | 'view'
   | 'presetStandardName'
   | 'presetStandardDescription'
-  | 'presetPtcName'
-  | 'presetPtcDescription'
-  | 'presetMinimalName'
-  | 'presetMinimalDescription'
-  | 'presetCordisName'
-  | 'presetCordisDescription'
+  | 'presetWritingName'
+  | 'presetWritingDescription'
+  | 'presetSecurityName'
+  | 'presetSecurityDescription'
   | 'inUse'
   | 'noDescription'
   | 'brokenBadge'
@@ -42,23 +40,20 @@ export const en: Record<AgentPresetSettingsKey, string> = {
 
   seatHint: 'Choose the agent preset for your new task',
   headerHint: 'The agent preset chosen when this task started',
-  nav: 'Agent presets',
+  nav: 'Modes',
 
   setDefault: 'Set as new task default',
   view: 'View configuration',
 
-  presetStandardName: 'Standard mode',
+  presetStandardName: 'Default mode',
   presetStandardDescription:
-    'Work with code, files, and information. Suitable for most tasks, with search, editing, terminal commands, and other tools available as needed.',
-  presetPtcName: 'PTC mode',
-  presetPtcDescription:
-    'Includes all Standard mode capabilities. Better suited to tasks that call tools in batches and then filter, organize, deduplicate, count, or summarize the results.',
-  presetMinimalName: 'Minimal mode',
-  presetMinimalDescription:
-    'The agent uses a terminal and image reading, with context compaction. Useful for testing and comparing its basic performance.',
-  presetCordisName: 'Creator mode',
-  presetCordisDescription:
-    'Customize DSH through conversation. Let the agent write plugins that add features or UI, or combine tools and prompts to create your own mode.',
+    'Everyday default: code, files, terminal, and research tools all mounted.',
+  presetWritingName: 'Writing mode',
+  presetWritingDescription:
+    'Free writing for fiction, scripts, and long continuations. File, research, and presentation tools only; no code execution.',
+  presetSecurityName: 'Security mode',
+  presetSecurityDescription:
+    'Strongest composition available: every execution, delegation, and workflow tool, under red-team operating rules.',
 
   inUse: 'New task default',
 
@@ -87,19 +82,17 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
 
   seatHint: '选择新任务使用的 Agent 预设',
   headerHint: '本任务的 Agent 预设，在任务开始时确定',
-  nav: 'Agent 预设',
+  nav: '模式',
 
   setDefault: '设为新任务默认',
   view: '查看配置',
 
-  presetStandardName: '标准模式',
-  presetStandardDescription: '处理代码、文件和资料，适合大多数任务。Agent 会按需使用检索、编辑和终端等工具。',
-  presetPtcName: 'PTC 模式',
-  presetPtcDescription: '包含标准模式的所有能力，更适合批量调用工具，并对结果进行筛选、整理、去重、统计或汇总的任务。',
-  presetMinimalName: '极简模式',
-  presetMinimalDescription: 'Agent 使用终端和图片读取工具，并支持上下文压缩，适合测试和对比其基础表现。',
-  presetCordisName: '创造模式',
-  presetCordisDescription: '用对话定制 DSH：让 Agent 编写插件，添加新功能或界面；也能组合工具和提示词，创建自己的模式。',
+  presetStandardName: '缺省模式',
+  presetStandardDescription: '日常默认：代码、文件、终端和检索工具全开。',
+  presetWritingName: '写作模式',
+  presetWritingDescription: '自由写作：小说、剧本与长篇续写。只挂文件、检索与呈现工具，不做代码执行。',
+  presetSecurityName: '网安模式',
+  presetSecurityDescription: '本版最强组合：全量执行、委派与工作流工具，按红队作业规则运行。',
 
   inUse: '新任务默认',
 

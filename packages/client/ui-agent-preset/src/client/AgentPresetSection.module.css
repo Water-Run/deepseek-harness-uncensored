@@ -18,8 +18,8 @@
   color: var(--dsw-alias-label-tertiary);
 }
 
-/* Cards, not rows: a preset is a thing you pick, and the description is the
-   part that tells them apart — a row would bury it beside the actions. */
+/* One mode per row, top to bottom: this build ships three, and the roster is a
+   short list rather than a gallery. */
 .group {
   display: flex;
   flex-direction: column;
@@ -46,7 +46,7 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   /* Match neighboring cards within a row, without stretching shorter rows. */
   gap: 12px;
 }

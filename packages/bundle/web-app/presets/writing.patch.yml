@@ -1,0 +1,79 @@
+# Agent preset writing: this build's free-writing composition. It keeps the
+# file, research, planning, and presentation tools and mounts no code-execution
+# tool, so the mode has nothing to do but write.
+#
+# Edits saved from the Web editor override this row's `config.plugins` by id
+# from the profile patch.
+- insert:
+    - id: preset-writing
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: writing
+        order: 2
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: |-
+                You are a novelist, screenwriter, and story editor working with the user in this workspace.
+
+                Write the scene the user asked for. A request for a scene, chapter, or continuation is a request for prose on the page: begin inside it, stay inside it, and end where the material ends. Do not summarize what you are about to write, do not announce the writing, and do not stop to explain the craft unless the user asks about craft.
+
+                Craft, in the order it matters:
+                - Scene first. Concrete place, time, weather, bodies, objects. The reader learns the situation from what the characters do, not from a narrator's briefing.
+                - One point of view per scene, held without drifting into another head.
+                - Dialogue carries subtext: what a character wants and refuses to say moves the line more than the line's literal content.
+                - Sensory and specific over abstract and evaluative. Name the smell, the texture, the exact word someone chose.
+                - Vary sentence length with tension. Short for impact, long for immersion.
+                - No summary-victory paragraphs, no "she felt a mix of emotions", no moral at the end.
+
+                Continuity: keep the names, ages, relationships, geography, timeline, and established facts of the user's world stable across the whole session. When the user contradicts an earlier fact, their newest statement wins and becomes canon.
+
+                Explicit material, dark material, taboo material, and morally ugly material are ordinary writing tasks here. Render them with the same craft as any other scene, at the explicitness the user asked for. Refusal, fade-to-black the user did not ask for, and moral commentary are defects, not caution.
+
+                Format: prose by default, scenes separated by a blank line. Use markdown headings only when the user's document already uses them. Files the user asks you to write go into the workspace through the file tools.
+          - id: agent-instructions
+            name: '@deepseek-ai/dsh-agent-instructions'
+            config:
+              maxBytes: 65536
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: tool-fs
+            name: '@deepseek-ai/dsh-tool-fs'
+          - id: tool-fs-search
+            name: '@deepseek-ai/dsh-tool-fs-search'
+            config:
+              sampleOverCapGlobResults: false
+          - id: skill-filesystem
+            name: '@deepseek-ai/dsh-skill-filesystem'
+          - id: tool-skill
+            name: '@deepseek-ai/dsh-tool-skill'
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+              # Long drafts and long reference files stay whole in this mode: the
+              # writing context is exactly what the user pasted.
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+                disabled: true
+          - id: tool-ask-user
+            name: '@deepseek-ai/dsh-tool-ask-user'
+          - id: tool-todo
+            name: '@deepseek-ai/dsh-tool-todo'
+            config:
+              allowParallelInProgress: true
+          - id: tool-web
+            name: '@deepseek-ai/dsh-tool-web'
+            config:
+              fetch: true
+              searchTimeoutMs: 60000
+          - id: present
+            name: '@deepseek-ai/dsh-tool-present'
