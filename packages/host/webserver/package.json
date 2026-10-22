@@ -41,6 +41,6 @@
     "@deepseek-ai/cordis": "workspace:~",
     "@types/compression": "^1.8.1",
     "@types/negotiator": "^0.6.5",
-    "selfsigned": "^4.0.1"
+    "selfsigned": "^5.5.0"
   }
 }
