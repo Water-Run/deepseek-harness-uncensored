@@ -21,6 +21,6 @@
     "@deepseek-ai/dsh-package-manifest": "workspace:*",
     "@types/hosted-git-info": "^3.0.5",
     "@types/semver": "^7.8.0",
-    "tsx": "^4.22.4"
+    "tsx": "^4.23.15"
   }
 }
