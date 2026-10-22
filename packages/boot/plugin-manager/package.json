@@ -90,7 +90,7 @@
     }
   },
   "devDependencies": {
-    "chokidar": "^4.0.3",
+    "chokidar": "^5.0.0",
     "@deepseek-ai/dsh-package-manifest": "workspace:*",
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/cordis-plugin-loader": "workspace:~",
