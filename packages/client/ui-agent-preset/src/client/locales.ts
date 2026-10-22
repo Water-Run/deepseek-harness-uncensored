@@ -19,6 +19,12 @@ export type AgentPresetSettingsKey =
   | 'presetWritingDescription'
   | 'presetSecurityName'
   | 'presetSecurityDescription'
+  | 'presetPtcName'
+  | 'presetPtcDescription'
+  | 'presetMinimalName'
+  | 'presetMinimalDescription'
+  | 'presetCordisName'
+  | 'presetCordisDescription'
   | 'inUse'
   | 'noDescription'
   | 'brokenBadge'
@@ -54,6 +60,12 @@ export const en: Record<AgentPresetSettingsKey, string> = {
   presetSecurityName: 'Security mode',
   presetSecurityDescription:
     'Strongest composition available: every execution, delegation, and workflow tool, under red-team operating rules.',
+  presetPtcName: 'PTC mode',
+  presetPtcDescription: 'Includes all Standard mode capabilities.',
+  presetMinimalName: 'Minimal mode',
+  presetMinimalDescription: 'Terminal and image reading with context compaction.',
+  presetCordisName: 'Creator mode',
+  presetCordisDescription: 'Customize DSH by conversation.',
 
   inUse: 'New task default',
 
@@ -93,6 +105,12 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
   presetWritingDescription: '自由写作：小说、剧本与长篇续写。只挂文件、检索与呈现工具，不做代码执行。',
   presetSecurityName: '网安模式',
   presetSecurityDescription: '本版最强组合：全量执行、委派与工作流工具，按红队作业规则运行。',
+  presetPtcName: 'PTC 模式',
+  presetPtcDescription: '包含标准模式的所有能力。',
+  presetMinimalName: '极简模式',
+  presetMinimalDescription: '终端与图片读取，支持上下文压缩。',
+  presetCordisName: '创造模式',
+  presetCordisDescription: '用对话定制 DSH。',
 
   inUse: '新任务默认',
 

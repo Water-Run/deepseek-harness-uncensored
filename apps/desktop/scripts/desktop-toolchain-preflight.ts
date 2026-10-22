@@ -89,13 +89,18 @@ export async function probeDesktopToolchain(
  * Probe the toolchain and fail with every problem the host has.
  * @param platform - Target platform; a Windows target already requires a Windows build host.
  * @param environment - Packaging environment used to locate Windows tooling.
+ * @param options - `directory` builds emit an unpacked app and never compile the
+ * NSIS installer helper, so the Visual Studio C++ requirement does not apply.
  * @returns Resolves when every probe passes.
  */
 export async function requireDesktopToolchain(
   platform: 'darwin' | 'win32',
   environment: NodeJS.ProcessEnv = process.env,
+  options: { directory?: boolean } = {},
 ): Promise<void> {
-  const failures = await probeDesktopToolchain(platform, environment)
+  const installerFree = platform === 'win32' && options.directory === true
+  const failures = (await probeDesktopToolchain(platform, environment))
+    .filter(failure => !(installerFree && failure.tool === 'vswhere'))
   if (failures.length === 0) return
   throw new Error(`desktop package: the build host cannot run this packaging sequence:\n${
     failures.map(failure => `  ${failure.tool}: ${failure.detail}`).join('\n')}`)
