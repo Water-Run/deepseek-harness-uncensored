@@ -482,9 +482,10 @@ export function SearchResultItem({ result, currentId, onOpen, onUnarchive, t }: 
   return (
     <div
       className={clsx(css.searchResultRow, selected && css.selected, result.archived && css.archived)}
+      data-mode={result.mode ?? 'unknown'}
       role="treeitem"
       aria-selected={selected}
-      aria-description={result.archived ? t('toast.archivedNotOpenable') : undefined}
+      aria-description={result.archived ? t('toast.archivedNotOpenable') : result.mode === undefined ? undefined : t(`mode.${result.mode}`)}
       onClick={() => { onOpen(result.id) }}
     >
       <span className={css.searchResultHeading}>
@@ -492,6 +493,7 @@ export function SearchResultItem({ result, currentId, onOpen, onUnarchive, t }: 
             archived rows it stays blank — the grayed row carries the
             archived look. */}
         <span className={css.slot}>
+          <span className={css.modeStrip} aria-hidden="true" />
           {!result.archived && primaryStatus.state !== 'idle' && (
             <SessionStatusDots statuses={statuses} />
           )}
@@ -588,6 +590,7 @@ export function SessionNodeItem({
     <div
       ref={rowRef}
       data-row-key={`session:${node.id}`}
+      data-mode={node.mode ?? 'unknown'}
       className={clsx(
         css.sessionRow, selected && css.selected, menuOpen && css.menuOpen,
         row.archived && css.archived,
@@ -595,7 +598,7 @@ export function SessionNodeItem({
       )}
       role="treeitem"
       aria-selected={selected}
-      aria-description={row.archived ? t('toast.archivedNotOpenable') : undefined}
+      aria-description={row.archived ? t('toast.archivedNotOpenable') : node.mode === undefined ? undefined : t(`mode.${node.mode}`)}
       onClick={() => { onOpen(node.id) }}
       onPointerEnter={marquee.enter}
       onPointerLeave={marquee.leave}
@@ -630,6 +633,7 @@ export function SessionNodeItem({
           blank — the grayed row carries the archived look — and their live
           status stays on the hover card only. */}
       <span className={css.slot}>
+        <span className={css.modeStrip} aria-hidden="true" />
         {!row.archived && !row.blank && (showStatus
           ? <SessionStatusDots statuses={statuses} />
           : renderSlot('sidebar.session.row.leading', { sessionId: node.id }))}

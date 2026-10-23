@@ -16,6 +16,7 @@ export interface BalanceViewState {
 
 /** Coalesces refreshes and prevents late replies from repopulating a disposed or changed account view. */
 export class BalanceController {
+  /** Shared polling state and feedback for the sidebar and settings views. */
   readonly state = createSnapshotStore<BalanceViewState>({
     data: undefined, loading: false, failed: false, now: Date.now(), saving: false, toast: null, toastId: 0,
   })
@@ -76,7 +77,12 @@ export class BalanceController {
     }
   }
 
-  /** @param field - Preference to change. @param value - Requested value. @returns Whether the Host accepted the change. */
+  /**
+   * Persist a sampling preference and publish its result.
+   * @param field - Preference to change.
+   * @param value - Requested value.
+   * @returns Whether the Host accepted the change.
+   */
   readonly save = <K extends keyof BalancePreferences>(field: K, value: BalancePreferences[K]): Promise<boolean> => {
     this.state.set({ ...this.state.getSnapshot(), saving: true })
     const operation = this.preferences.set(field, value).catch(() => false).then((accepted) => {
@@ -90,7 +96,10 @@ export class BalanceController {
     return operation
   }
 
-  /** @param id - Only the currently visible toast may dismiss itself. */
+  /**
+   * Dismiss feedback without hiding a newer operation's result.
+   * @param id - Identity of the currently visible toast.
+   */
   readonly dismissToast = (id: number): void => {
     if (this.state.getSnapshot().toastId === id) this.state.set({ ...this.state.getSnapshot(), toast: null })
   }

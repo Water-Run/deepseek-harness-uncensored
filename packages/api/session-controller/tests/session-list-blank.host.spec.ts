@@ -54,6 +54,25 @@ async function listBlank(remote: TestSessionRemote, id: string): Promise<boolean
 }
 
 describe('summary blank = conversation not started', () => {
+  it('reports a failed turn from durable events and clears it when another turn starts', async () => {
+    const { ctx, remote, attach } = await harness()
+    try {
+      const session = ctx.sessions.create()
+      await attach(session)
+      const failed = async () => {
+        const result = await remote.list({})
+        if (!result.ok) throw result.error
+        return result.value.items.find(item => item.sessionId === session.id)?.projections?.values.sessionListMetadata?.lastTurnFailed
+      }
+      session.append('turn/start', { turn: 1 })
+      session.append('turn/end', { turn: 1, reason: { kind: 'error', error: { code: 'UNKNOWN', message: 'fixture failure' } } })
+      expect(await failed()).toBe(true)
+      session.append('turn/start', { turn: 2 })
+      expect(await failed()).toBe(false)
+      session.append('turn/end', { turn: 2, reason: { kind: 'completed' } })
+      expect(await failed()).toBe(false)
+    } finally { await ctx.fiber.dispose() }
+  })
   it('standalone events (command lifecycle, plan/mode, title) keep the session blank', async () => {
     const { ctx, remote, attach } = await harness()
     const session = ctx.sessions.create()

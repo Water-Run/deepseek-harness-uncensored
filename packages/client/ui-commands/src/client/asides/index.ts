@@ -24,7 +24,10 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   }
 }
 
-/** Mount the native commands and both child conversation surfaces. @param ctx - Built-in command UI owner. */
+/**
+ * Mount the native commands and both child conversation surfaces.
+ * @param ctx - Built-in command UI owner.
+ */
 export function registerAsides(ctx: Context): void {
   ctx.inject(['slots', 'commandUi', 'resources', 'sidebarRight', 'sidebarRightTabs', 'remote.session'], (scope) => {
     const t = scope.locale.bind('command')

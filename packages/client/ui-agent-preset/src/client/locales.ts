@@ -4,6 +4,8 @@ import { guideEn, guideZh, type PresetGuideKey } from './guide-locales.ts'
 
 /** Locale keys these surfaces render. */
 export type AgentPresetSettingsKey =
+  | 'modeSwitch.allow' | 'modeSwitch.hint' | 'modeSwitch.choose' | 'modeSwitch.current' | 'modeSwitch.running'
+  | 'modeSwitch.done' | 'modeSwitch.failed' | 'modeSwitch.saved' | 'modeSwitch.saveFailed'
   | PresetGuideKey
   | 'builtInGroup'
   | 'customGroup'
@@ -42,12 +44,21 @@ export type AgentPresetSettingsKey =
 
 /** English copy. */
 export const en: Record<AgentPresetSettingsKey, string> = {
+  'modeSwitch.allow': 'Allow mode changes in existing conversations',
+  'modeSwitch.hint': 'Off by default. New conversations always allow mode selection; existing conversations must be idle.',
+  'modeSwitch.choose': 'Change conversation mode',
+  'modeSwitch.current': 'Conversation mode: {mode}',
+  'modeSwitch.running': 'Wait for the current task to finish before changing mode',
+  'modeSwitch.done': 'Conversation mode changed',
+  'modeSwitch.failed': 'Could not change mode. Check that switching is enabled and the task is idle.',
+  'modeSwitch.saved': 'Mode switching preference saved',
+  'modeSwitch.saveFailed': 'Could not save the preference. Try again.',
   ...guideEn,
   builtInGroup: 'Built-in', customGroup: 'Custom',
-  sectionIntro: 'Choose the tools and working style for new conversations. A started conversation keeps its mode.',
+  sectionIntro: 'Choose the tools and working style for new conversations. Existing conversations keep their mode by default.',
 
   seatHint: 'Choose the agent preset for your new task',
-  headerHint: 'The agent preset chosen when this task started',
+  headerHint: 'The mode currently used by this conversation',
   nav: 'Modes',
 
   setDefault: 'Set as new task default',
@@ -92,12 +103,21 @@ export const en: Record<AgentPresetSettingsKey, string> = {
 
 /** Simplified Chinese copy. */
 export const zh: Record<AgentPresetSettingsKey, string> = {
+  'modeSwitch.allow': '允许已有会话切换模式',
+  'modeSwitch.hint': '默认关闭。新会话始终可以选择模式，已有会话需空闲后才能切换。',
+  'modeSwitch.choose': '切换会话模式',
+  'modeSwitch.current': '会话模式：{mode}',
+  'modeSwitch.running': '当前任务结束后才能切换模式',
+  'modeSwitch.done': '会话模式已切换',
+  'modeSwitch.failed': '切换失败，请确认已开启切换权限，并等待当前任务结束',
+  'modeSwitch.saved': '模式切换设置已保存',
+  'modeSwitch.saveFailed': '设置保存失败，请重试',
   ...guideZh,
   builtInGroup: '内置', customGroup: '自定义',
-  sectionIntro: '为新会话选择工具与工作方式。会话开始后，模式保持不变。',
+  sectionIntro: '为新会话选择工具与工作方式。已有会话默认保持原模式。',
 
   seatHint: '选择新会话的模式',
-  headerHint: '本会话创建时选择的模式',
+  headerHint: '本会话当前使用的模式',
   nav: '模式',
 
   setDefault: '设为新任务默认',

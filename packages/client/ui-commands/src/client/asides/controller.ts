@@ -9,6 +9,7 @@ export type InlineAside = { readonly status: 'opening' } | { readonly status: 'f
 
 /** Owns the retained children and pending operations of the inline question surface. */
 export class InlineAsideController {
+  /** Inline windows and creation feedback, indexed by their main conversation. */
   readonly state = createSnapshotStore<ReadonlyMap<SessionId, InlineAside>>(new Map())
   private readonly pending = new Map<SessionId, Promise<void>>()
   private readonly operations = new Set<Promise<void>>()
@@ -18,7 +19,11 @@ export class InlineAsideController {
   /** @param create - Create and retain a fresh child; rejects when the Host cannot confirm creation. */
   constructor(private readonly create: (parent: SessionId) => Promise<SessionReference>) {}
 
-  /** @param parent - Parent owning the inline window. @returns Completion of the current opening. */
+  /**
+   * Open a fresh inline conversation, sharing an already-pending creation.
+   * @param parent - Parent owning the inline window.
+   * @returns Completion of the current opening.
+   */
   open(parent: SessionId): Promise<void> {
     if (this.closed) return Promise.resolve()
     const pending = this.pending.get(parent)
@@ -41,7 +46,10 @@ export class InlineAsideController {
     return operation
   }
 
-  /** Hide a window; its durable child is neither canceled nor deleted. @param parent - Owning parent. */
+  /**
+   * Hide a window while preserving its durable child conversation.
+   * @param parent - Owning parent.
+   */
   hide(parent: SessionId): void {
     this.generations.delete(parent)
     const old = this.state.getSnapshot().get(parent)

@@ -1,21 +1,5 @@
-/**
- * Agent-preset surface plugin, browser half — three surfaces over one roster:
- * a chip on the new-session screen for the session about to start, a
- * read-only label in the session header, and a settings section that lists
- * the roster (selection, the new-task default, a read-only view of each
- * declared composition, and the way into Creator mode).
- *
- * A running session keeps the composition it began with (the host switches a
- * session's preset only before its first turn). That is what splits
- * the choice from the display: the hero chip is before-the-fact, while the
- * header only reports what a session already runs. The default preset is
- * edited where the roster is visible — the settings section's "make default"
- * — so General settings carries no duplicate control for the same field.
- *
- * Coding Tools (General settings) hide PTC and Minimal from the hero menu
- * and Settings roster when off. Hidden saved defaults fall back to Standard;
- * the existing gate clears staged choices while existing sessions keep their composition.
- */
+/** Mode selection for new conversations, policy-controlled changes for existing
+ * conversations, and the settings roster with its default and composition reader. */
 
 // Type-only: pulls the Session Controller service merge (ctx.sessions).
 import type { SessionBinding } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -33,7 +17,6 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
-import { AgentPresetLabel } from './AgentPresetLabel.tsx'
 import { CreatePluginMenuItem } from './CreatePluginMenuItem.tsx'
 import type { AgentPresetLabelInjected } from './AgentPresetLabel.tsx'
 import { AgentPresetSeat } from './AgentPresetSeat.tsx'
@@ -44,6 +27,8 @@ import { AgentPresetSeatController, type AgentPresetStage } from './seat-store.t
 import { AgentPresetSectionController } from './section-store.ts'
 import { en, zh, type AgentPresetSettingsKey } from './locales.ts'
 import { AGENT_PRESET_SETTINGS_NS, AgentPresetSettingsController } from './settings-store.ts'
+import { ModeSwitchController, ModeSwitchSetting, ModeSwitchToast, SessionModeControl } from './mode-switch.tsx'
+import type { ModeSwitchInjected, ModeSwitchPolicy } from './mode-switch.tsx'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -127,6 +112,22 @@ export function apply(ctx: ClientContext): void {
   }
 
   ctx.effect(() => ctx.locale.register('settings.agentPreset', { zh, en }), 'ui-agent-preset: settings row dictionaries')
+  const modePolicy = ctx.configForms.get<ModeSwitchPolicy>(AGENT_PRESET_SETTINGS_NS)
+  const modeSwitch = new ModeSwitchController(modePolicy, async (sessionId, preset) => {
+    const result = await ctx.remote.agentPresets.select(sessionId, preset)
+    if (!result.ok) throw result.error
+  }, ctx.locale.bind('settings.agentPreset'))
+  ctx.effect(() => () => modeSwitch.dispose(), 'ui-agent-preset: mode switching')
+  const modeInjected = (): ModeSwitchInjected => ({
+    hooks: { modePolicy: modeSwitch.policy, modeSwitchState: modeSwitch.state },
+    savePolicy: value => modeSwitch.save(value), dismissModeToast: (id) => { modeSwitch.dismiss(id) },
+  })
+  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
+    name: 'settings.general.item', id: 'existing-session-modes', order: 25, locale: 'settings.agentPreset', inject: modeInjected,
+  }, ModeSwitchSetting))
+  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay', id: 'mode-switch-feedback', order: 25, locale: 'settings.agentPreset', inject: modeInjected,
+  }, ModeSwitchToast))
 
   ctx.effect(() => {
     let requested = 0
@@ -192,9 +193,13 @@ export function apply(ctx: ClientContext): void {
       }
     }
 
-    const labelInjected = (): AgentPresetLabelInjected => ({
-      hooks: { agentPresets: controller.store },
+    const labelInjected = (sessionId: SessionId): AgentPresetLabelInjected & ModeSwitchInjected & {
+      selectPreset(id: string): Promise<void>
+    } => ({
+      ...modeInjected(),
+      hooks: { ...modeInjected().hooks, agentPresets: controller.store },
       load: () => controller.load(),
+      selectPreset: id => modeSwitch.change(sessionId, id),
     })
 
     const startCreatorDraft = () => {
@@ -218,7 +223,7 @@ export function apply(ctx: ClientContext): void {
         order: -10,
         locale: 'settings.agentPreset',
         inject: labelInjected,
-      }, AgentPresetLabel)
+      }, SessionModeControl)
       return () => {
         creatorDraft = undefined
         chip()

@@ -6,7 +6,11 @@ import { brandString } from '@deepseek-ai/dsh-brand'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-system-prompt'
 
-/** @param parent - Owning main session. @returns Its stable side-question identity. */
+/**
+ * Derive the persistent side conversation associated with a main session.
+ * @param parent - Owning main session.
+ * @returns Its stable side-question identity.
+ */
 export function sideIdentity(parent: SessionId): SessionId {
   return brandString<SessionId>(`session-side-${createHash('sha256').update(parent).digest('hex')}`)
 }

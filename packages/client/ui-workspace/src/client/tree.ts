@@ -13,6 +13,10 @@ import type {
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
 import { workspaceTitleOf } from '@deepseek-ai/dsh-util-workspace-path'
+import type {} from '@deepseek-ai/dsh-agent-preset-registry/types'
+
+/** Mode identities with a dedicated row color. */
+export type SessionMode = 'standard' | 'security' | 'reverse' | 'writing'
 
 /** Group key for Sessions outside every Workspace. */
 export const UNGROUPED_KEY = ''
@@ -43,6 +47,8 @@ function mainSessionId(list: SessionListState): SessionId | undefined {
 /** One top-level session row in a group or the flat list. */
 export interface SessionNode {
   id: SessionId
+  /** Absent for new, failed, unknown, or unreadable sessions. */
+  mode?: SessionMode
   /** Stored title, or empty; the renderer localizes blank and unnamed row labels. */
   title: string
   /** The provisional blank session (renderer shows the localized New Session title). */
@@ -86,6 +92,8 @@ export interface GroupNode {
 /** One flat search row combining list metadata with an optional content match. */
 export interface SearchResultNode {
   id: SessionId
+  /** Absent for new, failed, unknown, or unreadable sessions. */
+  mode?: SessionMode
   title: string
   workspace: string
   /** A Session-scoped UI consumer is awaiting this user. */
@@ -403,8 +411,10 @@ function sessionNode(
 ): SessionNode {
   const status = statuses.get(s.id)
   const pendingInteraction = visiblePendingKind(status?.pendingInteraction?.kind)
+  const mode = sessionMode(s, list)
   return {
     id: s.id,
+    ...(mode === undefined ? {} : { mode }),
     title: sessionTitle(s),
     blank: s.blank,
     running: status?.running ?? s.running,
@@ -415,6 +425,15 @@ function sessionNode(
     updatedAt: s.updatedAt,
     ...(pendingInteraction === undefined ? {} : { pendingInteraction }),
   }
+}
+
+/** Resolve only known modes from readable, non-failed session hints. */
+function sessionMode(summary: SessionSummary, list: SessionListState): SessionMode | undefined {
+  const projection = list.projectionsBySession[summary.id]
+  const values = projection?.values ?? summary.projectionValues
+  if (summary.blank || projection?.state === 'error' || values?.sessionListMetadata?.lastTurnFailed === true) return undefined
+  const mode = values?.agentPreset
+  return mode === 'standard' || mode === 'security' || mode === 'reverse' || mode === 'writing' ? mode : undefined
 }
 
 /**
@@ -602,8 +621,10 @@ export function deriveSearchResults(
       const match = contentBySession.get(summary.id)
       const status = statuses.get(summary.id)
       const pendingInteraction = visiblePendingKind(status?.pendingInteraction?.kind)
+      const mode = sessionMode(summary, list)
       return {
         id: summary.id,
+        ...(mode === undefined ? {} : { mode }),
         title: sessionTitle(summary),
         workspace: labelOf(summary),
         running: status?.running ?? summary.running,

@@ -142,11 +142,11 @@ describe('workspace browser rows', () => {
       runningSubagentCount: 0, completed: false, updatedAt: 0, pinned: false, archived: false,
     }
     const view = render(<SessionNodeItem node={idle} currentId={undefined} now={0} onOpen={vi.fn()} t={t} />)
-    // The cell is the row's first element and holds nothing while the row is
-    // idle without an occupant; the title follows it.
+    // The decorative mode marker does not claim an activity state.
     const cell = screen.getByText('Flat Session').previousElementSibling
     expect(cell?.className).toMatch(/slot/)
-    expect(cell?.children).toHaveLength(0)
+    expect(cell?.querySelector('[data-state]')).toBeNull()
+    expect(screen.getByRole('treeitem').getAttribute('data-mode')).toBe('unknown')
 
     view.rerender(<SessionNodeItem node={{ ...idle, running: true }} currentId={undefined} now={0}
       onOpen={vi.fn()} t={t} />)

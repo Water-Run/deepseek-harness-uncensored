@@ -15,7 +15,7 @@ import { RemoteError, TestRemote } from '@deepseek-ai/dsh-client-test-runtime'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import { apply as settingsApply, inject as settingsInject } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { apply, inject } from '@deepseek-ai/dsh-client-ui-agent-preset/client'
-import { AgentPresetLabel } from '../src/client/AgentPresetLabel.tsx'
+import { ModeSwitchSetting, SessionModeControl } from '../src/client/mode-switch.tsx'
 import type { AgentPresetLabelInjected } from '../src/client/AgentPresetLabel.tsx'
 import { AgentPresetSection } from '../src/client/AgentPresetSection.tsx'
 import type { AgentPresetSectionInjected } from '../src/client/AgentPresetSection.tsx'
@@ -345,16 +345,14 @@ describe('ui-agent-preset apply', () => {
     ])
   })
 
-  it('registers the settings section and no General row', async () => {
+  it('registers the mode roster and the separate existing-conversation policy', async () => {
     const { ctx, slots } = await bench()
     ctx.provide('sessions', sessionsDouble(ctx, { byId: {} }) as never)
     declareRoot(slots)
 
     await ctx.plugin({ inject: [...inject], apply }).await()
 
-    // The default preset is edited in the section, where the roster is
-    // visible; a General row would duplicate the same settings field.
-    expect(slots.entries('settings.general.item')).toHaveLength(0)
+    expect(slots.entries('settings.general.item').map(entry => entry.component)).toEqual([ModeSwitchSetting])
     const section = slots.entries('settings.section')[0]!
     expect(section.component).toBe(AgentPresetSection)
     expect(section.options).toMatchObject({ id: 'agent-presets', order: 20 })
@@ -502,7 +500,7 @@ describe('ui-agent-preset apply', () => {
     const chip = slots.entries('conversation.hero.agentPreset')[0]!
     expect(chip.component).toBe(AgentPresetSeat)
     const label = slots.entries('conversation.session.header.actions')[0]!
-    expect(label.component).toBe(AgentPresetLabel)
+    expect(label.component).toBe(SessionModeControl)
     expect(label.options).toMatchObject({ id: 'agent-preset', order: -10 })
     await fiber.dispose()
     expect(slots.entries('conversation.hero.agentPreset')).toHaveLength(0)

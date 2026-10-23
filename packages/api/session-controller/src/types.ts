@@ -48,6 +48,8 @@ export interface SessionListMetadata {
   readonly blank: boolean
   /** Latest human-authored prompt time in the folded prefix. */
   readonly lastPromptAt: number | null
+  /** Latest completed turn failed; cleared when the next turn starts. Older hints may omit it. */
+  readonly lastTurnFailed?: boolean | undefined
 }
 
 /**

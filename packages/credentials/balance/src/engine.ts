@@ -33,7 +33,11 @@ export const balanceSample = z.object({
   wallets: z.array(z.object({ currency: z.enum(['CNY', 'USD']), toppedUp: balanceAmount, granted: balanceAmount }).strict()).max(2),
 }).strict()
 
-/** @param value - Host-only account/issuer or API-key identity. @returns Opaque local storage key. */
+/**
+ * Keep account and API-key identities out of local history filenames.
+ * @param value - Host-only account/issuer or API-key identity.
+ * @returns Opaque local storage key.
+ */
 export function balanceStorageKey(value: string): string { return createHash('sha256').update(value).digest('hex') }
 
 /** Owns sampling, credential-change checks, and write settlement before disposal. */

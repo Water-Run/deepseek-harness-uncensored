@@ -54,6 +54,7 @@ export class AgentPresetRegistry extends TypertRemoteService {
   static Config = z.object({
     default: z.string().required(),
     selectedDefault: z.string().volatile(),
+    allowExistingSessionSwitch: z.boolean().default(false).volatile(),
   })
   private readonly owner: Context
   private readonly definitions = new Map<string, Definition>()
@@ -326,7 +327,7 @@ export class AgentPresetRegistry extends TypertRemoteService {
     return mount === undefined ? undefined : serviceForMount(this.owner, mount, name)
   }
 
-  /** Rebind a blank Agent; the caller owns the blank-session check.
+  /** Rebind an Agent; the caller must exclude concurrent model and tool execution.
    * @param ctx Agent context.
    * @param id Requested preset.
    * @returns The bound identity.
@@ -338,7 +339,7 @@ export class AgentPresetRegistry extends TypertRemoteService {
     return preset
   }
 
-  /** Select a preset before a session starts its first turn. A Session whose
+  /** Select a preset while idle, respecting the policy for established conversations. A Session whose
    * log records the preset and whose Agent runs its current revision keeps its
    * composition; nothing is logged or announced.
    * @param agent Target Agent.
@@ -349,15 +350,33 @@ export class AgentPresetRegistry extends TypertRemoteService {
   async select(agent: Agent, agentPreset: string): Promise<string> {
     const turn = (this.switches.get(agent.id) ?? Promise.resolve()).then(async () => {
       const boundary = this.owner.sessionProjections.stateOf(agent.session, 'turnBoundary')
-      if (boundary !== undefined && (boundary.openTurnStartSeq !== null || boundary.lastTurn > 0)) {
-        throw new RemoteError('agent-preset/locked', 'This session has already started', { sessionId: agent.id, agentPreset })
+      if (agent.status !== 'idle' || boundary?.openTurnStartSeq != null) {
+        throw new RemoteError('agent-preset/locked', 'Wait for the current task to finish before changing its mode', {
+          sessionId: agent.id, agentPreset,
+        })
+      }
+      if (boundary !== undefined && boundary.lastTurn > 0 && !this.config.allowExistingSessionSwitch.get()) {
+        throw new RemoteError('agent-preset/locked', 'Changing an existing conversation mode is disabled in Settings', {
+          sessionId: agent.id, agentPreset,
+        })
       }
       const current = this.definitions.get(agentPreset)?.generation
       if (current !== undefined && this.generationFor(agent.ctx) === current
         && this.owner.sessionProjections.stateOf(agent.session, 'agentPreset') === agentPreset) return agentPreset
-      const preset = await this.recompose(agent.ctx, agentPreset)
-      agent.session.append('agent-preset/selected', { agentPreset: preset.id })
-      return preset.id
+      let entered = false
+      try {
+        return await agent.runMaintenance(async () => {
+          entered = true
+          const preset = await this.recompose(agent.ctx, agentPreset)
+          agent.session.append('agent-preset/selected', { agentPreset: preset.id })
+          return preset.id
+        })
+      } catch (error) {
+        if (!entered) throw new RemoteError('agent-preset/locked', 'Wait for session maintenance to finish before changing its mode', {
+          sessionId: agent.id, agentPreset,
+        })
+        throw error
+      }
     })
     const guard = turn.catch(() => undefined)
     this.switches.set(agent.id, guard)

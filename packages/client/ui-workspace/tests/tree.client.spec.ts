@@ -65,6 +65,32 @@ const rowState = (options: {
 })
 const noRows = rowState()
 
+describe('session mode markers', () => {
+  it.each(['standard', 'security', 'reverse', 'writing'] as const)('keeps the known mode for an established %s session', (mode) => {
+    const item = { ...summary('one', 1), projectionValues: { agentPreset: mode } }
+    const state = list(item)
+    expect(deriveFlat(state, state.ids, noRows, noAttention)[0]?.mode).toBe(mode)
+  })
+
+  it('uses the neutral marker for new, failed, unknown, and unreadable sessions', () => {
+    const item = { ...summary('one', 1), projectionValues: { agentPreset: 'reverse' } }
+    for (const current of [
+      { ...item, blank: true, retainedBy: { mainView: 1 } },
+      { ...item, projectionValues: { agentPreset: 'custom' } },
+      { ...item, projectionValues: { agentPreset: 'reverse', sessionListMetadata: {
+        blank: false, lastPromptAt: null, lastTurnFailed: true,
+      } } },
+    ]) {
+      const state = list(current)
+      expect(deriveFlat(state, state.ids, noRows, noAttention)[0]?.mode).toBeUndefined()
+    }
+    const state: SessionListState = { ...list(item),
+      projectionsBySession: { [item.id]: { state: 'error', error: null, values: { agentPreset: 'reverse' } } },
+    }
+    expect(deriveFlat(state, state.ids, noRows, noAttention)[0]?.mode).toBeUndefined()
+  })
+})
+
 describe('owningGroupKey', () => {
   it('returns the owning Workspace id or the Ungrouped key', () => {
     const workspaces = [workspace('first', ['owned'])]

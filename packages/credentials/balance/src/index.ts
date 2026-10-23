@@ -53,7 +53,11 @@ export class BalanceRemote extends TypertRemoteService {
   constructor(ctx: Context, private readonly options: { engine: BalanceEngine; config: Config }) {
     super(ctx, 'uncensoredBalance', { namespace: 'balance' })
   }
-  /** @param client - Platform request metadata. @returns Sanitized current state and local sampling history. */
+  /**
+   * Read balance observations under the current account and sampling preferences.
+   * @param client - Platform request metadata.
+   * @returns Sanitized current state and local sampling history.
+   */
   @Remote
   get(client: AccountClientMetadata): Promise<BalanceSnapshot> {
     const configured = this.options.config

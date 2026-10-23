@@ -7,7 +7,11 @@ import { accountClientMetadata } from './client-metadata.ts'
 import { BalanceController } from './balance-controller.ts'
 import { BalanceSettings, BalanceSidebar, type BalanceInjected } from './BalanceView.tsx'
 
-/** @param ctx - Account plugin context. @param account - Identity changes clear the previous account's display. */
+/**
+ * Bind balance settings and views to the account lifecycle.
+ * @param ctx - Account plugin context.
+ * @param account - Identity changes that invalidate the displayed balance.
+ */
 export function registerBalance(ctx: Context, account: HostObservable<AccountSnapshot>): void {
   ctx.inject(['remote.balance'], (scope) => {
     const form = scope.configForms.get<BalancePreferences>('balance')

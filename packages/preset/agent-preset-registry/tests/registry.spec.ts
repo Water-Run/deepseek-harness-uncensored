@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createScope } from '@deepseek-ai/dsh-scope'
 import { assembleContextFor } from '@deepseek-ai/dsh-agent'
 import { entryListProblem } from '../src/index.ts'
@@ -8,6 +8,9 @@ import Loader from '@deepseek-ai/cordis-plugin-loader'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import AgentPresets from '../src/index.ts'
 import type { Context } from '@deepseek-ai/cordis'
+import { SessionId } from '@deepseek-ai/dsh-session'
+import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { MockAdapter, textResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 
 const contexts: Context[] = []
 afterEach(async () => { for (const ctx of contexts.splice(0)) await ctx.fiber.dispose() })
@@ -110,7 +113,76 @@ describe('declarative preset revisions', () => {
     expect(await ctx.agentPresets.select(agent, 'minimal')).toBe('minimal')
     expect(ctx.sessionProjections.stateOf(agent.session, 'agentPreset')).toBe('minimal')
     agent.session.append('turn/start', { turn: 1 })
-    await expect(ctx.agentPresets.select(agent, 'standard')).rejects.toThrow('already started')
+    await expect(ctx.agentPresets.select(agent, 'standard')).rejects.toMatchObject({ code: 'agent-preset/locked' })
+  })
+
+  it('allows an idle established conversation to switch only after the live setting is enabled', async () => {
+    const ctx = await harness({ live: true })
+    contexts.push(ctx)
+    const live = liveRegistries.get(ctx)
+    if (live === undefined) throw new Error('Missing live settings fixture')
+    await declare(ctx, contribution('standard'))
+    await declare(ctx, contribution('minimal'))
+    const agent = await agentOn(ctx, 'existing-selection')
+    agent.session.append('turn/start', { turn: 1 })
+    agent.session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
+    await expect(ctx.agentPresets.select(agent, 'minimal')).rejects.toMatchObject({ code: 'agent-preset/locked' })
+    expect(ctx.agentPresets.composedPreset(agent.ctx)).toBe('standard')
+    await live.update({ allowExistingSessionSwitch: true })
+    expect(await ctx.agentPresets.select(agent, 'minimal')).toBe('minimal')
+    expect(ctx.tools.schemas(agent).map(tool => tool.name)).toEqual(['minimal'])
+    expect(ctx.sessionProjections.stateOf(agent.session, 'agentPreset')).toBe('minimal')
+    expect(ctx.agentPresets.defaultId).toBe('standard')
+    agent.session.append('turn/start', { turn: 2 })
+    await expect(ctx.agentPresets.select(agent, 'standard')).rejects.toMatchObject({ code: 'agent-preset/locked' })
+    expect(ctx.agentPresets.composedPreset(agent.ctx)).toBe('minimal')
+  })
+
+  it('holds a newly submitted prompt until the replacement tool composition is ready', async () => {
+    const ctx = await harness({ live: true })
+    contexts.push(ctx)
+    const live = liveRegistries.get(ctx)
+    if (live === undefined) throw new Error('Missing live settings fixture')
+    await declare(ctx, contribution('standard'))
+    await declare(ctx, contribution('minimal'))
+    await live.update({ allowExistingSessionSwitch: true })
+    const adapter = new MockAdapter([textResponse('first'), textResponse('second')])
+    ctx.llm.registerAdapter(['mock'], adapter)
+    const { agent } = await ctx.agents.create({ sessionId: SessionId('switch-prompt-race'),
+      agentOptions: { provider: 'mock', model: 'mock' },
+      setup: async (scope) => { await ctx.agentPresets.mount(scope, 'standard') },
+    })
+    const message = () => createUserMessage({ content: [{ type: 'text', text: 'reply' }], source: { kind: 'user' } })
+    agent.followup(message())
+    await agent.whenIdle()
+    const entered = Promise.withResolvers<undefined>()
+    const release = Promise.withResolvers<undefined>()
+    const recompose = ctx.agentPresets.recompose.bind(ctx.agentPresets)
+    const spy = vi.spyOn(ctx.agentPresets, 'recompose').mockImplementation(async (scope, preset) => {
+      entered.resolve(undefined)
+      await release.promise
+      return recompose(scope, preset)
+    })
+    const changing = ctx.agentPresets.select(agent, 'minimal')
+    try {
+      await entered.promise
+      agent.followup(message())
+      expect(adapter.requests).toHaveLength(1)
+      release.resolve(undefined)
+      await changing
+      await agent.whenIdle()
+      expect(adapter.requests).toHaveLength(2)
+      expect(adapter.requests[1]?.tools?.map(tool => tool.name)).toEqual(['minimal'])
+      const events = agent.session.snapshotEvents()
+      const selection = events.findIndex(event => event.type === 'agent-preset/selected')
+      const lastStart = events.findLastIndex(event => event.type === 'turn/start')
+      expect(selection).toBeGreaterThanOrEqual(0)
+      expect(lastStart).toBeGreaterThan(selection)
+    } finally {
+      release.resolve(undefined)
+      await Promise.allSettled([changing])
+      spy.mockRestore()
+    }
   })
 
   it('inventories active and disabled child entries and declared display metadata', async () => {
