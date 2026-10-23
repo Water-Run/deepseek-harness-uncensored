@@ -162,7 +162,7 @@ export function ConversationContent(props: ConversationContentProps) {
           : hero ? { placeholder: t('placeholder.hero') } : {}),
   })
 
-  const composerBar = (
+  const composerBar = props.composer === false ? null : (
     <div className={clsx(css.composerStack, hero && css.composerHero)}>
       {hero && <HeroShell t={t} renderSlot={renderSlot} />}
       {hero && heroWorkspaceRow}

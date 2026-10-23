@@ -584,6 +584,17 @@ function makeCompletionHarness(mode: TranscriptViewMode, timing: CollapseTiming 
   }
 }
 
+it('keeps compact answers and omits conversation branching, feedback and usage rows', () => {
+  const h = makeCompletionHarness('detailed')
+  h.complete()
+  const view = render(<h.ChatView {...h.props} compact />)
+  expect(view.getByText('current answer')).toBeTruthy()
+  expect(view.container.querySelector('[data-turn-tail]')).toBeNull()
+  expect(view.queryByRole('button', { name: '在新对话中分支' })).toBeNull()
+  view.rerender(<h.ChatView {...h.props} />)
+  expect(view.container.querySelector('[data-turn-tail]')).not.toBeNull()
+})
+
 /** Simulate reader input (any device): a delivered position that deviates
  * from the observed-top ledger of programmatic writes. */
 function readerScroll(element: HTMLElement, top: number): void {

@@ -5,7 +5,7 @@
  */
 import type { ComponentType } from 'react'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
-import type { ClientSessionContext } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
+import type { ClientSessionContext, SubmitOutcome } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
 import type { IconProps } from '@deepseek-ai/dsh-client-ui-primitives'
 
 /** Copy for an option that must be acknowledged before onSelect can run. */
@@ -88,8 +88,22 @@ export interface ActionSpec {
   run(session: ClientSessionContext): void
 }
 
-/** The UI behavior of a contribution or decoration. */
-export type CommandUiSpec = PopupSelectSpec | ActionSpec
+/** A built-in text command submitted through the composer's draft transaction. */
+export interface InputSpec {
+  readonly kind: 'input'
+  /** Return the localized argument hint shown while composing the command. @returns Input hint. */
+  hint(): string
+  /**
+   * Submit the text after the command token; error outcomes preserve the draft.
+   * @param session - Exact initiating conversation.
+   * @param text - Argument text, without the slash command.
+   * @returns Admission outcome; attachments are not accepted.
+   */
+  submit(session: ClientSessionContext, text: string): Promise<SubmitOutcome>
+}
+
+/** The UI behavior of a client-owned contribution. */
+export type CommandUiSpec = PopupSelectSpec | ActionSpec | InputSpec
 
 /**
  * One client-owned command contribution: a slash-menu entry whose behavior
@@ -128,7 +142,7 @@ export interface CommandDecoration {
   /** Capability filter, called with a fresh projection per bare invocation. */
   available(session: ClientSessionContext): boolean
   /** The bare-invocation UI. */
-  readonly ui: CommandUiSpec
+  readonly ui: PopupSelectSpec | ActionSpec
 }
 
 /** The `ctx.commandUi` service face visible to business packages. */

@@ -46,7 +46,14 @@ export function registerAsides(ctx: Context): void {
       void pending.then(() => requests.delete(pending), () => requests.delete(pending))
       return pending
     }
-    const inline = new InlineAsideController(async parent => scope.sessions.retain(await create(parent, 'btw'), { source: 'aside' }))
+    const inline = new InlineAsideController(async (parent) => {
+      const reference = scope.sessions.retain(await create(parent, 'btw'), { source: 'aside' })
+      try { await reference.ready; return reference }
+      catch (error) { reference.release(); throw error }
+    }, async (reference, question) => {
+      const result = await reference.binding.session.prompt([{ type: 'text', text: question }], 'queue')
+      if (!result.ok) throw result.error
+    })
     scope.effect(() => () => inline.dispose(), 'conversation: inline questions')
     const provider: ResourceProvider<'aside'> = {
       protocol: 'aside',
@@ -79,24 +86,28 @@ export function registerAsides(ctx: Context): void {
     scope.slots.inject('conversation.input.dock', () => scope.slots.register({ name: 'conversation.input.dock', id: 'btw', order: -20, locale: 'command',
       children: { 'conversation.input.aside': { kind: 'single', scope: 'session' } },
       inject: (parent: SessionId): InlineAsideInjected => ({
-        hooks: { inlineAside: inline.state }, close: () => inline.hide(parent), retry: () => { void inline.open(parent) },
+        hooks: { inlineAside: inline.state }, close: () => inline.hide(parent),
       }),
     }, InlineAsidePanel))
     scope.slots.inject('conversation.input.aside', () => scope.slots.register({ name: 'conversation.input.aside', locale: 'command', inject: () => ({ kind: 'btw' as const }) }, AsideConversation))
-    for (const kind of ['side', 'btw'] as const) scope.effect(() => scope.commandUi.register({ name: kind,
-      label: () => t(`aside.${kind}`), description: () => t(kind === 'side' ? 'aside.sideDescription' : 'aside.btwDescription'),
-      icon: kind === 'side' ? AsideIcon : IconNewChatOutlineRegular,
+    scope.effect(() => scope.commandUi.register({ name: 'btw',
+      label: () => t('aside.btw'), description: () => t('aside.btwDescription'), icon: IconNewChatOutlineRegular,
+      available: session => session.sessionId === scope.sidebarRight.mounted.getSnapshot(),
+      ui: { kind: 'input', hint: () => t('aside.btwHint'), submit: async (session, question) => {
+        if (!question.trim()) return { kind: 'error', text: t('aside.btwRequired') }
+        return await inline.ask(session.sessionId, question) ? { kind: 'success' } : { kind: 'error', text: t('aside.submitFailed') }
+      } },
+    }), 'conversation: /btw')
+    scope.effect(() => scope.commandUi.register({ name: 'side',
+      label: () => t('aside.side'), description: () => t('aside.sideDescription'), icon: AsideIcon,
       available: session => session.sessionId === scope.sidebarRight.mounted.getSnapshot(),
       ui: { kind: 'action', run: (session) => {
-        if (kind === 'side') {
-          for (const tab of scope.sidebarRight.openTabs.getSnapshot()) {
-            if (tab.sessionId === session.sessionId && tab.kind === 'aside' && tab.contentId.startsWith(ASIDE_PREFIX)) scope.sidebarRight.close(tab.tabId)
-          }
-          if (!scope.sidebarRight.openTabs.getSnapshot().some(tab => tab.sessionId === session.sessionId && tab.kind === 'guide')) scope.sidebarRight.openTab('guide')
-          scope.sidebarRight.openTab('aside')
+        for (const tab of scope.sidebarRight.openTabs.getSnapshot()) {
+          if (tab.sessionId === session.sessionId && tab.kind === 'aside' && tab.contentId.startsWith(ASIDE_PREFIX)) scope.sidebarRight.close(tab.tabId)
         }
-        else void inline.open(session.sessionId)
+        if (!scope.sidebarRight.openTabs.getSnapshot().some(tab => tab.sessionId === session.sessionId && tab.kind === 'guide')) scope.sidebarRight.openTab('guide')
+        scope.sidebarRight.openTab('aside')
       } },
-    }), `conversation: /${kind}`)
+    }), 'conversation: /side')
   })
 }

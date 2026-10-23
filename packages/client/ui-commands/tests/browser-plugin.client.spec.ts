@@ -55,10 +55,34 @@ async function bench() {
     const binding = sessions.binding(id) ?? sessions.retainFor(ctx, id).binding
     return { ctx: binding.ctx, fiber: binding.ctx.fiber }
   }
-  return { ctx, fiber, sources, slots: ctx.slots, mint }
+  return { ctx, fiber, sources, slots: ctx.slots, mint, sessions }
 }
 
 describe('apply', () => {
+  it('admits a native btw question only to its fresh child and rejects the empty form', async () => {
+    const { ctx, sources, fiber, sessions } = await bench()
+    const childPrompt = vi.fn(async () => ({ ok: true as const, value: { accepted: true as const } }))
+    await sessions.add({ id: 'question', session: { prompt: childPrompt } })
+    const sessionRemote = { aside: vi.fn(async () => ({ ok: true as const, value: { sessionId: sid('question') } })) }
+    Object.assign(ctx.remote, { session: sessionRemote })
+    ctx.provide('remote.session', sessionRemote)
+    ctx.provide('resources', { register: vi.fn(() => () => {}) })
+    ctx.provide('sidebarRightTabs', { register: vi.fn(() => () => {}) })
+    ctx.provide('sidebarRight', { mounted: { getSnapshot: () => sid('s1') } })
+    await Promise.all([...ctx.registry.values()].flatMap(runtime => [...runtime.fibers].map(child => child.await())))
+    const source = sources.get('/ command')!
+    const match = await source.matchEnter!({ sessionId: sid('s1') }, '/btw', new AbortController().signal, { attachments: 0 })
+    if (match === undefined || match === 'handled' || !('claim' in match)) throw new Error('btw must claim its input')
+    expect((await match.claim.submit('', ctx, [])).kind).toBe('error')
+    expect(sessionRemote.aside).not.toHaveBeenCalled()
+    expect(await match.claim.submit('独立问题', ctx, [])).toEqual({ kind: 'success' })
+    expect(sessionRemote.aside).toHaveBeenCalledOnce()
+    expect(sessionRemote.aside).toHaveBeenCalledWith({ sessionId: sid('s1'), kind: 'btw' })
+    expect(childPrompt).toHaveBeenCalledWith([{ type: 'text', text: '独立问题' }], 'queue')
+    await fiber.dispose()
+    expect(sessions.retainInfo(sid('question')).getSnapshot().referenceCount).toBe(0)
+  })
+
   it('registers native side and btw commands when the built-in sidebar and resource services arrive', async () => {
     const { ctx, sources, fiber } = await bench()
     ctx.provide('remote.session', { aside: vi.fn() })

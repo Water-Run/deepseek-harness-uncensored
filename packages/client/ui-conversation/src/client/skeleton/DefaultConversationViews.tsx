@@ -11,7 +11,7 @@ import css from './ConversationRoot.module.css'
  * @returns the active view area, or null while the Session remains blank.
  */
 export function DefaultConversationViews({
-  view, useSession, useConversation, useConversationViews, inputActions, useStore, actions,
+  view, compact, useSession, useConversation, useConversationViews, inputActions, useStore, actions,
   renderSlot, bindDraftPersistence, openView, useInspectCall,
 }: ConversationSessionSlotProps) {
   const tabs = useConversationViews(value => value)
@@ -34,6 +34,7 @@ export function DefaultConversationViews({
   return (
     <div className={css.viewArea}>
       {viewId !== undefined && renderSlot('conversation.view', {
+        compact,
         inspectCall,
         viewRequest,
         openView,

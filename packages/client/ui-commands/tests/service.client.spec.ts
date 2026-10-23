@@ -179,6 +179,45 @@ function menuPick(source: InputTriggerSource, name: string, session: ClientSessi
   return source.onPick(pick)
 }
 
+describe('built-in argument commands', () => {
+  it('uses one text claim for menu, space, restored drafts and Enter without executing a Host command', async () => {
+    const b = await bench()
+    const submit = vi.fn(async (_session: ClientSessionContext, text: string) =>
+      text.trim() ? { kind: 'success' as const } : { kind: 'error' as const, text: 'question required' })
+    b.command.register({ name: 'btw', available: () => true, ui: { kind: 'input', hint: () => 'Question', submit } })
+    const signal = new AbortController().signal
+    const outcomes = [menuPick(b.source, 'btw', proj('s1')), b.source.matchSpace!(proj('s1'), '/btw'),
+      await b.source.matchEnter!(proj('s1'), '/btw hello', signal, { attachments: 0 })]
+    for (const result of outcomes) {
+      expect(result).toHaveProperty('claim.token', '/btw ')
+      if (result === undefined || result === 'handled' || !('claim' in result)) throw new Error('missing claim')
+      expect(await result.claim.submit('hello', b.ctx, [])).toEqual({ kind: 'success' })
+    }
+    const restored = await b.source.matchClaim!(proj('s1'), '/btw', signal)
+    expect(restored?.token).toBe('/btw ')
+    expect(await restored?.submit('', b.ctx, [])).toEqual({ kind: 'error', text: 'question required' })
+    expect(b.executeCalls).toEqual([])
+    expect(submit).toHaveBeenCalledTimes(4)
+    await b.fiber.dispose()
+  })
+
+  it('keeps text commands out of inline menus and refuses attachments before admission', async () => {
+    const b = await bench()
+    const submit = vi.fn(async () => ({ kind: 'success' as const }))
+    const remove = b.command.register({ name: 'btw', available: session => session.sessionId === sid('s1'),
+      ui: { kind: 'input', hint: () => 'Question', submit } })
+    const signal = new AbortController().signal
+    const candidates = await b.source.candidates(proj('s1'), { query: '', position: 'inline', drilled: false, signal })
+    expect(candidates.some(row => row.name === 'btw')).toBe(false)
+    await expect(b.source.matchEnter!(proj('s1'), '/btw hello', signal, { attachments: 1 })).rejects.toThrow('attachmentsUnsupported')
+    expect(b.source.matchSpace!(proj('s2'), '/btw')).toBeUndefined()
+    expect(submit).not.toHaveBeenCalled()
+    remove()
+    expect(b.source.matchSpace!(proj('s1'), '/btw')).toBeUndefined()
+    await b.fiber.dispose()
+  })
+})
+
 const themeUi = (over: Partial<PopupSelectSpec> = {}): PopupSelectSpec => ({
   kind: 'popupSelect',
   options: () => Promise.resolve([{ id: 'dark', label: 'Dark' }]),

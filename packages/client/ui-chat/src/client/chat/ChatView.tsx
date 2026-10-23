@@ -60,13 +60,16 @@ const MOTION_TAIL_MS = 800
 export function ChatView({
   useSession, useChat, useConversation, useSessions, renderSlot,
   sessionId, openFile, openExternalLink, loadOlder, loadThrough, loadImage, inspectCall, chatScroll, forkAt, fileMentions,
-  usePresentation, useProjection, t,
+  usePresentation, useProjection, t, compact,
 }: ChatViewSlotProps) {
   const order = useChat(s => s.order)
   const groupedEntries = useConversation(snapshot => snapshot.views.grouped('chat')?.entries)
   const entries = useMemo<readonly RenderEntry[]>(() => groupedEntries
     ?? order.map(key => ({ kind: 'node', key: key as NodeKey })), [groupedEntries, order])
   const nodeStore = useChat(s => s.nodes)
+  const visibleEntries = useMemo(() => compact
+    ? entries.filter(entry => entry.kind !== 'node' || nodeStore.get(entry.key)?.kind !== 'turn-tail')
+    : entries, [compact, entries, nodeStore])
   const deferCompletedTurns = usePresentation(policy => policy.collapseTiming === 'next-input')
   const transcriptView = usePresentation(policy => policy.mode)
   // The rail's items are accumulated in the Chat snapshot, so this selector is
@@ -225,7 +228,7 @@ export function ChatView({
             )}
             <MarkdownDelegateProvider openFile={requestOpenFile} openExternalLink={openExternalLink} fileImages={fileImages}>
               {renderSlot('conversation.chat.flow', {
-                entries, pendingInputs, lastInputTurn, deferCollapse,
+                entries: visibleEntries, pendingInputs, lastInputTurn, deferCollapse,
                 cwd, openFile: requestOpenFile, inspectCall, forkAt, loadImage, fileMentions,
               }, { hookContext: flowContext })}
             </MarkdownDelegateProvider>

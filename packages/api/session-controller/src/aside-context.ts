@@ -37,7 +37,7 @@ export async function installAsideContext(ctx: Context, agent: Agent, maxMainCon
       order: scope.systemPrompt.getSectionOrder('DEPLOYMENT_PERSONA_SUFFIX'), interpolate: false,
       text: kind === 'side'
         ? 'This is a side question in a separate conversation. The inherited transcript is background context. Respond to the new question here; do not resume the parent task unless explicitly asked. Messages in this conversation do not enter the parent conversation.'
-        : 'This is a fresh, independent quick question. No context from the parent conversation is available. Respond only to the question supplied here.',
+        : 'This is a fresh, independent quick question. No context from the parent conversation is available. Answer the supplied question directly once, without asking follow-up questions or continuing the parent task.',
     }), 'native aside: prompt section')
     if (kind === 'side') {
       scope.on('system-prompt/assemble', async (_assembly, context, next) => {

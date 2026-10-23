@@ -28,7 +28,7 @@ import type {
   CandidateRequest, ClientSessionContext, CommandClaim, PickOutcome, InputTriggerCandidate, InputTriggerPick,
   SubmitAttachment, SubmitEnvelope, SubmitOutcome,
 } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
-import type { CommandContribution, CommandDecoration, CommandUiContract } from './contract.ts'
+import type { CommandContribution, CommandDecoration, CommandUiContract, InputSpec } from './contract.ts'
 import type { CommandDescriptor } from './directory.ts'
 import { CommandDirectory } from './directory.ts'
 import { PopupSelectController } from './popup.ts'
@@ -243,17 +243,19 @@ export class CommandUiRuntime extends Service implements CommandUiContract {
         ...(contribution.label === undefined ? {} : { label: contribution.label() }),
         ...(contribution.description === undefined ? {} : { description: contribution.description() }),
         ...(contribution.icon === undefined ? {} : { icon: contribution.icon }),
+        ...(contribution.ui.kind === 'input' ? { hint: contribution.ui.hint() } : {}),
       })
     }
     const visible = rows.filter(c => req.position === 'leading' || c.hint === undefined)
     return req.query === '' ? sectionRows(visible, this.t) : rankByName(visible, req.query)
   }
 
-  /** Decision table, menu column: contribution/decorated-host → popup or action; host input → claim; host bare → detached execute. */
+  /** Text commands claim the draft; other client entries open their UI and bare Host commands execute. */
   private dispatch(pick: InputTriggerPick): PickOutcome {
     const name = pick.candidate.name
     const contribution = this.live.contributions.get(name)
     if (contribution !== undefined && contribution.available(pick.session)) {
+      if (contribution.ui.kind === 'input') return { claim: this.inputClaim(name, contribution.ui, pick.session) }
       this.invoke(name, contribution.ui, pick.session, { via: 'menu', span: pick.span })
       return 'handled'
     }
@@ -275,7 +277,7 @@ export class CommandUiRuntime extends Service implements CommandUiContract {
     return 'handled'
   }
 
-  /** Decision table, space column: hot-key sync check; only host leadingInput claims. */
+  /** Resolve a text command's input claim on Space without starting its submission. */
   private matchSpace(session: ClientSessionContext, token: string): PickOutcome {
     const claim = this.claimOf(session, token)
     return claim === undefined ? undefined : { claim }
@@ -287,14 +289,19 @@ export class CommandUiRuntime extends Service implements CommandUiContract {
    * executed.
    */
   private async matchClaim(session: ClientSessionContext, token: string, signal: AbortSignal): Promise<CommandClaim | undefined> {
+    if (this.live.contributions.has(token.slice(1))) return this.claimOf(session, token)
     await this.directory.ensureReady(session.sessionId, signal)
     return this.claimOf(session, token)
   }
 
-  /** The host leadingInput claim a token names in the hot catalog; popup and action kinds never claim. */
+  /** Resolve built-in text commands or a Host leading-input descriptor; popup and action entries never claim. */
   private claimOf(session: ClientSessionContext, token: string): CommandClaim | undefined {
     if (!token.startsWith('/')) return undefined
-    if (this.live.contributions.has(token.slice(1))) return undefined
+    const contribution = this.live.contributions.get(token.slice(1))
+    if (contribution !== undefined) {
+      return contribution.available(session) && contribution.ui.kind === 'input'
+        ? this.inputClaim(contribution.name, contribution.ui, session) : undefined
+    }
     const desc = this.directory.resolve(session.sessionId, token.slice(1))
     if (desc === undefined || desc.input === undefined) return undefined
     return this.leadingClaim(desc, session, token.slice(1))
@@ -334,6 +341,10 @@ export class CommandUiRuntime extends Service implements CommandUiContract {
     }
     const contribution = this.live.contributions.get(typedName)
     if (contribution !== undefined && contribution.available(session)) {
+      if (contribution.ui.kind === 'input') {
+        if (envelope.attachments > 0) refuseAttachments()
+        return { claim: this.inputClaim(contribution.name, contribution.ui, session) }
+      }
       if (!bare) return undefined
       if (envelope.attachments > 0 && contribution.ui.kind !== 'action') refuseAttachments()
       this.invoke(typedName, contribution.ui, session, { via: 'enter', token })
@@ -371,7 +382,7 @@ export class CommandUiRuntime extends Service implements CommandUiContract {
    */
   private invoke(
     name: string,
-    ui: CommandContribution['ui'],
+    ui: Exclude<CommandContribution['ui'], InputSpec>,
     session: ClientSessionContext,
     segment: TokenSegment,
   ): void {
@@ -402,6 +413,11 @@ export class CommandUiRuntime extends Service implements CommandUiContract {
       ...(desc.input?.attachments === true ? { attachments: true } : {}),
       submit: (args, _actx, attachments) => this.execute(session, line + args, attachments),
     }
+  }
+
+  /** Bind a built-in text command to the originating conversation's draft transaction. */
+  private inputClaim(name: string, input: InputSpec, session: ClientSessionContext): CommandClaim {
+    return { name, token: `/${name} `, hint: input.hint(), submit: text => input.submit(session, text) }
   }
 
   /**

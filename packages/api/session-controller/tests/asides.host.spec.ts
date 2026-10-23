@@ -116,6 +116,7 @@ describe('native side conversations', () => {
       child.followup(prompt('first btw marker'))
       await child.whenIdle()
       expect(JSON.stringify(adapter.requests.at(-1)?.messages)).not.toContain('parent secret marker')
+      expect(JSON.stringify(adapter.requests.at(-1)?.messages)).toContain('without asking follow-up questions')
       const second = await controller.open({ sessionId: parent.id, kind: 'btw' })
       expect(second.sessionId).not.toBe(first.sessionId)
       const fresh = ctx.agents.get(second.sessionId)!

@@ -138,6 +138,8 @@ function mount(
     nestedSubagent?: boolean
     /** A composer block another plugin raised for this session. */
     composerBlock?: { reason: string }
+    /** Render transcript-only content for one-shot questions. */
+    readOnly?: boolean
     /** Mutable view ledger used by registration-order regressions. */
     viewTabs?: ViewTab[]
   } = {},
@@ -356,7 +358,7 @@ function mount(
     )) as ConversationContentProps['useFactorySlot']
     return (
       <FactoryViewsTestContext.Provider value={common}>
-        <ConversationContent {...({ ...common, ...runtimeProps, ...input, useFactorySlot })} />
+        <ConversationContent {...({ ...common, ...runtimeProps, ...input, useFactorySlot })} composer={options.readOnly !== true} />
       </FactoryViewsTestContext.Provider>
     )
   }) as ConversationSlotProps['renderFactorySlot']
@@ -404,6 +406,20 @@ describe('Hero chrome', () => {
 })
 
 describe('ConversationRoot resident composer', () => {
+  it('renders a read-only transcript without a composer, docks or follow-up controls', () => {
+    const b = mount(sessionSnapshotOf(), undefined, undefined, { readOnly: true })
+    expect(b.view.container.querySelector('[data-conversation-content]')).not.toBeNull()
+    expect(b.view.container.querySelector('[data-composer-input]')).toBeNull()
+    expect(b.view.queryByRole('textbox')).toBeNull()
+    expect(b.view.queryByRole('button', { name: /发送|Send/ })).toBeNull()
+  })
+
+  it('keeps a pending interaction visible without exposing freeform follow-up controls', () => {
+    const b = mount(sessionSnapshotOf(), undefined, undefined, { readOnly: true, overlayTakeover: true })
+    expect(b.view.getByTestId('composer-takeover')).toBeTruthy()
+    expect(b.view.queryByRole('textbox')).toBeNull()
+  })
+
   it('keeps global header navigation without selecting a Session', () => {
     const b = mount(sessionSnapshotOf(), [], undefined, { sessionId: undefined })
     expect(b.view.container.querySelector('header')).not.toBeNull()

@@ -1,60 +1,96 @@
-/** Lifetime of native inline questions displayed beside a parent's composer. */
+/** Submission and reference ownership for one-shot inline questions. */
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 
-/** One inline question, including its creation feedback. */
+/** One result block; rejected admission retains any opened transcript for inspection. */
 export type InlineAside = { readonly status: 'opening' } | { readonly status: 'failed' }
-  | { readonly status: 'ready'; readonly reference: SessionReference }
+  | { readonly status: 'ready'; readonly reference: SessionReference; readonly submitFailed: boolean }
 
-/** Owns the retained children and pending operations of the inline question surface. */
+interface Opening {
+  readonly question: string
+  reference?: SessionReference
+  pending: boolean
+  hidden: boolean
+  task: Promise<boolean>
+}
+
+/** Owns each question through admission, even when its result block is hidden meanwhile. */
 export class InlineAsideController {
-  /** Inline windows and creation feedback, indexed by their main conversation. */
+  /** Result blocks indexed by their main conversation. */
   readonly state = createSnapshotStore<ReadonlyMap<SessionId, InlineAside>>(new Map())
-  private readonly pending = new Map<SessionId, Promise<void>>()
-  private readonly operations = new Set<Promise<void>>()
-  private readonly generations = new Map<SessionId, object>()
+  private readonly entries = new Map<SessionId, Opening>()
+  private readonly operations = new Set<Promise<boolean>>()
   private closed = false
 
-  /** @param create - Create and retain a fresh child; rejects when the Host cannot confirm creation. */
-  constructor(private readonly create: (parent: SessionId) => Promise<SessionReference>) {}
+  /**
+   * @param create - Create and retain a fresh child whose initial history is ready.
+   * @param submit - Submit one question; reject when admission cannot be confirmed.
+   */
+  constructor(
+    private readonly create: (parent: SessionId) => Promise<SessionReference>,
+    private readonly submit: (reference: SessionReference, question: string) => Promise<void>,
+  ) {}
 
   /**
-   * Open a fresh inline conversation, sharing an already-pending creation.
-   * @param parent - Parent owning the inline window.
-   * @returns Completion of the current opening.
+   * Submit one independent question; simultaneous identical submissions share admission.
+   * @param parent - Conversation owning the result block.
+   * @param text - Nonempty question after the command token.
+   * @returns Confirmed admission; false keeps the originating draft intact.
    */
-  open(parent: SessionId): Promise<void> {
-    if (this.closed) return Promise.resolve()
-    const pending = this.pending.get(parent)
-    if (pending !== undefined && this.generations.has(parent)) return pending
+  ask(parent: SessionId, text: string): Promise<boolean> {
+    const question = text.trim()
+    if (this.closed || !question) return Promise.resolve(false)
+    const previous = this.entries.get(parent)
+    if (previous?.pending) return previous.question === question ? previous.task : Promise.resolve(false)
     this.hide(parent)
-    const generation = {}
-    this.generations.set(parent, generation)
+    const entry: Opening = { question, pending: true, hidden: false, task: Promise.resolve(false) }
+    this.entries.set(parent, entry)
     this.publish(parent, { status: 'opening' })
-    const operation = this.create(parent).then((reference) => {
-      if (this.closed || this.generations.get(parent) !== generation) reference.release()
-      else this.publish(parent, { status: 'ready', reference })
-    }, () => {
-      if (!this.closed && this.generations.get(parent) === generation) this.publish(parent, { status: 'failed' })
-    }).finally(() => {
+    const operation = this.run(parent, entry).finally(() => {
+      entry.pending = false
       this.operations.delete(operation)
-      if (this.pending.get(parent) === operation) this.pending.delete(parent)
+      if (entry.hidden || this.closed) this.release(entry)
     })
+    entry.task = operation
     this.operations.add(operation)
-    this.pending.set(parent, operation)
     return operation
   }
 
+  private async run(parent: SessionId, entry: Opening): Promise<boolean> {
+    try {
+      entry.reference = await this.create(parent)
+      if (entry.hidden || this.closed) return false
+      const reference = entry.reference
+      this.publish(parent, { status: 'ready', reference, submitFailed: false })
+      await this.submit(reference, entry.question)
+      return true
+    } catch (_admissionFailed) {
+      if (!entry.hidden && !this.closed) {
+        this.publish(parent, entry.reference === undefined ? { status: 'failed' }
+          : { status: 'ready', reference: entry.reference, submitFailed: true })
+      }
+      return false
+    }
+  }
+
   /**
-   * Hide a window while preserving its durable child conversation.
-   * @param parent - Owning parent.
+   * Hide the result block; an in-flight submission retains its reference until settlement.
+   * @param parent - Owning conversation.
    */
   hide(parent: SessionId): void {
-    this.generations.delete(parent)
-    const old = this.state.getSnapshot().get(parent)
+    const entry = this.entries.get(parent)
+    this.entries.delete(parent)
     this.publish(parent, undefined)
-    if (old?.status === 'ready') old.reference.release()
+    if (entry === undefined) return
+    entry.hidden = true
+    if (!entry.pending) this.release(entry)
+  }
+
+  private release(entry: Opening): void {
+    const reference = entry.reference
+    delete entry.reference
+    reference?.release()
   }
 
   private publish(parent: SessionId, value: InlineAside | undefined): void {
@@ -64,10 +100,10 @@ export class InlineAsideController {
     this.state.set(next)
   }
 
-  /** Drain pending creation before releasing the providers used by its completion. */
+  /** Stop admission, drain pending submissions, then release every owned child reference. */
   async dispose(): Promise<void> {
     this.closed = true
-    for (const parent of this.state.getSnapshot().keys()) this.hide(parent)
+    for (const parent of this.entries.keys()) this.hide(parent)
     await Promise.allSettled([...this.operations])
   }
 }

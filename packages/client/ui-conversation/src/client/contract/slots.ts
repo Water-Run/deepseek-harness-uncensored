@@ -206,7 +206,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'conversation.session': {
       kind: 'single'
       scope: 'session'
-      owner: { view?: string }
+      owner: { view?: string; compact?: boolean }
     }
     /** Resident navigation container, including when no Session is selected. */
     'conversation.header': { kind: 'single'; scope: 'session-maybe' }
@@ -389,6 +389,8 @@ export interface InputZone {
 
 /** Conversation View entries obtain their data from registered standard hooks. */
 export interface ConvViewOwnerProps {
+  /** Compact answer presentation omits full-conversation turn action rows. */
+  compact?: boolean | undefined
   /** Open a tool call's inspector when an inspection target is available. */
   inspectCall: ((callId: string) => void) | undefined
   /** Focus request addressed to the selected View. */
@@ -539,6 +541,8 @@ export interface ConversationContentInputProps {
   hero: boolean
   /** Localized prompt hint for an embedded conversation. */
   placeholder?: string
+  /** Hide freeform follow-up controls while retaining pending questions or approval panels. */
+  composer?: boolean
 }
 
 /** Values passed from shared content to its occurrence-selected width controls. */

@@ -11,30 +11,29 @@ import css from './AsidePanel.module.css'
 export interface InlineAsideInjected {
   hooks: { inlineAside: InlineAsideController['state'] }
   close(): void
-  retry(): void
 }
 
 type InlineProps = PropsRuntime<'conversation.input.dock'> & PropsLocale<'command'>
   & PropsRenderSlots<'conversation.input.aside'> & InjectFace<InlineAsideInjected>
 
 /** Render one independent quick-question window above the parent's composer. */
-export function InlineAsidePanel({ sessionId, useInlineAside, SessionProvider, renderSlot, close, retry, t }: InlineProps) {
+export function InlineAsidePanel({ sessionId, useInlineAside, SessionProvider, renderSlot, close, t }: InlineProps) {
   const state = useInlineAside(value => value.get(sessionId))
   if (state === undefined) return null
   return <section className={css.inline} aria-label={t('aside.btw')} data-aside="btw">
     <header className={css.header}>
       <IconNewChatOutlineRegular />
       <span>{t('aside.btw')}</span>
-      <span className={css.hint}>{t('aside.fresh')}</span>
       <Tooltip label={t('aside.close')} side="top" portal>
         <button type="button" onClick={close} aria-label={t('aside.close')} className={css.close}><IconCloseOutlineRegular /></button>
       </Tooltip>
     </header>
+    {state.status === 'ready' && state.submitFailed && <p role="alert" className={css.notice}>{t('aside.submitFailed')}</p>}
     <div className={css.content}>
       {state.status === 'ready'
         ? <SessionProvider session={state.reference}>{renderSlot('conversation.input.aside', {})}</SessionProvider>
         : state.status === 'failed'
-          ? <div className={css.state} role="alert"><span>{t('aside.inlineFailed')}</span><button type="button" onClick={retry}>{t('aside.retry')}</button></div>
+          ? <div className={css.state} role="alert">{t('aside.inlineFailed')}</div>
           : <div className={css.state} role="status" aria-label={t('aside.loading')}><IconLoadingOutlineRegular size={20} className={css.spinner} /></div>}
     </div>
   </section>
@@ -44,9 +43,15 @@ function ChatView({ renderSlot }: ConversationViewsProps) {
   return <>{renderSlot('conversation.session', { view: 'chat' })}</>
 }
 
+function QuickAnswerView({ renderSlot }: ConversationViewsProps) {
+  return <>{renderSlot('conversation.session', { view: 'chat', compact: true })}</>
+}
+
 /** Render a compact child Conversation without the new-task hero or workspace picker. */
 export function AsideConversation({ renderFactorySlot, t, kind }: PropsRuntime<'conversation.input.aside'> & PropsRenderFactories & PropsLocale<'command'> & { kind: 'side' | 'btw' }) {
-  return renderFactorySlot('conversation.content', { variant: 'embedded', phase: 'active', hero: false, placeholder: t(kind === 'side' ? 'aside.placeholder' : 'aside.btwPlaceholder') }, { slots: { views: ChatView } })
+  return renderFactorySlot('conversation.content', {
+    variant: 'embedded', phase: 'active', hero: false, composer: kind === 'side', placeholder: t('aside.placeholder'),
+  }, { slots: { views: kind === 'btw' ? QuickAnswerView : ChatView } })
 }
 
 /** Bind a sidebar resource to the child session; resource failures stay visible in the panel. */
