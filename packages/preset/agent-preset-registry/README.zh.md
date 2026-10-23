@@ -45,7 +45,7 @@ kind: "package-reference"
 |---|---|---|
 | `default` | 必填 | 未显式指定时使用的 preset ID |
 
-Web 内置定义来自 `dsh-web-app` bundle。定义使用普通插件行；注册表不扫描目录，也不接受 preset 路径。`agent-preset-registry` 条目的 volatile 字段 `selectedDefault` 保留用户默认值，新会话优先使用它而不是部署 `default`。profile patch 仍可能带有已废弃的 `modeSelectionEnabled` 字段；注册表未声明该字段，既不读取也不重写它。
+Web 内置定义来自 `dsh-web-app` bundle。定义使用普通插件行；注册表不扫描目录，也不接受 preset 路径。新会话使用部署的 `default`，本发行的 Web 配置固定为 `standard`。旧字段 `selectedDefault` 仍可解析但不再生效；各会话仍可显式选择模式。profile patch 仍可能带有已废弃的 `modeSelectionEnabled` 字段；注册表未声明该字段，既不读取也不重写它。
 
 已有对话仅在空闲且经过所有者确认后才能切换模式。`beginModeSwitch` 签发一次性确认标识，`confirmModeSwitch` 校验单调时钟计时已满十秒，`disableModeSwitch` 撤销权限及待确认标识。标识五分钟后过期。每次注册表启动时权限均关闭，且不持久保存。旧配置字段 `allowExistingSessionSwitch` 仍可读取但不生效，编辑它不能授予切换权限。新对话不需要这项确认即可选择模式。
 

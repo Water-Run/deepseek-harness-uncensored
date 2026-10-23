@@ -13,7 +13,7 @@ export interface AgentPreset {
 export interface Config {
   /** Deployment default when the caller omits a preset. */
   default: string
-  /** User-selected default; edited through Settings. */
+  /** Legacy saved value, accepted for existing configuration files but ignored. */
   selectedDefault: Volatile<string | undefined>
   /** Legacy saved value, accepted for existing configuration files but ignored; permission requires runtime confirmation. */
   allowExistingSessionSwitch: Volatile<boolean>

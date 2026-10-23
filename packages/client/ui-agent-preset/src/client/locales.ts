@@ -69,7 +69,7 @@ export const en: Record<AgentPresetSettingsKey, string> = {
   currentMode: 'Current mode', selectCurrent: 'Select mode', selected: 'Selected',
   ...guideEn,
   builtInGroup: 'Built-in', customGroup: 'Custom',
-  sectionIntro: 'Choose the mode for the current conversation. Set a default separately for conversations created later.',
+  sectionIntro: 'Choose the mode for the current conversation. New conversations always start in Standard.',
 
   seatHint: 'Choose the agent preset for your new task',
   headerHint: 'The mode currently used by this conversation',
@@ -138,7 +138,7 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
   currentMode: '当前模式', selectCurrent: '选择模式', selected: '当前选择',
   ...guideZh,
   builtInGroup: '内置', customGroup: '自定义',
-  sectionIntro: '选择当前对话的模式；“设为默认”只影响之后创建的新对话。',
+  sectionIntro: '选择当前对话的模式。新对话默认使用缺省，可在开始前手动选择其他模式。',
 
   seatHint: '选择新会话的模式',
   headerHint: '本会话当前使用的模式',

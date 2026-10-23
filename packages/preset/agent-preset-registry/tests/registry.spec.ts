@@ -332,12 +332,16 @@ it('allows an isolated service and resolves it through the Agent composition', a
   expect(ctx.agentPresets.serviceFor({ ctx: scope.ctx }, 'loader')).toBeUndefined()
 })
 
-it('resolves the saved default over the deployment default, and drops a removed override', async () => {
+it('keeps the deployment default despite legacy saved preferences', async () => {
   const ctx = await harness({ live: true })
   contexts.push(ctx)
   const live = liveRegistries.get(ctx)!
+  await declare(ctx, contribution('standard'))
+  await declare(ctx, contribution('minimal'))
   await live.update({ selectedDefault: 'minimal' })
-  expect(ctx.agentPresets.defaultId).toBe('minimal')
+  expect(await ctx.agentPresets.resolve()).toEqual({ id: 'standard' })
+  expect(await ctx.agentPresets.resolve('minimal')).toEqual({ id: 'minimal' })
+  expect(ctx.agentPresets.defaultId).toBe('standard')
   await live.replace({ default: 'standard' })
   expect(ctx.agentPresets.defaultId).toBe('standard')
 })
@@ -350,8 +354,8 @@ it('ignores a retired modeSelectionEnabled field in the user patch', async () =>
   // A patch written before Developer tools became the only gate still carries
   // this key; the Loader's declared fields simply do not include it.
   await live.update({ selectedDefault: 'minimal', modeSelectionEnabled: false })
-  expect(ctx.agentPresets.defaultId).toBe('minimal')
-  expect((await ctx.agentPresets.remoteExportList()).presets.find(row => row.id === 'minimal')?.isDefault).toBe(true)
+  expect(ctx.agentPresets.defaultId).toBe('standard')
+  expect((await ctx.agentPresets.remoteExportList()).presets.find(row => row.id === 'minimal')?.isDefault).toBe(false)
   // Neither read nor rewritten: the raw entry keeps the key it was loaded with.
   expect(live.entry.options.config).toMatchObject({ selectedDefault: 'minimal', modeSelectionEnabled: false })
 })

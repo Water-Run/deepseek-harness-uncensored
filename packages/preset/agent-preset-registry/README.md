@@ -45,7 +45,7 @@ The public selection roster omits definitions marked `hidden`. Historical resolu
 |---|---|---|
 | `default` | required | Preset ID used when none is requested |
 
-The Web definitions come from the `dsh-web-app` bundle. Definitions are ordinary plugin rows; the registry neither scans directories nor accepts preset paths. The `selectedDefault` volatile field of the `agent-preset-registry` entry retains the user default, which new sessions resolve over the deployment `default`. A profile patch may still carry the retired `modeSelectionEnabled` field; the registry declares no such field and neither reads nor rewrites it.
+The Web definitions come from the `dsh-web-app` bundle. Definitions are ordinary plugin rows; the registry neither scans directories nor accepts preset paths. New sessions use the deployment `default`, which is `standard` in the shipped Web profile. The legacy `selectedDefault` field is accepted but ignored; explicit per-session selections remain supported. A profile patch may still carry the retired `modeSelectionEnabled` field; the registry declares no such field and neither reads nor rewrites it.
 
 Established conversations can change mode only while idle and after owner acknowledgement. `beginModeSwitch` issues a one-time challenge, `confirmModeSwitch` enforces ten seconds of monotonic elapsed time, and `disableModeSwitch` revokes permission and pending challenges. Challenges expire after five minutes. Permission starts disabled for each registry lifetime and is never persisted. The legacy `allowExistingSessionSwitch` configuration field is accepted but ignored; editing it cannot authorize a switch. New conversations remain selectable without this acknowledgement.
 

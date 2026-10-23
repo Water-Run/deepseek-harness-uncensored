@@ -46,19 +46,19 @@ function rowFor(id: string): HTMLElement {
   if (row === null) throw new Error(`no card for ${id}`)
   return row
 }
-it.each([false, true])('offers Standard, Creator and custom defaults with Coding Tools %s', (enabled) => {
+it.each([false, true])('offers current-mode choices with Coding Tools %s', (enabled) => {
   const actions = view({ rows: [
     { id: 'standard', isDefault: false }, { id: 'ptc', isDefault: false },
     { id: 'minimal', isDefault: true }, { id: 'cordis', isDefault: false },
     { id: 'mine', name: 'Mine', isDefault: false },
   ] }, vi.fn(), undefined, enabled)
-  expect(screen.queryByRole('button', { name: `${en.setDefault}: ${en.presetPtcName}` }) !== null).toBe(enabled)
+  expect(screen.queryByRole('button', { name: `${en.selectCurrent}: ${en.presetPtcName}` }) !== null).toBe(enabled)
   expect(screen.queryByRole('button', { name: `${en.selected}: ${en.presetMinimalName}` }) !== null).toBe(enabled)
   for (const [id, name] of [['standard', en.presetStandardName], ['cordis', en.presetCordisName], ['mine', 'Mine']]) {
-    const button = screen.getByRole<HTMLButtonElement>('button', { name: `${en.setDefault}: ${name}` })
+    const button = screen.getByRole<HTMLButtonElement>('button', { name: `${en.selectCurrent}: ${name}` })
     expect(button.disabled).toBe(false)
     fireEvent.click(button)
-    expect(actions.makeDefault).toHaveBeenLastCalledWith(id)
+    expect(actions.selectCurrent).toHaveBeenLastCalledWith(id)
   }
   expect(screen.getByRole<HTMLButtonElement>('button', { name: en.creatorDraft }).disabled).toBe(false)
 })
@@ -81,17 +81,16 @@ it('updates visible settings choices without writing defaults from the renderer'
 })
 it.each(['ptc', 'minimal'])('keeps a named custom %s override selectable with Coding Tools off', (id) => {
   const actions = view({ rows: [{ id, name: 'My mode', isDefault: false }] }, undefined, undefined, false)
-  fireEvent.click(screen.getByRole('button', { name: `${en.setDefault}: My mode` }))
-  expect(actions.makeDefault).toHaveBeenCalledWith(id)
+  fireEvent.click(screen.getByRole('button', { name: `${en.selectCurrent}: My mode` }))
+  expect(actions.selectCurrent).toHaveBeenCalledWith(id)
 })
-it('separates selecting the current mode from setting the default', async () => {
+it('selects the current mode without exposing a default editor', async () => {
   const actions = view()
   expect(screen.getByRole('switch')).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: `${en.selectCurrent}: Mine` }))
   expect(actions.selectCurrent).toHaveBeenCalledWith('mine')
   expect(actions.makeDefault).not.toHaveBeenCalled()
-  fireEvent.click(screen.getByRole('button', { name: `${en.setDefault}: Mine` }))
-  expect(actions.makeDefault).toHaveBeenCalledWith('mine')
+  expect(screen.queryByRole('button', { name: new RegExp(en.setDefault) })).toBeNull()
   await waitFor(() =>{  expect(actions.load).toHaveBeenCalledOnce() })
   expect(screen.queryByRole('button', { name: /^Edit plugins/ })).toBeNull()
 })
@@ -100,7 +99,7 @@ it('replaces the default preset group tag with its new-task default status', () 
   const standard = rowFor('standard')
   expect(within(standard).queryByText(en.builtInGroup)).toBeNull()
   expect(within(standard).getByText(en.inUse)).toBeTruthy()
-  expect(within(standard).getByRole<HTMLButtonElement>('button', { name: `${en.setDefault}: ${en.presetStandardName}` }).disabled).toBe(true)
+  expect(within(standard).getByRole<HTMLButtonElement>('button', { name: `${en.selected}: ${en.presetStandardName}` }).disabled).toBe(true)
   expect(within(rowFor('mine')).getByText(en.customGroup)).toBeTruthy()
 })
 it('omits an empty group instead of leaving a heading behind', () => {
@@ -189,8 +188,8 @@ it('shows roster errors without hiding the roster', () => {
     { id: 'mine', name: 'Mine', isDefault: false },
   ] })
   expect(screen.getAllByRole('alert').map(node => node.textContent)).toEqual(['Roster stale', 'Missing plugin'])
-  fireEvent.click(screen.getByRole('button', { name: `${en.setDefault}: Mine` }))
-  expect(actions.makeDefault).toHaveBeenCalledWith('mine')
+  fireEvent.click(screen.getByRole('button', { name: `${en.selectCurrent}: Mine` }))
+  expect(actions.selectCurrent).toHaveBeenCalledWith('mine')
 })
 it('keeps a broken card focusable for diagnostics and refuses to select it', () => {
   const actions = view({ rows: [{ id: 'broken', isDefault: false, broken: 'Missing plugin' }] })
@@ -310,6 +309,6 @@ it('renders descriptions and allows selection without resize observation', () =>
   vi.stubGlobal('ResizeObserver', undefined)
   const actions = view({ rows: [{ id: 'mine', name: 'Mine', isDefault: false, description: 'Preset description' }] })
   expect(screen.getByText('Preset description')).toBeTruthy()
-  fireEvent.click(screen.getByRole('button', { name: `${en.setDefault}: Mine` }))
-  expect(actions.makeDefault).toHaveBeenCalledWith('mine')
+  fireEvent.click(screen.getByRole('button', { name: `${en.selectCurrent}: Mine` }))
+  expect(actions.selectCurrent).toHaveBeenCalledWith('mine')
 })

@@ -70,7 +70,7 @@ function CardDescription({ text }: { text: string }): ReactNode {
  */
 export function AgentPresetSection(props: AgentPresetSectionProps) {
   const {
-    useAgentPresetSection, load, view, closeView, makeDefault, startCreatorDraft,
+    useAgentPresetSection, load, view, closeView, startCreatorDraft,
     close: closeSettings, useDeveloperTools, useCurrentMode, useModePolicy, selectCurrent, t,
   } = props
   const state = useAgentPresetSection(value => value)
@@ -154,10 +154,6 @@ export function AgentPresetSection(props: AgentPresetSectionProps) {
                 {row.broken === undefined ? null : <span className={css.cardBrokenReason} role="alert">{row.broken}</span>}
               </button>
               <div className={css.cardFoot}>
-                <Button variant="ghost" className={css.helpButton} disabled={row.isDefault || state.saving || row.broken !== undefined}
-                  aria-label={`${t('setDefault')}: ${display.name}`} onClick={() => { void makeDefault(row.id) }}>
-                  {t('setDefault')}
-                </Button>
                 {help === undefined ? null : <div className={css.cardHelp}>
                   <Button variant="ghost" className={css.helpButton} aria-label={`${t('modeExplanation')}: ${display.name}`}
                     onClick={() => { setGuide({ content: help, page: 'explanation' }) }}>{t('modeExplanation')}</Button>

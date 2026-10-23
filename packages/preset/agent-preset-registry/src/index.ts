@@ -76,8 +76,8 @@ export class AgentPresetRegistry extends TypertRemoteService {
     })
   }
 
-  /** Default preset for a subsequently created session. */
-  get defaultId(): string { return this.config.selectedDefault.get() ?? this.config.default }
+  /** Deployment default for new sessions; legacy saved user defaults are ignored. */
+  get defaultId(): string { return this.config.default }
 
   private assertPolicyOwner(): void {
     if (principalOf(this.ctx.invocation) !== undefined) {
