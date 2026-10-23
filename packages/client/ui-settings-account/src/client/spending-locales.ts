@@ -1,0 +1,32 @@
+/** English spending labels; amounts refer to conservative local estimates. */
+export const spendingEn = {
+  'spending.title': 'Spending limits', 'spending.enabled': 'Limit model spending', 'spending.auto': 'Resume automatically',
+  'spending.autoHint': 'When off, exhausted limits stay paused until you resume or reset. Requests waiting only for an in-flight reservation resume when it settles.',
+  'spending.summary': 'Shared across conversations and local processes. Off by default. Accounting begins when enabled.',
+  'spending.estimate': 'Conservative CNY estimates using published peak prices. Input reservations cover the configured context allowance and output ceiling; settlement uses reported tokens. These are not invoices. Provider prices and custom routes may differ.',
+  'spending.coverage': 'Covers model requests, retries, title generation, compaction and DeepSeek native search. Other paid tools and requests made outside this app are not included.',
+  'spending.uncertain': 'Incomplete usage keeps the full reservation as an uncertain charge. Unknown model rates block requests while limits are enabled.',
+  'spending.paused': 'Paused · resume after capacity is available', 'spending.waiting': 'Waiting for budget · {count} requests', 'spending.active': 'Limits active', 'spending.off': 'Limits off',
+  'spending.spent': 'Estimated', 'spending.reserved': 'In flight', 'spending.remaining': 'Remaining', 'spending.unknown': 'Includes uncertain',
+  'spending.limit': '{period} limit (CNY)', 'spending.15m': '15 minutes', 'spending.1h': '1 hour', 'spending.5h': '5 hours', 'spending.1d': '1 day', 'spending.7d': '7 days', 'spending.30d': '30 days',
+  'spending.resume': 'Resume', 'spending.reset': 'Reset statistics', 'spending.resetConfirm': 'Confirm reset', 'spending.resetHint': 'Clear completed estimates and the manual pause. Active requests keep their reservations.',
+  'spending.cancel': 'Cancel', 'spending.save': 'Save limits', 'spending.invalid': 'Enter an amount greater than zero and no more than 1,000,000 CNY',
+  'spending.failed': 'Could not read spending limits. Retry; displayed data may be stale.', 'spending.retry': 'Retry',
+  'spending.saved': 'Spending limits updated', 'spending.saveFailed': 'Could not update spending limits. Retry.', 'spending.loading': 'Loading spending limits',
+} as const
+/** Simplified Chinese spending labels. */
+export const spendingZh: Record<keyof typeof spendingEn, string> = {
+  'spending.title': '额度限制', 'spending.enabled': '限制模型支出', 'spending.auto': '自动恢复',
+  'spending.autoHint': '关闭时，额度耗尽后需要手动恢复或重置。只是等待其他请求释放预留额时，会在结算后继续。',
+  'spending.summary': '所有会话与本机进程共用额度。默认关闭，开启后开始统计。',
+  'spending.estimate': '按公开高峰费率保守估算人民币费用。发送前按配置的上下文容量与最大输出预留，完成后按返回用量结算。这不是账单；服务商价格和自定义接口可能不同。',
+  'spending.coverage': '包含模型请求、重试、标题生成、上下文压缩和 DeepSeek 原生搜索。其他付费工具及应用外的请求不计入。',
+  'spending.uncertain': '用量不完整时，全额预留转为待确认费用。启用限制后，未配置费率的模型会被拦截。',
+  'spending.paused': '已暂停 · 额度足够后可手动恢复', 'spending.waiting': '正在等待额度 · {count} 个请求', 'spending.active': '额度保护中', 'spending.off': '额度限制已关闭',
+  'spending.spent': '费用估算', 'spending.reserved': '在途预留', 'spending.remaining': '剩余额度', 'spending.unknown': '其中待确认',
+  'spending.limit': '{period}限额（元）', 'spending.15m': '15 分钟', 'spending.1h': '1 小时', 'spending.5h': '5 小时', 'spending.1d': '1 天', 'spending.7d': '7 天', 'spending.30d': '30 天',
+  'spending.resume': '恢复请求', 'spending.reset': '重置统计', 'spending.resetConfirm': '确认重置', 'spending.resetHint': '清除已完成的费用估算和手动暂停状态。在途请求仍保留预留额度。',
+  'spending.cancel': '取消', 'spending.save': '保存限额', 'spending.invalid': '请输入大于 0 且不超过 1,000,000 元的金额',
+  'spending.failed': '无法读取额度限制，请重试；当前显示的数据可能已过期', 'spending.retry': '重试',
+  'spending.saved': '额度限制已更新', 'spending.saveFailed': '额度限制更新失败，请重试', 'spending.loading': '正在读取额度限制',
+}

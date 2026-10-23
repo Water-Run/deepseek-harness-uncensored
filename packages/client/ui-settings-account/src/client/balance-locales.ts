@@ -30,7 +30,7 @@ export const balanceZh: Record<keyof typeof balanceEn, string> = {
   'balance.credentials': '登录账号或配置 DeepSeek API Key 后显示余额',
   'balance.failed': '余额刷新失败；已显示的数值为最近一次成功采样',
   'balance.changeHint': '余额变化包含充值、赠金和到期扣减，不等同于实际消费或账单。',
-  'balance.peak': '梁文峰 · 高峰时段', 'balance.valley': '梁文谷 · 低峰时段', 'balance.unknownPeriod': '节假日日历待更新',
+  'balance.peak': '高峰时段', 'balance.valley': '低峰时段', 'balance.unknownPeriod': '节假日日历待更新',
   'balance.hours': '官网高峰时段为工作日北京时间 09:00–12:00、14:00–18:00，中国公共假期除外。已包含 2026 年假期。',
   'balance.pricing': '查看官方价格与时段', 'balance.saved': '余额设置已保存', 'balance.saveFailed': '余额设置保存失败，请重试',
 }

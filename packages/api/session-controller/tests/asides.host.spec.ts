@@ -18,13 +18,41 @@ async function fixture(ctx: Context) {
   ctx.llm.registerAdapter(['mock'], adapter)
   ctx.provide('workspaceRegistry', { list: () => [], archivedSessionIds: [] } as never)
   createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'mock', model: 'mock' }), cwd: '/tmp' })
-  const controller = new SessionAsideController(ctx, new ApiSessionAgentController(ctx))
+  const controller = new SessionAsideController(ctx, new ApiSessionAgentController(ctx, 65536))
   ctx.effect(() => () => controller.close())
   const parent = await harness.create(SessionId('parent'), { provider: 'mock', model: 'mock' })
   return { parent, adapter, controller }
 }
 
 describe('native side conversations', () => {
+  it('refreshes completed main progress before every side request while retaining side history', async () => {
+    const ctx = new Context()
+    try {
+      const { parent, adapter, controller } = await fixture(ctx)
+      parent.followup(prompt('initial main background'))
+      await parent.whenIdle()
+      const opened = await controller.open({ sessionId: parent.id, kind: 'side' })
+      const child = ctx.agents.get(opened.sessionId)!
+      child.followup(prompt('first side question'))
+      await child.whenIdle()
+      parent.followup(prompt('main update after side opened'))
+      await parent.whenIdle()
+      parent.inbox.append('next-turn', prompt('unfinished main instruction'))
+      const mainBeforeSide = parent.session.snapshotEvents()
+      expect(await controller.open({ sessionId: parent.id, kind: 'side' })).toEqual(opened)
+      child.followup(prompt('what changed on the main task?'))
+      await child.whenIdle()
+      const current = JSON.stringify(adapter.requests.at(-1))
+      expect(current).toContain('initial main background')
+      expect(current).toContain('first side question')
+      expect(current).toContain('main update after side opened')
+      expect(current).toContain('completed updates since this side conversation opened')
+      expect(current).not.toContain('unfinished main instruction')
+      expect(JSON.stringify(child.session.snapshotEvents())).toContain('main update after side opened')
+      expect(parent.session.snapshotEvents()).toEqual(mainBeforeSide)
+    } finally { await ctx.fiber.dispose() }
+  })
+
   it('inherits completed context, excludes queued work, and resumes the same side with one context note', async () => {
     const ctx = new Context()
     try {
@@ -45,7 +73,7 @@ describe('native side conversations', () => {
       expect(first).toContain('This is a side question')
       expect(first).not.toContain('parent queued work')
       // A new owner simulates reopening after the UI controller was replaced.
-      const reopened = new SessionAsideController(ctx, new ApiSessionAgentController(ctx))
+      const reopened = new SessionAsideController(ctx, new ApiSessionAgentController(ctx, 65536))
       try {
         expect(await reopened.open({ sessionId: parent.id, kind: 'side' })).toEqual(one)
         expect(child.inbox.nextStep).toHaveLength(0)

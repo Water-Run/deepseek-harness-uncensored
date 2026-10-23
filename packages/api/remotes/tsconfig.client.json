@@ -118,6 +118,9 @@
     },
     {
       "path": "../../credentials/balance"
+    },
+    {
+      "path": "../../guard/spend-limit"
     }
   ]
 }

@@ -53,7 +53,7 @@ function BalanceDetails({ data, t }: { data: BalanceSnapshot | undefined; t: Sha
   return <div className={css.details}>
     {latest.wallets.length > 1 && <div className={css.currencies}>{latest.wallets.map(entry => <Button key={entry.currency} size="sm" aria-pressed={entry.currency === currency} onClick={() => { select(entry.currency) }}>{entry.currency}</Button>)}</div>}
     <div className={css.wallets}>
-      <div><span>{t('bonusBalance')}</span><strong>{amount(wallet.granted, currency)}</strong></div>
+      {new Big(wallet.granted).gt(0) && <div><span>{t('bonusBalance')}</span><strong>{amount(wallet.granted, currency)}</strong></div>}
       <div><span>{t('balance')}</span><strong>{amount(wallet.toppedUp, currency)}</strong></div>
     </div>
     {samples.length > 1 ? <svg className={css.chart} viewBox="0 0 300 110" role="img" aria-label={t('balance.curve')}>
@@ -109,9 +109,9 @@ export function BalanceSidebar({ wide, useBalance, useBalancePreferences, dismis
   return <>
     {state.toast !== null && <Toast key={state.toastId} text={t(state.toast === 'saved' ? 'balance.saved' : 'balance.saveFailed')} onDone={() => { dismissToast(state.toastId) }} />}
     {enabled && wallet !== undefined && <div className={css.sidebar}>
-      <HoverCard anchor={<div tabIndex={0} className={css.summary} data-period={period} aria-label={t('balance.title')}>
+      <HoverCard inline anchor={<div tabIndex={0} className={css.summary} data-period={period} aria-label={t('balance.title')}>
         {wide ? <><span className={css.period}>{t(period === 'peak' ? 'balance.peak' : period === 'valley' ? 'balance.valley' : 'balance.unknownPeriod')}</span>
-          <div className={css.wallets}><div><span>{t('bonusBalance')}</span><strong>{amount(wallet.granted, wallet.currency)}</strong></div><div><span>{t('balance')}</span><strong>{amount(wallet.toppedUp, wallet.currency)}</strong></div></div></>
+          <div className={css.wallets}>{new Big(wallet.granted).gt(0) && <div><span>{t('bonusBalance')}</span><strong>{amount(wallet.granted, wallet.currency)}</strong></div>}<div><span>{t('balance')}</span><strong>{amount(wallet.toppedUp, wallet.currency)}</strong></div></div></>
           : <strong>{wallet.currency === 'CNY' ? '¥' : '$'}</strong>}
       </div>} content={<div className={css.hover}>{state.failed && <p role="status">{t('balance.failed')}</p>}<BalanceDetails data={state.data} t={t} /><p className={css.hint}>{t('balance.hours')}</p></div>} />
     </div>}

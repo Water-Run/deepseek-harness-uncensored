@@ -24,7 +24,21 @@ import {
   DEEPSEEK_DEFAULT_MAX_USES,
   DEEPSEEK_DEFAULT_MODEL,
 } from './provider.ts'
-import type { DeepSeekSearchProviderOptions } from './provider.ts'
+import type { DeepSeekSearchLlmRequest, DeepSeekSearchProviderOptions } from './provider.ts'
+import type { AnthropicResponse } from './types.ts'
+
+declare module '@deepseek-ai/cordis' {
+  interface Events {
+    /**
+     * Admit and observe the provider-specific paid search exchange.
+     * @mode waterfall
+     * @param request - Logged, credential-free request.
+     * @param signal - Caller cancellation.
+     * @param next - Next observer or the HTTP exchange.
+     */
+    'web/deepseek-search-request'(request: DeepSeekSearchLlmRequest, signal: AbortSignal | undefined, next: () => Promise<AnthropicResponse>): Promise<AnthropicResponse>
+  }
+}
 
 export {
   DeepSeekSearchProvider,
@@ -127,6 +141,7 @@ function resolveOptions(
     apiVersion: config.apiVersion,
     maxTokens: config.maxTokens,
     maxUses: config.maxUses,
+    dispatch: (request, signal, send) => ctx.waterfall('web/deepseek-search-request', request, signal, send),
     recordRequest: (request) => {
       ctx.get('agents')?.currentInitiator()?.session.append(
         'web/deepseek-search-llm-request',

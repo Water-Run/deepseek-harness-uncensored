@@ -71,7 +71,9 @@
     "big.js": "^7.0.1",
     "@deepseek-ai/dsh-client-product-analytics": "workspace:*",
     "@deepseek-ai/dsh-balance": "workspace:*",
-    "@deepseek-ai/dsh-client-ui-sidebar": "workspace:*"
+    "@deepseek-ai/dsh-client-ui-sidebar": "workspace:*",
+    "@deepseek-ai/dsh-spend-limit": "workspace:*",
+    "@deepseek-ai/dsh-typert-protocol": "workspace:*"
   },
   "files": [
     "locale/*.json",

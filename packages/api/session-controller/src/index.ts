@@ -98,10 +98,12 @@ export interface Config {
   readonly nativeOpen?: boolean
   /** Positive integral milliseconds of list work before yielding between complete rows. */
   readonly listWorkSliceMs?: number
+  /** Maximum UTF-8 bytes of completed main updates supplied to each side-question request. */
+  readonly sideContextBytes?: number
 }
 
 /** Deployment policy after schema defaults have been applied. */
-type ResolvedConfig = Config & { readonly listWorkSliceMs: number }
+type ResolvedConfig = Config & { readonly listWorkSliceMs: number; readonly sideContextBytes: number }
 
 /** Host integrations replaceable by direct unit tests. */
 export interface SessionControllerInternals {
@@ -137,6 +139,7 @@ export class SessionController extends TypertRemoteService {
   static Config: z<Config, ResolvedConfig> = z.object({
     nativeOpen: z.boolean(),
     listWorkSliceMs: z.natural().min(1).default(16),
+    sideContextBytes: z.natural().min(1024).max(1048576).default(65536),
   })
 
   private readonly agents: ApiSessionAgentController
@@ -162,7 +165,7 @@ export class SessionController extends TypertRemoteService {
     ctx.typert.resources.register('session', { field: 'sessionId' })
     const resolved = SessionController.Config(config)
     installModelSelectionProjection(ctx)
-    this.agents = new ApiSessionAgentController(ctx)
+    this.agents = new ApiSessionAgentController(ctx, resolved.sideContextBytes)
     this.commands = new SessionCommandController(ctx, this.agents, process.cwd())
     this.asides = new SessionAsideController(ctx, this.agents)
     ctx.effect(() => () => this.asides.close(), 'session-controller: side conversations')

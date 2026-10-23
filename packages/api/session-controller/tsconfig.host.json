@@ -15,6 +15,7 @@
     "src/commands.ts",
     "src/asides.ts",
     "src/aside-context.ts",
+    "src/aside-main-context.ts",
     "src/control.ts",
     "src/file-references.ts",
     "src/history.ts",

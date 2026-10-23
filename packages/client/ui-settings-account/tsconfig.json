@@ -64,6 +64,9 @@
     },
     {
       "path": "../ui-sidebar"
+    },
+    {
+      "path": "../../guard/spend-limit"
     }
   ]
 }

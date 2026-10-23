@@ -43,7 +43,7 @@ async function harness(): Promise<{ ctx: Context; agents: ApiSessionAgentControl
     currentSelection: () => ({ provider: 'fixture', model: 'fixture-model' }),
     saveSelection: () => Promise.resolve(),
   } as never)
-  return { ctx, agents: new ApiSessionAgentController(ctx) }
+  return { ctx, agents: new ApiSessionAgentController(ctx, 65536) }
 }
 
 function header(id: string, cwd: string | null = '/workspace'): SessionHeader {

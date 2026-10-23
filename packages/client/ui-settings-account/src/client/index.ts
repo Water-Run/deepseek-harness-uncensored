@@ -32,6 +32,7 @@ import { readOnboardingApiKeyPresence } from './onboarding-credentials.ts'
 import { refreshAfterReturn } from './account-refresh.ts'
 import { AccountAvatarLoader } from './account-avatar.ts'
 import { registerBalance } from './balance.ts'
+import { registerSpending } from './spending.ts'
 export type { AccountSectionInjected, AccountSectionProps } from './AccountSection.tsx'
 export type { AccountMenuProps } from './AccountMenu.tsx'
 export type { AccountSnapshot } from './AccountSection.tsx'
@@ -316,6 +317,7 @@ export function apply(ctx: Context): void {
     name: 'settings.launcher', locale: 'settings.account', inject: () => operations,
   }, AccountMenu))
   registerBalance(ctx, operations.hooks.account)
+  registerSpending(ctx)
   ctx.slots.inject('settings.section', () => {
     let unregister: (() => void) | undefined
     const update = () => {

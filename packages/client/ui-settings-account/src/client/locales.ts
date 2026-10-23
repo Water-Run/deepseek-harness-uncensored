@@ -1,10 +1,12 @@
 /** Account settings copy, owned by the account feature. */
 import { onboardingCopy, onboardingEnglishCopy } from './locales/onboarding.ts'
 import { balanceEn, balanceZh } from './balance-locales.ts'
+import { spendingEn, spendingZh } from './spending-locales.ts'
 
 /** English account dictionary. */
 export const en = {
   ...balanceEn,
+  ...spendingEn,
   about: 'About', productName: 'DeepSeek Harness Uncensored', forkVersion: 'Uncensored version',
   purgeCommit: 'dsh-purge fork commit', purgeDate: 'dsh-purge commit time', buildTime: 'Compiled at',
   upstreamVersion: 'DSH version', buildCommit: 'Source commit', commitDate: 'Commit time',
@@ -47,6 +49,7 @@ export type AccountKey = keyof typeof en
 /** Chinese account settings copy. */
 export const zh: Record<AccountKey, string> = {
   ...balanceZh,
+  ...spendingZh,
   about: '关于', productName: 'DeepSeek Harness Uncensored', forkVersion: 'Uncensored 版本',
   purgeCommit: 'dsh-purge fork 节点', purgeDate: 'dsh-purge 提交时间', buildTime: '编译时间',
   upstreamVersion: 'DSH 原版本', buildCommit: '源码节点', commitDate: '提交时间',

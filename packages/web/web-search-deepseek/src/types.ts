@@ -40,6 +40,8 @@ export type ContentBlock = WebSearchToolResultBlock | TextBlock | { type: string
 /** DeepSeek's Anthropic Messages response envelope. */
 export interface AnthropicResponse {
   content?: ContentBlock[]
+  /** Untrusted provider accounting, validated by billing observers before use. */
+  usage?: unknown
 }
 
 /** DeepSeek's error response envelope (best-effort; fields vary). */

@@ -1,0 +1,7 @@
+- id: model-runtime
+  name: cordis:llm
+- id: spending
+  name: cordis:spend-limit
+  config:
+    path: ':memory:'
+    pollMs: 50

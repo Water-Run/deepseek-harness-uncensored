@@ -174,8 +174,11 @@ export class ApiSessionAgentController {
   private readonly selections = new WeakMap<Agent, InstalledSelection>()
   private readonly imageAdmissionChains = new WeakMap<Agent, Promise<void>>()
 
-  /** @param ctx - Host context carrying Agent, model, persistence, and Typert services. */
-  constructor(private readonly ctx: Context) {
+  /**
+   * @param ctx - Host context carrying Agent, model, persistence, and Typert services.
+   * @param sideContextBytes - Byte budget for completed main updates in side questions.
+   */
+  constructor(private readonly ctx: Context, private readonly sideContextBytes: number) {
     ctx.typert.lookups.configure('agent', async (sessionId: SessionId) => {
       const found = await this.resolveAgent(sessionId)
       if ('error' in found) throw found.error
@@ -388,7 +391,10 @@ export class ApiSessionAgentController {
   async composeAgent(presetId: string | undefined): Promise<ApiSessionComposition> {
     const presets = this.ctx.get('agentPresets')
     if (presets === undefined) {
-      return { setup: async (agentCtx, agent) => { this.installSelection(agent); await installAsideContext(agentCtx, agent) } }
+      return { setup: async (agentCtx, agent) => {
+        this.installSelection(agent)
+        await installAsideContext(agentCtx, agent, this.sideContextBytes)
+      } }
     }
     const resolvedId = (await presets.resolve(presetId)).id
     return {
@@ -396,7 +402,7 @@ export class ApiSessionAgentController {
       setup: async (agentCtx, agent) => {
         this.installSelection(agent)
         await presets.mount(agentCtx, resolvedId)
-        await installAsideContext(agentCtx, agent)
+        await installAsideContext(agentCtx, agent, this.sideContextBytes)
       },
     }
   }

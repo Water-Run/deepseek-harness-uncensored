@@ -612,7 +612,7 @@ describe('Web session model selection', () => {
       cwd: '/tmp',
     })
 
-    expect(new ApiSessionAgentController(ctx).selectionFor(agent).current)
+    expect(new ApiSessionAgentController(ctx, 65536).selectionFor(agent).current)
       .toEqual({ provider: 'deepseek-official', model: 'deepseek-chat' })
     await ctx.fiber.dispose()
   })

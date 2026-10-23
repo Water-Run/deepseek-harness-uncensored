@@ -92,6 +92,10 @@ declare module '@deepseek-ai/dsh-session/types' {
 
 /** Resolved provider options (the plugin's `apply` supplies credential and constant defaults). */
 export interface DeepSeekSearchProviderOptions {
+  /** Admission and accounting around the complete HTTP exchange; absent for standalone providers. */
+  dispatch?: (
+    request: DeepSeekSearchLlmRequest, signal: AbortSignal | undefined, send: () => Promise<AnthropicResponse>,
+  ) => Promise<AnthropicResponse>
   /**
    * Resolve the DeepSeek account token for one search endpoint. A token takes
    * precedence over every API key and is sent only as `x-dsh-auth-token`;
@@ -241,6 +245,15 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
       body,
     })
     throwIfSearchAborted(signal)
+    const send = () => this.send(options, auth, endpoint, body, signal)
+    const payload = options.dispatch === undefined ? await send()
+      : await options.dispatch({ endpoint, apiVersion: options.apiVersion, body }, signal, send)
+    try { return mapAnthropicResponse(payload) }
+    catch (error) { throw searchEndpointError(endpoint, error instanceof WebError ? error.message : String(error), error) }
+  }
+
+  private async send(options: DeepSeekSearchProviderOptions, auth: SearchAuth, endpoint: string, body: DeepSeekSearchLlmRequest['body'], signal?: AbortSignal): Promise<AnthropicResponse> {
+    throwIfSearchAborted(signal)
     let response: Response
     try {
       response = await fetch(endpoint, {
@@ -289,7 +302,7 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
 
     try {
       const payload = await response.json() as AnthropicResponse
-      return mapAnthropicResponse(payload)
+      return payload
     } catch (error: unknown) {
       if (signal?.aborted === true || isAbortError(error)) throw searchAborted(signal, error)
       const message = error instanceof WebError
