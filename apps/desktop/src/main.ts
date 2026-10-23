@@ -3,6 +3,7 @@ import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
 /** Electron shell: desktop project ownership, custom protocol, windows, and lifecycle. */
 
 import { readFile, writeFile } from 'node:fs/promises'
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -65,6 +66,19 @@ import { DesktopBackgroundNotice } from './background-notice.ts'
 let focusPrimaryWindow = (): void => {}
 let stopForRecovery = async (): Promise<void> => {}
 let shuttingDown = false
+// The packaged manifest carries a scoped package name, which Windows cannot use
+// as a per-user data directory. Name the application before anything reads
+// `app.getPath('userData')`, so this build keeps its own profile beside the
+// official one instead of failing to create `%APPDATA%\@scope/name`.
+app.setName('DeepSeek Harness Uncensored')
+// A machine-wide DSH_HOME would otherwise hand this build the official
+// installation's home, and with it the same login, sessions, and settings.
+// DSH_UNCENSORED_HOME names this build's own home; setting DSH_HOME here runs
+// before this process and every host process it starts resolve any path.
+if (process.env.DSH_UNCENSORED_HOME === undefined || process.env.DSH_UNCENSORED_HOME === '') {
+  process.env.DSH_UNCENSORED_HOME = join(homedir(), '.dsh-uncensored')
+}
+process.env.DSH_HOME = process.env.DSH_UNCENSORED_HOME
 /**
  * Set by quit entries that must not ask: crash recovery exit and restart, and the
  * development restart command. The installer handoff has its own before-quit branch.
@@ -932,7 +946,7 @@ async function main(): Promise<void> {
   const applicationIconPath = development ? join(app.getAppPath(), 'resources', 'icon-windows.png')
     : join(process.resourcesPath, 'icon.png')
   app.setAboutPanelOptions({
-    applicationName: 'DeepSeek Harness',
+    applicationName: 'DeepSeek Harness Uncensored',
     applicationVersion: app.getVersion(),
     // The release has no separate build number; omit Electron's bundle version.
     version: '',

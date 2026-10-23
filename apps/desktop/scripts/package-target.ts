@@ -419,6 +419,8 @@ export async function packageTarget(
   run: ReturnType<typeof createPackagingRun> | undefined,
 ): Promise<void> {
   const { target } = invocation
+  // A directory build never assembles the NSIS installer, so its helper UI is not prepared.
+  if (invocation.directory) environment.DSH_DESKTOP_SKIP_INSTALLER_UI = '1'
   const execute = (args: readonly string[], env: NodeJS.ProcessEnv, cwd: string = APP_ROOT) => runPnpm(args, env, cwd, run)
   const journal = target.platform === 'darwin' ? process.env.DSH_DESKTOP_PACKAGING_RUN_DIR : undefined
   const proxyEvent = (status: string) => { if (journal) recordPackagingEvent(journal, { type: 'notarization-proxy', status }) }

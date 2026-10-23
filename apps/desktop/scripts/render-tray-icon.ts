@@ -102,7 +102,10 @@ export async function renderTrayIconEntries(svg: Buffer, sizes: readonly number[
   const glyph = '<g id="tray-glyph"'
   if (!source.includes(glyph)) throw new Error('tray icon: SVG requires a tray-glyph group')
   // Scale around the application tile center, retaining its background and the whale's aspect ratio.
-  const tray = Buffer.from(source.replace(glyph, `${glyph} transform="translate(552 544) scale(1.2) translate(-552 -544)"`))
+  // The source may already frame the glyph for the application icon, so any
+  // existing transform on that group is replaced rather than repeated.
+  const unscaled = source.replace(/(<g id="tray-glyph"[^>]*?)\s+transform="[^"]*"/u, '$1')
+  const tray = Buffer.from(unscaled.replace(glyph, `${glyph} transform="translate(552 544) scale(1.2) translate(-552 -544)"`))
   return Promise.all(sizes.map(async size => ({
     size,
     png: await sharp(tray, { density: SOURCE_DENSITY * size / SOURCE_EDGE }).resize(size, size).png().toBuffer(),

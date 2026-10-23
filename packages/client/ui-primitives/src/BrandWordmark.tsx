@@ -4,10 +4,12 @@ import type { IconProps } from './icons/props.ts'
 export interface BrandWordmarkProps extends IconProps {
   /** Whether to include the leading whale mark; defaults to true. */
   includeMark?: boolean | undefined
+  /** Release-marker fill; defaults to the shop's blue. */
+  tone?: ReleaseTone | undefined
 }
 
 /** Fixed artwork width in user units: whale, wordmark, HARNESS pill, then the UNCENSORED pill. */
-const WORDMARK_WIDTH = 251
+const WORDMARK_WIDTH = 259
 
 /** Artwork width without the leading whale mark (the whale clip ends at x=26). */
 const WORDMARK_WIDTH_NO_MARK = WORDMARK_WIDTH - 26
@@ -17,19 +19,26 @@ const WORDMARK_WIDTH_NO_MARK = WORDMARK_WIDTH - 26
  * yellow-on-ink palette in both themes: it identifies the build, so it must not
  * inherit the interface's text color the way the HARNESS pill does.
  */
-const UNCENSORED = {
-  fill: '#FFC400',
-  ink: '#15171C',
-} as const
+const UNCENSORED_INK = '#15171C' as const
+
+/** Release-marker fills; the mounted mode picks one, and the default is the shop's blue. */
+export type ReleaseTone = 'blue' | 'yellow' | 'red' | 'green'
+
+const UNCENSORED_TONES: Record<ReleaseTone, string> = {
+  blue: '#3B82F6',
+  yellow: '#FFC400',
+  red: '#E5484D',
+  green: '#22A06B',
+}
 
 /** Left edge of every UNCENSORED glyph; one advance per letter. */
-const UNCENSORED_GLYPH_X = [189.31, 195.03, 200.75, 206.47, 212.19, 217.91, 223.63, 229.35, 235.07, 240.79] as const
+const UNCENSORED_GLYPH_X = [189.95, 196.35, 202.75, 209.15, 215.55, 221.95, 228.35, 234.75, 241.15, 247.55] as const
 
 /** Stroke geometry shared by every UNCENSORED glyph, drawn in the pill's inner box. */
 const UNCENSORED_GLYPH_STYLE = {
   fill: 'none',
-  stroke: UNCENSORED.ink,
-  strokeWidth: 1.55,
+  stroke: UNCENSORED_INK,
+  strokeWidth: 1.5,
   strokeLinecap: 'round',
   strokeLinejoin: 'round',
 } as const
@@ -60,7 +69,7 @@ const UNCENSORED_GLYPHS = [
  * @param props.includeMark - whether to include the leading whale mark.
  * @returns the wordmark svg (aria-hidden decorative brand art).
  */
-export function BrandWordmark({ size = 24, className, includeMark = true }: BrandWordmarkProps) {
+export function BrandWordmark({ size = 24, className, includeMark = true, tone = 'blue' }: BrandWordmarkProps) {
   const width = includeMark ? WORDMARK_WIDTH : WORDMARK_WIDTH_NO_MARK
   return (
     <svg
@@ -93,7 +102,7 @@ export function BrandWordmark({ size = 24, className, includeMark = true }: Bran
         <path d="M169.052 15.257C169.543 15.257 169.895 15.1654 170.108 14.982C170.328 14.7987 170.438 14.5457 170.438 14.223C170.438 14.047 170.405 13.8967 170.339 13.772C170.273 13.6474 170.152 13.5337 169.976 13.431C169.807 13.321 169.558 13.2147 169.228 13.112L168.491 12.881C167.846 12.6757 167.38 12.4044 167.094 12.067C166.808 11.7297 166.665 11.3007 166.665 10.78C166.665 10.428 166.76 10.1017 166.951 9.80105C167.142 9.50038 167.428 9.25838 167.809 9.07505C168.19 8.89172 168.663 8.80005 169.228 8.80005C169.631 8.80005 169.998 8.82938 170.328 8.88805C170.665 8.93938 171.039 9.01638 171.45 9.11905L171.274 10.175C170.834 10.0504 170.442 9.96238 170.097 9.91105C169.76 9.85238 169.463 9.82305 169.206 9.82305C168.737 9.82305 168.403 9.90738 168.205 10.076C168.007 10.2374 167.908 10.439 167.908 10.681C167.908 10.857 167.941 11.0147 168.007 11.154C168.073 11.286 168.19 11.407 168.359 11.517C168.535 11.627 168.784 11.7334 169.107 11.836L169.866 12.078C170.526 12.276 170.995 12.5327 171.274 12.848C171.553 13.156 171.692 13.585 171.692 14.135C171.692 14.5604 171.589 14.9344 171.384 15.257C171.179 15.5797 170.878 15.8327 170.482 16.016C170.093 16.1994 169.609 16.291 169.03 16.291C168.627 16.291 168.212 16.247 167.787 16.159C167.362 16.071 166.9 15.9427 166.401 15.774L166.665 14.718C167.156 14.894 167.6 15.0297 167.996 15.125C168.399 15.213 168.751 15.257 169.052 15.257Z" fill="var(--dsw-alias-label-primary-inverted)"/>
         <path d="M175.809 15.257C176.3 15.257 176.652 15.1654 176.865 14.982C177.085 14.7987 177.195 14.5457 177.195 14.223C177.195 14.047 177.162 13.8967 177.096 13.772C177.03 13.6474 176.909 13.5337 176.733 13.431C176.564 13.321 176.315 13.2147 175.985 13.112L175.248 12.881C174.603 12.6757 174.137 12.4044 173.851 12.067C173.565 11.7297 173.422 11.3007 173.422 10.78C173.422 10.428 173.517 10.1017 173.708 9.80105C173.899 9.50038 174.185 9.25838 174.566 9.07505C174.947 8.89172 175.42 8.80005 175.985 8.80005C176.388 8.80005 176.755 8.82938 177.085 8.88805C177.422 8.93938 177.796 9.01638 178.207 9.11905L178.031 10.175C177.591 10.0504 177.199 9.96238 176.854 9.91105C176.517 9.85238 176.22 9.82305 175.963 9.82305C175.494 9.82305 175.16 9.90738 174.962 10.076C174.764 10.2374 174.665 10.439 174.665 10.681C174.665 10.857 174.698 11.0147 174.764 11.154C174.83 11.286 174.947 11.407 175.116 11.517C175.292 11.627 175.541 11.7334 175.864 11.836L176.623 12.078C177.283 12.276 177.752 12.5327 178.031 12.848C178.31 13.156 178.449 13.585 178.449 14.135C178.449 14.5604 178.346 14.9344 178.141 15.257C177.936 15.5797 177.635 15.8327 177.239 16.016C176.85 16.1994 176.366 16.291 175.787 16.291C175.384 16.291 174.969 16.247 174.544 16.159C174.119 16.071 173.657 15.9427 173.158 15.774L173.422 14.718C173.913 14.894 174.357 15.0297 174.753 15.125C175.156 15.213 175.508 15.257 175.809 15.257Z" fill="var(--dsw-alias-label-primary-inverted)"/>
       </g>
-      <rect x="185.348" y="5.5" width="64" height="14" rx="2" fill={UNCENSORED.fill}/>
+      <rect x="185.348" y="5.5" width="72" height="14" rx="2" fill={UNCENSORED_TONES[tone]}/>
       <g clipPath="url(#dsh-wordmark-uncensored-clip)">
         {UNCENSORED_GLYPHS.map((d, index) => (
           <path key={index} d={d} {...UNCENSORED_GLYPH_STYLE}/>
@@ -107,7 +116,7 @@ export function BrandWordmark({ size = 24, className, includeMark = true }: Bran
           <rect width="46" height="14" fill="white" transform="translate(132.348 5.5)"/>
         </clipPath>
         <clipPath id="dsh-wordmark-uncensored-clip">
-          <rect width="64" height="14" fill="white" transform="translate(185.348 5.5)"/>
+          <rect width="72" height="14" fill="white" transform="translate(185.348 5.5)"/>
         </clipPath>
       </defs>
     </svg>

@@ -19,6 +19,9 @@ import type { AgentPresetSettingsState } from './settings-store.ts'
 import { presetDisplayText } from './locales.ts'
 import css from './AgentPresetLabel.module.css'
 
+/** Fill per shipped mode; an unknown mode reads as the neutral green. */
+const MODE_TONES: Readonly<Record<string, 'blue' | 'yellow' | 'red' | 'green'>> = { standard: 'blue', writing: 'yellow', security: 'red' }
+
 /** Registration-side business face for the header label. */
 export interface AgentPresetLabelInjected {
   hooks: {
@@ -58,9 +61,10 @@ export function AgentPresetLabel({
   if (preset === undefined) return null
 
   const option = options.find(entry => entry.id === preset)
+  const tone = MODE_TONES[preset] ?? 'green'
   const text = option === undefined ? undefined : presetDisplayText(option, t)
   return (
-    <span className={css.label} title={text?.description ?? t('headerHint')}>
+    <span className={`${css.label} ${css[tone]}`} title={text?.description ?? t('headerHint')}>
       <IconAgentPresetOutlineRegular size={14} className={css.icon} />
       {text?.name ?? preset}
     </span>

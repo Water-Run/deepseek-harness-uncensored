@@ -43,6 +43,9 @@ import {
  * @param {string | undefined} preparedRuntimeVersion - Version that private tree declares, which qualification rewrites away from the product version.
  * @returns {object} electron-builder configuration.
  */
+/** Product name every packaged artifact, shortcut, and smoke test addresses. */
+export const DESKTOP_PRODUCT_NAME = 'DeepSeek Harness Uncensored'
+
 export function createElectronBuilderConfig(
   env = process.env,
   hostPlatform = process.platform,
@@ -113,7 +116,7 @@ export function createElectronBuilderConfig(
       ...buildVersion === productVersion ? {} : { version: buildVersion },
       ...packaged === undefined ? {} : { dshBuildCommit: packaged.commit, dshBuildDirty: packaged.dirty },
     },
-    productName: 'DeepSeek Harness Uncensored',
+    productName: DESKTOP_PRODUCT_NAME,
     // Unsigned builds carry their own suffix so a shared file can never pass for a release artifact.
     artifactName: `deepseek-harness-\${version}-\${os}-\${arch}${output.suffix}.\${ext}`,
     directories: { output: output.directory },
@@ -121,7 +124,8 @@ export function createElectronBuilderConfig(
     electronDist: buildPaths.electron,
     electronFuses: { runAsNode: true },
     beforeBuild: async () => {
-      if (resolvedPlatform !== 'win32') return true
+      // A --dir build emits the unpacked app; the installer UI it would prepare is never built.
+      if (resolvedPlatform !== 'win32' || env.DSH_DESKTOP_SKIP_INSTALLER_UI === '1') return true
       await promisify(execFile)('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
         fileURLToPath(new URL('./prepare-windows-installer.ps1', import.meta.url)),
         '-OutputDirectory', join(buildPaths.root, 'installer-ui')], {
