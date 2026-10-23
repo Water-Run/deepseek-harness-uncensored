@@ -430,6 +430,13 @@ describe('UiWorkspaceService', () => {
     expect(b.sessions.refreshProjections).not.toHaveBeenCalled()
   })
 
+  it('creates and opens a session without inheriting any workspace', async () => {
+    const b = bench({ workspaces: workspaceState([workspace('a')]) })
+    await b.uiWorkspace.openWorkspace(null)
+    expect(b.sessions.create).toHaveBeenCalledWith({})
+    expect(b.sessions.retain).toHaveBeenCalledWith(sid('created-none'), { source: 'mainView' })
+  })
+
   it('keeps the current panel when retaining the target fails', () => {
     const b = bench()
     b.sessions.retain.mockImplementationOnce(() => { throw new Error('open failed') })
@@ -941,20 +948,17 @@ describe('UiWorkspaceService', () => {
       },
     )
 
-    it('requests a Workspace without clearing the current selection when no Workspace is available', () => {
+    it('prepares a fresh ungrouped draft when the current session has no workspace', async () => {
       const backing = persistSelection({})
       const b = bench()
       b.uiWorkspace.openSession(sid('ungrouped'))
       b.selectPanel.mockClear()
 
       b.uiWorkspace.startSession(undefined, { prompt: 'unsent' })
-
-      expect(b.notify).toHaveBeenCalledExactlyOnceWith({ kind: 'createFailed', message: 'Choose a workspace first.' })
-      expect(b.sessions.create).not.toHaveBeenCalled()
-      expect(b.requestDraftInitialization).not.toHaveBeenCalled()
-      expect(b.sessions.retained[0]!.release).not.toHaveBeenCalled()
-      expect(JSON.parse(backing.get('dsh.sessions.current')!)).toEqual({ sessionId: sid('ungrouped') })
-      expect(b.selectPanel).not.toHaveBeenCalled()
+      await vi.waitFor(() => { expect(b.requestDraftInitialization).toHaveBeenCalledOnce() })
+      expect(b.notify).not.toHaveBeenCalled()
+      expect(b.sessions.create).toHaveBeenCalledWith({})
+      expect(JSON.parse(backing.get('dsh.sessions.current')!)).toEqual({ sessionId: sid('created-none') })
     })
 
     it('reports an unknown explicit Workspace without preparing a draft or changing selection', async () => {

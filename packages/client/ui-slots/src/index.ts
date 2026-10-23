@@ -148,6 +148,8 @@ export interface FactoryLocalSlotDef {
 /** Complete static definition of one reusable Component Factory. */
 export interface SlotFactoryDef {
   scope: SlotScope
+  /** Permit nested occurrences only under distinct, explicitly bound sessions. */
+  allowSessionNesting?: true
   props?: object
   children?: ChildrenDecl
   store?: StoreDecl
@@ -720,6 +722,7 @@ export type RegisterFactoryOptions<F extends keyof SlotFactoryMap & string> = {
   name: F
   scope: FactoryDefOf<F>['scope']
 } & FactoryField<F, 'children', FactoryChildrenOf<F>>
+  & FactoryField<F, 'allowSessionNesting', FactoryDefOf<F>['scope'] extends 'root' ? never : true>
   & FactoryField<F, 'store', FactoryStoreOf<F> | (() => FactoryStoreOf<F>)>
   & FactoryField<F, 'inject', (...args: FactoryInjectParams<F>) => FactoryInjectOf<F>>
   & FactoryField<F, 'locale', FactoryLocaleOf<F>>
@@ -745,6 +748,8 @@ export interface StoredFactory {
   readonly name: string
   readonly component: unknown
   readonly scope: SlotScope
+  /** Same-session cycles remain forbidden even when distinct-session nesting is enabled. */
+  readonly allowSessionNesting?: boolean
   readonly children?: Readonly<Record<string, SlotSpec<SlotEntryDef>>> | undefined
   readonly store?: StoreDecl | undefined
   readonly inject?: ((...args: never[]) => Record<string, unknown>) | undefined
@@ -1022,6 +1027,7 @@ export class SlotCore {
     const options = rawOptions as {
       name: string
       scope: SlotScope
+      allowSessionNesting?: true
       children?: Record<string, SlotSpec<SlotEntryDef>>
       store?: StoreDecl
       inject?: (...args: never[]) => Record<string, unknown>
@@ -1052,6 +1058,7 @@ export class SlotCore {
       name: options.name,
       component,
       scope: options.scope,
+      allowSessionNesting: options.allowSessionNesting ?? false,
       ...(options.children === undefined ? {} : { children: options.children }),
       ...(options.store === undefined ? {} : { store: options.store }),
       ...(options.inject === undefined ? {} : { inject: options.inject }),

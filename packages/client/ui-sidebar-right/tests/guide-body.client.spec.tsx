@@ -123,6 +123,12 @@ describe('GuideBody', () => {
     cleanup()
   })
 
+  it('opens a side-question entry as a new tab beside Start', () => {
+    const { view, openTab } = mountGuide([{ ...box('aside', 30, Glyph), preserveGuide: true }])
+    fireEvent.click(view.getByRole('button', { name: 'aside title' }))
+    expect(openTab).toHaveBeenCalledWith('aside', { replaceTab: false })
+  })
+
 
   it('draws an empty guide while no type contributed an entry, and follows the registry when one does', () => {
     const { view, guideEntries, boxes } = mountGuide([])

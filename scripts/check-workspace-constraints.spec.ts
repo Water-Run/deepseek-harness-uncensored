@@ -256,6 +256,11 @@ describe('experimental workspace constraints', () => {
 })
 
 describe('dsh family version coherence', () => {
+  it('keeps the Desktop product version independent while retaining engine package coherence', () => {
+    expect(checkDshFamilyVersion({ name: '@deepseek-ai/dsh-desktop', version: '0.1.0' }, '0.2.1-rc.2', '0.1.0')).toBeUndefined()
+    expect(checkDshFamilyVersion({ name: '@deepseek-ai/dsh-desktop', version: '0.2.1-rc.2' }, '0.2.1-rc.2', '0.1.0')).toContain('product version 0.1.0')
+    expect(checkDshFamilyVersion({ name: '@deepseek-ai/dsh-http-proxy', version: '0.1.0' }, '0.2.1-rc.2', '0.1.0')).toContain('root version 0.2.1-rc.2')
+  })
   it('rejects a package carrying a stale shared version', () => {
     expect(checkDshFamilyVersion(
       { name: '@deepseek-ai/dsh-http-proxy', version: '0.1.2-alpha.5' },

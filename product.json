@@ -1,0 +1,15 @@
+{
+  "name": "DeepSeek Harness Uncensored",
+  "version": "0.1.0",
+  "upstreamVersion": "0.2.1-rc.2",
+  "upstreamCommit": "687f282e86",
+  "repository": "https://github.com/Water-Run/deepseek-harness-uncensored",
+  "purge": {
+    "repository": "https://github.com/Water-Run/dsh-purge",
+    "commit": "19082c2b9788039fa7f8888c4a69086f43adc1ff",
+    "commitTime": "2026-10-22T15:22:15+08:00",
+    "licensedContentCommit": "e1d8e59087857fa86d0ef2bb9878800274b13a29",
+    "licensedContentLicense": "MIT"
+  },
+  "license": "GPL-3.0-or-later"
+}

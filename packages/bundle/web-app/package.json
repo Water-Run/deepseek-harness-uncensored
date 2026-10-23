@@ -36,8 +36,9 @@
     "lib/startup.js",
     "cordis.patch.yml",
     "presets/standard.patch.yml",
-    "presets/writing.patch.yml",
     "presets/security.patch.yml",
+    "presets/reverse.patch.yml",
+    "presets/writing.patch.yml",
     "lib/public-url-*.js",
     "lib/types/**/*.d.ts"
   ],
@@ -47,8 +48,9 @@
       "patch": [
         "./cordis.patch.yml",
         "./presets/standard.patch.yml",
-        "./presets/writing.patch.yml",
-        "./presets/security.patch.yml"
+        "./presets/security.patch.yml",
+        "./presets/reverse.patch.yml",
+        "./presets/writing.patch.yml"
       ]
     }
   },
@@ -186,7 +188,8 @@
     "@deepseek-ai/dsh-client-product-analytics": "workspace:*",
     "@deepseek-ai/dsh-host-product-telemetry-otel": "workspace:*",
     "@deepseek-ai/dsh-client-ui-settings-session-log": "workspace:*",
-    "@deepseek-ai/dsh-harness-dev-context": "workspace:*"
+    "@deepseek-ai/dsh-harness-dev-context": "workspace:*",
+    "@deepseek-ai/dsh-balance": "workspace:*"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:~",

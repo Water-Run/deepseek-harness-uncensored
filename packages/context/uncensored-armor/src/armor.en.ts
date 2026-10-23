@@ -1,3 +1,7 @@
+/** SPDX-License-Identifier: MIT
+ * Copyright (c) 2026 小杨. Prompt source: Water-Run/dsh-purge at e1d8e59087857fa86d0ef2bb9878800274b13a29.
+ * Full permission notice: LICENSES/dsh-purge-MIT.txt in this repository.
+ */
 /**
  * The built-in armor prompt (en). Mounted verbatim as the first prompt
  * section; it carries no prompt variables, so it is registered with

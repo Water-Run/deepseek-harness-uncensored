@@ -9,6 +9,12 @@
   ],
   "references": [
     {
+      "path": "../ui-session"
+    },
+    {
+      "path": "../../preset/agent-preset-registry"
+    },
+    {
       "path": "../../../vendor/cordis"
     },
     {

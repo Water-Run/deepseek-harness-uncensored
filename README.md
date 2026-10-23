@@ -1,77 +1,79 @@
-# DeepSeek Harness
+<p align="center"><img src="apps/desktop/resources/icon.svg" width="96" alt="Uncensored 黑底白鲸图标"></p>
 
-English | [中文](README.zh.md)
+# Deepseek Harness Uncensored: 更自由的探索未至之境
 
-DeepSeek Harness (`dsh`) is an open-source agent harness developed by [DeepSeek AI](https://deepseek.com).
+Uncensored v0.1.0，基于 DSH 0.2.1-rc.2 的独立分支。面向已经使用 DSH 的用户，保留原有工具与插件体系，内置提示词调整，使用独立的应用身份和数据目录。
 
-It is built on an **everything-is-a-plugin** architecture and powered by [Cordis](https://github.com/cordiverse/cordis), whose design is described in [_A Programming Paradigm for Spatiotemporal Composability_](https://arxiv.org/abs/2608.25512).
+## 通用增强
 
-Documentation: [https://deepseek-harness.github.io/deepseek-harness/](https://deepseek-harness.github.io/deepseek-harness/)
+- **独立安装**：应用名、CLI、深链和默认数据目录与官方版分开，可同时使用。
+- **原生旁问**：`/side` 在右栏打开旁问标签，首次接续主会话已完成的上下文，关闭后重开可继续；`/btw` 在主会话内打开小窗，每次使用全新上下文。
+- **余额与统计**：赠金与充值余额并排显示，提供历史曲线、采样间隔、本机/API 来源切换和高峰／低谷时段提示。曲线来自本机采样，余额变化包含充值、赠金和到期变化。
+- **界面与交互**：黑底白鲸图标、模式配色与过渡动画；中英双语；支持不关联工作区的新会话；忙碌时按 Enter 默认插话。
+- **模型与权限**：默认 Flash、Max 推理和完全权限，权限可调整。模型菜单只显示 Flash，已有会话的模型仍可解析。
+- **关于与反馈**：显示独立版本、DSH 原版本、源码节点与时间、purge fork 节点与时间及编译时间；提供仓库、GPL 许可和 GitHub Issue 入口。
 
-## Developer preview
+## 模式
 
-DeepSeek Harness is in _developer preview_ and iterating rapidly. **THERE WILL BE COMPATIBILITY-BREAKING CHANGES.**
+按 **缺省 → 网安 → 逆向 → 写作** 排列。模式在新建会话时选择，已有会话保持原组合。
 
-Review the [safety notice](SAFETY.md) before running the project.
+| 模式 | 配色 | 用途 |
+| --- | --- | --- |
+| 缺省 | 蓝色 | 开发、文件处理、终端操作、检索与日常任务 |
+| 网安 | 红色 | 安全分析、验证、复现与证据记录 |
+| 逆向 | 绿色 | 二进制、程序行为与协议分析 |
+| 写作 | 黄色 | 小说、剧本、续写、编辑与长文创作 |
 
-## Run
+**缺省模式**使用文件、终端、检索、任务协作与工作流工具，适合从调查到修改、验证的完整任务。
 
-### Run from `npm`
+**网安模式**侧重目标分析、工具执行、结果复核和证据整理。保留完整的执行与协作工具，区分已验证结论和待验证推测。
 
-Install `Node.js`, then run:
+**逆向模式**围绕样本、哈希、平台与架构展开，追踪字符串、符号、调用关系和运行证据。可调用已安装的分析工具；深入反编译需要配置 Ghidra、IDA、Hopper 或 REA 等后端。
 
-```sh
-npx @deepseek-ai/dsh web
+**写作模式**使用文件、检索和呈现工具，侧重自然表达、人物声音、叙事视角与情节连续性。直接交付正文，支持续写和编辑；不挂载终端或代码执行工具。
+
+## 使用
+
+开发环境需要 Node.js 22.19+（22.x）或 24+、Corepack 与 Git。
+
+```powershell
+corepack pnpm install
+corepack pnpm run build
+corepack pnpm dsh web
 ```
 
-The command starts the Web UI at `http://127.0.0.1:3080` by default and opens it in the default browser for a local launch. An SSH launch only prints the host URL because the SSH client or editor owns the local forwarded address. Pass `--no-open` to run the server without opening a browser. See [Web UI guide](docs/user/guide/index.md).
+Web 默认地址为 `http://127.0.0.1:23333`。桌面版保留 Electron 独立窗口；本地 CLI 安装脚本为 [install-uncensored.ps1](scripts/install-uncensored.ps1)。
 
-### Run from source
+| 项目 | Uncensored |
+| --- | --- |
+| 默认数据 | `~/.dsh-uncensored` |
+| 自定义数据目录 | `DSH_UNCENSORED_HOME` |
+| CLI | `dsh-uncensored` |
+| 深链 | `dshu://open` |
+| Windows 应用名 | `DeepSeek Harness Uncensored` |
 
-To run from a repository checkout:
+继承的官方默认 `DSH_HOME=~/.dsh` 不会用于本分支；显式指定目录仍由调用者负责。无工作区会话使用 Host 默认工作目录。Flash 使用服务端模型别名，不能保证永久固定在 1017 版本。
 
-```sh
-git clone https://github.com/deepseek-ai/deepseek-harness.git
-cd deepseek-harness
-pnpm install
-pnpm run build
-pnpm dsh web
-```
+## 当前限制
 
-`pnpm run build` prepares the repository artifacts. `pnpm dsh web` uses those built artifacts without rebuilding.
+本分支仍在开发中。模式专用资料与跨对话记忆、目标与数据库保护、手动域名规则、网安独立代理与流量查看、额度限制与自动恢复、设置重做及分级更新提醒正在完善。
 
-## Community and support
+签名桌面包的更新地址指向本仓库 [GitHub Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases)。当前没有已发布的安装包，更新下载、签名验证和安装尚未做真实发布验证；未签名的本地构建不启用自动更新。
 
-- Submit feedback or bug reports through [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions).
-- Add the [`dsh-plugin`](https://github.com/topics/dsh-plugin) topic to your plugin repository for discoverability.
-- Join <a href="https://discord.gg/4MrtZUhpxg">DeepSeek Harness Discord community</a>.
+内置提示词不会提高模型本身的能力，也不保证任务成功。原始 DSH 的基础功能与插件用法请参阅 [上游仓库](https://github.com/deepseek-ai/deepseek-harness)。
 
-## Contributing
+## 反馈与许可
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+[提交 Issue](https://github.com/Water-Run/deepseek-harness-uncensored/issues/new/choose) · [源代码](https://github.com/Water-Run/deepseek-harness-uncensored) · [GPL-3.0-or-later](LICENSE)
 
-## Development
+本项目的整合发行采用 **GPL-3.0-or-later**；上游和第三方组件保留各自许可证与版权声明。
 
-Start with the [development guide](docs/development.md) and [architecture documentation](docs/architecture.md).
+## Credit
 
-`pnpm run dev:web` builds, serves, and rebuilds client bundles on source edits in one terminal, and `make help` lists the matching Make targets for Web and Desktop; the guide's application commands section owns the full table.
+- [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)：DeepSeek 的原始工程，保留 [MIT 许可](LICENSES/deepseek-harness-MIT.txt)。
+- [dsh-purge](https://github.com/YuJunZhiXue/dsh-purge)：小杨（YuJunZhiXue）。内置提示词可追溯至 [MIT 版本 e1d8e590](https://github.com/Water-Run/dsh-purge/tree/e1d8e59087857fa86d0ef2bb9878800274b13a29)，[原始许可](LICENSES/dsh-purge-MIT.txt)随仓库保留。
+- [dsh-purge-plus](https://github.com/JeffKeeping/dsh-purge-plus)：JeffKeeping；同时保留 purge fork 所要求的来源署名。
+- [Water-Run/dsh-purge](https://github.com/Water-Run/dsh-purge)：本分支对照的个人 fork，版本节点与时间见应用的“关于”。
+- GitHub 图标来自 [Octicons](https://github.com/primer/octicons)，保留其 [MIT 许可](packages/client/ui-settings-account/GITHUB-MARK-LICENSE.txt)。
 
-For agents, follow [AGENTS.md](AGENTS.md).
-
-## Citation
-
-```bibtex
-@misc{deepseek-harness2026,
-  title={DeepSeek Harness: Everything is a Plugin},
-  author={DeepSeek-AI},
-  year={2026},
-  publisher={GitHub},
-  howpublished={\url{https://github.com/deepseek-ai/deepseek-harness}},
-}
-```
-
-## License
-
-[MIT](LICENSE)
-
-Third-party dependencies and their licenses are disclosed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+dsh-purge 后续专有许可分支不作为这里复制源码的授权依据；这里保留的是上述旧 MIT 文本的许可。

@@ -2,6 +2,7 @@
 
 import { Menu, nativeImage, Tray } from 'electron'
 import type { DesktopLocale } from './locale.ts'
+import type { DesktopSessionItem } from '@deepseek-ai/dsh-api-session-controller/types'
 
 /** Main-process actions the tray triggers; both run the same paths as the window and application menu. */
 export interface DesktopTrayOptions {
@@ -12,11 +13,16 @@ export interface DesktopTrayOptions {
   readonly open: () => void
   /** Request quit through the same confirmation as every other quit entry. */
   readonly quit: () => void
+  readonly openSession?: (sessionId: DesktopSessionItem['sessionId']) => void
+  readonly about?: () => void
+  readonly repository?: () => void
+  readonly checkUpdates?: () => void
 }
 
 /** Tray icon present for the whole run, not only while the window is hidden. */
 export class DesktopTray {
   private tray: Tray | undefined
+  private sessions: readonly DesktopSessionItem[] = []
 
   /** @param options - Icon path, locale reader, and the open and quit actions. */
   constructor(private readonly options: DesktopTrayOptions) {
@@ -26,6 +32,9 @@ export class DesktopTray {
     this.relabel()
   }
 
+  /** @param sessions - Latest validated running-conversation roster. */
+  setSessions(sessions: readonly DesktopSessionItem[]): void { this.sessions = sessions; this.relabel() }
+
   /** Rebuild the tooltip and context menu in the current locale. */
   relabel(): void {
     const tray = this.tray
@@ -34,6 +43,14 @@ export class DesktopTray {
     tray.setToolTip(messages.aboutProduct)
     tray.setContextMenu(Menu.buildFromTemplate([
       { label: messages.openApplication, click: () => { this.options.open() } },
+      ...(this.options.openSession === undefined ? [] : [{
+        label: messages.runningConversations, enabled: this.sessions.length > 0,
+        submenu: this.sessions.map(item => ({ label: (item.title || messages.untitledConversation).replace(/&/gu, '&&').replace(/[\r\n\t]/gu, ' '),
+          click: () => { this.options.openSession?.(item.sessionId) } })),
+      }]),
+      ...(this.options.about === undefined ? [] : [{ label: messages.aboutMenu, click: this.options.about }]),
+      ...(this.options.checkUpdates === undefined ? [] : [{ label: messages.checkUpdatesMenu, click: this.options.checkUpdates }]),
+      ...(this.options.repository === undefined ? [] : [{ label: messages.aboutRepository, click: this.options.repository }]),
       { type: 'separator' },
       { label: messages.quitApplication, click: () => { this.options.quit() } },
     ]))

@@ -19,7 +19,7 @@ export const CLIENT_BUILD_PROFILE_SELECTOR = 'DSH_BUILD_CLIENT_PROFILE'
 /** Public client environment required by official DSH artifacts. */
 const OFFICIAL_CLIENT_BUILD_ENVIRONMENT = {
   DSH_CLIENT_BUILD_PROFILE: 'official',
-  DSH_CLIENT_TITLE: 'DeepSeek Harness',
+  DSH_CLIENT_TITLE: 'DeepSeek Harness Uncensored',
 } as const
 
 /** Public variable carrying the source commit embedded in client artifacts. */
@@ -32,6 +32,38 @@ const CLIENT_VERSION_VARIABLE = 'DSH_CLIENT_VERSION'
 export const CLIENT_BUILD_RECORD_PATH = '.dsh-build/client-build-environment.json'
 
 const CLIENT_BUILD_RECORD_FORMAT = 1
+const FORK_BUILD_KEYS = ['DSH_CLIENT_FORK_VERSION', 'DSH_CLIENT_UPSTREAM_VERSION', 'DSH_CLIENT_COMMIT_DATE',
+  'DSH_CLIENT_BUILD_TIME', 'DSH_CLIENT_PURGE_COMMIT', 'DSH_CLIENT_PURGE_DATE'] as const
+
+/** Product-owned fork labels; repositories without product.json retain their selected build identity. */
+function forkBuildEnvironment(root: string, environment: NodeJS.ProcessEnv): ClientBuildEnvironment {
+  const path = resolve(root, 'product.json')
+  if (!existsSync(path)) return {}
+  const product: unknown = JSON.parse(readFileSync(path, 'utf8'))
+  if (!isObject(product) || typeof product.version !== 'string' || typeof product.upstreamVersion !== 'string') {
+    throw new Error('product.json must declare version and upstreamVersion')
+  }
+  if (!isObject(product.purge) || typeof product.purge.commit !== 'string' || typeof product.purge.commitTime !== 'string') {
+    throw new Error('product.json must record the incorporated purge commit and commitTime')
+  }
+  const desktop: unknown = JSON.parse(readFileSync(resolve(root, 'apps/desktop/package.json'), 'utf8'))
+  const cli: unknown = JSON.parse(readFileSync(resolve(root, 'apps/cli/package.json'), 'utf8'))
+  if (!isObject(desktop) || desktop.version !== product.version || !isObject(cli) || cli.dshProductVersion !== product.version) {
+    throw new Error('Desktop and CLI product versions must match product.json; DSH runtime versions are independent')
+  }
+  const date = spawnSync('git', ['show', '-s', '--format=%cI', repositoryCommitHash(root, environment)], {
+    cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
+  })
+  return {
+    ...OFFICIAL_CLIENT_BUILD_ENVIRONMENT,
+    DSH_CLIENT_FORK_VERSION: product.version,
+    DSH_CLIENT_UPSTREAM_VERSION: product.upstreamVersion,
+    DSH_CLIENT_BUILD_TIME: new Date().toISOString(),
+    DSH_CLIENT_PURGE_COMMIT: product.purge.commit,
+    DSH_CLIENT_PURGE_DATE: product.purge.commitTime,
+    ...(date.status === 0 ? { DSH_CLIENT_COMMIT_DATE: date.stdout.trim() } : {}),
+  }
+}
 const CLIENT_ARTIFACT_PATTERNS = [
   'apps/web/dist/**/*',
   'packages/*/*/lib/client.js',
@@ -126,6 +158,7 @@ export function repositoryClientBuildEnvironment(
   const dirty = repositoryGitDirty(root)
   return {
     ...inherited,
+    ...forkBuildEnvironment(root, environment),
     DSH_CLIENT_COMMIT_HASH: repositoryCommitHash(root, environment),
     ...(dirty === true ? { DSH_CLIENT_GIT_DIRTY: 'true' } : {}),
     DSH_CLIENT_VERSION: repositoryVersion(root),
@@ -143,6 +176,7 @@ export function officialClientBuildEnvironment(
   environment: NodeJS.ProcessEnv = process.env,
 ): Readonly<Record<`DSH_CLIENT_${string}`, string>> {
   return {
+    ...forkBuildEnvironment(root, environment),
     DSH_CLIENT_COMMIT_HASH: repositoryCommitHash(root, environment),
     DSH_CLIENT_VERSION: repositoryVersion(root),
     ...OFFICIAL_CLIENT_BUILD_ENVIRONMENT,
@@ -199,6 +233,7 @@ export function resolveClientBuildEnvironment(
       throw new Error(`${CLIENT_VERSION_VARIABLE} is required for the official client build profile`)
     }
     return {
+      ...Object.fromEntries(FORK_BUILD_KEYS.flatMap(key => environment[key] === undefined ? [] : [[key, environment[key]]])),
       DSH_CLIENT_COMMIT_HASH: commitHash,
       DSH_CLIENT_VERSION: version,
       ...OFFICIAL_CLIENT_BUILD_ENVIRONMENT,

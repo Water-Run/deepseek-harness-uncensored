@@ -20,7 +20,7 @@ param(
     # Optional directory of skill packs to copy into "$HarnessHome/skills".
     [string] $SkillSource = 'D:\Coding\dsh-purge\skills',
     # Port the double-clickable Web entry binds; matches the shipped default.
-    [int] $Port = 6666
+    [int] $Port = 23333
 )
 
 $ErrorActionPreference = 'Stop'

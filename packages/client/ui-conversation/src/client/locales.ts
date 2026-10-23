@@ -74,7 +74,7 @@ export const zh = {
   'settings.enter.description': '智能体运行时 Enter 键和发送按钮的行为；Cmd/Ctrl+Enter 使用另一行为',
   'settings.enter.queue': '排队发送',
   'settings.enter.steer': '插话发送',
-  'hero.headline': '探索未至之境',
+  'hero.headline': '更自由的探索未至之境',
   'hero.preview': '预览版',
   'hero.chooseWorkspace': '选择工作区',
   'session.hierarchy': '会话层级',

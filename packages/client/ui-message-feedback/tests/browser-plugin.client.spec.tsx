@@ -10,7 +10,7 @@
  * The node half stays inert.
  */
 import { Context, Service } from '@deepseek-ai/cordis'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -146,7 +146,8 @@ describe('ui-message-feedback browser plugin', () => {
     expect(face.dismissFailure).toBeTypeOf('function')
   })
 
-  it('opens one dialog per Session from the message entry and the decoration', async () => {
+  it('keeps message feedback local and opens GitHub for the session menu', async () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue(null)
     const b = await bench()
     await b.fiber.await()
 
@@ -159,7 +160,8 @@ describe('ui-message-feedback browser plugin', () => {
     expect(decoration?.available({ sessionId: sid('s1') })).toBe(true)
     if (decoration?.ui.kind !== 'action') throw new Error('the /feedback decoration is not an action')
     decoration.ui.run({ sessionId: sid('s1') })
-    expect(dialog.hooks.dialog.getSnapshot().target).toEqual({ kind: 'session' })
+    expect(open).toHaveBeenCalledWith('https://github.com/Water-Run/deepseek-harness-uncensored/issues/new/choose', '_blank', 'noopener,noreferrer')
+    open.mockRestore()
 
     expect(b.dialogEntry()!.inject!(sid('s2')).hooks.dialog.getSnapshot()).toMatchObject({ target: null, toast: 0 })
   })
@@ -186,7 +188,7 @@ describe('ui-message-feedback browser plugin', () => {
     const dialog = b.dialogEntry()!.inject!(sid('s1'))
     const decoration = b.decorations.get('feedback')
     if (decoration?.ui.kind !== 'action') throw new Error('the /feedback decoration is not an action')
-    decoration.ui.run({ sessionId: sid('s1') })
+    b.ctx.feedbackUi.openSession(sid('s1'))
     dialog.edit({ category: 'service-stability', text: 'timed out' })
     await dialog.submit()
     expect(b.calls.filter(call => call.method === 'record')[0]?.request)
@@ -210,7 +212,7 @@ describe('ui-message-feedback browser plugin', () => {
     const dialog = b.dialogEntry()!.inject!(sid('s1'))
     const decoration = b.decorations.get('feedback')
     if (decoration?.ui.kind !== 'action') throw new Error('the /feedback decoration is not an action')
-    decoration.ui.run({ sessionId: sid('s1') })
+    b.ctx.feedbackUi.openSession(sid('s1'))
 
     await dialog.submit()
 
@@ -227,7 +229,7 @@ describe('ui-message-feedback browser plugin', () => {
     const dialog = b.dialogEntry()!.inject!(sid('gone'))
     const decoration = b.decorations.get('feedback')
     if (decoration?.ui.kind !== 'action') throw new Error('the /feedback decoration is not an action')
-    decoration.ui.run({ sessionId: sid('gone') })
+    b.ctx.feedbackUi.openSession(sid('gone'))
 
     await dialog.submit()
 

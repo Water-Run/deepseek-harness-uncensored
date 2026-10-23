@@ -16,8 +16,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ObservableSnapshot, SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import {
-  IconAgentPresetOutlineRegular, IconChevronDownOutlineRegular, IconWarningOutlineRegular, Menu, Toast,
+  IconChevronDownOutlineRegular, IconWarningOutlineRegular, Menu, Toast,
 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { PresetIcon } from './PresetIcon.tsx'
 // Type-only: pulls the ui-conversation SlotMap merge (the hero seat).
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { AgentPresetSeatState } from './seat-store.ts'
@@ -168,6 +169,7 @@ export function AgentPresetSeat({
           const text = presetDisplayText(option, t)
           return {
             id: option.id,
+            icon: <PresetIcon id={option.id} />,
             // Name and description together: the id alone never says what a
             // preset does, which is why the roster carries display copy.
             label: (
@@ -196,7 +198,7 @@ export function AgentPresetSeat({
             disabled={state.busy || options.length === 0}
             onClick={() => { setOpen(value => !value) }}
           >
-            <IconAgentPresetOutlineRegular className={introducing ? `${css.seatIcon} ${css.introIcon}` : css.seatIcon} />
+            <PresetIcon id={state.current} className={introducing ? `${css.seatIcon} ${css.introIcon}` : css.seatIcon} />
             <span className={css.seatLabel}>{shownLabel}</span>
             <IconChevronDownOutlineRegular className={css.chevron} />
           </button>

@@ -1,0 +1,7 @@
+.marker {
+  transition: fill var(--ds-transition-duration-slow, 300ms) var(--ds-ease-in-out, ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marker { transition: none; }
+}

@@ -76,8 +76,10 @@ export function hasPromptContent(content: readonly PromptContentCandidate[]): bo
 /**
  * Resolve the omitted-`atSeq` default to the latest completed-turn prefix,
  * including standalone events before the next turn begins.
+ * @param events - Ordered source events.
+ * @returns Inclusive boundary, or undefined before any completed turn.
  */
-function latestCompletedPrefixBoundary(events: readonly SessionEvent[]): SessionSeq | undefined {
+export function latestCompletedPrefixBoundary(events: readonly SessionEvent[]): SessionSeq | undefined {
   const lastTurnEnd = events.findLast(event => event.type === 'turn/end')
   if (lastTurnEnd === undefined) return undefined
   let boundary = lastTurnEnd.seq

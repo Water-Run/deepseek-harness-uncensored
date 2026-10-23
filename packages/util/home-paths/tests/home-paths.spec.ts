@@ -24,6 +24,13 @@ afterEach(() => {
 })
 
 describe('dsh path helpers', () => {
+  it('isolates an inherited official home and honors an explicit Uncensored home', () => {
+    expect(resolveDshHome(undefined, { DSH_HOME: '~/.dsh' })).toBe(defaultDshHome())
+    expect(resolveDshHome(undefined, { DSH_HOME: '~/.dsh', DSH_UNCENSORED_HOME: '~/private-dshu' }))
+      .toBe(join(homedir(), 'private-dshu'))
+    expect(resolveDshHome(undefined, { DSH_HOME: '~/.dsh', DSH_UNCENSORED_HOME: '  ' })).toBe(defaultDshHome())
+    expect(resolveDshHome('~/.dsh', { DSH_UNCENSORED_HOME: '~/private-dshu' })).toBe(join(homedir(), '.dsh'))
+  })
   it('owns the shared default DSH home directory name', () => {
     expect(DSH_HOME_DIR_NAME).toBe('.dsh-uncensored')
     expect(DEFAULT_DSH_HOME_DISPLAY).toBe('~/.dsh-uncensored')

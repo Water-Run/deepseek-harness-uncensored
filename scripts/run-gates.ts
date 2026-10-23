@@ -415,7 +415,7 @@ function ciPrimaryGates(): Gate[] {
     // The prepared typecheck and build both drive Client tsc, while build also
     // repeats the Host contract pass. Wait for all three consumers so build
     // neither races tsbuildinfo nor replaces declarations while they are read.
-    ciBuildGate('build', { needs: ['typecheck', 'lint', 'doc-typecheck'] }),
+    ciBuildGate('build', { needs: ['typecheck', 'lint'] }),
     pnpmScript('publint', 'publint', { needs: ['build'] }),
     pnpmScript('node-next-types', 'verify-node-next-types', {
       label: 'node-next types',
@@ -525,7 +525,6 @@ function ciConsumerGates(): Gate[] {
     'lint-and-duplication',
     'snapshot',
     'expected-output',
-    'doc-typecheck',
     'node-next-types',
     'built-bin-smoke',
   ]
@@ -543,10 +542,6 @@ function ciConsumerGates(): Gate[] {
     snapshotGate(builtTree),
     expectedOutputGate(builtTree),
     webSnapshotGate(builtTree, buildArtifactReaders),
-    pnpmScript('doc-typecheck', 'doc-typecheck:contracts-ready', {
-      needs: builtTree,
-      env: { DSH_DOC_TYPECHECK_USE_BUILD_OUTPUT: '1' },
-    }),
     pnpmScript('node-next-types', 'verify-node-next-types', {
       label: 'node-next types',
       needs: builtTree,
@@ -582,7 +577,6 @@ function webSnapshotGate(needs: string[], after?: string[]): Gate {
 function ciWindowsBlockingGates(): Gate[] {
   return [
     ciBuildGate('windows-build', { label: 'build' }),
-    pnpmScript('windows-site', 'docs:build', { label: 'production site' }),
   ]
 }
 
@@ -606,7 +600,6 @@ function ciWindowsCompleteGates(): Gate[] {
     }))
   return [
     ciBuildGate(),
-    pnpmScript('windows-site', 'docs:build', { label: 'production site' }),
     ...coverage,
     ...observational,
   ]
@@ -809,68 +802,8 @@ function docSyncLeafGates(options: {
   docTypecheckScript?: 'doc-typecheck' | 'doc-typecheck:contracts-ready'
   docsBuildScript?: 'docs:build' | 'docs:build:mpa'
 } = {}): Gate[] {
-  const docTypecheckOptions: Partial<Gate> = {}
-  if (options.docTypecheckNeeds !== undefined) docTypecheckOptions.needs = options.docTypecheckNeeds
-  if (options.docTypecheckEnv !== undefined) docTypecheckOptions.env = options.docTypecheckEnv
-  return [
-    // Stable FIFO starts the longest leaves first; only docs-site-build writes website/.generated.
-    ...options.includeDocTypecheck === false
-      ? []
-      : [pnpmScript('doc-typecheck', options.docTypecheckScript ?? 'doc-typecheck', docTypecheckOptions)],
-    pnpmScript('docs-site-build', options.docsBuildScript ?? 'docs:build', { label: 'documentation build' }),
-    pnpmScript('doc-graphs', 'verify-doc-graphs', { label: 'doc graphs' }),
-    pnpmScript('cli-help', 'verify-cli-help', { label: 'CLI help reference' }),
-    pnpmScript('markdown-links', 'verify-md-links', { label: 'markdown links', quick: true }),
-    pnpmScript('type-equivalence', 'verify-type-equiv', { label: 'type equivalence', quick: true }),
-    pnpmScript('cordis-catalog', 'verify-cordis-catalog', { label: 'cordis catalog' }),
-    pnpmScript('cordis-inspect-catalog', 'verify-cordis-inspect-catalog', { label: 'Cordis inspect catalog' }),
-    pnpmScript('workflow-guest', 'verify-workflow-guest', { label: 'workflow guest source' }),
-    pnpmScript('mermaid', 'verify-mermaid'),
-    pnpmScript('translation-pairing', 'verify-translation-pairing', { label: 'translation pairing', quick: true }),
-    pnpmScript('markdown-wrap', 'verify-md-wrap', { label: 'markdown wrap', quick: true }),
-    pnpmScript('client-catalog', 'verify-client-catalog', { label: 'client catalog' }),
-    pnpmScript('export-jsdoc', 'verify-export-jsdoc', { label: 'export jsdoc' }),
-    pnpmScript('tool-catalog', 'verify-tool-catalog', { label: 'tool catalog' }),
-    pnpmScript('config-catalog', 'verify-config-catalog', { label: 'config catalog' }),
-    pnpmScript('plugin-packages', 'verify-plugin-packages', { label: 'skill plugin package list' }),
-    pnpmScript('dependency-catalog', 'verify-dependency-catalog', { label: 'npm dependency catalog', quick: true }),
-    pnpmScript('persistence-catalog', 'verify-persistence-catalog', { label: 'persistence catalog' }),
-    pnpmScript('persistence-changes', 'verify-persistence-changes', { label: 'persistence type history' }),
-    pnpmScript('persistence-releases', 'verify-persistence-releases', { label: 'released persistence history' }),
-    pnpmScript('persistence-formats', 'verify-persistence-formats', { label: 'Session format references', quick: true }),
-    pnpmScript('session-format-catalog', 'verify-session-format-catalog', { label: 'Session format catalog' }),
-    pnpmScript('public-repository-links', 'verify-public-repository-links', { label: 'public repository links', quick: true }),
-    pnpmScript('repository-references', 'verify-repository-references', { label: 'repository references', quick: true }),
-    pnpmScript('concrete-terms', 'verify-concrete-terms', { label: 'concrete terms', quick: true }),
-    pnpmScript('doc-refs', 'verify-doc-refs', { label: 'doc refs', quick: true }),
-    pnpmScript('subsystem-pages', 'verify-subsystem-pages', { label: 'subsystem pages' }),
-    pnpmScript('package-paths', 'verify-package-paths', { label: 'package paths' }),
-    pnpmScript('tsconfig-paths', 'verify-tsconfig-paths', { label: 'tsconfig paths' }),
-    pnpmScript('config-source-ownership', 'verify-config-source-ownership', { label: 'config source ownership' }),
-    pnpmScript('package-readme-summaries', 'verify-package-readme-summaries', { label: 'package README Summaries', quick: true }),
-    pnpmScript('package-readme-model-experience', 'verify-package-readme-model-experience', { label: 'package README model experience', quick: true }),
-    pnpmScript('agent-note-classification', 'verify-agent-note-classification', { label: 'agent note classification', quick: true }),
-    pnpmScript('agent-note-format', 'verify-agent-note-format', { label: 'agent note format', quick: true }),
-    pnpmScript('archived-agent-notes', 'verify-archived-agent-notes', { label: 'archived agent notes', quick: true }),
-    pnpmScript('skill-invocation-metadata', 'verify-skill-invocation-metadata', { label: 'skill invocation metadata', quick: true }),
-    pnpmScript('translation-prompt', 'verify-translation-prompt', { label: 'translation prompt', quick: true }),
-    pnpmScript('doc-budgets', 'verify-doc-budgets', { label: 'doc budgets', quick: true }),
-    pnpmScript('upgrade-guides', 'verify-upgrade-guides', { label: 'upgrade guides', quick: true }),
-    pnpmExec('doc-standard-tests', ['vitest', 'run', 'scripts/doc-standard.spec.ts'], {
-      label: 'documentation standard tests',
-      quick: true,
-    }),
-    pnpmExec('docs-site-projection', [
-      'vitest', 'run', 'scripts/project-doc-site.spec.ts', 'scripts/verify-doc-site-fragments.spec.ts',
-      'website/tests/mermaid-viewer.spec.ts',
-      'website/tests/image-viewer.spec.ts',
-      'website/tests/code-groups.spec.ts',
-      'website/tests/page-markdown-actions.spec.ts', 'website/tests/raw-markdown.spec.ts',
-    ], {
-      label: 'documentation site checks',
-    }),
-    pnpmScript('package-readme-limitations', 'verify-package-readme-limitations', { label: 'package README limitations', quick: true }),
-  ]
+  void options
+  return [pnpmScript('readme', 'doc-sync', { label: 'Chinese README', quick: true })]
 }
 
 /**

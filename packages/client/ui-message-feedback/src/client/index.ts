@@ -136,7 +136,7 @@ export function apply(ctx: ClientContext): void {
     scope.effect(() => scope.commandUi.decorate({
       name: 'feedback',
       available: () => true,
-      ui: { kind: 'action', run: (session) => { feedbackUi.openSession(session.sessionId) } },
+      ui: { kind: 'action', run: () => { window.open('https://github.com/Water-Run/deepseek-harness-uncensored/issues/new/choose', '_blank', 'noopener,noreferrer') } },
     }), 'ui-message-feedback: /feedback decoration')
   })
 }

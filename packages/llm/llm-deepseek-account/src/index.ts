@@ -86,6 +86,7 @@ export function apply(ctx: Context, config: Config): void {
       listing: view.listing?.entries,
       supported,
       overrides: resolved.modelOverrides,
+      visibleModels: resolved.visibleModels,
       routeMaxTokens: resolved.protocol.maxTokens,
       clientVersion: APP_IDENTITY.version,
     })

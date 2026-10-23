@@ -62,6 +62,8 @@ import { DesktopUpdateOverlays } from './update-overlay.ts'
 import { DesktopQuitConfirmation } from './quit-confirmation.ts'
 import { DesktopTray } from './tray.ts'
 import { DesktopBackgroundNotice } from './background-notice.ts'
+import { desktopAboutDetails } from './about.ts'
+import { parseDesktopSessionItems } from './session-menu.ts'
 
 let focusPrimaryWindow = (): void => {}
 let stopForRecovery = async (): Promise<void> => {}
@@ -399,9 +401,10 @@ async function main(): Promise<void> {
   // Copy comes from the same locale as the update prompts so the dialog
   // chrome and its content never mix languages.
   const showAbout = async (): Promise<void> => {
-    await ordinaryMessageBox({ type: 'info', title: locale.messages.aboutMenu, message: locale.messages.aboutProduct,
-      detail: formatDesktopMessage(locale.messages.aboutVersion, { version: app.getVersion() }),
-      buttons: [locale.messages.updateAcknowledge], cancelId: 0 })
+    const result = await ordinaryMessageBox({ type: 'info', title: locale.messages.aboutMenu, message: locale.messages.aboutProduct,
+      detail: desktopAboutDetails(manifest, app.getVersion(), locale.messages),
+      buttons: [locale.messages.updateAcknowledge, locale.messages.aboutRepository], cancelId: 0 })
+    if (result.response === 1) await shell.openExternal('https://github.com/Water-Run/deepseek-harness-uncensored')
   }
   const commandManager = new DesktopCommandManager({
     resources: process.resourcesPath,
@@ -791,6 +794,10 @@ async function main(): Promise<void> {
     assertProductSender(event)
     return readDeviceInfo()
   })
+  ipcMain.handle(DESKTOP_IPC.sessionsPublish, (event, items: unknown) => {
+    assertProductSender(event)
+    tray?.setSessions(parseDesktopSessionItems(items))
+  })
   ipcMain.handle(DESKTOP_IPC.onboardingApiKey, async (event) => {
     assertProductSender(event)
     return (await readWelcomeState()).hasApiKey
@@ -968,10 +975,8 @@ async function main(): Promise<void> {
   const applicationItems = (): MenuItemConstructorOptions[] => [
     // Windows has no system About panel; Electron's fallback is a plain
     // message box, so the shell shows its own dimmed dialog instead.
-    process.platform === 'win32'
-      ? { label: currentDesktopLocale().messages.aboutMenu,
-        click: () => { void showAbout().catch((error: unknown) => { console.error(error) }) } }
-      : { label: currentDesktopLocale().messages.aboutMenu, role: 'about' },
+    { label: currentDesktopLocale().messages.aboutMenu,
+      click: () => { void showAbout().catch((error: unknown) => { console.error(error) }) } },
     { type: 'separator' },
     { label: currentDesktopLocale().messages.checkUpdatesMenu, click: () => { void openUpdatePrompt(true) } },
     ...process.platform === 'darwin' || process.platform === 'win32'
@@ -1007,7 +1012,12 @@ async function main(): Promise<void> {
     // The tray is the way back to a hidden window; without it, relaunching the application still focuses it.
     try {
       tray = new DesktopTray({ iconPath: trayIconPath, locale: currentDesktopLocale,
-        open: () => { focusPrimaryWindow() }, quit: () => { app.quit() } })
+        open: () => { focusPrimaryWindow() }, quit: () => { app.quit() },
+        openSession: (sessionId) => { focusPrimaryWindow(); mainWindow?.webContents.send(DESKTOP_IPC.sessionOpen, sessionId) },
+        about: () => { void showAbout().catch(console.error) },
+        repository: () => { void shell.openExternal('https://github.com/Water-Run/deepseek-harness-uncensored').catch(console.error) },
+        checkUpdates: () => { void openUpdatePrompt(true).catch(console.error) },
+      })
     } catch (error) { console.warn('desktop tray: unavailable', error) }
   }
   const backgroundNotice = process.platform === 'win32'
@@ -1124,10 +1134,14 @@ async function main(): Promise<void> {
       if (!quitting && !window.isDestroyed()) reportFatal(error, 'renderer')
     })
     window.webContents.on('render-process-gone', (_event, details) => {
+      tray?.setSessions([])
       navigation = undefined
       if (!quitting && !window.isDestroyed() && details.reason !== 'clean-exit') {
         reportFatal(new Error(`Desktop renderer exited: ${details.reason}`), 'renderer')
       }
+    })
+    window.webContents.on('did-start-navigation', (_event, _url, _inPlace, isMainFrame) => {
+      if (isMainFrame) tray?.setSessions([])
     })
     return window
   }

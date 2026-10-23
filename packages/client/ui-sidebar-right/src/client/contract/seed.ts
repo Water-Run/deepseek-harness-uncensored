@@ -25,7 +25,7 @@ export interface SidebarRightSeed {
  */
 export function defaultSeed(tabs: SidebarRightTabRegistry): SidebarRightSeed {
   const [only, ...others] = tabs.guide()
-  const single = only !== undefined && others.length === 0
+  const single = only !== undefined && others.length === 0 && only.preserveGuide !== true
   const kind = single ? only.kind : GUIDE_KIND
   const definition = tabs.get(kind)
   if (definition === undefined) throw new Error(`sidebarRight: default tab kind "${kind}" is not registered`)

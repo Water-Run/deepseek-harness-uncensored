@@ -49,6 +49,15 @@
     },
     {
       "path": "../../util/values"
+    },
+    {
+      "path": "../resources"
+    },
+    {
+      "path": "../ui-sidebar-right"
+    },
+    {
+      "path": "../../typert/protocol"
     }
   ]
 }

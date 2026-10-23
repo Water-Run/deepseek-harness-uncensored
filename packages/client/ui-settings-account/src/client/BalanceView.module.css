@@ -1,0 +1,26 @@
+.settings { max-width: 720px; display: grid; gap: 16px; color: var(--dsw-alias-label-primary); font-size: 13px; }
+.settings h2 { margin: 0; font-size: 18px; font-weight: 500; }
+.settings a { color: inherit; text-underline-offset: 3px; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 36px; }
+.row input { max-width: 96px; }
+.details { display: grid; gap: 12px; }
+.wallets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.wallets > div { display: grid; gap: 4px; min-width: 0; }
+.wallets span { color: var(--dsw-alias-label-secondary); font-size: 12px; }
+.wallets strong { font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.currencies { display: flex; gap: 6px; }
+.chart { width: 100%; max-height: 150px; overflow: visible; }
+.axis { stroke: var(--dsw-alias-border-l2); stroke-width: 1; }
+.line { fill: none; stroke: var(--dsw-brand-blue); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.stats { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; margin: 0; font-size: 12px; }
+.stats dt { color: var(--dsw-alias-label-secondary); }
+.stats dd { margin: 0; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.hint { color: var(--dsw-alias-label-secondary); font-size: 12px; line-height: 1.6; margin: 0; }
+.sidebar { display: grid; width: 100%; margin-bottom: 8px; min-width: 0; }
+.summary { padding: 10px; border-radius: var(--dsw-radius-md); background: var(--dsw-alias-fill-tsp-secondary); color: var(--dsw-alias-label-primary); transition: background-color 300ms var(--ds-ease-in-out); }
+.summary[data-period='peak'] { background: color-mix(in srgb, var(--dsw-brand-red) 9%, transparent); }
+.summary[data-period='valley'] { background: color-mix(in srgb, var(--dsw-brand-blue) 9%, transparent); }
+.period { display: block; font-size: 11px; margin-bottom: 8px; color: var(--dsw-alias-label-secondary); }
+.summary:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 2px; }
+.hover { width: min(300px, calc(100vw - 64px)); display: grid; gap: 12px; }
+@media (prefers-reduced-motion: reduce) { .summary { transition: none; } }

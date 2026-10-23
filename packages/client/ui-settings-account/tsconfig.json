@@ -58,6 +58,12 @@
     },
     {
       "path": "../product-analytics/tsconfig.client.json"
+    },
+    {
+      "path": "../../credentials/balance"
+    },
+    {
+      "path": "../ui-sidebar"
     }
   ]
 }

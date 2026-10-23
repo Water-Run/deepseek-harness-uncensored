@@ -13,6 +13,8 @@ export type CatalogRefusal =
 
 /** Inputs of one catalog resolution. */
 export interface AccountCatalogInput {
+  /** Picker allowlist; omitted or empty offers every usable model without changing request resolution. */
+  readonly visibleModels?: readonly string[]
   /** Entries of the last successful listing, or `undefined` before one succeeds. */
   readonly listing: readonly ListingEntry[] | undefined
   /** Validated models this build supports, carrying its client-side knowledge. */
@@ -89,6 +91,7 @@ function gateOf(entry: ListingEntry, known: boolean, clientVersion: string, prob
  * @returns offered models, request-resolution entries, refusals, and diagnostics.
  */
 export function resolveAccountCatalog(input: AccountCatalogInput): AccountCatalog {
+  const visible = (model: DeepSeekCatalogModel): boolean => !input.visibleModels?.length || input.visibleModels.includes(model.id)
   const supported = new Map(input.supported.map(model => [model.id, model]))
   const problems: string[] = []
   const overrideErrors: string[] = []
@@ -106,7 +109,7 @@ export function resolveAccountCatalog(input: AccountCatalogInput): AccountCatalo
   }
   if (input.listing === undefined) {
     const resolution = resolveAdapterOptions({ models: input.supported.map(withOverride) }).models
-    return { offered: resolution, resolution, refusals: new Map(), problems, overrideErrors }
+    return { offered: resolution.filter(visible), resolution, refusals: new Map(), problems, overrideErrors }
   }
   const offered: DeepSeekCatalogModel[] = []
   const refusals = new Map<string, CatalogRefusal>()
@@ -133,5 +136,5 @@ export function resolveAccountCatalog(input: AccountCatalogInput): AccountCatalo
   const resolution = resolveAdapterOptions({
     models: [...offered, ...input.supported.filter(model => !offeredIds.has(model.id)).map(withOverride)],
   }).models
-  return { offered: resolution.slice(0, offered.length), resolution, refusals, problems, overrideErrors }
+  return { offered: resolution.slice(0, offered.length).filter(visible), resolution, refusals, problems, overrideErrors }
 }

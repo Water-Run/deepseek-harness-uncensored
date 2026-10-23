@@ -2117,11 +2117,5 @@
   },
   "snapshots/sdk/sdk.snapshot.ts": {
     "782d52268c631008e0fec08f76f87751765690287d5acdfae45021a754900290": 1
-  },
-  "website/tests/page-markdown-actions.spec.ts": {
-    "ea14e4cf19829fb573c9f3378cdf4333aedbedb0675596d8c873d284036ba9a5": 1
-  },
-  "website/tests/raw-markdown.spec.ts": {
-    "016337c62f55ffcdfc006da693aaf9bb20c3bb49260939c0d50191117c48934e": 1
   }
 }

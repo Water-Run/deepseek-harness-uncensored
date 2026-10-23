@@ -53,7 +53,7 @@ function digest(value: unknown): string {
 }
 
 function receiptPath(options: FileCommandInstallation): string {
-  return join(dirname(options.destination), '.dsh-desktop-command.json')
+  return join(dirname(options.destination), '.dsh-uncensored-command.json')
 }
 
 async function readEntry(path: string): Promise<Entry> {

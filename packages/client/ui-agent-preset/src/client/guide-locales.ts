@@ -1,5 +1,15 @@
 /** Curated help for shipped presets, kept separate from their short picker copy. */
 export const guideEn = {
+  guideReverseIntro: 'Trace how a program works through static and runtime evidence.',
+  guideReverseExplanation: '### Analysis workflow\n\nIdentify the artifact, platform, and architecture; follow symbols, strings, references, and observed behavior to test an explanation. Keep original samples and label hypotheses separately from confirmed results.\n\n### Tools\n\nUse available terminal, file, research, and delegation tools. Deep decompilation requires a configured Ghidra, IDA, Hopper, or REA provider; report missing tools explicitly.',
+  guideReverseUsage: '### Analyze a program\n\n> Inspect this sample, record its hash and architecture, locate its parser entry points, and explain the call paths with evidence.\n\n### Recover a protocol\n\n> Compare these request and response samples, infer the field layout, and verify it with an independent decoder and round-trip tests.',
+  guideSecurityIntro: 'Use the shared execution tools for security analysis and verification.',
+  guideSecurityExplanation: '### Tools and workflow\n\nSecurity mode shares the file, terminal, research, delegation, and workflow tools of Default mode. Work from the stated scope, record observations, and separate verified findings from hypotheses.\n\n### Useful results\n\nExplain impact and reproduction conditions, then verify the proposed fix. Missing credentials, unavailable tools, or an unreachable service remain explicit gaps.',
+  guideSecurityUsage: '### Review an application\n\n> Review the authentication and upload paths in this repository. Reproduce suspected problems locally and report the affected code, conditions, and a verified fix.\n\n### Review configuration\n\n> Check these deployment files for exposed secrets, excessive access, and unsafe defaults. Explain each finding and propose the smallest correction.',
+  guideWritingIntro: 'Create, continue, or revise a manuscript with file, research, and presentation tools.',
+  guideWritingExplanation: '### Writing workflow\n\nUse the current manuscript and latest character notes as the reference. Keep viewpoint, voices, timelines, and details consistent, and follow the requested style and length.\n\n### Available tools\n\nThis mode can read and edit documents, research material, and present files. Terminal and code execution are omitted; choose Default mode for those tasks.',
+  guideWritingUsage: '### Continue a scene\n\n> Continue this scene from the same viewpoint. Preserve the characters’ knowledge and unresolved tension. Write the scene itself, following these notes.\n\n### Revise a draft\n\n> Tighten this chapter without changing its facts or voice. Remove repeated explanations, improve dialogue, and list any continuity questions after the revised text.',
+
   modeExplanation: 'Mode details',
   howToUse: 'How to use',
   guideSections: 'Guide sections',
@@ -7,12 +17,12 @@ export const guideEn = {
   guideCopy: 'Copy',
   guideCopied: 'Copied',
   guideFootnotes: 'Footnotes',
-  guideStandardIntro: 'Choose Standard mode when starting a new task. Describe what you want to accomplish, point to the relevant files, and explain how to check the result.',
+  guideStandardIntro: 'Choose Default mode when starting a new task. Describe what you want to accomplish, point to the relevant files, and explain how to check the result.',
   guideStandardExplanation: [
     '### How it works',
     'The agent calls tools directly to read and edit files, search, and run terminal commands. It includes Skills, planning, goals, subagents, workflows, and context compaction.',
     '### When to choose it',
-    'Start here for everyday coding, file work, and research. Standard mode can also write scripts and process files in batches. PTC changes how tool calls are organized; it is not required for batch tasks.',
+    'Start here for everyday coding, file work, and research. Default mode can also write scripts and process files in batches. PTC changes how tool calls are organized; it is not required for batch tasks.',
   ].join('\n\n'),
   guideStandardUsage: [
     '### Fix a bug',
@@ -28,8 +38,8 @@ export const guideEn = {
     'PTC means Programmatic Tool Calling. In this built-in preset, the agent uses run_code to write a TypeScript program that calls tools through a generated SDK. The program can use loops, conditions, error handling, and concurrent calls where appropriate.',
     '### What reaches the model',
     'Tool results first reach the program, which can filter and combine them. The model receives what the program prints or returns; image results are attached separately. Nested tool calls are still recorded and remain subject to tool permissions.',
-    '### Compared with Standard mode',
-    'Both modes can handle coding and batch tasks. Standard mode exposes individual tools directly; PTC organizes tool calls in code. The current PTC preset leaves the workflow tool disabled. Speed and token use depend on the task and how the program handles its results.',
+    '### Compared with Default mode',
+    'Both modes can handle coding and batch tasks. Default mode exposes individual tools directly; PTC organizes tool calls in code. The current PTC preset leaves the workflow tool disabled. Speed and token use depend on the task and how the program handles its results.',
   ].join('\n\n'),
   guidePtcUsage: [
     '### Check a set of configuration files',
@@ -68,7 +78,7 @@ export const guideEn = {
     '> Create a plugin with a tool that reads this project’s test report and summarizes the failed tests. Register it and verify it with a sample report.',
     'Expected output: a plugin with a callable tool and a verified sample call.',
     '### Create my own mode',
-    '> Create a “Code review” mode based on Standard mode. Have it prioritize potential bugs and test gaps, cite file paths and lines, and ask before modifying files. Save it as a selectable preset.',
+    '> Create a “Code review” mode based on Default mode. Have it prioritize potential bugs and test gaps, cite file paths and lines, and ask before modifying files. Save it as a selectable preset.',
     'Expected output: a custom preset for new tasks. These review instructions guide the agent; permission settings determine which actions it can execute.',
   ].join('\n\n'),
 }
@@ -78,6 +88,16 @@ export type PresetGuideKey = keyof typeof guideEn
 
 /** Simplified Chinese help. Examples describe suggested tasks, not recorded runs. */
 export const guideZh: Record<PresetGuideKey, string> = {
+  guideReverseIntro: '结合静态分析与运行证据，理解程序的真实行为。',
+  guideReverseExplanation: '### 分析流程\n\n先确认样本、平台与架构，再沿符号、字符串、引用与运行行为验证推断。保留原始样本，区分已证实结论和待验证假设。\n\n### 工具范围\n\n可使用终端、文件、检索与任务协作工具。深入反编译需要配置 Ghidra、IDA、Hopper 或 REA 等分析后端；缺少工具时会明确指出。',
+  guideReverseUsage: '### 分析程序\n\n> 检查这个样本，记录哈希和架构，定位解析入口，并用调用关系说明实现。\n\n### 还原协议\n\n> 对照这些请求和响应样本推断字段布局，编写独立解码器，并用往返测试验证。',
+  guideSecurityIntro: '使用终端、文件、检索与任务协作工具，完成安全分析和验证。',
+  guideSecurityExplanation: '### 工具与工作方式\n\n网安模式与缺省模式共享基础执行工具，侧重代码和配置审查、问题复现与修复验证。依据已明确的任务范围工作，记录观察结果，区分已验证的问题和待验证的推测。\n\n### 结果要求\n\n说明影响、复现条件、关键操作与修复建议；缺少凭据、工具或可访问环境时，明确列出验证缺口。',
+  guideSecurityUsage: '### 审查应用\n\n> 检查这个项目的登录和文件上传流程。在本地复现疑似问题，指出涉及代码、触发条件，并验证修复。\n\n### 检查部署配置\n\n> 检查这些部署文件中的凭据暴露、过宽权限和不安全默认值，说明依据并给出最小修改。',
+  guideWritingIntro: '结合文件、检索与呈现工具，完成文稿创作、续写和编辑。',
+  guideWritingExplanation: '### 创作方式\n\n以当前稿件和最新设定为准，保持叙事视角、人物声音、时间线与细节一致。风格和篇幅服从具体要求，直接交付所需文稿。\n\n### 工具范围\n\n可以读写文稿、检索资料和输出文件，不提供终端或代码执行。需要编程或数据处理时，请选择缺省模式。',
+  guideWritingUsage: '### 续写场景\n\n> 按这些人物设定续写本场戏，沿用同一视角，保持人物已知信息和未解决的冲突，直接给出正文。\n\n### 修改长文\n\n> 保留这一章的事实、立场和语气，删去重复解释，改善对白和节奏；在修改稿之后列出需要我确认的连续性问题。',
+
   modeExplanation: '模式说明',
   howToUse: '如何使用',
   guideSections: '帮助内容',
@@ -85,12 +105,12 @@ export const guideZh: Record<PresetGuideKey, string> = {
   guideCopy: '复制',
   guideCopied: '已复制',
   guideFootnotes: '脚注',
-  guideStandardIntro: '新建任务时选择「标准模式」，说明要完成什么、相关文件在哪里，以及怎样判断任务完成。',
+  guideStandardIntro: '新建任务时选择「缺省模式」，说明要完成什么、相关文件在哪里，以及怎样判断任务完成。',
   guideStandardExplanation: [
     '### 工作方式',
     'Agent 直接调用工具来读写文件、检索资料和执行终端命令。包含 Skills、计划、目标、子 Agent、工作流和上下文压缩等能力。',
     '### 什么时候选',
-    '日常编程、文件处理和资料整理可以从这里开始。标准模式也能编写脚本、批量处理文件；PTC 改变的是工具调用方式，批量任务并不必须使用 PTC。',
+    '日常编程、文件处理和资料整理可以从这里开始。缺省模式也能编写脚本、批量处理文件；PTC 改变的是工具调用方式，批量任务并不必须使用 PTC。',
   ].join('\n\n'),
   guideStandardUsage: [
     '### 修复一个问题',
@@ -106,8 +126,8 @@ export const guideZh: Record<PresetGuideKey, string> = {
     'PTC 是 Programmatic Tool Calling，即通过程序调用工具。当前内置预设让 Agent 通过 run_code 编写 TypeScript 程序，使用生成的工具 SDK 发起调用。程序可以组织循环、条件判断、错误处理，以及适合并发执行的调用。',
     '### 哪些结果交给模型',
     '工具返回的数据先交给程序，经过筛选、计算或合并，再通过输出或返回值交给模型；图片结果会另行附加。程序中的工具调用仍会被记录，也仍受工具权限约束。',
-    '### 与标准模式的区别',
-    '两种模式都能编程、批量处理文件。标准模式直接向模型提供各个工具；PTC 让模型用代码组织工具调用。当前 PTC 预设未启用 workflow 工具。速度和 token 用量取决于具体任务与结果处理方式。',
+    '### 与缺省模式的区别',
+    '两种模式都能编程、批量处理文件。缺省模式直接向模型提供各个工具；PTC 让模型用代码组织工具调用。当前 PTC 预设未启用 workflow 工具。速度和 token 用量取决于具体任务与结果处理方式。',
   ].join('\n\n'),
   guidePtcUsage: [
     '### 批量检查配置文件',
@@ -127,7 +147,7 @@ export const guideZh: Record<PresetGuideKey, string> = {
   guideMinimalUsage: [
     '### 对比基础修复表现',
     '> 运行这个项目的测试，找出失败原因，做最小修复，再运行相关测试并报告结果。',
-    '分别用标准模式和极简模式，从相同的工作区状态执行这条任务，对比完成情况、工具调用和最终修改。极简模式会通过终端命令完成这些操作。',
+    '分别用缺省模式和极简模式，从相同的工作区状态执行这条任务，对比完成情况、工具调用和最终修改。极简模式会通过终端命令完成这些操作。',
   ].join('\n\n'),
   guideCordisIntro: '新建任务时选择「创造模式」，说明希望增加什么能力、从哪里使用，以及怎样验证效果。',
   guideCordisExplanation: [
@@ -146,7 +166,7 @@ export const guideZh: Record<PresetGuideKey, string> = {
     '> 写一个插件，提供读取项目测试报告、汇总失败用例的工具。注册工具，并用一份示例报告验证调用结果。',
     '预期产出：可调用的新工具，以及一次示例调用的验证结果。',
     '### 创建自己的模式',
-    '> 基于标准模式创建「代码审查」模式，优先检查潜在错误和测试缺口，指出文件与行号，修改文件前先询问我。保存成可选择的预设。',
+    '> 基于缺省模式创建「代码审查」模式，优先检查潜在错误和测试缺口，指出文件与行号，修改文件前先询问我。保存成可选择的预设。',
     '预期产出：可在新任务中选择的自定义模式。审查要求用于指导 Agent，实际可执行的操作仍由权限设置决定。',
   ].join('\n\n'),
 }

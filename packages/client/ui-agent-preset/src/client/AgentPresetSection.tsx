@@ -11,6 +11,7 @@ import { isBuiltInPreset, presetDisplayText } from './locales.ts'
 import { requiresCodingTools } from './settings-store.ts'
 import { PresetGuideDialog, presetGuide, trapPresetReaderTab, type PresetGuidePage } from './PresetGuideDialog.tsx'
 import css from './AgentPresetSection.module.css'
+import { PresetIcon } from './PresetIcon.tsx'
 
 /** Settings actions and their shared controller state. */
 export interface AgentPresetSectionInjected {
@@ -125,6 +126,7 @@ export function AgentPresetSection({
                 onClick={() => { if (row.broken === undefined) void makeDefault(row.id) }}>
                 <span className={css.cardHead}>
                   <span className={css.cardIdentity}>
+                    <PresetIcon id={row.id} size={18} />
                     <span className={css.cardName} title={display.name}>{display.name}</span>
                     {row.broken === undefined ? null : <span className={css.brokenBadge}>
                       {t('brokenBadge')}<span className={css.brokenTip} aria-hidden="true">{row.broken}</span>

@@ -119,6 +119,8 @@ function readJson(path: string): PackageManifest {
 
 const rootManifest = readJson(join(root, 'package.json'))
 const repositoryVersion = rootManifest.version
+const forkIdentity: { version: string; repository: string } = JSON.parse(readFileSync(join(root, 'product.json'), 'utf8'))
+const forkRepositoryUrl = `git+${forkIdentity.repository}.git`
 const nativeWorkspaceManifest = readJson(join(root, 'native/system/package.json'))
 const nativeVersion = nativeWorkspaceManifest.version
 
@@ -178,6 +180,7 @@ export function readWorkspaceManifests(repositoryRoot: string): WorkspaceManifes
 }
 
 const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
+  '@deepseek-ai/dsh-client-ui-settings-account': ['GITHUB-MARK-LICENSE.txt'],
   // CUA publishes its client API and attributed native source for local macOS builds.
   '@deepseek-ai/dsh-cua': ['lib/api.js', 'lib/bridge.js', 'lib/native-client.js', 'lib/protocol.js'],
   '@deepseek-ai/dsh-experimental-cua-macos': ['native/bin', 'native/Package.swift', 'native/Sources', 'native/tests/swift', 'native/tests/test_swift.py', 'native/LICENSE.cua-driver', 'native/upstream.json', 'native/README.md', 'native/README.zh.md', 'native/protocol.schema.json'],
@@ -414,12 +417,18 @@ function isReleaseMemberDirectory(dir: string): boolean {
  * only the release lane noticing.
  * @param manifest - the workspace package manifest.
  * @param expected - the version every dsh-family manifest must carry (the root's).
+ * @param productVersion - Independently versioned Desktop distribution, when supplied.
  * @returns one violation naming the manifest and the expected version, or
  * undefined when the manifest is compliant or not in the family.
  */
-export function checkDshFamilyVersion(manifest: PackageManifest, expected: string | undefined): string | undefined {
+export function checkDshFamilyVersion(
+  manifest: PackageManifest, expected: string | undefined, productVersion?: string,
+): string | undefined {
   const name = manifest.name
   if (name !== '@deepseek-ai/dsh' && name?.startsWith('@deepseek-ai/dsh-') !== true) return undefined
+  if (name === '@deepseek-ai/dsh-desktop' && productVersion !== undefined) {
+    return manifest.version === productVersion ? undefined : `${name}: package.json version must match product version ${productVersion}`
+  }
   if (manifest.version !== expected) {
     return `${name}: package.json version must match root version ${expected ?? '(missing)'}`
   }
@@ -434,7 +443,7 @@ export function checkDshFamilyVersion(manifest: PackageManifest, expected: strin
 export function checkWorkspaceManifest({ dir, manifest }: WorkspaceManifest): string[] {
   const errors = checkExperimentalManifest({ dir, manifest })
   const label = manifest.name ?? dir
-  const familyVersionError = checkDshFamilyVersion(manifest, repositoryVersion)
+  const familyVersionError = checkDshFamilyVersion(manifest, repositoryVersion, forkIdentity.version)
   if (familyVersionError !== undefined) errors.push(familyVersionError)
   const isNativePackageDir = dir.startsWith('native/system/packages/')
   const isPublicNativePackage = isNativePackageDir
@@ -450,7 +459,7 @@ export function checkWorkspaceManifest({ dir, manifest }: WorkspaceManifest): st
     }
     const expectedDirectory = dir
     if (manifest.repository?.type !== 'git'
-      || manifest.repository.url !== publishedRepositoryUrl
+      || (manifest.repository.url !== publishedRepositoryUrl && manifest.repository.url !== forkRepositoryUrl)
       || manifest.repository.directory !== expectedDirectory) {
       errors.push(`${label}: published Landlock package repository must use ${publishedRepositoryUrl} with directory ${expectedDirectory}`)
     }
@@ -471,7 +480,7 @@ export function checkWorkspaceManifest({ dir, manifest }: WorkspaceManifest): st
       errors.push(`${label}: release member must set publishConfig.access to "public"`)
     }
     if (manifest.repository?.type !== 'git'
-      || manifest.repository.url !== publishedRepositoryUrl
+      || (manifest.repository.url !== publishedRepositoryUrl && manifest.repository.url !== forkRepositoryUrl)
       || manifest.repository.directory !== dir) {
       errors.push(`${label}: release member repository must use ${publishedRepositoryUrl} with directory ${dir}`)
     }

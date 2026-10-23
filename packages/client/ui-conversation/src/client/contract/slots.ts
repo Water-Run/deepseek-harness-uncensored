@@ -302,6 +302,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     /** Reusable Conversation content instantiated by presentation hosts. */
     'conversation.content': {
       scope: 'session-maybe'
+      allowSessionNesting: true
       props: ConversationContentInputProps
       children: {
         'conversation.session': { kind: 'single'; scope: 'session' }
@@ -403,8 +404,8 @@ export type ConvViewProps = PropsRuntime<'conversation.view'>
 
 /** Business callbacks injected into the resident Conversation shell. */
 export interface ConversationInjected {
-  /** Connect and open a blank Session in the selected Workspace. */
-  selectWorkspace: (workspaceId: WorkspaceId) => Promise<void>
+  /** Open a blank Session in the selected Workspace, or without a Workspace when null. */
+  selectWorkspace: (workspaceId: WorkspaceId | null) => Promise<void>
   /** Session-addressed composer block source, or the stable absent source. */
   hooks: { composerBlock: ObservableSnapshot<ComposerBlock | undefined> }
 }
@@ -536,6 +537,8 @@ export interface ConversationContentInputProps {
   variant: 'main' | 'embedded'
   phase: 'settling' | 'hero' | 'active'
   hero: boolean
+  /** Localized prompt hint for an embedded conversation. */
+  placeholder?: string
 }
 
 /** Values passed from shared content to its occurrence-selected width controls. */
@@ -593,7 +596,7 @@ export interface EmptyWorkspaceOwnerProps {
   open: boolean
   anchorRef?: RefObject<HTMLElement>
   /** Currently selected Workspace, when available. */
-  selectedId?: WorkspaceId | undefined
-  onPick: (workspaceId: WorkspaceId) => void
+  selectedId?: WorkspaceId | null | undefined
+  onPick: (workspaceId: WorkspaceId | null) => void
   onClose: () => void
 }

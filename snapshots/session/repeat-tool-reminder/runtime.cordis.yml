@@ -1,0 +1,5 @@
+# This scenario repeats todo_write only; keep its recorded shell catalog on every host.
+- id: tool-bash
+  disabled: false
+- id: tool-pwsh
+  disabled: true

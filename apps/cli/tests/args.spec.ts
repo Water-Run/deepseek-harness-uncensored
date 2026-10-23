@@ -138,7 +138,7 @@ describe('parseDshArgs', () => {
   ])('prints the plugin forwarder help for %j', (...argv: string[]) => {
     const stdout = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
     expect(exitCode(argv)).toBe(0)
-    expect(stdout.mock.calls.map(([chunk]) => String(chunk)).join('')).toContain('Usage: dsh plugin [options] [args...]')
+    expect(stdout.mock.calls.map(([chunk]) => String(chunk)).join('')).toContain('Usage: dsh-uncensored plugin [options] [args...]')
   })
 
   it.each(['desktop', 'Desktop', 'DESKTOP'])('permits installed Desktop plugin commands for %s', (profile) => {

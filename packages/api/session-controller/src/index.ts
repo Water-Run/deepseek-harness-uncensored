@@ -23,6 +23,7 @@ import {
   type ApiSessionAgentResult,
 } from './agent.ts'
 import { SessionCommandController, hasPromptContent } from './commands.ts'
+import { SessionAsideController } from './asides.ts'
 import { SessionControlController } from './control.ts'
 import { SessionHistoryController } from './history.ts'
 import { SessionFileReferences } from './file-references.ts'
@@ -47,6 +48,7 @@ import type {
   SessionFollowRequest,
   SessionForkRequest,
   SessionForkValue,
+  SessionAsideRequest,
   SessionListRequest,
   SessionListValue,
   SessionOpenWorkspacePathRequest,
@@ -139,6 +141,7 @@ export class SessionController extends TypertRemoteService {
 
   private readonly agents: ApiSessionAgentController
   private readonly commands: SessionCommandController
+  private readonly asides: SessionAsideController
   private readonly controlState: SessionControlController
   private readonly history: SessionHistoryController
   private readonly listState: ApiSessionList
@@ -161,6 +164,8 @@ export class SessionController extends TypertRemoteService {
     installModelSelectionProjection(ctx)
     this.agents = new ApiSessionAgentController(ctx)
     this.commands = new SessionCommandController(ctx, this.agents, process.cwd())
+    this.asides = new SessionAsideController(ctx, this.agents)
+    ctx.effect(() => () => this.asides.close(), 'session-controller: side conversations')
     ctx.effect(() => ctx.fileUploads.registerAgentResolver(async (sessionId) => {
       const result = await this.agents.resolveAgent(sessionId)
       if ('error' in result) throw result.error
@@ -450,6 +455,16 @@ export class SessionController extends TypertRemoteService {
       }
     }
     return this.commands.fork(request)
+  }
+
+  /**
+   * Open a native side question without changing the source or starting a model turn.
+   * @param request - Source session and side or fresh inline semantics.
+   * @returns The independent child session identity.
+   */
+  @Remote('aside')
+  aside(request: SessionAsideRequest): Promise<SessionForkValue> {
+    return this.asides.open(request)
   }
 
   /**

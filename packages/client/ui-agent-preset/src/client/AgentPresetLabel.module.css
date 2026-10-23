@@ -9,8 +9,9 @@
   height: 22px;
   border-radius: var(--dsw-radius-xs);
   background: var(--dsw-alias-fill-tsp-secondary);
-  font-size: 12px;  line-height: 22px;
-  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -30,24 +31,18 @@
   }
 }
 
-/* Mode fills, matching the release marker's palette. Literal values on purpose:
-   a mode color is artwork, not a theme role. */
 .blue {
-  background: color-mix(in srgb, #3B82F6 18%, transparent);
-  color: #BFD4FF;
+  background: color-mix(in srgb, var(--dsw-brand-blue) 18%, transparent);
 }
 
 .yellow {
-  background: color-mix(in srgb, #FFC400 18%, transparent);
-  color: #FFE08A;
+  background: color-mix(in srgb, var(--dsw-brand-yellow) 18%, transparent);
 }
 
 .red {
-  background: color-mix(in srgb, #E5484D 18%, transparent);
-  color: #FFB3B5;
+  background: color-mix(in srgb, var(--dsw-brand-red) 18%, transparent);
 }
 
 .green {
-  background: color-mix(in srgb, #22A06B 18%, transparent);
-  color: #A7E3C6;
+  background: color-mix(in srgb, var(--dsw-brand-green) 18%, transparent);
 }

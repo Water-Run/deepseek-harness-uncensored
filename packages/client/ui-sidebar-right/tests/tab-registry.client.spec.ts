@@ -28,6 +28,15 @@ function ranked(registry: SidebarRightTabRegistry, address: string): string[] {
 }
 
 describe('SidebarRightTabRegistry — recognition', () => {
+  it('keeps Start as the initial page when a sole entry requests a neighboring tab', async () => {
+    const ctx = new Context()
+    const registry = new SidebarRightTabRegistry(ctx)
+    try {
+      registry.register(typeFor('guide', []))
+      registry.register(typeFor('aside', [], { guide: [{ id: 'aside', order: 0, title: () => 'Aside', preserveGuide: true }] }))
+      expect(defaultSeed(registry).kind).toBe('guide')
+    } finally { await ctx.fiber.dispose() }
+  })
   it('rejects default-page resolution when the selected kind is not registered', () => {
     expect(() => defaultSeed(new SidebarRightTabRegistry(new Context())))
       .toThrow('default tab kind "guide" is not registered')

@@ -336,6 +336,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
   const registerConversationContent = () => slots.registerFactory({
     name: 'conversation.content',
     scope: 'session-maybe',
+    allowSessionNesting: true,
     locale: NS,
     children: {
       'conversation.session': { kind: 'single', scope: 'session' },

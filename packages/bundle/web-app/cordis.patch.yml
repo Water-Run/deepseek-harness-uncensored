@@ -134,14 +134,16 @@
       name: '@deepseek-ai/dsh-api-workspace-files'
 
     # The Schedule service owns the task store and delivers each due occurrence
-    # as a follow-up in its original Session. The clock reading and the four
-    # reminder tools belong to the `standard`, `cordis`, and `ptc` presets,
-    # which declare them in their own scope.
+    # as a follow-up in its original Session. Each preset declares its own
+    # clock and reminder tools.
     - id: schedule
       name: '@deepseek-ai/dsh-schedule'
 
     # Configuration-surface reads and writes over Typert Remote. Each method
     # reports an actionable error when its settings-domain provider is absent.
+    - id: balance
+      name: '@deepseek-ai/dsh-balance'
+
     - id: ui-settings-account
       name: '@deepseek-ai/dsh-client-ui-settings-account'
 
@@ -182,7 +184,7 @@
       inject: [webStartup]
       config:
         host: !!js ctx.webStartup.host ?? '127.0.0.1'
-        port: !!js ctx.webStartup.port ?? 6666
+        port: !!js ctx.webStartup.port ?? 23333
         tls: !!js ctx.webStartup.tls
         compression: gzip
         compressionLevel: 1

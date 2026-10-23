@@ -1,8 +1,15 @@
 /** Account settings copy, owned by the account feature. */
 import { onboardingCopy, onboardingEnglishCopy } from './locales/onboarding.ts'
+import { balanceEn, balanceZh } from './balance-locales.ts'
 
 /** English account dictionary. */
 export const en = {
+  ...balanceEn,
+  about: 'About', productName: 'DeepSeek Harness Uncensored', forkVersion: 'Uncensored version',
+  purgeCommit: 'dsh-purge fork commit', purgeDate: 'dsh-purge commit time', buildTime: 'Compiled at',
+  upstreamVersion: 'DSH version', buildCommit: 'Source commit', commitDate: 'Commit time',
+  license: 'License', licenseName: 'GPL-3.0-or-later', repository: 'GitHub repository',
+  developmentBuild: 'Development build', unknownBuild: 'Not recorded', modifiedBuild: 'Local changes',
   modelSignInRequired: 'Model unavailable. Please sign in and try again.',
   sessionExpired: 'You have signed out of your account, please log in again.',
   ...onboardingEnglishCopy,
@@ -39,6 +46,12 @@ export const en = {
 export type AccountKey = keyof typeof en
 /** Chinese account settings copy. */
 export const zh: Record<AccountKey, string> = {
+  ...balanceZh,
+  about: '关于', productName: 'DeepSeek Harness Uncensored', forkVersion: 'Uncensored 版本',
+  purgeCommit: 'dsh-purge fork 节点', purgeDate: 'dsh-purge 提交时间', buildTime: '编译时间',
+  upstreamVersion: 'DSH 原版本', buildCommit: '源码节点', commitDate: '提交时间',
+  license: '许可证', licenseName: 'GPL-3.0-or-later', repository: 'GitHub 仓库',
+  developmentBuild: '开发版', unknownBuild: '未记录', modifiedBuild: '含本地修改',
   modelSignInRequired: '当前模型暂不可用，请登录后再试',
   sessionExpired: '登录信息已失效，请重新登录',
   ...onboardingCopy,

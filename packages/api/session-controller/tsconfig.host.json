@@ -13,6 +13,8 @@
     "src/assistant-stream.ts",
     "src/catalog.ts",
     "src/commands.ts",
+    "src/asides.ts",
+    "src/aside-context.ts",
     "src/control.ts",
     "src/file-references.ts",
     "src/history.ts",
@@ -115,6 +117,9 @@
     },
     {
       "path": "../../session/working-directory"
+    },
+    {
+      "path": "../../core/system-prompt"
     }
   ]
 }

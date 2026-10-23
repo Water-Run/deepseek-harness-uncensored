@@ -284,6 +284,22 @@ export interface SessionSearchValue {
   readonly hasMore: boolean
 }
 
+/** One running root conversation offered by the Desktop carrier. */
+export interface DesktopSessionItem {
+  /** Running root conversation identity. */
+  readonly sessionId: SessionId
+  /** User-owned display title; empty uses the carrier's localized placeholder. */
+  readonly title: string
+}
+
+/** JSON-only navigation channel exposed by the optional Desktop carrier. */
+export interface DesktopSessionNavigation {
+  /** @param items - At most 50 current root conversations. @returns Completion of the native menu update. */
+  publish(items: readonly DesktopSessionItem[]): Promise<void>
+  /** @param listener - Navigate to a native-menu selection. @returns Subscription removal. */
+  subscribe(listener: (sessionId: SessionId) => void): () => void
+}
+
 /** Request for a Session for a new conversation. */
 export interface SessionCreateRequest {
   /** Workspace the Session joins; exclusive with `cwd`. */
@@ -333,6 +349,13 @@ export interface SessionForkRequest {
   readonly atSeq?: number
   /** False asks the Host to check for required migration before forking. Defaults to true. */
   readonly allowMigration?: boolean
+}
+
+/** Native side conversation request. The source stays unchanged. */
+export interface SessionAsideRequest {
+  readonly sessionId: SessionId
+  /** Side reopens the same child; btw creates an empty child on every invocation. */
+  readonly kind: 'side' | 'btw'
 }
 
 /** Identity of a newly forked Session. */

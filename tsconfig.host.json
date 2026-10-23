@@ -213,9 +213,7 @@
     "packages/experimental/claude-code-mods/examples/*/index.ts",
     "packages/experimental/inspector/scripts/**/*.ts",
     "packages/llm/llm-pi-ai/scripts/**/*.ts",
-    "scripts/**/*.ts",
-    "website/**/*.ts",
-    "website/.vitepress/**/*.ts"
+    "scripts/**/*.ts"
   ],
   // Under packages/client and benchmarks, a test file names the face it covers:
   // `*.client.*` belongs to the Client aggregate, `*.host.spec.ts` to this one. The two
@@ -237,6 +235,7 @@
     "scripts/client-bundle-purity.spec.ts"
   ],
   "references": [
+    { "path": "./packages/credentials/balance" },
     { "path": "./packages/experimental/client-ui-cot-translation/tsconfig.host.json" },
     { "path": "./packages/experimental/cot-translation-bundle" },
     { "path": "./packages/experimental/session-search" },

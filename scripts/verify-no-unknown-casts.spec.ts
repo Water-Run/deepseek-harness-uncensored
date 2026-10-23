@@ -236,10 +236,16 @@ describe('unknown assertion source discovery', () => {
     expect(verifyNoUnknownCasts(root)).toBe(0)
   })
 
-  it.each(['packages', 'apps', 'scripts', 'website'])('rejects discovery missing %s', (area) => {
+  it.each(['packages', 'apps', 'scripts'])('rejects discovery missing %s', (area) => {
     const root = fixture()
     unlinkSync(join(root, `${area}/seed.ts`))
     expect(() => verifyNoUnknownCasts(root)).toThrow(`source discovery omitted ${area}/`)
+  })
+
+  it('accepts the README-only distribution without a documentation website', () => {
+    const root = fixture()
+    unlinkSync(join(root, 'website/seed.ts'))
+    expect(verifyNoUnknownCasts(root)).toBe(0)
   })
 
   it('rejects an empty source corpus', () => {

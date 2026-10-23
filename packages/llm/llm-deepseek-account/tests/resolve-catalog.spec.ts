@@ -25,6 +25,15 @@ const resolve = (rows: object[] | undefined, overrides: Record<string, ModelOver
 })
 
 describe('without a listing', () => {
+  it.each([undefined, [PRO, FLASH]])('filters picker choices while retaining saved model resolution (%j)', (rows) => {
+    const catalog = resolveAccountCatalog({
+      listing: rows === undefined ? undefined : parseModelListing({ data: rows }).entries,
+      supported: resolveAdapterOptions({}).models,
+      overrides: {}, visibleModels: ['deepseek-flash'], routeMaxTokens: 256_000, clientVersion: '0.2.1',
+    })
+    expect(catalog.offered.map(model => model.id)).toEqual(['deepseek-flash'])
+    expect(catalog.resolution.map(model => model.id)).toContain('deepseek-v4-pro')
+  })
   it('offers the bundled catalog', () => {
     const catalog = resolve(undefined)
     expect(catalog.offered.map(model => [model.id, model.name, model.contextWindow])).toEqual([

@@ -17,6 +17,12 @@ export function contactUrl(config: ContactConfig, context: {
   pixelRatio: number
 }): string {
   const url = new URL(config.contactFormUrl)
+  if (url.hostname === 'github.com') {
+    for (const name of [...url.searchParams.keys()]) {
+      if (name.startsWith('hide_') || name.startsWith('prefill_')) url.searchParams.delete(name)
+    }
+    return url.href
+  }
   const ratio = Number.isFinite(context.pixelRatio) ? context.pixelRatio : 1
   const width = Math.round(context.width * ratio)
   const height = Math.round(context.height * ratio)

@@ -10,6 +10,8 @@ import { SignInDialog } from './SignInDialog.tsx'
 import { LogoutIcon } from './LogoutIcon.tsx'
 import { AccountAvatar } from './AccountAvatar.tsx'
 import { AccountNoticeStack } from './AccountNotice.tsx'
+import { AboutDialog } from './AboutDialog.tsx'
+import { GitHubIcon } from './GitHubIcon.tsx'
 import css from './AccountMenu.module.css'
 
 /** Account launcher composed by the settings shell. */
@@ -43,6 +45,7 @@ export function AccountMenu({
   const label = profile === undefined ? null : profile.status === 'ready'
     ? profile.value.name ?? profile.value.contact ?? t('signedIn') : t('signedIn')
   const [open, setOpen] = useState(false)
+  const [aboutOpen, setAboutOpen] = useState(false)
   const trigger = useRef<HTMLButtonElement>(null)
   const [busy, setBusy] = useState(false)
   const [signOutImpact, setSignOutImpact] = useState<boolean | 'unknown'>()
@@ -75,6 +78,8 @@ export function AccountMenu({
         { id: 'settings', label: t('settings'), icon: <IconSettingsOutlineMedium size={16} />,
           ...(settingsShortcut === undefined ? {} : { shortcut: settingsShortcut }) },
         { id: 'contact', label: t('contactUs'), icon: <IconPaperPlaneOutlineMedium size={16} /> },
+        { id: 'repository', label: t('repository'), icon: <GitHubIcon /> },
+        { id: 'about', label: t('about'), icon: <IconEllipsisOutlineMedium size={16} /> },
         ...(signedIn ? [{ id: 'signout', label: t('signOut'), icon: <LogoutIcon />, disabled: busy }]
           : [{ id: 'signin', label: t('signIn'), icon: <IconUserOutlineMedium size={16} /> }]),
       ]}
@@ -82,9 +87,12 @@ export function AccountMenu({
       onSelect={(id) => {
         if (id === 'settings') { setOpen(false); trigger.current?.focus(); openSettings() }
         else if (id === 'contact') { setOpen(false); contactUs() }
+        else if (id === 'repository') { setOpen(false); contactUs('repository') }
+        else if (id === 'about') { setOpen(false); setAboutOpen(true) }
         else if (id === 'signin') beginSignIn()
         else void requestSignOut()
       }} />
+    {aboutOpen && <AboutDialog t={t} close={() => { setAboutOpen(false) }} />}
     {account.loginVisible && !account.onboarding && <SignInDialog account={account} colorScheme={colorScheme}
       start={start} cancel={cancel} t={t}
       close={() => { showLogin(false) }} useApiKey={() => { showLogin(false); openOnboarding('deepseek-official') }} />}

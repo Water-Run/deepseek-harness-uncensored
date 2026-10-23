@@ -17,6 +17,8 @@ export type ModelOverride = Omit<DeepSeekCatalogModel, 'id'>
 
 /** Account route configuration; authentication comes exclusively from the account service. */
 export interface Config extends Omit<ProtocolConfig, 'models'> {
+  /** Model ids offered by the picker; an empty list offers every usable account model. Existing sessions remain resolvable. */
+  visibleModels: Volatile<string[]>
   /** Deadline of one listing request, which also bounds a first-use wait (default five seconds). */
   modelsTimeoutMs: Volatile<number>
   /**
@@ -38,6 +40,7 @@ const modelOverride: z<ModelOverride> = z.object({
 
 export const Config = z.object({
   ...protocolFields,
+  visibleModels: z.array(z.string()).default([]).volatile(),
   modelsTimeoutMs: z.number().min(Number.MIN_VALUE).max(MAX_TIMER_DELAY_MS).default(DEFAULT_MODELS_TIMEOUT_MS).volatile(),
   modelsMaxAgeMs: z.number().step(1).min(0).max(Number.MAX_SAFE_INTEGER).default(DEFAULT_MODELS_MAX_AGE_MS).volatile(),
   modelOverrides: z.dict(modelOverride).default({}).volatile(),
@@ -45,6 +48,7 @@ export const Config = z.object({
 
 /** Plain account options accepted by {@link resolveAccountOptions}. */
 export type AccountOptions = Omit<ProtocolOptions, 'models'> & {
+  visibleModels?: string[]
   modelsTimeoutMs?: number
   modelsMaxAgeMs?: number
   modelOverrides?: Record<string, ModelOverride>
@@ -62,6 +66,8 @@ export interface CatalogSettings {
 
 /** One validated configuration generation of the account route. */
 export interface ResolvedAccountOptions {
+  /** Picker allowlist; an empty list offers every usable model. */
+  readonly visibleModels: readonly string[]
   /** Messages settings; request resolution replaces `models` with the resolved account catalog. */
   readonly protocol: ResolvedDeepSeekOptions
   /** Listing endpoint and cache timing. */
@@ -117,8 +123,11 @@ export function resolveAccountOptions(options: AccountOptions, environment?: Lau
   }
   const {
     modelsTimeoutMs = DEFAULT_MODELS_TIMEOUT_MS, modelsMaxAgeMs = DEFAULT_MODELS_MAX_AGE_MS,
-    modelOverrides = {}, ...protocolOptions
+    modelOverrides = {}, visibleModels = [], ...protocolOptions
   } = options
+  if (!Array.isArray(visibleModels) || visibleModels.some(id => typeof id !== 'string' || id.trim() === '')) {
+    throw new Error('llm-deepseek-account: visibleModels must contain non-empty model ids')
+  }
   if (!Number.isFinite(modelsTimeoutMs) || modelsTimeoutMs <= 0 || modelsTimeoutMs > MAX_TIMER_DELAY_MS) {
     throw new Error(`llm-deepseek-account: modelsTimeoutMs must be a positive finite number no greater than ${MAX_TIMER_DELAY_MS}`)
   }
@@ -127,6 +136,7 @@ export function resolveAccountOptions(options: AccountOptions, environment?: Lau
   }
   const protocol = resolveAdapterOptions(protocolOptions, environment)
   return {
+    visibleModels,
     protocol,
     catalog: { url: listingEndpoint(protocol.baseURL), timeoutMs: modelsTimeoutMs, maxAgeMs: modelsMaxAgeMs },
     modelOverrides: Object.fromEntries(Object.entries(modelOverrides).map(([id, override]) => [id, resolveOverride(id, override)])),

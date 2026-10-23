@@ -19,6 +19,8 @@ export type AgentPresetSettingsKey =
   | 'presetWritingDescription'
   | 'presetSecurityName'
   | 'presetSecurityDescription'
+  | 'presetReverseName'
+  | 'presetReverseDescription'
   | 'presetPtcName'
   | 'presetPtcDescription'
   | 'presetMinimalName'
@@ -42,7 +44,7 @@ export type AgentPresetSettingsKey =
 export const en: Record<AgentPresetSettingsKey, string> = {
   ...guideEn,
   builtInGroup: 'Built-in', customGroup: 'Custom',
-  sectionIntro: 'Choose the agent’s tools and how it works. Use Standard mode for everyday tasks, or Creator mode to add capabilities to DSH.',
+  sectionIntro: 'Choose the tools and working style for new conversations. A started conversation keeps its mode.',
 
   seatHint: 'Choose the agent preset for your new task',
   headerHint: 'The agent preset chosen when this task started',
@@ -53,13 +55,15 @@ export const en: Record<AgentPresetSettingsKey, string> = {
 
   presetStandardName: 'Default mode',
   presetStandardDescription:
-    'Everyday default: code, files, terminal, and research tools all mounted.',
+    'Development and everyday work: edit files, run commands, research, and delegate tasks.',
   presetWritingName: 'Writing mode',
   presetWritingDescription:
-    'Free writing for fiction, scripts, and long continuations. File, research, and presentation tools only; no code execution.',
+    'Fiction, scripts, and long-form writing: research, continue, and revise while preserving characters, viewpoint, and continuity.',
   presetSecurityName: 'Security mode',
+  presetReverseName: 'Reverse engineering mode',
+  presetReverseDescription: 'Trace application behavior, inspect binaries and protocols, and connect findings to verifiable evidence.',
   presetSecurityDescription:
-    'Strongest composition available: every execution, delegation, and workflow tool, under red-team operating rules.',
+    'Security analysis and testing: inspect code and configuration, reproduce issues, verify fixes, and retain evidence.',
   presetPtcName: 'PTC mode',
   presetPtcDescription: 'Includes all Standard mode capabilities.',
   presetMinimalName: 'Minimal mode',
@@ -90,21 +94,23 @@ export const en: Record<AgentPresetSettingsKey, string> = {
 export const zh: Record<AgentPresetSettingsKey, string> = {
   ...guideZh,
   builtInGroup: '内置', customGroup: '自定义',
-  sectionIntro: '选择 Agent 的工具和工作方式。日常任务用「标准模式」，扩展 DSH 的能力用「创造模式」。',
+  sectionIntro: '为新会话选择工具与工作方式。会话开始后，模式保持不变。',
 
-  seatHint: '选择新任务使用的 Agent 预设',
-  headerHint: '本任务的 Agent 预设，在任务开始时确定',
+  seatHint: '选择新会话的模式',
+  headerHint: '本会话创建时选择的模式',
   nav: '模式',
 
   setDefault: '设为新任务默认',
   view: '查看配置',
 
   presetStandardName: '缺省模式',
-  presetStandardDescription: '日常默认：代码、文件、终端和检索工具全开。',
+  presetStandardDescription: '开发与日常任务：读写文件、执行命令、检索资料，并拆分任务协作。',
   presetWritingName: '写作模式',
-  presetWritingDescription: '自由写作：小说、剧本与长篇续写。只挂文件、检索与呈现工具，不做代码执行。',
+  presetWritingDescription: '小说、剧本与长文创作：整理资料、续写和润色，保持人物、视角与情节一致。',
   presetSecurityName: '网安模式',
-  presetSecurityDescription: '本版最强组合：全量执行、委派与工作流工具，按红队作业规则运行。',
+  presetReverseName: '逆向模式',
+  presetReverseDescription: '分析程序、二进制与协议，追踪调用和运行行为，用证据还原实现。',
+  presetSecurityDescription: '安全分析与测试：检查代码和配置、复现问题、验证修复，并保留可复核的操作与结果。',
   presetPtcName: 'PTC 模式',
   presetPtcDescription: '包含标准模式的所有能力。',
   presetMinimalName: '极简模式',
@@ -118,7 +124,7 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
   brokenBadge: '加载失败',
 
   switchRefused: '无法切换到「{name}」：{reason}',
-  standardUnavailable: '标准模式不可用，请恢复该模式或选择其他可用模式。',
+  standardUnavailable: '缺省模式不可用，请恢复该模式或选择其他可用模式。',
 
   close: '关闭',
 

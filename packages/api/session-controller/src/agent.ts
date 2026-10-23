@@ -17,6 +17,7 @@ import { SessionQueryError, type SessionObservation } from '@deepseek-ai/dsh-ses
 import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import type {} from '@deepseek-ai/dsh-typert-registry'
 import type { ModelSelection } from './types.ts'
+import { installAsideContext } from './aside-context.ts'
 
 /** Cold Session identity absent from persistence. */
 export class ApiSessionNotFound extends Error {}
@@ -387,7 +388,7 @@ export class ApiSessionAgentController {
   async composeAgent(presetId: string | undefined): Promise<ApiSessionComposition> {
     const presets = this.ctx.get('agentPresets')
     if (presets === undefined) {
-      return { setup: (_agentCtx, agent) => { this.installSelection(agent) } }
+      return { setup: async (agentCtx, agent) => { this.installSelection(agent); await installAsideContext(agentCtx, agent) } }
     }
     const resolvedId = (await presets.resolve(presetId)).id
     return {
@@ -395,6 +396,7 @@ export class ApiSessionAgentController {
       setup: async (agentCtx, agent) => {
         this.installSelection(agent)
         await presets.mount(agentCtx, resolvedId)
+        await installAsideContext(agentCtx, agent)
       },
     }
   }

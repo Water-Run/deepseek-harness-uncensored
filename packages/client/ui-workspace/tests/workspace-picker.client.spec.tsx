@@ -148,14 +148,13 @@ describe('WorkspacePicker', () => {
     expect(screen.queryByTestId('directory-flow')).toBeNull()
   })
 
-  it('raises the flow straight from the anchor gesture when adding is the only entry', () => {
-    // Nothing to list and one action left: a one-row menu would offer no
-    // choice, so the owner's open request lands in the flow itself.
+  it('offers a conversation without a workspace before any folder exists', () => {
     const b = mount([])
-    expect(screen.queryByRole('menu')).toBeNull()
-    expect(screen.queryByRole('menuitem', { name: '添加工作区…' })).toBeNull()
-    expect(b.onClose).toHaveBeenCalled()
-    expect(screen.getByTestId('directory-flow')).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: '添加工作区…' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('menuitem', { name: '不在工作区工作' }))
+    expect(b.onPick).toHaveBeenCalledWith(null)
+    expect(b.createWorkspace).not.toHaveBeenCalled()
+    expect(screen.queryByTestId('directory-flow')).toBeNull()
   })
 
   it('treats flow cancellation as a silent no-op', () => {
@@ -256,12 +255,10 @@ describe('WorkspacePicker', () => {
     expect(screen.getByRole('menuitem', { name: '添加工作区…' })).toBeTruthy()
   })
 
-  it('shows no popover at all when nothing is listed and nothing can be added', () => {
-    // A composition mounting this package without any directory-picker: the
-    // hero anchor has neither a Workspace to pick nor a way to add one, so it
-    // must not claim a choice with an empty menu.
+  it('offers a conversation without a workspace when no directory picker is available', () => {
     const b = mount([], vi.fn(), occupancySource(false))
-    expect(screen.queryByRole('menu')).toBeNull()
+    fireEvent.click(screen.getByRole('menuitem', { name: '不在工作区工作' }))
+    expect(b.onPick).toHaveBeenCalledWith(null)
     expect(screen.queryByTestId('directory-flow')).toBeNull()
     expect(b.createWorkspace).not.toHaveBeenCalled()
   })

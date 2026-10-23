@@ -3,7 +3,7 @@
  * @module scripts/verify-dsh-package-licenses
  */
 
-import { globSync, readFileSync } from 'node:fs'
+import { existsSync, globSync, readFileSync } from 'node:fs'
 import { resolve, sep } from 'node:path'
 
 const ROOT = resolve(import.meta.dirname, '..')
@@ -57,6 +57,8 @@ function printable(value: unknown): string {
 export function inspectDshPackageLicenses(root: string): DshPackageLicenseReport {
   let packageCount = 0
   const failures: string[] = []
+  const distribution = existsSync(resolve(root, 'product.json')) ? readManifest(root, 'product.json').license : 'MIT'
+  if (distribution !== 'MIT' && distribution !== 'GPL-3.0-or-later') throw new Error('product.json: unsupported distribution license')
 
   for (const file of workspaceManifestPaths(root)) {
     const manifest = readManifest(root, file)
@@ -64,10 +66,11 @@ export function inspectDshPackageLicenses(root: string): DshPackageLicenseReport
     if (typeof name !== 'string' || !DSH_PACKAGE_NAME.test(name)) continue
 
     packageCount++
-    if (manifest.license !== 'MIT') {
-      const normalizedFile = file.split(sep).join('/')
+    const normalizedFile = file.split(sep).join('/')
+    const required = normalizedFile === 'package.json' || normalizedFile === 'apps/desktop/package.json' ? distribution : 'MIT'
+    if (manifest.license !== required) {
       failures.push(
-        `${normalizedFile}: ${name} must declare "license": "MIT"; found ${printable(manifest.license)}.`,
+        `${normalizedFile}: ${name} must declare "license": "${required}"; found ${printable(manifest.license)}.`,
       )
     }
   }

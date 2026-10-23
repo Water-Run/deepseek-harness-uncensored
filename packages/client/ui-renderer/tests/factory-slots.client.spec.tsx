@@ -22,6 +22,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'renderer.factory.child': { kind: 'list'; scope: 'root' }
     'renderer.factory.chain': { kind: 'chain'; scope: 'root'; owner: { enabled: boolean } }
     'renderer.factory.session-area': { kind: 'single'; scope: 'session' }
+    'renderer.factory.nested-session-area': { kind: 'single'; scope: 'session' }
   }
 
   interface LocaleNamespaceMap {
@@ -44,6 +45,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
       }
     }
     'renderer.recursive-factory': { scope: 'root' }
+    'renderer.distinct-sessions': {
+      scope: 'session-maybe'
+      allowSessionNesting: true
+      props: { path: readonly SessionReference[] }
+      children: { 'renderer.factory.nested-session-area': { kind: 'single'; scope: 'session' } }
+    }
     'renderer.session-store-factory': {
       scope: 'session'
       store: CounterStore
@@ -197,6 +204,37 @@ function registerFactory(
 }
 
 describe('Factory rendering', () => {
+  it.each([false, true])('permits distinct sessions while rejecting a cycle back to the parent: %s', async (cycle) => {
+    const runtime = await SlotTestRuntime.create()
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      await runtime.sessions.add({ id: 'parent' })
+      await runtime.sessions.add({ id: 'child' })
+      const parent = runtime.sessions.retainFor(runtime.ctx, sid('parent'))
+      const child = runtime.sessions.retainFor(runtime.ctx, sid('child'))
+      runtime.slots.registerFactory({ name: 'renderer.distinct-sessions', scope: 'session-maybe', allowSessionNesting: true,
+        children: { 'renderer.factory.nested-session-area': { kind: 'single', scope: 'session' } } },
+      ({ sessionId, path, SessionProvider, renderFactorySlot }) => <section data-nested-session={sessionId}>
+        {sessionId}
+        {path[0] === undefined ? null : <SessionProvider session={path[0]}>
+          {renderFactorySlot('renderer.distinct-sessions', { path: path.slice(1) })}
+        </SessionProvider>}
+      </section>)
+      await runtime.root.declare(SESSION_AREA, ({ SessionProvider, renderFactorySlot }) => <SessionProvider session={parent}>
+        {renderFactorySlot('renderer.distinct-sessions', { path: cycle ? [child, parent] : [child] })}
+      </SessionProvider>)
+      const view = runtime.renderRoot()
+      if (!cycle) expect(errors.mock.calls.map(call => String(call[0]))).toEqual([])
+      if (cycle) {
+        expect(view.container.querySelector('[data-factory-error="renderer.distinct-sessions"]')).not.toBeNull()
+        expect(errors.mock.calls.flat().some(value => String(value).includes('recursive render of factory'))).toBe(true)
+      } else {
+        expect([...view.container.querySelectorAll('[data-nested-session]')].map(node => node.getAttribute('data-nested-session'))).toEqual(['parent', 'child'])
+        expect(errors).not.toHaveBeenCalled()
+      }
+    } finally { await runtime.dispose(); errors.mockRestore() }
+  })
+
   it('reports direct test-runtime lookups before rendering and without a definition', async () => {
     const runtime = await SlotTestRuntime.create()
     expect(() => runtime.factoryOf('renderer.factory')).toThrow('before renderRoot')

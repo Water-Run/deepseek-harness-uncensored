@@ -2,6 +2,8 @@
 export interface DesktopBuildCommit {
   readonly commit: string
   readonly dirty: boolean
+  /** ISO commit time, absent in older build records. */
+  readonly date?: string
 }
 
 /** Environment variable that carries the packaged commit. */

@@ -44,7 +44,7 @@ export interface UiWorkspace {
   openSession(target: SessionTarget): void
   /**
    * Connect a Workspace and open its Session unless a later navigation supersedes it.
-   * @param workspaceId - target Workspace.
+   * @param workspaceId - target Workspace; null creates an ungrouped Session using the Host's default directory.
    * @param beforeOpen - optional synchronous preparation for the selected Session,
    * skipped after supersession; a throw aborts the open and releases the retained reference.
    * @param options - choices for the Session the connection creates or reuses.
@@ -53,7 +53,7 @@ export interface UiWorkspace {
    * notice unless a later navigation or disposal superseded the request.
    */
   openWorkspace(
-    workspaceId: WorkspaceId,
+    workspaceId: WorkspaceId | null,
     beforeOpen?: (sessionId: SessionId) => void,
     options?: Pick<StartSessionOptions, 'agentPreset'>,
   ): Promise<void>
@@ -278,7 +278,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   }
 
   openWorkspace(
-    workspaceId: WorkspaceId,
+    workspaceId: WorkspaceId | null,
     beforeOpen?: (sessionId: SessionId) => void,
     options: Pick<StartSessionOptions, 'agentPreset'> = {},
   ): Promise<void> {
@@ -286,14 +286,14 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   }
 
   private async openWorkspaceSession(
-    workspaceId: WorkspaceId,
+    workspaceId: WorkspaceId | null,
     beforeOpen: ((sessionId: SessionId) => void) | undefined,
     reuse: Pick<StartSessionOptions, 'agentPreset'> | undefined,
   ): Promise<void> {
     const navigation = AbortSignal.any([this.ctx.layout.beginNavigation(), this.lifetime.signal])
     let sessionId: SessionId
     try {
-      sessionId = await this.connectBlank(workspaceId, reuse)
+      sessionId = workspaceId === null ? await this.sessions.create(reuse ?? {}) : await this.connectBlank(workspaceId, reuse)
     } catch (error: unknown) {
       // Reported here, not in connectWorkspace: startup restoration calls that
       // directly and stays console-only.
@@ -331,7 +331,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     const recent = workspace.phase === 'ready' && sessions.phase === 'ready'
       ? recentWorkspace(workspace.items, sessions.byId)
       : undefined
-    const target = workspaceId ?? currentWorkspaceId ?? recent
+    const target = workspaceId ?? (current === undefined ? recent : currentWorkspaceId ?? null)
     if (target === undefined) {
       if (initializeDraft) {
         this.notify({ kind: 'createFailed', message: this.ctx.locale.bind('workspace')('draft.workspaceRequired') })

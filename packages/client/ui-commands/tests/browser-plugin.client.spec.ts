@@ -7,7 +7,7 @@
  * (HMR safety), and the service satisfies the frozen CommandUiContract.
  */
 import { Context } from '@deepseek-ai/cordis'
-import { describe, expect, it, onTestFinished } from 'vitest'
+import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { TestSessions } from '@deepseek-ai/dsh-client-test-runtime'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -59,6 +59,19 @@ async function bench() {
 }
 
 describe('apply', () => {
+  it('registers native side and btw commands when the built-in sidebar and resource services arrive', async () => {
+    const { ctx, sources, fiber } = await bench()
+    ctx.provide('remote.session', { aside: vi.fn() })
+    ctx.provide('resources', { register: vi.fn(() => () => {}) })
+    ctx.provide('sidebarRightTabs', { register: vi.fn(() => () => {}) })
+    ctx.provide('sidebarRight', { openResource: vi.fn(), mounted: { getSnapshot: () => sid('s1') } })
+    await Promise.all([...ctx.registry.values()].flatMap(runtime => [...runtime.fibers].map(child => child.await())))
+    const source = sources.get('/ command')!
+    const rows = await source.candidates({ sessionId: sid('s1') }, { query: '', position: 'leading', drilled: false, signal: new AbortController().signal })
+    expect(rows.map(row => row.name)).toEqual(expect.arrayContaining(['side', 'btw']))
+    await fiber.dispose()
+    expect(sources.size).toBe(0)
+  })
   it('declares the services it binds', () => {
     expect(inject).toEqual(['inputTriggers', 'sessions', 'remote', 'remote.commands', 'locale'])
   })

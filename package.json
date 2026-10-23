@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-root",
   "version": "0.2.1-rc.2",
-  "license": "MIT",
+  "license": "GPL-3.0-or-later",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.28.5",
@@ -13,8 +13,7 @@
     "packages/*/*",
     "native/system",
     "native/system/packages/*",
-    "apps/*",
-    "website"
+    "apps/*"
   ],
   "scripts": {
     "prepare:primary-runtime": "tsx scripts/primary-runtime/prepare.ts",
@@ -127,16 +126,9 @@
     "verify-upgrade-guides": "tsx scripts/verify-upgrade-guides.ts",
     "verify-translation-prompt": "tsx scripts/verify-translation-prompt.ts",
     "verify-translation-pairing": "tsx scripts/verify-translation-pairing.ts",
-    "test:docs": "tsx scripts/run-gates.ts doc-quick",
+    "test:docs": "vitest run scripts/verify-readme.spec.ts",
     "gen-translation-brief": "tsx scripts/gen-translation-brief.ts",
     "verify-doc-budgets": "tsx scripts/verify-doc-budgets.ts",
-    "docs:dev": "pnpm --filter @deepseek-ai/website run dev",
-    "docs:build": "tsx website/build.ts && pnpm run verify-doc-site-fragments",
-    "docs:build:mpa": "tsx website/build.ts --mpa && pnpm run verify-doc-site-fragments",
-    "docs:preview": "pnpm --filter @deepseek-ai/website run preview",
-    "docs:check": "pnpm exec vitest run scripts/project-doc-site.spec.ts scripts/verify-doc-site-fragments.spec.ts website/tests/mermaid-viewer.spec.ts website/tests/image-viewer.spec.ts website/tests/code-groups.spec.ts website/tests/page-markdown-actions.spec.ts website/tests/raw-markdown.spec.ts && pnpm run docs:build",
-    "website:dev": "pnpm run docs:dev",
-    "website:build": "pnpm run docs:build",
     "verify-package-readme-limitations": "tsx scripts/verify-package-readme-limitations.ts",
     "verify-node-next-types": "tsx scripts/verify-node-next-types.ts",
     "verify-optional-dependency-imports": "tsx scripts/verify-optional-dependency-imports.ts",
@@ -195,7 +187,7 @@
     "gen-module-graph": "tsx scripts/gen-module-graph.ts",
     "verify-module-graph": "tsx scripts/gen-module-graph.ts --check",
     "constraints": "tsx scripts/check-workspace-constraints.ts",
-    "doc-sync": "tsx scripts/run-gates.ts doc-sync",
+    "doc-sync": "tsx scripts/verify-readme.ts",
     "hygiene": "tsx scripts/run-gates.ts hygiene",
     "publish:npm-baseline": "tsx scripts/publish-npm-baseline.ts",
     "release:dsh": "tsx scripts/release/bump.ts --family dsh",
@@ -216,7 +208,8 @@
     "verify-official-bundle-catalog": "tsx scripts/gen-official-bundle-catalog.ts --check",
     "gen-provider-data": "tsx packages/llm/llm-pi-ai/scripts/gen-provider-data.ts",
     "verify-provider-data": "tsx packages/llm/llm-pi-ai/scripts/gen-provider-data.ts --check",
-    "verify-product-use": "tsx scripts/verify-product-use.ts"
+    "verify-product-use": "tsx scripts/verify-product-use.ts",
+    "render:artwork": "tsx apps/desktop/scripts/render-uncensored-artwork.ts"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-hooks-claude-code": "workspace:*",

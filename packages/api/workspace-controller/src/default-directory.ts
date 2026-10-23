@@ -74,5 +74,5 @@ export async function defaultWorkspaceDirectory(
   }
   directory = validateDocumentsDirectory(directory, platform)
   signal.throwIfAborted()
-  return paths.join(directory, 'deepseek-harness', DEFAULT_WORKSPACE_DIRECTORY)
+  return paths.join(directory, 'deepseek-harness-uncensored', DEFAULT_WORKSPACE_DIRECTORY)
 }

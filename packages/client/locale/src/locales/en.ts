@@ -35,6 +35,7 @@ export const en = {
   'back': 'Back',
   'brand.localBuild': 'DeepSeek Harness Uncensored',
   'workspace.defaultName': 'Default workspace',
+  'workspace.none': 'Work without a workspace',
   'unknown': 'Unknown',
   'none': 'None',
   'truncated': 'Truncated',

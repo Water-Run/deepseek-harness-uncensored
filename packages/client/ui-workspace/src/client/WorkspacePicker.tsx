@@ -22,6 +22,7 @@ import type { DirectoryFlowOwnerProps, WorkspacePickerProps } from './contract/s
 import css from './WorkspacePicker.module.css'
 
 const ADD_WORKSPACE = '::add-workspace'
+const NO_WORKSPACE = '::no-workspace'
 
 /** Core flow props: the owner supplies popover control and pick semantics. */
 export interface WorkspacePickFlowProps {
@@ -41,6 +42,8 @@ export interface WorkspacePickFlowProps {
   renderDirectoryFlow: (owner: DirectoryFlowOwnerProps) => ReactNode
   /** A real Workspace was picked or created. */
   onPick: (workspaceId: WorkspaceId) => void
+  /** Start a conversation without attaching it to a workspace. */
+  onPickNone?: (() => void) | undefined
   /** Close the popover (outside click / Escape / post-pick). */
   onClose: () => void
   /** Report the picking interaction and adoption occupancy. */
@@ -50,7 +53,7 @@ export interface WorkspacePickFlowProps {
   /** Menu opening direction relative to the anchor. */
   side?: 'bottom' | 'top' | 'right'
   /** Currently active workspace (trailing check in the picker list). */
-  selectedId?: WorkspaceId | undefined
+  selectedId?: WorkspaceId | null | undefined
 }
 
 /**
@@ -67,6 +70,7 @@ export function WorkspacePickFlow({
   useDirectoryFlow,
   renderDirectoryFlow,
   onPick,
+  onPickNone,
   onClose,
   addOnly = false,
   onBusyChange,
@@ -108,14 +112,14 @@ export function WorkspacePickFlow({
     : []
   // With workspaces listed, the add action pins below the scroll region
   // (divider + always visible); otherwise it IS the menu.
-  const pinAdd = !addOnly && workspaces.length > 0
+  const pinAdd = !addOnly && (workspaces.length > 0 || onPickNone !== undefined)
   const items: MenuEntry[] = pinAdd
-    ? workspaces.map(workspace => ({
+    ? [...onPickNone === undefined ? [] : [{ id: NO_WORKSPACE, label: t('workspace.none'), disabled: flowBusy }], ...workspaces.map(workspace => ({
       id: workspace.workspaceId,
       label: workspaceDisplayTitle(workspace.title, t('workspace.defaultName')),
       icon: <IconFolderCloseRegular size={16} />,
       disabled: flowBusy,
-    }))
+    }))]
     : addEntries
   // Nothing listed and nothing to add with (a composition that mounts this
   // package without any directory-picker): an empty popover would claim a
@@ -178,6 +182,10 @@ export function WorkspacePickFlow({
   }
 
   const handleSelect = (id: string): void => {
+    if (id === NO_WORKSPACE) {
+      onPickNone?.()
+      return
+    }
     if (id === ADD_WORKSPACE) {
       openDirectoryFlow()
       return
@@ -192,7 +200,7 @@ export function WorkspacePickFlow({
         anchor={null}
         items={items}
         {...pinAdd ? { footer: addEntries } : {}}
-        selectedId={selectedId}
+        selectedId={selectedId === null ? NO_WORKSPACE : selectedId}
         onSelect={handleSelect}
         onClose={onClose}
         side={side}
@@ -250,6 +258,7 @@ export function WorkspacePicker({
       renderDirectoryFlow={owner => renderSlot('conversation.hero.workspace.directoryFlow', owner)}
       selectedId={selectedId}
       onPick={onPick}
+      onPickNone={() => { onPick(null) }}
       onClose={onClose}
     />
   )

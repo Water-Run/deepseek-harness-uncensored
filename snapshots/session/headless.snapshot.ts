@@ -194,7 +194,8 @@ function contextOf(logs: readonly string[]): NormalizeContext {
   return {
     sessionIds: headers.flatMap(header => typeof header.id === 'string' ? [header.id] : []),
     cwd,
-    cwdAliases: [cwd.split(sep).join('/')],
+    // Runtime context quotes the fixture-owned directory as JSON on Windows.
+    cwdAliases: [cwd.split(sep).join('/'), JSON.stringify(cwd).slice(1, -1)],
   }
 }
 

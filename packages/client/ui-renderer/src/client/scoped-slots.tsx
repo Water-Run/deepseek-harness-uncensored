@@ -790,7 +790,7 @@ interface FactoryOccurrenceValue {
 }
 
 const FactoryOccurrenceContext = createContext<FactoryOccurrenceValue | null>(null)
-const FactoryAncestryContext = createContext<ReadonlySet<string>>(new Set())
+const FactoryAncestryContext = createContext<readonly { readonly name: string; readonly session: string | undefined }[]>([])
 const EMPTY_FACTORY_SELECTION: Readonly<Record<string, FC<InjectedProps>>> = {}
 
 function useFactorySlotRuntime(name: string, fallback: FC<InjectedProps>): FC<InjectedProps> {
@@ -991,9 +991,13 @@ function FactoryOutlet({ name, inputProps, slots: selected = EMPTY_FACTORY_SELEC
     () => host.getFactoryVersion(name),
   )
   const definition = host.factoryOf(name)
-  const nextAncestors = useMemo(() => new Set(ancestors).add(name), [ancestors, name])
+  const nextAncestors = useMemo(() => [...ancestors, { name, session: binding.key }], [ancestors, name, binding.key])
   if (definition === undefined) return <>{fallback ?? null}</>
-  if (ancestors.has(name)) throw new SlotOwnershipError(`recursive render of factory '${name}'`)
+  const cycle = ancestors.some(parent => parent.name === name && (
+    definition.allowSessionNesting !== true || definition.scope === 'root'
+    || binding.key === undefined || parent.session === undefined || parent.session === binding.key
+  ))
+  if (cycle) throw new SlotOwnershipError(`recursive render of factory '${name}'`)
   for (const localName of Object.keys(selected)) {
     if (definition.slots?.[localName] === undefined) {
       throw new SlotOwnershipError(`local slot '${localName}' is not declared by factory '${name}'`)

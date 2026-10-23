@@ -39,7 +39,7 @@ export function ConversationContent(props: ConversationContentProps) {
   const composerBlock = useComposerBlock(block => block)
 
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [pendingWorkspaceId, setPendingWorkspaceId] = useState<WorkspaceId | undefined>()
+  const [pendingWorkspaceId, setPendingWorkspaceId] = useState<WorkspaceId | null | undefined>()
   const pickerAnchor = useRef<HTMLButtonElement>(null)
 
   // Publishes the two live measurements floating View chrome reads off the
@@ -104,7 +104,7 @@ export function ConversationContent(props: ConversationContentProps) {
           ? undefined
           : workspaceLabel(cwd)))
   const chipTitle = storedChipTitle === undefined
-    ? undefined
+    ? sessionId !== undefined && workspaces.phase === 'ready' ? t('workspace.none') : undefined
     : workspaceDisplayTitle(storedChipTitle, t('workspace.defaultName'))
 
   const heroWorkspaceRow = (
@@ -119,7 +119,7 @@ export function ConversationContent(props: ConversationContentProps) {
       {renderSlot('conversation.hero.workspace', {
         open: pickerOpen,
         anchorRef: pickerAnchor,
-        selectedId: pendingWorkspaceId ?? sessionWorkspace?.workspaceId,
+        selectedId: pendingWorkspaceId ?? sessionWorkspace?.workspaceId ?? (sessionId === undefined ? undefined : null),
         onPick: (workspaceId) => {
           setPickerOpen(false)
           setPendingWorkspaceId(workspaceId)
@@ -158,7 +158,8 @@ export function ConversationContent(props: ConversationContentProps) {
         // block keeps the model seat live because choosing a model is how the
         // user clears it.
         ? { blocked: composerBlock, placeholder: composerBlock.reason }
-        : hero ? { placeholder: t('placeholder.hero') } : {}),
+        : props.placeholder !== undefined ? { placeholder: props.placeholder }
+          : hero ? { placeholder: t('placeholder.hero') } : {}),
   })
 
   const composerBar = (

@@ -1,0 +1,36 @@
+/** Balance labels are separate from the account authentication copy. */
+export const balanceEn = {
+  'balance.title': 'Balance and history', 'balance.enabled': 'Show balance and collect samples',
+  'balance.interval': 'Refresh interval (seconds)', 'balance.intervalError': 'Enter a whole number from 15 to 3600',
+  'balance.source': 'Data source', 'balance.local': 'Local records', 'balance.api': 'Live API',
+  'balance.apiHint': 'Fetch the current balance and add a local sample. The public API does not return past balance history.',
+  'balance.localHint': 'Read samples already saved on this computer without querying the balance API.',
+  'balance.current': 'Latest observation', 'balance.refresh': 'Refresh', 'balance.curve': 'Observed total balance over time',
+  'balance.total': 'Current total', 'balance.change': 'Observed change', 'balance.samples': 'Recorded samples',
+  'balance.updated': 'Last observation', 'balance.collecting': 'A second sample will begin the curve.',
+  'balance.empty': 'No samples yet. Choose Live API to begin collecting.', 'balance.disabled': 'Balance collection is off.',
+  'balance.credentials': 'Sign in or configure a DeepSeek API key to view the balance.',
+  'balance.failed': 'Could not refresh the balance. Any displayed values are the last successful observation.',
+  'balance.changeHint': 'Changes include top-ups, grants and expiry; this is not an invoice or a spending total.',
+  'balance.peak': 'Peak hours', 'balance.valley': 'Off-peak hours', 'balance.unknownPeriod': 'Holiday calendar unavailable',
+  'balance.hours': 'Published peak hours: weekdays 01:00–04:00 and 06:00–10:00 UTC, excluding Chinese public holidays. The 2026 calendar is included.',
+  'balance.pricing': 'Official pricing and hours', 'balance.saved': 'Balance settings saved', 'balance.saveFailed': 'Could not save balance settings. Try again.',
+} as const
+/** Simplified Chinese balance labels. */
+export const balanceZh: Record<keyof typeof balanceEn, string> = {
+  'balance.title': '余额与统计', 'balance.enabled': '显示余额并采样',
+  'balance.interval': '刷新间隔（秒）', 'balance.intervalError': '请输入 15–3600 之间的整数',
+  'balance.source': '数据源', 'balance.local': '本机记录', 'balance.api': 'API 实时',
+  'balance.apiHint': '读取当前余额并保存本机采样。公开 API 不提供过去的余额历史，曲线从首次采样开始累积。',
+  'balance.localHint': '读取这台电脑已保存的采样记录，不请求余额 API。',
+  'balance.current': '最近观测', 'balance.refresh': '刷新', 'balance.curve': '总余额采样曲线',
+  'balance.total': '当前总额', 'balance.change': '观测区间变化', 'balance.samples': '已保存采样',
+  'balance.updated': '最近采样时间', 'balance.collecting': '获得第二次采样后显示曲线',
+  'balance.empty': '暂无记录，切换到 API 实时开始采样', 'balance.disabled': '余额显示与采样已关闭',
+  'balance.credentials': '登录账号或配置 DeepSeek API Key 后显示余额',
+  'balance.failed': '余额刷新失败；已显示的数值为最近一次成功采样',
+  'balance.changeHint': '余额变化包含充值、赠金和到期扣减，不等同于实际消费或账单。',
+  'balance.peak': '梁文峰 · 高峰时段', 'balance.valley': '梁文谷 · 低峰时段', 'balance.unknownPeriod': '节假日日历待更新',
+  'balance.hours': '官网高峰时段为工作日北京时间 09:00–12:00、14:00–18:00，中国公共假期除外。已包含 2026 年假期。',
+  'balance.pricing': '查看官方价格与时段', 'balance.saved': '余额设置已保存', 'balance.saveFailed': '余额设置保存失败，请重试',
+}

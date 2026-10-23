@@ -12,6 +12,7 @@ export type BuiltInPresetCopyKey =
   | 'presetStandardName' | 'presetStandardDescription'
   | 'presetWritingName' | 'presetWritingDescription'
   | 'presetSecurityName' | 'presetSecurityDescription'
+  | 'presetReverseName' | 'presetReverseDescription'
   | 'presetPtcName' | 'presetPtcDescription'
   | 'presetMinimalName' | 'presetMinimalDescription'
   | 'presetCordisName' | 'presetCordisDescription'
@@ -43,6 +44,7 @@ const BUILT_IN_PRESET_KEYS: Readonly<Partial<Record<string, PresetLocaleKeys>>> 
   standard: { name: 'presetStandardName', description: 'presetStandardDescription' },
   writing: { name: 'presetWritingName', description: 'presetWritingDescription' },
   security: { name: 'presetSecurityName', description: 'presetSecurityDescription' },
+  reverse: { name: 'presetReverseName', description: 'presetReverseDescription' },
   ptc: { name: 'presetPtcName', description: 'presetPtcDescription' },
   minimal: { name: 'presetMinimalName', description: 'presetMinimalDescription' },
   cordis: { name: 'presetCordisName', description: 'presetCordisDescription' },

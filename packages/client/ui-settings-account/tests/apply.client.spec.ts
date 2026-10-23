@@ -154,6 +154,7 @@ it('shares account actions across seats, publishes dialog ownership, and opens c
 }, 60_000)
 
 it('prefills the native device description from the Desktop bridge on every click', async ({ start }) => {
+  vi.stubGlobal(CONTACT_CONFIG_GLOBAL, { contactFormUrl: 'https://example.test/form/' })
   const open = vi.spyOn(window, 'open').mockReturnValue(null)
   const deviceInfo = vi.fn(async () => 'platform=darwin; os=15.0; app_arch=arm64; cpu=Apple M3; memory_gib=16.0')
   vi.stubGlobal('dshDesktop', { deviceInfo })
@@ -176,6 +177,7 @@ it('prefills the native device description from the Desktop bridge on every clic
 }, 60_000)
 
 it('opens the questionnaire with screen resolution when the native read fails', async ({ start }) => {
+  vi.stubGlobal(CONTACT_CONFIG_GLOBAL, { contactFormUrl: 'https://example.test/form/' })
   const open = vi.spyOn(window, 'open').mockReturnValue(null)
   const deviceInfo = vi.fn(async (): Promise<string> => { throw new Error('platform ipc unavailable') })
   vi.stubGlobal('dshDesktop', { deviceInfo })
@@ -190,6 +192,7 @@ it('opens the questionnaire with screen resolution when the native read fails', 
 }, 60_000)
 
 it('reports the account sampled by the click when a native read outlasts a sign-out', async ({ start }) => {
+  vi.stubGlobal(CONTACT_CONFIG_GLOBAL, { contactFormUrl: 'https://example.test/form/' })
   const open = vi.spyOn(window, 'open').mockReturnValue(null)
   const device = Promise.withResolvers<string>()
   vi.stubGlobal('dshDesktop', { deviceInfo: vi.fn(() => device.promise) })

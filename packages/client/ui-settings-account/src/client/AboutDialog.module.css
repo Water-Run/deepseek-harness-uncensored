@@ -1,0 +1,6 @@
+.content { display: grid; gap: 16px; color: var(--dsw-alias-label-primary); }
+.product { margin: 0; font-size: 16px; font-weight: 500; }
+.facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px 20px; margin: 0; font-size: 13px; }
+.facts dt { color: var(--dsw-alias-label-secondary); }
+.facts dd { margin: 0; overflow-wrap: anywhere; }
+.content a { color: var(--dsw-alias-label-primary); text-decoration: underline; text-underline-offset: 3px; }

@@ -18,6 +18,9 @@ interface PresetGuide {
 
 const guides = new Map<string, PresetGuide>([
   ['standard', { name: 'presetStandardName', intro: 'guideStandardIntro', explanation: 'guideStandardExplanation', usage: 'guideStandardUsage' }],
+  ['security', { name: 'presetSecurityName', intro: 'guideSecurityIntro', explanation: 'guideSecurityExplanation', usage: 'guideSecurityUsage' }],
+  ['reverse', { name: 'presetReverseName', intro: 'guideReverseIntro', explanation: 'guideReverseExplanation', usage: 'guideReverseUsage' }],
+  ['writing', { name: 'presetWritingName', intro: 'guideWritingIntro', explanation: 'guideWritingExplanation', usage: 'guideWritingUsage' }],
   ['ptc', { name: 'presetPtcName', intro: 'guidePtcIntro', explanation: 'guidePtcExplanation', usage: 'guidePtcUsage' }],
   ['minimal', { name: 'presetMinimalName', intro: 'guideMinimalIntro', explanation: 'guideMinimalExplanation', usage: 'guideMinimalUsage' }],
   ['cordis', { name: 'presetCordisName', intro: 'guideCordisIntro', explanation: 'guideCordisExplanation', usage: 'guideCordisUsage' }],

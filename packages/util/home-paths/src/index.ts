@@ -124,8 +124,10 @@ function rootDisplay(resolvedRoot: string, defaultRoot: string, defaultLabel: st
 /**
  * Resolve the single-root DeepSeek Harness home.
  *
- * Precedence, highest first: an explicit configured path, `$DSH_HOME`, then
- * `~/.dsh`. The harness keeps all user data under one root. An empty or
+ * Precedence, highest first: an explicit configured path, `$DSH_UNCENSORED_HOME`,
+ * a custom `$DSH_HOME`, then `~/.dsh-uncensored`. The official default `~/.dsh`
+ * is ignored when inherited through the environment. An explicit configured
+ * path may still select it. The harness keeps all user data under one root. An empty or
  * whitespace-only `$DSH_HOME` is treated as unset, so a blank override never
  * resolves the home to the current working directory.
  * @param configured - explicit harness-home override, which has highest precedence.
@@ -133,7 +135,14 @@ function rootDisplay(resolvedRoot: string, defaultRoot: string, defaultLabel: st
  * @returns the normalized absolute harness home path.
  */
 export function resolveDshHome(configured?: string, env: Record<string, string | undefined> = process.env): string {
-  return resolveRoot(configured, env, DSH_HOME_ENV, defaultDshHome)
+  if (configured !== undefined) return resolve(expandHomePath(configured))
+  const dedicated = env.DSH_UNCENSORED_HOME
+  if (dedicated !== undefined && dedicated.trim() !== '') return resolve(expandHomePath(dedicated))
+  const inherited = env[DSH_HOME_ENV]
+  if (inherited !== undefined && resolve(expandHomePath(inherited)) === resolve(homedir(), '.dsh')) {
+    return defaultDshHome()
+  }
+  return resolveRoot(undefined, env, DSH_HOME_ENV, defaultDshHome)
 }
 
 /**

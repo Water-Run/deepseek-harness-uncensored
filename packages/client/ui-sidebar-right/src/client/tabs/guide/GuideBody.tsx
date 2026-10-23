@@ -102,7 +102,7 @@ export function GuideBody({ useTabInfo, useGuideEntries, renderSlot, renderSlotC
           }, {
             entryKey: entry.providerId, hookContext: useTabInfo,
             fallback: <EntryBox entry={entry} described={described} shortcut={shortcuts.find(shortcut => shortcut.id === entry.commandId)}
-              onPick={(selected) => { tab.actions.openTab(selected.kind, { replaceTab: true }) }} />,
+              onPick={(selected) => { tab.actions.openTab(selected.kind, { replaceTab: selected.preserveGuide !== true }) }} />,
           })}
         </div>
       })}</ShippedGuide>

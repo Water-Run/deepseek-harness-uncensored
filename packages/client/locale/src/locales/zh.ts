@@ -33,6 +33,7 @@ export const zh = {
   'back': '返回',
   'brand.localBuild': 'DeepSeek Harness Uncensored',
   'workspace.defaultName': '默认工作区',
+  'workspace.none': '不在工作区工作',
   'unknown': '未知',
   'none': '无',
   'truncated': '已截断',

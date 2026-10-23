@@ -95,7 +95,7 @@ async function copyLicenses(staging: string, product: string): Promise<void> {
       await copyFile(source, output)
     }
   }
-  await copyFile(join(root, 'LICENSE'), join(destination, 'deepseek-harness-MIT.txt'))
+  await copyFile(join(root, 'LICENSES', 'deepseek-harness-MIT.txt'), join(destination, 'deepseek-harness-MIT.txt'))
   await copyFile(join(root, 'native/system/LICENSE'), join(destination, 'node-addon-system-BSD.txt'))
   await writeFile(join(destination, 'packages.json'), `${JSON.stringify(inventory, null, 2)}\n`)
 }

@@ -18,12 +18,13 @@ export const DESKTOP_BUILD_DIRTY_ENV = 'DSH_DESKTOP_BUILD_DIRTY'
 /**
  * Read the checkout's current commit and whether it carries uncommitted changes.
  * @param {string} repositoryRoot - Directory to inspect.
- * @returns {{ commit: string, dirty: boolean }} The commit being packaged and whether its tree was modified.
+ * @returns {{ commit: string, dirty: boolean, date: string }} The commit, commit time, and whether its tree was modified.
  */
 export function readDesktopBuildCommit(repositoryRoot) {
   const git = (args) => execFileSync('git', args, { cwd: repositoryRoot, encoding: 'utf8' }).trim()
   return {
     commit: git(['rev-parse', 'HEAD']),
+    date: git(['show', '-s', '--format=%cI', 'HEAD']),
     dirty: git(['status', '--porcelain', '--untracked-files=normal']) !== '',
   }
 }
@@ -31,7 +32,7 @@ export function readDesktopBuildCommit(repositoryRoot) {
 /**
  * Resolve the commit a parent packaging process recorded.
  * @param {NodeJS.ProcessEnv} env - Packaging environment.
- * @returns {{ commit: string, dirty: boolean } | undefined} The packaged commit, or undefined outside a packaging run.
+ * @returns {{ commit: string, dirty: boolean, date?: string } | undefined} The packaged commit, or undefined outside a packaging run.
  */
 export function resolveDesktopBuildCommit(env) {
   const commit = env[DESKTOP_BUILD_COMMIT_ENV]?.trim()
@@ -41,17 +42,20 @@ export function resolveDesktopBuildCommit(env) {
   if (dirty !== undefined && dirty !== '' && dirty !== '0' && dirty !== '1') {
     throw new Error(`desktop build commit: ${DESKTOP_BUILD_DIRTY_ENV} must be 0 or 1`)
   }
-  return { commit, dirty: dirty === '1' }
+  const date = env.DSH_DESKTOP_BUILD_DATE?.trim()
+  if (date && !Number.isFinite(Date.parse(date))) throw new Error('desktop build commit: invalid commit date')
+  return { commit, dirty: dirty === '1', ...(date ? { date } : {}) }
 }
 
 /**
  * Describe the packaged commit as the environment variables child processes read.
- * @param {{ commit: string, dirty: boolean }} packaged - Commit and tree state to pass down.
+ * @param {{ commit: string, dirty: boolean, date?: string }} packaged - Commit and tree state to pass down.
  * @returns {Record<string, string>} Variables to merge into a child environment.
  */
 export function desktopBuildCommitEnvironment(packaged) {
   return {
     [DESKTOP_BUILD_COMMIT_ENV]: packaged.commit,
     [DESKTOP_BUILD_DIRTY_ENV]: packaged.dirty ? '1' : '0',
+    ...(packaged.date === undefined ? {} : { DSH_DESKTOP_BUILD_DATE: packaged.date }),
   }
 }

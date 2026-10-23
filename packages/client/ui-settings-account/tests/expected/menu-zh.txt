@@ -1,1 +1,1 @@
-设置提交 Issue退出登录
+设置提交 IssueGitHub 仓库关于退出登录
