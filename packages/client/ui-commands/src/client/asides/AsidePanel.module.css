@@ -1,4 +1,8 @@
 .inline {
+  flex: none;
+  align-self: center;
+  box-sizing: border-box;
+  width: min(var(--dsh-composer-card-max-width), calc(100% - 2 * var(--dsh-composer-side-clearance)));
   min-width: 0;
   overflow: hidden;
   border: 0.5px solid var(--dsw-alias-border-l2);
