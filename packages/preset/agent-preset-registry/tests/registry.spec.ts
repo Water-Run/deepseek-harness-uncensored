@@ -29,6 +29,16 @@ afterEach(async () => { for (const ctx of contexts.splice(0)) await ctx.fiber.di
 async function setup() { const ctx = await harness(); contexts.push(ctx); return ctx }
 
 describe('declarative preset revisions', () => {
+  it('restores hidden historical compositions without offering them in the selection roster', async () => {
+    const ctx = await setup()
+    await declare(ctx, contribution('standard'))
+    await declare(ctx, { ...contribution('legacy-tool'), id: 'legacy', hidden: true })
+    expect((await ctx.agentPresets.remoteExportList()).presets.map(row => row.id)).toEqual(['standard'])
+    expect(await ctx.agentPresets.resolve('legacy')).toEqual({ id: 'legacy' })
+    const historical = await agentOn(ctx, 'historical-legacy', 'legacy')
+    expect(ctx.tools.schemas(historical).map(tool => tool.name)).toEqual(['legacy-tool'])
+    expect(ctx.agentPresets.composedPreset(historical.ctx)).toBe('legacy')
+  })
   it('refuses permission changes from a non-owner even when the method can be reached', async () => {
     const ctx = await setup()
     const challenge = ctx.agentPresets.beginModeSwitch()

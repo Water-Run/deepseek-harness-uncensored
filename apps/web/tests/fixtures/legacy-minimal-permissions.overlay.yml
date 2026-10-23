@@ -1,0 +1,4 @@
+# Frozen POSIX recordings retain their original permission policy.
+- id: permission
+  config:
+    defaultPreset: workspace-write

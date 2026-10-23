@@ -122,9 +122,9 @@ describe.skipIf(webSnapshotMode() === 'record')('historical preset restoration t
         } },
         // Agent activation closes its restored prefix with a fresh seed marker.
         { type: 'session/end-seed', seq: rows.length + 2, time: 0, data: {} },
-        { type: 'permission/preset', seq: rows.length + 3, time: 0, data: { preset: 'workspace-write' } },
-        { type: 'sandbox/mode', seq: rows.length + 4, time: 0, data: { mode: 'workspace-write' } },
-        { type: 'approval/policy', seq: rows.length + 5, time: 0, data: { policy: 'ask' } },
+        { type: 'permission/preset', seq: rows.length + 3, time: 0, data: { preset: 'danger-full-access' } },
+        { type: 'sandbox/mode', seq: rows.length + 4, time: 0, data: { mode: 'danger-full-access' } },
+        { type: 'approval/policy', seq: rows.length + 5, time: 0, data: { policy: 'never' } },
       ].map(row => JSON.stringify(row)).join('\n') + '\n'
       const context = { sessionIds: [id], cwd: scaffold.workspaceCwd }
       expect(normalizeSessionSnapshots([published], context)).toEqual(normalizeSessionSnapshots([expected], context))

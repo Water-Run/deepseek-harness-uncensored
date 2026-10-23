@@ -29,6 +29,8 @@ kind: "package-bundle"
 <a id="use-this-package"></a>
 ## 使用本包
 
+Uncensored 选择器提供缺省、网安、逆向和写作。隐藏的 PTC 和极简定义为已有 Session 保留历史工具，支持相邻代际中 `code` 到 `ptc` 的格式迁移。极简在 POSIX 使用持久 Bash，在 Windows 使用持久 PowerShell，并提供图片读取和压缩。
+
 启动 GUI、打开浏览器，然后开始与 agent（智能体）对话。flag 用于微调本次调用。
 
 ### 启动 Web GUI
@@ -48,7 +50,7 @@ dsh --profile web --no-open --port 8080
 
 `minimal` agent preset 使用持久 Shell、`read_image` 工具和固定 persona，支持自动历史压缩以及会话空闲时的 `/compact` 命令。它复用 Host token meter，并拥有隔离的压缩后端。[压缩配置与保留策略](../../compaction/compaction-basic/README.zh.md#use-this-package) 沿用现有后端。图片读取复用 Host 文件系统和附件存储，要求模型支持图片输入；不加载文本读取、写入和编辑工具。
 
-`--host` 与 `--port` 配置监听器；`--tls-cert` 与 `--tls-key` 让它直接提供 HTTPS；`--public-url` 指定 GUI 在剥离前缀的代理之后对外公告的公开 HTTP(S) 根，`--trusted-host` 则添加更多被接受的 authority。这些都在[监听、信任与公开部署](#public-deployments)中说明，而这些 flag 设置的 `tls` 字段记录在[载体的配置](../../../docs/subsystems/web-server.zh.md#config)中：
+`--host` 与 `--port` 配置监听器；`--tls-cert` 与 `--tls-key` 让它直接提供 HTTPS；`--public-url` 指定 GUI 在剥离前缀的代理之后对外公告的公开 HTTP(S) 根，`--trusted-host` 则添加更多被接受的 authority。这些都在[监听、信任与公开部署](#public-deployments)中说明，而这些 flag 设置的 `tls` 字段记录在[载体的配置](../../host/webserver/README.zh.md)中：
 
 | 字段 | 默认值 | 含义 |
 |---|---|---|
@@ -57,7 +59,7 @@ dsh --profile web --no-open --port 8080
 | `surfaceContext` | `true` | 把 `DSH_WEB_URL` 暴露给 agent 的 shell 命令 |
 | `publicUrl` | 未设置 | 对外公告的 HTTP(S) 应用根；否则公告绑定地址 URL |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-web-app)列出了本运行时插件接受的字段及其 JSDoc。随发行版交付的组合插入 `schedule` 服务行与 `ui-schedule` 任务页面行，时钟读数与四个提醒工具则属于 `standard`、`cordis` 与 `ptc` 三个 preset。这三个 preset 的 `tool-subagent` 与 `tool-subagent-fork` 两行都 deny 这四个工具，因此被委派子 agent 的作用域不会列出它们。
+[配置 schema](src/index.ts) 定义本运行时插件接受的字段。`presets/` 下的文件分别声明各模式使用的工具与指令。
 
 <a id="public-deployments"></a>
 ### 监听、信任与公开部署
@@ -76,7 +78,7 @@ dsh --profile web --no-open --host "$(hostname -i | awk '{print $1}')" --public-
 
 未设置 `--public-url` 时，`::ffff:127.0.0.1` 这样的 mapped IPv6 回环绑定会公告其 IPv4 形式 `127.0.0.1`，让浏览器将其识别为本地可信来源。监听器仍使用配置的绑定地址。点分四段式的 IPv6 尾部表示该地址自身的低 32 位，与 `listen` 的读法完全一致：`::0.0.0.1` 属于 IPv6 回环并公告 `[::1]`，而 `::127.0.0.1` 是非回环地址，并非 IPv4 回环。
 
-`--public-url` 公告浏览器使用的 HTTP(S) 根——打印与打开的启动 URL、`DSH_WEB_URL`，以及 agent 运行时上下文中的 Web GUI URL。公告不授予任何信任：浏览器可见的 authority 还必须用 `--trusted-host` 点名。该 flag 不配置监听器、路由或 cookie 作用域，因为外部链路归代理所有：[在反向代理之后发布 Web UI](../../../docs/user/guide/public-deployments.zh.md)列出了这样的部署必须提供什么。
+`--public-url` 公告浏览器使用的 HTTP(S) 根——打印与打开的启动 URL、`DSH_WEB_URL`，以及 agent 运行时上下文中的 Web GUI URL。公告不授予任何信任：浏览器可见的 authority 还必须用 `--trusted-host` 点名。外部监听器、路由和 cookie 作用域由代理负责，部署配置见 [Web 服务器](../../host/webserver/README.zh.md)。
 
 无论是公告 URL 还是浏览器信任栅栏都不保护端口本身，因此请把端口限制在可信代理或网络内。
 
@@ -139,7 +141,7 @@ URL 行与浏览器交接都是就绪信号：监督方一观察到该行就发�
 - [dsh-base](../base/README.zh.md)——GUI 运行其上的共享核心。
 - [dsh-client-hmr](../../client/hmr/README.zh.md)——开发期间客户端插件变更如何重载。
 - [frontend-static](../../host/frontend-static/README.zh.md)——已构建的前端如何被服务。
-- [生成配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-web-app)——每个受支持配置字段及其源声明。
+- [配置 schema](src/index.ts)——受支持的配置字段及其声明。
 
 -----
 

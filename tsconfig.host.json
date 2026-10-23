@@ -47,6 +47,7 @@
     "apps/web/tests/scaffold-hermetic.e2e.ts",
     "apps/web/tests/startup-rpc-budget.e2e.ts",
     "apps/web/tests/minimal-preset.snapshot.ts",
+    "apps/web/tests/legacy-presets.e2e.ts",
     "apps/web/tests/message-feedback-protocol.snapshot.ts",
     "apps/web/tests/preset-migration.snapshot.ts",
     "apps/web/tests/subagent-fork-schedule.snapshot.ts",

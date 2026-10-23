@@ -110,6 +110,8 @@
       "@deepseek-ai/node-addon-system/landlock-run": ["./native/system/packages/entry/src/index.ts"],
       "@deepseek-ai/node-addon-system/flock": ["./native/system/packages/entry/src/flock.ts"],
       "@deepseek-ai/dsh-tool-call-timeout-policy": ["./packages/guard/timeout-policy/src"],
+      "@deepseek-ai/dsh-spend-limit": ["./packages/guard/spend-limit/src"],
+      "@deepseek-ai/dsh-spend-limit/types": ["./packages/guard/spend-limit/src/types.ts"],
       "@deepseek-ai/dsh-spill-policy/notice": ["./packages/spill/spill-policy/src/notice.ts"],
       "@deepseek-ai/dsh-subprocess/control": ["./packages/subprocess/subprocess/src/control.ts"],
       "@deepseek-ai/dsh-typert-registry": ["./packages/typert/registry/src/index.ts"],

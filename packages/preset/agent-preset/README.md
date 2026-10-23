@@ -25,6 +25,8 @@ Define an Agent’s child plugins in ordinary Cordis YAML. Declare several prese
 <a id="use-this-package"></a>
 ## Use this package
 
+Set a definition's `hidden: true` to retain its composition for historical restoration without listing it in user-facing mode selectors. Explicit resolution, mounting and inspection remain available; this is presentation metadata, not an access restriction.
+
 ```yaml
 - id: agent-preset-registry
   name: '@deepseek-ai/dsh-agent-preset-registry'
@@ -66,7 +68,7 @@ Edit `agent-experience` in [skills/agent-experience/SKILL.md](skills/agent-exper
 
 - [Scope](../../core/scope/README.md) — Registration isolation.
 - [Agent](../../core/agent/README.md) — Session runtime.
-- [Cordis](../../../docs/cordis-primer.md) — Plugin configuration and lifecycle.
+- [Cordis](../../../vendor/cordis/README.md) — Plugin configuration and lifecycle.
 
 <a id="model-experience"></a>
 ## Model Experience

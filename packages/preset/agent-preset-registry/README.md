@@ -25,6 +25,8 @@ Choose an Agent’s tools, prompt sections and skills through declarative preset
 <a id="use-this-package"></a>
 ## Use this package
 
+The public selection roster omits definitions marked `hidden`. Historical resolution and mounting still use their own compositions, so removing an old choice from the picker does not replace its tool set with another mode.
+
 ### Minimal configuration
 
 ```yaml

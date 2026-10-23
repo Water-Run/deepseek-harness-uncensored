@@ -27,6 +27,9 @@ const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/minimal-prese
 const FIXTURE = join(SNAPSHOT_DIR, 'session.v3.jsonl')
 const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')
 const MODE = webSnapshotMode()
+const LEGACY_PERMISSIONS = fileURLToPath(new URL('./fixtures/legacy-minimal-permissions.overlay.yml', import.meta.url))
+// These frozen recordings include Bash schemas and POSIX commands. Windows has a native PowerShell scenario in legacy-presets.e2e.ts.
+const posixScenario = describe.skipIf(process.platform === 'win32')
 const PROMPT = "Use the bash tool to run exactly: printf 'MINIMAL_BASH_CARD_OK\\n'. Then reply exactly MINIMAL_PRESET_REQUEST_OK and stop."
 
 /** Rendered text of the system prompt surface node, or undefined when the surface carries none. */
@@ -35,7 +38,7 @@ function systemPromptText(session: Session): string | undefined {
   return message?.content.flatMap(block => block.type === 'text' ? [block.text] : []).join('')
 }
 
-describe('minimal agent preset', () => {
+posixScenario('minimal agent preset', () => {
   let scaffold: WebScaffold
   let agentHandle: AgentHandle
   let disposeInjectedPrompt: () => void
@@ -44,7 +47,8 @@ describe('minimal agent preset', () => {
   let tripwire: ReturnType<typeof watchConsole> | undefined
 
   beforeAll(async () => {
-    scaffold = await launchWebScaffold({ replayFixture: FIXTURE, compareReplaySession: true, paceMs: 10 })
+    scaffold = await launchWebScaffold({ replayFixture: FIXTURE, compareReplaySession: true, paceMs: 10,
+      extraOverlayPath: LEGACY_PERMISSIONS })
     disposeInjectedPrompt = scaffold.ctx.systemPrompt.section({
       name: 'test:injected-prompt',
       order: 999,
@@ -197,7 +201,7 @@ describe('minimal agent preset', () => {
   })
 })
 
-describe('minimal manual compaction', () => {
+posixScenario('minimal manual compaction', () => {
   const snapshotDir = fileURLToPath(new URL('../../../snapshots/web/minimal-compact', import.meta.url))
   let scaffold: WebScaffold
   let handle: AgentHandle
@@ -211,7 +215,8 @@ describe('minimal manual compaction', () => {
     expect(prompts).toHaveLength(2)
     const [initial, continuation] = prompts
     if (initial === undefined || continuation === undefined) throw new Error('minimal compaction fixture requires two user prompts')
-    scaffold = await launchWebScaffold({ replayFixture: fixture, compareReplaySession: true, workspacePathLength: 192 })
+    scaffold = await launchWebScaffold({ replayFixture: fixture, compareReplaySession: true, workspacePathLength: 192,
+      extraOverlayPath: LEGACY_PERMISSIONS })
     scaffold.ctx.on('llm/stream', async function* (options, next) {
       requests.push(options)
       yield* next()
@@ -313,7 +318,7 @@ describe('minimal manual compaction', () => {
   })
 })
 
-describe('minimal image reading', () => {
+posixScenario('minimal image reading', () => {
   const snapshotDir = fileURLToPath(new URL('../../../snapshots/web/minimal-read-image', import.meta.url))
   const prompt = 'Use read_image to inspect red.png. Then reply exactly MINIMAL_IMAGE_OK and stop.'
   let scaffold: WebScaffold
@@ -324,6 +329,7 @@ describe('minimal image reading', () => {
   beforeAll(async () => {
     scaffold = await launchWebScaffold({
       replayFixture: join(snapshotDir, 'session.v4.jsonl'), compareReplaySession: true, paceMs: 10,
+      extraOverlayPath: LEGACY_PERMISSIONS,
     })
     await writeFile(join(scaffold.workspaceCwd, 'red.png'), Buffer.from(
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC', 'base64',

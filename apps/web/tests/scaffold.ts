@@ -242,7 +242,7 @@ class RouteOnlyAdapter extends LlmAdapter {
 
   override listModels(provider: string): Promise<readonly LlmModelInfo[]> {
     return Promise.resolve((this.providers.find(entry => entry.id === provider)?.models ?? [])
-      .map(model => ({ provider, id: model.id, name: model.name })))
+      .map(model => ({ provider, ...model })))
   }
 
   override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
@@ -250,9 +250,9 @@ class RouteOnlyAdapter extends LlmAdapter {
       .find(entry => entry.id === model)
     return Promise.resolve({
       provider,
+      ...listed,
       id: model,
       name: listed?.name ?? model,
-      ...listed?.contextWindow === undefined ? {} : { contextWindow: listed.contextWindow },
     })
   }
 

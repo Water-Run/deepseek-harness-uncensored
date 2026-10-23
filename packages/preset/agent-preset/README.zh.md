@@ -25,6 +25,8 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用此包
 
+定义设置 `hidden: true` 后，保留其历史恢复所需的插件组成，但不在用户模式选择器中列出。显式解析、挂载和检查仍可使用；该字段仅控制展示，不构成访问限制。
+
 ```yaml
 - id: agent-preset-registry
   name: '@deepseek-ai/dsh-agent-preset-registry'
@@ -66,7 +68,7 @@ kind: "package-reference"
 
 - [Scope](../../core/scope/README.zh.md) — 注册隔离。
 - [Agent](../../core/agent/README.zh.md) — 会话运行时。
-- [Cordis](../../../docs/cordis-primer.zh.md) — 插件配置与生命周期。
+- [Cordis](../../../vendor/cordis/README.md) — 插件配置与生命周期。
 
 <a id="model-experience"></a>
 ## 模型体验
