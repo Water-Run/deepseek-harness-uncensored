@@ -1,105 +1,24 @@
-/** Existing-conversation mode controls and their root-owned asynchronous feedback. */
+/** Existing-conversation mode controls, temporary permission and its root-owned confirmation. */
 import { useEffect, useState } from 'react'
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
-import type { InjectFace, PropsLocale, PropsRuntime, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
-import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
-import { IconChevronDownOutlineRegular, Menu, Switch, Toast, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconChevronDownOutlineRegular, Menu, Modal, Switch, Toast, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import { AgentPresetLabel, type AgentPresetLabelProps } from './AgentPresetLabel.tsx'
 import { PresetIcon } from './PresetIcon.tsx'
 import { presetDisplayText } from './locales.ts'
+import type { ModeSwitchController } from './mode-policy-controller.ts'
 import css from './ModeSwitch.module.css'
 
-/** Preference consumed by both the settings row and existing-session selector. */
-export interface ModeSwitchPolicy { allowExistingSessionSwitch: boolean }
-
-interface SwitchState {
-  readonly busy: ReadonlySet<SessionId>
-  readonly saving: boolean
-  readonly toast: { readonly id: number; readonly text: string; readonly success: boolean } | null
-}
-
-/** Tracks accepted requests until completion and keeps their feedback alive across panel navigation. */
-export class ModeSwitchController {
-  readonly state = createSnapshotStore<SwitchState>({ busy: new Set(), saving: false, toast: null })
-  private readonly pending = new Set<Promise<void>>()
-  private readonly changes = new Map<SessionId, Promise<void>>()
-  private saveTask: Promise<void> | undefined
-  private sequence = 0
-  private closed = false
-
-  /** @param policy - Live Host setting. @param select - Host-enforced mode change. @param t - Mode dictionary. */
-  constructor(readonly policy: ConfigForm<ModeSwitchPolicy>,
-    private readonly select: (sessionId: SessionId, preset: string) => Promise<void>,
-    private readonly t: TranslateNS<'settings.agentPreset'>) {}
-
-  /** @param sessionId - Exact owning session. @param preset - Requested mode. @returns Confirmed completion or visible failure. */
-  change(sessionId: SessionId, preset: string): Promise<void> {
-    if (this.closed) return Promise.resolve()
-    const pending = this.changes.get(sessionId)
-    if (pending !== undefined) return pending
-    this.state.set({ ...this.state.getSnapshot(), busy: new Set([...this.state.getSnapshot().busy, sessionId]) })
-    const task = this.track(async () => {
-      try { await this.select(sessionId, preset); this.notify(this.t('modeSwitch.done'), true) }
-      catch (_failure) { this.notify(this.t('modeSwitch.failed'), false) }
-      finally {
-        if (!this.closed) {
-          const busy = new Set(this.state.getSnapshot().busy)
-          busy.delete(sessionId)
-          this.state.set({ ...this.state.getSnapshot(), busy })
-        }
-      }
-    })
-    this.changes.set(sessionId, task)
-    const finish = (): void => { this.changes.delete(sessionId) }
-    void task.then(finish, finish)
-    return task
-  }
-
-  /** @param value - Permission to switch idle established conversations. @returns Persistence completion. */
-  save(value: boolean): Promise<void> {
-    if (this.closed) return Promise.resolve()
-    if (this.saveTask !== undefined) return this.saveTask
-    this.state.set({ ...this.state.getSnapshot(), saving: true })
-    const task = this.track(async () => {
-      try {
-        const saved = await this.policy.set('allowExistingSessionSwitch', value)
-        this.notify(this.t(saved ? 'modeSwitch.saved' : 'modeSwitch.saveFailed'), saved)
-      } catch (_failure) { this.notify(this.t('modeSwitch.saveFailed'), false) }
-    })
-    this.saveTask = task
-    const finish = (): void => {
-      if (this.saveTask === task) this.saveTask = undefined
-      if (!this.closed) this.state.set({ ...this.state.getSnapshot(), saving: false })
-    }
-    void task.then(finish, finish)
-    return task
-  }
-
-  private track(work: () => Promise<void>): Promise<void> {
-    const task = work().finally(() => { this.pending.delete(task) })
-    this.pending.add(task)
-    return task
-  }
-
-  private notify(text: string, success: boolean): void {
-    if (!this.closed) this.state.set({ ...this.state.getSnapshot(), toast: { id: ++this.sequence, text, success } })
-  }
-
-  /** @param id - Dismiss only the currently displayed notification. */
-  dismiss(id: number): void {
-    if (this.state.getSnapshot().toast?.id === id) this.state.set({ ...this.state.getSnapshot(), toast: null })
-  }
-
-  /** Drain admitted writes before dependencies can be released. @returns Quiescent completion. */
-  async dispose(): Promise<void> { this.closed = true; await Promise.allSettled([...this.pending]) }
-}
+export { ModeSwitchController } from './mode-policy-controller.ts'
+export type { ModeSwitchPolicy } from '@deepseek-ai/dsh-agent-preset-registry/types'
 
 /** Shared setting and operation sources supplied by the mode UI owner. */
 export interface ModeSwitchInjected {
-  hooks: { modePolicy: ConfigForm<ModeSwitchPolicy>; modeSwitchState: ModeSwitchController['state'] }
+  hooks: { modePolicy: ModeSwitchController['policy']; modeSwitchState: ModeSwitchController['state'] }
   savePolicy(value: boolean): Promise<void>
+  confirmPolicy(): Promise<void>
+  cancelPolicy(): void
+  loadPolicy(): Promise<void>
   dismissModeToast(id: number): void
 }
 
@@ -109,7 +28,7 @@ type Common = InjectFace<ModeSwitchInjected> & PropsLocale<'settings.agentPreset
 export function SessionModeControl(props: AgentPresetLabelProps & Common & { selectPreset(id: string): Promise<void> }) {
   const { sessionId, useSessions, useSession, useAgentPresets, useModePolicy, useModeSwitchState, t, load } = props
   const [open, setOpen] = useState(false)
-  const allowed = useModePolicy(state => state.value?.allowExistingSessionSwitch === true)
+  const allowed = useModePolicy(state => state.status === 'ready' && state.value.allowExistingSessionSwitch)
   const busy = useModeSwitchState(state => state.busy.has(sessionId))
   const running = useSession(state => state.running)
   const mode = useSessions(state => state.byId[sessionId]?.projectionValues?.agentPreset)
@@ -130,19 +49,39 @@ export function SessionModeControl(props: AgentPresetLabelProps & Common & { sel
 }
 
 /** Explicit opt-in for changing established, idle conversations. */
-export function ModeSwitchSetting({ useModePolicy, useModeSwitchState, savePolicy, t }: PropsRuntime<'settings.general.item'> & Common) {
+export function ModeSwitchSetting({ useModePolicy, useModeSwitchState, savePolicy, loadPolicy, t }: Common) {
+  useEffect(() => { void loadPolicy() }, [loadPolicy])
   const policy = useModePolicy(value => value)
   const saving = useModeSwitchState(value => value.saving)
   return <div className={css.setting}>
     <div><div>{t('modeSwitch.allow')}</div><p>{t('modeSwitch.hint')}</p></div>
-    <Switch label={t('modeSwitch.allow')} checked={policy.value?.allowExistingSessionSwitch === true}
+    {policy.status === 'error' && <Button variant="ghost" onClick={() => { void loadPolicy() }}>{t('modeSwitch.reload')}</Button>}
+    <Switch label={t('modeSwitch.allow')} checked={policy.value.allowExistingSessionSwitch}
       disabled={policy.status !== 'ready' || !policy.writable || saving} onChange={(value) => { void savePolicy(value) }} />
   </div>
 }
 
 /** Feedback survives closing Settings or navigating away from the changed conversation. */
-export function ModeSwitchToast({ useModeSwitchState, dismissModeToast }: PropsRuntime<'shell.overlay'> & Common) {
-  const toast = useModeSwitchState(value => value.toast)
-  return toast === null ? null : <Toast key={toast.id} text={toast.text} {...toast.success ? { tone: 'success' as const } : {}}
-    onDone={() => { dismissModeToast(toast.id) }} />
+export function ModeSwitchToast({ useModeSwitchState, dismissModeToast, confirmPolicy, cancelPolicy, savePolicy, t }: PropsRuntime<'shell.overlay'> & Common) {
+  const state = useModeSwitchState(value => value)
+  const toast = state.toast
+  const confirmation = state.confirmation
+  return <>
+    {toast === null ? null : <Toast key={toast.id} text={toast.text} {...toast.success ? { tone: 'success' as const } : {}}
+      onDone={() => { dismissModeToast(toast.id) }} />}
+    <Modal open={confirmation !== null} onClose={() => { if (!state.saving) cancelPolicy() }}
+      closeLabel={t('close')} title={t('modeSwitch.confirmTitle')}
+      footer={<>
+        <Button variant="outline" disabled={state.saving} onClick={cancelPolicy}>{t('modeSwitch.cancel')}</Button>
+        <Button variant="primary" disabled={state.saving || (confirmation?.remaining ?? 1) > 0}
+          onClick={() => { void (confirmation?.error ? savePolicy(true) : confirmPolicy()) }}>
+          {confirmation?.error ? t('modeSwitch.retry') : confirmation?.remaining
+            ? t('modeSwitch.countdown', { seconds: String(confirmation.remaining) }) : t('modeSwitch.confirm')}
+        </Button>
+      </>}>
+      <p className={css.warning}>{t('modeSwitch.warning')}</p>
+      <p className={css.note}>{t('modeSwitch.sessionOnly')}</p>
+      {confirmation?.error && <p role="alert" className={css.error}>{t('modeSwitch.saveFailed')}</p>}
+    </Modal>
+  </>
 }

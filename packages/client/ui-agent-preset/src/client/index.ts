@@ -5,6 +5,7 @@
 import type { SessionBinding } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { WeakMapWithValues } from '@deepseek-ai/dsh-util-values'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: pulls the ctx.remote merge and the forwarded-event key face
@@ -27,8 +28,9 @@ import { AgentPresetSeatController, type AgentPresetStage } from './seat-store.t
 import { AgentPresetSectionController } from './section-store.ts'
 import { en, zh, type AgentPresetSettingsKey } from './locales.ts'
 import { AGENT_PRESET_SETTINGS_NS, AgentPresetSettingsController } from './settings-store.ts'
-import { ModeSwitchController, ModeSwitchSetting, ModeSwitchToast, SessionModeControl } from './mode-switch.tsx'
-import type { ModeSwitchInjected, ModeSwitchPolicy } from './mode-switch.tsx'
+import { ModeSwitchController, ModeSwitchToast, SessionModeControl } from './mode-switch.tsx'
+import type { ModeSwitchInjected } from './mode-switch.tsx'
+import type { CurrentModeState } from './AgentPresetSection.tsx'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -62,6 +64,7 @@ export function apply(ctx: ClientContext): void {
   const codingToolsDisabled = (): boolean => active && toolsSettings.getSnapshot().value?.enabled === false
   const controller = new AgentPresetSettingsController(ctx)
   const staged: AgentPresetStage = { id: undefined, introduce: false }
+  const currentMode = createSnapshotStore<CurrentModeState>({ blank: true, busy: false })
   const seats = new WeakMapWithValues<SessionBinding, AgentPresetSeatController>()
   const boundSeatDisposers = new Set<() => Promise<void>>()
   ctx.effect(() => async () => {
@@ -82,8 +85,10 @@ export function apply(ctx: ClientContext): void {
     seats.set(binding, seat)
     const dispose = binding.ctx.effect(() => {
       const stop = ctx.sessions.list.subscribe(() => { void seat.apply() })
+      const stopSeat = seat.store.subscribe(() => { refreshCurrentMode() })
       return () => {
         stop()
+        stopSeat()
         seats.delete(binding)
         boundSeatDisposers.delete(dispose)
       }
@@ -112,8 +117,28 @@ export function apply(ctx: ClientContext): void {
   }
 
   ctx.effect(() => ctx.locale.register('settings.agentPreset', { zh, en }), 'ui-agent-preset: settings row dictionaries')
-  const modePolicy = ctx.configForms.get<ModeSwitchPolicy>(AGENT_PRESET_SETTINGS_NS)
-  const modeSwitch = new ModeSwitchController(modePolicy, async (sessionId, preset) => {
+  const modeSwitch = new ModeSwitchController({
+    read: async () => {
+      const result = await ctx.remote.agentPresets.switchPolicy()
+      if (!result.ok) throw result.error
+      return result.value
+    },
+    begin: async () => {
+      const result = await ctx.remote.agentPresets.beginModeSwitch()
+      if (!result.ok) throw result.error
+      return result.value
+    },
+    confirm: async (id) => {
+      const result = await ctx.remote.agentPresets.confirmModeSwitch(id)
+      if (!result.ok) throw result.error
+      return result.value
+    },
+    disable: async () => {
+      const result = await ctx.remote.agentPresets.disableModeSwitch()
+      if (!result.ok) throw result.error
+      return result.value
+    },
+  }, async (sessionId, preset) => {
     const result = await ctx.remote.agentPresets.select(sessionId, preset)
     if (!result.ok) throw result.error
   }, ctx.locale.bind('settings.agentPreset'))
@@ -121,10 +146,28 @@ export function apply(ctx: ClientContext): void {
   const modeInjected = (): ModeSwitchInjected => ({
     hooks: { modePolicy: modeSwitch.policy, modeSwitchState: modeSwitch.state },
     savePolicy: value => modeSwitch.save(value), dismissModeToast: (id) => { modeSwitch.dismiss(id) },
+    confirmPolicy: () => modeSwitch.confirm(), cancelPolicy: () => { modeSwitch.cancel() }, loadPolicy: () => modeSwitch.load(),
   })
-  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
-    name: 'settings.general.item', id: 'existing-session-modes', order: 25, locale: 'settings.agentPreset', inject: modeInjected,
-  }, ModeSwitchSetting))
+  const refreshCurrentMode = (): void => {
+    const current = Object.values(ctx.sessions.list.getSnapshot().byId).find(session => (session.retainedBy.mainView ?? 0) > 0)
+    const binding = current === undefined ? undefined : ctx.sessions.binding(current.id)
+    const seat = binding === undefined ? unboundSeat : seats.get(binding)
+    const id = current?.blank === false ? current.projectionValues?.agentPreset
+      : seat?.store.getSnapshot().current || current?.projectionValues?.agentPreset || staged.id
+    currentMode.set({ ...(id == null || id === '' ? {} : { id }), blank: current?.blank !== false,
+      busy: current !== undefined && (current.running || modeSwitch.state.getSnapshot().busy.has(current.id)
+        || seat?.store.getSnapshot().busy === true) })
+  }
+  ctx.effect(() => {
+    const stopList = ctx.sessions.list.subscribe(refreshCurrentMode)
+    const stopSeat = unboundSeat.store.subscribe(refreshCurrentMode)
+    const stopSwitch = modeSwitch.state.subscribe(refreshCurrentMode)
+    const stopPolicy = ctx.remote.$on('agent-preset/switch-policy', (policy) => { modeSwitch.accept(policy) })
+    const stopConnection = ctx.on('connection/reset', () => { void modeSwitch.load() })
+    refreshCurrentMode()
+    void modeSwitch.load()
+    return () => { stopList(); stopSeat(); stopSwitch(); stopPolicy(); stopConnection() }
+  }, 'ui-agent-preset: current selection and runtime policy')
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'mode-switch-feedback', order: 25, locale: 'settings.agentPreset', inject: modeInjected,
   }, ModeSwitchToast))
@@ -243,27 +286,21 @@ export function apply(ctx: ClientContext): void {
     }, CreatePluginMenuItem))
   })
 
-  /** Capture the exact blank Session one Settings action may update. */
-  const captureBlankSessionSync = (): ((id: string) => Promise<string | undefined>) => {
-    const summary = Object.values(ctx.sessions.list.getSnapshot().byId)
-      .find(session => session.blank && (session.retainedBy.mainView ?? 0) > 0)
-    const binding = summary === undefined ? undefined : ctx.sessions.binding(summary.id)
-    const seat = binding === undefined ? undefined : seatFor(binding)
-    const sessionId = seat?.blankSessionId()
-    return async (id: string) => {
-      if (seat === undefined || sessionId === undefined || binding === undefined
-        || seats.get(binding) !== seat) return undefined
-      return await seat.syncBlankSession(sessionId, id)
-    }
-  }
-
   const sectionInjected = (): AgentPresetSectionInjected => ({
-    hooks: { agentPresetSection: section.store, developerTools: ctx.configForms.developerTools.enabled },
-    load: () => section.load(),
+    ...modeInjected(),
+    hooks: { ...modeInjected().hooks, agentPresetSection: section.store, currentMode,
+      developerTools: ctx.configForms.developerTools.enabled },
+    load: async () => { await section.load(); await (mainBlankSeat() ?? unboundSeat).load(); refreshCurrentMode() },
     view: (id: string) => section.view(id),
     closeView: () => { section.closeView() },
     ...creatorDraft === undefined ? {} : { startCreatorDraft: creatorDraft },
-    makeDefault: (id: string) => section.makeDefault(id, captureBlankSessionSync()),
+    makeDefault: (id: string) => section.makeDefault(id),
+    selectCurrent: async (id: string) => {
+      const current = Object.values(ctx.sessions.list.getSnapshot().byId).find(session => (session.retainedBy.mainView ?? 0) > 0)
+      if (current?.blank === false) await modeSwitch.change(current.id, id)
+      else await (mainBlankSeat() ?? unboundSeat).select(id)
+      refreshCurrentMode()
+    },
   })
 
   // Ordered after Models: choosing a model is routine, and composing an

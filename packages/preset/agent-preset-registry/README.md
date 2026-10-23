@@ -45,6 +45,8 @@ Choose an Agent’s tools, prompt sections and skills through declarative preset
 
 The Web definitions come from the `dsh-web-app` bundle. Definitions are ordinary plugin rows; the registry neither scans directories nor accepts preset paths. The `selectedDefault` volatile field of the `agent-preset-registry` entry retains the user default, which new sessions resolve over the deployment `default`. A profile patch may still carry the retired `modeSelectionEnabled` field; the registry declares no such field and neither reads nor rewrites it.
 
+Established conversations can change mode only while idle and after owner acknowledgement. `beginModeSwitch` issues a one-time challenge, `confirmModeSwitch` enforces ten seconds of monotonic elapsed time, and `disableModeSwitch` revokes permission and pending challenges. Challenges expire after five minutes. Permission starts disabled for each registry lifetime and is never persisted. The legacy `allowExistingSessionSwitch` configuration field is accepted but ignored; editing it cannot authorize a switch. New conversations remain selectable without this acknowledgement.
+
 The registry writes no declarations. The `read` Remote renders one declaration’s child list back as entry-list YAML (`!!js` conditions included) so a client can show what a preset composes; nothing accepts YAML back. A new preset or an override of a shipped one is a bundle patch: an `insert` of a `@deepseek-ai/dsh-agent-preset` row, or a patch keyed by that row’s id, installed into the profile with `plugin_manager`; Creator mode authors such bundles in conversation.
 
 <a id="understand-the-implementation"></a>
@@ -73,7 +75,7 @@ Activation auditing checks imports, missing services and globally leaked service
 
 - [Scope](../../core/scope/README.md) — Registration isolation.
 - [Agent](../../core/agent/README.md) — Session runtime.
-- [Cordis](../../../docs/cordis-primer.md) — Plugin configuration and lifecycle.
+- [Cordis](../../../vendor/cordis/README.md) — Plugin configuration and lifecycle.
 
 <a id="model-experience"></a>
 ## Model Experience

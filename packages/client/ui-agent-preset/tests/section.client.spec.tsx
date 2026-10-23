@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
-import { allowAllAccess, bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
+import { allowAllAccess, bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { Modal } from '@deepseek-ai/dsh-client-ui-primitives'
-import { AgentPresetSection, type AgentPresetSectionProps } from '../src/client/AgentPresetSection.tsx'
+import { AgentPresetSection, type AgentPresetSectionProps, type CurrentModeState } from '../src/client/AgentPresetSection.tsx'
+import { ModeSwitchController } from '../src/client/mode-policy-controller.ts'
 import type { AgentPresetSectionState } from '../src/client/section-store.ts'
 import { en } from '../src/client/locales.ts'
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.useRealTimers() })
@@ -14,22 +15,31 @@ function unusedHook(): never {
 }
 function view(partial: Partial<AgentPresetSectionState> = {}, startCreatorDraft?: () => void, outerClose?: () => void, enabled = true) {
   const developerTools = createSnapshotStore(enabled)
+  const currentMode = createSnapshotStore<CurrentModeState>({ blank: true, busy: false })
+  const mode = new ModeSwitchController({
+    read: async () => ({ allowExistingSessionSwitch: false }),
+    begin: async () => { throw new Error('not used') }, confirm: async () => { throw new Error('not used') },
+    disable: async () => ({ allowExistingSessionSwitch: false }),
+  }, async () => {}, makeTranslate(en))
   const store = createSnapshotStore<AgentPresetSectionState>({ status: 'ready', error: null,
     saving: false, rows: [{ id: 'standard', isDefault: true }, { id: 'mine', name: 'Mine', isDefault: false }],
     view: null, ...partial })
   const actions = { load: vi.fn(async () => {}), view: vi.fn(async () => {}), closeView: vi.fn(), makeDefault: vi.fn(async () => {}),
-    close: vi.fn() }
+    close: vi.fn(), selectCurrent: vi.fn(async () => {}), savePolicy: vi.fn(async () => {}), loadPolicy: vi.fn(async () => {}),
+    confirmPolicy: vi.fn(async () => {}), cancelPolicy: vi.fn(), dismissModeToast: vi.fn() }
   const props: AgentPresetSectionProps = { ...actions,
     ...(startCreatorDraft === undefined ? {} : { startCreatorDraft }),
     usePanelInfo: unusedHook, useSessions: unusedHook, useSessionStatus: unusedHook, useSessionRetainInfo: unusedHook,
     useWorkspaces: unusedHook, useResource: unusedHook,
     ...allowAllAccess,
     useAgentPresetSection: bindSnapshotSelector(store),
+    useCurrentMode: bindSnapshotSelector(currentMode), useModePolicy: bindSnapshotSelector(mode.policy),
+    useModeSwitchState: bindSnapshotSelector(mode.state),
     useDeveloperTools: bindSnapshotSelector(developerTools),
     t: key => translations.get(key) ?? key }
   render(outerClose === undefined ? <AgentPresetSection {...props} />
     : <Modal open onClose={outerClose} title="Settings" closeLabel="Close"><AgentPresetSection {...props} /></Modal>)
-  return { ...actions, store, developerTools }
+  return { ...actions, store, developerTools, currentMode, mode }
 }
 function rowFor(id: string): HTMLElement {
   const row = document.querySelector<HTMLElement>(`[data-agent-preset-id="${id}"]`)
@@ -43,7 +53,7 @@ it.each([false, true])('offers Standard, Creator and custom defaults with Coding
     { id: 'mine', name: 'Mine', isDefault: false },
   ] }, vi.fn(), undefined, enabled)
   expect(screen.queryByRole('button', { name: `${en.setDefault}: ${en.presetPtcName}` }) !== null).toBe(enabled)
-  expect(screen.queryByRole('button', { name: `${en.inUse}: ${en.presetMinimalName}` }) !== null).toBe(enabled)
+  expect(screen.queryByRole('button', { name: `${en.selected}: ${en.presetMinimalName}` }) !== null).toBe(enabled)
   for (const [id, name] of [['standard', en.presetStandardName], ['cordis', en.presetCordisName], ['mine', 'Mine']]) {
     const button = screen.getByRole<HTMLButtonElement>('button', { name: `${en.setDefault}: ${name}` })
     expect(button.disabled).toBe(false)
@@ -66,7 +76,7 @@ it('updates visible settings choices without writing defaults from the renderer'
   expect(actions.makeDefault).not.toHaveBeenCalled()
   expect(actions.store.getSnapshot().rows).toBe(rows)
   act(() => { actions.developerTools.set(true) })
-  expect(screen.getByRole('button', { name: `${en.inUse}: ${en.presetMinimalName}` })).toBeTruthy()
+  expect(screen.getByRole('button', { name: `${en.selected}: ${en.presetMinimalName}` })).toBeTruthy()
   expect(rowFor('ptc')).toBeTruthy()
 })
 it.each(['ptc', 'minimal'])('keeps a named custom %s override selectable with Coding Tools off', (id) => {
@@ -74,9 +84,12 @@ it.each(['ptc', 'minimal'])('keeps a named custom %s override selectable with Co
   fireEvent.click(screen.getByRole('button', { name: `${en.setDefault}: My mode` }))
   expect(actions.makeDefault).toHaveBeenCalledWith(id)
 })
-it('reads the roster once and sets a default from the card body', async () => {
+it('separates selecting the current mode from setting the default', async () => {
   const actions = view()
-  expect(screen.queryByRole('switch')).toBeNull()
+  expect(screen.getByRole('switch')).toBeTruthy()
+  fireEvent.click(screen.getByRole('button', { name: `${en.selectCurrent}: Mine` }))
+  expect(actions.selectCurrent).toHaveBeenCalledWith('mine')
+  expect(actions.makeDefault).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: `${en.setDefault}: Mine` }))
   expect(actions.makeDefault).toHaveBeenCalledWith('mine')
   await waitFor(() =>{  expect(actions.load).toHaveBeenCalledOnce() })
@@ -87,7 +100,7 @@ it('replaces the default preset group tag with its new-task default status', () 
   const standard = rowFor('standard')
   expect(within(standard).queryByText(en.builtInGroup)).toBeNull()
   expect(within(standard).getByText(en.inUse)).toBeTruthy()
-  expect(within(standard).queryByText(en.setDefault)).toBeNull()
+  expect(within(standard).getByRole<HTMLButtonElement>('button', { name: `${en.setDefault}: ${en.presetStandardName}` }).disabled).toBe(true)
   expect(within(rowFor('mine')).getByText(en.customGroup)).toBeTruthy()
 })
 it('omits an empty group instead of leaving a heading behind', () => {

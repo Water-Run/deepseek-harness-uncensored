@@ -69,13 +69,12 @@ export class AgentPresetSectionController {
   /** Close the viewer. */
   closeView(): void { this.viewRequest++; this.set({ view: null }) }
 
-  /** Set the default and synchronize the current blank task when supplied.
+  /** Set the default for conversations created later, without changing an existing draft.
    * @param id Selected default.
-   * @param sync Blank-session synchronization callback.
    * @returns Once saved and refreshed.
    */
-  async makeDefault(id: string, sync?: (id: string) => Promise<string | undefined>): Promise<void> {
-    await this.save(() => writeDefaultPreset(this.ctx, id), sync)
+  async makeDefault(id: string): Promise<void> {
+    await this.save(() => writeDefaultPreset(this.ctx, id))
   }
 
   /** Replace a hidden built-in default after accepted Coding Tools changes.
@@ -98,7 +97,7 @@ export class AgentPresetSectionController {
     await this.save(() => writeDefaultPreset(this.ctx, 'standard', settings.revision))
   }
 
-  private async save(write: () => Promise<string | undefined>, sync?: (id: string) => Promise<string | undefined>): Promise<void> {
+  private async save(write: () => Promise<string | undefined>): Promise<void> {
     if (this.store.getSnapshot().saving) return
     const completion = Promise.withResolvers<void>()
     this.pendingSave = completion.promise
@@ -107,11 +106,6 @@ export class AgentPresetSectionController {
       const error = await write()
       await this.load()
       if (error !== undefined) throw new Error(error)
-      const selected = this.store.getSnapshot().rows.find(row => row.isDefault)
-      if (selected !== undefined) {
-        const error = await sync?.(selected.id)
-        if (error !== undefined) throw new Error(error)
-      }
     } catch (error) { this.set({ error: message(error) }) }
     finally {
       this.pendingSave = undefined

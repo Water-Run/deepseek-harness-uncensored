@@ -18,8 +18,7 @@
   color: var(--dsw-alias-label-secondary);
 }
 
-/* One mode per row, top to bottom: this build ships three, and the roster is a
-   short list rather than a gallery. */
+/* Ordered mode cards retain their names and controls at narrow widths. */
 .group {
   display: flex;
   flex-direction: column;
@@ -52,26 +51,39 @@
 }
 
 .card {
+  --mode-fill: var(--dsw-mode-standard-fill);
   border: 0.5px solid var(--dsw-alias-settings-card-stroke);
   border-radius: var(--dsw-radius-xl);
   display: flex;
   flex-direction: column;
   background: var(--dsw-alias-settings-card-fill);
-  transition: border-color .16s, background .16s;
+  transition: border-color .3s, background .3s, box-shadow .3s, transform .3s;
 }
+
+.card[data-agent-preset-id='security'] { --mode-fill: var(--dsw-mode-security-fill); }
+.card[data-agent-preset-id='reverse'] { --mode-fill: var(--dsw-mode-reverse-fill); }
+.card[data-agent-preset-id='writing'] { --mode-fill: var(--dsw-mode-writing-fill); }
 
 
 @media (hover: hover) {
   .card:hover:not(.cardActive) { background: var(--dsw-alias-interactive-bg-hover); }
 }
 
-/* The default preset reads as selected exactly like the Appearance cubes:
-   platform fill + the bluish-400 border (static token — the bluish-400 step
-   has no alias-layer name). */
 .cardActive {
-  background: var(--dsw-alias-bg-module-platform);
-  border-color: var(--dsw-static-neutral-bluish-400);
+  --dsw-alias-label-primary: var(--dsw-mode-label-ink);
+  --dsw-alias-label-tertiary: color-mix(in srgb, var(--dsw-mode-label-ink) 85%, transparent);
+  --dsw-alias-border-l4: color-mix(in srgb, var(--dsw-mode-label-ink) 30%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--mode-fill) 90%, var(--dsw-mode-label-ink)), var(--mode-fill));
+  border-color: color-mix(in srgb, var(--mode-fill) 65%, var(--dsw-mode-label-ink));
+  color: var(--dsw-mode-label-ink);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--mode-fill) 18%, transparent), inset 0 1px color-mix(in srgb, var(--dsw-mode-label-ink) 20%, transparent);
 }
+
+.cardActive .cardDesc, .cardActive .cardId, .cardActive .helpButton, .cardActive .iconButton {
+  color: color-mix(in srgb, var(--dsw-mode-label-ink) 88%, transparent);
+}
+.cardActive .cardFoot { border-color: color-mix(in srgb, var(--dsw-mode-label-ink) 20%, transparent); }
+.cardActive .cardName { font-weight: 600; }
 
 /* Mode selection is off, not the preset itself: mute only the selectable
    body while the independent view/copy/location actions stay fully usable. */
@@ -198,6 +210,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
 }
 
 .cardName {
@@ -349,6 +362,16 @@
   color: var(--dsw-alias-state-error-primary);
 }
 
+.locked {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-fill-tsp-secondary);
+  color: var(--dsw-alias-label-secondary);
+}
+
 /* The conversational authoring entry, after the card grid. Dashed like the
    Models page's add affordances: it reads as a place a preset will appear,
    not a command. */
@@ -383,6 +406,7 @@
   .card { animation: modeEnter 220ms var(--ds-ease-in-out) both; }
   .card:nth-child(2) { animation-delay: 35ms; }
   .card:nth-child(3) { animation-delay: 70ms; }
+  .card:nth-child(4) { animation-delay: 105ms; }
 }
 @keyframes modeEnter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { .card, .brokenTip { transition: none; } }

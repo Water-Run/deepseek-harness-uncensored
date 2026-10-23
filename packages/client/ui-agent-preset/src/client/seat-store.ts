@@ -63,8 +63,6 @@ export class AgentPresetSeatController {
 
   /** Only the newest roster read may publish after overlapping refreshes. */
   private loadGeneration = 0
-  /** Completion of the active Host selection; Settings choices wait before staging. */
-  private pendingSelection: Promise<undefined> | undefined
 
   constructor(
     private readonly ctx: ClientContext,
@@ -158,33 +156,6 @@ export class AgentPresetSeatController {
     }
   }
 
-  /**
-   * Capture the exact blank Session a Settings action may bring along.
-   * @returns its id, or undefined outside a blank Session.
-   */
-  blankSessionId(): SessionSummary['id'] | undefined {
-    const session = this.currentSession()
-    return session?.blank === true ? session.id : undefined
-  }
-
-  /**
-   * Apply a Settings choice only if its captured Session is still current and
-   * blank after any pending selection settles. The selection uses the existing stage/apply path.
-   * @param expectedSessionId - blank Session captured before the Settings write.
-   * @param id - the effective default that the write persisted.
-   * @returns the Host refusal text, or undefined when applied or no longer relevant.
-   */
-  async syncBlankSession(
-    expectedSessionId: SessionSummary['id'],
-    id: string,
-  ): Promise<string | undefined> {
-    while (this.pendingSelection !== undefined) await this.pendingSelection
-    const session = this.currentSession()
-    if (session === undefined || !session.blank || session.id !== expectedSessionId) return undefined
-    this.stage(id)
-    return await this.apply()
-  }
-
   /** Acknowledge the introduction cue once the chip has played it. */
   introduced(): void {
     if (!this.store.getSnapshot().introduce) return
@@ -217,8 +188,6 @@ export class AgentPresetSeatController {
       this.clearStage()
       return
     }
-    const completion = Promise.withResolvers<undefined>()
-    this.pendingSelection = completion.promise
     this.clearStage()
     const refuse = (reason: string) => {
       this.set({
@@ -242,9 +211,7 @@ export class AgentPresetSeatController {
     } catch (error) {
       return refuse(error instanceof Error ? error.message : String(error))
     } finally {
-      this.pendingSelection = undefined
       this.set({ busy: false })
-      completion.resolve(undefined)
     }
   }
 }

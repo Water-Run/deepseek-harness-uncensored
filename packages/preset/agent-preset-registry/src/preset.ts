@@ -15,6 +15,6 @@ export interface Config {
   default: string
   /** User-selected default; edited through Settings. */
   selectedDefault: Volatile<string | undefined>
-  /** Permit an established conversation to change preset while idle; new conversations remain selectable. */
+  /** Legacy saved value, accepted for existing configuration files but ignored; permission requires runtime confirmation. */
   allowExistingSessionSwitch: Volatile<boolean>
 }

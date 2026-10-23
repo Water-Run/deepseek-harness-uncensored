@@ -5,13 +5,16 @@
   align-items: center;
   gap: 4px;
   max-width: 180px;
-  padding: 0 2px 0 0;
-  height: 22px;
-  border-radius: var(--dsw-radius-xs);
+  padding: 3px 8px;
+  min-height: 24px;
+  border: 1px solid color-mix(in srgb, var(--dsw-mode-label-ink) 22%, transparent);
+  border-radius: var(--dsw-radius-sm);
   background: var(--dsw-alias-fill-tsp-secondary);
   font-size: 12px;
   line-height: 22px;
-  color: var(--dsw-alias-label-primary);
+  color: var(--dsw-mode-label-ink);
+  font-weight: 600;
+  box-shadow: inset 0 1px color-mix(in srgb, var(--dsw-mode-label-ink) 14%, transparent);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -19,7 +22,6 @@
 
 .icon {
   flex: none;
-  opacity: 0.7;
 }
 
 /* First sacrifice when the title row (the enclosing inline-size container)
@@ -32,17 +34,17 @@
 }
 
 .blue {
-  background: color-mix(in srgb, var(--dsw-brand-blue) 18%, transparent);
+  background: var(--dsw-mode-standard-fill);
 }
 
 .yellow {
-  background: color-mix(in srgb, var(--dsw-brand-yellow) 18%, transparent);
+  background: var(--dsw-mode-writing-fill);
 }
 
 .red {
-  background: color-mix(in srgb, var(--dsw-brand-red) 18%, transparent);
+  background: var(--dsw-mode-security-fill);
 }
 
 .green {
-  background: color-mix(in srgb, var(--dsw-brand-green) 18%, transparent);
+  background: var(--dsw-mode-reverse-fill);
 }

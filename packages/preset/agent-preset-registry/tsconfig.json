@@ -8,6 +8,7 @@
     "src"
   ],
   "references": [
+    { "path": "../../util/brand" },
     {
       "path": "../../boot/app-boot"
     },

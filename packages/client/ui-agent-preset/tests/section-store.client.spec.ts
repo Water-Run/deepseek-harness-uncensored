@@ -77,39 +77,35 @@ describe('the preset roster', () => {
     expect(state()).toMatchObject({ error: null, view: { id: 'mine', content: '- name: fs\n' } })
   })
 
-  it('keeps default selection and blank-session synchronization on their existing settings path', async () => {
+  it('saves the future-conversation default and reports refused writes', async () => {
     const { controller, remote, state } = fixture()
-    const sync = vi.fn(async () => undefined)
-    await controller.makeDefault('standard', sync)
+    await controller.makeDefault('standard')
     expect(remote.settings.update).toHaveBeenCalledWith('agent-preset-registry', { selectedDefault: 'standard' }, undefined)
-    expect(sync).toHaveBeenCalledWith('standard')
     remote.settings.update.mockRejectedValueOnce(new Error('read only'))
     await controller.makeDefault('minimal')
     expect(state()).toMatchObject({ saving: false, error: 'read only' })
   })
 
-  it('prevents a second default write and reports blank-session synchronization failures', async () => {
+  it('prevents a second default write while the first is pending', async () => {
     const { controller, remote, state } = fixture()
     let release!: () => void
     const wait = new Promise<void>((resolve) => { release = resolve })
     remote.settings.update.mockImplementationOnce(async () => { await wait; return { ok: true, value: {} } })
-    const pending = controller.makeDefault('standard', async () => 'Session already started')
+    const pending = controller.makeDefault('standard')
     await controller.makeDefault('standard')
     expect(remote.settings.update).toHaveBeenCalledOnce()
     release()
     await pending
-    expect(state().error).toBe('Session already started')
+    expect(state().error).toBeNull()
   })
 
-  it('skips blank-session synchronization when the roster marks no default', async () => {
+  it('retains the accepted roster when no default is marked', async () => {
     const { controller, remote } = fixture()
-    const sync = vi.fn(async () => undefined)
     remote.agentPresets.list.mockResolvedValueOnce({ ok: true, value: { presets: [{ id: 'standard', isDefault: false }] } })
 
-    await controller.makeDefault('standard', sync)
+    await controller.makeDefault('standard')
 
     expect(remote.settings.update).toHaveBeenCalledOnce()
-    expect(sync).not.toHaveBeenCalled()
   })
 })
 

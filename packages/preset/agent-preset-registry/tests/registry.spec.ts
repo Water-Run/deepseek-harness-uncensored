@@ -11,12 +11,40 @@ import type { Context } from '@deepseek-ai/cordis'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { MockAdapter, textResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
+import { performance } from 'node:perf_hooks'
+import type { PeerId, RemoteInvocation } from '@deepseek-ai/dsh-typert-protocol'
+
+declare module '@deepseek-ai/dsh-typert-protocol' {
+  interface PrincipalMap { 'mode-viewer-test': { kind: 'mode-viewer-test' } }
+}
+
+function enableSwitch(ctx: Context): void {
+  const challenge = ctx.agentPresets.beginModeSwitch()
+  const clock = vi.spyOn(performance, 'now').mockReturnValue(performance.now() + challenge.waitMs)
+  try { ctx.agentPresets.confirmModeSwitch(challenge.id) } finally { clock.mockRestore() }
+}
 
 const contexts: Context[] = []
 afterEach(async () => { for (const ctx of contexts.splice(0)) await ctx.fiber.dispose() })
 async function setup() { const ctx = await harness(); contexts.push(ctx); return ctx }
 
 describe('declarative preset revisions', () => {
+  it('refuses permission changes from a non-owner even when the method can be reached', async () => {
+    const ctx = await setup()
+    const challenge = ctx.agentPresets.beginModeSwitch()
+    const invocation: RemoteInvocation = {
+      request: { namespace: 'agentPresets', method: 'beginModeSwitch', args: {} }, service: 'agentPresets',
+      peer: { id: 'mode-viewer' as PeerId, ctx, principal: { kind: 'mode-viewer-test' }, interactions: 'answer',
+        signal: new AbortController().signal, dispose: async () => {} },
+      signal: new AbortController().signal,
+      uplink: <In>(): AsyncIterable<In> => ({ [Symbol.asyncIterator]: () => ({ next: async () => ({ done: true, value: undefined }) }) }),
+    }
+    const guest = ctx.extend({ invocation }).agentPresets
+    expect(() => guest.beginModeSwitch()).toThrow()
+    expect(() => guest.confirmModeSwitch(challenge.id)).toThrow()
+    expect(() => guest.disableModeSwitch()).toThrow()
+    expect(ctx.agentPresets.switchPolicy().allowExistingSessionSwitch).toBe(false)
+  })
   it('eagerly scopes tool and prompt registrations and shares one revision across Agents', async () => {
     const ctx = await setup()
     await declare(ctx, contribution('standard'))
@@ -116,7 +144,7 @@ describe('declarative preset revisions', () => {
     await expect(ctx.agentPresets.select(agent, 'standard')).rejects.toMatchObject({ code: 'agent-preset/locked' })
   })
 
-  it('allows an idle established conversation to switch only after the live setting is enabled', async () => {
+  it('ignores the legacy saved setting and allows an idle established conversation only after confirmation', async () => {
     const ctx = await harness({ live: true })
     contexts.push(ctx)
     const live = liveRegistries.get(ctx)
@@ -129,6 +157,8 @@ describe('declarative preset revisions', () => {
     await expect(ctx.agentPresets.select(agent, 'minimal')).rejects.toMatchObject({ code: 'agent-preset/locked' })
     expect(ctx.agentPresets.composedPreset(agent.ctx)).toBe('standard')
     await live.update({ allowExistingSessionSwitch: true })
+    await expect(ctx.agentPresets.select(agent, 'minimal')).rejects.toMatchObject({ code: 'agent-preset/locked' })
+    enableSwitch(ctx)
     expect(await ctx.agentPresets.select(agent, 'minimal')).toBe('minimal')
     expect(ctx.tools.schemas(agent).map(tool => tool.name)).toEqual(['minimal'])
     expect(ctx.sessionProjections.stateOf(agent.session, 'agentPreset')).toBe('minimal')
@@ -146,6 +176,7 @@ describe('declarative preset revisions', () => {
     await declare(ctx, contribution('standard'))
     await declare(ctx, contribution('minimal'))
     await live.update({ allowExistingSessionSwitch: true })
+    enableSwitch(ctx)
     const adapter = new MockAdapter([textResponse('first'), textResponse('second')])
     ctx.llm.registerAdapter(['mock'], adapter)
     const { agent } = await ctx.agents.create({ sessionId: SessionId('switch-prompt-race'),

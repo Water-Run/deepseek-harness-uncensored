@@ -12,11 +12,16 @@ import { requiresCodingTools } from './settings-store.ts'
 import { PresetGuideDialog, presetGuide, trapPresetReaderTab, type PresetGuidePage } from './PresetGuideDialog.tsx'
 import css from './AgentPresetSection.module.css'
 import { PresetIcon } from './PresetIcon.tsx'
+import { ModeSwitchSetting, type ModeSwitchInjected } from './mode-switch.tsx'
+
+/** Main-view selection; an absent identity uses the current default until a draft exists. */
+export interface CurrentModeState { id?: string; blank: boolean; busy: boolean }
 
 /** Settings actions and their shared controller state. */
-export interface AgentPresetSectionInjected {
-  hooks: {
+export interface AgentPresetSectionInjected extends ModeSwitchInjected {
+  hooks: ModeSwitchInjected['hooks'] & {
     agentPresetSection: SnapshotStore<AgentPresetSectionState>
+    currentMode: SnapshotStore<CurrentModeState>
     /** Shared Coding Tools preference; off hides the built-in PTC and Minimal cards. */
     developerTools: ObservableSnapshot<boolean>
   }
@@ -28,6 +33,7 @@ export interface AgentPresetSectionInjected {
   /** Close the read-only viewer. */
   closeView: () => void
   makeDefault: (id: string) => Promise<void>
+  selectCurrent: (id: string) => Promise<void>
 }
 /** Props assembled by the settings renderer. */
 export type AgentPresetSectionProps = PropsRuntime<'settings.section'> & PropsLocale<'settings.agentPreset'> & InjectFace<AgentPresetSectionInjected>
@@ -62,11 +68,16 @@ function CardDescription({ text }: { text: string }): ReactNode {
  * @param props Settings actions, snapshot hooks and localized text.
  * @returns The preset settings section.
  */
-export function AgentPresetSection({
-  useAgentPresetSection, load, view, closeView, makeDefault, startCreatorDraft,
-  close: closeSettings, useDeveloperTools, t,
-}: AgentPresetSectionProps) {
+export function AgentPresetSection(props: AgentPresetSectionProps) {
+  const {
+    useAgentPresetSection, load, view, closeView, makeDefault, startCreatorDraft,
+    close: closeSettings, useDeveloperTools, useCurrentMode, useModePolicy, selectCurrent, t,
+  } = props
   const state = useAgentPresetSection(value => value)
+  const current = useCurrentMode(value => value)
+  const permission = useModePolicy(value => value)
+  const selectedId = current.id ?? state.rows.find(row => row.isDefault)?.id
+  const selectionLocked = !current.blank && (permission.status !== 'ready' || !permission.value.allowExistingSessionSwitch)
   const developerTools = useDeveloperTools(enabled => enabled)
   const [guide, setGuide] = useState<{
     content: NonNullable<ReturnType<typeof presetGuide>>
@@ -100,8 +111,9 @@ export function AgentPresetSection({
       </button>
     )
   return <section className={css.section}>
-    <h2 className={css.title}>{t('nav')}</h2>
+    <h2 className={css.title}>{t('currentMode')}</h2>
     <p className={css.intro}>{t('sectionIntro')}</p>
+    {selectionLocked && <p className={css.locked}>{t('modeSwitch.locked')}</p>}
     {state.error === null ? null : <p className={css.error} role="alert">{state.error}</p>}
     {([true, false] as const).map((builtIn) => {
       const rows = state.rows.filter(row => isBuiltInPreset(row) === builtIn
@@ -114,16 +126,17 @@ export function AgentPresetSection({
           {rows.map((row) => {
             const display = presetDisplayText(row, t)
             const help = presetGuide(row.id, builtIn ? 'system' : 'user')
+            const selected = row.id === selectedId
             const selectionAction = row.broken !== undefined ? t('brokenBadge')
-              : t(row.isDefault ? 'inUse' : 'setDefault')
+              : t(selected ? 'selected' : 'selectCurrent')
             return <li key={row.id} data-agent-preset-id={row.id} className={[
               css.card, row.broken === undefined ? undefined : css.cardBroken,
-              row.isDefault ? css.cardActive : undefined,
+              selected ? css.cardActive : undefined,
             ].filter(Boolean).join(' ')}>
-              <button type="button" className={css.cardMain} aria-pressed={row.isDefault}
-                disabled={row.isDefault || (row.broken === undefined && state.saving)}
+              <button type="button" className={css.cardMain} aria-pressed={selected}
+                disabled={selected || selectionLocked || current.busy || (row.broken === undefined && state.saving)}
                 aria-disabled={row.broken !== undefined} aria-label={`${selectionAction}: ${display.name}`} title={selectionAction}
-                onClick={() => { if (row.broken === undefined) void makeDefault(row.id) }}>
+                onClick={() => { if (row.broken === undefined) void selectCurrent(row.id) }}>
                 <span className={css.cardHead}>
                   <span className={css.cardIdentity}>
                     <PresetIcon id={row.id} size={18} />
@@ -131,7 +144,7 @@ export function AgentPresetSection({
                     {row.broken === undefined ? null : <span className={css.brokenBadge}>
                       {t('brokenBadge')}<span className={css.brokenTip} aria-hidden="true">{row.broken}</span>
                     </span>}
-                    <Tag tone={row.isDefault ? 'solid' : 'outline'}>
+                    <Tag tone="outline">
                       {row.isDefault ? t('inUse') : t(builtIn ? 'builtInGroup' : 'customGroup')}
                     </Tag>
                   </span>
@@ -141,6 +154,10 @@ export function AgentPresetSection({
                 {row.broken === undefined ? null : <span className={css.cardBrokenReason} role="alert">{row.broken}</span>}
               </button>
               <div className={css.cardFoot}>
+                <Button variant="ghost" className={css.helpButton} disabled={row.isDefault || state.saving || row.broken !== undefined}
+                  aria-label={`${t('setDefault')}: ${display.name}`} onClick={() => { void makeDefault(row.id) }}>
+                  {t('setDefault')}
+                </Button>
                 {help === undefined ? null : <div className={css.cardHelp}>
                   <Button variant="ghost" className={css.helpButton} aria-label={`${t('modeExplanation')}: ${display.name}`}
                     onClick={() => { setGuide({ content: help, page: 'explanation' }) }}>{t('modeExplanation')}</Button>
@@ -161,6 +178,7 @@ export function AgentPresetSection({
         {entry}
       </section>
     })}
+    <ModeSwitchSetting {...props} />
     {guide === null ? null : <PresetGuideDialog guide={guide.content} initialPage={guide.page} t={t} onClose={() => { setGuide(null) }} />}
     <Modal open={viewed !== null} onClose={closeViewer} closeLabel={t('close')}
       onKeyDownCapture={(event) => {

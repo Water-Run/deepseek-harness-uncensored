@@ -1,5 +1,20 @@
 /** Client-safe payloads and event declarations owned by the agent-preset domain. */
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { Branded } from '@deepseek-ai/dsh-brand'
+
+/** Single-use acknowledgement for enabling established-conversation mode changes. */
+export type ModeSwitchChallengeId = Branded<'ModeSwitchChallengeId'>
+
+/** Runtime-only permission; every new Host starts disabled. */
+export interface ModeSwitchPolicy {
+  readonly allowExistingSessionSwitch: boolean
+}
+
+/** Acknowledgement issued by the Host, with a minimum reading duration. */
+export interface ModeSwitchChallenge {
+  readonly id: ModeSwitchChallengeId
+  readonly waitMs: number
+}
 
 
 /**
@@ -44,6 +59,10 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'agent-preset/invalid': { readonly agentPreset: string; readonly reason: string }
     /** The session is running, or policy prevents changing an established conversation. */
     'agent-preset/locked': { readonly sessionId: SessionId; readonly agentPreset: string }
+    /** Only the application owner can change the temporary switching permission. */
+    'agent-preset/policy-denied': Record<string, never>
+    /** The challenge is absent, expired, replaced, or not yet ready. */
+    'agent-preset/confirmation': { readonly remainingMs: number }
   }
 }
 
@@ -59,6 +78,12 @@ declare module '@deepseek-ai/dsh-session-projection/types' {
 
 declare module '@deepseek-ai/cordis' {
   interface Events {
+    /**
+     * Established-conversation mode switching permission changed for this Host lifetime.
+     * @mode emit
+     * @param policy - Current runtime permission.
+     */
+    'agent-preset/switch-policy'(policy: ModeSwitchPolicy): void
     /**
      * One session committed a different agent preset to its durable log.
      * Consumers invalidate only state derived from that session's composition.

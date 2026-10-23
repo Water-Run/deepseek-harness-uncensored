@@ -45,6 +45,8 @@ kind: "package-reference"
 
 Web 内置定义来自 `dsh-web-app` bundle。定义使用普通插件行；注册表不扫描目录，也不接受 preset 路径。`agent-preset-registry` 条目的 volatile 字段 `selectedDefault` 保留用户默认值，新会话优先使用它而不是部署 `default`。profile patch 仍可能带有已废弃的 `modeSelectionEnabled` 字段；注册表未声明该字段，既不读取也不重写它。
 
+已有对话仅在空闲且经过所有者确认后才能切换模式。`beginModeSwitch` 签发一次性确认标识，`confirmModeSwitch` 校验单调时钟计时已满十秒，`disableModeSwitch` 撤销权限及待确认标识。标识五分钟后过期。每次注册表启动时权限均关闭，且不持久保存。旧配置字段 `allowExistingSessionSwitch` 仍可读取但不生效，编辑它不能授予切换权限。新对话不需要这项确认即可选择模式。
+
 注册表不写入任何声明。`read` Remote 把一条声明的子插件列表按 entry-list YAML 方言（含 `!!js` 条件）渲染回来，供客户端展示 preset 的组成；没有任何接口接受 YAML 写回。新建 preset 或覆盖内置 preset 都是 bundle 补丁：插入一行 `@deepseek-ai/dsh-agent-preset`，或按该行 id 写覆盖补丁，再用 `plugin_manager` 安装到 profile；创造模式在对话中编写这类 bundle。
 
 <a id="understand-the-implementation"></a>
@@ -73,7 +75,7 @@ preset 的服务提供方及其消费方必须共享同一个 `cordis:group` 隔
 
 - [Scope](../../core/scope/README.zh.md) — 注册隔离。
 - [Agent](../../core/agent/README.zh.md) — 会话运行时。
-- [Cordis](../../../docs/cordis-primer.zh.md) — 插件配置与生命周期。
+- [Cordis](../../../vendor/cordis/README.md) — 插件配置与生命周期。
 
 <a id="model-experience"></a>
 ## 模型体验

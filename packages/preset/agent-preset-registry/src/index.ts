@@ -1,7 +1,7 @@
 /** Declarative Agent capability sets, activation and session binding. */
 import { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import { Remote, RemoteError, TypertRemoteService, principalOf } from '@deepseek-ai/dsh-typert-protocol'
 import { bindScopeParent, createScope, scopeOf, scopeParentOf, type Scope, type ScopeKey, type ScopeParentBinding } from '@deepseek-ai/dsh-scope'
 import { entryListSchema } from '@deepseek-ai/cordis-plugin-include'
 import { dump } from 'js-yaml'
@@ -9,7 +9,8 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 // Type-only: the optional `settings` service this registry keeps off the generated pages.
 import type {} from '@deepseek-ai/dsh-settings'
 import type {} from '@deepseek-ai/dsh-tools'
-import type { AgentPresetDocument, AgentPresetRoster } from './types.ts'
+import type { AgentPresetDocument, AgentPresetRoster, ModeSwitchChallenge, ModeSwitchChallengeId, ModeSwitchPolicy } from './types.ts'
+import { ModeSwitchPermission } from './switch-policy.ts'
 import { entryListProblem, type PresetDefinition } from './definition.ts'
 import type { AgentPreset, Config } from './preset.ts'
 import { agentPresetProjectionDefinition } from './session.ts'
@@ -40,7 +41,9 @@ interface Definition {
   context: Context
   ready: Promise<void>
   generation?: Generation
-  /** Mount failure; unset while a tree is mounted, whose rows {@link AgentPresetRegistry.diagnostic} re-audits on read. */
+  /**
+ * Mount failure; unset while a tree is mounted, whose rows {@link AgentPresetRegistry.diagnostic} re-audits on read.
+ */
   broken?: string
 }
 interface Binding {
@@ -61,6 +64,7 @@ export class AgentPresetRegistry extends TypertRemoteService {
   private readonly generations = new Map<ScopeKey, Generation>()
   private readonly bindings = new WeakMap<ScopeKey, Binding>()
   private readonly switches = new Map<string, Promise<unknown>>()
+  private readonly switchPermission = new ModeSwitchPermission()
 
   constructor(ctx: Context, public config: Config) {
     super(ctx, 'agentPresets')
@@ -74,6 +78,53 @@ export class AgentPresetRegistry extends TypertRemoteService {
 
   /** Default preset for a subsequently created session. */
   get defaultId(): string { return this.config.selectedDefault.get() ?? this.config.default }
+
+  private assertPolicyOwner(): void {
+    if (principalOf(this.ctx.invocation) !== undefined) {
+      throw new RemoteError('agent-preset/policy-denied', 'Only the application owner can change this permission.', {})
+    }
+  }
+
+  /**
+ * Read the runtime permission.
+ * @returns Whether established conversations may change mode while idle.
+ */
+  @Remote('switchPolicy')
+  switchPolicy(): ModeSwitchPolicy { return this.switchPermission.read() }
+
+  /**
+ * Begin owner acknowledgement.
+ * @returns A fresh ten-second confirmation.
+ */
+  @Remote('beginModeSwitch')
+  beginModeSwitch(): ModeSwitchChallenge { this.assertPolicyOwner(); return this.switchPermission.begin() }
+
+  /**
+   * Enable switching for this Host lifetime after explicit confirmation.
+   * @param id - Acknowledgement returned by beginModeSwitch.
+   * @returns Current permission after acceptance.
+   */
+  @Remote('confirmModeSwitch')
+  confirmModeSwitch(id: ModeSwitchChallengeId): ModeSwitchPolicy {
+    this.assertPolicyOwner()
+    return this.publishSwitchPolicy(this.switchPermission.confirm(id))
+  }
+
+  /**
+ * Revoke switching and any pending confirmation.
+ * @returns Disabled permission.
+ */
+  @Remote('disableModeSwitch')
+  disableModeSwitch(): ModeSwitchPolicy {
+    this.assertPolicyOwner()
+    return this.publishSwitchPolicy(this.switchPermission.disable())
+  }
+
+  private publishSwitchPolicy(policy: ModeSwitchPolicy): ModeSwitchPolicy {
+    try { this.owner.emit('agent-preset/switch-policy', policy) }
+    catch (error) { this.owner.logger.warn('Mode switching permission observer failed.', error) }
+    return policy
+  }
 
   /** Register and eagerly load a definition; activation failure remains visible in the roster.
    * @param definition Parsed configuration supplied by the declaring plugin.
@@ -355,7 +406,7 @@ export class AgentPresetRegistry extends TypertRemoteService {
           sessionId: agent.id, agentPreset,
         })
       }
-      if (boundary !== undefined && boundary.lastTurn > 0 && !this.config.allowExistingSessionSwitch.get()) {
+      if (boundary !== undefined && boundary.lastTurn > 0 && !this.switchPermission.read().allowExistingSessionSwitch) {
         throw new RemoteError('agent-preset/locked', 'Changing an existing conversation mode is disabled in Settings', {
           sessionId: agent.id, agentPreset,
         })
@@ -363,16 +414,16 @@ export class AgentPresetRegistry extends TypertRemoteService {
       const current = this.definitions.get(agentPreset)?.generation
       if (current !== undefined && this.generationFor(agent.ctx) === current
         && this.owner.sessionProjections.stateOf(agent.session, 'agentPreset') === agentPreset) return agentPreset
-      let entered = false
+      const maintenance = { entered: false }
       try {
         return await agent.runMaintenance(async () => {
-          entered = true
+          maintenance.entered = true
           const preset = await this.recompose(agent.ctx, agentPreset)
           agent.session.append('agent-preset/selected', { agentPreset: preset.id })
           return preset.id
         })
       } catch (error) {
-        if (!entered) throw new RemoteError('agent-preset/locked', 'Wait for session maintenance to finish before changing its mode', {
+        if (!maintenance.entered) throw new RemoteError('agent-preset/locked', 'Wait for session maintenance to finish before changing its mode', {
           sessionId: agent.id, agentPreset,
         })
         throw error
