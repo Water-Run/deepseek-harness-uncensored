@@ -41,4 +41,9 @@
 <rect width="46" height="14" fill="var(--dsw-alias-label-primary-inverted)" transform="translate(277.674 13.5)"/>
 </clipPath>
 </defs>
+<!-- This build's release marker, beside the HARNESS pill. -->
+<g id="uncensored-pill">
+<rect x="334.674" y="13.5" width="80" height="14" rx="2" fill="#3B82F6"/>
+<text x="337.4" y="23.95" font-family="system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="8.9" font-weight="700" letter-spacing="1.05" fill="#101318">UNCENSORED</text>
+</g>
 </svg>

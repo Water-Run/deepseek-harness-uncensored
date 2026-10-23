@@ -20,6 +20,8 @@ import { presetDisplayText } from './locales.ts'
 import css from './AgentPresetLabel.module.css'
 
 /** Fill per shipped mode; an unknown mode reads as the neutral green. */
+const TONE_FILLS = { blue: '#3B82F6', yellow: '#FFC400', red: '#E5484D', green: '#22A06B' } as const
+
 const MODE_TONES: Readonly<Record<string, 'blue' | 'yellow' | 'red' | 'green'>> = { standard: 'blue', writing: 'yellow', security: 'red' }
 
 /** Registration-side business face for the header label. */
@@ -58,10 +60,18 @@ export function AgentPresetLabel({
     if (preset !== undefined) void load()
   }, [preset, load])
 
+  // Publish the mode's tone for the release marker, which is drawn outside this
+  // slot and cannot receive per-session props through a root-scoped seat.
+  const tone = MODE_TONES[preset ?? ''] ?? 'green'
+  useEffect(() => {
+    const root = document.documentElement
+    root.style.setProperty('--dshu-release-tone', TONE_FILLS[tone])
+    return () => { root.style.removeProperty('--dshu-release-tone') }
+  }, [tone])
+
   if (preset === undefined) return null
 
   const option = options.find(entry => entry.id === preset)
-  const tone = MODE_TONES[preset] ?? 'green'
   const text = option === undefined ? undefined : presetDisplayText(option, t)
   return (
     <span className={`${css.label} ${css[tone]}`} title={text?.description ?? t('headerHint')}>

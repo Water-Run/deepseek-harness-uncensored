@@ -9,7 +9,7 @@
       name: '@deepseek-ai/dsh-agent-preset'
       config:
         id: writing
-        order: 2
+        order: 3
         plugins:
           - id: persona
             name: '@deepseek-ai/dsh-persona'
