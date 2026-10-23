@@ -88,9 +88,10 @@ export interface AccountSectionInjected {
 }
 /** Composed account section props. */
 export type AccountSectionProps =
-  PropsRuntime<'settings.section'> & PropsLocale<'settings.account'> & InjectFace<AccountSectionInjected>
+  PropsRuntime<'settings.models.account'> & PropsLocale<'settings.account'> & InjectFace<AccountSectionInjected>
+  & { section?: 'identity' | 'billing' }
 /** @param props - localized actions, account subscription, and the shared Platform page channel. @returns account settings UI. */
-export function AccountSection({ t, useAccount, useTheme, start, cancel, openPlatformPage, avatarFailed }: AccountSectionProps) {
+export function AccountSection({ t, useAccount, useTheme, start, cancel, openPlatformPage, avatarFailed, section }: AccountSectionProps) {
   const { view: state, details, avatar, failed: streamFailed } = useAccount(value => value)
   const colorScheme = useTheme(snapshot => snapshot.active.colorScheme)
   // The shared host owns the native view; this page holds only its own request,
@@ -146,6 +147,7 @@ export function AccountSection({ t, useAccount, useTheme, start, cancel, openPla
     : attempt?.phase === 'expired' ? t('expired')
       : active ? t(attempt.phase === 'initializing' ? 'initializing' : attempt.phase === 'waiting-browser' ? 'waiting' : 'completing')
         : signedIn ? profile?.contact ?? t(details?.profile === undefined ? 'loading' : 'profileUnavailable') : t('signInDescription')
+  if (!signedIn && section === 'billing') return null
   if (!signedIn && !active) return (
     <section className={css.signedOut} aria-label={t('nav')}>
       <div className={css.signedOutContent}>
@@ -162,7 +164,7 @@ export function AccountSection({ t, useAccount, useTheme, start, cancel, openPla
   )
   return (
     <section className={css.section} aria-label={t('nav')}>
-      <div className={css.card}>
+      {section !== 'billing' && <div className={css.card}>
         <div className={css.identity}>
           <span className={css.avatar} data-avatar-status={signedIn ? avatar?.status : undefined}>
             <AccountAvatar avatar={signedIn ? avatar : undefined} avatarFailed={avatarFailed} />
@@ -175,8 +177,8 @@ export function AccountSection({ t, useAccount, useTheme, start, cancel, openPla
         {signedIn && <a className={css.accountInfo} href={new URL('/', state.links.usageUrl).href} target="_blank" rel="noopener noreferrer">
           {t('accountInfo')}<IconRightUpOutlineRegular size={12} />
         </a>}
-      </div>
-      {active && <div className={css.actions}>
+      </div>}
+      {section !== 'billing' && active && <div className={css.actions}>
         {attempt.authorizeUrl && <a className={css.linkButton} href={authorizeUrlWithTheme(attempt.authorizeUrl, colorScheme)}
           target="_blank" rel="noreferrer">
           {t('open')}
@@ -184,33 +186,35 @@ export function AccountSection({ t, useAccount, useTheme, start, cancel, openPla
         <Button variant="outline" disabled={busy || attempt.phase === 'committing'}
           onClick={() => { void run(() => cancel(attempt.id)) }}>{t('cancel')}</Button>
       </div>}
-      <div className={css.balanceCard}>
-        <div className={css.row}>
-          <span>{t('balance')}</span>
-          {signedIn && wallets !== undefined && wallets.length > 0
-            ? <span className={css.amount}>{wallets.map(wallet => <span key={wallet.currency}>
-              {formatBalance(wallet.balance, wallet.currency === 'CNY' ? '¥' : '$')}
-            </span>)}</span>
-            : !signedIn || details?.balance === undefined
-              ? <span className={css.unavailable}>{t(!signedIn ? 'balanceSignedOut' : 'loading')}</span>
-              : platformLink(t('balanceUnavailable'), css.unavailableLink)}
-        </div>
-        {signedIn && showBonusRow && <>
-          <div className={css.divider} />
+      {section !== 'identity' && <div className={css.balanceCard}>
+        {section !== 'billing' && <>
           <div className={css.row}>
-            <span>{t('bonusBalance')}</span>
-            <span className={css.bonusValue}>
-              {bonusWallets.length > 0
-                ? <span className={css.amount}>{bonusWallets.map(wallet => <span key={wallet.currency}>
-                  {formatBalance(wallet.balance, wallet.currency === 'CNY' ? '¥' : '$')}
-                </span>)}</span>
-                : details?.balance === undefined
-                  ? <span className={css.unavailable}>{t('loading')}</span>
-                  : platformLink(t('balanceUnavailable'), css.unavailableLink)}
-            </span>
+            <span>{t('balance')}</span>
+            {signedIn && wallets !== undefined && wallets.length > 0
+              ? <span className={css.amount}>{wallets.map(wallet => <span key={wallet.currency}>
+                {formatBalance(wallet.balance, wallet.currency === 'CNY' ? '¥' : '$')}
+              </span>)}</span>
+              : !signedIn || details?.balance === undefined
+                ? <span className={css.unavailable}>{t(!signedIn ? 'balanceSignedOut' : 'loading')}</span>
+                : platformLink(t('balanceUnavailable'), css.unavailableLink)}
           </div>
+          {signedIn && showBonusRow && <>
+            <div className={css.divider} />
+            <div className={css.row}>
+              <span>{t('bonusBalance')}</span>
+              <span className={css.bonusValue}>
+                {bonusWallets.length > 0
+                  ? <span className={css.amount}>{bonusWallets.map(wallet => <span key={wallet.currency}>
+                    {formatBalance(wallet.balance, wallet.currency === 'CNY' ? '¥' : '$')}
+                  </span>)}</span>
+                  : details?.balance === undefined
+                    ? <span className={css.unavailable}>{t('loading')}</span>
+                    : platformLink(t('balanceUnavailable'), css.unavailableLink)}
+              </span>
+            </div>
+          </>}
+          <div className={css.divider} />
         </>}
-        <div className={css.divider} />
         <div className={css.row}>
           <span className={css.secondary}>{t('more')}</span>
           <div className={css.links}>
@@ -220,7 +224,7 @@ export function AccountSection({ t, useAccount, useTheme, start, cancel, openPla
               onClick={(event) => { if (openPlatformPage !== undefined && signedIn) { event.preventDefault(); showPage(openPlatformPage, 'top-up') } }}>{t('topUp')}</a>
           </div>
         </div>
-      </div>
+      </div>}
     </section>
   )
 }

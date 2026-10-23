@@ -28,7 +28,7 @@ export interface Config {
 /** Validated sampling preferences and bounded provider requests. */
 export const Config = schema.object({
   enabled: schema.boolean().default(true).volatile(),
-  refreshSeconds: schema.number().step(1).min(15).max(3600).default(60).volatile(),
+  refreshSeconds: schema.number().step(1).min(15).max(3600).default(15).volatile(),
   source: schema.union(['local', 'api'] as const).default('api').volatile(),
   apiKeyRef: schema.string().default('DEEPSEEK_API_KEY'),
   baseURL: schema.string().default('https://api.deepseek.com'),

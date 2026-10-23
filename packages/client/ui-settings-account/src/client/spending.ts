@@ -24,7 +24,7 @@ export function registerSpending(ctx: Context): void {
       configureSpending: value => controller.mutate(() => unwrap(scope.remote.spending.configure(value))),
       resetSpending: () => controller.mutate(() => unwrap(scope.remote.spending.reset())),
       resumeSpending: () => controller.mutate(() => unwrap(scope.remote.spending.resume())), dismissSpendingToast: controller.dismiss })
-    scope.slots.inject('settings.section', () => scope.slots.register({ name: 'settings.section', id: 'spending', order: -8, label: () => scope.locale.bind('settings.account')('spending.title'), locale: 'settings.account', inject }, SpendingSettings))
+    scope.slots.inject('settings.budget.item', () => scope.slots.register({ name: 'settings.budget.item', id: 'spending', order: 10, label: () => scope.locale.bind('settings.account')('spending.title'), locale: 'settings.account', inject }, SpendingSettings))
     scope.slots.inject('shell.overlay', () => scope.slots.register({ name: 'shell.overlay', id: 'spending-feedback', locale: 'settings.account', inject }, SpendingToast))
     scope.slots.inject('sidebar.footer.action', () => scope.slots.register({ name: 'sidebar.footer.action', id: 'spending-state', order: -11, locale: 'settings.account', inject }, SpendingSidebar))
   })

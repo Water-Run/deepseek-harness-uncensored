@@ -101,7 +101,7 @@ describe('ui-settings-general apply', () => {
     const entry = generalEntry(c)
     expect(entry.options).toMatchObject({ id: 'general', order: 0 })
     // The nav label is a locale-following thunk; owners resolve at read time.
-    expect(generalLabel(c)).toBe('通用设置')
+    expect(generalLabel(c)).toBe('通用')
     expect(c.ctx.slots.spec('settings.general.item')).toEqual({ kind: 'list', scope: 'root' })
     // The shared developer-tool control belongs to General; onboarding remains feature-owned.
     expect(c.ctx.slots.entries('settings.general.item').filter(row => row.locale === NS).map(row => row.options.id)).toEqual(['developer-tools', 'current-version'])
@@ -166,7 +166,7 @@ describe('ui-settings-general apply', () => {
       expect(c.ctx.configForms.describe().getSnapshot().view?.namespaces).toEqual([english])
     })
     c.ctx.locale.setLocale('zh')
-    expect(generalLabel(c)).toBe('通用设置')
+    expect(generalLabel(c)).toBe('通用')
     await vi.waitFor(() => {
       expect(settings.mutate.mock.calls).toEqual([
         [LOCALE_SETTINGS_NAMESPACE, [{ op: 'set', path: ['preference'], value: 'en' }], 0],
@@ -238,7 +238,7 @@ describe('ui-settings-general apply', () => {
     await c.mock.streams.opened('$events', 2)
     await vi.waitFor(() => {
       expect(c.ctx.locale.getSnapshot().active).toBe('zh')
-      expect(generalLabel(c)).toBe('通用设置')
+      expect(generalLabel(c)).toBe('通用')
     })
     expect(settings.mutate).not.toHaveBeenCalled()
   })
@@ -261,7 +261,7 @@ describe('ui-settings-general apply', () => {
     c.ctx.locale.setLocale('en')
     expect(generalLabel(c)).toBe('General')
     c.ctx.locale.setLocale('zh')
-    expect(generalLabel(c)).toBe('通用设置')
+    expect(generalLabel(c)).toBe('通用')
     await vi.waitFor(() => {
       expect(settings.mutate.mock.calls).toEqual([
         [LOCALE_SETTINGS_NAMESPACE, [{ op: 'set', path: ['preference'], value: 'en' }], 0],

@@ -26,7 +26,7 @@ export const zh = {
   'close': '关闭',
   'openDocument': '打开配置文件',
   'openDocument.error': '无法打开配置文件',
-  'general.nav': '通用设置',
+  'general.nav': '通用',
   'general.currentVersion': '当前版本：{version}',
   'developerTools.title': '显示代码工作视图',
   'developerTools.error': '保存失败，请重试',

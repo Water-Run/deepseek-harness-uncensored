@@ -37,7 +37,7 @@ function WindowBar({ window, label, t }: { window: SpendWindow; label: string; t
 }
 
 /** @param props - Shared ledger state and authenticated mutations. @returns Limits, progress and recovery controls. */
-export function SpendingSettings({ useSpending, configureSpending, resetSpending, resumeSpending, refreshSpending, t }: PropsRuntime<'settings.section'> & Common) {
+export function SpendingSettings({ useSpending, configureSpending, resetSpending, resumeSpending, refreshSpending, t }: PropsRuntime<'settings.budget.item'> & Common) {
   const state = useSpending(value => value)
   const data = state.data
   const [draft, setDraft] = useState<Partial<Record<SpendPeriod, string>>>({})
@@ -46,7 +46,7 @@ export function SpendingSettings({ useSpending, configureSpending, resetSpending
   const invalid = Object.values(draft).some(value => !Number.isFinite(Number(value)) || Number(value) <= 0 || Number(value) > 1_000_000)
   if (data === undefined) return <section className={css.settings} aria-busy={!state.failed}>{state.failed ? <><p role="alert">{t('spending.failed')}</p><Button onClick={refreshSpending}>{t('spending.retry')}</Button></> : <span className={css.spinner} role="status" aria-label={t('spending.loading')}><StateDot state="ongoing" size={20} /></span>}</section>
   return <section className={css.settings}>
-    <div><h2>{t('spending.title')}</h2><p className={css.hint}>{t('spending.summary')}</p></div>
+    <p className={css.hint}>{t('spending.summary')}</p>
     {state.failed && <div role="alert" className={css.row}><span>{t('spending.failed')}</span><Button size="sm" onClick={refreshSpending}>{t('spending.retry')}</Button></div>}
     <div className={css.row}><span>{t('spending.enabled')}</span><Switch label={t('spending.enabled')} checked={data.preferences.enabled} disabled={state.saving} onChange={(value) => { void configureSpending({ ...data.preferences, enabled: value }) }} /></div>
     <div className={css.row}><div><span>{t('spending.auto')}</span><p className={css.hint}>{t('spending.autoHint')}</p></div><Switch label={t('spending.auto')} checked={data.preferences.autoResume} disabled={state.saving} onChange={(value) => { void configureSpending({ ...data.preferences, autoResume: value }) }} /></div>

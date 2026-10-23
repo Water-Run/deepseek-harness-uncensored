@@ -17,7 +17,7 @@
 .stats dd { margin: 0; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .hint { color: var(--dsw-alias-label-secondary); font-size: 12px; line-height: 1.6; margin: 0; }
 .sidebar { display: grid; width: 100%; margin-bottom: 8px; min-width: 0; }
-.summary { padding: 10px; border-radius: var(--dsw-radius-md); background: var(--dsw-alias-bg-layer-2); color: var(--dsw-alias-label-primary); transition: background-color 300ms var(--ds-ease-in-out); }
+.summary { width: 100%; border: 0; font: inherit; text-align: left; cursor: pointer; padding: 10px; border-radius: var(--dsw-radius-md); background: var(--dsw-alias-bg-layer-2); color: var(--dsw-alias-label-primary); transition: background-color 300ms var(--ds-ease-in-out); }
 .summary[data-period='peak'] { background: color-mix(in srgb, var(--dsw-brand-red) 9%, transparent); }
 .summary[data-period='valley'] { background: color-mix(in srgb, var(--dsw-brand-blue) 9%, transparent); }
 .period { display: block; font-size: 11px; margin-bottom: 8px; color: var(--dsw-alias-label-secondary); }

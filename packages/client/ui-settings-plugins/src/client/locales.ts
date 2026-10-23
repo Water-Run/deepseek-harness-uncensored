@@ -5,18 +5,18 @@ export type PluginsSettingsLocaleKey = 'nav' | 'title' | 'intro' | 'tabs' | 'emp
 
 /** English copy. */
 export const en: Record<PluginsSettingsLocaleKey, string> = {
-  nav: 'Built-in plugins',
-  title: 'Built-in plugins',
-  intro: 'Inspect the plugins this deployment ships.',
+  nav: 'Plugins',
+  title: 'Plugins',
+  intro: 'Install, enable and configure plugins.',
   tabs: 'Plugin views',
   empty: 'This deployment exposes no plugin views.',
 }
 
 /** Simplified Chinese copy. */
 export const zh: Record<PluginsSettingsLocaleKey, string> = {
-  nav: '内置插件',
-  title: '内置插件',
-  intro: '查看内置部署的插件列表',
+  nav: '插件',
+  title: '插件',
+  intro: '安装、启用和配置插件',
   tabs: '插件视图',
   empty: '本部署没有开放任何插件视图。',
 }

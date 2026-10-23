@@ -11,6 +11,21 @@
 
 import type {} from '@deepseek-ai/dsh-client-ui-slots'
 
+declare module '@deepseek-ai/cordis' {
+  interface Context {
+    /** Opens a feature-owned page in the shared settings dialog. */
+    settingsNavigation: { openSection(id: string): void }
+  }
+  interface Events {
+    /**
+     * Programmatic navigation to a settings page.
+     * @mode emit
+     * @param id - Registered settings section identity.
+     */
+    'settings/section-opened'(id: string): void
+  }
+}
+
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
     /** Optional sidebar account launcher; opens the shell-owned settings panel. */
@@ -55,6 +70,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      * item registrant; the shell neither declares nor renders it.)
      */
     'settings.section': { kind: 'list'; scope: 'root'; owner: SettingsSectionOwnerProps }
+    /** Account controls placed before model-provider configuration. */
+    'settings.models.account': { kind: 'single'; scope: 'root'; owner: SettingsGeneralItemOwnerProps }
+    /** Balance observations and request limits share one settings group. */
+    'settings.budget.item': { kind: 'list'; scope: 'root'; owner: SettingsSectionOwnerProps }
+    /** Account billing and recharge actions shown with balance observations. */
+    'settings.budget.account': { kind: 'single'; scope: 'root'; owner: SettingsGeneralItemOwnerProps }
     /**
      * One page inside the Plugins settings section. The section owner renders
      * localized entry labels as tabs and mounts each contribution inside its

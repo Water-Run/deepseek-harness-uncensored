@@ -86,7 +86,7 @@
   position: relative;
   z-index: 1;
   display: flex;
-  width: 800px;
+  width: 1000px;
   height: min(800px, calc(100vh - 2 * max(24px, var(--dsh-frame-overlay-top, 24px))));
   max-width: calc(100vw - 48px);
   border-radius: var(--dsw-radius-panel);

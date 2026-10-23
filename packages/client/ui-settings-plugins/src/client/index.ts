@@ -15,6 +15,7 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
 import { PluginsSettingsSection } from './PluginsSettingsSection.tsx'
 import type { PluginsSettingsSectionInjected, PluginsSettingsTabEntry } from './PluginsSettingsSection.tsx'
@@ -39,8 +40,12 @@ export function apply(ctx: ClientContext): void {
   let tabsVersion = -1
   let tabsRevision = -1
   let tabs: readonly PluginsSettingsTabEntry[] = []
+  const navigation = createSnapshotStore<string | undefined>(undefined)
+  ctx.on('settings/section-opened', (id) => { if (id === 'plugins') navigation.set('manager') })
   const sectionInjected = (): PluginsSettingsSectionInjected => ({
+    selectTab: id => navigation.set(id),
     hooks: {
+      navigation,
       tabs: {
         getSnapshot: () => {
           const version = ctx.slots.getVersion('settings.plugins.tab')
@@ -76,7 +81,7 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: 'plugins',
-    order: 15,
+    order: 40,
     label: () => t('nav'),
     locale: NS,
     inject: sectionInjected,

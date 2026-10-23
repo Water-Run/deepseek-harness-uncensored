@@ -19,7 +19,11 @@ export interface PluginsSettingsSectionInjected {
   hooks: {
     /** Ordered, locale-aware projection of the Plugins tab ledger. */
     tabs: HostObservable<readonly PluginsSettingsTabEntry[]>
+    /** Shared tab selection accepts links from other settings features. */
+    navigation: HostObservable<string | undefined>
   }
+  /** Select the page shown inside the Plugins group. */
+  selectTab(id: string): void
 }
 
 /** Props the renderer binds for the section. */
@@ -30,11 +34,11 @@ export type PluginsSettingsSectionProps =
   & InjectFace<PluginsSettingsSectionInjected>
 
 /** Render one Plugins page whose contents arrive from feature-owned tabs; one contribution shows as the page itself. */
-export function PluginsSettingsSection({ t, renderSlot, useTabs }: PluginsSettingsSectionProps) {
+export function PluginsSettingsSection({ t, renderSlot, useTabs, useNavigation, selectTab }: PluginsSettingsSectionProps) {
   const tabsId = useId()
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
   const rows = useTabs(value => value)
-  const [activeId, setActiveId] = useState<string>()
+  const activeId = useNavigation(value => value)
   const [visitedIds, setVisitedIds] = useState<ReadonlySet<string>>(() => new Set())
   const active = rows.find(row => row.id === activeId)?.id ?? rows[0]?.id
   const single = rows.length === 1 ? rows[0] : undefined
@@ -73,7 +77,7 @@ export function PluginsSettingsSection({ t, renderSlot, useTabs }: PluginsSettin
                   aria-controls={`${tabsId}-panel-${row.id}`}
                   data-active={selected ? 'true' : undefined}
                   tabIndex={selected ? 0 : -1}
-                  onClick={() => { setActiveId(row.id) }}
+                  onClick={() => { selectTab(row.id) }}
                   onKeyDown={(event) => {
                     let nextIndex: number
                     switch (event.key) {
@@ -86,7 +90,7 @@ export function PluginsSettingsSection({ t, renderSlot, useTabs }: PluginsSettin
                     event.preventDefault()
                     const nextRow = rows[nextIndex] as PluginsSettingsTabEntry
                     const nextTab = tabRefs.current[nextIndex] as HTMLButtonElement
-                    setActiveId(nextRow.id)
+                    selectTab(nextRow.id)
                     nextTab.focus()
                   }}
                 >

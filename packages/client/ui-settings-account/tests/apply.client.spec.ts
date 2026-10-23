@@ -9,7 +9,6 @@ import type {
 } from '@deepseek-ai/dsh-deepseek-account/types'
 import type { QuotaNoticeOwnerProps } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { ThemeRuntime } from '@deepseek-ai/dsh-client-ui-theme/client'
-import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import { Config as OnboardingConfig } from '../src/index.ts'
 import { ChatSettingsSchema as ChatConfig } from '../../ui-chat/src/chat-settings.ts'
@@ -125,9 +124,9 @@ it('shares account actions across seats, publishes dialog ownership, and opens c
   c.mock.remote.account.getProfile.mockResolvedValue(ok(profile))
   c.mock.streams.push('account/watch', stored)
   await vi.waitFor(() => { expect(actions.hooks.account.getSnapshot().details?.profile).toEqual(profile) })
-  const entry = c.ctx.slots.entries('settings.section').find(entry => entry.options.id === 'account')!
-  expect(entry.inject!()).toBe(actions)
-  expect(resolveSlotLabel(entry.options.label)).toBe('Account')
+  const entry = c.ctx.slots.entries('settings.models.account')[0]!
+  expect(entry.inject!()).toMatchObject({ ...actions, section: 'identity' })
+  expect(entry.locale).toBe('settings.account')
   actions.contactUs()
   const support = new URL(String(open.mock.calls.at(-1)![0]))
   expect(support.searchParams.get('prefill_uid')).toBe('account-user')

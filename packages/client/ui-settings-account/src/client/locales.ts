@@ -7,6 +7,7 @@ import { spendingEn, spendingZh } from './spending-locales.ts'
 export const en = {
   ...balanceEn,
   ...spendingEn,
+  'budget.title': 'Budget',
   about: 'About', productName: 'DeepSeek Harness Uncensored', forkVersion: 'Uncensored version',
   purgeCommit: 'dsh-purge fork commit', purgeDate: 'dsh-purge commit time', buildTime: 'Compiled at',
   upstreamVersion: 'DSH version', buildCommit: 'Source commit', commitDate: 'Commit time',
@@ -50,6 +51,7 @@ export type AccountKey = keyof typeof en
 export const zh: Record<AccountKey, string> = {
   ...balanceZh,
   ...spendingZh,
+  'budget.title': '额度',
   about: '关于', productName: 'DeepSeek Harness Uncensored', forkVersion: 'Uncensored 版本',
   purgeCommit: 'dsh-purge fork 节点', purgeDate: 'dsh-purge 提交时间', buildTime: '编译时间',
   upstreamVersion: 'DSH 原版本', buildCommit: '源码节点', commitDate: '提交时间',
@@ -67,7 +69,7 @@ export const zh: Record<AccountKey, string> = {
   platformFailed: '操作未完成，请重试', platformRetry: '重试',
   loading: '加载中…', backToHarness: '返回 DeepSeek Harness',
   settings: '设置', contactUs: '提交 Issue', menu: '账号菜单',
-  nav: '账号与余额', signedIn: '已登录 DeepSeek', signedOut: '尚未登录',
+  nav: '账号', signedIn: '已登录 DeepSeek', signedOut: '尚未登录',
   signIn: '登录', signOut: '退出登录',
   signOutUnknownDescription: '暂时无法确认任务状态。退出登录可能会中断使用此账号的任务，是否继续？',
   signOutDescription: '退出登录不会丢失任何数据，你仍可以登录此账号。',

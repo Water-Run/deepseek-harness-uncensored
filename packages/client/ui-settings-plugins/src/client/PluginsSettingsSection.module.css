@@ -4,14 +4,14 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-width: 760px;
+  min-width: 0;
   color: var(--dsw-alias-label-primary);
 }
 
 .heading {
   margin: 0;
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .intro {

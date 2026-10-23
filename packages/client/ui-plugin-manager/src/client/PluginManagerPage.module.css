@@ -20,6 +20,10 @@
   max-width: 960px;
 }
 
+.page[data-embedded] { height: auto; overflow: visible; padding: 0; gap: 24px; align-items: stretch; }
+.page[data-embedded] .pageHead, .page[data-embedded] .detailTop { padding-top: 0; }
+.page[data-embedded] .pageHeading { display: none; }
+
 .pageHead {
   display: flex;
   flex-wrap: wrap;

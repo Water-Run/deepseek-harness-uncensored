@@ -33,6 +33,7 @@ import { refreshAfterReturn } from './account-refresh.ts'
 import { AccountAvatarLoader } from './account-avatar.ts'
 import { registerBalance } from './balance.ts'
 import { registerSpending } from './spending.ts'
+import { BudgetSection } from './BudgetSection.tsx'
 export type { AccountSectionInjected, AccountSectionProps } from './AccountSection.tsx'
 export type { AccountMenuProps } from './AccountMenu.tsx'
 export type { AccountSnapshot } from './AccountSection.tsx'
@@ -318,21 +319,17 @@ export function apply(ctx: Context): void {
   }, AccountMenu))
   registerBalance(ctx, operations.hooks.account)
   registerSpending(ctx)
-  ctx.slots.inject('settings.section', () => {
-    let unregister: (() => void) | undefined
-    const update = () => {
-      if (snapshot.view?.status === 'credential-stored') {
-        unregister ??= ctx.slots.register({
-          name: 'settings.section', id: 'account', order: -10, label: () => t('nav'),
-          locale: 'settings.account', inject: () => operations,
-        }, AccountSection)
-      } else {
-        unregister?.()
-        unregister = undefined
-      }
-    }
-    listeners.add(update)
-    update()
-    return () => { listeners.delete(update); unregister?.() }
-  })
+  ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section', id: 'budget', order: 20, label: () => t('budget.title'), locale: 'settings.account',
+    children: {
+      'settings.budget.item': { kind: 'list', scope: 'root' },
+      'settings.budget.account': { kind: 'single', scope: 'root' },
+    },
+  }, BudgetSection))
+  ctx.slots.inject('settings.models.account', () => ctx.slots.register({
+    name: 'settings.models.account', locale: 'settings.account', inject: () => ({ ...operations, section: 'identity' as const }),
+  }, AccountSection))
+  ctx.slots.inject('settings.budget.account', () => ctx.slots.register({
+    name: 'settings.budget.account', locale: 'settings.account', inject: () => ({ ...operations, section: 'billing' as const }),
+  }, AccountSection))
 }

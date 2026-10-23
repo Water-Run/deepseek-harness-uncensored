@@ -20,7 +20,7 @@ export interface BalanceInjected {
   dismissToast: (id: number) => void
 }
 type SharedProps = PropsLocale<'settings.account'> & InjectFace<BalanceInjected>
-type BalanceSettingsProps = PropsRuntime<'settings.section'> & SharedProps
+type BalanceSettingsProps = PropsRuntime<'settings.budget.item'> & SharedProps
 type BalanceSidebarProps = PropsRuntime<'sidebar.footer.action'> & SharedProps
 
 function amount(value: string, currency: BalanceWallet['currency']): string { return formatBalance(value, currency === 'CNY' ? '¥' : '$') }
@@ -81,7 +81,6 @@ export function BalanceSettings({ useBalance, useBalancePreferences, refresh, sa
   const interval = draft ?? String(preferences.refreshSeconds)
   const invalid = draft !== null && (!Number.isInteger(Number(draft)) || Number(draft) < 15 || Number(draft) > 3600)
   return <section className={css.settings}>
-    <h2>{t('balance.title')}</h2>
     <div className={css.row}><span>{t('balance.enabled')}</span><Switch label={t('balance.enabled')} checked={preferences.enabled} disabled={state.saving || !form.writable} onChange={(value) => { void save('enabled', value) }} /></div>
     <div className={css.row}><label htmlFor={`${id}-interval`}>{t('balance.interval')}</label><Input id={`${id}-interval`} type="number" min={15} max={3600} step={1} value={interval} aria-invalid={invalid} disabled={state.saving || !form.writable}
       onChange={(event) => { setDraft(event.target.value) }} onBlur={() => { if (!invalid && draft !== null) void save('refreshSeconds', Number(draft)).then((ok) => { if (ok) setDraft(null) }) }} /></div>
@@ -101,7 +100,7 @@ export function BalanceSettings({ useBalance, useBalancePreferences, refresh, sa
 }
 
 /** @param props - Sidebar geometry and shared balance observations. @returns Parallel balances and a keyboard-accessible hover card. */
-export function BalanceSidebar({ wide, useBalance, useBalancePreferences, dismissToast, t }: BalanceSidebarProps) {
+export function BalanceSidebar({ wide, useBalance, useBalancePreferences, refresh, dismissToast, t }: BalanceSidebarProps) {
   const state = useBalance(value => value)
   const enabled = useBalancePreferences(value => value.value?.enabled === true)
   const wallet = state.data?.samples.at(-1)?.wallets[0]
@@ -109,11 +108,12 @@ export function BalanceSidebar({ wide, useBalance, useBalancePreferences, dismis
   return <>
     {state.toast !== null && <Toast key={state.toastId} text={t(state.toast === 'saved' ? 'balance.saved' : 'balance.saveFailed')} onDone={() => { dismissToast(state.toastId) }} />}
     {enabled && wallet !== undefined && <div className={css.sidebar}>
-      <HoverCard inline anchor={<div tabIndex={0} className={css.summary} data-period={period} aria-label={t('balance.title')}>
+      <HoverCard inline anchor={<button type="button" onClick={refresh} className={css.summary} data-period={period}
+        aria-label={t('balance.title')} aria-busy={state.loading}>
         {wide ? <><span className={css.period}>{t(period === 'peak' ? 'balance.peak' : period === 'valley' ? 'balance.valley' : 'balance.unknownPeriod')}</span>
           <div className={css.wallets}>{new Big(wallet.granted).gt(0) && <div><span>{t('bonusBalance')}</span><strong>{amount(wallet.granted, wallet.currency)}</strong></div>}<div><span>{t('balance')}</span><strong>{amount(wallet.toppedUp, wallet.currency)}</strong></div></div></>
           : <strong>{wallet.currency === 'CNY' ? '¥' : '$'}</strong>}
-      </div>} content={<div className={css.hover}>{state.failed && <p role="status">{t('balance.failed')}</p>}<BalanceDetails data={state.data} t={t} /><p className={css.hint}>{t('balance.hours')}</p></div>} />
+      </button>} content={<div className={css.hover}>{state.failed && <p role="status">{t('balance.failed')}</p>}<BalanceDetails data={state.data} t={t} /><p className={css.hint}>{t('balance.hours')}</p></div>} />
     </div>}
   </>
 }

@@ -271,7 +271,7 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: 'agent-presets',
-    order: 20,
+    order: 30,
     label: () => ctx.locale.bind('settings.agentPreset')('nav'),
     locale: 'settings.agentPreset',
     inject: sectionInjected,

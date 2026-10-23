@@ -38,9 +38,10 @@ import badgeSkillPreviewZh from './assets/badge-skill-preview.zh.svg'
 import voiceInputPreview from './assets/voice-input-preview.svg'
 import voiceInputPreviewZh from './assets/voice-input-preview.zh.svg'
 
-/** Full component props assembled by the main slot renderer. */
+/** Component props assembled by the Settings plugin-tab renderer. */
 export type PluginManagerPageProps =
-  PropsRuntime<'main'>
+  PropsRuntime<'settings.plugins.tab'>
+  & { embedded?: boolean }
   & PropsLocale<'pluginManager'>
   & PropsRenderSlots<
     | 'plugins.item' | 'plugins.bundle.config' | 'plugins.row.config' | 'plugins.bundle.activation'
@@ -1608,7 +1609,7 @@ export function PluginManagerPage(props: PluginManagerPageProps): ReactNode {
   }
 
   return (
-    <section className={css.page} data-plugin-panel aria-busy={state.status === 'loading' || refreshing}>
+    <section className={css.page} data-embedded={props.embedded} data-plugin-panel aria-busy={state.status === 'loading' || refreshing}>
       {showsMainList
         ? (
           <header className={css.pageHead} data-window-drag>

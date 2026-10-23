@@ -36,10 +36,10 @@ export function registerBalance(ctx: Context, account: HostObservable<AccountSna
       refresh: controller.refresh, save: controller.save, dismissToast: controller.dismissToast })
     scope.slots.inject('sidebar.footer.action', () => scope.slots.register({ name: 'sidebar.footer.action', id: 'balance', order: -10,
       locale: 'settings.account', inject: injected }, BalanceSidebar))
-    scope.slots.inject('settings.section', () => {
+    scope.slots.inject('settings.budget.item', () => {
       let unregister: (() => void) | undefined
       const sync = (): void => {
-        if (form.getSnapshot().status === 'ready') unregister ??= scope.slots.register({ name: 'settings.section', id: 'balance', order: -9,
+        if (form.getSnapshot().status === 'ready') unregister ??= scope.slots.register({ name: 'settings.budget.item', id: 'balance', order: 0,
           label: () => scope.locale.bind('settings.account')('balance.title'), locale: 'settings.account', inject: injected }, BalanceSettings)
         else { unregister?.(); unregister = undefined }
       }

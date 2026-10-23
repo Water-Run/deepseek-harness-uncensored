@@ -28,6 +28,9 @@
     },
     {
       "path": "../../util/values"
+    },
+    {
+      "path": "../store"
     }
   ]
 }

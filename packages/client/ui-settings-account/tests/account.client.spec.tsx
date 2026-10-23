@@ -54,7 +54,7 @@ function mount(state: Omit<AccountView, 'links'>, copy: typeof en | typeof zh = 
     <AccountSection {...globals} {...operations}
       useAccount={selector => selector(operations.hooks.account.getSnapshot())}
       useTheme={selector => selector(operations.hooks.theme.getSnapshot())}
-      close={() => {}} t={key => key in copy ? copy[key as AccountKey] : key} />
+      t={key => key in copy ? copy[key as AccountKey] : key} />
     {/* The application renders this from `shell.overlay`; the settings page only requests a page. */}
     {platform !== undefined && pages !== undefined
       && <SharedPlatformHost Globals={globals} pages={pages} platform={platform} copy={copy}
@@ -513,7 +513,7 @@ it('opens the authorization link with the active application palette and follows
   const operations = operationsOf({ status: 'signed-out', attempt: { id: 'attempt' as SignInAttemptId, phase: 'waiting-browser', authorizeUrl } })
   const element = (theme: ThemeSnapshot) => <AccountSection {...({} as GlobalStandardProps)} {...operations}
     useAccount={selector => selector(operations.hooks.account.getSnapshot())}
-    useTheme={selector => selector(theme)} close={() => {}} t={key => key in en ? en[key as AccountKey] : key} />
+    useTheme={selector => selector(theme)} t={key => key in en ? en[key as AccountKey] : key} />
   const view = render(element(themeOf('dark')))
   expect(screen.getByRole('link', { name: en.open }).getAttribute('href'))
     .toBe('https://platform.deepseek.com/dsh/authorize?state=example&theme=dark')

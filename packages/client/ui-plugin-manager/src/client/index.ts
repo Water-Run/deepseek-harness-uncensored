@@ -1,18 +1,11 @@
-/**
- * Plugin manager, browser half: the **Plugins** entry of the sidebar and the
- * management page it opens in the main column. The page installs, enables,
- * disables, and removes the bundles of the Host's profile through the
- * `pluginManager` Remote and switches their rows in the profile's user layer.
- * A plugin that carries its own configuration renders it on this page through
- * the slots the page declares (`slot-contract.ts`).
- */
+/** Plugin installation, activation and configuration inside Settings → Plugins. */
 import type {} from '@deepseek-ai/dsh-client-product-analytics/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: the root `main` keyed slot the page registers into, declared by
 // ui-layout with the panel id brand, and the `sidebar.panellist` list the
 // entry registers into, declared by ui-sidebar.
-import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
+import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 // Type-only: the ctx.remote Context merge and the forwarded-event key face.
@@ -22,7 +15,6 @@ import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-plugin-manager/types'
 import { PluginManagerPage } from './PluginManagerPage.tsx'
 import { PluginRefreshToast, type PluginRefreshToastFace } from './PluginRefreshToast.tsx'
-import { PluginsPanelIcon } from './PluginsPanelIcon.tsx'
 import { configLedgerSource } from './config-ledger.ts'
 import { tabLedgerSource } from './tab-ledger.ts'
 import { PluginManagerController } from './manager-store.ts'
@@ -63,15 +55,14 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 /** Dictionary namespace owned by this plugin. */
 export const NS = 'pluginManager'
 
-/** The id shared by the sidebar entry and the main panel it opens. */
-export const PANEL_ID = 'plugins' as MainPanelId
+/** Settings section opened by plugin detail links. */
+export const PANEL_ID = 'plugins'
 
 /** Services required by the sidebar registration and the Remote methods; the inventory says whether the Host manages a profile. */
-export const inject = ['slots', 'locale', 'remote', 'remote.pluginManager', 'remote.pluginInventory', 'remote.pluginRegistryProbe', 'configForms', 'layout']
+export const inject = ['slots', 'locale', 'remote', 'remote.pluginManager', 'remote.pluginInventory', 'remote.pluginRegistryProbe', 'configForms', 'settingsNavigation']
 
 /**
- * Contribute the Plugins entry to the sidebar with the management page it
- * opens, and keep it current on the Host's change events.
+ * Contribute plugin management to Settings and follow the Host's change events.
  * @param ctx - the browser plugin context.
  */
 export function apply(ctx: ClientContext): void {
@@ -95,10 +86,7 @@ export function apply(ctx: ClientContext): void {
     return () => { for (const dispose of disposers) dispose() }
   }, 'ui-plugin-manager: host invalidations')
 
-  // The page is a global panel: it belongs to the profile, not to a Session,
-  // and the sidebar's entry selects it. What is installed and switched on is
-  // the page's own; a plugin's configuration arrives through the slots the
-  // page declares here, so the page never names a configurable plugin.
+  // Installation and navigation remain profile-owned when the Settings dialog unmounts.
   const configLedger = configLedgerSource(ctx)
   const face = controller.inject(configLedger, tabLedgerSource(ctx), text => ctx.locale.resolveText(text))
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
@@ -108,15 +96,15 @@ export function apply(ctx: ClientContext): void {
       dismissNotice: face.dismissNotice,
     }),
   }, PluginRefreshToast))
-  ctx.slots.inject('main', function* () {
+  ctx.slots.inject('settings.plugins.tab', function* () {
     const handle = createNavigationStore(), instance = handle.create()
     const store: typeof handle = { ...handle, create: () => instance }
     yield ctx.slots.register({
-      name: 'main',
-      key: PANEL_ID,
+      name: 'settings.plugins.tab',
+      id: 'manager', order: -10, label: () => t('panel'),
       locale: NS,
       store,
-      inject: () => face,
+      inject: () => ({ ...face, embedded: true }),
       children: {
         'plugins.add.actions': { kind: 'list', scope: 'root' },
         'plugins.tab': { kind: 'list', scope: 'root' },
@@ -129,24 +117,13 @@ export function apply(ctx: ClientContext): void {
         'plugins.detail.section': { kind: 'list', scope: 'root' },
       },
     }, PluginManagerPage)
-    yield ctx.layout.panelInfo.subscribe(() => {
-      if (ctx.layout.panelInfo.getSnapshot().activePanelId !== PANEL_ID) instance.actions.setView({ kind: 'list' })
-    })
     const disposeNavigation = ctx.reflect.provide('pluginNavigation', {
       openBundle: (packageName: string) => {
-        ctx.layout.selectPanel(PANEL_ID)
+        ctx.settingsNavigation.openSection(PANEL_ID)
         instance.actions.setTab('installed')
         instance.actions.setView({ kind: 'package', name: packageName })
       },
     })
     yield () => { void disposeNavigation() }
   })
-  ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
-    name: 'sidebar.panellist',
-    id: PANEL_ID,
-    order: 0,
-    label: () => t('panel'),
-    locale: NS,
-  }, PluginsPanelIcon))
-
 }

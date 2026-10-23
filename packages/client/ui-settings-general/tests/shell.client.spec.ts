@@ -41,7 +41,7 @@ const CHILD_NAMES = Object.keys(CHILD_SPECS) as Array<keyof typeof CHILD_SPECS>
  * ui-settings-models, ui-settings-plugins, and ui-agent-preset. A plugin
  * adding a section changes this list.
  */
-const PRODUCT_SECTIONS: readonly string[] = ['general', 'models', 'plugins', 'agent-presets']
+const PRODUCT_SECTIONS: readonly string[] = ['general', 'models', 'budget', 'agent-presets', 'plugins']
 /** Onboarding steps the web-app roster registers, in coordinator order; both come from ui-settings-models. */
 const PRODUCT_ONBOARDING: readonly { id: string; order: number }[] = [
   { id: 'welcome-notice', order: -100 },
@@ -80,6 +80,22 @@ describe('ui-settings-general shell', () => {
     expect(inject).toEqual(['slots', 'locale', 'connection', 'remote', 'remote.settings', 'configForms', 'shortcuts', 'modules'])
   })
 
+  it('routes plugin links into the Settings dialog and removes navigation on unload', async ({ start }) => {
+    const c = await start()
+    const entry = c.ctx.slots.entries('sidebar.settings')[0]!
+    const handle = entry.store
+    expect(handle && 'create' in handle).toBeTruthy()
+    if (handle === undefined || !('create' in handle)) throw new Error('missing settings store')
+    const opened = vi.fn()
+    const stop = c.ctx.on('settings/section-opened', opened)
+    c.ctx.settingsNavigation.openSection('plugins')
+    expect(handle.create().getSnapshot()).toMatchObject({ open: true, activeId: 'plugins' })
+    expect(opened).toHaveBeenCalledWith('plugins')
+    stop()
+    await c.unload(SELF)
+    expect(c.ctx.get('settingsNavigation')).toBeUndefined()
+  })
+
   it('occupies sidebar.settings, declared by ui-sidebar, and declares every child slot', async ({ start }) => {
     const c = await start()
     expect(c.ctx.slots.entries('sidebar.settings').map(entry => entry.component)).toEqual([SettingsRoot])
@@ -109,17 +125,17 @@ describe('ui-settings-general shell', () => {
     off()
   })
 
-  it('shows Account first only while signed in and removes it on sign-out', async ({ start }) => {
+  it('keeps account controls inside Models across sign-in and sign-out', async ({ start }) => {
     const c = await start()
     const { sections } = injectedOf(c).hooks
     await c.mock.streams.opened('account/watch', 1)
     expect(sections.getSnapshot().map(row => row.id)).toEqual(PRODUCT_SECTIONS)
     c.mock.streams.push('account/watch', { status: 'credential-stored', attempt: null })
     await vi.waitFor(() => {
-      expect(sections.getSnapshot().map(row => row.id)).toEqual(['account', ...PRODUCT_SECTIONS])
+      expect(sections.getSnapshot().map(row => row.id)).toEqual(PRODUCT_SECTIONS)
     })
     c.mock.streams.push('account/watch', { status: 'credential-stored', attempt: null })
-    await vi.waitFor(() => { expect(sections.getSnapshot().filter(row => row.id === 'account')).toHaveLength(1) })
+    await vi.waitFor(() => { expect(c.ctx.slots.entries('settings.models.account')).toHaveLength(1) })
     c.mock.streams.push('account/watch', { status: 'signed-out', attempt: null })
     await vi.waitFor(() => { expect(sections.getSnapshot().map(row => row.id)).toEqual(PRODUCT_SECTIONS) })
   })
