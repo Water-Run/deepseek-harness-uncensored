@@ -12,6 +12,7 @@
 import { globSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import {
+  assertClientBuildEnvironment,
   officialClientBuildEnvironment,
   readClientBuildRecord,
 } from '../client-build-environment.ts'
@@ -355,7 +356,10 @@ class DshFamily extends ReleaseFamily {
 
   /** Require current artifacts from a complete official client build. */
   override verifyBuildArtifacts(root: string): void {
-    readClientBuildRecord(root, officialClientBuildEnvironment(root))
+    const record = readClientBuildRecord(root)
+    assertClientBuildEnvironment(record.environment, officialClientBuildEnvironment(root, {
+      ...process.env, DSH_CLIENT_BUILD_TIME: record.environment.DSH_CLIENT_BUILD_TIME,
+    }))
   }
 
   /**

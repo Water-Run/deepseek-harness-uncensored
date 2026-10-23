@@ -54,11 +54,15 @@ function forkBuildEnvironment(root: string, environment: NodeJS.ProcessEnv): Cli
   const date = spawnSync('git', ['show', '-s', '--format=%cI', repositoryCommitHash(root, environment)], {
     cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
   })
+  const buildTime = environment.DSH_CLIENT_BUILD_TIME ?? new Date().toISOString()
+  if (!Number.isFinite(Date.parse(buildTime)) || new Date(buildTime).toISOString() !== buildTime) {
+    throw new Error('DSH_CLIENT_BUILD_TIME must be an ISO UTC timestamp')
+  }
   return {
     ...OFFICIAL_CLIENT_BUILD_ENVIRONMENT,
     DSH_CLIENT_FORK_VERSION: product.version,
     DSH_CLIENT_UPSTREAM_VERSION: product.upstreamVersion,
-    DSH_CLIENT_BUILD_TIME: new Date().toISOString(),
+    DSH_CLIENT_BUILD_TIME: buildTime,
     DSH_CLIENT_PURGE_COMMIT: product.purge.commit,
     DSH_CLIENT_PURGE_DATE: product.purge.commitTime,
     ...(date.status === 0 ? { DSH_CLIENT_COMMIT_DATE: date.stdout.trim() } : {}),

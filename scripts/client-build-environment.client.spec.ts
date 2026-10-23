@@ -69,6 +69,16 @@ function repositoryFixture(version = '1.2.3-rc.4'): string {
 }
 
 describe('client build environment', () => {
+  it('preserves a supplied fork build timestamp and rejects invalid values', () => {
+    const root = repositoryFixture()
+    write(join(root, 'product.json'), JSON.stringify({ version: '0.1.0', upstreamVersion: '1.2.3-rc.4',
+      purge: { commit: COMMIT_HASH, commitTime: '2026-10-22T00:00:00.000Z' } }))
+    write(join(root, 'apps/desktop/package.json'), JSON.stringify({ version: '0.1.0' }))
+    write(join(root, 'apps/cli/package.json'), JSON.stringify({ dshProductVersion: '0.1.0' }))
+    const time = '2026-10-24T00:00:00.000Z'
+    expect(officialClientBuildEnvironment(root, { DSH_CLIENT_BUILD_TIME: time }).DSH_CLIENT_BUILD_TIME).toBe(time)
+    expect(() => officialClientBuildEnvironment(root, { DSH_CLIENT_BUILD_TIME: 'invalid' })).toThrow('ISO UTC')
+  })
   it('requires an exact public environment for a named artifact profile', () => {
     const expected = {
       DSH_CLIENT_BUILD_PROFILE: 'official',

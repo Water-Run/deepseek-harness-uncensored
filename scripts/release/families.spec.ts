@@ -211,7 +211,8 @@ describe('release families', () => {
   it('requires a current official client build only for dsh artifacts', () => {
     const dsh = releaseFamily('dsh')
     const vendor = releaseFamily('vendor')
-    const officialEnvironment = officialClientBuildEnvironment(resolve(import.meta.dirname, '../..'))
+    const officialEnvironment = { DSH_CLIENT_BUILD_PROFILE: 'official', DSH_CLIENT_TITLE: 'DeepSeek Harness Uncensored',
+      DSH_CLIENT_VERSION: '1.2.3', DSH_CLIENT_COMMIT_HASH: '0123456' }
     vi.stubEnv('DSH_CLIENT_COMMIT_HASH', officialEnvironment.DSH_CLIENT_COMMIT_HASH)
     const official = buildFixture(officialEnvironment)
     const defaultBuild = buildFixture({})
@@ -225,6 +226,24 @@ describe('release families', () => {
 
     write(join(official, 'packages/client/example/lib/client.js'), 'module.exports = { changed: true }\n')
     expect(() => { dsh.verifyBuildArtifacts(official) }).toThrow(/artifacts differ/)
+  })
+
+  it('verifies fork artifacts using their recorded compile time and current product metadata', () => {
+    const root = buildFixture({ DSH_CLIENT_VERSION: '1.2.3' })
+    vi.stubEnv('DSH_CLIENT_COMMIT_HASH', '0123456')
+    write(join(root, 'product.json'), JSON.stringify({ version: '0.1.0', upstreamVersion: '1.2.3',
+      purge: { commit: '0123456', commitTime: '2026-10-22T00:00:00.000Z' } }))
+    write(join(root, 'apps/desktop/package.json'), JSON.stringify({ version: '0.1.0' }))
+    write(join(root, 'apps/cli/package.json'), JSON.stringify({ dshProductVersion: '0.1.0' }))
+    const environment = officialClientBuildEnvironment(root, {
+      DSH_CLIENT_COMMIT_HASH: '0123456', DSH_CLIENT_BUILD_TIME: '2026-10-23T00:00:00.000Z',
+    })
+    writeClientBuildRecord(root, environment)
+    vi.stubEnv('DSH_CLIENT_BUILD_TIME', '2026-10-24T00:00:00.000Z')
+    const dsh = releaseFamily('dsh')
+    expect(() => dsh.verifyBuildArtifacts(root)).not.toThrow()
+    writeClientBuildRecord(root, { ...environment, DSH_CLIENT_FORK_VERSION: '0.9.0' })
+    expect(() => dsh.verifyBuildArtifacts(root)).toThrow('DSH_CLIENT_FORK_VERSION')
   })
 
   it('publishes a dependency before its consumer, and orders ties by name', () => {
