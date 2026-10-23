@@ -108,9 +108,25 @@ export class SessionProjectionCache extends Service {
 
   private table?: KvTable<SessionId, CheckpointRecord>
   private readonly dirty = new Map<Session, DirtyState>()
+  private readonly deleted = new Set<SessionId>()
 
   constructor(ctx: Context, public config: Config) {
     super(ctx, 'sessionProjectionCache')
+  }
+
+  /**
+   * Purge deleted Session checkpoints and suppress delayed write-back for those identities.
+   * @param ids - Sessions whose durable logs have been removed.
+   * @returns Completion after the cache table's queued writes and deletes settle.
+   */
+  async forgetSessions(ids: readonly SessionId[]): Promise<void> {
+    for (const id of ids) this.deleted.add(id)
+    for (const [session, state] of this.dirty) {
+      if (!this.deleted.has(session.id)) continue
+      if (state.timer !== undefined) clearTimeout(state.timer)
+      this.dirty.delete(session)
+    }
+    for (const id of ids) await this.requireTable().delete(id)
   }
 
   /** Open the domain and install the write-behind listeners. */
@@ -134,6 +150,7 @@ export class SessionProjectionCache extends Service {
    * @returns the identity-matching record, or `undefined` (absent or unrelated).
    */
   private recordFor(id: SessionId, expected: CurrentCheckpointIdentity): CheckpointRecord | undefined {
+    if (this.deleted.has(id)) return undefined
     const record = this.requireTable().get(id)
     if (record === undefined) return undefined
     return identityMatches(record.identity, expected) ? record : undefined
@@ -254,6 +271,7 @@ export class SessionProjectionCache extends Service {
    * @returns resolution after durability and event emission.
    */
   async write(session: Session): Promise<void> {
+    if (this.deleted.has(session.id)) return
     const rows = this.ctx.sessionProjections.checkpoint(session)
     this.markClean(session)
     // Durability barrier: the checkpoint cut was taken above, so flushing
@@ -387,6 +405,7 @@ export class SessionProjectionCache extends Service {
 
   /** Replace one session's stored record with its log identity and a detached snapshot of `rows`. */
   private async put(id: SessionId, identity: CheckpointIdentity, rows: ProjectionCheckpoint): Promise<void> {
+    if (this.deleted.has(id)) return
     const detached = snapshotJsonValue(rows)
     if (detached === undefined) {
       throw new TypeError('projection checkpoint is not losslessly JSON-serializable (a unit state violates the plain-JSON contract)')

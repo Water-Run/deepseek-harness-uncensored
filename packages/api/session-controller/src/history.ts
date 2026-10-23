@@ -40,7 +40,7 @@ const MESSAGE_TYPES = new Set(['user/message', 'assistant/message'])
 
 /** Implements cold-safe history operations delegated by the Session Controller. */
 export class SessionHistoryController {
-  private readonly closeFollowers = new Set<() => void>()
+  private readonly closeFollowers = new Map<SessionId, Set<() => void>>()
   private readonly assistantStreams = new Map<SessionId, SessionAssistantStreamAccumulator>()
 
   /**
@@ -63,9 +63,20 @@ export class SessionHistoryController {
       this.assistantStreams.delete(agent.session.id)
     }, { global: true })
     ctx.effect(() => () => {
-      for (const close of this.closeFollowers) close()
+      for (const entries of this.closeFollowers.values()) for (const close of entries) close()
       this.closeFollowers.clear()
     }, 'session-controller.history')
+  }
+
+  /**
+   * Stop history streams before deleting their stored source.
+   * @param ids - Sessions being deleted.
+   */
+  closeSessions(ids: readonly SessionId[]): void {
+    for (const id of ids) {
+      for (const close of this.closeFollowers.get(id) ?? []) close()
+      this.assistantStreams.delete(id)
+    }
   }
 
   /**
@@ -142,7 +153,9 @@ export class SessionHistoryController {
       follower.closed = true
       notify()
     }
-    this.closeFollowers.add(close)
+    const followers = this.closeFollowers.get(target) ?? new Set<() => void>()
+    followers.add(close)
+    this.closeFollowers.set(target, followers)
     const disposeEvent = this.ctx.on('session/event', (session, event) => {
       if (session.id !== target) return
       buffered.pushBack({ type: 'event', event })
@@ -232,7 +245,8 @@ export class SessionHistoryController {
         yield entryFor(item.event)
       }
     } finally {
-      this.closeFollowers.delete(close)
+      followers.delete(close)
+      if (followers.size === 0 && this.closeFollowers.get(target) === followers) this.closeFollowers.delete(target)
       signal.removeEventListener('abort', onAbort)
       disposeCreated()
       disposeEvent()

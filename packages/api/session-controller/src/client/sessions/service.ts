@@ -396,6 +396,13 @@ export class ClientSessions implements ISessions {
   }
 
   /**
+   * Retire the local history and catalog entry after permanent deletion.
+   * @param sessionId - Deleted identity.
+   * @returns Completion after its history transport stops.
+   */
+  handleSessionDeleted(sessionId: SessionId): Promise<void> { return this.manager.handleSessionDeleted(sessionId) }
+
+  /**
    * Apply one remotely forwarded running-state change.
    * @param args - Session identity and current Agent running state.
    */

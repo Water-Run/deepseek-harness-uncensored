@@ -9,6 +9,24 @@
 import { SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 
+/** The configured persistence provider has no permanent deletion implementation. */
+export class SessionDeletionUnsupportedError extends Error {
+  /** @param sessionId - Requested Session identity. */
+  constructor(readonly sessionId: SessionId) {
+    super('The configured session storage does not support deletion.')
+    this.name = 'SessionDeletionUnsupportedError'
+  }
+}
+
+/** The Session is absent from history, but deleting its retired files has not completed. */
+export class SessionDeletionIncompleteError extends Error {
+  /** @param sessionId - Retired Session identity. @param cause - Cleanup failure retained for diagnostics. */
+  constructor(readonly sessionId: SessionId, cause: unknown) {
+    super(`Session "${sessionId}" was removed from history, but file cleanup failed. Retry deletion to finish.`, { cause })
+    this.name = 'SessionDeletionIncompleteError'
+  }
+}
+
 /** The requested Session identity has no durable log visible to this caller. */
 export class SessionPersistenceNotFoundError extends Error {
   /** @param sessionId - absent durable Session identity. */

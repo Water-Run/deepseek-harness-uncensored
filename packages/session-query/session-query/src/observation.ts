@@ -78,6 +78,7 @@ interface PreparedEntry {
  */
 export class SessionObservationReader {
   private readonly cache = new Map<SessionId, PreparedEntry>()
+  private readonly deleted = new Set<SessionId>()
 
   /**
    * @param ctx - context carrying Session and optional persistence/projection services.
@@ -87,6 +88,14 @@ export class SessionObservationReader {
     private readonly ctx: Context,
     private readonly cacheCapacity: number = SESSION_QUERY_DEFAULT_PREPARED_SESSION_CACHE_SIZE,
   ) {}
+
+  /**
+   * Retire prepared observations after permanent Session deletion.
+   * @param ids - Deleted identities; future reads and delayed preparations must not reuse them.
+   */
+  forget(ids: readonly SessionId[]): void {
+    for (const id of ids) { this.deleted.add(id); this.cache.delete(id) }
+  }
 
   /**
    * Observe one live-preferred Session and retain a cold preparation until disposal.
@@ -101,6 +110,7 @@ export class SessionObservationReader {
   ): Promise<SessionObservation> {
     const { signal, projectionMode = 'all' } = options
     for (;;) {
+      if (this.deleted.has(sessionId)) throw notFound(sessionId)
       throwIfObservationAborted(signal)
       const live = this.ctx.sessions.get(sessionId)
       if (live !== undefined) return this.live(live, projectionMode)
@@ -113,6 +123,7 @@ export class SessionObservationReader {
       let entry = this.cachedEntry(persistence.identity, sessionId, snapshot.revision)
       if (entry === undefined) {
         const loaded = await this.loadSource(persistence, sessionId, signal)
+        if (this.deleted.has(sessionId)) throw notFound(sessionId)
         throwIfObservationAborted(signal)
         const attached = this.ctx.sessions.get(sessionId)
         if (attached !== undefined) return this.live(attached, projectionMode)

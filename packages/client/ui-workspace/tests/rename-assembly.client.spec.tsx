@@ -22,8 +22,11 @@ import { SessionSeq, type SessionId } from '@deepseek-ai/dsh-session/types'
 import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { RemoteError, SlotTestRuntime, usePinnedBrowserLanguages } from '@deepseek-ai/dsh-client-test-runtime'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts'
 import { MenuItemButton } from '@deepseek-ai/dsh-client-ui-primitives'
 import { apply, inject } from '@deepseek-ai/dsh-client-ui-workspace/client'
+import { DeleteSessionController } from '../src/client/session-actions/delete-controller.ts'
 
 // The service reads its initial locale from the browser; these specs assert
 // the shipped Chinese copy, so they state the browser they assume.
@@ -83,6 +86,50 @@ async function seedWorkspace(runtime: SlotTestRuntime): Promise<void> {
 }
 
 describe('session rename through the assembled browser', () => {
+  it('keeps delete confirmation alive after its row disappears and sends only after confirmation', async () => {
+    const runtime = await createRuntime()
+    const finish = Promise.withResolvers<undefined>()
+    onTestFinished(async () => { finish.resolve(undefined); await runtime.dispose() })
+    runtime.ctx.effect(() => runtime.ctx.locale.register('common', { zh: commonZh, en: commonEn }))
+    localStorage.setItem('dsh.sessions.current', JSON.stringify({ sessionId: SID }))
+    await runtime.sessions.add({ id: SID, snapshot: { blank: false },
+      summary: { title: '删除验收', displayTitle: '删除验收', cwd: '/w/alpha', blank: false } })
+    await runtime.sessions.retainFor(runtime.ctx, SID, { source: 'mainView' }).ready
+    await seedWorkspace(runtime)
+    const remove = vi.fn(async ({ sessionId }: { sessionId: SessionId }) => {
+      await finish.promise
+      await runtime.sessions.remove(sessionId)
+      return { ok: true as const, value: { deletedSessionIds: [sessionId] } }
+    })
+    runtime.remote.provideNamespaces({ session: { delete: remove } })
+    await declareFrame(runtime)
+    await runtime.mount({ inject: [...inject], apply })
+    const view = runtime.renderRoot()
+    const openDelete = async () => {
+      const row = (await view.findByText('删除验收')).closest('[role="treeitem"]') as HTMLElement
+      fireEvent.click(within(row).getByLabelText('会话“删除验收”的操作'))
+      fireEvent.click(view.getByRole('menuitem', { name: '删除对话', hidden: true }))
+    }
+    await openDelete()
+    expect(view.getByRole('dialog').textContent).toContain('工作区文件保留')
+    expect(remove).not.toHaveBeenCalled()
+    fireEvent.click(view.getByRole('button', { name: '取消' }))
+    expect(remove).not.toHaveBeenCalled()
+    await openDelete()
+    fireEvent.click(view.getByRole('button', { name: '停止并删除' }))
+    expect(remove).toHaveBeenCalledOnce()
+    expect(remove).toHaveBeenCalledWith({ sessionId: SID })
+    expect(view.getByRole('button', { name: '停止并删除' })).toHaveProperty('disabled', true)
+    const deletion = runtime.ctx.slots.entries('shell.overlay').find(entry => entry.options.id === 'session-delete')!
+    const controller = deletion.inject!().controller
+    if (!(controller instanceof DeleteSessionController)) throw new Error('Deletion controller was not injected.')
+    await act(async () => { finish.resolve(undefined); await controller.confirm() })
+    await waitFor(() => { expect(view.queryByRole('dialog')).toBeNull() })
+    expect(view.queryByText('删除验收')).toBeNull()
+    expect(view.getByText('对话已删除')).toBeTruthy()
+    await runtime.dispose()
+  })
+
   it('renders independently registered Session actions in declared order', async () => {
     const runtime = await createRuntime()
     const selected = vi.fn()
@@ -123,7 +170,7 @@ describe('session rename through the assembled browser', () => {
     const trigger = within(row as HTMLElement).getByLabelText('会话“Persisted title”的操作')
     fireEvent.click(trigger)
     expect(view.getAllByRole('menuitem').map(item => item.textContent)).toEqual([
-      '置顶会话', '重命名', '分叉会话', '归档会话', '复制 Session ID', 'Export action', 'Last action',
+      '置顶会话', '重命名', '分叉会话', '归档会话', '复制 Session ID', '删除对话', 'Export action', 'Last action',
     ])
     expect(view.getAllByRole('separator')).toHaveLength(1)
     const last = view.getByRole('menuitem', { name: 'Last action' })

@@ -32,11 +32,13 @@ export function registerAsides(ctx: Context): void {
   ctx.inject(['slots', 'commandUi', 'resources', 'sidebarRight', 'sidebarRightTabs', 'remote.session'], (scope) => {
     const t = scope.locale.bind('command')
     const requests = new Set<Promise<SessionId>>()
+    const parents = new Map<SessionId, SessionId>()
     let closed = false
     scope.effect(() => async () => { closed = true; await Promise.allSettled([...requests]) }, 'conversation: aside requests')
     const requestChild = async (parent: SessionId, kind: 'side' | 'btw'): Promise<SessionId> => {
       const result = await scope.remote.session.aside({ sessionId: parent, kind })
       if (!result.ok) throw result.error
+      parents.set(result.value.sessionId, parent)
       await scope.sessions.refresh()
       return result.value.sessionId
     }
@@ -55,6 +57,17 @@ export function registerAsides(ctx: Context): void {
       if (!result.ok) throw result.error
     })
     scope.effect(() => () => inline.dispose(), 'conversation: inline questions')
+    scope.effect(() => scope.remote.$on('api-session/deleted', (id) => {
+      inline.hide(id)
+      for (const [parent, state] of inline.state.getSnapshot()) {
+        if (state.status === 'ready' && state.reference.sessionId === id) inline.hide(parent)
+      }
+      const parent = parents.get(id)
+      for (const tab of scope.sidebarRight.openTabs.getSnapshot()) {
+        if (tab.sessionId === id || (tab.sessionId === parent && tab.kind === 'aside')) scope.sidebarRight.close(tab.tabId)
+      }
+      parents.delete(id)
+    }), 'conversation: deleted aside resources')
     const provider: ResourceProvider<'aside'> = {
       protocol: 'aside',
       async *open(address, { signal }) {
@@ -70,7 +83,10 @@ export function registerAsides(ctx: Context): void {
         const reference = scope.sessions.retain(id, { source: 'aside', signal })
         try {
           yield { ok: true, value: { reference } }
-          if (!signal.aborted) await new Promise<void>(resolve => signal.addEventListener('abort', () => resolve(), { once: true }))
+          await new Promise<void>((resolve) => {
+            if (signal.aborted) resolve()
+            else signal.addEventListener('abort', () => { resolve() }, { once: true })
+          })
         } finally { reference.release() }
       },
     }
@@ -86,7 +102,7 @@ export function registerAsides(ctx: Context): void {
     scope.slots.inject('conversation.input.dock', () => scope.slots.register({ name: 'conversation.input.dock', id: 'btw', order: -20, locale: 'command',
       children: { 'conversation.input.aside': { kind: 'single', scope: 'session' } },
       inject: (parent: SessionId): InlineAsideInjected => ({
-        hooks: { inlineAside: inline.state }, close: () => inline.hide(parent),
+        hooks: { inlineAside: inline.state }, close: () => { inline.hide(parent) },
       }),
     }, InlineAsidePanel))
     scope.slots.inject('conversation.input.aside', () => scope.slots.register({ name: 'conversation.input.aside', locale: 'command', inject: () => ({ kind: 'btw' as const }) }, AsideConversation))

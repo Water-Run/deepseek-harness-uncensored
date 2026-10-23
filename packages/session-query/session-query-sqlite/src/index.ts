@@ -5,6 +5,7 @@
  */
 
 import { createHash, randomUUID } from 'node:crypto'
+import { stat } from 'node:fs/promises'
 import { SESSION_FORMAT_VERSION, SessionSeq } from '@deepseek-ai/dsh-session'
 import type { DatabaseSync } from 'node:sqlite'
 import { Context, Service, type Fiber } from '@deepseek-ai/cordis'
@@ -100,8 +101,8 @@ export interface Config extends SessionQueryConfig {
    * Open the SQLite module and handle at service activation or the first
    * search, or `never` to disable full-text search: the inherited exact
    * reads, filters, and traces stay available, while `searchSessions` and
-   * `searchEvents` fail with `SESSION_QUERY_SEARCH_DISABLED` and SQLite is
-   * never imported or opened. Defaults to `startup`.
+   * `searchEvents` fail with `SESSION_QUERY_SEARCH_DISABLED`. Explicit deletion
+   * can still open an existing index to remove its stored records. Defaults to `startup`.
    */
   openAt?: OpenAt
   /** SQLite journal mode. Defaults to `wal`. */
@@ -321,6 +322,34 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
           offset: cursorOffset,
         }), offset),
       }
+    })
+  }
+
+  /**
+   * Purge deleted identities from prepared observations and both SQLite indexes.
+   * Explicit deletion may open an existing index even when automatic search is disabled.
+   * @param ids - Deleted Session identities.
+   * @returns Completion after the index transaction commits.
+   */
+  override async forgetSessions(ids: readonly SessionId[]): Promise<void> {
+    await super.forgetSessions(ids)
+    if (ids.length === 0) return
+    await this._serialized(undefined, async () => {
+      if (this.config.openAt === 'never' && this._db === undefined) {
+        if (this.config.path === ':memory:') return
+        try { await stat(this.config.path) }
+        catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return; throw error }
+      }
+      await this._ensureReady(undefined)
+      const db = this._requireDb()
+      db.exec('BEGIN IMMEDIATE')
+      try {
+        for (const id of ids) { this._deleteSession('persisted', id); this._deleteSession('live', id) }
+        db.prepare('UPDATE search_state SET global_generation = global_generation + 1 WHERE singleton = 1').run()
+        db.exec('COMMIT')
+      } catch (error) { db.exec('ROLLBACK'); throw error }
+      this._globalGeneration = this._mainGeneration()
+      this._localGeneration++
     })
   }
 

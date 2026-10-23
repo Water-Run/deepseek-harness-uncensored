@@ -10,6 +10,7 @@ import { Context, Service } from '@deepseek-ai/cordis'
 import type { SessionEvent, SessionHeader, SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session'
 import type { SessionHandle, SessionAccess } from './handle.ts'
 import type { SessionPersistenceRevision } from './revision.ts'
+import { SessionDeletionUnsupportedError } from './errors.ts'
 
 // Re-export the metadata vocabulary so Consumers import it from the Service Definition.
 export type { SessionHeader } from '@deepseek-ai/dsh-session'
@@ -29,6 +30,8 @@ export {
   SessionHandleClosedError,
   SessionOwnershipLostError,
   SessionPersistenceCorruptionError,
+  SessionDeletionUnsupportedError,
+  SessionDeletionIncompleteError,
   SessionPersistenceNotFoundError,
   SessionReadOnlyError,
   sessionFormatVersionRefusal,
@@ -112,6 +115,14 @@ declare module '@deepseek-ai/cordis' {
   interface Context {
     sessionPersistence: SessionPersistence
   }
+  interface Events {
+    /**
+     * A Session was durably removed from the persistence catalog; retired-file cleanup may still be pending.
+     * @mode emit
+     * @param sessionId - Removed Session identity.
+     */
+    'session-persistence/deleted'(sessionId: SessionId): void
+  }
 }
 
 /**
@@ -141,6 +152,26 @@ export abstract class SessionPersistence extends Service {
   constructor(ctx: Context) {
     super(ctx, 'sessionPersistence')
   }
+
+  /** Whether this provider can permanently delete a group after acquiring all of its writers. */
+  get supportsDeletion(): boolean { return false }
+
+  /**
+   * Serialize native child publication and conversation-family deletion across processes sharing this storage.
+   * Callers must materialize new children before returning; nested calls are unsupported.
+   * Providers without deletion support need no exclusion and run the operation directly.
+   * @param _sessionId - Conversation identity used for contention errors.
+   * @param operation - Entire discovery/publication or deletion transaction.
+   * @returns The operation result after releasing exclusion.
+   */
+  withCatalogMutation<T>(_sessionId: SessionId, operation: () => Promise<T>): Promise<T> { return operation() }
+
+  /**
+   * List permanently retired identities for idempotent derived-index cleanup after restart.
+   * These records contain only identities, never conversation content.
+   * @returns Durable deletion identities; empty for providers without deletion support.
+   */
+  deletedSessionIds(): Promise<readonly SessionId[]> { return Promise.resolve([]) }
 
   /**
    * Create a new stored session and take its write ownership.
@@ -201,6 +232,21 @@ export abstract class SessionPersistence extends Service {
    * @returns one snapshot per stored session.
    */
   abstract list(options?: SessionPersistenceListOptions): Promise<readonly SessionPersistenceSnapshot[]>
+
+  /**
+   * Permanently delete Sessions after their live owners have released the writers.
+   * Providers without deletion reject explicitly. A successful delete leaves no readable Session
+   * or Session-owned files. Providers acquire every target's writer exclusion before removing any target.
+   * Already absent identities are omitted. Workspace files are never included.
+   * @param ids - Session identities, in the desired deletion order.
+   * @returns Identities whose stored or retired files were removed.
+   * @throws SessionAlreadyOwnedError while a writer still holds the Session.
+   * @throws SessionDeletionIncompleteError after catalog removal if retired-file cleanup fails; retry is safe.
+   */
+  deleteSessions(ids: readonly SessionId[]): Promise<readonly SessionId[]> {
+    if (ids.length === 0) return Promise.resolve([])
+    return Promise.reject(new SessionDeletionUnsupportedError(ids[0] as SessionId))
+  }
 }
 
 export default SessionPersistence

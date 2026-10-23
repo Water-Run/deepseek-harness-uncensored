@@ -23,7 +23,7 @@ import pLimit, { type LimitFunction } from 'p-limit'
 import {
   SessionPersistence, SessionPersistenceRevision, SessionFormatUnsupportedError,
   SessionPersistenceCorruptionError,
-  SessionAlreadyExistsError, SessionPersistenceNotFoundError,
+  SessionAlreadyExistsError, SessionAlreadyOwnedError, SessionPersistenceNotFoundError,
   assertStoredId, materializeCreateHeader, sessionFormatVersionRefusal, validateStoredEvents,
   type SessionAccess, type SessionHandle,
   type SessionHandleReadResult,
@@ -34,6 +34,7 @@ import {
 } from '@deepseek-ai/dsh-session-persistence'
 import { JsonlBackendTracker, JsonlSessionHandle, type StorageHandleState } from './storage.ts'
 import { SessionWriteLease } from './lease.ts'
+import { DELETION_DIRECTORIES, deleteSessionDirectories, isRetiredSession, readRetiredSessions, recoverSessionDeletions, withCatalogMutation } from './deletion.ts'
 import { SESSION_FORMAT_VERSION, SessionId as makeSessionId, SessionLogOffset } from '@deepseek-ai/dsh-session'
 import type { SessionEvent, SessionId, SessionHeader, SessionLogOffset as SessionLogOffsetType } from '@deepseek-ai/dsh-session'
 import {
@@ -108,7 +109,13 @@ export interface Config {
    * fingerprints). Defaults to 3.
    */
   listConcurrency?: number
+  /** Bounded filesystem sharing retries while deleting retired Session files. */
+  deleteRetries?: number
+  /** Delay between physical cleanup retries, in milliseconds. */
+  deleteRetryDelayMs?: number
 }
+
+type ResolvedConfig = Config & { deleteRetries: number; deleteRetryDelayMs: number }
 
 /** Logical header paired with the catalog's selected physical-generation classification. */
 interface GenerationHeader {
@@ -310,10 +317,12 @@ class JsonlSessionPersistence extends SessionPersistence {
    * revision guard.
    */
   private readonly coldLogMemo = new Map<SessionId, StoredLog>()
+  private readonly deleting = new Set<SessionId>()
+  private readonly deleted = new Set<SessionId>()
   /** One joinable decode/migration operation per selected historical Session file revision. */
   private readonly migrationPreparations = new Map<SessionId, MigrationPreparation>()
 
-  constructor(ctx: Context, public config: Config, private readonly tracker: JsonlBackendTracker) {
+  constructor(ctx: Context, public config: ResolvedConfig, private readonly tracker: JsonlBackendTracker) {
     super(ctx)
     /* v8 ignore next 5 -- generated catalog and Session source share one build-time version owner. */
     if (sessionFormatCatalog.currentVersion !== SESSION_FORMAT_VERSION) {
@@ -348,6 +357,18 @@ class JsonlSessionPersistence extends SessionPersistence {
 
   // --- SessionPersistence service API ---
 
+  override get supportsDeletion(): boolean { return true }
+
+  override withCatalogMutation<T>(id: SessionId, operation: () => Promise<T>): Promise<T> {
+    return withCatalogMutation(this.root, id, operation)
+  }
+
+  override async deletedSessionIds(): Promise<readonly SessionId[]> {
+    const ids = await readRetiredSessions(this.root)
+    for (const id of ids) this.deleted.add(id)
+    return ids
+  }
+
   /**
    * Create a new stored session and take its write ownership. The session is
    * visible to this process immediately; the physical artifact appears on the
@@ -360,6 +381,8 @@ class JsonlSessionPersistence extends SessionPersistence {
   async create(header: SessionHeader, options?: SessionPersistenceCreateOptions): Promise<SessionHandle> {
     options?.signal?.throwIfAborted()
     const snapshot = materializeCreateHeader(header)
+    if (await isRetiredSession(this.root, snapshot.id)) this.deleted.add(snapshot.id)
+    if (this.deleted.has(snapshot.id)) throw new SessionAlreadyExistsError(snapshot.id)
     // Fail fast on a seeded/cut mismatch with the exact refusal the header
     // line encoder enforces at materialization.
     toHeaderLine(snapshot, options?.inheritedEventCount)
@@ -374,6 +397,7 @@ class JsonlSessionPersistence extends SessionPersistence {
     // another process to contend over, so the handle acquires the lock right
     // before its first log bytes publish (ensureLease); an unmaterialized
     // session leaves no filesystem footprint at all.
+    if (this.deleted.has(snapshot.id)) throw new SessionAlreadyExistsError(snapshot.id)
     this.tracker.registerCreated(snapshot, inheritedEventCount)
     return this.tracker.adopt(new JsonlSessionHandle(this, snapshot.id, snapshot, 'write', { cursor: 0, materialized: false, inheritedEventCount }))
   }
@@ -386,12 +410,14 @@ class JsonlSessionPersistence extends SessionPersistence {
    * @returns the open handle.
    */
   async open(id: SessionId, access: SessionAccess, options?: SessionPersistenceOpenOptions): Promise<SessionHandle> {
+    this.assertReadable(id)
     options?.signal?.throwIfAborted()
     await this.ensureRootEncoding()
     options?.signal?.throwIfAborted()
     const pending = this.tracker.pendingOf(id)
     if (access === 'read') {
       if (pending !== undefined) {
+        this.assertReadable(id)
         return this.tracker.adopt(new JsonlSessionHandle(this, id, pending.header, 'read', { cursor: 0, materialized: false, inheritedEventCount: pending.inheritedEventCount }))
       }
       let stored: StoredLog
@@ -416,6 +442,7 @@ class JsonlSessionPersistence extends SessionPersistence {
           inheritedEventCount: stored.inheritedEventCount,
         }
       }
+      this.assertReadable(id)
       return this.tracker.adopt(new JsonlSessionHandle(this, id, stored.meta, 'read', state))
     }
     // A pending entry always belongs to an ACTIVE creator handle (close erases
@@ -473,6 +500,50 @@ class JsonlSessionPersistence extends SessionPersistence {
     return this.tracker.flushAll()
   }
 
+  private assertReadable(id: SessionId): void {
+    if (this.deleted.has(id)) throw new SessionPersistenceNotFoundError(id)
+    if (this.deleting.has(id)) throw new SessionAlreadyOwnedError(id)
+  }
+
+  /**
+   * Remove stored Sessions after acquiring every target's writer exclusion.
+   * @param ids - Stored identities; workspace contents are outside this operation.
+   * @returns Identities whose stored or retired files were removed.
+   */
+  override async deleteSessions(ids: readonly SessionId[]): Promise<readonly SessionId[]> {
+    const targets = [...new Set(ids)]
+    const claimed: SessionId[] = []
+    const policy = { maxRetries: this.config.deleteRetries, retryDelay: this.config.deleteRetryDelayMs }
+    try {
+      for (const id of targets) {
+        encodeSegment(id)
+        this.tracker.claimWrite(id)
+        this.deleting.add(id)
+        claimed.push(id)
+      }
+      await this.ensureRootEncoding()
+      return await deleteSessionDirectories(this.root, targets, async (id) => {
+        const log = await this.findLog(id)
+        return log === undefined ? undefined : dirname(log.currentPath)
+      }, async (retiredIds) => {
+        for (const id of retiredIds) {
+          const preparation = this.migrationPreparations.get(id)
+          preparation?.controller.abort()
+          if (preparation !== undefined) await Promise.allSettled([preparation.promise])
+          await Promise.all([...this.tracker.openHandles].filter(handle => handle.id === id).map(handle => handle.close()))
+          this.coldLogMemo.delete(id)
+        }
+      }, (id) => {
+        this.deleted.add(id)
+        this.coldLogMemo.delete(id)
+        try { this.ctx.emit('session-persistence/deleted', id) }
+        catch (error) { this.ctx.logger.warn('session-persistence: deletion observer failed', error) }
+      }, policy)
+    } finally {
+      for (const id of claimed) { this.deleting.delete(id); this.tracker.releaseClaim(id) }
+    }
+  }
+
   /**
    * Observe one stored session without reading its event log.
    * @param id - the stored session to observe.
@@ -484,6 +555,7 @@ class JsonlSessionPersistence extends SessionPersistence {
     id: SessionId,
     options?: SessionPersistenceStatOptions,
   ): Promise<SessionPersistenceSnapshot | undefined> {
+    if (this.deleted.has(id)) return undefined
     options?.signal?.throwIfAborted()
     await this.ensureRootEncoding()
     options?.signal?.throwIfAborted()
@@ -498,6 +570,7 @@ class JsonlSessionPersistence extends SessionPersistence {
     try {
       const identity = await stat(selected.sourcePath, { bigint: true })
       options?.signal?.throwIfAborted()
+      if (this.deleted.has(id)) return undefined
       return {
         ...metadata,
         revision: selected.sourceVersion < SESSION_FORMAT_VERSION
@@ -558,7 +631,7 @@ class JsonlSessionPersistence extends SessionPersistence {
       if (!listed.has(id)) snapshots.push({ header: entry.header, revision: entry.revision })
     }
     signal?.throwIfAborted()
-    return snapshots
+    return snapshots.filter(snapshot => !this.deleted.has(snapshot.header.id))
   }
 
   // --- handle-facing storage internals (package-private via the handle class below) ---
@@ -1671,7 +1744,8 @@ class JsonlSessionPersistence extends SessionPersistence {
       signal?.throwIfAborted()
       const entries = await readdir(this.root, { withFileTypes: true })
       signal?.throwIfAborted()
-      return entries.filter(e => e.isDirectory()).map(e => join(this.root, e.name))
+      return entries.filter(e => e.isDirectory() && !DELETION_DIRECTORIES.some(name => name === e.name))
+        .map(e => join(this.root, e.name))
     } catch (error) {
       // Only an absent root means no sessions; rethrow every other I/O failure.
       if (isENOENT(error)) return []
@@ -1805,10 +1879,12 @@ class JsonlSessionPersistence extends SessionPersistence {
 export const name = 'session-persistence-jsonl'
 
 /** Loader schema for the backend's root, physical encoding, and listing concurrency. */
-export const Config: z<Config> = z.object({
+export const Config: z<Config, ResolvedConfig> = z.object({
   root: z.string().required(),
   compression: JsonlCompressionSchema,
   listConcurrency: z.natural().min(1).default(DEFAULT_LIST_CONCURRENCY),
+  deleteRetries: z.natural().max(20).default(5),
+  deleteRetryDelayMs: z.natural().min(1).max(1000).default(100),
 })
 
 /**
@@ -1820,6 +1896,8 @@ export const Config: z<Config> = z.object({
  * @returns resolves when the service is ready.
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
+  const resolved = Config(config)
+  await recoverSessionDeletions(resolve(resolved.root), { maxRetries: resolved.deleteRetries, retryDelay: resolved.deleteRetryDelayMs })
   let service!: Fiber
   // Keep this generator synchronous so thenable disposers are registered as functions, not awaited.
   ctx.effect(function* () {
@@ -1828,7 +1906,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     service = ctx.plugin({
       name: 'session-persistence-jsonl-service',
       apply(serviceCtx: Context) {
-        new JsonlSessionPersistence(serviceCtx, config, tracker)
+        new JsonlSessionPersistence(serviceCtx, resolved, tracker)
       },
     })
     yield service.dispose

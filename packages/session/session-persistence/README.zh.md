@@ -25,6 +25,8 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
+提供方通过 `supportsDeletion` 声明永久删除能力。`deleteSessions` 在移除任何已存储 Session 前取得全部目标的写入互斥；部分文件操作失败后仍可重试。`withCatalogMutation` 串行化原生子对话创建与对话删除，`deletedSessionIds` 提供仅含标识的删除记录，用于清理派生数据。JSONL 提供方不允许重复使用已删除标识。
+
 挂载一个持久化后端即可让会话持久化。后端把自己注册为 `ctx.sessionPersistence`，并把每个已发布会话的实时事件路由进该会话的活跃写句柄；agent-loop——会话在生产环境中的发布点——在发布之前获取每个会话的写句柄，因此组合中的其他部分不变。
 
 ### 选择后端
@@ -74,7 +76,7 @@ await ctx.sessionPersistence.flush()                           // backend-wide d
 <details>
 <summary>实现细节——点击展开</summary>
 
-本节说明 seam 如何实现持久存储以及后端如何接入；可观察约定见[使用本包](#use-this-package)与生成的 [Cordis API](../../../docs/subsystems/persistence.zh.md#cordis-surface)。
+本节说明持久存储和后端接入；可观察行为定义于[使用本包](#use-this-package)与[服务 API](src/index.ts)。
 
 ### 设计理念
 
@@ -115,7 +117,7 @@ seam 的共享辅助函数校验由 `SESSION_FORMAT_VERSION` 标识的当前逻�
 
 当包级约定不够用时阅读以下页面。它们从共享持久性模型逐步进入随产品交付的后端与决策证据。
 
-- [会话持久化子系统](../../../docs/subsystems/persistence.zh.md)——完整服务约定、句柄语义、flush 检查点、崩溃恢复与生成的 Cordis API。
+- [会话持久化 API](src/index.ts)——服务和句柄语义、flush 检查点与崩溃恢复保证。
 - [基于句柄的持久化 Agent Note](../../../.agents/notes/implemented/architecture/2026-08-27-handle-based-session-persistence.zh.md)——seam 设计及其所有权模型。
 - [JSONL 持久化后端](../session-persistence-jsonl/README.zh.md)——随产品交付、按会话存储文件的后端。
 - [会话检查点策略](../session-checkpoint-policy/README.zh.md)——在语义边界上经由 `session/flush` 刷新的插件。

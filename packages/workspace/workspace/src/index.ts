@@ -49,7 +49,7 @@ export class WorkspaceUnknownSessionError extends Error {
    * @param sessionId - The unknown session id.
    * @param verb - The registry operation that named the session.
    */
-  constructor(readonly sessionId: SessionId, verb: 'archive' | 'pin') {
+  constructor(readonly sessionId: SessionId, verb: 'archive' | 'pin' | 'read') {
     super(`cannot ${verb} session '${sessionId}': live sessions and session persistence hold no such session`)
     this.name = 'WorkspaceUnknownSessionError'
   }
@@ -178,13 +178,16 @@ export class WorkspaceRegistry extends Service {
   private readonly sessionPaths = new Map<SessionId, string>()
   private readonly missingSessionPaths = new Set<SessionId>()
   private readonly invalidSessionPaths = new Map<SessionId, string>()
+  private readonly deletedSessions = new Set<SessionId>()
   private operationTail: Promise<void> = Promise.resolve()
 
   private readonly host: WorkspaceEntityHost = {
     table: () => this.requireTable(),
-    candidateMatches: (id, path) => this.sessionPaths.get(id) === path || this.missingSessionPaths.has(id),
+    candidateMatches: (id, path) => !this.deletedSessions.has(id)
+      && (this.sessionPaths.get(id) === path || this.missingSessionPaths.has(id)),
     readSessionHeader: id => this.readSessionHeader(id),
     rememberSessionPath: (id, path) => {
+      if (this.deletedSessions.has(id)) return
       this.sessionPaths.set(id, path)
       this.missingSessionPaths.delete(id)
       this.invalidSessionPaths.delete(id)
@@ -462,6 +465,31 @@ export class WorkspaceRegistry extends Service {
         ...state,
         pinnedSessionIds: state.pinnedSessionIds.filter(id => id !== sessionId),
       })
+    })
+  }
+
+  /**
+   * Remove deleted Session references from workspace membership, pins and the archive list.
+   * @param ids - Confirmed deleted Session identities; workspace directories remain untouched.
+   * @returns Completion after all affected registry records are durable.
+   */
+  forgetSessions(ids: readonly SessionId[]): Promise<void> {
+    for (const id of ids) this.deletedSessions.add(id)
+    return this.enqueueOperation(async () => {
+      for (const [workspaceId, record] of this.requireTable().entries()) {
+        const entity = this.entities.get(workspaceId)
+        for (const id of record.sessionIds) {
+          if (this.deletedSessions.has(id)) await entity?.detachSession(id)
+        }
+      }
+      const state = this.requireState()
+      await this.setState({ ...state,
+        archivedSessionIds: state.archivedSessionIds.filter(id => !this.deletedSessions.has(id)),
+        pinnedSessionIds: state.pinnedSessionIds.filter(id => !this.deletedSessions.has(id)),
+      })
+      for (const id of ids) {
+        this.headers.delete(id); this.sessionPaths.delete(id); this.missingSessionPaths.delete(id); this.invalidSessionPaths.delete(id)
+      }
     })
   }
 
@@ -859,6 +887,7 @@ export class WorkspaceRegistry extends Service {
   }
 
   private async readSessionHeader(id: SessionId): Promise<SessionHeader> {
+    if (this.deletedSessions.has(id)) throw new WorkspaceUnknownSessionError(id, 'read')
     const live = this.ctx.get('sessions')?.get(id)
     if (live !== undefined) {
       this.headers.set(id, live.header)

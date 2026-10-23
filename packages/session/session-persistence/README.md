@@ -25,6 +25,8 @@ This package lets applications persist and resume session event logs through a b
 <a id="use-this-package"></a>
 ## Use this package
 
+Providers advertise permanent deletion through `supportsDeletion`. `deleteSessions` acquires all requested writer exclusions before retiring any stored Session; partial filesystem failures remain retryable. `withCatalogMutation` serializes native-family publication and deletion, and `deletedSessionIds` exposes identity-only retirement records for derived-data cleanup. Deleted identities cannot be reused by the JSONL provider.
+
 Mount one persistence backend to make sessions durable. The backend registers itself as `ctx.sessionPersistence` and routes every published session's live events into that session's active write handle; agent-loop — the production publication point for sessions — acquires each session's write handle before publication, so nothing else in the composition changes.
 
 ### Choosing a backend
@@ -74,7 +76,7 @@ A stored log the current build cannot faithfully interpret is refused with a dir
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-This section explains how the seam realizes durable storage and how backends plug in; the observable contract is covered in [Use this package](#use-this-package) and the generated [Cordis API](../../../docs/subsystems/persistence.md#cordis-surface).
+This section explains durable storage and backend integration; observable behavior is defined in [Use this package](#use-this-package) and the [service API](src/index.ts).
 
 ### Design concept
 
@@ -115,7 +117,7 @@ The seam's shared helpers validate current logical records identified by `SESSIO
 
 Read these pages when the package-level contract is not enough. They move from the shared durability model to the shipped backends and the decision evidence.
 
-- [Session persistence subsystem](../../../docs/subsystems/persistence.md) — the full service contract, handle semantics, flush checkpoint, crash recovery, and generated Cordis API.
+- [Session persistence API](src/index.ts) — service and handle semantics, flush checkpoints and crash recovery guarantees.
 - [Handle-based persistence Agent Note](../../../.agents/notes/implemented/architecture/2026-08-27-handle-based-session-persistence.md) — the seam design and its ownership model.
 - [JSONL persistence backend](../session-persistence-jsonl/README.md) — the shipped per-session-file backend.
 - [Session checkpoint policy](../session-checkpoint-policy/README.md) — the plugin that flushes through `session/flush` at semantic boundaries.

@@ -93,6 +93,11 @@ export interface UiWorkspace {
    */
   archiveSession(sessionId: SessionId, options?: { readonly stopActivity?: boolean }): Promise<void>
   /**
+   * Release a deleted current conversation and move to another ordinary conversation or the new-conversation view.
+   * @param sessionId - Permanently deleted identity.
+   */
+  handleDeletedSession(sessionId: SessionId): void
+  /**
    * Unarchive a Session, restoring it to its recorded Workspace position.
    * @param sessionId - Session to unarchive.
    */
@@ -367,6 +372,16 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   async archiveSession(sessionId: SessionId, options: { readonly stopActivity?: boolean } = {}): Promise<void> {
     await this.workspaces.archiveSession(sessionId, options)
     if (this.mainReference?.sessionId === sessionId) this.clearMain()
+  }
+
+  handleDeletedSession(sessionId: SessionId): void {
+    if (this.mainReference?.sessionId !== sessionId) return
+    const list = this.sessions.list.getSnapshot()
+    const archived = this.workspaces.list.getSnapshot().archivedSessionIds
+    const next = list.ids.find(id => id !== sessionId && !archived.includes(id) && list.byId[id]?.parentId === undefined)
+    this.clearMain()
+    if (next !== undefined) this.openSession(next)
+    else this.startSession()
   }
 
   async unarchiveSession(sessionId: SessionId): Promise<void> {

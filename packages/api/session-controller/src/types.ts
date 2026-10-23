@@ -217,6 +217,10 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'session/projections-unavailable': Record<string, never>
     'session/writer-held': { readonly sessionId: SessionId }
     'session/agent-busy': { readonly reason: string }
+    'session/delete-owned': { readonly sessionId: SessionId; readonly parentSessionId: SessionId }
+    'session/delete-timeout': { readonly sessionId: SessionId }
+    'session/delete-incomplete': { readonly deletedSessionIds: readonly SessionId[] }
+    'session/delete-unsupported': Record<string, never>
     'session/invalid-time-zone': { readonly value: string }
     'session/workspace-attach-failed': { readonly sessionId: SessionId; readonly workspaceId: string }
     'agent-preset/conflict': {
@@ -359,6 +363,11 @@ export interface SessionAsideRequest {
   /** Side reopens the same child; btw creates an empty child on every invocation. */
   readonly kind: 'side' | 'btw'
 }
+
+/** Explicit deletion of an ordinary conversation and its owned child conversations. */
+export interface SessionDeleteRequest { readonly sessionId: SessionId }
+/** Identities removed from storage, indexes, workspace membership and active views. */
+export interface SessionDeleteValue { readonly deletedSessionIds: readonly SessionId[] }
 
 /** Identity of a newly forked Session. */
 export interface SessionForkValue {
@@ -638,6 +647,12 @@ declare module '@deepseek-ai/cordis' {
      * @param sessionId - removed Session identity.
      */
     'api-session/removed'(sessionId: SessionId): void
+    /**
+     * A Session was permanently removed from the persistence catalog.
+     * @mode emit
+     * @param sessionId - Deleted identity; clients must release views and related resources.
+     */
+    'api-session/deleted'(sessionId: SessionId): void
     /**
      * One Agent changed running state.
      * @mode emit

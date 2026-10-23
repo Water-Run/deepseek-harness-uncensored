@@ -125,6 +125,7 @@ export class Session implements SessionFace {
   /** New Session display state; unknown bare sessions begin conservatively blank. */
   private blankBit = true
   private removed = false
+  private deleted = false
   private promptError: PromptError | null = null
   private lastAgentError: string | null = null
   /** Local submission echoes, insertion-ordered (see SessionSnapshot.pendingSubmissions). */
@@ -257,6 +258,7 @@ export class Session implements SessionFace {
     signal?: AbortSignal,
     requestId?: SessionRequestId,
   ): Promise<RemoteResult<{ accepted: true }>> {
+    if (this.deleted) return { ok: false, error: new RemoteError('session/not-found', 'Session was deleted.', { sessionId: this.sessionId }) }
     this.promptError = null
     this.lastAgentError = null
     // Synchronous, before the first await: the blank → engaging edge must be
@@ -392,6 +394,7 @@ export class Session implements SessionFace {
 
   /** First open: pull the tail page (idempotent — in-flight/already-open returns the existing promise). */
   open(): Promise<void> {
+    if (this.deleted) return Promise.reject(new RemoteError('session/not-found', 'Session was deleted.', { sessionId: this.sessionId }))
     if (this.openState === 'open') return Promise.resolve()
     if (this.openPromise !== null) return this.openPromise
     const promise = this.doOpen(this.openGeneration).finally(() => {
@@ -581,6 +584,26 @@ export class Session implements SessionFace {
   handleRemoved(): void {
     this.removed = true
     this.notifier.markDirty()
+  }
+
+  /** Retire a permanently deleted history window and stop late stream frames from repopulating it. */
+  async handleDeleted(): Promise<void> {
+    this.deleted = true
+    this.removed = true
+    this.running = false
+    this.openGeneration++
+    this.hasMore = false
+    this.baseSeq = SessionLogOffset(0)
+    this.jumpTargetSeq = null
+    this.pendingSubmissions = []
+    this.assistantStream.replace([], undefined)
+    this.eventSource.replace([], false)
+    this.openState = 'error'
+    this.openError = new RemoteError('session/not-found', 'Session was deleted.', { sessionId: this.sessionId })
+    const events = this.events
+    this.events = undefined
+    this.notifier.markDirty()
+    await events?.dispose()
   }
 
   /**

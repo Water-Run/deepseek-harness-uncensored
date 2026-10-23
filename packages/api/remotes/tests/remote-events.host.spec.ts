@@ -161,6 +161,7 @@ describe('Remote event Host source', () => {
       ['api-session/added', [{ sessionId: 's-added' }], 's-added'],
       ['api-session/error', ['s-error', 'boom'], 's-error'],
       ['api-session/removed', ['s-removed'], 's-removed'],
+      ['api-session/deleted', ['s-deleted'], 's-deleted'],
       ['api-session/status', ['s-status', true], 's-status'],
     ]
     for (const [event, args, sessionId] of cases) {

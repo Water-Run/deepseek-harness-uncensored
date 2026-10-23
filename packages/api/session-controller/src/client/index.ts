@@ -115,6 +115,9 @@ export function apply(ctx: Context): void {
   const sessions = new ClientSessions(ctx, remotes)
   ctx.remote.$on('api-session/added', (summary) => { sessions.handleSessionAdded(summary) })
   ctx.remote.$on('api-session/removed', (sessionId) => { sessions.handleSessionRemoved(sessionId) })
+  ctx.remote.$on('api-session/deleted', (sessionId) => {
+    void sessions.handleSessionDeleted(sessionId).catch((error: unknown) => { ctx.logger.warn('Deleted Session stream cleanup failed.', error) })
+  })
   ctx.remote.$on('api-session/status', (sessionId, running) => {
     sessions.handleSessionStatus(sessionId, running)
   })

@@ -31,7 +31,9 @@ export class SessionAsideController {
       const existing = this.opening.get(request.sessionId)
       if (existing !== undefined) return existing
     }
-    const operation = this.create(request)
+    const persistence = this.ctx.get('sessionPersistence')
+    const operation = persistence === undefined ? this.create(request)
+      : persistence.withCatalogMutation(request.sessionId, () => this.create(request))
     this.pending.add(operation)
     if (request.kind === 'side') this.opening.set(request.sessionId, operation)
     const finished = (): void => {
@@ -79,7 +81,7 @@ export class SessionAsideController {
       provider: latestConfig.provider, model: latestConfig.model,
       ...(latestConfig.reasoningEffort === undefined ? {} : { reasoningEffort: latestConfig.reasoningEffort }),
     }
-    await this.ctx.agents.create({
+    const agent = await this.agents.createOwned({
       sessionId: childId,
       ...(boundary === undefined ? {} : {
         seed: buildForkSeed(source.events, boundary), inheritedEventCount: SessionLogOffset(boundary + 1),
@@ -93,6 +95,7 @@ export class SessionAsideController {
       agentOptions: selection,
       setup: composition.setup,
     })
+    await this.ctx.sessions.flush(agent.session)
     return { sessionId: childId }
   }
 }

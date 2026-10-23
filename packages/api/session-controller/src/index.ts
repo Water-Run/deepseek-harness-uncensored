@@ -4,7 +4,7 @@ import { hostname } from 'node:os'
 import { resolve } from 'node:path'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-fs'
-import { Context } from '@deepseek-ai/cordis'
+import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { errorChain, ReasoningEffortId, type MessageSource } from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-client-file-upload'
@@ -24,6 +24,7 @@ import {
 } from './agent.ts'
 import { SessionCommandController, hasPromptContent } from './commands.ts'
 import { SessionAsideController } from './asides.ts'
+import { SessionDeletionController } from './deletion.ts'
 import { SessionControlController } from './control.ts'
 import { SessionHistoryController } from './history.ts'
 import { SessionFileReferences } from './file-references.ts'
@@ -49,6 +50,8 @@ import type {
   SessionForkRequest,
   SessionForkValue,
   SessionAsideRequest,
+  SessionDeleteRequest,
+  SessionDeleteValue,
   SessionListRequest,
   SessionListValue,
   SessionOpenWorkspacePathRequest,
@@ -100,10 +103,19 @@ export interface Config {
   readonly listWorkSliceMs?: number
   /** Maximum UTF-8 bytes of completed main updates supplied to each side-question request. */
   readonly sideContextBytes?: number
+  /** Maximum time to wait for cancelled jobs and turns before refusing deletion. */
+  readonly deleteDrainTimeoutMs?: number
+  /** Interval between deletion activity checks, in milliseconds. */
+  readonly deletePollMs?: number
 }
 
 /** Deployment policy after schema defaults have been applied. */
-type ResolvedConfig = Config & { readonly listWorkSliceMs: number; readonly sideContextBytes: number }
+type ResolvedConfig = Config & {
+  readonly listWorkSliceMs: number
+  readonly sideContextBytes: number
+  readonly deleteDrainTimeoutMs: number
+  readonly deletePollMs: number
+}
 
 /** Host integrations replaceable by direct unit tests. */
 export interface SessionControllerInternals {
@@ -140,11 +152,14 @@ export class SessionController extends TypertRemoteService {
     nativeOpen: z.boolean(),
     listWorkSliceMs: z.natural().min(1).default(16),
     sideContextBytes: z.natural().min(1024).max(1048576).default(65536),
+    deleteDrainTimeoutMs: z.natural().min(1).max(300000).default(30000),
+    deletePollMs: z.natural().min(1).max(1000).default(50),
   })
 
   private readonly agents: ApiSessionAgentController
   private readonly commands: SessionCommandController
   private readonly asides: SessionAsideController
+  private readonly deletions: SessionDeletionController
   private readonly controlState: SessionControlController
   private readonly history: SessionHistoryController
   private readonly listState: ApiSessionList
@@ -181,6 +196,10 @@ export class SessionController extends TypertRemoteService {
       await Promise.allSettled([...this.promotions])
     }, 'session-controller.promotions')
     this.history = new SessionHistoryController(ctx, (observation) => { this.promote(observation) })
+    this.deletions = new SessionDeletionController(ctx, this.agents, {
+      drainTimeoutMs: resolved.deleteDrainTimeoutMs, pollMs: resolved.deletePollMs,
+    }, (ids) => { this.history.closeSessions(ids) })
+    ctx.effect(() => () => this.deletions.close(), 'session-controller: deletion operations')
     this.listState = new ApiSessionList(ctx, resolved.listWorkSliceMs)
     this.fileApplications = internals.fileApplications ?? nativeFileApplications
     this.openFileApplication = internals.openFileApplication ?? openNativeFileApplication
@@ -243,6 +262,8 @@ export class SessionController extends TypertRemoteService {
     void task.finally(() => { this.promotions.delete(task) })
   }
 
+  protected async [Service.init](): Promise<void> { await this.deletions.recover() }
+
   /**
    * Resolve or resume one ordinary Session for another Host API domain.
    * @param sessionId - Session identity whose Agent owns the operation.
@@ -282,8 +303,20 @@ export class SessionController extends TypertRemoteService {
    */
   @Remote('list')
   async list(_request: SessionListRequest, signal: AbortSignal): Promise<SessionListValue> {
+    await this.deletions.recover()
     const items = await this.listState.list(signal)
     return { items: items.filter(item => this.ctx.remoteAccess.allows({ kind: 'session', id: item.sessionId })) }
+  }
+
+  /**
+   * Stop and permanently delete an ordinary conversation and its owned children after user confirmation.
+   * @param request - Selected conversation identity; workspace files remain untouched.
+   * @returns Deleted identities after storage and derived indexes are cleaned.
+   */
+  @Remote('delete')
+  delete(request: SessionDeleteRequest): Promise<SessionDeleteValue> {
+    const caller = this.ctx
+    return this.deletions.delete(request.sessionId, id => caller.remoteAccess.allows({ kind: 'session', id }))
   }
 
   /**
@@ -296,6 +329,7 @@ export class SessionController extends TypertRemoteService {
    */
   @Remote('search')
   async search(request: SessionSearchRequest, signal: AbortSignal): Promise<SessionSearchValue> {
+    await this.deletions.recover()
     const result = await this.listState.search(request.query, signal)
     return { ...result, items: result.items.filter(item => this.ctx.remoteAccess.allows({ kind: 'session', id: item.sessionId })) }
   }

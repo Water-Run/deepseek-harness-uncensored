@@ -25,6 +25,8 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
+永久删除在内核写入互斥保护下先将 Session 自有目录移入 `.dshu-deleting`，再删除其内容。重启只继续处理已提交的删除。`.dshu-deletion-locks` 保留仅含标识的记录，用于清理派生索引，并禁止重复使用已删除标识；这两个目录均不包含工作区文件。临时文件共享冲突的重试配置 `deleteRetries` 默认 5，`deleteRetryDelayMs` 默认 100。
+
 当组合需要由按会话文件支撑的持久会话时挂载此后端。常用路径是显式的：加载会话服务、挂载后端，然后给出根目录。
 
 ### 何时选择
@@ -50,7 +52,7 @@ kind: "package-reference"
 
 实时事件的写入批处理不是配置：批处理窗口是该 seam 在每个写句柄内部的调度策略。
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-session-persistence-jsonl)是每个受支持字段及其 JSDoc 的穷尽式真源。
+[配置 schema](src/index.ts) 定义受支持的字段和默认值。
 
 ### 磁盘布局
 
@@ -131,7 +133,7 @@ kind: "package-reference"
 
 当包级约定不够用时阅读以下页面。它们从共享持久化模型逐步进入同级后端与物理格式决策。
 
-- [会话持久化子系统](../../../docs/subsystems/persistence.zh.md)——后端无关的服务语义与提供方关系。
+- [会话持久化服务](../session-persistence/README.zh.md)——后端无关的服务语义与提供方关系。
 - [会话持久化 seam](../session-persistence/README.zh.md)——本后端实现的服务约定。
 - [已发布 Session 格式迁移](../../../.agents/notes/implemented/architecture/2026-08-31-released-session-format-migrations.zh.md)——不可变 generation、相邻迁移边与发布规则。
 

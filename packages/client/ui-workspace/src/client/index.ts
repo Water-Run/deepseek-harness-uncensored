@@ -49,6 +49,8 @@ import { UiWorkspaceService } from './navigation.ts'
 import { createWorkspaceViewStore } from './stores.ts'
 import { WorkspaceBrowser } from './rows/WorkspaceBrowser.tsx'
 import { ArchiveSessionMenuItem, ArchiveSessionRowButton, SessionArchiveConfirmDialog } from './session-actions/ArchiveSession.tsx'
+import { DeleteSessionController } from './session-actions/delete-controller.ts'
+import { DeleteSessionDialog, DeleteSessionMenuItem, type DeleteSessionInjected } from './session-actions/DeleteSession.tsx'
 import { derive } from './session-actions/derived.ts'
 import { ForkSessionMenuItem } from './session-actions/ForkSession.tsx'
 import { PinSessionMenuItem, PinSessionRowButton } from './session-actions/PinSession.tsx'
@@ -126,6 +128,19 @@ export function apply(ctx: Context): void {
     ctx, ctx.remote.directoryPicker, workspaces, sessions, viewInstance.actions, notify,
   )
   installDesktopNavigation(ctx, sessions, uiWorkspace)
+  const stopDeletedNavigation = ctx.remote.$on('api-session/deleted', (id) => { uiWorkspace.handleDeletedSession(id) })
+  const deletion = new DeleteSessionController(id => ctx.remote.session.delete({ sessionId: id }), async (ids) => {
+    for (const id of ids) uiWorkspace.handleDeletedSession(id)
+    await sessions.refresh()
+  })
+  ctx.effect(() => async () => { stopDeletedNavigation(); await deletion.dispose() }, 'workspace: permanent deletion')
+  const deleteInjected = (): DeleteSessionInjected => ({ controller: deletion, hooks: { deletion: deletion.state } })
+  ctx.slots.inject('sidebar.workspaces.session.menu.item', () => ctx.slots.register({
+    name: 'sidebar.workspaces.session.menu.item', id: 'delete', order: 475, locale: NS, inject: deleteInjected,
+  }, DeleteSessionMenuItem))
+  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay', id: 'session-delete', locale: NS, inject: deleteInjected,
+  }, DeleteSessionDialog))
   ctx.slots.provideRoot({
     hooks: { workspaces: workspaces.list },
     keyedHooks: {

@@ -25,6 +25,8 @@ English | [中文](README.zh.md)
 <a id="use-this-package"></a>
 ## Use this package
 
+Permanent deletion moves Session-owned directories into `.dshu-deleting` under kernel writer exclusion before removing their contents. Restart finishes only committed retirements. `.dshu-deletion-locks` retains identity-only records for derived-index cleanup and prevents reuse of deleted identities; neither directory contains Workspace files. `deleteRetries` defaults to 5 and `deleteRetryDelayMs` to 100 for transient filesystem sharing failures.
+
 Mount this backend when a composition needs durable sessions backed by per-session files. The common path is explicit: load the session service, mount the backend, and give it a root directory.
 
 ### When to choose it
@@ -50,7 +52,7 @@ Choose this backend when consumers benefit from one artifact per session — nav
 
 Live-event write batching is not configuration: the batching window is the seam's internal scheduling policy inside each write handle.
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-session-persistence-jsonl) is the exhaustive source for every accepted field and its JSDoc.
+The [configuration schema](src/index.ts) defines accepted fields and their defaults.
 
 ### On-disk layout
 
@@ -131,7 +133,7 @@ The default artifact is a standard concatenation of independent Zstandard frames
 
 Read these pages when the package-level contract is not enough. They move from the shared persistence model to the sibling backend and the physical-format decisions.
 
-- [Session persistence subsystem](../../../docs/subsystems/persistence.md) — backend-neutral service semantics and provider relationships.
+- [Session persistence service](../session-persistence/README.md) — backend-neutral service semantics and provider relationships.
 - [Session persistence seam](../session-persistence/README.md) — the service contract this backend implements.
 - [Released Session format migrations](../../../.agents/notes/implemented/architecture/2026-08-31-released-session-format-migrations.md) — immutable generations, adjacent migration edges, and publication rules.
 

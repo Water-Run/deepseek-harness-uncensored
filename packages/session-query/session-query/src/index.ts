@@ -132,6 +132,17 @@ export abstract class SessionQueryEngine extends Service {
   }
 
   /**
+   * Remove derived state after permanent deletion. Index-backed providers also purge their index in an override.
+   * Existing observation leases retain their immutable cut until their callers release them.
+   * @param ids - Deleted Session identities.
+   * @returns Completion after prepared observations are invalidated.
+   */
+  forgetSessions(ids: readonly SessionId[]): Promise<void> {
+    this._observations.forget(ids)
+    return Promise.resolve()
+  }
+
+  /**
    * Observe one exact live or prepared Session without a persistence listing preflight.
    * @param sessionId - logical Session identity.
    * @param options - cancellation and projection selection for this read.

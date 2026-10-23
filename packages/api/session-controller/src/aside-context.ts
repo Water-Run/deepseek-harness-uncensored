@@ -19,6 +19,18 @@ export function sideIdentity(parent: SessionId): SessionId {
 }
 
 /**
+ * Classify a reserved native-aside identity against its recorded parent.
+ * @param id - Child Session identity.
+ * @param parent - Recorded direct parent.
+ * @returns Native aside kind, or undefined for ordinary conversations and forks.
+ */
+export function nativeAsideKind(id: SessionId, parent: SessionId | undefined): 'side' | 'btw' | undefined {
+  if (parent === undefined) return undefined
+  if (id === sideIdentity(parent)) return 'side'
+  return /^session-btw-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(id) ? 'btw' : undefined
+}
+
+/**
  * Restore native aside instructions without adding a synthetic user message or waking the Agent.
  * The normal system-prompt admission records the instructions before any model sees them.
  * @param ctx - New or resumed Agent scope.
@@ -29,8 +41,7 @@ export function sideIdentity(parent: SessionId): SessionId {
 export async function installAsideContext(ctx: Context, agent: Agent, maxMainContextBytes: number): Promise<void> {
   const parent = agent.session.header.parentSession
   if (parent === undefined) return
-  const kind = agent.id === sideIdentity(parent) ? 'side'
-    : /^session-btw-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(agent.id) ? 'btw' : undefined
+  const kind = nativeAsideKind(agent.id, parent)
   if (kind === undefined) return
   await ctx.plugin({ name: 'native-aside-context', inject: ['systemPrompt', 'sessionQuery'], apply(scope: Context) {
     scope.effect(() => scope.systemPrompt.section({ name: 'conversation:aside',
