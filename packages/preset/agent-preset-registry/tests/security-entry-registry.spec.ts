@@ -217,4 +217,16 @@ describe('Security first-entry policy in the preset registry', () => {
     ctx.on('agent-preset/security-entry', () => { throw new Error('observer failed') })
     expect(confirm(ctx, agent.id)).toMatchObject({ acknowledged: true })
   })
+
+  it('requires a fresh acknowledgement after a new registry lifetime', async () => {
+    const first = await setup()
+    const agent = await agentOn(first, 'first-launch')
+    confirm(first, agent.id)
+    expect(first.agentPresets.securityEntryState().acknowledged).toBe(true)
+
+    const second = await setup()
+    expect(second.agentPresets.securityEntryState()).toMatchObject({ acknowledged: false })
+    const next = await agentOn(second, 'second-launch')
+    await expect(second.agentPresets.select(next, 'security')).rejects.toMatchObject({ code: 'security-entry/required' })
+  })
 })
