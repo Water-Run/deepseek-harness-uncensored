@@ -1,5 +1,15 @@
 # Uncensored 开发交接
 
+## 打包与安装节点（2026-10-24）
+
+- 按用户要求打包并安装当前开发版本；仍不发布、不上传、不做签名。
+- 首次 `package:desktop:win:x64:unsigned --check` 因 vswhere 未带 `-prerelease` 报告缺少 Visual Studio C++ 工具，本机实际安装的是 VS 18 Insiders（MSVC 14.51 + Windows SDK 10.0.26100）。已在 `apps/desktop/scripts/desktop-toolchain-preflight.ts` 与 `apps/desktop/scripts/prepare-windows-installer.ps1` 的两处 vswhere 查询加 `-prerelease`；未改 CI runner 脚本。
+- `pnpm run package:desktop:win:x64:unsigned` 通过：`result.json` 记录 25 个阶段全部成功、耗时 1218.7 秒；产物 `apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/deepseek-harness-uncensored-0.1.0-win-x64-unsigned.exe`（275 MB，未签名）。构建期包含 build:official 9/9 与打包后 runtime smoke。
+- 安装：旧的手工拷贝 `%LOCALAPPDATA%\Programs\DeepSeek Harness Uncensored` 没有卸载注册项，NSIS 预检把非空目录判为外来安装并退出 2；将其移到 `...old-20261023` 后 `/S` 静默安装成功（exit 0），随后删除旧拷贝。安装目录 `%LOCALAPPDATA%\Programs\DeepSeek Harness Uncensored`，版本 0.1.0，包含 `Uninstall DeepSeek Harness Uncensored.exe`、开始菜单与桌面快捷方式、HKCU 卸载项 `4bbab420-...`。
+- 安装产物核验：`resources/app.asar` 内含 `敏感操作需要确认`、`sensitive-confirmations`、`模式配置` 与提交 `d86ae1a4dd`，即本节点改动确实进入安装版。应用已启动并在运行（多个 Electron 进程，主窗口标题 `DeepSeek Harness Uncensored`）。
+- **启动注意（重要）**：从 DSH 宿主内的 shell 启动 Electron 会继承 `ELECTRON_RUN_AS_NODE=1`，表现为静默退出 0 或 `bad option` 报错。启动安装版或 `dev:desktop` 前必须清除该变量（`Remove-Item Env:ELECTRON_RUN_AS_NODE`）。
+- 未完成：签名/发布、自动更新配置（unsigned 构建按设计省略）、真实安装后的登录与官方版并存回归；`prepare-dsh.ts` 的版本约束本节点未触发，因产品版本 0.1.0 已能通过发行校验。
+
 ## 模式页重做与敏感确认开关节点（2026-10-24）
 
 本轮按用户新要求完成三项，未打包、未安装、未发布；运行中的桌面版仍是旧产物。

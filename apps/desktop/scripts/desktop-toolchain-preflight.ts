@@ -54,7 +54,7 @@ async function probeWindowsInstallerToolchain(environment: NodeJS.ProcessEnv): P
   }
   else {
     try {
-      const located = await run(vswhere, ['-latest', '-products', '*',
+      const located = await run(vswhere, ['-latest', '-prerelease', '-products', '*',
         '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64', '-property', 'installationPath'],
       { windowsHide: true, timeout: 30_000 })
       if (located.stdout.trim() === '') {
