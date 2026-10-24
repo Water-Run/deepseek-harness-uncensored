@@ -89,8 +89,8 @@ export function SecurityProxySection(props: SecurityProxySectionProps) {
 
   useEffect(() => { if (modeId === 'security') load() }, [load, modeId])
 
-  // Every mode material panel stays mounted so switching modes keeps drafts;
-  // only the security one paints.
+  // Every mode material panel stays mounted so moving between configuration
+  // tabs keeps drafts; only the security one paints.
   if (modeId !== 'security') return null
 
   const settings = state?.settings

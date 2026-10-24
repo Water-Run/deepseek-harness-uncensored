@@ -13,9 +13,11 @@ import type {} from '@deepseek-ai/dsh-tools'
 import type {
   AgentPresetDocument, AgentPresetRoster, ModeSwitchChallenge, ModeSwitchChallengeId, ModeSwitchPolicy,
   SecurityEntryChallenge, SecurityEntryChallengeId, SecurityEntryLocale, SecurityEntryState, SecurityProtectionStatus,
+  SensitiveConfirmationChallenge, SensitiveConfirmationChallengeId, SensitiveConfirmationPolicy,
 } from './types.ts'
 import { ModeSwitchPermission } from './switch-policy.ts'
 import { SecurityEntryPermission, UNAVAILABLE_PROTECTION } from './security-entry.ts'
+import { SensitiveConfirmationPermission } from './sensitive-confirmations.ts'
 import { entryListProblem, type PresetDefinition } from './definition.ts'
 import type { AgentPreset, Config } from './preset.ts'
 import { agentPresetProjectionDefinition } from './session.ts'
@@ -27,6 +29,9 @@ export { entryListProblem, type PresetDefinition } from './definition.ts'
 export { auditRows, leakedServices, type PresetMount, type RowAudit } from './mount.ts'
 export type { AgentPresetInspection } from './composition-inventory.ts'
 export type { AgentPreset, Config } from './preset.ts'
+
+/** Profile entry id this service reads its own live preferences from. */
+const SETTINGS_NS = 'agent-preset-registry'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -65,6 +70,7 @@ export class AgentPresetRegistry extends TypertRemoteService {
     allowExistingSessionSwitch: z.boolean().default(false).volatile(),
     securityEntryPreset: z.string().default('security').volatile(),
     requireSecurityEntryAcknowledgement: z.boolean().default(false).volatile(),
+    sensitiveConfirmations: z.boolean().default(true).volatile(),
   })
   private readonly owner: Context
   private readonly definitions = new Map<string, Definition>()
@@ -73,6 +79,12 @@ export class AgentPresetRegistry extends TypertRemoteService {
   private readonly switches = new Map<string, Promise<unknown>>()
   private readonly switchPermission = new ModeSwitchPermission()
   private readonly securityEntry = new SecurityEntryPermission(() => this.readProtection())
+  // Set only when the preference cannot be persisted: a deployment composing no
+  // settings service still honors the owner's choice for this Host lifetime.
+  private sensitiveOverride: boolean | undefined
+  private readonly sensitiveConfirmations = new SensitiveConfirmationPermission(
+    () => this.sensitiveOverride ?? this.config.sensitiveConfirmations.get(),
+  )
 
   constructor(ctx: Context, public config: Config) {
     super(ctx, 'agentPresets')
@@ -108,10 +120,13 @@ export class AgentPresetRegistry extends TypertRemoteService {
 
   /**
  * Begin owner acknowledgement.
- * @returns A fresh ten-second confirmation.
+ * @returns A fresh confirmation; it carries no reading while sensitive confirmations are off.
  */
   @Remote('beginModeSwitch')
-  beginModeSwitch(): ModeSwitchChallenge { this.assertPolicyOwner(); return this.switchPermission.begin() }
+  beginModeSwitch(): ModeSwitchChallenge {
+    this.assertPolicyOwner()
+    return this.switchPermission.begin(this.sensitiveConfirmations.read() ? undefined : 0)
+  }
 
   /**
    * Enable switching for this Host lifetime after explicit confirmation.
@@ -137,6 +152,68 @@ export class AgentPresetRegistry extends TypertRemoteService {
   private publishSwitchPolicy(policy: ModeSwitchPolicy): ModeSwitchPolicy {
     try { this.owner.emit('agent-preset/switch-policy', policy) }
     catch (error) { this.owner.logger.warn('Mode switching permission observer failed.', error) }
+    return policy
+  }
+
+  /**
+   * Read the sensitive-action confirmation preference.
+   * @returns Whether sensitive actions still ask for an interactive confirmation.
+   */
+  @Remote('sensitiveConfirmationPolicy')
+  sensitiveConfirmationPolicy(): SensitiveConfirmationPolicy { return this.readSensitiveConfirmations() }
+
+  /**
+   * Open the acknowledgement a preference change needs.
+   * @param confirmations - Preference the change will commit.
+   * @returns A challenge that carries the countdown only when confirmations are turned off.
+   */
+  @Remote('beginSensitiveConfirmation')
+  beginSensitiveConfirmation(confirmations: boolean): SensitiveConfirmationChallenge {
+    this.assertPolicyOwner()
+    return this.sensitiveConfirmations.begin(confirmations)
+  }
+
+  /**
+   * Commit the preference after its acknowledgement, persisting it for later launches.
+   * @param id - Challenge returned by beginSensitiveConfirmation.
+   * @returns The committed preference.
+   */
+  @Remote('confirmSensitiveConfirmation')
+  async confirmSensitiveConfirmation(id: SensitiveConfirmationChallengeId): Promise<SensitiveConfirmationPolicy> {
+    this.assertPolicyOwner()
+    const confirmations = this.sensitiveConfirmations.confirm(id)
+    // An open security-entry challenge was issued under the old preference and
+    // must not survive the guard being removed or restored.
+    this.securityEntry.invalidate()
+    await this.persistSensitiveConfirmations(confirmations)
+    this.publishSecurityEntry()
+    return this.publishSensitiveConfirmations()
+  }
+
+  private readSensitiveConfirmations(): SensitiveConfirmationPolicy {
+    return { confirmations: this.sensitiveConfirmations.read() }
+  }
+
+  private async persistSensitiveConfirmations(confirmations: boolean): Promise<void> {
+    const settings = this.ctx.get('settings')
+    if (settings === undefined) {
+      this.sensitiveOverride = confirmations
+      return
+    }
+    try {
+      await settings.update(SETTINGS_NS, { sensitiveConfirmations: confirmations })
+      // The committed document now carries the value; a per-launch override would shadow later edits.
+      this.sensitiveOverride = undefined
+    } catch (error) {
+      this.ctx.logger.warn('Sensitive-confirmation preference could not be saved; applying it to this launch only.', error)
+      this.sensitiveOverride = confirmations
+    }
+  }
+
+  private publishSensitiveConfirmations(): SensitiveConfirmationPolicy {
+    const policy = this.readSensitiveConfirmations()
+    try { this.owner.emit('agent-preset/sensitive-confirmations', policy) }
+    catch (error) { this.owner.logger.warn('Sensitive-confirmation observer failed.', error) }
     return policy
   }
 
@@ -200,7 +277,7 @@ export class AgentPresetRegistry extends TypertRemoteService {
    * @param preset - Preset requested by a create call; undefined keeps the deployment default.
    */
   assertNewConversationPreset(preset: string | undefined): void {
-    const required = this.config.requireSecurityEntryAcknowledgement.get()
+    const required = this.securityEntryRequired()
     if (preset === undefined || !required || preset !== this.config.securityEntryPreset.get()) return
     const state = this.securityEntry.read()
     if (state.acknowledged) return
@@ -209,8 +286,16 @@ export class AgentPresetRegistry extends TypertRemoteService {
     })
   }
 
+  /**
+   * Whether a new Security conversation still needs its first-entry acknowledgement.
+   * @returns true when the deployment protects the preset and the owner kept sensitive confirmations on.
+   */
+  private securityEntryRequired(): boolean {
+    return this.config.requireSecurityEntryAcknowledgement.get() && this.sensitiveConfirmations.read()
+  }
+
   private assertSecurityEntryEnabled(): void {
-    if (!this.config.requireSecurityEntryAcknowledgement.get()) {
+    if (!this.securityEntryRequired()) {
       throw new RemoteError('security-entry/disabled', 'Security-entry acknowledgement is not enabled for this deployment.', {})
     }
   }
@@ -230,7 +315,7 @@ export class AgentPresetRegistry extends TypertRemoteService {
   }
 
   private assertSecurityEntrySelection(agent: Agent, agentPreset: string): void {
-    const required = this.config.requireSecurityEntryAcknowledgement.get()
+    const required = this.securityEntryRequired()
     if (!required || agentPreset !== this.config.securityEntryPreset.get()) return
     if (this.owner.sessionProjections.stateOf(agent.session, 'agentPreset') === agentPreset) return
     const boundary = this.owner.sessionProjections.stateOf(agent.session, 'turnBoundary')
@@ -244,7 +329,7 @@ export class AgentPresetRegistry extends TypertRemoteService {
 
   private readSecurityEntry(): SecurityEntryState {
     return {
-      required: this.config.requireSecurityEntryAcknowledgement.get(),
+      required: this.securityEntryRequired(),
       preset: this.config.securityEntryPreset.get(),
       ...this.securityEntry.read(),
     }

@@ -6,6 +6,7 @@ import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import { AgentPresetSection, type AgentPresetSectionProps, type CurrentModeState } from '../src/client/AgentPresetSection.tsx'
 import { ModeSwitchController } from '../src/client/mode-policy-controller.ts'
+import { SensitiveConfirmationsController } from '../src/client/sensitive-confirmations-controller.ts'
 import type { AgentPresetSectionState } from '../src/client/section-store.ts'
 import { en } from '../src/client/locales.ts'
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.useRealTimers() })
@@ -13,35 +14,51 @@ const translations: ReadonlyMap<string, string> = new Map(Object.entries(en))
 function unusedHook(): never {
   throw new Error('This section does not read global slot sources')
 }
-function view(partial: Partial<AgentPresetSectionState> = {}, startCreatorDraft?: () => void, outerClose?: () => void, enabled = true) {
+function view(partial: Partial<AgentPresetSectionState> = {}, startCreatorDraft?: () => void, outerClose?: () => void, enabled = true,
+  configurable: readonly string[] = [], current: Partial<CurrentModeState> = {}) {
   const developerTools = createSnapshotStore(enabled)
-  const currentMode = createSnapshotStore<CurrentModeState>({ blank: true, busy: false })
+  const configurableModes = createSnapshotStore<readonly string[]>(configurable)
+  const currentMode = createSnapshotStore<CurrentModeState>({ blank: true, busy: false, ...current })
   const mode = new ModeSwitchController({
     read: async () => ({ allowExistingSessionSwitch: false }),
     begin: async () => { throw new Error('not used') }, confirm: async () => { throw new Error('not used') },
     disable: async () => ({ allowExistingSessionSwitch: false }),
   }, async () => {}, makeTranslate(en))
+  const sensitive = new SensitiveConfirmationsController({
+    read: async () => ({ confirmations: true }),
+    begin: async () => ({ id: 'challenge' as never, confirmations: false, waitMs: 10_000 }),
+    confirm: async () => ({ confirmations: false }),
+  }, makeTranslate(en))
   const store = createSnapshotStore<AgentPresetSectionState>({ status: 'ready', error: null,
     saving: false, rows: [{ id: 'standard', isDefault: true }, { id: 'mine', name: 'Mine', isDefault: false }],
     view: null, ...partial })
   const actions = { load: vi.fn(async () => {}), view: vi.fn(async () => {}), closeView: vi.fn(), makeDefault: vi.fn(async () => {}),
     close: vi.fn(), selectCurrent: vi.fn(async () => {}), savePolicy: vi.fn(async () => {}), loadPolicy: vi.fn(async () => {}),
-    confirmPolicy: vi.fn(async () => {}), cancelPolicy: vi.fn(), dismissModeToast: vi.fn() }
+    confirmPolicy: vi.fn(async () => {}), cancelPolicy: vi.fn(), dismissModeToast: vi.fn(),
+    loadConfirmations: vi.fn(async () => {}), saveConfirmations: vi.fn(async () => {}), confirmConfirmations: vi.fn(async () => {}),
+    cancelConfirmations: vi.fn(), dismissConfirmations: vi.fn() }
+  const configured: (string | undefined)[] = []
   const props: AgentPresetSectionProps = { ...actions,
     ...(startCreatorDraft === undefined ? {} : { startCreatorDraft }),
     usePanelInfo: unusedHook, useSessions: unusedHook, useSessionStatus: unusedHook, useSessionRetainInfo: unusedHook,
     useWorkspaces: unusedHook, useResource: unusedHook,
-    // The section's own child slot is empty in this fixture: these specs cover the roster.
-    renderSlot: () => null,
+    // The section's own child slot is empty in this fixture: these specs record
+    // which mode the page asked to configure.
+    renderSlot: ((_name: 'settings.mode.materials', owner: { modeId: string | undefined }) => {
+      configured.push(owner.modeId)
+      return null
+    }) as AgentPresetSectionProps['renderSlot'],
     ...allowAllAccess,
     useAgentPresetSection: bindSnapshotSelector(store),
     useCurrentMode: bindSnapshotSelector(currentMode), useModePolicy: bindSnapshotSelector(mode.policy),
     useModeSwitchState: bindSnapshotSelector(mode.state),
     useDeveloperTools: bindSnapshotSelector(developerTools),
+    useConfigurableModes: bindSnapshotSelector(configurableModes),
+    useSensitiveConfirmations: bindSnapshotSelector(sensitive.state),
     t: key => translations.get(key) ?? key }
   render(outerClose === undefined ? <AgentPresetSection {...props} />
     : <Modal open onClose={outerClose} title="Settings" closeLabel="Close"><AgentPresetSection {...props} /></Modal>)
-  return { ...actions, store, developerTools, currentMode, mode }
+  return { ...actions, store, developerTools, currentMode, configurableModes, mode, sensitive, configured }
 }
 function rowFor(id: string): HTMLElement {
   const row = document.querySelector<HTMLElement>(`[data-agent-preset-id="${id}"]`)
@@ -88,7 +105,7 @@ it.each(['ptc', 'minimal'])('keeps a named custom %s override selectable with Co
 })
 it('selects the current mode without exposing a default editor', async () => {
   const actions = view()
-  expect(screen.getByRole('switch')).toBeTruthy()
+  expect(screen.getAllByRole('switch')).toHaveLength(2)
   fireEvent.click(screen.getByRole('button', { name: `${en.selectCurrent}: Mine` }))
   expect(actions.selectCurrent).toHaveBeenCalledWith('mine')
   expect(actions.makeDefault).not.toHaveBeenCalled()
@@ -313,4 +330,74 @@ it('renders descriptions and allows selection without resize observation', () =>
   expect(screen.getByText('Preset description')).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: `${en.selectCurrent}: Mine` }))
   expect(actions.selectCurrent).toHaveBeenCalledWith('mine')
+})
+
+const CONFIGURABLE = [
+  ['standard', false], ['security', false], ['reverse', false],
+] as const
+
+function configurableRows() {
+  return CONFIGURABLE.map(([id, isDefault]) => ({ id, isDefault }))
+}
+
+it('configures a mode on its own tab without making it the current mode', () => {
+  const actions = view({ rows: configurableRows() }, undefined, undefined, true, ['security', 'reverse'])
+  // Default mode has no configuration; the page opens on the first mode that does.
+  expect(actions.configured.at(-1)).toBe('security')
+  const tabs = screen.getAllByRole('tab')
+  expect(tabs.map(tab => tab.textContent)).toEqual([en.presetSecurityName, en.presetReverseName])
+  fireEvent.click(screen.getByRole('tab', { name: en.presetReverseName }))
+  expect(actions.configured.at(-1)).toBe('reverse')
+  expect(actions.selectCurrent).not.toHaveBeenCalled()
+  expect(screen.getByRole('tab', { name: en.presetReverseName }).getAttribute('aria-selected')).toBe('true')
+})
+
+it('opens a mode configuration from its card without selecting that mode', () => {
+  const actions = view({ rows: configurableRows() }, undefined, undefined, true, ['security', 'reverse'])
+  fireEvent.click(within(rowFor('reverse')).getByRole('button', { name: en.configure }))
+  expect(actions.configured.at(-1)).toBe('reverse')
+  expect(actions.selectCurrent).not.toHaveBeenCalled()
+})
+
+it('keeps the configuration target when the conversation mode changes', () => {
+  const actions = view({ rows: configurableRows() }, undefined, undefined, true, ['security', 'reverse'])
+  fireEvent.click(screen.getByRole('tab', { name: en.presetReverseName }))
+  fireEvent.click(screen.getByRole('button', { name: `${en.selectCurrent}: ${en.presetSecurityName}` }))
+  expect(actions.selectCurrent).toHaveBeenCalledWith('security')
+  expect(actions.configured.at(-1)).toBe('reverse')
+})
+
+it('names the configured mode in place of a tab strip when only one mode has configuration', () => {
+  const actions = view({ rows: configurableRows() }, undefined, undefined, true, ['security'])
+  expect(screen.queryByRole('tablist')).toBeNull()
+  const region = screen.getByRole('region', { name: en.presetSecurityName })
+  expect(region).toBeTruthy()
+  expect(actions.configured.at(-1)).toBe('security')
+})
+
+it('hides the configuration area when no mode publishes any', () => {
+  view({ rows: configurableRows() }, undefined, undefined, true, [])
+  expect(screen.queryByRole('heading', { name: en.modeConfig })).toBeNull()
+  expect(screen.queryByRole('tablist')).toBeNull()
+})
+
+it('opens the configuration on the mode the conversation already runs', () => {
+  const actions = view({ rows: configurableRows() }, undefined, undefined, true, ['security', 'reverse'], { id: 'reverse', blank: false })
+  expect(actions.configured.at(-1)).toBe('reverse')
+  expect(screen.getByRole('tab', { name: en.presetReverseName }).getAttribute('aria-selected')).toBe('true')
+})
+
+it('explains why an established conversation keeps its mode until switching is allowed', async () => {
+  const actions = view({}, undefined, undefined, true, [], { sessionId: 's1', blank: false })
+  expect(screen.getByText(en['modeSwitch.locked'])).toBeTruthy()
+  // Reading the permission is not enough; only an accepted permission clears it.
+  await act(async () => { await actions.mode.load() })
+  expect(screen.getByText(en['modeSwitch.locked'])).toBeTruthy()
+  act(() => { actions.mode.accept({ allowExistingSessionSwitch: true }) })
+  expect(screen.queryByText(en['modeSwitch.locked'])).toBeNull()
+})
+
+it('keeps a new conversation free of the lock notice', () => {
+  view({}, undefined, undefined, true, [], { blank: true })
+  expect(screen.queryByText(en['modeSwitch.locked'])).toBeNull()
 })

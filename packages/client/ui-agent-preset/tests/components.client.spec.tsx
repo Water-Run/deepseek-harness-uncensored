@@ -82,6 +82,7 @@ function renderSeat(
 function renderLabel(
   summary: { blank: boolean; projectionValues?: { agentPreset?: string | null } } | undefined,
   roster: Partial<AgentPresetSettingsState> = {},
+  locked = false,
 ) {
   // The chip and the label read the same roster, metadata included.
   const store = createSnapshotStore<AgentPresetSettingsState>({
@@ -92,9 +93,11 @@ function renderLabel(
   const view = render(<AgentPresetLabel {...({
     load,
     sessionId: 's1',
+    locked,
     useSessions: bindSnapshotSelector(sessions),
     useAgentPresets: bindSnapshotSelector(store),
-    t: (key: keyof typeof en) => en[key],
+    t: (key: keyof typeof en, params?: Record<string, string>) => (en[key] ?? key)
+      .replace('{mode}', params?.mode ?? ''),
   } as unknown as AgentPresetLabelProps)} />)
   return { load, view }
 }
@@ -409,6 +412,19 @@ describe('the session-header label', () => {
     // The session's own summary is the authority on which preset it runs; the
     // roster only supplies the display name, and its arrival is a later frame.
     expect(screen.getByTitle(en.headerHint).textContent).toBe('standard')
+  })
+
+  it('shows the mode grayed and inert while switching is off', () => {
+    renderLabel({ blank: false, projectionValues: { agentPreset: 'standard' } }, {}, true)
+
+    const control = screen.getByRole<HTMLButtonElement>('button', { name: en['modeSwitch.current'].replace('{mode}', en.presetStandardName) })
+    expect(control.disabled).toBe(true)
+    expect(control.getAttribute('aria-disabled')).toBe('true')
+    expect(control.getAttribute('aria-haspopup')).toBe('menu')
+    expect(control.getAttribute('aria-expanded')).toBe('false')
+    expect(control.title).toBe(en['modeSwitch.disabled'])
+    expect(control.textContent).toContain(en.presetStandardName)
+    expect(screen.queryByRole('menu')).toBeNull()
   })
 
   it('renders nothing, and reads no roster, when the session records no preset', async () => {

@@ -30,6 +30,9 @@ import { en, zh, type AgentPresetSettingsKey } from './locales.ts'
 import { AGENT_PRESET_SETTINGS_NS, AgentPresetSettingsController } from './settings-store.ts'
 import { ModeSwitchController, ModeSwitchToast, SessionModeControl } from './mode-switch.tsx'
 import type { ModeSwitchInjected } from './mode-switch.tsx'
+import { SensitiveConfirmationsController } from './sensitive-confirmations-controller.ts'
+import { SensitiveConfirmationsPrompt } from './SensitiveConfirmations.tsx'
+import type { SensitiveConfirmationsInjected } from './SensitiveConfirmations.tsx'
 import { SecurityEntryController } from './security-entry-controller.ts'
 import { SecurityEntryDialog } from './SecurityEntryDialog.tsx'
 import type { SecurityEntryDialogInjected } from './SecurityEntryDialog.tsx'
@@ -45,22 +48,26 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
   interface SlotMap {
     /**
-     * The current mode's own materials, rendered under the mode cards. Each
-     * contributing panel owns its content and renders nothing while another
-     * mode is selected, so switching modes keeps every panel's open dialog and
-     * draft alive without showing two modes' materials at once.
+     * Configuration of one mode, rendered under the mode page's configuration
+     * tabs. A contribution registers under the preset id it configures, which
+     * is what puts that preset on the page's tab list; every panel decides from
+     * `modeId` alone whether it paints, so several panels can serve one mode.
+     * `modeId` is the mode being configured, never the conversation's own mode,
+     * so configuring a mode never requires selecting it.
      */
     'settings.mode.materials': { kind: 'list'; scope: 'root'; owner: ModeMaterialsOwnerProps }
   }
 }
 
-/** Owner share of the mode-materials seat: the mode the page currently shows. */
+/** Owner share of the mode-materials seat: the mode whose configuration is shown. */
 export interface ModeMaterialsOwnerProps {
-  /** Selected preset identity, or undefined before a roster is available. */
+  /** Preset identity being configured on the mode page, or undefined before a roster is available. */
   readonly modeId: string | undefined
 }
 
 export type { AgentPresetLabelInjected, AgentPresetLabelProps } from './AgentPresetLabel.tsx'
+export type { SensitiveConfirmationsInjected } from './SensitiveConfirmations.tsx'
+export type { SensitiveConfirmationsState } from './sensitive-confirmations-controller.ts'
 export type { AgentPresetSeatInjected, AgentPresetSeatProps } from './AgentPresetSeat.tsx'
 export type { AgentPresetSectionInjected, AgentPresetSectionProps } from './AgentPresetSection.tsx'
 export type { AgentPresetSeatState } from './seat-store.ts'
@@ -86,6 +93,22 @@ export function apply(ctx: ClientContext): void {
   const controller = new AgentPresetSettingsController(ctx)
   const staged: AgentPresetStage = { id: undefined, introduce: false }
   const currentMode = createSnapshotStore<CurrentModeState>({ blank: true, busy: false })
+  // Preset ids that publish a configuration panel. The mode page offers one
+  // configuration tab per id it can also resolve in the roster; a contribution
+  // therefore declares which mode it configures by registering under that id.
+  const configurableModes = createSnapshotStore<readonly string[]>([])
+  const syncConfigurableModes = (): void => {
+    const ids = [...new Set(ctx.slots.entries('settings.mode.materials')
+      .map(entry => entry.options.id)
+      .filter((id): id is string => id !== undefined))].sort()
+    const current = configurableModes.getSnapshot()
+    if (current.length === ids.length && current.every((id, index) => id === ids[index])) return
+    configurableModes.set(ids)
+  }
+  ctx.effect(() => {
+    syncConfigurableModes()
+    return ctx.slots.subscribe('settings.mode.materials', syncConfigurableModes)
+  }, 'ui-agent-preset: configurable mode panels')
   const seats = new WeakMapWithValues<SessionBinding, AgentPresetSeatController>()
   const boundSeatDisposers = new Set<() => Promise<void>>()
   const securityEntry = new SecurityEntryController({
@@ -192,6 +215,32 @@ export function apply(ctx: ClientContext): void {
     savePolicy: value => modeSwitch.save(value), dismissModeToast: (id) => { modeSwitch.dismiss(id) },
     confirmPolicy: () => modeSwitch.confirm(), cancelPolicy: () => { modeSwitch.cancel() }, loadPolicy: () => modeSwitch.load(),
   })
+  const sensitive = new SensitiveConfirmationsController({
+    read: async () => {
+      const result = await ctx.remote.agentPresets.sensitiveConfirmationPolicy()
+      if (!result.ok) throw result.error
+      return result.value
+    },
+    begin: async (confirmations: boolean) => {
+      const result = await ctx.remote.agentPresets.beginSensitiveConfirmation(confirmations)
+      if (!result.ok) throw result.error
+      return result.value
+    },
+    confirm: async (id) => {
+      const result = await ctx.remote.agentPresets.confirmSensitiveConfirmation(id)
+      if (!result.ok) throw result.error
+      return result.value
+    },
+  }, ctx.locale.bind('settings.agentPreset'))
+  ctx.effect(() => () => { sensitive.dispose() }, 'ui-agent-preset: sensitive confirmations')
+  const sensitiveInjected = (): SensitiveConfirmationsInjected => ({
+    hooks: { sensitiveConfirmations: sensitive.state },
+    loadConfirmations: () => sensitive.load(),
+    saveConfirmations: value => sensitive.save(value),
+    confirmConfirmations: () => sensitive.confirm(),
+    cancelConfirmations: () => { sensitive.cancel() },
+    dismissConfirmations: (id) => { sensitive.dismiss(id) },
+  })
   const refreshCurrentMode = (): void => {
     const current = Object.values(ctx.sessions.list.getSnapshot().byId).find(session => (session.retainedBy.mainView ?? 0) > 0)
     const binding = current === undefined ? undefined : ctx.sessions.binding(current.id)
@@ -210,20 +259,33 @@ export function apply(ctx: ClientContext): void {
     const stopSwitch = modeSwitch.state.subscribe(refreshCurrentMode)
     const stopPolicy = ctx.remote.$on('agent-preset/switch-policy', (policy) => { modeSwitch.accept(policy) })
     const stopEntry = ctx.remote.$on('agent-preset/security-entry', (state) => { securityEntry.accept(state) })
+    // The preference decides whether the other confirmations appear at all, so
+    // an accepted change refreshes the security-entry policy and drops a dialog
+    // that no longer applies.
+    const stopSensitive = ctx.remote.$on('agent-preset/sensitive-confirmations', (policy) => {
+      sensitive.accept(policy)
+      if (!policy.confirmations) securityEntry.cancel()
+      void securityEntry.load()
+    })
     const stopConnection = ctx.on('connection/reset', () => {
       void modeSwitch.load()
+      void sensitive.load()
       securityEntry.connectionLost()
       void securityEntry.load()
     })
     refreshCurrentMode()
     void modeSwitch.load()
+    void sensitive.load()
     void securityEntry.load()
-    return () => { stopList(); stopSeat(); stopSwitch(); stopPolicy(); stopEntry(); stopConnection() }
+    return () => { stopList(); stopSeat(); stopSwitch(); stopPolicy(); stopEntry(); stopSensitive(); stopConnection() }
   }, 'ui-agent-preset: current selection and runtime policy')
   ctx.effect(() => installModeAccent(currentMode), 'ui-agent-preset: mode accent')
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'mode-switch-feedback', order: 25, locale: 'settings.agentPreset', inject: modeInjected,
   }, ModeSwitchToast))
+  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay', id: 'sensitive-confirmations', order: 24, locale: 'settings.agentPreset', inject: sensitiveInjected,
+  }, SensitiveConfirmationsPrompt))
   const entryInjected = (): SecurityEntryDialogInjected => ({
     hooks: { securityEntry: securityEntry.store },
     confirm: (declaration) => { void securityEntry.confirm(declaration) },
@@ -264,6 +326,9 @@ export function apply(ctx: ClientContext): void {
       if (section.store.getSnapshot().status !== 'idle') void section.load()
       void unboundSeat.load()
       for (const seat of seats.values) void seat.load()
+      // The confirmation preference is a settings field too, so an edit from
+      // the settings document or another window must reach this page.
+      void sensitive.load()
       reconcile()
     }
     const disposers = [
@@ -354,9 +419,18 @@ export function apply(ctx: ClientContext): void {
 
   const sectionInjected = (): AgentPresetSectionInjected => ({
     ...modeInjected(),
-    hooks: { ...modeInjected().hooks, agentPresetSection: section.store, currentMode,
-      developerTools: ctx.configForms.developerTools.enabled },
-    load: async () => { await section.load(); await (mainBlankSeat() ?? unboundSeat).load(); refreshCurrentMode() },
+    ...sensitiveInjected(),
+    hooks: {
+      ...modeInjected().hooks, ...sensitiveInjected().hooks,
+      agentPresetSection: section.store, currentMode, configurableModes,
+      developerTools: ctx.configForms.developerTools.enabled,
+    },
+    load: async () => {
+      await section.load()
+      await (mainBlankSeat() ?? unboundSeat).load()
+      await sensitive.load()
+      refreshCurrentMode()
+    },
     view: (id: string) => section.view(id),
     closeView: () => { section.closeView() },
     ...creatorDraft === undefined ? {} : { startCreatorDraft: creatorDraft },

@@ -10,7 +10,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
-import { createSnapshotStore, type ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
+import { createSnapshotStore, type ObservableSnapshot, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { RemoteError, TestRemote } from '@deepseek-ai/dsh-client-test-runtime'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import { apply as settingsApply, inject as settingsInject } from '@deepseek-ai/dsh-client-ui-settings/client'
@@ -24,9 +24,11 @@ import type { AgentPresetSeatInjected } from '../src/client/AgentPresetSeat.tsx'
 import { AgentPresetSeatController } from '../src/client/seat-store.ts'
 import { CreatePluginMenuItem, type CreatePluginMenuItemInjected } from '../src/client/CreatePluginMenuItem.tsx'
 import { SecurityEntryDialog, type SecurityEntryDialogInjected } from '../src/client/SecurityEntryDialog.tsx'
+import { SensitiveConfirmationsPrompt } from '../src/client/SensitiveConfirmations.tsx'
+import type { SensitiveConfirmationsInjected } from '../src/client/SensitiveConfirmations.tsx'
 import { AgentPresetSectionController } from '../src/client/section-store.ts'
 import { apply as hostApply } from '../src/index.ts'
-import type { AgentPresetRow } from '@deepseek-ai/dsh-agent-preset-registry/types'
+import type { AgentPresetRow, SensitiveConfirmationChallengeId } from '@deepseek-ai/dsh-agent-preset-registry/types'
 
 // These specs assert the shipped Chinese copy. The lane has no jsdom `window`,
 // so browser-language detection never runs and a fresh LocaleRuntime opens on
@@ -73,6 +75,8 @@ async function bench(options: {
   describeGate?: Promise<undefined>
   presets?: AgentPresetRow[]
   developerToolsEnabled?: boolean
+  /** Reading interval the fake preference challenge reports for a disabling request. */
+  sensitiveWaitMs?: number
 } = {}) {
   const ctx = new Context()
   // The host's answer, mutable so a spec can move the default the way the
@@ -88,6 +92,8 @@ async function bench(options: {
   let savedDefault = ROSTER.value.presets.find(row => row.isDefault)?.id ?? 'standard'
   let presetRevision = 0
   let developerToolsEnabled = options.developerToolsEnabled ?? true
+  let sensitiveOn = true
+  let sensitiveRequested = true
   let settingsSaved = false
   const settingsRosterStarted = Promise.withResolvers<undefined>()
   // The row reads `describe` to learn whether this browser may write at all,
@@ -176,6 +182,20 @@ async function bench(options: {
         protection: { state: 'unavailable' as const, revision: 0, capabilities: [] },
       },
     }),
+    sensitiveConfirmationPolicy: () => Promise.resolve({ ok: true as const, value: { confirmations: sensitiveOn } }),
+    beginSensitiveConfirmation: (confirmations: boolean) => {
+      calls.push(`beginSensitive:${String(confirmations)}`)
+      sensitiveRequested = confirmations
+      return Promise.resolve({
+        ok: true as const,
+        value: { id: 'sensitive-challenge' as SensitiveConfirmationChallengeId, confirmations, waitMs: confirmations ? 0 : options.sensitiveWaitMs ?? 10_000 },
+      })
+    },
+    confirmSensitiveConfirmation: () => {
+      sensitiveOn = sensitiveRequested
+      calls.push('confirmSensitive')
+      return Promise.resolve({ ok: true as const, value: { confirmations: sensitiveOn } })
+    },
   }
   ctx.provide('remote.agentPresets', agentPresets as never)
   Object.assign(remote, { agentPresets })
@@ -379,6 +399,56 @@ describe('ui-agent-preset apply', () => {
       injected.openSettings()
       expect(openSection).toHaveBeenCalledExactlyOnceWith('agent-presets')
       expect(injected.hooks.securityEntry.getSnapshot().required).toBe(true)
+    } finally { await ctx.fiber.dispose() }
+  })
+
+  it('registers the sensitive-confirmation overlay and forwards its preference actions', async () => {
+    const { ctx, slots, remote } = await bench()
+    try {
+      ctx.provide('sessions', sessionsDouble(ctx, { byId: {} }) as never)
+      declareRoot(slots)
+      await ctx.plugin({ inject: [...inject], apply }).await()
+      const overlay = slots.entries('shell.overlay').find(entry => entry.options.id === 'sensitive-confirmations')
+      expect(overlay?.component).toBe(SensitiveConfirmationsPrompt)
+      const injected = (overlay!.inject as () => SensitiveConfirmationsInjected & Record<string, unknown>)()
+      await injected.loadConfirmations()
+      expect(injected.hooks.sensitiveConfirmations.getSnapshot()).toMatchObject({ status: 'ready', confirmations: true })
+      // Disabling opens the countdown instead of committing; cancel leaves the preference alone.
+      await injected.saveConfirmations(false)
+      expect(injected.hooks.sensitiveConfirmations.getSnapshot().confirmation).toEqual({ remaining: 10, error: false })
+      injected.cancelConfirmations()
+      expect(injected.hooks.sensitiveConfirmations.getSnapshot().confirmation).toBeNull()
+      expect(injected.hooks.sensitiveConfirmations.getSnapshot().confirmations).toBe(true)
+      remote.emit('agent-preset/sensitive-confirmations', [{ confirmations: false }])
+      expect(injected.hooks.sensitiveConfirmations.getSnapshot().confirmations).toBe(false)
+      // Turning them back on commits without a countdown, and the outcome is announced.
+      await injected.saveConfirmations(true)
+      expect(injected.hooks.sensitiveConfirmations.getSnapshot()).toMatchObject({ confirmations: true, toast: { success: true } })
+      injected.dismissConfirmations(injected.hooks.sensitiveConfirmations.getSnapshot().toast!.id)
+      expect(injected.hooks.sensitiveConfirmations.getSnapshot().toast).toBeNull()
+    } finally { await ctx.fiber.dispose() }
+  })
+
+  it('derives configuration tabs from the mode-material contributions', async () => {
+    const { ctx, slots } = await bench()
+    try {
+      ctx.provide('sessions', sessionsDouble(ctx, { byId: {} }) as never)
+      declareRoot(slots)
+      await ctx.plugin({ inject: [...inject], apply }).await()
+      const section = slots.entries('settings.section')[0]!
+      const injectFace = section.inject
+      if (injectFace === undefined) throw new Error('expected the section inject face')
+      // The registry types an entry's inject face structurally; this spec reads
+      // the one hook the page publishes.
+      const injected = injectFace() as { hooks: { configurableModes: SnapshotStore<readonly string[]> } }
+      expect(injected.hooks.configurableModes.getSnapshot()).toEqual([])
+      slots.register({ name: 'settings.mode.materials', id: 'security', inject: () => ({}) }, () => null)
+      slots.register({ name: 'settings.mode.materials', id: 'security-proxy', inject: () => ({}) }, () => null)
+      // Every contribution id is publishable; the section turns the ones that
+      // also name a roster preset into tabs, and this one does not.
+      await vi.waitFor(() => {
+        expect(injected.hooks.configurableModes.getSnapshot()).toEqual(['security', 'security-proxy'])
+      })
     } finally { await ctx.fiber.dispose() }
   })
 

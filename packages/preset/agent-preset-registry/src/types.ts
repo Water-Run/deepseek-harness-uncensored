@@ -16,6 +16,25 @@ export interface ModeSwitchChallenge {
   readonly waitMs: number
 }
 
+/** Single-use acknowledgement for changing the sensitive-action confirmation preference. */
+export type SensitiveConfirmationChallengeId = Branded<'SensitiveConfirmationChallengeId'>
+
+/** Whether sensitive actions still ask for an interactive confirmation. */
+export interface SensitiveConfirmationPolicy {
+  /** Persisted preference; true until the owner turns the confirmations off. */
+  readonly confirmations: boolean
+}
+
+/** Acknowledgement issued before a confirmation preference changes, with its minimum reading duration. */
+export interface SensitiveConfirmationChallenge {
+  /** Single-use identity; replaced by every new challenge. */
+  readonly id: SensitiveConfirmationChallengeId
+  /** Preference the challenge will commit. */
+  readonly confirmations: boolean
+  /** 0 when the change needs no reading; the countdown when it turns confirmations off. */
+  readonly waitMs: number
+}
+
 /** Single-use acknowledgement for the first new Security conversation of a Host lifetime. */
 export type SecurityEntryChallengeId = Branded<'SecurityEntryChallengeId'>
 
@@ -174,6 +193,12 @@ declare module '@deepseek-ai/cordis' {
      * @param policy - Current runtime permission.
      */
     'agent-preset/switch-policy'(policy: ModeSwitchPolicy): void
+    /**
+     * The sensitive-action confirmation preference changed, from this window or another.
+     * @mode emit
+     * @param policy - Current preference.
+     */
+    'agent-preset/sensitive-confirmations'(policy: SensitiveConfirmationPolicy): void
     /**
      * First-entry acknowledgement or live protection state changed.
      * @mode emit

@@ -11,7 +11,7 @@ const CHALLENGE_LIFETIME_MS = 300_000
 /** Owns one active confirmation and the permission granted during this Host lifetime. */
 export class ModeSwitchPermission {
   private allowed = false
-  private challenge: { id: ModeSwitchChallengeId; started: number } | undefined
+  private challenge: { id: ModeSwitchChallengeId; started: number; waitMs: number } | undefined
 
   /**
  * @param now - Monotonic clock used for the mandatory reading interval.
@@ -26,12 +26,13 @@ export class ModeSwitchPermission {
 
   /**
  * Start a new reading interval.
+ * @param waitMs - Reading duration the owner requires; zero when no confirmation is asked for.
  * @returns An acknowledgement replacing any earlier unconfirmed request.
  */
-  begin(): ModeSwitchChallenge {
+  begin(waitMs: number = READING_TIME_MS): ModeSwitchChallenge {
     const id = brandString<ModeSwitchChallengeId>(randomUUID())
-    this.challenge = { id, started: this.now() }
-    return { id, waitMs: READING_TIME_MS }
+    this.challenge = { id, started: this.now(), waitMs }
+    return { id, waitMs }
   }
 
   /**
@@ -45,8 +46,8 @@ export class ModeSwitchPermission {
     if (challenge === undefined || challenge.id !== id || elapsed > CHALLENGE_LIFETIME_MS) {
       throw new RemoteError('agent-preset/confirmation', 'Open the confirmation again.', { remainingMs: 0 })
     }
-    if (elapsed < READING_TIME_MS) {
-      throw new RemoteError('agent-preset/confirmation', 'Wait for the confirmation countdown.', { remainingMs: Math.ceil(READING_TIME_MS - elapsed) })
+    if (elapsed < challenge.waitMs) {
+      throw new RemoteError('agent-preset/confirmation', 'Wait for the confirmation countdown.', { remainingMs: Math.ceil(challenge.waitMs - elapsed) })
     }
     this.challenge = undefined
     this.allowed = true

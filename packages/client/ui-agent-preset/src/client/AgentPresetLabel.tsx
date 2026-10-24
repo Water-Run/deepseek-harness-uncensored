@@ -1,8 +1,9 @@
-/** Session-header mode label used while temporary switching permission is disabled. */
+/** Session-header mode label: passive while mode switching is allowed, a grayed and disabled control while it is off. */
 
 import { useEffect } from 'react'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import { IconChevronDownOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { PresetIcon } from './PresetIcon.tsx'
 // Type-only: pulls the ui-conversation SlotMap merge (the header actions).
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
@@ -35,11 +36,12 @@ export type AgentPresetLabelProps =
 /**
  * Render this session's agent-preset name beside its title.
  * @param props - composed slot props.
+ * @param props.locked - Render the mode-change affordance disabled: switching is off, so the control stays visible but grayed.
  * @returns the label, or null when the session records no preset.
  */
 export function AgentPresetLabel({
-  sessionId, useSessions, useAgentPresets, load, t,
-}: AgentPresetLabelProps) {
+  sessionId, useSessions, useAgentPresets, load, t, locked = false,
+}: AgentPresetLabelProps & { locked?: boolean }) {
   const preset = useSessions((state) => {
     const value = state.byId[sessionId]?.projectionValues?.agentPreset
     return typeof value === 'string' ? value : undefined
@@ -58,10 +60,22 @@ export function AgentPresetLabel({
 
   const option = options.find(entry => entry.id === preset)
   const text = option === undefined ? undefined : presetDisplayText(option, t)
+  const name = text?.name ?? preset
+  if (locked) {
+    return (
+      <button type="button" className={`${css.label} ${css.locked}`} disabled aria-disabled="true"
+        aria-haspopup="menu" aria-expanded={false} title={t('modeSwitch.disabled')}
+        aria-label={t('modeSwitch.current', { mode: name })}>
+        <PresetIcon key={preset} id={preset} size={14} className={css.icon} />
+        {name}
+        <IconChevronDownOutlineRegular size={12} className={css.lockChevron} />
+      </button>
+    )
+  }
   return (
     <span className={`${css.label} ${css[tone]}`} title={text?.description ?? t('headerHint')}>
       <PresetIcon key={preset} id={preset} size={14} className={css.icon} />
-      {text?.name ?? preset}
+      {name}
     </span>
   )
 }

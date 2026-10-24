@@ -40,6 +40,47 @@
   color: var(--dsw-alias-label-secondary);
 }
 
+/* Page-level block heading: the two halves of this page — which mode the
+   conversation uses, and which mode is being configured — stay visibly apart. */
+.sectionHead {
+  margin: 8px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* Preference rows that act on the whole page (switching and confirmations). */
+.prefs {
+  display: flex;
+  flex-direction: column;
+  margin-top: 12px;
+}
+
+/* Configuration for a named mode, independent of the conversation's choice. */
+.config {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.configHint {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.tabLabel {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .cards {
   list-style: none;
   margin: 0;

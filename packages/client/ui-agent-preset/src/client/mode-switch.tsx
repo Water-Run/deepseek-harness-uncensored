@@ -34,7 +34,9 @@ export function SessionModeControl(props: AgentPresetLabelProps & Common & { sel
   const mode = useSessions(state => state.byId[sessionId]?.projectionValues?.agentPreset)
   const options = useAgentPresets(state => state.options)
   useEffect(() => { void load() }, [load])
-  if (!allowed) return <AgentPresetLabel {...props} />
+  // The control stays on screen while switching is off, grayed: hiding it left
+  // no hint that existing conversations are locked or where to unlock them.
+  if (!allowed) return <AgentPresetLabel {...props} locked />
   const option = options.find(item => item.id === mode)
   const label = option === undefined ? mode ?? t('noDescription') : presetDisplayText(option, t).name
   return <Menu open={open && !running && !busy} onClose={() => { setOpen(false) }} selectedId={mode ?? undefined}

@@ -48,10 +48,13 @@ The public selection roster omits definitions marked `hidden`. Historical resolu
 | `default` | required | Preset ID used when none is requested |
 | `securityEntryPreset` | `security` | Preset that carries the first-entry acknowledgement |
 | `requireSecurityEntryAcknowledgement` | `false` | Whether a new main conversation must acknowledge that preset once per Host lifetime |
+| `sensitiveConfirmations` | `true` | Whether sensitive actions ask for a reading countdown or a typed declaration |
 
 The Web definitions come from the `dsh-web-app` bundle. Definitions are ordinary plugin rows; the registry neither scans directories nor accepts preset paths. New sessions use the deployment `default`, which is `standard` in the shipped Web profile. The legacy `selectedDefault` field is accepted but ignored; explicit per-session selections remain supported. A profile patch may still carry the retired `modeSelectionEnabled` field; the registry declares no such field and neither reads nor rewrites it.
 
 Established conversations can change mode only while idle and after owner acknowledgement. `beginModeSwitch` issues a one-time challenge, `confirmModeSwitch` enforces ten seconds of monotonic elapsed time, and `disableModeSwitch` revokes permission and pending challenges. Challenges expire after five minutes. Permission starts disabled for each registry lifetime and is never persisted. The legacy `allowExistingSessionSwitch` configuration field is accepted but ignored; editing it cannot authorize a switch. New conversations remain selectable without this acknowledgement.
+
+`sensitiveConfirmationPolicy` reports the owner's preference. `beginSensitiveConfirmation` opens a challenge for the requested value: restoring confirmations commits immediately, while turning them off carries a ten-second monotonic countdown. `confirmSensitiveConfirmation` consumes the challenge, drops any open first-entry challenge, persists the value through the `agent-preset-registry` settings entry, and announces `agent-preset/sensitive-confirmations`. With the preference off, `beginModeSwitch` issues a challenge with no reading interval and the first-entry policy reports `required: false`; the security-entry Remote methods stay guarded, so a client that still asks receives `security-entry/disabled`.
 
 ### Security first-entry acknowledgement
 
@@ -81,6 +84,7 @@ Activation auditing checks imports, missing services and globally leaked service
 |---|---|
 | [index.ts](src/index.ts) | Registration, revisions, Agent bindings, and Remote policy |
 | [security-entry.ts](src/security-entry.ts) | First-entry challenge, declaration, and monotonic timing |
+| [sensitive-confirmations.ts](src/sensitive-confirmations.ts) | Confirmation preference and the countdown its disabling needs |
 | [mount.ts](src/mount.ts) | Scoped plugin trees and activation auditing |
 
 </details>
@@ -116,6 +120,7 @@ Existing Agents retain their plugins and prompts. New Agents build their prefixe
 - Presets are not security sandboxes: YAML and plugins can execute Host code. A user override replaces the complete child list and does not automatically merge future changes to the builtin list. Old revision implementations are not retained across process restarts.
 - The Web product composes no `securityProtection` provider. Its first-entry dialog therefore reports protection as unavailable and requires the declaration; the enabled branch is exercised only by test providers until the execution protection in the deferred target-protection work is restored.
 - The acknowledgement records the operator's declaration for this Host lifetime. It does not enforce target protection, and it does not prove authorization for any third-party target.
+- `sensitiveConfirmations` removes dialogs, not capability. It is a settings field in the profile patch, so an operator editing that document can change it without the countdown; the countdown guards the product's settings surface, not the file.
 
 <a id="dev-note"></a>
 ### Dev Note

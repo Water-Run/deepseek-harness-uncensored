@@ -23,10 +23,10 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap { 'settings.securityProxy': SecurityProxyKey }
   interface SlotMap {
     /**
-     * The current mode's own materials, rendered under the mode cards by
-     * ui-agent-preset. Declared here as well so this package compiles and its
-     * contribution waits for the declaration instead of failing when the
-     * materials seat is absent.
+     * The mode configuration seat declared by ui-agent-preset, where this panel
+     * joins the Security mode's tab. Declared here as well so this package
+     * compiles and its contribution waits for the declaration instead of
+     * failing when the seat is absent.
      */
     'settings.mode.materials': { kind: 'list'; scope: 'root'; owner: { readonly modeId: string | undefined } }
   }

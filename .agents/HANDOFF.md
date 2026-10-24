@@ -1,5 +1,18 @@
 # Uncensored 开发交接
 
+## 模式页重做与敏感确认开关节点（2026-10-24）
+
+本轮按用户新要求完成三项，未打包、未安装、未发布；运行中的桌面版仍是旧产物。
+
+- 设置 → 模式重做：模式选择与模式配置分离。配置区为独立区块，标签页由 `settings.mode.materials` 贡献项的注册 id 决定（贡献项按所配置的 preset id 注册），默认打开当前对话模式的标签页；卡片新增“配置”按钮，只切换标签页、不切换当前对话模式；只有一个可配置模式时直接显示模式名，没有时整块隐藏。设置页标题改为“模式”，选择与配置各有小标题。
+- 对话标题栏：已有对话未获临时切换权限时，模式控件不再消失，而是保留并置灰禁用（`AgentPresetLabel locked`），提示指向“设置 → 模式”。
+- 新增“敏感操作需要确认”开关，默认开启，Host 侧持久化到 `agent-preset-registry` 设置条目。关闭需十秒单调倒计时并由 Host 校验，重新开启立即生效；关闭后 `securityEntryState().required` 为 false、`beginModeSwitch` 返回 `waitMs: 0`、已打开的首次进入挑战作废。客户端以 `challenge.waitMs === 0` 作为“无需确认”的判据，因此不新增客户端侧策略判断。
+- 新增 Remote：`sensitiveConfirmationPolicy`、`beginSensitiveConfirmation`、`confirmSensitiveConfirmation`，转发事件 `agent-preset/sensitive-confirmations`；typert 工件已用 `scripts/generate-typert.ts` 重新生成（35 个包）。
+- 验证：`agent-preset-registry` 11 文件 100 项通过；`ui-agent-preset` 14 文件 295 项通过；新增/改动客户端文件（`sensitive-confirmations-controller.ts`、`SensitiveConfirmations.tsx`、`AgentPresetSection.tsx`、`AgentPresetLabel.tsx`）在包内测试下达到逐文件 100% 覆盖。`pnpm run typecheck` 5/5 通过（Host/客户端编译器与两个聚合检查）。改动文件的 oxlint 通过；`ui-security-proxy` 的 `controller.ts:145` 与 `SecurityProxySection.tsx:200` 是既有 lint 错误，本轮只改该包的注释。
+- `pnpm run test:gui`：666 文件中 648 通过、18 个既有失败（`ui-theme` 六个样式/主题用例、`ui-settings-general`、`ui-layout`、`ui-renderer`、`ui-shortcuts`、`connection` 等），失败文件均不在本轮改动的包内；`ui-theme` 的失败与主题按本地时间选深/浅色有关（期望浅色、实际深色），属既有债务。不得把这次运行说成全绿。
+- `pnpm run build:artifacts` 7/7、`pnpm run build:check` 2/2 通过（331 个客户端工件）。`verify-client-ui-i18n`（1118 文件）、`verify-export-jsdoc`、`verify-client-packages`（69 包）、`verify-package-dependencies`（87 包）与两份 README 的中英配对通过；`verify-doc-budgets` 仍因本分支已移除的 `docs/` 文件而失败，属性既有缺口。
+- 未完成：真实浏览器（深色/浅色/390px）复核新标签页、置灰控件与关闭时的十秒弹窗；`index.ts` 中的 Remote 包装闭包此前即未覆盖，本轮未改变该状况。
+
 ## 当前暂停节点
 
 用户要求立即收尾暂停；等待明确恢复，不继续开发或付费模型测试。本轮范围为旁问、删除、余额、额度续跑、设置细节、写作六项，原 TODO 勾选暂不批量改为完成。

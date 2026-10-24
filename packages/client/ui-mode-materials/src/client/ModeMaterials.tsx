@@ -2,8 +2,8 @@
  * The three mode-materials panels as one settings-section contribution each.
  *
  * Every panel stays mounted while the section is open and renders nothing
- * unless it owns the current mode, so switching modes never destroys a panel's
- * open dialog, draft text, or scroll position.
+ * unless it owns the mode being configured, so moving between configuration
+ * tabs never destroys a panel's open dialog, draft text, or scroll position.
  */
 
 import type { ReactNode } from 'react'

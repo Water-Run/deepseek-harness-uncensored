@@ -7,6 +7,9 @@
   max-width: 180px;
   padding: 3px 8px;
   min-height: 24px;
+  /* The locked state renders the same box as a button; both keep one geometry. */
+  appearance: none;
+  font: inherit;
   border: 1px solid color-mix(in srgb, var(--dsw-mode-label-ink) 22%, transparent);
   border-radius: var(--dsw-radius-sm);
   background: var(--dsw-alias-fill-tsp-secondary);
@@ -65,4 +68,24 @@
 
 .neutral {
   background: var(--dsw-mode-neutral-fill);
+}
+
+/* Mode switching is off: the mode control stays in place, grayed and inert, so
+   the header still says which mode is running and why it cannot change. */
+.locked {
+  border-color: var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-fill-tsp-secondary);
+  color: var(--dsw-alias-label-tertiary);
+  box-shadow: none;
+  cursor: default;
+}
+
+.locked .icon {
+  animation: none;
+  opacity: 0.7;
+}
+
+.lockChevron {
+  flex: none;
+  opacity: 0.55;
 }

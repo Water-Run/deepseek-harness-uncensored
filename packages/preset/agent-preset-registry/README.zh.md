@@ -48,10 +48,13 @@ kind: "package-reference"
 | `default` | 必填 | 未显式指定时使用的 preset ID |
 | `securityEntryPreset` | `security` | 需要首次进入确认的 preset |
 | `requireSecurityEntryAcknowledgement` | `false` | 新主对话是否必须每次 Host 生命周期确认一次该 preset |
+| `sensitiveConfirmations` | `true` | 敏感操作是否要求阅读倒计时或输入声明 |
 
 Web 内置定义来自 `dsh-web-app` bundle。定义使用普通插件行；注册表不扫描目录，也不接受 preset 路径。新会话使用部署的 `default`，本发行的 Web 配置固定为 `standard`。旧字段 `selectedDefault` 仍可解析但不再生效；各会话仍可显式选择模式。profile patch 仍可能带有已废弃的 `modeSelectionEnabled` 字段；注册表未声明该字段，既不读取也不重写它。
 
 已有对话仅在空闲且经过所有者确认后才能切换模式。`beginModeSwitch` 签发一次性确认标识，`confirmModeSwitch` 校验单调时钟计时已满十秒，`disableModeSwitch` 撤销权限及待确认标识。标识五分钟后过期。每次注册表启动时权限均关闭，且不持久保存。旧配置字段 `allowExistingSessionSwitch` 仍可读取但不生效，编辑它不能授予切换权限。新对话不需要这项确认即可选择模式。
+
+`sensitiveConfirmationPolicy` 报告所有者的确认偏好。`beginSensitiveConfirmation` 按请求值签发挑战：重新开启确认立即生效，关闭则附带十秒单调倒计时。`confirmSensitiveConfirmation` 消费挑战、作废仍打开的首次进入挑战、通过 `agent-preset-registry` 设置条目持久化该值，并发出 `agent-preset/sensitive-confirmations`。关闭偏好后，`beginModeSwitch` 签发的挑战不含阅读间隔，首次进入策略报告 `required: false`；security-entry 的各 Remote 仍保留校验，仍发起请求的客户端会收到 `security-entry/disabled`。
 
 ### 网安首次进入确认
 
@@ -81,6 +84,7 @@ preset 的服务提供方及其消费方必须共享同一个 `cordis:group` 隔
 |---|---|
 | [index.ts](src/index.ts) | 注册、代际、Agent 绑定与 Remote 策略 |
 | [security-entry.ts](src/security-entry.ts) | 首次进入挑战、声明与单调计时 |
+| [sensitive-confirmations.ts](src/sensitive-confirmations.ts) | 确认偏好及关闭它所需的倒计时 |
 | [mount.ts](src/mount.ts) | 隔离插件树与激活审计 |
 
 </details>
@@ -116,6 +120,7 @@ preset 的服务提供方及其消费方必须共享同一个 `cordis:group` 隔
 - preset 不是安全沙箱：YAML 及插件可以执行 Host 代码。用户覆盖替换完整子插件列表，不自动合并内置列表的未来更新。进程退出后不保存旧代际的插件实现。
 - Web 产品尚未组合 `securityProtection` 提供方，首次进入对话框因此显示保护不可用并要求输入声明；保护开启分支目前只由测试提供方覆盖，需等延后的目标保护执行工作恢复后才有生产实现。
 - 确认只记录操作者在本次 Host 生命周期内的声明，不执行目标保护，也不构成对任何第三方目标的事实授权证明。
+- `sensitiveConfirmations` 只取消弹窗，不改变能力。它是 profile patch 中的设置字段，直接编辑该文件的部署或操作者无需经过倒计时即可修改；倒计时保护的是产品设置界面，不是文件本身。
 
 <a id="dev-note"></a>
 ### 开发备注

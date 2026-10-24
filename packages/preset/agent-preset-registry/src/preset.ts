@@ -21,4 +21,6 @@ export interface Config {
   securityEntryPreset: Volatile<string>
   /** Whether a new main conversation must acknowledge Security mode once per Host lifetime. */
   requireSecurityEntryAcknowledgement: Volatile<boolean>
+  /** Whether sensitive actions ask for an interactive confirmation; the owner turns it off behind a countdown. */
+  sensitiveConfirmations: Volatile<boolean>
 }

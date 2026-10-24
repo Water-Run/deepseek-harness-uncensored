@@ -1,9 +1,10 @@
-/** Preset selection settings: the roster, its default, mode help, a read-only view of each composition, and the Creator-mode entry. */
+/** Preset selection settings: the roster, its default, mode help, the per-mode configuration, and the Creator-mode entry. */
 import type { ReactNode } from 'react'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import {
-  Button, IconBrowseOutlineRegular, IconPlusOutlineRegular, Modal, Tag, Tooltip,
+  Button, IconBrowseOutlineRegular, IconPlusOutlineRegular, Modal, SegmentedTabs, Tag, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { SegmentedTab } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ObservableSnapshot, SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { AgentPresetSectionState } from './section-store.ts'
@@ -13,6 +14,7 @@ import { PresetGuideDialog, presetGuide, trapPresetReaderTab, type PresetGuidePa
 import css from './AgentPresetSection.module.css'
 import { PresetIcon } from './PresetIcon.tsx'
 import { ModeSwitchSetting, type ModeSwitchInjected } from './mode-switch.tsx'
+import { SensitiveConfirmationsSetting, type SensitiveConfirmationsInjected } from './SensitiveConfirmations.tsx'
 
 /**
  * Main-view selection; an absent identity uses the current default until a draft exists.
@@ -21,12 +23,14 @@ import { ModeSwitchSetting, type ModeSwitchInjected } from './mode-switch.tsx'
 export interface CurrentModeState { id?: string; sessionId?: string; blank: boolean; busy: boolean }
 
 /** Settings actions and their shared controller state. */
-export interface AgentPresetSectionInjected extends ModeSwitchInjected {
-  hooks: ModeSwitchInjected['hooks'] & {
+export interface AgentPresetSectionInjected extends ModeSwitchInjected, SensitiveConfirmationsInjected {
+  hooks: ModeSwitchInjected['hooks'] & SensitiveConfirmationsInjected['hooks'] & {
     agentPresetSection: SnapshotStore<AgentPresetSectionState>
     currentMode: SnapshotStore<CurrentModeState>
     /** Shared Coding Tools preference; off hides the built-in PTC and Minimal cards. */
     developerTools: ObservableSnapshot<boolean>
+    /** Preset ids that contributed a configuration panel; the page shows one tab per id it can resolve. */
+    configurableModes: SnapshotStore<readonly string[]>
   }
   /** Stage the `cordis` preset and start a Creator-mode task; absent without a conversation flow. */
   startCreatorDraft?: () => void
@@ -70,14 +74,14 @@ function CardDescription({ text }: { text: string }): ReactNode {
   )
 }
 
-/** Render the roster with its default, mode help, composition viewer, and the guidance to Creator mode.
+/** Render the roster with its default, mode help, per-mode configuration, composition viewer, and Creator-mode guidance.
  * @param props Settings actions, snapshot hooks and localized text.
  * @returns The preset settings section.
  */
 export function AgentPresetSection(props: AgentPresetSectionProps) {
   const {
     useAgentPresetSection, load, view, closeView, startCreatorDraft,
-    close: closeSettings, useDeveloperTools, useCurrentMode, useModePolicy, selectCurrent, renderSlot, t,
+    close: closeSettings, useDeveloperTools, useCurrentMode, useModePolicy, useConfigurableModes, selectCurrent, renderSlot, t,
   } = props
   const state = useAgentPresetSection(value => value)
   const current = useCurrentMode(value => value)
@@ -85,6 +89,11 @@ export function AgentPresetSection(props: AgentPresetSectionProps) {
   const selectedId = current.id ?? state.rows.find(row => row.isDefault)?.id
   const selectionLocked = !current.blank && (permission.status !== 'ready' || !permission.value.allowExistingSessionSwitch)
   const developerTools = useDeveloperTools(enabled => enabled)
+  const configurableModes = useConfigurableModes(value => value)
+  // The configuration target is its own choice: configuring a mode must not
+  // require making it the current conversation's mode.
+  const [configChoice, setConfigChoice] = useState<string | undefined>(undefined)
+  const tabBase = useId()
   const [guide, setGuide] = useState<{
     content: NonNullable<ReturnType<typeof presetGuide>>
     page: PresetGuidePage
@@ -98,6 +107,30 @@ export function AgentPresetSection(props: AgentPresetSectionProps) {
   const viewed = state.view
   const viewedRow = viewed === null ? undefined : state.rows.find(row => row.id === viewed.id)
   const viewedTitle = viewed === null ? '' : viewedRow === undefined ? viewed.title : presetDisplayText(viewedRow, t).name
+  const configRows = state.rows.filter(row => configurableModes.includes(row.id))
+  // Until someone picks a tab, the page opens on the mode in use (when that
+  // mode has configuration) and otherwise on the first configurable one.
+  const configRow = configRows.find(row => row.id === (configChoice ?? selectedId)) ?? configRows[0]
+  const tabs = configRows.map(row => {
+    const name = presetDisplayText(row, t).name
+    return {
+      value: row.id,
+      // Equal-width tabs cannot grow with a long preset name; the label
+      // ellipsizes instead of wrapping past the tab's fixed height.
+      label: <span className={css.tabLabel} title={name}>{name}</span>,
+      id: `${tabBase}-tab-${row.id}`,
+      panelId: `${tabBase}-panel`,
+    }
+  })
+  // A single configurable mode needs no tab strip; the panel names it instead.
+  const [firstTab, ...restTabs] = tabs
+  const tabItems: [SegmentedTab, ...SegmentedTab[]] | undefined = firstTab === undefined || restTabs.length === 0
+    ? undefined
+    : [firstTab, ...restTabs]
+  const activeTab = tabs.find(tab => tab.value === configRow?.id)
+  const panelProps = configRow === undefined ? {} : tabItems !== undefined && activeTab !== undefined
+    ? { role: 'tabpanel' as const, id: activeTab.panelId, 'aria-labelledby': activeTab.id }
+    : { role: 'region' as const, 'aria-label': presetDisplayText(configRow, t).name }
   // Creator mode authors presets in conversation; it needs the flow to land a
   // session in and the self-referential preset on the roster.
   const creator = startCreatorDraft !== undefined && state.rows.some(row => row.id === 'cordis') ? startCreatorDraft : undefined
@@ -117,17 +150,18 @@ export function AgentPresetSection(props: AgentPresetSectionProps) {
       </button>
     )
   return <section className={css.section}>
-    <h2 className={css.title}>{t('currentMode')}</h2>
+    <h2 className={css.title}>{t('pageTitle')}</h2>
     <p className={css.intro}>{t('sectionIntro')}</p>
-    {selectionLocked && <p className={css.locked}>{t('modeSwitch.locked')}</p>}
     {state.error === null ? null : <p className={css.error} role="alert">{state.error}</p>}
+    <h3 className={css.sectionHead}>{t('currentMode')}</h3>
+    {selectionLocked && <p className={css.locked}>{t('modeSwitch.locked')}</p>}
     {([true, false] as const).map((builtIn) => {
       const rows = state.rows.filter(row => isBuiltInPreset(row) === builtIn
         && (developerTools || !requiresCodingTools(row)))
       const entry = builtIn ? null : creatorButton
       if (rows.length === 0 && entry === null) return null
       return <section key={String(builtIn)} className={css.group}>
-        <h3 className={css.groupHead}>{t(builtIn ? 'builtInGroup' : 'customGroup')}</h3>
+        <h4 className={css.groupHead}>{t(builtIn ? 'builtInGroup' : 'customGroup')}</h4>
         {rows.length === 0 ? null : <ul className={css.cards}>
           {rows.map((row) => {
             const display = presetDisplayText(row, t)
@@ -160,6 +194,11 @@ export function AgentPresetSection(props: AgentPresetSectionProps) {
                 {row.broken === undefined ? null : <span className={css.cardBrokenReason} role="alert">{row.broken}</span>}
               </button>
               <div className={css.cardFoot}>
+                {configurableModes.includes(row.id) ? <div className={css.cardHelp}>
+                  <Button variant="ghost" className={css.helpButton} onClick={() => { setConfigChoice(row.id) }}>
+                    {t('configure')}
+                  </Button>
+                </div> : null}
                 {help === undefined ? null : <div className={css.cardHelp}>
                   <Button variant="ghost" className={css.helpButton} aria-label={`${t('modeExplanation')}: ${display.name}`}
                     onClick={() => { setGuide({ content: help, page: 'explanation' }) }}>{t('modeExplanation')}</Button>
@@ -180,12 +219,21 @@ export function AgentPresetSection(props: AgentPresetSectionProps) {
         {entry}
       </section>
     })}
-    <ModeSwitchSetting {...props} />
-    {/* The current mode's own materials sit below the selection, so choosing a
-        mode changes what this page manages without leaving the page. */}
-    <div className={css.materials}>
-      {renderSlot('settings.mode.materials', { modeId: selectedId })}
+    <div className={css.prefs}>
+      <ModeSwitchSetting {...props} />
+      <SensitiveConfirmationsSetting {...props} />
     </div>
+    {/* Configuration belongs to the mode named on its tab, not to whatever the
+        current conversation runs, so this block sits outside the selection. */}
+    {configRow === undefined ? null : <section className={css.config}>
+      <h3 className={css.sectionHead}>{t('modeConfig')}</h3>
+      <p className={css.configHint}>{t('modeConfigHint')}</p>
+      {tabItems === undefined ? null : <SegmentedTabs items={tabItems}
+        value={configRow.id} onChange={(id) => { setConfigChoice(id) }} label={t('modeConfigTabs')} />}
+      <div className={css.materials} {...panelProps}>
+        {renderSlot('settings.mode.materials', { modeId: configRow.id })}
+      </div>
+    </section>}
     {guide === null ? null : <PresetGuideDialog guide={guide.content} initialPage={guide.page} t={t} onClose={() => { setGuide(null) }} />}
     <Modal open={viewed !== null} onClose={closeViewer} closeLabel={t('close')}
       onKeyDownCapture={(event) => {

@@ -34,6 +34,7 @@ interface PendingChallenge {
   readonly id: SecurityEntryChallengeId
   readonly sessionId: SessionId
   readonly started: number
+  readonly waitMs: number
   readonly protection: SecurityProtectionStatus
   readonly declaration: string
 }
@@ -88,14 +89,15 @@ export class SecurityEntryPermission {
    * Open one challenge for a new main conversation.
    * @param sessionId - New conversation the challenge belongs to.
    * @param locale - Language of the declaration the Host will accept.
+   * @param waitMs - Reading duration this deployment requires; zero when no confirmation is asked for.
    * @returns Challenge carrying the live protection snapshot.
    */
-  begin(sessionId: SessionId, locale: SecurityEntryLocale): SecurityEntryChallenge {
+  begin(sessionId: SessionId, locale: SecurityEntryLocale, waitMs: number = SECURITY_ENTRY_WAIT_MS): SecurityEntryChallenge {
     const protection = this.protection()
     const id = brandString<SecurityEntryChallengeId>(randomUUID())
     const declaration = protection.state === 'enabled' ? '' : securityEntryDeclaration(locale)
-    this.challenge = { id, sessionId, started: this.now(), protection, declaration }
-    return { id, waitMs: SECURITY_ENTRY_WAIT_MS, declaration, protection }
+    this.challenge = { id, sessionId, started: this.now(), waitMs, protection, declaration }
+    return { id, waitMs, declaration, protection }
   }
 
   /**
@@ -132,8 +134,8 @@ export class SecurityEntryPermission {
       this.challenge = undefined
       throw new RemoteError('security-entry/changed', 'Protection changed while the confirmation was open. Read the updated status and confirm again.', { protection })
     }
-    if (elapsed < SECURITY_ENTRY_WAIT_MS) {
-      throw new RemoteError('security-entry/wait', 'Wait for the confirmation countdown.', { remainingMs: Math.ceil(SECURITY_ENTRY_WAIT_MS - elapsed) })
+    if (elapsed < challenge.waitMs) {
+      throw new RemoteError('security-entry/wait', 'Wait for the confirmation countdown.', { remainingMs: Math.ceil(challenge.waitMs - elapsed) })
     }
     if (challenge.declaration !== '' && declaration.normalize('NFKC').trim() !== challenge.declaration.normalize('NFKC')) {
       throw new RemoteError('security-entry/declaration', 'Type the declaration exactly as shown.', { declaration: challenge.declaration })
