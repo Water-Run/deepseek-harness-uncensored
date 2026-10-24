@@ -17,7 +17,7 @@ export function amountPrefix(text: string): string {
 export function amountNumber(text: string): number | undefined {
   if (text.includes('<')) return undefined
   const match = /-?\d[\d,]*\.?\d*/u.exec(text)
-  if (match === undefined) return undefined
+  if (match === null) return undefined
   const value = Number(match[0].replaceAll(',', ''))
   return Number.isFinite(value) ? value : undefined
 }

@@ -244,7 +244,8 @@ describe('asset integrity', () => {
           const content = await readFile(join(assets, pack, directory, reference), 'utf8')
           expect(content.length, `${pack}/${directory} -> ${reference}`).toBeGreaterThan(0)
         }
-        for (const script of [...raw.matchAll(/(?:\.\.\/\.\.\/)?shared\/scripts\/([A-Za-z0-9._-]+\.mjs)/gu)].map(match => match[1])) {
+        const scriptNames = [...raw.matchAll(/(?:\.\.\/\.\.\/)?shared\/scripts\/([A-Za-z0-9._-]+\.mjs)/gu)].flatMap(match => match[1] ?? [])
+        for (const script of scriptNames) {
           const content = await readFile(join(scripts, script), 'utf8')
           expect(content.length, `${pack}/${directory} -> ${script}`).toBeGreaterThan(0)
         }

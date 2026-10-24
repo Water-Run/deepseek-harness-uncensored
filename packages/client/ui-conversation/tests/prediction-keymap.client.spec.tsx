@@ -13,7 +13,7 @@ it('accepts a prediction with Tab only after the completion menu passes', () => 
   editor.setRootElement(root)
   registerPlainText(editor)
   const acceptPrediction = vi.fn(() => true)
-  const arbitrate = vi.fn(() => 'consumed' as const)
+  const arbitrate = vi.fn((): 'consumed' | 'pass' => 'consumed')
   registerComposerKeymap(editor, {
     arbitrate, space: () => false, dismissPopup: () => {}, canSubmit: () => true,
     submit: () => {}, intakeFiles: () => {}, pasteText: () => {}, acceptPrediction,
