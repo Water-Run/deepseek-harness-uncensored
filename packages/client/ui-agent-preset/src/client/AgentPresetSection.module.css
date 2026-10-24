@@ -393,6 +393,18 @@
   color: var(--dsw-alias-state-error-primary);
 }
 
+/* Slot host for the current mode's own materials: it owns no chrome, so a
+   mode without materials contributes nothing to the page. */
+.materials {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.materials:empty {
+  display: none;
+}
+
 .locked {
   margin: 0;
   padding: 10px 12px;

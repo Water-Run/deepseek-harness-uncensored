@@ -5,7 +5,7 @@ import {
   Button, IconBrowseOutlineRegular, IconPlusOutlineRegular, Modal, Tag, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ObservableSnapshot, SnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { InjectFace, PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { AgentPresetSectionState } from './section-store.ts'
 import { isBuiltInPreset, presetDisplayText } from './locales.ts'
 import { requiresCodingTools } from './settings-store.ts'
@@ -39,7 +39,10 @@ export interface AgentPresetSectionInjected extends ModeSwitchInjected {
   selectCurrent: (id: string) => Promise<void>
 }
 /** Props assembled by the settings renderer. */
-export type AgentPresetSectionProps = PropsRuntime<'settings.section'> & PropsLocale<'settings.agentPreset'> & InjectFace<AgentPresetSectionInjected>
+export type AgentPresetSectionProps = PropsRuntime<'settings.section'>
+  & PropsRenderSlots<'settings.mode.materials'>
+  & PropsLocale<'settings.agentPreset'>
+  & InjectFace<AgentPresetSectionInjected>
 
 function CardDescription({ text }: { text: string }): ReactNode {
   const ref = useRef<HTMLSpanElement | null>(null)
@@ -74,7 +77,7 @@ function CardDescription({ text }: { text: string }): ReactNode {
 export function AgentPresetSection(props: AgentPresetSectionProps) {
   const {
     useAgentPresetSection, load, view, closeView, startCreatorDraft,
-    close: closeSettings, useDeveloperTools, useCurrentMode, useModePolicy, selectCurrent, t,
+    close: closeSettings, useDeveloperTools, useCurrentMode, useModePolicy, selectCurrent, renderSlot, t,
   } = props
   const state = useAgentPresetSection(value => value)
   const current = useCurrentMode(value => value)
@@ -178,6 +181,11 @@ export function AgentPresetSection(props: AgentPresetSectionProps) {
       </section>
     })}
     <ModeSwitchSetting {...props} />
+    {/* The current mode's own materials sit below the selection, so choosing a
+        mode changes what this page manages without leaving the page. */}
+    <div className={css.materials}>
+      {renderSlot('settings.mode.materials', { modeId: selectedId })}
+    </div>
     {guide === null ? null : <PresetGuideDialog guide={guide.content} initialPage={guide.page} t={t} onClose={() => { setGuide(null) }} />}
     <Modal open={viewed !== null} onClose={closeViewer} closeLabel={t('close')}
       onKeyDownCapture={(event) => {

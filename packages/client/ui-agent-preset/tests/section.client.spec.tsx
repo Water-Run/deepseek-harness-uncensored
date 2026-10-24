@@ -31,6 +31,8 @@ function view(partial: Partial<AgentPresetSectionState> = {}, startCreatorDraft?
     ...(startCreatorDraft === undefined ? {} : { startCreatorDraft }),
     usePanelInfo: unusedHook, useSessions: unusedHook, useSessionStatus: unusedHook, useSessionRetainInfo: unusedHook,
     useWorkspaces: unusedHook, useResource: unusedHook,
+    // The section's own child slot is empty in this fixture: these specs cover the roster.
+    renderSlot: () => null,
     ...allowAllAccess,
     useAgentPresetSection: bindSnapshotSelector(store),
     useCurrentMode: bindSnapshotSelector(currentMode), useModePolicy: bindSnapshotSelector(mode.policy),

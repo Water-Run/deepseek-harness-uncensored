@@ -1,0 +1,43 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/api/mode-dossiers/README.md
+/:
+  en: 209398ce70481695
+  zh: 209398ce70481695
+/deepseek-ai-dsh-api-mode-dossiers:
+  en: a8ef70bac8a57519
+  zh: 980ebb80857d538b
+/deepseek-ai-dsh-api-mode-dossiers/summary:
+  en: ae724a6539d7cc48
+  zh: 2ea7fdcc48bd1a90
+/deepseek-ai-dsh-api-mode-dossiers/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: d152484eb41ac6b4
+/deepseek-ai-dsh-api-mode-dossiers/use-this-package:
+  en: 046378badcc2ce17
+  zh: 50cbdc6641d677e7
+/deepseek-ai-dsh-api-mode-dossiers/use-this-package/storage-layout:
+  en: 768c38d7e599158d
+  zh: 26a7d59d1503dbb7
+/deepseek-ai-dsh-api-mode-dossiers/use-this-package/version-guards-and-conflicts:
+  en: bd4a5610181031aa
+  zh: 841ed65d3404fdbd
+/deepseek-ai-dsh-api-mode-dossiers/use-this-package/failures:
+  en: e0e57ab8ca7f1333
+  zh: 0378eedf1cd5b314
+/deepseek-ai-dsh-api-mode-dossiers/understand-the-implementation:
+  en: 92e0b6fade4e8187
+  zh: 25c3d329b0b11edb
+/deepseek-ai-dsh-api-mode-dossiers/further-exploration:
+  en: 591a824ddcf1d355
+  zh: 287d9c2d493b195f
+/deepseek-ai-dsh-api-mode-dossiers/model-experience:
+  en: f6877dacf6f61a51
+  zh: 64367788724be996
+/deepseek-ai-dsh-api-mode-dossiers/known-limitations-and-deferred-work:
+  en: b53ce704265df038
+  zh: 8efaee9bd23db433
+/deepseek-ai-dsh-api-mode-dossiers/dev-note:
+  en: c91f72f61fa079fc
+  zh: f64b5d4961244f3c

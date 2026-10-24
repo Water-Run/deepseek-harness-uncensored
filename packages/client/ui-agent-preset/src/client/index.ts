@@ -43,6 +43,21 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'settings.agentPreset': AgentPresetSettingsKey
   }
 
+  interface SlotMap {
+    /**
+     * The current mode's own materials, rendered under the mode cards. Each
+     * contributing panel owns its content and renders nothing while another
+     * mode is selected, so switching modes keeps every panel's open dialog and
+     * draft alive without showing two modes' materials at once.
+     */
+    'settings.mode.materials': { kind: 'list'; scope: 'root'; owner: ModeMaterialsOwnerProps }
+  }
+}
+
+/** Owner share of the mode-materials seat: the mode the page currently shows. */
+export interface ModeMaterialsOwnerProps {
+  /** Selected preset identity, or undefined before a roster is available. */
+  readonly modeId: string | undefined
 }
 
 export type { AgentPresetLabelInjected, AgentPresetLabelProps } from './AgentPresetLabel.tsx'
@@ -95,7 +110,7 @@ export function apply(ctx: ClientContext): void {
       return result.value
     },
   }, (): SecurityEntryLocale => ctx.locale.getSnapshot().active.toLowerCase().startsWith('zh') ? 'zh' : 'en')
-  ctx.effect(() => () => securityEntry.dispose(), 'ui-agent-preset: security entry confirmation')
+  ctx.effect(() => () => { securityEntry.dispose() }, 'ui-agent-preset: security entry confirmation')
   ctx.effect(() => async () => {
     await Promise.all([...boundSeatDisposers].map(dispose => dispose()))
   }, 'ui-agent-preset: bound selections')
@@ -363,5 +378,6 @@ export function apply(ctx: ClientContext): void {
     label: () => ctx.locale.bind('settings.agentPreset')('nav'),
     locale: 'settings.agentPreset',
     inject: sectionInjected,
+    children: { 'settings.mode.materials': { kind: 'list', scope: 'root' } },
   }, AgentPresetSection))
 }

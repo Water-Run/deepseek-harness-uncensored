@@ -1,0 +1,29 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.host.tsbuildinfo"
+  },
+  "files": [
+    "src/index.ts",
+    "src/types.ts",
+    "src/files.ts",
+    "src/casefile.ts",
+    "src/story.ts",
+    "src/sample.ts",
+    "src/tools.ts"
+  ],
+  "references": [
+    { "path": "../../../vendor/cordis" },
+    { "path": "../../../vendor/schemastery" },
+    { "path": "../../core/agent" },
+    { "path": "../../core/session" },
+    { "path": "../../fs/fs" },
+    { "path": "../../llm/llm" },
+    { "path": "../../preset/agent-preset-registry" },
+    { "path": "../../sandbox/sandbox-policy" },
+    { "path": "../../typert/protocol" },
+    { "path": "../../workspace/workspace" }
+  ]
+}

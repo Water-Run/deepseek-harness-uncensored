@@ -152,6 +152,7 @@
     { "path": "./packages/client/ui-session" },
     { "path": "./packages/client/resources" },
     { "path": "./packages/api/workspace-files/tsconfig.client.json" },
+    { "path": "./packages/client/ui-mode-materials" },
     { "path": "./packages/client/web" },
     { "path": "./packages/context/file-reference" },
     { "path": "./apps/web" }

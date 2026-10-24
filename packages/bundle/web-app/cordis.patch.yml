@@ -132,6 +132,11 @@
       name: '@deepseek-ai/dsh-api-terminal-controller'
     - id: workspace-files
       name: '@deepseek-ai/dsh-api-workspace-files'
+    # Mode-owned materials: the `.security/`, `.reverse/`, and `story/`
+    # documents the mode settings page manages, the writing materials each
+    # Writing-mode request receives, and read-only sample inventory.
+    - id: mode-dossiers
+      name: '@deepseek-ai/dsh-api-mode-dossiers'
 
     # The Schedule service owns the task store and delivers each due occurrence
     # as a follow-up in its original Session. Each preset declares its own
@@ -153,12 +158,12 @@
     - id: settings-controller
       name: '@deepseek-ai/dsh-api-settings-controller'
 
-    # Workspace commands and reconnect-safe projection over Typert Remote.
     # Memory management over Typert Remote: reads are open to the caller and
     # management writes require the application owner.
     - id: memory-controller
       name: '@deepseek-ai/dsh-api-memory-controller'
 
+    # Workspace commands and reconnect-safe projection over Typert Remote.
     - id: workspace-controller
       name: '@deepseek-ai/dsh-api-workspace-controller'
 
@@ -435,6 +440,11 @@
     # sessions created later. Absent a roster it renders nothing.
     - id: ui-agent-preset
       name: '@deepseek-ai/dsh-client-ui-agent-preset'
+
+    # The security, reverse-engineering, and writing materials under the mode
+    # cards: case ledgers, the writing registry, and read-only sample inventory.
+    - id: ui-mode-materials
+      name: '@deepseek-ai/dsh-client-ui-mode-materials'
 
     # The security-mode proxy area under the mode cards: settings, the real
     # connection check, and the bounded captured-traffic viewer.
