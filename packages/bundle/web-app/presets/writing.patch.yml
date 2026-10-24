@@ -49,6 +49,13 @@
               maxBytes: 65536
           - id: time-context
             name: '@deepseek-ai/dsh-time-context'
+          # Cross-conversation memory for this mode: shared facts, conclusions,
+          # and settings are retrieved into the first request of each turn, and
+          # the model may save what the user explicitly asks to remember.
+          - id: memory
+            name: '@deepseek-ai/dsh-memory/agent'
+            config:
+              mode: writing
           - id: tool-fs
             name: '@deepseek-ai/dsh-tool-fs'
           - id: tool-fs-search

@@ -93,6 +93,9 @@
       "path": "../workspace-controller/tsconfig.client.json"
     },
     {
+      "path": "../memory-controller"
+    },
+    {
       "path": "../../typert/protocol"
     },
     {

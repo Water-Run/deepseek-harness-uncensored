@@ -238,6 +238,8 @@
   "references": [
     { "path": "./packages/credentials/balance" },
     { "path": "./packages/guard/spend-limit" },
+    { "path": "./packages/memory/memory" },
+    { "path": "./packages/api/memory-controller" },
     { "path": "./packages/guard/security-proxy" },
     { "path": "./packages/guard/security-proxy-local" },
     { "path": "./packages/experimental/client-ui-cot-translation/tsconfig.host.json" },

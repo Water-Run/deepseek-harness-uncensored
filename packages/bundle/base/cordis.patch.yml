@@ -196,6 +196,19 @@
       config:
         backend: json
 
+    # Cross-conversation memory: durable, scoped records plus the retrieval
+    # bounds every request obeys. The per-conversation consumer that reads and
+    # writes them is a preset row (`@deepseek-ai/dsh-memory/agent`), so a mode
+    # that does not mount it neither receives nor stores memory.
+    - id: memory
+      name: '@deepseek-ai/dsh-memory'
+      config:
+        maxEntries: 6
+        maxEntryChars: 800
+        maxContextBytes: 4096
+        minRelevance: 0.2
+        maxContentChars: 4000
+
     # Persisted projection cache: throttled write-behind over the
     # session_projcache domain (per-record layout — one version-stamped
     # checkpoint document per session), serving the session listing's
