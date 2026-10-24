@@ -11,6 +11,7 @@ import { extractPersistenceSchema } from './persistence-schema.ts'
 import { persistenceCatalogArtifacts } from './gen-persistence-catalog.ts'
 import { renderPersistencePair } from './persistence-artifacts.ts'
 import { loadPersistenceFinalization } from './persistence-finalization.ts'
+import { persistenceLayout } from './persistence-layout.ts'
 import type { PersistenceArtifact } from './persistence-artifacts.ts'
 
 const HISTORY_DIRECTORY = 'docs/persistence-changes'
@@ -643,18 +644,19 @@ export function loadPersistenceHistory(root: string): PersistenceHistory {
 }
 
 function readPersistenceEntries(root: string, allowIncompleteId?: string): PersistenceHistoryEntry[] {
-  const directory = join(root, HISTORY_DIRECTORY)
+  const directory = join(root, persistenceLayout(root).records)
   if (!existsSync(directory)) throw new Error('persistence history is missing; use pnpm run persistence-changes --baseline ID for explicit initialization')
   const files = readdirSync(directory).sort()
   const documents = files.filter(file => file.endsWith('.md') && !file.endsWith('.zh.md') && file !== 'README.md' && file !== 'AGENTS.md')
-  const snapshots = new Set(files.filter(file => file.endsWith('.schema.json')))
+  const snapshotDirectory = join(root, HISTORY_DIRECTORY)
+  const snapshots = new Set(readdirSync(snapshotDirectory).filter(file => file.endsWith('.schema.json')))
   const entries = documents.map((filename) => {
     const source = readFileSync(join(directory, filename), 'utf8').replaceAll('\r\n', '\n')
     const allowIncomplete = filename === `${allowIncompleteId}.md`
     const change = parseDocument(source, filename, allowIncomplete)
     const snapshotName = `${change.id}.schema.json`
     if (!snapshots.delete(snapshotName)) throw new Error(`${filename}: missing schema snapshot ${snapshotName}`)
-    const snapshot = parsePersistenceSnapshot(JSON.parse(readFileSync(join(directory, snapshotName), 'utf8')))
+    const snapshot = parsePersistenceSnapshot(JSON.parse(readFileSync(join(snapshotDirectory, snapshotName), 'utf8')))
     const translatedName = `${change.id}.zh.md`
     if (!files.includes(translatedName)) throw new Error(`${filename}: missing Chinese counterpart`)
     const translated = readFileSync(join(directory, translatedName), 'utf8').replaceAll('\r\n', '\n')
@@ -821,8 +823,14 @@ function executeCommand(
   const baseline = operation === 'baseline'
   const update = operation === 'update'
   const id = identifier(values.baseline ?? values.record ?? values.update, 'record id')
-  const directory = join(root, HISTORY_DIRECTORY)
-  if (baseline && existsSync(directory) && readdirSync(directory).some(file => file.endsWith('.schema.json') || ID_PATTERN.test(file.replace(/\.md$/u, '')))) throw new Error('persistence baseline already exists; baseline creation cannot reset history')
+  const layout = persistenceLayout(root)
+  const recordDirectory = layout.records
+  const directory = join(root, recordDirectory)
+  const snapshotDirectory = join(root, HISTORY_DIRECTORY)
+  if (baseline && ((existsSync(directory) && readdirSync(directory).some(file => ID_PATTERN.test(file.replace(/\.md$/u, ''))))
+    || (existsSync(snapshotDirectory) && readdirSync(snapshotDirectory).some(file => file.endsWith('.schema.json'))))) {
+    throw new Error('persistence baseline already exists; baseline creation cannot reset history')
+  }
   if (values.decision !== undefined && values.decision !== 'same-version' && values.decision !== 'version-bump') {
     throw new Error('--decision must be same-version or version-bump')
   }
@@ -866,7 +874,9 @@ function executeCommand(
   parseDocument(english, `${id}.md`, prose === undefined && existing === undefined)
   parseDocument(chinese, `${id}.md`, prose === undefined && existing === undefined)
   const recordFiles = [
-    ...renderPersistencePair(root, `${HISTORY_DIRECTORY}/${id}.md`, english, chinese),
+    // Internal records use persistence validation and are outside the public documentation pairing corpus.
+    ...renderPersistencePair(root, `${recordDirectory}/${id}.md`, english, chinese)
+      .filter(file => layout.catalogs === 'full' || !file.path.endsWith('.i18n.yaml')),
     { path: `${HISTORY_DIRECTORY}/${id}.schema.json`, content: JSON.stringify(snapshot, null, 2) + '\n' },
   ]
   if (!update && recordFiles.some(file => existsSync(join(root, file.path)))) throw new Error(`${id}: acknowledgement file already exists`)
@@ -877,8 +887,8 @@ function executeCommand(
     ? 'Complete both record documents and refresh their translation pairing.'
     : `Complete the compatibility and verification prose with --update ${id} --decision ${decision} --prose FILE.`
   const message = existing === undefined && prose === undefined
-    ? `Created ${HISTORY_DIRECTORY}/${id}.md and paired schema files. ${completion}`
-    : `${update ? 'Updated' : 'Created'} ${HISTORY_DIRECTORY}/${id}.md; schema artifacts and bilingual pairing are current.`
+    ? `Created ${recordDirectory}/${id}.md and paired schema files. ${completion}`
+    : `${update ? 'Updated' : 'Created'} ${recordDirectory}/${id}.md; schema artifacts and bilingual pairing are current.`
   return { schemaVersion: 1, ok: true, operation, recordId: id, message,
     changes: differences,
     roots: rootTransitions(history, current), files: outputs.map(file => file.path) }

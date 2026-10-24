@@ -8,6 +8,7 @@
  */
 
 import { readFileSync, writeFileSync } from 'node:fs'
+import { persistenceLayout } from './persistence-layout.ts'
 import { resolve } from 'node:path'
 import { githubSlug } from './verify-md-links.ts'
 import {
@@ -215,15 +216,17 @@ export function renderKnownEventTypes(events: AnnotatedLogEventEntry[]): string 
  * Render the complete generated persistence reference from one extracted inventory.
  * @param scanRoot - checkout whose source event declarations supply JSDoc.
  * @param schema - already extracted source schemas; shared with record validation.
- * @returns both catalog pairs and their metadata, runtime names and machine schemas.
+ * @returns Runtime names and schemas, plus readable catalog pairs when the checkout requests them.
  */
 export function persistenceCatalogArtifacts(scanRoot: string, schema: PersistenceSchemaInventory): PersistenceArtifact[] {
   const events = annotateSurface(collectLogEvents(scanRoot), collectSurfaceEventTypes(scanRoot))
   const envelope = collectEventEnvelopeTypes(scanRoot)
   const pluginRecords = collectPluginRecords(scanRoot)
   return [
-    ...renderPersistencePair(scanRoot, OUT, render(events, envelope, schema), render(events, envelope, schema, 'zh')),
-    ...renderPersistencePair(scanRoot, OUT_PLUGIN_RECORDS, renderPluginRecordCatalog(pluginRecords), renderPluginRecordCatalog(pluginRecords, 'zh')),
+    ...(persistenceLayout(scanRoot).catalogs === 'full' ? [
+      ...renderPersistencePair(scanRoot, OUT, render(events, envelope, schema), render(events, envelope, schema, 'zh')),
+      ...renderPersistencePair(scanRoot, OUT_PLUGIN_RECORDS, renderPluginRecordCatalog(pluginRecords), renderPluginRecordCatalog(pluginRecords, 'zh')),
+    ] : []),
     { path: OUT_RUNTIME_TYPES, content: renderKnownEventTypes(events) },
     { path: OUT_SCHEMA, content: `${JSON.stringify(persistenceSchemaSnapshot(schema), null, 2)}\n` },
   ]

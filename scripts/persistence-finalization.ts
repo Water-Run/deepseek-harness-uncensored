@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { JSON_SCHEMA, load } from 'js-yaml'
 import type { PersistenceHistory, PersistenceHistoryEntry } from './persistence-changes.ts'
 import type { PersistenceRoot, PersistenceSchemaInventory } from './persistence-schema-model.ts'
+import { persistenceLayout } from './persistence-layout.ts'
 
 const DIRECTORY = 'docs/persistence-changes/finalized'
 const DIGEST = /^[a-f0-9]{64}$/u
@@ -112,8 +113,9 @@ function status(root: string, path: string): number | undefined {
 export function loadPersistenceFinalization(root: string, history: Pick<PersistenceHistory, 'entries'>): PersistenceFinalization | undefined {
   const directory = join(root, DIRECTORY)
   const files = existsSync(directory) ? readdirSync(directory).filter(file => file.endsWith('.json')).sort() : []
-  const version = status(root, 'docs/session-format-status.md')
-  const translated = status(root, 'docs/session-format-status.zh.md')
+  const statusPath = persistenceLayout(root).status
+  const version = status(root, statusPath)
+  const translated = status(root, statusPath.replace(/\.md$/u, '.zh.md'))
   if (version === undefined && translated === undefined && files.length === 0) return undefined
   if (version === undefined || translated !== version) throw new Error('persistence finalization status is missing or differs between languages')
   if (!files.includes(`v${version}.json`)) throw new Error(`missing persistence finalization checkpoint v${version}.json`)

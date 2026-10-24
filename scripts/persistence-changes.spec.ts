@@ -1,7 +1,7 @@
 /** Current-tree persistence history rejects uncovered and incorrectly acknowledged type changes. */
 
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, posix, resolve } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -10,6 +10,7 @@ import type { PersistenceRoot, PersistenceSchemaInventory, SchemaNode, SchemaPro
 import { extractPersistenceSchema } from './persistence-schema.ts'
 import { persistenceCatalogArtifacts } from './gen-persistence-catalog.ts'
 import { createPersistenceFinalizationCheckpoint, loadPersistenceFinalization } from './persistence-finalization.ts'
+import { persistenceLayout } from './persistence-layout.ts'
 import {
   classifyPersistenceChange,
   loadPersistenceHistory,
@@ -174,6 +175,42 @@ function finalize(root: string, current = inventory({ value: 'number' }, 4)): vo
     writeFileSync(join(root, `docs/session-format-status${suffix}`), '```yaml session-format-finalization\nlatestFinalizedVersion: 4\n```\n')
   }
 }
+
+it('keeps finalized schemas immutable when acknowledgement prose moves to the internal layout', () => {
+  const root = fixture()
+  const current = inventory({ value: 'number' }, 4)
+  finalize(root, current)
+  const snapshotPath = join(root, `docs/persistence-changes/${FINALIZED_ID}.schema.json`)
+  const frozen = readFileSync(snapshotPath, 'utf8')
+  mkdirSync(join(root, '.agents/persistence/changes'), { recursive: true })
+  mkdirSync(join(root, 'scripts'))
+  writeFileSync(join(root, 'scripts/persistence-layout.json'), '{"documentation":"internal"}')
+  for (const name of readdirSync(join(root, 'docs/persistence-changes')).filter(name => name.endsWith('.md'))) {
+    renameSync(join(root, 'docs/persistence-changes', name), join(root, '.agents/persistence/changes', name))
+  }
+  for (const suffix of ['.md', '.zh.md']) {
+    renameSync(join(root, `docs/session-format-status${suffix}`), join(root, `.agents/persistence/status${suffix}`))
+  }
+  expect(runPersistenceChanges(['--check'], root, () => current)).toContain('roots match')
+  expect(() => runPersistenceChanges(['--baseline', '2026-10-24-reset'], root, () => current)).toThrow('baseline already exists')
+  expect(() => runPersistenceChanges(['--update', FINALIZED_ID], root, () => current)).toThrow('cannot update finalized')
+  const next = inventory({ value: 'number', 'note?': 'string' }, 4)
+  const result = jsonResult(runPersistenceChanges(['--record', NEXT_ID, '--prose', proseFile(root), '--json'], root, () => next))
+  expect(result.files).toContain(`.agents/persistence/changes/${NEXT_ID}.md`)
+  expect(result.files.some(path => path.endsWith('.i18n.yaml'))).toBe(false)
+  expect(result.files).toContain(`docs/persistence-changes/${NEXT_ID}.schema.json`)
+  expect(readFileSync(snapshotPath, 'utf8')).toBe(frozen)
+  expect(runPersistenceChanges(['--check'], root, () => next)).toContain('roots match')
+  rmSync(join(root, `.agents/persistence/changes/${NEXT_ID}.zh.md`))
+  expect(() => loadPersistenceHistory(root)).toThrow('missing Chinese counterpart')
+})
+
+it.each(['{}', '{"documentation":"none"}', '{"documentation":"internal","ignore":true}'])('rejects an invalid layout %s', (source) => {
+  const root = fixture()
+  mkdirSync(join(root, 'scripts'))
+  writeFileSync(join(root, 'scripts/persistence-layout.json'), source)
+  expect(() => persistenceLayout(root)).toThrow('must contain only')
+})
 
 function contents(root: string): Record<string, string> {
   const files: Record<string, string> = {}
