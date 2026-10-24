@@ -123,7 +123,7 @@ Tab 域按（Session，Tab id）保留品牌化 occurrence id、导航、中止�
 <a id="copy"></a>
 ## 文案
 
-该列里的每个字符串都来自 `sidebarRight` 语言命名空间，包括套件的无障碍名称。tab 的标题在 tab 铸造时固定；类型的显示名跟随当前语言。
+该列的控件文案来自 `sidebarRight` 语言命名空间，包括无障碍名称。记录的资源标题保持固定；内置“开始”标签和类型显示名跟随当前语言。
 
 <a id="model-experience"></a>
 ## 模型体验

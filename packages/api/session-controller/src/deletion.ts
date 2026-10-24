@@ -5,6 +5,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
 import { SessionAlreadyOwnedError, SessionDeletionUnsupportedError } from '@deepseek-ai/dsh-session-persistence'
+import type { SessionPersistence } from '@deepseek-ai/dsh-session-persistence'
 import type {} from '@deepseek-ai/dsh-session-projection-cache'
 import type {} from '@deepseek-ai/dsh-subagent'
 import type {} from '@deepseek-ai/dsh-jobs'
@@ -45,13 +46,14 @@ export class SessionDeletionController {
   async delete(root: SessionId, allows: (id: SessionId) => boolean): Promise<SessionDeleteValue> {
     if (this.closed) return Promise.reject(new RemoteError('gateway/internal', 'Session deletion service is closing.', {}))
     this.authorize([root], allows)
-    if (!this.ctx.get('sessionPersistence')?.supportsDeletion) {
+    const persistence = this.ctx.get('sessionPersistence')
+    if (!persistence?.supportsDeletion) {
       throw new RemoteError('session/delete-unsupported', 'The configured session storage does not support deletion.', {})
     }
     await this.recover()
     if (this.pending.has(root)) return Promise.reject(new RemoteError('session/agent-busy', 'Session deletion is in progress.', { reason: 'deleting' }))
     const operation = this.agents.withDeletion(root, include =>
-      this.ctx.sessionPersistence.withCatalogMutation(root, () => this.run(root, include, allows))).catch((error: unknown) => {
+      persistence.withCatalogMutation(root, () => this.run(root, include, allows, persistence))).catch((error: unknown) => {
       if (error instanceof SessionAlreadyOwnedError) {
         throw new RemoteError('session/writer-held', error.message, { sessionId: error.sessionId }, { cause: error })
       }
@@ -89,9 +91,10 @@ export class SessionDeletionController {
     }
   }
 
-  private async family(root: SessionId, allows: (id: SessionId) => boolean): Promise<{ ids: SessionId[]; delegated: Set<SessionId> }> {
+  private async family(root: SessionId, allows: (id: SessionId) => boolean,
+    persistence: SessionPersistence): Promise<{ ids: SessionId[]; delegated: Set<SessionId> }> {
     const headers = new Map<SessionId, SessionHeader>()
-    for (const entry of await this.ctx.sessionPersistence.list()) headers.set(entry.header.id, entry.header)
+    for (const entry of await persistence.list()) headers.set(entry.header.id, entry.header)
     for (const session of this.ctx.sessions.list()) headers.set(session.id, session.header)
     const header = headers.get(root)
     if (header?.parentSession !== undefined && (header.origin === 'subagent' || nativeAsideKind(root, header.parentSession) !== undefined)) {
@@ -129,12 +132,12 @@ export class SessionDeletionController {
   }
 
   private async run(root: SessionId, include: (ids: readonly SessionId[]) => void,
-    allows: (id: SessionId) => boolean): Promise<SessionDeleteValue> {
+    allows: (id: SessionId) => boolean, persistence: SessionPersistence): Promise<SessionDeleteValue> {
     this.authorize([root], allows)
     const plan = this.plans.get(root) ?? { ids: new Set<SessionId>([root]), delegated: new Set<SessionId>(), removed: new Set<SessionId>() }
     this.plans.set(root, plan)
     const collect = async (): Promise<void> => {
-      const discovered = await this.family(root, allows)
+      const discovered = await this.family(root, allows, persistence)
       this.authorize(discovered.ids, allows)
       for (const id of discovered.ids) plan.ids.add(id)
       for (const id of discovered.delegated) plan.delegated.add(id)
@@ -165,7 +168,7 @@ export class SessionDeletionController {
     this.stopHistory(ids)
     for (const id of ids) await this.agents.disposeOwned(id)
     try {
-      await this.ctx.sessionPersistence.deleteSessions(ids)
+      await persistence.deleteSessions(ids)
       for (const id of ids) plan.removed.add(id)
     } catch (error) {
       if (error instanceof SessionDeletionUnsupportedError) {

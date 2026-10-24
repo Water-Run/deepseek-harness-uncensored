@@ -97,7 +97,7 @@ export function registerAsides(ctx: Context): void {
     }), 'conversation: side tab')
     scope.slots.inject('sidebar.right.pane.tab', () => scope.slots.register({ name: 'sidebar.right.pane.tab', key: TYPE, locale: 'command',
       children: { 'sidebar.aside.conversation': { kind: 'single', scope: 'session' } } }, SidebarAsidePanel))
-    scope.slots.inject('sidebar.right.pane.tab.title', () => scope.slots.register({ name: 'sidebar.right.pane.tab.title', key: TYPE }, AsideTitle))
+    scope.slots.inject('sidebar.right.pane.tab.title', () => scope.slots.register({ name: 'sidebar.right.pane.tab.title', key: TYPE, locale: 'command' }, AsideTitle))
     scope.slots.inject('sidebar.aside.conversation', () => scope.slots.register({ name: 'sidebar.aside.conversation', locale: 'command', inject: () => ({ kind: 'side' as const }) }, AsideConversation))
     scope.slots.inject('conversation.input.dock', () => scope.slots.register({ name: 'conversation.input.dock', id: 'btw', order: -20, locale: 'command',
       children: { 'conversation.input.aside': { kind: 'single', scope: 'session' } },

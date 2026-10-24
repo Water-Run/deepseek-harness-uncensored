@@ -272,7 +272,7 @@ export const en = {
   'duration.compactSeconds': '{seconds}s',
   'duration.compactMinutes': '{minutes}m{seconds}s',
   'duration.milliseconds': '{milliseconds}ms',
-  'stats.counts': '{turns} turns {steps} steps',
+  'stats.counts': 'Turns: {turns} · Steps: {steps}',
   'stats.cacheHit': 'Cache hit {percent}%',
   'stats.dialog.title': 'Session statistics',
   'stats.dialog.usageTitle': 'Token usage',

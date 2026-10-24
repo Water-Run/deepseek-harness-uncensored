@@ -18,6 +18,8 @@ import { SessionId } from '@deepseek-ai/dsh-session'
 import { MockAdapter, textResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import { createSessionTestController } from './test-remote.ts'
 import { ApiSessionAgentController } from '../src/agent.ts'
+import { SessionDeletionController } from '../src/deletion.ts'
+import SessionController from '../src/index.ts'
 
 const contexts: Context[] = [], roots: string[] = []
 afterEach(async () => {
@@ -45,6 +47,26 @@ async function setup(script?: ConstructorParameters<typeof MockAdapter>[0], exis
   const api = createSessionTestController(ctx, { cwd, defaultModelSelection: () => ({ provider: 'mock', model: 'mock' }) })
   return { root, cwd, stored, cache, ctx, api, harness, adapter }
 }
+
+it('deletes through a dependency-checked scope with optional persistence', async () => {
+  const { ctx, cwd } = await setup()
+  const id = SessionId('scoped-deletion')
+  await ctx.plugin({
+    name: 'scoped-deletion-test', inject: SessionController.inject,
+    async apply(scoped: Context) {
+      expect(() => scoped.sessionPersistence).toThrow('without inject')
+      const agents = new ApiSessionAgentController(scoped, 65536)
+      const deletion = new SessionDeletionController(scoped, agents, { drainTimeoutMs: 30000, pollMs: 50 }, () => {})
+      try {
+        const agent = await agents.createOwned({ sessionId: id, meta: { cwd }, agentOptions: { provider: 'mock', model: 'mock' } })
+        agent.followup(createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'scoped-delete-marker' }] }))
+        await agent.whenIdle()
+        expect((await deletion.delete(id, () => true)).deletedSessionIds).toEqual([id])
+      } finally { await deletion.close(); await agents.disposeOwned(id) }
+    },
+  }).await()
+  expect(await ctx.sessionPersistence.stat(id)).toBeUndefined()
+})
 
 it('deletes native asides and derived data while preserving independent forks and workspace files', async () => {
   const { ctx, api, cwd, cache } = await setup()

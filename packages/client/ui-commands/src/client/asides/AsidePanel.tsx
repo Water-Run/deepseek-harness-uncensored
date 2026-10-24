@@ -68,7 +68,11 @@ export function SidebarAsidePanel({ sessionId, useTabInfo, useResource, SessionP
   </section>
 }
 
-/** Sidebar title with a distinct fork glyph. */
-export function AsideTitle({ useTabInfo }: PropsRuntime<'sidebar.right.pane.tab.title'>) {
-  return <><AsideIcon size={16} />{useTabInfo().tab.title}</>
+/**
+ * Render the side-question title in the current locale.
+ * @param props - Locale supplied by the title slot.
+ * @returns Fork glyph and localized label.
+ */
+export function AsideTitle({ t }: PropsRuntime<'sidebar.right.pane.tab.title'> & PropsLocale<'command'>) {
+  return <><AsideIcon size={16} />{t('aside.side')}</>
 }

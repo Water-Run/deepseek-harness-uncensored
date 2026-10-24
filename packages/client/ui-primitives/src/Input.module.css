@@ -13,6 +13,8 @@
   border-color: var(--dsw-alias-state-business-primary);
 }
 
+.wrap:has(.input[aria-invalid='true']) { border-color: var(--dsw-alias-state-error-primary); }
+
 .icon {
   display: inline-flex;
   width: 16px;

@@ -27,6 +27,8 @@ Desktop analytics follows the [product collection policy](../../client/product-a
 <a id="use-this-package"></a>
 ## Use this package
 
+Deletion uses one optional persistence provider for its catalog lock, family listing and removal. Missing or unsupported storage rejects the operation before work is stopped; other Session API methods remain available without deletion support.
+
 `session/predict` requests a short unsent suffix for an existing live conversation. It uses completed main history, completed parent history for a side question, or interaction status alone for `/btw`. Empty new conversations and complete questions do not dispatch a prediction. `predictionDraftBytes`, `predictionContextBytes`, `predictionMaxTokens`, `predictionOutputBytes`, and `predictionTimeoutMs` bound input, output and lifetime. Where supported, reasoning is disabled for this auxiliary call without changing the conversation's selected effort. Stop, archive, deletion and controller teardown cancel and drain prediction work.
 
 Prediction inputs, exact model route, result status and reported usage are recorded in `input/prediction` audit events. Optional request metadata preserves older records; suggestions create neither user messages nor assistant replies. Both SDKs retain the audit without changing the main response. With spending limits mounted, this controller restores ordinary conversations it owns through their original composition and waits for persistence before acknowledging continuation.

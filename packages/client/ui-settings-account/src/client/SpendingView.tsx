@@ -17,6 +17,8 @@ export interface SpendingInjected {
 }
 type Common = InjectFace<SpendingInjected> & PropsLocale<'settings.account'>
 const money = (value: number): string => `¥${value.toFixed(value < 0.01 && value > 0 ? 4 : 2)}`
+const invalidLimit = (value: string | undefined): boolean => value !== undefined
+  && (!Number.isFinite(Number(value)) || Number(value) <= 0 || Number(value) > 1_000_000)
 
 function PredictionSwitch({ t }: { t: Common['t'] }) {
   const [enabled, setEnabled] = useState(false)
@@ -68,21 +70,21 @@ export function SpendingSettings({ useSpending, configureSpending, resetSpending
   const [draft, setDraft] = useState<Partial<Record<SpendPeriod, string>>>({})
   const [confirm, setConfirm] = useState(false)
   const id = useId()
-  const invalid = Object.values(draft).some(value => !Number.isFinite(Number(value)) || Number(value) <= 0 || Number(value) > 1_000_000)
+  const invalid = Object.values(draft).some(invalidLimit)
   if (data === undefined) return <section className={css.settings} aria-busy={!state.failed}>{state.failed ? <><p role="alert">{t('spending.failed')}</p><Button onClick={refreshSpending}>{t('spending.retry')}</Button></> : <span className={css.spinner} role="status" aria-label={t('spending.loading')}><StateDot state="ongoing" size={20} /></span>}</section>
   return <section className={css.settings}>
     <p className={css.hint}>{t('spending.summary')}</p>
     {state.failed && <div role="alert" className={css.row}><span>{t('spending.failed')}</span><Button size="sm" onClick={refreshSpending}>{t('spending.retry')}</Button></div>}
-    <div className={css.row}><span>{t('spending.enabled')}</span><Switch label={t('spending.enabled')} checked={data.preferences.enabled} disabled={state.saving} onChange={(value) => { void configureSpending({ ...data.preferences, enabled: value }) }} /></div>
-    <div className={css.row}><div><span>{t('spending.auto')}</span><p className={css.hint}>{t('spending.autoHint')}</p></div><Switch label={t('spending.auto')} checked={data.preferences.autoResume} disabled={state.saving} onChange={(value) => { void configureSpending({ ...data.preferences, autoResume: value }) }} /></div>
+    <div className={css.row}><span>{t('spending.enabled')}</span><Switch label={t('spending.enabled')} checked={data.preferences.enabled} busy={state.saving} onChange={(value) => { void configureSpending({ ...data.preferences, enabled: value }) }} /></div>
+    <div className={css.row}><div><span>{t('spending.auto')}</span><p className={css.hint}>{t('spending.autoHint')}</p></div><Switch label={t('spending.auto')} checked={data.preferences.autoResume} busy={state.saving} onChange={(value) => { void configureSpending({ ...data.preferences, autoResume: value }) }} /></div>
     <PredictionSwitch t={t} />
     <div className={css.status} role="status" data-paused={hasBlockedSessions(data)}><Status data={data} t={t} />{hasBlockedSessions(data) && <Button size="sm" disabled={state.saving} onClick={() => { void resumeSpending() }}>{t('spending.resume')}</Button>}</div>
     {data.pausedSessions.length > 0 && <p className={css.hint}>{t('spending.pausedSessions', { count: data.pausedSessions.length })}</p>}
     <div className={css.grid}>{data.windows.map(window => <div className={css.card} key={window.period}>
       <WindowBar window={window} label={t(`spending.${window.period}`)} t={t} />
-      <div className={css.row}><label htmlFor={`${id}-${window.period}`}>{t('spending.limit', { period: t(`spending.${window.period}`) })}</label><Input id={`${id}-${window.period}`} type="number" min={0.000001} max={1_000_000} step="any" value={draft[window.period] ?? String(window.limit)} disabled={state.saving} onChange={(event) => { setDraft(current => ({ ...current, [window.period]: event.target.value })) }} /></div>
+      <div className={css.row}><label htmlFor={`${id}-${window.period}`}>{t('spending.limit', { period: t(`spending.${window.period}`) })}</label><Input id={`${id}-${window.period}`} type="number" min={0.000001} max={1_000_000} step="any" value={draft[window.period] ?? String(window.limit)} aria-invalid={invalidLimit(draft[window.period])} aria-describedby={invalidLimit(draft[window.period]) ? `${id}-invalid` : undefined} disabled={state.saving} onChange={(event) => { setDraft(current => ({ ...current, [window.period]: event.target.value })) }} /></div>
     </div>)}</div>
-    {invalid && <p role="alert" className={css.hint}>{t('spending.invalid')}</p>}
+    {invalid && <p id={`${id}-invalid`} role="alert" className={css.error}>{t('spending.invalid')}</p>}
     <div className={css.actions}><Button disabled={state.saving || invalid || Object.keys(draft).length === 0} onClick={() => {
       const limits = { ...data.preferences.limits }
       for (const [period, value] of Object.entries(draft)) limits[period as SpendPeriod] = Number(value)

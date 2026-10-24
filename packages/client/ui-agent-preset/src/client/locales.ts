@@ -111,7 +111,7 @@ export const en: Record<AgentPresetSettingsKey, string> = {
   currentMode: 'Current mode', selectCurrent: 'Select mode', selected: 'Selected',
   ...guideEn,
   builtInGroup: 'Built-in', customGroup: 'Custom',
-  sectionIntro: 'Choose the mode for the current conversation. New conversations always start in Standard.',
+  sectionIntro: 'Choose the mode for the current conversation. New conversations always start in Default.',
 
   seatHint: 'Choose the agent preset for your new task',
   headerHint: 'The mode currently used by this conversation',
@@ -132,7 +132,7 @@ export const en: Record<AgentPresetSettingsKey, string> = {
   presetSecurityDescription:
     'Security analysis and testing: inspect code and configuration, reproduce issues, verify fixes, and retain evidence.',
   presetPtcName: 'PTC mode',
-  presetPtcDescription: 'Includes all Standard mode capabilities.',
+  presetPtcDescription: 'Includes all Default mode capabilities.',
   presetMinimalName: 'Minimal mode',
   presetMinimalDescription: 'Terminal and image reading with context compaction.',
   presetCordisName: 'Creator mode',
@@ -144,7 +144,7 @@ export const en: Record<AgentPresetSettingsKey, string> = {
   brokenBadge: 'Failed to load',
 
   switchRefused: 'Could not switch to {name}: {reason}',
-  standardUnavailable: 'Standard mode is unavailable. Restore it or choose another available mode.',
+  standardUnavailable: 'Default mode is unavailable. Restore it or choose another available mode.',
 
   close: 'Close',
 

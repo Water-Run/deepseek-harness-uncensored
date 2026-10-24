@@ -335,6 +335,28 @@ describe('Conversation inject API', () => {
     }
   })
 
+  it('ignores a retired Session while asynchronous Provider teardown is still draining', async () => {
+    const b = await bench()
+    const release = Promise.withResolvers<undefined>()
+    const report = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const removeChat = b.slots.register({ name: 'conversation.view', id: 'chat', order: 0 }, (() => null) as never)
+    try {
+      b.runtime.ctx.uiSession.adapter.bindingSource(b.rootReference).getSnapshot()
+      const owner = b.runtime.sessions.binding(ROOT)
+      if (owner === undefined) throw new Error('missing retained fixture binding')
+      owner.ctx.effect(() => () => release.promise, 'hold Provider teardown for locale refresh')
+      b.rootReference.release()
+      expect(b.runtime.sessions.binding(ROOT)).toBeUndefined()
+      b.runtime.ctx.locale.setLocale('zh')
+      b.runtime.ctx.locale.setLocale('en')
+      expect(report).not.toHaveBeenCalled()
+    } finally {
+      release.resolve(undefined)
+      removeChat()
+      try { await b.runtime.dispose() } finally { report.mockRestore() }
+    }
+  })
+
   it('submits through the provided input machine and mirrors accepted draft edits', async () => {
     const b = await bench()
     const { injected } = b.conversationApi(ROOT)

@@ -1,5 +1,5 @@
 ---
-description: "Choose the current conversation's Agent preset in Web and read what each mode does and declares. New conversations start in Standard."
+description: "Choose the current conversation's Agent preset in Web and read what each mode does and declares. New conversations start in Default."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Choose the current conversation's Agent preset in Web and read what each mode does and declares. New conversations start in Standard.
+Choose the current conversation's Agent preset in Web and read what each mode does and declares. New conversations start in Default.
 
 ## Table of Contents
 
@@ -29,11 +29,11 @@ The first-entry declaration appears as a muted input hint. Matching prefixes are
 
 Delayed animation callbacks cannot replace a newer conversation's accent or restore it after this plugin unloads.
 
-Settings highlights the current conversation's mode. The card body changes that selection. New conversations start in Standard; the default cannot be changed in Settings. Each card offers a read-only YAML composition viewer. A failed preset remains readable; Escape closes only the viewer and restores focus, while leaving Settings discards late reads. The Creator entry appears only when the deployment supplies `cordis` and a conversation flow.
+Settings highlights the current conversation's mode. The card body changes that selection. New conversations start in Default; the default cannot be changed in Settings. Each card offers a read-only YAML composition viewer. A failed preset remains readable; Escape closes only the viewer and restores focus, while leaving Settings discards late reads. The Creator entry appears only when the deployment supplies `cordis` and a conversation flow.
 
 This distribution supplies Default, Security, Reverse engineering and Writing, in that order. Deployments may supply additional presets. Coding Tools hides built-in PTC and Minimal entries when disabled; it does not hide named custom overrides. Creator starts a new task using the `cordis` preset when available.
 
-The main view's mode colors the whole client: the plugin writes `body[data-dsh-mode]` for the four shipped modes, including a mode picked before a new conversation exists, and ui-theme maps it onto the accent (blue for Standard, red for Security, green for Reverse, yellow for Writing). Hidden legacy and custom presets keep the platform accent and a neutral header label. Changing the mode of the same conversation spreads the new accent as a circle from the control that chose it, or from the brand's mode marker; moving to another conversation fades the accent instead. The selected mode card floods with its color and its icon pops, and the header label's icon pops when the mode changes. Reduced motion applies every change at once.
+The main view's mode colors the whole client: the plugin writes `body[data-dsh-mode]` for the four shipped modes, including a mode picked before a new conversation exists, and ui-theme maps it onto the accent (blue for Default, red for Security, green for Reverse, yellow for Writing). Hidden legacy and custom presets keep the platform accent and a neutral header label. Changing the mode of the same conversation spreads the new accent as a circle from the control that chose it, or from the brand's mode marker; moving to another conversation fades the accent instead. The selected mode card floods with its color and its icon pops, and the header label's icon pops when the mode changes. Reduced motion applies every change at once.
 
 Mode Settings also owns the temporary permission for changing existing conversations. Enabling it requires a ten-second reading interval and an explicit acknowledgement, validated by the Host; it remains off if cancelled. The permission is never saved and resets when the Host restarts. Existing conversations must be idle even after permission is granted. Other windows receive changes, and late reads cannot overwrite a newer revocation.
 

@@ -28,6 +28,8 @@ A new account-model sign-in-required event displays “Model unavailable. Please
 <a id="use-this-package"></a>
 ## Use this package
 
+Each invalid spending-limit input identifies its error through `aria-invalid` and a linked localized explanation; saving stays disabled until every draft is valid. Limit switches report pending writes through the shared busy state.
+
 Budget settings combine balance samples, six rolling CNY limits and an optional input-suggestion switch. Amounts animate between successful samples; currency changes and reduced motion snap immediately. Long curves retain bucket extrema. Pricing windows follow the published Monday–Friday schedule; weekends, including makeup workdays, remain off-peak. Zero grants are hidden, refreshes retain the previous observation and failed refreshes stay visible.
 
 About checks only this fork's GitHub Releases, with validated HTTPS links, pagination and the configured `releaseCheckTimeoutMs` deadline. Semantic versions include build metadata and `v`/`desktop-v` tags. Empty release lists, failed checks and offline states never appear as latest. Patch updates stay in About; minor and major updates open a startup reminder, with stronger presentation for major versions. Dismissal lasts for the current browser session. These controls do not download or install updates automatically.

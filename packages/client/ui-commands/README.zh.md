@@ -25,6 +25,8 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
+已打开的旁问标签随界面语言更新名称，切换语言保留其对话与草稿。
+
 与 `ui-input-trigger` 及 `ui-conversation` 一起挂载本插件；`/` source 随即出现在触发菜单中，业务包经 `ctx.commandUi` 注册自己的命令表面。键入 `/model` 打开已注册的弹窗；带参数声明的宿主命令打开其输入或直接执行。弹窗持有 composer 焦点：键入即在已加载的行上本地筛选，`↑`／`↓` 在行间移动，回车与 `Tab` 接受高亮行，Escape 与 `Shift+Tab` 把焦点还给 composer。高亮落在选项标记为会话当前值的行上，因此在刚打开的弹窗上接受即确认当前值。composer 的 `+` 按钮与键入的 `/` 打开同一个菜单：「添加」小节（文件、目标、计划、反馈）与「指令」小节（压缩、权限、模型、下载日志）按使用频次排列，每行带图标、本地化的标题与说明，本地化标题与命令名不同时还显示命令名作为别名。
 
 ### 种类与装饰
@@ -50,7 +52,7 @@ composer 携带图片或通用文件提交时，只有声明了 `input.attachmen
 <a id="understand-the-implementation"></a>
 ## 理解实现
 
-弹窗选择面板撑满 composer 浮层宽度，与斜杠菜单一致。弹窗搜索框在浅／深色主题下均保持背景和边框透明。分组选项使用 [ui-primitives](../ui-primitives/README.zh.md#understand-the-implementation) 共享的 `MenuGroup` 标题与 `observeStickyMenuGroups`；普通 effect 负责异步观察，并在渲染分组变化时清理和重建观察器。菜单采用共享 `MenuSurface` 材质，包括用于背景模糊的 macOS 底层；自定义内容遵循[菜单规则](../../../docs/web-styling.zh.md#component-rules)。
+弹窗选择面板撑满 composer 浮层宽度，与斜杠菜单一致。弹窗搜索框在浅／深色主题下均保持背景和边框透明。分组选项使用 [ui-primitives](../ui-primitives/README.zh.md#understand-the-implementation) 共享的 `MenuGroup` 标题与 `observeStickyMenuGroups`；普通 effect 负责异步观察，并在渲染分组变化时清理和重建观察器。菜单采用共享 `MenuSurface` 材质，包括用于背景模糊的 macOS 底层；自定义内容遵循菜单规则。
 
 <details>
 <summary>实现细节——点击展开</summary>
@@ -59,7 +61,7 @@ composer 携带图片或通用文件提交时，只有声明了 `input.attachmen
 
 每次命令目录拉取都要求客户端已持有该会话，并等待首次历史打开成功后才发送 `commands.list`。临时的 `commandCatalog` 引用持续持有会话，直到拉取结束。未被持有的会话或打开失败会直接拒绝，不发送 RPC，因此后台目录刷新不会重新打开已关闭的会话。刷新后以已认领命令开头的草稿经 `matchClaim` 钩子重建认领：它等待同一个目录就绪，只应答 `leadingInput` 认领，不调用也不执行任何东西。
 
-弹出选择面板使用[标准菜单的内缩与菜单项圆角](../../../docs/ui-radius.zh.md#nested-hover)。
+弹出选择面板使用标准菜单的内缩与菜单项圆角。
 
 </details>
 

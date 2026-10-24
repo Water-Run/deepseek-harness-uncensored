@@ -27,6 +27,8 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
+删除操作使用同一个可选持久化提供方完成目录锁、关联会话枚举和移除。存储缺失或不支持删除时，在停止任务前拒绝操作；其他 Session API 不因缺少删除能力而不可用。
+
 `session/predict` 为已有的活动对话生成未发送的短后缀。它读取主线已完成内容、旁问所属主线已完成内容，或仅为 `/btw` 读取交互状态。全新空白对话与完整问句不发起预测。`predictionDraftBytes`、`predictionContextBytes`、`predictionMaxTokens`、`predictionOutputBytes`、`predictionTimeoutMs` 限定输入、输出与请求时间。模型支持时关闭这次辅助请求的推理，不修改对话选定的推理等级。停止、归档、删除与控制器卸载会取消并等待预测结束。
 
 预测输入、准确模型路由、结果状态与已报告用量写入 `input/prediction` 审计事件。新增请求元数据为可选字段，旧记录仍可读取；建议不生成用户消息或助手回复。两套 SDK 保留审计而不改变主回复。挂载额度限制时，控制器按原有组合恢复自己持有的普通对话，并在持久化完成后确认续跑。

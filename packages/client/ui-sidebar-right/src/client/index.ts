@@ -263,7 +263,7 @@ export function apply(ctx: ClientContext): void {
       inject: () => guideInjected,
     }, GuideBody))
     const disposeGuideTitle = ctx.slots.inject('sidebar.right.pane.tab.title', () => ctx.slots.register(
-      { name: 'sidebar.right.pane.tab.title', key: GUIDE_ID },
+      { name: 'sidebar.right.pane.tab.title', key: GUIDE_ID, locale: NS },
       GuideTitle,
     ))
     return () => {

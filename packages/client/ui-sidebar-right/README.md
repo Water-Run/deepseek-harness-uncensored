@@ -123,7 +123,7 @@ The guide tab is a muted compass over one entry capsule per `guide` entry the re
 <a id="copy"></a>
 ## Copy
 
-Every string in the column comes from the `sidebarRight` locale namespace, including the kit's accessible names. A tab's title is fixed when the tab is minted; a type's display name follows the current language.
+The column's controls use the `sidebarRight` locale namespace, including their accessible names. Recorded resource titles remain fixed; the built-in Start label and type display names follow the current language.
 
 <a id="model-experience"></a>
 ## Model Experience

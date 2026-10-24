@@ -25,6 +25,8 @@ Typing a `/` command opens a registered popup, a client action, a host command's
 <a id="use-this-package"></a>
 ## Use this package
 
+An open side-question tab updates its label with the interface language; changing language preserves its conversation and draft.
+
 Mount this plugin alongside `ui-input-trigger` and `ui-conversation`; the `/` source then appears in the trigger menu, and business packages register their command surfaces through `ctx.commandUi`. Typing `/model` opens the registered popup; a host command with an argument claim opens its input or executes directly. The popup holds composer focus: typing filters the loaded rows locally, `↑`/`↓` walk them, Enter and `Tab` accept the highlighted row, and Escape and `Shift+Tab` return to the composer. The highlight opens on the row the options mark as the session's current value, so accepting on a freshly opened panel confirms it. The composer's `+` button and a typed `/` open the same menu: an Add section (File, Goal, Plan, Feedback) and a Commands section (Compact, Permission, Model, Export) in usage order, each row with a glyph, a localized title and description, and the command name as an alias where the localized title differs from it.
 
 ### Kinds and decorations
@@ -50,7 +52,7 @@ When the composer submits with images or generic files, only a host command decl
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
-Popup selection panels fill the composer overlay's width, matching the slash menu. Popup search fields keep transparent backgrounds and borders in both palettes. Grouped options use [ui-primitives](../ui-primitives/README.md#understand-the-implementation)' shared `MenuGroup` headings and `observeStickyMenuGroups`; an ordinary effect owns the asynchronous observation and rebuilds it when rendered groups change. Menus use the shared `MenuSurface` material, including the macOS backing for background blur; custom content follows the [menu rules](../../../docs/web-styling.md#component-rules).
+Popup selection panels fill the composer overlay's width, matching the slash menu. Popup search fields keep transparent backgrounds and borders in both palettes. Grouped options use [ui-primitives](../ui-primitives/README.md#understand-the-implementation)' shared `MenuGroup` headings and `observeStickyMenuGroups`; an ordinary effect owns the asynchronous observation and rebuilds it when rendered groups change. Menus use the shared `MenuSurface` material, including the macOS backing for background blur; custom content follows the menu rules.
 
 <details>
 <summary>Implementation internals — click to expand</summary>
@@ -59,7 +61,7 @@ Popup selection panels fill the composer overlay's width, matching the slash men
 
 Each command-directory fetch requires an existing retained Client Session and waits for its initial history open to succeed before sending `commands.list`. A temporary `commandCatalog` reference holds that Session until the fetch settles. An unretained Session or a failed open rejects without sending the RPC, so background catalog refreshes do not reopen closed Sessions. A reloaded draft that opens with a claimed command rebuilds the claim through the `matchClaim` hook, which awaits the same directory and answers only a `leadingInput` claim without invoking or executing anything.
 
-Popup selection uses the [standard menu inset and item radii](../../../docs/ui-radius.md#nested-hover).
+Popup selection uses the standard menu inset and item radii.
 
 </details>
 

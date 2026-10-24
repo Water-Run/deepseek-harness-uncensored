@@ -391,7 +391,7 @@ describe('Hero chrome', () => {
   it('shows the hero without an edition badge', () => {
     const renderSlot = vi.fn<HeroShellProps['renderSlot']>(() => null)
     const view = render(<HeroShell t={makeTranslate(en, commonEn)} renderSlot={renderSlot} />)
-    expect(view.getByText('Into the Unknown')).toBeTruthy()
+    expect(view.getByText('Explore the Unknown, More Freely')).toBeTruthy()
     expect(view.queryByText('Preview')).toBeNull()
     expect(renderSlot).toHaveBeenCalledOnce()
     expect(renderSlot.mock.calls[0]?.[0]).toBe('conversation.hero.brand.mark')

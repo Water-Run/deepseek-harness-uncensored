@@ -6,7 +6,7 @@
  */
 import type { ReactNode } from 'react'
 import type { IconProps } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import css from './GuideBody.module.css'
 
 /**
@@ -43,15 +43,14 @@ export function CubeGlyph({ size = 16, className }: IconProps): ReactNode {
 
 /**
  * The title as the chip and a floating panel's header show it.
- * @param props - the tab information hook.
- * @returns the compass followed by the tab's title text.
+ * @param props - Current locale supplied by the title slot.
+ * @returns The compass and localized Start label.
  */
-export function GuideTitle({ useTabInfo }: PropsRuntime<'sidebar.right.pane.tab.title'>): ReactNode {
-  const { tab } = useTabInfo()
+export function GuideTitle({ t }: PropsRuntime<'sidebar.right.pane.tab.title'> & PropsLocale<'sidebarRight'>): ReactNode {
   return (
     <>
       <CompassGlyph className={css.titleIcon} />
-      {tab.title}
+      {t('tab.guide.title')}
     </>
   )
 }

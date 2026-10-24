@@ -242,7 +242,11 @@ export function apply(ctx: Context, config: Config = Config({})): void {
         return candidate !== undefined && tab.id === candidate.id && tab.label === candidate.label
       })
     if (!unchanged) conversationViews.set(next)
-    for (const binding of bindings) restoreView(binding.sessionId)
+    for (const binding of bindings) {
+      // A retired generation disappears before its asynchronous Provider cleanup finishes.
+      if (sessions.binding(binding.sessionId) !== binding) { bindings.delete(binding); continue }
+      restoreView(binding.sessionId)
+    }
   }
   ctx.effect(() => {
     const disposeViews = slots.subscribe('conversation.view', refreshViews)
@@ -252,6 +256,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
       disposeDeveloperTools()
       disposeLocale()
       disposeViews()
+      bindings.clear()
     }
   }, 'ui-conversation: View selection')
 

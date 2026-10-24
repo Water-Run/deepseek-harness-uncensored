@@ -197,7 +197,7 @@ describe('composer stats pills', () => {
     const view = render(<StatsPills {...props(source)} />)
     // No timing on the fixture: the speed segment drops out and the dialog
     // would have no rows, so the counts reading stays a static pill (no button).
-    expect(view.getByText('1 turns 1 steps').closest('button')).toBeNull()
+    expect(view.getByText('Turns: 1 · Steps: 1').closest('button')).toBeNull()
     // Cache hit comes from the projection, so paging the window cannot change
     // it; the usage pill leads with the whole-log token total. Its accessible
     // name separates the segments the visual sep glyph joins.
@@ -239,8 +239,8 @@ describe('composer stats pills', () => {
     const { source } = makeSource({ nodes: [timedStep()] })
     const view = render(<StatsPills {...props(source)} />)
     const timePill = view.getAllByRole('button')[0]!
-    expect(timePill.textContent).toBe('1 turns 1 steps·20 tok/s')
-    expect(timePill.getAttribute('aria-label')).toBe('1 turns 1 steps · 20 tok/s')
+    expect(timePill.textContent).toBe('Turns: 1 · Steps: 1·20 tok/s')
+    expect(timePill.getAttribute('aria-label')).toBe('Turns: 1 · Steps: 1 · 20 tok/s')
   })
 
   it('marks each pill with its dock entry id', () => {
@@ -248,7 +248,7 @@ describe('composer stats pills', () => {
     const view = render(<StatsPills {...props(source)} />)
     const pills = [...view.container.querySelectorAll('[data-composer-stat]')]
     expect(pills.map(pill => [pill.getAttribute('data-composer-stat'), pill.textContent])).toEqual([
-      ['activity', '1 turns 1 steps·20 tok/s'],
+      ['activity', 'Turns: 1 · Steps: 1·20 tok/s'],
       ['usage', '105 tok·Cache hit 90%'],
     ])
   })
@@ -390,7 +390,7 @@ describe('composer stats pills', () => {
   it('drops the usage pill when no projection is composed', () => {
     const { source } = makeSource({ nodes: [assistant(1, 1)] })
     const view = render(<StatsPills {...props(source, {})} />)
-    expect(view.container.textContent).toBe('1 turns 1 steps')
+    expect(view.container.textContent).toBe('Turns: 1 · Steps: 1')
     // The untimed window has no dialog rows either, so no button renders at all.
     expect(view.queryAllByRole('button')).toHaveLength(0)
   })
@@ -403,7 +403,7 @@ describe('composer stats pills', () => {
       tokenUsage: USAGE,
       sessionStats: sessionStats({ turns: 10, steps: 89 }),
     })} />)
-    expect(view.getByText('10 turns 89 steps')).toBeTruthy()
+    expect(view.getByText('Turns: 10 · Steps: 89')).toBeTruthy()
   })
 
   it('treats a defined zero-count projection as empty, not as fallback', () => {
@@ -425,7 +425,7 @@ describe('composer stats pills', () => {
       tokenUsage: { uncachedInputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 },
       sessionStats: sessionStats({ turns: 1, steps: 1 }),
     })} />)
-    expect(view.container.textContent).toBe('1 turns 1 steps')
+    expect(view.container.textContent).toBe('Turns: 1 · Steps: 1')
     expect(view.queryAllByRole('button')).toHaveLength(0)
   })
 
@@ -437,7 +437,7 @@ describe('composer stats pills', () => {
       tokenUsage: USAGE,
       sessionStats: sessionStats({ turns: 7, steps: 44 }),
     })} />)
-    expect(view.getByText('7 turns 44 steps')).toBeTruthy()
+    expect(view.getByText('Turns: 7 · Steps: 44')).toBeTruthy()
   })
 
   it('renders whole-log speed and dialog figures from the projection, not the loaded window', () => {
@@ -453,7 +453,7 @@ describe('composer stats pills', () => {
       }),
     })} />)
     const timePill = view.getAllByRole('button')[0]!
-    expect(timePill.textContent).toBe('200 turns 200 steps·20 tok/s')
+    expect(timePill.textContent).toBe('Turns: 200 · Steps: 200·20 tok/s')
     fireEvent.click(timePill)
     const dialog = view.getByRole('dialog')
     expect(dialog.textContent).toContain('LLM time1m40s')

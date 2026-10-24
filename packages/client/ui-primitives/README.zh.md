@@ -25,6 +25,8 @@ kind: "package-library"
 <a id="use-this-package"></a>
 ## 使用本包
 
+`Input` 的原生输入带 `aria-invalid="true"` 时使用主题错误边框；所属表单提供本地化说明及无障碍关联。
+
 `Select` 接收本地化标签、受控值及 value/label 选项。它通过 `Menu` 统一弹层主题、视口边界、滚动、键盘导航、禁用项、Escape 与焦点恢复，不弹出原生 select 菜单。
 
 `Toast` 在浅色和深色模式下均使用主题的系统提示背景与文字颜色。`Menu` 数据条目与 `MenuItemButton` 组件条目接收功能 owner 提供的有效快捷键，并在末端以无背景的浅灰色文字对齐显示，子菜单也采用同一呈现。`ShortcutKeys` 默认以无方块的按键文字显示菜单和行内提示。`tooltip` 变体在深色气泡上使用稍浅的键帽，以加号连接的组合则共用一个填充色块。`Tooltip.shortcutKeys` 将键帽与可选的本地化操作文本垂直居中排列，标签为空时只显示按键。可选的 `className` 供调用方设置交互状态样式。`Modal` 使用框架共享的浮层起点，视口边距至少为 24px。其遮罩不绘制 Windows 顶栏区域，覆盖整个视口的模态层仍阻挡背景点击。`Modal` 与设置外壳通过 `useModalLayer` 共用顶层 Esc 和 Tab 处理，关闭时恢复先前焦点。`closeTopModal(document)` 请求前台弹窗当前的关闭操作；上层菜单或未注册的对话框会阻止关闭其后方弹窗。组件通过 `isBehindModal` 避免将焦点移到嵌套弹窗后方。菜单先消费自己的 Esc，再由模态层处理关闭。 `observeComposition` 为局部弹层和录键处理提供相同的 composition-end 与旧版 IME 保护；调用方随交互生命周期释放其 document 监听。

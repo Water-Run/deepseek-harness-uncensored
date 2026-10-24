@@ -59,7 +59,7 @@ export const guideEn = {
   guideMinimalUsage: [
     '### Compare performance on a small bug fix',
     '> Run the tests for this project, find the cause of the failure, and make the smallest fix. Run the relevant tests again and report the result.',
-    'Run the same task separately in Standard and Minimal modes from the same starting state. Compare task completion, tool calls, and the resulting changes. Minimal mode performs the work through terminal commands.',
+    'Run the same task separately in Default and Minimal modes from the same starting state. Compare task completion, tool calls, and the resulting changes. Minimal mode performs the work through terminal commands.',
   ].join('\n\n'),
   guideCordisIntro: 'Choose Creator mode for a new task. Describe the capability you want, where it should appear, and how you will verify it.',
   guideCordisExplanation: [
