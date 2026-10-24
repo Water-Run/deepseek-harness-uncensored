@@ -1611,9 +1611,6 @@ importers:
       '@deepseek-ai/dsh-skill':
         specifier: workspace:*
         version: link:../../skill/skill
-      '@deepseek-ai/dsh-spend-limit':
-        specifier: workspace:*
-        version: link:../../guard/spend-limit
       '@deepseek-ai/dsh-storage':
         specifier: workspace:*
         version: link:../../storage/storage
