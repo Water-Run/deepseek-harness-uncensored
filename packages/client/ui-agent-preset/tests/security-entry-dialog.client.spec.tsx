@@ -20,7 +20,8 @@ const ENABLED: SecurityProtectionStatus = { state: 'enabled', revision: 3, capab
 
 function translate(key: keyof typeof en, params?: Record<string, unknown>): string {
   const template = en[key]
-  return params === undefined ? template : template.replace(/\{(\w+)\}/g, (match, name: string) => name in params ? String(params[name]) : match)
+  if (params === undefined) return template
+  return template.replace(/\{(\w+)\}/g, (match, name: string) => name in params ? String(params[name]) : match)
 }
 
 function challenge(protection: SecurityProtectionStatus = UNAVAILABLE, declaration = DECLARATION): SecurityEntryChallenge {

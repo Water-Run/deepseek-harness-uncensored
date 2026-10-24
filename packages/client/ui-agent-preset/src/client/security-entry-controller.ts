@@ -64,7 +64,7 @@ interface Pending {
   resolve(value: boolean): void
 }
 
-/** @param left - First protection snapshot. @param right - Second protection snapshot. @returns Whether state, revision, or capabilities differ. */
+/** Compare two protection snapshots, including their capability lists. */
 export function protectionDiffers(left: SecurityProtectionStatus, right: SecurityProtectionStatus): boolean {
   return left.state !== right.state || left.revision !== right.revision
     || left.capabilities.length !== right.capabilities.length
@@ -87,6 +87,9 @@ export class SecurityEntryController implements SecurityEntryGate {
   private readGeneration = 0
   private dialogGeneration = 0
   private closed = false
+
+  /** Read through a method so async race checks are not narrowed to the constructor value. */
+  private closedNow(): boolean { return this.closed }
 
   /**
    * @param remote - Host confirmation operations.
@@ -120,15 +123,15 @@ export class SecurityEntryController implements SecurityEntryGate {
    * @returns Completion; a failed read leaves the last accepted policy visible.
    */
   async load(): Promise<void> {
-    if (this.closed) return
+    if (this.closedNow()) return
     const generation = ++this.readGeneration
     if (this.store.getSnapshot().status !== 'ready') this.patch({ status: 'loading' })
     try {
       const state = await this.remote.read()
-      if (this.closed || generation !== this.readGeneration) return
+      if (this.closedNow() || generation !== this.readGeneration) return
       this.accept(state)
     } catch (_failure) {
-      if (!this.closed && generation === this.readGeneration) this.patch({ status: 'error' })
+      if (!this.closedNow() && generation === this.readGeneration) this.patch({ status: 'error' })
     }
   }
 
@@ -137,7 +140,7 @@ export class SecurityEntryController implements SecurityEntryGate {
    * @param state - Current deployment policy and protection state.
    */
   accept(state: SecurityEntryState): void {
-    if (this.closed) return
+    if (this.closedNow()) return
     const dialog = this.store.getSnapshot().dialog
     const challenge = dialog?.challenge ?? null
     const protectionChanged = challenge !== null && protectionDiffers(challenge.protection, state.protection)
@@ -157,9 +160,9 @@ export class SecurityEntryController implements SecurityEntryGate {
    * @returns true when the Host already acknowledged this launch or the person confirms.
    */
   async request(sessionId: SessionId): Promise<boolean> {
-    if (this.closed) return false
+    if (this.closedNow()) return false
     await this.ready()
-    if (this.closed) return false
+    if (this.closedNow()) return false
     const snapshot = this.store.getSnapshot()
     if (!snapshot.required || snapshot.acknowledged) return true
     if (this.pending?.sessionId === sessionId) return this.pending.promise
@@ -174,7 +177,7 @@ export class SecurityEntryController implements SecurityEntryGate {
    */
   async confirm(declaration: string): Promise<void> {
     const dialog = this.store.getSnapshot().dialog
-    if (this.closed || dialog === null || dialog.challenge === null || dialog.busy || dialog.remaining > 0) return
+    if (this.closedNow() || dialog === null || dialog.challenge === null || dialog.busy || dialog.remaining > 0) return
     const challenge = dialog.challenge
     const typed = declaration.trim()
     if (challenge.declaration !== '' && typed !== challenge.declaration) {
@@ -185,13 +188,13 @@ export class SecurityEntryController implements SecurityEntryGate {
     this.patchDialog({ busy: true, error: null })
     try {
       const state = await this.remote.confirm(challenge.id, dialog.sessionId, typed)
-      if (this.closed || generation !== this.dialogGeneration) return
+      if (this.closedNow() || generation !== this.dialogGeneration) return
       this.accept(state)
     } catch (failure) {
-      if (this.closed || generation !== this.dialogGeneration) return
+      if (this.closedNow() || generation !== this.dialogGeneration) return
       this.handleConfirmFailure(failure)
     } finally {
-      if (!this.closed && generation === this.dialogGeneration) {
+      if (!this.closedNow() && generation === this.dialogGeneration) {
         const current = this.store.getSnapshot().dialog
         if (current !== null && current.busy) this.patchDialog({ busy: false })
       }
@@ -201,14 +204,14 @@ export class SecurityEntryController implements SecurityEntryGate {
   /** Start a fresh reading interval for the same conversation after an expired or changed challenge. */
   retry(): void {
     const dialog = this.store.getSnapshot().dialog
-    if (this.closed || dialog === null || dialog.busy) return
+    if (this.closedNow() || dialog === null || dialog.busy) return
     void this.begin(dialog.sessionId, null)
   }
 
   /** Close the dialog without granting the acknowledgement. */
   cancel(): void {
     const dialog = this.store.getSnapshot().dialog
-    if (this.closed || dialog === null || dialog.busy) return
+    if (this.closedNow() || dialog === null || dialog.busy) return
     const challenge = dialog.challenge
     this.finish(false)
     if (challenge !== null) {
@@ -221,7 +224,7 @@ export class SecurityEntryController implements SecurityEntryGate {
   /** Keep the dialog retryable when the carrier is lost. */
   connectionLost(): void {
     const dialog = this.store.getSnapshot().dialog
-    if (this.closed || dialog === null || dialog.busy) return
+    if (this.closedNow() || dialog === null || dialog.busy) return
     this.stopTimer()
     this.patchDialog({ challenge: null, remaining: 0, error: 'disconnected' })
   }
@@ -238,7 +241,7 @@ export class SecurityEntryController implements SecurityEntryGate {
 
   /** Stop timers and release a waiting seat; a Host challenge left open expires on its own. */
   dispose(): void {
-    if (this.closed) return
+    if (this.closedNow()) return
     this.closed = true
     this.stopTimer()
     const pending = this.pending
@@ -249,7 +252,7 @@ export class SecurityEntryController implements SecurityEntryGate {
 
   private ensurePending(sessionId: SessionId): Pending {
     if (this.pending?.sessionId === sessionId) return this.pending
-    /* v8 ignore next -- request() finishes the previous session before begin(); a second begin for another session is not reachable from the UI. */
+    /* v8 ignore next -- request() settles the previous session before begin(). */
     if (this.pending !== undefined) this.finish(false)
     const deferred = Promise.withResolvers<boolean>()
     const pending: Pending = { sessionId, promise: deferred.promise, resolve: deferred.resolve }
@@ -263,26 +266,26 @@ export class SecurityEntryController implements SecurityEntryGate {
     this.patch({ dialog: { sessionId, challenge: null, remaining: 0, busy: true, error } })
     try {
       const challenge = await this.remote.begin(sessionId, this.locale())
-      if (this.closed || this.pending !== pending || generation !== this.dialogGeneration) return pending.promise
+      if (this.closedNow() || this.pending !== pending || generation !== this.dialogGeneration) return await pending.promise
       this.patch({ dialog: { sessionId, challenge, remaining: Math.ceil(challenge.waitMs / 1000), busy: false, error } })
       this.startTimer(challenge.waitMs)
     } catch (failure) {
       /* v8 ignore next -- a begin superseded by a newer dialog generation returns before this branch in every UI path. */
-      if (this.closed || this.pending !== pending || generation !== this.dialogGeneration) return pending.promise
+      if (this.closedNow() || this.pending !== pending || generation !== this.dialogGeneration) return await pending.promise
       const remote = remoteErrorOf(failure)
       if (remote?.code === 'security-entry/consumed' && remote.details.acknowledged) {
         this.patch({ acknowledged: true })
         this.finish(true)
-        return pending.promise
+        return await pending.promise
       }
       if (remote?.code === 'security-entry/disabled') {
         this.patch({ required: false })
         this.finish(true)
-        return pending.promise
+        return await pending.promise
       }
       this.openError(sessionId, 'failed')
     }
-    return pending.promise
+    return await pending.promise
   }
 
   private handleConfirmFailure(failure: unknown): void {
@@ -326,7 +329,7 @@ export class SecurityEntryController implements SecurityEntryGate {
     if (before === null) return
     const expected = before.challenge?.id
     await this.load()
-    if (this.closed) return
+    if (this.closedNow()) return
     if (this.store.getSnapshot().acknowledged) { this.finish(true); return }
     const dialog = this.store.getSnapshot().dialog
     /* v8 ignore next -- a push that closes the dialog also advances the generation before reconcile resumes. */

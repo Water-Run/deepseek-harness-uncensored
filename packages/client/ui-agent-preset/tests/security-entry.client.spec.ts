@@ -23,11 +23,11 @@ function challenge(id = challengeId, protection = DISABLED): SecurityEntryChalle
 
 function setup() {
   vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'performance'] })
-  const remote: SecurityEntryRemote = {
-    read: vi.fn(async () => STATE),
-    begin: vi.fn(async () => challenge()),
-    confirm: vi.fn(async () => ({ ...STATE, acknowledged: true })),
-    cancel: vi.fn(async () => STATE),
+  const remote = {
+    read: vi.fn<SecurityEntryRemote['read']>(async () => STATE),
+    begin: vi.fn<SecurityEntryRemote['begin']>(async () => challenge()),
+    confirm: vi.fn<SecurityEntryRemote['confirm']>(async () => ({ ...STATE, acknowledged: true })),
+    cancel: vi.fn<SecurityEntryRemote['cancel']>(async () => STATE),
   }
   const controller = new SecurityEntryController(remote, () => 'zh')
   return { remote, controller }
@@ -42,7 +42,7 @@ describe('Security entry controller', () => {
     expect(controller.protects('security')).toBe(true)
     expect(controller.protects('standard')).toBe(false)
     expect(controller.acknowledged()).toBe(false)
-    await controller.dispose()
+    controller.dispose()
   })
 
   it('waits for the countdown, then submits the exact declaration', async () => {
@@ -61,7 +61,7 @@ describe('Security entry controller', () => {
       expect(await gate).toBe(true)
       expect(controller.acknowledged()).toBe(true)
       expect(controller.store.getSnapshot().dialog).toBeNull()
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('rejects a missing or inexact declaration before calling the Host', async () => {
@@ -78,7 +78,7 @@ describe('Security entry controller', () => {
       await controller.confirm(`  ${DECLARATION}  `)
       expect(remote.confirm).toHaveBeenCalledOnce()
       expect(await gate).toBe(true)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('shares one pending request and resolves it once', async () => {
@@ -92,7 +92,7 @@ describe('Security entry controller', () => {
       expect(await first).toBe(true)
       expect(await second).toBe(true)
       expect(remote.begin).toHaveBeenCalledOnce()
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('cancels without consuming the first confirmation', async () => {
@@ -111,7 +111,7 @@ describe('Security entry controller', () => {
       expect(remote.begin).toHaveBeenCalledTimes(2)
       controller.cancel()
       expect(await next).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('ignores a cancel while the Host confirmation is in flight', async () => {
@@ -128,7 +128,7 @@ describe('Security entry controller', () => {
       response.resolve({ ...STATE, acknowledged: true })
       await submitting
       expect(await gate).toBe(true)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('refreshes the challenge and countdown when protection changes', async () => {
@@ -149,7 +149,7 @@ describe('Security entry controller', () => {
       expect(controller.store.getSnapshot().protection).toEqual(enabled)
       controller.cancel()
       expect(await gate).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('treats a consumed challenge as success when another window confirmed', async () => {
@@ -163,7 +163,7 @@ describe('Security entry controller', () => {
       await controller.confirm(DECLARATION)
       expect(await gate).toBe(true)
       expect(controller.store.getSnapshot().dialog).toBeNull()
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('surfaces an expired challenge and retries with a fresh one', async () => {
@@ -181,7 +181,7 @@ describe('Security entry controller', () => {
       expect(remote.begin).toHaveBeenCalledTimes(2)
       controller.cancel()
       expect(await gate).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('restarts the countdown when the Host reports the client confirmed early', async () => {
@@ -197,7 +197,7 @@ describe('Security entry controller', () => {
       expect(controller.store.getSnapshot().dialog?.remaining).toBe(0)
       await controller.confirm(DECLARATION)
       expect(await gate).toBe(true)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('keeps a host failure retryable without losing the challenge', async () => {
@@ -212,7 +212,7 @@ describe('Security entry controller', () => {
       expect(controller.store.getSnapshot().dialog?.challenge).not.toBeNull()
       await controller.confirm(DECLARATION)
       expect(await gate).toBe(true)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('opens a retryable error dialog when the Host cannot issue a challenge', async () => {
@@ -227,7 +227,7 @@ describe('Security entry controller', () => {
       expect(controller.store.getSnapshot().dialog?.challenge).not.toBeNull()
       controller.cancel()
       expect(await gate).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('keeps a lost carrier retryable', async () => {
@@ -242,7 +242,7 @@ describe('Security entry controller', () => {
       expect(controller.store.getSnapshot().dialog?.challenge).not.toBeNull()
       controller.cancel()
       expect(await gate).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('closes when another window acknowledges or the policy turns off', async () => {
@@ -260,7 +260,7 @@ describe('Security entry controller', () => {
       await flush()
       controller.accept({ ...STATE, required: false })
       expect(await second).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('releases a waiting seat and ignores late work after disposal', async () => {
@@ -285,7 +285,7 @@ describe('Security entry controller', () => {
       controller.sessionChanged(other)
       expect(await gate).toBe(false)
       expect(controller.store.getSnapshot().dialog).toBeNull()
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('keeps a failed policy read retryable', async () => {
@@ -299,7 +299,7 @@ describe('Security entry controller', () => {
       expect(controller.store.getSnapshot().status).toBe('ready')
       controller.cancel()
       expect(await gate).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('swallows a best-effort cancel failure', async () => {
@@ -311,7 +311,7 @@ describe('Security entry controller', () => {
       controller.cancel()
       expect(await gate).toBe(false)
       await flush()
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('treats a consumed begin as an acknowledgement from another window', async () => {
@@ -323,7 +323,7 @@ describe('Security entry controller', () => {
       expect(await gate).toBe(true)
       expect(controller.acknowledged()).toBe(true)
       expect(controller.store.getSnapshot().dialog).toBeNull()
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('treats a disabled Host policy as already allowed', async () => {
@@ -335,7 +335,7 @@ describe('Security entry controller', () => {
       expect(await gate).toBe(true)
       expect(controller.store.getSnapshot().required).toBe(false)
       expect(controller.store.getSnapshot().dialog).toBeNull()
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('keeps a Host declaration rejection visible for correction', async () => {
@@ -350,7 +350,7 @@ describe('Security entry controller', () => {
       expect(controller.store.getSnapshot().dialog?.challenge).not.toBeNull()
       controller.cancel()
       expect(await gate).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('maps an unrelated carrier failure to a retryable error', async () => {
@@ -364,7 +364,7 @@ describe('Security entry controller', () => {
       expect(controller.store.getSnapshot().dialog).toMatchObject({ error: 'failed', busy: false })
       controller.cancel()
       expect(await gate).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('accepts a zero-length reading interval', async () => {
@@ -376,7 +376,7 @@ describe('Security entry controller', () => {
       expect(controller.store.getSnapshot().dialog?.remaining).toBe(0)
       await controller.confirm(DECLARATION)
       expect(await gate).toBe(true)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('replaces a pending request when another conversation asks first', async () => {
@@ -392,7 +392,7 @@ describe('Security entry controller', () => {
       expect(await first).toBe(false)
       controller.cancel()
       expect(await second).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('ignores a begin that settles after disposal', async () => {
@@ -422,7 +422,7 @@ describe('Security entry controller', () => {
       controller.dispose()
       reading.resolve({ ...STATE, acknowledged: true })
       expect(await gate).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('surfaces an expired retry when a consumed challenge was not acknowledged elsewhere', async () => {
@@ -438,7 +438,7 @@ describe('Security entry controller', () => {
       expect(controller.store.getSnapshot().dialog).toMatchObject({ challenge: null, error: 'expired', busy: false })
       controller.cancel()
       expect(await gate).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('restarts from a Host changed rejection', async () => {
@@ -457,7 +457,7 @@ describe('Security entry controller', () => {
       expect(controller.store.getSnapshot().dialog?.challenge?.id).toBe(next)
       controller.cancel()
       expect(await gate).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('ignores operations after disposal', async () => {
@@ -484,7 +484,7 @@ describe('Security entry controller', () => {
       first.resolve(STATE)
       await older
       expect(controller.store.getSnapshot().required).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('releases a request whose policy read outlives disposal', async () => {
@@ -511,14 +511,14 @@ describe('Security entry controller', () => {
       response.resolve({ ...STATE, acknowledged: true })
       await submitting
       expect(await gate).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('defers the policy read only for the protected preset', async () => {
     const { controller } = setup()
     expect(controller.mayProtect('security')).toBe(true)
     expect(controller.mayProtect('standard')).toBe(false)
-    await controller.dispose()
+    controller.dispose()
   })
 
   it('compares complete protection snapshots', () => {
@@ -542,7 +542,7 @@ describe('Security entry controller', () => {
       await older
       expect(controller.store.getSnapshot().status).toBe('ready')
       expect(controller.store.getSnapshot().required).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('settles a submission that the Host returned unacknowledged', async () => {
@@ -556,7 +556,7 @@ describe('Security entry controller', () => {
       expect(controller.store.getSnapshot().dialog).toMatchObject({ busy: false, challenge: challenge() })
       controller.cancel()
       expect(await gate).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('treats a capability-only change as a changed challenge', async () => {
@@ -573,7 +573,7 @@ describe('Security entry controller', () => {
       expect(controller.store.getSnapshot().dialog?.error).toBe('changed')
       controller.cancel()
       expect(await gate).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('lets an acknowledged or disabled policy proceed without a challenge', async () => {
@@ -583,7 +583,7 @@ describe('Security entry controller', () => {
       expect(await controller.request(session)).toBe(true)
       controller.accept({ ...STATE, required: false })
       expect(await controller.request(session)).toBe(true)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('ignores a confirmation failure from an older dialog generation', async () => {
@@ -604,7 +604,7 @@ describe('Security entry controller', () => {
       expect(controller.store.getSnapshot().dialog?.error).toBe('changed')
       controller.cancel()
       expect(await gate).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('leaves a fresh restart alone when a consumed reconciliation lands', async () => {
@@ -623,7 +623,7 @@ describe('Security entry controller', () => {
       expect(controller.store.getSnapshot().dialog?.challenge).not.toBeNull()
       controller.cancel()
       expect(await gate).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 
   it('does not expire a dialog while its replacement challenge is still opening', async () => {
@@ -645,6 +645,6 @@ describe('Security entry controller', () => {
       expect(controller.store.getSnapshot().dialog?.challenge?.id).toBe('challenge-replacement')
       controller.cancel()
       expect(await gate).toBe(false)
-    } finally { await controller.dispose() }
+    } finally { controller.dispose() }
   })
 })

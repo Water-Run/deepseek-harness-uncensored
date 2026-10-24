@@ -63,8 +63,7 @@ function SecurityEntryDialogView({ dialog, protection, confirm, cancel, retry, o
   const [declaration, setDeclaration] = useState('')
   const challenge = dialog.challenge
   const needsDeclaration = challenge !== null && challenge.declaration !== ''
-  /* v8 ignore next -- the declaration arm runs only when needsDeclaration is true. */
-  const matches = !needsDeclaration || declaration.trim() === (challenge?.declaration ?? '').trim()
+  const matches = challenge === null || challenge.declaration === '' || declaration.trim() === challenge.declaration
   const ready = challenge !== null && dialog.remaining === 0
   const retryable = challenge === null
   const status = protection?.state ?? 'unavailable'

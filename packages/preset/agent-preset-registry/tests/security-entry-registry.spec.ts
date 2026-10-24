@@ -86,13 +86,13 @@ describe('Security first-entry policy in the preset registry', () => {
 
   it('refuses an explicit Security create until the launch is acknowledged', async () => {
     const ctx = await setup()
-    expect(() => ctx.agentPresets.assertNewConversationPreset('security')).toThrowError(/security-mode notice/)
-    expect(() => ctx.agentPresets.assertNewConversationPreset(undefined)).not.toThrow()
-    expect(() => ctx.agentPresets.assertNewConversationPreset('standard')).not.toThrow()
+    expect(() => { ctx.agentPresets.assertNewConversationPreset('security') }).toThrow(/security-mode notice/)
+    expect(() => { ctx.agentPresets.assertNewConversationPreset(undefined) }).not.toThrow()
+    expect(() => { ctx.agentPresets.assertNewConversationPreset('standard') }).not.toThrow()
 
     const agent = await agentOn(ctx, 'create-gate-ack')
     confirm(ctx, agent.id)
-    expect(() => ctx.agentPresets.assertNewConversationPreset('security')).not.toThrow()
+    expect(() => { ctx.agentPresets.assertNewConversationPreset('security') }).not.toThrow()
   })
 
   it('keeps the policy off in compositions that do not opt in', async () => {
@@ -103,8 +103,8 @@ describe('Security first-entry policy in the preset registry', () => {
     const agent = await agentOn(ctx, 'headless-security')
     expect(ctx.agentPresets.securityEntryState().required).toBe(false)
     expect(await ctx.agentPresets.select(agent, 'security')).toBe('security')
-    expect(() => ctx.agentPresets.assertNewConversationPreset('security')).not.toThrow()
-    expect(() => ctx.agentPresets.beginSecurityEntry(agent.id, 'zh')).toThrowError(/not enabled/)
+    expect(() => { ctx.agentPresets.assertNewConversationPreset('security') }).not.toThrow()
+    expect(() => { ctx.agentPresets.beginSecurityEntry(agent.id, 'zh') }).toThrow(/not enabled/)
   })
 
   it('rejects a challenge for a conversation that already started', async () => {
@@ -134,7 +134,7 @@ describe('Security first-entry policy in the preset registry', () => {
       uplink: <In>(): AsyncIterable<In> => ({ [Symbol.asyncIterator]: () => ({ next: async () => ({ done: true, value: undefined }) }) }),
     }
     const guest = ctx.extend({ invocation }).agentPresets
-    expect(() => guest.beginSecurityEntry(agent.id, 'zh')).toThrowError()
+    expect(() => { guest.beginSecurityEntry(agent.id, 'zh') }).toThrow()
     expect(ctx.agentPresets.securityEntryState().acknowledged).toBe(false)
   })
 
@@ -146,7 +146,7 @@ describe('Security first-entry policy in the preset registry', () => {
     protection = { state: 'enabled', revision: 2, capabilities: ['mainland-domains'] }
     const clock = afterWait()
     try {
-      expect(() => ctx.agentPresets.confirmSecurityEntry(challenge.id, agent.id, challenge.declaration)).toThrowError(/Protection changed/)
+      expect(() => { ctx.agentPresets.confirmSecurityEntry(challenge.id, agent.id, challenge.declaration) }).toThrow(/Protection changed/)
     } finally { clock.mockRestore() }
     expect(ctx.agentPresets.securityEntryState()).toMatchObject({
       acknowledged: false, protection: { state: 'enabled', revision: 2, capabilities: ['mainland-domains'] },
@@ -166,7 +166,7 @@ describe('Security first-entry policy in the preset registry', () => {
     let protection = DISABLED
     const ctx = await setup(() => protection)
     const events: boolean[] = []
-    ctx.on('agent-preset/security-entry', state => { events.push(state.acknowledged) })
+    ctx.on('agent-preset/security-entry', (state) => { events.push(state.acknowledged) })
     const agent = await agentOn(ctx, 'event-security')
     confirm(ctx, agent.id)
     protection = { state: 'enabled', revision: 2, capabilities: [] }

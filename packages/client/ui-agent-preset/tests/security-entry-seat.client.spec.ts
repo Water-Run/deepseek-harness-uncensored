@@ -1,3 +1,4 @@
+/* oxlint-disable typescript/unbound-method -- the gate is a plain test double built from vi.fn properties. */
 import { describe, expect, it, vi } from 'vitest'
 import type { SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
 import { SessionId } from '@deepseek-ai/dsh-session/types'
