@@ -28,6 +28,9 @@
       "path": "../../guard/timeout-policy"
     },
     {
+      "path": "../../guard/security-proxy"
+    },
+    {
       "path": "../web"
     }
   ]

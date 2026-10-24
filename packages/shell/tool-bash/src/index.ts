@@ -22,6 +22,7 @@ import { HarnessError } from '@deepseek-ai/dsh-llm'
 import type { JobId, JobRegistry, JobView } from '@deepseek-ai/dsh-jobs'
 import type {} from '@deepseek-ai/dsh-user-approval'
 import type {} from '@deepseek-ai/dsh-shell-env'
+import type {} from '@deepseek-ai/dsh-security-proxy'
 import type { SandboxExecutionPolicy, SandboxMode } from '@deepseek-ai/dsh-sandbox'
 import { ESCALATION_TARGETS, approveEscalation, sandboxPermissionsDescription, validateEscalationArgs } from '@deepseek-ai/dsh-sandbox'
 import type { SandboxPolicyService } from '@deepseek-ai/dsh-sandbox-policy'
@@ -488,11 +489,16 @@ export function apply(ctx: Context, config: Config = {}): void {
         const cwd = exec.agent === undefined ? undefined : await ctx.workingDirectory.ensure(exec.agent, exec.signal)
         const workdir = resolveWorkdir(args.workdir, cwd)
         const dshEnv = ctx.shellEnv.collect(exec)
+        // A security-mode session hands this one spawn its own loopback proxy; the
+        // Host process and every other session keep their environment untouched.
+        const security = ctx.get('securityProxy')
+        const proxyEnv = security === undefined ? undefined : await security.environment(exec.agent, 'bash')
         const request: ShellExecRequest = {
           command: args.command,
           ...workdir !== undefined ? { workdir } : {},
           ...args.timeoutMs !== undefined ? { timeoutMs: args.timeoutMs } : {},
           dshEnv,
+          ...proxyEnv === undefined ? {} : { env: { ...proxyEnv } },
           ...policy !== undefined ? { sandboxPolicy: policy } : {},
         }
         if (args.run_in_background === true) {

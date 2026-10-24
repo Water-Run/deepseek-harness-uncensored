@@ -11,6 +11,7 @@ import { gfm } from '@joplin/turndown-plugin-gfm'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { GenericCallView, ToolResult, WebFetchResultView } from '@deepseek-ai/dsh-tools'
 import type { WebFetchBody, WebFetchResult } from '@deepseek-ai/dsh-web'
+import type {} from '@deepseek-ai/dsh-security-proxy'
 import { assertNever, type JsonValue } from '@deepseek-ai/dsh-util-values'
 import { EXTERNAL_WEB_CONTENT_NOTICE } from './trust.ts'
 
@@ -498,10 +499,16 @@ export function applyWebFetchTool(ctx: Context, timeoutMs: number, maxOutputChar
     isConcurrencySafe: () => true,
     async execute(args, exec) {
       const input = parseFetchArgs(args)
-      const result = await ctx.web.fetch(
-        { url: input.url },
-        exec.signal,
-      )
+      // A security-mode session retrieves targets through its independent proxy so
+      // the exchange is captured at the controlled Client layer. Every other mode,
+      // and every mode with the proxy off, keeps the ordinary provider path.
+      const security = ctx.get('securityProxy')
+      const result = security !== undefined && security.route(exec.agent, 'web_fetch') !== undefined
+        ? await security.fetchTarget(exec.agent, input.url, exec.signal)
+        : await ctx.web.fetch(
+          { url: input.url },
+          exec.signal,
+        )
       return {
         url: result.url,
         statusCode: result.statusCode,
