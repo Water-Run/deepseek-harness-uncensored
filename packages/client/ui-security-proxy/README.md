@@ -69,7 +69,7 @@ No effect.
 
 - **No export** — the viewer offers filtering, detail, pause, and clear; exporting a flow list is not implemented, so no export can bypass redaction.
 - **Memory-only records** — a restart clears the list with the Host's capture store.
-- **Mode materials dependency** — the area waits for the `settings.mode.materials` declaration; a composition without that seat shows the reminder only.
+- **Seat dependency** — the area registers into `settings.mode.materials`, the seat the mode settings page renders; it paints only while the selected mode is `security`.
 - **Reminder delivery** — the reminder needs a connected Web client; a headless run emits the Host event with no surface to paint it.
 
 <a id="dev-note"></a>
