@@ -605,3 +605,7 @@
       name: '@deepseek-ai/dsh-agent-preset-registry'
       config:
         default: standard
+        # The Web product owns the first-entry Security acknowledgement. Other
+        # compositions (headless, SDK) leave this off and keep their behavior.
+        requireSecurityEntryAcknowledgement: true
+        securityEntryPreset: security

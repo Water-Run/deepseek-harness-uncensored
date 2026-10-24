@@ -23,6 +23,7 @@ import { AgentPresetSeat } from '../src/client/AgentPresetSeat.tsx'
 import type { AgentPresetSeatInjected } from '../src/client/AgentPresetSeat.tsx'
 import { AgentPresetSeatController } from '../src/client/seat-store.ts'
 import { CreatePluginMenuItem, type CreatePluginMenuItemInjected } from '../src/client/CreatePluginMenuItem.tsx'
+import { SecurityEntryDialog, type SecurityEntryDialogInjected } from '../src/client/SecurityEntryDialog.tsx'
 import { AgentPresetSectionController } from '../src/client/section-store.ts'
 import { apply as hostApply } from '../src/index.ts'
 import type { AgentPresetRow } from '@deepseek-ai/dsh-agent-preset-registry/types'
@@ -166,6 +167,15 @@ async function bench(options: {
       calls.push(`select:${agentPreset}`)
       return Promise.resolve(options.selectGate).then(() => ({ ok: true as const, value: agentPreset }))
     },
+    // The first-entry policy is off in this fixture; the confirmation surface
+    // itself is covered by its own specs.
+    securityEntryState: () => Promise.resolve({
+      ok: true as const,
+      value: {
+        required: false, preset: 'security', acknowledged: true,
+        protection: { state: 'unavailable' as const, revision: 0, capabilities: [] },
+      },
+    }),
   }
   ctx.provide('remote.agentPresets', agentPresets as never)
   Object.assign(remote, { agentPresets })
@@ -194,6 +204,7 @@ function declareRoot(slots: SlotRegistry): () => void {
     children: {
       'settings.general.item': { kind: 'list', scope: 'root' },
       'settings.section': { kind: 'list', scope: 'root' },
+      'shell.overlay': { kind: 'list', scope: 'root' },
       conversation: { kind: 'single', scope: 'root' },
     },
   } as never, () => null)
@@ -343,6 +354,32 @@ describe('ui-agent-preset apply', () => {
     expect(inject).toEqual([
       'slots', 'sessions', 'locale', 'remote', 'remote.agentPresets', 'remote.settings', 'configForms',
     ])
+  })
+
+  it('registers the security-entry overlay and forwards its actions', async () => {
+    const { ctx, slots, remote } = await bench()
+    try {
+      ctx.provide('sessions', sessionsDouble(ctx, { byId: {} }) as never)
+      declareRoot(slots)
+      await ctx.plugin({ inject: [...inject], apply }).await()
+      const overlay = slots.entries('shell.overlay').find(entry => entry.options.id === 'security-entry')
+      expect(overlay?.component).toBe(SecurityEntryDialog)
+      const injected = (overlay!.inject as () => SecurityEntryDialogInjected)()
+      remote.emit('agent-preset/security-entry', [{
+        required: true, preset: 'security', acknowledged: false,
+        protection: { state: 'unavailable', revision: 0, capabilities: [] },
+      }])
+      injected.confirm('declaration')
+      injected.cancel()
+      injected.retry()
+      // No settings shell is composed here: the entry stays inert.
+      injected.openSettings()
+      const openSection = vi.fn()
+      ctx.provide('settingsNavigation', { openSection } as never)
+      injected.openSettings()
+      expect(openSection).toHaveBeenCalledExactlyOnceWith('agent-presets')
+      expect(injected.hooks.securityEntry.getSnapshot().required).toBe(true)
+    } finally { await ctx.fiber.dispose() }
   })
 
   it('registers the mode roster and the separate existing-conversation policy', async () => {

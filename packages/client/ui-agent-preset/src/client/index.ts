@@ -30,6 +30,10 @@ import { en, zh, type AgentPresetSettingsKey } from './locales.ts'
 import { AGENT_PRESET_SETTINGS_NS, AgentPresetSettingsController } from './settings-store.ts'
 import { ModeSwitchController, ModeSwitchToast, SessionModeControl } from './mode-switch.tsx'
 import type { ModeSwitchInjected } from './mode-switch.tsx'
+import { SecurityEntryController } from './security-entry-controller.ts'
+import { SecurityEntryDialog } from './SecurityEntryDialog.tsx'
+import type { SecurityEntryDialogInjected } from './SecurityEntryDialog.tsx'
+import type { SecurityEntryLocale } from '@deepseek-ai/dsh-agent-preset-registry/types'
 import type { CurrentModeState } from './AgentPresetSection.tsx'
 import { installModeAccent } from './mode-accent.ts'
 
@@ -38,6 +42,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     /** Agent-preset surface copy. */
     'settings.agentPreset': AgentPresetSettingsKey
   }
+
 }
 
 export type { AgentPresetLabelInjected, AgentPresetLabelProps } from './AgentPresetLabel.tsx'
@@ -68,10 +73,33 @@ export function apply(ctx: ClientContext): void {
   const currentMode = createSnapshotStore<CurrentModeState>({ blank: true, busy: false })
   const seats = new WeakMapWithValues<SessionBinding, AgentPresetSeatController>()
   const boundSeatDisposers = new Set<() => Promise<void>>()
+  const securityEntry = new SecurityEntryController({
+    read: async () => {
+      const result = await ctx.remote.agentPresets.securityEntryState()
+      if (!result.ok) throw result.error
+      return result.value
+    },
+    begin: async (sessionId, locale) => {
+      const result = await ctx.remote.agentPresets.beginSecurityEntry(sessionId, locale)
+      if (!result.ok) throw result.error
+      return result.value
+    },
+    confirm: async (id, sessionId, declaration) => {
+      const result = await ctx.remote.agentPresets.confirmSecurityEntry(id, sessionId, declaration)
+      if (!result.ok) throw result.error
+      return result.value
+    },
+    cancel: async (id) => {
+      const result = await ctx.remote.agentPresets.cancelSecurityEntry(id)
+      if (!result.ok) throw result.error
+      return result.value
+    },
+  }, (): SecurityEntryLocale => ctx.locale.getSnapshot().active.toLowerCase().startsWith('zh') ? 'zh' : 'en')
+  ctx.effect(() => () => securityEntry.dispose(), 'ui-agent-preset: security entry confirmation')
   ctx.effect(() => async () => {
     await Promise.all([...boundSeatDisposers].map(dispose => dispose()))
   }, 'ui-agent-preset: bound selections')
-  const unboundSeat = new AgentPresetSeatController(ctx, () => undefined, staged)
+  const unboundSeat = new AgentPresetSeatController(ctx, () => undefined, staged, securityEntry)
   const seatFor = (binding: SessionBinding): AgentPresetSeatController => {
     const existing = seats.get(binding)
     if (existing !== undefined) return existing
@@ -82,7 +110,7 @@ export function apply(ctx: ClientContext): void {
         && (ctx.sessions.retainInfo(binding.sessionId).getSnapshot().retainedBy.mainView ?? 0) > 0
         ? summary
         : undefined
-    }, staged)
+    }, staged, securityEntry)
     seats.set(binding, seat)
     const dispose = binding.ctx.effect(() => {
       const stop = ctx.sessions.list.subscribe(() => { void seat.apply() })
@@ -159,21 +187,41 @@ export function apply(ctx: ClientContext): void {
       blank: current?.blank !== false,
       busy: current !== undefined && (current.running || modeSwitch.state.getSnapshot().busy.has(current.id)
         || seat?.store.getSnapshot().busy === true) })
+    securityEntry.sessionChanged(current?.id)
   }
   ctx.effect(() => {
     const stopList = ctx.sessions.list.subscribe(refreshCurrentMode)
     const stopSeat = unboundSeat.store.subscribe(refreshCurrentMode)
     const stopSwitch = modeSwitch.state.subscribe(refreshCurrentMode)
     const stopPolicy = ctx.remote.$on('agent-preset/switch-policy', (policy) => { modeSwitch.accept(policy) })
-    const stopConnection = ctx.on('connection/reset', () => { void modeSwitch.load() })
+    const stopEntry = ctx.remote.$on('agent-preset/security-entry', (state) => { securityEntry.accept(state) })
+    const stopConnection = ctx.on('connection/reset', () => {
+      void modeSwitch.load()
+      securityEntry.connectionLost()
+      void securityEntry.load()
+    })
     refreshCurrentMode()
     void modeSwitch.load()
-    return () => { stopList(); stopSeat(); stopSwitch(); stopPolicy(); stopConnection() }
+    void securityEntry.load()
+    return () => { stopList(); stopSeat(); stopSwitch(); stopPolicy(); stopEntry(); stopConnection() }
   }, 'ui-agent-preset: current selection and runtime policy')
   ctx.effect(() => installModeAccent(currentMode), 'ui-agent-preset: mode accent')
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'mode-switch-feedback', order: 25, locale: 'settings.agentPreset', inject: modeInjected,
   }, ModeSwitchToast))
+  const entryInjected = (): SecurityEntryDialogInjected => ({
+    hooks: { securityEntry: securityEntry.store },
+    confirm: (declaration) => { void securityEntry.confirm(declaration) },
+    cancel: () => { securityEntry.cancel() },
+    retry: () => { securityEntry.retry() },
+    openSettings: () => {
+      securityEntry.cancel()
+      ctx.get('settingsNavigation')?.openSection('agent-presets')
+    },
+  })
+  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay', id: 'security-entry', order: 20, locale: 'settings.agentPreset', inject: entryInjected,
+  }, SecurityEntryDialog))
 
   ctx.effect(() => {
     let requested = 0

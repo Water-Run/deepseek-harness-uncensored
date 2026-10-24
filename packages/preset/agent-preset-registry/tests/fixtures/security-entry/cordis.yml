@@ -1,0 +1,25 @@
+- name: cordis:llm
+- name: cordis:session
+- name: cordis:session-projection
+- name: cordis:system-prompt
+  config:
+    personaPrefix: ''
+- name: cordis:tools
+- name: cordis:agent
+- name: cordis:agent-loop
+  config:
+    agents: []
+- name: cordis:agent-presets
+  config:
+    default: standard
+    requireSecurityEntryAcknowledgement: true
+    securityEntryPreset: security
+- name: cordis:agent-preset
+  config:
+    id: standard
+    plugins: []
+- name: cordis:agent-preset
+  config:
+    id: security
+    plugins: []
+- name: cordis:security-protection

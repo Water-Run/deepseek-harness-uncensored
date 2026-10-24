@@ -44,10 +44,20 @@ kind: "package-reference"
 | 字段 | 默认值 | 含义 |
 |---|---|---|
 | `default` | 必填 | 未显式指定时使用的 preset ID |
+| `securityEntryPreset` | `security` | 需要首次进入确认的 preset |
+| `requireSecurityEntryAcknowledgement` | `false` | 新主对话是否必须每次 Host 生命周期确认一次该 preset |
 
 Web 内置定义来自 `dsh-web-app` bundle。定义使用普通插件行；注册表不扫描目录，也不接受 preset 路径。新会话使用部署的 `default`，本发行的 Web 配置固定为 `standard`。旧字段 `selectedDefault` 仍可解析但不再生效；各会话仍可显式选择模式。profile patch 仍可能带有已废弃的 `modeSelectionEnabled` 字段；注册表未声明该字段，既不读取也不重写它。
 
 已有对话仅在空闲且经过所有者确认后才能切换模式。`beginModeSwitch` 签发一次性确认标识，`confirmModeSwitch` 校验单调时钟计时已满十秒，`disableModeSwitch` 撤销权限及待确认标识。标识五分钟后过期。每次注册表启动时权限均关闭，且不持久保存。旧配置字段 `allowExistingSessionSwitch` 仍可读取但不生效，编辑它不能授予切换权限。新对话不需要这项确认即可选择模式。
+
+### 网安首次进入确认
+
+Web 配置开启 `requireSecurityEntryAcknowledgement: true`。新主对话首次进入 `securityEntryPreset` 前，`select` 会以 `security-entry/required` 拒绝选择，直到 Host 记录本次启动的确认。`beginSecurityEntry` 签发一次性挑战，绑定应用所有者、注册表生命周期、一个空白主对话以及保护提供方的修订号。`confirmSecurityEntry` 校验单调时钟计时已满十秒、消费挑战，并在保护修订号变化时以 `security-entry/changed` 拒绝。`cancelSecurityEntry` 丢弃挑战但不授予确认。只有应用所有者可开始、确认或取消。
+
+确认仅保存在内存中，同一 Host 的所有窗口共享。Host 重启后重新询问；页面刷新只读取现有状态。已有对话继续使用独立的临时切换权限，不走这项确认。`assertNewConversationPreset` 对显式创建网安对话的调用方施加同一要求。
+
+`securityEntryState()` 同时报告部署策略和实时保护状态。部署可提供 `securityProtection` 服务，其 `read(): SecurityProtectionStatus` 返回状态；状态或修订号变化后，提供方必须发出 `security-protection/changed`，使已打开的挑战失效并让客户端重新计时。没有提供方时状态为 `unavailable`，对话框按未启用处理，挑战要求输入本地化声明。声明文本由 Host 签发并逐字校验，客户端不另存一份。
 
 注册表不写入任何声明。`read` Remote 把一条声明的子插件列表按 entry-list YAML 方言（含 `!!js` 条件）渲染回来，供客户端展示 preset 的组成；没有任何接口接受 YAML 写回。新建 preset 或覆盖内置 preset 都是 bundle 补丁：插入一行 `@deepseek-ai/dsh-agent-preset`，或按该行 id 写覆盖补丁，再用 `plugin_manager` 安装到 profile；创造模式在对话中编写这类 bundle。
 
@@ -67,7 +77,8 @@ preset 的服务提供方及其消费方必须共享同一个 `cordis:group` 隔
 
 | 文件 | 职责 |
 |---|---|
-| [index.ts](src/index.ts) | 注册、代际与 Agent 绑定 |
+| [index.ts](src/index.ts) | 注册、代际、Agent 绑定与 Remote 策略 |
+| [security-entry.ts](src/security-entry.ts) | 首次进入挑战、声明与单调计时 |
 | [mount.ts](src/mount.ts) | 隔离插件树与激活审计 |
 
 </details>
@@ -101,6 +112,8 @@ preset 的服务提供方及其消费方必须共享同一个 `cordis:group` 隔
 <a id="known-limitations-and-deferred-work"></a>
 
 - preset 不是安全沙箱：YAML 及插件可以执行 Host 代码。用户覆盖替换完整子插件列表，不自动合并内置列表的未来更新。进程退出后不保存旧代际的插件实现。
+- Web 产品尚未组合 `securityProtection` 提供方，首次进入对话框因此显示保护不可用并要求输入声明；保护开启分支目前只由测试提供方覆盖，需等延后的目标保护执行工作恢复后才有生产实现。
+- 确认只记录操作者在本次 Host 生命周期内的声明，不执行目标保护，也不构成对任何第三方目标的事实授权证明。
 
 <a id="dev-note"></a>
 ### 开发备注

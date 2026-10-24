@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-24-security-entry-acknowledgement.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-24-security-entry-acknowledgement.md
+/agent-note-first-entry-acknowledgement-for-new-security-conversations:
+  en: ef153a0af309d046
+  zh: 3c2aa7e050e3c93e
+/agent-note-first-entry-acknowledgement-for-new-security-conversations/problem:
+  en: 80aaf91d6e996cd3
+  zh: d3413470b15d68aa
+/agent-note-first-entry-acknowledgement-for-new-security-conversations/decision:
+  en: 6ad35dcb46d512b6
+  zh: 4e0d2f6e62ccd00f
+/agent-note-first-entry-acknowledgement-for-new-security-conversations/alternatives-considered:
+  en: 76dea17432245af5
+  zh: 3c2194838d680811
+/agent-note-first-entry-acknowledgement-for-new-security-conversations/consequences:
+  en: faca2aae92062499
+  zh: 013d67db05f7f3e5

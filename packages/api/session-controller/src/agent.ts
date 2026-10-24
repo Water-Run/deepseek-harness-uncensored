@@ -322,6 +322,16 @@ export class ApiSessionAgentController {
   }
 
   /**
+   * Identify live Agents whose composition and teardown this controller owns.
+   * @param id - Session identity proposed for automatic cold recovery.
+   * @returns Whether this controller retains the current Agent's lifecycle handle.
+   */
+  owns(id: SessionId): boolean {
+    const handle = this.owned.get(id)
+    return handle !== undefined && handle.agent === this.ctx.agents.get(id)
+  }
+
+  /**
    * Stop and drain the exact Agent whose teardown capability this API owns.
    * @param id - Session already excluded from new API admission.
    * @returns Completion after scoped work and its persistence writer have been released.
@@ -397,9 +407,11 @@ export class ApiSessionAgentController {
    * @throws ApiSessionCwdConflict when the named Session belongs to another directory.
    * @throws ApiSessionSubagentOwnership when subagent routing owns the named Session.
    * @throws RemoteError `agent-preset/not-found` or `agent-preset/invalid` for the requested or default preset.
+   * @throws RemoteError `security-entry/required` when an explicit Security preset needs this launch's first-entry acknowledgement.
    * @throws ApiSessionPresetConflict when no roster is composed and the request names a preset for a reused Session.
    */
   async createSession(request: ApiSessionCreateRequest): Promise<ApiSessionCreated> {
+    this.ctx.get('agentPresets')?.assertNewConversationPreset(request.agentPreset)
     const named = request.sessionId
     if (named !== undefined) this.assertAvailable(named)
     if (named === undefined) return this.created(await this.createMinted(request.cwd, await this.composeAgent(request.agentPreset)))

@@ -20,6 +20,7 @@ import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client
 import type {} from '@deepseek-ai/dsh-agent-preset-registry/types'
 import { presetOptions, readRoster } from './settings-store.ts'
 import type { AgentPresetOption } from './settings-store.ts'
+import type { SecurityEntryGate } from './security-entry-controller.ts'
 
 /** Hero-chip snapshot. */
 export interface AgentPresetSeatState {
@@ -50,6 +51,15 @@ export interface AgentPresetStage {
   introduce: boolean
 }
 
+/** Gate used when the deployment composes no first-entry policy. */
+export const OPEN_ENTRY: SecurityEntryGate = {
+  protects: () => false,
+  mayProtect: () => false,
+  acknowledged: () => true,
+  ready: () => Promise.resolve(),
+  request: () => Promise.resolve(true),
+}
+
 /** Stages the next session's preset and applies it when one appears. */
 export class AgentPresetSeatController {
   /** Chip snapshot the renderer subscribes to. */
@@ -64,6 +74,9 @@ export class AgentPresetSeatController {
   /** Only the newest roster read may publish after overlapping refreshes. */
   private loadGeneration = 0
 
+  /** A protected pick waiting for the first blank session that can receive it. */
+  private deferred: string | undefined
+
   constructor(
     private readonly ctx: ClientContext,
     /** The session the hero is about to hand over to, when there is one. */
@@ -72,6 +85,8 @@ export class AgentPresetSeatController {
       'id' | 'blank' | 'projectionValues'
     > | undefined,
     private readonly staged: AgentPresetStage = { id: undefined, introduce: false },
+    /** First-entry gate for protected presets; tests and non-Web compositions leave it open. */
+    private readonly entry: SecurityEntryGate = OPEN_ENTRY,
   ) {}
 
   private set(patch: Partial<AgentPresetSeatState>): void {
@@ -126,6 +141,7 @@ export class AgentPresetSeatController {
    */
   async select(id: string): Promise<string | undefined> {
     if (this.store.getSnapshot().busy) return undefined
+    if (this.entry.mayProtect(id) && !await this.collectEntry(id)) return undefined
     this.stage(id)
     return await this.apply()
   }
@@ -164,6 +180,25 @@ export class AgentPresetSeatController {
   }
 
   /**
+   * Collect the first-entry acknowledgement before a protected pick is staged,
+   * so the mode accent and the chip never move ahead of the confirmation.
+   * @param preset - Preset the person selected.
+   * @returns true when the pick may be staged now; false when it was cancelled or deferred.
+   */
+  private async collectEntry(preset: string): Promise<boolean> {
+    await this.entry.ready()
+    if (!this.entry.protects(preset) || this.entry.acknowledged()) return true
+    const session = this.currentSession()
+    if (session === undefined) {
+      this.deferred = preset
+      return false
+    }
+    if (!session.blank) return true
+    this.set({ busy: true })
+    try { return await this.entry.request(session.id) } finally { this.set({ busy: false }) }
+  }
+
+  /**
    * Hand the staged choice to the current session, if there is one to take it.
    *
    * Called both by `select()` and by whoever observes the current session
@@ -173,8 +208,16 @@ export class AgentPresetSeatController {
    */
   async apply(): Promise<string | undefined> {
     if (this.store.getSnapshot().busy) return
-    const staged = this.staged.id
     const session = this.currentSession()
+    const deferred = this.deferred
+    if (deferred !== undefined && session !== undefined) {
+      this.deferred = undefined
+      // A started conversation cannot receive the deferred pick; its own mode
+      // control follows the established-conversation policy instead.
+      if (!session.blank || !await this.collectEntry(deferred)) return
+      this.stage(deferred)
+    }
+    const staged = this.staged.id
     if (staged === undefined) {
       const current = session === undefined ? this.fallback : presetOf(session) ?? ''
       const shown = this.store.getSnapshot()

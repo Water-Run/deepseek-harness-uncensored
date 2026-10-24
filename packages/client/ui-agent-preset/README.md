@@ -33,6 +33,8 @@ The main view's mode colors the whole client: the plugin writes `body[data-dsh-m
 
 Mode Settings also owns the temporary permission for changing existing conversations. Enabling it requires a ten-second reading interval and an explicit acknowledgement, validated by the Host; it remains off if cancelled. The permission is never saved and resets when the Host restarts. Existing conversations must be idle even after permission is granted. Other windows receive changes, and late reads cannot overwrite a newer revocation.
 
+The first time a new main conversation selects Security after each Host start, a separate confirmation opens. It shows the protection provider's live status, waits ten seconds, and asks for the Host-issued declaration when protection is off or cannot be confirmed. The choice is neither staged nor sent until the Host accepts it; cancelling keeps the current mode and draft. A Host restart asks again, a page refresh does not, and later new conversations share the same launch acknowledgement. Established conversations keep using the temporary switching permission above. The shipped Web composition has no protection backend, so the dialog reports protection as unavailable rather than claiming it is enabled.
+
 Turning Coding Tools off clears unapplied choices. The user can select an available preset again afterward. Existing sessions keep their selected mode, including when it is absent from the menu. Turning Coding Tools back on does not restore a cleared choice. Legacy saved defaults do not affect new conversations.
 
 Known shipped presets offer mode details and usage examples in a read-only dialog. Minimal's guide explains image reading, automatic history compaction, and the idle-session `/compact` command. Its tabs preserve each page's scroll position; closing returns focus to the opening action. Help does not change the new-task default. The default badge replaces the card's group badge, and the preset id appears beside the title. Guide copy and examples belong to this package.
@@ -74,6 +76,7 @@ Selection changes affect only later tasks; existing plugins and prompts remain u
 <a id="known-limitations-and-deferred-work"></a>
 
 - Web creates and edits no preset: the configuration viewer is read-only, and a bundle installed through Creator mode declares a new preset or overrides a shipped one by row id, replacing its complete child list.
+- The Security entry confirmation reports the composed protection provider's live state. The Web product ships no provider, so it takes the unavailable branch and asks for the declaration; the enabled branch is covered with a test provider, not a production backend.
 
 <a id="dev-note"></a>
 ### Dev Note

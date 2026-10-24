@@ -9,6 +9,18 @@ export type AgentPresetSettingsKey =
   | 'modeSwitch.confirmTitle' | 'modeSwitch.warning' | 'modeSwitch.sessionOnly' | 'modeSwitch.countdown'
   | 'modeSwitch.confirm' | 'modeSwitch.cancel' | 'modeSwitch.retry' | 'modeSwitch.locked'
   | 'modeSwitch.reload'
+  | 'securityEntry.title' | 'securityEntry.responsibility' | 'securityEntry.scope'
+  | 'securityEntry.protectionLabel' | 'securityEntry.protection.checking'
+  | 'securityEntry.protection.enabled' | 'securityEntry.protection.disabled' | 'securityEntry.protection.unavailable'
+  | 'securityEntry.protection.enabledDetail' | 'securityEntry.protection.disabledDetail'
+  | 'securityEntry.protection.unavailableDetail' | 'securityEntry.protection.capabilitiesLabel'
+  | 'securityEntry.capability.mainlandDomains' | 'securityEntry.capability.targetRules'
+  | 'securityEntry.declarationLabel' | 'securityEntry.declarationHint'
+  | 'securityEntry.countdown' | 'securityEntry.ready' | 'securityEntry.confirm'
+  | 'securityEntry.cancel' | 'securityEntry.retry' | 'securityEntry.loading' | 'securityEntry.retryHint'
+  | 'securityEntry.error.changed' | 'securityEntry.error.declaration' | 'securityEntry.error.disconnected'
+  | 'securityEntry.error.expired' | 'securityEntry.error.failed'
+  | 'securityEntry.settings' | 'securityEntry.noDeclaration'
   | 'currentMode' | 'selectCurrent' | 'selected'
   | PresetGuideKey
   | 'builtInGroup'
@@ -66,6 +78,36 @@ export const en: Record<AgentPresetSettingsKey, string> = {
   'modeSwitch.retry': 'Restart confirmation',
   'modeSwitch.reload': 'Retry permission check',
   'modeSwitch.locked': 'This conversation keeps its current mode. You can enable temporary switching below or choose a mode for a new conversation.',
+  'securityEntry.title': 'Before entering Security mode',
+  'securityEntry.responsibility': 'Security mode runs real commands and reaches target systems. You are responsible for the targets and actions you choose.',
+  'securityEntry.scope': 'Use it only on systems you are authorized to test and within an agreed scope. The software does not decide whether a target is authorized.',
+  'securityEntry.protectionLabel': 'Mainland website protection',
+  'securityEntry.protection.checking': 'Checking',
+  'securityEntry.protection.enabled': 'Enabled and available',
+  'securityEntry.protection.disabled': 'Off',
+  'securityEntry.protection.unavailable': 'Cannot be confirmed',
+  'securityEntry.protection.enabledDetail': 'The protection provider reports it is enabled. Your target settings and permissions still apply.',
+  'securityEntry.protection.disabledDetail': 'Protection is off. This confirmation records only your acknowledgement.',
+  'securityEntry.protection.unavailableDetail': 'No protection backend is available; this is treated as protection off. Protection cannot be confirmed.',
+  'securityEntry.protection.capabilitiesLabel': 'Capabilities currently enforced:',
+  'securityEntry.capability.mainlandDomains': 'Mainland website domains',
+  'securityEntry.capability.targetRules': 'Target and production rules',
+  'securityEntry.declarationLabel': 'Acknowledgement',
+  'securityEntry.declarationHint': 'Type the statement above exactly, including punctuation.',
+  'securityEntry.countdown': 'Read and confirm ({seconds}s)',
+  'securityEntry.ready': 'Ready to confirm',
+  'securityEntry.confirm': 'Confirm and enter Security mode',
+  'securityEntry.cancel': 'Cancel',
+  'securityEntry.retry': 'Retry',
+  'securityEntry.loading': 'Preparing the confirmation',
+  'securityEntry.retryHint': 'Retry to read the current protection state.',
+  'securityEntry.error.changed': 'Protection changed. Read the updated status and confirm again',
+  'securityEntry.error.declaration': 'The statement does not match. Type it exactly as shown',
+  'securityEntry.error.disconnected': 'The connection was lost. Retry',
+  'securityEntry.error.expired': 'The confirmation expired. Retry',
+  'securityEntry.error.failed': 'Confirmation failed. Retry',
+  'securityEntry.settings': 'Open mode settings',
+  'securityEntry.noDeclaration': 'Protection is enabled and available. Confirm after the countdown.',
   currentMode: 'Current mode', selectCurrent: 'Select mode', selected: 'Selected',
   ...guideEn,
   builtInGroup: 'Built-in', customGroup: 'Custom',
@@ -135,6 +177,36 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
   'modeSwitch.retry': '重新确认',
   'modeSwitch.reload': '重新读取权限',
   'modeSwitch.locked': '当前对话保持原模式。可在下方临时允许切换，或为新对话选择模式。',
+  'securityEntry.title': '进入网安模式前的确认',
+  'securityEntry.responsibility': '网安模式会执行真实命令并访问目标系统。你对自己选择的目标和操作负责。',
+  'securityEntry.scope': '只在已获得授权、范围明确的系统上使用。软件不会判断某个目标是否已获授权。',
+  'securityEntry.protectionLabel': '境内网站保护',
+  'securityEntry.protection.checking': '读取中',
+  'securityEntry.protection.enabled': '已启用且可用',
+  'securityEntry.protection.disabled': '已关闭',
+  'securityEntry.protection.unavailable': '无法确认',
+  'securityEntry.protection.enabledDetail': '保护提供方报告保护已启用。操作仍受你的目标设置和权限限制。',
+  'securityEntry.protection.disabledDetail': '保护未启用，本次确认只记录你的责任声明。',
+  'securityEntry.protection.unavailableDetail': '当前没有可用的保护后端，按未启用处理，无法确认保护已生效。',
+  'securityEntry.protection.capabilitiesLabel': '当前生效的保护能力：',
+  'securityEntry.capability.mainlandDomains': '境内网站域名保护',
+  'securityEntry.capability.targetRules': '目标与生产规则',
+  'securityEntry.declarationLabel': '责任声明',
+  'securityEntry.declarationHint': '请输入上面的声明，文字和标点需一致。',
+  'securityEntry.countdown': '阅读并确认（{seconds} 秒）',
+  'securityEntry.ready': '阅读完毕，可以确认',
+  'securityEntry.confirm': '确认并进入网安模式',
+  'securityEntry.cancel': '取消',
+  'securityEntry.retry': '重试',
+  'securityEntry.loading': '正在准备确认',
+  'securityEntry.retryHint': '重试以读取当前保护状态。',
+  'securityEntry.error.changed': '保护状态已变化，请重新阅读并确认',
+  'securityEntry.error.declaration': '声明不一致，请按原文完整输入',
+  'securityEntry.error.disconnected': '连接已断开，请重试',
+  'securityEntry.error.expired': '确认已过期，请重试',
+  'securityEntry.error.failed': '确认失败，请重试',
+  'securityEntry.settings': '打开模式设置',
+  'securityEntry.noDeclaration': '保护已启用且可用，阅读倒计时结束后即可确认。',
   currentMode: '当前模式', selectCurrent: '选择模式', selected: '当前选择',
   ...guideZh,
   builtInGroup: '内置', customGroup: '自定义',

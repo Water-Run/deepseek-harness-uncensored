@@ -6,11 +6,16 @@ import { bindScopeParent, createScope, scopeOf, scopeParentOf, type Scope, type 
 import { entryListSchema } from '@deepseek-ai/cordis-plugin-include'
 import { dump } from 'js-yaml'
 import type { Agent } from '@deepseek-ai/dsh-agent'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 // Type-only: the optional `settings` service this registry keeps off the generated pages.
 import type {} from '@deepseek-ai/dsh-settings'
 import type {} from '@deepseek-ai/dsh-tools'
-import type { AgentPresetDocument, AgentPresetRoster, ModeSwitchChallenge, ModeSwitchChallengeId, ModeSwitchPolicy } from './types.ts'
+import type {
+  AgentPresetDocument, AgentPresetRoster, ModeSwitchChallenge, ModeSwitchChallengeId, ModeSwitchPolicy,
+  SecurityEntryChallenge, SecurityEntryChallengeId, SecurityEntryLocale, SecurityEntryState, SecurityProtectionStatus,
+} from './types.ts'
 import { ModeSwitchPermission } from './switch-policy.ts'
+import { SecurityEntryPermission, UNAVAILABLE_PROTECTION } from './security-entry.ts'
 import { entryListProblem, type PresetDefinition } from './definition.ts'
 import type { AgentPreset, Config } from './preset.ts'
 import { agentPresetProjectionDefinition } from './session.ts'
@@ -58,6 +63,8 @@ export class AgentPresetRegistry extends TypertRemoteService {
     default: z.string().required(),
     selectedDefault: z.string().volatile(),
     allowExistingSessionSwitch: z.boolean().default(false).volatile(),
+    securityEntryPreset: z.string().default('security').volatile(),
+    requireSecurityEntryAcknowledgement: z.boolean().default(false).volatile(),
   })
   private readonly owner: Context
   private readonly definitions = new Map<string, Definition>()
@@ -65,6 +72,7 @@ export class AgentPresetRegistry extends TypertRemoteService {
   private readonly bindings = new WeakMap<ScopeKey, Binding>()
   private readonly switches = new Map<string, Promise<unknown>>()
   private readonly switchPermission = new ModeSwitchPermission()
+  private readonly securityEntry = new SecurityEntryPermission(() => this.readProtection())
 
   constructor(ctx: Context, public config: Config) {
     super(ctx, 'agentPresets')
@@ -73,6 +81,12 @@ export class AgentPresetRegistry extends TypertRemoteService {
     ctx.inject(['settings'], (child) => { child.effect(() => child.settings.configure({ auto: false }, ctx.fiber)) })
     ctx.on('session/event', (session, event) => {
       if (event.type === 'agent-preset/selected') ctx.emit('agent-preset/selected', session.id, event.data.agentPreset)
+    })
+    // A provider that changes conditions invalidates any open challenge; the
+    // client refetches and starts a fresh reading interval.
+    ctx.on('security-protection/changed', () => {
+      this.securityEntry.invalidate()
+      this.publishSecurityEntry()
     })
   }
 
@@ -124,6 +138,135 @@ export class AgentPresetRegistry extends TypertRemoteService {
     try { this.owner.emit('agent-preset/switch-policy', policy) }
     catch (error) { this.owner.logger.warn('Mode switching permission observer failed.', error) }
     return policy
+  }
+
+  /**
+   * Read the first-entry policy and the live protection state.
+   * @returns Deployment policy, runtime acknowledgement, and provider status.
+   */
+  @Remote('securityEntryState')
+  securityEntryState(): SecurityEntryState { return this.readSecurityEntry() }
+
+  /**
+   * Open the first-entry challenge for one new main conversation.
+   * @param sessionId - Blank top-level conversation the confirmation belongs to.
+   * @param locale - Language of the declaration the Host will accept.
+   * @returns Single-use challenge with the current protection snapshot.
+   * @throws RemoteError `security-entry/disabled` when this deployment does not require the acknowledgement.
+   * @throws RemoteError `security-entry/consumed` when this Host lifetime already acknowledged it.
+   * @throws RemoteError `security-entry/session` when the target is not a new main conversation.
+   */
+  @Remote('beginSecurityEntry')
+  beginSecurityEntry(sessionId: SessionId, locale: SecurityEntryLocale): SecurityEntryChallenge {
+    this.assertPolicyOwner()
+    this.assertSecurityEntryEnabled()
+    if (this.securityEntry.read().acknowledged) {
+      throw new RemoteError('security-entry/consumed', 'The security-mode notice is already confirmed for this launch.', { acknowledged: true })
+    }
+    this.assertNewMainSession(sessionId)
+    return this.securityEntry.begin(sessionId, locale)
+  }
+
+  /**
+   * Record the Host-lifetime acknowledgement after the reading interval and any declaration.
+   * @param id - Challenge returned by beginSecurityEntry.
+   * @param sessionId - Same conversation the challenge was opened for.
+   * @param declaration - Exact declaration the challenge issued, or empty when protection is enabled.
+   * @returns Updated runtime state.
+   */
+  @Remote('confirmSecurityEntry')
+  confirmSecurityEntry(id: SecurityEntryChallengeId, sessionId: SessionId, declaration: string): SecurityEntryState {
+    this.assertPolicyOwner()
+    this.assertSecurityEntryEnabled()
+    this.securityEntry.confirm(sessionId, id, declaration)
+    return this.publishSecurityEntry()
+  }
+
+  /**
+   * Discard one pending challenge without granting the acknowledgement.
+   * @param id - Challenge the client is closing.
+   * @returns Runtime state after cancellation.
+   */
+  @Remote('cancelSecurityEntry')
+  cancelSecurityEntry(id: SecurityEntryChallengeId): SecurityEntryState {
+    this.assertPolicyOwner()
+    this.securityEntry.cancel(id)
+    return this.publishSecurityEntry()
+  }
+
+  /**
+   * Refuse an explicit new-conversation preset until this Host recorded the acknowledgement.
+   * Callers that compose no preset registry keep their existing behavior.
+   * @param preset - Preset requested by a create call; undefined keeps the deployment default.
+   */
+  assertNewConversationPreset(preset: string | undefined): void {
+    const required = this.config.requireSecurityEntryAcknowledgement.get()
+    if (preset === undefined || !required || preset !== this.config.securityEntryPreset.get()) return
+    const state = this.securityEntry.read()
+    if (state.acknowledged) return
+    throw new RemoteError('security-entry/required', 'Confirm the security-mode notice before starting this conversation.', {
+      protection: state.protection,
+    })
+  }
+
+  private assertSecurityEntryEnabled(): void {
+    if (!this.config.requireSecurityEntryAcknowledgement.get()) {
+      throw new RemoteError('security-entry/disabled', 'Security-entry acknowledgement is not enabled for this deployment.', {})
+    }
+  }
+
+  private assertNewMainSession(sessionId: SessionId): void {
+    const agent = this.ctx.get('agents')?.get(sessionId)
+    if (agent === undefined || agent.status !== 'idle' || !this.isNewMainSession(agent.session)) {
+      throw new RemoteError('security-entry/session', 'Open a new main conversation before confirming security mode.', { sessionId })
+    }
+  }
+
+  private isNewMainSession(session: Agent['session']): boolean {
+    const header = session.header
+    if (header.parentSession !== undefined || header.origin === 'subagent') return false
+    const boundary = this.owner.sessionProjections.stateOf(session, 'turnBoundary')
+    return boundary === undefined || (boundary.openTurnStartSeq === null && boundary.lastTurn === 0)
+  }
+
+  private assertSecurityEntrySelection(agent: Agent, agentPreset: string): void {
+    const required = this.config.requireSecurityEntryAcknowledgement.get()
+    if (!required || agentPreset !== this.config.securityEntryPreset.get()) return
+    if (this.owner.sessionProjections.stateOf(agent.session, 'agentPreset') === agentPreset) return
+    const boundary = this.owner.sessionProjections.stateOf(agent.session, 'turnBoundary')
+    if (boundary !== undefined && (boundary.openTurnStartSeq !== null || boundary.lastTurn > 0)) return
+    const state = this.securityEntry.read()
+    if (state.acknowledged) return
+    throw new RemoteError('security-entry/required', 'Confirm the security-mode notice before starting this conversation.', {
+      protection: state.protection,
+    })
+  }
+
+  private readSecurityEntry(): SecurityEntryState {
+    return {
+      required: this.config.requireSecurityEntryAcknowledgement.get(),
+      preset: this.config.securityEntryPreset.get(),
+      ...this.securityEntry.read(),
+    }
+  }
+
+  private publishSecurityEntry(): SecurityEntryState {
+    const state = this.readSecurityEntry()
+    try { this.owner.emit('agent-preset/security-entry', state) }
+    catch (error) { this.owner.logger.warn('Security-entry state observer failed.', error) }
+    return state
+  }
+
+  private readProtection(): SecurityProtectionStatus {
+    const provider = this.ctx.get('securityProtection')
+    if (provider === undefined) return UNAVAILABLE_PROTECTION
+    try {
+      const status = provider.read()
+      return { state: status.state, revision: status.revision, capabilities: [...status.capabilities] }
+    } catch (error) {
+      this.ctx.logger.warn('Security protection status is unavailable.', error)
+      return UNAVAILABLE_PROTECTION
+    }
   }
 
   /** Register and eagerly load a definition; activation failure remains visible in the roster.
@@ -407,6 +550,9 @@ export class AgentPresetRegistry extends TypertRemoteService {
           sessionId: agent.id, agentPreset,
         })
       }
+      // A new conversation entering Security needs this Host lifetime's first-entry
+      // acknowledgement; established conversations keep the temporary switch policy below.
+      this.assertSecurityEntrySelection(agent, agentPreset)
       if (boundary !== undefined && boundary.lastTurn > 0 && !this.switchPermission.read().allowExistingSessionSwitch) {
         throw new RemoteError('agent-preset/locked', 'Changing an existing conversation mode is disabled in Settings', {
           sessionId: agent.id, agentPreset,

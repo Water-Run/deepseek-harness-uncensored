@@ -17,4 +17,8 @@ export interface Config {
   selectedDefault: Volatile<string | undefined>
   /** Legacy saved value, accepted for existing configuration files but ignored; permission requires runtime confirmation. */
   allowExistingSessionSwitch: Volatile<boolean>
+  /** Preset that carries the first-entry acknowledgement policy. */
+  securityEntryPreset: Volatile<string>
+  /** Whether a new main conversation must acknowledge Security mode once per Host lifetime. */
+  requireSecurityEntryAcknowledgement: Volatile<boolean>
 }

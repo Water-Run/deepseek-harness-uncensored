@@ -44,10 +44,20 @@ The public selection roster omits definitions marked `hidden`. Historical resolu
 | Field | Default | Meaning |
 |---|---|---|
 | `default` | required | Preset ID used when none is requested |
+| `securityEntryPreset` | `security` | Preset that carries the first-entry acknowledgement |
+| `requireSecurityEntryAcknowledgement` | `false` | Whether a new main conversation must acknowledge that preset once per Host lifetime |
 
 The Web definitions come from the `dsh-web-app` bundle. Definitions are ordinary plugin rows; the registry neither scans directories nor accepts preset paths. New sessions use the deployment `default`, which is `standard` in the shipped Web profile. The legacy `selectedDefault` field is accepted but ignored; explicit per-session selections remain supported. A profile patch may still carry the retired `modeSelectionEnabled` field; the registry declares no such field and neither reads nor rewrites it.
 
 Established conversations can change mode only while idle and after owner acknowledgement. `beginModeSwitch` issues a one-time challenge, `confirmModeSwitch` enforces ten seconds of monotonic elapsed time, and `disableModeSwitch` revokes permission and pending challenges. Challenges expire after five minutes. Permission starts disabled for each registry lifetime and is never persisted. The legacy `allowExistingSessionSwitch` configuration field is accepted but ignored; editing it cannot authorize a switch. New conversations remain selectable without this acknowledgement.
+
+### Security first-entry acknowledgement
+
+The Web profile sets `requireSecurityEntryAcknowledgement: true`. Before a new main conversation first enters `securityEntryPreset`, `select` refuses the selection with `security-entry/required` until the Host recorded this launch's acknowledgement. `beginSecurityEntry` issues a one-time challenge bound to the application owner, the registry lifetime, one blank top-level conversation, and the protection provider's revision. `confirmSecurityEntry` enforces ten seconds of monotonic elapsed time, consumes the challenge, and rejects a changed protection revision with `security-entry/changed`. `cancelSecurityEntry` drops the challenge without granting the acknowledgement. Only the application owner may begin, confirm, or cancel.
+
+The acknowledgement is memory-only and shared by every window of the same Host. A Host restart asks again; a page refresh only reads the existing state. Established conversations keep the separate temporary switching permission and never use this acknowledgement. `assertNewConversationPreset` applies the same requirement to a caller that explicitly creates a Security conversation.
+
+`securityEntryState()` reports the deployment policy beside the live protection state. A deployment may provide `securityProtection` with `read(): SecurityProtectionStatus`; the provider must emit `security-protection/changed` after a status or revision change so an open challenge is invalidated and the client restarts its reading interval. Without a provider, the state is `unavailable`, the dialog treats protection as not enabled, and the challenge requires the localized declaration. The declaration text is issued by the Host and validated verbatim; the client does not keep its own copy.
 
 The registry writes no declarations. The `read` Remote renders one declaration’s child list back as entry-list YAML (`!!js` conditions included) so a client can show what a preset composes; nothing accepts YAML back. A new preset or an override of a shipped one is a bundle patch: an `insert` of a `@deepseek-ai/dsh-agent-preset` row, or a patch keyed by that row’s id, installed into the profile with `plugin_manager`; Creator mode authors such bundles in conversation.
 
@@ -67,7 +77,8 @@ Activation auditing checks imports, missing services and globally leaked service
 
 | File | Responsibility |
 |---|---|
-| [index.ts](src/index.ts) | Registration, revisions and Agent bindings |
+| [index.ts](src/index.ts) | Registration, revisions, Agent bindings, and Remote policy |
+| [security-entry.ts](src/security-entry.ts) | First-entry challenge, declaration, and monotonic timing |
 | [mount.ts](src/mount.ts) | Scoped plugin trees and activation auditing |
 
 </details>
@@ -101,6 +112,8 @@ Existing Agents retain their plugins and prompts. New Agents build their prefixe
 <a id="known-limitations-and-deferred-work"></a>
 
 - Presets are not security sandboxes: YAML and plugins can execute Host code. A user override replaces the complete child list and does not automatically merge future changes to the builtin list. Old revision implementations are not retained across process restarts.
+- The Web product composes no `securityProtection` provider. Its first-entry dialog therefore reports protection as unavailable and requires the declaration; the enabled branch is exercised only by test providers until the execution protection in the deferred target-protection work is restored.
+- The acknowledgement records the operator's declaration for this Host lifetime. It does not enforce target protection, and it does not prove authorization for any third-party target.
 
 <a id="dev-note"></a>
 ### Dev Note
