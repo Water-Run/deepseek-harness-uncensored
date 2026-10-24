@@ -16,6 +16,7 @@ interface PackageMetadata {
 
 /**
  * Clone one verified source tree into two synthetic release versions, retaining source bytes unchanged.
+ * Each clone declares its synthetic version as both product and engine version.
  * @param manifest The existing test run manifest; both version directories must be absent.
  * @param sourceRoot Fresh prepared dsh runtime, never the user's installed application.
  * @returns Completion record with descriptor hashes; this is not signed or boot-tested artifact evidence.
@@ -32,7 +33,8 @@ export async function prepareInstalledUpdateRuntime(manifest: string, sourceRoot
     const sourceHash = createHash('sha256').update(await readFile(join(sourceRoot, 'desktop-runtime.json'))).digest('hex')
     await writeFile(join(receipt, 'source.json'), `${JSON.stringify({ sourceHash, version: run.source.version })}\n`,
       { flag: 'wx', mode: 0o600, flush: true })
-    const releaseNames = new Set(source.sharedPackages.filter(entry => entry.version === run.source.version
+    const engineVersion = source.release.engineVersion
+    const releaseNames = new Set(source.sharedPackages.filter(entry => entry.version === engineVersion
       && (entry.name === '@deepseek-ai/dsh' || entry.name.startsWith('@deepseek-ai/dsh-'))).map(entry => entry.name))
     for (const version of run.versions) {
       const directory = join(run.root, version)
@@ -46,12 +48,13 @@ export async function prepareInstalledUpdateRuntime(manifest: string, sourceRoot
         metadata.version = version
         for (const field of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies'] as const) {
           for (const [name, value] of Object.entries(metadata[field] ?? {})) {
-            if (releaseNames.has(name) && value === run.source.version) metadata[field]![name] = version
+            if (releaseNames.has(name) && value === engineVersion) metadata[field]![name] = version
           }
         }
         await writeFile(path, `${JSON.stringify(metadata, null, 2)}\n`)
       }
-      writeDesktopRuntime(runtime, { ...source.release, version }, source.sharedPackages.map(entry => entry.name), source)
+      writeDesktopRuntime(runtime, { ...source.release, version, engineVersion: version },
+        source.sharedPackages.map(entry => entry.name), source)
       const verified = await verifyDesktopRuntime(runtime, version, source)
       results.push({ version, runtime, files: verified.files.length, sharedPackages: verified.sharedPackages.length,
         descriptorSha256: createHash('sha256').update(await readFile(join(runtime, 'desktop-runtime.json'))).digest('hex') })

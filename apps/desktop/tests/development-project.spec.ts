@@ -16,10 +16,11 @@ function temporaryRoot(): string {
   return root
 }
 
-function release(version = '1.2.3'): DesktopRelease {
+function release(engineVersion = '1.2.3'): DesktopRelease {
   return {
-    schemaVersion: 1,
-    version,
+    schemaVersion: 2,
+    version: '0.1.0',
+    engineVersion,
     hostProtocolVersion: DESKTOP_HOST_PROTOCOL_VERSION,
     nodeVersion: '24.17.0',
     pnpmVersion: '11.7.0',

@@ -116,7 +116,7 @@ async function inventoryRuntimeForVerification(root: string): Promise<DesktopRun
 /**
  * Seal the final runtime tree after materialization and native signing.
  * @param root - Runtime output directory.
- * @param release - Matching shell, dsh, Host, and executable versions.
+ * @param release - Shell product version, bundled engine version, and executable versions.
  * @param sharedNames - Release-owned packages supplied to plugins.
  * @param target - Platform and architecture selected by runtime preparation.
  * @returns Descriptor written beside the production packages.
@@ -153,7 +153,7 @@ export function readDesktopRuntime(root: string): DesktopRuntimeDescriptor {
     || !Array.isArray(value.sharedPackages) || !Array.isArray(value.files)) {
     throw new Error('desktop runtime: invalid descriptor')
   }
-  if (!record(value.release) || typeof value.release.version !== 'string'
+  if (!record(value.release) || typeof value.release.version !== 'string' || typeof value.release.engineVersion !== 'string'
     || typeof value.release.nodeVersion !== 'string' || typeof value.release.pnpmVersion !== 'string') {
     throw new Error('desktop runtime: invalid release fields')
   }
@@ -170,7 +170,7 @@ export function readDesktopRuntime(root: string): DesktopRuntimeDescriptor {
   }
   const files = value.files as DesktopRuntimeFile[]
   for (const name of ['@deepseek-ai/dsh', DESKTOP_HOST_PACKAGE]) {
-    if (sharedPackages.find(entry => entry.name === name)?.version !== release.version) {
+    if (sharedPackages.find(entry => entry.name === name)?.version !== release.engineVersion) {
       throw new Error(`desktop runtime: missing or mismatched ${name}`)
     }
   }
@@ -181,7 +181,7 @@ export function readDesktopRuntime(root: string): DesktopRuntimeDescriptor {
 /**
  * Verify every packaged runtime file against its recorded bytes and permissions at build time.
  * @param root - Materialized runtime resources.
- * @param expectedVersion - Version the bundled runtime must declare: the product version ordinarily,
+ * @param expectedVersion - Product version the bundled runtime must declare: the shell version ordinarily,
  * and a rewritten one for installed-update qualification.
  * @param target - Required execution target; defaults to the current process.
  * @returns Validated runtime descriptor.

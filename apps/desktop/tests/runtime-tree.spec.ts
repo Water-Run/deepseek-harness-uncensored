@@ -54,6 +54,17 @@ it.each(['missing', 'directory'])('checks a %s Host entry only during build veri
   expect(readDesktopRuntime(dsh).release.version).toBe('1.0.0')
   await expect(verifyDesktopRuntime(dsh, '1.0.0')).rejects.toThrow(/integrity/u)
 })
+it('binds shared engine packages to the engine version instead of the product version', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'desktop-runtime-'))
+  roots.push(root)
+  const dsh = join(root, 'dsh')
+  runtimeFixture(dsh, '0.1.0', '24.17.0', '2.0.0')
+  const descriptor = await verifyDesktopRuntime(dsh, '0.1.0')
+  expect(descriptor.release).toMatchObject({ version: '0.1.0', engineVersion: '2.0.0' })
+  const path = join(dsh, DESKTOP_RUNTIME_FILE)
+  writeFileSync(path, JSON.stringify({ ...descriptor, release: { ...descriptor.release, engineVersion: '0.1.0' } }))
+  expect(() => readDesktopRuntime(dsh)).toThrow(/mismatched @deepseek-ai\/dsh/u)
+})
 it('checks the bundled version only during build verification', async () => {
   const dsh = join(fixture(), 'dsh')
   expect(readDesktopRuntime(dsh).release.version).toBe('1.0.0')
@@ -63,7 +74,7 @@ it.each([
   { schemaVersion: 2 },
   { platform: 'other' },
   { arch: 'other' },
-  { release: { schemaVersion: 2 } },
+  { release: { schemaVersion: 1 } },
   { release: { hostProtocolVersion: 999 } },
   { release: { nodeVersion: 'invalid' } },
   { release: { pnpmVersion: 'invalid' } },

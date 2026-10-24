@@ -257,7 +257,7 @@ it.each([false, true])('keeps the complete Office engine outside ASAR with exter
 async function seal(input: Awaited<ReturnType<typeof fixture>>): Promise<DesktopRuntimeDescriptor> {
   const descriptor: DesktopRuntimeDescriptor = {
     schemaVersion: 1,
-    release: { schemaVersion: 1, version: '1.0.0', hostProtocolVersion: DESKTOP_HOST_PROTOCOL_VERSION,
+    release: { schemaVersion: 2, version: '1.0.0', engineVersion: '1.0.0', hostProtocolVersion: DESKTOP_HOST_PROTOCOL_VERSION,
       nodeVersion: process.versions.node, pnpmVersion: '11.7.0' },
     platform: process.platform, arch: process.arch,
     sharedPackages: [{ name: 'foo', version: '1.0.0', path: 'node_modules/foo' }],

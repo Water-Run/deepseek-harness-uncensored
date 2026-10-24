@@ -70,11 +70,11 @@ describe('desktop core package set', () => {
 
   it('rejects version drift, descriptor disorder, corruption, and extra files', () => {
     const { root, dsh, base, host } = packageSetProject()
-    expect(() => verifyDesktopCorePackageSet(root, '2.0.0')).toThrow(/does not match Desktop/u)
+    expect(() => verifyDesktopCorePackageSet(root, '2.0.0')).toThrow(/does not match engine/u)
     expect(() => parseDesktopCorePackageSet({
       schemaVersion: 1,
       packages: [dsh, base, { ...host, version: '2.0.0' }],
-    }, '1.2.3')).toThrow(/dsh-desktop-host@2\.0\.0 does not match Desktop 1\.2\.3/u)
+    }, '1.2.3')).toThrow(/dsh-desktop-host@2\.0\.0 does not match engine 1.2.3/u)
     expect(() => parseDesktopCorePackageSet({ schemaVersion: 1, packages: [base, dsh, host] }))
       .toThrow(/sorted by name/u)
     writeFileSync(join(root, DESKTOP_PACKAGES_DIR, dsh.file), 'changed')

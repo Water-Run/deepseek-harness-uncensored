@@ -15,16 +15,18 @@ vi.mock('electron-updater', () => ({
 const { DesktopUpdateCoordinator } = await import('../src/update-coordinator.ts')
 
 describe('desktop release metadata', () => {
-  it('accepts one exact release identity for Electron and dsh', () => {
+  it('accepts separate product and engine versions', () => {
     expect(parseDesktopRelease({
-      schemaVersion: 1,
-      version: '1.2.3',
+      schemaVersion: 2,
+      version: '0.1.0',
+      engineVersion: '1.2.3',
       hostProtocolVersion: DESKTOP_HOST_PROTOCOL_VERSION,
       nodeVersion: '24.17.0',
       pnpmVersion: '11.7.0',
     })).toEqual({
-      schemaVersion: 1,
-      version: '1.2.3',
+      schemaVersion: 2,
+      version: '0.1.0',
+      engineVersion: '1.2.3',
       hostProtocolVersion: DESKTOP_HOST_PROTOCOL_VERSION,
       nodeVersion: '24.17.0',
       pnpmVersion: '11.7.0',
@@ -33,13 +35,17 @@ describe('desktop release metadata', () => {
 
   it('rejects invalid versions and unsupported host protocols', () => {
     const base = {
-      schemaVersion: 1,
-      version: '1.2.3',
+      schemaVersion: 2,
+      version: '0.1.0',
+      engineVersion: '1.2.3',
       hostProtocolVersion: DESKTOP_HOST_PROTOCOL_VERSION,
       nodeVersion: '24.17.0',
       pnpmVersion: '11.7.0',
     }
     expect(() => parseDesktopRelease({ ...base, version: 'latest' })).toThrow(/invalid desktop release metadata/u)
+    expect(() => parseDesktopRelease({ ...base, engineVersion: 'latest' })).toThrow(/invalid desktop release metadata/u)
+    expect(() => parseDesktopRelease({ ...base, engineVersion: undefined })).toThrow(/invalid desktop release metadata/u)
+    expect(() => parseDesktopRelease({ ...base, schemaVersion: 1 })).toThrow(/invalid desktop release metadata/u)
     expect(() => parseDesktopRelease({ ...base, hostProtocolVersion: 999 })).toThrow(/invalid desktop release metadata/u)
   })
 })

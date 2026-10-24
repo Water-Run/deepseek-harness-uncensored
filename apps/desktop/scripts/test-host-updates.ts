@@ -13,10 +13,11 @@ await mkdir(evidenceRoot, { recursive: true })
 const root = await mkdtemp(join(evidenceRoot, 'host-updates-'))
 const project = join(root, 'project')
 const manifest = JSON.parse(await readFile(join(repo, 'apps/desktop/package.json'), 'utf8')) as { version: string }
+const engine = JSON.parse(await readFile(join(repo, 'package.json'), 'utf8')) as { version: string }
 const pnpm = JSON.parse(await readFile(join(repo, 'apps/desktop/node_modules/pnpm/package.json'), 'utf8')) as { version: string }
 try {
   createDevelopmentProjectMetadata(project, {
-    schemaVersion: 1, version: manifest.version, nodeVersion: process.versions.node,
+    schemaVersion: 2, version: manifest.version, engineVersion: engine.version, nodeVersion: process.versions.node,
     pnpmVersion: pnpm.version, hostProtocolVersion: DESKTOP_HOST_PROTOCOL_VERSION,
   })
   // This suite tests the Host, not dev.ts's dependency projection. Preserve pnpm's existing graph verbatim.

@@ -20,11 +20,12 @@ const application = join(root, 'app')
 const project = join(application, '.desktop-build/development/project')
 const profile = join(root, 'home/profiles/desktop')
 const manifest = JSON.parse(await readFile(join(repo, 'apps/desktop/package.json'), 'utf8')) as { version: string }
+const engine = JSON.parse(await readFile(join(repo, 'package.json'), 'utf8')) as { version: string }
 const pnpm = JSON.parse(await readFile(join(repo, 'apps/desktop/node_modules/pnpm/package.json'), 'utf8')) as { version: string }
 try {
   const require = createRequire(import.meta.url)
   const electron = require('electron') as string
-  const release = { schemaVersion: 1 as const, version: manifest.version,
+  const release = { schemaVersion: 2 as const, version: manifest.version, engineVersion: engine.version,
     nodeVersion: execFileSync(electron, ['-p', 'process.versions.node'],
       { encoding: 'utf8', env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, windowsHide: true }).trim(),
     pnpmVersion: pnpm.version, hostProtocolVersion: DESKTOP_HOST_PROTOCOL_VERSION }
@@ -34,7 +35,7 @@ try {
   await writeFile(join(project, 'desktop-runtime.json'), JSON.stringify({
     schemaVersion: 1, release, ...desktopTargetPlatform(target), files: [],
     sharedPackages: ['@deepseek-ai/dsh', '@deepseek-ai/dsh-desktop-host']
-      .map(name => ({ name, version: manifest.version, path: `node_modules/${name}` })),
+      .map(name => ({ name, version: engine.version, path: `node_modules/${name}` })),
   }))
   await cp(join(repo, 'apps/desktop/lib/types'), join(application, 'lib'), { recursive: true })
   await cp(join(repo, 'apps/desktop/renderer'), join(application, 'renderer'), { recursive: true })

@@ -48,12 +48,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 /**
  * Validate package-set data read from a release artifact or active profile.
  * @param value - Parsed descriptor JSON.
- * @param expectedReleaseVersion - Required dsh and Desktop Host version when validating one release.
+ * @param expectedEngineVersion - Required dsh and Desktop Host version when validating one release.
  * @returns The normalized package set in deterministic name order.
  */
 export function parseDesktopCorePackageSet(
   value: unknown,
-  expectedReleaseVersion?: string,
+  expectedEngineVersion?: string,
 ): DesktopCorePackageSet {
   if (!isRecord(value) || value.schemaVersion !== 1 || !Array.isArray(value.packages)) {
     throw new Error('desktop package set: invalid descriptor')
@@ -86,15 +86,15 @@ export function parseDesktopCorePackageSet(
   for (const name of RELEASE_PACKAGES) {
     const entry = packages.find(candidate => candidate.name === name)
     if (entry === undefined) throw new Error(`desktop package set: missing ${name}`)
-    if (expectedReleaseVersion !== undefined && entry.version !== expectedReleaseVersion) {
-      throw new Error(`desktop package set: ${name}@${entry.version} does not match Desktop ${expectedReleaseVersion}`)
+    if (expectedEngineVersion !== undefined && entry.version !== expectedEngineVersion) {
+      throw new Error(`desktop package set: ${name}@${entry.version} does not match engine ${expectedEngineVersion}`)
     }
   }
   return { schemaVersion: 1, packages }
 }
 
 /** Read and structurally validate one profile's core package descriptor. */
-export function readDesktopCorePackageSet(projectDir: string, expectedReleaseVersion?: string): DesktopCorePackageSet {
+export function readDesktopCorePackageSet(projectDir: string, expectedEngineVersion?: string): DesktopCorePackageSet {
   const path = join(projectDir, DESKTOP_PACKAGE_SET_FILE)
   let value: unknown
   try {
@@ -102,7 +102,7 @@ export function readDesktopCorePackageSet(projectDir: string, expectedReleaseVer
   } catch (error) {
     throw new Error(`desktop package set: failed to read ${path}: ${String(error)}`)
   }
-  return parseDesktopCorePackageSet(value, expectedReleaseVersion)
+  return parseDesktopCorePackageSet(value, expectedEngineVersion)
 }
 
 /** Return the project-relative `file:` spec for one local core tarball. */
@@ -125,14 +125,14 @@ export function desktopDshPackageSpec(packageSet: DesktopCorePackageSet): string
 /**
  * Verify every local tarball and reject extra package files before pnpm executes them.
  * @param projectDir - Build directory containing the package set.
- * @param expectedReleaseVersion - Exact dsh and Desktop Host version bound to Electron.
+ * @param expectedEngineVersion - Exact dsh and Desktop Host version bundled by this release.
  * @returns The verified package set.
  */
 export function verifyDesktopCorePackageSet(
   projectDir: string,
-  expectedReleaseVersion: string,
+  expectedEngineVersion: string,
 ): DesktopCorePackageSet {
-  const packageSet = readDesktopCorePackageSet(projectDir, expectedReleaseVersion)
+  const packageSet = readDesktopCorePackageSet(projectDir, expectedEngineVersion)
   const packageDir = join(projectDir, DESKTOP_PACKAGES_DIR)
   const expectedFiles = packageSet.packages.map(entry => entry.file).sort()
   let actualFiles: string[]

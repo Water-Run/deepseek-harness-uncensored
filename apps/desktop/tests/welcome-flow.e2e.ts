@@ -102,8 +102,9 @@ describe.skipIf(!existsSync(builtHost))('built Desktop welcome flow', () => {
         hostDir: join(repository, 'apps/desktop-host'),
         dependencyDir: join(repository, 'node_modules/.pnpm/node_modules'),
         release: {
-          schemaVersion: 1,
+          schemaVersion: 2,
           version: version(join(repository, 'apps/desktop/package.json')),
+          engineVersion: version(join(repository, 'package.json')),
           pnpmVersion: version(join(repository, 'apps/desktop/node_modules/pnpm/package.json')),
           nodeVersion: process.versions.node,
           hostProtocolVersion: DESKTOP_HOST_PROTOCOL_VERSION,

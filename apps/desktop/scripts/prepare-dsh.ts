@@ -53,15 +53,11 @@ function manifestVersion(path: string, subject: string): string {
 }
 
 function desktopRelease(): DesktopRelease {
-  const version = manifestVersion(join(APP_ROOT, 'package.json'), 'desktop package')
-  const dshVersion = manifestVersion(resolve(APP_ROOT, '..', '..', 'package.json'), 'root dsh package')
-  if (version !== dshVersion) {
-    throw new Error(`desktop runtime: Electron ${version} must bind the same version of @deepseek-ai/dsh, found ${dshVersion}`)
-  }
   const runtime = JSON.parse(readFileSync(join(RUNTIME_ROOT, 'versions.json'), 'utf8')) as Record<string, unknown>
   return parseDesktopRelease({
-    schemaVersion: 1,
-    version,
+    schemaVersion: 2,
+    version: manifestVersion(join(APP_ROOT, 'package.json'), 'desktop package'),
+    engineVersion: manifestVersion(resolve(APP_ROOT, '..', '..', 'package.json'), 'root dsh package'),
     hostProtocolVersion: DESKTOP_HOST_PROTOCOL_VERSION,
     nodeVersion: runtime.node,
     pnpmVersion: runtime.pnpm,
@@ -129,10 +125,10 @@ async function main(): Promise<void> {
     verifyRuntimePatches(BUILD_ROOT, patches)
     verifyDesktopCoreLockfile(
       readFileSync(join(BUILD_ROOT, 'pnpm-lock.yaml'), 'utf8'),
-      readDesktopCorePackageSet(BUILD_ROOT, release.version),
+      readDesktopCorePackageSet(BUILD_ROOT, release.engineVersion),
     )
     await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'runtime:install', () => runPnpm(['install', '--prod', '--frozen-lockfile', '--trust-lockfile']))
-    const packageSet = readDesktopCorePackageSet(BUILD_ROOT, release.version)
+    const packageSet = readDesktopCorePackageSet(BUILD_ROOT, release.engineVersion)
     const targetName = resolveDesktopBuildTarget()
     const target = { platform: process.platform, arch: desktopTargetPlatform(targetName).arch }
     const modules = join(BUILD_ROOT, 'node_modules')

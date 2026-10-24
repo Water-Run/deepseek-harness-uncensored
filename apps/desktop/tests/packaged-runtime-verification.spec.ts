@@ -53,10 +53,11 @@ describe('packaged runtime verification', () => {
       await import('node:fs/promises').then(async fs => fs.readFile(new URL('../package.json', import.meta.url), 'utf8')),
     ) as { version: string }).version
     const { createElectronBuilderConfig } = await import('../scripts/electron-builder-config.mjs')
+    const { desktopBuildVersionPrefix } = await import('../scripts/desktop-build-version.mjs')
+    const buildVersion = `${desktopBuildVersionPrefix(productVersion)}20260921.1`
     verifyDesktopRuntime.mockClear()
-    const config = createElectronBuilderConfig(
-      { ...ENVIRONMENT, DSH_DESKTOP_BUILD_VERSION: `${productVersion}.20260921.1` }, 'win32', 'x64')
-    expect(config.extraMetadata).toMatchObject({ version: `${productVersion}.20260921.1` })
+    const config = createElectronBuilderConfig({ ...ENVIRONMENT, DSH_DESKTOP_BUILD_VERSION: buildVersion }, 'win32', 'x64')
+    expect(config.extraMetadata).toMatchObject({ version: buildVersion })
     await config.afterPack(CONTEXT as never)
     expect(verifyDesktopRuntime.mock.calls[0]?.[1]).toBe(productVersion)
   })

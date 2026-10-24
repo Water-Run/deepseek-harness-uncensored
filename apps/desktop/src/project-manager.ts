@@ -133,7 +133,7 @@ export class DesktopProjectManager {
 /** Create build-only project metadata for materializing the signed runtime. */
 export function createRuntimeProjectMetadata(projectDir: string, release: DesktopRelease): void {
   mkdirSync(projectDir, { recursive: true, mode: 0o700 })
-  const packageSet = verifyDesktopCorePackageSet(projectDir, release.version)
+  const packageSet = verifyDesktopCorePackageSet(projectDir, release.engineVersion)
   const manifest = {
     name: PROJECT_NAME,
     private: true,
@@ -152,7 +152,7 @@ export function createRuntimeProjectMetadata(projectDir: string, release: Deskto
 /**
  * Create metadata for the unpackaged development project that links the current workspace.
  * @param projectDir - Disposable development profile directory.
- * @param release - Release identity shared by the linked CLI package and Electron shell.
+ * @param release - Release identity whose engine version the linked CLI and Host packages declare.
  */
 export function createDevelopmentProjectMetadata(projectDir: string, release: DesktopRelease): void {
   mkdirSync(projectDir, { recursive: true, mode: 0o700 })
@@ -161,8 +161,8 @@ export function createDevelopmentProjectMetadata(projectDir: string, release: De
     private: true,
     version: '0.0.0',
     dependencies: {
-      [DSH_PACKAGE]: release.version,
-      [DESKTOP_HOST_PACKAGE]: release.version,
+      [DSH_PACKAGE]: release.engineVersion,
+      [DESKTOP_HOST_PACKAGE]: release.engineVersion,
     },
     dsh: { profile: { bundles: [...WEB_PROFILE.bundles] } },
   }
