@@ -25,6 +25,8 @@ Use `dsh-client-ui-primitives` to build web-client controls and render agent out
 <a id="use-this-package"></a>
 ## Use this package
 
+`Select` takes a localized label, a controlled value, and value/label options. It uses `Menu` for themed popup rendering, viewport bounds, scrolling, keyboard navigation, disabled rows, Escape and focus restoration; it never opens a native select popup.
+
 `Toast` uses the theme’s toast background and label colors in both light and dark modes. `Menu` data rows and `MenuItemButton` component rows accept owner-provided effective shortcuts and align their keys at the trailing edge as muted text without a background, including submenus. `ShortcutKeys` defaults to unboxed keys for menu and inline hints. Its `tooltip` variant uses lighter keycaps over the dark bubble and groups plus-separated combinations into one filled block. `Tooltip.shortcutKeys` vertically centers keycaps beside optional localized action text, or shows only keys when the label is empty. The optional `className` supplies owner interaction styles. `Modal` uses the frame’s shared overlay inset, with a minimum 24px viewport margin. Its mask leaves the Windows caption unpainted while the full-viewport layer blocks background clicks. `Modal` and the settings shell share top-layer Escape and Tab handling through `useModalLayer`, restoring the previous focus on close. `closeTopModal(document)` requests the foreground modal’s current close action; newer menus or unregistered dialogs block dismissal of the modal behind them. Components use `isBehindModal` to avoid moving focus behind a nested dialog. Menus consume their local Escape before modal dismissal. `observeComposition` supplies the same composition-end and legacy IME guard to local modal and recording handlers; callers dispose its document listeners with their interaction lifetime.
 
 Automatic modal entry and modal/menu return focus, including after Escape and application close shortcuts, use `focusWithoutRing(element, options?)` to suppress the outline until Tab or directional navigation resumes normal focus styling. Dialog containers keep their outline-free styling. Existing borders, shadows, and error states remain intact. Mark a dialog's initial control with `data-modal-autofocus` so the modal captures its invoking control before moving focus. Controls mounted with the dialog must not use React `autoFocus`, which runs before that capture. Tab and Shift+Tab from the dialog container enter its first and last focusable controls.
@@ -120,11 +122,11 @@ The atoms cannot read the application locale, so every piece of user-facing copy
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
-`Button` uses H36/R12 for `md` and H28/R8 for `sm`, including outlined controls. Menus and cards follow the [shared radius rules](../../../docs/web-styling.md#corner-radii-and-settings-cards); feature classes preserve control geometry.
+`Button` uses H36/R12 for `md` and H28/R8 for `sm`, including outlined controls. Menus and cards follow the shared radius rules; feature classes preserve control geometry.
 
 `Menu.listClassName` styles the menu card independently of the anchor wrapper, including in portal mode. Leading icons use the `--dsw-alias-menu-icon` color; destructive icons retain their error color.
 
-`Menu` delegates its card material to `MenuSurface`; custom menus use the same component. `MenuSurface` forwards div props and refs, uses translucent fill and blur, and accepts `compact` for the smaller radius. Its default relative positioning contains the material layer; caller classes can supply fixed or absolute placement. On macOS, its non-interactive backing follows the card through CSS anchors and unmounts with it; the backing requires the Web shell’s isolated body. Feature classes control layout and elevation, while the component owns material and outer radius ([menu rules](../../../docs/web-styling.md#component-rules)). Modal masks retain their dark translucent fill without background blur.
+`Menu` delegates its card material to `MenuSurface`; custom menus use the same component. `MenuSurface` forwards div props and refs, uses translucent fill and blur, and accepts `compact` for the smaller radius. Its default relative positioning contains the material layer; caller classes can supply fixed or absolute placement. On macOS, its non-interactive backing follows the card through CSS anchors and unmounts with it; the backing requires the Web shell’s isolated body. Feature classes control layout and elevation, while the component owns material and outer radius (menu rules). Modal masks retain their dark translucent fill without background blur.
 
 `MenuGroup` renders a `role="group"` section named by its localized heading, with an instance-owned heading id. It shares heading typography, spacing, and sticky positioning between custom menus and listboxes. Headings are transparent at rest; only `data-stuck` enables the theme's 94%-opaque group-header fill in either palette. Outside `data-platform="darwin"`, headings use `--dsw-radius-md` corners; the enclosing menu keeps its translucent material.
 
@@ -179,7 +181,7 @@ These pages place the atoms in the client stack and the design system.
 - [ui-tool](../ui-tool/README.md) — the tool-call presentation layer that composes these output cards.
 - [ui-conversation](../ui-conversation/README.md) — the chat surface that renders markdown replies and tool cards.
 - [ui-theme](../ui-theme/README.md) — the `--dsw-*` token system these atoms style through.
-- [Web styling](../../../docs/web-styling.md) — the authoritative styling rules for web client components.
+- Web styling — the authoritative styling rules for web client components.
 
 -----
 

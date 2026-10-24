@@ -28,6 +28,16 @@ function setup(initial: SecurityProtectionStatus = { state: 'disabled', revision
 }
 
 describe('Security first-entry permission', () => {
+  it.each(['zh', 'en'] as const)('accepts equivalent character widths for %s without accepting different words', (locale) => {
+    const { permission, advance } = setup()
+    const challenge = permission.begin(session, locale)
+    advance(SECURITY_ENTRY_WAIT_MS)
+    expect(() => permission.confirm(session, challenge.id, challenge.declaration + 'x')).toThrow()
+    const equivalent = locale === 'zh' ? challenge.declaration.replace('，', ',')
+      : challenge.declaration.replace(/[!-~]/gu, character => String.fromCharCode(character.charCodeAt(0) + 0xfee0))
+    expect(permission.confirm(session, challenge.id, equivalent).acknowledged).toBe(true)
+  })
+
   it('starts unacknowledged and reports the live protection state', () => {
     const { permission } = setup({ state: 'enabled', revision: 7, capabilities: ['mainland-domains'] })
     expect(permission.read()).toEqual({

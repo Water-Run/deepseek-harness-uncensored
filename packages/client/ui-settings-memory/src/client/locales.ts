@@ -10,10 +10,12 @@ export type MemorySettingsLocaleKey =
   | 'add' | 'edit' | 'save' | 'saving' | 'cancel' | 'delete' | 'confirmDelete' | 'deleteTitle'
   | 'enable' | 'disable' | 'content' | 'titleField' | 'topicField' | 'topicHint'
   | 'shareGlobal' | 'shareGlobalHint' | 'workspace' | 'mode' | 'noWorkspace' | 'noMode' | 'scopeRequired'
-  | 'loadFailed' | 'saveFailed' | 'conflict' | 'conflictHint' | 'invalid' | 'unavailable' | 'retry'
+  | 'loadFailed' | 'saveFailed' | 'conflict' | 'conflictHint' | 'invalid' | 'unavailable' | 'retry' | 'retentionHint' | 'ownerOnly'
 
 /** English copy. */
 export const en: Record<MemorySettingsLocaleKey, string> = {
+  retentionHint: 'Deleting a conversation keeps saved memory. Deleting memory stops future retrieval but does not rewrite earlier conversations.',
+  ownerOnly: 'Only the application owner can manage saved memory.',
   rowTitle: 'Cross-conversation memory',
   rowDescription: 'Saved facts, preferences, conclusions, and writing settings that later conversations can retrieve. Nothing is shared beyond the scope you choose.',
   manage: 'Manage memory',
@@ -69,6 +71,8 @@ export const en: Record<MemorySettingsLocaleKey, string> = {
 
 /** Chinese copy. */
 export const zh: Record<MemorySettingsLocaleKey, string> = {
+  retentionHint: '删除对话不会自动删除已保存的记忆；删除记忆会停止后续检索，但不会改写已有对话。',
+  ownerOnly: '只有应用所有者可以管理已保存的记忆。',
   rowTitle: '跨对话记忆',
   rowDescription: '保存的事实、偏好、操作结论和写作设定，供后续对话检索。不会超出你选择的作用范围共享。',
   manage: '管理记忆',

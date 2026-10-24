@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { IconPlusOutlineRegular, IconTrashOutlineRegular, Switch, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconPlusOutlineRegular, IconTrashOutlineRegular, Select, Switch, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { DeepSeekModelDraft } from './DeepSeekModelsEditor.tsx'
 import { modelDrafts } from './DeepSeekModelsEditor.tsx'
 import type { ModelsKey } from './locales.ts'
@@ -193,17 +193,14 @@ export function ModelReasoningEfforts({ model, levels, position, disabled, t, on
               // so the position is the row's identity. Keying by level would remount
               // the select on every change and drop keyboard focus.
               <div key={index} className={styles['modelReasoningRow']}>
-                <select
-                  className={`${styles['input']} ${styles['selectInput']}`}
+                <Select
+                  className={styles['input']}
                   value={level}
-                  aria-label={`${t('modelReasoningLevel')} ${String(index + 1)}`}
+                  label={`${t('modelReasoningLevel')} ${String(index + 1)}`}
                   disabled={disabled}
-                  onChange={(event) => { changeLevel(entries, index, level, wire, event.target.value) }}
-                >
-                  {choicesFor(level).map(choice => (
-                    <option key={choice} value={choice}>{choice}</option>
-                  ))}
-                </select>
+                  onChange={(value) => { changeLevel(entries, index, level, wire, value) }}
+                  options={choicesFor(level).map(choice => ({ value: choice, label: choice }))}
+                />
                 <input
                   className={`${styles['input']} ${styles['modelReasoningValueInput']}`}
                   type="text"

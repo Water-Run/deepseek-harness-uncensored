@@ -11,8 +11,8 @@
 .currencies { display: flex; gap: 6px; }
 .chart { display: block; width: 100%; min-width: 0; max-height: 150px; overflow: hidden; }
 .axis { stroke: var(--dsw-alias-border-l2); stroke-width: 1; }
-.line { fill: none; stroke: var(--dsw-brand-blue); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-.point { fill: var(--dsw-brand-blue); }
+.line { fill: none; stroke: var(--dsw-alias-state-business-primary); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.point { fill: var(--dsw-alias-state-business-primary); }
 .stats { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin: 0; font-size: 12px; overflow-wrap: anywhere; }
 .stats dt { color: var(--dsw-alias-label-secondary); }
 .stats dd { margin: 0; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
@@ -20,7 +20,7 @@
 .sidebar { display: grid; width: 100%; margin-bottom: 8px; min-width: 0; }
 .summary { width: 100%; border: 0; font: inherit; text-align: left; cursor: pointer; padding: 10px; border-radius: var(--dsw-radius-md); background: var(--dsw-alias-bg-layer-2); color: var(--dsw-alias-label-primary); transition: background-color 300ms var(--ds-ease-in-out); }
 .summary[data-period='peak'] { background: color-mix(in srgb, var(--dsw-brand-red) 9%, transparent); }
-.summary[data-period='valley'] { background: color-mix(in srgb, var(--dsw-brand-blue) 9%, transparent); }
+.summary[data-period='valley'] { background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 9%, transparent); }
 .period { display: block; font-size: 11px; margin-bottom: 8px; color: var(--dsw-alias-label-secondary); }
 .summary:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 2px; }
 .hover { width: 100%; min-width: 0; display: grid; gap: 12px; overflow-wrap: anywhere; }

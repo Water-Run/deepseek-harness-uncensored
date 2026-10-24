@@ -25,6 +25,8 @@ English | [中文](README.zh.md)
 <a id="use-this-package"></a>
 ## Use this package
 
+The sunrise/sunset location selector uses the shared application menu. Running-reasoning text, its whale icon and shimmer follow the current mode accent in both light and dark themes.
+
 Users switch the color scheme, font sizes, and fonts from rows in Settings (General section); the choices persist across restarts in every authenticated browser. Feature plugins consume the current snapshot through `ctx.theme` and read the `--dsw-*` tokens in CSS; they do not manage theme state themselves.
 
 ### Appearance and font size

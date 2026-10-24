@@ -177,7 +177,7 @@ export class SecurityEntryController implements SecurityEntryGate {
 
   /**
    * Submit the typed declaration once the countdown finished.
-   * @param declaration - Text the person typed; the Host validates the exact statement.
+   * @param declaration - Typed statement; Client and Host compare NFKC-normalized text.
    * @returns Completion after acceptance, a retryable failure, or a refreshed challenge.
    */
   async confirm(declaration: string): Promise<void> {
@@ -185,7 +185,7 @@ export class SecurityEntryController implements SecurityEntryGate {
     if (this.closedNow() || dialog === null || dialog.challenge === null || dialog.busy || dialog.remaining > 0) return
     const challenge = dialog.challenge
     const typed = declaration.trim()
-    if (challenge.declaration !== '' && typed !== challenge.declaration) {
+    if (challenge.declaration !== '' && typed.normalize('NFKC') !== challenge.declaration.normalize('NFKC')) {
       this.patchDialog({ error: 'declaration' })
       return
     }

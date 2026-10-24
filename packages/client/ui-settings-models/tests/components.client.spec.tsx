@@ -618,8 +618,9 @@ describe('ModelsSection', () => {
     // is the catalog form alone: no mode switch, no custom panel.
     expect(screen.queryByRole('tablist')).toBeNull()
     expect(screen.queryByRole('textbox', { name: en.customRoute })).toBeNull()
-    expect(screen.queryByRole('option', { name: 'anthropic' })).toBeNull()
-    expect(screen.getByRole('option', { name: 'plain' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: en.provider }))
+    expect(screen.queryByRole('menuitem', { name: 'anthropic' })).toBeNull()
+    expect(screen.getByRole('menuitem', { name: 'plain' })).toBeTruthy()
   })
 
   it('shows a catalog diagnostic while keeping the provider editable', async () => {
@@ -1472,8 +1473,10 @@ describe('ModelsSection', () => {
   it('adds a dormant provider with a derived reference and stores its key', async () => {
     const { mutate, set } = await mountSection()
     fireEvent.click(screen.getByText(en.add))
-    const pick = await screen.findByLabelText<HTMLSelectElement>(en.provider)
-    expect([...pick.options].map(option => option.value)).toEqual(['anthropic', 'broken', 'plain'])
+    const pick = await screen.findByLabelText<HTMLButtonElement>(en.provider)
+    fireEvent.click(pick)
+    expect(screen.getAllByRole('menuitem').map(option => option.textContent)).toEqual(['anthropic', 'broken', 'plain'])
+    fireEvent.keyDown(pick, { key: 'Escape' })
     expect(pick.value).toBe('anthropic')
     // A dormant route shows its catalog endpoint and the first variable its
     // provider reads; a typed key still stores under the derived reference.
@@ -1552,10 +1555,12 @@ describe('ModelsSection', () => {
   it('switches the add card target and degrades unknown or broken targets loudly', async () => {
     await mountSection()
     fireEvent.click(screen.getByText(en.add))
-    const pick = await screen.findByLabelText<HTMLSelectElement>(en.provider)
-    fireEvent.change(pick, { target: { value: 'broken' } })
+    const pick = await screen.findByLabelText<HTMLButtonElement>(en.provider)
+    fireEvent.click(pick)
+    fireEvent.click(screen.getByRole('menuitem', { name: 'broken' }))
     await screen.findByText(/unresolvable settings path/)
-    fireEvent.change(pick, { target: { value: 'plain' } })
+    fireEvent.click(pick)
+    fireEvent.click(screen.getByRole('menuitem', { name: 'plain' }))
     await waitFor(() => {
       expect(screen.getAllByText(content => content.includes(en.advancedHint)).length).toBeGreaterThan(0)
     })
@@ -1762,7 +1767,7 @@ describe('ModelsSection', () => {
     expect(within(modes).getByRole('tab', { name: en.addCustom }).getAttribute('aria-selected')).toBe('false')
     expect(screen.getByText(en.addCatalogHint)).toBeTruthy()
     expect(screen.queryByText(en.addCustomHint)).toBeNull()
-    expect(screen.getByRole('combobox', { name: en.provider })).toBeTruthy()
+    expect(screen.getByRole('button', { name: en.provider })).toBeTruthy()
     // The custom panel is mounted but hidden, so its fields are not reachable.
     expect(screen.queryByRole('textbox', { name: en.customRoute })).toBeNull()
   })
@@ -1775,7 +1780,7 @@ describe('ModelsSection', () => {
     fireEvent.click(screen.getByRole('tab', { name: en.addCustom }))
     expect(screen.getByText(en.addCustomHint)).toBeTruthy()
     expect(screen.queryByText(en.addCatalogHint)).toBeNull()
-    expect(screen.queryByRole('combobox', { name: en.provider })).toBeNull()
+    expect(screen.queryByRole('button', { name: en.provider })).toBeNull()
     fireEvent.change(screen.getByRole('textbox', { name: en.customRoute }), { target: { value: 'acme' } })
 
     // Both panels stay mounted from here on, so the shown one is queried by name.
@@ -1820,7 +1825,7 @@ describe('ModelsSection', () => {
     await mountFace(scripted)
     fireEvent.click(screen.getByRole('button', { name: en.add }))
     expect(screen.queryByRole('tablist')).toBeNull()
-    expect(screen.queryByRole('combobox', { name: en.provider })).toBeNull()
+    expect(screen.queryByRole('button', { name: en.provider })).toBeNull()
     expect(screen.getByRole('textbox', { name: en.customRoute })).toBeTruthy()
   })
 
@@ -1844,7 +1849,7 @@ describe('ModelsSection', () => {
   it('shows the custom panel when a refresh drops every configurable row mid-card', async () => {
     const { face, controller } = await mountSection()
     fireEvent.click(screen.getByRole('button', { name: en.add }))
-    expect(screen.getByRole('combobox', { name: en.provider })).toBeTruthy()
+    expect(screen.getByRole('button', { name: en.provider })).toBeTruthy()
     // The directory empties while the card is open: the only mode left is the
     // custom one, whose panel was never visited.
     face.llm.listConfigurableProviders.mockResolvedValue(remoteOk([]))
@@ -1872,7 +1877,7 @@ describe('ModelsSection', () => {
     const catalog = screen.getByRole<HTMLButtonElement>('tab', { name: en.addCatalog })
     expect(catalog.disabled).toBe(false)
     fireEvent.click(catalog)
-    expect(screen.getByRole<HTMLSelectElement>('combobox', { name: en.provider }).value).toBe('anthropic')
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: en.provider }).value).toBe('anthropic')
     expect(within(screen.getByRole('tabpanel', { name: en.addCatalog })).getByLabelText(en.keyInput)).toBeTruthy()
   })
 
@@ -1894,13 +1899,13 @@ describe('ModelsSection', () => {
     // to create a route the Host would refuse; the catalog form stands alone.
     expect(screen.queryByRole('textbox', { name: en.customRoute })).toBeNull()
     expect(screen.queryByRole('tablist')).toBeNull()
-    expect(screen.getByRole('combobox', { name: en.provider })).toBeTruthy()
+    expect(screen.getByRole('button', { name: en.provider })).toBeTruthy()
   })
 
   it('forgets the catalog target when the custom form closes, so a later refresh opens no row editor', async () => {
     const { face, controller, mirror } = await mountSection()
     fireEvent.click(screen.getByRole('button', { name: en.add }))
-    expect(screen.getByRole<HTMLSelectElement>('combobox', { name: en.provider }).value).toBe('anthropic')
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: en.provider }).value).toBe('anthropic')
     fireEvent.click(screen.getByRole('tab', { name: en.addCustom }))
     fireEvent.click(within(screen.getByRole('tabpanel', { name: en.addCustom })).getByText(en.cancel))
     expect(screen.queryByRole('tablist')).toBeNull()

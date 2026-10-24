@@ -1,6 +1,6 @@
 /** Settings surface for the security-mode independent proxy and its captured traffic. */
 import { useEffect, useId, useMemo, useState } from 'react'
-import { Button, Input, Modal, StateDot, Switch, Tag, Toast, fileSizeText } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Input, Modal, Select, StateDot, Switch, Tag, Toast, fileSizeText } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
@@ -158,11 +158,9 @@ export function SecurityProxySection(props: SecurityProxySectionProps) {
     <div className={css.grid}>
       <label className={css.field}>
         <span>{t('securityProxy.protocol')}</span>
-        <select className={css.select} value={protocol} disabled={view.saving}
-          onChange={(event) => { setDraft({ ...draft, protocol: event.target.value === 'https' ? 'https' : 'http' }) }}>
-          <option value="http">{t('securityProxy.protocolHttp')}</option>
-          <option value="https">{t('securityProxy.protocolHttps')}</option>
-        </select>
+        <Select className={css.select} value={protocol} disabled={view.saving} label={t('securityProxy.protocol')}
+          onChange={(protocol) => { setDraft({ ...draft, protocol }) }}
+          options={[{ value: 'http', label: t('securityProxy.protocolHttp') }, { value: 'https', label: t('securityProxy.protocolHttps') }]} />
       </label>
       <label className={css.field}>
         <span>{t('securityProxy.host')}</span>
@@ -245,12 +243,10 @@ export function SecurityProxySection(props: SecurityProxySectionProps) {
       <div className={css.filters}>
         <Input value={view.filter.text} placeholder={t('securityProxy.capture.filter')}
           onChange={(event) => { setFilter({ text: event.target.value }) }} />
-        <select className={css.select} value={view.filter.kind} aria-label={t('securityProxy.capture.kindAll')}
-          onChange={(event) => { setFilter({ kind: event.target.value as SecurityProxyFilter['kind'] }) }}>
-          <option value="all">{t('securityProxy.capture.kindAll')}</option>
-          <option value="http">{t('securityProxy.capture.kindHttp')}</option>
-          <option value="tunnel">{t('securityProxy.capture.kindTunnel')}</option>
-        </select>
+        <Select<SecurityProxyFilter['kind']> className={css.select} value={view.filter.kind} label={t('securityProxy.capture.kindAll')}
+          onChange={(kind) => { setFilter({ kind }) }}
+          options={[{ value: 'all', label: t('securityProxy.capture.kindAll') },
+            { value: 'http', label: t('securityProxy.capture.kindHttp') }, { value: 'tunnel', label: t('securityProxy.capture.kindTunnel') }]} />
       </div>
       {view.flowsFailed ? <p role="alert" className={css.error}>{t('securityProxy.capture.failed')}</p> : null}
       {view.flows.length === 0

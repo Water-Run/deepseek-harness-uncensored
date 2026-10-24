@@ -109,7 +109,7 @@ export class SecurityEntryPermission {
    * @throws RemoteError `security-entry/session` when the challenge belongs to another conversation.
    * @throws RemoteError `security-entry/changed` when protection changed after the challenge.
    * @throws RemoteError `security-entry/wait` before the reading interval elapsed.
-   * @throws RemoteError `security-entry/declaration` for a missing or inexact declaration.
+   * @throws RemoteError `security-entry/declaration` when the NFKC-normalized statement does not match.
    */
   confirm(sessionId: SessionId, id: SecurityEntryChallengeId, declaration: string): SecurityEntryPermissionState {
     if (this.acknowledged) {
@@ -135,7 +135,7 @@ export class SecurityEntryPermission {
     if (elapsed < SECURITY_ENTRY_WAIT_MS) {
       throw new RemoteError('security-entry/wait', 'Wait for the confirmation countdown.', { remainingMs: Math.ceil(SECURITY_ENTRY_WAIT_MS - elapsed) })
     }
-    if (challenge.declaration !== '' && declaration.trim() !== challenge.declaration) {
+    if (challenge.declaration !== '' && declaration.normalize('NFKC').trim() !== challenge.declaration.normalize('NFKC')) {
       throw new RemoteError('security-entry/declaration', 'Type the declaration exactly as shown.', { declaration: challenge.declaration })
     }
     this.challenge = undefined

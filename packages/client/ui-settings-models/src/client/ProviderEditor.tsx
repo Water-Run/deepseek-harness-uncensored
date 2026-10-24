@@ -25,7 +25,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { CredentialInfo, LlmNativeAuth, SettingsNamespaceView, SettingsPathOpView } from '@deepseek-ai/dsh-api-remotes/client'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
-import { Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Select, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import {
   DeepSeekModelsEditor, modelDrafts, validateDeepSeekModels,
 } from './DeepSeekModelsEditor.tsx'
@@ -492,22 +492,15 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
               ? (
                 <div className={styles['field']}>
                   <span className={styles['fieldLabel']}>{t('customApi')}</span>
-                  <select
-                    className={`${styles['input']} ${styles['selectInput']}`}
+                  <Select
+                    className={styles['input']}
                     value={probeApi ?? ''}
-                    aria-label={t('customApi')}
+                    label={t('customApi')}
                     disabled={disabled}
-                    onChange={(event) => { setField('api', event.target.value) }}
-                  >
-                    {/* A profile naming no protocol — hand-written into
-                        cordis.patch.yml with no model to need one — selects
-                        nothing rather than reading as if it had picked the
-                        first choice. The option is named because a screen
-                        reader announces it either way, and an empty one is
-                        announced as a choice with no identity. */}
-                    {probeApi === undefined ? <option value="">{t('customApiUnset')}</option> : null}
-                    {protocols.map(choice => <option key={choice} value={choice}>{protocolLabel(t, choice)}</option>)}
-                  </select>
+                    onChange={(value) => { setField('api', value) }}
+                    options={[...(probeApi === undefined ? [{ value: '', label: t('customApiUnset') }] : []),
+                      ...protocols.map(choice => ({ value: choice, label: protocolLabel(t, choice) }))]}
+                  />
                 </div>
               )
               : null}

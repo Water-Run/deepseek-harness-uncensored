@@ -6,6 +6,7 @@
  * persisted preference, never the resolved active theme.
  */
 import clsx from 'clsx'
+import { Select } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ThemePreference } from '../theme-settings.ts'
 import { SUN_CITIES, SUN_LOCATION_AUTO, type SunLocation } from '../sun.ts'
@@ -58,14 +59,14 @@ function SunDetails({ t, useStore, setSunLocation }: Pick<AppearanceRowComponent
     <div className={css.sun}>
       <label className={css.sunField}>
         <span className={css.sunLabel}>{t('sun.location')}</span>
-        <select
+        <Select
           className={css.select}
+          label={t('sun.location')}
           value={location}
-          onChange={(event) => { setSunLocation(event.target.value as SunLocation) }}
-        >
-          <option value={SUN_LOCATION_AUTO}>{t('sun.auto')}</option>
-          {SUN_CITIES.map(city => <option key={city.id} value={city.id}>{cityName(city.id)}</option>)}
-        </select>
+          onChange={setSunLocation}
+          options={[{ value: SUN_LOCATION_AUTO, label: t('sun.auto') },
+            ...SUN_CITIES.map(city => ({ value: city.id, label: cityName(city.id) }))]}
+        />
       </label>
       <p className={css.sunEstimate} aria-live="polite">
         {estimate}

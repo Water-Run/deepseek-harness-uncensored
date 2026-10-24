@@ -13,13 +13,13 @@ function recorded(value: string | undefined, unknown: string): string {
   return value === undefined || value === '' ? unknown : value
 }
 
-function formatWhen(value: string | undefined, unknown: string): string {
+function formatWhen(value: string | undefined, unknown: string, t: AccountMenuProps['t']): string {
   const text = recorded(value, unknown)
   const time = Date.parse(text)
   if (Number.isNaN(time)) return text
   const date = new Date(time)
   const pad = (part: number) => String(part).padStart(2, '0')
-  return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())} UTC`
+  return t('aboutUtcTime', { time: `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}` })
 }
 
 function statusText(notice: ReleaseNotice, t: AccountMenuProps['t']): string {
@@ -70,16 +70,16 @@ export function AboutDialog({ t, close }: { t: AccountMenuProps['t']; close: () 
         <dl>
           <dt>{t('forkVersion')}</dt><dd>{recorded(version, t('developmentBuild'))}</dd>
           <dt>{t('upstreamVersion')}</dt><dd>{recorded(process.env.DSH_CLIENT_UPSTREAM_VERSION, t('unknownBuild'))}</dd>
-          <dt>{t('buildTime')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_BUILD_TIME, t('unknownBuild'))}</dd>
+          <dt>{t('buildTime')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_BUILD_TIME, t('unknownBuild'), t)}</dd>
         </dl>
       </section>
       <section className={css.card}>
         <h3>{t('aboutSectionSource')}</h3>
         <dl>
           <dt>{t('buildCommit')}</dt><dd>{commit === undefined ? t('unknownBuild') : <a href={`${REPOSITORY}/commit/${commit}`} target="_blank" rel="noreferrer">{commit.slice(0, 12)}</a>}{process.env.DSH_CLIENT_GIT_DIRTY === 'true' && ` · ${t('modifiedBuild')}`}</dd>
-          <dt>{t('commitDate')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_COMMIT_DATE, t('unknownBuild'))}</dd>
+          <dt>{t('commitDate')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_COMMIT_DATE, t('unknownBuild'), t)}</dd>
           <dt>{t('purgeCommit')}</dt><dd>{process.env.DSH_CLIENT_PURGE_COMMIT === undefined ? t('unknownBuild') : <a href={`https://github.com/Water-Run/dsh-purge/commit/${process.env.DSH_CLIENT_PURGE_COMMIT}`} target="_blank" rel="noreferrer">{process.env.DSH_CLIENT_PURGE_COMMIT.slice(0, 12)}</a>}</dd>
-          <dt>{t('purgeDate')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_PURGE_DATE, t('unknownBuild'))}</dd>
+          <dt>{t('purgeDate')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_PURGE_DATE, t('unknownBuild'), t)}</dd>
         </dl>
       </section>
       <section className={css.links}>

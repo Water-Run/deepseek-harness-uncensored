@@ -103,7 +103,8 @@ describe('AppearanceRow', () => {
     expect(checked(/Sunrise/)).toBe('true')
     expect(screen.getByText(/Estimated for Shanghai/)).toBeDefined()
     expect(screen.getByText(/^Sunrise .* · Sunset /)).toBeDefined()
-    fireEvent.change(screen.getByLabelText('Location'), { target: { value: 'beijing' } })
+    fireEvent.click(screen.getByLabelText('Location'))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Beijing' }))
     expect(b.setSunLocation).toHaveBeenCalledWith('beijing')
   })
 

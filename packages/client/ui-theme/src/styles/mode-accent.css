@@ -74,6 +74,12 @@ body[data-ds-dark-theme][data-dsh-mode='reverse'] { --dsh-mode-accent: var(--dsw
 body[data-ds-dark-theme][data-dsh-mode='writing'] { --dsh-mode-accent: var(--dsw-mode-writing-accent-dark); --dsh-mode-fill-hover: var(--dsw-mode-writing-press-dark); }
 
 html body[data-dsh-mode] {
+  --dsw-alias-label-deep-diving: var(--dsh-mode-accent);
+  --dsw-alias-label-deep-diving-shimmer: color-mix(in srgb, var(--dsh-mode-accent) 55%, var(--dsw-alias-label-primary));
+  --dsw-alias-link: var(--dsh-mode-accent);
+  --dsw-specific-bubble: color-mix(in srgb, var(--dsh-mode-accent) 8%, var(--dsw-alias-bg-base));
+  --dsw-specific-bubble-highlight: color-mix(in srgb, var(--dsh-mode-accent) 18%, var(--dsw-alias-bg-base));
+  --dsw-alias-bg-document-selection: color-mix(in srgb, var(--dsh-mode-accent) 35%, transparent);
   --dsw-alias-state-business-primary: var(--dsh-mode-accent);
   --dsw-alias-brand-primary-new-colorprimary-new-color: var(--dsh-mode-accent);
   --dsw-alias-button-info-fill: var(--dsh-mode-fill);

@@ -45,7 +45,7 @@ describe('Security entry controller', () => {
     controller.dispose()
   })
 
-  it('waits for the countdown, then submits the exact declaration', async () => {
+  it('waits for the countdown, then submits an equivalent-width declaration', async () => {
     const { remote, controller } = setup()
     try {
       const gate = controller.request(session)
@@ -56,8 +56,8 @@ describe('Security entry controller', () => {
 
       await vi.advanceTimersByTimeAsync(10_000)
       expect(controller.store.getSnapshot().dialog?.remaining).toBe(0)
-      await controller.confirm(DECLARATION)
-      expect(remote.confirm).toHaveBeenCalledExactlyOnceWith(challengeId, session, DECLARATION)
+      await controller.confirm(DECLARATION.replace('，', ','))
+      expect(remote.confirm).toHaveBeenCalledExactlyOnceWith(challengeId, session, DECLARATION.replace('，', ','))
       expect(await gate).toBe(true)
       expect(controller.acknowledged()).toBe(true)
       expect(controller.store.getSnapshot().dialog).toBeNull()

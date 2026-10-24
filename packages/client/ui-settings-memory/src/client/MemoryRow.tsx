@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { Button, Input, Modal, Switch } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Input, Modal, Select, Switch } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MemoryRecord, MemoryType } from '@deepseek-ai/dsh-memory/types'
 import type { MemorySettingsLocaleKey } from './locales.ts'
 import type { MemoryDraft, MemoryRowFace } from './memory-controller.ts'
@@ -29,12 +29,12 @@ const TYPE_KEYS: Record<MemoryType, MemorySettingsLocaleKey> = {
 }
 
 /** Locale key of each classification filter option. */
-const TYPE_FILTERS: readonly { value: string; label: MemorySettingsLocaleKey }[] = [
-  { value: 'all', label: 'typeAll' },
-  { value: 'preference', label: 'typePreference' },
-  { value: 'project-fact', label: 'typeProjectFact' },
-  { value: 'operation-result', label: 'typeOperationResult' },
-  { value: 'writing-setting', label: 'typeWritingSetting' },
+const TYPE_FILTERS: readonly { value: string; labelKey: MemorySettingsLocaleKey }[] = [
+  { value: 'all', labelKey: 'typeAll' },
+  { value: 'preference', labelKey: 'typePreference' },
+  { value: 'project-fact', labelKey: 'typeProjectFact' },
+  { value: 'operation-result', labelKey: 'typeOperationResult' },
+  { value: 'writing-setting', labelKey: 'typeWritingSetting' },
 ]
 
 /**
@@ -77,9 +77,11 @@ export function MemoryRow(props: MemoryRowProps) {
         onClose={() => { setManagerOpen(false) }}
         title={t('rowTitle')}
         closeLabel={t('close')}
+        className={css.dialog ?? ''}
         contentClassName={css.panel ?? ''}
       >
         <Filters props={props} />
+        <p className={css.hint}>{t('retentionHint')}</p>
         {state.description !== undefined && (
           <dl className={css.limits}>
             <div><dt>{t('limitEntries')}</dt><dd>{String(state.description.limits.maxEntries)}</dd></div>
@@ -122,29 +124,22 @@ function Filters({ props }: { props: MemoryRowProps }) {
           if (event.key === 'Enter') void props.search(text)
         }}
       />
-      <select
+      <Select
         className={css.select}
-        aria-label={t('scopeAll')}
+        label={t('scopeAll')}
         value={scope}
-        onChange={(event) => { void props.filterScope(event.target.value) }}
-      >
-        <option value="all">{t('scopeAll')}</option>
-        <option value="global">{t('scopeGlobal')}</option>
-        {(description?.workspaces ?? []).map(option => (
-          <option key={option.value} value={option.value}>{`${t('scopeWorkspace')}: ${option.label}`}</option>
-        ))}
-        {(description?.modes ?? []).map(option => (
-          <option key={option.value} value={option.value}>{`${t('scopeMode')}: ${option.label}`}</option>
-        ))}
-      </select>
-      <select
+        onChange={(value) => { void props.filterScope(value) }}
+        options={[{ value: 'all', label: t('scopeAll') }, { value: 'global', label: t('scopeGlobal') },
+          ...(description?.workspaces ?? []).map(option => ({ value: option.value, label: `${t('scopeWorkspace')}: ${option.label}` })),
+          ...(description?.modes ?? []).map(option => ({ value: option.value, label: `${t('scopeMode')}: ${option.label}` }))]}
+      />
+      <Select
         className={css.select}
-        aria-label={t('typeAll')}
+        label={t('typeAll')}
         value={type}
-        onChange={(event) => { void props.filterType(event.target.value) }}
-      >
-        {TYPE_FILTERS.map(option => <option key={option.value} value={option.value}>{t(option.label)}</option>)}
-      </select>
+        onChange={(value) => { void props.filterType(value) }}
+        options={TYPE_FILTERS.map(option => ({ value: option.value, label: t(option.labelKey) }))}
+      />
       <Button variant="primary" size="sm" onClick={() => { props.addDraft() }}>{t('add')}</Button>
     </div>
   )
@@ -229,15 +224,13 @@ function DraftForm({ props, draft, saving }: { props: MemoryRowProps; draft: Mem
       </label>
       <label className={css.field}>
         <span>{t('typeAll')}</span>
-        <select
+        <Select
           className={css.select}
+          label={t('typeAll')}
           value={draft.type}
-          onChange={(event) => { props.changeDraft({ type: event.target.value as MemoryType }) }}
-        >
-          {(Object.keys(TYPE_KEYS) as MemoryType[]).map(type => (
-            <option key={type} value={type}>{t(TYPE_KEYS[type])}</option>
-          ))}
-        </select>
+          onChange={(type) => { props.changeDraft({ type }) }}
+          options={(Object.keys(TYPE_KEYS) as MemoryType[]).map(type => ({ value: type, label: t(TYPE_KEYS[type]) }))}
+        />
       </label>
       <label className={css.field}>
         <span>{t('topicField')}</span>
@@ -257,29 +250,23 @@ function DraftForm({ props, draft, saving }: { props: MemoryRowProps; draft: Mem
         <div className={css.filters}>
           <label className={css.field}>
             <span>{t('workspace')}</span>
-            <select
+            <Select
               className={css.select}
+              label={t('workspace')}
               value={draft.workspace}
-              onChange={(event) => { props.changeDraft({ workspace: event.target.value }) }}
-            >
-              <option value="">{t('noWorkspace')}</option>
-              {(description?.workspaces ?? []).map(option => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
+              onChange={(workspace) => { props.changeDraft({ workspace }) }}
+              options={[{ value: '', label: t('noWorkspace') }, ...(description?.workspaces ?? [])]}
+            />
           </label>
           <label className={css.field}>
             <span>{t('mode')}</span>
-            <select
+            <Select
               className={css.select}
+              label={t('mode')}
               value={draft.mode}
-              onChange={(event) => { props.changeDraft({ mode: event.target.value }) }}
-            >
-              <option value="">{t('noMode')}</option>
-              {(description?.modes ?? []).map(option => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
+              onChange={(mode) => { props.changeDraft({ mode }) }}
+              options={[{ value: '', label: t('noMode') }, ...(description?.modes ?? [])]}
+            />
           </label>
         </div>
       )}

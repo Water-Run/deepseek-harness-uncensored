@@ -25,6 +25,8 @@ Choose an Agent’s tools, prompt sections and skills through declarative preset
 <a id="use-this-package"></a>
 ## Use this package
 
+Security-entry declarations compare NFKC-normalized text after trimming outer whitespace. Character width does not change acceptance; the issued statement, reading interval, conversation identity and protection revision still have to match.
+
 The public selection roster omits definitions marked `hidden`. Historical resolution and mounting still use their own compositions, so removing an old choice from the picker does not replace its tool set with another mode.
 
 ### Minimal configuration

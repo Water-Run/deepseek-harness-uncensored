@@ -7,7 +7,7 @@
  */
 
 import { useState, type ReactNode } from 'react'
-import { Button, Checkbox, Input, Modal, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Checkbox, Input, Modal, Select, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { StoryEntryView, StoryListing, StorySection } from '@deepseek-ai/dsh-api-mode-dossiers/types'
 import type { MaterialsFailure, MaterialsOperations, MaterialScope } from './contract.ts'
 import { Field, FormModal, FailureNote, ProblemNote, type Translate } from './ui.tsx'
@@ -253,14 +253,9 @@ export function WritingPanel({ operations, t, scope, listing }: WritingPanelProp
       onClose={() => { setCreating(undefined) }} onConfirm={() => { void create() }}>
       {creating === undefined ? null : <>
         <Field label={t('writing.section')}>
-          <select className={css.input} value={creating.section}
-            onChange={(event) => {
-              const section: StorySection = event.target.value === 'bible' ? 'bible' : 'style'
-              setCreating({ ...creating, section })
-            }}>
-            <option value="style">{t('writing.style')}</option>
-            <option value="bible">{t('writing.bible')}</option>
-          </select>
+          <Select<StorySection> value={creating.section} label={t('writing.section')}
+            onChange={(section) => { setCreating({ ...creating, section }) }}
+            options={[{ value: 'style', label: t('writing.style') }, { value: 'bible', label: t('writing.bible') }]} />
         </Field>
         <Field label={t('writing.name')}>
           <Input value={creating.name} autoFocus

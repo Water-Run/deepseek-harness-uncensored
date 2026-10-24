@@ -1,5 +1,6 @@
 /** Controlled configuration input shared by generated and custom forms. */
 import { useId } from 'react'
+import { Select } from './Select.tsx'
 import css from './ConfigField.module.css'
 
 /** Field state and localized controls supplied by the owning form. */
@@ -38,11 +39,9 @@ export function ConfigField(props: ConfigFieldProps) {
       {props.overridden ? <button type="button" disabled={props.disabled} onClick={props.onReset}>{props.labels.reset}</button> : null}
     </div>
     {props.choices.length > 0
-      ? <select id={id} value={props.value} disabled={props.disabled} aria-invalid={props.invalid}
-        onChange={(event) => { if (event.target.value === '') props.onReset(); else props.onChange(event.target.value) }}>
-        <option value="">{props.labels.inherited}</option>
-        {props.choices.map(choice => <option key={choice} value={choice}>{choice}</option>)}
-      </select>
+      ? <Select id={id} label={props.label} value={props.value} disabled={props.disabled} invalid={props.invalid}
+        onChange={(value) => { if (value === '') props.onReset(); else props.onChange(value) }}
+        options={[{ value: '', label: props.labels.inherited }, ...props.choices.map(choice => ({ value: choice, label: choice }))]} />
       : props.secret
         ? <input id={id} type="password" autoComplete="new-password" value={props.value} disabled={props.disabled}
           aria-invalid={props.invalid} onChange={(event) => { props.onChange(event.target.value) }} />

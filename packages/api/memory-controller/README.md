@@ -1,6 +1,6 @@
 # 记忆管理 Remote
 
-`ctx.remote.memory` 命名空间的 Host 端：管理页的读取、带版本校验的写入，以及作用域目录。读取对调用者开放；写入要求应用所有者，避免远端主体改变所有后续对话能看到的内容。
+`ctx.remote.memory` 命名空间的 Host 端：管理页的读取、带版本校验的写入，以及作用域目录。管理读写均要求应用所有者，避免委派调用者枚举其他工作区的记忆或改变后续对话上下文。模型在自身会话内按范围检索的路径不受此管理权限影响。
 
 ## 方法
 
@@ -13,7 +13,7 @@
 
 ## 错误
 
-`memory/conflict` 携带记录 ID 与两个版本；`memory/not-found` 携带请求的记录 ID；`memory/invalid` 与 `memory/unavailable` 携带原因。非所有者调用写入返回 `remote-access/denied`。
+`memory/conflict` 携带记录 ID 与两个版本；`memory/not-found` 携带请求的记录 ID；`memory/invalid` 与 `memory/unavailable` 携带原因。非所有者调用管理读写返回 `remote-access/denied`。
 
 ## Known Limitations and Deferred Work
 

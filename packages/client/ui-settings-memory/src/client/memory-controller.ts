@@ -18,6 +18,7 @@ export type MemoryErrorKey =
   | 'invalid'
   | 'unavailable'
   | 'scopeRequired'
+  | 'ownerOnly'
 
 /** One add/edit draft. Kept by the controller so it survives a remount. */
 export interface MemoryDraft {
@@ -120,6 +121,7 @@ export function createMemoryStore(): SnapshotStore<MemoryRowState> {
 
 /** Translate one Remote failure code into the row's error key. */
 function errorKeyOf(code: string): MemoryErrorKey {
+  if (code === 'remote-access/denied') return 'ownerOnly'
   if (code === 'memory/conflict') return 'conflict'
   if (code === 'memory/invalid') return 'invalid'
   if (code === 'memory/unavailable') return 'unavailable'

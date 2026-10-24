@@ -25,6 +25,8 @@ Choose the current conversation's Agent preset in Web and read what each mode do
 <a id="use-this-package"></a>
 ## Use this package
 
+The first-entry declaration appears as a muted input hint. Matching prefixes are blue and mismatches are red; confirmation compares NFKC-normalized text on both Client and Host, so full-width and half-width forms are equivalent. Different words still fail, and composition does not submit the declaration.
+
 Delayed animation callbacks cannot replace a newer conversation's accent or restore it after this plugin unloads.
 
 Settings highlights the current conversation's mode. The card body changes that selection. New conversations start in Standard; the default cannot be changed in Settings. Each card offers a read-only YAML composition viewer. A failed preset remains readable; Escape closes only the viewer and restores focus, while leaving Settings discards late reads. The Creator entry appears only when the deployment supplies `cordis` and a conversation flow.

@@ -101,18 +101,6 @@
   color: var(--dsw-alias-label-primary);
 }
 
-.declaration {
-  margin: 0;
-  padding: 10px 12px;
-  border: 0.5px solid var(--dsw-alias-border-l2);
-  border-radius: var(--dsw-radius-sm);
-  background: var(--dsw-alias-bg-layer-1);
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--dsw-alias-label-primary);
-  user-select: text;
-}
-
 .input {
   box-sizing: border-box;
   width: 100%;
@@ -129,9 +117,29 @@
   line-height: 1.6;
 }
 
-.input:focus {
-  border-color: var(--dsw-alias-state-business-primary);
+.inputFrame { position: relative; }
+.remaining {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  padding: 8px 10px;
+  border: 0.5px solid transparent;
+  pointer-events: none;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--dsw-alias-label-tertiary);
 }
+.remaining > span { visibility: hidden; }
+
+.input::placeholder { color: var(--dsw-alias-label-tertiary); opacity: 1; }
+.input:focus,
+.input[data-state='progress'] { border-color: var(--dsw-static-deepseek-500); }
+.input[data-state='progress'] { color: var(--dsw-static-deepseek-600); }
+:global(body[data-ds-dark-theme]) .input[data-state='progress'] { color: var(--dsw-static-deepseek-400); }
+.input[data-state='error'] { color: var(--dsw-alias-state-error-primary); border-color: var(--dsw-alias-state-error-primary); }
 
 .hint,
 .note {

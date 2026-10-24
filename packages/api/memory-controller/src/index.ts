@@ -67,9 +67,8 @@ function raise(error: unknown, memoryId?: MemoryId): never {
 }
 
 /**
- * Host service behind `ctx.remote.memory` (namespace `memory`). Reads are
- * open to the caller; management writes require the owner principal because
- * they change what every later conversation may be told.
+ * Host service behind `ctx.remote.memory` (namespace `memory`). Management
+ * reads and writes are owner-only because records can span private workspaces.
  */
 export class MemoryController extends TypertRemoteService {
   static inject = ['typert', 'remoteAccess', 'memory']
@@ -87,6 +86,7 @@ export class MemoryController extends TypertRemoteService {
    */
   @Remote('describe')
   describe(): MemoryDescribeValue {
+    this.assertOwner('memory/read')
     const workspaces: MemoryScopeOption[] = (this.ctx.get('workspaceRegistry')?.list() ?? []).map(workspace => ({
       value: `workspace:${workspace.id}`,
       label: workspace.title,
@@ -106,6 +106,7 @@ export class MemoryController extends TypertRemoteService {
    */
   @Remote('list')
   list(request: MemoryListRequest): MemoryListValue {
+    this.assertOwner('memory/read')
     return { records: this.ctx.memory.list(filterOf(request)) }
   }
 
@@ -178,11 +179,11 @@ export class MemoryController extends TypertRemoteService {
     }
   }
 
-  /** Management writes are owner-only; a remote principal may read but not change memory. */
-  private assertOwner(): void {
+  /** Management cannot expose records from another workspace to a delegated caller. */
+  private assertOwner(action = 'memory/write'): void {
     if (principalOf(this.ctx.invocation) !== undefined) {
-      throw new RemoteError('remote-access/denied', 'Only the application owner can change stored memory.', {
-        action: 'memory/write',
+      throw new RemoteError('remote-access/denied', 'Only the application owner can manage stored memory.', {
+        action,
         reason: 'owner-only',
       })
     }

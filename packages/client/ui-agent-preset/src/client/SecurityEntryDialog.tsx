@@ -13,7 +13,7 @@ export interface SecurityEntryDialogInjected {
     /** Dialog snapshot bound by the renderer as useSecurityEntry. */
     securityEntry: SnapshotStore<SecurityEntrySnapshot>
   }
-  /** Submit the typed declaration; the Host validates the exact text. */
+  /** Submit the typed declaration; the Host compares normalized character widths. */
   confirm(declaration: string): void
   /** Close without granting the acknowledgement. */
   cancel(): void
@@ -61,9 +61,13 @@ const ERROR_KEYS = {
 
 function SecurityEntryDialogView({ dialog, protection, confirm, cancel, retry, openSettings, t }: ViewProps) {
   const [declaration, setDeclaration] = useState('')
+  const [composing, setComposing] = useState(false)
   const challenge = dialog.challenge
   const needsDeclaration = challenge !== null && challenge.declaration !== ''
-  const matches = challenge === null || challenge.declaration === '' || declaration.trim() === challenge.declaration
+  const expected = (challenge?.declaration ?? '').normalize('NFKC')
+  const typed = declaration.normalize('NFKC').trim()
+  const matches = !needsDeclaration || typed === expected
+  const inputState = typed === '' ? 'empty' : composing || expected.startsWith(typed) ? 'progress' : 'error'
   const ready = challenge !== null && dialog.remaining === 0
   const retryable = challenge === null
   const status = protection?.state ?? 'unavailable'
@@ -83,7 +87,7 @@ function SecurityEntryDialogView({ dialog, protection, confirm, cancel, retry, o
       <Button variant="outline" disabled={dialog.busy} onClick={cancel}>{t('securityEntry.cancel')}</Button>
       {retryable
         ? <Button variant="primary" disabled={dialog.busy} onClick={retry}>{t('securityEntry.retry')}</Button>
-        : <Button variant="primary" disabled={dialog.busy || !ready || !matches}
+        : <Button variant="primary" disabled={dialog.busy || composing || !ready || !matches}
           onClick={() => { confirm(declaration) }}>
           {dialog.remaining > 0 ? t('securityEntry.countdown', { seconds: String(dialog.remaining) }) : t('securityEntry.confirm')}
         </Button>}
@@ -127,17 +131,29 @@ function SecurityEntryDialogView({ dialog, protection, confirm, cancel, retry, o
           {needsDeclaration
             ? <>
               <p className={css.declarationLabel}>{t('securityEntry.declarationLabel')}</p>
-              <p className={css.declaration}>{challenge.declaration}</p>
-              <textarea
-                className={css.input}
-                data-modal-autofocus
-                aria-label={t('securityEntry.declarationLabel')}
-                aria-describedby="security-entry-declaration-hint"
-                rows={2}
-                value={declaration}
-                onChange={(event) => { setDeclaration(event.currentTarget.value) }}
-              />
-              <p id="security-entry-declaration-hint" className={css.hint}>{t('securityEntry.declarationHint')}</p>
+              <div className={css.inputFrame}>
+                {typed !== '' && !composing && expected.startsWith(typed) && !matches
+                  ? <div className={css.remaining} aria-hidden="true"><span>{declaration}</span>{challenge.declaration.slice(typed.length)}</div>
+                  : null}
+                <textarea
+                  className={css.input}
+                  placeholder={challenge.declaration}
+                  data-state={inputState}
+                  aria-invalid={inputState === 'error' || undefined}
+                  disabled={dialog.busy}
+                  data-modal-autofocus
+                  aria-label={t('securityEntry.declarationLabel')}
+                  aria-describedby="security-entry-declaration-hint"
+                  rows={2}
+                  value={declaration}
+                  onChange={(event) => { setDeclaration(event.currentTarget.value) }}
+                  onCompositionStart={() => { setComposing(true) }}
+                  onCompositionEnd={() => { setComposing(false) }}
+                />
+              </div>
+              <p id="security-entry-declaration-hint" className={inputState === 'error' ? css.error : css.hint}>
+                {t(inputState === 'error' ? 'securityEntry.error.declaration' : 'securityEntry.declarationHint')}
+              </p>
             </>
             : <p className={css.note}>{t('securityEntry.noDeclaration')}</p>}
         </div>}

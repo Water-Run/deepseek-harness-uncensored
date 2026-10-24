@@ -15,7 +15,7 @@ interface RunningStatusProps {
 /**
  * Show live elapsed time after the current Turn's content without announcing ticks.
  * @param props - Current Turn start time and localized copy.
- * @returns the blue running indicator; mount only while the Session is running.
+ * @returns the mode-accented running indicator; mount only while the Session is running.
  */
 export const RunningStatus = memo(function RunningStatus({ startTime, t }: RunningStatusProps) {
   const [now, setNow] = useState(Date.now)

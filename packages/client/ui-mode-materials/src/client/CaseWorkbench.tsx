@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Button, Input, Modal, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Input, Modal, Select, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
   CaseCollection,
   CaseCollectionView,
@@ -462,13 +462,10 @@ export function CaseWorkbench(props: CaseWorkbenchProps): ReactNode {
         const label = t(`field.${name}`)
         if (name === 'severity') {
           return <Field key={name} label={label}>
-            <select className={css.input} value={editor.fields[name] ?? 'info'}
-              onChange={(event) => {
-                const value = event.target.value
+            <Select value={editor.fields[name] ?? 'info'} label={label}
+              onChange={(value) => {
                 setEditor(current => current === undefined ? current : { ...current, fields: { ...current.fields, [name]: value } })
-              }}>
-              {SEVERITIES.map(severity => <option key={severity} value={severity}>{severity}</option>)}
-            </select>
+              }} options={SEVERITIES.map(severity => ({ value: severity, label: severity }))} />
           </Field>
         }
         const value = editor.fields[name] ?? ''
