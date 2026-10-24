@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -10,6 +10,7 @@ import * as credentials from '@deepseek-ai/dsh-credentials-local'
 import { Session, SESSION_FORMAT_VERSION, SessionId } from '@deepseek-ai/dsh-session'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { PeerId, RemoteInvocation } from '@deepseek-ai/dsh-typert-protocol'
+import type {} from '@deepseek-ai/dsh-security-proxy'
 import * as securityProxy from '../src/index.ts'
 import { startLocalProxy, startLocalTarget, startTcpEcho, type LocalProxy, type LocalTarget, type LocalTcpTarget } from './support/local-proxy.ts'
 
@@ -143,5 +144,35 @@ describe('security proxy composition', () => {
     expect(instance.securityProxy.route(subject('sess-a'), 'bash')).toBeUndefined()
     expect(instance.securityProxy.route(subject('sess-a'), 'bash')).toBeUndefined()
     expect(seen).toEqual(['sess-a'])
+  })
+
+  it('keeps the proxy password in the credential store only', async () => {
+    const instance = await boot()
+    await instance.securityProxy.configure({ authEnabled: true, username: 'ops' })
+    await instance.securityProxy.setPassword('top-secret')
+    expect((await instance.securityProxy.get()).settings.hasPassword).toBe(true)
+    const settingsText = await readFile(join(root ?? tmpdir(), 'security-proxy.json'), 'utf8')
+    expect(settingsText).not.toContain('top-secret')
+    const credentialsText = await readFile(join(root ?? tmpdir(), 'credentials.yaml'), 'utf8')
+    expect(credentialsText).toContain('DSH_SECURITY_PROXY_PASSWORD')
+    expect(credentialsText).toContain('top-secret')
+    await instance.securityProxy.setPassword(null)
+    expect((await instance.securityProxy.get()).settings.hasPassword).toBe(false)
+  })
+
+  it('keeps a configured address across a restart and never reports ready after a failed check', async () => {
+    const instance = await boot()
+    if (upstream === undefined) throw new Error('fixtures missing')
+    await instance.securityProxy.configure({ enabled: true, protocol: 'http', host: '127.0.0.1', port: upstream.port })
+    expect((await instance.securityProxy.get()).status).toBe('ready')
+    await instance.fiber.dispose()
+    ctx = undefined
+    const restarted = await boot()
+    const state = await restarted.securityProxy.get()
+    expect(state.settings).toMatchObject({ enabled: true, host: '127.0.0.1', port: upstream.port })
+    await upstream.close()
+    const failed = await restarted.securityProxy.test()
+    expect(failed.ok).toBe(false)
+    expect((await restarted.securityProxy.get()).status).toBe('failed')
   })
 })

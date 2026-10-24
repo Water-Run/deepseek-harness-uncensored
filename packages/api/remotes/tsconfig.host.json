@@ -94,6 +94,12 @@
     },
     {
       "path": "../../credentials/balance"
+    },
+    {
+      "path": "../../guard/security-proxy"
+    },
+    {
+      "path": "../../guard/security-proxy-local"
     }
   ]
 }

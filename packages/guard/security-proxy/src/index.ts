@@ -18,6 +18,15 @@ import { Context, Service } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WebFetchResult } from '@deepseek-ai/dsh-web'
+import type {
+  SecurityProxyCaptureStats,
+  SecurityProxyFlowDetail,
+  SecurityProxyFlowQuery,
+  SecurityProxyFlowsResult,
+  SecurityProxySettingsPatch,
+  SecurityProxyState,
+  SecurityProxyTestResult,
+} from './types.ts'
 
 export type * from './types.ts'
 
@@ -71,7 +80,7 @@ export abstract class SecurityProxyRuntime extends Service {
    * @param tool - the model-facing tool name, used for traffic attribution.
    * @returns the overlay for one spawn, or `undefined` when not covered.
    */
-  abstract environment(agent: Agent | undefined, tool: string): Readonly<Record<string, string>> | undefined
+  abstract environment(agent: Agent | undefined, tool: string): Promise<Readonly<Record<string, string>> | undefined>
 
   /**
    * Retrieve one HTTP(S) target through the configured upstream, recording the
@@ -84,6 +93,59 @@ export abstract class SecurityProxyRuntime extends Service {
    * @throws {@link import('@deepseek-ai/dsh-web').WebError} when not covered or retrieval fails.
    */
   abstract fetchTarget(agent: Agent | undefined, url: string, signal: AbortSignal): Promise<WebFetchResult>
+
+  /**
+   * Read the settings and status the surface renders.
+   * @returns current state.
+   */
+  abstract get(): Promise<SecurityProxyState>
+
+  /**
+   * Merge one settings change; the provider persists it before resolving.
+   * @param patch - owner-edited fields.
+   * @returns state after the write.
+   */
+  abstract configure(patch: SecurityProxySettingsPatch): Promise<SecurityProxyState>
+
+  /**
+   * Store or remove the upstream password in the credential provider.
+   * @param password - the new secret, or null to remove the record.
+   * @returns state after the write.
+   */
+  abstract setPassword(password: string | null): Promise<SecurityProxyState>
+
+  /**
+   * Run one real proxy-path check and publish its result.
+   * @returns the check outcome and the state after it.
+   */
+  abstract test(): Promise<SecurityProxyTestResult>
+
+  /**
+   * List retained flows, newest first.
+   * @param query - optional session, kind, text, and limit filters.
+   * @returns matching rows and the capture counters.
+   */
+  abstract list(query: SecurityProxyFlowQuery): Promise<SecurityProxyFlowsResult>
+
+  /**
+   * Read one flow's stored detail.
+   * @param id - flow identity.
+   * @returns the detail, or null when pruned or unknown.
+   */
+  abstract detail(id: string): Promise<SecurityProxyFlowDetail | null>
+
+  /**
+   * Drop every retained flow.
+   * @returns the capture counters after clearing.
+   */
+  abstract clear(): Promise<SecurityProxyCaptureStats>
+
+  /**
+   * Pause or resume capture without changing routing.
+   * @param paused - whether new flows are refused.
+   * @returns state after the change.
+   */
+  abstract pause(paused: boolean): Promise<SecurityProxyState>
 }
 
 export default SecurityProxyRuntime
