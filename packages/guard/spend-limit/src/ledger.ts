@@ -4,7 +4,7 @@ import { mkdir, open } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { z } from 'zod'
-import type { SpendPeriod, SpendPreferences, SpendReservationId, SpendSnapshot } from './types.ts'
+import type { SpendPausedSession, SpendPeriod, SpendPreferences, SpendReservationId, SpendSnapshot } from './types.ts'
 
 /** Integer micro-CNY keeps parallel reservation arithmetic exact. */
 export const MICRO_CNY = 1_000_000
@@ -19,6 +19,7 @@ const amount = z.number().finite().min(0.000001).max(1_000_000)
 export const preferencesSchema = z.object({ enabled: z.boolean(), autoResume: z.boolean(), limits: z.object({ '15m': amount, '1h': amount, '5h': amount, '1d': amount, '7d': amount, '30d': amount }) })
 const settingsSchema = z.object({ preferences: preferencesSchema, paused: z.boolean() })
 const entrySchema = z.object({ id: z.string(), owner: z.string(), pid: z.number().int(), time: z.number().int(), reserved: z.number().int().nonnegative(), cost: z.number().int().nonnegative().nullable(), state: z.enum(['pending', 'settled', 'uncertain']) })
+const pauseSchema = z.object({ session_id: z.string().min(1), state: z.enum(['waiting', 'blocked']), pid: z.number().int(), updated_at: z.number().int() })
 type Entry = z.infer<typeof entrySchema>
 type Settings = z.infer<typeof settingsSchema>
 /** Admission result; a waiting result has no network or reservation side effects. */
@@ -64,6 +65,7 @@ export class SpendLedger {
         db.exec('CREATE TABLE IF NOT EXISTS preferences (id INTEGER PRIMARY KEY CHECK(id = 1), value TEXT NOT NULL) STRICT')
         db.exec("CREATE TABLE IF NOT EXISTS charges (id TEXT PRIMARY KEY, owner TEXT NOT NULL, pid INTEGER NOT NULL, time INTEGER NOT NULL, reserved INTEGER NOT NULL CHECK(reserved >= 0), cost INTEGER, state TEXT NOT NULL CHECK(state IN ('pending', 'settled', 'uncertain'))) STRICT")
         db.exec('CREATE INDEX IF NOT EXISTS charges_time ON charges(time)')
+        db.exec("CREATE TABLE IF NOT EXISTS session_pauses (session_id TEXT PRIMARY KEY, state TEXT NOT NULL CHECK(state IN ('waiting', 'blocked')), pid INTEGER NOT NULL, updated_at INTEGER NOT NULL) STRICT")
         db.prepare('INSERT OR IGNORE INTO preferences VALUES (1, ?)').run(JSON.stringify({ preferences: DEFAULT_PREFERENCES, paused: false }))
         ledger.settings()
         db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`)
@@ -99,6 +101,17 @@ export class SpendLedger {
     return entries
   }
 
+  private pauses(time: number): SpendPausedSession[] {
+    const rows = z.array(pauseSchema).parse(this.db.prepare('SELECT session_id, state, pid, updated_at FROM session_pauses').all())
+    return rows.map((row) => {
+      if (row.state === 'waiting' && !this.isAlive(row.pid)) {
+        this.db.prepare("UPDATE session_pauses SET state = 'blocked', updated_at = ? WHERE session_id = ?").run(time, row.session_id)
+        return { sessionId: row.session_id, state: 'blocked' as const }
+      }
+      return { sessionId: row.session_id, state: row.state }
+    }).sort((left, right) => left.sessionId < right.sessionId ? -1 : left.sessionId > right.sessionId ? 1 : 0)
+  }
+
   private snapshotAt(time: number, settings: Settings, entries: Entry[], waiting: number): SpendSnapshot {
     let nextExpiry: number | null = null
     const windows = (Object.entries(SPEND_PERIODS) as [SpendPeriod, number][]).map(([period, duration]) => {
@@ -115,7 +128,7 @@ export class SpendLedger {
       return { period, limit, spent: spent / MICRO_CNY, reserved: reserved / MICRO_CNY, uncertain: uncertain / MICRO_CNY,
         remaining: Math.max(0, Math.round(limit * MICRO_CNY) - spent - reserved) / MICRO_CNY }
     })
-    return { preferences: settings.preferences, paused: settings.paused, windows, pending: entries.filter(entry => entry.state === 'pending').length, waiting, nextExpiry, updatedAt: time }
+    return { preferences: settings.preferences, paused: settings.paused, windows, pending: entries.filter(entry => entry.state === 'pending').length, waiting, pausedSessions: this.pauses(time), nextExpiry, updatedAt: time }
   }
 
   /**
@@ -179,6 +192,46 @@ export class SpendLedger {
       this.writeSettings({ preferences, paused: preferences.enabled && !preferences.autoResume ? current.paused : false })
     })
     return this.snapshot()
+  }
+
+  /**
+   * Record that one conversation is waiting in this process or blocked after that process died.
+   * @param sessionId - Conversation that must continue when capacity returns.
+   * @param state - `waiting` while this process can still finish the original request.
+   */
+  noteSession(sessionId: string, state: 'waiting' | 'blocked'): void {
+    if (sessionId.length === 0) throw new Error('spend-limit: session id is required')
+    this.transaction(() => {
+      this.db.prepare(`INSERT INTO session_pauses (session_id, state, pid, updated_at) VALUES (?, ?, ?, ?)
+        ON CONFLICT(session_id) DO UPDATE SET state = excluded.state, pid = excluded.pid, updated_at = excluded.updated_at`)
+        .run(sessionId, state, process.pid, this.now())
+    })
+  }
+
+  /**
+   * Drop a conversation pause after admission, cancellation, or deletion.
+   * @param sessionId - Conversation that no longer needs continuation.
+   */
+  clearSession(sessionId: string): void {
+    this.transaction(() => { this.db.prepare('DELETE FROM session_pauses WHERE session_id = ?').run(sessionId) })
+  }
+
+  /**
+   * Take conversations a dead process left blocked, once a new request can be admitted.
+   * A live process's waiting row is left alone. The caller restores a row if continuation fails.
+   * @returns Session ids removed from the blocked set.
+   */
+  claimBlockedSessions(): string[] {
+    return this.transaction(() => {
+      const settings = this.settings()
+      if (settings.paused) return []
+      const time = this.now()
+      const snapshot = this.snapshotAt(time, settings, this.entries(time), 0)
+      if (settings.preferences.enabled && snapshot.windows.some(window => window.remaining <= 0)) return []
+      const blocked = snapshot.pausedSessions.filter(session => session.state === 'blocked').map(session => session.sessionId)
+      for (const sessionId of blocked) this.db.prepare('DELETE FROM session_pauses WHERE session_id = ? AND state = ?').run(sessionId, 'blocked')
+      return blocked
+    })
   }
 
   /** Clear the manual pause without bypassing any remaining window limit. */

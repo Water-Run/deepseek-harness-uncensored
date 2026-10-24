@@ -91,6 +91,13 @@ export interface ISession {
     requestId?: SessionRequestId,
   ): Promise<RemoteResult<{ accepted: true }>>
   /**
+   * Ask for a composer suffix. An empty string means nothing should be shown.
+   * @param draft - Unsent composer text.
+   * @param signal - Cancellation when the draft changes.
+   * @returns The suggestion, or an empty string when prediction is unavailable.
+   */
+  predict(draft: string, signal: AbortSignal): Promise<string>
+  /**
    * Resolve one durable image referenced by this session.
    * @param attachmentId - opaque id found in the folded session log.
    * @returns the authenticated reference and decoded bytes.

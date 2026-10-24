@@ -17,13 +17,14 @@ import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import {
   HoverCard, IconArchiveOutlineRegular, IconEditOutlineRegular,
   IconEllipsisOutlineRegular, IconFolderCloseRegular, IconFolderOpenRegular,
-  IconNewChatOutlineRegular, IconPinFillRegular, IconTrashOutlineRegular,
+  IconNewChatOutlineRegular, IconPinFillRegular, IconPlayOutlineRegular, IconTrashOutlineRegular,
   IconTriangleRightFillRegular, IconUnarchiveOutlineRegular, Menu, relativeTime, StateDot, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ShortcutCatalogEntry } from '@deepseek-ai/dsh-client-shortcuts/client'
 import type { StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
 import { abbreviateHomePath } from '@deepseek-ai/dsh-util-workspace-path'
 import type { MenuOpenState, WorkspaceBrowserProps } from '../contract/slots.ts'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { GroupNode, SearchResultNode, SessionNode } from '../tree.ts'
 import css from './Rows.module.css'
 
@@ -216,12 +217,16 @@ function rowHalf(e: { clientY: number; currentTarget: HTMLElement }): 'before' |
  * @param props.t - the browser root's locale seat.
  * @returns the row element.
  */
-export function ProjectRowItem({ group, containsCurrentDescendant = false, onToggle, onCreate, actions, drag, home, newShortcut, t }: {
+export function ProjectRowItem({
+  group, containsCurrentDescendant = false, onToggle, onCreate, onOpenRunning, actions, drag, home, newShortcut, t,
+}: {
   group: GroupNode
   newShortcut?: ShortcutCatalogEntry | undefined
   containsCurrentDescendant?: boolean
   onToggle: () => void
   onCreate: () => void
+  /** Open the group's running conversation without toggling the folder. */
+  onOpenRunning?: ((sessionId: SessionId) => void) | undefined
   /** Real-Workspace actions; absent for the ungrouped bucket (no menu shown). */
   actions?: { rename: () => void; delete: () => void } | undefined
   /** Present only for real Workspace rows in the grouped view. */
@@ -266,6 +271,22 @@ export function ProjectRowItem({ group, containsCurrentDescendant = false, onTog
         <span className={css.title}>{label}</span>
       </span>
       <span className={css.rowActions}>
+        {group.runningSessionId !== undefined && onOpenRunning !== undefined && (
+          <Tooltip label={t('actions.openRunning')} side="bottom" align="end" delayMs={500} portal>
+            <button
+              type="button"
+              className={css.iconButton}
+              aria-label={t('actions.openRunning.aria', { name: label })}
+              onClick={(e) => {
+                e.stopPropagation()
+                const runningSessionId = group.runningSessionId
+                if (runningSessionId !== undefined) onOpenRunning(runningSessionId)
+              }}
+            >
+              <IconPlayOutlineRegular />
+            </button>
+          </Tooltip>
+        )}
         {actions !== undefined && (
           <Menu
             open={menuOpen}

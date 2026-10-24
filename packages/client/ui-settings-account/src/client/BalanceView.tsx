@@ -8,8 +8,10 @@ import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { BalancePreferences, BalanceSnapshot, BalanceWallet } from '@deepseek-ai/dsh-balance/types'
 import type { BalanceController, BalanceViewState } from './balance-controller.ts'
+import { balanceChart } from './balance-chart.ts'
 import { balancePeriod } from './balance-hours.ts'
 import { formatBalance } from './formatBalance.ts'
+import { RollingAmount } from './RollingAmount.tsx'
 import css from './BalanceView.module.css'
 
 /** Shared data and callbacks supplied by the account plugin. */
@@ -26,7 +28,7 @@ type BalanceSidebarProps = PropsRuntime<'sidebar.footer.action'> & SharedProps
 function amount(value: string, currency: BalanceWallet['currency']): string { return formatBalance(value, currency === 'CNY' ? '¥' : '$') }
 function total(wallet: BalanceWallet): Big { return new Big(wallet.toppedUp).plus(wallet.granted) }
 
-function BalanceDetails({ data, t }: { data: BalanceSnapshot | undefined; t: SharedProps['t'] }) {
+function BalanceDetails({ data, refreshing = false, t }: { data: BalanceSnapshot | undefined; refreshing?: boolean; t: SharedProps['t'] }) {
   const [selected, select] = useState<BalanceWallet['currency']>('CNY')
   const latest = data?.samples.at(-1)
   const currency = latest?.wallets.some(wallet => wallet.currency === selected) ? selected : latest?.wallets[0]?.currency ?? 'CNY'
@@ -39,27 +41,23 @@ function BalanceDetails({ data, t }: { data: BalanceSnapshot | undefined; t: Sha
     const entry = sample.wallets.find(value => value.currency === currency)
     return entry === undefined ? [] : [{ time: sample.time, value: total(entry).toNumber() }]
   })
-  const values = samples.map(sample => sample.value)
-  const low = Math.min(...values), high = Math.max(...values)
-  const start = samples[0]?.time ?? latest.time
-  const end = latest.time
-  const points = samples.map((sample, index) => {
-    const x = end === start ? 12 + index * 276 / Math.max(1, samples.length - 1) : 12 + (sample.time - start) * 276 / (end - start)
-    const y = high === low ? 55 : 98 - (sample.value - low) * 86 / (high - low)
-    return `${x},${y}`
-  }).join(' ')
+  const geometry = balanceChart(samples)
   const first = data.samples.find(sample => sample.wallets.some(entry => entry.currency === currency))
     ?.wallets.find(entry => entry.currency === currency)
   return <div className={css.details}>
     {latest.wallets.length > 1 && <div className={css.currencies}>{latest.wallets.map(entry => <Button key={entry.currency} size="sm" aria-pressed={entry.currency === currency} onClick={() => { select(entry.currency) }}>{entry.currency}</Button>)}</div>}
     <div className={css.wallets}>
-      {new Big(wallet.granted).gt(0) && <div><span>{t('bonusBalance')}</span><strong>{amount(wallet.granted, currency)}</strong></div>}
-      <div><span>{t('balance')}</span><strong>{amount(wallet.toppedUp, currency)}</strong></div>
+      {new Big(wallet.granted).gt(0) && <div><span>{t('bonusBalance')}</span><strong><RollingAmount text={amount(wallet.granted, currency)} /></strong></div>}
+      <div><span>{t('balance')}</span><strong><RollingAmount text={amount(wallet.toppedUp, currency)} /></strong></div>
     </div>
-    {samples.length > 1 ? <svg className={css.chart} viewBox="0 0 300 110" role="img" aria-label={t('balance.curve')}>
+    {refreshing && <p role="status" className={css.hint}>{t('balance.refreshing')}</p>}
+    {geometry.kind === 'empty' && <p className={css.hint}>{t('balance.collecting')}</p>}
+    {geometry.kind !== 'empty' && <svg className={css.chart} viewBox="0 0 300 110" role="img" aria-label={t('balance.curve')}>
       <path d="M12 98H288" className={css.axis} />
-      <polyline points={points} className={css.line} />
-    </svg> : <p className={css.hint}>{t('balance.collecting')}</p>}
+      {geometry.kind === 'series' && <polyline points={geometry.points} className={css.line} />}
+      {geometry.kind === 'single' && geometry.dot !== undefined && <circle cx={geometry.dot.x} cy={geometry.dot.y} r="3.5" className={css.point} />}
+    </svg>}
+    {geometry.kind === 'single' && <p className={css.hint}>{t('balance.single')}</p>}
     <dl className={css.stats}>
       <dt>{t('balance.total')}</dt><dd>{amount(total(wallet).toString(), currency)}</dd>
       <dt>{t('balance.change')}</dt><dd>{amount(total(wallet).minus(first === undefined ? total(wallet) : total(first)).toString(), currency)}</dd>
@@ -93,7 +91,7 @@ export function BalanceSettings({ useBalance, useBalancePreferences, refresh, sa
       <p className={css.hint}>{t(preferences.source === 'api' ? 'balance.apiHint' : 'balance.localHint')}</p>
       <div className={css.row}><span>{t('balance.current')}</span><Button variant="outline" size="sm" disabled={state.loading || !preferences.enabled} onClick={refresh}>{t('balance.refresh')}</Button></div>
       {state.failed && <p role="alert" className={css.hint}>{t('balance.failed')}</p>}
-      <BalanceDetails data={state.data} t={t} />
+      <BalanceDetails data={state.data} refreshing={state.loading && state.data !== undefined} t={t} />
     </div>
     <a href="https://api-docs.deepseek.com/quick_start/pricing/" target="_blank" rel="noreferrer">{t('balance.pricing')}</a>
   </section>
@@ -111,9 +109,9 @@ export function BalanceSidebar({ wide, useBalance, useBalancePreferences, refres
       <HoverCard inline anchor={<button type="button" onClick={refresh} className={css.summary} data-period={period}
         aria-label={t('balance.title')} aria-busy={state.loading}>
         {wide ? <><span className={css.period}>{t(period === 'peak' ? 'balance.peak' : period === 'valley' ? 'balance.valley' : 'balance.unknownPeriod')}</span>
-          <div className={css.wallets}>{new Big(wallet.granted).gt(0) && <div><span>{t('bonusBalance')}</span><strong>{amount(wallet.granted, wallet.currency)}</strong></div>}<div><span>{t('balance')}</span><strong>{amount(wallet.toppedUp, wallet.currency)}</strong></div></div></>
+          <div className={css.wallets}>{new Big(wallet.granted).gt(0) && <div><span>{t('bonusBalance')}</span><strong><RollingAmount text={amount(wallet.granted, wallet.currency)} /></strong></div>}<div><span>{t('balance')}</span><strong><RollingAmount text={amount(wallet.toppedUp, wallet.currency)} /></strong></div></div></>
           : <strong>{wallet.currency === 'CNY' ? '¥' : '$'}</strong>}
-      </button>} content={<div className={css.hover}>{state.failed && <p role="status">{t('balance.failed')}</p>}<BalanceDetails data={state.data} t={t} /><p className={css.hint}>{t('balance.hours')}</p></div>} />
+      </button>} content={<div className={css.hover}>{state.failed && <p role="alert">{t('balance.failed')}</p>}<BalanceDetails data={state.data} refreshing={state.loading} t={t} /><p className={css.hint}>{t('balance.hours')}</p></div>} />
     </div>}
   </>
 }

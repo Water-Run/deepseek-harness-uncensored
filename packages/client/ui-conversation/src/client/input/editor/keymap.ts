@@ -42,6 +42,8 @@ export interface ComposerKeymapHandlers {
   intakeFiles(files: readonly File[], directories?: ReadonlySet<File>): void
   /** Pasted plain text (sanitized insertion through the shell). */
   pasteText(text: string): void
+  /** Accept gray prediction text. Absent or false leaves Tab to normal focus movement. */
+  acceptPrediction?(): boolean
 }
 
 /** Composition state a keydown can trust (see the module doc's Safari note). */
@@ -110,7 +112,15 @@ export function registerComposerKeymap(editor: LexicalEditor, handlers: Composer
     // consuming the draft.
     editor.registerCommand(
       KEY_TAB_COMMAND,
-      event => arrow(event.shiftKey ? 'tabBack' : 'tab')(event),
+      (event) => {
+        if (event.shiftKey) return arrow('tabBack')(event)
+        if (arrow('tab')(event)) return true
+        if (handlers.acceptPrediction?.() === true) {
+          event.preventDefault()
+          return true
+        }
+        return false
+      },
       COMMAND_PRIORITY_CRITICAL,
     ),
     editor.registerCommand(KEY_ESCAPE_COMMAND, (event) => {

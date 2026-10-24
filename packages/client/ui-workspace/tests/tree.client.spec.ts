@@ -532,6 +532,27 @@ describe('deriveGroups', () => {
     ])
   })
 
+  it('points a folded project at its newest running conversation', () => {
+    const older = { ...summary('older', 10), running: true }
+    const newer = { ...summary('newer', 20), running: true }
+    const current = { ...summary('current', 30), running: true }
+    const archivedRunning = { ...summary('archived', 40), running: true }
+    const idle = summary('idle', 50)
+    const sessions = withMain(list(older, newer, current, archivedRunning, idle), current.id)
+    const groups = deriveGroups(
+      sessions,
+      [workspace('project', ['older', 'newer', 'current', 'archived', 'idle'])],
+      rowState({ archived: ['archived'] }),
+      noAttention,
+      view(),
+    )
+    expect(groups[0]!.expanded).toBe(false)
+    expect(groups[0]!.sessions).toEqual([])
+    expect(groups[0]!.runningSessionId).toBe(newer.id)
+    const open = deriveGroups(sessions, [workspace('project', ['current'])], noRows, noAttention, view())
+    expect(open[0]!.runningSessionId).toBeUndefined()
+  })
+
   it('marks selected Workspace and Ungrouped sessions without relying on an Intent', () => {
     const owned = summary('owned', 1)
     const loose = summary('loose', 2)

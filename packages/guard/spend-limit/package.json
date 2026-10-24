@@ -47,7 +47,10 @@
   "license": "GPL-3.0-or-later",
   "dependencies": {
     "@deepseek-ai/schemastery": "workspace:~",
+    "@deepseek-ai/dsh-agent": "workspace:*",
+    "@deepseek-ai/dsh-brand": "workspace:*",
     "@deepseek-ai/dsh-llm": "workspace:*",
+    "@deepseek-ai/dsh-session": "workspace:*",
     "@deepseek-ai/dsh-typert-protocol": "workspace:*",
     "zod": "4.4.3"
   },

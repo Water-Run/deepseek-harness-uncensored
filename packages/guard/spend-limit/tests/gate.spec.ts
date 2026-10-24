@@ -1,4 +1,8 @@
 import { afterEach, expect, it, vi } from 'vitest'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { brandString } from '@deepseek-ai/dsh-brand'
 import { SpendGate } from '../src/gate.ts'
 import { SpendLedger, DEFAULT_PREFERENCES } from '../src/ledger.ts'
 import { DEFAULT_RATES, reserveCost, usageCost } from '../src/pricing.ts'
@@ -107,6 +111,41 @@ it('disposal cancels waiting calls and drains an already-dispatched request', as
   expect(await running).toBe(true)
   await closing
   expect(closed).toBe(true)
+})
+
+it('clears a cancelled conversation and blocks it when the process shuts down', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'dshu-spending-gate-'))
+  const path = join(directory, 'budget.sqlite')
+  const ledger = await SpendLedger.open(path)
+  ledger.configure({ ...DEFAULT_PREFERENCES, enabled: true, autoResume: true })
+  const gate = new SpendGate(ledger, DEFAULT_RATES, 1)
+  const sessionId = brandString<'SessionId'>('paused-conversation')
+  try {
+    const admitted = ledger.reserve(4_000_000)
+    if (admitted.kind !== 'reserved') throw new Error(admitted.kind)
+    const controller = new AbortController()
+    const send = vi.fn(success)
+    const cancelled = consume(gate.stream({ ...request(controller.signal), sessionId }, send))
+    await vi.waitFor(() => { expect(ledger.snapshot().pausedSessions).toEqual([{ sessionId, state: 'waiting' }]) })
+    controller.abort()
+    await expect(cancelled).rejects.toThrow()
+    expect(send).not.toHaveBeenCalled()
+    expect(ledger.snapshot().pausedSessions).toEqual([])
+    ledger.settle(admitted.id, 0)
+    const held = ledger.reserve(4_000_000)
+    if (held.kind !== 'reserved') throw new Error(held.kind)
+    const stopping = consume(gate.stream({ ...request(), sessionId }, vi.fn(success)))
+    await vi.waitFor(() => { expect(ledger.snapshot().pausedSessions).toEqual([{ sessionId, state: 'waiting' }]) })
+    await expect(gate.close()).resolves.toBeUndefined()
+    await expect(stopping).rejects.toThrow()
+    const restored = await SpendLedger.open(path)
+    expect(restored.snapshot().pausedSessions).toEqual([{ sessionId, state: 'blocked' }])
+    restored.close()
+  } finally {
+    await rm(directory, { recursive: true, force: true }).catch((error: unknown) => {
+      if ((error as NodeJS.ErrnoException).code !== 'EBUSY') throw error
+    })
+  }
 })
 
 it('prices a full-context reservation and disjoint cached counters', () => {

@@ -317,6 +317,24 @@ export class Session implements SessionFace {
   }
 
   /**
+   * Ask for one composer suffix without sending it.
+   * @param draft - Unsent composer text.
+   * @param signal - Cancellation for a newer draft.
+   * @returns The logged suggestion, or an empty string.
+   */
+  async predict(draft: string, signal: AbortSignal): Promise<string> {
+    const remote = this.remote.session as typeof this.remote.session & {
+      predict?: (
+        request: { sessionId: SessionId; draft: string; revision: number },
+        signal?: AbortSignal,
+      ) => Promise<RemoteResult<{ revision: number; suggestion: string }>>
+    }
+    if (remote.predict === undefined || this.deleted) return ''
+    const result = await remote.predict({ sessionId: this.sessionId, draft, revision: 1 }, signal)
+    return result.ok ? result.value.suggestion : ''
+  }
+
+  /**
    * Resolve one image referenced by this session into browser-consumable bytes.
    * @param attachmentId - opaque id found in the folded session log.
    * @returns the authenticated reference and decoded bytes.

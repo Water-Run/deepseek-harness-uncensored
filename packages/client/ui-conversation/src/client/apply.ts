@@ -546,6 +546,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
             })
           },
         stop: () => { stop(sessionId) },
+        predictDraft: (draft, signal) => sessions.binding(sessionId)?.session.predict(draft, signal) ?? Promise.resolve(''),
         hooks: {
           stopShortcut,
           busyEnter: submissionPolicy.busyEnter,

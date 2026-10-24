@@ -570,6 +570,7 @@ function SessionTree({
               startSession(group.workspaceId)
             }
           }}
+          onOpenRunning={guardedOpen}
           drag={workspaceDragProps}
           actions={group.workspaceId === undefined
             ? undefined

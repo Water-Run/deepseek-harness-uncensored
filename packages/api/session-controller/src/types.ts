@@ -682,3 +682,16 @@ export type SessionProjectionValue = JsonValue
 
 /** Application metadata returned by the serving desktop for one file. */
 export type SessionWorkspacePathApplication = NativeFileApplication
+
+/** One composer prediction. The revision lets a late reply be ignored. */
+export interface SessionPredictionRequest {
+  readonly sessionId: SessionId
+  readonly draft: string
+  readonly revision: number
+}
+
+/** Suggestion for the revision that was requested. An empty suggestion clears the ghost text. */
+export interface SessionPredictionValue {
+  readonly revision: number
+  readonly suggestion: string
+}

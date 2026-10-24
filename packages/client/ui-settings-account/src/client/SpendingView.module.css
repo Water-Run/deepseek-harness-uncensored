@@ -16,6 +16,7 @@
 .status, .confirm { padding: 12px; border-radius: var(--dsw-radius-md); background: var(--dsw-alias-bg-layer-2); }
 .status[data-paused='true'], .sidebar { background: color-mix(in srgb, var(--dsw-brand-yellow) 12%, transparent); }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.reset { border-color: var(--dsw-alias-border-l2); background: var(--dsw-alias-bg-layer-1); box-shadow: none; }
 .sidebar { padding: 8px; margin-bottom: 8px; border-radius: var(--dsw-radius-md); font-size: 12px; line-height: 1.6; color: var(--dsw-alias-label-primary); }
 .spinner { justify-self: center; margin: 40px; }
 @media (prefers-reduced-motion: reduce) { .spent, .reserved { transition: none; } }

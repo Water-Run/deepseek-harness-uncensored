@@ -19,6 +19,7 @@ interface DraftViewGate {
   showToast: (text: string) => void
   t: ComposerBarProps['t']
   canAcceptDrop: boolean
+  acceptPrediction?: () => boolean
 }
 
 /**
@@ -137,6 +138,7 @@ export function installDraftKeymap(
       ), 'enter')
     },
     intakeFiles: (files, directories) => { gate.current.intakeFiles(files, directories) },
+    acceptPrediction: () => gate.current.acceptPrediction?.() === true,
     pasteText: (text) => {
       if (gate.current.machineBusy || gate.current.locked) return
       keyboard.paste(text)

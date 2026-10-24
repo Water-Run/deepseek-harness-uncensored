@@ -5,6 +5,7 @@ import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type {} from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-web-search-deepseek'
 import { z } from 'zod'
+import { continueSpendSession } from './continuation.ts'
 import { SpendLedger } from './ledger.ts'
 import { SpendGate } from './gate.ts'
 import { DEFAULT_RATES } from './pricing.ts'
@@ -25,6 +26,7 @@ export const Config = schema.object({
 export const name = 'spend-limit'
 export const inject = ['llm']
 declare module '@deepseek-ai/cordis' { interface Context { spendLimit: SpendLimitRemote } }
+const continuations = new WeakMap<Promise<SpendGate>, (gate: SpendGate) => Promise<void>>()
 const count = z.number().int().nonnegative().safe()
 const usageSchema = z.object({ input_tokens: count, output_tokens: count,
   cache_read_input_tokens: count.optional(), cache_creation_input_tokens: count.optional() })
@@ -33,6 +35,7 @@ const usageSchema = z.object({ input_tokens: count, output_tokens: count,
 export class SpendLimitRemote extends TypertRemoteService {
   /** @param ctx - Service owner. @param gate - Owned admission and accounting engine. */
   constructor(ctx: Context, private readonly ready: Promise<SpendGate>) { super(ctx, 'spendLimit', { namespace: 'spending' }) }
+  private async continued(gate: SpendGate): Promise<void> { await continuations.get(this.ready)?.(gate) }
   /**
    * Read the durable ledger; initialization failures remain visible to every caller.
    * @returns Shared limits, rolling totals and local waiters.
@@ -46,7 +49,9 @@ export class SpendLimitRemote extends TypertRemoteService {
    */
   @Remote
   async configure(preferences: SpendPreferences): Promise<SpendSnapshot> {
-    (await this.ready).ledger.configure(preferences)
+    const gate = await this.ready
+    gate.ledger.configure(preferences)
+    await this.continued(gate)
     return this.get()
   }
   /**
@@ -54,7 +59,12 @@ export class SpendLimitRemote extends TypertRemoteService {
    * @returns Updated state; remaining limits still apply.
    */
   @Remote
-  async resume(): Promise<SpendSnapshot> { (await this.ready).ledger.resume(); return this.get() }
+  async resume(): Promise<SpendSnapshot> {
+    const gate = await this.ready
+    gate.ledger.resume()
+    await this.continued(gate)
+    return this.get()
+  }
   /**
    * Clear completed statistics.
    * @returns Remaining active reservations and settings.
@@ -72,6 +82,22 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   let closing = false
   const ready = SpendLedger.open(config.path).then(ledger => new SpendGate(ledger, config.rates, config.pollMs))
   void ready.catch((error) => { ctx.logger.error('spend-limit: ledger unavailable; paid requests remain blocked'); ctx.logger.error(error) })
+  const continuePaused = async (gate: SpendGate): Promise<void> => {
+    if (closing) return
+    const ids = gate.ledger.claimBlockedSessions()
+    for (const id of ids) {
+      try {
+        const outcome = await continueSpendSession(ctx, id)
+        if (outcome === 'unavailable') gate.ledger.noteSession(id, 'blocked')
+      } catch (error) {
+        gate.ledger.noteSession(id, 'blocked')
+        ctx.logger.error('spend-limit: paused conversation was not resumed')
+        ctx.logger.error(error)
+      }
+    }
+  }
+  const timer = setInterval(() => { void ready.then(gate => continuePaused(gate)).catch(() => undefined) }, Math.max(config.pollMs, 1000))
+  continuations.set(ready, continuePaused)
   const service = ctx.plugin(SpendLimitRemote, ready)
   const stopStream = ctx.on('llm/stream', async function* (request, next) {
     const gate = await ready
@@ -92,6 +118,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   })
   ctx.effect(() => async () => {
     closing = true
+    clearInterval(timer)
     stopStream(); stopSearch()
     // Failed initialization has already been reported; there is no owned handle to close.
     const gate = await ready.catch(() => undefined)

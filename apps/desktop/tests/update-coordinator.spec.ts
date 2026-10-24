@@ -53,7 +53,7 @@ describe('desktop release metadata', () => {
 const coordinators: InstanceType<typeof DesktopUpdateCoordinator>[] = []
 afterEach(() => { for (const item of coordinators.splice(0)) item.dispose() })
 
-function fixture(channel: 'nightly' | 'latest' = 'nightly', version = '1.1.0-alpha.1') {
+function fixture(channel: 'nightly' | 'latest' = 'nightly', version = '1.1.0-alpha.1', feedUrl?: string) {
   const events = new EventEmitter()
   const checkForUpdates = vi.fn(async () => ({
     isUpdateAvailable: true,
@@ -69,7 +69,9 @@ function fixture(channel: 'nightly' | 'latest' = 'nightly', version = '1.1.0-alp
   const beforeRestart = vi.fn(async () => true)
   const downloadResult = vi.fn()
   const states: DesktopUpdateState[] = []
-  const updater = Object.assign(events, { checkForUpdates, downloadUpdate, quitAndInstall }) as unknown as AppUpdater
+  const updater = Object.assign(events, {
+    checkForUpdates, downloadUpdate, quitAndInstall, getFeedURL: () => feedUrl,
+  }) as unknown as AppUpdater
   const coordinator = new DesktopUpdateCoordinator(
     (state) => { states.push(state); return state },
     beforeRestart, updater, () => true, () => version, downloadResult, channel,
@@ -79,6 +81,15 @@ function fixture(channel: 'nightly' | 'latest' = 'nightly', version = '1.1.0-alp
 }
 
 describe('desktop update coordinator', () => {
+  it('reports an official or COS feed as a failed check', async () => {
+    const official = fixture('latest', '0.1.0', 'https://download.deepseek.com/dsh-desk/feeds/win-x64/')
+    expect((await official.coordinator.check(true)).phase).toBe('error')
+    expect(official.checkForUpdates).not.toHaveBeenCalled()
+    const cos = fixture('latest', '0.1.0', 'https://bucket.cos.ap-beijing.myqcloud.com/feed/')
+    expect((await cos.coordinator.check(true)).phase).toBe('error')
+    expect(cos.checkForUpdates).not.toHaveBeenCalled()
+  })
+
   it('keeps safe preparation diagnostics separate and clears them on an explicit retry', async () => {
     const f = fixture()
     await f.coordinator.check()

@@ -117,6 +117,40 @@ it('rejects a request that cannot fit even an empty window and pauses on under-r
   expect(ledger.snapshot().paused).toBe(true)
 })
 
+it('keeps a live process waiting and promotes only a dead process to blocked', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'dshu-spending-')); directories.push(directory)
+  const path = join(directory, 'budget.sqlite')
+  const live = await setup(path, () => 1000, pid => pid === process.pid)
+  enable(live, false)
+  live.noteSession('dead-task', 'waiting')
+  live.noteSession('live-task', 'waiting')
+  const external = new DatabaseSync(path)
+  external.prepare('UPDATE session_pauses SET pid = ? WHERE session_id = ?').run(999_999, 'dead-task')
+  external.close()
+  expect(live.snapshot().pausedSessions).toEqual([
+    { sessionId: 'dead-task', state: 'blocked' },
+    { sessionId: 'live-task', state: 'waiting' },
+  ])
+  const restarted = await setup(path, () => 1000, () => false)
+  expect(restarted.snapshot().pausedSessions).toEqual([
+    { sessionId: 'dead-task', state: 'blocked' },
+    { sessionId: 'live-task', state: 'blocked' },
+  ])
+})
+
+it('claims blocked conversations only after the manual pause is clear and a window has room', async () => {
+  const ledger = await setup(':memory:', () => 1000, () => false)
+  enable(ledger, false)
+  ledger.noteSession('paused-task', 'waiting')
+  ledger.settle(reservation(ledger.reserve(4 * MICRO_CNY)), 4 * MICRO_CNY)
+  expect(ledger.reserve(2 * MICRO_CNY)).toEqual({ kind: 'waiting', reason: 'limit' })
+  expect(ledger.snapshot().paused).toBe(true)
+  expect(ledger.claimBlockedSessions()).toEqual([])
+  ledger.resume()
+  expect(ledger.claimBlockedSessions()).toEqual(['paused-task'])
+  expect(ledger.snapshot().pausedSessions).toEqual([])
+})
+
 it('rejects malformed persisted preferences without resetting them', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'dshu-spending-')); directories.push(directory)
   const path = join(directory, 'budget.sqlite')

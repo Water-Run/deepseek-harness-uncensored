@@ -87,6 +87,11 @@ export interface GroupNode {
   containsCurrent: boolean
   /** Visible session rows (empty while the group is folded). */
   sessions: readonly SessionNode[]
+  /**
+   * Newest non-archived running session in the group, including while the group is folded.
+   * Absent when the only running session is the one already open.
+   */
+  runningSessionId?: SessionId
 }
 
 /** One flat search row combining list metadata with an optional content match. */
@@ -402,6 +407,31 @@ function runningChildCount(list: SessionListState, parentId: SessionId, statuses
   ) ?? 0
 }
 
+/**
+ * Choose the running session a folded project can open directly.
+ * Archived rows stay listed but are not openable. The current main session is omitted.
+ * @param sessions - Complete group membership, including sessions hidden by a folded header.
+ * @param statuses - Unified UI status by Session.
+ * @param archived - Registry-global archive set.
+ * @param current - Session already retained by the main view.
+ * @returns The newest running session, with the smaller id breaking equal timestamps.
+ */
+function runningSessionOf(
+  sessions: readonly SessionSummary[],
+  statuses: SessionStatuses,
+  archived: ReadonlySet<SessionId>,
+  current: SessionId | undefined,
+): SessionId | undefined {
+  let selected: SessionSummary | undefined
+  for (const session of sessions) {
+    if (session.blank || session.id === current || archived.has(session.id)) continue
+    if ((statuses.get(session.id)?.running ?? session.running) !== true) continue
+    if (selected === undefined || session.updatedAt > selected.updatedAt
+      || (session.updatedAt === selected.updatedAt && session.id < selected.id)) selected = session
+  }
+  return selected?.id
+}
+
 function sessionNode(
   s: SessionSummary,
   list: SessionListState,
@@ -469,6 +499,7 @@ export function deriveGroups(
   const groups: GroupNode[] = []
   for (const g of groupByWorkspace(list, workspaces, archived, rowState.archivedFilter, view.ungroupedOrder)) {
     const expanded = expandedGroups.has(g.key)
+    const runningSessionId = runningSessionOf(g.sessions, statuses, archived, current)
     groups.push({
       key: g.key,
       workspaceId: g.workspaceId,
@@ -482,6 +513,7 @@ export function deriveGroups(
         ? sectionMembers(g.sessions, pinned, archived)
           .map(session => sessionNode(session, list, statuses, pinned, archived))
         : [],
+      ...(runningSessionId === undefined ? {} : { runningSessionId }),
     })
   }
   return groups

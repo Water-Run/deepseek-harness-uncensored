@@ -12,6 +12,7 @@
 .chart { display: block; width: 100%; min-width: 0; max-height: 150px; overflow: hidden; }
 .axis { stroke: var(--dsw-alias-border-l2); stroke-width: 1; }
 .line { fill: none; stroke: var(--dsw-brand-blue); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.point { fill: var(--dsw-brand-blue); }
 .stats { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin: 0; font-size: 12px; overflow-wrap: anywhere; }
 .stats dt { color: var(--dsw-alias-label-secondary); }
 .stats dd { margin: 0; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }

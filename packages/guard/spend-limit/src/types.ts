@@ -20,6 +20,11 @@ export interface SpendWindow {
   uncertain: number
   remaining: number
 }
+/** One conversation waiting on a limit or left blocked by a dead process. */
+export interface SpendPausedSession {
+  sessionId: string
+  state: 'waiting' | 'blocked'
+}
 /** Durable totals and the local process's queued requests. */
 export interface SpendSnapshot {
   preferences: SpendPreferences
@@ -27,6 +32,8 @@ export interface SpendSnapshot {
   windows: SpendWindow[]
   pending: number
   waiting: number
+  /** Conversations that must continue when capacity returns. Waiting rows belong to a live process. */
+  pausedSessions: SpendPausedSession[]
   nextExpiry: number | null
   updatedAt: number
 }

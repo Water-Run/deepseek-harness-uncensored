@@ -10,10 +10,33 @@ import LlmRuntime, { LlmAdapter } from '@deepseek-ai/dsh-llm'
 import type { StreamChunk } from '@deepseek-ai/dsh-llm'
 import * as spending from '../src/index.ts'
 import { DEFAULT_PREFERENCES } from '../src/ledger.ts'
+import { DEFAULT_RATES } from '../src/pricing.ts'
 
 async function consume(stream: AsyncIterable<StreamChunk>): Promise<void> {
   for await (const _chunk of stream) { /* Consume the complete provider lifecycle. */ }
 }
+
+it('keeps a paid request blocked when the ledger cannot open', async () => {
+  const ctx = new Context()
+  const root = await mkdtemp(join(tmpdir(), 'dshu-spending-closed-'))
+  let sent = 0
+  try {
+    await ctx.plugin(LlmRuntime)
+    class Adapter extends LlmAdapter {
+      override async * stream(): AsyncIterable<StreamChunk> {
+        sent += 1
+        yield { type: 'finish', reason: { kind: 'stop' } }
+      }
+    }
+    ctx.llm.registerAdapter(['deepseek-official'], new Adapter())
+    await spending.apply(ctx, { path: root, pollMs: 50, rates: DEFAULT_RATES })
+    await expect(consume(ctx.llm.stream({ provider: 'deepseek-official', model: 'deepseek-flash', messages: [], maxTokens: 100 }))).rejects.toThrow()
+    expect(sent).toBe(0)
+  } finally {
+    await ctx.fiber.dispose()
+    await rm(root, { recursive: true, force: true })
+  }
+})
 
 it('boots the built-in gate through Loader and removes admission on unload', async () => {
   const ctx = new Context()

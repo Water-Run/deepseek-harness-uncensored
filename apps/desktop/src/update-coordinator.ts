@@ -11,6 +11,17 @@ import { DesktopUpdatePreparationError } from './update-error.ts'
 
 const { autoUpdater } = electronUpdater
 
+function feedHost(updater: AppUpdater): string {
+  const reader = updater as AppUpdater & { getFeedURL?: () => string | null | undefined }
+  if (typeof reader.getFeedURL !== 'function') return ''
+  try {
+    const value = reader.getFeedURL()
+    return value === undefined || value === null || value === '' ? '' : new URL(value).host.toLowerCase()
+  } catch {
+    return ''
+  }
+}
+
 /** Owns one updater target until its download and installation settle. */
 export class DesktopUpdateCoordinator {
   private current: DesktopUpdateState = { phase: 'idle' }
@@ -185,6 +196,10 @@ export class DesktopUpdateCoordinator {
     try {
       this.assertLive()
       if (!this.enabled()) throw new Error('desktop update: this application has no packaged update source')
+      const feed = feedHost(this.updater)
+      if (feed === 'download.deepseek.com' || feed.endsWith('.myqcloud.com')) {
+        throw new Error('desktop update: this fork does not use the official DeepSeek or COS update host')
+      }
       const result = await this.updater.checkForUpdates()
       if (result === null) throw new Error('desktop update: no check result was returned')
       const version = result.updateInfo.version

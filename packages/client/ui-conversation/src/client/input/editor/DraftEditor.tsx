@@ -21,6 +21,8 @@ export interface DraftEditorProps {
   readonly onWorkspaceKeyDown: KeyboardEventHandler<HTMLDivElement>
   readonly hint: string | null
   readonly showPlaceholder: boolean
+  /** Gray suffix that Tab can accept. It is not part of the draft until accepted. */
+  readonly prediction?: string
 }
 
 /**
@@ -30,7 +32,7 @@ export interface DraftEditorProps {
  */
 export function DraftEditor({
   classNames: css, editor, scrollRef, editable, editorDisabled, phase, placeholderText, ariaLabel,
-  workspaceTrigger, workspacePickerOpen, onWorkspaceKeyDown, hint, showPlaceholder,
+  workspaceTrigger, workspacePickerOpen, onWorkspaceKeyDown, hint, showPlaceholder, prediction = '',
 }: DraftEditorProps): ReactNode {
   return (
     <div ref={scrollRef} className={css.scroll} data-input-scroll>
@@ -56,6 +58,7 @@ export function DraftEditor({
             {placeholderText}
           </div>
         )}
+        {prediction !== '' && <div aria-hidden className={css.prediction}>{prediction}</div>}
         <DecoratorPortals editor={workspaceTrigger ? null : editor} />
       </div>
     </div>

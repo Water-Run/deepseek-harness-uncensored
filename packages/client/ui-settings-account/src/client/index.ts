@@ -31,6 +31,7 @@ import { DesktopOnboardingEntry, type DesktopOnboardingInjected } from './Deskto
 import { readOnboardingApiKeyPresence } from './onboarding-credentials.ts'
 import { refreshAfterReturn } from './account-refresh.ts'
 import { AccountAvatarLoader } from './account-avatar.ts'
+import { ReleaseReminder } from './ReleaseReminder.tsx'
 import { registerBalance } from './balance.ts'
 import { registerSpending } from './spending.ts'
 import { BudgetSection } from './BudgetSection.tsx'
@@ -317,6 +318,9 @@ export function apply(ctx: Context): void {
   ctx.slots.inject('settings.launcher', () => ctx.slots.register({
     name: 'settings.launcher', locale: 'settings.account', inject: () => operations,
   }, AccountMenu))
+  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay', id: 'fork-release', locale: 'settings.account',
+  }, ReleaseReminder))
   registerBalance(ctx, operations.hooks.account)
   registerSpending(ctx)
   ctx.slots.inject('settings.section', () => ctx.slots.register({

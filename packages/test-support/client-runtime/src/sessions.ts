@@ -105,6 +105,11 @@ export class FixtureSession implements SessionFace {
     throw new Error(`test session "${this.sessionId}": prompt is not stubbed — supply it on the fixture's session face`)
   }
 
+  /** @returns no suggestion. Prediction tests replace this method when they need a suffix. */
+  predict(): Promise<string> {
+    return Promise.resolve('')
+  }
+
   /**
    * Minimal local-echo registration: mints an identity without touching the
    * fixture snapshot (submission echoes are client-only presentation state).

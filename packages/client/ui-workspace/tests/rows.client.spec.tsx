@@ -214,6 +214,20 @@ describe('workspace browser rows', () => {
     expect(onToggle).toHaveBeenCalledOnce()
   })
 
+  it('opens a folded project’s running conversation without toggling the folder', () => {
+    const onToggle = vi.fn()
+    const onOpenRunning = vi.fn()
+    const group: GroupNode = {
+      key: 'project', workspaceId: wid('project'), cwd: '/projects/project', createdAt: 0, label: 'Project',
+      sessionCount: 1, expanded: false, containsCurrent: false, sessions: [],
+      runningSessionId: sid('running'),
+    }
+    render(<ProjectRowItem group={group} onToggle={onToggle} onCreate={vi.fn()} onOpenRunning={onOpenRunning} t={t} />)
+    fireEvent.click(screen.getByRole('button', { name: '打开“Project”中进行中的对话' }))
+    expect(onOpenRunning).toHaveBeenCalledWith(sid('running'))
+    expect(onToggle).not.toHaveBeenCalled()
+  })
+
   it('renders and opens a selected running Session row', () => {
     const node: SessionNode = {
       id: sid('session'), title: 'Session', blank: false, running: true,

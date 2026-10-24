@@ -1,6 +1,15 @@
-.content { display: grid; gap: 16px; color: var(--dsw-alias-label-primary); }
-.product { margin: 0; font-size: 16px; font-weight: 500; }
-.facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px 20px; margin: 0; font-size: 13px; }
-.facts dt { color: var(--dsw-alias-label-secondary); }
-.facts dd { margin: 0; overflow-wrap: anywhere; }
+.content { display: grid; gap: 14px; color: var(--dsw-alias-label-primary); }
+.identity { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.logo { color: var(--dsw-alias-label-primary); flex: none; }
+.product { margin: 0; font-size: 16px; font-weight: 560; }
+.status { margin: 4px 0 0; color: var(--dsw-alias-label-secondary); font-size: 12px; line-height: 1.5; }
+.status[data-phase='available'] { color: var(--dsw-brand-blue); }
+.status[data-phase='failed'], .status[data-phase='offline'] { color: var(--dsw-brand-red); }
+.card, .links { display: grid; gap: 10px; min-width: 0; padding: 14px; border: 0.5px solid var(--dsw-alias-border-l2); border-radius: var(--dsw-radius-md); background: var(--dsw-alias-bg-layer-2); }
+.card h3, .links h3 { margin: 0; font-size: 12px; font-weight: 560; color: var(--dsw-alias-label-secondary); }
+.card dl { display: grid; grid-template-columns: minmax(88px, auto) minmax(0, 1fr); gap: 8px 16px; margin: 0; font-size: 13px; }
+.card dt { color: var(--dsw-alias-label-secondary); }
+.card dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.links { justify-items: start; }
+.github { display: inline-flex; align-items: center; gap: 8px; }
 .content a { color: var(--dsw-alias-label-primary); text-decoration: underline; text-underline-offset: 3px; }

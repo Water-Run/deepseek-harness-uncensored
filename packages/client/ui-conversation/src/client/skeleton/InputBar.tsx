@@ -48,7 +48,7 @@ export const InputBar = memo(function InputBar({
   retryFileUpload,
   toggleCommandMenu, stop, t,
   renderSlot, useBusyEnter, useFileUploads, useNotices, useLexicon, useMenuLauncher, useStopShortcut,
-  useProjection, sessionId, variant, disabled: inert = false, blocked,
+  useProjection, sessionId, variant, disabled: inert = false, blocked, predictDraft,
   workspacePickerOpen = false, onRequestWorkspace,
   placeholder, accessory,
 }: InputBarProps) {
@@ -73,6 +73,32 @@ export const InputBar = memo(function InputBar({
   // current; the bar renders the same DOM inert instead of a parallel tree.
   const live = input !== undefined && keyboard !== undefined && inputActions !== undefined
   const draft = input?.draft ?? ''
+  const [predictionEnabled, setPredictionEnabled] = useState(false)
+  const [prediction, setPrediction] = useState('')
+  useEffect(() => {
+    const read = (): void => {
+      try { setPredictionEnabled(localStorage.getItem('dsh.uncensored.prediction') === '1') }
+      catch { setPredictionEnabled(false) }
+    }
+    read()
+    window.addEventListener('storage', read)
+    window.addEventListener('dsh-prediction', read)
+    return () => {
+      window.removeEventListener('storage', read)
+      window.removeEventListener('dsh-prediction', read)
+    }
+  }, [])
+  useEffect(() => {
+    setPrediction('')
+    if (!predictionEnabled || predictDraft === undefined || draft.trim() === '') return
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      void predictDraft(draft, controller.signal).then((suggestion) => {
+        if (!controller.signal.aborted) setPrediction(suggestion)
+      })
+    }, 800)
+    return () => { controller.abort(); clearTimeout(timer) }
+  }, [draft, predictDraft, predictionEnabled, sessionId])
   const editor = keyboard?.editor ?? null
   const attachments = useMemo(
     () => input === undefined || resolveDraftAttachments === undefined ? [] : resolveDraftAttachments(input.attachmentIds),
@@ -253,10 +279,22 @@ export const InputBar = memo(function InputBar({
   const gate = useRef({
     locked, machineBusy, canSteerQueue, running, steeringAvailable, busyEnter,
     intakeFiles, uploadsPending, showToast, t, canAcceptDrop,
+    acceptPrediction: () => {
+      if (prediction === '' || inputActions === undefined) return false
+      inputActions.setDraft(`${draft}${prediction}`)
+      setPrediction('')
+      return true
+    },
   })
   gate.current = {
     locked, machineBusy, canSteerQueue, running, steeringAvailable, busyEnter,
     intakeFiles, uploadsPending, showToast, t, canAcceptDrop,
+    acceptPrediction: () => {
+      if (prediction === '' || inputActions === undefined) return false
+      inputActions.setDraft(`${draft}${prediction}`)
+      setPrediction('')
+      return true
+    },
   }
 
   useEffect(() => {
@@ -435,6 +473,7 @@ export const InputBar = memo(function InputBar({
           onWorkspaceKeyDown={onWorkspaceKeyDown}
           hint={hint}
           showPlaceholder={draft === '' && attachments.length === 0 && !claimActive}
+          prediction={prediction}
         />
         <div ref={rowRef} className={css.row}>
           <div className={css.tools} hidden={activity}>

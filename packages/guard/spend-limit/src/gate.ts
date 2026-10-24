@@ -16,6 +16,12 @@ export class SpendGate {
   /** Locally waiting requests, excluding requests already sent to a provider. */
   get waiting(): number { return this.waiters }
 
+  private sessionState(sessionId: string | undefined, state: 'waiting' | 'blocked' | 'clear'): void {
+    if (sessionId === undefined || sessionId.length === 0) return
+    if (state === 'clear') this.ledger.clearSession(sessionId)
+    else this.ledger.noteSession(sessionId, state)
+  }
+
   private async admit(cost: number, signal?: AbortSignal): Promise<SpendReservationId | undefined> {
     const combined = signal === undefined ? this.lifetime.signal : AbortSignal.any([signal, this.lifetime.signal])
     this.waiters++
@@ -54,10 +60,18 @@ export class SpendGate {
   async * stream(request: GenerateOptions, next: () => AsyncIterable<StreamChunk>): AsyncGenerator<StreamChunk> {
     const complete = this.begin()
     let id: SpendReservationId | undefined, dispatched = false
+    const sessionId = request.sessionId
     try {
       if (!this.ledger.snapshot().preferences.enabled) { yield* next(); return }
       const rate = this.rate(request.provider, request.model)
-      id = await this.admit(reserveCost(rate, request.maxTokens), request.signal)
+      this.sessionState(sessionId, 'waiting')
+      try {
+        id = await this.admit(reserveCost(rate, request.maxTokens), request.signal)
+        this.sessionState(sessionId, 'clear')
+      } catch (error) {
+        if (!this.lifetime.signal.aborted) this.sessionState(sessionId, 'clear')
+        throw error
+      }
       request.signal?.throwIfAborted()
       let usage: TokenUsage | undefined
       dispatched = true
@@ -71,7 +85,11 @@ export class SpendGate {
         yield chunk
       }
     } finally {
-      try { if (id !== undefined) this.ledger.settle(id, dispatched ? null : 0) }
+      try {
+        if (id !== undefined) this.ledger.settle(id, dispatched ? null : 0)
+        if (this.lifetime.signal.aborted) this.sessionState(sessionId, 'blocked')
+        else if (request.signal?.aborted) this.sessionState(sessionId, 'clear')
+      }
       finally { complete() }
     }
   }

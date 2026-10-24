@@ -31,6 +31,9 @@ import { SessionFileReferences } from './file-references.ts'
 import { ApiSessionList } from './list.ts'
 import { buildModelCatalog, hasProviderApiKey } from './catalog.ts'
 import { installModelSelectionProjection } from './model-selection-projection.ts'
+import {
+  completedPredictionEvents, predictionContext, predictionSurface, requestPrediction,
+} from './prediction.ts'
 import { SessionSkillCatalog } from './skill-catalog.ts'
 import { SessionMediaReferences } from './media-references.ts'
 import { ArchivedSessionGate } from './archived-session-gate.ts'
@@ -71,6 +74,8 @@ import type {
   SessionProjectionValues,
   SessionUpdateQueueRequest,
   SessionUpdateQueueValue,
+  SessionPredictionRequest,
+  SessionPredictionValue,
 } from './types.ts'
 
 export type * from './types.ts'
@@ -502,6 +507,37 @@ export class SessionController extends TypertRemoteService {
   @Remote('aside')
   aside(request: SessionAsideRequest): Promise<SessionForkValue> {
     return this.asides.open(request)
+  }
+
+  /**
+   * Predict the unsent suffix for the composer. The call is logged, spends against the limit, and is not sent.
+   * @param request - Session, current draft, and the client revision that must still be current when the reply returns.
+   * @param signal - Cancellation for a newer draft or a closed composer.
+   * @returns The suggestion for that revision, or an empty string when there is nothing to show.
+   */
+  @Remote('predict')
+  async predict(request: SessionPredictionRequest, signal: AbortSignal): Promise<SessionPredictionValue> {
+    signal.throwIfAborted()
+    if (!Number.isSafeInteger(request.revision) || request.revision < 0 || request.draft.trim() === '') {
+      return { revision: request.revision, suggestion: '' }
+    }
+    const session = this.ctx.sessions.get(request.sessionId)
+    if (session === undefined) return { revision: request.revision, suggestion: '' }
+    const projection = this.ctx.sessionProjections.stateOf(session, 'modelSelection')
+    const selected = projection?.pending ?? projection?.lastUsed
+    if (selected === null || selected === undefined) return { revision: request.revision, suggestion: '' }
+    const surface = predictionSurface(session.id, session.header.parentSession, request.draft)
+    const parent = surface === 'side' ? session.header.parentSession : undefined
+    const source = parent === undefined ? session : this.ctx.sessions.get(parent) ?? session
+    const agent = this.ctx.agents.get(session.id)
+    const status = agent !== undefined && 'status' in agent && agent.status === 'running' ? 'running' : 'idle'
+    const suggestion = await requestPrediction({
+      session, surface, draft: request.draft, revision: request.revision,
+      context: predictionContext(surface, completedPredictionEvents(source.snapshotEvents()), source.id, status),
+      provider: selected.provider, model: selected.model, signal,
+      stream: options => this.ctx.llm.stream(options),
+    })
+    return { revision: request.revision, suggestion }
   }
 
   /**

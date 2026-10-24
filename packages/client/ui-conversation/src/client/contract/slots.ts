@@ -469,6 +469,8 @@ export interface ComposerBarInjected {
   retryFileUpload: ((id: DraftAttachmentId) => void) | undefined
   toggleCommandMenu: ((selection: EditSelection) => void) | undefined
   stop: (() => void) | undefined
+  /** Ask the host for a suffix. Absent when prediction is not wired. */
+  predictDraft?: (draft: string, signal: AbortSignal) => Promise<string>
   hooks: {
     /** Readable sequence while the fixed Stop command is registered. */
     stopShortcut: ObservableSnapshot<readonly string[]>
