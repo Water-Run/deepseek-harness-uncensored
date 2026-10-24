@@ -28,7 +28,7 @@
                 - reverse-malware — config, C2, persistence, IOCs, YARA
                 - reverse-casebook — sample ledger, symbol map, hypotheses across sessions
 
-                Keep the sample ledger current (`node ../shared/scripts/casefile.mjs` and `sample.mjs`) so the next session starts from evidence instead of from scratch.
+                Keep the sample ledger current (`node ../../shared/scripts/casefile.mjs` and `node ../../shared/scripts/sample.mjs`, resolved from the loaded skill directory) so the next session starts from evidence instead of from scratch.
 
                 Deliver the reconstruction, the working patch, the keygen, the extracted config, or the analysis — with the evidence that supports it and an explicit account of what remains unknown.
           - id: agent-instructions

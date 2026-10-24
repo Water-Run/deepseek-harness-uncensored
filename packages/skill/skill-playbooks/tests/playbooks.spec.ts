@@ -259,6 +259,11 @@ describe('asset integrity', () => {
       expect(raw).toContain("name: '@deepseek-ai/dsh-skill-playbooks'")
       const start = raw.indexOf('id: skill-playbooks')
       expect(raw.slice(start, start + 400)).toContain(`- ${pack}`)
+      for (const match of raw.matchAll(/shared\/scripts\/[A-Za-z0-9._-]+\.mjs/gu)) {
+        const start = Math.max(0, (match.index ?? 0) - 6)
+        expect(raw.slice(start, (match.index ?? 0) + match[0].length), `${pack} preset script path`)
+          .toMatch(/^\.\.\/\.\.\/shared\/scripts\//u)
+      }
     }
     const standard = await readFile(join(presets, 'standard.patch.yml'), 'utf8')
     expect(standard).not.toContain('dsh-skill-playbooks')

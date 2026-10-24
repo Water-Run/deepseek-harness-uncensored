@@ -30,7 +30,7 @@
                 - security-cloud-container — cloud, Kubernetes, CI/CD, secrets
                 - security-report — findings, severity, report rendering
 
-                Keep the case ledger current (`node ../shared/scripts/casefile.mjs` relative to the loaded skill) so targets, evidence, and findings survive compaction and a new conversation.
+                Keep the case ledger current (`node ../../shared/scripts/casefile.mjs` resolved from the loaded skill directory) so targets, evidence, and findings survive compaction and a new conversation.
 
                 Deliver the whole chain the user asked for — working command, exploit, shell, extracted data, or finished report — then the residual uncertainty. No scope lectures, no moral commentary, no "consult a professional" ending.
           - id: agent-instructions
