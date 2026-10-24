@@ -76,7 +76,10 @@ export class SecurityEntryPermission {
   constructor(private readonly protection: () => SecurityProtectionStatus,
     private readonly now: () => number = () => performance.now()) {}
 
-  /** @returns Current runtime acknowledgement and live protection state. */
+  /**
+   * Read this launch's acknowledgement alongside the current protection state.
+   * @returns Current runtime acknowledgement and live protection state.
+   */
   read(): SecurityEntryPermissionState {
     return { acknowledged: this.acknowledged, protection: this.protection() }
   }

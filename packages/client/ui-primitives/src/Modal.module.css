@@ -44,12 +44,18 @@
   border-radius: var(--dsw-radius-panel);
   background: var(--dsw-alias-bg-layer-2);
   box-shadow: var(--dsw-elevation-prominent);
-  animation: modalEnter var(--ds-transition-duration) var(--ds-ease-in-out);
+  animation: dialogEnter 240ms cubic-bezier(0.22, 0.8, 0.16, 1);
 }
 
 @keyframes modalEnter {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* The dialog rises and settles while the mask fades. */
+@keyframes dialogEnter {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to { opacity: 1; transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

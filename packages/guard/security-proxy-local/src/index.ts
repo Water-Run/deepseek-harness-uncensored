@@ -11,6 +11,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-security-proxy'
+import type {} from '@deepseek-ai/dsh-agent-preset-registry'
 import schema from '@deepseek-ai/schemastery'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import type { Agent } from '@deepseek-ai/dsh-agent'

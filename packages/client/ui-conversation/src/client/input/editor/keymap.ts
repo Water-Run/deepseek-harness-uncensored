@@ -21,6 +21,7 @@ import {
 } from 'lexical'
 import { mergeRegister } from '@lexical/utils'
 import type { ArbitrateKey, ArbitrateOutcome } from '../../contract/draft-editor.ts'
+import { $canAcceptPrediction } from './prediction-selection.ts'
 
 /** The bar-supplied behavior behind each intercepted gesture. */
 export interface ComposerKeymapHandlers {
@@ -68,6 +69,8 @@ export function registerComposerKeymap(editor: LexicalEditor, handlers: Composer
   let rootElement: HTMLElement | null = null
   const syncComposition = (): void => {
     rootElement?.toggleAttribute('data-composer-composing', composing || editor.isComposing())
+    const eligible = editor.getEditorState().read(() => $canAcceptPrediction(editor))
+    rootElement?.toggleAttribute('data-prediction-eligible', eligible && !composing)
   }
   const onCompositionStart = (): void => {
     composing = true
@@ -96,6 +99,7 @@ export function registerComposerKeymap(editor: LexicalEditor, handlers: Composer
       prevRoot?.removeEventListener('compositionstart', onCompositionStart)
       prevRoot?.removeEventListener('compositionend', onCompositionEnd)
       prevRoot?.removeAttribute('data-composer-composing')
+      prevRoot?.removeAttribute('data-prediction-eligible')
       composing = false
       composingUntil = 0
       rootElement = root
@@ -115,7 +119,8 @@ export function registerComposerKeymap(editor: LexicalEditor, handlers: Composer
       (event) => {
         if (event.shiftKey) return arrow('tabBack')(event)
         if (arrow('tab')(event)) return true
-        if (handlers.acceptPrediction?.() === true) {
+        if (!event.altKey && !event.ctrlKey && !event.metaKey && !isComposingEvent(event, recentlyComposing)
+          && $canAcceptPrediction(editor) && handlers.acceptPrediction?.() === true) {
           event.preventDefault()
           return true
         }

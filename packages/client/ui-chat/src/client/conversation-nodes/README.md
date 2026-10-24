@@ -70,7 +70,7 @@ If steering, a User message, or a trigger notice follows process output, the Tur
 
 Whole-Turn folding controls the loaded process range, independently of secondary groups, in Compact, Standard, and Detailed. Verbose keeps that range visible and retains the duration/status header without a collapse action. A recorded Turn end makes that range eligible even when paging has not loaded the Turn start.
 
-The rules below use the default completion-time folding. The [collapse-timing preference](#collapse-timing) can defer the latest exchange's historical presentation without changing whole-Turn eligibility.
+The rules below describe completion-time folding; the default timing defers it to the next message. The [collapse-timing preference](#collapse-timing) can defer the latest exchange's historical presentation without changing whole-Turn eligibility.
 
 The Turn control follows all its opening inputs, including human steering and non-human trigger notices, while waiting for the first Assistant output and after that output arrives. Consecutive inputs before the first process evidence are opening inputs, anchored by the last one. Later inputs retain their positions: even when paging has not loaded their inbox insertions and they temporarily appear as ordinary User messages, preceding process content must not move after them.
 
@@ -129,14 +129,14 @@ Work details uses the Host setting `ui-chat.transcriptView`. The client reads it
 
 - Saved values for the four modes are used directly, regardless of changes to defaults.
 - Legacy `normal` and `expanded` values display as `detailed`, without automatically rewriting the saved values on disk.
-- When the setting is missing, `null`, or invalid, Desktop uses `standard` and non-Desktop Web uses `detailed`. Each client also uses its default before Host settings arrive; invalid values in other settings still fail validation.
+- When the setting is missing, `null`, or invalid, Desktop and Web use `verbose`. Each client also uses it before Host settings arrive; invalid values in other settings still fail validation.
 
 Reading a default does not automatically save configuration. When the user changes modes, the selected value is saved through Host settings and stays process-local when settings cannot persist writes. Desktop onboarding writes preferences according to its rules when completed or skipped.
 
 <a id="collapse-timing"></a>
 ### Collapse timing
 
-Settings → General → Collapse work details appears directly below Work details and is independent of the display mode. On completion is the default and retains immediate folding and tail positioning. On next message enables delayed folding and its coordinated transitions. The choice is saved as `ui-chat.collapseTiming` through the same Host profile settings as Work details and is restored after reload or reopening the app. Profiles without a saved value use On completion without writing that default. It does not write browser storage or Session data.
+Settings → General → Collapse work details appears directly below Work details and is independent of the display mode. On completion retains immediate folding and tail positioning. On next message, the default, enables delayed folding and its coordinated transitions. The choice is saved as `ui-chat.collapseTiming` through the same Host profile settings as Work details and is restored after reload or reopening the app. Profiles without a saved value use On next message without writing that default. It does not write browser storage or Session data.
 
 With On next message, the latest exchange keeps its running presentation after completion: Compact and Standard retain their process headers, and Detailed retains its flat process rows. An exchange starts with the Turn whose first Step admits human input and includes every later Turn until the next such Turn, so a Turn woken by a notice (a settled subagent, goal round, schedule, or job) leaves the preceding Turns of its exchange expanded. A pending ordinary transcript submission or a Turn that opens a newer exchange ends this exemption without clearing the reader's manual whole-Turn choice; a bare Turn start does not, because the host claims the waking input before it logs Step 1. Inner disclosures reset only when their outer process actually hides. Queued input and steering alone do not end it. The latest exchange of a reopened Session also receives the exemption, starting at the first loaded Turn when the loaded window holds no opening Turn; manual whole-Turn choices still take precedence. Switching back to On completion ends the exemption immediately.
 

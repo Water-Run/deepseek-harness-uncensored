@@ -9,7 +9,7 @@
 - `create(request)`：保存一条记录，来源记为管理页用户输入且已确认。
 - `update(request)`：带 `expectedVersion` 的编辑；版本不一致时返回 `memory/conflict`，客户端保留用户输入并提示重试。
 - `setStatus(request)`：启用或禁用，同样校验版本。
-- `remove(request)`：永久删除并返回是否确有记录被删除。
+- `deleteRecord(request)`：永久删除并返回是否确有记录被删除。该 Remote 名称避开框架保留的 `remove` 方法；服务内部方法仍为 `remove`。
 
 ## 错误
 

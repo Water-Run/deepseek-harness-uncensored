@@ -70,11 +70,12 @@ function fixture(channel: 'nightly' | 'latest' = 'nightly', version = '1.1.0-alp
   const downloadResult = vi.fn()
   const states: DesktopUpdateState[] = []
   const updater = Object.assign(events, {
-    checkForUpdates, downloadUpdate, quitAndInstall, getFeedURL: () => feedUrl,
+    checkForUpdates, downloadUpdate, quitAndInstall, setFeedURL: vi.fn(), getFeedURL: () => 'Deprecated. Do not use it.',
   }) as unknown as AppUpdater
   const coordinator = new DesktopUpdateCoordinator(
     (state) => { states.push(state); return state },
     beforeRestart, updater, () => true, () => version, downloadResult, channel,
+    async () => feedUrl === undefined ? { provider: 'github', owner: 'Water-Run', repo: 'deepseek-harness-uncensored' } : { provider: 'generic', url: feedUrl },
   )
   coordinators.push(coordinator)
   return { coordinator, updater, events, states, checkForUpdates, downloadUpdate, quitAndInstall, beforeRestart, downloadResult }
@@ -135,9 +136,10 @@ describe('desktop update coordinator', () => {
   it('consumes late updater errors until an in-flight check settles after disposal', async () => {
     const f = fixture()
     const checked = Promise.withResolvers<{ isUpdateAvailable: boolean; updateInfo: { version: string } }>()
-    f.checkForUpdates.mockImplementation(() => checked.promise)
+    const entered = Promise.withResolvers<undefined>()
+    f.checkForUpdates.mockImplementation(() => { entered.resolve(undefined); return checked.promise })
     const pending = f.coordinator.check()
-    await Promise.resolve()
+    await entered.promise
     f.coordinator.dispose()
     expect(() => f.events.emit('error', new Error('late network failure'))).not.toThrow()
     checked.reject(new Error('offline'))

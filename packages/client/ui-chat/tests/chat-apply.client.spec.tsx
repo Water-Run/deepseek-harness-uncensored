@@ -192,8 +192,8 @@ describe('Chat apply wiring', () => {
   })
 
   it.each([
-    { desktop: false, initial: 'detailed', choice: 'standard' },
-    { desktop: true, initial: 'standard', choice: 'detailed' },
+    { desktop: false, initial: 'verbose', choice: 'standard' },
+    { desktop: true, initial: 'verbose', choice: 'detailed' },
   ] as const)('mirrors the Host transcript preference into its Settings row (desktop: $desktop)', async ({ desktop, initial, choice }) => {
     if (desktop) {
       vi.stubGlobal('dshDesktop', {})
@@ -224,13 +224,13 @@ describe('Chat apply wiring', () => {
       const face = row.inject!()
       const hooks = face.hooks as TranscriptViewRowInjected['hooks']
       const setCollapseTiming = face.setCollapseTiming as TranscriptViewRowInjected['setCollapseTiming']
+      expect(hooks.collapseTiming.getSnapshot()).toBe('next-input')
+      setCollapseTiming('completion')
       expect(hooks.collapseTiming.getSnapshot()).toBe('completion')
-      setCollapseTiming('next-input')
-      expect(hooks.collapseTiming.getSnapshot()).toBe('next-input')
-      expect(b.chatSettings.set).toHaveBeenCalledExactlyOnceWith('collapseTiming', 'next-input')
-      b.chatSettings.publish({ status: 'ready', value: { linkOpening: 'sidebar', transcriptView: 'standard', performanceUsage: 'detailed', collapseTiming: 'next-input' }, revision: 1, writable: true })
+      expect(b.chatSettings.set).toHaveBeenCalledExactlyOnceWith('collapseTiming', 'completion')
+      b.chatSettings.publish({ status: 'ready', value: { linkOpening: 'sidebar', transcriptView: 'standard', performanceUsage: 'detailed', collapseTiming: 'completion' }, revision: 1, writable: true })
       expect(hooks.transcriptView.getSnapshot()).toBe('standard')
-      expect(hooks.collapseTiming.getSnapshot()).toBe('next-input')
+      expect(hooks.collapseTiming.getSnapshot()).toBe('completion')
       expect(b.runtime.slots.entries('settings.general.item').map(entry => entry.options.id))
         .toEqual(['transcript-view', 'link-opening', 'composer-enter', 'performance-usage'])
 
@@ -242,9 +242,9 @@ describe('Chat apply wiring', () => {
       const remounted = remountedRow.inject!()
       const remountedHooks = remounted.hooks as TranscriptViewRowInjected['hooks']
       expect(remountedHooks.collapseTiming).not.toBe(hooks.collapseTiming)
-      expect(remountedHooks.collapseTiming.getSnapshot()).toBe('next-input')
+      expect(remountedHooks.collapseTiming.getSnapshot()).toBe('completion')
       expect(remountedHooks.transcriptView.getSnapshot()).toBe('standard')
-      expect(b.chatSettings.set).toHaveBeenCalledExactlyOnceWith('collapseTiming', 'next-input')
+      expect(b.chatSettings.set).toHaveBeenCalledExactlyOnceWith('collapseTiming', 'completion')
       expect(b.runtime.slots.entries('settings.general.item').map(entry => entry.options.id))
         .toEqual(['transcript-view', 'link-opening', 'composer-enter', 'performance-usage'])
     } finally {

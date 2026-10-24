@@ -6,7 +6,7 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { MemoryDescribeValue, MemoryScopeFilter } from '@deepseek-ai/dsh-api-memory-controller/types'
 import type { MemoryId, MemoryRecord, MemoryScope, MemoryStatus, MemoryType } from '@deepseek-ai/dsh-memory/types'
 
@@ -99,8 +99,11 @@ export interface MemoryRowFace {
   readonly confirmDelete: () => Promise<void>
 }
 
-/** A store handle owned by one plugin instance. */
-export function createMemoryStore() {
+/**
+ * Create the memory settings state owned by one plugin instance.
+ * @returns The observable list, editor and operation state.
+ */
+export function createMemoryStore(): SnapshotStore<MemoryRowState> {
   return createSnapshotStore<MemoryRowState>({
     description: undefined,
     records: [],
@@ -241,7 +244,7 @@ export function createMemoryController(ctx: Context): MemoryRowFace {
   const confirmDelete = async (): Promise<void> => {
     const id = store.getSnapshot().confirming
     if (id === undefined) return
-    const result = await remote.remove({ id })
+    const result = await remote.deleteRecord({ id })
     if (!result.ok) {
       store.update((next) => {
         next.error = errorKeyOf(result.error.code)

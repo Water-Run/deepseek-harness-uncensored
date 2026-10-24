@@ -48,7 +48,7 @@ async function bench() {
       create: createMemory,
       update: vi.fn(),
       setStatus: vi.fn(),
-      remove: removeMemory,
+      deleteRecord: removeMemory,
     },
   })
   await ctx.plugin({ inject: [...settingsInject], apply: settingsApply }).await()
@@ -93,7 +93,7 @@ describe('ui-settings-memory apply', () => {
     expect(listMemory).not.toHaveBeenCalled()
 
     const entry = slots.entries('settings.general.item')[0]
-    const face = (entry?.inject as () => MemoryRowFace)()
+    const face = (entry?.inject as () => MemoryRowFace & Record<string, unknown>)()
     await face.open()
     expect(describeMemory).toHaveBeenCalledOnce()
     expect(listMemory).toHaveBeenCalledOnce()
@@ -114,7 +114,7 @@ describe('ui-settings-memory apply', () => {
     const fiber = await ctx.plugin({ inject: [...inject], apply }).await()
     await vi.waitFor(() => { expect(slots.entries('settings.general.item')).toHaveLength(1) })
     const entry = slots.entries('settings.general.item')[0]
-    const face = (entry?.inject as () => MemoryRowFace)()
+    const face = (entry?.inject as () => MemoryRowFace & Record<string, unknown>)()
     await face.saveDraft()
     expect(face.hooks.memories.getSnapshot().error).toBeUndefined()
 
@@ -134,7 +134,7 @@ describe('ui-settings-memory apply', () => {
     } as never)
     const fiber = await ctx.plugin({ inject: [...inject], apply }).await()
     await vi.waitFor(() => { expect(slots.entries('settings.general.item')).toHaveLength(1) })
-    const face = (slots.entries('settings.general.item')[0]?.inject as () => MemoryRowFace)()
+    const face = (slots.entries('settings.general.item')[0]?.inject as () => MemoryRowFace & Record<string, unknown>)()
     await face.open()
     expect(face.hooks.memories.getSnapshot().error).toBe('unavailable')
     await fiber.dispose()

@@ -33,6 +33,19 @@ describe('Switch', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 
+  it('reports a write in flight as busy and refuses input meanwhile', () => {
+    const onChange = vi.fn()
+    const { rerender } = render(<Switch checked busy label="Toggle" onChange={onChange} />)
+    const control = screen.getByRole('switch')
+    expect(control.getAttribute('aria-busy')).toBe('true')
+    fireEvent.click(control)
+    expect(onChange).not.toHaveBeenCalled()
+    rerender(<Switch checked label="Toggle" onChange={onChange} />)
+    expect(control.hasAttribute('aria-busy')).toBe(false)
+    fireEvent.click(control)
+    expect(onChange).toHaveBeenCalledWith(false)
+  })
+
   it('carries a lock reason as the hover title when the owner names one', () => {
     render(<Switch checked={false} disabled label="Toggle" title="Managed by policy" onChange={() => {}} />)
     expect(screen.getByRole('switch').getAttribute('title')).toBe('Managed by policy')

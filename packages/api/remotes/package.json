@@ -68,6 +68,7 @@
     "@deepseek-ai/dsh-api-settings-controller": "workspace:*",
     "@deepseek-ai/dsh-api-workspace-controller": "workspace:*",
     "@deepseek-ai/dsh-api-memory-controller": "workspace:*",
+    "@deepseek-ai/dsh-api-mode-dossiers": "workspace:*",
     "@deepseek-ai/dsh-security-proxy": "workspace:*",
     "@deepseek-ai/dsh-security-proxy-local": "workspace:*",
     "@deepseek-ai/dsh-api-workspace-files": "workspace:*",

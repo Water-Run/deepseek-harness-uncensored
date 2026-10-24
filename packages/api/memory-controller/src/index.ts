@@ -168,7 +168,7 @@ export class MemoryController extends TypertRemoteService {
    * @param request - record identity.
    * @returns whether a record was deleted.
    */
-  @Remote('remove')
+  @Remote('deleteRecord')
   async remove(request: MemoryRemoveRequest): Promise<MemoryRemoveValue> {
     this.assertOwner()
     try {

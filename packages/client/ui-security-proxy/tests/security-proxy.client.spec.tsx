@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { allowAllAccess, bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+import type {} from '../src/client/index.ts'
 import type {
   SecurityProxyFlowDetail,
   SecurityProxyFlowSummary,
@@ -196,7 +197,7 @@ function renderSection(state: SecurityProxyViewState, modeId = 'security') {
     ...actions,
     modeId,
     usePanelInfo: unusedHook, useSessions: unusedHook, useSessionStatus: unusedHook, useSessionRetainInfo: unusedHook,
-    useWorkspaces: unusedHook, useResource: unusedHook, renderSlot: () => null,
+    useWorkspaces: unusedHook, useResource: unusedHook,
     ...allowAllAccess,
     useSecurityProxy: bindSnapshotSelector(store),
     t,
@@ -268,10 +269,9 @@ describe('proxy-off reminder', () => {
   it('paints the reminder only while the host reports one', () => {
     const store = createSnapshotStore<{ id: number } | null>({ id: 1 })
     const props: SecurityProxyWarningProps = {
-      hooks: { securityProxyWarning: store },
       dismissWarning: vi.fn(),
       usePanelInfo: unusedHook, useSessions: unusedHook, useSessionStatus: unusedHook, useSessionRetainInfo: unusedHook,
-      useWorkspaces: unusedHook, useResource: unusedHook, renderSlot: () => null,
+      useWorkspaces: unusedHook, useResource: unusedHook,
       ...allowAllAccess,
       useSecurityProxyWarning: bindSnapshotSelector(store),
       t,

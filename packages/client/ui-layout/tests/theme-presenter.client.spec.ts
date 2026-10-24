@@ -50,6 +50,34 @@ beforeEach(() => {
 afterEach(clearThemePresentation)
 
 describe('ThemePresenter', () => {
+  it('ignores delayed theme writes after replacement or disposal', () => {
+    const updates: (() => void)[] = []
+    Object.assign(document, {
+      startViewTransition: (update: () => void) => {
+        updates.push(update)
+        return { finished: Promise.resolve(), skipTransition: vi.fn() }
+      },
+    })
+    vi.stubGlobal('matchMedia', () => ({ matches: false }))
+    const presenter = new ThemePresenter()
+    try {
+      presenter.apply(snapshot('light'))
+      presenter.apply(snapshot('dark'))
+      presenter.apply(snapshot('dark', {}, 20))
+      for (const update of updates.splice(0)) update()
+      expect(document.body.style.getPropertyValue('--dsh-content-font-size')).toBe('20px')
+      presenter.apply(snapshot('light'))
+      presenter.dispose()
+      for (const update of updates) update()
+      expect(document.documentElement.style.colorScheme).toBe('')
+      expect(themeColorMeta()).toBeNull()
+    } finally {
+      presenter.dispose()
+      Reflect.deleteProperty(document, 'startViewTransition')
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('light scheme sets root color-scheme and leaves the dark attribute absent', () => {
     const presenter = new ThemePresenter()
     presenter.apply(snapshot('light'))

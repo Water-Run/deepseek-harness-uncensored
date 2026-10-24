@@ -14,7 +14,7 @@ export class TranscriptViewPolicy {
   private readonly unsubscribe: () => void
   /** Reactive current mode, including the client default before Host settings arrive. */
   readonly mode: SnapshotStore<TranscriptViewMode>
-  /** Reactive collapse timing, defaulting to completion until Host settings arrive. */
+  /** Reactive collapse timing, defaulting to the next message until Host settings arrive. */
   readonly collapseTiming: SnapshotStore<CollapseTiming> = createSnapshotStore<CollapseTiming>(DEFAULT_COLLAPSE_TIMING)
 
   /**

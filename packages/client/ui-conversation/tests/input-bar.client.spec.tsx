@@ -60,6 +60,7 @@ function snapshotOf(overrides: Partial<SessionSnapshot> = {}): SessionSnapshot {
 }
 
 interface BenchOptions {
+  predictDraft?: NonNullable<InputBarProps['predictDraft']>
   planEntry?: React.ReactNode
   /** The `plan` projection value the standard-kit useProjection serves. */
   plan?: { active: boolean; pending: boolean }
@@ -176,6 +177,7 @@ function bench(over?: BenchOptions) {
     return null
   }) as never
   const props: InputBarProps = {
+    ...(over?.predictDraft === undefined ? {} : { predictDraft: over.predictDraft }),
     usePanelInfo: selector => selector({ activePanelId: null }),
     sessionId: SID,
     SessionProvider: ({ children }) => children,
@@ -260,6 +262,66 @@ function bench(over?: BenchOptions) {
     get inputDisabled() { return textarea.getAttribute('aria-disabled') === 'true' },
   }
 }
+
+describe('input suggestions', () => {
+  function enable() {
+    const previous = localStorage.getItem('dsh.uncensored.prediction')
+    localStorage.setItem('dsh.uncensored.prediction', '1')
+    vi.useFakeTimers()
+    onTestFinished(() => {
+      if (previous === null) localStorage.removeItem('dsh.uncensored.prediction')
+      else localStorage.setItem('dsh.uncensored.prediction', previous)
+      vi.useRealTimers()
+    })
+  }
+
+  it('cancels obsolete requests and accepts only the suffix for the current draft', async () => {
+    enable()
+    const first = Promise.withResolvers<string>(), second = Promise.withResolvers<string>()
+    const predict = vi.fn<NonNullable<InputBarProps['predictDraft']>>()
+      .mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
+    const b = bench({ draft: 'Please', predictDraft: predict })
+    await act(async () => { await vi.advanceTimersByTimeAsync(800) })
+    expect(predict).toHaveBeenCalledOnce()
+    act(() => { b.shell.setDraft('Now') })
+    expect(predict.mock.calls[0]?.[1].aborted).toBe(true)
+    await act(async () => { first.resolve(' obsolete'); await first.promise; await vi.advanceTimersByTimeAsync(800) })
+    expect(b.textarea.style.getPropertyValue('--dsh-composer-prediction')).toBe('')
+    await act(async () => { second.resolve(' continue'); await second.promise })
+    expect(b.textarea.style.getPropertyValue('--dsh-composer-prediction')).toBe('" continue"')
+    act(() => { b.shell.editor.update(() => { $getRoot().selectEnd() }, { discrete: true }) })
+    fireEvent.keyDown(b.textarea, { key: 'Tab' })
+    expect(b.shell.state.getSnapshot().draft).toBe('Now continue')
+    expect(b.sink).not.toHaveBeenCalled()
+  })
+
+  it('can fill an empty editable draft without submitting it', async () => {
+    enable()
+    const predict = vi.fn(async () => '继续检查')
+    const b = bench({ predictDraft: predict })
+    await act(async () => { await vi.advanceTimersByTimeAsync(800) })
+    expect(predict).toHaveBeenCalledWith('', expect.any(AbortSignal))
+    fireEvent.keyDown(b.textarea, { key: 'Tab' })
+    expect(b.shell.state.getSnapshot().draft).toBe('继续检查')
+    expect(b.sink).not.toHaveBeenCalled()
+  })
+
+  it('does not request suggestions for a disabled composer', async () => {
+    enable()
+    const predict = vi.fn(async () => ' unwanted')
+    bench({ disabled: true, draft: 'held', predictDraft: predict })
+    await act(async () => { await vi.advanceTimersByTimeAsync(800) })
+    expect(predict).not.toHaveBeenCalled()
+  })
+
+  it('leaves an already complete question alone instead of asking the model to answer it', async () => {
+    enable()
+    const predict = vi.fn(async () => 'an answer')
+    bench({ draft: 'What is entanglement?', predictDraft: predict })
+    await act(async () => { await vi.advanceTimersByTimeAsync(800) })
+    expect(predict).not.toHaveBeenCalled()
+  })
+})
 
 function attachmentOwner(slotCalls: readonly { key: string; owner: unknown }[]): ComposerAttachmentsOwnerProps {
   for (let i = slotCalls.length - 1; i >= 0; i -= 1) {

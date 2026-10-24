@@ -47,8 +47,6 @@
 
     - id: session-log-deepseek
       name: '@deepseek-ai/dsh-session-log-deepseek'
-      config:
-        enabled: false
 
     - id: typert
       name: '@deepseek-ai/dsh-typert-registry'

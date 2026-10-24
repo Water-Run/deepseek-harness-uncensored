@@ -146,15 +146,15 @@ describe('Chat inject API', () => {
       const setCollapseTiming = preference.setCollapseTiming as TranscriptViewRowInjected['setCollapseTiming']
       const { injected } = b.chatViewApi(b.rootReference)
       const presentation = injected.hooks.presentation
-      expect(presentation.getSnapshot()).toMatchObject({ mode: 'detailed', collapseTiming: 'completion' })
-      setCollapseTiming('next-input')
-      expect(presentation.getSnapshot()).toMatchObject({ mode: 'detailed', collapseTiming: 'next-input' })
-      expect(b.chatSettings.set).toHaveBeenCalledWith('collapseTiming', 'next-input')
-      b.chatSettings.publish({ status: 'ready', value: { linkOpening: 'sidebar', transcriptView: 'standard', performanceUsage: 'detailed', collapseTiming: 'next-input' }, revision: 1, writable: true })
-      expect(presentation.getSnapshot()).toMatchObject({ mode: 'standard', collapseTiming: 'next-input' })
+      expect(presentation.getSnapshot()).toMatchObject({ mode: 'verbose', collapseTiming: 'next-input' })
       setCollapseTiming('completion')
+      expect(presentation.getSnapshot()).toMatchObject({ mode: 'verbose', collapseTiming: 'completion' })
+      expect(b.chatSettings.set).toHaveBeenCalledWith('collapseTiming', 'completion')
+      b.chatSettings.publish({ status: 'ready', value: { linkOpening: 'sidebar', transcriptView: 'standard', performanceUsage: 'detailed', collapseTiming: 'completion' }, revision: 1, writable: true })
       expect(presentation.getSnapshot()).toMatchObject({ mode: 'standard', collapseTiming: 'completion' })
-      expect(b.chatSettings.set).toHaveBeenLastCalledWith('collapseTiming', 'completion')
+      setCollapseTiming('next-input')
+      expect(presentation.getSnapshot()).toMatchObject({ mode: 'standard', collapseTiming: 'next-input' })
+      expect(b.chatSettings.set).toHaveBeenLastCalledWith('collapseTiming', 'next-input')
       expect(b.session.prompt).not.toHaveBeenCalled()
       expect(b.session.cancel).not.toHaveBeenCalled()
     } finally {

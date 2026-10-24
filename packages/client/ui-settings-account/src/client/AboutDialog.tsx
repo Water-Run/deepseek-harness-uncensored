@@ -1,9 +1,10 @@
 /** Build identity and this fork's GitHub release status. */
 import { useEffect, useState } from 'react'
-import { FishLogo, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, FishLogo, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { AccountMenuProps } from './AccountMenu.tsx'
 import { GitHubIcon } from './GitHubIcon.tsx'
 import { loadForkRelease, type ReleaseNotice } from './release-status.ts'
+import { publicContactConfig } from './public-config.ts'
 import css from './AboutDialog.module.css'
 
 const REPOSITORY = 'https://github.com/Water-Run/deepseek-harness-uncensored'
@@ -26,6 +27,7 @@ function statusText(notice: ReleaseNotice, t: AccountMenuProps['t']): string {
     case 'checking': return t('aboutChecking')
     case 'latest': return t('aboutLatest')
     case 'available': return t(notice.severity === 'major' ? 'aboutMajor' : notice.severity === 'minor' ? 'aboutMinor' : 'aboutPatch')
+    case 'unpublished': return t('aboutNoRelease')
     case 'offline': return t('aboutOffline')
     case 'failed': return t('aboutFailed')
     default: {
@@ -44,13 +46,15 @@ export function AboutDialog({ t, close }: { t: AccountMenuProps['t']; close: () 
   const commit = process.env.DSH_CLIENT_COMMIT_HASH
   const version = process.env.DSH_CLIENT_FORK_VERSION
   const [notice, setNotice] = useState<ReleaseNotice>({ phase: 'checking' })
+  const [check, setCheck] = useState(0)
   useEffect(() => {
     const controller = new AbortController()
-    void loadForkRelease((input, init) => fetch(input, { ...init, signal: controller.signal }), version ?? '').then((next) => {
+    setNotice({ phase: 'checking' })
+    void loadForkRelease(fetch, version ?? '', { signal: controller.signal, timeoutMs: publicContactConfig().releaseCheckTimeoutMs }).then((next) => {
       if (!controller.signal.aborted) setNotice(next)
     })
     return () => { controller.abort() }
-  }, [version])
+  }, [version, check])
   return <Modal open onClose={close} closeLabel={t('close')} title={t('about')}>
     <div className={css.content}>
       <div className={css.identity}>
@@ -58,6 +62,7 @@ export function AboutDialog({ t, close }: { t: AccountMenuProps['t']; close: () 
         <div>
           <p className={css.product}>{t('productName')}</p>
           <p className={css.status} data-phase={notice.phase} role="status">{t('aboutStatus')} · {statusText(notice, t)}{notice.phase === 'available' && notice.version !== undefined ? ` · ${notice.version}` : ''}</p>
+          <Button size="sm" variant="outline" disabled={notice.phase === 'checking'} onClick={() => { setCheck(value => value + 1) }}>{t('aboutCheck')}</Button>
         </div>
       </div>
       <section className={css.card}>

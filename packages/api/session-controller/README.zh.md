@@ -27,6 +27,10 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
+`session/predict` 为已有的活动对话生成未发送的短后缀。它读取主线已完成内容、旁问所属主线已完成内容，或仅为 `/btw` 读取交互状态。全新空白对话与完整问句不发起预测。`predictionDraftBytes`、`predictionContextBytes`、`predictionMaxTokens`、`predictionOutputBytes`、`predictionTimeoutMs` 限定输入、输出与请求时间。模型支持时关闭这次辅助请求的推理，不修改对话选定的推理等级。停止、归档、删除与控制器卸载会取消并等待预测结束。
+
+预测输入、准确模型路由、结果状态与已报告用量写入 `input/prediction` 审计事件。新增请求元数据为可选字段，旧记录仍可读取；建议不生成用户消息或助手回复。两套 SDK 保留审计而不改变主回复。挂载额度限制时，控制器按原有组合恢复自己持有的普通对话，并在持久化完成后确认续跑。
+
 永久删除对话会停止 API 持有的任务，等待所属子任务结束，并清理原生旁问、随问、存储、搜索条目、投影检查点和工作区引用。独立分支与工作区文件保留。其他运行时持有写入权时拒绝删除；中断后的清理可重试，启动时会继续清理已提交删除的关联数据。原生子对话创建与删除共用存储层互斥。部署可配置 `deleteDrainTimeoutMs` 和 `deletePollMs`。
 
 历史页与 follow opening 快照为每个持久 Session 事件携带一条 `{ type: 'event', event: SessionWireEvent }` record。Client 把每条已接受 record 保留为一个持久 `SessionEventLikeEntry`；Assistant token 边界保留在 `assistant/message` 或 `assistant/attempt` 的紧凑流内。工具参数、结果内容、失败信息和 `tool/result.data.meta` 原样通过；控制器不解析工具定义、不运行展示转换器，也不附加 UI 数据。

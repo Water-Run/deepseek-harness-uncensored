@@ -11,6 +11,8 @@ export interface ContactConfig {
   bonusAckRetryDelayMs: number
   /** Ceiling for the acknowledgement retry backoff. */
   bonusAckRetryMaxDelayMs: number
+  /** Deadline for one GitHub release check, including response parsing. */
+  releaseCheckTimeoutMs: number
 }
 /** Validate public questionnaire options. */
 export const ContactConfigFields = {
@@ -18,6 +20,7 @@ export const ContactConfigFields = {
   contactSource: z.string().default(''),
   bonusAckRetryDelayMs: z.number().min(1).default(1_000),
   bonusAckRetryMaxDelayMs: z.number().min(1).default(60_000),
+  releaseCheckTimeoutMs: z.natural().min(100).max(60_000).default(10_000),
 }
 /** Validate public questionnaire options. */
 export const ContactConfig: z<Partial<ContactConfig>, ContactConfig> = z.object(ContactConfigFields)

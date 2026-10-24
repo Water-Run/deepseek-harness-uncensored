@@ -190,18 +190,6 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
   }
 }
 
-declare module '@deepseek-ai/dsh-session/types' {
-  interface SessionEventMap {
-    /**
-     * The session's agent preset was chosen after creation. The owning domain is
-     * `@deepseek-ai/dsh-agent-preset-registry`; this provider restates the entry
-     * because it reads the committed selection to decide mode coverage and that
-     * package publishes no session subpath.
-     */
-    'agent-preset/selected': { agentPreset: string }
-  }
-}
-
 declare module '@deepseek-ai/cordis' {
   interface Events {
     /**

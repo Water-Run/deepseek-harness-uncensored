@@ -1,5 +1,6 @@
 /* The on/off appearance keys off aria-checked rather than a parallel class, so
  * the visual state cannot disagree with the state assistive technology reads.
+ * The on track uses the primary fill, which follows the conversation mode.
  *
  * The capsule track and circular thumb opt out of the global superellipse. */
 .switch {
@@ -14,15 +15,31 @@
   corner-shape: round;
   background: var(--dsw-alias-border-l3);
   cursor: pointer;
+  transition: background-color 200ms var(--ds-ease-in-out), opacity 200ms var(--ds-ease-in-out);
 }
 
 .switch[aria-checked='true'] {
-  background: var(--dsw-alias-brand-primary);
+  background: var(--dsw-alias-button-info-fill);
+}
+
+@media (hover: hover) {
+  .switch:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--dsw-alias-border-l3) 80%, var(--dsw-alias-label-primary));
+  }
+
+  .switch[aria-checked='true']:hover:not(:disabled) {
+    background: var(--dsw-alias-button-info-hover);
+  }
 }
 
 .switch:disabled {
-  cursor: default;
-  opacity: 0.5;
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.switch[aria-busy='true'] {
+  cursor: progress;
+  opacity: 1;
 }
 
 .switch:focus-visible {
@@ -32,12 +49,17 @@
 
 .thumb {
   display: block;
+  box-sizing: border-box;
   width: 16px;
   height: 16px;
-  border-radius: 50%;
+  border-radius: 999px;
   corner-shape: round;
-  background: var(--dsw-alias-label-primary-foreground);
-  transition: transform 120ms ease;
+  background: var(--dsw-static-neutral-bluish-00);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 22%);
+  transition:
+    transform 220ms cubic-bezier(0.34, 1.4, 0.64, 1),
+    width 160ms var(--ds-ease-in-out),
+    background-color 200ms var(--ds-ease-in-out);
 }
 
 .switch[aria-checked='false'] .thumb {
@@ -46,4 +68,22 @@
 
 .switch[aria-checked='true'] .thumb {
   transform: translateX(16px);
+}
+
+/* Pressing stretches the thumb toward its destination. */
+.switch:active:not(:disabled) .thumb { width: 20px; }
+.switch[aria-checked='true']:active:not(:disabled) .thumb { transform: translateX(12px); }
+
+/* A write in flight pulses the thumb instead of moving it. */
+.switch[aria-busy='true'] .thumb {
+  animation: switch-busy 900ms var(--ds-ease-in-out) infinite alternate;
+}
+
+@keyframes switch-busy {
+  to { opacity: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch, .thumb { transition: none; }
+  .switch[aria-busy='true'] .thumb { animation: none; opacity: 0.6; }
 }

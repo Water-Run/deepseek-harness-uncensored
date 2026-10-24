@@ -8,6 +8,7 @@
     "src"
   ],
   "references": [
+    { "path": "../../preset/agent-preset-registry" },
     {
       "path": "../../../vendor/cordis"
     },

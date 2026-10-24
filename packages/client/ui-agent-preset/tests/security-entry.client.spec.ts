@@ -563,7 +563,7 @@ describe('Security entry controller', () => {
     const { remote, controller } = setup()
     const mainland: SecurityProtectionStatus = { state: 'disabled', revision: 1, capabilities: ['mainland-domains'] }
     const targets: SecurityProtectionStatus = { state: 'disabled', revision: 1, capabilities: ['target-rules'] }
-    remote.begin.mockResolvedValueOnce(challenge(mainland)).mockResolvedValueOnce(challenge(mainland))
+    remote.begin.mockResolvedValueOnce(challenge(undefined, mainland)).mockResolvedValueOnce(challenge(undefined, mainland))
     try {
       const gate = controller.request(session)
       await flush()

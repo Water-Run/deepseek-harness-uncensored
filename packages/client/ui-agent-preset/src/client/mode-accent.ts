@@ -51,6 +51,7 @@ export function installModeAccent(currentMode: ObservableSnapshot<CurrentModeSta
   let pointer: { x: number; y: number; at: number } | undefined
   let shown: { sessionId: string | undefined; mode: AccentMode | undefined } | undefined
   let reveal: ViewTransition | undefined
+  let revision = 0
   const press = (event: PointerEvent): void => { pointer = { x: event.clientX, y: event.clientY, at: performance.now() } }
   const write = (mode: AccentMode | undefined): void => {
     if (mode === undefined) delete document.body.dataset.dshMode
@@ -66,6 +67,10 @@ export function installModeAccent(currentMode: ObservableSnapshot<CurrentModeSta
     const previous = shown
     shown = { sessionId: state.sessionId, mode }
     if (previous?.mode === mode && document.body.dataset.dshMode === mode) return
+    const current = ++revision
+    reveal?.skipTransition()
+    reveal = undefined
+    clearReveal()
     const spread = previous?.mode !== undefined && mode !== undefined && previous.sessionId === state.sessionId
       && typeof document.startViewTransition === 'function'
       && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -79,10 +84,9 @@ export function installModeAccent(currentMode: ObservableSnapshot<CurrentModeSta
     root.style.setProperty('--dsh-mode-reveal-x', `${String(origin.x)}px`)
     root.style.setProperty('--dsh-mode-reveal-y', `${String(origin.y)}px`)
     root.style.setProperty('--dsh-mode-reveal-radius', `${String(Math.ceil(origin.radius))}px`)
-    reveal?.skipTransition()
-    const transition = document.startViewTransition(() => { write(mode) })
+    const transition = document.startViewTransition(() => { if (revision === current) write(mode) })
     reveal = transition
-    // A skipped or superseded transition still applied its update; only the last one clears the origin.
+    // A skipped transition can finish after its replacement has started.
     void transition.finished.catch(() => undefined).finally(() => {
       if (reveal !== transition) return
       reveal = undefined
@@ -93,6 +97,7 @@ export function installModeAccent(currentMode: ObservableSnapshot<CurrentModeSta
   const stop = currentMode.subscribe(sync)
   sync()
   return () => {
+    revision += 1
     stop()
     document.removeEventListener('pointerdown', press, { capture: true })
     reveal?.skipTransition()

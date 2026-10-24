@@ -1,11 +1,12 @@
 /** Built-in spending admission for model streams and DeepSeek native search. */
 import type { Context } from '@deepseek-ai/cordis'
 import schema from '@deepseek-ai/schemastery'
-import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import { principalOf, Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type {} from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-web-search-deepseek'
 import { z } from 'zod'
-import { continueSpendSession } from './continuation.ts'
+import { SpendRecovery, type SpendContinuationHandler } from './continuation.ts'
+import type { SessionId } from '@deepseek-ai/dsh-session'
 import { SpendLedger } from './ledger.ts'
 import { SpendGate } from './gate.ts'
 import { DEFAULT_RATES } from './pricing.ts'
@@ -26,22 +27,39 @@ export const Config = schema.object({
 export const name = 'spend-limit'
 export const inject = ['llm']
 declare module '@deepseek-ai/cordis' { interface Context { spendLimit: SpendLimitRemote } }
-const continuations = new WeakMap<Promise<SpendGate>, (gate: SpendGate) => Promise<void>>()
+interface SpendRuntime { ready: Promise<SpendGate>; recovery: SpendRecovery }
 const count = z.number().int().nonnegative().safe()
 const usageSchema = z.object({ input_tokens: count, output_tokens: count,
   cache_read_input_tokens: count.optional(), cache_creation_input_tokens: count.optional() })
 
 /** Authenticated settings and observations; no request content or credentials are stored. */
 export class SpendLimitRemote extends TypertRemoteService {
-  /** @param ctx - Service owner. @param gate - Owned admission and accounting engine. */
-  constructor(ctx: Context, private readonly ready: Promise<SpendGate>) { super(ctx, 'spendLimit', { namespace: 'spending' }) }
-  private async continued(gate: SpendGate): Promise<void> { await continuations.get(this.ready)?.(gate) }
+  /** @param ctx - Service owner. @param runtime - Owned ledger and recovery worker. */
+  constructor(ctx: Context, private readonly runtime: SpendRuntime) { super(ctx, 'spendLimit', { namespace: 'spending' }) }
+  private assertOwner(action: string): void {
+    if (principalOf(this.ctx.invocation) !== undefined) throw new RemoteError('spending/owner-required',
+      'Only the application owner can change spending limits.', { action })
+  }
+  /**
+   * Register the lifecycle owner that captures and restores ordinary conversations.
+   * @param handler - Normal conversation restoration path.
+   * @param capture - Tests ownership of a live Session before creating a durable pause.
+   * @returns Cancelling, draining registration disposer.
+   */
+  registerContinuation(handler: SpendContinuationHandler, capture: (id: SessionId) => boolean): () => Promise<void> {
+    return this.runtime.recovery.register(handler, capture)
+  }
+  /**
+   * Discard recovery work for a deleted conversation.
+   * @param sessionId - Deleted conversation whose pending continuation must be discarded.
+   */
+  async forgetSession(sessionId: SessionId): Promise<void> { (await this.runtime.ready).ledger.clearSession(sessionId) }
   /**
    * Read the durable ledger; initialization failures remain visible to every caller.
    * @returns Shared limits, rolling totals and local waiters.
    */
   @Remote
-  async get(): Promise<SpendSnapshot> { const gate = await this.ready; return gate.ledger.snapshot(gate.waiting) }
+  async get(): Promise<SpendSnapshot> { const gate = await this.runtime.ready; return gate.ledger.snapshot(gate.waiting) }
   /**
    * Save user preferences across local processes.
    * @param preferences - Complete user limits.
@@ -49,9 +67,10 @@ export class SpendLimitRemote extends TypertRemoteService {
    */
   @Remote
   async configure(preferences: SpendPreferences): Promise<SpendSnapshot> {
-    const gate = await this.ready
+    this.assertOwner('spending/configure')
+    const gate = await this.runtime.ready
     gate.ledger.configure(preferences)
-    await this.continued(gate)
+    await this.runtime.recovery.flush(gate)
     return this.get()
   }
   /**
@@ -60,9 +79,10 @@ export class SpendLimitRemote extends TypertRemoteService {
    */
   @Remote
   async resume(): Promise<SpendSnapshot> {
-    const gate = await this.ready
+    this.assertOwner('spending/resume')
+    const gate = await this.runtime.ready
     gate.ledger.resume()
-    await this.continued(gate)
+    await this.runtime.recovery.flush(gate)
     return this.get()
   }
   /**
@@ -70,7 +90,13 @@ export class SpendLimitRemote extends TypertRemoteService {
    * @returns Remaining active reservations and settings.
    */
   @Remote
-  async reset(): Promise<SpendSnapshot> { (await this.ready).ledger.reset(); return this.get() }
+  async reset(): Promise<SpendSnapshot> {
+    this.assertOwner('spending/reset')
+    const gate = await this.runtime.ready
+    gate.ledger.reset()
+    await this.runtime.recovery.flush(gate)
+    return this.get()
+  }
 }
 
 /**
@@ -80,25 +106,20 @@ export class SpendLimitRemote extends TypertRemoteService {
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
   let closing = false
-  const ready = SpendLedger.open(config.path).then(ledger => new SpendGate(ledger, config.rates, config.pollMs))
+  const ready = SpendLedger.open(config.path)
+    .then(ledger => new SpendGate(ledger, config.rates, config.pollMs, id => recovery.canCapture(id)))
   void ready.catch((error) => { ctx.logger.error('spend-limit: ledger unavailable; paid requests remain blocked'); ctx.logger.error(error) })
-  const continuePaused = async (gate: SpendGate): Promise<void> => {
+  const recovery = new SpendRecovery((error) => {
+    ctx.logger.error('spend-limit: paused conversation remains pending; recovery failed')
+    ctx.logger.error(error)
+  })
+  let stopPolling: (() => void) | undefined
+  void ready.then((gate) => {
     if (closing) return
-    const ids = gate.ledger.claimBlockedSessions()
-    for (const id of ids) {
-      try {
-        const outcome = await continueSpendSession(ctx, id)
-        if (outcome === 'unavailable') gate.ledger.noteSession(id, 'blocked')
-      } catch (error) {
-        gate.ledger.noteSession(id, 'blocked')
-        ctx.logger.error('spend-limit: paused conversation was not resumed')
-        ctx.logger.error(error)
-      }
-    }
-  }
-  const timer = setInterval(() => { void ready.then(gate => continuePaused(gate)).catch(() => undefined) }, Math.max(config.pollMs, 1000))
-  continuations.set(ready, continuePaused)
-  const service = ctx.plugin(SpendLimitRemote, ready)
+    const timer = setInterval(() => { void recovery.flush(gate) }, config.pollMs)
+    stopPolling = () => { clearInterval(timer) }
+  }, () => { /* Initialization failure is reported above and blocks paid requests. */ })
+  const service = ctx.plugin(SpendLimitRemote, { ready, recovery })
   const stopStream = ctx.on('llm/stream', async function* (request, next) {
     const gate = await ready
     if (closing) throw new Error('spend-limit: service is closing')
@@ -118,13 +139,19 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   })
   ctx.effect(() => async () => {
     closing = true
-    clearInterval(timer)
+    stopPolling?.()
     stopStream(); stopSearch()
+    await recovery.close()
     // Failed initialization has already been reported; there is no owned handle to close.
     const gate = await ready.catch(() => undefined)
     await gate?.close()
     await service.dispose()
   }, 'spend-limit: admission and ledger')
   try { await service.await() }
-  catch (error) { closing = true; stopStream(); stopSearch(); await (await ready.catch(() => undefined))?.close(); throw error }
+  catch (error) {
+    closing = true; stopPolling?.(); stopStream(); stopSearch()
+    await recovery.close()
+    await (await ready.catch(() => undefined))?.close()
+    throw error
+  }
 }

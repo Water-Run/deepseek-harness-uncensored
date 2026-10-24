@@ -364,7 +364,7 @@ describe('ui-agent-preset apply', () => {
       await ctx.plugin({ inject: [...inject], apply }).await()
       const overlay = slots.entries('shell.overlay').find(entry => entry.options.id === 'security-entry')
       expect(overlay?.component).toBe(SecurityEntryDialog)
-      const injected = (overlay!.inject as () => SecurityEntryDialogInjected)()
+      const injected = (overlay!.inject as () => SecurityEntryDialogInjected & Record<string, unknown>)()
       remote.emit('agent-preset/security-entry', [{
         required: true, preset: 'security', acknowledged: false,
         protection: { state: 'unavailable', revision: 0, capabilities: [] },

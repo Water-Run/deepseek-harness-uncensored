@@ -13,11 +13,27 @@
   color: var(--dsw-alias-label-primary);
   background: transparent;
   padding: 0 14px;
+  transition:
+    background-color var(--ds-transition-duration-fast) var(--ds-ease-in-out),
+    border-color var(--ds-transition-duration-fast) var(--ds-ease-in-out),
+    color var(--ds-transition-duration-fast) var(--ds-ease-in-out),
+    opacity var(--ds-transition-duration) var(--ds-ease-in-out),
+    transform var(--ds-transition-duration-fast) var(--ds-ease-in-out);
+}
+
+/* Pressing settles the control slightly so a click reads as taken. */
+.button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .button:disabled {
   cursor: not-allowed;
   opacity: 0.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button { transition: none; }
+  .button:active:not(:disabled) { transform: none; }
 }
 
 .md {
@@ -58,6 +74,10 @@
 
 .outline:hover:not(:disabled) {
   background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.outline:active:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-active);
 }
 
 .toolbar {

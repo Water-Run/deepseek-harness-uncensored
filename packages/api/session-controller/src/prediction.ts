@@ -1,6 +1,8 @@
 /** Composer next-phrase prediction. The suggestion is not sent and does not enter the conversation surface. */
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { GenerateOptions, Message, StreamChunk } from '@deepseek-ai/dsh-llm'
+import { randomUUID } from 'node:crypto'
+import { boundContextSummary, createUserMessage, LlmError } from '@deepseek-ai/dsh-llm'
+import { brandString, type Branded } from '@deepseek-ai/dsh-brand'
+import type { ContextFormed, GenerateOptions, ReasoningEffortId, StreamChunk, TokenUsage, UserMessage } from '@deepseek-ai/dsh-llm'
 import type { Session, SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
 import { latestCompletedPrefixBoundary } from './commands.ts'
 import { mainProgressContext } from './aside-main-context.ts'
@@ -8,6 +10,15 @@ import { nativeAsideKind } from './aside-context.ts'
 
 /** Where the user is typing. */
 export type PredictionSurface = 'main' | 'side' | 'btw'
+/** Correlation identity of one background prediction request. */
+export type PredictionRequestId = Branded<'PredictionRequestId'>
+
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    /** Background completion instructions, not text submitted by the user. */
+    'input-prediction': { kind: 'input-prediction' } & ContextFormed
+  }
+}
 
 declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
@@ -23,6 +34,19 @@ declare module '@deepseek-ai/dsh-session/types' {
       readonly instruction: string
       readonly context: string
       readonly suggestion: string
+      /** Correlates a request and result across windows whose client revisions may overlap. */
+      readonly requestId?: PredictionRequestId
+      /** Exact provider route and model-visible input; absent in older prediction records. */
+      readonly request?: {
+        readonly provider: string
+        readonly model: string
+        readonly reasoningEffort?: ReasoningEffortId
+        readonly maxTokens: number
+        readonly message: UserMessage
+      }
+      readonly outcome?: 'completed' | 'cancelled' | 'failed'
+      /** Provider-reported counters, when available; failed or cancelled calls may be incomplete. */
+      readonly usage?: TokenUsage
     }
   }
 }
@@ -36,7 +60,7 @@ declare module '@deepseek-ai/dsh-session/types' {
  * @returns The scene whose instruction and context rules apply.
  */
 export function predictionSurface(sessionId: SessionId, parentId: SessionId | undefined, draft: string): PredictionSurface {
-  if (draft.trimStart().startsWith('/btw')) return 'btw'
+  if (/^\/btw(?:\s|$)/u.test(draft.trimStart())) return 'btw'
   return nativeAsideKind(sessionId, parentId) ?? 'main'
 }
 
@@ -48,11 +72,11 @@ export function predictionSurface(sessionId: SessionId, parentId: SessionId | un
 export function predictionInstruction(surface: PredictionSurface): string {
   switch (surface) {
     case 'main':
-      return 'Predict only the next words the user is about to type in the main composer. Return the completion suffix and nothing else.'
+      return 'Suggest the next short user message, or complete the existing draft. Return only a single-line suffix, preserving any leading space needed to join the draft. Do not answer the draft, repeat it, add a command prefix, or use Markdown.'
     case 'side':
-      return 'Predict only the next words of a side question about the completed main conversation. Return the completion suffix and nothing else.'
+      return 'Suggest a short side question about the completed main conversation, or complete the existing draft. Return only a single-line suffix, preserving any leading space needed to join the draft. Do not answer, repeat the draft, or add a command prefix.'
     case 'btw':
-      return 'Predict a short independent question, in the spirit of “进度如何”. Do not continue the main task. Return the completion suffix and nothing else.'
+      return 'Suggest a short independent question, in the spirit of “进度如何”, or complete the existing question. Return only a single-line suffix, preserving any leading space needed to join the draft. Do not answer, continue the main task, repeat the draft, or add /btw.'
     default: {
       const unreachable: never = surface
       return unreachable
@@ -67,6 +91,7 @@ export function predictionInstruction(surface: PredictionSurface): string {
  * @param events - Completed events only.
  * @param parentId - Main conversation, for a side question.
  * @param status - Live agent status. By-the-way prediction may see it; the answer still starts from a fresh context.
+ * @param maxBytes - Deployment bound for the logged context.
  * @returns Exact context logged with the request.
  */
 export function predictionContext(
@@ -74,9 +99,10 @@ export function predictionContext(
   events: readonly SessionEvent[],
   parentId: SessionId,
   status: string,
+  maxBytes: number,
 ): string {
   if (surface === 'btw') return `Interaction status: ${status}`
-  return mainProgressContext(parentId, events, 8192)
+  return mainProgressContext(parentId, events, maxBytes)
 }
 
 /**
@@ -94,41 +120,111 @@ export async function requestPrediction(input: {
   readonly provider: string
   readonly model: string
   readonly signal: AbortSignal
+  readonly maxTokens: number
+  readonly maxSuggestionBytes: number
+  readonly reasoningEffort?: ReasoningEffortId
   readonly stream: (options: GenerateOptions) => AsyncIterable<StreamChunk>
 }): Promise<string> {
+  input.signal.throwIfAborted()
   const instruction = predictionInstruction(input.surface)
   const prompt = `${instruction}\n\nBackground:\n${input.context}\n\nDraft:\n${input.draft}`
-  const messages: Message[] = [createUserMessage({
+  const message = createUserMessage({
     content: [{ type: 'text', text: prompt }],
-    source: { kind: 'user' },
-  })]
-  input.session.append('input/prediction', {
+    source: { kind: 'input-prediction', form: 'notice', summary: boundContextSummary('Composer input suggestion') },
+  })
+  const record = {
     surface: input.surface, phase: 'request', revision: input.revision, draft: input.draft,
     instruction, context: input.context, suggestion: '',
-  })
-  input.signal.throwIfAborted()
+    requestId: brandString<PredictionRequestId>(randomUUID()),
+  } as const
+  const request = { provider: input.provider, model: input.model, maxTokens: input.maxTokens, message,
+    ...input.reasoningEffort === undefined ? {} : { reasoningEffort: input.reasoningEffort } }
+  input.session.append('input/prediction', { ...record, request })
   let suggestion = ''
+  let usage: TokenUsage | undefined
+  let outcome: 'completed' | 'cancelled' | 'failed' = 'failed'
   try {
+    let finished = false
     for await (const chunk of input.stream({
       provider: input.provider,
       model: input.model,
-      messages,
-      maxTokens: 32,
+      messages: [message],
+      maxTokens: input.maxTokens,
+      ...input.reasoningEffort === undefined ? {} : { reasoningEffort: input.reasoningEffort },
       sessionId: input.session.id,
       signal: input.signal,
     })) {
       input.signal.throwIfAborted()
       if (chunk.type === 'text-delta') suggestion += chunk.text
+      if (chunk.type === 'usage') usage = chunk.usage
+      if (Buffer.byteLength(suggestion, 'utf8') > input.maxSuggestionBytes) throw new LlmError('Input suggestion exceeded its size limit.', 'PREDICTION_OUTPUT_LIMIT')
+      if (chunk.type === 'finish') {
+        if (chunk.reason.kind !== 'stop') throw new LlmError('Input suggestion did not finish successfully.', 'PREDICTION_INCOMPLETE')
+        finished = true
+      }
     }
+    input.signal.throwIfAborted()
+    if (!finished) throw new LlmError('Input suggestion ended without a completion record.', 'PREDICTION_INCOMPLETE')
+    suggestion = suggestion.split(/\r?\n/u)[0]?.trimEnd() ?? ''
+    if (input.draft === '') suggestion = suggestion.trimStart()
+    outcome = 'completed'
+    return suggestion
   } catch (error) {
-    if (!input.signal.aborted) throw error
     suggestion = ''
+    outcome = input.signal.aborted ? 'cancelled' : 'failed'
+    throw error
+  } finally {
+    input.session.append('input/prediction', { ...record, phase: 'result', suggestion, outcome, ...usage === undefined ? {} : { usage } })
   }
-  input.session.append('input/prediction', {
-    surface: input.surface, phase: 'result', revision: input.revision, draft: input.draft,
-    instruction, context: input.context, suggestion: input.signal.aborted ? '' : suggestion.trim(),
-  })
-  return input.signal.aborted ? '' : suggestion.trim()
+}
+
+/** Session-addressed background requests cancelled and drained before deletion or controller unload. */
+export class PredictionRequests {
+  private readonly requests = new Map<SessionId, Map<AbortController, Promise<unknown>>>()
+  private readonly stopping = new Set<SessionId>()
+  private closed = false
+
+  /**
+   * Retain background work until its cancellation and logging settle.
+   * @param id - Owning Session.
+   * @param signal - Client cancellation.
+   * @param operation - Cancellable model work.
+   * @returns The operation's result or failure.
+   */
+  run<T>(id: SessionId, signal: AbortSignal, operation: (signal: AbortSignal) => Promise<T>): Promise<T> {
+    if (this.closed || this.stopping.has(id)) return Promise.reject(new DOMException('Prediction service is stopping.', 'AbortError'))
+    const abort = new AbortController()
+    const owned = this.requests.get(id) ?? new Map<AbortController, Promise<unknown>>()
+    this.requests.set(id, owned)
+    const combined = AbortSignal.any([signal, abort.signal])
+    const task = Promise.resolve().then(() => { combined.throwIfAborted(); return operation(combined) }).finally(() => {
+      owned.delete(abort)
+      if (owned.size === 0 && this.requests.get(id) === owned) this.requests.delete(id)
+    })
+    owned.set(abort, task)
+    return task
+  }
+
+  /**
+   * Cancel and drain a Session's predictions before removing its writer.
+   * @param id - Session being stopped, archived or deleted.
+   * @returns After its requests finish logging.
+   */
+  async stop(id: SessionId): Promise<void> {
+    const owned = this.requests.get(id)
+    if (owned === undefined) return
+    this.stopping.add(id)
+    try {
+      for (const abort of owned.keys()) abort.abort()
+      await Promise.allSettled(owned.values())
+    } finally { this.stopping.delete(id) }
+  }
+
+  /** Reject new work and drain every outstanding request. */
+  async close(): Promise<void> {
+    this.closed = true
+    await Promise.all([...this.requests.keys()].map(id => this.stop(id)))
+  }
 }
 
 /**

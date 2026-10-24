@@ -49,16 +49,19 @@ export function DraftEditor({
           aria-label={ariaLabel}
           aria-haspopup={workspaceTrigger ? 'menu' : undefined}
           aria-expanded={workspaceTrigger ? workspacePickerOpen : undefined}
+          data-composer-prediction={prediction !== '' || undefined}
           tabIndex={workspaceTrigger ? 0 : undefined}
           onKeyDown={workspaceTrigger ? onWorkspaceKeyDown : undefined}
-          style={hint === null ? undefined : { '--dsh-composer-hint': JSON.stringify(hint) } as CSSProperties}
+          style={hint === null && prediction === '' ? undefined : {
+            ...hint === null ? {} : { '--dsh-composer-hint': JSON.stringify(hint) },
+            ...prediction === '' ? {} : { '--dsh-composer-prediction': JSON.stringify(prediction) },
+          } as CSSProperties}
         />
         {showPlaceholder && (
           <div aria-hidden className={css.placeholder} data-composer-placeholder>
             {placeholderText}
           </div>
         )}
-        {prediction !== '' && <div aria-hidden className={css.prediction}>{prediction}</div>}
         <DecoratorPortals editor={workspaceTrigger ? null : editor} />
       </div>
     </div>

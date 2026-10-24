@@ -22,7 +22,18 @@ it('snaps across currency marks and keeps two decimals while rolling', () => {
   expect(amountPrefix('$12.00')).toBe('$')
   expect(amountPrefix('<¥0.01')).toBe('<¥')
   expect(amountNumber('<¥0.01')).toBeUndefined()
+  expect(amountNumber('—')).toBeUndefined()
+  expect(amountNumber('')).toBeUndefined()
+  expect(amountNumber('-¥12.00')).toBe(-12)
   expect(amountNumber('¥1,234.50')).toBe(1234.5)
   expect(formatRolling('¥10.00', 1.2)).toBe('¥1.20')
   expect(formatRolling('-¥10.00', -1.5)).toBe('-¥1.50')
+})
+
+it('preserves brief balance peaks and troughs when reducing long histories', () => {
+  const data = Array.from({ length: 5000 }, (_, time) => ({ time, value: time === 2513 ? 100 : time === 3517 ? -100 : 0 }))
+  const points = balanceChart(data).points.split(' ')
+  expect(points.length).toBeLessThanOrEqual(120)
+  expect(points.some(point => point.endsWith(',12'))).toBe(true)
+  expect(points.some(point => point.endsWith(',98'))).toBe(true)
 })

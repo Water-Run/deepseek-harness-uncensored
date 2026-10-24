@@ -81,7 +81,7 @@ export function DesktopOnboarding({
   if (!state.visible || pageName === undefined) return null
   const click = (button_name: ProductEventMap['onboarding_page_click']['button_name']) => {
     const selected_content = step === 'purpose' && progress.purpose !== null ? ({ office: 'office', development: 'code', both: 'code_office' } as const)[progress.purpose]
-      : step === 'process' && progress.process !== null ? ({ compact: 'focus_result', standard: 'key_detail', detailed: 'full_process' } as const)[progress.process] : undefined
+      : step === 'process' && progress.process !== null ? ({ compact: 'focus_result', standard: 'key_detail', detailed: 'full_process', verbose: 'full_process' } as const)[progress.process] : undefined
     track?.('onboarding_page_click', { page_name: pageName, button_name, ...selected_content === undefined ? {} : { selected_content } })
   }
   const go = (next: 'welcome' | 'credit' | 'purpose' | 'process') => { void update({ step: next }) }

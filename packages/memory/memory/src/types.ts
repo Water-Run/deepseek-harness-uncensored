@@ -1,13 +1,13 @@
 /**
  * Public vocabulary of the cross-conversation memory domain: record identity,
- * user-facing classification, scope, provenance, and the retrieval result the
+ * user-facing classification, scope, source, and the retrieval result the
  * model-facing context is rendered from. Types only — the runtime lives in
  * `spec.ts`, `service.ts`, and `agent.ts`.
  * @module @deepseek-ai/dsh-memory/src/types
  */
 
 import type { Branded } from '@deepseek-ai/dsh-brand'
-import type { SessionId } from '@deepseek-ai/dsh-session'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 
 /** Stable identity of one memory record (a generated uuid, never reused). */
 export type MemoryId = Branded<'MemoryId'>

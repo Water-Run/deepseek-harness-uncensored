@@ -17,8 +17,8 @@ export const COLLAPSE_TIMINGS = ['completion', 'next-input'] as const
 /** When a completed Turn returns to its historical presentation. */
 export type CollapseTiming = typeof COLLAPSE_TIMINGS[number]
 
-/** Preserve completion-time folding when no timing preference is saved. */
-export const DEFAULT_COLLAPSE_TIMING: CollapseTiming = 'completion'
+/** Fold a completed Turn when the next message arrives unless a timing preference is saved. */
+export const DEFAULT_COLLAPSE_TIMING: CollapseTiming = 'next-input'
 
 /** Work-details presentation modes a user can choose. */
 export const TRANSCRIPT_VIEW_MODES = ['compact', 'standard', 'detailed', 'verbose'] as const
@@ -40,8 +40,8 @@ const TRANSCRIPT_VIEW_SETTING_VALUES = [
   ...TRANSCRIPT_VIEW_MODES, LEGACY_TRANSCRIPT_VIEW_MODE, LEGACY_EXPANDED_TRANSCRIPT_VIEW_MODE,
 ] as const
 
-/** Default work details for non-Desktop Web clients. */
-export const DEFAULT_TRANSCRIPT_VIEW_MODE: TranscriptViewMode = 'detailed'
+/** Default work details for Web and Desktop clients: every step fully expanded. */
+export const DEFAULT_TRANSCRIPT_VIEW_MODE: TranscriptViewMode = 'verbose'
 
 /** Performance and usage detail levels accepted by user settings. */
 export const PERFORMANCE_USAGE_MODES = ['compact', 'detailed'] as const
@@ -62,7 +62,7 @@ export const DEFAULT_LINK_OPENING: LinkOpening = 'sidebar'
 export interface ChatSettings {
   /** Work-details preference; absence uses the client default, and legacy saved values remain accepted. */
   transcriptView?: TranscriptViewMode | typeof LEGACY_TRANSCRIPT_VIEW_MODE | typeof LEGACY_EXPANDED_TRANSCRIPT_VIEW_MODE | null
-  /** Independent collapse timing; absence preserves completion-time folding. */
+  /** Independent collapse timing; absence folds at the next message. */
   collapseTiming?: CollapseTiming
   /** Detail level for composer statistics and completed-Turn usage. */
   performanceUsage: PerformanceUsageMode

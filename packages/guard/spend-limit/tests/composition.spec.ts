@@ -11,6 +11,31 @@ import type { StreamChunk } from '@deepseek-ai/dsh-llm'
 import * as spending from '../src/index.ts'
 import { DEFAULT_PREFERENCES } from '../src/ledger.ts'
 import { DEFAULT_RATES } from '../src/pricing.ts'
+import type { PeerId, RemoteInvocation } from '@deepseek-ai/dsh-typert-protocol'
+
+declare module '@deepseek-ai/dsh-typert-protocol' {
+  interface PrincipalMap { 'spending-viewer-test': { kind: 'spending-viewer-test' } }
+}
+
+it('refuses budget mutations from an agent or delegated viewer', async () => {
+  const ctx = new Context()
+  try {
+    await ctx.plugin(LlmRuntime)
+    await ctx.plugin(spending, { path: ':memory:', pollMs: 50, rates: DEFAULT_RATES }).await()
+    const invocation: RemoteInvocation = {
+      request: { namespace: 'spending', method: 'configure', args: {} }, service: 'spendLimit',
+      peer: { id: 'spending-viewer' as PeerId, ctx, principal: { kind: 'spending-viewer-test' }, interactions: 'answer',
+        signal: new AbortController().signal, dispose: async () => {} },
+      signal: new AbortController().signal,
+      uplink: <In>(): AsyncIterable<In> => ({ [Symbol.asyncIterator]: () => ({ next: async () => ({ done: true, value: undefined }) }) }),
+    }
+    const viewer = ctx.extend({ invocation }).spendLimit
+    await expect(viewer.configure({ ...DEFAULT_PREFERENCES, enabled: true })).rejects.toMatchObject({ code: 'spending/owner-required' })
+    await expect(viewer.resume()).rejects.toMatchObject({ code: 'spending/owner-required' })
+    await expect(viewer.reset()).rejects.toMatchObject({ code: 'spending/owner-required' })
+    expect((await ctx.spendLimit.get()).preferences).toEqual(DEFAULT_PREFERENCES)
+  } finally { await ctx.fiber.dispose() }
+})
 
 async function consume(stream: AsyncIterable<StreamChunk>): Promise<void> {
   for await (const _chunk of stream) { /* Consume the complete provider lifecycle. */ }

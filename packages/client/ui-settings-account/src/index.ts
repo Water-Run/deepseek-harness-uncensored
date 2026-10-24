@@ -25,10 +25,7 @@ export interface Config extends ContactConfig {
 
 /** Configuration projected through the account plugin's shared form. */
 export const Config = z.object({
-  contactFormUrl: ContactConfigFields.contactFormUrl,
-  contactSource: ContactConfigFields.contactSource,
-  bonusAckRetryDelayMs: ContactConfigFields.bonusAckRetryDelayMs,
-  bonusAckRetryMaxDelayMs: ContactConfigFields.bonusAckRetryMaxDelayMs,
+  ...ContactConfigFields,
   version: OnboardingSettingsFields.version.volatile(),
   step: OnboardingSettingsFields.step.volatile(),
   purpose: OnboardingSettingsFields.purpose.volatile(),
@@ -51,6 +48,7 @@ export function apply(ctx: Context, config: Config): void {
     table.push({ kind: 'global', name: CONTACT_CONFIG_GLOBAL, value: {
       contactFormUrl: config.contactFormUrl, contactSource: config.contactSource,
       bonusAckRetryDelayMs: config.bonusAckRetryDelayMs, bonusAckRetryMaxDelayMs: config.bonusAckRetryMaxDelayMs,
+      releaseCheckTimeoutMs: config.releaseCheckTimeoutMs,
     } satisfies ContactConfig })
   })
 }

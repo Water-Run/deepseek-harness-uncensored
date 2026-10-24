@@ -44,6 +44,8 @@ The root publishes `--dsh-frame-top-clearance` for the reserved strip (48px on m
 
 ### Theme presentation
 
+Only the latest snapshot may apply its transition callback. Disposal invalidates pending callbacks, so they cannot restore removed theme attributes or metadata.
+
 The presenter consumes resolved theme snapshots and projects them onto the document: `html { color-scheme }` for native UA chrome, `body[data-ds-dark-theme]` from the active color scheme, the theme's alias tokens, `--dsh-content-font-size`, `--dsh-code-font-size`, `--dsh-terminal-font-size`, and each non-empty `--dsh-font-family-<role>` list as inline variables on body, and one owned `<meta name="theme-color">` whose content follows the computed body background. `html[data-ds-theme-source]` reads `system` while the palette follows the operating system (the `system` preference, or `sun` without a location estimate) and the resolved scheme otherwise. A light/dark change after the first snapshot runs inside a view transition marked by `html[data-dsh-theme-reveal]`: a circle spreads from a pointer press made within the last two seconds, otherwise the palettes cross-fade; reduced motion and engines without view transitions switch at once. Disposing the presenter removes its metadata node, its pointer listener, and any running transition with its other global writes.
 
 -----

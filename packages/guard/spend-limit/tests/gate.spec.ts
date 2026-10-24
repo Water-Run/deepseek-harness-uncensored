@@ -15,7 +15,7 @@ afterEach(async () => { await Promise.all(gates.splice(0).map(gate => gate.close
 async function setup() {
   const ledger = await SpendLedger.open(':memory:')
   ledger.configure({ ...DEFAULT_PREFERENCES, enabled: true, autoResume: true })
-  const gate = new SpendGate(ledger, DEFAULT_RATES, 1)
+  const gate = new SpendGate(ledger, DEFAULT_RATES, 1, () => true)
   gates.push(gate)
   return gate
 }
@@ -120,7 +120,7 @@ it('clears a cancelled conversation and blocks it when the process shuts down', 
   const path = join(directory, 'budget.sqlite')
   const ledger = await SpendLedger.open(path)
   ledger.configure({ ...DEFAULT_PREFERENCES, enabled: true, autoResume: true })
-  const gate = new SpendGate(ledger, DEFAULT_RATES, 1)
+  const gate = new SpendGate(ledger, DEFAULT_RATES, 1, () => true)
   const sessionId = brandString<SessionId>('paused-conversation')
   try {
     const admitted = ledger.reserve(4_000_000)
@@ -176,6 +176,23 @@ it('preserves an actual admission wait when its Agent is disposed before the gat
   abort.abort({ kind: 'disposed' })
   await rejected
   expect(gate.ledger.snapshot().pausedSessions).toEqual([{ sessionId, state: 'blocked' }])
+})
+
+it('keeps an unowned runtime out of automatic conversation recovery', async () => {
+  const ledger = await SpendLedger.open(':memory:')
+  ledger.configure({ ...DEFAULT_PREFERENCES, enabled: true })
+  const gate = new SpendGate(ledger, DEFAULT_RATES, 1, () => false)
+  gates.push(gate)
+  const held = ledger.reserve(4_000_000)
+  if (held.kind !== 'reserved') throw new Error(held.kind)
+  const abort = new AbortController()
+  const pending = consume(gate.stream(markAgentLoopRequest({ ...request(abort.signal), sessionId: brandString<SessionId>('foreign-agent') }), success))
+  const rejected = expect(pending).rejects.toThrow()
+  await vi.waitFor(() => { expect(gate.waiting).toBe(1) })
+  expect(ledger.snapshot().pausedSessions).toEqual([])
+  abort.abort({ kind: 'disposed' })
+  await rejected
+  expect(ledger.snapshot().pausedSessions).toEqual([])
 })
 
 it('prices a full-context reservation and disjoint cached counters', () => {

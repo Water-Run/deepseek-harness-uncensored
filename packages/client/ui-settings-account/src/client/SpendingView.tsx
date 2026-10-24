@@ -20,18 +20,31 @@ const money = (value: number): string => `¥${value.toFixed(value < 0.01 && valu
 
 function PredictionSwitch({ t }: { t: Common['t'] }) {
   const [enabled, setEnabled] = useState(false)
+  const [failed, setFailed] = useState(false)
   useEffect(() => {
-    try { setEnabled(localStorage.getItem('dsh.uncensored.prediction') === '1') } catch { setEnabled(false) }
+    const read = (): void => {
+      try { setEnabled(localStorage.getItem('dsh.uncensored.prediction') === '1'); setFailed(false) }
+      catch (error) { setEnabled(false); setFailed(true); console.warn('[prediction] preference is unavailable', error) }
+    }
+    read()
+    window.addEventListener('storage', read)
+    window.addEventListener('dsh-prediction', read)
+    return () => { window.removeEventListener('storage', read); window.removeEventListener('dsh-prediction', read) }
   }, [])
-  return <div className={css.row}><div><span>{t('spending.prediction')}</span><p className={css.hint}>{t('spending.predictionHint')}</p></div><Switch label={t('spending.prediction')} checked={enabled} onChange={(value) => {
-    setEnabled(value)
-    try { localStorage.setItem('dsh.uncensored.prediction', value ? '1' : '0') } catch { /* The switch still reflects this page. */ }
+  return <div className={css.row}><div><span>{t('spending.prediction')}</span><p className={css.hint}>{t('spending.predictionHint')}</p>{failed && <p role="alert" className={css.hint}>{t('spending.predictionUnavailable')}</p>}</div><Switch label={t('spending.prediction')} checked={enabled} onChange={(value) => {
+    try { localStorage.setItem('dsh.uncensored.prediction', value ? '1' : '0') }
+    catch (error) { setFailed(true); console.warn('[prediction] could not save preference', error); return }
+    setEnabled(value); setFailed(false)
     window.dispatchEvent(new Event('dsh-prediction'))
   }} /></div>
 }
 
 function Status({ data, t }: { data: SpendSnapshot; t: Common['t'] }) {
-  return <span>{t(!data.preferences.enabled ? 'spending.off' : data.paused ? 'spending.paused' : data.waiting > 0 ? 'spending.waiting' : 'spending.active', { count: data.waiting })}</span>
+  return <span>{t(!data.preferences.enabled ? 'spending.off' : hasBlockedSessions(data) ? 'spending.paused' : data.waiting > 0 ? 'spending.waiting' : 'spending.active', { count: data.waiting })}</span>
+}
+
+function hasBlockedSessions(data: SpendSnapshot): boolean {
+  return data.paused || data.pausedSessions.some(session => session.state === 'blocked')
 }
 
 function WindowBar({ window, label, t }: { window: SpendWindow; label: string; t: Common['t'] }) {
@@ -63,8 +76,8 @@ export function SpendingSettings({ useSpending, configureSpending, resetSpending
     <div className={css.row}><span>{t('spending.enabled')}</span><Switch label={t('spending.enabled')} checked={data.preferences.enabled} disabled={state.saving} onChange={(value) => { void configureSpending({ ...data.preferences, enabled: value }) }} /></div>
     <div className={css.row}><div><span>{t('spending.auto')}</span><p className={css.hint}>{t('spending.autoHint')}</p></div><Switch label={t('spending.auto')} checked={data.preferences.autoResume} disabled={state.saving} onChange={(value) => { void configureSpending({ ...data.preferences, autoResume: value }) }} /></div>
     <PredictionSwitch t={t} />
-    <div className={css.status} role="status" data-paused={data.paused}><Status data={data} t={t} />{data.paused && <Button size="sm" disabled={state.saving} onClick={() => { void resumeSpending() }}>{t('spending.resume')}</Button>}</div>
-    {(data.pausedSessions?.length ?? 0) > 0 && <p className={css.hint}>{t('spending.pausedSessions', { count: data.pausedSessions?.length ?? 0 })}</p>}
+    <div className={css.status} role="status" data-paused={hasBlockedSessions(data)}><Status data={data} t={t} />{hasBlockedSessions(data) && <Button size="sm" disabled={state.saving} onClick={() => { void resumeSpending() }}>{t('spending.resume')}</Button>}</div>
+    {data.pausedSessions.length > 0 && <p className={css.hint}>{t('spending.pausedSessions', { count: data.pausedSessions.length })}</p>}
     <div className={css.grid}>{data.windows.map(window => <div className={css.card} key={window.period}>
       <WindowBar window={window} label={t(`spending.${window.period}`)} t={t} />
       <div className={css.row}><label htmlFor={`${id}-${window.period}`}>{t('spending.limit', { period: t(`spending.${window.period}`) })}</label><Input id={`${id}-${window.period}`} type="number" min={0.000001} max={1_000_000} step="any" value={draft[window.period] ?? String(window.limit)} disabled={state.saving} onChange={(event) => { setDraft(current => ({ ...current, [window.period]: event.target.value })) }} /></div>
@@ -89,6 +102,6 @@ export function SpendingToast({ useSpending, dismissSpendingToast, t }: PropsRun
 /** @param props - Shared spending state. @returns Persistent feedback while admission waits. */
 export function SpendingSidebar({ useSpending, wide, t }: PropsRuntime<'sidebar.footer.action'> & Common) {
   const data = useSpending(value => value.data)
-  if (!data?.preferences.enabled || (!data.paused && data.waiting === 0)) return null
+  if (!data?.preferences.enabled || (!hasBlockedSessions(data) && data.waiting === 0)) return null
   return <div className={css.sidebar} role="status" aria-label={t('spending.title')}>{wide ? <Status data={data} t={t} /> : '¥'}</div>
 }

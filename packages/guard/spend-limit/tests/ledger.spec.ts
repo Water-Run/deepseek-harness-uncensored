@@ -3,7 +3,8 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { DEFAULT_PREFERENCES, MICRO_CNY, SpendLedger } from '../src/ledger.ts'
+import { SessionId } from '@deepseek-ai/dsh-session'
+import { DEFAULT_PREFERENCES, MICRO_CNY, SCHEMA_VERSION, SpendLedger } from '../src/ledger.ts'
 import type { SpendAdmission } from '../src/ledger.ts'
 
 const handles: SpendLedger[] = []
@@ -122,10 +123,10 @@ it('keeps a live process waiting and promotes only a dead process to blocked', a
   const path = join(directory, 'budget.sqlite')
   const live = await setup(path, () => 1000, pid => pid === process.pid)
   enable(live, false)
-  live.noteSession('dead-task', 'waiting')
-  live.noteSession('live-task', 'waiting')
+  live.waitForSession(SessionId('dead-task'), MICRO_CNY)
+  live.waitForSession(SessionId('live-task'), MICRO_CNY)
   const external = new DatabaseSync(path)
-  external.prepare('UPDATE session_pauses SET pid = ? WHERE session_id = ?').run(999_999, 'dead-task')
+  external.prepare('UPDATE session_pauses SET pid = ?, owner = ? WHERE session_id = ?').run(999_999, 'dead-owner', 'dead-task')
   external.close()
   expect(live.snapshot().pausedSessions).toEqual([
     { sessionId: 'dead-task', state: 'blocked' },
@@ -139,15 +140,24 @@ it('keeps a live process waiting and promotes only a dead process to blocked', a
 })
 
 it('claims blocked conversations only after the manual pause is clear and a window has room', async () => {
-  const ledger = await setup(':memory:', () => 1000, () => false)
+  let now = 1000
+  const ledger = await setup(':memory:', () => now)
   enable(ledger, false)
-  ledger.noteSession('paused-task', 'waiting')
+  const pauseId = ledger.waitForSession(SessionId('paused-task'), 2 * MICRO_CNY)
+  ledger.blockSession(pauseId)
   ledger.settle(reservation(ledger.reserve(4 * MICRO_CNY)), 4 * MICRO_CNY)
   expect(ledger.reserve(2 * MICRO_CNY)).toEqual({ kind: 'waiting', reason: 'limit' })
   expect(ledger.snapshot().paused).toBe(true)
   expect(ledger.claimBlockedSessions()).toEqual([])
   ledger.resume()
-  expect(ledger.claimBlockedSessions()).toEqual(['paused-task'])
+  expect(ledger.claimBlockedSessions()).toEqual([])
+  now += 900001
+  expect(ledger.claimBlockedSessions()).toEqual([])
+  ledger.resume()
+  expect(ledger.claimBlockedSessions()).toEqual([{ id: pauseId, sessionId: 'paused-task' }])
+  expect(ledger.claimBlockedSessions()).toEqual([])
+  expect(ledger.snapshot().pausedSessions).toEqual([{ sessionId: 'paused-task', state: 'blocked' }])
+  ledger.completeClaim(pauseId)
   expect(ledger.snapshot().pausedSessions).toEqual([])
 })
 
@@ -160,4 +170,81 @@ it('rejects malformed persisted preferences without resetting them', async () =>
   try { db.prepare('UPDATE preferences SET value = ?').run('{"broken":true}') }
   finally { db.close() }
   await expect(SpendLedger.open(path)).rejects.toThrow()
+})
+
+it('retains recovery claims across handles until acknowledgement or owner release', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'dshu-spending-claims-')); directories.push(directory)
+  const path = join(directory, 'budget.sqlite')
+  const first = await setup(path), second = await setup(path)
+  const sessionId = SessionId('recover-me')
+  const id = first.waitForSession(sessionId, MICRO_CNY)
+  first.blockSession(id)
+  expect(first.claimBlockedSessions()).toEqual([{ id, sessionId }])
+  expect(second.claimBlockedSessions()).toEqual([])
+  first.releaseClaim(id)
+  expect(second.claimBlockedSessions()).toEqual([{ id, sessionId }])
+  first.completeClaim(id)
+  expect(second.snapshot().pausedSessions).toHaveLength(1)
+  second.close()
+  expect(first.claimBlockedSessions()).toEqual([{ id, sessionId }])
+  first.completeClaim(id)
+  expect(first.snapshot().pausedSessions).toEqual([])
+})
+
+it('migrates legacy pauses without automatically executing an unclassified old request', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'dshu-spending-migrate-')); directories.push(directory)
+  const path = join(directory, 'budget.sqlite')
+  const previous = await setup(path)
+  previous.configure({ ...DEFAULT_PREFERENCES, enabled: true, autoResume: true })
+  previous.close()
+  const db = new DatabaseSync(path)
+  try {
+    db.exec('DROP TABLE session_pauses; CREATE TABLE session_pauses (session_id TEXT PRIMARY KEY, state TEXT NOT NULL, pid INTEGER NOT NULL, updated_at INTEGER NOT NULL) STRICT; PRAGMA user_version = 1')
+    db.prepare("INSERT INTO session_pauses VALUES ('legacy', 'waiting', ?, 1000)").run(process.pid)
+  } finally { db.close() }
+  const migrated = await setup(path)
+  expect(migrated.snapshot().preferences.autoResume).toBe(true)
+  expect(migrated.snapshot().pausedSessions).toEqual([{ sessionId: 'legacy', state: 'blocked' }])
+  expect(migrated.claimBlockedSessions()).toEqual([])
+  migrated.configure(migrated.snapshot().preferences)
+  migrated.reset()
+  expect(migrated.claimBlockedSessions()).toEqual([])
+  migrated.resume()
+  expect(migrated.claimBlockedSessions()).toEqual([{ id: expect.any(String), sessionId: 'legacy' }])
+  const inspect = new DatabaseSync(path)
+  try { expect(inspect.prepare('PRAGMA user_version').get()?.user_version).toBe(SCHEMA_VERSION) }
+  finally { inspect.close() }
+})
+
+it('keeps recovery manual when a dead reservation becomes an uncertain charge', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'dshu-spending-dead-charge-')); directories.push(directory)
+  const path = join(directory, 'budget.sqlite')
+  let now = 1000
+  const previous = await setup(path, () => now)
+  enable(previous, false)
+  reservation(previous.reserve(4 * MICRO_CNY))
+  const id = previous.waitForSession(SessionId('blocked-by-reservation'), 2 * MICRO_CNY)
+  previous.close()
+  const next = await setup(path, () => now)
+  expect(next.claimBlockedSessions()).toEqual([])
+  expect(next.snapshot().paused).toBe(true)
+  now += 900001
+  expect(next.claimBlockedSessions()).toEqual([])
+  next.resume()
+  expect(next.claimBlockedSessions()).toEqual([{ id, sessionId: 'blocked-by-reservation' }])
+})
+
+it('rejects a corrupt recovery record while opening without discarding it', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'dshu-spending-corrupt-pause-')); directories.push(directory)
+  const path = join(directory, 'budget.sqlite')
+  const previous = await setup(path)
+  previous.waitForSession(SessionId('corrupt-pause'), MICRO_CNY)
+  previous.close()
+  const db = new DatabaseSync(path)
+  try { db.prepare("UPDATE session_pauses SET ticket = ''").run() }
+  finally { db.close() }
+  await expect(SpendLedger.open(path)).rejects.toThrow()
+  const inspect = new DatabaseSync(path)
+  try { expect(inspect.prepare('SELECT ticket FROM session_pauses').get()?.ticket).toBe('') }
+  finally { inspect.close() }
 })

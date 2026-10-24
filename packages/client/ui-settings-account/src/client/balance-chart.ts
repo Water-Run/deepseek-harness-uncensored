@@ -46,15 +46,25 @@ export function balanceChart(samples: readonly BalanceChartSample[]): BalanceCha
   return { kind: 'series', points: coords.map(point => `${point.x},${point.y}`).join(' ') }
 }
 
-function downsample<T>(items: readonly T[], max: number): T[] {
+function downsample(items: readonly BalanceChartSample[], max: number): BalanceChartSample[] {
   if (items.length <= max) return [...items]
   const last = items.length - 1
-  const picked: T[] = []
-  for (let index = 0; index < max; index += 1) {
-    const item = items[Math.round((index * last) / (max - 1))]
-    if (item !== undefined && picked[picked.length - 1] !== item) picked.push(item)
+  const picked = items.slice(0, 1)
+  const buckets = Math.floor((max - 2) / 2)
+  for (let bucket = 0; bucket < buckets; bucket += 1) {
+    const start = 1 + Math.floor(bucket * (last - 1) / buckets)
+    const end = 1 + Math.floor((bucket + 1) * (last - 1) / buckets)
+    let low: { index: number; sample: BalanceChartSample } | undefined
+    let high: { index: number; sample: BalanceChartSample } | undefined
+    for (const [index, sample] of items.slice(start, end).entries()) {
+      if (low === undefined || sample.value < low.sample.value) low = { index, sample }
+      if (high === undefined || sample.value > high.sample.value) high = { index, sample }
+    }
+    if (low === undefined || high === undefined) continue
+    if (low.index === high.index) picked.push(low.sample)
+    else if (low.index < high.index) picked.push(low.sample, high.sample)
+    else picked.push(high.sample, low.sample)
   }
-  const tail = items[last]
-  if (tail !== undefined && picked[picked.length - 1] !== tail) picked.push(tail)
+  picked.push(...items.slice(-1))
   return picked
 }

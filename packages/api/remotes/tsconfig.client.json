@@ -96,6 +96,9 @@
       "path": "../memory-controller"
     },
     {
+      "path": "../mode-dossiers/tsconfig.host.json"
+    },
+    {
       "path": "../../typert/protocol"
     },
     {

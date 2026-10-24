@@ -117,10 +117,11 @@ export class DesktopOnboardingController {
     const office = reason === 'completed' && current.purpose === 'office'
     const development = reason === 'completed' && !office
     if (development && current.process === null) return false
+    // Skipping applies the release defaults: fully expanded work details and detailed usage.
     return this.save({
       ...current, step: 'done', completion: reason,
-      process: office ? 'compact' : reason === 'skipped' ? 'standard' : current.process,
-      usage: development ? 'detailed' : 'compact', developerTools: development,
+      process: office ? 'compact' : reason === 'skipped' ? 'verbose' : current.process,
+      usage: office ? 'compact' : 'detailed', developerTools: development,
     }, true)
   }
 
@@ -227,7 +228,7 @@ export class DesktopOnboardingController {
     if (done || this.saving || this.completing || this.draft !== undefined || unavailable || host.status !== 'ready' || this.chat.getSnapshot().status !== 'ready'
       || account?.status !== 'signed-out') return
     if (this.hasApiKey === true && this.error === null) {
-      void this.save({ ...progress, step: 'done', process: 'standard', usage: 'detailed', developerTools: true, completion: 'api-key' }, true)
+      void this.save({ ...progress, step: 'done', process: 'verbose', usage: 'detailed', developerTools: true, completion: 'api-key' }, true)
     } else if (this.hasApiKey === undefined && !this.checkingKeys) {
       this.checkingKeys = true
       const generation = this.credentialGeneration

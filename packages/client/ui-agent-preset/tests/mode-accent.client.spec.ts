@@ -27,6 +27,25 @@ afterEach(() => {
 })
 
 describe('mode accent', () => {
+  it('ignores delayed updates after another conversation is selected or the presenter is disposed', () => {
+    const updates: (() => void)[] = []
+    startViewTransition.mockImplementation((update) => {
+      updates.push(update)
+      return { finished: Promise.resolve(), skipTransition: vi.fn() }
+    })
+    const mode = createSnapshotStore<CurrentModeState>({ id: 'standard', sessionId: 'a', blank: false, busy: false })
+    const dispose = installModeAccent(mode)
+    mode.set({ id: 'security', sessionId: 'a', blank: false, busy: false })
+    mode.set({ id: 'writing', sessionId: 'b', blank: false, busy: false })
+    for (const update of updates.splice(0)) update()
+    expect(document.body.dataset.dshMode).toBe('writing')
+    expect(document.documentElement.dataset.dshModeReveal).toBeUndefined()
+    mode.set({ id: 'reverse', sessionId: 'b', blank: false, busy: false })
+    dispose()
+    for (const update of updates) update()
+    expect(document.body.dataset.dshMode).toBeUndefined()
+  })
+
   it('accents only the four shipped modes', () => {
     expect(['standard', 'security', 'reverse', 'writing'].map(accentMode)).toEqual(['standard', 'security', 'reverse', 'writing'])
     expect(accentMode('ptc')).toBeUndefined()

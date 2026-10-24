@@ -1,28 +1,30 @@
 /** Cancellable request admission and stream settlement over a durable ledger. */
 import { setTimeout as delay } from 'node:timers/promises'
-import { LlmError } from '@deepseek-ai/dsh-llm'
+import { isAgentLoopRequest, LlmError } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk, TokenUsage } from '@deepseek-ai/dsh-llm'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { SpendLedger } from './ledger.ts'
 import { reserveCost, usageCost } from './pricing.ts'
-import type { SpendRate, SpendReservationId } from './types.ts'
+import type { SpendPauseId, SpendRate, SpendReservationId } from './types.ts'
 
 /** One process's admission waiters and active requests; the ledger coordinates other processes. */
 export class SpendGate {
   private readonly lifetime = new AbortController()
   private readonly active = new Set<Promise<void>>()
   private waiters = 0
-  /** @param ledger - Owned shared ledger. @param rates - Deployment prices. @param pollMs - Cross-process admission polling interval. */
-  constructor(readonly ledger: SpendLedger, private readonly rates: readonly SpendRate[], private readonly pollMs: number) {}
+  /**
+   * Bind admission to a shared ledger and its conversation recovery policy.
+   * @param ledger - Owned shared ledger.
+   * @param rates - Deployment prices.
+   * @param pollMs - Cross-process admission polling interval.
+   * @param canRecover - Whether a lifecycle provider owns this live conversation.
+   */
+  constructor(readonly ledger: SpendLedger, private readonly rates: readonly SpendRate[], private readonly pollMs: number,
+    private readonly canRecover: (id: SessionId) => boolean) {}
   /** Locally waiting requests, excluding requests already sent to a provider. */
   get waiting(): number { return this.waiters }
 
-  private sessionState(sessionId: string | undefined, state: 'waiting' | 'blocked' | 'clear'): void {
-    if (sessionId === undefined || sessionId.length === 0) return
-    if (state === 'clear') this.ledger.clearSession(sessionId)
-    else this.ledger.noteSession(sessionId, state)
-  }
-
-  private async admit(cost: number, signal?: AbortSignal): Promise<SpendReservationId | undefined> {
+  private async admit(cost: number, signal?: AbortSignal, onWait?: () => void): Promise<SpendReservationId | undefined> {
     const combined = signal === undefined ? this.lifetime.signal : AbortSignal.any([signal, this.lifetime.signal])
     this.waiters++
     try {
@@ -32,6 +34,7 @@ export class SpendGate {
         if (result.kind === 'disabled') return
         if (result.kind === 'reserved') return result.id
         if (result.kind === 'too-large') throw new LlmError('单次请求的预留费用超过限额。请提高额度或降低模型的最大输出长度。 / Request reservation exceeds a limit. Raise the limit or lower the model output ceiling.', 'SPEND_REQUEST_TOO_LARGE')
+        onWait?.()
         await delay(this.pollMs, undefined, { signal: combined })
       }
     } finally { this.waiters-- }
@@ -60,18 +63,18 @@ export class SpendGate {
   async * stream(request: GenerateOptions, next: () => AsyncIterable<StreamChunk>): AsyncGenerator<StreamChunk> {
     const complete = this.begin()
     let id: SpendReservationId | undefined, dispatched = false
-    const sessionId = request.sessionId
+    const sessionId = isAgentLoopRequest(request) && request.sessionId !== undefined && this.canRecover(request.sessionId)
+      ? request.sessionId : undefined
+    let pauseId: SpendPauseId | undefined
     try {
       if (!this.ledger.snapshot().preferences.enabled) { yield* next(); return }
       const rate = this.rate(request.provider, request.model)
-      this.sessionState(sessionId, 'waiting')
-      try {
-        id = await this.admit(reserveCost(rate, request.maxTokens), request.signal)
-        this.sessionState(sessionId, 'clear')
-      } catch (error) {
-        if (!this.lifetime.signal.aborted) this.sessionState(sessionId, 'clear')
-        throw error
-      }
+      const cost = reserveCost(rate, request.maxTokens)
+      id = await this.admit(cost, request.signal, () => {
+        if (sessionId !== undefined && pauseId === undefined) pauseId = this.ledger.waitForSession(sessionId, cost)
+      })
+      if (sessionId !== undefined && pauseId !== undefined) this.ledger.clearSession(sessionId, pauseId)
+      pauseId = undefined
       request.signal?.throwIfAborted()
       let usage: TokenUsage | undefined
       dispatched = true
@@ -87,8 +90,13 @@ export class SpendGate {
     } finally {
       try {
         if (id !== undefined) this.ledger.settle(id, dispatched ? null : 0)
-        if (this.lifetime.signal.aborted) this.sessionState(sessionId, 'blocked')
-        else if (request.signal?.aborted) this.sessionState(sessionId, 'clear')
+        if (sessionId !== undefined && pauseId !== undefined) {
+          const reason: unknown = request.signal?.reason
+          const disposed = request.signal?.aborted === true && typeof reason === 'object' && reason !== null
+            && 'kind' in reason && reason.kind === 'disposed'
+          if (disposed || (this.lifetime.signal.aborted && request.signal?.aborted !== true)) this.ledger.blockSession(pauseId)
+          else this.ledger.clearSession(sessionId, pauseId)
+        }
       }
       finally { complete() }
     }

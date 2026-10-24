@@ -8,8 +8,12 @@ export const DESKTOP_ONBOARDING_NAMESPACE = 'ui-settings-account'
 export type OnboardingStep = 'welcome' | 'credit' | 'purpose' | 'process' | 'done'
 /** Work scenarios offered by the desktop introduction. */
 export type OnboardingPurpose = 'office' | 'development' | 'both'
-/** Work-detail mode applied to Chat when onboarding completes. */
-export type OnboardingProcess = 'compact' | 'standard' | 'detailed'
+/**
+ * Work-detail mode applied to Chat when onboarding completes. The process step offers
+ * `compact`, `standard`, and `detailed`; skipping or an existing API key records `verbose`,
+ * the release's fully expanded default.
+ */
+export type OnboardingProcess = 'compact' | 'standard' | 'detailed' | 'verbose'
 /** One installation's resumable choices and terminal outcome. */
 export interface OnboardingProgress {
   version: 1
@@ -33,7 +37,7 @@ export const OnboardingSettingsFields = {
   version: z.const(1).default(1),
   step: z.union(['welcome', 'credit', 'purpose', 'process', 'done']).default('welcome'),
   purpose: z.union(['office', 'development', 'both', z.const(null)]),
-  process: z.union(['compact', 'standard', 'detailed', z.const(null)]),
+  process: z.union(['compact', 'standard', 'detailed', 'verbose', z.const(null)]),
   completion: z.union(['completed', 'skipped', 'api-key', z.const(null)]),
   usage: z.union(['compact', 'detailed']).default('compact'),
   developerTools: z.boolean().default(false),

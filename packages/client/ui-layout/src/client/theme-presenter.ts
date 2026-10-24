@@ -64,6 +64,7 @@ export class ThemePresenter {
   private scheme: 'light' | 'dark' | undefined
   private pointer: { x: number; y: number; at: number } | undefined
   private reveal: ViewTransition | undefined
+  private revision = 0
   private readonly press = (event: PointerEvent): void => {
     this.pointer = { x: event.clientX, y: event.clientY, at: performance.now() }
   }
@@ -85,6 +86,10 @@ export class ThemePresenter {
    * @param snapshot - resolved theme snapshot from ctx.theme.
    */
   apply(snapshot: ThemeSnapshot): void {
+    const current = ++this.revision
+    this.reveal?.skipTransition()
+    this.reveal = undefined
+    this.clearReveal()
     const previous = this.scheme
     const scheme = snapshot.active.colorScheme
     this.scheme = scheme
@@ -104,10 +109,9 @@ export class ThemePresenter {
       root.style.setProperty('--dsh-theme-reveal-y', `${String(pointer.y)}px`)
       root.style.setProperty('--dsh-theme-reveal-radius', `${String(Math.ceil(radius))}px`)
     }
-    this.reveal?.skipTransition()
-    const transition = document.startViewTransition(() => { this.write(snapshot) })
+    const transition = document.startViewTransition(() => { if (this.revision === current) this.write(snapshot) })
     this.reveal = transition
-    // A skipped or superseded transition still applied its update; only the last one clears the marker.
+    // A skipped transition can finish after its replacement has started.
     void transition.finished.catch(() => undefined).finally(() => {
       if (this.reveal !== transition) return
       this.reveal = undefined
@@ -153,6 +157,7 @@ export class ThemePresenter {
    * and any running light/dark transition.
    */
   dispose(): void {
+    this.revision += 1
     document.removeEventListener('pointerdown', this.press, { capture: true })
     this.reveal?.skipTransition()
     this.reveal = undefined

@@ -17,6 +17,7 @@ import { Remote, RemoteError, TypertRemoteService, principalOf } from '@deepseek
 import { canonicalClientTimeZone } from '@deepseek-ai/dsh-util-time'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
 import type {} from '@deepseek-ai/dsh-api-remote-access'
+import type {} from '@deepseek-ai/dsh-spend-limit'
 import {
   ApiSessionAgentController,
   inspectApiSession,
@@ -32,11 +33,11 @@ import { ApiSessionList } from './list.ts'
 import { buildModelCatalog, hasProviderApiKey } from './catalog.ts'
 import { installModelSelectionProjection } from './model-selection-projection.ts'
 import {
-  completedPredictionEvents, predictionContext, predictionSurface, requestPrediction,
+  completedPredictionEvents, predictionContext, predictionSurface, PredictionRequests, requestPrediction,
 } from './prediction.ts'
 import { SessionSkillCatalog } from './skill-catalog.ts'
 import { SessionMediaReferences } from './media-references.ts'
-import { ArchivedSessionGate } from './archived-session-gate.ts'
+import { ArchivedSessionGate, underArchivedSession } from './archived-session-gate.ts'
 import type {
   ModelCatalog,
   SessionWorkspacePathApplication,
@@ -112,6 +113,16 @@ export interface Config {
   readonly deleteDrainTimeoutMs?: number
   /** Interval between deletion activity checks, in milliseconds. */
   readonly deletePollMs?: number
+  /** Maximum UTF-8 bytes of unsent draft sent for prediction. */
+  readonly predictionDraftBytes?: number
+  /** Maximum UTF-8 bytes of completed history sent for prediction. */
+  readonly predictionContextBytes?: number
+  /** Maximum output tokens for one input suggestion. */
+  readonly predictionMaxTokens?: number
+  /** Maximum accepted suggestion size in UTF-8 bytes. */
+  readonly predictionOutputBytes?: number
+  /** Request deadline in milliseconds, including spending admission waits. */
+  readonly predictionTimeoutMs?: number
 }
 
 /** Deployment policy after schema defaults have been applied. */
@@ -120,6 +131,11 @@ type ResolvedConfig = Config & {
   readonly sideContextBytes: number
   readonly deleteDrainTimeoutMs: number
   readonly deletePollMs: number
+  readonly predictionDraftBytes: number
+  readonly predictionContextBytes: number
+  readonly predictionMaxTokens: number
+  readonly predictionOutputBytes: number
+  readonly predictionTimeoutMs: number
 }
 
 /** Host integrations replaceable by direct unit tests. */
@@ -159,6 +175,11 @@ export class SessionController extends TypertRemoteService {
     sideContextBytes: z.natural().min(1024).max(1048576).default(65536),
     deleteDrainTimeoutMs: z.natural().min(1).max(300000).default(30000),
     deletePollMs: z.natural().min(1).max(1000).default(50),
+    predictionDraftBytes: z.natural().min(1).max(65536).default(16384),
+    predictionContextBytes: z.natural().min(256).max(65536).default(8192),
+    predictionMaxTokens: z.natural().min(1).max(512).default(128),
+    predictionOutputBytes: z.natural().min(1).max(8192).default(1024),
+    predictionTimeoutMs: z.natural().min(100).max(60000).default(8000),
   })
 
   private readonly agents: ApiSessionAgentController
@@ -174,6 +195,8 @@ export class SessionController extends TypertRemoteService {
   private readonly revealPath: (path: string, signal: AbortSignal) => Promise<void>
   private readonly canOpenPath: () => boolean
   private readonly promotions = new Set<Promise<void>>()
+  private readonly predictions = new PredictionRequests()
+  private readonly predictionPolicy: ResolvedConfig
 
   /**
    * @param ctx - Host context containing the Session capability assembly.
@@ -184,6 +207,9 @@ export class SessionController extends TypertRemoteService {
     super(ctx, 'sessionController', { namespace: 'session' })
     ctx.typert.resources.register('session', { field: 'sessionId' })
     const resolved = SessionController.Config(config)
+    this.predictionPolicy = resolved
+    ctx.effect(() => () => this.predictions.close(), 'session-controller: input predictions')
+    ctx.on('workspace/session-stop', ({ sessionId }) => this.predictions.stop(sessionId))
     installModelSelectionProjection(ctx)
     this.agents = new ApiSessionAgentController(ctx, resolved.sideContextBytes)
     this.commands = new SessionCommandController(ctx, this.agents, process.cwd())
@@ -205,6 +231,24 @@ export class SessionController extends TypertRemoteService {
       drainTimeoutMs: resolved.deleteDrainTimeoutMs, pollMs: resolved.deletePollMs,
     }, (ids) => { this.history.closeSessions(ids) })
     ctx.effect(() => () => this.deletions.close(), 'session-controller: deletion operations')
+    ctx.inject(['spendLimit', 'workspaceRegistry', 'sessions', 'sessionPersistence'], (child) => {
+      child.effect(() => child.spendLimit.registerContinuation(async (claim, signal) => {
+        signal.throwIfAborted()
+        if (child.workspaceRegistry.archivedSessionIds.includes(claim.sessionId)) return 'unavailable'
+        const result = await this.agents.resolveAgent(claim.sessionId)
+        signal.throwIfAborted()
+        if ('error' in result) {
+          if (result.error.code === 'session/not-found') return 'missing'
+          throw result.error
+        }
+        return underArchivedSession(child, result.agent) ? 'unavailable' : {
+          agent: result.agent, flush: () => child.sessionPersistence.flush(),
+        }
+      }, id => this.agents.owns(id)), 'session-controller: spending continuation')
+      child.on('api-session/deleted', (id) => {
+        void child.spendLimit.forgetSession(id).catch((error) => { child.logger.error('session-controller: spending pause cleanup failed'); child.logger.error(error) })
+      })
+    })
     this.listState = new ApiSessionList(ctx, resolved.listWorkSliceMs)
     this.fileApplications = internals.fileApplications ?? nativeFileApplications
     this.openFileApplication = internals.openFileApplication ?? openNativeFileApplication
@@ -518,24 +562,36 @@ export class SessionController extends TypertRemoteService {
   @Remote('predict')
   async predict(request: SessionPredictionRequest, signal: AbortSignal): Promise<SessionPredictionValue> {
     signal.throwIfAborted()
-    if (!Number.isSafeInteger(request.revision) || request.revision < 0 || request.draft.trim() === '') {
+    if (!Number.isSafeInteger(request.revision) || request.revision < 0
+      || /[!?！？。]$/u.test(request.draft.trimEnd())
+      || Buffer.byteLength(request.draft, 'utf8') > this.predictionPolicy.predictionDraftBytes) {
       return { revision: request.revision, suggestion: '' }
     }
-    const session = this.ctx.sessions.get(request.sessionId)
-    if (session === undefined) return { revision: request.revision, suggestion: '' }
-    const projection = this.ctx.sessionProjections.stateOf(session, 'modelSelection')
-    const selected = projection?.pending ?? projection?.lastUsed
-    if (selected === null || selected === undefined) return { revision: request.revision, suggestion: '' }
-    const surface = predictionSurface(session.id, session.header.parentSession, request.draft)
-    const parent = surface === 'side' ? session.header.parentSession : undefined
-    const source = parent === undefined ? session : this.ctx.sessions.get(parent) ?? session
-    const agent = this.ctx.agents.get(session.id)
-    const status = agent !== undefined && 'status' in agent && agent.status === 'running' ? 'running' : 'idle'
-    const suggestion = await requestPrediction({
-      session, surface, draft: request.draft, revision: request.revision,
-      context: predictionContext(surface, completedPredictionEvents(source.snapshotEvents()), source.id, status),
-      provider: selected.provider, model: selected.model, signal,
-      stream: options => this.ctx.llm.stream(options),
+    const suggestion = await this.predictions.run(request.sessionId, signal, async (ownedSignal) => {
+      const session = this.ctx.sessions.get(request.sessionId)
+      const agent = this.ctx.agents.get(request.sessionId)
+      if (session === undefined || agent === undefined || underArchivedSession(this.ctx, agent)) return ''
+      const policy = this.predictionPolicy
+      const bounded = AbortSignal.any([ownedSignal, AbortSignal.timeout(policy.predictionTimeoutMs)])
+      const projection = this.ctx.sessionProjections.stateOf(session, 'modelSelection')
+      const selected = projection?.pending ?? projection?.lastUsed ?? this.agents.selectionFor(agent).current
+      const surface = predictionSurface(session.id, session.header.parentSession, request.draft)
+      const parent = surface === 'side' ? session.header.parentSession : undefined
+      if (parent !== undefined && !this.ctx.remoteAccess.allows({ kind: 'session', id: parent })) return ''
+      const events = parent === undefined ? session.snapshotEvents() : (await this.inspect(parent, bounded)).events
+      const completed = completedPredictionEvents(events)
+      if (request.draft.trim() === '' && completed.length === 0 && surface !== 'btw') return ''
+      const info = await this.ctx.llm.resolveModelInfo(selected.provider, selected.model, bounded)
+      const off = info.reasoning?.efforts.find(effort => effort.id === 'off')?.id
+      bounded.throwIfAborted()
+      return requestPrediction({
+        session, surface, draft: request.draft, revision: request.revision,
+        context: predictionContext(surface, completed, parent ?? session.id, agent.status, policy.predictionContextBytes),
+        provider: selected.provider, model: selected.model, signal: bounded,
+        maxTokens: policy.predictionMaxTokens, maxSuggestionBytes: policy.predictionOutputBytes,
+        ...off === undefined ? {} : { reasoningEffort: off },
+        stream: options => this.ctx.llm.stream(options),
+      })
     })
     return { revision: request.revision, suggestion }
   }

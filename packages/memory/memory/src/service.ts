@@ -203,7 +203,10 @@ export class MemoryService extends Service {
     this.table = domain.table('memories')
   }
 
-  /** The exact retrieval and storage bounds this deployment runs. */
+  /**
+   * Read the retrieval and storage bounds this deployment runs.
+   * @returns Current limits for the management interface.
+   */
   limits(): MemoryLimits {
     return {
       maxEntries: this.config.maxEntries,

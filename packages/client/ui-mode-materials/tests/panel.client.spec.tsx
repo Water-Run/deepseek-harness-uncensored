@@ -95,10 +95,10 @@ function surface(modeId: string | undefined, loaded: DossierInventory | undefine
     pickDirectory: vi.fn(async () => '/work/other'),
   }
   const workspaceSnapshot: WorkspaceSnapshot = {
-    items: [{ workspaceId: 'w1', path: '/work/novel', title: 'Novel', sessionIds: [], createdAt: 'c', updatedAt: 'u' }],
+    items: [{ workspaceId: 'w1' as WorkspaceSnapshot['items'][number]['workspaceId'], path: '/work/novel', title: 'Novel', sessionIds: [], createdAt: 'c', updatedAt: 'u' }],
     archivedSessionIds: [],
     pinnedSessionIds: [],
-    state: 'ready',
+    state: 'idle',
     phase: 'ready',
     error: null,
   }
@@ -169,7 +169,7 @@ it('says what deletion of a writing record keeps', async () => {
   expect(screen.getByText(en['writing.deleteBody'].replace('{path}', 'story/style/voice.md'))).toBeTruthy()
   const dialog = screen.getByRole('dialog')
   fireEvent.click(within(dialog).getByRole('button', { name: en.delete }))
-  await waitFor(() => { expect(operations.removeStory).toHaveBeenCalledWith({ workspaceId: 'w1', path: 'story/style/voice.md' }) })
+  await waitFor(() => { expect(operations.removeStory).toHaveBeenCalledWith({ workspaceId: 'w1' as WorkspaceSnapshot['items'][number]['workspaceId'], path: 'story/style/voice.md' }) })
 })
 
 it('keeps typed text when the save conflicts', async () => {
@@ -221,7 +221,7 @@ it('reports unconnected reverse tools and inventories a sample', async () => {
   expect(screen.getByText(en['reverse.toolUnavailable'])).toBeTruthy()
   fireEvent.change(screen.getByLabelText(en['reverse.samplePath']), { target: { value: 'samples/toy.bin' } })
   fireEvent.click(screen.getByRole('button', { name: en['reverse.inspect'] }))
-  await waitFor(() => { expect(operations.inspectSample).toHaveBeenCalledWith({ workspaceId: 'w1', path: 'samples/toy.bin' }) })
+  await waitFor(() => { expect(operations.inspectSample).toHaveBeenCalledWith({ workspaceId: 'w1' as WorkspaceSnapshot['items'][number]['workspaceId'], path: 'samples/toy.bin' }) })
   expect(await screen.findByText('abc123')).toBeTruthy()
   expect(screen.getByText('elf')).toBeTruthy()
 })

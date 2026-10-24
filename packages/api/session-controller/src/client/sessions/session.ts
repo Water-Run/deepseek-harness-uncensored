@@ -126,6 +126,7 @@ export class Session implements SessionFace {
   private blankBit = true
   private removed = false
   private deleted = false
+  private predictionRevision = 0
   private promptError: PromptError | null = null
   private lastAgentError: string | null = null
   /** Local submission echoes, insertion-ordered (see SessionSnapshot.pendingSubmissions). */
@@ -323,15 +324,13 @@ export class Session implements SessionFace {
    * @returns The logged suggestion, or an empty string.
    */
   async predict(draft: string, signal: AbortSignal): Promise<string> {
-    const remote = this.remote.session as typeof this.remote.session & {
-      predict?: (
-        request: { sessionId: SessionId; draft: string; revision: number },
-        signal?: AbortSignal,
-      ) => Promise<RemoteResult<{ revision: number; suggestion: string }>>
-    }
-    if (remote.predict === undefined || this.deleted) return ''
-    const result = await remote.predict({ sessionId: this.sessionId, draft, revision: 1 }, signal)
-    return result.ok ? result.value.suggestion : ''
+    signal.throwIfAborted()
+    if (this.deleted) return ''
+    const revision = ++this.predictionRevision
+    const result = await this.remote.session.predict({ sessionId: this.sessionId, draft, revision }, signal)
+    if (signal.aborted || this.deleted || revision !== this.predictionRevision) return ''
+    if (!result.ok) throw result.error
+    return result.value.revision === revision ? result.value.suggestion : ''
   }
 
   /**

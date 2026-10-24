@@ -34,6 +34,7 @@ import workspaceRemote from '@deepseek-ai/dsh-api-workspace-controller/remote'
 import terminalRemote from '@deepseek-ai/dsh-api-terminal-controller/remote'
 import workspaceFilesRemote from '@deepseek-ai/dsh-api-workspace-files/remote'
 import memoryRemote from '@deepseek-ai/dsh-api-memory-controller/remote'
+import modeDossiersRemote from '@deepseek-ai/dsh-api-mode-dossiers/remote'
 import type { ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
 
 export type { ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
@@ -80,6 +81,7 @@ export type {} from '@deepseek-ai/dsh-api-workspace-controller/remote'
 export type * from '@deepseek-ai/dsh-api-workspace-controller/types'
 export type {} from '@deepseek-ai/dsh-api-workspace-files/remote'
 export type {} from '@deepseek-ai/dsh-api-memory-controller/remote'
+export type {} from '@deepseek-ai/dsh-api-mode-dossiers/remote'
 export type * from '@deepseek-ai/dsh-api-workspace-files/types'
 export type {} from '@deepseek-ai/dsh-api-terminal-controller/remote'
 export type * from '@deepseek-ai/dsh-api-terminal-controller/types'
@@ -203,7 +205,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       messageFeedbackRemote, sessionFeedbackRemote,
       fileUploadsRemote, sessionReferencesRemote,
       permissionPresetsRemote, subagentsRemote, sessionRemote, jobRemote, workspaceRemote, workspaceFilesRemote, terminalRemote,
-      memoryRemote,
+      memoryRemote, modeDossiersRemote,
       officeToPdfRemote, userQuestionsRemote,
     ]) {
       disposers.push(await ctx.remote.$mount(contribution))

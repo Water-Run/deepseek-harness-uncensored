@@ -205,9 +205,9 @@ describe('desktop onboarding lifecycle', () => {
   it('applies API-key defaults once and does not rerun onboarding after a later account login', async () => {
     const h = await harness({ status: 'signed-out', keys: async () => true })
     await vi.waitFor(() => { expect(h.controller.state.getSnapshot().progress.step).toBe('done') })
-    expect(h.data['ui-chat']).toEqual({ transcriptView: 'standard', performanceUsage: 'detailed' })
+    expect(h.data['ui-chat']).toEqual({ transcriptView: 'verbose', performanceUsage: 'detailed' })
     expect(h.data['ui-settings']).toEqual({ enabled: true })
-    expect(h.data[DESKTOP_ONBOARDING_NAMESPACE]).toMatchObject({ completion: 'api-key', process: 'standard', usage: 'detailed', developerTools: true })
+    expect(h.data[DESKTOP_ONBOARDING_NAMESPACE]).toMatchObject({ completion: 'api-key', process: 'verbose', usage: 'detailed', developerTools: true })
     h.account.set(accountState('credential-stored'))
     h.controller.invalidateCredentials()
     expect(h.controller.state.getSnapshot().visible).toBe(false)
@@ -286,13 +286,13 @@ describe('desktop onboarding lifecycle', () => {
   })
 
   it.each([
-    ['purpose', 'standard'], ['credit', 'standard'], ['process', 'standard'],
+    ['purpose', 'verbose'], ['credit', 'verbose'], ['process', 'verbose'],
   ] as const)('applies the shared skip defaults from %s', async (step, process) => {
     const h = await harness({ status: 'credential-stored', progress: { step, purpose: 'office', process: 'detailed' } })
     expect(await h.controller.complete('skipped')).toBe(true)
-    expect(h.data['ui-chat']).toEqual({ transcriptView: 'standard', performanceUsage: 'compact' })
+    expect(h.data['ui-chat']).toEqual({ transcriptView: 'verbose', performanceUsage: 'detailed' })
     expect(h.data['ui-settings']).toEqual({ enabled: false })
-    expect(h.data[DESKTOP_ONBOARDING_NAMESPACE]).toMatchObject({ step: 'done', completion: 'skipped', process, usage: 'compact', developerTools: false })
+    expect(h.data[DESKTOP_ONBOARDING_NAMESPACE]).toMatchObject({ step: 'done', completion: 'skipped', process, usage: 'detailed', developerTools: false })
   })
 
   it('records the preference defaults applied before onboarding completion', async () => {
@@ -445,7 +445,8 @@ describe('desktop onboarding lifecycle', () => {
 
 it('rejects unknown persisted steps and preference values at the Host schema', () => {
   expect(OnboardingSettingsSchema['~standard'].validate({ step: 'other' })).toHaveProperty('issues')
-  expect(OnboardingSettingsSchema['~standard'].validate({ process: 'verbose' })).toHaveProperty('issues')
+  expect(OnboardingSettingsSchema['~standard'].validate({ process: 'expanded' })).toHaveProperty('issues')
+  expect(OnboardingSettingsSchema['~standard'].validate({ process: 'verbose' })).not.toHaveProperty('issues')
 })
 
 it('does not block the workspace when onboarding settings are read-only', async () => {

@@ -8,13 +8,14 @@ import { CONTACT_CONFIG_GLOBAL } from '../src/contact-config.ts'
 it('injects configured contact options and removes the listener on disposal', async () => {
   const ctx = new Context()
   onTestFinished(() => ctx.fiber.dispose())
-  const config: Config = Config({ contactSource: 'harness', bonusAckRetryDelayMs: 25, bonusAckRetryMaxDelayMs: 100 })
-  await ctx.plugin({ Config, apply }, { contactSource: 'harness', bonusAckRetryDelayMs: 25, bonusAckRetryMaxDelayMs: 100 })
+  const config: Config = Config({ contactSource: 'harness', bonusAckRetryDelayMs: 25, bonusAckRetryMaxDelayMs: 100, releaseCheckTimeoutMs: 1500 })
+  await ctx.plugin({ Config, apply }, { contactSource: 'harness', bonusAckRetryDelayMs: 25, bonusAckRetryMaxDelayMs: 100, releaseCheckTimeoutMs: 1500 })
   const table: IndexInjection[] = []
   ctx.emit('webserver/index-inject', table)
   expect(table).toEqual([{ kind: 'global', name: CONTACT_CONFIG_GLOBAL, value: {
     contactFormUrl: config.contactFormUrl, contactSource: config.contactSource,
     bonusAckRetryDelayMs: 25, bonusAckRetryMaxDelayMs: 100,
+    releaseCheckTimeoutMs: 1500,
   } }])
   await ctx.fiber.dispose()
   table.length = 0

@@ -1,0 +1,126 @@
+{
+  "finalResponse": "Main response unchanged.",
+  "auditEvents": [
+    {
+      "type": "input/prediction",
+      "seq": 3,
+      "time": 0,
+      "data": {
+        "surface": "main",
+        "phase": "request",
+        "revision": 7,
+        "draft": "Please",
+        "instruction": "Suggest the next short user message, or complete the existing draft. Return only a single-line suffix, preserving any leading space needed to join the draft. Do not answer the draft, repeat it, add a command prefix, or use Markdown.",
+        "context": "completed context",
+        "suggestion": "",
+        "requestId": "prediction-1",
+        "request": {
+          "provider": "fixture",
+          "model": "fixture",
+          "maxTokens": 128,
+          "message": {
+            "content": [
+              {
+                "type": "text",
+                "text": "Suggest the next short user message, or complete the existing draft. Return only a single-line suffix, preserving any leading space needed to join the draft. Do not answer the draft, repeat it, add a command prefix, or use Markdown.\n\nBackground:\ncompleted context\n\nDraft:\nPlease"
+              }
+            ],
+            "source": {
+              "kind": "input-prediction",
+              "form": "notice",
+              "summary": "Composer input suggestion"
+            },
+            "role": "user",
+            "id": "prediction-message-1"
+          }
+        }
+      }
+    },
+    {
+      "type": "input/prediction",
+      "seq": 4,
+      "time": 0,
+      "data": {
+        "surface": "main",
+        "phase": "result",
+        "revision": 7,
+        "draft": "Please",
+        "instruction": "Suggest the next short user message, or complete the existing draft. Return only a single-line suffix, preserving any leading space needed to join the draft. Do not answer the draft, repeat it, add a command prefix, or use Markdown.",
+        "context": "completed context",
+        "suggestion": " continue",
+        "requestId": "prediction-1",
+        "outcome": "completed",
+        "usage": {
+          "inputTokens": 5,
+          "outputTokens": 2
+        }
+      }
+    }
+  ],
+  "auditNotifications": [
+    {
+      "method": "session.event",
+      "event": {
+        "type": "input/prediction",
+        "seq": 3,
+        "time": 0,
+        "data": {
+          "surface": "main",
+          "phase": "request",
+          "revision": 7,
+          "draft": "Please",
+          "instruction": "Suggest the next short user message, or complete the existing draft. Return only a single-line suffix, preserving any leading space needed to join the draft. Do not answer the draft, repeat it, add a command prefix, or use Markdown.",
+          "context": "completed context",
+          "suggestion": "",
+          "requestId": "prediction-1",
+          "request": {
+            "provider": "fixture",
+            "model": "fixture",
+            "maxTokens": 128,
+            "message": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Suggest the next short user message, or complete the existing draft. Return only a single-line suffix, preserving any leading space needed to join the draft. Do not answer the draft, repeat it, add a command prefix, or use Markdown.\n\nBackground:\ncompleted context\n\nDraft:\nPlease"
+                }
+              ],
+              "source": {
+                "kind": "input-prediction",
+                "form": "notice",
+                "summary": "Composer input suggestion"
+              },
+              "role": "user",
+              "id": "prediction-message-1"
+            }
+          }
+        }
+      }
+    },
+    {
+      "method": "session.event",
+      "event": {
+        "type": "input/prediction",
+        "seq": 4,
+        "time": 0,
+        "data": {
+          "surface": "main",
+          "phase": "result",
+          "revision": 7,
+          "draft": "Please",
+          "instruction": "Suggest the next short user message, or complete the existing draft. Return only a single-line suffix, preserving any leading space needed to join the draft. Do not answer the draft, repeat it, add a command prefix, or use Markdown.",
+          "context": "completed context",
+          "suggestion": " continue",
+          "requestId": "prediction-1",
+          "outcome": "completed",
+          "usage": {
+            "inputTokens": 5,
+            "outputTokens": 2
+          }
+        }
+      }
+    }
+  ],
+  "assistantTexts": [
+    "Main response unchanged."
+  ]
+}

@@ -64,7 +64,12 @@ interface Pending {
   resolve(value: boolean): void
 }
 
-/** Compare two protection snapshots, including their capability lists. */
+/**
+ * Compare protection facts used by an outstanding confirmation.
+ * @param left - Previous protection snapshot.
+ * @param right - Latest protection snapshot.
+ * @returns Whether state, revision, or the ordered capability list differs.
+ */
 export function protectionDiffers(left: SecurityProtectionStatus, right: SecurityProtectionStatus): boolean {
   return left.state !== right.state || left.revision !== right.revision
     || left.capabilities.length !== right.capabilities.length

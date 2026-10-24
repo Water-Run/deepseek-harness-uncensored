@@ -19,22 +19,22 @@ describe('TranscriptViewPolicy', () => {
     const unsubscribeMode = policy.mode.subscribe(modeChanged)
     const unsubscribeTiming = policy.collapseTiming.subscribe(timingChanged)
     try {
-      expect(policy.collapseTiming.getSnapshot()).toBe('completion')
-      policy.setCollapseTiming('completion')
+      expect(policy.collapseTiming.getSnapshot()).toBe('next-input')
+      policy.setCollapseTiming('next-input')
       expect(timingChanged).not.toHaveBeenCalled()
+      policy.setCollapseTiming('completion')
+      expect(policy.collapseTiming.getSnapshot()).toBe('completion')
+      expect(timingChanged).toHaveBeenCalledTimes(1)
+      policy.setCollapseTiming('completion')
+      expect(timingChanged).toHaveBeenCalledTimes(1)
       policy.setCollapseTiming('next-input')
       expect(policy.collapseTiming.getSnapshot()).toBe('next-input')
-      expect(timingChanged).toHaveBeenCalledTimes(1)
-      policy.setCollapseTiming('next-input')
-      expect(timingChanged).toHaveBeenCalledTimes(1)
-      policy.setCollapseTiming('completion')
-      expect(policy.collapseTiming.getSnapshot()).toBe('completion')
       expect(timingChanged).toHaveBeenCalledTimes(2)
-      expect(policy.mode.getSnapshot()).toBe('detailed')
+      expect(policy.mode.getSnapshot()).toBe('verbose')
       expect(modeChanged).not.toHaveBeenCalled()
       expect(host.set).toHaveBeenCalledTimes(2)
-      expect(host.set).toHaveBeenNthCalledWith(1, 'collapseTiming', 'next-input')
-      expect(host.set).toHaveBeenNthCalledWith(2, 'collapseTiming', 'completion')
+      expect(host.set).toHaveBeenNthCalledWith(1, 'collapseTiming', 'completion')
+      expect(host.set).toHaveBeenNthCalledWith(2, 'collapseTiming', 'next-input')
       expect(storageReads).not.toHaveBeenCalled()
       expect(storageWrites).not.toHaveBeenCalled()
       expect(storageRemovals).not.toHaveBeenCalled()
@@ -51,14 +51,14 @@ describe('TranscriptViewPolicy', () => {
     host.publish({ status: 'ready', value: { linkOpening: 'sidebar', transcriptView: 'standard', performanceUsage: 'detailed' }, revision: 1, writable: true })
     const first = new TranscriptViewPolicy(host.scope)
     try {
-      first.setCollapseTiming('next-input')
-      host.publish({ value: { linkOpening: 'sidebar', transcriptView: 'standard', performanceUsage: 'detailed', collapseTiming: 'next-input' }, revision: 2 })
+      first.setCollapseTiming('completion')
+      host.publish({ value: { linkOpening: 'sidebar', transcriptView: 'standard', performanceUsage: 'detailed', collapseTiming: 'completion' }, revision: 2 })
       const second = new TranscriptViewPolicy(host.scope)
       try {
-        expect(first.collapseTiming.getSnapshot()).toBe('next-input')
-        expect(second.collapseTiming.getSnapshot()).toBe('next-input')
+        expect(first.collapseTiming.getSnapshot()).toBe('completion')
+        expect(second.collapseTiming.getSnapshot()).toBe('completion')
         expect(second.mode.getSnapshot()).toBe('standard')
-        expect(host.set).toHaveBeenCalledExactlyOnceWith('collapseTiming', 'next-input')
+        expect(host.set).toHaveBeenCalledExactlyOnceWith('collapseTiming', 'completion')
       } finally {
         second.dispose()
       }
@@ -72,23 +72,23 @@ describe('TranscriptViewPolicy', () => {
     const host = stubConfigForm<ChatSettings>()
     const policy = new TranscriptViewPolicy(host.scope)
     try {
-      policy.setCollapseTiming('next-input')
-      host.publish({ status: 'ready', value: { linkOpening: 'sidebar', transcriptView: 'compact', performanceUsage: 'detailed', collapseTiming: 'next-input' }, revision: 1, writable: true })
+      policy.setCollapseTiming('completion')
+      host.publish({ status: 'ready', value: { linkOpening: 'sidebar', transcriptView: 'compact', performanceUsage: 'detailed', collapseTiming: 'completion' }, revision: 1, writable: true })
       expect(policy.mode.getSnapshot()).toBe('compact')
-      expect(policy.collapseTiming.getSnapshot()).toBe('next-input')
+      expect(policy.collapseTiming.getSnapshot()).toBe('completion')
       policy.setMode('verbose')
-      expect(policy.collapseTiming.getSnapshot()).toBe('next-input')
+      expect(policy.collapseTiming.getSnapshot()).toBe('completion')
       expect(host.set).toHaveBeenNthCalledWith(2, 'transcriptView', 'verbose')
       host.publish({ value: { linkOpening: 'sidebar', transcriptView: 'standard', performanceUsage: 'detailed' }, revision: 2 })
       expect(policy.mode.getSnapshot()).toBe('standard')
-      expect(policy.collapseTiming.getSnapshot()).toBe('completion')
+      expect(policy.collapseTiming.getSnapshot()).toBe('next-input')
       expect(host.set).toHaveBeenCalledTimes(2)
     } finally {
       policy.dispose()
     }
   })
 
-  it('defaults to Detailed and publishes explicit choices before persistence settles', () => {
+  it('defaults to Verbose and publishes explicit choices before persistence settles', () => {
     const host = stubConfigForm<ChatSettings>()
     const observed: string[] = []
     let current = (): string => 'unconstructed'
@@ -102,7 +102,7 @@ describe('TranscriptViewPolicy', () => {
     const policy = new TranscriptViewPolicy(scope)
     current = () => policy.mode.getSnapshot()
 
-    expect(policy.mode.getSnapshot()).toBe('detailed')
+    expect(policy.mode.getSnapshot()).toBe('verbose')
     policy.setMode('standard')
     expect(policy.mode.getSnapshot()).toBe('standard')
     expect(observed).toEqual(['transcriptView=standard:standard'])

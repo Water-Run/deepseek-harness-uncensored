@@ -18,7 +18,8 @@ export function amountNumber(text: string): number | undefined {
   if (text.includes('<')) return undefined
   const match = /-?\d[\d,]*\.?\d*/u.exec(text)
   if (match === null) return undefined
-  const value = Number(match[0].replaceAll(',', ''))
+  const negative = text.slice(0, match.index).includes('-')
+  const value = Number(match[0].replaceAll(',', '')) * (negative ? -1 : 1)
   return Number.isFinite(value) ? value : undefined
 }
 

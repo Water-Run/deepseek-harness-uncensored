@@ -25,6 +25,8 @@ Choose the current conversation's Agent preset in Web and read what each mode do
 <a id="use-this-package"></a>
 ## Use this package
 
+Delayed animation callbacks cannot replace a newer conversation's accent or restore it after this plugin unloads.
+
 Settings highlights the current conversation's mode. The card body changes that selection. New conversations start in Standard; the default cannot be changed in Settings. Each card offers a read-only YAML composition viewer. A failed preset remains readable; Escape closes only the viewer and restores focus, while leaving Settings discards late reads. The Creator entry appears only when the deployment supplies `cordis` and a conversation flow.
 
 This distribution supplies Default, Security, Reverse engineering and Writing, in that order. Deployments may supply additional presets. Coding Tools hides built-in PTC and Minimal entries when disabled; it does not hide named custom overrides. Creator starts a new task using the `cordis` preset when available.

@@ -75,7 +75,7 @@
   backdrop-filter: var(--dsw-mask-blur);
 }
 
-/* Settings uses a shared 800×800 panel; longer sections scroll
+/* Settings uses a shared 1000×800 panel; longer sections scroll
    inside the options column; the navigation scrolls independently. One height for
    every section, taken from the viewport rather than the content, because a
    content-sized panel would resize under the pointer on every nav click.
@@ -240,6 +240,51 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .panel {
+    flex-direction: column;
+    max-width: calc(100vw - 24px);
+    height: min(800px, calc(100dvh - 2 * max(12px, var(--dsh-frame-overlay-top, 12px))));
+  }
+
+  .nav {
+    width: 100%;
+    gap: 12px;
+    padding: 12px 12px 8px;
+  }
+
+  .navTitle {
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    padding-right: 160px;
+  }
+
+  .navList {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .navCell {
+    flex: none;
+    padding: 8px 12px;
+  }
+
+  .content { min-height: 0; }
+
+  .header {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    height: 28px;
+    padding: 0;
+  }
+
+  .options { padding: 8px 16px 20px; }
 }
 
 /* No app-region rule here: the overlay portals beside #root (SettingsRoot), so

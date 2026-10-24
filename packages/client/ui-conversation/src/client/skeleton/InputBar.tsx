@@ -74,11 +74,12 @@ export const InputBar = memo(function InputBar({
   const live = input !== undefined && keyboard !== undefined && inputActions !== undefined
   const draft = input?.draft ?? ''
   const [predictionEnabled, setPredictionEnabled] = useState(false)
-  const [prediction, setPrediction] = useState('')
+  const [prediction, setPrediction] = useState<{ draft: string; sessionId: typeof sessionId; text: string }>()
+  const predictionFailureShown = useRef(false)
   useEffect(() => {
     const read = (): void => {
       try { setPredictionEnabled(localStorage.getItem('dsh.uncensored.prediction') === '1') }
-      catch { setPredictionEnabled(false) }
+      catch (error) { setPredictionEnabled(false); console.warn('[prediction] preference is unavailable', error) }
     }
     read()
     window.addEventListener('storage', read)
@@ -88,17 +89,6 @@ export const InputBar = memo(function InputBar({
       window.removeEventListener('dsh-prediction', read)
     }
   }, [])
-  useEffect(() => {
-    setPrediction('')
-    if (!predictionEnabled || predictDraft === undefined || draft.trim() === '') return
-    const controller = new AbortController()
-    const timer = setTimeout(() => {
-      void predictDraft(draft, controller.signal).then((suggestion) => {
-        if (!controller.signal.aborted) setPrediction(suggestion)
-      })
-    }, 800)
-    return () => { controller.abort(); clearTimeout(timer) }
-  }, [draft, predictDraft, predictionEnabled, sessionId])
   const editor = keyboard?.editor ?? null
   const attachments = useMemo(
     () => input === undefined || resolveDraftAttachments === undefined ? [] : resolveDraftAttachments(input.attachmentIds),
@@ -181,6 +171,27 @@ export const InputBar = memo(function InputBar({
   const steeringAvailable = subagent === null || subagent.address.mode === 'continuable'
   const canSteerQueue = !locked && !machineBusy && !commandMenuOpen && empty && running && steeringAvailable
     && input.queue.length > 0
+  const suggestion = predictionEnabled && editable && !commandMenuOpen && prediction !== undefined && prediction.sessionId === sessionId
+    && prediction.draft === draft ? prediction.text : ''
+
+  useEffect(() => {
+    setPrediction(undefined)
+    if (!predictionEnabled) predictionFailureShown.current = false
+    if (!predictionEnabled || predictDraft === undefined || !editable || commandMenuOpen || (running && draft.trim() === '')) return
+    if (/[!?！？。]$/u.test(draft.trimEnd())) return
+    if (draft.trimStart().startsWith('/') && !/^\/btw(?:\s|$)/u.test(draft.trimStart())) return
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      void predictDraft(draft, controller.signal).then((text) => {
+        if (!controller.signal.aborted) { setPrediction({ draft, sessionId, text }); predictionFailureShown.current = false }
+      }).catch((error: unknown) => {
+        if (controller.signal.aborted) return
+        console.warn('[prediction] request failed', error)
+        if (!predictionFailureShown.current) { predictionFailureShown.current = true; showToast(t('input.predictionFailed')) }
+      })
+    }, 800)
+    return () => { controller.abort(); clearTimeout(timer) }
+  }, [draft, predictDraft, predictionEnabled, sessionId, editable, commandMenuOpen, running, showToast, t])
 
   useEffect(() => {
     if (input === undefined || inputActions === undefined) return
@@ -280,9 +291,9 @@ export const InputBar = memo(function InputBar({
     locked, machineBusy, canSteerQueue, running, steeringAvailable, busyEnter,
     intakeFiles, uploadsPending, showToast, t, canAcceptDrop,
     acceptPrediction: () => {
-      if (prediction === '' || inputActions === undefined) return false
-      inputActions.setDraft(`${draft}${prediction}`)
-      setPrediction('')
+      if (suggestion === '' || inputActions === undefined) return false
+      inputActions.setDraft(`${draft}${suggestion}`)
+      setPrediction(undefined)
       return true
     },
   })
@@ -290,9 +301,9 @@ export const InputBar = memo(function InputBar({
     locked, machineBusy, canSteerQueue, running, steeringAvailable, busyEnter,
     intakeFiles, uploadsPending, showToast, t, canAcceptDrop,
     acceptPrediction: () => {
-      if (prediction === '' || inputActions === undefined) return false
-      inputActions.setDraft(`${draft}${prediction}`)
-      setPrediction('')
+      if (suggestion === '' || inputActions === undefined) return false
+      inputActions.setDraft(`${draft}${suggestion}`)
+      setPrediction(undefined)
       return true
     },
   }
@@ -473,7 +484,7 @@ export const InputBar = memo(function InputBar({
           onWorkspaceKeyDown={onWorkspaceKeyDown}
           hint={hint}
           showPlaceholder={draft === '' && attachments.length === 0 && !claimActive}
-          prediction={prediction}
+          prediction={suggestion}
         />
         <div ref={rowRef} className={css.row}>
           <div className={css.tools} hidden={activity}>

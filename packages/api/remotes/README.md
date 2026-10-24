@@ -27,6 +27,8 @@ Two-sided BFF for Host Remote capabilities selected by this application. The Hos
 <a id="use-this-package"></a>
 ## Use this package
 
+The assembly also mounts balance, spending, security-proxy, memory, and mode-dossier namespaces. All contributions are checked together against the real Gateway; memory deletion uses `memory/deleteRecord`, since `remove` belongs to the namespace service itself.
+
 [`@deepseek-ai/dsh-api-session-controller`](../session-controller/README.md) owns Agent and Session identity policy, including the Typert lookup resolvers used by other namespaces. This package selects and mounts that generated Session contribution without a direct runtime dependency on `@deepseek-ai/dsh-session`; activation policy stays with Session Controller.
 
 The Client assembly mounts Office conversion, Commands, credentials, settings, Goal, Schedule, dynamic Cordis, file and Session references, read-only Host plugin inventory, plugin-installation registry response comparison, message feedback, permission presets, Session Controller, subagents, and Workspace Controller contributions. The `permissionPresets` namespace returns the complete process-level catalog used by current-session controls. Cordis effect ownership withdraws every contribution when this assembly unloads, while `@deepseek-ai/dsh-api-gateway/client` owns descriptor validation, traced namespace Services, direct and scoped methods, invocation, streams, and cancellation. The Client entry consumes the shared `TypertClientRemote` interface through Cordis and does not import the concrete Gateway. It re-exports the Gateway Client face's declaration merges type-only, so a consumer reaching the forwarded-event vocabulary through this facade gains no runtime edge to the Gateway implementation.
