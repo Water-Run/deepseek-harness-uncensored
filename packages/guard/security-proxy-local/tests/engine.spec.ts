@@ -1,5 +1,6 @@
 import { mkdtemp, rm } from 'node:fs/promises'
 import { createServer, request as httpRequest, type Server } from 'node:http'
+import { getGlobalDispatcher } from 'undici'
 import { connect as netConnect } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -349,3 +350,19 @@ function portOf(server: Server): Promise<number> {
     })
   })
 }
+
+describe('isolation from the process route', () => {
+  it('never replaces the global dispatcher or the Host environment', async () => {
+    const dispatcher = getGlobalDispatcher()
+    const proxyEnv = process.env.HTTP_PROXY
+    const h = await build()
+    try {
+      await h.engine.fetchTarget(subject('sess-a'), h.target.url, new AbortController().signal)
+      await h.engine.environment(subject('sess-a'), 'bash')
+      expect(getGlobalDispatcher()).toBe(dispatcher)
+      expect(process.env.HTTP_PROXY).toBe(proxyEnv)
+    } finally {
+      await h.engine.dispose()
+    }
+  })
+})
