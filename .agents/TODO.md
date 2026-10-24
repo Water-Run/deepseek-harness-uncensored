@@ -273,4 +273,4 @@
 - 未完成保护归档通过逐文件散列验证，归档补丁对当前源码的 `git apply --check` 通过；未应用回运行时。
 - 桌面打包未成功，用户随后明确不需要本次打包。`02.02` 和 `02.09` 保留真实阻塞，不交付旧桌面产物。
 - 暂停前最终提交及推送结果以 Git main 为准；本文件中没有填写未来的提交号或未执行的验证。
-- 网安首次进入确认节点（`05.05`—`05.07`）：Host 策略/注册表/挑战测试 83 项通过，客户端角色、座位、对话框与 apply 装配 256 项通过；`security-entry.ts`、`security-entry-controller.ts`、`SecurityEntryDialog.tsx`、`seat-store.ts` 的聚焦覆盖均为 100%。`security-entry-loader.spec.ts` 通过真实 Loader 组合验证启动与卸载。Typert 生成、`verify-translation-pairing` 与两包 lint 已执行。实际浏览器验收因并行任务未完成的 `ui-mode-materials` 与 `ui-settings-memory` 组合无法启动而中止；`05.05` 的界面验收、`05.06` 的保护开启真实后端仍保留缺口。完整 Client 构建仍受既有 `SessionStore` API 漂移阻塞（`17.06`），本节点不声称构建全绿。
+- 网安首次进入确认节点（`05.05`—`05.07`）：Host 策略/注册表/挑战测试 84 项通过，客户端角色、座位、对话框与 apply 装配 256 项通过；`security-entry.ts`、`security-entry-controller.ts`、`SecurityEntryDialog.tsx`、`seat-store.ts` 的聚焦覆盖均为 100%。`security-entry-loader.spec.ts` 通过真实 Loader 组合验证启动与卸载。Typert 生成、`verify-translation-pairing` 与两包 lint 已执行。实际浏览器验收因并行任务未完成的 `ui-mode-materials` 与 `ui-settings-memory` 组合无法启动而中止；`05.05` 的界面验收、`05.06` 的保护开启真实后端仍保留缺口。完整 Client 构建仍受既有 `SessionStore` API 漂移阻塞（`17.06`），本节点不声称构建全绿。
