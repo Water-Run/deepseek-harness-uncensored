@@ -7,6 +7,8 @@ import { SpendGate } from '../src/gate.ts'
 import { SpendLedger, DEFAULT_PREFERENCES } from '../src/ledger.ts'
 import { DEFAULT_RATES, reserveCost, usageCost } from '../src/pricing.ts'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
+import { markAgentLoopRequest } from '@deepseek-ai/dsh-llm'
+import type { SessionId } from '@deepseek-ai/dsh-session'
 
 const gates: SpendGate[] = []
 afterEach(async () => { await Promise.all(gates.splice(0).map(gate => gate.close())) })
@@ -119,13 +121,13 @@ it('clears a cancelled conversation and blocks it when the process shuts down', 
   const ledger = await SpendLedger.open(path)
   ledger.configure({ ...DEFAULT_PREFERENCES, enabled: true, autoResume: true })
   const gate = new SpendGate(ledger, DEFAULT_RATES, 1)
-  const sessionId = brandString<'SessionId'>('paused-conversation')
+  const sessionId = brandString<SessionId>('paused-conversation')
   try {
     const admitted = ledger.reserve(4_000_000)
     if (admitted.kind !== 'reserved') throw new Error(admitted.kind)
     const controller = new AbortController()
     const send = vi.fn(success)
-    const cancelled = consume(gate.stream({ ...request(controller.signal), sessionId }, send))
+    const cancelled = consume(gate.stream(markAgentLoopRequest({ ...request(controller.signal), sessionId }), send))
     await vi.waitFor(() => { expect(ledger.snapshot().pausedSessions).toEqual([{ sessionId, state: 'waiting' }]) })
     controller.abort()
     await expect(cancelled).rejects.toThrow()
@@ -134,18 +136,46 @@ it('clears a cancelled conversation and blocks it when the process shuts down', 
     ledger.settle(admitted.id, 0)
     const held = ledger.reserve(4_000_000)
     if (held.kind !== 'reserved') throw new Error(held.kind)
-    const stopping = consume(gate.stream({ ...request(), sessionId }, vi.fn(success)))
+    const stopping = consume(gate.stream(markAgentLoopRequest({ ...request(), sessionId }), vi.fn(success)))
     await vi.waitFor(() => { expect(ledger.snapshot().pausedSessions).toEqual([{ sessionId, state: 'waiting' }]) })
+    const rejected = expect(stopping).rejects.toThrow()
     await expect(gate.close()).resolves.toBeUndefined()
-    await expect(stopping).rejects.toThrow()
+    await rejected
     const restored = await SpendLedger.open(path)
     expect(restored.snapshot().pausedSessions).toEqual([{ sessionId, state: 'blocked' }])
     restored.close()
   } finally {
-    await rm(directory, { recursive: true, force: true }).catch((error: unknown) => {
-      if ((error as NodeJS.ErrnoException).code !== 'EBUSY') throw error
-    })
+    await gate.close()
+    await rm(directory, { recursive: true, force: true })
   }
+})
+
+it('never turns an auxiliary model request into a resumable conversation', async () => {
+  const gate = await setup()
+  const held = gate.ledger.reserve(4_000_000)
+  if (held.kind !== 'reserved') throw new Error(held.kind)
+  const abort = new AbortController()
+  const pending = consume(gate.stream({ ...request(abort.signal), sessionId: brandString<SessionId>('draft-only') }, success))
+  const rejected = expect(pending).rejects.toThrow()
+  await vi.waitFor(() => { expect(gate.waiting).toBe(1) })
+  expect(gate.ledger.snapshot().pausedSessions).toEqual([])
+  abort.abort({ kind: 'disposed' })
+  await rejected
+  expect(gate.ledger.snapshot().pausedSessions).toEqual([])
+})
+
+it('preserves an actual admission wait when its Agent is disposed before the gate', async () => {
+  const gate = await setup()
+  const held = gate.ledger.reserve(4_000_000)
+  if (held.kind !== 'reserved') throw new Error(held.kind)
+  const abort = new AbortController()
+  const sessionId = brandString<SessionId>('paused-agent')
+  const pending = consume(gate.stream(markAgentLoopRequest({ ...request(abort.signal), sessionId }), success))
+  const rejected = expect(pending).rejects.toThrow()
+  await vi.waitFor(() => { expect(gate.ledger.snapshot().pausedSessions).toEqual([{ sessionId, state: 'waiting' }]) })
+  abort.abort({ kind: 'disposed' })
+  await rejected
+  expect(gate.ledger.snapshot().pausedSessions).toEqual([{ sessionId, state: 'blocked' }])
 })
 
 it('prices a full-context reservation and disjoint cached counters', () => {
