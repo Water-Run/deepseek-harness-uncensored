@@ -436,6 +436,11 @@
     - id: ui-agent-preset
       name: '@deepseek-ai/dsh-client-ui-agent-preset'
 
+    # The security-mode proxy area under the mode cards: settings, the real
+    # connection check, and the bounded captured-traffic viewer.
+    - id: ui-security-proxy
+      name: '@deepseek-ai/dsh-client-ui-security-proxy'
+
     - id: ui-settings-session-log
       name: '@deepseek-ai/dsh-client-ui-settings-session-log'
 

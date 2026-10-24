@@ -84,22 +84,53 @@ export function createDispatcher(upstream: Upstream): ProxyAgent {
   })
 }
 
-/** Map a transport error to a stable failure reason. */
+/**
+ * The innermost transport error of one failure chain. `fetch` reports a bare
+ * `TypeError('fetch failed')` and keeps the socket's `code` on its cause, so the
+ * classification must read through the chain rather than the outer message.
+ * @param error - the thrown value.
+ * @returns the deepest value carrying a Node error code, or the input.
+ */
+function rootCause(error: unknown): unknown {
+  let current = error
+  for (let depth = 0; depth < 4; depth += 1) {
+    const cause = (current as { cause?: unknown } | undefined)?.cause
+    if (cause === undefined || cause === current) return current
+    current = cause
+  }
+  return current
+}
+
+/**
+ * Map a transport error to a stable failure reason.
+ * @param error - the thrown value, possibly wrapping its own cause.
+ * @returns the reason the settings surface renders.
+ */
 export function classifyFailure(error: unknown): SecurityProxyFailure {
   if (error instanceof UpstreamFailure) return error.failure
-  const code = (error as NodeJS.ErrnoException | undefined)?.code ?? ''
+  const deepest = rootCause(error)
+  const code = (deepest as NodeJS.ErrnoException | undefined)?.code
+    ?? (error as NodeJS.ErrnoException | undefined)?.code
+    ?? ''
+  const name = (deepest as Error | undefined)?.name ?? (error as Error | undefined)?.name ?? ''
   if (code === 'ERR_PROXY_AUTH' || code === 'ERR_INVALID_PROXY') return 'auth'
-  if (code === 'ETIMEDOUT' || code === 'UND_ERR_CONNECT_TIMEOUT' || (error as Error | undefined)?.name === 'AbortError') return 'timeout'
+  if (code === 'ETIMEDOUT' || code === 'UND_ERR_CONNECT_TIMEOUT' || name === 'AbortError' || name === 'TimeoutError') return 'timeout'
   if (code.startsWith('ERR_TLS') || code.startsWith('CERT_') || code.includes('SELF_SIGNED') || code === 'DEPTH_ZERO_SELF_SIGNED_CERT') return 'tls'
   if (code === 'ECONNREFUSED' || code === 'ENOTFOUND' || code === 'EAI_AGAIN' || code === 'ECONNRESET' || code === 'EHOSTUNREACH' || code === 'ENETUNREACH') return 'unreachable'
   return 'unknown'
 }
 
-/** Explain one classified failure without repeating a secret. */
+/**
+ * Explain one failure without repeating a secret.
+ * @param error - the thrown value.
+ * @returns an unlocalized diagnostic; carries no credential.
+ */
 export function describeFailure(error: unknown): string {
+  const deepest = rootCause(error)
+  const code = (deepest as NodeJS.ErrnoException | undefined)?.code
   if (error instanceof Error) {
-    const code = (error as NodeJS.ErrnoException).code
-    return code === undefined ? error.message : `${code}: ${error.message}`
+    const message = deepest instanceof Error ? deepest.message : error.message
+    return code === undefined ? message : `${code}: ${message}`
   }
   return String(error)
 }

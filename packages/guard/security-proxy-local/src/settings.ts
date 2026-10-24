@@ -216,7 +216,11 @@ export class SettingsStore {
   }
 }
 
-/** Narrow one protocol string from untrusted JSON; used by tests and the store. */
+/**
+ * Whether a raw string names one supported upstream transport.
+ * @param value - candidate transport name.
+ * @returns true for http or https.
+ */
 export function isProtocol(value: string): value is SecurityProxyProtocol {
   return value === 'http' || value === 'https'
 }

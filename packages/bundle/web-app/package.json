@@ -190,6 +190,7 @@
     "open": "^11.0.2",
     "@deepseek-ai/dsh-api-account-controller": "workspace:*",
     "@deepseek-ai/dsh-client-ui-settings-account": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-security-proxy": "workspace:*",
     "@deepseek-ai/dsh-client-shortcuts": "workspace:*",
     "@deepseek-ai/dsh-client-ui-shortcuts": "workspace:*",
     "@deepseek-ai/dsh-client-product-analytics": "workspace:*",

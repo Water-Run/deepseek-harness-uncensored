@@ -132,6 +132,16 @@
     - id: credentials
       name: '@deepseek-ai/dsh-credentials-local'
 
+    # Security-mode egress proxy. One upstream serves target access from
+    # `security`-preset sessions only; the dispatcher is private to this plugin,
+    # so model, sign-in, balance, update, and every other mode's traffic keep
+    # the process route. Settings and the bounded capture store live beside the
+    # other storages, and the upstream password is a credential reference.
+    - id: security-proxy
+      name: '@deepseek-ai/dsh-security-proxy-local'
+      config:
+        path: !!js dshHomePath('storages', 'security-proxy.json')
+
     # The pi-ai multi-provider twin, mounted dormant: zero routes (and no extra
     # models in the picker) until a `llm-pi-ai:` settings section supplies provider
     # profiles — then those routes register live, keys resolving per request

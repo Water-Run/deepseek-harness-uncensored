@@ -9,6 +9,8 @@ import commandsRemote from '@deepseek-ai/dsh-commands/remote'
 import balanceRemote from '@deepseek-ai/dsh-balance/remote'
 import spendingRemote from '@deepseek-ai/dsh-spend-limit/remote'
 export type {} from '@deepseek-ai/dsh-spend-limit/remote'
+import securityProxyRemote from '@deepseek-ai/dsh-security-proxy-local/remote'
+import type {} from '@deepseek-ai/dsh-security-proxy-local/remote'
 import accountRemote from '@deepseek-ai/dsh-api-account-controller/remote'
 import settingsControllerRemote from '@deepseek-ai/dsh-api-settings-controller/remote'
 import officeToPdfRemote from '@deepseek-ai/dsh-office-to-pdf/remote'
@@ -51,6 +53,8 @@ export type {
 } from '@deepseek-ai/dsh-plugin-market/types'
 export type { PluginInventorySnapshot } from '@deepseek-ai/dsh-host-plugin-inventory/types'
 export type {} from '@deepseek-ai/dsh-agent-preset-registry/remote'
+export type {} from '@deepseek-ai/dsh-security-proxy-local/remote'
+export type * from '@deepseek-ai/dsh-security-proxy/types'
 export type {} from '@deepseek-ai/dsh-user-questions/remote'
 export type {} from '@deepseek-ai/dsh-commands/remote'
 export type {} from '@deepseek-ai/dsh-api-settings-controller/remote'
@@ -193,6 +197,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
   try {
     for (const contribution of [
       productAnalyticsRemote, agentPresetsRemote, commandsRemote, settingsControllerRemote, accountRemote, balanceRemote, spendingRemote,
+      securityProxyRemote,
       goalsRemote, llmRemote, dynamicRemote, scheduleRemote,
       pluginInventoryRemote, pluginManagerRemote, pluginMarketRemote, pluginRegistryProbeRemote,
       messageFeedbackRemote, sessionFeedbackRemote,

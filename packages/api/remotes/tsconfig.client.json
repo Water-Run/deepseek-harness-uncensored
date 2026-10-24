@@ -124,6 +124,12 @@
     },
     {
       "path": "../../guard/spend-limit"
+    },
+    {
+      "path": "../../guard/security-proxy"
+    },
+    {
+      "path": "../../guard/security-proxy-local"
     }
   ]
 }

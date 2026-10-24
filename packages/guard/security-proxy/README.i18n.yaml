@@ -1,0 +1,37 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/guard/security-proxy/README.md
+/:
+  en: fdd17e73c0c54d3f
+  zh: 67029690fe2b5e77
+/deepseek-ai-dsh-security-proxy:
+  en: cce0ae6f836f2223
+  zh: 69bdbe0a5cd7cff8
+/deepseek-ai-dsh-security-proxy/summary:
+  en: 553eda2d679f06c4
+  zh: 23da4aced5130241
+/deepseek-ai-dsh-security-proxy/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: f14f34fce35a8d90
+/deepseek-ai-dsh-security-proxy/use-this-package:
+  en: 0ad0b41696a223ea
+  zh: faf6a1a5fb79f90f
+/deepseek-ai-dsh-security-proxy/understand-the-implementation:
+  en: ee6e84244e1555b1
+  zh: f3df1690fc3eeb07
+/deepseek-ai-dsh-security-proxy/further-exploration:
+  en: d3633004d9733908
+  zh: 26812b946d5a100a
+/deepseek-ai-dsh-security-proxy/model-experience:
+  en: f8c74b7328e343de
+  zh: 4ee1997ccf2b3894
+/deepseek-ai-dsh-security-proxy/model-experience/kv-cache-effect:
+  en: aca3d7c71dfbd9c2
+  zh: 07adc5a72d244589
+/deepseek-ai-dsh-security-proxy/known-limitations-and-deferred-work:
+  en: fb765a8bad9dd106
+  zh: 488006d88c0487da
+/deepseek-ai-dsh-security-proxy/known-limitations-and-deferred-work/dev-note:
+  en: 67489726bcb093bb
+  zh: a4cc388f306c4fed

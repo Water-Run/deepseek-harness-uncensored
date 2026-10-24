@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-10-24-security-mode-egress-proxy.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-24-security-mode-egress-proxy.md
+/agent-note-security-mode-egress-proxy-as-a-session-scoped-seam:
+  en: 31f4479212e88a27
+  zh: 2ad9516d96d18293
+/agent-note-security-mode-egress-proxy-as-a-session-scoped-seam/problem:
+  en: ddb044eceefb4a6d
+  zh: a39c18ef2b4d1767
+/agent-note-security-mode-egress-proxy-as-a-session-scoped-seam/decision:
+  en: 38595065fd840a22
+  zh: 58be5d2982193fe5
+/agent-note-security-mode-egress-proxy-as-a-session-scoped-seam/alternatives-considered:
+  en: 38a5d7f25fad0bad
+  zh: 2f4dafa70f11e2f5
+/agent-note-security-mode-egress-proxy-as-a-session-scoped-seam/consequences:
+  en: bd88c8bf561f8243
+  zh: 226bb27ed96efb4b
+/agent-note-security-mode-egress-proxy-as-a-session-scoped-seam/related-records:
+  en: 81778cb10c49a7cc
+  zh: c649fdddd10589de

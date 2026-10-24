@@ -32,7 +32,6 @@ import type {
   SecurityProxyTestResult,
 } from '@deepseek-ai/dsh-security-proxy/types'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { Agent } from '@deepseek-ai/dsh-agent'
 import { CaptureStore, prepareBody, redactHeaders, type CapturedExchangeInput } from './capture.ts'
 import { SessionChainProxy } from './chain.ts'
 import { applyPatch, assertUpstream, SettingsStore, type StoredSettings } from './settings.ts'
@@ -59,15 +58,23 @@ export interface PasswordVault {
   save(value: string | null): Promise<void>
 }
 
+/**
+ * The one fact coverage needs about an execution: the conversation it belongs
+ * to. An Agent satisfies this, and a test supplies one directly.
+ */
+export interface EgressSubject {
+  readonly session: { readonly id: SessionId }
+}
+
 /** What the engine needs from its owner to run. */
 export interface EngineOptions {
   readonly store: SettingsStore
   readonly capture: CaptureStore
   readonly vault: PasswordVault
-  /** Preset the Agent's session currently records; `security` is the only covered value. */
-  presetOf(agent: Agent): string
-  /** The Agent's conversation identity, used for attribution and chain listeners. */
-  sessionIdOf(agent: Agent): SessionId
+  /** Preset the subject's session currently records; `security` is the only covered value. */
+  presetOf(subject: EgressSubject): string
+  /** The subject's conversation identity, used for attribution and chain listeners. */
+  sessionIdOf(subject: EgressSubject): SessionId
   /** Target the connection check asks the upstream to reach. */
   readonly testTarget: { readonly host: string; readonly port: number }
   /** Whole-handshake budget for the check and for CONNECT tunnels. */
@@ -119,6 +126,7 @@ export class SecurityProxyEngine {
   private dispatcherKey: string | undefined
   private upstreamNow: Upstream | undefined
   private readonly chains = new Map<string, ChainRecord>()
+  private readonly warned = new Set<string>()
   private closing = false
 
   /**
@@ -247,18 +255,23 @@ export class SecurityProxyEngine {
 
   /**
    * Decide whether one tool execution is covered.
-   * @param agent - the Agent executing the call.
+   * @param subject - the Agent executing the call.
    * @param tool - the model-facing tool name.
    * @returns the route, or undefined when the session is not covered or the feature is off.
    */
-  route(agent: Agent | undefined, tool: string): { sessionId: SessionId; preset: string; tool: string } | undefined {
-    if (agent === undefined || this.closing) return undefined
-    const preset = this.options.presetOf(agent)
+  route(subject: EgressSubject | undefined, tool: string): { sessionId: SessionId; preset: string; tool: string } | undefined {
+    if (subject === undefined || this.closing) return undefined
+    const preset = this.options.presetOf(subject)
     if (preset !== SECURITY_PRESET) return undefined
-    const sessionId = this.options.sessionIdOf(agent)
+    const sessionId = this.options.sessionIdOf(subject)
     const settings = this.options.store.value
     if (!settings.enabled) {
-      if (settings.warnWhenDisabled) this.options.warnDisabled?.(sessionId)
+      // One reminder per conversation: the first covered call is the signal a
+      // user gets; repeating it on every tool call would be noise.
+      if (settings.warnWhenDisabled && !this.warned.has(sessionId)) {
+        this.warned.add(sessionId)
+        this.options.warnDisabled?.(sessionId)
+      }
       return undefined
     }
     return { sessionId, preset, tool }
@@ -267,12 +280,12 @@ export class SecurityProxyEngine {
   /**
    * Environment a child process needs to reach the chain proxy that belongs to
    * its own session.
-   * @param agent - the Agent executing the call.
+   * @param subject - the Agent executing the call.
    * @param tool - the model-facing tool name.
    * @returns the overlay for one spawn, or undefined when not covered.
    */
-  async environment(agent: Agent | undefined, tool: string): Promise<Readonly<Record<string, string>> | undefined> {
-    const route = this.route(agent, tool)
+  async environment(subject: EgressSubject | undefined, tool: string): Promise<Readonly<Record<string, string>> | undefined> {
+    const route = this.route(subject, tool)
     if (route === undefined) return undefined
     await this.ensureTransport()
     const proxy = await this.chainFor(route.sessionId, tool)
@@ -294,13 +307,13 @@ export class SecurityProxyEngine {
   /**
    * Retrieve one target through the upstream, recording the exchange at the
    * controlled Client layer.
-   * @param agent - the Agent executing the call.
+   * @param subject - the Agent executing the call.
    * @param url - absolute HTTP(S) target.
    * @param signal - caller cancellation.
    * @returns the decoded response.
    */
-  async fetchTarget(agent: Agent | undefined, url: string, signal: AbortSignal): Promise<WebFetchResult> {
-    const route = this.route(agent, 'web_fetch')
+  async fetchTarget(subject: EgressSubject | undefined, url: string, signal: AbortSignal): Promise<WebFetchResult> {
+    const route = this.route(subject, 'web_fetch')
     if (route === undefined) {
       throw new WebError('the security-mode proxy does not cover this request', 'SECURITY_PROXY_NOT_COVERED')
     }
@@ -342,8 +355,12 @@ export class SecurityProxyEngine {
     return await this.state()
   }
 
-  /** Close one conversation's chain listener, if it has one. */
+  /**
+   * Close one conversation's chain listener and forget its reminder state.
+   * @param sessionId - the disposed conversation.
+   */
   forgetSession(sessionId: SessionId): void {
+    this.warned.delete(sessionId)
     const record = this.chains.get(sessionId)
     if (record === undefined) return
     this.chains.delete(sessionId)

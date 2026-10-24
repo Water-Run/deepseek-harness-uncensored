@@ -87,7 +87,6 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     }
   })
 
-  const warned = new Set<string>()
   const presets = new Map<string, string>()
   const callbacks = {
     store,
@@ -102,11 +101,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     maxBodyChars: resolved.maxBodyChars,
     maxResponseBytes: resolved.maxResponseBytes,
     userAgent: resolved.userAgent,
-    warnDisabled: (sessionId: SessionId): void => {
-      if (warned.has(sessionId)) return
-      warned.add(sessionId)
-      ctx.emit('security-proxy/warning', sessionId)
-    },
+    warnDisabled: (sessionId: SessionId): void => { ctx.emit('security-proxy/warning', sessionId) },
   }
   const engine = new SecurityProxyEngine(callbacks)
   const service = ctx.plugin(SecurityProxyService, engine)
@@ -114,7 +109,6 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     if (event.type === 'agent-preset/selected') presets.set(session.id, event.data.agentPreset)
   })
   const stopSession = ctx.on('session/disposed', (session) => {
-    warned.delete(session.id)
     presets.delete(session.id)
     engine.forgetSession(session.id)
   })
