@@ -1,0 +1,43 @@
+{
+  "name": "@deepseek-ai/dsh-skill-playbooks",
+  "description": "Bundled security, reverse-engineering, and writing playbooks that give the specialized session modes real field manuals instead of persona text alone",
+  "version": "0.2.1-rc.2",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Water-Run/deepseek-harness-uncensored.git",
+    "directory": "packages/skill/skill-playbooks"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "assets",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "GPL-3.0-or-later",
+  "peerDependencies": {
+    "@deepseek-ai/dsh-skill": "workspace:*",
+    "@deepseek-ai/cordis": "workspace:~"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "workspace:~",
+    "@deepseek-ai/cordis-plugin-include": "workspace:~",
+    "@deepseek-ai/cordis-plugin-loader": "workspace:~",
+    "@deepseek-ai/dsh-skill": "workspace:*"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "workspace:~",
+    "yaml": "^2.4.2"
+  }
+}

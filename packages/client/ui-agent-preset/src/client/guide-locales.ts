@@ -1,13 +1,13 @@
 /** Curated help for shipped presets, kept separate from their short picker copy. */
 export const guideEn = {
-  guideReverseIntro: 'Trace how a program works through static and runtime evidence.',
-  guideReverseExplanation: '### Analysis workflow\n\nIdentify the artifact, platform, and architecture; follow symbols, strings, references, and observed behavior to test an explanation. Keep original samples and label hypotheses separately from confirmed results.\n\n### Tools\n\nUse available terminal, file, research, and delegation tools. Deep decompilation requires a configured Ghidra, IDA, Hopper, or REA provider; report missing tools explicitly.',
+  guideReverseIntro: 'Trace how a program works with eight reverse-engineering playbooks, a sample inventory, and a casebook that survives new conversations.',
+  guideReverseExplanation: '### Analysis workflow\n\nIdentify the artifact, platform, and architecture; follow symbols, strings, references, and observed behavior to test an explanation. Keep original samples and label hypotheses separately from confirmed results. The casebook writes hashes, symbols, and open hypotheses under `.reverse/` so a later session continues instead of restarting.\n\n### Playbooks and tools\n\nTriage, static, dynamic, protocol, patch and keygen, mobile, malware, and casebook load on demand, with a tool/license matrix, crypto identification, and Frida recipes. Use available terminal, file, research, and delegation tools. Deep decompilation requires a configured Ghidra, IDA, Hopper, or REA provider; report missing tools explicitly.',
   guideReverseUsage: '### Analyze a program\n\n> Inspect this sample, record its hash and architecture, locate its parser entry points, and explain the call paths with evidence.\n\n### Recover a protocol\n\n> Compare these request and response samples, infer the field layout, and verify it with an independent decoder and round-trip tests.',
-  guideSecurityIntro: 'Use the shared execution tools for security analysis and verification.',
-  guideSecurityExplanation: '### Tools and workflow\n\nSecurity mode shares the file, terminal, research, delegation, and workflow tools of Default mode. Work from the stated scope, record observations, and separate verified findings from hypotheses.\n\n### Useful results\n\nExplain impact and reproduction conditions, then verify the proposed fix. Missing credentials, unavailable tools, or an unreachable service remain explicit gaps.',
+  guideSecurityIntro: 'Run security work with seven field manuals, a case file, and the shared execution tools.',
+  guideSecurityExplanation: '### What this mode adds\n\nSeven playbooks load on demand: engagement, reconnaissance, web attack, network exploitation, payload lab, cloud and container, reporting. They carry payload and privilege-escalation references, and the ledger writes targets, evidence, and findings to `.security/` so the work survives a new conversation.\n\n### Useful results\n\nExplain impact and reproduction conditions, then verify the proposed fix. Separate verified findings from hypotheses; missing credentials, unavailable tools, or an unreachable service remain explicit gaps.',
   guideSecurityUsage: '### Review an application\n\n> Review the authentication and upload paths in this repository. Reproduce suspected problems locally and report the affected code, conditions, and a verified fix.\n\n### Review configuration\n\n> Check these deployment files for exposed secrets, excessive access, and unsafe defaults. Explain each finding and propose the smallest correction.',
-  guideWritingIntro: 'Create, continue, or revise a manuscript with file, research, and presentation tools.',
-  guideWritingExplanation: '### Writing workflow\n\nUse the current manuscript and latest character notes as the reference. Keep viewpoint, voices, timelines, and details consistent, and follow the requested style and length.\n\n### Available tools\n\nThis mode can read and edit documents, research material, and present files. Terminal and code execution are omitted; choose Default mode for those tasks.',
+  guideWritingIntro: 'Create, continue, or revise a manuscript with seven craft playbooks, a story bible, and the file tools.',
+  guideWritingExplanation: '### Writing workflow\n\nUse the current manuscript and latest character notes as the reference. Keep viewpoint, voices, timelines, and details consistent, and follow the requested style and length. The playbooks cover craft, voice, scene, dark material, continuity, style reference, and long-form structure; continuity files live under `story/bible/` and style cards under `story/style/`.\n\n### Available tools\n\nThis mode can read and edit documents, research material, and present files. Terminal and code execution are omitted; choose Default mode for those tasks.',
   guideWritingUsage: '### Continue a scene\n\n> Continue this scene from the same viewpoint. Preserve the characters’ knowledge and unresolved tension. Write the scene itself, following these notes.\n\n### Revise a draft\n\n> Tighten this chapter without changing its facts or voice. Remove repeated explanations, improve dialogue, and list any continuity questions after the revised text.',
 
   modeExplanation: 'Mode details',
@@ -88,14 +88,14 @@ export type PresetGuideKey = keyof typeof guideEn
 
 /** Simplified Chinese help. Examples describe suggested tasks, not recorded runs. */
 export const guideZh: Record<PresetGuideKey, string> = {
-  guideReverseIntro: '结合静态分析与运行证据，理解程序的真实行为。',
-  guideReverseExplanation: '### 分析流程\n\n先确认样本、平台与架构，再沿符号、字符串、引用与运行行为验证推断。保留原始样本，区分已证实结论和待验证假设。\n\n### 工具范围\n\n可使用终端、文件、检索与任务协作工具。深入反编译需要配置 Ghidra、IDA、Hopper 或 REA 等分析后端；缺少工具时会明确指出。',
+  guideReverseIntro: '借助八份逆向手册、样本清点和可跨对话接力的案件簿，追踪程序的真实行为。',
+  guideReverseExplanation: '### 分析流程\n\n先确认样本、平台与架构，再沿符号、字符串、引用与运行行为验证推断。保留原始样本，区分已证实结论和待验证假设。案件簿把哈希、符号表与待验证假设写入 `.reverse/`，新对话可以直接接着做。\n\n### 手册与工具\n\n初筛、静态、动态、协议、补丁与注册机、移动端、恶意样本、案件簿按需加载，附工具与许可证矩阵、加密识别和 Frida 配方。可使用终端、文件、检索与任务协作工具；深入反编译需要配置 Ghidra、IDA、Hopper 或 REA 等分析后端，缺少时会明确指出。',
   guideReverseUsage: '### 分析程序\n\n> 检查这个样本，记录哈希和架构，定位解析入口，并用调用关系说明实现。\n\n### 还原协议\n\n> 对照这些请求和响应样本推断字段布局，编写独立解码器，并用往返测试验证。',
-  guideSecurityIntro: '使用终端、文件、检索与任务协作工具，完成安全分析和验证。',
-  guideSecurityExplanation: '### 工具与工作方式\n\n网安模式与缺省模式共享基础执行工具，侧重代码和配置审查、问题复现与修复验证。依据已明确的任务范围工作，记录观察结果，区分已验证的问题和待验证的推测。\n\n### 结果要求\n\n说明影响、复现条件、关键操作与修复建议；缺少凭据、工具或可访问环境时，明确列出验证缺口。',
+  guideSecurityIntro: '用七份现场手册、案件账本和终端工具完成安全分析与验证。',
+  guideSecurityExplanation: '### 模式能力\n\n交战流程、侦察、Web 攻击、网络利用、载荷实验、云与容器、报告七份手册按需加载，附载荷与提权参考表；案件账本把目标、证据和发现写入 `.security/`，换对话后仍可继续。\n\n### 结果要求\n\n说明影响、复现条件、关键操作与修复建议，并区分已验证的问题和待验证的推测；缺少凭据、工具或可访问环境时，明确列出验证缺口。',
   guideSecurityUsage: '### 审查应用\n\n> 检查这个项目的登录和文件上传流程。在本地复现疑似问题，指出涉及代码、触发条件，并验证修复。\n\n### 检查部署配置\n\n> 检查这些部署文件中的凭据暴露、过宽权限和不安全默认值，说明依据并给出最小修改。',
-  guideWritingIntro: '结合文件、检索与呈现工具，完成文稿创作、续写和编辑。',
-  guideWritingExplanation: '### 创作方式\n\n以当前稿件和最新设定为准，保持叙事视角、人物声音、时间线与细节一致。风格和篇幅服从具体要求，直接交付所需文稿。\n\n### 工具范围\n\n可以读写文稿、检索资料和输出文件，不提供终端或代码执行。需要编程或数据处理时，请选择缺省模式。',
+  guideWritingIntro: '借助七份写作手册、设定集与文件工具，完成创作、续写和编辑。',
+  guideWritingExplanation: '### 创作方式\n\n以当前稿件和最新设定为准，保持叙事视角、人物声音、时间线与细节一致。风格和篇幅服从具体要求，直接交付所需文稿。手册覆盖基本功、声音、场景、黑暗素材、连续性、文风参考与长篇结构；设定集写入 `story/bible/`，风格卡写入 `story/style/`。\n\n### 工具范围\n\n可以读写文稿、检索资料和输出文件，不提供终端或代码执行。需要编程或数据处理时，请选择缺省模式。',
   guideWritingUsage: '### 续写场景\n\n> 按这些人物设定续写本场戏，沿用同一视角，保持人物已知信息和未解决的冲突，直接给出正文。\n\n### 修改长文\n\n> 保留这一章的事实、立场和语气，删去重复解释，改善对白和节奏；在修改稿之后列出需要我确认的连续性问题。',
 
   modeExplanation: '模式说明',

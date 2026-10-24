@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-10-24-mode-specialization-playbooks.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-24-mode-specialization-playbooks.md
+/agent-note-playbook-packs-as-mode-specialization:
+  en: d83c600891fa7366
+  zh: a41ef18b1c2b29f4
+/agent-note-playbook-packs-as-mode-specialization/problem:
+  en: 7753c1ca7ccf7bd3
+  zh: ac10f0923cc83eec
+/agent-note-playbook-packs-as-mode-specialization/decision:
+  en: 0f13b5414246f47d
+  zh: 4e512fe8828b109a
+/agent-note-playbook-packs-as-mode-specialization/decision/open-source-research-and-licenses:
+  en: e1e3fbe1e7f71630
+  zh: ba63003115a6778c
+/agent-note-playbook-packs-as-mode-specialization/alternatives-considered:
+  en: 55bbbc93dc3ae85c
+  zh: d137ac3d42ccb8bd
+/agent-note-playbook-packs-as-mode-specialization/consequences:
+  en: 90c3013fc7c5d512
+  zh: 2dd2265144e83fb3
