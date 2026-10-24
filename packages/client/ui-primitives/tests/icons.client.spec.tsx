@@ -140,11 +140,21 @@ describe('BrandWordmark', () => {
   it('can render the name artwork with or without its leading mark', () => {
     const view = render(<primitives.BrandWordmark />)
     const svg = view.container.querySelector('svg')!
-    expect(svg.getAttribute('width')).toBe('280')
-    expect(svg.getAttribute('viewBox')).toBe('0 0 280 24')
+    expect(svg.getAttribute('width')).toBe('282')
+    expect(svg.getAttribute('viewBox')).toBe('0 0 282 24')
 
     view.rerender(<primitives.BrandWordmark includeMark={false} />)
-    expect(svg.getAttribute('width')).toBe('254')
-    expect(svg.getAttribute('viewBox')).toBe('26 0 254 24')
+    expect(svg.getAttribute('width')).toBe('256')
+    expect(svg.getAttribute('viewBox')).toBe('26 0 256 24')
+  })
+
+  it('colors the release marker and its lettering from the selected tone', () => {
+    const view = render(<primitives.BrandWordmark tone="red" layout="stacked" size={40} includeMark={false} />)
+    const svg = view.container.querySelector('svg')!
+    expect(svg.getAttribute('viewBox')).toBe('26 0 153 40')
+    const marker = svg.querySelector('rect[fill="var(--dsw-brand-red)"]')!
+    expect(marker.getAttribute('height')).toBe('14')
+    const lettering = svg.querySelector('path[fill="var(--dsw-brand-red-ink)"]')!
+    expect(lettering.getAttribute('stroke')).toBe('var(--dsw-brand-red-ink)')
   })
 })

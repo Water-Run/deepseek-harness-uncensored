@@ -4,19 +4,36 @@
  * row components read via props.useStore.
  */
 import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-store'
-import { DEFAULT_FONT_SIZES, type FontFamilies, type FontSizes, type ThemePreference } from '../theme-settings.ts'
+import {
+  DEFAULT_FONT_SIZES, DEFAULT_PREFERENCE, DEFAULT_SUN_LOCATION,
+  type FontFamilies, type FontSizes, type ThemePreference,
+} from '../theme-settings.ts'
+import type { SunLocation } from '../sun.ts'
+import type { SunEstimate } from './index.ts'
 
 /** Store state mirrored from the theme snapshot. */
 export interface AppearanceRowState {
   /** Persisted preference (selection state reads this, never the resolved active theme). */
   preference: ThemePreference
+  /** Persisted location of the `sun` preference. */
+  sunLocation: SunLocation
+  /** Current estimate of the `sun` preference; absent for other preferences or an unmatched time zone. */
+  sun: SunEstimate | undefined
   /** Service revision; -1 until first sync so revision 0 lands as a change. */
+  revision: number
+}
+
+/** Theme snapshot fields the Appearance row mirrors. */
+export interface AppearanceRowSnapshot {
+  preference: ThemePreference
+  sunLocation: SunLocation
+  sun?: SunEstimate
   revision: number
 }
 
 /** Declared action shape giving the exported factory a stable return type. */
 type AppearanceRowActions = {
-  sync: (draft: AppearanceRowState, preference: ThemePreference, revision: number) => void
+  sync: (draft: AppearanceRowState, snapshot: AppearanceRowSnapshot) => void
 }
 
 /**
@@ -25,12 +42,14 @@ type AppearanceRowActions = {
  */
 export function createAppearanceRowStore(): EngineStoreHandle<AppearanceRowState, AppearanceRowActions> {
   return defineStore({
-    init: (): AppearanceRowState => ({ preference: 'system', revision: -1 }),
+    init: (): AppearanceRowState => ({ preference: DEFAULT_PREFERENCE, sunLocation: DEFAULT_SUN_LOCATION, sun: undefined, revision: -1 }),
     actions: {
-      sync: (d, preference: ThemePreference, revision: number) => {
-        if (revision <= d.revision) return
-        d.preference = preference
-        d.revision = revision
+      sync: (d, snapshot: AppearanceRowSnapshot) => {
+        if (snapshot.revision <= d.revision) return
+        d.preference = snapshot.preference
+        d.sunLocation = snapshot.sunLocation
+        d.sun = snapshot.sun
+        d.revision = snapshot.revision
       },
     },
   })

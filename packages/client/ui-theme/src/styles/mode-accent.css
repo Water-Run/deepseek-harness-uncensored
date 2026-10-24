@@ -1,0 +1,110 @@
+/* Conversation-mode accent.
+ *
+ * `ui-agent-preset` writes `body[data-dsh-mode]` for the main view's mode,
+ * including a pick staged on a new conversation; without the attribute every
+ * accent keeps its design-platform value. The accent replaces the platform
+ * blue wherever the client uses it: selection, focus, links of state, the
+ * model badge, primary buttons, and tinted backgrounds. The registered colors
+ * interpolate, so a mode or light/dark change fades every use at once.
+ * `html[data-dsh-mode-reveal]` suspends the fade while a view transition
+ * captures the final colors. */
+
+@property --dsh-mode-accent { syntax: '<color>'; inherits: true; initial-value: rgb(65, 118, 230); }
+@property --dsh-mode-fill { syntax: '<color>'; inherits: true; initial-value: rgb(65, 118, 230); }
+@property --dsh-mode-fill-hover { syntax: '<color>'; inherits: true; initial-value: rgb(122, 170, 255); }
+@property --dsh-mode-marker { syntax: '<color>'; inherits: true; initial-value: #2563eb; }
+@property --dsh-mode-marker-ink { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
+
+body {
+  --dsh-mode-accent: var(--dsw-static-deepseek-500);
+  --dsh-mode-fill: var(--dsw-static-deepseek-500);
+  --dsh-mode-fill-hover: var(--dsw-static-deepseek-400);
+  --dsh-mode-marker: var(--dsw-brand-blue);
+  --dsh-mode-marker-ink: var(--dsw-brand-blue-ink);
+  --dsh-mode-fade: 480ms;
+  transition:
+    --dsh-mode-accent var(--dsh-mode-fade) var(--ds-ease-in-out),
+    --dsh-mode-fill var(--dsh-mode-fade) var(--ds-ease-in-out),
+    --dsh-mode-fill-hover var(--dsh-mode-fade) var(--ds-ease-in-out),
+    --dsh-mode-marker var(--dsh-mode-fade) var(--ds-ease-in-out),
+    --dsh-mode-marker-ink var(--dsh-mode-fade) var(--ds-ease-in-out);
+}
+
+body[data-ds-dark-theme] {
+  --dsh-mode-accent: var(--dsw-static-deepseek-400);
+  --dsh-mode-fill: var(--dsw-static-deepseek-400);
+  --dsh-mode-fill-hover: var(--dsw-static-deepseek-500);
+}
+
+body[data-dsh-mode='standard'] {
+  --dsh-mode-accent: var(--dsw-mode-standard-accent);
+  --dsh-mode-fill: var(--dsw-mode-standard-accent);
+  --dsh-mode-fill-hover: var(--dsw-mode-standard-press);
+  --dsh-mode-marker: var(--dsw-brand-blue);
+  --dsh-mode-marker-ink: var(--dsw-brand-blue-ink);
+}
+
+body[data-dsh-mode='security'] {
+  --dsh-mode-accent: var(--dsw-mode-security-accent);
+  --dsh-mode-fill: var(--dsw-mode-security-accent);
+  --dsh-mode-fill-hover: var(--dsw-mode-security-press);
+  --dsh-mode-marker: var(--dsw-brand-red);
+  --dsh-mode-marker-ink: var(--dsw-brand-red-ink);
+}
+
+body[data-dsh-mode='reverse'] {
+  --dsh-mode-accent: var(--dsw-mode-reverse-accent);
+  --dsh-mode-fill: var(--dsw-mode-reverse-accent);
+  --dsh-mode-fill-hover: var(--dsw-mode-reverse-press);
+  --dsh-mode-marker: var(--dsw-brand-green);
+  --dsh-mode-marker-ink: var(--dsw-brand-green-ink);
+}
+
+body[data-dsh-mode='writing'] {
+  --dsh-mode-accent: var(--dsw-mode-writing-accent);
+  --dsh-mode-fill: var(--dsw-mode-writing-accent);
+  --dsh-mode-fill-hover: var(--dsw-mode-writing-press);
+  --dsh-mode-marker: var(--dsw-brand-yellow);
+  --dsh-mode-marker-ink: var(--dsw-brand-yellow-ink);
+}
+
+body[data-ds-dark-theme][data-dsh-mode='standard'] { --dsh-mode-accent: var(--dsw-mode-standard-accent-dark); --dsh-mode-fill-hover: var(--dsw-mode-standard-press-dark); }
+body[data-ds-dark-theme][data-dsh-mode='security'] { --dsh-mode-accent: var(--dsw-mode-security-accent-dark); --dsh-mode-fill-hover: var(--dsw-mode-security-press-dark); }
+body[data-ds-dark-theme][data-dsh-mode='reverse'] { --dsh-mode-accent: var(--dsw-mode-reverse-accent-dark); --dsh-mode-fill-hover: var(--dsw-mode-reverse-press-dark); }
+body[data-ds-dark-theme][data-dsh-mode='writing'] { --dsh-mode-accent: var(--dsw-mode-writing-accent-dark); --dsh-mode-fill-hover: var(--dsw-mode-writing-press-dark); }
+
+html body[data-dsh-mode] {
+  --dsw-alias-state-business-primary: var(--dsh-mode-accent);
+  --dsw-alias-brand-primary-new-colorprimary-new-color: var(--dsh-mode-accent);
+  --dsw-alias-button-info-fill: var(--dsh-mode-fill);
+  --dsw-alias-button-info-hover: var(--dsh-mode-fill-hover);
+  --dsw-alias-state-business-tertiary: color-mix(in srgb, var(--dsh-mode-accent) 12%, var(--dsw-alias-bg-base));
+  --dsw-specific-sidebar-nav-item-active-accent: color-mix(in srgb, var(--dsh-mode-accent) 12%, var(--dsw-alias-bg-base));
+}
+
+html body[data-ds-dark-theme][data-dsh-mode] {
+  --dsw-alias-state-business-tertiary: color-mix(in srgb, var(--dsh-mode-accent) 20%, var(--dsw-alias-bg-base));
+  --dsw-specific-sidebar-nav-item-active-accent: color-mix(in srgb, var(--dsh-mode-accent) 16%, var(--dsw-alias-bg-base));
+}
+
+html[data-dsh-mode-reveal] body { transition: none; }
+
+/* A changed mode of the same conversation spreads from where it was chosen. */
+html[data-dsh-mode-reveal]::view-transition-old(root),
+html[data-dsh-mode-reveal]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+html[data-dsh-mode-reveal]::view-transition-new(root) {
+  animation: dsh-mode-reveal 760ms cubic-bezier(0.22, 0.8, 0.16, 1) both;
+}
+
+@keyframes dsh-mode-reveal {
+  from { clip-path: circle(0 at var(--dsh-mode-reveal-x, 0) var(--dsh-mode-reveal-y, 0)); }
+  to { clip-path: circle(var(--dsh-mode-reveal-radius, 150vmax) at var(--dsh-mode-reveal-x, 0) var(--dsh-mode-reveal-y, 0)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body { transition: none; }
+}

@@ -4,15 +4,38 @@
  * font stack deliberately omits a bare `monospace` tail (Windows CJK falls
  * back to SimSun otherwise). */
 :root {
-  --dsw-brand-blue: #3b82f6;
-  --dsw-brand-yellow: #ffc400;
-  --dsw-brand-red: #e5484d;
-  --dsw-brand-green: #22a06b;
-  --dsw-brand-ink: #101318;
+  /* Mode colors: each `-ink` keeps at least 4.5:1 contrast on its color. */
+  --dsw-brand-blue: #2563eb;
+  --dsw-brand-blue-ink: #ffffff;
+  --dsw-brand-yellow: #f2b200;
+  --dsw-brand-yellow-ink: #101318;
+  --dsw-brand-red: #dc2626;
+  --dsw-brand-red-ink: #ffffff;
+  --dsw-brand-green: #15803d;
+  --dsw-brand-green-ink: #ffffff;
+  /* Mode accents: `-accent` keeps 4.5:1 as text on light surfaces and carries a white glyph as a fill;
+     `-accent-dark` is the text color on dark surfaces; `-press` darkens a hovered fill. */
+  --dsw-mode-standard-accent: #2563eb;
+  --dsw-mode-standard-accent-dark: #6ea2ff;
+  --dsw-mode-standard-press: #1d4ed8;
+  --dsw-mode-standard-press-dark: #3b82f6;
+  --dsw-mode-security-accent: #dc2626;
+  --dsw-mode-security-accent-dark: #f87171;
+  --dsw-mode-security-press: #b91c1c;
+  --dsw-mode-security-press-dark: #ef4444;
+  --dsw-mode-reverse-accent: #15803d;
+  --dsw-mode-reverse-accent-dark: #4ade80;
+  --dsw-mode-reverse-press: #166534;
+  --dsw-mode-reverse-press-dark: #16a34a;
+  --dsw-mode-writing-accent: #a16207;
+  --dsw-mode-writing-accent-dark: #facc15;
+  --dsw-mode-writing-press: #854d0e;
+  --dsw-mode-writing-press-dark: #ca8a04;
   --dsw-mode-standard-fill: #174787;
   --dsw-mode-security-fill: #8f2535;
   --dsw-mode-reverse-fill: #126348;
   --dsw-mode-writing-fill: #795900;
+  --dsw-mode-neutral-fill: #4b5563;
   --dsw-mode-label-ink: #ffffff;
   --dsh-font-family-text-default: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
     'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;

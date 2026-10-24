@@ -22,10 +22,12 @@ const make = (host = stubConfigForm<ThemeSettings>()): {
 }
 
 describe('ThemeRuntime', () => {
-  it('defaults to the system preference resolved against prefers-color-scheme', () => {
+  it('resolves the system preference against prefers-color-scheme', () => {
     const { theme } = make()
+    theme.setTheme('system')
     const snapshot = theme.getTheme()
     expect(snapshot.preference).toBe('system')
+    expect(snapshot.sun).toBeUndefined()
     expect(snapshot.fontSizes.text).toBe(14)
     // jsdom matchMedia is absent; system resolves to light.
     expect(snapshot.active.id).toBe('light')
@@ -90,7 +92,7 @@ describe('ThemeRuntime', () => {
 
   it('adopts a published Host font size without writing it back', () => {
     const { theme, events, host } = make()
-    host.publish({ status: 'ready', value: { preference: 'system', fontSize: 12, codeFontSize: 15, terminalFontSize: 18, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }, revision: 1, writable: true })
+    host.publish({ status: 'ready', value: { preference: 'system', sunLocation: 'auto', fontSize: 12, codeFontSize: 15, terminalFontSize: 18, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }, revision: 1, writable: true })
     expect(theme.getTheme().fontSizes).toEqual({ text: 12, code: 15, terminal: 18 })
     expect(events).toHaveLength(1)
     expect(host.set).not.toHaveBeenCalled()
@@ -120,10 +122,10 @@ describe('ThemeRuntime', () => {
 
   it('adopts published Host font lists, normalizing hand-edited values, without writing them back', () => {
     const { theme, events, host } = make()
-    host.publish({ status: 'ready', value: { preference: 'system', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: 'Inter', codeFontFamily: '"Fira Code"', terminalFontFamily: '' }, revision: 1, writable: true })
+    host.publish({ status: 'ready', value: { preference: 'system', sunLocation: 'auto', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: 'Inter', codeFontFamily: '"Fira Code"', terminalFontFamily: '' }, revision: 1, writable: true })
     expect(theme.getTheme().fontFamilies).toEqual({ text: '"Inter"', code: '"Fira Code"', terminal: '' })
     expect(events).toHaveLength(1)
-    host.publish({ value: { preference: 'system', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '"Inter"', codeFontFamily: 'Fira Code', terminalFontFamily: '' }, revision: 2 })
+    host.publish({ value: { preference: 'system', sunLocation: 'auto', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '"Inter"', codeFontFamily: 'Fira Code', terminalFontFamily: '' }, revision: 2 })
     expect(events).toHaveLength(1)
     expect(host.set).not.toHaveBeenCalled()
   })
@@ -146,17 +148,17 @@ describe('ThemeRuntime', () => {
 
   it('adopts a published Host section without writing it back', () => {
     const { theme, events, host } = make()
-    host.publish({ status: 'ready', value: { preference: 'dark', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }, revision: 1, writable: true })
+    host.publish({ status: 'ready', value: { preference: 'dark', sunLocation: 'auto', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }, revision: 1, writable: true })
     expect(theme.getTheme().preference).toBe('dark')
     expect(events).toHaveLength(1)
     expect(host.set).not.toHaveBeenCalled()
-    host.publish({ value: { preference: 'dark', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }, revision: 2 })
+    host.publish({ value: { preference: 'dark', sunLocation: 'auto', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }, revision: 2 })
     expect(events).toHaveLength(1)
   })
 
   it('holds its own changes while writes are pending, then converges on the durable section', async () => {
     const { theme, host } = make()
-    const section = { preference: 'system' as const, fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }
+    const section = { preference: 'system' as const, sunLocation: 'auto', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }
     host.publish({ status: 'ready', value: section, revision: 1, writable: true })
     const write = Promise.withResolvers<boolean>()
     host.set.mockReturnValue(write.promise)
@@ -171,7 +173,7 @@ describe('ThemeRuntime', () => {
 
   it('adopts a section already standing at construction', () => {
     const host = stubConfigForm<ThemeSettings>()
-    host.publish({ status: 'ready', value: { preference: 'dark', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }, revision: 1, writable: true })
+    host.publish({ status: 'ready', value: { preference: 'dark', sunLocation: 'auto', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }, revision: 1, writable: true })
     const { theme } = make(host)
     expect(theme.getTheme().preference).toBe('dark')
   })
@@ -181,6 +183,7 @@ describe('ThemeRuntime', () => {
     expect(() => { theme.setTheme('sepia') }).toThrow('not registered')
     expect(() => theme.register({ id: 'light', colorScheme: 'light', tokens: {} })).toThrow('already registered')
     expect(() => theme.register({ id: 'system', colorScheme: 'light', tokens: {} })).toThrow('preference')
+    expect(() => theme.register({ id: 'sun', colorScheme: 'light', tokens: {} })).toThrow('preference')
   })
 
   it('registered themes join the snapshot; disposing the active one resets to default', () => {
@@ -190,7 +193,7 @@ describe('ThemeRuntime', () => {
     theme.setTheme('sepia')
     expect(theme.getTheme().active.tokens['--dsw-alias-bg-base']).toBe('red')
     dispose()
-    expect(theme.getTheme().preference).toBe('system')
+    expect(theme.getTheme().preference).toBe('sun')
     expect(theme.getTheme().themes.map(t => t.id)).toEqual(['light', 'dark'])
     // Custom ids are in-process extension themes; only the built-in product
     // preferences cross the Host settings schema.
@@ -333,11 +336,11 @@ describe('ThemeRuntime', () => {
     it('system resolves against the media query and follows OS flips', () => {
       const media = stubMedia(true)
       const { theme, events } = make()
-      expect(theme.getTheme().preference).toBe('system')
+      theme.setTheme('system')
       expect(theme.getTheme().active.id).toBe('dark')
       media.flip()
       expect(theme.getTheme().active.id).toBe('light')
-      expect(events).toHaveLength(1)
+      expect(events).toHaveLength(2)
     })
 
     it('OS flips do not republish while a concrete preference is set', () => {
@@ -356,6 +359,79 @@ describe('ThemeRuntime', () => {
       expect(media.listenerCount()).toBe(1)
       await ctx.fiber.dispose()
       expect(media.listenerCount()).toBe(0)
+    })
+  })
+
+  describe('sunrise and sunset preference', () => {
+    const shanghaiNoon = Date.UTC(2026, 5, 21, 4)
+    // Faking Intl would replace the time zone stub below.
+    const fakeClock = (now: number) => { vi.useFakeTimers({ now, toFake: ['Date', 'setTimeout', 'clearTimeout'] }) }
+    const stubZone = (timeZone: string) => {
+      const options = new Intl.DateTimeFormat().resolvedOptions()
+      vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({ ...options, timeZone })
+    }
+
+    afterEach(() => {
+      vi.useRealTimers()
+      vi.restoreAllMocks()
+      vi.unstubAllGlobals()
+    })
+
+    it('defaults to the automatic location and resolves daylight for the time zone city', () => {
+      fakeClock(shanghaiNoon)
+      stubZone('Asia/Shanghai')
+      const { theme } = make()
+      const snapshot = theme.getTheme()
+      expect(snapshot.preference).toBe('sun')
+      expect(snapshot.sunLocation).toBe('auto')
+      expect(snapshot.sun).toMatchObject({ cityId: 'shanghai', source: 'zone', daylight: true })
+      expect(snapshot.active.colorScheme).toBe('light')
+    })
+
+    it('switches to dark at the estimated sunset without a settings write', () => {
+      // 18:59 in Shanghai, two minutes before the 19:01 estimate.
+      fakeClock(Date.UTC(2026, 5, 21, 10, 59))
+      stubZone('Asia/Shanghai')
+      const { theme, events, host } = make()
+      expect(theme.getTheme().active.colorScheme).toBe('light')
+      vi.advanceTimersByTime(3 * 60_000)
+      expect(theme.getTheme().active.colorScheme).toBe('dark')
+      expect(theme.getTheme().sun?.daylight).toBe(false)
+      expect(events).toHaveLength(1)
+      expect(host.set).not.toHaveBeenCalled()
+    })
+
+    it('setSunLocation writes a listed city, republishes, and rejects unlisted ones', () => {
+      fakeClock(shanghaiNoon)
+      stubZone('Asia/Shanghai')
+      const { theme, events, host } = make()
+      theme.setSunLocation('london')
+      expect(host.set).toHaveBeenCalledWith('sunLocation', 'london')
+      // 05:00 in London, after its 04:43 sunrise.
+      expect(theme.getTheme().sun).toMatchObject({ cityId: 'london', source: 'manual', daylight: true })
+      expect(events).toHaveLength(1)
+      theme.setSunLocation('london')
+      expect(events).toHaveLength(1)
+      expect(() => { theme.setSunLocation('atlantis') }).toThrow('not listed')
+    })
+
+    it('follows the system palette when the time zone matches no city', () => {
+      fakeClock(shanghaiNoon)
+      stubZone('Etc/Unknown')
+      vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener: () => {}, removeEventListener: () => {} }))
+      const { theme } = make()
+      expect(theme.getTheme().sun).toBeUndefined()
+      expect(theme.getTheme().active.colorScheme).toBe('dark')
+    })
+
+    it('adopts a published location without writing it back', () => {
+      fakeClock(shanghaiNoon)
+      stubZone('Asia/Shanghai')
+      const { theme, host } = make()
+      host.publish({ status: 'ready', value: { preference: 'sun', sunLocation: 'sydney', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }, revision: 1, writable: true })
+      // 14:00 in Sydney on the winter solstice.
+      expect(theme.getTheme().sun).toMatchObject({ cityId: 'sydney', source: 'manual', daylight: true })
+      expect(host.set).not.toHaveBeenCalled()
     })
   })
 })

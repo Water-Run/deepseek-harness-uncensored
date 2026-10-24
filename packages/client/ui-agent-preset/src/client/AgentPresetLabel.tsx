@@ -13,6 +13,9 @@ import css from './AgentPresetLabel.module.css'
 
 const MODE_TONES: Readonly<Record<string, 'blue' | 'yellow' | 'red' | 'green'>> = { standard: 'blue', security: 'red', reverse: 'green', writing: 'yellow' }
 
+/** Hidden legacy and custom presets have no mode color. */
+const NEUTRAL_TONE = 'neutral'
+
 /** Registration-side business face for the header label. */
 export interface AgentPresetLabelInjected {
   hooks: {
@@ -49,7 +52,7 @@ export function AgentPresetLabel({
     if (preset !== undefined) void load()
   }, [preset, load])
 
-  const tone = MODE_TONES[preset ?? ''] ?? 'green'
+  const tone = MODE_TONES[preset ?? ''] ?? NEUTRAL_TONE
 
   if (preset === undefined) return null
 
@@ -57,7 +60,7 @@ export function AgentPresetLabel({
   const text = option === undefined ? undefined : presetDisplayText(option, t)
   return (
     <span className={`${css.label} ${css[tone]}`} title={text?.description ?? t('headerHint')}>
-      <PresetIcon id={preset} size={14} className={css.icon} />
+      <PresetIcon key={preset} id={preset} size={14} className={css.icon} />
       {text?.name ?? preset}
     </span>
   )

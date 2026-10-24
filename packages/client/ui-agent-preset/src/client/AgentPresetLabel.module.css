@@ -18,10 +18,24 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: background-color 420ms var(--ds-ease-in-out);
 }
 
+/* A changed mode remounts the glyph, so it pops in with the new color. */
 .icon {
   flex: none;
+  animation: label-icon-in 480ms cubic-bezier(0.22, 0.8, 0.16, 1) both;
+}
+
+@keyframes label-icon-in {
+  0% { transform: scale(0.5) rotate(-16deg); opacity: 0; }
+  60% { transform: scale(1.18); opacity: 1; }
+  100% { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .label { transition: none; }
+  .icon { animation: none; }
 }
 
 /* First sacrifice when the title row (the enclosing inline-size container)
@@ -47,4 +61,8 @@
 
 .green {
   background: var(--dsw-mode-reverse-fill);
+}
+
+.neutral {
+  background: var(--dsw-mode-neutral-fill);
 }

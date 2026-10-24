@@ -3,7 +3,7 @@
 .name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 140px; }
 .setting { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; font-size: 14px; }
 .setting p { margin: 4px 0 0; font-size: 12px; color: var(--dsw-alias-label-secondary); }
-.setting { border-top: 1px solid var(--dsw-alias-border-l2); }
+.setting { border-top: 0.5px solid var(--dsw-alias-border-l2); }
 .warning { margin: 0 0 12px; font-size: 14px; line-height: 1.7; }
 .note { margin: 0; font-size: 13px; line-height: 1.6; color: var(--dsw-alias-label-secondary); }
 .error { color: var(--dsw-alias-state-error-primary); font-size: 13px; }

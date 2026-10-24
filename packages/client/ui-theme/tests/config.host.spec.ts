@@ -27,9 +27,12 @@ describe('ui-theme host', () => {
     const ctx = new Context()
     const configuration = await liveConfig(ctx, { Config, apply })
     const { fiber } = configuration
-    expect(plainConfig(configuration.fiber.config)).toEqual({ preference: DEFAULT_PREFERENCE, fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' })
+    expect(plainConfig(configuration.fiber.config)).toEqual({ preference: DEFAULT_PREFERENCE, sunLocation: 'auto', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' })
     await configuration.update({ preference: 'dark', fontSize: 10, codeFontSize: 16, codeFontFamily: '"Iosevka"' })
-    expect(plainConfig(configuration.fiber.config)).toEqual({ preference: 'dark', fontSize: 10, codeFontSize: 16, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '"Iosevka"', terminalFontFamily: '' })
+    expect(plainConfig(configuration.fiber.config)).toEqual({ preference: 'dark', sunLocation: 'auto', fontSize: 10, codeFontSize: 16, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '"Iosevka"', terminalFontFamily: '' })
+    await configuration.update({ sunLocation: 'london' })
+    expect(plainConfig(configuration.fiber.config)).toMatchObject({ sunLocation: 'london' })
+    await expect(configuration.update({ sunLocation: 'atlantis' })).rejects.toThrow()
     await configuration.update({ fontSize: 22 })
     expect(plainConfig(configuration.fiber.config)).toMatchObject({ preference: 'dark', fontSize: 22 })
     await expect(configuration.update({ preference: 'sepia' })).rejects.toThrow()
@@ -52,9 +55,14 @@ describe('ui-theme host', () => {
     expect(rows[0]).toMatchObject({ kind: 'style' })
     expect(rows[1]).toMatchObject({ kind: 'script', placement: 'body' })
     expect(rows[2]).toMatchObject({ kind: 'script', placement: 'head', text: 'window.afterTheme=true' })
-    expect(rowText(rows[0])).toContain('@media(prefers-color-scheme:dark)')
-    expect(rowText(rows[1])).toContain('const preference = "system"')
+    expect(rowText(rows[1])).toContain('const preference = "sun"')
     expect(rowText(rows[1])).toContain('"14px"')
+    await configuration.update({ preference: 'system' })
+    expect(rowText(collect(ctx)[0])).toContain('@media(prefers-color-scheme:dark)')
+    expect(rowText(collect(ctx)[1])).toContain('const daylight = null')
+    await configuration.update({ preference: 'sun', sunLocation: 'beijing' })
+    expect(rowText(collect(ctx)[0])).not.toContain('@media')
+    expect(rowText(collect(ctx)[1])).toMatch(/const daylight = \[\[\d+,\d+\]/u)
     expect(rowText(rows[1])).not.toContain('--dsh-font-family')
     await configuration.update({ preference: 'dark', fontSize: 22, terminalFontSize: 18, terminalFontFamily: 'MesloLGS NF' })
     expect(rowText(collect(ctx)[1])).toContain('"--dsh-terminal-font-size", "18px"')
@@ -66,10 +74,10 @@ describe('ui-theme host', () => {
     expect(collect(ctx)).toEqual([{ kind: 'script', placement: 'head', text: 'window.afterTheme=true' }])
   })
 
-  it('uses the system preference without a settings provider', async () => {
+  it('uses the sunrise and sunset preference without a settings provider', async () => {
     const ctx = new Context()
     await ctx.plugin({ Config, apply }).await()
-    expect(rowText(collect(ctx)[1])).toContain('const preference = "system"')
+    expect(rowText(collect(ctx)[1])).toContain('const preference = "sun"')
   })
 
 

@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { FontFamilies, ThemePreference, ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
 import { fontFamilyVariable } from '@deepseek-ai/dsh-client-ui-theme/src/theme-settings.ts'
-import { DARK_ATTRIBUTE, THEME_SOURCE_ATTRIBUTE, ThemePresenter } from '@deepseek-ai/dsh-client-ui-layout/src/client/theme-presenter.ts'
+import {
+  DARK_ATTRIBUTE, THEME_REVEAL_ATTRIBUTE, THEME_SOURCE_ATTRIBUTE, ThemePresenter,
+} from '@deepseek-ai/dsh-client-ui-layout/src/client/theme-presenter.ts'
 
 const LIGHT_THEME_COLOR = 'rgb(255, 255, 255)'
 const DARK_THEME_COLOR = 'rgb(21, 21, 23)'
@@ -17,7 +19,9 @@ function snapshot(
 ): ThemeSnapshot {
   // The presenter must key off colorScheme, not the id — keep them distinct.
   const active = { id: `${colorScheme}-test`, colorScheme, tokens }
-  return { preference, fontSizes: { text: fontSize, code: 11, terminal: 13 }, fontFamilies, active, themes: [active], revision: 1 }
+  return {
+    preference, sunLocation: 'auto', fontSizes: { text: fontSize, code: 11, terminal: 13 }, fontFamilies, active, themes: [active], revision: 1,
+  }
 }
 
 function clearThemePresentation(): void {
@@ -117,6 +121,48 @@ describe('ThemePresenter', () => {
     expect(document.documentElement.getAttribute(THEME_SOURCE_ATTRIBUTE)).toBe('dark')
     presenter.dispose()
     expect(document.documentElement.hasAttribute(THEME_SOURCE_ATTRIBUTE)).toBe(false)
+  })
+
+  it('publishes system for the sun preference until it has a location estimate', () => {
+    const presenter = new ThemePresenter()
+    presenter.apply(snapshot('dark', {}, 14, 'sun'))
+    expect(document.documentElement.getAttribute(THEME_SOURCE_ATTRIBUTE)).toBe('system')
+    presenter.apply({ ...snapshot('dark', {}, 14, 'sun'), sun: { cityId: 'beijing', source: 'manual', daylight: false } })
+    expect(document.documentElement.getAttribute(THEME_SOURCE_ATTRIBUTE)).toBe('dark')
+    presenter.dispose()
+  })
+
+  it('runs a light/dark change in a view transition: a circle from a recent press, a fade otherwise', async () => {
+    const transitions: { finished: PromiseWithResolvers<undefined> }[] = []
+    Object.assign(document, {
+      startViewTransition: vi.fn((update: () => void) => {
+        update()
+        const finished = Promise.withResolvers<undefined>()
+        transitions.push({ finished })
+        return { finished: finished.promise, skipTransition: vi.fn() }
+      }),
+    })
+    vi.stubGlobal('matchMedia', () => ({ matches: false }))
+    try {
+      const presenter = new ThemePresenter()
+      presenter.apply(snapshot('light'))
+      expect(transitions).toHaveLength(0)
+      presenter.apply(snapshot('dark'))
+      expect(document.documentElement.getAttribute(THEME_REVEAL_ATTRIBUTE)).toBe('fade')
+      expect(document.body.hasAttribute(DARK_ATTRIBUTE)).toBe(true)
+      transitions[0]?.finished.resolve(undefined)
+      await vi.waitFor(() => { expect(document.documentElement.hasAttribute(THEME_REVEAL_ATTRIBUTE)).toBe(false) })
+      document.dispatchEvent(new MouseEvent('pointerdown', { clientX: 12, clientY: 34 }))
+      presenter.apply(snapshot('light'))
+      expect(document.documentElement.getAttribute(THEME_REVEAL_ATTRIBUTE)).toBe('circle')
+      expect(document.documentElement.style.getPropertyValue('--dsh-theme-reveal-x')).toBe('12px')
+      presenter.dispose()
+      expect(document.documentElement.hasAttribute(THEME_REVEAL_ATTRIBUTE)).toBe(false)
+      expect(document.documentElement.style.getPropertyValue('--dsh-theme-reveal-x')).toBe('')
+    } finally {
+      Reflect.deleteProperty(document, 'startViewTransition')
+      vi.unstubAllGlobals()
+    }
   })
 
   it('dispose removes color-scheme, the attribute, the font-size axis, and every applied variable, sparing foreign inline styles', () => {

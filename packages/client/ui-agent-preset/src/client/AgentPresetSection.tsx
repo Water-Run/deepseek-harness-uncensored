@@ -14,8 +14,11 @@ import css from './AgentPresetSection.module.css'
 import { PresetIcon } from './PresetIcon.tsx'
 import { ModeSwitchSetting, type ModeSwitchInjected } from './mode-switch.tsx'
 
-/** Main-view selection; an absent identity uses the current default until a draft exists. */
-export interface CurrentModeState { id?: string; blank: boolean; busy: boolean }
+/**
+ * Main-view selection; an absent identity uses the current default until a draft exists.
+ * `sessionId` names the main conversation, absent before one exists.
+ */
+export interface CurrentModeState { id?: string; sessionId?: string; blank: boolean; busy: boolean }
 
 /** Settings actions and their shared controller state. */
 export interface AgentPresetSectionInjected extends ModeSwitchInjected {
@@ -139,7 +142,7 @@ export function AgentPresetSection(props: AgentPresetSectionProps) {
                 onClick={() => { if (row.broken === undefined) void selectCurrent(row.id) }}>
                 <span className={css.cardHead}>
                   <span className={css.cardIdentity}>
-                    <PresetIcon id={row.id} size={18} />
+                    <PresetIcon id={row.id} size={18} className={css.cardIcon} />
                     <span className={css.cardName} title={display.name}>{display.name}</span>
                     {row.broken === undefined ? null : <span className={css.brokenBadge}>
                       {t('brokenBadge')}<span className={css.brokenTip} aria-hidden="true">{row.broken}</span>

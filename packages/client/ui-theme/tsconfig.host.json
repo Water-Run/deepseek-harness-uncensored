@@ -8,6 +8,7 @@
   "files": [
     "src/boot-theme.ts",
     "src/index.ts",
+    "src/sun.ts",
     "src/theme-settings.ts"
   ],
   "references": [

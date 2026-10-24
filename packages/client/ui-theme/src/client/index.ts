@@ -1,7 +1,8 @@
 /**
  * Browser theme registry over the `--dsw-*` token stylesheets. The service
- * owns the live theme preference (light/dark/system), resolves `system` through
- * `prefers-color-scheme`, and publishes immutable snapshots; it never touches
+ * owns the live theme preference (light/dark/system/sun), resolves `system` through
+ * `prefers-color-scheme` and `sun` through the estimated daylight of the
+ * configured location, and publishes immutable snapshots; it never touches
  * the DOM — ui-layout's presenter consumes the resolved snapshot. The Host
  * settings scope loads and stores the preference in the user-settings
  * document. The plugin also registers the Appearance and font settings rows
@@ -27,17 +28,25 @@ import { createAppearanceRowStore, createFontRowStore } from './settings-store.t
 import { installThemeStyles } from './styles.ts'
 import { en, zh, type ThemeKey } from './locales.ts'
 import {
-  DEFAULT_FONT_SIZES, DEFAULT_PREFERENCE, FONT_FAMILY_FIELDS, FONT_ROLES, FONT_SIZE_SPECS,
+  DEFAULT_FONT_SIZES, DEFAULT_PREFERENCE, DEFAULT_SUN_LOCATION, FONT_FAMILY_FIELDS, FONT_ROLES, FONT_SIZE_SPECS,
   fontFamilyVariable, isFontSize, isThemePreference, normalizeFontFamily, sectionFontSizes,
-  THEME_PREFERENCE_FIELD, THEME_SETTINGS_NAMESPACE,
+  SUN_LOCATION_FIELD, THEME_PREFERENCE_FIELD, THEME_SETTINGS_NAMESPACE,
   type FontFamilies, type FontRole, type FontSizes, type ThemePreference, type ThemeSettings,
 } from '../theme-settings.ts'
+import { isSunLocation, resolveSunCity, sunPhase, type SunCitySource, type SunLocation } from '../sun.ts'
 
 export type { AppearanceRowComponentProps, AppearanceRowInjected } from './AppearanceRow.tsx'
 export type { FontSettingsGroupProps, FontSettingsInjected } from './FontSettingsGroup.tsx'
 export type { AppearanceRowState, FontRowState } from './settings-store.ts'
 export type { ThemeKey } from './locales.ts'
 export type { FontFamilies, FontRole, FontSizes, ThemePreference, ThemeSettings } from '../theme-settings.ts'
+export type { SunCitySource, SunLocation } from '../sun.ts'
+
+/** Longest wait between daylight checks, so a suspended timer or a clock change is corrected within hours. */
+const SUN_RECHECK_MS = 6 * 60 * 60 * 1000
+
+/** Delay after an estimated sunrise or sunset before the check, so the boundary instant classifies as the new phase. */
+const SUN_BOUNDARY_MS = 1000
 
 /** Namespace owning this feature's settings-row copy. */
 export const SETTINGS_NS = 'settings.theme'
@@ -80,10 +89,29 @@ export interface ThemeDefinition {
   tokens: ThemeTokens
 }
 
+/** Daylight estimate of the `sun` preference for one city. */
+export interface SunEstimate {
+  /** Listed city the estimate is for. */
+  cityId: string
+  /** How the city was chosen. */
+  source: SunCitySource
+  /** Whether the estimate places the instant between sunrise and sunset. */
+  daylight: boolean
+  /** Current daylight interval, or the next one while dark, in epoch milliseconds; absent through a long polar night. */
+  interval?: readonly [number, number]
+}
+
 /** Immutable theme state published on every change. */
 export interface ThemeSnapshot {
   /** The persisted preference (may be `system`). */
   preference: ThemePreference
+  /** Persisted location of the `sun` preference. */
+  sunLocation: SunLocation
+  /**
+   * Estimate driving the `sun` preference; absent for other preferences and when
+   * no city matches the time zone, in which case `sun` follows `system`.
+   */
+  sun?: SunEstimate
   /** Integer px font sizes by role, each within its `FONT_SIZE_SPECS` range (`text` is the conversation content size). */
   fontSizes: FontSizes
   /** Normalized user font lists by role; `''` selects the role's built-in stack. */
@@ -167,6 +195,8 @@ export class ThemeRuntime {
   private readonly host: ConfigForm<ThemeSettings>
   private themes: ThemeDefinition[] = [...BUILTIN_THEMES]
   private preference: ThemePreference
+  private sunLocation: SunLocation = DEFAULT_SUN_LOCATION
+  private sunTimer: ReturnType<typeof setTimeout> | undefined
   private fontSizes: FontSizes = bootstrapFontSizes()
   private fontFamilies: FontFamilies = bootstrapFontFamilies()
   private revision = 0
@@ -193,7 +223,7 @@ export class ThemeRuntime {
     if (this.media !== undefined) {
       const media = this.media
       const onChange = (): void => {
-        if (this.preference !== 'system') return
+        if (this.preference !== 'system' && !(this.preference === 'sun' && this.snapshot.sun === undefined)) return
         this.publish()
       }
       ctx.effect(() => {
@@ -201,6 +231,18 @@ export class ThemeRuntime {
         return () => { media.removeEventListener('change', onChange) }
       }, 'ui-theme: prefers-color-scheme listener')
     }
+    ctx.effect(() => {
+      // A sleeping device can skip a timer past sunrise or sunset; returning to the page rechecks.
+      const recheck = (): void => { this.recheckSun() }
+      if (typeof document !== 'undefined') document.addEventListener('visibilitychange', recheck)
+      if (typeof window !== 'undefined') window.addEventListener('focus', recheck)
+      return () => {
+        if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', recheck)
+        if (typeof window !== 'undefined') window.removeEventListener('focus', recheck)
+        if (this.sunTimer !== undefined) clearTimeout(this.sunTimer)
+        this.sunTimer = undefined
+      }
+    }, 'ui-theme: daylight schedule')
     ctx.effect(() => host.subscribe(() => { this.adopt() }), 'ui-theme: settings scope adoption')
     this.adopt()
     installFontSizeShortcuts(ctx, (delta) => { this.adjustFontSizes(delta) })
@@ -240,12 +282,25 @@ export class ThemeRuntime {
    * @param id - a registered theme id or `system`; unknown ids throw.
    */
   setTheme(id: string): void {
-    if (id !== 'system' && !this.themes.some(t => t.id === id)) {
+    if (id !== 'system' && id !== 'sun' && !this.themes.some(t => t.id === id)) {
       throw new Error(`theme "${id}" is not registered`)
     }
     if (this.preference === id) return
     this.preference = id as ThemePreference
     if (isThemePreference(id)) this.write(() => this.host.set(THEME_PREFERENCE_FIELD, id))
+    this.publish()
+  }
+
+  /**
+   * Change the location the `sun` preference estimates sunrise and sunset for.
+   * Accepted values are written through the settings scope and emit `theme/change`.
+   * @param location - `auto` or a listed city id; other values throw.
+   */
+  setSunLocation(location: string): void {
+    if (!isSunLocation(location)) throw new Error(`sun location "${location}" is not listed`)
+    if (this.sunLocation === location) return
+    this.sunLocation = location
+    this.write(() => this.host.set(SUN_LOCATION_FIELD, location))
     this.publish()
   }
 
@@ -317,9 +372,10 @@ export class ThemeRuntime {
     if (section === undefined) return
     const fontFamilies = durableFontFamilies(section)
     const fontSizes = sectionFontSizes(section)
-    if (this.preference === section.preference
+    if (this.preference === section.preference && this.sunLocation === section.sunLocation
       && FONT_ROLES.every(role => this.fontSizes[role] === fontSizes[role] && this.fontFamilies[role] === fontFamilies[role])) return
     this.preference = section.preference
+    this.sunLocation = section.sunLocation
     this.fontSizes = fontSizes
     this.fontFamilies = fontFamilies
     this.publish()
@@ -334,7 +390,9 @@ export class ThemeRuntime {
    * unregistered theme.
    */
   register(definition: ThemeDefinition): () => void {
-    if (definition.id === 'system') throw new Error('"system" is a preference, not a registrable theme id')
+    if (definition.id === 'system' || definition.id === 'sun') {
+      throw new Error(`"${definition.id}" is a preference, not a registrable theme id`)
+    }
     if (this.themes.some(t => t.id === definition.id)) {
       throw new Error(`theme "${definition.id}" is already registered`)
     }
@@ -377,17 +435,61 @@ export class ThemeRuntime {
     }
   }
 
+  /** Estimate daylight for the configured location; undefined when no city matches the time zone. */
+  private estimateSun(at: number): (SunEstimate & { next?: number }) | undefined {
+    const resolved = resolveSunCity(this.sunLocation, Intl.DateTimeFormat().resolvedOptions().timeZone, at)
+    if (resolved === undefined) return undefined
+    const phase = sunPhase(at, resolved.city.latitude, resolved.city.longitude)
+    return {
+      cityId: resolved.city.id, source: resolved.source, daylight: phase.daylight,
+      ...(phase.interval === undefined ? {} : { interval: phase.interval }),
+      ...(phase.next === undefined ? {} : { next: phase.next }),
+    }
+  }
+
+  /** Re-arm the daylight timer for the published preference. */
+  private scheduleSun(next: number | undefined): void {
+    if (this.sunTimer !== undefined) clearTimeout(this.sunTimer)
+    this.sunTimer = undefined
+    if (this.preference !== 'sun') return
+    const wait = next === undefined ? SUN_RECHECK_MS : Math.min(SUN_RECHECK_MS, Math.max(0, next - Date.now()) + SUN_BOUNDARY_MS)
+    this.sunTimer = setTimeout(() => { this.sunTimer = undefined; this.recheckSun() }, wait)
+  }
+
+  /** Publish when the daylight estimate changed since the last snapshot; otherwise only re-arm the timer. */
+  private recheckSun(): void {
+    if (this.preference !== 'sun') return
+    const estimate = this.estimateSun(Date.now())
+    const current = this.snapshot.sun
+    if (estimate?.daylight === current?.daylight && estimate?.cityId === current?.cityId
+      && estimate?.interval?.[0] === current?.interval?.[0] && estimate?.interval?.[1] === current?.interval?.[1]) {
+      this.scheduleSun(estimate?.next)
+      return
+    }
+    this.publish()
+  }
+
   private buildSnapshot(): ThemeSnapshot {
-    const resolvedId = this.preference === 'system'
+    const estimate = this.preference === 'sun' ? this.estimateSun(Date.now()) : undefined
+    this.scheduleSun(estimate?.next)
+    const followsSystem = this.preference === 'system' || (this.preference === 'sun' && estimate === undefined)
+    const resolvedId = followsSystem
       ? (this.media?.matches === true ? 'dark' : 'light')
-      : this.preference
+      : this.preference === 'sun' ? (estimate?.daylight === true ? 'light' : 'dark')
+        : this.preference
     // Both built-ins always exist; a registered preference id resolves or has
     // been reset by its disposer, so the lookup cannot miss.
     const active = this.themes.find(t => t.id === resolvedId)
     /* v8 ignore next 2 -- needs a registry without light/dark, which register()/dispose() cannot produce */
     if (active === undefined) throw new Error(`theme registry lost "${resolvedId}"`)
+    const sun: SunEstimate | undefined = estimate === undefined ? undefined : {
+      cityId: estimate.cityId, source: estimate.source, daylight: estimate.daylight,
+      ...(estimate.interval === undefined ? {} : { interval: estimate.interval }),
+    }
     return Object.freeze({
       preference: this.preference,
+      sunLocation: this.sunLocation,
+      ...(sun === undefined ? {} : { sun: Object.freeze(sun) }),
       fontSizes: this.fontSizes,
       fontFamilies: this.fontFamilies,
       active: this.composeActive(active),
@@ -554,7 +656,7 @@ export function apply(ctx: ClientContext): void {
   const fontStore = createFontRowStore()
   let fontBound: BoundActions<typeof fontStore> | undefined
   const sync = (snapshot: ThemeSnapshot): void => {
-    bound?.sync(snapshot.preference, snapshot.revision)
+    bound?.sync(snapshot)
     fontBound?.sync(snapshot.fontSizes, snapshot.fontFamilies, snapshot.revision)
   }
   ctx.on('theme/change', sync)
@@ -565,6 +667,7 @@ export function apply(ctx: ClientContext): void {
     sync(theme.getTheme())
     return {
       setTheme: (id) => { theme.setTheme(id) },
+      setSunLocation: (location) => { theme.setSunLocation(location) },
     }
   }
   ctx.slots.inject('settings.general.item', () => ctx.slots.register({

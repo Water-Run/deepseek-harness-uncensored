@@ -31,6 +31,7 @@ import { AGENT_PRESET_SETTINGS_NS, AgentPresetSettingsController } from './setti
 import { ModeSwitchController, ModeSwitchToast, SessionModeControl } from './mode-switch.tsx'
 import type { ModeSwitchInjected } from './mode-switch.tsx'
 import type { CurrentModeState } from './AgentPresetSection.tsx'
+import { installModeAccent } from './mode-accent.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -154,7 +155,8 @@ export function apply(ctx: ClientContext): void {
     const seat = binding === undefined ? unboundSeat : seats.get(binding)
     const id = current?.blank === false ? current.projectionValues?.agentPreset
       : seat?.store.getSnapshot().current || current?.projectionValues?.agentPreset || staged.id
-    currentMode.set({ ...(id == null || id === '' ? {} : { id }), blank: current?.blank !== false,
+    currentMode.set({ ...(id == null || id === '' ? {} : { id }), ...(current === undefined ? {} : { sessionId: current.id }),
+      blank: current?.blank !== false,
       busy: current !== undefined && (current.running || modeSwitch.state.getSnapshot().busy.has(current.id)
         || seat?.store.getSnapshot().busy === true) })
   }
@@ -168,6 +170,7 @@ export function apply(ctx: ClientContext): void {
     void modeSwitch.load()
     return () => { stopList(); stopSeat(); stopSwitch(); stopPolicy(); stopConnection() }
   }, 'ui-agent-preset: current selection and runtime policy')
+  ctx.effect(() => installModeAccent(currentMode), 'ui-agent-preset: mode accent')
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'mode-switch-feedback', order: 25, locale: 'settings.agentPreset', inject: modeInjected,
   }, ModeSwitchToast))

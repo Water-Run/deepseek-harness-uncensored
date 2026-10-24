@@ -52,12 +52,29 @@
 
 .card {
   --mode-fill: var(--dsw-mode-standard-fill);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   border: 0.5px solid var(--dsw-alias-settings-card-stroke);
   border-radius: var(--dsw-radius-xl);
   display: flex;
   flex-direction: column;
   background: var(--dsw-alias-settings-card-fill);
-  transition: border-color .3s, background .3s, box-shadow .3s, transform .3s;
+  transition: border-color .3s, background-color .3s, box-shadow .3s, transform .3s, color .3s;
+}
+
+/* The selected fill spreads from the card's center, so picking a mode floods
+   its card with the mode color instead of swapping backgrounds. */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--mode-fill) 90%, var(--dsw-mode-label-ink)), var(--mode-fill));
+  clip-path: circle(0 at 50% 50%);
+  opacity: 0;
+  transition: clip-path 460ms cubic-bezier(0.22, 0.8, 0.16, 1), opacity 200ms var(--ds-ease-in-out);
+  pointer-events: none;
 }
 
 .card[data-agent-preset-id='security'] { --mode-fill: var(--dsw-mode-security-fill); }
@@ -73,10 +90,24 @@
   --dsw-alias-label-primary: var(--dsw-mode-label-ink);
   --dsw-alias-label-tertiary: color-mix(in srgb, var(--dsw-mode-label-ink) 85%, transparent);
   --dsw-alias-border-l4: color-mix(in srgb, var(--dsw-mode-label-ink) 30%, transparent);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--mode-fill) 90%, var(--dsw-mode-label-ink)), var(--mode-fill));
   border-color: color-mix(in srgb, var(--mode-fill) 65%, var(--dsw-mode-label-ink));
   color: var(--dsw-mode-label-ink);
   box-shadow: 0 8px 24px color-mix(in srgb, var(--mode-fill) 18%, transparent), inset 0 1px color-mix(in srgb, var(--dsw-mode-label-ink) 20%, transparent);
+}
+
+.cardActive::before {
+  clip-path: circle(75% at 50% 50%);
+  opacity: 1;
+}
+
+.cardIcon { flex: none; }
+
+.cardActive .cardIcon { animation: mode-icon-pop 520ms cubic-bezier(0.22, 0.8, 0.16, 1) both; }
+
+@keyframes mode-icon-pop {
+  0% { transform: scale(0.6) rotate(-12deg); }
+  55% { transform: scale(1.22) rotate(4deg); }
+  100% { transform: none; }
 }
 
 .cardActive .cardDesc, .cardActive .cardId, .cardActive .helpButton, .cardActive .iconButton {
@@ -409,4 +440,9 @@
   .card:nth-child(4) { animation-delay: 105ms; }
 }
 @keyframes modeEnter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-@media (prefers-reduced-motion: reduce) { .card, .brokenTip { transition: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .card, .card::before, .brokenTip { transition: none; }
+  .cardIcon { flex: none; }
+
+.cardActive .cardIcon { animation: none; }
+}

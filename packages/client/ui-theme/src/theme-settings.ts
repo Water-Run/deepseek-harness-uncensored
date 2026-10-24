@@ -1,9 +1,13 @@
 /** Theme preferences stored in the Host user-settings document. */
 
 import z from '@deepseek-ai/schemastery'
+import { SUN_LOCATION_AUTO, SUN_LOCATIONS, type SunLocation } from './sun.ts'
 
-/** Built-in preferences accepted at the registry and settings boundaries. */
-export const THEME_PREFERENCES = ['light', 'dark', 'system'] as const
+/**
+ * Built-in preferences accepted at the registry and settings boundaries.
+ * `sun` is light between the estimated sunrise and sunset of the configured location.
+ */
+export const THEME_PREFERENCES = ['light', 'dark', 'system', 'sun'] as const
 
 /** Settings namespace owned by the theme plugin. */
 export const THEME_SETTINGS_NAMESPACE = 'ui-theme'
@@ -18,7 +22,13 @@ export const FONT_SIZE_FIELD = 'fontSize'
 export type ThemePreference = typeof THEME_PREFERENCES[number]
 
 /** Default preference when the user-settings document has no override. */
-export const DEFAULT_PREFERENCE: ThemePreference = 'system'
+export const DEFAULT_PREFERENCE: ThemePreference = 'sun'
+
+/** Field carrying the location the `sun` preference estimates sunrise and sunset for. */
+export const SUN_LOCATION_FIELD = 'sunLocation'
+
+/** Location when the user-settings document has no override: the time zone's representative city. */
+export const DEFAULT_SUN_LOCATION: SunLocation = SUN_LOCATION_AUTO
 
 /** Smallest accepted content font size (px). */
 export const FONT_SIZE_MIN = 10
@@ -92,6 +102,8 @@ export type FontFamilies = Readonly<Record<FontRole, string>>
 export interface ThemeSettings {
   /** Selected built-in preference. */
   preference: ThemePreference
+  /** Location of the `sun` preference: `auto` or one listed city. */
+  sunLocation: SunLocation
   /** Conversation content font size in px (integer within {@link FONT_SIZE_MIN}..{@link FONT_SIZE_MAX}). */
   fontSize: number
   /** Code-block font size in px (integer within the {@link FONT_SIZE_SPECS} `code` range). */
@@ -138,6 +150,7 @@ export function isFontSize(role: FontRole, px: number): boolean {
 /** Durable theme schema; also the wire envelope the browser scope validates against. */
 export const ThemeSettingsSchema: z<ThemeSettings> = z.object({
   [THEME_PREFERENCE_FIELD]: z.union([...THEME_PREFERENCES]).default(DEFAULT_PREFERENCE),
+  [SUN_LOCATION_FIELD]: z.union([...SUN_LOCATIONS]).default(DEFAULT_SUN_LOCATION),
   [FONT_SIZE_FIELD]: fontSizeSchema(FONT_SIZE_SPECS.text),
   [FONT_SIZE_SPECS.code.field]: fontSizeSchema(FONT_SIZE_SPECS.code),
   [FONT_SIZE_SPECS.terminal.field]: fontSizeSchema(FONT_SIZE_SPECS.terminal),

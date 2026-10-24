@@ -3,6 +3,8 @@ import base from '../styles/base.css?inline'
 import cornerShape from '../styles/corner-shape.css?inline'
 import designPlatform from '../styles/design-platform.css?inline'
 import focus from '../styles/focus.css?inline'
+import modeAccent from '../styles/mode-accent.css?inline'
+import motion from '../styles/motion.css?inline'
 import onboarding from '../styles/onboarding.css?inline'
 import scrollbar from '../styles/scrollbar.css?inline'
 import gradientShadowText from '../styles/gradient-shadow-text.css?inline'
@@ -14,6 +16,8 @@ const STYLES = [
   ['base.css', base],
   ['corner-shape.css', cornerShape],
   ['design-platform.css', designPlatform],
+  ['mode-accent.css', modeAccent],
+  ['motion.css', motion],
   ['focus.css', focus],
   ['onboarding.css', onboarding],
   ['scrollbar.css', scrollbar],

@@ -44,7 +44,7 @@ Windows Electron 的 `data-windows-titlebar` 标记在所有列上方预留顶�
 
 ### 主题呈现
 
-呈现器消费解析后的主题快照，并投影到 document：`html { color-scheme }` 驱动原生 UA 控件，依据当前配色方案设置 `body[data-ds-dark-theme]`，把主题的别名 token、`--dsh-content-font-size`、`--dsh-code-font-size`、`--dsh-terminal-font-size` 以及每个非空的 `--dsh-font-family-<role>` 列表设为 body 上的内联变量，并持有一个 `<meta name="theme-color">`，其内容随计算后的 body 背景色更新。对呈现器执行 dispose（资源释放）时，它会连同其他全局写入一起移除自己的元数据节点。
+呈现器消费解析后的主题快照，并投影到 document：`html { color-scheme }` 驱动原生 UA 控件，依据当前配色方案设置 `body[data-ds-dark-theme]`，把主题的别名 token、`--dsh-content-font-size`、`--dsh-code-font-size`、`--dsh-terminal-font-size` 以及每个非空的 `--dsh-font-family-<role>` 列表设为 body 上的内联变量，并持有一个 `<meta name="theme-color">`，其内容随计算后的 body 背景色更新。调色板跟随操作系统时（`system` 偏好，或尚无位置估算的 `sun`），`html[data-ds-theme-source]` 为 `system`，否则为解析后的配色方案。首份快照之后的明暗变化在视图过渡中进行，并以 `html[data-dsh-theme-reveal]` 标记：两秒内有指针按下时从按下位置扩散圆形，否则交叉淡化；减少动态效果或不支持视图过渡时直接切换。对呈现器执行 dispose（资源释放）时，它会连同其他全局写入一起移除自己的元数据节点、指针监听与正在进行的过渡。
 
 -----
 
@@ -71,7 +71,6 @@ Windows Electron 的 `data-windows-titlebar` 标记在所有列上方预留顶�
 - [ui-conversation](../ui-conversation/README.zh.md)——占据 `main` 中的 `conversation` key。
 - [ui-sidebar-right](../ui-sidebar-right/README.zh.md)——以每会话一个停靠面占据 `rightbar` 栏。
 - [ui-theme](../ui-theme/README.zh.md)——呈现器消费其解析快照的主题 seam。
-- [Web 客户端架构](../../../docs/subsystems/web-client.zh.md)——浏览器插件行如何加载并注册槽位。
 
 -----
 

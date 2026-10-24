@@ -70,10 +70,27 @@ describe('theme bootstrap row', () => {
     )
   })
 
-  it('defaults to system and falls back to light when matchMedia is unavailable', () => {
+  it('defaults to sunrise and sunset, which follows the system without a location, and falls back to light without matchMedia', () => {
     vi.stubGlobal('matchMedia', undefined)
     executeBootstrap()
+    expect(document.documentElement.dataset.dsThemeSource).toBe('system')
     expect(document.body.hasAttribute(DARK_ATTRIBUTE)).toBe(false)
+  })
+
+  it.each([
+    ['inside', [[-60_000, 60_000]], false, 'light'],
+    ['outside', [[60_000, 120_000]], true, 'dark'],
+  ] as const)('resolves sun with the render instant %s the daylight intervals', (_label, daylight, dark, source) => {
+    mockSystemDark(!dark)
+    const at = 0
+    vi.spyOn(Date, 'now').mockReturnValue(at)
+    const [head, body] = bootThemeInjections('sun', undefined, undefined, daylight, at)
+    if (head?.kind !== 'style' || body?.kind !== 'script') throw new Error('unexpected theme bootstrap rows')
+    expect(head.text).toContain(dark ? 'color-scheme:dark' : 'color-scheme:light')
+    expect(head.text).not.toContain('@media')
+    runInNewContext(body.text, { document, matchMedia: globalThis.matchMedia, Date })
+    expect(document.documentElement.dataset.dsThemeSource).toBe(source)
+    expect(document.body.hasAttribute(DARK_ATTRIBUTE)).toBe(dark)
   })
 
   it('writes the durable font sizes and their defaults', () => {

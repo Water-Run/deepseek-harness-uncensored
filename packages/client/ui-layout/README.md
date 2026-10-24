@@ -44,7 +44,7 @@ The root publishes `--dsh-frame-top-clearance` for the reserved strip (48px on m
 
 ### Theme presentation
 
-The presenter consumes resolved theme snapshots and projects them onto the document: `html { color-scheme }` for native UA chrome, `body[data-ds-dark-theme]` from the active color scheme, the theme's alias tokens, `--dsh-content-font-size`, `--dsh-code-font-size`, `--dsh-terminal-font-size`, and each non-empty `--dsh-font-family-<role>` list as inline variables on body, and one owned `<meta name="theme-color">` whose content follows the computed body background. Disposing the presenter removes its metadata node with its other global writes.
+The presenter consumes resolved theme snapshots and projects them onto the document: `html { color-scheme }` for native UA chrome, `body[data-ds-dark-theme]` from the active color scheme, the theme's alias tokens, `--dsh-content-font-size`, `--dsh-code-font-size`, `--dsh-terminal-font-size`, and each non-empty `--dsh-font-family-<role>` list as inline variables on body, and one owned `<meta name="theme-color">` whose content follows the computed body background. `html[data-ds-theme-source]` reads `system` while the palette follows the operating system (the `system` preference, or `sun` without a location estimate) and the resolved scheme otherwise. A light/dark change after the first snapshot runs inside a view transition marked by `html[data-dsh-theme-reveal]`: a circle spreads from a pointer press made within the last two seconds, otherwise the palettes cross-fade; reduced motion and engines without view transitions switch at once. Disposing the presenter removes its metadata node, its pointer listener, and any running transition with its other global writes.
 
 -----
 
@@ -71,7 +71,6 @@ Read these pages when the layout surface is not enough. They move from the frame
 - [ui-conversation](../ui-conversation/README.md) — occupies the `main` key `conversation`.
 - [ui-sidebar-right](../ui-sidebar-right/README.md) — occupies the `rightbar` column with one docking surface per session.
 - [ui-theme](../ui-theme/README.md) — the theme seam whose resolved snapshots the presenter consumes.
-- [Web client architecture](../../../docs/subsystems/web-client.md) — how browser plugin rows load and register slots.
 
 -----
 

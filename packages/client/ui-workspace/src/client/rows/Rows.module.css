@@ -37,7 +37,12 @@
   color: var(--dsw-alias-label-primary);
 }
 
+/* Gray marks a new, failed, or unknown conversation at half height. Gaining a
+   mode lights the strip: it grows to full height with a slight overshoot and
+   picks up a glow in the mode color. Transitions fire only on that change, so
+   rows mounting while scrolling stay still. */
 .modeStrip {
+  --strip-color: var(--dsw-alias-label-tertiary);
   position: absolute;
   inset-inline-start: 3px;
   top: 6px;
@@ -45,14 +50,26 @@
   width: 3px;
   border-radius: 2px;
   pointer-events: none;
-  background: var(--dsw-alias-label-tertiary);
-  transition: background-color 240ms var(--ds-ease-in-out);
+  background: var(--strip-color);
+  transform: scaleY(0.5);
+  opacity: 0.7;
+  transition:
+    background-color 360ms var(--ds-ease-in-out),
+    transform 460ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 240ms var(--ds-ease-in-out),
+    box-shadow 460ms var(--ds-ease-in-out);
 }
 
-[data-mode='standard'] .modeStrip { background: var(--dsw-brand-blue); }
-[data-mode='security'] .modeStrip { background: var(--dsw-brand-red); }
-[data-mode='reverse'] .modeStrip { background: var(--dsw-brand-green); }
-[data-mode='writing'] .modeStrip { background: var(--dsw-brand-yellow); }
+[data-mode='standard'] .modeStrip { --strip-color: var(--dsw-brand-blue); }
+[data-mode='security'] .modeStrip { --strip-color: var(--dsw-brand-red); }
+[data-mode='reverse'] .modeStrip { --strip-color: var(--dsw-brand-green); }
+[data-mode='writing'] .modeStrip { --strip-color: var(--dsw-brand-yellow); }
+
+:is([data-mode='standard'], [data-mode='security'], [data-mode='reverse'], [data-mode='writing']) .modeStrip {
+  transform: none;
+  opacity: 1;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--strip-color) 45%, transparent);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .modeStrip { transition: none; }

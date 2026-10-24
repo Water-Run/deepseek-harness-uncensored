@@ -79,8 +79,9 @@ describe('official browser-brand plugin', () => {
   })
 
   it('renders the official name independently from both requested mark sizes', () => {
-    const name = render(<OfficialBrandName useSessions={selector => selector({ phase: 'ready', ids: [], byId: {}, projectionsBySession: {} })} />)
-    expect(name.container.querySelector('svg')?.getAttribute('viewBox')).toBe('26 0 150 40')
+    const name = render(<OfficialBrandName />)
+    expect(name.container.querySelector('svg')?.getAttribute('viewBox')).toBe('26 0 153 40')
+    expect(name.container.querySelector('[data-dsh-mode-marker]')?.getAttribute('fill')).toBe('var(--dsh-mode-marker, var(--dsw-brand-blue))')
     name.unmount()
 
     const mark = render(<OfficialBrandMark size={34} />)

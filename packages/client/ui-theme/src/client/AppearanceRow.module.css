@@ -1,5 +1,7 @@
-/* Appearance row (figma 'Frame 2117131228': title + cube row, column gap 8,
- * pad 16/0, hairline separator; the section column strips it when last). */
+/* Appearance row: title, description, four preview cards, and the sun
+ * location details; hairline separator, the section column strips it when last.
+ * Preview panes paint fixed light and dark palettes so each card shows what it
+ * selects whatever theme is active; the accent bar takes the mode marker color. */
 
 .group {
   display: flex;
@@ -16,42 +18,225 @@
   color: var(--dsw-alias-label-primary);
 }
 
-.cubeRow {
+.description {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.card {
+  box-sizing: border-box;
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-lg);
+  background: var(--dsw-alias-bg-layer-1);
+  font: inherit;
+  color: var(--dsw-alias-label-primary);
+  text-align: start;
+  cursor: pointer;
+  transition:
+    border-color var(--ds-transition-duration) var(--ds-ease-in-out),
+    box-shadow var(--ds-transition-duration) var(--ds-ease-in-out),
+    transform var(--ds-transition-duration) var(--ds-ease-in-out);
+}
+
+@media (hover: hover) {
+  .card:hover:not(.selected) {
+    transform: translateY(-1px);
+    box-shadow: var(--dsw-shadow-lv1);
+  }
+}
+
+.card:active { transform: scale(0.985); }
+
+.card:focus-visible {
+  outline: 2px solid var(--dsw-focus-ring-color);
+  outline-offset: 2px;
+}
+
+.selected {
+  border-color: var(--dsw-alias-state-business-primary);
+  box-shadow: 0 0 0 1px var(--dsw-alias-state-business-primary);
+}
+
+.preview {
+  display: flex;
+  height: 84px;
+}
+
+.pane {
+  --pane-bg: var(--dsw-static-neutral-bluish-00);
+  --pane-track: var(--dsw-static-neutral-bluish-200);
+  --pane-body: var(--dsw-static-neutral-bluish-60);
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  background: var(--pane-bg);
+}
+
+.pane[data-scheme='dark'] {
+  --pane-bg: var(--dsw-static-neutral-bluish-950);
+  --pane-track: var(--dsw-static-neutral-bluish-800);
+  --pane-body: var(--dsw-static-neutral-bluish-875);
+}
+
+.paneBar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--pane-track);
+  overflow: hidden;
+}
+
+.paneAccent {
+  display: block;
+  width: 55%;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--dsh-mode-marker, var(--dsw-brand-blue));
+}
+
+.paneBody {
+  flex: 1;
+  border-radius: 4px;
+  background: var(--pane-body);
+}
+
+.footer {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px 12px;
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.radio {
+  flex: none;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  border-radius: 50%;
+  corner-shape: round;
+  box-shadow: inset 0 0 0 1.5px var(--dsw-alias-label-tertiary);
+  transition: box-shadow var(--ds-transition-duration) var(--ds-ease-in-out);
+}
+
+.selected .radio {
+  box-shadow:
+    inset 0 0 0 1.5px var(--dsw-alias-state-business-primary),
+    inset 0 0 0 4px var(--dsw-alias-bg-layer-1),
+    inset 0 0 0 8px var(--dsw-alias-state-business-primary);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 22px;
+}
+
+.caption {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.sun {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 12px;
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-fill-tsp-secondary);
+  animation: sun-details-in var(--ds-transition-duration-slow) var(--ds-ease-in-out) both;
+}
+
+@keyframes sun-details-in {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+
+.sunField {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
-/* Appearance cube (figma '.Selector Cube' 276x82, pad 20/32, centered
- * icon-over-label column, gap 4); flexed down from the figma width so all
- * three sit on one row in the 800 panel, wrapping when narrower. */
-.themeCube {
+.sunLabel {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* Data-URI SVGs cannot resolve CSS variables; #81858C is the caption gray shared by both themes. */
+.select {
   box-sizing: border-box;
-  flex: 1 1 180px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 20px 32px;
+  min-width: 200px;
+  max-width: 100%;
+  height: 32px;
+  padding: 0 32px 0 10px;
   border: 0.5px solid var(--dsw-alias-border-l4);
-  border-radius: var(--dsw-radius-xl);
-  background: transparent;
+  border-radius: var(--dsw-radius-md);
+  appearance: none;
   font: inherit;
-  font-size: 14px;
-  line-height: 22px;
+  font-size: 13px;
+  background: var(--dsw-alias-bg-layer-1)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3 4.5L6 7.5L9 4.5' stroke='%2381858C' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    no-repeat right 12px center / 12px 12px;
   color: var(--dsw-alias-label-primary);
   cursor: pointer;
 }
 
-.themeCube:hover:not(.selected) {
-  background: var(--dsw-alias-interactive-bg-hover);
+.select:focus-visible {
+  outline: 2px solid var(--dsw-focus-ring-color);
+  outline-offset: 1px;
 }
 
-/* Selected cube: #F5F6F7 fill + #ADB2B8 border (static token — the bluish-400
- * step has no alias-layer name). */
-.selected {
-  background: var(--dsw-alias-bg-module-platform);
-  border-color: var(--dsw-static-neutral-bluish-400);
+.sunEstimate {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.sunTimes {
+  color: var(--dsw-alias-label-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.sunNote {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card, .radio { transition: none; }
+  .card:active { transform: none; }
+  .sun { animation: none; }
 }
