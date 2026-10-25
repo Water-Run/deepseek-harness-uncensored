@@ -228,6 +228,8 @@ Desktop 在 Host 启动后、打开工作区前检查模型 API Key 引用是否
 
 ## 打包
 
+受监督的打包按日志批次将 Electron 解压到目标构建目录下的独立目录，旧解压目录被占用时不会阻止新批次；不可变下载缓存仍共享。该隔离仅覆盖 Electron 解压，不允许并发写入其他同目标目录。
+
 <a id="release-versions"></a>
 <a id="upload-updates"></a>
 <a id="windows-ev-signing"></a>

@@ -31,10 +31,10 @@
   --dsw-mode-writing-accent-dark: #facc15;
   --dsw-mode-writing-press: #854d0e;
   --dsw-mode-writing-press-dark: #ca8a04;
-  --dsw-mode-standard-fill: #174787;
-  --dsw-mode-security-fill: #8f2535;
-  --dsw-mode-reverse-fill: #126348;
-  --dsw-mode-writing-fill: #795900;
+  --dsw-mode-standard-fill: var(--dsw-mode-standard-accent);
+  --dsw-mode-security-fill: var(--dsw-mode-security-accent);
+  --dsw-mode-reverse-fill: var(--dsw-mode-reverse-accent);
+  --dsw-mode-writing-fill: var(--dsw-mode-writing-accent);
   --dsw-mode-neutral-fill: #4b5563;
   --dsw-mode-label-ink: #ffffff;
   --dsh-font-family-text-default: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',

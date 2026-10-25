@@ -19,9 +19,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* The rim is a lighter tint of the mode's own color, so the card keeps one
-     hue instead of a white edge on a colored fill. */
-  border: 1px solid color-mix(in srgb, var(--mode-fill) 62%, var(--dsw-mode-label-ink));
+  border: 1px solid color-mix(in srgb, var(--mode-fill) 86%, var(--dsw-mode-label-ink));
   /* The shared largest radius is wider than half of the card's height, so the
      browser clamps it and the card reads as a pill. */
   border-radius: var(--dsw-radius-lg);
@@ -50,7 +48,8 @@ button.card {
 
 button.card:disabled {
   cursor: default;
-  opacity: 0.72;
+  /* A locked mode still communicates its identity at full contrast. */
+  opacity: 1;
 }
 
 .icon {

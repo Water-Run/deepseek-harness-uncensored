@@ -4,10 +4,22 @@ import {
   desktopTargetBuildPaths,
   desktopTargetPlatform,
   developmentRuntimeDirectory,
+  resolveDesktopTargetBuildPaths,
   resolveDesktopBuildTarget,
 } from '../scripts/desktop-build-paths.mjs'
 
 describe('desktop build paths', () => {
+  it('extracts Electron per packaging run without replacing a retained older distribution', () => {
+    const legacy = desktopTargetBuildPaths('win-x64', {})
+    const first = desktopTargetBuildPaths('win-x64', { DSH_DESKTOP_PACKAGING_RUN_DIR: join('journals', 'run-one') })
+    const second = resolveDesktopTargetBuildPaths({ DSH_DESKTOP_PACKAGING_RUN_DIR: join('journals', 'run-two') }, 'win32', 'x64')
+    expect(legacy.electron).toBe(join(legacy.root, 'electron'))
+    expect(first.electron).toBe(join(first.root, 'electron-preparations', 'run-one'))
+    expect(second.electron).toBe(join(second.root, 'electron-preparations', 'run-two'))
+    expect(first.downloads).toBe(second.downloads)
+    expect(first.unsignedArtifacts).toBe(second.unsignedArtifacts)
+    expect(() => desktopTargetBuildPaths('win-x64', { DSH_DESKTOP_PACKAGING_RUN_DIR: '..' })).toThrow(/invalid packaging/u)
+  })
   it('isolates every mutable build directory by complete target', () => {
     const arm64 = desktopTargetBuildPaths('mac-arm64')
     const x64 = desktopTargetBuildPaths('mac-x64')

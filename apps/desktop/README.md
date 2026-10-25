@@ -228,6 +228,8 @@ The welcome window follows system appearance with the design’s Platform light/
 
 ## Package
 
+Supervised packaging extracts Electron into a journal-specific directory under the target build folder. A retained older extraction cannot block a new run through file locks; the immutable download cache remains shared. This isolates only Electron extraction, not concurrent writes to the other target directories.
+
 <a id="release-versions"></a>
 <a id="upload-updates"></a>
 <a id="windows-ev-signing"></a>
