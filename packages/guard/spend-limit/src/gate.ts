@@ -5,7 +5,9 @@ import type { GenerateOptions, StreamChunk, TokenUsage } from '@deepseek-ai/dsh-
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { SpendLedger } from './ledger.ts'
 import { reserveCost, usageCost } from './pricing.ts'
-import type { SpendPauseId, SpendRate, SpendReservationId } from './types.ts'
+import type { SessionSpendUsage, SpendPauseId, SpendRate, SpendReservationId } from './types.ts'
+import type { SessionEvent } from '@deepseek-ai/dsh-session'
+import { sessionSpendUsage } from './session-usage.ts'
 
 /** One process's admission waiters and active requests; the ledger coordinates other processes. */
 export class SpendGate {
@@ -23,6 +25,13 @@ export class SpendGate {
     private readonly canRecover: (id: SessionId) => boolean) {}
   /** Locally waiting requests, excluding requests already sent to a provider. */
   get waiting(): number { return this.waiters }
+
+  /**
+   * Estimate recorded responses independently of the limit switch.
+   * @param events - This Session's durable history.
+   * @returns Its own response and retry estimates at configured rates.
+   */
+  sessionUsage(events: readonly SessionEvent[]): SessionSpendUsage { return sessionSpendUsage(events, this.rates) }
 
   private async admit(cost: number, signal?: AbortSignal, onWait?: () => void): Promise<SpendReservationId | undefined> {
     const combined = signal === undefined ? this.lifetime.signal : AbortSignal.any([signal, this.lifetime.signal])

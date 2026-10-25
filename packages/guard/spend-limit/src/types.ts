@@ -58,3 +58,11 @@ export interface SpendRate {
   maxOutputTokens: number
   searchRequest: number
 }
+
+/** Session-local model-response estimates at current configured prices, including retries but excluding inherited work. */
+export interface SessionSpendUsage {
+  total: number
+  requests: number
+  unpricedRequests: number
+  points: { time: number; total: number }[]
+}

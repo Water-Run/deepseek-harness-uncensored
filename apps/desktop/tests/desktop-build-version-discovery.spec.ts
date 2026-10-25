@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -24,6 +24,14 @@ afterEach(async () => {
 })
 
 describe('desktop build version discovery', () => {
+  it('includes Uncensored installers retained in per-run unsigned output directories', async () => {
+    const artifactsRoot = await artifactsWith([])
+    const run = join(artifactsRoot, 'runs', 'build-one')
+    await mkdir(run, { recursive: true })
+    await writeFile(join(run, `deepseek-harness-uncensored-${STABLE}-test.${DATE}.8-win-x64-unsigned.exe`), '')
+    await expect(suggestDesktopBuildVersion({ productVersion: STABLE, target: 'win-x64', environment: {}, date: DATE, artifactsRoot }))
+      .resolves.toBe(`${STABLE}-test.${DATE}.9`)
+  })
   it('formats the date segment in the build host time zone', () => {
     expect(desktopBuildDateSegment(new Date(2026, 8, 21))).toBe('20260921')
     expect(desktopBuildDateSegment(new Date(2026, 0, 5))).toBe('20260105')

@@ -35,6 +35,8 @@ import { InputHub } from './input/hub.ts'
 import { ComposerSubmissionPolicy } from './input/submission-policy.ts'
 import { queueDockEntry } from './queue/QueueDock.tsx'
 import { EnterBehaviorRow } from './settings/EnterBehaviorRow.tsx'
+import { PredictionRow } from './settings/PredictionRow.tsx'
+import { PredictionPreference } from './prediction-preference.ts'
 import type { EnterBehaviorRowInjected } from './settings/EnterBehaviorRow.tsx'
 import { ConversationRoot } from './skeleton/ConversationRoot.tsx'
 import { ConversationContent } from './skeleton/ConversationContent.tsx'
@@ -187,6 +189,14 @@ export function apply(ctx: Context, config: Config = Config({})): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-conversation: dictionaries')
   const t = ctx.locale.bind(NS)
   const conversationStore = createConversationStore()
+  const predictionPreference = new PredictionPreference()
+  ctx.effect(() => () => { predictionPreference.dispose() }, 'conversation: input prediction preference')
+  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
+    name: 'settings.general.item', id: 'input-prediction', order: 21, locale: NS,
+    inject: () => ({ hooks: { predictionPreference: predictionPreference.state },
+      setPredictionEnabled: (value: boolean) => { predictionPreference.save(value) },
+    }),
+  }, PredictionRow))
   const submissionPolicy = new ComposerSubmissionPolicy(
     ctx.configForms.get<ConversationSettings>(CONVERSATION_SETTINGS_NAMESPACE),
   )
@@ -478,6 +488,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
           hooks: {
             stopShortcut,
             busyEnter: submissionPolicy.busyEnter,
+            predictionPreference: predictionPreference.state,
             fileUploads: ABSENT_FILE_UPLOADS,
             notices: ABSENT_NOTICES,
             lexicon: ABSENT_LEXICON,
@@ -551,10 +562,14 @@ export function apply(ctx: Context, config: Config = Config({})): void {
             })
           },
         stop: () => { stop(sessionId) },
-        predictDraft: (draft, signal) => sessions.binding(sessionId)?.session.predict(draft, signal) ?? Promise.resolve(''),
+        predictDraft: (draft, signal) => {
+          const locale = ctx.locale.getSnapshot().active.startsWith('zh') ? 'zh' : 'en'
+          return sessions.binding(sessionId)?.session.predict(draft, signal, locale) ?? Promise.resolve('')
+        },
         hooks: {
           stopShortcut,
           busyEnter: submissionPolicy.busyEnter,
+          predictionPreference: predictionPreference.state,
           fileUploads: conversation.fileUploads,
           notices: shell.notices,
           lexicon: shell.lexicon,

@@ -1,10 +1,9 @@
 /** Preset selection settings: the roster, its default, mode help, the per-mode configuration, and the Creator-mode entry. */
 import type { ReactNode } from 'react'
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
-  Button, IconBrowseOutlineRegular, IconPlusOutlineRegular, IconWarningOutlineRegular, Modal, SegmentedTabs, Tag, Tooltip,
+  Button, IconBrowseOutlineRegular, IconCheckOutlineRegular, IconPlusOutlineRegular, IconWarningOutlineRegular, Modal, Select, Tag, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { SegmentedTab } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ObservableSnapshot, SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { AgentPresetSectionState } from './section-store.ts'
@@ -98,7 +97,12 @@ export function AgentPresetSection(props: AgentPresetSectionProps) {
   // The configuration target is its own choice: configuring a mode must not
   // require making it the current conversation's mode.
   const [configChoice, setConfigChoice] = useState<string | undefined>(undefined)
-  const tabBase = useId()
+  const configPanel = useRef<HTMLElement | null>(null)
+  const chooseConfig = (id: string): void => {
+    setConfigChoice(id)
+    const panel = configPanel.current
+    if (panel !== null && typeof panel.scrollIntoView === 'function') panel.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
+  }
   const [guide, setGuide] = useState<{
     content: NonNullable<ReturnType<typeof presetGuide>>
     page: PresetGuidePage
@@ -116,26 +120,6 @@ export function AgentPresetSection(props: AgentPresetSectionProps) {
   // Until someone picks a tab, the page opens on the mode in use (when that
   // mode has configuration) and otherwise on the first configurable one.
   const configRow = configRows.find(row => row.id === (configChoice ?? selectedId)) ?? configRows[0]
-  const tabs = configRows.map((row) => {
-    const name = presetDisplayText(row, t).name
-    return {
-      value: row.id,
-      // Equal-width tabs cannot grow with a long preset name; the label
-      // ellipsizes instead of wrapping past the tab's fixed height.
-      label: <span className={css.tabLabel} title={name}>{name}</span>,
-      id: `${tabBase}-tab-${row.id}`,
-      panelId: `${tabBase}-panel`,
-    }
-  })
-  // A single configurable mode needs no tab strip; the panel names it instead.
-  const [firstTab, ...restTabs] = tabs
-  const tabItems: [SegmentedTab, ...SegmentedTab[]] | undefined = firstTab === undefined || restTabs.length === 0
-    ? undefined
-    : [firstTab, ...restTabs]
-  const activeTab = tabs.find(tab => tab.value === configRow?.id)
-  const panelProps = configRow === undefined ? {} : tabItems !== undefined && activeTab !== undefined
-    ? { role: 'tabpanel' as const, id: activeTab.panelId, 'aria-labelledby': activeTab.id }
-    : { role: 'region' as const, 'aria-label': presetDisplayText(configRow, t).name }
   // Creator mode authors presets in conversation; it needs the flow to land a
   // session in and the self-referential preset on the roster.
   const creator = startCreatorDraft !== undefined && state.rows.some(row => row.id === 'cordis') ? startCreatorDraft : undefined
@@ -173,7 +157,7 @@ export function AgentPresetSection(props: AgentPresetSectionProps) {
       const entry = builtIn ? null : creatorButton
       if (rows.length === 0 && entry === null) return null
       return <section key={String(builtIn)} className={css.group}>
-        <h4 className={css.groupHead}>{t(builtIn ? 'builtInGroup' : 'customGroup')}</h4>
+        {!builtIn && <h4 className={css.groupHead}>{t('customGroup')}</h4>}
         {rows.length === 0 ? null : <ul className={css.cards}>
           {rows.map((row) => {
             const display = presetDisplayText(row, t)
@@ -192,7 +176,7 @@ export function AgentPresetSection(props: AgentPresetSectionProps) {
                 disabled={selected || (row.broken === undefined && state.saving)}
                 aria-disabled={row.broken !== undefined || blocked}
                 aria-label={`${selectionAction}: ${display.name}`} title={blocked ? t('modeSwitch.blocked') : selectionAction}
-                onClick={() => { if (row.broken === undefined) void selectCurrent(row.id) }}>
+                onClick={() => { if (row.broken === undefined) { if (!blocked) setConfigChoice(row.id); void selectCurrent(row.id) } }}>
                 <span className={css.cardHead}>
                   <span className={css.cardIdentity}>
                     <PresetIcon id={row.id} size={18} className={css.cardIcon} />
@@ -204,7 +188,8 @@ export function AgentPresetSection(props: AgentPresetSectionProps) {
                       {row.isDefault ? t('inUse') : t(builtIn ? 'builtInGroup' : 'customGroup')}
                     </Tag>
                   </span>
-                  <code className={css.cardId} title={row.id}>{row.id}</code>
+                  {selected && <IconCheckOutlineRegular size={16} className={css.cardIcon} />}
+                  {!builtIn && <code className={css.cardId} title={row.id}>{row.id}</code>}
                 </span>
                 <CardDescription text={display.description ?? t('noDescription')} />
                 {row.broken === undefined ? null : <span className={css.cardBrokenReason} role="alert">{row.broken}</span>}
@@ -214,7 +199,7 @@ export function AgentPresetSection(props: AgentPresetSectionProps) {
                   changes with the mode. */}
               <div className={css.cardFoot}>
                 {configurableModes.includes(row.id) ? <Button variant="ghost" className={css.helpButton}
-                  onClick={() => { setConfigChoice(row.id) }}>
+                  onClick={() => { chooseConfig(row.id) }}>
                   {t('configure')}
                 </Button> : null}
                 {/* One button opens the reader; it carries both the explanation
@@ -244,12 +229,11 @@ export function AgentPresetSection(props: AgentPresetSectionProps) {
     </div>
     {/* Configuration belongs to the mode named on its tab, not to whatever the
         current conversation runs, so this block sits outside the selection. */}
-    {configRow === undefined ? null : <section className={css.config}>
+    {configRow === undefined ? null : <section ref={configPanel} className={css.config}>
       <h3 className={css.sectionHead}>{t('modeConfig')}</h3>
       <p className={css.configHint}>{t('modeConfigHint')}</p>
-      {tabItems === undefined ? null : <SegmentedTabs items={tabItems}
-        value={configRow.id} onChange={(id) => { setConfigChoice(id) }} label={t('modeConfigTabs')} />}
-      <div className={css.materials} {...panelProps}>
+      <Select label={t('modeConfigTabs')} value={configRow.id} options={configRows.map(row => ({ value: row.id, label: presetDisplayText(row, t).name }))} onChange={setConfigChoice} />
+      <div className={css.materials} role="region" aria-label={presetDisplayText(configRow, t).name}>
         {renderSlot('settings.mode.materials', { modeId: configRow.id })}
       </div>
     </section>}

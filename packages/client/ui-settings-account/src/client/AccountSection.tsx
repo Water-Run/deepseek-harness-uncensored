@@ -163,7 +163,7 @@ export function AccountSection({ t, useAccount, useTheme, start, cancel, openPla
     </section>
   )
   return (
-    <section className={css.section} aria-label={t('nav')}>
+    <section className={section === 'billing' ? css.billing : css.section} aria-label={t('nav')}>
       {section !== 'billing' && <div className={css.card}>
         <div className={css.identity}>
           <span className={css.avatar} data-avatar-status={signedIn ? avatar?.status : undefined}>
@@ -216,7 +216,7 @@ export function AccountSection({ t, useAccount, useTheme, start, cancel, openPla
           <div className={css.divider} />
         </>}
         <div className={css.row}>
-          <span className={css.secondary}>{t('more')}</span>
+          {section !== 'billing' && <span className={css.secondary}>{t('more')}</span>}
           <div className={css.links}>
             {platformLink(t('usage'), css.linkButton)}
             <a className={`${css.linkButton} ${css.primary}`} href={state?.links.topUpUrl} aria-disabled={state === undefined}

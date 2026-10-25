@@ -51,7 +51,7 @@
   padding: 8px 10px;
   border-radius: var(--dsw-radius-sm);
   border: 0.5px solid var(--dsw-alias-border-l3);
-  background: var(--dsw-alias-fill-tsp-secondary);
+  background: var(--dsw-alias-interactive-bg-hover);
   font-size: 12px;
   line-height: 1.55;
   color: var(--dsw-alias-label-secondary);
@@ -391,7 +391,7 @@
 
 .conflict {
   border: 0.5px solid var(--dsw-alias-state-warning-primary, var(--dsw-alias-border-l3));
-  background: var(--dsw-alias-fill-tsp-secondary);
+  background: var(--dsw-alias-interactive-bg-hover);
   color: var(--dsw-alias-label-primary);
 }
 

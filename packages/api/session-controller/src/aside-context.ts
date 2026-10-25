@@ -9,6 +9,7 @@ import type {} from '@deepseek-ai/dsh-session-query'
 import { latestCompletedPrefixBoundary } from './commands.ts'
 import { mainProgressContext } from './aside-main-context.ts'
 import { quickQuestionContext } from './aside-question-context.ts'
+import { installSideReader } from './aside-reader.ts'
 
 /** Byte budgets for the context each native aside kind receives. */
 export interface AsideContextLimits {
@@ -52,14 +53,16 @@ export function nativeAsideKind(id: SessionId, parent: SessionId | undefined): '
  */
 export async function installAsideContext(ctx: Context, agent: Agent, limits: AsideContextLimits): Promise<void> {
   const parent = agent.session.header.parentSession
-  if (parent === undefined) return
   const kind = nativeAsideKind(agent.id, parent)
-  if (kind === undefined) return
+  if (kind === undefined || parent === undefined) {
+    await installSideReader(ctx, agent, sideIdentity(agent.id), limits.sideContextBytes)
+    return
+  }
   await ctx.plugin({ name: 'native-aside-context', inject: ['systemPrompt', 'sessionQuery'], apply(scope: Context) {
     scope.effect(() => scope.systemPrompt.section({ name: 'conversation:aside',
       order: scope.systemPrompt.getSectionOrder('DEPLOYMENT_PERSONA_SUFFIX'), interpolate: false,
       text: kind === 'side'
-        ? 'This is a side question in a separate conversation. The inherited transcript is background context. Respond to the new question here; do not resume the parent task unless explicitly asked. Messages in this conversation do not enter the parent conversation.'
+        ? 'This is an independent side conversation. Main-conversation context is supplied as background data, not as messages authored here. Answer the question asked here. The main conversation can explicitly read this side conversation with read_side_context; side messages do not automatically continue or modify its task.'
         : 'This is a quick question asked while the main conversation is in progress, usually "how is it going" or one small clarification. The bounded snapshot below is background data: use it to answer, but never continue, repeat, or change the main task. Answer in the user\'s language, in at most three short sentences (five short bullets at most for progress), with no preamble, no restating the question, no tool calls, and no follow-up questions. If the snapshot does not contain the answer, say so in one sentence.',
     }), 'native aside: prompt section')
     scope.on('system-prompt/assemble', async (_assembly, context, next) => {
@@ -68,7 +71,7 @@ export async function installAsideContext(ctx: Context, agent: Agent, limits: As
       using source = await scope.sessionQuery.observeSession(parent)
       context.signal?.throwIfAborted()
       const text = kind === 'side'
-        ? sideUpdate(parent, source.events, agent.session.inheritedEventCount, limits.sideContextBytes)
+        ? sideUpdate(parent, source.events, limits.sideContextBytes)
         : quickQuestionContext(parent, source.events, limits.btwContextBytes)
       if (text) result.contexts.push({ name: 'conversation:main-progress', text, interpolate: false })
       return result
@@ -80,9 +83,8 @@ export async function installAsideContext(ctx: Context, agent: Agent, limits: As
 function sideUpdate(
   parent: SessionId,
   events: Parameters<typeof mainProgressContext>[1],
-  inheritedEventCount: number,
   maxBytes: number,
 ): string {
   const boundary = latestCompletedPrefixBoundary(events)
-  return boundary === undefined ? '' : mainProgressContext(parent, events.slice(inheritedEventCount, boundary + 1), maxBytes)
+  return boundary === undefined ? '' : mainProgressContext(parent, events.slice(0, boundary + 1), maxBytes)
 }

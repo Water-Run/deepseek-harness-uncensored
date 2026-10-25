@@ -372,6 +372,8 @@ export interface SessionDeleteValue { readonly deletedSessionIds: readonly Sessi
 /** Identity of a newly forked Session. */
 export interface SessionForkValue {
   readonly sessionId: SessionId
+  /** Native aside compatibility: hide the historical prefix copied by older side-question versions. */
+  readonly inheritedEventCount?: number
 }
 
 /** Session prompt request. */
@@ -688,6 +690,8 @@ export interface SessionPredictionRequest {
   readonly sessionId: SessionId
   readonly draft: string
   readonly revision: number
+  /** UI language used when a command prefix contains no natural-language text. */
+  readonly locale?: 'zh' | 'en'
 }
 
 /** Suggestion for the revision that was requested. An empty suggestion clears the ghost text. */

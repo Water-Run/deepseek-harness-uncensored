@@ -18,6 +18,7 @@
  */
 
 import { readdir } from 'node:fs/promises'
+import { join } from 'node:path'
 import { parse } from 'semver'
 import { desktopBuildVersionPrefix, validateDesktopBuildVersion } from './desktop-build-version.mjs'
 import { DESKTOP_AUTO_UPDATE_ENV, resolveDesktopUploadConfig } from './desktop-auto-update-environment.mjs'
@@ -31,7 +32,8 @@ const LISTING_DEADLINE_MS = 8_000
 const LISTING_PAGE_SIZE = 1000
 
 /** Artifact name electron-builder writes for one build, on either platform; unsigned and unnotarized builds add a suffix. */
-const ARTIFACT = /(?:^|\/)deepseek-harness-(?<version>.+)-(?:mac|win)-(?:arm64|x64)(?:-unsigned|-unnotarized)?\.(?:exe|dmg|zip)$/u
+const ARTIFACT =
+  /(?:^|\/)deepseek-harness-(?:uncensored-)?(?<version>.+)-(?:mac|win)-(?:arm64|x64)(?:-unsigned|-unnotarized)?\.(?:exe|dmg|zip)$/u
 
 /** Inputs that decide which versions are already taken. */
 export interface DesktopBuildVersionSuggestionOptions {
@@ -76,7 +78,11 @@ function sequenceNumbers(versions: Iterable<string>, prefix: string): number[] {
  * @returns Versions parsed from artifact names.
  */
 async function localVersions(artifactsRoot: string): Promise<string[]> {
-  const entries = await readdir(artifactsRoot).catch(() => [])
+  const entries: string[] = await readdir(artifactsRoot).catch(() => [])
+  const runs = await readdir(join(artifactsRoot, 'runs'), { withFileTypes: true }).catch(() => [])
+  for (const run of runs) {
+    if (run.isDirectory()) entries.push(...await readdir(join(artifactsRoot, 'runs', run.name)))
+  }
   return entries.map(entry => ARTIFACT.exec(entry)?.groups?.version)
     .filter((version): version is string => version !== undefined && parse(version) !== null)
 }

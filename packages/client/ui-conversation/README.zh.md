@@ -28,6 +28,8 @@ kind: "package-reference"
 <a id="conversation-assembly"></a>
 ## Conversation 组装
 
+输入预测属于通用设置，未保存过偏好时默认开启，已保存的关闭值保留。设置与各输入框共用同一个偏好来源；存储不可读时停止预测并显示问题。无自然语言的命令前缀使用当前界面语言。
+
 会话绑定退役后，即使异步清理尚未结束，视图标签刷新也会忽略该绑定。语言或插件视图更新不会重新激活已失效的 Provider 绑定。
 
 `UiConversation.events` 是 event Definition 的唯一 registry，`UiConversation.views` 是 target snapshot builder 的唯一 registry。两者都拒绝重复 key、保持注册顺序、返回幂等 disposer，并在 contribution roster 变化时重建现有 binding。`UiConversation.binding(bindingOrSessionId)` 为当前 Session Controller binding 返回 identity 稳定的 Conversation binding，不会另开事件源。 View Definition 可以声明 `toolCallFocus`，将工具调用 id 转换为自身的焦点标识。仅当此目标拥有可见的 View 条目时，Conversation 才提供 Inspect 回调；Chat 直接使用回调，不选择目标。
@@ -64,7 +66,7 @@ Queue 预览启用空白折叠和文档边缘 trim，保留 emoji，并使用 CS
 <a id="shell-and-standard-props"></a>
 ## Shell 与标准 props
 
-输入建议默认关闭。可编辑输入框停止输入 800ms 后，可为当前草稿请求短后缀；新输入取消旧请求，迟到响应不能覆盖草稿。灰字接在正文后，也支持空编辑器。补全菜单先处理 Tab，只有光标折叠在全文末尾且不处于输入法组合时才接受建议，不会发送消息。完整问句和锁定输入框不发起预测。浏览器偏好在其窗口间同步，存储或请求失败会明确报告。
+输入预测默认开启。可编辑输入框停止输入 800ms 后，可为当前草稿请求短后缀；新输入取消旧请求，迟到响应不能覆盖草稿。灰字接在正文后，也支持空编辑器。补全菜单先处理 Tab，只有光标折叠在全文末尾且不处于输入法组合时才接受建议，不会发送消息。完整问句和锁定输入框不发起预测。浏览器偏好在其窗口间同步，存储或请求失败会明确报告。
 
 共享图片插槽属性将展示选择与持久化引用分开：`thumbnail` 请求完整缩放的附件列表缩略图，`compact` 请求裁剪的图片方块。每张图片可通过可选的 `label` 提供无障碍展示名称；加载和缓存标识仍使用原始附件引用。`MessageImagesContentInput` 为 root 作用域的 `conversation.images.content` Factory 增加可选的完整 `MessageImageLabels`。消息、工具及 Factory 输入显式携带视图提供的授权 `loadImage` 回调；读取和 URL 缓存仍由资源所有者负责。[ui-attachment](../ui-attachment/README.zh.md) 提供该 Factory，负责渲染与灯箱。
 

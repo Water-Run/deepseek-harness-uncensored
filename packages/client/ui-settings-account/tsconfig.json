@@ -8,6 +8,9 @@
     "src"
   ],
   "references": [
+    { "path": "../../util/brand" },
+    { "path": "../resources" },
+    { "path": "../../llm/token-meter" },
     {
       "path": "../../../vendor/cordis"
     },

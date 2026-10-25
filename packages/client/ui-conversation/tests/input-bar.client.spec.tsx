@@ -33,6 +33,7 @@ import type {
 } from '../src/client/contract/slots.ts'
 import type { DraftAttachmentId } from '../src/client/contract/input.ts'
 import { InputBar } from '../src/client/skeleton/InputBar.tsx'
+import { PredictionPreference } from '../src/client/prediction-preference.ts'
 import type { InputBarProps } from '../src/client/skeleton/InputBar.tsx'
 import { en, zh } from '../src/client/locales.ts'
 
@@ -176,6 +177,8 @@ function bench(over?: BenchOptions) {
     if (key === 'conversation.input.activity') return over?.activityEntry?.(owner as InputActivityOwnerProps) ?? null
     return null
   }) as never
+  const predictionPreference = new PredictionPreference()
+  onTestFinished(() => { predictionPreference.dispose() })
   const props: InputBarProps = {
     ...(over?.predictDraft === undefined ? {} : { predictDraft: over.predictDraft }),
     usePanelInfo: selector => selector({ activePanelId: null }),
@@ -213,6 +216,7 @@ function bench(over?: BenchOptions) {
     }),
     toggleCommandMenu: over?.toggleCommandMenu ?? vi.fn(),
     useBusyEnter: bindSnapshotSelector(busyEnter),
+    usePredictionPreference: bindSnapshotSelector(predictionPreference.state),
     useStopShortcut: bindSnapshotSelector(stopShortcut),
     useNotices: bindSnapshotSelector(shell.notices),
     useLexicon: bindSnapshotSelector(shell.lexicon),

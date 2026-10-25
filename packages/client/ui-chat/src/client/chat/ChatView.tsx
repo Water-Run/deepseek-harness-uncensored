@@ -18,6 +18,7 @@ import { mergeTurnRailItems } from './turn-rail-items.ts'
 import { useChatScroll } from './use-chat-scroll.ts'
 import { fileMediaUrl, resolveWorkspacePath } from '@deepseek-ai/dsh-util-workspace-path'
 import css from './ChatView.module.css'
+import { QuickAnswer } from './QuickAnswer.tsx'
 
 /** Host/OS refusal text for the file-open dialog; empty throws keep a locale fallback. */
 function openFailureMessage(error: unknown, fallback: string): string {
@@ -60,16 +61,20 @@ const MOTION_TAIL_MS = 800
 export function ChatView({
   useSession, useChat, useConversation, useSessions, renderSlot,
   sessionId, openFile, openExternalLink, loadOlder, loadThrough, loadImage, inspectCall, chatScroll, forkAt, fileMentions,
-  usePresentation, useProjection, t, compact,
+  usePresentation, useProjection, t, compact, fromSeq,
 }: ChatViewSlotProps) {
-  const order = useChat(s => s.order)
+  const sourceOrder = useChat(s => s.order)
+  const nodeStore = useChat(s => s.nodes)
+  const order = useMemo(() => fromSeq === undefined || fromSeq === 0 ? sourceOrder
+    : sourceOrder.filter(key => (nodeStore.get(key)?.anchorSeq ?? -1) >= fromSeq), [sourceOrder, nodeStore, fromSeq])
   const groupedEntries = useConversation(snapshot => snapshot.views.grouped('chat')?.entries)
   const entries = useMemo<readonly RenderEntry[]>(() => groupedEntries
     ?? order.map(key => ({ kind: 'node', key: key as NodeKey })), [groupedEntries, order])
-  const nodeStore = useChat(s => s.nodes)
-  const visibleEntries = useMemo(() => compact
-    ? entries.filter(entry => entry.kind !== 'node' || nodeStore.get(entry.key)?.kind !== 'turn-tail')
-    : entries, [compact, entries, nodeStore])
+  const visibleEntries = useMemo(() => {
+    const ownEntries: readonly RenderEntry[] = fromSeq === undefined || fromSeq === 0 ? entries
+      : order.filter(key => (nodeStore.get(key)?.anchorSeq ?? -1) >= fromSeq).map(key => ({ kind: 'node', key: key as NodeKey }))
+    return compact ? ownEntries.filter(entry => entry.kind !== 'node' || nodeStore.get(entry.key)?.kind !== 'turn-tail') : ownEntries
+  }, [compact, entries, fromSeq, order, nodeStore])
   const deferCompletedTurns = usePresentation(policy => policy.collapseTiming === 'next-input')
   const transcriptView = usePresentation(policy => policy.mode)
   // The rail's items are accumulated in the Chat snapshot, so this selector is
@@ -197,9 +202,10 @@ export function ChatView({
   })
   const flowContext = useMemo<ChatFlowHookContext>(() => ({ motion: scroll.motion }), [scroll.motion])
 
+  if (compact) return <QuickAnswer useChat={useChat} useSession={useSession} t={t} />
   return (
     <div className={css.frame}>
-      {scroll.initialized && (
+      {scroll.initialized && fromSeq === undefined && (
         <TurnNavigator
           items={railItems}
           activeTurn={scroll.activeTurn}

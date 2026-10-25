@@ -94,9 +94,10 @@ export interface ISession {
    * Ask for a composer suffix. An empty string means nothing should be shown.
    * @param draft - Unsent composer text.
    * @param signal - Cancellation when the draft changes.
+   * @param locale - Current UI language for otherwise language-neutral command drafts.
    * @returns The suggestion, or an empty string when prediction is unavailable.
    */
-  predict(draft: string, signal: AbortSignal): Promise<string>
+  predict(draft: string, signal: AbortSignal, locale?: 'zh' | 'en'): Promise<string>
   /**
    * Resolve one durable image referenced by this session.
    * @param attachmentId - opaque id found in the folded session log.

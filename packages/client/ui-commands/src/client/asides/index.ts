@@ -7,10 +7,11 @@ import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import { IconNewChatOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { SessionForkValue } from '@deepseek-ai/dsh-api-session-controller/types'
 import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
-import { AsideConversation, AsideTitle, InlineAsidePanel, SidebarAsidePanel, type InlineAsideInjected } from './AsidePanel.tsx'
+import { AsideConversation, AsideTitle, AsideHeaderAction, InlineAsidePanel, SidebarAsidePanel, type InlineAsideInjected } from './AsidePanel.tsx'
 import { InlineAsideController } from './controller.ts'
-import { AsideIcon } from './AsideIcon.tsx'
+import { AsideIcon, AsideGuideIcon } from './AsideIcon.tsx'
 import { ASIDE_PREFIX, asideParent } from './address.ts'
 import { AsideReasoningRow } from './ReasoningSettings.tsx'
 import { AsideReasoningController, type BtwReasoningEffort } from './reasoning-settings.ts'
@@ -21,10 +22,10 @@ declare module '@deepseek-ai/dsh-api-session-controller/client' {
   interface SessionReferenceSourceMap { aside: unknown }
 }
 declare module '@deepseek-ai/dsh-client-ui-slots' {
-  interface ResourceProtocolMap { aside: { readonly reference: SessionReference } }
+  interface ResourceProtocolMap { aside: { readonly reference: SessionReference; readonly fromSeq: number } }
   interface SlotMap {
     'conversation.input.aside': { kind: 'single'; scope: 'session' }
-    'sidebar.aside.conversation': { kind: 'single'; scope: 'session' }
+    'sidebar.aside.conversation': { kind: 'single'; scope: 'session'; owner: { fromSeq: number } }
   }
 }
 
@@ -59,25 +60,25 @@ export function registerAsides(ctx: Context): void {
   registerAsideSettings(ctx)
   ctx.inject(['slots', 'commandUi', 'resources', 'sidebarRight', 'sidebarRightTabs', 'remote.session'], (scope) => {
     const t = scope.locale.bind('command')
-    const requests = new Set<Promise<SessionId>>()
+    const requests = new Set<Promise<SessionForkValue>>()
     const parents = new Map<SessionId, SessionId>()
     let closed = false
     scope.effect(() => async () => { closed = true; await Promise.allSettled([...requests]) }, 'conversation: aside requests')
-    const requestChild = async (parent: SessionId, kind: 'side' | 'btw'): Promise<SessionId> => {
+    const requestChild = async (parent: SessionId, kind: 'side' | 'btw'): Promise<SessionForkValue> => {
       const result = await scope.remote.session.aside({ sessionId: parent, kind })
       if (!result.ok) throw result.error
       parents.set(result.value.sessionId, parent)
       await scope.sessions.refresh()
-      return result.value.sessionId
+      return result.value
     }
-    const create = (parent: SessionId, kind: 'side' | 'btw'): Promise<SessionId> => {
+    const create = (parent: SessionId, kind: 'side' | 'btw'): Promise<SessionForkValue> => {
       const pending = requestChild(parent, kind)
       requests.add(pending)
       void pending.then(() => requests.delete(pending), () => requests.delete(pending))
       return pending
     }
     const inline = new InlineAsideController(async (parent) => {
-      const reference = scope.sessions.retain(await create(parent, 'btw'), { source: 'aside' })
+      const reference = scope.sessions.retain((await create(parent, 'btw')).sessionId, { source: 'aside' })
       try { await reference.ready; return reference }
       catch (error) { reference.release(); throw error }
     }, async (reference, question) => {
@@ -101,16 +102,16 @@ export function registerAsides(ctx: Context): void {
       async *open(address, { signal }) {
         const parent = asideParent(address)
         if (parent === undefined) throw new Error('Invalid side conversation address')
-        let id: SessionId
-        try { id = await create(parent, 'side') }
+        let child: SessionForkValue
+        try { child = await create(parent, 'side') }
         catch (requestFailed) {
           if (!signal.aborted && !closed) yield { ok: false, error: remoteErrorOf(requestFailed) ?? new RemoteError('gateway/internal', t('aside.failed'), {}) }
           return
         }
         if (signal.aborted || closed) return
-        const reference = scope.sessions.retain(id, { source: 'aside', signal })
+        const reference = scope.sessions.retain(child.sessionId, { source: 'aside', signal })
         try {
-          yield { ok: true, value: { reference } }
+          yield { ok: true, value: { reference, fromSeq: child.inheritedEventCount ?? 0 } }
           await new Promise<void>((resolve) => {
             if (signal.aborted) resolve()
             else signal.addEventListener('abort', () => { resolve() }, { once: true })
@@ -121,8 +122,12 @@ export function registerAsides(ctx: Context): void {
     scope.effect(() => scope.resources.register(provider), 'conversation: side resources')
     scope.effect(() => scope.sidebarRightTabs.register({ id: TYPE, kind: 'aside', priority: 'builtin', patterns: [`${ASIDE_PREFIX}**`],
       title: () => t('aside.side'), canOpen: address => asideParent(address) !== undefined,
-      guide: [{ id: 'aside', order: 30, title: () => t('aside.side'), description: () => t('aside.sideDescription'), icon: AsideIcon, preserveGuide: true }],
+      guide: [{ id: 'aside', order: 30, title: () => t('aside.side'), description: () => t('aside.sideDescription'), icon: AsideGuideIcon, preserveGuide: true }],
     }), 'conversation: side tab')
+    scope.slots.inject('conversation.session.header.utilities', () => scope.slots.register({
+      name: 'conversation.session.header.utilities', id: 'side-question', order: 100, locale: 'command',
+      inject: () => ({ open: () => { scope.sidebarRight.openTab('aside') } }),
+    }, AsideHeaderAction))
     scope.slots.inject('sidebar.right.pane.tab', () => scope.slots.register({ name: 'sidebar.right.pane.tab', key: TYPE, locale: 'command',
       children: { 'sidebar.aside.conversation': { kind: 'single', scope: 'session' } } }, SidebarAsidePanel))
     scope.slots.inject('sidebar.right.pane.tab.title', () => scope.slots.register({ name: 'sidebar.right.pane.tab.title', key: TYPE, locale: 'command' }, AsideTitle))
@@ -133,7 +138,9 @@ export function registerAsides(ctx: Context): void {
         hooks: { inlineAside: inline.state }, close: () => { inline.hide(parent) },
       }),
     }, InlineAsidePanel))
-    scope.slots.inject('conversation.input.aside', () => scope.slots.register({ name: 'conversation.input.aside', locale: 'command', inject: () => ({ kind: 'btw' as const }) }, AsideConversation))
+    scope.slots.inject('conversation.input.aside', () => scope.slots.register({ name: 'conversation.input.aside', locale: 'command',
+      inject: () => ({ kind: 'btw' as const }),
+    }, AsideConversation))
     scope.effect(() => scope.commandUi.register({ name: 'btw',
       label: () => t('aside.btw'), description: () => t('aside.btwDescription'), icon: IconNewChatOutlineRegular,
       available: session => session.sessionId === scope.sidebarRight.mounted.getSnapshot(),

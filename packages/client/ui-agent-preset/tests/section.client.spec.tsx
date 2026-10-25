@@ -116,7 +116,7 @@ it('replaces the default preset group tag with its new-task default status', () 
 })
 it('omits an empty group instead of leaving a heading behind', () => {
   view({ rows: [{ id: 'standard', isDefault: true }] })
-  expect(screen.getByRole('heading', { name: en.builtInGroup })).toBeTruthy()
+  expect(screen.getByText(en.presetStandardName)).toBeTruthy()
   expect(screen.queryByRole('heading', { name: en.customGroup })).toBeNull()
 })
 it('keeps the custom group and its Creator entry while the roster has none', () => {
@@ -340,16 +340,16 @@ function configurableRows() {
   return CONFIGURABLE.map(([id, isDefault]) => ({ id, isDefault }))
 }
 
-it('configures a mode on its own tab without making it the current mode', () => {
+it('configures a mode through its selector without making it the current mode', () => {
   const actions = view({ rows: configurableRows() }, undefined, undefined, true, ['security', 'reverse'])
   // Default mode has no configuration; the page opens on the first mode that does.
   expect(actions.configured.at(-1)).toBe('security')
-  const tabs = screen.getAllByRole('tab')
-  expect(tabs.map(tab => tab.textContent)).toEqual([en.presetSecurityName, en.presetReverseName])
-  fireEvent.click(screen.getByRole('tab', { name: en.presetReverseName }))
+  expect(screen.queryByRole('tab')).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: en.modeConfigTabs }))
+  fireEvent.click(screen.getByRole('menuitem', { name: en.presetReverseName }))
   expect(actions.configured.at(-1)).toBe('reverse')
   expect(actions.selectCurrent).not.toHaveBeenCalled()
-  expect(screen.getByRole('tab', { name: en.presetReverseName }).getAttribute('aria-selected')).toBe('true')
+  expect(screen.getByRole('button', { name: en.modeConfigTabs }).textContent).toContain(en.presetReverseName)
 })
 
 it('opens a mode configuration from its card without selecting that mode', () => {
@@ -359,12 +359,13 @@ it('opens a mode configuration from its card without selecting that mode', () =>
   expect(actions.selectCurrent).not.toHaveBeenCalled()
 })
 
-it('keeps the configuration target when the conversation mode changes', () => {
+it('reveals the selected conversation mode configuration after an explicit switch', () => {
   const actions = view({ rows: configurableRows() }, undefined, undefined, true, ['security', 'reverse'])
-  fireEvent.click(screen.getByRole('tab', { name: en.presetReverseName }))
+  fireEvent.click(screen.getByRole('button', { name: en.modeConfigTabs }))
+  fireEvent.click(screen.getByRole('menuitem', { name: en.presetReverseName }))
   fireEvent.click(screen.getByRole('button', { name: `${en.selectCurrent}: ${en.presetSecurityName}` }))
   expect(actions.selectCurrent).toHaveBeenCalledWith('security')
-  expect(actions.configured.at(-1)).toBe('reverse')
+  expect(actions.configured.at(-1)).toBe('security')
 })
 
 it('names the configured mode in place of a tab strip when only one mode has configuration', () => {
@@ -384,7 +385,7 @@ it('hides the configuration area when no mode publishes any', () => {
 it('opens the configuration on the mode the conversation already runs', () => {
   const actions = view({ rows: configurableRows() }, undefined, undefined, true, ['security', 'reverse'], { id: 'reverse', blank: false })
   expect(actions.configured.at(-1)).toBe('reverse')
-  expect(screen.getByRole('tab', { name: en.presetReverseName }).getAttribute('aria-selected')).toBe('true')
+  expect(screen.getByRole('button', { name: en.modeConfigTabs }).textContent).toContain(en.presetReverseName)
 })
 
 it('explains why an established conversation keeps its mode until switching is allowed', async () => {

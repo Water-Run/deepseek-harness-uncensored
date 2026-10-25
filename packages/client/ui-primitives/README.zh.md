@@ -25,6 +25,8 @@ kind: "package-library"
 <a id="use-this-package"></a>
 ## 使用本包
 
+StatPopover 为点击展开的统计信息复用定位、菜单材质与焦点管理。紧凑触发器沿用普通统计栏字体；关闭后立即释放交互，仅保留短暂且不可交互的淡出。
+
 `Input` 的原生输入带 `aria-invalid="true"` 时使用主题错误边框；所属表单提供本地化说明及无障碍关联。
 
 `Select` 接收本地化标签、受控值及 value/label 选项。它通过 `Menu` 统一弹层主题、视口边界、滚动、键盘导航、禁用项、Escape 与焦点恢复，不弹出原生 select 菜单。

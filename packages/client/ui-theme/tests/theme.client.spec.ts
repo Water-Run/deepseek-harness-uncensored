@@ -223,6 +223,7 @@ describe('ThemeRuntime', () => {
 
   it('stacks reversible token overrides in call order and selects the active palette value', () => {
     const { theme } = make()
+    theme.setTheme('light')
     const firstTokens: ThemeTokenOverrides = {
       '--shared': { light: 'first-light', dark: 'first-dark' },
       '--first': { light: 'first-only-light', dark: 'first-only-dark' },
@@ -251,6 +252,8 @@ describe('ThemeRuntime', () => {
 
   it('replacing one source leaves its stale disposer harmless', () => {
     const { theme, events } = make()
+    theme.setTheme('light')
+    events.length = 0
     const stale = theme.overrideTokens('package', {
       '--old': { light: 'old-light', dark: 'old-dark' },
     })

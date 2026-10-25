@@ -58,6 +58,20 @@ it('logs the exact request and result while preserving the joining space of an E
   expect(normalized).toEqual(expected.auditEvents)
 })
 
+it.each([
+  ['配色可以', '配色可以更柔和吗？', '更柔和吗？'],
+  ['Please', 'Please continue', ' continue'],
+  ['/btw ', '/btw 进展如何？', '进展如何？'],
+])('does not duplicate the draft %s when the model returns a full completion', async (draft, response, expected) => {
+  const input = await fixture()
+  const suggestion = await requestPrediction({ ...input, draft, stream: async function* () {
+    yield { type: 'text-delta', index: 0, text: response }
+    yield { type: 'finish', reason: { kind: 'stop' } }
+  } })
+  expect(suggestion).toBe(expected)
+  expect(input.session.snapshotEvents().at(-1)?.data).toMatchObject({ suggestion: expected })
+})
+
 it.each(['error', 'missing-finish', 'oversized'] as const)('logs and rejects %s prediction output without keeping partial suggestions', async (failure) => {
   const input = await fixture()
   const stream = async function* (): AsyncGenerator<StreamChunk> {
@@ -75,7 +89,7 @@ it('cancels and drains a background request before its Session can be removed', 
   let started = false
   const operation = requests.run(parent, input.signal, signal => requestPrediction({ ...input, signal, stream: async function* () {
     started = true; entered.resolve(undefined)
-    await new Promise<void>((_resolve, reject) => { signal.addEventListener('abort', () => { reject(signal.reason) }, { once: true }) })
+    await new Promise<void>((_resolve, reject) => { signal.addEventListener('abort', () => { reject(new DOMException('Prediction cancelled', 'AbortError')) }, { once: true }) })
     yield { type: 'finish', reason: { kind: 'stop' } }
   } }))
   const rejected = expect(operation).rejects.toThrow()

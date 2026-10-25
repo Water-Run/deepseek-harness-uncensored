@@ -47,7 +47,7 @@ export const InputBar = memo(function InputBar({
   useSession, useInput, inputActions, keyboard, addFiles, removeAttachment, resolveDraftAttachments,
   retryFileUpload,
   toggleCommandMenu, stop, t,
-  renderSlot, useBusyEnter, useFileUploads, useNotices, useLexicon, useMenuLauncher, useStopShortcut,
+  renderSlot, useBusyEnter, usePredictionPreference, useFileUploads, useNotices, useLexicon, useMenuLauncher, useStopShortcut,
   useProjection, sessionId, variant, disabled: inert = false, blocked, predictDraft,
   workspacePickerOpen = false, onRequestWorkspace,
   placeholder, accessory,
@@ -73,22 +73,9 @@ export const InputBar = memo(function InputBar({
   // current; the bar renders the same DOM inert instead of a parallel tree.
   const live = input !== undefined && keyboard !== undefined && inputActions !== undefined
   const draft = input?.draft ?? ''
-  const [predictionEnabled, setPredictionEnabled] = useState(false)
+  const predictionEnabled = usePredictionPreference(value => value.enabled)
   const [prediction, setPrediction] = useState<{ draft: string; sessionId: typeof sessionId; text: string }>()
   const predictionFailureShown = useRef(false)
-  useEffect(() => {
-    const read = (): void => {
-      try { setPredictionEnabled(localStorage.getItem('dsh.uncensored.prediction') === '1') }
-      catch (error) { setPredictionEnabled(false); console.warn('[prediction] preference is unavailable', error) }
-    }
-    read()
-    window.addEventListener('storage', read)
-    window.addEventListener('dsh-prediction', read)
-    return () => {
-      window.removeEventListener('storage', read)
-      window.removeEventListener('dsh-prediction', read)
-    }
-  }, [])
   const editor = keyboard?.editor ?? null
   const attachments = useMemo(
     () => input === undefined || resolveDraftAttachments === undefined ? [] : resolveDraftAttachments(input.attachmentIds),

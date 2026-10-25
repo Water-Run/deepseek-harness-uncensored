@@ -39,18 +39,18 @@ export function InlineAsidePanel({ sessionId, useInlineAside, SessionProvider, r
   </section>
 }
 
-function ChatView({ renderSlot }: ConversationViewsProps) {
-  return <>{renderSlot('conversation.session', { view: 'chat' })}</>
+function ChatView({ renderSlot, fromSeq }: ConversationViewsProps) {
+  return <>{renderSlot('conversation.session', { view: 'chat', fromSeq })}</>
 }
 
 function QuickAnswerView({ renderSlot }: ConversationViewsProps) {
-  return <>{renderSlot('conversation.session', { view: 'chat', compact: true })}</>
+  return renderSlot('conversation.session', { view: 'chat', compact: true })
 }
 
 /** Render a compact child Conversation without the new-task hero or workspace picker. */
-export function AsideConversation({ renderFactorySlot, t, kind }: PropsRuntime<'conversation.input.aside'> & PropsRenderFactories & PropsLocale<'command'> & { kind: 'side' | 'btw' }) {
+export function AsideConversation({ renderFactorySlot, t, kind, fromSeq }: PropsRuntime<'conversation.input.aside'> & PropsRenderFactories & PropsLocale<'command'> & { kind: 'side' | 'btw'; fromSeq?: number }) {
   return renderFactorySlot('conversation.content', {
-    variant: 'embedded', phase: 'active', hero: false, composer: kind === 'side', placeholder: t('aside.placeholder'),
+    variant: 'embedded', phase: 'active', hero: false, composer: kind === 'side', placeholder: t('aside.placeholder'), fromSeq,
   }, { slots: { views: kind === 'btw' ? QuickAnswerView : ChatView } })
 }
 
@@ -64,7 +64,7 @@ export function SidebarAsidePanel({ sessionId, useTabInfo, useResource, SessionP
       ? resource.status === 'failed'
         ? <div className={css.state} role="alert">{t('aside.failed')}</div>
         : <div className={css.state} role="status" aria-label={t('aside.loading')}><IconLoadingOutlineRegular size={20} className={css.spinner} /></div>
-      : <SessionProvider session={resource.value.reference}>{renderSlot('sidebar.aside.conversation', {})}</SessionProvider>}
+      : <SessionProvider session={resource.value.reference}>{renderSlot('sidebar.aside.conversation', { fromSeq: resource.value.fromSeq })}</SessionProvider>}
   </section>
 }
 
@@ -75,4 +75,11 @@ export function SidebarAsidePanel({ sessionId, useTabInfo, useResource, SessionP
  */
 export function AsideTitle({ t }: PropsRuntime<'sidebar.right.pane.tab.title'> & PropsLocale<'command'>) {
   return <><AsideIcon size={16} />{t('aside.side')}</>
+}
+
+/** @param props - Current-session action and localized title. @returns Side-question shortcut beside header utilities. */
+export function AsideHeaderAction({ open, t }: PropsRuntime<'conversation.session.header.utilities'> & PropsLocale<'command'> & { open: () => void }) {
+  return <Tooltip label={t('aside.side')} side="bottom" portal>
+    <button type="button" className={css.launcher} onClick={open} aria-label={t('aside.side')}><AsideIcon size={16} /></button>
+  </Tooltip>
 }

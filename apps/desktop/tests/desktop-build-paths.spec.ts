@@ -17,7 +17,8 @@ describe('desktop build paths', () => {
     expect(first.electron).toBe(join(first.root, 'electron-preparations', 'run-one'))
     expect(second.electron).toBe(join(second.root, 'electron-preparations', 'run-two'))
     expect(first.downloads).toBe(second.downloads)
-    expect(first.unsignedArtifacts).toBe(second.unsignedArtifacts)
+    expect(first.unsignedArtifacts).not.toBe(second.unsignedArtifacts)
+    expect(first.artifacts).toBe(second.artifacts)
     expect(() => desktopTargetBuildPaths('win-x64', { DSH_DESKTOP_PACKAGING_RUN_DIR: '..' })).toThrow(/invalid packaging/u)
   })
   it('isolates every mutable build directory by complete target', () => {

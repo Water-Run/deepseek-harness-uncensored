@@ -117,6 +117,7 @@ export async function requestPrediction(input: {
   readonly draft: string
   readonly revision: number
   readonly context: string
+  readonly locale?: 'zh' | 'en' | undefined
   readonly provider: string
   readonly model: string
   readonly signal: AbortSignal
@@ -126,7 +127,10 @@ export async function requestPrediction(input: {
   readonly stream: (options: GenerateOptions) => AsyncIterable<StreamChunk>
 }): Promise<string> {
   input.signal.throwIfAborted()
+  const naturalDraft = input.draft.replace(/^\/\w+\s*/u, '')
+  const language = /\p{Script=Han}/u.test(naturalDraft) ? 'zh' : /[A-Za-z]/u.test(naturalDraft) ? 'en' : input.locale ?? 'zh'
   const instruction = predictionInstruction(input.surface)
+    + (language === 'zh' ? ' Write the suggestion in Simplified Chinese.' : ' Write the suggestion in English.')
   const prompt = `${instruction}\n\nBackground:\n${input.context}\n\nDraft:\n${input.draft}`
   const message = createUserMessage({
     content: [{ type: 'text', text: prompt }],
@@ -166,6 +170,7 @@ export async function requestPrediction(input: {
     input.signal.throwIfAborted()
     if (!finished) throw new LlmError('Input suggestion ended without a completion record.', 'PREDICTION_INCOMPLETE')
     suggestion = suggestion.split(/\r?\n/u)[0]?.trimEnd() ?? ''
+    if (input.draft !== '' && suggestion.startsWith(input.draft)) suggestion = suggestion.slice(input.draft.length)
     if (input.draft === '') suggestion = suggestion.trimStart()
     outcome = 'completed'
     return suggestion

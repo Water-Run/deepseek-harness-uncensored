@@ -25,6 +25,8 @@ Use `dsh-client-ui-primitives` to build web-client controls and render agent out
 <a id="use-this-package"></a>
 ## Use this package
 
+StatPopover uses shared positioning, menu material and focus ownership for click-open statistics. Its compact trigger follows ordinary footer typography; closing immediately releases input and retains only a brief inert fade.
+
 `Input` uses the theme error border when its native input has `aria-invalid="true"`. The owning form supplies the localized explanation and its accessible association.
 
 `Select` takes a localized label, a controlled value, and value/label options. It uses `Menu` for themed popup rendering, viewport bounds, scrolling, keyboard navigation, disabled rows, Escape and focus restoration; it never opens a native select popup.

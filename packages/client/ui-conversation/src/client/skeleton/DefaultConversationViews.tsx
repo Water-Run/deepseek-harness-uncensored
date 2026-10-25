@@ -17,7 +17,7 @@ const EMPTY_DRAFT = { text: '', references: [] } as const
  * @returns the active view area, or null while the Session remains blank.
  */
 export function DefaultConversationViews({
-  view, compact, useSession, useConversation, useConversationViews, inputActions, useStore, actions,
+  view, compact, fromSeq, useSession, useConversation, useConversationViews, inputActions, useStore, actions,
   renderSlot, bindDraftPersistence, openView, useInspectCall,
 }: ConversationSessionSlotProps) {
   const tabs = useConversationViews(value => value)
@@ -58,7 +58,7 @@ export function DefaultConversationViews({
   return (
     <div className={css.viewArea}>
       {viewId !== undefined && renderSlot('conversation.view', {
-        compact,
+        compact, fromSeq,
         inspectCall,
         viewRequest,
         openView,

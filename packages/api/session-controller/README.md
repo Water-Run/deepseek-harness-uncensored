@@ -27,6 +27,8 @@ Desktop analytics follows the [product collection policy](../../client/product-a
 <a id="use-this-package"></a>
 ## Use this package
 
+Native side conversations start without a copied transcript. Each request receives bounded completed main context, excluding internal runtime injections. The owning main Agent can explicitly call read_side_context; the read is logged and never sends into the side. Legacy asides report their inherited prefix for presentation filtering. New sides inherit permission knobs and the pending model selection. Quick questions require a read-only permission provider. Prediction records include the exact language-specific instruction.
+
 Deletion uses one optional persistence provider for its catalog lock, family listing and removal. Missing or unsupported storage rejects the operation before work is stopped; other Session API methods remain available without deletion support.
 
 `session/predict` requests a short unsent suffix for an existing live conversation. It uses completed main history, completed parent history for a side question, or interaction status alone for `/btw`. Empty new conversations and complete questions do not dispatch a prediction. `predictionDraftBytes`, `predictionContextBytes`, `predictionMaxTokens`, `predictionOutputBytes`, and `predictionTimeoutMs` bound input, output and lifetime. Where supported, reasoning is disabled for this auxiliary call without changing the conversation's selected effort. Stop, archive, deletion and controller teardown cancel and drain prediction work.

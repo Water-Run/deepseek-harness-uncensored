@@ -13,6 +13,8 @@ export const remoteDefaultResponses: RemoteTable = {
   unary: {
     // api-session-controller `sessions.handleConnected()` on `connection/reset`.
     'session/list': ok({ items: [] }),
+    // Input prediction is enabled by default; ordinary assembly fixtures return no suggestion.
+    'session/predict': (request: { revision: number }) => ok({ revision: request.revision, suggestion: '' }),
     // ui-workspace startup with no entries; first-use initialization is ineligible.
     'workspace/initializeDefault': ok(undefined),
     // ui-settings `mirror.ensure()` at apply and again on `connection/reset`.

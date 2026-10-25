@@ -16,6 +16,7 @@
     "src/asides.ts",
     "src/deletion.ts",
     "src/aside-context.ts",
+    "src/aside-reader.ts",
     "src/aside-main-context.ts",
     "src/aside-question-context.ts",
     "src/control.ts",
@@ -29,6 +30,9 @@
     "src/prediction.ts"
   ],
   "references": [
+    { "path": "../../core/tools" },
+    { "path": "../../sandbox/sandbox-policy" },
+    { "path": "../../interaction/user-approval" },
     { "path": "../../guard/spend-limit" },
     {
       "path": "../../../vendor/cordis"

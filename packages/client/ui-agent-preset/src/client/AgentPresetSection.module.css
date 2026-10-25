@@ -3,6 +3,8 @@
   flex-direction: column;
   gap: 12px;
   max-width: 720px;
+  container-type: inline-size;
+  container-name: mode-settings;
   color: var(--dsw-alias-label-primary);
 }
 
@@ -86,13 +88,14 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   /* Match neighboring cards within a row, without stretching shorter rows. */
   gap: 12px;
 }
 
 .card {
-  --mode-fill: var(--dsw-mode-standard-fill);
+  --mode-fill: var(--dsw-mode-neutral-fill);
+  --mode-icon: var(--mode-fill);
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -107,17 +110,12 @@
 /* The selected fill spreads from the card's center, so picking a mode floods
    its card with the mode color instead of swapping backgrounds. */
 .card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--mode-fill) 90%, var(--dsw-mode-label-ink)), var(--mode-fill));
-  clip-path: circle(0 at 50% 50%);
-  opacity: 0;
-  transition: clip-path 460ms cubic-bezier(0.22, 0.8, 0.16, 1), opacity 200ms var(--ds-ease-in-out);
-  pointer-events: none;
+  content: ''; position: absolute; inset: 0 auto 0 0; width: 3px;
+  background: var(--mode-fill); opacity: 0; transform: scaleY(.5);
+  transition: opacity 180ms var(--ds-ease-in-out), transform 300ms var(--ds-ease-in-out); pointer-events: none;
 }
 
+.card[data-agent-preset-id='standard'] { --mode-fill: var(--dsw-mode-standard-fill); }
 .card[data-agent-preset-id='security'] { --mode-fill: var(--dsw-mode-security-fill); }
 .card[data-agent-preset-id='reverse'] { --mode-fill: var(--dsw-mode-reverse-fill); }
 .card[data-agent-preset-id='writing'] { --mode-fill: var(--dsw-mode-writing-fill); }
@@ -128,20 +126,14 @@
 }
 
 .cardActive {
-  --dsw-alias-label-primary: var(--dsw-mode-label-ink);
-  --dsw-alias-label-tertiary: color-mix(in srgb, var(--dsw-mode-label-ink) 85%, transparent);
-  --dsw-alias-border-l4: color-mix(in srgb, var(--dsw-mode-label-ink) 30%, transparent);
-  border-color: color-mix(in srgb, var(--mode-fill) 65%, var(--dsw-mode-label-ink));
-  color: var(--dsw-mode-label-ink);
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--mode-fill) 18%, transparent), inset 0 1px color-mix(in srgb, var(--dsw-mode-label-ink) 20%, transparent);
+  border-color: color-mix(in srgb, var(--mode-fill) 48%, var(--dsw-alias-border-l2));
+  background: color-mix(in srgb, var(--mode-fill) 6%, var(--dsw-alias-settings-card-fill));
+  box-shadow: none;
 }
 
-.cardActive::before {
-  clip-path: circle(75% at 50% 50%);
-  opacity: 1;
-}
+.cardActive::before { opacity: 1; transform: none; }
 
-.cardIcon { flex: none; }
+.cardIcon { flex: none; color: var(--mode-icon); }
 
 .cardActive .cardIcon { animation: mode-icon-pop 520ms cubic-bezier(0.22, 0.8, 0.16, 1) both; }
 
@@ -151,10 +143,8 @@
   100% { transform: none; }
 }
 
-.cardActive .cardDesc, .cardActive .cardId, .cardActive .helpButton, .cardActive .iconButton {
-  color: color-mix(in srgb, var(--dsw-mode-label-ink) 88%, transparent);
-}
-.cardActive .cardFoot { border-color: color-mix(in srgb, var(--dsw-mode-label-ink) 20%, transparent); }
+
+
 .cardActive .cardName { font-weight: 500; }
 
 /* Mode selection is off, not the preset itself: mute only the selectable
@@ -427,7 +417,7 @@
   margin: 0;
   padding: 10px 12px;
   border-radius: var(--dsw-radius-sm);
-  background: var(--dsw-alias-fill-tsp-secondary);
+  background: var(--dsw-alias-interactive-bg-hover);
   color: var(--dsw-alias-label-secondary);
   font-size: 13px;
   line-height: 1.5;
@@ -445,7 +435,7 @@
   font-size: 13px;
   line-height: 1.5;
   border-radius: var(--dsw-radius-sm);
-  background: var(--dsw-alias-fill-tsp-secondary);
+  background: var(--dsw-alias-interactive-bg-hover);
   color: var(--dsw-alias-label-secondary);
 }
 
@@ -492,3 +482,9 @@
 
 .cardActive .cardIcon { animation: none; }
 }
+
+@container mode-settings (max-width: 480px) { .cards { grid-template-columns: minmax(0, 1fr); } }
+:global(body[data-ds-dark-theme]) .card[data-agent-preset-id='standard'] { --mode-icon: var(--dsw-mode-standard-accent-dark); }
+:global(body[data-ds-dark-theme]) .card[data-agent-preset-id='security'] { --mode-icon: var(--dsw-mode-security-accent-dark); }
+:global(body[data-ds-dark-theme]) .card[data-agent-preset-id='reverse'] { --mode-icon: var(--dsw-mode-reverse-accent-dark); }
+:global(body[data-ds-dark-theme]) .card[data-agent-preset-id='writing'] { --mode-icon: var(--dsw-mode-writing-accent-dark); }

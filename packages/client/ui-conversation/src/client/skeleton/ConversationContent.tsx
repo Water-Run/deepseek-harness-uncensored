@@ -6,8 +6,8 @@ import type { ConversationContentProps, ConversationViewsProps, InputZone } from
 import { HeroShell, WorkspaceChip, workspaceLabel } from './EmptyHero.tsx'
 import css from './ConversationRoot.module.css'
 
-function ConversationSessionView({ renderSlot }: ConversationViewsProps) {
-  return renderSlot('conversation.session', {})
+function ConversationSessionView({ renderSlot, fromSeq }: ConversationViewsProps) {
+  return renderSlot('conversation.session', { fromSeq })
 }
 
 function NoConversationWidthControls() {
@@ -197,7 +197,7 @@ export function ConversationContent(props: ConversationContentProps) {
       data-content-phase={phase}
     >
       <div className={css.scrollBody} data-conversation-scroll="">
-        {sessionId === undefined ? null : <Views />}
+        {sessionId === undefined ? null : <Views fromSeq={props.fromSeq} />}
         {composerSeat}
       </div>
       <WidthControls container={body} phase={phase} />

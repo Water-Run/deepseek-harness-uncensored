@@ -70,3 +70,12 @@ it('relabels the menu in the current locale and ignores relabel after disposal',
   f.tray.relabel()
   expect(native.menus).toHaveLength(2)
 })
+
+it('keeps the tray focused on reopening, running conversations, repository and quit', () => {
+  const tray = new DesktopTray({ iconPath: 'tray.ico', locale: () => resolveDesktopLocale('zh'),
+    open: vi.fn(), quit: vi.fn(), openSession: vi.fn(), repository: vi.fn() })
+  expect(labels(native.menus[0]!)).toEqual([
+    '打开 DeepSeek Harness Uncensored', '进行中的会话', 'GitHub 仓库', 'separator', '退出 DeepSeek Harness Uncensored',
+  ])
+  tray.dispose()
+})

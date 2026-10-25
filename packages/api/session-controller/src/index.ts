@@ -628,7 +628,7 @@ export class SessionController extends TypertRemoteService {
       const off = info.reasoning?.efforts.find(effort => effort.id === 'off')?.id
       bounded.throwIfAborted()
       return requestPrediction({
-        session, surface, draft: request.draft, revision: request.revision,
+        session, surface, draft: request.draft, revision: request.revision, locale: request.locale,
         context: predictionContext(surface, completed, parent ?? session.id, agent.status, policy.predictionContextBytes),
         provider: selected.provider, model: selected.model, signal: bounded,
         maxTokens: policy.predictionMaxTokens, maxSuggestionBytes: policy.predictionOutputBytes,

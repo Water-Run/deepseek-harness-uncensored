@@ -14,9 +14,7 @@ export interface DesktopTrayOptions {
   /** Request quit through the same confirmation as every other quit entry. */
   readonly quit: () => void
   readonly openSession?: (sessionId: DesktopSessionItem['sessionId']) => void
-  readonly about?: () => void
   readonly repository?: () => void
-  readonly checkUpdates?: () => void
 }
 
 /** Tray icon present for the whole run, not only while the window is hidden. */
@@ -48,8 +46,6 @@ export class DesktopTray {
         submenu: this.sessions.map(item => ({ label: (item.title || messages.untitledConversation).replace(/&/gu, '&&').replace(/[\r\n\t]/gu, ' '),
           click: () => { this.options.openSession?.(item.sessionId) } })),
       }]),
-      ...(this.options.about === undefined ? [] : [{ label: messages.aboutMenu, click: this.options.about }]),
-      ...(this.options.checkUpdates === undefined ? [] : [{ label: messages.checkUpdatesMenu, click: this.options.checkUpdates }]),
       ...(this.options.repository === undefined ? [] : [{ label: messages.aboutRepository, click: this.options.repository }]),
       { type: 'separator' },
       { label: messages.quitApplication, click: () => { this.options.quit() } },

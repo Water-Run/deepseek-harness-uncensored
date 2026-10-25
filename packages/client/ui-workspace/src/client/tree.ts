@@ -255,6 +255,7 @@ function sessionVisible(
   archivedFilter: ArchivedFilter,
 ): boolean {
   if (session.origin === 'subagent') return false
+  if (session.parentId !== undefined && /^session-(?:side-[0-9a-f]{64}|btw-[0-9a-f-]{36})$/u.test(session.id)) return false
   if (session.blank && session.id !== current) return false
   switch (archivedFilter) {
     case 'default':
@@ -425,7 +426,7 @@ function runningSessionOf(
   let selected: SessionSummary | undefined
   for (const session of sessions) {
     if (session.blank || session.id === current || archived.has(session.id)) continue
-    if ((statuses.get(session.id)?.running ?? session.running) !== true) continue
+    if (!(statuses.get(session.id)?.running ?? session.running)) continue
     if (selected === undefined || session.updatedAt > selected.updatedAt
       || (session.updatedAt === selected.updatedAt && session.id < selected.id)) selected = session
   }

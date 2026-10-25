@@ -1,0 +1,6 @@
+.answer { display: grid; gap: 10px; padding: 12px 16px 16px; min-width: 0; max-height: min(32dvh, 280px); overflow: auto; font-size: 13px; line-height: 1.65; color: var(--dsw-alias-label-primary); }
+.question { margin: 0; padding-inline-start: 8px; border-inline-start: 2px solid var(--dsw-alias-state-business-primary); color: var(--dsw-alias-label-secondary); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.error { margin: 0; color: var(--dsw-alias-state-error-primary); font-size: 12px; }
+.pending { display: inline-flex; width: 14px; color: var(--dsw-alias-state-business-primary); animation: spin 800ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .pending { animation: none; } }

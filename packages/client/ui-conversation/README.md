@@ -28,6 +28,8 @@ Desktop product events use the optional [product analytics service](../product-a
 <a id="conversation-assembly"></a>
 ## Conversation assembly
 
+Input prediction is a General setting and defaults on when no choice was saved. An explicit off value remains off. One preference owner synchronizes Settings and all composers; unreadable storage disables requests and reports the problem. The current UI language accompanies neutral command drafts.
+
 View-label refreshes ignore retired Session bindings while their asynchronous cleanup drains. Language or plugin-view updates cannot reactivate an obsolete Provider binding.
 
 `UiConversation.events` is the single registry for event Definitions, and `UiConversation.views` is the single registry for target snapshot builders. Both registries reject duplicate keys, preserve registration order, return idempotent disposers, and rebuild existing bindings when their contribution roster changes. `UiConversation.binding(bindingOrSessionId)` returns one identity-stable Conversation binding for the current Session Controller binding. It does not open another event source. A View Definition may declare `toolCallFocus` to translate a tool-call id into its focus identity. Conversation supplies an Inspect callback only while such a target has a visible View entry; Chat consumes this callback without selecting a target.
@@ -64,7 +66,7 @@ Queue previews enable whitespace collapsing and document-edge trimming, retain e
 <a id="shell-and-standard-props"></a>
 ## Shell and standard props
 
-Input suggestions are disabled by default. After an 800ms pause, an editable composer may request a suffix for its exact draft; newer input cancels the request and late replies cannot overwrite it. Gray text follows the draft, including an empty editor. Tab accepts it only with a collapsed caret at the end, after completion menus pass and outside IME composition; it never sends the message. Complete questions and locked composers request no suggestion. The browser preference is shared across its windows; storage or request failures remain visible.
+Input prediction is enabled by default. After an 800ms pause, an editable composer may request a suffix for its exact draft; newer input cancels the request and late replies cannot overwrite it. Gray text follows the draft, including an empty editor. Tab accepts it only with a collapsed caret at the end, after completion menus pass and outside IME composition; it never sends the message. Complete questions and locked composers request no suggestion. The browser preference is shared across its windows; storage or request failures remain visible.
 
 The shared image slot props keep display choices separate from durable references: `thumbnail` requests a contained attachment-list thumbnail, while `compact` requests a cropped gallery tile. An optional per-image `label` supplies the accessible display name; loading and cache identity still use the original attachment reference. `MessageImagesContentInput` adds optional complete `MessageImageLabels` for the root-scoped `conversation.images.content` Factory. Message, tool, and Factory inputs carry the view's authorized `loadImage` callback explicitly; loading and URL caching remain with the resource owner. [ui-attachment](../ui-attachment/README.md) provides this Factory and owns rendering and the lightbox.
 

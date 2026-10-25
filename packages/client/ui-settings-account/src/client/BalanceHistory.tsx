@@ -11,11 +11,12 @@ import css from './BalanceView.module.css'
  * @param props - Ordered observations, currency symbol and localized labels.
  * @returns The chart and its selected observation, or null without samples.
  */
-export function BalanceHistory({ samples, symbol, label, help }: {
+export function BalanceHistory({ samples, symbol, label, help, formatValue }: {
   samples: readonly BalanceChartSample[]
   symbol: '¥' | '$'
   label: string
   help: string
+  formatValue?: (value: number) => string
 }) {
   const [hover, setHover] = useState<number | null>(null)
   const [cursor, setCursor] = useState<number | null>(null)
@@ -24,7 +25,7 @@ export function BalanceHistory({ samples, symbol, label, help }: {
   const geometry = balanceChart(samples)
   const first = samples[0], last = samples.at(-1), range = geometry.range
   if (first === undefined || last === undefined || range === undefined) return null
-  const format = (value: number): string => formatBalance(new Big(value).toString(), symbol)
+  const format = formatValue ?? ((value: number): string => formatBalance(new Big(value).toString(), symbol))
   const selected = Math.min(samples.length - 1, Math.max(0, hover ?? cursor ?? samples.length - 1))
   const sample = samples[selected] ?? last
   const active = hover !== null || focused

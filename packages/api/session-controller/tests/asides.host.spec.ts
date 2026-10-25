@@ -3,41 +3,114 @@ import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it } from 'vitest'
 import { mountAgentLoopTestDependencies, mountAgentLoopTestHarness } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { SessionId } from '@deepseek-ai/dsh-session'
+import { SessionLogOffset } from '@deepseek-ai/dsh-session'
+import { buildForkSeed } from '@deepseek-ai/dsh-session/fork'
+import { sideIdentity } from '../src/aside-context.ts'
+import { latestCompletedPrefixBoundary } from '../src/commands.ts'
 import { ReasoningEffortId, createUserMessage } from '@deepseek-ai/dsh-llm'
-import { MockAdapter, textResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
+import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
+import { installAsideContext } from '../src/aside-context.ts'
 import { ApiSessionAgentController } from '../src/agent.ts'
 import { SessionAsideController } from '../src/asides.ts'
 import { createSessionTestRemote } from './test-remote.ts'
 
 const prompt = (text: string) => createUserMessage({ content: [{ type: 'text', text }], source: { kind: 'user' } })
 
-async function fixture(ctx: Context) {
+async function fixture(ctx: Context, withPermissions = true) {
   await mountAgentLoopTestDependencies(ctx)
   const harness = await mountAgentLoopTestHarness(ctx)
-  const adapter = new MockAdapter(Array.from({ length: 8 }, () => textResponse('fixture reply')), {
+  const script = Array.from({ length: 8 }, () => textResponse('fixture reply'))
+  const adapter = new MockAdapter(script, {
     efforts: ['off', 'low', 'high', 'max'].map(id => ({ id: ReasoningEffortId(id), name: id })),
     defaultEffort: ReasoningEffortId('high'),
   })
   ctx.llm.registerAdapter(['mock'], adapter)
   ctx.provide('workspaceRegistry', { list: () => [], archivedSessionIds: [] } as never)
   const pinnedPresets: Array<{ sessionId: string; preset: string }> = []
-  ctx.provide('permissionPresets', {
+  if (withPermissions) ctx.provide('permissionPresets', {
     set: (session: { header: { id: string } }, preset: string) => { pinnedPresets.push({ sessionId: session.header.id, preset }) },
   } as never)
   createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'mock', model: 'mock' }), cwd: '/tmp' })
   let btwEffort = 'low'
+  const agents = new ApiSessionAgentController(ctx, { sideContextBytes: 65536, btwContextBytes: 8192 })
   const controller = new SessionAsideController(
     ctx,
-    new ApiSessionAgentController(ctx, { sideContextBytes: 65536, btwContextBytes: 8192 }),
+    agents,
     () => btwEffort,
     512,
   )
   ctx.effect(() => () => controller.close())
   const parent = await harness.create(SessionId('parent'), { provider: 'mock', model: 'mock' })
-  return { parent, adapter, controller, pinnedPresets, setBtwEffort: (effort: string) => { btwEffort = effort } }
+  return { parent, adapter, controller, agents, script, pinnedPresets, setBtwEffort: (effort: string) => { btwEffort = effort } }
 }
 
 describe('native side conversations', () => {
+  it('reports an old inherited prefix without deleting the side conversation’s own history', async () => {
+    const ctx = new Context()
+    try {
+      const { parent, controller, agents } = await fixture(ctx)
+      parent.followup(prompt('legacy main message'))
+      await parent.whenIdle()
+      const events = parent.session.snapshotEvents()
+      const boundary = latestCompletedPrefixBoundary(events)
+      if (boundary === undefined) throw new Error('Missing fixture turn')
+      const composition = await agents.composeAgent(undefined)
+      const side = await agents.createOwned({ sessionId: sideIdentity(parent.id),
+        seed: buildForkSeed(events, boundary), inheritedEventCount: SessionLogOffset(boundary + 1),
+        meta: { parentSession: parent.id, isSeeded: true }, agentOptions: { provider: 'mock', model: 'mock' }, setup: composition.setup })
+      side.followup(prompt('legacy side message'))
+      await side.whenIdle()
+      const before = side.session.snapshotEvents()
+      const opened = await controller.open({ sessionId: parent.id, kind: 'side' })
+      expect(opened.inheritedEventCount).toBe(boundary + 1)
+      expect(side.session.snapshotEvents()).toEqual(before)
+      expect(JSON.stringify(before.slice(opened.inheritedEventCount))).toContain('legacy side message')
+    } finally { await ctx.fiber.dispose() }
+  })
+  it('preserves the main conversation permission knobs without copying its transcript', async () => {
+    const ctx = new Context()
+    try {
+      const { parent, controller } = await fixture(ctx)
+      parent.session.append('sandbox/mode', { mode: 'read-only' })
+      parent.session.append('approval/policy', { policy: 'ask' })
+      const { sessionId } = await controller.open({ sessionId: parent.id, kind: 'side' })
+      const child = ctx.agents.get(sessionId)!
+      expect(child.session.inheritedEventCount).toBe(0)
+      expect(child.session.snapshotEvents().findLast(event => event.type === 'sandbox/mode')?.data).toEqual({ mode: 'read-only' })
+      expect(child.session.snapshotEvents().findLast(event => event.type === 'approval/policy')?.data).toEqual({ policy: 'ask' })
+    } finally { await ctx.fiber.dispose() }
+  })
+
+  it('refuses a quick question when read-only permission enforcement is unavailable', async () => {
+    const ctx = new Context()
+    try {
+      const { parent, controller, adapter } = await fixture(ctx, false)
+      await expect(controller.open({ sessionId: parent.id, kind: 'btw' })).rejects.toThrow('requires read-only permission enforcement')
+      expect(adapter.requests).toHaveLength(0)
+    } finally { await ctx.fiber.dispose() }
+  })
+  it('lets the main Agent explicitly read its independent side and records the read result', async () => {
+    const ctx = new Context()
+    try {
+      const { parent, adapter, controller, script } = await fixture(ctx)
+      await installAsideContext(parent.ctx, parent, { sideContextBytes: 65536, btwContextBytes: 8192 })
+      parent.followup(prompt('main task'))
+      await parent.whenIdle()
+      const opened = await controller.open({ sessionId: parent.id, kind: 'side' })
+      const child = ctx.agents.get(opened.sessionId)!
+      expect(child.session.inheritedEventCount).toBe(0)
+      expect(child.session.snapshotEvents().some(event => event.type === 'user/message')).toBe(false)
+      script[0] = textResponse('side-only detail 472')
+      child.followup(prompt('independent question'))
+      await child.whenIdle()
+      expect(JSON.stringify(parent.session.snapshotEvents())).not.toContain('side-only detail 472')
+      script[0] = toolCallResponse('read-side', 'read_side_context', {})
+      parent.followup(prompt('Read the side conversation'))
+      await parent.whenIdle()
+      expect(JSON.stringify(adapter.requests.at(-1))).toContain('side-only detail 472')
+      expect(JSON.stringify(parent.session.snapshotEvents().filter(event => event.type === 'tool/result'))).toContain('side-only detail 472')
+    } finally { await ctx.fiber.dispose() }
+  })
   it('refreshes completed main progress before every side request while retaining side history', async () => {
     const ctx = new Context()
     try {
@@ -59,14 +132,14 @@ describe('native side conversations', () => {
       expect(current).toContain('initial main background')
       expect(current).toContain('first side question')
       expect(current).toContain('main update after side opened')
-      expect(current).toContain('completed updates since this side conversation opened')
+      expect(current).toContain('completed background context')
       expect(current).not.toContain('unfinished main instruction')
       expect(JSON.stringify(child.session.snapshotEvents())).toContain('main update after side opened')
       expect(parent.session.snapshotEvents()).toEqual(mainBeforeSide)
     } finally { await ctx.fiber.dispose() }
   })
 
-  it('inherits completed context, excludes queued work, and resumes the same side with one context note', async () => {
+  it('starts independently, reads completed context, excludes queued work and resumes its own history', async () => {
     const ctx = new Context()
     try {
       const { parent, adapter, controller } = await fixture(ctx)
@@ -83,7 +156,7 @@ describe('native side conversations', () => {
       await child.whenIdle()
       const first = JSON.stringify(adapter.requests.at(-1))
       expect(first).toContain('parent background')
-      expect(first).toContain('This is a side question')
+      expect(first).toContain('This is an independent side conversation')
       expect(first).not.toContain('parent queued work')
       // A new owner simulates reopening after the UI controller was replaced.
       const reopened = new SessionAsideController(
@@ -98,8 +171,8 @@ describe('native side conversations', () => {
         child.followup(prompt('side question two'))
         await child.whenIdle()
         expect(JSON.stringify(adapter.requests.at(-1)?.messages)).toContain('side question one')
-        expect(child.session.snapshotEvents().filter(event => event.type === 'user/message' && event.data.source.kind === 'user')).toHaveLength(3)
-        expect(JSON.stringify(child.session.deriveMessages()).match(/This is a side question/gu)).toHaveLength(1)
+        expect(child.session.snapshotEvents().filter(event => event.type === 'user/message' && event.data.source.kind === 'user')).toHaveLength(2)
+        expect(JSON.stringify(child.session.deriveMessages()).match(/This is an independent side conversation/gu)).toHaveLength(1)
         expect(parent.session.snapshotEvents()).toEqual(original)
       } finally { await reopened.close() }
     } finally { await ctx.fiber.dispose() }
@@ -118,7 +191,7 @@ describe('native side conversations', () => {
       expect(adapter.requests).toHaveLength(0)
       child.followup(prompt('question after cancellation'))
       await child.whenIdle()
-      expect(JSON.stringify(adapter.requests.at(-1))).toContain('This is a side question')
+      expect(JSON.stringify(adapter.requests.at(-1))).toContain('This is an independent side conversation')
       // The context note arrives as a runtime-context message; the child owns one real user turn.
       expect(child.session.deriveMessages()
         .filter(message => message.role === 'user' && 'source' in message && message.source?.kind === 'user'))

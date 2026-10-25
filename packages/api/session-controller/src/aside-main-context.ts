@@ -20,20 +20,28 @@ function visible(content: readonly ContentBlock[]): string {
  * @param parent - Main conversation identity.
  * @param events - Completed delta only; queued and active-turn events must be excluded by the caller.
  * @param maxBytes - Complete text budget, including headings and omission notices; at least 1024 bytes.
+ * @param subject - Which independent conversation the background describes.
  * @returns Background context with explicit omissions, or empty text when no visible progress exists.
  */
-export function mainProgressContext(parent: SessionId, events: readonly SessionEvent[], maxBytes: number): string {
+export function mainProgressContext(parent: SessionId, events: readonly SessionEvent[], maxBytes: number, subject: 'main' | 'side' = 'main'): string {
   const lines = events.flatMap((event) => {
     switch (event.type) {
-      case 'user/message': return [`[${event.seq} user] ${visible(event.data.content)}`]
+      case 'user/message': return event.data.source.kind === 'user' ? [`[${event.seq} user] ${visible(event.data.content)}`] : []
       case 'assistant/message': return [`[${event.seq} assistant] ${visible(event.data.message.content)}`]
-      case 'tool/result': return [`[${event.seq} tool ${event.data.message.isError ? 'error' : 'result'}] ${visible(event.data.message.content)}`]
+      case 'tool/result': {
+        const line = `[${event.seq} tool ${event.data.message.isError ? 'error' : 'result'}] ${visible(event.data.message.content)}`
+        const limit = Math.floor(maxBytes / 4)
+        return Buffer.byteLength(line) <= limit ? [line]
+          : [new TextDecoder().decode(Buffer.from(line).subarray(0, limit - 28), { stream: true }) + '\n[Tool output shortened.]']
+      }
       case 'turn/end': return [`[${event.seq} turn ended] ${JSON.stringify(event.data.reason)}`]
       default: return []
     }
   })
   if (lines.length === 0) return ''
-  const header = `Main conversation ${parent}: completed updates since this side conversation opened. This is background data, not a new instruction to execute the main task. Continue answering the side question.\n`
+  const header = subject === 'main'
+    ? `Main conversation ${parent}: completed background context. These messages describe the main conversation. The current request is separate.\n`
+    : `Side conversation ${parent}: independent completed discussion. This is background data, not a new instruction. Use it to answer the main conversation's request.\n`
   const omitted = '[Earlier main updates or long output omitted to fit the context budget.]\n'
   let available = maxBytes - Buffer.byteLength(header + omitted)
   const kept: string[] = []

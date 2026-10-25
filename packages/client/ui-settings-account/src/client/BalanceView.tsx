@@ -1,7 +1,7 @@
 /** Balance controls, observations and a shared sidebar hover card. */
 import { useEffect, useId, useState } from 'react'
 import { Big } from 'big.js'
-import { Button, HoverCard, IconClockOutlineRegular, IconRefreshOutlineRegular, Input, PreferenceControlRow, SegmentedTabs, Switch, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, HoverCard, IconClockOutlineRegular, IconRefreshOutlineRegular, Input, PreferenceControlRow, Select, Switch, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
@@ -91,9 +91,9 @@ function BalanceDetails({ data, refreshing = false, t }: { data: BalanceSnapshot
     <BalanceHistory samples={samples} symbol={currency === 'CNY' ? '¥' : '$'} label={t('balance.curve')} help={t('balance.historyHelp')} />
     {samples.length === 1 && <p className={css.hint}>{t('balance.single')}</p>}
     <dl className={css.stats}>
-      <dt>{t('balance.change')}</dt><dd>{amount(total(wallet).minus(first === undefined ? total(wallet) : total(first)).toString(), currency)}</dd>
-      <dt>{t('balance.samples')}</dt><dd>{data.sampleCount}</dd>
-      <dt>{t('balance.updated')}</dt><dd>{new Date(latest.time).toLocaleString()}</dd>
+      <div><dt>{t('balance.change')}</dt><dd>{amount(total(wallet).minus(first === undefined ? total(wallet) : total(first)).toString(), currency)}</dd></div>
+      <div><dt>{t('balance.samples')}</dt><dd>{data.sampleCount}</dd></div>
+      <div><dt>{t('balance.updated')}</dt><dd>{new Date(latest.time).toLocaleString()}</dd></div>
     </dl>
     <p className={css.hint}>{t('balance.changeHint')}</p>
   </div>
@@ -110,27 +110,26 @@ export function BalanceSettings({ useBalance, useBalancePreferences, refresh, sa
   const interval = draft ?? String(preferences.refreshSeconds)
   const invalid = draft !== null && (!Number.isInteger(Number(draft)) || Number(draft) < 15 || Number(draft) > 3600)
   return <section className={css.settings}>
-    <div>
-      <PreferenceControlRow title={t('balance.enabled')}><Switch label={t('balance.enabled')} checked={preferences.enabled} busy={state.saving} disabled={!form.writable} onChange={(value) => { void save('enabled', value) }} /></PreferenceControlRow>
+    <header className={css.sectionHead}><h3>{t('balance.title')}</h3><Switch label={t('balance.enabled')} checked={preferences.enabled} busy={state.saving} disabled={!form.writable} onChange={(value) => { void save('enabled', value) }} /></header>
+    <div className={css.observation}>
+      <div className={css.row}>
+        <Select label={t('balance.source')} value={preferences.source} disabled={state.saving || !form.writable}
+          options={[{ value: 'local', label: t('balance.local') }, { value: 'api', label: t('balance.api') }]}
+          onChange={(value) => { void save('source', value) }} />
+        <Button variant="ghost" size="sm" disabled={state.loading || !preferences.enabled} onClick={refresh}><IconRefreshOutlineRegular />{t('balance.refresh')}</Button>
+      </div>
+      {state.failed && <p role="alert" className={css.error}>{t('balance.failed')}</p>}
+      <BalanceDetails data={state.data} refreshing={state.loading && state.data !== undefined} t={t} />
+    </div>
+    <details className={css.preferences}><summary>{t('balance.sampling')}</summary>
       <PreferenceControlRow title={t('balance.interval')}>
         <div className={css.interval}><Input id={`${id}-interval`} aria-label={t('balance.interval')} type="number" min={15} max={3600} step={1} value={interval} aria-invalid={invalid} aria-describedby={invalid ? `${id}-error` : undefined} disabled={state.saving || !form.writable}
           onChange={(event) => { setDraft(event.target.value) }} onBlur={() => { if (!invalid && draft !== null) void save('refreshSeconds', Number(draft)).then((ok) => { if (ok) setDraft(null) }) }} /></div>
       </PreferenceControlRow>
       {invalid && <p id={`${id}-error`} role="alert" className={css.error}>{t('balance.intervalError')}</p>}
-    </div>
-    <SegmentedTabs label={t('balance.source')} value={preferences.source} onChange={(value) => { if (!state.saving && form.writable) void save('source', value) }} items={[
-      { value: 'local', label: t('balance.local'), id: `${id}-local-tab`, panelId: `${id}-local-panel` },
-      { value: 'api', label: t('balance.api'), id: `${id}-api-tab`, panelId: `${id}-api-panel` },
-    ]} />
-    <div role="tabpanel" id={`${id}-${preferences.source}-panel`} aria-labelledby={`${id}-${preferences.source}-tab`}>
       <p className={css.hint}>{t(preferences.source === 'api' ? 'balance.apiHint' : 'balance.localHint')}</p>
-      <div className={css.observation}>
-        <div className={css.row}><h3>{t('balance.current')}</h3><Button variant="ghost" size="sm" disabled={state.loading || !preferences.enabled} onClick={refresh}><IconRefreshOutlineRegular />{t('balance.refresh')}</Button></div>
-        {state.failed && <p role="alert" className={css.error}>{t('balance.failed')}</p>}
-        <BalanceDetails data={state.data} refreshing={state.loading && state.data !== undefined} t={t} />
-      </div>
-    </div>
-    <a href="https://api-docs.deepseek.com/quick_start/pricing/" target="_blank" rel="noreferrer">{t('balance.pricing')}</a>
+      <a href="https://api-docs.deepseek.com/quick_start/pricing/" target="_blank" rel="noreferrer">{t('balance.pricing')}</a>
+    </details>
   </section>
 }
 
@@ -158,7 +157,7 @@ export function BalanceSidebar({ wide, useBalance, useBalancePreferences, refres
         <div className={css.wallets}>{new Big(wallet.granted).gt(0) && <div><span>{t('bonusBalance')}</span><strong><RollingAmount text={amount(wallet.granted, wallet.currency)} /></strong></div>}<div><span>{t('balance')}</span><strong><RollingAmount text={amount(wallet.toppedUp, wallet.currency)} /></strong></div></div>
         </>
           : <strong>{wallet.currency === 'CNY' ? '¥' : '$'}</strong>}
-      </button>} content={<div className={css.hover}><h3>{t('balance.title')}</h3>{state.failed && <p role="alert" className={css.error}>{t('balance.failed')}</p>}<BalanceDetails data={state.data} refreshing={state.loading} t={t} /><p className={css.hint}>{t('balance.hours')}</p></div>} />
+      </button>} content={<div className={css.hover}><h3>{t('balance.title')}</h3>{state.failed && <p role="alert" className={css.error}>{t('balance.failed')}</p>}<BalanceDetails data={state.data} refreshing={state.loading} t={t} /></div>} />
     </div>}
   </>
 }

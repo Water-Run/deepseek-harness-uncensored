@@ -52,7 +52,7 @@ export function desktopTargetBuildPaths(target, env = process.env) {
   return {
     root,
     artifacts: join(root, 'artifacts'),
-    unsignedArtifacts: join(root, 'unsigned-artifacts'),
+    unsignedArtifacts: runId === undefined ? join(root, 'unsigned-artifacts') : join(root, 'unsigned-artifacts', 'runs', runId),
     unnotarizedArtifacts: join(root, 'unnotarized-artifacts'),
     runtime: join(root, 'runtime'),
     packageSet: join(root, 'package-set'),

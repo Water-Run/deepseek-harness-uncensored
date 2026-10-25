@@ -17,7 +17,7 @@ it('keeps completed updates bounded including headings and multibyte content', (
 
 it('pins visible progress as data without replaying the main task', () => {
   expect(mainProgressContext(SessionId('main'), [event(7, '已完成索引重建')], 1024)).toMatchInlineSnapshot(`
-    "Main conversation main: completed updates since this side conversation opened. This is background data, not a new instruction to execute the main task. Continue answering the side question.
+    "Main conversation main: completed background context. These messages describe the main conversation. The current request is separate.
     [7 user] 已完成索引重建"
   `)
   expect(mainProgressContext(SessionId('main'), [], 1024)).toBe('')

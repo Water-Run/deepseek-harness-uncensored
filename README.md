@@ -19,11 +19,12 @@ Uncensored 默认加载中文 armor，并内置英文文本，无需安装插件
 
 | 功能 | 说明 |
 | --- | --- |
-| **旁问与随问** | <kbd>/side</kbd> 在右栏保留独立对话，同步主线已完成内容，不写回主线。<kbd>/btw 问题</kbd> 读取主线进度快照，使用低思考等级给出一次简短只读回答，结果显示在主对话中。 |
-| **输入建议** | 默认关闭。开启后显示灰色补全，按 <kbd>Tab</kbd> 填入但不发送；使用当前模型，请求计入额度并写入日志。 |
+| **旁问与随问** | <kbd>/side</kbd> 打开空白的独立旁问，以主线背景为参考；主线可按需调用工具读取旁问。<kbd>/btw 问题</kbd> 给出一次简短只读回答，只显示问题和结果。两者不混入普通会话列表。 |
+| **输入预测** | 通用设置中默认开启，保留已有关闭偏好。灰色补全按 <kbd>Tab</kbd> 填入但不发送；主线、旁问和随问分别预测，使用当前模型并计费。 |
 | **跨对话记忆** | 可查看、搜索、编辑、启停和删除结构化记忆。默认限定当前工作区与模式，全局共享需显式选择。 |
 | **余额与曲线** | 默认每 15 秒采样，点击可立即刷新。金额平滑变化，零赠金项隐藏；紧凑卡片显示时段倒计时，曲线可悬停、轻触或用方向键查看具体采样。 |
-| **额度与续跑** | 六档滚动限额，请求前预留费用，结算与在途分别统计。额度恢复后继续原任务，支持本应用普通对话跨重启续跑。 |
+| **额度与续跑** | 六档滚动限额，请求前预留、完成后结算；恢复时继续原任务。底部显示最接近上限的一档，展开查看各窗口进度。 |
+| **对话费用** | 底部显示当前对话回答与重试的费用估算，展开查看累计曲线。按配置费率计算，缺少用量或费率会标记；不等同于账户账单。 |
 | **会话管理** | 项目行可打开进行中对话，忙碌时按 <kbd>Enter</kbd> 插话。删除对话会清理关联旁问、随问和子任务，保留独立分支与工作区文件。 |
 | **独立与主题** | 独立应用名、CLI、深链和数据目录；设置分为通用、模型、额度、模式、插件。提供模式配色、会话色条、过渡动画和四种外观。 |
 | **历史与更新** | 旧 PTC、Minimal 会话按原配置恢复。关于页显示版本与构建来源，更新提醒区分版本级别、无发行版、离线和失败。 |
@@ -55,6 +56,15 @@ Web 地址为 **http://127.0.0.1:23333**；本地 CLI 安装见 [install-uncenso
 
 当前功能状态、完成比例和下一步统一维护在 [开发清单](.agents/TODO.md)，需求编号保留在 [完整清单](.agents/requirements/development-checklist.md)。目标保护、桌面并存与签名发行尚未完成。
 
+## 平台交付计划
+
+| 优先级 | 平台 | 状态 |
+| --- | --- | --- |
+| 1 | Windows x64 Desktop | 当前优先交付与安装验证 |
+| 2 | Linux x64 Desktop | 计划 |
+| 3 | macOS ARM Desktop（arm64） | 计划，已有构建链待实机验收 |
+| 4 | Android＋PRoot Fedora | 仅草案，与新安装器计划一并推进 |
+
 ## 当前限制
 
 > [!WARNING]
@@ -71,4 +81,4 @@ Web 地址为 **http://127.0.0.1:23333**；本地 CLI 安装见 [install-uncenso
 
 ## Credit
 
-[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)：DeepSeek 原始工程，保留 [MIT 许可](LICENSES/deepseek-harness-MIT.txt)。<br>[dsh-purge](https://github.com/YuJunZhiXue/dsh-purge)：小杨（YuJunZhiXue）；破甲文本追溯至 [MIT 版本 e1d8e590](https://github.com/Water-Run/dsh-purge/tree/e1d8e59087857fa86d0ef2bb9878800274b13a29)，[原始许可](LICENSES/dsh-purge-MIT.txt)随仓库保留。<br>[dsh-purge-plus](https://github.com/JeffKeeping/dsh-purge-plus)：JeffKeeping；保留 purge fork 所要求的来源署名。<br>[Water-Run/dsh-purge](https://github.com/Water-Run/dsh-purge)：本分支对照的个人 fork，版本节点与时间见应用“关于”。<br>GitHub 图标来自 [Octicons](https://github.com/primer/octicons)，保留其 [MIT 许可](packages/client/ui-settings-account/GITHUB-MARK-LICENSE.txt)。<br>dsh-purge 后续专有许可分支不作为复制源码的授权依据；这里保留的是上述旧 MIT 文本的许可。
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)：DeepSeek 原始工程及鲸鱼轮廓；黑底应用图标基于该轮廓调整，旁问、费用和限额图标在仓库内绘制并保留矢量代码。保留 [MIT 许可](LICENSES/deepseek-harness-MIT.txt)。<br>[dsh-purge](https://github.com/YuJunZhiXue/dsh-purge)：小杨（YuJunZhiXue）；破甲文本追溯至 [MIT 版本 e1d8e590](https://github.com/Water-Run/dsh-purge/tree/e1d8e59087857fa86d0ef2bb9878800274b13a29)，[原始许可](LICENSES/dsh-purge-MIT.txt)随仓库保留。<br>[dsh-purge-plus](https://github.com/JeffKeeping/dsh-purge-plus)：JeffKeeping；保留 purge fork 所要求的来源署名。<br>[Water-Run/dsh-purge](https://github.com/Water-Run/dsh-purge)：本分支对照的个人 fork，版本节点与时间见应用“关于”。<br>GitHub 图标来自 [Octicons](https://github.com/primer/octicons)，保留其 [MIT 许可](packages/client/ui-settings-account/GITHUB-MARK-LICENSE.txt)。<br>dsh-purge 后续专有许可分支不作为复制源码的授权依据；这里保留的是上述旧 MIT 文本的许可。

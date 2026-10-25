@@ -1,5 +1,5 @@
 /** Spending controls and accessible rolling-window bars over a root-owned controller. */
-import { useEffect, useId, useState } from 'react'
+import { useId, useState } from 'react'
 import { Button, Input, StateDot, Switch, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SpendPeriod, SpendPreferences, SpendSnapshot, SpendWindow } from '@deepseek-ai/dsh-spend-limit/types'
@@ -19,27 +19,6 @@ type Common = InjectFace<SpendingInjected> & PropsLocale<'settings.account'>
 const money = (value: number): string => `¥${value.toFixed(value < 0.01 && value > 0 ? 4 : 2)}`
 const invalidLimit = (value: string | undefined): boolean => value !== undefined
   && (!Number.isFinite(Number(value)) || Number(value) <= 0 || Number(value) > 1_000_000)
-
-function PredictionSwitch({ t }: { t: Common['t'] }) {
-  const [enabled, setEnabled] = useState(false)
-  const [failed, setFailed] = useState(false)
-  useEffect(() => {
-    const read = (): void => {
-      try { setEnabled(localStorage.getItem('dsh.uncensored.prediction') === '1'); setFailed(false) }
-      catch (error) { setEnabled(false); setFailed(true); console.warn('[prediction] preference is unavailable', error) }
-    }
-    read()
-    window.addEventListener('storage', read)
-    window.addEventListener('dsh-prediction', read)
-    return () => { window.removeEventListener('storage', read); window.removeEventListener('dsh-prediction', read) }
-  }, [])
-  return <div className={css.row}><div><span>{t('spending.prediction')}</span><p className={css.hint}>{t('spending.predictionHint')}</p>{failed && <p role="alert" className={css.hint}>{t('spending.predictionUnavailable')}</p>}</div><Switch label={t('spending.prediction')} checked={enabled} onChange={(value) => {
-    try { localStorage.setItem('dsh.uncensored.prediction', value ? '1' : '0') }
-    catch (error) { setFailed(true); console.warn('[prediction] could not save preference', error); return }
-    setEnabled(value); setFailed(false)
-    window.dispatchEvent(new Event('dsh-prediction'))
-  }} /></div>
-}
 
 function Status({ data, t }: { data: SpendSnapshot; t: Common['t'] }) {
   return <span>{t(!data.preferences.enabled ? 'spending.off' : hasBlockedSessions(data) ? 'spending.paused' : data.waiting > 0 ? 'spending.waiting' : 'spending.active', { count: data.waiting })}</span>
@@ -73,11 +52,10 @@ export function SpendingSettings({ useSpending, configureSpending, resetSpending
   const invalid = Object.values(draft).some(invalidLimit)
   if (data === undefined) return <section className={css.settings} aria-busy={!state.failed}>{state.failed ? <><p role="alert">{t('spending.failed')}</p><Button onClick={refreshSpending}>{t('spending.retry')}</Button></> : <span className={css.spinner} role="status" aria-label={t('spending.loading')}><StateDot state="ongoing" size={20} /></span>}</section>
   return <section className={css.settings}>
+    <header className={css.sectionHead}><h3>{t('spending.title')}</h3><Switch label={t('spending.enabled')} checked={data.preferences.enabled} busy={state.saving} onChange={(value) => { void configureSpending({ ...data.preferences, enabled: value }) }} /></header>
     <p className={css.hint}>{t('spending.summary')}</p>
     {state.failed && <div role="alert" className={css.row}><span>{t('spending.failed')}</span><Button size="sm" onClick={refreshSpending}>{t('spending.retry')}</Button></div>}
-    <div className={css.row}><span>{t('spending.enabled')}</span><Switch label={t('spending.enabled')} checked={data.preferences.enabled} busy={state.saving} onChange={(value) => { void configureSpending({ ...data.preferences, enabled: value }) }} /></div>
     <div className={css.row}><div><span>{t('spending.auto')}</span><p className={css.hint}>{t('spending.autoHint')}</p></div><Switch label={t('spending.auto')} checked={data.preferences.autoResume} busy={state.saving} onChange={(value) => { void configureSpending({ ...data.preferences, autoResume: value }) }} /></div>
-    <PredictionSwitch t={t} />
     <div className={css.status} role="status" data-paused={hasBlockedSessions(data)}><Status data={data} t={t} />{hasBlockedSessions(data) && <Button size="sm" disabled={state.saving} onClick={() => { void resumeSpending() }}>{t('spending.resume')}</Button>}</div>
     {data.pausedSessions.length > 0 && <p className={css.hint}>{t('spending.pausedSessions', { count: data.pausedSessions.length })}</p>}
     <div className={css.grid}>{data.windows.map(window => <div className={css.card} key={window.period}>

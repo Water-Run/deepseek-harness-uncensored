@@ -1,6 +1,10 @@
 # 桌面安装器计划
 
-更新：2026-10-25。对应 [完整编号清单](development-checklist.md) 的 `02.04`、`02.06`、`02.09` 与 [进展概览](../TODO.md) 的「官方版并存与桌面交付」。本文件只写步骤、验收口径与决策点，不含实现；本轮不打包、不安装、不签名、不发布。
+更新：2026-10-25。对应 [完整编号清单](development-checklist.md) 的 `02.04`、`02.06`、`02.09` 与 [进展概览](../TODO.md) 的「官方版并存与桌面交付」。新安装器设计仅为计划；当前用户已授权现有 Windows x64 安装器的本机构建与升级，不签名、不发布。
+
+## 交付矩阵
+
+优先级固定为 Windows x64 Desktop → Linux x64 Desktop → macOS ARM Desktop → Android＋PRoot Fedora。当前只执行 Windows 安装交付；其余平台与新安装器设计均处于计划阶段。Android 草案与验收项见 [追加需求](2026-10-25-followups.md#平台交付矩阵计划)。
 
 ## 目标
 
@@ -11,7 +15,7 @@
 ## 现状（2026-10-25）
 
 - **身份已分离**：`appId` 为 `com.deepseek.dsh.uncensored`、产品名 `DeepSeek Harness Uncensored`、协议 `dshu://`、CLI `dsh-uncensored`、数据目录 `.dsh-uncensored`；官方版是 `com.deepseek.dsh` / `DeepSeek Harness` / `.dsh`，因此两者在注册表、安装目录、数据目录、协议与 CLI 上互不覆盖。
-- **可产出未签名包**：`pnpm run package:desktop:win:x64:unsigned` 已跑通，产物为 `apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/deepseek-harness-uncensored-0.1.0-win-x64-unsigned.exe`；未签名产物带 `-unsigned` 后缀，与发行产物不可能混淆。
+- **可产出未签名包**：`pnpm run package:desktop:win:x64:unsigned` 已跑通，产物为 `apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/runs/<构建批次>/deepseek-harness-uncensored-0.1.0-win-x64-unsigned.exe`；未签名产物带 `-unsigned` 后缀，与发行产物不可能混淆。
 - **安装器只支持按用户安装**：NSIS 脚本 `installer.nsh` 在检测到全用户安装（`${isForAllUsers}`）或 `HKLM` 下已有 `InstallLocation` 时直接提示并以退出码 2 结束；安装目录固定为 `%LOCALAPPDATA%\Programs\DeepSeek Harness Uncensored`。
 - **未签名构建不写更新配置**：未签名产物没有 `app-update.yml`，因此本阶段没有自动更新通道。
 - **卸载保留 Harness home**：uninstall.nsh 明确保留会话所在的 Harness home；清理的是 Electron 用户资料与 updater 缓存。升级及 /KEEP_APP_DATA 跳过该清理；不能把缓存清理写成删除全部会话。

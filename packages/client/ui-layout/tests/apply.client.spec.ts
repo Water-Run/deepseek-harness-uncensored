@@ -126,14 +126,15 @@ describe('ui-layout client apply', () => {
 
   it('theme presenter applies the initial snapshot, follows theme/change, and unwinds on dispose', async () => {
     const { ctx } = await bench()
+    const theme = ctx.get('theme') as ThemeRuntime
+    theme.setTheme('light')
     const fiber = ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
-    // Initial getter application: jsdom has no matchMedia, system resolves light.
+    // The presenter starts from the explicitly selected palette, independent of sunset.
     expect(document.documentElement.style.colorScheme).toBe('light')
     expect(document.body.hasAttribute('data-ds-dark-theme')).toBe(false)
     const themeColorMeta = document.head.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
     expect(themeColorMeta).not.toBeNull()
-    const theme = ctx.get('theme') as ThemeRuntime
     theme.setTheme('dark')
     expect(document.documentElement.style.colorScheme).toBe('dark')
     expect(document.body.hasAttribute('data-ds-dark-theme')).toBe(true)

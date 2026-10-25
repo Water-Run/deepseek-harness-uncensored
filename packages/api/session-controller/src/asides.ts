@@ -4,14 +4,14 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { ModelSelection as AgentModelSelection } from '@deepseek-ai/dsh-agent'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import { errorChain, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
-import { SessionLogOffset, type Session, type SessionId } from '@deepseek-ai/dsh-session'
+import type { Session, SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-permission-presets'
-import { buildForkSeed } from '@deepseek-ai/dsh-session/fork'
+import { setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy'
+import { setApprovalPolicy } from '@deepseek-ai/dsh-user-approval'
 import { SessionQueryError } from '@deepseek-ai/dsh-session-query'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import type { ApiSessionAgentController } from './agent.ts'
 import type { SessionAsideRequest, SessionForkValue } from './types.ts'
-import { latestCompletedPrefixBoundary } from './commands.ts'
 import { sideIdentity } from './aside-context.ts'
 
 /** Execution preset pinned to every one-shot quick question: it may look, never modify. */
@@ -60,7 +60,7 @@ export class SessionAsideController {
   }
 
   private async create(request: SessionAsideRequest): Promise<SessionForkValue> {
-    using source = await this.ctx.sessionQuery.observeSession(request.sessionId)
+    using source = await this.ctx.sessionQuery.observeSession(request.sessionId, { projectionMode: 'all' })
     const childId = request.kind === 'side' ? sideIdentity(request.sessionId)
       : brandString<SessionId>(`session-btw-${randomUUID()}`)
     if (!this.ctx.remoteAccess.allows({ kind: 'session', id: childId })) {
@@ -80,15 +80,15 @@ export class SessionAsideController {
       if (exists) {
         const resumed = await this.agents.resolveAgent(childId)
         if ('error' in resumed) throw resumed.error
-        return { sessionId: childId }
+        return { sessionId: childId, inheritedEventCount: resumed.agent.session.inheritedEventCount }
       }
     }
-    const boundary = request.kind === 'side' ? latestCompletedPrefixBoundary(source.events) : undefined
     const composition = await this.agents.composeAgent(this.agents.presetForObservation(source))
-    const latestConfig = source.events.findLast(event => event.type === 'request/header')?.data.header.config
+    const latestConfig = source.projections?.values.modelSelection?.next
+      ?? source.events.findLast(event => event.type === 'request/header')?.data.header.config
     const inherited: AgentModelSelection = latestConfig === undefined ? this.ctx.agentDefaultModel.currentSelection() : {
       provider: latestConfig.provider, model: latestConfig.model,
-      ...(latestConfig.reasoningEffort === undefined ? {} : { reasoningEffort: latestConfig.reasoningEffort }),
+      ...(latestConfig.reasoningEffort === undefined ? {} : { reasoningEffort: ReasoningEffortId(latestConfig.reasoningEffort) }),
     }
     // A side conversation follows the main conversation's own model and level;
     // a one-shot quick question keeps the model but uses its configured level,
@@ -99,19 +99,23 @@ export class SessionAsideController {
     // A quick question may only look: pin the read-only preset before the
     // session is published, so every tool it could call is confined from the
     // first turn. A side conversation keeps the parent's permissions.
-    const setup: typeof composition.setup = request.kind !== 'btw' ? composition.setup : async (setupCtx, setupAgent) => {
+    const inheritedPreset = source.projections?.values.permissions?.currentValue
+    const sandbox = source.events.findLast(event => event.type === 'sandbox/mode')
+    const approval = source.events.findLast(event => event.type === 'approval/policy')
+    const setup: typeof composition.setup = async (setupCtx, setupAgent) => {
       const commit = await composition.setup(setupCtx, setupAgent)
-      this.pinReadOnly(setupAgent.session)
+      if (request.kind === 'btw') this.pinReadOnly(setupAgent.session)
+      else {
+        if (inheritedPreset !== undefined && inheritedPreset !== 'custom') this.ctx.get('permissionPresets')?.set(setupAgent.session, inheritedPreset)
+        if (sandbox?.type === 'sandbox/mode') setSandboxMode(setupAgent.session, sandbox.data.mode)
+        if (approval?.type === 'approval/policy') setApprovalPolicy(setupAgent.session, approval.data.policy)
+      }
       return commit
     }
     const agent = await this.agents.createOwned({
       sessionId: childId,
-      ...(boundary === undefined ? {} : {
-        seed: buildForkSeed(source.events, boundary), inheritedEventCount: SessionLogOffset(boundary + 1),
-      }),
       meta: {
         parentSession: request.sessionId,
-        ...(boundary === undefined ? {} : { isSeeded: true }),
         ...(source.header.cwd === undefined ? {} : { cwd: source.header.cwd }),
         ...(composition.agentPreset === undefined ? {} : { agentPreset: composition.agentPreset }),
       },
@@ -123,20 +127,18 @@ export class SessionAsideController {
     // child's own model and level are not replaced by the deployment default.
     this.agents.selectForNextRequest(agent, selection)
     await this.ctx.sessions.flush(agent.session)
-    return { sessionId: childId }
+    return { sessionId: childId, inheritedEventCount: 0 }
   }
 
   /**
    * Pin a quick question to the deployment's read-only preset before publication.
-   * A deployment without the permission surface keeps the prompt-level
-   * restriction and logs that no execution confinement is composed.
+   * A deployment without permission enforcement cannot open quick questions.
    * @param session - the fresh quick-question Session.
    */
   private pinReadOnly(session: Session): void {
     const presets = this.ctx.get('permissionPresets')
     if (presets === undefined) {
-      this.ctx.logger.warn('session-controller: permission presets are not composed; the quick question keeps default execution permissions')
-      return
+      throw new Error('session-controller: a quick question requires read-only permission enforcement')
     }
     try {
       presets.set(session, QUICK_QUESTION_PRESET)

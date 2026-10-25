@@ -1014,9 +1014,7 @@ async function main(): Promise<void> {
       tray = new DesktopTray({ iconPath: trayIconPath, locale: currentDesktopLocale,
         open: () => { focusPrimaryWindow() }, quit: () => { app.quit() },
         openSession: (sessionId) => { focusPrimaryWindow(); mainWindow?.webContents.send(DESKTOP_IPC.sessionOpen, sessionId) },
-        about: () => { void showAbout().catch(console.error) },
         repository: () => { void shell.openExternal('https://github.com/Water-Run/deepseek-harness-uncensored').catch(console.error) },
-        checkUpdates: () => { void openUpdatePrompt(true).catch(console.error) },
       })
     } catch (error) { console.warn('desktop tray: unavailable', error) }
   }

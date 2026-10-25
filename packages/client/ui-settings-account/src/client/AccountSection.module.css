@@ -216,3 +216,6 @@
   justify-content: flex-end;
   gap: 8px;
 }
+.billing { display: flex; justify-content: flex-end; min-width: 0; }
+.billing .balanceCard { border: 0; padding: 0; border-radius: 0; background: transparent; }
+.billing .row { gap: 8px; }

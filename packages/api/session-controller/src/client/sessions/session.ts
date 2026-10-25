@@ -323,11 +323,14 @@ export class Session implements SessionFace {
    * @param signal - Cancellation for a newer draft.
    * @returns The logged suggestion, or an empty string.
    */
-  async predict(draft: string, signal: AbortSignal): Promise<string> {
+  async predict(draft: string, signal: AbortSignal, locale?: 'zh' | 'en'): Promise<string> {
     signal.throwIfAborted()
     if (this.deleted) return ''
     const revision = ++this.predictionRevision
-    const result = await this.remote.session.predict({ sessionId: this.sessionId, draft, revision }, signal)
+    const result = await this.remote.session.predict({
+      sessionId: this.sessionId, draft, revision, ...locale === undefined ? {} : { locale },
+    }, signal)
+    // oxlint-disable-next-line typescript/no-unnecessary-condition -- Deletion may arrive while the request is pending.
     if (signal.aborted || this.deleted || revision !== this.predictionRevision) return ''
     if (!result.ok) throw result.error
     return result.value.revision === revision ? result.value.suggestion : ''

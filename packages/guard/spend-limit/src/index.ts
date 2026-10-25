@@ -4,13 +4,14 @@ import schema from '@deepseek-ai/schemastery'
 import { principalOf, Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type {} from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-web-search-deepseek'
+import type {} from '@deepseek-ai/dsh-session-query'
 import { z } from 'zod'
 import { SpendRecovery, type SpendContinuationHandler } from './continuation.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import { SpendLedger } from './ledger.ts'
 import { SpendGate } from './gate.ts'
 import { DEFAULT_RATES } from './pricing.ts'
-import type { SpendPreferences, SpendRate, SpendSnapshot } from './types.ts'
+import type { SessionSpendUsage, SpendPreferences, SpendRate, SpendSnapshot } from './types.ts'
 export type * from './types.ts'
 
 /** Deployment-owned ledger path and conservative rates. User limits live in the ledger. */
@@ -28,7 +29,7 @@ export const name = 'spend-limit'
 export const inject = ['llm']
 declare module '@deepseek-ai/cordis' { interface Context { spendLimit: SpendLimitRemote } }
 interface SpendRuntime { ready: Promise<SpendGate>; recovery: SpendRecovery }
-const count = z.number().int().nonnegative().safe()
+const count = z.number().int().nonnegative()
 const usageSchema = z.object({ input_tokens: count, output_tokens: count,
   cache_read_input_tokens: count.optional(), cache_creation_input_tokens: count.optional() })
 
@@ -60,6 +61,19 @@ export class SpendLimitRemote extends TypertRemoteService {
    */
   @Remote
   async get(): Promise<SpendSnapshot> { const gate = await this.runtime.ready; return gate.ledger.snapshot(gate.waiting) }
+  /**
+   * Read estimates from recorded model usage, including when spending limits are off.
+   * @param sessionId - Conversation to inspect; only the application owner may read it.
+   * @returns CNY estimate and bounded cumulative history, with missing usage or rates counted explicitly.
+   */
+  @Remote
+  async sessionUsage(sessionId: SessionId): Promise<SessionSpendUsage> {
+    this.assertOwner('spending/sessionUsage')
+    const query = this.ctx.get('sessionQuery')
+    if (query === undefined) throw new RemoteError('gateway/internal', 'Session history is unavailable.', {})
+    using source = await query.observeSession(sessionId)
+    return (await this.runtime.ready).sessionUsage(source.events)
+  }
   /**
    * Save user preferences across local processes.
    * @param preferences - Complete user limits.
@@ -108,7 +122,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   let closing = false
   const ready = SpendLedger.open(config.path)
     .then(ledger => new SpendGate(ledger, config.rates, config.pollMs, id => recovery.canCapture(id)))
-  void ready.catch((error) => { ctx.logger.error('spend-limit: ledger unavailable; paid requests remain blocked'); ctx.logger.error(error) })
+  void ready.catch((error: unknown) => { ctx.logger.error('spend-limit: ledger unavailable; paid requests remain blocked'); ctx.logger.error(error) })
   const recovery = new SpendRecovery((error) => {
     ctx.logger.error('spend-limit: paused conversation remains pending; recovery failed')
     ctx.logger.error(error)

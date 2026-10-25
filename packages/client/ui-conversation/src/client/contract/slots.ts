@@ -206,7 +206,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'conversation.session': {
       kind: 'single'
       scope: 'session'
-      owner: { view?: string; compact?: boolean }
+      owner: { view?: string; compact?: boolean; fromSeq?: number | undefined }
     }
     /** Resident navigation container, including when no Session is selected. */
     'conversation.header': { kind: 'single'; scope: 'session-maybe' }
@@ -317,7 +317,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
       inject: ConversationInjected
       locale: 'conversation'
       slots: {
-        views: { scope: 'session' }
+        views: { scope: 'session'; props: { fromSeq?: number | undefined } }
         widthControls: { scope: 'root'; props: ConversationWidthControlsInputProps }
       }
     }
@@ -389,6 +389,8 @@ export interface InputZone {
 
 /** Conversation View entries obtain their data from registered standard hooks. */
 export interface ConvViewOwnerProps {
+  /** First transcript event to display, excluding a legacy inherited prefix. */
+  fromSeq?: number | undefined
   /** Compact answer presentation omits full-conversation turn action rows. */
   compact?: boolean | undefined
   /** Open a tool call's inspector when an inspection target is available. */
@@ -479,6 +481,8 @@ export interface ComposerBarInjected {
      * and the primary Send button use while the addressed agent is busy.
      */
     busyEnter: ObservableSnapshot<BusyEnterBehavior>
+    /** Browser-wide input prediction preference; missing storage defaults on. */
+    predictionPreference: ObservableSnapshot<import('../prediction-preference.ts').PredictionPreferenceState>
     /** Live per-draft upload states for file-kind drafts. */
     fileUploads: ObservableSnapshot<DraftFileUploads>
     notices: ObservableSnapshot<InputNotice | null>
@@ -538,6 +542,8 @@ export type ConversationSlotProps =
 
 /** Inputs shared by main and embedded Conversation content occurrences. */
 export interface ConversationContentInputProps {
+  /** First transcript event to display, excluding a legacy inherited prefix. */
+  fromSeq?: number | undefined
   variant: 'main' | 'embedded'
   phase: 'settling' | 'hero' | 'active'
   hero: boolean

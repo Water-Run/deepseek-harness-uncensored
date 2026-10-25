@@ -9,6 +9,9 @@ const PLAN_NEXT_ACTION_EN = 'describe your task to generate plan'
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
+  'settings.prediction.title': '输入预测',
+  'settings.prediction.description': '使用草稿和上下文预测后续输入，Tab 填入但不发送。预测使用当前模型并计费。',
+  'settings.prediction.failed': '输入预测设置无法保存，请检查浏览器存储权限',
   'shortcut.newline': '换行',
   'shortcut.complementary': '使用互补的 Queue／Steer 方式',
   'shortcut.slash': '打开命令菜单',
@@ -390,6 +393,9 @@ export type ConversationKey = keyof typeof zh
 
 /** English dictionary, checked complete against the zh key set. */
 export const en = {
+  'settings.prediction.title': 'Input prediction',
+  'settings.prediction.description': 'Uses your draft and context to predict the next words. Tab fills without sending. Predictions use the current model and are billed.',
+  'settings.prediction.failed': 'Could not save input prediction settings. Check browser storage permissions.',
   'shortcut.newline': 'New line',
   'shortcut.complementary': 'Use the complementary Queue / Steer action',
   'shortcut.slash': 'Open command menu',
