@@ -1,26 +1,6 @@
 /* General Settings row for the sensitive-action confirmation preference: the
-   column draws its own separators, so this row matches the other General rows. */
-
-.row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 16px 0;
-  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
-}
-
-.title {
-  font-size: 14px;
-  line-height: 20px;
-}
-
-.description {
-  margin-top: 4px;
-  color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
-  line-height: 18px;
-}
+   row shell is the shared one, this file keeps the control group and the
+   countdown dialog copy. */
 
 .actions {
   display: flex;

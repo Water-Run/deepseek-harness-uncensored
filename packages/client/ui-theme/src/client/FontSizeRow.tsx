@@ -7,7 +7,7 @@
  * click echo.
  */
 import {
-  IconChevronDownOutlineRegular, IconChevronUpOutlineRegular,
+  IconChevronDownOutlineRegular, IconChevronUpOutlineRegular, PreferenceControlRow,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import { FONT_SIZE_SPECS, type FontRole } from '../theme-settings.ts'
@@ -50,11 +50,7 @@ export function FontSizeRow({ t, role, setFontSize, useStore, expander }: FontSi
   const fontSize = useStore(s => s.fontSizes[role])
   const { min, max } = FONT_SIZE_SPECS[role]
   return (
-    <div className={css.row}>
-      <div className={css.rowText}>
-        <div className={css.title}>{t(`fontSize.${role}.title`)}</div>
-        <div className={css.desc}>{t(`fontSize.${role}.description`)}</div>
-      </div>
+    <PreferenceControlRow title={t(`fontSize.${role}.title`)} description={t(`fontSize.${role}.description`)}>
       <div className={css.control}>
         <div className={css.stepper}>
           <span className={css.value}>{fontSize}</span>
@@ -94,6 +90,6 @@ export function FontSizeRow({ t, role, setFontSize, useStore, expander }: FontSi
           </button>
         )}
       </div>
-    </div>
+    </PreferenceControlRow>
   )
 }

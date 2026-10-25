@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, act, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, act, within, waitFor } from '@testing-library/react'
 import { useMemo, useSyncExternalStore } from 'react'
 import { afterEach, expect, it, onTestFinished, vi } from 'vitest'
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
@@ -228,6 +228,7 @@ it('reports a failed start in the login dialog, not as a sidebar alert', async (
   expect(screen.queryByRole('alert')).toBeNull()
   // The dialog is the only place that reports the failure, so its copy appears once.
   expect(document.body.textContent.split(en.failed)).toHaveLength(2)
+  await waitFor(() => { expect(document.querySelector('[data-exiting]')).toBeNull() })
   await expect(`${document.body.textContent}\n`).toMatchFileSnapshot('./expected/login-failed-en.txt')
 })
 

@@ -416,6 +416,8 @@
 }
 
 .report {
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
   margin: 0;
   padding: 12px;
   max-height: min(60vh, 560px);

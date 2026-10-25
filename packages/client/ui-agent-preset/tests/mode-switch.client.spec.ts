@@ -118,17 +118,18 @@ describe('mode switch operations', () => {
     const select = vi.fn(async () => {})
     const controller = new ModeSwitchController(remote, select, t)
     controller.refuse('locked')
-    expect(controller.state.getSnapshot().toast).toMatchObject({ text: zh['modeSwitch.blocked'], success: false })
+    expect(controller.state.getSnapshot().notice).toMatchObject({ text: zh['modeSwitch.blocked'] })
+    expect(controller.state.getSnapshot().toast).toBeNull()
     expect(controller.state.getSnapshot().busy.size).toBe(0)
     expect(controller.state.getSnapshot().saving).toBe(false)
     controller.refuse('running')
-    expect(controller.state.getSnapshot().toast).toMatchObject({ text: zh['modeSwitch.running'], success: false })
+    expect(controller.state.getSnapshot().notice).toMatchObject({ text: zh['modeSwitch.running'] })
     expect(select).not.toHaveBeenCalled()
     expect(remote.read).not.toHaveBeenCalled()
     await controller.dispose()
     // A closed controller publishes nothing, including the refusal.
     controller.refuse('locked')
-    expect(controller.state.getSnapshot().toast).toMatchObject({ text: zh['modeSwitch.running'] })
+    expect(controller.state.getSnapshot().notice).toMatchObject({ text: zh['modeSwitch.running'] })
   })
 
   it('drains a pending change without publishing a notification after disposal', async () => {

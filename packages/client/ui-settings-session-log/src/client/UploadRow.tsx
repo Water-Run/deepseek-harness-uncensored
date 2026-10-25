@@ -1,10 +1,9 @@
 /** General settings row and persistent shell notice for API log uploads. */
-import { Switch, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
+import { PreferenceControlRow, Switch, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { UploadMutation, UploadSettings } from './upload-preference.ts'
-import css from './UploadRow.module.css'
 
 /** Accepted settings and mutation callbacks supplied by the plugin. */
 export interface UploadInjected {
@@ -26,15 +25,11 @@ type Face = InjectFace<UploadInjected> & PropsLocale<'settings.sessionLog'>
 export function UploadRow({ useUpload, useMutation, setEnabled, t }: PropsRuntime<'settings.general.item'> & Face) {
   const upload = useUpload(value => value)
   const busy = useMutation(value => value.busy)
-  return <div className={css.row}>
-    <div>
-      <div className={css.title}>{t('title')}</div>
-      <div className={css.description}>{t('description')}</div>
-    </div>
+  return <PreferenceControlRow title={t('title')} description={t('description')}>
     <Switch checked={upload.value?.enabled === true} label={t('title')}
       disabled={busy || upload.status !== 'ready' || !upload.writable}
       onChange={(enabled) => { void setEnabled(enabled) }} />
-  </div>
+  </PreferenceControlRow>
 }
 
 /**

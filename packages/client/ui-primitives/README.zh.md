@@ -46,6 +46,7 @@ kind: "package-library"
 |---|---|
 | `Button` | 可点击操作；`variant` 选择 `primary`、`ghost`、`outline` 或 `toolbar`。ref 指向原生按钮，供焦点控制与浮层锚定使用。 |
 | `Switch` | 36×20 的双态开关。关闭态滑块读取 `--dsw-alias-switch-thumb`，在两种主题下均保持亮色；开启态滑块与品牌色轨道形成对比。禁用控件使用半透明样式。`label` 必填，控件不可能在没有名称的情况下发布。 |
+| `PreferenceRow`、`PreferenceControlRow` | 设置页所有偏好行共用的行骨架：左侧标题与说明，右侧控件，行间以发丝线分隔。`PreferenceRow` 额外提供打开菜单的选择器胶囊，选中后键盘回到胶囊；`PreferenceControlRow` 接受任意控件，开关或步进器因此坐在同一行里。 |
 | `SegmentedControl` | 两段或更多等宽分段加一个滑动指示块的 tablist，用于在几种模式间切换一张卡片或面板；选中项由调用方持有，`label` 为列表命名。`id` 派生每个 tab 的 id（`<id>-<value>`）及其控制的面板 id（`<id>-<value>-panel`），面板由调用方渲染并用 `aria-labelledby` 指回 tab；分段可 `disabled` 并带 `title`，控件级 `disabled` 在当前面板有进行中的操作时锁住全部分段。 |
 | `Checkbox` | 带标签的原生复选框，支持受控状态、键盘交互和禁用样式；调用方提供本地化的 `label` 文本。 |
 | `Input` | 单行文本输入，用于搜索框与行内表单。ref 指向原生输入框，供焦点控制使用，并在卸载时清空。 |
@@ -122,6 +123,8 @@ kind: "package-library"
 -----
 
 <a id="understand-the-implementation"></a>
+偏好行在空间不足时将控件换到标题下方。按钮、输入和选择器采用短过渡，菜单箭头跟随展开状态。Menu 与 Modal 关闭时立即释放键盘交互，视觉内容保留 120 毫秒淡出且不可交互、对辅助技术隐藏；重开会取消移除。减少动态效果时立即移除。父级直接卸载整个组件时不会保留退出动画。
+
 ## 理解实现
 
 `Button` 的 `md` 使用 H36/R12，`sm` 使用 H28/R8，包含描边控件。菜单与卡片遵循共享圆角规则；功能样式保留控件几何。

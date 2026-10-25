@@ -1,11 +1,10 @@
 /** General Settings row for the one-shot quick-question reasoning level. */
 import { useEffect, useState } from 'react'
-import { Select } from '@deepseek-ai/dsh-client-ui-primitives'
+import { PreferenceRow } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import {
   BTW_REASONING_EFFORTS, type AsideReasoningSnapshot, type BtwReasoningEffort,
 } from './reasoning-settings.ts'
-import css from './ReasoningSettings.module.css'
 
 /** Loader and writer supplied by the aside owner. */
 export interface AsideReasoningInjected {
@@ -39,20 +38,22 @@ export function AsideReasoningRow({ load, save, t }: AsideReasoningProps) {
     max: t('aside.reasoning.max'),
   }
   const busy = state.status === 'loading' || state.status === 'saving'
-  return <div className={css.row}>
-    <div className={css.text}>
-      <div className={css.title}>{t('aside.reasoning.title')}</div>
-      <div className={css.description}>{t('aside.reasoning.description')}</div>
-      {state.status === 'error' && <div role="alert" className={css.error}>{t('aside.reasoning.error')}</div>}
-      {state.status === 'unavailable' && <div className={css.error}>{t('aside.reasoning.unavailable')}</div>}
-    </div>
-    <Select value={state.value} label={t('aside.reasoning.title')} disabled={busy || !state.writable}
-      options={BTW_REASONING_EFFORTS.map(value => ({ value, label: labels[value] }))}
-      onChange={(value) => {
-        setState(current => ({ ...current, status: 'saving', value }))
-        void save(value).then(setState, () => {
-          setState(current => ({ status: 'error', value: current.value, writable: true }))
-        })
-      }} />
-  </div>
+  const feedback = state.status === 'error'
+    ? t('aside.reasoning.error')
+    : state.status === 'unavailable' ? t('aside.reasoning.unavailable') : undefined
+  return <PreferenceRow
+    title={t('aside.reasoning.title')}
+    description={t('aside.reasoning.description')}
+    feedback={feedback}
+    value={state.value}
+    selectedLabel={labels[state.value]}
+    options={BTW_REASONING_EFFORTS.map(value => ({ id: value, label: labels[value] }))}
+    disabled={busy || !state.writable}
+    onSelect={(value) => {
+      const effort = value as BtwReasoningEffort
+      setState(current => ({ ...current, status: 'saving', value: effort }))
+      void save(effort).then(setState, () => {
+        setState(current => ({ status: 'error', value: current.value, writable: true }))
+      })
+    }} />
 }

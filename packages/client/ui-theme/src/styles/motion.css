@@ -6,6 +6,12 @@
  * sunset of the `sun` preference, or the operating system). The registered mode
  * colors stop fading meanwhile, so the captured new state already holds them. */
 
+/* Low specificity preserves each control's geometry and specialized motion. */
+:where(button, [role='button'], [role='tab'], [role='treeitem'], input, textarea, a) {
+  transition: background-color 160ms var(--ds-ease-in-out), color 160ms var(--ds-ease-in-out),
+    border-color 160ms var(--ds-ease-in-out), box-shadow 160ms var(--ds-ease-in-out), opacity 160ms var(--ds-ease-in-out);
+}
+
 html[data-dsh-theme-reveal] body { transition: none; }
 
 html[data-dsh-theme-reveal]::view-transition-old(root),
@@ -35,4 +41,9 @@ html[data-dsh-theme-reveal='circle']::view-transition-new(root) {
   to {
     clip-path: circle(var(--dsh-theme-reveal-radius, 150vmax) at var(--dsh-theme-reveal-x, 50%) var(--dsh-theme-reveal-y, 50%));
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(button, [role='button'], [role='tab'], [role='treeitem'], input, textarea, a) { transition: none; }
+  html[data-dsh-theme-reveal]::view-transition-old(root), html[data-dsh-theme-reveal]::view-transition-new(root) { animation: none; }
 }

@@ -18,6 +18,8 @@ interface SwitchState {
   readonly saving: boolean
   readonly confirmation: { readonly remaining: number; readonly error: boolean } | null
   readonly toast: { readonly id: number; readonly text: string; readonly success: boolean } | null
+  /** A refusal reported in place, beside the control that refused it. */
+  readonly notice: { readonly id: number; readonly text: string } | null
 }
 
 /** Owns a runtime permission and drains writes before its Remote provider unloads. */
@@ -25,7 +27,7 @@ export class ModeSwitchController {
   /** Last accepted Host permission and the status of its read. */
   readonly policy = createSnapshotStore<PolicyState>({ status: 'loading', value: { allowExistingSessionSwitch: false }, writable: false })
   /** Pending changes, confirmation and feedback shared by Settings and the shell. */
-  readonly state = createSnapshotStore<SwitchState>({ busy: new Set(), saving: false, confirmation: null, toast: null })
+  readonly state = createSnapshotStore<SwitchState>({ busy: new Set(), saving: false, confirmation: null, toast: null, notice: null })
   private readonly pending = new Set<Promise<void>>()
   private readonly changes = new Map<SessionId, Promise<void>>()
   private saveTask: Promise<void> | undefined
@@ -34,6 +36,7 @@ export class ModeSwitchController {
   private generation = 0
   private readGeneration = 0
   private sequence = 0
+  private noticeSequence = 0
   private closed = false
 
   /**
@@ -101,13 +104,14 @@ export class ModeSwitchController {
   }
 
   /**
-   * Announce a change that was not attempted, without touching the permission,
-   * the selection, or the busy set.
+   * Announce a change that was not attempted, beside the control that refused
+   * it. The Settings page shows this in place, so no banner covers the dialog.
    * @param reason - the running task, or the conversation locked to its mode.
    */
   refuse(reason: 'running' | 'locked'): void {
     if (this.closed) return
-    this.notify(this.t(reason === 'running' ? 'modeSwitch.running' : 'modeSwitch.blocked'), false)
+    const text = this.t(reason === 'running' ? 'modeSwitch.running' : 'modeSwitch.blocked')
+    this.state.set({ ...this.state.getSnapshot(), toast: null, notice: { id: ++this.noticeSequence, text } })
   }
 
   /**
@@ -193,7 +197,15 @@ export class ModeSwitchController {
 
   private stopTimer(): void { if (this.timer !== undefined) clearInterval(this.timer); this.timer = undefined }
   private notify(text: string, success: boolean): void {
-    if (!this.closed) this.state.set({ ...this.state.getSnapshot(), toast: { id: ++this.sequence, text, success } })
+    if (!this.closed) this.state.set({ ...this.state.getSnapshot(), notice: null, toast: { id: ++this.sequence, text, success } })
+  }
+
+  /**
+   * Dismiss one in-place refusal notice.
+   * @param id - Identity of the notice to clear.
+   */
+  dismissNotice(id: number): void {
+    if (this.state.getSnapshot().notice?.id === id) this.state.set({ ...this.state.getSnapshot(), notice: null })
   }
 
   /**

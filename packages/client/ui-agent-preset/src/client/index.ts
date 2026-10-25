@@ -213,6 +213,7 @@ export function apply(ctx: ClientContext): void {
   const modeInjected = (): ModeSwitchInjected => ({
     hooks: { modePolicy: modeSwitch.policy, modeSwitchState: modeSwitch.state },
     savePolicy: value => modeSwitch.save(value), dismissModeToast: (id) => { modeSwitch.dismiss(id) },
+    dismissNotice: (id) => { modeSwitch.dismissNotice(id) },
     confirmPolicy: () => modeSwitch.confirm(), cancelPolicy: () => { modeSwitch.cancel() }, loadPolicy: () => modeSwitch.load(),
   })
   const sensitive = new SensitiveConfirmationsController({

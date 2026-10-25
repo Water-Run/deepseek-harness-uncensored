@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Use **Upload Session Log when using the official model API** above the version number in **Settings → General** to control Session-log upload with DeepSeek API requests. The switch shows the accepted Host setting and saves each change immediately. It appears only while the Host exposes the upload setting; read-only clients cannot change it.
+Use **Upload Session Log when using the official model API** above the version number in **Settings → General** to control Session-log upload with DeepSeek API requests. The switch shows the accepted Host setting and saves each change immediately. It appears only while the Host exposes the upload setting; read-only clients cannot change it. The row renders through the shared preference row, so it reads like every other choice on that page.
 
 ## Table of Contents
 
@@ -46,7 +46,7 @@ The companion contributes a `settings.general.item` row while `session-log-deeps
 
 - [Settings forms](../ui-settings/README.md) — accepted Host values and ordered writes.
 - [Session-log upload](../../session/session-log-deepseek/README.md) — request contribution and acceptance tracking.
-- [Web Client](../../../docs/subsystems/web-client.md) — plugin composition and settings placement.
+- Web Client — plugin composition and settings placement.
 
 <a id="model-experience"></a>
 ## Model Experience

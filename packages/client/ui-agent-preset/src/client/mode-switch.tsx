@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
-import { Button, Menu, Modal, Switch, Toast, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Menu, Modal, Switch, Toast, Tooltip, IconWarningOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import { AgentPresetLabel, type AgentPresetLabelProps } from './AgentPresetLabel.tsx'
 import { PresetIcon } from './PresetIcon.tsx'
 import { presetDisplayText } from './locales.ts'
@@ -14,6 +14,9 @@ import css from './ModeSwitch.module.css'
 export { ModeSwitchController } from './mode-policy-controller.ts'
 export type { ModeSwitchPolicy } from '@deepseek-ai/dsh-agent-preset-registry/types'
 
+/** Hold for a failure message: it names what to check and needs reading time. */
+const FAILURE_HOLD_MS = 6000
+
 /** Shared setting and operation sources supplied by the mode UI owner. */
 export interface ModeSwitchInjected {
   hooks: { modePolicy: ModeSwitchController['policy']; modeSwitchState: ModeSwitchController['state'] }
@@ -22,6 +25,7 @@ export interface ModeSwitchInjected {
   cancelPolicy(): void
   loadPolicy(): Promise<void>
   dismissModeToast(id: number): void
+  dismissNotice(id: number): void
 }
 
 type Common = InjectFace<ModeSwitchInjected> & PropsLocale<'settings.agentPreset'>
@@ -75,7 +79,8 @@ export function ModeSwitchToast({ useModeSwitchState, dismissModeToast, confirmP
   const toast = state.toast
   const confirmation = state.confirmation
   return <>
-    {toast === null ? null : <Toast key={toast.id} text={toast.text} {...toast.success ? { tone: 'success' as const } : {}}
+    {toast === null ? null : <Toast key={toast.id} text={toast.text}
+      {...toast.success ? { tone: 'success' as const } : { icon: <IconWarningOutlineRegular />, holdMs: FAILURE_HOLD_MS }}
       onDone={() => { dismissModeToast(toast.id) }} />}
     <Modal open={confirmation !== null} onClose={() => { if (!state.saving) cancelPolicy() }}
       closeLabel={t('close')} title={t('modeSwitch.confirmTitle')}

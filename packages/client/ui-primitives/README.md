@@ -46,6 +46,7 @@ Check this table before writing a control in a feature package. A plugin cannot 
 |---|---|
 | `Button` | Clickable action; `variant` selects `primary`, `ghost`, `outline`, or `toolbar`. Its ref targets the native button for focus and overlay anchoring. |
 | `Switch` | Two-state toggle, 36×20. The off-state thumb reads `--dsw-alias-switch-thumb` so it stays light in both themes, and the on-state thumb contrasts with the brand track. Disabled controls use half opacity. `label` is required, so the control cannot ship unnamed. |
+| `PreferenceRow`, `PreferenceControlRow` | The row shell every Settings preference shares: a title, its supporting copy, and a control on the right, separated by the hairline between rows. `PreferenceRow` adds the selector pill that opens a menu of choices and hands the keyboard back to the pill after a pick; `PreferenceControlRow` takes any control, so a switch or a stepper sits in the same row. |
 | `SegmentedControl` | Tablist of two or more equal-width segments with one sliding indicator, for switching a card or panel between a few modes; the owner holds the selection and `label` names the list. `id` seeds each tab's id (`<id>-<value>`) and the panel it controls (`<id>-<value>-panel`), which the owner renders and points back at the tab with `aria-labelledby`; a segment may be `disabled` with a `title`, and `disabled` on the control locks every segment while the shown panel has work in flight. |
 | `Checkbox` | Labeled native checkbox with controlled state, keyboard interaction, and disabled styling; the caller supplies localized `label` text. |
 | `Input` | Single-line text entry for search boxes and inline forms. Its ref targets the native input for focus and is cleared on unmount. |
@@ -122,6 +123,8 @@ The atoms cannot read the application locale, so every piece of user-facing copy
 -----
 
 <a id="understand-the-implementation"></a>
+Preference rows wrap controls below the label when space is limited. Buttons, inputs and choice triggers share short state transitions; menu arrows follow the open state. Menu and Modal release keyboard ownership immediately on close while retaining inert, hidden paint for 120 ms; reopening cancels removal. Reduced motion removes the exit delay. Owners that unmount the entire component bypass its retained exit.
+
 ## Understand the implementation
 
 `Button` uses H36/R12 for `md` and H28/R8 for `sm`, including outlined controls. Menus and cards follow the shared radius rules; feature classes preserve control geometry.

@@ -1,14 +1,14 @@
 /** Balance controls, observations and a shared sidebar hover card. */
 import { useEffect, useId, useState } from 'react'
 import { Big } from 'big.js'
-import { Button, HoverCard, Input, SegmentedTabs, Switch, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, HoverCard, IconClockOutlineRegular, IconRefreshOutlineRegular, Input, PreferenceControlRow, SegmentedTabs, Switch, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { BalancePreferences, BalanceSnapshot, BalanceWallet } from '@deepseek-ai/dsh-balance/types'
 import type { BalanceController, BalanceViewState } from './balance-controller.ts'
-import { balanceChart } from './balance-chart.ts'
+import { BalanceHistory } from './BalanceHistory.tsx'
 import { balancePeriod, balancePeriodEnd } from './balance-hours.ts'
 import { formatBalance } from './formatBalance.ts'
 import { RollingAmount } from './RollingAmount.tsx'
@@ -73,25 +73,24 @@ function BalanceDetails({ data, refreshing = false, t }: { data: BalanceSnapshot
     const entry = sample.wallets.find(value => value.currency === currency)
     return entry === undefined ? [] : [{ time: sample.time, value: total(entry).toNumber() }]
   })
-  const geometry = balanceChart(samples)
   const first = data.samples.find(sample => sample.wallets.some(entry => entry.currency === currency))
     ?.wallets.find(entry => entry.currency === currency)
   return <div className={css.details}>
     {latest.wallets.length > 1 && <div className={css.currencies}>{latest.wallets.map(entry => <Button key={entry.currency} size="sm" aria-pressed={entry.currency === currency} onClick={() => { select(entry.currency) }}>{entry.currency}</Button>)}</div>}
-    <div className={css.wallets}>
-      {new Big(wallet.granted).gt(0) && <div><span>{t('bonusBalance')}</span><strong><RollingAmount text={amount(wallet.granted, currency)} /></strong></div>}
-      <div><span>{t('balance')}</span><strong><RollingAmount text={amount(wallet.toppedUp, currency)} /></strong></div>
+    <div className={css.total}>
+      <span>{t('balance.total')}</span>
+      <strong><RollingAmount text={amount(total(wallet).toString(), currency)} /></strong>
+      <span className={css.refreshState} role="status" aria-label={refreshing ? t('balance.refreshing') : undefined}>
+        {refreshing && <IconRefreshOutlineRegular className={css.refreshIcon} />}
+      </span>
     </div>
-    {refreshing && <p role="status" className={css.hint}>{t('balance.refreshing')}</p>}
-    {geometry.kind === 'empty' && <p className={css.hint}>{t('balance.collecting')}</p>}
-    {geometry.kind !== 'empty' && <svg className={css.chart} viewBox="0 0 300 110" role="img" aria-label={t('balance.curve')}>
-      <path d="M12 98H288" className={css.axis} />
-      {geometry.kind === 'series' && <polyline points={geometry.points} className={css.line} />}
-      {geometry.kind === 'single' && geometry.dot !== undefined && <circle cx={geometry.dot.x} cy={geometry.dot.y} r="3.5" className={css.point} />}
-    </svg>}
-    {geometry.kind === 'single' && <p className={css.hint}>{t('balance.single')}</p>}
+    {new Big(wallet.granted).gt(0) && <div className={css.breakdown}>
+      <span>{t('bonusBalance')} <b>{amount(wallet.granted, currency)}</b></span>
+      <span>{t('balance')} <b>{amount(wallet.toppedUp, currency)}</b></span>
+    </div>}
+    <BalanceHistory samples={samples} symbol={currency === 'CNY' ? '¥' : '$'} label={t('balance.curve')} help={t('balance.historyHelp')} />
+    {samples.length === 1 && <p className={css.hint}>{t('balance.single')}</p>}
     <dl className={css.stats}>
-      <dt>{t('balance.total')}</dt><dd>{amount(total(wallet).toString(), currency)}</dd>
       <dt>{t('balance.change')}</dt><dd>{amount(total(wallet).minus(first === undefined ? total(wallet) : total(first)).toString(), currency)}</dd>
       <dt>{t('balance.samples')}</dt><dd>{data.sampleCount}</dd>
       <dt>{t('balance.updated')}</dt><dd>{new Date(latest.time).toLocaleString()}</dd>
@@ -111,19 +110,25 @@ export function BalanceSettings({ useBalance, useBalancePreferences, refresh, sa
   const interval = draft ?? String(preferences.refreshSeconds)
   const invalid = draft !== null && (!Number.isInteger(Number(draft)) || Number(draft) < 15 || Number(draft) > 3600)
   return <section className={css.settings}>
-    <div className={css.row}><span>{t('balance.enabled')}</span><Switch label={t('balance.enabled')} checked={preferences.enabled} disabled={state.saving || !form.writable} onChange={(value) => { void save('enabled', value) }} /></div>
-    <div className={css.row}><label htmlFor={`${id}-interval`}>{t('balance.interval')}</label><Input id={`${id}-interval`} type="number" min={15} max={3600} step={1} value={interval} aria-invalid={invalid} disabled={state.saving || !form.writable}
-      onChange={(event) => { setDraft(event.target.value) }} onBlur={() => { if (!invalid && draft !== null) void save('refreshSeconds', Number(draft)).then((ok) => { if (ok) setDraft(null) }) }} /></div>
-    {invalid && <p role="alert" className={css.hint}>{t('balance.intervalError')}</p>}
+    <div>
+      <PreferenceControlRow title={t('balance.enabled')}><Switch label={t('balance.enabled')} checked={preferences.enabled} busy={state.saving} disabled={!form.writable} onChange={(value) => { void save('enabled', value) }} /></PreferenceControlRow>
+      <PreferenceControlRow title={t('balance.interval')}>
+        <div className={css.interval}><Input id={`${id}-interval`} aria-label={t('balance.interval')} type="number" min={15} max={3600} step={1} value={interval} aria-invalid={invalid} aria-describedby={invalid ? `${id}-error` : undefined} disabled={state.saving || !form.writable}
+          onChange={(event) => { setDraft(event.target.value) }} onBlur={() => { if (!invalid && draft !== null) void save('refreshSeconds', Number(draft)).then((ok) => { if (ok) setDraft(null) }) }} /></div>
+      </PreferenceControlRow>
+      {invalid && <p id={`${id}-error`} role="alert" className={css.error}>{t('balance.intervalError')}</p>}
+    </div>
     <SegmentedTabs label={t('balance.source')} value={preferences.source} onChange={(value) => { if (!state.saving && form.writable) void save('source', value) }} items={[
       { value: 'local', label: t('balance.local'), id: `${id}-local-tab`, panelId: `${id}-local-panel` },
       { value: 'api', label: t('balance.api'), id: `${id}-api-tab`, panelId: `${id}-api-panel` },
     ]} />
     <div role="tabpanel" id={`${id}-${preferences.source}-panel`} aria-labelledby={`${id}-${preferences.source}-tab`}>
       <p className={css.hint}>{t(preferences.source === 'api' ? 'balance.apiHint' : 'balance.localHint')}</p>
-      <div className={css.row}><span>{t('balance.current')}</span><Button variant="outline" size="sm" disabled={state.loading || !preferences.enabled} onClick={refresh}>{t('balance.refresh')}</Button></div>
-      {state.failed && <p role="alert" className={css.hint}>{t('balance.failed')}</p>}
-      <BalanceDetails data={state.data} refreshing={state.loading && state.data !== undefined} t={t} />
+      <div className={css.observation}>
+        <div className={css.row}><h3>{t('balance.current')}</h3><Button variant="ghost" size="sm" disabled={state.loading || !preferences.enabled} onClick={refresh}><IconRefreshOutlineRegular />{t('balance.refresh')}</Button></div>
+        {state.failed && <p role="alert" className={css.error}>{t('balance.failed')}</p>}
+        <BalanceDetails data={state.data} refreshing={state.loading && state.data !== undefined} t={t} />
+      </div>
     </div>
     <a href="https://api-docs.deepseek.com/quick_start/pricing/" target="_blank" rel="noreferrer">{t('balance.pricing')}</a>
   </section>
@@ -144,15 +149,16 @@ export function BalanceSidebar({ wide, useBalance, useBalancePreferences, refres
   return <>
     {state.toast !== null && <Toast key={state.toastId} text={t(state.toast === 'saved' ? 'balance.saved' : 'balance.saveFailed')} onDone={() => { dismissToast(state.toastId) }} />}
     {enabled && wallet !== undefined && <div className={css.sidebar}>
-      <HoverCard inline anchor={<button type="button" onClick={refresh} className={css.summary} data-period={period}
+      <HoverCard inline anchor={<button type="button" onClick={refresh} className={css.summary} data-period={period} data-wide={wide} data-failed={state.failed}
         aria-label={t('balance.title')} aria-busy={state.loading}>
         {wide ? <><span className={css.period}>
-          <span>{periodLabel}</span>
-          {left !== undefined && <span className={css.remaining} aria-label={t('balance.periodLeftLabel', { period: periodLabel, time: left })}>{t('balance.periodLeft', { time: left })}</span>}
+          <span className={css.periodLabel}><i className={css.periodDot} />{periodLabel}</span>
+          {left !== undefined && <span className={css.remaining} aria-label={t('balance.periodLeftLabel', { period: periodLabel, time: left })}><IconClockOutlineRegular size={12} />{left}</span>}
         </span>
-        <div className={css.wallets}>{new Big(wallet.granted).gt(0) && <div><span>{t('bonusBalance')}</span><strong><RollingAmount text={amount(wallet.granted, wallet.currency)} /></strong></div>}<div><span>{t('balance')}</span><strong><RollingAmount text={amount(wallet.toppedUp, wallet.currency)} /></strong></div></div></>
+        <div className={css.wallets}>{new Big(wallet.granted).gt(0) && <div><span>{t('bonusBalance')}</span><strong><RollingAmount text={amount(wallet.granted, wallet.currency)} /></strong></div>}<div><span>{t('balance')}</span><strong><RollingAmount text={amount(wallet.toppedUp, wallet.currency)} /></strong></div></div>
+        </>
           : <strong>{wallet.currency === 'CNY' ? '¥' : '$'}</strong>}
-      </button>} content={<div className={css.hover}>{state.failed && <p role="alert">{t('balance.failed')}</p>}<BalanceDetails data={state.data} refreshing={state.loading} t={t} /><p className={css.hint}>{t('balance.hours')}</p></div>} />
+      </button>} content={<div className={css.hover}><h3>{t('balance.title')}</h3>{state.failed && <p role="alert" className={css.error}>{t('balance.failed')}</p>}<BalanceDetails data={state.data} refreshing={state.loading} t={t} /><p className={css.hint}>{t('balance.hours')}</p></div>} />
     </div>}
   </>
 }

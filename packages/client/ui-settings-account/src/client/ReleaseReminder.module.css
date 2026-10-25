@@ -4,4 +4,4 @@
 .version { font-size: 18px; font-weight: 500; color: var(--dsw-alias-label-primary); overflow-wrap: anywhere; }
 .link { display: inline-flex; align-items: center; gap: 8px; justify-self: start; color: var(--dsw-alias-state-business-primary); text-underline-offset: 3px; }
 .link svg { flex: none; }
-.link:focus-visible { outline: 2px solid var(--dsw-alias-state-business-primary); outline-offset: 4px; }
+.link:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 4px; }

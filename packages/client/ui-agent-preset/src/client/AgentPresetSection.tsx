@@ -2,7 +2,7 @@
 import type { ReactNode } from 'react'
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import {
-  Button, IconBrowseOutlineRegular, IconPlusOutlineRegular, Modal, SegmentedTabs, Tag, Tooltip,
+  Button, IconBrowseOutlineRegular, IconPlusOutlineRegular, IconWarningOutlineRegular, Modal, SegmentedTabs, Tag, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SegmentedTab } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ObservableSnapshot, SnapshotStore } from '@deepseek-ai/dsh-client-store'
@@ -80,11 +80,17 @@ function CardDescription({ text }: { text: string }): ReactNode {
 export function AgentPresetSection(props: AgentPresetSectionProps) {
   const {
     useAgentPresetSection, load, view, closeView, startCreatorDraft,
-    close: closeSettings, useDeveloperTools, useCurrentMode, useModePolicy, useConfigurableModes, selectCurrent, renderSlot, t,
+    close: closeSettings, useDeveloperTools, useCurrentMode, useModePolicy, useModeSwitchState, useConfigurableModes,
+    selectCurrent, dismissNotice, renderSlot, t,
   } = props
   const state = useAgentPresetSection(value => value)
   const current = useCurrentMode(value => value)
   const permission = useModePolicy(value => value)
+  const notice = useModeSwitchState(value => value.notice)
+  // A refusal belongs to the page that reported it, so it leaves with the page
+  // instead of outliving the explanation that produced it.
+  const noticeId = notice?.id
+  useEffect(() => () => { if (noticeId !== undefined) dismissNotice(noticeId) }, [noticeId, dismissNotice])
   const selectedId = current.id ?? state.rows.find(row => row.isDefault)?.id
   const selectionLocked = !current.blank && (permission.status !== 'ready' || !permission.value.allowExistingSessionSwitch)
   const developerTools = useDeveloperTools(enabled => enabled)
@@ -153,7 +159,14 @@ export function AgentPresetSection(props: AgentPresetSectionProps) {
     <p className={css.intro}>{t('sectionIntro')}</p>
     {state.error === null ? null : <p className={css.error} role="alert">{state.error}</p>}
     <h3 className={css.sectionHead}>{t('currentMode')}</h3>
-    {selectionLocked && <p className={css.locked}>{t('modeSwitch.locked')}</p>}
+    {notice !== null
+      ? (
+        <p role="alert" className={css.notice}>
+          <IconWarningOutlineRegular size={14} className={css.noticeIcon} />
+          <span>{notice.text}</span>
+        </p>
+      )
+      : selectionLocked ? <p className={css.locked}>{t('modeSwitch.locked')}</p> : null}
     {([true, false] as const).map((builtIn) => {
       const rows = state.rows.filter(row => isBuiltInPreset(row) === builtIn
         && (developerTools || !requiresCodingTools(row)))
@@ -196,25 +209,29 @@ export function AgentPresetSection(props: AgentPresetSectionProps) {
                 <CardDescription text={display.description ?? t('noDescription')} />
                 {row.broken === undefined ? null : <span className={css.cardBrokenReason} role="alert">{row.broken}</span>}
               </button>
+              {/* One footer group for every card: the same actions in the same
+                  order, so the row reads as a row rather than as a layout that
+                  changes with the mode. */}
               <div className={css.cardFoot}>
-                {configurableModes.includes(row.id) ? <div className={css.cardHelp}>
-                  <Button variant="ghost" className={css.helpButton} onClick={() => { setConfigChoice(row.id) }}>
-                    {t('configure')}
-                  </Button>
-                </div> : null}
-                {help === undefined ? null : <div className={css.cardHelp}>
-                  <Button variant="ghost" className={css.helpButton} aria-label={`${t('modeExplanation')}: ${display.name}`}
-                    onClick={() => { setGuide({ content: help, page: 'explanation' }) }}>{t('modeExplanation')}</Button>
-                  <Button variant="ghost" className={css.helpButton} aria-label={`${t('howToUse')}: ${display.name}`}
-                    onClick={() => { setGuide({ content: help, page: 'usage' }) }}>{t('howToUse')}</Button>
-                </div>}
+                {configurableModes.includes(row.id) ? <Button variant="ghost" className={css.helpButton}
+                  onClick={() => { setConfigChoice(row.id) }}>
+                  {t('configure')}
+                </Button> : null}
+                {/* One button opens the reader; it carries both the explanation
+                    and the usage pages as tabs, so the footer does not repeat
+                    them as two separate entries. */}
+                {help === undefined ? null : <Button variant="ghost" className={css.helpButton}
+                  aria-label={`${t('modeExplanation')}: ${display.name}`}
+                  onClick={() => { setGuide({ content: help, page: 'explanation' }) }}>{t('modeExplanation')}</Button>}
                 {/* Reading the declaration is the one thing this page offers
                   beyond choosing: a broken preset's YAML is also where its
                   diagnostic points, so the viewer stays available for it. */}
-                <button type="button" className={css.iconButton} data-tip={t('view')} aria-label={`${t('view')}: ${display.name}`}
-                  onClick={(event) => { viewTrigger.current = event.currentTarget; void view(row.id) }}>
-                  <IconBrowseOutlineRegular />
-                </button>
+                <Tooltip label={`${t('view')}: ${display.name}`} side="top" align="end" portal>
+                  <button type="button" className={css.iconButton} aria-label={`${t('view')}: ${display.name}`}
+                    onClick={(event) => { viewTrigger.current = event.currentTarget; void view(row.id) }}>
+                    <IconBrowseOutlineRegular />
+                  </button>
+                </Tooltip>
               </div>
             </li>
           })}

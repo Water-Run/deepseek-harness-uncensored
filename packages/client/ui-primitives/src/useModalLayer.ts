@@ -45,10 +45,23 @@ const focusable = 'button:not(:disabled), input:not(:disabled), textarea:not(:di
  */
 export function useModalLayer(dialog: RefObject<HTMLElement | null>, open: boolean, onClose: () => void): void {
   const close = useRef(onClose)
+  const returnFocus = useRef<HTMLElement | undefined>(undefined)
   close.current = onClose
   useLayoutEffect(() => {
     const element = dialog.current
-    if (!open || element === null) return
+    if (!open) {
+      // React restores selection after mutation. A fading dialog remains connected,
+      // so reapply its released focus after that restoration, before paint.
+      let target = returnFocus.current
+      returnFocus.current = undefined
+      if (target !== undefined && (!target.isConnected || target.matches(':disabled') || target.closest('[inert]'))) {
+        const parent = element === null ? undefined : layers.get(element.ownerDocument)?.at(-1)?.element
+        target = parent?.querySelector<HTMLElement>('[data-modal-autofocus]:not(:disabled)') ?? parent
+      }
+      if (target?.isConnected) focusWithoutRing(target)
+      return
+    }
+    if (element === null) return
     const document = element.ownerDocument
     const composition = observeComposition(document)
     const previous = document.activeElement
@@ -88,8 +101,11 @@ export function useModalLayer(dialog: RefObject<HTMLElement | null>, open: boole
       stack.splice(stack.indexOf(layer), 1)
       document.removeEventListener('keydown', keydown)
       if (stack.length === 0) layers.delete(document)
-      if (wasTop) {
+      const active = document.activeElement
+      // A caller may have explicitly focused its next destination before closing.
+      if (wasTop && (active === null || active === document.body || element.contains(active))) {
         const target = previous instanceof HTMLElement && previous.isConnected ? previous : stack.at(-1)?.element
+        returnFocus.current = target
         if (target !== undefined) focusWithoutRing(target)
       }
     }

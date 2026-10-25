@@ -45,7 +45,7 @@
 .sectionHead {
   margin: 8px 0 0;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--dsw-alias-label-primary);
 }
 
@@ -155,7 +155,7 @@
   color: color-mix(in srgb, var(--dsw-mode-label-ink) 88%, transparent);
 }
 .cardActive .cardFoot { border-color: color-mix(in srgb, var(--dsw-mode-label-ink) 20%, transparent); }
-.cardActive .cardName { font-weight: 600; }
+.cardActive .cardName { font-weight: 500; }
 
 /* Mode selection is off, not the preset itself: mute only the selectable
    body while the independent view/copy/location actions stay fully usable. */
@@ -327,6 +327,8 @@
   white-space: nowrap;
 }
 
+/* The footer is one right-aligned group on every card: the same actions in the
+   same order, whatever the mode offers. */
 .cardFoot {
   display: flex;
   align-items: center;
@@ -335,13 +337,6 @@
   gap: 2px;
   padding: 6px 10px;
   border-top: 0.5px solid var(--dsw-alias-border-l2);
-}
-
-.cardHelp {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-right: auto;
 }
 
 .helpButton {
@@ -357,8 +352,8 @@
   color: var(--dsw-alias-label-primary);
 }
 
-/* Icon-only actions: the label rides `data-tip` so the row stays quiet until
-   someone reaches for it. */
+/* Icon-only actions: the label rides the shared tooltip, which escapes the
+   card's clipping box through a body portal. */
 .iconButton {
   position: relative;
   appearance: none;
@@ -380,29 +375,6 @@
 .iconButton:focus-visible {
   outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
   outline-offset: -1px;
-}
-
-.iconButton::after {
-  content: attr(data-tip);
-  position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 3px 8px;
-  border-radius: var(--dsw-radius-sm);
-  background: var(--dsw-alias-label-primary);
-  color: var(--dsw-alias-bg-layer-3);
-  font-size: 11px;
-  line-height: 17px;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .12s;
-}
-
-.iconButton:hover::after,
-.iconButton:focus-visible::after {
-  opacity: 1;
 }
 
 .dialog {
@@ -444,6 +416,27 @@
 
 .materials:empty {
   display: none;
+}
+
+/* An in-place refusal: the click that was refused answers beside the heading
+   instead of behind a banner over the dialog. */
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-fill-tsp-secondary);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.noticeIcon {
+  flex: none;
+  margin-top: 3px;
+  color: var(--dsw-alias-state-warn-label);
 }
 
 .locked {

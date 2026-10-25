@@ -1232,7 +1232,7 @@ describe('DirectoryBrowser', () => {
     expect(screen.getByLabelText('browser.folderName')).toBeTruthy()
     fireEvent.keyDown(document, { key: 'Escape' })
     // The nested dialog consumed Escape; the browser stays up.
-    expect(screen.queryByLabelText('browser.folderName')).toBeNull()
+    expect(screen.queryByRole('textbox', { name: 'browser.folderName' })).toBeNull()
     expect(b.onClose).not.toHaveBeenCalled()
     fireEvent.keyDown(document, { key: 'Escape' })
     expect(b.onClose).toHaveBeenCalledOnce()

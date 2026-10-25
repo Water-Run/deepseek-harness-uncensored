@@ -7,13 +7,10 @@
 import { useEffect, useState } from 'react'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import {
-  IconChevronDownOutlineRegular, Menu, RiskConfirmation,
-} from '@deepseek-ai/dsh-client-ui-primitives'
+import { PreferenceRow, RiskConfirmation } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PermissionSettingsState } from './settings-store.ts'
 import type { PermissionSettingsKey } from './locales.ts'
 import { displayPermissionPreset, FULL_ACCESS_PRESET } from './presentation.ts'
-import css from './PermissionRow.module.css'
 
 /** Registration-side business face for the host-backed preference. */
 export interface PermissionRowInjected {
@@ -40,7 +37,6 @@ export type PermissionRowProps =
  */
 export function PermissionRow({ load, select, usePermission, t }: PermissionRowProps) {
   const state = usePermission(snapshot => snapshot)
-  const [open, setOpen] = useState(false)
   const [confirmingFullAccess, setConfirmingFullAccess] = useState(false)
   const [acknowledged, setAcknowledged] = useState(false)
 
@@ -50,7 +46,6 @@ export function PermissionRow({ load, select, usePermission, t }: PermissionRowP
 
   useEffect(() => {
     if (state.writable && state.status !== 'unavailable') return
-    setOpen(false)
     setAcknowledged(false)
     setConfirmingFullAccess(false)
   }, [state.status, state.writable])
@@ -65,43 +60,24 @@ export function PermissionRow({ load, select, usePermission, t }: PermissionRowP
 
   return (
     <>
-      <div className={css.row}>
-        <div className={css.rowText}>
-          <div className={css.title}>{t('title')}</div>
-          <div className={css.desc} role={state.error === null ? undefined : 'alert'}>{description}</div>
-        </div>
-        <Menu
-          open={open}
-          onClose={() => { setOpen(false) }}
-          items={state.options.map(option => ({ id: option.id, label: optionLabel(option) }))}
-          selectedId={state.currentValue}
-          onSelect={(id) => {
-            setOpen(false)
-            if (id === state.currentValue) return
-            if (id === FULL_ACCESS_PRESET) {
-              setAcknowledged(false)
-              setConfirmingFullAccess(true)
-              return
-            }
-            void select(id)
-          }}
-          align="end"
-          portal
-          anchor={(
-            <button
-              type="button"
-              className={css.selector}
-              aria-haspopup="menu"
-              aria-expanded={open}
-              disabled={busy || !state.writable || state.options.length === 0}
-              onClick={() => { setOpen(value => !value) }}
-            >
-              {label}
-              <IconChevronDownOutlineRegular className={css.chevron} />
-            </button>
-          )}
-        />
-      </div>
+      <PreferenceRow
+        title={t('title')}
+        description={description}
+        descriptionRole={state.error === null ? undefined : 'alert'}
+        value={state.currentValue}
+        selectedLabel={label}
+        options={state.options.map(option => ({ id: option.id, label: optionLabel(option) }))}
+        disabled={busy || !state.writable || state.options.length === 0}
+        onSelect={(id) => {
+          if (id === state.currentValue) return
+          if (id === FULL_ACCESS_PRESET) {
+            setAcknowledged(false)
+            setConfirmingFullAccess(true)
+            return
+          }
+          void select(id)
+        }}
+      />
       <RiskConfirmation
         open={confirmingFullAccess}
         title={t('confirm.title')}

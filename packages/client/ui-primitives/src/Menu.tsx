@@ -10,6 +10,7 @@ import { observeComposition } from './keyboard-composition.ts'
 import { focusWithoutRing } from './focus.ts'
 import { ShortcutKeys } from './ShortcutKeys.tsx'
 import { MenuSurface } from './MenuSurface.tsx'
+import { useOverlayPresence } from './useOverlayPresence.ts'
 import css from './Menu.module.css'
 
 /** Selectable row (optionally with a nested submenu). */
@@ -231,6 +232,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
     })
   }
   const openRef = useRef(open)
+  const present = useOverlayPresence(open)
   openRef.current = open
   const [openSubmenuId, setOpenSubmenuId] = useState<string | null>(null)
   const [fixedPos, setFixedPos] = useState<CSSProperties | null>(null)
@@ -242,7 +244,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
   // runs before the parent's, so a wrapper the host positions in its own
   // effect measures stale here — the host callback owns the truth instead.
   useLayoutEffect(() => {
-    if (!open || !portal) { setFixedPos(null); return }
+    if (!open || !portal) { if (!present || !portal) setFixedPos(null); return }
     const place = () => {
       let r: DOMRect | null
       if (getAnchorRect !== undefined) {
@@ -294,7 +296,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       window.removeEventListener('scroll', place, true)
       window.removeEventListener('resize', place)
     }
-  }, [open, portal, align, side, getAnchorRect])
+  }, [open, present, portal, align, side, getAnchorRect])
 
   // Opening remembers where the keyboard was, so closing can hand it back to
   // that control — an anchor wrapping several (a split button) cannot be asked
@@ -514,12 +516,15 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
   // this pre-render in the same commit, so the first painted frame is
   // already at the final position (with getAnchorRect returning null the
   // list simply stays hidden).
-  const list = open && (
+  const list = present && (
     <MenuSurface compact={compact}
       ref={listRef}
       className={clsx(css.list, listClassName, dense && css.denseList, compact && css.compactList, scrollable && css.scrollable, portal && css.portal, side === 'top' && !portal && css.sideTop, align === 'end' && !portal && css.alignEnd)}
       style={portal ? fixedPos ?? MEASURE_STYLE : undefined}
-      role="menu"
+      role={open ? 'menu' : undefined}
+      {...(open ? {} : { inert: '' })}
+      aria-hidden={!open || undefined}
+      data-exiting={!open || undefined}
       // React portals bubble synthetic events through the REACT tree: without
       // this stop, an item click re-fires the anchor row's own onClick
       // (open/toggle) after onSelect. The same bubble is where every row's

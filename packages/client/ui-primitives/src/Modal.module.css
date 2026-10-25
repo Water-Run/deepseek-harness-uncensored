@@ -66,6 +66,10 @@
   outline: none;
 }
 
+.root[data-exiting] { pointer-events: none; animation: modalExit 120ms ease-in both; }
+@keyframes modalExit { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .root[data-exiting] { animation: none; } }
+
 .content {
   display: flex;
   flex-direction: column;

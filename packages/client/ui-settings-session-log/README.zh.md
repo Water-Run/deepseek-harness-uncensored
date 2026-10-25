@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-使用**设置 → 通用**中版本号上方的**在使用官方模型 API 时上传 Session Log**开关控制随 DeepSeek API 请求上传会话日志。开关显示 Host 已接受的设置，并立即保存每次修改。仅当 Host 提供上传设置时显示该项；只读客户端无法修改。
+使用**设置 → 通用**中版本号上方的**在使用官方模型 API 时上传 Session Log**开关控制随 DeepSeek API 请求上传会话日志。开关显示 Host 已接受的设置，并立即保存每次修改。仅当 Host 提供上传设置时显示该项；只读客户端无法修改。该行使用共享的偏好行，因此与该页其余选项读作同一种行。
 
 ## 目录
 
@@ -46,7 +46,7 @@ Host 提供 `session-log-deepseek` 时，配套插件贡献一个 `settings.gene
 
 - [设置表单](../ui-settings/README.zh.md)——Host 已接受的值与有序写入。
 - [会话日志上传](../../session/session-log-deepseek/README.zh.md)——请求字段与接收进度。
-- [Web 客户端](../../../docs/subsystems/web-client.zh.md)——插件组合与设置位置。
+- Web 客户端——插件组合与设置位置。
 
 <a id="model-experience"></a>
 ## 模型体验

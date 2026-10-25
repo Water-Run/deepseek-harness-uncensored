@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`dsh-client-ui-theme` lets Web GUI users choose `sun` (sunrise and sunset, the default), `system`, `light`, or `dark`, and set the font and font size of text, code, and the terminal separately in Settings. Every authenticated browser stores these values in the `ui-theme` settings namespace, which the local provider persists in `$DSH_HOME/cordis.patch.yml` by default. The plugin resolves `system` through `prefers-color-scheme` and `sun` through the estimated daylight of a location, and publishes immutable `ThemeSnapshot`s; ui-layout applies each snapshot to the document. The package also ships the `--dsw-*` token stylesheets and injects a synchronous bootstrap so the selected palette, font size, and fonts apply before the shell loads. Third-party themes can register alias-token overrides through `ctx.theme`.
+`dsh-client-ui-theme` lets Web GUI users choose `sun` (sunrise and sunset, the default), `system`, `light`, or `dark`, and set the font and font size of text, code, and the terminal separately in Settings. Every authenticated browser stores these values in the `ui-theme` settings namespace, which the local provider persists in `$DSH_HOME/cordis.patch.yml` by default. The plugin resolves `system` through `prefers-color-scheme` and `sun` through the estimated daylight of a location, and publishes immutable `ThemeSnapshot`s; ui-layout applies each snapshot to the document. The package also ships the `--dsw-*` token stylesheets and injects a synchronous bootstrap so the selected palette, font size, and fonts apply before the shell loads. Third-party themes can register alias-token overrides through `ctx.theme`. Every row this package contributes renders through the shared preference row, so the theme choices sit in the same cell as the other Settings controls.
 
 ## Table of Contents
 
@@ -50,6 +50,8 @@ When the host composition includes an HTTP server, the host half embeds the regi
 -----
 
 <a id="understand-the-implementation"></a>
+A low-specificity motion rule supplies short paint transitions to buttons, tabs, tree rows, links and text inputs. Specialized controls keep their own transitions. Mode selection spreads the new accent from its control with a brief saturation highlight; reduced motion bypasses these effects.
+
 ## Understand the implementation
 
 Shared menus use `--dsw-menu-surface-fill` and blur through `MenuSurface`; platform code must preserve those token values. Sticky menu group headings can use `--dsw-alias-menu-group-header-fill`, a 94%-opaque light or dark fill, independently of the menu material. Other overlays consume `--dsw-specific-menu`, which keeps a nearly opaque macOS fill without a menu backing. Modal masks retain their dark translucent fill without background blur.

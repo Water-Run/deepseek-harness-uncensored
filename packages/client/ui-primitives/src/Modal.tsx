@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import { IconCloseOutlineRegular } from './icons/index.tsx'
 import { useModalLayer } from './useModalLayer.ts'
+import { useOverlayPresence } from './useOverlayPresence.ts'
 import css from './Modal.module.css'
 
 interface ModalBaseProps {
@@ -43,27 +44,28 @@ type ModalProps = ModalBaseProps & (
  * @param props.headless - render children directly in the card (no default
  * header/close/body chrome); mask, card, Escape, and aria-label remain.
  * @param props.onKeyDownCapture - handle a nested dialog's keys before the document Escape listeners.
- * @returns null when closed; otherwise the overlay tree.
+ * @returns The overlay tree, retained inert for a 120 ms exit after closing; reduced motion removes it immediately.
  */
 export function Modal({
   open, onClose, title, closeLabel, description, children, footer, className, contentClassName,
   onKeyDownCapture, headless = false, backdropBlur = true, shortcutModal,
 }: ModalProps) {
   const dialog = useRef<HTMLDivElement>(null)
+  const present = useOverlayPresence(open)
   useModalLayer(dialog, open, onClose)
 
-  if (!open) return null
+  if (!present) return null
 
   return createPortal((
-    <div className={css.root} role="presentation" onKeyDownCapture={onKeyDownCapture}>
+    <div className={css.root} role="presentation" {...(open ? {} : { inert: '' })} aria-hidden={!open || undefined} data-exiting={!open || undefined} onKeyDownCapture={onKeyDownCapture}>
       <div className={css.mask} style={backdropBlur ? undefined : { backdropFilter: 'none' }} aria-hidden="true" onClick={onClose} />
       <div
         ref={dialog}
         tabIndex={-1}
         data-shortcut-modal={shortcutModal}
         className={clsx(css.dialog, className)}
-        role="dialog"
-        aria-modal="true"
+        role={open ? 'dialog' : undefined}
+        aria-modal={open || undefined}
         aria-label={title}
       >
         {headless

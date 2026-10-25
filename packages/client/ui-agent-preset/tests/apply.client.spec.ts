@@ -512,8 +512,10 @@ describe('ui-agent-preset apply', () => {
     try {
       await b.section.selectCurrent('reverse')
       expect(b.calls.filter(call => call.startsWith('select:'))).toEqual([])
-      expect(b.section.hooks.modeSwitchState.getSnapshot().toast)
-        .toMatchObject({ text: zh['modeSwitch.blocked'], success: false })
+      // The refusal answers in place, so no banner covers the Settings dialog.
+      expect(b.section.hooks.modeSwitchState.getSnapshot().notice)
+        .toMatchObject({ text: zh['modeSwitch.blocked'] })
+      expect(b.section.hooks.modeSwitchState.getSnapshot().toast).toBeNull()
     } finally { await b.ctx.fiber.dispose() }
   })
 

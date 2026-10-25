@@ -1,7 +1,7 @@
 /** General Settings row and countdown overlay for the sensitive-action confirmation preference. */
 import { useEffect } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { Button, Modal, Switch, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Modal, PreferenceControlRow, Switch, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SensitiveConfirmationsController } from './sensitive-confirmations-controller.ts'
 import css from './SensitiveConfirmations.module.css'
 
@@ -38,18 +38,14 @@ export function SensitiveConfirmationsSetting({
   // The row carries no page load of its own: reading here keeps the displayed
   // switch independent of whether the Modes page was ever opened.
   useEffect(() => { void loadConfirmations() }, [loadConfirmations])
-  return <div className={css.row}>
-    <div>
-      <div className={css.title}>{t('sensitive.allow')}</div>
-      <div className={css.description}>{t('sensitive.hint')}</div>
-    </div>
+  return <PreferenceControlRow title={t('sensitive.allow')} description={t('sensitive.hint')}>
     <div className={css.actions}>
       {state.status === 'error' && <Button variant="ghost" onClick={() => { void loadConfirmations() }}>{t('sensitive.reload')}</Button>}
       <Switch label={t('sensitive.allow')} checked={state.confirmations}
         disabled={state.status !== 'ready' || !state.writable || state.saving}
         onChange={(value) => { void saveConfirmations(value) }} />
     </div>
-  </div>
+  </PreferenceControlRow>
 }
 
 /**

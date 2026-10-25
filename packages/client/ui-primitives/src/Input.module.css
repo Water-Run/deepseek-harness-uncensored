@@ -7,6 +7,7 @@
   border: 0.5px solid var(--dsw-alias-border-l4);
   border-radius: var(--dsw-radius-md);
   background: var(--dsw-alias-bg-layer-1);
+  transition: border-color 160ms var(--ds-ease-in-out), background-color 160ms var(--ds-ease-in-out);
 }
 
 .wrap:focus-within {
@@ -38,3 +39,5 @@
 .input::placeholder {
   color: var(--dsw-alias-label-dimmed);
 }
+
+@media (prefers-reduced-motion: reduce) { .wrap { transition: none; } }

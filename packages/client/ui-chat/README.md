@@ -33,7 +33,7 @@ File-mention providers receive the viewed Session ID with the closing-turn owner
 <a id="reference-previews"></a>
 ## Reference previews
 
-Sent generic-file attachments retain the draft's [file-card radius](../../../docs/ui-radius.md#radius-scale).
+Sent generic-file attachments retain the draft's file-card radius.
 
 `ChatView` supplies file and HTTP(S) navigation through the existing `MarkdownDelegateProvider` around its node list, passing `requestOpenFile`, `openExternalLink`, and `fileImages` directly. Its file opener retains Chat's failure feedback and retry handling. Assistant Markdown file links open in the right Sidebar after the message settles, including references to unmodified files. Relative paths resolve in the viewed Session's workspace; absolute paths retain the same Session's filesystem access. `#L24` and `#L24-L30` navigate to the first specified line and reuse an existing file tab. Missing files show the preview's error state.
 
@@ -68,7 +68,7 @@ A completed Turn shows an expandable usage row only when the loaded window inclu
 
 Settings → General → Performance & usage appears after Send behavior while busy and before Session Log upload, and stores `ui-chat.performanceUsage` as `detailed` (default) or `compact`. Compact shows only available output speed and cache-hit percentage beneath the composer, without interactive statistic dialogs or per-Turn usage. Detailed exposes session statistics and per-Turn token usage. Neither mode shows elapsed time in the completed-turn footer. The preference changes presentation only; accounting and Session events remain intact.
 
-The composer statistics are two `conversation.composer.dock` list entries: `activity` (order 0, turn and step counts and output speed, with LLM time, tool time, and TTFT) and `usage` (order 1, token total and cache hit). The controls follow the shared [statistics-control radius](../../../docs/ui-radius.md#radius-scale). Another plugin replaces one control by registering the same id and the same `order`; the dock orders rows by `order`, while a lower `priority` picks the replacement: a dynamic plugin receives one automatically, and a statically composed plugin passes it explicitly. A new id adds a control. Each control carries its id in `data-composer-stat`. An open statistics dialog closes on Escape or on a pointerdown or click outside it, so activating another control by pointer or keyboard swaps dialogs instead of stacking them.
+The composer statistics are two `conversation.composer.dock` list entries: `activity` (order 0, turn and step counts and output speed, with LLM time, tool time, and TTFT) and `usage` (order 1, token total and cache hit). The controls follow the shared statistics-control radius. Another plugin replaces one control by registering the same id and the same `order`; the dock orders rows by `order`, while a lower `priority` picks the replacement: a dynamic plugin receives one automatically, and a statically composed plugin passes it explicitly. A new id adds a control. Each control carries its id in `data-composer-stat`. An open statistics dialog closes on Escape or on a pointerdown or click outside it, so activating another control by pointer or keyboard swaps dialogs instead of stacking them.
 
 Explicit selections update every consumer immediately; accepted Host settings reconcile the live value, so a refused or pending write keeps the selected mode until the Host answers.
 
@@ -90,7 +90,7 @@ During uninterrupted following, local transcript and steering echoes remain moun
 
 When Chat ends with an open Turn control and that Turn has no visible input, the first local transcript echo precedes the control. Other echoes remain at the flow tail. The control and echoes share one keyed list, so arrival of the control preserves the echo's mounted identity. Durable inputs replace their matching echoes in the same render.
 
-Work-details modes control process-group display and reasoning previews. Compact, Standard, and Detailed fold eligible completed Turns without hiding the final answer; Verbose retains the duration/status header without a collapse action and shows historical process rows directly. The [business-rule reference](src/client/conversation-nodes/README.md#display-modes) contains the mode table, title behavior, whole-Turn eligibility, clocks, and disclosure resets.
+Work-details modes control process-group display and reasoning previews. Compact, Standard, and Detailed fold eligible completed Turns without hiding the final answer; Verbose retains the duration/status header without a collapse action and shows historical process rows directly. The work-details, collapse-timing, performance, and link rows render through the shared preference row, so they read as one family of Settings choices. The [business-rule reference](src/client/conversation-nodes/README.md#display-modes) contains the mode table, title behavior, whole-Turn eligibility, clocks, and disclosure resets.
 
 The Settings row below Work details offers an [independent collapse-timing preference](src/client/conversation-nodes/README.md#collapse-timing), saved through the same Host profile configuration.
 

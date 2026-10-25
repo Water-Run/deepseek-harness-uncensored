@@ -128,7 +128,8 @@ describe('PermissionRow', () => {
     fireEvent.click(screen.getByRole('checkbox'))
     fireEvent.click(enable)
     await waitFor(() => { expect(mutate).toHaveBeenCalledOnce() })
-    expect(dialog.isConnected).toBe(false)
+    expect(screen.queryByRole('dialog', { name: '确认启用完全权限？' })).toBeNull()
+    await waitFor(() => { expect(dialog.isConnected).toBe(false) })
   })
 
   it('hides an unavailable namespace and disables a read-only provider', async () => {

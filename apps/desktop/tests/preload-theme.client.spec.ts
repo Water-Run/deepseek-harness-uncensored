@@ -22,6 +22,7 @@ afterEach(() => {
   for (const observer of observers) observer.disconnect()
   observers.clear()
   document.documentElement.removeAttribute('data-ds-theme-source')
+  document.documentElement.removeAttribute('data-dsh-theme-reveal')
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
   send.mockClear()
@@ -47,4 +48,21 @@ it('defers observation until the document root exists', () => {
   document.documentElement.setAttribute('data-ds-theme-source', 'light')
   window.dispatchEvent(new Event('DOMContentLoaded'))
   expect(send).toHaveBeenCalledExactlyOnceWith(DESKTOP_IPC.nativeThemeSet, 'light')
+})
+
+it('holds the native theme until a light/dark reveal ends', async () => {
+  vi.stubGlobal('MutationObserver', TrackedMutationObserver)
+  vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
+  document.documentElement.setAttribute('data-ds-theme-source', 'light')
+  syncNativeTheme()
+  expect(send).toHaveBeenCalledExactlyOnceWith(DESKTOP_IPC.nativeThemeSet, 'light')
+
+  document.documentElement.setAttribute('data-dsh-theme-reveal', 'circle')
+  document.documentElement.setAttribute('data-ds-theme-source', 'dark')
+  await vi.waitFor(() => { expect(document.documentElement.getAttribute('data-ds-theme-source')).toBe('dark') })
+  expect(send).toHaveBeenCalledTimes(1)
+
+  document.documentElement.removeAttribute('data-dsh-theme-reveal')
+  await vi.waitFor(() => { expect(send).toHaveBeenLastCalledWith(DESKTOP_IPC.nativeThemeSet, 'dark') })
+  expect(send).toHaveBeenCalledTimes(2)
 })

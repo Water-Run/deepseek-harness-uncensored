@@ -6,10 +6,10 @@
 .row > div { min-width: 0; }
 .row input { width: 100px; min-width: 72px; font-variant-numeric: tabular-nums; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 12px; }
-.card { display: grid; gap: 18px; min-width: 0; padding: 16px; border: 1px solid var(--dsw-alias-border-l2); border-radius: var(--dsw-radius-md); }
+.card { display: grid; gap: 18px; min-width: 0; padding: 16px; border: 0.5px solid var(--dsw-alias-border-l2); border-radius: var(--dsw-radius-md); }
 .window { display: grid; gap: 10px; }
 .heading { flex-wrap: wrap; gap: 6px; font-variant-numeric: tabular-nums; }
-.track { display: flex; height: 7px; overflow: hidden; border-radius: 8px; background: var(--dsw-alias-border-l2); }
+.track { display: flex; height: 7px; overflow: hidden; border-radius: var(--dsw-radius-sm); background: var(--dsw-alias-border-l2); }
 .spent, .reserved { height: 100%; transition: width 350ms var(--ds-ease-in-out); }
 .spent { background: var(--dsw-alias-state-business-primary); }
 .reserved { background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 40%, transparent); }

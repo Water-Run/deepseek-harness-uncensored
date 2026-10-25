@@ -28,7 +28,7 @@ function view(partial: Partial<AgentPresetSectionState> = {}, startCreatorDraft?
     view: null, ...partial })
   const actions = { load: vi.fn(async () => {}), view: vi.fn(async () => {}), closeView: vi.fn(), makeDefault: vi.fn(async () => {}),
     close: vi.fn(), selectCurrent: vi.fn(async () => {}), savePolicy: vi.fn(async () => {}), loadPolicy: vi.fn(async () => {}),
-    confirmPolicy: vi.fn(async () => {}), cancelPolicy: vi.fn(), dismissModeToast: vi.fn() }
+    confirmPolicy: vi.fn(async () => {}), cancelPolicy: vi.fn(), dismissModeToast: vi.fn(), dismissNotice: vi.fn() }
   const configured: (string | undefined)[] = []
   const props: AgentPresetSectionProps = { ...actions,
     ...(startCreatorDraft === undefined ? {} : { startCreatorDraft }),
@@ -232,8 +232,15 @@ it.each([
   expect(within(dialog).getByRole('heading', { name: heading })).toBeTruthy()
   fireEvent.click(within(dialog).getByRole('button', { name: en.close }))
   expect(document.activeElement).toBe(trigger)
-  fireEvent.click(within(rowFor(id)).getByRole('button', { name: `${en.howToUse}: ${name}` }))
-  expect(within(screen.getByRole('dialog')).getByRole('tab', { name: en.howToUse }).getAttribute('aria-selected')).toBe('true')
+  expect(actions.makeDefault).not.toHaveBeenCalled()
+})
+it('opens one reader for both help pages', () => {
+  const actions = view({ rows: [{ id: 'standard', isDefault: false }] })
+  const trigger = within(rowFor('standard')).getByRole('button', { name: `${en.modeExplanation}: ${en.presetStandardName}` })
+  fireEvent.click(trigger)
+  const dialog = screen.getByRole('dialog', { name: en.presetStandardName })
+  expect(within(dialog).getByRole('tab', { name: en.modeExplanation }).getAttribute('aria-selected')).toBe('true')
+  expect(within(dialog).getByRole('tab', { name: en.howToUse }).getAttribute('aria-selected')).toBe('false')
   expect(actions.makeDefault).not.toHaveBeenCalled()
 })
 it('keeps keyboard focus in help and dismisses only the reader on Escape', () => {
@@ -284,7 +291,7 @@ it('does not attach built-in claims to named or unknown presets', () => {
 })
 it('leaves help usable while a default is being saved', () => {
   const actions = view({ saving: true })
-  fireEvent.click(within(rowFor('standard')).getByRole('button', { name: `${en.howToUse}: ${en.presetStandardName}` }))
+  fireEvent.click(within(rowFor('standard')).getByRole('button', { name: `${en.modeExplanation}: ${en.presetStandardName}` }))
   expect(screen.getByRole('dialog', { name: en.presetStandardName })).toBeTruthy()
   expect(actions.makeDefault).not.toHaveBeenCalled()
 })
@@ -393,6 +400,19 @@ it('explains why an established conversation keeps its mode until switching is a
 it('keeps a new conversation free of the lock notice', () => {
   view({}, undefined, undefined, true, [], { blank: true })
   expect(screen.queryByText(en['modeSwitch.locked'])).toBeNull()
+})
+
+it('reports a refused switch in place instead of over the dialog', () => {
+  const actions = view({ rows: [{ id: 'standard', isDefault: true }, { id: 'reverse', isDefault: false }] },
+    undefined, undefined, true, [], { sessionId: 's1', blank: false })
+  act(() => { actions.mode.refuse('locked') })
+  const notice = screen.getByRole('alert')
+  expect(notice.textContent).toBe(en['modeSwitch.blocked'])
+  // The refusal names what happened, so it takes the place of the standing lock note.
+  expect(screen.queryByText(en['modeSwitch.locked'])).toBeNull()
+  // The notice belongs to the page: it leaves with it.
+  cleanup()
+  expect(actions.dismissNotice).toHaveBeenCalled()
 })
 
 it('asks the owner instead of failing silently when an established conversation cannot switch', () => {

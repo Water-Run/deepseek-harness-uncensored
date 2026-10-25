@@ -1,38 +1,42 @@
 /* Mode identity card shared by the session-header label and its switch
-   trigger. A mode is a filled, rounded card in its own color with the shared
-   white ink, so the header reads as one badge rather than a select box. */
+   trigger. A mode is a filled, fully rounded card in its own color with the
+   shared white ink, so the header reads as one badge rather than a select
+   box: a flat fill, a same-hue rim, and no shadow to compete with the title. */
 
 .card {
+  --mode-fill: var(--dsw-mode-neutral-fill);
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   max-width: 180px;
-  min-height: 26px;
-  padding: 1px 10px 1px 8px;
+  min-height: 28px;
+  padding: 3px 12px 3px 10px;
   appearance: none;
   font: inherit;
-  font-size: 12.5px;
-  line-height: 22px;
-  font-weight: 600;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  border: 1px solid color-mix(in srgb, #fff 24%, transparent);
+  /* The rim is a lighter tint of the mode's own color, so the card keeps one
+     hue instead of a white edge on a colored fill. */
+  border: 1px solid color-mix(in srgb, var(--mode-fill) 62%, var(--dsw-mode-label-ink));
+  /* The shared largest radius is wider than half of the card's height, so the
+     browser clamps it and the card reads as a pill. */
   border-radius: var(--dsw-radius-lg);
   color: var(--dsw-mode-label-ink);
-  background: var(--dsw-mode-neutral-fill);
-  box-shadow:
-    inset 0 1px color-mix(in srgb, #fff 18%, transparent),
-    0 1px 2px color-mix(in srgb, #000 18%, transparent);
+  background: var(--mode-fill);
   transition:
     background-color 420ms var(--ds-ease-in-out),
-    box-shadow 180ms var(--ds-ease-in-out);
+    border-color 420ms var(--ds-ease-in-out);
 }
 
-.standard { background: var(--dsw-mode-standard-fill); }
-.security { background: var(--dsw-mode-security-fill); }
-.reverse { background: var(--dsw-mode-reverse-fill); }
-.writing { background: var(--dsw-mode-writing-fill); }
+.standard { --mode-fill: var(--dsw-mode-standard-fill); }
+.security { --mode-fill: var(--dsw-mode-security-fill); }
+.reverse { --mode-fill: var(--dsw-mode-reverse-fill); }
+.writing { --mode-fill: var(--dsw-mode-writing-fill); }
+.neutral { --mode-fill: var(--dsw-mode-neutral-fill); }
 
 button.card {
   cursor: pointer;
@@ -40,9 +44,7 @@ button.card {
 
 @media (hover: hover) {
   button.card:not(:disabled):hover {
-    box-shadow:
-      inset 0 1px color-mix(in srgb, #fff 28%, transparent),
-      0 2px 6px color-mix(in srgb, #000 24%, transparent);
+    background: color-mix(in srgb, var(--mode-fill) 88%, var(--dsw-mode-label-ink));
   }
 }
 

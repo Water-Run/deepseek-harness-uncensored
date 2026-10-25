@@ -107,10 +107,11 @@ html[data-dsh-mode-reveal]::view-transition-new(root) {
 }
 
 @keyframes dsh-mode-reveal {
-  from { clip-path: circle(0 at var(--dsh-mode-reveal-x, 0) var(--dsh-mode-reveal-y, 0)); }
-  to { clip-path: circle(var(--dsh-mode-reveal-radius, 150vmax) at var(--dsh-mode-reveal-x, 0) var(--dsh-mode-reveal-y, 0)); }
+  from { clip-path: circle(0 at var(--dsh-mode-reveal-x, 0) var(--dsh-mode-reveal-y, 0)); filter: saturate(1.35); }
+  to { clip-path: circle(var(--dsh-mode-reveal-radius, 150vmax) at var(--dsh-mode-reveal-x, 0) var(--dsh-mode-reveal-y, 0)); filter: saturate(1); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   body { transition: none; }
+  html[data-dsh-mode-reveal]::view-transition-old(root), html[data-dsh-mode-reveal]::view-transition-new(root) { animation: none; }
 }

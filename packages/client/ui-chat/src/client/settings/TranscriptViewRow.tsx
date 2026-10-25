@@ -1,11 +1,11 @@
 /** General Settings row for work-details presentation. */
 
+import { PreferenceRow } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { TRANSCRIPT_VIEW_MODES, type TranscriptViewMode } from '../../chat-settings.ts'
 import type { ChatKey } from '../locale.ts'
 import { COLLAPSE_TIMINGS, type CollapseTiming } from '../presentation-policy.ts'
-import { PreferenceRow } from './PreferenceRow.tsx'
 
 /** Registration-side work-details preference face. */
 export interface TranscriptViewRowInjected {

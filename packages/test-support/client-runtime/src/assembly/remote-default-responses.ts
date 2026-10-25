@@ -26,6 +26,14 @@ export const remoteDefaultResponses: RemoteTable = {
     }),
     // ui-agent-preset hero chip and header label on first mount.
     'agentPresets/list': ok({ presets: [] }),
+    // ui-agent-preset mode switch permission, sensitive-confirmation preference,
+    // and first-entry state; the composed client reads them when its mode page mounts.
+    'agentPresets/switchPolicy': ok({ allowExistingSessionSwitch: false }),
+    'agentPresets/sensitiveConfirmationPolicy': ok({ confirmations: true }),
+    'agentPresets/securityEntryState': ok({
+      required: false, preset: 'security', acknowledged: true,
+      protection: { state: 'unavailable', revision: 0, capabilities: [] },
+    }),
     // cordis-client-runner `ClientCordisInspectRegistry.sync` at apply and on `connection/reset`.
     'dynamicCordisRunner/syncInspectManifest': ok(null),
     // ui-cordis inventory at apply and on `connection/reset`.

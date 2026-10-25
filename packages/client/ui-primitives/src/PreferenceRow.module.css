@@ -1,0 +1,81 @@
+/* Settings preference row: label block on the left, selector pill on the right. */
+
+.row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  padding: 16px 0;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.rowText {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+
+.control { display: flex; align-items: center; min-width: 0; max-width: 100%; }
+
+.title {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.desc {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.feedback {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 36px;
+  max-width: 100%;
+  padding: 7px 12px;
+  border: none;
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-module-platform);
+  font: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 160ms var(--ds-ease-in-out), opacity 160ms var(--ds-ease-in-out);
+}
+
+@media (hover: hover) {
+  .selector:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
+}
+
+.selector:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 2px; }
+.selector:active:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
+
+.selector:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.chevron {
+  flex: none;
+  transition: transform 180ms var(--ds-ease-in-out);
+}
+.selector[aria-expanded='true'] .chevron { transform: rotate(180deg); }
+
+@media (prefers-reduced-motion: reduce) { .selector, .chevron { transition: none; } }

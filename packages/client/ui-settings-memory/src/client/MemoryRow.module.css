@@ -14,7 +14,7 @@
 
 .rowTitle {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--dsw-alias-label-primary);
 }
 
@@ -53,8 +53,8 @@
   font-size: 13px;
   color: var(--dsw-alias-label-primary);
   background: var(--dsw-alias-bg-layer-1);
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 6px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-sm);
 }
 
 .list {
@@ -71,8 +71,8 @@
   flex-direction: column;
   gap: 6px;
   padding: 10px 12px;
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 8px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-sm);
 }
 
 .meta {
@@ -87,8 +87,8 @@
 .badge {
   padding: 1px 6px;
   font-size: 11px;
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 999px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 999px; corner-shape: round;
 }
 
 .scope {
@@ -98,7 +98,7 @@
 
 .recordTitle {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .content {
@@ -135,8 +135,8 @@
   font-size: 13px;
   color: var(--dsw-alias-label-primary);
   background: var(--dsw-alias-bg-layer-1);
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 6px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-sm);
   resize: vertical;
 }
 
@@ -185,5 +185,5 @@
 
 .limits dd {
   margin: 0;
-  font-weight: 600;
+  font-weight: 500;
 }
