@@ -2,67 +2,72 @@
   <img src="apps/desktop/resources/icon.svg" width="128" alt="DeepSeek Harness Uncensored 黑底白鲸 Logo">
   <h1>Deepseek Harness Uncensored</h1>
   <h3>更自由的探索未至之境</h3>
-  <p><strong>以开箱即用的破甲体验为核心，让四种特化模式共享更自由的指令与工具工作流。</strong><br>独立身份、独立数据、独立更新渠道，与官方版本并存。</p>
+  <p><strong>破甲内置，四种模式，数据独立。</strong><br>在熟悉的 DeepSeek Harness 上，少一点束缚，多一点余地。</p>
   <p><img src="https://img.shields.io/badge/Uncensored-v0.1.0-4B8BFF?style=for-the-badge" alt="Uncensored v0.1.0"> <img src="https://img.shields.io/badge/DSH-0.2.1--rc.2-303644?style=for-the-badge" alt="DSH 0.2.1-rc.2"> <img src="https://img.shields.io/badge/License-GPL--3.0--or--later-E6B84A?style=for-the-badge" alt="GPL-3.0-or-later"> <img src="https://img.shields.io/badge/Status-开发中-EF5363?style=for-the-badge" alt="开发中"></p>
-  <p><a href="#破甲开箱即用">破甲</a> · <a href="#通用增强">通用增强</a> · <a href="#四种特化模式">四种模式</a> · <a href="#快速开始">快速开始</a> · <a href="#开发进度">开发进度</a> · <a href="#当前限制">当前限制</a> · <a href="#credit">Credit</a></p>
+  <p><a href="#开箱即用的破甲体验">破甲</a> · <a href="#四种模式">四种模式</a> · <a href="#其它通用增强">其它通用增强</a> · <a href="#快速开始">快速开始</a> · <a href="#开发进度">开发进度</a> · <a href="#当前限制">当前限制</a></p>
 </div>
 
-Uncensored 是基于 **DSH 0.2.1-rc.2** 的独立分支，产品版本从 **v0.1.0** 开始。它保留 DSH 的工具、插件与历史会话恢复能力，以破甲提示词和完全权限工作流为核心，再加入四种特化模式、独立数据目录与独立更新渠道。
+Uncensored 是 DeepSeek Harness 的独立分支：引擎为 **DSH 0.2.1-rc.2**，产品版本从 **v0.1.0** 开始。原有工具、插件和历史会话仍然保留；应用身份、数据目录与更新渠道另行独立。
 
 > [!IMPORTANT]
-> **这是一个仍在开发中的半成品，不是稳定发行版。** 部分能力已通过真实模型或桌面安装验证；真实目标保护、完整依赖许可审计、签名发布与全平台总验收尚未完成。
-## 破甲：开箱即用
-**无需安装插件、复制提示词或修改配置。** 应用默认加载中文 armor 破甲文本，同时内置英文版本。文本作为固定的系统提示词前缀，排在 Harness 身份说明之前，在各轮对话中保持一致。
+> **现在还是半成品。** 可以构建、运行，也已在 Windows 本机安装验证；但目标保护、签名发布、桌面并存和全平台验收尚未完成，暂不应当作稳定发行版使用。
 
-破甲不是某个模式的附加选项：**缺省、网安、逆向、写作共享这套基础**，再分别叠加通用执行、安全分析、逆向研究与长篇创作能力。默认完全权限让工具工作流不被额外确认层层打断，权限仍可在设置中调整。
+## 开箱即用的破甲体验
+**打开应用，破甲已经就位。** 默认加载中文 armor，英文文本也随应用内置。不用找插件，不用复制提示词，也不用先研究配置。
 
-内置文本沿用 **dsh-purge 的 MIT 历史版本**，来源与许可节点公开可查；四种模式的增强不会改写这套基础文本。破甲改变的是模型收到的指令，不改变模型本身，也不承诺永不拒答。
-## 通用增强
-| 能力 | 使用体验 |
+armor 固定在系统提示词前部，位于 Harness 身份说明之前。四种模式都从这套规则出发，再加载各自的工具与手册。默认使用完全权限，减少工具调用途中的额外打断；需要收紧时，可以在设置中调整。
+
+内置文本来自 **dsh-purge 的 MIT 历史版本**，四种模式的增强不会改写它。破甲影响的是模型如何理解任务，并不会改变模型本身；实际回答仍由模型决定，不能承诺永不拒答。
+
+---
+## 四种模式
+新对话从 **缺省** 开始，发送前可以换。已有对话默认锁定；临时切换和关闭敏感操作确认，都需要倒计时确认。
+
+| 模式 | 各自擅长的事 |
 | --- | --- |
-| **旁问 `/side`** | 在右栏持续对话；同步主线已完成的新进展，保留自身历史且不写回主线；关闭重开可继续，超长更新有界保留并标注省略。 |
-| **随问 `/btw 问题内容`** | 使用全新上下文单次回答，在主会话显示简洁结果块；无追问输入框，空命令不创建窗口。 |
-| **输入建议** | 默认关闭；主对话、旁问、随问分别预测，Tab 只填入不发送；使用当前模型，请求计入额度并记录日志。 |
-| **跨对话记忆** | 查看、搜索、新增、编辑、启停和删除结构化记忆；默认限定当前工作区与模式，全局共享需显式选择，注入来源写入日志。 |
-| **余额与曲线** | 默认 15 秒采样，点击立即刷新；金额平滑变化，零赠金隐藏；支持本机/API 来源、长历史峰谷与北京时间高低峰。 |
-| **额度与续跑** | 六档滚动限额默认关闭；SQLite 事务在请求前预留，区分结算与在途费用；恢复后继续原任务，支持本应用普通对话跨重启续跑。 |
-| **独立身份与集中设置** | 独立应用名、CLI、深链、数据目录；设置按 **通用 → 模型 → 额度 → 模式 → 插件** 分组，账号、账单和插件各归其位。 |
-| **会话与项目导航** | 确认后永久删除对话并清理关联旁问、随问和子任务，保留独立分支与工作区文件；支持无工作区会话、忙碌插话和项目进行中入口。 |
-| **主题与动效** | 黑底白鲸、四模式强调色、会话色条、模式扩散动画与主题过渡；支持日出日落、跟随系统、浅色和深色外观。 |
-| **模式资料** | 网安/逆向案件、目标、证据与报告，以及写作文风和设定集按工作区保存；写入有版本冲突保护，选中资料的注入写入日志。 |
-| **历史会话** | 旧 PTC、Minimal 会话保留原工具配置与恢复能力，但不出现在四个主模式选择器中。 |
-| **关于与更新** | 展示产品/引擎版本、源码与 purge fork 节点、编译信息；按版本级别提醒，区分无发行版、离线与失败。 |
-## 四种特化模式
-新对话固定从 **缺省** 开始，发送前可手动选择；已有对话默认锁定，临时切换需倒计时确认且仅本次启动有效。敏感操作确认默认开启，关闭也需倒计时确认。
-| 模式 | 主题色 | 特化能力 |
-| --- | --- | --- |
-| **缺省** | 🔵 `#4B8BFF` | 文件、终端、检索、任务协作与工作流工具；覆盖开发、文件处理和日常任务。默认 Flash、Max 推理和完全权限，旧会话模型仍可解析。 |
-| **网安** | 🔴 `#EF5363` | **7 份现场手册**与 `casefile.mjs`；`.security/<案件>/` 保存目标、证据和发现，可渲染报告。独立 HTTP(S) 代理支持连通性检查及默认脱敏流量查看。 |
-| **逆向** | 🟢 `#40BE87` | **8 份手册**、工具/许可证矩阵、加密识别、Frida 配方和只读 `sample.mjs` 清点；`.reverse/<案件>/` 保存案件、符号表、假设与抓包。 |
-| **写作** | 🟡 `#E6B84A` | **7 份手册**、六轴风格卡和 `story/bible/` 设定集；仅注入选中资料，支持续写、修订与长篇连续性，不挂载终端或代码执行工具。 |
+| <img src="https://img.shields.io/badge/缺省-4B8BFF?style=flat-square" alt="缺省 · 蓝色"> | 文件、终端、检索、任务协作与工作流都在。默认 Flash、Max 推理和完全权限，适合开发与日常任务。 |
+| <img src="https://img.shields.io/badge/网安-EF5363?style=flat-square" alt="网安 · 红色"> | 7 份现场手册、案件账本和报告。目标、证据与发现保存在 `.security/<案件>/`；独立代理可检查连通性并查看脱敏流量。 |
+| <img src="https://img.shields.io/badge/逆向-40BE87?style=flat-square" alt="逆向 · 绿色"> | 8 份手册、加密识别、Frida 配方和只读样本清点。案件与分析记录放在 `.reverse/<案件>/`，下次还能继续。 |
+| <img src="https://img.shields.io/badge/写作-E6B84A?style=flat-square" alt="写作 · 黄色"> | 7 份写作手册、六轴风格卡和 `story/bible/` 设定集。只带上选中的资料，专注续写、修订与长篇，不挂终端。 |
 
-首次进入网安会展示真实保护状态与责任确认；当前无真实 `securityProtection` 提供方，因此需要手动输入声明，声明确认不替代执行保护。独立代理当前只覆盖 `web_fetch` 和遵守代理环境变量的一次性命令，HTTPS 隧道只记录元数据。反编译引擎由本机安装的 Ghidra、IDA、Binary Ninja 或 MCP 桥提供，模式手册不安装工具或提供许可证。
+## 其它通用增强
+| 功能 | 用起来有什么不同 |
+| --- | --- |
+| **旁问** <kbd>/side</kbd> | 主线讲到哪里，旁问就跟到哪里。右栏对话有自己的历史，不写回主线；关掉再打开，还能接着聊。 |
+| **随问** <kbd>/btw 问题</kbd> | 临时问一句，不带入前文。答案直接落在主对话里，没有追问框；单独输入命令不会创建空窗口。 |
+| **输入建议** | 灰色补全随输入出现，按 <kbd>Tab</kbd> 填入，不会替你发送。默认关闭；开启后使用当前模型，请求计入额度并写入日志。 |
+| **跨对话记忆** | 偏好、项目事实、操作结论和写作设定都能查看、搜索、编辑或删除。默认只用于当前工作区与模式，全局共享由你决定。 |
+| **余额与曲线** | 每 15 秒采样，也可以点击立即刷新。金额平滑变化，零赠金不占位置；历史曲线保留峰谷，高低峰按北京时间计算。 |
+| **额度与续跑** | 六档滚动限额，请求前先预留费用，结算和在途分开显示。额度恢复后接着执行原任务，普通对话跨重启也能续上。 |
+| **会话管理** | 项目行直达进行中对话，忙碌时按 <kbd>Enter</kbd> 插话。删除对话会一并清理旁问、随问和子任务，但不动独立分支与工作区文件。 |
+| **独立与集中** | 独立应用名、CLI、深链和数据目录。设置归为 **通用、模型、额度、模式、插件** 五组，不再四处寻找账号、账单或插件入口。 |
+| **主题与动效** | 黑底白鲸、模式色条、切换扩散动画与主题过渡。外观可选日出日落、跟随系统、浅色或深色。 |
+| **历史与更新** | 旧 PTC、Minimal 会话仍按原配置恢复。关于页显示版本与构建来源，更新提醒区分补丁、次版本、主版本、离线和失败。 |
+
 ## 快速开始
-
-开发环境需要 **Node.js 22.19+（22.x）或 24+、Corepack 与 Git**。
+准备 **Node.js 22.19+（22.x）或 24+、Corepack 和 Git**，然后运行：
 
 ```powershell
 corepack pnpm install
 corepack pnpm run build
 corepack pnpm dsh web
 ```
+打开 **http://127.0.0.1:23333**。桌面版使用独立 Electron 窗口；本地 CLI 安装见 [install-uncensored.ps1](scripts/install-uncensored.ps1)。
+<details>
+<summary><strong>独立目录与命令</strong></summary>
 
-Web 默认地址为 **http://127.0.0.1:23333**。桌面版保留 Electron 独立窗口；本地 CLI 安装脚本为 [install-uncensored.ps1](scripts/install-uncensored.ps1)。
+默认数据 `~/.dsh-uncensored` · 自定义目录 `DSH_UNCENSORED_HOME`<br>CLI `dsh-uncensored` · 深链 `dshu://open` · Windows 应用名 `DeepSeek Harness Uncensored`
 
-**独立标识**：默认数据 `~/.dsh-uncensored`；自定义变量 `DSH_UNCENSORED_HOME`；CLI `dsh-uncensored`；深链 `dshu://open`；Windows 应用名 `DeepSeek Harness Uncensored`。
-
-源码启动、桌面版和安装启动器忽略继承的 `DSH_HOME`；SDK 显式目录由调用者负责。无工作区会话使用 Host 默认工作目录。Flash 使用服务端模型别名，不保证永久固定在 1017 版本。
+启动器不继承官方版 `DSH_HOME`；SDK 显式目录由调用者负责。无工作区会话使用 Host 默认工作目录。Flash 是服务端模型别名，不保证永久固定在 1017 版本。
+</details>
 ## 开发进度
+**🚧 仍在开发，总验收尚未完成。** 百分比包含实现、测试和实际验收，不代表稳定版完成度。依据见[完整编号清单](.agents/requirements/development-checklist.md)与[开发交接](.agents/HANDOFF.md)。<br>**✅ 13 项完成　·　🚧 17 项进行中　·　⏳ 5 项待实现**
+<details>
+<summary><strong>查看全部 35 项进度</strong></summary>
 
-**总体状态：🚧 持续开发，尚未完成总验收。** 下表覆盖全部 **35 个汇总项目：✅ 13 项、🚧 17 项、⏳ 5 项**。百分比综合实现、测试与实际验收估算，不代表稳定版完成度；证据见[完整编号清单](.agents/requirements/development-checklist.md)和[开发交接](.agents/HANDOFF.md)。
-| 状态 | 项目 | 估算 | 当前结果与剩余工作 |
+| 状态 | 项目 | 估算 | 进展与下一步 |
 | --- | --- | ---: | --- |
-| ✅ | 独立版本、数据目录与启动入口 | 完成 | 产品与引擎版本解耦，独立目录、CLI、深链和构建信息已具备 |
+| ✅ | 独立版本、数据目录与启动入口 | 完成 | 版本解耦，独立目录、CLI、深链和构建信息已具备 |
 | ✅ | 四模式选择与默认规则 | 完成 | 固定顺序和缺省默认，保留中英与旧会话兼容 |
 | ✅ | 已有对话的模式锁定 | 完成 | 倒计时确认、运行中禁止切换、重启撤销临时权限 |
 | ✅ | 首次网安责任确认与声明输入 | 完成 | 真实保护状态、倒计时、声明校验与错误反馈 |
@@ -97,23 +102,18 @@ Web 默认地址为 **http://127.0.0.1:23333**。桌面版保留 Electron 独立
 | ⏳ | 保护审计与各功能联动 | 待实现 | 执行校验、审计日志、模式设置、责任确认与代理目标判断 |
 | ⏳ | 完整依赖许可证审计 | 待实现 | 整合发行的生产依赖和参考项目许可核对 |
 | ⏳ | 官方版插件状态核实与恢复 | 待实现 | 独立核实此前被改动的官方版，再按实际结果修复 |
+</details>
 ## 当前限制
-- **保护未接入**：境内网站、生产服务器、数据库及域名规则保护尚未交付；责任声明不替代执行保护。代理不覆盖浏览器、MCP、常驻终端、子智能体或忽略代理环境变量的程序。
-- **记忆与发布未完成**：自动提炼、语义检索和来源失效标记尚未实现；当前没有已发布安装包，真实更新下载、签名验证与安装尚未验收。
-- **估算不是账单**：费用不含应用外请求或其他付费工具；用量不明时保留保守估算，未配置费率的模型在限额开启时会被拦截。账本升级 v2 后不要用旧构建打开，旧未分类暂停记录需手动恢复。
-- **不保证模型行为**：提示词不提高模型能力，不保证任务成功或永不拒答。桌面并存、跨平台回放、热更新稳定性与全部新增功能的最终验收仍在进行。
+> [!WARNING]
+> 网安首次确认展示的是**真实保护状态**，不是保护开关。境内域名、生产服务器和数据库的执行保护尚未接入，责任声明也不能代替保护措施。
 
-原始 DSH 的基础功能与插件用法请参阅[上游仓库](https://github.com/deepseek-ai/deepseek-harness)。记忆保存在 `storages/memory.json`，损坏时明确报错而不会清空；额度恢复不接管其他运行环境或子智能体。
+- 独立代理目前只覆盖 `web_fetch` 和遵守代理环境变量的一次性命令；浏览器、MCP、常驻终端和子智能体不在其中，HTTPS 隧道只记录元数据。
+- 记忆还没有自动提炼、语义检索和来源失效标记。数据保存在 `storages/memory.json`，文件损坏时会报错，不会直接清空。
+- 暂无正式发布安装包；真实更新下载、签名验证、安装升级与桌面并存仍待验收。额度恢复不接管其他运行环境或子智能体。
+- 额度是保守估算，不是账单。账本升级到 v2 后不要用旧构建读取，旧未分类暂停记录需手动恢复。反编译引擎也需要本机另行安装或连接。
+
 ## 反馈与许可
+[提交 Issue](https://github.com/Water-Run/deepseek-harness-uncensored/issues/new/choose) · [源代码](https://github.com/Water-Run/deepseek-harness-uncensored) · [Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases) · [上游 DSH](https://github.com/deepseek-ai/deepseek-harness)<br>整合发行采用 **[GPL-3.0-or-later](LICENSE)**，上游和第三方组件保留各自许可证与版权声明。
 
-[提交 Issue](https://github.com/Water-Run/deepseek-harness-uncensored/issues/new/choose) · [源代码](https://github.com/Water-Run/deepseek-harness-uncensored) · [GitHub Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases) · [GPL-3.0-or-later](LICENSE)
-
-整合发行采用 **GPL-3.0-or-later**；上游和第三方组件保留各自许可证与版权声明。
 ## Credit
-- [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)：DeepSeek 原始工程，保留 [MIT 许可](LICENSES/deepseek-harness-MIT.txt)。
-- [dsh-purge](https://github.com/YuJunZhiXue/dsh-purge)：小杨（YuJunZhiXue）；内置提示词追溯至 [MIT 版本 e1d8e590](https://github.com/Water-Run/dsh-purge/tree/e1d8e59087857fa86d0ef2bb9878800274b13a29)，[原始许可](LICENSES/dsh-purge-MIT.txt)随仓库保留。
-- [dsh-purge-plus](https://github.com/JeffKeeping/dsh-purge-plus)：JeffKeeping；保留 purge fork 所要求的来源署名。
-- [Water-Run/dsh-purge](https://github.com/Water-Run/dsh-purge)：本分支对照的个人 fork，版本节点与时间见应用“关于”。
-- GitHub 图标来自 [Octicons](https://github.com/primer/octicons)，保留其 [MIT 许可](packages/client/ui-settings-account/GITHUB-MARK-LICENSE.txt)。
-
-dsh-purge 后续专有许可分支不作为复制源码的授权依据；这里保留的是上述旧 MIT 文本的许可。
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)：DeepSeek 原始工程，保留 [MIT 许可](LICENSES/deepseek-harness-MIT.txt)。<br>[dsh-purge](https://github.com/YuJunZhiXue/dsh-purge)：小杨（YuJunZhiXue）；破甲文本追溯至 [MIT 版本 e1d8e590](https://github.com/Water-Run/dsh-purge/tree/e1d8e59087857fa86d0ef2bb9878800274b13a29)，[原始许可](LICENSES/dsh-purge-MIT.txt)随仓库保留。<br>[dsh-purge-plus](https://github.com/JeffKeeping/dsh-purge-plus)：JeffKeeping；保留 purge fork 所要求的来源署名。<br>[Water-Run/dsh-purge](https://github.com/Water-Run/dsh-purge)：本分支对照的个人 fork，版本节点与时间见应用“关于”。<br>GitHub 图标来自 [Octicons](https://github.com/primer/octicons)，保留其 [MIT 许可](packages/client/ui-settings-account/GITHUB-MARK-LICENSE.txt)。<br>dsh-purge 后续专有许可分支不作为复制源码的授权依据；这里保留的是上述旧 MIT 文本的许可。
