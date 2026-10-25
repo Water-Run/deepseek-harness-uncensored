@@ -1,5 +1,14 @@
 # Uncensored 开发交接
 
+## 整理与打包节点（2026-10-25，f5099db76a）
+
+用户要求整理全部变更并打包最新版本；本轮只打包，未安装、未签名、未发布。
+
+- 整理：工作区原有的并行改动（敏感操作确认迁到通用设置、模式切换拒绝提示、TODO 记录）先核对并通过 `ui-agent-preset` 301 项与 `typecheck` 5/5，提交为 `5825494d47`；随后随问只读改动提交为 `f5099db76a`，工作树干净。
+- 打包：`pnpm run package:desktop:win:x64:unsigned` 成功（整体 success，30 个阶段，耗时 746,448 ms）。产物 `apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/deepseek-harness-uncensored-0.1.0-win-x64-unsigned.exe`，288,396,463 字节，SHA256 `5D3738A8730B66929C4FB63BE91B52D059F247B682898D01021F2FEF740F24EB`，未签名。
+- 产物核验：`win-unpacked/resources/app.asar` 含 `btwMaxTokens`、`随问思考等级`、`只读地问当前进度`、`read-only` 与提交 `f5099db76a`；打包后 smoke 通过（CLI 插件离线安装/移除、DOCX/XLSX/PPTX→PDF、skill CLI 发现、打包版 Web 启动）。
+- 未做：安装新包、签名、发布与自动更新配置；已安装版本仍是此前节点产物，需要新功能时安装该 unsigned exe。
+
 ## 设置归属与模式切换提示节点（2026-10-25）
 
 用户列出三项设置调整；本轮只改源码，未打包、未安装。
