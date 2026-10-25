@@ -12,6 +12,10 @@
 - 每一阶段留下可复核的证据；证据缺失的阶段不算完成，也不许用 Web 页面替代桌面验收。
 - 打包、签名、上传、发布是四个不同动作，本计划默认停在「本机可安装」，越界需要单独授权。
 
+## 本轮本机交付
+
+源码 8c1bc7cae6 的 v0.1.0 已在原安装目录覆盖安装并两次启动；107 个会话、设置与配置文件安装前后相同，官方 EXE 未改变。此次只验收手动安装更新，未验收下载更新、签名、卸载回滚或全新电脑。
+
 ## 现状（2026-10-25）
 
 - **身份已分离**：`appId` 为 `com.deepseek.dsh.uncensored`、产品名 `DeepSeek Harness Uncensored`、协议 `dshu://`、CLI `dsh-uncensored`、数据目录 `.dsh-uncensored`；官方版是 `com.deepseek.dsh` / `DeepSeek Harness` / `.dsh`，因此两者在注册表、安装目录、数据目录、协议与 CLI 上互不覆盖。

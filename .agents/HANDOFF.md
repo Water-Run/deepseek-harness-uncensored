@@ -7,7 +7,10 @@
 - /btw 精简为问题、回答和必要状态。额度单页、模式卡/配置入口、紧凑余额详情已重排。底部金额与限额使用原灰阶，点击查看曲线和六档进度条。
 - 输入预测为通用默认开启，保留已有关闭偏好；三类真实 Tab 操作只填草稿。真实请求日志与费用见 .dsh-build/polish-review/real-features.json；重复草稿前缀已修复。
 - 最新 build 9/9，Host/打包聚焦 44 项、浮层交互 1 项通过；GUI 11033 项通过、2 跳过，唯一并发超时的许可证测试单跑通过（1.38 秒）。改动文件 lint 通过。此前完整 GUI 通过记录不代替本次结果。
-- 本次安装尚在执行：只使用新构建批次下的安装器，不能使用旧根目录的 f5099db76a 安装包。输出按批次隔离；官方安装与资料不改。
+- 已安装源码 8c1bc7cae6 的 v0.1.0 未签名包，退出码 0，两次启动通过；107 个会话/设置文件安装前后哈希相同，官方 EXE 哈希相同。应用、系统图标及来源页已核对。
+- 安装器：D:\Coding\deepseek-harness-uncensored\apps\desktop\.desktop-build\targets\win-x64\unsigned-artifacts\runs\2026-10-25T13-19-48.293Z-ti5vxL\deepseek-harness-uncensored-0.1.0-win-x64-unsigned.exe；SHA-256：9551F3D517D1690148A7542DE795885F44EC69D75509FF516A735E19F60C6395。构建记录：apps/desktop/.desktop-build/packaging-runs/2026-10-25T13-19-48.293Z-ti5vxL。证据在 .dsh-build/polish-review/install-result.json 与 screenshots/。
+- 本轮原始打包命令在封装后冒烟遇到 Windows 原生库长路径失败。b55de1a03a 修复验收脚本：短临时副本完整复验通过，随后在真实安装目录再次通过原生模块、CLI、Host 与 DOCX/XLSX/PPTX 转 PDF 检查。原失败日志保留；复验见 packaged-smoke-short-copy.log 与 installed-runtime-smoke.log。该提交仅修改验收脚本，应用内容仍对应 8c1bc7cae6。
+- 工作区与 origin/main 保持单主线；安装后的记录另做文档提交。当前 22 项完成 / 8 项进行中 / 5 项待实现；签名、自动更新、卸载回滚、跨平台及目标保护尚未完成。
 
 以下保留历史节点，当其状态与本节不同，以本节和 TODO 为准。
 
