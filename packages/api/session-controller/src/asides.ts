@@ -4,7 +4,8 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { ModelSelection as AgentModelSelection } from '@deepseek-ai/dsh-agent'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import { errorChain, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
-import { SessionLogOffset, type SessionId } from '@deepseek-ai/dsh-session'
+import { SessionLogOffset, type Session, type SessionId } from '@deepseek-ai/dsh-session'
+import type {} from '@deepseek-ai/dsh-permission-presets'
 import { buildForkSeed } from '@deepseek-ai/dsh-session/fork'
 import { SessionQueryError } from '@deepseek-ai/dsh-session-query'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
@@ -12,6 +13,9 @@ import type { ApiSessionAgentController } from './agent.ts'
 import type { SessionAsideRequest, SessionForkValue } from './types.ts'
 import { latestCompletedPrefixBoundary } from './commands.ts'
 import { sideIdentity } from './aside-context.ts'
+
+/** Execution preset pinned to every one-shot quick question: it may look, never modify. */
+const QUICK_QUESTION_PRESET = 'read-only'
 
 /** Owns concurrent native aside creation until every admitted request finishes. */
 export class SessionAsideController {
@@ -92,6 +96,14 @@ export class SessionAsideController {
     const selection = request.kind === 'btw' ? await this.quickQuestionSelection(inherited) : inherited
     // A quick question is answered in one short reply; the output cap bounds both latency and cost.
     const agentOptions = request.kind === 'btw' ? { ...selection, maxTokens: this.btwMaxTokens } : selection
+    // A quick question may only look: pin the read-only preset before the
+    // session is published, so every tool it could call is confined from the
+    // first turn. A side conversation keeps the parent's permissions.
+    const setup: typeof composition.setup = request.kind !== 'btw' ? composition.setup : async (setupCtx, setupAgent) => {
+      const commit = await composition.setup(setupCtx, setupAgent)
+      this.pinReadOnly(setupAgent.session)
+      return commit
+    }
     const agent = await this.agents.createOwned({
       sessionId: childId,
       ...(boundary === undefined ? {} : {
@@ -104,7 +116,7 @@ export class SessionAsideController {
         ...(composition.agentPreset === undefined ? {} : { agentPreset: composition.agentPreset }),
       },
       agentOptions,
-      setup: composition.setup,
+      setup,
     })
     // Creation options seed the first request, but the model-selection
     // waterfall then applies the Agent's committed selection; record it so the
@@ -112,6 +124,25 @@ export class SessionAsideController {
     this.agents.selectForNextRequest(agent, selection)
     await this.ctx.sessions.flush(agent.session)
     return { sessionId: childId }
+  }
+
+  /**
+   * Pin a quick question to the deployment's read-only preset before publication.
+   * A deployment without the permission surface keeps the prompt-level
+   * restriction and logs that no execution confinement is composed.
+   * @param session - the fresh quick-question Session.
+   */
+  private pinReadOnly(session: Session): void {
+    const presets = this.ctx.get('permissionPresets')
+    if (presets === undefined) {
+      this.ctx.logger.warn('session-controller: permission presets are not composed; the quick question keeps default execution permissions')
+      return
+    }
+    try {
+      presets.set(session, QUICK_QUESTION_PRESET)
+    } catch (error: unknown) {
+      throw new Error(`session-controller: a quick question must be read-only: ${errorChain(error)}`)
+    }
   }
 
   /**

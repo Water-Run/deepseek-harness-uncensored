@@ -20,6 +20,10 @@ async function fixture(ctx: Context) {
   })
   ctx.llm.registerAdapter(['mock'], adapter)
   ctx.provide('workspaceRegistry', { list: () => [], archivedSessionIds: [] } as never)
+  const pinnedPresets: Array<{ sessionId: string; preset: string }> = []
+  ctx.provide('permissionPresets', {
+    set: (session: { header: { id: string } }, preset: string) => { pinnedPresets.push({ sessionId: session.header.id, preset }) },
+  } as never)
   createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'mock', model: 'mock' }), cwd: '/tmp' })
   let btwEffort = 'low'
   const controller = new SessionAsideController(
@@ -30,7 +34,7 @@ async function fixture(ctx: Context) {
   )
   ctx.effect(() => () => controller.close())
   const parent = await harness.create(SessionId('parent'), { provider: 'mock', model: 'mock' })
-  return { parent, adapter, controller, setBtwEffort: (effort: string) => { btwEffort = effort } }
+  return { parent, adapter, controller, pinnedPresets, setBtwEffort: (effort: string) => { btwEffort = effort } }
 }
 
 describe('native side conversations', () => {
@@ -153,6 +157,18 @@ describe('native side conversations', () => {
       expect(messages).toContain('second btw marker')
       await controller.close()
       await expect(controller.open({ sessionId: parent.id, kind: 'btw' })).rejects.toMatchObject({ code: 'gateway/internal' })
+    } finally { await ctx.fiber.dispose() }
+  })
+
+  it('pins a quick question to the read-only preset and leaves a side question alone', async () => {
+    const ctx = new Context()
+    try {
+      const { parent, controller, pinnedPresets } = await fixture(ctx)
+      const btw = await controller.open({ sessionId: parent.id, kind: 'btw' })
+      expect(pinnedPresets).toEqual([{ sessionId: String(btw.sessionId), preset: 'read-only' }])
+      const side = await controller.open({ sessionId: parent.id, kind: 'side' })
+      expect(pinnedPresets).toHaveLength(1)
+      expect(pinnedPresets.some(entry => entry.sessionId === String(side.sessionId))).toBe(false)
     } finally { await ctx.fiber.dispose() }
   })
 

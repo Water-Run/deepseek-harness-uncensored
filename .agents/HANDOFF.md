@@ -21,7 +21,8 @@
 - 修复 Loader 双重解析：Loader 传入的是已解析 Config（volatile 字段是带 `get()` 的包装），而构造函数再次 `SessionController.Config(config)` 会把包装当作值校验而失败（表现为 session-controller 未激活、随问设置无效）。构造函数现在识别已解析配置并原样使用，保证设置写入命同一个包装；直接构造的测试仍走 schema 解析。
 - 使用场景与短答：随问定位为“主线任务进行中问一句进度或小问题”。系统提示要求最多三句短句（进度最多五条要点），不要开场白、不要复述问题、不调用工具、不追问；快照缺失时用一句话说明。新增 `btwMaxTokens`（默认 512）作为输出上限，随问子会话的 AgentOptions 携带 `maxTokens`，旁问不带。命令描述与输入提示同步改为“任务进行中问一句进度或小问题，快速回答一次”。
 - 设置行拆分挂载：设置行改为独立的 `remote.settings` 注入作用域，缺少设置 Remote 的组合仍能注册 `/side` 与 `/btw`（此前把设置放进主注入导致 ui-commands 组合测试两项失败）。
-- 验证：`aside-question-context` 4 项、`asides.host` 6 项（进度快照、随问 low、输出上限、旁问跟随主线）、设置行 4 项、`ui-commands` 159 项、`list-scheduling`（已解析 Config 路径）通过；`typecheck` 5/5、`build:artifacts` 7/7。真实账号页面实测：`/btw 进度如何` 1 秒返回，短答（两三句）+ 下一步建议，复述了主线当前状态；通用设置显示“随问思考等级：低（默认）”。
+- 只读约束：随问在发布前固定到部署的 `read-only` 权限预设（sandbox `read-only`、approval `ask`），`asides.ts` 在 composition setup 中调用 `permissionPresets.set`，正常结束/失败都先于发布，因此随问只能查看；缺少权限服务的组合保留提示词限制并记录警告。命令描述改为“只读地问一句”。真实账号验证：新建的 `session-btw-d80c4ccf…` 投影为 `{"preset":"read-only","sandbox":"read-only","approval":"ask"}`。
+- 验证：`aside-question-context` 4 项、`asides.host` 7 项（进度快照、随问 low、输出上限、只读预设、旁问跟随主线）、设置行 4 项、`ui-commands` 159 项、`list-scheduling`（已解析 Config 路径）通过；`typecheck` 5/5、`build:artifacts` 7/7。真实账号页面实测：`/btw 进度如何` 1 秒返回，短答（两三句）+ 下一步建议，复述了主线当前状态；通用设置显示“随问思考等级：低（默认）”。
 - 既有问题：`session-presets.host.spec.ts` 在未改动的 HEAD 上同样失败（29 项），属本机组合/环境漂移，与本节点无关；`test:gui` 的既有失败清单不变。
 
 ## 界面问题修复节点（2026-10-25）
