@@ -8,6 +8,15 @@ import type {} from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@deepseek-ai/dsh-session-query'
 import { latestCompletedPrefixBoundary } from './commands.ts'
 import { mainProgressContext } from './aside-main-context.ts'
+import { quickQuestionContext } from './aside-question-context.ts'
+
+/** Byte budgets for the context each native aside kind receives. */
+export interface AsideContextLimits {
+  /** Completed main updates supplied to a persistent side conversation. */
+  readonly sideContextBytes: number
+  /** Live progress snapshot supplied to a one-shot quick question. */
+  readonly btwContextBytes: number
+}
 
 /**
  * Derive the persistent side conversation associated with a main session.
@@ -33,12 +42,15 @@ export function nativeAsideKind(id: SessionId, parent: SessionId | undefined): '
 /**
  * Restore native aside instructions without adding a synthetic user message or waking the Agent.
  * The normal system-prompt admission records the instructions before any model sees them.
+ * Both kinds receive a bounded view of the parent conversation: the side conversation
+ * follows completed updates, while a quick question needs the in-flight turn to answer
+ * "how is it going" — neither is a new instruction to continue the main task.
  * @param ctx - New or resumed Agent scope.
  * @param agent - Session whose durable identity selects the aside semantics.
- * @param maxMainContextBytes - Complete byte limit for newly completed main-conversation updates.
+ * @param limits - Byte budgets for the parent context each kind receives.
  * @returns Completion of the scoped prompt registration.
  */
-export async function installAsideContext(ctx: Context, agent: Agent, maxMainContextBytes: number): Promise<void> {
+export async function installAsideContext(ctx: Context, agent: Agent, limits: AsideContextLimits): Promise<void> {
   const parent = agent.session.header.parentSession
   if (parent === undefined) return
   const kind = nativeAsideKind(agent.id, parent)
@@ -48,19 +60,29 @@ export async function installAsideContext(ctx: Context, agent: Agent, maxMainCon
       order: scope.systemPrompt.getSectionOrder('DEPLOYMENT_PERSONA_SUFFIX'), interpolate: false,
       text: kind === 'side'
         ? 'This is a side question in a separate conversation. The inherited transcript is background context. Respond to the new question here; do not resume the parent task unless explicitly asked. Messages in this conversation do not enter the parent conversation.'
-        : 'This is a fresh, independent quick question. No context from the parent conversation is available. Answer the supplied question directly once, without asking follow-up questions or continuing the parent task.',
+        : 'This is a fresh, independent quick question. A bounded progress snapshot of the parent conversation (its latest request, recent work, and todo list) is supplied as background context so progress questions can be answered. Answer the supplied question directly once, without asking follow-up questions or continuing the parent task.',
     }), 'native aside: prompt section')
-    if (kind === 'side') {
-      scope.on('system-prompt/assemble', async (_assembly, context, next) => {
-        const result = await next()
-        context.signal?.throwIfAborted()
-        using source = await scope.sessionQuery.observeSession(parent)
-        context.signal?.throwIfAborted()
-        const boundary = latestCompletedPrefixBoundary(source.events)
-        const text = boundary === undefined ? '' : mainProgressContext(parent, source.events.slice(agent.session.inheritedEventCount, boundary + 1), maxMainContextBytes)
-        if (text) result.contexts.push({ name: 'conversation:main-progress', text, interpolate: false })
-        return result
-      })
-    }
+    scope.on('system-prompt/assemble', async (_assembly, context, next) => {
+      const result = await next()
+      context.signal?.throwIfAborted()
+      using source = await scope.sessionQuery.observeSession(parent)
+      context.signal?.throwIfAborted()
+      const text = kind === 'side'
+        ? sideUpdate(parent, source.events, agent.session.inheritedEventCount, limits.sideContextBytes)
+        : quickQuestionContext(parent, source.events, limits.btwContextBytes)
+      if (text) result.contexts.push({ name: 'conversation:main-progress', text, interpolate: false })
+      return result
+    })
   } })
+}
+
+/** Completed main updates since the side conversation opened. */
+function sideUpdate(
+  parent: SessionId,
+  events: Parameters<typeof mainProgressContext>[1],
+  inheritedEventCount: number,
+  maxBytes: number,
+): string {
+  const boundary = latestCompletedPrefixBoundary(events)
+  return boundary === undefined ? '' : mainProgressContext(parent, events.slice(inheritedEventCount, boundary + 1), maxBytes)
 }

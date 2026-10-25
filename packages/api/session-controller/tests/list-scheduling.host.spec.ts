@@ -191,7 +191,11 @@ describe('Session-list work slices', () => {
     h.ctx.provide('agentDefaultModel', { currentSelection: () => ({ provider: 'test', model: 'test' }) } as never)
     h.ctx.provide('workspaceRegistry', { list: () => [], archivedSessionIds: [] } as never)
     new RemoteAccessService(h.ctx)
-    const controller = new SessionController(h.ctx, { nativeOpen: false, listWorkSliceMs: 4 }, { canOpenPath: () => false })
+    // The Loader hands the constructor an already-resolved Config; keep this
+    // path covered alongside the partial-plain config used by the shared
+    // remote fixture.
+    const resolved = SessionController.Config({ nativeOpen: false, listWorkSliceMs: 4 })
+    const controller = new SessionController(h.ctx, resolved, { canOpenPath: () => false })
     const yieldWork = vi.spyOn(scheduler, 'yield')
     const result = await controller.list({}, new AbortController().signal)
     expect(result.items).toHaveLength(3)

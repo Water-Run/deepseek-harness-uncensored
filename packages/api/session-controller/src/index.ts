@@ -4,7 +4,7 @@ import { hostname } from 'node:os'
 import { resolve } from 'node:path'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-fs'
-import { Context, Service } from '@deepseek-ai/cordis'
+import { Context, Service, type Volatile } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { errorChain, ReasoningEffortId, type MessageSource } from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-client-file-upload'
@@ -101,6 +101,9 @@ function addressedSession(request: { readonly address: SessionAddress }): Sessio
   return request.address.kind === 'session' ? request.address.sessionId : request.address.childSessionId
 }
 
+/** Reasoning levels a one-shot quick question may select. */
+export type BtwReasoningEffort = 'off' | 'low' | 'high' | 'max'
+
 /** Session Controller deployment policy. */
 export interface Config {
   /** Override platform desktop-opener detection. */
@@ -109,6 +112,10 @@ export interface Config {
   readonly listWorkSliceMs?: number
   /** Maximum UTF-8 bytes of completed main updates supplied to each side-question request. */
   readonly sideContextBytes?: number
+  /** Maximum UTF-8 bytes of the live progress snapshot supplied to each quick question. */
+  readonly btwContextBytes?: number
+  /** Reasoning effort used for a one-shot quick question; the quick question never inherits the conversation's own level. */
+  readonly btwReasoningEffort?: BtwReasoningEffort
   /** Maximum time to wait for cancelled jobs and turns before refusing deletion. */
   readonly deleteDrainTimeoutMs?: number
   /** Interval between deletion activity checks, in milliseconds. */
@@ -126,9 +133,11 @@ export interface Config {
 }
 
 /** Deployment policy after schema defaults have been applied. */
-type ResolvedConfig = Config & {
+export type ResolvedConfig = Omit<Config, 'btwReasoningEffort'> & {
   readonly listWorkSliceMs: number
   readonly sideContextBytes: number
+  readonly btwContextBytes: number
+  readonly btwReasoningEffort: Volatile<BtwReasoningEffort>
   readonly deleteDrainTimeoutMs: number
   readonly deletePollMs: number
   readonly predictionDraftBytes: number
@@ -136,6 +145,19 @@ type ResolvedConfig = Config & {
   readonly predictionMaxTokens: number
   readonly predictionOutputBytes: number
   readonly predictionTimeoutMs: number
+}
+
+/**
+ * Whether the Loader already resolved this entry's Config. A resolved
+ * volatile field arrives as a live wrapper (`get()`), and resolving the
+ * schema a second time would reject it; the Loader's instance must be used
+ * as-is so later Settings writes reach the same wrapper.
+ * @param config - entry config as handed to the constructor.
+ * @returns true when the config is already the resolved shape.
+ */
+function isResolvedConfig(config: Config | ResolvedConfig): config is ResolvedConfig {
+  const aside: unknown = Reflect.get(config, 'btwReasoningEffort')
+  return typeof aside === 'object' && aside !== null && typeof Reflect.get(aside, 'get') === 'function'
 }
 
 /** Host integrations replaceable by direct unit tests. */
@@ -173,6 +195,10 @@ export class SessionController extends TypertRemoteService {
     nativeOpen: z.boolean(),
     listWorkSliceMs: z.natural().min(1).default(16),
     sideContextBytes: z.natural().min(1024).max(1048576).default(65536),
+    btwContextBytes: z.natural().min(1024).max(65536).default(8192),
+    // Volatile: the owner picks the quick-question level from Settings and the
+    // Host treats it as live configuration, not a restart-scoped deployment value.
+    btwReasoningEffort: z.union(['off', 'low', 'high', 'max']).default('low').volatile(),
     deleteDrainTimeoutMs: z.natural().min(1).max(300000).default(30000),
     deletePollMs: z.natural().min(1).max(1000).default(50),
     predictionDraftBytes: z.natural().min(1).max(65536).default(16384),
@@ -203,17 +229,22 @@ export class SessionController extends TypertRemoteService {
    * @param config - native-opener and list-scheduling deployment policy.
    * @param internals - host integrations replaceable by direct unit tests.
    */
-  constructor(ctx: Context, config: Config, internals: SessionControllerInternals = {}) {
+  constructor(ctx: Context, config: Config | ResolvedConfig, internals: SessionControllerInternals = {}) {
     super(ctx, 'sessionController', { namespace: 'session' })
     ctx.typert.resources.register('session', { field: 'sessionId' })
-    const resolved = SessionController.Config(config)
+    // The Loader resolves Config before construction; direct harnesses pass a
+    // partial plain object. Only the latter needs schema resolution here.
+    const resolved: ResolvedConfig = isResolvedConfig(config) ? config : SessionController.Config(config)
     this.predictionPolicy = resolved
     ctx.effect(() => () => this.predictions.close(), 'session-controller: input predictions')
     ctx.on('workspace/session-stop', ({ sessionId }) => this.predictions.stop(sessionId))
     installModelSelectionProjection(ctx)
-    this.agents = new ApiSessionAgentController(ctx, resolved.sideContextBytes)
+    this.agents = new ApiSessionAgentController(ctx, {
+      sideContextBytes: resolved.sideContextBytes,
+      btwContextBytes: resolved.btwContextBytes,
+    })
     this.commands = new SessionCommandController(ctx, this.agents, process.cwd())
-    this.asides = new SessionAsideController(ctx, this.agents)
+    this.asides = new SessionAsideController(ctx, this.agents, () => resolved.btwReasoningEffort.get())
     ctx.effect(() => () => this.asides.close(), 'session-controller: side conversations')
     ctx.effect(() => ctx.fileUploads.registerAgentResolver(async (sessionId) => {
       const result = await this.agents.resolveAgent(sessionId)
@@ -246,7 +277,7 @@ export class SessionController extends TypertRemoteService {
         }
       }, id => this.agents.owns(id)), 'session-controller: spending continuation')
       child.on('api-session/deleted', (id) => {
-        void child.spendLimit.forgetSession(id).catch((error) => { child.logger.error('session-controller: spending pause cleanup failed'); child.logger.error(error) })
+        void child.spendLimit.forgetSession(id).catch((error: unknown) => { child.logger.error('session-controller: spending pause cleanup failed'); child.logger.error(error) })
       })
     })
     this.listState = new ApiSessionList(ctx, resolved.listWorkSliceMs)
@@ -578,6 +609,9 @@ export class SessionController extends TypertRemoteService {
       const surface = predictionSurface(session.id, session.header.parentSession, request.draft)
       const parent = surface === 'side' ? session.header.parentSession : undefined
       if (parent !== undefined && !this.ctx.remoteAccess.allows({ kind: 'session', id: parent })) return ''
+      // A prediction reads the attached Session's live surface synchronously;
+      // the async inspect path is used for the parent, not this Session.
+      // oxlint-disable-next-line typescript/no-deprecated -- live attached read, see above
       const events = parent === undefined ? session.snapshotEvents() : (await this.inspect(parent, bounded)).events
       const completed = completedPredictionEvents(events)
       if (request.draft.trim() === '' && completed.length === 0 && surface !== 'btw') return ''

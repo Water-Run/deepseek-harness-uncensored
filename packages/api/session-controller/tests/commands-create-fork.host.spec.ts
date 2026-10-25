@@ -29,7 +29,7 @@ function controllerAgents(
     readonly createSession?: ApiSessionAgentController['createSession']
   } = {},
 ): ApiSessionAgentController {
-  const agents = new ApiSessionAgentController(ctx, 65536)
+  const agents = new ApiSessionAgentController(ctx, { sideContextBytes: 65536, btwContextBytes: 8192 })
   vi.spyOn(agents, 'composeAgent').mockImplementation(fixed.composeAgent ?? (() => Promise.resolve({ setup: () => {} })))
   if (fixed.createSession !== undefined) vi.spyOn(agents, 'createSession').mockImplementation(fixed.createSession)
   return agents

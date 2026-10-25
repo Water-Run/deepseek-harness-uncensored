@@ -70,6 +70,8 @@ The user-invocable `skills/list` metadata includes the winning provider’s opti
 
 Fork copies the exact inclusive event prefix selected by `atSeq`, including a cut inside an open turn. The child records its inherited marker before synthetic fork results and closing events. Omitting `atSeq` selects the latest completed turn and its standalone tail, stopping before the next turn or queued input; a nonexistent event is rejected. The chat action selects a completed turn.
 
+Native asides are children of the selected Session and never write to it. A side conversation owns one stable identity per parent, seeds the completed prefix, and receives completed main updates up to `sideContextBytes` as background context. A quick question creates a fresh child per invocation and receives a bounded live progress snapshot up to `btwContextBytes` — status, the latest user request, the current todo list, and recent assistant and tool work, including the in-flight turn — labeled as background data rather than conversation history. Both children inherit the parent's model; the quick question additionally uses the live `btwReasoningEffort` when the resolved model advertises that level, while a side conversation keeps the main conversation's own level.
+
 A resume blocked by an existing write handle returns `session/writer-held` with the Session id; other resume failures retain `gateway/internal`.
 
 `loadThrough(seq)` retains older pages privately until its shared target is covered or loading ends, then publishes the successful pages as one ordered prepend. Live events remain visible while history loads. A later page failure retains the successful prefix; replacing the history window discards buffered pages from the replaced window. Ordinary `loadOlder()` publishes one Host-selected page directly.
@@ -107,6 +109,9 @@ A successful `selectModel` response acknowledges the Session-local selection wit
 |---|---:|---|
 | `nativeOpen` | platform-detected | Whether Session workspace paths can be handed to a native desktop opener |
 | `listWorkSliceMs` | `16` | Positive integral list-work time slice in milliseconds; checks occur between complete rows |
+| `sideContextBytes` | `65536` | Maximum UTF-8 bytes of completed main updates supplied to each side-question request |
+| `btwContextBytes` | `8192` | Maximum UTF-8 bytes of the live progress snapshot supplied to each quick question |
+| `btwReasoningEffort` | `low` | Live reasoning level for one-shot quick questions (`off`, `low`, `high`, `max`); ignored when the selected model does not advertise it |
 
 The [configuration schema](src/index.ts) defines accepted fields and their defaults.
 

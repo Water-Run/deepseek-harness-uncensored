@@ -17,6 +17,7 @@
     "src/deletion.ts",
     "src/aside-context.ts",
     "src/aside-main-context.ts",
+    "src/aside-question-context.ts",
     "src/control.ts",
     "src/file-references.ts",
     "src/history.ts",

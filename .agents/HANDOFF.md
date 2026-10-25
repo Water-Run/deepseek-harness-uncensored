@@ -1,5 +1,16 @@
 # Uncensored 开发交接
 
+## 随问进度上下文节点（2026-10-25）
+
+用户反馈 `/btw 进度如何` 拿不到主线进度；本节点把随问从“全新上下文”改为“有界实时进度快照 + 独立回答”，并让随问使用可配置的低思考等级，旁问仍跟随主对话。
+
+- 新增 `aside-question-context.ts`：从父会话实时事件生成不超过 `btwContextBytes`（默认 8192）的快照，包含状态（运行中/已结束及轮次、步骤）、最近用户请求、当前待办列表、近期助手与工具工作（含进行中轮次），并以“背景数据、不要延续主线任务”标注。随问系统提示同步改写，不再声明“父对话没有上下文”。旁问保持只在每个请求前同步已完成进展（`sideContextBytes`）。
+- 思考等级：`session-controller` Config 新增 volatile `btwReasoningEffort`（默认 `low`，可选 `off/low/high/max`）。随问创建时先解析模型能力，模型支持该等级才覆盖；旁问与主对话一致。通用设置新增“随问思考等级”行（`ui-commands` 注册 `settings.general.item`），按字段发现 `session-controller` 设置命名空间并 `remote.settings.update`，读写实时生效。
+- 修复子会话模型选择：`model-selection` 的 `agent/request` 瀑布会用 Agent 的已提交选择覆盖创建参数。aside 创建后现在调用 `selectForNextRequest` 记录选择，否则随问的 `low` 会被默认模型覆盖（这同时修正了旁问未必真正继承主对话模型等级的隐患）。
+- 修复 Loader 双重解析：Loader 传入的是已解析 Config（volatile 字段是带 `get()` 的包装），而构造函数再次 `SessionController.Config(config)` 会把包装当作值校验而失败（表现为 session-controller 未激活、随问设置无效）。构造函数现在识别已解析配置并原样使用，保证设置写入命同一个包装；直接构造的测试仍走 schema 解析。
+- 验证：`aside-question-context` 4 项、`asides.host` 6 项（进度快照、随问 low、旁问跟随主线、随问每次新建）、设置行 4 项、`list-scheduling`（已解析 Config 路径）通过；`build:artifacts` 7/7。真实账号页面实测：`/btw 进度如何` 2 秒返回，答案复述了主线当前状态（turn 7 已完成、空闲、MySQL 权限与表数量等），通用设置显示“随问思考等级：低（默认）”。
+- 既有问题：`session-presets.host.spec.ts` 在未改动的 HEAD 上同样失败（29 项），属本机组合/环境漂移，与本节点无关；`test:gui` 的既有失败清单不变。
+
 ## 界面问题修复节点（2026-10-25）
 
 用户列出九项问题并附截图；本节点完成前六项修复与后三项收尾，未打包、未安装。

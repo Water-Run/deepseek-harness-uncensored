@@ -1,7 +1,9 @@
 /** Native side conversations with durable identities and logged context notes. */
 import { randomUUID } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
+import type { ModelSelection as AgentModelSelection } from '@deepseek-ai/dsh-agent'
 import { brandString } from '@deepseek-ai/dsh-brand'
+import { errorChain, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import { SessionLogOffset, type SessionId } from '@deepseek-ai/dsh-session'
 import { buildForkSeed } from '@deepseek-ai/dsh-session/fork'
 import { SessionQueryError } from '@deepseek-ai/dsh-session-query'
@@ -17,8 +19,10 @@ export class SessionAsideController {
   private readonly pending = new Set<Promise<SessionForkValue>>()
   private closed = false
 
-  /** @param ctx - Host session services. @param agents - Shared composition and resume owner. */
-  constructor(private readonly ctx: Context, private readonly agents: ApiSessionAgentController) {}
+  /** @param ctx - Host session services. @param agents - Shared composition and resume owner.
+   * @param btwReasoningEffort - Live configured reasoning level for one-shot quick questions. */
+  constructor(private readonly ctx: Context, private readonly agents: ApiSessionAgentController,
+    private readonly btwReasoningEffort: () => string) {}
 
   /**
    * Open a persistent side question, or create a fresh inline question.
@@ -77,10 +81,14 @@ export class SessionAsideController {
     const boundary = request.kind === 'side' ? latestCompletedPrefixBoundary(source.events) : undefined
     const composition = await this.agents.composeAgent(this.agents.presetForObservation(source))
     const latestConfig = source.events.findLast(event => event.type === 'request/header')?.data.header.config
-    const selection = latestConfig === undefined ? this.ctx.agentDefaultModel.currentSelection() : {
+    const inherited: AgentModelSelection = latestConfig === undefined ? this.ctx.agentDefaultModel.currentSelection() : {
       provider: latestConfig.provider, model: latestConfig.model,
       ...(latestConfig.reasoningEffort === undefined ? {} : { reasoningEffort: latestConfig.reasoningEffort }),
     }
+    // A side conversation follows the main conversation's own model and level;
+    // a one-shot quick question keeps the model but uses its configured level,
+    // because "how is progress" is answered faster and cheaper at low effort.
+    const selection = request.kind === 'btw' ? await this.quickQuestionSelection(inherited) : inherited
     const agent = await this.agents.createOwned({
       sessionId: childId,
       ...(boundary === undefined ? {} : {
@@ -95,7 +103,32 @@ export class SessionAsideController {
       agentOptions: selection,
       setup: composition.setup,
     })
+    // Creation options seed the first request, but the model-selection
+    // waterfall then applies the Agent's committed selection; record it so the
+    // child's own model and level are not replaced by the deployment default.
+    this.agents.selectForNextRequest(agent, selection)
     await this.ctx.sessions.flush(agent.session)
     return { sessionId: childId }
+  }
+
+  /**
+   * Apply the configured quick-question reasoning level when the resolved model
+   * advertises it. An unknown or unreachable model keeps the inherited level,
+   * so a level the adapter cannot serve is never sent.
+   * @param inherited - Parent conversation or deployment-default selection.
+   * @returns the selection for the one-shot child.
+   */
+  private async quickQuestionSelection(inherited: AgentModelSelection): Promise<AgentModelSelection> {
+    const effort = this.btwReasoningEffort()
+    if (effort === '') return inherited
+    try {
+      const info = await this.ctx.llm.resolveModelInfo(inherited.provider, inherited.model)
+      const efforts = info.reasoning?.efforts
+      if (efforts !== undefined && !efforts.some(entry => String(entry.id) === effort)) return inherited
+    } catch (error: unknown) {
+      this.ctx.logger.warn(`session-controller: quick-question reasoning lookup failed: ${errorChain(error)}`)
+      return inherited
+    }
+    return { ...inherited, reasoningEffort: ReasoningEffortId(effort) }
   }
 }

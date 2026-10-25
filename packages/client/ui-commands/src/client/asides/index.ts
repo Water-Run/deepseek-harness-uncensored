@@ -1,8 +1,10 @@
 /** Built-in /side and /btw registration; no separately installed command plugin. */
 import type { Context } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { ResourceProvider } from '@deepseek-ai/dsh-client-resources/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
+import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import { IconNewChatOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
@@ -10,6 +12,8 @@ import { AsideConversation, AsideTitle, InlineAsidePanel, SidebarAsidePanel, typ
 import { InlineAsideController } from './controller.ts'
 import { AsideIcon } from './AsideIcon.tsx'
 import { ASIDE_PREFIX, asideParent } from './address.ts'
+import { AsideReasoningRow } from './ReasoningSettings.tsx'
+import { AsideReasoningController, type BtwReasoningEffort } from './reasoning-settings.ts'
 
 const TYPE = '@deepseek-ai/dsh-client-ui-commands/aside'
 
@@ -29,8 +33,16 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
  * @param ctx - Built-in command UI owner.
  */
 export function registerAsides(ctx: Context): void {
-  ctx.inject(['slots', 'commandUi', 'resources', 'sidebarRight', 'sidebarRightTabs', 'remote.session'], (scope) => {
+  ctx.inject(['slots', 'commandUi', 'resources', 'sidebarRight', 'sidebarRightTabs', 'remote.session', 'remote.settings'], (scope) => {
     const t = scope.locale.bind('command')
+    const reasoning = new AsideReasoningController(scope.remote.settings)
+    scope.slots.inject('settings.general.item', () => scope.slots.register({
+      name: 'settings.general.item', id: 'quick-question-reasoning', order: 40, locale: 'command',
+      inject: () => ({
+        load: () => reasoning.load(),
+        save: (value: BtwReasoningEffort) => reasoning.save(value),
+      }),
+    }, AsideReasoningRow))
     const requests = new Set<Promise<SessionId>>()
     const parents = new Map<SessionId, SessionId>()
     let closed = false

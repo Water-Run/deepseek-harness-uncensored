@@ -55,7 +55,7 @@ it('deletes through a dependency-checked scope with optional persistence', async
     name: 'scoped-deletion-test', inject: SessionController.inject,
     async apply(scoped: Context) {
       expect(() => scoped.sessionPersistence).toThrow('without inject')
-      const agents = new ApiSessionAgentController(scoped, 65536)
+      const agents = new ApiSessionAgentController(scoped, { sideContextBytes: 65536, btwContextBytes: 8192 })
       const deletion = new SessionDeletionController(scoped, agents, { drainTimeoutMs: 30000, pollMs: 50 }, () => {})
       try {
         const agent = await agents.createOwned({ sessionId: id, meta: { cwd }, agentOptions: { provider: 'mock', model: 'mock' } })
@@ -112,7 +112,7 @@ it('stops a running API-owned conversation before removing its writer and log', 
 
 it('purges an already-indexed cold Session before another search and blocks delayed checkpoint writes', async () => {
   const { root, ctx, api, cwd, cache } = await setup()
-  const lifecycle = new ApiSessionAgentController(ctx, 65536)
+  const lifecycle = new ApiSessionAgentController(ctx, { sideContextBytes: 65536, btwContextBytes: 8192 })
   const id = SessionId('cold-indexed')
   const agent = await lifecycle.createOwned({ sessionId: id, meta: { cwd }, agentOptions: { provider: 'mock', model: 'mock' } })
   agent.followup(createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'cold_deletion_marker' }] }))
@@ -172,7 +172,7 @@ it('recovers derived cleanup after restart without restoring deleted conversatio
 
 it('excludes native child publication while another Host attempts to delete its parent', async () => {
   const { root, ctx, api, cwd } = await setup()
-  const lifecycle = new ApiSessionAgentController(ctx, 65536)
+  const lifecycle = new ApiSessionAgentController(ctx, { sideContextBytes: 65536, btwContextBytes: 8192 })
   const id = SessionId('concurrent-parent')
   await lifecycle.createOwned({ sessionId: id, meta: { cwd }, agentOptions: { provider: 'mock', model: 'mock' } })
   await lifecycle.disposeOwned(id)

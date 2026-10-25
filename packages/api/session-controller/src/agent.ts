@@ -18,7 +18,7 @@ import { SessionQueryError, type SessionObservation } from '@deepseek-ai/dsh-ses
 import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import type {} from '@deepseek-ai/dsh-typert-registry'
 import type { ModelSelection } from './types.ts'
-import { installAsideContext, nativeAsideKind } from './aside-context.ts'
+import { installAsideContext, nativeAsideKind, type AsideContextLimits } from './aside-context.ts'
 
 /** Cold Session identity absent from persistence. */
 export class ApiSessionNotFound extends Error {}
@@ -181,9 +181,9 @@ export class ApiSessionAgentController {
 
   /**
    * @param ctx - Host context carrying Agent, model, persistence, and Typert services.
-   * @param sideContextBytes - Byte budget for completed main updates in side questions.
+   * @param asideLimits - Byte budgets for the parent context each native aside kind receives.
    */
-  constructor(private readonly ctx: Context, private readonly sideContextBytes: number) {
+  constructor(private readonly ctx: Context, private readonly asideLimits: AsideContextLimits) {
     ctx.on('agent/disposed', ({ agent }) => {
       if (this.owned.get(agent.id)?.agent === agent) this.owned.delete(agent.id)
     })
@@ -526,7 +526,7 @@ export class ApiSessionAgentController {
     if (presets === undefined) {
       return { setup: async (agentCtx, agent) => {
         this.installSelection(agent)
-        await installAsideContext(agentCtx, agent, this.sideContextBytes)
+        await installAsideContext(agentCtx, agent, this.asideLimits)
       } }
     }
     const resolvedId = (await presets.resolve(presetId)).id
@@ -535,7 +535,7 @@ export class ApiSessionAgentController {
       setup: async (agentCtx, agent) => {
         this.installSelection(agent)
         await presets.mount(agentCtx, resolvedId)
-        await installAsideContext(agentCtx, agent, this.sideContextBytes)
+        await installAsideContext(agentCtx, agent, this.asideLimits)
       },
     }
   }
