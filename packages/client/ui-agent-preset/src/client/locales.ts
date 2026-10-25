@@ -8,7 +8,7 @@ export type AgentPresetSettingsKey =
   | 'modeSwitch.done' | 'modeSwitch.failed' | 'modeSwitch.saved' | 'modeSwitch.saveFailed'
   | 'modeSwitch.confirmTitle' | 'modeSwitch.warning' | 'modeSwitch.sessionOnly' | 'modeSwitch.countdown'
   | 'modeSwitch.confirm' | 'modeSwitch.cancel' | 'modeSwitch.retry' | 'modeSwitch.locked'
-  | 'modeSwitch.disabled' | 'modeSwitch.reload'
+  | 'modeSwitch.blocked' | 'modeSwitch.disabled' | 'modeSwitch.reload'
   | 'sensitive.allow' | 'sensitive.hint' | 'sensitive.confirmTitle' | 'sensitive.warning' | 'sensitive.off'
   | 'sensitive.countdown' | 'sensitive.confirm' | 'sensitive.cancel' | 'sensitive.retry'
   | 'sensitive.saved' | 'sensitive.offSaved' | 'sensitive.saveFailed' | 'sensitive.reload'
@@ -82,6 +82,7 @@ export const en: Record<AgentPresetSettingsKey, string> = {
   'modeSwitch.retry': 'Restart confirmation',
   'modeSwitch.reload': 'Retry permission check',
   'modeSwitch.locked': 'This conversation keeps its current mode. You can enable temporary switching below or choose a mode for a new conversation.',
+  'modeSwitch.blocked': 'The mode was not changed because this conversation keeps its current mode. Enable temporary switching below, or choose a mode for a new conversation.',
   'modeSwitch.disabled': 'Changing the mode of an existing conversation is off. Enable it under Settings → Modes.',
   'sensitive.allow': 'Confirm sensitive actions',
   'sensitive.hint': 'On by default. When on, entering Security mode, changing an existing conversation and similar actions ask for a countdown or a typed statement first. Turning it off removes those dialogs for every mode.',
@@ -200,6 +201,7 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
   'modeSwitch.retry': '重新确认',
   'modeSwitch.reload': '重新读取权限',
   'modeSwitch.locked': '当前对话保持原模式。可在下方临时允许切换，或为新对话选择模式。',
+  'modeSwitch.blocked': '当前对话保持原模式，未执行切换。可在下方临时允许切换，或为新对话选择模式。',
   'modeSwitch.disabled': '已有对话默认不能切换模式，可在“设置 → 模式”中临时允许。',
   'sensitive.allow': '敏感操作需要确认',
   'sensitive.hint': '默认开启。开启时，进入网安模式、切换已有对话的模式等操作会先要求阅读倒计时或输入声明；关闭后这些确认弹窗对所有模式都不再出现。',

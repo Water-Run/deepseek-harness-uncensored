@@ -113,6 +113,24 @@ describe('mode switch operations', () => {
     } finally { response.resolve({ allowExistingSessionSwitch: false }); await controller.dispose() }
   })
 
+  it('announces a refused change without touching permission, selection or the busy set', async () => {
+    const remote = policyRemote()
+    const select = vi.fn(async () => {})
+    const controller = new ModeSwitchController(remote, select, t)
+    controller.refuse('locked')
+    expect(controller.state.getSnapshot().toast).toMatchObject({ text: zh['modeSwitch.blocked'], success: false })
+    expect(controller.state.getSnapshot().busy.size).toBe(0)
+    expect(controller.state.getSnapshot().saving).toBe(false)
+    controller.refuse('running')
+    expect(controller.state.getSnapshot().toast).toMatchObject({ text: zh['modeSwitch.running'], success: false })
+    expect(select).not.toHaveBeenCalled()
+    expect(remote.read).not.toHaveBeenCalled()
+    await controller.dispose()
+    // A closed controller publishes nothing, including the refusal.
+    controller.refuse('locked')
+    expect(controller.state.getSnapshot().toast).toMatchObject({ text: zh['modeSwitch.running'] })
+  })
+
   it('drains a pending change without publishing a notification after disposal', async () => {
     const gate = Promise.withResolvers<undefined>()
     const remote = policyRemote()

@@ -60,6 +60,12 @@ describe('sensitive-action confirmation setting', () => {
     expect(actions.saveConfirmations).toHaveBeenCalledWith(false)
   })
 
+  it('reads the persisted preference on mount so the General row needs no page load', () => {
+    const { actions, renderSetting } = injected()
+    renderSetting()
+    expect(actions.loadConfirmations).toHaveBeenCalledOnce()
+  })
+
   it('disables the switch while a request or a read is pending and offers a retry', () => {
     const saving = injected({ saving: true })
     saving.renderSetting()
@@ -69,8 +75,10 @@ describe('sensitive-action confirmation setting', () => {
     const failed = injected({ status: 'error', writable: false })
     failed.renderSetting()
     expect(screen.getByRole<HTMLButtonElement>('switch', { name: en['sensitive.allow'] }).disabled).toBe(true)
-    fireEvent.click(screen.getByRole('button', { name: en['sensitive.reload'] }))
+    // The mount read, then the person's retry.
     expect(failed.actions.loadConfirmations).toHaveBeenCalledOnce()
+    fireEvent.click(screen.getByRole('button', { name: en['sensitive.reload'] }))
+    expect(failed.actions.loadConfirmations).toHaveBeenCalledTimes(2)
   })
 })
 

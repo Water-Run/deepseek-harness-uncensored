@@ -101,6 +101,16 @@ export class ModeSwitchController {
   }
 
   /**
+   * Announce a change that was not attempted, without touching the permission,
+   * the selection, or the busy set.
+   * @param reason - the running task, or the conversation locked to its mode.
+   */
+  refuse(reason: 'running' | 'locked'): void {
+    if (this.closed) return
+    this.notify(this.t(reason === 'running' ? 'modeSwitch.running' : 'modeSwitch.blocked'), false)
+  }
+
+  /**
    * Request a temporary permission change.
    * @param value - True opens confirmation; false immediately revokes permission.
    * @returns Request completion.

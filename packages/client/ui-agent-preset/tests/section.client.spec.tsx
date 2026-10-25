@@ -6,7 +6,6 @@ import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import { AgentPresetSection, type AgentPresetSectionProps, type CurrentModeState } from '../src/client/AgentPresetSection.tsx'
 import { ModeSwitchController } from '../src/client/mode-policy-controller.ts'
-import { SensitiveConfirmationsController } from '../src/client/sensitive-confirmations-controller.ts'
 import type { AgentPresetSectionState } from '../src/client/section-store.ts'
 import { en } from '../src/client/locales.ts'
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.useRealTimers() })
@@ -24,19 +23,12 @@ function view(partial: Partial<AgentPresetSectionState> = {}, startCreatorDraft?
     begin: async () => { throw new Error('not used') }, confirm: async () => { throw new Error('not used') },
     disable: async () => ({ allowExistingSessionSwitch: false }),
   }, async () => {}, makeTranslate(en))
-  const sensitive = new SensitiveConfirmationsController({
-    read: async () => ({ confirmations: true }),
-    begin: async () => ({ id: 'challenge' as never, confirmations: false, waitMs: 10_000 }),
-    confirm: async () => ({ confirmations: false }),
-  }, makeTranslate(en))
   const store = createSnapshotStore<AgentPresetSectionState>({ status: 'ready', error: null,
     saving: false, rows: [{ id: 'standard', isDefault: true }, { id: 'mine', name: 'Mine', isDefault: false }],
     view: null, ...partial })
   const actions = { load: vi.fn(async () => {}), view: vi.fn(async () => {}), closeView: vi.fn(), makeDefault: vi.fn(async () => {}),
     close: vi.fn(), selectCurrent: vi.fn(async () => {}), savePolicy: vi.fn(async () => {}), loadPolicy: vi.fn(async () => {}),
-    confirmPolicy: vi.fn(async () => {}), cancelPolicy: vi.fn(), dismissModeToast: vi.fn(),
-    loadConfirmations: vi.fn(async () => {}), saveConfirmations: vi.fn(async () => {}), confirmConfirmations: vi.fn(async () => {}),
-    cancelConfirmations: vi.fn(), dismissConfirmations: vi.fn() }
+    confirmPolicy: vi.fn(async () => {}), cancelPolicy: vi.fn(), dismissModeToast: vi.fn() }
   const configured: (string | undefined)[] = []
   const props: AgentPresetSectionProps = { ...actions,
     ...(startCreatorDraft === undefined ? {} : { startCreatorDraft }),
@@ -54,11 +46,10 @@ function view(partial: Partial<AgentPresetSectionState> = {}, startCreatorDraft?
     useModeSwitchState: bindSnapshotSelector(mode.state),
     useDeveloperTools: bindSnapshotSelector(developerTools),
     useConfigurableModes: bindSnapshotSelector(configurableModes),
-    useSensitiveConfirmations: bindSnapshotSelector(sensitive.state),
     t: key => translations.get(key) ?? key }
   render(outerClose === undefined ? <AgentPresetSection {...props} />
     : <Modal open onClose={outerClose} title="Settings" closeLabel="Close"><AgentPresetSection {...props} /></Modal>)
-  return { ...actions, store, developerTools, currentMode, configurableModes, mode, sensitive, configured }
+  return { ...actions, store, developerTools, currentMode, configurableModes, mode, configured }
 }
 function rowFor(id: string): HTMLElement {
   const row = document.querySelector<HTMLElement>(`[data-agent-preset-id="${id}"]`)
@@ -105,7 +96,9 @@ it.each(['ptc', 'minimal'])('keeps a named custom %s override selectable with Co
 })
 it('selects the current mode without exposing a default editor', async () => {
   const actions = view()
-  expect(screen.getAllByRole('switch')).toHaveLength(2)
+  // The sensitive-action preference moved to the General section; the Modes
+  // page keeps only the existing-conversation permission.
+  expect(screen.getAllByRole('switch')).toHaveLength(1)
   fireEvent.click(screen.getByRole('button', { name: `${en.selectCurrent}: Mine` }))
   expect(actions.selectCurrent).toHaveBeenCalledWith('mine')
   expect(actions.makeDefault).not.toHaveBeenCalled()
@@ -400,4 +393,26 @@ it('explains why an established conversation keeps its mode until switching is a
 it('keeps a new conversation free of the lock notice', () => {
   view({}, undefined, undefined, true, [], { blank: true })
   expect(screen.queryByText(en['modeSwitch.locked'])).toBeNull()
+})
+
+it('asks the owner instead of failing silently when an established conversation cannot switch', () => {
+  const actions = view({ rows: [{ id: 'standard', isDefault: true }, { id: 'reverse', isDefault: false }] },
+    undefined, undefined, true, [], { sessionId: 's1', blank: false })
+  const card = screen.getByRole<HTMLButtonElement>('button', { name: `${en.selectCurrent}: ${en.presetReverseName}` })
+  // Focusable and clickable, so the refusal reaches the person as a notice.
+  expect(card.disabled).toBe(false)
+  expect(card.getAttribute('aria-disabled')).toBe('true')
+  expect(card.title).toBe(en['modeSwitch.blocked'])
+  fireEvent.click(card)
+  expect(actions.selectCurrent).toHaveBeenCalledExactlyOnceWith('reverse')
+})
+
+it('lets a new conversation select an enabled card without the lock notice', () => {
+  const actions = view({ rows: [{ id: 'standard', isDefault: true }, { id: 'reverse', isDefault: false }] },
+    undefined, undefined, true, [], { blank: true })
+  const card = screen.getByRole<HTMLButtonElement>('button', { name: `${en.selectCurrent}: ${en.presetReverseName}` })
+  expect(card.getAttribute('aria-disabled')).toBe('false')
+  expect(card.title).toBe(en.selectCurrent)
+  fireEvent.click(card)
+  expect(actions.selectCurrent).toHaveBeenCalledExactlyOnceWith('reverse')
 })

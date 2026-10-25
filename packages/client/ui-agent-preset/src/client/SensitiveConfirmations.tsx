@@ -1,8 +1,9 @@
-/** Settings row and countdown overlay for the sensitive-action confirmation preference. */
+/** General Settings row and countdown overlay for the sensitive-action confirmation preference. */
+import { useEffect } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { Button, Modal, Switch, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SensitiveConfirmationsController } from './sensitive-confirmations-controller.ts'
-import css from './ModeSwitch.module.css'
+import css from './SensitiveConfirmations.module.css'
 
 /** Preference operations and the state the row and its overlay render. */
 export interface SensitiveConfirmationsInjected {
@@ -25,23 +26,29 @@ export interface SensitiveConfirmationsInjected {
 type Common = InjectFace<SensitiveConfirmationsInjected> & PropsLocale<'settings.agentPreset'>
 
 /**
- * Render the preference switch inside the mode settings page.
+ * Render the preference switch in the General settings section. The preference
+ * governs every mode, so it does not belong to the mode page.
  * @param props - Preference operations, snapshot hook and localized text.
  * @returns The settings row.
  */
 export function SensitiveConfirmationsSetting({
   useSensitiveConfirmations, loadConfirmations, saveConfirmations, t,
-}: Common) {
+}: PropsRuntime<'settings.general.item'> & Common) {
   const state = useSensitiveConfirmations(value => value)
-  return <div className={css.setting}>
+  // The row carries no page load of its own: reading here keeps the displayed
+  // switch independent of whether the Modes page was ever opened.
+  useEffect(() => { void loadConfirmations() }, [loadConfirmations])
+  return <div className={css.row}>
     <div>
-      <div>{t('sensitive.allow')}</div>
-      <p>{t('sensitive.hint')}</p>
+      <div className={css.title}>{t('sensitive.allow')}</div>
+      <div className={css.description}>{t('sensitive.hint')}</div>
     </div>
-    {state.status === 'error' && <Button variant="ghost" onClick={() => { void loadConfirmations() }}>{t('sensitive.reload')}</Button>}
-    <Switch label={t('sensitive.allow')} checked={state.confirmations}
-      disabled={state.status !== 'ready' || !state.writable || state.saving}
-      onChange={(value) => { void saveConfirmations(value) }} />
+    <div className={css.actions}>
+      {state.status === 'error' && <Button variant="ghost" onClick={() => { void loadConfirmations() }}>{t('sensitive.reload')}</Button>}
+      <Switch label={t('sensitive.allow')} checked={state.confirmations}
+        disabled={state.status !== 'ready' || !state.writable || state.saving}
+        onChange={(value) => { void saveConfirmations(value) }} />
+    </div>
   </div>
 }
 

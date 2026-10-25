@@ -24,11 +24,12 @@ import type { AgentPresetSeatInjected } from '../src/client/AgentPresetSeat.tsx'
 import { AgentPresetSeatController } from '../src/client/seat-store.ts'
 import { CreatePluginMenuItem, type CreatePluginMenuItemInjected } from '../src/client/CreatePluginMenuItem.tsx'
 import { SecurityEntryDialog, type SecurityEntryDialogInjected } from '../src/client/SecurityEntryDialog.tsx'
-import { SensitiveConfirmationsPrompt } from '../src/client/SensitiveConfirmations.tsx'
+import { SensitiveConfirmationsPrompt, SensitiveConfirmationsSetting } from '../src/client/SensitiveConfirmations.tsx'
 import type { SensitiveConfirmationsInjected } from '../src/client/SensitiveConfirmations.tsx'
 import { AgentPresetSectionController } from '../src/client/section-store.ts'
+import { zh } from '../src/client/locales.ts'
 import { apply as hostApply } from '../src/index.ts'
-import type { AgentPresetRow, SensitiveConfirmationChallengeId } from '@deepseek-ai/dsh-agent-preset-registry/types'
+import type { AgentPresetRow, ModeSwitchChallengeId, SensitiveConfirmationChallengeId } from '@deepseek-ai/dsh-agent-preset-registry/types'
 
 // These specs assert the shipped Chinese copy. The lane has no jsdom `window`,
 // so browser-language detection never runs and a fresh LocaleRuntime opens on
@@ -77,6 +78,8 @@ async function bench(options: {
   developerToolsEnabled?: boolean
   /** Reading interval the fake preference challenge reports for a disabling request. */
   sensitiveWaitMs?: number
+  /** Whether the fake Host currently allows changing an established conversation. */
+  allowExistingSessionSwitch?: boolean
 } = {}) {
   const ctx = new Context()
   // The host's answer, mutable so a spec can move the default the way the
@@ -94,6 +97,7 @@ async function bench(options: {
   let developerToolsEnabled = options.developerToolsEnabled ?? true
   let sensitiveOn = true
   let sensitiveRequested = true
+  let switchAllowed = options.allowExistingSessionSwitch ?? false
   let settingsSaved = false
   const settingsRosterStarted = Promise.withResolvers<undefined>()
   // The row reads `describe` to learn whether this browser may write at all,
@@ -183,6 +187,19 @@ async function bench(options: {
       },
     }),
     sensitiveConfirmationPolicy: () => Promise.resolve({ ok: true as const, value: { confirmations: sensitiveOn } }),
+    switchPolicy: () => Promise.resolve({ ok: true as const, value: { allowExistingSessionSwitch: switchAllowed } }),
+    beginModeSwitch: () => Promise.resolve({
+      ok: true as const,
+      value: { id: 'mode-challenge' as ModeSwitchChallengeId, waitMs: 10_000 },
+    }),
+    confirmModeSwitch: () => {
+      switchAllowed = true
+      return Promise.resolve({ ok: true as const, value: { allowExistingSessionSwitch: true } })
+    },
+    disableModeSwitch: () => {
+      switchAllowed = false
+      return Promise.resolve({ ok: true as const, value: { allowExistingSessionSwitch: false } })
+    },
     beginSensitiveConfirmation: (confirmations: boolean) => {
       calls.push(`beginSensitive:${String(confirmations)}`)
       sensitiveRequested = confirmations
@@ -327,6 +344,25 @@ async function settingsWithoutChip(initialPreset: string, settingsRosterGate?: P
   return { ...b, bindingOwner, feature, section, sessions }
 }
 
+/** Apply the feature on one main conversation that already has messages. */
+async function establishedConversation(options: { allowExistingSessionSwitch?: boolean } = {}) {
+  const b = await bench(options)
+  declareRoot(b.slots)
+  const conversation = declareConversation(b.slots)
+  b.ctx.provide('conversation', {} as never)
+  const sessions = sessionsDouble(b.ctx, {
+    current: 's1',
+    byId: { s1: { id: 's1', blank: false, projectionValues: { agentPreset: 'standard' } } },
+  })
+  b.ctx.provide('sessions', sessions as never)
+  b.ctx.provide('uiWorkspace', uiWorkspaceDouble() as never)
+  await b.ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply }).await()
+  const section = (b.slots.entries('settings.section')[0]!
+    .inject as unknown as () => AgentPresetSectionInjected)()
+  await vi.waitFor(() => { expect(section.hooks.modePolicy.getSnapshot().status).toBe('ready') })
+  return { ...b, conversation, sessions, section }
+}
+
 describe('ui-agent-preset apply', () => {
   const settingsActions = [
     { action: 'selectCurrent', initial: 'standard', selected: 'minimal', run: (section: AgentPresetSectionInjected) => section.selectCurrent('minimal') },
@@ -459,12 +495,36 @@ describe('ui-agent-preset apply', () => {
 
     await ctx.plugin({ inject: [...inject], apply }).await()
 
-    expect(slots.entries('settings.general.item').map(entry => entry.component)).toEqual([])
+    // The sensitive-action preference governs every mode, so its row lives in
+    // General rather than on the Modes page.
+    const preferenceRow = slots.entries('settings.general.item')[0]!
+    expect(preferenceRow.component).toBe(SensitiveConfirmationsSetting)
+    expect(preferenceRow.options).toMatchObject({ id: 'sensitive-confirmations', order: 25 })
     const section = slots.entries('settings.section')[0]!
     expect(section.component).toBe(AgentPresetSection)
     expect(section.options).toMatchObject({ id: 'agent-presets', order: 30 })
     // The nav label is a locale-following thunk; owners resolve it at read time.
     expect(resolveSlotLabel(section.options.label)).toBe('模式')
+  })
+
+  it('explains why an established conversation kept its mode instead of switching', async () => {
+    const b = await establishedConversation()
+    try {
+      await b.section.selectCurrent('reverse')
+      expect(b.calls.filter(call => call.startsWith('select:'))).toEqual([])
+      expect(b.section.hooks.modeSwitchState.getSnapshot().toast)
+        .toMatchObject({ text: zh['modeSwitch.blocked'], success: false })
+    } finally { await b.ctx.fiber.dispose() }
+  })
+
+  it('switches an established conversation once the temporary permission is accepted', async () => {
+    const b = await establishedConversation({ allowExistingSessionSwitch: true })
+    try {
+      await b.section.selectCurrent('reverse')
+      expect(b.calls.filter(call => call.startsWith('select:'))).toEqual(['select:reverse'])
+      expect(b.section.hooks.modeSwitchState.getSnapshot().toast)
+        .toMatchObject({ text: zh['modeSwitch.done'], success: true })
+    } finally { await b.ctx.fiber.dispose() }
   })
 
   it('registers into a declaration that arrives after apply', async () => {

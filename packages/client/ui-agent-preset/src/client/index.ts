@@ -31,7 +31,7 @@ import { AGENT_PRESET_SETTINGS_NS, AgentPresetSettingsController } from './setti
 import { ModeSwitchController, ModeSwitchToast, SessionModeControl } from './mode-switch.tsx'
 import type { ModeSwitchInjected } from './mode-switch.tsx'
 import { SensitiveConfirmationsController } from './sensitive-confirmations-controller.ts'
-import { SensitiveConfirmationsPrompt } from './SensitiveConfirmations.tsx'
+import { SensitiveConfirmationsPrompt, SensitiveConfirmationsSetting } from './SensitiveConfirmations.tsx'
 import type { SensitiveConfirmationsInjected } from './SensitiveConfirmations.tsx'
 import { SecurityEntryController } from './security-entry-controller.ts'
 import { SecurityEntryDialog } from './SecurityEntryDialog.tsx'
@@ -286,6 +286,12 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'sensitive-confirmations', order: 24, locale: 'settings.agentPreset', inject: sensitiveInjected,
   }, SensitiveConfirmationsPrompt))
+  // The preference governs every mode, so its row lives in the General
+  // section rather than on the Modes page.
+  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
+    name: 'settings.general.item', id: 'sensitive-confirmations', order: 25, locale: 'settings.agentPreset',
+    inject: sensitiveInjected,
+  }, SensitiveConfirmationsSetting))
   const entryInjected = (): SecurityEntryDialogInjected => ({
     hooks: { securityEntry: securityEntry.store },
     confirm: (declaration) => { void securityEntry.confirm(declaration) },
@@ -419,16 +425,14 @@ export function apply(ctx: ClientContext): void {
 
   const sectionInjected = (): AgentPresetSectionInjected => ({
     ...modeInjected(),
-    ...sensitiveInjected(),
     hooks: {
-      ...modeInjected().hooks, ...sensitiveInjected().hooks,
+      ...modeInjected().hooks,
       agentPresetSection: section.store, currentMode, configurableModes,
       developerTools: ctx.configForms.developerTools.enabled,
     },
     load: async () => {
       await section.load()
       await (mainBlankSeat() ?? unboundSeat).load()
-      await sensitive.load()
       refreshCurrentMode()
     },
     view: (id: string) => section.view(id),
@@ -437,8 +441,15 @@ export function apply(ctx: ClientContext): void {
     makeDefault: (id: string) => section.makeDefault(id),
     selectCurrent: async (id: string) => {
       const current = Object.values(ctx.sessions.list.getSnapshot().byId).find(session => (session.retainedBy.mainView ?? 0) > 0)
-      if (current?.blank === false) await modeSwitch.change(current.id, id)
-      else await (mainBlankSeat() ?? unboundSeat).select(id)
+      if (current?.blank === false) {
+        // An established conversation keeps its mode until the temporary
+        // permission is accepted and the task is idle. Both refusals say so
+        // instead of leaving the click without an answer.
+        const policy = modeSwitch.policy.getSnapshot()
+        if (current.running) modeSwitch.refuse('running')
+        else if (policy.status !== 'ready' || !policy.value.allowExistingSessionSwitch) modeSwitch.refuse('locked')
+        else await modeSwitch.change(current.id, id)
+      } else await (mainBlankSeat() ?? unboundSeat).select(id)
       refreshCurrentMode()
     },
   })

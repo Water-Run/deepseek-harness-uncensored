@@ -14,7 +14,6 @@ import { PresetGuideDialog, presetGuide, trapPresetReaderTab, type PresetGuidePa
 import css from './AgentPresetSection.module.css'
 import { PresetIcon } from './PresetIcon.tsx'
 import { ModeSwitchSetting, type ModeSwitchInjected } from './mode-switch.tsx'
-import { SensitiveConfirmationsSetting, type SensitiveConfirmationsInjected } from './SensitiveConfirmations.tsx'
 
 /**
  * Main-view selection; an absent identity uses the current default until a draft exists.
@@ -23,8 +22,8 @@ import { SensitiveConfirmationsSetting, type SensitiveConfirmationsInjected } fr
 export interface CurrentModeState { id?: string; sessionId?: string; blank: boolean; busy: boolean }
 
 /** Settings actions and their shared controller state. */
-export interface AgentPresetSectionInjected extends ModeSwitchInjected, SensitiveConfirmationsInjected {
-  hooks: ModeSwitchInjected['hooks'] & SensitiveConfirmationsInjected['hooks'] & {
+export interface AgentPresetSectionInjected extends ModeSwitchInjected {
+  hooks: ModeSwitchInjected['hooks'] & {
     agentPresetSection: SnapshotStore<AgentPresetSectionState>
     currentMode: SnapshotStore<CurrentModeState>
     /** Shared Coding Tools preference; off hides the built-in PTC and Minimal cards. */
@@ -111,7 +110,7 @@ export function AgentPresetSection(props: AgentPresetSectionProps) {
   // Until someone picks a tab, the page opens on the mode in use (when that
   // mode has configuration) and otherwise on the first configurable one.
   const configRow = configRows.find(row => row.id === (configChoice ?? selectedId)) ?? configRows[0]
-  const tabs = configRows.map(row => {
+  const tabs = configRows.map((row) => {
     const name = presetDisplayText(row, t).name
     return {
       value: row.id,
@@ -169,13 +168,17 @@ export function AgentPresetSection(props: AgentPresetSectionProps) {
             const selected = row.id === selectedId
             const selectionAction = row.broken !== undefined ? t('brokenBadge')
               : t(selected ? 'selected' : 'selectCurrent')
+            // A locked or busy card stays focusable: activating it asks the
+            // owner, which announces why the conversation keeps its mode.
+            const blocked = !selected && (selectionLocked || current.busy)
             return <li key={row.id} data-agent-preset-id={row.id} className={[
               css.card, row.broken === undefined ? undefined : css.cardBroken,
               selected ? css.cardActive : undefined,
             ].filter(Boolean).join(' ')}>
               <button type="button" className={css.cardMain} aria-pressed={selected}
-                disabled={selected || selectionLocked || current.busy || (row.broken === undefined && state.saving)}
-                aria-disabled={row.broken !== undefined} aria-label={`${selectionAction}: ${display.name}`} title={selectionAction}
+                disabled={selected || (row.broken === undefined && state.saving)}
+                aria-disabled={row.broken !== undefined || blocked}
+                aria-label={`${selectionAction}: ${display.name}`} title={blocked ? t('modeSwitch.blocked') : selectionAction}
                 onClick={() => { if (row.broken === undefined) void selectCurrent(row.id) }}>
                 <span className={css.cardHead}>
                   <span className={css.cardIdentity}>
@@ -221,7 +224,6 @@ export function AgentPresetSection(props: AgentPresetSectionProps) {
     })}
     <div className={css.prefs}>
       <ModeSwitchSetting {...props} />
-      <SensitiveConfirmationsSetting {...props} />
     </div>
     {/* Configuration belongs to the mode named on its tab, not to whatever the
         current conversation runs, so this block sits outside the selection. */}
