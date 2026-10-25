@@ -29,12 +29,14 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 }
 
 /**
- * Mount the native commands and both child conversation surfaces.
- * @param ctx - Built-in command UI owner.
+ * Register the General Settings row for the quick-question reasoning level.
+ * Kept apart from the command surfaces: a composition without the Settings
+ * Remote still registers `/side` and `/btw`, and this row joins once Settings
+ * is available.
+ * @param ctx - client root context owning the slots and the Settings Remote.
  */
-export function registerAsides(ctx: Context): void {
-  ctx.inject(['slots', 'commandUi', 'resources', 'sidebarRight', 'sidebarRightTabs', 'remote.session', 'remote.settings'], (scope) => {
-    const t = scope.locale.bind('command')
+function registerAsideSettings(ctx: Context): void {
+  ctx.inject(['slots', 'locale', 'remote.settings'], (scope) => {
     const reasoning = new AsideReasoningController(scope.remote.settings)
     scope.slots.inject('settings.general.item', () => scope.slots.register({
       name: 'settings.general.item', id: 'quick-question-reasoning', order: 40, locale: 'command',
@@ -43,6 +45,20 @@ export function registerAsides(ctx: Context): void {
         save: (value: BtwReasoningEffort) => reasoning.save(value),
       }),
     }, AsideReasoningRow))
+  })
+}
+
+/**
+ * Mount the native commands and both child conversation surfaces.
+ * @param ctx - Built-in command UI owner.
+ */
+export function registerAsides(ctx: Context): void {
+  // The quick-question level row needs the Settings Remote; it waits for that
+  // service on its own, so a composition without Settings still gets the
+  // /side and /btw commands.
+  registerAsideSettings(ctx)
+  ctx.inject(['slots', 'commandUi', 'resources', 'sidebarRight', 'sidebarRightTabs', 'remote.session'], (scope) => {
+    const t = scope.locale.bind('command')
     const requests = new Set<Promise<SessionId>>()
     const parents = new Map<SessionId, SessionId>()
     let closed = false

@@ -114,6 +114,8 @@ export interface Config {
   readonly sideContextBytes?: number
   /** Maximum UTF-8 bytes of the live progress snapshot supplied to each quick question. */
   readonly btwContextBytes?: number
+  /** Maximum output tokens for the one concise quick-question answer. */
+  readonly btwMaxTokens?: number
   /** Reasoning effort used for a one-shot quick question; the quick question never inherits the conversation's own level. */
   readonly btwReasoningEffort?: BtwReasoningEffort
   /** Maximum time to wait for cancelled jobs and turns before refusing deletion. */
@@ -137,6 +139,7 @@ export type ResolvedConfig = Omit<Config, 'btwReasoningEffort'> & {
   readonly listWorkSliceMs: number
   readonly sideContextBytes: number
   readonly btwContextBytes: number
+  readonly btwMaxTokens: number
   readonly btwReasoningEffort: Volatile<BtwReasoningEffort>
   readonly deleteDrainTimeoutMs: number
   readonly deletePollMs: number
@@ -196,6 +199,7 @@ export class SessionController extends TypertRemoteService {
     listWorkSliceMs: z.natural().min(1).default(16),
     sideContextBytes: z.natural().min(1024).max(1048576).default(65536),
     btwContextBytes: z.natural().min(1024).max(65536).default(8192),
+    btwMaxTokens: z.natural().min(64).max(8192).default(512),
     // Volatile: the owner picks the quick-question level from Settings and the
     // Host treats it as live configuration, not a restart-scoped deployment value.
     btwReasoningEffort: z.union(['off', 'low', 'high', 'max']).default('low').volatile(),
@@ -244,7 +248,12 @@ export class SessionController extends TypertRemoteService {
       btwContextBytes: resolved.btwContextBytes,
     })
     this.commands = new SessionCommandController(ctx, this.agents, process.cwd())
-    this.asides = new SessionAsideController(ctx, this.agents, () => resolved.btwReasoningEffort.get())
+    this.asides = new SessionAsideController(
+      ctx,
+      this.agents,
+      () => resolved.btwReasoningEffort.get(),
+      resolved.btwMaxTokens,
+    )
     ctx.effect(() => () => this.asides.close(), 'session-controller: side conversations')
     ctx.effect(() => ctx.fileUploads.registerAgentResolver(async (sessionId) => {
       const result = await this.agents.resolveAgent(sessionId)

@@ -20,9 +20,10 @@ export class SessionAsideController {
   private closed = false
 
   /** @param ctx - Host session services. @param agents - Shared composition and resume owner.
-   * @param btwReasoningEffort - Live configured reasoning level for one-shot quick questions. */
+   * @param btwReasoningEffort - Live configured reasoning level for one-shot quick questions.
+   * @param btwMaxTokens - Output cap that keeps a quick answer short and fast. */
   constructor(private readonly ctx: Context, private readonly agents: ApiSessionAgentController,
-    private readonly btwReasoningEffort: () => string) {}
+    private readonly btwReasoningEffort: () => string, private readonly btwMaxTokens: number) {}
 
   /**
    * Open a persistent side question, or create a fresh inline question.
@@ -89,6 +90,8 @@ export class SessionAsideController {
     // a one-shot quick question keeps the model but uses its configured level,
     // because "how is progress" is answered faster and cheaper at low effort.
     const selection = request.kind === 'btw' ? await this.quickQuestionSelection(inherited) : inherited
+    // A quick question is answered in one short reply; the output cap bounds both latency and cost.
+    const agentOptions = request.kind === 'btw' ? { ...selection, maxTokens: this.btwMaxTokens } : selection
     const agent = await this.agents.createOwned({
       sessionId: childId,
       ...(boundary === undefined ? {} : {
@@ -100,7 +103,7 @@ export class SessionAsideController {
         ...(source.header.cwd === undefined ? {} : { cwd: source.header.cwd }),
         ...(composition.agentPreset === undefined ? {} : { agentPreset: composition.agentPreset }),
       },
-      agentOptions: selection,
+      agentOptions,
       setup: composition.setup,
     })
     // Creation options seed the first request, but the model-selection

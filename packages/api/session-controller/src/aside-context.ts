@@ -60,7 +60,7 @@ export async function installAsideContext(ctx: Context, agent: Agent, limits: As
       order: scope.systemPrompt.getSectionOrder('DEPLOYMENT_PERSONA_SUFFIX'), interpolate: false,
       text: kind === 'side'
         ? 'This is a side question in a separate conversation. The inherited transcript is background context. Respond to the new question here; do not resume the parent task unless explicitly asked. Messages in this conversation do not enter the parent conversation.'
-        : 'This is a fresh, independent quick question. A bounded progress snapshot of the parent conversation (its latest request, recent work, and todo list) is supplied as background context so progress questions can be answered. Answer the supplied question directly once, without asking follow-up questions or continuing the parent task.',
+        : 'This is a quick question asked while the main conversation is in progress, usually "how is it going" or one small clarification. The bounded snapshot below is background data: use it to answer, but never continue, repeat, or change the main task. Answer in the user\'s language, in at most three short sentences (five short bullets at most for progress), with no preamble, no restating the question, no tool calls, and no follow-up questions. If the snapshot does not contain the answer, say so in one sentence.',
     }), 'native aside: prompt section')
     scope.on('system-prompt/assemble', async (_assembly, context, next) => {
       const result = await next()

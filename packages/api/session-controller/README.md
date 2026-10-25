@@ -70,7 +70,7 @@ The user-invocable `skills/list` metadata includes the winning provider’s opti
 
 Fork copies the exact inclusive event prefix selected by `atSeq`, including a cut inside an open turn. The child records its inherited marker before synthetic fork results and closing events. Omitting `atSeq` selects the latest completed turn and its standalone tail, stopping before the next turn or queued input; a nonexistent event is rejected. The chat action selects a completed turn.
 
-Native asides are children of the selected Session and never write to it. A side conversation owns one stable identity per parent, seeds the completed prefix, and receives completed main updates up to `sideContextBytes` as background context. A quick question creates a fresh child per invocation and receives a bounded live progress snapshot up to `btwContextBytes` — status, the latest user request, the current todo list, and recent assistant and tool work, including the in-flight turn — labeled as background data rather than conversation history. Both children inherit the parent's model; the quick question additionally uses the live `btwReasoningEffort` when the resolved model advertises that level, while a side conversation keeps the main conversation's own level.
+Native asides are children of the selected Session and never write to it. A side conversation owns one stable identity per parent, seeds the completed prefix, and receives completed main updates up to `sideContextBytes` as background context. A quick question creates a fresh child per invocation and receives a bounded live progress snapshot up to `btwContextBytes` — status, the latest user request, the current todo list, and recent assistant and tool work, including the in-flight turn — labeled as background data rather than conversation history. Its use case is one mid-task question, typically "how is it going" or one small clarification: the instructions allow at most three short sentences (five bullets for progress), forbid tool calls and follow-ups, and the answer is capped at `btwMaxTokens` (default 512), so it returns quickly and cheaply. Both children inherit the parent's model; the quick question additionally uses the live `btwReasoningEffort` when the resolved model advertises that level, while a side conversation keeps the main conversation's own level.
 
 A resume blocked by an existing write handle returns `session/writer-held` with the Session id; other resume failures retain `gateway/internal`.
 
@@ -111,6 +111,7 @@ A successful `selectModel` response acknowledges the Session-local selection wit
 | `listWorkSliceMs` | `16` | Positive integral list-work time slice in milliseconds; checks occur between complete rows |
 | `sideContextBytes` | `65536` | Maximum UTF-8 bytes of completed main updates supplied to each side-question request |
 | `btwContextBytes` | `8192` | Maximum UTF-8 bytes of the live progress snapshot supplied to each quick question |
+| `btwMaxTokens` | `512` | Maximum output tokens for the one concise quick-question answer |
 | `btwReasoningEffort` | `low` | Live reasoning level for one-shot quick questions (`off`, `low`, `high`, `max`); ignored when the selected model does not advertise it |
 
 The [configuration schema](src/index.ts) defines accepted fields and their defaults.

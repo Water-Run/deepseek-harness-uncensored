@@ -1,5 +1,16 @@
 # Uncensored 开发交接
 
+## 设置归属与模式切换提示节点（2026-10-25）
+
+用户列出三项设置调整；本轮只改源码，未打包、未安装。
+
+- 敏感操作确认改为通用设置项：设置行仍由 `ui-agent-preset` 提供（偏好控制器与 Host Remote 都在该包），但注册到 `settings.general.item`（id `sensitive-confirmations`，order 25），模式页只保留“允许已有会话切换模式”。该行挂载时自行读取偏好，不再依赖先打开模式页；行样式改为通用分组的间距与分隔线，错误重试按钮与开关并排。
+- 性能与用量默认“详细”已核实，无需改动：`ui-chat` 的 schema 默认、`PerformanceUsagePolicy` 初值与对应测试都是 `detailed`，`04.08` 已勾选，Web 金样里该行也是“详细”。若某台机器显示“简洁”，那是 `ui-chat.performanceUsage` 的已保存值（例如 `~/.dsh/profiles/<profile>/cordis.patch.yml`），不是默认值。
+- 非新对话时在设置中切换模式：卡片不再静默禁用，保持可聚焦；点击交给 `selectCurrent` 判定——任务运行中提示“当前任务结束后才能切换模式”，未临时允许时提示“当前对话保持原模式，未执行切换”，都复用 `ModeSwitchToast`；权限已允许时照旧切换。卡片仍以 `aria-disabled` 与悬浮提示说明当前不可切换。
+- 验证：`ui-agent-preset` 14 文件 301 项通过；改动文件 oxlint 0 错；该包 client bundle 构建通过；`verify-client-ui-i18n`、`verify-export-jsdoc` 与两份 README 中英配对通过。`tsc -b tsconfig.client.json` 在本轮改动后就通过；随后工作区里随问改动带来的 `packages/api/session-controller/src/index.ts:255` 类型错误与本节无关。
+- `pnpm run test:gui`：667 文件中 654 通过，12 个文件 60 项失败，均为既有项（`ui-settings-account/apply`、`ui-settings-general` 的 composed 组合缺 `agentPresets/switchPolicy` 等桩、`ui-theme` 五个样式巡检、`ui-shortcuts`、`ui-renderer`、`ui-directory-picker-native`，以及工作区未提交的随问推理改动造成的 `ui-commands` 两项）。新注册行会让 `ui-settings-general` composed 组合额外调用 `agentPresets/sensitiveConfirmationPolicy`；该测试本就因同类缺桩失败，修复时需一并补桩。
+- 未完成：`apps/web/tests/expected/settings-chrome/dialog.expected.md` 与 `apps/web/tests/expected/desktop-locale/automatic.expected.md` 需在可用的浏览器金样通道下重新录制（通用分组会多出这一行）；真实窗口的深/浅色与 390px 复核未做。
+
 ## 随问进度上下文节点（2026-10-25）
 
 用户反馈 `/btw 进度如何` 拿不到主线进度；本节点把随问从“全新上下文”改为“有界实时进度快照 + 独立回答”，并让随问使用可配置的低思考等级，旁问仍跟随主对话。
@@ -8,7 +19,9 @@
 - 思考等级：`session-controller` Config 新增 volatile `btwReasoningEffort`（默认 `low`，可选 `off/low/high/max`）。随问创建时先解析模型能力，模型支持该等级才覆盖；旁问与主对话一致。通用设置新增“随问思考等级”行（`ui-commands` 注册 `settings.general.item`），按字段发现 `session-controller` 设置命名空间并 `remote.settings.update`，读写实时生效。
 - 修复子会话模型选择：`model-selection` 的 `agent/request` 瀑布会用 Agent 的已提交选择覆盖创建参数。aside 创建后现在调用 `selectForNextRequest` 记录选择，否则随问的 `low` 会被默认模型覆盖（这同时修正了旁问未必真正继承主对话模型等级的隐患）。
 - 修复 Loader 双重解析：Loader 传入的是已解析 Config（volatile 字段是带 `get()` 的包装），而构造函数再次 `SessionController.Config(config)` 会把包装当作值校验而失败（表现为 session-controller 未激活、随问设置无效）。构造函数现在识别已解析配置并原样使用，保证设置写入命同一个包装；直接构造的测试仍走 schema 解析。
-- 验证：`aside-question-context` 4 项、`asides.host` 6 项（进度快照、随问 low、旁问跟随主线、随问每次新建）、设置行 4 项、`list-scheduling`（已解析 Config 路径）通过；`build:artifacts` 7/7。真实账号页面实测：`/btw 进度如何` 2 秒返回，答案复述了主线当前状态（turn 7 已完成、空闲、MySQL 权限与表数量等），通用设置显示“随问思考等级：低（默认）”。
+- 使用场景与短答：随问定位为“主线任务进行中问一句进度或小问题”。系统提示要求最多三句短句（进度最多五条要点），不要开场白、不要复述问题、不调用工具、不追问；快照缺失时用一句话说明。新增 `btwMaxTokens`（默认 512）作为输出上限，随问子会话的 AgentOptions 携带 `maxTokens`，旁问不带。命令描述与输入提示同步改为“任务进行中问一句进度或小问题，快速回答一次”。
+- 设置行拆分挂载：设置行改为独立的 `remote.settings` 注入作用域，缺少设置 Remote 的组合仍能注册 `/side` 与 `/btw`（此前把设置放进主注入导致 ui-commands 组合测试两项失败）。
+- 验证：`aside-question-context` 4 项、`asides.host` 6 项（进度快照、随问 low、输出上限、旁问跟随主线）、设置行 4 项、`ui-commands` 159 项、`list-scheduling`（已解析 Config 路径）通过；`typecheck` 5/5、`build:artifacts` 7/7。真实账号页面实测：`/btw 进度如何` 1 秒返回，短答（两三句）+ 下一步建议，复述了主线当前状态；通用设置显示“随问思考等级：低（默认）”。
 - 既有问题：`session-presets.host.spec.ts` 在未改动的 HEAD 上同样失败（29 项），属本机组合/环境漂移，与本节点无关；`test:gui` 的既有失败清单不变。
 
 ## 界面问题修复节点（2026-10-25）

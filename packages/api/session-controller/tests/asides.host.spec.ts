@@ -26,6 +26,7 @@ async function fixture(ctx: Context) {
     ctx,
     new ApiSessionAgentController(ctx, { sideContextBytes: 65536, btwContextBytes: 8192 }),
     () => btwEffort,
+    512,
   )
   ctx.effect(() => () => controller.close())
   const parent = await harness.create(SessionId('parent'), { provider: 'mock', model: 'mock' })
@@ -81,7 +82,12 @@ describe('native side conversations', () => {
       expect(first).toContain('This is a side question')
       expect(first).not.toContain('parent queued work')
       // A new owner simulates reopening after the UI controller was replaced.
-      const reopened = new SessionAsideController(ctx, new ApiSessionAgentController(ctx, { sideContextBytes: 65536, btwContextBytes: 8192 }), () => 'low')
+      const reopened = new SessionAsideController(
+        ctx,
+        new ApiSessionAgentController(ctx, { sideContextBytes: 65536, btwContextBytes: 8192 }),
+        () => 'low',
+        512,
+      )
       try {
         expect(await reopened.open({ sessionId: parent.id, kind: 'side' })).toEqual(one)
         expect(child.inbox.nextStep).toHaveLength(0)
@@ -129,9 +135,10 @@ describe('native side conversations', () => {
       // The parent's work arrives as a labeled, bounded snapshot — not as
       // conversation turns the quick question could continue.
       const firstRequest = JSON.stringify(adapter.requests.at(-1))
-      expect(firstRequest).toContain('Quick-question progress snapshot')
+      expect(firstRequest).toContain('progress snapshot')
       expect(firstRequest).toContain('parent secret marker')
-      expect(firstRequest).toContain('without asking follow-up questions')
+      expect(firstRequest).toContain('at most three short sentences')
+      expect(firstRequest).toContain('no follow-up questions')
       // The snapshot arrives as a runtime-context message; the child owns one real user turn.
       expect(child.session.deriveMessages()
         .filter(message => message.role === 'user' && 'source' in message && message.source?.kind === 'user'))
@@ -160,7 +167,7 @@ describe('native side conversations', () => {
       child.followup(prompt('进度如何'))
       await child.whenIdle()
       const request = JSON.stringify(adapter.requests.at(-1))
-      expect(request).toContain('Quick-question progress snapshot')
+      expect(request).toContain('progress snapshot')
       expect(request).toContain('Status: idle')
       expect(request).toContain('Latest user request: 把索引重建完')
       expect(request).toContain('fixture reply')
@@ -178,12 +185,14 @@ describe('native side conversations', () => {
       ctx.agents.get(btw.sessionId)!.followup(prompt('进度如何'))
       await ctx.agents.get(btw.sessionId)!.whenIdle()
       expect(String(adapter.requests.at(-1)?.reasoningEffort)).toBe('low')
+      expect(adapter.requests.at(-1)?.maxTokens).toBe(512)
       const side = await controller.open({ sessionId: parent.id, kind: 'side' })
       ctx.agents.get(side.sessionId)!.followup(prompt('side question'))
       await ctx.agents.get(side.sessionId)!.whenIdle()
       // The side question keeps the main conversation's own effective level
       // (the model default here), never the quick question's override.
       expect(String(adapter.requests.at(-1)?.reasoningEffort)).toBe(mainEffort)
+      expect(adapter.requests.at(-1)?.maxTokens).toBeUndefined()
       setBtwEffort('max')
       const second = await controller.open({ sessionId: parent.id, kind: 'btw' })
       ctx.agents.get(second.sessionId)!.followup(prompt('再来一次'))
