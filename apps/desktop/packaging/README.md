@@ -268,6 +268,8 @@ Signed macOS packaging writes `Contents/Resources/app-update.yml` while assembli
 
 An unpacked artifact contains Electron, the materialized dsh production tree, pnpm, and the shell application. Installer size and filesystem size differ; release qualification measures both, plus the profile’s plugin storage and first-launch latency. The runtime trades more application files for eliminating core package installation on the user’s machine.
 
+Windows packaged-runtime verification runs a private copy of the assembled application under a short temporary path. Native Python and Office loaders can reject long build paths, including junctions that resolve to those paths. Archive integrity, native imports, Host startup and document conversion checks still run in full; the copy is removed after child processes finish.
+
 <a id="verification"></a>
 
 ## Installation and release verification

@@ -6,6 +6,7 @@ import { readDesktopRuntime, verifyDesktopRuntime } from '../src/runtime-tree.ts
 import { verifyWindowsCode } from './windows-runtime-signature.mjs'
 import { smokePreparedRuntime } from './smoke-prepared-runtime.ts'
 import { resolveDesktopPackageTarget } from './package-target.ts'
+import { withPackagedSmokePath } from './packaged-smoke-path.ts'
 
 /** Product name the packaged application is built under. */
 const DESKTOP_PRODUCT_NAME = 'DeepSeek Harness Uncensored'
@@ -17,9 +18,13 @@ const windows = target === 'win-x64'
 const artifacts = desktopArtifactOutput(paths, { unsigned: values.unsigned, skipNotarization: values['skip-notarization'] }).directory
 const application = windows ? join(artifacts, 'win-unpacked')
   : join(artifacts, target === 'mac-arm64' ? 'mac-arm64' : 'mac', `${DESKTOP_PRODUCT_NAME}.app`, 'Contents')
-const resources = join(application, windows ? 'resources' : 'Resources')
-const executable = windows ? join(application, `${DESKTOP_PRODUCT_NAME}.exe`) : join(application, 'MacOS', DESKTOP_PRODUCT_NAME)
 const descriptor = await verifyDesktopRuntime(paths.dsh, readDesktopRuntime(paths.dsh).release.version,
   resolveDesktopPackageTarget(target))
 if (windows && !values.unsigned) await verifyWindowsCode(application)
-await smokePreparedRuntime(join(resources, 'app.asar', 'dsh'), executable, join(resources, 'runtime'), descriptor)
+const verify = async (path: string): Promise<void> => {
+  const resources = join(path, windows ? 'resources' : 'Resources')
+  const executable = windows ? join(path, `${DESKTOP_PRODUCT_NAME}.exe`) : join(path, 'MacOS', DESKTOP_PRODUCT_NAME)
+  await smokePreparedRuntime(join(resources, 'app.asar', 'dsh'), executable, join(resources, 'runtime'), descriptor)
+}
+if (windows) await withPackagedSmokePath(application, verify)
+else await verify(application)
