@@ -1,32 +1,8 @@
-/* Session-header agent-preset label: static chrome, never a control. */
-
-.label {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  max-width: 180px;
-  padding: 3px 8px;
-  min-height: 24px;
-  /* The locked state renders the same box as a button; both keep one geometry. */
-  appearance: none;
-  font: inherit;
-  border: 1px solid color-mix(in srgb, var(--dsw-mode-label-ink) 22%, transparent);
-  border-radius: var(--dsw-radius-sm);
-  background: var(--dsw-alias-fill-tsp-secondary);
-  font-size: 12px;
-  line-height: 22px;
-  color: var(--dsw-mode-label-ink);
-  font-weight: 600;
-  box-shadow: inset 0 1px color-mix(in srgb, var(--dsw-mode-label-ink) 14%, transparent);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: background-color 420ms var(--ds-ease-in-out);
-}
+/* Header mode card extras: glyph entrance, inert state, and the width at which
+   the passive badge yields to the header's interactive actions. */
 
 /* A changed mode remounts the glyph, so it pops in with the new color. */
 .icon {
-  flex: none;
   animation: label-icon-in 480ms cubic-bezier(0.22, 0.8, 0.16, 1) both;
 }
 
@@ -37,55 +13,20 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .label { transition: none; }
   .icon { animation: none; }
+}
+
+/* Mode switching is off: the card keeps its mode color as identity but reads
+   inert, and its tooltip says why it cannot change. */
+.locked {
+  cursor: default;
 }
 
 /* First sacrifice when the title row (the enclosing inline-size container)
    runs out of width: the preset is passive chrome, so it yields before any
    interactive header action loses its label. */
 @container (max-width: 540px) {
-  .label {
+  span.passive {
     display: none;
   }
-}
-
-.blue {
-  background: var(--dsw-mode-standard-fill);
-}
-
-.yellow {
-  background: var(--dsw-mode-writing-fill);
-}
-
-.red {
-  background: var(--dsw-mode-security-fill);
-}
-
-.green {
-  background: var(--dsw-mode-reverse-fill);
-}
-
-.neutral {
-  background: var(--dsw-mode-neutral-fill);
-}
-
-/* Mode switching is off: the mode control stays in place, grayed and inert, so
-   the header still says which mode is running and why it cannot change. */
-.locked {
-  border-color: var(--dsw-alias-border-l2);
-  background: var(--dsw-alias-fill-tsp-secondary);
-  color: var(--dsw-alias-label-tertiary);
-  box-shadow: none;
-  cursor: default;
-}
-
-.locked .icon {
-  animation: none;
-  opacity: 0.7;
-}
-
-.lockChevron {
-  flex: none;
-  opacity: 0.55;
 }

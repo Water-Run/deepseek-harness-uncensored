@@ -125,7 +125,7 @@ describe('Workspace and Session hover handoff', () => {
   })
 })
 
-const dataTransfer = { effectAllowed: '', dropEffect: '', setData: vi.fn() }
+const dataTransfer = { effectAllowed: '', dropEffect: '', setData: vi.fn(), setDragImage: vi.fn() }
 
 /** jsdom lacks DragEvent — the fireEvent fallback drops clientY, so pin it on the built event. */
 function fireDrag(row: HTMLElement, kind: 'dragOver' | 'drop', clientY: number): void {
@@ -1028,6 +1028,10 @@ describe('workspace browser rows', () => {
     expect(row.getAttribute('draggable')).toBe('true')
     fireEvent.dragStart(row, { dataTransfer })
     expect(inactive.start).toHaveBeenCalledOnce()
+    // The browser's offset ghost copy is suppressed; the row dims in place.
+    expect(dataTransfer.setDragImage).toHaveBeenCalledOnce()
+    expect(dataTransfer.setDragImage.mock.calls[0]![1]).toBe(0)
+    expect(row.getAttribute('data-dragging')).toBe('true')
     // Inactive drag: hover and drop are rejected.
     fireEvent.dragOver(row, { dataTransfer })
     fireEvent.drop(row, { dataTransfer })
@@ -1035,11 +1039,14 @@ describe('workspace browser rows', () => {
     expect(inactive.drop).not.toHaveBeenCalled()
     fireEvent.dragEnd(row)
     expect(inactive.end).toHaveBeenCalledOnce()
+    expect(row.hasAttribute('data-dragging')).toBe(false)
 
-    const active = dragProps({ active: true, marker: 'before' })
+    const active = dragProps({ active: true, marker: 'before', mode: 'reverse' })
     rerender(
       <SessionNodeItem node={node} currentId={undefined} now={0} onOpen={vi.fn()} drag={active} t={t} />,
     )
+    // The insert line carries the dragged conversation's mode color.
+    expect(screen.getByRole('treeitem').getAttribute('data-drop-mode')).toBe('reverse')
     stubRect(screen.getByRole('treeitem'))
     // Top half hovers/drops 'before'; bottom half 'after' (row mid = 117).
     fireDrag(screen.getByRole('treeitem'), 'dragOver', 105)

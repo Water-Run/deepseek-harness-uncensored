@@ -344,7 +344,21 @@
 }
 
 /* Session drag insert marker: a leading chevron and 2px rule between rows,
-   absolutely positioned so it neither resembles a row border nor changes layout. */
+   absolutely positioned so it neither resembles a row border nor changes layout.
+   The rule takes the dragged Session's mode color, like the row's own stripe,
+   so a green reverse conversation never draws a default blue line. */
+.sessionRow[data-drop-mode='standard'] { --drop-color: var(--dsw-brand-blue); }
+.sessionRow[data-drop-mode='security'] { --drop-color: var(--dsw-brand-red); }
+.sessionRow[data-drop-mode='reverse'] { --drop-color: var(--dsw-brand-green); }
+.sessionRow[data-drop-mode='writing'] { --drop-color: var(--dsw-brand-yellow); }
+
+/* The travelling row dims in place: the browser's ghost copy is suppressed,
+   so this is the only cue that the row itself is moving. */
+.sessionRow[data-dragging] {
+  opacity: 0.55;
+  cursor: grabbing;
+}
+
 .sessionRow.dropBefore,
 .sessionRow.dropAfter {
   position: relative;
@@ -362,17 +376,17 @@
     linear-gradient(
       55deg,
       transparent calc(50% - 1px),
-      var(--dsw-alias-state-business-primary) calc(50% - 1px) calc(50% + 1px),
+      var(--drop-color, var(--dsw-alias-state-business-primary)) calc(50% - 1px) calc(50% + 1px),
       transparent calc(50% + 1px)
     ) 0 0 / 5px 7px no-repeat,
     linear-gradient(
       125deg,
       transparent calc(50% - 1px),
-      var(--dsw-alias-state-business-primary) calc(50% - 1px) calc(50% + 1px),
+      var(--drop-color, var(--dsw-alias-state-business-primary)) calc(50% - 1px) calc(50% + 1px),
       transparent calc(50% + 1px)
     ) 0 5px / 5px 7px no-repeat,
     linear-gradient(
-      var(--dsw-alias-state-business-primary) 0 0
+      var(--drop-color, var(--dsw-alias-state-business-primary)) 0 0
     ) 4px 5px / calc(100% - 4px) 2px no-repeat;
   pointer-events: none;
 }

@@ -2,11 +2,13 @@
 import { useEffect, useState } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
-import { Button, IconChevronDownOutlineRegular, Menu, Modal, Switch, Toast, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Menu, Modal, Switch, Toast, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import { AgentPresetLabel, type AgentPresetLabelProps } from './AgentPresetLabel.tsx'
 import { PresetIcon } from './PresetIcon.tsx'
 import { presetDisplayText } from './locales.ts'
+import { modeTone } from './mode-tone.ts'
 import type { ModeSwitchController } from './mode-policy-controller.ts'
+import card from './ModeCard.module.css'
 import css from './ModeSwitch.module.css'
 
 export { ModeSwitchController } from './mode-policy-controller.ts'
@@ -34,18 +36,22 @@ export function SessionModeControl(props: AgentPresetLabelProps & Common & { sel
   const mode = useSessions(state => state.byId[sessionId]?.projectionValues?.agentPreset)
   const options = useAgentPresets(state => state.options)
   useEffect(() => { void load() }, [load])
-  // The control stays on screen while switching is off, grayed: hiding it left
+  // The control stays on screen while switching is off, inert: hiding it left
   // no hint that existing conversations are locked or where to unlock them.
   if (!allowed) return <AgentPresetLabel {...props} locked />
   const option = options.find(item => item.id === mode)
   const label = option === undefined ? mode ?? t('noDescription') : presetDisplayText(option, t).name
+  // The card itself is the control: no chevron, so it reads as this
+  // conversation's mode rather than as a select box. Clicking still opens the
+  // roster, which keeps in-place switching available where it is allowed.
   return <Menu open={open && !running && !busy} onClose={() => { setOpen(false) }} selectedId={mode ?? undefined}
     items={options.map(item => ({ id: item.id, label: presetDisplayText(item, t).name, icon: <PresetIcon id={item.id} /> }))}
     onSelect={(id) => { setOpen(false); void props.selectPreset(id) }} align="start" portal
     anchor={<Tooltip label={running ? t('modeSwitch.running') : t('modeSwitch.choose')} side="bottom" portal>
-      <button type="button" className={css.trigger} disabled={running || busy} aria-haspopup="menu" aria-expanded={open}
+      <button type="button" className={`${card.card} ${card[modeTone(mode)]}`} disabled={running || busy}
+        aria-haspopup="menu" aria-expanded={open}
         aria-label={t('modeSwitch.current', { mode: label })} onClick={() => { setOpen(value => !value) }}>
-        <PresetIcon id={mode ?? ''} size={14} /><span className={css.name}>{label}</span><IconChevronDownOutlineRegular size={12} />
+        <PresetIcon id={mode ?? ''} size={14} className={card.icon} /><span className={css.name}>{label}</span>
       </button>
     </Tooltip>} />
 }

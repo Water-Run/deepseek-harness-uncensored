@@ -423,15 +423,22 @@ it('shows the same shared picture outcome in settings and the sidebar', async ()
   expect(operations.avatarFailed).toHaveBeenCalledWith(avatar)
 })
 
-it.each(['loading', 'failed'] as const)('shows fallback until the shared avatar is ready (%s)', async (status) => {
+it.each(['loading', 'failed'] as const)('shows the picture as soon as its URL is known (%s)', async (status) => {
   const { AccountAvatar } = await import('../src/client/AccountAvatar.tsx')
   const avatarFailed = vi.fn()
   const view = render(<AccountAvatar avatar={undefined} avatarFailed={avatarFailed} />)
   expect(view.container.querySelector('img')).toBeNull()
   expect(view.container.querySelector('svg')).not.toBeNull()
   view.rerender(<AccountAvatar avatar={{ url: 'https://example.test/avatar.png', status }} avatarFailed={avatarFailed} />)
-  expect(view.container.querySelector('img')).toBeNull()
-  expect(view.container.querySelector('svg')).not.toBeNull()
+  // The shared preload no longer gates painting: a slow picture shows itself
+  // instead of leaving the generic icon in place.
+  if (status === 'loading') {
+    expect(view.container.querySelector('img')!.getAttribute('src')).toBe('https://example.test/avatar.png')
+    expect(view.container.querySelector('svg')).toBeNull()
+  } else {
+    expect(view.container.querySelector('img')).toBeNull()
+    expect(view.container.querySelector('svg')).not.toBeNull()
+  }
   view.rerender(<AccountAvatar avatar={{ url: 'https://example.test/avatar.png', status: 'ready' }} avatarFailed={avatarFailed} />)
   expect(view.container.querySelector('img')!.getAttribute('src')).toBe('https://example.test/avatar.png')
   view.rerender(<AccountAvatar avatar={undefined} avatarFailed={avatarFailed} />)

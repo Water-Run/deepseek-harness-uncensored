@@ -9,7 +9,7 @@ import type { DraftReference, DraftSnapshot, Occurrence } from '../src/client/co
 import type {
   CommandClaim, DraftAttachmentId, InputTriggerController, PickOutcome, SubmitOutcome,
 } from '../src/client/contract/input.ts'
-import { parseStoredDraft, resolveDraftInput, snapshotDraft } from '../src/client/draft.ts'
+import { parseStoredDraft, readNewConversationDraft, resolveDraftInput, snapshotDraft, writeNewConversationDraft } from '../src/client/draft.ts'
 import { scanTextRefs } from '../src/client/input/decorations.ts'
 import { ReferenceChipNode } from '../src/client/input/editor/chip-node.tsx'
 import { CommandChipNode } from '../src/client/input/editor/command-chip-node.tsx'
@@ -171,8 +171,30 @@ describe('draft document values', () => {
     expect(parseStoredDraft(JSON.parse(JSON.stringify(exported)))).toEqual(draft)
   })
 
-  it('accepts touching reference spans and references without optional metadata', () => {
-    const draft = documentOf(file, folder, { source: 'custom', ref: 'entry', label: 'Entry', clipboardText: '@entry' })
+  it('keeps and clears the carried new-conversation draft', () => {
+    const key = 'dsh.conversation.new'
+    const previous = localStorage.getItem(key)
+    onTestFinished(() => {
+      if (previous === null) localStorage.removeItem(key)
+      else localStorage.setItem(key, previous)
+    })
+    localStorage.removeItem(key)
+    expect(readNewConversationDraft()).toBeUndefined()
+
+    const draft = documentOf('unsent ', file)
+    writeNewConversationDraft(draft)
+    expect(readNewConversationDraft()).toEqual(draft)
+
+    // Malformed storage is ignored rather than crashing the next new conversation.
+    localStorage.setItem(key, '{not json')
+    expect(readNewConversationDraft()).toBeUndefined()
+
+    writeNewConversationDraft(draft)
+    writeNewConversationDraft({ text: '', references: [] })
+    expect(localStorage.getItem(key)).toBeNull()
+  })
+
+  it('accepts touching reference spans and references without optional metadata', () => {    const draft = documentOf(file, folder, { source: 'custom', ref: 'entry', label: 'Entry', clipboardText: '@entry' })
     expect(parseStoredDraft(JSON.parse(JSON.stringify(draft)))).toEqual(draft)
     const shell = makeShell()
     shell.setDraft(draft)

@@ -2,6 +2,12 @@
 import { z } from 'zod'
 import type { DraftInput, DraftReference, DraftSnapshot, Occurrence } from './contract/draft-editor.ts'
 
+/* The new-conversation slot outlives the Session that typed it: a blank
+   Session is hidden from the list once it stops being current, so its own
+   per-Session draft would become unreachable. This browser-local copy follows
+   the slot instead, and is cleared once the prompt is sent or the text is. */
+const NEW_CONVERSATION_DRAFT_KEY = 'dsh.conversation.new'
+
 const referenceSchema = z.object({
   source: z.string(),
   ref: z.string(),
@@ -64,6 +70,37 @@ export function parseStoredDraft(value: unknown): DraftSnapshot | undefined {
       ...(invalid === undefined ? {} : { invalid }),
     })),
     ...(parsed.data.command === undefined ? {} : { command: { token: parsed.data.command.token } }),
+  }
+}
+
+/**
+ * Read the unsent draft of the new-conversation slot.
+ * @returns the saved draft, or undefined when nothing usable is stored.
+ */
+export function readNewConversationDraft(): DraftSnapshot | undefined {
+  if (typeof localStorage === 'undefined') return undefined
+  try {
+    const raw = localStorage.getItem(NEW_CONVERSATION_DRAFT_KEY)
+    if (raw === null) return undefined
+    return parseStoredDraft(JSON.parse(raw))
+  } catch (_error: unknown) {
+    // Unavailable browser storage or malformed JSON has no usable saved draft.
+    return undefined
+  }
+}
+
+/**
+ * Remember the new-conversation slot's draft, or clear it for an empty one
+ * (sent, deleted by hand, or handed to a started conversation).
+ * @param draft - semantic draft currently held by a blank Session.
+ */
+export function writeNewConversationDraft(draft: DraftSnapshot): void {
+  if (typeof localStorage === 'undefined') return
+  try {
+    if (draft.text === '' && draft.references.length === 0) localStorage.removeItem(NEW_CONVERSATION_DRAFT_KEY)
+    else localStorage.setItem(NEW_CONVERSATION_DRAFT_KEY, JSON.stringify(draft))
+  } catch (_error: unknown) {
+    // Unavailable browser storage keeps the draft in the mounted editor only.
   }
 }
 

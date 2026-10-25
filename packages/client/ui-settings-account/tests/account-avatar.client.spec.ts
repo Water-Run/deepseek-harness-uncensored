@@ -44,6 +44,56 @@ it('shares successful and pending loads, and retries each failed load only on re
   expect(images).toHaveLength(3)
 })
 
+it('retries a failed preload automatically with bounded backoff', () => {
+  vi.useFakeTimers()
+  onTestFinished(() => { vi.useRealTimers() })
+  const { images, states, loader } = imagesOf()
+  loader.setUrl('https://example.test/avatar.png')
+  images[0]!.dispatchEvent(new Event('error'))
+  expect(states.at(-1)).toEqual({ url: 'https://example.test/avatar.png', status: 'failed' })
+
+  // 4s, then 12s: the delay grows, and a load starts only when it elapses.
+  vi.advanceTimersByTime(3_999)
+  expect(images).toHaveLength(1)
+  vi.advanceTimersByTime(1)
+  expect(images).toHaveLength(2)
+  images[1]!.dispatchEvent(new Event('error'))
+  vi.advanceTimersByTime(11_999)
+  expect(images).toHaveLength(2)
+  vi.advanceTimersByTime(1)
+  expect(images).toHaveLength(3)
+
+  // Success stops the cycle.
+  images[2]!.dispatchEvent(new Event('load'))
+  vi.advanceTimersByTime(120_000)
+  expect(images).toHaveLength(3)
+  expect(states.at(-1)).toEqual({ url: 'https://example.test/avatar.png', status: 'ready' })
+
+  // A failed attempt whose owner is disposed stops scheduling.
+  loader.setUrl('https://example.test/second.png')
+  const disposed = imagesOf()
+  disposed.loader.setUrl('https://example.test/avatar.png')
+  disposed.images[0]!.dispatchEvent(new Event('error'))
+  disposed.loader.dispose()
+  vi.advanceTimersByTime(120_000)
+  expect(disposed.images).toHaveLength(1)
+})
+
+it('resets the backoff when the picture URL changes', () => {
+  vi.useFakeTimers()
+  onTestFinished(() => { vi.useRealTimers() })
+  const { images } = imagesOf()
+  const loader = new AccountAvatarLoader(() => undefined)
+  onTestFinished(() => { loader.dispose() })
+  loader.setUrl('https://example.test/first.png')
+  images[0]!.dispatchEvent(new Event('error'))
+  loader.setUrl('https://example.test/second.png')
+  // The pending retry for the first URL was dropped and the new URL loads now.
+  vi.advanceTimersByTime(120_000)
+  expect(images).toHaveLength(2)
+  expect(images[1]!.getAttribute('src')).toBe('https://example.test/second.png')
+})
+
 it('discards replaced and disposed image callbacks, including the same URL after sign-out', () => {
   const { images, states, loader } = imagesOf()
   loader.setUrl('https://example.test/old.png')

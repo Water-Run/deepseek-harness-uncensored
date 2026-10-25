@@ -208,6 +208,8 @@ interface DragState {
   /** Workspace id, or {@link UNGROUPED_KEY} for the browser-local loose-session account. */
   accountKey: string
   sessionId: SessionNode['id']
+  /** Preset id of the dragged Session; its insert marker carries this mode's color. */
+  mode?: string | undefined
   /** Source row was pinned at drag start; drop targets share the pinned block. */
   pinned: boolean
   /** Row the marker sits on and which half (insert above/below it). */
@@ -600,9 +602,10 @@ function SessionTree({
           const dragProps = {
             start: () => {
               sessionDropCommitted.current = false
-              setDrag({ accountKey: group.key, sessionId: node.id, pinned: node.pinned, over: null })
+              setDrag({ accountKey: group.key, sessionId: node.id, mode: node.mode, pinned: node.pinned, over: null })
             },
             active: compatibleTarget,
+            mode: drag?.mode,
             marker: sameGroupDrag && drag.over?.id === node.id ? drag.over.half : null,
             hover: (half: 'before' | 'after') => {
             /* v8 ignore next -- narrowing guard: Rows gates hover on `active`, which is false while the drag state is null. */
@@ -761,9 +764,10 @@ function FlatList({
               drag={{
                 start: () => {
                   dropCommitted.current = false
-                  setDrag({ accountKey: FLAT_SESSION_ORDER_KEY, sessionId: node.id, pinned: node.pinned, over: null })
+                  setDrag({ accountKey: FLAT_SESSION_ORDER_KEY, sessionId: node.id, mode: node.mode, pinned: node.pinned, over: null })
                 },
                 active,
+                mode: drag?.mode,
                 marker: active && drag.over?.id === node.id ? drag.over.half : null,
                 hover: (half) => {
                   setDrag(current => current === null ? current : {

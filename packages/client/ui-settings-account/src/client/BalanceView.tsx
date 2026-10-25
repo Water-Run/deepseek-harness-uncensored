@@ -1,5 +1,5 @@
 /** Balance controls, observations and a shared sidebar hover card. */
-import { useId, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { Big } from 'big.js'
 import { Button, HoverCard, Input, SegmentedTabs, Switch, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
@@ -9,7 +9,7 @@ import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { BalancePreferences, BalanceSnapshot, BalanceWallet } from '@deepseek-ai/dsh-balance/types'
 import type { BalanceController, BalanceViewState } from './balance-controller.ts'
 import { balanceChart } from './balance-chart.ts'
-import { balancePeriod } from './balance-hours.ts'
+import { balancePeriod, balancePeriodEnd } from './balance-hours.ts'
 import { formatBalance } from './formatBalance.ts'
 import { RollingAmount } from './RollingAmount.tsx'
 import css from './BalanceView.module.css'
@@ -24,6 +24,38 @@ export interface BalanceInjected {
 type SharedProps = PropsLocale<'settings.account'> & InjectFace<BalanceInjected>
 type BalanceSettingsProps = PropsRuntime<'settings.budget.item'> & SharedProps
 type BalanceSidebarProps = PropsRuntime<'sidebar.footer.action'> & SharedProps
+
+/** Seconds between sidebar clock ticks: the period row counts down between samples. */
+const COUNTDOWN_TICK_MS = 1_000
+
+/**
+ * Re-read the wall clock every {@link COUNTDOWN_TICK_MS} while the row is shown.
+ * The stored balance sample runs on its own slower cadence; the countdown
+ * would otherwise hold still between samples.
+ * @param active - whether a period row is on screen and worth ticking.
+ * @returns the live epoch milliseconds.
+ */
+function useLiveClock(active: boolean): number {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (!active) return
+    setNow(Date.now())
+    const timer = window.setInterval(() => { setNow(Date.now()) }, COUNTDOWN_TICK_MS)
+    return () => { window.clearInterval(timer) }
+  }, [active])
+  return now
+}
+
+/**
+ * Format time left in the current pricing window.
+ * @param ms - remaining milliseconds; clamped at zero across a boundary.
+ * @returns `HH:MM:SS`, with hours allowed past two digits for long holidays.
+ */
+function remainingTime(ms: number): string {
+  const seconds = Math.max(0, Math.floor(ms / 1_000))
+  const pad = (value: number): string => String(value).padStart(2, '0')
+  return `${pad(Math.floor(seconds / 3_600))}:${pad(Math.floor((seconds % 3_600) / 60))}:${pad(seconds % 60)}`
+}
 
 function amount(value: string, currency: BalanceWallet['currency']): string { return formatBalance(value, currency === 'CNY' ? '¥' : '$') }
 function total(wallet: BalanceWallet): Big { return new Big(wallet.toppedUp).plus(wallet.granted) }
@@ -102,14 +134,23 @@ export function BalanceSidebar({ wide, useBalance, useBalancePreferences, refres
   const state = useBalance(value => value)
   const enabled = useBalancePreferences(value => value.value?.enabled === true)
   const wallet = state.data?.samples.at(-1)?.wallets[0]
-  const period = balancePeriod(state.now)
+  // The row's period and its countdown follow the wall clock, not the slower
+  // balance sampling cadence, so crossing a boundary or a tick is immediate.
+  const now = useLiveClock(enabled && wallet !== undefined)
+  const period = balancePeriod(now)
+  const periodLabel = t(period === 'peak' ? 'balance.peak' : period === 'valley' ? 'balance.valley' : 'balance.unknownPeriod')
+  const endsAt = balancePeriodEnd(now)
+  const left = endsAt === undefined ? undefined : remainingTime(endsAt - now)
   return <>
     {state.toast !== null && <Toast key={state.toastId} text={t(state.toast === 'saved' ? 'balance.saved' : 'balance.saveFailed')} onDone={() => { dismissToast(state.toastId) }} />}
     {enabled && wallet !== undefined && <div className={css.sidebar}>
       <HoverCard inline anchor={<button type="button" onClick={refresh} className={css.summary} data-period={period}
         aria-label={t('balance.title')} aria-busy={state.loading}>
-        {wide ? <><span className={css.period}>{t(period === 'peak' ? 'balance.peak' : period === 'valley' ? 'balance.valley' : 'balance.unknownPeriod')}</span>
-          <div className={css.wallets}>{new Big(wallet.granted).gt(0) && <div><span>{t('bonusBalance')}</span><strong><RollingAmount text={amount(wallet.granted, wallet.currency)} /></strong></div>}<div><span>{t('balance')}</span><strong><RollingAmount text={amount(wallet.toppedUp, wallet.currency)} /></strong></div></div></>
+        {wide ? <><span className={css.period}>
+          <span>{periodLabel}</span>
+          {left !== undefined && <span className={css.remaining} aria-label={t('balance.periodLeftLabel', { period: periodLabel, time: left })}>{t('balance.periodLeft', { time: left })}</span>}
+        </span>
+        <div className={css.wallets}>{new Big(wallet.granted).gt(0) && <div><span>{t('bonusBalance')}</span><strong><RollingAmount text={amount(wallet.granted, wallet.currency)} /></strong></div>}<div><span>{t('balance')}</span><strong><RollingAmount text={amount(wallet.toppedUp, wallet.currency)} /></strong></div></div></>
           : <strong>{wallet.currency === 'CNY' ? '¥' : '$'}</strong>}
       </button>} content={<div className={css.hover}>{state.failed && <p role="alert">{t('balance.failed')}</p>}<BalanceDetails data={state.data} refreshing={state.loading} t={t} /><p className={css.hint}>{t('balance.hours')}</p></div>} />
     </div>}

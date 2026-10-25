@@ -183,6 +183,8 @@ export interface RowDragProps {
   start: () => void
   /** A compatible row drag is in flight. */
   active: boolean
+  /** Preset id of the row being dragged, so its insert marker carries that mode's color. */
+  mode?: string | undefined
   /** Current marker on this row: insert line above, below, or none. */
   marker: 'before' | 'after' | null
   /** Report the hovered half while a compatible drag passes over this row. */
@@ -195,6 +197,22 @@ export interface RowDragProps {
 interface WorkspaceRowDragProps {
   start: () => void
   end: () => void
+}
+
+/**
+ * Drop the browser's own drag snapshot. The native ghost is a second, offset
+ * copy of the row that overlaps neighboring rows and the insert line while the
+ * pointer travels; the row stays in place dimmed instead, and the marker owns
+ * the feedback.
+ * @param e - the row's dragstart event.
+ */
+function suppressDragImage(e: { dataTransfer: DataTransfer }): void {
+  const blank = document.createElement('canvas')
+  blank.width = 1
+  blank.height = 1
+  // Synthetic test events carry a partial DataTransfer without this method.
+  if (typeof e.dataTransfer.setDragImage !== 'function') return
+  e.dataTransfer.setDragImage(blank, 0, 0)
 }
 
 /** Pointer-position half of a row (insert line above or below). */
@@ -596,6 +614,9 @@ export function SessionNodeItem({
   // their drop targets to fellow pinned rows.
   const draggable = drag !== undefined && !row.blank && !row.archived
   const [menuOpen, setMenuOpen] = useState(false)
+  // A row leaves its resting look while it is the one travelling: the browser's
+  // ghost copy is suppressed, so this dim is the only "lifted" cue.
+  const [dragging, setDragging] = useState(false)
   // The menu's open state, bound into the row entries' `useMenuOpenState` hook.
   const menuOpenState = useMemo((): MenuOpenState => [menuOpen, setMenuOpen], [menuOpen])
   const rowRef = useRef<HTMLDivElement>(null)
@@ -612,6 +633,8 @@ export function SessionNodeItem({
       ref={rowRef}
       data-row-key={`session:${node.id}`}
       data-mode={node.mode ?? 'unknown'}
+      data-dragging={dragging || undefined}
+      data-drop-mode={drag?.marker == null ? undefined : drag.mode}
       className={clsx(
         css.sessionRow, selected && css.selected, menuOpen && css.menuOpen,
         row.archived && css.archived,
@@ -629,9 +652,11 @@ export function SessionNodeItem({
         : (e) => {
           e.dataTransfer.effectAllowed = 'move'
           e.dataTransfer.setData('text/plain', node.id)
+          suppressDragImage(e)
+          setDragging(true)
           drag.start()
         }}
-      onDragEnd={!draggable ? undefined : drag.end}
+      onDragEnd={!draggable ? undefined : () => { setDragging(false); drag.end() }}
       onDragOver={drag === undefined
         ? undefined
         : (e) => {

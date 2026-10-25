@@ -26,6 +26,7 @@ import type { PopupDismissFace } from './facade.ts'
 import { SessionInputShell } from './facade.ts'
 import { reportMessageSubmission } from './submission-analytics.ts'
 import { readConversationDraft } from '../stores.ts'
+import { readNewConversationDraft } from '../draft.ts'
 
 /** Structural command face for per-session popup resolution. */
 interface CommandFace {
@@ -167,7 +168,12 @@ export class InputHub implements SessionInputResolver {
         return () => { shell.refreshLexiconSubscription() }
       }, 'conversation.input: reference catalogs')
     })
-    shell.setDraft(readConversationDraft(binding.sessionId))
+    // A fresh blank Session adopts the unsent new-conversation draft, which is
+    // where leaving and re-entering the new-conversation slot keeps its text.
+    const own = readConversationDraft(binding.sessionId)
+    const empty = own.text === '' && own.references.length === 0
+    const carried = empty && session.getSnapshot().blank ? readNewConversationDraft() : undefined
+    shell.setDraft(carried ?? own)
     return shell
   }
 

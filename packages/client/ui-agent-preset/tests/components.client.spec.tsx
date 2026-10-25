@@ -420,8 +420,8 @@ describe('the session-header label', () => {
     const control = screen.getByRole<HTMLButtonElement>('button', { name: en['modeSwitch.current'].replace('{mode}', en.presetStandardName) })
     expect(control.disabled).toBe(true)
     expect(control.getAttribute('aria-disabled')).toBe('true')
-    expect(control.getAttribute('aria-haspopup')).toBe('menu')
-    expect(control.getAttribute('aria-expanded')).toBe('false')
+    // The card is the mode badge, not a select box: no menu affordance while inert.
+    expect(control.hasAttribute('aria-haspopup')).toBe(false)
     expect(control.title).toBe(en['modeSwitch.disabled'])
     expect(control.textContent).toContain(en.presetStandardName)
     expect(screen.queryByRole('menu')).toBeNull()

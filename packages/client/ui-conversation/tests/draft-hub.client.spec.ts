@@ -25,7 +25,7 @@ const saved: DraftSnapshot = {
   }],
 }
 
-async function storedSession(draft: unknown) {
+async function storedSession(draft: unknown, blank = false) {
   const id = SessionId(`draft-hub-${randomUUID()}`)
   const key = `dsh.conversation.${id}`
   const previous = localStorage.getItem(key)
@@ -42,7 +42,10 @@ async function storedSession(draft: unknown) {
     await ctx.fiber.dispose()
   })
   ctx.provide('sessions', sessions)
-  await sessions.add({ id })
+  await sessions.add({
+    id,
+    ...blank ? { snapshot: { blank: true }, summary: { blank: true } } : {},
+  })
   const reference = sessions.retain(id)
   onTestFinished(() => { reference.release() })
   await reference.ready
@@ -307,4 +310,26 @@ it('unsubscribes the lexicon and refuses the old binding after Session disposal'
   expect(b.shell.draftSnapshot).toBe(draft)
   expect(b.shell.requestDraftInitialization({ prompt: 'late edit', clearPreviousDraft: true })).toBe('blocked')
   expect(() => b.hub.requestDraftInitialization(b.binding, { prompt: 'late edit' })).toThrow('retained Session binding')
+})
+
+it('restores the unsent new-conversation draft into a fresh blank Session only', async () => {
+  const slot = 'dsh.conversation.new'
+  const previous = localStorage.getItem(slot)
+  onTestFinished(() => {
+    if (previous === null) localStorage.removeItem(slot)
+    else localStorage.setItem(slot, previous)
+  })
+  localStorage.setItem(slot, JSON.stringify(saved))
+
+  // The new-conversation slot is a fresh blank Session: it adopts the carried
+  // text instead of starting empty, while an ordinary conversation keeps its
+  // own saved draft.
+  const blank = await storedSession(undefined, true)
+  expect(blank.hub.shellFor(blank.binding).draftSnapshot).toEqual(saved)
+
+  const ordinary = await storedSession(undefined)
+  expect(ordinary.hub.shellFor(ordinary.binding).draftSnapshot).toEqual({ text: '', references: [] })
+  // A blank Session with its own stored text keeps that instead of the slot.
+  const own = await storedSession('/own text', true)
+  expect(own.hub.shellFor(own.binding).draftSnapshot).toEqual({ text: '/own text', references: [] })
 })

@@ -21,7 +21,8 @@
 .summary { width: 100%; border: 0; font: inherit; text-align: left; cursor: pointer; padding: 10px; border-radius: var(--dsw-radius-md); background: var(--dsw-alias-bg-layer-2); color: var(--dsw-alias-label-primary); transition: background-color 300ms var(--ds-ease-in-out); }
 .summary[data-period='peak'] { background: color-mix(in srgb, var(--dsw-brand-red) 9%, transparent); }
 .summary[data-period='valley'] { background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 9%, transparent); }
-.period { display: block; font-size: 11px; margin-bottom: 8px; color: var(--dsw-alias-label-secondary); }
+.period { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 11px; margin-bottom: 8px; color: var(--dsw-alias-label-secondary); }
+.remaining { flex: none; font-variant-numeric: tabular-nums; color: var(--dsw-alias-label-tertiary); }
 .summary:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 2px; }
 .hover { width: 100%; min-width: 0; display: grid; gap: 12px; overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: reduce) { .summary { transition: none; } }

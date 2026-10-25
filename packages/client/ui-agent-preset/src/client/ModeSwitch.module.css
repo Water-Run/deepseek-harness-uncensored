@@ -1,5 +1,6 @@
-.trigger { display: inline-flex; align-items: center; gap: 5px; min-height: 24px; padding: 2px 6px; border-radius: var(--dsw-radius-sm); color: var(--dsw-alias-label-primary); font-size: 12px; }
-.trigger:disabled { opacity: 0.6; }
+/* Existing-conversation mode control: the shared mode card is the trigger, so
+   this sheet only carries the label truncation and the setting rows. */
+
 .name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 140px; }
 .setting { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; font-size: 14px; }
 .setting p { margin: 4px 0 0; font-size: 12px; color: var(--dsw-alias-label-secondary); }
@@ -7,5 +8,4 @@
 .warning { margin: 0 0 12px; font-size: 14px; line-height: 1.7; }
 .note { margin: 0; font-size: 13px; line-height: 1.6; color: var(--dsw-alias-label-secondary); }
 .error { color: var(--dsw-alias-state-error-primary); font-size: 13px; }
-@media (hover: hover) { .trigger:not(:disabled):hover { background: var(--dsw-alias-interactive-bg-hover); } }
 @container (max-width: 540px) { .name { display: none; } }

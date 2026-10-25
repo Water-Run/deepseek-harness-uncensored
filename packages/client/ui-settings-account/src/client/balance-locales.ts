@@ -15,6 +15,7 @@ export const balanceEn = {
   'balance.failed': 'Could not refresh the balance. Any displayed values are the last successful observation.',
   'balance.changeHint': 'Changes include top-ups, grants and expiry; this is not an invoice or a spending total.',
   'balance.peak': 'Peak hours', 'balance.valley': 'Off-peak hours', 'balance.unknownPeriod': 'Holiday calendar unavailable',
+  'balance.periodLeft': '{time} left', 'balance.periodLeftLabel': '{period}, {time} remaining',
   'balance.hours': 'Published peak hours are Monday–Friday, 09:00–12:00 and 14:00–18:00 Beijing time, excluding Chinese public holidays. Weekends, including makeup workdays, are off-peak. The 2026 holiday calendar is included.',
   'balance.pricing': 'Official pricing and hours', 'balance.saved': 'Balance settings saved', 'balance.saveFailed': 'Could not save balance settings. Try again.',
 } as const
@@ -35,6 +36,7 @@ export const balanceZh: Record<keyof typeof balanceEn, string> = {
   'balance.failed': '余额刷新失败；已显示的数值为最近一次成功采样',
   'balance.changeHint': '余额变化包含充值、赠金和到期扣减，不等同于实际消费或账单。',
   'balance.peak': '高峰时段', 'balance.valley': '低峰时段', 'balance.unknownPeriod': '节假日日历待更新',
+  'balance.periodLeft': '剩余 {time}', 'balance.periodLeftLabel': '{period}，剩余 {time}',
   'balance.hours': '官网高峰时段为周一至周五北京时间 09:00–12:00、14:00–18:00，中国公共假期除外。周末（包括调休上班日）按低峰计。已包含 2026 年假期。',
   'balance.pricing': '查看官方价格与时段', 'balance.saved': '余额设置已保存', 'balance.saveFailed': '余额设置保存失败，请重试',
 }
