@@ -84,10 +84,12 @@ const DEDUPE_SCAN_EVENTS = 5000
  * Records this conversation has already received, including any inherited
  * through a side conversation's fork seed.
  * @param session - the conversation whose log is read.
- * @returns every record identity already present in the log.
+ * @param current - Current durable records, whose revisions may have changed.
+ * @returns identities whose current revision is already present in the log.
  */
-function usedMemoryIds(session: Session): MemoryId[] {
-  const ids = new Set<MemoryId>()
+function usedMemoryIds(session: Session, current: readonly MemoryRecord[]): MemoryId[] {
+  const versions = new Map<MemoryId, number>()
+  // oxlint-disable-next-line typescript/no-deprecated -- Existing bounded memory-history scan; projection migration is deferred.
   const events = session.snapshotEvents()
   const start = Math.max(0, events.length - DEDUPE_SCAN_EVENTS)
   for (let index = start; index < events.length; index += 1) {
@@ -95,9 +97,9 @@ function usedMemoryIds(session: Session): MemoryId[] {
     if (event?.type !== 'user/message') continue
     const source = event.data.source
     if (source.kind !== 'memory-context') continue
-    for (const entry of source.entries) ids.add(entry.id)
+    for (const entry of source.entries) versions.set(entry.id, entry.version)
   }
-  return [...ids]
+  return current.filter(record => versions.get(record.id) === record.version).map(record => record.id)
 }
 
 /** Human spelling of one scope for tool results. */
@@ -148,7 +150,7 @@ export function apply(ctx: Context, config: Config = {}): void {
       // A fresh child conversation keeps its own empty context: quick
       // questions and spawned children never inherit the main line's memory.
       if (scope.freshChild) return decision
-      const outcome = ctx.memory.retrieve({ query, scope, exclude: usedMemoryIds(session) })
+      const outcome = ctx.memory.retrieve({ query, scope, exclude: usedMemoryIds(session, ctx.memory.records()) })
       if (outcome.text === '') return decision
       const entries = outcome.selection.entries.map(candidate => ({
         id: candidate.record.id,
@@ -234,7 +236,7 @@ export function apply(ctx: Context, config: Config = {}): void {
       const share = args.share ?? 'session'
       const target = memoryScopeFor(share, scope.workspaceKey, scope.mode)
       const result = await ctx.memory.create({
-        type: args.type as MemoryType,
+        type: args.type,
         content: args.content,
         ...args.title === undefined ? {} : { title: args.title },
         ...args.topic === undefined ? {} : { topic: args.topic },

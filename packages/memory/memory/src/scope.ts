@@ -59,7 +59,9 @@ export async function resolveSessionScope(
       workspaceKey = `${WORKSPACE_KEY_PREFIX}${workspace.id}`
       keys.push(workspaceKey)
     }
-    keys.push(`${PATH_KEY_PREFIX}${canonical}`)
+    const pathKey = `${PATH_KEY_PREFIX}${canonical}`
+    keys.push(pathKey)
+    workspaceKey ??= pathKey
   }
   const resolvedMode = mode ?? session.header.agentPreset
   return {

@@ -7,6 +7,7 @@ export type MemorySettingsLocaleKey =
   | 'scopeAll' | 'scopeGlobal' | 'scopeWorkspace' | 'scopeMode'
   | 'typeAll' | 'typePreference' | 'typeProjectFact' | 'typeOperationResult' | 'typeWritingSetting'
   | 'statusEnabled' | 'statusDisabled'
+  | 'sourcePresent' | 'sourceMissing' | 'sourceUnknown'
   | 'add' | 'edit' | 'save' | 'saving' | 'cancel' | 'delete' | 'confirmDelete' | 'deleteTitle'
   | 'enable' | 'disable' | 'content' | 'titleField' | 'topicField' | 'topicHint'
   | 'shareGlobal' | 'shareGlobalHint' | 'workspace' | 'mode' | 'noWorkspace' | 'noMode' | 'scopeRequired'
@@ -14,6 +15,9 @@ export type MemorySettingsLocaleKey =
 
 /** English copy. */
 export const en: Record<MemorySettingsLocaleKey, string> = {
+  sourcePresent: 'Source conversation is available',
+  sourceMissing: 'Source conversation is no longer in this library; the saved memory is retained',
+  sourceUnknown: 'Source conversation could not be checked; reopen the manager to retry',
   retentionHint: 'Deleting a conversation keeps saved memory. Deleting memory stops future retrieval but does not rewrite earlier conversations.',
   ownerOnly: 'Only the application owner can manage saved memory.',
   rowTitle: 'Cross-conversation memory',
@@ -71,6 +75,9 @@ export const en: Record<MemorySettingsLocaleKey, string> = {
 
 /** Chinese copy. */
 export const zh: Record<MemorySettingsLocaleKey, string> = {
+  sourcePresent: '来源会话仍在会话库中',
+  sourceMissing: '来源会话已不在当前会话库，已保存的记忆仍保留',
+  sourceUnknown: '暂时无法核验来源会话，重新打开管理页可重试',
   retentionHint: '删除对话不会自动删除已保存的记忆；删除记忆会停止后续检索，但不会改写已有对话。',
   ownerOnly: '只有应用所有者可以管理已保存的记忆。',
   rowTitle: '跨对话记忆',

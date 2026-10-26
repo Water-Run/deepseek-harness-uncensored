@@ -67,7 +67,12 @@ export interface MemoryListRequest {
 export interface MemoryListValue {
   /** Matching records, most recently updated first. */
   readonly records: readonly MemoryRecord[]
+  /** Current source availability keyed by memory id; records without a source session are absent. */
+  readonly sources: Readonly<Record<string, MemorySourceAvailability>>
 }
+
+/** Presence in the current live/persisted corpus; an unavailable listing is never treated as deletion. */
+export type MemorySourceAvailability = 'present' | 'missing' | 'unknown'
 
 /** One record a write returns. */
 export interface MemoryValue {

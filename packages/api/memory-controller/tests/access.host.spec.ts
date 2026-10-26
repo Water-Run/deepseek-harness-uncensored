@@ -18,7 +18,7 @@ it('allows owner management but denies delegated reads before inspecting stored 
   try {
     ctx.provide('memory', { list, records, limits })
     new MemoryController(ctx)
-    expect(ctx.memoryController.list({})).toEqual({ records: [] })
+    expect(await ctx.memoryController.list({})).toEqual({ records: [], sources: {} })
     expect(ctx.memoryController.describe().modes).toEqual([])
     list.mockClear(); records.mockClear(); limits.mockClear()
     const invocation: RemoteInvocation = {
@@ -29,7 +29,7 @@ it('allows owner management but denies delegated reads before inspecting stored 
       uplink: async function *<In>(): AsyncIterable<In> {},
     }
     const caller = ctx.extend({ invocation })
-    expect(() => caller.memoryController.list({})).toThrow('Only the application owner')
+    await expect(caller.memoryController.list({})).rejects.toThrow('Only the application owner')
     expect(() => caller.memoryController.describe()).toThrow('Only the application owner')
     expect(list).not.toHaveBeenCalled()
     expect(records).not.toHaveBeenCalled()

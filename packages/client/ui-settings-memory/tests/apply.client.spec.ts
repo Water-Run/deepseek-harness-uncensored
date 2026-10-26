@@ -38,7 +38,7 @@ async function bench() {
       modes: [{ value: 'standard', label: 'standard' }],
     },
   }))
-  const listMemory = vi.fn(() => Promise.resolve({ ok: true as const, value: { records: [RECORD] } }))
+  const listMemory = vi.fn(() => Promise.resolve({ ok: true as const, value: { records: [RECORD], sources: {} } }))
   const removeMemory = vi.fn(() => Promise.resolve({ ok: true as const, value: { removed: true } }))
   const createMemory = vi.fn(() => Promise.resolve({ ok: true as const, value: { record: RECORD } }))
   new TestRemote(ctx, {
@@ -99,7 +99,7 @@ describe('ui-settings-memory apply', () => {
     expect(listMemory).toHaveBeenCalledOnce()
     expect(face.hooks.memories.getSnapshot().records).toHaveLength(1)
 
-    await face.askDelete(RECORD as never)
+    face.askDelete(RECORD as never)
     await face.confirmDelete()
     expect(face.hooks.memories.getSnapshot().records).toHaveLength(1)
     await fiber.dispose()

@@ -160,6 +160,7 @@ function RecordList({ props, records, confirming, loading }: {
   loading: boolean
 }) {
   const { t } = props
+  const sources = props.useMemories(snapshot => snapshot.sources)
   if (loading) return <p className={css.rowDescription}>{t('loading')}</p>
   if (records.length === 0) return <p className={css.rowDescription}>{t('empty')}</p>
   return (
@@ -175,6 +176,9 @@ function RecordList({ props, records, confirming, loading }: {
           </div>
           {record.title !== undefined && <div className={css.recordTitle}>{record.title}</div>}
           <p className={css.content}>{record.content}</p>
+          {record.source.sessionId !== undefined && <p className={css.hint}>
+            {t(sources[record.id] === 'present' ? 'sourcePresent' : sources[record.id] === 'missing' ? 'sourceMissing' : 'sourceUnknown')}
+          </p>}
           {confirming === record.id && (
             <div className={css.confirm}>
               <span>{t('confirmDelete')}</span>

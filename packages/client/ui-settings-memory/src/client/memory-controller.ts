@@ -7,7 +7,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { MemoryDescribeValue, MemoryScopeFilter } from '@deepseek-ai/dsh-api-memory-controller/types'
+import type { MemoryDescribeValue, MemoryScopeFilter, MemorySourceAvailability } from '@deepseek-ai/dsh-api-memory-controller/types'
 import type { MemoryId, MemoryRecord, MemoryScope, MemoryStatus, MemoryType } from '@deepseek-ai/dsh-memory/types'
 
 /** Error keys the row renders; every one maps to a localized line. */
@@ -48,6 +48,8 @@ export interface MemoryRowState {
   description: MemoryDescribeValue | undefined
   /** Current list of stored records. */
   records: readonly MemoryRecord[]
+  /** Fresh source-session observations for the current list. */
+  sources: Readonly<Record<string, MemorySourceAvailability>>
   /** Free-text filter. */
   text: string
   /** Scope filter selection: `all`, `global`, or a stored scope value. */
@@ -108,6 +110,7 @@ export function createMemoryStore(): SnapshotStore<MemoryRowState> {
   return createSnapshotStore<MemoryRowState>({
     description: undefined,
     records: [],
+    sources: {},
     text: '',
     scope: 'all',
     type: 'all',
@@ -153,6 +156,7 @@ export function createMemoryController(ctx: Context): MemoryRowFace {
     }
     store.update((draft) => {
       draft.records = result.value.records
+      draft.sources = result.value.sources
       draft.loading = false
       draft.error = undefined
       draft.confirming = undefined

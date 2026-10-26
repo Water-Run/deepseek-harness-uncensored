@@ -13,6 +13,8 @@ import { MemoryConflictError, MemoryError } from '@deepseek-ai/dsh-memory'
 import type { MemoryFilter, MemoryId, MemoryScope } from '@deepseek-ai/dsh-memory/types'
 import { Remote, RemoteError, TypertRemoteService, principalOf } from '@deepseek-ai/dsh-typert-protocol'
 import type {} from '@deepseek-ai/dsh-workspace'
+import type {} from '@deepseek-ai/dsh-session-query'
+import type {} from '@deepseek-ai/dsh-session-persistence'
 import type {
   MemoryCreateRequest,
   MemoryDescribeValue,
@@ -21,6 +23,7 @@ import type {
   MemoryRemoveRequest,
   MemoryRemoveValue,
   MemoryScopeOption,
+  MemorySourceAvailability,
   MemoryStatusRequest,
   MemoryUpdateRequest,
   MemoryValue,
@@ -105,9 +108,30 @@ export class MemoryController extends TypertRemoteService {
    * @returns matching records, most recently updated first.
    */
   @Remote('list')
-  list(request: MemoryListRequest): MemoryListValue {
+  async list(request: MemoryListRequest): Promise<MemoryListValue> {
     this.assertOwner('memory/read')
-    return { records: this.ctx.memory.list(filterOf(request)) }
+    const records = this.ctx.memory.list(filterOf(request))
+    const sourced = records.filter(record => record.source.sessionId !== undefined)
+    const sources: Record<string, MemorySourceAvailability> = {}
+    if (sourced.length === 0) return { records, sources }
+    const query = this.ctx.get('sessionQuery')
+    const persistence = this.ctx.get('sessionPersistence')
+    if (query === undefined || persistence === undefined) {
+      for (const record of sourced) sources[record.id] = 'unknown'
+      return { records, sources }
+    }
+    try {
+      const sessions = new Set((await query.listSessions(this.ctx.invocation?.signal)).map(record => record.header.id))
+      for (const record of sourced) {
+        const id = record.source.sessionId
+        sources[record.id] = id !== undefined && sessions.has(id) ? 'present' : 'missing'
+      }
+    } catch (error) {
+      if (this.ctx.invocation?.signal.aborted === true) throw error
+      // A failed corpus read leaves memory available, with its source explicitly unverified.
+      for (const record of sourced) sources[record.id] = 'unknown'
+    }
+    return { records, sources }
   }
 
   /**
