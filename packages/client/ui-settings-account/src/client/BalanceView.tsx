@@ -23,7 +23,7 @@ export interface BalanceInjected {
 }
 type SharedProps = PropsLocale<'settings.account'> & InjectFace<BalanceInjected>
 type BalanceSettingsProps = PropsRuntime<'settings.budget.item'> & SharedProps
-type BalanceSidebarProps = PropsRuntime<'sidebar.footer.action'> & SharedProps
+type BalanceSidebarProps = PropsRuntime<'sidebar.footer.budget'> & SharedProps
 
 /** Seconds between sidebar clock ticks: the period row counts down between samples. */
 const COUNTDOWN_TICK_MS = 1_000

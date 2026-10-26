@@ -76,7 +76,7 @@ export class SpendGate {
       ? request.sessionId : undefined
     let pauseId: SpendPauseId | undefined
     try {
-      if (!this.ledger.snapshot().preferences.enabled) { yield* next(); return }
+      if (this.ledger.snapshot().preferences.enabledPeriods.length === 0) { yield* next(); return }
       const rate = this.rate(request.provider, request.model)
       const cost = reserveCost(rate, request.maxTokens)
       id = await this.admit(cost, request.signal, () => {
@@ -125,7 +125,7 @@ export class SpendGate {
     const complete = this.begin()
     let id: SpendReservationId | undefined, dispatched = false
     try {
-      if (!this.ledger.snapshot().preferences.enabled) return (await send()).value
+      if (this.ledger.snapshot().preferences.enabledPeriods.length === 0) return (await send()).value
       const rate = this.rate(request.provider, request.model)
       id = await this.admit(reserveCost(rate, request.maxTokens, request.searches), signal)
       signal?.throwIfAborted()

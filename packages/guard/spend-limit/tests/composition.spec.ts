@@ -30,9 +30,12 @@ it('refuses budget mutations from an agent or delegated viewer', async () => {
       uplink: <In>(): AsyncIterable<In> => ({ [Symbol.asyncIterator]: () => ({ next: async () => ({ done: true, value: undefined }) }) }),
     }
     const viewer = ctx.extend({ invocation }).spendLimit
-    await expect(viewer.configure({ ...DEFAULT_PREFERENCES, enabled: true })).rejects.toMatchObject({ code: 'spending/owner-required' })
+    await expect(viewer.configure({ ...DEFAULT_PREFERENCES, enabledPeriods: ['15m', '1h', '5h', '1d', '7d', '30d'] })).rejects.toMatchObject({ code: 'spending/owner-required' })
     await expect(viewer.resume()).rejects.toMatchObject({ code: 'spending/owner-required' })
     await expect(viewer.reset()).rejects.toMatchObject({ code: 'spending/owner-required' })
+    await expect(viewer.configureWindow({ period: '5h', enabled: true })).rejects.toMatchObject({ code: 'spending/owner-required' })
+    await expect(viewer.setAutoResume(true)).rejects.toMatchObject({ code: 'spending/owner-required' })
+    await expect(viewer.disableAll()).rejects.toMatchObject({ code: 'spending/owner-required' })
     expect((await ctx.spendLimit.get()).preferences).toEqual(DEFAULT_PREFERENCES)
   } finally { await ctx.fiber.dispose() }
 })
@@ -75,17 +78,17 @@ it('boots the built-in gate through Loader and removes admission on unload', asy
     ctx.loader.builtins['spend-limit'] = spending
     await ctx.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(configPath).href } })
     await ctx.loader.await()
-    expect((await ctx.spendLimit.get()).preferences.enabled).toBe(false)
+    expect((await ctx.spendLimit.get()).preferences.enabledPeriods).toEqual([])
     let sent = 0
     class Adapter extends LlmAdapter {
       override async * stream(): AsyncIterable<StreamChunk> { sent++; yield { type: 'usage', usage: { inputTokens: 100, outputTokens: 50 } }; yield { type: 'finish', reason: { kind: 'stop' } } }
     }
     ctx.llm.registerAdapter(['deepseek-official'], new Adapter())
-    await ctx.spendLimit.configure({ ...DEFAULT_PREFERENCES, enabled: true, limits: { ...DEFAULT_PREFERENCES.limits, '15m': 1 } })
+    await ctx.spendLimit.configure({ ...DEFAULT_PREFERENCES, enabledPeriods: ['15m', '1h', '5h', '1d', '7d', '30d'], limits: { ...DEFAULT_PREFERENCES.limits, '15m': 1 } })
     const request = { provider: 'deepseek-official', model: 'deepseek-flash', messages: [], maxTokens: 100 }
     await expect(consume(ctx.llm.stream(request))).rejects.toMatchObject({ code: 'SPEND_REQUEST_TOO_LARGE' })
     expect(sent).toBe(0)
-    await ctx.spendLimit.configure({ ...DEFAULT_PREFERENCES, enabled: true })
+    await ctx.spendLimit.configure({ ...DEFAULT_PREFERENCES, enabledPeriods: ['15m', '1h', '5h', '1d', '7d', '30d'] })
     await consume(ctx.llm.stream(request))
     expect((await ctx.spendLimit.get()).windows[0]?.spent).toBe(0.0006)
     const entry = [...ctx.loader.entries()].find(entry => entry.options.id === 'spending')

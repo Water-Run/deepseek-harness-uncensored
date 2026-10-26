@@ -16,13 +16,21 @@ export type SpendPauseId = Branded<'SpendPauseId'>
 export type SpendPeriod = '15m' | '1h' | '5h' | '1d' | '7d' | '30d'
 /** User-owned preferences shared by processes using the same Uncensored home. */
 export interface SpendPreferences {
-  enabled: boolean
+  /** Only these rolling periods participate in request admission. */
+  enabledPeriods: SpendPeriod[]
   autoResume: boolean
   limits: Record<SpendPeriod, number>
+}
+/** One window's independent settings update. Omitted fields retain their stored values. */
+export interface SpendWindowUpdate {
+  period: SpendPeriod
+  enabled?: boolean
+  limit?: number
 }
 /** One rolling window, with amounts expressed in CNY. */
 export interface SpendWindow {
   period: SpendPeriod
+  enabled: boolean
   limit: number
   spent: number
   reserved: number

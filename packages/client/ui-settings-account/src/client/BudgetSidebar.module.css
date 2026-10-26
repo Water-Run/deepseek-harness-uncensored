@@ -1,0 +1,5 @@
+.group { display: grid; width: 100%; min-width: 0; margin-bottom: 8px; border: 0.5px solid var(--dsw-alias-border-l2); border-radius: var(--dsw-radius-md); background: var(--dsw-alias-bg-layer-1); }
+.group:empty { display: none; }
+.group > :not(:first-child) { border-top: 0.5px solid var(--dsw-alias-border-l2); }
+.group[data-wide='false'] { border: 0; background: transparent; gap: 4px; }
+.group[data-wide='false'] > * { border: 0; }

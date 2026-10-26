@@ -14,7 +14,7 @@ const gates: SpendGate[] = []
 afterEach(async () => { await Promise.all(gates.splice(0).map(gate => gate.close())) })
 async function setup() {
   const ledger = await SpendLedger.open(':memory:')
-  ledger.configure({ ...DEFAULT_PREFERENCES, enabled: true, autoResume: true })
+  ledger.configure({ ...DEFAULT_PREFERENCES, enabledPeriods: ['15m', '1h', '5h', '1d', '7d', '30d'], autoResume: true })
   const gate = new SpendGate(ledger, DEFAULT_RATES, 1, () => true)
   gates.push(gate)
   return gate
@@ -33,9 +33,9 @@ async function* success(): AsyncGenerator<StreamChunk> {
 it('settles before releasing the terminal chunk and does not double-count reasoning or cumulative usage', async () => {
   const gate = await setup()
   const stream = gate.stream(request(), success)
-  expect((await stream.next()).value?.type).toBe('usage')
+  expect(await stream.next()).toMatchObject({ done: false, value: { type: 'usage' } })
   expect(gate.ledger.snapshot().pending).toBe(1)
-  expect((await stream.next()).value?.type).toBe('finish')
+  expect(await stream.next()).toMatchObject({ done: false, value: { type: 'finish' } })
   expect(gate.ledger.snapshot().windows[0]).toMatchObject({ reserved: 0, spent: 0.000288 })
   await stream.next()
 })
@@ -119,7 +119,7 @@ it('clears a cancelled conversation and blocks it when the process shuts down', 
   const directory = await mkdtemp(join(tmpdir(), 'dshu-spending-gate-'))
   const path = join(directory, 'budget.sqlite')
   const ledger = await SpendLedger.open(path)
-  ledger.configure({ ...DEFAULT_PREFERENCES, enabled: true, autoResume: true })
+  ledger.configure({ ...DEFAULT_PREFERENCES, enabledPeriods: ['15m', '1h', '5h', '1d', '7d', '30d'], autoResume: true })
   const gate = new SpendGate(ledger, DEFAULT_RATES, 1, () => true)
   const sessionId = brandString<SessionId>('paused-conversation')
   try {
@@ -180,7 +180,7 @@ it('preserves an actual admission wait when its Agent is disposed before the gat
 
 it('keeps an unowned runtime out of automatic conversation recovery', async () => {
   const ledger = await SpendLedger.open(':memory:')
-  ledger.configure({ ...DEFAULT_PREFERENCES, enabled: true })
+  ledger.configure({ ...DEFAULT_PREFERENCES, enabledPeriods: ['15m', '1h', '5h', '1d', '7d', '30d'] })
   const gate = new SpendGate(ledger, DEFAULT_RATES, 1, () => false)
   gates.push(gate)
   const held = ledger.reserve(4_000_000)

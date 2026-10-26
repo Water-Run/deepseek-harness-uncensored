@@ -48,7 +48,7 @@ async function setup(existingRoot?: string) {
 }
 
 async function exhaust(fixture: Awaited<ReturnType<typeof setup>>) {
-  await fixture.ctx.spendLimit.configure({ ...DEFAULT_PREFERENCES, enabled: true,
+  await fixture.ctx.spendLimit.configure({ ...DEFAULT_PREFERENCES, enabledPeriods: ['15m', '1h', '5h', '1d', '7d', '30d'],
     limits: { ...DEFAULT_PREFERENCES.limits, '15m': 3 } })
   const ledger = await SpendLedger.open(fixture.path)
   try {
@@ -94,7 +94,7 @@ it('restores a paused task through API ownership after restart and continues onl
 it('does not resume a task the user stopped while it was waiting', async () => {
   const fixture = await setup()
   const agent = await exhaust(fixture)
-  await fixture.api.cancel({ sessionId: agent.id })
+  fixture.api.cancel({ sessionId: agent.id })
   await agent.whenIdle()
   expect((await fixture.ctx.spendLimit.get()).pausedSessions).toEqual([])
   await fixture.ctx.spendLimit.reset()

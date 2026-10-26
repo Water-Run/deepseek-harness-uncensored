@@ -35,6 +35,8 @@ import { ReleaseReminder } from './ReleaseReminder.tsx'
 import { registerBalance } from './balance.ts'
 import { registerSpending } from './spending.ts'
 import { BudgetSection } from './BudgetSection.tsx'
+import { BudgetSidebar } from './BudgetSidebar.tsx'
+import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 export type { AccountSectionInjected, AccountSectionProps } from './AccountSection.tsx'
 export type { AccountMenuProps } from './AccountMenu.tsx'
 export type { AccountSnapshot } from './AccountSection.tsx'
@@ -42,6 +44,9 @@ export type { AccountKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap { 'settings.account': AccountKey }
+  interface SlotMap {
+    'sidebar.footer.budget': { kind: 'list'; scope: 'root'; owner: SlotMap['sidebar.footer.action']['owner'] }
+  }
 }
 
 /** Services required by account settings. */
@@ -321,6 +326,10 @@ export function apply(ctx: Context): void {
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'fork-release', locale: 'settings.account',
   }, ReleaseReminder))
+  ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
+    name: 'sidebar.footer.action', id: 'account-budget', order: -10,
+    children: { 'sidebar.footer.budget': { kind: 'list', scope: 'root' } },
+  }, BudgetSidebar))
   registerBalance(ctx, operations.hooks.account)
   registerSpending(ctx)
   ctx.slots.inject('settings.section', () => ctx.slots.register({

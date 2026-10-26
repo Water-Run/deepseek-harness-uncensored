@@ -34,7 +34,7 @@ export function registerBalance(ctx: Context, account: HostObservable<AccountSna
     scope.effect(() => scope.remote.$on('credentials/reference-updated', controller.invalidate), 'account: balance credential changes')
     const injected = (): BalanceInjected => ({ hooks: { balance: controller.state, balancePreferences: form },
       refresh: controller.refresh, save: controller.save, dismissToast: controller.dismissToast })
-    scope.slots.inject('sidebar.footer.action', () => scope.slots.register({ name: 'sidebar.footer.action', id: 'balance', order: -10,
+    scope.slots.inject('sidebar.footer.budget', () => scope.slots.register({ name: 'sidebar.footer.budget', id: 'balance', order: 10,
       locale: 'settings.account', inject: injected }, BalanceSidebar))
     scope.slots.inject('settings.budget.item', () => {
       let unregister: (() => void) | undefined

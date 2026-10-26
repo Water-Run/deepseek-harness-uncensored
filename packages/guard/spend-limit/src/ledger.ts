@@ -6,23 +6,33 @@ import { DatabaseSync } from 'node:sqlite'
 import { z } from 'zod'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import type { SessionId } from '@deepseek-ai/dsh-session'
-import type { SpendPauseId, SpendPausedSession, SpendPeriod, SpendPreferences, SpendReservationId, SpendSnapshot } from './types.ts'
+import type { SpendPauseId, SpendPausedSession, SpendPeriod, SpendPreferences, SpendReservationId, SpendSnapshot, SpendWindowUpdate } from './types.ts'
 
 /** Integer micro-CNY keeps parallel reservation arithmetic exact. */
 export const MICRO_CNY = 1_000_000
 /** Durable ledger schema; newer files are rejected instead of reset. */
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 /** Fixed rolling periods exposed by the product. */
 export const SPEND_PERIODS: Readonly<Record<SpendPeriod, number>> = { '15m': 900_000, '1h': 3_600_000, '5h': 18_000_000, '1d': 86_400_000, '7d': 604_800_000, '30d': 2_592_000_000 }
 /** Defaults apply only when the independent ledger is first created. */
-export const DEFAULT_PREFERENCES: SpendPreferences = { enabled: false, autoResume: false, limits: { '15m': 5, '1h': 15, '5h': 50, '1d': 100, '7d': 500, '30d': 2000 } }
-const amount = z.number().finite().min(0.000001).max(1_000_000)
+export const DEFAULT_PREFERENCES: SpendPreferences = { enabledPeriods: [], autoResume: false, limits: { '15m': 5, '1h': 15, '5h': 50, '1d': 100, '7d': 500, '30d': 2000 } }
+const amount = z.number().min(0.000001).max(1_000_000)
+const periodSchema = z.enum(['15m', '1h', '5h', '1d', '7d', '30d'])
+const periodNames = Object.keys(SPEND_PERIODS) as SpendPeriod[]
+const limitsSchema = z.object({ '15m': amount, '1h': amount, '5h': amount, '1d': amount, '7d': amount, '30d': amount })
 /** Validation for both remote writes and persisted preferences. */
-export const preferencesSchema = z.object({ enabled: z.boolean(), autoResume: z.boolean(), limits: z.object({ '15m': amount, '1h': amount, '5h': amount, '1d': amount, '7d': amount, '30d': amount }) })
+export const preferencesSchema = z.object({
+  enabledPeriods: z.array(periodSchema).max(6).refine(periods => new Set(periods).size === periods.length, 'Duplicate spending period'),
+  autoResume: z.boolean(), limits: limitsSchema,
+})
 const settingsSchema = z.object({ preferences: preferencesSchema, paused: z.boolean() })
+const legacySettingsSchema = z.object({
+  preferences: z.object({ enabled: z.boolean(), autoResume: z.boolean(), limits: limitsSchema }), paused: z.boolean(),
+})
+const exclusionSchema = z.object({ period: periodSchema, charge_id: z.string() })
 const entrySchema = z.object({ id: z.string(), owner: z.string(), pid: z.number().int(), time: z.number().int(), reserved: z.number().int().nonnegative(), cost: z.number().int().nonnegative().nullable(), state: z.enum(['pending', 'settled', 'uncertain']) })
 const pauseSchema = z.object({ session_id: z.string().min(1), state: z.enum(['waiting', 'blocked']), pid: z.number().int(), updated_at: z.number().int(),
-  ticket: z.string().min(1), owner: z.string(), required: z.number().int().nonnegative().safe(),
+  ticket: z.string().min(1), owner: z.string(), required: z.number().int().nonnegative(),
   manual_only: z.union([z.literal(0), z.literal(1)]),
   claim_owner: z.string().nullable(), claim_pid: z.number().int().nullable() })
 type Pause = z.infer<typeof pauseSchema>
@@ -68,7 +78,7 @@ export class SpendLedger {
     }
     const db = new DatabaseSync(file)
     try {
-      db.exec('PRAGMA busy_timeout = 5000; PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL')
+      db.exec('PRAGMA busy_timeout = 5000; PRAGMA journal_mode = WAL; PRAGMA synchronous = FULL; PRAGMA foreign_keys = ON')
       const version = z.object({ user_version: z.number() }).parse(db.prepare('PRAGMA user_version').get()).user_version
       if (!Number.isInteger(version) || version < 0 || version > SCHEMA_VERSION) throw new Error(`spend-limit: unsupported ledger version ${version}`)
       const ledger = new SpendLedger(db, now, isAlive)
@@ -83,6 +93,17 @@ export class SpendLedger {
             .parse(db.prepare('SELECT session_id, state, pid, updated_at FROM session_pauses').all())
           for (const row of legacy) db.prepare("UPDATE session_pauses SET ticket = ?, state = 'blocked' WHERE session_id = ?").run(randomUUID(), row.session_id)
         }
+        if (version < 3) {
+          const row = z.object({ value: z.string() }).optional().parse(db.prepare('SELECT value FROM preferences WHERE id = 1').get())
+          if (row !== undefined) {
+            const old = legacySettingsSchema.parse(JSON.parse(row.value))
+            ledger.writeSettings({ preferences: {
+              enabledPeriods: old.preferences.enabled ? [...periodNames] : [],
+              autoResume: old.preferences.autoResume, limits: old.preferences.limits,
+            }, paused: old.paused })
+          }
+        }
+        db.exec("CREATE TABLE IF NOT EXISTS window_exclusions (period TEXT NOT NULL CHECK(period IN ('15m','1h','5h','1d','7d','30d')), charge_id TEXT NOT NULL REFERENCES charges(id) ON DELETE CASCADE, PRIMARY KEY(period, charge_id)) STRICT")
         db.prepare('INSERT OR IGNORE INTO preferences VALUES (1, ?)').run(JSON.stringify({ preferences: DEFAULT_PREFERENCES, paused: false }))
         ledger.settings()
         ledger.pauseRows()
@@ -136,18 +157,26 @@ export class SpendLedger {
 
   private snapshotAt(time: number, settings: Settings, entries: Entry[], waiting: number): SpendSnapshot {
     let nextExpiry: number | null = null
+    const exclusions = new Map<SpendPeriod, Set<string>>()
+    for (const row of z.array(exclusionSchema).parse(this.db.prepare('SELECT period, charge_id FROM window_exclusions').all())) {
+      const ids = exclusions.get(row.period) ?? new Set<string>()
+      ids.add(row.charge_id)
+      exclusions.set(row.period, ids)
+    }
     const windows = (Object.entries(SPEND_PERIODS) as [SpendPeriod, number][]).map(([period, duration]) => {
+      const enabled = settings.preferences.enabledPeriods.includes(period)
       let spent = 0, reserved = 0, uncertain = 0
       for (const entry of entries) {
         if (entry.state === 'pending') { reserved += entry.reserved; continue }
+        if (exclusions.get(period)?.has(entry.id) === true) continue
         if (entry.time <= time - duration) continue
         const cost = entry.cost ?? entry.reserved
         spent += cost
         if (entry.state === 'uncertain') uncertain += cost
-        nextExpiry = Math.min(nextExpiry ?? Infinity, entry.time + duration)
+        if (enabled) nextExpiry = Math.min(nextExpiry ?? Infinity, entry.time + duration)
       }
       const limit = settings.preferences.limits[period]
-      return { period, limit, spent: spent / MICRO_CNY, reserved: reserved / MICRO_CNY, uncertain: uncertain / MICRO_CNY,
+      return { period, enabled, limit, spent: spent / MICRO_CNY, reserved: reserved / MICRO_CNY, uncertain: uncertain / MICRO_CNY,
         remaining: Math.max(0, Math.round(limit * MICRO_CNY) - spent - reserved) / MICRO_CNY }
     })
     return { preferences: settings.preferences, paused: settings.paused, windows, pending: entries.filter(entry => entry.state === 'pending').length, waiting, pausedSessions: this.pauses(time), nextExpiry, updatedAt: time }
@@ -171,12 +200,13 @@ export class SpendLedger {
     if (!Number.isSafeInteger(microCny) || microCny < 0) throw new Error('spend-limit: invalid reservation amount')
     return this.transaction(() => {
       const settings = this.settings()
-      if (!settings.preferences.enabled) return { kind: 'disabled' }
+      if (settings.preferences.enabledPeriods.length === 0) return { kind: 'disabled' }
       const time = this.now(), snapshot = this.snapshotAt(time, settings, this.entries(time), 0)
-      if (snapshot.windows.some(window => microCny > Math.round(window.limit * MICRO_CNY))) return { kind: 'too-large' }
+      const active = snapshot.windows.filter(window => window.enabled)
+      if (active.some(window => microCny > Math.round(window.limit * MICRO_CNY))) return { kind: 'too-large' }
       if (settings.paused) return { kind: 'waiting', reason: 'paused' }
-      if (snapshot.windows.some(window => microCny > Math.round(window.remaining * MICRO_CNY))) {
-        const exhausted = snapshot.windows.some(window =>
+      if (active.some(window => microCny > Math.round(window.remaining * MICRO_CNY))) {
+        const exhausted = active.some(window =>
           Math.round(window.spent * MICRO_CNY) + microCny > Math.round(window.limit * MICRO_CNY))
         if (!settings.preferences.autoResume && exhausted) this.writeSettings({ ...settings, paused: true })
         return { kind: 'waiting', reason: 'limit' }
@@ -198,7 +228,10 @@ export class SpendLedger {
       const entry = entrySchema.parse(this.db.prepare('SELECT * FROM charges WHERE id = ? AND owner = ?').get(id, this.owner))
       if (entry.state !== 'pending') throw new Error('spend-limit: reservation already settled')
       this.db.prepare('UPDATE charges SET cost = ?, state = ?, time = ? WHERE id = ?').run(microCny ?? entry.reserved, microCny === null ? 'uncertain' : 'settled', this.now(), id)
-      if (microCny !== null && microCny > entry.reserved) this.writeSettings({ ...this.settings(), paused: true })
+      const settings = this.settings()
+      if (microCny !== null && microCny > entry.reserved && settings.preferences.enabledPeriods.length > 0) {
+        this.writeSettings({ ...settings, paused: true })
+      }
     })
   }
 
@@ -208,10 +241,43 @@ export class SpendLedger {
    * @returns Preferences after durable commit.
    */
   configure(value: SpendPreferences): SpendSnapshot {
-    const preferences = preferencesSchema.parse(value)
+    return this.changePreferences(() => value)
+  }
+
+  /**
+   * Update one window against the latest stored preferences.
+   * @param update - Window and the fields to change.
+   * @returns Current committed settings and totals.
+   */
+  configureWindow(update: SpendWindowUpdate): SpendSnapshot {
+    return this.changePreferences(current => ({ ...current,
+      enabledPeriods: update.enabled === undefined ? current.enabledPeriods : update.enabled
+        ? periodNames.filter(period => period === update.period || current.enabledPeriods.includes(period))
+        : current.enabledPeriods.filter(period => period !== update.period),
+      limits: update.limit === undefined ? current.limits : { ...current.limits, [update.period]: update.limit },
+    }))
+  }
+
+  /**
+   * Save the automatic continuation policy without replacing window preferences.
+   * @param enabled - Whether exhausted windows resume automatically.
+   * @returns Committed settings and totals.
+   */
+  setAutoResume(enabled: boolean): SpendSnapshot { return this.changePreferences(current => ({ ...current, autoResume: enabled })) }
+
+  /**
+   * Disable every window while retaining their limits and statistics.
+   * @returns Committed settings and totals.
+   */
+  disableAll(): SpendSnapshot { return this.changePreferences(current => ({ ...current, enabledPeriods: [] })) }
+
+  private changePreferences(change: (current: SpendPreferences) => SpendPreferences): SpendSnapshot {
     this.transaction(() => {
       const current = this.settings()
-      this.writeSettings({ preferences, paused: preferences.enabled && !preferences.autoResume ? current.paused : false })
+      const preferences = preferencesSchema.parse(change(current.preferences))
+      const removed = current.preferences.enabledPeriods.some(period => !preferences.enabledPeriods.includes(period))
+      const paused = preferences.enabledPeriods.length > 0 && !preferences.autoResume && !removed && current.paused
+      this.writeSettings({ preferences, paused })
     })
     return this.snapshot()
   }
@@ -265,21 +331,22 @@ export class SpendLedger {
   claimBlockedSessions(): SpendPauseClaim[] {
     return this.transaction(() => {
       const settings = this.settings()
-      if (settings.paused) return []
+      const enabled = settings.preferences.enabledPeriods.length > 0
+      if (enabled && settings.paused) return []
       const time = this.now()
       const snapshot = this.snapshotAt(time, settings, this.entries(time), 0)
       const claims: SpendPauseClaim[] = []
       const pauses = this.pauseRows()
-      if (settings.preferences.enabled && !settings.preferences.autoResume && pauses.some(row => row.state === 'blocked' && row.manual_only === 0
-        && snapshot.windows.some(window => Math.round(window.spent * MICRO_CNY) + row.required > Math.round(window.limit * MICRO_CNY)))) {
+      const active = snapshot.windows.filter(window => window.enabled)
+      if (enabled && !settings.preferences.autoResume && pauses.some(row => row.state === 'blocked' && row.manual_only === 0
+        && active.some(window => Math.round(window.spent * MICRO_CNY) + row.required > Math.round(window.limit * MICRO_CNY)))) {
         this.writeSettings({ ...settings, paused: true })
         return []
       }
       for (const row of pauses) {
         if (row.state !== 'blocked' || row.manual_only === 1 || row.claim_owner === this.owner
           || (row.claim_pid !== null && this.isAlive(row.claim_pid))) continue
-        if (settings.preferences.enabled
-          && snapshot.windows.some(window => Math.round(window.remaining * MICRO_CNY) < row.required)) continue
+        if (enabled && active.some(window => Math.round(window.remaining * MICRO_CNY) < row.required)) continue
         this.db.prepare('UPDATE session_pauses SET claim_owner = ?, claim_pid = ? WHERE ticket = ?').run(this.owner, process.pid, row.ticket)
         claims.push({ id: brandString<SpendPauseId>(row.ticket), sessionId: brandString<SessionId>(row.session_id) })
       }
@@ -306,9 +373,17 @@ export class SpendLedger {
   /** Clear the manual pause without bypassing any remaining window limit. */
   resume(): void { this.transaction(() => { this.writeSettings({ ...this.settings(), paused: false }); this.db.exec('UPDATE session_pauses SET manual_only = 0') }) }
 
-  /** Reset completed statistics while preserving every active request reservation. */
-  reset(): void {
-    this.transaction(() => { this.entries(this.now()); this.db.exec("DELETE FROM charges WHERE state != 'pending'"); this.writeSettings({ ...this.settings(), paused: false }) })
+  /**
+   * Reset completed statistics while preserving every active request reservation.
+   * @param period - One window to reset; omission resets every window.
+   */
+  reset(period?: SpendPeriod): void {
+    this.transaction(() => {
+      this.entries(this.now())
+      if (period === undefined) this.db.exec("DELETE FROM charges WHERE state != 'pending'")
+      else this.db.prepare("INSERT OR IGNORE INTO window_exclusions SELECT ?, id FROM charges WHERE state != 'pending'").run(period)
+      this.writeSettings({ ...this.settings(), paused: false })
+    })
   }
 
   /** Retain unsettled owned requests as uncertain charges, then release the database. */

@@ -25,12 +25,14 @@ export function registerSpending(ctx: Context): void {
     const controller = new SpendingController(() => unwrap(scope.remote.spending.get()))
     scope.effect(() => () => controller.dispose(), 'account: spending requests')
     const inject = (): SpendingInjected => ({ hooks: { spending: controller.state }, refreshSpending: controller.refresh,
-      configureSpending: value => controller.mutate(() => unwrap(scope.remote.spending.configure(value))),
-      resetSpending: () => controller.mutate(() => unwrap(scope.remote.spending.reset())),
+      configureSpendingWindow: value => controller.mutate(() => unwrap(scope.remote.spending.configureWindow(value))),
+      setSpendingAutoResume: value => controller.mutate(() => unwrap(scope.remote.spending.setAutoResume(value))),
+      disableAllSpending: () => controller.mutate(() => unwrap(scope.remote.spending.disableAll())),
+      resetSpending: period => controller.mutate(() => unwrap(scope.remote.spending.reset(period))),
       resumeSpending: () => controller.mutate(() => unwrap(scope.remote.spending.resume())), dismissSpendingToast: controller.dismiss })
     scope.slots.inject('settings.budget.item', () => scope.slots.register({ name: 'settings.budget.item', id: 'spending', order: 10, label: () => scope.locale.bind('settings.account')('spending.title'), locale: 'settings.account', inject }, SpendingSettings))
     scope.slots.inject('shell.overlay', () => scope.slots.register({ name: 'shell.overlay', id: 'spending-feedback', locale: 'settings.account', inject }, SpendingToast))
-    scope.slots.inject('sidebar.footer.action', () => scope.slots.register({ name: 'sidebar.footer.action', id: 'spending-state', order: -11, locale: 'settings.account', inject }, SpendingSidebar))
+    scope.slots.inject('sidebar.footer.budget', () => scope.slots.register({ name: 'sidebar.footer.budget', id: 'spending-state', order: 0, locale: 'settings.account', inject }, SpendingSidebar))
     scope.inject(['resources'], (child) => {
       const provider: ResourceProvider<'session-cost'> = { protocol: 'session-cost', async *open(address, { signal }) {
         try {

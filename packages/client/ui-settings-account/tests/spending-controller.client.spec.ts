@@ -2,7 +2,7 @@ import { expect, it } from 'vitest'
 import { SpendingController } from '../src/client/spending-controller.ts'
 import type { SpendSnapshot } from '@deepseek-ai/dsh-spend-limit/types'
 
-const snapshot = (enabled: boolean): SpendSnapshot => ({ preferences: { enabled, autoResume: false, limits: { '15m': 5, '1h': 15, '5h': 50, '1d': 100, '7d': 500, '30d': 2000 } }, windows: [], paused: false, pending: 0, waiting: 0, pausedSessions: [], nextExpiry: null, updatedAt: 1000 })
+const snapshot = (enabled: boolean): SpendSnapshot => ({ preferences: { enabledPeriods: enabled ? ['5h'] : [], autoResume: false, limits: { '15m': 5, '1h': 15, '5h': 50, '1d': 100, '7d': 500, '30d': 2000 } }, windows: [], paused: false, pending: 0, waiting: 0, pausedSessions: [], nextExpiry: null, updatedAt: 1000 })
 
 it('does not overwrite a committed save with an older poll response', async () => {
   const read = Promise.withResolvers<SpendSnapshot>()
@@ -12,7 +12,7 @@ it('does not overwrite a committed save with an older poll response', async () =
     read.resolve(snapshot(false))
     await read.promise
     await Promise.resolve()
-    expect(controller.state.getSnapshot().data?.preferences.enabled).toBe(true)
+    expect(controller.state.getSnapshot().data?.preferences.enabledPeriods).toEqual(['5h'])
   } finally { read.resolve(snapshot(false)); await controller.dispose() }
 })
 

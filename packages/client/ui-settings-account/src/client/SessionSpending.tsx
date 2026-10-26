@@ -31,9 +31,10 @@ PropsRuntime<'conversation.composer.dock'> & InjectFace<SpendingInjected> & Prop
   const cost = result.value
   const partial = cost !== undefined && cost.unpricedRequests > 0
   const label = cost === undefined ? '—' : amount(cost.total)
-  const enabled = limits?.preferences.enabled === true
-  const paused = limits?.paused === true || limits?.pausedSessions.some(value => value.state === 'blocked') === true
-  const nearest = limits?.windows.reduce<SpendWindow | undefined>((best, window) =>
+  const activeWindows = limits?.windows.filter(window => window.enabled) ?? []
+  const enabled = activeWindows.length > 0
+  const paused = enabled && (limits?.paused === true || limits?.pausedSessions.some(value => value.state === 'blocked') === true)
+  const nearest = activeWindows.reduce<SpendWindow | undefined>((best, window) =>
     best === undefined || occupancy(window) > occupancy(best) ? window : best, undefined)
   const percent = nearest === undefined ? 0 : occupancy(nearest)
   const shownPercent = percent < 100 ? Math.min(99, Math.round(percent)) : Math.round(percent)
@@ -53,7 +54,7 @@ PropsRuntime<'conversation.composer.dock'> & InjectFace<SpendingInjected> & Prop
     <StatPopover title={t('spending.title')} label={limitState.failed || limits === undefined ? '—'
       : enabled ? nearestLabel : t('spending.offShort')} icon={<LimitIcon className={paused ? css.paused : undefined} />}>
       <p className={css.hint}>{t(limitState.failed || limits === undefined ? 'spending.failed' : paused ? 'spending.paused' : enabled ? 'spending.active' : 'spending.off')}</p>
-      {enabled && limits.windows.map((window) => {
+      {activeWindows.map((window) => {
         const percent = occupancy(window)
         return <div className={css.window} key={window.period}>
           <div className={css.row}><span>{t(`spending.${window.period}`)}</span><span>{percent.toFixed(1)}% · {amount(window.spent + window.reserved)} / {amount(window.limit)}</span></div>

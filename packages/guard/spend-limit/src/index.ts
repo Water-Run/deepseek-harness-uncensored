@@ -11,7 +11,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session'
 import { SpendLedger } from './ledger.ts'
 import { SpendGate } from './gate.ts'
 import { DEFAULT_RATES } from './pricing.ts'
-import type { SessionSpendUsage, SpendPreferences, SpendRate, SpendSnapshot } from './types.ts'
+import type { SessionSpendUsage, SpendPeriod, SpendPreferences, SpendRate, SpendSnapshot, SpendWindowUpdate } from './types.ts'
 export type * from './types.ts'
 
 /** Deployment-owned ledger path and conservative rates. User limits live in the ledger. */
@@ -88,6 +88,44 @@ export class SpendLimitRemote extends TypertRemoteService {
     return this.get()
   }
   /**
+   * Save one window without overwriting concurrent changes to another window.
+   * @param update - Window and the settings to change.
+   * @returns Committed preferences and totals.
+   */
+  @Remote
+  async configureWindow(update: SpendWindowUpdate): Promise<SpendSnapshot> {
+    this.assertOwner('spending/configure-window')
+    const gate = await this.runtime.ready
+    gate.ledger.configureWindow(update)
+    await this.runtime.recovery.flush(gate)
+    return this.get()
+  }
+  /**
+   * Save the automatic continuation preference independently of window settings.
+   * @param enabled - Whether paused conversations should continue when capacity returns.
+   * @returns Committed preferences and totals.
+   */
+  @Remote
+  async setAutoResume(enabled: boolean): Promise<SpendSnapshot> {
+    this.assertOwner('spending/auto-resume')
+    const gate = await this.runtime.ready
+    gate.ledger.setAutoResume(enabled)
+    await this.runtime.recovery.flush(gate)
+    return this.get()
+  }
+  /**
+   * Disable all windows while preserving their amounts and accounting records.
+   * @returns Committed preferences and totals after eligible conversations resume.
+   */
+  @Remote
+  async disableAll(): Promise<SpendSnapshot> {
+    this.assertOwner('spending/disable-all')
+    const gate = await this.runtime.ready
+    gate.ledger.disableAll()
+    await this.runtime.recovery.flush(gate)
+    return this.get()
+  }
+  /**
    * Clear manual pause.
    * @returns Updated state; remaining limits still apply.
    */
@@ -101,13 +139,14 @@ export class SpendLimitRemote extends TypertRemoteService {
   }
   /**
    * Clear completed statistics.
+   * @param period - One rolling window; omission resets all completed statistics.
    * @returns Remaining active reservations and settings.
    */
   @Remote
-  async reset(): Promise<SpendSnapshot> {
+  async reset(period?: SpendPeriod): Promise<SpendSnapshot> {
     this.assertOwner('spending/reset')
     const gate = await this.runtime.ready
-    gate.ledger.reset()
+    gate.ledger.reset(period)
     await this.runtime.recovery.flush(gate)
     return this.get()
   }

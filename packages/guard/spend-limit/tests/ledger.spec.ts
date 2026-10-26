@@ -19,7 +19,7 @@ async function setup(path = ':memory:', now = () => 1000, alive?: (pid: number) 
   return ledger
 }
 function reservation(result: SpendAdmission) { if (result.kind !== 'reserved') throw new Error(result.kind); return result.id }
-function enable(ledger: SpendLedger, autoResume = true) { ledger.configure({ ...DEFAULT_PREFERENCES, enabled: true, autoResume }) }
+function enable(ledger: SpendLedger, autoResume = true) { ledger.configure({ ...DEFAULT_PREFERENCES, enabledPeriods: ['15m', '1h', '5h', '1d', '7d', '30d'], autoResume }) }
 
 it('starts disabled with the six requested limits and no automatic recovery', async () => {
   const ledger = await setup()
@@ -195,11 +195,14 @@ it('migrates legacy pauses without automatically executing an unclassified old r
   const directory = await mkdtemp(join(tmpdir(), 'dshu-spending-migrate-')); directories.push(directory)
   const path = join(directory, 'budget.sqlite')
   const previous = await setup(path)
-  previous.configure({ ...DEFAULT_PREFERENCES, enabled: true, autoResume: true })
+  previous.configure({ ...DEFAULT_PREFERENCES, enabledPeriods: ['15m', '1h', '5h', '1d', '7d', '30d'], autoResume: true })
   previous.close()
   const db = new DatabaseSync(path)
   try {
     db.exec('DROP TABLE session_pauses; CREATE TABLE session_pauses (session_id TEXT PRIMARY KEY, state TEXT NOT NULL, pid INTEGER NOT NULL, updated_at INTEGER NOT NULL) STRICT; PRAGMA user_version = 1')
+    db.prepare('UPDATE preferences SET value = ?').run(JSON.stringify({ preferences: {
+      enabled: true, autoResume: true, limits: DEFAULT_PREFERENCES.limits,
+    }, paused: false }))
     db.prepare("INSERT INTO session_pauses VALUES ('legacy', 'waiting', ?, 1000)").run(process.pid)
   } finally { db.close() }
   const migrated = await setup(path)
@@ -210,10 +213,96 @@ it('migrates legacy pauses without automatically executing an unclassified old r
   migrated.reset()
   expect(migrated.claimBlockedSessions()).toEqual([])
   migrated.resume()
-  expect(migrated.claimBlockedSessions()).toEqual([{ id: expect.any(String), sessionId: 'legacy' }])
+  const claims = migrated.claimBlockedSessions()
+  expect(claims).toHaveLength(1)
+  expect(claims[0]?.sessionId).toBe('legacy')
+  expect(claims[0]?.id).toEqual(expect.any(String))
   const inspect = new DatabaseSync(path)
   try { expect(inspect.prepare('PRAGMA user_version').get()?.user_version).toBe(SCHEMA_VERSION) }
   finally { inspect.close() }
+})
+
+it('applies admission only to enabled windows and preserves their history when disabled', async () => {
+  const ledger = await setup()
+  ledger.configure({ ...DEFAULT_PREFERENCES, enabledPeriods: ['5h', '7d'], autoResume: true })
+  ledger.settle(reservation(ledger.reserve(6 * MICRO_CNY)), 6 * MICRO_CNY)
+  expect(ledger.snapshot().windows.find(window => window.period === '15m')).toMatchObject({ enabled: false, spent: 6 })
+  ledger.configure({ ...ledger.snapshot().preferences, enabledPeriods: ['15m', '5h', '7d'] })
+  expect(ledger.reserve(MICRO_CNY)).toEqual({ kind: 'waiting', reason: 'limit' })
+})
+
+it('resets one window without changing other windows or discarding same-time in-flight settlement', async () => {
+  const ledger = await setup()
+  enable(ledger)
+  ledger.settle(reservation(ledger.reserve(2 * MICRO_CNY)), 2 * MICRO_CNY)
+  const active = reservation(ledger.reserve(MICRO_CNY))
+  ledger.reset('5h')
+  expect(ledger.snapshot().windows.find(window => window.period === '5h')).toMatchObject({ spent: 0, reserved: 1 })
+  expect(ledger.snapshot().windows.find(window => window.period === '7d')).toMatchObject({ spent: 2, reserved: 1 })
+  ledger.settle(active, MICRO_CNY / 2)
+  expect(ledger.snapshot().windows.find(window => window.period === '5h')?.spent).toBe(0.5)
+  expect(ledger.snapshot().windows.find(window => window.period === '7d')?.spent).toBe(2.5)
+  ledger.reset()
+  ledger.settle(reservation(ledger.reserve(MICRO_CNY)), MICRO_CNY)
+  expect(ledger.snapshot().windows.every(window => window.spent === 1)).toBe(true)
+})
+
+it('shares per-window reset state across independent connections and reopen', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'dshu-window-reset-')); directories.push(directory)
+  const path = join(directory, 'budget.sqlite')
+  const first = await setup(path), second = await setup(path)
+  enable(first)
+  first.settle(reservation(first.reserve(MICRO_CNY)), MICRO_CNY)
+  second.reset('5h')
+  expect(first.snapshot().windows.find(window => window.period === '5h')?.spent).toBe(0)
+  first.close(); second.close()
+  const reopened = await setup(path)
+  expect(reopened.snapshot().windows.find(window => window.period === '5h')?.spent).toBe(0)
+  expect(reopened.snapshot().windows.find(window => window.period === '7d')?.spent).toBe(1)
+})
+
+it('preserves independent window edits and automatic recovery changes across connections', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'dshu-window-settings-')); directories.push(directory)
+  const path = join(directory, 'budget.sqlite')
+  const first = await setup(path), second = await setup(path)
+  first.configureWindow({ period: '5h', enabled: true, limit: 75 })
+  second.configureWindow({ period: '7d', enabled: true, limit: 700 })
+  first.setAutoResume(true)
+  expect(second.snapshot().preferences).toMatchObject({ enabledPeriods: ['5h', '7d'], autoResume: true, limits: { '5h': 75, '7d': 700 } })
+  second.disableAll()
+  expect(first.snapshot().preferences).toMatchObject({ enabledPeriods: [], autoResume: true, limits: { '5h': 75, '7d': 700 } })
+})
+
+it.each([false, true])('migrates v2 global enabled=%s while retaining limits and charges', async (enabled) => {
+  const directory = await mkdtemp(join(tmpdir(), 'dshu-window-migration-')); directories.push(directory)
+  const path = join(directory, 'budget.sqlite')
+  const previous = await setup(path)
+  enable(previous)
+  previous.settle(reservation(previous.reserve(MICRO_CNY)), MICRO_CNY)
+  previous.close()
+  const db = new DatabaseSync(path)
+  try {
+    db.prepare('UPDATE preferences SET value = ?').run(JSON.stringify({ preferences: {
+      enabled, autoResume: true, limits: { ...DEFAULT_PREFERENCES.limits, '5h': 75 },
+    }, paused: false }))
+    db.exec('DROP TABLE window_exclusions; PRAGMA user_version = 2')
+  } finally { db.close() }
+  const migrated = await setup(path)
+  expect(migrated.snapshot().preferences).toEqual({
+    enabledPeriods: enabled ? ['15m', '1h', '5h', '1d', '7d', '30d'] : [],
+    autoResume: true, limits: { ...DEFAULT_PREFERENCES.limits, '5h': 75 },
+  })
+  expect(migrated.snapshot().windows.every(window => window.spent === 1)).toBe(true)
+})
+
+it('releases the manual pause when the blocking window is disabled', async () => {
+  const ledger = await setup()
+  enable(ledger, false)
+  ledger.settle(reservation(ledger.reserve(4 * MICRO_CNY)), 4 * MICRO_CNY)
+  expect(ledger.reserve(2 * MICRO_CNY).kind).toBe('waiting')
+  expect(ledger.snapshot().paused).toBe(true)
+  ledger.configure({ ...ledger.snapshot().preferences, enabledPeriods: ['5h'] })
+  expect(ledger.reserve(2 * MICRO_CNY).kind).toBe('reserved')
 })
 
 it('keeps recovery manual when a dead reservation becomes an uncertain charge', async () => {
