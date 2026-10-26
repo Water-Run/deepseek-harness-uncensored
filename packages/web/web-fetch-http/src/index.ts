@@ -7,6 +7,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
+import { WebError } from '@deepseek-ai/dsh-web'
 import type {} from '@deepseek-ai/dsh-web'
 import { HttpFetchProvider } from './provider.ts'
 import type { HttpFetchLimits } from './provider.ts'
@@ -18,6 +19,7 @@ export {
   HttpFetchProvider,
 } from './provider.ts'
 export type { HttpFetchLimits, HttpFetchResolver } from './provider.ts'
+export type { HttpFetchAuthority, HttpFetchDestination, HttpFetchRejection, HttpFetchAuthorizer } from './authorization.ts'
 // Reused by providers that own their own transport (the security-mode egress
 // proxy) so URL validation, content classification, and charset decoding stay
 // one implementation.
@@ -102,5 +104,8 @@ export function apply(ctx: Context, config: Config): void {
     maxRedirects: resolved.maxRedirects,
     userAgent: resolved.userAgent,
   }
-  ctx.web.registerFetchProvider(new HttpFetchProvider(limits))
+  ctx.web.registerFetchProvider(new HttpFetchProvider(limits, undefined, async (destination, signal) => {
+    const denial = await ctx.serial('web-fetch/authorize', destination, signal)
+    if (denial !== undefined) throw new WebError(denial.reason, 'WEB_TARGET_PROTECTED')
+  }))
 }

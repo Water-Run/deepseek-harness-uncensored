@@ -48,7 +48,7 @@ kind: "package-reference"
 | `maxRedirects` | `5` | 同源重定向最大跳数（`0` 表示不跟随） |
 | `userAgent` | `deepseek-harness/…` | 每次请求发送的 `User-Agent` 标头 |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-web-fetch-http)是每个受支持字段及其 JSDoc 的穷尽式真源。
+[配置声明](src/index.ts)列出全部支持字段及其 JSDoc。
 
 ### 抓取返回什么
 
@@ -97,6 +97,8 @@ const page = await ctx.web.fetch({ url: 'https://example.com' })
 
 抓取先校验 URL，只解析一次主机名，结果中只要有非公开地址就拒绝，并把连接固定到已接受地址。每次同源重定向都重复该检查；跨源重定向或非公开目标在接收响应字节前失败。最终响应按 `Content-Type` 分类、依声明的 charset 解码，并在字节上限内读取；解码后的文本再截断到字符上限。
 
+已装配的提供方在每跳解析前和连接前派发 `web-fetch/authorize`。监听器可返回拒绝，产生 `WEB_TARGET_PROTECTED`，不能覆盖其他监听器的拒绝。第二次检查同时报告原始目标身份与实际固定的地址集合；由代理解析时，地址明确为 `null`。查询参数和凭据不进入这些身份信息。异步检查后若已取消，不会建立连接。该执行检查接口本身不负责分类保护目标，部署需要提供规则策略；直接创建 `HttpFetchProvider` 的调用方可在第三个构造参数传入同等校验函数。
+
 </details>
 
 -----
@@ -106,11 +108,11 @@ const page = await ctx.web.fetch({ url: 'https://example.com' })
 
 当包级约定不够用时阅读以下页面。它们从共享词汇逐步进入服务、面向模型的工具与设计依据。
 
-- [web 子系统](../../../docs/subsystems/web.zh.md)——穷尽式的抓取请求／结果词汇与错误码。
+- [Web 类型](../web/src/types.ts)——抓取请求／结果字段与错误码。
 - [web 包映射](../README.zh.md)——六包家族与各角色。
 - [dsh-web](../web/README.zh.md)——本提供方注册进入的 web 服务。
 - [dsh-tool-web](../tool-web/README.zh.md)——渲染本提供方正文的面向模型 `web_fetch` 工具。
-- [生成配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-web-fetch-http)——每个受支持配置字段及其源声明。
+- [配置源码](src/index.ts)——支持字段、默认值与校验。
 - [web 能力 seam 决策](../../../.agents/notes/implemented/architecture/2026-06-24-web-capability-seam.zh.md)——搜索与抓取为何共用一项提供方选择服务。
 
 -----

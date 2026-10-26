@@ -48,7 +48,7 @@ Load the web service and the provider; configurable limits have safe defaults an
 | `maxRedirects` | `5` | Maximum same-origin redirect hops (`0` follows none) |
 | `userAgent` | `deepseek-harness/…` | `User-Agent` header sent on every request |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-web-fetch-http) is the exhaustive source for every accepted field and its JSDoc.
+The [configuration declaration](src/index.ts) lists every accepted field and its JSDoc.
 
 ### What a fetch returns
 
@@ -97,6 +97,8 @@ The package is built on one separation and one layered timeout:
 
 A fetch validates the URL, resolves the hostname once, rejects the complete answer set when any address is not public, and pins the connection to the accepted addresses. It repeats that check for each same-origin redirect; a cross-origin redirect or non-public target fails before response bytes are accepted. The final response is classified by `Content-Type`, decoded from its declared charset, and read under the byte cap; the decoded text is then truncated to the character cap.
 
+The mounted provider dispatches `web-fetch/authorize` before each hop's resolution and immediately before its connection. A listener may return a denial, which produces `WEB_TARGET_PROTECTED`; it cannot grant permission over another listener's denial. The second checkpoint reports either the exact pinned address set or `null` for proxy-side resolution, always alongside the original destination authority. Query strings and credentials are excluded. Cancellation after an asynchronous check prevents transport admission. This execution hook does not itself classify protected targets; deployments must provide that policy. Standalone `HttpFetchProvider` callers can supply the equivalent authorizer as the third constructor argument.
+
 </details>
 
 -----
@@ -106,11 +108,11 @@ A fetch validates the URL, resolves the hostname once, rejects the complete answ
 
 Read these pages when the package-level contract is not enough. They move from the shared vocabulary to the service, the model-facing tools, and the design rationale.
 
-- [Web subsystem](../../../docs/subsystems/web.md) — the exhaustive fetch request/result vocabulary and error codes.
+- [Web types](../web/src/types.ts) — fetch request/result fields and error codes.
 - [Web package map](../README.md) — the six-package family and each role.
 - [dsh-web](../web/README.md) — the web service this provider registers into.
 - [dsh-tool-web](../tool-web/README.md) — the model-facing `web_fetch` tool that renders this provider's bodies.
-- [Generated configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-web-fetch-http) — every accepted config field and its source declaration.
+- [Configuration source](src/index.ts) — accepted fields, defaults and validation.
 - [Web capability seam decision](../../../.agents/notes/implemented/architecture/2026-06-24-web-capability-seam.md) — why search and fetch share one provider-selection service.
 
 -----

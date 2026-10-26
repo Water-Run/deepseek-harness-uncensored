@@ -13,6 +13,7 @@ import type { Response } from 'undici'
 import { proxyRouteFor } from '@deepseek-ai/dsh-http-proxy'
 import { isNonPublicIpLiteral, publicHttpNetwork } from './network.ts'
 import type { PublicAddress } from './network.ts'
+import type { HttpFetchAuthorizer, HttpFetchDestination } from './authorization.ts'
 import { classifyContentType, decoderForCharset, isSameOrigin, parseCharset, validateFetchUrl } from './policy.ts'
 
 /** Resolved provider limits (the plugin's schemastery Config supplies defaults). */
@@ -42,10 +43,12 @@ export class HttpFetchProvider implements WebFetchProvider {
   /**
    * @param limits - resolved transport and response limits.
    * @param resolveAddresses - resolver that rejects non-public destinations before returning.
+   * @param authorize - Deployment policy for every hop; omission applies only transport validation.
    */
   constructor(
     private readonly limits: HttpFetchLimits,
     private readonly resolveAddresses: HttpFetchResolver = publicHttpNetwork.resolve,
+    private readonly authorize?: HttpFetchAuthorizer,
   ) {}
 
   /** No credentials to check — an anonymous public fetcher is always usable. */
@@ -132,15 +135,28 @@ export class HttpFetchProvider implements WebFetchProvider {
       // nothing — the address is already stated — so the shortcut would spend the checks for
       // nothing and let a proxy on this machine reach the very service they keep out of reach.
       const route = proxyRouteFor(url)
-      if (route.proxied && !isNonPublicIpLiteral(url.hostname)) {
+      const proxied = route.proxied && !isNonPublicIpLiteral(url.hostname)
+      const authority = { origin: url.origin, hostname: url.hostname, port: Number(url.port || (url.protocol === 'https:' ? 443 : 80)) }
+      await this.authorizeDestination({ ...authority, phase: 'before-resolution', route: proxied ? 'proxy' : 'direct' }, signal)
+      if (proxied) {
+        await this.authorizeDestination({ ...authority, phase: 'before-connect', route: 'proxy', addresses: null }, signal)
         return await publicHttpNetwork.requestVia(route.dispatcher, url, headers, signal)
       }
       const addresses = await this.resolveAddresses(url.hostname, signal)
+      await this.authorizeDestination({ ...authority, phase: 'before-connect', route: 'direct',
+        addresses: Object.freeze(addresses.map(address => Object.freeze({ ...address }))),
+      }, signal)
       return await publicHttpNetwork.request(url, addresses, headers, signal)
     } catch (error: unknown) {
       if (error instanceof WebError) throw error
       throw translateAbortOrNetwork(error, signal)
     }
+  }
+
+  private async authorizeDestination(destination: HttpFetchDestination, signal: AbortSignal): Promise<void> {
+    signal.throwIfAborted()
+    await this.authorize?.(Object.freeze(destination), signal)
+    signal.throwIfAborted()
   }
 
   /** Read, byte-cap, classify, and decode the final response body. */
