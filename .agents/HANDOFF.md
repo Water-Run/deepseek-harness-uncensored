@@ -12,6 +12,8 @@ REA 仍只有底层兼容测试，尚无产品配置和会话工具接线。可�
 
 本轮尚未更新已安装应用。后续完成 REA，更新 README/清单并按用户授权统一打包安装。开发继续 main，中文提交；用户未要求暂停。
 
+记忆节点已推送 e55723cfe1。收尾发现开发预览白屏：控制台报 `SlotAssemblyError: scope 'session-maybe' rendered without an installed adapter`，伴随已释放 Session 引用与 inspect manifest 同步错误；重新加载页面恢复。发生在产物重建后的客户端图重建期间，仍需确定性复现与修复，不能用 ScopeProvider 静默返回空值掩盖配置错误。证据为 memory-preview-hmr-errors.json。入口：client/modules/src/client/entries.ts 的 replace/tearDownEntryFiber，ui-renderer/src/client/index.ts 的 mount，ui-renderer/src/client/bindings.tsx 的 ScopeProvider。模块已有 syncing 状态，但渲染根未协调消费者的同步卸载；研究在实际替换/删除前撤下消费者、结束后恢复的成对钩子，避免相同 graph 的无操作同步也丢失界面状态。此项与剩余 REA 接入一起收尾。
+
 ## 当前五项目标（2026-10-26）
 
 用户要求完成关于页、DSH 最新发布版适配、逐项额度、REA 逆向接入、跨对话记忆，并追加随问正文对比度、工作区搜索和侧栏额度等待布局。明确逐项限额默认全部关闭，只优先展示 5 小时和 7 天；其他项目保留原状态。完整验收项见 requirements/2026-10-26-five-items.md。
