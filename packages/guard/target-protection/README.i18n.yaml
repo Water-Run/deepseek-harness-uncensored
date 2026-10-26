@@ -1,0 +1,34 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/guard/target-protection/README.md
+/:
+  en: 50daf0ff39909bd7
+  zh: 2af40c852c2eef04
+/deepseek-ai-dsh-target-protection:
+  en: e9980238b64d9218
+  zh: 999789695a1ecf3b
+/deepseek-ai-dsh-target-protection/summary:
+  en: 738c3c77b2d40cf7
+  zh: 04c5fd16ad906b81
+/deepseek-ai-dsh-target-protection/table-of-contents:
+  en: a17f33fc984a20f1
+  zh: b52ed1e73215ced5
+/deepseek-ai-dsh-target-protection/use-this-package:
+  en: 19973b555a193c72
+  zh: 01aa020aa04028ee
+/deepseek-ai-dsh-target-protection/implementation:
+  en: 9997af1217faaf15
+  zh: eeeb1b54343a6f02
+/deepseek-ai-dsh-target-protection/model-experience:
+  en: fa4b5e2a1606c3a1
+  zh: a361907113c120f5
+/deepseek-ai-dsh-target-protection/model-experience/kv-cache-effect:
+  en: f08345adecdb9dd9
+  zh: 379522e0549403ec
+/deepseek-ai-dsh-target-protection/known-limitations-and-deferred-work:
+  en: f3e8d99c785e8759
+  zh: 4592ffade651f786
+/deepseek-ai-dsh-target-protection/dev-note:
+  en: 911184b70b3b3e0e
+  zh: f215439b2dd58ce0

@@ -89,22 +89,29 @@ function assertNonNegativeInteger(name: string, value: number): void {
   }
 }
 
-/** Register the local HTTP(S) fetch provider with `ctx.web`. */
-export function apply(ctx: Context, config: Config): void {
-  // schemastery (Config) has already filled every defaulted field.
-  const resolved = config as ResolvedConfig
+/**
+ * Apply shared HTTP defaults and validate every transport limit.
+ * @param config - Deployment input, including partially specified values.
+ * @returns Complete limits safe for the HTTP provider and guarded consumers.
+ */
+export function resolveHttpFetchLimits(config: Config): HttpFetchLimits {
+  const resolved = Config(config) as ResolvedConfig
   assertPositiveFinite('maxResponseBytes', resolved.maxResponseBytes)
   assertPositiveFinite('maxBodyChars', resolved.maxBodyChars)
   assertTimeoutMs(resolved.timeoutMs)
   assertNonNegativeInteger('maxRedirects', resolved.maxRedirects)
-  const limits: HttpFetchLimits = {
+  return {
     maxResponseBytes: resolved.maxResponseBytes,
     maxBodyChars: resolved.maxBodyChars,
     timeoutMs: resolved.timeoutMs,
     maxRedirects: resolved.maxRedirects,
     userAgent: resolved.userAgent,
   }
-  ctx.web.registerFetchProvider(new HttpFetchProvider(limits, undefined, async (destination, signal) => {
+}
+
+/** Register the local HTTP(S) fetch provider with `ctx.web`. */
+export function apply(ctx: Context, config: Config): void {
+  ctx.web.registerFetchProvider(new HttpFetchProvider(resolveHttpFetchLimits(config), undefined, async (destination, signal) => {
     const denial = await ctx.serial('web-fetch/authorize', destination, signal)
     if (denial !== undefined) throw new WebError(denial.reason, 'WEB_TARGET_PROTECTED')
   }))

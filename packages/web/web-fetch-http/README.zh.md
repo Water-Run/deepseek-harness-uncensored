@@ -99,6 +99,8 @@ const page = await ctx.web.fetch({ url: 'https://example.com' })
 
 已装配的提供方在每跳解析前和连接前派发 `web-fetch/authorize`。监听器可返回拒绝，产生 `WEB_TARGET_PROTECTED`，不能覆盖其他监听器的拒绝。第二次检查同时报告原始目标身份与实际固定的地址集合；由代理解析时，地址明确为 `null`。查询参数和凭据不进入这些身份信息。异步检查后若已取消，不会建立连接。该执行检查接口本身不负责分类保护目标，部署需要提供规则策略；直接创建 `HttpFetchProvider` 的调用方可在第三个构造参数传入同等校验函数。
 
+`resolveHttpFetchLimits(config)` 向其他消费者提供相同的默认值与校验，包括必须依赖目标保护的包装提供方。包装提供方不会绕过共享传输限制。
+
 </details>
 
 -----

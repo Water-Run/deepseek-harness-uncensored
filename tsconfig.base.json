@@ -28,6 +28,9 @@
     // not declaration path aliases, keep each package/vendor source compiled
     // under its own tsconfig boundary.
     "paths": {
+      "@deepseek-ai/dsh-target-protection": ["./packages/guard/target-protection/src/index.ts"],
+      "@deepseek-ai/dsh-target-protection/types": ["./packages/guard/target-protection/src/types.ts"],
+      "@deepseek-ai/dsh-target-protection/http": ["./packages/guard/target-protection/src/http.ts"],
       "@deepseek-ai/dsh-client-ui-settings-memory": ["./packages/client/ui-settings-memory/src/index.ts"],
       "@deepseek-ai/dsh-client-ui-settings-memory/client": ["./packages/client/ui-settings-memory/src/client/index.ts"],
       "@deepseek-ai/dsh-client-ui-settings-memory/src/*": ["./packages/client/ui-settings-memory/src/*"],

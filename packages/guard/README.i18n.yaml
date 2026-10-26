@@ -3,23 +3,23 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/guard/README.md
 /:
-  en: 686a2d1a60d83d95
-  zh: a83604e78920e5f8
-/guard-loop-hygiene-guard-family:
-  en: 7ec1ea7779315a9c
-  zh: 0786cd17a5bc5980
-/guard-loop-hygiene-guard-family/summary:
-  en: 8569a7ad49a968c9
-  zh: 911e6327d70294a8
-/guard-loop-hygiene-guard-family/table-of-contents:
+  en: 72f11f67ca4ab3c7
+  zh: d758a9206cab6102
+/guard-execution-policies:
+  en: 4865215bf6b9878b
+  zh: 5cf83e5079edb29d
+/guard-execution-policies/summary:
+  en: c8eb145069897bcd
+  zh: 18a88def43bd5657
+/guard-execution-policies/table-of-contents:
   en: 1eb35b015a6c423f
   zh: a8a3dceee2c9e943
-/guard-loop-hygiene-guard-family/packages:
-  en: 94709a168b24fa55
-  zh: 3eb300975fdc440c
-/guard-loop-hygiene-guard-family/related-documentation:
-  en: 9289eddb3e91bbb3
-  zh: 5b2ae5b3986fab82
-/guard-loop-hygiene-guard-family/dev-note:
+/guard-execution-policies/packages:
+  en: 422149facdcfe73d
+  zh: c5e992d234a73475
+/guard-execution-policies/related-documentation:
+  en: 89d9b856c6369f39
+  zh: e3311f91dd8a32d7
+/guard-execution-policies/dev-note:
   en: 5de1d6304e00c58f
   zh: 8d8225361cfa29e5

@@ -99,6 +99,8 @@ A fetch validates the URL, resolves the hostname once, rejects the complete answ
 
 The mounted provider dispatches `web-fetch/authorize` before each hop's resolution and immediately before its connection. A listener may return a denial, which produces `WEB_TARGET_PROTECTED`; it cannot grant permission over another listener's denial. The second checkpoint reports either the exact pinned address set or `null` for proxy-side resolution, always alongside the original destination authority. Query strings and credentials are excluded. Cancellation after an asynchronous check prevents transport admission. This execution hook does not itself classify protected targets; deployments must provide that policy. Standalone `HttpFetchProvider` callers can supply the equivalent authorizer as the third constructor argument.
 
+`resolveHttpFetchLimits(config)` supplies the same defaults and validation to alternate consumers, including the mandatory target-protection wrapper. Creating a wrapper does not bypass the shared transport limits.
+
 </details>
 
 -----

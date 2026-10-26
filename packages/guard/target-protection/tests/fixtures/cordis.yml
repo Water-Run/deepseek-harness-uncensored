@@ -1,0 +1,8 @@
+- id: web
+  name: cordis:web
+- id: protection
+  name: cordis:target-protection
+  config:
+    path: ':memory:'
+- id: protected-http
+  name: cordis:protected-http
