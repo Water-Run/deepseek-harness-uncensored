@@ -12,6 +12,8 @@
 
 逐项额度已推送 2344b36e16。记忆新增按当前记录版本去重和来源会话核验，API 返回来源存在/缺失/未知三态；来源查询失败保留记录。修复未注册工作区的 memory_write 漏存 path 范围，旧记录范围不猜测迁移。34 项核心/管理回归、来源显示组件测试和最终 7 项 AgentLoop 隔离/版本测试通过，完整构建 9/9，最后 build:check 2/2；自动提炼、摘要、费用接线与 REA 产品集成仍未完成。
 
+记忆修复已推送 8581de933a。REA 底层真实 MCP 回归在 packages/mcp/mcp-client/tests/rea.e2e.ts：JavaScript 与 Ghidra 原生分析分别通过，未调用模型、未运行样本或 REA setup。REA 6.8.0 拒绝 Ghidra 12.2，已使用官方校验的 12.1.4（ghidra-supported/ghidra_12.1.4_PUBLIC），Java 使用已有 JDK 27；两个 ZIP 均保存在独立证据目录。测试分别用 DSH_REA_TEST_NODE/CLI 和额外的 DSH_REA_TEST_GHIDRA/JAVA_HOME/BINARY 指定路径。测试样本由 rea-native-sample.c 用 GCC 编译，功能仅为两个整数相加。REA 目录含 229 项，模型输入定义合计 270974 字节，仍需完成按需展示及逆向设置/生命周期接线。
+
 ## 最新节点：独立旁问与设置重排（2026-10-25）
 
 - 本轮只收尾用户指定的四项，以及 F02–F15 追加交互；生产目标保护等其余需求保留未完成。
