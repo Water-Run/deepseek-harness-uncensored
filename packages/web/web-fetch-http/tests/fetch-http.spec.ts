@@ -173,7 +173,7 @@ describe('public-network policy', () => {
       : [{ address: '2001:4860:64:64::808:808', family: 6 }])
 
     await expect(resolvePublicAddresses('nat64.test', new AbortController().signal, resolver))
-      .resolves.toEqual([{ address: '2001:4860:64:64::808:808', family: 6 }])
+      .resolves.toEqual([{ address: '2001:4860:64:64::808:808', family: 6, translatedIpv4: '8.8.8.8' }])
   })
 
   it('deduplicates discovered prefixes and ignores addresses outside their translation layout', async () => {

@@ -81,6 +81,10 @@ it('supports linear-time host regexes and equivalent IPv4-mapped networks', () =
   const mapped = policy([rule({ match: 'cidr', address: '::ffff:192.0.2.0/120' })])
   expect(mapped.decide([target()], 'observe', new Map()).allowed).toBe(false)
   expect(() => policy([rule({ match: 'regex', address: '(?=unsupported)' })])).toThrow()
+  expect(policy([rule({ match: 'regex', address: '^127' })])
+    .decide([target({ names: ['0x7f000001'], addresses: ['192.0.2.20'] })], 'observe', new Map()).allowed).toBe(true)
+  expect(policy([rule({ match: 'regex', address: '^$' })])
+    .decide([target({ names: ['safe.test'], addresses: ['2001:db8::10'] })], 'observe', new Map()).allowed).toBe(true)
 })
 
 it('checks every target and never lets one test exception exempt the rest', () => {

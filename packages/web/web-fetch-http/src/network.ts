@@ -20,6 +20,8 @@ export interface PublicAddress {
   readonly address: string
   /** Address family accepted by Node's connection lookup callback. */
   readonly family: 4 | 6
+  /** IPv4 destination embedded by a discovered DNS64 prefix, retained for target-policy checks. */
+  readonly translatedIpv4?: string
 }
 
 /** The result of one address-pinned request; closing releases its private pool. */
@@ -104,7 +106,9 @@ export async function resolvePublicAddresses(
     if (translatedIpv4 !== undefined && !isPublicIpAddress(translatedIpv4)) {
       throw new WebError(`URL hostname "${hostname}" resolves through NAT64 to a non-public IPv4 address`, 'WEB_BLOCKED_URL')
     }
-    addresses.push({ address: entry.address, family: entry.family })
+    addresses.push({ address: entry.address, family: entry.family,
+      ...translatedIpv4 === undefined ? {} : { translatedIpv4 },
+    })
   }
   return addresses
 }

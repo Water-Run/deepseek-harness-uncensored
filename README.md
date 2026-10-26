@@ -83,6 +83,8 @@ Web 地址为 **http://127.0.0.1:23333**；本地 CLI 安装见 [install-uncenso
 
 ## Credit
 
+[DB-IP Lite](https://db-ip.com/db/download/ip-to-country-lite)：目标保护开发后端使用的本地国家数据，按 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 保留署名。数据是地区估计，不能替代手动生产目标规则；默认产品尚未启用完整保护。
+
 [REA](https://github.com/morluto/rea)：morluto 维护的开源逆向工具，采用 MIT 许可。本项目通过 MCP 连接已安装的 REA；分析引擎保留各自许可。
 
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)：DeepSeek 原始工程及鲸鱼轮廓；黑底应用图标基于该轮廓调整，旁问、费用和限额图标在仓库内绘制并保留矢量代码。保留 [MIT 许可](LICENSES/deepseek-harness-MIT.txt)。<br>[dsh-purge](https://github.com/YuJunZhiXue/dsh-purge)：小杨（YuJunZhiXue）；破甲文本追溯至 [MIT 版本 e1d8e590](https://github.com/Water-Run/dsh-purge/tree/e1d8e59087857fa86d0ef2bb9878800274b13a29)，[原始许可](LICENSES/dsh-purge-MIT.txt)随仓库保留。<br>[dsh-purge-plus](https://github.com/JeffKeeping/dsh-purge-plus)：JeffKeeping；保留 purge fork 所要求的来源署名。<br>[Water-Run/dsh-purge](https://github.com/Water-Run/dsh-purge)：本分支对照的个人 fork，版本节点与时间见应用“关于”。<br>GitHub 图标来自 [Octicons](https://github.com/primer/octicons)，保留其 [MIT 许可](packages/client/ui-settings-account/GITHUB-MARK-LICENSE.txt)。<br>dsh-purge 后续专有许可分支不作为复制源码的授权依据；这里保留的是上述旧 MIT 文本的许可。

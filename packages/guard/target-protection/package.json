@@ -27,19 +27,26 @@
       "types": "./lib/types/http.d.ts",
       "default": "./lib/types/http.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./country": {
+      "types": "./lib/types/country-provider.d.ts",
+      "default": "./lib/types/country-provider.js"
+    }
   },
   "files": [
     "lib/index.js",
     "lib/types/**/*.js",
-    "lib/types/**/*.d.ts"
+    "lib/types/**/*.d.ts",
+    "assets"
   ],
   "dependencies": {
     "@deepseek-ai/dsh-brand": "workspace:*",
     "@deepseek-ai/schemastery": "workspace:~",
     "ipaddr.js": "2.5.0",
     "re2js": "2.9.0",
-    "zod": "4.4.3"
+    "zod": "4.4.3",
+    "dns-packet": "5.6.1",
+    "mmdb-lib": "3.0.3"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:~",
@@ -53,6 +60,7 @@
     "@deepseek-ai/dsh-web": "workspace:*",
     "@deepseek-ai/dsh-web-fetch-http": "workspace:*",
     "@deepseek-ai/cordis-plugin-loader": "workspace:~",
-    "@deepseek-ai/cordis-plugin-include": "workspace:~"
+    "@deepseek-ai/cordis-plugin-include": "workspace:~",
+    "@types/dns-packet": "5.6.5"
   }
 }

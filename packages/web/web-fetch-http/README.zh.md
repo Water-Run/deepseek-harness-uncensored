@@ -101,6 +101,8 @@ const page = await ctx.web.fetch({ url: 'https://example.com' })
 
 `resolveHttpFetchLimits(config)` 向其他消费者提供相同的默认值与校验，包括必须依赖目标保护的包装提供方。包装提供方不会绕过共享传输限制。
 
+`resolvePublicAddresses` 供提供已核实 DNS 证据的消费者复用；可选的 `translatedIpv4` 元数据保留已发现的 NAT64 目标以供策略检查，实际连接仍固定到原 IPv6 地址。
+
 </details>
 
 -----

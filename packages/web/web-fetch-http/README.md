@@ -101,6 +101,8 @@ The mounted provider dispatches `web-fetch/authorize` before each hop's resoluti
 
 `resolveHttpFetchLimits(config)` supplies the same defaults and validation to alternate consumers, including the mandatory target-protection wrapper. Creating a wrapper does not bypass the shared transport limits.
 
+`resolvePublicAddresses` is exported for consumers supplying verified DNS evidence. Its optional `translatedIpv4` metadata retains a discovered NAT64 destination for policy checks; transport pinning still uses the original IPv6 address.
+
 </details>
 
 -----

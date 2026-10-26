@@ -9,7 +9,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { Context } from '@deepseek-ai/cordis'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import WebRuntime from '@deepseek-ai/dsh-web'
-import { publicHttpNetwork } from '@deepseek-ai/dsh-web-fetch-http/src/network.ts'
+import * as HttpFetch from '@deepseek-ai/dsh-web-fetch-http'
 import { afterEach, expect, it, vi } from 'vitest'
 import TargetProtection from '../src/index.ts'
 import * as ProtectedHttp from '../src/http.ts'
@@ -40,7 +40,7 @@ async function harness() {
   await new Promise<void>((resolve) => { server.listen(0, '127.0.0.1', resolve) })
   const port = (server.address() as AddressInfo).port
   // Only the existing SSRF resolver is substituted; target policy and the transport remain real.
-  vi.spyOn(publicHttpNetwork, 'resolve').mockResolvedValue([{ address: '127.0.0.1', family: 4 }])
+  vi.spyOn(HttpFetch, 'resolvePublicAddresses').mockResolvedValue([{ address: '127.0.0.1', family: 4 }])
   const ctx = new Context(); contexts.push(ctx)
   await ctx.plugin(WebRuntime)
   const path = join(root, 'rules.sqlite')
@@ -111,7 +111,7 @@ it('checks the committed revision after an earlier policy callback changes the r
     if (destination.phase === 'before-connect') await h.configure([rule()])
     return undefined
   })
-  await expect(h.ctx.web.fetch({ url: h.url })).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+  await expect(h.ctx.web.fetch({ url: h.url })).rejects.toMatchObject({ code: 'TARGET_POLICY_CHANGED' })
   expect(h.connections()).toBe(0)
 })
 

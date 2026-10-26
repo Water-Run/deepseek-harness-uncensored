@@ -23,11 +23,30 @@ export function canonicalTargetHost(value: string): string {
   catch (error) { throw new TargetProtectionError('invalid', 'Invalid hostname or IP address.', { cause: error }) }
   const host = url.hostname.toLowerCase().replace(/\.$/u, '')
   if (isIP(host) !== 0) return ipaddr.process(host).toString()
-  const ascii = domainToASCII(host)
-  if (!ascii || ascii.length > 253 || !/^[a-z0-9_-]+(?:\.[a-z0-9_-]+)*$/u.test(ascii)) {
+  return canonicalDnsName(host)
+}
+
+/**
+ * Normalize DNS labels without interpreting a numeric name as a URL IPv4 shorthand.
+ * @param value - DNS record owner or alias name.
+ * @returns Lower-case ASCII DNS name without a trailing root separator.
+ */
+export function canonicalDnsName(value: string): string {
+  const input = value.trim().replace(/[.\u3002\uFF0E\uFF61]$/u, '')
+  if (/[\s/@?#:\\%]/u.test(input)) throw new TargetProtectionError('invalid', 'Invalid DNS name.')
+  // A nonnumeric suffix selects IDNA processing without WHATWG IPv4 reinterpretation.
+  const encoded = domainToASCII(`${input}.invalid`).toLowerCase()
+  const ascii = encoded.endsWith('.invalid') ? encoded.slice(0, -8) : ''
+  if (!ascii || ascii.length > 253 || !/^[a-z0-9_-]+(?:\.[a-z0-9_-]+)*$/u.test(ascii)
+    || ascii.split('.').some(label => label.length > 63)) {
     throw new TargetProtectionError('invalid', 'Invalid hostname.')
   }
   return ascii
+}
+
+function observedName(value: string): string {
+  const literal = value.replace(/^\[([^\]]+)\]$/u, '$1')
+  return isIP(literal) ? canonicalTargetHost(literal) : canonicalDnsName(value)
 }
 
 const ruleSchema = z.object({
@@ -75,7 +94,12 @@ function compileRule(rule: TargetRule): CompiledRule {
       }
       case 'regex': {
         const pattern = RE2JS.compile(rule.address, RE2JS.CASE_INSENSITIVE)
-        return { rule, matches: host => pattern.matcher(host).find() || pattern.matcher(domainToUnicode(host)).find() }
+        return { rule, matches: (host) => {
+          if (pattern.matcher(host).find()) return true
+          if (isIP(host)) return false
+          const unicode = domainToUnicode(`${host}.invalid`).slice(0, -8)
+          return unicode !== '' && unicode !== host && pattern.matcher(unicode).find()
+        } }
       }
       case 'cidr': {
         let [network, bits] = ipaddr.parseCIDR(rule.address)
@@ -132,11 +156,12 @@ export class TargetRules {
    * @returns A definite denial, or undefined when final address-aware validation remains necessary.
    */
   preflight(target: NetworkTarget): TargetDecision | undefined {
-    const names = target.names.map(canonicalTargetHost)
+    const names = target.names.map(observedName)
     for (const entry of this.entries) {
       if (entry.rule.environment !== 'production' || entry.rule.protection !== 'full') continue
-      if (qualifiers(entry.rule, target) === 'different' || !names.some(entry.matches)) continue
-      return { allowed: false, code: 'TARGET_FULLY_PROTECTED', ruleIds: [entry.rule.id] }
+      const qualifier = qualifiers(entry.rule, target)
+      if (qualifier === 'different' || !names.some(entry.matches)) continue
+      return { allowed: false, code: qualifier === 'unknown' ? 'TARGET_IDENTITY_UNVERIFIED' : 'TARGET_FULLY_PROTECTED', ruleIds: [entry.rule.id] }
     }
     return undefined
   }
@@ -153,7 +178,7 @@ export class TargetRules {
     if (targets.length === 0) return { allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED', ruleIds: [] }
     const selected = new Set<TargetRuleId>()
     for (const target of targets) {
-      const names = target.names.map(canonicalTargetHost)
+      const names = target.names.map(observedName)
       const addresses = target.addresses?.map(canonicalTargetHost) ?? null
       if (addresses === null || addresses.length === 0) return { allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED', ruleIds: [] }
       const identities = [...names, ...addresses]
