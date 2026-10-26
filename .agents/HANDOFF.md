@@ -1,6 +1,16 @@
 # Uncensored 开发交接
 
-## 最新节点：REA 接入完成，待打包（2026-10-26）
+## 最新交付：五项完成并安装（2026-10-26）
+
+本轮五项已完成。代码提交 `201c9cde8d` 已推送 main，本地与远端均只有 main 主线。Windows x64 未签名 v0.1.0 已覆盖安装，基于 DSH 0.2.1-rc.3；关于页显示 WaterRun、源码 201c9cd、编译时间 2026-10-26 15:22 UTC，以及 purge fork 来源。
+
+成功打包记录：apps/desktop/.desktop-build/packaging-runs/2026-10-26T15-21-58.850Z-Jjtxxg，整体成功，耗时 884720 ms。安装包：apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/runs/2026-10-26T15-21-58.850Z-Jjtxxg/deepseek-harness-uncensored-0.1.0-win-x64-unsigned.exe，288518276 字节，SHA256 `A747DA708C3B248A85DC3D7FDD63666A2105326765E46AD5E10614E209416D49`。首次尝试因 Electron 下载校验清单的直连超时失败，随后设置 NODE_USE_ENV_PROXY=1 使用现有代理，官方校验保持开启并成功；两次运行记录均保留。
+
+安装退出码 0，129 个原有会话、配置与数据文件安装前后哈希一致，官方 EXE 哈希未变。打包后与实际安装目录的原生模块、PTY、离线插件、Web 启动、DOCX/XLSX/PPTX→PDF 与 skill CLI 检查均通过。安装启动后，用户已有暂停工作按其自动恢复设置继续运行，因此没有为重复重启验收而打断它。独立测试 home 的重启与配置保留已先行验收。
+
+证据：.dsh-build/five-items-20261026/install-result.json、installed-runtime-smoke.log、installed-about.png。应用已打开供检查，REA 默认关闭；外部 REA 和分析引擎需要在逆向设置中配置。未签名、未发布 Release，签名、升级下载与跨平台等剩余原始需求仍按 TODO 保留。
+
+## REA 实现与验收节点（2026-10-26）
 
 五项开发均已实现并验收，尚未把本轮代码安装到系统。REA 根服务管理可持久化启动设置，逆向预设挂载 `rea_tools`，从完整目录中按需启用 `mcp__rea__*`。各 Agent 独立进程，调用串行、参数预校验、实时权限检查；只读随问不能启动。重置、关闭、卸载与配置变更释放进程，失败不自动重放。现有主线工具和模式提示词未调整。
 
