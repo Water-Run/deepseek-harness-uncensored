@@ -313,3 +313,4 @@ export interface DossierSampleRequest extends DossierScopeRequest {
 export interface DossierReport {
   readonly markdown: string
 }
+export type { ReaOptions, ReaProbe } from '@deepseek-ai/dsh-rea/types'

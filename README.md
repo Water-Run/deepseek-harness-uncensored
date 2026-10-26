@@ -37,10 +37,12 @@ Uncensored 默认加载中文 armor，并内置英文文本，无需安装插件
 | --- | --- |
 | <img src="https://img.shields.io/badge/缺省-4B8BFF?style=flat-square" alt="缺省 · 蓝色"> | 文件、终端、检索、任务协作与工作流工具。默认 Flash、Max 推理和完全权限，适用于开发与日常任务。 |
 | <img src="https://img.shields.io/badge/网安-EF5363?style=flat-square" alt="网安 · 红色"> | 7 份现场手册、案件账本和报告。目标、证据与发现保存在 `.security/<案件>/`；独立代理支持连通性检查和脱敏流量查看。 |
-| <img src="https://img.shields.io/badge/逆向-40BE87?style=flat-square" alt="逆向 · 绿色"> | 8 份手册、加密识别、Frida 配方和只读样本清点。案件与分析记录保存在 `.reverse/<案件>/`，可跨会话使用。 |
+| <img src="https://img.shields.io/badge/逆向-40BE87?style=flat-square" alt="逆向 · 绿色"> | REA 工具按需接入、8 份手册和样本清点。每个对话独立持有分析进程，案件与证据保存在 `.reverse/<案件>/`。 |
 | <img src="https://img.shields.io/badge/写作-E6B84A?style=flat-square" alt="写作 · 黄色"> | 7 份写作手册、六轴风格卡和 `story/bible/` 设定集。仅注入选中的资料，不挂载终端或代码执行工具。 |
 
 ## 快速开始
+
+**REA 外部工具：**在“设置 → 模式 → 逆向配置”填写已安装的 Node 与 REA 入口路径，启用、保存并检测连接。可选配置 Ghidra、Java 和 IDA MCP。已验证 REA 6.8.0 的 229 个工具目录、JavaScript 分析及 Ghidra 12.1.4 原生分析；该版本不支持 Ghidra 12.2。外部引擎需另行安装，调用要求完全权限，随问不能启动。保存配置会关闭现有分析连接，重开样本后继续。
 
 需要 **Node.js 22.19+（22.x）或 24+、Corepack 和 Git**。
 
@@ -80,5 +82,7 @@ Web 地址为 **http://127.0.0.1:23333**；本地 CLI 安装见 [install-uncenso
 [提交 Issue](https://github.com/Water-Run/deepseek-harness-uncensored/issues/new/choose) · [源代码](https://github.com/Water-Run/deepseek-harness-uncensored) · [Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases) · [上游 DSH](https://github.com/deepseek-ai/deepseek-harness)<br>整合发行采用 **[GPL-3.0-or-later](LICENSE)**，上游和第三方组件保留各自许可证与版权声明。
 
 ## Credit
+
+[REA](https://github.com/morluto/rea)：morluto 维护的开源逆向工具，采用 MIT 许可。本项目通过 MCP 连接已安装的 REA；分析引擎保留各自许可。
 
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)：DeepSeek 原始工程及鲸鱼轮廓；黑底应用图标基于该轮廓调整，旁问、费用和限额图标在仓库内绘制并保留矢量代码。保留 [MIT 许可](LICENSES/deepseek-harness-MIT.txt)。<br>[dsh-purge](https://github.com/YuJunZhiXue/dsh-purge)：小杨（YuJunZhiXue）；破甲文本追溯至 [MIT 版本 e1d8e590](https://github.com/Water-Run/dsh-purge/tree/e1d8e59087857fa86d0ef2bb9878800274b13a29)，[原始许可](LICENSES/dsh-purge-MIT.txt)随仓库保留。<br>[dsh-purge-plus](https://github.com/JeffKeeping/dsh-purge-plus)：JeffKeeping；保留 purge fork 所要求的来源署名。<br>[Water-Run/dsh-purge](https://github.com/Water-Run/dsh-purge)：本分支对照的个人 fork，版本节点与时间见应用“关于”。<br>GitHub 图标来自 [Octicons](https://github.com/primer/octicons)，保留其 [MIT 许可](packages/client/ui-settings-account/GITHUB-MARK-LICENSE.txt)。<br>dsh-purge 后续专有许可分支不作为复制源码的授权依据；这里保留的是上述旧 MIT 文本的许可。

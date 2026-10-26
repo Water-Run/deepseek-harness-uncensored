@@ -1,0 +1,32 @@
+{
+  "isError": false,
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"server\":\"1.0.0\",\"total\":3,\"nextOffset\":null,\"tools\":[{\"name\":\"set_target\",\"description\":\"Select a sample\"},{\"name\":\"read_target\",\"description\":\"Read current sample\"},{\"name\":\"wait_forever\",\"description\":\"Wait until cancellation\"}],\"enabled\":[\"mcp__rea__set_target\",\"mcp__rea__read_target\"]}"
+    }
+  ],
+  "value": {
+    "server": "1.0.0",
+    "total": 3,
+    "nextOffset": null,
+    "tools": [
+      {
+        "name": "set_target",
+        "description": "Select a sample"
+      },
+      {
+        "name": "read_target",
+        "description": "Read current sample"
+      },
+      {
+        "name": "wait_forever",
+        "description": "Wait until cancellation"
+      }
+    ],
+    "enabled": [
+      "mcp__rea__set_target",
+      "mcp__rea__read_target"
+    ]
+  }
+}

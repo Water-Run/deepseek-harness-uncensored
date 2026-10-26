@@ -8,6 +8,7 @@ import { Button, Input, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { CaseCollectionView, SampleInspection, ToolStatus } from '@deepseek-ai/dsh-api-mode-dossiers/types'
 import type { MaterialsFailure, MaterialsOperations, MaterialScope } from './contract.ts'
 import { CaseWorkbench } from './CaseWorkbench.tsx'
+import { ReaPanel } from './ReaPanel.tsx'
 import { Field, FailureNote, type Translate } from './ui.tsx'
 import css from './ModeMaterials.module.css'
 
@@ -31,10 +32,11 @@ function failureOf(error: unknown): MaterialsFailure {
 
 /** One tool row: its name, availability, and why it is not available. */
 function ToolRow({ tool, t }: { readonly tool: ToolStatus; readonly t: Translate }): ReactNode {
+  const key = tool.id === 'case-ledger' ? 'ledger' : tool.id === 'sample-inventory' ? 'inventory' : tool.id === 'report' ? 'report' : undefined
   return <li className={css.row} data-tool-id={tool.id}>
     <span className={css.rowMain}>
-      <span className={css.rowTitle}>{tool.name}</span>
-      <span className={css.rowMeta}>{tool.detail}</span>
+      <span className={css.rowTitle}>{key === undefined ? tool.name : t(`reverse.builtin.${key}`)}</span>
+      <span className={css.rowMeta}>{key === undefined ? tool.detail : t(`reverse.builtin.${key}Detail`)}</span>
     </span>
     <Tag tone={tool.available ? 'success' : 'outline'}>
       {tool.available ? t('reverse.toolAvailable') : t('reverse.toolUnavailable')}
@@ -63,9 +65,10 @@ export function ReversePanel({ operations, t, scope, collection, tools }: Revers
   }
 
   return <>
+    {operations.rea === undefined ? null : <ReaPanel operations={operations.rea} t={t} />}
     <CaseWorkbench kind="reverse" operations={operations} t={t} scope={scope} collection={collection}
       title={t('reverse.title')} intro={t('reverse.intro')}
-      emptyText={t('security.empty')} />
+      emptyText={t('reverse.empty')} />
     <section className={css.section}>
       <h3 className={css.title}>{t('reverse.sample')}</h3>
       <p className={css.hint}>{t('reverse.inspectHint')}</p>

@@ -240,6 +240,7 @@
     { "path": "./packages/credentials/balance" },
     { "path": "./packages/guard/spend-limit" },
     { "path": "./packages/memory/memory" },
+    { "path": "./packages/mcp/rea" },
     { "path": "./packages/api/memory-controller" },
     { "path": "./packages/guard/security-proxy" },
     { "path": "./packages/guard/security-proxy-local" },

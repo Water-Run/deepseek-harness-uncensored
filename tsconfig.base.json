@@ -28,6 +28,12 @@
     // not declaration path aliases, keep each package/vendor source compiled
     // under its own tsconfig boundary.
     "paths": {
+      "@deepseek-ai/dsh-client-ui-settings-memory": ["./packages/client/ui-settings-memory/src/index.ts"],
+      "@deepseek-ai/dsh-client-ui-settings-memory/client": ["./packages/client/ui-settings-memory/src/client/index.ts"],
+      "@deepseek-ai/dsh-client-ui-settings-memory/src/*": ["./packages/client/ui-settings-memory/src/*"],
+      "@deepseek-ai/dsh-rea": ["./packages/mcp/rea/src/index.ts"],
+      "@deepseek-ai/dsh-rea/types": ["./packages/mcp/rea/src/types.ts"],
+      "@deepseek-ai/dsh-rea/agent": ["./packages/mcp/rea/src/agent.ts"],
       "@deepseek-ai/dsh-client-ui-entry-customization": ["./packages/client/ui-entry-customization/src/index.ts"],
       "@deepseek-ai/dsh-client-ui-entry-customization/client": ["./packages/client/ui-entry-customization/src/client/index.ts"],
       "@deepseek-ai/dsh-client-ui-entry-customization/src/*": ["./packages/client/ui-entry-customization/src/*"],

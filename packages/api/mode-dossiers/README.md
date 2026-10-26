@@ -77,9 +77,8 @@ The package contributes one model-visible input: a Writing-mode request whose re
 ## Known Limitations and Deferred Work
 
 - Target protection (domestic domains, production servers and databases) is not implemented. A target is case data only; recording one does not block anything, and the panel says so.
-- The independent security proxy is not implemented, so nothing here manages proxy settings or traffic.
-- Cross-conversation structured memory is not implemented. These files survive sessions because they are workspace files, which is not the same capability, and the surface does not claim it.
-- External reverse-engineering bridges (IDA Pro, Ghidra, REA, Frida) are reported as not connected. This build never downloads, installs, or probes them.
+- Proxy traffic and structured memory are owned by their separate services; case files remain workspace documents.
+- Owner-only `reaSettings`, `configureRea` and `probeRea` expose REA launch settings, revision-checked writes, and a temporary MCP handshake. Probes report the real version and catalog, check configured engine paths and close the process. They do not install software or certify optional engines; actual analysis belongs to the REA Agent consumer.
 - Deleting a writing record removes the registry entry only; the document is kept. Deleting a case record rewrites `case.json` and touches no sample or evidence file.
 - `inspectSample` reads one complete file through `readBytes`, so the cap bounds memory rather than streaming a huge sample.
 

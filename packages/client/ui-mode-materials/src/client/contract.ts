@@ -16,6 +16,8 @@ import type {
   SampleInspection,
   StoryEntryDocument,
   StorySection,
+  ReaOptions,
+  ReaProbe,
 } from '@deepseek-ai/dsh-api-mode-dossiers/types'
 
 /** What the surface knows about the selected workspace and its materials. */
@@ -43,6 +45,12 @@ export interface MaterialScope {
 
 /** Operations the mode-materials surface performs. */
 export interface MaterialsOperations {
+  /** Owner-only external analysis preferences; absent in profiles without REA. */
+  rea?: {
+    load(signal: AbortSignal): Promise<{ options: ReaOptions; revision: number | null } | null>
+    save(options: ReaOptions, expectedRevision: number, signal: AbortSignal): Promise<void>
+    probe(signal: AbortSignal): Promise<ReaProbe>
+  }
   /** Open scoped memory management for the configured mode. */
   openMemory(mode?: string, workspaceId?: string): void
   /** Read one workspace's inventory. */

@@ -52,7 +52,7 @@
           # Cross-conversation memory for this mode: shared facts, conclusions,
           # and settings are retrieved into the first request of each turn, and
           # the model may save what the user explicitly asks to remember.
-          - id: memory
+          - id: memory-agent
             name: '@deepseek-ai/dsh-memory/agent'
             config:
               mode: writing

@@ -26,7 +26,7 @@ describe('dossier scope', () => {
     expect(inventory.problem?.code).toBe('no-workspace')
     expect(inventory.security.cases).toEqual([])
     expect(inventory.writing.entries).toEqual([])
-    expect(inventory.tools.some(tool => !tool.available)).toBe(true)
+    expect(inventory.tools.map(tool => tool.id)).toEqual(['case-ledger', 'sample-inventory', 'report'])
   })
 
   it('names the workspace it manages', async () => {

@@ -28,6 +28,7 @@ kind: "package-group"
 |---|---|
 | [`mcp-client/`](mcp-client/README.zh.md) | 连接一台 MCP 服务器，暴露其工具与指令，并提供其资源操作 |
 | [`mcp-resources/`](mcp-resources/README.zh.md) | 通过显式选择服务器的共享工具发现和读取资源 |
+| [`rea/`](rea/README.zh.md) | 配置 REA、按需发现工具，并按逆向对话隔离分析进程 |
 
 -----
 
@@ -38,8 +39,7 @@ kind: "package-group"
 
 - [历史MCP 客户端插件 Agent Note](../../.agents/notes/archived/feature/2026-07-07-mcp-client-plugin.md)——桥接的设计：服务器限定命名、发现、执行与环境清洗。
 - [资源与指令 参考](mcp-resources/README.zh.md)——按需资源访问与作用域服务器指引。
-- [第三方记忆 MCP 指南](../../docs/user/guide/mcp-memory.zh.md)——可运行的 overlay 配置行与设置说明。
-- [工具子系统参考](../../docs/subsystems/tools.zh.md)——接收已注册工具的 `ToolRuntime`。
+- [工具子系统参考](../core/tools/README.zh.md)——接收已注册工具的 `ToolRuntime`。
 
 <a id="dev-note"></a>
 ## 开发备注

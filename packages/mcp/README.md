@@ -28,6 +28,7 @@ The client owns each configured connection; the shared resource package supplies
 |---|---|
 | [`mcp-client/`](mcp-client/README.md) | Connect one MCP server, expose its tools and instructions, and provide its resource operations |
 | [`mcp-resources/`](mcp-resources/README.md) | Discover and read resources through shared tools with explicit server selection |
+| [`rea/`](rea/README.md) | Configure REA, discover its tools on demand, and isolate analysis processes per Reverse conversation |
 
 -----
 
@@ -38,8 +39,7 @@ Try the worked example configurations to see the plugin in action, then read the
 
 - [historical MCP client plugin Agent Note](../../.agents/notes/archived/feature/2026-07-07-mcp-client-plugin.md) — the bridge's design: server-qualified naming, discovery, execution, and environment scrubbing.
 - [Resources and instructions reference](mcp-resources/README.md) — on-demand resource access and scoped server guidance.
-- [Third-party memory MCP guide](../../docs/user/guide/mcp-memory.md) — runnable overlay rows and setup instructions.
-- [Tools subsystem reference](../../docs/subsystems/tools.md) — the `ToolRuntime` that receives the registered tools.
+- [Tools subsystem reference](../core/tools/README.md) — the `ToolRuntime` that receives the registered tools.
 
 <a id="dev-note"></a>
 ## Dev Note

@@ -15,15 +15,44 @@
     "src/tools.ts"
   ],
   "references": [
-    { "path": "../../../vendor/cordis" },
-    { "path": "../../../vendor/schemastery" },
-    { "path": "../../core/agent" },
-    { "path": "../../core/session" },
-    { "path": "../../fs/fs" },
-    { "path": "../../llm/llm" },
-    { "path": "../../preset/agent-preset-registry" },
-    { "path": "../../sandbox/sandbox-policy" },
-    { "path": "../../typert/protocol" },
-    { "path": "../../workspace/workspace" }
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../core/agent"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../../fs/fs"
+    },
+    {
+      "path": "../../llm/llm"
+    },
+    {
+      "path": "../../preset/agent-preset-registry"
+    },
+    {
+      "path": "../../sandbox/sandbox-policy"
+    },
+    {
+      "path": "../../typert/protocol"
+    },
+    {
+      "path": "../../workspace/workspace"
+    },
+    {
+      "path": "../../mcp/rea"
+    },
+    {
+      "path": "../../settings/settings"
+    },
+    {
+      "path": "../remote-access/tsconfig.host.json"
+    }
   ]
 }

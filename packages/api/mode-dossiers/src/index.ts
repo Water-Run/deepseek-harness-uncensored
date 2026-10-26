@@ -19,7 +19,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import { Remote, RemoteError, TypertRemoteService, principalOf } from '@deepseek-ai/dsh-typert-protocol'
 import type { FileSystem, FsTarget, FsVersion } from '@deepseek-ai/dsh-fs'
 import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
@@ -82,6 +82,13 @@ import {
 } from './story.ts'
 import { inspectSample } from './sample.ts'
 import { toolStatuses } from './tools.ts'
+import { mkdtemp, rm, stat } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import type {} from '@deepseek-ai/dsh-settings'
+import type {} from '@deepseek-ai/dsh-rea'
+import type {} from '@deepseek-ai/dsh-api-remote-access'
+import type { ReaOptions, ReaProbe } from '@deepseek-ai/dsh-rea/types'
 
 export type * from './types.ts'
 export { renderCaseReport } from './casefile.ts'
@@ -203,6 +210,73 @@ export class ModeDossiers extends TypertRemoteService {
       { agent, signal }: { agent: Agent; signal: AbortSignal },
       next: () => Promise<PreStepDecision>,
     ): Promise<PreStepDecision> => await this.extendRequest(ctx, agent, signal, next))
+  }
+
+  /**
+   * Read REA preferences without starting an external process.
+   * @returns Current configuration and revision, or null when this profile has no REA service.
+   */
+  @Remote
+  reaSettings(): { options: ReaOptions; revision: number | null } | null {
+    this.assertReaOwner()
+    const rea = this.ctx.get('rea')
+    if (rea === undefined) return null
+    const descriptor = this.ctx.get('settings')?.describe().find(row => row.ns === rea.namespace)
+    return { options: { ...rea.options }, revision: descriptor?.revision ?? null }
+  }
+
+  /**
+   * Save executable paths and preferences with optimistic configuration concurrency.
+   * @param request - Complete preferences and the revision the editor read.
+   */
+  @Remote
+  async configureRea(request: { options: ReaOptions; expectedRevision: number }): Promise<void> {
+    this.assertReaOwner()
+    if (request.options.enabled && (request.options.nodePath.trim() === '' || request.options.cliPath.trim() === '')) {
+      throw new Error('REA requires both a Node executable and the installed REA CLI path')
+    }
+    const rea = this.ctx.get('rea'), settings = this.ctx.get('settings')
+    if (rea?.namespace === undefined || settings === undefined) throw new Error('REA settings are unavailable')
+    await settings.update(rea.namespace, request.options, request.expectedRevision)
+  }
+
+  /**
+   * Check a real MCP handshake in a disposable directory, then close the process.
+   * @param signal - Owner request cancellation.
+   * @returns Server version, discovered tools and configured engine paths.
+   */
+  @Remote
+  async probeRea(signal: AbortSignal): Promise<ReaProbe> {
+    this.assertReaOwner()
+    const rea = this.ctx.get('rea')
+    if (rea === undefined) throw new Error('REA is unavailable in this profile')
+    const directory = await mkdtemp(join(tmpdir(), 'dshu-rea-check-'))
+    try {
+      const owned = await rea.connect(directory, AbortSignal.any([signal, AbortSignal.timeout(rea.options.startupTimeoutMs)]))
+      try {
+        const result = owned.connection.describe()
+        for (const engine of result.engines) {
+          if (engine.state !== 'configured') continue
+          try {
+            const info = await stat(engine.path)
+            if (engine.name === 'IDA MCP' ? !info.isFile() : !info.isDirectory()) engine.state = 'missing'
+          } catch (error) {
+            engine.state = typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT'
+              ? 'missing' : 'unreadable'
+          }
+        }
+        return result
+      }
+      finally { await owned.dispose() }
+    } finally { await rm(directory, { recursive: true, force: true }) }
+  }
+
+  private assertReaOwner(): void {
+    if (principalOf(this.ctx.invocation) !== undefined) {
+      throw new RemoteError('remote-access/denied', 'Only the application owner can configure REA.', {
+        action: 'modeDossiers/reaSettings', reason: 'owner-only',
+      })
+    }
   }
 
   /**

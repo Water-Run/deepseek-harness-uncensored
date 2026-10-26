@@ -63,8 +63,8 @@ This package adds nothing to a model request. It edits the files that the Host s
 <a id="known-limitations-and-deferred-work"></a>
 ## Known Limitations and Deferred Work
 
-- Target protection, the independent security proxy, and cross-conversation memory have no controls here because those capabilities are not implemented; the panels never present a switch that would not take effect.
-- The reverse panel lists external bridges as not connected and offers no download or install action.
+- Target protection is not implemented. Proxy controls are owned by ui-security-proxy; memory opens its shared manager.
+- The Reverse panel configures installed REA executables, persists version-checked settings, and checks a temporary connection. Tool search lists the checked catalog; optional engine paths are distinguished from actual analysis readiness. Software installation remains external.
 - The inventory is reloaded on demand and after each save; there is no filesystem watcher, so a change made by another process appears after the next reload.
 - The selection editor is a checkbox per material; there is no drag ordering, and the Host renders materials in registry order.
 

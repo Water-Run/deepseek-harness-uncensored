@@ -91,6 +91,11 @@ export function apply(ctx: ClientContext): void {
   }
 
   const operations: ModeMaterialsInjected = {
+    rea: {
+      load: () => unwrap(ctx.remote.modeDossiers.reaSettings()),
+      save: (options, expectedRevision) => unwrap(ctx.remote.modeDossiers.configureRea({ options, expectedRevision })),
+      probe: signal => unwrap(ctx.remote.modeDossiers.probeRea(signal)),
+    },
     openMemory: (mode, workspaceId) => { ctx.emit('memory/open-manager', mode, workspaceId === undefined ? undefined : `workspace:${workspaceId}`) },
     hooks: { materials: store },
     load,

@@ -2,6 +2,33 @@
 
 /** Locale keys this surface renders. */
 export type ModeMaterialsKey =
+  | 'reverse.empty' | 'reverse.builtin.ledger' | 'reverse.builtin.ledgerDetail'
+  | 'reverse.builtin.inventory' | 'reverse.builtin.inventoryDetail' | 'reverse.builtin.report' | 'reverse.builtin.reportDetail'
+  | 'rea.engine.configured' | 'rea.engine.discover' | 'rea.engine.missing' | 'rea.engine.unreadable'
+  | 'rea.title'
+  | 'rea.intro'
+  | 'rea.enable'
+  | 'rea.unavailable'
+  | 'rea.nodePath'
+  | 'rea.cliPath'
+  | 'rea.ghidraPath'
+  | 'rea.javaHome'
+  | 'rea.idaConfig'
+  | 'rea.nodePathHint'
+  | 'rea.cliPathHint'
+  | 'rea.ghidraPathHint'
+  | 'rea.javaHomeHint'
+  | 'rea.idaConfigHint'
+  | 'rea.provider'
+  | 'rea.auto'
+  | 'rea.note'
+  | 'rea.check'
+  | 'rea.saved'
+  | 'rea.failed'
+  | 'rea.connected'
+  | 'rea.engineNote'
+  | 'rea.catalog'
+  | 'rea.search'
   | 'nav'
   | 'memory.manage'
   | 'scope.label' | 'scope.none' | 'scope.noneHint' | 'scope.choose' | 'scope.pickFailed' | 'scope.range'
@@ -33,6 +60,41 @@ export type ModeMaterialsKey =
 
 /** English copy. */
 export const en: Record<ModeMaterialsKey, string> = {
+  'reverse.empty': 'This workspace has no reverse analysis cases yet.',
+  'reverse.builtin.ledger': 'Analysis case ledger',
+  'reverse.builtin.ledgerDetail': 'Manage targets, evidence, findings and notes under .reverse/<slug>/case.json.',
+  'reverse.builtin.inventory': 'Sample inventory',
+  'reverse.builtin.inventoryDetail': 'Read hashes, formats, entropy and strings without executing samples.',
+  'reverse.builtin.report': 'Analysis report',
+  'reverse.builtin.reportDetail': 'Generate a Markdown report from the saved case evidence.',
+  'rea.engine.configured': 'Path found; analysis not yet checked',
+  'rea.engine.discover': 'Detected by REA when needed',
+  'rea.engine.missing': 'Configured path is missing or has the wrong type',
+  'rea.engine.unreadable': 'Configured path could not be checked',
+  'rea.title': 'REA external analysis',
+  'rea.intro': 'Connect an installed REA runtime and discover its full tool catalog on demand. Each reverse conversation owns its analysis process.',
+  'rea.enable': 'Enable REA',
+  'rea.unavailable': 'REA settings cannot be saved in this profile',
+  'rea.nodePath': 'Node executable',
+  'rea.cliPath': 'REA entry file',
+  'rea.ghidraPath': 'Ghidra installation',
+  'rea.javaHome': 'Java home',
+  'rea.idaConfig': 'IDA MCP configuration',
+  'rea.nodePathHint': 'Full path to the Node executable',
+  'rea.cliPathHint': 'Full path to rea-agents/scripts/rea.mjs',
+  'rea.ghidraPathHint': 'Optional; let REA discover it when empty',
+  'rea.javaHomeHint': 'Optional; let REA discover it when empty',
+  'rea.idaConfigHint': 'Optional; path to existing IDA MCP configuration',
+  'rea.provider': 'Native analysis engine',
+  'rea.auto': 'Automatic',
+  'rea.note': 'Saving closes existing REA connections; reopen samples to continue. External engines require full access and are unavailable to quick questions.',
+  'rea.check': 'Check connection',
+  'rea.saved': 'Configuration saved',
+  'rea.failed': 'REA connection or configuration failed: {reason}',
+  'rea.connected': 'Connected · {count} tools',
+  'rea.engineNote': 'The connection check confirms REA availability. Optional engines such as Ghidra, IDA and Hopper validate versions and dependencies when opening a sample and report missing requirements.',
+  'rea.catalog': 'View tool catalog',
+  'rea.search': 'Search tool names',
   'memory.manage': 'Manage memory for this mode',
   nav: 'Mode materials',
   'scope.label': 'Workspace',
@@ -155,6 +217,41 @@ export const en: Record<ModeMaterialsKey, string> = {
 
 /** Simplified Chinese copy. */
 export const zh: Record<ModeMaterialsKey, string> = {
+  'reverse.empty': '这个工作区还没有逆向分析案件',
+  'reverse.builtin.ledger': '分析案件',
+  'reverse.builtin.ledgerDetail': '在 .reverse/<slug>/case.json 中管理目标、证据、发现与笔记',
+  'reverse.builtin.inventory': '样本清点',
+  'reverse.builtin.inventoryDetail': '读取哈希、格式、熵与字符串，不执行样本',
+  'reverse.builtin.report': '分析报告',
+  'reverse.builtin.reportDetail': '根据已保存的案件证据生成 Markdown 报告',
+  'rea.engine.configured': '路径存在 · 待实际分析验证',
+  'rea.engine.discover': '由 REA 在调用时检测',
+  'rea.engine.missing': '配置路径不存在或类型不符',
+  'rea.engine.unreadable': '无法检查配置路径',
+  'rea.title': 'REA 外部分析',
+  'rea.intro': '连接已安装的 REA，按需使用其完整工具目录；每个逆向会话拥有独立的分析进程。',
+  'rea.enable': '启用 REA',
+  'rea.unavailable': '当前配置无法保存 REA 设置',
+  'rea.nodePath': 'Node 可执行文件',
+  'rea.cliPath': 'REA 入口文件',
+  'rea.ghidraPath': 'Ghidra 安装目录',
+  'rea.javaHome': 'Java 安装目录',
+  'rea.idaConfig': 'IDA MCP 配置文件',
+  'rea.nodePathHint': 'Node 可执行文件的完整路径',
+  'rea.cliPathHint': 'rea-agents/scripts/rea.mjs 的完整路径',
+  'rea.ghidraPathHint': '可选；留空由 REA 检测',
+  'rea.javaHomeHint': '可选；留空由 REA 检测',
+  'rea.idaConfigHint': '可选；现有 IDA MCP 配置路径',
+  'rea.provider': '原生分析引擎',
+  'rea.auto': '自动选择',
+  'rea.note': '保存配置会关闭已有 REA 连接；重新打开样本后继续分析。外部引擎需要完全权限，随问不会启动它们。',
+  'rea.check': '检测连接',
+  'rea.saved': '配置已保存',
+  'rea.failed': 'REA 连接或配置失败：{reason}',
+  'rea.connected': '连接成功 · {count} 个工具',
+  'rea.engineNote': '连接成功仅确认 REA 可用。Ghidra、IDA、Hopper 等可选引擎在实际打开样本时检查版本和依赖；缺失时会返回具体原因。',
+  'rea.catalog': '查看工具目录',
+  'rea.search': '搜索工具名称',
   'memory.manage': '管理此模式的记忆',
   nav: '模式资料',
   'scope.label': '工作区',
