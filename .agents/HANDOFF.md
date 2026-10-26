@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## 最新节点：开发预览热重载恢复（2026-10-26）
+
+已确定性复现并修复 `session-maybe` 适配器释放导致的白屏。ClientEntries 在实际替换/删除前同步撤下渲染消费者，等待模块及依赖重新激活后恢复；无变化的图同步不撤下界面。渲染器自身重载时，新根先等待依赖，旧根的迟到回调不能复活它。ScopeProvider 仍严格报告装配错误。顺带修正槽位目录的缺失说明与重复声明。
+
+相关框架回归 26 文件 385 项通过；新增错误恢复与停止后注册测试后，entries 文件 43 项通过。真实浏览器分别重载 ui-session 与 ui-renderer，页面恢复、未发送草稿保留，最终渲染器重载后无新错误。证据：.dsh-build/five-items-20261026/hmr-before-proof.json、hmr-final-proof.json、hmr-final-page.png。临时探针已从源码与构建产物移除。完整构建 9/9，通过记录为 hmr-final-build.log；最终类型检查、lint、JSDoc 和文档检查另存同目录。
+
+五项目标仍为 1、2、3、5 完成，4（REA 产品接入）继续。尚未打包或安装本轮功能。
+
 ## 最新节点：跨对话记忆自动提炼（2026-10-26）
 
 五项中的 1、2、3、5 已完成，余 4（REA 产品接入）。记忆增加默认关闭的自动提炼、完整请求/结果日志、会话费用统计、取消/超时/额度拒绝、空闲会话重试，以及模式资料页入口。模型提炼只使用当前回合的用户文字和助手正文；保留作用范围与禁用记录。管理页用工作区名称与模式中文显示范围，提炼历史和检索上限折叠。
@@ -12,7 +20,7 @@ REA 仍只有底层兼容测试，尚无产品配置和会话工具接线。可�
 
 本轮尚未更新已安装应用。后续完成 REA，更新 README/清单并按用户授权统一打包安装。开发继续 main，中文提交；用户未要求暂停。
 
-记忆节点已推送 e55723cfe1。收尾发现开发预览白屏：控制台报 `SlotAssemblyError: scope 'session-maybe' rendered without an installed adapter`，伴随已释放 Session 引用与 inspect manifest 同步错误；重新加载页面恢复。发生在产物重建后的客户端图重建期间，仍需确定性复现与修复，不能用 ScopeProvider 静默返回空值掩盖配置错误。证据为 memory-preview-hmr-errors.json。入口：client/modules/src/client/entries.ts 的 replace/tearDownEntryFiber，ui-renderer/src/client/index.ts 的 mount，ui-renderer/src/client/bindings.tsx 的 ScopeProvider。模块已有 syncing 状态，但渲染根未协调消费者的同步卸载；研究在实际替换/删除前撤下消费者、结束后恢复的成对钩子，避免相同 graph 的无操作同步也丢失界面状态。此项与剩余 REA 接入一起收尾。
+记忆节点已推送 e55723cfe1。当时发现的开发预览白屏现已修复，验收见上方热重载节点；原始错误保留在 memory-preview-hmr-errors.json。
 
 ## 当前五项目标（2026-10-26）
 

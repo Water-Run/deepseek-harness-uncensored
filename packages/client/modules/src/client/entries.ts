@@ -54,6 +54,8 @@ export class ClientEntries {
   private desired: BootManifest
   private generation = 0
   private stopped = false
+  private readonly teardownConsumers = new Set<{ prepare: () => () => void }>()
+  private transition: { resumes: (() => void)[] } | undefined
 
   /**
    * Construct the page controller before Cordis boot.
@@ -76,6 +78,46 @@ export class ClientEntries {
   }
 
   /**
+   * Withdraw consumers synchronously before their entry providers are disposed.
+   * The returned resume callback runs after replacement or removal settles, including failures.
+   * A consumer joining an active transition is withdrawn immediately; unregistering prevents future calls.
+   * @param prepare - Withdraw the consumer and return its guarded resume callback.
+   * @returns Idempotent registration disposer; an acquired resume callback still runs once.
+   */
+  onTeardown(prepare: () => () => void): () => void {
+    if (this.stopped) throw new Error('client-modules: entries have stopped')
+    const consumer = { prepare }
+    this.teardownConsumers.add(consumer)
+    try {
+      if (this.transition !== undefined) this.transition.resumes.push(prepare())
+    } catch (error) {
+      this.teardownConsumers.delete(consumer)
+      throw error
+    }
+    return () => { this.teardownConsumers.delete(consumer) }
+  }
+
+  private async withConsumersWithdrawn(change: () => Promise<void>): Promise<void> {
+    const consumers = [...this.teardownConsumers]
+    const transition = { resumes: [] as (() => void)[] }
+    const errors: unknown[] = []
+    this.transition = transition
+    try {
+      for (const consumer of consumers) transition.resumes.push(consumer.prepare())
+      await change()
+    } catch (error) {
+      errors.push(error)
+    } finally {
+      this.transition = undefined
+      for (const resume of transition.resumes.reverse()) {
+        try { resume() } catch (error) { errors.push(error) }
+      }
+    }
+    if (errors.length === 1) throw errors[0]
+    if (errors.length > 1) throw new AggregateError(errors, 'client-modules: entry transition failed')
+  }
+
+  /**
    * Create the initial roster and retain its entry identities for subsequent reconciliation.
    * @param loader - Page Loader, already configured with the module system.
    * @param manifest - Initial roster audited by the boot caller.
@@ -88,7 +130,7 @@ export class ClientEntries {
     loader.ctx.effect(() => () => {
       this.stopped = true
       this.generation++
-      return this.queue
+      return this.queue.finally(() => { this.teardownConsumers.clear() })
     }, 'client-modules: entry reconciliation')
     return this.enqueue(async () => {
       await Promise.all(this.desired.plugins.map(async ({ id }) => {
@@ -188,18 +230,23 @@ export class ClientEntries {
   }
 
   private async replace(entry: Entry, id: string, rev: string, generation: number): Promise<void> {
+    const loader = this.loader
+    if (loader === undefined) throw new Error('client-modules: entries have not started')
     this.index.invalidateForReplacement(id, rev)
     await this.modules.prefetch(id)
     if (!this.current(generation)) return
-    await tearDownEntryFiber(entry)
-    removeOwnedStyles(id)
-    if (!this.current(generation)) return
-    await this.modules.import(id, '', {})
-    if (!this.current(generation)) return
-    await entry.refresh()
-    await entry.fiber?.await()
-    if (entry.fiber === undefined) throw new Error(`client-modules: ${id} import failed (see console)`)
-    this.revisions.set(id, rev)
+    await this.withConsumersWithdrawn(async () => {
+      await tearDownEntryFiber(entry)
+      removeOwnedStyles(id)
+      if (!this.current(generation)) return
+      await this.modules.import(id, '', {})
+      if (!this.current(generation)) return
+      await entry.refresh()
+      await entry.fiber?.await()
+      await loader.await()
+      if (entry.fiber === undefined) throw new Error(`client-modules: ${id} import failed (see console)`)
+      this.revisions.set(id, rev)
+    })
   }
 
   private async reconcile(generation: number): Promise<void> {
@@ -213,12 +260,15 @@ export class ClientEntries {
     const wanted = new Set(manifest.plugins.map(row => row.id))
     for (const [id, entry] of this.managed) {
       if (wanted.has(id)) continue
-      const fiber = entry.fiber
-      loader.remove(entry.id)
-      this.managed.delete(id)
-      this.revisions.delete(id)
-      // Removed fibers no longer appear in Loader.getTasks().
-      while (fiber?.inertia !== undefined) await fiber.inertia
+      await this.withConsumersWithdrawn(async () => {
+        const fiber = entry.fiber
+        loader.remove(entry.id)
+        this.managed.delete(id)
+        this.revisions.delete(id)
+        // Removed fibers no longer appear in Loader.getTasks().
+        while (fiber?.inertia !== undefined) await fiber.inertia
+        await loader.await()
+      })
     }
     for (const row of manifest.modules) {
       if (!this.current(generation)) break

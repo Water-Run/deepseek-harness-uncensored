@@ -45,6 +45,11 @@ export type { AccountKey } from './locales.ts'
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap { 'settings.account': AccountKey }
   interface SlotMap {
+    /**
+     * Register a balance or spending-status row inside the shared sidebar budget
+     * region. The owner passes the sidebar width state; entries retain their own
+     * operations and render in order. With no entries the region is hidden.
+     */
     'sidebar.footer.budget': { kind: 'list'; scope: 'root'; owner: SlotMap['sidebar.footer.action']['owner'] }
   }
 }

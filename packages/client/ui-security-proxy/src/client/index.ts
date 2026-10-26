@@ -8,6 +8,7 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+import type {} from '@deepseek-ai/dsh-client-ui-agent-preset/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 import { SecurityProxyController, type SecurityProxyPort } from './controller.ts'
@@ -21,15 +22,6 @@ export type { SecurityProxyViewState } from './controller.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap { 'settings.securityProxy': SecurityProxyKey }
-  interface SlotMap {
-    /**
-     * The mode configuration seat declared by ui-agent-preset, where this panel
-     * joins the Security mode's tab. Declared here as well so this package
-     * compiles and its contribution waits for the declaration instead of
-     * failing when the seat is absent.
-     */
-    'settings.mode.materials': { kind: 'list'; scope: 'root'; owner: { readonly modeId: string | undefined } }
-  }
 }
 
 /** Services required by this surface. */

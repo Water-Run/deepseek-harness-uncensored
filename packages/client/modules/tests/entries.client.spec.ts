@@ -81,6 +81,112 @@ function visible(id: string, effects: { mounted: number; disposed: number; hits:
 }
 
 describe('client manifest entries', () => {
+  it('waits for dependent activation before restoring consumers', async () => {
+    const gate = deferred()
+    let delay = false
+    const trace: string[] = []
+    const b = await bench(graph(row('provider'), row('dependent')), {
+      provider: () => ({ apply(ctx: Context) { ctx.provide('reloadResource', true) } }),
+      dependent: () => ({ inject: ['reloadResource'], async apply() {
+        if (delay) { trace.push('dependent-start'); await gate.promise }
+        trace.push('dependent-ready')
+      } }),
+    })
+    b.modules.entries.onTeardown(() => { trace.push('withdraw'); return () => { trace.push('resume') } })
+    trace.length = 0
+    delay = true
+    const replacing = b.modules.entries.reload('provider', 'r1')
+    try {
+      await vi.waitFor(() => { expect(trace).toContain('dependent-start') })
+      expect(trace).not.toContain('resume')
+      gate.resolve()
+      await replacing
+      expect(trace).toEqual(['withdraw', 'dependent-start', 'dependent-ready', 'resume'])
+    } finally { gate.resolve(); await replacing }
+  })
+
+  it('withdraws consumers around code replacement but keeps them mounted for unchanged graphs', async () => {
+    const trace: string[] = []
+    const factory = () => ({ apply(ctx: Context) {
+      trace.push('apply')
+      ctx.effect(() => () => { trace.push('dispose') })
+    } })
+    const initial = graph(row('a'))
+    const b = await bench(initial, { a: factory })
+    b.modules.entries.onTeardown(() => { trace.push('withdraw'); return () => { trace.push('resume') } })
+    trace.length = 0
+    await b.modules.entries.sync(initial)
+    expect(trace).toEqual([])
+    await b.modules.entries.reload('a', 'r1')
+    expect(trace).toEqual(['withdraw', 'dispose', 'apply', 'resume'])
+  })
+
+  it('resumes consumers after a replacement fails', async () => {
+    let fail = false
+    const trace: string[] = []
+    const b = await bench(graph(row('a')), { a: () => ({ apply() { if (fail) throw new Error('apply failed') } }) })
+    b.modules.entries.onTeardown(() => { trace.push('withdraw'); return () => { trace.push('resume') } })
+    fail = true
+    await expect(b.modules.entries.reload('a', 'r1')).rejects.toThrow('apply failed')
+    expect(trace).toEqual(['withdraw', 'resume'])
+  })
+
+  it('withdraws a newly mounted consumer while asynchronous removal is pending', async () => {
+    const cleanup = deferred()
+    const effects = { mounted: 0, disposed: 0, hits: 0 }
+    const b = await bench(graph(row('a')), { a: visible('a', effects, () => cleanup.promise) })
+    const trace: string[] = []
+    b.modules.entries.onTeardown(() => { trace.push('first'); return () => { trace.push('resume-first') } })
+    const removing = b.modules.entries.sync(graph())
+    try {
+      await vi.waitFor(() => { expect(trace).toEqual(['first']) })
+      const remove = b.modules.entries.onTeardown(() => { trace.push('joined'); return () => { trace.push('resume-joined') } })
+      remove()
+      expect(trace).toEqual(['first', 'joined'])
+      cleanup.resolve()
+      await removing
+      expect(trace).toEqual(['first', 'joined', 'resume-joined', 'resume-first'])
+    } finally { cleanup.resolve(); await removing }
+  })
+
+  it('keeps providers intact when withdrawal fails and still resumes earlier consumers', async () => {
+    const effects = { mounted: 0, disposed: 0, hits: 0 }
+    const b = await bench(graph(row('a')), { a: visible('a', effects) })
+    const resumed = vi.fn()
+    b.modules.entries.onTeardown(() => resumed)
+    b.modules.entries.onTeardown(() => { throw new Error('withdrawal failed') })
+    await expect(b.modules.entries.reload('a', 'r1')).rejects.toThrow('withdrawal failed')
+    expect(effects.disposed).toBe(0)
+    expect(resumed).toHaveBeenCalledOnce()
+  })
+
+  it('runs every resume callback even when one fails', async () => {
+    const b = await bench(graph(row('a')), { a: () => ({ apply() {} }) })
+    const resumed = vi.fn()
+    b.modules.entries.onTeardown(() => resumed)
+    b.modules.entries.onTeardown(() => () => { throw new Error('resume failed') })
+    await expect(b.modules.entries.reload('a', 'r1')).rejects.toThrow('resume failed')
+    expect(resumed).toHaveBeenCalledOnce()
+  })
+
+  it('preserves both activation and resume failures', async () => {
+    let fail = false
+    const b = await bench(graph(row('a')), { a: () => ({ apply() { if (fail) throw new Error('activation failed') } }) })
+    b.modules.entries.onTeardown(() => () => { throw new Error('resume failed') })
+    fail = true
+    let failure: unknown
+    try { await b.modules.entries.reload('a', 'r1') } catch (error) { failure = error }
+    expect(failure).toBeInstanceOf(AggregateError)
+    if (!(failure instanceof AggregateError)) throw new Error('Expected both failures')
+    expect(failure.errors.map((error: unknown) => String(error))).toEqual(['Error: activation failed', 'Error: resume failed'])
+  })
+
+  it('rejects a new consumer after the page controller has stopped', async () => {
+    const b = await bench(graph(), {})
+    await b.ctx.fiber.dispose()
+    expect(() => b.modules.entries.onTeardown(() => () => {})).toThrow('entries have stopped')
+  })
+
   it('adds, drains removal and re-enables one instance with styles; unrelated entries survive', async () => {
     const effects = { mounted: 0, disposed: 0, hits: 0 }
     const cleanup = deferred()

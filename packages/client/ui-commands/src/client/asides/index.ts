@@ -24,7 +24,17 @@ declare module '@deepseek-ai/dsh-api-session-controller/client' {
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface ResourceProtocolMap { aside: { readonly reference: SessionReference; readonly fromSeq: number } }
   interface SlotMap {
+    /**
+     * Register the inline quick-question panel in the main composer. It receives
+     * the owning main Session's standard props. Replacing this single entry
+     * replaces the built-in panel; absence leaves the composer without one.
+     */
     'conversation.input.aside': { kind: 'single'; scope: 'session' }
+    /**
+     * Register the body of a side-question tab. It receives the child Session's
+     * standard props and the owner's fromSeq visibility cutoff. Replacing the
+     * entry replaces the built-in conversation view; absence leaves the body empty.
+     */
     'sidebar.aside.conversation': { kind: 'single'; scope: 'session'; owner: { fromSeq: number } }
   }
 }

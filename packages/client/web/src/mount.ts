@@ -5,6 +5,7 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
+import type {} from '@deepseek-ai/dsh-client-modules/client'
 
 /**
  * Mount the UI renderer into `container` through a dependency fiber on
@@ -18,7 +19,9 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
  */
 export async function mountClient(ctx: Context, container: HTMLElement): Promise<void> {
   const mounted = ctx.inject(['uiRenderer'], (scope) => {
-    scope.effect(() => scope.uiRenderer.mount(container), 'web boot: application mount')
+    const entries = ctx.get('modules')?.entries
+    scope.effect(() => entries === undefined ? scope.uiRenderer.mount(container)
+      : scope.uiRenderer.mount(container, prepare => entries.onTeardown(prepare)), 'web boot: application mount')
   })
   await mounted
 }

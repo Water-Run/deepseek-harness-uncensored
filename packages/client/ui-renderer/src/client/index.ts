@@ -25,9 +25,10 @@ export interface UiRendererService {
   /**
    * Mount the assembled application into the supplied element.
    * @param container - Application mount point.
+   * @param onTeardown - Optional boot-owned entry transition registration.
    * @returns Disposer that unmounts the React root.
    */
-  mount: (container: HTMLElement) => () => void
+  mount: (container: HTMLElement, onTeardown?: (prepare: () => () => void) => () => void) => () => void
 }
 
 declare module '@deepseek-ai/cordis' {
@@ -90,9 +91,21 @@ export function apply(ctx: Context): void {
   const slots = new SlotRegistry(ctx)
   slots.install(createSlotRenderer())
   ctx.reflect.provide('uiRenderer', {
-    mount: (container: HTMLElement): (() => void) => {
-      const root = mountApp(container, buildRenderApp({ ctx }))
-      return () => { root.unmount() }
+    mount: (container: HTMLElement, onTeardown?: (prepare: () => () => void) => () => void): (() => void) => {
+      const app = buildRenderApp({ ctx })
+      let root: Root | undefined
+      let active = true, withdrawn = false
+      const stop = onTeardown?.(() => {
+        withdrawn = true
+        if (active && root !== undefined) flushSync(() => { root?.render(null) })
+        return () => {
+          withdrawn = false
+          if (active && root !== undefined) flushSync(() => { root?.render(app()) })
+        }
+      })
+      try { root = mountApp(container, () => withdrawn ? null : app()) }
+      catch (error) { active = false; stop?.(); throw error }
+      return () => { active = false; stop?.(); root.unmount() }
     },
   })
 }

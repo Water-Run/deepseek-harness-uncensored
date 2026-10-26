@@ -41,6 +41,8 @@ The application combo scripts carry only each plugin's `client.js` entry and reg
 
 An open Web page follows the Host's complete module graph through the HMR transport. Enabling an ordinary plugin adds its Loader entry; disabling it removes the entry and waits for its asynchronous effects before evicting unused modules and styles. Re-enabling loads one instance with its styles. Other Loader contributors and shared modules still needed by active entries remain loaded. Settings → Plugins → Plugin list shows page-local synchronization failures and offers retry without changing Host enablement.
 
+`entries.onTeardown(prepare)` coordinates consumers whose providers are about to disappear. `prepare` withdraws a consumer synchronously and returns its resume callback. Replacement and removal wait for dependent activation and cleanup before resuming every acquired consumer, including on failure; a failed preparation prevents provider teardown. Consumers added during a transition are withdrawn immediately. Unchanged graph synchronization leaves them mounted. This preserves strict missing-provider checks during ordinary rendering instead of hiding invalid composition.
+
 ### Host release changes
 
 Every graph carries the Host release identity as `release`: this package's `version`, which releases share with the CLI, and the source `commit` that the client build fixes into the built Host artifact. Two releases are equal only when both fields are. A page applies graphs and rebuilt frames only while the connected Host serves the release the page booted from, so every module the page runs belongs to that release; when the Host returns to it, the usual revision comparison replaces exactly the changed modules. While the Host serves another release, the page applies nothing from it, keeps its current plugins running, and publishes `ctx.modules.entries.releaseChange` with the page's boot release, the Host's previous release, and its current release; only a page reload loads the other release. `dismissRelease()` withdraws the announcement and keeps the page quiet for that Host release until another one appears; it remembers only the last dismissed release, in page memory. Retrying failed plugins on the Plugins page does not load the other release either: the retry requests the boot release's artifacts, which a Host serving another release no longer has, so it ends in a download failure.
@@ -107,7 +109,7 @@ The host contributes structured index rows that inject, into `<head>`: the `wind
 
 Read these when the module contract is not enough: the subsystem reference, the shell that boots the tree, and the client authoring rules behind the graph.
 
-- [Client modules subsystem](../../../docs/subsystems/client-modules.md) — the web plugin table, `WebBootGraph` wire, and the bundle route.
+- [Module host](src/index.ts) — the web plugin table, `WebBootGraph` wire, and bundle routes.
 - [Web boot kernel](../web/README.md) — the shell that creates the module system and boots the plugin tree.
 - [Client HMR driver](../hmr/README.md) — the reload chain that drives `invalidate`/`prefetch` on rebuilt bundles.
 - [Client authoring rules](../AGENTS.md#shared-modules-and-the-module-graph) — the shared-module baseline and `dsh.client.external` semantics.

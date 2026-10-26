@@ -9,6 +9,24 @@ function provideRenderer(ctx: Context, mount: (container: HTMLElement) => () => 
 }
 
 describe('mountClient', () => {
+  it('connects the renderer teardown callback to the bootstrap module owner', async () => {
+    const ctx = new Context()
+    const release = vi.fn()
+    const prepare = vi.fn(() => () => {})
+    const onTeardown = vi.fn(() => release)
+    ctx.provide('modules', { entries: { onTeardown } })
+    const mount = vi.fn((_container: HTMLElement, register?: (callback: () => () => void) => () => void) => {
+      const stop = register?.(prepare)
+      return () => { stop?.() }
+    })
+    try {
+      provideRenderer(ctx, mount)
+      await mountClient(ctx, document.createElement('div'))
+      expect(onTeardown).toHaveBeenCalledExactlyOnceWith(prepare)
+    } finally { await ctx.fiber.dispose() }
+    expect(release).toHaveBeenCalledOnce()
+  })
+
   it('mounts into the container and unmounts when the tree is disposed', async () => {
     const ctx = new Context()
     const unmount = vi.fn()

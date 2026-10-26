@@ -41,6 +41,8 @@ application combo 脚本只携带每个插件的 `client.js` 入口，并在启�
 
 已打开的 Web 页面通过 HMR 传输跟随 Host 的完整模块图。启用普通插件会添加其 Loader 条目；停用会移除条目，并在其异步 effect 完成清理后回收未使用的模块与样式。再次启用会加载一个带样式的实例。其他 Loader 贡献方的条目及活动条目仍需使用的共享模块会保留。「设置 → 插件 → 插件列表」显示当前页面的同步失败，并提供不改变 Host 启用状态的重试。
 
+`entries.onTeardown(prepare)` 协调即将失去提供者的消费方。`prepare` 同步撤下消费方并返回恢复回调。替换或移除会先等待依赖插件完成激活与清理，再恢复已撤下的消费方，失败时也会执行恢复；准备失败时不会开始释放提供者。重建期间新加入的消费方会立即撤下，相同图的同步则保持挂载。普通渲染仍严格检查缺失的提供者，不掩盖无效组合。
+
 <a id="host-release-changes"></a>
 ### Host release 变化
 
@@ -108,7 +110,7 @@ bundle 路由随注入的 `webServer` 生命周期注册：服务就绪时注册
 
 当模块约定不够用时阅读以下页面：子系统参考、启动插件树的外壳，以及图背后的客户端编写规则。
 
-- [客户端模块子系统](../../../docs/subsystems/client-modules.zh.md)——web 插件表、`WebBootGraph` 协议与 bundle 路由。
+- [模块宿主](src/index.ts)——web 插件表、`WebBootGraph` 协议与 bundle 路由。
 - [Web 启动内核](../web/README.zh.md)——创建模块系统并启动插件树的外壳。
 - [客户端 HMR 驱动器](../hmr/README.zh.md)——在重建 bundle 上驱动 `invalidate`/`prefetch` 的重载链路。
 - [客户端编写规则](../AGENTS.md#shared-modules-and-the-module-graph)——共享模块基座与 `dsh.client.external` 语义。

@@ -31,6 +31,8 @@ This package is infrastructure: the web shell and the boot kernel are its only d
 
 `mount(container)` installs the slot renderer, hydrates the existing boot DOM when present, renders the assembled application into the container before the next paint, and returns a disposer that unmounts the React root. The renderer performs the sole context-level `renderSlot('root')` call; the registered root occupant owns product layout and document metadata.
 
+The Web carrier supplies `entries.onTeardown` as the optional second argument. The renderer synchronously withdraws the React tree before providers are disposed and restores it after the entry change settles. Unmounting removes this registration; a late resume cannot render into an unmounted root. Ordinary graph synchronization without replacement or removal keeps the tree mounted.
+
 ### For business plugins
 
 A business plugin registers an ordinary Slot entry or a reusable Component Factory; the renderer binds the runtime's session and workspace observable sources into selector hooks at the render position. The plugin receives standard scope props through its derived Component props — it never imports the renderer or touches React internals. Every renderer-created Component can render a Factory occurrence, and a Factory can expose caller-selected local Components without sharing implementation values between packages.
@@ -69,7 +71,7 @@ These pages cover the surrounding machinery and the composition model.
 - [ui-slots](../ui-slots/README.md) — the slot registry pure core this renderer binds to React.
 - [web](../web/README.md) — the shell that loads the roster and calls `mount`.
 - [ui-session](../ui-session/README.md) — the adapter that supplies the standard Session sources and hooks this renderer binds.
-- [Web client architecture](../../../docs/subsystems/web-client.md) — the loading chain, object layer, and layering red lines.
+- [Web client rules](../AGENTS.md) — slot ownership, component inputs, and rendering responsibilities.
 - [Slot system standard](../../../.agents/notes/implemented/architecture/2026-07-22-slot-type-chain-implementation.md) — the definitive composition model.
 - [Component Factories](../../../.agents/notes/implemented/architecture/2026-09-10-component-factories-and-local-slots.md) — reusable definitions, local Component selection, and occurrence lifetimes.
 
