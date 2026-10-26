@@ -11,6 +11,8 @@ English | [中文](README.zh.md)
 
 Use this package to manage the files the specialized modes keep, from Settings → Modes. It registers one panel per mode into `settings.mode.materials`, the slot the mode section renders below its cards, and reads and writes everything through the Host's `modeDossiers` Remote namespace. Only the panel that owns the current mode renders; the others stay mounted and render nothing, so switching modes never closes an open dialog or discards typed text.
 
+Each panel can open the shared memory manager with its mode filter selected. New records inherit that mode; the workspace and sharing scope remain visible in the editor.
+
 ## Table of Contents
 
 - [Use this package](#use-this-package)

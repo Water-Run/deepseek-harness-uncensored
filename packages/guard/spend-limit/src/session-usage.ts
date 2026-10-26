@@ -2,6 +2,7 @@
 import { lastAssistantStreamChunk } from '@deepseek-ai/dsh-llm'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-llm-retry/types'
+import type { MemoryExtractionId, MemoryExtractionRequest } from '@deepseek-ai/dsh-memory/types'
 import { usageCost } from './pricing.ts'
 import type { SessionSpendUsage, SpendRate } from './types.ts'
 
@@ -19,10 +20,25 @@ export function sessionSpendUsage(events: readonly SessionEvent[], rates: readon
   let total = 0, unknown = 0, requests = 0
   let last: { turn: number; step: number; cost: number; unknown: number } | undefined
   let points: SessionSpendUsage['points'] = []
+  const extractions = new Map<MemoryExtractionId, MemoryExtractionRequest>()
   const inherited = events.findIndex(event => event.type === 'session/end-seed' && event.data.inherited)
   for (const event of events) {
     if (event.type === 'request/header') route = event.data.header.config
     if (event.seq <= inherited) continue
+    if (event.type === 'memory/extraction') {
+      if (event.data.phase === 'request') { extractions.set(event.data.requestId, event.data); continue }
+      const request = extractions.get(event.data.requestId)
+      if (request === undefined) continue
+      extractions.delete(event.data.requestId)
+      const rate = rates.find(value => value.providers.includes(request.provider) && value.models.includes(request.model))
+      const usage = event.data.usage
+      total += rate === undefined || usage === undefined ? 0 : usageCost(rate, usage)
+      unknown += rate === undefined || usage === undefined ? 1 : 0
+      requests++
+      points.push({ time: event.time, total: total / 1_000_000 })
+      last = undefined
+      continue
+    }
     if (event.type === 'llm/retry-started') { last = undefined; continue }
     if (event.type !== 'assistant/message' && event.type !== 'assistant/attempt') continue
     const usage = event.type === 'assistant/message' && event.data.usage !== undefined
@@ -39,6 +55,8 @@ export function sessionSpendUsage(events: readonly SessionEvent[], rates: readon
     points.push({ time: event.time, total: total / 1_000_000 })
     last = { turn: event.data.turn, step: event.data.step, cost, unknown: unpriced }
   }
+  requests += extractions.size
+  unknown += extractions.size
   if (points.length > MAX_POINTS) {
     const keep = new Set(Array.from({ length: MAX_POINTS }, (_, index) => Math.round(index * (points.length - 1) / (MAX_POINTS - 1))))
     points = points.filter((_, index) => keep.has(index))

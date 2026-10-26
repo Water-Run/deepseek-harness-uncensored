@@ -93,6 +93,7 @@ function surface(modeId: string | undefined, loaded: DossierInventory | undefine
     })),
     createWorkspace: vi.fn(async () => 'w2'),
     pickDirectory: vi.fn(async () => '/work/other'),
+    openMemory: vi.fn(),
   }
   const workspaceSnapshot: WorkspaceSnapshot = {
     items: [{ workspaceId: 'w1' as WorkspaceSnapshot['items'][number]['workspaceId'], path: '/work/novel', title: 'Novel', sessionIds: [], createdAt: 'c', updatedAt: 'u' }],
@@ -117,6 +118,13 @@ function surface(modeId: string | undefined, loaded: DossierInventory | undefine
   }
   return { props, operations }
 }
+
+it('opens memory with the configured mode and selected workspace', () => {
+  const { props, operations } = surface('reverse', inventory(), 'w1')
+  render(<ReverseMaterials {...props} />)
+  fireEvent.click(screen.getByRole('button', { name: en['memory.manage'] }))
+  expect(operations.openMemory).toHaveBeenCalledWith('reverse', 'w1')
+})
 
 it('renders only the panel of the selected mode', () => {
   const loaded = inventory({ security: { cases: [{ slug: 'acme', kind: 'security', objective: 'Assess', createdAt: 'c', updatedAt: 'u', targets: 1, evidence: 0, findings: 0, notes: 0, extraKeys: [] }], broken: [] } })

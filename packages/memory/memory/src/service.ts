@@ -9,12 +9,18 @@
 
 import { createHash, randomUUID } from 'node:crypto'
 import { Context, Service } from '@deepseek-ai/cordis'
+import type { Volatile } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import type { Domain, KvTable } from '@deepseek-ai/dsh-storage-domain'
 import { MemoryConflictError, MemoryError } from './error.ts'
 import { memoryDomainSpec } from './spec.ts'
 import type { StoredMemoryRecord } from './spec.ts'
+import type {} from '@deepseek-ai/cordis-plugin-loader'
+import type {} from '@deepseek-ai/dsh-session-projection'
+import type { SessionId } from '@deepseek-ai/dsh-session'
+import type { MemoryExtractionOptions, MemoryExtractionStatus } from './extraction-types.ts'
+import { extractionProjection } from './extraction-projection.ts'
 import { normalizeText } from './tokenize.ts'
 import { retrieveMemories, searchMemories } from './retrieval.ts'
 import type { RetrievalOutcome } from './retrieval.ts'
@@ -58,6 +64,16 @@ const DEFAULT_MAX_CONTENT_CHARS = 4000
 
 /** Retrieval and storage bounds. Every field is deployed through cordis.yml. */
 export interface Config {
+  /** Automatically extract durable facts at successful turn completion; defaults to false. */
+  autoExtract?: boolean
+  /** Inclusive UTF-8 bound on extraction transcript text; defaults to 24000. */
+  extractionInputBytes?: number
+  /** Output token cap for extraction; defaults to 2048. */
+  extractionMaxTokens?: number
+  /** Maximum facts saved from one extraction; defaults to 4. */
+  extractionMaxRecords?: number
+  /** Timeout including quota admission; defaults to 45000 milliseconds. */
+  extractionTimeoutMs?: number
   /** Maximum records one request may inject; further relevant records are reported as omitted. */
   maxEntries?: number
   /** Maximum characters one injected record may occupy; longer content is ellipsized. */
@@ -71,7 +87,12 @@ export interface Config {
 }
 
 /** Config after defaults are applied. */
-type ResolvedConfig = Required<Config>
+type ResolvedConfig = Required<Omit<Config, 'autoExtract'>> & { autoExtract: Volatile<boolean> }
+
+/** Loader-resolved configuration retains the live preference cell. */
+function isResolvedConfig(value: Config | ResolvedConfig): value is ResolvedConfig {
+  return typeof value.autoExtract === 'object'
+}
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -173,6 +194,11 @@ export class MemoryService extends Service {
   static inject = ['storageDomain']
 
   static Config: z<Config, ResolvedConfig> = z.object({
+    autoExtract: z.boolean().default(false).volatile(),
+    extractionInputBytes: z.natural().min(1024).max(1000000).default(24000),
+    extractionMaxTokens: z.natural().min(128).max(16000).default(2048),
+    extractionMaxRecords: z.natural().min(1).max(20).default(4),
+    extractionTimeoutMs: z.natural().min(1000).max(300000).default(45000),
     maxEntries: z.natural().min(1).default(DEFAULT_MAX_ENTRIES),
     maxEntryChars: z.natural().min(1).default(DEFAULT_MAX_ENTRY_CHARS),
     maxContextBytes: z.natural().min(256).default(DEFAULT_MAX_CONTEXT_BYTES),
@@ -181,6 +207,10 @@ export class MemoryService extends Service {
   })
 
   private readonly config: ResolvedConfig
+  private readonly namespace: string | undefined
+  private readonly extractions = new Set<{ abort: AbortController; done: Promise<unknown> }>()
+  private readonly extractors = new Map<SessionId, { retry: () => Promise<void>; status: () => MemoryExtractionStatus | undefined }>()
+  private closing = false
   private table?: KvTable<MemoryId, MemoryRecord>
   /** Serializes create's duplicate check with its write. */
   private createTail: Promise<void> = Promise.resolve()
@@ -191,9 +221,10 @@ export class MemoryService extends Service {
    * @param ctx - owning Host context with the storage hub.
    * @param config - retrieval and storage bounds.
    */
-  constructor(ctx: Context, config: Config = {}) {
+  constructor(ctx: Context, config: Config | ResolvedConfig = {}) {
     super(ctx, 'memory')
-    this.config = MemoryService.Config(config)
+    this.config = isResolvedConfig(config) ? config : MemoryService.Config(config)
+    this.namespace = ctx.fiber.entry?.options.id
   }
 
   /** Open the memory domain; an unreadable or unsupported medium fails the plugin loudly. */
@@ -201,6 +232,83 @@ export class MemoryService extends Service {
     const domain = await this.openDomain()
     this.ctx.effect(() => () => domain.close(), 'memory.domainClose')
     this.table = domain.table('memories')
+    this.ctx.inject(['sessionProjections'], (inner) => {
+      inner.effect(() => inner.sessionProjections.register(extractionProjection(this.config.extractionInputBytes)), 'memory.extractionProjection')
+    })
+    this.ctx.on('loader/volatile-update', () => {
+      if (!this.extractionOptions().enabled) this.cancelExtractions()
+    })
+    this.ctx.effect(() => async () => {
+      this.closing = true
+      this.cancelExtractions()
+      await Promise.allSettled([...this.extractions].map(work => work.done))
+      this.extractors.clear()
+    }, 'memory.extractions')
+  }
+
+  /**
+   * Read the live preference and fixed extraction bounds.
+   * @returns Current extraction options.
+   */
+  extractionOptions(): MemoryExtractionOptions {
+    const value = this.config
+    return { enabled: value.autoExtract.get(), inputBytes: value.extractionInputBytes, maxTokens: value.extractionMaxTokens,
+      maxRecords: value.extractionMaxRecords, timeoutMs: value.extractionTimeoutMs }
+  }
+
+  /**
+   * Identify the Loader entry that owns these preferences.
+   * @returns Its namespace, or undefined for an unconfigured service.
+   */
+  settingsNamespace(): string | undefined { return this.namespace }
+
+  /** Cancel outstanding extraction requests without changing saved records. */
+  cancelExtractions(): void { for (const work of this.extractions) work.abort.abort() }
+
+  /**
+   * Own cancellable auxiliary work until it finishes logging and saving.
+   * @param signal - Agent turn or maintenance cancellation.
+   * @param operation - Bounded extraction operation.
+   * @returns The operation's completion.
+   */
+  async runExtraction(signal: AbortSignal, operation: (signal: AbortSignal) => Promise<void>): Promise<void> {
+    if (this.closing) throw new Error('Memory service is closing')
+    const abort = new AbortController()
+    const combined = AbortSignal.any([signal, abort.signal])
+    const done = Promise.resolve().then(() => { combined.throwIfAborted(); return operation(combined) })
+    const work = { abort, done }
+    this.extractions.add(work)
+    try { await done } finally { this.extractions.delete(work) }
+  }
+
+  /**
+   * Bind one live agent's retry and status controls.
+   * @param id - Owning session.
+   * @param binding - Agent-scoped callbacks, released before the agent is detached.
+   * @returns Registration disposer; a stale disposer cannot remove a replacement.
+   */
+  registerExtractor(id: SessionId, binding: { retry: () => Promise<void>; status: () => MemoryExtractionStatus | undefined }): () => void {
+    this.extractors.set(id, binding)
+    return () => { if (this.extractors.get(id) === binding) this.extractors.delete(id) }
+  }
+
+  /**
+   * Inspect attempts in currently attached conversations.
+   * @returns Each live conversation's latest extraction outcome.
+   */
+  extractionStatuses(): MemoryExtractionStatus[] {
+    return [...this.extractors.values()].flatMap((binding) => { const value = binding.status(); return value === undefined ? [] : [value] })
+  }
+
+  /**
+   * Retry the retained turn of a live, idle conversation.
+   * @param id - Session whose failed extraction should run again.
+   * @returns Completion after its outcome is logged.
+   */
+  async retryExtraction(id: SessionId): Promise<void> {
+    const binding = this.extractors.get(id)
+    if (binding === undefined) throw new MemoryError('not-found', 'Open the source conversation before retrying memory extraction')
+    await binding.retry()
   }
 
   /**
@@ -249,10 +357,11 @@ export class MemoryService extends Service {
    * Save one record. An enabled record with the same scope, type, and
    * normalized content is returned unchanged instead of duplicated.
    * @param input - classification, text, scope, and provenance.
+   * @param options - Cancellation and whether automatic extraction must preserve identical disabled records.
    * @returns the stored record and whether an identical one already existed.
    * @throws {MemoryError} `invalid` when the text or scope violates a rule.
    */
-  async create(input: MemoryCreateInput): Promise<MemoryCreateResult> {
+  async create(input: MemoryCreateInput, options: { signal?: AbortSignal; preserveDisabled?: boolean } = {}): Promise<MemoryCreateResult> {
     const content = input.content.trim()
     this.assertContent(content)
     const scope = scopeOf(input.scope)
@@ -260,8 +369,9 @@ export class MemoryService extends Service {
     const topic = labelOf(input.topic, 'topic')
     const contentHash = contentHashOf(content)
     const operation = this.createTail.then(async () => {
+      options.signal?.throwIfAborted()
       const existing = this.records().find(record =>
-        record.status === 'enabled'
+        (record.status === 'enabled' || options.preserveDisabled === true)
         && record.type === input.type
         && record.contentHash === contentHash
         && sameScope(record.scope, scope))

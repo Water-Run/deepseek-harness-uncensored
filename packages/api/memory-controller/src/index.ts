@@ -15,6 +15,8 @@ import { Remote, RemoteError, TypertRemoteService, principalOf } from '@deepseek
 import type {} from '@deepseek-ai/dsh-workspace'
 import type {} from '@deepseek-ai/dsh-session-query'
 import type {} from '@deepseek-ai/dsh-session-persistence'
+import { SettingsConflictError } from '@deepseek-ai/dsh-settings'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type {
   MemoryCreateRequest,
   MemoryDescribeValue,
@@ -95,11 +97,56 @@ export class MemoryController extends TypertRemoteService {
       label: workspace.title,
     }))
     const modes = new Map<string, MemoryScopeOption>()
-    for (const record of this.ctx.memory.records()) {
+    const knownWorkspaces = new Set(workspaces.map(workspace => workspace.value))
+    const records = this.ctx.memory.records()
+    for (const record of records) {
+      const workspace = record.scope.workspace
+      if (workspace !== undefined && !knownWorkspaces.has(workspace)) {
+        knownWorkspaces.add(workspace)
+        workspaces.push({ value: workspace, label: workspace.startsWith('path:') ? workspace.slice(5) : workspace })
+      }
       const mode = record.scope.mode
       if (mode !== undefined && !modes.has(mode)) modes.set(mode, { value: mode, label: mode })
     }
-    return { limits: this.ctx.memory.limits(), workspaces, modes: [...modes.values()] }
+    const ns = this.ctx.memory.settingsNamespace()
+    const descriptor = ns === undefined ? undefined : this.ctx.get('settings')?.describe().find(row => row.ns === ns)
+    return { totalRecords: records.length, limits: this.ctx.memory.limits(), workspaces, modes: [...modes.values()],
+      extraction: { enabled: this.ctx.memory.extractionOptions().enabled, revision: descriptor?.revision ?? null },
+      extractions: this.ctx.memory.extractionStatuses() }
+  }
+
+  /**
+   * Persist the automatic extraction preference under a configuration revision check.
+   * @param request - Desired preference and revision the management page read.
+   * @returns Updated preference and current extraction outcomes.
+   */
+  @Remote
+  async configureExtraction(request: { enabled: boolean; expectedRevision: number }): Promise<MemoryDescribeValue> {
+    this.assertOwner('memory/settings')
+    const ns = this.ctx.memory.settingsNamespace()
+    const settings = this.ctx.get('settings')
+    if (ns === undefined || settings === undefined) throw new RemoteError('memory/unavailable', 'Memory settings are unavailable', { reason: 'settings' })
+    try { await settings.update(ns, { autoExtract: request.enabled }, request.expectedRevision) }
+    catch (error) {
+      if (error instanceof SettingsConflictError) throw new RemoteError('memory/settings-conflict', 'Memory settings changed',
+        { expected: error.expected, actual: error.actual })
+      throw error
+    }
+    if (!request.enabled) this.ctx.memory.cancelExtractions()
+    return this.describe()
+  }
+
+  /**
+   * Retry extraction while its source conversation is open and idle.
+   * @param sessionId - Source conversation to retry.
+   * @returns Updated extraction outcomes.
+   */
+  @Remote
+  async retryExtraction(sessionId: SessionId): Promise<MemoryDescribeValue> {
+    this.assertOwner('memory/extract')
+    try { await this.ctx.memory.retryExtraction(sessionId) }
+    catch (error) { raise(error) }
+    return this.describe()
   }
 
   /**

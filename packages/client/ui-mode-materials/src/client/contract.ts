@@ -43,6 +43,8 @@ export interface MaterialScope {
 
 /** Operations the mode-materials surface performs. */
 export interface MaterialsOperations {
+  /** Open scoped memory management for the configured mode. */
+  openMemory(mode?: string, workspaceId?: string): void
   /** Read one workspace's inventory. */
   load(workspaceId: string | undefined): Promise<void>
   /** Read one case ledger. */

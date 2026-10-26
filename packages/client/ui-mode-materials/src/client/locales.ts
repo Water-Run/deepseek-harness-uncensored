@@ -3,6 +3,7 @@
 /** Locale keys this surface renders. */
 export type ModeMaterialsKey =
   | 'nav'
+  | 'memory.manage'
   | 'scope.label' | 'scope.none' | 'scope.noneHint' | 'scope.choose' | 'scope.pickFailed' | 'scope.range'
   | 'loading' | 'reload' | 'save' | 'saving' | 'cancel' | 'close' | 'delete' | 'edit' | 'add' | 'view' | 'back'
   | 'unknownError' | 'conflict' | 'conflictHint' | 'unsaved'
@@ -32,6 +33,7 @@ export type ModeMaterialsKey =
 
 /** English copy. */
 export const en: Record<ModeMaterialsKey, string> = {
+  'memory.manage': 'Manage memory for this mode',
   nav: 'Mode materials',
   'scope.label': 'Workspace',
   'scope.none': 'No workspace selected',
@@ -153,6 +155,7 @@ export const en: Record<ModeMaterialsKey, string> = {
 
 /** Simplified Chinese copy. */
 export const zh: Record<ModeMaterialsKey, string> = {
+  'memory.manage': '管理此模式的记忆',
   nav: '模式资料',
   'scope.label': '工作区',
   'scope.none': '尚未选择工作区',

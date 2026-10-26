@@ -18,6 +18,7 @@ import type {} from '@deepseek-ai/dsh-tools'
 import { resolveSessionScope } from './scope.ts'
 import type { MemoryId, MemoryRecord, MemoryScope, MemoryType } from './types.ts'
 import { MEMORY_TYPES } from './spec.ts'
+import { extractTurn, extractionStatus } from './extraction.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
@@ -40,7 +41,7 @@ declare module '@deepseek-ai/dsh-llm' {
 export const name = 'memory-agent'
 
 /** Services this consumer requires. */
-export const inject = ['memory', 'tools']
+export const inject = ['memory', 'tools', 'llm', 'sessions', 'sessionProjections']
 
 /** Per-conversation memory behavior. */
 export interface Config {
@@ -138,6 +139,34 @@ function recordView(record: MemoryRecord): {
 export function apply(ctx: Context, config: Config = {}): void {
   const retrieval = config.retrieval ?? true
   const tools = config.tools ?? true
+  const lifetime = new AbortController()
+  const tasks = new Set<Promise<void>>()
+  const extracting = new Set<Agent>()
+  const run = async (agent: Agent, signal: AbortSignal): Promise<void> => {
+    if (lifetime.signal.aborted) return
+    extracting.add(agent)
+    const task = extractTurn(ctx, agent, config.mode, AbortSignal.any([signal, lifetime.signal]))
+    tasks.add(task)
+    try { await task } finally { tasks.delete(task); extracting.delete(agent) }
+  }
+  ctx.effect(() => async () => {
+    lifetime.abort()
+    await Promise.allSettled(tasks)
+  }, 'memory-agent.extractions')
+  ctx.on('agent/turn-stopping', async ({ agent, signal }) => {
+    if (!ctx.memory.extractionOptions().enabled || signal.aborted) return
+    await run(agent, signal)
+  })
+  ctx.on('agent/created', ({ agent }) => {
+    const unregister = ctx.memory.registerExtractor(agent.id, {
+      retry: () => agent.runMaintenance(signal => run(agent, signal)),
+      status: () => {
+        const value = extractionStatus(ctx, agent)
+        return value?.phase === 'running' && !extracting.has(agent) ? { ...value, phase: 'failed' } : value
+      },
+    })
+    ctx.effect(() => agent.ctx.effect(() => unregister, 'memory-agent.extractor'), 'memory-agent.extractor-owner')
+  })
 
   if (retrieval) {
     ctx.on('agent/pre-step', async ({ agent, messages, step, signal }, next): Promise<PreStepDecision> => {

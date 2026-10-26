@@ -46,6 +46,15 @@
 .filters > input { flex: 1 1 180px; min-width: 0; }
 .rowHeader > :first-child { min-width: 0; }
 .rowHeader > button { flex: none; }
+.extractionHeader, .extractionStatus { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.extractionHeader { font-size: 13px; color: var(--dsw-alias-label-secondary); }
+.extractionStatus { padding: 8px 0; border-bottom: 0.5px solid var(--dsw-alias-border-l2); }
+.extractionStatus > div { min-width: 0; }
+.extractionStatus .scope { overflow-wrap: anywhere; }
+.extractionStatus > button { flex: none; }
+.explanation > summary { color: var(--dsw-alias-label-secondary); cursor: pointer; padding: 4px 0; font-size: 12px; }
+.explanation > summary:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 2px; }
+.loading { display: grid; min-height: 80px; place-items: center; }
 
 .select {
   min-width: 140px;

@@ -1,5 +1,17 @@
 # Uncensored 开发交接
 
+## 最新节点：跨对话记忆自动提炼（2026-10-26）
+
+五项中的 1、2、3、5 已完成，余 4（REA 产品接入）。记忆增加默认关闭的自动提炼、完整请求/结果日志、会话费用统计、取消/超时/额度拒绝、空闲会话重试，以及模式资料页入口。模型提炼只使用当前回合的用户文字和助手正文；保留作用范围与禁用记录。管理页用工作区名称与模式中文显示范围，提炼历史和检索上限折叠。
+
+真实验收通过：保存 Willow 测试事实→重启→新会话取回；禁用后回答“不知道”且不重新保存；删除来源会话保留记忆并标记来源缺失；仍可检索该事实；删除记忆后新会话不再取回。测试记忆已清理，独立 home 的自动提炼已恢复关闭。证据为 .dsh-build/five-items-20261026/memory-real-proof.json、memory-restart-proof.json、memory-lifecycle-proof.json、memory-delete-proof.json；首次提炼 290 tokens，按配置估算 ¥0.00088。来源 session-c2687136-f920-46cb-9e44-474251345a77 是本轮自建测试会话，已通过产品 API 删除；未碰用户实际数据目录。
+
+完整 build 9/9、最后增量编译与 build:check 2/2；56 项相关回归、模式入口 16 项复验、最终 21 项提炼生命周期/计费回归、TypeScript SDK 2 项及 Python SDK 1 项通过。新事件 memory/extraction 已按 same-version 记录兼容说明，旧读取器会拒绝未知必读事件，冻结代际未改。初次真实 UI 发现配置入口归属错误，已改为在 MemoryService 构造时保存 owner namespace；通过 UI 启停与重启保存复验。中断后无活跃请求的旧提炼显示失败并可重试，无结果的请求标为费用未明；卸载会中止并等待提炼。浅深主题、模式/工作区带入和 390px 无横向溢出已验证。图片：memory-manager-light.png、memory-editor-dark-390.png。
+
+REA 仍只有底层兼容测试，尚无产品配置和会话工具接线。可复用的真实用例为 packages/mcp/mcp-client/tests/rea.e2e.ts，JS 和 Ghidra 分别通过。独立安装在 .dsh-build/five-items-20261026/rea-runtime，Node 24.22.1 在 node/，Ghidra 支持版本在 ghidra-supported/ghidra_12.1.4_PUBLIC；JDK 为本机已有 27。REA 6.8.0 明确拒绝 12.2。229 个工具的模型输入定义约 271 KB，产品集成应支持按需使用并保留完整工具能力。复用现有 MCP 连接、工具结果验证与生命周期；不得把只读随问提升为不受约束的外部进程。
+
+本轮尚未更新已安装应用。后续完成 REA，更新 README/清单并按用户授权统一打包安装。开发继续 main，中文提交；用户未要求暂停。
+
 ## 当前五项目标（2026-10-26）
 
 用户要求完成关于页、DSH 最新发布版适配、逐项额度、REA 逆向接入、跨对话记忆，并追加随问正文对比度、工作区搜索和侧栏额度等待布局。明确逐项限额默认全部关闭，只优先展示 5 小时和 7 天；其他项目保留原状态。完整验收项见 requirements/2026-10-26-five-items.md。

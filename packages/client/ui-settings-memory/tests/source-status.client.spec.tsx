@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import type { MemoryRecord } from '@deepseek-ai/dsh-memory/types'
-import { MemoryRow } from '../src/client/MemoryRow.tsx'
+import { MemoryManager, MemoryRow } from '../src/client/MemoryRow.tsx'
 import { createMemoryStore } from '../src/client/memory-controller.ts'
 import { en } from '../src/client/locales.ts'
 
@@ -20,8 +20,10 @@ it('retains the saved fact while distinguishing a missing source from an unverif
   store.update((state) => { state.loading = false; state.records = [record]; state.sources = { 'm-1': 'missing' } })
   const props = {
     useMemories: bindSnapshotSelector(store), t: makeTranslate(en), open: vi.fn(async () => {}), reload: vi.fn(async () => {}),
+    showManager: async () => { store.update((state) => { state.managerOpen = true }) },
+    closeManager: () => { store.update((state) => { state.managerOpen = false }) },
   } as Parameters<typeof MemoryRow>[0]
-  render(<MemoryRow {...props} />)
+  render(<><MemoryRow {...props} /><MemoryManager {...props} /></>)
   fireEvent.click(screen.getByRole('button', { name: 'Manage memory' }))
   expect(screen.getByText(en.sourceMissing)).toBeTruthy()
   expect(screen.getByText('Build with pnpm')).toBeTruthy()

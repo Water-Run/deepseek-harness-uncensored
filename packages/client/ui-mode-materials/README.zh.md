@@ -11,6 +11,8 @@ kind: "package-reference"
 
 本包用于在“设置 → 模式”中管理各特化模式保存的文件。它向 `settings.mode.materials` 槽位为每种模式注册一个面板，该槽位由模式分组渲染在模式卡片下方；所有读写都通过 Host 的 `modeDossiers` Remote 命名空间完成。只有拥有当前模式的面板会渲染，其余面板保持挂载但不显示任何内容，因此切换模式不会关闭已打开的对话框，也不会丢弃已输入的文字。
 
+各面板都可打开共享记忆管理器，并选中对应的模式筛选。新增记录沿用该模式，编辑器仍明确显示工作区与共享范围。
+
 ## Table of Contents
 
 - [Use this package](#use-this-package)

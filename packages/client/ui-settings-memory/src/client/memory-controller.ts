@@ -9,6 +9,9 @@ import type { Context } from '@deepseek-ai/cordis'
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { MemoryDescribeValue, MemoryScopeFilter, MemorySourceAvailability } from '@deepseek-ai/dsh-api-memory-controller/types'
 import type { MemoryId, MemoryRecord, MemoryScope, MemoryStatus, MemoryType } from '@deepseek-ai/dsh-memory/types'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+
+type ExtractionToast = { id: number; key: 'autoSaved' | 'autoFailed' | 'retrySaved' | 'retryFailed'; success: boolean }
 
 /** Error keys the row renders; every one maps to a localized line. */
 export type MemoryErrorKey =
@@ -44,6 +47,10 @@ export interface MemoryDraft {
 
 /** Everything the row and its manager render. */
 export interface MemoryRowState {
+  /** Whether the root-owned memory manager is open. */
+  managerOpen: boolean
+  /** Workspace selected by the mode-materials entry point, used for new records. */
+  preferredWorkspace: string | undefined
   /** Host facts; undefined until the first describe settles. */
   description: MemoryDescribeValue | undefined
   /** Current list of stored records. */
@@ -64,12 +71,24 @@ export interface MemoryRowState {
   draft: MemoryDraft | undefined
   /** Whether a write is in flight. */
   saving: boolean
+  /** Operation feedback hosted outside the settings dialog. */
+  toast: ExtractionToast | undefined
   /** Record identity awaiting delete confirmation. */
   confirming: MemoryId | undefined
 }
 
 /** The inject face the renderer binds. */
 export interface MemoryRowFace {
+  /** Open the manager, optionally restricted to one mode. */
+  readonly showManager: (mode?: string, workspace?: string) => Promise<void>
+  /** Close the manager without discarding its draft. */
+  readonly closeManager: () => void
+  /** Persist the automatic extraction preference. */
+  readonly configureExtraction: (enabled: boolean) => Promise<void>
+  /** Retry extraction of one live conversation. */
+  readonly retryExtraction: (id: SessionId) => Promise<void>
+  /** Remove a completed operation notification. */
+  readonly dismissToast: (id: number) => void
   /** Bound by the renderer as `useMemories`. */
   readonly hooks: { readonly memories: ReturnType<typeof createMemoryStore> }
   /** Load the description and the first list. */
@@ -108,6 +127,8 @@ export interface MemoryRowFace {
  */
 export function createMemoryStore(): SnapshotStore<MemoryRowState> {
   return createSnapshotStore<MemoryRowState>({
+    managerOpen: false,
+    preferredWorkspace: undefined,
     description: undefined,
     records: [],
     sources: {},
@@ -118,6 +139,7 @@ export function createMemoryStore(): SnapshotStore<MemoryRowState> {
     error: undefined,
     draft: undefined,
     saving: false,
+    toast: undefined,
     confirming: undefined,
   })
 }
@@ -139,14 +161,19 @@ function errorKeyOf(code: string): MemoryErrorKey {
 export function createMemoryController(ctx: Context): MemoryRowFace {
   const store = createMemoryStore()
   const remote = ctx.remote.memory
+  let generation = 0, toastId = 0
+  ctx.effect(() => () => { generation++ }, 'memory-controller.pending-reads')
 
   const reload = async (): Promise<void> => {
+    const current = ++generation
     const state = store.getSnapshot()
-    const result = await remote.list({
+    store.update((draft) => { draft.loading = true })
+    const [described, result] = await Promise.all([remote.describe(), remote.list({
       filter: scopeFilterOf(state.scope),
       ...state.type === 'all' ? {} : { type: state.type as MemoryType },
       ...state.text.trim() === '' ? {} : { text: state.text },
-    })
+    })])
+    if (current !== generation) return
     if (!result.ok) {
       store.update((draft) => {
         draft.loading = false
@@ -157,28 +184,14 @@ export function createMemoryController(ctx: Context): MemoryRowFace {
     store.update((draft) => {
       draft.records = result.value.records
       draft.sources = result.value.sources
+      if (described.ok) draft.description = described.value
       draft.loading = false
-      draft.error = undefined
+      draft.error = described.ok ? undefined : errorKeyOf(described.error.code)
       draft.confirming = undefined
     })
   }
 
-  const open = async (): Promise<void> => {
-    if (store.getSnapshot().description === undefined) {
-      const described = await remote.describe()
-      if (!described.ok) {
-        store.update((draft) => {
-          draft.loading = false
-          draft.error = errorKeyOf(described.error.code)
-        })
-        return
-      }
-      store.update((draft) => {
-        draft.description = described.value
-      })
-    }
-    await reload()
-  }
+  const open = reload
 
   const saveDraft = async (): Promise<void> => {
     const state = store.getSnapshot()
@@ -265,6 +278,50 @@ export function createMemoryController(ctx: Context): MemoryRowFace {
 
   return {
     hooks: { memories: store },
+    async showManager(mode, workspace) {
+      store.update((state) => { state.managerOpen = true; state.scope = mode ?? 'all'; state.preferredWorkspace = workspace })
+      await reload()
+    },
+    closeManager() { store.update((state) => { state.managerOpen = false }) },
+    dismissToast(id) { store.update((state) => { if (state.toast?.id === id) state.toast = undefined }) },
+    async configureExtraction(enabled) {
+      const state = store.getSnapshot()
+      const revision = state.description?.extraction.revision
+      if (state.saving || revision === undefined || revision === null) return
+      generation++
+      store.update((value) => { value.saving = true })
+      let success = false
+      try {
+        const result = await remote.configureExtraction({ enabled, expectedRevision: revision })
+        if (result.ok) {
+          success = true
+          store.update((value) => { value.description = result.value })
+        }
+        await reload()
+      } catch (_error) {
+        success = false
+      } finally {
+        store.update((value) => { value.saving = false; value.toast = { id: ++toastId, key: success ? 'autoSaved' : 'autoFailed', success } })
+      }
+    },
+    async retryExtraction(id) {
+      if (store.getSnapshot().saving) return
+      generation++
+      store.update((value) => { value.saving = true })
+      let success = false
+      try {
+        const result = await remote.retryExtraction(id)
+        if (result.ok) {
+          success = result.value.extractions.find(value => value.sessionId === id)?.phase === 'completed'
+          store.update((value) => { value.description = result.value })
+        }
+        await reload()
+      } catch (_error) {
+        success = false
+      } finally {
+        store.update((value) => { value.saving = false; value.toast = { id: ++toastId, key: success ? 'retrySaved' : 'retryFailed', success } })
+      }
+    },
     open,
     reload,
     async search(text) {
@@ -287,7 +344,9 @@ export function createMemoryController(ctx: Context): MemoryRowFace {
     },
     addDraft() {
       const description = store.getSnapshot().description
-      const workspace = description?.workspaces[0]?.value ?? ''
+      const filter = scopeFilterOf(store.getSnapshot().scope)
+      const workspace = filter.kind === 'workspace' ? filter.workspace
+        : store.getSnapshot().preferredWorkspace ?? description?.workspaces[0]?.value ?? ''
       store.update((draft) => {
         draft.error = undefined
         draft.draft = {
@@ -295,9 +354,9 @@ export function createMemoryController(ctx: Context): MemoryRowFace {
           type: 'project-fact',
           title: '',
           topic: '',
-          shareGlobal: false,
+          shareGlobal: filter.kind === 'global',
           workspace,
-          mode: '',
+          mode: filter.kind === 'mode' ? filter.mode : '',
         }
       })
     },
@@ -352,7 +411,7 @@ export function createMemoryController(ctx: Context): MemoryRowFace {
 export function scopeFilterOf(value: string): MemoryScopeFilter {
   if (value === 'all') return { kind: 'all' }
   if (value === 'global') return { kind: 'global' }
-  if (value.startsWith('workspace:')) return { kind: 'workspace', workspace: value }
+  if (value.startsWith('workspace:') || value.startsWith('path:')) return { kind: 'workspace', workspace: value }
   return { kind: 'mode', mode: value }
 }
 

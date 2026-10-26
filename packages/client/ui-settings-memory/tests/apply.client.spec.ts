@@ -9,6 +9,7 @@ import { apply as settingsApply, inject as settingsInject } from '@deepseek-ai/d
 import { apply, inject } from '../src/client/index.ts'
 import type { MemoryRowFace } from '../src/client/index.ts'
 import { apply as hostApply } from '../src/index.ts'
+import { createMemoryController } from '../src/client/memory-controller.ts'
 
 const RECORD = {
   id: 'm-1',
@@ -33,9 +34,11 @@ async function bench() {
   const describeMemory = vi.fn(() => Promise.resolve({
     ok: true as const,
     value: {
+      totalRecords: 1,
       limits: { maxEntries: 6, maxEntryChars: 800, maxContextBytes: 4096, minRelevance: 0.2, maxContentChars: 4000 },
       workspaces: [{ value: 'workspace:a', label: '仓库 A' }],
       modes: [{ value: 'standard', label: 'standard' }],
+      extraction: { enabled: false, revision: 1 }, extractions: [],
     },
   }))
   const listMemory = vi.fn(() => Promise.resolve({ ok: true as const, value: { records: [RECORD], sources: {} } }))
@@ -61,6 +64,20 @@ async function bench() {
 }
 
 describe('ui-settings-memory apply', () => {
+  it('preserves the mode entry point workspace when creating a new record', async () => {
+    const { ctx } = await bench()
+    try {
+      const controller = createMemoryController(ctx)
+      await controller.showManager('writing', 'workspace:selected')
+      controller.addDraft()
+      expect(controller.hooks.memories.getSnapshot().draft).toMatchObject({
+        mode: 'writing', workspace: 'workspace:selected', shareGlobal: false,
+      })
+      expect(controller.hooks.memories.getSnapshot().description?.totalRecords).toBe(1)
+      controller.closeManager()
+      expect(controller.hooks.memories.getSnapshot().draft?.workspace).toBe('workspace:selected')
+    } finally { await ctx.fiber.dispose() }
+  })
   it('keeps the host Loader entry inert', () => {
     expect(hostApply).not.toThrow()
   })

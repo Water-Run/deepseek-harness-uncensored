@@ -8,8 +8,9 @@
 
 import { useEffect, useState } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { Button, Input, Modal, Select, Switch } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Input, Modal, Select, StateDot, Switch, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MemoryRecord, MemoryType } from '@deepseek-ai/dsh-memory/types'
+import type { MemoryDescribeValue } from '@deepseek-ai/dsh-api-memory-controller/types'
 import type { MemorySettingsLocaleKey } from './locales.ts'
 import type { MemoryDraft, MemoryRowFace } from './memory-controller.ts'
 import css from './MemoryRow.module.css'
@@ -45,7 +46,6 @@ const TYPE_FILTERS: readonly { value: string; labelKey: MemorySettingsLocaleKey 
 export function MemoryRow(props: MemoryRowProps) {
   const { t, open } = props
   const state = props.useMemories(snapshot => snapshot)
-  const [managerOpen, setManagerOpen] = useState(false)
 
   useEffect(() => {
     void open()
@@ -62,44 +62,75 @@ export function MemoryRow(props: MemoryRowProps) {
           variant="outline"
           size="sm"
           onClick={() => {
-            setManagerOpen(true)
-            void props.reload()
+            void props.showManager()
           }}
         >
           {t('manage')}
         </Button>
       </div>
       <p className={css.rowDescription}>
-        {t('count')}: {String(state.records.length)}
+        {t('count')}: {state.description === undefined ? '—' : String(state.description.totalRecords)}
       </p>
-      <Modal
-        open={managerOpen}
-        onClose={() => { setManagerOpen(false) }}
-        title={t('rowTitle')}
-        closeLabel={t('close')}
-        className={css.dialog ?? ''}
-        contentClassName={css.panel ?? ''}
-      >
-        <Filters props={props} />
-        <p className={css.hint}>{t('retentionHint')}</p>
-        {state.description !== undefined && (
-          <dl className={css.limits}>
-            <div><dt>{t('limitEntries')}</dt><dd>{String(state.description.limits.maxEntries)}</dd></div>
-            <div><dt>{t('limitChars')}</dt><dd>{String(state.description.limits.maxEntryChars)}</dd></div>
-            <div><dt>{t('limitBytes')}</dt><dd>{String(state.description.limits.maxContextBytes)}</dd></div>
-          </dl>
-        )}
-        {state.error !== undefined && state.error !== 'scopeRequired' && (
-          <p className={css.error}>{t(state.error)}</p>
-        )}
-        {state.draft === undefined
-          ? (
-            <RecordList props={props} records={state.records} confirming={state.confirming} loading={state.loading} />
-          )
-          : <DraftForm props={props} draft={state.draft} saving={state.saving} />}
-      </Modal>
+      {state.description !== undefined && <div className={css.rowHeader}>
+        <div><span className={css.rowTitle}>{t('autoExtract')}</span><p className={css.rowDescription}>{t('autoExtractHint')}</p></div>
+        <Switch label={t('autoExtract')} checked={state.description.extraction.enabled} busy={state.saving}
+          disabled={state.description.extraction.revision === null} onChange={(enabled) => { void props.configureExtraction(enabled) }} />
+      </div>}
     </div>
   )
+}
+
+/** @param props - Shared drafts, filters and manager visibility. @returns The root-owned memory manager. */
+export function MemoryManager(props: PropsRuntime<'shell.overlay'> & PropsLocale<'settings.memory'> & InjectFace<MemoryRowFace>) {
+  const { t } = props
+  const state = props.useMemories(snapshot => snapshot)
+  return <Modal
+    open={state.managerOpen}
+    onClose={props.closeManager}
+    title={t('rowTitle')}
+    closeLabel={t('close')}
+    className={css.dialog ?? ''}
+    contentClassName={css.panel ?? ''}
+  >
+    <Filters props={props} />
+    <div className={css.extractionHeader}><span>{t('count')}: {state.records.length}</span><Button size="sm" variant="ghost"
+      disabled={state.loading || state.saving} onClick={() => { void props.reload() }}>{t('refresh')}</Button></div>
+    {(state.description?.extractions.length ?? 0) > 0 && <details className={css.explanation}
+      open={state.description?.extractions.some(status => status.phase === 'failed' || status.phase === 'running')}>
+      <summary>{t('extractionHistory')}</summary>
+      {state.description?.extractions.map(status => <div key={status.sessionId} className={css.extractionStatus}>
+        <div><span className={css.scope}>{t('extractionSession', { label: status.label ?? status.sessionId.slice(-8), turn: status.turn })}</span>
+          <p className={css.rowDescription}>{t(status.phase === 'running' ? 'extracting' : status.phase === 'completed' ? 'extracted'
+            : status.phase === 'cancelled' ? 'extractionCancelled' : status.failure === 'budget' ? 'extractionBudget'
+              : status.failure === 'timeout' ? 'extractionTimeout' : 'extractionFailed', { count: status.saved })}</p></div>
+        {(status.phase === 'failed' || status.phase === 'cancelled') && <Button size="sm" variant="outline" disabled={state.saving}
+          onClick={() => { void props.retryExtraction(status.sessionId) }}>{t('retry')}</Button>}
+      </div>)}</details>}
+    <p className={css.hint}>{t('retentionHint')}</p>
+    {state.description !== undefined && (
+      <details className={css.explanation}><summary>{t('retrievalLimits')}</summary><dl className={css.limits}>
+        <div><dt>{t('limitEntries')}</dt><dd>{String(state.description.limits.maxEntries)}</dd></div>
+        <div><dt>{t('limitChars')}</dt><dd>{String(state.description.limits.maxEntryChars)}</dd></div>
+        <div><dt>{t('limitBytes')}</dt><dd>{String(state.description.limits.maxContextBytes)}</dd></div>
+      </dl></details>
+    )}
+    {state.error !== undefined && state.error !== 'scopeRequired' && (
+      <p className={css.error}>{t(state.error)}</p>
+    )}
+    {state.draft === undefined
+      ? (
+        <RecordList props={props} records={state.records} confirming={state.confirming} loading={state.loading} />
+      )
+      : <DraftForm props={props} draft={state.draft} saving={state.saving} />}
+  </Modal>
+}
+
+/** @param props - Root-owned operation state and locale. @returns Feedback that survives closing the manager. */
+export function MemoryToast({ useMemories, dismissToast, t }: PropsRuntime<'shell.overlay'> & PropsLocale<'settings.memory'> & InjectFace<MemoryRowFace>) {
+  const toast = useMemories(state => state.toast)
+  if (toast === undefined) return null
+  return <Toast key={toast.id} text={t(toast.key)} {...toast.success ? { tone: 'success' as const } : {}}
+    onDone={() => { dismissToast(toast.id) }} />
 }
 
 /**
@@ -113,6 +144,8 @@ function Filters({ props }: { props: MemoryRowProps }) {
   const scope = props.useMemories(snapshot => snapshot.scope)
   const type = props.useMemories(snapshot => snapshot.type)
   const [text, setText] = useState('')
+  const modeOptions = description?.modes ?? []
+  const selectedMode = scope !== 'all' && scope !== 'global' && !scope.startsWith('workspace:') && !scope.startsWith('path:')
   return (
     <div className={css.filters}>
       <Input
@@ -131,7 +164,9 @@ function Filters({ props }: { props: MemoryRowProps }) {
         onChange={(value) => { void props.filterScope(value) }}
         options={[{ value: 'all', label: t('scopeAll') }, { value: 'global', label: t('scopeGlobal') },
           ...(description?.workspaces ?? []).map(option => ({ value: option.value, label: `${t('scopeWorkspace')}: ${option.label}` })),
-          ...(description?.modes ?? []).map(option => ({ value: option.value, label: `${t('scopeMode')}: ${option.label}` }))]}
+          ...modeOptions.map(option => ({ value: option.value, label: `${t('scopeMode')}: ${modeLabel(option.value, t)}` })),
+          ...(selectedMode && !modeOptions.some(option => option.value === scope)
+            ? [{ value: scope, label: `${t('scopeMode')}: ${modeLabel(scope, t)}` }] : [])]}
       />
       <Select
         className={css.select}
@@ -161,7 +196,8 @@ function RecordList({ props, records, confirming, loading }: {
 }) {
   const { t } = props
   const sources = props.useMemories(snapshot => snapshot.sources)
-  if (loading) return <p className={css.rowDescription}>{t('loading')}</p>
+  const description = props.useMemories(snapshot => snapshot.description)
+  if (loading) return <div className={css.loading} role="status" aria-label={t('loading')}><StateDot state="ongoing" size={20} /></div>
   if (records.length === 0) return <p className={css.rowDescription}>{t('empty')}</p>
   return (
     <ul className={css.list}>
@@ -169,7 +205,7 @@ function RecordList({ props, records, confirming, loading }: {
         <li key={record.id} className={css.record}>
           <div className={css.meta}>
             <span className={css.badge}>{t(TYPE_KEYS[record.type])}</span>
-            <span className={css.scope}>{scopeText(record, t)}</span>
+            <span className={css.scope}>{scopeText(record, t, description)}</span>
             <span className={css.scope}>
               {record.status === 'enabled' ? t('statusEnabled') : t('statusDisabled')}
             </span>
@@ -269,7 +305,9 @@ function DraftForm({ props, draft, saving }: { props: MemoryRowProps; draft: Mem
               label={t('mode')}
               value={draft.mode}
               onChange={(mode) => { props.changeDraft({ mode }) }}
-              options={[{ value: '', label: t('noMode') }, ...(description?.modes ?? [])]}
+              options={[{ value: '', label: t('noMode') }, ...(description?.modes ?? []).map(option => ({ ...option, label: modeLabel(option.value, t) })),
+                ...(draft.mode !== '' && !description?.modes.some(option => option.value === draft.mode)
+                  ? [{ value: draft.mode, label: modeLabel(draft.mode, t) }] : [])]}
             />
           </label>
         </div>
@@ -294,9 +332,25 @@ function DraftForm({ props, draft, saving }: { props: MemoryRowProps; draft: Mem
  * Human spelling of one record's scope.
  * @param record - the stored record.
  * @param t - locale lookup.
+ * @param description - Known workspace labels.
  * @returns the scope label.
  */
-function scopeText(record: MemoryRecord, t: (key: MemorySettingsLocaleKey) => string): string {
-  if (record.scope.global) return t('scopeGlobal')
-  return [record.scope.workspace, record.scope.mode].filter((part): part is string => part !== undefined).join(' · ')
+function scopeText(
+  record: MemoryRecord, t: (key: MemorySettingsLocaleKey) => string, description: MemoryDescribeValue | undefined,
+): string {
+  if (record.scope.global) return t('globalShared')
+  const workspace = record.scope.workspace
+  const label = description?.workspaces.find(option => option.value === workspace)?.label
+  const workspaceLabel = workspace === undefined ? t('noWorkspace') : label ?? workspace.replace(/^path:/u, '')
+  return [workspaceLabel, record.scope.mode === undefined ? t('noMode') : modeLabel(record.scope.mode, t)].join(' · ')
+}
+
+function modeLabel(mode: string, t: (key: MemorySettingsLocaleKey) => string): string {
+  switch (mode) {
+    case 'standard': return t('modeStandard')
+    case 'security': return t('modeSecurity')
+    case 'reverse': return t('modeReverse')
+    case 'writing': return t('modeWriting')
+    default: return mode
+  }
 }

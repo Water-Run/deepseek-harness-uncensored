@@ -7,6 +7,7 @@
  */
 
 import type { ReactNode } from 'react'
+import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type {} from '@deepseek-ai/dsh-agent-preset-registry/types'
@@ -47,6 +48,7 @@ function PanelFrame({ props, state, items, children }: {
   const t: Translate = props.t
   const { load, pickDirectory, createWorkspace } = props
   return <div className={css.frame}>
+    <div><Button size="sm" variant="outline" onClick={() => { props.openMemory(props.modeId, state.workspaceId) }}>{t('memory.manage')}</Button></div>
     <ScopeBar state={state} items={items} scope={scopeOf(state)} t={t}
       load={load} pickDirectory={pickDirectory}
       createWorkspace={createWorkspace} />

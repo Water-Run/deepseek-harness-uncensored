@@ -16,7 +16,8 @@ it('allows owner management but denies delegated reads before inspecting stored 
   const records = vi.fn(() => [])
   const limits = vi.fn(() => ({ maxEntries: 6, maxEntryChars: 800, maxContextBytes: 4096, minRelevance: 0.2, maxContentChars: 4000 }))
   try {
-    ctx.provide('memory', { list, records, limits })
+    ctx.provide('memory', { list, records, limits, settingsNamespace: () => undefined,
+      extractionOptions: () => ({ enabled: false }), extractionStatuses: () => [] })
     new MemoryController(ctx)
     expect(await ctx.memoryController.list({})).toEqual({ records: [], sources: {} })
     expect(ctx.memoryController.describe().modes).toEqual([])
@@ -31,6 +32,7 @@ it('allows owner management but denies delegated reads before inspecting stored 
     const caller = ctx.extend({ invocation })
     await expect(caller.memoryController.list({})).rejects.toThrow('Only the application owner')
     expect(() => caller.memoryController.describe()).toThrow('Only the application owner')
+    await expect(caller.memoryController.configureExtraction({ enabled: true, expectedRevision: 0 })).rejects.toThrow('Only the application owner')
     expect(list).not.toHaveBeenCalled()
     expect(records).not.toHaveBeenCalled()
     expect(limits).not.toHaveBeenCalled()

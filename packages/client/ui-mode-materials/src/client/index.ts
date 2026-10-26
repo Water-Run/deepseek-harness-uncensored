@@ -18,6 +18,7 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-agent-preset/client'
+import type {} from '@deepseek-ai/dsh-client-ui-settings-memory/client'
 // Type-only: pulls `useWorkspaces` and `ctx.uiWorkspace`.
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type {} from '@deepseek-ai/dsh-api-workspace-controller/client'
@@ -90,6 +91,7 @@ export function apply(ctx: ClientContext): void {
   }
 
   const operations: ModeMaterialsInjected = {
+    openMemory: (mode, workspaceId) => { ctx.emit('memory/open-manager', mode, workspaceId === undefined ? undefined : `workspace:${workspaceId}`) },
     hooks: { materials: store },
     load,
     readCase: request => unwrap(ctx.remote.modeDossiers.readCase({ ...request }, signal())),

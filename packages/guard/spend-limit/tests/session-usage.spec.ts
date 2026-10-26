@@ -4,6 +4,9 @@ import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import { RetryId } from '@deepseek-ai/dsh-llm-retry'
 import { sessionSpendUsage } from '../src/session-usage.ts'
 import { DEFAULT_RATES } from '../src/pricing.ts'
+import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { brandString } from '@deepseek-ai/dsh-brand'
+import type { MemoryExtractionId } from '@deepseek-ai/dsh-memory/types'
 
 const header = (seq: number, model = 'deepseek-flash'): SessionEvent => ({
   seq: SessionSeq(seq), time: seq * 1000, type: 'request/header',
@@ -38,4 +41,22 @@ it('bounds curve payloads while preserving the exact total and end points', () =
   expect(result.total).toBe(0.36)
   expect(result.points).toHaveLength(240)
   expect(result.points.at(-1)).toEqual({ time: 1_000_000, total: 0.36 })
+})
+
+it('accounts extraction once using its recorded route without changing the main model route', () => {
+  const requestId = brandString<MemoryExtractionId>('extraction-1')
+  const events: SessionEvent[] = [header(0), attempt(1), {
+    type: 'memory/extraction', seq: SessionSeq(2), time: 2000,
+    data: { requestId, phase: 'request', turn: 1, throughSeq: 1, scope: { global: false, mode: 'standard' },
+      provider: 'deepseek-official', model: 'deepseek-flash', maxTokens: 200,
+      message: createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'Extract memory' }] }) },
+  }, {
+    type: 'memory/extraction', seq: SessionSeq(3), time: 3000,
+    data: { requestId, phase: 'result', turn: 1, throughSeq: 1, outcome: 'completed', saved: [],
+      usage: { inputTokens: 100, outputTokens: 20 } },
+  }, attempt(4, 2)]
+  const result = sessionSpendUsage(events, DEFAULT_RATES)
+  expect(result).toMatchObject({ total: 0.00108, requests: 3, unpricedRequests: 0 })
+  expect(result.points).toHaveLength(3)
+  expect(sessionSpendUsage(events.slice(0, 3), DEFAULT_RATES)).toMatchObject({ total: 0.00036, requests: 2, unpricedRequests: 1 })
 })

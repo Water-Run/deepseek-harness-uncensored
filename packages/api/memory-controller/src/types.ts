@@ -6,7 +6,7 @@
  */
 
 import type {
-  MemoryId, MemoryLimits, MemoryPatch, MemoryRecord, MemoryScope, MemoryStatus, MemoryType,
+  MemoryId, MemoryLimits, MemoryPatch, MemoryRecord, MemoryScope, MemoryStatus, MemoryType, MemoryExtractionStatus,
 } from '@deepseek-ai/dsh-memory/types'
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
@@ -23,6 +23,8 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'memory/invalid': { readonly reason: string }
     /** The durable memory store could not be opened or read. */
     'memory/unavailable': { readonly reason: string }
+    /** Automatic extraction settings changed in another window. */
+    'memory/settings-conflict': { readonly expected: number; readonly actual: number }
   }
 }
 
@@ -36,12 +38,18 @@ export interface MemoryScopeOption {
 
 /** Host facts the management page states before it offers any control. */
 export interface MemoryDescribeValue {
+  /** Total stored records across all management filters, including disabled records. */
+  readonly totalRecords: number
   /** Exact retrieval and storage bounds this deployment runs. */
   readonly limits: MemoryLimits
   /** Registered workspaces a record may be limited to. */
   readonly workspaces: readonly MemoryScopeOption[]
   /** Agent preset ids present on stored records; the page offers them as a mode filter. */
   readonly modes: readonly MemoryScopeOption[]
+  /** Live automatic extraction preference and the revision required for writes. */
+  readonly extraction: { readonly enabled: boolean; readonly revision: number | null }
+  /** Recent extraction results from open conversations. */
+  readonly extractions: readonly MemoryExtractionStatus[]
 }
 
 /** Scope filter of a management list. */

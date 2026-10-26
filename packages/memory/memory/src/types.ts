@@ -8,6 +8,7 @@
 
 import type { Branded } from '@deepseek-ai/dsh-brand'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+export type * from './extraction-types.ts'
 
 /** Stable identity of one memory record (a generated uuid, never reused). */
 export type MemoryId = Branded<'MemoryId'>

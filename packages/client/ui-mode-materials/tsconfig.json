@@ -8,6 +8,7 @@
     "src"
   ],
   "references": [
+    { "path": "../ui-settings-memory" },
     { "path": "../../../vendor/cordis" },
     { "path": "../../api/gateway/tsconfig.client.json" },
     { "path": "../../api/mode-dossiers/tsconfig.host.json" },

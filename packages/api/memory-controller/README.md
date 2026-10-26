@@ -5,6 +5,8 @@
 ## 方法
 
 - `describe()`：返回实际生效的检索上限、已注册工作区，以及记录中出现过的模式 ID。
+- `configureExtraction(request)`：按配置版本保存自动提炼开关，关闭时取消在途提炼。
+- `retryExtraction(sessionId)`：重试已打开且空闲会话的提炼，返回最新状态。管理读取与这些操作均要求应用所有者。
 - `list(request)`：按范围、类型、状态和文本过滤，按更新时间倒序返回，并核验来源是否仍在当前会话库。来源查询失败不清空记忆，返回 `unknown`；缺少持久化服务时不推断来源已删除。
 - `create(request)`：保存一条记录，来源记为管理页用户输入且已确认。
 - `update(request)`：带 `expectedVersion` 的编辑；版本不一致时返回 `memory/conflict`，客户端保留用户输入并提示重试。

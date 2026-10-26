@@ -8,6 +8,7 @@
     "src"
   ],
   "references": [
+    { "path": "../ui-layout" },
     {
       "path": "../locale/tsconfig.client.json"
     },

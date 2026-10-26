@@ -8,6 +8,7 @@
     "src"
   ],
   "references": [
+    { "path": "../../settings/settings" },
     { "path": "../../session-query/session-query" },
     { "path": "../../session/session-persistence" },
     {

@@ -12,7 +12,7 @@ from deepseek_harness import DeepSeekHarness
 EXPECTED = Path(__file__).parent / "expected"
 
 
-@pytest.mark.parametrize("fixture", ["cot-translation-projection.json", "input-prediction-projection.json"])
+@pytest.mark.parametrize("fixture", ["cot-translation-projection.json", "input-prediction-projection.json", "memory-extraction-projection.json"])
 def test_audit_records_retain_raw_events_and_original_main_response(tmp_path: Path, fixture: str) -> None:
     expected = json.loads((EXPECTED / fixture).read_text(encoding="utf-8"))
     event_types = {event["type"] for event in expected["auditEvents"]}

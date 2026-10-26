@@ -8,6 +8,11 @@ export type MemorySettingsLocaleKey =
   | 'typeAll' | 'typePreference' | 'typeProjectFact' | 'typeOperationResult' | 'typeWritingSetting'
   | 'statusEnabled' | 'statusDisabled'
   | 'sourcePresent' | 'sourceMissing' | 'sourceUnknown'
+  | 'autoExtract' | 'autoExtractHint' | 'autoSaved' | 'autoFailed' | 'retrySaved' | 'retryFailed' | 'refresh'
+  | 'extractionHistory' | 'extractionSession' | 'extracting' | 'extracted' | 'extractionCancelled' | 'extractionFailed'
+  | 'extractionBudget' | 'extractionTimeout'
+  | 'modeStandard' | 'modeSecurity' | 'modeReverse' | 'modeWriting' | 'globalShared'
+  | 'retrievalLimits'
   | 'add' | 'edit' | 'save' | 'saving' | 'cancel' | 'delete' | 'confirmDelete' | 'deleteTitle'
   | 'enable' | 'disable' | 'content' | 'titleField' | 'topicField' | 'topicHint'
   | 'shareGlobal' | 'shareGlobalHint' | 'workspace' | 'mode' | 'noWorkspace' | 'noMode' | 'scopeRequired'
@@ -15,6 +20,17 @@ export type MemorySettingsLocaleKey =
 
 /** English copy. */
 export const en: Record<MemorySettingsLocaleKey, string> = {
+  autoExtract: 'Extract memory automatically',
+  autoExtractHint: 'After a completed turn, use the current model to summarize durable facts in this workspace and mode. Off by default; model usage is billed and subject to limits.',
+  autoSaved: 'Memory extraction preference saved', autoFailed: 'Could not save the preference; refresh and retry',
+  retrySaved: 'Memory extraction completed', retryFailed: 'Extraction failed; keep the source conversation open and idle, then retry',
+  refresh: 'Refresh', extractionHistory: 'Extraction in open conversations', extractionSession: '{label} · turn {turn}',
+  modeStandard: 'Default', modeSecurity: 'Security', modeReverse: 'Reverse', modeWriting: 'Writing', globalShared: 'Shared globally',
+  retrievalLimits: 'Retrieval limits',
+  extracting: 'Extracting memory', extracted: '{count} records retained', extractionCancelled: 'Extraction cancelled; saved records are kept',
+  extractionFailed: 'Extraction failed; existing memory is kept',
+  extractionBudget: 'The spending limit blocked extraction; adjust the limit and retry',
+  extractionTimeout: 'Extraction timed out; check the model and spending limits before retrying',
   sourcePresent: 'Source conversation is available',
   sourceMissing: 'Source conversation is no longer in this library; the saved memory is retained',
   sourceUnknown: 'Source conversation could not be checked; reopen the manager to retry',
@@ -75,6 +91,17 @@ export const en: Record<MemorySettingsLocaleKey, string> = {
 
 /** Chinese copy. */
 export const zh: Record<MemorySettingsLocaleKey, string> = {
+  autoExtract: '自动提炼记忆',
+  autoExtractHint: '回合完成后，用当前模型整理长期事实，保存在当前工作区与模式。默认关闭；提炼会计费，并受额度限制。',
+  autoSaved: '已保存记忆提炼设置', autoFailed: '设置未保存，请刷新后重试',
+  retrySaved: '记忆提炼已完成', retryFailed: '提炼失败，请保持来源会话打开且空闲后重试',
+  refresh: '刷新', extractionHistory: '打开会话的提炼状态', extractionSession: '{label} · 第 {turn} 轮',
+  modeStandard: '缺省', modeSecurity: '网安', modeReverse: '逆向', modeWriting: '写作', globalShared: '全局共享',
+  retrievalLimits: '检索上限',
+  extracting: '正在提炼记忆', extracted: '保留了 {count} 条记录', extractionCancelled: '提炼已取消，已保存的记录保留',
+  extractionFailed: '提炼失败，已有记忆保留',
+  extractionBudget: '额度限制阻止了提炼，调整限额后可重试',
+  extractionTimeout: '提炼超时，请检查模型与额度后重试',
   sourcePresent: '来源会话仍在会话库中',
   sourceMissing: '来源会话已不在当前会话库，已保存的记忆仍保留',
   sourceUnknown: '暂时无法核验来源会话，重新打开管理页可重试',
