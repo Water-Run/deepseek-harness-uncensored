@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-security-proxy-local",
   "description": "Security-mode egress proxy provider: upstream HTTP(S) proxy, loopback chain proxy, and bounded traffic capture",
-  "version": "0.2.1-rc.2",
+  "version": "0.2.1-rc.3",
   "publishConfig": {
     "access": "public"
   },

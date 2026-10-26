@@ -1,5 +1,5 @@
 ---
-description: "从 Web 侧栏管理 profile 的插件组合包、它们的行，以及插件的配置。"
+description: "从设置的插件分组管理 profile 的插件组合包、它们的行，以及插件的配置。"
 kind: "package-reference"
 ---
 
@@ -11,7 +11,7 @@ kind: "package-reference"
 
 ## 概述
 
-使用 Web 侧栏的**插件**入口管理 profile 已安装的组合包，以及安装随附、默认关闭的官方组合包。可以启停组合包及其行、在 Host 读出 spec 指向什么之后安装组合包、查看 pnpm 输出、停止一次运行，并启用它新增的包。卸载会要求确认。注册了配置页的插件在这里、在它自己的页面上编辑；设置里只保留只读的插件列表。
+使用**设置 → 插件**入口管理 profile 已安装的组合包，以及安装随附、默认关闭的官方组合包。可以启停组合包及其行、在 Host 读出 spec 指向什么之后安装组合包、查看 pnpm 输出、停止一次运行，并启用它新增的包。卸载会要求确认。注册了配置页的插件在这里、在它自己的页面上编辑；同一设置页也包含内置插件列表。
 
 ## 目录
 
@@ -27,11 +27,11 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-在侧栏选择**插件**。信息按钮使用 11px 的 caption 色图标和 20px 方形悬停区域，与副标题间隔 4px。它说明当前页用于配置官方插件、安装和管理其他插件，**设置 → 内置插件**则展示内置插件列表及运行状态。悬停或聚焦显示共享 tooltip；点击后保持展开，直至再次点击、Escape、Tab 或外部点击。页面首次打开时通过 `api-remotes` 读取清单与组合包；没有受管 profile 的 Host 上页面显示为不可用。**内置插件配置**按配置的顺序列出官方配置页：子智能体、网页搜索、Agent 循环、终端。**实验性插件**展示主要的可选组合包，标题旁的**更多**打开同名的独立页面。该页列出全部官方组合包，也包含主列表已有的条目，Codex 和 Claude Code 子智能体排在最后。返回按钮回到主列表，**已安装插件**保持在实验性插件下方。组合包详情返回打开它的列表。目录条目在安装或移除后保持原位置。**已安装插件**列出其他 profile 组合包。安装随附的可选组合包没有卸载操作。实验性包在两个列表中均保留**实验性**标签。组合包详情可在说明下方展示功能配图，未启用时也可查看；**DSH 徽章技能**按界面语言展示中文或英文配图，解码失败时显示简短提示，不影响管理操作。开启仅在该页列出的组合包会按该页中的位置把它加入主列表，关闭后它只留在该页；其他组合包在两个列表中均保持原位。没有组合包 patch 的依赖不是插件，除非 profile 选中了它才会带异常标签列出。全局配置仍在设置的**内置插件**分区中编辑。
+打开**设置 → 插件**配置内置插件并管理可选和已安装的组合包。关闭设置后，页面的导航与进行中的操作仍保留。实验性与已安装组合包共用管理流程，详情返回打开它的列表。没有组合包 patch 的依赖通常不列为插件；若 profile 已选中，会显示异常标签说明不匹配。
 
 空间不足时，页头将整个操作组移到下一行。操作文案保持单行，信息按钮紧随副标题文字。
 
-已安装的组合包及其插件行在卡片和详情页中，按当前界面语言显示各自的标题与描述。每个字段先读取导出的 locale `meta`，缺失时回退到包根插件可访问的 `package.json`，子路径插件从不读取；标题最终使用完整包名或模块名，两处都没有描述时不提供包描述。作者格式见[插件展示元信息](../../../docs/cookbook/adding-a-package.zh.md#plugin-display-metadata)。组合包卡片、详情和组件行显示包根的清单 `icon` 或导出的 `./icon`，或子路径插件导出的 `<子路径>/icon`；未声明或无法解码时保留默认插画。安装预览仍使用注册表或 manifest 信息。
+已安装的组合包及其插件行在卡片和详情页中，按当前界面语言显示各自的标题与描述。每个字段先读取导出的 locale `meta`，缺失时回退到包根插件可访问的 `package.json`，子路径插件从不读取；标题最终使用完整包名或模块名，两处都没有描述时不提供包描述。作者格式见[插件展示元信息](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-rc.3/docs/cookbook/adding-a-package.md#plugin-display-metadata)。组合包卡片、详情和组件行显示包根的清单 `icon` 或导出的 `./icon`，或子路径插件导出的 `<子路径>/icon`；未声明或无法解码时保留默认插画。安装预览仍使用注册表或 manifest 信息。
 
 官方按需卡片在安装前即可离线显示。开启会打开已有的安装进度对话框，安装[当前 Host 提供的目标](../../boot/plugin-manager/README.zh.md#use-this-package)并选择配置层。安装源回退、取消和脚本审批继续使用同一组控件。关闭保留依赖；移除是独立操作。版本或开发链接来源不同会提供**更新**；详情显示当前及所提供的来源和版本。更新先删除已安装的包，再以相同的选择状态安装所提供的包，并报告是否需要重启；删除之后安装失败时，该包保持未安装。文件缺失或不可读的包在诊断旁保留记录的依赖来源。已启用的 bundle 在 checkout 目标不可用时仍可关闭。
 
@@ -70,7 +70,7 @@ Host 将网络失败或超时归因于 GitHub 地址，且提供 npmmirror 时�
 
 ### 配置页
 
-自带配置的插件把配置渲染在本页而不是设置里，通过本页声明的三个 slot：`plugins.item`（list）用于官方插件，按其 `label` 列在内置插件配置分组里；`plugins.bundle.config`（以组合包的包名为键）用于组合包自己的配置，显示在组合包页面的描述与行之间；`plugins.row.config`（以 `<包名>#<行 id>` 为键）用于某一行的配置，这一行由此多出一个**配置**控件，打开该行自己的页面。页面用 `view: 'page'` 渲染带自己保存控件的表单。官方插件卡片还在标题下渲染 `view: 'summary'`；行详情页只在缺少包描述时使用该视图。只有保存才写入：页面负责画标题、图标与面包屑，条目的表单在离开页面时丢弃暂存的修改。安装随附的四个宿主平面配置页——shell 执行器、agent loop、子智能体、DeepSeek 搜索提供方——各来自一个伴生包：[ui-settings-shell](../ui-settings-shell/README.zh.md)、[ui-settings-agent-loop](../ui-settings-agent-loop/README.zh.md)、[ui-settings-subagent](../ui-settings-subagent/README.zh.md) 与 [ui-settings-web-search](../ui-settings-web-search/README.zh.md)，在 Host 服务其命名空间期间注册。组合包的浏览器半侧用同样的方式注册：
+自带配置的插件在设置内的本页渲染配置，通过本页声明的三个 slot：`plugins.item`（list）用于官方插件，按其 `label` 列在内置插件配置分组里；`plugins.bundle.config`（以组合包的包名为键）用于组合包自己的配置，显示在组合包页面的描述与行之间；`plugins.row.config`（以 `<包名>#<行 id>` 为键）用于某一行的配置，这一行由此多出一个**配置**控件，打开该行自己的页面。页面用 `view: 'page'` 渲染带自己保存控件的表单。官方插件卡片还在标题下渲染 `view: 'summary'`；行详情页只在缺少包描述时使用该视图。只有保存才写入：页面负责画标题、图标与面包屑，条目的表单在离开页面时丢弃暂存的修改。安装随附的四个宿主平面配置页——shell 执行器、agent loop、子智能体、DeepSeek 搜索提供方——各来自一个伴生包：[ui-settings-shell](../ui-settings-shell/README.zh.md)、[ui-settings-agent-loop](../ui-settings-agent-loop/README.zh.md)、[ui-settings-subagent](../ui-settings-subagent/README.zh.md) 与 [ui-settings-web-search](../ui-settings-web-search/README.zh.md)，在 Host 服务其命名空间期间注册。组合包的浏览器半侧用同样的方式注册：
 
 ```tsx ignore-check
 ctx.slots.inject('plugins.row.config', () => ctx.slots.register({
@@ -102,7 +102,7 @@ ctx.slots.inject('plugins.detail.section', () => ctx.slots.register({
 
 -----
 
-内置配图遵循[功能配图创作指引](../../../docs/cookbook/adding-a-plugin-preview.zh.md)：可选，每种语言一张 640×300 SVG，必须同时提供英文和中文。内部映射及素材测试约束格式，包没有配图声明接口。
+内置配图遵循[功能配图创作指引](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-rc.3/docs/cookbook/adding-a-plugin-preview.md)：可选，每种语言一张 640×300 SVG，必须同时提供英文和中文。内部映射及素材测试约束格式，包没有配图声明接口。
 
 <a id="understand-the-implementation"></a>
 ## 理解实现
@@ -119,6 +119,8 @@ Host 入口通过生成的 Remote 接口暴露 `pluginRegistryProbe.fastest()`�
 浏览器插件通过 `ctx.slots.inject()` 注册 `plugins` 侧栏入口与它的 `main` 面板，使两者跟随 slot 延迟声明、本地化变化与销毁。页面为全局页面，不属于任何 Session。显示文本来自包元信息与页面字典。
 
 添加控件复用 `Button`、`Menu` 和 `MenuItemButton`。两个安装入口调用同一个 `openInstall` 回调，使用 `InstallDialog` 与 `PluginManagerController`。root 作用域的 list slot `plugins.add.actions` 接受贡献的 `MenuItemButton` 行，放在安装项之后；每个贡献者接收 `onDismiss()` 回调，在开始动作前关闭菜单。
+
+其他 Client 插件可注入 `pluginNavigation` 并调用 `openList()`，选中插件主列表，已打开详情页时也如此。此浏览操作保留当前 Session，不打开安装对话框。安装仍需在插件页显式发起。
 
 ### store
 

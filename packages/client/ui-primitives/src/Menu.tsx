@@ -2,7 +2,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode, SyntheticEvent } from 'react'
 import { createPortal } from 'react-dom'
 import clsx from 'clsx'
-import { IconCheckOutlineRegular } from './icons/index.tsx'
+import { IconCheckOutlineRegular, IconSearchOutlineRegular } from './icons/index.tsx'
+import { Input } from './Input.tsx'
 import { overlayTopMargin } from './overlay-top-margin.ts'
 import { usePointerGrace } from './pointer-grace.ts'
 import { isBehindModal } from './useModalLayer.ts'
@@ -52,6 +53,8 @@ export interface MenuItemButtonProps {
   shortcut?: MenuItem['shortcut']
   /** Leading icon (figma .Menu_cell gap 8). */
   icon?: ReactNode
+  /** Whether this row identifies the currently displayed page or view. */
+  current?: boolean
   /** Whether the row cannot be activated. */
   disabled?: boolean
   /** Destructive row: error-colored text/icon and danger hover fill. */
@@ -76,6 +79,7 @@ export interface MenuItemButtonProps {
  * @param props.children - visible row label.
  * @param props.shortcut - effective key labels and accessible combination.
  * @param props.icon - optional leading icon.
+ * @param props.current - whether the row identifies the currently displayed page or view.
  * @param props.disabled - whether the row cannot be activated.
  * @param props.danger - whether to use the destructive row colors.
  * @param props.separatorBefore - whether this row starts a new group (hairline above it).
@@ -83,7 +87,7 @@ export interface MenuItemButtonProps {
  * @returns one menu-item row.
  */
 export function MenuItemButton({
-  children, shortcut, icon, disabled = false, danger = false, separatorBefore = false, onSelect,
+  children, shortcut, icon, current, disabled = false, danger = false, separatorBefore = false, onSelect,
 }: MenuItemButtonProps) {
   return (
     <div className={css.itemWrap}>
@@ -94,6 +98,7 @@ export function MenuItemButton({
         className={clsx(css.item, danger && css.danger)}
         disabled={disabled}
         aria-keyshortcuts={shortcut?.aria}
+        aria-current={current === true ? 'page' : undefined}
         onClick={onSelect}
       >
         {icon !== undefined && <span className={css.itemIcon}>{icon}</span>}
@@ -150,8 +155,10 @@ const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
  * the trigger (render-prop anchors, effect-positioned proxies — measuring the
  * wrapper there races the host's layout effects). Called on open, each animation
  * frame, and scroll/resize; return null to skip placement for that frame.
+ * @param props.minWidthFromAnchor - in portal mode, keep the menu at least as wide as its anchor, bounded by viewport margins.
  * @param props.footer - rows pinned below the scrolling items area, separated
  * by a hairline; they stay visible while the items above scroll.
+ * @param props.search - optional owner-filtered search field, focused on open; arrow keys enter results.
  * @param props.children - component rows rendered after `items` in the same
  * list, each a `role="menuitem"` button such as {@link MenuItemButton}; they
  * share the keyboard walk, the submenu exclusivity, and the post-selection
@@ -166,13 +173,14 @@ const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
  * document.body outside the owner's DOM subtree.
  * @returns anchor wrapper with the conditional list.
  */
-export function Menu({ open, anchor, items = [], children, selectedId, selectedIds, onSelect, onClose, align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false, dense = false, compact = false, autoFocus = false, selection = 'check', getAnchorRect, footer, className, listClassName }: {
+export function Menu({ open, anchor, items = [], children, selectedId, selectedIds, onSelect, onClose, align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false, dense = false, compact = false, autoFocus = false, selection = 'check', getAnchorRect, minWidthFromAnchor = false, footer, search, className, listClassName }: {
   open: boolean
   autoFocus?: boolean
   anchor: ReactNode
   items?: readonly MenuEntry[]
   children?: ReactNode
   footer?: readonly MenuEntry[]
+  search?: { label: string; value: string; onChange: (value: string) => void } | undefined
   selectedId?: string | undefined
   selectedIds?: readonly string[] | undefined
   onSelect?: (id: string) => void
@@ -185,11 +193,14 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
   compact?: boolean
   selection?: 'check' | 'fill'
   getAnchorRect?: () => DOMRect | null
+  minWidthFromAnchor?: boolean
   className?: string | undefined
   listClassName?: string | undefined
 }) {
   const rootRef = useRef<HTMLSpanElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
+  const searchable = search !== undefined
   /** Index the arrow walk last focused, the resume point when focus left the rows. */
   const walkIndex = useRef<number | null>(null)
   /**
@@ -236,6 +247,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
   openRef.current = open
   const [openSubmenuId, setOpenSubmenuId] = useState<string | null>(null)
   const [fixedPos, setFixedPos] = useState<CSSProperties | null>(null)
+  const positioned = !portal || fixedPos !== null
   const { arm: armClose, cancel: cancelClose } = usePointerGrace(onClose)
 
   // Portal mode: fixed-position the list from the anchor rect before paint;
@@ -258,6 +270,10 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       const vw = window.innerWidth
       const vh = window.innerHeight
       const listEl = listRef.current
+      if (listEl !== null) {
+        const minimum = minWidthFromAnchor ? `${Math.min(r.width, Math.max(0, vw - MARGIN * 2))}px` : ''
+        if (listEl.style.minWidth !== minimum) listEl.style.minWidth = minimum
+      }
       const lw = listEl?.offsetWidth ?? 0
       const lh = listEl?.offsetHeight ?? 0
 
@@ -296,7 +312,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       window.removeEventListener('scroll', place, true)
       window.removeEventListener('resize', place)
     }
-  }, [open, present, portal, align, side, getAnchorRect])
+  }, [open, present, portal, align, side, getAnchorRect, minWidthFromAnchor])
 
   // Opening remembers where the keyboard was, so closing can hand it back to
   // that control — an anchor wrapping several (a split button) cannot be asked
@@ -308,15 +324,17 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       return
     }
     const active = document.activeElement
-    triggerRef.current = active instanceof HTMLElement && rootRef.current?.contains(active) === true ? active : null
-  }, [open])
+    triggerRef.current = active instanceof HTMLElement && (rootRef.current?.contains(active) === true || searchable) ? active : null
+  }, [open, searchable])
 
   useEffect(() => {
-    if (!open || !autoFocus) return
+    if (!open || !positioned) return
+    if (searchable) { searchRef.current?.focus(); return }
+    if (!autoFocus) return
     const first = listRef.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')
     walkIndex.current = first === undefined || first === null ? null : 0
     if (first != null) focusWithoutRing(first)
-  }, [open, autoFocus])
+  }, [open, autoFocus, searchable, positioned])
 
   useEffect(() => {
     if (!open) {
@@ -339,6 +357,13 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       const focused = document.activeElement
       const insideList = listRef.current?.contains(focused) === true
       const anchored = rootRef.current?.contains(focused) === true || insideList
+      const editingSearch = focused === searchRef.current
+      if (editingSearch && (e.key === 'Home' || e.key === 'End')) return
+      if (editingSearch && e.key === 'Enter') {
+        e.preventDefault()
+        listRef.current?.querySelector<HTMLButtonElement>('[data-menu-results] button[role="menuitem"]:not(:disabled)')?.click()
+        return
+      }
       if (e.key === 'Escape' && !e.shiftKey) {
         e.preventDefault()
         if (e.repeat) return
@@ -395,7 +420,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       const buttons = Array.from(list.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'))
       if (buttons.length === 0) return
       const index = buttons.indexOf(focused as HTMLButtonElement)
-      const from = index >= 0 ? index : walkIndex.current
+      const from = editingSearch ? null : index >= 0 ? index : walkIndex.current
       const next = e.key === 'Home' ? 0 : e.key === 'End' ? buttons.length - 1
         : from === null
           ? (e.key === 'ArrowDown' ? 0 : buttons.length - 1)
@@ -539,7 +564,11 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
       onMouseOver={collapseSubmenuFrom}
       onFocus={collapseSubmenuFrom}
     >
-      <div className={css.viewport} role="presentation">
+      {search !== undefined && <div className={css.search}>
+        <Input ref={searchRef} icon={<IconSearchOutlineRegular size={16} />} role="searchbox" aria-label={search.label} placeholder={search.label}
+          value={search.value} onChange={(event) => { search.onChange(event.target.value) }} />
+      </div>}
+      <div className={css.viewport} role="presentation" data-menu-results>
         {items.map(renderEntry)}
         {children}
       </div>

@@ -83,6 +83,7 @@ kind: "package-group"
 | [`ui-settings-subagent/`](ui-settings-subagent/README.zh.md) | 在插件页提供子智能体设置页 | — |
 | [`ui-settings-web-search/`](ui-settings-web-search/README.zh.md) | 在插件页提供网页搜索设置页 | — |
 | [`ui-plugin-manager/`](ui-plugin-manager/README.zh.md) | 贡献侧栏的“插件”面板：安装、启用、停用、重试与组合已安装的包 | — |
+| [`ui-entry-customization/`](ui-entry-customization/README.zh.md) | 添加分区域的“更多”菜单，固定或收起插件入口，并开始创建插件的草稿 | — |
 | [`ui-plugin-market/`](ui-plugin-market/README.zh.md) | 为“插件”页面贡献“发现”标签页：浏览市场索引并安装其中的组合包 | — |
 | [`ui-settings-plugin-inventory/`](ui-settings-plugin-inventory/README.zh.md) | 向「插件」设置贡献只读的 Host Loader 清单标签页 | — |
 | [`ui-deliverables/`](ui-deliverables/README.zh.md) | 生成改动文件卡片及其对比 tab、交付文件卡片与可点击的最终响应文件引用 | — |
@@ -98,9 +99,9 @@ kind: "package-group"
 
 先从子系统参考与两份拥有跨包组合决策的 Agent Note 读起，再看服务于本页的宿主半侧。
 
-- [客户端模块子系统](../../docs/subsystems/client-modules.zh.md)——web 插件表：`dsh.client` 声明、启动图协议与 bundle 路由。
+- [客户端模块子系统](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-rc.3/docs/subsystems/client-modules.md)——web 插件表：`dsh.client` 声明、启动图协议与 bundle 路由。
 - [slot 系统标准](../../.agents/notes/implemented/architecture/2026-07-22-slot-type-chain-implementation.zh.md)——权威 slot 模型：注册、props 份额与存储。
-- [web 客户端架构 reference](../../docs/subsystems/web-client.zh.md)——加载链、对象层与客户端服务。
+- [web 客户端架构 reference](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.1-rc.3/docs/subsystems/web-client.md)——加载链、对象层与客户端服务。
 - [宿主组地图](../host/README.zh.md)——服务于本浏览器半侧的宿主半侧。
 
 <a id="dev-note"></a>

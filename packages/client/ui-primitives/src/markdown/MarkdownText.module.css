@@ -335,6 +335,9 @@
   color: var(--dsw-alias-label-tertiary);
 }
 
+.markdown[data-markdown-tone='primary'] { color: var(--dsw-alias-label-primary); }
+.markdown[data-markdown-tone='secondary'] { color: var(--dsw-alias-label-secondary); }
+
 .compact :is(h1, h2, h3, h4, h5, h6) {
   margin: 8px 0 4px;
   font: inherit;

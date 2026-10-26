@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-mode-materials",
   "description": "Mode-materials settings panels: case ledgers for the Security and Reverse modes, the writing registry with its selection, and read-only sample inventory",
-  "version": "0.2.1-rc.2",
+  "version": "0.2.1-rc.3",
   "publishConfig": {
     "access": "public"
   },

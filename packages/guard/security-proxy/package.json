@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-security-proxy",
   "description": "Service Definition for the security-mode egress proxy seam (ctx.securityProxy)",
-  "version": "0.2.1-rc.2",
+  "version": "0.2.1-rc.3",
   "publishConfig": {
     "access": "public"
   },

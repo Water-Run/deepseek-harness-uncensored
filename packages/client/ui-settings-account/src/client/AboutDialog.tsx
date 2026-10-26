@@ -55,38 +55,43 @@ export function AboutDialog({ t, close }: { t: AccountMenuProps['t']; close: () 
     })
     return () => { controller.abort() }
   }, [version, check])
-  return <Modal open onClose={close} closeLabel={t('close')} title={t('about')}>
+  return <Modal open onClose={close} closeLabel={t('close')} title={t('about')} className={css.dialog ?? ''} contentClassName={css.scrollContent ?? ''}>
     <div className={css.content}>
-      <div className={css.identity}>
-        <FishLogo size={36} className={css.logo} />
-        <div>
-          <p className={css.product}>{t('productName')}</p>
-          <p className={css.status} data-phase={notice.phase} role="status">{t('aboutStatus')} · {statusText(notice, t)}{notice.phase === 'available' && notice.version !== undefined ? ` · ${notice.version}` : ''}</p>
-          <Button size="sm" variant="outline" disabled={notice.phase === 'checking'} onClick={() => { setCheck(value => value + 1) }}>{t('aboutCheck')}</Button>
-        </div>
-      </div>
-      <section className={css.card}>
-        <h3>{t('aboutSectionVersion')}</h3>
-        <dl>
-          <dt>{t('forkVersion')}</dt><dd>{recorded(version, t('developmentBuild'))}</dd>
-          <dt>{t('upstreamVersion')}</dt><dd>{recorded(process.env.DSH_CLIENT_UPSTREAM_VERSION, t('unknownBuild'))}</dd>
-          <dt>{t('buildTime')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_BUILD_TIME, t('unknownBuild'), t)}</dd>
+      <section className={css.identity} aria-label={t('aboutIdentity')}>
+        <div className={css.logo}><FishLogo size={50} /></div>
+        <h2 className={css.product}>{t('productName')}</h2>
+        <div className={css.author}><span>{t('aboutAuthor')}</span><a href="https://github.com/Water-Run" target="_blank" rel="noreferrer">{t('aboutAuthorName')}</a></div>
+        <dl className={css.build}>
+          <div><dt>{t('forkVersion')}</dt><dd className={css.version}>{recorded(version, t('developmentBuild'))}</dd></div>
+          <div><dt>{t('aboutBuiltOn')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_BUILD_TIME, t('unknownBuild'), t)}</dd></div>
         </dl>
-      </section>
-      <section className={css.card}>
-        <h3>{t('aboutSectionSource')}</h3>
-        <dl>
-          <dt>{t('buildCommit')}</dt><dd>{commit === undefined ? t('unknownBuild') : <a href={`${REPOSITORY}/commit/${commit}`} target="_blank" rel="noreferrer">{commit.slice(0, 12)}</a>}{process.env.DSH_CLIENT_GIT_DIRTY === 'true' && ` · ${t('modifiedBuild')}`}</dd>
-          <dt>{t('commitDate')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_COMMIT_DATE, t('unknownBuild'), t)}</dd>
-          <dt>{t('purgeCommit')}</dt><dd>{process.env.DSH_CLIENT_PURGE_COMMIT === undefined ? t('unknownBuild') : <a href={`https://github.com/Water-Run/dsh-purge/commit/${process.env.DSH_CLIENT_PURGE_COMMIT}`} target="_blank" rel="noreferrer">{process.env.DSH_CLIENT_PURGE_COMMIT.slice(0, 12)}</a>}</dd>
-          <dt>{t('purgeDate')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_PURGE_DATE, t('unknownBuild'), t)}</dd>
-        </dl>
-      </section>
-      <section className={css.links}>
-        <h3>{t('aboutSectionLinks')}</h3>
         <a className={css.github} href={REPOSITORY} target="_blank" rel="noreferrer"><GitHubIcon />{t('repository')}</a>
-        <a href={`${REPOSITORY}/blob/main/LICENSE`} target="_blank" rel="noreferrer">{t('licenseName')}</a>
-        {notice.url !== undefined && <a href={notice.url} target="_blank" rel="noreferrer">{t('aboutAvailable', { version: notice.version ?? '' })}</a>}
+        <div className={css.update}>
+          <p className={css.status} data-phase={notice.phase} role="status">{statusText(notice, t)}{notice.phase === 'available' && notice.version !== undefined ? ` · ${notice.version}` : ''}</p>
+          <Button size="sm" variant="outline" disabled={notice.phase === 'checking'} onClick={() => { setCheck(value => value + 1) }}>{t('aboutCheck')}</Button>
+          {notice.url !== undefined && <a href={notice.url} target="_blank" rel="noreferrer">{t('aboutReadRelease')}</a>}
+        </div>
+      </section>
+      <section className={css.details} aria-label={t('aboutSectionSource')}>
+        <section className={css.group}>
+          <h3>{t('aboutFoundation')}</h3>
+          <p className={css.foundation}>{t('aboutBasedOn', { version: recorded(process.env.DSH_CLIENT_UPSTREAM_VERSION, t('unknownBuild')) })}</p>
+          <a href={`${REPOSITORY}/blob/main/LICENSE`} target="_blank" rel="noreferrer">{t('licenseName')}</a>
+        </section>
+        <section className={css.group}>
+          <h3>{t('aboutSectionSource')}</h3>
+          <dl className={css.metadata}>
+            <dt>{t('buildCommit')}</dt><dd>{commit === undefined || commit === '' ? t('unknownBuild') : <a href={`${REPOSITORY}/commit/${commit}`} target="_blank" rel="noreferrer">{commit.slice(0, 12)}</a>}{process.env.DSH_CLIENT_GIT_DIRTY === 'true' && <span className={css.modified}>{t('modifiedBuild')}</span>}</dd>
+            <dt>{t('commitDate')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_COMMIT_DATE, t('unknownBuild'), t)}</dd>
+          </dl>
+        </section>
+        <section className={css.group}>
+          <h3>{t('aboutPurge')}</h3>
+          <dl className={css.metadata}>
+            <dt>{t('purgeCommit')}</dt><dd>{process.env.DSH_CLIENT_PURGE_COMMIT === undefined ? t('unknownBuild') : <a href={`https://github.com/Water-Run/dsh-purge/commit/${process.env.DSH_CLIENT_PURGE_COMMIT}`} target="_blank" rel="noreferrer">{process.env.DSH_CLIENT_PURGE_COMMIT.slice(0, 12)}</a>}</dd>
+            <dt>{t('purgeDate')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_PURGE_DATE, t('unknownBuild'), t)}</dd>
+          </dl>
+        </section>
       </section>
     </div>
   </Modal>

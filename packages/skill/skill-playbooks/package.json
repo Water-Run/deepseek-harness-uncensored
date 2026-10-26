@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-skill-playbooks",
   "description": "Bundled security, reverse-engineering, and writing playbooks that give the specialized session modes real field manuals instead of persona text alone",
-  "version": "0.2.1-rc.2",
+  "version": "0.2.1-rc.3",
   "publishConfig": {
     "access": "public"
   },

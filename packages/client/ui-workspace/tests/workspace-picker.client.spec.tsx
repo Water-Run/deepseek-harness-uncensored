@@ -125,6 +125,31 @@ function chooseAdd(): void {
 }
 
 describe('WorkspacePicker', () => {
+  it('filters names and paths, keeps Add available, and preserves text navigation in search', () => {
+    const result = mount([workspace('alpha', '甲项目'), workspace('beta', '乙项目')])
+    const search = screen.getByRole('searchbox', { name: '搜索工作区名称或路径' })
+    expect(document.activeElement).toBe(search)
+    fireEvent.change(search, { target: { value: 'PROJECTS\\BETA' } })
+    expect(screen.queryByRole('menuitem', { name: '甲项目' })).toBeNull()
+    expect(screen.getByRole('menuitem', { name: '乙项目' })).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: '添加工作区…' })).toBeTruthy()
+    fireEvent.keyDown(search, { key: 'Home' })
+    expect(document.activeElement).toBe(search)
+    fireEvent.keyDown(search, { key: 'Enter' })
+    expect(result.onPick).toHaveBeenCalledWith(wid('beta'))
+  })
+
+  it('keeps the search and add action when nothing matches', () => {
+    const result = mount([workspace('alpha')])
+    const search = screen.getByRole('searchbox')
+    fireEvent.change(search, { target: { value: 'missing' } })
+    expect(screen.getByText('没有匹配的工作区')).toBeTruthy()
+    fireEvent.keyDown(search, { key: 'Enter' })
+    expect(result.onPick).not.toHaveBeenCalled()
+    chooseAdd()
+    expect(result.probe.owner?.open).toBe(true)
+  })
+
   it('lists same-title Workspaces separately and forwards the selected id', () => {
     const b = mount([workspace('alpha', 'Shared'), workspace('beta', 'Shared')])
     const entries = screen.getAllByRole('menuitem', { name: 'Shared' })

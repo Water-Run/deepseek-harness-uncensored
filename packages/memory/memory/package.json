@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-memory",
   "description": "Durable, scoped, searchable cross-conversation memory with version-checked management and model-visible retrieval",
-  "version": "0.2.1-rc.2",
+  "version": "0.2.1-rc.3",
   "publishConfig": {
     "access": "public"
   },

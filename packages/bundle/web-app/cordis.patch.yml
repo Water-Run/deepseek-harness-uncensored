@@ -450,6 +450,10 @@
     # connection check, and the bounded captured-traffic viewer.
     - id: ui-security-proxy
       name: '@deepseek-ai/dsh-client-ui-security-proxy'
+    # Region-local More menus: pin or unpin plugin launchers and start a
+    # plugin draft.
+    - id: entry-customization
+      name: '@deepseek-ai/dsh-client-ui-entry-customization'
 
     - id: ui-settings-session-log
       name: '@deepseek-ai/dsh-client-ui-settings-session-log'

@@ -37,7 +37,7 @@ export function QuickAnswer({ useChat, useSession, t }: Pick<ChatViewSlotProps, 
   const openError = useSession(state => state.openError?.message ?? state.lastAgentError)
   return <div className={css.answer}>
     {question && <p className={css.question}>{question}</p>}
-    {answer && <MarkdownText text={answer} streaming={running} labels={markdownLabels(t)} variant="compact" />}
+    {answer && <MarkdownText text={answer} streaming={running} labels={markdownLabels(t)} variant="compact" tone="primary" />}
     {(failure || openError) && <p className={css.error} role="alert">{failure || openError}</p>}
     {running && <span className={css.pending} role="status" aria-label={t('quick.answering')}><IconLoadingOutlineRegular size={14} /></span>}
   </div>

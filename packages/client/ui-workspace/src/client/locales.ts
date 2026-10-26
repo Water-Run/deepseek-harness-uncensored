@@ -6,6 +6,8 @@
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
+  'picker.search': '搜索工作区名称或路径',
+  'picker.noMatches': '没有匹配的工作区',
   'mode.standard': '缺省模式',
   'mode.security': '网安模式',
   'mode.reverse': '逆向模式',
@@ -152,6 +154,8 @@ export type WorkspaceKey = keyof typeof zh
 
 /** English dictionary, checked complete against the zh key set. */
 export const en = {
+  'picker.search': 'Search workspace names or paths',
+  'picker.noMatches': 'No matching workspaces',
   'mode.standard': 'Default mode',
   'mode.security': 'Security mode',
   'mode.reverse': 'Reverse engineering mode',

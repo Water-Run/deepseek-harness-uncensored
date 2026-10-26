@@ -164,7 +164,8 @@ class StreamingRenderer {
  * `MarkdownDelegateProvider` can delegate ordinary HTTP(S) activation while
  * modified clicks retain native behavior. `variant="compact"` uses secondary
  * text sizing, uniform bold headings, and tight block spacing; the default
- * `body` variant uses the full document typography.
+ * `body` variant uses the full document typography. `tone` overrides the
+ * text emphasis without changing the selected layout.
  * The provider's `openFile` enables local Markdown links in settled messages,
  * including `#L24` and `#L24-L30` destinations (ranges open at their first line).
  * @returns A GFM document with TeX math rendered through KaTeX; raw HTML and
@@ -172,7 +173,7 @@ class StreamingRenderer {
  * absolute HTTP(S) images render directly.
  */
 export const MarkdownText = memo(function MarkdownText({
-  text, streaming = false, labels, fileMentions, pathImages, variant = 'body',
+  text, streaming = false, labels, fileMentions, pathImages, variant = 'body', tone,
 }: {
   text: string
   streaming?: boolean
@@ -180,6 +181,7 @@ export const MarkdownText = memo(function MarkdownText({
   fileMentions?: MarkdownFileMentions | undefined
   pathImages?: MarkdownPathImages | undefined
   variant?: 'body' | 'compact'
+  tone?: 'primary' | 'secondary'
 }) {
   const streamRef = useRef<StreamingRenderer | null>(null)
   const streamLabelsRef = useRef<MarkdownLabels>(labels)
@@ -195,5 +197,5 @@ export const MarkdownText = memo(function MarkdownText({
     return streamRef.current.render(text)
   }, [text, streaming, labels, fileMentions, pathImages])
   return <div className={clsx(css.markdown, variant === 'compact' && css.compact)}
-    data-markdown-variant={variant === 'compact' ? variant : undefined}>{children}</div>
+    data-markdown-tone={tone} data-markdown-variant={variant === 'compact' ? variant : undefined}>{children}</div>
 })

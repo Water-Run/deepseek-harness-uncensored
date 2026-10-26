@@ -559,20 +559,12 @@
     # key coming from the credential store below. Thinking defaults are a deployment
     # choice.
     #
-    # This build advertises one model on the API-key route: the V4.1 Flash line
-    # the product ships against. A deployment that wants the wider official
-    # catalog restates `models` from a later patch layer.
+    # Show Flash while retaining the official listing's capabilities and saved model selections.
     - id: llm-deepseek
       name: '@deepseek-ai/dsh-llm-deepseek-api-key'
       config:
         reasoningEffort: max
-        models:
-          - id: deepseek-flash
-            name: DeepSeek-V4.1-Flash
-            contextWindow: 1048576
-            inputModalities: [text, image]
-            systemPromptUpdate: in-history
-            toolUpdate: addition-only
+        visibleModels: [deepseek-flash]
 
     # The account route takes its catalog from the account listing, so no
     # catalog is stated here; the thinking effort default is the deployment's.

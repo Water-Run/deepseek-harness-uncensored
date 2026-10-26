@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-api-memory-controller",
   "description": "Host owner of the memory Remote namespace: management reads, version-checked writes, and scope catalogs",
-  "version": "0.2.1-rc.2",
+  "version": "0.2.1-rc.3",
   "publishConfig": {
     "access": "public"
   },

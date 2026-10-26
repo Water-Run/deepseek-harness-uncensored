@@ -2,11 +2,11 @@
   <img src="apps/desktop/resources/icon.svg" width="128" alt="DeepSeek Harness Uncensored 黑底白鲸 Logo">
   <h1>Deepseek Harness Uncensored: 更自由的探索未至之境</h1>
   <p>内置破甲提示词、四种任务模式和独立数据目录。<br>基于 DeepSeek Harness，保留原有工具与插件体系。</p>
-  <p><img src="https://img.shields.io/badge/Uncensored-v0.1.0-4B8BFF?style=for-the-badge" alt="Uncensored v0.1.0"> <img src="https://img.shields.io/badge/DSH-0.2.1--rc.2-303644?style=for-the-badge" alt="DSH 0.2.1-rc.2"> <img src="https://img.shields.io/badge/License-GPL--3.0--or--later-E6B84A?style=for-the-badge" alt="GPL-3.0-or-later"> <img src="https://img.shields.io/badge/Status-开发中-EF5363?style=for-the-badge" alt="开发中"></p>
+  <p><img src="https://img.shields.io/badge/Uncensored-v0.1.0-4B8BFF?style=for-the-badge" alt="Uncensored v0.1.0"> <img src="https://img.shields.io/badge/DSH-0.2.1--rc.3-303644?style=for-the-badge" alt="DSH 0.2.1-rc.3"> <img src="https://img.shields.io/badge/License-GPL--3.0--or--later-E6B84A?style=for-the-badge" alt="GPL-3.0-or-later"> <img src="https://img.shields.io/badge/Status-开发中-EF5363?style=for-the-badge" alt="开发中"></p>
   <p><a href="#开箱即用的破甲体验">破甲</a> · <a href="#四种模式">四种模式</a> · <a href="#其它通用增强">其它通用增强</a> · <a href="#快速开始">快速开始</a> · <a href="#开发进度">开发进度</a> · <a href="#当前限制">当前限制</a></p>
 </div>
 
-Uncensored 是 DeepSeek Harness 的独立分支，使用 **DSH 0.2.1-rc.2** 引擎，产品版本从 **v0.1.0** 开始。应用身份、数据目录和更新渠道与官方版分开，原有工具、插件和历史会话恢复能力保留。
+Uncensored 是 DeepSeek Harness 的独立分支，使用 **DSH 0.2.1-rc.3** 引擎，产品版本从 **v0.1.0** 开始。应用身份、数据目录和更新渠道与官方版分开，原有工具、插件和历史会话恢复能力保留。
 
 > [!IMPORTANT]
 > **项目仍处于开发阶段，不是稳定发行版。** Windows x64 本机覆盖安装、数据保留和重新启动已验证；目标保护、签名发布和全平台验收尚未完成。

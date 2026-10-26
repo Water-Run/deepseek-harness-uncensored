@@ -79,6 +79,13 @@ export function WorkspacePickFlow({
 }: WorkspacePickFlowProps) {
   const workspaceSnapshot = useWorkspaces(state => state)
   const workspaces = workspaceSnapshot.items
+  const [query, setQuery] = useState('')
+  useEffect(() => { if (!open) setQuery('') }, [open])
+  const terms = query.normalize('NFKC').replaceAll('\\', '/').toLowerCase().trim().split(/\s+/u).filter(Boolean)
+  const matches = workspaces.filter((workspace) => {
+    const text = `${workspaceDisplayTitle(workspace.title, t('workspace.defaultName'))}\n${workspace.path}`.normalize('NFKC').replaceAll('\\', '/').toLowerCase()
+    return terms.every(term => text.includes(term))
+  })
   const getAnchorRect = useCallback(
     () => anchorRef?.current?.getBoundingClientRect() ?? null,
     [anchorRef],
@@ -114,13 +121,15 @@ export function WorkspacePickFlow({
   // (divider + always visible); otherwise it IS the menu.
   const pinAdd = !addOnly && (workspaces.length > 0 || onPickNone !== undefined)
   const items: MenuEntry[] = pinAdd
-    ? [...onPickNone === undefined ? [] : [{ id: NO_WORKSPACE, label: t('workspace.none'), disabled: flowBusy }], ...workspaces.map(workspace => ({
+    ? [...onPickNone === undefined || terms.length > 0 ? [] : [{ id: NO_WORKSPACE, label: t('workspace.none'), disabled: flowBusy }], ...matches.map(workspace => ({
       id: workspace.workspaceId,
       label: workspaceDisplayTitle(workspace.title, t('workspace.defaultName')),
       icon: <IconFolderCloseRegular size={16} />,
       disabled: flowBusy,
     }))]
     : addEntries
+  if (pinAdd && terms.length > 0 && matches.length === 0) items.push({ type: 'label', id: '::no-match', text: t('picker.noMatches') })
+  const footer: MenuEntry[] = [...onPickNone !== undefined && terms.length > 0 ? [{ id: NO_WORKSPACE, label: t('workspace.none'), disabled: flowBusy }] : [], ...addEntries]
   // Nothing listed and nothing to add with (a composition that mounts this
   // package without any directory-picker): an empty popover would claim a
   // choice that does not exist, so the anchor gesture shows nothing at all.
@@ -199,7 +208,8 @@ export function WorkspacePickFlow({
         open={open && !addIsTheOnlyEntry && !menuIsEmpty}
         anchor={null}
         items={items}
-        {...pinAdd ? { footer: addEntries } : {}}
+        {...pinAdd ? { footer } : {}}
+        search={!addOnly && workspaces.length > 0 ? { value: query, onChange: setQuery, label: t('picker.search') } : undefined}
         selectedId={selectedId === null ? NO_WORKSPACE : selectedId}
         onSelect={handleSelect}
         onClose={onClose}
