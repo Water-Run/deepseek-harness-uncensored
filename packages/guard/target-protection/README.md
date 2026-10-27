@@ -1,5 +1,5 @@
 ---
-description: "Persist owner-selected target rules and apply them at a guarded HTTP connection point."
+description: "Persist target rules and enforce guarded HTTP, local file and process operations."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This optional backend stores production and test targets and can deny an HTTP connection before the destination receives it. It binds DNS names to the actual connection addresses and supports local country data. Production restrictions win over test exceptions. Invalid stores and missing evidence never become default permission. The default product has not enabled this integration; other execution adapters and management UI remain unfinished.
+This optional backend protects named production targets in HTTP and local file operations. It binds DNS to connection addresses, supports local country data, and allows structured file reads under audit rules. Production restrictions win over test exceptions. Arbitrary processes are refused when their effects cannot be confined. The default product has not enabled this integration; additional adapters and management UI remain unfinished.
 
 ## Table of Contents
 
@@ -30,6 +30,12 @@ Mount the root service with an explicit `path` to a dedicated SQLite registry. M
 
 Rules support exact hosts, domain suffixes, linear-time regular expressions and IP networks, with optional port and database identifiers. Test exceptions require an exact host or IP. Full production protection denies access. Audit protection accepts only effects guaranteed read-only by an executor; HTTP GET alone does not establish that guarantee. An exception for one IP cannot exempt another possible connection address in the same DNS answer set.
 
+Mount `./fs` instead of `fs-sandbox`, with the existing `sandboxPolicy` service. Local `path` rules identify an absolute server directory or database file and cannot include network qualifiers. Full protection denies reads and mutations; audit permits structured reads while denying writes and edits. Production paths take precedence over overlapping test paths. Symbolic links are resolved again, direct hard-link identities are compared, and an unattributable hard link outside a protected directory is refused. UNC, device and alternate-stream paths need a separate adapter. Watching is currently refused.
+
+The guarded file provider always protects the registry and its SQLite sidecars. `ownerPaths` adds configuration or credential files whose access is refused; `readOnlyPaths` adds sources that may be read but not changed. The configured hosts file and country database are also protected from changes. Owner configuration uses the rule service independently of Agent file access.
+
+Mount `./subprocess` instead of `subprocess-local`. It refuses ordinary processes and PTY allocation while mainland or production rules, or protected owner/data files, are present. A test hostname or full-access permission cannot bound arbitrary code. Only a composition with an in-memory registry, disabled mainland protection, no production rules and no protected local sources can delegate to the original process provider. Activating local policy cancels previously admitted processes. This provider does not provide an OS target sandbox.
+
 The registry defaults mainland protection to enabled. Mount `./country` to use the pinned DB-IP Lite dataset. Its `path` defaults to the bundled file, `maxBytes` to 32 MiB and `maxAgeDays` to 45. Missing, damaged, future or expired data cannot establish an outside destination. The `.cn` and Chinese China domain labels are separate evidence. Unresolved names or regions are refused unless an exact test exception applies. No UI reports this partial backend as complete protection.
 
 Country data is an estimate with limited coverage and accuracy. [IP Geolocation by DB-IP](https://db-ip.com) is distributed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); see [the bundled notice](assets/NOTICE.md). A web composition using these results must display that linked attribution. Data updates currently require replacing the configured local source and reloading its provider; the product settings integration is unfinished.
@@ -40,11 +46,13 @@ Country data is an estimate with limited coverage and accuracy. [IP Geolocation 
 <details>
 <summary>Maintainer details</summary>
 
-The SQLite format has monotonic `SCHEMA_VERSION = 1` and application ID `DSTP`. It initializes only an empty database, rejects unrelated applications and future versions, and preserves corrupt data for diagnosis. Writes compare the caller's expected revision inside a transaction. Reads observe current committed state across connections.
+The SQLite format has monotonic `SCHEMA_VERSION = 2` and application ID `DSTP`. Opening a valid version 1 registry upgrades it transactionally without changing its preferences or revision; earlier code refuses version 2, so downgrade requires restoring a pre-upgrade backup. It initializes only an empty database, rejects unrelated applications and future versions, and preserves corrupt data for diagnosis. Writes compare the caller's expected revision inside a transaction. Reads observe current committed state across connections.
 
 The HTTP consumer checks before resolution and before each connection, including redirects. The resolver retains CNAMEs and A/AAAA records from the same answer packets, validates transaction/question identity, follows bounded chains and uses TCP for truncated UDP replies. Hosts-file aliases and localhost are handled without external lookup. The shared transport pins the validated addresses and retains NAT64 IPv4 aliases for rule and country checks. Unrelated answer records never become destinations.
 
-The decision uses current rules and rechecks their revision after asynchronous resolution. Local rule changes and country-provider replacement cancel requests using the old generation; this does not roll back effects already sent. Proxy-resolved addresses remain explicitly unknown. Registry failure, cancellation and service disposal cannot authorize a connection.
+The decision uses current rules and rechecks their revision after asynchronous resolution. Local rule changes and country-provider replacement cancel requests using the old generation; this does not roll back effects already sent. HTTP and file executors retain the rule owner's resources through native operation settlement and cleanup. Proxy-resolved addresses remain explicitly unknown. Registry failure, cancellation and service disposal cannot authorize a connection.
+
+The local file adapter checks direct service calls and rechecks writes inside the file lock, before staging and immediately before atomic publication. A change from another registry connection can refuse publication and remove staging residue. Withdrawal aborts admission and waits for active I/O and source iterators to close before releasing dependencies. The local filesystem's external-process path race remains: path revalidation does not provide kernel isolation against a hostile process replacing ancestors between validation and a syscall. Partially created parents or earlier completed effects are not rolled back.
 
 The independent registry does not change Session record types. Durable execution-audit events and SDK projections belong to the remaining audit integration. The archived development draft is not a supported database predecessor and is never silently imported.
 
@@ -53,7 +61,7 @@ The independent registry does not change Session record types. Durable execution
 <a id="model-experience"></a>
 ## Model Experience
 
-This package adds no model request or tool definitions. Existing fetch calls can return a typed target-policy error. Effects come from the executing adapter, never from a model's claim that a command is safe.
+This package adds no model request or tool definitions. Existing fetch, file and process calls can return a typed target-policy error. Effects come from the executing adapter, never from a model's claim that a command is safe.
 
 #### KV Cache effect
 
@@ -62,7 +70,7 @@ No new prompt prefix is added. A refusal changes only the affected tool result.
 <a id="known-limitations-and-deferred-work"></a>
 ## Known Limitations and Deferred Work
 
-This backend currently covers only the explicitly composed guarded HTTP provider. It is not a process sandbox and does not yet enforce shell, PTY, SSH, filesystem, database protocol, browser, MCP/REA or security-proxy operations. Unknown proxy destinations are refused; proxy-side address binding is unfinished. DNS proof describes the configured resolver's answer, not every hostname that may share an IP, and country data does not prove physical location or ownership. Production read-only audit needs structured executing adapters. Default product composition, owner UI, security-entry status and durable audit remain unfinished.
+Only the explicitly composed guarded HTTP, local file and process providers are covered. File deletion and renaming have no filesystem-service methods and remain blocked with arbitrary process execution; they are not supported structured operations. SSH, database protocols, browser, MCP/REA native spawners and security-proxy execution still need adapters. Unknown proxy destinations are refused; proxy-side address binding is unfinished. DNS proof describes the configured resolver's answer, not every hostname sharing an IP; country data does not prove physical location or ownership. Default product composition, owner UI, security-entry status and durable audit remain unfinished.
 
 <a id="dev-note"></a>
 ## Dev Note

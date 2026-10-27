@@ -6,6 +6,7 @@ import ipaddr from 'ipaddr.js'
 import { z } from 'zod'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import { TargetProtectionError } from './errors.ts'
+import { canonicalLocalPath } from './file-identity.ts'
 import type { NetworkTarget, RuleAddresses, TargetDecision, TargetEffect, TargetPreferences, TargetRule, TargetRuleId } from './types.ts'
 
 /**
@@ -53,7 +54,7 @@ const ruleSchema = z.object({
   id: z.uuid().transform(value => brandString<TargetRuleId>(value)),
   name: z.string().trim().min(1).max(100), enabled: z.boolean(),
   kind: z.enum(['domain', 'server', 'database']), environment: z.enum(['production', 'test']),
-  protection: z.enum(['full', 'audit']), match: z.enum(['host', 'domain', 'regex', 'cidr']),
+  protection: z.enum(['full', 'audit']), match: z.enum(['host', 'domain', 'regex', 'cidr', 'path']),
   address: z.string().trim().min(1).max(512), port: z.number().int().min(1).max(65535).optional(),
   database: z.string().min(1).max(128).optional(),
 }).strict().transform(({ port, database, ...value }) => ({ ...value,
@@ -75,7 +76,13 @@ export function parseTargetPreferences(input: unknown): TargetPreferences {
     if (ids.has(rule.id)) throw new TargetProtectionError('invalid', 'Target rule IDs must be unique.')
     ids.add(rule.id)
     if (rule.database !== undefined && rule.kind !== 'database') throw new TargetProtectionError('invalid', 'A database name needs a database rule.')
-    if (rule.environment === 'test' && rule.match !== 'host') throw new TargetProtectionError('invalid', 'Test exceptions require an exact hostname or IP.')
+    if (rule.environment === 'test' && rule.match !== 'host' && rule.match !== 'path') throw new TargetProtectionError('invalid', 'Test exceptions require an exact hostname, IP or local path.')
+    if (rule.match === 'path') {
+      if (rule.kind === 'domain' || rule.port !== undefined || rule.database !== undefined) {
+        throw new TargetProtectionError('invalid', 'A local path rule requires a server or database resource without network qualifiers.')
+      }
+      rule.address = canonicalLocalPath(rule.address)
+    }
     if (rule.match === 'host' || rule.match === 'domain') rule.address = canonicalTargetHost(rule.address)
     compileRule(rule)
   }
@@ -87,6 +94,7 @@ interface CompiledRule { rule: TargetRule; matches: (host: string) => boolean }
 function compileRule(rule: TargetRule): CompiledRule {
   try {
     switch (rule.match) {
+      case 'path': return { rule, matches: () => false }
       case 'host': return { rule, matches: host => host === rule.address }
       case 'domain': {
         if (isIP(rule.address)) throw new TargetProtectionError('invalid', 'Use an exact host or CIDR rule for IP addresses.')
@@ -137,7 +145,7 @@ export class TargetRules {
    */
   constructor(input: TargetPreferences) {
     this.preferences = parseTargetPreferences(input)
-    this.entries = this.preferences.rules.filter(rule => rule.enabled)
+    this.entries = this.preferences.rules.filter(rule => rule.enabled && rule.match !== 'path')
       .sort((a, b) => Number(a.environment === 'test') - Number(b.environment === 'test')
         || Number(a.protection === 'audit') - Number(b.protection === 'audit')).map(compileRule)
   }

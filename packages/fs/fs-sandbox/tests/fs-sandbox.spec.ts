@@ -19,6 +19,7 @@ import type { FsTarget } from '@deepseek-ai/dsh-fs'
 import SandboxPolicyService from '@deepseek-ai/dsh-sandbox-policy'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import type { SandboxMode } from '@deepseek-ai/dsh-sandbox'
+import { canonicalPath } from '@deepseek-ai/dsh-sandbox'
 import { SandboxedFileSystem } from '@deepseek-ai/dsh-fs-sandbox'
 import { assertWorkspaceOutsideTemp, outsideTempWorkspaceParent } from '../../../../scripts/snapshot-workspace-parent.ts'
 
@@ -41,7 +42,8 @@ beforeEach(async ({ onTestFinished }) => {
   // Both siblings must be outside automatic temp grants for containment denials to be meaningful.
   const directory = await mkdtemp(join(outsideTempWorkspaceParent(), '.dsh-fssbx-'))
   onTestFinished(async () => { await rm(directory, { recursive: true, force: true }) })
-  base = directory
+  // Use physical paths for link targets under Windows packaged-app AppData redirection.
+  base = canonicalPath(directory)
   assertWorkspaceOutsideTemp(base)
   workspace = join(base, 'ws')
   outside = join(base, 'out')

@@ -8,7 +8,7 @@ import { parseTargetPreferences } from './rules.ts'
 import type { TargetPreferences, TargetSnapshot } from './types.ts'
 
 /** On-disk format; successors must use a larger value. */
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 /** SQLite application identifier for this registry, ASCII DSTP. */
 const APPLICATION_ID = 0x44535450
 const rowSchema = z.object({ revision: z.number().int().positive().max(Number.MAX_SAFE_INTEGER), value: z.string() })
@@ -40,7 +40,7 @@ export class TargetStore {
       store.transaction(() => {
         const version = z.object({ user_version: z.number().int() }).parse(db.prepare('PRAGMA user_version').get()).user_version
         const application = z.object({ application_id: z.number().int() }).parse(db.prepare('PRAGMA application_id').get()).application_id
-        if (version !== 0 && version !== SCHEMA_VERSION) {
+        if (version !== 0 && version !== 1 && version !== SCHEMA_VERSION) {
           throw new TargetProtectionError('unsupported-version', `Unsupported target registry version ${String(version)}.`)
         }
         if (version === 0) {
@@ -52,7 +52,13 @@ export class TargetStore {
         } else if (application !== APPLICATION_ID) {
           throw new TargetProtectionError('unrecognized-store', 'The database belongs to a different application.')
         }
-        store.snapshot()
+        const snapshot = store.snapshot()
+        if (version === 1) {
+          if (snapshot.preferences.rules.some(rule => rule.match === 'path')) {
+            throw new TargetProtectionError('unavailable', 'A version 1 target registry cannot contain path rules.')
+          }
+          db.exec(`PRAGMA user_version=${String(SCHEMA_VERSION)}`)
+        }
       })
       return store
     } catch (error) {

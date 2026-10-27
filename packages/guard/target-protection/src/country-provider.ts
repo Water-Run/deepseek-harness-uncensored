@@ -3,6 +3,9 @@ import { Context, Service } from '@deepseek-ai/cordis'
 import schema from '@deepseek-ai/schemastery'
 import { CountryDatabase, type CountryDatabaseStatus } from './country.ts'
 import { TargetProtectionError } from './errors.ts'
+import { fileURLToPath } from 'node:url'
+import { resolve } from 'node:path'
+import { BUNDLED_COUNTRY_SOURCE } from './country-source.ts'
 
 /** Deployment-owned local country source and resource bounds. */
 export interface Config {
@@ -64,6 +67,14 @@ export default class TargetCountryData extends Service {
   status(): CountryDatabaseStatus {
     if (this.database === undefined || this.lifetime.signal.aborted) throw new TargetProtectionError('unavailable', 'Country data is unavailable.')
     return this.database.status(Date.now())
+  }
+
+  /**
+   * Identify the local source that guarded file executors must preserve.
+   * @returns One configured or bundled database path; no remote lookup is performed.
+   */
+  sourcePaths(): readonly string[] {
+    return [this.config.path ? resolve(this.config.path) : fileURLToPath(new URL(`./assets/${BUNDLED_COUNTRY_SOURCE.filename}`, import.meta.resolve('@deepseek-ai/dsh-target-protection/package.json')))]
   }
 
   /**

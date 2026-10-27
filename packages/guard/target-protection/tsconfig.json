@@ -8,6 +8,12 @@
     "src"
   ],
   "references": [
+    { "path": "../../fs/fs" },
+    { "path": "../../fs/fs-sandbox" },
+    { "path": "../../sandbox/sandbox" },
+    { "path": "../../llm/llm" },
+    { "path": "../../subprocess/subprocess" },
+    { "path": "../../subprocess/subprocess-local" },
     {
       "path": "../../../vendor/cordis"
     },

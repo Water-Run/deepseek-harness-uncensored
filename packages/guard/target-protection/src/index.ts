@@ -2,6 +2,7 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import schema from '@deepseek-ai/schemastery'
 import { isIP } from 'node:net'
+import { resolve } from 'node:path'
 import { deadline } from '@deepseek-ai/dsh-timeout'
 import { resolvePublicAddresses } from '@deepseek-ai/dsh-web-fetch-http'
 import type { HttpFetchDestination, PublicAddress } from '@deepseek-ai/dsh-web-fetch-http'
@@ -11,6 +12,8 @@ import { TargetProtectionError } from './errors.ts'
 import type {} from './country-provider.ts'
 import { resolveTargetDns, systemHostsFile, type TargetDnsResolution } from './dns-resolution.ts'
 import { parseDnsServer } from './dns-transport.ts'
+import { canonicalLocalPath, resolveLocalPathIdentity, localPathContains } from './file-identity.ts'
+import { decideLocalTarget, type LocalTargetOperation } from './file-rules.ts'
 import type { NetworkTarget, TargetDecision, TargetPreferences, TargetRuleId, TargetSnapshot } from './types.ts'
 
 export type * from './types.ts'
@@ -40,6 +43,10 @@ export interface Config {
   dnsMaxRecords?: number
   /** Hosts-file byte bound, default 1 MiB. */
   hostsMaxBytes?: number
+  /** Additional owner-only configuration and credential files; all Agent access is refused. */
+  ownerPaths?: string[]
+  /** Additional local data sources that Agents may read but must not change. */
+  readOnlyPaths?: string[]
 }
 type ResolvedConfig = Required<Config>
 
@@ -47,6 +54,9 @@ type ResolvedConfig = Required<Config>
 export interface TargetHttpResolution extends Omit<TargetDnsResolution, 'addresses'> {
   addresses: readonly PublicAddress[]
 }
+
+/** File identity and policy revision selected for the executing local provider. */
+export interface LocalFileAdmission { path: string; revision: number; decision: TargetDecision }
 
 declare module '@deepseek-ai/cordis' {
   interface Context { /** Current target registry and deterministic execution decisions. */ targetProtection: TargetProtection }
@@ -61,9 +71,11 @@ export default class TargetProtection extends Service {
     dnsQueryTimeoutMs: schema.natural().min(1).max(30000).default(1500),
     dnsMaxCnameDepth: schema.natural().min(1).max(64).default(8), dnsMaxRecords: schema.natural().min(1).max(4096).default(256),
     hostsMaxBytes: schema.natural().min(1).max(16777216).default(1048576),
+    ownerPaths: schema.array(String).default([]), readOnlyPaths: schema.array(String).default([]),
   })
   private readonly config: ResolvedConfig
   private readonly ready: Promise<TargetStore>
+  private opened: TargetStore | undefined
   private readonly lifetime = new AbortController()
   private generation = new AbortController()
   private readonly checking = new Set<Promise<unknown>>()
@@ -75,6 +87,10 @@ export default class TargetProtection extends Service {
   constructor(ctx: Context, config: Config) {
     super(ctx, 'targetProtection')
     this.config = TargetProtection.Config(config)
+    if (this.config.path !== ':memory:') this.config.path = canonicalLocalPath(resolve(this.config.path))
+    if (this.config.hostsFile !== '') this.config.hostsFile = canonicalLocalPath(resolve(this.config.hostsFile))
+    this.config.ownerPaths = this.config.ownerPaths.map(canonicalLocalPath)
+    this.config.readOnlyPaths = this.config.readOnlyPaths.map(canonicalLocalPath)
     for (const server of this.config.dnsServers) parseDnsServer(server)
     this.ready = TargetStore.open(this.config.path, this.config.busyTimeoutMs)
     ctx.on('target-country/changed', () => { this.invalidate() })
@@ -88,7 +104,68 @@ export default class TargetProtection extends Service {
   }
 
   /** Refuse activation when durable settings cannot be validated. */
-  protected async [Service.init](): Promise<void> { await this.ready }
+  protected async [Service.init](): Promise<void> { this.opened = await this.ready }
+
+  /**
+   * Admit only executions whose effects are bounded by a structured adapter. Arbitrary code cannot establish a target set.
+   * @returns Denial while any production or mainland rule is active; otherwise permission.
+   * @throws When initialization, durable settings or the service lifetime is unavailable.
+   */
+  checkUnconfined(): TargetDecision {
+    this.lifetime.signal.throwIfAborted()
+    if (this.opened === undefined) throw new TargetProtectionError('unavailable', 'Target protection is not ready.')
+    const { preferences } = this.opened.snapshot()
+    const rules = preferences.rules.filter(rule => rule.enabled && rule.environment === 'production')
+    const ownerResources = this.config.path !== ':memory:' || this.config.ownerPaths.length > 0
+      || this.config.readOnlyPaths.length > 0 || this.config.hostsFile !== '' || this.ctx.get('targetCountryData') !== undefined
+    if (preferences.mainlandEnabled || rules.length > 0 || ownerResources) {
+      return { allowed: false, code: 'TARGET_EXECUTION_UNCONFINED', ruleIds: rules.map(rule => rule.id) }
+    }
+    return { allowed: true, ruleIds: [] }
+  }
+
+  /**
+   * Check a host-local operation against current path rules and protected owner files.
+   * @param path - Absolute path supplied by the local executing provider.
+   * @param operation - Actual operation implemented by that provider.
+   * @param signal - Operation lifetime, including policy-change cancellation.
+   * @returns The checked canonical path, current revision and decision; unavailable identity rejects.
+   */
+  checkLocalFile(path: string, operation: LocalTargetOperation, signal: AbortSignal): Promise<LocalFileAdmission> {
+    this.lifetime.signal.throwIfAborted()
+    const checking = this.checkFile(path, operation, signal)
+    this.checking.add(checking)
+    return checking.finally(() => { this.checking.delete(checking) })
+  }
+
+  private async checkFile(path: string, operation: LocalTargetOperation, signal: AbortSignal): Promise<LocalFileAdmission> {
+    using timeout = deadline(AbortSignal.any([signal, this.executionSignal()]), this.config.checkTimeoutMs, 'TARGET_FILE_TIMEOUT')
+    const store = await this.ready
+    const owner = [...this.config.ownerPaths, ...this.config.path === ':memory:' ? []
+      : [this.config.path, `${this.config.path}-wal`, `${this.config.path}-shm`, `${this.config.path}-journal`]]
+    const sources = [...this.config.readOnlyPaths, ...this.config.hostsFile === '' ? [] : [this.config.hostsFile],
+      ...this.ctx.get('targetCountryData')?.sourcePaths() ?? []]
+    for (let attempt = 0; attempt < this.config.maxRechecks; attempt++) {
+      const snapshot = store.snapshot()
+      const target = await resolveLocalPathIdentity(path, timeout.signal)
+      for (const source of [...owner, ...operation === 'mutate' ? sources : []]) {
+        const resource = await resolveLocalPathIdentity(source, timeout.signal)
+        const sameFile = target.fileId !== undefined && target.fileId === resource.fileId
+        const overlap = [resource.path, resource.canonical].some(root => [target.path, target.canonical].some(candidate =>
+          localPathContains(root, candidate) || ((operation === 'mutate' || operation === 'list' || operation === 'watch') && localPathContains(candidate, root))))
+        if (sameFile || overlap) return { path: target.canonical, revision: snapshot.revision,
+          decision: { allowed: false, code: 'TARGET_OWNER_RESOURCE', ruleIds: [] } }
+      }
+      const rules = []
+      for (const rule of snapshot.preferences.rules.filter(rule => rule.enabled && rule.match === 'path')) {
+        rules.push({ rule, identity: await resolveLocalPathIdentity(rule.address, timeout.signal) })
+      }
+      timeout.signal.throwIfAborted()
+      if (store.snapshot().revision !== snapshot.revision) continue
+      return { path: target.canonical, revision: snapshot.revision, decision: decideLocalTarget(target, operation, rules) }
+    }
+    throw new TargetProtectionError('conflict', 'Target settings kept changing during file validation.')
+  }
 
   /**
    * Read current committed settings; shutdown never supplies empty defaults.
@@ -128,6 +205,18 @@ export default class TargetProtection extends Service {
   executionSignal(): AbortSignal {
     this.lifetime.signal.throwIfAborted()
     return AbortSignal.any([this.lifetime.signal, this.generation.signal])
+  }
+
+  /**
+   * Retain rule resources for an executing adapter until its native I/O and cleanup have settled.
+   * @returns An idempotent release function; obtain it before starting I/O and release it in finally.
+   * @throws When protection is closing and cannot admit another operation.
+   */
+  retainExecution(): () => void {
+    this.lifetime.signal.throwIfAborted()
+    const settled = Promise.withResolvers<boolean>()
+    this.checking.add(settled.promise)
+    return () => { settled.resolve(true); this.checking.delete(settled.promise) }
   }
 
   /**

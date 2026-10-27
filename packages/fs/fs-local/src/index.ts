@@ -130,6 +130,18 @@ export class LocalFileSystem extends FileSystem {
     }
   }
 
+  /**
+   * Revalidate provider-owned mutation policy inside the file lock and at atomic publication.
+   * @param target - Exact destination whose canonical identity must remain authorized.
+   * @param signal - Cancellation checked before staging or committing content.
+   * @returns Completion when the destination remains permitted; rejection leaves final content unpublished.
+   */
+  protected authorizeMutation(target: FsTarget, signal?: AbortSignal): Promise<void> {
+    void target
+    if (signal?.aborted) throw new FsError('write aborted', 'FS_ABORTED')
+    return Promise.resolve()
+  }
+
   override async resolve(path: string, opts?: { cwd?: string; signal?: AbortSignal }): Promise<FsTarget> {
     if (opts?.signal?.aborted) throw new FsError('resolve aborted', 'FS_ABORTED')
     const local = await resolveLocalTarget(opts?.cwd ?? this.config.cwd, path)
@@ -206,6 +218,7 @@ export class LocalFileSystem extends FileSystem {
     signal?: AbortSignal,
   ): Promise<FsWriteOutcome> {
     return this.withLock(target.targetKey, async () => {
+      await this.authorizeMutation(target, signal)
       const existing = await probe(target.targetKey)
       if (existing && existing.type !== 'file') {
         throw new FsError(`cannot write "${target.displayPath}": not a regular file`, 'FS_NOT_REGULAR_FILE')
@@ -240,6 +253,7 @@ export class LocalFileSystem extends FileSystem {
         signal,
         this.internals,
         expected?.kind === 'createIfAbsent' ? { displayPath: target.displayPath } : undefined,
+        () => this.authorizeMutation(target, signal),
       )
       const after = await probe(target.targetKey)
       return {
@@ -261,6 +275,7 @@ export class LocalFileSystem extends FileSystem {
     signal?: AbortSignal,
   ): Promise<FsEditOutcome> {
     return this.withLock(target.targetKey, async () => {
+      await this.authorizeMutation(target, signal)
       const existing = await probe(target.targetKey)
       // Stale guard before literal matching: an edit based on an old read reports
       // FS_STALE_VERSION, not FS_EDIT_NOT_FOUND/FS_AMBIGUOUS_EDIT against newer content.
@@ -277,7 +292,8 @@ export class LocalFileSystem extends FileSystem {
       const original = await readForEdit(target.targetKey, target.displayPath, signal)
       const edited = applyLiteralEdit(original.content, edit.oldString, edit.newString, edit.replaceAll, target.displayPath)
       const content = restoreLineEndings(edited.content, original.lineEndings)
-      await writeFileAtomic(target.targetKey, content, existing.mode, signal, this.internals)
+      await writeFileAtomic(target.targetKey, content, existing.mode, signal, this.internals, undefined,
+        () => this.authorizeMutation(target, signal))
 
       const after = await probe(target.targetKey)
       return {

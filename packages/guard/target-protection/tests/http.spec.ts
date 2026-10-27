@@ -31,10 +31,16 @@ function rule(overrides: Partial<TargetRule> = {}): TargetRule {
     environment: 'production', protection: 'full', match: 'host', address: '127.0.0.1', ...overrides }
 }
 
-async function harness() {
+async function harness(holdResponse = false) {
   const root = await mkdtemp(join(tmpdir(), 'dshu-target-http-')); roots.push(root)
   let requests = 0, connections = 0
-  const server = createServer((_req, response) => { requests++; response.writeHead(200, { 'content-type': 'text/plain' }); response.end('fixture') })
+  const reached = Promise.withResolvers<boolean>(), closed = Promise.withResolvers<boolean>()
+  const server = createServer((_req, response) => {
+    requests++; response.writeHead(200, { 'content-type': 'text/plain' })
+    response.once('close', () => { closed.resolve(true) })
+    if (holdResponse) { response.write('pending'); reached.resolve(true) }
+    else response.end('fixture')
+  })
   servers.push(server)
   server.on('connection', () => { connections++ })
   await new Promise<void>((resolve) => { server.listen(0, '127.0.0.1', resolve) })
@@ -51,7 +57,7 @@ async function harness() {
     const current = await ctx.targetProtection.snapshot()
     return ctx.targetProtection.configure({ mainlandEnabled, rules }, current.revision)
   }
-  return { ctx, path, policy, configure, url: `http://127.0.0.1:${String(port)}/`,
+  return { ctx, path, policy, configure, reached: reached.promise, closed: closed.promise, url: `http://127.0.0.1:${String(port)}/`,
     requests: () => requests, connections: () => connections }
 }
 
@@ -64,6 +70,19 @@ it('blocks full protection before socket creation and permits an explicit test e
   await h.configure([rule({ environment: 'test' })], true)
   expect((await h.ctx.web.fetch({ url: h.url })).body.content).toBe('fixture')
   expect(h.requests()).toBe(1)
+})
+
+it('cancels and drains a live response when the required policy owner is withdrawn', async () => {
+  const h = await harness(true)
+  await h.configure([])
+  const operation = h.ctx.web.fetch({ url: h.url })
+  const rejected = expect(operation).rejects.toBeDefined()
+  await h.reached
+  await h.policy.dispose()
+  await rejected
+  await h.closed
+  expect(h.requests()).toBe(1)
+  await expect(h.ctx.web.fetch({ url: h.url })).rejects.toMatchObject({ code: 'WEB_PROVIDER_UNAVAILABLE' })
 })
 
 it('does not infer safe audit permission from the GET method', async () => {

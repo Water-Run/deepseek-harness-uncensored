@@ -3,32 +3,32 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/guard/target-protection/README.md
 /:
-  en: 50daf0ff39909bd7
-  zh: 2af40c852c2eef04
+  en: 2e4161e39f0f1448
+  zh: 23b07fd8afb73540
 /deepseek-ai-dsh-target-protection:
   en: e9980238b64d9218
   zh: 999789695a1ecf3b
 /deepseek-ai-dsh-target-protection/summary:
-  en: aee831dc74b59584
-  zh: 5324ea2f0bec614e
+  en: 4b2a11272214ecf3
+  zh: e8f4b3cd07e723f6
 /deepseek-ai-dsh-target-protection/table-of-contents:
   en: a17f33fc984a20f1
   zh: b52ed1e73215ced5
 /deepseek-ai-dsh-target-protection/use-this-package:
-  en: 6b6e6aa6bce4223d
-  zh: 73858c8fba22404d
+  en: fbc1e2f537debb49
+  zh: fededcbd6fed225b
 /deepseek-ai-dsh-target-protection/implementation:
-  en: 1062abba7157b15c
-  zh: 5874a40888aa2af3
+  en: 44f7b8183c9a2bf3
+  zh: c760cc2645a6c75f
 /deepseek-ai-dsh-target-protection/model-experience:
-  en: fa4b5e2a1606c3a1
-  zh: a361907113c120f5
+  en: 2e05ec4648978c4a
+  zh: ef8e8553ba114c5c
 /deepseek-ai-dsh-target-protection/model-experience/kv-cache-effect:
   en: f08345adecdb9dd9
   zh: 379522e0549403ec
 /deepseek-ai-dsh-target-protection/known-limitations-and-deferred-work:
-  en: 4a3e6a7e29802cd8
-  zh: 5cc4b88c5d22efa6
+  en: 125c22ab791f0b37
+  zh: 1cd68c31bd860dbd
 /deepseek-ai-dsh-target-protection/dev-note:
   en: 911184b70b3b3e0e
   zh: f215439b2dd58ce0

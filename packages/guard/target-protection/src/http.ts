@@ -21,6 +21,8 @@ const REASONS: Record<TargetDenialCode, string> = {
   TARGET_READ_ONLY: 'This operation cannot establish read-only effects on the protected destination.',
   TARGET_IDENTITY_UNVERIFIED: 'The destination identity or region could not be verified under the active protection rules.',
   TARGET_MAINLAND_PROTECTED: 'Mainland protection does not allow this operation on the destination.',
+  TARGET_OWNER_RESOURCE: 'This operation cannot access an owner-managed protection resource.',
+  TARGET_EXECUTION_UNCONFINED: 'This executor cannot constrain its effects to the selected targets.',
 }
 
 /**
@@ -31,40 +33,46 @@ const REASONS: Record<TargetDenialCode, string> = {
 export function apply(ctx: Context, config: Config): void {
   const protection = ctx.targetProtection
   const lifetime = new AbortController()
-  ctx.effect(() => () => { lifetime.abort() }, 'target-protected-http.lifetime')
+  const pending = new Set<Promise<boolean>>()
+  ctx.effect(() => async () => { lifetime.abort(); await Promise.allSettled(pending) }, 'target-protected-http.lifetime')
   const limits = resolveHttpFetchLimits(config)
   ctx.web.registerFetchProvider({
     id: 'http', available: () => !lifetime.signal.aborted,
     async fetch(request, signal) {
-      const policySignal = protection.executionSignal()
-      const combined = AbortSignal.any([policySignal, lifetime.signal, ...signal === undefined ? [] : [signal]])
-      let resolution: TargetHttpResolution | undefined
-      const provider = new HttpFetchProvider(limits, async (hostname, requestSignal) => {
-        resolution = await protection.resolveHttpTarget(hostname, requestSignal)
-        return [...resolution.addresses]
-      }, async (destination, requestSignal) => {
-        if (destination.phase === 'before-resolution') resolution = undefined
-        requestSignal.throwIfAborted()
-        try {
-          const extra = await ctx.serial('web-fetch/authorize', destination, requestSignal)
-          if (extra !== undefined) throw new WebError(extra.reason, 'WEB_TARGET_PROTECTED')
-          const decision = await protection.checkHttp(destination, requestSignal, resolution)
+      const release = protection.retainExecution()
+      const settled = Promise.withResolvers<boolean>()
+      pending.add(settled.promise)
+      try {
+        const policySignal = protection.executionSignal()
+        const combined = AbortSignal.any([policySignal, lifetime.signal, ...signal === undefined ? [] : [signal]])
+        let resolution: TargetHttpResolution | undefined
+        const provider = new HttpFetchProvider(limits, async (hostname, requestSignal) => {
+          resolution = await protection.resolveHttpTarget(hostname, requestSignal)
+          return [...resolution.addresses]
+        }, async (destination, requestSignal) => {
+          if (destination.phase === 'before-resolution') resolution = undefined
           requestSignal.throwIfAborted()
-          if (!decision.allowed) throw new WebError(REASONS[decision.code], decision.code)
-        } catch (error) {
-          if (requestSignal.aborted) throw new Error('HTTP authorization cancelled.', { cause: requestSignal.reason })
-          if (error instanceof WebError) throw error
-          throw new WebError('Target protection could not validate this connection; the request was stopped.', 'TARGET_PROTECTION_UNAVAILABLE', { cause: error })
+          try {
+            const extra = await ctx.serial('web-fetch/authorize', destination, requestSignal)
+            if (extra !== undefined) throw new WebError(extra.reason, 'WEB_TARGET_PROTECTED')
+            const decision = await protection.checkHttp(destination, requestSignal, resolution)
+            requestSignal.throwIfAborted()
+            if (!decision.allowed) throw new WebError(REASONS[decision.code], decision.code)
+          } catch (error) {
+            if (requestSignal.aborted) throw new Error('HTTP authorization cancelled.', { cause: requestSignal.reason })
+            if (error instanceof WebError) throw error
+            throw new WebError('Target protection could not validate this connection; the request was stopped.', 'TARGET_PROTECTION_UNAVAILABLE', { cause: error })
+          }
+        })
+        try { return await provider.fetch(request, combined) }
+        catch (error) {
+          const reason: unknown = policySignal.reason
+          if (policySignal.aborted && reason instanceof TargetProtectionError && reason.code === 'conflict' && !signal?.aborted) {
+            throw new WebError('Target policy changed; the operation was stopped. Earlier network effects are not rolled back.', 'TARGET_POLICY_CHANGED', { cause: error })
+          }
+          throw error
         }
-      })
-      try { return await provider.fetch(request, combined) }
-      catch (error) {
-        const reason: unknown = policySignal.reason
-        if (policySignal.aborted && reason instanceof TargetProtectionError && reason.code === 'conflict' && !signal?.aborted) {
-          throw new WebError('Target policy changed; the operation was stopped. Earlier network effects are not rolled back.', 'TARGET_POLICY_CHANGED', { cause: error })
-        }
-        throw error
-      }
+      } finally { settled.resolve(true); pending.delete(settled.promise); release() }
     },
   })
 }

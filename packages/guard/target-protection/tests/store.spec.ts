@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { afterEach, expect, it } from 'vitest'
-import { TargetStore } from '../src/store.ts'
+import { TargetStore, SCHEMA_VERSION } from '../src/store.ts'
 
 const stores: TargetStore[] = []
 const roots: string[] = []
@@ -76,4 +76,16 @@ it('does not reset malformed settings or corrupt file bytes to defaults', async 
   await writeFile(corrupt, 'not a database')
   await expect(TargetStore.open(corrupt, 1000)).rejects.toMatchObject({ code: 'unavailable' })
   expect(await readFile(corrupt, 'utf8')).toBe('not a database')
+})
+
+it('upgrades a version 1 registry atomically without changing its settings revision', async () => {
+  const path = await filename(), store = await open(path)
+  const saved = store.configure({ mainlandEnabled: false, rules: [] }, 1)
+  store.close()
+  const previous = new DatabaseSync(path)
+  try { previous.exec('PRAGMA user_version=1') } finally { previous.close() }
+  expect((await open(path)).snapshot()).toEqual(saved)
+  const inspected = new DatabaseSync(path)
+  try { expect(inspected.prepare('PRAGMA user_version').get()).toEqual({ user_version: SCHEMA_VERSION }) }
+  finally { inspected.close() }
 })

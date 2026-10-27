@@ -46,7 +46,7 @@ Load the backend with a base directory; relative paths resolve against it, and a
 | `cwd` | `process.cwd()` | Base directory for relative paths |
 | `diffBasisMaxBytes` | `10 MiB` | UTF-8 byte limit per overwrite-diff side; larger overwrites return `before: null` |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-fs-local) is the exhaustive source for every accepted field and its JSDoc.
+The [configuration definition](src/index.ts) documents every accepted field and its validation.
 
 ### What you can do
 
@@ -86,6 +86,8 @@ The backend builds on three ideas:
 
 Each write probes the target, enforces the optional guard (`createIfAbsent` or `replaceIfVersion`), captures a bounded `before` diff basis when both sides are small enough, stages the new content next to the target, fsyncs, and publishes atomically. Guarded creation uses a hard-link publication that never replaces a concurrent creator, rejecting it with `FS_NOT_OBSERVED` instead.
 
+Provider subclasses may override `authorizeMutation` to revalidate their policy inside the target lock, before staging and immediately before publication. A rejection prevents final content publication and triggers staging cleanup; completed earlier effects are not rolled back. The bare local provider adds no target restriction.
+
 ### Edit path
 
 Each edit probes, verifies the version guard before literal matching (so stale edits report `FS_STALE_VERSION`, never a misleading no-match), reads the file, applies the literal replacement with LF normalization, restores the file's dominant line-ending style, and republishes — all inside the per-target lock.
@@ -103,7 +105,7 @@ Raw I/O is Cordis-free and independently unit-tested in `src/fsio.ts`; `src/inde
 
 Read these pages when the package-level contract is not enough. They move from the contract to the adjacent backends, tools, and policies.
 
-- [Filesystem subsystem](../../../docs/subsystems/filesystem.md) — exhaustive provider contract, policy events, and error taxonomy.
+- [Filesystem service](../fs/src/index.ts) — provider methods and policy events.
 - [dsh-fs](../fs/README.md) — the `ctx.fs` contract this backend implements.
 - [fs-sandbox](../fs-sandbox/README.md) — the sandbox-enforcing backend that extends this one.
 - [tool-fs](../tool-fs/README.md) — the model-facing tools that consume `ctx.fs`.

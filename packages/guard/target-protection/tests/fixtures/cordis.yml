@@ -4,5 +4,16 @@
   name: cordis:target-protection
   config:
     path: ':memory:'
+    hostsFile: ''
 - id: protected-http
   name: cordis:protected-http
+- id: projections
+  name: cordis:projections
+- id: sandbox
+  name: cordis:sandbox
+  config:
+    mode: danger-full-access
+- id: protected-fs
+  name: cordis:protected-fs
+- id: protected-process
+  name: cordis:protected-process

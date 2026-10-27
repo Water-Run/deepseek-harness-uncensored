@@ -4,6 +4,7 @@ import { createServer, type Server, type Socket } from 'node:net'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { once } from 'node:events'
 import * as packet from 'dns-packet'
 import { afterEach, expect, it } from 'vitest'
 import { resolveTargetDns, type TargetDnsOptions } from '../src/dns-resolution.ts'
@@ -21,27 +22,44 @@ afterEach(async () => {
 
 type Reply = (query: packet.DecodedPacket, tcp: boolean) => packet.Packet | null
 async function fixture(reply: Reply, withTcp = false): Promise<TargetDnsOptions> {
-  const udp = createSocket('udp4'); udpServers.push(udp)
-  let port: number
-  if (withTcp) {
-    const tcp = createServer((socket) => {
-      sockets.add(socket); socket.on('close', () => { sockets.delete(socket) }); socket.on('error', () => {})
-      let data = Buffer.alloc(0)
-      socket.on('data', (chunk: Buffer) => {
-        data = Buffer.concat([data, chunk])
-        if (data.length < 2 || data.length < data.readUInt16BE(0) + 2) return
-        const response = reply(packet.decode(data.subarray(2)), true)
-        if (response !== null) socket.end(packet.streamEncode(response))
-      })
+  const makeTcp = (): Server => createServer((socket) => {
+    sockets.add(socket); socket.on('close', () => { sockets.delete(socket) }); socket.on('error', () => {})
+    let data = Buffer.alloc(0)
+    socket.on('data', (chunk: Buffer) => {
+      data = Buffer.concat([data, chunk])
+      if (data.length < 2 || data.length < data.readUInt16BE(0) + 2) return
+      const response = reply(packet.decode(data.subarray(2)), true)
+      if (response !== null) socket.end(packet.streamEncode(response))
     })
-    tcpServers.push(tcp)
-    await new Promise<void>((resolve) => { tcp.listen(0, '127.0.0.1', resolve) })
-    const address = tcp.address()
-    if (address === null || typeof address === 'string') throw new Error('Missing fixture address')
-    port = address.port
-  } else port = 0
-  await new Promise<void>((resolve) => { udp.bind(port, '127.0.0.1', resolve) })
-  port = udp.address().port
+  })
+  const failures: unknown[] = []
+  let udp: UdpSocket | undefined
+  let port = 0
+  // A measured Windows exclusion spans 600 sequential TCP ports. Keep the UDP allocation while claiming TCP;
+  // this bounded acquisition retry never releases a successful port to scan and rebind it later.
+  for (let attempt = 0; attempt < 1024; attempt++) {
+    const candidate = createSocket('udp4')
+    const tcp = withTcp ? makeTcp() : undefined
+    try {
+      const bound = once(candidate, 'listening'); candidate.bind(0, '127.0.0.1'); await bound
+      port = candidate.address().port
+      if (tcp !== undefined) {
+        const listening = once(tcp, 'listening'); tcp.listen(port, '127.0.0.1'); await listening
+        tcpServers.push(tcp)
+      }
+      udp = candidate; udpServers.push(candidate)
+      break
+    } catch (error) {
+      if (tcp?.listening) await new Promise<void>((resolve) => { tcp.close(() => { resolve() }) })
+      try { await new Promise<void>((resolve) => { candidate.close(resolve) }) }
+      catch (closeError) {
+        if (!(closeError instanceof Error && 'code' in closeError && closeError.code === 'ERR_SOCKET_DGRAM_NOT_RUNNING')) throw closeError
+      }
+      if (!(error instanceof Error && 'code' in error && ['EACCES', 'EADDRINUSE'].includes(String(error.code)))) throw error
+      failures.push(error)
+    }
+  }
+  if (udp === undefined) throw new AggregateError(failures, 'Cannot allocate the fixture DNS transports')
   udp.on('message', (bytes, remote) => {
     const response = reply(packet.decode(bytes), false)
     if (response !== null) udp.send(packet.encode(response), remote.port, remote.address)
@@ -66,6 +84,15 @@ it('retains the exact CNAME chain and excludes unrelated address records', async
   const result = await resolveTargetDns('entry.test', options, AbortSignal.timeout(3000))
   expect(result.names).toEqual(['entry.test', 'resolved.test'])
   expect(result.addresses.map(item => item.address)).toEqual(['192.0.2.10', '2001:db8::10'])
+})
+
+it('owns distinct UDP and TCP endpoints for overlapping DNS fixtures', async () => {
+  const reply: Reply = (query, tcp) => tcp ? response(query, addresses(query, 'entry.test'))
+    : { ...response(query), flags: packet.TRUNCATED_RESPONSE }
+  const [first, second] = await Promise.all([fixture(reply, true), fixture(reply, true)])
+  expect(first.servers).not.toEqual(second.servers)
+  const resolved = await Promise.all([first, second].map(options => resolveTargetDns('entry.test', options, AbortSignal.timeout(3000))))
+  expect(resolved.map(item => item.addresses.length)).toEqual([2, 2])
 })
 
 it('follows a CNAME-only answer and preserves numeric DNS labels', async () => {

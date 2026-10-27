@@ -12,7 +12,7 @@ export interface TargetRule {
   kind: 'domain' | 'server' | 'database'
   environment: 'production' | 'test'
   protection: 'full' | 'audit'
-  match: 'host' | 'domain' | 'regex' | 'cidr'
+  match: 'host' | 'domain' | 'regex' | 'cidr' | 'path'
   address: string
   port?: number
   database?: string
@@ -52,7 +52,7 @@ export type RuleAddresses = ReadonlyMap<TargetRuleId, readonly string[] | null>
 export type TargetEffect = 'observe' | 'mutate' | 'unconfined' | 'unknown'
 
 /** Stable rejection codes for execution, UI and later durable audit projection. */
-export type TargetDenialCode = 'TARGET_FULLY_PROTECTED' | 'TARGET_READ_ONLY' | 'TARGET_IDENTITY_UNVERIFIED' | 'TARGET_MAINLAND_PROTECTED'
+export type TargetDenialCode = 'TARGET_FULLY_PROTECTED' | 'TARGET_READ_ONLY' | 'TARGET_IDENTITY_UNVERIFIED' | 'TARGET_MAINLAND_PROTECTED' | 'TARGET_OWNER_RESOURCE' | 'TARGET_EXECUTION_UNCONFINED'
 
 /** Deterministic result; a test exception cannot replace a production denial. */
 export type TargetDecision = { allowed: true; ruleIds: readonly TargetRuleId[] }

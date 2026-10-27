@@ -584,6 +584,7 @@ async function throwGuardedCreateFailure(
  * @param createIfAbsent - when provided, publish with a hard-link no-replace
  * primitive; a concurrent creator's file is preserved and this write is
  * rejected with `FS_NOT_OBSERVED` using the supplied display path.
+ * @param authorize - Optional executing-provider admission, checked before staging and immediately before publication.
  */
 export async function writeFileAtomic(
   absolutePath: string,
@@ -592,7 +593,9 @@ export async function writeFileAtomic(
   signal: AbortSignal | undefined,
   internals: FsIoInternals = {},
   createIfAbsent?: { displayPath: string },
+  authorize?: () => Promise<void>,
 ): Promise<void> {
+  await authorize?.()
   throwIfAborted(signal, 'write')
   const directory = dirname(absolutePath)
   await mkdir(directory, { recursive: true })
@@ -629,6 +632,7 @@ export async function writeFileAtomic(
     await handle.close()
     handle = undefined
 
+    await authorize?.()
     throwIfAborted(signal, 'write')
     if (createIfAbsent !== undefined) {
       try {
