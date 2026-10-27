@@ -126,8 +126,8 @@ export class SecurityProxyService extends TypertRemoteService {
    * @returns the detail, or null when pruned or unknown.
    */
   @Remote
-  async detail(id: string): Promise<SecurityProxyFlowDetail | null> {
-    return this.engine.detail(id)
+  detail(id: string): Promise<SecurityProxyFlowDetail | null> {
+    return Promise.resolve(this.engine.detail(id))
   }
 
   /**

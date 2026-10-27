@@ -119,8 +119,14 @@ function readJson(path: string): PackageManifest {
 
 const rootManifest = readJson(join(root, 'package.json'))
 const repositoryVersion = rootManifest.version
-const forkIdentity: { version: string; repository: string } = JSON.parse(readFileSync(join(root, 'product.json'), 'utf8'))
+const forkIdentity: unknown = JSON.parse(readFileSync(join(root, 'product.json'), 'utf8'))
+if (typeof forkIdentity !== 'object' || forkIdentity === null
+  || !('version' in forkIdentity) || typeof forkIdentity.version !== 'string'
+  || !('repository' in forkIdentity) || typeof forkIdentity.repository !== 'string') {
+  throw new Error('product.json must declare version and repository strings')
+}
 const forkRepositoryUrl = `git+${forkIdentity.repository}.git`
+const forkVersion = forkIdentity.version
 const nativeWorkspaceManifest = readJson(join(root, 'native/system/package.json'))
 const nativeVersion = nativeWorkspaceManifest.version
 
@@ -443,7 +449,7 @@ export function checkDshFamilyVersion(
 export function checkWorkspaceManifest({ dir, manifest }: WorkspaceManifest): string[] {
   const errors = checkExperimentalManifest({ dir, manifest })
   const label = manifest.name ?? dir
-  const familyVersionError = checkDshFamilyVersion(manifest, repositoryVersion, forkIdentity.version)
+  const familyVersionError = checkDshFamilyVersion(manifest, repositoryVersion, forkVersion)
   if (familyVersionError !== undefined) errors.push(familyVersionError)
   const isNativePackageDir = dir.startsWith('native/system/packages/')
   const isPublicNativePackage = isNativePackageDir

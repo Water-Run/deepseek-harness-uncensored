@@ -4,10 +4,10 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { InlineAsideController } from '../src/client/asides/controller.ts'
 
 const parent = 'parent' as SessionId
-function reference(id: string): SessionReference {
+function reference(id: string) {
   const release = vi.fn()
   return { sessionId: id as SessionId, get binding(): SessionBinding { throw new Error('binding is unused by this controller') },
-    ready: new Promise(() => {}), release, [Symbol.dispose]: release }
+    ready: new Promise<never>(() => {}), release, [Symbol.dispose]: release } satisfies SessionReference
 }
 
 describe('one-shot inline questions', () => {

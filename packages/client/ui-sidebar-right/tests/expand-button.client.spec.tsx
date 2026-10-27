@@ -4,7 +4,7 @@
  * while the panel is collapsed, asks for it to expand, and renders nothing
  * while the panel is shown.
  */
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
 import { useSyncExternalStore } from 'react'
 import type { GlobalStandardProps, SessionStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
@@ -16,6 +16,7 @@ import type { ExpandButtonProps } from '../src/client/shell/ExpandButton.tsx'
 import { createSidebarRightStore } from '../src/client/stores.ts'
 
 const SESSION = 's-test' as SessionId
+afterEach(() => { cleanup(); vi.useRealTimers() })
 const unused = (): never => { throw new Error('This isolated component does not consume framework hooks') }
 const standard: GlobalStandardProps & SessionStandardProps = {
   sessionId: SESSION, useSession: unused, useProjection: unused, useConversation: unused,
@@ -52,12 +53,14 @@ function mountButton(shortcuts: readonly ShortcutCatalogEntry[] = []) {
 }
 
 describe('ExpandButton', () => {
-  it('advertises the configured expand binding', async () => {
+  it('advertises the configured expand binding', () => {
+    vi.useFakeTimers()
     const { control, view } = mountButton([{ id: 'sidebar.right.toggle' as never, label: 'Toggle', aliases: [],
       binding: null, keys: ['Ctrl', 'B'], aria: 'Control+B', modified: true, conflicts: [], issue: null }])
     expect(control()?.getAttribute('aria-keyshortcuts')).toBe('Control+B')
     fireEvent.mouseEnter(control()!)
-    const tooltip = await view.findByRole('tooltip')
+    act(() => { vi.advanceTimersByTime(500) })
+    const tooltip = view.getByRole('tooltip')
     expect(tooltip.textContent).toContain('chrome.expand')
     expect(Array.from(tooltip.querySelectorAll('kbd'), key => key.textContent)).toEqual(['Ctrl', 'B'])
     cleanup()

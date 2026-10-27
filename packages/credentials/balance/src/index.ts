@@ -16,13 +16,21 @@ export type * from './types.ts'
 
 /** Deployment and live user preferences for balance queries. */
 export interface Config {
+  /** Whether authenticated queries and local sampling are enabled. */
   enabled: Volatile<boolean>
+  /** Interval in seconds used by the shared client polling owner. */
   refreshSeconds: Volatile<number>
+  /** Read saved observations or fetch the current balance from the provider. */
   source: Volatile<'local' | 'api'>
+  /** Credential-store reference for API-key balance requests. */
   apiKeyRef: string
+  /** HTTPS API origin without credentials, a path, query or fragment. */
   baseURL: string
+  /** Deadline in milliseconds for one provider request. */
   timeoutMs: number
+  /** Maximum retained samples per account in local storage. */
   historyLimit: number
+  /** Maximum observations included in one client snapshot. */
   displayLimit: number
 }
 /** Validated sampling preferences and bounded provider requests. */
@@ -79,7 +87,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     throw new Error('balance: baseURL must be an HTTPS origin without credentials, path, query, or fragment')
   }
   const ref = credentialRef(config.apiKeyRef)
-  await ctx.settings.configure({ auto: false }, ctx.fiber)
+  ctx.settings.configure({ auto: false }, ctx.fiber)
   const domain = await ctx.storage.domain.open(domainSpec)
   const table = domain.table('samples')
   const identify = async (client: AccountClientMetadata, refreshIdentity: boolean): Promise<BalanceIdentity | null> => {

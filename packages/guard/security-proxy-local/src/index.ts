@@ -153,6 +153,7 @@ function recordedPreset(agent: Agent, cache: Map<string, string>): string {
 
 /** The last committed preset selection in one session log, if any. */
 function latestSelection(session: Session): string | undefined {
+  // oxlint-disable-next-line typescript/no-deprecated -- Existing cold read; later selections update the session cache.
   const events = session.snapshotEvents()
   for (let index = events.length - 1; index >= 0; index -= 1) {
     const event: SessionEvent | undefined = events[index]

@@ -108,7 +108,7 @@ export async function loadForkRelease(
       assertForkReleaseUrl(page)
       if (visited.has(page)) return { phase: 'failed', message: 'repeated-release-page' }
       visited.add(page)
-      const response = await fetchImpl(page, { headers: { accept: 'application/vnd.github+json' }, signal, redirect: 'error' })
+      const response: Response = await fetchImpl(page, { headers: { accept: 'application/vnd.github+json' }, signal, redirect: 'error' })
       if (!response.ok) return { phase: 'failed', message: `http-${response.status}` }
       const body: unknown = await response.json()
       signal.throwIfAborted()

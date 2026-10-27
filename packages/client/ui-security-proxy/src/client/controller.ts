@@ -142,7 +142,7 @@ export class SecurityProxyController {
       this.patch({ failed: true })
       return false
     } finally {
-      if (!this.closed) this.patch({ testing: false })
+      this.patch({ testing: false })
     }
   }
 

@@ -56,14 +56,23 @@ export interface SpendSnapshot {
 }
 /** CNY prices per million tokens. Reservations use the uncached input rate. */
 export interface SpendRate {
+  /** Provider identifiers sharing this price schedule. */
   providers: string[]
+  /** Model identifiers matched by this schedule. */
   models: string[]
+  /** CNY per million uncached input tokens. */
   input: number
+  /** CNY per million cached input tokens. */
   cachedInput: number
+  /** CNY per million cache-creation tokens. */
   cacheWrite: number
+  /** CNY per million output tokens. */
   output: number
+  /** Context capacity used when reserving the maximum request cost. */
   contextTokens: number
+  /** Output-token ceiling used for request reservations. */
   maxOutputTokens: number
+  /** CNY per native search request, independent of token prices. */
   searchRequest: number
 }
 

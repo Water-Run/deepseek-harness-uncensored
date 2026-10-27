@@ -96,12 +96,13 @@ export class SpendRecovery {
     if (this.closed || this.provider === undefined) return Promise.resolve()
     if (this.active !== undefined) return this.active
     const provider = this.provider
+    const cancelled = (): boolean => provider.abort.signal.aborted
     const task = Promise.resolve().then(async () => {
-      if (this.closed || provider.abort.signal.aborted) return
+      if (this.closed || cancelled()) return
       const claims = gate.ledger.claimBlockedSessions()
       for (const claim of claims) {
         try {
-          if (provider.abort.signal.aborted) { gate.ledger.releaseClaim(claim.id); continue }
+          if (cancelled()) { gate.ledger.releaseClaim(claim.id); continue }
           const result = await provider.handler(claim, provider.abort.signal)
           provider.abort.signal.throwIfAborted()
           if (result === 'unavailable') gate.ledger.releaseClaim(claim.id)
@@ -115,7 +116,7 @@ export class SpendRecovery {
           }
         } catch (error) {
           gate.ledger.releaseClaim(claim.id)
-          if (!provider.abort.signal.aborted) this.report(error)
+          if (!cancelled()) this.report(error)
         }
       }
     }).catch(this.report).finally(() => { if (this.active === task) this.active = undefined })

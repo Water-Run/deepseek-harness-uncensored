@@ -25,7 +25,11 @@ export interface Config extends ContactConfig {
 
 /** Configuration projected through the account plugin's shared form. */
 export const Config = z.object({
-  ...ContactConfigFields,
+  contactFormUrl: ContactConfigFields.contactFormUrl,
+  contactSource: ContactConfigFields.contactSource,
+  bonusAckRetryDelayMs: ContactConfigFields.bonusAckRetryDelayMs,
+  bonusAckRetryMaxDelayMs: ContactConfigFields.bonusAckRetryMaxDelayMs,
+  releaseCheckTimeoutMs: ContactConfigFields.releaseCheckTimeoutMs,
   version: OnboardingSettingsFields.version.volatile(),
   step: OnboardingSettingsFields.step.volatile(),
   purpose: OnboardingSettingsFields.purpose.volatile(),

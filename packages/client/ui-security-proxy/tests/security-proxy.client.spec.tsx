@@ -80,9 +80,10 @@ const DETAIL: SecurityProxyFlowDetail = {
 
 describe('controller', () => {
   it('reads settings and flows on load, then publishes a successful save', async () => {
+    const configure = vi.fn(async () => ({ ...STATE, settings: { ...SETTINGS, enabled: false } }))
     const port: SecurityProxyPort = {
       get: vi.fn(async () => STATE),
-      configure: vi.fn(async () => ({ ...STATE, settings: { ...SETTINGS, enabled: false } })),
+      configure,
       setPassword: vi.fn(async () => STATE),
       test: vi.fn(async () => ({ ok: true, durationMs: 5, failure: null, detail: null, state: STATE })),
       list: vi.fn(async () => ({ flows: [FLOW], capture: STATE.capture })),
@@ -96,7 +97,7 @@ describe('controller', () => {
       await waitFor(() => { expect(controller.state.getSnapshot().state).not.toBeNull() })
       expect(controller.state.getSnapshot().flows).toEqual([FLOW])
       expect(await controller.configure({ enabled: false })).toBe(true)
-      expect(port.configure).toHaveBeenCalledWith({ enabled: false })
+      expect(configure).toHaveBeenCalledWith({ enabled: false })
       expect(controller.state.getSnapshot()).toMatchObject({ saving: false, feedback: { code: 'saved', success: true } })
       expect(controller.state.getSnapshot().state?.settings.enabled).toBe(false)
     } finally { await controller.dispose() }

@@ -3,7 +3,7 @@
   gap: 14px;
   min-width: 0;
   padding: 18px;
-  border: 1px solid var(--dsw-alias-border-l3);
+  border: 0.5px solid var(--dsw-alias-border-l3);
   border-radius: var(--dsw-radius-lg);
   background: var(--dsw-alias-settings-card-fill);
   color: var(--dsw-alias-label-primary);
@@ -18,7 +18,7 @@
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .actions span { font-size: 12px; color: var(--dsw-alias-label-secondary); }
 .error { font-size: 13px; color: var(--dsw-alias-label-primary); overflow-wrap: anywhere; }
-.result { display: grid; gap: 8px; min-width: 0; padding-top: 12px; border-top: 1px solid var(--dsw-alias-border-l3); font-size: 13px; }
+.result { display: grid; gap: 8px; min-width: 0; padding-top: 12px; border-top: 0.5px solid var(--dsw-alias-border-l3); font-size: 13px; }
 .result strong { font-weight: 500; }
 .engines { margin: 0; display: grid; gap: 6px; }
 .engines > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }

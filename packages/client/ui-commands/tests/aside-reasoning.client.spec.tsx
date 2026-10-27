@@ -66,7 +66,7 @@ it('renders the current level, saves a pick, and surfaces failures and absence',
   const save = vi.fn(async () => ({ status: 'ready' as const, value: 'high' as const, writable: true }))
   const t = (key: string): string => key
   render(<AsideReasoningRow load={load} save={save} t={t} />)
-  await waitFor(() => { expect(screen.getByRole('button', { name: 'aside.reasoning.low' })).toBeTruthy() })
+  await waitFor(() => { expect(screen.getByRole<HTMLButtonElement>('button', { name: 'aside.reasoning.low' }).disabled).toBe(false) })
   const trigger = screen.getByRole('button', { name: 'aside.reasoning.low' })
   await act(async () => { fireEvent.click(trigger) })
   const option = await screen.findByRole('menuitem', { name: 'aside.reasoning.high' })
@@ -77,7 +77,7 @@ it('renders the current level, saves a pick, and surfaces failures and absence',
   cleanup()
   const failing = vi.fn(async () => ({ status: 'error' as const, value: 'low' as const, writable: true }))
   render(<AsideReasoningRow load={load} save={failing} t={t} />)
-  await waitFor(() => { expect(screen.getByRole('button', { name: 'aside.reasoning.low' })).toBeTruthy() })
+  await waitFor(() => { expect(screen.getByRole<HTMLButtonElement>('button', { name: 'aside.reasoning.low' }).disabled).toBe(false) })
   await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'aside.reasoning.low' })) })
   await act(async () => { fireEvent.click(await screen.findByRole('menuitem', { name: 'aside.reasoning.max' })) })
   await waitFor(() => { expect(screen.getByRole('alert').textContent).toBe('aside.reasoning.error') })

@@ -30,7 +30,7 @@ export class BalanceController {
 
   /** @param preferences - Shared Host-backed form. @param query - Authenticated balance query. */
   constructor(readonly preferences: ConfigForm<BalancePreferences>, private readonly query: () => Promise<BalanceSnapshot>) {
-    this.stopPreferences = preferences.subscribe(() => this.refresh())
+    this.stopPreferences = preferences.subscribe(() => { this.refresh() })
     this.clock = setInterval(() => { this.state.set({ ...this.state.getSnapshot(), now: Date.now() }) }, 60_000)
     this.refresh()
   }
@@ -65,16 +65,20 @@ export class BalanceController {
       this.state.set({ ...this.state.getSnapshot(), loading: true, failed: false })
       try {
         const data = await this.query()
-        if (!this.lifetime.signal.aborted && generation === this.revision) {
+        if (this.accepts(generation)) {
           this.state.set({ ...this.state.getSnapshot(), data, loading: false, now: Date.now(), failed: data.status === 'unavailable' })
         }
       } catch (_error) {
-        if (!this.lifetime.signal.aborted && generation === this.revision) {
+        if (this.accepts(generation)) {
           this.state.set({ ...this.state.getSnapshot(), loading: false, failed: true })
         }
       }
       if (generation === this.revision) return
     }
+  }
+
+  private accepts(generation: number): boolean {
+    return !this.lifetime.signal.aborted && generation === this.revision
   }
 
   /**

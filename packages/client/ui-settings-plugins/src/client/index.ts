@@ -43,7 +43,7 @@ export function apply(ctx: ClientContext): void {
   const navigation = createSnapshotStore<string | undefined>(undefined)
   ctx.on('settings/section-opened', (id) => { if (id === 'plugins') navigation.set('manager') })
   const sectionInjected = (): PluginsSettingsSectionInjected => ({
-    selectTab: id => navigation.set(id),
+    selectTab: (id) => { navigation.set(id) },
     hooks: {
       navigation,
       tabs: {

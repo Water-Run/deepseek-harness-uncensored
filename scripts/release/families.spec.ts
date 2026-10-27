@@ -241,9 +241,9 @@ describe('release families', () => {
     writeClientBuildRecord(root, environment)
     vi.stubEnv('DSH_CLIENT_BUILD_TIME', '2026-10-24T00:00:00.000Z')
     const dsh = releaseFamily('dsh')
-    expect(() => dsh.verifyBuildArtifacts(root)).not.toThrow()
+    expect(() => { dsh.verifyBuildArtifacts(root) }).not.toThrow()
     writeClientBuildRecord(root, { ...environment, DSH_CLIENT_FORK_VERSION: '0.9.0' })
-    expect(() => dsh.verifyBuildArtifacts(root)).toThrow('DSH_CLIENT_FORK_VERSION')
+    expect(() => { dsh.verifyBuildArtifacts(root) }).toThrow('DSH_CLIENT_FORK_VERSION')
   })
 
   it('publishes a dependency before its consumer, and orders ties by name', () => {

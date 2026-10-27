@@ -33,7 +33,7 @@ it.each([
   'http://api.github.com/repos/Water-Run/deepseek-harness-uncensored/releases',
   'https://api.github.com/repos/Water-Run/deepseek-harness-uncensored/releases-other',
   'https://user:pass@api.github.com/repos/Water-Run/deepseek-harness-uncensored/releases',
-])('rejects a changed API destination %s', (url) => { expect(() => assertForkReleaseUrl(url)).toThrow() })
+])('rejects a changed API destination %s', (url) => { expect(() => { assertForkReleaseUrl(url) }).toThrow() })
 
 it('validates release links and does not call a truncated release list current', async () => {
   const body = [{ tag_name: '0.1.0', prerelease: false, draft: false, html_url: release('0.1.0').url }]
@@ -56,7 +56,7 @@ it('follows validated release pages and rejects a pagination loop', async () => 
 it('ends a hung request at its deadline', async () => {
   vi.useFakeTimers()
   const pending = loadForkRelease(async (_url, init) => new Promise<Response>((_resolve, reject) => {
-    init?.signal?.addEventListener('abort', () => { reject(init.signal?.reason) }, { once: true })
+    init?.signal?.addEventListener('abort', () => { reject(new DOMException('Request aborted', 'AbortError')) }, { once: true })
   }), '0.1.0', { timeoutMs: 100 })
   await vi.advanceTimersByTimeAsync(100)
   expect(await pending).toMatchObject({ phase: 'failed', message: 'timeout' })

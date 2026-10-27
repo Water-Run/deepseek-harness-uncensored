@@ -197,7 +197,7 @@ export function SecurityProxySection(props: SecurityProxySectionProps) {
         <Button size="sm" disabled={password === ''} onClick={() => { void setPassword(password).then((ok) => { if (ok) setPasswordDraft('') }) }}>
           {t('securityProxy.savePassword')}
         </Button>
-        <Button size="sm" variant="outline" disabled={settings.hasPassword !== true}
+        <Button size="sm" variant="outline" disabled={!settings.hasPassword}
           onClick={() => { void setPassword(null) }}>{t('securityProxy.clearPassword')}</Button>
       </div>
     </div>}

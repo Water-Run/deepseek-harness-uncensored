@@ -156,8 +156,10 @@ export class SessionChainProxy {
       if (upstreamResponse.body !== null) {
         const reader = upstreamResponse.body.getReader()
         for (;;) {
-          const { done, value } = await reader.read()
-          if (done) break
+          const chunk = await reader.read()
+          if (chunk.done) break
+          const value: unknown = chunk.value
+          if (!(value instanceof Uint8Array)) throw new TypeError('security proxy: response stream must contain bytes')
           responseBytes += value.byteLength
           if (capturedBytes < maxCapture) {
             const remaining = maxCapture - capturedBytes

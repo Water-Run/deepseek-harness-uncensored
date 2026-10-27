@@ -135,19 +135,9 @@ export interface Config {
 }
 
 /** Deployment policy after schema defaults have been applied. */
-export type ResolvedConfig = Omit<Config, 'btwReasoningEffort'> & {
-  readonly listWorkSliceMs: number
-  readonly sideContextBytes: number
-  readonly btwContextBytes: number
-  readonly btwMaxTokens: number
+export type ResolvedConfig = Required<Omit<Config, 'nativeOpen' | 'btwReasoningEffort'>> & Pick<Config, 'nativeOpen'> & {
+  /** Live quick-question reasoning preference, owned by Settings after schema resolution. */
   readonly btwReasoningEffort: Volatile<BtwReasoningEffort>
-  readonly deleteDrainTimeoutMs: number
-  readonly deletePollMs: number
-  readonly predictionDraftBytes: number
-  readonly predictionContextBytes: number
-  readonly predictionMaxTokens: number
-  readonly predictionOutputBytes: number
-  readonly predictionTimeoutMs: number
 }
 
 /**
@@ -162,6 +152,9 @@ function isResolvedConfig(config: Config | ResolvedConfig): config is ResolvedCo
   const aside: unknown = Reflect.get(config, 'btwReasoningEffort')
   return typeof aside === 'object' && aside !== null && typeof Reflect.get(aside, 'get') === 'function'
 }
+
+/** Plain deployment options or the Loader's already-resolved live configuration. */
+export type SessionControllerConfig = Config | ResolvedConfig
 
 /** Host integrations replaceable by direct unit tests. */
 export interface SessionControllerInternals {
@@ -233,7 +226,7 @@ export class SessionController extends TypertRemoteService {
    * @param config - native-opener and list-scheduling deployment policy.
    * @param internals - host integrations replaceable by direct unit tests.
    */
-  constructor(ctx: Context, config: Config | ResolvedConfig, internals: SessionControllerInternals = {}) {
+  constructor(ctx: Context, config: SessionControllerConfig, internals: SessionControllerInternals = {}) {
     super(ctx, 'sessionController', { namespace: 'session' })
     ctx.typert.resources.register('session', { field: 'sessionId' })
     // The Loader resolves Config before construction; direct harnesses pass a

@@ -20,6 +20,7 @@ it('keeps configuration explicit and searches the checked catalog', async () => 
     probe: vi.fn(async () => ({ name: 'REA', version: '6.8.0', toolCount: 2, tools: ['open_binary', 'analyze_function'], engines: [] })),
   }
   render(<ReaPanel operations={operations} t={t} />)
+  await screen.findByPlaceholderText(en['rea.nodePathHint'])
   await waitFor(() => { expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('false') })
   expect(screen.getByText(en['rea.check']).hasAttribute('disabled')).toBe(true)
   fireEvent.click(screen.getByRole('switch'))

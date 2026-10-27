@@ -301,7 +301,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     const navigation = AbortSignal.any([this.ctx.layout.beginNavigation(), this.lifetime.signal])
     let sessionId: SessionId
     try {
-      sessionId = workspaceId === null ? await this.sessions.create(reuse ?? {}) : await this.connectBlank(workspaceId, reuse)
+      sessionId = workspaceId === null ? await this.sessions.create(reuse) : await this.connectBlank(workspaceId, reuse)
     } catch (error: unknown) {
       // Reported here, not in connectWorkspace: startup restoration calls that
       // directly and stays console-only.

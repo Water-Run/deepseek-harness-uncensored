@@ -69,6 +69,6 @@ export async function resolveSessionScope(
     ...workspaceKey === undefined ? {} : { workspaceKey },
     ...resolvedMode === undefined ? {} : { mode: resolvedMode },
     sessionId: session.id,
-    freshChild: session.header.parentSession !== undefined && session.header.isSeeded !== true,
+    freshChild: session.header.parentSession !== undefined && !session.header.isSeeded,
   }
 }

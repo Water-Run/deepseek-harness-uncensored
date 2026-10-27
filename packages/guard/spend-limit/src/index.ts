@@ -15,7 +15,14 @@ import type { SessionSpendUsage, SpendPeriod, SpendPreferences, SpendRate, Spend
 export type * from './types.ts'
 
 /** Deployment-owned ledger path and conservative rates. User limits live in the ledger. */
-export interface Config { path: string; pollMs: number; rates: SpendRate[] }
+export interface Config {
+  /** SQLite ledger path, independent of individual conversations. */
+  path: string
+  /** Interval in milliseconds for rechecking waiting requests and durable pauses. */
+  pollMs: number
+  /** Provider/model rates used for reservations and settlement estimates. */
+  rates: SpendRate[]
+}
 /** All deployment-varying rates are configurable without changing source. */
 export const Config = schema.object({
   path: schema.string().required(), pollMs: schema.number().step(1).min(50).max(60000).default(1000), rates: schema.array(schema.object({

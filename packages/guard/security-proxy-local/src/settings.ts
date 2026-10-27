@@ -109,7 +109,7 @@ export function applyPatch(current: StoredSettings, patch: SecurityProxySettings
     ...patch.maxBodyBytes === undefined ? {} : { maxBodyBytes: patch.maxBodyBytes },
     ...patch.retentionMinutes === undefined ? {} : { retentionMinutes: patch.retentionMinutes },
   }
-  if (next.protocol !== 'http' && next.protocol !== 'https') {
+  if (!protocol.safeParse(next.protocol).success) {
     throw new SettingsValidationError('upstream protocol must be http or https')
   }
   if (next.authEnabled && next.username.trim() === '') {

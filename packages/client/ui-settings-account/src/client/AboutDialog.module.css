@@ -1,5 +1,5 @@
 .dialog { width: min(820px, 100%); max-height: 100%; }
-.scrollContent { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.scrollContent { min-height: 0; overflow-y: auto; overscroll-behavior: contain; --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2); --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2); }
 .scrollContent > :first-child { position: sticky; top: 0; z-index: 1; flex: none; background: var(--dsw-alias-bg-layer-2); }
 .content { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 32px; color: var(--dsw-alias-label-primary); padding: 4px 4px 8px; }
 .identity { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; min-width: 0; }
