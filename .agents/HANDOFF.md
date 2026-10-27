@@ -1,5 +1,39 @@
 # Uncensored 开发交接
 
+## 最新状态：已打包，提交交接后暂停（2026-10-27 13:24）
+
+最新查询的 Codex 7 天共享额度剩余 **27%**（已用 73%），没有会话或模型独立窗口。本次自动续跑使用 Astra，未将此前用户对 Sol 开发的例外扩大到本轮；按低于 40% 的规则停止新开发，只完成验证、归档与打包。交接推送后将未完成 Goal 设为 paused，等待用户明确继续。以下旧节点中的 active/继续描述仅记录当时状态，以本节及额度规则的最近记录为准。
+
+### 已保存的成果
+
+- 三个源码节点均已推送 main：`aaa1771ce6` 本地文件/进程保护，`0a419dcd7b` 受控 HTTP 代理固定目标，`32aa7161ed` 数据库端点/文件关联及规则库 v3。当前仅 main 主线。
+- 当前完整保护约 50%，仍是可选后端源码，**没有装配到默认应用**。安装包成功不代表 SSH、数据库协议或所有执行入口已受保护；现有 armor 未改动。
+- 最新相关集成测试 14 文件 167 项通过，完整 build 9/9；编译产物验证端点与文件共享策略、SQLite 附属文件拒绝且字节不变、规则重开与未来版本拒绝。具体测试和限制见下方三个节点。
+
+### 本次交付文件
+
+| 产物 | 源码节点 | 大小 | SHA256 |
+| --- | --- | --- | --- |
+| Windows x64 未签名安装包 v0.1.0 | `32aa7161ed8eb6f5769bc017619d8a5e35c886db` | 288524427 字节 | `FC3A80B39F9E45F92D52B1E8C250DC900983285B7C03481C4B0C47335D174D17` |
+| Git 源码归档 | 同上 | 46044415 字节 | `1078D67B661ACD45D8BD93F5FFFF4B348C05C3CAEE9E99E2D7B6215D985877B5` |
+
+安装包：apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/runs/2026-10-27T05-09-42.648Z-4rCkYZ/deepseek-harness-uncensored-0.1.0-win-x64-unsigned.exe。源码归档：.dsh-build/target-protection-20261027/dshu-0.1.0-32aa7161ed-source.zip。打包时源码工作树干净；随后只有交接文档变化。
+
+运行记录：apps/desktop/.desktop-build/packaging-runs/2026-10-27T05-09-42.648Z-4rCkYZ，整体 success，耗时 856173 ms；打包后的原生模块、PTY、离线插件安装/移除、Web 启动、DOCX/XLSX/PPTX→PDF 和 skill CLI 检查通过。未安装、签名或发布；当前已安装基线仍为 `201c9cde8d`，此前 `83078f9177` 收尾安装包也保留。
+
+第一次打包在 Electron 下载时因 TLS ECONNRESET 失败；启用 Electron 支持的现有代理后，官方 SHA256 核对通过。第二次在 npm 镜像请求 koffi 时失败；第三次使用临时公共打包预设改为 registry.npmjs.org，其他发布设置一致，最终成功。没有改动 .env.windows、全局 npm 配置或关闭 TLS/下载校验。日志及可恢复状态位于 .dsh-build/target-protection-20261027/astra-closeout-state.json、astra-closeout-package*.log；这些本机产物不提交 Git。
+
+交接检查：test:docs 2 项、doc-sync、diff --check 通过。全仓 lint 的类型准备步骤完成，随后 npm 子命令因 packageManager 约束无法启动；改用 pnpm run lint:contracts-ready 执行相同步骤，报告 **47 错误、1 警告**，涉及更新/余额、随问测试、独立代理等 19 个错误文件，不含 target-protection。本轮没有改这些源码，未趁额度收尾扩展修复。证据在 .dsh-build/target-protection-20261027/astra-closeout-lint.log 和 astra-closeout-lint-ready.log；当前不能声明全仓 lint 通过。
+
+### 未完成与恢复
+
+1. **P1 剩余**：独立网安代理的受控 Client、不透明链式隧道及路由变化。普通 HTTP 的固定 IP CONNECT 不能代替全部代理联动。
+2. **P2**：SSH、数据库协议只读执行与身份、远端路径和私有地址环境、受限命令/终端、删除/重命名及原生/管理旁路。当前拒绝无法约束的进程，不是内核目标沙盒；文件最终系统调用的外部竞态仍有限制。
+3. **P3**：持久化审计、TS/Python SDK 回放、所有者管理、真实状态/责任确认、地区数据更新/署名、独立代理与默认应用装配。
+4. 原始其他待办保留；签名、升级/卸载/回滚、跨平台和完整依赖许可审计未完成。全仓 lint 的 47 个错误及插件参考目录检查的 22 项既有问题待修复，不能宣称全仓检查均通过。
+
+恢复时先读 [额度规则](requirements/2026-10-27-quota-closeout.md)、[当前清单](TODO.md)和[保护实施计划](requirements/2026-10-26-target-protection.md)，核实实际额度与 main 状态，再按用户最新授权继续 P2 执行器和旁路盘点，随后接 P3。不要恢复旧模型分类草稿来替代执行保护，不因打包成功将三项目标保护打勾。
+
 ## 数据库资源与附属文件关联节点（2026-10-27）
 
 Goal 继续 active，用户明确授权本轮 Sol 开发并要求完整可靠；最新共享额度剩余 31%（12:30，Asia/Shanghai），无 Sol 独立窗口。`aaa1771ce6` 与 `0a419dcd7b` 已推送，远端仅 main。当前默认产品与安装版未启用新后端，未改 armor；整体目标尚未完成。
