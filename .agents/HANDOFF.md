@@ -1,5 +1,19 @@
 # Uncensored 开发交接
 
+## 当前交付：收尾完成，交接推送后暂停（2026-10-27 18:14）
+
+用户要求的独立代理执行保护节点已完成源码验证、打包和运行检查；交接提交推送后将 Goal 设为 paused，等待用户明确继续。最新 Codex 7 天共享额度剩余 **7%**（已用 93%），没有会话或模型独立窗口。下方恢复/继续段落均是历史记录，不得据此自动续跑。
+
+- 源码：`cc9436a224f18b6e5e8d45af58596331f2fc1055`，已推送 main；打包时工作树干净。前一质量修复节点为 `ad334f7656`。
+- Windows x64 未签名 v0.1.0 安装包：apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/runs/2026-10-27T09-44-06.059Z-A6RkGD/deepseek-harness-uncensored-0.1.0-win-x64-unsigned.exe；288485813 字节；SHA256 `4C9C2073A34DDD886811D99EA365081AE802A10F8554634BF79AE9ACA52DEEAA`。
+- 源码归档：.dsh-build/target-protection-20261027/dshu-0.1.0-cc9436a224-source.zip；46067388 字节；SHA256 `413C725BBCEF3614B7E603456E1377F80B45DC6EA7ECA00023A9858AEABDB6A8`。归档对应代码提交，最终产物交接另做文档提交。
+- 打包记录：apps/desktop/.desktop-build/packaging-runs/2026-10-27T09-44-06.059Z-A6RkGD，整体 success，1739769 ms。完整构建、准备目录及最终包的原生模块、PTY、离线插件、Web 启动、DOCX/XLSX/PPTX→PDF 和 skill CLI 检查通过。
+- 本次仅打包，没有覆盖安装、签名或发布。最后核验的安装基线为 `201c9cde8d`；此前 `32aa7161ed` 等安装包保留。使用临时公共预设选择官方 npm 源；网络波动经打包器既定重试后完成，没有关闭 TLS/下载校验或改变正式环境文件。
+
+开发证据为 20 文件 368 项回归、完整 build 9/9、真实编译产物 HTTPS 与流量记录，以及发布文件/导出/配对检查。代理目标保护仍是可选后端，**默认应用没有启用完整保护**；受控不透明 CONNECT 仍受限，精确测试环境的 TCP/命令、SSH、数据库协议、原生旁路和 P3 审计/设置联动继续未完成。旧设置浏览器验收的 15 项失败、许可审计、官方版插件页及其余桌面验收均保留于 [TODO](TODO.md)。
+
+恢复前读取 [剩余项目计划](requirements/2026-10-27-remaining-work.md)、[目标保护计划](requirements/2026-10-26-target-protection.md)与[额度规则](requirements/2026-10-27-quota-closeout.md)，核对 main、运行版本和实际额度。产物状态在 .dsh-build/target-protection-20261027/proxy-protection-closeout-state.json；不要把完成打包等同于完成整个 Goal。
+
 ## 最新状态：独立代理执行保护节点完成，按用户要求收尾打包（2026-10-27）
 
 用户要求在下一个开发节点完成后收尾、打包、推送并暂停。本轮以独立代理执行保护为该节点；后续不再展开新任务，完成产物记录后将 Goal 设为 paused，保留所有未完成范围。代码基于已推送的 `ad334f7656`；最新已读共享剩余 12%，不是已用比例。
