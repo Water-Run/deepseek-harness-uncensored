@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import { TargetProtectionError } from './errors.ts'
 import { canonicalLocalPath } from './file-identity.ts'
-import type { NetworkTarget, RuleAddresses, TargetDecision, TargetEffect, TargetPreferences, TargetRule, TargetRuleId } from './types.ts'
+import type { NetworkTarget, RuleAddresses, TargetDecision, TargetEffect, TargetPreferences, TargetRule, TargetRuleId, TargetSelector, FlatTargetRule } from './types.ts'
 
 /**
  * Normalize a host field. URLs, ports and credentials must use their separate fields.
@@ -50,15 +50,23 @@ function observedName(value: string): string {
   return isIP(literal) ? canonicalTargetHost(literal) : canonicalDnsName(value)
 }
 
+const selectorFields = {
+  match: z.enum(['host', 'domain', 'regex', 'cidr', 'path']),
+  address: z.string().trim().min(1).max(512), port: z.number().int().min(1).max(65535).optional(),
+  database: z.string().min(1).max(128).optional(),
+}
+const selectorSchema = z.object(selectorFields).strict().transform(({ port, database, ...value }) => ({ ...value,
+  ...port === undefined ? {} : { port }, ...database === undefined ? {} : { database },
+}))
 const ruleSchema = z.object({
   id: z.uuid().transform(value => brandString<TargetRuleId>(value)),
   name: z.string().trim().min(1).max(100), enabled: z.boolean(),
   kind: z.enum(['domain', 'server', 'database']), environment: z.enum(['production', 'test']),
-  protection: z.enum(['full', 'audit']), match: z.enum(['host', 'domain', 'regex', 'cidr', 'path']),
-  address: z.string().trim().min(1).max(512), port: z.number().int().min(1).max(65535).optional(),
-  database: z.string().min(1).max(128).optional(),
-}).strict().transform(({ port, database, ...value }) => ({ ...value,
+  protection: z.enum(['full', 'audit']), ...selectorFields,
+  aliases: z.array(selectorSchema).optional(),
+}).strict().transform(({ port, database, aliases, ...value }) => ({ ...value,
   ...port === undefined ? {} : { port }, ...database === undefined ? {} : { database },
+  ...aliases === undefined ? {} : { aliases },
 }))
 const preferencesSchema = z.object({ mainlandEnabled: z.boolean(), rules: z.array(ruleSchema) }).strict()
 
@@ -75,18 +83,42 @@ export function parseTargetPreferences(input: unknown): TargetPreferences {
   for (const rule of value.rules) {
     if (ids.has(rule.id)) throw new TargetProtectionError('invalid', 'Target rule IDs must be unique.')
     ids.add(rule.id)
-    if (rule.database !== undefined && rule.kind !== 'database') throw new TargetProtectionError('invalid', 'A database name needs a database rule.')
-    if (rule.environment === 'test' && rule.match !== 'host' && rule.match !== 'path') throw new TargetProtectionError('invalid', 'Test exceptions require an exact hostname, IP or local path.')
-    if (rule.match === 'path') {
-      if (rule.kind === 'domain' || rule.port !== undefined || rule.database !== undefined) {
-        throw new TargetProtectionError('invalid', 'A local path rule requires a server or database resource without network qualifiers.')
-      }
-      rule.address = canonicalLocalPath(rule.address)
+    const selectors = new Set<string>()
+    for (const selector of [rule, ...rule.aliases ?? []]) {
+      normalizeSelector(selector, rule)
+      const key = JSON.stringify([selector.match, selector.address, selector.port ?? null, selector.database ?? null])
+      if (selectors.has(key)) throw new TargetProtectionError('invalid', 'A resource cannot repeat the same target selector.')
+      selectors.add(key)
     }
-    if (rule.match === 'host' || rule.match === 'domain') rule.address = canonicalTargetHost(rule.address)
-    compileRule(rule)
   }
+  for (const selector of expandTargetRules(value)) compileRule(selector)
   return value
+}
+
+function normalizeSelector(selector: TargetSelector, policy: TargetRule): void {
+  if (selector.database !== undefined && policy.kind !== 'database') throw new TargetProtectionError('invalid', 'A database name needs a database resource.')
+  if (policy.environment === 'test' && selector.match !== 'host' && selector.match !== 'path') {
+    throw new TargetProtectionError('invalid', 'Test exceptions require an exact hostname, IP or local path.')
+  }
+  if (selector.match === 'path') {
+    if (policy.kind === 'domain' || selector.port !== undefined || selector.database !== undefined) {
+      throw new TargetProtectionError('invalid', 'A local path requires a server or database resource without network qualifiers.')
+    }
+    selector.address = canonicalLocalPath(selector.address)
+  }
+  if (selector.match === 'host' || selector.match === 'domain') selector.address = canonicalTargetHost(selector.address)
+}
+
+/**
+ * Expand validated resource selectors while sharing one immutable policy and rule ID.
+ * @param preferences - Parsed owner preferences.
+ * @returns Independent flat records; network qualifiers never leak into a path alias.
+ */
+export function expandTargetRules(preferences: TargetPreferences): FlatTargetRule[] {
+  return preferences.rules.flatMap(({ match, address, port, database, aliases, ...policy }) => {
+    const primary: TargetSelector = { match, address, ...port === undefined ? {} : { port }, ...database === undefined ? {} : { database } }
+    return [primary, ...aliases ?? []].map(selector => ({ ...policy, ...selector }))
+  })
 }
 
 interface CompiledRule { rule: TargetRule; matches: (host: string) => boolean }
@@ -145,17 +177,19 @@ export class TargetRules {
    */
   constructor(input: TargetPreferences) {
     this.preferences = parseTargetPreferences(input)
-    this.entries = this.preferences.rules.filter(rule => rule.enabled && rule.match !== 'path')
+    this.entries = expandTargetRules(this.preferences).filter(rule => rule.enabled && rule.match !== 'path')
       .sort((a, b) => Number(a.environment === 'test') - Number(b.environment === 'test')
         || Number(a.protection === 'audit') - Number(b.protection === 'audit')).map(compileRule)
   }
 
   /**
    * Return exact named rules whose address aliases require fresh DNS resolution.
-   * @returns Active hostname rules; literals need no resolver.
+   * @param target - When supplied, omit selectors whose port or database cannot match; omission returns all active selectors.
+   * @returns Applicable hostname selectors; literals need no resolver.
    */
-  namedHosts(): readonly TargetRule[] {
-    return this.entries.map(entry => ({ ...entry.rule })).filter(rule => rule.match === 'host' && !isIP(rule.address))
+  namedHosts(target?: NetworkTarget): readonly TargetRule[] {
+    return this.entries.filter(entry => target === undefined || qualifiers(entry.rule, target) !== 'different')
+      .map(entry => ({ ...entry.rule })).filter(rule => rule.match === 'host' && !isIP(rule.address))
   }
 
   /**
@@ -178,7 +212,7 @@ export class TargetRules {
    * Evaluate every supplied target together; any production denial wins over all test exceptions.
    * @param targets - Verified executor identities, including all pinned addresses and DNS aliases.
    * @param effect - Effect guaranteed by the actual operation, never a model classification.
-   * @param bindings - Fresh exact-rule DNS bindings; missing/failed entries remain unknown.
+   * @param bindings - Fresh DNS bindings keyed by canonical hostname; missing/failed entries remain unknown.
    * @returns Permission or stable refusal with matching rule IDs.
    */
   decide(targets: readonly NetworkTarget[], effect: TargetEffect, bindings: RuleAddresses): TargetDecision {
@@ -197,7 +231,7 @@ export class TargetRules {
         let matches = identities.some(entry.matches)
         let unknown = false
         if (entry.rule.match === 'host' && !isIP(entry.rule.address)) {
-          const aliases = bindings.get(entry.rule.id)
+          const aliases = bindings.get(entry.rule.address)
           if (aliases === undefined || aliases === null) unknown = !matches
           else matches ||= aliases.map(canonicalTargetHost).some(address => addresses.includes(address))
         } else if (!matches && (target.nameResolution === 'unknown' || names.every(name => isIP(name) !== 0))
@@ -210,7 +244,7 @@ export class TargetRules {
             if (!isIP(entry.rule.address) && names.includes(entry.rule.address)) {
               for (const address of addresses) testAddresses.add(address)
             } else {
-              const aliases = bindings.get(entry.rule.id) ?? []
+              const aliases = bindings.get(entry.rule.address) ?? []
               for (const address of addresses) if (address === entry.rule.address || aliases.includes(address)) testAddresses.add(address)
             }
           }

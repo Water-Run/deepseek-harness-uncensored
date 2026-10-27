@@ -1,5 +1,6 @@
 /** Actual local file effects, policy changes and owner-resource denial. @module */
-import { mkdtemp, mkdir, readFile, writeFile, readdir, rm, symlink, link, unlink } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, writeFile, readdir, rm, symlink, link, unlink, stat } from 'node:fs/promises'
+import { DatabaseSync } from 'node:sqlite'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { randomUUID } from 'node:crypto'
@@ -14,7 +15,7 @@ import TargetFileSystem from '../src/fs.ts'
 import { TargetStore } from '../src/store.ts'
 import type { TargetRule, TargetRuleId } from '../src/types.ts'
 import { brandString } from '@deepseek-ai/dsh-brand'
-import { canonicalLocalPath } from '../src/file-identity.ts'
+import { canonicalLocalPath, resolveLocalPathIdentity } from '../src/file-identity.ts'
 
 const contexts: Context[] = [], roots: string[] = []
 const unblock: (() => void)[] = []
@@ -92,6 +93,52 @@ it('preserves the physical filename spelling used by the local executor', async 
   expect(await readFile(path, 'utf8')).toBe('same file')
 })
 
+it('retains native file identity precision instead of rounding large Windows file IDs', async () => {
+  const h = await harness()
+  for (let index = 0; index < 16; index++) {
+    const path = join(h.workspace, `identity-${String(index)}.txt`)
+    await writeFile(path, 'owned')
+    const native = await stat(path, { bigint: true })
+    const identity = await resolveLocalPathIdentity(path, new AbortController().signal)
+    expect(identity.fileId).toBe(`${String(native.dev)}:${String(native.ino)}`)
+  }
+})
+
+it('shares one database policy across its network identity, data file and SQLite companions', async () => {
+  const h = await harness(), path = join(h.workspace, 'production.sqlite')
+  const database = new DatabaseSync(path)
+  try {
+    database.exec("PRAGMA journal_mode=WAL; CREATE TABLE evidence(value TEXT); INSERT INTO evidence VALUES('preserve')")
+    const files = [path, `${path}-wal`, `${path}-shm`]
+    const before = await Promise.all(files.map(file => readFile(file)))
+    const resource = rule('192.0.2.10', { match: 'host', port: 5432, database: 'production',
+      aliases: [{ match: 'path', address: path }] })
+    await h.configure([resource])
+    for (const file of [...files, `${path}-journal`]) {
+      await expect(h.fs.writeText(target(file), 'corrupt')).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+      await expect(h.fs.readBytes(target(file), undefined, 100000)).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+    }
+    expect(await Promise.all(files.map(file => readFile(file)))).toEqual(before)
+    expect(database.prepare('SELECT value FROM evidence').get()).toEqual({ value: 'preserve' })
+    const decision = await h.ctx.targetProtection.checkLocalFile(path, 'read', new AbortController().signal)
+    expect(decision.decision).toMatchObject({ allowed: false, ruleIds: [resource.id] })
+    await h.configure([{ ...resource, protection: 'audit' }])
+    expect((await h.fs.readBytes(await h.fs.resolve(path), undefined, 100000)).byteLength).toBeGreaterThan(0)
+    await expect(h.fs.writeText(target(`${path}-wal`), 'corrupt')).rejects.toMatchObject({ code: 'TARGET_READ_ONLY' })
+  } finally { database.close() }
+})
+
+it('keeps a separate test database writable while protecting another resource in the same directory', async () => {
+  const h = await harness(), production = join(h.workspace, 'prod.sqlite'), testing = join(h.workspace, 'test.sqlite')
+  await writeFile(production, 'production'); await writeFile(testing, 'test')
+  await h.configure([rule(production), rule(testing, { environment: 'test' })])
+  await h.fs.writeText(await h.fs.resolve(testing), 'changed test')
+  await h.fs.writeText(await h.fs.resolve(`${testing}-wal`), 'test companion')
+  expect(await readFile(testing, 'utf8')).toBe('changed test')
+  expect(await readFile(`${testing}-wal`, 'utf8')).toBe('test companion')
+  expect(await readFile(production, 'utf8')).toBe('production')
+})
+
 it('resolves directory links, changed ancestors and direct hard links before access', async () => {
   const h = await harness(), production = join(h.workspace, 'prod'), safe = join(h.workspace, 'test')
   await mkdir(production); await mkdir(safe)
@@ -156,7 +203,7 @@ it('rejects remote paths and network qualifiers on local database rules', async 
   await expect(h.configure([rule(join(h.workspace, 'data'), { port: 5432 })])).rejects.toMatchObject({ code: 'invalid' })
   expect(() => canonicalLocalPath('relative.txt')).toThrow()
   if (process.platform === 'win32') {
-    for (const path of ['\\\\server\\share\\data', 'C:\\test.txt:stream', 'C:\\ambiguous.\\data']) {
+    for (const path of ['\\\\server\\share\\data', 'C:\\test.txt:stream', 'C:\\ambiguous.\\data', '/var/lib/database', '\\database']) {
       expect(() => canonicalLocalPath(path)).toThrow()
     }
   }

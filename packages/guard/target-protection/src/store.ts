@@ -8,14 +8,23 @@ import { parseTargetPreferences } from './rules.ts'
 import type { TargetPreferences, TargetSnapshot } from './types.ts'
 
 /** On-disk format; successors must use a larger value. */
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 /** SQLite application identifier for this registry, ASCII DSTP. */
 const APPLICATION_ID = 0x44535450
 const rowSchema = z.object({ revision: z.number().int().positive().max(Number.MAX_SAFE_INTEGER), value: z.string() })
 
+function registryFailure(error: unknown): TargetProtectionError {
+  if (error instanceof TargetProtectionError) return error
+  const locked = error instanceof Error && 'errcode' in error && (error.errcode === 5 || error.errcode === 6)
+  return new TargetProtectionError(locked ? 'busy' : 'unavailable', locked
+    ? 'The target registry is locked by another transaction; retry after it finishes.'
+    : 'The target registry could not be read or committed; execution was stopped.', { cause: error })
+}
+
 /** One database owner. Reads return newly parsed committed state rather than a process-local cache. */
 export class TargetStore {
   private closed = false
+  private transactionActive = false
   private constructor(private readonly db: DatabaseSync) {}
 
   /**
@@ -40,7 +49,7 @@ export class TargetStore {
       store.transaction(() => {
         const version = z.object({ user_version: z.number().int() }).parse(db.prepare('PRAGMA user_version').get()).user_version
         const application = z.object({ application_id: z.number().int() }).parse(db.prepare('PRAGMA application_id').get()).application_id
-        if (version !== 0 && version !== 1 && version !== SCHEMA_VERSION) {
+        if (version !== 0 && version !== 1 && version !== 2 && version !== SCHEMA_VERSION) {
           throw new TargetProtectionError('unsupported-version', `Unsupported target registry version ${String(version)}.`)
         }
         if (version === 0) {
@@ -52,14 +61,17 @@ export class TargetStore {
         } else if (application !== APPLICATION_ID) {
           throw new TargetProtectionError('unrecognized-store', 'The database belongs to a different application.')
         }
-        const snapshot = store.snapshot()
-        if (version === 1) {
-          if (snapshot.preferences.rules.some(rule => rule.match === 'path')) {
+        const snapshot = store.readPreferences()
+        if (version === 1 || version === 2) {
+          if (version === 1 && snapshot.preferences.rules.some(rule => rule.match === 'path')) {
             throw new TargetProtectionError('unavailable', 'A version 1 target registry cannot contain path rules.')
+          }
+          if (snapshot.preferences.rules.some(rule => rule.aliases !== undefined)) {
+            throw new TargetProtectionError('unavailable', 'A target registry before version 3 cannot contain resource aliases.')
           }
           db.exec(`PRAGMA user_version=${String(SCHEMA_VERSION)}`)
         }
-      })
+      }, 'write')
       return store
     } catch (error) {
       store.close()
@@ -68,9 +80,11 @@ export class TargetStore {
     }
   }
 
-  private transaction<T>(operation: () => T): T {
+  private transaction<T>(operation: () => T, mode: 'read' | 'write'): T {
     this.assertOpen()
-    this.db.exec('BEGIN IMMEDIATE')
+    try { this.db.exec(mode === 'write' ? 'BEGIN IMMEDIATE' : 'BEGIN') }
+    catch (error) { throw registryFailure(error) }
+    this.transactionActive = true
     try { const value = operation(); this.db.exec('COMMIT'); return value }
     catch (error) {
       try { this.db.exec('ROLLBACK') }
@@ -79,8 +93,8 @@ export class TargetStore {
         throw new TargetProtectionError('unavailable', 'Registry rollback failed; this connection is closed.',
           { cause: new AggregateError([error, rollbackError], 'Target registry transaction failed') })
       }
-      throw error
-    }
+      throw registryFailure(error)
+    } finally { this.transactionActive = false }
   }
 
   private assertOpen(): void {
@@ -93,12 +107,25 @@ export class TargetStore {
    */
   snapshot(): TargetSnapshot {
     this.assertOpen()
+    if (this.transactionActive) return this.readSnapshot()
+    return this.transaction(() => this.readSnapshot(), 'read')
+  }
+
+  private readSnapshot(): TargetSnapshot {
     try {
-      const row = rowSchema.parse(this.db.prepare('SELECT revision, value FROM preferences WHERE id=1').get())
-      return { revision: row.revision, preferences: parseTargetPreferences(JSON.parse(row.value)) }
+      const version = z.object({ user_version: z.number().int() }).parse(this.db.prepare('PRAGMA user_version').get()).user_version
+      const application = z.object({ application_id: z.number().int() }).parse(this.db.prepare('PRAGMA application_id').get()).application_id
+      if (version !== SCHEMA_VERSION) throw new TargetProtectionError('unsupported-version', 'Target registry version changed; reload a supported store.')
+      if (application !== APPLICATION_ID) throw new TargetProtectionError('unrecognized-store', 'Target registry application identity changed.')
+      return this.readPreferences()
     } catch (error) {
-      throw new TargetProtectionError('unavailable', 'Target settings could not be read; execution requires a valid registry.', { cause: error })
+      throw registryFailure(error)
     }
+  }
+
+  private readPreferences(): TargetSnapshot {
+    const row = rowSchema.parse(this.db.prepare('SELECT revision, value FROM preferences WHERE id=1').get())
+    return { revision: row.revision, preferences: parseTargetPreferences(JSON.parse(row.value)) }
   }
 
   /**
@@ -115,7 +142,7 @@ export class TargetStore {
       if (current.revision >= Number.MAX_SAFE_INTEGER) throw new TargetProtectionError('unavailable', 'Target settings revision is exhausted.')
       this.db.prepare('UPDATE preferences SET revision=revision+1, value=? WHERE id=1').run(JSON.stringify(value))
       return this.snapshot()
-    })
+    }, 'write')
   }
 
   /** Release the owned SQLite handle; repeated calls are harmless. */

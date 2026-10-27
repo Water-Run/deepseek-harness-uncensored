@@ -4,19 +4,27 @@ import type { Branded } from '@deepseek-ai/dsh-brand'
 /** Stable owner-managed rule identity. */
 export type TargetRuleId = Branded<'TargetRuleId'>
 
-/** One named production resource or exact test exception. */
-export interface TargetRule {
+/** One network endpoint or host-local path belonging to an owner-managed resource. */
+export interface TargetSelector {
+  match: 'host' | 'domain' | 'regex' | 'cidr' | 'path'
+  address: string
+  port?: number
+  database?: string
+}
+
+/** One resource policy shared by its primary selector and all explicitly bound aliases. */
+export interface TargetRule extends TargetSelector {
   id: TargetRuleId
   name: string
   enabled: boolean
   kind: 'domain' | 'server' | 'database'
   environment: 'production' | 'test'
   protection: 'full' | 'audit'
-  match: 'host' | 'domain' | 'regex' | 'cidr' | 'path'
-  address: string
-  port?: number
-  database?: string
+  aliases?: TargetSelector[]
 }
+
+/** One selector inheriting the complete resource policy, without further nested aliases. */
+export type FlatTargetRule = Omit<TargetRule, 'aliases'>
 
 /** Rules persist independently of conversation history. */
 export interface TargetPreferences {
@@ -45,8 +53,8 @@ export interface NetworkTarget {
   mainland: 'yes' | 'no' | 'unknown'
 }
 
-/** Fresh resolution of an exact protected hostname. Null means resolution failed or is unavailable. */
-export type RuleAddresses = ReadonlyMap<TargetRuleId, readonly string[] | null>
+/** Fresh bindings keyed by canonical hostname; null means resolution failed or is unavailable. */
+export type RuleAddresses = ReadonlyMap<string, readonly string[] | null>
 
 /** Read-only effects must be guaranteed by the executing operation. HTTP GET or a model label is insufficient. */
 export type TargetEffect = 'observe' | 'mutate' | 'unconfined' | 'unknown'

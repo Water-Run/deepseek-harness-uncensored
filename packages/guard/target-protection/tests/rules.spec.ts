@@ -2,8 +2,9 @@
 import { randomUUID } from 'node:crypto'
 import { expect, it } from 'vitest'
 import { brandString } from '@deepseek-ai/dsh-brand'
-import { canonicalTargetHost, parseTargetPreferences, TargetRules } from '../src/rules.ts'
+import { canonicalTargetHost, parseTargetPreferences, TargetRules, expandTargetRules } from '../src/rules.ts'
 import type { NetworkTarget, TargetRule, TargetRuleId } from '../src/types.ts'
+import { resolve } from 'node:path'
 
 function rule(overrides: Partial<TargetRule> = {}): TargetRule {
   return { id: brandString<TargetRuleId>(randomUUID()), name: 'production', enabled: true, kind: 'server',
@@ -13,6 +14,49 @@ function target(overrides: Partial<NetworkTarget> = {}): NetworkTarget {
   return { names: ['192.0.2.10'], nameResolution: 'verified', addresses: ['192.0.2.10'], port: 443, mainland: 'no', ...overrides }
 }
 function policy(rules: TargetRule[], mainlandEnabled = false): TargetRules { return new TargetRules({ mainlandEnabled, rules }) }
+
+it('binds multiple host aliases to one policy without overwriting another hostname’s address evidence', () => {
+  const production = rule({ address: 'first.prod.test', aliases: [{ match: 'host', address: 'second.prod.test' }] })
+  const rules = policy([production])
+  const bindings = new Map([['first.prod.test', ['192.0.2.10']], ['second.prod.test', ['192.0.2.20']]])
+  for (const address of ['192.0.2.10', '192.0.2.20']) {
+    expect(rules.decide([target({ names: [address], addresses: [address] })], 'observe', bindings))
+      .toEqual({ allowed: false, code: 'TARGET_FULLY_PROTECTED', ruleIds: [production.id] })
+  }
+  expect(rules.decide([target({ names: ['192.0.2.30'], addresses: ['192.0.2.30'] })], 'unknown', bindings).allowed).toBe(true)
+})
+
+it('rejects alias policy overrides, duplicate selectors and broad test exceptions at configuration parsing', () => {
+  for (const aliases of [
+    [{ match: 'host', address: '192.0.2.10' }],
+    [{ match: 'host', address: '192.0.2.20', protection: 'audit' }],
+    [{ match: 'path', address: '/resource', port: 5432 }],
+  ]) expect(() => parseTargetPreferences({ mainlandEnabled: false, rules: [{ ...rule(), aliases }] })).toThrow()
+  expect(() => parseTargetPreferences({ mainlandEnabled: false,
+    rules: [rule({ environment: 'test', aliases: [{ match: 'regex', address: '.*' }] })] })).toThrow()
+})
+
+it('normalizes alias selectors and does not copy network qualifiers into a file alias', () => {
+  const resource = rule({ kind: 'database', address: 'PRIMARY.Example.', port: 5432, database: 'production',
+    aliases: [{ match: 'host', address: 'SECONDARY.Example.' }, { match: 'path', address: resolve('fixture.sqlite') }] })
+  const preferences = parseTargetPreferences({ mainlandEnabled: false, rules: [resource] })
+  const expanded = expandTargetRules(preferences)
+  expect(expanded.map(item => item.address)).toEqual(['primary.example', 'secondary.example', resolve('fixture.sqlite')])
+  for (const selector of expanded.slice(1)) {
+    expect(selector).not.toHaveProperty('port')
+    expect(selector).not.toHaveProperty('database')
+  }
+  expect(expanded.map(item => item.id)).toEqual([resource.id, resource.id, resource.id])
+})
+
+it('does not request DNS bindings for a database or port outside the operation’s scope', () => {
+  const rules = policy([rule({ kind: 'database', address: 'production.test', port: 5432, database: 'production',
+    aliases: [{ match: 'host', address: 'secondary.test', port: 5433, database: 'production' }] })])
+  expect(rules.namedHosts()).toHaveLength(2)
+  expect(rules.namedHosts(target({ port: 443 }))).toEqual([])
+  expect(rules.namedHosts(target({ port: 5432, database: 'test' }))).toEqual([])
+  expect(rules.namedHosts(target({ port: 5432, database: 'production' })).map(item => item.address)).toEqual(['production.test'])
+})
 
 it.each([
   ['Example.COM.', 'example.com'], ['例子.中国', 'xn--fsqu00a.xn--fiqs8s'],
@@ -59,9 +103,9 @@ it('a port-limited test exception is not an exemption for unknown or different p
 it('matches resolved address aliases and refuses an unresolved protected hostname', () => {
   const production = rule({ address: 'prod.test' })
   const rules = policy([production])
-  expect(rules.decide([target({ names: ['alias.test'] })], 'observe', new Map([[production.id, ['192.0.2.10']]])))
+  expect(rules.decide([target({ names: ['alias.test'] })], 'observe', new Map([[production.address, ['192.0.2.10']]])))
     .toMatchObject({ allowed: false, code: 'TARGET_FULLY_PROTECTED' })
-  expect(rules.decide([target({ names: ['unrelated.test'], addresses: ['192.0.2.20'] })], 'observe', new Map([[production.id, null]])))
+  expect(rules.decide([target({ names: ['unrelated.test'], addresses: ['192.0.2.20'] })], 'observe', new Map([[production.address, null]])))
     .toMatchObject({ allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED' })
 })
 

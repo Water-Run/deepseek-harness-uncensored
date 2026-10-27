@@ -7,7 +7,10 @@ import { TargetProtectionError } from './errors.ts'
 export interface LocalPathIdentity {
   path: string
   canonical: string
+  /** Full-precision native volume/file identifiers; absent for a missing file or unavailable identity. */
   fileId?: string
+  /** Whether the final entry exists, independently of ancestor existence or identity support. */
+  exists: boolean
   multipleLinks: boolean
   directory: boolean
 }
@@ -19,6 +22,9 @@ export interface LocalPathIdentity {
  */
 export function canonicalLocalPath(value: string): string {
   if (!isAbsolute(value) || value.includes('\0')) throw new TargetProtectionError('invalid', 'A file rule requires an absolute local path.')
+  if (process.platform === 'win32' && !/^[a-z]:[\\/]/iu.test(value)) {
+    throw new TargetProtectionError('invalid', 'A Windows file rule requires a drive-qualified local path; remote paths need their own adapter.')
+  }
   if (process.platform === 'win32' && (/^[\\/]{2}/u.test(value)
     || value.slice(2).includes(':') || value.split(/[\\/]/u).some(part =>
     (part !== '.' && part !== '..' && /[. ]$/u.test(part)) || /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/iu.test(part)))) {
@@ -56,12 +62,13 @@ export async function resolveLocalPathIdentity(value: string, signal: AbortSigna
     signal.throwIfAborted()
     try {
       const canonical = canonicalLocalPath(await realpath(candidate))
-      const info = await stat(canonical)
+      const info = await stat(canonical, { bigint: true })
       signal.throwIfAborted()
       if (missing.length > 0 && !info.isDirectory()) throw new TargetProtectionError('invalid', 'A file target traverses a non-directory parent.')
-      return { path, canonical: canonicalLocalPath(join(canonical, ...missing)), directory: missing.length === 0 && info.isDirectory(),
-        multipleLinks: missing.length === 0 && info.isFile() && info.nlink > 1,
-        ...missing.length === 0 && info.ino !== 0 ? { fileId: `${String(info.dev)}:${String(info.ino)}` } : {},
+      return { path, canonical: canonicalLocalPath(join(canonical, ...missing)), exists: missing.length === 0,
+        directory: missing.length === 0 && info.isDirectory(),
+        multipleLinks: missing.length === 0 && info.isFile() && info.nlink > 1n,
+        ...missing.length === 0 && info.ino !== 0n ? { fileId: `${String(info.dev)}:${String(info.ino)}` } : {},
       }
     } catch (error) {
       if (!absent(error)) throw error

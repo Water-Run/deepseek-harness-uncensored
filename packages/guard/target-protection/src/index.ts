@@ -6,7 +6,7 @@ import { resolve } from 'node:path'
 import { deadline } from '@deepseek-ai/dsh-timeout'
 import { resolvePublicAddresses } from '@deepseek-ai/dsh-web-fetch-http'
 import type { HttpFetchDestination, PublicAddress } from '@deepseek-ai/dsh-web-fetch-http'
-import { canonicalTargetHost, TargetRules } from './rules.ts'
+import { canonicalTargetHost, TargetRules, expandTargetRules } from './rules.ts'
 import { TargetStore } from './store.ts'
 import { TargetProtectionError } from './errors.ts'
 import type {} from './country-provider.ts'
@@ -14,11 +14,11 @@ import { resolveTargetDns, systemHostsFile, type TargetDnsResolution } from './d
 import { parseDnsServer } from './dns-transport.ts'
 import { canonicalLocalPath, resolveLocalPathIdentity, localPathContains } from './file-identity.ts'
 import { decideLocalTarget, type LocalTargetOperation } from './file-rules.ts'
-import type { NetworkTarget, TargetDecision, TargetPreferences, TargetRuleId, TargetSnapshot } from './types.ts'
+import type { NetworkTarget, TargetDecision, TargetPreferences, TargetSnapshot } from './types.ts'
 
 export type * from './types.ts'
 export { TargetProtectionError } from './errors.ts'
-export { canonicalTargetHost, parseTargetPreferences, TargetRules } from './rules.ts'
+export { canonicalTargetHost, parseTargetPreferences, TargetRules, expandTargetRules } from './rules.ts'
 export { TargetStore } from './store.ts'
 
 /** Deployment-owned store and bounded resolution. */
@@ -157,8 +157,15 @@ export default class TargetProtection extends Service {
           decision: { allowed: false, code: 'TARGET_OWNER_RESOURCE', ruleIds: [] } }
       }
       const rules = []
-      for (const rule of snapshot.preferences.rules.filter(rule => rule.enabled && rule.match === 'path')) {
-        rules.push({ rule, identity: await resolveLocalPathIdentity(rule.address, timeout.signal) })
+      for (const rule of expandTargetRules(snapshot.preferences).filter(rule => rule.enabled && rule.match === 'path')) {
+        const identity = await resolveLocalPathIdentity(rule.address, timeout.signal)
+        rules.push({ rule, identity })
+        if (rule.kind === 'database' && !identity.directory) {
+          for (const suffix of ['-wal', '-shm', '-journal']) {
+            const address = rule.address + suffix
+            rules.push({ rule: { ...rule, address }, identity: await resolveLocalPathIdentity(address, timeout.signal) })
+          }
+        }
       }
       timeout.signal.throwIfAborted()
       if (store.snapshot().revision !== snapshot.revision) continue
@@ -297,21 +304,22 @@ export default class TargetProtection extends Service {
         return { allowed: false, code: 'TARGET_MAINLAND_PROTECTED', ruleIds: [] }
       }
       if (destination.phase === 'before-resolution') return { allowed: true, ruleIds: [] }
-      const bindings = new Map<TargetRuleId, readonly string[] | null>()
-      for (const rule of rules.namedHosts()) {
+      const bindings = new Map<string, readonly string[] | null>()
+      for (const rule of rules.namedHosts(target)) {
         timeout.signal.throwIfAborted()
+        if (bindings.has(rule.address)) continue
         if (target.names.includes(rule.address) && target.addresses !== null) {
-          bindings.set(rule.id, target.addresses)
+          bindings.set(rule.address, target.addresses)
           continue
         }
         try {
           const binding = await resolveTargetDns(rule.address, this.dnsOptions(), timeout.signal)
-          bindings.set(rule.id, binding.addresses.length > 0 && binding.addresses.every(item => isIP(item.address))
+          bindings.set(rule.address, binding.addresses.length > 0 && binding.addresses.every(item => isIP(item.address))
             ? binding.addresses.map(item => canonicalTargetHost(item.address)) : null)
         } catch (error) {
           timeout.signal.throwIfAborted()
           if (!(typeof error === 'object' && error !== null && 'code' in error)) throw error
-          bindings.set(rule.id, null)
+          bindings.set(rule.address, null)
         }
       }
       timeout.signal.throwIfAborted()

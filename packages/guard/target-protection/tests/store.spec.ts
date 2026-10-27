@@ -1,15 +1,19 @@
 /** Registry durability, cross-connection revision checks and refusal of unrelated or damaged data. @module */
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
+import { brandString } from '@deepseek-ai/dsh-brand'
+import type { TargetRuleId } from '../src/types.ts'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { afterEach, expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { TargetStore, SCHEMA_VERSION } from '../src/store.ts'
 
 const stores: TargetStore[] = []
 const roots: string[] = []
 afterEach(async () => {
   for (const store of stores.splice(0)) store.close()
+  vi.restoreAllMocks()
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true })
 })
 async function filename(): Promise<string> {
@@ -88,4 +92,89 @@ it('upgrades a version 1 registry atomically without changing its settings revis
   const inspected = new DatabaseSync(path)
   try { expect(inspected.prepare('PRAGMA user_version').get()).toEqual({ user_version: SCHEMA_VERSION }) }
   finally { inspected.close() }
+})
+
+it('upgrades version 2 path rules and preserves one policy with aliases across reopening', async () => {
+  const path = await filename(), store = await open(path)
+  const resource = { id: brandString<TargetRuleId>(randomUUID()), name: 'production data', enabled: true,
+    kind: 'database' as const, environment: 'production' as const, protection: 'full' as const,
+    match: 'path' as const, address: join(path, '..', 'production.sqlite') }
+  const saved = store.configure({ mainlandEnabled: false, rules: [resource] }, 1)
+  store.close()
+  const old = new DatabaseSync(path)
+  try { old.exec('PRAGMA user_version=2') } finally { old.close() }
+  const next = await open(path)
+  expect(next.snapshot()).toEqual(saved)
+  const successor = next.configure({ mainlandEnabled: false,
+    rules: [{ ...resource, aliases: [{ match: 'host', address: 'production.test', port: 5432, database: 'production' }] }] }, saved.revision)
+  next.close()
+  expect((await open(path)).snapshot()).toEqual(successor)
+})
+
+it('refuses aliases in a registry marked as version 2 without changing the file', async () => {
+  const path = await filename(), store = await open(path)
+  store.configure({ mainlandEnabled: false, rules: [{ id: brandString<TargetRuleId>(randomUUID()), name: 'new resource', enabled: true,
+    kind: 'server', environment: 'production', protection: 'full', match: 'host', address: '192.0.2.10',
+    aliases: [{ match: 'host', address: '192.0.2.20' }] }] }, 1)
+  store.close()
+  const old = new DatabaseSync(path)
+  try { old.exec('PRAGMA user_version=2') } finally { old.close() }
+  const before = await readFile(path)
+  await expect(TargetStore.open(path, 1000)).rejects.toMatchObject({ code: 'unavailable' })
+  expect(await readFile(path)).toEqual(before)
+})
+
+it('refuses metadata replaced by another connection after the registry was opened', async () => {
+  const path = await filename(), store = await open(path)
+  const snapshot = store.snapshot()
+  const external = new DatabaseSync(path)
+  try {
+    external.exec('PRAGMA user_version=99')
+    expect(() => store.snapshot()).toThrow(expect.objectContaining({ code: 'unsupported-version' }))
+    expect(() => store.configure(snapshot.preferences, snapshot.revision)).toThrow(expect.objectContaining({ code: 'unsupported-version' }))
+    external.exec(`PRAGMA user_version=${String(SCHEMA_VERSION)}; PRAGMA application_id=0`)
+    expect(() => store.snapshot()).toThrow(expect.objectContaining({ code: 'unrecognized-store' }))
+  } finally { external.close() }
+})
+
+it('reads format metadata and preferences from one SQLite snapshot', async () => {
+  const path = await filename(), store = await open(path), before = store.snapshot()
+  const external = new DatabaseSync(path, { timeout: 1 })
+  let armed = true, blocked: unknown
+  // oxlint-disable-next-line typescript/unbound-method -- The spy forwards with its original DatabaseSync receiver.
+  const originalPrepare = DatabaseSync.prototype.prepare
+  vi.spyOn(DatabaseSync.prototype, 'prepare').mockImplementation(function (this: DatabaseSync, sql) {
+    const statement = originalPrepare.call(this, sql)
+    if (sql === 'PRAGMA user_version' && armed) {
+      const get = statement.get.bind(statement)
+      vi.spyOn(statement, 'get').mockImplementation(() => {
+        const value = get()
+        armed = false
+        try { external.exec('PRAGMA user_version=99') }
+        catch (error) { blocked = error }
+        return value
+      })
+    }
+    return statement
+  })
+  try {
+    expect(store.snapshot()).toEqual(before)
+    expect(blocked).toBeInstanceOf(Error)
+    external.exec('PRAGMA user_version=99')
+    expect(() => store.snapshot()).toThrow(expect.objectContaining({ code: 'unsupported-version' }))
+  } finally { external.close() }
+})
+
+it('reports an owned lock without writing and remains usable after the lock is released', async () => {
+  const path = await filename(), store = await TargetStore.open(path, 1)
+  stores.push(store)
+  const before = store.snapshot(), external = new DatabaseSync(path)
+  try {
+    external.exec('BEGIN IMMEDIATE')
+    expect(() => store.configure({ mainlandEnabled: false, rules: [] }, before.revision))
+      .toThrow(expect.objectContaining({ code: 'busy' }))
+    expect(store.snapshot()).toEqual(before)
+    external.exec('ROLLBACK')
+    expect(store.configure({ mainlandEnabled: false, rules: [] }, before.revision).revision).toBe(before.revision + 1)
+  } finally { external.close() }
 })
