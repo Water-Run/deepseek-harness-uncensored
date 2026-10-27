@@ -20,7 +20,7 @@ export {
 } from './provider.ts'
 export type { HttpFetchLimits, HttpFetchResolver } from './provider.ts'
 export type { HttpFetchAuthority, HttpFetchDestination, HttpFetchRejection, HttpFetchAuthorizer } from './authorization.ts'
-export { resolvePublicAddresses } from './network.ts'
+export { resolvePublicAddresses, requestPinnedViaProxy } from './network.ts'
 export type { PublicAddress, AddressResolver } from './network.ts'
 // Reused by providers that own their own transport (the security-mode egress
 // proxy) so URL validation, content classification, and charset decoding stay

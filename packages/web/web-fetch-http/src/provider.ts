@@ -44,11 +44,13 @@ export class HttpFetchProvider implements WebFetchProvider {
    * @param limits - resolved transport and response limits.
    * @param resolveAddresses - resolver that rejects non-public destinations before returning.
    * @param authorize - Deployment policy for every hop; omission applies only transport validation.
+   * @param proxyBinding - Literal CONNECT uses the same checked local addresses through the proxy; omission keeps remote DNS.
    */
   constructor(
     private readonly limits: HttpFetchLimits,
     private readonly resolveAddresses: HttpFetchResolver = publicHttpNetwork.resolve,
     private readonly authorize?: HttpFetchAuthorizer,
+    private readonly proxyBinding?: 'literal-connect',
   ) {}
 
   /** No credentials to check — an anonymous public fetcher is always usable. */
@@ -123,10 +125,9 @@ export class HttpFetchProvider implements WebFetchProvider {
       'accept': 'text/html,application/xhtml+xml,text/*;q=0.9,application/json;q=0.8',
     }
     try {
-      // A proxied hop skips public-address resolution and pinning: the proxy performs the origin's
-      // DNS, so there is no local address to validate, and pinning one would connect directly and
-      // bypass the proxy. A hop the policy bypasses — every loopback and every `NO_PROXY` entry —
-      // still takes the resolved-and-pinned path unchanged.
+      // Ordinary proxy routing delegates DNS to the proxy. Literal CONNECT instead resolves and
+      // authorizes locally, then keeps the proxy while binding the destination IP. Bypassed hops
+      // still use the direct, resolved-and-pinned transport.
       //
       // One route decides both the branch and the dispatcher, so a mount or disposal between two
       // reads cannot return a direct, unpinned agent for a URL this branch cleared as proxied.
@@ -139,6 +140,13 @@ export class HttpFetchProvider implements WebFetchProvider {
       const authority = { origin: url.origin, hostname: url.hostname, port: Number(url.port || (url.protocol === 'https:' ? 443 : 80)) }
       await this.authorizeDestination({ ...authority, phase: 'before-resolution', route: proxied ? 'proxy' : 'direct' }, signal)
       if (proxied) {
+        if (this.proxyBinding === 'literal-connect') {
+          const addresses = await this.resolveAddresses(url.hostname, signal)
+          await this.authorizeDestination({ ...authority, phase: 'before-connect', route: 'proxy', binding: 'literal-connect',
+            addresses: Object.freeze(addresses.map(address => Object.freeze({ ...address }))),
+          }, signal)
+          return await publicHttpNetwork.requestPinnedViaProxy(route.proxy, url, addresses, headers, signal)
+        }
         await this.authorizeDestination({ ...authority, phase: 'before-connect', route: 'proxy', addresses: null }, signal)
         return await publicHttpNetwork.requestVia(route.dispatcher, url, headers, signal)
       }

@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-With `dsh-web-fetch-http`, the harness can fetch public HTTP(S) pages through the web service (`ctx.web`) and get their status code plus bounded, decoded content without sending credentials. Choose it when a composition needs safe retrieval with URL validation, public-address resolution, connection pinning, same-origin redirects, byte and character caps, and an explicit product `User-Agent`. It returns non-2xx responses as results rather than errors, and rejects non-public destinations, binary data, and unsupported content types. The model-facing `web_fetch` tool lives in `dsh-tool-web`, which renders this provider's bodies.
+Fetch public HTTP(S) pages with bounded, decoded content and anonymous origin requests. Direct connections validate and pin public addresses; configured proxies normally resolve the origin remotely. Deployments enforcing target rules can opt into literal-IP proxy tunnels. Redirects stay within one origin, and time, byte and character limits bound retrieval. Non-2xx responses remain results; invalid destinations and unsupported content fail. The `web_fetch` tool in `dsh-tool-web` renders these results.
 
 ## Table of Contents
 
@@ -29,7 +29,7 @@ Mount the provider in a composition that already loads the web service; it regis
 
 ### When to choose it
 
-Choose this backend when a deployment must fetch public pages with bounded output and safe transport: no credentials are sent, every resolved address must be public, each connection is pinned to the validated answer set, redirects cannot escape the origin, and every response is capped.
+Choose this backend for bounded public pages, anonymous origin requests and same-origin redirects. Direct connections pin public addresses. Proxy-side DNS is the ordinary proxy behavior; deployments needing verified proxy targets use the literal CONNECT mode described below.
 
 ### Minimal configuration
 
@@ -98,6 +98,8 @@ The package is built on one separation and one layered timeout:
 A fetch validates the URL, resolves the hostname once, rejects the complete answer set when any address is not public, and pins the connection to the accepted addresses. It repeats that check for each same-origin redirect; a cross-origin redirect or non-public target fails before response bytes are accepted. The final response is classified by `Content-Type`, decoded from its declared charset, and read under the byte cap; the decoded text is then truncated to the character cap.
 
 The mounted provider dispatches `web-fetch/authorize` before each hop's resolution and immediately before its connection. A listener may return a denial, which produces `WEB_TARGET_PROTECTED`; it cannot grant permission over another listener's denial. The second checkpoint reports either the exact pinned address set or `null` for proxy-side resolution, always alongside the original destination authority. Query strings and credentials are excluded. Cancellation after an asynchronous check prevents transport admission. This execution hook does not itself classify protected targets; deployments must provide that policy. Standalone `HttpFetchProvider` callers can supply the equivalent authorizer as the third constructor argument.
+
+The fourth constructor argument, `literal-connect`, resolves and authorizes proxy destinations locally. A private Undici proxy dispatcher CONNECTs to the first validated IP, preserving the original Host, TLS name and certificate verification; it never retries by connecting directly. Each redirect repeats validation. The configured resolver sees DNS queries; the HTTP proxy receives a literal destination instead of resolving its name. This mode requires a proxy that supports IP CONNECT. Ordinary plugin configuration keeps remote proxy DNS.
 
 `resolveHttpFetchLimits(config)` supplies the same defaults and validation to alternate consumers, including the mandatory target-protection wrapper. Creating a wrapper does not bypass the shared transport limits.
 

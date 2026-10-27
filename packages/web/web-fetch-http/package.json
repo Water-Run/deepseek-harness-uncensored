@@ -40,6 +40,7 @@
     "undici": "8.11.2"
   },
   "devDependencies": {
+    "selfsigned": "^4.0.1",
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-timeout": "workspace:*",
     "@deepseek-ai/dsh-web": "workspace:*",

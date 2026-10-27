@@ -268,7 +268,7 @@ export default class TargetProtection extends Service {
     using timeout = deadline(AbortSignal.any([signal, this.executionSignal()]), this.config.checkTimeoutMs, 'TARGET_CHECK_TIMEOUT')
     const hostname = canonicalTargetHost(destination.hostname)
     const verified = resolution !== undefined && resolution.hostname === hostname
-      && destination.phase === 'before-connect' && destination.route === 'direct'
+      && destination.phase === 'before-connect' && destination.addresses !== null
       && resolution.addresses.length === destination.addresses.length
       && resolution.addresses.every((item, index) => {
         const peer = destination.addresses.at(index)
@@ -278,7 +278,7 @@ export default class TargetProtection extends Service {
     const target: NetworkTarget = {
       names: verified ? resolution.names : [hostname], port: destination.port,
       nameResolution: verified ? 'verified' : 'unknown',
-      addresses: destination.phase === 'before-connect' && destination.route === 'direct'
+      addresses: destination.phase === 'before-connect' && destination.addresses !== null
         ? destination.addresses.flatMap(address => address.translatedIpv4 === undefined
           ? [address.address] : [address.address, address.translatedIpv4]) : null,
       mainland: 'unknown',

@@ -1,5 +1,17 @@
 # Uncensored 开发交接
 
+## 受控 HTTP 代理固定目标节点（2026-10-27）
+
+当前继续执行已获授权的 Sol 开发，Goal active；最新共享额度剩余 33%（10:38，Asia/Shanghai），本轮按用户明确授权继续，不能根据旧暂停段落再次停止。三项目标保护未完成；默认产品、当前安装版和 armor 均未改动。上一节点 `aaa1771ce6` 已推送，远端仅 main。
+
+受控 HTTP 增加字面 IP CONNECT：在同一 DNS 回答/hosts 证明和规则校验后，通过已选代理固定目标。Undici 内置 DNS interceptor 在 fetch 之下绑定地址，保留原始 Host、TLS SNI、证书校验、响应解码和原始 URL；每跳重定向重查，失败没有直连或未校验代理回退。代理凭据只发给 CONNECT，不转发至目标。普通 HTTP 提供方保持远端代理 DNS 默认；受控提供方固定使用 `literal-connect`，不是可由模型关闭的开关。
+
+验证：13 文件 153 项通过，包括 TLS 名称不符拒绝、IPv6 CONNECT 格式、实际代理和目标零连接、精确测试例外、重定向、流取消及代理凭据隔离。完整 build 9/9 已通过，随后新增两项测试由最终 build:check 覆盖。普通 Node 从编译产物调用，在本机当前上游代理下完成生产完全保护拒绝→公网精确测试例外→HTTPS 200/Example Domain 校验；系统 DNS 和独立 IPv4 hosts 配置均通过。证据：.dsh-build/target-protection-20261027/proxy-integration.log、proxy-build.log、proxy-real-proof.json、proxy-real-hosts-proof.json。
+
+首次外网验证出现 TLS ECONNRESET，普通代理对照也有同样错误；第二次遇到 ipv4only.arpa 的双栈 DNS 校验失败。失败日志保留，随后同一代码的系统 DNS 复验通过；没有降低 TLS、地区或地址校验。外部网络失败与真实支持范围必须继续如实报告，不把一次通过当作任意代理可用保证。参考已核对的 Undici 8.11.2 本地源码和官方 ProxyAgent/TLS 文档。
+
+独立网安代理的受控 Client 和原始链式隧道仍未接入，当前节点只覆盖明确装配的受控 HTTP 提供方。SSH、数据库协议、MCP/REA/浏览器原生入口、私有测试地址环境、所有者管理、审计与默认产品装配继续未完成。匿名抓取仍拒绝私有地址，测试标记不绕过 SSRF；代理中的私有地址不能被当成本机同名资源。后续先补 P2 执行器，再完成独立代理与 P3 联动。
+
 ## Sol 恢复节点：本地文件与进程保护（2026-10-27）
 
 用户明确切换 Sol 并授权恢复开发，作为本轮先前 40% 额度暂停条件的例外；恢复查询共享剩余 36%，验证前复查 35%，未返回 Sol 独立额度。三项目标保护任务继续保留，默认应用尚未装配这些后端；本节点不打包、不安装，也不改动 armor。

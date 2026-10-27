@@ -242,11 +242,58 @@ export async function requestVia(
   return { response, close: () => Promise.resolve() }
 }
 
+/**
+ * Request a validated origin through a proxy using a literal-IP CONNECT tunnel.
+ * The HTTP Host and origin TLS name remain the original authority; certificate verification stays enabled.
+ * @param proxy - Selected HTTP(S) proxy URL, possibly containing credentials; never log this value.
+ * @param url - Original validated origin URL.
+ * @param addresses - Non-empty validated candidates; the first is bound for this hop without application-level replay.
+ * @param headers - Anonymous origin request headers.
+ * @param signal - Request and body-read cancellation.
+ * @returns A response with a private proxy dispatcher that the caller must close.
+ */
+export async function requestPinnedViaProxy(
+  proxy: string, url: URL, addresses: readonly PublicAddress[], headers: Record<string, string>, signal: AbortSignal,
+): Promise<PinnedResponse> {
+  signal.throwIfAborted()
+  const selected = addresses.at(0)
+  if (selected === undefined || isIP(selected.address) !== selected.family) {
+    throw new WebError('A proxy tunnel requires an authorized literal destination.', 'WEB_BLOCKED_URL')
+  }
+  const { ProxyAgent, fetch, interceptors } = await import('undici')
+  const hostname = stripIpv6Brackets(url.hostname)
+  if (isIP(hostname) !== 0 && ipaddr.process(hostname).toString() !== ipaddr.process(selected.address).toString()) {
+    throw new WebError('The proxy destination does not match the authorized literal address.', 'WEB_BLOCKED_URL')
+  }
+  const agent = new ProxyAgent({ uri: proxy, proxyTunnel: true,
+    ...isIP(hostname) === 0 ? { requestTls: { servername: hostname } } : {},
+  })
+  // Undici rewrites the transport origin below fetch, preserving Host, SNI and response URL semantics.
+  const dispatcher = isIP(hostname) !== 0 ? agent : agent.compose(interceptors.dns({
+    dualStack: false, affinity: selected.family,
+    lookup(origin, _options, callback) {
+      if (origin.origin !== url.origin) { callback(new Error('Unexpected origin for a bound proxy tunnel.'), []); return }
+      callback(null, [{ address: selected.address, family: selected.family, ttl: 0 }])
+    },
+    pick: () => ({ address: selected.address, family: selected.family, ttl: 0 }),
+  }))
+  try {
+    signal.throwIfAborted()
+    // proxy-exempt: a private tunnel through the already selected route, never a direct origin connection.
+    const response = await fetch(url, { method: 'GET', redirect: 'manual', signal, dispatcher, headers })
+    return { response, close: async () => { await agent.close() } }
+  } catch (error) {
+    await agent.destroy(error instanceof Error ? error : new Error('Proxy tunnel failed.', { cause: error }))
+    throw error
+  }
+}
+
 /** Production network operations kept as an object so provider tests can replace resolution only. */
 export const publicHttpNetwork = {
   resolve: resolvePublicAddresses,
   request: requestPinned,
   requestVia,
+  requestPinnedViaProxy,
 }
 
 type LookupCallback = (

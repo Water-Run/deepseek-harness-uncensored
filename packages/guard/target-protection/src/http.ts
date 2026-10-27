@@ -63,7 +63,7 @@ export function apply(ctx: Context, config: Config): void {
             if (error instanceof WebError) throw error
             throw new WebError('Target protection could not validate this connection; the request was stopped.', 'TARGET_PROTECTION_UNAVAILABLE', { cause: error })
           }
-        })
+        }, 'literal-connect')
         try { return await provider.fetch(request, combined) }
         catch (error) {
           const reason: unknown = policySignal.reason

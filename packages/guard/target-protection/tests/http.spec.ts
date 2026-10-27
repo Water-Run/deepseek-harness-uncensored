@@ -1,7 +1,10 @@
 /** Real HTTP effects through the durable policy owner and mandatory consumer. @module */
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { connect } from 'node:net'
+import type { Duplex } from 'node:stream'
+import { installProxyFromEnvironment } from '@deepseek-ai/dsh-http-proxy'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
@@ -17,8 +20,12 @@ import type { TargetRule, TargetRuleId } from '../src/types.ts'
 
 const contexts: Context[] = [], servers: Server[] = []
 const roots: string[] = []
+const sockets = new Set<Duplex>()
+const restorers: (() => Promise<void>)[] = []
 afterEach(async () => {
   for (const ctx of contexts.splice(0)) await ctx.fiber.dispose()
+  for (const restore of restorers.splice(0)) await restore()
+  for (const socket of sockets) socket.destroy()
   vi.restoreAllMocks()
   await Promise.all(servers.splice(0).map(server => new Promise<void>((resolve, reject) => {
     server.closeAllConnections(); server.close((error) => { if (error === undefined) resolve(); else reject(error) })
@@ -50,7 +57,9 @@ async function harness(holdResponse = false) {
   const ctx = new Context(); contexts.push(ctx)
   await ctx.plugin(WebRuntime)
   const path = join(root, 'rules.sqlite')
-  const policy = ctx.plugin(TargetProtection, { path })
+  const hostsFile = join(root, 'hosts')
+  await writeFile(hostsFile, '127.0.0.1 origin.test\n')
+  const policy = ctx.plugin(TargetProtection, { path, hostsFile })
   await policy
   await ctx.plugin(ProtectedHttp, {})
   const configure = async (rules: TargetRule[], mainlandEnabled = false) => {
@@ -58,6 +67,7 @@ async function harness(holdResponse = false) {
     return ctx.targetProtection.configure({ mainlandEnabled, rules }, current.revision)
   }
   return { ctx, path, policy, configure, reached: reached.promise, closed: closed.promise, url: `http://127.0.0.1:${String(port)}/`,
+    namedUrl: `http://origin.test:${String(port)}/`,
     requests: () => requests, connections: () => connections }
 }
 
@@ -69,6 +79,41 @@ it('blocks full protection before socket creation and permits an explicit test e
   expect(h.connections()).toBe(0)
   await h.configure([rule({ environment: 'test' })], true)
   expect((await h.ctx.web.fetch({ url: h.url })).body.content).toBe('fixture')
+  expect(h.requests()).toBe(1)
+})
+
+it('refuses a protected address before CONNECT and admits its precise test exception through the proxy', async () => {
+  const h = await harness()
+  const destinations: string[] = []
+  let proxyConnections = 0
+  const proxy = createServer((_req, res) => { res.writeHead(405); res.end() }); servers.push(proxy)
+  proxy.on('connection', () => { proxyConnections++ })
+  const own = (socket: Duplex) => {
+    sockets.add(socket); socket.on('close', () => { sockets.delete(socket) }); socket.on('error', () => { socket.destroy() })
+  }
+  proxy.on('connect', (request, client, head) => {
+    own(client)
+    const destination = request.url ?? ''; destinations.push(destination)
+    if (destination !== new URL(h.url).host) { client.end('HTTP/1.1 403 Forbidden\r\n\r\n'); return }
+    const upstream = connect({ host: '127.0.0.1', port: Number(new URL(h.url).port) }); own(upstream)
+    upstream.once('connect', () => {
+      client.write('HTTP/1.1 200 Connection Established\r\n\r\n')
+      if (head.length > 0) upstream.write(head)
+      client.pipe(upstream); upstream.pipe(client)
+    })
+    client.once('close', () => { upstream.destroy() }); upstream.once('close', () => { client.destroy() })
+  })
+  await new Promise<void>((resolve) => { proxy.listen(0, '127.0.0.1', resolve) })
+  const proxyUrl = `http://127.0.0.1:${String((proxy.address() as AddressInfo).port)}`
+  restorers.push(await installProxyFromEnvironment({ get: name => name === 'HTTP_PROXY' ? { value: proxyUrl } : undefined }, () => {}))
+  await h.configure([rule()])
+  await expect(h.ctx.web.fetch({ url: h.namedUrl })).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+  expect(destinations).toEqual([])
+  expect(proxyConnections).toBe(0)
+  expect(h.connections()).toBe(0)
+  await h.configure([rule({ address: 'origin.test', environment: 'test' })], true)
+  expect((await h.ctx.web.fetch({ url: h.namedUrl })).body.content).toBe('fixture')
+  expect(destinations).toEqual([new URL(h.url).host])
   expect(h.requests()).toBe(1)
 })
 

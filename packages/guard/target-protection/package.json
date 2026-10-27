@@ -69,6 +69,7 @@
     "@deepseek-ai/dsh-web-fetch-http": "workspace:*"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh-http-proxy": "workspace:*",
     "@deepseek-ai/dsh-fs-local": "workspace:*",
     "@deepseek-ai/dsh-sandbox-policy": "workspace:*",
     "@deepseek-ai/dsh-session-projection": "workspace:*",

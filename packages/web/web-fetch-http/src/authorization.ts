@@ -16,6 +16,12 @@ export type HttpFetchDestination = HttpFetchAuthority & (
   | { readonly phase: 'before-resolution'; readonly route: 'direct' | 'proxy' }
   | { readonly phase: 'before-connect'; readonly route: 'direct'; readonly addresses: readonly PublicAddress[] }
   | { readonly phase: 'before-connect'; readonly route: 'proxy'; readonly addresses: null }
+  | {
+    readonly phase: 'before-connect'
+    readonly route: 'proxy'
+    readonly binding: 'literal-connect'
+    readonly addresses: readonly PublicAddress[]
+  }
 )
 
 /** A policy listener can refuse a hop; it cannot override another listener's refusal. */
@@ -37,7 +43,7 @@ declare module '@deepseek-ai/cordis' {
   interface Events {
     /**
      * Veto one HTTP hop before its DNS lookup or connection. No listener means no deployment policy.
-     * Proxy destinations have no locally verified address set; policies must not treat null as an empty destination list.
+     * Proxy destinations without literal-connect binding have unknown addresses; null never means an empty destination list.
      * @param destination - Immutable logical authority and connection-address facts.
      * @param signal - Request deadline and cancellation.
      * @mode serial
