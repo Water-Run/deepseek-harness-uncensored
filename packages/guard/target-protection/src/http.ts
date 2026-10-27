@@ -5,7 +5,7 @@ import { WebError } from '@deepseek-ai/dsh-web'
 import type {} from './index.ts'
 import type { TargetHttpResolution } from './index.ts'
 import { TargetProtectionError } from '@deepseek-ai/dsh-target-protection'
-import type { TargetDenialCode } from './types.ts'
+import { assertNetworkAllowed } from './network-decision.ts'
 
 /** Cordis diagnostics name. */
 export const name = 'target-protected-http'
@@ -15,15 +15,6 @@ export const inject = ['targetProtection', 'web']
 export const Config = HttpConfig
 /** Configuration of the shared HTTP provider. */
 export type Config = HttpConfig
-
-const REASONS: Record<TargetDenialCode, string> = {
-  TARGET_FULLY_PROTECTED: 'This connection is blocked because the destination is fully protected.',
-  TARGET_READ_ONLY: 'This operation cannot establish read-only effects on the protected destination.',
-  TARGET_IDENTITY_UNVERIFIED: 'The destination identity or region could not be verified under the active protection rules.',
-  TARGET_MAINLAND_PROTECTED: 'Mainland protection does not allow this operation on the destination.',
-  TARGET_OWNER_RESOURCE: 'This operation cannot access an owner-managed protection resource.',
-  TARGET_EXECUTION_UNCONFINED: 'This executor cannot constrain its effects to the selected targets.',
-}
 
 /**
  * Register the guarded provider under the normal HTTP id; do not mount the unguarded provider beside it.
@@ -57,7 +48,7 @@ export function apply(ctx: Context, config: Config): void {
             if (extra !== undefined) throw new WebError(extra.reason, 'WEB_TARGET_PROTECTED')
             const decision = await protection.checkHttp(destination, requestSignal, resolution)
             requestSignal.throwIfAborted()
-            if (!decision.allowed) throw new WebError(REASONS[decision.code], decision.code)
+            assertNetworkAllowed(decision)
           } catch (error) {
             if (requestSignal.aborted) throw new Error('HTTP authorization cancelled.', { cause: requestSignal.reason })
             if (error instanceof WebError) throw error

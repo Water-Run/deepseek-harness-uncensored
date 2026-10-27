@@ -1,0 +1,23 @@
+- id: credentials
+  name: cordis:credentials-local
+  config:
+    path: __CREDENTIALS__
+    dshHome: __HOME__
+    watch: false
+- id: web
+  name: cordis:web
+- id: protection
+  name: cordis:target-protection
+  config:
+    path: __RULES__
+    hostsFile: __HOSTS__
+- id: http
+  name: cordis:protected-http
+- id: proxy
+  name: cordis:protected-proxy
+  config:
+    path: __PROXY__
+    testHost: origin.test
+    testPort: __PORT__
+    requestTimeoutMs: 5000
+    connectTimeoutMs: 2000

@@ -34,6 +34,7 @@
       "@deepseek-ai/dsh-target-protection/country": ["./packages/guard/target-protection/src/country-provider.ts"],
       "@deepseek-ai/dsh-target-protection/fs": ["./packages/guard/target-protection/src/fs.ts"],
       "@deepseek-ai/dsh-target-protection/subprocess": ["./packages/guard/target-protection/src/subprocess.ts"],
+      "@deepseek-ai/dsh-target-protection/security-proxy": ["./packages/guard/target-protection/src/security-proxy.ts"],
       "@deepseek-ai/dsh-memory/types": ["./packages/memory/memory/src/types.ts"],
       "@deepseek-ai/dsh-memory/agent": ["./packages/memory/memory/src/agent.ts"],
       "@deepseek-ai/dsh-client-ui-settings-memory": ["./packages/client/ui-settings-memory/src/index.ts"],

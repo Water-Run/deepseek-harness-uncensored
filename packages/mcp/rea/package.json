@@ -4,6 +4,7 @@
   "description": "Session-owned REA analysis with lazy MCP tool discovery",
   "type": "module",
   "license": "GPL-3.0-or-later",
+  "publishConfig": { "access": "public" },
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
   "exports": {

@@ -44,6 +44,8 @@ The registry defaults mainland protection to enabled. Mount `./country` to use t
 
 Country data is an estimate with limited coverage and accuracy. [IP Geolocation by DB-IP](https://db-ip.com) is distributed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); see [the bundled notice](assets/NOTICE.md). A web composition using these results must display that linked attribution. Data updates currently require replacing the configured local source and reloading its provider; the product settings integration is unfinished.
 
+Mount `./security-proxy` instead of `security-proxy-local`, with mandatory credentials and target protection. Its controlled client, HTTP relay and connection check authorize the original target before literal-IP CONNECT. Origin Host and TLS identity stay fixed; mismatched relay Host headers are refused. Redirects recheck current rules. Opaque CONNECT is refused because tunneled application targets cannot be verified; an endpoint test label does not remove this limitation. Keep the guarded ordinary HTTP provider mounted too, so disabling the independent proxy does not restore unrestricted fetches.
+
 <a id="implementation"></a>
 ## Implementation
 
@@ -76,7 +78,7 @@ No new prompt prefix is added. A refusal changes only the affected tool result.
 <a id="known-limitations-and-deferred-work"></a>
 ## Known Limitations and Deferred Work
 
-Only the explicitly composed guarded HTTP, local file and process providers are covered. File deletion and renaming have no filesystem-service methods and remain blocked with arbitrary process execution; they are not supported structured operations. SSH, database protocols, browser, MCP/REA native spawners and independent security-proxy execution still need adapters. The ordinary anonymous fetch restrictions still reject private network destinations, including test labels; private test-world routing needs a separate adapter. DNS proof describes the configured resolver's answer, not every hostname sharing an IP; country data and CONNECT requests cannot attest a proxy's physical forwarding. Default product composition, owner UI, security-entry status and durable audit remain unfinished.
+Only the explicitly composed guarded HTTP, independent proxy, local file and process providers are covered. File deletion and renaming have no filesystem-service methods and remain blocked with arbitrary process execution; they are not supported structured operations. SSH, database protocols, browser and MCP/REA native spawners still need adapters. Opaque proxy tunnels remain unsupported under protection. The ordinary anonymous fetch restrictions still reject private network destinations, including test labels; private test-world routing needs a separate adapter. DNS proof describes the configured resolver's answer, not every hostname sharing an IP; country data and CONNECT requests cannot attest a proxy's physical forwarding. Default product composition, owner UI, security-entry status and durable audit remain unfinished.
 
 <a id="dev-note"></a>
 ## Dev Note

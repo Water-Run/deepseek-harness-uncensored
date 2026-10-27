@@ -332,6 +332,16 @@ describe('package payload constraints', () => {
     ])
   })
 
+  it.each(['packages/guard/target-protection', 'packages/skill/skill-playbooks'])(
+    'requires owned data assets in %s', (dir) => {
+      const manifest = JSON.parse(readFileSync(new URL(`../${dir}/package.json`, import.meta.url), 'utf8')) as WorkspaceManifest['manifest']
+      expect(checkWorkspaceManifest({ dir, manifest })).toEqual([])
+      expect(checkWorkspaceManifest({ dir, manifest: {
+        ...manifest, files: manifest.files!.filter(file => file !== 'assets'),
+      } })).toEqual([expect.stringContaining('package.json files must be')])
+    },
+  )
+
   it('does not infer locale payloads from unrelated or non-JSON exports', () => {
     expect(expectedDshPackageFiles({
       exports: {

@@ -12,7 +12,9 @@
 import { request as httpRequest } from 'node:http'
 import { request as httpsRequest } from 'node:https'
 import type { Socket } from 'node:net'
+import { isIP } from 'node:net'
 import { ProxyAgent } from 'undici'
+import { deadline, timeoutOf } from '@deepseek-ai/dsh-timeout'
 import type { SecurityProxyFailure, SecurityProxyProtocol } from '@deepseek-ai/dsh-security-proxy/types'
 
 /** One resolved upstream proxy, credentials included. Never logged or stored in this form. */
@@ -53,7 +55,8 @@ export interface UpstreamTunnel {
  * @returns `protocol://host:port`.
  */
 export function proxyUrl(upstream: Upstream): string {
-  return `${upstream.protocol}://${upstream.host}:${String(upstream.port)}`
+  const host = isIP(upstream.host) === 6 ? `[${upstream.host}]` : upstream.host
+  return `${upstream.protocol}://${host}:${String(upstream.port)}`
 }
 
 /**
@@ -157,8 +160,11 @@ export async function connectThrough(
   signal?: AbortSignal,
 ): Promise<UpstreamTunnel> {
   const authorization = proxyAuthorization(upstream)
-  const authority = `${host}:${String(port)}`
+  signal?.throwIfAborted()
+  const authority = `${isIP(host) === 6 ? `[${host}]` : host}:${String(port)}`
+  using bounded = deadline(signal ?? AbortSignal.any([]), timeoutMs, 'SECURITY_PROXY_CONNECT_TIMEOUT')
   return await new Promise<UpstreamTunnel>((resolve, reject) => {
+    let outcome: UpstreamTunnel | UpstreamFailure | undefined
     const send = upstream.protocol === 'https' ? httpsRequest : httpRequest
     const request = send({
       host: upstream.host,
@@ -169,24 +175,33 @@ export async function connectThrough(
         host: authority,
         ...authorization === undefined ? {} : { 'proxy-authorization': authorization },
       },
-      timeout: timeoutMs,
-      ...signal === undefined ? {} : { signal },
+      agent: false,
+      signal: bounded.signal,
     })
     request.once('connect', (response, socket) => {
+      if (outcome !== undefined || bounded.signal.aborted) { socket.destroy(); request.destroy(); return }
       if (response.statusCode !== undefined && response.statusCode >= 200 && response.statusCode < 300) {
-        resolve({ socket, status: response.statusCode })
+        // The consumer installs its handlers after this promise resumes; retain errors during that interval on the socket.
+        socket.on('error', () => { socket.destroy() })
+        outcome = { socket, status: response.statusCode }
+        resolve(outcome)
         return
       }
+      outcome = new UpstreamFailure(response.statusCode === 407 ? 'auth' : 'unreachable',
+        `the upstream proxy refused CONNECT ${authority} with HTTP ${String(response.statusCode)}`)
       socket.destroy()
-      reject(new UpstreamFailure(response.statusCode === 407 ? 'auth' : 'unreachable', `the upstream proxy refused CONNECT ${authority} with HTTP ${String(response.statusCode)}`))
-    })
-    request.once('timeout', () => {
-      request.destroy(new UpstreamFailure('timeout', `the upstream proxy did not answer CONNECT ${authority} within ${String(timeoutMs)} ms`))
+      request.destroy()
     })
     request.once('error', (error) => {
-      reject(error instanceof UpstreamFailure
-        ? error
-        : new UpstreamFailure(classifyFailure(error), describeFailure(error), { cause: error }))
+      outcome ??= timeoutOf(bounded.signal, 'SECURITY_PROXY_CONNECT_TIMEOUT') !== undefined
+        ? new UpstreamFailure('timeout', `the upstream proxy did not answer CONNECT within ${timeoutMs} ms`, { cause: error })
+        : error instanceof UpstreamFailure ? error
+          : new UpstreamFailure(classifyFailure(error), describeFailure(error), { cause: error })
+      request.destroy()
+    })
+    request.once('close', () => {
+      if (outcome instanceof UpstreamFailure) reject(outcome)
+      else if (outcome === undefined) reject(new UpstreamFailure('unreachable', 'the upstream closed before CONNECT completed'))
     })
     request.end()
   })

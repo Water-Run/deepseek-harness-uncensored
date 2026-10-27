@@ -8,6 +8,7 @@
     "src"
   ],
   "references": [
+    { "path": "../../util/timeout" },
     { "path": "../../preset/agent-preset-registry" },
     {
       "path": "../../../vendor/cordis"

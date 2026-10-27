@@ -39,13 +39,17 @@
     "./subprocess": {
       "types": "./lib/types/subprocess.d.ts",
       "default": "./lib/types/subprocess.js"
+    },
+    "./security-proxy": {
+      "types": "./lib/types/security-proxy.d.ts",
+      "default": "./lib/types/security-proxy.js"
     }
   },
   "files": [
     "lib/index.js",
+    "assets",
     "lib/types/**/*.js",
-    "lib/types/**/*.d.ts",
-    "assets"
+    "lib/types/**/*.d.ts"
   ],
   "dependencies": {
     "@deepseek-ai/dsh-brand": "workspace:*",
@@ -57,6 +61,7 @@
     "mmdb-lib": "3.0.3"
   },
   "peerDependencies": {
+    "@deepseek-ai/dsh-security-proxy-local": "workspace:*",
     "@deepseek-ai/dsh-fs": "workspace:*",
     "@deepseek-ai/dsh-fs-sandbox": "workspace:*",
     "@deepseek-ai/dsh-sandbox": "workspace:*",
@@ -69,6 +74,11 @@
     "@deepseek-ai/dsh-web-fetch-http": "workspace:*"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh-credentials-local": "workspace:*",
+    "@deepseek-ai/dsh-session": "workspace:*",
+    "@deepseek-ai/dsh-agent": "workspace:*",
+    "@deepseek-ai/dsh-security-proxy": "workspace:*",
+    "@deepseek-ai/dsh-security-proxy-local": "workspace:*",
     "@deepseek-ai/dsh-http-proxy": "workspace:*",
     "@deepseek-ai/dsh-fs-local": "workspace:*",
     "@deepseek-ai/dsh-sandbox-policy": "workspace:*",

@@ -18,13 +18,16 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { CaptureStore } from './capture.ts'
-import { SecurityProxyEngine, type PasswordVault } from './engine.ts'
+import { SecurityProxyEngine, type PasswordVault, type EngineOptions } from './engine.ts'
 import { SecurityProxyService } from './service.ts'
 import { PROXY_PASSWORD_REF, SettingsStore } from './settings.ts'
 
 export { SecurityProxyService } from './service.ts'
 export { SECURITY_PRESET, SecurityProxyEngine } from './engine.ts'
-export type { PasswordVault } from './engine.ts'
+export type { PasswordVault, EngineOptions, ProxyHttpRequest } from './engine.ts'
+export { proxyUrl, connectThrough } from './upstream.ts'
+export type { Upstream, UpstreamTunnel } from './upstream.ts'
+export type { ProxyAgent as ProxyDispatcher } from 'undici'
 
 /** Deployment-owned file path plus the transport limits the proxy enforces. */
 export interface Config {
@@ -76,6 +79,19 @@ type ResolvedConfig = Required<Config>
  * @param config - validated deployment config.
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
+  await mountSecurityProxy(ctx, config, options => new SecurityProxyEngine(options))
+}
+
+/**
+ * Mount one proxy provider with an explicitly selected execution implementation.
+ * @param ctx - Owner of the service and its required dependencies.
+ * @param config - Deployment options after schema resolution.
+ * @param createEngine - Builds the execution implementation before publishing the service.
+ * @returns Completion after service activation.
+ */
+export async function mountSecurityProxy(
+  ctx: Context, config: Config, createEngine: (options: EngineOptions) => SecurityProxyEngine,
+): Promise<void> {
   const resolved = config as ResolvedConfig
   const store = await SettingsStore.open(resolved.path)
   if (store.failure !== null) ctx.logger.warn(`security-proxy: ${store.failure}; defaults are in force and the proxy stays off`)
@@ -104,8 +120,9 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     maxResponseBytes: resolved.maxResponseBytes,
     userAgent: resolved.userAgent,
     warnDisabled: (sessionId: SessionId): void => { ctx.emit('security-proxy/warning', sessionId) },
+    log: (message: string): void => { ctx.logger.warn(message) },
   }
-  const engine = new SecurityProxyEngine(callbacks)
+  const engine = createEngine(callbacks)
   const service = ctx.plugin(SecurityProxyService, engine)
   const stopSessionEvent = ctx.on('session/event', (session, event) => {
     if (event.type === 'agent-preset/selected') presets.set(session.id, event.data.agentPreset)

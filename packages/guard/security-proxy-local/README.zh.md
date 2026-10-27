@@ -59,6 +59,10 @@ kind: "package-reference"
 
 状态为 `off`、`connecting`、`ready` 或 `failed`，失败时带机器原因（`invalid-config`、`unreachable`、`timeout`、`auth`、`tls`、`unknown`）。检查失败绝不显示可用，详情行不含凭据。关闭功能会关闭 dispatcher 与全部监听；修改地址、协议或凭据同样先关闭再重新验证。
 
+设置、密码和捕获偏好的写入按顺序执行。变更上游时先取消已准入操作，再替换传输。关闭会等待请求、响应清理和正在退出的会话监听器，包括已从可见会话表移除的监听器。HTTP 转发遵循下游背压，客户端断开时取消上游请求。CONNECT 的期限只覆盖握手，普通已建立隧道持续到端点关闭或所有者取消。
+
+`mountSecurityProxy` 接收明确的引擎工厂；引擎的 HTTP、不透明隧道及连接探测方法是执行校验入口。普通提供方不应用目标规则；`dsh-target-protection/security-proxy` 提供具有必需依赖的受控实现，并拒绝无法验证的不透明隧道。
+
 提醒在“代理关闭且用户开启提醒”时，对每个对话最多触发一次；对话销毁时清除该记录。
 
 </details>

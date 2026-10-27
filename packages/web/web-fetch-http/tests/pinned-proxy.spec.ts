@@ -138,15 +138,18 @@ it('resolves and rechecks the original authority at each proxy redirect', async 
 })
 
 it('sends proxy credentials only to CONNECT and never to the origin', async () => {
-  let originAuthorization: string | undefined
-  const port = await listen(createServer((req, res) => { originAuthorization = req.headers['proxy-authorization']; res.end('origin') }))
+  let originAuthorization: string | undefined, originHost: string | undefined
+  const port = await listen(createServer((req, res) => {
+    originAuthorization = req.headers['proxy-authorization']; originHost = req.headers.host; res.end('origin')
+  }))
   const proxy = await tunnel()
   const authenticated = new URL(proxy.url); authenticated.username = 'fixture'; authenticated.password = 'fixture-password'
   const response = await requestPinnedViaProxy(authenticated.href, new URL(`http://origin.test:${String(port)}/`),
-    [{ address: '127.0.0.1', family: 4 }], {}, AbortSignal.timeout(3000))
+    [{ address: '127.0.0.1', family: 4 }], { Host: 'other.test', 'Proxy-Authorization': 'must-not-reach-origin' }, AbortSignal.timeout(3000))
   try { expect(await response.response.text()).toBe('origin') } finally { await response.close() }
   expect(proxy.authorizations).toEqual([`Basic ${Buffer.from('fixture:fixture-password').toString('base64')}`])
   expect(originAuthorization).toBeUndefined()
+  expect(originHost).toBe(`origin.test:${String(port)}`)
 })
 
 it('encodes an IPv6 destination as one literal CONNECT authority', async () => {

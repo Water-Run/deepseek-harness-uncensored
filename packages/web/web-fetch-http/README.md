@@ -101,6 +101,8 @@ The mounted provider dispatches `web-fetch/authorize` before each hop's resoluti
 
 The fourth constructor argument, `literal-connect`, resolves and authorizes proxy destinations locally. A private Undici proxy dispatcher CONNECTs to the first validated IP, preserving the original Host, TLS name and certificate verification; it never retries by connecting directly. Each redirect repeats validation. The configured resolver sees DNS queries; the HTTP proxy receives a literal destination instead of resolving its name. This mode requires a proxy that supports IP CONNECT. Ordinary plugin configuration keeps remote proxy DNS.
 
+The exported `requestPinnedViaProxy` helper also accepts a structured HTTP method and optional body bytes. It fixes Host to the original URL and removes proxy authorization from origin headers. Callers own admission and response cleanup; the anonymous fetch provider still uses GET.
+
 `resolveHttpFetchLimits(config)` supplies the same defaults and validation to alternate consumers, including the mandatory target-protection wrapper. Creating a wrapper does not bypass the shared transport limits.
 
 `resolvePublicAddresses` is exported for consumers supplying verified DNS evidence. Its optional `translatedIpv4` metadata retains a discovered NAT64 destination for policy checks; transport pinning still uses the original IPv6 address.

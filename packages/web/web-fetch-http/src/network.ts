@@ -248,12 +248,14 @@ export async function requestVia(
  * @param proxy - Selected HTTP(S) proxy URL, possibly containing credentials; never log this value.
  * @param url - Original validated origin URL.
  * @param addresses - Non-empty validated candidates; the first is bound for this hop without application-level replay.
- * @param headers - Anonymous origin request headers.
+ * @param headers - Origin headers; Host is fixed to the URL and proxy authorization is never forwarded.
  * @param signal - Request and body-read cancellation.
+ * @param request - Method and optional bytes for a structured request; defaults to an anonymous GET.
  * @returns A response with a private proxy dispatcher that the caller must close.
  */
 export async function requestPinnedViaProxy(
   proxy: string, url: URL, addresses: readonly PublicAddress[], headers: Record<string, string>, signal: AbortSignal,
+  request: { readonly method: string; readonly body?: Uint8Array<ArrayBuffer> } = { method: 'GET' },
 ): Promise<PinnedResponse> {
   signal.throwIfAborted()
   const selected = addresses.at(0)
@@ -279,8 +281,12 @@ export async function requestPinnedViaProxy(
   }))
   try {
     signal.throwIfAborted()
+    const originHeaders = new Headers(headers)
+    originHeaders.set('host', url.host)
+    originHeaders.delete('proxy-authorization')
+    originHeaders.delete('proxy-connection')
     // proxy-exempt: a private tunnel through the already selected route, never a direct origin connection.
-    const response = await fetch(url, { method: 'GET', redirect: 'manual', signal, dispatcher, headers })
+    const response = await fetch(url, { ...request, redirect: 'manual', signal, dispatcher, headers: Object.fromEntries(originHeaders) })
     return { response, close: async () => { await agent.close() } }
   } catch (error) {
     await agent.destroy(error instanceof Error ? error : new Error('Proxy tunnel failed.', { cause: error }))

@@ -101,6 +101,8 @@ const page = await ctx.web.fetch({ url: 'https://example.com' })
 
 第四个构造参数 `literal-connect` 在本地解析并校验代理目标。独立的 Undici 代理调度器向首个已校验 IP 发起 CONNECT，保留原始 Host、TLS 名称及证书校验，不以直连重试。每次重定向均重新校验。DNS 查询由配置的解析器处理；HTTP 代理收到字面目标地址，不解析其名称。此模式要求代理支持 IP CONNECT；普通插件配置仍使用远端代理 DNS。
 
+导出的 `requestPinnedViaProxy` 也接收结构化 HTTP 方法和可选正文字节，将 Host 固定为原始 URL，并从源站请求头中移除代理授权。调用方负责准入与响应清理；匿名抓取提供方仍使用 GET。
+
 `resolveHttpFetchLimits(config)` 向其他消费者提供相同的默认值与校验，包括必须依赖目标保护的包装提供方。包装提供方不会绕过共享传输限制。
 
 `resolvePublicAddresses` 供提供已核实 DNS 证据的消费者复用；可选的 `translatedIpv4` 元数据保留已发现的 NAT64 目标以供策略检查，实际连接仍固定到原 IPv6 地址。

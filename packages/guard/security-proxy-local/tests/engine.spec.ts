@@ -1,20 +1,23 @@
 import { mkdtemp, rm } from 'node:fs/promises'
 import { createServer, request as httpRequest, type Server } from 'node:http'
-import { getGlobalDispatcher } from 'undici'
-import { connect as netConnect } from 'node:net'
+import { getGlobalDispatcher, ProxyAgent } from 'undici'
+import { connect as netConnect, type Socket } from 'node:net'
+import type { Duplex } from 'node:stream'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import { WebError } from '@deepseek-ai/dsh-web'
 import { CaptureStore } from '../src/capture.ts'
 import { SecurityProxyEngine, type EgressSubject, type EngineOptions } from '../src/engine.ts'
 import { SettingsStore } from '../src/settings.ts'
+import { SessionChainProxy } from '../src/chain.ts'
 import { startLocalProxy, startLocalTarget, startTcpEcho, type LocalProxy, type LocalTarget, type LocalTcpTarget } from './support/local-proxy.ts'
 
 const subject = (id: string): EgressSubject => ({ session: { id: SessionId(id) } })
 
 interface Harness {
+  readonly store: SettingsStore
   readonly engine: SecurityProxyEngine
   readonly capture: CaptureStore
   readonly upstream: LocalProxy
@@ -71,7 +74,7 @@ async function build(patch: Partial<EngineOptions> = {}): Promise<Harness> {
   await engine.configure({ enabled: true, protocol: 'http', host: '127.0.0.1', port: upstream.port })
   const env = await engine.environment(subject('sess-a'), 'bash')
   const chainPort = Number(new URL(env?.HTTP_PROXY ?? 'http://127.0.0.1:0').port)
-  harness = { engine, capture, upstream, target, echo, warnings, chainPort }
+  harness = { store, engine, capture, upstream, target, echo, warnings, chainPort }
   return harness
 }
 
@@ -238,7 +241,7 @@ describe('child-process coverage', () => {
     const h = await build()
     const echoed = await tunnelThrough(h.chainPort, `127.0.0.1:${String(h.echo.port)}`)
     expect(echoed).toBe('ping')
-    await new Promise(resolve => setTimeout(resolve, 50))
+    await vi.waitFor(() => { expect(h.engine.list().some(entry => entry.kind === 'tunnel')).toBe(true) })
     const flow = h.engine.list().find(entry => entry.kind === 'tunnel')
     expect(flow).toMatchObject({
       kind: 'tunnel',
@@ -262,6 +265,31 @@ describe('child-process coverage', () => {
 })
 
 describe('capture controls', () => {
+  it('serializes settings and capture changes without overwriting another accepted patch', async () => {
+    const h = await build()
+    const entered = Promise.withResolvers<boolean>(), resume = Promise.withResolvers<boolean>()
+    const write = h.store.write.bind(h.store)
+    let first = true
+    const mocked = vi.spyOn(h.store, 'write').mockImplementation(async (settings) => {
+      if (first) { first = false; entered.resolve(true); await resume.promise }
+      await write(settings)
+    })
+    const settings = h.engine.configure({ warnWhenDisabled: true })
+    await entered.promise
+    const paused = h.engine.setPaused(true)
+    try { resume.resolve(true); await Promise.all([settings, paused]) }
+    finally { resume.resolve(true); await Promise.allSettled([settings, paused]); mocked.mockRestore() }
+    expect(h.store.value).toMatchObject({ warnWhenDisabled: true, capturePaused: true })
+  })
+
+  it('keeps a saved user name without sending credentials while authentication is disabled', async () => {
+    const h = await build()
+    expect((await h.engine.configure({ username: 'saved-user', authEnabled: false })).status).toBe('ready')
+    await h.engine.fetchTarget(subject('sess-a'), h.target.url, new AbortController().signal)
+    expect(h.upstream.requests[0]?.authorization).toBeUndefined()
+    expect((await h.engine.state()).settings.username).toBe('saved-user')
+  })
+
   it('keeps routing while capture is paused and clears on demand', async () => {
     const h = await build()
     await h.engine.fetchTarget(subject('sess-a'), h.target.url, new AbortController().signal)
@@ -294,6 +322,82 @@ describe('capture controls', () => {
 })
 
 describe('cancellation and shutdown', () => {
+  it('bounds the entire CONNECT handshake even while the proxy keeps sending incomplete headers', async () => {
+    const h = await build({ connectTimeoutMs: 1000 })
+    let writes = 0
+    const sockets = new Set<Duplex>()
+    const partial = createServer()
+    partial.on('connect', (_request, socket) => {
+      sockets.add(socket)
+      socket.on('error', () => { socket.destroy() })
+      socket.write('HTTP/1.1 200 ')
+      const ticker = setInterval(() => { writes++; socket.write(' ') }, 10)
+      socket.once('close', () => { clearInterval(ticker); sockets.delete(socket) })
+    })
+    const port = await portOf(partial)
+    try {
+      expect(await h.engine.configure({ port })).toMatchObject({ status: 'failed', failure: 'timeout' })
+      expect(writes).toBeGreaterThan(0)
+    } finally { for (const socket of sockets) socket.destroy(); await stop(partial) }
+  })
+
+  it('keeps an established CONNECT alive beyond the HTTP and handshake budgets', async () => {
+    const h = await build({ requestTimeoutMs: 100, connectTimeoutMs: 1000 })
+    const socket = await new Promise<Socket>((resolve, reject) => {
+      const request = httpRequest({ host: '127.0.0.1', port: h.chainPort, method: 'CONNECT',
+        path: `127.0.0.1:${h.echo.port}` })
+      request.once('connect', (response, connected) => {
+        if (response.statusCode !== 200) { connected.destroy(); reject(new Error('CONNECT was refused')); return }
+        resolve(connected)
+      })
+      request.once('error', reject)
+      request.end()
+    })
+    let failure: Error | undefined
+    socket.on('error', (error) => { failure = error })
+    socket.setTimeout(2000, () => { socket.destroy(new Error('Fixture echo did not arrive')) })
+    try {
+      // Elapsed time is the subject: neither the HTTP limit nor a completed handshake may expire this established tunnel.
+      await new Promise(resolve => setTimeout(resolve, 1100))
+      expect(failure).toBeUndefined()
+      expect(socket.destroyed).toBe(false)
+      const echoed = new Promise<string>((resolve, reject) => {
+        socket.once('data', (chunk: Buffer) => { resolve(chunk.toString()) })
+        socket.once('error', reject)
+      })
+      socket.write('ping')
+      expect(await echoed).toBe('ping')
+    } finally {
+      await new Promise<void>((resolve) => {
+        if (socket.closed) { resolve(); return }
+        socket.once('close', () => { resolve() }); socket.destroy()
+      })
+    }
+  })
+
+  it('waits for a forgotten session listener before releasing the shared dispatcher', async () => {
+    const h = await build()
+    const entered = Promise.withResolvers<boolean>(), resume = Promise.withResolvers<boolean>()
+    const order: string[] = []
+    // oxlint-disable-next-line typescript/unbound-method -- The spy forwards the original receiver through call.
+    const close = SessionChainProxy.prototype.close
+    // oxlint-disable-next-line typescript/unbound-method -- The spy forwards the original receiver through apply.
+    const destroy = ProxyAgent.prototype.destroy
+    const closeSpy = vi.spyOn(SessionChainProxy.prototype, 'close').mockImplementation(async function (this: SessionChainProxy) {
+      entered.resolve(true); await resume.promise; await close.call(this); order.push('listener')
+    })
+    const destroySpy = vi.spyOn(ProxyAgent.prototype, 'destroy').mockImplementation(function (this: ProxyAgent, ...args) {
+      order.push('dispatcher'); return destroy.apply(this, args)
+    })
+    h.engine.forgetSession(SessionId('sess-a'))
+    await entered.promise
+    const stopping = h.engine.dispose()
+    try { resume.resolve(true); await stopping }
+    finally { resume.resolve(true); await stopping; closeSpy.mockRestore(); destroySpy.mockRestore() }
+    expect(order[0]).toBe('listener')
+    expect(order.slice(1)).toContain('dispatcher')
+  })
+
   it('reports caller cancellation instead of a proxy failure', async () => {
     const h = await build({ requestTimeoutMs: 30_000 })
     const slow = createServer((_request, response) => {

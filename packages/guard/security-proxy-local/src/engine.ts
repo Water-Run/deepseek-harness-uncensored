@@ -13,6 +13,7 @@
 import { fetch as undiciFetch, type ProxyAgent } from 'undici'
 import { WebError } from '@deepseek-ai/dsh-web'
 import type { WebFetchResult } from '@deepseek-ai/dsh-web'
+import type { PinnedResponse } from '@deepseek-ai/dsh-web-fetch-http'
 import {
   classifyContentType,
   decoderForCharset,
@@ -36,14 +37,25 @@ import { CaptureStore, prepareBody, redactHeaders, type CapturedExchangeInput } 
 import { SessionChainProxy } from './chain.ts'
 import { applyPatch, assertUpstream, SettingsStore, type StoredSettings } from './settings.ts'
 import {
-  checkUpstream,
+  connectThrough,
   classifyFailure,
   createDispatcher,
   describeFailure,
   proxyUrl,
   UpstreamFailure,
   type Upstream,
+  type UpstreamTunnel,
 } from './upstream.ts'
+
+/** One HTTP hop; the relay supplies the method and bounded request bytes. */
+export interface ProxyHttpRequest {
+  /** HTTP method preserved from the caller. */
+  readonly method: string
+  /** Origin headers with hop-specific proxy fields removed. */
+  readonly headers: Record<string, string>
+  /** Optional request bytes, already bounded by the relay. */
+  readonly body?: Uint8Array<ArrayBuffer>
+}
 
 /** The preset whose sessions this proxy serves. */
 export const SECURITY_PRESET = 'security'
@@ -126,13 +138,19 @@ export class SecurityProxyEngine {
   private dispatcherKey: string | undefined
   private upstreamNow: Upstream | undefined
   private readonly chains = new Map<string, ChainRecord>()
+  private readonly retiringChains = new Set<Promise<void>>()
   private readonly warned = new Set<string>()
   private closing = false
+  private readonly lifetime = new AbortController()
+  private generation = new AbortController()
+  private readonly pending = new Set<Promise<boolean>>()
+  private disposal: Promise<void> | undefined
+  private changes: Promise<void> = Promise.resolve()
 
   /**
    * @param options - store, capture, credential vault, and deployment limits.
    */
-  constructor(private readonly options: EngineOptions) {
+  constructor(protected readonly options: EngineOptions) {
     this.statusValue = options.store.value.enabled ? 'connecting' : 'off'
   }
 
@@ -141,24 +159,100 @@ export class SecurityProxyEngine {
     return this.options.capture
   }
 
+  /** @returns Cancellation when this engine closes or its selected upstream changes. */
+  protected executionSignal(): AbortSignal { return AbortSignal.any([this.lifetime.signal, this.generation.signal]) }
+
+  /** @returns A release callback for execution dependencies held through response cleanup. */
+  protected retainExecution(): () => void { return () => {} }
+
+  private async execute<T>(action: (signal: AbortSignal) => Promise<T>, caller?: AbortSignal): Promise<T> {
+    if (this.closing) throw new UpstreamFailure('unknown', 'the security proxy is closing')
+    const release = this.retainExecution()
+    const settled = Promise.withResolvers<boolean>()
+    this.pending.add(settled.promise)
+    try {
+      const signal = AbortSignal.any([this.executionSignal(), ...caller === undefined ? [] : [caller]])
+      signal.throwIfAborted()
+      return await action(signal)
+    } finally { settled.resolve(true); this.pending.delete(settled.promise); release() }
+  }
+
+  private change<T>(action: () => Promise<T>): Promise<T> {
+    if (this.closing) return Promise.reject(new UpstreamFailure('unknown', 'the security proxy is closing'))
+    const next = this.changes.then(() => {
+      if (this.closing) throw new UpstreamFailure('unknown', 'the security proxy is closing')
+      return action()
+    })
+    this.changes = next.then(() => undefined, () => undefined)
+    return next
+  }
+
+  private assertOpen(): void {
+    if (this.closing) throw new UpstreamFailure('unknown', 'the security proxy is closing')
+  }
+
+  /**
+   * Send one hop through the selected transport without following redirects.
+   * @param _upstream - Selected upstream, including private credentials.
+   * @param dispatcher - Engine-owned pool for this upstream.
+   * @param url - Original target URL.
+   * @param request - Origin method, headers and bounded body.
+   * @param signal - Caller, transport and engine cancellation.
+   * @returns Response and cleanup to run after consuming or cancelling its body.
+   */
+  protected async requestHttp(
+    _upstream: Upstream, dispatcher: ProxyAgent, url: URL, request: ProxyHttpRequest, signal: AbortSignal,
+  ): Promise<PinnedResponse> {
+    const response = await undiciFetch(url, { ...request, redirect: 'manual', signal, dispatcher })
+    return { response, close: () => Promise.resolve() }
+  }
+
+  /**
+   * Open an opaque tunnel; an enforcing subclass must validate or refuse its effects before connecting.
+   * @param upstream - Selected upstream with private credentials.
+   * @param host - Requested destination hostname.
+   * @param port - Destination port.
+   * @param signal - Execution cancellation.
+   * @returns Tunnel whose socket is owned by the relay until closure.
+   */
+  protected openTunnel(upstream: Upstream, host: string, port: number, signal: AbortSignal): Promise<UpstreamTunnel> {
+    return connectThrough(upstream, host, port, this.options.connectTimeoutMs, signal)
+  }
+
+  /**
+   * Check a proxy path without forwarding application bytes.
+   * @param upstream - Selected upstream with private credentials.
+   * @param signal - Execution cancellation.
+   * @returns The handshake latency in milliseconds.
+   */
+  protected async probe(upstream: Upstream, signal: AbortSignal): Promise<number> {
+    const start = performance.now()
+    const tunnel = await this.openTunnel(upstream, this.options.testTarget.host, this.options.testTarget.port, signal)
+    if (!tunnel.socket.closed) {
+      await new Promise<void>((resolve) => { tunnel.socket.once('close', () => { resolve() }); tunnel.socket.destroy() })
+    }
+    if (tunnel.socket.errored !== null) throw tunnel.socket.errored
+    return Math.round(performance.now() - start)
+  }
+
   /**
    * Verify the configured upstream over a real proxy path, and publish the
    * resulting status.
    * @returns the check outcome and the state after it.
    */
   async test(): Promise<SecurityProxyTestResult> {
+    return this.execute(signal => this.runTest(signal))
+  }
+
+  private async runTest(signal: AbortSignal): Promise<SecurityProxyTestResult> {
     const settings = this.options.store.value
     this.checkedAtValue = this.now()
     this.statusValue = settings.enabled ? 'connecting' : 'off'
     const started = performance.now()
     try {
       const { upstream } = await this.ensureTransport()
-      const latency = await checkUpstream(
-        upstream,
-        this.options.testTarget.host,
-        this.options.testTarget.port,
-        this.options.connectTimeoutMs,
-      )
+      const latency = await this.probe(upstream, signal)
+      signal.throwIfAborted()
       this.latencyValue = latency
       this.failureValue = null
       this.detailValue = null
@@ -171,6 +265,7 @@ export class SecurityProxyEngine {
         state: await this.state(),
       }
     } catch (error: unknown) {
+      signal.throwIfAborted()
       const failure = classifyFailure(error)
       this.failureValue = failure
       this.detailValue = describeFailure(error)
@@ -192,6 +287,10 @@ export class SecurityProxyEngine {
    * @returns the state after the write.
    */
   async configure(patch: SecurityProxySettingsPatch): Promise<SecurityProxyState> {
+    return this.change(() => this.configureNow(patch))
+  }
+
+  private async configureNow(patch: SecurityProxySettingsPatch): Promise<SecurityProxyState> {
     const previous = this.options.store.value
     const next = applyPatch(previous, patch)
     if (next.enabled) assertUpstream(next.host, next.port)
@@ -221,6 +320,10 @@ export class SecurityProxyEngine {
    * @returns the state after the change.
    */
   async setPassword(password: string | null): Promise<SecurityProxyState> {
+    return this.change(() => this.setPasswordNow(password))
+  }
+
+  private async setPasswordNow(password: string | null): Promise<SecurityProxyState> {
     if (password !== null && password === '') {
       throw new UpstreamFailure('auth', 'the upstream proxy password must not be empty')
     }
@@ -287,21 +390,25 @@ export class SecurityProxyEngine {
   async environment(subject: EgressSubject | undefined, tool: string): Promise<Readonly<Record<string, string>> | undefined> {
     const route = this.route(subject, tool)
     if (route === undefined) return undefined
-    await this.ensureTransport()
-    const proxy = await this.chainFor(route.sessionId, tool)
-    const url = `http://127.0.0.1:${String(proxy.port)}`
-    return {
-      HTTP_PROXY: url,
-      HTTPS_PROXY: url,
-      ALL_PROXY: url,
-      http_proxy: url,
-      https_proxy: url,
-      all_proxy: url,
-      // The proxy itself is the only loopback endpoint a child should treat
-      // specially; a target on loopback is still a target of this engagement.
-      NO_PROXY: '',
-      no_proxy: '',
-    }
+    return this.execute(async (signal) => {
+      await this.ensureTransport()
+      signal.throwIfAborted()
+      const proxy = await this.chainFor(route.sessionId, tool)
+      signal.throwIfAborted()
+      const url = `http://127.0.0.1:${String(proxy.port)}`
+      return {
+        HTTP_PROXY: url,
+        HTTPS_PROXY: url,
+        ALL_PROXY: url,
+        http_proxy: url,
+        https_proxy: url,
+        all_proxy: url,
+        // The proxy itself is the only loopback endpoint a child should treat
+        // specially; a target on loopback is still a target of this engagement.
+        NO_PROXY: '',
+        no_proxy: '',
+      }
+    })
   }
 
   /**
@@ -317,8 +424,11 @@ export class SecurityProxyEngine {
     if (route === undefined) {
       throw new WebError('the security-mode proxy does not cover this request', 'SECURITY_PROXY_NOT_COVERED')
     }
-    const { dispatcher } = await this.ensureTransport()
-    return await this.retrieve(url, dispatcher, route.sessionId, 'web_fetch', signal)
+    return this.execute(async (executionSignal) => {
+      const { upstream, dispatcher } = await this.ensureTransport()
+      executionSignal.throwIfAborted()
+      return this.retrieve(url, upstream, dispatcher, route.sessionId, 'web_fetch', executionSignal)
+    }, signal)
   }
 
   /**
@@ -350,9 +460,11 @@ export class SecurityProxyEngine {
    * @returns the state after the change.
    */
   async setPaused(paused: boolean): Promise<SecurityProxyState> {
-    const next = applyPatch(this.options.store.value, { capturePaused: paused })
-    await this.options.store.write(next)
-    return await this.state()
+    return this.change(async () => {
+      const next = applyPatch(this.options.store.value, { capturePaused: paused })
+      await this.options.store.write(next)
+      return await this.state()
+    })
   }
 
   /**
@@ -364,29 +476,46 @@ export class SecurityProxyEngine {
     const record = this.chains.get(sessionId)
     if (record === undefined) return
     this.chains.delete(sessionId)
-    void record.proxy.then(proxy => proxy.close(), () => undefined)
+    const closing = record.proxy.then(proxy => proxy.close(), () => undefined)
+    this.retiringChains.add(closing)
+    void closing.then(() => { this.retiringChains.delete(closing) }, (error: unknown) => {
+      this.retiringChains.delete(closing)
+      this.lifetime.abort(error)
+      this.markFailed(error)
+      this.options.log?.('security-proxy: session listener cleanup failed; reload the proxy provider', error)
+    })
   }
 
   /** Close every listener, dispatcher, and in-flight request. */
-  async dispose(): Promise<void> {
+  dispose(): Promise<void> {
+    this.disposal ??= this.close()
+    return this.disposal
+  }
+
+  private async close(): Promise<void> {
     this.closing = true
-    await this.closeChains()
-    await this.closeDispatcher()
+    this.lifetime.abort(new Error('Security proxy is closing.'))
+    try { await this.closeChains() }
+    finally {
+      try { await this.closeDispatcher() }
+      finally { await Promise.allSettled([...this.pending, this.changes]) }
+    }
   }
 
   /** Resolve the upstream and dispatcher for the current settings, rebuilding them when the key changed. */
   private async ensureTransport(): Promise<{ upstream: Upstream; dispatcher: ProxyAgent }> {
-    if (this.closing) throw new UpstreamFailure('unknown', 'the security proxy is closing')
+    this.assertOpen()
     const settings: StoredSettings = this.options.store.value
     if (!settings.enabled) {
       throw new UpstreamFailure('invalid-config', 'the security proxy is disabled')
     }
     const password = settings.authEnabled ? await this.options.vault.resolve() : undefined
+    this.assertOpen()
     const upstream: Upstream = {
       protocol: settings.protocol,
       host: settings.host,
       port: settings.port,
-      username: settings.username,
+      username: settings.authEnabled ? settings.username : '',
       password,
     }
     const key = `${proxyUrl(upstream)}|${settings.authEnabled ? `${settings.username}:${password ?? ''}` : ''}`
@@ -405,27 +534,33 @@ export class SecurityProxyEngine {
     this.dispatcher = undefined
     this.dispatcherKey = undefined
     this.upstreamNow = undefined
-    if (dispatcher !== undefined) await dispatcher.close().catch(() => undefined)
+    if (dispatcher !== undefined) await dispatcher.destroy()
   }
 
   /** Close every session listener; used on reconfiguration and disposal. */
   private async closeChains(): Promise<void> {
     const records = [...this.chains.values()]
     this.chains.clear()
-    for (const record of records) {
+    const results = await Promise.allSettled([...records.map(async (record) => {
       const proxy = await record.proxy.catch(() => undefined)
       await proxy?.close()
-    }
+    }), ...this.retiringChains])
+    const failures: unknown[] = []
+    for (const result of results) if (result.status === 'rejected') failures.push(result.reason)
+    if (failures.length > 0) throw new AggregateError(failures, 'Security proxy listeners failed to close.')
   }
 
   /** Close the dispatcher and listeners before a settings change takes effect. */
   private async resetTransport(): Promise<void> {
-    await this.closeChains()
-    await this.closeDispatcher()
+    this.generation.abort(new Error('Security proxy upstream changed.'))
+    try { await this.closeChains() }
+    finally { await this.closeDispatcher() }
+    this.generation = new AbortController()
   }
 
   /** Return the session's chain listener, starting it on first use. */
   private async chainFor(sessionId: SessionId, tool: string): Promise<SessionChainProxy> {
+    if (this.closing) throw new UpstreamFailure('unknown', 'the security proxy is closing')
     const existing = this.chains.get(sessionId)
     if (existing !== undefined) {
       existing.tool = tool
@@ -444,6 +579,10 @@ export class SecurityProxyEngine {
           if (this.dispatcher === undefined) throw new UpstreamFailure('invalid-config', 'the security proxy has no dispatcher configured')
           return this.dispatcher
         },
+        signal: () => this.executionSignal(),
+        retainExecution: () => this.retainExecution(),
+        requestHttp: (upstream, dispatcher, url, request, signal) => this.requestHttp(upstream, dispatcher, url, request, signal),
+        openTunnel: (upstream, host, port, signal) => this.openTunnel(upstream, host, port, signal),
         capture: this.options.capture,
         paused: () => this.options.store.value.capturePaused,
         timeoutMs: this.options.requestTimeoutMs,
@@ -458,6 +597,7 @@ export class SecurityProxyEngine {
   /** Follow same-origin redirects, read a capped body, and record the exchange. */
   private async retrieve(
     url: string,
+    upstream: Upstream,
     dispatcher: ProxyAgent,
     sessionId: SessionId,
     tool: string,
@@ -470,96 +610,95 @@ export class SecurityProxyEngine {
       const startedAt = performance.now()
       const timeout = AbortSignal.timeout(this.options.requestTimeoutMs)
       const fused = AbortSignal.any([signal, timeout])
-      let response
+      let exchange: PinnedResponse
       try {
-        response = await undiciFetch(current, {
+        exchange = await this.requestHttp(upstream, dispatcher, current, {
           method: 'GET',
-          redirect: 'manual',
           headers: {
             'user-agent': this.options.userAgent,
             'accept': 'text/html,application/xhtml+xml,text/*;q=0.9,application/json;q=0.8',
           },
-          signal: fused,
-          dispatcher,
-        })
+        }, fused)
       } catch (error: unknown) {
         this.recordFailure(at, startedAt, sessionId, tool, current.toString(), error)
         this.markFailed(error)
         throw toWebError(error, signal, timeout)
       }
-
-      if (isRedirect(response.status)) {
-        const location = response.headers.get('location')
-        await response.body?.cancel()
-        if (redirects >= this.options.maxRedirects) {
-          this.recordFailure(at, startedAt, sessionId, tool, current.toString(), new WebError(`exceeded the maximum of ${String(this.options.maxRedirects)} redirects`, 'WEB_REDIRECT_BLOCKED'))
-          throw new WebError(`exceeded the maximum of ${String(this.options.maxRedirects)} redirects`, 'WEB_REDIRECT_BLOCKED')
-        }
-        if (location === null) {
-          this.recordFailure(at, startedAt, sessionId, tool, current.toString(), new WebError('redirect without Location', 'WEB_PROVIDER_ERROR'))
-          throw new WebError(`redirect response (HTTP ${String(response.status)}) without a Location header`, 'WEB_PROVIDER_ERROR')
-        }
-        const next = new URL(location, current)
-        let validated: URL
-        try {
-          validated = validateFetchUrl(next.toString())
-          if (!isSameOrigin(validated, current)) {
-            throw new WebError(`cross-origin redirect to ${validated.origin} is not followed automatically; retry against that URL directly`, 'WEB_REDIRECT_BLOCKED')
+      const response = exchange.response
+      try {
+        if (isRedirect(response.status)) {
+          const location = response.headers.get('location')
+          await response.body?.cancel()
+          if (redirects >= this.options.maxRedirects) {
+            this.recordFailure(at, startedAt, sessionId, tool, current.toString(), new WebError(`exceeded the maximum of ${String(this.options.maxRedirects)} redirects`, 'WEB_REDIRECT_BLOCKED'))
+            throw new WebError(`exceeded the maximum of ${String(this.options.maxRedirects)} redirects`, 'WEB_REDIRECT_BLOCKED')
           }
+          if (location === null) {
+            this.recordFailure(at, startedAt, sessionId, tool, current.toString(), new WebError('redirect without Location', 'WEB_PROVIDER_ERROR'))
+            throw new WebError(`redirect response (HTTP ${String(response.status)}) without a Location header`, 'WEB_PROVIDER_ERROR')
+          }
+          const next = new URL(location, current)
+          let validated: URL
+          try {
+            validated = validateFetchUrl(next.toString())
+            if (!isSameOrigin(validated, current)) {
+              throw new WebError(`cross-origin redirect to ${validated.origin} is not followed automatically; retry against that URL directly`, 'WEB_REDIRECT_BLOCKED')
+            }
+          } catch (error: unknown) {
+            this.recordFailure(at, startedAt, sessionId, tool, current.toString(), error)
+            throw error
+          }
+          this.record({
+            at,
+            kind: 'http',
+            origin: 'client',
+            sessionId,
+            tool,
+            method: 'GET',
+            target: current.toString(),
+            status: response.status,
+            durationMs: Math.round(performance.now() - startedAt),
+            requestBytes: 0,
+            responseBytes: 0,
+            outcome: 'complete',
+            note: 'redirect',
+            requestHeaders: [['user-agent', this.options.userAgent]],
+            responseHeaders: [...response.headers],
+            requestBody: null,
+            responseBody: null,
+            contentType: null,
+          })
+          redirects += 1
+          current = validated
+          continue
+        }
+
+        const contentType = response.headers.get('content-type')
+        let kind
+        try {
+          kind = classifyContentType(contentType)
+          if (kind === undefined) throw new WebError(`unsupported content type "${contentType ?? 'unknown'}"`, 'WEB_UNSUPPORTED_CONTENT_TYPE')
         } catch (error: unknown) {
-          this.recordFailure(at, startedAt, sessionId, tool, current.toString(), error)
+          await response.body?.cancel()
+          this.recordResponse(at, startedAt, sessionId, tool, current, response.status, [...response.headers], contentType, null, error)
           throw error
         }
-        this.record({
-          at,
-          kind: 'http',
-          origin: 'client',
-          sessionId,
-          tool,
-          method: 'GET',
-          target: current.toString(),
-          status: response.status,
-          durationMs: Math.round(performance.now() - startedAt),
-          requestBytes: 0,
-          responseBytes: 0,
-          outcome: 'complete',
-          note: 'redirect',
-          requestHeaders: [['user-agent', this.options.userAgent]],
-          responseHeaders: [...response.headers],
-          requestBody: null,
-          responseBody: null,
-          contentType: null,
+        const { bytes, truncatedByBytes } = await this.readCapped(response, signal, timeout).catch((error: unknown) => {
+          this.recordResponse(at, startedAt, sessionId, tool, current, response.status, [...response.headers], contentType, null, error)
+          throw error
         })
-        redirects += 1
-        current = validated
-        continue
-      }
-
-      const contentType = response.headers.get('content-type')
-      let kind
-      try {
-        kind = classifyContentType(contentType)
-        if (kind === undefined) throw new WebError(`unsupported content type "${contentType ?? 'unknown'}"`, 'WEB_UNSUPPORTED_CONTENT_TYPE')
-      } catch (error: unknown) {
-        await response.body?.cancel()
-        this.recordResponse(at, startedAt, sessionId, tool, current, response.status, [...response.headers], contentType, null, error)
-        throw error
-      }
-      const { bytes, truncatedByBytes } = await this.readCapped(response, signal, timeout).catch((error: unknown) => {
-        this.recordResponse(at, startedAt, sessionId, tool, current, response.status, [...response.headers], contentType, null, error)
-        throw error
-      })
-      const decoder = decoderForCharset(parseCharset(contentType))
-      const decoded = decoder.decode(bytes)
-      const truncatedByChars = decoded.length > this.options.maxBodyChars
-      const content = truncatedByChars ? decoded.slice(0, this.options.maxBodyChars) : decoded
-      this.recordResponse(at, startedAt, sessionId, tool, current, response.status, [...response.headers], contentType, decoded, null)
-      return {
-        url: current.toString(),
-        statusCode: response.status,
-        body: kind === 'html' ? { kind: 'html', content } : { kind: 'text', content },
-        truncated: truncatedByBytes || truncatedByChars,
-      }
+        const decoder = decoderForCharset(parseCharset(contentType))
+        const decoded = decoder.decode(bytes)
+        const truncatedByChars = decoded.length > this.options.maxBodyChars
+        const content = truncatedByChars ? decoded.slice(0, this.options.maxBodyChars) : decoded
+        this.recordResponse(at, startedAt, sessionId, tool, current, response.status, [...response.headers], contentType, decoded, null)
+        return {
+          url: current.toString(),
+          statusCode: response.status,
+          body: kind === 'html' ? { kind: 'html', content } : { kind: 'text', content },
+          truncated: truncatedByBytes || truncatedByChars,
+        }
+      } finally { await exchange.close() }
     }
   }
 
@@ -602,6 +741,7 @@ export class SecurityProxyEngine {
       throw toWebError(error, signal, timeout)
     } finally {
       await reader.cancel().catch(() => undefined)
+      reader.releaseLock()
     }
     const bytes = new Uint8Array(total)
     let offset = 0
