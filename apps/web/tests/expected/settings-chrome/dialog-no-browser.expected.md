@@ -3,36 +3,57 @@
     - text: Settings
     - button "General"
     - button "Models"
-    - button "Built-in plugins"
-    - button "Agent presets"
+    - button "Budget"
+    - button "Modes"
+    - button "Plugins"
   - button "Open configuration file"
   - button "Close"
   - text: Permission Choose the default permission mode for new sessions
-  - button "Workspace Write"
+  - button "Full access"
   - text: Language
   - button "English"
+  - text: Cross-conversation memory
+  - paragraph: Saved facts, preferences, conclusions, and writing settings that later conversations can retrieve. Nothing is shared beyond the scope you choose.
+  - button "Manage memory"
+  - paragraph: "Stored records: 0"
+  - text: Extract memory automatically
+  - paragraph: After a completed turn, use the current model to summarize durable facts in this workspace and mode. Off by default; model usage is billed and subject to limits.
+  - switch "Extract memory automatically"
   - text: Appearance
-  - button "Light"
-  - button "Dark"
-  - button "System" [pressed]
+  - paragraph: Choose the light or dark theme for the interface.
+  - radiogroup "Appearance":
+    - radio "Sunrise & sunset By time" [checked]
+    - radio "System Match system"
+    - radio "Light Always light"
+    - radio "Dark Always dark"
+  - text: Location
+  - button "Location": Automatic (time zone)
+  - paragraph: Estimated for Shanghai, the time zone's representative city Sunrise {{clock}} AM · Sunset {{clock}} PM
+  - paragraph: A time zone only maps to a representative city, not your actual position, so times are estimates.
   - text: Font size Only affects conversation content 14
   - button "Increase font size"
   - button "Decrease font size"
   - text: px
   - button "More font settings"
   - text: Work details Choose how much detail to show for tool calls
-  - button "Detailed"
+  - button "Verbose"
   - text: When to Collapse Work Details Choose when to automatically collapse work details
-  - button "On completion"
+  - button "On next message"
   - text: Show coding view Shows trajectory, code diffs, and all Agent presets
   - switch "Show coding view"
   - text: Keyboard shortcuts
   - paragraph: View and edit available shortcuts and input actions
   - button "Edit shortcuts"
   - text: Send behavior while busy What Enter and the Send button do while the agent is running; Cmd/Ctrl+Enter uses the other behavior
-  - button "Queue"
+  - button "Steer"
+  - text: Input prediction Uses your draft and context to predict the next words. Tab fills without sending. Predictions use the current model and are billed.
+  - switch "Input prediction" [checked]
+  - text: Confirm sensitive actions On by default. When on, entering Security mode, changing an existing conversation and similar actions ask for a countdown or a typed statement first. Turning it off removes those dialogs for every mode.
+  - switch "Confirm sensitive actions" [checked]
   - text: Performance & usage Choose how much performance and usage information to show
   - button "Detailed"
+  - text: Quick-question reasoning One-shot /btw questions use low reasoning by default for faster answers; the main conversation and side questions are not affected.
+  - button "Low"
   - text: Upload Session Log when using the official model API Help improve DeepSeek models and products.
   - switch "Upload Session Log when using the official model API"
   - text: "Current version: {{version}}"

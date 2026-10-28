@@ -1,38 +1,59 @@
 - dialog "设置":
   - navigation:
     - text: 设置
-    - button "通用设置"
+    - button "通用"
     - button "模型"
-    - button "内置插件"
-    - button "Agent 预设"
+    - button "额度"
+    - button "模式"
+    - button "插件"
   - button "打开配置文件"
   - button "关闭"
   - text: 权限 选择新会话的默认权限模式
-  - button "工作区内修改"
+  - button "完全权限"
   - text: 语言
   - button "中文"
+  - text: 跨对话记忆
+  - paragraph: 保存的事实、偏好、操作结论和写作设定，供后续对话检索。不会超出你选择的作用范围共享。
+  - button "管理记忆"
+  - paragraph: "已保存记录: 0"
+  - text: 自动提炼记忆
+  - paragraph: 回合完成后，用当前模型整理长期事实，保存在当前工作区与模式。默认关闭；提炼会计费，并受额度限制。
+  - switch "自动提炼记忆"
   - text: 外观
-  - button "浅色"
-  - button "深色"
-  - button "跟随系统" [pressed]
+  - paragraph: 选择界面的明暗主题。
+  - radiogroup "外观":
+    - radio "日出日落 按时间" [checked]
+    - radio "跟随系统 同步系统"
+    - radio "浅色 始终浅色"
+    - radio "深色 始终深色"
+  - text: 位置
+  - button "位置": 自动（按时区）
+  - paragraph: 按时区的代表城市上海估算 日出 {{clock}} · 日落 {{clock}}
+  - paragraph: 时区只能对应代表城市，无法确定实际位置，时间为估算值。
   - text: 字号大小 仅影响会话内容的字号 14
   - button "增大字号"
   - button "减小字号"
   - text: px
   - button "更多字体设置"
   - text: 工作步骤展示 选择希望看到多少工具调用细节
-  - button "详细"
+  - button "完全展开"
   - text: 工作步骤收起时机 选择何时自动收起工作步骤
-  - button "回答结束后"
+  - button "下次有新消息时"
   - text: 显示代码工作视图 开启后，显示轨迹、本轮代码差异，可选择完整的 Agent 预设切换
   - switch "显示代码工作视图"
   - text: 快捷键
   - paragraph: 查看和编辑当前可用的快捷键和输入操作
   - button "编辑快捷键"
   - text: 繁忙时的发送行为 智能体运行时 Enter 键和发送按钮的行为；Cmd/Ctrl+Enter 使用另一行为
-  - button "排队发送"
+  - button "插话发送"
+  - text: 输入预测 使用草稿和上下文预测后续输入，Tab 填入但不发送。预测使用当前模型并计费。
+  - switch "输入预测" [checked]
+  - text: 敏感操作需要确认 默认开启。开启时，进入网安模式、切换已有对话的模式等操作会先要求阅读倒计时或输入声明；关闭后这些确认弹窗对所有模式都不再出现。
+  - switch "敏感操作需要确认" [checked]
   - text: 性能与用量 选择性能与用量信息展示的详细程度
   - button "详细"
+  - text: 随问思考等级 一次性的 /btw 提问默认使用低思考等级，回答更快；主对话与旁问不受影响。
+  - button "低"
   - text: 在使用官方模型 API 时上传 Session Log 帮助改进 DeepSeek 模型与产品
   - switch "在使用官方模型 API 时上传 Session Log"
   - text: 当前版本：{{version}}
