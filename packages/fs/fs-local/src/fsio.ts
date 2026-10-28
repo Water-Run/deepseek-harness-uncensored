@@ -81,6 +81,10 @@ function versionOf(info: BigIntStats): FsVersion {
  * a name race), override native boundaries, and observe the staged temp file before publication.
  */
 export interface FsIoInternals {
+  /** Pause a namespace mutation before its final policy and source-version checks. */
+  beforeFileMutation?: () => void | Promise<void>
+  /** Override the native file deletion boundary for partial-rename failure coverage. */
+  unlinkFile?: (path: string) => Promise<void>
   /** Override the host platform for native-publication unit coverage. */
   platform?: NodeJS.Platform
   /** Override the generated private staging-dir name (relative to the target dir). */

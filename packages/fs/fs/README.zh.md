@@ -37,6 +37,8 @@ kind: "package-reference"
 
 `watch(target, changed, signal)` 报告单个文件或目录直接子项的失效通知。观察就绪后，它返回调用方必须等待完成的异步关闭函数。signal 取消初始化；不支持监听的提供方直接拒绝，不使用轮询。
 
+`removeFile` 和 `renameFile` 要求已观察到的源文件版本，只操作普通文件。改名要求目标不存在、父目录已存在且位于同一文件系统。不支持的提供方直接拒绝，不回退到 shell。改名先以不覆盖方式发布目标，再删除源名称；发布后失败报告 `FS_PARTIAL_MUTATION`，重试前需检查两个路径，因为两者可能同时保留。发布前取消不改变名称；已提交的移动继续完成清理。版本和路径复查不提供针对外部恶意文件修改的内核隔离。
+
 -----
 
 <a id="understand-the-implementation"></a>
@@ -86,7 +88,7 @@ kind: "package-reference"
 
 当包级约定不够用时阅读以下页面。它们从穷尽式约定逐步进入构建于其上的后端与消费方。
 
-- [文件系统子系统](../../../docs/subsystems/filesystem.zh.md)——穷尽式提供方约定、策略事件与错误分类体系。
+- [文件系统包](../README.zh.md)——提供方、策略和工具。
 - [fs-local](../fs-local/README.zh.md)——实现该约定的宿主文件系统后端。
 - [fs-sandbox](../fs-sandbox/README.zh.md)——实现该约定的沙箱强制后端。
 - [tool-fs](../tool-fs/README.zh.md)——消费 `ctx.fs` 的面向模型工具。

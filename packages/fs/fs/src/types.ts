@@ -173,6 +173,8 @@ export interface FsEditOutcome {
  * results so retry/permission/UI layers can branch without parsing messages.
  */
 export type FsErrorCode =
+  | 'FS_PARTIAL_MUTATION'
+  | 'FS_ALREADY_EXISTS'
   | 'FS_NOT_FOUND'
   | 'FS_NOT_DIRECTORY'
   | 'FS_NOT_TEXT'

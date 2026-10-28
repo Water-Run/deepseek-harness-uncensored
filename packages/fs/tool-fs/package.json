@@ -47,6 +47,8 @@
     "@deepseek-ai/dsh-working-directory": "workspace:*"
   },
   "devDependencies": {
+    "@deepseek-ai/cordis-plugin-loader": "workspace:~",
+    "@deepseek-ai/cordis-plugin-include": "workspace:~",
     "@deepseek-ai/dsh-agent": "workspace:*",
     "@deepseek-ai/dsh-agent-loop": "workspace:*",
     "@deepseek-ai/dsh-agent-loop-testkit": "workspace:*",

@@ -15,6 +15,7 @@ import { applyEditTool } from './edit.ts'
 import { applyReadImageTool } from './read-image.ts'
 import { READ_MAX_BYTES, READ_MAX_LINE_LENGTH } from './read-render.ts'
 import { FsSandboxController } from './sandbox.ts'
+import { applyFileOperations } from './file-operations.ts'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'tool-fs'
@@ -24,6 +25,8 @@ export const inject = ['tools', 'fs', 'systemPrompt', 'workingDirectory']
 
 /** Plugin config (all optional — `Config` supplies the defaults). */
 export interface Config {
+  /** Register structured single-file deletion and non-overwriting rename. Defaults to false. */
+  fileOperations?: boolean
   /** Register `read` and its guidance. Defaults to true. */
   read?: boolean
   /** Register `read_image` while an attachment store is mounted. Defaults to true. */
@@ -43,6 +46,7 @@ export interface Config {
 }
 
 export const Config: z<Config> = z.object({
+  fileOperations: z.boolean().default(false),
   read: z.boolean().default(true),
   readImage: z.boolean().default(true),
   write: z.boolean().default(true),
@@ -90,9 +94,10 @@ export function apply(ctx: Context, config: Config): void {
   // One escalation API shared by both mutating tools: advertisement gating,
   // per-call policy resolution, and denial-marker mapping, all keyed off whether
   // the mounted ctx.fs confines (ctx.fs.sandboxMode).
-  if (resolved.write || resolved.edit) {
+  if (resolved.write || resolved.edit || resolved.fileOperations) {
     const sandbox = new FsSandboxController(ctx)
     if (resolved.write) applyWriteTool(ctx, sandbox)
     if (resolved.edit) applyEditTool(ctx, sandbox)
+    if (resolved.fileOperations) applyFileOperations(ctx, sandbox)
   }
 }

@@ -39,9 +39,11 @@ Load the shared policy service, then this backend, then the tools; the read-befo
 - name: '@deepseek-ai/dsh-tool-fs'
 ```
 
-The backend's config is unchanged from the local backend's (`cwd` resolution default and `diffBasisMaxBytes` overwrite bound); the [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-fs-sandbox) is the exhaustive source.
+The backend uses the local backend's `cwd` resolution default and `diffBasisMaxBytes` overwrite bound; see the [configuration definition](src/index.ts).
 
 ### How the fence behaves
+
+Structured file removal and renaming apply the same per-call policy to every affected path, including both rename endpoints. The provider repeats containment and target-policy checks under the mutation locks before publication. Unsupported directory and cross-filesystem operations remain refused; permission escalation does not add those capabilities.
 
 The effective mode comes from the calling session's override or escalation grant, falling back to the deployment default when neither is in force. `read-only` denies every mutation with the structured `FS_SANDBOX_DENIED`. `workspace-write` allows a mutation only when the target canonicalizes under the workspace root or a platform temp area (`/tmp`, `os.tmpdir()`) — the same writable set the Seatbelt profile grants. `danger-full-access` delegates unfenced.
 
@@ -87,11 +89,11 @@ The residual resolve-to-syscall TOCTOU is narrowed by re-canonicalizing immediat
 
 Read these pages when the package-level contract is not enough. They move from this backend to the shared policy home and the confinement decisions behind it.
 
-- [Filesystem subsystem](../../../docs/subsystems/filesystem.md) — exhaustive provider contract, policy events, and error taxonomy.
+- [Filesystem packages](../README.md) — providers, policy and tools.
 - [dsh-fs](../fs/README.md) — the `ctx.fs` contract this backend implements.
 - [fs-local](../fs-local/README.md) — the local backend this one extends.
 - [sandbox-policy](../../sandbox/sandbox-policy/README.md) — the shared per-session policy resolver this backend requires.
-- [Process sandbox subsystem](../../../docs/subsystems/sandbox.md) — modes, per-call policy, and fail-closed errors.
+- [Process sandbox](../../sandbox/sandbox/README.md) — modes, per-call policy, and fail-closed errors.
 - [Cross-family fs sandbox reference](../../sandbox/sandbox-policy/README.md) — the shared mode fence and its escalation choreography.
 
 -----

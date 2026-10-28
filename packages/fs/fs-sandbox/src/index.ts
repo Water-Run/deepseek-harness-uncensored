@@ -4,7 +4,7 @@
  * text-storage mechanics — resolve, stat, read/stream, list, the atomic
  * write and the read-match-write edit critical section — are the local
  * implementation's, verbatim; this package adds only the per-call POLICY fence
- * on the two mutations. Reads pass through untouched: every mode permits
+ * on content and namespace mutations. Reads pass through untouched: every mode permits
  * reading.
  *
  * The fence is a policy check in TRUSTED code over a MODEL-CONTROLLED path,
@@ -64,6 +64,16 @@ export class SandboxedFileSystem extends LocalFileSystem {
   /** The deployment default mode — the capability fact the tool layer reads to advertise escalation. */
   override get sandboxMode(): SandboxMode {
     return this.defaultMode
+  }
+
+  protected override async authorizeFileMutation(
+    targets: readonly FsTarget[], signal?: AbortSignal, policy?: SandboxExecutionPolicy,
+  ): Promise<void> {
+    for (const target of targets) {
+      const checked = await this.checkedTarget(target, policy)
+      if (checked.targetKey !== target.targetKey) throw new FsError('File path changed; resolve it again before retrying.', 'FS_STALE_VERSION')
+    }
+    await super.authorizeFileMutation(targets, signal, policy)
   }
 
   /**

@@ -7,6 +7,8 @@
 import { Context } from '@deepseek-ai/cordis'
 import { constants as bufferConstants } from 'node:buffer'
 import { once } from 'node:events'
+import { link, unlink } from 'node:fs/promises'
+import type { SandboxExecutionPolicy } from '@deepseek-ai/dsh-sandbox'
 import { watch } from 'chokidar'
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -140,6 +142,94 @@ export class LocalFileSystem extends FileSystem {
     void target
     if (signal?.aborted) throw new FsError('write aborted', 'FS_ABORTED')
     return Promise.resolve()
+  }
+
+  /**
+   * Recheck every namespace target under the operation's policy while mutation locks are held.
+   * @param targets - Source and, for rename, destination.
+   * @param signal - Cancels before a native effect.
+   * @param policy - Per-call sandbox policy; the bare local backend has no sandbox.
+   * @returns Completion only while all targets remain authorized and resolve to the same paths.
+   */
+  protected async authorizeFileMutation(
+    targets: readonly FsTarget[], signal?: AbortSignal, policy?: SandboxExecutionPolicy,
+  ): Promise<void> {
+    void policy
+    for (const target of targets) {
+      await this.authorizeMutation(target, signal)
+      const fresh = await resolveLocalTarget(this.config.cwd, target.displayPath)
+      if (fresh.targetKey !== target.targetKey) throw new FsError('File path changed; resolve it again before retrying.', 'FS_STALE_VERSION')
+      const entry = await probeNoFollow(target.displayPath)
+      if (entry?.type === 'symlink') throw new FsError('File removal and renaming do not follow symbolic-link entries.', 'FS_NOT_REGULAR_FILE')
+    }
+    if (signal?.aborted) throw new FsError('file mutation aborted', 'FS_ABORTED')
+  }
+
+  private async checkedSource(target: FsTarget, expected: { version: FsVersion }): Promise<void> {
+    const source = await probeNoFollow(target.targetKey)
+    if (source === null || source.version !== expected.version) throw new FsError('Source file changed; inspect it before retrying.', 'FS_STALE_VERSION')
+    if (source.type !== 'file') throw new FsError('Only regular files can be removed or renamed.', 'FS_NOT_REGULAR_FILE')
+  }
+
+  override async removeFile(
+    target: FsTarget, expected: { version: FsVersion }, signal?: AbortSignal, sandboxPolicy?: SandboxExecutionPolicy,
+  ): Promise<void> {
+    return this.withLock(target.targetKey, async () => {
+      await this.authorizeFileMutation([target], signal, sandboxPolicy)
+      await this.checkedSource(target, expected)
+      await this.internals.beforeFileMutation?.()
+      await this.authorizeFileMutation([target], signal, sandboxPolicy)
+      await this.checkedSource(target, expected)
+      if (signal?.aborted) throw new FsError('file deletion aborted', 'FS_ABORTED')
+      try { await (this.internals.unlinkFile ?? unlink)(target.targetKey) }
+      catch (error) { throw this.fileMutationError(error) }
+    })
+  }
+
+  override async renameFile(
+    source: FsTarget, destination: FsTarget, expected: { version: FsVersion },
+    signal?: AbortSignal, sandboxPolicy?: SandboxExecutionPolicy,
+  ): Promise<void> {
+    const keys = [...new Set([source.targetKey, destination.targetKey])].sort()
+    const locked = (index: number): Promise<void> => {
+      const key = keys[index]
+      return key === undefined ? this.renameLocked(source, destination, expected, signal, sandboxPolicy)
+        : this.withLock(key, () => locked(index + 1))
+    }
+    return locked(0)
+  }
+
+  private async renameLocked(
+    source: FsTarget, destination: FsTarget, expected: { version: FsVersion },
+    signal?: AbortSignal, policy?: SandboxExecutionPolicy,
+  ): Promise<void> {
+    const targets = [source, destination]
+    await this.authorizeFileMutation(targets, signal, policy)
+    await this.checkedSource(source, expected)
+    await this.internals.beforeFileMutation?.()
+    await this.authorizeFileMutation(targets, signal, policy)
+    await this.checkedSource(source, expected)
+    if (signal?.aborted) throw new FsError('file rename aborted', 'FS_ABORTED')
+    try { await (this.internals.linkFile ?? link)(source.targetKey, destination.targetKey) }
+    catch (error) { throw this.fileMutationError(error) }
+    try {
+      // Publication is irreversible for this call: never remove a destination another writer may own.
+      const original = await probeNoFollow(source.targetKey), published = await probeNoFollow(destination.targetKey)
+      if (original?.type !== 'file' || published?.type !== 'file' || original.version !== published.version) {
+        throw new FsError('Source changed after destination publication.', 'FS_STALE_VERSION')
+      }
+      await (this.internals.unlinkFile ?? unlink)(source.targetKey)
+    } catch (error) {
+      throw new FsError(`Destination "${destination.displayPath}" was created but source "${source.displayPath}" removal did not complete. Inspect both paths before retrying.`, 'FS_PARTIAL_MUTATION', { cause: error })
+    }
+  }
+
+  private fileMutationError(error: unknown): FsError {
+    const code = error instanceof Error && 'code' in error ? error.code : undefined
+    if (code === 'EEXIST') return new FsError('Destination already exists; choose an absent path.', 'FS_ALREADY_EXISTS', { cause: error })
+    if (code === 'ENOENT') return new FsError('Source or destination parent is missing.', 'FS_NOT_FOUND', { cause: error })
+    if (code === 'EACCES' || code === 'EPERM') return new FsError('File mutation was denied by the operating system.', 'FS_PERMISSION_DENIED', { cause: error })
+    return new FsError('File mutation failed; cross-filesystem renames are not supported.', 'FS_IO_ERROR', { cause: error })
   }
 
   override async resolve(path: string, opts?: { cwd?: string; signal?: AbortSignal }): Promise<FsTarget> {

@@ -39,9 +39,11 @@ kind: "package-reference"
 - name: '@deepseek-ai/dsh-tool-fs'
 ```
 
-后端的配置与本地后端完全相同（`cwd` 解析默认值与 `diffBasisMaxBytes` 覆写上限）；[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-fs-sandbox)是完整配置的真源。
+后端使用本地后端的 `cwd` 解析默认值和 `diffBasisMaxBytes` 覆写上限，详见[配置定义](src/index.ts)。
 
 ### 围栏行为
+
+结构化文件删除和改名将同一调用策略应用到每个受影响路径，包括改名两端。提供方在变更锁内、发布前重复执行包含关系和目标策略校验。不支持的目录及跨文件系统操作仍会拒绝；权限提升不增加这些能力。
 
 有效模式来自调用会话的覆盖值或升级授权，两者都未生效时才回退到部署默认值。`read-only` 以结构化 `FS_SANDBOX_DENIED` 拒绝所有变更。`workspace-write` 只允许目标规范化后位于工作区根目录或平台临时区域（`/tmp`、`os.tmpdir()`）之下的变更——与 Seatbelt profile 授权的可写集合相同。`danger-full-access` 不加围栏直接委托。
 
@@ -87,11 +89,11 @@ kind: "package-reference"
 
 当包级约定不够用时阅读以下页面。它们从本后端逐步进入共享策略归属及其背后的隔离决策。
 
-- [文件系统子系统](../../../docs/subsystems/filesystem.zh.md)——穷尽式提供方约定、策略事件与错误分类体系。
+- [文件系统包](../README.zh.md)——提供方、策略和工具。
 - [dsh-fs](../fs/README.zh.md)——本后端实现的 `ctx.fs` 约定。
 - [fs-local](../fs-local/README.zh.md)——本后端扩展的本地后端。
 - [sandbox-policy](../../sandbox/sandbox-policy/README.zh.md)——本后端所需的共享逐会话策略解析器。
-- [进程沙箱子系统](../../../docs/subsystems/sandbox.zh.md)——模式、逐调用策略与故障关闭错误。
+- [进程沙箱](../../sandbox/sandbox/README.zh.md)——模式、逐调用策略与故障关闭错误。
 - [跨能力族 fs 沙箱参考](../../sandbox/sandbox-policy/README.zh.md)——共享模式围栏及其升级编排。
 
 -----

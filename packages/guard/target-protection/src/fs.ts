@@ -8,6 +8,7 @@ import type { Config } from '@deepseek-ai/dsh-fs-sandbox'
 import type { SandboxExecutionPolicy } from '@deepseek-ai/dsh-sandbox'
 import type TargetProtection from '@deepseek-ai/dsh-target-protection'
 import type { LocalTargetOperation } from './file-rules.ts'
+import { TargetProtectionError } from './errors.ts'
 
 export type { Config } from '@deepseek-ai/dsh-fs-sandbox'
 
@@ -62,6 +63,16 @@ export default class TargetFileSystem extends SandboxedFileSystem {
   protected override async authorizeMutation(target: FsTarget, signal?: AbortSignal): Promise<void> {
     const checked = await this.admitted(target, 'mutate', this.signal(signal))
     if (checked.targetKey !== target.targetKey) throw new HarnessError('The file target changed during execution.', 'TARGET_IDENTITY_UNVERIFIED')
+  }
+
+  protected override async authorizeFileMutation(
+    targets: readonly FsTarget[], signal?: AbortSignal, policy?: SandboxExecutionPolicy,
+  ): Promise<void> {
+    const before = await this.protection.snapshot()
+    await super.authorizeFileMutation(targets, signal, policy)
+    if ((await this.protection.snapshot()).revision !== before.revision) {
+      throw new TargetProtectionError('conflict', 'Target rules changed while checking file endpoints; retry after changes settle.')
+    }
   }
 
   override async resolve(path: string, opts?: { cwd?: string; signal?: AbortSignal }): Promise<FsTarget> {
@@ -157,5 +168,20 @@ export default class TargetFileSystem extends SandboxedFileSystem {
   ): Promise<FsEditOutcome> {
     const bounded = this.signal(signal)
     return this.run(async () => super.editText(await this.admitted(target, 'mutate', bounded), edit, expected, bounded, sandboxPolicy))
+  }
+
+  override async removeFile(
+    target: FsTarget, expected: { version: FsVersion }, signal?: AbortSignal, sandboxPolicy?: SandboxExecutionPolicy,
+  ): Promise<void> {
+    const bounded = this.signal(signal)
+    return this.run(() => super.removeFile(target, expected, bounded, sandboxPolicy))
+  }
+
+  override async renameFile(
+    source: FsTarget, destination: FsTarget, expected: { version: FsVersion },
+    signal?: AbortSignal, sandboxPolicy?: SandboxExecutionPolicy,
+  ): Promise<void> {
+    const bounded = this.signal(signal)
+    return this.run(() => super.renameFile(source, destination, expected, bounded, sandboxPolicy))
   }
 }

@@ -1,0 +1,6 @@
+- id: tool-fs
+  config:
+    fileOperations: true
+# This keyless filesystem fixture has no credentials or proxy operations.
+- id: security-proxy
+  disabled: true

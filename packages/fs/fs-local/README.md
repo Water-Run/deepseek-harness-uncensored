@@ -50,6 +50,8 @@ The [configuration definition](src/index.ts) documents every accepted field and 
 
 ### What you can do
 
+Structured single-file removal and renaming use mandatory source-version checks. Rename locks both paths in stable order, creates an exclusive hard link, and removes the source only while both names still identify the published file. It never overwrites a destination, copies across filesystems, creates parents, follows final symbolic-link entries, or recursively changes directories. A source-removal failure preserves the published destination and returns `FS_PARTIAL_MUTATION`; inspect both names before retrying. Cancellation and policy changes stop admission before publication; a committed move completes cleanup while its owner retains dependencies.
+
 Read any regular UTF-8 text file whole or as a stream, read raw bytes up to a cap you choose or in a byte window, and list one directory level in stable name order. Create or replace a file atomically, and apply a literal text edit atomically; both mutations serialize per file, so concurrent writers never interleave. The version guard is optional: omit it for unconditional create-or-overwrite, or supply it to fail when the file changed since you last observed it.
 
 Read, listing, and mutation failures are typed `FsError`s with stable codes — `FS_NOT_FOUND`, `FS_NOT_TEXT` (binary content), `FS_STALE_VERSION` (changed since observation), `FS_EDIT_NOT_FOUND` or `FS_AMBIGUOUS_EDIT` (no unique literal match), and others — so callers branch on the code, never on message text. A missing target on an edit reports `FS_STALE_VERSION` whether or not the version guard is supplied.

@@ -54,10 +54,13 @@ kind: "package-reference"
 
 ### 配置
 
+可选 `fileOperations` 开关注册 `remove_file` 和 `rename_file`，默认为 `false`。二者要求普通源文件，并复用观察策略的版本防护；未挂载该策略时读取当前版本。改名要求目标不存在且位于同一文件系统，绝不覆盖。结果为紧凑的路径确认和可回放元数据。`FS_PARTIAL_MUTATION` 表示目标已发布，但源名称删除未完成；重试前须检查两个路径。目录操作和未实现能力的远端提供方直接拒绝，不回退到 shell。启用工具会增加对应 schema，不额外请求模型。
+
 所有键均为可选。`read`、`readImage`、`write` 和 `edit` 开关默认为 `true`；将开关设为 `false` 可省略对应工具及其指导文本。允许关闭全部四个工具。启用 `readImage` 仍需要附件存储和支持图片输入的模型。关闭 `read` 时仍会校验读取上限。
 
 | 键 | 默认值 | 含义 |
 |---|---|---|
+| `fileOperations` | `false` | 注册结构化单文件删除和不覆盖目标的改名 |
 | `read` | `true` | 注册 `read` 及其指导文本 |
 | `readImage` | `true` | 附件存储挂载时注册 `read_image` |
 | `write` | `true` | 注册 `write` 及其指导文本 |
@@ -67,7 +70,7 @@ kind: "package-reference"
 | `readMaxBytes` | `51200` | 一次 `read` 调用所选行的字节上限；溢出时以「已达上限」footer 结束窗口 |
 | `readStreamMinSize` | `10485760` | 大于等于该大小或大小未知的文件采用流式读取，而不是整体加载到内存 |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-tool-fs)是每个受支持字段及其 JSDoc 的穷尽式真源。
+[配置定义](src/index.ts)说明每个受支持字段。
 
 挂载 `fs-observation-policy` 且关闭 `read` 时，`write` 仍可创建文件，成功写入或编辑会记录本会话后续修改所需的版本。未观察过的已有文件仍受保护；关闭 `read` 不会放宽策略。其他文件系统读取方必须发出 `fs/observed`，已有文件才会成为已观察状态。
 
@@ -126,12 +129,12 @@ kind: "package-reference"
 
 当包级约定不够用时阅读以下页面。它们从工具逐步进入它们所组合的约定、后端与策略。
 
-- [文件系统子系统](../../../docs/subsystems/filesystem.zh.md)——穷尽式提供方约定、策略事件与错误分类体系。
+- [文件系统包](../README.zh.md)——提供方、策略和工具。
 - [dsh-fs](../fs/README.zh.md)——这些工具消费的 `ctx.fs` 约定。
 - [fs-local](../fs-local/README.zh.md)——这些工具运行于其上的宿主文件系统后端。
 - [fs-sandbox](../fs-sandbox/README.zh.md)——添加升权字段的沙箱强制后端。
 - [fs-observation-policy](../fs-observation-policy/README.zh.md)——通过 `fs/*` 事件防护变更的策略插件。
-- [生成工具目录](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-fs)——本包注册的穷尽式 schema。
+- [工具注册](src/index.ts)——启用的工具及其 schema 所属模块。
 
 -----
 
@@ -174,7 +177,7 @@ Read a file before editing it (the default fs-observation-policy requires it), u
 
 #### 模型看到的内容
 
-模型会看到已生成的 [`read`、`read_image`、`write` 和 `edit` schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-fs)，参数使用 snake_case。图片工具只在持久附件存储已挂载时出现；schema 本身与路由无关，严格门禁在执行时拒绝。作用域工具限制可以为某个 agent 移除任一定义。
+模型会看到已启用工具的 schema，参数使用 snake_case。图片工具只在持久附件存储已挂载时出现；schema 本身与路由无关，严格门禁在执行时拒绝。作用域工具限制可以为某个 agent 移除任一定义。
 
 #### Token 影响
 

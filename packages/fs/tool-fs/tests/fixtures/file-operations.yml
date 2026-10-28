@@ -1,0 +1,12 @@
+- id: prompt
+  name: cordis:system-prompt
+- id: tools
+  name: cordis:tools
+- id: filesystem
+  name: cordis:fs-local
+- id: working-directory
+  name: cordis:working-directory-fixture
+- id: file-tools
+  name: cordis:tool-fs
+  config:
+    fileOperations: true

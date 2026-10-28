@@ -93,6 +93,77 @@ it('preserves the physical filename spelling used by the local executor', async 
   expect(await readFile(path, 'utf8')).toBe('same file')
 })
 
+it.each(['full', 'audit'] as const)('guards both rename endpoints and deletion under %s production rules', async (protection) => {
+  const h = await harness(), sourcePath = join(h.workspace, 'source'), destinationPath = join(h.workspace, 'destination')
+  await writeFile(sourcePath, 'keep')
+  const source = await h.fs.resolve(sourcePath), destination = await h.fs.resolve(destinationPath)
+  const version = (await h.fs.stat(source))!.version
+  const code = protection === 'full' ? 'TARGET_FULLY_PROTECTED' : 'TARGET_READ_ONLY'
+  await h.configure([rule(sourcePath, { protection }), rule(sourcePath, { environment: 'test' })])
+  await expect(h.fs.removeFile(source, { version })).rejects.toMatchObject({ code })
+  await expect(h.fs.renameFile(source, destination, { version })).rejects.toMatchObject({ code })
+  await h.configure([rule(destinationPath, { protection })])
+  await expect(h.fs.renameFile(source, destination, { version })).rejects.toMatchObject({ code })
+  expect(await readFile(sourcePath, 'utf8')).toBe('keep')
+  await expect(readFile(destinationPath)).rejects.toMatchObject({ code: 'ENOENT' })
+})
+
+it('allows a test file move and deletion beside an unrelated protected directory', async () => {
+  const h = await harness(), path = join(h.workspace, 'test.bin'), protectedDirectory = join(h.workspace, 'production')
+  await mkdir(protectedDirectory); await writeFile(path, 'test contents')
+  await h.configure([rule(protectedDirectory), rule(path, { environment: 'test' })])
+  const source = await h.fs.resolve(path), destination = await h.fs.resolve(join(h.workspace, 'renamed.bin'))
+  await h.fs.renameFile(source, destination, { version: (await h.fs.stat(source))!.version })
+  expect(await readFile(destination.targetKey, 'utf8')).toBe('test contents')
+  await h.fs.removeFile(destination, { version: (await h.fs.stat(destination))!.version })
+  await expect(readFile(destination.targetKey)).rejects.toMatchObject({ code: 'ENOENT' })
+})
+
+it.each(['remove', 'rename'] as const)('rechecks cross-connection rules before %s makes its first effect', async (operation) => {
+  const h = await harness(), path = join(h.workspace, 'source'); await writeFile(path, 'keep')
+  await h.configure([])
+  const source = await h.fs.resolve(path), destination = await h.fs.resolve(join(h.workspace, 'destination'))
+  const expected = { version: (await h.fs.stat(source))!.version }
+  const other = await TargetStore.open(h.store, 1000)
+  try {
+    h.fs.internals.beforeFileMutation = () => {
+      const current = other.snapshot()
+      other.configure({ mainlandEnabled: false, rules: [rule(path)] }, current.revision)
+    }
+    await expect(operation === 'remove' ? h.fs.removeFile(source, expected) : h.fs.renameFile(source, destination, expected))
+      .rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+    expect(await readFile(path, 'utf8')).toBe('keep')
+    await expect(readFile(destination.targetKey)).rejects.toMatchObject({ code: 'ENOENT' })
+  } finally { other.close() }
+})
+
+it('refuses a rule revision change between the final source and destination checks', async () => {
+  const h = await harness(), path = join(h.workspace, 'source'); await writeFile(path, 'keep')
+  await h.configure([])
+  const source = await h.fs.resolve(path), destination = await h.fs.resolve(join(h.workspace, 'destination'))
+  const expected = { version: (await h.fs.stat(source))!.version }, other = await TargetStore.open(h.store, 1000)
+  let armed = false
+  h.fs.internals.beforeFileMutation = () => { armed = true }
+  const owner = h.ctx.targetProtection
+  // oxlint-disable-next-line typescript/unbound-method -- The spy calls the captured method with its owner.
+  const check = owner.checkLocalFile
+  vi.spyOn(owner, 'checkLocalFile').mockImplementation(async (file, operation, signal) => {
+    const result = await check.call(owner, file, operation, signal)
+    if (armed && operation === 'mutate' && file === destination.targetKey) {
+      armed = false
+      const current = other.snapshot()
+      other.configure({ mainlandEnabled: false, rules: [rule(path)] }, current.revision)
+    }
+    return result
+  })
+  try {
+    await expect(h.fs.renameFile(source, destination, expected)).rejects.toMatchObject({ code: 'conflict' })
+    expect(armed).toBe(false)
+    expect(await readFile(path, 'utf8')).toBe('keep')
+    await expect(readFile(destination.targetKey)).rejects.toMatchObject({ code: 'ENOENT' })
+  } finally { other.close() }
+})
+
 it('retains native file identity precision instead of rounding large Windows file IDs', async () => {
   const h = await harness()
   for (let index = 0; index < 16; index++) {
@@ -272,4 +343,31 @@ it('waits for a staged native write to stop and removes its temporary files duri
   expect(storageClose).toEqual([true])
   expect(await readFile(path, 'utf8')).toBe('before')
   expect(await readdir(h.workspace)).toEqual(['pending.txt'])
+})
+
+it('retains the rule store until a committed rename finishes native cleanup during withdrawal', async () => {
+  const h = await harness(), path = join(h.workspace, 'source'); await writeFile(path, 'retain')
+  await h.configure([])
+  const source = await h.fs.resolve(path), destination = await h.fs.resolve(join(h.workspace, 'destination'))
+  const entered = Promise.withResolvers<boolean>(), release = Promise.withResolvers<boolean>()
+  unblock.push(() => { release.resolve(true) })
+  let removed = false
+  const closeStates: boolean[] = []
+  // oxlint-disable-next-line typescript/unbound-method -- The spy forwards with the original store receiver.
+  const close = TargetStore.prototype.close
+  vi.spyOn(TargetStore.prototype, 'close').mockImplementation(function (this: TargetStore) {
+    closeStates.push(removed); close.call(this)
+  })
+  h.fs.internals.unlinkFile = async (file) => { entered.resolve(true); await release.promise; await unlink(file); removed = true }
+  const expected = { version: (await h.fs.stat(source))!.version }
+  const operation = h.fs.renameFile(source, destination, expected)
+  await entered.promise
+  const disposal = h.policy.dispose()
+  expect(closeStates).toEqual([])
+  release.resolve(true)
+  await operation; await disposal
+  expect(closeStates).toEqual([true])
+  expect(await readFile(destination.targetKey, 'utf8')).toBe('retain')
+  await expect(readFile(source.targetKey)).rejects.toMatchObject({ code: 'ENOENT' })
+  await expect(h.fs.removeFile(destination, expected)).rejects.toBeDefined()
 })

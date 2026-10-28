@@ -66,6 +66,26 @@ describe('the capability fact', () => {
   })
 })
 
+it('fences deletion and both rename endpoints under the per-call policy', async () => {
+  await boot('danger-full-access')
+  const inside = join(workspace, 'inside'), external = join(outside, 'outside')
+  await writeFile(inside, 'inside'); await writeFile(external, 'outside')
+  const source = await target(inside), outsideSource = await target(external)
+  const expected = { version: (await fs.stat(source))!.version }
+  const outsideVersion = { version: (await fs.stat(outsideSource))!.version }
+  const policy = { mode: 'workspace-write' as const, workspaceRoot: workspace }
+  await expect(fs.renameFile(source, await target(join(outside, 'destination')), expected, undefined, policy))
+    .rejects.toMatchObject({ code: 'FS_SANDBOX_DENIED' })
+  await expect(fs.renameFile(outsideSource, await target(join(workspace, 'destination')), outsideVersion, undefined, policy))
+    .rejects.toMatchObject({ code: 'FS_SANDBOX_DENIED' })
+  await expect(fs.removeFile(outsideSource, outsideVersion, undefined, policy)).rejects.toMatchObject({ code: 'FS_SANDBOX_DENIED' })
+  await expect(fs.removeFile(source, expected, undefined, { ...policy, mode: 'read-only' })).rejects.toMatchObject({ code: 'FS_SANDBOX_DENIED' })
+  expect(await readFile(inside, 'utf8')).toBe('inside')
+  expect(await readFile(external, 'utf8')).toBe('outside')
+  await fs.removeFile(source, expected, undefined, policy)
+  expect(existsSync(inside)).toBe(false)
+})
+
 describe('read-only', () => {
   beforeEach(() => boot('read-only'))
 

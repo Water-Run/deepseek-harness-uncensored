@@ -37,6 +37,8 @@ Through `ctx.fs` you can resolve any path to a stable target identity, read a wh
 
 `watch(target, changed, signal)` reports invalidations for one file or a directory's direct entries. It resolves once observation is ready with an asynchronous close function that the caller must await. The signal cancels initialization; unsupported providers reject without polling.
 
+`removeFile` and `renameFile` require an observed source version and operate only on regular files. Rename requires an absent destination with an existing parent on the same filesystem. Unsupported providers reject without falling back to a shell. Rename publishes without overwriting, then removes the source. A failure after publication reports `FS_PARTIAL_MUTATION`; inspect both paths before retrying because both names may remain. Cancellation before publication leaves names unchanged; a committed move finishes cleanup. Version checks and path revalidation do not isolate hostile external filesystem mutations.
+
 -----
 
 <a id="understand-the-implementation"></a>
@@ -86,7 +88,7 @@ The package declares three events so the emitter (`dsh-tool-fs`) and the policy 
 
 Read these pages when the package-level contract is not enough. They move from the exhaustive contract to the backends and consumers built on it.
 
-- [Filesystem subsystem](../../../docs/subsystems/filesystem.md) — exhaustive provider contract, policy events, and error taxonomy.
+- [Filesystem packages](../README.md) — providers, policy and tools.
 - [fs-local](../fs-local/README.md) — the host-filesystem backend implementing this contract.
 - [fs-sandbox](../fs-sandbox/README.md) — the sandbox-enforcing backend implementing this contract.
 - [tool-fs](../tool-fs/README.md) — the model-facing tools that consume `ctx.fs`.

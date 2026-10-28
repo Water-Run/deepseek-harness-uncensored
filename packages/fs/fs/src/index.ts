@@ -1,7 +1,7 @@
 /**
  * Filesystem Service Definition for one execution world. Backends own stable target
  * identity, process paths and file URIs, containment, text reads, decoding,
- * binary rejection, and atomic mutations. Read windows and
+ * binary rejection, atomic content writes, and structured file removal and renaming. Read windows and
  * observed-state policy stay in consumer and policy plugins; `editText`
  * remains here so version check, literal match, and rewrite share one critical
  * section.
@@ -81,12 +81,50 @@ declare module '@deepseek-ai/cordis' {
 /**
  * Abstract filesystem provider. Targets must preserve identity across aliases;
  * reads expose regular UTF-8 text or typed errors, listings are stable and
- * content-free, and mutations are atomic. Optional guards add stale protection
+ * content-free, and content writes are atomic. Renaming documents publication and cleanup separately.
+ * Optional guards add stale protection
  * without changing the unguarded provider contract.
  */
 export abstract class FileSystem extends Service {
   constructor(ctx: Context) {
     super(ctx, 'fs')
+  }
+
+  /**
+   * Delete one regular file, never a directory or a symbolic-link entry.
+   * @param target - Resolved file; providers reject a final symbolic link in either path representation.
+   * @param expected - Required observed source version; stale sources remain untouched.
+   * @param signal - Cancels before the deletion syscall; committed deletion remains successful.
+   * @param sandboxPolicy - Per-call mutation policy; omission uses the provider default.
+   * @returns Completion after deletion; unsupported providers reject without effects.
+   */
+  removeFile(
+    target: FsTarget, expected: { version: FsVersion }, signal?: AbortSignal, sandboxPolicy?: SandboxExecutionPolicy,
+  ): Promise<void> {
+    void target; void expected; void sandboxPolicy
+    signal?.throwIfAborted()
+    return Promise.reject(new FsError('File deletion is not supported by this provider.', 'FS_IO_ERROR'))
+  }
+
+  /**
+   * Move one regular file to an absent destination on the same filesystem, without overwriting.
+   * Local providers publish an exclusive hard link before unlinking the source. If source removal
+   * fails after publication, FS_PARTIAL_MUTATION reports that both names may remain; inspect both
+   * paths before retrying. Directories, final symbolic links and cross-filesystem moves are refused.
+   * @param source - Resolved source file.
+   * @param destination - Resolved absent destination; its parent must already exist.
+   * @param expected - Required observed source version; checks are serialized with provider mutations.
+   * @param signal - Cancels before publication; after publication the committed move finishes source removal.
+   * @param sandboxPolicy - Per-call policy applied to both paths; omission uses the provider default.
+   * @returns Completion after both names have reached the requested state.
+   */
+  renameFile(
+    source: FsTarget, destination: FsTarget, expected: { version: FsVersion },
+    signal?: AbortSignal, sandboxPolicy?: SandboxExecutionPolicy,
+  ): Promise<void> {
+    void source; void destination; void expected; void sandboxPolicy
+    signal?.throwIfAborted()
+    return Promise.reject(new FsError('File renaming is not supported by this provider.', 'FS_IO_ERROR'))
   }
 
   /**
