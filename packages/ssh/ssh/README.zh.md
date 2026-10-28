@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-`dsh-ssh` 将 POSIX Harness 主机连接到 POSIX SSH 主机上已安装的辅助程序。部署方持有的 OpenSSH 主机别名提供认证与主机身份；配套的文件系统、子进程和沙箱提供方共享该连接。连接在就绪前验证已安装产物的摘要；辅助程序在连接关闭或租期到期时负责远端清理。
+POSIX 客户端可使用 OpenSSH 提供方；Windows、Linux 和 macOS 客户端可使用 `./direct`。二者都连接已安装的 POSIX helper，供文件系统、子进程和沙箱提供方共享。OpenSSH 使用部署方持有的别名；直连提供方要求明确的端点、已核实的主机指纹和凭据引用。连接丢失或租期到期后，由 helper 负责远端清理。
 
 ## 目录
 
@@ -29,7 +29,7 @@ kind: "package-reference"
 
 ### 部署前提
 
-两端均需运行 Linux 或 macOS。本地 `ssh` 命令必须支持连接复用与 Unix 套接字转发，服务器也必须允许该转发。启动前配置主机别名、凭据与已知主机记录：本服务启用 `BatchMode`、要求严格检查主机密钥、禁用认证代理转发，且不提供交互认证流程。
+默认 OpenSSH 提供方要求两端均运行 Linux 或 macOS。本地 `ssh` 命令必须支持连接复用与 Unix 套接字转发，服务器也必须允许该转发。启动前配置主机别名、凭据与已知主机记录：本服务启用 `BatchMode`、要求严格检查主机密钥、禁用认证代理转发，且不提供交互认证流程。
 
 安装 [SSH helper 可执行文件发行包](../ssh-helper-runtime/README.zh.md)，或已构建的 helper 脚本及其匹配的 Node 依赖。运行时必须位于工作区和可写临时目录之外，也必须位于后端会替换的临时目录树之外，例如 bwrap 的私有 `/tmp`；工作区仍可位于 `/tmp` 下。摘要校验在辅助程序启动后发现非预期的已安装产物；它不能保证可写部署文件的执行安全，也不能认证恶意 SSH 主机。
 
@@ -46,6 +46,24 @@ kind: "package-reference"
 | `leaseMs` | `30000` | 辅助进程心跳租期，范围为 3000 至 600000 毫秒 |
 
 将验证后的 `ctx.ssh.ptcLaunch` 作为 [`NodePtcRuntime`](../../ptc-runtime/ptc-runtime-node/README.zh.md) 的 `launch` 配置。可执行文件部署包含 worker；脚本部署使用 PTC 时需要两个引导字段，仅使用文件系统和 Bash 时可以省略。脚本引导未配置时，getter 会拒绝访问。客户端在就绪前拒绝不匹配的协议版本、运行形式和 helper 摘要。
+
+<a id="direct-connection"></a>
+### 显式直连
+
+使用 `@deepseek-ai/dsh-ssh/direct` 替换包根提供方，并挂载 `credentials`。它使用 [ssh2](https://github.com/mscdex/ssh2)，不启动本地 OpenSSH，也不读取别名、`ProxyCommand`、认证代理或代理环境变量。连接固定到一个已解析的字面 IP，不自动改换路由。服务器仍需 POSIX helper；进程通道需要 Unix 流转发，shell 需提供 `sha256sum` 或 `shasum` 以在执行前校验 helper。已安装运行时及 shell 启动配置必须可信，并位于 Agent 可写工作区之外。
+
+直连提供方保留上方 helper 与限制字段，使用以下字段替换 `host`。主机指纹须独立核实；不会自动信任首次遇到的密钥。
+
+| 字段 | 默认值 | 含义 |
+|---|---|---|
+| `hostname`、`username` | 必填 | 明确的 DNS/IP 目标和 SSH 账号 |
+| `port` | `22` | 目标服务端口 |
+| `hostKeySha256` | 必填 | 已核实的 SSH 主机密钥指纹，接受十六进制 SHA-256 或 `SHA256:` base64 |
+| `privateKeyRef` | 省略 | 保存私钥的凭据引用 |
+| `passphraseRef` | 省略 | 私钥口令的凭据引用；需同时提供 `privateKeyRef` |
+| `passwordRef` | 省略 | 保存账号密码的凭据引用 |
+
+至少提供一种认证引用。每次建连解析凭据；已建立连接不会悄悄重新认证或重连。直连传输不经过网安模式的 HTTP 代理。需要目标准入时，应改为挂载 [`target-protection/ssh`](../../guard/target-protection/README.zh.md)；仅加载规则服务不会保护普通 SSH 提供方。
 
 -----
 
@@ -74,7 +92,7 @@ OpenSSH 主连接承载私有管理 RPC。每条程序流使用独立转发的 U
 <a id="further-exploration"></a>
 ## 进一步探索
 
-- [SSH 子系统](../../../docs/subsystems/ssh.zh.md) — 执行坐标、传输语义及生命周期归属。
+- [SSH 提供方](../README.zh.md) — 传输、文件系统和进程提供方。
 - [POSIX SSH 决策](../../../.agents/notes/implemented/architecture/2026-09-11-posix-ssh-runtime.zh.md) — 理由、替代方案及必要验证。
 
 -----
@@ -92,7 +110,7 @@ OpenSSH 主连接承载私有管理 RPC。每条程序流使用独立转发的 U
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- 不提供 Windows 端点、自动配置远端环境、重连或重放。
+- helper 仍要求 POSIX。默认 OpenSSH 客户端仍仅支持 POSIX；`./direct` 支持 Windows 客户端。不提供自动配置远端环境、重连或重放。
 - Web 工作区界面的路径仍假定可访问主机文件系统；请使用 headless 或所有消费方都遵守提供方路径语义的自定义组合。
 - TLS 流密钥不防御远端操作系统级进程内存检查或调试。文件效果策略保留所选沙箱后端的限制。
 

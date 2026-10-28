@@ -2,6 +2,7 @@
 import { posix } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { FileSystem, FsError } from '@deepseek-ai/dsh-fs'
+import { HarnessError } from '@deepseek-ai/dsh-llm'
 import type { FsDirEntry, FsEditOutcome, FsEditRequest, FsErrorCode, FsInfo, FsPathInfo, FsTarget, FsVersion, FsWriteIntent, FsWriteOutcome } from '@deepseek-ai/dsh-fs'
 import type { SandboxExecutionPolicy, SandboxMode } from '@deepseek-ai/dsh-sandbox'
 import type {} from '@deepseek-ai/dsh-sandbox-policy'
@@ -31,7 +32,7 @@ export class SshFileSystem extends FileSystem {
   override processPath(target: FsTarget): string { return String(target.targetKey) }
 
   override fileUrl(target: FsTarget): string {
-    return pathToFileURL(this.processPath(target)).href
+    return pathToFileURL(this.processPath(target), { windows: false }).href
   }
 
   override contains(parent: FsTarget, child: FsTarget): boolean {
@@ -96,11 +97,27 @@ export class SshFileSystem extends FileSystem {
     return await this.call('fs.edit', { target, edit, expected, policy }, editResultSchema, signal) as FsEditOutcome
   }
 
+  override async removeFile(
+    target: FsTarget, expected: { version: FsVersion }, signal?: AbortSignal, sandboxPolicy?: SandboxExecutionPolicy,
+  ): Promise<void> {
+    const policy = sandboxPolicy ?? this.ctx.sandboxPolicy.resolve()
+    await this.call('fs.remove', { target, expected, policy }, z.null(), signal)
+  }
+
+  override async renameFile(
+    source: FsTarget, destination: FsTarget, expected: { version: FsVersion },
+    signal?: AbortSignal, sandboxPolicy?: SandboxExecutionPolicy,
+  ): Promise<void> {
+    const policy = sandboxPolicy ?? this.ctx.sandboxPolicy.resolve()
+    await this.call('fs.rename', { source, destination, expected, policy }, z.null(), signal)
+  }
+
   private async call<T>(method: string, params: unknown, schema: z.ZodType<T>, signal?: AbortSignal): Promise<T> {
     try { return await this.ctx.ssh.request(method, params, schema, signal) } catch (error) {
       if (error instanceof RemoteOperationError && error.code !== undefined && Object.hasOwn(errorCodes, error.code)) {
         throw new FsError(error.message, error.code as FsErrorCode, { cause: error })
       }
+      if (error instanceof HarnessError) throw error
       throw new FsError(error instanceof Error ? error.message : String(error), signal?.aborted ? 'FS_ABORTED' : 'FS_IO_ERROR', { cause: error })
     }
   }

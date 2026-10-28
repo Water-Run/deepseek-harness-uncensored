@@ -15,6 +15,14 @@ function target(overrides: Partial<NetworkTarget> = {}): NetworkTarget {
 }
 function policy(rules: TargetRule[], mainlandEnabled = false): TargetRules { return new TargetRules({ mainlandEnabled, rules }) }
 
+it('does not treat a different service port as proof that filesystem effects avoid its data', () => {
+  const production = rule({ port: 5432, kind: 'database', database: 'production' })
+  const rules = policy([production])
+  expect(rules.decide([target({ port: 22 })], 'observe', new Map()).allowed).toBe(true)
+  expect(rules.decide([target({ port: 22, spansServicePorts: true })], 'observe', new Map()))
+    .toEqual({ allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED', ruleIds: [production.id] })
+})
+
 it('binds multiple host aliases to one policy without overwriting another hostname’s address evidence', () => {
   const production = rule({ address: 'first.prod.test', aliases: [{ match: 'host', address: 'second.prod.test' }] })
   const rules = policy([production])

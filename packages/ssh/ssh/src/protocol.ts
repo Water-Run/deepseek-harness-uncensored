@@ -195,6 +195,7 @@ export class SshRpcPeer extends EventEmitter {
   }
 
   private receive(frame: Frame): void {
+    if (this.failure !== undefined) return
     if (frame.type === 'result' || frame.type === 'error') {
       const pending = this.pending.get(frame.id)
       if (pending === undefined) return // A cancelled request can still complete remotely.

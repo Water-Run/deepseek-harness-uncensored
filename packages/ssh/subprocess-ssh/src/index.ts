@@ -5,7 +5,7 @@ import { Context } from '@deepseek-ai/cordis'
 import { SubprocessRuntime, SubprocessExecutableNotFoundError } from '@deepseek-ai/dsh-subprocess'
 import type { SubprocessCollectedOutputs, SubprocessHandle, SubprocessOutcome, SubprocessOutputMode, SubprocessSpawnSpec, SubprocessTerminalHandle, SubprocessTerminalEnvironment, SubprocessTerminalSignal, SubprocessTerminalSpawnSpec } from '@deepseek-ai/dsh-subprocess'
 import { OutputCollector } from '@deepseek-ai/dsh-subprocess-local/output'
-import type { SshConnection } from '@deepseek-ai/dsh-ssh'
+import type { SshService } from '@deepseek-ai/dsh-ssh'
 import { doneSchema, foregroundSchema, terminalActivitySchema, outputSnapshotFrameLimit, outputSnapshotSchema, preparedSchema, remotePath, streamEndpointSchema } from '@deepseek-ai/dsh-ssh/schemas'
 import type { SshProcessId } from '@deepseek-ai/dsh-ssh/schemas'
 import { SshRpcPeer, RemoteOperationError } from '@deepseek-ai/dsh-ssh/protocol'
@@ -42,7 +42,7 @@ class RemoteProcess implements SubprocessHandle {
   private spills: { stdout?: string | undefined; stderr?: string | undefined } = {}
   private readonly updateCollection: Partial<Record<'stdout' | 'stderr', (snapshot: { tail: string; totalBytes: number }, final: boolean) => void>> = {}
 
-  constructor(private readonly ssh: SshConnection, private readonly spec: SubprocessSpawnSpec) {
+  constructor(private readonly ssh: SshService, private readonly spec: SubprocessSpawnSpec) {
     this.stdin = spec.stdio.stdin === 'pipe' ? this.inbound : undefined
     this.stdout = spec.stdio.stdout === 'pipe' ? this.out : undefined
     this.stderr = spec.stdio.stderr === 'pipe' ? this.err : undefined

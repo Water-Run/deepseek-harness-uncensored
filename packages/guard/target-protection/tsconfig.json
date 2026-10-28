@@ -8,6 +8,7 @@
     "src"
   ],
   "references": [
+    { "path": "../../ssh/ssh" },
     { "path": "../security-proxy-local" },
     { "path": "../../fs/fs" },
     { "path": "../../fs/fs-sandbox" },

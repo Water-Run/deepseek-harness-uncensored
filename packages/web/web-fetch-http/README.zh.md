@@ -107,6 +107,8 @@ const page = await ctx.web.fetch({ url: 'https://example.com' })
 
 `resolvePublicAddresses` 供提供已核实 DNS 证据的消费者复用；可选的 `translatedIpv4` 元数据保留已发现的 NAT64 目标以供策略检查，实际连接仍固定到原 IPv6 地址。
 
+`resolveConnectionAddresses` 用于 SSH 等所有者明确配置的连接。它允许私有地址，并保留已知及已发现的 NAT64 别名；调用方必须校验并固定返回的地址。无法确认的转换地址会被拒绝。匿名 HTTP 仍使用 `resolvePublicAddresses`，保留公网限制。
+
 </details>
 
 -----

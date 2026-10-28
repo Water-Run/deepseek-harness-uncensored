@@ -225,6 +225,19 @@ export async function runSshHelper(transport: HelperTransport): Promise<void> {
         }, signal)
       return Buffer.from(bytes).toString('base64')
     }
+    if (method === 'fs.remove' || method === 'fs.rename') {
+      const expected = z.object({ version: z.string() }).strict()
+      if (method === 'fs.remove') {
+        const input = z.object({ target: targetSchema, expected, policy: policySchema }).strict().parse(raw)
+        await ctx.fs.removeFile(asTarget(input.target), input.expected as { version: FsVersion },
+          signal, await policy(input.policy, signal))
+      } else {
+        const input = z.object({ source: targetSchema, destination: targetSchema, expected, policy: policySchema }).strict().parse(raw)
+        await ctx.fs.renameFile(asTarget(input.source), asTarget(input.destination), input.expected as { version: FsVersion },
+          signal, await policy(input.policy, signal))
+      }
+      return null
+    }
     if (method === 'fs.write' || method === 'fs.edit') {
       const input = z.object({
         target: targetSchema, content: z.string().optional(), edit: editSchema.optional(),

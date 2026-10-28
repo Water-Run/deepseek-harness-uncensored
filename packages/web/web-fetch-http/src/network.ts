@@ -15,14 +15,17 @@ import ipaddr from 'ipaddr.js'
 import { WebError } from '@deepseek-ai/dsh-web'
 
 /** One address resolved and retained for the subsequent pinned connection. */
-export interface PublicAddress {
+export interface ResolvedSocketAddress {
   /** Canonical textual IPv4 or IPv6 address. */
   readonly address: string
   /** Address family accepted by Node's connection lookup callback. */
   readonly family: 4 | 6
-  /** IPv4 destination embedded by a discovered DNS64 prefix, retained for target-policy checks. */
+  /** IPv4 destination embedded by a known or discovered DNS64 prefix, retained for target-policy checks. */
   readonly translatedIpv4?: string
 }
+
+/** Address admitted by the anonymous HTTP resolver's additional public-network checks. */
+export type PublicAddress = ResolvedSocketAddress
 
 /** The result of one address-pinned request; closing releases its private pool. */
 export interface PinnedResponse {
@@ -79,6 +82,25 @@ export async function resolvePublicAddresses(
   signal: AbortSignal,
   resolver: AddressResolver = systemLookup,
 ): Promise<PublicAddress[]> {
+  return resolveAddressSet(hostname, signal, resolver, true)
+}
+
+/**
+ * Resolve an explicitly configured connection target, retaining DNS64 evidence without an anonymous-fetch policy.
+ * @param hostname - Owner-selected hostname or literal IP.
+ * @param signal - Cancels lookup and translation-prefix discovery.
+ * @param resolver - The connection owner's resolver; no ambient fallback is selected here.
+ * @returns Literal addresses, including private networks; callers must authorize and pin them before connecting.
+ */
+export async function resolveConnectionAddresses(
+  hostname: string, signal: AbortSignal, resolver: AddressResolver,
+): Promise<ResolvedSocketAddress[]> {
+  return resolveAddressSet(hostname, signal, resolver, false)
+}
+
+async function resolveAddressSet(
+  hostname: string, signal: AbortSignal, resolver: AddressResolver, publicOnly: boolean,
+): Promise<ResolvedSocketAddress[]> {
   const unbracketed = stripIpv6Brackets(hostname)
   const literalFamily = isIP(unbracketed)
   const resolved = literalFamily === 0
@@ -89,21 +111,28 @@ export async function resolvePublicAddresses(
     throw new WebError(`hostname "${hostname}" resolved to no addresses`, 'WEB_PROVIDER_ERROR')
   }
 
-  const hasIpv6 = resolved.some(entry => entry.family === 6 && isIP(entry.address) === 6)
-  const nat64Prefixes = hasIpv6
-    ? await discoverNat64Prefixes(signal, resolver)
-    : []
+  const hasIpv6 = resolved.some(entry => entry.family === 6 && isIP(entry.address) === 6
+    && ipaddr.parse(entry.address).range() !== 'loopback')
+  const nat64Prefixes: Nat64Prefix[] = [
+    // RFC 6052's fixed prefix remains meaningful even when DNS64 discovery returns only A records.
+    { bytes: ipaddr.parse('64:ff9b::').toByteArray().slice(0, 12), length: 96 },
+    ...hasIpv6 ? await discoverNat64Prefixes(signal, resolver) : [],
+  ]
 
   const addresses: PublicAddress[] = []
   for (const entry of resolved) {
     if ((entry.family !== 4 && entry.family !== 6) || isIP(entry.address) !== entry.family) {
       throw new WebError(`hostname "${hostname}" resolved to an invalid IP address`, 'WEB_PROVIDER_ERROR')
     }
-    if (!isPublicIpAddress(entry.address)) {
+    if (publicOnly && !isPublicIpAddress(entry.address)) {
       throw new WebError(`URL hostname "${hostname}" resolves to a non-public IP address`, 'WEB_BLOCKED_URL')
     }
     const translatedIpv4 = translatedIpv4Address(entry.address, nat64Prefixes)
-    if (translatedIpv4 !== undefined && !isPublicIpAddress(translatedIpv4)) {
+    if (!publicOnly && entry.family === 6 && translatedIpv4 === undefined
+      && ['rfc6052', 'rfc6145', '6to4', 'teredo'].includes(ipaddr.parse(entry.address).range())) {
+      throw new WebError('Connection address uses an unverified IPv4 translation.', 'WEB_BLOCKED_URL')
+    }
+    if (publicOnly && translatedIpv4 !== undefined && !isPublicIpAddress(translatedIpv4)) {
       throw new WebError(`URL hostname "${hostname}" resolves through NAT64 to a non-public IPv4 address`, 'WEB_BLOCKED_URL')
     }
     addresses.push({ address: entry.address, family: entry.family,

@@ -52,7 +52,13 @@ export interface Config {
 }
 
 declare module '@deepseek-ai/cordis' {
-  interface Context { ssh: SshConnection }
+  interface Context { ssh: SshService }
+}
+
+/** Provider-neutral SSH helper operations consumed by files, processes and sandbox adapters. */
+export interface SshService extends Pick<SshConnection, 'ptcLaunch' | 'request' | 'connectStream' | 'dispose'> {
+  /** Verified helper coordinates; activation failures reject this promise. */
+  readonly ready: Promise<Hello>
 }
 
 /** One non-reconnecting SSH session; loss invalidates all active operations. */

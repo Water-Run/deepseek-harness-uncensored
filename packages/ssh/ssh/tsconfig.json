@@ -8,6 +8,9 @@
     "src"
   ],
   "references": [
+    { "path": "../../credentials/credentials" },
+    { "path": "../../llm/llm" },
+    { "path": "../../util/timeout" },
     {
       "path": "../../../vendor/cordis"
     },

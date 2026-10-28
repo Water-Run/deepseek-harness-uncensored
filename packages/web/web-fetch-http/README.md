@@ -107,6 +107,8 @@ The exported `requestPinnedViaProxy` helper also accepts a structured HTTP metho
 
 `resolvePublicAddresses` is exported for consumers supplying verified DNS evidence. Its optional `translatedIpv4` metadata retains a discovered NAT64 destination for policy checks; transport pinning still uses the original IPv6 address.
 
+`resolveConnectionAddresses` serves explicit owner-configured connections such as SSH. It permits private addresses while retaining known and discovered NAT64 aliases; callers must authorize and pin the returned addresses. Unverified transition addresses are refused. Anonymous HTTP still uses `resolvePublicAddresses` and keeps its public-network restriction.
+
 </details>
 
 -----

@@ -161,7 +161,9 @@ function compileRule(rule: TargetRule): CompiledRule {
 }
 
 function qualifiers(rule: TargetRule, target: NetworkTarget): 'match' | 'different' | 'unknown' {
-  if (rule.port !== undefined && target.port !== undefined && rule.port !== target.port) return 'different'
+  if (rule.port !== undefined && target.port !== undefined && rule.port !== target.port) {
+    return target.spansServicePorts ? 'unknown' : 'different'
+  }
   if (rule.database !== undefined && target.database !== undefined && rule.database !== target.database) return 'different'
   if ((rule.port !== undefined && target.port === undefined) || (rule.database !== undefined && target.database === undefined)) return 'unknown'
   return 'match'

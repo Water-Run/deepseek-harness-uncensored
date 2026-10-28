@@ -43,7 +43,10 @@ const windowsUnsupportedPackages = process.platform === 'win32'
 
 const windowsUnsupportedTests = process.platform === 'win32'
   ? [
-      ...windowsUnsupportedPackages.map(path => `${path}/tests/**/*.spec.ts`),
+      ...windowsUnsupportedPackages.flatMap(path => path === 'packages/ssh/*'
+        // Direct SSH transport tests use owned TCP endpoints on every host; the existing helper suites require POSIX.
+        ? ['packages/ssh/!(ssh)/tests/**/*.spec.ts', 'packages/ssh/ssh/tests/*.spec.ts']
+        : [`${path}/tests/**/*.spec.ts`]),
       'packages/subprocess/subprocess/tests/**/*.spec.ts',
       'packages/subprocess/subprocess-local/tests/local.spec.ts',
       'packages/subprocess/subprocess-local/tests/process-inspector.spec.ts',

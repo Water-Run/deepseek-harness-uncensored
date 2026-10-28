@@ -48,6 +48,10 @@ Country data is an estimate with limited coverage and accuracy. [IP Geolocation 
 
 Mount `./security-proxy` instead of `security-proxy-local`, with mandatory credentials and target protection. Its controlled client, HTTP relay and connection check authorize the original target before literal-IP CONNECT. Origin Host and TLS identity stay fixed; mismatched relay Host headers are refused. Redirects recheck current rules. Opaque CONNECT is refused because tunneled application targets cannot be verified; an endpoint test label does not remove this limitation. Keep the guarded ordinary HTTP provider mounted too, so disabling the independent proxy does not restore unrestricted fetches.
 
+Mount `./ssh` instead of an ordinary SSH connection, with mandatory `credentials` and `targetProtection`, then use `fs-ssh`. It uses the [explicit direct-SSH configuration](../../ssh/ssh/README.md#direct-connection), validates the original name and DNS aliases, fixes one literal destination, and verifies the server key. Full server protection refuses before TCP; audit admits structured file reads and refuses mutations. Exact private test endpoints may perform bounded file operations without relaxing anonymous HTTP restrictions. File calls resolve both path representations in the remote workspace and refuse escaping links; full-access permissions cannot widen that workspace.
+
+SSH filesystem effects are not assumed to avoid resources on another port. Conflicting database/port qualifiers or active production path rules without remote identity mappings are refused. Arbitrary commands, PTC, terminal streams and unknown protocol calls remain unconfined and are refused under active protection. This does not complete unrestricted execution on test servers. Connections close when local policy is revoked and never reconnect silently. SSH currently uses direct TCP, independently of the security-mode HTTP proxy; remote resource mapping and proxy routing remain unfinished.
+
 <a id="implementation"></a>
 ## Implementation
 
@@ -80,7 +84,7 @@ No new prompt prefix is added. A refusal changes only the affected tool result.
 <a id="known-limitations-and-deferred-work"></a>
 ## Known Limitations and Deferred Work
 
-Only the explicitly composed guarded HTTP, independent proxy, local file and process providers are covered. Structured file removal and renaming do not support directories or remote filesystems. SSH, database protocols, browser and MCP/REA native spawners still need adapters. Opaque proxy tunnels remain unsupported under protection. The ordinary anonymous fetch restrictions still reject private network destinations, including test labels; private test-world routing needs a separate adapter. DNS proof describes the configured resolver's answer, not every hostname sharing an IP; country data and CONNECT requests cannot attest a proxy's physical forwarding. Default product composition, owner UI, security-entry status and durable audit remain unfinished.
+Only explicitly composed guarded providers are covered. Structured file removal and renaming support local files and the matching SSH helper, not directory trees. Remote hard-link/mount identity, per-database bindings, database protocols, constrained commands, and browser/MCP/REA native execution still need adapters. Deployments must keep the remote runtime trusted and outside Agent-writable workspaces. Opaque proxy tunnels remain unsupported under protection; SSH proxy routing is also unfinished. Ordinary anonymous fetch still refuses private networks. DNS evidence cannot enumerate every hostname sharing an IP, and country data or CONNECT cannot attest physical forwarding. Default composition, owner UI, security-entry status and durable audit remain unfinished.
 
 <a id="dev-note"></a>
 ## Dev Note

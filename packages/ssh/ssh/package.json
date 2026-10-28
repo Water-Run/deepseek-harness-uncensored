@@ -20,6 +20,10 @@
     },
     "./src/*": "./src/*",
     "./package.json": "./package.json",
+    "./direct": {
+      "types": "./lib/types/direct.d.ts",
+      "default": "./lib/direct.js"
+    },
     "./helper": {
       "types": "./lib/types/helper-entry.d.ts",
       "default": "./lib/helper.js"
@@ -35,6 +39,7 @@
   },
   "files": [
     "lib/index.js",
+    "lib/direct.js",
     "lib/helper.js",
     "lib/protocol.js",
     "lib/schemas.js",
@@ -45,6 +50,9 @@
   ],
   "license": "MIT",
   "peerDependencies": {
+    "@deepseek-ai/dsh-credentials": "workspace:*",
+    "@deepseek-ai/dsh-llm": "workspace:*",
+    "@deepseek-ai/dsh-timeout": "workspace:*",
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-fs": "workspace:*",
     "@deepseek-ai/dsh-fs-local": "workspace:*",
@@ -59,10 +67,20 @@
     "@deepseek-ai/dsh-util-values": "workspace:*"
   },
   "dependencies": {
+    "ssh2": "1.17.0",
     "@deepseek-ai/schemastery": "workspace:~",
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh-tools": "workspace:*",
+    "@deepseek-ai/cordis-plugin-loader": "workspace:~",
+    "@deepseek-ai/cordis-plugin-include": "workspace:~",
+    "@deepseek-ai/dsh-target-protection": "workspace:*",
+    "@types/ssh2": "1.15.6",
+    "@deepseek-ai/dsh-credentials": "workspace:*",
+    "@deepseek-ai/dsh-credentials-local": "workspace:*",
+    "@deepseek-ai/dsh-llm": "workspace:*",
+    "@deepseek-ai/dsh-timeout": "workspace:*",
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-fs": "workspace:*",
     "@deepseek-ai/dsh-fs-local": "workspace:*",

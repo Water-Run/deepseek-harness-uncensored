@@ -27,6 +27,7 @@
   ],
   "license": "MIT",
   "peerDependencies": {
+    "@deepseek-ai/dsh-llm": "workspace:*",
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-ssh": "workspace:*",
     "@deepseek-ai/dsh-fs": "workspace:*",
@@ -38,6 +39,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh-llm": "workspace:*",
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-ssh": "workspace:*",
     "@deepseek-ai/dsh-fs": "workspace:*",

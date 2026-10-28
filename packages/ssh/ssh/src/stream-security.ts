@@ -1,6 +1,6 @@
 /** TLS-PSK authenticates forwarded streams even when a remote pathname is replaced. */
 import { connect, type ConnectionOptions, type TLSSocket } from 'node:tls'
-import type { Socket } from 'node:net'
+import type { Duplex } from 'node:stream'
 
 /** Certificate-free PSK authentication and AEAD records; no unauthenticated cipher fallback. */
 export const SSH_STREAM_TLS_OPTIONS = {
@@ -9,13 +9,13 @@ export const SSH_STREAM_TLS_OPTIONS = {
 
 /**
  * Authenticate a forwarded socket with its private administrative-channel key.
- * @param socket - the connected OpenSSH forwarding socket.
+ * @param socket - the connected forwarding socket or SSH channel.
  * @param capability - the per-stream 256-bit key encoded as hexadecimal.
  * @param timeoutMs - deadline for completing TLS authentication.
  * @param signal - cancellation of authentication and the resulting TLS stream.
  * @returns an authenticated paused stream; the key is never transmitted as data.
  */
-export async function authenticateStream(socket: Socket, capability: string, timeoutMs: number, signal?: AbortSignal): Promise<TLSSocket> {
+export async function authenticateStream(socket: Duplex, capability: string, timeoutMs: number, signal?: AbortSignal): Promise<TLSSocket> {
   if (signal?.aborted) { socket.destroy(); signal.throwIfAborted() }
   const stream = connect({
     ...SSH_STREAM_TLS_OPTIONS, socket, rejectUnauthorized: true,

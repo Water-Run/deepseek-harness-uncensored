@@ -28,6 +28,10 @@
       "default": "./lib/types/http.js"
     },
     "./package.json": "./package.json",
+    "./ssh": {
+      "types": "./lib/types/ssh.d.ts",
+      "default": "./lib/types/ssh.js"
+    },
     "./country": {
       "types": "./lib/types/country-provider.d.ts",
       "default": "./lib/types/country-provider.js"
@@ -61,6 +65,7 @@
     "mmdb-lib": "3.0.3"
   },
   "peerDependencies": {
+    "@deepseek-ai/dsh-ssh": "workspace:*",
     "@deepseek-ai/dsh-security-proxy-local": "workspace:*",
     "@deepseek-ai/dsh-fs": "workspace:*",
     "@deepseek-ai/dsh-fs-sandbox": "workspace:*",
@@ -74,6 +79,8 @@
     "@deepseek-ai/dsh-web-fetch-http": "workspace:*"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh-ssh": "workspace:*",
+    "@deepseek-ai/dsh-fs-ssh": "workspace:*",
     "@deepseek-ai/dsh-credentials-local": "workspace:*",
     "@deepseek-ai/dsh-session": "workspace:*",
     "@deepseek-ai/dsh-agent": "workspace:*",

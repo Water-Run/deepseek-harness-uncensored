@@ -31,6 +31,8 @@ Mount this provider with [`dsh-ssh`](../ssh/README.md) and `sandboxPolicy`; use 
 
 Reads preserve the shared filesystem error codes. Writes and edits send the resolved per-call policy to the helper, which canonicalizes the workspace and enforces it beside the atomic mutation. Lost transport reports an I/O failure; a mutation may already have committed and is not retried automatically.
 
+`removeFile` and `renameFile` use the matching helper's structured regular-file operations and require a source version. Rename never overwrites and reports `FS_PARTIAL_MUTATION` if source removal fails after destination publication. They do not operate on directories or move across filesystems. Remote file URLs retain POSIX semantics on Windows clients, and client-side target refusals keep their structured codes rather than becoming generic file I/O errors.
+
 -----
 
 <a id="understand-the-implementation"></a>
@@ -48,7 +50,7 @@ The helper reuses [`fs-local`](../../fs/fs-local/README.md) and [`fs-sandbox`](.
 <a id="further-exploration"></a>
 ## Further Exploration
 
-- [Filesystem subsystem](../../../docs/subsystems/filesystem.md) — shared operations and error meanings.
+- [Filesystem service](../../fs/fs/README.md) — shared operations and error meanings.
 - [SSH connection](../ssh/README.md) — deployment and disconnection behavior.
 
 -----

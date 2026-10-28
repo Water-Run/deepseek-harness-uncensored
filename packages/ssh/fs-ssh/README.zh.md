@@ -31,6 +31,8 @@ kind: "package-reference"
 
 读取保留共享文件系统错误码。写入和编辑将已解析的逐次调用策略发送给辅助程序，由其规范化工作区并在原子修改所在位置执行策略。传输丢失报告 I/O 失败；修改可能已经提交，不会自动重试。
 
+`removeFile` 和 `renameFile` 使用匹配 helper 的结构化普通文件操作，并要求源文件版本。改名不覆盖目标；若目标已发布但源名称删除失败，会报告 `FS_PARTIAL_MUTATION`。二者不操作目录，也不跨文件系统移动。Windows 客户端上的远端文件 URL 仍采用 POSIX 语义；客户端目标拒绝保留结构化错误码，不会被转换成笼统的文件 I/O 错误。
+
 -----
 
 <a id="understand-the-implementation"></a>
@@ -48,7 +50,7 @@ kind: "package-reference"
 <a id="further-exploration"></a>
 ## 进一步探索
 
-- [文件系统子系统](../../../docs/subsystems/filesystem.zh.md) — 共享操作及错误含义。
+- [文件系统服务](../../fs/fs/README.zh.md) — 共享操作及错误含义。
 - [SSH 连接](../ssh/README.zh.md) — 部署与断连行为。
 
 -----

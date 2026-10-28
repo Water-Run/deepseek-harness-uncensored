@@ -2,7 +2,8 @@
 import { WebError } from '@deepseek-ai/dsh-web'
 import type { TargetDecision, TargetDenialCode } from './types.ts'
 
-const REASONS: Readonly<Record<TargetDenialCode, string>> = {
+/** Credential-free explanations shared by guarded network protocol adapters. */
+export const TARGET_REFUSAL_REASONS: Readonly<Record<TargetDenialCode, string>> = {
   TARGET_FULLY_PROTECTED: 'This connection is blocked because the destination is fully protected.',
   TARGET_READ_ONLY: 'This operation cannot establish read-only effects on the protected destination.',
   TARGET_IDENTITY_UNVERIFIED: 'The destination identity or region could not be verified under the active protection rules.',
@@ -17,5 +18,5 @@ const REASONS: Readonly<Record<TargetDenialCode, string>> = {
  * @throws A WebError carrying the stable refusal code and no request credentials.
  */
 export function assertNetworkAllowed(decision: TargetDecision): void {
-  if (!decision.allowed) throw new WebError(REASONS[decision.code], decision.code)
+  if (!decision.allowed) throw new WebError(TARGET_REFUSAL_REASONS[decision.code], decision.code)
 }

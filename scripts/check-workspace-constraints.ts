@@ -236,6 +236,7 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   // SSH launches a private helper and shares wire definitions and TLS setup
   // between that helper and the connection owner.
   '@deepseek-ai/dsh-ssh': [
+    'lib/direct.js',
     'lib/helper.js', 'lib/protocol.js', 'lib/schemas.js',
     'lib/protocol-*.js', 'lib/schemas-*.js', 'lib/stream-security-*.js',
   ],

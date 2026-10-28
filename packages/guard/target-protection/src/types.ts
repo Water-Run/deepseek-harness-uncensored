@@ -49,6 +49,8 @@ export interface NetworkTarget {
   port?: number
   /** Protocol-verified database identity; omission does not mean a non-production database. */
   database?: string
+  /** Filesystem effects can reach resources served on other ports; omission describes only the connected endpoint. */
+  spansServicePorts?: boolean
   /** Region of every pinned address, supplied by a separately verified classifier. */
   mainland: 'yes' | 'no' | 'unknown'
 }

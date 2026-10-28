@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`dsh-ssh` connects a POSIX Harness host to an installed helper on a POSIX SSH host. One deployment-owned OpenSSH alias supplies authentication and host identity; the paired filesystem, subprocess and sandbox providers use that connection. The connection verifies installed artifact digests before readiness; the helper owns remote cleanup when the connection closes or its lease expires.
+Use the OpenSSH provider on POSIX clients, or `./direct` on Windows, Linux and macOS clients. Both connect to an installed POSIX helper shared by the filesystem, subprocess and sandbox providers. OpenSSH uses a deployment-owned alias; the direct provider requires an explicit endpoint, verified host fingerprint and credential references. The helper owns remote cleanup after connection loss or lease expiry.
 
 ## Table of Contents
 
@@ -29,7 +29,7 @@ Compose this service with [`fs-ssh`](../fs-ssh/README.md), [`subprocess-ssh`](..
 
 ### Deployment prerequisites
 
-Both endpoints require Linux or macOS. The local `ssh` command must support connection multiplexing and Unix-socket forwarding; the server must permit that forwarding. Configure the alias, credentials and known-host entry before startup: the service enables `BatchMode`, requires strict host-key checking, disables agent forwarding and adds no interactive authentication flow.
+The default OpenSSH provider requires Linux or macOS at both endpoints. Its local `ssh` command must support connection multiplexing and Unix-socket forwarding; the server must permit that forwarding. Configure the alias, credentials and known-host entry before startup: the service enables `BatchMode`, requires strict host-key checking, disables agent forwarding and adds no interactive authentication flow.
 
 Install an [SSH helper executable archive](../ssh-helper-runtime/README.md), or the built helper script with its matching Node dependencies. Keep the runtime outside the workspace and writable temporary roots. They must also remain outside a backend’s replaced temporary tree, such as bwrap’s private `/tmp`; the workspace may still be under `/tmp`. Digest verification detects an unexpected installed artifact after helper startup; it does not make writable deployment files safe to execute or authenticate a malicious SSH host.
 
@@ -46,6 +46,24 @@ Install an [SSH helper executable archive](../ssh-helper-runtime/README.md), or 
 | `leaseMs` | `30000` | Helper heartbeat lease, from 3000 to 600000 ms |
 
 Pass the verified `ctx.ssh.ptcLaunch` as the `launch` configuration of [`NodePtcRuntime`](../../ptc-runtime/ptc-runtime-node/README.md). Executable deployments include their worker. Script deployments require both bootstrap fields for PTC; filesystem and Bash use may omit them. The getter refuses an unconfigured script bootstrap. The client rejects mismatched protocol versions, runtime kinds and helper digests before readiness.
+
+<a id="direct-connection"></a>
+### Explicit direct connections
+
+Mount `@deepseek-ai/dsh-ssh/direct` instead of the package root, with `credentials`. It uses [ssh2](https://github.com/mscdex/ssh2), requires no local OpenSSH process, and does not read aliases, `ProxyCommand`, agents or proxy environment variables. It connects to one resolved literal IP without route fallback. The server still requires a POSIX helper and Unix-stream forwarding for process channels; its shell must provide `sha256sum` or `shasum` to verify the helper before execution. Installed runtime files and shell startup configuration must remain trusted and outside Agent-writable workspaces.
+
+The direct provider retains the helper and limit fields above, replacing `host` with these fields. Obtain the host fingerprint independently; it never accepts a newly encountered key automatically.
+
+| Field | Default | Meaning |
+|---|---|---|
+| `hostname`, `username` | required | Explicit DNS/IP target and SSH account |
+| `port` | `22` | Target service port |
+| `hostKeySha256` | required | Verified SSH host key, as hexadecimal SHA-256 or `SHA256:` base64 |
+| `privateKeyRef` | omitted | Credential reference containing the private key |
+| `passphraseRef` | omitted | Credential reference for the key passphrase; requires `privateKeyRef` |
+| `passwordRef` | omitted | Credential reference containing the account password |
+
+At least one authentication reference is required. Credentials are resolved for each connection; established connections do not silently reauthenticate or reconnect. The direct transport is not routed through the security-mode HTTP proxy. For target admission, mount [`target-protection/ssh`](../../guard/target-protection/README.md) instead; loading the rule service alone does not guard an ordinary SSH provider.
 
 -----
 
@@ -74,7 +92,7 @@ The connection disables the helper’s SIGUSR1 debugger activation: the script i
 <a id="further-exploration"></a>
 ## Further Exploration
 
-- [SSH subsystem](../../../docs/subsystems/ssh.md) — execution coordinates, transport semantics and lifecycle ownership.
+- [SSH providers](../README.md) — transport, filesystem and process providers.
 - [POSIX SSH decision](../../../.agents/notes/implemented/architecture/2026-09-11-posix-ssh-runtime.md) — rationale, alternatives and required verification.
 
 -----
@@ -92,7 +110,7 @@ This provider contributes no request-prefix content. Its consumers own model-vis
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- No Windows endpoint, automatic provisioning, reconnect or replay is supplied.
+- Helpers still require POSIX. The default OpenSSH client remains POSIX-only; `./direct` supports Windows clients. Automatic provisioning, reconnect and replay are not supplied.
 - Web workspace UI paths still assume host filesystem access; use headless or a custom composition whose consumers honor provider paths.
 - TLS stream keys do not protect against remote OS process-memory inspection or debugging. File-effect policy retains the selected sandbox backend’s limits.
 

@@ -4,8 +4,8 @@ import schema from '@deepseek-ai/schemastery'
 import { isIP } from 'node:net'
 import { resolve } from 'node:path'
 import { deadline } from '@deepseek-ai/dsh-timeout'
-import { resolvePublicAddresses } from '@deepseek-ai/dsh-web-fetch-http'
-import type { HttpFetchDestination, PublicAddress } from '@deepseek-ai/dsh-web-fetch-http'
+import { resolvePublicAddresses, resolveConnectionAddresses } from '@deepseek-ai/dsh-web-fetch-http'
+import type { HttpFetchDestination, PublicAddress, ResolvedSocketAddress } from '@deepseek-ai/dsh-web-fetch-http'
 import { canonicalTargetHost, TargetRules, expandTargetRules } from './rules.ts'
 import { TargetStore } from './store.ts'
 import { TargetProtectionError } from './errors.ts'
@@ -14,7 +14,7 @@ import { resolveTargetDns, systemHostsFile, type TargetDnsResolution } from './d
 import { parseDnsServer } from './dns-transport.ts'
 import { canonicalLocalPath, resolveLocalPathIdentity, localPathContains } from './file-identity.ts'
 import { decideLocalTarget, type LocalTargetOperation } from './file-rules.ts'
-import type { NetworkTarget, TargetDecision, TargetPreferences, TargetSnapshot } from './types.ts'
+import type { NetworkTarget, TargetDecision, TargetEffect, TargetPreferences, TargetSnapshot } from './types.ts'
 
 export type * from './types.ts'
 export { TargetProtectionError } from './errors.ts'
@@ -53,6 +53,11 @@ type ResolvedConfig = Required<Config>
 /** Name evidence and policy-validated addresses from the same resolution. */
 export interface TargetHttpResolution extends Omit<TargetDnsResolution, 'addresses'> {
   addresses: readonly PublicAddress[]
+}
+
+/** Connection-owner DNS evidence, including private addresses and discovered translation aliases. */
+export interface TargetConnectionResolution extends Omit<TargetDnsResolution, 'addresses'> {
+  addresses: readonly ResolvedSocketAddress[]
 }
 
 /** File identity and policy revision selected for the executing local provider. */
@@ -253,6 +258,62 @@ export default class TargetProtection extends Service {
     return operation.finally(() => { this.checking.delete(operation) })
   }
 
+  /**
+   * Resolve an owner-configured endpoint in the current client's network, without relaxing anonymous HTTP SSRF checks.
+   * @param hostname - Explicit deployment target; never an arbitrary fetch URL.
+   * @param signal - Connection cancellation and deadline.
+   * @returns Names and literal addresses that the connection consumer must authorize and pin.
+   */
+  resolveConnectionTarget(hostname: string, signal: AbortSignal): Promise<TargetConnectionResolution> {
+    this.lifetime.signal.throwIfAborted()
+    const operation = this.resolveConnection(hostname, signal)
+    this.checking.add(operation)
+    return operation.finally(() => { this.checking.delete(operation) })
+  }
+
+  private async resolveConnection(hostname: string, signal: AbortSignal): Promise<TargetConnectionResolution> {
+    using timeout = deadline(AbortSignal.any([signal, this.executionSignal()]), this.config.checkTimeoutMs, 'TARGET_DNS_TIMEOUT')
+    const resolution = await resolveTargetDns(hostname, this.dnsOptions(), timeout.signal)
+    const addresses = await resolveConnectionAddresses(hostname, timeout.signal, async (name) => {
+      const value = canonicalTargetHost(name) === resolution.hostname ? resolution
+        : await resolveTargetDns(name, this.dnsOptions(), timeout.signal)
+      return [...value.addresses]
+    })
+    timeout.signal.throwIfAborted()
+    return { ...resolution, addresses }
+  }
+
+  /**
+   * Check a pinned connection or an operation on its authenticated peer.
+   * @param hostname - Original configured host.
+   * @param port - Known service port; omission requires decisions without a verified port scope.
+   * @param resolution - Actual pinned address evidence; omission performs only pre-resolution checks.
+   * @param scope - Whether effects stay on one port or may access the peer filesystem.
+   * @param effect - Effect guaranteed by the protocol executor, not supplied by the model.
+   * @param signal - Operation cancellation and deadline.
+   * @returns A current rule decision; unavailable identity and registry failures never authorize fallback.
+   */
+  checkConnection(
+    hostname: string, port: number | undefined, resolution: TargetConnectionResolution | undefined,
+    scope: 'endpoint' | 'filesystem', effect: TargetEffect, signal: AbortSignal,
+  ): Promise<TargetDecision> {
+    this.lifetime.signal.throwIfAborted()
+    const name = canonicalTargetHost(hostname)
+    if (resolution !== undefined && resolution.hostname !== name) {
+      return Promise.resolve({ allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED', ruleIds: [] })
+    }
+    const target: NetworkTarget = {
+      names: resolution?.names ?? [name], ...port === undefined ? {} : { port },
+      spansServicePorts: scope === 'filesystem',
+      nameResolution: resolution === undefined ? 'unknown' : 'verified', mainland: 'unknown',
+      addresses: resolution === undefined ? null : resolution.addresses.flatMap(address =>
+        address.translatedIpv4 === undefined ? [address.address] : [address.address, address.translatedIpv4]),
+    }
+    const operation = this.decideNetwork(target, effect, resolution === undefined, signal)
+    this.checking.add(operation)
+    return operation.finally(() => { this.checking.delete(operation) })
+  }
+
   private dnsOptions() {
     return { servers: this.config.dnsServers, hostsFile: this.config.hostsFile,
       queryTimeoutMs: this.config.dnsQueryTimeoutMs, maxCnameDepth: this.config.dnsMaxCnameDepth,
@@ -272,7 +333,7 @@ export default class TargetProtection extends Service {
   }
 
   private async check(destination: HttpFetchDestination, signal: AbortSignal, resolution?: TargetHttpResolution): Promise<TargetDecision> {
-    using timeout = deadline(AbortSignal.any([signal, this.executionSignal()]), this.config.checkTimeoutMs, 'TARGET_CHECK_TIMEOUT')
+    signal.throwIfAborted()
     const hostname = canonicalTargetHost(destination.hostname)
     const verified = resolution !== undefined && resolution.hostname === hostname
       && destination.phase === 'before-connect' && destination.addresses !== null
@@ -290,20 +351,32 @@ export default class TargetProtection extends Service {
           ? [address.address] : [address.address, address.translatedIpv4]) : null,
       mainland: 'unknown',
     }
+    return this.decideNetwork(target, 'unknown', destination.phase === 'before-resolution', signal)
+  }
+
+  private async decideNetwork(
+    target: NetworkTarget, effect: TargetEffect, beforeResolution: boolean, signal: AbortSignal,
+  ): Promise<TargetDecision> {
+    using timeout = deadline(AbortSignal.any([signal, this.executionSignal()]), this.config.checkTimeoutMs, 'TARGET_CHECK_TIMEOUT')
     const store = await this.ready
     for (let attempt = 0; attempt < this.config.maxRechecks; attempt++) {
       timeout.signal.throwIfAborted()
       const snapshot = store.snapshot()
+      if (target.spansServicePorts) {
+        const unresolved = expandTargetRules(snapshot.preferences).filter(rule =>
+          rule.enabled && rule.environment === 'production' && rule.match === 'path')
+        if (unresolved.length > 0) return { allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED', ruleIds: unresolved.map(rule => rule.id) }
+      }
       const namedMainland = target.names.some(host => ['cn', 'xn--fiqs8s', 'xn--fiqz9s'].some(tld => host === tld || host.endsWith(`.${tld}`)))
       target.mainland = namedMainland ? 'yes' : 'unknown'
       const rules = new TargetRules(snapshot.preferences)
       const early = rules.preflight(target)
       if (early !== undefined) return early
-      if (destination.phase === 'before-resolution' && snapshot.preferences.mainlandEnabled && namedMainland
+      if (beforeResolution && effect !== 'observe' && snapshot.preferences.mainlandEnabled && namedMainland
         && !snapshot.preferences.rules.some(rule => rule.enabled && rule.environment === 'test')) {
         return { allowed: false, code: 'TARGET_MAINLAND_PROTECTED', ruleIds: [] }
       }
-      if (destination.phase === 'before-resolution') return { allowed: true, ruleIds: [] }
+      if (beforeResolution) return { allowed: true, ruleIds: [] }
       const bindings = new Map<string, readonly string[] | null>()
       for (const rule of rules.namedHosts(target)) {
         timeout.signal.throwIfAborted()
@@ -325,7 +398,7 @@ export default class TargetProtection extends Service {
       timeout.signal.throwIfAborted()
       if (store.snapshot().revision !== snapshot.revision) continue
       if (!namedMainland && target.addresses !== null) target.mainland = this.ctx.get('targetCountryData')?.mainland(target.addresses) ?? 'unknown'
-      return rules.decide([target], 'unknown', bindings)
+      return rules.decide([target], effect, bindings)
     }
     throw new TargetProtectionError('conflict', 'Target settings kept changing during validation; retry after changes settle.')
   }

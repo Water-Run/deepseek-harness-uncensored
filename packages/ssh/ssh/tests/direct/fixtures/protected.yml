@@ -1,0 +1,10 @@
+- id: target
+  name: cordis:target
+  inject: [sshFixture]
+  config:
+    path: !!js ctx.sshFixture.registry
+    hostsFile: ''
+- id: protected-ssh
+  name: cordis:protected-ssh
+  inject: [sshFixture]
+  config: !!js ctx.sshFixture.configuration
