@@ -4,13 +4,15 @@ import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
 import { AjvJsonSchemaValidator } from '@modelcontextprotocol/client/validators/ajv'
 import type { JsonSchemaType, JsonSchemaValidator } from '@modelcontextprotocol/client'
 import { scrubbedParentEnv } from '@deepseek-ai/dsh-subprocess'
-import type { ReaOptions, ReaProbe } from './types.ts'
+import type { ReaOptions, ReaProbe, ReaExecutionLease } from './types.ts'
 
 /** Owns the MCP process and its analysis state for one live Agent or temporary probe. */
 export class ReaConnection {
-  private readonly client = new Client({ name: 'dshu-rea', version: '0.1.0' })
+  private readonly client = new Client({ name: 'dshu-rea', version: '0.1.0' }, { versionNegotiation: { mode: 'legacy' } })
   private readonly lifetime = new AbortController()
   private readonly transport: StdioClientTransport
+  private readonly nativeClosed = Promise.withResolvers<void>()
+  private readonly revoke: (() => void) | undefined
   private tail: Promise<unknown> = Promise.resolve()
   private closing: Promise<void> | undefined
   private catalog: readonly Tool[] = []
@@ -22,8 +24,12 @@ export class ReaConnection {
   /**
    * @param options - Validated launch preferences.
    * @param cwd - Working directory assigned by the owning workspace service.
+   * @param execution - Optional executor lease, checked before any process starts.
+   * @param reportCloseError - Owner's visible sink for asynchronous revocation failures.
    */
-  constructor(private readonly options: ReaOptions, cwd: string) {
+  constructor(private readonly options: ReaOptions, cwd: string, private readonly execution: ReaExecutionLease | undefined,
+    reportCloseError: (error: unknown) => void) {
+    execution?.signal.throwIfAborted(); execution?.check()
     const env = { ...scrubbedParentEnv(), REA_MCP_INPUT_SCHEMA_PROFILE: 'compact' }
     const overrides: Record<string, string> = {
       GHIDRA_INSTALL_DIR: options.ghidraPath, JAVA_HOME: options.javaHome,
@@ -34,8 +40,13 @@ export class ReaConnection {
       env: { ...env, ...Object.fromEntries(Object.entries(overrides).filter(([, value]) => value !== '')) }, stderr: 'pipe' })
     // Drain diagnostics without retaining engine output or leaking it to the model.
     this.transport.stderr?.on('data', () => {})
+    this.transport.onclose = () => { this.nativeClosed.resolve() }
     this.client.onclose = () => { this.lifetime.abort(new Error('REA connection closed; reset the connection and reopen the sample.')) }
     this.ready = this.initialize()
+    if (execution !== undefined) {
+      this.revoke = () => { void this.close().catch(reportCloseError) }
+      execution.signal.addEventListener('abort', this.revoke, { once: true })
+    }
   }
 
   private async initialize(): Promise<void> {
@@ -84,6 +95,7 @@ export class ReaConnection {
     const task = this.tail.then(async () => {
       combined.throwIfAborted()
       await this.ready
+      this.execution?.signal.throwIfAborted(); this.execution?.check()
       let validate = this.argumentsValidators.get(tool.name)
       if (validate === undefined) {
         validate = this.validator.getValidator<Record<string, unknown>>(tool.inputSchema as JsonSchemaType)
@@ -105,8 +117,13 @@ export class ReaConnection {
   close(): Promise<void> {
     return this.closing ??= (async () => {
       this.lifetime.abort(new Error('REA connection disposed'))
-      await this.client.close()
-      await Promise.allSettled([this.ready, this.tail])
+      if (this.revoke !== undefined) this.execution?.signal.removeEventListener('abort', this.revoke)
+      try { await this.client.close() }
+      finally {
+        await this.nativeClosed.promise
+        await Promise.allSettled([this.ready, this.tail])
+        this.execution?.release()
+      }
     })()
   }
 }

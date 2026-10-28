@@ -1,5 +1,15 @@
 /** REA connection preferences and owner-facing diagnostics. @module */
 
+/** Executor-owned admission retained until the native transport and its calls have closed. */
+export interface ReaExecutionLease {
+  /** Revokes the whole connection, including work already queued. */
+  readonly signal: AbortSignal
+  /** Reject before allocating the process and immediately before each upstream call. */
+  check(): void
+  /** Release the execution owner's resources after native close and request settlement. */
+  release(): void
+}
+
 /** Persisted launch preferences; executable paths refer to physical host files. */
 export interface ReaOptions {
   /** Permit Reverse conversations to start REA; defaults to false. */

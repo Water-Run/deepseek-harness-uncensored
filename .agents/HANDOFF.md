@@ -1,5 +1,17 @@
 # Uncensored 开发交接
 
+## 当前节点：REA 原生启动与调用保护（2026-10-29）
+
+SSH 节点 `09f9374dc344d9d56cf45100ef9d0751cf9b048d` 已推送 main。继续执行“实现DSHU”，最近共享剩余额度 **54%**；未触发低于 40% 的收尾规则，未打包或覆盖安装。
+
+新增可选 `target-protection/rea`，替换 REA 根服务并保留原 `rea/agent` 消费者。真实进程分配前校验，排队调用在实际分派前复查；大陆/生产规则及持久所有者资源存在时拒绝无法限制效果的原生引擎，MCP 只读声明和完全权限不能放行。配置变化或规则服务撤下后取消运行中及排队调用，等待实际 stdio 进程关闭、请求结束后释放规则所有者。普通 REA 提供方保持原行为，默认产品没有自动装配该适配器。
+
+验证：REA/进程相关 3 文件 **19 项通过**；真实 Loader 与新增 keyless 会话快照通过；完整 build 9/9、相关 lint、JSDoc、工作区约束、两个包 publint 和双语配对通过。Windows Node 24.21.0 与 WSL Linux Node 22.23.2 都从编译后的公开导出验证启动前拒绝、无保护组合成功、强制关闭不配合的子进程、必需依赖撤下及旧调用拒绝。临时去掉执行校验后，Loader 回归从拒绝变为 allowed 并确定失败；源码已恢复，没有提交负对照。
+
+证据：`.dsh-build/target-protection-20261027/rea-protection-final-tests.log`、`rea-protection-build-final.log`、`rea-protection-snapshot.log`、`rea-protection-negative.log`、`rea-protection-built-win32.json`、`rea-protection-built-linux.json`。Windows 快照目录字段只在新夹具中按既有 cwd 标记修正，未改正常化器或冻结的历史代际。新增快照记录真实拒绝结果，没有调用外部模型或生产服务器。
+
+限制：该节点是 REA 原生旁路的拒绝和撤销适配，**不是 REA 引擎的目标沙盒**。通用 MCP、浏览器、computer-use、扩展/插件管理及其子进程树仍需分别约束；任意外部引擎和孙进程的操作范围不能由一个测试主机标签证明。P2 的远端资源/数据库身份与受限命令、P3 的持久审计和产品联动继续未完成。仍按 [完整计划](requirements/2026-10-27-remaining-work.md) 推进，不将可选后端源码等同于默认产品完整保护。
+
 ## 当前节点：SSH 固定目标与远端文件执行保护（2026-10-28）
 
 用户已授权恢复，目标为“实现DSHU”，原始需求和三项保护扩展均保留。当前继续开发；最近查询 7 天共享额度剩余 **56%**，没有独立会话或模型窗口，低于 40% 时仍转入收尾打包。Goal 查询仍返回 blocked 元数据；本轮没有实际开发阻塞，也未将目标标记完成。下方 active、暂停和额度记录均为历史。

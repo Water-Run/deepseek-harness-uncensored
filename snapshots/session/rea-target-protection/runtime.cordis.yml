@@ -1,0 +1,6 @@
+# This keyless fixture uses its own credential stores and no security proxy.
+- id: security-proxy
+  disabled: true
+- insert:
+    - id: rea-protection-probe
+      name: '../../../packages/guard/target-protection/tests/snapshot-rea.ts'

@@ -3,9 +3,9 @@ import { Context, Service, type Volatile } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/cordis-plugin-loader'
 import { ReaConnection } from './connection.ts'
-import type { ReaOptions } from './types.ts'
+import type { ReaOptions, ReaExecutionLease } from './types.ts'
 
-export type { ReaOptions, ReaProbe } from './types.ts'
+export type { ReaOptions, ReaProbe, ReaExecutionLease } from './types.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context { /** REA connection owner and persisted launch preferences. */ rea: ReaService }
@@ -99,6 +99,9 @@ export default class ReaService extends Service {
     if (errors.length > 0) throw new AggregateError(errors, 'REA processes did not all close')
   }
 
+  /** @returns An executor-owned lease, or no extra policy for the ordinary provider. */
+  protected acquireExecution(): ReaExecutionLease | undefined { return undefined }
+
   /**
    * Launch one connection, rolling back on cancellation or startup failure.
    * @param cwd - Absolute workspace or temporary probe directory.
@@ -110,7 +113,10 @@ export default class ReaService extends Service {
     if (this.stopped) throw new Error('REA service is stopping')
     if (!this.options.enabled) throw new Error('REA is disabled. Configure it in Reverse settings.')
     signal.throwIfAborted()
-    const connection = new ReaConnection(this.options, cwd)
+    const execution = this.acquireExecution()
+    let connection: ReaConnection
+    try { connection = new ReaConnection(this.options, cwd, execution, (error) => { this.ctx.logger.error('REA execution could not close: %o', error) }) }
+    catch (error) { execution?.release(); throw error }
     this.connections.add(connection)
     const dispose = async (): Promise<void> => { await connection.close(); this.connections.delete(connection) }
     let cancellation: Promise<void> | undefined

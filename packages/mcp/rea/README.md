@@ -25,6 +25,8 @@ REA 6.8.0 was tested with Node 24.22.1, Ghidra 12.1.4 and Java 27. That REA rele
 
 Each live Agent owns its process and selected tools. Calls to one process are serialized; other Agents use separate processes. Discovery and every external call require the current conversation's full-access policy. A child conversation cannot call a parent's selected tool. Read-only quick questions cannot start REA. Reset, Agent disposal, configuration changes and plugin unload close owned processes; cancellation interrupts requests, and calls are never replayed automatically after failure.
 
+The optional [`target-protection/rea`](../../guard/target-protection/README.md) provider replaces the root service with mandatory execution checks. It refuses native engines while their effects cannot be bounded to protected targets; full-access approvals and MCP read-only annotations do not bypass it. Policy revocation cancels running and queued calls and waits for the actual stdio process close before releasing the rule owner. The ordinary provider remains unrestricted by target rules and is not a substitute for this guarded composition.
+
 ## Model Experience
 
 Only `rea_tools` is initially added to Reverse conversations. Discovery results describe available tools; enabling names adds only those definitions to later requests. Tool results and availability changes use existing Session logging. All 229 tools in the tested release remain discoverable without adding the complete catalog to every request.

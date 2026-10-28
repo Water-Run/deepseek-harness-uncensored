@@ -52,6 +52,8 @@ Mount `./ssh` instead of an ordinary SSH connection, with mandatory `credentials
 
 SSH filesystem effects are not assumed to avoid resources on another port. Conflicting database/port qualifiers or active production path rules without remote identity mappings are refused. Arbitrary commands, PTC, terminal streams and unknown protocol calls remain unconfined and are refused under active protection. This does not complete unrestricted execution on test servers. Connections close when local policy is revoked and never reconnect silently. SSH currently uses direct TCP, independently of the security-mode HTTP proxy; remote resource mapping and proxy routing remain unfinished.
 
+Mount `./rea` instead of the ordinary REA root service, keeping the existing `rea/agent` consumer. The provider checks direct connections before native spawn and checks each queued external call before dispatch. It refuses execution under the same conditions as `./subprocess`, including protected owner files; engine names or read-only MCP annotations do not establish target confinement. Local policy changes or owner withdrawal close existing processes and settle their calls before releasing rule resources. This opt-in refuses unsupported native execution; it does not sandbox REA or protect independently configured MCP clients.
+
 <a id="implementation"></a>
 ## Implementation
 

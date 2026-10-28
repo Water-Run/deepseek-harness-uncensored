@@ -1,0 +1,10 @@
+version: 1
+scenario: rea-target-protection
+profile: headless
+composition: default
+recording: authored
+header:
+  class: rea-protection
+  pin: true
+workspace:
+  final: true
