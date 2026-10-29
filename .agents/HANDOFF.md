@@ -2,7 +2,7 @@
 
 ## 当前节点：浏览器执行保护与关闭确认（2026-10-29）
 
-Goal active，继续完整“实现DSHU”。上个 PostgreSQL 节点 `c4c2b81cc9` 已推送 main。最近成功读取共享剩余 **11%**，中间一次查询失败；用户在 39% 后的继续授权有效，不按历史 40% 阈值暂停，不使用重置或主动消耗重置券。
+Goal active，继续完整“实现DSHU”。浏览器节点 `45e71739b9` 已推送，远端与本地核验一致，只有 main；上个 PostgreSQL 节点为 `c4c2b81cc9`。最近成功读取共享剩余 **10%**；用户在 39% 后的继续授权有效，不按历史 40% 阈值暂停，不使用重置或主动消耗重置券。
 
 新增可选 `target-protection/browser`，替换普通 browser-use 注册服务，保留 Playwright MCP、Chrome DevTools MCP 和 Stagehand。三个提供方均通过同一执行租约，在原生分配前及排队调用前校验；撤销关闭资源，原生请求和关闭结束后才释放规则。未知回滚/关闭采用 `BROWSER_SHUTDOWN_UNCONFIRMED`，保留预留与租约；MCP 的实际关闭迟到回执可完成释放。`createMcpClient` 暴露启动前的生命周期对象，避免仅依赖作用域释放。此节点提供准入和撤销，**不是逐目标浏览器隔离**，默认产品仍未启用完整保护。任意网络 SQL、受限命令、远端身份、其他管理/原生旁路及 P3 完整审计和所有者界面继续未完成。
 
@@ -19,6 +19,8 @@ Goal active，继续完整“实现DSHU”。上个 PostgreSQL 节点 `c4c2b81cc
 最终验收：`browser-commit-build.log` 完整 build 9/9，`browser-commit-lint.log` 全仓 lint 退出 0，`browser-commit-snapshots.log` 四个相关会话通过，六组双语记录一致；JSDoc、工作区约束和两个发布包 publint 通过，Native 包保留既有 ./src/* 声明提示。头部写入策略及 README 45 项通过。最终检查之后仅整理本交接与 TODO，不重新运行已通过行为检查。下一步仍为 P2 的执行范围隔离/管理旁路，再接 P3，不按浏览器准入节点结束完整目标。
 
 清理审批：本轮测试曾因空环境下 Windows 临时目录缺失生成 `D:/Coding/deepseek-harness-uncensored/undefined/temp/tsx-linzh/` 六个缓存文件。已修复 Worker/独立进程的显式临时目录。校验路径与清单后，PowerShell 删除请求仍被自动审批拒绝，理由只有 **blocked by policy**；原目录保留，未换工具删除，不提交它。最终不能宣称整个工作区没有未跟踪文件。此前 PostgreSQL 临时目录保留不动。三次旧安装包下载故障继续保留，尚未生成/安装新的检查包。
+
+管理入口续查：`extensions/tool-cordis` 只注册只读检查工具，不能把它当作动态代码执行入口。实际执行归 `extensions/cordis-host-runner`：`run`、`runHostHalf`、`getClientCode` 和 `invoke` 分别涉及模型启动、面板启动、客户端源代码交付和活动处理器；其 sandbox.ts 明确说明 Node VM 不提供隔离。`boot/plugin-manager/src/tools.ts` 的持久变更在普通完全权限审批后调用管理服务，仍能改变插件及配置。下一节点须核准这些实际入口的所有者授权、保护依赖及直接调用/缓存调用语义；仅隐藏工具或增加普通审批不足以关闭旁路。尚无这些入口的执行保护或验收，不勾选 P2 防篡改与管理入口项。
 
 ## 当前节点：PostgreSQL 固定目录审计（2026-10-29，继续开发）
 
