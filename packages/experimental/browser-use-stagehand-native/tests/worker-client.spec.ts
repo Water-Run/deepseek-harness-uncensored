@@ -2,6 +2,7 @@
 
 import { once } from 'node:events'
 import { connect } from 'node:net'
+import { tmpdir } from 'node:os'
 import type { Worker } from 'node:worker_threads'
 import { afterEach, expect, it, vi } from 'vitest'
 import { openBrowserWorker } from '../src/worker-client.ts'
@@ -63,6 +64,9 @@ it('passes explicit model credentials without ambient environment and awaits Wor
   const { port, model, env } = await runtime.execute('tabs', { action: 'list' }) as { port: number; model: unknown; env: Record<string, string> }
   expect(model).toEqual(nativeModel)
   expect(env.STAGEHAND_FIXTURE_TOKEN).toBeUndefined()
+  expect(env.TEMP).toBe(tmpdir())
+  expect(env.TMP).toBe(tmpdir())
+  expect(env.TMPDIR).toBe(tmpdir())
   expect(env.HTTP_PROXY).toBeUndefined()
   const socket = connect(port, '127.0.0.1')
   await once(socket, 'connect')
@@ -168,4 +172,37 @@ it('reports failed Worker termination during canceled request cleanup', async ()
     refused.mockRestore()
     await terminate()
   }
+})
+
+it('reports unconfirmed termination after initialization fails', async () => {
+  const opening = openBrowserWorker(config('failure'), new AbortController().signal, warn)
+  const worker = state.workers.at(-1)!
+  const terminate = worker.terminate.bind(worker)
+  const refused = vi.spyOn(worker, 'terminate').mockRejectedValueOnce(new Error('Native termination refused'))
+  try {
+    await expect(opening).rejects.toMatchObject({ code: 'BROWSER_SHUTDOWN_UNCONFIRMED' })
+    expect(worker.threadId).not.toBe(-1)
+  } finally {
+    refused.mockRestore()
+    await terminate()
+  }
+  expect(worker.threadId).toBe(-1)
+})
+
+it('retains the rollback failure code after its Worker has terminated', async () => {
+  await expect(open('rollback-unconfirmed')).rejects.toMatchObject({ code: 'BROWSER_SHUTDOWN_UNCONFIRMED' })
+  expect(state.workers.at(-1)?.threadId).toBe(-1)
+})
+
+it('terminates initialization when the configured startup deadline expires', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+  try {
+    const opening = openBrowserWorker({ ...config('opening'), operationTimeoutMs: 10000 }, new AbortController().signal, warn)
+    const outcome = opening.catch((error: unknown) => error)
+    const worker = state.workers.at(-1)!
+    await once(worker, 'online')
+    await vi.advanceTimersByTimeAsync(10000)
+    expect(await outcome).toMatchObject({ code: 'BROWSER_STARTUP_TIMEOUT' })
+    expect(worker.threadId).toBe(-1)
+  } finally { vi.useRealTimers() }
 })

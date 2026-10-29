@@ -8402,6 +8402,9 @@ importers:
       '@deepseek-ai/dsh-working-directory':
         specifier: workspace:*
         version: link:../../session/working-directory
+      '@modelcontextprotocol/client':
+        specifier: 2.2.0
+        version: 2.2.0
 
   packages/experimental/browser-use-stagehand-native:
     dependencies:
@@ -8469,6 +8472,9 @@ importers:
       '@deepseek-ai/dsh-system-prompt':
         specifier: workspace:*
         version: link:../../core/system-prompt
+      '@deepseek-ai/dsh-timeout':
+        specifier: workspace:*
+        version: link:../../util/timeout
       '@deepseek-ai/dsh-tools':
         specifier: workspace:*
         version: link:../../core/tools
@@ -11094,12 +11100,24 @@ importers:
       '@deepseek-ai/dsh-agent':
         specifier: workspace:*
         version: link:../../core/agent
+      '@deepseek-ai/dsh-agent-loop-testkit':
+        specifier: workspace:*
+        version: link:../../test-support/agent-loop-testkit
+      '@deepseek-ai/dsh-browser-use':
+        specifier: workspace:*
+        version: link:../../browser-use/browser-use
       '@deepseek-ai/dsh-credentials':
         specifier: workspace:*
         version: link:../../credentials/credentials
       '@deepseek-ai/dsh-credentials-local':
         specifier: workspace:*
         version: link:../../credentials/credentials-local
+      '@deepseek-ai/dsh-experimental-browser-use-runtime':
+        specifier: workspace:*
+        version: link:../../experimental/browser-use-runtime
+      '@deepseek-ai/dsh-experimental-browser-use-stagehand-native':
+        specifier: workspace:*
+        version: link:../../experimental/browser-use-stagehand-native
       '@deepseek-ai/dsh-fs':
         specifier: workspace:*
         version: link:../../fs/fs

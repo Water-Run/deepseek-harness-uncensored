@@ -22,7 +22,7 @@ interface Manifest {
 const manifestPath = fileURLToPath(new URL('../package.json', import.meta.url))
 
 /** Host runtimes whose module-local state must not be duplicated. */
-const SHARED_HOST_RUNTIMES = ['@deepseek-ai/dsh-mcp-client', '@deepseek-ai/dsh-scope'] as const
+const SHARED_HOST_RUNTIMES = ['@deepseek-ai/dsh-mcp-client', '@deepseek-ai/dsh-scope', '@deepseek-ai/dsh-llm'] as const
 
 describe('profile installs share the installation host runtime instances', () => {
   it('declares every identity-bearing host runtime as a peer, never a dependency', async () => {
@@ -33,4 +33,14 @@ describe('profile installs share the installation host runtime instances', () =>
       expect(manifest.dependencies?.[name], `${name} must not be a dependency`).toBeUndefined()
     }
   })
+})
+
+it('keeps native browser error identity external to its bundle', async () => {
+  const path = fileURLToPath(new URL('../../browser-use-stagehand-native/package.json', import.meta.url))
+  const manifest = JSON.parse(await readFile(path, 'utf8')) as Manifest
+  for (const name of ['@deepseek-ai/dsh-llm']) {
+    expect(manifest.peerDependencies?.[name], name).toBe('workspace:*')
+    expect(manifest.devDependencies?.[name], name).toBe('workspace:*')
+    expect(manifest.dependencies?.[name], name).toBeUndefined()
+  }
 })

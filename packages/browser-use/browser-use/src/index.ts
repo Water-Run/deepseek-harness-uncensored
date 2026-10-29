@@ -6,6 +6,16 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import type { BrowserUseProviderName } from './brand.ts'
 
+/** Deployment-owned execution permission retained through native browser shutdown. */
+export interface BrowserExecutionLease {
+  /** Aborts when the deployment withdraws permission for this browser. */
+  signal: AbortSignal
+  /** Recheck immediately before native acquisition and each queued operation. */
+  check(): void
+  /** Idempotently release only after acquisition rollback or native shutdown is confirmed. */
+  release(): void
+}
+
 declare module '@deepseek-ai/cordis' {
   interface Context {
     browserUse: BrowserUseRegistry
@@ -24,6 +34,12 @@ export class BrowserUseRegistry extends Service {
   get providerName(): BrowserUseProviderName | undefined {
     return this.registration
   }
+
+  /**
+   * Resolve deployment enforcement before acquiring any browser, Worker or MCP connection.
+   * @returns A permission lease, or undefined for this explicitly unguarded registry.
+   */
+  acquireExecution(): BrowserExecutionLease | undefined { return undefined }
 
   /**
    * Reserve the sole provider slot until the contribution is disposed.

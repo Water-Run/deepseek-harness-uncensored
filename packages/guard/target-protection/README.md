@@ -70,6 +70,8 @@ Optional `./postgres-agent` registers `database_inspect` with only a configured 
 
 PostgreSQL resolves DNS once per operation, binds one checked literal address, preserves the original TLS name and never retries another address. Policy is checked after credential resolution and before/after queries. Cancellation, timeout or provider withdrawal destroys the owned socket and waits for native closure before releasing rules. Default limits are 30 seconds, 1000 rows per query, 1 MiB total decoded result and four pending operations. Output limits do not bound PostgreSQL wire-frame allocation; use only trusted owner-configured servers. Errors return stable credential-free codes; no operation is automatically replayed.
 
+Mount `./browser` instead of `dsh-browser-use`, keeping the chosen Playwright MCP, Chrome DevTools MCP or Stagehand provider. All three resolve mandatory execution permission before their native acquisition and recheck queued calls. Protection revocation closes resources and retains rules through native settlement; missing policy withdraws this registry and its providers. The refusal conditions match `./subprocess`. This adapter provides admission and revocation, not per-target browser isolation. Test labels do not confine arbitrary browser file, network or detached-process effects; ordinary unguarded compositions retain their existing behavior.
+
 <a id="implementation"></a>
 ## Implementation
 

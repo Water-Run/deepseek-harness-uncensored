@@ -70,7 +70,10 @@ export interface SecurityProtectionStatus {
  * A provider must emit `security-protection/changed` after a status change.
  */
 export interface SecurityProtectionProvider {
-  /** @returns Current runtime status; a thrown read is reported as unavailable. */
+  /**
+   * Read backend-enforced protection availability.
+   * @returns Current runtime status; a thrown read is reported as unavailable.
+   */
   read(): SecurityProtectionStatus
 }
 

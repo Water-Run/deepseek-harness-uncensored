@@ -107,7 +107,8 @@ it('preserves cleanup failure when a canceled process cannot be killed', async (
   fake.kill.mockImplementation(() => { throw new Error('Kill denied') })
   const controller = new AbortController()
   const opening = launchChromium(config, controller.signal)
-  const failed = expect(opening).rejects.toThrow('Kill denied')
+  const failed = expect(opening).rejects.toMatchObject({ code: 'BROWSER_SHUTDOWN_UNCONFIRMED',
+    cause: { errors: [expect.objectContaining({ message: 'Readiness deadline' }), expect.objectContaining({ message: 'Kill denied' })] } })
   await fake.started.promise
   controller.abort(new Error('Canceled'))
   fake.ready.reject(new Error('Readiness deadline'))

@@ -127,7 +127,7 @@ export interface SnapshotManifest {
 }
 
 /** Snapshot execution modes that may read or replace committed fixture generations. */
-export type SnapshotSessionWriteMode = 'replay' | 'record' | 'refresh'
+export type SnapshotSessionWriteMode = 'replay' | 'record' | 'refresh' | 'headers'
 
 /**
  * Whether one run writes current-writer Session fixtures for this scenario.
@@ -142,7 +142,7 @@ export function writesCurrentSessionFixtures(
   manifest: SnapshotManifest,
   mode: SnapshotSessionWriteMode,
 ): boolean {
-  return mode !== 'replay' && manifest.session === undefined && manifest.sessionFormat === undefined
+  return (mode === 'record' || mode === 'refresh') && manifest.session === undefined && manifest.sessionFormat === undefined
 }
 
 const PROFILES = new Set<SnapshotProfile>(['headless', 'sdk', 'sdk-minimal', 'acp', 'web'])

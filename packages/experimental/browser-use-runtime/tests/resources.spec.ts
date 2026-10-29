@@ -4,7 +4,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import { unsupportedInbox } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { Session, SessionId } from '@deepseek-ai/dsh-session'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { SessionResources } from '../src/index.ts'
+import { BrowserResourceCleanupError, SessionResources } from '../src/index.ts'
 
 const contexts: Context[] = []
 
@@ -31,6 +31,124 @@ async function fixture() {
 
 afterEach(async () => {
   await Promise.all(contexts.splice(0).map(ctx => ctx.fiber.dispose()))
+})
+
+it('retains a failed acquisition whose native rollback is unconfirmed', async () => {
+  const { ctx, owner } = await fixture()
+  const a = await owner('unconfirmed'), b = await owner('other')
+  const release = vi.fn(), lifetime = new AbortController()
+  const failure = new BrowserResourceCleanupError('Native rollback is unconfirmed')
+  const resources = new SessionResources(ctx, { label: 'quarantined', exclusive: true,
+    acquireExecution: () => ({ signal: lifetime.signal, check() {}, release }),
+    open: async () => { throw failure },
+  })
+  await expect(resources.get(a.agent)).rejects.toBe(failure)
+  expect(resources.available(b.agent)).toBe(false)
+  await expect(resources.get(b.agent)).rejects.toThrow('already reserved')
+  await expect(resources.dispose()).rejects.toThrow('browser cleanup failed')
+  expect(release).not.toHaveBeenCalled()
+})
+
+it('releases quarantined execution only after a late native close acknowledgement', async () => {
+  const { ctx, owner } = await fixture()
+  const a = await owner('late-close'), b = await owner('after-close')
+  const closed: PromiseWithResolvers<void> = Promise.withResolvers()
+  const release = vi.fn(), lifetime = new AbortController()
+  const resources = new SessionResources(ctx, { label: 'late-close', exclusive: true,
+    acquireExecution: () => ({ signal: lifetime.signal, check() {}, release }),
+    open: async () => { throw new BrowserResourceCleanupError('Awaiting native close', undefined, closed.promise) },
+  })
+  await expect(resources.get(a.agent)).rejects.toMatchObject({ code: 'BROWSER_SHUTDOWN_UNCONFIRMED' })
+  expect(release).not.toHaveBeenCalled()
+  expect(resources.available(b.agent)).toBe(false)
+  closed.resolve()
+  await vi.waitFor(() => { expect(release).toHaveBeenCalledTimes(1) })
+  expect(resources.available(b.agent)).toBe(true)
+  await resources.dispose()
+  expect(release).toHaveBeenCalledTimes(1)
+})
+
+it('keeps quarantined execution and reports failed native closure confirmation', async () => {
+  const { ctx, owner } = await fixture(), a = await owner('failed-close')
+  const closed: PromiseWithResolvers<void> = Promise.withResolvers()
+  const release = vi.fn(), lifetime = new AbortController(), warning = vi.spyOn(ctx.logger, 'warn')
+  const resources = new SessionResources(ctx, { label: 'failed-close', exclusive: true,
+    acquireExecution: () => ({ signal: lifetime.signal, check() {}, release }),
+    open: async () => { throw new BrowserResourceCleanupError('Awaiting native close', undefined, closed.promise) },
+  })
+  await expect(resources.get(a.agent)).rejects.toMatchObject({ code: 'BROWSER_SHUTDOWN_UNCONFIRMED' })
+  closed.reject(new Error('Native confirmation failed'))
+  await vi.waitFor(() => { expect(warning).toHaveBeenCalledWith(expect.stringContaining('quarantined browser closure remains unconfirmed')) })
+  expect(release).not.toHaveBeenCalled()
+  await expect(resources.dispose()).rejects.toThrow('browser cleanup failed')
+  warning.mockRestore()
+})
+
+it('settles late execution ownership after disposal has reported unconfirmed closure', async () => {
+  const { ctx, owner } = await fixture(), a = await owner('late-disposal')
+  const closed: PromiseWithResolvers<void> = Promise.withResolvers()
+  const release = vi.fn(), lifetime = new AbortController()
+  const resources = new SessionResources(ctx, { label: 'late-disposal', exclusive: true,
+    acquireExecution: () => ({ signal: lifetime.signal, check() {}, release }),
+    open: async () => { throw new BrowserResourceCleanupError('Awaiting native close', undefined, closed.promise) },
+  })
+  await expect(resources.get(a.agent)).rejects.toMatchObject({ code: 'BROWSER_SHUTDOWN_UNCONFIRMED' })
+  await expect(resources.dispose()).rejects.toThrow('browser cleanup failed')
+  expect(release).not.toHaveBeenCalled()
+  closed.resolve()
+  await vi.waitFor(() => { expect(release).toHaveBeenCalledTimes(1) })
+})
+
+it('reports revocation cleanup failure while retaining execution', async () => {
+  const { ctx, owner } = await fixture(), a = await owner('revoked-close-failure')
+  const lifetime = new AbortController(), release = vi.fn(), warning = vi.spyOn(ctx.logger, 'warn')
+  const resources = new SessionResources(ctx, { label: 'revoked-close-failure', exclusive: true,
+    acquireExecution: () => ({ signal: lifetime.signal, check() {}, release }),
+    open: async () => ({ value: 1, close: async () => { throw new Error('Native close failed') } }),
+  })
+  await resources.get(a.agent)
+  lifetime.abort(new Error('Permission revoked'))
+  await vi.waitFor(() => { expect(warning).toHaveBeenCalledWith(expect.stringContaining('shutdown after execution revocation failed')) })
+  expect(release).not.toHaveBeenCalled()
+  await expect(resources.dispose()).rejects.toThrow('browser cleanup failed')
+  warning.mockRestore()
+})
+
+it('releases execution after confirmed acquisition rollback and permits another attempt', async () => {
+  const { ctx, owner } = await fixture(), a = await owner('retry-execution')
+  const release = vi.fn(), controller = new AbortController()
+  const open = vi.fn().mockRejectedValueOnce(new Error('Rolled back')).mockResolvedValue({ value: 1, close: async () => {} })
+  const resources = new SessionResources<number>(ctx, { label: 'retry', exclusive: true, open,
+    acquireExecution: () => ({ signal: controller.signal, check() {}, release }),
+  })
+  await expect(resources.get(a.agent)).rejects.toThrow('Rolled back')
+  expect(release).toHaveBeenCalledTimes(1)
+  expect(await resources.get(a.agent)).toBe(1)
+  await resources.dispose()
+  expect(release).toHaveBeenCalledTimes(2)
+})
+
+it('revokes initialization but holds execution until its rollback settles', async () => {
+  const { ctx, owner } = await fixture(), a = await owner('initializing-execution')
+  const entered: PromiseWithResolvers<void> = Promise.withResolvers()
+  const rollback: PromiseWithResolvers<void> = Promise.withResolvers()
+  const lifetime = new AbortController(), release = vi.fn()
+  const resources = new SessionResources(ctx, { label: 'opening', exclusive: true,
+    acquireExecution: () => ({ signal: lifetime.signal, check() {}, release }),
+    async open(_agent, signal) {
+      entered.resolve(); await rollback.promise; signal.throwIfAborted()
+      return { value: 1, close: async () => {} }
+    },
+  })
+  const operation = resources.get(a.agent).catch((error: unknown) => error)
+  try {
+    await entered.promise
+    lifetime.abort(new Error('Execution revoked'))
+    expect(release).not.toHaveBeenCalled()
+  } finally { rollback.resolve() }
+  expect(await operation).toMatchObject({ message: 'Execution revoked' })
+  await resources.dispose()
+  expect(release).toHaveBeenCalledTimes(1)
 })
 
 describe('Session browser resource ownership', () => {

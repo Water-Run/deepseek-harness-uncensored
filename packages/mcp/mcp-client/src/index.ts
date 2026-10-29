@@ -148,7 +148,17 @@ export const Config = z.union([
  * @returns startup readiness after connection and initial tool discovery settle.
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
-  return mountMcpClient(ctx, config, undefined)
+  await mountMcpClient(ctx, config, undefined)
+}
+
+/** One mounted MCP supervisor, including startup and verified native shutdown. */
+export interface McpClientLifetime {
+  /** Initial connection and discovery; callers await it before using the tools. */
+  ready: Promise<void>
+  /** Stop calls and reconnection; reject when native closure remains unconfirmed. */
+  close(): Promise<void>
+  /** Resolve after native transports and active requests actually settle, including late closure. */
+  whenClosed(): Promise<void>
 }
 
 /**
@@ -159,6 +169,17 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
  * @returns Initial connection and discovery readiness. The owner retains failed cleanup until native closure is confirmed.
  */
 export async function mountMcpClient(ctx: Context, config: Config, execution: McpExecutionLease | undefined): Promise<void> {
+  await createMcpClient(ctx, config, execution).ready
+}
+
+/**
+ * Mount an MCP supervisor and expose its lifetime before startup can fail.
+ * @param ctx - Plugin owner with the tool registry and any mandatory execution policy.
+ * @param config - Resolved server transport and discovery settings.
+ * @param execution - Optional executor-owned admission and resource retention.
+ * @returns Startup readiness, verified shutdown and actual transport settlement.
+ */
+export function createMcpClient(ctx: Context, config: Config, execution: McpExecutionLease | undefined): McpClientLifetime {
   let connection: ConnectionHandle | undefined = undefined
   let stopping: Promise<void> | undefined
   const dispose = (): Promise<void> => stopping ??= (async () => {
@@ -202,8 +223,11 @@ export async function mountMcpClient(ctx: Context, config: Config, execution: Mc
   // When failOnStartupError is true, a failed initial attempt rejects the
   // fiber (Cordis rolls it back); otherwise the error is logged and the
   // supervisor enters its reconnect loop.
-  const outcome = await connection.ready
-  if (outcome.error !== undefined && config.failOnStartupError) {
-    throw new Error(`mcp-client(${config.serverName}): initial connection or tool synchronization failed`, { cause: outcome.error })
-  }
+  const ownedConnection = connection
+  const ready = connection.ready.then((outcome) => {
+    if (outcome.error !== undefined && config.failOnStartupError) {
+      throw new Error(`mcp-client(${config.serverName}): initial connection or tool synchronization failed`, { cause: outcome.error })
+    }
+  })
+  return { ready, close: () => ownedConnection.disposeVerified(), whenClosed: () => ownedConnection.whenClosed() }
 }

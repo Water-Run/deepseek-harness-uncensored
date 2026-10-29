@@ -8,6 +8,7 @@
     "src"
   ],
   "references": [
+    { "path": "../../browser-use/browser-use" },
     { "path": "../../credentials/credentials" },
     { "path": "../../core/tools" },
     { "path": "../../sandbox/sandbox-policy" },

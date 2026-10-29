@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Browser, ChromeReleaseChannel, CDP_WEBSOCKET_ENDPOINT_REGEX, computeSystemExecutablePath, launch } from '@puppeteer/browsers'
 import { scrubbedParentEnv } from '@deepseek-ai/dsh-subprocess'
+import { BrowserResourceCleanupError } from '@deepseek-ai/dsh-experimental-browser-use-runtime'
 import type { NativeBrowserConfig } from './native.ts'
 
 /** Chromium process and profile owned independently of the Stagehand Worker. */
@@ -55,7 +56,11 @@ export async function launchChromium(config: NativeBrowserConfig, signal: AbortS
     signal.throwIfAborted()
     return { endpoint, close }
   } catch (error) {
-    await close()
+    try { await close() }
+    catch (cleanupError) {
+      throw new BrowserResourceCleanupError('Chromium launch rollback could not be confirmed. Inspect the browser process and restart the Host before reuse.',
+        { cause: new AggregateError([error, cleanupError]) })
+    }
     signal.throwIfAborted()
     throw error
   } finally {

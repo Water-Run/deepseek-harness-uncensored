@@ -6,7 +6,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
 import { BrowserUseProviderName } from '@deepseek-ai/dsh-browser-use/brand'
-import { SessionResources } from '@deepseek-ai/dsh-experimental-browser-use-runtime'
+import { BrowserResourceCleanupError, SessionResources } from '@deepseek-ai/dsh-experimental-browser-use-runtime'
 import { createMcpToolDefinition } from '@deepseek-ai/dsh-mcp-client'
 import { z } from 'zod'
 import { browserInputs, stagehandModelSchema, StagehandDrainError } from './native.ts'
@@ -100,6 +100,7 @@ export function apply(ctx: Context, input: Config): void {
     const resources = new SessionResources<BrowserResource>(ctx, {
       label: 'stagehand-native',
       exclusive: config.mode === 'attach',
+      acquireExecution: () => ctx.browserUse.acquireExecution(),
       async open(_agent, signal) {
         signal.throwIfAborted()
         const chromium = config.mode === 'launch' ? await launchChromium(config, signal) : undefined
@@ -114,7 +115,11 @@ export function apply(ctx: Context, input: Config): void {
         try {
           connection = await connect(signal)
         } catch (error) {
-          await chromium?.close()
+          try { await chromium?.close() }
+          catch (cleanupError) {
+            throw new BrowserResourceCleanupError('Chromium shutdown could not be confirmed. Inspect the browser process and restart the Host before reuse.',
+              { cause: new AggregateError([error, cleanupError]) })
+          }
           throw error
         }
         const native: BrowserResource['native'] = {
@@ -148,7 +153,11 @@ export function apply(ctx: Context, input: Config): void {
             close,
           }
         } catch (error) {
-          await close()
+          try { await close() }
+          catch (cleanupError) {
+            throw new BrowserResourceCleanupError('Browser acquisition rollback could not be confirmed. Inspect the browser and restart the Host before reuse.',
+              { cause: new AggregateError([error, cleanupError]) })
+          }
           throw error
         }
       },

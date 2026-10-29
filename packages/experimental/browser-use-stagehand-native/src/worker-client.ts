@@ -1,6 +1,10 @@
 /** Isolated Stagehand Workers own CDP connections; the host owns browser processes. */
 
 import { Worker } from 'node:worker_threads'
+import { tmpdir } from 'node:os'
+import { deadline } from '@deepseek-ai/dsh-timeout'
+import { HarnessError } from '@deepseek-ai/dsh-llm'
+import { BrowserResourceCleanupError } from '@deepseek-ai/dsh-experimental-browser-use-runtime'
 import { StagehandDrainError } from './native.ts'
 import type { NativeBrowserConfig, NativeBrowserRuntime } from './native.ts'
 import { request } from './worker-rpc.ts'
@@ -15,10 +19,12 @@ import { request } from './worker-rpc.ts'
 export async function openBrowserWorker(
   config: NativeBrowserConfig, signal: AbortSignal, warn: (message: string) => void,
 ): Promise<NativeBrowserRuntime> {
-  signal.throwIfAborted()
+  using startup = deadline(signal, config.operationTimeoutMs, 'BROWSER_STARTUP_TIMEOUT')
+  startup.signal.throwIfAborted()
   const entry = new URL('./worker.js', import.meta.url)
   // Only explicit model credentials cross in workerData; ambient credentials and proxy settings stay outside.
-  const env: NodeJS.ProcessEnv = {}
+  const temporaryDirectory = tmpdir()
+  const env: NodeJS.ProcessEnv = { TMPDIR: temporaryDirectory, TEMP: temporaryDirectory, TMP: temporaryDirectory }
   if (process.env.TSX_TSCONFIG_PATH !== undefined) env.TSX_TSCONFIG_PATH = process.env.TSX_TSCONFIG_PATH
   let worker: Worker
   /* v8 ignore next 3 -- native.e2e.ts starts the bundled Worker through a plain-Node provider fixture. */
@@ -54,18 +60,26 @@ export async function openBrowserWorker(
     }
   })()
   const abortOpening = () => { void terminate() }
-  signal.addEventListener('abort', abortOpening, { once: true })
+  startup.signal.addEventListener('abort', abortOpening, { once: true })
   try {
-    await request(worker, 'ready', undefined, lifetime.signal)
-    signal.throwIfAborted()
+    await request(worker, 'ready', undefined, AbortSignal.any([lifetime.signal, startup.signal]))
+    startup.signal.throwIfAborted()
     lifetime.signal.throwIfAborted()
   } catch (error) {
-    const failure: unknown = lifetime.signal.reason ?? error
-    await terminate()
-    signal.throwIfAborted()
+    const failure: unknown = error instanceof HarnessError && error.code === 'BROWSER_SHUTDOWN_UNCONFIRMED'
+      ? error : lifetime.signal.reason ?? error
+    try { await terminate() }
+    catch (cleanupError) {
+      throw new BrowserResourceCleanupError('Browser Worker termination could not be confirmed. Restart the Host before reuse.',
+        { cause: new AggregateError([failure, cleanupError]) })
+    }
+    if (failure instanceof HarnessError && failure.code === 'BROWSER_SHUTDOWN_UNCONFIRMED') {
+      throw new BrowserResourceCleanupError(failure.message, { cause: failure })
+    }
+    startup.signal.throwIfAborted()
     throw failure
   } finally {
-    signal.removeEventListener('abort', abortOpening)
+    startup.signal.removeEventListener('abort', abortOpening)
   }
   return {
     async execute(method, args, signal) {

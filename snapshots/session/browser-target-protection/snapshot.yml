@@ -1,0 +1,10 @@
+version: 1
+scenario: browser-target-protection
+profile: headless
+composition: default
+recording: authored
+header:
+  class: browser-protection
+  pin: true
+workspace:
+  final: true

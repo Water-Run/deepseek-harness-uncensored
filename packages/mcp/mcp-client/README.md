@@ -94,6 +94,8 @@ When a server connection drops â€” for example a local server process crashes â€
 
 -----
 
+Programmatic consumers can call `createMcpClient` to obtain its lifetime before awaiting `ready`. `close()` uses verified transport shutdown and rejects an unconfirmed close; `whenClosed()` resolves after native transports and active requests settle, including late acknowledgements. Consumers retain their execution permission while that outcome is unknown. Ordinary plugin activation and `mountMcpClient` keep their existing startup behavior.
+
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 

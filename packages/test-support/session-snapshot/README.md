@@ -25,6 +25,8 @@ English | [中文](README.zh.md)
 <a id="use-this-package"></a>
 ## Use this package
 
+For headless header maintenance, set `DSH_SNAPSHOT=headers` when running the owning snapshot scenario. It replays and verifies Session records and workspace results before refreshing owned system-prompt/tool-schema sidecars. Committed Session generations and writer oracles are not written; ordinary replay verifies the new sidecars afterwards.
+
 This package turns a shipped profile scenario into a keyless snapshot suite: write a scenario table and a fixtures directory, call the matching adapter once, and the kit owns launching or composing the profile, driving the scenario, comparing normalized output, and guarding the committed fixtures.
 
 ### Writing a snapshot suite

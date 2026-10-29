@@ -4,6 +4,8 @@ import type { MessagePort } from 'node:worker_threads'
 import { afterEach, expect, it, vi } from 'vitest'
 import { request } from '../src/worker-rpc.ts'
 
+vi.mock('../src/extension-discovery.ts', () => ({ findRuntimeExtension: async () => undefined }))
+
 const transport = vi.hoisted(() => ({ port: null as MessagePort | null, data: {} as unknown }))
 vi.mock('node:worker_threads', async importActual => ({
   ...await importActual<typeof import('node:worker_threads')>(),

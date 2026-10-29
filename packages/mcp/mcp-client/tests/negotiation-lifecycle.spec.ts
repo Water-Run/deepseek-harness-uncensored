@@ -30,7 +30,8 @@ async function connection(factory: () => Transport, retry: boolean) {
   await ctx.plugin(ToolRuntime)
   const errors: string[] = []
   const warns: string[] = []
-  ctx.logger.error = (message: unknown) => { errors.push(String(message)) }
+  const errorRecorded: PromiseWithResolvers<void> = Promise.withResolvers()
+  ctx.logger.error = (message: unknown) => { errors.push(String(message)); errorRecorded.resolve() }
   ctx.logger.warn = (message: unknown) => { warns.push(String(message)) }
   const transports: Transport[] = []
   mockTransport.mockImplementation(() => {
@@ -45,7 +46,7 @@ async function connection(factory: () => Transport, retry: boolean) {
     for (const transport of transports) await transport.close()
     await handle.dispose()
   })
-  return { ...handle, errors, warns, transports }
+  return { ...handle, errors, warns, transports, errorRecorded: errorRecorded.promise }
 }
 
 async function stdioFixture() {
@@ -113,7 +114,8 @@ describe('SDK negotiation lifecycle', () => {
     const handle = await connection(() => new StreamableHTTPClientTransport(url), true)
     expect((await handle.ready).error).toBeDefined()
     expect(handle.errors).toEqual([])
-    await vi.waitFor(() => { expect(handle.errors.some(line => line.includes('giving up after 3'))).toBe(true) })
+    await handle.errorRecorded
+    expect(handle.errors.some(line => line.includes('giving up after 3'))).toBe(true)
     expect(requests).toBe(4)
     expect(handle.warns.filter(line => line.includes('connection failed; retrying'))).toHaveLength(3)
   })
@@ -124,7 +126,8 @@ describe('SDK negotiation lifecycle', () => {
     }), true)
     expect((await handle.ready).error).toBeDefined()
     expect(handle.errors).toEqual([])
-    await vi.waitFor(() => { expect(handle.errors.some(line => line.includes('giving up after 3'))).toBe(true) })
+    await handle.errorRecorded
+    expect(handle.errors.some(line => line.includes('giving up after 3'))).toBe(true)
     expect(handle.transports).toHaveLength(4)
     expect(handle.warns.filter(line => line.includes('connection failed; retrying'))).toHaveLength(3)
   })

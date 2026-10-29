@@ -17,6 +17,8 @@ parentPort.on('message', async ({ method, reply }) => {
   if (method === 'tabs' && scenario === 'crash') { process.exit(23); return }
   if (method === 'ready' && scenario === 'failure') {
     reply.postMessage({ ok: false, error: 'Extension initialization failed' })
+  } else if (method === 'ready' && scenario === 'rollback-unconfirmed') {
+    reply.postMessage({ ok: false, error: 'Native rollback was not confirmed', code: 'BROWSER_SHUTDOWN_UNCONFIRMED' })
   } else if (method === 'close' && scenario === 'close-failure') {
     reply.postMessage({ ok: false, error: 'Extension request did not drain' })
   } else {

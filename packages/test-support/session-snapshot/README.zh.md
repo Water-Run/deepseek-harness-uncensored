@@ -25,6 +25,8 @@ kind: "package-library"
 <a id="use-this-package"></a>
 ## 使用本包
 
+维护 headless 场景头部时，设置 `DSH_SNAPSHOT=headers` 并运行该场景。它先回放并核对 Session 记录及工作区结果，再更新所有者的系统提示词和工具定义固定件，不写入已提交的会话代际或 writer 期望文件；随后用普通回放验证新固定件。
+
 本包把随附 profile 场景变成无密钥快照套件：写一张场景表和一个 fixture 目录，调用一次匹配的适配器，工具包就负责启动或组合 profile、驱动场景、比较规范化输出并守护已提交的 fixture。
 
 ### 编写快照套件

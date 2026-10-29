@@ -64,7 +64,7 @@ const editingCordisSkill = join(
   'packages/preset/agent-preset/skills/editing-cordis-compositions/SKILL.md',
 )
 
-type SnapshotMode = 'replay' | 'record' | 'refresh'
+type SnapshotMode = 'replay' | 'record' | 'refresh' | 'headers'
 
 function snapshotMode(value: string | undefined): SnapshotMode {
   switch (value) {
@@ -73,11 +73,13 @@ function snapshotMode(value: string | undefined): SnapshotMode {
     case 'replay': return 'replay'
     case 'record': return 'record'
     case 'refresh': return 'refresh'
+    case 'headers': return 'headers'
     default: throw new Error(`unknown DSH_SNAPSHOT mode: ${value}`)
   }
 }
 
 const mode = snapshotMode(process.env.DSH_SNAPSHOT)
+const replayOnly = mode === 'replay' || mode === 'headers'
 const RUNTIME_WORKSPACE_ENTRIES = ['.agents', '.dsh', '.snapshot-patches'] as const
 
 interface JsonObject {
@@ -1235,7 +1237,8 @@ describe('headless recorded-session snapshots', () => {
       || mode === 'record' && scenario.manifest.sessionFormat !== undefined
     const scenarioTest = skipped ? it.skip : mode === 'replay' ? it.concurrent : it
     const inputLabel = retainedToolInput === undefined ? '' : ' from retained V3 input'
-    scenarioTest(`${mode}s ${scenario.name}${inputLabel} through dsh --profile headless`, async () => {
+    const action = mode === 'headers' ? 'updates headers for' : `${mode}s`
+    scenarioTest(`${action} ${scenario.name}${inputLabel} through dsh --profile headless`, async () => {
       let fixtureFiles = retainedToolInput === undefined
         ? sessionFixtureNames(await readdir(scenario.dir)) : [retainedToolInput]
       let fixtures = await fixtureSessions(scenario, fixtureFiles)
@@ -1391,7 +1394,7 @@ describe('headless recorded-session snapshots', () => {
         await rm(spillRoot, { recursive: true, force: true })
       }
 
-      const stderrLog = mode === 'replay' ? primaryFixture : actualLogs[0]?.content
+      const stderrLog = replayOnly ? primaryFixture : actualLogs[0]?.content
       if (stderrLog === undefined) throw new Error(`${scenario.name}: stderr projection has no primary session`)
       const expectedStderr = stderrFromSession(stderrLog)
       const actualContext = contextOf(actualLogs.map(log => log.content))
@@ -1408,13 +1411,13 @@ describe('headless recorded-session snapshots', () => {
           sessionHeaderVersion(log.content, `harvested Session ${index}`),
         ))
       }
-      if (mode !== 'replay') await writeHeaderSidecars(scenario, actualLogs, actualContext)
+      if (!replayOnly) await writeHeaderSidecars(scenario, actualLogs, actualContext)
 
       expect(result.stdout).toBe(`${finalTextFromSession(fixtures[0] as string)}\n`)
       expect(result.stderr).toBe(expectedStderr)
       expect(actualLogs, `${scenario.name}: persisted session count`).toHaveLength(fixtures.length)
       const writerFiles = (await readdir(scenario.dir)).filter(name => /^writer(?:\.[1-9]\d*)?\.expected\.jsonl$/u.test(name)).sort()
-      if (mode === 'replay') {
+      if (replayOnly) {
         expect(writerFiles, 'native writer oracle inventory').toEqual(scenario.manifest.sessionFormat === undefined
           ? [] : fixtures.map((_, index) => writerSnapshotName(index)).sort())
       }
@@ -1443,7 +1446,7 @@ describe('headless recorded-session snapshots', () => {
           : records(expectedSnapshots[index] as string)
         expect(actualRecords, `${scenario.name}: session ${index}`).toEqual(expectedRecords)
       }
-      await verifyHeaders(scenario, actualLogs, actualContext)
+      if (mode !== 'headers') await verifyHeaders(scenario, actualLogs, actualContext)
 
       if (initialWorkspace === undefined || finalWorkspace === undefined) {
         throw new Error(`${scenario.name}: workspace was not captured around the profile run`)
@@ -1453,6 +1456,10 @@ describe('headless recorded-session snapshots', () => {
         expect(finalWorkspace, `${scenario.name}: complete final workspace`).toEqual(expectedWorkspace)
       } else {
         expect(finalWorkspace, `${scenario.name}: a changed workspace requires workspace.final`).toEqual(initialWorkspace)
+      }
+      if (mode === 'headers') {
+        await writeHeaderSidecars(scenario, actualLogs, actualContext)
+        await verifyHeaders(scenario, actualLogs, actualContext)
       }
     }, scenario.name === 'provider-cwd' ? 3 * LOADER_SMOKE_TEST_TIMEOUT_MS : LOADER_SMOKE_TEST_TIMEOUT_MS)
   }

@@ -5,7 +5,7 @@ import workerThreads from 'node:worker_threads'
 import ts from 'typescript'
 
 export const name = 'browser-use-stagehand-native-fixture'
-export const inject = ['browserUse', 'agents', 'tools', 'systemPrompt']
+export const inject = ['browserUse', 'agents', 'tools', 'systemPrompt', 'skills']
 
 const packageRoot = new URL('../../../packages/experimental/browser-use-stagehand-native/', import.meta.url)
 const sdkFixture = new URL('tests/fixtures/stagehand.ts', packageRoot).href
@@ -57,7 +57,11 @@ export function installBrowserFixtureHooks() {
   const NativeWorker = workerThreads.Worker
   class BrowserFixtureWorker extends NativeWorker {
     constructor(filename, options) {
-      super(wrapStagehandWorkerEntry(filename), options)
+      const entry = wrapStagehandWorkerEntry(filename)
+      const data = options?.workerData
+      super(entry, entry === filename ? options : { ...options,
+        workerData: { ...data, extensionId: data?.extensionId ?? 'fixture-installed-runtime' },
+      })
     }
   }
   workerThreads.Worker = BrowserFixtureWorker
@@ -70,6 +74,10 @@ export function installBrowserFixtureHooks() {
 }
 
 export async function apply(ctx) {
+  ctx.skills.register({ name: 'diagnose-windows-sandbox-acl', description: 'Excluded from the browser fixture.',
+    content: 'The browser fixture does not diagnose filesystem ACLs.', source: 'runtime',
+    invocation: { modelInvocable: false, userInvocable: false },
+  })
   ctx.effect(installBrowserFixtureHooks, 'browser-use-stagehand-native-fixture.module')
   const provider = await import('@deepseek-ai/dsh-experimental-browser-use-stagehand-native')
   await ctx.plugin(provider, {

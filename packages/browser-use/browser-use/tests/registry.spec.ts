@@ -11,6 +11,7 @@ describe('browser-use provider registration', () => {
     const ctx = new Context()
     try {
       await ctx.plugin(BrowserUseRegistry)
+      expect(ctx.browserUse.acquireExecution()).toBeUndefined()
       expect(ctx.browserUse.providerName).toBeUndefined()
       const dispose = ctx.browserUse.register(MCP)
       expect(ctx.browserUse.providerName).toBe(MCP)

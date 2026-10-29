@@ -870,6 +870,94 @@ export const FOUNDATION_TYPE_NAMES: ReadonlySet<string> = new Set([
 
 /** Project types deliberately documented outside the subsystems catalog. */
 export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
+  ModeSwitchChallenge: 'ModeSwitchChallenge fields and operation guarantees are owned by packages/preset/agent-preset-registry/README.md',
+  ModeSwitchChallengeId: 'ModeSwitchChallengeId fields and operation guarantees are owned by packages/preset/agent-preset-registry/README.md',
+  SensitiveConfirmationChallenge: 'SensitiveConfirmationChallenge fields and operation guarantees are owned by packages/preset/agent-preset-registry/README.md',
+  SensitiveConfirmationChallengeId: 'SensitiveConfirmationChallengeId fields and operation guarantees are owned by packages/preset/agent-preset-registry/README.md',
+  SecurityEntryChallenge: 'SecurityEntryChallenge fields and operation guarantees are owned by packages/preset/agent-preset-registry/README.md',
+  SecurityEntryLocale: 'SecurityEntryLocale fields and operation guarantees are owned by packages/preset/agent-preset-registry/README.md',
+  SecurityEntryChallengeId: 'SecurityEntryChallengeId fields and operation guarantees are owned by packages/preset/agent-preset-registry/README.md',
+  SecurityProtectionStatus: 'SecurityProtectionStatus fields and operation guarantees are owned by packages/preset/agent-preset-registry/README.md',
+  MemoryDescribeValue: 'MemoryDescribeValue fields and operation guarantees are owned by packages/api/memory-controller/README.md',
+  MemoryListRequest: 'MemoryListRequest fields and operation guarantees are owned by packages/api/memory-controller/README.md',
+  MemoryListValue: 'MemoryListValue fields and operation guarantees are owned by packages/api/memory-controller/README.md',
+  MemoryCreateRequest: 'MemoryCreateRequest fields and operation guarantees are owned by packages/api/memory-controller/README.md',
+  MemoryValue: 'MemoryValue fields and operation guarantees are owned by packages/api/memory-controller/README.md',
+  MemoryUpdateRequest: 'MemoryUpdateRequest fields and operation guarantees are owned by packages/api/memory-controller/README.md',
+  MemoryStatusRequest: 'MemoryStatusRequest fields and operation guarantees are owned by packages/api/memory-controller/README.md',
+  MemoryRemoveRequest: 'MemoryRemoveRequest fields and operation guarantees are owned by packages/api/memory-controller/README.md',
+  MemoryRemoveValue: 'MemoryRemoveValue fields and operation guarantees are owned by packages/api/memory-controller/README.md',
+  ReaOptions: 'ReaOptions fields and operation guarantees are owned by packages/api/mode-dossiers/README.md',
+  ReaProbe: 'ReaProbe fields and operation guarantees are owned by packages/api/mode-dossiers/README.md',
+  DossierInventory: 'DossierInventory fields and operation guarantees are owned by packages/api/mode-dossiers/README.md',
+  DossierScopeRequest: 'DossierScopeRequest fields and operation guarantees are owned by packages/api/mode-dossiers/README.md',
+  DossierCaseRequest: 'DossierCaseRequest fields and operation guarantees are owned by packages/api/mode-dossiers/README.md',
+  DossierCaseView: 'DossierCaseView fields and operation guarantees are owned by packages/api/mode-dossiers/README.md',
+  DossierCaseCreateRequest: 'DossierCaseCreateRequest fields and operation guarantees are owned by packages/api/mode-dossiers/README.md',
+  DossierCaseMutationRequest: 'DossierCaseMutationRequest fields and operation guarantees are owned by packages/api/mode-dossiers/README.md',
+  DossierReport: 'DossierReport fields and operation guarantees are owned by packages/api/mode-dossiers/README.md',
+  DossierStoryRequest: 'DossierStoryRequest fields and operation guarantees are owned by packages/api/mode-dossiers/README.md',
+  StoryEntryDocument: 'StoryEntryDocument fields and operation guarantees are owned by packages/api/mode-dossiers/README.md',
+  DossierStoryWriteRequest: 'DossierStoryWriteRequest fields and operation guarantees are owned by packages/api/mode-dossiers/README.md',
+  DossierStoryCreateRequest: 'DossierStoryCreateRequest fields and operation guarantees are owned by packages/api/mode-dossiers/README.md',
+  DossierSelectionRequest: 'DossierSelectionRequest fields and operation guarantees are owned by packages/api/mode-dossiers/README.md',
+  DossierSampleRequest: 'DossierSampleRequest fields and operation guarantees are owned by packages/api/mode-dossiers/README.md',
+  SampleInspection: 'SampleInspection fields and operation guarantees are owned by packages/api/mode-dossiers/README.md',
+  SessionDeleteRequest: 'SessionDeleteRequest fields and operation guarantees are owned by packages/api/session-controller/README.md',
+  SessionDeleteValue: 'SessionDeleteValue fields and operation guarantees are owned by packages/api/session-controller/README.md',
+  SessionAsideRequest: 'SessionAsideRequest fields and operation guarantees are owned by packages/api/session-controller/README.md',
+  SessionPredictionRequest: 'SessionPredictionRequest fields and operation guarantees are owned by packages/api/session-controller/README.md',
+  SessionPredictionValue: 'SessionPredictionValue fields and operation guarantees are owned by packages/api/session-controller/README.md',
+  BalanceSnapshot: 'BalanceSnapshot fields and operation guarantees are owned by packages/credentials/balance/README.md',
+  MemoryExtractionOptions: 'MemoryExtractionOptions fields and operation guarantees are owned by packages/memory/memory/README.md',
+  MemoryExtractionStatus: 'MemoryExtractionStatus fields and operation guarantees are owned by packages/memory/memory/README.md',
+  MemoryLimits: 'MemoryLimits fields and operation guarantees are owned by packages/memory/memory/README.md',
+  MemoryRecord: 'MemoryRecord fields and operation guarantees are owned by packages/memory/memory/README.md',
+  MemoryFilter: 'MemoryFilter fields and operation guarantees are owned by packages/memory/memory/README.md',
+  MemoryId: 'MemoryId fields and operation guarantees are owned by packages/memory/memory/README.md',
+  MemoryCreateInput: 'MemoryCreateInput fields and operation guarantees are owned by packages/memory/memory/README.md',
+  MemoryCreateResult: 'MemoryCreateResult fields and operation guarantees are owned by packages/memory/memory/README.md',
+  MemoryPatch: 'MemoryPatch fields and operation guarantees are owned by packages/memory/memory/README.md',
+  MemoryStatus: 'MemoryStatus fields and operation guarantees are owned by packages/memory/memory/README.md',
+  MemoryRetrieveRequest: 'MemoryRetrieveRequest fields and operation guarantees are owned by packages/memory/memory/README.md',
+  RetrievalOutcome: 'RetrievalOutcome fields and operation guarantees are owned by packages/memory/memory/README.md',
+  MemorySearchRequest: 'MemorySearchRequest fields and operation guarantees are owned by packages/memory/memory/README.md',
+  MemorySearchResult: 'MemorySearchResult fields and operation guarantees are owned by packages/memory/memory/README.md',
+  ReaConnection: 'ReaConnection fields and operation guarantees are owned by packages/mcp/rea/README.md',
+  SecurityProxyRoute: 'SecurityProxyRoute fields and operation guarantees are owned by packages/guard/security-proxy/README.md',
+  SecurityProxyState: 'SecurityProxyState fields and operation guarantees are owned by packages/guard/security-proxy/README.md',
+  SecurityProxySettingsPatch: 'SecurityProxySettingsPatch fields and operation guarantees are owned by packages/guard/security-proxy/README.md',
+  SecurityProxyTestResult: 'SecurityProxyTestResult fields and operation guarantees are owned by packages/guard/security-proxy/README.md',
+  SecurityProxyFlowQuery: 'SecurityProxyFlowQuery fields and operation guarantees are owned by packages/guard/security-proxy/README.md',
+  SecurityProxyFlowsResult: 'SecurityProxyFlowsResult fields and operation guarantees are owned by packages/guard/security-proxy/README.md',
+  SecurityProxyFlowDetail: 'SecurityProxyFlowDetail fields and operation guarantees are owned by packages/guard/security-proxy/README.md',
+  SecurityProxyCaptureStats: 'SecurityProxyCaptureStats fields and operation guarantees are owned by packages/guard/security-proxy/README.md',
+  SpendContinuationHandler: 'SpendContinuationHandler fields and operation guarantees are owned by packages/guard/spend-limit/README.md',
+  SpendSnapshot: 'SpendSnapshot fields and operation guarantees are owned by packages/guard/spend-limit/README.md',
+  SessionSpendUsage: 'SessionSpendUsage fields and operation guarantees are owned by packages/guard/spend-limit/README.md',
+  SpendPreferences: 'SpendPreferences fields and operation guarantees are owned by packages/guard/spend-limit/README.md',
+  SpendWindowUpdate: 'SpendWindowUpdate fields and operation guarantees are owned by packages/guard/spend-limit/README.md',
+  SpendPeriod: 'SpendPeriod fields and operation guarantees are owned by packages/guard/spend-limit/README.md',
+  PostgresAudit: 'PostgresAudit fields and operation guarantees are owned by packages/guard/target-protection/README.md',
+  SqliteRequest: 'SqliteRequest fields and operation guarantees are owned by packages/guard/target-protection/README.md',
+  SqliteResult: 'SqliteResult fields and operation guarantees are owned by packages/guard/target-protection/README.md',
+  CountryDatabaseStatus: 'CountryDatabaseStatus fields and operation guarantees are owned by packages/guard/target-protection/README.md',
+  TargetDecision: 'TargetDecision fields and operation guarantees are owned by packages/guard/target-protection/README.md',
+  LocalFileAdmission: 'LocalFileAdmission fields and operation guarantees are owned by packages/guard/target-protection/README.md',
+  LocalTargetOperation: 'LocalTargetOperation fields and operation guarantees are owned by packages/guard/target-protection/README.md',
+  TargetSnapshot: 'TargetSnapshot fields and operation guarantees are owned by packages/guard/target-protection/README.md',
+  TargetPreferences: 'TargetPreferences fields and operation guarantees are owned by packages/guard/target-protection/README.md',
+  TargetHttpResolution: 'TargetHttpResolution fields and operation guarantees are owned by packages/guard/target-protection/README.md',
+  TargetConnectionResolution: 'TargetConnectionResolution fields and operation guarantees are owned by packages/guard/target-protection/README.md',
+  TargetEffect: 'TargetEffect fields and operation guarantees are owned by packages/guard/target-protection/README.md',
+  BrowserExecutionLease: 'Native browser admission and shutdown ownership are owned by packages/browser-use/browser-use/README.md',
+  SecurityEntryState: 'Security entry availability is owned by packages/preset/agent-preset-registry/README.md',
+  SensitiveConfirmationPolicy: 'Session confirmation preferences are owned by packages/preset/agent-preset-registry/README.md',
+  ModeSwitchPolicy: 'Session mode switching is owned by packages/preset/agent-preset-registry/README.md',
+  HttpFetchDestination: 'Pinned HTTP execution identity is owned by packages/web/web-fetch-http/README.md',
+  HttpFetchRejection: 'Pre-connection HTTP refusals are owned by packages/web/web-fetch-http/README.md',
+  AnthropicResponse: 'Search model response handling is owned by packages/web/web-search-deepseek/README.md',
+  DeepSeekSearchLlmRequest: 'Search model requests are owned by packages/web/web-search-deepseek/README.md',
   ProductEvent: 'Desktop event fields are owned by packages/client/product-analytics/README.md and src/events.ts',
   ConnectionFetchHandler: 'shared Fetch dispatch is owned by packages/client/connection/src/rpc.ts',
   ConnectionRequestRejection: 'transport rejection status is owned by packages/client/connection/src/rpc.ts',
@@ -1259,16 +1347,15 @@ export function computeOutputs(): [string, string][] {
   return outputs
 }
 
-/** CLI entry: default regenerates every artifact, `--check` fails if any is
- * stale. Guarded behind an entry-point check so importing this module for
+/** CLI entry: `--runtime-only` selects the runtime directory; otherwise every artifact is generated.
+ * `--check` rejects stale output. Guarded behind an entry-point check so importing this module for
  * tests neither regenerates the committed files nor calls process.exit.
  * @returns nothing; writes files or reports freshness through the process.
  */
 export function main(): void {
-  const outputs: [string, string][] = [
-    ...computeOutputs(),
-    ...renderCordisCoreApiPages(),
-  ]
+  const outputs: [string, string][] = process.argv.includes('--runtime-only')
+    ? computeRuntimeOutput()
+    : [...computeOutputs(), ...renderCordisCoreApiPages()]
   if (process.argv.includes('--check')) {
     const stale: string[] = []
     for (const [out, content] of outputs) {
@@ -1300,6 +1387,15 @@ export function main(): void {
     changedPages++
   }
   console.log(`gen-cordis-catalog: ${outputs.length} artifact(s) computed, ${changedPages} written.`)
+}
+
+/**
+ * Project the model-facing service directory without generating public documentation.
+ * @returns The runtime source artifact with the same type and JSDoc validation as the full catalog.
+ */
+export function computeRuntimeOutput(): [string, string][] {
+  const { projector, model } = projectCordisCatalog(root, CORDIS_CATALOG_POLICY)
+  return [[OUT_RUNTIME_API, projector.renderRuntimeApi(model)]]
 }
 
 if (process.argv[1] && import.meta.filename === resolve(process.argv[1])) {

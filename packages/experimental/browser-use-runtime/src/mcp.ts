@@ -7,7 +7,7 @@ import { BrowserUseProviderName } from '@deepseek-ai/dsh-browser-use/brand'
 import * as McpClient from '@deepseek-ai/dsh-mcp-client'
 import { createScope } from '@deepseek-ai/dsh-scope'
 import type { Scope } from '@deepseek-ai/dsh-scope'
-import { SessionResources } from './index.ts'
+import { BrowserResourceCleanupError, SessionResources } from './index.ts'
 import type {} from '@deepseek-ai/dsh-browser-use'
 import type {} from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-system-prompt'
@@ -130,8 +130,10 @@ export function mountSessionMcp(ctx: Context, options: SessionMcpOptions): void 
     resources = new SessionResources(ctx, {
       label: options.name,
       exclusive: options.exclusive,
+      acquireExecution: () => ctx.browserUse.acquireExecution(),
       async open(agent, signal) {
         const scope = createScope(ctx, agent)
+        let client: McpClient.McpClientLifetime | undefined
         let cancellation: Promise<void> | undefined
         const cancel = (): void => { cancellation = scope.dispose() }
         signal.addEventListener('abort', cancel, { once: true })
@@ -145,7 +147,7 @@ export function mountSessionMcp(ctx: Context, options: SessionMcpOptions): void 
             }
             return next()
           })
-          await scope.ctx.plugin(McpClient, McpClient.Config({
+          const config = McpClient.Config({
             transport: 'stdio',
             serverName: options.name,
             command: options.command,
@@ -155,17 +157,28 @@ export function mountSessionMcp(ctx: Context, options: SessionMcpOptions): void 
             ...options.toolCallTimeoutMs === undefined ? {} : { toolCallTimeoutMs: options.toolCallTimeoutMs },
             failOnStartupError: true,
             reconnect: { enabled: false },
-          }))
+          })
+          client = McpClient.createMcpClient(scope.ctx, config, undefined)
+          await client.ready
           signal.throwIfAborted()
+          const ownedClient = client
           return {
             value: scope,
-            close() {
+            async close() {
               clients.delete(agent)
-              return scope.dispose()
+              try { await ownedClient.close() }
+              catch (error) {
+                throw new BrowserResourceCleanupError('Browser MCP shutdown could not be confirmed. Inspect the server process before reuse.',
+                  { cause: error }, ownedClient.whenClosed())
+              } finally { await scope.dispose() }
             },
           }
         } catch (error) {
-          await (cancellation ?? scope.dispose())
+          try { await client?.close() }
+          catch (cleanupError) {
+            throw new BrowserResourceCleanupError('Browser MCP shutdown could not be confirmed. Inspect the server process and restart the Host before reuse.',
+              { cause: new AggregateError([error, cleanupError]) }, client?.whenClosed())
+          } finally { await (cancellation ?? scope.dispose()) }
           throw error
         } finally {
           signal.removeEventListener('abort', cancel)

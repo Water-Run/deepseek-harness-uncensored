@@ -5,6 +5,7 @@ import { MessageChannel } from 'node:worker_threads'
 import type { MessagePort } from 'node:worker_threads'
 import { afterEach, expect, it, vi } from 'vitest'
 import { answer, request, requestSchema } from '../src/worker-rpc.ts'
+import { HarnessError } from '@deepseek-ai/dsh-llm'
 
 const cleanups: Array<() => Promise<void>> = []
 
@@ -61,6 +62,7 @@ it.each([new Error('Browser operation failed'), 'Browser operation refused'])(
 it.each([
   { ok: true, value: 'unexpected', extra: true },
   { ok: false, error: 42 },
+  { ok: false, error: 'invalid code', code: 42 },
   { value: 'missing status' },
 ])('rejects a malformed peer response and closes its reply port: %j', async (response) => {
   const { port1, port2 } = channel()
@@ -85,6 +87,16 @@ it('rejects peer shutdown before a response instead of leaving the request pendi
   const closed = once(reply, 'close')
   reply.close()
   await Promise.all([rejected, closed])
+})
+
+it('preserves stable error codes through the private Worker reply channel', async () => {
+  const { port1, port2 } = channel()
+  const incoming = receive(port2)
+  const result = request(port1, 'ready')
+  const rejected = expect(result).rejects.toMatchObject({ code: 'BROWSER_EXTENSION_DISCOVERY_FAILED', message: 'Configured browser is unavailable' })
+  const raw = await incoming
+  await answer(raw, async () => { throw new HarnessError('Configured browser is unavailable', 'BROWSER_EXTENSION_DISCOVERY_FAILED') })
+  await rejected
 })
 
 it.each([new Error('Session disposed'), 'canceled'])(

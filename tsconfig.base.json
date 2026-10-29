@@ -42,6 +42,7 @@
       "@deepseek-ai/dsh-target-protection/sqlite-agent": ["./packages/guard/target-protection/src/sqlite-agent.ts"],
       "@deepseek-ai/dsh-target-protection/postgres": ["./packages/guard/target-protection/src/postgres.ts"],
       "@deepseek-ai/dsh-target-protection/postgres-agent": ["./packages/guard/target-protection/src/postgres-agent.ts"],
+      "@deepseek-ai/dsh-target-protection/browser": ["./packages/guard/target-protection/src/browser.ts"],
       "@deepseek-ai/dsh-memory/types": ["./packages/memory/memory/src/types.ts"],
       "@deepseek-ai/dsh-memory/agent": ["./packages/memory/memory/src/agent.ts"],
       "@deepseek-ai/dsh-client-ui-settings-memory": ["./packages/client/ui-settings-memory/src/index.ts"],

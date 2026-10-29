@@ -5,6 +5,8 @@ import { openNativeBrowser } from '../src/native.ts'
 import type { NativeBrowserConfig, NativeBrowserRuntime } from '../src/native.ts'
 import { fixture, nativeModel, resetFixture } from './fixtures/stagehand.ts'
 
+vi.mock('../src/extension-discovery.ts', () => ({ findRuntimeExtension: async () => undefined }))
+
 vi.mock('@browserbasehq/stagehand', async importActual => ({
   ...await importActual<typeof import('@browserbasehq/stagehand')>(),
   ...await import('./fixtures/stagehand.ts'),

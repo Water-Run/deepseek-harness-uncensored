@@ -1,5 +1,5 @@
 /** Real upstream MCP browser checks against private loopback pages and disposable Chromium. */
-import { spawn } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 import { once } from 'node:events'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
@@ -22,7 +22,40 @@ import Projections from '@deepseek-ai/dsh-session-projection'
 import LocalFileSystem from '@deepseek-ai/dsh-fs-local'
 import WorkingDirectory from '@deepseek-ai/dsh-working-directory'
 import { expect, vi } from 'vitest'
+import { promisify } from 'node:util'
+import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
+import { z } from 'zod'
 import type { BrowserMcpConfig } from '../src/mcp.ts'
+
+const processRecord = z.object({ pid: z.number().int(), parent: z.number().int(), created: z.string(), name: z.string() })
+type ProcessRecord = z.infer<typeof processRecord>
+async function processSnapshot(): Promise<ProcessRecord[]> {
+  if (process.platform !== 'win32') return []
+  const script = '[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); @(' +
+    'Get-CimInstance Win32_Process | Where-Object {$null -ne $_.CreationDate} | ' +
+    'Select-Object @{n="pid";e={$_.ProcessId}},@{n="parent";e={$_.ParentProcessId}},' +
+    '@{n="created";e={$_.CreationDate.ToUniversalTime().ToString("o")}},@{n="name";e={$_.Name}}) | ConvertTo-Json -Compress'
+  const { stdout } = await promisify(execFile)('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script],
+    { windowsHide: true, timeout: 15000, maxBuffer: 1048576 })
+  return z.array(processRecord).parse(JSON.parse(stdout.trim()))
+}
+
+/**
+ * Select observed native identities and their live descendants without following recycled PIDs.
+ * @param processes - One operating-system process snapshot.
+ * @param anchors - Identities captured while the SDK roots or their descendants were alive.
+ * @returns Matching identities and descendants of those matching live processes.
+ */
+export function selectProcessRange(processes: readonly ProcessRecord[], anchors: readonly ProcessRecord[]): ProcessRecord[] {
+  const owned = new Set(processes.filter(item => anchors.some(anchor => anchor.pid === item.pid
+    && anchor.created === item.created && anchor.name === item.name)).map(item => item.pid))
+  let size: number
+  do {
+    size = owned.size
+    for (const item of processes) if (owned.has(item.parent)) owned.add(item.pid)
+  } while (owned.size !== size)
+  return processes.filter(item => owned.has(item.pid))
+}
 
 export async function verifyMcpBrowser(
   provider: Pick<Plugin.Object<BrowserMcpConfig>, 'apply'>,
@@ -39,6 +72,20 @@ export async function verifyMcpBrowser(
     response.end('<!doctype html><title>DSH browser fixture</title><h1>Browser integration works</h1>')
   })
   const ctx = new Context()
+  const nativePids = new Set<number>()
+  const nativeRoots: ProcessRecord[] = []
+  // oxlint-disable-next-line typescript/unbound-method -- The spy forwards each call with its original transport receiver.
+  const start = StdioClientTransport.prototype.start
+  const capture = vi.spyOn(StdioClientTransport.prototype, 'start').mockImplementation(async function (this: StdioClientTransport) {
+    await start.call(this)
+    const pid = this.pid
+    if (pid !== null) {
+      nativePids.add(pid)
+      const root = (await processSnapshot()).find(item => item.pid === pid)
+      if (root !== undefined) nativeRoots.push(root)
+    }
+  })
+  let nativeBeforeClose: ProcessRecord[] = []
   let external: ReturnType<typeof spawn> | undefined
   let exited: Promise<unknown> | undefined
   try {
@@ -86,6 +133,13 @@ export async function verifyMcpBrowser(
     expect(result.isError, JSON.stringify(result.content)).toBe(false)
     expect(observed.has(`/${namespace}-${mode}`)).toBe(true)
     expect(result.content.length).toBeGreaterThan(0)
+    nativeBeforeClose = selectProcessRange(await processSnapshot(), nativeRoots)
+    if (process.platform === 'win32') {
+      expect(nativePids.size).toBeGreaterThan(0)
+      expect(nativeRoots.length).toBeGreaterThan(0)
+      expect(nativeBeforeClose.length).toBeGreaterThan(0)
+      if (mode === 'launch') expect(nativeBeforeClose.some(item => !nativePids.has(item.pid))).toBe(true)
+    }
     await owner.dispose()
     expect(ctx.tools.schemas(owner.agent)).toEqual([])
     if (browserConfig.mode === 'attach') {
@@ -95,16 +149,26 @@ export async function verifyMcpBrowser(
       expect(pages.some(page => page.url === url)).toBe(true)
     }
   } finally {
-    await ctx.fiber.dispose()
-    if (external !== undefined && external.exitCode === null) external.kill('SIGTERM')
-    if (exited !== undefined) await exited
-    server.closeAllConnections()
-    await new Promise<void>((resolve, reject) => {
-      server.close((error) => {
-        if (error === undefined) resolve()
-        else reject(error)
+    let after: ProcessRecord[] = []
+    try {
+      await ctx.fiber.dispose()
+      if (process.platform === 'win32') {
+        after = selectProcessRange(await processSnapshot(), [...nativeBeforeClose, ...nativeRoots])
+        await writeFile(join(root, 'process-exit.json'), JSON.stringify({ roots: nativeRoots, before: nativeBeforeClose, after }))
+      }
+    } finally {
+      capture.mockRestore()
+      if (external !== undefined && external.exitCode === null) external.kill('SIGTERM')
+      if (exited !== undefined) await exited
+      server.closeAllConnections()
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => {
+          if (error === undefined) resolve()
+          else reject(error)
+        })
       })
-    })
-    await rm(root, { recursive: true, force: true })
+    }
+    expect(after, 'MCP browser process range remains alive after disposal').toEqual([])
+    await rm(root, { recursive: true, force: true, ...process.platform === 'win32' ? { maxRetries: 5, retryDelay: 100 } : {} })
   }
 }

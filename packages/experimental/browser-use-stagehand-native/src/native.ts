@@ -4,6 +4,7 @@ import { StagehandClientCreateConfigSchema } from '@browserbasehq/stagehand'
 import type { ModelConfig, Page, StagehandBrowser } from '@browserbasehq/stagehand'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
 import { z } from 'zod'
+import { findRuntimeExtension } from './extension-discovery.ts'
 
 /** Profile-owned model settings accepted by the pinned Stagehand SDK. */
 export interface StagehandModelConfig {
@@ -94,9 +95,11 @@ export interface NativeBrowserRuntime {
  */
 export async function openNativeBrowser(config: NativeBrowserConfig): Promise<NativeBrowserRuntime> {
   const { Stagehand, localBrowser } = await import('@browserbasehq/stagehand')
+  const endpoint = z.string().parse(config.cdpEndpoint)
+  const extensionId = config.extensionId ?? await findRuntimeExtension(endpoint, config.operationTimeoutMs)
   const browser = await localBrowser.connect({
-    cdpUrl: z.string().parse(config.cdpEndpoint),
-    ...config.extensionId === undefined ? {} : { extensionId: config.extensionId },
+    cdpUrl: endpoint,
+    ...extensionId === undefined ? {} : { extensionId },
   })
   const stagehand = await Stagehand.create({ browser, model: config.model, logging: { level: 'off' } })
   return {

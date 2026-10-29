@@ -88,7 +88,7 @@ env -u NODE_USE_ENV_PROXY DSH_STAGEHAND_E2E=1 pnpm exec vitest run --config vite
 
 [SessionResources](../browser-use-runtime/README.md) owns lazy acquisition, serialization, and teardown for each exact live Agent. The provider retains the browser-use registration until cleanup settles. The [native provider](src/index.ts) registers its tools through the existing MCP result adapter, which saves screenshots as durable attachments.
 
-The host owns each launched Chromium process and its temporary profile before waiting for CDP readiness. Chromium receives the standard scrubbed child environment, preserving paths, locale, and proxy settings while excluding credential-shaped variables and DSH identity. Both modes connect the SDK inside a dedicated Worker. The Worker receives no ambient environment except the explicit source TypeScript configuration path, so its CDP connection does not inherit host proxy settings. SDK close waits for active operations. Cleanup terminates the connection Worker after the configured SDK grace; launch also kills and awaits its owned Chromium process before removing the profile. Attached external browsers remain open. Cleanup failures follow the [ownership limits](#known-limitations-and-deferred-work) below.
+The host owns each launched Chromium process and its temporary profile before waiting for CDP readiness. Chromium receives the standard scrubbed child environment, preserving paths, locale, and proxy settings while excluding credential-shaped variables and DSH identity. Both modes connect the SDK inside a dedicated Worker. The Worker receives only explicit temporary-directory values and the source TypeScript configuration path, so its CDP connection does not inherit host proxy settings. SDK close waits for active operations. Cleanup terminates the connection Worker after the configured SDK grace; launch also kills and awaits its owned Chromium process before removing the profile. Attached external browsers remain open. Cleanup failures follow the [ownership limits](#known-limitations-and-deferred-work) below.
 
 The [native runtime](src/native.ts) passes the explicit model configuration to Stagehand's public initialization API. The adapter pins Zod to the version required by Stagehand because extraction passes Zod schemas to the SDK. Stagehand owns the model requests, response validation, and token accounting inside its browser extension. DSH records browser tool inputs and returned data, including SDK result metadata, through the existing Session log. Underlying inference request/response capture and integration into DSH Session usage accounting are deferred.
 
@@ -134,7 +134,7 @@ Unchanged guidance preserves its prompt prefix. Mounting or removing the provide
 
 #### What the model sees
 
-The [`stagehand_` tool catalog](../../../docs/tool-catalog.md#deepseek-aidsh-experimental-browser-use-stagehand-native) defines navigation, tab management, screenshots, actions, observation, and extraction. Results contain current page facts or validated structured data. Supported screenshots appear as durable image attachments. Errors remain visible so the model can inspect state before retrying.
+The [`stagehand_` tool catalog](src/index.ts) defines navigation, tab management, screenshots, actions, observation, and extraction. Results contain current page facts or validated structured data. Supported screenshots appear as durable image attachments. Errors remain visible so the model can inspect state before retrying.
 
 #### Token effect
 
@@ -147,6 +147,8 @@ The static tool catalog preserves its prefix. Browser results append to the main
 ## Known Limitations and Deferred Work
 
 <a id="known-limitations-and-deferred-work"></a>
+
+The pinned SDK 4.1 runtime uses an extension whose name and version come from its packaged manifest. Without explicit `extensionId`, initialization reads `Extensions.getExtensions` and reuses one enabled matching runtime; disabled, duplicate or incompatible entries require owner configuration. Reuse preserves the extension's live target instead of reloading it during reconnection. Each private Worker initializes one browser: its WebSocket constructor is briefly interposed to record native sockets, restored before operations, and SDK drainage is followed by socket close handshakes. Do not run concurrent initialization in one Worker realm. The configured `operationTimeoutMs` bounds startup as well as browser operations; `shutdownGraceMs` still bounds cleanup before termination.
 
 The provider inherits the pinned Stagehand SDK's browser and extension requirements.
 

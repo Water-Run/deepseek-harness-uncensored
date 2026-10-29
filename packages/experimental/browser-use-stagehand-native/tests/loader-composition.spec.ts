@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
+import { z } from 'zod'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
@@ -32,9 +33,12 @@ vi.mock('node:worker_threads', async (importActual) => {
     ...actual,
     Worker: class extends actual.Worker {
       constructor(entry: string | URL, options: import('node:worker_threads').WorkerOptions) {
+        const data = z.looseObject({ extensionId: z.string().optional() }).parse(options.workerData)
         const hooks = new URL('../../../../snapshots/session/browser-use-stagehand-native/native-fixture.mjs', import.meta.url)
         const bootstrap = `import { installExternalBrowserHooks } from ${JSON.stringify(hooks.href)}; installExternalBrowserHooks(); await import(${JSON.stringify(String(entry))});`
-        super(new URL(`data:text/javascript,${encodeURIComponent(bootstrap)}`), options)
+        super(new URL(`data:text/javascript,${encodeURIComponent(bootstrap)}`), { ...options,
+          workerData: { ...data, extensionId: data.extensionId ?? 'fixture-installed-runtime' },
+        })
       }
     },
   }

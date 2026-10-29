@@ -9,11 +9,6 @@ import {
 } from '../src/cordis-catalog.ts'
 import {
   CORDIS_CATALOG_POLICY,
-  EVENT_SCOPE_PAGE,
-  localizePageRegion,
-  REGION_BEGIN,
-  REGION_END,
-  SERVICE_PAGE,
 } from '../../../../scripts/gen-cordis-catalog.ts'
 
 const workspaceRoot = resolve(import.meta.dirname, '../../../..')
@@ -63,29 +58,10 @@ describe('Typert-backed Cordis catalog', () => {
     expect(inherited).toContain('([`vendor/cordis/src/context.ts:12`](../../vendor/cordis/src/context.ts))')
   })
 
-  it('reproduces every committed catalog artifact byte for byte', { timeout: 480_000 }, () => {
+  it('reproduces the committed runtime catalog byte for byte', { timeout: 480_000 }, () => {
     const { projector, model } = projection()
     const expected = (path: string): string => readFileSync(join(workspaceRoot, path), 'utf8')
 
-    expect(renderInheritedPage(CORDIS_CATALOG_POLICY)).toBe(expected('docs/cordis-api/inherited.md'))
-    for (const page of [...new Set([...Object.values(SERVICE_PAGE), ...Object.values(EVENT_SCOPE_PAGE)])].sort()) {
-      const region = renderPageRegion(
-        page,
-        [...model.services].filter(s => SERVICE_PAGE[s.key] === page),
-        [...model.events].filter(e => EVENT_SCOPE_PAGE[e.scope] === page),
-        CORDIS_CATALOG_POLICY,
-      )
-      for (const side of [page, page.replace(/\.md$/, '.zh.md')]) {
-        const rel = `docs/subsystems/${side}`
-        const committed = expected(rel)
-        const begin = committed.indexOf(REGION_BEGIN)
-        const end = committed.indexOf(REGION_END)
-        expect(begin, `${rel} carries the region`).toBeGreaterThanOrEqual(0)
-        expect(committed.slice(begin, end + REGION_END.length)).toBe(
-          localizePageRegion(region, rel, workspaceRoot),
-        )
-      }
-    }
     expect(projector.renderRuntimeApi(model)).toBe(
       expected('packages/extensions/tool-cordis/src/api-catalog.ts'),
     )

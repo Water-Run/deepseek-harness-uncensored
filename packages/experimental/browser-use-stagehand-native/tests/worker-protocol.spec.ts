@@ -15,7 +15,8 @@ it('reports malformed requests before exiting its real Worker', async () => {
     `await import(${JSON.stringify(entry.href)});`,
   ].join('\n')
   const worker = new Worker(new URL(`data:text/javascript,${encodeURIComponent(bootstrap)}`), {
-    workerData: { model: { modelName: 'openai/gpt-5.4-mini', apiKey: 'fixture-model-key' }, mode: 'attach', cdpEndpoint: 'http://fixture', headless: true, operationTimeoutMs: 30000, shutdownGraceMs: 1000 },
+    workerData: { model: { modelName: 'openai/gpt-5.4-mini', apiKey: 'fixture-model-key' }, mode: 'attach', cdpEndpoint: 'http://fixture',
+      extensionId: 'fixture-installed-runtime', headless: true, operationTimeoutMs: 30000, shutdownGraceMs: 1000 },
     env: {}, execArgv: [], stderr: true,
   })
   let diagnostics = ''

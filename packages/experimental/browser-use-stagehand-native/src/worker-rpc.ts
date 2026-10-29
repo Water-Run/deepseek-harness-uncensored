@@ -3,10 +3,11 @@
 import { MessageChannel, MessagePort } from 'node:worker_threads'
 import type { Worker } from 'node:worker_threads'
 import { z } from 'zod'
+import { HarnessError } from '@deepseek-ai/dsh-llm'
 
 const responseSchema = z.discriminatedUnion('ok', [
   z.object({ ok: z.literal(true), value: z.unknown() }).strict(),
-  z.object({ ok: z.literal(false), error: z.string() }).strict(),
+  z.object({ ok: z.literal(false), error: z.string(), code: z.string().min(1).optional() }).strict(),
 ])
 
 /** Transferable reply channel paired with a validated operation payload. */
@@ -37,7 +38,8 @@ export async function request(target: MessagePort | Worker, method: string, args
       const response = responseSchema.safeParse(raw)
       if (!response.success) result.reject(response.error)
       else if (response.data.ok) result.resolve(response.data.value)
-      else result.reject(new Error(response.data.error))
+      else result.reject(response.data.code === undefined
+        ? new Error(response.data.error) : new HarnessError(response.data.error, response.data.code))
     })
     port1.once('messageerror', result.reject)
     port1.once('close', () => { result.reject(new Error('Stagehand Worker reply channel closed')) })
@@ -65,7 +67,8 @@ export async function answer(raw: unknown, execute: (method: string, args: unkno
   try {
     reply.postMessage({ ok: true, value: await execute(method, args) })
   } catch (error) {
-    reply.postMessage({ ok: false, error: error instanceof Error ? error.message : String(error) })
+    reply.postMessage({ ok: false, error: error instanceof Error ? error.message : String(error),
+      ...error instanceof HarnessError ? { code: error.code } : {} })
   } finally {
     reply.close()
   }

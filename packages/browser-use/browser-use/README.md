@@ -35,6 +35,8 @@ The service has no configuration. Provider plugins inject `browserUse` and call 
 
 Providers stop admitting tool calls, close their resources, and await owned work before releasing the registration. `ctx.browserUse.providerName` reports the registered name until release.
 
+Providers resolve `acquireExecution()` before allocating a browser, Worker or MCP process. This registry returns undefined, adding no execution policy. A deployment provider may return a `BrowserExecutionLease`: recheck it before acquisition and queued calls, stop and close on its signal, and release it only after confirmed native cleanup. All three shipped browser providers use this protocol through `SessionResources`; custom providers must connect it explicitly.
+
 -----
 
 <a id="understand-the-implementation"></a>
@@ -52,7 +54,6 @@ One private name owns the slot. Cordis effects remove contributions when their p
 <a id="further-exploration"></a>
 ## Further Exploration
 
-- [Browser use](../../../docs/subsystems/browser-use.md) — provider selection and Session ownership.
 - [Playwright MCP provider](../../experimental/browser-use-playwright-mcp/README.md) — Playwright browser tools.
 - [Chrome DevTools MCP provider](../../experimental/browser-use-chrome-devtools-mcp/README.md) — Chromium inspection and control.
 - [Stagehand provider](../../experimental/browser-use-stagehand-native/README.md) — native browser operations with AI assistance.

@@ -4,6 +4,7 @@ import { parentPort, workerData } from 'node:worker_threads'
 import { z } from 'zod'
 import { browserInputs, openNativeBrowser, stagehandModelSchema } from './native.ts'
 import { answer } from './worker-rpc.ts'
+import { openWithOwnedSockets } from './socket-lifetime.ts'
 
 const port = parentPort
 if (port === null) throw new Error('Stagehand attachment requires a Worker parent')
@@ -18,13 +19,13 @@ const { extensionId, cdpEndpoint, executablePath, ...config } = z.object({
   shutdownGraceMs: z.number().int().positive(),
 }).parse(workerData)
 const methodSchema = z.enum(Object.keys(browserInputs) as [keyof typeof browserInputs, ...Array<keyof typeof browserInputs>])
-const opening = openNativeBrowser(
+const opening = openWithOwnedSockets(() => openNativeBrowser(
   {
     ...config, ...extensionId === undefined ? {} : { extensionId },
     ...cdpEndpoint === undefined ? {} : { cdpEndpoint },
     ...executablePath === undefined ? {} : { executablePath },
   },
-)
+))
 // Initialization failure stays observable through the host's ready request.
 void opening.catch((error: unknown) => { void error })
 port.on('message', (raw: unknown) => {

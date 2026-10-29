@@ -35,6 +35,8 @@ kind: "package-reference"
 
 提供方 在释放注册前停止接收工具调用、关闭资源并等待自己拥有的工作结束。`ctx.browserUse.providerName` 在释放之前持续报告已注册名称。
 
+提供方在分配浏览器、Worker 或 MCP 进程前调用 `acquireExecution()`。本注册服务返回 undefined，不附加执行策略；部署提供方可返回 `BrowserExecutionLease`，要求获取资源及排队调用前复查、信号撤销后停止并关闭资源、确认原生清理后才释放租约。三个内置浏览器提供方均通过 `SessionResources` 接入此协议，自定义提供方需明确接入。
+
 -----
 
 <a id="understand-the-implementation"></a>
@@ -52,7 +54,6 @@ kind: "package-reference"
 <a id="further-exploration"></a>
 ## 延伸阅读
 
-- [浏览器操作](../../../docs/subsystems/browser-use.zh.md) — 提供方 选择与 Session 所有权。
 - [Playwright MCP 提供方](../../experimental/browser-use-playwright-mcp/README.zh.md) — Playwright 浏览器工具。
 - [Chrome DevTools MCP 提供方](../../experimental/browser-use-chrome-devtools-mcp/README.zh.md) — Chromium 检查与控制。
 - [Stagehand 提供方](../../experimental/browser-use-stagehand-native/README.zh.md) — 支持 AI（人工智能）辅助的原生浏览器操作。

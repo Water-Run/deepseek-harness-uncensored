@@ -23,6 +23,7 @@ vi.mock('@browserbasehq/stagehand', async importActual => ({
   ...await importActual<typeof import('@browserbasehq/stagehand')>(),
   ...await import('./fixtures/stagehand.ts'),
 }))
+vi.mock('../src/extension-discovery.ts', () => ({ findRuntimeExtension: async () => undefined }))
 vi.mock('@puppeteer/browsers', async () => import('./fixtures/chromium.ts'))
 vi.mock('../src/launch.ts', async (importActual) => {
   const actual = await importActual<typeof import('../src/launch.ts')>()
@@ -162,6 +163,18 @@ it('rolls back the native browser after initialization fails', async () => {
   delete fixture.createError
   expect((await execute(first, 'tabs', { action: 'list' })).isError).toBe(false)
   expect(fixture.browsers).toHaveLength(2)
+})
+
+it('retains acquisition ownership when initialization and Chromium rollback both fail', async () => {
+  fixture.createError = new Error('Stagehand extension failed')
+  acquisition.chromiumCloseError = new Error('Chromium cleanup failed')
+  const provider = await ctx.plugin(Provider, { model: nativeModel, mode: 'launch' })
+  const result = await execute(first, 'tabs', { action: 'list' })
+  expect(result).toMatchObject({ isError: true, error: { info: { code: 'BROWSER_SHUTDOWN_UNCONFIRMED' } } })
+  expect((await execute(first, 'tabs', { action: 'list' })).isError).toBe(true)
+  expect(fixture.browsers).toHaveLength(1)
+  await provider.dispose()
+  expect(ctx.browserUse.providerName).toBe('stagehand-native')
 })
 
 it('connects to a WebSocket endpoint without a configured extension id', async () => {

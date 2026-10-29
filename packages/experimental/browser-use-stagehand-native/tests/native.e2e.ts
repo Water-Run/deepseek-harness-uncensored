@@ -85,6 +85,7 @@ it.skipIf(process.env.DSH_STAGEHAND_E2E !== '1')('launches and attaches to insta
     const created = await execute('tabs', { action: 'new', url: createdUrl })
     expect(created.isError, JSON.stringify(created.content)).toBe(false)
     await attached.dispose()
+    expect(ctx.browserUse.providerName).toBeUndefined()
     expect(external.exitCode).toBeNull()
     const versionUrl = new URL(endpoint)
     versionUrl.protocol = 'http:'
@@ -92,9 +93,13 @@ it.skipIf(process.env.DSH_STAGEHAND_E2E !== '1')('launches and attaches to insta
     const targets = await (await fetch(versionUrl, { signal })).json() as Array<{ url: string }>
     expect(targets.some(target => target.url === url)).toBe(true)
     expect(targets.some(target => target.url === createdUrl)).toBe(true)
+    const reattached = await ctx.plugin(Provider, { model: nativeModel, mode: 'attach', cdpEndpoint: endpoint })
+    const restored = await execute('tabs', { action: 'list' })
+    expect(restored.isError, JSON.stringify(restored.content)).toBe(false)
+    await reattached.dispose()
     const { stdout } = await promisify(execFile)(process.execPath, [
       fileURLToPath(new URL('./fixtures/built-attachment.mjs', import.meta.url)), endpoint, `${url}built-worker`,
-    ], { signal, env: {} })
+    ], { signal, env: { TEMP: tmpdir(), TMP: tmpdir(), TMPDIR: tmpdir() } })
     expect(stdout).toContain('Stagehand fixture')
     expect(external.exitCode).toBeNull()
     const afterBuilt = await (await fetch(versionUrl, { signal })).json() as Array<{ url: string }>

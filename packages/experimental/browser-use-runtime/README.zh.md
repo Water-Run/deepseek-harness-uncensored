@@ -29,9 +29,13 @@ kind: "package-library"
 
 原生提供方从包根入口构造 `SessionResources`，提供资源获取与清理回调。调用向 `run()` 传递确切的实时 Agent；失效的所有者与独占附加的第二个所有者在获取资源前失败。取消资源获取等待不会终止初始化，同一 Session 的其他调用方仍可继续等待；释放 Session 会中止并等待该初始化结束。提供方将注册保留到 `dispose()` 完成。
 
+内置提供方传入浏览器注册服务的 `acquireExecution` 回调，原生获取及排队操作前检查租约；撤销时中断初始化、关闭活动资源并禁止排队工作。租约保持到原生关闭及操作结束，确认获取回滚后才释放。`BrowserResourceCleanupError` 用 `BROWSER_SHUTDOWN_UNCONFIRMED` 报告回滚或关闭未知并保留所有权；可选的执行器 `closed` promise 在迟到回执到达后允许释放。回执失败持续记录日志，需检查进程或重启 Host。
+
 MCP 提供方使用 `@deepseek-ai/dsh-experimental-browser-use-runtime/mcp` 中的 `mountSessionMcp`，提供固定服务器名称、可执行文件、参数与所有权策略。挂载上下文必须提供 `workingDirectory`。获取连接时通过[工作目录服务](../../session/working-directory/README.zh.md)验证或恢复当前目录，并将其设为 MCP 服务器进程的初始目录。Session 后续选择其他目录时，保留的服务器继续使用该目录。辅助库在每个后续 Agent 的 `agent/created` 事件中等待一次有作用域的客户端启动与发现尝试。Agent 创建或恢复在发现完成后结束，随后才运行排队输入；成功的客户端跨轮次归该 Session 所有。
 
 附加连接被占用时，本次激活永久跳过启动，但其他工作继续运行。连接释放不会触发被跳过激活的重试；新创建或恢复的 Agent 可以获取连接。启动失败或取消会拒绝 Agent 创建或恢复，并触发包含客户端清理的创建回滚。重连已禁用。加载或重新加载提供方只作用于后续的 Agent 激活。
+
+MCP 获取过程在等待启动前捕获 `createMcpClient` 的生命周期对象，清理独立校验传输关闭和请求结束，不以作用域释放代替关闭确认。工具目录及标准 Session 日志保持原方式；本库不隔离任意浏览器网络、文件或脱离进程的效果。
 
 调用方在等待 Agent 创建或恢复完成后，即可检查提示词组装和作用域工具定义。
 
@@ -58,7 +62,6 @@ MCP 提供方使用 `@deepseek-ai/dsh-experimental-browser-use-runtime/mcp` 中�
 <a id="further-exploration"></a>
 ## 延伸阅读
 
-- [浏览器操作](../../../docs/subsystems/browser-use.zh.md) — 提供方选择与 Session 所有权。
 - [MCP 客户端](../../mcp/mcp-client/README.zh.md) — 发现、取消与结果接纳。
 - [浏览器所有权决策](../../../.agents/notes/implemented/architecture/2026-09-12-browser-use-provider-registration.zh.md) — 仅注册名称的服务与资源生命周期。
 

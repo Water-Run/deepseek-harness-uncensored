@@ -6,6 +6,23 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
+import type { BrowserExecutionLease } from '@deepseek-ai/dsh-browser-use'
+import { HarnessError } from '@deepseek-ai/dsh-llm'
+
+/** Acquisition failed without confirmed rollback; retain permission and exclusive ownership. */
+export class BrowserResourceCleanupError extends HarnessError {
+  /** Optional executor acknowledgement that permits releasing a quarantined resource later. */
+  readonly closed: Promise<void> | undefined
+  /**
+   * @param message - Visible shutdown failure and recovery.
+   * @param options - Preserved acquisition and cleanup failures.
+   * @param closed - Executor-owned confirmation of actual native closure, when available.
+   */
+  constructor(message: string, options?: ErrorOptions, closed?: Promise<void>) {
+    super(message, 'BROWSER_SHUTDOWN_UNCONFIRMED', options)
+    this.closed = closed
+  }
+}
 
 /** One provider-owned browser or connection and its quiescent cleanup. */
 export interface OwnedSessionResource<T> {
@@ -21,6 +38,8 @@ export interface SessionResourceOptions<T> {
   label: string
   /** Reserve one existing browser for at most one live Session. */
   exclusive: boolean
+  /** Resolve deployment enforcement before native acquisition; omission adds no policy. */
+  acquireExecution?: () => BrowserExecutionLease | undefined
   /**
    * Acquire one resource; reject only after rolling back partial acquisition.
    * @param agent - exact live owner of this acquisition.
@@ -32,6 +51,8 @@ export interface SessionResourceOptions<T> {
 
 interface Entry<T> {
   controller: AbortController
+  signal: AbortSignal
+  execution?: { lease: BrowserExecutionLease; revoke: () => void }
   ready: Promise<OwnedSessionResource<T>>
   tail: Promise<void>
   closing?: Promise<void>
@@ -91,7 +112,8 @@ export class SessionResources<T> {
     const entry = this.entry(agent)
     const resource = await (signal === undefined ? entry.ready : awaitOperation(entry.ready, signal))
     signal?.throwIfAborted()
-    entry.controller.signal.throwIfAborted()
+    entry.signal.throwIfAborted()
+    entry.execution?.lease.check()
     return resource.value
   }
 
@@ -107,7 +129,7 @@ export class SessionResources<T> {
   run<R>(agent: Agent, signal: AbortSignal, operation: (resource: T, signal: AbortSignal) => Promise<R>): Promise<R> {
     signal.throwIfAborted()
     const entry = this.entry(agent)
-    const combined = AbortSignal.any([signal, entry.controller.signal])
+    const combined = AbortSignal.any([signal, entry.signal])
     const releaseDisposed = () => {
       const reason = signal.reason as { kind?: unknown } | undefined
       if (reason?.kind !== 'disposed') return
@@ -122,6 +144,7 @@ export class SessionResources<T> {
       combined.throwIfAborted()
       const resource = await awaitOperation(entry.ready, combined)
       combined.throwIfAborted()
+      entry.execution?.lease.check()
       const result = await operation(resource.value, combined)
       combined.throwIfAborted()
       return result
@@ -163,18 +186,33 @@ export class SessionResources<T> {
       }, `${this.options.label}.session`)
       this.ownerCleanups.set(agent, cleanup)
     }
+    const lease = this.options.acquireExecution?.()
     const controller = new AbortController()
+    const signal = lease === undefined ? controller.signal : AbortSignal.any([controller.signal, lease.signal])
     const entry: Entry<T> = {
-      controller,
+      controller, signal,
       ready: Promise.resolve().then(() => {
-        controller.signal.throwIfAborted()
-        return this.options.open(agent, controller.signal)
+        signal.throwIfAborted()
+        lease?.check()
+        return this.options.open(agent, signal)
       }).catch((error: unknown) => {
-        // open() owns rollback; a failed acquisition has no remaining resource.
-        this.entries.delete(agent)
+        if (error instanceof BrowserResourceCleanupError) this.observeClosure(agent, entry, error)
+        else {
+          this.entries.delete(agent)
+          this.releaseExecution(entry)
+        }
         throw error
       }),
       tail: Promise.resolve(),
+    }
+    if (lease !== undefined) {
+      const revoke = (): void => {
+        void this.closeEntry(agent, entry).catch((error: unknown) => {
+          this.ctx.logger.warn(`${this.options.label}: browser shutdown after execution revocation failed: ${String(error)}`)
+        })
+      }
+      entry.execution = { lease, revoke }
+      lease.signal.addEventListener('abort', revoke, { once: true })
     }
     // Acquisition can outlive every canceled caller; later consumers still receive its failure.
     void entry.ready.catch(() => {})
@@ -184,14 +222,41 @@ export class SessionResources<T> {
 
   private closeEntry(agent: Agent, entry: Entry<T>): Promise<void> {
     return entry.closing ??= Promise.resolve().then(async () => {
-      entry.controller.abort(new Error(`${this.options.label}: Session browser is closing`))
-      const resource = await entry.ready.catch(() => undefined)
+      const executionSignal = entry.execution?.lease.signal
+      entry.controller.abort(executionSignal?.aborted ? executionSignal.reason : new Error(`${this.options.label}: Session browser is closing`))
       try {
+        const resource = await entry.ready.catch((error: unknown) => {
+          if (error instanceof BrowserResourceCleanupError) throw error
+          return undefined
+        })
         await resource?.close()
       } finally {
         await entry.tail
       }
       this.entries.delete(agent)
+      this.releaseExecution(entry)
+    }).catch((error: unknown) => {
+      if (error instanceof BrowserResourceCleanupError) this.observeClosure(agent, entry, error)
+      throw error
     })
+  }
+
+  private observeClosure(agent: Agent, entry: Entry<T>, error: BrowserResourceCleanupError): void {
+    if (error.closed === undefined) return
+    void error.closed.then(async () => {
+      await entry.tail
+      if (this.entries.get(agent) === entry) this.entries.delete(agent)
+      this.releaseExecution(entry)
+    }).catch((failure: unknown) => {
+      this.ctx.logger.warn(`${this.options.label}: quarantined browser closure remains unconfirmed: ${String(failure)}`)
+    })
+  }
+
+  private releaseExecution(entry: Entry<T>): void {
+    const execution = entry.execution
+    delete entry.execution
+    if (execution === undefined) return
+    execution.lease.signal.removeEventListener('abort', execution.revoke)
+    execution.lease.release()
   }
 }

@@ -57,6 +57,9 @@ describe('snapshot manifest', () => {
     ].join('\n'))
 
     expect(writesCurrentSessionFixtures(current, 'replay')).toBe(false)
+    expect(writesCurrentSessionFixtures(current, 'headers')).toBe(false)
+    expect(writesCurrentSessionFixtures(borrower, 'headers')).toBe(false)
+    expect(writesCurrentSessionFixtures(retained, 'headers')).toBe(false)
     expect(writesCurrentSessionFixtures(current, 'record')).toBe(true)
     expect(writesCurrentSessionFixtures(current, 'refresh')).toBe(true)
     expect(writesCurrentSessionFixtures(borrower, 'record')).toBe(false)

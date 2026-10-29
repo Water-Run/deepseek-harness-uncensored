@@ -1,5 +1,25 @@
 # Uncensored 开发交接
 
+## 当前节点：浏览器执行保护与关闭确认（2026-10-29）
+
+Goal active，继续完整“实现DSHU”。上个 PostgreSQL 节点 `c4c2b81cc9` 已推送 main。最近成功读取共享剩余 **11%**，中间一次查询失败；用户在 39% 后的继续授权有效，不按历史 40% 阈值暂停，不使用重置或主动消耗重置券。
+
+新增可选 `target-protection/browser`，替换普通 browser-use 注册服务，保留 Playwright MCP、Chrome DevTools MCP 和 Stagehand。三个提供方均通过同一执行租约，在原生分配前及排队调用前校验；撤销关闭资源，原生请求和关闭结束后才释放规则。未知回滚/关闭采用 `BROWSER_SHUTDOWN_UNCONFIRMED`，保留预留与租约；MCP 的实际关闭迟到回执可完成释放。`createMcpClient` 暴露启动前的生命周期对象，避免仅依赖作用域释放。此节点提供准入和撤销，**不是逐目标浏览器隔离**，默认产品仍未启用完整保护。任意网络 SQL、受限命令、远端身份、其他管理/原生旁路及 P3 完整审计和所有者界面继续未完成。
+
+实机排查修复 SDK 重连：SDK 4.1 的会话关闭不等于 CDP 关闭；私有 Worker 在唯一初始化期间记录原生 WebSocket，操作前恢复全局构造器，清理等待 SDK 与套接字握手。重复加载扩展曾导致旧服务 Worker 目标失效，现先读取固定清单身份并复用唯一启用且同版本的扩展，显式 extensionId 保留。启动已接入现有 operationTimeoutMs，Worker 仅接收临时目录/源码配置环境和显式模型数据。共享 LLM 必须为 peer，修复编译包意外内联装饰器代码导致普通 Node 无法加载的问题。真实 Chrome 的两种 MCP 启动/附加共 4 项通过；Stagehand 源码启动/附加、同进程重连、编译后独立进程再次附加及页面保留通过。只用本轮临时浏览器、页面和假模型配置，没有实际模型调用，没有操作用户浏览器。
+
+关键证据位于 `.dsh-build/target-protection-20261027/`：`browser-live-process-identity.log`、`browser-stagehand-peer-verified.log`。Windows 实机测试在 SDK 启动时取得根身份，并按 PID、创建时间和进程名匹配已记录根/后代；PID 复用不算原进程存活，真实已记录孤儿及后代仍被检出。退出检查通过后才对短暂文件锁做有限重试。早期 EBUSY、误判 PID、SDK 超时/目标失效、装饰器 SyntaxError 与类型错误日志保留，不能把早期失败当作仍在运行重启。源码已恢复的负对照见 `browser-negative-control-fixed.log`、`browser-catalog-negative-control.log`：移除执行检查确实启动原生进程，生成目录改动也被校验拒绝。
+
+本体与资源管理器/MCP 的 61 项定向回归达四项 100%，连接/消息/发现/Worker 的 97 项回归亦达四项 100%；包含 MCP 失败确认和迟到回执的真实进程回归。相关总回归 **490 通过、28 跳过**，另补 PID 复用及孤儿检测两项。重试耗尽使用实际错误事件屏障替代 1 秒轮询；批量验证用仓库已有 DSH_COVERAGE_TEST_TIMEOUT_MS=120000，保留退出/效果断言，不调整产品超时。四个 keyless 会话通过，最新记录为 `browser-ci-budget-regression.log`、`browser-commit-snapshots.log`。编译与 lint 以 `browser-commit-build.log`、`browser-commit-lint.log` 的终态为准，提交前检查运行句柄。
+
+旧 Native 会话的头部仍引用 Bash 和上游基础提示词。此浏览器专用夹具排除无关的本机 shell/代理与 Windows ACL 技能，使 macOS/Linux/Windows 输入一致。增加 DSH_SNAPSHOT=headers：先验证会话与工作区，再只更新头部固定件；共享写入策略测试保证不写会话代际。实际更新后逐字验证原 v3/v4 文件未变，普通回放通过，见 `browser-native-header-update.log`。新增独立场景为 browser-target-protection，未覆盖冻结会话代际。
+
+运行时 Cordis 接口目录此前缺少已实现的模式、记忆、余额、REA、限额与保护 API；现补齐精确类型归属并通过同一投影重建目录，修正缺少说明的 JSDoc。根生成/校验命令采用 `--runtime-only`，验证类型、注释及当前产物，同时遵从用户要求不重建公开 docs。旧的文档树断言改为当前运行时产物断言，源码渲染/分区单测保留。README 与六组包说明同步，修正本节点触达的失效链接；完整文档/许可/旧链接审查仍待完成。
+
+最终验收：`browser-commit-build.log` 完整 build 9/9，`browser-commit-lint.log` 全仓 lint 退出 0，`browser-commit-snapshots.log` 四个相关会话通过，六组双语记录一致；JSDoc、工作区约束和两个发布包 publint 通过，Native 包保留既有 ./src/* 声明提示。头部写入策略及 README 45 项通过。最终检查之后仅整理本交接与 TODO，不重新运行已通过行为检查。下一步仍为 P2 的执行范围隔离/管理旁路，再接 P3，不按浏览器准入节点结束完整目标。
+
+清理审批：本轮测试曾因空环境下 Windows 临时目录缺失生成 `D:/Coding/deepseek-harness-uncensored/undefined/temp/tsx-linzh/` 六个缓存文件。已修复 Worker/独立进程的显式临时目录。校验路径与清单后，PowerShell 删除请求仍被自动审批拒绝，理由只有 **blocked by policy**；原目录保留，未换工具删除，不提交它。最终不能宣称整个工作区没有未跟踪文件。此前 PostgreSQL 临时目录保留不动。三次旧安装包下载故障继续保留，尚未生成/安装新的检查包。
+
 ## 当前节点：PostgreSQL 固定目录审计（2026-10-29，继续开发）
 
 用户的继续授权有效，Goal active；本轮初查共享剩余 **28%**，不再按历史 40% 阈值暂停，不使用重置或推算会话独立百分比。其他 7 项进行中、3 项待实现完整保留，目标保护整体估算仍为 65%。当前节点尚未替换默认产品。

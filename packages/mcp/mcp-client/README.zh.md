@@ -94,6 +94,8 @@ kind: "package-reference"
 
 -----
 
+编程消费者可调用 `createMcpClient`，在等待 `ready` 前取得生命周期对象。`close()` 校验传输关闭，无法确认时拒绝；`whenClosed()` 在原生传输及活动请求结束后完成，也接收迟到回执。结果未知期间，消费者继续持有执行许可。普通插件激活与 `mountMcpClient` 保留原来的启动行为。
+
 <a id="understand-the-implementation"></a>
 ## 理解实现
 
