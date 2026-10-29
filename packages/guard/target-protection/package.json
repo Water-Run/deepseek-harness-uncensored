@@ -48,6 +48,14 @@
       "types": "./lib/types/sqlite-agent.d.ts",
       "default": "./lib/types/sqlite-agent.js"
     },
+    "./postgres": {
+      "types": "./lib/types/postgres.d.ts",
+      "default": "./lib/types/postgres.js"
+    },
+    "./postgres-agent": {
+      "types": "./lib/types/postgres-agent.d.ts",
+      "default": "./lib/types/postgres-agent.js"
+    },
     "./country": {
       "types": "./lib/types/country-provider.d.ts",
       "default": "./lib/types/country-provider.js"
@@ -78,7 +86,8 @@
     "re2js": "2.9.0",
     "zod": "4.4.3",
     "dns-packet": "5.6.1",
-    "mmdb-lib": "3.0.3"
+    "mmdb-lib": "3.0.3",
+    "pg": "8.23.1"
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-tools": "workspace:*",
@@ -96,7 +105,8 @@
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-timeout": "workspace:*",
     "@deepseek-ai/dsh-web": "workspace:*",
-    "@deepseek-ai/dsh-web-fetch-http": "workspace:*"
+    "@deepseek-ai/dsh-web-fetch-http": "workspace:*",
+    "@deepseek-ai/dsh-credentials": "workspace:*"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-mcp-client": "workspace:*",
@@ -128,6 +138,9 @@
     "@deepseek-ai/dsh-web-fetch-http": "workspace:*",
     "@deepseek-ai/cordis-plugin-loader": "workspace:~",
     "@deepseek-ai/cordis-plugin-include": "workspace:~",
-    "@types/dns-packet": "5.6.5"
+    "@types/dns-packet": "5.6.5",
+    "@deepseek-ai/dsh-credentials": "workspace:*",
+    "@types/pg": "8.23.1",
+    "selfsigned": "4.0.1"
   }
 }

@@ -1,5 +1,19 @@
 # Uncensored 开发交接
 
+## 当前节点：PostgreSQL 固定目录审计（2026-10-29，继续开发）
+
+用户的继续授权有效，Goal active；本轮初查共享剩余 **28%**，不再按历史 40% 阈值暂停，不使用重置或推算会话独立百分比。其他 7 项进行中、3 项待实现完整保留，目标保护整体估算仍为 65%。当前节点尚未替换默认产品。
+
+新增可选 `target-protection/postgres` 与 `postgres-agent`，后者提供 `database_inspect`，只选择所有者绑定名称，不接收 SQL。绑定显式主机、端口、数据库、账号、凭据引用及可选 CA。解析并固定一个字面地址，强制原始名称的 TLS 校验；生产完全保护在 TCP/认证前拒绝，审计在只读事务中核验数据库/账号/只读状态后执行固定 `pg_catalog` 查询。结果用具名字段列出表名、种类、RLS 和选定设置，不读取用户表。默认 30 秒、每条 1000 行、解码结果 1 MiB、四个并发请求；结果上限不限制协议帧分配，只支持可信服务器。池化代理/数据库重映射、任意 SQL、测试写入和其他数据库未完成。READ ONLY 本身不等于任意 SQL 沙盒。
+
+Windows 原生 PostgreSQL **18.4** 验收通过 TLS/SCRAM、完全拒绝、只读目录、数据库范围、凭据不进入结果、用户测试行不变和必需服务撤下。仅连接本轮临时数据库，未触及用户数据库；编译后公开入口证明为 `.dsh-build/target-protection-20261027/postgres-provider-proof.json` 与最新 `postgres-submit-native-proof.log`。三个新增 provider 临时集群已停服并保留，尾名 `6mdANd`、`a3Jfl6`、`us4Fly`；遵守此前自动审批拒绝，不尝试换工具删除那些保留文件。
+
+真实 TLS 协议回归覆盖成功结果、别名、缺失凭据/PGPASSWORD、配置拒绝、规则在凭据等待中变更、身份不符、取消/超时、超限、并发容量、原生重置和撤下。两个新增模块的 24 项回归达到语句/分支/函数/行各 100%；两个独立进程同时运行各 24 项通过。时间测试在真实请求屏障后推进假时钟，不依赖机器在一秒内完成握手。先前覆盖率不足已补齐，无降阈值；最新覆盖记录为 `postgres-submit-coverage.log`，并行记录为 `postgres-concurrent-b.log`。
+
+最终相邻后端回归 17 文件 **168 项通过**；新增 Session 通过真实 `dsh --profile headless` 调用 `database_inspect` 并独立确认监听器零 TCP，与 SQLite 两场景一起回放 3 项通过，语料检查 3 项通过。临时移除真实准入后 Loader 验收确定失败，源码已恢复；见 `postgres-negative-control.log`。新增记录独立拥有 v3/v4，不改既有冻结代际。首次 Loader 配置缺少 `cordis:`、配置回调缺少注入及快照缺少空工作区基线的失败均已修正。
+
+最终 build 9/9、全仓 `lint:contracts-ready`、导出 JSDoc、工作区约束、publint、README 两项测试、doc-sync 和双语配对通过，见 `postgres-submit-build.log` 及同目录的 `postgres-*-checks`。`pnpm run lint` 已完成编译阶段，但其内嵌 npm 命令被 Corepack 项目包管理器检查拒绝；直接用 pnpm 运行相同 lint 后阶段。首次 lint 查出未知类型的 Promise 拒绝，改为使用驱动固定文本行类型及显式 Error 超限拒绝，全仓复验通过。最近复查剩余 **27%**。README、双语包说明和编号计划已更新，公开仍只有 README。旧检查包三次失败尚未解决，未生成或安装新包；打包恢复入口见下节。下一阶段继续 P2 的受限执行/数据库能力，再接 P3 审计、所有者界面及默认产品组合，不能把此可选审计节点当作全部保护完成。
+
 ## 当前授权与验收环境（2026-10-29，继续开发）
 
 最新打包状态：第三次运行 `2026-10-29T03-52-22.021Z-LJFFeJ` 的 Electron 下载/解压已通过，随后官方 npm 元数据请求 `@protobufjs/base64` 失败（ERR_PNPM_META_FETCH_FAIL）；exec 70315 已退出 1，本机镜像随控制器退出而关闭。不得当作仍在运行等待，也不能宣称新安装包成功。镜像仅从内存提供与新鲜官方 SHASUMS 匹配的 Electron 文件，正常下载器校验保持开启；校验和打包控制脚本分别为 electron-mirror-validation.log、package-with-verified-electron.mjs。当前源码与授权文档已提交，下一步检查运行时依赖解析/下载，再推进 PostgreSQL 产品适配。

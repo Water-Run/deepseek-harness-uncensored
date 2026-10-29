@@ -64,6 +64,12 @@ SSH 文件系统效果不会因为端口不同而被视为与其他资源无关�
 
 SQLite 同时检查配置路径和真实路径旁的日志。主库必须只有一个硬链接，启动及提交前均检查；多个名称可能对应不同日志（[SQLite 说明](https://sqlite.org/howtocorrupt.html#_multiple_links_to_the_same_file)）。迁移硬链接绑定时，先停止客户端，用 SQLite 一致性备份生成唯一文件，再更新 `databases[].path` 及路径规则。不要改名活动数据库或丢弃恢复日志。已提交后清理失败报告 `SQLITE_COMMITTED_CLEANUP_FAILED`，不得重放；`SQLITE_CLEANUP_FAILED` 表示尚未发出提交许可。
 
+装配 `./postgres`，并提供 `targetProtection` 与 `credentials`，可执行固定的 PostgreSQL 目录审计。通过 `databases: [{ name, hostname, port, database, username, passwordRef, caPem? }]` 绑定端点，端口默认 5432。每次操作解析凭据引用，强制校验证书及原始主机名；私有 CA 可提供 PEM。仅支持原生 PostgreSQL 直连，不支持重新映射数据库的连接池或代理。网络规则不能自动发现服务器数据文件和别名，需另行绑定。
+
+可选 `./postgres-agent` 注册 `database_inspect`，只接收配置名称。结果包含核验后的数据库/账号/版本、表名/种类/RLS 状态及选定安全设置，不读取用户表内容，也不接受任意 SQL。完全保护在 TCP 和认证前拒绝；审计使用执行器固定的 `pg_catalog` 查询及只读事务，先核验身份再读目录。PostgreSQL [READ ONLY 不禁止所有磁盘写入](https://www.postgresql.org/docs/current/sql-set-transaction.html)，不能当作模型 SQL 的沙盒。测试写入及其他网络数据库引擎尚未支持。
+
+每次 PostgreSQL 操作解析一次 DNS，固定一个已检查字面地址，保留原始 TLS 名称，不重试其他地址。凭据解析后及每条查询前后复查规则；取消、超时或服务撤下会销毁套接字，确认原生关闭后才释放规则。默认限制为 30 秒、每条查询 1000 行、解码结果合计 1 MiB、四个待处理操作。输出限制不约束 PostgreSQL 协议报文的内存分配，只应连接所有者配置的可信服务器。错误采用不含凭据的稳定代码，不自动重放。
+
 <a id="implementation"></a>
 ## 实现
 
@@ -87,16 +93,16 @@ HTTP 消费者在解析前和每次连接前检查，包括重定向。解析器
 <a id="model-experience"></a>
 ## 模型体验
 
-根服务不增加模型请求。可选 `./sqlite-agent` 增加 `database_query`，结果行和带类型拒绝进入正常工具日志。其他适配器改变相应工具结果。效果由执行器提供，不能由模型宣称安全。
+根服务不增加模型请求。可选 `./sqlite-agent` 增加 `database_query`，`./postgres-agent` 增加 `database_inspect`；结果和带类型拒绝进入正常工具日志。其他适配器改变相应工具结果。效果由执行器提供，不能由模型宣称安全。
 
 #### KV 缓存影响
 
-只有可选 SQLite 工具会增加提示词参数定义，不调用辅助模型。
+只有可选数据库工具会增加提示词参数定义，不调用辅助模型。
 
 <a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与后续工作
 
-仅覆盖明确装配的受控提供方。结构化文件删除和改名支持本地文件及匹配的 SSH helper，不支持目录树。远端硬链接/挂载身份、逐数据库绑定、数据库协议、受限命令以及浏览器/MCP/REA 原生执行仍需适配。部署方必须确保远端运行时可信，且位于 Agent 可写工作区之外。保护开启时尚不支持不透明代理隧道，SSH 代理路由也未完成。普通匿名抓取仍拒绝私有网络。DNS 证据不能枚举共享某个 IP 的所有主机名，国家数据或 CONNECT 也不能证明实际转发位置。默认装配、所有者界面、首次网安确认状态和持久化审计仍未完成。
+仅覆盖明确装配的受控提供方。结构化文件删除和改名支持本地文件及匹配的 SSH helper，不支持目录树。远端硬链接/挂载身份、任意 PostgreSQL/测试 SQL、其他数据库协议、受限命令以及浏览器/MCP/REA 原生执行仍需适配。部署方必须确保远端运行时可信，且位于 Agent 可写工作区之外。保护开启时尚不支持不透明代理隧道，SSH 代理路由也未完成。普通匿名抓取仍拒绝私有网络。DNS 证据不能枚举共享某个 IP 的所有主机名，国家数据或 CONNECT 也不能证明实际转发位置。默认装配、所有者界面、首次网安确认状态和持久化审计仍未完成。
 
 <a id="dev-note"></a>
 ## 开发备注

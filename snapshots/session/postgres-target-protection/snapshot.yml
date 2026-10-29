@@ -1,0 +1,10 @@
+version: 1
+scenario: postgres-target-protection
+profile: headless
+composition: default
+recording: authored
+header:
+  class: postgres-protection
+  pin: true
+workspace:
+  final: true

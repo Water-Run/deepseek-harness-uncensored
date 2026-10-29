@@ -1,0 +1,5 @@
+- id: security-proxy
+  disabled: true
+- insert:
+    - id: postgres-protection-fixture
+      name: '../../../packages/guard/target-protection/tests/snapshot-postgres.ts'

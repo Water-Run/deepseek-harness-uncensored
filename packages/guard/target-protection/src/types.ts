@@ -47,7 +47,7 @@ export interface NetworkTarget {
   /** Addresses actually pinned to the connection; null means the transport resolves elsewhere. */
   addresses: readonly string[] | null
   port?: number
-  /** Protocol-verified database identity; omission does not mean a non-production database. */
+  /** Database explicitly selected by protocol startup; executors verify it before application queries. Omission remains unknown. */
   database?: string
   /** Filesystem effects can reach resources served on other ports; omission describes only the connected endpoint. */
   spansServicePorts?: boolean

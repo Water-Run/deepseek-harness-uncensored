@@ -306,11 +306,12 @@ export default class TargetProtection extends Service {
    * @param scope - Whether effects stay on one port or may access the peer filesystem.
    * @param effect - Effect guaranteed by the protocol executor, not supplied by the model.
    * @param signal - Operation cancellation and deadline.
+   * @param database - Executor-selected protocol database, verified before application queries; omission leaves database scope unknown.
    * @returns A current rule decision; unavailable identity and registry failures never authorize fallback.
    */
   checkConnection(
     hostname: string, port: number | undefined, resolution: TargetConnectionResolution | undefined,
-    scope: 'endpoint' | 'filesystem', effect: TargetEffect, signal: AbortSignal,
+    scope: 'endpoint' | 'filesystem', effect: TargetEffect, signal: AbortSignal, database?: string,
   ): Promise<TargetDecision> {
     this.lifetime.signal.throwIfAborted()
     const name = canonicalTargetHost(hostname)
@@ -320,6 +321,7 @@ export default class TargetProtection extends Service {
     const target: NetworkTarget = {
       names: resolution?.names ?? [name], ...port === undefined ? {} : { port },
       spansServicePorts: scope === 'filesystem',
+      ...database === undefined ? {} : { database },
       nameResolution: resolution === undefined ? 'unknown' : 'verified', mainland: 'unknown',
       addresses: resolution === undefined ? null : resolution.addresses.flatMap(address =>
         address.translatedIpv4 === undefined ? [address.address] : [address.address, address.translatedIpv4]),

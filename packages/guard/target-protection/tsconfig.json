@@ -8,6 +8,7 @@
     "src"
   ],
   "references": [
+    { "path": "../../credentials/credentials" },
     { "path": "../../core/tools" },
     { "path": "../../sandbox/sandbox-policy" },
     { "path": "../../mcp/mcp-client" },

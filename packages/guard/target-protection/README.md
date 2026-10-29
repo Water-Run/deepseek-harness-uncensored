@@ -64,6 +64,12 @@ Before commit, the executor rechecks paths, native file identity and rules, reta
 
 SQLite checks configured and canonical journal paths. The main database must have one hard link, checked before launch and commit; multiple names can select different journals ([SQLite guidance](https://sqlite.org/howtocorrupt.html#_multiple_links_to_the_same_file)). To migrate a hard-linked binding, stop clients, create a consistent SQLite backup at a unique filename, and update `databases[].path` and its path rules. Do not rename an active database or discard recovery journals. Confirmed commits followed by cleanup failure report `SQLITE_COMMITTED_CLEANUP_FAILED` and must not be replayed. `SQLITE_CLEANUP_FAILED` states that commit permission was not sent.
 
+Mount `./postgres` with `targetProtection` and `credentials` for fixed PostgreSQL catalogue audits. Bind `databases: [{ name, hostname, port, database, username, passwordRef, caPem? }]`; port defaults to 5432. Credentials are resolved on each operation. TLS certificate and original-hostname verification are mandatory; a private CA can be supplied as PEM. Use direct native PostgreSQL endpoints: poolers or proxies that remap databases are unsupported. Network rules do not discover the server's data files or aliases; bind those separately.
+
+Optional `./postgres-agent` registers `database_inspect` with only a configured binding name. It returns verified database/login/version, table names/kinds/RLS flags and selected security settings, never user-table rows or arbitrary SQL. Full protection refuses before TCP or authentication. Audit uses executor-owned `pg_catalog` queries in a read-only transaction, with identity verification before catalogue reads. PostgreSQL [READ ONLY does not prohibit every disk write](https://www.postgresql.org/docs/current/sql-set-transaction.html); it is not a sandbox for model-generated SQL. Test writes and other network database engines remain unsupported.
+
+PostgreSQL resolves DNS once per operation, binds one checked literal address, preserves the original TLS name and never retries another address. Policy is checked after credential resolution and before/after queries. Cancellation, timeout or provider withdrawal destroys the owned socket and waits for native closure before releasing rules. Default limits are 30 seconds, 1000 rows per query, 1 MiB total decoded result and four pending operations. Output limits do not bound PostgreSQL wire-frame allocation; use only trusted owner-configured servers. Errors return stable credential-free codes; no operation is automatically replayed.
+
 <a id="implementation"></a>
 ## Implementation
 
@@ -87,16 +93,16 @@ The independent registry does not change Session record types. Durable execution
 <a id="model-experience"></a>
 ## Model Experience
 
-The root service adds no model request. Optional `./sqlite-agent` adds `database_query`; rows and typed refusals use normal tool logging. Other adapters change affected tool results. Effects come from the executor, never a model's safety claim.
+The root service adds no model request. Optional `./sqlite-agent` adds `database_query`, and `./postgres-agent` adds `database_inspect`; results and typed refusals use normal tool logging. Other adapters change affected tool results. Effects come from the executor, never a model's safety claim.
 
 #### KV Cache effect
 
-Only the optional SQLite tool adds a prompt schema. No auxiliary model is called.
+Only optional database tools add prompt schemas. No auxiliary model is called.
 
 <a id="known-limitations-and-deferred-work"></a>
 ## Known Limitations and Deferred Work
 
-Only explicitly composed guarded providers are covered. Structured file removal and renaming support local files and the matching SSH helper, not directory trees. Remote hard-link/mount identity, per-database bindings, database protocols, constrained commands, and browser/MCP/REA native execution still need adapters. Deployments must keep the remote runtime trusted and outside Agent-writable workspaces. Opaque proxy tunnels remain unsupported under protection; SSH proxy routing is also unfinished. Ordinary anonymous fetch still refuses private networks. DNS evidence cannot enumerate every hostname sharing an IP, and country data or CONNECT cannot attest physical forwarding. Default composition, owner UI, security-entry status and durable audit remain unfinished.
+Only explicitly composed guarded providers are covered. Structured file removal and renaming support local files and the matching SSH helper, not directory trees. Remote hard-link/mount identity, arbitrary PostgreSQL/test SQL, other database protocols, constrained commands, and browser/MCP/REA native execution still need adapters. Deployments must keep the remote runtime trusted and outside Agent-writable workspaces. Opaque proxy tunnels remain unsupported under protection; SSH proxy routing is also unfinished. Ordinary anonymous fetch still refuses private networks. DNS evidence cannot enumerate every hostname sharing an IP, and country data or CONNECT cannot attest physical forwarding. Default composition, owner UI, security-entry status and durable audit remain unfinished.
 
 <a id="dev-note"></a>
 ## Dev Note
