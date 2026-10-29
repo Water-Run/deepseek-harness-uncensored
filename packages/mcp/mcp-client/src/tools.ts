@@ -23,9 +23,12 @@ import type { ToolDefinition, ToolExecution, ToolExecutionResult } from '@deepse
 import { assertSupportedJsonSchema } from '@deepseek-ai/dsh-tools'
 import type { JsonSchemaNode } from '@deepseek-ai/dsh-tools'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
+import type { McpExecutionPolicy } from './execution.ts'
 
 /** Resolved options relevant to tool bridging. */
 export interface ToolBridgeOptions {
+  /** Explicit executor checks for discovery and calls, independent of server annotations. */
+  execution?: McpExecutionPolicy
   /** Whether a registry conflict is contained or rejects this synchronization. */
   registrationFailure: 'contain' | 'throw'
   serverName: string
@@ -116,11 +119,12 @@ export async function syncTools(
   opts: ToolBridgeOptions,
   previous: ToolDisposers,
 ): Promise<ToolDisposers> {
+  opts.execution?.signal.throwIfAborted(); opts.execution?.check()
   // Phase 1: fetch and build the next generation without touching the registry.
   const definitions = new Map<string, ToolDefinition>()
   const response = client.getServerCapabilities()?.tools === undefined
     ? { tools: [] }
-    : await client.listTools(undefined, { cacheMode: 'refresh' })
+    : await client.listTools(undefined, { cacheMode: 'refresh', ...opts.execution === undefined ? {} : { signal: opts.execution.signal } })
   for (const tool of response.tools) {
     const publicName = publicToolName(opts.serverName, tool.name)
     if (definitions.has(publicName)) {
@@ -135,10 +139,13 @@ export async function syncTools(
       inputSchema: tool.inputSchema,
       outputSchema: tool.outputSchema,
       taskRequired: tool.execution?.taskSupport === 'required',
-      call: (args, execution) => client.callTool(
-        { name: tool.name, arguments: args },
-        { signal: execution.signal, timeout: opts.toolCallTimeoutMs, toolDefinition: tool },
-      ),
+      call: (args, execution) => {
+        opts.execution?.signal.throwIfAborted(); opts.execution?.check()
+        return client.callTool({ name: tool.name, arguments: args }, {
+          signal: opts.execution === undefined ? execution.signal : AbortSignal.any([execution.signal, opts.execution.signal]),
+          timeout: opts.toolCallTimeoutMs, toolDefinition: tool,
+        })
+      },
     }))
   }
 

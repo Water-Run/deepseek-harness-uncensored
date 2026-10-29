@@ -36,6 +36,10 @@
       "types": "./lib/types/rea.d.ts",
       "default": "./lib/types/rea.js"
     },
+    "./mcp": {
+      "types": "./lib/types/mcp.d.ts",
+      "default": "./lib/types/mcp.js"
+    },
     "./country": {
       "types": "./lib/types/country-provider.d.ts",
       "default": "./lib/types/country-provider.js"
@@ -69,6 +73,7 @@
     "mmdb-lib": "3.0.3"
   },
   "peerDependencies": {
+    "@deepseek-ai/dsh-mcp-client": "workspace:*",
     "@deepseek-ai/dsh-rea": "workspace:*",
     "@deepseek-ai/dsh-ssh": "workspace:*",
     "@deepseek-ai/dsh-security-proxy-local": "workspace:*",
@@ -84,6 +89,9 @@
     "@deepseek-ai/dsh-web-fetch-http": "workspace:*"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh-mcp-client": "workspace:*",
+    "@deepseek-ai/dsh-system-prompt": "workspace:*",
+    "@deepseek-ai/dsh-mcp-resources": "workspace:*",
     "@modelcontextprotocol/client": "2.2.0",
     "@deepseek-ai/dsh-tools": "workspace:*",
     "@deepseek-ai/dsh-rea": "workspace:*",

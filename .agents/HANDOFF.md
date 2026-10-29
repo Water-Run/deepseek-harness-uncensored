@@ -1,5 +1,17 @@
 # Uncensored 开发交接
 
+## 当前节点：通用 MCP 执行准入与撤销（2026-10-29）
+
+Goal 已恢复为 **active**，继续完整“实现DSHU”目标。上一节点 `3519fbac6b` 已推送；本节点继续补原生旁路，最新共享剩余额度 **47%**，没有会话/模型独立窗口，未触发低于 40% 的收尾规则。下方 blocked 记录是历史状态。
+
+新增可选 `target-protection/mcp`，保留普通 MCP 配置和原入口。保护存在且不能约束外部服务器效果时，stdio 在原生启动前、HTTP 在 TCP 前拒绝；MCP 只读声明不能放行。每次重连、发现、工具调用和资源读取都会复查，撤销会取消协商与请求、停止重连并回收工具；复制出的旧工具定义也无法绕过。无法确认关闭时返回 `MCP_SHUTDOWN_UNCONFIRMED` 并提示检查进程及重启 Host，规则资源保留到真实关闭回执；迟到回执可完成释放。MCP namespace 的模块级 WeakMap 已移至应用根持有的服务，独立应用和 Agent 作用域隔离，旧释放函数不能删除新的同名预留。
+
+验证：相关 **11 文件 136 项通过**，新增保护用例在两个独立进程中同时运行，各 6 项通过。真实 Loader 与新增 keyless 会话快照通过；临时去掉校验后 Loader 从拒绝变为 allowed，负对照失败，源码已恢复。Windows Node 24.21.0 与 WSL Linux Node 22.23.2 编译后公开导出均验证原生零启动、HTTP 零 TCP、活动调用取消、旧调用拒绝，以及 SDK 探测进程和服务进程退出。完整 build 9/9、定向 lint、JSDoc、包元数据和双语记录均通过；MCP 包保留既有 `./src/*` 发布文件提示。
+
+证据目录 `.dsh-build/target-protection-20261027/`：`mcp-admission-owned-tests.log`、`mcp-admission-concurrent-*.log`、`mcp-admission-snapshot.log`、`mcp-admission-negative.log`、`mcp-admission-built-win32.json`、`mcp-admission-built-linux.json`。首次构建暴露可选 signal 字段和测试执行上下文类型问题，已修复；新快照的 Windows cwd 只在该夹具中规范化，没有更改共享正常化器。
+
+仍未完成：**数据库协议与远端资源身份、可限定目标的命令/MCP/REA/浏览器执行、其他原生/管理入口、完整审计和默认产品装配**。本节点提供确定性拒绝与撤销，不把任意引擎隔离或测试目标完整自由执行标为完成；默认产品仍未启用这些可选后端。未打包、安装或发布，下一阶段继续 P2，之后再完成 P3。
+
 ## 当前节点：REA 原生启动与调用保护（2026-10-29）
 
 SSH 节点 `09f9374dc344d9d56cf45100ef9d0751cf9b048d` 已推送 main。继续执行“实现DSHU”，最近共享剩余额度 **54%**；未触发低于 40% 的收尾规则，未打包或覆盖安装。

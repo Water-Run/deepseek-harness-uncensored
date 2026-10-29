@@ -128,9 +128,13 @@ The exported `createMcpToolDefinition(ctx, options)` adapts an upstream tool sch
 
 `apply` resolves the reconnect policy, reserves the `serverName` inside the current registration scope, starts the supervisor, and awaits the initial connection plus discovery. Independent Agent scopes may reuse the same namespace because their tools and transports are isolated; a duplicate inside one scope fails at load. The supervisor serializes every sync — initial, notification, and reconnect — through one queue so two syncs can never interleave their dispose-previous/register-next swap. Disposal cancels pending reconnects, closes the negotiating transport or attached client, waits for the in-flight attempt and queued syncs to quiesce, and unregisters the current generation.
 
+Namespace reservations belong to the application root's `mcpNamespaces` service. Independent roots do not share mutable state; an idempotent release cannot delete a later reservation with the same name.
+
 The SDK receives tool-list changes through legacy notifications or a modern subscription. The supervisor queues each re-sync; a fetch failure keeps the previous generation registered, while a registration conflict rolls back the attempted generation. Each outage shares one attempt budget: after `maxAttempts` consecutive failures the tools are unregistered and reconnection stops, and a connection that stays up past `maxDelayMs` resets the budget.
 
 ### Tool execution internals
+
+`mountMcpClient(ctx, config, execution)` supports an explicit executor-owned lease; ordinary `apply` supplies no extra policy. The lease checks every connection attempt, tool discovery, tool call and resource operation. Its signal cancels negotiation and active requests and stops reconnects. The optional [`target-protection/mcp`](../../guard/target-protection/README.md) provider supplies mandatory target admission; server annotations cannot authorize otherwise unconfined effects. Unknown transport closure is reported as a shutdown failure, and rule resources remain retained until a late close acknowledgement arrives. Reload the guarded provider after changing a policy that revoked its connection.
 
 A tool call uses the SDK with the raw name, complete tool definition, JSON arguments, abort signal, and configured timeout. The SDK owns protocol validation, advertised output-schema validation, and modern request headers. Canonical success is `{ content: JsonValue[], structuredContent? }`, preserving valid MCP JSON blocks for programmatic and PTC mode callers. An MCP `isError` result throws before image persistence. The bridge validates each image batch before saving it; a refusal projects every image as diagnostic text.
 

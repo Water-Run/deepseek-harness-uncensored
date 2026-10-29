@@ -20,10 +20,12 @@ import type { Context } from '@deepseek-ai/cordis'
 import { assertNever, type JsonValue } from '@deepseek-ai/dsh-util-values'
 import type { ServerContext } from './server-context.ts'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
+import { HarnessError } from '@deepseek-ai/dsh-llm'
 import { createTransport } from './transport.ts'
 import { syncTools } from './tools.ts'
 import type { ToolBridgeOptions, ToolDisposers } from './tools.ts'
 import type { Config } from './index.ts'
+import type { McpExecutionPolicy } from './execution.ts'
 
 /** Automatic reconnect policy for one MCP server connection. */
 export interface ReconnectConfig {
@@ -113,6 +115,10 @@ export interface ConnectionHandle extends ServerContext {
    * unregister every tool this server still owns.
    */
   dispose(): Promise<void>
+  /** Stop and unregister like dispose, but reject if any owned transport's close could not be confirmed. */
+  disposeVerified(): Promise<void>
+  /** Wait for disposal and any late transport-close acknowledgements; may remain pending after a shutdown failure. */
+  whenClosed(): Promise<void>
 }
 
 /**
@@ -122,12 +128,17 @@ export interface ConnectionHandle extends ServerContext {
  * @param ctx - Cordis context providing the `tools` registry and logger.
  * @param config - Resolved plugin config selecting the transport and server identity.
  * @param policy - Resolved reconnect policy from {@link resolveReconnectPolicy}.
+ * @param execution - Optional executor checks and revocation signal for every generation and request.
  * @returns Handle with a `ready` promise for startup-await and a `dispose` for teardown.
  */
-export function startConnection(ctx: Context, config: Config, policy: ResolvedReconnectPolicy): ConnectionHandle {
+export function startConnection(
+  ctx: Context, config: Config, policy: ResolvedReconnectPolicy, execution?: McpExecutionPolicy,
+): ConnectionHandle {
   const label = `mcp-client(${config.serverName})`
-  const incompleteDisposalMessage = `${label}: transport closure could not be confirmed during disposal — server shutdown may be incomplete`
+  const incompleteDisposalMessage = `${label}: transport closure could not be confirmed during disposal — server shutdown may be incomplete; `
+    + 'inspect the server process and restart the Host before retrying'
   const opts: ToolBridgeOptions = {
+    ...execution === undefined ? {} : { execution },
     registrationFailure: 'contain',
     serverName: config.serverName,
     toolCallTimeoutMs: config.toolCallTimeoutMs,
@@ -155,6 +166,8 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
   let connectedAt: number | undefined
   /** The real error from the first connection attempt, for startup-await diagnostics. */
   let firstAttemptError: unknown
+  const unconfirmedClosures = new Map<Promise<void>, () => boolean>()
+  let stopping: Promise<void> | undefined
 
   /** A generation may act only while it is the current one on a live plugin. */
   const isCurrent = (generation: Client): boolean => !disposed && client === generation
@@ -209,6 +222,7 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
   }
 
   function scheduleReconnect(): void {
+    if (execution?.signal.aborted) return
     const lostEstablishedConnection = connectedAt !== undefined
     if (!policy.enabled) {
       const message = lostEstablishedConnection
@@ -289,9 +303,14 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
       try {
         await (attached ? generation.close() : transport?.close())
       } catch (_error) {
-        if (!attached) return hasClosed()
+        if (!attached) {
+          if (!hasClosed()) unconfirmedClosures.set(closed.promise, hasClosed)
+          return hasClosed()
+        }
       }
-      return !attached || hasClosed() || await waitForClose(closed.promise)
+      const confirmed = !attached || hasClosed() || await waitForClose(closed.promise)
+      if (!confirmed) unconfirmedClosures.set(closed.promise, hasClosed)
+      return confirmed
     }
     async function refreshTools(): Promise<void> {
       if (!isCurrent(generation)) return
@@ -304,8 +323,9 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
     }
     let instructions: string
     try {
+      execution?.signal.throwIfAborted(); execution?.check()
       transport = createTransport(config)
-      await generation.connect(transport)
+      await generation.connect(transport, execution === undefined ? undefined : { signal: execution.signal })
       if (hasClosed()) {
         attemptSettled = true
         generationDown(generation)
@@ -367,7 +387,9 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
       async request(request, exec): Promise<JsonValue> {
         const generation = client
         if (!generation || connectedAt === undefined) throw new Error(`${label}: server is disconnected`)
-        const options = { signal: exec.signal, timeout: config.toolCallTimeoutMs }
+        execution?.signal.throwIfAborted(); execution?.check()
+        const options = { signal: execution === undefined ? exec.signal : AbortSignal.any([exec.signal, execution.signal]),
+          timeout: config.toolCallTimeoutMs }
         switch (request.method) {
           case 'resources/list':
             return await generation.listResources(
@@ -385,7 +407,21 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
         }
       },
     },
-    async dispose(): Promise<void> {
+    dispose,
+    async disposeVerified(): Promise<void> {
+      await dispose()
+      if ([...unconfirmedClosures.values()].some(hasClosed => !hasClosed())) {
+        throw new HarnessError(incompleteDisposalMessage, 'MCP_SHUTDOWN_UNCONFIRMED')
+      }
+    },
+    async whenClosed(): Promise<void> {
+      await dispose()
+      await Promise.all(unconfirmedClosures.keys())
+    },
+  }
+
+  function dispose(): Promise<void> {
+    return stopping ??= (async () => {
       disposed = true
       serverInstructions = ''
       if (reconnectTimer !== undefined) {
@@ -404,6 +440,6 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
       await syncChain
       for (const dispose of disposers.values()) dispose()
       disposers = new Map()
-    },
+    })()
   }
 }

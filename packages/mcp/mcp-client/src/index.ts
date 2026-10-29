@@ -15,17 +15,20 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { scopeOf } from '@deepseek-ai/dsh-scope'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
 import { DEFAULT_MAX_INSTRUCTION_BYTES, RECONNECT_DEFAULTS, resolveReconnectPolicy, startConnection } from './connection.ts'
 import type { ReconnectConfig } from './connection.ts'
+import type { ConnectionHandle } from './connection.ts'
+import type { McpExecutionLease } from './execution.ts'
 import { registerServerContext } from './server-context.ts'
+import { reserveServerName } from './namespaces.ts'
 // Side-effect type import: declaration-merges `ctx.tools` onto Context.
 import type {} from '@deepseek-ai/dsh-tools'
 
 export { createMcpToolDefinition, publicToolName } from './tools.ts'
 export type { McpResult, McpToolDefinitionOptions } from './tools.ts'
 export type { ReconnectConfig, ResolvedReconnectPolicy } from './connection.ts'
+export type { McpExecutionPolicy, McpExecutionLease } from './execution.ts'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'mcp-client'
@@ -38,13 +41,6 @@ const DEFAULT_TOOL_CALL_TIMEOUT_MS = 60_000
 
 /** Valid `serverName`, kept below the public tool-name budget. */
 const SERVER_NAME_PATTERN = /^[A-Za-z0-9_-]{1,32}$/
-
-/**
- * Live `serverName` reservations per registration scope. Agent-scoped MCP
- * servers may reuse a namespace in another Agent, while global instances and
- * duplicates inside one Agent remain mutually exclusive.
- */
-const activeServerNames = new WeakMap<object, Set<string>>()
 
 // ---- Config ----
 
@@ -152,44 +148,54 @@ export const Config = z.union([
  * @returns startup readiness after connection and initial tool discovery settle.
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
-  // Fail loud at load: reconnect misconfiguration (including programmatic
-  // construction that bypassed Schemastery) rejects THIS instance before any
-  // effect registers.
+  return mountMcpClient(ctx, config, undefined)
+}
+
+/**
+ * Mount one MCP bridge with an optional executor-owned lease.
+ * @param ctx - Plugin owner providing tools and any required policy service.
+ * @param config - Resolved server and reconnect settings.
+ * @param execution - Explicit guarded admission; omission is the ordinary provider behavior.
+ * @returns Initial connection and discovery readiness. The owner retains failed cleanup until native closure is confirmed.
+ */
+export async function mountMcpClient(ctx: Context, config: Config, execution: McpExecutionLease | undefined): Promise<void> {
+  let connection: ConnectionHandle | undefined = undefined
+  let stopping: Promise<void> | undefined
+  const dispose = (): Promise<void> => stopping ??= (async () => {
+    execution?.signal.removeEventListener('abort', revoke)
+    if (execution === undefined) await connection?.dispose()
+    else {
+      if (connection === undefined) execution.release()
+      else {
+        void connection.whenClosed().then(() => { execution.release() }, (error: unknown) => {
+          ctx.logger.error('MCP rule resources remain retained because shutdown could not settle: %o', error)
+        })
+        await connection.disposeVerified()
+      }
+    }
+  })()
+  const revoke = (): void => { void dispose().catch((error: unknown) => { ctx.logger.error('MCP execution could not close: %o', error) }) }
+  ctx.effect(() => dispose, 'mcp-client.connection')
+  execution?.signal.addEventListener('abort', revoke, { once: true })
+  execution?.signal.throwIfAborted(); execution?.check()
+  // Validate reconnect settings before registering a server or starting its transport.
   const reconnect = resolveReconnectPolicy(config.reconnect, `mcp-client(${config.serverName}): reconnect`)
 
   // Reserve the namespace next: a duplicate `serverName` fails THIS instance
   // at load with an actionable error and leaves the earlier instance intact.
-  ctx.effect(() => {
-    const owner = scopeOf(ctx) ?? ctx.root
-    let names = activeServerNames.get(owner)
-    if (!names) {
-      names = new Set()
-      activeServerNames.set(owner, names)
-    }
-    if (names.has(config.serverName)) {
-      throw new Error(
-        `mcp-client: serverName "${config.serverName}" is already in use by another mcp-client instance — pick a unique serverName in cordis.yml`,
-      )
-    }
-    names.add(config.serverName)
-    return () => void names.delete(config.serverName)
-  }, 'mcp-client.serverName')
+  ctx.effect(() => reserveServerName(ctx, config.serverName), 'mcp-client.serverName')
 
   // The supervisor owns the client/transport generations, the reconnect
   // loop, and the live tool registrations; disposal stops reconnection,
   // quiesces in-flight work, and unregisters the current generation.
-  const connection = startConnection(ctx, config, reconnect)
+  connection = startConnection(ctx, config, reconnect, execution)
   registerServerContext(ctx, config.serverName, connection)
-  let stopping: Promise<void> | undefined
-  const dispose = (): Promise<void> => stopping ??= connection.dispose()
   // Cordis announces unload before awaiting an unfinished apply(). Closing
   // the transport here releases startup requests that are still awaiting a reply.
-  // oxlint-disable-next-line typescript/no-misused-promises -- Cordis contains observer failures; the effect also awaits this promise.
   ctx.on('internal/plugin', (fiber) => {
     if (fiber !== ctx.fiber || fiber.uid !== null) return
-    return dispose()
+    revoke()
   }, { global: true })
-  ctx.effect(() => dispose, 'mcp-client.connection')
 
   // Block plugin activation on the initial connection + tool discovery so
   // Cordis consumers observe the tools immediately after the fiber activates.

@@ -1,0 +1,6 @@
+# This keyless fixture uses its own credential stores and no security proxy.
+- id: security-proxy
+  disabled: true
+- insert:
+    - id: mcp-protection-probe
+      name: '../../../packages/guard/target-protection/tests/snapshot-mcp.ts'

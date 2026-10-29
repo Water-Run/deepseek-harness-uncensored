@@ -54,6 +54,8 @@ SSH filesystem effects are not assumed to avoid resources on another port. Confl
 
 Mount `./rea` instead of the ordinary REA root service, keeping the existing `rea/agent` consumer. The provider checks direct connections before native spawn and checks each queued external call before dispatch. It refuses execution under the same conditions as `./subprocess`, including protected owner files; engine names or read-only MCP annotations do not establish target confinement. Local policy changes or owner withdrawal close existing processes and settle their calls before releasing rule resources. This opt-in refuses unsupported native execution; it does not sandbox REA or protect independently configured MCP clients.
 
+Mount `./mcp` instead of `mcp-client` for each guarded server, using its existing settings and the `tools` service. Stdio and HTTP MCP are refused before connecting while the server's effects cannot be bounded under active target or owner-file protection. Every reconnect, discovery, tool call and resource request rechecks the executor policy; read-only annotations are not proof of safe effects. Revocation closes the SDK-owned processes and transport, cancels requests and stops reconnects. If closure cannot be confirmed, the error remains visible and the rule owner is retained pending acknowledgement. This is admission and revocation, not a native-engine sandbox or an HTTP MCP target adapter.
+
 <a id="implementation"></a>
 ## Implementation
 

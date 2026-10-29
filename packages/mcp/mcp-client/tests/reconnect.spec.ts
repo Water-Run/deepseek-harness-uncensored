@@ -134,6 +134,37 @@ describe('reconnect supervisor', () => {
     ctx = await mountRegistry()
   })
 
+  it('rechecks executor admission for stale tool calls, resource reads and reconnect attempts', async () => {
+    let admitted = true
+    const execution = { signal: new AbortController().signal, check: () => {
+      if (!admitted) throw new Error('executor denied')
+    } }
+    const config = stdioConfig({ enabled: true, initialDelayMs: 1, maxDelayMs: 2, maxAttempts: 2 })
+    const handle = startConnection(ctx, config, resolveReconnectPolicy(config.reconnect, 'fixture'), execution)
+    try {
+      expect(await handle.ready).toEqual({})
+      const tool = ctx.tools.get('mcp__srv__remote')!
+      ctx.effect(() => ctx.tools.register({ ...tool, name: 'cached_srv_remote' }))
+      await ctx.plugin(McpResources)
+      ctx.effect(() => ctx.mcpResources.register('srv', handle.resources))
+      const call = (name: string, args: unknown) => ctx.tools.execute({ name, arguments: args,
+        callId: nextCallId(), signal: testToolSignal })
+      expect((await call('cached_srv_remote', {})).isError).toBe(false)
+      expect((await call('list_mcp_resources', { server: 'srv' })).isError).toBe(false)
+      mockCallTool.mockClear(); mockConnect.mockClear()
+      admitted = false
+      const toolResult = await call('cached_srv_remote', {})
+      const resourceResult = await call('list_mcp_resources', { server: 'srv' })
+      expect(toolResult.isError).toBe(true); expect(resourceResult.isError).toBe(true)
+      expect(JSON.stringify(toolResult)).toContain('executor denied')
+      expect(JSON.stringify(resourceResult)).toContain('executor denied')
+      expect(mockCallTool).not.toHaveBeenCalled()
+      instances[0]!.onclose?.()
+      await vi.waitFor(() => { expect(ctx.tools.get('mcp__srv__remote')).toBeUndefined() })
+      expect(mockConnect).not.toHaveBeenCalled()
+    } finally { await handle.dispose(); await ctx.fiber.dispose() }
+  })
+
   it('keeps instructions withdrawn when disposal interrupts initial discovery', async () => {
     const listingGate: PromiseWithResolvers<ReturnType<typeof listing>> = Promise.withResolvers()
     const instructionSpy = vi.spyOn(MockClient.prototype, 'getInstructions').mockReturnValue('Instructions after discovery.')
@@ -364,6 +395,14 @@ describe('reconnect supervisor', () => {
       expect(mockListTools).toHaveBeenCalledTimes(phase === 'connect' ? 0 : 1)
       expect(ctx.tools.get('mcp__srv__late')).toBeUndefined()
       expect(errors.some(line => line.includes('server shutdown may be incomplete'))).toBe(true)
+      await expect(handle.disposeVerified()).rejects.toMatchObject({ code: 'MCP_SHUTDOWN_UNCONFIRMED' })
+      let confirmed = false
+      const closed = handle.whenClosed().then(() => { confirmed = true })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(confirmed).toBe(false)
+      instances[0]!.onclose?.()
+      await closed
+      await expect(handle.disposeVerified()).resolves.toBeUndefined()
     } finally {
       vi.useRealTimers()
     }
