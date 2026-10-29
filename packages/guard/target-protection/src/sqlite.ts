@@ -75,7 +75,7 @@ export default class SqliteDatabase extends Service {
   private readonly lifetime = new AbortController()
   private readonly pending = new Set<Promise<unknown>>()
   private readonly readyState = Promise.withResolvers<void>()
-  private readonly quarantined = new Set<() => void>()
+  private readonly quarantined = new Map<SubprocessHandle, () => void>()
 
   /** @param ctx - Owner with mandatory target rules. @param config - Existing local database bindings and limits. */
   constructor(ctx: Context, config: Config) {
@@ -93,8 +93,14 @@ export default class SqliteDatabase extends Service {
       this.lifetime.abort(new Error('SQLite executor is stopping'))
       await Promise.allSettled(this.pending)
       await this.native.fiber.dispose()
-      for (const release of this.quarantined) release()
-      this.quarantined.clear()
+      const settled = await Promise.allSettled([...this.quarantined].map(async ([handle, release]) => {
+        if (!await handle.waitForExit()) throw new HarnessError('SQLite helper exit remains unconfirmed.', 'SQLITE_OUTCOME_UNKNOWN')
+        this.quarantined.delete(handle)
+        release()
+      }))
+      const failures: unknown[] = []
+      for (const result of settled) if (result.status === 'rejected') failures.push(result.reason)
+      if (failures.length > 0) throw new AggregateError(failures, 'SQLite cleanup could not release every retained execution.')
     }, 'target-sqlite.lifetime')
   }
 
@@ -135,12 +141,13 @@ export default class SqliteDatabase extends Service {
     const release = this.protection.retainExecution()
     let unlock: (() => void) | undefined, handle: SubprocessHandle | undefined
     let detachInput: (() => void) | undefined
-    let nativeClosed = true, committing = false
+    let nativeClosed = true, committing = false, commitConfirmed = false
     try {
       const before = await this.admit(database.path, bounded)
       const info = await stat(before.path, { bigint: true })
       if (!info.isFile()) throw new HarnessError('SQLite binding must identify an existing regular file.', 'SQLITE_DATABASE_INVALID')
       if (info.ino === 0n) throw new HarnessError('SQLite file identity is unavailable.', 'TARGET_IDENTITY_UNVERIFIED')
+      if (info.nlink !== 1n) throw new HarnessError('SQLite requires one physical database name so its journal remains unambiguous.', 'TARGET_IDENTITY_UNVERIFIED')
       const worker = join(dirname(createRequire(import.meta.url).resolve('@deepseek-ai/dsh-target-protection/package.json')), 'assets/sqlite-worker.mjs')
       handle = this.native.subprocess.spawn({ argv: [process.execPath, '--disable-sigusr1', worker], cwd: dirname(before.path),
         stdio: { stdin: 'pipe', stdout: 'pipe', stderr: { maxBytes: 2048 } }, graceMs: this.config.graceMs,
@@ -182,18 +189,25 @@ export default class SqliteDatabase extends Service {
         if (final.path !== before.path || final.revision !== before.revision || (!request.readOnly && !before.readOnly && final.readOnly)) {
           throw new HarnessError('SQLite target policy changed before commit.', 'SQLITE_POLICY_CHANGED')
         }
-        if (finalInfo.dev !== info.dev || finalInfo.ino !== info.ino) throw new HarnessError('SQLite file identity changed before commit.', 'TARGET_IDENTITY_UNVERIFIED')
+        if (finalInfo.dev !== info.dev || finalInfo.ino !== info.ino || finalInfo.nlink !== 1n) {
+          throw new HarnessError('SQLite file identity changed before commit.', 'TARGET_IDENTITY_UNVERIFIED')
+        }
         unlock = this.protection.retainSnapshot(final.revision)
         bounded.throwIfAborted(); committing = true
         handle.stdin.end('{"commit":true}\n')
         if ((await receive()).phase !== 'committed') throw new HarnessError('SQLite commit was not confirmed.', 'SQLITE_OUTCOME_UNKNOWN')
+        commitConfirmed = true
         const outcome = await handle.done
-        if (outcome.exitCode !== 0) throw new HarnessError('SQLite helper did not exit cleanly; inspect the committed database.', 'SQLITE_OUTCOME_UNKNOWN')
+        if (outcome.exitCode !== 0) throw new HarnessError('SQLite committed, but its helper did not exit cleanly. Do not replay the SQL.', 'SQLITE_COMMITTED_CLEANUP_FAILED')
         return prepared.results
       } finally {
         ordinary.removeEventListener('abort', cancel); timer.signal.removeEventListener('abort', timeout); reader.close()
       }
     } catch (error) {
+      if (commitConfirmed) {
+        throw new HarnessError('SQLite committed, but execution cleanup failed. Inspect the runtime and do not replay the SQL.',
+          'SQLITE_COMMITTED_CLEANUP_FAILED', { cause: error })
+      }
       if (committing && !(error instanceof HarnessError && error.code === 'SQLITE_OUTCOME_UNKNOWN')) {
         throw new HarnessError('SQLite commit may have completed; inspect the database before retrying.', 'SQLITE_OUTCOME_UNKNOWN', { cause: error })
       }
@@ -211,11 +225,24 @@ export default class SqliteDatabase extends Service {
         try { nativeClosed = await handle.waitForExit() }
         catch (error) { this.ctx.logger.error('SQLite helper exit is unknown; rule resources remain retained: %o', error) }
       }
-      const cleanup = (): void => { detachInput?.(); try { unlock?.() } finally { release() } }
-      if (nativeClosed) cleanup()
+      const cleanup = (): void => {
+        detachInput?.()
+        try { unlock?.() }
+        catch (error) {
+          throw new HarnessError(commitConfirmed
+            ? 'SQLite committed, but rule cleanup failed. Restore the registry and do not replay the SQL.'
+            : committing ? 'SQLite commit may have completed and rule cleanup failed. Inspect the database before retrying.'
+              : 'SQLite commit was not authorized, but rule cleanup failed. Restore the registry before another request.',
+          commitConfirmed ? 'SQLITE_COMMITTED_CLEANUP_FAILED' : committing ? 'SQLITE_OUTCOME_UNKNOWN' : 'SQLITE_CLEANUP_FAILED', { cause: error })
+        } finally { release() }
+      }
+      if (nativeClosed || handle === undefined) cleanup()
       else {
-        this.quarantined.add(cleanup)
-        throw new HarnessError('SQLite helper exit is unknown; rule resources remain retained. Restart the Host before retrying.', 'SQLITE_OUTCOME_UNKNOWN')
+        this.quarantined.set(handle, cleanup)
+        throw new HarnessError(commitConfirmed
+          ? 'SQLite committed, but helper exit is unknown; rule resources remain retained. Restart the Host and do not replay the SQL.'
+          : 'SQLite helper exit is unknown; rule resources remain retained. Restart the Host before retrying.',
+        commitConfirmed ? 'SQLITE_COMMITTED_CLEANUP_FAILED' : 'SQLITE_OUTCOME_UNKNOWN')
       }
     }
   }
@@ -223,10 +250,18 @@ export default class SqliteDatabase extends Service {
   private async admit(path: string, signal: AbortSignal) {
     const before = await this.protection.snapshot()
     let canonical = path, readOnly = false
-    for (const candidate of [path, `${path}-wal`, `${path}-shm`, `${path}-journal`]) {
+    const candidates = new Set([path])
+    for (const candidate of candidates) {
       const read = await this.protection.checkLocalFile(candidate, 'read', signal)
       if (!read.decision.allowed) throw new HarnessError(TARGET_REFUSAL_REASONS[read.decision.code], read.decision.code)
-      if (candidate === path) canonical = read.path
+      if (candidate === path) {
+        canonical = read.path
+        // SQLite uses the canonical main-file name for its actual companion files.
+        for (const main of [path, canonical]) {
+          candidates.add(main)
+          for (const suffix of ['-wal', '-shm', '-journal']) candidates.add(`${main}${suffix}`)
+        }
+      }
       const write = await this.protection.checkLocalFile(candidate, 'mutate', signal)
       if (!write.decision.allowed) {
         if (!['TARGET_READ_ONLY', 'TARGET_OWNER_RESOURCE'].includes(write.decision.code)) {

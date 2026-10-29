@@ -62,6 +62,8 @@ Defaults are 30 s execution, 1 s lock wait, 1000 rows, 1 MiB result, 64 KiB inpu
 
 Before commit, the executor rechecks paths, native file identity and rules, retaining the registry snapshot until native completion. Other policy writers receive `busy`; WAL registries are refused for retention because WAL readers do not exclude writers. Pre-authorization changes roll back the batch. Pre-authorization cancellation or timeout sends no commit permission; uncommitted journal recovery may be needed. After authorization, cleanup waits for confirmation. `SQLITE_OUTCOME_UNKNOWN` requires inspection and forbids automatic replay.
 
+SQLite checks configured and canonical journal paths. The main database must have one hard link, checked before launch and commit; multiple names can select different journals ([SQLite guidance](https://sqlite.org/howtocorrupt.html#_multiple_links_to_the_same_file)). To migrate a hard-linked binding, stop clients, create a consistent SQLite backup at a unique filename, and update `databases[].path` and its path rules. Do not rename an active database or discard recovery journals. Confirmed commits followed by cleanup failure report `SQLITE_COMMITTED_CLEANUP_FAILED` and must not be replayed. `SQLITE_CLEANUP_FAILED` states that commit permission was not sent.
+
 <a id="implementation"></a>
 ## Implementation
 

@@ -1,0 +1,7 @@
+- id: security-proxy
+  disabled: true
+- insert:
+    - id: sqlite-protection-fixture
+      name: '../../../packages/guard/target-protection/tests/snapshot-sqlite.ts'
+      config:
+        failCleanup: true

@@ -1,7 +1,7 @@
 /** Real SQL engine authorization, rollback, cancellation and owner revocation. @module */
 import { Context } from '@deepseek-ai/cordis'
 import { DatabaseSync } from 'node:sqlite'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, symlink, link } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
@@ -18,6 +18,7 @@ import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import * as SqliteAgent from '../src/sqlite-agent.ts'
 import SessionProjections from '@deepseek-ai/dsh-session-projection'
 import { LocalSubprocessRuntime } from '@deepseek-ai/dsh-subprocess-local'
+import type { SubprocessHandle } from '@deepseek-ai/dsh-subprocess'
 
 const supported = 'setAuthorizer' in DatabaseSync.prototype
 async function harness(protection: 'full' | 'audit' | 'test' = 'test', limits = {}) {
@@ -31,15 +32,107 @@ async function harness(protection: 'full' | 'audit' | 'test' = 'test', limits = 
     enabled: true, match: 'path' as const, address: path, environment: protection === 'test' ? 'test' as const : 'production' as const,
     protection: protection === 'audit' ? 'audit' as const : 'full' as const }
   await ctx.targetProtection.configure({ mainlandEnabled: true, rules: [rule] }, 1)
-  await ctx.plugin(SqliteDatabase, { databases: [{ name: 'owned', path }], ...limits })
+  const executor = await ctx.plugin(SqliteDatabase, { databases: [{ name: 'owned', path }], ...limits })
   const query = (sql: string, parameters: (string | number | null)[] = [], signal = new AbortController().signal) =>
     ctx.sqliteDatabase.execute('owned', { statements: [{ sql, parameters }] }, signal)
   const value = () => {
     const db = new DatabaseSync(path)
     try { return db.prepare('SELECT value FROM data WHERE id=1').get()?.['value'] } finally { db.close() }
   }
-  return { ctx, root, path, owner, query, value, rule }
+  return { ctx, root, path, owner, executor, query, value, rule }
 }
+
+it.skipIf(!supported).each(['file', 'directory'] as const)('checks actual journal paths through a %s alias before launching SQL', async (kind) => {
+  const h = await harness()
+  const alias = join(h.root, 'alias')
+  await symlink(kind === 'file' ? h.path : h.root, alias, kind === 'file' ? 'file' : 'junction')
+  await h.executor.dispose()
+  await h.ctx.plugin(SqliteDatabase, { databases: [{ name: 'owned', path: kind === 'file' ? alias : join(alias, 'data.sqlite') }] })
+  const current = await h.ctx.targetProtection.snapshot()
+  await h.ctx.targetProtection.configure({ mainlandEnabled: true, rules: [h.rule, { ...h.rule,
+    id: brandString<TargetRuleId>(randomUUID()), kind: 'server', address: `${h.path}-journal`, environment: 'production', protection: 'full' }] }, current.revision)
+  const spawn = vi.spyOn(LocalSubprocessRuntime.prototype, 'spawn')
+  onTestFinished(() => { spawn.mockRestore() })
+  const decision = await h.query("UPDATE data SET value='changed'").then(() => 'allowed', (error: unknown) => {
+    if (error instanceof Error && 'code' in error) return error.code
+    throw error
+  })
+  expect({ decision, value: h.value(), launches: spawn.mock.calls.length }).toEqual({
+    decision: 'TARGET_FULLY_PROTECTED', value: 'keep', launches: 0,
+  })
+})
+
+it.skipIf(!supported)('refuses hard-linked database names whose journals cannot be uniquely bound', async () => {
+  const h = await harness()
+  await link(h.path, join(h.root, 'second.sqlite'))
+  await expect(h.query('SELECT * FROM data')).rejects.toMatchObject({ code: 'TARGET_IDENTITY_UNVERIFIED' })
+})
+
+it.skipIf(!supported)('rolls back a write when another database name is linked before commit', async () => {
+  const h = await harness()
+  const original = h.ctx.targetProtection.checkLocalFile.bind(h.ctx.targetProtection)
+  let checks = 0
+  const spy = vi.spyOn(h.ctx.targetProtection, 'checkLocalFile').mockImplementation(async (...args) => {
+    if (++checks === 9) await link(h.path, join(h.root, 'late.sqlite'))
+    return original(...args)
+  })
+  onTestFinished(() => { spy.mockRestore() })
+  await expect(h.query("UPDATE data SET value='changed'")).rejects.toMatchObject({ code: 'TARGET_IDENTITY_UNVERIFIED' })
+  expect(h.value()).toBe('keep')
+})
+
+it.skipIf(!supported).each([false, true])('reports actual commit state when rule cleanup fails (cancel=%s)', async (cancel) => {
+  const h = await harness(), abort = new AbortController()
+  const original = h.ctx.targetProtection.retainSnapshot.bind(h.ctx.targetProtection)
+  const spy = vi.spyOn(h.ctx.targetProtection, 'retainSnapshot').mockImplementation((revision) => {
+    const release = original(revision)
+    if (cancel) abort.abort(new Error('cancel before permission'))
+    return () => { release(); throw new Error('owned cleanup failure') }
+  })
+  onTestFinished(() => { spy.mockRestore() })
+  await expect(h.query("UPDATE data SET value='committed'", [], abort.signal)).rejects.toMatchObject({
+    code: cancel ? 'SQLITE_CLEANUP_FAILED' : 'SQLITE_COMMITTED_CLEANUP_FAILED',
+  })
+  expect(h.value()).toBe(cancel ? 'keep' : 'committed')
+  // The failing release still relinquishes the execution owner, allowing teardown to complete.
+  await h.owner.dispose()
+})
+
+it.skipIf(!supported)('rechecks quarantined native ranges and releases other owners despite one cleanup failure', async () => {
+  const h = await harness()
+  const releases: (() => void)[] = [], observations: number[] = []
+  const retain = h.ctx.targetProtection.retainExecution.bind(h.ctx.targetProtection)
+  const retainSpy = vi.spyOn(h.ctx.targetProtection, 'retainExecution').mockImplementation(() => {
+    const release = retain(); releases.push(release); return release
+  })
+  const lock = h.ctx.targetProtection.retainSnapshot.bind(h.ctx.targetProtection)
+  const lockSpy = vi.spyOn(h.ctx.targetProtection, 'retainSnapshot').mockImplementation((revision) => {
+    const release = lock(revision)
+    return () => { release(); throw new Error('owned release failure') }
+  })
+  // oxlint-disable-next-line typescript/unbound-method -- each observed call forwards its real service receiver.
+  const spawn = LocalSubprocessRuntime.prototype.spawn
+  const spawnSpy = vi.spyOn(LocalSubprocessRuntime.prototype, 'spawn').mockImplementation(function (this: LocalSubprocessRuntime, spec): SubprocessHandle {
+    const owned = spawn.call(this, spec), index = observations.push(0) - 1
+    return { stdin: owned.stdin, stdout: owned.stdout, stderr: owned.stderr, control: owned.control, collected: owned.collected,
+      done: owned.done, terminate: () => { owned.terminate() }, waitForExit: async (signal) => {
+        observations[index]!++
+        if (observations[index] === 1) throw new Error('owned observation failure')
+        return owned.waitForExit(signal)
+      } }
+  })
+  onTestFinished(async () => {
+    for (const release of releases) release()
+    retainSpy.mockRestore(); lockSpy.mockRestore(); spawnSpy.mockRestore()
+  })
+  await expect(h.query('SELECT 1')).rejects.toMatchObject({ code: 'SQLITE_COMMITTED_CLEANUP_FAILED' })
+  await expect(h.query('SELECT 2')).rejects.toMatchObject({ code: 'SQLITE_OUTCOME_UNKNOWN' })
+  const closing = h.owner.dispose()
+  await expect.poll(() => observations).toEqual([2, 2])
+  // Cordis reports the deliberately injected release error; all remaining leases must still settle.
+  await closing
+  expect(h.ctx.get('targetProtection')).toBeUndefined()
+})
 
 it.skipIf(!supported)('refuses full production before opening the SQL helper', async () => {
   const h = await harness('full'), before = await readFile(h.path)

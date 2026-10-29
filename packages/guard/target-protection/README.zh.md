@@ -62,6 +62,8 @@ SSH 文件系统效果不会因为端口不同而被视为与其他资源无关�
 
 提交前复查路径、原生文件身份和规则，并持有规则快照到原生操作结束。其他规则写入者收到 `busy`；WAL 读者不能阻止写入者，因此持有操作会拒绝 WAL 规则库。授权前变更会回滚批次，取消或超时不会发出提交许可，可能需要恢复未提交日志。授权后等待结果和清理；`SQLITE_OUTCOME_UNKNOWN` 要求核验结果，禁止自动重放。
 
+SQLite 同时检查配置路径和真实路径旁的日志。主库必须只有一个硬链接，启动及提交前均检查；多个名称可能对应不同日志（[SQLite 说明](https://sqlite.org/howtocorrupt.html#_multiple_links_to_the_same_file)）。迁移硬链接绑定时，先停止客户端，用 SQLite 一致性备份生成唯一文件，再更新 `databases[].path` 及路径规则。不要改名活动数据库或丢弃恢复日志。已提交后清理失败报告 `SQLITE_COMMITTED_CLEANUP_FAILED`，不得重放；`SQLITE_CLEANUP_FAILED` 表示尚未发出提交许可。
+
 <a id="implementation"></a>
 ## 实现
 

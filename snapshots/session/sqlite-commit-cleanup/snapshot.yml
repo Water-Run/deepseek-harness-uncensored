@@ -1,0 +1,11 @@
+version: 1
+scenario: sqlite-commit-cleanup
+profile: headless
+composition: default
+recording: authored
+runtime: sqlite-authorizer
+header:
+  class: sqlite-commit-cleanup
+  pin: true
+workspace:
+  final: true
