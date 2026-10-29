@@ -1,5 +1,29 @@
 # Uncensored 开发交接
 
+## 已按用户要求暂停（2026-10-29）
+
+用户明确要求“收尾暂停”，Goal 已为 paused，停止自动续跑。不得继续引用下方历史继续授权恢复开发；需等用户新的继续指令。只完成代码保存、交接和文档推送，不新增开发，不标记整体完成。
+
+已推送源码基线为 main dc701009af。当前 QuickJS PTC 源码和新会话仍在工作区，未提交到 main；行为回归 5 文件 68 项、新会话普通回放通过，但 engine 的覆盖率门槛失败，Host/生命周期分支和最终编译产物、完整 lint/契约/文档检查尚待完成。此前完整 build 9/9 发生在后续修改之前，不作为最新源码验收。收尾不生成或安装新版应用，也不覆盖原安装和旧包。
+
+恢复入口：先核对 git status 和本节下方 PTC 明细，从 ptc-engine-first-coverage.log 的未覆盖分支继续；保留所有原任务。当前代码原地保存，main 仅推送交接文档，未验收源码不随文档提交。被自动审批保留的 undefined 和 PostgreSQL 临时目录不动，不换工具清理。
+
+本机完整源码备份：D:/Coding/deepseek-harness-uncensored/.dsh-build/target-protection-20261027/dshu-0.1.0-ptc-wip-20261029-220900.zip，46559378 字节，SHA256 4FC63AE7C93A60040E85D8ADDA14322E7EE7E86CD23DEA24232FDCF8AE524C04。归档基于 dc701009af，覆盖当时 26 个变更文件并附 DSHU-CLOSEOUT/manifest.json；不含被保留的测试缓存、忽略文件和未跟踪 .env。归档后的路径/哈希补记在本交接及同目录 ptc-pause-closeout.json；恢复时优先使用当前工作区，备份解压到独立目录核对，不盲目覆盖既有修改。
+
+## 进行中：能力绑定型 PTC（2026-10-29，尚未提交）
+
+Goal active，用户继续授权有效；本轮共享剩余从 8% 到最近的 5%，不按历史 40% 阈值暂停。main 为 dc701009af，本节源码在工作区，未提交、推送或替换安装。下方旧节点的“待提交”是历史记录。
+
+新增可选 target-protection/ptc：每次调用在独立 Worker 内新建 QuickJS 0.32.0 WebAssembly 实例，只传代码、绑定声明和限额，不传 Host 对象、函数、凭据或环境。Node、模块加载、文件/网络/进程接口不进入解释器；TypeScript 仅在私有 Worker 内擦除类型。使用现有 run_code 消费者；绑定本身仍须用受控执行器，负责本身的取消和资源，不能把运行时当作任意 Host 函数的沙盒。普通 Node PTC 保留，默认产品未启用新提供方，任意命令/终端仍未完成。
+
+源码在 packages/guard/target-protection/src 的 ptc.ts、ptc-engine.ts、ptc-bootstrap.ts、ptc-protocol.ts、worker.ts。薄入口采用仓库已有 worker.ts 命名；解析和运行逻辑在可直接测试的 engine。core/ptc-runtime 导出共享 validatePtcBindings，Node 的 validateBindings 委派并保留原错误前缀。新增 quickjs-emscripten-core 和 @jitl/quickjs-wasmfile-release-sync 精确 0.32.0，MIT，已安装。pnpm exec 的依赖校验可能先输出 install，须看命名检查的终态。
+
+已通过 19 项真实 Worker 用例，包括计算/绑定、类型擦除、真实 run_code、拒绝原生 API、错误类/特殊成员、无损输出、忙循环取消和实际退出、假时钟超时、规则撤销、调用隔离、内存/输出上限、生产文件保持和测试文件写入。消息层累计限制在途参数、待确认回复和控制台积压，校验顺序确认，最终结果再检查完整 JSON 字节数。未知关闭保留规则租约等待迟到 exit，抛 PTC_SHUTDOWN_UNCONFIRMED。完整 build 曾 9/9，但之后改了类型擦除、消息和薄入口，最终构建仍待重验。
+
+新 ptc-target-protection 会话通过真实 headless run_code，三个子派发记录生产拒绝、测试写入和独立文件校验，返回 native 为 undefined。安全头部更新已通过会话与最终工作区校验，普通回放/语料仍待最终验证。首次夹具误把补丁 name 当成替换，仍启动普通 Node/文件提供方，独立断言发现仅本轮临时生产夹具被改写；现显式禁用旧 ptc-runtime/fs-sandbox 并插入受控提供方。新记录的 Windows runtime-context cwd 仅在本场景命名字段替为既有 cwd 标记，没有改共享正常化器或任何已提交代际。
+
+最后按当前源码复验 5 文件 68 项通过，新会话普通回放通过，日志为 ptc-current-regression.log、ptc-current-snapshot.log。直接 engine 的 26 项均通过，但 ptc-engine-first-coverage.log 仍有 27 个未覆盖位置：语句约 88%、分支约 82%、函数 100%、行约 94%，不满足门槛，不可改阈值。接下来补协议确认/异常/生命周期和 Host 消息分支、负对照与并行回归；再做编译后公开接口、最新 build/build:check、lint/JSDoc/约束/publint、README 双语说明/Credit/编号清单，最后中文提交 main。所有证据为 .dsh-build/target-protection-20261027/ptc-*.log。旧 lib/types/ptc-worker.js、.d.ts 是本节点改名生成残留，发布前清理；不要动被自动审批保留的 undefined/PostgreSQL 目录。
+
 ## 当前节点：动态插件与所有者管理准入（2026-10-29）
 
 Goal active，继续完整“实现DSHU”；用户的继续授权覆盖历史 40% 暂停条件。上个节点为 main `a83914ca3a`，本节点尚待提交。最新成功查询共享剩余 10%，之后一次读取失败；不推算模型或会话独立余额，不使用重置。完整保护仍约 65%，不是默认产品已启用。
