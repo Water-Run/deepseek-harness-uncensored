@@ -2,6 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { parseSnapshotManifest, writesCurrentSessionFixtures } from '../src/manifest.ts'
 
 describe('snapshot manifest', () => {
+  it('declares SQLite authorizer requirements only for the owning headless runner', () => {
+    expect(parseSnapshotManifest('version: 1\nprofile: headless\nruntime: sqlite-authorizer\n').runtime).toBe('sqlite-authorizer')
+    for (const source of ['version: 1\nprofile: acp\nruntime: sqlite-authorizer\n',
+      'version: 1\nprofile: headless\nruntime: unknown\n']) {
+      expect(() => parseSnapshotManifest(source)).toThrow('manifest.runtime must be sqlite-authorizer on a headless scenario')
+    }
+  })
   it('parses an owning scenario', () => {
     expect(parseSnapshotManifest('version: 1\nprofile: headless\n')).toEqual({
       version: 1,

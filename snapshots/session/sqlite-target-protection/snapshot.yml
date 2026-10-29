@@ -1,0 +1,11 @@
+version: 1
+scenario: sqlite-target-protection
+profile: headless
+composition: default
+recording: authored
+runtime: sqlite-authorizer
+header:
+  class: sqlite-protection
+  pin: true
+workspace:
+  final: true

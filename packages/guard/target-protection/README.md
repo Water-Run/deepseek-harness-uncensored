@@ -56,6 +56,12 @@ Mount `./rea` instead of the ordinary REA root service, keeping the existing `re
 
 Mount `./mcp` instead of `mcp-client` for each guarded server, using its existing settings and the `tools` service. Stdio and HTTP MCP are refused before connecting while the server's effects cannot be bounded under active target or owner-file protection. Every reconnect, discovery, tool call and resource request rechecks the executor policy; read-only annotations are not proof of safe effects. Revocation closes the SDK-owned processes and transport, cancels requests and stops reconnects. If closure cannot be confirmed, the error remains visible and the rule owner is retained pending acknowledgement. This is admission and revocation, not a native-engine sandbox or an HTTP MCP target adapter.
 
+Mount `./sqlite` with `databases: [{ name, path }]` for existing local SQLite files. It requires native `DatabaseSync.setAuthorizer`; unsupported runtimes fail activation. Optional `./sqlite-agent` uses `tools` and `sandboxPolicy` to expose `database_query`; permissions below full access force read-only queries. SQL selects configured names, not paths. Full protection refuses before helper allocation; audit uses a native read-only connection. Test batches execute atomically with bound parameters, stock SQLite functions and FTS. Attachments, extensions, journal changes and caller-controlled transactions are refused by the engine authorizer.
+
+Defaults are 30 s execution, 1 s lock wait, 1000 rows, 1 MiB result, 64 KiB input, 64 MiB SQLite heap, 1 s termination grace and four pending requests. A managed private helper permits terminating an infinite synchronous query. Results preserve duplicate columns, blobs, large integers and nonfinite reals. Keep the installed runtime and helper outside Agent-writable paths. This adapter does not isolate privileged external file replacement or other database protocols.
+
+Before commit, the executor rechecks paths, native file identity and rules, retaining the registry snapshot until native completion. Other policy writers receive `busy`; WAL registries are refused for retention because WAL readers do not exclude writers. Pre-authorization changes roll back the batch. Pre-authorization cancellation or timeout sends no commit permission; uncommitted journal recovery may be needed. After authorization, cleanup waits for confirmation. `SQLITE_OUTCOME_UNKNOWN` requires inspection and forbids automatic replay.
+
 <a id="implementation"></a>
 ## Implementation
 
@@ -79,11 +85,11 @@ The independent registry does not change Session record types. Durable execution
 <a id="model-experience"></a>
 ## Model Experience
 
-This package adds no model request or tool definitions. Existing fetch, file and process calls can return a typed target-policy error. Effects come from the executing adapter, never from a model's claim that a command is safe.
+The root service adds no model request. Optional `./sqlite-agent` adds `database_query`; rows and typed refusals use normal tool logging. Other adapters change affected tool results. Effects come from the executor, never a model's safety claim.
 
 #### KV Cache effect
 
-No new prompt prefix is added. A refusal changes only the affected tool result.
+Only the optional SQLite tool adds a prompt schema. No auxiliary model is called.
 
 <a id="known-limitations-and-deferred-work"></a>
 ## Known Limitations and Deferred Work

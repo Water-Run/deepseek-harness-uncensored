@@ -4,6 +4,7 @@ import { startHttpMcpFixture } from '../../packages/mcp/mcp-client/tests/http-fi
 import { cp, copyFile, mkdir, mkdtemp, readFile, readdir, realpath, rm, utimes, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
+import { DatabaseSync } from 'node:sqlite'
 import { tmpdir } from 'node:os'
 import { basename, delimiter, dirname, isAbsolute, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -1228,6 +1229,7 @@ describe('headless recorded-session snapshots', () => {
   ])
   for (const { scenario, retainedToolInput } of runs) {
     const skipped = scenario.manifest.platform === 'posix' && process.platform === 'win32'
+      || scenario.manifest.runtime === 'sqlite-authorizer' && !('setAuthorizer' in DatabaseSync.prototype)
       || scenario.manifest.platform === 'pwsh' && !hasPwsh
       || mode === 'record' && scenario.manifest.recording === 'authored'
       || mode === 'record' && scenario.manifest.sessionFormat !== undefined

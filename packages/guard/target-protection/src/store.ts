@@ -25,7 +25,8 @@ function registryFailure(error: unknown): TargetProtectionError {
 export class TargetStore {
   private closed = false
   private transactionActive = false
-  private constructor(private readonly db: DatabaseSync) {}
+  private leased = false
+  private constructor(private readonly db: DatabaseSync, private readonly memory: boolean) {}
 
   /**
    * Open an explicitly selected store. Only an empty database is initialized.
@@ -44,7 +45,7 @@ export class TargetStore {
     }
     const { DatabaseSync } = await import('node:sqlite')
     const db = new DatabaseSync(path, { timeout: busyTimeoutMs })
-    const store = new TargetStore(db)
+    const store = new TargetStore(db, path === ':memory:')
     try {
       store.transaction(() => {
         const version = z.object({ user_version: z.number().int() }).parse(db.prepare('PRAGMA user_version').get()).user_version
@@ -82,6 +83,7 @@ export class TargetStore {
 
   private transaction<T>(operation: () => T, mode: 'read' | 'write'): T {
     this.assertOpen()
+    if (this.transactionActive) throw new TargetProtectionError('busy', 'An executing operation holds the registry snapshot; retry after it finishes.')
     try { this.db.exec(mode === 'write' ? 'BEGIN IMMEDIATE' : 'BEGIN') }
     catch (error) { throw registryFailure(error) }
     this.transactionActive = true
@@ -145,6 +147,46 @@ export class TargetStore {
     }, 'write')
   }
 
-  /** Release the owned SQLite handle; repeated calls are harmless. */
-  close(): void { if (!this.closed) { this.db.close(); this.closed = true } }
+  /**
+   * Hold a committed policy revision through an executor's final effect.
+   * @param expectedRevision - Revision that authorized the operation.
+   * @returns Idempotent release; other writers cannot commit until it is called.
+   */
+  retainSnapshot(expectedRevision: number): () => void {
+    this.assertOpen()
+    if (this.transactionActive) throw new TargetProtectionError('busy', 'The registry already has an active transaction.')
+    try { this.db.exec('BEGIN'); this.transactionActive = true }
+    catch (error) { throw registryFailure(error) }
+    try {
+      if (this.readSnapshot().revision !== expectedRevision) throw new TargetProtectionError('conflict', 'Target rules changed before execution commit.')
+      const journal = z.object({ journal_mode: z.string() }).parse(this.db.prepare('PRAGMA journal_mode').get()).journal_mode
+      if (journal !== (this.memory ? 'memory' : 'delete')) {
+        throw new TargetProtectionError('unavailable', 'Execution snapshot retention requires the registry rollback journal; WAL cannot block policy writers.')
+      }
+      this.leased = true
+    } catch (error) {
+      try { this.db.exec('ROLLBACK') }
+      catch (rollbackError) {
+        this.close()
+        throw new TargetProtectionError('unavailable', 'Execution snapshot rollback failed; this registry connection is closed.',
+          { cause: new AggregateError([error, rollbackError], 'Target registry transaction failed') })
+      }
+      finally { this.transactionActive = false }
+      throw registryFailure(error)
+    }
+    let released = false
+    return () => {
+      if (released) return
+      released = true; this.leased = false
+      try { this.db.exec('ROLLBACK') }
+      catch (error) { this.close(); throw registryFailure(error) }
+      finally { this.transactionActive = false }
+    }
+  }
+
+  /** Release the SQLite handle; an active execution snapshot must be released first. Repeated closure is harmless. */
+  close(): void {
+    if (this.leased) throw new TargetProtectionError('busy', 'Release the execution snapshot before closing its registry.')
+    if (!this.closed) { this.db.close(); this.closed = true }
+  }
 }

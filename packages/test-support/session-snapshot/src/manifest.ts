@@ -110,6 +110,8 @@ export interface SnapshotManifest {
   replay?: SnapshotReplayManifest
   /** Optional host requirement; portable scenarios omit it. */
   platform?: SnapshotPlatform
+  /** Optional native capability required by a headless scenario; file guards still run on other runtimes. */
+  runtime?: 'sqlite-authorizer'
   /** Explicit process fallback permission preset. */
   permission?: SnapshotPermission
   /** Test-only string environment additions needed by the declared composition. */
@@ -217,6 +219,7 @@ export function parseSnapshotManifest(source: string, path = 'snapshot.yml'): Sn
       'header',
       'replay',
       'platform',
+      'runtime',
       'permission',
       'environment',
       'workspace',
@@ -299,6 +302,9 @@ export function parseSnapshotManifest(source: string, path = 'snapshot.yml'): Sn
     }
 
     let permission: SnapshotPermission | undefined
+    if (root.runtime !== undefined && (root.runtime !== 'sqlite-authorizer' || root.profile !== 'headless')) {
+      throw new Error('manifest.runtime must be sqlite-authorizer on a headless scenario')
+    }
     if (root.permission !== undefined) {
       if (typeof root.permission !== 'string' || !PERMISSIONS.has(root.permission as SnapshotPermission)) {
         throw new Error('manifest.permission must be read-only, workspace-write, or danger-full-access')
@@ -418,6 +424,7 @@ export function parseSnapshotManifest(source: string, path = 'snapshot.yml'): Sn
       ...(header === undefined ? {} : { header }),
       ...(replay === undefined ? {} : { replay }),
       ...(platform === undefined ? {} : { platform }),
+      ...(root.runtime === undefined ? {} : { runtime: 'sqlite-authorizer' as const }),
       ...(permission === undefined ? {} : { permission }),
       ...(environment === undefined ? {} : { environment }),
       ...(workspace === undefined ? {} : { workspace }),

@@ -40,6 +40,14 @@
       "types": "./lib/types/mcp.d.ts",
       "default": "./lib/types/mcp.js"
     },
+    "./sqlite": {
+      "types": "./lib/types/sqlite.d.ts",
+      "default": "./lib/types/sqlite.js"
+    },
+    "./sqlite-agent": {
+      "types": "./lib/types/sqlite-agent.d.ts",
+      "default": "./lib/types/sqlite-agent.js"
+    },
     "./country": {
       "types": "./lib/types/country-provider.d.ts",
       "default": "./lib/types/country-provider.js"
@@ -73,6 +81,8 @@
     "mmdb-lib": "3.0.3"
   },
   "peerDependencies": {
+    "@deepseek-ai/dsh-tools": "workspace:*",
+    "@deepseek-ai/dsh-sandbox-policy": "workspace:*",
     "@deepseek-ai/dsh-mcp-client": "workspace:*",
     "@deepseek-ai/dsh-rea": "workspace:*",
     "@deepseek-ai/dsh-ssh": "workspace:*",

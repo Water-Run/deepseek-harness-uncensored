@@ -232,6 +232,21 @@ export default class TargetProtection extends Service {
   }
 
   /**
+   * Retain the checked revision and prevent policy writers during a final executor commit.
+   * @param revision - Revision returned by completed target checks.
+   * @returns Idempotent release, required after native execution and cleanup settle.
+   */
+  retainSnapshot(revision: number): () => void {
+    const release = this.retainExecution()
+    let unlock: () => void
+    try {
+      if (this.opened === undefined) throw new TargetProtectionError('unavailable', 'Target protection is not ready.')
+      unlock = this.opened.retainSnapshot(revision)
+    } catch (error) { release(); throw error }
+    return () => { try { unlock() } finally { release() } }
+  }
+
+  /**
    * Check the actual HTTP destination. Ordinary GET is treated as an unverified effect.
    * @param destination - Authority and pinned-address facts from the HTTP transport.
    * @param signal - Request cancellation and deadline.

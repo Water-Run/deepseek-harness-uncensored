@@ -8,6 +8,8 @@
     "src"
   ],
   "references": [
+    { "path": "../../core/tools" },
+    { "path": "../../sandbox/sandbox-policy" },
     { "path": "../../mcp/mcp-client" },
     { "path": "../../mcp/rea" },
     { "path": "../../ssh/ssh" },
