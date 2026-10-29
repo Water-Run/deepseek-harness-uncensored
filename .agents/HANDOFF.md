@@ -1,5 +1,19 @@
 # Uncensored 开发交接
 
+## 当前授权与验收环境（2026-10-29，继续开发）
+
+用户在剩余 39% 后明确要求“不需要停止，授权你继续”。本次继续及 Goal 自动续跑保持 active，不再因原 40% 阈值暂停；不重复询问许可，不使用额度重置。下方暂停条件是历史，不得据其停止本次开发。
+
+源码 `e6817cd09bab25ff646e4a5ba24094a30a00fa57` 已推送 main，修复实际日志路径、硬链接和提交状态，并补齐隔离资源的退出复核及逐项释放。27→28 项定向回归、两个真实 Session、完整 build 9/9、编译公开接口、JSDoc/lint/文档检查均通过。Git Schannel 连续握手失败后，用单次命令的 OpenSSL 后端及 HTTP/1.1 成功 fetch/push；证书校验保持开启，没有修改全局 Git 配置。
+
+源码归档 `.dsh-build/target-protection-20261027/dshu-0.1.0-e6817cd09b-source.zip`，46315725 字节，SHA256 `EBBC397F64F53695CB243F762838FA30DFAD9476E19AF88377E61EE5BE7E57DC`。检查包尚未成功：`2026-10-29T03-01-07.698Z-saEv90` 在 npm 镜像下载失败；临时官方 npm 源重试 `2026-10-29T03-19-56.324Z-TnWbYB` 在 Electron TLS 下载失败。两个 exec 均已退出 1，不能按运行中等待。原安装和旧包未覆盖。缓存 Electron 44.7.0 压缩包已再次对照官方 GitHub SHASUMS 验证，SHA256 `EEE30DC8FA1F5EA95490E59F44E46EA68DD24C6E93D22FACF70FE5C2D4C2665C`；官方校验文件为 electron-v44.7.0-shasums-win.txt。后续可使用仅提供这些已校验文件的本机临时镜像继续打包，保持默认 checksum 校验。
+
+网络数据库准备：系统及 WSL 没有 PostgreSQL，Docker daemon 未启动。独立工具位于 `C:/Users/linzh/AppData/Local/dshu-dev-tools/postgres-18.4-b13d3c08`，安装了精确版本 `@embedded-postgres/windows-x64@18.4.0-beta.17` 和 `pg@8.23.1`，安装脚本禁用，包内 symlink 清单为空。真实 PostgreSQL 18.4 临时集群完成 SCRAM、参数查询和停服，证明在 postgres-environment-proof.json。只使用新临时库，没有连接用户数据库；产品 pg 依赖尚未加入仓库。
+
+环境探测曾因 Windows 后台服务器继承管道而误判启动等待，清理报 EBUSY。已核实唯一私有二进制路径和临时数据目录，使用 pg_ctl 确认停止，CIM 核查没有该私有二进制进程。自动审批拒绝了停服和递归删除的组合命令；改成只停服并保留目录。修复后的 pg_ctl 使用忽略 stdio，不再等待服务进程继承的管道；随后修正了测试脚本对 pg CommonJS 入口的导入，完整探测通过。保留的三个已停临时目录尾名为 xviEfR、2Y6AWh、yXxtfr，均在系统 Temp 的 dshu-pg-fixture- 前缀下，作为失败/成功证据暂存。复用入口为 postgres-runtime.json 和 postgres-owned-smoke.mjs。
+
+下一步仍按 P2→P3：网络数据库必须固定实际地址、核验数据库及 TLS 身份、使用凭据引用、验证取消与提交结果。已核对 PostgreSQL 官方文档：READ ONLY 并不阻止全部磁盘写入，不能把该设置或 SQL 首词当作完整执行隔离。网络数据库产品后端、目标受限执行、完整审计及默认产品接入尚未完成。
+
 ## 当前节点：SQLite 路径与提交状态审查（2026-10-29）
 
 Goal active，完整目标保留。本轮共享剩余从 44% 降到 **42%**；低于 40% 时仍按用户规则收尾打包。网络数据库任务继续保留，本节点先修复上一节点的真实遗漏。

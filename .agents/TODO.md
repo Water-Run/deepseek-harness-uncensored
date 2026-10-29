@@ -1,8 +1,8 @@
 # 开发项目进度
 
-**额度规则：**实际剩余低于 40% 时停止新开发，转入保存、必要验证和打包；收尾后暂停本 Goal，等待用户继续。最新检查及执行步骤见 [额度与收尾规则](requirements/2026-10-27-quota-closeout.md)。未完成的三项保护任务保留。
+**当前授权：**用户在剩余 39% 后明确要求继续。本次开发保持 Goal active，继续监测额度，不再按此前 40% 阈值暂停；见 [额度与收尾规则](requirements/2026-10-27-quota-closeout.md)。全部未完成范围保留。
 
-**当前状态：**Goal active，继续“实现DSHU”。本地 SQLite 已推送，正在收尾真实日志路径、硬链接和提交后错误报告修复。最新共享额度剩余 42%；本轮未打包或安装，原产物保留。证据见 [交接记录](HANDOFF.md)，后续范围见 [实施计划](requirements/2026-10-27-remaining-work.md)。
+**当前状态：**Goal active。SQLite 审查修复已推送 `e6817cd09b`；Windows PostgreSQL 18.4 独立验收环境已完成认证、查询和停服验证，产品适配仍待实现。新检查包两次下载失败，旧产物保留。证据见 [交接记录](HANDOFF.md)，范围见 [实施计划](requirements/2026-10-27-remaining-work.md)。
 
 更新：2026-10-29。[本轮五项开发](requirements/2026-10-26-five-items.md)已追加真实目标保护范围，继续同一任务。原关于页、DSH rc.3、逐项额度、记忆与 REA 基础交付保留。当前优先级：域名/手动规则后端 → 生产/测试目标后端 → 审计与功能联动，见 [实施与验收计划](requirements/2026-10-26-target-protection.md)。
 
