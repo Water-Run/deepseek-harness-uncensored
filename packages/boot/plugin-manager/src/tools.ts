@@ -108,7 +108,7 @@ export function apply(ctx: Context): void {
       }, { approver: ctx.get('approval'), agent: exec.agent, callId: exec.callId,
         toolName: 'plugin_manager', signal: exec.signal })
       exec.signal.throwIfAborted()
-      const manager = ctx.pluginManager
+      const manager = ctx.extend({ invocation: undefined }).pluginManager
       switch (args.action) {
         case 'list_version_exemptions':
           return JSON.stringify({ runtimeVersion: getDshRuntimeVersion(), ...manager.listVersionExemptions() })

@@ -1,0 +1,11 @@
+- id: security-proxy
+  disabled: true
+# This management scenario advertises its recorded Bash capability without executing a shell.
+- id: bash-sandbox
+  disabled: false
+- id: pwsh-sandbox
+  disabled: true
+- id: tool-bash
+  disabled: false
+- id: tool-pwsh
+  disabled: true

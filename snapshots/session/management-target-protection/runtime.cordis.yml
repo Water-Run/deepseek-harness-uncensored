@@ -1,0 +1,5 @@
+- id: security-proxy
+  disabled: true
+- insert:
+    - id: management-protection-fixture
+      name: '../../../packages/guard/target-protection/tests/snapshot-management.ts'

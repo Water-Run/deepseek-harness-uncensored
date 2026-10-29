@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/boot/plugin-manager/README.md
 /:
-  en: 65283627208ef4c9
-  zh: aa3f833ec24bb65a
+  en: 2a1166f402262ba4
+  zh: 3feb2b672f949e4a
 /deepseek-ai-dsh-plugin-manager:
   en: e6cbfe169f5fb57b
   zh: be378036d645a242
@@ -15,8 +15,8 @@
   en: 87679c51aa3693f5
   zh: 11684a48a5806afb
 /deepseek-ai-dsh-plugin-manager/use-this-package:
-  en: 95c1b18f8432090a
-  zh: 213e54a1547a1da1
+  en: d1876790f86c592f
+  zh: 0ffd966033aa0ebe
 /deepseek-ai-dsh-plugin-manager/use-this-package/version-compatibility-and-exemptions:
   en: 483285658e267dd5
   zh: 846bec2daac59a96
@@ -36,8 +36,8 @@
   en: 1815ec6ce56c80d4
   zh: 2d7ac75d3b25eb6b
 /deepseek-ai-dsh-plugin-manager/model-experience/management-tool/what-the-model-sees:
-  en: b1dae91f98350290
-  zh: 802ae86d923ac6ce
+  en: f07ac0f12ee8f708
+  zh: 9e85705cabedc77c
 /deepseek-ai-dsh-plugin-manager/model-experience/management-tool/token-effect:
   en: bc70208bd361dbcd
   zh: bb651d6066066c6c

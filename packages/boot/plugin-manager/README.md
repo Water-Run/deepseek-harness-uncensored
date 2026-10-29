@@ -1,5 +1,5 @@
 ---
-description: "Enable profile plugins and install, remove or select bundles from the Web sidebar or an agent."
+description: "Enable profile plugins and install, remove or select bundles from Web settings or an agent."
 kind: "package-reference"
 ---
 
@@ -28,7 +28,9 @@ Manage the current profile's plugins without editing configuration by hand. Enab
 <a id="use-this-package"></a>
 ## Use this package
 
-Base-backed profiles provide the manager. In Web, the sidebar's **Plugins** page ([ui-plugin-manager](../../client/ui-plugin-manager/README.md)) manages the profile's bundles and their uniquely addressable rows; the Settings Plugin list stays read-only. Agent-preset rows remain read-only. The `plugin_manager` tool exposes the same operations and is enabled in Creator mode. Other presets keep it disabled by default. Every tool action requires `danger-full-access` or approval for that call. Under lower sandbox modes, `ask` requests approval; `never`, rejection, cancellation, or an unavailable approval channel prevents execution. An approval leaves the session permission mode unchanged. Profile changes persist across sessions, and installed Host code executes in-process outside the workspace sandbox. Dependency build-script approval remains separate.
+Base-backed profiles provide the manager. Web plugin settings use [ui-plugin-manager](../../client/ui-plugin-manager/README.md) to manage the profile's bundles and their uniquely addressable rows. Agent-preset rows remain read-only. The `plugin_manager` tool exposes the same operations when enabled in the profile or agent preset. Every tool action requires `danger-full-access` or approval for that call. Under lower sandbox modes, `ask` requests approval; `never`, rejection, cancellation, or an unavailable approval channel prevents execution. An approval leaves the session permission mode unchanged. Profile changes persist across sessions, and installed Host code executes in-process outside the workspace sandbox. Dependency build-script approval remains separate.
+
+Constrained providers override `assertManagementAllowed()` to authorize profile mutations and work that runs package processes before any allocation or write. The default provider adds no restriction. The model tool clears inherited Remote identity before calling this service; an owner-authenticated panel request cannot grant owner identity to a model call. The optional [target-protection provider](../../guard/target-protection/README.md) requires a live owner Remote invocation for those operations while retaining local list reads.
 
 For a deployment without agent presets, enable the tool in the profile patch. Preset-backed sessions use their preset’s `tool-plugin-manager` entry.
 
@@ -122,7 +124,7 @@ Results contain the last attempted stage, target, saved-state change, applicatio
 
 #### What the model sees
 
-The [`plugin_manager` tool](../../../docs/tool-catalog.md#deepseek-aidsh-plugin-manager) lists plugin entries and bundles and performs profile-wide changes. Its results include saved-state changes, application status and package diagnostics. A change result that is not plainly applied adds `nextStep`, a sentence derived from its application status, refusal code, package-manager failure kind or restart reason that says what the model does next or tells the user. Management operations do not inject messages into Agents.
+The [`plugin_manager` tool](src/tools.ts) lists plugin entries and bundles and performs profile-wide changes. Its results include saved-state changes, application status and package diagnostics. A change result that is not plainly applied adds `nextStep`, a sentence derived from its application status, refusal code, package-manager failure kind or restart reason that says what the model does next or tells the user. Management operations do not inject messages into Agents.
 
 #### Token effect
 

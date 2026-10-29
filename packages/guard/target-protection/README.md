@@ -72,6 +72,10 @@ PostgreSQL resolves DNS once per operation, binds one checked literal address, p
 
 Mount `./browser` instead of `dsh-browser-use`, keeping the chosen Playwright MCP, Chrome DevTools MCP or Stagehand provider. All three resolve mandatory execution permission before their native acquisition and recheck queued calls. Protection revocation closes resources and retains rules through native settlement; missing policy withdraws this registry and its providers. The refusal conditions match `./subprocess`. This adapter provides admission and revocation, not per-target browser isolation. Test labels do not confine arbitrary browser file, network or detached-process effects; ordinary unguarded compositions retain their existing behavior.
 
+Mount `./cordis` instead of `dsh-cordis-host-runner` to refuse dynamic Host activation, panel activation, Client source delivery and handler invocation before code runs. Definitions and read-only inspection remain available. This provider refuses even when target rules are disabled: Host VM and page code cannot be terminated or confined reliably after a later policy change. Full-access and Client approval do not override it. An explicit trusted configuration change may replace the provider; it never falls back automatically.
+
+Mount `./plugin-manager` instead of `dsh-plugin-manager` to retain local plugin/bundle discovery while requiring a live, authenticated owner Remote invocation for profile changes, version exemptions, installation, removal, registry inspection and package lookup. Owner settings continue to use the existing methods. The model tool explicitly clears inherited Remote identity, including under full access. Direct in-process calls without an owner invocation are refused. Both adapters require `targetProtection`; owner withdrawal also disables them and cached references reject. These are management admission controls, not a sandbox against arbitrary trusted Host plugins or an owner who deliberately replaces the protected composition.
+
 <a id="implementation"></a>
 ## Implementation
 

@@ -279,6 +279,7 @@ export class PluginManager extends TypertRemoteService {
    */
   @Remote
   setVersionExemption(packageVersion: string, runtimeVersion: string, enabled: boolean, acceptRisk?: boolean): Promise<ChangeResult> {
+    this.assertManagementAllowed()
     return this.change(result => this.configure(async () => {
       await setProfileVersionExemption(this.profile.dir, packageVersion, runtimeVersion, enabled, acceptRisk === true)
       Object.assign(result, await this.reload())
@@ -390,6 +391,7 @@ export class PluginManager extends TypertRemoteService {
    */
   @Remote
   async registries(): Promise<PluginRegistries> {
+    this.assertManagementAllowed()
     return {
       ...this.configuredRegistries, fallbackRegistries: [...this.configuredRegistries.fallbackRegistries],
       resolved: await readProfileRegistry(this.profile.dir, {
@@ -406,6 +408,7 @@ export class PluginManager extends TypertRemoteService {
    */
   @Remote
   async inspect(spec: string, options?: InspectOptions, signal?: AbortSignal): Promise<PluginSpecInspection> {
+    this.assertManagementAllowed()
     let parsed
     try {
       parsed = parseInstallSpec(spec)
@@ -490,6 +493,7 @@ export class PluginManager extends TypertRemoteService {
    */
   @Remote
   setPluginEnabled(id: PluginEntryId, enabled: boolean): Promise<ChangeResult> {
+    this.assertManagementAllowed()
     return this.change(result => this.configure(async () => {
       const row = (await this.listPlugins()).find(item => item.entryId === id)
       if (row === undefined) throw new ManagementFailure('unknown-plugin')
@@ -508,6 +512,7 @@ export class PluginManager extends TypertRemoteService {
    */
   @Remote
   setBundleEnabled(name: string, enabled: boolean): Promise<ChangeResult> {
+    this.assertManagementAllowed()
     return this.change(result => this.configure(async () => {
       await this.selectBundle(name, enabled)
       Object.assign(result, enabled ? await this.publishAndReload(this.bundleRows(name).map(row => row.id)) : await this.reload())
@@ -527,6 +532,7 @@ export class PluginManager extends TypertRemoteService {
    */
   @Remote
   installBundle(spec: string, options?: InstallBundleOptions): Promise<ChangeResult> {
+    this.assertManagementAllowed()
     const requestId = options?.requestId
     const control: InstallControl = { abort: new AbortController(), phase: 'installing', result: Promise.resolve(null) }
     const stopped = (): boolean => control.abort.signal.aborted || this.abort.signal.aborted
@@ -684,6 +690,7 @@ export class PluginManager extends TypertRemoteService {
    */
   @Remote
   removeBundle(name: string): Promise<ChangeResult> {
+    this.assertManagementAllowed()
     return this.change(async (result) => {
       const installed = await this.configure(async () => {
         const bundle = (await this.listBundles()).find(item => item.name === name)
@@ -716,6 +723,9 @@ export class PluginManager extends TypertRemoteService {
       Object.assign(result, await this.configure(() => this.publishAndReload()))
     }, { stage: 'remove', target: name }, 'remove')
   }
+
+  /** Authorize profile mutations and package-process work before any allocation or durable write. */
+  protected assertManagementAllowed(): void {}
 
   /** The rows a bundle's patch inserts and the existing rows it changes; an unreadable patch throws. */
   private declaredRows(name: string, info: ProfileManifest): Pick<BundleInfo, 'rows' | 'overrides'> {
@@ -848,7 +858,7 @@ export class PluginManager extends TypertRemoteService {
 
   private configure<T>(operation: () => Promise<T>): Promise<T> {
     const hmr = this.ownerContext.get('hmr')
-    const apply = () => { this.abort.signal.throwIfAborted(); return operation() }
+    const apply = () => { this.abort.signal.throwIfAborted(); this.assertManagementAllowed(); return operation() }
     return hmr === undefined ? apply() : hmr.runExclusive(apply)
   }
 
@@ -902,6 +912,7 @@ export class PluginManager extends TypertRemoteService {
   ): Promise<ChangeResult> {
     return withFileLock(join(this.profile.dir, 'package.json'), async () => {
       this.abort.signal.throwIfAborted()
+      this.assertManagementAllowed()
       const before = this.diskState()
       const result: ChangeResult = { ...request, changed: false,
         ...this.ownerContext.get('hmr') !== undefined ? { application: 'applied' } : { application: 'restart-required', restartReason: 'no-hmr' } }

@@ -161,6 +161,9 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     this.inspectRegistry = new CordisInspectRegistryService(ctx, this.resolved.clientInspectTimeoutMs)
   }
 
+  /** Authorize dynamic code execution and delivery; constrained providers must reject effects they cannot isolate. */
+  protected assertExecutionAllowed(): void {}
+
   /**
    * Define a new Plugin's first Package or append a Package to an existing Plugin.
    * @param request - Session ownership, Plugin selection, metadata, and source code.
@@ -270,6 +273,7 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     mode: CordisDynamicRunMode,
     signal?: AbortSignal,
   ): Promise<DynamicCordisRunResponse> {
+    this.assertExecutionAllowed()
     const plan = this.resolvePlan(agent, pluginId, packageId, mode)
     if (!plan.ok) return plan.response
     if (signal?.aborted === true) {
@@ -348,6 +352,7 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     requestId: ApprovalRequestId | null,
     approveFutureVersions: boolean,
   ): Promise<DynamicCordisHostHalfResult> {
+    this.assertExecutionAllowed()
     const plan = this.resolvePlan(agent, pluginId, packageId, mode, requestId === null)
     if (!plan.ok) return { ok: false, message: plan.response.message }
     let attempt: DynamicCordisRunAttempt
@@ -404,6 +409,7 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     pluginId: CordisDynamicPluginId,
     pluginRunId: CordisDynamicPluginRunId,
   ): DynamicCordisClientSource {
+    this.assertExecutionAllowed()
     const plugin = this.owned(agent, pluginId)
     if (plugin === undefined) throw new Error(missingPluginMessage(pluginId))
     const run = plugin.run
@@ -763,6 +769,7 @@ export class DynamicCordisRunnerService extends TypertRemoteService {
     method: string,
     args: JsonValue,
   ): Promise<DynamicCordisInvokeResult> {
+    this.assertExecutionAllowed()
     const plugin = this.registry.get(pluginId)
     if (plugin === undefined || plugin.run === undefined) {
       return { ok: false, code: 'plugin-not-running', message: `dynamic plugin "${pluginId}" is not running` }

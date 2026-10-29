@@ -27,6 +27,8 @@ kind: "package-reference"
 
 需要检查注册表或程序侧动态包生命周期时挂载此插件。浏览器生命周期消费者还需要 Client runner 和 UI 包。内置 Creator 流程使用已安装 bundle，不使用此定义注册表。
 
+受控提供方在 `run`、`runHostHalf`、`getClientCode` 和 `invoke` 前覆写 `assertExecutionAllowed()`。默认提供方不增加限制。可选[目标保护提供方](../../guard/target-protection/README.zh.md)拒绝这些操作，保留定义和只读检查。Client 审批不能限定任一部分的文件、网络或配置效果。
+
 ### 最小配置
 
 ```yaml
@@ -40,7 +42,7 @@ kind: "package-reference"
 | `vmTimeoutMs` | `5000` | host 半在 vm 中同步执行的那部分被中止求值前可运行的毫秒数 |
 | `clientInspectTimeoutMs` | `10000` | 等待有效 Client 检查响应的最长时间；1 到 2147483647 毫秒之间的整数 |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-cordis-host-runner)是每个受支持字段的穷尽式真源。
+[Config schema](src/index.ts)声明全部受支持字段。
 
 <a id="client-inspection"></a>
 ### Client 检查
@@ -103,8 +105,8 @@ runner 基于两项职责划分。**注册表与沙箱是同一个服务。** `D
 - [工具包](../tool-cordis/README.zh.md)——使用其检查注册表的只读工具。
 - [Client runner](../cordis-client-runner/README.zh.md)——应答运行请求并装载浏览器半代码的浏览器半。
 - [UI 包](../ui-cordis/README.zh.md)——用户批准并操作运行的面板。
-- [生成的配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-cordis-host-runner)——每个受支持配置字段。
-- [extensions 子系统](../../../docs/subsystems/extensions.zh.md)——生成的 `ctx.cordisInspect` 与 `ctx.dynamicCordisRunner` API 及 `cordis/*` 事件。
+- [服务与配置](src/index.ts)——`ctx.cordisInspect`、`ctx.dynamicCordisRunner` 及受支持配置字段。
+- [类型与事件](src/types.ts)——动态 Plugin 操作与 `cordis/*` 事件。
 - [历史自引用 Cordis 工具集 Agent Note](../../../.agents/notes/archived/feature/2026-07-08-self-referential-cordis-toolset.md)——沙箱语义、生命周期与组合的理由。
 
 -----

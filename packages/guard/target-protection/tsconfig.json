@@ -8,6 +8,9 @@
     "src"
   ],
   "references": [
+    { "path": "../../extensions/cordis-host-runner" },
+    { "path": "../../boot/plugin-manager" },
+    { "path": "../../typert/protocol" },
     { "path": "../../browser-use/browser-use" },
     { "path": "../../credentials/credentials" },
     { "path": "../../core/tools" },

@@ -75,6 +75,14 @@
     "./security-proxy": {
       "types": "./lib/types/security-proxy.d.ts",
       "default": "./lib/types/security-proxy.js"
+    },
+    "./cordis": {
+      "types": "./lib/types/cordis.d.ts",
+      "default": "./lib/types/cordis.js"
+    },
+    "./plugin-manager": {
+      "types": "./lib/types/plugin-manager.d.ts",
+      "default": "./lib/types/plugin-manager.js"
     }
   },
   "files": [
@@ -111,7 +119,10 @@
     "@deepseek-ai/dsh-web": "workspace:*",
     "@deepseek-ai/dsh-web-fetch-http": "workspace:*",
     "@deepseek-ai/dsh-credentials": "workspace:*",
-    "@deepseek-ai/dsh-browser-use": "workspace:*"
+    "@deepseek-ai/dsh-browser-use": "workspace:*",
+    "@deepseek-ai/dsh-cordis-host-runner": "workspace:*",
+    "@deepseek-ai/dsh-plugin-manager": "workspace:*",
+    "@deepseek-ai/dsh-typert-protocol": "workspace:*"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-mcp-client": "workspace:*",
@@ -150,6 +161,11 @@
     "@deepseek-ai/dsh-browser-use": "workspace:*",
     "@deepseek-ai/dsh-experimental-browser-use-runtime": "workspace:*",
     "@deepseek-ai/dsh-experimental-browser-use-stagehand-native": "workspace:*",
-    "@deepseek-ai/dsh-agent-loop-testkit": "workspace:*"
+    "@deepseek-ai/dsh-agent-loop-testkit": "workspace:*",
+    "@deepseek-ai/dsh-cordis-host-runner": "workspace:*",
+    "@deepseek-ai/dsh-plugin-manager": "workspace:*",
+    "@deepseek-ai/dsh-typert-protocol": "workspace:*",
+    "@deepseek-ai/dsh-app-boot": "workspace:*",
+    "@deepseek-ai/dsh-atomic-write": "workspace:*"
   }
 }

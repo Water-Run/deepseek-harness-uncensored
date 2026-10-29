@@ -1,0 +1,10 @@
+version: 1
+scenario: management-target-protection
+profile: headless
+composition: default
+recording: authored
+header:
+  class: management-protection
+  pin: true
+workspace:
+  final: true

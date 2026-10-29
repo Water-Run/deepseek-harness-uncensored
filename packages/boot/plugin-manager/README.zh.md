@@ -1,5 +1,5 @@
 ---
-description: "通过 Web 侧边栏或 agent 启停 profile 插件，并安装、删除或选择组合包。"
+description: "通过 Web 设置或 agent 启停 profile 插件，并安装、删除或选择组合包。"
 kind: "package-reference"
 ---
 
@@ -28,7 +28,9 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-基于 base 的 profile 提供管理服务。在 Web 中，侧边栏的**插件**页（[ui-plugin-manager](../../client/ui-plugin-manager/README.zh.md)）管理 profile 的组合包及其能唯一定位的行；设置页的插件列表保持只读。Agent 预设条目保持只读。`plugin_manager` 工具提供相同操作，在 Creator 模式中启用。其他预设仍默认禁用。每个工具操作都要求 `danger-full-access` 或本次调用的批准。在较低沙箱模式下，`ask` 会请求审批；`never`、拒绝、取消或审批渠道不可用时均不执行。批准不改变会话的权限模式。profile 变更跨会话持久化，已安装的 Host 代码在宿主进程内运行，不受工作区沙箱限制。依赖构建脚本仍需单独批准。
+基于 base 的 profile 提供管理服务。Web 插件设置使用 [ui-plugin-manager](../../client/ui-plugin-manager/README.zh.md) 管理 profile 的组合包及其能唯一定位的行。Agent 预设条目保持只读。在 profile 或 Agent 预设中启用 `plugin_manager` 工具后，可调用相同操作。每个工具操作都要求 `danger-full-access` 或本次调用的批准。在较低沙箱模式下，`ask` 会请求审批；`never`、拒绝、取消或审批渠道不可用时均不执行。批准不改变会话的权限模式。profile 变更跨会话持久化，已安装的 Host 代码在宿主进程内运行，不受工作区沙箱限制。依赖构建脚本仍需单独批准。
+
+受控提供方覆写 `assertManagementAllowed()`，在任何分配或写入前授权 profile 变更及运行包进程的操作。默认提供方不增加限制。模型工具调用服务前会清除继承的 Remote 身份；经过所有者认证的面板请求不能把所有者身份授予模型调用。可选[目标保护提供方](../../guard/target-protection/README.zh.md)要求这些操作来自仍连接的所有者 Remote 调用，本地列表读取仍可用。
 
 未使用 Agent 预设的部署在 profile patch 中启用工具；使用预设的会话由其预设中的 `tool-plugin-manager` 条目控制。
 
@@ -122,7 +124,7 @@ service 运行若在 `idleTimeoutMs` 内没有任何捕获输出即被终止，�
 
 #### 模型看到什么
 
-[`plugin_manager` 工具](../../../docs/tool-catalog.zh.md#deepseek-aidsh-plugin-manager) 列出插件条目和组合包，并执行影响整个 profile 的改动。结果包含保存状态变化、应用状态和包管理诊断。未直接应用的变更结果会增加 `nextStep`，这是一句根据应用状态、拒绝代码、包管理器失败类型或重启原因生成的说明，指出模型下一步做什么或告诉用户什么。管理操作不会向 Agent 注入消息。
+[`plugin_manager` 工具](src/tools.ts) 列出插件条目和组合包，并执行影响整个 profile 的改动。结果包含保存状态变化、应用状态和包管理诊断。未直接应用的变更结果会增加 `nextStep`，这是一句根据应用状态、拒绝代码、包管理器失败类型或重启原因生成的说明，指出模型下一步做什么或告诉用户什么。管理操作不会向 Agent 注入消息。
 
 #### Token 影响
 
