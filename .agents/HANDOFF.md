@@ -1,5 +1,19 @@
 # Uncensored 开发交接
 
+## 已推送新内核与独立检查包（2026-11-01）
+
+用户最新要求推进 TODO 到全部完成；Goal active，继续现有进行中和待实现项。原生安装器窗口仍按“先继续后台开发”延后；Android＋PRoot Fedora 与全新安装器架构仍为计划，不扩大成即时实施任务。原目标保护、数据库、审计、并存和签名验收范围保留。
+
+源码已合入本地及远端唯一的 main：811717f230。核心迁移 ac81198769，macOS 独立路径/产物/更新源修正 18c53ca045，合并 a07155a290，本地打包时间校验修正 811717f230。主工作区依赖已更新，清理前后两次完整构建均 10/10 通过；已退役的 1017 标签插件两个生成文件移入 .dsh-build/retired-client-20261101，未删除。保留的 undefined/temp/tsx-linzh 缓存未改动，仅加本地 Git 精确排除，不进入源码或安装包。
+
+**检查包：**`.dsh-build/deliverables/DSHU-0.1.0-core-0.2.2-alpha.2-win-x64-unsigned-20261101.exe`，317620486 字节，SHA256 `c44b58ddf36a7df5e649185202f8839995849e7aaefcee5f9e726a386cbac9ba`。对应 `DSHU-20261101-manifest.json` 记录源码、编译时间和验证范围。包来自干净源码 811717f230，编译时间 2026-11-01T13:59:54.522Z；产品 DSHU 0.1.0、内核 DSH 0.2.2-alpha.2。PE 元数据为 DeepSeek Harness Uncensored / WaterRun；ASAR 包名 deepseek-harness-uncensored。未签名，未安装，也未打开向导。
+
+打包记录位于迁移工作树 `apps/desktop/.desktop-build/packaging-runs/2026-11-01T13-59-51.917Z-OEVSje`，result.json 的 success=true。组装后原生依赖、CLI 离线插件安装/卸载、Host 启动、DOCX/XLSX/PPTX 转 PDF 和技能 CLI 发现通过。最初直接运行打包脚本缺少 pnpm 上下文；第二次发现本地打包重新计算编译时间。已修复为使用产物记录中的时间，同时严格比对提交、产品元数据、配置和文件哈希，11 项回归通过；失败记录保留，最终为 package3。
+
+最新完整单测 49556 项通过，4 项失败均由独立补验收敛；不是把原运行改记全绿。hygiene 23/23、全仓 lint、820 组文档配对、667 份旧 Session 字节、42 项模式组合、21 项 SDK 运行检查、20 项设置页面、7 项保护回放及 14 项中英原生静默安装场景的证据见下节。完整 SDK/ACP 旧录制在 Windows 的精确输出仍有平台差异；下一步先在其支持的 POSIX 环境核对，不能修改冻结记录或放宽 normalizer 以掩盖差异。
+
+继续开发以主工作区为准。迁移工作树仍保留，供对照产物和日志；无需创建新分支。先补历史回放验收，再继续 P2 受限执行/数据库/原生入口，最后接 P3 审计与所有者界面。没有可用后端时继续显示保护不可用，不因打包成功勾选完整保护。
+
 ## 内核迁移：后台验收进展（2026-11-01，21:23）
 
 Goal 保持 active；用户要求先后台开发，未打开原生安装器窗口、未更换正式应用。最近实际 Codex 剩余额度为 64%。main/origin/main 为 b149080bc0，迁移工作树仍在 D:/Coding/deepseek-harness-uncensored-upstream-20261101（detached，基点 83b0eb2269），唯一命名分支为 main。
