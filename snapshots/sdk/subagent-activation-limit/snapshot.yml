@@ -1,6 +1,7 @@
 version: 1
 scenario: subagent-activation-limit
 profile: sdk
+permission: danger-full-access
 composition: subagent-activation-limit
 recording: authored
 header:

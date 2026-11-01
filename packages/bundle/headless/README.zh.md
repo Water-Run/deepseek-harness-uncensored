@@ -50,10 +50,12 @@ agent 会完成该任务，把提供方的每个非空推理（reasoning）增�
 
 生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-headless)是所有受支持字段及其 JSDoc 的完整真源。
 
+DSHU 默认使用 `danger-full-access`，不弹出权限询问。`DSH_PERMISSION_MODE` 和 `--permission-mode` 仍可显式选择权限；沙盒与询问默认值必须匹配同一已声明预设。
+
 <a id="credentials"></a>
 ### 凭据
 
-随附的 headless profile 禁用托管凭据存储，以及依赖它的 authorization 和 DeepSeek account 消费方。API 密钥路由依次使用启动环境、`<运行命令的目录>/.env` 和 `$DSH_HOME/.env`。GUI 保存的密钥和登录凭据不会被使用，存储文件保持原样。需要已保存登录凭据的提供方会失败，除非恢复存储认证；AWS profile 等提供方外部凭据链仍然可用。
+随附的 headless profile 禁用托管凭据存储，以及依赖它的 authorization、DeepSeek account 和网安代理消费方。API 密钥路由依次使用启动环境、`<运行命令的目录>/.env` 和 `$DSH_HOME/.env`。GUI 保存的密钥和登录凭据不会被使用，存储文件保持原样。需要已保存登录凭据的提供方会失败，除非恢复存储认证；AWS profile 等提供方外部凭据链仍然可用。
 
 启动变量为空时，请取消导出该变量，让 `.env` 后备生效；已导出的空值会遮蔽后备值。
 

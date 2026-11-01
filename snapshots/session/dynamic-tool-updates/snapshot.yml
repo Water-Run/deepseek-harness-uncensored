@@ -7,3 +7,6 @@ header:
   class: dynamic-tool-updates
   pin: true
   changes: 2
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

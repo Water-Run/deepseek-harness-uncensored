@@ -1,6 +1,7 @@
 version: 1
 scenario: subagent-send-message
 profile: sdk
+permission: danger-full-access
 composition: subagent-send-message
 recording: authored
 header:
@@ -10,3 +11,6 @@ header:
   toolSchemasSource: session/text-turn
   childSystemPrompts: [1]
   childToolSchemas: [1]
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

@@ -1,8 +1,12 @@
 version: 1
 scenario: dynamic-tool-updates
 profile: sdk
+permission: danger-full-access
 composition: dynamic-tool-updates
 recording: authored
 header:
   class: dynamic-tool-updates
   changes: 2
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

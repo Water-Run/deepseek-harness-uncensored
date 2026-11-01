@@ -25,7 +25,7 @@ kind: "package-library"
 <a id="use-this-package"></a>
 ## 使用本包
 
-维护 headless 场景头部时，设置 `DSH_SNAPSHOT=headers` 并运行该场景。它先回放并核对 Session 记录及工作区结果，再更新所有者的系统提示词和工具定义固定件，不写入已提交的会话代际或 writer 期望文件；随后用普通回放验证新固定件。
+维护 headless 或 SDK 场景头部时，设置 `DSH_SNAPSHOT=headers` 并运行该场景。它先回放并核对 Session 记录及工作区结果，再更新所有者的系统提示词和工具定义固定件，不写入已提交的会话代际或 writer 期望文件；随后用普通回放验证新固定件。
 
 本包把随附 profile 场景变成无密钥快照套件：写一张场景表和一个 fixture 目录，调用一次匹配的适配器，工具包就负责启动或组合 profile、驱动场景、比较规范化输出并守护已提交的 fixture。
 
@@ -79,6 +79,8 @@ spill 场景通过真实本地提供方保存到私有临时根目录。fixture 
 保留历史输入的场景保持规范 Session 文件不变，并继续选择它们进行回放；固定历史版本的目录中没有更新的规范同角色文件。其精确的规范化原生 writer 输出单独记录在父会话的 `writer.expected.jsonl` 和子会话的 `writer.<ordinal>.expected.jsonl` 中；这些是输出比较基准，而非 replay 代际。输出比较基准可以保留较旧的受支持代际：比较通过严格 catalog 恢复它们，而收集的日志必须使用当前检出版本的 writer。新 writer 输出的 golden 比较选择 `nativeWriterOutput`，仅在严格恢复后，将版本限定为各输入原始 writer 代际的 delivery 标记转换为 token。其他 delivery 代际与 captured-source 字段保持数值；源文件与已迁移产物的比较默认保留精确代际。record 与 refresh 从不存储这些比较 token。保留历史输入的 SDK 场景使用 `notifications.current.expected.jsonl` 记录当前协议输出。比较既不将当前事件反向投影为历史格式，也不剥除结构差异。独立迁移测试验证正式转换，而不把原生 writer 布局当作其预期事件序列。
 
 Headless/ACP 与 SDK 适配器在规范化之前，将原始目录中的子创建时间与采集到的子 header 比较。刷新会在每条匹配的目录记录中保留选定的子 header 时间，包括继承副本，防止保留的 header 时钟与新写入的目录时钟分歧。已提交的历史不一致数据保持不变，作为迁移拒绝证据；将其时钟规范化不能证明迁移成功。
+
+`sessionFormat.coverage: [behavior-update]` 用于格式未变、应用行为已变化的当前格式录制。原 Session 文件保持不变，继续作为回放输入；独立的 `writer.expected.jsonl` 描述当前输出。这些场景计入当前编解码器覆盖，不能替代历史格式迁移覆盖。保留输入的场景从 writer 期望文件核对请求头；接受刷新结果前须审阅输出差异。
 
 ### 录制、回放与刷新
 

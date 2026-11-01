@@ -25,7 +25,7 @@ English | [中文](README.zh.md)
 <a id="use-this-package"></a>
 ## Use this package
 
-For headless header maintenance, set `DSH_SNAPSHOT=headers` when running the owning snapshot scenario. It replays and verifies Session records and workspace results before refreshing owned system-prompt/tool-schema sidecars. Committed Session generations and writer oracles are not written; ordinary replay verifies the new sidecars afterwards.
+For headless and SDK header maintenance, set `DSH_SNAPSHOT=headers` when running the owning snapshot scenario. It replays and verifies Session records and workspace results before refreshing owned system-prompt/tool-schema sidecars. Committed Session generations and writer oracles are not written; ordinary replay verifies the new sidecars afterwards.
 
 This package turns a shipped profile scenario into a keyless snapshot suite: write a scenario table and a fixtures directory, call the matching adapter once, and the kit owns launching or composing the profile, driving the scenario, comparing normalized output, and guarding the committed fixtures.
 
@@ -79,6 +79,8 @@ Spill scenarios save through the real local provider under a private temporary r
 Retained historical scenarios keep their canonical Session files unchanged and selected for replay, with no newer canonical sibling in the pinned directory. Their exact normalized native writer output is recorded separately in `writer.expected.jsonl` for the parent and `writer.<ordinal>.expected.jsonl` for children; these are output oracles, not replay generations. Output oracles may retain an older supported generation: comparison restores them through the strict catalog, while harvested logs must use the checkout writer. Fresh-writer golden comparisons select `nativeWriterOutput` to tokenize only delivery markers qualified by each input’s original writer generation after strict restoration. Other delivery generations and captured-source fields remain numeric; source-versus-migrated-artifact comparisons preserve exact generations by default. Recording and refresh never store these comparison tokens. Retained SDK scenarios use `notifications.current.expected.jsonl` for current protocol output. Comparisons neither project current events back into a historical format nor strip structural differences. Independent migration tests verify the official transform rather than treating native writer layout as its expected event sequence.
 
 Headless/ACP and SDK adapters compare raw catalog child-creation times with harvested child headers before normalization. Refresh preserves the chosen child header time in every matching catalog entry, including inherited copies, so retained header clocks cannot diverge from freshly written catalog clocks. Committed historical inconsistencies remain unchanged migration-refusal evidence; normalizing their clocks does not establish successful migration.
+
+`sessionFormat.coverage: [behavior-update]` retains a current-format recording when application behavior changes without a format change. Its immutable Session files remain replay inputs; separate `writer.expected.jsonl` files describe current output. These cases count as current-codec coverage and never replace historical migration coverage. Header comparisons use the writer oracle for retained inputs. Review changed outputs before accepting a refresh.
 
 ### Record, replay, and refresh
 

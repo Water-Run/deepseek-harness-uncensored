@@ -75,7 +75,7 @@ export interface SnapshotSessionReference {
   source: string
 }
 
-/** Historical format or retired capability one retained scenario permanently exercises. */
+/** Historical format, retired capability, or earlier current-format behavior retained as replay input. */
 export type SnapshotSessionFormatCoverage =
   | 'multi-hop'
   | 'packed-row'
@@ -83,8 +83,9 @@ export type SnapshotSessionFormatCoverage =
   | 'shipped-profile'
   | 'adjacent-migration'
   | 'retired-tools'
+  | 'behavior-update'
 
-/** Explicit historical generation retained by an owning scenario. */
+/** Immutable generation retained for migration, retired tools, or a separate current-behavior oracle. */
 export interface SnapshotSessionFormatManifest {
   /** Selected fixture generation; absent manifest metadata tracks the current writer. */
   readonly version: number
@@ -156,6 +157,7 @@ const SESSION_FORMAT_COVERAGE = new Set<SnapshotSessionFormatCoverage>([
   'shipped-profile',
   'adjacent-migration',
   'retired-tools',
+  'behavior-update',
 ])
 const NAME_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 

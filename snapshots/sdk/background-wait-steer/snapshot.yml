@@ -1,6 +1,7 @@
 version: 1
 scenario: background-wait-steer
 profile: sdk
+permission: workspace-write
 composition: sdk-background-wait
 recording: authored
 header:

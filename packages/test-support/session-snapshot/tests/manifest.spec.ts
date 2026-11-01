@@ -2,6 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { parseSnapshotManifest, writesCurrentSessionFixtures } from '../src/manifest.ts'
 
 describe('snapshot manifest', () => {
+  it('keeps current-format behavior recordings immutable in every maintenance mode', () => {
+    const manifest = parseSnapshotManifest('version: 1\nprofile: sdk\nsessionFormat:\n  version: 4\n  coverage: [behavior-update]\n')
+    expect(manifest.sessionFormat).toEqual({ version: 4, coverage: ['behavior-update'] })
+    for (const mode of ['record', 'refresh', 'headers', 'replay'] as const) {
+      expect(writesCurrentSessionFixtures(manifest, mode)).toBe(false)
+    }
+  })
   it('declares SQLite authorizer requirements only for the owning headless runner', () => {
     expect(parseSnapshotManifest('version: 1\nprofile: headless\nruntime: sqlite-authorizer\n').runtime).toBe('sqlite-authorizer')
     for (const source of ['version: 1\nprofile: acp\nruntime: sqlite-authorizer\n',

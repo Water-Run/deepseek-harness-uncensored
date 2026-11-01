@@ -1,6 +1,7 @@
 version: 1
 scenario: text-turn
 profile: sdk
+permission: workspace-write
 composition: sdk-upload
 recording: live
 environment:
@@ -8,3 +9,6 @@ environment:
 header:
   class: sdk-upload
   pin: true
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

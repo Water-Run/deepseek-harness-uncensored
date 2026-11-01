@@ -62,6 +62,28 @@ const credentials = JSON.stringify({
 
 describe('headless credential policy', { retry: 0 }, () => {
   it.each([
+    { name: 'the DSHU default', selected: undefined, sandbox: 'danger-full-access', approval: 'Approval prompts are disabled' },
+    { name: 'an explicit workspace policy', selected: 'workspace-write', sandbox: 'workspace-write', approval: 'Approval prompts are enabled' },
+  ])('boots without pending consumers and uses $name', async (scenario) => {
+    const server = await startMockLlmServer({ sequence: ['success'], repeatLast: true, apiKey: launchKey })
+    try {
+      const result = await runLoaderSmoke({
+        label: `headless permission: ${scenario.name}`,
+        tempDirPrefix: 'headless-permission-', binScript, tsconfigPath, sourceImport: 'tsx/esm',
+        configPath: '', binArgs: ['headless', 'Reply briefly.'], processTimeoutMs,
+        env: { DEEPSEEK_API_KEY: launchKey, DEEPSEEK_BASE_URL: server.baseURL,
+          DSH_PERMISSION_MODE: scenario.selected, DSH_TELEMETRY_DISABLED: '1' },
+      })
+      expect(result.stdout.trim()).toBe('mock response recovered')
+      expect(result.stderr).toBe('')
+      expect(server.requests.some((request) => {
+        const body = JSON.stringify(request.body)
+        return body.includes(`Current DSH file policy: ${scenario.sandbox}.`) && body.includes(scenario.approval)
+      })).toBe(true)
+    } finally { await server.close() }
+  }, processTimeoutMs + 15_000)
+
+  it.each([
     { name: 'launch environment', launch: launchKey, project: projectKey, home: homeKey, expected: launchKey },
     { name: 'project .env', launch: undefined, project: projectKey, home: homeKey, expected: projectKey },
     { name: 'home .env', launch: undefined, project: undefined, home: homeKey, expected: homeKey },

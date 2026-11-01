@@ -1,8 +1,12 @@
 version: 1
 scenario: bash-tool
 profile: sdk
+permission: workspace-write
 composition: sdk-default
 recording: live
 header:
   class: sdk-default
   pin: true
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

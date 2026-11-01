@@ -1,6 +1,7 @@
 version: 1
 scenario: session-title-stability
 profile: sdk
+permission: danger-full-access
 composition: session-title-stability
 recording: authored
 header:

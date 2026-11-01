@@ -39,6 +39,33 @@ describe('recorded-session corpus policy', () => {
       .toEqual({ currentRoles: 8, baselineRoles: 8, retainedRoles: 3, retainedScenarios: 3 })
   })
 
+  it('checks current-format behavior against separate writer outputs without consuming migration slots', () => {
+    const behavior = {
+      key: 'sdk/behavior-update', selectedVersions: Array<number>(20).fill(SESSION_FORMAT_VERSION),
+      retained: { version: SESSION_FORMAT_VERSION, coverage: ['behavior-update'] as const },
+    }
+    expect(assertSnapshotCorpusPolicy([baseline, completeV0, ...adjacent, behavior]))
+      .toEqual({ currentRoles: 20, baselineRoles: 8, retainedRoles: 3, retainedScenarios: 3 })
+    expect(() => assertSnapshotCorpusPolicy([current, completeV0, ...adjacent, behavior]))
+      .toThrow('Session corpus lacks v3 coverage')
+  })
+
+  it.each([SESSION_FORMAT_VERSION - 1, SESSION_FORMAT_VERSION + 1])(
+    'rejects a behavior oracle with non-current input format %i', (version) => {
+      expect(() => assertSnapshotCorpusPolicy([baseline, completeV0, ...adjacent, {
+        key: 'sdk/behavior-update', selectedVersions: [version],
+        retained: { version, coverage: ['behavior-update'] },
+      }])).toThrow('behavior-update requires only that coverage name and the current Session format')
+    },
+  )
+
+  it('does not mix current behavior oracles with historical or retired-tool coverage', () => {
+    expect(() => assertSnapshotCorpusPolicy([baseline, completeV0, ...adjacent, {
+      key: 'sdk/behavior-update', selectedVersions: [SESSION_FORMAT_VERSION],
+      retained: { version: SESSION_FORMAT_VERSION, coverage: ['behavior-update', 'retired-tools'] },
+    }])).toThrow('behavior-update requires only that coverage name and the current Session format')
+  })
+
   it.each([
     [SESSION_FORMAT_VERSION, 3],
     [3, SESSION_FORMAT_VERSION],

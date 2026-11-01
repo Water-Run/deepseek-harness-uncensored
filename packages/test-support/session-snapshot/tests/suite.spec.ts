@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
+import { SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session'
 import {
   assertPersistedSessionVersion,
   assertSessionFixtureVersion,
@@ -25,6 +26,7 @@ import {
   assertChildSystemPromptSnapshot,
   assertUniqueSnapshotContents,
   claimSharedSnapshot,
+  comparesSessionLog,
   fixtureContext,
   formatSystemPromptSnapshot,
   headerChangeCount,
@@ -57,6 +59,28 @@ import {
  */
 
 const fakeAgent = fileURLToPath(new URL('./fixtures/fake-acp-agent.ts', import.meta.url))
+
+describe('current-behavior output comparison', () => {
+  const retained = { version: SESSION_FORMAT_VERSION, coverage: ['behavior-update'] as const }
+
+  it('requires a Session comparison for a retained current-format model turn', () => {
+    expect(comparesSessionLog({ hasModelTurn: true }, retained)).toBe(true)
+    expect(comparesSessionLog({ hasModelTurn: true, comparesLog: true }, retained)).toBe(true)
+  })
+
+  it.each([{ hasModelTurn: false }, { hasModelTurn: true, comparesLog: false }])(
+    'rejects a declaration that cannot validate persisted output: %j', (scenario) => {
+      expect(() => comparesSessionLog(scenario, retained)).toThrow('requires a compared model turn')
+    },
+  )
+
+  it('keeps ordinary and historical comparison choices explicit', () => {
+    expect(comparesSessionLog({ hasModelTurn: true }, undefined)).toBe(true)
+    expect(comparesSessionLog({ hasModelTurn: false }, undefined)).toBe(false)
+    expect(comparesSessionLog({ hasModelTurn: true }, { version: 0, coverage: ['multi-hop'] })).toBe(false)
+    expect(comparesSessionLog({ hasModelTurn: false, comparesLog: true }, undefined)).toBe(true)
+  })
+})
 const AGENT = {
   binScript: fakeAgent,
   libBinScript: fakeAgent,

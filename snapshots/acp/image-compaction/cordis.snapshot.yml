@@ -48,7 +48,7 @@
                 # Route-priced request images at the provider cap; the small
                 # context window turns that visual pressure into an automatic
                 # compaction the text-only heuristic would not trigger.
-                contextWindow: 10022
+                contextWindow: 14347
                 imageRequestTokens: 384
 
 - id: attachment-local
@@ -62,8 +62,10 @@
   name: '@deepseek-ai/dsh-compaction-basic'
   config:
     headroomTokens: 0
+    thresholdRatio: 0.8
     maxTokens: 8192
     retainTokens: 100
 
 - insert:
-    - name: './summary-image-budget.mjs'
+    - id: summary-image-budget
+      name: './summary-image-budget.mjs'

@@ -1,6 +1,7 @@
 version: 1
 scenario: account-provider-signout
 profile: sdk
+permission: workspace-write
 composition: sdk-account-provider-signout
 recording: authored
 header:
@@ -8,3 +9,6 @@ header:
   pin: true
   systemPromptSource: text-turn
   toolSchemasSource: text-turn
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

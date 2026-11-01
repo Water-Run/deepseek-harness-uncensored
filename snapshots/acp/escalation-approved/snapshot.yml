@@ -9,3 +9,6 @@ header:
   systemPromptSource: session/text-turn
   toolSchemasSource: session/text-turn
 permission: workspace-write
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

@@ -6,3 +6,6 @@ recording: live
 header:
   class: acp-default
 permission: workspace-write
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

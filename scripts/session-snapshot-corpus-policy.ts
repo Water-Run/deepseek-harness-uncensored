@@ -72,6 +72,15 @@ export function assertSnapshotCorpusPolicy(
         `${scenario.key}: selected Session generation v${mismatched} does not match expected v${expectedVersion}`,
       )
     }
+    if (scenario.retained.coverage.includes('behavior-update')) {
+      if (scenario.retained.coverage.length !== 1 || expectedVersion !== SESSION_FORMAT_VERSION) {
+        throw new Error(`${scenario.key}: behavior-update requires only that coverage name and the current Session format`)
+      }
+      // The input uses the current codec. Its separate writer oracle checks changed application behavior,
+      // without consuming historical migration slots or claiming an older-format migration edge.
+      currentRoles += scenario.selectedVersions.length
+      continue
+    }
     const retiredTools = scenario.retained.coverage.length === 1 && scenario.retained.coverage[0] === 'retired-tools'
     if (!Number.isSafeInteger(scenario.retained.version)
       || scenario.retained.version < 0 || scenario.retained.version > SESSION_FORMAT_VERSION

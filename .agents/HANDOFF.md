@@ -1,5 +1,19 @@
 # Uncensored 开发交接
 
+## 新内核历史回放收尾（2026-11-02）
+
+Goal active，继续后台推进全部待办。主工作区为 D:/Coding/deepseek-harness-uncensored，只有 main；安装器原生窗口和正式安装仍延后，Android/Fedora 与全新安装器仍为计划。02.10 内核适配可勾选完成，安装器、完整目标保护及产品联动仍未完成。
+
+发现并修复 headless 组合的权限默认值不一致和 security-proxy 等待已禁用 credentials 的启动问题。默认保持 DSHU 完全权限，显式 workspace-write/ask 可用；真实 profile 的两个启动用例通过。SDK 回放开始消费 manifest 的显式权限，并新增先核对会话/协议后维护 header 的模式。
+
+POSIX Node 24.21 下 SDK 33 项与 ACP 16 项共 49 项普通回放全部通过。当前格式旧输入用 behavior-update 声明保留，新增 writer 输出独立验证；不能关闭日志比较或写穿共享侧车。224 项语料/运行器/冻结记录测试通过，1 项既有跳过；667 份既有 Session 字节未变。错误 writer 内容的 SDK、ACP 负对照均失败，SDK header 维护失败时不写侧车。图片场景按实际静态请求增加 3460 token 调整窗口至 14347，并断言仅图片计费越过 80% 阈值；计费降至有效值 1 的负对照因不触发预期压缩而失败。最初设 0 只触发配置校验，不作为行为证据。
+
+最新完整构建 10/10 通过；README 检查、820 组中英配对通过。pnpm lint 的嵌套 npm 被本机 Corepack 包管理器路由拒绝，改用同一已生成契约后的 run-oxlint 入口复验，仅发现一处测试箭头括号格式，修正后该文件检查通过；无其他错误。未改包管理策略、normalizer 或产品 armor 文本。
+
+证据在 .dsh-build：sdk-acp-replay-final-20261102.log、replay-oracle-checks-20261102.log、current-output-negative-proof-20261102.json、image-pricing-negative-20261102.log、replay-final-build-20261102.log、replay-oxlint-20261102.log。Linux 隔离目录 /home/linzh/.cache/dshu-verification/alpha2-20261101.HlFeMf（Ubuntu），使用私有 Node/pnpm store，无真实模型密钥；SheetJS 仅验证副本使用同 sha512 本地镜像，主锁文件未改。
+
+现有 811717f230 检查包不包含本次 headless 修复，仍未替换正式安装。下一项继续 P2 SSH 代理及受限执行/数据库身份，再接 P3 审计；不得把拒绝不受限进程当作完整目标沙盒。
+
 ## 已推送新内核与独立检查包（2026-11-01）
 
 用户最新要求推进 TODO 到全部完成；Goal active，继续现有进行中和待实现项。原生安装器窗口仍按“先继续后台开发”延后；Android＋PRoot Fedora 与全新安装器架构仍为计划，不扩大成即时实施任务。原目标保护、数据库、审计、并存和签名验收范围保留。

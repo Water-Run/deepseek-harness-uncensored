@@ -3,6 +3,9 @@ scenario: image-compaction
 profile: acp
 composition: image-compaction
 recording: authored
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]
 header:
   class: image-compaction
   pin: true

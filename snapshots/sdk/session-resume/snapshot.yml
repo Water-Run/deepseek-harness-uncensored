@@ -1,6 +1,7 @@
 version: 1
 scenario: session-resume
 profile: sdk
+permission: danger-full-access
 composition: default
 recording: authored
 header:
@@ -9,3 +10,6 @@ header:
   changes: 1
   promptChanges: 1
   toolSchemasSource: session/compaction-recovery
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

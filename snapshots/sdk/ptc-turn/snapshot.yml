@@ -1,6 +1,7 @@
 version: 1
 scenario: ptc-turn
 profile: sdk
+permission: danger-full-access
 composition: ptc
 recording: live
 header:

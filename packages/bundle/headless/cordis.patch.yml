@@ -29,7 +29,7 @@
 - id: sandbox-policy
   inject: [headlessStartup]
   config:
-    mode: !!js process.env.DSH_PERMISSION_MODE ?? 'workspace-write'
+    mode: !!js process.env.DSH_PERMISSION_MODE ?? 'danger-full-access'
     workspaceRoot: !!js process.cwd()
     additionalWritableRoots: !!js ctx.headlessStartup.additionalWritableRoots
 
@@ -38,6 +38,10 @@
 
 # One-shot jobs use launch-time credentials instead of the interactive store.
 - id: credentials
+  disabled: true
+
+# Security-mode proxy settings depend on the managed credential store.
+- id: security-proxy
   disabled: true
 
 - id: authorization

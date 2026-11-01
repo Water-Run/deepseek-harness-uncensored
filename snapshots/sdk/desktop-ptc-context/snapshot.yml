@@ -1,6 +1,7 @@
 version: 1
 scenario: desktop-ptc-context
 profile: sdk
+permission: workspace-write
 composition: sdk-desktop-ptc
 recording: authored
 header:

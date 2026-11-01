@@ -1,6 +1,7 @@
 version: 1
 scenario: subagent-mixed
 profile: sdk
+permission: danger-full-access
 composition: default
 recording: live
 header:
