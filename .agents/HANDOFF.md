@@ -1,5 +1,19 @@
 # Uncensored 开发交接
 
+## 内核迁移隔离工作树已建立（2026-11-01）
+
+安装器后台节点 83b0eb2269 已推送 main；用户要求暂不打开前台测试窗口，02.11 的交互/DPI 验收继续延后。正式安装没有更换。42 项相关单测、14 项原生静默检查、构建和检查证据见下节。
+
+**恢复工作位置：D:/Coding/deepseek-harness-uncensored-upstream-20261101。** 这是从 83b0eb2269 创建的 detached HEAD，未创建命名分支。另有旧 D:/Coding/dshu-verify 工作树，不属于本次迁移，不动它。主仓库 D:/Coding/deepseek-harness-uncensored 仍为已验证 main，只有被要求保留的 undefined 缓存。
+
+目标固定为上游 f3803c96974ad4a94195fb97e5c637e9c2a3afe3（0.2.2-alpha.2），源树基准 1f81c047fc48fa190a683e469daa699857e9afe8；rc.5 的 b830ec950faba0a46dda564be3e2d854afed94f1 思考展示修复另核准。首次完整 git apply 因 7 个本分支删除/上游删除但本分支修改的文件失败且没有改变工作树，不能把日志的 Applied 字样当作实际导入。现已用筛选后的三方补丁实际导入 6468 个文件补丁，保留根 README、公开 docs/website 删除、工作流与本分支指引、GPL 和 product.json。
+
+**当前有 148 个未合并路径，未安装依赖、未构建。** 已人工解决并 git add 四处：根 package.json（内核 alpha.2，GPL 保留，文档站脚本不恢复）、apps/desktop/package.json（产品 0.1.0、WaterRun 与独立描述保留）、PTC 服务的组合类型导入、Node PTC 的新 JSON wire 导入并保留共享绑定校验。不要重置此工作树或重新覆盖整份补丁。这里是 git apply --3way 的索引冲突，不是已开始的 git merge，不运行 merge --continue。
+
+83 项被显式留待核对：76 份既有会话记录保持原字节；5 个本分支已删除文件（共享设置样式与旧 Cordis 预设）需将上游改进移植到当前所有者；2 个上游删除而本分支修改的文件（installer/strings.nsh、web-fetch-http/src/network.ts）需手工适配，不能直接丢弃本分支行为。旧记录不因为升级而重写，新增上游记录已随源码进入。614 份原有记录已按索引阶段及 Git blob 逐一验证未改。
+
+冲突及遗漏清单：主仓库 .dsh-build/upstream-alpha2-checkpoint-20261101.json、upstream-alpha2-manual-import-20261101.json；可重现筛选脚本 filter-upstream-alpha2.py 与补丁也在该目录。下一步先解决清单/锁文件/组合与核心接口冲突，再适配所有自定义消费者和 UI；不能仅以冲突清零视为升级完成。不要共享主工作树 node_modules 以免混用源码/产物，依赖安装须在迁移树内独立进行。当前内核升级未合入 main，product.json 仍是原版本记录。
+
 ## 安装器独立身份与数据保留（2026-11-01）
 
 Goal active。02.11 已完成源码和后台验证，用户明确选择“先继续后台开发”，因此不打开前台安装器测试窗口，也不操作正式安装。欢迎/进度/完成/卸载及窗口标题采用 DSHU，五张图来自现有 resources/icon.svg；render:installer-brand 可重现生成，浅深两图和卸载图已查看。包名为 deepseek-harness-uncensored，作者 WaterRun，应用全名/默认安装目录仍为 DeepSeek Harness Uncensored。新增独立 ID 校验并修正四个 Windows/macOS 预设例子及本地 macOS 默认值，拒绝已知官方 ID 的大小写变体。正式版本号与内核版本未变。
