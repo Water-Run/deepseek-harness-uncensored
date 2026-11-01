@@ -1,5 +1,11 @@
 /** English spending labels; amounts refer to conservative local estimates. */
 export const spendingEn = {
+  'spending.bannerTitle': 'Conversation paused for budget',
+  'spending.bannerManual': 'Automatic continuation is off or recovery is required. Resume checks the remaining budget again.',
+  'spending.bannerPending': 'Waiting for in-flight requests to settle; the recovery time is not yet known.',
+  'spending.bannerResuming': 'Budget is available; waiting for automatic continuation.',
+  'spending.bannerAutomatic': 'Estimated automatic continuation: {time}. Other requests may change this estimate.',
+  'spending.bannerReset': 'Reset limits and continue',
   'spending.windowEnabled': 'Enable limit for {period}', 'spending.enabledCount': '{count} active limits',
   'spending.increase': 'Increase limit for {period}', 'spending.decrease': 'Decrease limit for {period}',
   'spending.disableAll': 'Disable all', 'spending.resetAll': 'Reset all', 'spending.resetWindow': 'Reset',
@@ -34,6 +40,12 @@ export const spendingEn = {
 } as const
 /** Simplified Chinese spending labels. */
 export const spendingZh: Record<keyof typeof spendingEn, string> = {
+  'spending.bannerTitle': '对话因额度限制暂停',
+  'spending.bannerManual': '自动恢复已关闭或需要手动恢复；点击恢复会重新检查剩余额度',
+  'spending.bannerPending': '正在等待在途请求结算，暂时无法确定恢复时间',
+  'spending.bannerResuming': '额度已可用，正在等待自动继续',
+  'spending.bannerAutomatic': '预计 {time} 自动继续；其他请求可能影响此时间',
+  'spending.bannerReset': '重置限额统计并继续',
   'spending.windowEnabled': '启用 {period}限额', 'spending.enabledCount': '{count} 项限额生效',
   'spending.increase': '增加 {period}限额', 'spending.decrease': '减少 {period}限额',
   'spending.disableAll': '全部关闭', 'spending.resetAll': '全部重置', 'spending.resetWindow': '重置',

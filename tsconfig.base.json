@@ -143,6 +143,7 @@
       "@deepseek-ai/dsh-tool-call-timeout-policy": ["./packages/guard/timeout-policy/src"],
       "@deepseek-ai/dsh-spend-limit": ["./packages/guard/spend-limit/src"],
       "@deepseek-ai/dsh-spend-limit/types": ["./packages/guard/spend-limit/src/types.ts"],
+      "@deepseek-ai/dsh-spend-limit/src/*": ["./packages/guard/spend-limit/src/*"],
       "@deepseek-ai/dsh-security-proxy": ["./packages/guard/security-proxy/src"],
       "@deepseek-ai/dsh-security-proxy/types": ["./packages/guard/security-proxy/src/types.ts"],
       "@deepseek-ai/dsh-security-proxy-local": ["./packages/guard/security-proxy-local/src"],

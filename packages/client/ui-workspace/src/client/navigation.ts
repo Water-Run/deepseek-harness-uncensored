@@ -82,11 +82,11 @@ export interface UiWorkspace {
    * Open the Workspace blank `connectWorkspace` resolves, so New Session returns to that blank's
    * unsent draft. A creation the Host refuses is shown through the Workspace notice and leaves the
    * selection as it was.
-   * @param workspaceId - explicit target; absent inherits the current or most recent Workspace.
+   * @param workspaceId - Explicit target; null selects no workspace, omission inherits the current or most recent Workspace.
    * @param options - initial content, the blank's preset, and `whenDraftExists`, which decides
    * whether existing text or attachments are kept, replaced, or followed by the prompt.
    */
-  startSession(workspaceId?: WorkspaceId, options?: StartSessionOptions): void
+  startSession(workspaceId?: WorkspaceId | null, options?: StartSessionOptions): void
   /**
    * Archive a Session and clear it when it is the current selection.
    * @param sessionId - Session to archive.
@@ -325,7 +325,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     })
   }
 
-  startSession(workspaceId?: WorkspaceId, options?: StartSessionOptions): void {
+  startSession(workspaceId?: WorkspaceId | null, options?: StartSessionOptions): void {
     const { agentPreset, ...draft } = options ?? {}
     const draftOptions = options === undefined ? undefined : draft
     const initializeDraft = draftOptions !== undefined && (draftOptions.prompt !== undefined
@@ -339,7 +339,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     const recent = workspace.phase === 'ready' && sessions.phase === 'ready'
       ? recentWorkspace(workspace.items, sessions.byId)
       : undefined
-    const target = workspaceId ?? (current === undefined ? recent : currentWorkspaceId ?? null)
+    const target = workspaceId !== undefined ? workspaceId : (current === undefined ? recent : currentWorkspaceId ?? null)
     if (target === undefined) {
       if (initializeDraft) {
         this.notify({ kind: 'createFailed', message: this.ctx.locale.bind('workspace')('draft.workspaceRequired') })

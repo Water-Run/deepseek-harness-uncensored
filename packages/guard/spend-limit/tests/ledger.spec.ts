@@ -28,6 +28,36 @@ it('starts disabled with the six requested limits and no automatic recovery', as
   expect(ledger.snapshot().pending).toBe(0)
 })
 
+it('estimates admission only when every enabled window can fit the waiting request', async () => {
+  let now = 1000
+  const ledger = await setup(':memory:', () => now)
+  ledger.configure({ ...DEFAULT_PREFERENCES, enabledPeriods: ['15m', '1h'], autoResume: true,
+    limits: { ...DEFAULT_PREFERENCES.limits, '1h': 5 } })
+  ledger.settle(reservation(ledger.reserve(2 * MICRO_CNY)), 2 * MICRO_CNY)
+  now = 2000
+  ledger.settle(reservation(ledger.reserve(2 * MICRO_CNY)), 2 * MICRO_CNY)
+  ledger.waitForSession(SessionId('waiting'), 4 * MICRO_CNY)
+  expect(ledger.snapshot().nextExpiry).toBe(901000)
+  expect(ledger.snapshot().pausedSessions[0]?.resumeAt).toBe(3602000)
+  ledger.reset('1h')
+  expect(ledger.snapshot().pausedSessions[0]?.resumeAt).toBe(902000)
+  now = 902000
+  expect(ledger.snapshot().pausedSessions[0]?.resumeAt).toBe(now)
+  expect(ledger.reserve(4 * MICRO_CNY).kind).toBe('reserved')
+})
+
+it('does not invent a recovery time while in-flight reservations prevent admission', async () => {
+  const ledger = await setup()
+  enable(ledger)
+  const running = reservation(ledger.reserve(4 * MICRO_CNY))
+  ledger.waitForSession(SessionId('waiting'), 2 * MICRO_CNY)
+  expect(ledger.snapshot().pausedSessions[0]?.resumeAt).toBeNull()
+  ledger.settle(running, MICRO_CNY)
+  expect(ledger.snapshot().pausedSessions[0]?.resumeAt).toBe(1000)
+  ledger.setAutoResume(false)
+  expect(ledger.snapshot().pausedSessions[0]?.resumeAt).toBeNull()
+})
+
 it('reserves against all windows and charges only complete reported usage', async () => {
   const ledger = await setup()
   enable(ledger)
@@ -129,13 +159,13 @@ it('keeps a live process waiting and promotes only a dead process to blocked', a
   external.prepare('UPDATE session_pauses SET pid = ?, owner = ? WHERE session_id = ?').run(999_999, 'dead-owner', 'dead-task')
   external.close()
   expect(live.snapshot().pausedSessions).toEqual([
-    { sessionId: 'dead-task', state: 'blocked' },
-    { sessionId: 'live-task', state: 'waiting' },
+    { sessionId: 'dead-task', state: 'blocked', resumeAt: null },
+    { sessionId: 'live-task', state: 'waiting', resumeAt: null },
   ])
   const restarted = await setup(path, () => 1000, () => false)
   expect(restarted.snapshot().pausedSessions).toEqual([
-    { sessionId: 'dead-task', state: 'blocked' },
-    { sessionId: 'live-task', state: 'blocked' },
+    { sessionId: 'dead-task', state: 'blocked', resumeAt: null },
+    { sessionId: 'live-task', state: 'blocked', resumeAt: null },
   ])
 })
 
@@ -156,7 +186,7 @@ it('claims blocked conversations only after the manual pause is clear and a wind
   ledger.resume()
   expect(ledger.claimBlockedSessions()).toEqual([{ id: pauseId, sessionId: 'paused-task' }])
   expect(ledger.claimBlockedSessions()).toEqual([])
-  expect(ledger.snapshot().pausedSessions).toEqual([{ sessionId: 'paused-task', state: 'blocked' }])
+  expect(ledger.snapshot().pausedSessions).toEqual([{ sessionId: 'paused-task', state: 'blocked', resumeAt: null }])
   ledger.completeClaim(pauseId)
   expect(ledger.snapshot().pausedSessions).toEqual([])
 })
@@ -207,7 +237,7 @@ it('migrates legacy pauses without automatically executing an unclassified old r
   } finally { db.close() }
   const migrated = await setup(path)
   expect(migrated.snapshot().preferences.autoResume).toBe(true)
-  expect(migrated.snapshot().pausedSessions).toEqual([{ sessionId: 'legacy', state: 'blocked' }])
+  expect(migrated.snapshot().pausedSessions).toEqual([{ sessionId: 'legacy', state: 'blocked', resumeAt: null }])
   expect(migrated.claimBlockedSessions()).toEqual([])
   migrated.configure(migrated.snapshot().preferences)
   migrated.reset()

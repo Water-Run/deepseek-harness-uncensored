@@ -27,6 +27,8 @@ This package lets users browse grouped or flat Session lists, choose a Workspace
 <a id="use-this-package"></a>
 ## Use this package
 
+The Ungrouped header starts a conversation without a workspace. Explicit `startSession(null)` preserves this choice even when another workspace is current or recent.
+
 The workspace picker searches names and paths, treating slash direction and letter case consistently. Search stays open with an empty-result message, while Add Workspace remains available.
 
 A project's running-conversation action opens its newest non-archived running conversation, excluding the one already open. It remains available while the project is folded and uses the normal session-opening path, preserving task state and drafts.

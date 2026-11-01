@@ -5,7 +5,8 @@ import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import type { SpendPeriod, SpendSnapshot } from '@deepseek-ai/dsh-spend-limit/types'
 import type { SpendingState } from '../src/client/spending-controller.ts'
-import { SpendingSettings, SpendingSidebar } from '../src/client/SpendingView.tsx'
+import { SpendingSettings, SpendingSidebar, SpendingBanner } from '../src/client/SpendingView.tsx'
+import { SessionId } from '@deepseek-ai/dsh-session'
 import { en } from '../src/client/locales.ts'
 
 afterEach(cleanup)
@@ -24,6 +25,33 @@ function fixture(enabledPeriods: SpendPeriod[] = [], showSettings = true) {
   if (showSettings) render(<SpendingSettings {...props} />)
   return { state, props, ...operations }
 }
+
+it('keeps a session pause banner visible with estimated recovery and a quick reset', async () => {
+  const { props, state, resetSpending } = fixture(['5h'], false)
+  const data = state.getSnapshot().data!
+  state.set({ ...state.getSnapshot(), data: { ...data, preferences: { ...data.preferences, autoResume: true },
+    pausedSessions: [{ sessionId: SessionId('current'), state: 'waiting', resumeAt: 60000 }] } })
+  render(<SpendingBanner {...props} sessionId={SessionId('other')} />)
+  expect(screen.queryByRole('status')).toBeNull()
+  render(<SpendingBanner {...props} sessionId={SessionId('current')} />)
+  expect(screen.getByRole('status').textContent).toContain('Estimated automatic continuation:')
+  await act(async () => { fireEvent.click(screen.getByRole('button', { name: en['spending.bannerReset'] })) })
+  expect(resetSpending).toHaveBeenCalledOnce()
+  act(() => { state.set({ ...state.getSnapshot(), data: { ...data, pausedSessions: [] } }) })
+  expect(screen.queryByRole('status')).toBeNull()
+})
+
+it('shows pending reservations and read failures without inventing a recovery time', () => {
+  const { props, state } = fixture(['5h'], false)
+  const data = state.getSnapshot().data!
+  state.set({ ...state.getSnapshot(), data: { ...data, preferences: { ...data.preferences, autoResume: true },
+    pausedSessions: [{ sessionId: SessionId('current'), state: 'waiting', resumeAt: null }] } })
+  render(<SpendingBanner {...props} sessionId={SessionId('current')} />)
+  expect(screen.getByRole('status').textContent).toContain(en['spending.bannerPending'])
+  act(() => { state.set({ ...state.getSnapshot(), failed: true }) })
+  expect(screen.getByRole('button', { name: en['spending.retry'] })).toBeTruthy()
+  expect(screen.queryByRole('button', { name: en['spending.bannerReset'] })).toBeNull()
+})
 
 it('starts with only five-hour and weekly controls expanded and all windows off', async () => {
   fixture()

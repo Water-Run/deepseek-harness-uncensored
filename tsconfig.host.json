@@ -9,6 +9,7 @@
   },
   "include": [
     "apps/web/tests/collapse-timing.e2e.ts",
+    "apps/web/tests/uncensored-recovery.e2e.ts",
     "apps/web/tests/notice-wake-tail.e2e.ts",
     "apps/web/tests/fold-blank-matrix.e2e.ts",
     "apps/web/tests/chat-flow-layout.e2e.ts",

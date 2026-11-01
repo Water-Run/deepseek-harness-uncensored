@@ -366,7 +366,10 @@ export function createSidebarRightStore(
       closeTab: (d, sessionId: string, tabId: TabId) => {
         d.bySession = seat(d, sessionId, s => advance(s, (state) => {
           if (!canCloseTab(s, tabId)) return []
-          if (!soleDockedTab(state, tabId)) return [{ type: 'closeTab', tabId }]
+          const closesLastAside = state.tabs[tabId]?.kind === 'aside'
+            && findTabPane(state, tabId).host === 'dock'
+            && dockPaneIds(state).every(id => getPane(state, id).tabs.every(id => id === tabId || state.tabs[id]?.kind === GUIDE_KIND))
+          if (!soleDockedTab(state, tabId) && !closesLastAside) return [{ type: 'closeTab', tabId }]
           // The collapse also leaves fullscreen: the reopened column shows only
           // the reseeded default page, which never earns the whole window.
           return [{ type: 'closeTab', tabId }, ...planSetMode(state, 'push'), ...planSetExpanded(state, false)]

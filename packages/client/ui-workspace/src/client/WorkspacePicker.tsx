@@ -121,7 +121,7 @@ export function WorkspacePickFlow({
   // (divider + always visible); otherwise it IS the menu.
   const pinAdd = !addOnly && (workspaces.length > 0 || onPickNone !== undefined)
   const items: MenuEntry[] = pinAdd
-    ? [...onPickNone === undefined || terms.length > 0 ? [] : [{ id: NO_WORKSPACE, label: t('workspace.none'), disabled: flowBusy }], ...matches.map(workspace => ({
+    ? [...onPickNone === undefined || terms.length > 0 ? [] : [{ id: NO_WORKSPACE, label: t('workspace.none'), icon: <IconFolderCloseRegular size={16} />, disabled: flowBusy }], ...matches.map(workspace => ({
       id: workspace.workspaceId,
       label: workspaceDisplayTitle(workspace.title, t('workspace.defaultName')),
       icon: <IconFolderCloseRegular size={16} />,
@@ -129,7 +129,7 @@ export function WorkspacePickFlow({
     }))]
     : addEntries
   if (pinAdd && terms.length > 0 && matches.length === 0) items.push({ type: 'label', id: '::no-match', text: t('picker.noMatches') })
-  const footer: MenuEntry[] = [...onPickNone !== undefined && terms.length > 0 ? [{ id: NO_WORKSPACE, label: t('workspace.none'), disabled: flowBusy }] : [], ...addEntries]
+  const footer: MenuEntry[] = [...onPickNone !== undefined && terms.length > 0 ? [{ id: NO_WORKSPACE, label: t('workspace.none'), icon: <IconFolderCloseRegular size={16} />, disabled: flowBusy }] : [], ...addEntries]
   // Nothing listed and nothing to add with (a composition that mounts this
   // package without any directory-picker): an empty popover would claim a
   // choice that does not exist, so the anchor gesture shows nothing at all.

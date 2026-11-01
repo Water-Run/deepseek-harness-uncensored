@@ -144,15 +144,39 @@ export class SpendLedger {
     return z.array(pauseSchema).parse(this.db.prepare('SELECT * FROM session_pauses').all())
   }
 
-  private pauses(time: number): SpendPausedSession[] {
+  private pauses(time: number, settings: Settings, entries: Entry[],
+    exclusions: ReadonlyMap<SpendPeriod, Set<string>>): SpendPausedSession[] {
     const rows = this.pauseRows()
     return rows.map((row) => {
       if (row.state === 'waiting' && row.owner !== this.owner && !this.isAlive(row.pid)) {
         this.db.prepare("UPDATE session_pauses SET state = 'blocked', updated_at = ? WHERE session_id = ?").run(time, row.session_id)
-        return { sessionId: brandString<SessionId>(row.session_id), state: 'blocked' as const }
+        return { sessionId: brandString<SessionId>(row.session_id), state: 'blocked' as const,
+          resumeAt: this.resumeAt(row, time, settings, entries, exclusions) }
       }
-      return { sessionId: brandString<SessionId>(row.session_id), state: row.state }
+      return { sessionId: brandString<SessionId>(row.session_id), state: row.state,
+        resumeAt: this.resumeAt(row, time, settings, entries, exclusions) }
     }).sort((left, right) => left.sessionId < right.sessionId ? -1 : left.sessionId > right.sessionId ? 1 : 0)
+  }
+
+  private resumeAt(row: Pause, time: number, settings: Settings, entries: Entry[],
+    exclusions: ReadonlyMap<SpendPeriod, Set<string>>): number | null {
+    if (settings.paused || row.manual_only !== 0 || !settings.preferences.autoResume) return null
+    const reserved = entries.filter(entry => entry.state === 'pending').reduce((sum, entry) => sum + entry.reserved, 0)
+    let readyAt = time
+    for (const period of settings.preferences.enabledPeriods) {
+      const capacity = Math.round(settings.preferences.limits[period] * MICRO_CNY) - reserved - row.required
+      if (capacity < 0) return null
+      const duration = SPEND_PERIODS[period]
+      const charges = entries.filter(entry => entry.state !== 'pending' && entry.time + duration > time
+        && exclusions.get(period)?.has(entry.id) !== true).sort((a, b) => a.time - b.time)
+      let spent = charges.reduce((sum, entry) => sum + (entry.cost ?? entry.reserved), 0)
+      for (const entry of charges) {
+        if (spent <= capacity) break
+        spent -= entry.cost ?? entry.reserved
+        readyAt = Math.max(readyAt, entry.time + duration)
+      }
+    }
+    return readyAt
   }
 
   private snapshotAt(time: number, settings: Settings, entries: Entry[], waiting: number): SpendSnapshot {
@@ -179,7 +203,7 @@ export class SpendLedger {
       return { period, enabled, limit, spent: spent / MICRO_CNY, reserved: reserved / MICRO_CNY, uncertain: uncertain / MICRO_CNY,
         remaining: Math.max(0, Math.round(limit * MICRO_CNY) - spent - reserved) / MICRO_CNY }
     })
-    return { preferences: settings.preferences, paused: settings.paused, windows, pending: entries.filter(entry => entry.state === 'pending').length, waiting, pausedSessions: this.pauses(time), nextExpiry, updatedAt: time }
+    return { preferences: settings.preferences, paused: settings.paused, windows, pending: entries.filter(entry => entry.state === 'pending').length, waiting, pausedSessions: this.pauses(time, settings, entries, exclusions), nextExpiry, updatedAt: time }
   }
 
   /**

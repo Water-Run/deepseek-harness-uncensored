@@ -59,6 +59,34 @@ async function bench() {
 }
 
 describe('apply', () => {
+  it('opens /side with optional text and sends only the text to the independent child', async () => {
+    const { ctx, sources, sessions } = await bench()
+    const prompt = vi.fn(async () => ({ ok: true as const, value: { accepted: true as const } }))
+    await sessions.add({ id: 'side-question', session: { prompt } })
+    const aside = vi.fn(async () => ({ ok: true as const, value: { sessionId: sid('side-question') } }))
+    Object.assign(ctx.remote, { session: { aside } })
+    ctx.provide('remote.session', { aside })
+    ctx.provide('resources', { register: vi.fn(() => () => {}) })
+    ctx.provide('sidebarRightTabs', { register: vi.fn(() => () => {}) })
+    const openTab = vi.fn()
+    ctx.provide('sidebarRight', { openTab, mounted: { getSnapshot: () => sid('s1') } })
+    await Promise.all([...ctx.registry.values()].flatMap(runtime => [...runtime.fibers].map(child => child.await())))
+    const source = sources.get('/ command')!
+    const match = await source.matchEnter!({ sessionId: sid('s1') }, '/side 现在情况如何', new AbortController().signal, { attachments: 0 })
+    if (match === undefined || match === 'handled' || !('claim' in match)) throw new Error('side must claim its input')
+    expect(await match.claim.submit('现在情况如何', ctx, [])).toEqual({ kind: 'success' })
+    expect(openTab).toHaveBeenCalledWith('aside')
+    expect(aside).toHaveBeenCalledWith({ sessionId: sid('s1'), kind: 'side' })
+    expect(prompt).toHaveBeenCalledExactlyOnceWith([{ type: 'text', text: '现在情况如何' }], 'queue')
+    expect(await match.claim.submit('', ctx, [])).toEqual({ kind: 'success' })
+    expect(prompt).toHaveBeenCalledTimes(1)
+    expect(await source.matchEnter!({ sessionId: sid('s1') }, '/side', new AbortController().signal, { attachments: 0 })).toBe('handled')
+    expect(prompt).toHaveBeenCalledTimes(1)
+    expect(sessions.retainInfo(sid('side-question')).getSnapshot().referenceCount).toBe(0)
+    prompt.mockRejectedValueOnce(new Error('connection lost'))
+    expect((await match.claim.submit('保留这条草稿', ctx, [])).kind).toBe('error')
+    expect(sessions.retainInfo(sid('side-question')).getSnapshot().referenceCount).toBe(0)
+  })
   it('admits a native btw question only to its fresh child and rejects the empty form', async () => {
     const { ctx, sources, fiber, sessions } = await bench()
     const childPrompt = vi.fn(async () => ({ ok: true as const, value: { accepted: true as const } }))

@@ -13,6 +13,8 @@ Server-expired account credentials clear the displayed account details and emit 
 
 ## Summary
 
+A conversation waiting for the local spending limit shows a persistent banner above its composer, with estimated automatic continuation when known, manual recovery and a quick reset. Read failures retain the notice with a retry action.
+
 The Account settings section displays DeepSeek login state and offers browser sign-in and cancellation; the sidebar account menu provides Platform sign-out. Desktop users also receive a resumable introduction to account credit and presentation preferences.
 
 The sign-in dialog offers network troubleshooting only for `no-response` failures. HTTP, business, response-validation, storage, and account-stream failures retain the generic retry message.

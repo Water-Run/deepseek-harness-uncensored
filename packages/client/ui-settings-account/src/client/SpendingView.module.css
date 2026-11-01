@@ -43,6 +43,9 @@
 .noticeIcon svg { width: 14px; height: 14px; }
 .sidebar[data-failed='true'] .noticeIcon { color: var(--dsw-alias-state-error-primary); }
 .noticeText { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.banner { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding: 10px 12px; margin-bottom: 8px; border: 0.5px solid var(--dsw-alias-border-l2); border-radius: var(--dsw-radius-sm); background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-primary); font-size: 12px; }
+.banner .noticeText { flex-basis: 180px; }
+.banner p { margin: 3px 0 0; color: var(--dsw-alias-label-secondary); font-size: 11px; }
 .sidebar > button { flex: none; min-height: 24px; padding: 2px 6px; font-size: 11px; }
 .railStatus { display: grid; place-items: center; width: 32px; height: 28px; margin: auto; padding: 0; border: 0; border-radius: var(--dsw-radius-sm); color: var(--dsw-alias-state-warn-label); background: transparent; cursor: pointer; }
 .spinner { justify-self: center; margin: 40px; }

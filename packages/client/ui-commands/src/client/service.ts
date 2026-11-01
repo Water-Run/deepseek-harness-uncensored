@@ -255,7 +255,12 @@ export class CommandUiRuntime extends Service implements CommandUiContract {
     const name = pick.candidate.name
     const contribution = this.live.contributions.get(name)
     if (contribution !== undefined && contribution.available(pick.session)) {
-      if (contribution.ui.kind === 'input') return { claim: this.inputClaim(name, contribution.ui, pick.session) }
+      if (contribution.ui.kind === 'input') {
+        if (contribution.ui.runEmpty === undefined) return { claim: this.inputClaim(name, contribution.ui, pick.session) }
+        this.consumeVia(pick.session.sessionId, { via: 'menu', span: pick.span })
+        contribution.ui.runEmpty(pick.session)
+        return 'handled'
+      }
       this.invoke(name, contribution.ui, pick.session, { via: 'menu', span: pick.span })
       return 'handled'
     }
@@ -343,6 +348,11 @@ export class CommandUiRuntime extends Service implements CommandUiContract {
     if (contribution !== undefined && contribution.available(session)) {
       if (contribution.ui.kind === 'input') {
         if (envelope.attachments > 0) refuseAttachments()
+        if (bare && contribution.ui.runEmpty !== undefined) {
+          this.consumeVia(session.sessionId, { via: 'enter', token })
+          contribution.ui.runEmpty(session)
+          return 'handled'
+        }
         return { claim: this.inputClaim(contribution.name, contribution.ui, session) }
       }
       if (!bare) return undefined

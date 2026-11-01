@@ -128,7 +128,7 @@ it('clears a cancelled conversation and blocks it when the process shuts down', 
     const controller = new AbortController()
     const send = vi.fn(success)
     const cancelled = consume(gate.stream(markAgentLoopRequest({ ...request(controller.signal), sessionId }), send))
-    await vi.waitFor(() => { expect(ledger.snapshot().pausedSessions).toEqual([{ sessionId, state: 'waiting' }]) })
+    await vi.waitFor(() => { expect(ledger.snapshot().pausedSessions).toEqual([{ sessionId, state: 'waiting', resumeAt: null }]) })
     controller.abort()
     await expect(cancelled).rejects.toThrow()
     expect(send).not.toHaveBeenCalled()
@@ -137,16 +137,17 @@ it('clears a cancelled conversation and blocks it when the process shuts down', 
     const held = ledger.reserve(4_000_000)
     if (held.kind !== 'reserved') throw new Error(held.kind)
     const stopping = consume(gate.stream(markAgentLoopRequest({ ...request(), sessionId }), vi.fn(success)))
-    await vi.waitFor(() => { expect(ledger.snapshot().pausedSessions).toEqual([{ sessionId, state: 'waiting' }]) })
+    await vi.waitFor(() => { expect(ledger.snapshot().pausedSessions).toEqual([{ sessionId, state: 'waiting', resumeAt: null }]) })
     const rejected = expect(stopping).rejects.toThrow()
     await expect(gate.close()).resolves.toBeUndefined()
     await rejected
     const restored = await SpendLedger.open(path)
-    expect(restored.snapshot().pausedSessions).toEqual([{ sessionId, state: 'blocked' }])
-    restored.close()
+    try {
+      expect(restored.snapshot().pausedSessions).toMatchObject([{ sessionId, state: 'blocked' }])
+    } finally { restored.close() }
   } finally {
     await gate.close()
-    await rm(directory, { recursive: true, force: true })
+    await rm(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
   }
 })
 
@@ -172,10 +173,10 @@ it('preserves an actual admission wait when its Agent is disposed before the gat
   const sessionId = brandString<SessionId>('paused-agent')
   const pending = consume(gate.stream(markAgentLoopRequest({ ...request(abort.signal), sessionId }), success))
   const rejected = expect(pending).rejects.toThrow()
-  await vi.waitFor(() => { expect(gate.ledger.snapshot().pausedSessions).toEqual([{ sessionId, state: 'waiting' }]) })
+  await vi.waitFor(() => { expect(gate.ledger.snapshot().pausedSessions).toEqual([{ sessionId, state: 'waiting', resumeAt: null }]) })
   abort.abort({ kind: 'disposed' })
   await rejected
-  expect(gate.ledger.snapshot().pausedSessions).toEqual([{ sessionId, state: 'blocked' }])
+  expect(gate.ledger.snapshot().pausedSessions).toEqual([{ sessionId, state: 'blocked', resumeAt: null }])
 })
 
 it('keeps an unowned runtime out of automatic conversation recovery', async () => {

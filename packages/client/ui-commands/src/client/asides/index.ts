@@ -15,6 +15,7 @@ import { AsideIcon, AsideGuideIcon } from './AsideIcon.tsx'
 import { ASIDE_PREFIX, asideParent } from './address.ts'
 import { AsideReasoningRow } from './ReasoningSettings.tsx'
 import { AsideReasoningController, type BtwReasoningEffort } from './reasoning-settings.ts'
+import type { SubmitOutcome } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
 
 const TYPE = '@deepseek-ai/dsh-client-ui-commands/aside'
 
@@ -70,9 +71,10 @@ export function registerAsides(ctx: Context): void {
   registerAsideSettings(ctx)
   ctx.inject(['slots', 'commandUi', 'resources', 'sidebarRight', 'sidebarRightTabs', 'remote.session'], (scope) => {
     const t = scope.locale.bind('command')
-    const requests = new Set<Promise<SessionForkValue>>()
+    const requests = new Set<Promise<unknown>>()
     const parents = new Map<SessionId, SessionId>()
     let closed = false
+    const isClosed = (): boolean => closed
     scope.effect(() => async () => { closed = true; await Promise.allSettled([...requests]) }, 'conversation: aside requests')
     const requestChild = async (parent: SessionId, kind: 'side' | 'btw'): Promise<SessionForkValue> => {
       const result = await scope.remote.session.aside({ sessionId: parent, kind })
@@ -86,6 +88,21 @@ export function registerAsides(ctx: Context): void {
       requests.add(pending)
       void pending.then(() => requests.delete(pending), () => requests.delete(pending))
       return pending
+    }
+    const sendSide = async (parent: SessionId, question: string): Promise<SubmitOutcome> => {
+      try {
+        const child = await create(parent, 'side')
+        if (isClosed()) return { kind: 'error', text: t('aside.submitFailed') }
+        const reference = scope.sessions.retain(child.sessionId, { source: 'aside' })
+        try {
+          await reference.ready
+          if (isClosed()) return { kind: 'error', text: t('aside.submitFailed') }
+          const result = await reference.binding.session.prompt([{ type: 'text', text: question }], 'queue')
+          return result.ok ? { kind: 'success' } : { kind: 'error', text: t('aside.submitFailed') }
+        } finally { reference.release() }
+      } catch (_sendFailed) {
+        return { kind: 'error', text: t('aside.submitFailed') }
+      }
     }
     const inline = new InlineAsideController(async (parent) => {
       const reference = scope.sessions.retain((await create(parent, 'btw')).sessionId, { source: 'aside' })
@@ -162,13 +179,16 @@ export function registerAsides(ctx: Context): void {
     scope.effect(() => scope.commandUi.register({ name: 'side',
       label: () => t('aside.side'), description: () => t('aside.sideDescription'), icon: AsideIcon,
       available: session => session.sessionId === scope.sidebarRight.mounted.getSnapshot(),
-      ui: { kind: 'action', run: (session) => {
-        for (const tab of scope.sidebarRight.openTabs.getSnapshot()) {
-          if (tab.sessionId === session.sessionId && tab.kind === 'aside' && tab.contentId.startsWith(ASIDE_PREFIX)) scope.sidebarRight.close(tab.tabId)
-        }
-        if (!scope.sidebarRight.openTabs.getSnapshot().some(tab => tab.sessionId === session.sessionId && tab.kind === 'guide')) scope.sidebarRight.openTab('guide')
-        scope.sidebarRight.openTab('aside')
-      } },
+      ui: { kind: 'input', hint: () => t('aside.placeholder'),
+        runEmpty: () => { if (!closed) scope.sidebarRight.openTab('aside') }, submit: async (session, question) => {
+          if (closed) return { kind: 'error', text: t('aside.submitFailed') }
+          scope.sidebarRight.openTab('aside')
+          if (!question.trim()) return { kind: 'success' }
+          const pending = sendSide(session.sessionId, question)
+          requests.add(pending)
+          try { return await pending }
+          finally { requests.delete(pending) }
+        } },
     }), 'conversation: /side')
   })
 }

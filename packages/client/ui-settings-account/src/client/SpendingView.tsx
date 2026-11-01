@@ -126,6 +126,32 @@ export function SpendingToast({ useSpending, dismissSpendingToast, t }: PropsRun
   return toast === null ? null : <Toast key={toast.id} text={t(toast.success ? 'spending.saved' : 'spending.saveFailed')} {...toast.success ? { tone: 'success' as const } : {}} onDone={() => { dismissSpendingToast(toast.id) }} />
 }
 
+/**
+ * @param props - Session-owned admission state and recovery actions.
+ * @returns A persistent banner while this conversation waits for budget.
+ */
+export function SpendingBanner({ sessionId, useSpending, resetSpending, resumeSpending, refreshSpending, t }: Pick<PropsRuntime<'conversation.input.dock'>, 'sessionId'> & Common) {
+  const state = useSpending(value => value)
+  const data = state.data
+  const pause = data?.pausedSessions.find(row => row.sessionId === sessionId)
+  if (pause === undefined || data === undefined) return null
+  const manual = data.paused || !data.preferences.autoResume
+  const message = state.failed ? t('spending.failed') : manual ? t('spending.bannerManual')
+    : pause.resumeAt == null ? t('spending.bannerPending')
+      : pause.resumeAt <= data.updatedAt ? t('spending.bannerResuming')
+        : t('spending.bannerAutomatic', { time: new Date(pause.resumeAt).toLocaleString() })
+  return <section className={css.banner} role="status" aria-live="polite">
+    <span className={css.noticeIcon}><LimitIcon /></span>
+    <div className={css.noticeText}><span>{t('spending.bannerTitle')}</span><p>{message}</p></div>
+    <div className={css.windowActions}>
+      {state.failed ? <Button size="sm" onClick={refreshSpending}>{t('spending.retry')}</Button> : <>
+        {manual && <Button size="sm" variant="ghost" disabled={state.saving} onClick={() => { void resumeSpending() }}>{t('spending.resume')}</Button>}
+        <Button size="sm" variant="outline" disabled={state.saving} onClick={() => { void resetSpending() }}>{t('spending.bannerReset')}</Button>
+      </>}
+    </div>
+  </section>
+}
+
 /** @param props - Shared admission state and recovery controls. @returns Compact status above the balance reading. */
 export function SpendingSidebar({ useSpending, wide, resumeSpending, refreshSpending, t }: PropsRuntime<'sidebar.footer.budget'> & Common) {
   const state = useSpending(value => value)

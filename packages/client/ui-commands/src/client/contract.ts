@@ -91,6 +91,8 @@ export interface ActionSpec {
 /** A built-in text command submitted through the composer's draft transaction. */
 export interface InputSpec {
   readonly kind: 'input'
+  /** Open an input surface on a menu pick or bare Enter without submitting a question. @param session - Initiating conversation. */
+  runEmpty?(session: ClientSessionContext): void
   /** Return the localized argument hint shown while composing the command. @returns Input hint. */
   hint(): string
   /**

@@ -37,6 +37,21 @@ function harness() {
 }
 
 describe('createSidebarRightStore — the sequence', () => {
+  it('collapses after closing the last side question but retains other working tabs', () => {
+    const { actions, layout, expand } = harness()
+    expand()
+    actions.openContent(SESSION, { kind: 'aside', contentId: 'dsh-resource://aside/session/s-test', title: 'Side' }, () => {})
+    const side = () => Object.values(layout().tabs).find(tab => tab.kind === 'aside')!.id
+    actions.closeTab(SESSION, side())
+    expect(layout().expanded).toBe(false)
+    expect(Object.values(layout().tabs).some(tab => tab.kind === 'guide')).toBe(true)
+    expand()
+    actions.openContent(SESSION, { kind: 'text', contentId: 'dsh-resource://file/session/s-test/a.txt', title: 'a' }, () => {})
+    actions.openContent(SESSION, { kind: 'aside', contentId: 'dsh-resource://aside/session/s-test', title: 'Side' }, () => {})
+    actions.closeTab(SESSION, side())
+    expect(layout().expanded).toBe(true)
+    expect(Object.values(layout().tabs).some(tab => tab.kind === 'text')).toBe(true)
+  })
   it.each(['left', 'right'] as const)('splits one pane at its %s edge and records the tab move as one reversible intent', (zone) => {
     const { actions, layout, entries, guide, expand } = harness()
     expand()

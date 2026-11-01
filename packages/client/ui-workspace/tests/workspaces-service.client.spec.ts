@@ -813,6 +813,12 @@ describe('UiWorkspaceService', () => {
     expect(b.selectPanel).toHaveBeenCalledWith(null)
   })
 
+  it('honors an explicit ungrouped request instead of reusing the recent workspace', async () => {
+    const b = bench({ workspaces: workspaceState([workspace('recent', [])]) })
+    b.uiWorkspace.startSession(null)
+    await vi.waitFor(() => { expect(b.sessions.create).toHaveBeenCalledWith({}) })
+  })
+
   describe('startSession draft initialization', () => {
     it.each<{ name: string; options: DraftInitializationOptions }>([
       { name: 'plain text', options: { prompt: '草稿 🧭\nsecond line', clearPreviousDraft: true } },

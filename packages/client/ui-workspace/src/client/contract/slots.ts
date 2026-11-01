@@ -242,7 +242,7 @@ export type WorkspaceBrowserInjected = {
    * Without an explicit Workspace, inherit the current Session Workspace,
    * then the recent Workspace, or clear into the New Session view.
    */
-  startSession: (workspaceId?: WorkspaceId, options?: StartSessionOptions) => void
+  startSession: (workspaceId?: WorkspaceId | null, options?: StartSessionOptions) => void
   /** Open a real Session. */
   open: (sessionId: SessionId) => void
   /**

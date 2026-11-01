@@ -9,6 +9,8 @@ English | [中文](README.zh.md)
 
 ## Summary
 
+Closing a docked side question collapses the panel when only Start tabs remain. Other working tabs keep the panel open; reopening a side question retains its history.
+
 The right Sidebar: where the docking kit meets this product. It holds one docking surface per session, draws it as one edge-anchored panel in the frame's right column in either of two presentations, puts the expand button in the conversation header, and owns the navigation controller (`ctx.sidebarRight`), the tab-type registry (`ctx.sidebarRightTabs`), and the Tab domain that tells each open tab how it was navigated to and how long it lives.
 
 ## Table of Contents

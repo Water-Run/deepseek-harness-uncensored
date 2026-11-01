@@ -41,6 +41,8 @@ export interface SpendWindow {
 export interface SpendPausedSession {
   sessionId: SessionId
   state: 'waiting' | 'blocked'
+  /** Estimated automatic admission time at current usage; null means manual recovery or unresolved reservations. Older Hosts omit it. */
+  resumeAt?: number | null
 }
 /** Durable totals and the local process's queued requests. */
 export interface SpendSnapshot {

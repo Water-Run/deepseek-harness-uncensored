@@ -6,7 +6,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ResourceProvider } from '@deepseek-ai/dsh-client-resources/client'
 import type { SpendSnapshot } from '@deepseek-ai/dsh-spend-limit/types'
 import { SpendingController } from './spending-controller.ts'
-import { SpendingSettings, SpendingSidebar, SpendingToast } from './SpendingView.tsx'
+import { SpendingSettings, SpendingSidebar, SpendingToast, SpendingBanner } from './SpendingView.tsx'
 import type { SpendingInjected } from './SpendingView.tsx'
 import { SessionSpending } from './SessionSpending.tsx'
 
@@ -33,6 +33,7 @@ export function registerSpending(ctx: Context): void {
     scope.slots.inject('settings.budget.item', () => scope.slots.register({ name: 'settings.budget.item', id: 'spending', order: 10, label: () => scope.locale.bind('settings.account')('spending.title'), locale: 'settings.account', inject }, SpendingSettings))
     scope.slots.inject('shell.overlay', () => scope.slots.register({ name: 'shell.overlay', id: 'spending-feedback', locale: 'settings.account', inject }, SpendingToast))
     scope.slots.inject('sidebar.footer.budget', () => scope.slots.register({ name: 'sidebar.footer.budget', id: 'spending-state', order: 0, locale: 'settings.account', inject }, SpendingSidebar))
+    scope.slots.inject('conversation.input.dock', () => scope.slots.register({ name: 'conversation.input.dock', id: 'spending-pause', order: -30, locale: 'settings.account', inject }, SpendingBanner))
     scope.inject(['resources'], (child) => {
       const provider: ResourceProvider<'session-cost'> = { protocol: 'session-cost', async *open(address, { signal }) {
         try {
