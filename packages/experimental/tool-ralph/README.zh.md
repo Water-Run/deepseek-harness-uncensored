@@ -44,7 +44,7 @@ kind: "package-reference"
 | `maxHandoffChars` | `16384` | 一份 Round 报告序列化后的最大字符数。 |
 | `maxResultChars` | `16384` | 返回给父级的完整成功结果最大字符数。 |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-tool-ralph)是每个受支持字段的穷尽式真源。配置的提供方必须存在、支持结构化输出，并报告 `inheritsParentContext: false`；针对违反此要求的提供方发起调用时，会在任何 Round 开始前直接报错。
+生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-tool-ralph)是每个受支持字段的穷尽式真源。配置的提供方必须存在、支持结构化输出，并报告 `inheritsParentContext: false`；针对违反此要求的提供方发起调用时，会在任何 Round 开始前直接报错。
 
 -----
 
@@ -91,7 +91,7 @@ kind: "package-reference"
 
 当工具级契约不够用时阅读以下页面。它们从共享工作流模型逐步进入引擎、subagent seam 与相邻的 goal 领域。
 
-- [工作流子系统](../../../docs/subsystems/workflow.zh.md)——固定循环背后的 seam 约定。
+- [工作流子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/workflow.md)——固定循环背后的 seam 约定。
 - [工作流 seam](../../workflow/workflow/README.zh.md)——运行与结果词汇。
 - [PTC 工作流引擎](../../workflow/workflow-ptc/README.zh.md)——执行固定脚本的引擎。
 - [subagent seam](../../subagent/subagent/README.zh.md)——全新子 agent 的提供方约定。
@@ -127,7 +127,7 @@ Use the ralph tool ONLY when the direct human explicitly asks for a Ralph loop o
 
 #### 模型看到什么
 
-已生成的 [`ralph` schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-ralph) 公开一个必填 `objective` 字符串与一个可选 `maxRounds` 数字。提供方选择、交接大小、报告 schema、工作流脚本与编排行为均由部署侧控制，不在调用 schema 中。
+已生成的 [`ralph` schema](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-ralph) 公开一个必填 `objective` 字符串与一个可选 `maxRounds` 数字。提供方选择、交接大小、报告 schema、工作流脚本与编排行为均由部署侧控制，不在调用 schema 中。
 
 #### Token 影响
 

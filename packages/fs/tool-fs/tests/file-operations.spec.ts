@@ -1,4 +1,5 @@
 /** Real Loader composition and replayable output for optional regular-file tools. @module */
+import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
@@ -34,7 +35,7 @@ async function harness() {
   await ctx.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(config).href } })
   await ctx.loader.await()
   let index = 0
-  const call = (name: string, args: object) => ctx.tools.execute({
+  const call = (name: string, args: object) => executeToolFixture(ctx, {
     name, arguments: args, callId: ToolCallId(`file-op-${String(++index)}`), signal: new AbortController().signal,
   })
   return { root, ctx, call }

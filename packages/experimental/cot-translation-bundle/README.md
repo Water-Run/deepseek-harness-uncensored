@@ -48,7 +48,7 @@ The bundle patch inserts `translator` and `cot-translation`, selecting Bing and 
 <a id="further-exploration"></a>
 ## Further Exploration
 
-[Text translation subsystem](../../../docs/subsystems/translation.md) · [Translator service](../translator/README.md) · [GUI consumer](../client-ui-cot-translation/README.md)
+[Text translation subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/translation.md) · [Translator service](../translator/README.md) · [GUI consumer](../client-ui-cot-translation/README.md)
 
 -----
 

@@ -108,7 +108,7 @@ A spawned process belongs to the subprocess service, not to the executor: it sur
 
 Read these pages when the seam contract is not enough. They move from the shared subsystem reference to the concrete executors and the model-facing tools.
 
-- [Bash executor subsystem](../../../docs/subsystems/shell.md) — the request/spec vocabulary, results, and service contract in full.
+- [Bash executor subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/shell.md) — the request/spec vocabulary, results, and service contract in full.
 - [bash-local](../bash-local/README.md) — the default POSIX executor: fresh `bash -c` processes, budgets, and deadlines.
 - [bash-sandbox](../bash-sandbox/README.md) — the confining executor: sandbox modes, denials, and escalation.
 - [tool-bash](../tool-bash/README.md) — the model-facing `bash` tool over this seam.

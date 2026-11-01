@@ -90,7 +90,7 @@ Observed state is dropped on plugin disposal (HMR safety) and is never persisted
 
 Read these pages when the package-level contract is not enough. They move from the policy to the contract, tools, and backends it composes with.
 
-- [Filesystem subsystem](../../../docs/subsystems/filesystem.md) — exhaustive provider contract, policy events, and error taxonomy.
+- [Filesystem subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/filesystem.md) — exhaustive provider contract, policy events, and error taxonomy.
 - [dsh-fs](../fs/README.md) — the `ctx.fs` contract and the `fs/*` event vocabulary.
 - [tool-fs](../tool-fs/README.md) — the model-facing tools that dispatch the `fs/*` events.
 - [fs-local](../fs-local/README.md) — the host-filesystem backend this policy guards.

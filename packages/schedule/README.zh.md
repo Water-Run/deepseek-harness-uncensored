@@ -34,9 +34,9 @@ kind: "package-group"
 <a id="related-documentation"></a>
 ## 相关文档
 
-- [Schedule 子系统](../../docs/subsystems/schedule.zh.md)——任务记录、最近一次回执、时间与投递约定。
-- [生成的工具目录](../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-schedule)——挂载 preset 所贡献的 `schedule_create`／`schedule_list`／`schedule_update`／`schedule_delete` schema。
-- [Schedule 用户指南](../../docs/user/guide/schedule.zh.md)——创建提醒并查看活动或已结束任务。
+- [Schedule 子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/schedule.md)——任务记录、最近一次回执、时间与投递约定。
+- [生成的工具目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-schedule)——挂载 preset 所贡献的 `schedule_create`／`schedule_list`／`schedule_update`／`schedule_delete` schema。
+- [Schedule 用户指南](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/user/guide/schedule.md)——创建提醒并查看活动或已结束任务。
 - [Web 任务页面与提醒目录](../client/ui-schedule/README.zh.md)——在浏览器中查询任务并确认删除。
 
 -----

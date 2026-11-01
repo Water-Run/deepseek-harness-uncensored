@@ -71,7 +71,7 @@ one-shot child 始终选用只读编辑器。可继续 child 仅在其确切 par
 
 模式未知的目录项仍可见、可点击，没有标签时显示子会话 id。读取子历史并确认受支持模式前，输入区保持只读；读取失败在该子会话中报告。
 
-会话树菜单高亮遵循[标准菜单边缘几何](../../../docs/ui-radius.zh.md#nested-hover)；树形展开控件保留独立的左侧空间。
+会话树菜单高亮遵循[标准菜单边缘几何](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/ui-radius.md#nested-hover)；树形展开控件保留独立的左侧空间。
 
 </details>
 

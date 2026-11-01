@@ -42,8 +42,8 @@ A profile layer selects exactly one executor implementation (the win32 layer swa
 <a id="related-documentation"></a>
 ## Related documentation
 
-- [Bash executor subsystem](../../docs/subsystems/shell.md) — the shared request/spec vocabulary, results, background processes, and the complete service contract.
-- [Sandbox subsystem](../../docs/subsystems/sandbox.md) — the confinement capability the sandboxing executors consume.
+- [Bash executor subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/shell.md) — the shared request/spec vocabulary, results, background processes, and the complete service contract.
+- [Sandbox subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/sandbox.md) — the confinement capability the sandboxing executors consume.
 
 <a id="dev-note"></a>
 ## Dev Note

@@ -54,9 +54,9 @@ kind: "package-reference"
 <a id="dedicated-listener-composition"></a>
 ## 专用监听器组合
 
-普通 Web profile 已经拥有 `ctx.webServer`。把另一个 `dsh-host-webserver` 和此适配器挂载到仅隔离 `webServer` 的 group 内；适配器仍会继承凭据与 `webhookRuntime`。[GitHub 评审指南](../../../docs/user/guide/github-review.zh.md)在 TLS 反向代理后使用 `127.0.0.1:3081/github`，而 UI 继续位于端口 3080。
+普通 Web profile 已经拥有 `ctx.webServer`。把另一个 `dsh-host-webserver` 和此适配器挂载到仅隔离 `webServer` 的 group 内；适配器仍会继承凭据与 `webhookRuntime`。[GitHub 评审指南](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/user/guide/github-review.md)在 TLS 反向代理后使用 `127.0.0.1:3081/github`，而 UI 继续位于端口 3080。
 
-示例的 overlay 与规则模块随本包发布，位于 `examples/github-review/`。先将本包及其 `dsh-webhook` peer 安装到 profile，再从该安装目录加载 overlay；[指南](../../../docs/user/guide/github-review.zh.md)给出完整命令。
+示例的 overlay 与规则模块随本包发布，位于 `examples/github-review/`。先将本包及其 `dsh-webhook` peer 安装到 profile，再从该安装目录加载 overlay；[指南](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/user/guide/github-review.md)给出完整命令。
 
 <a id="model-experience"></a>
 ## 模型体验

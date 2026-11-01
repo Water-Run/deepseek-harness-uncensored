@@ -31,7 +31,7 @@ This family runs files, ordinary processes, terminals and sandbox enforcement on
 <a id="related-documentation"></a>
 ## Related documentation
 
-- [SSH subsystem](../../docs/subsystems/ssh.md) — shared execution coordinates and transport ownership.
+- [SSH subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/ssh.md) — shared execution coordinates and transport ownership.
 - [POSIX SSH decision](../../.agents/notes/implemented/architecture/2026-09-11-posix-ssh-runtime.md) — alternatives, consequences and verification requirements.
 
 <a id="dev-note"></a>

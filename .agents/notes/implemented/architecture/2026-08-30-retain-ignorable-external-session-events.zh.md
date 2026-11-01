@@ -18,7 +18,7 @@ Status: implemented
 
 `@deepseek-ai/dsh-session` 中的 `appendPluginRecord()` 是该标记唯一的第一方写入方。它追加类型位于 `plugin:` 命名空间的 ignorable 记录（V3-to-V4 迁移边已把未知的 ignorable V3 事件放入该命名空间），且只有 `packages/experimental/` 下的生产源码可以调用它；`verify-plugin-record-callers` 门禁强制这一点，持久化目录生成器也拒绝该命名空间中的 `SessionEventMap` 成员。实验性包在这里保存其所有者可以丢失的状态：格式迁移以尽力而为的方式保留记录，因此正式发布的包改为声明自己的事件。
 
-实验性包在独立的 `PluginRecordMap` 中声明记录名称与 payload 类型。该映射约束写入类型，并生成独立的[实验性持久化目录](../../../../docs/experimental-persistence-catalog.zh.md)，让维护者能够从当前源码找到插件自有的持久化数据，而无须展开其 payload schema 或记录已发布类型历史。它不向 `KNOWN_SESSION_EVENT_TYPES` 添加名称，也不改变已存事件的准入。读取方返回未知类型的 payload，由所属包校验，其中也包括声明已变更或消失的记录。
+实验性包在独立的 `PluginRecordMap` 中声明记录名称与 payload 类型。该映射约束写入类型，并生成独立的[实验性持久化目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/experimental-persistence-catalog.md)，让维护者能够从当前源码找到插件自有的持久化数据，而无须展开其 payload schema 或记录已发布类型历史。它不向 `KNOWN_SESSION_EVENT_TYPES` 添加名称，也不改变已存事件的准入。读取方返回未知类型的 payload，由所属包校验，其中也包括声明已变更或消失的记录。
 
 Alpha 实现中的历史格式迁移有意更严格。v0-to-v1 迁移边会拒绝每个未知 v0 类型，包括 ignorable 类型，因为不透明 payload 可能包含格式迁移边无法校验的引用。[Alpha 历史事件决策](2026-08-31-alpha-historical-unknown-event-refusal.zh.md)定义该有限例外；同版本 append 与 reload 继续遵循本记录。
 

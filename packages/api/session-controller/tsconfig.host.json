@@ -22,9 +22,14 @@
     "src/control.ts",
     "src/file-references.ts",
     "src/history.ts",
+    "src/history/controller.ts",
+    "src/history/listener.ts",
+    "src/history/assistant-stream.ts",
+    "src/state/controller.ts",
+    "src/state/listener.ts",
+    "src/web/controller.ts",
     "src/list.ts",
     "src/media-references.ts",
-    "src/model-selection-projection.ts",
     "src/archived-session-gate.ts",
     "src/skill-catalog.ts",
     "src/prediction.ts"
@@ -34,6 +39,12 @@
     { "path": "../../sandbox/sandbox-policy" },
     { "path": "../../interaction/user-approval" },
     { "path": "../../guard/spend-limit" },
+    {
+      "path": "../gateway/tsconfig.host.json"
+    },
+    {
+      "path": "../../util/timeout"
+    },
     {
       "path": "../../../vendor/cordis"
     },

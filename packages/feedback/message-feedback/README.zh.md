@@ -64,7 +64,7 @@ kind: "package-reference"
 | [`src/index.ts`](src/index.ts) | Remote 服务、payload 校验、事件投影与持久化所有权 |
 | [`src/types.ts`](src/types.ts) | 请求、结果和 Session 事件声明；仅类型 |
 
-各自的 API 见[反馈子系统](../../../docs/subsystems/feedback.zh.md)、[Session 持久化](../../../docs/subsystems/persistence.zh.md)和[浏览器消费方](../../client/ui-message-feedback/README.zh.md)。
+各自的 API 见[反馈子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/feedback.md)、[Session 持久化](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/persistence.md)和[浏览器消费方](../../client/ui-message-feedback/README.zh.md)。
 
 <a id="model-experience"></a>
 ## 模型体验

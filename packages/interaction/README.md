@@ -39,10 +39,10 @@ Each package README and its subsystem reference own the exhaustive contracts.
 
 Start with the subsystem references for the shared vocabularies, then the neighboring automation and composition surfaces.
 
-- [Commands subsystem](../../docs/subsystems/commands.md) — command registry semantics and the `ctx.commands` Cordis surface.
-- [Approval subsystem](../../docs/subsystems/approval.md) — request/outcome vocabulary, the answerer waterfall, and per-session policy.
-- [Permission presets subsystem](../../docs/subsystems/permission-presets.md) — the preset table and the knob write-through.
-- [User interaction subsystem](../../docs/subsystems/user-questions.md) — question vocabulary, answerer waterfall, and pending-question lifecycle.
+- [Commands subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/commands.md) — command registry semantics and the `ctx.commands` Cordis surface.
+- [Approval subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/approval.md) — request/outcome vocabulary, the answerer waterfall, and per-session policy.
+- [Permission presets subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/permission-presets.md) — the preset table and the knob write-through.
+- [User interaction subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/user-questions.md) — question vocabulary, answerer waterfall, and pending-question lifecycle.
 - [ACP group](../acp/README.md) — the automation-only transport that answers approval requests for its own agents.
 
 <a id="dev-note"></a>

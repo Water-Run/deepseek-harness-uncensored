@@ -1,4 +1,5 @@
 /** Owned-process behavior through the real tool registry and Agent composition. @module */
+import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -30,7 +31,7 @@ async function harness(enabled = true, mode: 'read-only' | 'danger-full-access' 
   await ctx.plugin(ReaAgent)
   const agent = await ctx.agentLoop.create(SessionId('rea-owner'), { provider: 'mock', model: 'mock' }, { cwd })
   let ordinal = 0
-  const call = (name: string, args: unknown, owner = agent, signal = new AbortController().signal) => ctx.tools.execute({
+  const call = (name: string, args: unknown, owner = agent, signal = new AbortController().signal) => executeToolFixture(ctx, {
     name, arguments: args, agent: owner, signal, callId: ToolCallId(`rea-test-${String(++ordinal)}`),
   })
   return { ctx, agent, cwd, call }

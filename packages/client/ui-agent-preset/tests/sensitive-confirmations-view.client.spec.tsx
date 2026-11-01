@@ -1,19 +1,17 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { allowAllAccess, bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
+import { allowAllAccess, bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
+import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { SensitiveConfirmationsPrompt, SensitiveConfirmationsSetting } from '../src/client/SensitiveConfirmations.tsx'
 import type { SensitiveConfirmationsState } from '../src/client/sensitive-confirmations-controller.ts'
 import { en } from '../src/client/locales.ts'
+import { unreadGlobalProps } from './component-fixture.client.ts'
 
 afterEach(cleanup)
 
-function translate(key: keyof typeof en, params?: Record<string, unknown>): string {
-  const template = en[key]
-  if (params === undefined) return template
-  return template.replace(/\{(\w+)\}/g, (match, name: string) => name in params ? String(params[name]) : match)
-}
+const translate = makeTranslate({ ...commonEn, ...en })
 
 const READY: SensitiveConfirmationsState = {
   status: 'ready', confirmations: true, writable: true, saving: false, confirmation: null, toast: null,
@@ -31,17 +29,18 @@ function injected(state: Partial<SensitiveConfirmationsState> = {}) {
     cancelConfirmations: vi.fn(),
     dismissConfirmations: vi.fn(),
   }
-  const props = {
+  const props: PromptProps & SettingProps = {
+    ...unreadGlobalProps,
     ...actions,
     ...allowAllAccess,
     useSensitiveConfirmations: bindSnapshotSelector(store),
     t: translate,
-  } as unknown as PromptProps
+  }
   return {
     actions,
     store,
     renderPrompt: () => render(<SensitiveConfirmationsPrompt {...props} />),
-    renderSetting: () => render(<SensitiveConfirmationsSetting {...props as unknown as SettingProps} />),
+    renderSetting: () => render(<SensitiveConfirmationsSetting {...props} />),
   }
 }
 

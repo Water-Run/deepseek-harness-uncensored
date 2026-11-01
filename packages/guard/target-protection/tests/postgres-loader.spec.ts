@@ -1,4 +1,5 @@
 /** Real Loader, tool registration and mandatory provider withdrawal. @module */
+import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
@@ -32,10 +33,10 @@ it('loads database_inspect, logs its refusal and withdraws the tool with its pro
   if (fixture?.fiber === undefined) throw new Error('PostgreSQL fixture entry is missing')
   await fixture.fiber.await()
   const signal = new AbortController().signal
-  const result = await ctx.tools.execute({ name: 'database_inspect', arguments: { database: 'owned' }, callId: ToolCallId('refusal'), signal })
+  const result = await executeToolFixture(ctx, { name: 'database_inspect', arguments: { database: 'owned' }, callId: ToolCallId('refusal'), signal })
   expect(result).toMatchObject({ isError: true })
   expect(JSON.stringify(result)).toContain('TARGET_FULLY_PROTECTED')
-  expect((await ctx.tools.execute({ name: 'verify_postgres_transport', arguments: {}, callId: ToolCallId('verify'), signal })).isError).toBe(false)
+  expect((await executeToolFixture(ctx, { name: 'verify_postgres_transport', arguments: {}, callId: ToolCallId('verify'), signal })).isError).toBe(false)
   const provider = ctx.postgresAudit
   await fixture.fiber.dispose()
   await ctx.loader.await()

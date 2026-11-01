@@ -9,7 +9,7 @@ import type { TokenUsage } from '@deepseek-ai/dsh-llm'
 import type { MemoryExtractionId, MemoryExtractionResult, MemoryExtractionStatus } from './extraction-types.ts'
 import { resolveSessionScope } from './scope.ts'
 import { MEMORY_TYPES } from './spec.ts'
-import { boundedTail } from './extraction-projection.ts'
+import { boundedTail, type MemoryExtractionProjection } from './extraction-projection.ts'
 import type { MemoryId, MemoryScope } from './types.ts'
 
 /**
@@ -18,12 +18,14 @@ import type { MemoryId, MemoryScope } from './types.ts'
  * @param agent - Conversation owning the exact transcript and audit records.
  * @param mode - Mode declared by this preset.
  * @param signal - Turn or maintenance cancellation.
+ * @param state - Extraction evidence from the preset's retained projection reader.
  * @returns Completion after the outcome is logged; expected model/storage failures are recorded.
  */
-export async function extractTurn(ctx: Context, agent: Agent, mode: string | undefined, signal: AbortSignal): Promise<void> {
+export async function extractTurn(
+  ctx: Context, agent: Agent, mode: string | undefined, signal: AbortSignal, state: MemoryExtractionProjection,
+): Promise<void> {
   const options = ctx.memory.extractionOptions()
-  const state = ctx.sessionProjections.stateOf(agent.session, 'memoryExtraction')
-  if (state === undefined || state.text.trim() === '' || state.throughSeq <= state.lastSavedSeq) return
+  if (state.text.trim() === '' || state.throughSeq <= state.lastSavedSeq) return
   const scope = await resolveSessionScope(ctx, agent.session, mode)
   if (scope.freshChild || (scope.workspaceKey === undefined && scope.mode === undefined)) return
   const target: MemoryScope = { global: false,
@@ -109,13 +111,12 @@ export async function extractTurn(ctx: Context, agent: Agent, mode: string | und
 
 /**
  * Read the latest logged outcome for one live conversation.
- * @param ctx - Projection registry owner.
  * @param agent - Conversation being inspected.
+ * @param state - Latest extraction state from the preset's retained projection reader.
  * @returns No entry before the first attempt, otherwise its current state.
  */
-export function extractionStatus(ctx: Context, agent: Agent): MemoryExtractionStatus | undefined {
-  const state = ctx.sessionProjections.stateOf(agent.session, 'memoryExtraction')
-  if (state === undefined || state.phase === 'none') return undefined
+export function extractionStatus(agent: Agent, state: MemoryExtractionProjection): MemoryExtractionStatus | undefined {
+  if (state.phase === 'none') return undefined
   return { sessionId: agent.id, label: state.attemptLabel || agent.id.slice(-8),
     turn: state.attemptTurn, phase: state.phase, saved: state.saved,
     ...state.failure === null ? {} : { failure: state.failure } }

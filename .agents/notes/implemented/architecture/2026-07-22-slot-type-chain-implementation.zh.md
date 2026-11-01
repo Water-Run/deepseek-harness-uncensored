@@ -4,7 +4,7 @@ Status: implemented
 
 [English](2026-07-22-slot-type-chain-implementation.md) | 中文
 
-> 范围：Web 客户端 slot 体系的终版设计——UI 插件如何拼合页面、渲染权威落在哪里、组件 props 如何定型、业务活数据住在哪里。[Web 客户端参考](../../../../docs/subsystems/web-client.zh.md)说明周边的装载链、对象层与服务。
+> 范围：Web 客户端 slot 体系的终版设计——UI 插件如何拼合页面、渲染权威落在哪里、组件 props 如何定型、业务活数据住在哪里。[Web 客户端参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/web-client.md)说明周边的装载链、对象层与服务。
 
 ## 问题
 

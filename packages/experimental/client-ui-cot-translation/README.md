@@ -29,7 +29,7 @@ Enable the [reasoning translation bundle](../cot-translation-bundle/README.md) i
 
 View original and View translation share one always-visible action in the plugin's toolbar above the translated body. The plugin owns this action and its state; the Think title only controls the disclosure. Both views reuse the same compact Markdown renderer and typography, without changing the reasoning preview or making another request. Completed paragraphs and request-sized prefixes of long streaming paragraphs translate asynchronously; the unfinished tail stays original. A failure retains the original body and provides Retry; View translation remains disabled until the retry starts. Closing the disclosure or disabling the bundle cancels its requests.
 
-For custom compositions, mount this plugin alongside the [translator service](../translator/README.md) and the ordinary Web GUI. The plugin's configuration fields are `provider` and `targetLanguage`; the generated [configuration catalog](../../../docs/config-catalog.md) owns their complete schema.
+For custom compositions, mount this plugin alongside the [translator service](../translator/README.md) and the ordinary Web GUI. The plugin's configuration fields are `provider` and `targetLanguage`; the generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md) owns their complete schema.
 
 -----
 
@@ -54,7 +54,7 @@ A saved result needs no activation. On an uncached inactive Session, the Host jo
 
 - [Translator service](../translator/README.md) — providers and network limits.
 - [Chat rendering](../../client/ui-chat/README.md) — reasoning disclosure and display extensions.
-- [Web Client Slots](../../../docs/subsystems/slots.md) — contribution lifetimes.
+- [Web Client Slots](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/slots.md) — contribution lifetimes.
 
 -----
 

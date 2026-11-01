@@ -45,11 +45,11 @@ goal 适合一个需要跨自动 Goal Round 持续的长期完成目标——例
 |---|---|---|
 | `defaultMaxGoalRounds` | `256` | 当 create 请求省略上限时应用的 Round 上限 |
 
-`defaultMaxGoalRounds` 必须是正的安全整数；指定了自身上限的 create 请求会覆盖它。生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-goal)是每个受支持字段的穷尽式真源。
+`defaultMaxGoalRounds` 必须是正的安全整数；指定了自身上限的 create 请求会覆盖它。生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-goal)是每个受支持字段的穷尽式真源。
 
 ### 会话投影
 
-`GoalService` 要求组合提供 `ctx.sessionProjections`（[`@deepseek-ai/dsh-session-projection`](../../session/session-projection/README.zh.md)），并在启动时注册 `goal` 投影单元；未组合投影注册表的组合无法激活 `ctx.goals`。该单元版本为 6，其宿主状态保留最新的有效当前 goal、所有曾使用的 goal id，以及第一次严格回放失败。客户端视图提供当前 goal；首次 create 前与 clear tombstone 后为 `null`。该键同时合并到 `SessionProjectionStateMap` 与 `SessionProjectionMap`；载体通过历史尾页和 `session/projection` 推送帧提供客户端值。
+`GoalService` 要求组合提供 `ctx.sessionProjections`（[`@deepseek-ai/dsh-session-projection`](../../session/session-projection/README.zh.md)），并在启动时注册 `goal` 投影单元；未组合投影注册表的组合无法激活 `ctx.goals`。该单元版本为 6，其宿主状态保留最新的有效当前 goal、所有曾使用的 goal id，以及第一次严格回放失败。客户端视图提供当前 goal；首次 create 前与 clear tombstone 后为 `null`。客户端键合并到 `SessionProjectionMap`；载体通过历史尾页和 `session/projection` 推送帧提供客户端值。
 
 ### 驱动生命周期
 
@@ -123,9 +123,9 @@ view.activation                        // 'armed' | 'disarmed' — not persisted
 
 包级约定对大多数消费方已经足够；需要了解周边领域与设计理由时阅读以下页面。
 
-- [goal 子系统](../../../docs/subsystems/goal.zh.md)——goal 类型、持久的变更载荷与生成的服务 API。
+- [goal 子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/goal.md)——goal 类型、持久的变更载荷与生成的服务 API。
 - [goal 组地图](../README.zh.md)——goal 各包及其组合方式。
-- [生成的配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-goal)——每个受支持配置字段及其源声明。
+- [生成的配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-goal)——每个受支持配置字段及其源声明。
 - [历史goal 领域 Agent Note](../../../.agents/notes/archived/feature/2026-07-19-persisted-same-session-goal-domain.md)——领域设计、备选方案与决策。
 
 -----

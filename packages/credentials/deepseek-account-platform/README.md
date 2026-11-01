@@ -75,7 +75,7 @@ Account presence reads the credential store, and attempt state projects private 
 <a id="further-exploration"></a>
 ## Further Exploration
 
-The [credentials subsystem](../../../docs/subsystems/credentials.md) owns storage APIs; the [architecture](../../../docs/architecture.md) explains application composition.
+The [credentials subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/credentials.md) owns storage APIs; the [architecture](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/architecture.md) explains application composition.
 
 The attemptTimeoutMs limit includes initialization, browser waiting, and exchange. Initialization does not extend its absolute deadline; the server TTL may only shorten the remaining time. Credential persistence admitted before expiry completes without cancellation.
 

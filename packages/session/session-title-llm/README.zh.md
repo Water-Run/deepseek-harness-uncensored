@@ -84,7 +84,7 @@ kind: "package-library"
 当生成策略不够用时阅读以下页面。它们从它所插入的服务逐步进入消费它的提供方插件。
 
 - [会话标题服务](../session-title/README.zh.md)——标题服务、回退行为与提供方注册约定。
-- [会话标题子系统](../../../docs/subsystems/session-title.zh.md)——持久标题状态与辅助请求记录。
+- [会话标题子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/session-title.md)——持久标题状态与辅助请求记录。
 - [首消息标题提供方](../session-title-first-prompt-llm/README.zh.md)——根据第一条符合条件的用户消息生成标题。
 - [全消息标题提供方](../../experimental/session-title-all-prompts-llm/README.zh.md)——根据所有符合条件的用户消息生成标题。
 - [会话包映射](../README.zh.md)——相邻的持久化、投影、标题与遥测包。

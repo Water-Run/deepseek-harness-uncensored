@@ -55,7 +55,7 @@ Plan cards derive from native `tool/call` or PTC dispatch arguments through a Co
 
 The framework-bound `usePlans(turn)` exposes only submitted-plan data for that Turn. Chat indexes membership on Node updates and orders this collection when read; card rendering neither scans the transcript nor subscribes to other Turns or Node kinds.
 
-Submitted-plan cards follow the [file-card family](../../../docs/ui-radius.md#radius-scale) for their radius and icon-tile material.
+Submitted-plan cards follow the [file-card family](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/ui-radius.md#radius-scale) for their radius and icon-tile material.
 
 </details>
 
@@ -68,7 +68,7 @@ Read these pages when the plan surface is not enough. They move from the chip to
 
 - [dsh-plan-mode](../../plan/plan-mode/README.md) — owns plan mode, the `/plan` command, the projection, and the policy section.
 - [ui-conversation](../ui-conversation/README.md) — declares the composer's `conversation.input.plan` seat and the placeholder locale keys.
-- [Tool catalog](../../../docs/tool-catalog.md#deepseek-aidsh-plan-mode) — the `exit_plan_mode` tool schema the model uses to leave plan mode.
+- [Tool catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-plan-mode) — the `exit_plan_mode` tool schema the model uses to leave plan mode.
 - [Client package map](../README.md) — adjacent browser UI packages.
 
 -----

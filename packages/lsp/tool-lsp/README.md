@@ -45,7 +45,7 @@ Navigation returns `path:line:character` locations grouped by file (one-based); 
 | `maxResultChars` | `16000` | Largest complete rendered result, including truncation metadata |
 | `timeoutMs` | `60000` | Tool-call timeout budget enforced by `dsh-tool-call-timeout-policy`; covers the complete queued open/query/close lifecycle and is not model-configurable |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-tool-lsp) is the exhaustive source for every accepted field.
+The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-tool-lsp) is the exhaustive source for every accepted field.
 
 ### Failures and recovery
 
@@ -86,7 +86,7 @@ This section explains the design decisions behind the tool and where the code re
 
 Read these pages when the package-level contract is not enough. They move from the model-facing surface to the seam and the provider.
 
-- [LSP navigation subsystem](../../../docs/subsystems/lsp.md) — operations, coordinates, requests and results, and `LspError` codes.
+- [LSP navigation subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/lsp.md) — operations, coordinates, requests and results, and `LspError` codes.
 - [dsh-lsp](../lsp/README.md) — the seam this tool queries.
 - [dsh-lsp-stdio](../lsp-stdio/README.md) — the stdio provider that answers these queries.
 - [lsp group map](../README.md) — the three-package family and its related documentation.
@@ -120,7 +120,7 @@ Prefix-stable while the plugin scope and guidance text are unchanged; activation
 
 #### What the model sees
 
-The model sees the generated [`lsp` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-lsp).
+The model sees the generated [`lsp` schema](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-lsp).
 
 #### Token effect
 

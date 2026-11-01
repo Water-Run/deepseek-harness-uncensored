@@ -14,7 +14,7 @@ Schemastery 使用 `.volatile()` 声明动态字段，保留节点类型和表�
 
 仅 volatile 变化保留实例。普通字段变化沿用现有重新挂载生命周期，不更新旧引用。实例局部的 `loader/volatile-update` 事件在完整候选配置通过校验且所有引用提交后报告路径。事件使用普通 `emit`；监听器完成不是配置提交条件。可以保存引用，而值只能在单次操作中保存。缺省可选值仍具有可读取的引用。
 
-Config schema 负责提供基于 schema 的 settings 表单需要的字段类型、默认值、角色和动态更新声明。现有 settings 消费者保持不变；自动表单生成及其迁移是独立工作。[配置指南](../../../../docs/cordis-tutorial/05-config.zh.md)负责插件作者的使用说明。
+Config schema 负责提供基于 schema 的 settings 表单需要的字段类型、默认值、角色和动态更新声明。现有 settings 消费者保持不变；自动表单生成及其迁移是独立工作。[配置指南](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/cordis-tutorial/05-config.md)负责插件作者的使用说明。
 
 ## Alternatives considered
 

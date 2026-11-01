@@ -53,7 +53,7 @@ kind: "package-reference"
 | [`src/client/index.ts`](src/client/index.ts) | slot 注册与词典 |
 | [`src/client/locales.ts`](src/client/locales.ts) | `job` 命名空间文案（zh 为事实源） |
 
-后台任务行遵循[标准菜单边缘几何](../../../docs/ui-radius.zh.md#nested-hover)；带底色运行行内的控件保留紧凑圆角。
+后台任务行遵循[标准菜单边缘几何](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/ui-radius.md#nested-hover)；带底色运行行内的控件保留紧凑圆角。
 
 </details>
 

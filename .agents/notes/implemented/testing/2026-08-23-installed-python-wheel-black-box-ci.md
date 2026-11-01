@@ -34,7 +34,7 @@ The pull-request `python-runtime` job calls the reusable builder for Linux x64 a
 
 ## Existing decisions and supersession
 
-This decision supersedes the single-target topology in the archived [required Python runtime pull-request validation](../../archived/testing/2026-08-12-required-python-runtime-pull-request-ci.md) while retaining its requirement that the real executable, snapshots, wheels, and clean installation meet in each selected target check. [docs/architecture.md](../../../../docs/architecture.md) owns the launched application and customization surface; the [single-file Python SDK runtime distribution](../architecture/2026-07-10-single-file-executable-sdk-runtime-distribution.md) remains authoritative for SEA packaging, native sidecars, wheel tags, and release artifacts.
+This decision supersedes the single-target topology in the archived [required Python runtime pull-request validation](../../archived/testing/2026-08-12-required-python-runtime-pull-request-ci.md) while retaining its requirement that the real executable, snapshots, wheels, and clean installation meet in each selected target check. [docs/architecture.md](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/architecture.md) owns the launched application and customization surface; the [single-file Python SDK runtime distribution](../architecture/2026-07-10-single-file-executable-sdk-runtime-distribution.md) remains authoritative for SEA packaging, native sidecars, wheel tags, and release artifacts.
 
 ## Alternatives considered
 

@@ -48,7 +48,7 @@ Follow the reading order in [developer transition rules](2026-09-10-session-deve
 
 **Rename `LogicalSession` to `Session` now.** Rejected because the legacy concrete class remains in use during transition. A rename would create a semantic collision and enlarge the diff.
 
-**Name the interface `SessionRuntime`.** Rejected because the package naming table in [Adding a package](../../../../docs/cookbook/adding-a-package.md) reserves `Runtime` for a component that runs live work and owns dispatch, cancellation, or operation lifecycle. The interface holds one session's identity and log and runs nothing, so that name read as an execution environment.
+**Name the interface `SessionRuntime`.** Rejected because the package naming table in [Adding a package](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/cookbook/adding-a-package.md) reserves `Runtime` for a component that runs live work and owns dispatch, cancellation, or operation lifecycle. The interface holds one session's identity and log and runs nothing, so that name read as an execution environment.
 
 **Put the FAQ inside the protocol document.** Rejected because quick naming and status explanations would obscure protocol obligations. The FAQ only routes readers to normative owners.
 

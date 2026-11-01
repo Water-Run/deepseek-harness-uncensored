@@ -99,7 +99,7 @@ The per-item `null` is reserved for child-run failures and ordinary in-stage scr
 
 Read these pages when the package-level contract is not enough. They move from the shared workflow model to the current engine and the model-facing consumers.
 
-- [Workflow subsystem](../../../docs/subsystems/workflow.md) — the full type vocabulary, start request, and event payloads.
+- [Workflow subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/workflow.md) — the full type vocabulary, start request, and event payloads.
 - [Group map](../README.md) — the workflow capability family and its packages.
 - [workflow tool](../tool-workflow/README.md) — the model-facing consumer that owns the call schema and result envelope.
 - [PTC workflow engine](../workflow-ptc/README.md) — the current execution engine and its isolation boundary.

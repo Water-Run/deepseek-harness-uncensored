@@ -71,9 +71,9 @@ The plugin registers four `defineTool` definitions through the context that load
 
 - [Schedule service](../schedule/README.md) — the Host task store, runtime, and delivery behavior these tools manage.
 - [Schedule group map](../README.md) — the sibling packages in this group.
-- [Generated tool catalog](../../../docs/tool-catalog.md#deepseek-aidsh-tool-schedule) — the exact four schemas the model receives.
-- [Schedule subsystem](../../../docs/subsystems/schedule.md) — the `ctx.schedule` Cordis surface and stored types.
-- [Schedule user guide](../../../docs/user/guide/schedule.md) — the user-facing reminder workflow.
+- [Generated tool catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-schedule) — the exact four schemas the model receives.
+- [Schedule subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/schedule.md) — the `ctx.schedule` Cordis surface and stored types.
+- [Schedule user guide](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/user/guide/schedule.md) — the user-facing reminder workflow.
 
 -----
 
@@ -84,7 +84,7 @@ The plugin registers four `defineTool` definitions through the context that load
 
 #### What the model sees
 
-The generated [`schedule_create`, `schedule_list`, `schedule_update`, and `schedule_delete` schemas](../../../docs/tool-catalog.md#deepseek-aidsh-tool-schedule) whenever this package is visible in the calling Agent's scope. Title guidance does not rewrite stored titles or add validation beyond the existing non-empty and length checks.
+The generated [`schedule_create`, `schedule_list`, `schedule_update`, and `schedule_delete` schemas](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-schedule) whenever this package is visible in the calling Agent's scope. Title guidance does not rewrite stored titles or add validation beyond the existing non-empty and length checks.
 
 #### Token effect
 

@@ -1,5 +1,5 @@
 /**
- * Anonymous public HTTP(S) `WebFetchProvider` plugin. It contributes to the
+ * Anonymous HTTP(S) `WebFetchProvider` plugin. It contributes to the
  * `ctx.web` registry without owning the service.
  *
  * @module @deepseek-ai/dsh-web-fetch-http

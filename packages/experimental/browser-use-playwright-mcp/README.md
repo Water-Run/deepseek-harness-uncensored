@@ -45,7 +45,7 @@ Use `mode: attach` and set `endpoint` to an HTTP(S) debugging URL or WS(S) brows
 | `endpoint` | required for attach | Existing browser debugging endpoint |
 | `toolCallTimeoutMs` | MCP client default | Per-call timeout in milliseconds |
 
-The [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-experimental-browser-use-playwright-mcp) lists accepted fields. The profile or preset selects the browser mode. The child process clears inherited `PLAYWRIGHT_MCP_*` options so they cannot replace that configuration.
+The [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-experimental-browser-use-playwright-mcp) lists accepted fields. The profile or preset selects the browser mode. The child process clears inherited `PLAYWRIGHT_MCP_*` options so they cannot replace that configuration.
 
 When configuring the system prompt's `toolOrder` for the whole process, leave browser tools under `<unlisted-tools>`. Explicitly listing browser tool names can make prompt assembly fail for Sessions without a browser connection.
 
@@ -68,7 +68,7 @@ Browser state survives turns while its live Session remains attached. The MCP se
 <a id="further-exploration"></a>
 ## Further Exploration
 
-- [Browser use](../../../docs/subsystems/browser-use.md) — provider selection and Session ownership.
+- [Browser use](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/browser-use.md) — provider selection and Session ownership.
 - [Browser-use service](../../browser-use/browser-use/README.md) — exclusive provider registration.
 - [Playwright MCP](https://github.com/microsoft/playwright-mcp) — upstream installation and browser behavior.
 

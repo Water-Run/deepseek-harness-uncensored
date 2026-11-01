@@ -58,6 +58,27 @@ with DeepSeekHarness(dsh_home="/absolute/path/to/saved-home") as harness:
     result = session.run("Continue the task.")
 ```
 
+<a id="client-approvals"></a>
+## Client approvals
+
+This low-level example receives one approval and rejects it. Use a dedicated request-handling thread or loop for a full run: `next_request()` blocks, and the request handler must run concurrently with `session/wait` or a high-level `run()`. Set `approval_requests=True` on `HarnessClient.initialize()` or `DeepSeekHarnessConfig` only when that handler is ready. Omission preserves the runtime's answerer chain. Decisions are one-shot; invalid responses and lost connections fail closed, and cancellation discards late replies. `ApprovalRequestResult` validates response values when constructing decisions.
+
+```py
+from deepseek_harness import ApprovalRequestParams, HarnessClient, HarnessConfig
+
+with HarnessClient(HarnessConfig(dsh_home="/absolute/path/to/dsh-home")) as client:
+    client.initialize(cwd="/absolute/path/to/workspace", provider="deepseek-official",
+                      model="deepseek-v4-flash", approval_requests=True)
+    client.session_prompt("main", [{"type": "text", "text": "Run the operation requiring approval."}])
+    request = client.next_request()
+    if request.method == "approval/request":
+        question = ApprovalRequestParams.model_validate(request.payload)
+        print(question.toolName, question.reason)
+        client.respond(request.id, {"outcome": "rejected"})
+    else:
+        client.respond_error(request.id, code=-32601, message="Unsupported client request")
+```
+
 ## Customize plugins
 
 Persistent customization belongs to a `dsh` profile. Initialize the shipped SDK profile and install an external bundle with the runtime wheel's `dsh` command:
@@ -87,6 +108,12 @@ with DeepSeekHarness(
 
 The shipped `sdk-minimal` profile is a standalone explicit tree rather than an overlay on `dsh-base`. Select it with `profile="sdk-minimal"`; the ordinary `model` argument is the sole runtime model selection, including for model ids outside the adapter's advisory catalog. It provides a platform-selected persistent shell, `read_image`, `working_directory`, local execution, JSONL sessions, and automatic compaction. Text file tools, settings, managed credentials, telemetry, Web tools, and the full default tool roster remain available through the separate full `sdk` and `web` profiles. SDK prompt text does not execute `/compact`.
 
+## Native user questions
+
+Pass `on_user_question` to `DeepSeekHarnessConfig`, `DeepSeekHarness`, or `HarnessConfig` to answer the built-in `ask_user_question` tool through the native SDK protocol. The callback receives a `UserQuestionRequest` (`request_id`, `session_id`, and the original `questions`) and a `threading.Event` signalling cancellation. Return `UserQuestionAnswer` or a JSON object shaped as `{"answers": [{"id": "question-id", "selected": ["option label"], "custom": "optional free text"}]}`. Each original question id must appear exactly once. The application supplies its UI or simulated-user policy; the SDK does not choose answers.
+
+Callbacks run on separate threads so the reader can process cancellation and other requests. They may run concurrently and may make further client requests. Release callback-owned work when the cancellation Event is set. Closing the client signals outstanding callbacks and gives their workers a shared 0.5-second join window; callbacks that ignore cancellation may continue, but their late answers cannot reach the runtime or a later process. A callback exception becomes a protocol error, and an absent callback retains existing native answerers or reports `NO_PROVIDER`.
+
 ## Results and notifications
 
 `Session.run()` owns an activity interval from its prompt's durable inbox receipt through the next whole-agent idle and returns `RunResult(session_id, final_response, finish_reason, events, notifications)`. `final_response` is the last committed root-session assistant text in the interval. `finish_reason` is the `kind` of the last root-session `turn/end`, such as `completed`, `max-tokens`, or `error`, and is `None` when no turn ended. A `turn/end` without a string `data.reason.kind` violates the protocol and raises `SdkProtocolError`.
@@ -95,6 +122,6 @@ The shipped `sdk-minimal` profile is a standalone explicit tree rather than an o
 
 The selected home stores profiles, plugins, and every profile-owned durable resource. The full `sdk` profile uses its credentials, settings, and session stores; `sdk-minimal` uses JSONL session storage and stores images under `$DSH_HOME/attachments/v1`, with request-image cache under `$DSH_HOME/cache/attachments`. Use a fresh home when those resources must be isolated, and a fresh session id for independent work. Reusing both a harness and session id continues the durable conversation and session-owned resources.
 
-See the [Python tutorial](../../docs/user/guide/python-sdk.md), [runnable example](examples/README.md), and [runtime wheel reference](../sdk-runtime/README.md).
+See the [Python tutorial](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/user/guide/python-sdk.md), [runnable example](examples/README.md), and [runtime wheel reference](../sdk-runtime/README.md).
 
 `Session.get_working_directory()` reads the effective working directory; `set_working_directory(path)` changes it and returns the validated absolute path. Both create an unknown Session without running a model turn. Relative paths use that Session's current directory. Origin metadata, permissions, and existing processes remain unchanged. The low-level client provides the same methods with a leading `session_id` argument.

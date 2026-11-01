@@ -1,7 +1,8 @@
-DeepSeek Harness is unavailable
+DeepSeek Harness Uncensored is unavailable
 The application could not start or stopped unexpectedly.
 Desktop Host failed
 Plugin initialization failed
+The diagnostic report could not be saved. You can provide a screenshot of this dialog when requesting support.
 
 If application files are missing or damaged, close the application and reinstall it. Your tasks are stored separately.
 Exit

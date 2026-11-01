@@ -107,7 +107,7 @@ const ref = await ctx.spillStore.saveText({
 
 当包级约定不够用时阅读以下页面。它们从共享词汇逐步进入已交付后端、策略与设计依据。
 
-- [spill 子系统](../../../docs/subsystems/spill.zh.md)——穷尽式词汇、归属与后端关系。
+- [spill 子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/spill.md)——穷尽式词汇、归属与后端关系。
 - [spill 包映射](../README.zh.md)——三包家族与各自职责。
 - [dsh-spill-local](../spill-local/README.zh.md)——已交付的本地文件系统后端。
 - [dsh-spill-policy](../spill-policy/README.zh.md)——决定最终结果何时过大的策略。

@@ -59,7 +59,7 @@ kind: "package-reference"
 | `timeoutMs` | `30000` | 一次发送等待的绝对上限 |
 | `disposeGraceMs` | `3000` | 清理升级到 `SIGKILL` 前的宽限时间 |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-terminal-bash)是每个字段的穷尽式真源，包括就绪计时（`pollIntervalMs`、`exactProbeAfterMs`、`idleSilenceMs`、`handoffGraceMs`、`promptTailGraceMs`）、终端尺寸（`rows`、`cols`）与 scrollback 上限（`scrollbackLines`、`scrollbackMaxBytes`）。
+生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-terminal-bash)是每个字段的穷尽式真源，包括就绪计时（`pollIntervalMs`、`exactProbeAfterMs`、`idleSilenceMs`、`handoffGraceMs`、`promptTailGraceMs`）、终端尺寸（`rows`、`cols`）与 scrollback 上限（`scrollbackLines`、`scrollbackMaxBytes`）。
 
 ### shell 方言与就绪
 
@@ -119,10 +119,10 @@ Scrollback 和尚未读取的发送输出保留独立拥有的字符串，并增
 
 当包级约定不够用时阅读以下页面。它们从共享终端模型进入服务、工具与执行世界基底。
 
-- [终端子系统参考](../../../docs/subsystems/terminal.zh.md)——此后端实现的服务约定与生成的 `ctx.terminals` 接口面。
+- [终端子系统参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/terminal.md)——此后端实现的服务约定与生成的 `ctx.terminals` 接口面。
 - [terminal 服务](../terminal/README.zh.md)——后端注册、所有者限制与清理语义。
 - [tool-terminal 工具](../../experimental/tool-terminal/README.zh.md)——操作会话的面向模型工具。
-- [子进程 seam](../../../docs/subsystems/subprocess.zh.md)——负责 PTY 分配与进程树清理的终端原语。
+- [子进程 seam](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/subprocess.md)——负责 PTY 分配与进程树清理的终端原语。
 - [持久 PTY Agent Note](../../../.agents/notes/implemented/feature/2026-07-16-persistent-pty-sessions.zh.md)——能力设计与暂缓边界。
 - [持久 pwsh Agent Note](../../../.agents/notes/archived/architecture/2026-08-11-pwsh-persistent-pty.md)——Windows 基底与 pwsh 方言。
 

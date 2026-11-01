@@ -92,7 +92,7 @@ A module-scope `WeakMap<Session, seq>` records the highest sequence handed off, 
 Read these pages when the seam contract is not enough. They move from the shipped backend to the subsystem reference and the decision evidence.
 
 - [OpenTelemetry telemetry backend](../session-telemetry-otel/README.md) — the shipped backend deployments load, with mode and exporter configuration.
-- [Session telemetry subsystem](../../../docs/subsystems/session-telemetry.md) — the capability split and type declarations.
+- [Session telemetry subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/session-telemetry.md) — the capability split and type declarations.
 - [historical Session telemetry revival decision](../../../.agents/notes/archived/feature/2026-07-23-session-telemetry-otel-revival.md) — rationale, trade-offs, and rejected alternatives.
 - [Session package map](../README.md) — adjacent persistence, projection, title, and telemetry packages.
 

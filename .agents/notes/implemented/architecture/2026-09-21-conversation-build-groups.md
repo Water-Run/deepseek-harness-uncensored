@@ -16,7 +16,7 @@ Broad benchmark budgets do not establish that grouping updates are local. Keyed 
 
 ## Decision
 
-The grouping foundation provides a separate, Node-input `ConversationGroupDefinition`, its registry and Session-local context, generic Builder input/publication, keyed Group storage, and the two React branches. Chat owns its registered segmentation and presentation in the [business-rule reference](../../../../packages/client/ui-chat/src/client/conversation-nodes/README.md). The [subsystem reference](../../../../docs/subsystems/conversation.md#group-definitions) and [source types](../../../../packages/client/ui-conversation/src/client/contract/groups.ts) own the current API details.
+The grouping foundation provides a separate, Node-input `ConversationGroupDefinition`, its registry and Session-local context, generic Builder input/publication, keyed Group storage, and the two React branches. Chat owns its registered segmentation and presentation in the [business-rule reference](../../../../packages/client/ui-chat/src/client/conversation-nodes/README.md). The [subsystem reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/conversation.md#group-definitions) and [source types](../../../../packages/client/ui-conversation/src/client/contract/groups.ts) own the current API details.
 
 ### Responsibilities
 

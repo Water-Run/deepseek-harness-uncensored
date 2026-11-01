@@ -108,7 +108,7 @@ seam 本身不是执行器：每个组合只挂载一个提供方，工具即可
 
 当 seam 约定不够用时阅读以下页面。它们从共享子系统参考逐步进入具体执行器与面向模型的工具。
 
-- [Bash 执行器子系统](../../../docs/subsystems/shell.zh.md) —— 请求/spec 词汇、结果与完整的服务约定。
+- [Bash 执行器子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/shell.md) —— 请求/spec 词汇、结果与完整的服务约定。
 - [bash-local](../bash-local/README.zh.md) —— 默认 POSIX 执行器：全新的 `bash -c` 进程、预算与 deadline。
 - [bash-sandbox](../bash-sandbox/README.zh.md) —— 沙箱执行器：沙箱模式、拒绝与升权。
 - [tool-bash](../tool-bash/README.zh.md) —— 基于该 seam 的面向模型 `bash` 工具。

@@ -75,7 +75,7 @@ inferenceOrigin 默认为 `https://api.deepseek.com`。私有部署 patch 可将
 <a id="further-exploration"></a>
 ## 深入探索
 
-[凭证子系统](../../../docs/subsystems/credentials.zh.md)定义存储接口；[架构](../../../docs/architecture.zh.md)说明应用组合。
+[凭证子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/credentials.md)定义存储接口；[架构](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/architecture.md)说明应用组合。
 
 attemptTimeoutMs 包含初始化、等待浏览器和兑换的耗时。初始化不会延长绝对截止时间；服务端 TTL 只能缩短剩余时间。在到期前已获准的凭证持久化不再取消。
 

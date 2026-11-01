@@ -27,12 +27,13 @@ function runRepositoryOxlint(args: readonly string[], env: NodeJS.ProcessEnv = {
   return spawnSync(process.execPath, [tsxCli, 'scripts/run-oxlint.ts', ...args], {
     cwd: repositoryRoot,
     encoding: 'utf8',
-    env: { ...process.env, NO_COLOR: '1', ...env },
+    env: { ...process.env, NO_COLOR: '1', DSH_OXLINT_THREADS: '2', ...env },
   })
 }
 
 function runOxlint(args: readonly string[], env: NodeJS.ProcessEnv = {}) {
-  return spawnSync(process.execPath, [oxlintCli, ...args], {
+  // Each compiler child has its own budget; Vitest's worker count does not limit these threads.
+  return spawnSync(process.execPath, [oxlintCli, '--threads=2', ...args], {
     cwd: repositoryRoot,
     encoding: 'utf8',
     env: { ...process.env, NO_COLOR: '1', ...env },
@@ -61,7 +62,7 @@ describe('Oxlint executable contract', () => {
       // probe carries the Client suffix to reach the Client aggregate.
       ['client package test', 'packages/client/ui-trajectory/tests', 'tsconfig.client.json', '.client.ts'],
       ['CLI profile test', 'apps/cli/tests/profiles/headless/tests', 'tsconfig.host.json'],
-      ['website', 'website', 'tsconfig.host.json'],
+      ['repository script', 'scripts', 'tsconfig.host.json'],
     ] as const
     const source = `export function probePromise(): Promise<void> {
   return Promise.resolve()

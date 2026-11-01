@@ -106,7 +106,7 @@ Status: <status>
 ## Consequences
 ```
 
-`## Decision` 以现在时态描述已交付的现实，整个文件按 [implemented/AGENTS.md](implemented/AGENTS.md) 的要求与之保持同步。`## Consequences` 记录权衡的代价**与**收益。提案阶段的标题在此属于规格用语，门禁会拒绝它们：`## Proposal`、`## Plan`、`## Migration plan` 和 `## Acceptance criteria` 不得出现在 implemented Agent Note 中（原因见 [slop 检查清单](../../docs/AGENTS.md)）。`## Testing`、`## Deferred` 或 `## Related` 章节在陈述现在时态的事实时是允许的。
+`## Decision` 以现在时态描述已交付的现实，整个文件按 [implemented/AGENTS.md](implemented/AGENTS.md) 的要求与之保持同步。`## Consequences` 记录权衡的代价**与**收益。提案阶段的标题在此属于规格用语，门禁会拒绝它们：`## Proposal`、`## Plan`、`## Migration plan` 和 `## Acceptance criteria` 不得出现在 implemented Agent Note 中（原因见 [slop 检查清单](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/AGENTS.md)）。`## Testing`、`## Deferred` 或 `## Related` 章节在陈述现在时态的事实时是允许的。
 
 #### `rejected/`
 
@@ -128,4 +128,4 @@ Status: <status>
 
 ### 中文对侧文件
 
-`.zh.md` 对侧文件按 [i18n 约定](../../docs/i18n/README.zh.md)逐章节与其英文对侧文件保持相同结构；机器检查的头部标记（`# Agent Note: ` 和 `Status:` 行）保持英文原样不翻译。格式门禁跳过 `.zh.md` 文件；配对门禁检查它们的一致性。
+`.zh.md` 对侧文件按 [i18n 约定](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/i18n/README.md)逐章节与其英文对侧文件保持相同结构；机器检查的头部标记（`# Agent Note: ` 和 `Status:` 行）保持英文原样不翻译。格式门禁跳过 `.zh.md` 文件；配对门禁检查它们的一致性。

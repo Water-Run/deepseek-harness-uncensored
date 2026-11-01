@@ -49,7 +49,7 @@ import {
 const root = resolve(import.meta.dirname, '..')
 const manifest = parseTranslationPairingManifest(readFileSync(join(root, 'scripts/translation-pairing.manifest.json'), 'utf8'))
 const isTranslationPairSource = translationPairSourcePredicate(manifest)
-const terminology = readFileSync(join(root, 'docs/i18n/terminology.md'), 'utf8')
+const terminology = readFileSync(join(root, 'scripts/translation-resources/terminology.md'), 'utf8')
 
 function isExcluded(file: string): boolean {
   return isTranslationPairingManifestExcluded(file, manifest)

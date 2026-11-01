@@ -108,7 +108,7 @@ describe('shipped agent presets gate both shell tools by platform', () => {
 
   const definitions = presetRows.filter(row => row.name === '@deepseek-ai/dsh-agent-preset').map(row => row.config as import('@deepseek-ai/dsh-agent-preset-registry').PresetDefinition)
 
-  it.each(['standard', 'ptc', 'cordis'])('preset %s gates its shell tool rows by platform', (preset) => {
+  it.each(['standard', 'security', 'reverse', 'ptc'])('preset %s gates its shell tool rows by platform', (preset) => {
     const entries: unknown = definitions.find(row => row.id === preset)!.plugins
     if (!Array.isArray(entries)) throw new TypeError(`preset ${preset} must parse to an entry array`)
     for (const [id, win32] of [['tool-bash', true], ['tool-pwsh', false]] as const) {

@@ -78,7 +78,7 @@ Read these when the seam contract is not enough: the decision record first, then
 - [Native backend](../directory-picker-native/README.md) — the OS-chooser interaction and its platform tooling.
 - [Browse backend](../directory-picker-browse/README.md) — the in-app listing and creation interaction for remote clients.
 - [Adaptive chooser](../directory-picker-auto/README.md) — boot-time resolution between the two backends.
-- [Workspace subsystem](../../../docs/subsystems/workspace.md) — the workspace records the picked directory feeds.
+- [Workspace subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/workspace.md) — the workspace records the picked directory feeds.
 
 -----
 

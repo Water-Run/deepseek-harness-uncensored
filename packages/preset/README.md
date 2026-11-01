@@ -29,8 +29,8 @@ This group declares Agent capabilities through ordinary Cordis configuration and
 <a id="related-documentation"></a>
 ## Related documentation
 
-- [Scope](../../docs/subsystems/scope.md)
-- [Cordis](../../docs/cordis-primer.md)
+- [Scope](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/scope.md)
+- [Cordis](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/cordis-primer.md)
 - [Agent preset](../../.agents/notes/implemented/architecture/2026-09-18-declarative-agent-presets.md)
 
 <a id="dev-note"></a>

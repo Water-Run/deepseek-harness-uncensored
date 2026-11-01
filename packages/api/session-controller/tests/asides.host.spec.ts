@@ -30,7 +30,7 @@ async function fixture(ctx: Context, withPermissions = true) {
   if (withPermissions) ctx.provide('permissionPresets', {
     set: (session: { header: { id: string } }, preset: string) => { pinnedPresets.push({ sessionId: session.header.id, preset }) },
   } as never)
-  createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'mock', model: 'mock' }), cwd: '/tmp' })
+  await createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'mock', model: 'mock' }), cwd: '/tmp' })
   let btwEffort = 'low'
   const agents = new ApiSessionAgentController(ctx, { sideContextBytes: 65536, btwContextBytes: 8192 })
   const controller = new SessionAsideController(

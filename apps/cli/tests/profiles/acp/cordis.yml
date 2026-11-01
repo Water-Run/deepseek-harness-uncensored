@@ -1,1 +1,4 @@
-../../../../../snapshots/acp/escalation-approved/cordis.yml
+- id: acp-escalation-fixture
+  name: '@deepseek-ai/cordis-plugin-include'
+  config:
+    path: ../../../../../snapshots/acp/escalation-approved/cordis.yml

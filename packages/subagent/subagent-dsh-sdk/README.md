@@ -50,7 +50,7 @@ The provider advertises `agentOptions: true`, with `agentPreset`/`outputSchema`/
 | `disposeEofGraceMs` | `6000` | Grace after stdin EOF before platform termination |
 | `disposeGraceMs` | `3000` | Exit-confirmation grace after termination |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-subagent-dsh-sdk) is the exhaustive source for every accepted field and its JSDoc.
+The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-subagent-dsh-sdk) is the exhaustive source for every accepted field and its JSDoc.
 
 Request `agentOptions` override `provider`, `model`, and `maxTokens` independently. `reasoningEffort` has no provider-instance default: an omitted request leaves it absent so the selected child model resolves its own default. The model-facing subagent tool can select provider/model/reasoning per call; `maxTokens` remains deployment-controlled through tool config or this provider's default.
 
@@ -122,11 +122,11 @@ The child environment is the subprocess seam's credential-scrubbed parent enviro
 
 Read these pages when the package-level contract is not enough. They move from this backend to the seam it plugs into and the SDK it drives.
 
-- [Subagent subsystem](../../../docs/subsystems/subagent.md) — the service contract, provider contract, and terminal result semantics.
+- [Subagent subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/subagent.md) — the service contract, provider contract, and terminal result semantics.
 - [dsh-subagent seam](../subagent/README.md) — the registry and start API this provider registers on.
 - [ACP subagent backend](../subagent-acp/README.md) — the sibling out-of-process provider over the Agent Client Protocol.
 - [TypeScript SDK client](../../sdk/client/README.md) — the stdio JSON-RPC client this backend drives the child through.
-- [Generated configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-subagent-dsh-sdk) — every accepted config field and its source declaration.
+- [Generated configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-subagent-dsh-sdk) — every accepted config field and its source declaration.
 
 -----
 

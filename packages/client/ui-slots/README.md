@@ -77,7 +77,7 @@ These pages cover the engine, the renderer, and the composition model.
 - [ui-renderer](../ui-renderer/README.md) — the React slot renderer implementing this package's install contract.
 - [Slot system standard](../../../.agents/notes/implemented/architecture/2026-07-22-slot-type-chain-implementation.md) — the definitive composition model.
 - [Component Factories](../../../.agents/notes/implemented/architecture/2026-09-10-component-factories-and-local-slots.md) — reusable definitions, local Component selection, and occurrence lifetimes.
-- [Web client architecture](../../../docs/subsystems/web-client.md) — the loading chain and object layer this registry plugs into.
+- [Web client architecture](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/web-client.md) — the loading chain and object layer this registry plugs into.
 
 -----
 

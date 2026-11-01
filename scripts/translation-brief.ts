@@ -220,7 +220,7 @@ function plainTerm(cell: string): string {
 /**
  * Parse the data rows of the terminology table.
  *
- * @param terminology - Full `docs/i18n/terminology.md` contents.
+ * @param terminology - Full `scripts/translation-resources/terminology.md` contents.
  * @returns Rows in table order.
  */
 export function parseTerminologyRows(terminology: string): TerminologyRow[] {
@@ -272,7 +272,7 @@ function rowOccurs(row: TerminologyRow, direction: BriefDirection, text: string)
  * Select the terminology rows whose source-language term occurs in the
  * changed text (old and new states combined).
  *
- * @param terminology - Full `docs/i18n/terminology.md` contents.
+ * @param terminology - Full `scripts/translation-resources/terminology.md` contents.
  * @param direction - Update direction; decides which columns to match.
  * @param changedText - Concatenated old and new text of the changed spans.
  * @returns Matched rows in table order.
@@ -489,7 +489,7 @@ export function renderTranslationBrief(input: TranslationBriefInput): string {
   }
   if (input.terminology.length > 0) {
     out.push('')
-    out.push('## Binding terminology rows matching this change (docs/i18n/terminology.md)')
+    out.push('## Binding terminology rows matching this change (scripts/translation-resources/terminology.md)')
     out.push('')
     out.push('| English | 中文 | 首次出现 | 不要译作 | 备注 |')
     out.push('|---|---|---|---|---|')

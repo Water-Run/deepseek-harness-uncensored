@@ -35,7 +35,7 @@ Each package owns its configuration and lifetime rules; the subsystem reference 
 
 Consumers own source authorization and presentation.
 
-- [Document conversion](../../docs/subsystems/office-to-pdf.md) — shared operation and generated service reference.
+- [Document conversion](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/office-to-pdf.md) — shared operation and generated service reference.
 - [Independent kit ownership](../../.agents/notes/implemented/architecture/2026-09-14-independent-libreoffice-kit.md) — engine distribution and application integration.
 - [Workspace Files](../api/workspace-files/README.md) — authorized bounded source reads.
 

@@ -122,10 +122,8 @@ export class SessionAsideController {
       agentOptions,
       setup,
     })
-    // Creation options seed the first request, but the model-selection
-    // waterfall then applies the Agent's committed selection; record it so the
-    // child's own model and level are not replaced by the deployment default.
-    this.agents.selectForNextRequest(agent, selection)
+    // Persist the child's own model and effort for later resumes.
+    agent.model.select(selection)
     await this.ctx.sessions.flush(agent.session)
     return { sessionId: childId, inheritedEventCount: 0 }
   }

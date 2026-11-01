@@ -29,7 +29,7 @@ kind: "package-reference"
 
 “查看原文”和“查看译文”复用译文正文上方插件工具栏内的一个常显入口。插件自行维护此操作及其状态，思考标题只控制展开与折叠。两种视图复用同一个紧凑 Markdown 组件和排版，不改变思考预览，也不重复发送请求。完整段落和流式长段落中达到请求长度的前缀异步翻译，未完成的末尾片段保留原文。失败时保留原始正文，并提供重试；开始重试前，“查看译文”保持禁用。关闭思考内容或停用组合包会取消对应请求。
 
-自定义组合可将本插件与[翻译服务](../translator/README.zh.md)和普通 Web GUI 一起挂载。本插件的配置字段是 `provider` 和 `targetLanguage`；完整定义见生成的[配置目录](../../../docs/config-catalog.zh.md)。
+自定义组合可将本插件与[翻译服务](../translator/README.zh.md)和普通 Web GUI 一起挂载。本插件的配置字段是 `provider` 和 `targetLanguage`；完整定义见生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md)。
 
 -----
 
@@ -54,7 +54,7 @@ kind: "package-reference"
 
 - [翻译服务](../translator/README.zh.md) — 服务接口和网络限制。
 - [Chat 渲染](../../client/ui-chat/README.zh.md) — 思考内容展开和显示扩展。
-- [Web Client Slots](../../../docs/subsystems/slots.zh.md) — 渲染贡献的生命周期。
+- [Web Client Slots](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/slots.md) — 渲染贡献的生命周期。
 
 -----
 

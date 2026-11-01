@@ -5,6 +5,7 @@ import { SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session'
 import { SessionFormatUnsupportedMigrationError } from '@deepseek-ai/dsh-session-format-catalog'
 import { expectedUnsupported, unversionedProtocolFixtures } from './session-format-corpus-inventory.ts'
 import { parseSessionLog } from '../src/index.ts'
+import { authoredSessionRejections, verifyAuthoredSessionRejection } from '../../../../scripts/authored-session-rejections.ts'
 
 const repoRoot = resolve(import.meta.dirname, '../../../..')
 const excludedDirectories = new Set(['dist', 'lib', 'node_modules'])
@@ -72,7 +73,7 @@ const fixtures = ['snapshots', 'packages', 'scripts/snapshots/python-sdk-single-
 describe('committed Session format corpus', () => {
   it('keeps every exception tied to an existing fixture', () => {
     const keys = new Set(fixtures.map(({ key }) => key))
-    for (const key of [...Object.keys(expectedUnsupported), ...unversionedProtocolFixtures]) {
+    for (const key of [...Object.keys(expectedUnsupported), ...Object.keys(authoredSessionRejections), ...unversionedProtocolFixtures]) {
       expect(keys.has(key), key).toBe(true)
     }
   })
@@ -92,6 +93,11 @@ describe('committed Session format corpus', () => {
         version: number
       }
       expect(header.version, key + ': filename/header Session generation').toBe(filenameFormatVersion(file))
+      if (verifyAuthoredSessionRejection(key, source, 'restore', () => parseSessionLog(source))) {
+        expect(header.version).toBeLessThan(SESSION_FORMAT_VERSION)
+        expect(expectedUnsupported[key]).toBeUndefined()
+        return
+      }
       assertRestoration(key, header.version, () => parseSessionLog(source), expectedUnsupported[key])
     } finally {
       expect(readFileSync(file), key + ': source bytes remain unchanged').toEqual(bytes)

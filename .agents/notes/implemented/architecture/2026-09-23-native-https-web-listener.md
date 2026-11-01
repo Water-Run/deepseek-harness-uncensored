@@ -32,7 +32,7 @@ Certificate issuance, trust, renewal, and replacement belong to the operator. Fi
 
 ## Consequences
 
-Direct HTTPS needs no TLS-terminating proxy. An HTTPS proxy in front of an HTTP listener still owns external cookie rewriting. An HTTPS listener emits `Secure` cookies, so public browser-facing deployments must retain HTTPS rather than depend on local-browser exceptions for HTTP. Deployment procedures belong to the [public deployments guide](../../../../docs/user/guide/public-deployments.md).
+Direct HTTPS needs no TLS-terminating proxy. An HTTPS proxy in front of an HTTP listener still owns external cookie rewriting. An HTTPS listener emits `Secure` cookies, so public browser-facing deployments must retain HTTPS rather than depend on local-browser exceptions for HTTP. Deployment procedures belong to the [public deployments guide](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/user/guide/public-deployments.md).
 
 This partially supersedes the HTTP-only assumptions in [browser launch-token authentication](2026-08-24-browser-token-authentication.md) and [concrete bind addresses](2026-09-19-concrete-web-bind-address.md). Those notes remain active for cookie payloads and lifetimes, and bind admission respectively.
 

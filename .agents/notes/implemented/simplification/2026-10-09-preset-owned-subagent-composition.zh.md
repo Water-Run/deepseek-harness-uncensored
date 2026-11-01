@@ -12,7 +12,7 @@ Agent Preset 已经组合 persona 和工具插件。独立的子级 persona 和�
 
 新 subagent 请求在提供方支持时选择 Agent Preset。persona 和工具来自其插件列表。fork 继承父级的 preset 代际；model 和 effort 选择保留现有配置。没有具体消费者时，不添加 preset 级过滤器或更细的插件拆分。
 
-`dsh-tool-subagent` 在加载时拒绝已删除的 `persona` 和 `toolFilter` 键，包括空值，因为仅删除 Schemastery 字段不会拒绝未知配置。[升级指南](../../../../docs/upgrade-guide/v0.2.1-alpha.1/subagent-preset-composition/guide.zh.md)说明失去的独立覆盖能力及迁移方法。
+`dsh-tool-subagent` 在加载时拒绝已删除的 `persona` 和 `toolFilter` 键，包括空值，因为仅删除 Schemastery 字段不会拒绝未知配置。[升级指南](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/upgrade-guide/v0.2.1-alpha.1/subagent-preset-composition/guide.md)说明失去的独立覆盖能力及迁移方法。
 
 已发布的子级 descriptor 保留 persona 和 filter 字段、解析及冷恢复应用。[原组装记录](../feature/2026-07-12-subagent-persona-tool-filter-and-depth.zh.md)继续保留，以说明这些历史语义及独立的深度策略。[spawn preset 决策](../feature/2026-09-20-spawn-agent-preset-selection.zh.md)继续拥有选择与恢复身份的依据。
 

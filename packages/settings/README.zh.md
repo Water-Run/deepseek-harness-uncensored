@@ -29,7 +29,7 @@ kind: "package-group"
 <a id="related-documentation"></a>
 ## 相关文档
 
-- [设置参考](../../docs/subsystems/settings.zh.md)——描述符与编辑。
+- [设置参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/settings.md)——描述符与编辑。
 - [配置编辑器](../boot/config-editor/README.zh.md)——profile 持久化。
 - [Volatile 配置](../../vendor/loader/README.md)——无需重新挂载的更新。
 

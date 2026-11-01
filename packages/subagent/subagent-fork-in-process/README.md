@@ -51,7 +51,7 @@ Load the subagent service and this backend, then configure a delegation tool. Th
 |---|---|---|
 | `providerName` | `fork` | Provider name registered on `ctx.subagents` |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-subagent-fork-in-process) is the exhaustive source for every accepted field and its JSDoc.
+The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-subagent-fork-in-process) is the exhaustive source for every accepted field and its JSDoc.
 
 ### What a fork delegation does
 
@@ -94,10 +94,10 @@ The delegation tool creates a background activation and returns a stable child s
 
 Read these pages when the package-level contract is not enough; they move from the shared subagent model to the sibling backends and the design evidence for preserving the inherited request prefix.
 
-- [Subagent subsystem](../../../docs/subsystems/subagent.md) — start requests, results, provider contract, and in-process depth and seed.
+- [Subagent subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/subagent.md) — start requests, results, provider contract, and in-process depth and seed.
 - [dsh-subagent-spawn-in-process](../subagent-spawn-in-process/README.md) — the fresh-child sibling backend.
 - [dsh-tool-subagent](../tool-subagent/README.md) — the model-facing delegation tool that reaches this provider.
-- [Generated configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-subagent-fork-in-process) — every accepted config field and its source declaration.
+- [Generated configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-subagent-fork-in-process) — every accepted config field and its source declaration.
 - [Forked children preserve the parent request prefix](../../../.agents/notes/implemented/architecture/2026-08-10-fork-children-stay-one-shot.md) — why continuable fork preserves the inherited request prefix.
 
 -----

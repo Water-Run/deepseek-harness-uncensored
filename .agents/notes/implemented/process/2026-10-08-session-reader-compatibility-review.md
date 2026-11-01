@@ -18,7 +18,7 @@ The schema classifier identifies structural changes requiring compatibility revi
 
 The user treats a recorded `same-version` decision as explicit regardless of whether the CLI or an editor produced it. The CLI requires `--decision same-version` for flagged record and update operations; CI validates the saved decision against history, schemas, and header-version constraints. Neither mechanism attests that a human reviewed the transition. Reviewers use base/head inventory comparison rather than current-tree consistency checks to inspect already acknowledged changes.
 
-This decision partially supersedes the structural bump criterion in the [version-mechanism note](../architecture/2026-08-10-session-log-version-mechanism.md) and the automatic version floor in the [persistence-type-history note](2026-09-11-persistence-type-history.md). Their monotonic integer, required unknown-event default, type history, and immutable generation decisions remain active. The [review procedure](../../../../docs/cookbook/reviewing-persistence-type-changes.md) owns authoring and validation details.
+This decision partially supersedes the structural bump criterion in the [version-mechanism note](../architecture/2026-08-10-session-log-version-mechanism.md) and the automatic version floor in the [persistence-type-history note](2026-09-11-persistence-type-history.md). Their monotonic integer, required unknown-event default, type history, and immutable generation decisions remain active. The [review procedure](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/cookbook/reviewing-persistence-type-changes.md) owns authoring and validation details.
 
 ## Migration obligations
 

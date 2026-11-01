@@ -8,6 +8,13 @@
     "docs/cordis-api/inherited.md",
     "docs/i18n/style-samples.md",
     "docs/i18n/terminology.md",
-    "docs/i18n/translation-prompt.md"
+    "docs/i18n/translation-prompt.md",
+    "README.md",
+    "packages/api/memory-controller/README.md",
+    "packages/client/ui-settings-memory/README.md",
+    "packages/context/uncensored-armor/README.md",
+    "packages/credentials/balance/README.md",
+    "packages/guard/spend-limit/README.md",
+    "packages/memory/memory/README.md"
   ]
 }

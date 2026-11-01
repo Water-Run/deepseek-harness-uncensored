@@ -12,7 +12,7 @@ import {
 } from './translation-prompt.ts'
 
 const root = resolve(import.meta.dirname, '..')
-const document = readFileSync(join(root, 'docs/i18n/translation-prompt.md'), 'utf8')
+const document = readFileSync(join(root, 'scripts/translation-resources/translation-prompt.md'), 'utf8')
 const terminology = '| English | 中文 |\n|---|---|\n| agent | agent |'
 
 const retainedExamples = [

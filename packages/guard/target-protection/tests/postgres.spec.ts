@@ -1,4 +1,5 @@
 /** Real TLS and PostgreSQL startup messages with deterministic request barriers. @module */
+import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import { Context } from '@deepseek-ai/cordis'
 import Credentials from '@deepseek-ai/dsh-credentials-local'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
@@ -279,7 +280,7 @@ it('bounds the complete structured report as well as raw rows', async () => {
 it('renders successful tool results and uses a distinct PostgreSQL presenter', async () => {
   const h = await harness({ hold: false, identity: ['fixture', 'fixture', '18.4', 'on'] })
   await h.ctx.plugin(SystemPrompt); await h.ctx.plugin(Tools); await h.ctx.plugin(PostgresAgent)
-  const result = await h.ctx.tools.execute({ name: 'database_inspect', arguments: { database: 'owned' },
+  const result = await executeToolFixture(h.ctx, { name: 'database_inspect', arguments: { database: 'owned' },
     callId: ToolCallId('catalogue'), signal: new AbortController().signal })
   expect(result.isError).toBe(false)
   expect(JSON.stringify(result.content)).toContain('owned_table')

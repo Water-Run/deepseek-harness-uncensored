@@ -29,7 +29,9 @@ Mount `dsh-session` wherever a session must exist. It creates and holds event-so
 
 ### Create and inspect sessions
 
-`ctx.sessions.create()` builds a live session bound to the calling fiber; `get(id)` and `list()` find sessions, and `fork()` creates a child session from a stable prefix of a live one.
+`ctx.sessions.create()` builds a live session bound to the calling fiber; `get(id)` and `list()` find sessions, and `fork()` creates an independent session from a stable prefix of a live one. It copies history, `cwd`, `isSeeded`, and the inherited event count without recording a source relationship. `parentSession` records a subagent’s direct creator; historical ordinary forks may retain their source there, so classification uses `origin`.
+
+Independent `Session.create()` and `Session.fromRestore()` instances accept events and plugin records without sending `session/event`. A `SessionStore` takes ownership through `prepare()` or `enter()`; writes then require store membership and a completed synchronous `session/created` announcement. Creation listeners are read-only and see all existing history; entering an independent instance does not replay that history as `session/event`. Failed announcement or removal leaves writes disabled. Removal emits `session/disposed` only if `session/created` began, including a failed announcement; an entered but never announced instance emits neither notification.
 
 ```text
 const session = ctx.sessions.create(sessionId, { meta: { cwd: '/workspace' } })
@@ -39,7 +41,7 @@ ctx.sessions.list()              // every live session, in creation order
 
 ### Append and derive
 
-`session.append(type, data, opts?)` commits one typed event — it snapshots and freezes the payload, validates it as lossless JSON, and notifies observers. `session.deriveMessages()` projects the log into the `Message[]` the model sees, incrementally and cached:
+`session.append(type, data, opts?)` commits one typed event. It rejects read-only instances before reading payload fields, snapshots and freezes valid JSON, then rechecks write permission before committing and notifying observers. `session.deriveMessages()` projects the log into the `Message[]` the model sees, incrementally and cached:
 
 ```text
 session.append('user/message', { role: 'user', content: [{ type: 'text', text: 'hello' }], source: { kind: 'user' } },
@@ -71,7 +73,7 @@ Session log positions use two numeric types. `SessionSeq` identifies an existing
 
 Declare each record in `PluginRecordMap` through `@deepseek-ai/dsh-session/types`, with a description and an explicit payload type annotation in the owning experimental package's `src/`. Names use `plugin:<owner>/<record>`, where `owner` is the suffix of the package name `@deepseek-ai/dsh-experimental-<owner>`; for example, `plugin:pi-extensions/entry`. TypeScript checks each name and payload against its declaration; the writer's runtime JSON snapshot rejects values that cannot be preserved losslessly. Put extension-defined or other dynamic names inside the payload of a declared record.
 
-The [experimental persistence catalog](../../../docs/experimental-persistence-catalog.md) lists current plugin-record declarations with their owners, descriptions, payload type annotations, and source files. These declarations remain separate from `SessionEventMap`, expanded persistence schemas, released type history, and `KNOWN_SESSION_EVENT_TYPES`. Records carry `ignorable: true`: a build that does not recognize one retains and skips it on read. Records never enter the model-visible surface. Resume and fork carry them with the rest of the log; Session format migration keeps them on a best-effort basis.
+The [experimental persistence catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/experimental-persistence-catalog.md) lists current plugin-record declarations with their owners, descriptions, payload type annotations, and source files. These declarations remain separate from `SessionEventMap`, expanded persistence schemas, released type history, and `KNOWN_SESSION_EVENT_TYPES`. Records carry `ignorable: true`: a build that does not recognize one retains and skips it on read. Records never enter the model-visible surface. Resume and fork carry them with the rest of the log; Session format migration keeps them on a best-effort basis.
 
 `pluginRecordOf(event)` returns an event as a record, or `undefined` for any other event; a `ctx.sessionProjections` unit that passes each event to it rebuilds plugin state on resume. Its `data` remains `unknown` even when the current map declares the name. The owner validates it before use because earlier builds can write different payloads, and the V3-to-V4 format edge can rename an unknown ignorable V3 event into the same `plugin:` namespace. Removing or renaming a declaration does not discard stored records. The [ignorable events decision](../../../.agents/notes/implemented/architecture/2026-08-30-retain-ignorable-external-session-events.md) owns the compatibility policy.
 
@@ -139,10 +141,10 @@ The loop logs a full canonical `request/header` snapshot (call config, adapter d
 
 The package-level contract is enough for most consumers; read these when you need the surrounding domain.
 
-- [Session subsystem](../../../docs/subsystems/session.md) — the full event vocabulary, surface types, and generated service API.
-- [Persistence subsystem](../../../docs/subsystems/persistence.md) — how backends make this log durable.
-- [Core subsystem](../../../docs/subsystems/core.md) — the loop that writes and derives from sessions.
-- [Generated persistence catalog](../../../docs/persistence-catalog.md) — every session event with its payload and declaration site.
+- [Session subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/session.md) — the full event vocabulary, surface types, and generated service API.
+- [Persistence subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/persistence.md) — how backends make this log durable.
+- [Core subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/core.md) — the loop that writes and derives from sessions.
+- [Generated persistence catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/persistence-catalog.md) — every session event with its payload and declaration site.
 - [Core group map](../README.md) — how the core packages compose.
 
 -----
@@ -200,7 +202,7 @@ Logging causes no invalidation, and exact reconstruction preserves request-prefi
 These limits define when the session store needs special care. They are current package constraints, not a task backlog.
 
 - **Live-source Store API** — persisted-but-unloaded sources use the Host observation path. Fork closes only the open tail and does not repair missing results in previously closed steps.
-- **`SESSION_FORMAT_VERSION` names the [current logical representation](../../../docs/session-format-status.md)** — the current reader rejects retired `header.system` and validates `system/message` payloads and protected-head rewrites. Historical headers and events belong to adjacent format packages; the [adjacent migration chain](../../session/session-format-catalog/README.md) converts supported history before constructing `Session`, and the write-open path publishes only the current-format successor. Equal-version unknown events require the envelope's explicit `ignorable` marker, which does not promise safe structural migration ([mechanism](../../../.agents/notes/implemented/architecture/2026-08-31-released-session-format-migrations.md)). [Reader compatibility](../../../.agents/notes/implemented/process/2026-10-08-session-reader-compatibility-review.md) determines whether a change needs a version increase.
+- **`SESSION_FORMAT_VERSION` names the [current logical representation](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/session-format-status.md)** — the current reader rejects retired `header.system` and validates `system/message` payloads and protected-head rewrites. Historical headers and events belong to adjacent format packages; the [adjacent migration chain](../../session/session-format-catalog/README.md) converts supported history before constructing `Session`, and the write-open path publishes only the current-format successor. Equal-version unknown events require the envelope's explicit `ignorable` marker, which does not promise safe structural migration ([mechanism](../../../.agents/notes/implemented/architecture/2026-08-31-released-session-format-migrations.md)). [Reader compatibility](../../../.agents/notes/implemented/process/2026-10-08-session-reader-compatibility-review.md) determines whether a change needs a version increase.
 - **`TurnEndReasonMap` omits the ACP-named `refusal` / `max_turn_requests` variants** — producer-gated: they land when an adapter or the loop first emits them.
 - **No session tree beyond fork** — a pi-style entry tree over branched sessions is deferred unless a consumer needs more than boundary-based forking.
 

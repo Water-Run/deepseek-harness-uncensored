@@ -45,7 +45,7 @@ kind: "package-reference"
 |---|---|---|
 | `refreshIntervalMs` | `0`（每个变化轮次） | 同一会话中两次持久注入之间的最小毫秒数 |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-tmux-context)是所有受支持字段及其 JSDoc 的完整真源。
+生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-tmux-context)是所有受支持字段及其 JSDoc 的完整真源。
 
 ### 何时知道位置
 
@@ -73,6 +73,8 @@ kind: "package-reference"
 
 ### 主要流程
 
+pre-step 监听器在等待投影注册前安装。激活期间到达的步骤会等待读取句柄；注册失败或所属插件释放会终止请求，等待期间取消不会执行 shell 查询或注入上下文。
+
 在每轮的第一个步骤，监听器检查注入是否到期，通过 `ctx.shell` 查询位置，并把渲染状态与该来源最近一次持久注入比较。变化抑制与间隔调度会扫描原始持久会话事件，因此调度可跨压缩（compaction）与恢复的进程存续，无需进程内缓存状态；各会话独立调度。下游在步骤前运行的监听器拒绝或失败时，该读数不会被记录。
 
 </details>
@@ -85,9 +87,9 @@ kind: "package-reference"
 包级约定不够用时阅读以下页面。这些页面从设计决策讲到查询所经由的执行器以及完整配置。
 
 - [tmux 位置上下文决策记录](../../../.agents/notes/archived/feature/2026-07-27-tmux-location-context.md)——基于 tty 的检测与读数形状的设计理由。
-- [shell 子系统](../../../docs/subsystems/shell.zh.md)——只读查询所经由的执行器服务。
+- [shell 子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/shell.md)——只读查询所经由的执行器服务。
 - [上下文组地图](../README.zh.md)——相邻的请求上下文包。
-- [生成的配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-tmux-context)——每个受支持配置字段及其源声明。
+- [生成的配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-tmux-context)——每个受支持配置字段及其源声明。
 
 -----
 

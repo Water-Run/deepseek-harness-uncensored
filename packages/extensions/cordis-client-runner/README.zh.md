@@ -55,6 +55,8 @@ kind: "package-reference"
 
 ### 源码地图
 
+入口在 runner 的上下文中安装与 Host 共用的 vendored Cordis `TimerService`。浏览器包内联 Timer，并使用模块表中的 Cordis 实例。定时任务归调用插件的 fiber 所有，释放该 fiber 会取消尚未执行的任务。
+
 | 文件 | 职责 |
 |---|---|
 | [`src/client/index.ts`](src/client/index.ts) | 插件入口：runner、编排器、inspect 注册表、转发事件订阅 |
@@ -64,7 +66,6 @@ kind: "package-reference"
 | [`src/client/guard.ts`](src/client/guard.ts) | 已装载浏览器半收到的白名单 `ctx` façade |
 | [`src/client/inspect-registry.ts`](src/client/inspect-registry.ts) | Client Inspect Provider 与待答查询路由器 |
 | [`src/client/providers.ts`](src/client/providers.ts) | 第一方 client Inspect Provider（slots、theme、events） |
-| [`src/client/timer.ts`](src/client/timer.ts) | 动态包注入的 client 定时器服务 |
 
 ### 查询槽位输入
 
@@ -86,7 +87,7 @@ Slots provider 的精确 `listSubTree` 查询包含带说明的 owner 字段及�
 - [Host runner](../cordis-host-runner/README.zh.md)——本包应答的注册表与运行往返。
 - [工具包](../tool-cordis/README.zh.md)——只读运行时 API 发现。
 - [UI 包](../ui-cordis/README.zh.md)——操作这个面的面板与卡片。
-- [extensions 子系统](../../../docs/subsystems/extensions.zh.md)——生成的 `ctx.dynamicCordisRunner` API 与 `cordis/*` 事件。
+- [extensions 子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/extensions.md)——生成的 `ctx.dynamicCordisRunner` API 与 `cordis/*` 事件。
 - [客户端外壳与动态包 Agent Note](../../../.agents/notes/implemented/architecture/2026-08-15-client-shells-and-dynamic-packages.zh.md)——浏览器半的包归属与构建面。
 
 -----

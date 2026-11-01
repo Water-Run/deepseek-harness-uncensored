@@ -35,8 +35,8 @@ Providers register capabilities, not tools: `tool-lsp` is the only owner of the 
 <a id="related-documentation"></a>
 ## Related documentation
 
-- [LSP navigation subsystem](../../docs/subsystems/lsp.md) — operations, coordinates, requests and results, and `LspError` codes.
-- [Generated tool catalog](../../docs/tool-catalog.md#deepseek-aidsh-tool-lsp) — the `lsp` schema the model receives.
+- [LSP navigation subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/lsp.md) — operations, coordinates, requests and results, and `LspError` codes.
+- [Generated tool catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-lsp) — the `lsp` schema the model receives.
 
 -----
 

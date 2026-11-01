@@ -71,13 +71,14 @@ describe('ShellEnvRegistry', () => {
   })
 
   it('resolves DSH_HOME from the ambient override or the user-home default', () => {
+    vi.stubEnv('DSH_UNCENSORED_HOME', undefined)
     vi.stubEnv('DSH_HOME', './ambient-dsh-home')
     const fromEnvironment = new ShellEnvRegistry(new Context())
     expect(fromEnvironment.collect(execution()).DSH_HOME).toBe(resolve('./ambient-dsh-home'))
 
     vi.stubEnv('DSH_HOME', undefined)
     const fromDefault = new ShellEnvRegistry(new Context())
-    expect(fromDefault.collect(execution()).DSH_HOME).toBe(join(homedir(), '.dsh'))
+    expect(fromDefault.collect(execution()).DSH_HOME).toBe(join(homedir(), '.dsh-uncensored'))
   })
 
   it('collects declared contributor variables and omits unavailable values', () => {

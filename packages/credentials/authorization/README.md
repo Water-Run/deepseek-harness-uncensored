@@ -121,10 +121,10 @@ During the attempt the seam watches `credentials/record-updated` for the flow's 
 
 Read these pages when the package-level contract is not enough. They move from the shared credential vocabulary to the record store the flows write through and the decision evidence behind the seam.
 
-- [Credentials subsystem reference](../../../docs/subsystems/credentials.md) — the two key spaces and the generated cordis surface for both seams.
+- [Credentials subsystem reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/credentials.md) — the two key spaces and the generated cordis surface for both seams.
 - [Credentials package map](../README.md) — the credential-reference, local-store, and authorization packages.
 - [Credential-reference seam](../credentials/README.md) — the record store every flow commits through.
-- [Capability seams](../../../docs/capability-seams.md) — the Service Definition / Service Provider / Consumer split this seam follows.
+- [Capability seams](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/capability-seams.md) — the Service Definition / Service Provider / Consumer split this seam follows.
 - [Credential records and authorization flows](../../../.agents/notes/implemented/architecture/2026-08-13-credential-records-and-authorization-flows.md) — the rationale and decisions behind the record half and this seam.
 
 -----

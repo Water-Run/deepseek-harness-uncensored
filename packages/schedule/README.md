@@ -34,9 +34,9 @@ Choose this package for persistent reminder management.
 <a id="related-documentation"></a>
 ## Related documentation
 
-- [Schedule subsystem](../../docs/subsystems/schedule.md) — task records, latest receipts, timing, and delivery contracts.
-- [Generated tool catalog](../../docs/tool-catalog.md#deepseek-aidsh-tool-schedule) — the `schedule_create`/`schedule_list`/`schedule_update`/`schedule_delete` schemas a mounting preset contributes.
-- [Schedule user guide](../../docs/user/guide/schedule.md) — create reminders and inspect active or inactive tasks.
+- [Schedule subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/schedule.md) — task records, latest receipts, timing, and delivery contracts.
+- [Generated tool catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-schedule) — the `schedule_create`/`schedule_list`/`schedule_update`/`schedule_delete` schemas a mounting preset contributes.
+- [Schedule user guide](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/user/guide/schedule.md) — create reminders and inspect active or inactive tasks.
 - [Web task page and reminder catalog](../client/ui-schedule/README.md) — browser inspection of tasks and confirmed deletion.
 
 -----

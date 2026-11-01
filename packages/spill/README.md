@@ -37,7 +37,7 @@ Three packages play the spill roles; the subsystem reference owns the exhaustive
 
 Start with the subsystem reference for the shared vocabulary, then the design decision.
 
-- [Spill subsystem](../../docs/subsystems/spill.md) — the `SaveTextSpill`/`SpillRef` vocabulary, ownership, and backend relationships.
+- [Spill subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/spill.md) — the `SaveTextSpill`/`SpillRef` vocabulary, ownership, and backend relationships.
 - [Tool output spill decision](../../.agents/notes/implemented/architecture/2026-07-08-tool-output-spill-files.md) — the capability boundary between storage, retention, and tool-owned output handling.
 
 <a id="dev-note"></a>

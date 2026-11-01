@@ -4,7 +4,6 @@ import { performance } from 'node:perf_hooks'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
-import { SessionAlreadyOwnedError, SessionDeletionUnsupportedError } from '@deepseek-ai/dsh-session-persistence'
 import type { SessionPersistence } from '@deepseek-ai/dsh-session-persistence'
 import type {} from '@deepseek-ai/dsh-session-projection-cache'
 import type {} from '@deepseek-ai/dsh-subagent'
@@ -50,6 +49,7 @@ export class SessionDeletionController {
     if (!persistence?.supportsDeletion) {
       throw new RemoteError('session/delete-unsupported', 'The configured session storage does not support deletion.', {})
     }
+    const { SessionAlreadyOwnedError } = await import('@deepseek-ai/dsh-session-persistence')
     await this.recover()
     if (this.pending.has(root)) return Promise.reject(new RemoteError('session/agent-busy', 'Session deletion is in progress.', { reason: 'deleting' }))
     const operation = this.agents.withDeletion(root, include =>
@@ -133,6 +133,7 @@ export class SessionDeletionController {
 
   private async run(root: SessionId, include: (ids: readonly SessionId[]) => void,
     allows: (id: SessionId) => boolean, persistence: SessionPersistence): Promise<SessionDeleteValue> {
+    const { SessionAlreadyOwnedError, SessionDeletionUnsupportedError } = await import('@deepseek-ai/dsh-session-persistence')
     this.authorize([root], allows)
     const plan = this.plans.get(root) ?? { ids: new Set<SessionId>([root]), delegated: new Set<SessionId>(), removed: new Set<SessionId>() }
     this.plans.set(root, plan)

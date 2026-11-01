@@ -71,7 +71,7 @@ One-shot children always elect a read-only composer. A continuable child elects 
 
 Unknown-mode catalog rows remain visible and clickable, using the child id when no label is available. Their composer is read-only until child history establishes a supported mode; a read failure is reported in the child conversation.
 
-Lineage-menu highlights follow the [standard menu edge geometry](../../../docs/ui-radius.md#nested-hover); tree disclosure controls retain their separate left gutter.
+Lineage-menu highlights follow the [standard menu edge geometry](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/ui-radius.md#nested-hover); tree disclosure controls retain their separate left gutter.
 
 </details>
 

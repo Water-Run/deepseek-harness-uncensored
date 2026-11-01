@@ -148,6 +148,7 @@ describe('published npm dependency catalog', () => {
 
   it('isolates scoped registries, resolver settings, and caches from user, global, and environment configuration', async () => {
     const root = fixture()
+    writeFileSync(join(root, 'package.json'), JSON.stringify({ name: 'isolated-resolution', private: true }))
     const userConfig = join(root, 'user.npmrc')
     const globalConfig = join(root, 'global.npmrc')
     writeFileSync(userConfig, '@deepseek-ai:registry=https://user-override.invalid/\nstrict-peer-deps=true\n')
@@ -165,13 +166,13 @@ describe('published npm dependency catalog', () => {
     const args = ['config', 'list', '--json', '--registry=https://registry.npmjs.org/', '--loglevel=error']
     const before = await runCommandWithTimeout(npm, args, { cwd: root, env: inherited, timeoutMs: 30_000 })
     expect(before).toMatchObject({ status: 0, signal: null, timedOut: false })
-    expect(JSON.parse(before.output)).toMatchObject({
+    expect(JSON.parse(before.stdout)).toMatchObject({
       '@deepseek-ai:registry': 'https://user-override.invalid/', 'install-strategy': 'nested',
     })
     const isolated = createNpmResolutionEnvironment(root, inherited)
     const after = await runCommandWithTimeout(npm, args, { cwd: root, env: isolated, timeoutMs: 30_000 })
     expect(after).toMatchObject({ status: 0, signal: null, timedOut: false })
-    const settings = JSON.parse(after.output) as Record<string, unknown>
+    const settings = JSON.parse(after.stdout) as Record<string, unknown>
     expect(settings).toMatchObject({
       registry: 'https://registry.npmjs.org/', '@deepseek-ai:registry': 'https://registry.npmjs.org/',
       'install-strategy': 'hoisted', 'strict-peer-deps': false, 'prefer-dedupe': false, offline: false,

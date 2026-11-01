@@ -71,9 +71,9 @@ kind: "package-reference"
 
 - [Schedule 服务](../schedule/README.zh.md) —— 这些工具所管理的宿主任务存储、运行时与投递行为。
 - [Schedule 分组映射](../README.zh.md) —— 本组内的同级包。
-- [生成的工具目录](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-schedule) —— 模型接收的确切四个 schema。
-- [Schedule 子系统](../../../docs/subsystems/schedule.zh.md) —— `ctx.schedule` 的 Cordis 接线区域与存储类型。
-- [Schedule 用户指南](../../../docs/user/guide/schedule.zh.md) —— 面向用户的提醒工作流。
+- [生成的工具目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-schedule) —— 模型接收的确切四个 schema。
+- [Schedule 子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/schedule.md) —— `ctx.schedule` 的 Cordis 接线区域与存储类型。
+- [Schedule 用户指南](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/user/guide/schedule.md) —— 面向用户的提醒工作流。
 
 -----
 
@@ -84,7 +84,7 @@ kind: "package-reference"
 
 #### What the model sees
 
-只要本包在调用方 Agent 的作用域内可见，模型就会收到生成的 [`schedule_create`、`schedule_list`、`schedule_update` 与 `schedule_delete` schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-schedule)。标题指引不会改写已存标题，也不会在现有的非空和长度检查之外增加校验。
+只要本包在调用方 Agent 的作用域内可见，模型就会收到生成的 [`schedule_create`、`schedule_list`、`schedule_update` 与 `schedule_delete` schema](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-schedule)。标题指引不会改写已存标题，也不会在现有的非空和长度检查之外增加校验。
 
 #### Token effect
 

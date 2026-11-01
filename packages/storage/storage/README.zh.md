@@ -76,7 +76,7 @@ kind: "package-reference"
 
 ### 后端约定
 
-[`src/backend.ts`](src/backend.ts) 是后端实现者的规范性约定，由 `tests/contract.ts` 中的共享一致性套件逐条款检查。一个后端只拥有一种介质，并暴露可选的数据形状分面；`kv` 是唯一的分面，打开单元即可获得一个带版本、全局单例的 schema 句柄，其每次调用均具备原子性，并在完成时保证持久化。单元名与表名必须匹配 `UNIT_NAME_RE`；记录键是任意字符串，绝不进入文件路径。单元不对并发写入做串行化——顺序由调用方负责——介质上记录的版本与描述符不同时拒绝 `version-mismatch`（不做迁移）。
+[`src/backend.ts`](src/backend.ts) 是后端实现者的规范性约定；`tests/contract.ts` 中的共享一致性套件检查两个已交付后端的整单元行为。一个后端只拥有一种介质，并暴露可选的数据形状分面；`kv` 是唯一的分面。打开单元即可获得一个把 JSON 视为不透明值的句柄，其原子性与持久性按所选布局界定。单元名与表名必须匹配 `UNIT_NAME_RE`。整单元布局的键保持不透明；JSON 逐记录布局的键会成为路径安全的文件路径片段。调用方负责安排并发写入的顺序。读取接受当前版本或已声明的 `compatibleVersions`；不支持的单元版本戳以 `version-mismatch` 拒绝，不支持的 JSON 逐记录文档则读作不存在。修改将当前版本戳与数据原子提交；删除不存在的键不会重新盖戳。领域负责值转换，后端实现者必须保持这些语义；混合值、失败恢复与升级参阅[领域版本](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/storage.md#domain-versioning)。
 
 ### 源码地图
 
@@ -97,7 +97,7 @@ kind: "package-reference"
 
 当枢纽视角不够用时阅读以下页面：子系统参考是权威约定，Agent Note 记录了家族设计与延期工作。
 
-- [存储子系统](../../../docs/subsystems/storage.zh.md)——后端约定、领域语义、变更事件与生成的 API。
+- [存储子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/storage.md)——后端约定、领域语义、变更事件与生成的 API。
 - [存储包映射](../README.zh.md)——家族的各包及其在仓库中的位置。
 - [领域 KV 存储 Agent Note](../../../.agents/notes/proposed/architecture/2026-07-24-domain-kv-storage-and-workspace.zh.md)——枢纽、领域数据形式与会话后端迁移背后的设计。
 

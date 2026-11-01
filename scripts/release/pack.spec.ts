@@ -29,6 +29,7 @@ function fixture(): string {
   const root = mkdtempSync(join(tmpdir(), 'dsh-release-pack-'))
   roots.push(root)
   write(join(root, 'package.json'), JSON.stringify({ name: '@deepseek-ai/pack-root', private: true, version: '1.2.3' }))
+  write(join(root, 'fixture-cwd.mjs'), 'process.chdir(import.meta.dirname)\n')
   write(join(root, 'pnpm-workspace.yaml'), 'packages:\n  - vendor/*\n  - native/*\n  - packages/*/*\n  - apps/*\n')
   return root
 }
@@ -57,9 +58,10 @@ function packGate(root: string, args: string[] = []): Gate {
   return {
     id: 'release-pack-fixture',
     label: 'release pack fixture',
-    displayCommand: 'pnpm exec node release pack fixture',
+    displayCommand: 'node release pack fixture',
     command: process.execPath,
-    args: [pnpmEntry, '--dir', root, 'exec', process.execPath, '--import', tsxHook, packScript, '--family', 'vendor', '--out', 'packed', ...args],
+    args: ['--import', pathToFileURL(join(root, 'fixture-cwd.mjs')).href, '--import', tsxHook,
+      packScript, '--family', 'vendor', '--out', 'packed', ...args],
     env: { npm_execpath: pnpmEntry, DSH_PACK_FIXTURE: root, DSH_CLIENT_COMMIT_HASH: commit },
   }
 }

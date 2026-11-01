@@ -34,7 +34,7 @@ Registration is an effect. Its awaitable disposer first hides the rule, then abo
 <a id="session-request"></a>
 ## Session request
 
-`WebhookSessionRequest` requires `workspacePath`, `title`, `prompt`, `agentPreset`, and `permissionPreset`; optional `model` names an explicit provider/model route plus an output-token cap. An explicit route uses its adapter's reasoning default. Omission snapshots the complete current deployment selection, including reasoning effort, until the first request records its durable header; later Web model changes retain the ordinary session behavior.
+`WebhookSessionRequest` requires `workspacePath`, `title`, `prompt`, `agentPreset`, and `permissionPreset`; optional `model` names an explicit provider/model route plus an output-token cap. An explicit route uses its adapter's reasoning default. Omission captures the complete current deployment selection, including reasoning effort, as the initial Agent options. A recorded Session selection or request then takes precedence; later Web model changes follow the ordinary Session behavior.
 
 The runtime validates presets before mutation, resolves or creates the canonical Workspace, creates an Agent with that Workspace path as `SessionHeader.cwd`, mounts the agent preset before publication, and attaches the Session before applying permissions, title, and prompt. Failed attachment disposes the unpublished action. A later pre-prompt failure detaches the Workspace and disposes the Agent on a best-effort rollback.
 
@@ -45,7 +45,7 @@ Successful `Agent.followup()` is the webhook operation's commit point. The messa
 
 Load the runtime on the Web Host plane after Agents, model defaults, agent presets, permission presets, titles, and the Workspace registry. User-authored rule plugins inject `webhookRuntime` and yield the disposer returned by `register()` through their own effect.
 
-The [GitHub review guide](../../../docs/user/guide/github-review.md) shows a rule module, dedicated ingress port, secret setup, and Workspace routing.
+The [GitHub review guide](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/user/guide/github-review.md) shows a rule module, dedicated ingress port, secret setup, and Workspace routing.
 
 <a id="model-experience"></a>
 ## Model Experience

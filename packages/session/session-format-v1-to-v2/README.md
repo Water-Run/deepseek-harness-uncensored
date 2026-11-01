@@ -77,7 +77,7 @@ The incremental edge retains one unsettled Assistant attempt, events whose outpu
 
 - [Released v0 to v1 edge](../session-format-v0-to-v1/README.md) — the source codec and frozen historical vocabulary reused here.
 - [Static catalog](../session-format-catalog/README.md) — build-owned codec and migration ordering.
-- [Session persistence subsystem](../../../docs/subsystems/persistence.md) — immutable generation selection and publication.
+- [Session persistence subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/persistence.md) — immutable generation selection and publication.
 - [Embedded Assistant stream decision](../../../.agents/notes/implemented/architecture/2026-09-01-v2-embedded-assistant-streams.md) — rationale, alternatives, and consequences.
 
 -----

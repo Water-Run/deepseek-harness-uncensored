@@ -75,7 +75,7 @@ The operating system must execute the Landlock and PTY launchers from real files
 
 - [SSH connection](../ssh/README.md) — authentication, invocation and lifecycle.
 - [PTC Node runtime](../../ptc-runtime/ptc-runtime-node/README.md) — explicit worker launch and execution limits.
-- [SSH subsystem](../../../docs/subsystems/ssh.md) — remote execution coordinates.
+- [SSH subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/ssh.md) — remote execution coordinates.
 
 -----
 

@@ -8,7 +8,8 @@ import { describe, expect, it, onTestFinished } from 'vitest'
 import type { EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
 import { loadOverlayPatches } from '../packages/boot/app-boot/src/index.ts'
 import { readPluginMeta } from '../packages/boot/app-boot/src/package-meta.ts'
-import { OPTIONAL_BUNDLES, PROFILE_TEMPLATES, bundlePatchPaths, composeEntries, initProfile, readProfileManifest } from '../packages/boot/app-boot/src/profile.ts'
+import { bundlePatchPaths, composeEntries, initProfile, readProfileManifest } from '../packages/boot/app-boot/src/profile.ts'
+import { OPTIONAL_BUNDLES, PROFILE_TEMPLATES } from '../packages/util/official-bundles/src/bundles.ts'
 import type { DshBundleManifest } from '../packages/util/package-manifest/src/types.ts'
 import { createPluginProfile } from '../apps/desktop/src/project-manager.ts'
 
@@ -91,6 +92,9 @@ describe.each(['web', 'desktop'] as const)('%s optional bundle overrides', (surf
 })
 
 describe('optional bundles', () => {
+  it('admits Computer Use only on macOS Hosts', () => {
+    expect(bundles.get('@deepseek-ai/dsh-cua-bundle')?.manifest.dsh?.bundle?.platforms).toEqual(['darwin'])
+  })
   const shipped = ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'].map(name => bundle(name).patches)
 
   it('ships at least one bundle switched off', () => {
@@ -140,6 +144,36 @@ describe('optional bundles', () => {
     }
   })
 
+  it('offers the forge panel as one disabled bundle with its registry, provider, bindings, panel, and isolated worktree service', () => {
+    const name = '@deepseek-ai/dsh-experimental-forge-bundle'
+    expect(OPTIONAL_BUNDLES).toContain(name)
+    for (const template of Object.values(PROFILE_TEMPLATES)) expect(template.bundles).not.toContain(name)
+    const rows = flattenRows(composeEntries([...shipped, bundle(name).patches]))
+    for (const moduleName of [
+      '@deepseek-ai/dsh-experimental-forge',
+      '@deepseek-ai/dsh-experimental-forge-github',
+      '@deepseek-ai/dsh-experimental-forge-session',
+      '@deepseek-ai/dsh-experimental-client-ui-forge',
+      '@deepseek-ai/dsh-experimental-worktree',
+    ]) {
+      expect(flattenRows(composeEntries(shipped)).some(row => row.name === moduleName)).toBe(false)
+      expect(rows.filter(row => row.name === moduleName && row.disabled !== true)).toHaveLength(1)
+    }
+    const group = composeEntries([...shipped, bundle(name).patches]).find(row => row.id === 'optional-forge-panel')
+    expect(group?.isolate).toEqual({ worktrees: true })
+  })
+
+  it('composes the forge panel beside Git Worktrees with one worktree service each', () => {
+    const composed = composeEntries([
+      ...shipped,
+      bundle('@deepseek-ai/dsh-experimental-tool-worktree').patches,
+      bundle('@deepseek-ai/dsh-experimental-forge-bundle').patches,
+    ], (message) => { throw new Error(message) })
+    const topLevelIds = composed.flatMap(entry => typeof entry.id === 'string' ? [entry.id] : [])
+    expect(topLevelIds).toHaveLength(new Set(topLevelIds).size)
+    expect(flattenRows(composed).filter(row => row.name === '@deepseek-ai/dsh-experimental-worktree')).toHaveLength(2)
+  })
+
   it('ships all five lightweight bundles without selecting them in a default template', () => {
     const defaults = Object.values(PROFILE_TEMPLATES).flatMap(template => template.bundles)
     for (const name of lightweight) {
@@ -156,7 +190,7 @@ describe('optional bundles', () => {
       const warnings: string[] = []
       const composed = composeEntries([...shipped, ...selected], warning => warnings.push(warning))
       expect(warnings).toEqual([])
-      for (const id of ['preset-standard', 'preset-cordis', 'preset-ptc', 'preset-minimal']) {
+      for (const id of ['preset-standard', 'preset-security', 'preset-reverse', 'preset-writing', 'preset-ptc', 'preset-minimal']) {
         expect(presetRows(composed, id)).toEqual(presetRows(baseline, id))
       }
       const ids = flattenRows(composed).map(row => row.id)
@@ -216,7 +250,7 @@ describe('optional bundles', () => {
       walk((row.config as { plugins: PresetRow[] }).plugins)
       return flat
     }
-    for (const id of ['preset-standard', 'preset-cordis', 'preset-ptc']) {
+    for (const id of ['preset-standard', 'preset-security', 'preset-reverse', 'preset-ptc']) {
       const plugins = presetPlugins(id)
       for (const plugin of [
         { id: 'time-context', name: '@deepseek-ai/dsh-time-context' },
@@ -227,7 +261,7 @@ describe('optional bundles', () => {
         expect(matches[0]?.disabled).not.toBe(true)
       }
     }
-    for (const id of ['preset-standard', 'preset-cordis', 'preset-ptc']) {
+    for (const id of ['preset-standard', 'preset-security', 'preset-reverse', 'preset-ptc']) {
       for (const rowId of ['tool-subagent', 'tool-subagent-fork']) {
         expect(presetPlugins(id).find(plugin => plugin.id === rowId)?.config).not.toHaveProperty('toolFilter')
       }

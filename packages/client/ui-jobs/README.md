@@ -53,7 +53,7 @@ One slot entry in the header actions band (after the preset label) renders the t
 | [`src/client/index.ts`](src/client/index.ts) | Slot registration and the dictionaries |
 | [`src/client/locales.ts`](src/client/locales.ts) | The `job` namespace copy (zh source of truth) |
 
-Background-job rows follow the [standard menu edge geometry](../../../docs/ui-radius.md#nested-hover); controls inside a filled running row retain compact corners.
+Background-job rows follow the [standard menu edge geometry](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/ui-radius.md#nested-hover); controls inside a filled running row retain compact corners.
 
 </details>
 

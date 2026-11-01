@@ -75,7 +75,7 @@ pnpm exec tsx scripts/build-exe-for-ssh-helper.ts
 
 - [SSH 连接](../ssh/README.zh.md) — 鉴权、启动与生命周期。
 - [PTC Node 运行时](../../ptc-runtime/ptc-runtime-node/README.zh.md) — 显式 worker 启动与执行限制。
-- [SSH 子系统](../../../docs/subsystems/ssh.zh.md) — 远端执行坐标。
+- [SSH 子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/ssh.md) — 远端执行坐标。
 
 -----
 

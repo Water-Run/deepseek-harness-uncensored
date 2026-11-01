@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-在智能体运行中执行 [Claude Code 模组](https://code.claude.com/docs/en/plugins/mods/overview)：用 `defineMod` 包装模组的 `register(on, options)`，在本桥接之后作为插件挂载，其钩子即可通过同一套 `$`、`e`、`next` 链守卫工具调用、改写提示词、添加命令与工具、读取会话事实，并在提示框上方绘制一条横幅。桥接需要 `dsh-working-directory`，每次 `$` 调用都落在一个已组合的 harness 服务上。它是 alpha 阶段的接口兼容性演示：未服务的事件在加载时报告，未服务的 `$` 成员以指明缺口的消息失败，[兼容性页面](../../../docs/subsystems/claude-code-mods.zh.md) 列出了全部差异。
+在智能体运行中执行 [Claude Code 模组](https://code.claude.com/docs/en/plugins/mods/overview)：用 `defineMod` 包装模组的 `register(on, options)`，在本桥接之后作为插件挂载，其钩子即可通过同一套 `$`、`e`、`next` 链守卫工具调用、改写提示词、添加命令与工具、读取会话事实，并在提示框上方绘制一条横幅。桥接需要 `dsh-working-directory` 和 `dsh-agent`，每次 `$` 调用都落在一个已组合的 harness 服务上。它是 alpha 阶段的接口兼容性演示：未服务的事件在加载时报告，未服务的 `$` 成员以指明缺口的消息失败，[兼容性页面](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/claude-code-mods.md) 列出了全部差异。
 
 ## 目录
 
@@ -53,7 +53,7 @@ export default defineMod({ name: 'token-weather', version: '0.1.0', root: import
 | `bandColumns` | `120` | 提示框上方横幅向 `ui.render` 报告的列数（`bodyColumns` 与 `viewport.columns`） |
 | `bandRows` | `10` | 横幅报告的 `maxRows` 行数 |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-experimental-claude-code-mods)是所有可接受字段的完整来源。[examples](examples/) 目录以插件目录的形式收录了 Anthropic [Getting started with Claude Code mods](https://claude.dev/blog/getting-started-with-claude-code-mods/) 一文中的三个模组，它们同样可在 `claude --plugin-dir` 下运行：Token Weather 的已发布模块、类型与测试原样保留，Blast Radius 与 Replay Theater 则由已发布片段补全。[可选叠加层](cordis.source.patch.yml)把桥接、三个模组与 [Web 横幅](../client-ui-claude-code-mods/README.zh.md)组合起来用于源码启动。
+生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-experimental-claude-code-mods)是所有可接受字段的完整来源。[examples](examples/) 目录以插件目录的形式收录了 Anthropic [Getting started with Claude Code mods](https://claude.dev/blog/getting-started-with-claude-code-mods/) 一文中的三个模组，它们同样可在 `claude --plugin-dir` 下运行：Token Weather 的已发布模块、类型与测试原样保留，Blast Radius 与 Replay Theater 则由已发布片段补全。[可选叠加层](cordis.source.patch.yml)把桥接、三个模组与 [Web 横幅](../client-ui-claude-code-mods/README.zh.md)组合起来用于源码启动。
 
 Blast Radius 的 DSH 包装使用当前运行的可执行文件提供 Node 计时子进程，因此 Proceed/Cancel 等待在 Windows 上不依赖 POSIX `sleep`。等待仍通过 `$.process.run` 执行，暂停钩子自身的运行时间预算，并随事件取消子进程。独立的 Claude Code hooks 模块默认使用 `sleep 0.25`；其预演命令也需要宿主机提供相应工具。
 
@@ -87,7 +87,7 @@ Blast Radius 的 DSH 包装使用当前运行的可执行文件提供 Node 计�
 | `$.command` | `register`、`run`、`list` | `ctx.commands`，限定在事件所属的智能体 |
 | `$.tool` | `register`、`call`、`list` | `ctx.tools`；注册的工具名为 `mcp__<plugin>__<tool>`；工具推迟到下一请求的上下文会注入会话 |
 | `$.prompt` | `submit` | `agent.followup()`，作为 `user` 来源的消息，除非 `asUser` 否则套上"来自模组"的框架；它触发的 `prompt.submit` 带 `origin: { kind: 'plugin', name }` |
-| `$.session` | `id`、`cwd`、`root`、`model`、`turns`、`messages`、`usage`、`version` | 智能体的 Session 及 `turnBoundary`、`contextPressure` 投影；`cwd` 通过 `ctx.workingDirectory` 报告已提交的当前目录；`root` 保留原始项目 |
+| `$.session` | `id`、`cwd`、`root`、`model`、`turns`、`messages`、`usage`、`version` | 智能体的 Session、`agents.turnBoundaryOf()` 和可选的 `tokenMeter.contextPressure()`；`cwd` 通过 `ctx.workingDirectory` 报告已提交的当前目录；`root` 保留原始项目 |
 | `$.state` | `get`、`set` | 为会话持有的内存，以模组命名的 `{ plugin, key }` 寻址；`ui.render` 期间的读取会让横幅订阅 |
 | `$.store` | `get`、`set`、`delete`、`keys` | `claude_code_mods` 存储域，每插件一个 JSON 对象，4 MiB |
 | `$.clock` | `now`、`sleep`、`after`、`every` | 由安排它们的事件所属会话拥有的定时器；事件取消时 `sleep` 拒绝 |
@@ -144,12 +144,12 @@ Blast Radius 的 DSH 包装使用当前运行的可执行文件提供 Node 计�
 <a id="further-exploration"></a>
 ## 进一步探索
 
-- [与 Claude Code 模组的兼容性](../../../docs/subsystems/claude-code-mods.zh.md) — 本桥接与 Claude Code 模组的每一处差异，以及修复或原因。
+- [与 Claude Code 模组的兼容性](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/claude-code-mods.md) — 本桥接与 Claude Code 模组的每一处差异，以及修复或原因。
 - [Claude Code 模组参考](https://code.claude.com/docs/en/plugins/mods/reference) — 本桥接镜像的事件、方法与限制。
 - [Web 横幅](../client-ui-claude-code-mods/README.zh.md) — 在输入停靠区绘制 `ui.render` 树的 Client 包。
 - [实验性包](../README.zh.md) — 发布策略与依赖隔离。
 - [Claude Code 钩子桥接](../hooks-claude-code/README.zh.md) — 设置钩子桥接；插件 `hooks.json` 中的设置钩子需要 `dsh-hooks-claude-code`。
-- [工具执行流水线](../../../docs/tool-execution-pipeline.zh.md) — `tool.call` 所包裹的瀑布流。
+- [工具执行流水线](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-execution-pipeline.md) — `tool.call` 所包裹的瀑布流。
 - [人类命令](../../interaction/commands/README.zh.md) — `$.command.register` 落到的注册表。
 
 -----
@@ -161,7 +161,7 @@ Blast Radius 的 DSH 包装使用当前运行的可执行文件提供 Node 计�
 
 #### 模型看到什么
 
-`prompt.submit` 钩子加入 `e.context` 的字符串成为输入的提示词之后的文本块，位于人类自己的消息内部；改写的 `text` 替换提示词的文本块。`$.prompt.submit({ text })` 排入一条 `user` 来源的消息：`asUser: true` 时只有文本本身，否则按下文框架填入插件名与文本。
+`prompt.submit` 钩子加入 `e.context` 的字符串成为输入的提示词之后的文本块，位于人类自己的消息内部；改写的 `text` 替换提示词的文本块。`$.prompt.submit({ text })` 排入一条 `user` 来源的消息：`asUser: true` 时只有文本本身，否则按下文框架填入插件名与文本。启用 [Auto review](../auto-review/README.zh.md#headless-supervision)时，这些 user-source 提交具有用户指令权威，包括 hook context 和未设置 `asUser: true` 的框架化提交。
 
 ##### 模组提交的提示词的框架
 
@@ -196,7 +196,7 @@ Message from the "<plugin>" mod:
 
 <a id="known-limitations-and-deferred-work"></a>
 
-这些限制描述 Claude Code 模组经本桥接运行时行为不同之处；[兼容性页面](../../../docs/subsystems/claude-code-mods.zh.md) 是完整清单。它们是当前的包约束，不是任务积压。
+这些限制描述 Claude Code 模组经本桥接运行时行为不同之处；[兼容性页面](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/claude-code-mods.md) 是完整清单。它们是当前的包约束，不是任务积压。
 
 - **一个绘制表面** — 服务 `AbovePrompt`；`Pane`、其他渲染位点、`Input`、热键、`ui.press`、`ui.input`、`ui.select`、`ui.focus`、`ui.scroll` 不服务：`$.ui.open` 回答 `{ isPlaced: false }`，`$.ui.log`、`$.ui.toast`、`$.ui.status` 到达宿主日志而非 GUI。钩子按 `bandColumns` 列宽的横幅绘制；Web 横幅会换行。按钮的 `onPress` 没有时间限制；挂起的 `onPress` 会让横幅的按钮保持禁用直到它结束。
 - **`next` 只运行一次** — 调用 `next` 两次的钩子得到第一次的运行；Claude Code 会再次运行下层链。在其 `next` 仍在运行时作答的钩子会等待该次运行。
@@ -206,7 +206,7 @@ Message from the "<plugin>" mod:
 - **一个进程，多个会话** — 模组的模块级变量与 `$.env.set` 写入由进程内所有会话与插件共享，而 Claude Code 每进程一个会话；按会话的值请放在 `$.state`。`session.start` 与 `session.end` 只为根智能体触发。
 - **无沙箱、无静态分析、无热重载** — 钩子模块以 Node 全局对象在进程内运行，拥有本进程的全部权限（环境变量、网络、文件系统与工具）；仅 `$` 访问规则、`claude plugin validate`、类型生成、`--plugin-dir` 监视与会话内模组编写流程均未实现。只挂载你愿意作为插件运行的模组。再次挂载模组会在同一已求值模块上重新运行 `register`，模块级变量保留其值。
 - **`turn.complete` 文本** — 钩子返回的 `{ text }` 到达宿主日志，而非答案下方的一行；`durationMs` 从该轮的 `turn/start` 起算。
-- **`$.session.usage`** — 在 token 计量器得知路由的上下文窗口与提供商用量报告之前，`window` 为 `0` 且无 `percent`；`rateLimits` 始终为空。`$.fs.stat` 报告 `mtimeMs: 0`。
+- **`$.session.usage`** — 在 token 计量器得知路由的上下文窗口与提供商用量报告之前，`window` 为 `0` 且无 `percent`；未挂载 token-meter 服务时，token 数缺席且 `window` 为 `0`。`rateLimits` 始终为空。`$.fs.stat` 报告 `mtimeMs: 0`。
 - **`plugin.json` 与 `hooks.json`** — 不读取；`defineMod` 承载身份，插件的设置钩子需要 `@deepseek-ai/dsh-hooks-claude-code`。
 
 <a id="dev-note"></a>

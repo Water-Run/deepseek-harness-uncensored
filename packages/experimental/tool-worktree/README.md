@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Add Git Worktrees from the GUI plugin manager to let a model create and enter a new Git worktree with one call. This optional bundle is installed with Harness and stays off until selected. Native tool calls and PTC programs receive the same typed result, and the existing file policy governs creation.
+Add Git worktrees from the GUI plugin manager to let a model create and enter a new Git worktree with one call. This optional bundle is installed with Harness and stays off until selected. Native tool calls and PTC programs receive the same typed result, and the existing file policy governs creation.
 
 ## Table of Contents
 
@@ -25,7 +25,7 @@ Add Git Worktrees from the GUI plugin manager to let a model create and enter a 
 <a id="use-this-package"></a>
 ## Use this package
 
-In the GUI, open **Plugins → Official → Git Worktrees** and turn on the switch. The bundle loads the [worktree runtime](../worktree/README.md) and this tool together; it is off in every shipped profile. Turning it off removes `create_worktree` without deleting existing checkouts or branches. The built-in `working_directory` tool remains available.
+In the GUI, open **Plugins → Official → Git worktrees** and turn on the switch. The bundle loads the [worktree runtime](../worktree/README.md) and this tool together; it is off in every shipped profile. Turning it off removes `create_worktree` without deleting existing checkouts or branches. The built-in `working_directory` tool remains available.
 
 For an explicit composition, mount this function plugin after the worktree runtime and tool registry.
 
@@ -34,7 +34,7 @@ For an explicit composition, mount this function plugin after the worktree runti
 - name: '@deepseek-ai/dsh-experimental-tool-worktree'
 ```
 
-Call `create_worktree({ name?: string, from?: string })`. Success returns the canonical checkout `path`, new `branch`, pinned `baseCommit`, and source `repositoryRoot`, and changes the calling Session's current working directory. To leave, call `working_directory({ cd: path })`; the checkout and branch remain. The [generated tool catalog](../../../docs/tool-catalog.md#deepseek-aidsh-experimental-tool-worktree) owns the exact schema and model-facing description.
+Call `create_worktree({ name?: string, from?: string })`. Success returns the canonical checkout `path`, new `branch`, pinned `baseCommit`, and source `repositoryRoot`, and changes the calling Session's current working directory. To leave, call `working_directory({ cd: path })`; the checkout and branch remain. The [generated tool catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-experimental-tool-worktree) owns the exact schema and model-facing description.
 
 -----
 
@@ -57,7 +57,7 @@ No runtime invariant companion is published because the tool retains no state in
 
 - [Worktree runtime](../worktree/README.md) — configuration, creation semantics, and write permissions.
 - [Working directory](../../session/working-directory/README.md) — Session context and exit operation.
-- [Tool authoring](../../../docs/cookbook/adding-a-tool.md) — canonical results and pure presentation.
+- [Tool authoring](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/cookbook/adding-a-tool.md) — canonical results and pure presentation.
 
 -----
 
@@ -68,7 +68,7 @@ No runtime invariant companion is published because the tool retains no state in
 
 #### What the model sees
 
-The [tool catalog](../../../docs/tool-catalog.md#deepseek-aidsh-experimental-tool-worktree) defines `create_worktree`. Each successful result contains the created checkout's canonical path, branch, base commit, and source checkout’s top-level directory. Failed calls report the operation error.
+The [tool catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-experimental-tool-worktree) defines `create_worktree`. Each successful result contains the created checkout's canonical path, branch, base commit, and source checkout’s top-level directory. Failed calls report the operation error.
 
 #### Token effect
 

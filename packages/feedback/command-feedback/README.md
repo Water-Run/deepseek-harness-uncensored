@@ -103,7 +103,7 @@ The producer trims the text, records blank text as absent, and writes one event 
 Read these pages when the package-level contract is not enough. They cover the command registry, persistence, and identity facts this capture path relies on.
 
 - [dsh-commands](../../interaction/commands/README.md) — the registry that discovers the global command and its `recordInput` semantics.
-- [Session persistence subsystem](../../../docs/subsystems/persistence.md) — how appended events become durable and what a flush barrier means.
+- [Session persistence subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/persistence.md) — how appended events become durable and what a flush barrier means.
 - [Anonymous user identity](../../identity/anonymous-user-id/README.md) — the id the acknowledgement reports.
 - [ui-message-feedback](../../client/ui-message-feedback/README.md) — the Web feedback dialog that records through the `sessionFeedback` Remote.
 - [Feedback package map](../README.md) — where log-only capture sits next to per-message feedback.

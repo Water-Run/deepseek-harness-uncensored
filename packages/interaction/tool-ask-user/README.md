@@ -61,7 +61,7 @@ Send one or more questions with ids unique within the call; the answer echoes th
 
 ### What the model gets back
 
-An answer returns one item per question. `selected` holds option labels; `custom` supplements a multi-select answer or replaces a single-select choice. A skipped item has empty `selected` and no `custom`.
+An answer returns one item per question. `selected` holds option labels; `custom` supplements a multi-select answer or replaces a single-select choice. A skipped item has empty `selected` and no `custom`; both tool descriptions tell the model how to handle it.
 
 For a finite timed call, `{ "pending": true, "callId": "…" }` means the foreground wait ended without an answer. The question remains answerable, and the model may continue independent work. A later answer arrives as a user message identified by `kind`, `tool`, and `callId`. Web chat pairs its questions and answers; other consumers receive compact JSON text.
 
@@ -107,8 +107,8 @@ The `render` output projects the structured value to a single text block via `JS
 
 Read these pages when the package-level contract is not enough. They move from the tool surface to the seam contract and its answerer waterfall.
 
-- [User interaction subsystem reference](../../../docs/subsystems/user-questions.md) — the service contract, question vocabulary, and answerer waterfall behind this tool.
-- [Tool catalog](../../../docs/tool-catalog.md#deepseek-aidsh-tool-ask-user) — the generated `ask_user_question` schema.
+- [User interaction subsystem reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/user-questions.md) — the service contract, question vocabulary, and answerer waterfall behind this tool.
+- [Tool catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-ask-user) — the generated `ask_user_question` schema.
 - [user-questions package](../user-questions/README.md) — the seam this tool consumes.
 - [Interaction group map](../README.md) — adjacent approval and command surfaces.
 
@@ -121,7 +121,7 @@ Read these pages when the package-level contract is not enough. They move from t
 
 #### What the model sees
 
-The shipped presets expose the original blocking [`ask_user_question` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-ask-user). A custom Cordis row with `mode: timed` switches to the alternate schema, including question ids, prompts, headings, options, multi-select flags, `timeout`, and the pending result; the model sees only the selected definition.
+The shipped presets expose the original blocking [`ask_user_question` schema](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-ask-user). A custom Cordis row with `mode: timed` switches to the alternate schema, including question ids, prompts, headings, options, multi-select flags, `timeout`, and the pending result; the model sees only the selected definition.
 
 #### Token effect
 

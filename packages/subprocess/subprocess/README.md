@@ -121,7 +121,7 @@ One implementation registers per context; loading a second throws (Cordis standa
 
 Read these pages when the package-level contract is not enough. They move from the exhaustive type reference to the providers and the decision evidence behind the seam.
 
-- [Subprocess subsystem](../../../docs/subsystems/subprocess.md) — spawn specs, output readers, outcomes, and the `DSH_*` environment in full.
+- [Subprocess subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/subprocess.md) — spawn specs, output readers, outcomes, and the `DSH_*` environment in full.
 - [dsh-subprocess-local](../subprocess-local/README.md) — the local host provider that implements this contract.
 - [dsh-bash-local](../../shell/bash-local/README.md) — the largest consumer: bash commands over this service.
 - [Subprocess seam Agent Note](../../../.agents/notes/archived/architecture/2026-07-26-subprocess-seam.md) — why the process half became its own seam and what moved with it.

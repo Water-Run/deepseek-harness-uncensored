@@ -64,7 +64,7 @@ Cold material mutations emit `feedback/committed` after flush with a borrowed re
 | [`src/index.ts`](src/index.ts) | Remote service, payload validation, event projection, and persistence ownership |
 | [`src/types.ts`](src/types.ts) | Requests, results, and Session event declarations; types only |
 
-See the [feedback subsystem](../../../docs/subsystems/feedback.md), [Session persistence](../../../docs/subsystems/persistence.md), and [browser consumer](../../client/ui-message-feedback/README.md) for their respective APIs.
+See the [feedback subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/feedback.md), [Session persistence](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/persistence.md), and [browser consumer](../../client/ui-message-feedback/README.md) for their respective APIs.
 
 <a id="model-experience"></a>
 ## Model Experience

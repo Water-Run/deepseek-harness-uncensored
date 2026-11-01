@@ -44,7 +44,7 @@ The static `cordis.patch.yml` adds the four voice rows, selects `sensevoice-loca
 <a id="further-exploration"></a>
 ## Further Exploration
 
-[Voice input subsystem](../../../docs/subsystems/voice-input.md)
+[Voice input subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/voice-input.md)
 
 -----
 

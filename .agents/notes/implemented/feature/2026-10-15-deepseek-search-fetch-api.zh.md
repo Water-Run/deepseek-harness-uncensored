@@ -40,7 +40,7 @@ HTTP 提供方继续负责自身的公开地址校验、连接固定和资源限
 
 ### 附带的 Messages 修复
 
-保留的 Messages 路径显式发送 `thinking: { type: 'disabled' }`，并在发送前记录同一请求体。这避免了辅助请求在生成回答被丢弃的情况下执行思考；它不实现或控制新的检索 API。`tool_choice` 仍不传递。[持久化确认记录](../../../../docs/persistence-changes/2026-10-13-deepseek-search-thinking.zh.md)负责日志中可选字段的兼容性。
+保留的 Messages 路径显式发送 `thinking: { type: 'disabled' }`，并在发送前记录同一请求体。这避免了辅助请求在生成回答被丢弃的情况下执行思考；它不实现或控制新的检索 API。`tool_choice` 仍不传递。[持久化确认记录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/persistence-changes/2026-10-13-deepseek-search-thinking.md)负责日志中可选字段的兼容性。
 
 ## 考虑过的替代方案
 

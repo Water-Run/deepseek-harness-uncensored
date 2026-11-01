@@ -27,7 +27,7 @@ kind: "package-group"
 <a id="related-documentation"></a>
 ## 相关文档
 
-- [OTel 子系统](../../docs/subsystems/otel.zh.md) — 共享服务与调用方职责。
+- [OTel 子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/otel.md) — 共享服务与调用方职责。
 
 <a id="dev-note"></a>
 ## 开发备注

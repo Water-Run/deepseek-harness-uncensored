@@ -117,7 +117,7 @@ Read these pages when you need the consumers or the boundary decision behind the
 - [Timeout-deadline library Agent Note](../../../.agents/notes/implemented/architecture/2026-07-06-timeout-deadline-library.md) — the shared-timing, local-kill boundary.
 - [Tool-call timeout policy](../../guard/timeout-policy/README.md) — the consumer that enforces declared tool timeouts.
 - [Bash provider](../../shell/bash-local/README.md) — a foreground deadline consumer that kills a process group.
-- [Filesystem subsystem](../../../docs/subsystems/filesystem.md) — why local file IO runs untimed.
+- [Filesystem subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/filesystem.md) — why local file IO runs untimed.
 
 -----
 

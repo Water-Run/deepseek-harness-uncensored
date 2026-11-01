@@ -48,7 +48,7 @@ Host 在相对于应用根目录的 `inspector/devtools/devtools_app.html` 路�
 <a id="runtime-layout"></a>
 ## 运行时布局
 
-Worker 不访问实时 Cordis 对象；共享 Host/Client collector 会在传输前把它们投影成已验证快照。Cordis 负责插件组合、注册 `ctx.inspector`、注入 bootstrap 和 dispose（资源释放）。后加载的 Client 通过已鉴权的 Host 路由获取 bootstrap。Host 在启动 Worker 之前注册该路由，请求会等到 Worker 就绪后返回 bootstrap，启动失败时返回 `503`；请求中止时立即停止等待。当前平台无法运行 Worker 并报告 Node 的 `ERR_FEATURE_UNAVAILABLE_ON_PLATFORM` 时（例如浏览器预览的 Worker host），Host 记录一条警告，插件仍照常启动，只保留该路由并返回 `503`，不提供 `ctx.inspector`、DevTools 路由、bootstrap 注入或 `devtools://` URL；其他任何启动错误仍使插件启动失败。初始注入与主动获取两条路径中，bootstrap 传输或 source 建立失败均记录警告并保留连接重置后的重试；bootstrap 数据非法或服务注册失败则使启动失败。替换 source 会等待旧服务消费者清理完成，再申请新 source；卸载已激活插件会取消其未完成的 bootstrap 刷新。
+Worker 不访问实时 Cordis 对象；共享 Host/Client collector 会在传输前把它们投影成已验证快照。Cordis 负责插件组合、注册 `ctx.inspector`、注入 bootstrap 和 dispose（资源释放）。后加载的 Client 通过已鉴权的 Host 路由获取 bootstrap。Host 在启动 Worker 之前注册该路由，请求会等到 Worker 就绪后返回 bootstrap，启动失败时返回 `503`；即使启动期间发生垃圾回收，请求中止时也立即停止等待。当前平台无法运行 Worker 并报告 Node 的 `ERR_FEATURE_UNAVAILABLE_ON_PLATFORM` 时（例如浏览器预览的 Worker host），Host 记录一条警告，插件仍照常启动，只保留该路由并返回 `503`，不提供 `ctx.inspector`、DevTools 路由、bootstrap 注入或 `devtools://` URL；其他任何启动错误仍使插件启动失败。初始注入与主动获取两条路径中，bootstrap 传输或 source 建立失败均记录警告并保留连接重置后的重试；bootstrap 数据非法或服务注册失败则使启动失败。替换 source 会等待旧服务消费者清理完成，再申请新 source；卸载已激活插件会取消其未完成的 bootstrap 刷新。
 
 Host 插件启动 Worker 并连接专用 `MessagePort`。Client 使用注入或主动获取的浏览器 source 参数，直接向 Worker 打开带鉴权的 WebSocket，不接收 DevTools URL。Chrome DevTools 连接 Worker 的 CDP WebSocket。每条 DevTools 连接在 Worker 中独占一个连接 Host 主线程的 `node:inspector.Session`，因此 Host JavaScript 暂停时仍可调试 Host。
 
@@ -94,7 +94,7 @@ Host 插件注入 `webServer` 和 `connection`，接受以下字段：
 | `maxCordisNodes` | `2048` | 一个 realm 快照截断前允许的 Context 与 Fiber 节点数 |
 | `maxDisconnectedCordisTrees` | `8` | 作为非实时快照保留的最近断联 realm 树数量 |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-experimental-inspector)是全部已接受字段及其声明的详尽来源。
+生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-experimental-inspector)是全部已接受字段及其声明的详尽来源。
 
 Worker 监听后，Host 会记录一个 `devtools://` URL。同一个 Worker 提供 `/json`、`/json/list`、`/json/version`、`/devtools/page/<id>` target WebSocket 和 `/ingest` Client source。
 

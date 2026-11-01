@@ -99,7 +99,7 @@ The service reserves a session synchronously for one active send before returnin
 
 Read these pages when the package-level contract is not enough. They move from the shared terminal model to the shipped backend, the tools, and the design evidence.
 
-- [Terminal subsystem reference](../../../docs/subsystems/terminal.md) — shared types, backend and session contracts, and the generated `ctx.terminals` surface.
+- [Terminal subsystem reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/terminal.md) — shared types, backend and session contracts, and the generated `ctx.terminals` surface.
 - [terminal/ package map](../README.md) — the three-package family and how it composes.
 - [terminal-bash backend](../terminal-bash/README.md) — the shipped shell backend that provides the `shell` type.
 - [tool-terminal tools](../../experimental/tool-terminal/README.md) — the six model-facing tools that operate sessions.

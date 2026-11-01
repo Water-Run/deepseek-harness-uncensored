@@ -17,9 +17,11 @@ export interface DeleteSessionInjected {
  * @returns Destructive action leading to confirmation.
  */
 export function DeleteSessionMenuItem({
-  sessionId, displayTitle, useMenuOpenState, controller, t,
+  sessionId, displayTitle, useMenuOpenState, useSessionAccess, controller, t,
 }: SessionMenuItemProps<DeleteSessionInjected>) {
   const [, setOpen] = useMenuOpenState()
+  const allowed = useSessionAccess(sessionId, 'session/delete')
+  if (!allowed) return null
   return <MenuItemButton icon={<IconTrashOutlineRegular size={14} />} onSelect={() => {
     setOpen(false)
     controller.request(sessionId, displayTitle)

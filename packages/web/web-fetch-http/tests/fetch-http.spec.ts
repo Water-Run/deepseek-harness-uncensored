@@ -1,12 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import { AddressInfo } from 'node:net'
+import { ReadableStream as WebReadableStream } from 'node:stream/web'
+import { Response as HttpResponse } from 'undici'
 import { Context } from '@deepseek-ai/cordis'
 import WebRuntime from '@deepseek-ai/dsh-web'
 import { HttpFetchProvider, LOCAL_FETCH_PROVIDER_ID } from '@deepseek-ai/dsh-web-fetch-http'
 import type { HttpFetchLimits, HttpFetchResolver } from '@deepseek-ai/dsh-web-fetch-http'
 import * as fetchPlugin from '@deepseek-ai/dsh-web-fetch-http'
-import { createPinnedLookup, isPublicIpAddress, publicHttpNetwork, requestPinned, resolvePublicAddresses } from '../src/network.ts'
+import { createPinnedLookup, isPublicIpAddress, httpNetwork, requestPinned, resolvePublicAddresses } from '../src/network.ts'
 import {
   classifyContentType,
   decoderForCharset,
@@ -38,7 +40,7 @@ beforeEach(async () => {
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
   const { port } = server.address() as AddressInfo
   base = `http://127.0.0.1:${port}`
-  const spy = vi.spyOn(publicHttpNetwork, 'resolve').mockResolvedValue([{ address: '127.0.0.1', family: 4 }])
+  const spy = vi.spyOn(httpNetwork, 'resolve').mockResolvedValue([{ address: '127.0.0.1', family: 4 }])
   restoreResolution = () => { spy.mockRestore() }
 })
 
@@ -277,7 +279,7 @@ describe('HttpFetchProvider success', () => {
     const result = await new HttpFetchProvider(limits, resolveAddresses).fetch({ url: base })
     expect(result.statusCode).toBe(200)
     expect(resolveAddresses).toHaveBeenCalledWith('127.0.0.1', expect.any(AbortSignal))
-    expect(publicHttpNetwork.resolve).not.toHaveBeenCalled()
+    expect(httpNetwork.resolve).not.toHaveBeenCalled()
   })
 
   it('sends the configured user agent', async () => {
@@ -460,9 +462,13 @@ describe('HttpFetchProvider redirects', () => {
 })
 
 describe('HttpFetchProvider invalid URLs and abort', () => {
-  it('blocks a loopback destination before opening a connection', async () => {
+  it('can fetch a loopback service through the default system resolver', async () => {
     restoreResolution()
-    await expect(provider().fetch({ url: base }))
+    expect((await provider().fetch({ url: base })).body.content).toBe('default')
+  })
+
+  it('rejects loopback when the caller supplies the public-network resolver', async () => {
+    await expect(new HttpFetchProvider(limits, resolvePublicAddresses).fetch({ url: base }))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_BLOCKED_URL' }))
   })
 
@@ -522,21 +528,20 @@ describe('HttpFetchProvider invalid URLs and abort', () => {
 describe('HttpFetchProvider body cancellation on error paths', () => {
   /** A fake Response whose body.cancel is observable. */
   type FakeInit = { status: number; headers: Record<string, string>; location?: string }
-  function fakeResponse(init: FakeInit): { response: Response; cancelled: () => boolean } {
+  function fakeResponse(init: FakeInit): { response: HttpResponse; cancelled: () => boolean } {
     let cancelled = false
-    const headers = new Headers(init.headers)
-    if (init.location !== undefined) headers.set('location', init.location)
-    const response = {
+    const headers = { ...init.headers, ...init.location === undefined ? {} : { location: init.location } }
+    const body = new WebReadableStream<Uint8Array>({ cancel() { cancelled = true } })
+    const response = new HttpResponse(body, {
       status: init.status,
       headers,
-      body: { cancel: () => { cancelled = true; return Promise.resolve() } },
-    } as unknown as Response
+    })
     return { response, cancelled: () => cancelled }
   }
 
-  function stubRequest(response: Response): void {
-    vi.spyOn(publicHttpNetwork, 'request').mockResolvedValue({
-      response: response as never,
+  function stubRequest(response: HttpResponse): void {
+    vi.spyOn(httpNetwork, 'request').mockResolvedValue({
+      response,
       close: async () => {},
     })
   }

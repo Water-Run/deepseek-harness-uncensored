@@ -9,7 +9,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import * as HttpPlugin from '../src/index.ts'
 import { HttpFetchProvider, type HttpFetchLimits } from '../src/provider.ts'
 import type { HttpFetchAuthorizer, HttpFetchDestination } from '../src/authorization.ts'
-import { publicHttpNetwork } from '../src/network.ts'
+import { httpNetwork } from '../src/network.ts'
 
 const limits: HttpFetchLimits = { maxResponseBytes: 10000, maxBodyChars: 10000, timeoutMs: 5000, maxRedirects: 5, userAgent: 'target-guard-test' }
 const contexts: Context[] = []
@@ -56,7 +56,7 @@ it('enforces a deployment veto through the actual web service before touching th
 it('retains normal retrieval when the deployment has no target policy', async () => {
   const target = await origin()
   const ctx = new Context(); contexts.push(ctx)
-  const resolver = vi.spyOn(publicHttpNetwork, 'resolve').mockResolvedValue([{ address: '127.0.0.1', family: 4 }])
+  const resolver = vi.spyOn(httpNetwork, 'resolve').mockResolvedValue([{ address: '127.0.0.1', family: 4 }])
   try {
     await ctx.plugin(WebRuntime)
     await ctx.plugin(HttpPlugin, HttpPlugin.Config({}))

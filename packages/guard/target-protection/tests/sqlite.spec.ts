@@ -1,4 +1,5 @@
 /** Real SQL engine authorization, rollback, cancellation and owner revocation. @module */
+import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import { Context } from '@deepseek-ai/cordis'
 import { DatabaseSync } from 'node:sqlite'
 import { mkdtemp, readFile, rm, symlink, link } from 'node:fs/promises'
@@ -287,7 +288,7 @@ it.skipIf(!supported)('keeps conversation read-only permissions narrower than a 
   await h.ctx.plugin(SessionProjections)
   await h.ctx.plugin(SandboxPolicy, { mode: 'read-only', workspaceRoot: h.root })
   await h.ctx.plugin(SqliteAgent)
-  const call = (sql: string) => h.ctx.tools.execute({ name: 'database_query', arguments: { database: 'owned', sql },
+  const call = (sql: string) => executeToolFixture(h.ctx, { name: 'database_query', arguments: { database: 'owned', sql },
     callId: ToolCallId(randomUUID()), signal: new AbortController().signal })
   const read = await call('SELECT * FROM data')
   expect(read.isError, JSON.stringify(read)).toBe(false)

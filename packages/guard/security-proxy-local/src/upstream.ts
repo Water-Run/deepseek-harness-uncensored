@@ -81,6 +81,7 @@ export function proxyAuthorization(upstream: Upstream): string | undefined {
  */
 export function createDispatcher(upstream: Upstream): ProxyAgent {
   const token = proxyAuthorization(upstream)
+  // proxy-exempt: this explicitly configured Security proxy has credentials and routing independent of the global proxy.
   return new ProxyAgent({
     uri: proxyUrl(upstream),
     ...token === undefined ? {} : { token },

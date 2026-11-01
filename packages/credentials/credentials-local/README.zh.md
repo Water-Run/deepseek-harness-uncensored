@@ -46,7 +46,7 @@ kind: "package-reference"
 | `watch` | `true` | 文件在磁盘上变化时自动重载 |
 | `debounceMs` | `100` | 变化后等待这么久再重载，单位为毫秒 |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-credentials-local)完整列出了所有受支持字段及其 JSDoc，是这些信息的真源。
+生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-credentials-local)完整列出了所有受支持字段及其 JSDoc，是这些信息的真源。
 
 ### 存储与移除密钥
 
@@ -172,7 +172,7 @@ YAML 解析器自己的消息会引用出错的那行源码，而在这份文档
 当提供方级约定不够用时阅读以下页面。它们从 seam 约定逐步进入环境快照、原子写入原语与启动期环境层。
 
 - [凭据引用 seam](../credentials/README.zh.md)——`resolve`、`describe`、`set`、`unset`、记录操作与 seam 的更新事件。
-- [凭据子系统参考](../../../docs/subsystems/credentials.zh.md)——`CredentialRef`、按操作解析、对 UI 安全的 `CredentialInfo`、提供方层。
+- [凭据子系统参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/credentials.md)——`CredentialRef`、按操作解析、对 UI 安全的 `CredentialInfo`、提供方层。
 - [启动环境快照](../../util/launch-environment/README.zh.md)——解析读取的冻结层快照，而非 `process.env`。
 - [原子写入](../../util/atomic-write/README.zh.md)——每次写入所用的写锁与原子替换。
 - [应用启动与 Harness home 各层](../../boot/app-boot/README.zh.md)——产品 CLI 如何把 `.env` 载入快照与 `process.env`。

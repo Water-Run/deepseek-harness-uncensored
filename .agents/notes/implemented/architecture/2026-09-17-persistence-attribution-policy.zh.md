@@ -16,7 +16,7 @@ tmux-context 生产者将位置归属标记为符合条件。其自身投影使�
 
 `RequestMessage` 接受持久化 `Message`，或仅含 content、没有 `id` 和 `source` 的 user 专用 `RequestUserInput`。LLM 服务和 provider 序列化器接受两者；Session 写入、Agent 交付及持久化标题请求输入要求持久化消息。Auto Review 的外层提示和压缩摘要器的最终指令使用仅供请求使用的输入，并保留内容与冻结行为。调用方不会获得隐式持久化转换。Assistant 回放元数据和工具结果关联保持原有要求。
 
-已定稿的 V4 确认记录保存 user-source 策略，并移除两个仅供请求使用的 source 注册。原有前驱和 header 迁移保持不变。这不构成删除已接受分支的通用例外：[producer-source 迁移](2026-09-09-producer-owned-message-sources.zh.md)独立于活动 source 声明保留生产者映射与扩展命名空间，包括历史的仅供请求使用的 kind。目录生成和比较仍由[持久化参考](../../../../docs/persistence-changes/README.zh.md#compatibility-rules)负责。
+已定稿的 V4 确认记录保存 user-source 策略，并移除两个仅供请求使用的 source 注册。原有前驱和 header 迁移保持不变。这不构成删除已接受分支的通用例外：[producer-source 迁移](2026-09-09-producer-owned-message-sources.zh.md)独立于活动 source 声明保留生产者映射与扩展命名空间，包括历史的仅供请求使用的 kind。目录生成和比较仍由[持久化参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/persistence-changes/README.md#compatibility-rules)负责。
 
 ## 考虑过的替代方案
 

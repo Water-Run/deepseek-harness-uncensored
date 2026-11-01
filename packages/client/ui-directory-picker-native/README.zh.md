@@ -33,6 +33,8 @@ kind: "package-reference"
 
 当浏览器与 Host 运行在同一台机器上、操作系统对话框可以在那里打开时，选择此表面。当浏览器为远程或进程内、没有本地选择器时，选择 [`-browse`](../ui-directory-picker-browse/README.zh.md) 表面。两个表面填充相同的 slot，因此切换只是组合改动，而非代码改动。
 
+访问控制：两个目录选择流程只在当前 Peer 可以调用 `directoryPicker/pick` 时注册。owner 始终有权限。
+
 -----
 
 <a id="understand-the-implementation"></a>
@@ -55,7 +57,7 @@ kind: "package-reference"
 - [dsh-host-directory-picker-native](../../host/directory-picker-native/README.zh.md)——本表面驱动的操作系统选择器后端。
 - [ui-workspace](../ui-workspace/README.zh.md)——声明目录流程 slot 并拥有拾取对话。
 - [ui-directory-picker-browse](../ui-directory-picker-browse/README.zh.md)——面向远程与进程内部署的应用内浏览替代方案。
-- [Web 客户端架构](../../../docs/subsystems/web-client.zh.md)——浏览器插件行如何加载并注册 slot。
+- [Web 客户端架构](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/web-client.md)——浏览器插件行如何加载并注册 slot。
 
 -----
 

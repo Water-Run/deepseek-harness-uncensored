@@ -43,7 +43,7 @@ Choose this backend when the child must run with its own runtime, model, and too
 | `disposeEofGraceMs` | `6000` | Grace after stdin EOF before platform termination |
 | `disposeGraceMs` | `3000` | Bound for observing structured process facts after failure and, on POSIX, the SIGTERM-to-SIGKILL grace |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-subagent-acp) is the exhaustive source for every accepted field and its JSDoc.
+The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-subagent-acp) is the exhaustive source for every accepted field and its JSDoc.
 
 A DeepSeek Harness child uses the product launcher and an explicit absolute `DSH_HOME`. The isolated home prevents a nested runtime from discovering the launching person's profiles or credentials; the generic ACP provider does not impose this requirement on non-DSH agents.
 
@@ -109,11 +109,11 @@ The child spawns through the subprocess seam: credential-shaped ambient variable
 
 Read these pages when the package-level contract is not enough. They move from this backend to the seam it plugs into and the protocol it drives.
 
-- [Subagent subsystem](../../../docs/subsystems/subagent.md) — the service contract, provider contract, and terminal result semantics.
+- [Subagent subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/subagent.md) — the service contract, provider contract, and terminal result semantics.
 - [dsh-subagent seam](../subagent/README.md) — the registry and start API this provider registers on.
 - [Agent Client Protocol automation server](../../acp/acp/README.md) — the automation-only server this provider drives as a client.
 - [dsh-subprocess seam](../../subprocess/subprocess/README.md) — the process-spawn and teardown machinery behind each run.
-- [Generated configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-subagent-acp) — every accepted config field and its source declaration.
+- [Generated configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-subagent-acp) — every accepted config field and its source declaration.
 
 -----
 

@@ -154,7 +154,7 @@ seam 先把确定性工作区 SID 的 ACE 常驻物化（每个工作区每服�
 
 先从子系统参考文档了解共享词汇，再看挂载此档的提供方、其消费方与设计决策。
 
-- [进程沙箱子系统](../../../docs/subsystems/sandbox.zh.md)——模式、逐调用策略与强制执行语义。
+- [进程沙箱子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/sandbox.md)——模式、逐调用策略与强制执行语义。
 - [本地沙箱后端](../sandbox-local/README.zh.md)——把此后端挂载为 win32 档的提供方。
 - [沙箱 seam 包](../sandbox/README.zh.md)——此后端实现的服务约定。
 - [Win32 进程库](../../subprocess/win32-process/README.zh.md)——共享的受限进程、stdio、Job、等待与句柄清理原语。

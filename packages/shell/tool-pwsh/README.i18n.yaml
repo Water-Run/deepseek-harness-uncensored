@@ -21,14 +21,14 @@
   en: d274c33ae8a646f8
   zh: 99e3e64e61735e50
 /deepseek-ai-dsh-tool-pwsh/use-this-package/minimal-configuration:
-  en: addf35c4e607d33c
-  zh: 081f511d6b5a79d6
+  en: 07cdbb5721b90ec8
+  zh: 7e054f25e2d16577
 /deepseek-ai-dsh-tool-pwsh/use-this-package/running-a-command:
   en: 80195c9b61b29737
   zh: 0a187f3f52814b90
 /deepseek-ai-dsh-tool-pwsh/use-this-package/foreground-commands-as-jobs:
-  en: 4a487e48ef146846
-  zh: 0a34dc49bffb03af
+  en: e2ac7a741c287b92
+  zh: a9e95c0a84671f45
 /deepseek-ai-dsh-tool-pwsh/use-this-package/windows-specific-sandbox-behavior:
   en: 76f3f791f53d1005
   zh: e5b262db24e6eb83
@@ -48,8 +48,8 @@
   en: facd01af9a403fec
   zh: 7a943dac19a01c39
 /deepseek-ai-dsh-tool-pwsh/further-exploration:
-  en: 8b2f3ab83ada2fe5
-  zh: b7803b21d5373ece
+  en: f28d54854306d584
+  zh: 466af5978faed261
 /deepseek-ai-dsh-tool-pwsh/model-experience:
   en: 215e7ba838619b7b
   zh: a311da3843709f90
@@ -72,8 +72,8 @@
   en: 3039bc5e7a796b21
   zh: 6b7a9eaf69c9ea53
 /deepseek-ai-dsh-tool-pwsh/model-experience/tool-schemas/what-the-model-sees:
-  en: 319b3a4512305a26
-  zh: fed6a1c70bf79a0e
+  en: 79eb1c7dfd7d37c0
+  zh: 5faaddd945f986dc
 /deepseek-ai-dsh-tool-pwsh/model-experience/tool-schemas/token-effect:
   en: 97cce067584eadff
   zh: 54b1f5cd5899e7f3

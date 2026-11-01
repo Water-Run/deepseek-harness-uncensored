@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-07-22-slot-type-chain-implementation.md
 /agent-note-the-slot-system-standard-single-register-four-props-shares-and-the-framework-store-seat:
-  en: 0b4cb1d5ce96bedc
-  zh: 7c1bb3080595d445
+  en: 671a75d4ae1d3554
+  zh: 7176d320d66ebc98
 /agent-note-the-slot-system-standard-single-register-four-props-shares-and-the-framework-store-seat/problem:
   en: 4f8d6891a8ba7061
   zh: 5a619e562e00458d

@@ -78,7 +78,7 @@ web GUI 让操作者通过 OS 选择器或应用内浏览器选择工作区目�
 - [原生后端](../directory-picker-native/README.zh.md)——OS 选择器交互及其平台工具。
 - [浏览后端](../directory-picker-browse/README.zh.md)——面向远程客户端的应用内列举与创建交互。
 - [自适应选择器](../directory-picker-auto/README.zh.md)——两个后端之间的启动时判定。
-- [工作区子系统](../../../docs/subsystems/workspace.zh.md)——接收所选目录的工作区记录。
+- [工作区子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/workspace.md)——接收所选目录的工作区记录。
 
 -----
 

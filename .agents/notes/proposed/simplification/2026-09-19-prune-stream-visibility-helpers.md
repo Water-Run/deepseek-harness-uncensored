@@ -16,7 +16,7 @@ Remove the five exported visibility queries and their exclusive private helpers,
 
 Remove dedicated visibility tests and only the obsolete assertions inside mixed reader tests. Keep the mixed fixtures and assertions that verify first-token timing, early exit, raw chunks, text joining, and assembly equivalence.
 
-The [package README](../../../../packages/llm/llm/README.md) owns compact-reader behavior: retained readers avoid materializing per-member expansions, and durable input still uses validating expansion. Preserve those constraints and the used readers. When implementing this proposal, update that README and the [LLM subsystem page](../../../../docs/subsystems/llm-streaming.md) with their bilingual counterparts; archived records remain unchanged.
+The [package README](../../../../packages/llm/llm/README.md) owns compact-reader behavior: retained readers avoid materializing per-member expansions, and durable input still uses validating expansion. Preserve those constraints and the used readers. When implementing this proposal, update that README and the [LLM subsystem page](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/llm-streaming.md) with their bilingual counterparts; archived records remain unchanged.
 
 ## Alternatives considered
 

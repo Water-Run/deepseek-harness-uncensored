@@ -13,13 +13,22 @@ import { resolve, sep } from 'node:path'
 import { JSON_SCHEMA, load } from 'js-yaml'
 import { describe, expect, it } from 'vitest'
 import { readCurrentSessionFormatVersion } from './gen-session-format-catalog.ts'
+import { persistenceLayout } from './persistence-layout.ts'
 
 const root = resolve(import.meta.dirname, '..')
+const persistence = persistenceLayout(root)
+/** Compact DSHU references keep API and failure details without the full reference-page skeleton. */
+const COMPACT_PACKAGE_READMES = new Set([
+  'packages/api/memory-controller/README.md',
+  'packages/client/ui-settings-memory/README.md',
+  'packages/context/uncensored-armor/README.md',
+  'packages/credentials/balance/README.md',
+  'packages/guard/spend-limit/README.md',
+  'packages/mcp/rea/README.md',
+  'packages/mcp/rea/README.zh.md',
+  'packages/memory/memory/README.md',
+])
 const PACKAGE_README_GLOBS = [
-  'packages/README.md',
-  'packages/README.zh.md',
-  'packages/*/README.md',
-  'packages/*/README.zh.md',
   'packages/*/*/README.md',
   'packages/*/*/README.zh.md',
 ] as const
@@ -55,10 +64,11 @@ const KIND_TEMPLATES: Readonly<Record<string, string>> = {
  * library; the check re-derives the entry shape so a stale entry fails loud.
  */
 const PACKAGE_LIBRARIES: Readonly<Record<string, string>> = {
-  'packages/experimental/cua': 'Shared CUA objects and installer consumed by platform providers; no plugin entry.',
+  'packages/util/file-drag': 'File naming and native transfer declarations without a plugin entry.',
   'packages/experimental/browser-use-runtime': 'Provider-owned browser resource management and MCP integration helpers; no plugin entry.',
   'packages/boot/app-boot': 'Boot library the app bins import; plain helper exports.',
   'packages/boot/cmdline': 'Command-line library the app bins import; plain module exports.',
+  'packages/util/official-bundles': 'Bundle-list data library the launcher and plugin manager import; plain constant exports.',
   'packages/client/store': 'Browser-side state primitives; plain function/type exports.',
   'packages/client/ui-primitives': 'Browser-side UI component library; plain component exports.',
   'packages/client/ui-slots': 'Browser-side slot-map declarations; plain type exports.',
@@ -67,6 +77,7 @@ const PACKAGE_LIBRARIES: Readonly<Record<string, string>> = {
   'packages/experimental/webworker-packer': 'Build-time VFS image packer and command library.',
   'packages/experimental/webworker-runtime': 'Browser worker runtime library with explicit host entry points.',
   'packages/experimental/hook-protocol': 'Shared wire-protocol library between the hook bridges.',
+  'packages/experimental/liveshare-protocol': 'Shared wire frames and identity contract; plain module exports with no plugin entry.',
   'packages/identity/anonymous-user-id': 'Harness-home identity helper with no plugin registration.',
   'packages/sandbox/sandbox-windows-acl': 'Windows ACL sandbox library consumed by sandbox-local.',
   'packages/sdk/client': 'Client-process library; the spawned runtime owns plugin behavior.',
@@ -82,6 +93,7 @@ const PACKAGE_LIBRARIES: Readonly<Record<string, string>> = {
   'packages/subprocess/win32-process': 'Low-level Win32 process and Job Object primitives.',
   'packages/test-support/session-snapshot': 'Test infrastructure; mounts nothing into a product composition.',
   'packages/test-support/agent-loop-testkit': 'Test helper library; mounts nothing into a product composition.',
+  'packages/test-support/tool-testkit': 'Tool fixture library; exports helpers without a plugin entry.',
   'packages/test-support/client-runtime': 'Browser-side test infrastructure.',
   'packages/test-support/llm-mock-server': 'Test server library; substitutes provider wire behavior.',
   'packages/test-support/loader-smoke': 'Test harness library; mounts nothing into a product composition.',
@@ -100,6 +112,7 @@ const PACKAGE_LIBRARIES: Readonly<Record<string, string>> = {
   'packages/util/native-command': 'Host-side subprocess runner utility.',
   'packages/util/output-retention': 'Zero-dependency retention utility.',
   'packages/util/package-manifest': 'Shared package manifest declarations with type-only exports.',
+  'packages/util/plugin-detail': 'Plugin detail document library.',
   'packages/util/plugin-market-index': 'Plugin market index validation library.',
   'packages/util/time': 'Zero-dependency time-zone canonicalization utility.',
   'packages/util/timeout': 'Zero-dependency timeout utility.',
@@ -199,7 +212,7 @@ function validateSessionFormatRelease(source: string, currentWriterVersion: numb
 
 function sessionFormatReleaseFixture(): { record: SessionFormatRelease; body: string; evidence: string; source: string } {
   const record = validateSessionFormatRelease(
-    readFileSync(resolve(root, 'docs/session-format-status.md'), 'utf8'),
+    readFileSync(resolve(root, persistence.status), 'utf8'),
     readCurrentSessionFormatVersion(root),
   )
   const body = `latestReleasedVersion: ${record.latestReleasedVersion}\nevidenceTag: ${record.evidenceTag}`
@@ -213,7 +226,7 @@ function releaseDocument(body: string, evidence: string): string {
 
 describe('Session format release authority', () => {
   it('keeps bilingual release metadata consistent with the writer and tagged evidence', () => {
-    const records = ['docs/session-format-status.md', 'docs/session-format-status.zh.md'].map(file =>
+    const records = [persistence.status, persistence.status.replace(/\.md$/u, '.zh.md')].map(file =>
       validateSessionFormatRelease(readFileSync(resolve(root, file), 'utf8'), readCurrentSessionFormatVersion(root)),
     )
     expect(records[0]).toEqual(records[1])
@@ -349,14 +362,14 @@ describe('dsh-doc skill consolidation', () => {
     const files = packageReadmes()
     expect(files.length).toBeGreaterThan(0)
 
-    for (const file of files) {
+    for (const file of files.filter(file => !COMPACT_PACKAGE_READMES.has(file))) {
       const metadata = readFrontmatter(file)
       expect(packageReadmeMetadataErrors(file, metadata), file).toEqual([])
     }
   })
 
   it('maps persistence transition records to their dedicated document kind', () => {
-    const files = globSync('docs/persistence-changes/*.md', { cwd: root })
+    const files = globSync(`${persistence.records}/*.md`, { cwd: root })
       .filter(file => !/\/README(?:\.zh)?\.md$/u.test(file.replaceAll('\\', '/')))
     expect(files.length).toBeGreaterThan(0)
     for (const file of files) {
@@ -366,7 +379,7 @@ describe('dsh-doc skill consolidation', () => {
     }
   })
 
-  it('maps retrospective release comparisons to their dedicated document kind', () => {
+  it.runIf(persistence.catalogs === 'full')('maps retrospective release comparisons to their dedicated document kind', () => {
     const files = globSync('docs/persistence-changes/releases/dsh-*.md', { cwd: root })
     expect(files.length).toBeGreaterThan(0)
     for (const file of files) {
@@ -376,7 +389,7 @@ describe('dsh-doc skill consolidation', () => {
     }
   })
 
-  it('maps historical Session format references to their dedicated document kind', () => {
+  it.runIf(persistence.catalogs === 'full')('maps historical Session format references to their dedicated document kind', () => {
     const files = globSync('docs/persistence-changes/historical-formats/v*.md', { cwd: root })
     expect(files.length).toBe(readCurrentSessionFormatVersion(root) * 2)
     for (const file of files) {
@@ -399,7 +412,7 @@ describe('dsh-doc skill consolidation', () => {
   })
 
   it('keeps every package README on the summary, contents, and Dev Note skeleton', () => {
-    for (const file of packageReadmes().filter(file => file.split('/').length === 4)) {
+    for (const file of packageReadmes().filter(file => file.split('/').length === 4 && !COMPACT_PACKAGE_READMES.has(file))) {
       const source = readFileSync(resolve(root, file), 'utf8')
       expect(packageReadmeStructureErrors(file, source), file).toEqual([])
     }

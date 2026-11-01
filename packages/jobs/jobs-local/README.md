@@ -46,7 +46,7 @@ Loading the plugin registers `ctx.jobs`; every field is optional.
 | `settledRetainBytes` | `16384` | Ring retention kept after a job settles, in UTF-8 bytes; bytes the model has not read stay until its first terminal read |
 | `pumpPollMs` | `150` | Poll interval for a job's pull sources, in milliseconds |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-jobs-local) is the exhaustive source for the accepted fields.
+The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-jobs-local) is the exhaustive source for the accepted fields.
 
 ### What each owner gets
 
@@ -58,7 +58,7 @@ Jobs belong to their owner and backend, not to the producer tool, so producer or
 
 ### Session timing records
 
-Owned jobs record registration and settlement in their original Session, independently of model output collection. SDK consumers receive the same events through `session.event`; the [jobs reference](../../../docs/subsystems/jobs.md#session-lifecycle-records) defines identities, timestamps, and producer settlement reports. Events already persisted remain available after process exit; live jobs and output rings are not resumed.
+Owned jobs record registration and settlement in their original Session, independently of model output collection. SDK consumers receive the same events through `session.event`; the [jobs reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/jobs.md#session-lifecycle-records) defines identities, timestamps, and producer settlement reports. Events already persisted remain available after process exit; live jobs and output rings are not resumed.
 
 Lifecycle facts are appended synchronously at the registration or settlement commit, before live hub subscribers and completion waiters react. Append failures warn without abandoning execution or blocking cleanup; consumers must retain incomplete histories as incomplete.
 
@@ -115,7 +115,7 @@ Owner disposal (`disposeOwned`) cancels the owner's jobs, awaits their settlemen
 
 Read these pages when the package-level contract is not enough. They move from the registry contract to the model-facing controls and the design records.
 
-- [Background task runtime subsystem](../../../docs/subsystems/jobs.md) — the job types, projection fields, and `ctx.jobs` Cordis surface.
+- [Background task runtime subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/jobs.md) — the job types, projection fields, and `ctx.jobs` Cordis surface.
 - [jobs group map](../README.md) — the sibling group page and its package table.
 - [Registry contract](../jobs/README.md) — the abstract `ctx.jobs` service this package implements.
 - [Model-facing job controls](../tool-jobs/README.md) — the `job_output`, `job_list`, and `job_kill` tools and completion notices.

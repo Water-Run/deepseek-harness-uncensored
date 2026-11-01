@@ -40,12 +40,12 @@ Use the core packages to build or extend an agent that records durable session h
 <a id="related-documentation"></a>
 ## Related documentation
 
-- [Core subsystem](../../docs/subsystems/core.md) — the package-by-package loop map and the `Agent` handle contracts.
-- [Session subsystem](../../docs/subsystems/session.md) — the session event vocabulary and derived history.
-- [System-prompt subsystem](../../docs/subsystems/system-prompt.md) — prompt section, dynamic context, and tool-schema types.
-- [Tools subsystem](../../docs/subsystems/tools.md) — the tool execution pipeline and presentation vocabulary.
-- [Scoped registration subsystem](../../docs/subsystems/scope.md) — the scoped-layer primitive these registries build on.
-- [Architecture](../../docs/architecture.md) — the turn flow and where new behavior goes.
+- [Core subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/core.md) — the package-by-package loop map and the `Agent` handle contracts.
+- [Session subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/session.md) — the session event vocabulary and derived history.
+- [System-prompt subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/system-prompt.md) — prompt section, dynamic context, and tool-schema types.
+- [Tools subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/tools.md) — the tool execution pipeline and presentation vocabulary.
+- [Scoped registration subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/scope.md) — the scoped-layer primitive these registries build on.
+- [Architecture](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/architecture.md) — the turn flow and where new behavior goes.
 - [Base bundle](../bundle/base/README.md) — the default product composition.
 - [SDK minimal bundle](../bundle/sdk-minimal/README.md) — a complete standalone composition with a deliberately smaller feature set.
 

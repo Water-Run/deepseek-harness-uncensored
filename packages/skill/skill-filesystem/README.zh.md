@@ -74,7 +74,7 @@ skill 可以是被扫描根目录顶层的目录 bundle `<name>/SKILL.md`，也�
 | `watch` | `true` | 监视本地根，并在目录可能变化时使提供方失效 |
 | `bundledSkillDir` | — | 配置后按 rank 600 扫描的随包提供的 skill 根目录 |
 
-其余 `watch*` 字段用于调节 Chokidar 行为——轮询、稳定窗口、间隔、项目上限与符号链接跟随。生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-skill-filesystem)完整列出了所有字段，是这些字段的真源。
+其余 `watch*` 字段用于调节 Chokidar 行为——轮询、稳定窗口、间隔、项目上限与符号链接跟随。生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-skill-filesystem)完整列出了所有字段，是这些字段的真源。
 
 ### 变更检测
 
@@ -82,7 +82,7 @@ skill 可以是被扫描根目录顶层的目录 bundle `<name>/SKILL.md`，也�
 
 ### 可观察的成功与失败
 
-任一被扫描根目录下的有效 skill 都会按名称排序出现在会话目录中，加载它即可返回当前文件正文。缺少有效 frontmatter、名称无效或调用值无效的文件会随警告被跳过，因此模型目录不会收到逐 skill 诊断，也无法区分缺失的 skill 与无效的 skill。意外的发现或读取失败会让目录观测保持不完整，而不会用看似发生删除的结果替换最后一份可用视图。
+任一被扫描根目录下的有效 skill 都会按名称排序出现在会话目录中，加载它即可返回当前文件正文。缺少有效 frontmatter、名称无效或调用值无效的文件会随警告被跳过，因此模型目录不会收到逐 skill 诊断，也无法区分缺失的 skill 与无效的 skill。某个根目录的发现或文件读取失败时，会记录其路径并跳过该根，其他根目录仍然可用。此观测标记为不完整，不被缓存，并在下次查询时重试。模型目录会区分发现不完整与已确认的缺失。
 
 -----
 
@@ -121,7 +121,7 @@ skill 可以是被扫描根目录顶层的目录 bundle `<name>/SKILL.md`，也�
 
 当包级约定不够用时阅读以下页面。它们从注册表约定逐步进入渲染已发现 skill 的消费方，以及配置默认值使用的 home 路径解析。
 
-- [skill 子系统参考](../../../docs/subsystems/skills.zh.md)——注册表约定与本地发现优先级表。
+- [skill 子系统参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/skills.md)——注册表约定与本地发现优先级表。
 - [skill 包](../skill/README.zh.md)——该提供方注册到的注册表。
 - [tool-skill 包](../tool-skill/README.zh.md)——已发现 skill 如何到达会话目录与模型。
 - [home-paths 包](../../util/home-paths/README.zh.md)——`dshHome` 与 `agentsHome` 如何解析。
@@ -146,7 +146,8 @@ watcher 触发的失效可促使上述消费方在现有请求历史中追加替
 
 - **发现深度为一层**——只识别 `<root>/<name>/SKILL.md` 与 `<root>/<name>.md`；忽略嵌套 skill 树与包 manifest（元数据清单）。
 - **项目范围为最近 `.git` 祖先**——没有该标记的工作区回退到提供的 cwd，不支持其他项目根标记或 monorepo 子项目选择。
-- **格式错误的条目随警告消失**——模型目录不会收到逐 skill 诊断，无法区分缺失的 skill 与无效的 skill；意外的 I/O 失败则会保留最后一份可用目录。
+- **格式错误的条目随警告消失**——模型目录不会收到逐 skill 诊断，无法区分缺失的 skill 与无效的 skill。
+- **I/O 失败会省略整个根目录**——一个不可读 skill 会使该次观测同时隐藏同根下的可读 skill。其他根仍可用，因此较低优先级的同名 skill 可能提供描述与加载的正文。每次查询都会重试发现，根目录恢复后重新按正常优先级选择。
 - **缺失根观察每次轮询一个路径段**——启动时不存在的根会使用 `fs.watchFile` 按 `watchPollIntervalMs` 轮询，直至 Chokidar 可以附加；这以有界检测延迟换取跨 IDE、Git 与 shell 工作流的可靠创建检测。
 - **无正文修订协议**——已加载正文是普通的已保留工具历史；后续文件编辑会影响后续调用，但既不会改写旧结果，也不会通知正文已变化。
 

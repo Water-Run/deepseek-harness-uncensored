@@ -16,7 +16,7 @@ Status: proposed
 
 移除专门的可见性测试；混合读取器测试只删除过时断言。保留验证首 token 计时、提前退出、原始分片、文本拼接和组装等价性的混合 fixture（测试前置数据）与断言。
 
-[包 README](../../../../packages/llm/llm/README.zh.md)负责紧凑读取器的行为：保留的读取器避免将逐成员展开结果实体化，持久化输入仍使用带校验的展开操作。保留这些约束和仍被使用的读取器。实施本提案时，更新该 README、[LLM 子系统页面](../../../../docs/subsystems/llm-streaming.zh.md)及其双语对侧；归档记录保持不变。
+[包 README](../../../../packages/llm/llm/README.zh.md)负责紧凑读取器的行为：保留的读取器避免将逐成员展开结果实体化，持久化输入仍使用带校验的展开操作。保留这些约束和仍被使用的读取器。实施本提案时，更新该 README、[LLM 子系统页面](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/llm-streaming.md)及其双语对侧；归档记录保持不变。
 
 ## 备选方案
 

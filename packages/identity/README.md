@@ -27,7 +27,7 @@ The identity group provides one anonymous id per harness home that the installat
 <a id="related-documentation"></a>
 ## Related documentation
 
-- [Session telemetry subsystem](../../docs/subsystems/session-telemetry.md) — the telemetry feature that carries the id on exports.
+- [Session telemetry subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/session-telemetry.md) — the telemetry feature that carries the id on exports.
 - [dsh-llm-deepseek](../llm/llm-deepseek/README.md) — the DeepSeek provider that carries the id on requests.
 - [dsh-command-feedback](../feedback/command-feedback/README.md) — the feedback command that names the anonymous installation in its acknowledgement.
 

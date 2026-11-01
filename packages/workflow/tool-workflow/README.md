@@ -49,7 +49,7 @@ While the script runs, the parent turn waits: the tool starts the run, awaits it
 | `maxResultChars` | `50000` | Rendered-result ceiling; longer JSON is truncated with a notice. |
 | `enableRunInBackground` | `true` | Expose `run_in_background`; disabled calls are also rejected. |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-tool-workflow) is the exhaustive source for every accepted field.
+The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-tool-workflow) is the exhaustive source for every accepted field.
 
 -----
 
@@ -100,7 +100,7 @@ Decided up front per the [render-intent Agent Note](../../../.agents/notes/imple
 
 Read these pages when the tool-level contract is not enough. They move from the shared workflow model to the engine and the comparable delegation tool.
 
-- [Workflow subsystem](../../../docs/subsystems/workflow.md) — the seam contract, start request, and event payloads.
+- [Workflow subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/workflow.md) — the seam contract, start request, and event payloads.
 - [Workflow seam](../workflow/README.md) — the run and result vocabulary behind the tool.
 - [PTC workflow engine](../workflow-ptc/README.md) — the engine that executes the scripts.
 - [subagent tool](../../subagent/tool-subagent/README.md) — the plain-delegation alternative for one or two children.
@@ -136,7 +136,7 @@ Prefix-stable while the plugin scope and guidance text are unchanged. Activation
 
 #### What the model sees
 
-When visible, the generated default [`workflow` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-workflow) carries the complete JavaScript hook and metadata contract; `toolName` can rename the definition, and the model submits script, metadata, and optional args.
+When visible, the generated default [`workflow` schema](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-workflow) carries the complete JavaScript hook and metadata contract; `toolName` can rename the definition, and the model submits script, metadata, and optional args.
 
 #### Token effect
 

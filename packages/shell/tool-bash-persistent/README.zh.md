@@ -50,7 +50,7 @@ kind: "package-reference"
 | `maxOutputChars` | `16,000` | 保留的命令输出字符上限；固定诊断信息在其后追加 |
 | `description` | `Run commands in a persistent bash shell. State, including the current directory and exported environment variables, persists across calls for this agent.` | 面向模型的环境约定；部署方可描述自己的环境 |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-tool-bash-persistent)是每个受支持字段及其 JSDoc 的穷尽式真源。
+生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-tool-bash-persistent)是每个受支持字段及其 JSDoc 的穷尽式真源。
 
 ### agent 可以依赖什么
 
@@ -85,7 +85,7 @@ kind: "package-reference"
 
 ### 命令流程
 
-首条命令通过 `ctx.terminals.spawn` 生成 shell，禁用输入回显（`stty -echo`），并等待就绪。随后每条命令都包装成一行物理文本——printf 起始标记、用 `$'…'` 转义的命令体、printf 结束标记加 `$?`——因此内嵌换行无法把终端提示符泄漏进结果。工具以 1,000 行一页轮询 scrollback，直到出现结束标记，提取区间并连同任何状态标记一起渲染。超时会中止截止时间、捕获部分输出并重置 shell。
+首条命令通过 `ctx.terminals.spawn` 生成 shell，禁用输入回显和历史展开（`stty -echo; set +H`），并等待就绪。随后每条命令都包装成一行物理文本——printf 起始标记、用 `$'…'` 转义的命令体、printf 结束标记加 `$?`——因此内嵌换行无法把终端提示符泄漏进结果。关闭历史展开后，`!` 序列原样到达 bash，不会被改写，也不会使整行被拒绝。工具以 1,000 行一页轮询 scrollback，直到出现结束标记，提取区间并连同任何状态标记一起渲染。超时会中止截止时间、捕获部分输出并重置 shell。
 
 </details>
 
@@ -101,8 +101,8 @@ kind: "package-reference"
 - [terminal-bash 后端](../../terminal/terminal-bash/README.zh.md)——默认的 `shell` 后端。
 - [tool-terminal](../../experimental/tool-terminal/README.zh.md)——面向交互工作的六个模型侧 terminal 工具。
 - [持久 PTY 会话 Agent Note](../../../.agents/notes/implemented/feature/2026-07-16-persistent-pty-sessions.zh.md)——按所有者会话的设计及其理由。
-- [生成的工具目录](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-bash-persistent)——`bash` 参数 schema 的确切内容。
-- [生成的配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-tool-bash-persistent)——每个受支持配置字段及其源声明。
+- [生成的工具目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-bash-persistent)——`bash` 参数 schema 的确切内容。
+- [生成的配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-tool-bash-persistent)——每个受支持配置字段及其源声明。
 
 -----
 
@@ -113,7 +113,7 @@ kind: "package-reference"
 
 #### 模型看到什么
 
-生成的 [`bash` schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-bash-persistent)，包括配置的 `description`。本插件不贡献独立的系统提示词区段；人设与环境指引由部署方负责。
+生成的 [`bash` schema](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-bash-persistent)，包括配置的 `description`。本插件不贡献独立的系统提示词区段；人设与环境指引由部署方负责。
 
 #### Token 影响
 
@@ -148,6 +148,7 @@ kind: "package-reference"
 - **交互式前台子进程只在子进程提供方证明其 stdin 等待时才提前返回部分输出**——否则调用一直运行到 `timeoutMs`。
 - **显式 `exit` 与超时会丢弃 shell 状态**——取消同样重置并丢弃结果，即使完整状态标记已经可观察；下一次调用启动全新 shell。
 - **网络访问与包镜像等环境事实属于配置的 `description`**——而不是本包的默认描述。
+- **除换行与回车外，原始控制字符会作为按键到达 readline**——命令中的字面 TAB、ESC 或 DEL 会被当作编辑按键消耗，因此需要这些字符的内容（例如 Makefile heredoc）应通过文件工具写入，或用 `printf` 转义生成。
 
 <a id="dev-note"></a>
 ### 开发备注

@@ -36,6 +36,6 @@ Rewind productization, session-tree views, a model-facing side-session tool, and
 
 ## Risks
 
-- Read-only behavior is advisory until a `tools/pre-execute` deny gate enforces it; [the interception point](../../../../docs/tool-execution-pipeline.md) can add that gate without changing these mechanics.
+- Read-only behavior is advisory until a `tools/pre-execute` deny gate enforces it; [the interception point](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-execution-pipeline.md) can add that gate without changing these mechanics.
 - A compacted source forks its compacted view, so a bound UI should disclose that the child inherits summaries rather than replaced turns.
 - Repeated handbacks consume parent context. The per-merge length cap bounds each note; later consolidation belongs to compaction.

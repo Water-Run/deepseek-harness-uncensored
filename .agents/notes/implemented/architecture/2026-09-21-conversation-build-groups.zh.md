@@ -16,7 +16,7 @@ Chat Builder 汇总整个目标的节点及索引。在其中固定创建 Chat �
 
 ## Decision
 
-分组基础机制提供独立的节点输入 `ConversationGroupDefinition`、注册表及 Session 内上下文、Builder 通用输入与发布、按键 Group 存储及两种 React 分支。Chat 在[业务规则参考](../../../../packages/client/ui-chat/src/client/conversation-nodes/README.zh.md)中拥有其已注册的分段与展示规则。[子系统参考](../../../../docs/subsystems/conversation.zh.md#group-definitions)与[源码类型](../../../../packages/client/ui-conversation/src/client/contract/groups.ts)拥有当前 API 细节。
+分组基础机制提供独立的节点输入 `ConversationGroupDefinition`、注册表及 Session 内上下文、Builder 通用输入与发布、按键 Group 存储及两种 React 分支。Chat 在[业务规则参考](../../../../packages/client/ui-chat/src/client/conversation-nodes/README.zh.md)中拥有其已注册的分段与展示规则。[子系统参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/conversation.md#group-definitions)与[源码类型](../../../../packages/client/ui-conversation/src/client/contract/groups.ts)拥有当前 API 细节。
 
 ### 职责
 

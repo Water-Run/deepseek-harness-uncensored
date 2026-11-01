@@ -1,4 +1,5 @@
 /** Historical compositions run under the shipped profile without adding choices to the four-mode UI. */
+import { executeModelToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { expect, it } from 'vitest'
@@ -24,7 +25,7 @@ it('restores the Minimal tool set with native persistent shell state and durable
       const command = process.platform === 'win32'
         ? `Set-Location -LiteralPath '${stateDir.replaceAll("'", "''")}'; $env:DSHU_LEGACY_STATE = 'PERSISTED'`
         : `cd '${stateDir.replaceAll("'", "'\\''")}' && export DSHU_LEGACY_STATE=PERSISTED`
-      const execute = (id: string, command: string) => scaffold.ctx.tools.execute({ agent: handle.agent,
+      const execute = (id: string, command: string) => executeModelToolFixture(scaffold.ctx, { agent: handle.agent,
         callId: ToolCallId(id), name: shell, arguments: { command }, signal: new AbortController().signal })
       expect((await execute('legacy-state-setup', command)).isError).toBe(false)
       const result = await execute('legacy-state-read', process.platform === 'win32'
@@ -34,7 +35,7 @@ it('restores the Minimal tool set with native persistent shell state and durable
       expect(result.content.filter(block => block.type === 'text').map(block => block.text).join('')).toContain(`PERSISTED|${stateDir}`)
       const imagePath = join(scaffold.workspaceCwd, 'red.png')
       await writeFile(imagePath, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC', 'base64'))
-      const image = await scaffold.ctx.tools.execute({ agent: handle.agent, callId: ToolCallId('legacy-image'), name: 'read_image',
+      const image = await executeModelToolFixture(scaffold.ctx, { agent: handle.agent, callId: ToolCallId('legacy-image'), name: 'read_image',
         arguments: { file_path: imagePath }, signal: new AbortController().signal })
       expect(image.isError, image.content.filter(block => block.type === 'text').map(block => block.text).join('')).toBe(false)
       expect(image.content.some(block => block.type === 'image')).toBe(true)

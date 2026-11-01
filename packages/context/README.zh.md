@@ -9,7 +9,7 @@ kind: "package-group"
 
 ## 概述
 
-context 组提供不定义任何工具、为每次请求添加模型可见上下文的插件：工作区指令文件成为指引，`@file` 提及提供路径补全，其他会话可以作为有界快照被引用，模型还能看到当前时间与 agent（智能体）的 tmux 位置。默认只挂载 `agent-instructions`（`dsh-base`）；其余全部需主动启用。上下文是持久的：注入的指令与引用以用户角色消息的形式进入会话历史，因此与其他对话内容一样持久保留、可回放、可压缩。本页概述本组；包级约定由各包 README 负责。
+context 组提供不定义任何工具、为每次请求添加模型可见上下文的插件：工作区指令文件成为指引，`@file` 提及提供路径补全，其他会话可以作为有界快照被引用，模型还能看到当前时间与 agent（智能体）的 tmux 位置。各发行配置选择对应的指令与运行时上下文插件；`dsh-base` 还挂载内置 `uncensored-armor` 提示词段落。上下文是持久的：注入的指令与引用以用户角色消息的形式进入会话历史，因此与其他对话内容一样持久保留、可回放、可压缩。本页概述本组；包级约定由各包 README 负责。
 
 ## 目录
 
@@ -31,15 +31,16 @@ context 组提供不定义任何工具、为每次请求添加模型可见上下
 | [`time-context/`](time-context/README.zh.md) | 每个步骤的当前时间、浏览器时区与经过时长 | — |
 | [`tmux-context/`](tmux-context/README.zh.md) | agent 所在的 tmux 会话、窗口与窗格位置 | — |
 | [`harness-dev-context/`](harness-dev-context/README.zh.md) | 以运行时上下文给出 harness checkout 与 Web GUI URL，使系统提示词跨进程保持稳定 | — |
+| [`uncensored-armor/`](uncensored-armor/README.md) | 将本发行的内置提示词作为第一方系统提示段落提供 | — |
 
 -----
 
 <a id="related-documentation"></a>
 ## 相关文档
 
-- [会话引用子系统](../../docs/subsystems/session-reference.zh.md)——规范的提及 URI、快照语义与稳定的错误分类体系。
+- [会话引用子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/session-reference.md)——规范的提及 URI、快照语义与稳定的错误分类体系。
 - [工作区上下文决策记录](../../.agents/notes/archived/feature/2026-06-24-workspace-context.md)——指令上下文为何按 agent 和会话两个维度隔离并持久记录。
-- [生成的配置目录](../../docs/config-catalog.zh.md)——本组各包接受的全部配置字段。
+- [生成的配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md)——本组各包接受的全部配置字段。
 
 -----
 

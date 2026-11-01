@@ -1,8 +1,8 @@
 {
   "name": "DeepSeek Harness Uncensored",
   "version": "0.1.0",
-  "upstreamVersion": "0.2.1-rc.3",
-  "upstreamCommit": "1f81c047fc48fa190a683e469daa699857e9afe8",
+  "upstreamVersion": "0.2.2-alpha.2",
+  "upstreamCommit": "f3803c96974ad4a94195fb97e5c637e9c2a3afe3",
   "repository": "https://github.com/Water-Run/deepseek-harness-uncensored",
   "purge": {
     "repository": "https://github.com/Water-Run/dsh-purge",

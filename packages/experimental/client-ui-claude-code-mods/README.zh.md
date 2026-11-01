@@ -45,7 +45,7 @@ kind: "package-reference"
 ## 进一步探索
 
 - [桥接](../claude-code-mods/README.zh.md) — 横幅如何绘制，以及哪些模组先绘制。
-- [与 Claude Code 模组的兼容性](../../../docs/subsystems/claude-code-mods.zh.md) — 本横幅渲染的元素与属性子集。
+- [与 Claude Code 模组的兼容性](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/claude-code-mods.md) — 本横幅渲染的元素与属性子集。
 
 -----
 

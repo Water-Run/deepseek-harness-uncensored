@@ -44,7 +44,7 @@ With those dependencies available, mount the engine and its model-facing consume
 | `maxItemsPerCall` | `4096` | Items accepted by one `parallel()` or `pipeline()` call. |
 | `syncTimeoutMs` | `5000` | VM timeout for the script's initial synchronous slice, in milliseconds. |
 
-An owning consumer may set `WorkflowStartRequest.subagentProvider` and lower `WorkflowStartRequest.maxTotalAgents` for one run. Script hooks cannot change either choice. Process heap, output, control and termination limits belong to the Node PTC provider; the engine adds no overall elapsed timer. The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-workflow-ptc) defines accepted engine fields.
+An owning consumer may set `WorkflowStartRequest.subagentProvider` and lower `WorkflowStartRequest.maxTotalAgents` for one run. Script hooks cannot change either choice. Process heap, output, control and termination limits belong to the Node PTC provider; the engine adds no overall elapsed timer. The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-workflow-ptc) defines accepted engine fields.
 
 The Node PTC provider's `maxPendingCalls` also limits workflow concurrency: child startup, result waits and disposal use those slots. Progress batches use at most one additional slot. Leave headroom when setting `maxConcurrentAgents`.
 
@@ -56,7 +56,7 @@ Invalid metadata, an unparseable body, an unavailable provider route or a per-ru
 
 ### File policy and cancellation
 
-The engine captures the calling Session's effective working directory and standing file policy separately. The PTC process and every child started by that workflow retain the captured directory when the parent later moves. A runtime without confinement is accepted only for `danger-full-access`; `read-only` and `workspace-write` fail before execution. Node in-memory mode executes an async wrapper in a temporary environment, so workflow-local variables never join the Agent's retained REPL. The VM retains the documented helper API, but it is not a security boundary: code that reaches Node follows the selected runtime's file policy. The program-visible environment is empty. Network access is not restricted by the file policy.
+The engine captures the calling Session's effective working directory and standing file policy separately. The PTC process and every child started by that workflow retain the captured directory when the parent later moves. A runtime without confinement is accepted only for `danger-full-access`; `read-only` and `workspace-write` fail before execution. Node in-memory mode executes an async wrapper in a temporary environment, so workflow-local variables never join the Agent's retained REPL. Script mode uses an async function expression whose Promise completion carries the workflow result. The VM retains the documented helper API, but it is not a security boundary: code that reaches Node follows the selected runtime's file policy. The program-visible environment is empty. Network access is not restricted by the file policy.
 
 The workflow requests `timeoutMs: null` from PTC. Its initial VM slice still has `syncTimeoutMs`, and a caller's abort signal still applies, including an enclosing tool deadline. Cancellation immediately aborts the PTC process and pending or active subagents. The caller must dispose every run and await child cleanup; there is no separate workflow cleanup timer.
 
@@ -105,7 +105,7 @@ The first accepted terminal outcome owns the run result. Cancellation stops the 
 
 Use these references for the shared execution guarantees and workflow contracts.
 
-- [Workflow subsystem](../../../docs/subsystems/workflow.md) — request, result and event definitions.
+- [Workflow subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/workflow.md) — request, result and event definitions.
 - [Workflow service](../workflow/README.md) — caller-owned runs and cleanup.
 - [Node PTC runtime](../../ptc-runtime/ptc-runtime-node/README.md) — file policy, process limits and deployment choices.
 - [workflow tool](../tool-workflow/README.md) — model-facing scripted orchestration.

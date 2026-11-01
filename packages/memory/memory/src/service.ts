@@ -17,10 +17,8 @@ import { MemoryConflictError, MemoryError } from './error.ts'
 import { memoryDomainSpec } from './spec.ts'
 import type { StoredMemoryRecord } from './spec.ts'
 import type {} from '@deepseek-ai/cordis-plugin-loader'
-import type {} from '@deepseek-ai/dsh-session-projection'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { MemoryExtractionOptions, MemoryExtractionStatus } from './extraction-types.ts'
-import { extractionProjection } from './extraction-projection.ts'
 import { normalizeText } from './tokenize.ts'
 import { retrieveMemories, searchMemories } from './retrieval.ts'
 import type { RetrievalOutcome } from './retrieval.ts'
@@ -232,9 +230,6 @@ export class MemoryService extends Service {
     const domain = await this.openDomain()
     this.ctx.effect(() => () => domain.close(), 'memory.domainClose')
     this.table = domain.table('memories')
-    this.ctx.inject(['sessionProjections'], (inner) => {
-      inner.effect(() => inner.sessionProjections.register(extractionProjection(this.config.extractionInputBytes)), 'memory.extractionProjection')
-    })
     this.ctx.on('loader/volatile-update', () => {
       if (!this.extractionOptions().enabled) this.cancelExtractions()
     })

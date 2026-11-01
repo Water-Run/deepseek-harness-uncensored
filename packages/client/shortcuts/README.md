@@ -60,7 +60,7 @@ Desktop native menus and embedded frames use the same command registry as DOM in
 <a id="further-exploration"></a>
 ## Further Exploration
 
-- [Web Client](../../../docs/subsystems/web-client.md)
+- [Web Client](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/web-client.md)
 - [UI primitives](../ui-primitives/README.md)
 - [Web app bundle](../../bundle/web-app/README.md)
 

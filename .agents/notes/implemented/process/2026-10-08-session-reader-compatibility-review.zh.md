@@ -18,7 +18,7 @@ schema 分类器标识需要兼容性评审的结构变更，而不将其直接�
 
 用户将记录中的 `same-version` 决策视为显式选择，无论它由 CLI 还是编辑器产生。CLI 对被标记的记录与更新操作要求 `--decision same-version`；CI 按历史、schema 和头版本约束验证保存的决策。两种机制都不证明人类已评审转换。评审者使用 base/head 清单比较，而非当前目录一致性检查，来检查已确认的变更。
 
-本决策部分取代[版本机制说明](../architecture/2026-08-10-session-log-version-mechanism.zh.md)中的结构性升版本标准，以及[持久化类型历史说明](2026-09-11-persistence-type-history.zh.md)中的自动最低版本要求。它们的单调整数、未知事件默认必需、类型历史与不可变代际决策仍然有效。[评审流程](../../../../docs/cookbook/reviewing-persistence-type-changes.zh.md)负责记录编写与验证细节。
+本决策部分取代[版本机制说明](../architecture/2026-08-10-session-log-version-mechanism.zh.md)中的结构性升版本标准，以及[持久化类型历史说明](2026-09-11-persistence-type-history.zh.md)中的自动最低版本要求。它们的单调整数、未知事件默认必需、类型历史与不可变代际决策仍然有效。[评审流程](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/cookbook/reviewing-persistence-type-changes.md)负责记录编写与验证细节。
 
 ## 迁移义务
 

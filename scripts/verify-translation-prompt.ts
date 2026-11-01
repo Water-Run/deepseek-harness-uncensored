@@ -22,8 +22,8 @@ function read(path: string): string {
 try {
   const mode = process.argv[2]
   if (mode !== undefined && mode !== '--snapshot') throw new Error(`unsupported argument ${JSON.stringify(mode)}`)
-  const document = read('docs/i18n/translation-prompt.md')
-  const terminology = read('docs/i18n/terminology.md')
+  const document = read('scripts/translation-resources/translation-prompt.md')
+  const terminology = read('scripts/translation-resources/terminology.md')
   // Synthetic reviewed examples, not live documents: editing a paired document must not
   // churn the prompt snapshot. Each pair mirrors the other side's structure and uses
   // terminology-table forms.

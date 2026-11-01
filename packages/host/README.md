@@ -43,10 +43,10 @@ The packages play the host roles; each package README owns its contract and conf
 
 Start with the subsystem references for the transport and the workspace records, then the layering decision behind the Web client.
 
-- [HTTP server subsystem](../../docs/subsystems/web-server.md) — the webserver's routes, matching order, and config.
-- [Workspace subsystem](../../docs/subsystems/workspace.md) — the workspace records the directory picker feeds.
+- [HTTP server subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/web-server.md) — the webserver's routes, matching order, and config.
+- [Workspace subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/workspace.md) — the workspace records the directory picker feeds.
 - [Web config-tree boot and transport layering](../boot/app-boot/README.md) — ownership of the Web transport layers.
-- [Product telemetry](../../docs/subsystems/product-telemetry.md) — explicit analytics event submission.
+- [Product telemetry](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/product-telemetry.md) — explicit analytics event submission.
 
 <a id="dev-note"></a>
 ## Dev Note

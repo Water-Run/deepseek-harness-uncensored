@@ -83,4 +83,4 @@ The costs are recorded here so they are not rediscovered. Records are never recl
 
 ## Deferred
 
-Reclaiming idle records, a resource-owned failure type decoupled from the Remote face, and the `chat` and `terminal` protocols are open; each waits for a consumer. The developer-facing reference is [docs/subsystems/client-resources.md](../../../../docs/subsystems/client-resources.md); the Sidebar that consumes the model is described in [docs/subsystems/sidebar-right.md](../../../../docs/subsystems/sidebar-right.md).
+Reclaiming idle records, a resource-owned failure type decoupled from the Remote face, and the `chat` and `terminal` protocols are open; each waits for a consumer. The developer-facing reference is [docs/subsystems/client-resources.md](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/client-resources.md); the Sidebar that consumes the model is described in [docs/subsystems/sidebar-right.md](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/sidebar-right.md).

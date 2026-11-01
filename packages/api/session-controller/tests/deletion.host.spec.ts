@@ -15,6 +15,9 @@ import WorkspaceRegistry from '@deepseek-ai/dsh-workspace'
 import { mountAgentLoopTestDependencies, mountAgentLoopTestHarness } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
+import type { Session } from '@deepseek-ai/dsh-session'
+import { setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy'
+import { setApprovalPolicy } from '@deepseek-ai/dsh-user-approval'
 import { MockAdapter, textResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import { createSessionTestController } from './test-remote.ts'
 import { ApiSessionAgentController } from '../src/agent.ts'
@@ -44,7 +47,14 @@ async function setup(script?: ConstructorParameters<typeof MockAdapter>[0], exis
   const harness = await mountAgentLoopTestHarness(ctx)
   const adapter = new MockAdapter(script ?? Array.from({ length: 8 }, () => textResponse('fixture answer')))
   ctx.llm.registerAdapter(['mock'], adapter)
-  const api = createSessionTestController(ctx, { cwd, defaultModelSelection: () => ({ provider: 'mock', model: 'mock' }) })
+  ctx.provide('permissionPresets', {
+    set(session: Session, preset: string) {
+      if (preset !== 'read-only') throw new Error(`Unexpected deletion fixture preset: ${preset}`)
+      setSandboxMode(session, 'read-only')
+      setApprovalPolicy(session, 'never')
+    },
+  } as never)
+  const api = await createSessionTestController(ctx, { cwd, defaultModelSelection: () => ({ provider: 'mock', model: 'mock' }) })
   return { root, cwd, stored, cache, ctx, api, harness, adapter }
 }
 

@@ -43,7 +43,7 @@ kind: "package-reference"
 |---|---|---|
 | `collectCacheMaxEntries` | `128` | 内存中保留的已完成 cwd/提供方目录数 |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-skill)是每个受支持字段的穷尽式真源。
+生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-skill)是每个受支持字段的穷尽式真源。
 
 ### 注册表提供什么
 
@@ -63,7 +63,7 @@ kind: "package-reference"
 
 ### 可观察的成功与失败
 
-任意提供方报告的 skill 都会出现在合并目录中，按其精确 kebab-case 名称加载即可返回正文；无效名称返回无结果而非抛错。发现失败的提供方会被记录并跳过，观测被标记为不完整，因此消费方保留其最后一份可用目录；显式的不完整观测仍会贡献其候选项。格式错误的候选项会快速失败——注册表在缓存或返回任何内容之前，会先验证名称、描述、调用布尔值与提供方归属。
+任意提供方报告的 skill 都会出现在合并目录中，按其精确 kebab-case 名称加载即可返回正文；无效名称返回无结果而非抛错。发现失败的提供方会被记录并跳过，观测被标记为不完整，因此消费方可区分发现失败与已确认的缺失；显式的不完整观测仍会贡献其候选项。格式错误的候选项会快速失败——注册表在缓存或返回任何内容之前，会先验证名称、描述、调用布尔值与提供方归属。
 
 Skill 摘要保留胜出提供方可选的指令文件 `path`，供提供文件预览的发现消费者使用。列举仍不读取 skill 正文；面向模型的目录继续仅选择其负责的路由字段。
 
@@ -110,10 +110,10 @@ Skill 摘要保留胜出提供方可选的指令文件 `path`，供提供文件�
 
 当包级约定不够用时阅读以下页面。它们从共享的 skill 词汇逐步进入随附提供方、面向模型的消费方与设计依据。
 
-- [skill 子系统参考](../../../docs/subsystems/skills.zh.md)——注册表、提供方约定与本地发现优先级。
+- [skill 子系统参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/skills.md)——注册表、提供方约定与本地发现优先级。
 - [skill-filesystem 包](../skill-filesystem/README.zh.md)——从磁盘发现 skill 的随附本地提供方。
 - [tool-skill 包](../tool-skill/README.zh.md)——渲染会话目录与 `skill` 工具的消费方。
-- [生成配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-skill)——每个配置字段及其源声明。
+- [生成配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-skill)——每个配置字段及其源声明。
 - [历史skill 调用策略 Agent Note](../../../.agents/notes/archived/feature/2026-07-28-skill-invocation-policy.md)——模型与用户调用控制的依据。
 
 -----

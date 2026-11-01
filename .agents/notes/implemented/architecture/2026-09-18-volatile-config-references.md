@@ -14,7 +14,7 @@ Schemastery declares live fields with `.volatile()`, preserving node types and f
 
 Only volatile changes preserve the instance. Ordinary-field changes use the existing remount lifecycle and do not update the old references. An instance-local `loader/volatile-update` event reports paths after the complete candidate is validated and all references are committed. It uses ordinary `emit`; listener completion is not a configuration commit condition. References can be retained, while values may only be captured for one operation. Missing optional values retain a readable reference.
 
-Config schemas own the field types, defaults, roles, and live-update declaration needed by schema-driven settings forms. Existing settings consumers remain unchanged; automatic form generation and their migration are separate work. The [configuration guide](../../../../docs/cordis-tutorial/05-config.md) owns plugin-author usage.
+Config schemas own the field types, defaults, roles, and live-update declaration needed by schema-driven settings forms. Existing settings consumers remain unchanged; automatic form generation and their migration are separate work. The [configuration guide](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/cordis-tutorial/05-config.md) owns plugin-author usage.
 
 ## Alternatives considered
 

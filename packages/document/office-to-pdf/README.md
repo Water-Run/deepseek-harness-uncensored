@@ -42,7 +42,7 @@ Browsers request PDFs through the `officeToPdf.render` Remote method with a Sess
 | `maxImageResolution` | `192` | Maximum raster-image DPI; overrides the kit default of `144`. |
 | `fontFallbacks` | Kit defaults | Ordered font-family preference groups; each group requires at least two names containing non-whitespace characters. |
 
-The [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-office-to-pdf) owns the full font, archive, and image settings. `fontDirectories` accepts absolute directories; omission uses the kit platform defaults. Explicit `fontFallbacks` replaces the kit's default groups. Installed requested fonts retain precedence, and other system fonts remain eligible for uncovered glyphs. Native engines can select installed metric-compatible fonts before these preferences.
+The [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-office-to-pdf) owns the full font, archive, and image settings. `fontDirectories` accepts absolute directories; omission uses the kit platform defaults. Explicit `fontFallbacks` replaces the kit's default groups. Installed requested fonts retain precedence, and other system fonts remain eligible for uncovered glyphs. Native engines can select installed metric-compatible fonts before these preferences.
 
 The [bounded conversion decision](../../../.agents/notes/implemented/architecture/2026-09-15-bounded-office-conversion.md) explains queue admission, cache limits, and shared cancellation.
 
@@ -73,7 +73,7 @@ Remote file reads recheck content authorization and source version before consul
 <a id="further-exploration"></a>
 ## Further Exploration
 
-- [Office to PDF](../../../docs/subsystems/office-to-pdf.md) — composition and input/result ownership.
+- [Office to PDF](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/office-to-pdf.md) — composition and input/result ownership.
 - [Workspace Files](../../api/workspace-files/README.md) — Session file authorization and bounded reads.
 
 -----

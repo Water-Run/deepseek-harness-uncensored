@@ -42,7 +42,7 @@ Mount this row inside a preset composition to give that preset's sessions their 
 | `complete` | `false` | Use only the rendered prefix as the system prompt; ignore the suffix |
 | `includeRuntimeContext` | `true` | Include optional runtime context for this agent scope; false suppresses optional contributions without disabling their owning services; required contributions remain |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-persona) is the exhaustive source for every accepted field and its JSDoc.
+The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-persona) is the exhaustive source for every accepted field and its JSDoc.
 
 ### Persona behavior
 
@@ -84,8 +84,8 @@ The row registers scoped persona prefix and suffix sections using the registry's
 Read these pages when the package-level contract is not enough; they move from the preset composition to the prompt registry this row feeds.
 
 - [agent-presets package](../agent-preset-registry/README.md) — the preset composition this row mounts into.
-- [System prompt subsystem](../../../docs/subsystems/system-prompt.md) — sections, assembly, and the persona slot this row shadows.
-- [Generated configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-persona) — every accepted config field and its source declaration.
+- [System prompt subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/system-prompt.md) — sections, assembly, and the persona slot this row shadows.
+- [Generated configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-persona) — every accepted config field and its source declaration.
 
 -----
 

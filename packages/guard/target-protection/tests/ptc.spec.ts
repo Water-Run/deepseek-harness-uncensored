@@ -1,4 +1,5 @@
 /** Capability-only interpreter behavior using real private Workers. @module */
+import { executeModelToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import { Context } from '@deepseek-ai/cordis'
 import SessionProjections from '@deepseek-ai/dsh-session-projection'
 import SandboxPolicy from '@deepseek-ai/dsh-sandbox-policy'
@@ -61,8 +62,10 @@ it('uses the real run_code consumer through the normal tool pipeline', async () 
     output: { schema: { type: 'number' }, render: (_args, value) => [{ type: 'text', text: String(value) }] },
     execute: echo,
   }))
-  expect(h.ctx.tools.schemas().map(tool => tool.name)).toEqual(['multiply', 'run_code'])
-  const result = await h.ctx.tools.execute({ name: 'run_code', arguments: {
+  const assembly = await h.ctx.systemPrompt.assemble()
+  expect(assembly.tools.map(tool => tool.name)).toEqual(['run_code'])
+  expect(assembly.sections.find(section => section.name === 'tools:sdk')?.text).toContain('multiply')
+  const result = await executeModelToolFixture(h.ctx, { name: 'run_code', arguments: {
     code: 'const output: number = await tools.multiply({input:7}); return output;', description: 'Compute using the declared tool.',
   }, callId: ToolCallId('protected-ptc-consumer'), signal: new AbortController().signal })
   expect(result).toMatchObject({ isError: false, value: { logs: [], result: 42 } })
@@ -91,12 +94,12 @@ it('cancels and drains an unawaited tool before run_code reports cancellation', 
       return 0
     },
   }))
-  const running = h.ctx.tools.execute({ name: 'run_code', arguments: {
+  const running = executeModelToolFixture(h.ctx, { name: 'run_code', arguments: {
     code: 'tools.delayed({});await new Promise(()=>{});', description: 'Verify cancellation cleanup.',
   }, callId: ToolCallId('ptc-owned-cleanup'), signal: controller.signal })
   void running.then(() => { completed = true })
   try {
-    await entered.promise
+    await Promise.race([entered.promise, running.then(() => { throw new Error('run_code ended before the nested tool started') })])
     controller.abort()
     await aborted.promise
     expect(completed).toBe(false)

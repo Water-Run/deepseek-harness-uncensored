@@ -48,7 +48,7 @@ kind: "package-reference"
 <a id="further-exploration"></a>
 ## 进一步探索
 
-[语音输入子系统](../../../docs/subsystems/voice-input.zh.md)
+[语音输入子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/voice-input.md)
 
 -----
 

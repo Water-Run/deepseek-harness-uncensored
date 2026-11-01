@@ -1,4 +1,4 @@
-DeepSeek Harness is unavailable
+DeepSeek Harness Uncensored is unavailable
 The application could not start or stopped unexpectedly.
 Desktop Host failed
 Plugin initialization failed
@@ -8,3 +8,4 @@ If application files are missing or damaged, close the application and reinstall
 Exit
 Restart
 Disable third-party plugins, back up profile patch, and restart
+Get diagnostic report

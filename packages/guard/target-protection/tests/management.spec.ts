@@ -1,4 +1,5 @@
 /** Real profile writes and dynamic-runner admission across caller identities. @module */
+import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import { withFileLock } from '@deepseek-ai/dsh-atomic-write'
@@ -123,7 +124,7 @@ it('rechecks owner cancellation after waiting for the actual profile file lock',
 it('does not let a full-access model tool inherit the owner Remote identity', async () => {
   const h = await harness(), before = await h.disk()
   await h.ownerCtx.plugin(ManagerTools)
-  const result = await h.ctx.tools.execute({ agent: h.agent, name: 'plugin_manager',
+  const result = await executeToolFixture(h.ctx, { agent: h.agent, name: 'plugin_manager',
     arguments: { action: 'set_version_exemption', target: 'fixture@1.0.0', enabled: true, acceptRisk: true,
       runtimeVersion: getDshRuntimeVersion() }, callId: ToolCallId('manager-owner-confusion'), signal: new AbortController().signal })
   expect(result).toMatchObject({ isError: true, error: { info: { code: 'TARGET_MANAGEMENT_OWNER_REQUIRED' } } })

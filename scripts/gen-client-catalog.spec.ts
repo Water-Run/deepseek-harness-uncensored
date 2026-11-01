@@ -8,7 +8,8 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { collectSlotEntries, oversizedSlotReports, resolveSlotEntries, validateSlotContracts } from './gen-client-catalog.ts'
+import { collectSlotEntries, oversizedSlotReports, renderClientCatalog, resolveSlotEntries, validateSlotContracts } from './gen-client-catalog.ts'
+import ts from 'typescript'
 import type { SlotDeclaration, SlotRegistration, TypeDeclaration } from './slot-walk.ts'
 
 /** A declaration with every field the catalog needs, overridable per case. */
@@ -44,6 +45,16 @@ const OWNER_TYPES = new Map<string, TypeDeclaration>([
     source: 'packages/client/demo/src/client/contract/slots.ts:20',
   }],
 ])
+
+it('emits parseable, identical catalog code from LF and CRLF owner declarations', () => {
+  const render = (newline: string): string => {
+    const types = new Map([...OWNER_TYPES].map(([key, value]) => [key, { ...value, text: value.text.replaceAll('\n', newline) }]))
+    return renderClientCatalog(resolveSlotEntries([declaration({ ownerType: 'DemoOwnerProps' })], [], types, new Map()))
+  }
+  const source = render('\r\n')
+  expect(source).toBe(render('\n'))
+  expect(ts.transpileModule(source, { reportDiagnostics: true, compilerOptions: { module: ts.ModuleKind.ESNext } }).diagnostics).toEqual([])
+})
 
 describe('client slot contract validation', () => {
   it('accepts a documented slot whose owner props resolve', () => {

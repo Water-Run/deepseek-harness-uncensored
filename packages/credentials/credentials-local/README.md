@@ -46,7 +46,7 @@ Use it as the default local store: the product's base composition loads it, and 
 | `watch` | `true` | Reload the file automatically when it changes on disk |
 | `debounceMs` | `100` | Wait this long after a change before reloading, in milliseconds |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-credentials-local) is the exhaustive source for every accepted field and its JSDoc.
+The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-credentials-local) is the exhaustive source for every accepted field and its JSDoc.
 
 ### Storing and removing keys
 
@@ -172,7 +172,7 @@ The YAML parser's own message quotes the offending source line, which in this do
 Read these pages when the provider-level contract is not enough. They move from the seam contract to the environment snapshot, the atomic-write primitive, and the boot-time environment layers.
 
 - [Credential-reference seam](../credentials/README.md) — `resolve`, `describe`, `set`, `unset`, the record operations, and the seam's update events.
-- [Credentials subsystem reference](../../../docs/subsystems/credentials.md) — `CredentialRef`, per-operation resolution, UI-safe `CredentialInfo`, provider layers.
+- [Credentials subsystem reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/credentials.md) — `CredentialRef`, per-operation resolution, UI-safe `CredentialInfo`, provider layers.
 - [Launch environment snapshot](../../util/launch-environment/README.md) — the frozen layer snapshot resolution reads instead of `process.env`.
 - [Atomic write](../../util/atomic-write/README.md) — the writer lock and atomic replacement every write uses.
 - [App boot and Harness-home layers](../../boot/app-boot/README.md) — how the product CLI loads `.env` into the snapshot and `process.env`.

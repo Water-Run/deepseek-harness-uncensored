@@ -46,7 +46,7 @@ The running helper canonicalizes the policy root and asks its loaded sandbox pro
 <a id="further-exploration"></a>
 ## Further Exploration
 
-- [Process sandbox subsystem](../../../docs/subsystems/sandbox.md) — policy meanings and enforcement disclosure.
+- [Process sandbox subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/sandbox.md) — policy meanings and enforcement disclosure.
 - [Local sandbox provider](../../sandbox/sandbox-local/README.md) — backends and platform limitations inherited on the remote host.
 
 -----

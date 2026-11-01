@@ -28,6 +28,7 @@ The group splits into four families: durable storage (persistence seam, backends
 
 | Package | Role | ctx key |
 |---|---|---|
+| [`message-quotes/`](message-quotes/README.md) | Quotation controls and Markdown blockquote rendering | — |
 | [`session-format/`](session-format/README.md) | Pure adjacent-format chain and artifact validation library | library — no ctx key |
 | [`session-format-v0-to-v1/`](session-format-v0-to-v1/README.md) | Frozen released-v0 decoder and identity migration into released v1 | library — no ctx key |
 | [`session-format-v1-to-v2/`](session-format-v1-to-v2/README.md) | Frozen released-v1 decoder and cardinality-changing Assistant-stream migration into released v2 | library — no ctx key |
@@ -72,12 +73,12 @@ Only one title provider may register at a time; without one, the title service k
 <a id="related-documentation"></a>
 ## Related documentation
 
-- [Session persistence subsystem](../../docs/subsystems/persistence.md) — backend-neutral service semantics, the flush checkpoint, and crash recovery.
-- [Working directory subsystem](../../docs/subsystems/working-directory.md) — effective directory and recovery.
-- [Session projections subsystem](../../docs/subsystems/session-projection.md) — the projection unit contract and drive semantics.
-- [Session titles subsystem](../../docs/subsystems/session-title.md) — title eligibility, fallback, and provider flow.
-- [Session telemetry subsystem](../../docs/subsystems/session-telemetry.md) — capture, redaction, and delivery modes.
-- [Session subsystem](../../docs/subsystems/session.md) — the live event log every package in this group persists or derives from.
+- [Session persistence subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/persistence.md) — backend-neutral service semantics, the flush checkpoint, and crash recovery.
+- [Working directory subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/working-directory.md) — effective directory and recovery.
+- [Session projections subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/session-projection.md) — the projection unit contract and drive semantics.
+- [Session titles subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/session-title.md) — title eligibility, fallback, and provider flow.
+- [Session telemetry subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/session-telemetry.md) — capture, redaction, and delivery modes.
+- [Session subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/session.md) — the live event log every package in this group persists or derives from.
 
 See [`session-title-all-prompts-llm`](../experimental/session-title-all-prompts-llm/README.md) for the experimental optional capability.
 

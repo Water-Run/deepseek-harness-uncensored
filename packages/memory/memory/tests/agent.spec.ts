@@ -19,7 +19,8 @@ import * as StorageJson from '@deepseek-ai/dsh-storage-json'
 import MemoryService from '../src/index.ts'
 import type { Config as MemoryConfig } from '../src/index.ts'
 import * as MemoryAgent from '../src/agent.ts'
-import { defineContentToolFixture } from '@deepseek-ai/dsh-tools'
+import { extractionProjection } from '../src/extraction-projection.ts'
+import { defineContentToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import { SpendGate } from '@deepseek-ai/dsh-spend-limit/src/gate.ts'
 import { SpendLedger, DEFAULT_PREFERENCES } from '@deepseek-ai/dsh-spend-limit/src/ledger.ts'
 
@@ -140,8 +141,8 @@ describe('memory through the real loop', () => {
     const agent = await h.agent('automatic-interrupted')
     send(agent, '这个项目使用 pnpm')
     await agent.whenIdle()
-    const state = h.ctx.sessionProjections.stateOf(agent.session, 'memoryExtraction')
-    if (state === undefined) throw new Error('Missing extraction projection')
+    const projection = await h.ctx.sessionProjections.register(extractionProjection(h.ctx.memory.extractionOptions().inputBytes))
+    const state = projection.stateOf(agent.session)
     agent.session.append('memory/extraction', { phase: 'request', requestId: brandString<MemoryExtractionId>('interrupted'),
       turn: state.turn, throughSeq: state.throughSeq, provider: 'mock', model: 'mock', maxTokens: 2048,
       scope: { global: false, mode: 'standard' }, message: createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: state.text }] }) })
@@ -281,7 +282,8 @@ describe('memory through the real loop', () => {
       turn: 1, phase: 'completed', saved: 1 }])
     const replayed = Session.create(first.id, JSON.parse(JSON.stringify(first.session.snapshotEvents())) as SessionEvent[],
       first.session.header, first.session.inheritedEventCount)
-    expect(h.ctx.sessionProjections.stateOf(replayed, 'memoryExtraction')).toMatchObject({ phase: 'completed', saved: 1 })
+    const projection = await h.ctx.sessionProjections.register(extractionProjection(h.ctx.memory.extractionOptions().inputBytes))
+    expect(projection.stateOf(replayed)).toMatchObject({ phase: 'completed', saved: 1 })
     const auditEvents = first.session.snapshotEvents().filter(event => event.type === 'memory/extraction').map((event, index) => ({
       type: event.type, seq: index + 3, time: 0,
       data: event.data.phase === 'request' ? { ...event.data, requestId: 'extraction-1', throughSeq: 2,

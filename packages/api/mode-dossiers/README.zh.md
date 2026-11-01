@@ -7,25 +7,25 @@ kind: "package-reference"
 
 [English](README.md) | 中文
 
-## Summary
+## 概述
 
 本包管理各个特化模式已经在用的文件。网安与逆向案件是 `casefile.mjs` 在 `.security/`、`.reverse/` 下维护的 `case.json` 账本；写作资料是 `story/style/`、`story/bible/` 下的文档，以及记录哪些文档会随写作请求发送的登记表。本包拥有存储与请求上下文；设置面板在 `@deepseek-ai/dsh-client-ui-mode-materials`。
 
 每次读写都经过组合后的文件系统并使用工作区相对路径，请求无法指向它绑定工作区之外的文件。写入会带上编辑器打开时的版本：如果文件之后被另一个窗口或脚本改过，就报告冲突并保持原文件不变。
 
-## Table of Contents
+## 目录
 
-- [Use this package](#use-this-package)
-- [Understand the implementation](#understand-the-implementation)
-- [Further Exploration](#further-exploration)
-- [Model Experience](#model-experience)
-- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
-- [Dev Note](#dev-note)
+- [使用本包](#use-this-package)
+- [实现说明](#understand-the-implementation)
+- [延伸阅读](#further-exploration)
+- [模型体验](#model-experience)
+- [已知限制与暂缓事项](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
 
 -----
 
 <a id="use-this-package"></a>
-## Use this package
+## 使用本包
 
 把本包与 `dsh-fs`、Workspace 注册表和 Typert Gateway 一起挂载。客户端部分在 `@deepseek-ai/dsh-client-ui-mode-materials`，向 `settings.mode.materials` 注册三个面板，该槽位由模式设置分组在模式卡片下方渲染。
 
@@ -44,37 +44,37 @@ kind: "package-reference"
 | `selectStory({ selected })` | `{ selected }` | 替换写作请求会收到的资料集合 |
 | `inspectSample({ path })` | `SampleInspection` | 只读字节得出的哈希、容器格式、熵与有界字符串 |
 
-### Storage layout
+### 存储布局
 
 网安案件是 `.security/<slug>/case.json`；逆向案件是 `.reverse/<slug>/case.json`。两者都是格式版本 1 的文档，含 `targets`、`evidence`、`findings`、`notes` 四个数组，因此这里写出的文件就是手册脚本读取的文件，反之亦然。本版本不理解的字段——其他工具加在顶层的键、记录上的额外字段——都会留在磁盘上：编辑直接修改解析后的对象，只替换自己负责的字段。
 
 写作资料是 `story/style/*.md` 与 `story/bible/*.md`。登记表 `story/materials.json` 记录受管理的路径、标题、类别和当前选择。这两个目录里尚未登记过的 Markdown 文件会列为“未纳入”，可以纳入而不是被覆盖。
 
-### Version guards and conflicts
+### 版本校验与冲突
 
 这里没有锁文件。写入会比较文件当前版本与请求携带的版本，并使用后端自身的受保护替换，因此并发写入的结果是 `mode-dossier/conflict`，而不是静默丢失一次编辑。冲突的请求不会被应用，其文本也不会落盘。
 
-### Failures
+### 错误处理
 
 存储层的问题会作为 `inventory` 上的已报告问题返回——没有工作区、工作区目录已消失、目录不可读、文件损坏、或本版本不认识的格式版本——其他方法则以相同代码作为 Remote 失败返回。损坏的账本会与可用的账本一起列出，而不会让整张列表消失。格式错误的输入绝不会改写已存文件。
 
 <a id="understand-the-implementation"></a>
-## Understand the implementation
+## 实现说明
 
 `src/casefile.ts` 负责账本校验、编辑、序列化与报告渲染；`src/story.ts` 负责登记表、文档读写和选择；`src/sample.ts` 从字节计算清点结果；`src/tools.ts` 给出工具状态；`src/index.ts` 是 Remote 服务与 pre-step 上下文。面板位于 `@deepseek-ai/dsh-client-ui-mode-materials`。
 
-## Further Exploration
+## 延伸阅读
 
 - [模式特化手册](../skill/skill-playbooks/README.md) —— 读取这些文件并记录其格式的技能。
 - [工作区文件服务](../workspace-files/README.zh.md) —— 本包没有重复实现的只读文件接口。
 
 <a id="model-experience"></a>
-## Model Experience
+## 模型体验
 
 本包只贡献一项模型可见输入：登记表中有选中资料的写作模式请求，会收到一条 user 角色消息，按 `### <路径>` 小标题列出选中的文档。这条消息就是普通的会话历史——像其他 user 消息一样持久化、重放和压缩——且在选择的资料变化时发送一次，而不是每一步都发送。未被选中的文档不会进入这条消息；存储不可读时请求保持原样。token 开销由 `contextBytes`（默认 16 KiB）限制，并受单文档上限约束，被截断的文档会标注截断。
 
 <a id="known-limitations-and-deferred-work"></a>
-## Known Limitations and Deferred Work
+## 已知限制与暂缓事项
 
 - 目标保护（境内域名、生产服务器与数据库）尚未实现。目标在这里只是案件资料，记录目标不会阻止任何操作，面板上也写明了这一点。
 - 代理流量与结构化记忆由各自服务管理；案件文件仍是工作区文档。
@@ -83,7 +83,7 @@ kind: "package-reference"
 - `inspectSample` 通过 `readBytes` 读取整个文件，上限约束的是内存，而不是流式处理超大样本。
 
 <a id="dev-note"></a>
-## Dev Note
+## 开发备注
 
 <details>
 <summary>维护者工作上下文——点击展开</summary>

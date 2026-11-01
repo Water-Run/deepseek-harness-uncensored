@@ -48,7 +48,7 @@ SDK 用户通过 profile 自定义插件。`dsh plugin --profile <name> ...` 管
 
 Python 运行时 wheel 将 [`python/sdk-runtime/runtime-bootstrap.mjs`](../../../../python/sdk-runtime/runtime-bootstrap.mjs) 暂存为 `dsh-python-runtime-closure` 入口。其普通分支调用公开 CLI export；提供方私有选择会在 CLI 解析前分派到内部子进程 runner，而不是应用入口。私有 `DSH_RUNTIME_DOWNLOAD` 选择器在应用启动前准备可选资源，并在启动资源准备子进程前移除；普通 CLI 参数不选择下载。[原生 containment 参考](../../../../packages/subprocess/subprocess-local/README.zh.md)负责该私有分派。Python 客户端默认选择 `dsh --profile sdk`、有序 patch 文件与显式 Harness home；`python/sdk/examples` 下的可运行示例选择 `sdk-minimal`。安装的 `dsh` 控制台命令暴露相同的 profile 语法，包括 `web` profile。
 
-可执行文件族是 `deepseek-harness-sdk-runtime-<platform>-<arch>`。SDK 协议格式、wheel 与 import 分发名称、伴随文件名称，以及协议 identity `deepseek-harness-sdk-runtime` 保持稳定。SDK 包族是 `@deepseek-ai/dsh-sdk-client`、`@deepseek-ai/dsh-sdk-protocol` 与 `@deepseek-ai/dsh-sdk-jsonrpc-server`；`@deepseek-ai/dsh-acp` 继续作为 ACP 协议插件。仓库不保留 Python 专用 Node 应用、检入的完整配置、兼容包、转发可执行文件、后备解析器或 SDK／ACP 启动别名。[docs/architecture.md](../../../../docs/architecture.zh.md)负责该启动方式，[`python/sdk-runtime` README](../../../../python/sdk-runtime/README.zh.md)负责 Windows 载体。
+可执行文件族是 `deepseek-harness-sdk-runtime-<platform>-<arch>`。SDK 协议格式、wheel 与 import 分发名称、伴随文件名称，以及协议 identity `deepseek-harness-sdk-runtime` 保持稳定。SDK 包族是 `@deepseek-ai/dsh-sdk-client`、`@deepseek-ai/dsh-sdk-protocol` 与 `@deepseek-ai/dsh-sdk-jsonrpc-server`；`@deepseek-ai/dsh-acp` 继续作为 ACP 协议插件。仓库不保留 Python 专用 Node 应用、检入的完整配置、兼容包、转发可执行文件、后备解析器或 SDK／ACP 启动别名。[docs/architecture.md](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/architecture.md)负责该启动方式，[`python/sdk-runtime` README](../../../../python/sdk-runtime/README.zh.md)负责 Windows 载体。
 
 ### 强制校验
 
@@ -60,7 +60,7 @@ Python 运行时 wheel 将 [`python/sdk-runtime/runtime-bootstrap.mjs`](../../..
 
 本决策取代 [profile 插件组合包](2026-08-05-profile-plugin-bundles.zh.md)、[TypeScript SDK 客户端与 SDK subagent 后端](../../archived/feature/2026-07-27-typescript-sdk-and-sdk-subagent-backend.md)、[移除 SDK 项目工具链](../../archived/simplification/2026-08-11-remove-sdk-project-toolchain.md)和[单文件 Python SDK 运行时分发](2026-07-10-single-file-executable-sdk-runtime-distribution.zh.md)中的应用启动与包名事实。这些 Note 对 profile 分层、客户端／协议语义、已删除的项目工具链与原生打包仍分别具有独立权威。
 
-[ACP 仅自动化协议](../simplification/2026-07-23-acp-automation-only-protocol.zh.md)继续负责 ACP 协议格式与交互范围。[添加包实操手册](../../../../docs/cookbook/adding-a-package.zh.md)负责基于角色的包名。[独立 sdk-minimal profile](../../archived/architecture/2026-08-24-standalone-sdk-minimal-profile.md)部分取代本 Note 的 base 优先规则与完整配置树替代方案，同时保留本 Note 对 launcher 所有权的决策。没有任何活跃 Note 被完全取代，也没有 Note 符合归档条件。
+[ACP 仅自动化协议](../simplification/2026-07-23-acp-automation-only-protocol.zh.md)继续负责 ACP 协议格式与交互范围。[添加包实操手册](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/cookbook/adding-a-package.md)负责基于角色的包名。[独立 sdk-minimal profile](../../archived/architecture/2026-08-24-standalone-sdk-minimal-profile.md)部分取代本 Note 的 base 优先规则与完整配置树替代方案，同时保留本 Note 对 launcher 所有权的决策。没有任何活跃 Note 被完全取代，也没有 Note 符合归档条件。
 
 ## 考虑过的替代方案
 

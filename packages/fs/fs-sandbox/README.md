@@ -45,7 +45,7 @@ The backend uses the local backend's `cwd` resolution default and `diffBasisMaxB
 
 Structured file removal and renaming apply the same per-call policy to every affected path, including both rename endpoints. The provider repeats containment and target-policy checks under the mutation locks before publication. Unsupported directory and cross-filesystem operations remain refused; permission escalation does not add those capabilities.
 
-The effective mode comes from the calling session's override or escalation grant, falling back to the deployment default when neither is in force. `read-only` denies every mutation with the structured `FS_SANDBOX_DENIED`. `workspace-write` allows a mutation only when the target canonicalizes under the workspace root or a platform temp area (`/tmp`, `os.tmpdir()`) — the same writable set the Seatbelt profile grants. `danger-full-access` delegates unfenced.
+The effective mode comes from the calling session's override or escalation grant, falling back to the deployment default when neither is in force. `read-only` denies every mutation with the structured `FS_SANDBOX_DENIED`. `workspace-write` allows a mutation only when the target canonicalizes under the workspace root, an explicit additional writable root, or a platform temp area (`/tmp`, `os.tmpdir()`) — the same writable set the Seatbelt profile grants. `danger-full-access` delegates unfenced.
 
 ### Observable success and failures
 

@@ -37,7 +37,7 @@ kind: "package-group"
 
 先从子系统参考文档了解共享词汇，再看设计决策。
 
-- [spill 子系统](../../docs/subsystems/spill.zh.md)——`SaveTextSpill`/`SpillRef` 词汇、归属与后端关系。
+- [spill 子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/spill.md)——`SaveTextSpill`/`SpillRef` 词汇、归属与后端关系。
 - [工具输出 spill 决策](../../.agents/notes/implemented/architecture/2026-07-08-tool-output-spill-files.zh.md)——存储、保留与工具自有输出处理之间的能力边界。
 
 <a id="dev-note"></a>

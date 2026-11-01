@@ -134,6 +134,6 @@ ACP 桥只应答其会话映射所拥有的精确 agent 对象。它携带既有
 
 - `fs/write-intent` 门禁（`packages/fs/fs/`）——文档化的单占用决策槽 waterfall 语义（先到先得，通过 `next()` 委派），应答者约定复用了它。
 - `hook/invoked`/`hook/result`——仅日志审计对先例，`approval/asked`/`approval/decided` 沿用了它；[钩子桥 Agent Note](../../archived/feature/2026-06-30-hook-bridges.md) 交付了 `permissionDecision: ask`，即第一个生产者。
-- [拦截扩展点 参考](../../../../docs/tool-execution-pipeline.zh.md)——`tools/pre-execute` 的 `allow`/`deny`/`ask` 词汇，本 seam 服务其中的 `ask`。
+- [拦截扩展点 参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-execution-pipeline.md)——`tools/pre-execute` 的 `allow`/`deny`/`ask` 词汇，本 seam 服务其中的 `ask`。
 - [仅面向自动化的 ACP Agent Note](../simplification/2026-07-23-acp-automation-only-protocol.zh.md)——应答者路由时对会话映射执行的精确 agent 归属检查；[多会话 Agent Note](../../archived/feature/2026-06-14-acp-multi-session.md)——本设计实现的每会话权限归属阻塞项。
 - 机会性 `ctx.get()` 消费模式（`tool-bash` 的 owner-token 查找、loop 的持久化探测）——`dsh-tools` 消费该 seam 而不阻塞其 fiber 的方式。

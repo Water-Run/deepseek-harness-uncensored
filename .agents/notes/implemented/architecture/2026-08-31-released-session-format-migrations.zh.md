@@ -71,7 +71,7 @@ Chain 中不存在 `flatMap`、spread expansion、中间 event array 或 schedul
 
 [V2 到 V3 投递保护](../../../../packages/session/session-format-v2-to-v3/README.zh.md#delivery-guards)防止源代中被忽略的标记仅因头部变化就成为有效上传水位。Python 发布冒烟测试独立于跨代 golden 比较，按源代码中的 `SESSION_FORMAT_VERSION` 检查生成日志，因此文件名与 header 自洽不能掩盖过期 writer。
 
-[V2 到 V3 README](../../../../packages/session/session-format-v2-to-v3/README.zh.md#v2-to-v3-specification)是该迁移边转换、保留与拒绝规则的单一规范真源；单列的[原生准入章节](../../../../packages/session/session-format-v2-to-v3/README.zh.md#native-v3-admission)避免将仅当前版本支持的能力误认为历史转换。已发布 V2 codec 仍归 V1→V2 所有，并被复用而非复制。[系统提示词](2026-09-02-system-prompt-as-surface-node.zh.md)、[PTC](../feature/2026-06-15-ptc.zh.md)和[规范信封](2026-09-06-v3-canonical-session-envelopes.zh.md)记录保留各自独立依据，而非重复转换规范。[格式版本实操手册](../../../../docs/cookbook/adding-a-session-format-version.zh.md)负责包接线、当前消费方、快照后继代际与验证命令。
+[V2 到 V3 README](../../../../packages/session/session-format-v2-to-v3/README.zh.md#v2-to-v3-specification)是该迁移边转换、保留与拒绝规则的单一规范真源；单列的[原生准入章节](../../../../packages/session/session-format-v2-to-v3/README.zh.md#native-v3-admission)避免将仅当前版本支持的能力误认为历史转换。已发布 V2 codec 仍归 V1→V2 所有，并被复用而非复制。[系统提示词](2026-09-02-system-prompt-as-surface-node.zh.md)、[PTC](../feature/2026-06-15-ptc.zh.md)和[规范信封](2026-09-06-v3-canonical-session-envelopes.zh.md)记录保留各自独立依据，而非重复转换规范。[格式版本实操手册](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/cookbook/adding-a-session-format-version.md)负责包接线、当前消费方、快照后继代际与验证命令。
 
 历史内容准入归入边所有，而非原生 V3 扩展校验。在不了解字段的情况下保留未知块，不能证明迁移保留了其含义。因此，[源审计](../../../../packages/session/session-format-v2-to-v3/README.zh.md#source-audit)在明确归其所有的内容位置（包括未完成的流）使用同一历史种类集合。它检查已接纳的内容而不改写，并且不解释归其他所有者所有的不透明 JSON。收紧原生准入或修改冻结的前代校验器，会改变独立承诺，而非证明转换安全。
 
@@ -79,7 +79,7 @@ Chain 中不存在 `flatMap`、spread expansion、中间 event array 或 schedul
 
 源继承数量在 EOF 前可能未知：V2 从种子标记推导它，而 V1→V2 可以改变事件数量。迁移链将这种缺失传递给下一个 Stage，而不伪造数量。[V2 到 V3 继承规则](../../../../packages/session/session-format-v2-to-v3/README.zh.md#sequence-references)支持此情况；需要 header 提供数量的旧 Stage 仍在数量缺失时拒绝。这使有种子的多跳恢复无需保留中间产物数组。
 
-[版本与发布状态参考](../../../../docs/session-format-status.zh.md)拥有已发布格式记录，并指明代码中的写入器真源。已发布格式保留其语义；迁移期间已提交代际的字节保持不变。对已发布目标格式的破坏性变更必须按[版本规则](2026-08-10-session-log-version-mechanism.zh.md)添加下一条相邻迁移边。传入转换器修复影响之后的历史转换，不影响已有目标格式文件；[cookbook](../../../../docs/cookbook/adding-a-session-format-version.zh.md)拥有兼容性评审和 alpha 支持政策。普通事件新增遵循该规则的必需事件拒绝机制，而非自动分配版本。集成测试使用隔离、可丢弃的 home 和未变更的历史输入。
+[版本与发布状态参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/session-format-status.md)拥有已发布格式记录，并指明代码中的写入器真源。已发布格式保留其语义；迁移期间已提交代际的字节保持不变。对已发布目标格式的破坏性变更必须按[版本规则](2026-08-10-session-log-version-mechanism.zh.md)添加下一条相邻迁移边。传入转换器修复影响之后的历史转换，不影响已有目标格式文件；[cookbook](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/cookbook/adding-a-session-format-version.md)拥有兼容性评审和 alpha 支持政策。普通事件新增遵循该规则的必需事件拒绝机制，而非自动分配版本。集成测试使用隔离、可丢弃的 home 和未变更的历史输入。
 
 [已提交语料清单](../../../../packages/test-support/llm-replay/tests/session-format-corpus-inventory.ts) 按源路径、代际与精确拒绝原因标识有意不支持的历史转换。保留这些产物不能迫使迁移改变时序，也不能允许统一跳过：每个清单中的产物仍必须抛出类型化迁移拒绝，未列入的产物必须还原。原生当前代际 fixture 不经过入边，因此不能被归为不支持。没有版本 header 的测试框架协议示例保持为独立的显式类别。语料测试在还原成功和拒绝后都检查源字节；它不通过改写历史证据来满足当前 reader。
 

@@ -21,7 +21,7 @@ Surface metadata belongs only to the four surface event types (`system/message`,
 
 ### SurfaceOp: two operations
 
-The [source-backed `SurfaceOp` reference](../../../../docs/subsystems/session.md#surface-types) defines the exact union. Replacement objects contain only `op`, `startSeq`, and `endSeq`; endpoints use the `SessionSeq` brand.
+The [source-backed `SurfaceOp` reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/session.md#surface-types) defines the exact union. Replacement objects contain only `op`, `startSeq`, and `endSeq`; endpoints use the `SessionSeq` brand.
 
 1. **Append** — add the new event seq to the tail. Used by `system/message`, `user/message`, `assistant/message`, `tool/result`. The loop passes `surfaceOp: 'append'` on all such appends and records `sourceEventSeqs` where applicable: `tool/result` records its `tool/call` source, while `assistant/message` owns its embedded stream directly.
 

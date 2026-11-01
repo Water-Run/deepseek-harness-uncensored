@@ -21,7 +21,7 @@ surface 元数据仅属于四种 surface 事件类型（`system/message`、`user
 
 ### SurfaceOp：两种操作
 
-[与源码同步的 `SurfaceOp` 参考](../../../../docs/subsystems/session.zh.md#surface-types)定义了精确联合类型。替换对象仅包含 `op`、`startSeq` 和 `endSeq`；端点使用 `SessionSeq` 品牌。
+[与源码同步的 `SurfaceOp` 参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/session.md#surface-types)定义了精确联合类型。替换对象仅包含 `op`、`startSeq` 和 `endSeq`；端点使用 `SessionSeq` 品牌。
 
 1. **Append**：在尾部追加新事件的 seq。`system/message`、`user/message`、`assistant/message`、`tool/result` 使用此操作。agent loop（智能体循环）在所有此类追加上传入 `surfaceOp: 'append'`，并在适用时记录 `sourceEventSeqs`：`tool/result` 记录其 `tool/call` 来源，`assistant/message` 则直接拥有其嵌入式 stream。
 

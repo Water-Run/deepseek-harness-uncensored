@@ -50,7 +50,7 @@ The service defines account operations without maintaining a second credential i
 <a id="further-exploration"></a>
 ## Further Exploration
 
-The [credentials subsystem](../../../docs/subsystems/credentials.md) owns storage APIs; the [architecture](../../../docs/architecture.md) explains application composition.
+The [credentials subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/credentials.md) owns storage APIs; the [architecture](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/architecture.md) explains application composition.
 
 A ready AccountDetails.balance keeps recharge wallets in value and bonus wallets in bonusWallets; both arrays preserve decimal strings and currency. Query failure supplies neither amount.
 

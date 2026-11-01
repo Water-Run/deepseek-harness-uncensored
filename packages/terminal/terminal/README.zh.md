@@ -99,7 +99,7 @@ kind: "package-reference"
 
 当包级约定不够用时阅读以下页面。它们从共享终端模型进入随附后端、工具与设计证据。
 
-- [终端子系统参考](../../../docs/subsystems/terminal.zh.md)——共享类型、后端与会话约定，以及生成的 `ctx.terminals` 接口面。
+- [终端子系统参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/terminal.md)——共享类型、后端与会话约定，以及生成的 `ctx.terminals` 接口面。
 - [terminal/ 包映射](../README.zh.md)——三包家族及其组合方式。
 - [terminal-bash 后端](../terminal-bash/README.zh.md)——提供 `shell` 类型的随附 shell 后端。
 - [tool-terminal 工具](../../experimental/tool-terminal/README.zh.md)——操作会话的 6 个面向模型工具。

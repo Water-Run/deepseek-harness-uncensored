@@ -83,4 +83,4 @@ type UseResource = <P extends ResourceProtocol>(address: string) => ResourceSnap
 
 ## Deferred
 
-回收空闲记录、与 Remote 面解耦的资源自有失败类型、`chat` 与 `terminal` 协议都还开放；各自等待一个消费方。面向开发者的参考是 [docs/subsystems/client-resources.md](../../../../docs/subsystems/client-resources.zh.md)；消费这个模型的 Sidebar 见 [docs/subsystems/sidebar-right.md](../../../../docs/subsystems/sidebar-right.zh.md)。
+回收空闲记录、与 Remote 面解耦的资源自有失败类型、`chat` 与 `terminal` 协议都还开放；各自等待一个消费方。面向开发者的参考是 [docs/subsystems/client-resources.md](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/client-resources.md)；消费这个模型的 Sidebar 见 [docs/subsystems/sidebar-right.md](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/sidebar-right.md)。

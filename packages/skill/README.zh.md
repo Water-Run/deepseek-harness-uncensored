@@ -38,7 +38,7 @@ skill 家族让 agent 和用户仅在需要时发现并加载可复用的任务�
 
 先从子系统参考了解共享词汇，再阅读 Agent Note 了解设计依据。
 
-- [skill 子系统参考](../../docs/subsystems/skills.zh.md)——注册表、提供方约定、本地发现优先级，以及目录与工具。
+- [skill 子系统参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/skills.md)——注册表、提供方约定、本地发现优先级，以及目录与工具。
 - [skill 调用策略 参考](skill/README.zh.md)——模型与用户调用控制。
 
 -----

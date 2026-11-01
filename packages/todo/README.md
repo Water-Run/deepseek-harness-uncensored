@@ -31,9 +31,9 @@ The todo group gives agents a session-level task list to plan with: add tasks, m
 <a id="related-documentation"></a>
 ## Related documentation
 
-- [Todo subsystem](../../docs/subsystems/todo.md) — the `todo/write` event payload, ownership rules, and `TodoItem`.
-- [Generated tool catalog](../../docs/tool-catalog.md#deepseek-aidsh-tool-todo) — the `todo_write` schema the model receives.
-- [Generated configuration catalog](../../docs/config-catalog.md#deepseek-aidsh-tool-todo) — every accepted config field.
+- [Todo subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/todo.md) — the `todo/write` event payload, ownership rules, and `TodoItem`.
+- [Generated tool catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-todo) — the `todo_write` schema the model receives.
+- [Generated configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-tool-todo) — every accepted config field.
 - [todo_write tool Agent Note](../../.agents/notes/archived/feature/2026-06-29-todo-write-tool.md) — the original design and its alternatives.
 
 -----

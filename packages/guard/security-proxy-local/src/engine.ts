@@ -203,6 +203,7 @@ export class SecurityProxyEngine {
   protected async requestHttp(
     _upstream: Upstream, dispatcher: ProxyAgent, url: URL, request: ProxyHttpRequest, signal: AbortSignal,
   ): Promise<PinnedResponse> {
+    // proxy-exempt: uses the owner's independent Security proxy, isolated from the application's global proxy.
     const response = await undiciFetch(url, { ...request, redirect: 'manual', signal, dispatcher })
     return { response, close: () => Promise.resolve() }
   }
@@ -525,6 +526,7 @@ export class SecurityProxyEngine {
       this.dispatcherKey = key
     }
     this.upstreamNow = upstream
+    // proxy-exempt: returns the same Security upstream and pool to this engine's consumers.
     return { upstream, dispatcher: this.dispatcher }
   }
 
@@ -575,6 +577,7 @@ export class SecurityProxyEngine {
           if (this.upstreamNow === undefined) throw new UpstreamFailure('invalid-config', 'the security proxy has no upstream configured')
           return this.upstreamNow
         },
+        // proxy-exempt: the session relay shares the engine's independent Security proxy pool.
         dispatcher: () => {
           if (this.dispatcher === undefined) throw new UpstreamFailure('invalid-config', 'the security proxy has no dispatcher configured')
           return this.dispatcher

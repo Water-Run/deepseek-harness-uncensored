@@ -53,7 +53,7 @@ kind: "package-reference"
 | `graceMs` | `3,000` | 终止升级与退出后管道排空的宽限时间 |
 | `pwshPath` | 自动解析 | 显式 pwsh 可执行文件；否则依次探测常见位置，再查 PATH |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-pwsh-local)是每个受支持字段及其 JSDoc 的穷尽式真源。
+生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-pwsh-local)是每个受支持字段及其 JSDoc 的穷尽式真源。
 
 ### 运行命令
 
@@ -122,7 +122,7 @@ if (result.timedOut) console.log('timed out after', result.timeoutMs)
 - [bash-local](../bash-local/README.zh.md) —— 本执行器逐调用镜像的 POSIX 对应实现。
 - [pwsh-sandbox](../pwsh-sandbox/README.zh.md) —— 需要沙箱能力时改为组合的隔离执行器。
 - [tool-pwsh](../tool-pwsh/README.zh.md) —— 基于本执行器的面向模型 `pwsh` 工具。
-- [Bash 执行器子系统](../../../docs/subsystems/shell.zh.md) —— 请求/spec 词汇、结果与完整的服务约定。
+- [Bash 执行器子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/shell.md) —— 请求/spec 词汇、结果与完整的服务约定。
 
 -----
 

@@ -1,4 +1,5 @@
 /** Actual browser MCP processes and mandatory lease withdrawal. @module */
+import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import { Context } from '@deepseek-ai/cordis'
 import { mountAgentLoopTestDependencies, mountAgentLoopTestHarness, provideWorkingDirectoryFixture } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { SessionResources } from '@deepseek-ai/dsh-experimental-browser-use-runtime'
@@ -64,7 +65,7 @@ it('closes actual MCP browsers and withdraws scoped tools after protection activ
   onTestFinished(() => { capture.mockRestore() })
   await h.configure(false); await h.mount()
   const agent = await h.runtime.create(SessionId('allowed-browser'))
-  const call = () => h.ctx.tools.execute({ agent, name: 'mcp__browser-fixture__visit', arguments: { label: 'owned' },
+  const call = () => executeToolFixture(h.ctx, { agent, name: 'mcp__browser-fixture__visit', arguments: { label: 'owned' },
     callId: ToolCallId('visit'), signal: new AbortController().signal })
   expect((await call()).isError).toBe(false)
   const events = z.array(z.object({ event: z.string(), pid: z.number().int() })).parse(
@@ -131,7 +132,7 @@ it.each(['launch', 'attach'] as const)('refuses native Stagehand %s before Chrom
     ...mode === 'launch' ? { executablePath: process.execPath } : { cdpEndpoint: `http://127.0.0.1:${String(address.port)}` },
   })
   const agent = await h.runtime.create(SessionId(`stagehand-${mode}`))
-  const result = await h.ctx.tools.execute({ agent, name: 'stagehand_tabs', arguments: { action: 'list' },
+  const result = await executeToolFixture(h.ctx, { agent, name: 'stagehand_tabs', arguments: { action: 'list' },
     callId: ToolCallId('tabs'), signal: new AbortController().signal })
   expect(result).toMatchObject({ isError: true, error: { info: { code: 'TARGET_EXECUTION_UNCONFINED' } } })
   expect(connections).toBe(0)

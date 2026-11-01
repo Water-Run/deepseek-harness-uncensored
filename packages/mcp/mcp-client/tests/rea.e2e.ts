@@ -3,6 +3,7 @@
  * Native analysis also requires DSH_REA_TEST_GHIDRA, DSH_REA_TEST_JAVA_HOME and DSH_REA_TEST_BINARY (an owned sample).
  * Each test owns its server process, temporary home and analysis artifacts; it never runs REA setup.
  */
+import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import { copyFile, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -33,7 +34,7 @@ it.skipIf(executable === undefined || cli === undefined)('discovers REA and anal
     const tools = ctx.tools.schemas()
     expect(tools.some(tool => tool.name === 'mcp__rea__open_binary')).toBe(true)
     expect(tools.some(tool => tool.name === 'mcp__rea__analyze_function')).toBe(true)
-    const result = await ctx.tools.execute({
+    const result = await executeToolFixture(ctx, {
       name: 'mcp__rea__analyze_javascript_application', callId: ToolCallId('rea-static-fixture'),
       arguments: { input_path: directory }, signal: AbortSignal.timeout(120_000),
     })
@@ -67,18 +68,18 @@ it.skipIf(executable === undefined || cli === undefined || nativeSample === unde
           GHIDRA_INSTALL_DIR: ghidra, JAVA_HOME: javaHome, REA_ANALYSIS_PROVIDER: 'ghidra' },
         toolCallTimeoutMs: 180_000, failOnStartupError: true, reconnect: { enabled: false },
       }))
-      const opened = await ctx.tools.execute({
+      const opened = await executeToolFixture(ctx, {
         name: 'mcp__rea__open_binary', callId: ToolCallId('rea-open-fixture'),
         arguments: { path: target }, signal: AbortSignal.timeout(180_000),
       })
       expect(opened.isError, JSON.stringify(opened)).toBeFalsy()
-      const overview = await ctx.tools.execute({
+      const overview = await executeToolFixture(ctx, {
         name: 'mcp__rea__binary_overview', callId: ToolCallId('rea-overview-fixture'),
         arguments: {}, signal: AbortSignal.timeout(60_000),
       })
       expect(overview.isError, JSON.stringify(overview)).toBeFalsy()
       expect(JSON.stringify(overview)).toContain('sample.exe')
-      const analysis = await ctx.tools.execute({
+      const analysis = await executeToolFixture(ctx, {
         name: 'mcp__rea__analyze_function', callId: ToolCallId('rea-analyze-fixture'),
         arguments: { procedure: 'add_values', detail: 'summary' }, signal: AbortSignal.timeout(60_000),
       })

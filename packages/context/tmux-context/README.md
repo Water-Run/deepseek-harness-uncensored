@@ -45,7 +45,7 @@ The minimal mount needs no configuration. A positive `refreshIntervalMs` additio
 |---|---|---|
 | `refreshIntervalMs` | `0` (every changed turn) | Minimum milliseconds between durable injections in one session |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-tmux-context) is the exhaustive source for every accepted field and its JSDoc.
+The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-tmux-context) is the exhaustive source for every accepted field and its JSDoc.
 
 ### When the location is known
 
@@ -73,6 +73,8 @@ The plugin prepends an `agent/pre-step` listener that runs only on the first ste
 
 ### Main flow
 
+The pre-step listener is installed before awaiting projection registration. Steps arriving during activation wait for the reader; registration failure or owner disposal stops the request, and cancellation while waiting performs no shell query or context injection.
+
 At the first step of a turn, the listener checks whether an injection is due, queries the location through `ctx.shell`, and compares the rendered state with the latest durable injection of this source. Change suppression and interval scheduling scan the raw durable session events, so the schedule survives compaction and resumed processes without process-local cache state; sessions schedule independently. A downstream pre-step listener that rejects or fails prevents the reading from being recorded.
 
 </details>
@@ -85,9 +87,9 @@ At the first step of a turn, the listener checks whether an injection is due, qu
 Read these pages when the package-level contract is not enough. They move from the design decision to the executor the query runs through and the exhaustive configuration.
 
 - [tmux location context decision record](../../../.agents/notes/archived/feature/2026-07-27-tmux-location-context.md) — design rationale for the tty-based detection and reading shape.
-- [Shell subsystem](../../../docs/subsystems/shell.md) — the executor service the read-only query runs through.
+- [Shell subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/shell.md) — the executor service the read-only query runs through.
 - [Context group map](../README.md) — sibling request-context packages.
-- [Generated configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-tmux-context) — every accepted config field and its source declaration.
+- [Generated configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-tmux-context) — every accepted config field and its source declaration.
 
 -----
 

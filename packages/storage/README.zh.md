@@ -34,9 +34,9 @@ kind: "package-group"
 <a id="related-documentation"></a>
 ## 相关文档
 
-- [存储子系统](../../docs/subsystems/storage.zh.md)——权威约定：后端约定、领域声明、变更事件与生成的 API。
+- [存储子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/storage.md)——权威约定：后端约定、领域声明、变更事件与生成的 API。
 - [领域 KV 存储 Agent Note](../../.agents/notes/proposed/architecture/2026-07-24-domain-kv-storage-and-workspace.zh.md)——本家族的设计、workspace 消费方与被推迟的会话后端迁移。
-- [Workspace 子系统](../../docs/subsystems/workspace.zh.md)——领域数据形式的第一个消费方。
+- [Workspace 子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/workspace.md)——领域数据形式的第一个消费方。
 
 -----
 

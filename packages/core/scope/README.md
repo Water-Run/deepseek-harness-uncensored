@@ -83,7 +83,7 @@ One relation powers both directions: registration views inherit DOWN the chain (
 
 The package-level contract is enough for most consumers; read these when you need the surrounding domain and the design rationale.
 
-- [Scoped registration subsystem](../../../docs/subsystems/scope.md) — the identity, carrier, and layer types.
+- [Scoped registration subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/scope.md) — the identity, carrier, and layer types.
 - [Agent-scope runtime design reference](../agent-loop/README.md) — how the loop builds per-agent scopes.
 - [Core group map](../README.md) — how the core packages compose.
 

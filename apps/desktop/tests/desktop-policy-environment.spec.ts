@@ -47,14 +47,11 @@ it('rejects login origins in production', () => {
     .toThrow('must not configure allowedAuthOrigins')
 })
 
-it.each([{ unsigned: true }, { prepareOnly: true }, {}])('requires policy outside local macOS builds in %j', (options) => {
-  for (const platform of ['win32', 'darwin'] as const) {
-    if (platform === 'darwin' && options.unsigned) {
-      expect(() => { validateDesktopPackageEnvironment({ DSH_DESKTOP_APP_ID: 'com.example.test' }, { platform, arch: 'x64' }, options) })
-        .not.toThrow()
-      continue
-    }
-    expect(() => { validateDesktopPackageEnvironment({ DSH_DESKTOP_APP_ID: 'com.example.test' }, { platform, arch: 'x64' }, options) })
-      .toThrow('DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN')
-  }
+it.each(['win32', 'darwin'] as const)('permits unsigned DSHU preparation on %s without official mandatory-update credentials', (platform) => {
+  expect(() => { validateDesktopPackageEnvironment({ DSH_DESKTOP_APP_ID: 'com.deepseek.dsh.uncensored' }, { platform, arch: 'x64' }, { unsigned: true }) }).not.toThrow()
+})
+
+it('keeps Windows signing requirements when creating a signed DSHU package', () => {
+  expect(() => { validateDesktopPackageEnvironment({ DSH_DESKTOP_APP_ID: 'com.deepseek.dsh.uncensored' }, { platform: 'win32', arch: 'x64' }) })
+    .toThrow('DSH_DESKTOP_WINDOWS_CER_FILE')
 })

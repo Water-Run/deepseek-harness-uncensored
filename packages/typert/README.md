@@ -34,8 +34,8 @@ With the Typert group, Client environments can call Host capabilities as typed m
 <a id="related-documentation"></a>
 ## Related documentation
 
-- [Typert subsystem reference](../../docs/subsystems/typert.md) — the literal public contracts recorded from protocol and registry types.
-- [API Gateway reference](../../docs/api-gateway.md) — how the generated Remote descriptors become running Host-to-Client calls.
+- [Typert subsystem reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/typert.md) — the literal public contracts recorded from protocol and registry types.
+- [API Gateway reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/api-gateway.md) — how the generated Remote descriptors become running Host-to-Client calls.
 - [Remote-call Agent Note](../../.agents/notes/implemented/architecture/2026-08-02-typert-remote-method-calls.md) — the architecture and transport decisions behind Remote calls.
 - [Package workspace map](../README.md) — every group in the workspace and what each owns.
 

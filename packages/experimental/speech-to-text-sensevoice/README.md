@@ -54,7 +54,7 @@ The Host owns preparation across page and Session changes: check resources, down
 <a id="further-exploration"></a>
 ## Further Exploration
 
-[Voice input subsystem](../../../docs/subsystems/voice-input.md)
+[Voice input subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/voice-input.md)
 
 -----
 

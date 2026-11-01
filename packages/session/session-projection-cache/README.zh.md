@@ -50,7 +50,7 @@ kind: "package-reference"
 | `writeEveryEvents` | 必填 | 在各必写点之间强制一次持久检查点写入的每会话已提交事件数 |
 | `writeIntervalMs` | 必填 | 各必写点之间脏检查点最长可保持未写入的时间 |
 
-本插件注入 `storageDomain`、`sessionProjections` 与 `sessions`。生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-session-projection-cache)是每个受支持字段及其 JSDoc 的穷尽式真源。
+本插件注入 `storageDomain`、`sessionProjections` 与 `sessions`。生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-session-projection-cache)是每个受支持字段及其 JSDoc 的穷尽式真源。
 
 ### 检查点如何写入
 
@@ -100,9 +100,9 @@ kind: "package-reference"
 
 当包级约定不够用时阅读以下页面。它们从缓存逐步进入它检查点化的注册表与保存其记录的存储域。
 
-- [会话投影子系统](../../../docs/subsystems/session-projection.zh.md)——本缓存检查点化的投影单元约定与驱动语义。
+- [会话投影子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/session-projection.md)——本缓存检查点化的投影单元约定与驱动语义。
 - [会话投影注册表](../session-projection/README.zh.md)——本缓存持久化其检查点的 `ctx.sessionProjections` 服务。
-- [存储子系统](../../../docs/subsystems/storage.zh.md)——保存缓存记录的领域路由与后端行为。
+- [存储子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/storage.md)——保存缓存记录的领域路由与后端行为。
 - [会话包映射](../README.zh.md)——相邻的持久化、标题与遥测包。
 - [会话投影 RFC](../../../.agents/notes/proposed/architecture/2026-07-27-session-projection-and-command-log.zh.md)——持久投影缓存的设计理由。
 

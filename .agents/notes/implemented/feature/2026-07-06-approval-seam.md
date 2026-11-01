@@ -134,6 +134,6 @@ In-repo precedents this design copies or contrasts with:
 
 - The `fs/write-intent` gate (`packages/fs/fs/`) — the documented single-occupancy decision-slot waterfall semantics (first answer wins, delegate via `next()`) the answerer contract reuses.
 - `hook/invoked`/`hook/result` — the log-only audit-pair precedent `approval/asked`/`approval/decided` follows; [the hook-bridges Agent Note](../../archived/feature/2026-06-30-hook-bridges.md) ships `permissionDecision: ask`, the first producer.
-- [The interception extension-points reference](../../../../docs/tool-execution-pipeline.md) — the `tools/pre-execute` `allow`/`deny`/`ask` vocabulary whose `ask` this seam services.
+- [The interception extension-points reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-execution-pipeline.md) — the `tools/pre-execute` `allow`/`deny`/`ask` vocabulary whose `ask` this seam services.
 - [The automation-only ACP Agent Note](../simplification/2026-07-23-acp-automation-only-protocol.md) — the exact-agent ownership check against the session map that the answerer routes through; [the multi-session Agent Note](../../archived/feature/2026-06-14-acp-multi-session.md) — the per-session permission-ownership blocker this implements.
 - The opportunistic `ctx.get()` consumption pattern (`tool-bash`'s owner-token lookup, the loop's persistence probe) — how `dsh-tools` consumes the seam without gating its fiber on it.

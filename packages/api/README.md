@@ -45,8 +45,8 @@ Remote calls run Client → Host over the application's shared Connection; strea
 
 Start with the API Gateway reference to see the Remote model end to end, then the Typert subsystem page for the shared definitions and Connection for the physical carrier.
 
-- [API Gateway reference](../../docs/api-gateway.md) — the current-state reference for the Typert API Gateway: programming model, generation pipeline, and runtime invocation.
-- [Typert subsystem reference](../../docs/subsystems/typert.md) — the public contracts shared by protocol, Gateway, and consumer assemblies.
+- [API Gateway reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/api-gateway.md) — the current-state reference for the Typert API Gateway: programming model, generation pipeline, and runtime invocation.
+- [Typert subsystem reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/typert.md) — the public contracts shared by protocol, Gateway, and consumer assemblies.
 - [Connection](../client/connection/README.md) — the RPC carrier, `/api` trust fence, and response envelopes behind every Remote call.
 
 <a id="dev-note"></a>

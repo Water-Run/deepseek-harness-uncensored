@@ -50,7 +50,7 @@ The default `shell` backend starts an interactive bash through `dsh-terminal-bas
 | `maxOutputChars` | `16,000` | Maximum retained command-output characters; fixed diagnostics are added afterward |
 | `description` | `Run commands in a persistent bash shell. State, including the current directory and exported environment variables, persists across calls for this agent.` | Model-facing environment contract; deployments may describe their environment |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-tool-bash-persistent) is the exhaustive source for every accepted field and its JSDoc.
+The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-tool-bash-persistent) is the exhaustive source for every accepted field and its JSDoc.
 
 ### What the agent can rely on
 
@@ -85,7 +85,7 @@ This section explains the design decisions behind the tool and points at the cod
 
 ### Command flow
 
-A first command spawns the shell through `ctx.terminals.spawn`, disables input echo (`stty -echo`), and waits for readiness. Each command is then wrapped into one physical line — a printf of the start marker, the command body escaped with `$'…'`, and a printf of the end marker plus `$?` — so embedded newlines cannot leak terminal prompts into the result. The tool polls the scrollback in 1,000-line pages until the end marker appears, extracts the span, and renders it with any status marker. A timeout aborts the deadline, captures the partial output, and resets the shell.
+A first command spawns the shell through `ctx.terminals.spawn`, disables input echo and history expansion (`stty -echo; set +H`), and waits for readiness. Each command is then wrapped into one physical line — a printf of the start marker, the command body escaped with `$'…'`, and a printf of the end marker plus `$?` — so embedded newlines cannot leak terminal prompts into the result. With history expansion off, `!` sequences reach bash unchanged instead of being rewritten or rejecting the whole line. The tool polls the scrollback in 1,000-line pages until the end marker appears, extracts the span, and renders it with any status marker. A timeout aborts the deadline, captures the partial output, and resets the shell.
 
 </details>
 
@@ -101,8 +101,8 @@ Read these pages when the package-level contract is not enough. They move from t
 - [terminal-bash backend](../../terminal/terminal-bash/README.md) — the default `shell` backend.
 - [tool-terminal](../../experimental/tool-terminal/README.md) — six model-facing terminal tools for interactive work.
 - [Persistent PTY sessions Agent Note](../../../.agents/notes/implemented/feature/2026-07-16-persistent-pty-sessions.md) — the owner-scoped session design and its rationale.
-- [Generated tool catalog](../../../docs/tool-catalog.md#deepseek-aidsh-tool-bash-persistent) — the exact `bash` argument schema.
-- [Generated configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-tool-bash-persistent) — every accepted config field and its source declaration.
+- [Generated tool catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-bash-persistent) — the exact `bash` argument schema.
+- [Generated configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-tool-bash-persistent) — every accepted config field and its source declaration.
 
 -----
 
@@ -113,7 +113,7 @@ Read these pages when the package-level contract is not enough. They move from t
 
 #### What the model sees
 
-The generated [`bash` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-bash-persistent), including the configured `description`. The plugin contributes no standalone system-prompt section; the deployment owns persona and environment guidance.
+The generated [`bash` schema](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-bash-persistent), including the configured `description`. The plugin contributes no standalone system-prompt section; the deployment owns persona and environment guidance.
 
 #### Token effect
 
@@ -148,6 +148,7 @@ These limits define when the tool is a poor fit or needs special care. They are 
 - **An interactive foreground child returns early with partial output only where the subprocess provider proves its stdin wait** — elsewhere the call runs to `timeoutMs`.
 - **Explicit `exit` and timeout discard shell state** — cancellation also resets and discards the result, even when a complete status marker is already observable; the next call starts a fresh shell.
 - **Environment facts such as network access and package mirrors belong in the configured `description`** — not this package's default.
+- **Raw control characters other than newline and carriage return reach readline as typed keys** — a literal TAB, ESC, or DEL in the command is consumed as an editing key, so content that needs them, such as a Makefile heredoc, should be written with a file tool or produced by `printf` escapes.
 
 <a id="dev-note"></a>
 ### Dev Note

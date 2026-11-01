@@ -142,8 +142,8 @@ composition ──► SessionService ──► LogicalSession implementation
 ## 参考资料
 
 - [清理依赖生命周期](2026-10-09-cordis-cleanup-dependency-lifetimes.zh.md)为阶段 4 的入队所有权变更补充有序清理要求：保留写入器与必需监听器，直到生产者完成最终事件发布。
-- [会话子系统](../../../../docs/subsystems/session.zh.md)定义已交付的会话 API 与事件语义。
-- [会话持久化子系统](../../../../docs/subsystems/persistence.zh.md)定义已交付的持久格式与生命周期。
+- [会话子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/session.md)定义已交付的会话 API 与事件语义。
+- [会话持久化子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/persistence.md)定义已交付的持久格式与生命周期。
 - [`@deepseek-ai/dsh-session`](../../../../packages/core/session/README.zh.md)拥有会话包约定。
 - [`@deepseek-ai/dsh-session-persistence`](../../../../packages/session/session-persistence/README.zh.md)拥有当前持久化服务约定。
 

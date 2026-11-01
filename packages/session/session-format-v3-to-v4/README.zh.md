@@ -174,7 +174,7 @@ Stage 只把最终继承截点之后的父目录记录作为候选。每个 inhe
 | V3 源 marker 声明 generation 4 | 拒绝：提升 header 不得激活目标代际的 watermark。 |
 | generation 3 的 V3 源 marker | 要求非空 Session id 和早于 marker 的非负安全整数 `throughSeq`；只有在继承截点之前且带 `parentSession` 时才允许其他 Session id。 |
 | 其他源代际，包括高于 4 的值 | 原样保留事件类型及 payload 坐标；它们在 V4 中仍未激活。 |
-| generation 4 的原生 V4 marker | 以 V4 为当前代际，应用同样的较早坐标和 Session 归属检查。 |
+| generation 4 的原生 V4 marker | 要求更早的 `throughSeq` 和非空 Session id；外来 id 仅在已验证的继承截点之前被接受，不要求 `parentSession`。 |
 | 原生 V4 中的历史 marker，包括 generation 3 | 保留记录的坐标与身份；它不是 V4 接纳 watermark。 |
 
 不改写投递 payload 或事件类型。未来的激活检查归对应的更高版本迁移所有，本边只检查向 V4 的提升。标记的信封序号随插入重映射；源代际归属仍按原 V3 序号和继承截点校验。
@@ -246,7 +246,7 @@ System image 接纳要求非空 attachment id、PNG／JPEG／WebP／GIF MIME 类
 | `compaction/prune` | 其区间引用精确的当前表面节点且排除 protected head；它不要求存在 compaction 事务或其所有者字段。 |
 | Compact checkpoint 替换 | 其 `compact-checkpoint` 来源标识活动 compaction。 |
 | 原生 `subagent/catalog` | 校验继承截点之后的自身 version-0/version-1/version-2 载荷。每个子 id 必须唯一。原生读取不收集子日志，也不比较其物理事实；继承条目不建立自身成员关系。 |
-| 继承截点与 delivery | 应用上文的 marker、坐标及代际归属规则。 |
+| 继承截点与投递 | 应用上文的原生 V4 标记、坐标及代际归属规则。 |
 
 这些检查由 [relationships.ts](src/relationships.ts) 按代际拥有。完整的通用消息／信封接纳与插件拥有的消息投影还使用已安装 Session；单独的导出 V4 恢复器不能替代完整 catalog 恢复。
 
@@ -303,8 +303,8 @@ Fork 种子构造归核心 Session 所有，不属于此迁移。原生 V4 接�
 <a id="further-exploration"></a>
 ## 进一步探索
 
-- [格式版本与发布状态](../../../docs/session-format-status.zh.md) — 当前检出写入版本与已发布格式的权威记录。
-- [添加 Session 格式版本](../../../docs/cookbook/adding-a-session-format-version.zh.md) — 相邻迁移边的集成与校验。
+- [格式版本与发布状态](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/session-format-status.md) — 当前检出写入版本与已发布格式的权威记录。
+- [添加 Session 格式版本](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/cookbook/adding-a-session-format-version.md) — 相邻迁移边的集成与校验。
 - [JSONL 持久化](../session-persistence-jsonl/README.zh.md) — 不可变代际选择与发布。
 
 -----
@@ -331,9 +331,9 @@ Fork 种子构造归核心 Session 所有，不属于此迁移。原生 V4 接�
 <a id="known-limitations-and-deferred-work"></a>
 
 - **历史转换器覆盖范围** — 未支持的源表示可能拒绝迁移，不发布后继文件，也不修改源文件。一方录制不等于第三方扩展全集。V4 发布后，只要输出仍兼容 V4，后续转换器修复就可以增加支持。解释流起始块的额外字段或处理未来投递代际，应以具体格式变更为依据。
-- **已接受 V4 转换**——[检查点](../../../docs/session-format-status.zh.md#finalization-record)保护已接受历史。向后兼容的新增可以通过新的确认记录保留 V4；破坏性变更要求后继版本。已写入的 V4 文件不会重跑此入边，历史输入保持不变。
+- **已接受 V4 转换**——[检查点](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/session-format-status.md#finalization-record)保护已接受历史。向后兼容的新增可以通过新的确认记录保留 V4；破坏性变更要求后继版本。已写入的 V4 文件不会重跑此入边，历史输入保持不变。
 - **V5 前置读取器**——V4 子日志证据目前经过已安装目录。后续写入器在改变该目录前，须绑定固定代际的 V4 前置读取。导出的 V4 恢复器提供代际自有检查；完整的通用消息接纳还使用已安装的 Session 校验。
-- **历史嵌套工具结果**——当前迁移拒绝包含另一个 tool-result wrapper 的结果。原始代际保持完整，且不发布 V4 successor。后续转换器可以支持有证据的源数据场景，而不改变既定 V4 格式；[迁移 cookbook](../../../docs/cookbook/adding-a-session-format-version.zh.md#stages-and-validation) 定义了这一区别。
+- **历史嵌套工具结果**——当前迁移拒绝包含另一个 tool-result wrapper 的结果。原始代际保持完整，且不发布 V4 successor。后续转换器可以支持有证据的源数据场景，而不改变既定 V4 格式；[迁移 cookbook](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/cookbook/adding-a-session-format-version.md#stages-and-validation) 定义了这一区别。
 - **历史扩展消费者**——带前缀的消息与结果字段保留 JSON 数据，不激活核心字段。消费者必须明确理解这些字段后才能解释它们。
 - **依赖保留的子日志**——仅凭父日志无法恢复未记录的子 id、创建时间或 descriptor。删除的子 Session 无法从工具参数恢复；已存在的父目录记录仍保留。
 - **历史模式未知**——没有恰好一个受支持的自身 descriptor 时，缺失的父目录项记录未知模式。当前读取不重写该项；打开子会话时解析可用的 descriptor 信息，或报告该子会话的错误。

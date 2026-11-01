@@ -25,7 +25,7 @@ English | [中文](README.zh.md)
 <a id="use-this-package"></a>
 ## Use this package
 
-Use it when you assemble the browser application: `apps/web`'s Vite entry runs `new AppWebEntry(container).run()` against the mount point, and the boot page carries the user through activation. Ordinary browser callers pass no options. A pre-injected page transport is the default ahead of the `seams` override: when `globalThis.__DSH_TRANSPORT__` carries `loadBundle`, the module stage adopts it as the bundle transport and skips the immediate-tier HTTP prefetch, while explicit `seams` still win (for example jsdom tests, where external `<script>` execution cannot reach the page context).
+Use it when you assemble the browser application: `apps/web`'s Vite entry runs `new AppWebEntry(container).run()` against the mount point, and the boot page carries the user through activation. Ordinary browser callers pass no options. A pre-injected page transport is the default ahead of the `seams` override: when `globalThis.__DSH_TRANSPORT__` carries `loadBundle`, the module stage adopts it as the bundle transport and skips the immediate-tier HTTP prefetch; when it carries `resolveAsset`, the module stage adopts it as the resolver that maps each `require.asset` package-asset reference to a URL the page can load; while explicit `seams` still win (for example jsdom tests, where external `<script>` execution cannot reach the page context).
 
 Static application pages install `__DSH_BOOT_READY__` before the entry runs. The boot page renders immediately while `run()` waits; the page owner applies the Host rows with `applyIndexInjections` (also exported from `./injections`) and resolves the deferred after all scripts finish. A rejected deferred renders a boot failure unless the caller supplies `run(onFailure)` to present the error externally while retaining the loading page. Desktop uses this callback to request native recovery. Desktop and WebWorker share the injection interpreter; server-side `tapIndex` HTML transforms apply only to served documents.
 
@@ -50,14 +50,14 @@ Built-in and installed browser plugins in the same page receive the same module 
 
 ### Configuration
 
-The package accepts no plugin config of its own; the generated [configuration catalog](../../../docs/config-catalog.md) lists every plugin config in the repo for comparison.
+The package accepts no plugin config of its own; the generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md) lists every plugin config in the repo for comparison.
 
 -----
 
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
-Menus use the shared `MenuSurface` material, including the macOS backing for background blur; custom content follows the [menu rules](../../../docs/web-styling.md#component-rules).
+Menus use the shared `MenuSurface` material, including the macOS backing for background blur; custom content follows the [menu rules](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/web-styling.md#component-rules).
 
 <details>
 <summary>Implementation internals — click to expand</summary>
@@ -103,7 +103,7 @@ Read these when the boot contract is not enough: the module system it boots, the
 
 - [Client module system](../modules/README.md) — the lazy module table and boot graph this kernel consumes.
 - [UI renderer](../ui-renderer/README.md) — receives the mount point and binds slot data to React.
-- [Client modules subsystem](../../../docs/subsystems/client-modules.md) — the web plugin table, boot graph wire, and bundle route.
+- [Client modules subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/client-modules.md) — the web plugin table, boot graph wire, and bundle route.
 - [Client authoring rules](../AGENTS.md#shared-modules-and-the-module-graph) — the shared-module baseline and `dsh.client.external` semantics.
 - [Client group map](../README.md) — the browser half this package belongs to.
 

@@ -66,7 +66,7 @@ kind: "package-library"
 
 ### `hook/*` 会话事件
 
-`hook/invoked` 与 `hook/result` 事件通过 declaration merging 合并进 `SessionEventMap`，作为仅日志记录：与 `compaction/*` 相同，它们不是 surface 事件，也不携带 `surfaceOp`。`hook/result` 按 `handlerId` 与其 `hook/invoked` 配对，决策规则由 `appendHookResult` 负责。载荷与逐事件 JSDoc 位于生成的[持久化日志事件目录](../../../docs/persistence-catalog.zh.md)中。
+`hook/invoked` 与 `hook/result` 事件通过 declaration merging 合并进 `SessionEventMap`，作为仅日志记录：与 `compaction/*` 相同，它们不是 surface 事件，也不携带 `surfaceOp`。`hook/result` 按 `handlerId` 与其 `hook/invoked` 配对，决策规则由 `appendHookResult` 负责。载荷与逐事件 JSDoc 位于生成的[持久化日志事件目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/persistence-catalog.md)中。
 
 调用与结果记录必须位于尚未结束的轮次内：`UserPromptSubmit`、`PreToolUse`、`PostToolUse` 与 `Stop` 按构造满足该关系，而 `SessionStart` 在轮次 1 之前运行、没有 `hook/*` 记录——改为投递其注入的上下文。
 
@@ -104,8 +104,8 @@ kind: "package-library"
 - [hooks 组地图](../README.zh.md)——同级组页面及其包表。
 - [hook-protocol-lib Agent Note](../../../.agents/notes/archived/feature/2026-06-30-hook-protocol-lib.md)——协议核心为何共享、各桥接负责什么。
 - [钩子桥接 Agent Note](../../../.agents/notes/archived/feature/2026-06-30-hook-bridges.md)——两个桥接如何使用这些原语。
-- [拦截扩展点 参考](../../../docs/tool-execution-pipeline.zh.md)——桥接所映射的类型化 Decision 接口面。
-- [生成的持久化日志事件目录](../../../docs/persistence-catalog.zh.md)——`hook/*` 事件载荷与逐事件 JSDoc。
+- [拦截扩展点 参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-execution-pipeline.md)——桥接所映射的类型化 Decision 接口面。
+- [生成的持久化日志事件目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/persistence-catalog.md)——`hook/*` 事件载荷与逐事件 JSDoc。
 
 -----
 

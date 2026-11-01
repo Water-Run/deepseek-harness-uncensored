@@ -173,7 +173,8 @@ export class SettingsStore {
       return store
     }
     try {
-      const parsed = settingsFileSchema.parse(JSON.parse(text) as unknown)
+      const value: unknown = JSON.parse(text)
+      const parsed = settingsFileSchema.parse(value)
       return new SettingsStore(path, parsed.settings)
     } catch (error: unknown) {
       const store = new SettingsStore(path, { ...DEFAULT_SETTINGS })

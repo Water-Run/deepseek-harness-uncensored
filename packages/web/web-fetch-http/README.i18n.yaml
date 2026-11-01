@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/web/web-fetch-http/README.md
 /:
-  en: a55f23f2363fdbd6
-  zh: b1fd7328e041ec52
+  en: dba7f5089d194048
+  zh: 956905ee19f6f362
 /deepseek-ai-dsh-web-fetch-http:
   en: 2e839bfc4c365701
   zh: 62dd5239ae93471c
@@ -27,23 +27,23 @@
   en: 2d18cdcc9b53dd0f
   zh: 3bc6ca7c5933ee5d
 /deepseek-ai-dsh-web-fetch-http/use-this-package/transport-behavior:
-  en: c432147daf2877cf
-  zh: c14d507dd66e124a
+  en: 4c5618124337446e
+  zh: 45c7378c8b0bba45
 /deepseek-ai-dsh-web-fetch-http/use-this-package/failures-and-recovery:
-  en: 35407f106dc65deb
-  zh: 02118072fba68b8f
+  en: 34095d9d4231d73a
+  zh: be0ed903adbb124f
 /deepseek-ai-dsh-web-fetch-http/understand-the-implementation:
   en: 9842c69ad3636bb3
   zh: 3cdc3f816cbdd0cb
 /deepseek-ai-dsh-web-fetch-http/understand-the-implementation/design-philosophy:
-  en: a8d806f0706f02e2
-  zh: d922732a5b7e88bd
+  en: 422128dac5eebdde
+  zh: 25ba5f49b305a056
 /deepseek-ai-dsh-web-fetch-http/understand-the-implementation/source-map:
-  en: 023ca0c9a9ef4968
-  zh: 74a5785a493f5111
+  en: 1f355ec2726ff61b
+  zh: 076a0c259c94f22a
 /deepseek-ai-dsh-web-fetch-http/understand-the-implementation/read-path:
-  en: f447f4e0bf9fde72
-  zh: b5e97e5a74981dd9
+  en: 38f8314273f4b689
+  zh: d1256f5f1eb4102a
 /deepseek-ai-dsh-web-fetch-http/further-exploration:
   en: 617b4a262a94d2b1
   zh: a1354462fdce605d
@@ -54,8 +54,8 @@
   en: 40294c1c31b74824
   zh: d75d48f485447a74
 /deepseek-ai-dsh-web-fetch-http/known-limitations-and-deferred-work:
-  en: 4d935fd8f466a234
-  zh: c398eb7aa737f5ea
+  en: 74d63a0c0e7649e1
+  zh: 73a59fcca72daba5
 /deepseek-ai-dsh-web-fetch-http/known-limitations-and-deferred-work/dev-note:
   en: e67f633dc6fe7773
   zh: 3bb0c20c93f16f98

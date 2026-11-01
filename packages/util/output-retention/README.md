@@ -132,7 +132,7 @@ The library is built on one separation: it owns the mechanical question of what 
 Read these pages when you need the consumers or the boundary decision behind the library.
 
 - [Spill policy](../../spill/spill-policy/README.md) — composes `TextRetainer` for a bounded preview around a spill-file notice.
-- [Spill subsystem](../../../docs/subsystems/spill.md) — the spill vocabulary this library's preview mechanics serve.
+- [Spill subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/spill.md) — the spill vocabulary this library's preview mechanics serve.
 - [File search tool](../../fs/tool-fs-search/README.md) — an `ItemRetainer` consumer collecting full results for spill.
 
 -----

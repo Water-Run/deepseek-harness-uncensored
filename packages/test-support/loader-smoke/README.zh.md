@@ -94,7 +94,7 @@ harness 建立在一个分离之上：冒烟测试在隔离世界中的子进程
 
 - [llm-replay](../llm-replay/README.zh.md)——冒烟测试组合为在没有提供方密钥的情况下运行而挂载的无密钥模型 fixture。
 - [Agent 包](../../core/agent/README.zh.md)——`runFixtureTurn` 驱动的根 agent。
-- [测试策略](../../../docs/testing.zh.md)——无密钥快照与冒烟层级。
+- [测试策略](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/testing.md)——无密钥快照与冒烟层级。
 - [test-support 组地图](../README.zh.md)——兄弟 harness 与支持包。
 
 -----

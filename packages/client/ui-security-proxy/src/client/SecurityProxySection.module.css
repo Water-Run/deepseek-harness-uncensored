@@ -64,7 +64,9 @@
 .session { color: var(--dsw-alias-label-secondary); white-space: nowrap; }
 .target { max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .targetButton { padding: 0; border: none; background: none; color: var(--dsw-alias-state-business-primary); font: inherit; text-align: left; cursor: pointer; }
-.targetButton:hover { text-decoration: underline; }
+@media (hover: hover) {
+  .targetButton:hover { text-decoration: underline; }
+}
 .targetButton:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 2px; border-radius: 2px; }
 
 .confirm { display: grid; gap: 10px; padding: 12px; border-radius: var(--dsw-radius-md); background: var(--dsw-alias-bg-layer-2); }

@@ -14,15 +14,15 @@ Status: implemented
 
 一个规范化类型模型提供可读持久化目录、完整 schema 清单和包含传递引用的逐根摘要。根标识逻辑会话头、物理 JSONL 头行、事件封装以及每个仓库内声明的事件。源码位置、别名名称、普通注释和属性顺序属于摘要之外的展示细节。历史记录保留源码文件路径而不包含行号，因为其选定的源码树与当前工作树不同。被引用类型和递归类型参与结构比较；不透明值保留明确的覆盖限制。显式兼容性标记依照[消息源归属策略](2026-09-17-persistence-schema-review.zh.md)携带纳入指纹的策略数据。
 
-专用的[持久化变更记录](../../../../docs/persistence-changes/README.zh.md)将确认绑定到每个受影响根的变更后摘要。生成的伴随文件保存完整的变更后 schema。初始记录覆盖所有根；后续记录为每个根指定前驱。前驱的变更后 schema 提供下一次的变更前 schema。验证拒绝有歧义的历史，并要求当前源码匹配最终记录状态，无需查询 Git 历史或远端服务。
+专用的[持久化变更记录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/persistence-changes/README.md)将确认绑定到每个受影响根的变更后摘要。生成的伴随文件保存完整的变更后 schema。初始记录覆盖所有根；后续记录为每个根指定前驱。前驱的变更后 schema 提供下一次的变更前 schema。验证拒绝有歧义的历史，并要求当前源码匹配最终记录状态，无需查询 Git 历史或远端服务。
 
-自动分类允许可选事件体新增、事件体属性从必选改为可选，以及普通事件新增保持同一版本。当双方保存的 schema 均声明支持时，受限的[消息源归属策略](2026-09-17-persistence-schema-review.zh.md)也允许添加符合条件的生产者 kind。[事件载荷版本规则](../../../../docs/persistence-changes/README.zh.md#compatibility-rules)允许在每个旧分支仍可读取时增加更高的数字载荷版本，并记录旧读取器限制。其他结构变更要求在记录 CLI 中显式选择同版本，或递增头版本。每个结构差异都需要确认；其兼容性与验证部分说明两个方向的读取器行为及已执行检查。CI 验证保存的决策，不推断其编写方式。需要升版本时，[格式版本流程](../../../../docs/cookbook/adding-a-session-format-version.zh.md)负责相邻迁移工作。
+自动分类允许可选事件体新增、事件体属性从必选改为可选，以及普通事件新增保持同一版本。当双方保存的 schema 均声明支持时，受限的[消息源归属策略](2026-09-17-persistence-schema-review.zh.md)也允许添加符合条件的生产者 kind。[事件载荷版本规则](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/persistence-changes/README.md#compatibility-rules)允许在每个旧分支仍可读取时增加更高的数字载荷版本，并记录旧读取器限制。其他结构变更要求在记录 CLI 中显式选择同版本，或递增头版本。每个结构差异都需要确认；其兼容性与验证部分说明两个方向的读取器行为及已执行检查。CI 验证保存的决策，不推断其编写方式。需要升版本时，[格式版本流程](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/cookbook/adding-a-session-format-version.md)负责相邻迁移工作。
 
 持久化变更文档类型保留历史类型转换的兼容性说明和证据。Agent Note 保留机制层面的决策，不积累单次确认清单。双语对中的机器声明保持相同，且只解析一次。
 
-回溯性的[发行版本比较](../../../../docs/persistence-changes/releases/README.zh.md)使用独立的 `persistence-release` 类型和固定 tag 清单。它们保留变化后的 schema，并重建相邻版本，包括未变的 tag。早期版本先于这些确认规则，因此其分类只提供信息，观察到的版本号不会为满足当前最低版本要求而被改写。历史解析保留可选的 surface 操作；当前解析器和确认链仍保持严格。这一区分允许近似回填，同时不会将其变成当前变更的授权。
+回溯性的[发行版本比较](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/persistence-changes/releases/README.md)使用独立的 `persistence-release` 类型和固定 tag 清单。它们保留变化后的 schema，并重建相邻版本，包括未变的 tag。早期版本先于这些确认规则，因此其分类只提供信息，观察到的版本号不会为满足当前最低版本要求而被改写。历史解析保留可选的 surface 操作；当前解析器和确认链仍保持严格。这一区分允许近似回填，同时不会将其变成当前变更的授权。
 
-[格式参考](../../../../docs/persistence-changes/historical-formats/README.zh.md)为低于写入器常量的每个历史整数版本保留完整目录。当前写入器继续使用现有生成目录。覆盖范围由常量推导，而非手工维护的版本清单，因此推进写入器必须归档其前驱。归档命令复制已验证的当前目录，保留从根类型可达的定义，移除源码行号，并拒绝覆盖已有快照。同一格式内可能新增事件或改变可选载荷，因此来源检查点保持明确；这些快照不授权当前变更，也不声称迁移安全。机器 schema 与精确生成的 schema 区间保留历史标识符和源码包路径；当前术语与包路径检查仍覆盖周围的人工说明和当前目录。
+[格式参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/persistence-changes/historical-formats/README.md)为低于写入器常量的每个历史整数版本保留完整目录。当前写入器继续使用现有生成目录。覆盖范围由常量推导，而非手工维护的版本清单，因此推进写入器必须归档其前驱。归档命令复制已验证的当前目录，保留从根类型可达的定义，移除源码行号，并拒绝覆盖已有快照。同一格式内可能新增事件或改变可选载荷，因此来源检查点保持明确；这些快照不授权当前变更，也不声称迁移安全。机器 schema 与精确生成的 schema 区间保留历史标识符和源码包路径；当前术语与包路径检查仍覆盖周围的人工说明和当前目录。
 
 记录命令从仓库内模板生成双语目录和一致性记录。作者可以将两种语言的概述、兼容性说明和实际验证证据作为结构化输入。生成过程提供标识符、摘要和快照，不编造兼容性说明或测试结果。结构化检查输出保留非零失败退出码，并报告独立于可读描述的稳定变更种类。
 
@@ -30,7 +30,7 @@ Status: implemented
 
 ### 定稿检查点
 
-定稿独立于发布事实记录接受状态。[状态记录](../../../../docs/session-format-status.zh.md#finalization-record)要求完整兼容性检查点，锁定已接受的机器声明与变更后 schema。后续 schema 变化需要新的确认；显式升版本决策必须包含自身的头版本递增，不能复用已接受转换。检查点不添加运行时字段，不改变未知事件处理，也不能检测未变声明后隐藏的行为变化。对目录内真源与检查点的协同修改仍须审阅。
+定稿独立于发布事实记录接受状态。[状态记录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/session-format-status.md#finalization-record)要求完整兼容性检查点，锁定已接受的机器声明与变更后 schema。后续 schema 变化需要新的确认；显式升版本决策必须包含自身的头版本递增，不能复用已接受转换。检查点不添加运行时字段，不改变未知事件处理，也不能检测未变声明后隐藏的行为变化。对目录内真源与检查点的协同修改仍须审阅。
 
 ## 考虑过的替代方案
 
@@ -46,6 +46,6 @@ Status: implemented
 
 ## 影响
 
-作者为每次已接受转换中的每个受影响根保留一份快照，并在集成该根的竞争变更时解决历史分叉。独立根可以演进而不改写无关确认。[实操手册](../../../../docs/cookbook/reviewing-persistence-type-changes.zh.md)提供本地编写与验证流程。
+作者为每次已接受转换中的每个受影响根保留一份快照，并在集成该根的竞争变更时解决历史分叉。独立根可以演进而不改写无关确认。[实操手册](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/cookbook/reviewing-persistence-type-changes.md)提供本地编写与验证流程。
 
 检查证明当前目录的一致性，不证明已接受历史从未被改写，也不证明说明在语义上正确。`unknown` 等不透明值内部的隐藏结构仍然无法检测。本机制不添加运行时摘要或会话格式字段。现有[版本机制](../architecture/2026-08-10-session-log-version-mechanism.zh.md)和[已发布代际迁移](../architecture/2026-08-31-released-session-format-migrations.zh.md)决策保留其独立的运行时保证。

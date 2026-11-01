@@ -19,7 +19,7 @@ Status: implemented
   - **判定**：基于 TypeScript AST。最近的函数体是模块本身的 `await` 表达式、`for await`、`await using` 都算违规，包括顶层 if、块、try、循环、switch、条件表达式、export 初始化和计算成员名里的。函数、方法、构造器、访问器、参数默认值、class static block 里的不算。
   - **排除**：只排除 bin，依据只取声明和语法：源文件以 `#!` 开头，或者是 package.json `bin` 指向的 `lib/<path>.js` 对应的 `src/<path>.ts|.tsx`。bin 由进程直接执行，不会被其他模块导入。当前排除 webworker-packer 和 llm-mock-server 的两个 `src/bin.ts`，清单由 spec 锁定。
   - **语料防护**：语料为空、没有 `.tsx`、或某个含 TS 的 `src/` 目录完全没进语料时，门禁报错。
-  - **注册**：`run-gates` 的共享卫生门禁，跑在 static lane 和 hygiene 聚合里。规则正文写在 [package-surface 防御模式](../../../../docs/defensive-patterns/package-surface.zh.md)。
+  - **注册**：`run-gates` 的共享卫生门禁，跑在 static lane 和 hygiene 聚合里。规则正文写在 [package-surface 防御模式](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/defensive-patterns/package-surface.md)。
 
 ## 考虑过的替代方案
 

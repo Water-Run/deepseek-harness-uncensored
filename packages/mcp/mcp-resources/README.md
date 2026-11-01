@@ -74,7 +74,7 @@ Canonical results retain the complete JSON for programmatic callers. The pure te
 These pages cover server configuration, execution, and the decisions behind resource access.
 
 - [MCP client](../mcp-client/README.md) — server transports, instructions, and connection lifecycle.
-- [Tools subsystem](../../../docs/subsystems/tools.md) — canonical values and model-visible results.
+- [Tools subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/tools.md) — canonical values and model-visible results.
 - [Resource visibility reference](README.md) — shared profile mounting and visibility from configured servers.
 - [Resources and instructions reference](README.md) — scope, on-demand access, and excluded mechanisms.
 
@@ -87,7 +87,7 @@ These pages cover server configuration, execution, and the decisions behind reso
 
 #### What the model sees
 
-The [generated tool schemas](../../../docs/tool-catalog.md#deepseek-aidsh-mcp-resources) define three tools shared by all caller-visible configured servers. With none, native schemas, PTC declarations and bindings, and the server-name prompt are absent. Connecting, disconnecting, or retrying an active client leaves these shared tool definitions unchanged. When system-prompt assembly is mounted and providers are visible, the `MCP resource servers` section says `Use list_mcp_resources, list_mcp_resource_templates, or read_mcp_resource with one of these names as the server argument: <JSON array>.` The names come from the same scoped registry, including servers with neither tools nor instructions. An empty registry contributes no section.
+The [generated tool schemas](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-mcp-resources) define three tools shared by all caller-visible configured servers. With none, native schemas, PTC declarations and bindings, and the server-name prompt are absent. Connecting, disconnecting, or retrying an active client leaves these shared tool definitions unchanged. When system-prompt assembly is mounted and providers are visible, the `MCP resource servers` section says `Use list_mcp_resources, list_mcp_resource_templates, or read_mcp_resource with one of these names as the server argument: <JSON array>.` The names come from the same scoped registry, including servers with neither tools nor instructions. An empty registry contributes no section.
 
 #### Token effect
 
@@ -117,7 +117,7 @@ Each result appends to history without rewriting earlier results. Later reads ca
 
 Resource access is explicit and on demand.
 
-- A configured server without the MCP `resources` capability still appears in the server-name prompt and keeps shared resource tools available. The SDK returns empty resource and template lists; unsupported reads fail.
+- A configured server without the MCP `resources` capability still appears in the server-name prompt and keeps shared resource tools available. The MCP client returns empty resource and template lists without contacting the server; unsupported reads fail.
 - `tools.restrict()` checks names supplied by global or ancestor scopes when the filter is registered. Naming a resource tool absent from those scopes fails as an unknown tool. Resource tools registered in the caller's own scope are outside allow/deny masks.
 - Resource subscriptions and update notifications are unsupported; call the list or read tools again to obtain current content.
 - Binary resources are not projected as native images or audio. Programmatic callers retain their canonical base64 values.

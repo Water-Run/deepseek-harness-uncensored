@@ -17,7 +17,9 @@
   cursor: pointer;
   transition: background-color 160ms var(--ds-ease-in-out), border-color 160ms var(--ds-ease-in-out), transform 160ms var(--ds-ease-in-out);
 }
-.trigger:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
+@media (hover: hover) {
+  .trigger:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
+}
 .trigger:focus-visible { outline: 2px solid var(--dsw-focus-ring-color); outline-offset: 2px; }
 .trigger:disabled { opacity: 0.5; cursor: default; }
 .trigger[aria-invalid='true'] { border-color: var(--dsw-alias-state-error-primary); }

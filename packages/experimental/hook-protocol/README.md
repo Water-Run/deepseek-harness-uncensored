@@ -66,7 +66,7 @@ The library is a chain of single-purpose steps, one function each: validate the 
 
 ### `hook/*` session events
 
-The `hook/invoked` and `hook/result` events are declaration-merged into `SessionEventMap` as log-only records: like `compaction/*`, they are not surface events and carry no `surfaceOp`. A `hook/result` pairs with its `hook/invoked` by `handlerId`, and `appendHookResult` owns the decision rule. Payloads and per-event JSDoc live in the generated [persistence log event catalog](../../../docs/persistence-catalog.md).
+The `hook/invoked` and `hook/result` events are declaration-merged into `SessionEventMap` as log-only records: like `compaction/*`, they are not surface events and carry no `surfaceOp`. A `hook/result` pairs with its `hook/invoked` by `handlerId`, and `appendHookResult` owns the decision rule. Payloads and per-event JSDoc live in the generated [persistence log event catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/persistence-catalog.md).
 
 Invocation and result records must sit inside an open turn: `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, and `Stop` satisfy that relation by construction, while `SessionStart` runs before turn 1 and gets no `hook/*` record — its injected context is delivered instead.
 
@@ -104,8 +104,8 @@ Read these pages when the package-level contract is not enough. They move from t
 - [Hooks group map](../README.md) — the sibling group page and its package table.
 - [Hook protocol library Agent Note](../../../.agents/notes/archived/feature/2026-06-30-hook-protocol-lib.md) — why the protocol core is shared and what each bridge owns.
 - [Hook bridges Agent Note](../../../.agents/notes/archived/feature/2026-06-30-hook-bridges.md) — how the two bridges use these primitives.
-- [Interception extension-points reference](../../../docs/tool-execution-pipeline.md) — the typed-Decision surface the bridges map onto.
-- [Generated persistence log event catalog](../../../docs/persistence-catalog.md) — the `hook/*` event payloads and per-event JSDoc.
+- [Interception extension-points reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-execution-pipeline.md) — the typed-Decision surface the bridges map onto.
+- [Generated persistence log event catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/persistence-catalog.md) — the `hook/*` event payloads and per-event JSDoc.
 
 -----
 

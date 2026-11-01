@@ -43,7 +43,7 @@ async function setup(existingRoot?: string) {
   ctx.llm.registerAdapter(['mock'], adapter)
   await ctx.plugin(spending, { path, pollMs: 50, rates: [{ providers: ['mock'], models: ['mock'], input: 1,
     cachedInput: 1, cacheWrite: 1, output: 1, contextTokens: 1000000, maxOutputTokens: 100, searchRequest: 0 }] }).await()
-  const api = createSessionTestController(ctx, { cwd, defaultModelSelection: () => ({ provider: 'mock', model: 'mock' }) })
+  const api = await createSessionTestController(ctx, { cwd, defaultModelSelection: () => ({ provider: 'mock', model: 'mock' }) })
   return { root, cwd, path, ctx, api, adapter }
 }
 
@@ -60,7 +60,7 @@ async function exhaust(fixture: Awaited<ReturnType<typeof setup>>) {
   const agent = fixture.ctx.agents.get(sessionId)!
   agent.followup(createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'finish-original-task' }] }))
   await vi.waitFor(async () => {
-    expect((await fixture.ctx.spendLimit.get()).pausedSessions).toEqual([{ sessionId, state: 'waiting' }])
+    expect((await fixture.ctx.spendLimit.get()).pausedSessions).toEqual([{ sessionId, state: 'waiting', resumeAt: null }])
   })
   expect(fixture.adapter.requests).toHaveLength(0)
   return agent
@@ -72,7 +72,7 @@ it('restores a paused task through API ownership after restart and continues onl
   const sessionId = agent.id
   await first.ctx.fiber.dispose()
   const second = await setup(first.root)
-  expect((await second.ctx.spendLimit.get()).pausedSessions).toEqual([{ sessionId, state: 'blocked' }])
+  expect((await second.ctx.spendLimit.get()).pausedSessions).toEqual([{ sessionId, state: 'blocked', resumeAt: null }])
   await second.ctx.spendLimit.resume()
   expect(second.adapter.requests).toHaveLength(0)
   await second.ctx.spendLimit.reset()

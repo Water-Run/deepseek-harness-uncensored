@@ -45,7 +45,7 @@ kind: "package-reference"
 | `maxResultChars` | `16000` | 完整渲染结果的最大长度，包括截断元数据 |
 | `timeoutMs` | `60000` | 由 `dsh-tool-call-timeout-policy` 强制执行的工具调用超时预算；覆盖完整的排队打开／查询／关闭生命周期，且模型不可配置 |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-tool-lsp)是每个受支持字段的穷尽式真源。
+生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-tool-lsp)是每个受支持字段的穷尽式真源。
 
 ### 失败与恢复
 
@@ -86,7 +86,7 @@ kind: "package-reference"
 
 当包级约定不够用时阅读以下页面。它们从面向模型的表层逐步进入 seam 与提供方。
 
-- [LSP 导航子系统](../../../docs/subsystems/lsp.zh.md)——操作、坐标、请求与结果，以及 `LspError` 错误码。
+- [LSP 导航子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/lsp.md)——操作、坐标、请求与结果，以及 `LspError` 错误码。
 - [dsh-lsp](../lsp/README.zh.md)——本工具查询的 seam。
 - [dsh-lsp-stdio](../lsp-stdio/README.zh.md)——应答这些查询的 stdio 提供方。
 - [lsp 组地图](../README.zh.md)——三个包的家族及其相关文档。
@@ -120,7 +120,7 @@ Use search/read for ordinary navigation. Use lsp when textual matches are ambigu
 
 #### 模型看到什么
 
-模型会看到生成的 [`lsp` schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-lsp)。
+模型会看到生成的 [`lsp` schema](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-lsp)。
 
 #### Token 影响
 

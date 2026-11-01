@@ -1,5 +1,5 @@
 /**
- * Enforce the MIT license declaration for repository-owned DSH npm packages.
+ * Preserve upstream MIT declarations and the explicit GPL declarations of DSHU modules.
  * @module scripts/verify-dsh-package-licenses
  */
 
@@ -8,12 +8,24 @@ import { resolve, sep } from 'node:path'
 
 const ROOT = resolve(import.meta.dirname, '..')
 const DSH_PACKAGE_NAME = /^@deepseek-ai\/dsh(?:-|$)/
+const FORK_MODULES = new Set([
+  'packages/api/memory-controller/package.json',
+  'packages/client/ui-security-proxy/package.json',
+  'packages/client/ui-settings-memory/package.json',
+  'packages/guard/security-proxy-local/package.json',
+  'packages/guard/security-proxy/package.json',
+  'packages/guard/spend-limit/package.json',
+  'packages/guard/target-protection/package.json',
+  'packages/mcp/rea/package.json',
+  'packages/memory/memory/package.json',
+  'packages/skill/skill-playbooks/package.json',
+])
 
 /** Result of checking every DSH package reachable through the root workspace list. */
 export interface DshPackageLicenseReport {
   /** Number of DSH package manifests checked. */
   packageCount: number
-  /** Repository-relative diagnostics for non-MIT declarations. */
+  /** Repository-relative diagnostics for unexpected license declarations. */
   failures: string[]
 }
 
@@ -52,7 +64,7 @@ function printable(value: unknown): string {
 /**
  * Check every DSH npm package declared by the repository workspace.
  * @param root - absolute repository root containing the workspace package.json.
- * @returns the checked package count and every non-MIT declaration.
+ * @returns the checked package count and every unexpected license declaration.
  */
 export function inspectDshPackageLicenses(root: string): DshPackageLicenseReport {
   let packageCount = 0
@@ -67,7 +79,8 @@ export function inspectDshPackageLicenses(root: string): DshPackageLicenseReport
 
     packageCount++
     const normalizedFile = file.split(sep).join('/')
-    const required = normalizedFile === 'package.json' || normalizedFile === 'apps/desktop/package.json' ? distribution : 'MIT'
+    const forkLicense = normalizedFile === 'package.json' || normalizedFile === 'apps/desktop/package.json' || FORK_MODULES.has(normalizedFile)
+    const required = forkLicense ? distribution : 'MIT'
     if (manifest.license !== required) {
       failures.push(
         `${normalizedFile}: ${name} must declare "license": "${required}"; found ${printable(manifest.license)}.`,
@@ -81,12 +94,12 @@ export function inspectDshPackageLicenses(root: string): DshPackageLicenseReport
 if (process.argv[1] && import.meta.filename === resolve(process.argv[1])) {
   const report = inspectDshPackageLicenses(ROOT)
   if (report.failures.length > 0) {
-    process.stderr.write('verify-dsh-package-licenses: non-MIT DSH package declarations found:\n')
+    process.stderr.write('verify-dsh-package-licenses: unexpected DSH package license declarations found:\n')
     for (const failure of report.failures) process.stderr.write(`  ${failure}\n`)
     process.exitCode = 1
   } else {
     process.stdout.write(
-      `verify-dsh-package-licenses: ${String(report.packageCount)} DSH package(s) checked; all declare MIT.\n`,
+      `verify-dsh-package-licenses: ${String(report.packageCount)} DSH package(s) match the distribution and upstream license policy.\n`,
     )
   }
 }

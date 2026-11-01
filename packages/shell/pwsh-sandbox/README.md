@@ -41,7 +41,7 @@ Choose it when a deployment needs file-level confinement for PowerShell commands
 
 ### Minimal configuration
 
-On Windows, mount the ACL restricted-token provider; on Linux and macOS, mount the local runner provider instead. The executor's own config is the local pwsh executor's knobs verbatim; the generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-pwsh-sandbox) is the exhaustive source.
+On Windows, mount the ACL restricted-token provider; on Linux and macOS, mount the local runner provider instead. The executor's own config is the local pwsh executor's knobs verbatim; the generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-pwsh-sandbox) is the exhaustive source.
 
 ```yaml
 - id: sandbox
@@ -108,7 +108,7 @@ Read these pages when the executor contract is not enough. They move from the se
 - [bash-sandbox](../bash-sandbox/README.md) — the bash twin of this executor, with the shared denial and escalation surface.
 - [pwsh-local](../pwsh-local/README.md) — the process mechanics this executor inherits.
 - [sandbox-windows-acl](../../sandbox/sandbox-windows-acl/README.md) — the Windows restricted-token runner chain.
-- [Bash executor subsystem](../../../docs/subsystems/shell.md) — request/spec vocabulary, results, and the service contract in full.
+- [Bash executor subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/shell.md) — request/spec vocabulary, results, and the service contract in full.
 - [pwsh executor and tool note](../../../.agents/notes/archived/feature/2026-08-01-pwsh-tool-and-executor.md) — the decision behind the pwsh executor and tool pair.
 
 -----

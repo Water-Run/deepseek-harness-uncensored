@@ -1,5 +1,72 @@
 # Uncensored 开发交接
 
+## 内核迁移：后台验收进展（2026-11-01，21:23）
+
+Goal 保持 active；用户要求先后台开发，未打开原生安装器窗口、未更换正式应用。最近实际 Codex 剩余额度为 64%。main/origin/main 为 b149080bc0，迁移工作树仍在 D:/Coding/deepseek-harness-uncensored-upstream-20261101（detached，基点 83b0eb2269），唯一命名分支为 main。
+
+- 已完成：全部源码和三份设置快照冲突解决；四种产品模式真实组合启动、20 项设置页面、5 项 Web 图标检查通过。中英安装器各 7 项隔离静默安装/卸载通过，真实 dshu/dsh 注册树逐项前后未变。前台/DPI 仍待用户安排。
+- 已修复：预测请求提前释放主对话读取租约，新增确定性负对照复现；SDK 独立入口和目录、HTTP/受保护解析器、LiveShare 权限、插件组合及持久化迁移继续保留。7 个目标保护场景普通回放通过。
+- 已完成定向检查：152 项生命周期/元数据/打包、239 项卫生修复、126 项模式组件、114 项 Forge、36 项文档/npm/VFS；PTC 28 项通过、1 平台跳过。持久化 67 根/19 份记录、389 包许可标识、293 默认/52 可选产品包分类、Python 运行时闭包、1293 处既有 unknown 断言基线通过；未提高断言基线。
+- 诊断记录：前一 8 worker 运行因嵌套 lint 超时及打包夹具问题中止，不计通过；最终单测和各项补验见下方最新检查。
+- 已完成补验：42 项 Web/桌面模式组合、21 项 SDK 实际运行检查通过。插件设置页撤权时残留导航的生命周期问题已修复，7 项回归通过；安装器旧日语断言改按中英交付范围，10 项通过。完整单测发现的文档预览许可打包检查缺少 npm_execpath；显式提供 pnpm 入口后，与回放运行器一起 73 项通过。
+- 最新检查：完整单测 unit-suite4-round3 跑完，2498 文件/49556 项通过，3 文件/4 项失败；对应修复后的 7 项插件、10 项安装器、73 项许可/回放运行器复验通过。22 文件/268 项跳过和 1 项预期失败均保留。hygiene-final 23/23、全仓 lint-final 已通过。最新 build-final 正在执行，尚未打包或合入 main。完整 SDK/ACP 回放因 SDK Windows 路径转义错误和旧录制的平台差异中止，不能计为通过。转义已修复并在标题场景执行完成，但精确输出仍有 Windows ACL 技能和路径表示差异；保留该失败，不改写历史样本或放宽公共 normalizer。
+- 回放隔离：原错误使占位测试密钥进入公开 API 并收到 401，未使用用户密钥；已把无密钥回放的默认端点固定到不可服务的回环端口，缺失适配器在本地失败。拥有本地 HTTP 服务的夹具仍可显式覆盖。
+- 文档检查：根 README 长度/链接通过；全库配对最终 820 组通过。先核准 334 组正文与上游或已有基线字节一致，逐项审阅另 7 组分支合同；将 1369 个失效本地技术文档/决策链接指向已核实的上游提交路径，公开文档仍只有 README。未改冻结归档；为既有单文件说明登记 7 个精确配对豁免。补齐上下文包中文索引和声明规范化描述。原全库失败日志保留，最终证据为 pairing-final4。
+
+日志统一在主仓库 .dsh-build/upstream-alpha2-*-20261101.log。原生夹具为迁移树 apps/desktop/.desktop-build/installer-tests/run-RlXXy2；注册树核对为主仓库 upstream-alpha2-installer-protocol-result-20261101.json。完整单测结果为同名 JSON；恢复时先查看 build-final、presets-full2 和最终补验日志，不重复已经通过的全套。
+
+本地代码备份 .dsh-build/alpha2-wip-20261101-2028.zip 已校验 ZIP 全部成员，SHA256 b13f33b50af427628c90c2ad8713c1adb011309240d0d8c2b5349e30ed857598。包含基于 83b0eb2269 的二进制补丁、29 份未跟踪源码和清单，不含依赖、密钥、用户数据与缓存；备份后 Web 组合测试仍有新修改，优先恢复现有工作树。不要重跑一次性导入/恢复脚本，不清理已被拒绝删除的 undefined 或 PostgreSQL 临时目录。
+
+打包夹具一次未切换临时工作目录，意外在迁移树 packed 生成 6 个 vendor tarball；已停止并将确认属于该次操作的产物移入 .dsh-build/pack-fixture-cwd-error-20261101-1810，未发布、未安装、vendor 源码无额外差异。修正为进程预加载切换到独立夹具目录，12 项打包回归通过。不要将该产物作为发布包。
+
+全仓历史记录范围已扩展为 667 份，均与基点 83b0eb2269 原始字节一致；新增固定哈希清单和替换/删除负例，32 项记录及布局检查通过。两个 Python SDK advanced 新样本改放 advanced-alpha2 / advanced-ptc-alpha2，旧 V4 及浏览器 1017 样本原字节恢复。四份 session.expected.jsonl 是输出比较文件，按上游当前行为更新，不作为冻结 Session 输入。
+
+原目标保护和审计未完成项保留。完成迁移验收后才合入 main 并推送，不把候选 product.json 或本地备份当作交付。
+
+## 内核迁移：完整测试后的兼容修复（2026-11-01，17:20）
+
+Goal 保持 active，用户选择“先继续后台开发”，不打开安装器前台，不更换正式安装。实际 Codex 周额度剩余 74%，未触发 40% 收尾规则。main 为 18dac75747；源码仍在 D:/Coding/deepseek-harness-uncensored-upstream-20261101 的 detached 工作树，原恢复位置和禁止清理缓存的约束不变。
+
+最新完整构建 build-complete3 已 10/10 通过，真实 Web 恢复场景 web-recovery 3/3 通过；两者发生在下述后续修复之前，交付前仍需再构建。完整单测以 8 个 worker 跑完，最初为 2436 文件通过、72 文件失败，49424 项通过、160 项失败；不把这次运行记为全绿。失败清单与摘要在主仓库 .dsh-build/upstream-alpha2-failed-files-20261101.json 和 upstream-alpha2-failure-report-20261101.json。
+
+已修复 SDK 查找独立 dsh-uncensored 入口及显式 home 覆盖，更新 SSH 协议夹具和子任务初始化用法，171 项通过。普通 HTTP 对齐上游私网访问语义，同时保留保护解析器、执行校验、代理绑定和撤销处理，258 项通过。LiveShare 的删除按钮增加权限判断；余额和额度轮询、界面随授权生命周期装卸，相关 39 项及实际组合测试通过。插件管理不再因设置权限缺失而阻塞启动；模式资料的客户端依赖改为真实 remotes 提供方。
+
+Session 仍为 V4。新增内部确认 2026-11-01-alpha2-message-attribution，六个消息来源根扩展保留旧 owner 主体，67 根、19 份历史确认的持久化检查通过。旧内联 schema 确认文件由严格读取器兼容，不改历史文件。两份已提交的手工 V3 保护记录格式有误，使用精确路径、SHA256 和拒绝原因作为负例保留；选定的 V4 后继记录可读，内存中补齐合法 V3 工具封装的语义验证也通过，不放宽运行时读取器。详见 scripts/authored-session-rejections.ts 与测试。3691 份导入文本、32 份普通 Session 文件及一个 WebWorker Session 恢复为与索引完全一致的 LF 字节；没有修改事件内容或 Git blob。后续已有编辑的 README 只统一换行。
+
+恢复产品的中英两语言范围，其他语言资源保留但不自动列入语言选择；安装器只输出中英资源。新 Web 图标生成器使用 DSHU 黑底白鲸矢量，maskable 版本延展背景并保留安全区；四张 PNG 已生成并查看。第三方声明生成器保留 GPL 产品声明和上游 MIT 来源，识别 ssh2 的旧式 MIT 元数据；修复 CRLF 导致供应商清单无法解析及补丁哈希不符。没有恢复本分支明确取消的 GitHub 工作流，对应上游专用测试移除，实际打包、发布预检和签名检查保留。
+
+后续失败逐批收敛，日志均为主仓库 .dsh-build/upstream-alpha2-*-20261101.log：runtime-fixes 171 项、http-alignment 258 项、viewer-surfaces 39 项、execution-source-gates 112 项、desktop-brand-snapshots 60 项通过；compatibility-round4 为 138 通过/3 失败，round5 为 276 通过/4 失败，round6 为 211 通过/4 失败，round7/8 仍有文档、npm 夹具与换行失败，均有后续修复但不能累计当作全绿。ptc-runtime-isolated 最终 28 通过/1 平台跳过；forge-cancel-isolated 1 通过。两次合跑 runtime-contention 因长期等待中止，不能计为通过。
+
+当前在复验 compatibility-round9。仍需：清完失败清单并确认没有新增回归，完成 3 份 settings-chrome ARIA 冲突与实际页面验收，重跑完整构建、所需完整单测/回放和打包，复核旧 Session blob、armor 与独立应用身份，才合入 main。不要重跑 .dsh-build 的一次性导入、补丁解决或换行恢复脚本。正式安装与前台 DPI 验收继续按用户指令延后。原目标保护、数据库和审计未完成范围不缩小。
+
+## 内核迁移：源码适配与后台回归（2026-11-01）
+
+安装器后台节点 83b0eb2269 已推送 main；用户要求暂不打开前台测试窗口，02.11 的交互/DPI 验收继续延后。正式安装没有更换。42 项相关单测、14 项原生静默检查、构建和检查证据见下节。
+
+**恢复工作位置：D:/Coding/deepseek-harness-uncensored-upstream-20261101。** 这是从 83b0eb2269 创建的 detached HEAD，未创建命名分支。另有旧 D:/Coding/dshu-verify 工作树，不属于本次迁移，不动它。主仓库 D:/Coding/deepseek-harness-uncensored 仍为已验证 main，只有被要求保留的 undefined 缓存。
+
+目标固定为上游 f3803c96974ad4a94195fb97e5c637e9c2a3afe3（0.2.2-alpha.2），源树基准 1f81c047fc48fa190a683e469daa699857e9afe8；rc.5 的 b830ec950faba0a46dda564be3e2d854afed94f1 思考展示修复另核准。首次完整 git apply 因 7 个本分支删除/上游删除但本分支修改的文件失败且没有改变工作树，不能把日志的 Applied 字样当作实际导入。现已用筛选后的三方补丁实际导入 6468 个文件补丁，保留根 README、公开 docs/website 删除、工作流与本分支指引、GPL 和 product.json。
+
+**源码冲突已解决，索引仅余 3 份 settings-chrome 页面期望快照，待真实页面更新。** 迁移工作树已有独立 node_modules，锁文件完成三方结构合并及供应链校验。ssh2/cpu-features 的可选原生加速安装脚本经过读取后明确禁用，不关闭整个安装脚本策略。不要重置工作树或重新覆盖补丁；这里是 git apply --3way 的索引冲突，不运行 merge --continue。
+
+已适配 Agent 自有模型选择、异步投影句柄、新历史/状态订阅、独立旁问、输入预测、删除及跨重启额度恢复。删除会取消对应历史、投影与状态订阅；其他会话继续工作。记忆提炼的投影在预设插件激活时等待注册完成，停止使用旧的全局 key 读取。修复自动合并留下的重复 Service.init、缺少 agent 参数和失效 selectForNextRequest 调用。
+
+保留 DSHU 0.1.0、WaterRun、独立 ID、dshu 协议和双 HOME 卸载保护。安装器旧 strings.nsh 已移入上游 JSON 语言资源生成流程，四个独立身份/完成文案键均保留；没有打开前台窗口。上游移除了 web-fetch-http 地址校验与绑定，本分支的保护提供方仍依赖它，已保留 network.ts、授权钩子、相应依赖及回归，不跟随删除。
+
+后台证据统一在主仓库 .dsh-build/upstream-alpha2-*-20261101.log：session-regressions 首轮 68 文件 1259 项中有 32 项失败；修复夹具、读租约和取消语义后，失败所属三文件 95 项通过。asides-memory 36 项通过，额度恢复另通过。installer-tests2 三文件 45 项通过；client-first-tests 的五文件通过，工作区期望补入“不在工作区工作”后另 18 项通过。HTTP/插件/MCP 首轮 512 项通过，代理回归已修复；四项真实 Git/pnpm 场景首次因本地 5 秒预算超时，按上游 CI 的 90000ms 统一预算复验通过（git-ci-budget）。不把未运行、跳过或失败项记为通过。
+
+Host 契约生成与 Host 包检查通过（host-contracts2）；主要客户端包检查通过（client-types3）。直接运行聚合 tsc 时曾触及 Node 默认约 4 GiB 堆上限，未当作代码成功；后续使用仓库提供的 8 GiB 检查入口。构建首轮发现 armor 包没有注册 Host 编译引用，已补引用并重生成路径；第二轮发现扩展语言缺少本分支键和 LiveShare 缺少接口分类。修复后 build-artifacts3 的 8 阶段全部通过；这是后续 rc.5 与授权修复前的构建，不当作最新源码验收。当前 build-complete 正在跑最新 10 阶段串行构建及聚合检查。vendor 要求的测试、默认组合回放、SDK/持久化门禁、UI 实测与打包仍未完成。
+
+维护线 534dac8c81 的思考渲染修复不在 alpha.2 中，已移植 12 个源码/测试文件并解决 ReasoningRow 与文本选择的冲突。Body Slot 提供 rawText 和 display text；原始日志不改。51 项思考/翻译回归通过，另为流式签名、普通标签及换行边界补测，reasoning-text.ts 四项覆盖率均为 100%。已重新生成 Host、Client API 及 Slot catalog；README 记载自定义 Body 的兼容变化。
+
+LiveShare 增加 54 个 DSHU 接口分类，并修复上游允许插件声明覆盖 owner-only 的实际授权缺口：账户/额度、记忆、模式资料、代理流量、旁问/预测/删除不能因此暴露给查看者。负对照复现 allow，修复后 51 项通过，见 viewer-denial-negative/viewer-denial。原始 614 份会话记录的索引及工作区内容再次校验未变，证据 retained-sessions-20261101.json。
+
+23 组冲突文档已更新配对记录；修正 ui-primitives 的失效笔记链接后配对检查通过（doc-pairing-check2），后续新增思考与 LiveShare 文档也已重录。主 README 维持简洁，不恢复公开文档站。迁移树 product.json/README 已写入候选 alpha.2 元数据用于构建，main 的版本和正式安装仍是原版本，不代表发布完成。
+
+83 项手工清单仍需最终核对：76 份既有会话记录保持原字节；4 个旧设置样式文件继续由共享 PreferenceRow 承接；旧 Cordis 预设删除继续保留；strings.nsh/network.ts 已按上节处理。旧记录不因升级重写，新增上游记录已随源码进入。此前 614 份原有记录按索引阶段及 Git blob 检查未改，交付前复核。
+
+恢复入口：先读 build-complete 日志，修复聚合检查和实际组合问题；随后完成持久化/SDK、vendor 与真实 UI 验收，更新三份页面期望并做最终审查。清单为主仓库 .dsh-build/upstream-alpha2-checkpoint-20261101.json、upstream-alpha2-manual-import-20261101.json；resolve-alpha2-*.py 与 import-alpha2-maintenance.py 是已执行的一次性记录，不要重跑。两个工作树不共享 node_modules。Goal 保持 active；最近实际剩余额度 86%，未触发 40% 收尾规则。
+
 ## 安装器独立身份与数据保留（2026-11-01）
 
 Goal active。02.11 已完成源码和后台验证，用户明确选择“先继续后台开发”，因此不打开前台安装器测试窗口，也不操作正式安装。欢迎/进度/完成/卸载及窗口标题采用 DSHU，五张图来自现有 resources/icon.svg；render:installer-brand 可重现生成，浅深两图和卸载图已查看。包名为 deepseek-harness-uncensored，作者 WaterRun，应用全名/默认安装目录仍为 DeepSeek Harness Uncensored。新增独立 ID 校验并修正四个 Windows/macOS 预设例子及本地 macOS 默认值，拒绝已知官方 ID 的大小写变体。正式版本号与内核版本未变。

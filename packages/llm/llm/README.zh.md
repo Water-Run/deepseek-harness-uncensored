@@ -25,7 +25,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-`listModels` 描述目录驱动界面提供的模型。核心解析与流式调用仍可接受未列出的 ID。GUI 的模型选择与提交要求模型出现在目录中；供 GUI 使用的适配器必须实现 `listModels`，公布其可用模型。基类实现返回空列表，因此不向 GUI 提供模型。
+`listModels` 描述目录驱动界面提供的模型。核心解析与流式调用仍可接受未列出的 ID。GUI 的模型选择与提交要求模型出现在目录中；供 GUI 使用的适配器必须实现 `listModels`，公布其可用模型。基类实现返回空列表，因此不向 GUI 提供模型。条目可选的 `badge` 包含选择器文字（单一文字，或以小写语言 id 为键且包含 `en` 的译文）和 `neutral`、`info`、`success` 或 `warning` 语调；`resolveModelInfo` 不返回它，模型请求也不携带它。 提供方在公布的目录变化时发出 `llm/models-updated(provider)`；客户端重新加载完整目录，省略的角标也随之清除。
 
 任何调用模型提供方的组合——agent loop（智能体循环）、会话标题生成器、压缩（compaction）摘要器——都会通过本服务流式发起请求。与至少一个提供方适配器一起挂载它；服务本身没有任何配置，也不包含提供方协议代码。
 
@@ -147,7 +147,7 @@ const configure = (maxTokens: number): ConfigureCall =>
 
 当包级约定不够用时阅读以下页面。它们从共享类型逐步进入具体适配器、重试执行器与计量服务。
 
-- [LLM（大语言模型）流式子系统](../../../docs/subsystems/llm-streaming.zh.md)——消息与块类型、紧凑的 Assistant 流记录、`StreamChunk` 协议与适配器约定。
+- [LLM（大语言模型）流式子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/llm-streaming.md)——消息与块类型、紧凑的 Assistant 流记录、`StreamChunk` 协议与适配器约定。
 - [llm-deepseek 适配器](../llm-deepseek/README.zh.md)——DeepSeek Messages 直连实现。
 - [llm-pi-ai 适配器](../llm-pi-ai/README.zh.md)——基于 pi-ai 的多提供方实现。
 - [llm-retry](../llm-retry/README.zh.md)——重跑失败模型请求的重试执行器。

@@ -51,7 +51,7 @@ Use it when you own a Claude Code `hooks.json` (or a settings file whose `hooks`
 | `defaultTimeoutMs` | `600,000` | Per-hook timeout when a hook sets none (the Claude Code default) |
 | `stderrSummaryMaxChars` | `500` | Character cap on the persisted `hook/result` stderr summary |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-hooks-claude-code) is the exhaustive source for every accepted field.
+The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-hooks-claude-code) is the exhaustive source for every accepted field.
 
 ### What your hooks can do
 
@@ -129,8 +129,8 @@ Read these pages when the package-level contract is not enough. They move from t
 - [Hooks group map](../README.md) — the sibling group page and its package table.
 - [Hook protocol library](../hook-protocol/README.md) — the shared hook rules this bridge applies.
 - [Hook bridges Agent Note](../../../.agents/notes/archived/feature/2026-06-30-hook-bridges.md) — the bridge design, decision mapping, and deferred gaps.
-- [Interception extension-points reference](../../../docs/tool-execution-pipeline.md) — the typed-Decision surface the bridge maps onto.
-- [Generated configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-hooks-claude-code) — every accepted config field and its source declaration.
+- [Interception extension-points reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-execution-pipeline.md) — the typed-Decision surface the bridge maps onto.
+- [Generated configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-hooks-claude-code) — every accepted config field and its source declaration.
 
 -----
 

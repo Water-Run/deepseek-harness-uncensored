@@ -48,7 +48,7 @@ kind: "package-reference"
 | `maxSpillBytes` | `67,108,864` | 每流完整输出的 spill 上限 |
 | `graceMs` | `3,000` | 终止升级与退出后管道排空的宽限时间 |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-bash-local)是每个受支持字段及其 JSDoc 的穷尽式真源。
+生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-bash-local)是每个受支持字段及其 JSDoc 的穷尽式真源。
 
 ### 运行命令
 
@@ -115,7 +115,7 @@ if (result.timedOut) console.log('timed out after', result.timeoutMs)
 - [shell seam](../shell/README.zh.md) —— 本提供方实现的执行器约定，包括请求/spec 拆分。
 - [bash-sandbox](../bash-sandbox/README.zh.md) —— 需要沙箱能力时，应改为组合此隔离执行器。
 - [tool-bash](../tool-bash/README.zh.md) —— 基于本执行器的面向模型 `bash` 工具。
-- [Bash 执行器子系统](../../../docs/subsystems/shell.zh.md) —— 请求/spec 词汇、结果与完整的服务约定。
+- [Bash 执行器子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/shell.md) —— 请求/spec 词汇、结果与完整的服务约定。
 - [subprocess-local](../../subprocess/subprocess-local/README.zh.md) —— 本执行器背后的 managed-range 机制。
 
 -----

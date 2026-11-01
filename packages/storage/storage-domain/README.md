@@ -66,7 +66,7 @@ The domain plugin's configuration decides which backend serves which domain — 
 | `backend` | required | Default backend name for every domain without an explicit route |
 | `routes` | `{}` | Per-domain overrides: domain name → backend name |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-storage-domain) is the exhaustive source for every accepted field and its JSDoc.
+The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-storage-domain) is the exhaustive source for every accepted field and its JSDoc.
 
 ### Observable behavior and failures
 
@@ -85,8 +85,8 @@ The domain layer is a single implementation, not an abstracted seam: consumers d
 ### Design concept
 
 - **The spec object is the single source of truth.** `defineDomain` pins the spec's literal types and validates its fields at the owning package's module load, before any medium is touched. Record schemas are zod, so `z.infer` avoids duplicating consumer types; plugin `Config` stays schemastery.
-- **Memory is authoritative; the medium is the durable projection.** Reads are synchronous from validated in-memory state. Every write queues on one per-domain write chain: backend durability first, then memory mutation, then `domain/changed` — a rejected backend write leaves memory untouched, so reads never diverge from the medium.
-- **One write chain per domain.** `put`, `delete`, `update`, and `global.set` all queue on it; `update`'s transform runs at its chain slot, so concurrent updates never interleave. Records are plain immutable data — returned values are the stored objects themselves and must not be mutated in place.
+- **Memory is authoritative; the medium is the durable projection.** Reads are synchronous from validated in-memory state. Every write queues on one per-domain write chain: backend durability first, then memory mutation, then `domain/changed`. A rejected backend write does not publish a domain change; an `unknown-state` rejection quarantines reads and later writes until close. Any unknown durable outcome requires closing and reopening the backend and domain before further use.
+- **One write chain per domain.** `put`, `delete`, `deleteMany`, `update`, and `global.set` all queue on it; `update`'s transform runs at its chain slot, so concurrent updates never interleave. Records are plain immutable data — returned values are the stored objects themselves and must not be mutated in place.
 - **Writes emit after the commit point.** `domain/changed` is a notification, not a transaction participant: a throwing listener is contained with a logged warning rather than rejecting the already-durable write.
 
 ### Open sequence
@@ -112,10 +112,10 @@ The domain layer is a single implementation, not an abstracted seam: consumers d
 
 Read these pages when the domain layer's view is not enough: the subsystem reference is the authoritative contract, and the Agent Note records the design and deferred work.
 
-- [Storage subsystem](../../../docs/subsystems/storage.md) — the domain contract, backend contract, change events, and generated API.
+- [Storage subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/storage.md) — the domain contract, backend contract, change events, and generated API.
 - [Storage package map](../README.md) — the family's packages and their repository position.
 - [domain KV storage Agent Note](../../../.agents/notes/proposed/architecture/2026-07-24-domain-kv-storage-and-workspace.md) — why domains exist, the workspace consumer, and deferred work such as cross-process change push.
-- [Workspace subsystem](../../../docs/subsystems/workspace.md) — the first consumer of the domain data form.
+- [Workspace subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/workspace.md) — the first consumer of the domain data form.
 
 -----
 
@@ -144,8 +144,8 @@ Independent: domain reads and writes never touch request prefixes, so nothing he
 These limits define when the domain layer is a poor fit or needs special operational care. They are current package constraints, not a task backlog.
 
 - **Single-process change visibility** — `domain/changed` is an in-process event; a second host process or a reconnecting GUI observes no changes until the cross-process revision pattern lands ([Agent Note](../../../.agents/notes/proposed/architecture/2026-07-24-domain-kv-storage-and-workspace.md)).
-- **No cross-table transactions, secondary indexes, or multi-segment keys** — each write touches one record; these extensions are deferred in the Agent Note's out-of-scope list.
-- **No data migration** — a domain whose stored version differs from its spec rejects at open (`version-mismatch`); changing a schema requires migrating the stored data by hand.
+- **No cross-table transactions, secondary indexes, or multi-segment keys** — each write targets one table or the global slot; these extensions are deferred in the Agent Note's out-of-scope list.
+- **No incompatible-value migration runner** — `compatibleVersions` admits older data for the current decoder; consumers convert values when rewriting selected records. A current stamp can still contain historical rows. See [domain versioning](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/storage.md#domain-versioning) for backend differences, upgrades, downgrade refusal, and retiring old readers.
 
 <a id="dev-note"></a>
 ### Dev Note

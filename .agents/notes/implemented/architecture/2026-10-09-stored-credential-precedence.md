@@ -39,7 +39,7 @@ The previous order existed so that CI, containers, and a one-shot `DEEPSEEK_API_
 
 ## Consequences
 
-- A key left in `.credentials.yaml` overrides an exported variable with the same name, including a CI secret on a machine whose harness home stores a value for that name. The [upgrade guide](../../../../docs/upgrade-guide/v0.2.1-alpha.2/stored-credentials-precedence/guide.md) tells affected users how to keep the exported account.
+- A key left in `.credentials.yaml` overrides an exported variable with the same name, including a CI secret on a machine whose harness home stores a value for that name. The [upgrade guide](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/upgrade-guide/v0.2.1-alpha.2/stored-credentials-precedence/guide.md) tells affected users how to keep the exported account.
 - The Models page can always save, replace, or remove a key, and it does not disable the key field for an exported name.
 - There is no per-run flag above the store. A one-run override takes a separate `DSH_HOME`.
 - `packages/credentials/credentials-local/tests/local.spec.ts` covers a store over a launch environment value and its return after `unset`; `packages/llm/llm-pi-ai/tests/auth.spec.ts` covers a stored credential that wins over every launch layer.

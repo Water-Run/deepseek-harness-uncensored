@@ -106,8 +106,10 @@
   text-align: left;
 }
 
-.scopeButton:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
+@media (hover: hover) {
+  .scopeButton:hover {
+    background: var(--dsw-alias-interactive-bg-hover);
+  }
 }
 
 .scopeButton:focus-visible {

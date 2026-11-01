@@ -60,7 +60,7 @@ kind: "package-reference"
 | `shutdownTimeoutMs` | `5000` | 升级前用于优雅 `shutdown`／`exit` 的预算 |
 | `killGraceMs` | `2000` | 请求取消及 SIGTERM→SIGKILL 升级的宽限期 |
 
-`servers` 必须至少包含一个配置项，每个 id 都必须非空；定时器预算必须是 Node 定时器范围内的正整数，字节上限必须为正。生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-lsp-stdio)是每个受支持字段的穷尽式真源。
+`servers` 必须至少包含一个配置项，每个 id 都必须非空；定时器预算必须是 Node 定时器范围内的正整数，字节上限必须为正。生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-lsp-stdio)是每个受支持字段的穷尽式真源。
 
 ### 查询做什么
 
@@ -120,7 +120,7 @@ kind: "package-reference"
 
 当包级约定不够用时阅读以下页面。它们从共享的导航模型逐步进入 seam 与工具。
 
-- [LSP 导航子系统](../../../docs/subsystems/lsp.zh.md)——操作、坐标、请求与结果，以及 `LspError` code。
+- [LSP 导航子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/lsp.md)——操作、坐标、请求与结果，以及 `LspError` code。
 - [dsh-lsp](../lsp/README.zh.md)——本提供方注册到的 seam。
 - [dsh-tool-lsp](../tool-lsp/README.zh.md)——基于该 seam 的面向模型工具。
 - [lsp 组地图](../README.zh.md)——三个包的家族及其相关文档。

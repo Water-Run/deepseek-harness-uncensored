@@ -122,7 +122,7 @@ The decision history lives in the [unified service decision](../../../.agents/no
 
 Read these pages when the package-level contract is not enough. They move from the shared query vocabulary to the concrete backend and the decision evidence.
 
-- [Session Query subsystem reference](../../../docs/subsystems/session-query.md) — the full type-level contract: records, filters, search pages, lineage, bounded reads, and errors.
+- [Session Query subsystem reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/session-query.md) — the full type-level contract: records, filters, search pages, lineage, bounded reads, and errors.
 - [dsh-session-query-sqlite](../session-query-sqlite/README.md) — the shipped full-text backend and its index lifecycle.
 - [dsh-tool-session-query](../../experimental/tool-session-query/README.md) — the model-facing consumer built on this service.
 - [Session query relationship tracing](../../../.agents/notes/archived/feature/2026-07-13-session-query-tracing.md) — trace semantics and the validation boundary.

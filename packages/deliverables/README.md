@@ -24,6 +24,7 @@ The deliverables family records what a turn hands to the user as durable Session
 
 | Package | Role | ctx key |
 |---|---|---|
+| [`deliverable-file-references`](deliverable-file-references/README.md) | Shared file-link and result-delivery guidance for Web and SDK hosts | registers on `ctx.systemPrompt` |
 | [`tool-present`](tool-present/README.md) | Declares existing files as final deliverables through the `present` tool | registers on `ctx.tools` |
 | [`workspace-changes`](workspace-changes/README.md) | Summarizes each top-level turn's changed files from git working-tree snapshots and whole-file captures, and serves their comparisons | provides `ctx.workspaceChanges`; listens to `session/event`, appends `workspace/changes` |
 
@@ -32,7 +33,7 @@ The deliverables family records what a turn hands to the user as durable Session
 <a id="related-documentation"></a>
 ## Related documentation
 
-- [Deliverables subsystem](../../docs/subsystems/deliverables.md) — the `PresentedFile` and `WorkspaceChangesSummary` vocabulary, the two durable events, and the summary service.
+- [Deliverables subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/deliverables.md) — the `PresentedFile` and `WorkspaceChangesSummary` vocabulary, the two durable events, and the summary service.
 - [Web deliverables](../client/ui-deliverables/README.md) — the turn-tail cards and file mentions that render these events.
 - [Present declares workspace source files](../../.agents/notes/implemented/feature/2026-09-08-present-workspace-source-files.md) — the delivery decision.
 - [Turn changed-files card](workspace-changes/README.md) — the snapshot design and coverage rules.

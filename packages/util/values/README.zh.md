@@ -78,8 +78,8 @@ JSON 校验器使用显式工作栈，并只跟踪当前祖先链，因此深层
 ## 进一步探索
 
 - [工具包映射](../README.zh.md)——相邻的无状态 helper。
-- [会话子系统](../../../docs/subsystems/session.zh.md)——要求无损 JSON 的持久事件。
-- [工具子系统](../../../docs/subsystems/tools.zh.md)——构建于 `JsonValue` 之上的 schema 校验与规范工具结果。
+- [会话子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/session.md)——要求无损 JSON 的持久事件。
+- [工具子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/tools.md)——构建于 `JsonValue` 之上的 schema 校验与规范工具结果。
 
 -----
 

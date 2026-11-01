@@ -42,7 +42,7 @@ export class GoalService extends TypertRemoteService {
 }
 ```
 
-生成会把方法变为服务命名空间下的 wire 端点；Client 通过 `ctx.remote` 以类型化方法调用它（见 [API Gateway 参考](../../../docs/api-gateway.zh.md)）。方法把 `signal: AbortSignal` 声明为最后一个参数即可选择协作式取消——该信号是注入的，绝不会成为 JSON 参数或查找字段。
+生成会把方法变为服务命名空间下的 wire 端点；Client 通过 `ctx.remote` 以类型化方法调用它（见 [API Gateway 参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/api-gateway.md)）。方法把 `signal: AbortSignal` 声明为最后一个参数即可选择协作式取消——该信号是注入的，绝不会成为 JSON 参数或查找字段。
 
 一元方法可以直接返回 `Uint8Array`，也可以将其放在嵌套对象、数组、元组、可选字段、联合类型和递归类型中。生成器提供可选的结果 codec `encode()` 和 `decode()`：编码仅访问类型可能包含字节的子树，解码则校验还原后的值；Client 声明在每个字节位置使用 `Uint8Array<ArrayBuffer>`，同时保留其他字段类型。纯 JSON 结果不经 Host 字节识别或 Client 解析直接传递。参数、事件与流条目仍仅支持 JSON；不支持运行时对象循环。
 
@@ -60,7 +60,7 @@ export class GoalService extends TypertRemoteService {
 
 `PeerScope.principal` 是进程内 Host 代码创建 Peer 时固定的调用方身份；任何 wire 字段都无法设置它，`PeerScope.signal` 则在 Peer scope 结束时中止。`PrincipalMap` 可合并扩展：每个驱动方声明一个 JSON 条目，带唯一的字面量 `kind` 且不含凭据，因为 principal 可能持久化到会话日志中；内置条目是 `owner: { kind: 'owner' }`。在持久输出上记录调用方的 Remote 方法调用 `principalOf(this.ctx.invocation)`：调用方不是 owner 时它返回该 principal，对 owner 以及在 Remote 调用之外返回 `undefined`；方法只在其有定义时写入该字段。
 
-每个 Remote 方法都受访问控制：由 [`dsh-api-remote-access`](../../api/remote-access/README.zh.md) 判定非 owner 调用方能否在该调用触及的资源上调用它。`TypertResourceMap` 与 `TypertLookupMap` 并列、可合并扩展：拥有身份类型的包以 `TypertResource<Id>` 声明自己的资源种类（`dsh-session` 声明 `session: TypertResource<SessionId>`，`dsh-workspace` 声明 `workspace: TypertResource<WorkspaceId>`）。`RemoteAccessResource` 要么是内置、无身份的 `{ kind: 'global' }`，要么是某个已声明种类加其身份；资源之间相互独立，`global` 上的访问不蕴含任何会话上的访问。运行时由拥有该种类的领域经 `typert.resources.register(kind, { field })` 登记默认 wire 字段，该登记拒绝 `global`；lookup provider 与 Host Context adapter 经 `resource` 声明其 wire 身份所属的种类，因此带 Agent 查找参数或 Agent 作用域接收器的方法无需选项即携带 `session` 资源。`@Remote` 与 `@RemoteScope` 的 `resources` 选项把种类映射到一个以方法 wire 参数为自身位置参数的读取函数；这些参数的类型从被装饰的方法推断，查找参数映射为其 wire 类型，因此 `@Remote({ name: 'page', resources: { session: request => request.address.sessionId } })` 可以读取默认规则读不到的字段。读取函数与默认规则都未给出资源的调用触及 `global`；它们必须给出方法访问的全部资源，因为访问控制从不检查被遗漏的资源。`TypertForwardableEventEntry` 中的转发 `emit` 条目可以声明 `resources` 读取函数，其类型由该事件自身的参数决定；未声明的条目触及 `global`。资源解析归 [API Gateway](../../api/gateway/README.zh.md)；判定与拒绝原因归 [`dsh-api-remote-access`](../../api/remote-access/README.zh.md)。
+每个 Remote 方法都受访问控制：由 [`dsh-api-remote-access`](../../api/remote-access/README.zh.md) 判定非 owner 调用方能否在该调用触及的资源上调用它。`TypertResourceMap` 与 `TypertLookupMap` 并列、可合并扩展：拥有身份类型的包以 `TypertResource<Id>` 声明自己的资源种类（`dsh-session` 声明 `session: TypertResource<SessionId>`，`dsh-workspace` 声明 `workspace: TypertResource<WorkspaceId>`）。`RemoteAccessResource` 要么是内置、无身份的 `{ kind: 'global' }`，要么是某个已声明种类加其身份；资源之间相互独立，`global` 上的访问不蕴含任何会话上的访问。运行时由拥有该种类的领域经 `typert.resources.register(kind, { field })` 或 `{ resolve }` 登记默认提取规则，该登记拒绝 `global`。默认 resolver 在 lookup 解析前接收 `{ args, parameters }`：已校验的命名 wire 值，以及包含 `name`、`wire` 的有序参数描述；返回身份，无匹配时返回 `undefined`。领域因此可以区分具名身份参数与无关字符串；lookup provider 与 Host Context adapter 经 `resource` 声明其 wire 身份所属的种类，因此带 Agent 查找参数或 Agent 作用域接收器的方法无需选项即携带 `session` 资源。`@Remote` 与 `@RemoteScope` 的 `resources` 选项把种类映射到一个以方法 wire 参数为自身位置参数的读取函数；这些参数的类型从被装饰的方法推断，查找参数映射为其 wire 类型，因此 `@Remote({ name: 'page', resources: { session: request => request.address.sessionId } })` 可以读取默认规则读不到的字段。读取函数与默认规则都未给出资源的调用触及 `global`；它们必须给出方法访问的全部资源，因为访问控制从不检查被遗漏的资源。`TypertForwardableEventEntry` 中的转发 `emit` 条目可以声明 `resources` 读取函数，其类型由该事件自身的参数决定；未声明的条目触及 `global`。资源解析归 [API Gateway](../../api/gateway/README.zh.md)；判定与拒绝原因归 [`dsh-api-remote-access`](../../api/remote-access/README.zh.md)。
 
 ### 把 Host 对象与 Context 关联到 wire identity
 
@@ -138,8 +138,8 @@ Host 装配以转发给消费方的 Cordis 事件扩展 `TypertRemoteEventSelect
 
 当包级约定不够用时阅读以下页面；它们从声明逐步进入运行时与调用路径。
 
-- [API Gateway 参考](../../../docs/api-gateway.zh.md)——声明如何成为实际的 Host 到 Client 调用。
-- [Typert 子系统参考](../../../docs/subsystems/typert.zh.md)——从协议与 Gateway 类型记录的字面公共约定。
+- [API Gateway 参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/api-gateway.md)——声明如何成为实际的 Host 到 Client 调用。
+- [Typert 子系统参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/typert.md)——从协议与 Gateway 类型记录的字面公共约定。
 - [Typert 注册表](../registry/README.zh.md)——描述符与提供方在运行时存放的位置。
 - [Typert 生成器](../generator/README.zh.md)——生成消费方声明与描述符的包。
 - [Remote 调用 Agent Note](../../../.agents/notes/implemented/architecture/2026-08-02-typert-remote-method-calls.zh.md)——Remote 调用背后的架构与传输决策。

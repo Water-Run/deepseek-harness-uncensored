@@ -112,7 +112,7 @@ export function redactBody(contentType: string | null, text: string): string {
   const media = (contentType ?? '').toLowerCase()
   if (media.includes('json')) {
     try {
-      const parsed = JSON.parse(text) as unknown
+      const parsed: unknown = JSON.parse(text)
       return JSON.stringify(redactJson(parsed, 0))
     } catch {
       // Not valid JSON despite the media type: store the text unchanged.

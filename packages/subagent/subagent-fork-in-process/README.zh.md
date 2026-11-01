@@ -51,7 +51,7 @@ kind: "package-reference"
 |---|---|---|
 | `providerName` | `fork` | 注册到 `ctx.subagents` 的提供方名称 |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-subagent-fork-in-process)是每个受支持字段及其 JSDoc 的穷尽式真源。
+生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-subagent-fork-in-process)是每个受支持字段及其 JSDoc 的穷尽式真源。
 
 ### 一次 fork 委派会做什么
 
@@ -94,10 +94,10 @@ kind: "package-reference"
 
 当包级约定不够用时阅读以下页面；它们从共享 subagent 模型进入兄弟后端，以及保留继承请求前缀的设计证据。
 
-- [Subagent 子系统](../../../docs/subsystems/subagent.zh.md)——启动请求、结果、提供方约定与进程内深度和初始内容。
+- [Subagent 子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/subagent.md)——启动请求、结果、提供方约定与进程内深度和初始内容。
 - [dsh-subagent-spawn-in-process](../subagent-spawn-in-process/README.zh.md)——全新子级的兄弟后端。
 - [dsh-tool-subagent](../tool-subagent/README.zh.md)——指向该提供方的面向模型委派工具。
-- [生成配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-subagent-fork-in-process)——每个受支持配置字段及其源声明。
+- [生成配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-subagent-fork-in-process)——每个受支持配置字段及其源声明。
 - [Fork child 保留 parent 请求前缀](../../../.agents/notes/implemented/architecture/2026-08-10-fork-children-stay-one-shot.zh.md)——可继续 fork 为何保留继承的请求前缀。
 
 -----

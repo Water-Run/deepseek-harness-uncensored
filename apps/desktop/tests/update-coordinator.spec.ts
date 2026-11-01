@@ -69,9 +69,10 @@ function fixture(channel: 'nightly' | 'latest' = 'nightly', version = '1.1.0-alp
   const beforeRestart = vi.fn(async () => true)
   const downloadResult = vi.fn()
   const states: DesktopUpdateState[] = []
-  const updater = Object.assign(events, {
+  Object.assign(events, {
     checkForUpdates, downloadUpdate, quitAndInstall, setFeedURL: vi.fn(), getFeedURL: () => 'Deprecated. Do not use it.',
-  }) as unknown as AppUpdater
+  })
+  const updater = events as AppUpdater
   const coordinator = new DesktopUpdateCoordinator(
     (state) => { states.push(state); return state },
     beforeRestart, updater, () => true, () => version, downloadResult, channel,
@@ -91,13 +92,13 @@ describe('desktop update coordinator', () => {
     expect(cos.checkForUpdates).not.toHaveBeenCalled()
   })
 
-  it('keeps safe preparation diagnostics separate and clears them on an explicit retry', async () => {
+  it.each(['stop-failed', 'fullscreen-timeout'] as const)('keeps safe %s diagnostics separate and clears them on an explicit retry', async (kind) => {
     const f = fixture()
     await f.coordinator.check()
     await f.coordinator.download('1.1.0-rc.2')
-    f.beforeRestart.mockRejectedValueOnce(new DesktopUpdatePreparationError('stop-failed', zh.updateStopFailed, 'exit 0; shutdown acknowledged false'))
+    f.beforeRestart.mockRejectedValueOnce(new DesktopUpdatePreparationError(kind, zh.updateStopFailed, 'exit 0; shutdown acknowledged false'))
     expect(await f.coordinator.install('1.1.0-rc.2')).toEqual({ phase: 'error', version: '1.1.0-rc.2',
-      failedOperation: 'install', preparationFailure: 'stop-failed', message: zh.updateStopFailed,
+      failedOperation: 'install', preparationFailure: kind, message: zh.updateStopFailed,
       technicalDetails: 'exit 0; shutdown acknowledged false' })
     expect(f.quitAndInstall).not.toHaveBeenCalled()
     f.beforeRestart.mockResolvedValueOnce(false)

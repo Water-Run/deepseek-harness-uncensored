@@ -27,7 +27,7 @@ The boot group launches profile applications and manages their installed composi
 | [`hmr`](hmr/README.md) | Coordinates module and configuration reloads with package mutations | `hmr` |
 | [`config-editor`](config-editor/README.md) | Persists active profile configuration through Loader reconciliation | `configEditor` |
 | [`plugin-manager`](plugin-manager/README.md) | Manages current-profile plugins and bundle packages through shared CLI operations | `pluginManager` |
-| [`plugin-market`](plugin-market/README.md) | Reads the plugin market indexes the user configures for Discover and the `plugin_market` tool | `pluginMarket` |
+| [`plugin-market`](plugin-market/README.md) | Reads the plugin indexes the user configures for Discover and the `plugin_market` tool | `pluginMarket` |
 
 <a id="related-documentation"></a>
 ## Related documentation
@@ -37,7 +37,7 @@ The boot group launches profile applications and manages their installed composi
 - [dsh-home-paths](../util/home-paths/README.md) — the harness-home resolver both packages build on.
 - [dsh-cmdline](cmdline/README.md) — how an app owns its flag family instead of the launcher.
 
-- [Profile management](../../docs/subsystems/boot.md) — service methods and result records.
+- [Profile management](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/boot.md) — service methods and result records.
 
 <a id="dev-note"></a>
 ## Dev Note

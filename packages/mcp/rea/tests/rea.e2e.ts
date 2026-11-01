@@ -1,4 +1,5 @@
 /** Real optional REA/Ghidra acceptance through the shipped consumer; owns only temporary samples. @module */
+import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import { copyFile, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -35,7 +36,7 @@ it.skipIf(nodePath === undefined || cliPath === undefined)('discovers real REA, 
     const agent = await ctx.agentLoop.create(SessionId('rea-real'), {}, { cwd })
     let callNumber = 0
     const call = async (name: string, arguments_: unknown) => {
-      const result = await ctx.tools.execute({ name, arguments: arguments_, agent,
+      const result = await executeToolFixture(ctx, { name, arguments: arguments_, agent,
         signal: AbortSignal.timeout(240000), callId: ToolCallId(`rea-${String(++callNumber)}`) })
       expect(result.isError, JSON.stringify(result)).toBe(false)
       return JSON.stringify(result)

@@ -27,7 +27,7 @@ boot 组负责启动 profile 应用并管理其已安装组合。`app-boot` 解�
 | [`hmr`](hmr/README.zh.md) | 协调模块与配置重载，并与包修改互斥执行 | `hmr` |
 | [`config-editor`](config-editor/README.zh.md) | 通过 Loader 应用并持久化当前 profile 配置 | `configEditor` |
 | [`plugin-manager`](plugin-manager/README.zh.md) | 通过共享 CLI 操作管理当前 profile 插件与组合包 | `pluginManager` |
-| [`plugin-market`](plugin-market/README.zh.md) | 读取用户配置的插件市场索引，供发现页和 `plugin_market` 工具使用 | `pluginMarket` |
+| [`plugin-market`](plugin-market/README.zh.md) | 读取用户配置的插件索引，供发现页和 `plugin_market` 工具使用 | `pluginMarket` |
 
 <a id="related-documentation"></a>
 ## 相关文档
@@ -37,7 +37,7 @@ boot 组负责启动 profile 应用并管理其已安装组合。`app-boot` 解�
 - [dsh-home-paths](../util/home-paths/README.zh.md)——两个包都依赖的 harness home 解析器。
 - [dsh-cmdline](cmdline/README.zh.md)——flag 家族如何由应用持有而非启动器。
 
-- [Profile 管理](../../docs/subsystems/boot.zh.md)——服务方法与结果记录。
+- [Profile 管理](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/boot.md)——服务方法与结果记录。
 
 <a id="dev-note"></a>
 ## 开发备注

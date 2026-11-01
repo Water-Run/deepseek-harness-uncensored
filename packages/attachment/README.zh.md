@@ -36,9 +36,9 @@ kind: "package-group"
 
 先从子系统参考了解服务约定，再看能力 seam 表与本地后端的配置面。
 
-- [附件子系统参考](../../docs/subsystems/attachment.zh.md)——服务约定、载荷类型与 `ctx.attachments` 的 Cordis 接口面。
-- [能力 seam](../../docs/capability-seams.zh.md)——本家族遵循的 Service Definition / Service Provider / Consumer 拆分。
-- [生成配置目录](../../docs/config-catalog.zh.md#deepseek-aidsh-attachment-local)——本地后端的每个受支持字段。
+- [附件子系统参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/attachment.md)——服务约定、载荷类型与 `ctx.attachments` 的 Cordis 接口面。
+- [能力 seam](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/capability-seams.md)——本家族遵循的 Service Definition / Service Provider / Consumer 拆分。
+- [生成配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-attachment-local)——本地后端的每个受支持字段。
 
 <a id="dev-note"></a>
 ## 开发备注

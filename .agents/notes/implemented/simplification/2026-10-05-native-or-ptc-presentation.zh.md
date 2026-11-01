@@ -16,7 +16,7 @@ Status: implemented
 
 **保留混合呈现。** 这允许同一个 agent 在每一步选择直接调用或程序，但会重复通告能力信息，并保留第三种准入情况。独立的原生与 PTC agent 提供受支持的选择。
 
-**将混合呈现静默映射到另一种模式。** 任一映射都会改变现有程序或直接调用的执行方式。明确拒绝配置，并提供[升级指南](../../../../docs/upgrade-guide/v0.2.1-alpha.1/tool-presentation-mode/guide.zh.md)，可以让这一选择可见。
+**将混合呈现静默映射到另一种模式。** 任一映射都会改变现有程序或直接调用的执行方式。明确拒绝配置，并提供[升级指南](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/upgrade-guide/v0.2.1-alpha.1/tool-presentation-mode/guide.md)，可以让这一选择可见。
 
 ## Consequences
 

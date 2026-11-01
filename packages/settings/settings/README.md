@@ -53,7 +53,7 @@ Secret roles are redacted from values, inherited values, profile overrides, and 
 <a id="further-exploration"></a>
 ## Further Exploration
 
-- [Settings reference](../../../docs/subsystems/settings.md) — form values and mutations.
+- [Settings reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/settings.md) — form values and mutations.
 - [Volatile configuration](../../../vendor/loader/README.md) — reference lifetime and notifications.
 - [Configuration editor](../../boot/config-editor/README.md) — persistence and reload ordering.
 

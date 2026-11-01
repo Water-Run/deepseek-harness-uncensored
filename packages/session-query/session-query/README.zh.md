@@ -122,7 +122,7 @@ kind: "package-reference"
 
 当包级约定不够用时阅读以下页面。它们从共享查询词汇逐步进入具体后端与决策证据。
 
-- [会话查询子系统参考](../../../docs/subsystems/session-query.zh.md)——完整类型级约定：记录、过滤器、搜索页、血缘、有界读取与错误。
+- [会话查询子系统参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/session-query.md)——完整类型级约定：记录、过滤器、搜索页、血缘、有界读取与错误。
 - [dsh-session-query-sqlite](../session-query-sqlite/README.zh.md)——已发布的全文后端及其索引生命周期。
 - [dsh-tool-session-query](../../experimental/tool-session-query/README.zh.md)——构建在本服务之上的面向模型消费方。
 - [会话查询关系追踪](../../../.agents/notes/archived/feature/2026-07-13-session-query-tracing.md)——追踪语义与校验边界。

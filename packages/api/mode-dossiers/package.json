@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-api-mode-dossiers",
   "description": "Mode-owned dossier storage and its settings surface: security and reverse-engineering case ledgers, the writing-materials registry and its model-visible context, and read-only sample inventory",
-  "version": "0.2.1-rc.3",
+  "version": "0.2.2-alpha.2",
   "publishConfig": {
     "access": "public"
   },
@@ -31,7 +31,8 @@
       "default": "./lib/typert.remote-client.js"
     },
     "./src/*": "./src/*",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
   },
   "license": "MIT",
   "dependencies": {
@@ -59,6 +60,7 @@
     "@deepseek-ai/dsh-api-remote-access": "workspace:*"
   },
   "files": [
+    "locale/*.json",
     "lib/index.js",
     "lib/types/**/*.js",
     "lib/types/**/*.d.ts",

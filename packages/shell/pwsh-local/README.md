@@ -53,7 +53,7 @@ Load the executor with the budgets you want; every field has a default, so the s
 | `graceMs` | `3,000` | Grace period for kill escalation and post-exit pipe draining |
 | `pwshPath` | resolved | Explicit pwsh executable; else well-known locations, then PATH |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-pwsh-local) is the exhaustive source for every accepted field and its JSDoc.
+The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-pwsh-local) is the exhaustive source for every accepted field and its JSDoc.
 
 ### Running commands
 
@@ -122,7 +122,7 @@ Read these pages when the executor contract is not enough. They move from the se
 - [bash-local](../bash-local/README.md) — the POSIX counterpart this executor mirrors call-for-call.
 - [pwsh-sandbox](../pwsh-sandbox/README.md) — the confining executor to compose instead when commands need the sandbox capability.
 - [tool-pwsh](../tool-pwsh/README.md) — the model-facing `pwsh` tool over this executor.
-- [Bash executor subsystem](../../../docs/subsystems/shell.md) — request/spec vocabulary, results, and the service contract in full.
+- [Bash executor subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/shell.md) — request/spec vocabulary, results, and the service contract in full.
 
 -----
 

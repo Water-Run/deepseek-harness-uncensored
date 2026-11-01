@@ -32,7 +32,7 @@ HTTP cookie audience 保留既有写法，避免启用 TLS 支持时使无关的
 
 ## Consequences
 
-直接 HTTPS 不需要终止 TLS 的代理。HTTP 监听器前的 HTTPS 代理仍负责外部 cookie 重写。HTTPS 监听器签发 `Secure` cookie，因此公开部署的浏览器侧必须保持 HTTPS，而不应依赖本地浏览器对 HTTP 的例外。部署步骤归[公开部署指南](../../../../docs/user/guide/public-deployments.zh.md)所有。
+直接 HTTPS 不需要终止 TLS 的代理。HTTP 监听器前的 HTTPS 代理仍负责外部 cookie 重写。HTTPS 监听器签发 `Secure` cookie，因此公开部署的浏览器侧必须保持 HTTPS，而不应依赖本地浏览器对 HTTP 的例外。部署步骤归[公开部署指南](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/user/guide/public-deployments.md)所有。
 
 本决策部分取代[浏览器启动 token 认证](2026-08-24-browser-token-authentication.zh.md)与[具体绑定地址](2026-09-19-concrete-web-bind-address.zh.md)中仅支持 HTTP 的前提。这些说明分别继续定义 cookie 载荷与有效期及绑定准入，保持活跃。
 

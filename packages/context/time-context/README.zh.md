@@ -46,7 +46,7 @@ kind: "package-reference"
 | `timeZone` | 进程时区 | 当前开放轮次没有唯一浏览器时区时的显示回退时区 |
 | `refreshIntervalMs` | `600000`（10 分钟） | 同一会话中两次持久注入之间的最小毫秒数 |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-time-context)是每个受支持字段及其 JSDoc 的穷尽式真源。
+生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-time-context)是每个受支持字段及其 JSDoc 的穷尽式真源。
 
 ### 选择时区
 
@@ -76,7 +76,9 @@ kind: "package-reference"
 
 ### 主要流程
 
-需要注入时，插件采样挂钟时间，从开放轮次的 `user-rpc` 消息派生浏览器时区策略，解析显示时区（请求本地或回退），并渲染三行读数。正数间隔调度会扫描原始持久会话事件，查找最新一条归因于插件的消息——包括被压缩（compaction）遮蔽的读数——因此调度无需进程本地缓存也能在恢复后存续。读数记录的是已进入的步骤，不是已完成或已传输的请求；后续准备失败时，该读数可能留在历史中。
+pre-step 监听器在等待投影注册前安装。激活期间到达的步骤会等待读取句柄；注册失败或所属插件释放会终止请求，等待期间取消不会产生读数。
+
+需要注入时，插件采样挂钟时间，确定浏览器时区策略，解析显示时区（请求本地或回退），并渲染三行读数。私有 `timeContext` Projection 保存消息及注入时间、最近进入的轮次，以及按出现顺序去重的浏览器时区值，也保留被压缩遮蔽消息的时区事实。时区校验仍在拒绝和刷新间隔检查之后执行；重放不调用格式化器或 hook。JSON 检查点加后缀重放与完整重放一致；旧版本缓存行通过完整日志重建。读数记录的是已进入的步骤，不是已完成或已传输的请求；后续准备失败时，该读数可能留在历史中。
 
 </details>
 
@@ -87,9 +89,9 @@ kind: "package-reference"
 
 包级约定不够用时阅读以下页面。它们从设计决策进入挂载本插件的组合与穷尽式配置。
 
-- [Schedule 用户指南](../../../docs/user/guide/schedule.zh.md)——挂载本插件的官方配置路径。
+- [Schedule 用户指南](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/user/guide/schedule.md)——挂载本插件的官方配置路径。
 - [context 组地图](../README.zh.md)——相邻的请求上下文包。
-- [生成的配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-time-context)——每个受支持配置字段及其源声明。
+- [生成的配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-time-context)——每个受支持配置字段及其源声明。
 
 -----
 
@@ -133,6 +135,7 @@ Elapsed since the preceding step context: <duration-or-unavailable>.
 
 这些限制说明时钟上下文何时不合适。它们是当前包约束。
 
+- **状态与重放成本**：时间戳和当前轮次编号占固定空间。时区状态随最近进入轮次中不同的时区字符串数量增长，不随所有消息增长；每次增加新时区时复制该列表。格式化器仍是可丢弃的进程缓存。标准 AgentLoop 请求最近进入的轮次。若类型化 pre-step 调用方请求其他轮次，原同步完整前缀扫描会包含目标轮次之后已进入的消息。只有将 pre-step 请求明确限定为最近进入的轮次并同步更新调用方后，才可移除此回退。
 - **仅限提示词来源信息**：浏览器时区上下文用于指导自然语言解释，但不会悄然填入另一工具所要求的时区字段。
 - **混合轮次会询问**：如果同一个开放轮次包含来自不同浏览器时区的提示词，模型会收到要求澄清的指令，而不会猜测哪个时区拥有未限定的时间。
 - **回退值不代表用户权威**：浏览器来源信息缺失或混杂时，配置或进程时区用于格式化时钟，但面向模型的策略仍要求澄清。

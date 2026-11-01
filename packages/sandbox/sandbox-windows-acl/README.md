@@ -152,7 +152,7 @@ The sandbox-owned SID, ACL, token, file, and lock declarations are checked again
 
 Start with the subsystem reference for the shared vocabulary, then the provider that mounts this rung, its consumers, and the design decision.
 
-- [Process sandbox subsystem](../../../docs/subsystems/sandbox.md) — modes, per-call policy, and enforcement semantics.
+- [Process sandbox subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/sandbox.md) — modes, per-call policy, and enforcement semantics.
 - [Local sandbox backends](../sandbox-local/README.md) — the provider that mounts this backend as the win32 rung.
 - [Sandbox seam package](../sandbox/README.md) — the service contract this backend implements.
 - [Win32 process library](../../subprocess/win32-process/README.md) — shared restricted-process, stdio, Job, wait, and handle-cleanup primitives.

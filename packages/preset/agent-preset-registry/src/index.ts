@@ -1,12 +1,13 @@
 /** Declarative Agent capability sets, activation and session binding. */
-import { Context } from '@deepseek-ai/cordis'
+import type { ProjectionHandle } from '@deepseek-ai/dsh-session-projection'
+import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { Remote, RemoteError, TypertRemoteService, principalOf } from '@deepseek-ai/dsh-typert-protocol'
 import { bindScopeParent, createScope, scopeOf, scopeParentOf, type Scope, type ScopeKey, type ScopeParentBinding } from '@deepseek-ai/dsh-scope'
 import { entryListSchema } from '@deepseek-ai/cordis-plugin-include'
 import { dump } from 'js-yaml'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { Session, SessionId } from '@deepseek-ai/dsh-session'
 // Type-only: the optional `settings` service this registry keeps off the generated pages.
 import type {} from '@deepseek-ai/dsh-settings'
 import type {} from '@deepseek-ai/dsh-tools'
@@ -63,7 +64,7 @@ interface Binding {
 
 /** Registry of YAML-declared presets and the revisions live Agents retain. */
 export class AgentPresetRegistry extends TypertRemoteService {
-  static inject = ['loader', 'sessionProjections']
+  static inject = ['loader', 'sessionProjections', 'agents']
   static Config = z.object({
     default: z.string().required(),
     selectedDefault: z.string().volatile(),
@@ -72,6 +73,7 @@ export class AgentPresetRegistry extends TypertRemoteService {
     requireSecurityEntryAcknowledgement: z.boolean().default(false).volatile(),
     sensitiveConfirmations: z.boolean().default(true).volatile(),
   })
+  private agentPresetProjectionHandle!: ProjectionHandle<string | null>
   private readonly owner: Context
   private readonly definitions = new Map<string, Definition>()
   private readonly generations = new Map<ScopeKey, Generation>()
@@ -89,7 +91,11 @@ export class AgentPresetRegistry extends TypertRemoteService {
   constructor(ctx: Context, public config: Config) {
     super(ctx, 'agentPresets')
     this.owner = ctx
-    ctx.sessionProjections.register(agentPresetProjectionDefinition)
+  }
+
+  protected async [Service.init](): Promise<void> {
+    const ctx = this.owner
+    this.agentPresetProjectionHandle = await ctx.sessionProjections.register(agentPresetProjectionDefinition)
     ctx.inject(['settings'], (child) => { child.effect(() => child.settings.configure({ auto: false }, ctx.fiber)) })
     ctx.on('session/event', (session, event) => {
       if (event.type === 'agent-preset/selected') ctx.emit('agent-preset/selected', session.id, event.data.agentPreset)
@@ -310,16 +316,16 @@ export class AgentPresetRegistry extends TypertRemoteService {
   private isNewMainSession(session: Agent['session']): boolean {
     const header = session.header
     if (header.parentSession !== undefined || header.origin === 'subagent') return false
-    const boundary = this.owner.sessionProjections.stateOf(session, 'turnBoundary')
-    return boundary === undefined || (boundary.openTurnStartSeq === null && boundary.lastTurn === 0)
+    const boundary = this.owner.agents.turnBoundaryOf(session)
+    return boundary.openTurnStartSeq === null && boundary.lastTurn === 0
   }
 
   private assertSecurityEntrySelection(agent: Agent, agentPreset: string): void {
     const required = this.securityEntryRequired()
     if (!required || agentPreset !== this.config.securityEntryPreset.get()) return
-    if (this.owner.sessionProjections.stateOf(agent.session, 'agentPreset') === agentPreset) return
-    const boundary = this.owner.sessionProjections.stateOf(agent.session, 'turnBoundary')
-    if (boundary !== undefined && (boundary.openTurnStartSeq !== null || boundary.lastTurn > 0)) return
+    if (this.agentPresetProjectionHandle.stateOf(agent.session) === agentPreset) return
+    const boundary = this.owner.agents.turnBoundaryOf(agent.session)
+    if (boundary.openTurnStartSeq !== null || boundary.lastTurn > 0) return
     const state = this.securityEntry.read()
     if (state.acknowledged) return
     throw new RemoteError('security-entry/required', 'Confirm the security-mode notice before starting this conversation.', {
@@ -352,6 +358,15 @@ export class AgentPresetRegistry extends TypertRemoteService {
       this.ctx.logger.warn('Security protection status is unavailable.', error)
       return UNAVAILABLE_PROTECTION
     }
+  }
+
+  /**
+   * Read the preset recorded for a Session, including selections no longer in the roster.
+   * @param session - Session whose committed preset selection is read.
+   * @returns the recorded preset, or null when none was selected.
+   */
+  presetForSession(session: Session): string | null {
+    return this.agentPresetProjectionHandle.stateOf(session)
   }
 
   /** Register and eagerly load a definition; activation failure remains visible in the roster.
@@ -629,8 +644,8 @@ export class AgentPresetRegistry extends TypertRemoteService {
   @Remote('select')
   async select(agent: Agent, agentPreset: string): Promise<string> {
     const turn = (this.switches.get(agent.id) ?? Promise.resolve()).then(async () => {
-      const boundary = this.owner.sessionProjections.stateOf(agent.session, 'turnBoundary')
-      if (agent.status !== 'idle' || boundary?.openTurnStartSeq != null) {
+      const boundary = this.owner.agents.turnBoundaryOf(agent.session)
+      if (agent.status !== 'idle' || boundary.openTurnStartSeq !== null) {
         throw new RemoteError('agent-preset/locked', 'Wait for the current task to finish before changing its mode', {
           sessionId: agent.id, agentPreset,
         })
@@ -638,14 +653,14 @@ export class AgentPresetRegistry extends TypertRemoteService {
       // A new conversation entering Security needs this Host lifetime's first-entry
       // acknowledgement; established conversations keep the temporary switch policy below.
       this.assertSecurityEntrySelection(agent, agentPreset)
-      if (boundary !== undefined && boundary.lastTurn > 0 && !this.switchPermission.read().allowExistingSessionSwitch) {
+      if (boundary.lastTurn > 0 && !this.switchPermission.read().allowExistingSessionSwitch) {
         throw new RemoteError('agent-preset/locked', 'Changing an existing conversation mode is disabled in Settings', {
           sessionId: agent.id, agentPreset,
         })
       }
       const current = this.definitions.get(agentPreset)?.generation
       if (current !== undefined && this.generationFor(agent.ctx) === current
-        && this.owner.sessionProjections.stateOf(agent.session, 'agentPreset') === agentPreset) return agentPreset
+        && this.agentPresetProjectionHandle.stateOf(agent.session) === agentPreset) return agentPreset
       const maintenance = { entered: false }
       try {
         return await agent.runMaintenance(async () => {

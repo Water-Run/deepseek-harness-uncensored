@@ -11,9 +11,9 @@ import type { Connection, ServerChannel } from 'ssh2'
 import type { Duplex } from 'node:stream'
 import { createServer, type Socket } from 'node:net'
 import type { Config } from '../../src/direct.ts'
-import { SshRpcPeer } from '../../src/protocol.ts'
+import { SshRpcPeer, SSH_PROTOCOL_VERSION } from '../../src/protocol.ts'
 
-export const hello = { protocol: 2, hash: 'a'.repeat(64), platform: 'linux', nodeVersion: 'fixture',
+export const hello = { protocol: SSH_PROTOCOL_VERSION, hash: 'a'.repeat(64), platform: 'linux', nodeVersion: 'fixture',
   kind: 'node-script', executable: '/fixture/node', root: '/fixture/streams', workspace: '/fixture/workspace' }
 
 /**

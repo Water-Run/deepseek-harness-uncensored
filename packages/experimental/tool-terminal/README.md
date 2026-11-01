@@ -57,7 +57,7 @@ The tools need `ctx.terminals` — a backend must be mounted — and the system-
 | `enableRunInBackground` | `true` | Expose and accept `run_in_background`; `false` removes the schema field and rejects the argument |
 | `maxResultBytes` | `262144` | UTF-8 cap (minimum `64`) for each complete terminal result after wait, session, pagination, truncation, and job-status metadata |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-tool-terminal) and [tool catalog](../../../docs/tool-catalog.md#deepseek-aidsh-tool-terminal) are the exhaustive sources for config fields and schemas.
+The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-tool-terminal) and [tool catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-terminal) are the exhaustive sources for config fields and schemas.
 
 ### Background sends
 
@@ -105,8 +105,8 @@ Foreground sends use terminal call and result cards; background sends and the ot
 
 Read these pages when the package-level contract is not enough. They move from the generated schemas to the service contract, the backend, and the background-job surface.
 
-- [Tool catalog](../../../docs/tool-catalog.md#deepseek-aidsh-tool-terminal) — the six generated schemas and result shapes.
-- [Terminal subsystem reference](../../../docs/subsystems/terminal.md) — the service contract and shared types behind the tools.
+- [Tool catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-terminal) — the six generated schemas and result shapes.
+- [Terminal subsystem reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/terminal.md) — the service contract and shared types behind the tools.
 - [terminal service](../../terminal/terminal/README.md) — session operations, owner fencing, and cleanup semantics.
 - [terminal-bash backend](../../terminal/terminal-bash/README.md) — the shipped shell backend that provides sessions.
 - [jobs package map](../../jobs/README.md) — the background-job surface that collects and kills background sends.
@@ -141,7 +141,7 @@ Prefix-stable while the registration scope and guidance text are unchanged.
 
 #### What the model sees
 
-The six generated schemas are listed in the [`dsh-tool-terminal` catalog section](../../../docs/tool-catalog.md#deepseek-aidsh-tool-terminal). Their fixed schema tokens are present whenever this plugin is active; agent-scoped tool filtering may hide them.
+The six generated schemas are listed in the [`dsh-tool-terminal` catalog section](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-terminal). Their fixed schema tokens are present whenever this plugin is active; agent-scoped tool filtering may hide them.
 
 #### Token effect
 

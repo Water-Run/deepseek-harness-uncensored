@@ -39,7 +39,7 @@ $DSH_HOME/.credentials.yaml        (provider-managed, written by set/unset)
 
 ## 后果
 
-- 留在 `.credentials.yaml` 中的密钥会覆盖同名的导出变量，包括在 harness home 存有该名字的机器上运行的 CI 机密。[升级指南](../../../../docs/upgrade-guide/v0.2.1-alpha.2/stored-credentials-precedence/guide.zh.md)说明受影响的用户如何继续使用导出的账户。
+- 留在 `.credentials.yaml` 中的密钥会覆盖同名的导出变量，包括在 harness home 存有该名字的机器上运行的 CI 机密。[升级指南](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/upgrade-guide/v0.2.1-alpha.2/stored-credentials-precedence/guide.md)说明受影响的用户如何继续使用导出的账户。
 - Models 页面总能保存、替换或删除密钥，也不会因名字被导出而禁用密钥输入框。
 - 存储之上没有按次生效的标志。一次运行的覆盖需要使用单独的 `DSH_HOME`。
 - `packages/credentials/credentials-local/tests/local.spec.ts` 覆盖在启动环境值之上存储、以及 `unset` 后恢复该值；`packages/llm/llm-pi-ai/tests/auth.spec.ts` 覆盖存储的凭据压过每个启动层。

@@ -1,4 +1,5 @@
 /** MCP transport refusal, real stdio generations and rule-owner withdrawal. @module */
+import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import { Context } from '@deepseek-ai/cordis'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
@@ -67,10 +68,10 @@ it('refuses HTTP MCP before any request or TCP connection', async () => {
 it('permits an explicitly unprotected composition and reaps both the probe and serving process', async () => {
   const h = await harness(); await h.configure(false)
   const fiber = await h.ctx.plugin(ProtectedMcp, h.config)
-  const result = await h.ctx.tools.execute({ name: 'mcp__guarded__write_marker', arguments: {}, ...execution('allowed') })
+  const result = await executeToolFixture(h.ctx, { name: 'mcp__guarded__write_marker', arguments: {}, ...execution('allowed') })
   expect(result.isError).toBe(false)
   expect(await readFile(join(h.root, 'called'), 'utf8')).toBe('executed')
-  const resource = await h.ctx.tools.execute({ name: 'read_mcp_resource', arguments: {
+  const resource = await executeToolFixture(h.ctx, { name: 'read_mcp_resource', arguments: {
     server: 'guarded', uri: 'fixture://evidence',
   }, ...execution('read') })
   expect(resource.isError, JSON.stringify(resource)).toBe(false)
@@ -87,12 +88,12 @@ it('revokes in-flight calls, prevents stale dispatch and does not reconnect afte
   const fiber = await h.ctx.plugin(ProtectedMcp, h.config)
   const stale = h.ctx.tools.get('mcp__guarded__write_marker')!
   h.ctx.effect(() => h.ctx.tools.register({ ...stale, name: 'cached_mcp_call' }))
-  const waiting = h.ctx.tools.execute({ name: 'mcp__guarded__wait_forever', arguments: {}, ...execution('waiting') })
+  const waiting = executeToolFixture(h.ctx, { name: 'mcp__guarded__wait_forever', arguments: {}, ...execution('waiting') })
   await expect.poll(() => readFile(join(h.root, 'waiting'), 'utf8')).toBe('1')
   await h.configure(true)
   await fiber.dispose()
   expect((await waiting).isError).toBe(true)
-  expect((await h.ctx.tools.execute({ name: 'cached_mcp_call', arguments: {}, ...execution('stale') })).isError).toBe(true)
+  expect((await executeToolFixture(h.ctx, { name: 'cached_mcp_call', arguments: {}, ...execution('stale') })).isError).toBe(true)
   expect((await pids(h.root)).map(alive)).toEqual([false, false])
   await expect(readFile(join(h.root, 'called'))).rejects.toMatchObject({ code: 'ENOENT' })
 })

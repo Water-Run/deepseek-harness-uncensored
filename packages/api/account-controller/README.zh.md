@@ -36,7 +36,7 @@ account 命名空间提供 getState、getProfile / getBalance、getUnnotifiedBon
 <a id="further-exploration"></a>
 ## 深入探索
 
-[凭证子系统](../../../docs/subsystems/credentials.zh.md)定义存储接口；[架构](../../../docs/architecture.zh.md)说明应用组合。
+[凭证子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/credentials.md)定义存储接口；[架构](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/architecture.md)说明应用组合。
 
 <a id="model-experience"></a>
 ## 模型体验

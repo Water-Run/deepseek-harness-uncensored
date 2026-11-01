@@ -33,10 +33,15 @@ describe('THIRD_PARTY_NOTICES.md', () => {
   }, async () => {
     const generated = await render()
     expect(generated).toContain('It depends on the third-party software listed below.')
+    expect(generated).toContain('DeepSeek Harness Uncensored is licensed under [GPL-3.0-or-later](LICENSE)')
+    expect(generated).toContain('LICENSES/deepseek-harness-MIT.txt')
+    expect(generated).toContain('| [`cross-spawn`](https://github.com/moxystudio/node-cross-spawn) | MIT |')
+    expect(generated).not.toContain('https://github.com/git@')
     expect(generated).toContain(`| [\`numpy\`](https://github.com/numpy/numpy) | ${primaryRuntimeLock.pythonPackages.numpy} | BSD-3-Clause |`)
     expect(generated).toContain('## LibreOffice conversion kit')
     expect(generated).toContain('Recipients must have access to those corresponding sources and notices.')
     expect(generated.split('## Development-only npm dependencies')[0]).toContain('| [`chrome-devtools-frontend`]')
+    expect(generated.split('## Development-only npm dependencies')[0]).toContain('| [`@botiverse/oar`]')
     expect(generated).toContain('third-party license and notice files supplied by the npm source')
     expect(readFileSync(resolve(root, 'THIRD_PARTY_NOTICES.md'), 'utf8'), 'stale notices — run `pnpm run gen-third-party-notices`').toBe(generated)
   })
@@ -53,6 +58,43 @@ function workspace(entries: Record<string, Manifest>): { manifests: Map<string, 
 }
 
 describe('tierExternalDeps', () => {
+  it('discloses host-bundled OAR as runtime code and applies runtime license checks', () => {
+    const { manifests, names } = workspace({
+      'packages/experimental/subagent-oar/package.json': {
+        name: '@deepseek-ai/dsh-experimental-subagent-oar',
+        devDependencies: { '@botiverse/oar': '0.67.0', 'host-build-tool': '^1' },
+      },
+    })
+    const tiers = tierExternalDeps(manifests, names)
+    expect(tiers.get('@botiverse/oar')).toBe(true)
+    expect(tiers.get('host-build-tool')).toBe(false)
+    const dependencies = [{ name: '@botiverse/oar', license: 'GPL-3.0-only' }]
+      .filter(dependency => tiers.get(dependency.name))
+    expect(() => { assertRuntimeLicenses(dependencies) }).toThrow('@botiverse/oar (GPL-3.0-only)')
+    expect(() => { assertRuntimeLicenses([{ name: '@botiverse/oar', license: 'Apache-2.0' }]) }).not.toThrow()
+  })
+
+  it('keeps unrelated OAR development declarations out of runtime disclosure', () => {
+    const { manifests, names } = workspace({
+      'packages/experimental/unrelated/package.json': {
+        name: '@deepseek-ai/dsh-experimental-unrelated',
+        devDependencies: { '@botiverse/oar': '0.67.0' },
+      },
+    })
+    expect(tierExternalDeps(manifests, names).get('@botiverse/oar')).toBe(false)
+  })
+
+  it('rejects an OAR embedding owner that omits its required dependency declaration', () => {
+    const { manifests, names } = workspace({
+      'packages/experimental/subagent-oar/package.json': {
+        name: '@deepseek-ai/dsh-experimental-subagent-oar',
+        devDependencies: { 'host-build-tool': '^1' },
+      },
+    })
+    expect(() => tierExternalDeps(manifests, names))
+      .toThrow('@deepseek-ai/dsh-experimental-subagent-oar embeds @botiverse/oar but does not declare it')
+  })
+
   it('limits the LibreOffice exception to its reviewed package identity and MPL terms', () => {
     for (const name of [
       '@deepseek-ai/libreoffice-kit', '@deepseek-ai/libreoffice-kit-wasm',
@@ -211,6 +253,10 @@ describe('virtualManifest', () => {
 })
 
 describe('parseVendoredRows', () => {
+  it('reads the same manifest rows with Windows and Unix newlines', () => {
+    const source = readFileSync(resolve(root, 'vendor/README.md'), 'utf8').replaceAll('\r\n', '\n')
+    expect(parseVendoredRows(source.replaceAll('\n', '\r\n'))).toEqual(parseVendoredRows(source))
+  })
   it('reads the committed vendor manifest table', () => {
     const rows = parseVendoredRows(readFileSync(resolve(root, 'vendor/README.md'), 'utf8'))
 

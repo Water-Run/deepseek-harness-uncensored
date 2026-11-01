@@ -19,6 +19,7 @@ import { resolveSessionScope } from './scope.ts'
 import type { MemoryId, MemoryRecord, MemoryScope, MemoryType } from './types.ts'
 import { MEMORY_TYPES } from './spec.ts'
 import { extractTurn, extractionStatus } from './extraction.ts'
+import { extractionProjection } from './extraction-projection.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
@@ -135,8 +136,10 @@ function recordView(record: MemoryRecord): {
  * Register the per-turn retrieval listener and, when enabled, the tools.
  * @param ctx - preset-scoped context carrying the memory service.
  * @param config - retrieval and tool toggles.
+ * @returns Completion after the extraction projection and consumers are registered.
  */
-export function apply(ctx: Context, config: Config = {}): void {
+export async function apply(ctx: Context, config: Config = {}): Promise<void> {
+  const extraction = await ctx.sessionProjections.register(extractionProjection(ctx.memory.extractionOptions().inputBytes))
   const retrieval = config.retrieval ?? true
   const tools = config.tools ?? true
   const lifetime = new AbortController()
@@ -145,7 +148,7 @@ export function apply(ctx: Context, config: Config = {}): void {
   const run = async (agent: Agent, signal: AbortSignal): Promise<void> => {
     if (lifetime.signal.aborted) return
     extracting.add(agent)
-    const task = extractTurn(ctx, agent, config.mode, AbortSignal.any([signal, lifetime.signal]))
+    const task = extractTurn(ctx, agent, config.mode, AbortSignal.any([signal, lifetime.signal]), extraction.stateOf(agent.session))
     tasks.add(task)
     try { await task } finally { tasks.delete(task); extracting.delete(agent) }
   }
@@ -161,7 +164,7 @@ export function apply(ctx: Context, config: Config = {}): void {
     const unregister = ctx.memory.registerExtractor(agent.id, {
       retry: () => agent.runMaintenance(signal => run(agent, signal)),
       status: () => {
-        const value = extractionStatus(ctx, agent)
+        const value = extractionStatus(agent, extraction.stateOf(agent.session))
         return value?.phase === 'running' && !extracting.has(agent) ? { ...value, phase: 'failed' } : value
       },
     })

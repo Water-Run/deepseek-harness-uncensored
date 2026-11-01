@@ -2,14 +2,14 @@
   <img src="apps/desktop/resources/icon.svg" width="128" alt="DeepSeek Harness Uncensored 黑底白鲸 Logo">
   <h1>Deepseek Harness Uncensored: 更自由的探索未至之境</h1>
   <p>内置破甲提示词、四种任务模式和独立数据目录。<br>基于 DeepSeek Harness，保留原有工具与插件体系。</p>
-  <p><img src="https://img.shields.io/badge/Uncensored-v0.1.0-4B8BFF?style=for-the-badge" alt="Uncensored v0.1.0"> <img src="https://img.shields.io/badge/DSH-0.2.1--rc.3-303644?style=for-the-badge" alt="DSH 0.2.1-rc.3"> <img src="https://img.shields.io/badge/License-GPL--3.0--or--later-E6B84A?style=for-the-badge" alt="GPL-3.0-or-later"> <img src="https://img.shields.io/badge/Status-开发中-EF5363?style=for-the-badge" alt="开发中"></p>
+  <p><img src="https://img.shields.io/badge/Uncensored-v0.1.0-4B8BFF?style=for-the-badge" alt="Uncensored v0.1.0"> <img src="https://img.shields.io/badge/DSH-0.2.2--alpha.2-303644?style=for-the-badge" alt="DSH 0.2.2-alpha.2"> <img src="https://img.shields.io/badge/License-GPL--3.0--or--later-E6B84A?style=for-the-badge" alt="GPL-3.0-or-later"> <img src="https://img.shields.io/badge/Status-开发中-EF5363?style=for-the-badge" alt="开发中"></p>
   <p><a href="#开箱即用的破甲体验">破甲</a> · <a href="#四种模式">四种模式</a> · <a href="#其它通用增强">其它通用增强</a> · <a href="#快速开始">快速开始</a> · <a href="#开发进度">开发进度</a> · <a href="#当前限制">当前限制</a></p>
 </div>
 
-Uncensored 是 DeepSeek Harness 的独立分支，使用 **DSH 0.2.1-rc.3** 引擎，产品版本从 **v0.1.0** 开始。应用身份、数据目录和更新渠道与官方版分开，原有工具、插件和历史会话恢复能力保留。
+Uncensored 是 DeepSeek Harness 的独立分支，使用 **DSH 0.2.2-alpha.2** 引擎，产品版本从 **v0.1.0** 开始。应用身份、数据目录和更新渠道与官方版分开，原有工具、插件和历史会话恢复能力保留。
 
 > [!IMPORTANT]
-> **项目仍处于开发阶段，不是稳定发行版。** Windows x64 本机覆盖安装、数据保留和重新启动已验证；目标保护、签名发布和全平台验收尚未完成。
+> **项目仍处于开发阶段，不是稳定发行版。** 当前内核升级、完整目标保护、签名发布与跨平台交付仍在验收。
 
 ## 开箱即用的破甲体验
 
@@ -44,7 +44,7 @@ Uncensored 默认加载中文 armor，并内置英文文本，无需安装插件
 
 **REA 外部工具：**在“设置 → 模式 → 逆向配置”填写已安装的 Node 与 REA 入口路径，启用、保存并检测连接。可选配置 Ghidra、Java 和 IDA MCP。已验证 REA 6.8.0 的 229 个工具目录、JavaScript 分析及 Ghidra 12.1.4 原生分析；该版本不支持 Ghidra 12.2。外部引擎需另行安装，调用要求完全权限，随问不能启动。保存配置会关闭现有分析连接，重开样本后继续。
 
-需要 **Node.js 22.19+（22.x）或 24+、Corepack 和 Git**。
+需要 **Node.js 24.9+、Corepack 和 Git**。
 
 ```powershell
 corepack pnpm install
@@ -77,6 +77,8 @@ Windows 安装器使用独立 DSHU 标识。自行打包时，`DSH_DESKTOP_APP_I
 - 独立代理仅覆盖 `web_fetch` 和遵守代理环境变量的一次性命令；不覆盖浏览器、MCP、常驻终端和子智能体。HTTPS 隧道只记录元数据。
 - 记忆提炼会额外调用当前模型，受额度限制；结果可编辑、禁用或删除，失败可重试。数据保存在 `storages/memory.json`，损坏时报错并保留文件。检索使用词项匹配，暂不提供向量语义检索；包含提炼日志的会话不能由旧构建回读。
 - 当前为本机验收的未签名构建，尚无正式发行包；自动更新、签名验证、卸载回滚与跨平台仍待验收。额度恢复不接管其他运行环境或子智能体。
+- 自定义思考区插件使用 `rawText` 读取原始思考、`text` 读取显示文本；签名片段只在界面中过滤，原始会话记录保留。
+- 工具组合改用 `tool-executor-native` / `tool-executor-ptc`，移除旧 `tools.mode`；智能体列表已由 `tool-subagent-control` 提供，移除旧 `/list-agents` 条目。
 - 额度为保守估算，不是账单。升级前退出旧应用；账本自动迁移到 v3，保留费用和设置，旧总开关开启时保留为六档全部开启。旧构建不能读取 v3，旧未分类暂停记录需手动恢复。单项重置保留其他窗口与在途预留。反编译引擎需在本机另行安装或连接。
 
 ## 反馈与许可

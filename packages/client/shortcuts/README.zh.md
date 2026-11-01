@@ -60,7 +60,7 @@ Desktop 原生菜单和内嵌 frame 使用与 DOM 输入相同的命令注册表
 <a id="further-exploration"></a>
 ## 进一步阅读
 
-- [Web Client](../../../docs/subsystems/web-client.zh.md)
+- [Web Client](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/web-client.md)
 - [UI primitives](../ui-primitives/README.zh.md)
 - [Web app bundle](../../bundle/web-app/README.zh.md)
 

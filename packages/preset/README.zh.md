@@ -29,8 +29,8 @@ kind: "package-group"
 <a id="related-documentation"></a>
 ## 相关文档
 
-- [Scope](../../docs/subsystems/scope.zh.md)
-- [Cordis](../../docs/cordis-primer.zh.md)
+- [Scope](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/scope.md)
+- [Cordis](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/cordis-primer.md)
 - [Agent preset](../../.agents/notes/implemented/architecture/2026-09-18-declarative-agent-presets.zh.md)
 
 <a id="dev-note"></a>

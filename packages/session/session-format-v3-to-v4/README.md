@@ -174,7 +174,7 @@ For a seeded Session, the last `session/end-seed` carrying `inherited: true` ide
 | V3 source marker claiming generation 4 | Refuse: advancing the header must not activate a target-generation watermark. |
 | V3 source marker for generation 3 | Require a nonempty Session id and nonnegative safe-integer `throughSeq` before the marker; a foreign id is allowed only before the inherited cut with `parentSession`. |
 | Other source generations, including values above 4 | Retain their event type and payload coordinates unchanged; they remain inactive in V4. |
-| Native V4 marker for generation 4 | Apply the same earlier-coordinate and Session-ownership checks using V4 as current. |
+| Native V4 marker for generation 4 | Require an earlier `throughSeq` and nonempty Session id; a foreign id is allowed only before the validated inherited cut, without requiring `parentSession`. |
 | Native V4 historical marker, including generation 3 | Retain recorded coordinates and identity; it is not a V4 acceptance watermark. |
 
 No delivery payload or event type is rewritten. Higher-version migrations own any future activation checks; this edge checks only promotion to V4. The marker’s envelope sequence follows insertion remapping; source-generation ownership is checked against the original V3 sequence and inherited cut.
@@ -246,7 +246,7 @@ Current common admission does not validate each user/tool/developer content bloc
 | `compaction/prune` | Its span names exact current-surface nodes and excludes the protected head; it does not require a compaction transaction or its owner fields. |
 | Compact checkpoint replacement | Its `compact-checkpoint` source identifies the active compaction. |
 | Native `subagent/catalog` | Validates own version-0/version-1/version-2 payloads after the inherited cut. Each child id must be unique. Native reads neither collect child logs nor compare their physical facts; inherited entries do not establish own membership. |
-| Inherited cut and delivery | Apply the marker, coordinate, and generation-ownership rules stated above. |
+| Inherited cut and delivery | Apply the native V4 marker, coordinate, and generation-ownership rules above. |
 
 These checks are generation-owned in [relationships.ts](src/relationships.ts). Full common message/envelope acceptance and plugin-owned message projections additionally use the installed Session; the exported V4 restorer alone is not a replacement for complete catalog restoration.
 
@@ -303,8 +303,8 @@ The target restorer validates native fields and mandatory cross-event relationsh
 <a id="further-exploration"></a>
 ## Further Exploration
 
-- [Format version and release status](../../../docs/session-format-status.md) — checkout writer and published format authority.
-- [Adding a Session format version](../../../docs/cookbook/adding-a-session-format-version.md) — adjacent-edge integration and validation.
+- [Format version and release status](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/session-format-status.md) — checkout writer and published format authority.
+- [Adding a Session format version](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/cookbook/adding-a-session-format-version.md) — adjacent-edge integration and validation.
 - [JSONL persistence](../session-persistence-jsonl/README.md) — immutable generation selection and publication.
 
 -----
@@ -331,9 +331,9 @@ The edge preserves the recorded request prefix. Provider cache availability and 
 <a id="known-limitations-and-deferred-work"></a>
 
 - **Historical converter coverage** — Unsupported source forms may fail without publishing a successor or changing the source. First-party recordings do not enumerate third-party extensions. Later converter fixes may add support after V4 publication if their V4 output remains compatible. Interpreting extra stream-start fields and preparing future delivery generations require a concrete format change.
-- **Accepted V4 transition** — the [checkpoint](../../../docs/session-format-status.md#finalization-record) protects the accepted history. Backward-compatible additions can remain V4 through new acknowledgements; breaking changes require a successor. Already-written V4 files do not rerun this incoming edge, and historical inputs remain intact.
+- **Accepted V4 transition** — the [checkpoint](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/session-format-status.md#finalization-record) protects the accepted history. Backward-compatible additions can remain V4 through new acknowledgements; breaking changes require a successor. Already-written V4 files do not rerun this incoming edge, and historical inputs remain intact.
 - **V5 prerequisite readers** — V4 child evidence currently goes through the installed catalog. A future writer must bind fixed-generation V4 prerequisite reading before changing that catalog. The exported V4 restorer supplies generation-owned checks; full common message admission additionally uses installed Session validation.
-- **Nested historical tool results** — migration currently refuses results containing another tool-result wrapper. The original generation remains intact and no V4 successor is published. A later converter may support evidenced source cases without changing the established V4 format; the [migration cookbook](../../../docs/cookbook/adding-a-session-format-version.md#stages-and-validation) defines that distinction.
+- **Nested historical tool results** — migration currently refuses results containing another tool-result wrapper. The original generation remains intact and no V4 successor is published. A later converter may support evidenced source cases without changing the established V4 format; the [migration cookbook](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/cookbook/adding-a-session-format-version.md#stages-and-validation) defines that distinction.
 - **Historical extension consumers** — prefixed message and result fields preserve JSON data without activating core fields. A consumer must explicitly understand those fields before interpreting them.
 - **Retained child logs required** — a parent alone cannot recover unrecorded child ids, creation times, or descriptors. Deleted children cannot be reconstructed from tool arguments; existing parent catalog records remain.
 - **Unknown historical modes** — without exactly one supported own descriptor, a missing parent entry records unknown mode. Current reads do not rewrite that entry; opening the child resolves available descriptor information or reports its own error.

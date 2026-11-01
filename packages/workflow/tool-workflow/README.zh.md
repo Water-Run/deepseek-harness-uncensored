@@ -49,7 +49,7 @@ kind: "package-reference"
 | `maxResultChars` | `50000` | 渲染结果上限；更长的 JSON 会被截断并附上提示。 |
 | `enableRunInBackground` | `true` | 公开 `run_in_background`；关闭后调用同样会被拒绝。 |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-tool-workflow)是每个受支持字段的穷尽式真源。
+生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-tool-workflow)是每个受支持字段的穷尽式真源。
 
 -----
 
@@ -100,7 +100,7 @@ kind: "package-reference"
 
 当工具级约定不够用时阅读以下页面。这些页面依次介绍共享工作流模型、引擎，以及可供比较的委派工具。
 
-- [工作流子系统](../../../docs/subsystems/workflow.zh.md)——seam 约定、启动请求与事件载荷。
+- [工作流子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/workflow.md)——seam 约定、启动请求与事件载荷。
 - [工作流 seam](../workflow/README.zh.md)——工具背后的运行与结果词汇。
 - [PTC 工作流引擎](../workflow-ptc/README.zh.md)——执行脚本的引擎。
 - [subagent 工具](../../subagent/tool-subagent/README.zh.md)——一两项委派时的普通委派替代方案。
@@ -136,7 +136,7 @@ Use the <toolName> tool ONLY when the user explicitly asks for a workflow or for
 
 #### 模型看到什么
 
-工具可见时，已生成的默认 [`workflow` schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-workflow) 包含完整的 JavaScript 钩子与元数据约定；`toolName` 可以重命名该定义，模型会提交脚本、元数据与可选 args。
+工具可见时，已生成的默认 [`workflow` schema](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-workflow) 包含完整的 JavaScript 钩子与元数据约定；`toolName` 可以重命名该定义，模型会提交脚本、元数据与可选 args。
 
 #### Token 影响
 

@@ -55,6 +55,8 @@ The browser half is built on one principle: a dynamic package must ride the same
 
 ### Source map
 
+The entry installs the vendored Cordis `TimerService`, shared with the Host, in the runner's context. The browser bundle inlines Timer and uses the module table's Cordis instance. Timer calls belong to the calling plugin's fiber; disposing it cancels pending work.
+
 | File | Role |
 |---|---|
 | [`src/client/index.ts`](src/client/index.ts) | Plugin entry: runner, orchestrator, inspect registry, forwarded-event subscription |
@@ -64,7 +66,6 @@ The browser half is built on one principle: a dynamic package must ride the same
 | [`src/client/guard.ts`](src/client/guard.ts) | The whitelisting `ctx` façade for loaded browser halves |
 | [`src/client/inspect-registry.ts`](src/client/inspect-registry.ts) | Client Inspect Providers and the pending-query router |
 | [`src/client/providers.ts`](src/client/providers.ts) | First-party client Inspect Providers (slots, theme, events) |
-| [`src/client/timer.ts`](src/client/timer.ts) | The client timer service dynamic packages inject |
 
 ### Inspecting slot inputs
 
@@ -86,7 +87,7 @@ Read these pages when the package-level contract is not enough. They move from t
 - [Host runner](../cordis-host-runner/README.md) — the registry and run round trip this package answers.
 - [Tool package](../tool-cordis/README.md) — read-only runtime API discovery.
 - [UI package](../ui-cordis/README.md) — the panel and cards that operate this face.
-- [Extensions subsystem](../../../docs/subsystems/extensions.md) — the generated `ctx.dynamicCordisRunner` API and `cordis/*` events.
+- [Extensions subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/extensions.md) — the generated `ctx.dynamicCordisRunner` API and `cordis/*` events.
 - [Client shells and dynamic packages Agent Note](../../../.agents/notes/implemented/architecture/2026-08-15-client-shells-and-dynamic-packages.md) — package placement and build faces for the client halves.
 
 -----

@@ -42,4 +42,4 @@ dsh plugin --profile sdk-minimal add file:/absolute/path/to/my-plugin-bundle
 
 同一个运行时 wheel 包还打包了供直接 CLI（命令行界面）使用的 `web` profile 及其前端产物：`dsh web` 会启动这个独立应用。Python SDK 客户端不能选择 `web`，因为其中没有 JSON-RPC 服务器配置项。
 
-另见 [Python SDK 教程](../../../docs/user/guide/python-sdk.zh.md) 与 [SDK 参考](../README.zh.md)。
+另见 [Python SDK 教程](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/user/guide/python-sdk.md) 与 [SDK 参考](../README.zh.md)。

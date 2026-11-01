@@ -67,7 +67,7 @@ Status: implemented
 ### 3. 本地默认 worker 预算
 
 - **目的：** 按共享工作站或容器确定默认并行度；在这类环境中 Node 报告的是宿主 CPU 数而不是 CPU 配额。
-- **改动：** [`scripts/parallelism.ts`](../../../../scripts/parallelism.ts) 拥有默认值。`CI=true` 时它是 Node 报告的 CPU 数。否则，run-gates 调度器、`build`、`typecheck`、Oxlint 与 publint 的上限为 12（`LOCAL_PARALLELISM_CAP`），Vitest fork 与本地覆盖率预算的上限为 48（`LOCAL_TEST_PARALLELISM_CAP`）。`doc-sync`、`test:docs`、`hygiene` 与 `check:all` 的每个门禁都构建完整的 `ts.Program`，它们最多并发 8 个门禁，CI 中同样如此。显式的 `DSH_GATE_CONCURRENCY`、`DSH_OXLINT_THREADS`、`DSH_COVERAGE_MAX_WORKERS` 与 Vitest `--maxWorkers` 优先；CI 中，除非 run-gates 的 CI 环境设置了这些变量，Vitest 与 Oxlint 使用各自的默认值。[开发指南](../../../../docs/development.zh.md)向贡献者说明这些默认值。
+- **改动：** [`scripts/parallelism.ts`](../../../../scripts/parallelism.ts) 拥有默认值。`CI=true` 时它是 Node 报告的 CPU 数。否则，run-gates 调度器、`build`、`typecheck`、Oxlint 与 publint 的上限为 12（`LOCAL_PARALLELISM_CAP`），Vitest fork 与本地覆盖率预算的上限为 48（`LOCAL_TEST_PARALLELISM_CAP`）。`doc-sync`、`test:docs`、`hygiene` 与 `check:all` 的每个门禁都构建完整的 `ts.Program`，它们最多并发 8 个门禁，CI 中同样如此。显式的 `DSH_GATE_CONCURRENCY`、`DSH_OXLINT_THREADS`、`DSH_COVERAGE_MAX_WORKERS` 与 Vitest `--maxWorkers` 优先；CI 中，除非 run-gates 的 CI 环境设置了这些变量，Vitest 与 Oxlint 使用各自的默认值。[开发指南](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/development.md)向贡献者说明这些默认值。
 
 四种 fork 数下的 `pnpm run test`，运行的是第 8 项所替换的落盘版 `type-model.spec.ts`，32 个 worker 那次的 wall 由它决定：
 

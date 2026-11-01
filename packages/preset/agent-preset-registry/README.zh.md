@@ -62,7 +62,7 @@ Web 配置开启 `requireSecurityEntryAcknowledgement: true`。新主对话首�
 
 确认仅保存在内存中，同一 Host 的所有窗口共享。Host 重启后重新询问；页面刷新只读取现有状态。已有对话继续使用独立的临时切换权限，不走这项确认。`assertNewConversationPreset` 对显式创建网安对话的调用方施加同一要求。
 
-`securityEntryState()` 同时报告部署策略和实时保护状态。部署可提供 `securityProtection` 服务，其 `read(): SecurityProtectionStatus` 返回状态；状态或修订号变化后，提供方必须发出 `security-protection/changed`，使已打开的挑战失效并让客户端重新计时。没有提供方时状态为 `unavailable`，对话框按未启用处理，挑战要求输入本地化声明。声明文本由 Host 签发并逐字校验，客户端不另存一份。
+`securityEntryState()` 同时报告部署策略和实时保护状态。部署可提供 `securityProtection` 服务，其 `read(): SecurityProtectionStatus` 返回状态；状态或修订号变化后，提供方必须发出 `security-protection/changed`，使已打开的挑战失效并让客户端重新计时。没有提供方时状态为 `unavailable`，对话框按未启用处理，挑战要求输入本地化声明。声明文本由 Host 签发，经 NFKC 规范化并去除首尾空白后比较，客户端不另存一份。
 
 注册表不写入任何声明。`read` Remote 把一条声明的子插件列表按 entry-list YAML 方言（含 `!!js` 条件）渲染回来，供客户端展示 preset 的组成；没有任何接口接受 YAML 写回。新建 preset 或覆盖内置 preset 都是 bundle 补丁：插入一行 `@deepseek-ai/dsh-agent-preset`，或按该行 id 写覆盖补丁，再用 `plugin_manager` 安装到 profile；创造模式在对话中编写这类 bundle。
 
@@ -76,7 +76,7 @@ Web 配置开启 `requireSecurityEntryAcknowledgement: true`。新主对话首�
 
 preset 的服务提供方及其消费方必须共享同一个 `cordis:group` 隔离 realm。条目局部隔离不会沿 Agent 注册 scope 传播：组外的普通 Context 查找（包括 `agent.ctx`）仍选择 Host realm。`agentPresets.serviceFor()` 显式检查保留的组合，不改变普通服务查找。
 
-激活审计检查导入失败、缺失服务和向全局泄漏的服务。导入失败、激活失败和泄漏会拒绝挂载。等待 Host 服务的行保持挂载，每次读取和绑定都在 Host Loader 树结算后重新审计，因此启动顺序不决定结果。失败只禁用该定义的新绑定。会话日志保存 preset ID 和空白会话的切换记录；重启恢复使用该 ID 的当前定义，缺失时拒绝恢复。若空白会话已记录所请求的 preset 且正运行其当前版本，`select` 不做任何改动，也不追加切换记录或触发 `tools/change`。
+激活审计检查导入失败、缺失服务和向全局泄漏的服务。导入失败、激活失败和泄漏会拒绝挂载。等待 Host 服务的行保持挂载，每次读取和绑定都在 Host Loader 树结算后重新审计，因此启动顺序不决定结果。失败只禁用该定义的新绑定。`presetForSession(session)` 同步读取最新记录的预设 ID，未记录时返回 null。会话日志保存 preset ID 和空白会话的切换记录；重启恢复使用该 ID 的当前定义，缺失时拒绝恢复。若空白会话已记录所请求的 preset 且正运行其当前版本，`select` 不做任何改动，也不追加切换记录或触发 `tools/change`。
 
 `inspectCompositions()` 读取本注册表仍保留的全部代际；传入 Agent 上下文时只选择它绑定的精确代际，在此没有绑定时返回空列表。每个 `AgentPresetInspection` 包含 preset ID、纯数据形式的活动模块引用及解析基址，以及泄漏的服务名。检查器查询运行中的服务，而不是模块级挂载表；结果不包含 Loader 树或 fiber。这些记录定义在 [composition-inventory.ts](src/composition-inventory.ts) 中。
 

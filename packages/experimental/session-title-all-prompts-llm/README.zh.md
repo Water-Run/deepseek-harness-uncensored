@@ -35,7 +35,7 @@ kind: "package-reference"
 
 ### 配置
 
-插件要求 `targetWords` 与 `targetCjkCharacters`，外加共享的[执行控制](../../session/session-title-llm/README.zh.md#configuration)：`maxInputBytes`、`maxOutputTokens`、`timeoutMs`，以及可选成对的 `provider`/`model` 路由。同时省略二者，会继承每个当前已记录主请求的确切路由；同时设置二者，则让标题生成使用独立路由。生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-session-title-all-prompts-llm)是每个受支持字段的穷尽式真源。
+插件要求 `targetWords` 与 `targetCjkCharacters`，外加共享的[执行控制](../../session/session-title-llm/README.zh.md#configuration)：`maxInputBytes`、`maxOutputTokens`、`timeoutMs`，以及可选成对的 `provider`/`model` 路由。同时省略二者，会继承每个当前已记录主请求的确切路由；同时设置二者，则让标题生成使用独立路由。生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-session-title-all-prompts-llm)是每个受支持字段的穷尽式真源。
 
 ### 失败与恢复
 

@@ -74,7 +74,7 @@ kind: "package-reference"
 以下页面介绍服务器配置、执行机制与资源访问决策。
 
 - [MCP 客户端](../mcp-client/README.zh.md)——服务器传输、指令与连接生命周期。
-- [工具子系统](../../../docs/subsystems/tools.zh.md)——规范值与模型可见结果。
+- [工具子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/tools.md)——规范值与模型可见结果。
 - [资源可见性参考](README.zh.md)——profile 统一挂载及由已配置服务器决定的可见性。
 - [资源与指令参考](README.zh.md)——作用域、按需访问及未纳入的机制。
 
@@ -87,7 +87,7 @@ kind: "package-reference"
 
 #### 模型看到什么
 
-[生成的工具 schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-mcp-resources)定义了调用方可见的所有已配置服务器共享的三个工具。没有这类服务器时，native schema、PTC 声明与绑定以及服务器名称提示词均不存在。激活的客户端连接、断开或重试时，这些共享工具定义保持不变。挂载系统提示词装配且存在可见提供方时，`MCP resource servers` 段落显示 `Use list_mcp_resources, list_mcp_resource_templates, or read_mcp_resource with one of these names as the server argument: <JSON array>.` 名称来自同一作用域注册表，包括既没有工具也没有指令的服务器。注册表为空时不贡献该段落。
+[生成的工具 schema](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-mcp-resources)定义了调用方可见的所有已配置服务器共享的三个工具。没有这类服务器时，native schema、PTC 声明与绑定以及服务器名称提示词均不存在。激活的客户端连接、断开或重试时，这些共享工具定义保持不变。挂载系统提示词装配且存在可见提供方时，`MCP resource servers` 段落显示 `Use list_mcp_resources, list_mcp_resource_templates, or read_mcp_resource with one of these names as the server argument: <JSON array>.` 名称来自同一作用域注册表，包括既没有工具也没有指令的服务器。注册表为空时不贡献该段落。
 
 #### Token 影响
 
@@ -117,7 +117,7 @@ kind: "package-reference"
 
 资源访问由显式调用按需发起。
 
-- 不具备 MCP `resources` 能力的已配置服务器仍会出现在服务器名称提示词中，并保持共享资源工具可用。SDK 返回空的资源列表与模板列表；不受支持的读取会失败。
+- 不具备 MCP `resources` 能力的已配置服务器仍会出现在服务器名称提示词中，并保持共享资源工具可用。MCP 客户端直接返回空的资源列表与模板列表，不联系服务器；不受支持的读取会失败。
 - `tools.restrict()` 在注册过滤条件时检查全局或祖先作用域提供的名称。引用这些作用域中不存在的资源工具名称会报未知工具错误。注册在调用方自身作用域中的资源工具不受 allow/deny 掩码过滤。
 - 不支持资源订阅与更新通知；再次调用列表或读取工具以获取当前内容。
 - 二进制资源不会投影为原生图片或音频。程序化调用方保留其规范 base64 值。

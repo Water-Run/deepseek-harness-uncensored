@@ -37,7 +37,7 @@ All three tools return the same compact JSON — `{ goal: null }` when no goal i
 | `create_goal(objective, max_goal_rounds?)` | Creates one goal from a direct top-level human turn |
 | `update_goal(goal_id, revision, action, objective?, max_goal_rounds?, blocked_reason?)` | `edit`, `pause`, `resume`, `complete`, or `blocked` on the exact goal revision |
 
-Call `get_goal` before `update_goal` and copy the exact `goal_id` and `revision`; all calls are exclusive, so a model-ordered batch observes earlier mutations and their new revisions. Replacements belong only to `edit`; `blocked_reason` is required only for `blocked` and is persisted with the stable code `model-reported`. Strict-schema empty-string and zero fillers count as omitted, while meaningful values remain limited to their action.
+Call `get_goal` before `update_goal` and copy the exact `goal_id` and `revision`; all calls are exclusive, so a model-ordered batch observes earlier mutations and their new revisions. `objective` and `max_goal_rounds` affect only `edit` and are ignored for all other actions. `blocked_reason` is required and non-empty for `blocked`, persisted with the stable code `model-reported`, and ignored for all other actions. Ignored fields cannot change the objective, round cap, or blocker reason. Declared types, authority, and exact-revision checks still apply. For `edit`, exact empty-string objectives and zero round caps count as omitted, and at least one meaningful replacement is required.
 
 ### Configure it
 
@@ -48,7 +48,7 @@ Call `get_goal` before `update_goal` and copy the exact `goal_id` and `revision`
     blockedAfterConsecutiveRounds: 3
 ```
 
-The value must be a positive safe integer. It supplies both the hard lower bound on model self-blocking and the number named in model guidance. The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-tool-goal) is the exhaustive source for every accepted field.
+The value must be a positive safe integer. It supplies both the hard lower bound on model self-blocking and the number named in model guidance. The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-tool-goal) is the exhaustive source for every accepted field.
 
 ### Authority rules
 
@@ -68,7 +68,7 @@ This section explains how the tools enforce authority and render output; the obs
 
 ### Design
 
-- **Authority at execution.** Every call resolves the exact live agent, its inherited `AgentRegistry` initiator, running status, and an open turn; `create`, `edit`, `pause`, and `resume` additionally require an accepted `{ kind: 'user' }` message or steering event in a runtime-root agent's current turn. A durable paused goal fails the `resume` action with `GOAL_TOOL_RESUME_PAUSED`; the user-facing command or Web control owns that transition. Durable fork lineage does not demote a resumed root; live subagent ownership does.
+- **Authority at execution.** The plugin requires `agents` and reads turn state through `turnBoundaryOf(session)`. Every call resolves the exact live agent, its inherited `AgentRegistry` initiator, running status, and an open turn; `create`, `edit`, `pause`, and `resume` additionally require an accepted `{ kind: 'user' }` message or steering event in a runtime-root agent's current turn. A durable paused goal fails the `resume` action with `GOAL_TOOL_RESUME_PAUSED`; the user-facing command or Web control owns that transition. Durable fork lineage does not demote a resumed root; live subagent ownership does.
 - **Host attestation of human input.** `{ kind: 'user' }` is assigned by `Agent.followup()` and `steer()` when their caller omits a source, so plugins, schedulers, and other non-human producers must pass their own source rather than inheriting human authority.
 - **System-prompt guidance with the configured threshold.** The package registers one `tool:goal` system-prompt section whose fixed text interpolates `blockedAfterConsecutiveRounds`; the same value is the hard lower bound enforced at execution.
 - **Wrap-up context for terminal rounds.** A successful autonomous `complete` or `blocked` defers a closing `<goal_complete>` or `<goal_blocked>` instruction so the model addresses the user once before the turn ends; direct-human mutations never defer this context.
@@ -96,7 +96,7 @@ The tools are the model-facing half of the goal surface; read these pages for th
 
 - [Goal service](../goal/README.md) — the goal state and lifecycle the tools mutate.
 - [Goal group map](../README.md) — the goal packages and how they compose.
-- [Generated tool catalog](../../../docs/tool-catalog.md#deepseek-aidsh-tool-goal) — the exact schemas the model receives.
+- [Generated tool catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-goal) — the exact schemas the model receives.
 - [Goal-tool Agent Note](../../../.agents/notes/implemented/feature/2026-07-19-model-facing-goal-tools.md) — the authority split and UX decisions.
 
 -----
@@ -128,7 +128,7 @@ Prefix-stable while the plugin scope, configured threshold, and guidance text ar
 
 #### What the model sees
 
-The generated [`get_goal`, `create_goal`, and `update_goal` schemas](../../../docs/tool-catalog.md#deepseek-aidsh-tool-goal). Successful results are compact JSON. A mutation appends the goal domain's durable `goal/change` event without queuing model context. `activation` in a result is a live observation and never becomes replay authority.
+The generated [`get_goal`, `create_goal`, and `update_goal` schemas](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-goal). Successful results are compact JSON. A mutation appends the goal domain's durable `goal/change` event without queuing model context. `activation` in a result is a live observation and never becomes replay authority.
 
 #### Token effect
 

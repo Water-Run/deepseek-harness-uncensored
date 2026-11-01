@@ -131,7 +131,7 @@ export function principalOf(invocation: RemoteInvocation | undefined): Principal
 
 ### 方法级访问控制
 
-资源类型与 `@Remote` 的 `resources` 读取函数在 `@deepseek-ai/dsh-typert-protocol`；资源种类在 typert 中与 lookups、Contexts 并列：`TypertResourceMap` 声明种类，`typert.resources` 保存每个种类的默认 wire 字段，lookup 与 Host Context adapter 声明其 wire 身份所属的资源种类。Gateway 把一次调用或一个转发事件解析为它访问的资源。判定、列表过滤与访问快照在新包 `@deepseek-ai/dsh-api-remote-access`（`packages/api/remote-access`），该包不读取任何参数字段。Gateway 与领域包对 remote-access 只做 type-only 依赖并 inject `remoteAccess`，值依赖只有 `dsh-typert-protocol`，不为 remote-access 新增 `package-dependency-policy` 条目。role、binding 与 policy 由业务包定义和注册，liveshare 为首个使用方。除内置的 `global` 外，remote-access 与 Gateway 中不出现任何资源种类名，符合 [`packages/api` 只承载通用编排](../../../../docs/defensive-patterns/remote-and-api.zh.md) 的评审规则。
+资源类型与 `@Remote` 的 `resources` 读取函数在 `@deepseek-ai/dsh-typert-protocol`；资源种类在 typert 中与 lookups、Contexts 并列：`TypertResourceMap` 声明种类，`typert.resources` 保存每个种类的默认 wire 字段，lookup 与 Host Context adapter 声明其 wire 身份所属的资源种类。Gateway 把一次调用或一个转发事件解析为它访问的资源。判定、列表过滤与访问快照在新包 `@deepseek-ai/dsh-api-remote-access`（`packages/api/remote-access`），该包不读取任何参数字段。Gateway 与领域包对 remote-access 只做 type-only 依赖并 inject `remoteAccess`，值依赖只有 `dsh-typert-protocol`，不为 remote-access 新增 `package-dependency-policy` 条目。role、binding 与 policy 由业务包定义和注册，liveshare 为首个使用方。除内置的 `global` 外，remote-access 与 Gateway 中不出现任何资源种类名，符合 [`packages/api` 只承载通用编排](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/defensive-patterns/remote-and-api.md) 的评审规则。
 
 #### 与 RBAC 的对应
 
@@ -535,17 +535,17 @@ GlobalStandardProps.useWorkspaceAccess: (workspaceId: WorkspaceId, action: Remot
 | `kind` 不变 | 仍为 `'user'`；现有 `kind === 'user'` 判断不受影响 |
 | owner 消息不变 | owner 调用时不写字段，source 与引入 principal 之前逐字节相同；没有该字段的消息（含全部旧会话）即为 owner |
 | 不进入模型请求 | llm 适配器只读 model source（[`llm-deepseek/src/replay.ts`](../../../../packages/llm/llm-deepseek/src/replay.ts)） |
-| 会话格式 | 不 bump `SESSION_FORMAT_VERSION`；按 [persistence 类型变更 cookbook](../../../../docs/cookbook/reviewing-persistence-type-changes.zh.md) 为该持久化类型变更记录 acknowledgement |
+| 会话格式 | 不 bump `SESSION_FORMAT_VERSION`；按 [persistence 类型变更 cookbook](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/cookbook/reviewing-persistence-type-changes.md) 为该持久化类型变更记录 acknowledgement |
 
 消费方用法示例（不在本 Note 范围内实现）：工具守卫与 pre-step 复检按 turn 读取该 turn 内用户消息的 `source.principal`，任一条带非 owner principal 即按该调用方判定；同一 turn 混有 owner 与读者消息时取最严格者。
 
 ### 代码评审标准与文档
 
-评审标准的正家为 [Remote and API rules](../../../../docs/defensive-patterns/remote-and-api.zh.md) 的「`@Remote` 标在能力方法上」一节：`@Remote({ resources })` 与自动解析必须覆盖方法访问的全部资源；聚合结果逐项经 `allows()` 过滤；调用方身份只读 `invocation.peer.principal`，不从参数读取；每条调用路径显式给出 Peer；业务代码不把 principal 当函数参数传递。
+评审标准的正家为 [Remote and API rules](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/defensive-patterns/remote-and-api.md) 的「`@Remote` 标在能力方法上」一节：`@Remote({ resources })` 与自动解析必须覆盖方法访问的全部资源；聚合结果逐项经 `allows()` 过滤；调用方身份只读 `invocation.peer.principal`，不从参数读取；每条调用路径显式给出 Peer；业务代码不把 principal 当函数参数传递。
 
 | 文档 | 内容 |
 |---|---|
-| [`docs/subsystems/typert.md`](../../../../docs/subsystems/typert.zh.md)、[`docs/api-gateway.md`](../../../../docs/api-gateway.zh.md) | `PeerScope`、`RemoteInvocation`、`InvokeRemoteRequest`、显式 Peer、`@Remote` 的 `resources`、访问检查顺序 |
+| [`docs/subsystems/typert.md`](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/typert.md)、[`docs/api-gateway.md`](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/api-gateway.md) | `PeerScope`、`RemoteInvocation`、`InvokeRemoteRequest`、显式 Peer、`@Remote` 的 `resources`、访问检查顺序 |
 | connection、gateway、typert-protocol、typert-registry、api-remotes、remote-access、session-controller、workspace-controller、ui-session、ui-workspace、ui-slots、client-test-runtime 的 README | 以 Peer / `browserPeer` 取代 operator；remote-access 的 role、binding、policy 契约；access hooks |
 
 ### 不在范围与 Future work

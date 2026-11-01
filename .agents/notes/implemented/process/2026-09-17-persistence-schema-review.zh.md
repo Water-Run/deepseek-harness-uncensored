@@ -36,4 +36,4 @@ Inventory format 2 在受影响属性上记录受支持的兼容性元数据。�
 
 声明的兼容性承诺参与指纹，并在比较历史快照时保持可用。工具不会推断或强制运行时保留行为；激活绑定的所有者提供该行为。普通注释、标签和源码位置仍处于结构身份之外。
 
-每份 inventory 继续存储完整嵌套 schema 图。稳定标签和分组审阅输出减少展示噪音，不改变存储编码，也不重写冻结历史记录。[实操手册](../../../../docs/cookbook/reviewing-persistence-type-changes.zh.md)介绍审阅命令和确认流程。
+每份 inventory 继续存储完整嵌套 schema 图。稳定标签和分组审阅输出减少展示噪音，不改变存储编码，也不重写冻结历史记录。[实操手册](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/cookbook/reviewing-persistence-type-changes.md)介绍审阅命令和确认流程。

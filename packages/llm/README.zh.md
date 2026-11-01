@@ -39,8 +39,8 @@ llm 组提供 harness 的模型调用能力：一个提供方无关的服务，�
 <a id="related-documentation"></a>
 ## 相关文档
 
-- [LLM 流式子系统](../../docs/subsystems/llm-streaming.zh.md)——消息与块类型、组装后的模型请求、`StreamChunk` 协议与适配器约定（adapter contract）。
-- [Token 计量子系统](../../docs/subsystems/token-meter.zh.md)——`ctx.tokenMeter` 背后的测量语义。
+- [LLM 流式子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/llm-streaming.md)——消息与块类型、组装后的模型请求、`StreamChunk` 协议与适配器约定（adapter contract）。
+- [Token 计量子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/token-meter.md)——`ctx.tokenMeter` 背后的测量语义。
 - [孪生 LLM 适配器](../../.agents/notes/implemented/architecture/2026-06-13-twin-llm-adapters.zh.md)——为什么 DeepSeek 路由交付两个结构不同的适配器。
 - [按路由的模型上下文](../../.agents/notes/implemented/architecture/2026-07-20-routed-model-context-and-compaction-policy.zh.md)——loop 如何路由模型请求并压缩上下文。
 

@@ -1,5 +1,5 @@
 ---
-description: "Prerequisite mounting, production AgentLoop drivers, and explicit Inbox stubs for agent-loop tests."
+description: "Prerequisite mounting, production AgentLoop drivers, and explicit Agent stubs for agent-loop tests."
 kind: "package-library"
 ---
 
@@ -57,14 +57,15 @@ The dependency helper forwards system-prompt and tool-registry configuration thr
 
 ### Build a structural Agent stub
 
-Use `createInboxStub()` when the test subject needs mutable pending lists but does not exercise durability, projection validation, live Inbox notifications, or the driver's claim policy. The stub implements the public queue operations with two process-local arrays and never writes to a Session. Use `unsupportedInbox()` when the test subject must not touch pending input; every mutation throws at the first unexpected dependency.
+Use `createInboxStub()` when the test subject needs mutable pending lists but does not exercise durability, projection validation, live Inbox notifications, or the driver's claim policy. The stub implements the public queue operations with two process-local arrays and never writes to a Session. Use `unsupportedInbox()` when the test subject must not touch pending input; every mutation throws at the first unexpected dependency. Use `unsupportedModel()` when the test does not read or change model selection; all its operations throw.
 
 ```ts
-import { createInboxStub } from '@deepseek-ai/dsh-agent-loop-testkit'
+import { createInboxStub, unsupportedModel } from '@deepseek-ai/dsh-agent-loop-testkit'
 
 const agent = {
   // ...
   inbox: createInboxStub(),
+  model: unsupportedModel(),
 }
 ```
 
@@ -102,7 +103,7 @@ Read these pages when the package-level behavior is not enough. They move from t
 - [Agent loop package](../../core/agent-loop/README.md) — the concrete loop this helper mounts for production behavior.
 - [Session package](../../core/session/README.md) — the durable event log used by production Inbox behavior.
 - [LLM package](../../llm/llm/README.md) — the LLM runtime and adapter interface the helper prepares.
-- [Testing policy](../../../docs/testing.md) — the coverage tiers these tests serve.
+- [Testing policy](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/testing.md) — the coverage tiers these tests serve.
 - [Test-support group map](../README.md) — sibling harnesses and support packages.
 
 -----

@@ -81,6 +81,8 @@ kind: "package-reference"
 
 ### 恢复流程
 
+恢复监听器在等待投影注册前安装。激活期间到达的失败会先等待读取句柄，再应用提供方策略。注册失败会传播给 agent；等待期间取消或释放插件，不会写入重试记录或发起后续尝试。
+
 失败步骤连同其提供方与解析后的策略一起到达 waterfall。always mode 先结算下游恢复，并遵循下游的 `retry` 决定；normal mode 先检查失败 code 是否合格、预算是否未耗尽。插件计算延迟——有效且在边界内的提供方 `Retry-After`，否则带对称抖动的本地有界指数退避——追加 `llm/retry` 事件，在可取消定时器上等待，追加 `llm/retry-started`，然后返回 `{ kind: 'retry' }`。loop 随后在同一个打开的轮次内重跑失败步骤（仍基于同一份持久历史）。
 
 ### Waterfall 组合
@@ -100,7 +102,7 @@ kind: "package-reference"
 - [llm-deepseek 适配器](../llm-deepseek/README.zh.md)——带路由级 `retryPolicy` 的提供方适配器。
 - [llm-pi-ai 适配器](../llm-pi-ai/README.zh.md)——带逐 profile `retryPolicy` 的多提供方适配器。
 - [LLM 流终止失败](../../../.agents/notes/implemented/architecture/2026-07-29-terminal-llm-stream-failures.zh.md)——失败如何以终止分片到达服务边界。
-- [LLM 流式子系统](../../../docs/subsystems/llm-streaming.zh.md)——`StreamChunk` 协议与适配器约定（adapter contract）。
+- [LLM 流式子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/llm-streaming.md)——`StreamChunk` 协议与适配器约定（adapter contract）。
 
 -----
 

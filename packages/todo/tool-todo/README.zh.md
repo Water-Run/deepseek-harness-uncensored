@@ -45,7 +45,7 @@ kind: "package-reference"
 |---|---|---|
 | `allowParallelInProgress` | 必填 | 是否允许多个 todo 同时处于 `in_progress`；同时选择模型描述中的活跃状态条款 |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-tool-todo)是每个受支持字段的穷尽式真源。
+生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-tool-todo)是每个受支持字段的穷尽式真源。
 
 ### 每次调用做什么
 
@@ -86,7 +86,7 @@ agent 每次更新都发送完整列表；新列表替换旧列表，因此没�
 
 ### 导出形状
 
-本插件是函数／命名空间插件：导出 `name`、`inject`、`apply`，没有默认导出。多余的 `export default` 会让 Loader 的 `unwrapExports` 折叠模块并丢弃 `inject`（参见 [postmortem 0001](../../../docs/postmortem/0001-acp-default-export-drops-inject.zh.md)）。
+本插件是函数／命名空间插件：导出 `name`、`inject`、`apply`，没有默认导出。多余的 `export default` 会让 Loader 的 `unwrapExports` 折叠模块并丢弃 `inject`（参见 [postmortem 0001](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/postmortem/0001-acp-default-export-drops-inject.md)）。
 
 ### 会话投影
 
@@ -105,10 +105,10 @@ agent 每次更新都发送完整列表；新列表替换旧列表，因此没�
 
 当包级约定不够用时阅读以下页面。它们从会话子系统逐步进入生成的目录，以及工具背后的决策记录。
 
-- [Todo 子系统](../../../docs/subsystems/todo.zh.md)——`todo/write` 事件载荷、归属规则与 `TodoItem`。
+- [Todo 子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/todo.md)——`todo/write` 事件载荷、归属规则与 `TodoItem`。
 - [todo 组映射](../README.zh.md)——同级组页面及其包表格。
-- [生成的工具目录](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-todo)——模型接收的 `todo_write` schema。
-- [生成的配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-tool-todo)——每个受支持配置字段及其源声明。
+- [生成的工具目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-todo)——模型接收的 `todo_write` schema。
+- [生成的配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-tool-todo)——每个受支持配置字段及其源声明。
 - [todo_write 工具 Agent Note](../../../.agents/notes/archived/feature/2026-06-29-todo-write-tool.md)——原始设计、备选方案与未采纳的字段。
 - [并行 in-progress Agent Note](../../../.agents/notes/archived/feature/2026-07-26-todo-parallel-in-progress.md)——为何活跃计数上限成为部署策略。
 
@@ -121,7 +121,7 @@ agent 每次更新都发送完整列表；新列表替换旧列表，因此没�
 
 #### 模型看到什么
 
-模型会看到生成的 [`todo_write` schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tool-todo)：一个对象，含一个必填的 `todos` 数组，元素为 `{ content, status }`，其中 `status` 为 `pending`、`in_progress` 或 `completed`。`todos` 描述说明每次调用都会替换整个列表；工具描述中的活跃状态条款跟随 `allowParallelInProgress`。
+模型会看到生成的 [`todo_write` schema](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-todo)：一个对象，含一个必填的 `todos` 数组，元素为 `{ content, status }`，其中 `status` 为 `pending`、`in_progress` 或 `completed`。`todos` 描述说明每次调用都会替换整个列表；工具描述中的活跃状态条款跟随 `allowParallelInProgress`。
 
 #### Token 影响
 

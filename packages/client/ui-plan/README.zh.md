@@ -55,7 +55,7 @@ kind: "package-reference"
 
 框架绑定的 `usePlans(turn)` 只提供该回合的已提交计划数据。Chat 随节点更新维护成员索引，并在读取时排列该集合；卡片渲染不扫描整段对话，也不订阅其他回合或节点类型。
 
-已提交计划卡片的圆角和图标底框材质遵循[文件卡片家族](../../../docs/ui-radius.zh.md#radius-scale)。
+已提交计划卡片的圆角和图标底框材质遵循[文件卡片家族](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/ui-radius.md#radius-scale)。
 
 </details>
 
@@ -68,7 +68,7 @@ kind: "package-reference"
 
 - [dsh-plan-mode](../../plan/plan-mode/README.zh.md)——拥有 plan 模式、`/plan` 命令、投影与 policy 段。
 - [ui-conversation](../ui-conversation/README.zh.md)——声明 composer 的 `conversation.input.plan` 座位与 placeholder locale 键。
-- [工具目录](../../../docs/tool-catalog.zh.md#deepseek-aidsh-plan-mode)——模型退出 plan 模式所用的 `exit_plan_mode` 工具 schema。
+- [工具目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-plan-mode)——模型退出 plan 模式所用的 `exit_plan_mode` 工具 schema。
 - [客户端包映射](../README.zh.md)——相邻的浏览器 UI 包。
 
 -----

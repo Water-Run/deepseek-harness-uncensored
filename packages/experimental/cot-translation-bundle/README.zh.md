@@ -48,7 +48,7 @@ Bundle 补丁插入 `translator` 和 `cot-translation`，选择 Bing 与界面�
 <a id="further-exploration"></a>
 ## 延伸阅读
 
-[文本翻译子系统](../../../docs/subsystems/translation.zh.md) · [Translator 服务](../translator/README.zh.md) · [GUI 消费者](../client-ui-cot-translation/README.zh.md)
+[文本翻译子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/translation.md) · [Translator 服务](../translator/README.zh.md) · [GUI 消费者](../client-ui-cot-translation/README.zh.md)
 
 -----
 

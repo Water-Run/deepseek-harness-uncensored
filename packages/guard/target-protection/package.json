@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-target-protection",
-  "version": "0.2.1-rc.3",
+  "version": "0.2.2-alpha.2",
   "description": "Persistent target rules and mandatory execution admission",
   "type": "module",
   "license": "GPL-3.0-or-later",
@@ -87,9 +87,11 @@
     "./ptc": {
       "types": "./lib/types/ptc.d.ts",
       "default": "./lib/types/ptc.js"
-    }
+    },
+    "./locale/*.json": "./locale/*.json"
   },
   "files": [
+    "locale/*.json",
     "lib/index.js",
     "assets",
     "lib/types/**/*.js",
@@ -175,6 +177,7 @@
     "@deepseek-ai/dsh-typert-protocol": "workspace:*",
     "@deepseek-ai/dsh-app-boot": "workspace:*",
     "@deepseek-ai/dsh-atomic-write": "workspace:*",
-    "@deepseek-ai/dsh-ptc-runtime": "workspace:*"
+    "@deepseek-ai/dsh-ptc-runtime": "workspace:*",
+    "@deepseek-ai/dsh-tool-testkit": "workspace:*"
   }
 }

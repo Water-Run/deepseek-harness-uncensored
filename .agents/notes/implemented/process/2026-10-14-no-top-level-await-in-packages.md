@@ -19,7 +19,7 @@ The child-process entry `src/worker.ts` of [speech-to-text-sensevoice](../../../
   - **Rule**: based on the TypeScript AST. An `await` expression, `for await`, or `await using` whose nearest function body is the module is a violation, including occurrences in top-level if statements, blocks, try statements, loops, switch statements, conditional expressions, export initializers, and computed member names. Occurrences in functions, methods, constructors, accessors, parameter defaults, and class static blocks are not violations.
   - **Exclusions**: only bins are excluded, judged from declarations and syntax alone: the source file starts with `#!`, or it is the `src/<path>.ts|.tsx` that corresponds to a `lib/<path>.js` named by package.json `bin`. A process executes a bin directly, and no other module imports it. The current exclusions are the `src/bin.ts` files of webworker-packer and llm-mock-server, and a spec pins the list.
   - **Corpus guard**: the gate fails when the corpus is empty, contains no `.tsx`, or completely omits a `src/` directory that contains TS.
-  - **Registration**: a shared hygiene gate in `run-gates`, running in the static lane and the hygiene aggregate. The rule text lives in the [package-surface defensive patterns](../../../../docs/defensive-patterns/package-surface.md).
+  - **Registration**: a shared hygiene gate in `run-gates`, running in the static lane and the hygiene aggregate. The rule text lives in the [package-surface defensive patterns](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/defensive-patterns/package-surface.md).
 
 ## Alternatives considered
 

@@ -45,7 +45,7 @@ kind: "package-reference"
 | `endpoint` | attach 时必填 | 已有浏览器调试端点 |
 | `toolCallTimeoutMs` | MCP 客户端默认值 | 单次调用超时，单位为毫秒 |
 
-[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-experimental-browser-use-chrome-devtools-mcp)列出接受的字段。浏览器模式由 profile 或 preset 选择。
+[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-experimental-browser-use-chrome-devtools-mcp)列出接受的字段。浏览器模式由 profile 或 preset 选择。
 
 为整个进程配置系统提示词的 `toolOrder` 时，将浏览器工具留在 `<unlisted-tools>` 中。显式列出浏览器工具名称可能导致未获得浏览器连接的 Session 无法组装提示词。
 
@@ -68,7 +68,7 @@ kind: "package-reference"
 <a id="further-exploration"></a>
 ## 进一步探索
 
-- [浏览器使用](../../../docs/subsystems/browser-use.zh.md) — 提供方选择与 Session 所有权。
+- [浏览器使用](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/browser-use.md) — 提供方选择与 Session 所有权。
 - [浏览器使用服务](../../browser-use/browser-use/README.zh.md) — 提供方独占注册。
 - [Chrome DevTools MCP](https://github.com/ChromeDevTools/chrome-devtools-mcp) — 上游安装与浏览器行为。
 

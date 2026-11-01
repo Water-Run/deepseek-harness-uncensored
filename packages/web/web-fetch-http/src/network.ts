@@ -1,7 +1,7 @@
 /**
- * Public-network resolution and address-pinned HTTP transport for `web-fetch-http`.
+ * Address resolution and address-pinned HTTP transport for `web-fetch-http`.
  * One DNS answer set is validated before Undici receives it through a custom lookup,
- * so the connection cannot resolve the hostname again to a private address.
+ * so the connection cannot resolve the hostname again after authorization.
  *
  * @module @deepseek-ai/dsh-web-fetch-http/network
  */
@@ -192,21 +192,6 @@ function embeddedIpv4Address(bytes: readonly number[], prefixLength: Nat64Prefix
 }
 
 /**
- * Whether a hostname is an IP literal that {@link resolvePublicAddresses} would refuse.
- *
- * A proxied hop skips those checks because the proxy resolves the origin, but a literal needs no
- * resolution: the address is already stated, and handing it to a proxy running on this machine
- * would reach exactly the loopback or private service the checks exist to keep out of reach.
- *
- * @param hostname - a URL's hostname, bracketed or not.
- * @returns true when the host is a literal address no request may be sent to.
- */
-export function isNonPublicIpLiteral(hostname: string): boolean {
-  const unbracketed = stripIpv6Brackets(hostname)
-  return isIP(unbracketed) !== 0 && !isPublicIpAddress(unbracketed)
-}
-
-/**
  * Fetch through an agent whose lookup callback returns only the already validated address set. The
  * URL hostname remains intact for HTTP Host and TLS SNI.
  *
@@ -296,6 +281,7 @@ export async function requestPinnedViaProxy(
   if (isIP(hostname) !== 0 && ipaddr.process(hostname).toString() !== ipaddr.process(selected.address).toString()) {
     throw new WebError('The proxy destination does not match the authorized literal address.', 'WEB_BLOCKED_URL')
   }
+  // proxy-exempt: connects through the selected proxy while pinning its authorized destination for this request.
   const agent = new ProxyAgent({ uri: proxy, proxyTunnel: true,
     ...isIP(hostname) === 0 ? { requestTls: { servername: hostname } } : {},
   })
@@ -324,8 +310,8 @@ export async function requestPinnedViaProxy(
 }
 
 /** Production network operations kept as an object so provider tests can replace resolution only. */
-export const publicHttpNetwork = {
-  resolve: resolvePublicAddresses,
+export const httpNetwork = {
+  resolve: (hostname: string, signal: AbortSignal) => resolveConnectionAddresses(hostname, signal, systemLookup),
   request: requestPinned,
   requestVia,
   requestPinnedViaProxy,

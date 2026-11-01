@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "额度限制",
-    "description": "额度限制"
+    "description": "管理请求额度、暂停中的对话与恢复。"
   }
 }

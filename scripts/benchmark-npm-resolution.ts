@@ -304,7 +304,7 @@ function signalProcessTree(child: ChildProcess, signal: 'SIGTERM' | 'SIGKILL'): 
  * @param command - Executable path or name.
  * @param args - Arguments passed without shell interpolation on POSIX.
  * @param options - Working directory, environment, timeout, and termination grace.
- * @returns Exit facts, captured output, duration, and whether timeout handling began.
+ * @returns Exit facts, separate stdout/stderr and combined output, duration, and whether timeout handling began.
  */
 export async function runCommandWithTimeout(
   command: string,
@@ -315,7 +315,15 @@ export async function runCommandWithTimeout(
     readonly timeoutMs: number
     readonly terminationGraceMs?: number
   },
-): Promise<{ status: number | null; signal: NodeJS.Signals | null; durationMs: number; output: string; timedOut: boolean }> {
+): Promise<{
+  status: number | null
+  signal: NodeJS.Signals | null
+  durationMs: number
+  output: string
+  stdout: string
+  stderr: string
+  timedOut: boolean
+}> {
   const started = performance.now()
   const child = spawn(command, [...args], {
     cwd: options.cwd,
@@ -325,10 +333,12 @@ export async function runCommandWithTimeout(
     stdio: ['ignore', 'pipe', 'pipe'],
   })
   let output = ''
+  let stdout = ''
+  let stderr = ''
   child.stdout.setEncoding('utf8')
   child.stderr.setEncoding('utf8')
-  child.stdout.on('data', (chunk) => { output += String(chunk) })
-  child.stderr.on('data', (chunk) => { output += String(chunk) })
+  child.stdout.on('data', (chunk) => { stdout += String(chunk); output += String(chunk) })
+  child.stderr.on('data', (chunk) => { stderr += String(chunk); output += String(chunk) })
   const exited = new Promise<{ status: number | null; signal: NodeJS.Signals | null }>((resolveExit, reject) => {
     child.once('error', reject)
     child.once('close', (status, signal) => { resolveExit({ status, signal }) })
@@ -342,7 +352,7 @@ export async function runCommandWithTimeout(
       }),
     ])
     if (first.type === 'exit') {
-      return { ...first.outcome, durationMs: performance.now() - started, output, timedOut: false }
+      return { ...first.outcome, durationMs: performance.now() - started, output, stdout, stderr, timedOut: false }
     }
 
     signalProcessTree(child, 'SIGTERM')
@@ -353,7 +363,7 @@ export async function runCommandWithTimeout(
       delay(FORCED_EXIT_TIMEOUT_MS).then(() => undefined),
     ])
     if (forced === undefined) throw new Error('timed-out process tree did not exit after SIGKILL')
-    return { ...forced, durationMs: performance.now() - started, output, timedOut: true }
+    return { ...forced, durationMs: performance.now() - started, output, stdout, stderr, timedOut: true }
   } finally {
     if (timeout !== undefined) clearTimeout(timeout)
   }

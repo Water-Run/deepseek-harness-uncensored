@@ -14,13 +14,6 @@ const stateSchema = z.object({
 /** Projection value; tool output and reasoning are excluded from extraction evidence. */
 export type MemoryExtractionProjection = z.infer<typeof stateSchema>
 
-declare module '@deepseek-ai/dsh-session-projection/types' {
-  interface SessionProjectionStateMap {
-    /** Current turn's bounded natural-language messages and latest extraction outcome. */
-    memoryExtraction: MemoryExtractionProjection
-  }
-}
-
 /**
  * Retain a UTF-8 suffix without splitting a code point.
  * @param text - Unbounded text.
@@ -40,7 +33,7 @@ export function boundedTail(text: string, bytes: number): string {
  * @param inputBytes - Deployment bound on retained conversation text.
  * @returns A host-only projection registered before agent creation.
  */
-export function extractionProjection(inputBytes: number): ProjectionDefinition<'memoryExtraction'> {
+export function extractionProjection(inputBytes: number): ProjectionDefinition<'memoryExtraction', MemoryExtractionProjection> {
   return {
     key: 'memoryExtraction', stateSchema, stateVersion: 2,
     init: () => ({ turn: 0, text: '', throughSeq: -1, lastSavedSeq: -1, phase: 'none', saved: 0,

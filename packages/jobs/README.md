@@ -33,7 +33,7 @@ The jobs group is the background-work capability family: tools that run long wor
 <a id="related-documentation"></a>
 ## Related documentation
 
-- [Background task runtime subsystem](../../docs/subsystems/jobs.md) — the job types, snapshot fields, and the `ctx.jobs` API.
+- [Background task runtime subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/jobs.md) — the job types, snapshot fields, and the `ctx.jobs` API.
 - [Generic long-running tool runtime reference](jobs/README.md) — the design behind the background-job runtime.
 - [job-registry seam Agent Note](../../.agents/notes/archived/architecture/2026-07-26-job-registry-seam.md) — the owner-fenced registry contract and its rationale.
 

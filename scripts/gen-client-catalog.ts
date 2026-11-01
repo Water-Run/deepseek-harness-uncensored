@@ -48,9 +48,9 @@ const MAX_DECL_CHARS = 1200
  * share that hands down a subsystem instead of a share, and prose that grew
  * into a manual. Every report also lists one line per standard prop seat of its
  * scope, so the widest Session-scope slot (`tool.call.toolview`, with the
- * global and Session access seats) sets the current 122.
+ * global and Session access seats) sets the current 123.
  */
-const MAX_ENTRY_LINES = 122
+const MAX_ENTRY_LINES = 123
 
 /** One register-call option as the catalog teaches it. */
 interface OptionDoc {
@@ -426,9 +426,9 @@ function firstSentence(doc: string): string {
   return (match?.[1] ?? flat).trim()
 }
 
-/** Render one value as a single-quoted TypeScript literal. */
+/** Render source text as a single-quoted TypeScript literal with canonical LF newlines. */
 function quote(value: string): string {
-  return `'${value.replaceAll('\\', '\\\\').replaceAll("'", "\\'").replaceAll('\n', '\\n')}'`
+  return `'${value.replace(/\r\n?/gu, '\n').replaceAll('\\', '\\\\').replaceAll("'", "\\'").replaceAll('\n', '\\n')}'`
 }
 
 /** Render a readonly string-array literal. */

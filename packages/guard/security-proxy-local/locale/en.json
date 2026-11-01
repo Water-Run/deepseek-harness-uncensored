@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Local security proxy",
+    "description": "Provide independent forwarding and bounded traffic capture for security sessions."
+  }
+}

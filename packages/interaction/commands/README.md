@@ -104,7 +104,7 @@ Attachment enforcement happens in the executor: images are committed through `ad
 
 Read these pages when the package-level contract is not enough. They move from the shared command vocabulary to the design evidence and adjacent surfaces.
 
-- [Commands subsystem reference](../../../docs/subsystems/commands.md) — registry semantics, input metadata, and the `ctx.commands` Cordis surface.
+- [Commands subsystem reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/commands.md) — registry semantics, input metadata, and the `ctx.commands` Cordis surface.
 - [historical Command registration Agent Note](../../../.agents/notes/archived/feature/2026-07-19-plugin-command-registration.md) — the boundary and dispatch contract behind this service.
 - [Interaction group map](../README.md) — adjacent approval, permission, and question packages.
 - [Plan mode package](../../plan/plan-mode/README.md) — a shipped command producer that drives model-visible work.

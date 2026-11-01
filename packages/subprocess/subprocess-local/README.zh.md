@@ -119,7 +119,7 @@ spill 文件以 `0600` 权限、`O_EXCL` 与随机名称在 `0700` 每进程目�
 
 当提供方级约定不够用时阅读以下页面。它们从穷尽式类型参考逐步进入抽象约定，以及宿主机制背后的决策。
 
-- [子进程子系统](../../../docs/subsystems/subprocess.zh.md)——spawn spec、输出读取器、结果与完整的 `DSH_*` 环境。
+- [子进程子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/subprocess.md)——spawn spec、输出读取器、结果与完整的 `DSH_*` 环境。
 - [dsh-subprocess](../subprocess/README.zh.md)——本提供方实现的抽象约定。
 - [dsh-bash-local](../../shell/bash-local/README.zh.md)——最大的消费方及其请求的具体 stdio 形态。
 - [subprocess seam Agent Note](../../../.agents/notes/archived/architecture/2026-07-26-subprocess-seam.md)——进程部分为何成为独立的 seam。

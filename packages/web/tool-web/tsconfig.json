@@ -31,6 +31,9 @@
       "path": "../../guard/security-proxy"
     },
     {
+      "path": "../../util/output-retention"
+    },
+    {
       "path": "../web"
     }
   ]

@@ -1,11 +1,15 @@
 {
   "darwin:en-US": {
     "menu": [
-      { "label": "About DeepSeek Harness", "role": "about" },
-      { "type": "separator" }
+      {
+        "label": "About DeepSeek Harness Uncensored"
+      },
+      {
+        "type": "separator"
+      }
     ],
     "options": {
-      "applicationName": "DeepSeek Harness",
+      "applicationName": "DeepSeek Harness Uncensored",
       "applicationVersion": "1.0.0",
       "version": "",
       "copyright": "",
@@ -14,11 +18,15 @@
   },
   "darwin:zh-CN": {
     "menu": [
-      { "label": "关于 DeepSeek Harness", "role": "about" },
-      { "type": "separator" }
+      {
+        "label": "关于 DeepSeek Harness Uncensored"
+      },
+      {
+        "type": "separator"
+      }
     ],
     "options": {
-      "applicationName": "DeepSeek Harness",
+      "applicationName": "DeepSeek Harness Uncensored",
       "applicationVersion": "1.0.0",
       "version": "",
       "copyright": "",
@@ -27,11 +35,15 @@
   },
   "win32:zh-CN": {
     "menu": [
-      { "label": "关于 DeepSeek Harness" },
-      { "type": "separator" }
+      {
+        "label": "关于 DeepSeek Harness Uncensored"
+      },
+      {
+        "type": "separator"
+      }
     ],
     "options": {
-      "applicationName": "DeepSeek Harness",
+      "applicationName": "DeepSeek Harness Uncensored",
       "applicationVersion": "1.0.0",
       "version": "",
       "copyright": "",
@@ -40,11 +52,15 @@
   },
   "win32:en-US": {
     "menu": [
-      { "label": "About DeepSeek Harness" },
-      { "type": "separator" }
+      {
+        "label": "About DeepSeek Harness Uncensored"
+      },
+      {
+        "type": "separator"
+      }
     ],
     "options": {
-      "applicationName": "DeepSeek Harness",
+      "applicationName": "DeepSeek Harness Uncensored",
       "applicationVersion": "1.0.0",
       "version": "",
       "copyright": "",

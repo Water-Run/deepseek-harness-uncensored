@@ -84,7 +84,7 @@ agent（智能体）可以通过该内置提供方加载官方「powered by dsh�
 
 当包级约定不够用时，请阅读以下页面。这些页面先介绍该提供方注册到的注册表，再说明 skill 如何到达模型。
 
-- [skill 子系统参考](../../../docs/subsystems/skills.zh.md)——该提供方实现的注册表与提供方约定。
+- [skill 子系统参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/skills.md)——该提供方实现的注册表与提供方约定。
 - [skill 包](../../skill/skill/README.zh.md)——该提供方注册到的注册表，以及已加载 skill 的共享渲染。
 - [tool-skill 包](../../skill/tool-skill/README.zh.md)——徽章 skill 如何到达会话目录与模型。
 

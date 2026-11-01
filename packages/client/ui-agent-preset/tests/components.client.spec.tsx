@@ -8,9 +8,10 @@
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
+import { bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
+import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { SessionRetainInfo } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { SessionListState, SessionRetainInfo } from '@deepseek-ai/dsh-api-session-controller/client'
 import { SessionId } from '@deepseek-ai/dsh-session/types'
 import { AgentPresetLabel } from '../src/client/AgentPresetLabel.tsx'
 import type { AgentPresetLabelProps } from '../src/client/AgentPresetLabel.tsx'
@@ -19,6 +20,7 @@ import type { AgentPresetSeatProps } from '../src/client/AgentPresetSeat.tsx'
 import type { AgentPresetSettingsState } from '../src/client/settings-store.ts'
 import type { AgentPresetSeatState } from '../src/client/seat-store.ts'
 import { en } from '../src/client/locales.ts'
+import { unreadGlobalProps, unreadSessionProps } from './component-fixture.client.ts'
 
 afterEach(cleanup)
 
@@ -88,17 +90,22 @@ function renderLabel(
   const store = createSnapshotStore<AgentPresetSettingsState>({
     ...ROSTER_READY, options: SEAT_READY.options, ...roster,
   })
-  const sessions = createSnapshotStore({ byId: summary === undefined ? {} : { s1: summary } })
+  const id = SessionId('s1')
+  const sessions = createSnapshotStore<SessionListState>({
+    ids: summary === undefined ? [] : [id], phase: 'ready', projectionsBySession: {},
+    byId: summary === undefined ? {} : { [id]: { id, displayTitle: 'Fixture', running: false, retainedBy: {}, updatedAt: 0, ...summary } },
+  })
   const load = vi.fn(() => Promise.resolve())
-  const view = render(<AgentPresetLabel {...({
+  const props: AgentPresetLabelProps = {
+    ...unreadGlobalProps,
+    ...unreadSessionProps,
     load,
-    sessionId: 's1',
-    locked,
+    sessionId: id,
     useSessions: bindSnapshotSelector(sessions),
     useAgentPresets: bindSnapshotSelector(store),
-    t: (key: keyof typeof en, params?: Record<string, string>) => (en[key] ?? key)
-      .replace('{mode}', params?.mode ?? ''),
-  } as unknown as AgentPresetLabelProps)} />)
+    t: makeTranslate({ ...commonEn, ...en }),
+  }
+  const view = render(<AgentPresetLabel {...props} locked={locked} />)
   return { load, view }
 }
 

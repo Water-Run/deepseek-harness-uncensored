@@ -4,7 +4,7 @@ Status: implemented
 
 English | [中文](2026-07-22-slot-type-chain-implementation.zh.md)
 
-> Scope: the definitive slot-system design for the web client — how UI plugins compose the page, where render authority lives, how component props are typed, and where business live-data goes. The [Web Client reference](../../../../docs/subsystems/web-client.md) documents the surrounding loading chain, object layer, and services.
+> Scope: the definitive slot-system design for the web client — how UI plugins compose the page, where render authority lives, how component props are typed, and where business live-data goes. The [Web Client reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/web-client.md) documents the surrounding loading chain, object layer, and services.
 
 ## Problem
 

@@ -12,7 +12,7 @@ Agent Presets already compose persona and tool plugins. Independent child person
 
 New subagent requests select an Agent Preset where the provider supports it. Persona and tools come from its plugin list. Fork inherits the parent's preset revision; model and effort selection keep their existing configuration. No preset-level filter or finer plugin split is added without a concrete consumer.
 
-`dsh-tool-subagent` rejects removed `persona` and `toolFilter` keys at load, including empty values, because deleting Schemastery fields alone does not reject unknown configuration. The [upgrade guide](../../../../docs/upgrade-guide/v0.2.1-alpha.1/subagent-preset-composition/guide.md) states the lost independent override capability and the migration.
+`dsh-tool-subagent` rejects removed `persona` and `toolFilter` keys at load, including empty values, because deleting Schemastery fields alone does not reject unknown configuration. The [upgrade guide](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/upgrade-guide/v0.2.1-alpha.1/subagent-preset-composition/guide.md) states the lost independent override capability and the migration.
 
 Released child descriptors keep their persona and filter fields, parsing, and cold-resume application. The [original composition note](../feature/2026-07-12-subagent-persona-tool-filter-and-depth.md) remains active for these historical semantics and the independent depth policy. The [spawn preset decision](../feature/2026-09-20-spawn-agent-preset-selection.md) continues to own selection and restoration identity.
 

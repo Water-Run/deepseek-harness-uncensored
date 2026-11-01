@@ -48,7 +48,7 @@ Status: proposed
 
 **现在就把 `LogicalSession` 改名为 `Session`。** 拒绝，因为旧具体类仍在过渡期使用，会造成含义冲突并扩大 diff。
 
-**把接口命名为 `SessionRuntime`。** 拒绝，因为[新增包指南](../../../../docs/cookbook/adding-a-package.zh.md)中的包命名表把 `Runtime` 保留给运行实时工作并拥有分发、取消或操作生命周期的组件；该接口只持有一个会话的身份与日志，不运行任何东西，这个名字会被读作运行环境。
+**把接口命名为 `SessionRuntime`。** 拒绝，因为[新增包指南](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/cookbook/adding-a-package.md)中的包命名表把 `Runtime` 保留给运行实时工作并拥有分发、取消或操作生命周期的组件；该接口只持有一个会话的身份与日志，不运行任何东西，这个名字会被读作运行环境。
 
 **把 FAQ 混入协议正文。** 拒绝，因为快速解释命名与迁移状态会掩盖协议义务；FAQ 只导航到规范 owner。
 

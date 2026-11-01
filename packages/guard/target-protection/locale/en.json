@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Target protection",
+    "description": "Validate file, network and management operations against configured target rules."
+  }
+}

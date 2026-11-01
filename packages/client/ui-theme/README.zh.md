@@ -41,7 +41,7 @@ Desktop 的固定快捷键 `Cmd`/`Ctrl` + `+`（或 `=`）和 `Cmd`/`Ctrl` + `-`
 
 ### 注册主题
 
-组合可以通过 `ctx.theme` 注册带别名 token 覆盖的第三方主题 id；覆盖层按注册顺序折入活动快照的 token 中。移除其中一个绝不会覆盖最后一个持久化的内置偏好。第三方主题 id 仍是进程内扩展，不会跨越内置 settings schema。
+组合可以通过 `ctx.theme` 注册带别名 token 覆盖的第三方主题 id；覆盖层按注册顺序折入活动快照的 token 中。主题还可以替换产品图标：`ThemeDefinition.icons` 把 ui-primitives `ICON_SYMBOLS` 的 id 映射到完整的 SVG 文档。插件在 `body` 开头保留一个隐藏的图标 sprite，其 `<symbol>` 子元素采用活动主题的替换项，缺省时回退到默认值，因此替换图形可以是多色的，并可使用跟随调色板的 `currentColor` 或 `--dsw-*` 变量绘制。替换标记与注册它的插件代码同等受信任。`register` 会拒绝未知 id、根元素不是带 `viewBox` 且格式正确的 SVG 命名空间 `<svg>` 的文档、会作用于整个文档的 `<style>` 或 `<script>` 元素，以及不以 `<symbol id>-` 开头的元素 id。根元素的 `width`、`height`、`class` 和 `aria-hidden` 会被忽略，因为图标尺寸由使用处决定。渐变及其他绘制服务器在 sprite 中解析其色标，因此会跟随调色板 token，但不跟随使用处的颜色覆盖。移除其中一个绝不会覆盖最后一个持久化的内置偏好。第三方主题 id 仍是进程内扩展，不会跨越内置 settings schema。
 
 ### 插件前调色板
 
@@ -63,6 +63,8 @@ Desktop 的固定快捷键 `Cmd`/`Ctrl` + `+`（或 `=`）和 `Cmd`/`Ctrl` + `-`
 
 ### 样式表
 
+当 document 有关联的 window 时，样式安装器在 document 根节点发布 `--dsh-hairline-width`，并通过一个设备像素比监听器更新它。没有 window 的文档仍安装样式表，并使用 CSS fallback 宽度。该宽度对应 0.5px 边框向下取整到整物理像素后的结果，最小为一个物理像素。只有显式读取该变量的样式会使用这一宽度；插件卸载时释放监听器并恢复根节点上原有的声明。
+
 `base.css` 持有共享圆角尺度、字体 token 与设置卡片材质别名。`--dsh-font-family-text-default` 与 `--dsh-font-family-code-default` 在 `:root` 上保存内置字体栈；在 `body` 上，`--dsw-font-family` 与 `--ds-font-family-code` 把 `--dsh-font-family-text` 与 `--dsh-font-family-code` 排在这些字体栈之前，未设置的列表解析为内置字体栈（重复一次，字体匹配会忽略重复项）。材质别名在 `body` 上随当前色板解析。
 
 `src/styles/` 下有十张样式表，由 ui-theme 的动态客户端 entry 依次导入：`base.css`、`corner-shape.css`、`design-platform.css`、`mode-accent.css`、`motion.css`、`focus.css`、`onboarding.css`、`scrollbar.css`、`gradient-shadow-text.css` 与 `shiki.css`。客户端 bundle 将其编译并注入为插件持有的全局样式，因此卸载与 HMR（热模块替换）会随 ui-theme 一同移除。`scrollbar.css` 消费 `--dsw-alias-scrollbar-*` token，必须排在声明这些 token 的 `design-platform.css` 之后。状态标记使用各自的语义状态 token。`--dsw-alias-bg-document-selection` 在两种主题中均使用 40% 不透明度的 blue-500，供保留文档原色的选区使用。`design-platform.css` 还负责代码差异底色的别名及其静态透明度色阶，以及文件对比所用的 `--dsw-alias-file-diff-*` 代码区、行号区和标记配色；`shiki.css` 负责语法颜色。
@@ -74,6 +76,8 @@ Desktop 的固定快捷键 `Cmd`/`Ctrl` + `+`（或 `=`）和 `Cmd`/`Ctrl` + `-`
 指针模态下，`html[data-input-modality='pointer'] body :focus-visible:not(:read-write)` 将焦点环颜色设为透明。后代与伪元素继承该值；规则不清除 `box-shadow`，因此 elevation 阴影与选中态边框独立于焦点环可见性。匹配 `:read-write` 的可编辑文本控件在点击时保留自身焦点反馈。[输入模态](../ui-primitives/README.zh.md#input-modality)决定何时恢复键盘焦点样式；它不移动 DOM 焦点。
 
 菜单图标使用 `--dsw-alias-menu-icon`：浅色模式为 neutral-bluish 800，深色模式为 `label-primary-dimmed`。
+
+`--dsw-alias-illustration-*` token 分别定义分层装饰插画的背景、前层表面、后层、投影、内嵌填充与细节配色。表盘使用内嵌填充。深色配色让前层表面比后层和背景更亮；内嵌填充与投影沿用后层色调。
 
 `base.css` 仅抑制[基础控件焦点工具](../ui-primitives/README.zh.md)通过 `data-dsh-automatic-focus` 标记的聚焦元素外轮廓线；正常键盘焦点样式、边框、阴影及错误状态保持不变。
 
@@ -135,6 +139,7 @@ Desktop 的固定快捷键 `Cmd`/`Ctrl` + `+`（或 `=`）和 `Cmd`/`Ctrl` + `-`
 
 - **第三方主题是扩展点，不是产品**：注册主题意味着覆盖同名别名变量；目前不会验证一组覆盖是否完整。
 - **token 样式表是颜色值的唯一权威来源**：设计系统中缺失的值会有意不补入；一律采用最接近的语义 token，设计负责人批准的新增值须在同一变更中以一个静态尺度层级与一个语义别名的形式进入。
+- **只有产品图标可替换**：`ThemeDefinition.icons` 覆盖 ui-primitives 的产品图标集；文件类型、插件、站点与品牌图稿仍渲染固定的内联 SVG。
 
 <a id="dev-note"></a>
 ### 开发备注

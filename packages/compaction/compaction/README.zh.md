@@ -48,7 +48,7 @@ kind: "package-reference"
 
 ### 实现后端
 
-继承提供的基类并实现三个操作：一个针对自动触发决定并执行压缩，一个按需压缩，一个压缩对话的显式范围。把你的类作为插件加载，它就会成为该组合的压缩服务。精确签名、失败规则以及每个后端必须生成的检查点标记，见下方实现章节与[压缩子系统参考](../../../docs/subsystems/compaction.zh.md)。
+继承提供的基类并实现三个操作：一个针对自动触发决定并执行压缩，一个按需压缩，一个压缩对话的显式范围。把你的类作为插件加载，它就会成为该组合的压缩服务。精确签名、失败规则以及每个后端必须生成的检查点标记，见下方实现章节与[压缩子系统参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/compaction.md)。
 
 ### 识别压缩后的历史
 
@@ -75,7 +75,7 @@ kind: "package-reference"
 
 ### 服务 API
 
-该约定是后端实现的三个抽象操作：`compactIfNeeded` 针对自动 `pressure` 或 `context-overflow` 触发，`compactNow` 进行一次显式按需缩减，`compactRegion` 针对调用方选择的表层范围。可复用的请求测量是独立服务 `ctx.tokenMeter`。穷尽式逐操作语义见[压缩子系统参考](../../../docs/subsystems/compaction.zh.md)；精确签名见 [`src/index.ts`](src/index.ts)。
+该约定是后端实现的三个抽象操作：`compactIfNeeded` 针对自动 `pressure` 或 `context-overflow` 触发，`compactNow` 进行一次显式按需缩减，`compactRegion` 针对调用方选择的表层范围。可复用的请求测量是独立服务 `ctx.tokenMeter`。穷尽式逐操作语义见[压缩子系统参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/compaction.md)；精确签名见 [`src/index.ts`](src/index.ts)。
 
 通过 `ctx.llm.stream()` 摘要的后端必须将 signal 转发到调用的 `GenerateOptions.signal`，因此 abort 或 fiber dispose（资源释放）会停止进行中的摘要。自动和显式范围标记对会从打开的轮次恢复其数字形式归属；手动标记对不要求存在打开的轮次，并标记 `turn: null`。
 
@@ -83,7 +83,7 @@ kind: "package-reference"
 
 同步的 `compaction/summary-error` waterfall 让后端为失败的摘要及明确选区请求持久输入恢复。监听器只有在记录实际进展后才返回 true，否则调用 `next()` 委派后续处理。后端在触发事件前检查取消和选区稳定性，重试前重新派生输入并计价。事件声明说明其载荷；图片策略由 `dsh-compaction-image-offload` 负责。
 
-预期手动失败会抛出 `ManualCompactionError`，携带来自小型封闭集合的稳定 `code`；只有 `compaction/start` 标记之后发生的失败才会被记录——以携带错误的 `compaction/end` 形式——而 `busy` 拒绝或 start 之前的取消不会留下记录。每个错误码的语义见[压缩子系统参考](../../../docs/subsystems/compaction.zh.md)。
+预期手动失败会抛出 `ManualCompactionError`，携带来自小型封闭集合的稳定 `code`；只有 `compaction/start` 标记之后发生的失败才会被记录——以携带错误的 `compaction/end` 形式——而 `busy` 拒绝或 start 之前的取消不会留下记录。每个错误码的语义见[压缩子系统参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/compaction.md)。
 
 <a id="tool-pairing-boundaries"></a>
 ### 工具配对边界
@@ -94,7 +94,7 @@ kind: "package-reference"
 
 `SurfaceEventType` 是封闭联合——`user/message`、`assistant/message` 与 `tool/result` 必须携带 `surfaceOp`，其他事件禁止携带该字段，因此 `compaction/*` 事件不能出现在表层上。成功的后端运行改为在日志中包围整个操作：先追加 `compaction/start`（仅日志）获取锁，摘要该范围，追加仅日志的 `compaction/summary` 记录，用一条承载摘要的 `user/message` 替换所选范围——这是唯一的表层变更——最后追加 `compaction/end`（仅日志）释放锁。
 
-替换位于锁的起止范围**内**，因此 `compaction/start` 与 `compaction/end` 之间崩溃会留下可检测的遗留锁，而不是虚假声称成功的 `compaction/end`。`deriveMessages()` 将摘要渲染为 user 角色消息，后面跟随已保留节点；已遮蔽事件仍保留在原始日志中，因此回放具有确定性。每个事件的具体 payload 见[压缩子系统参考](../../../docs/subsystems/compaction.zh.md)。
+替换位于锁的起止范围**内**，因此 `compaction/start` 与 `compaction/end` 之间崩溃会留下可检测的遗留锁，而不是虚假声称成功的 `compaction/end`。`deriveMessages()` 将摘要渲染为 user 角色消息，后面跟随已保留节点；已遮蔽事件仍保留在原始日志中，因此回放具有确定性。每个事件的具体 payload 见[压缩子系统参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/compaction.md)。
 
 ### 源码地图
 
@@ -112,7 +112,7 @@ kind: "package-reference"
 
 ### 事件
 
-`compaction/*` 事件通过 declaration merging 扩展 `SessionEventMap`（可合并扩展）——它们是会话事件，不是 Cordis `Events`，且都仅写入日志。生成的[持久化日志事件目录](../../../docs/persistence-catalog.zh.md)拥有每个事件的 payload；`compaction/prune` 记录了与工具结果修剪器共享的影子价格协议。
+`compaction/*` 事件通过 declaration merging 扩展 `SessionEventMap`（可合并扩展）——它们是会话事件，不是 Cordis `Events`，且都仅写入日志。生成的[持久化日志事件目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/persistence-catalog.md)拥有每个事件的 payload；`compaction/prune` 记录了与工具结果修剪器共享的影子价格协议。
 
 </details>
 
@@ -123,7 +123,7 @@ kind: "package-reference"
 
 当包级约定不够用时阅读以下页面；它们从共享词汇逐步进入随附后端与决策证据。
 
-- [压缩子系统参考](../../../docs/subsystems/compaction.zh.md)——压缩词汇、结果与生成的 API。
+- [压缩子系统参考](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/compaction.md)——压缩词汇、结果与生成的 API。
 - [压缩基础后端](../compaction-basic/README.zh.md)——自动与按需压缩的随附后端。
 - [工具结果修剪器](../compaction-tool-result-pruner/README.zh.md)——先修剪超大工具输出的可选配套工具。
 - [面向用户的 /compact 命令](../command-compact/README.zh.md)——按需触发压缩的入口。

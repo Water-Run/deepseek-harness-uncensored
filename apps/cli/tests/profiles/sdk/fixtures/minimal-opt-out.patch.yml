@@ -1,0 +1,9 @@
+- id: tool-fs
+  config:
+    read: false
+    readImage: false
+    write: false
+    edit: false
+- id: compaction-basic
+  config:
+    auto: false

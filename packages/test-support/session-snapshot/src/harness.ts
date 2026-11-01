@@ -48,6 +48,17 @@ const DEFAULT_WAIT_TIMEOUT_MS = 10_000
 const WAIT_POLL_INTERVAL_MS = 10
 
 /**
+ * Credential environment every keyless replay layers under its scenario environment. Shipped
+ * profiles offer `web_search` only while a DeepSeek search key is configured and recordings ran
+ * with a real key, so a replay supplies a placeholder instead of whatever the runner exports.
+ * A missing replay adapter must not send that placeholder to the public API endpoint.
+ */
+export const REPLAY_CREDENTIAL_ENV: Readonly<Record<string, string>> = {
+  DEEPSEEK_API_KEY: 'snapshot-replay-key',
+  DEEPSEEK_BASE_URL: 'http://127.0.0.1:0',
+}
+
+/**
  * One step of a scenario's deterministic input script (`input.json`). The
  * harness interprets these in order. `newSession` captures the server-issued
  * (random) session id into a `{{sessionId}}` variable that later steps
@@ -261,6 +272,7 @@ export async function runScenario(input: InputScript, opts: RunOptions): Promise
       ignoredRootEntries: ['.agents', '.dsh', '.dsh-profile-patches', '.dsh-snapshot-stream-ready'],
     })
     const env: NodeJS.ProcessEnv = {
+      ...opts.mode === 'replay' ? REPLAY_CREDENTIAL_ENV : {},
       ...opts.env,
       // A replay must not depend on the machine's network policy, the same reason it pins its home
       // and sessions root. The harness honors the proxy environment, so a runner that exports one

@@ -31,7 +31,7 @@ Choose one provider and mount the shared registration service.
 <a id="related-documentation"></a>
 ## Related documentation
 
-- [Browser use](../../docs/subsystems/browser-use.md) — capability ownership and provider choices.
+- [Browser use](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/browser-use.md) — capability ownership and provider choices.
 - [Experimental packages](../experimental/README.md) — Playwright MCP, Chrome DevTools MCP, and Stagehand providers.
 
 <a id="dev-note"></a>

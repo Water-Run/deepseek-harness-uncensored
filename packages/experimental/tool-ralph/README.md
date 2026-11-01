@@ -44,7 +44,7 @@ Each child receives only the immutable objective, its current round and cap, a s
 | `maxHandoffChars` | `16384` | Maximum serialized characters in one round report. |
 | `maxResultChars` | `16384` | Maximum characters in the complete successful parent result. |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-tool-ralph) is the exhaustive source for every accepted field. The configured provider must exist, support structured output, and report `inheritsParentContext: false`; a call against a provider that violates this fails loudly before any round starts.
+The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-tool-ralph) is the exhaustive source for every accepted field. The configured provider must exist, support structured output, and report `inheritsParentContext: false`; a call against a provider that violates this fails loudly before any round starts.
 
 -----
 
@@ -91,7 +91,7 @@ The pending call is a `generic` card titled `ralph` with the immutable objective
 
 Read these pages when the tool-level contract is not enough. They move from the shared workflow model to the engine, the subagent seam, and the adjacent goal domain.
 
-- [Workflow subsystem](../../../docs/subsystems/workflow.md) — the seam contract behind the fixed loop.
+- [Workflow subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/workflow.md) — the seam contract behind the fixed loop.
 - [Workflow seam](../../workflow/workflow/README.md) — the run and result vocabulary.
 - [PTC workflow engine](../../workflow/workflow-ptc/README.md) — the engine that executes the fixed script.
 - [subagent seam](../../subagent/subagent/README.md) — the fresh-child provider contract.
@@ -127,7 +127,7 @@ Prefix-stable while the plugin scope and guidance text are unchanged. Activation
 
 #### What the model sees
 
-The generated [`ralph` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-ralph) exposes one required `objective` string and one optional `maxRounds` number. Provider choice, handoff size, report schema, workflow script, and orchestration behavior are deployment-owned and absent from the call schema.
+The generated [`ralph` schema](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/tool-catalog.md#deepseek-aidsh-tool-ralph) exposes one required `objective` string and one optional `maxRounds` number. Provider choice, handoff size, report schema, workflow script, and orchestration behavior are deployment-owned and absent from the call schema.
 
 #### Token effect
 

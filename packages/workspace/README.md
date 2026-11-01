@@ -31,7 +31,7 @@ The workspace family lets a host product keep an ordered list of named projects 
 <a id="related-documentation"></a>
 ## Related documentation
 
-- [Workspace subsystem](../../docs/subsystems/workspace.md) — the authoritative feature contract for projects and their sessions.
+- [Workspace subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/workspace.md) — the authoritative feature contract for projects and their sessions.
 - [domain KV storage Agent Note](../../.agents/notes/proposed/architecture/2026-07-24-domain-kv-storage-and-workspace.md) — the storage design behind project records.
 - [Workspace UI product-flow Agent Note](../../.agents/notes/archived/feature/2026-07-25-workspace-ui-product-flow.md) — how the first start builds projects from session history and how the GUI orders them.
 - [historical Workspace registration deletion decision](../../.agents/notes/archived/feature/2026-07-27-workspace-registration-deletion.md) — why removing a project never deletes its folder or sessions.

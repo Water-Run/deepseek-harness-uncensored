@@ -1,5 +1,5 @@
 /**
- * Safe HTTP(S) retrieval for `ctx.web`: validates and pins public IP destinations, follows
+ * Safe HTTP(S) retrieval for `ctx.web`: validates and pins IP destinations, follows
  * only same-origin redirects, enforces time and size limits, classifies and decodes text,
  * and leaves presentation to `@deepseek-ai/dsh-tool-web`. Requests carry no browser cookies
  * or ambient credentials.
@@ -11,7 +11,7 @@ import type { WebFetchBody, WebFetchProvider, WebFetchRequest, WebFetchResult } 
 import { deadline, timeoutOf } from '@deepseek-ai/dsh-timeout'
 import type { Response } from 'undici'
 import { proxyRouteFor } from '@deepseek-ai/dsh-http-proxy'
-import { isNonPublicIpLiteral, publicHttpNetwork } from './network.ts'
+import { httpNetwork } from './network.ts'
 import type { PublicAddress } from './network.ts'
 import type { HttpFetchAuthorizer, HttpFetchDestination } from './authorization.ts'
 import { classifyContentType, decoderForCharset, isSameOrigin, parseCharset, validateFetchUrl } from './policy.ts'
@@ -36,24 +36,25 @@ export type HttpFetchResolver = (hostname: string, signal: AbortSignal) => Promi
 /** Stable id this provider registers under. */
 export const LOCAL_FETCH_PROVIDER_ID = 'http'
 
-/** The anonymous public HTTP(S) fetch provider. */
+/** The anonymous HTTP(S) fetch provider. */
 export class HttpFetchProvider implements WebFetchProvider {
   readonly id = LOCAL_FETCH_PROVIDER_ID
 
   /**
    * @param limits - resolved transport and response limits.
-   * @param resolveAddresses - resolver that rejects non-public destinations before returning.
+   * @param resolveAddresses - resolver that validates destinations before returning;
+   * defaults to system resolution including private addresses.
    * @param authorize - Deployment policy for every hop; omission applies only transport validation.
    * @param proxyBinding - Literal CONNECT uses the same checked local addresses through the proxy; omission keeps remote DNS.
    */
   constructor(
     private readonly limits: HttpFetchLimits,
-    private readonly resolveAddresses: HttpFetchResolver = publicHttpNetwork.resolve,
+    private readonly resolveAddresses: HttpFetchResolver = httpNetwork.resolve,
     private readonly authorize?: HttpFetchAuthorizer,
     private readonly proxyBinding?: 'literal-connect',
   ) {}
 
-  /** No credentials to check — an anonymous public fetcher is always usable. */
+  /** No credentials to check — an anonymous fetcher is always usable. */
   available(): boolean {
     return true
   }
@@ -131,12 +132,8 @@ export class HttpFetchProvider implements WebFetchProvider {
       //
       // One route decides both the branch and the dispatcher, so a mount or disposal between two
       // reads cannot return a direct, unpinned agent for a URL this branch cleared as proxied.
-      //
-      // An IP literal the address checks would refuse never takes it. The proxy would resolve
-      // nothing — the address is already stated — so the shortcut would spend the checks for
-      // nothing and let a proxy on this machine reach the very service they keep out of reach.
       const route = proxyRouteFor(url)
-      const proxied = route.proxied && !isNonPublicIpLiteral(url.hostname)
+      const proxied = route.proxied
       const authority = { origin: url.origin, hostname: url.hostname, port: Number(url.port || (url.protocol === 'https:' ? 443 : 80)) }
       await this.authorizeDestination({ ...authority, phase: 'before-resolution', route: proxied ? 'proxy' : 'direct' }, signal)
       if (proxied) {
@@ -145,16 +142,16 @@ export class HttpFetchProvider implements WebFetchProvider {
           await this.authorizeDestination({ ...authority, phase: 'before-connect', route: 'proxy', binding: 'literal-connect',
             addresses: Object.freeze(addresses.map(address => Object.freeze({ ...address }))),
           }, signal)
-          return await publicHttpNetwork.requestPinnedViaProxy(route.proxy, url, addresses, headers, signal)
+          return await httpNetwork.requestPinnedViaProxy(route.proxy, url, addresses, headers, signal)
         }
         await this.authorizeDestination({ ...authority, phase: 'before-connect', route: 'proxy', addresses: null }, signal)
-        return await publicHttpNetwork.requestVia(route.dispatcher, url, headers, signal)
+        return await httpNetwork.requestVia(route.dispatcher, url, headers, signal)
       }
       const addresses = await this.resolveAddresses(url.hostname, signal)
       await this.authorizeDestination({ ...authority, phase: 'before-connect', route: 'direct',
         addresses: Object.freeze(addresses.map(address => Object.freeze({ ...address }))),
       }, signal)
-      return await publicHttpNetwork.request(url, addresses, headers, signal)
+      return await httpNetwork.request(url, addresses, headers, signal)
     } catch (error: unknown) {
       if (error instanceof WebError) throw error
       throw translateAbortOrNetwork(error, signal)

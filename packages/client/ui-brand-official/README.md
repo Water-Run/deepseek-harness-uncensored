@@ -56,7 +56,7 @@ Read these pages when the brand surface is not enough. They move from the slots 
 
 - [ui-sidebar](../ui-sidebar/README.md) — declares `sidebar.brand.mark` and `sidebar.brand.name` and renders their fallbacks.
 - [ui-conversation](../ui-conversation/README.md) — declares `conversation.hero.brand.mark` in the hero.
-- [Web client architecture](../../../docs/subsystems/web-client.md) — how browser plugin rows load and register slots.
+- [Web client architecture](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/web-client.md) — how browser plugin rows load and register slots.
 
 -----
 

@@ -27,7 +27,7 @@ This group provides reporting infrastructure shared by product analytics and fee
 <a id="related-documentation"></a>
 ## Related documentation
 
-- [OTel subsystem](../../docs/subsystems/otel.md) — shared service and consumer ownership.
+- [OTel subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/otel.md) — shared service and consumer ownership.
 
 <a id="dev-note"></a>
 ## Dev Note

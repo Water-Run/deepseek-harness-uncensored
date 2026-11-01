@@ -50,7 +50,7 @@ The cache opens its domain through the storage stack, so base mounts `storage`, 
 | `writeEveryEvents` | required | Committed events per session that force a durable checkpoint write between mandatory points |
 | `writeIntervalMs` | required | Longest time a dirty checkpoint may stay unwritten between mandatory points |
 
-The plugin injects `storageDomain`, `sessionProjections`, and `sessions`. The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-session-projection-cache) is the exhaustive source for every accepted field and its JSDoc.
+The plugin injects `storageDomain`, `sessionProjections`, and `sessions`. The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-session-projection-cache) is the exhaustive source for every accepted field and its JSDoc.
 
 ### How checkpoints are written
 
@@ -100,9 +100,9 @@ The cache stores one version-stamped document per session in the `session_projca
 
 Read these pages when the package-level contract is not enough. They move from the cache to the registry it checkpoints and the storage domain that holds its records.
 
-- [Session projections subsystem](../../../docs/subsystems/session-projection.md) — the projection unit contract and drive semantics this cache checkpoints.
+- [Session projections subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/session-projection.md) — the projection unit contract and drive semantics this cache checkpoints.
 - [Session projection registry](../session-projection/README.md) — the `ctx.sessionProjections` service whose checkpoints this cache persists.
-- [Storage subsystem](../../../docs/subsystems/storage.md) — the domain routing and backend behavior that store cache records.
+- [Storage subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/storage.md) — the domain routing and backend behavior that store cache records.
 - [Session package map](../README.md) — adjacent persistence, title, and telemetry packages.
 - [Session-projection RFC](../../../.agents/notes/proposed/architecture/2026-07-27-session-projection-and-command-log.md) — the persisted projection cache design rationale.
 

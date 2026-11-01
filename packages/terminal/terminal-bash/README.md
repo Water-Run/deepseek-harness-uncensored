@@ -59,7 +59,7 @@ Mount the terminal service, a subprocess provider, the sandbox and policy servic
 | `timeoutMs` | `30000` | Absolute bound on one send wait |
 | `disposeGraceMs` | `3000` | Grace before teardown escalates to `SIGKILL` |
 
-The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-terminal-bash) is the exhaustive source for every field, including the readiness timings (`pollIntervalMs`, `exactProbeAfterMs`, `idleSilenceMs`, `handoffGraceMs`, `promptTailGraceMs`), terminal size (`rows`, `cols`), and scrollback bounds (`scrollbackLines`, `scrollbackMaxBytes`).
+The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-terminal-bash) is the exhaustive source for every field, including the readiness timings (`pollIntervalMs`, `exactProbeAfterMs`, `idleSilenceMs`, `handoffGraceMs`, `promptTailGraceMs`), terminal size (`rows`, `cols`), and scrollback bounds (`scrollbackLines`, `scrollbackMaxBytes`).
 
 ### Shell dialects and readiness
 
@@ -119,10 +119,10 @@ A write that would change the effective sandbox mode is rejected before the `san
 
 Read these pages when the package-level contract is not enough. They move from the shared terminal model to the service, the tools, and the execution-world substrate.
 
-- [Terminal subsystem reference](../../../docs/subsystems/terminal.md) — the service contract this backend implements and the generated `ctx.terminals` surface.
+- [Terminal subsystem reference](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/terminal.md) — the service contract this backend implements and the generated `ctx.terminals` surface.
 - [terminal service](../terminal/README.md) — backend registration, owner fencing, and cleanup semantics.
 - [tool-terminal tools](../../experimental/tool-terminal/README.md) — the model-facing tools that operate sessions.
-- [Subprocess seam](../../../docs/subsystems/subprocess.md) — the terminal primitive that owns PTY allocation and process-tree cleanup.
+- [Subprocess seam](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/subprocess.md) — the terminal primitive that owns PTY allocation and process-tree cleanup.
 - [Persistent PTY Agent Note](../../../.agents/notes/implemented/feature/2026-07-16-persistent-pty-sessions.md) — the capability design and deferred boundaries.
 - [Persistent pwsh Agent Note](../../../.agents/notes/archived/architecture/2026-08-11-pwsh-persistent-pty.md) — the Windows substrate and the pwsh dialect.
 

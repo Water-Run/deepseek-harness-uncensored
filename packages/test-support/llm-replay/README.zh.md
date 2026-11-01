@@ -63,7 +63,7 @@ kind: "package-reference"
 | `providers` | 无 | 可选的仅回放提供方与模型目录；模型可声明 `contextWindow`、文本／图片模态、图片模型使用的正整数 `imageRequestTokens`，以及让无密钥场景演练历史内系统提示词替换的 `systemPromptUpdate: in-history`；非法值会在加载时失败（`llm-replay: provider "…" model "…" systemPromptUpdate must be "in-history" when present`），路由绝不执行提供方 I/O |
 | `paceMs` | 无（突发） | 可选的每分片延迟（毫秒），用于真正的增量投递 |
 
-生成的[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-llm-replay)是每个受支持字段及其 JSDoc 的穷尽式真源。
+生成的[配置目录](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-llm-replay)是每个受支持字段及其 JSDoc 的穷尽式真源。
 
 ### fixture 的工作方式
 
@@ -125,7 +125,7 @@ parent agent 委托给进程内 subagent 的场景会为每个 Session 记录一
 
 - [session-snapshot](../session-snapshot/README.zh.md)——录制 fixture 并驱动回放、录制与刷新模式的快照支持。
 - [LLM 包](../../llm/llm/README.zh.md)——回放实现的提供方流约定与适配器注册表。
-- [测试策略](../../../docs/testing.zh.md)——无密钥快照层及其适用时机。
+- [测试策略](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/testing.md)——无密钥快照层及其适用时机。
 - [test-support 组地图](../README.zh.md)——兄弟 harness 与支持包。
 
 -----

@@ -60,7 +60,7 @@ The `servers` record maps each stable provider id to one server command. The pro
 | `shutdownTimeoutMs` | `5000` | Graceful `shutdown`/`exit` budget before escalation |
 | `killGraceMs` | `2000` | Request-cancel and SIGTERM→SIGKILL escalation grace |
 
-`servers` must contain at least one entry with non-empty ids; timer budgets must be positive integers within Node's timer range, and byte caps must be positive. The generated [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-lsp-stdio) is the exhaustive source for every accepted field.
+`servers` must contain at least one entry with non-empty ids; timer budgets must be positive integers within Node's timer range, and byte caps must be positive. The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/config-catalog.md#deepseek-aidsh-lsp-stdio) is the exhaustive source for every accepted field.
 
 ### What a query does
 
@@ -120,7 +120,7 @@ Initialization advertises UTF-16 positions, workspace folders and configuration,
 
 Read these pages when the package-level contract is not enough. They move from the shared navigation model to the seam and the tool.
 
-- [LSP navigation subsystem](../../../docs/subsystems/lsp.md) — operations, coordinates, requests and results, and `LspError` codes.
+- [LSP navigation subsystem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/lsp.md) — operations, coordinates, requests and results, and `LspError` codes.
 - [dsh-lsp](../lsp/README.md) — the seam this provider registers against.
 - [dsh-tool-lsp](../tool-lsp/README.md) — the model-facing tool over the seam.
 - [lsp group map](../README.md) — the three-package family and its related documentation.

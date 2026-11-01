@@ -40,12 +40,12 @@ kind: "package-group"
 <a id="related-documentation"></a>
 ## 相关文档
 
-- [Core 子系统](../../docs/subsystems/core.zh.md)——逐包循环图与 `Agent` 句柄约定。
-- [会话子系统](../../docs/subsystems/session.zh.md)——会话事件词汇与派生历史。
-- [系统提示词子系统](../../docs/subsystems/system-prompt.zh.md)——提示词段、动态上下文与工具 schema 类型。
-- [工具子系统](../../docs/subsystems/tools.zh.md)——工具执行流水线与呈现词汇。
-- [作用域注册子系统](../../docs/subsystems/scope.zh.md)——这些注册表所依赖的作用域层原语。
-- [架构](../../docs/architecture.zh.md)——轮次流与新行为归属。
+- [Core 子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/core.md)——逐包循环图与 `Agent` 句柄约定。
+- [会话子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/session.md)——会话事件词汇与派生历史。
+- [系统提示词子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/system-prompt.md)——提示词段、动态上下文与工具 schema 类型。
+- [工具子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/tools.md)——工具执行流水线与呈现词汇。
+- [作用域注册子系统](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/subsystems/scope.md)——这些注册表所依赖的作用域层原语。
+- [架构](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/architecture.md)——轮次流与新行为归属。
 - [基础组合包](../bundle/base/README.zh.md)——默认产品组合。
 - [SDK 最小组合包](../bundle/sdk-minimal/README.zh.md)——完整、独立且功能集经过刻意精简的组合。
 

@@ -16,7 +16,7 @@ Each agent selects `native` or `ptc`. Native presentation exposes visible capabi
 
 **Keep mixed presentation.** This lets one agent choose direct calls or programs for each step, but duplicates the advertised capability information and preserves a third admission case. Separate native and PTC agents provide the supported choices.
 
-**Silently map mixed presentation to another mode.** Either mapping changes how existing programs or direct calls execute. Explicit configuration rejection and the [upgrade guide](../../../../docs/upgrade-guide/v0.2.1-alpha.1/tool-presentation-mode/guide.md) make that choice visible.
+**Silently map mixed presentation to another mode.** Either mapping changes how existing programs or direct calls execute. Explicit configuration rejection and the [upgrade guide](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/upgrade-guide/v0.2.1-alpha.1/tool-presentation-mode/guide.md) make that choice visible.
 
 ## Consequences
 

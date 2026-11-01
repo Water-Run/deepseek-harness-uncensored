@@ -40,7 +40,7 @@ Changing the default to the Search API is a separate change after the launch is 
 
 ### Supplementary Messages fix
 
-The retained Messages path explicitly sends `thinking: { type: 'disabled' }` and records that same body before dispatch. This avoids reasoning work in an auxiliary request whose generated answer is discarded; it does not implement or control the new retrieval API. `tool_choice` remains omitted. The [persistence acknowledgement](../../../../docs/persistence-changes/2026-10-13-deepseek-search-thinking.md) owns compatibility for the optional logged field.
+The retained Messages path explicitly sends `thinking: { type: 'disabled' }` and records that same body before dispatch. This avoids reasoning work in an auxiliary request whose generated answer is discarded; it does not implement or control the new retrieval API. `tool_choice` remains omitted. The [persistence acknowledgement](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/persistence-changes/2026-10-13-deepseek-search-thinking.md) owns compatibility for the optional logged field.
 
 ## Alternatives considered
 

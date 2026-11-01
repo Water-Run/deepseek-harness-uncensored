@@ -133,7 +133,7 @@ CLI 公开 `--success-text`、`--partial-text`、`--reasoning-text`、`--chunk-s
 
 - [LLM 包](../../llm/llm/README.zh.md)——本服务器所检验的提供方流约定与重试策略。
 - [llm-replay](../llm-replay/README.zh.md)——回放已记录成功 transcript 而非制造故障的无密钥替代方案。
-- [测试策略](../../../docs/testing.zh.md)——本服务器服务的覆盖层级与恢复测试。
+- [测试策略](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/testing.md)——本服务器服务的覆盖层级与恢复测试。
 - [test-support 组地图](../README.zh.md)——兄弟 harness 与支持包。
 
 -----

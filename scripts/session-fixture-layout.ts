@@ -15,6 +15,7 @@ import { SessionFormatEventCollector, type SessionFormatArtifactDecoder, type Se
 import { releasedV0SessionFormatCodec, releasedV1SessionFormatCodec } from '@deepseek-ai/dsh-session-format-v0-to-v1'
 import { releasedV2SessionFormatCodec } from '@deepseek-ai/dsh-session-format-v1-to-v2'
 import { releasedV3SessionFormatCodec } from '@deepseek-ai/dsh-session-format-v2-to-v3'
+import { verifyAuthoredSessionRejection } from './authored-session-rejections.ts'
 
 const historicalCodecs: readonly SessionFormatCodec[] = [
   releasedV0SessionFormatCodec, releasedV1SessionFormatCodec, releasedV2SessionFormatCodec,
@@ -288,6 +289,9 @@ export function inspectSessionFixtureLayouts(root: string): SessionFixtureLayout
   return discoverJsonlFiles(root).flatMap((path) => {
     if (isPhysicalSessionFixture(path)) return []
     const source = readFileSync(resolve(root, path), 'utf8')
+    if (verifyAuthoredSessionRejection(path, source, 'layout', () => canonicalSessionFixture(source, path))) {
+      return [{ path, source, canonical: source }]
+    }
     const canonical = canonicalSessionFixture(source, path)
     return canonical === undefined ? [] : [{ path, source, canonical }]
   })
