@@ -293,6 +293,8 @@ An unpacked artifact contains Electron, the materialized dsh production tree, pn
 
 Windows packaged-runtime verification runs a private copy of the assembled application under a short temporary path. Native Python and Office loaders can reject long build paths, including junctions that resolve to those paths. Archive integrity, native imports, Host startup and document conversion checks still run in full; the copy is removed after child processes finish.
 
+macOS artifact preparation and retained-package checks use `DeepSeek Harness Uncensored.app`, the `deepseek-harness-uncensored-` archive prefix and the DSHU GitHub release feed.
+
 <a id="verification"></a>
 
 ## Installation and release verification

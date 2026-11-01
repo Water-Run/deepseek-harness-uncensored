@@ -293,6 +293,8 @@ macOS 签名打包在组装 App 时、代码签名前写入 `Contents/Resources/
 
 Windows 组装后运行时检查在较短的临时目录内验证应用副本。Python 和 Office 原生加载器会拒绝过长的构建路径，解析回原路径的目录联接也无法解决。归档完整性、原生导入、Host 启动和文档转换检查仍完整执行，子进程结束后移除临时副本。
 
+macOS 产物准备和保留包检查使用 `DeepSeek Harness Uncensored.app`、`deepseek-harness-uncensored-` 归档前缀及 DSHU GitHub 更新源。
+
 <a id="verification"></a>
 
 ## 安装与发布验收

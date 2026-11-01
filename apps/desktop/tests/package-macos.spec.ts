@@ -29,14 +29,14 @@ function barrier() {
 async function fixture(arch: 'arm64' | 'x64' = 'arm64') {
   const root = await mkdtemp(join(tmpdir(), 'desktop-parallel-notarization-'))
   const artifactsRoot = join(root, 'artifacts')
-  const appPath = join(artifactsRoot, arch === 'arm64' ? 'mac-arm64' : 'mac', 'DeepSeek Harness.app')
+  const appPath = join(artifactsRoot, arch === 'arm64' ? 'mac-arm64' : 'mac', 'DeepSeek Harness Uncensored.app')
   await mkdir(join(appPath, 'Contents', 'Resources'), { recursive: true })
   await writeFile(join(appPath, 'payload'), 'signed content')
   await writeMacOSAppUpdateConfig(join(appPath, 'Contents', 'Resources'), {
-    publicUrl: `https://desktop-updates.example.com/dsh-desk/0123456789abcdef0123456789abcdef/feeds/mac-${arch}/`,
-  }, 'deepseek-harness-updater')
+    publicUrl: 'https://github.com/Water-Run/deepseek-harness-uncensored/releases/latest/download/', channel: 'latest',
+  }, 'deepseek-harness-uncensored-updater')
   const version = '1.2.3-alpha.1'
-  const base = `deepseek-harness-${version}-mac-${arch}`
+  const base = `deepseek-harness-uncensored-${version}-mac-${arch}`
   const request = { arch, artifactsRoot, version, environment }
   const apple: MacOSArtifactOperations = {
     copyApp: async (source, destination) => {
@@ -57,7 +57,7 @@ async function fixture(arch: 'arm64' | 'x64' = 'arm64') {
     await writeFile(join(artifact.output, `${base}.${artifact.format}`), contents)
     if (artifact.format === 'zip') {
       await writeFile(join(artifact.output, `${base}.zip.blockmap`), 'blockmap')
-      await writeFile(join(artifact.output, 'nightly-mac.yml'), 'update metadata')
+      await writeFile(join(artifact.output, 'latest-mac.yml'), 'update metadata')
     }
   }
   return { root, appPath, request, apple, build, base }
@@ -107,7 +107,7 @@ describe('parallel macOS artifacts', () => {
         .toEqual({ payload: 'signed content', appTicket: false })
       expect(await readFile(join(f.appPath, 'ticket'), 'utf8')).toBe('accepted')
       expect(await readFile(join(f.appPath, 'Contents', 'Resources', 'app-update.yml'), 'utf8'))
-        .toContain(`/dsh-desk/0123456789abcdef0123456789abcdef/feeds/mac-${arch}/`)
+        .toContain('https://github.com/Water-Run/deepseek-harness-uncensored/releases/latest/download/')
       expect((await readdir(f.root)).sort()).toEqual(['artifacts'])
       expect(f.apple.verifySignature).toHaveBeenCalledTimes(4)
       expect(f.apple.verifyNotarization).toHaveBeenCalledTimes(1)
@@ -182,7 +182,7 @@ describe('parallel macOS artifacts', () => {
       await expect(packageMacOSArtifacts(f.request, async (artifact) => {
         await f.build(artifact)
         if (failure === 'metadata' && artifact.format === 'zip') {
-          await writeFile(join(artifact.output, 'nightly-mac.yml'), '')
+          await writeFile(join(artifact.output, 'latest-mac.yml'), '')
         }
         if (failure === 'post-update-config' && artifact.format === 'zip') {
           await writeFile(join(artifact.appPath, 'Contents', 'Resources', 'app-update.yml'), '{}')
@@ -196,7 +196,7 @@ describe('parallel macOS artifacts', () => {
   it('passes the actual App and isolated output directory to each single-target builder', () => {
     const target = resolveDesktopPackageTarget('mac-arm64', 'darwin', 'arm64')
     for (const format of ['zip', 'dmg'] as const) {
-      const appPath = join('private build', format, 'DeepSeek Harness.app')
+      const appPath = join('private build', format, 'DeepSeek Harness Uncensored.app')
       const output = join(dirname(appPath), 'artifacts')
       expect(desktopElectronBuilderArguments(target, false, { format, appPath, output })).toEqual([
         'exec', 'electron-builder', '--config', 'electron-builder.config.mjs',
