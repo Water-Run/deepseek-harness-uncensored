@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## 新增优先项：内核与安装器（2026-11-01）
+
+用户追加“DSH 内核跟进最新版本”“安装器体现独立 DSHU”。已落入 02.10/02.11，见 requirements/2026-11-01-upstream-installer.md，原目标不缩小。PTC 节点 27adabde75 已推送 main，110 项及编译/回放/语料等证据见下节；当前只剩先前被拒绝清理的 undefined 缓存，不再有未提交 PTC 源码。
+
+官方 GitHub 已核实：主线发布为 dsh-v0.2.2-alpha.2，维护线最近发布为 dsh-v0.2.1-rc.5；master 的 package.json 也是 0.2.2-alpha.2，但包含发布后的未发布提交。两个 tag 已抓取。当前 shallow=true，merge-base 暂无结果；按 product.json 的 1f81c047 源树比较，alpha.2 的核心工程范围约 6026 文件变化，rc.5 约 385 文件，多数后者为版本元数据。尚未合并或修改内核版本。应完成真正的 API、Session 与 PTC 适配，不用仅升级 rc.5 的元数据代替主线迁移。
+
+安装器 brand.png 已查看，仍为上游白底鲸鱼与 deepseek HARNESS。productName/产物名称已独立，但 package name、卸载候选目录及 DSH_HOME 读取仍需检查。下步先完成独立安装器资产和身份/数据保护验证，再推进主线源码迁移；仅 main，不创建新的开发分支。系统安装不能代替用户点击安装向导。
+
 ## 能力绑定型 PTC 节点（2026-11-01）
 
 Goal active，继续完整 DSHU。前一节点 66637d14b7 已修复四项 UI/额度回归。本节点完成可选 target-protection/ptc：每次使用独立 Worker 与 QuickJS WebAssembly，只暴露声明绑定及控制台，不向程序暴露 Node、进程、模块、原生文件/网络或计时器。既有 run_code 消费者接通，Node PTC 保留；绑定仍必须使用受保护提供方并自行支持取消/清理，默认产品和任意命令隔离没有因此完成。
