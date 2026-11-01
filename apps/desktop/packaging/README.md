@@ -295,6 +295,8 @@ Windows packaged-runtime verification runs a private copy of the assembled appli
 
 macOS artifact preparation and retained-package checks use `DeepSeek Harness Uncensored.app`, the `deepseek-harness-uncensored-` archive prefix and the DSHU GitHub release feed.
 
+Unsigned local packing verifies the source commit, product metadata, build profile and artifact hashes against the complete build record. It uses the compile time stored in that record; starting a later packaging process does not generate a new compile time.
+
 <a id="verification"></a>
 
 ## Installation and release verification

@@ -295,6 +295,8 @@ Windows 组装后运行时检查在较短的临时目录内验证应用副本。
 
 macOS 产物准备和保留包检查使用 `DeepSeek Harness Uncensored.app`、`deepseek-harness-uncensored-` 归档前缀及 DSHU GitHub 更新源。
 
+本地未签名打包按完整构建记录核对源码提交、产品元数据、构建配置和产物哈希。编译时间取自该记录；之后启动打包进程不会重新生成编译时间。
+
 <a id="verification"></a>
 
 ## 安装与发布验收

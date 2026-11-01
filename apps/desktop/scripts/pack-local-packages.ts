@@ -3,6 +3,7 @@
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import {
+  assertClientBuildEnvironment,
   readClientBuildRecord,
   repositoryClientBuildEnvironment,
   resolveClientBuildEnvironment,
@@ -18,8 +19,11 @@ async function main(): Promise<void> {
   if (values.out === undefined) throw new Error('desktop local pack: --out must name the package staging directory')
   const concurrency = parsePackConcurrency(values.concurrency)
   const root = process.cwd()
-  const environment = resolveClientBuildEnvironment(repositoryClientBuildEnvironment(root), 'local')
-  readClientBuildRecord(root, environment)
+  const record = readClientBuildRecord(root)
+  const environment = resolveClientBuildEnvironment(repositoryClientBuildEnvironment(root, {
+    ...process.env, DSH_CLIENT_BUILD_TIME: record.environment.DSH_CLIENT_BUILD_TIME,
+  }), 'local')
+  assertClientBuildEnvironment(record.environment, environment)
   const destination = resolve(root, values.out)
   const packed = await packFamilyMembers(root, releaseFamily('dsh'), destination, concurrency)
   console.log(`desktop local pack: ${String(packed.length)} tarball(s) in ${destination}`)

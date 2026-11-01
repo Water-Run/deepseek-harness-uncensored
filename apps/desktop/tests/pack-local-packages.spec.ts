@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, expect, it } from 'vitest'
-import { resolveClientBuildEnvironment, writeClientBuildRecord } from '../../../scripts/client-build-environment.ts'
+import { repositoryClientBuildEnvironment, resolveClientBuildEnvironment, writeClientBuildRecord } from '../../../scripts/client-build-environment.ts'
 import { runGate } from '../../../scripts/run-gates.ts'
 import { COVERAGE_TEST_TIMEOUT_ENV, coverageTestTimeoutOptions } from '../../../scripts/coverage-partitions.ts'
 import { removeFixtureSafely } from '../../../scripts/test-fixture-cleanup.ts'
@@ -81,6 +81,40 @@ it('packs local client artifacts without a release publication record', async ()
     .toEqual({ name: '@deepseek-ai/dsh-probe', version: '1.2.3' })
   expect(existsSync(join(root, 'packed', PUBLISH_ORDER_FILE))).toBe(false)
 }, testTimeout)
+
+function forkFixture() {
+  const root = fixture()
+  write(root, 'product.json', JSON.stringify({ version: '0.1.0', upstreamVersion: '1.2.3',
+    purge: { commit: '0123456', commitTime: '2026-10-22T00:00:00.000Z' } }))
+  write(root, 'apps/desktop/package.json', JSON.stringify({ name: 'fixture-desktop', private: true, version: '0.1.0' }))
+  write(root, 'apps/cli/package.json', JSON.stringify({ name: 'fixture-cli', private: true, version: '1.2.3', dshProductVersion: '0.1.0' }))
+  const environment = resolveClientBuildEnvironment(repositoryClientBuildEnvironment(root, {
+    ...metadata, DSH_CLIENT_BUILD_TIME: '2026-10-23T00:00:00.000Z',
+  }), 'local')
+  writeClientBuildRecord(root, environment)
+  return { root, environment }
+}
+
+it('packs fork artifacts using their recorded compile time after the build process exits', async () => {
+  const { root } = forkFixture()
+  const before = readFileSync(join(root, '.dsh-build/client-build-environment.json'), 'utf8')
+  const result = await pack(root)
+  expect(result.code, result.output).toBe(0)
+  expect(readdirSync(join(root, 'packed'))).toEqual(['deepseek-ai-dsh-probe-1.2.3.tgz'])
+  expect(readFileSync(join(root, '.dsh-build/client-build-environment.json'), 'utf8')).toBe(before)
+}, testTimeout)
+
+it.each(['DSH_CLIENT_FORK_VERSION', 'DSH_CLIENT_UPSTREAM_VERSION', 'DSH_CLIENT_COMMIT_HASH'] as const)(
+  'rejects mismatched fork metadata %s before replacing packages', async (key) => {
+    const { root, environment } = forkFixture()
+    writeClientBuildRecord(root, { ...environment, [key]: key === 'DSH_CLIENT_COMMIT_HASH' ? '1234567' : '0.9.0' })
+    write(root, 'packed/retained.txt', 'previous output\n')
+    const result = await pack(root)
+    expect(result.code).not.toBe(0)
+    expect(result.output).toContain(key)
+    expect(readFileSync(join(root, 'packed/retained.txt'), 'utf8')).toBe('previous output\n')
+  }, testTimeout,
+)
 
 it.each(['official', 'stale', 'missing'] as const)('rejects %s client artifacts before replacing local packages', async (kind) => {
   const root = fixture(kind === 'official' ? 'official' : 'local')
