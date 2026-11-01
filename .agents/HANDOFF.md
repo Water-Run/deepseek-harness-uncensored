@@ -1,5 +1,21 @@
 # Uncensored 开发交接
 
+## 内核迁移：完整测试后的兼容修复（2026-11-01，17:20）
+
+Goal 保持 active，用户选择“先继续后台开发”，不打开安装器前台，不更换正式安装。实际 Codex 周额度剩余 74%，未触发 40% 收尾规则。main 为 18dac75747；源码仍在 D:/Coding/deepseek-harness-uncensored-upstream-20261101 的 detached 工作树，原恢复位置和禁止清理缓存的约束不变。
+
+最新完整构建 build-complete3 已 10/10 通过，真实 Web 恢复场景 web-recovery 3/3 通过；两者发生在下述后续修复之前，交付前仍需再构建。完整单测以 8 个 worker 跑完，最初为 2436 文件通过、72 文件失败，49424 项通过、160 项失败；不把这次运行记为全绿。失败清单与摘要在主仓库 .dsh-build/upstream-alpha2-failed-files-20261101.json 和 upstream-alpha2-failure-report-20261101.json。
+
+已修复 SDK 查找独立 dsh-uncensored 入口及显式 home 覆盖，更新 SSH 协议夹具和子任务初始化用法，171 项通过。普通 HTTP 对齐上游私网访问语义，同时保留保护解析器、执行校验、代理绑定和撤销处理，258 项通过。LiveShare 的删除按钮增加权限判断；余额和额度轮询、界面随授权生命周期装卸，相关 39 项及实际组合测试通过。插件管理不再因设置权限缺失而阻塞启动；模式资料的客户端依赖改为真实 remotes 提供方。
+
+Session 仍为 V4。新增内部确认 2026-11-01-alpha2-message-attribution，六个消息来源根扩展保留旧 owner 主体，67 根、19 份历史确认的持久化检查通过。旧内联 schema 确认文件由严格读取器兼容，不改历史文件。两份已提交的手工 V3 保护记录格式有误，使用精确路径、SHA256 和拒绝原因作为负例保留；选定的 V4 后继记录可读，内存中补齐合法 V3 工具封装的语义验证也通过，不放宽运行时读取器。详见 scripts/authored-session-rejections.ts 与测试。3691 份导入文本、32 份普通 Session 文件及一个 WebWorker Session 恢复为与索引完全一致的 LF 字节；没有修改事件内容或 Git blob。后续已有编辑的 README 只统一换行。
+
+恢复产品的中英两语言范围，其他语言资源保留但不自动列入语言选择；安装器只输出中英资源。新 Web 图标生成器使用 DSHU 黑底白鲸矢量，maskable 版本延展背景并保留安全区；四张 PNG 已生成并查看。第三方声明生成器保留 GPL 产品声明和上游 MIT 来源，识别 ssh2 的旧式 MIT 元数据；修复 CRLF 导致供应商清单无法解析及补丁哈希不符。没有恢复本分支明确取消的 GitHub 工作流，对应上游专用测试移除，实际打包、发布预检和签名检查保留。
+
+后续失败逐批收敛，日志均为主仓库 .dsh-build/upstream-alpha2-*-20261101.log：runtime-fixes 171 项、http-alignment 258 项、viewer-surfaces 39 项、execution-source-gates 112 项、desktop-brand-snapshots 60 项通过；compatibility-round4 为 138 通过/3 失败，round5 为 276 通过/4 失败，round6 为 211 通过/4 失败，round7/8 仍有文档、npm 夹具与换行失败，均有后续修复但不能累计当作全绿。ptc-runtime-isolated 最终 28 通过/1 平台跳过；forge-cancel-isolated 1 通过。两次合跑 runtime-contention 因长期等待中止，不能计为通过。
+
+当前在复验 compatibility-round9。仍需：清完失败清单并确认没有新增回归，完成 3 份 settings-chrome ARIA 冲突与实际页面验收，重跑完整构建、所需完整单测/回放和打包，复核旧 Session blob、armor 与独立应用身份，才合入 main。不要重跑 .dsh-build 的一次性导入、补丁解决或换行恢复脚本。正式安装与前台 DPI 验收继续按用户指令延后。原目标保护、数据库和审计未完成范围不缩小。
+
 ## 内核迁移：源码适配与后台回归（2026-11-01）
 
 安装器后台节点 83b0eb2269 已推送 main；用户要求暂不打开前台测试窗口，02.11 的交互/DPI 验收继续延后。正式安装没有更换。42 项相关单测、14 项原生静默检查、构建和检查证据见下节。
