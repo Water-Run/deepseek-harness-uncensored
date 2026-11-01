@@ -1,10 +1,13 @@
 /** Real native execution consumes compiled rules and retains them through process-tree shutdown. @module */
 import { Context } from '@deepseek-ai/cordis'
 import { probe, spawn, type ContainerRequest, type MxcProcess } from '@microsoft/mxc-sdk/v1'
-import { buildCommandLine, extendWin32ProcessBindings, isNullPtr, type CurrentTokenProcessBindings, type NativePtr } from '@deepseek-ai/dsh-win32-process'
+import { attachObservedWindowsJob, buildCommandLine, extendWin32ProcessBindings, isNullPtr, type CurrentTokenProcessBindings, type NativePtr, type ObservedWindowsJob } from '@deepseek-ai/dsh-win32-process'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import { mkdtemp, mkdir, writeFile, readFile, link, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { createInterface } from 'node:readline'
+import { randomUUID } from 'node:crypto'
 import { tmpdir } from 'node:os'
 import type { Readable } from 'node:stream'
 import { describe, expect, it, onTestFinished } from 'vitest'
@@ -29,7 +32,7 @@ async function capture(stream: Readable | null): Promise<string> {
   return Buffer.concat(chunks).toString('utf8')
 }
 
-async function fixture(source: string) {
+async function fixture(source: string, extraReadonlyPaths: string[] = []) {
   const root = await mkdtemp(join(tmpdir(), 'dshu-native-runtime-')), ctx = new Context()
   const workspace = join(root, 'work'), production = join(workspace, 'production'), audit = join(workspace, 'audit')
   const temporary = join(root, 'temporary'), owner = join(root, 'owner.txt'), script = join(root, 'program.cjs')
@@ -53,7 +56,7 @@ async function fixture(source: string) {
       kind: 'server', environment: 'production', protection: 'audit', match: 'path', address: audit },
   ] }, 1)
   const constraints = await ctx.targetProtection.nativeFileConstraints()
-  const files = await compileNativeFilePolicy(constraints, { readonlyPaths: [root, dirname(process.execPath)],
+  const files = await compileNativeFilePolicy(constraints, { readonlyPaths: [root, dirname(process.execPath), ...extraReadonlyPaths],
     readwritePaths: [workspace, audit, temporary], maxEntries: 1000, maxPaths: 200 }, new AbortController().signal)
   const request: ContainerRequest = {
     command: buildCommandLine(process.execPath, [script]), workingDirectory: workspace,
@@ -71,6 +74,46 @@ async function fixture(source: string) {
 }
 
 describe.skipIf(!supported)('Windows native target policy with MXC', () => {
+  it('retains the policy until independently owned Job accounting confirms all members exited', async () => {
+    const repository = fileURLToPath(new URL('../../../..', import.meta.url))
+    const h = await fixture('', [repository]), nonce = randomUUID()
+    const bootstrap = fileURLToPath(new URL('../../../subprocess/win32-process/tests/fixtures/observed-job.mjs', import.meta.url))
+    const child = await spawn({ ...h.request, command: buildCommandLine(process.execPath, [bootstrap, nonce]) })
+    const input = child.standardInput, stdout = child.standardOutput, errors = capture(child.standardError)
+    let job: ObservedWindowsJob | undefined, release: (() => void) | undefined
+    const stop = async () => {
+      if (job === undefined) throw new Error('The trusted startup barrier has not been attached')
+      job.terminate(1)
+      expect(await job.waitForExit(10, AbortSignal.timeout(30_000))).toBe(true)
+      release?.()
+    }
+    try {
+      if (input === null || stdout === null) throw new Error('Native startup streams are missing')
+      const lines = createInterface({ input: stdout }), output = lines[Symbol.asyncIterator]()
+      try {
+        const first = await output.next()
+        if (first.done) throw new Error(`Native bootstrap ended before readiness: ${await errors}`)
+        const identity = z.object({ nonce: z.literal(nonce), pid: z.literal(child.id), creationTime: z.string().regex(/^\d+$/) })
+          .strict().parse(JSON.parse(first.value))
+        job = attachObservedWindowsJob({ pid: identity.pid, creationTime: BigInt(identity.creationTime) })
+        release = h.ctx.targetProtection.retainNativeExecution(h.files.revision, stop)
+        expect(job.isEmpty()).toBe(false)
+        input.write('start\n')
+        expect((await output.next()).value).toMatch(/^\{"child":\d+\}$/)
+        const changed = await h.ctx.targetProtection.configure({ mainlandEnabled: true, rules: [] }, h.files.revision)
+        expect(changed.revision).toBe(h.files.revision + 1)
+        expect(job.isEmpty()).toBe(true)
+        expect((await child.wait()).timedOut).toBe(false)
+        expect(await errors).toBe('')
+      } finally { lines.close() }
+    } finally {
+      try {
+        child.kill(); await child.wait()
+        if (job !== undefined) { await stop(); job.close() }
+      } finally { child.dispose() }
+    }
+  })
+
   it('enforces generated full, readonly, owner and hard-link restrictions while allowing ordinary work', async () => {
     const h = await fixture(`
 const fs=require('node:fs'); const result={};
