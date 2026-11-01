@@ -1,5 +1,5 @@
 /** Deterministic local resource decisions after executor-owned path resolution. @module */
-import { localPathContains, type LocalPathIdentity } from './file-identity.ts'
+import { localIdentityPaths, localPathContains, type LocalPathIdentity } from './file-identity.ts'
 import type { TargetDecision, TargetRule } from './types.ts'
 
 /** Local adapter operation; enumeration includes child metadata and watching observes future entries. */
@@ -23,7 +23,7 @@ export function decideLocalTarget(
   const enumeration = operation === 'list' || operation === 'watch'
   const matches = ({ identity }: ResolvedPathRule): boolean => {
     const sameFile = target.fileId !== undefined && target.fileId === identity.fileId
-    return sameFile || [identity.path, identity.canonical].some(root => [target.path, target.canonical].some(path =>
+    return sameFile || localIdentityPaths(identity).some(root => localIdentityPaths(target).some(path =>
       localPathContains(root, path) || ((enumeration || operation === 'mutate') && localPathContains(path, root))))
   }
   const production = rules.filter(entry => entry.rule.environment === 'production' && matches(entry))
@@ -31,9 +31,9 @@ export function decideLocalTarget(
   if (full.length > 0) return { allowed: false, code: 'TARGET_FULLY_PROTECTED', ruleIds: ids(full) }
   const audits = production.filter(entry => entry.rule.protection === 'audit')
   if (audits.length > 0 && operation === 'mutate') return { allowed: false, code: 'TARGET_READ_ONLY', ruleIds: ids(audits) }
-  // A hard link outside a protected directory cannot be attributed without indexing that directory.
+  // Without complete native names, an outside hard link cannot be attributed to a protected directory.
   const unresolved = rules.filter(entry => entry.rule.environment === 'production' && entry.identity.directory && !matches(entry))
-  if (target.multipleLinks && unresolved.length > 0) {
+  if (target.multipleLinks && target.aliases === undefined && unresolved.length > 0) {
     return { allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED', ruleIds: ids(unresolved) }
   }
   const unknownFiles = rules.filter(entry => entry.rule.environment === 'production' && !matches(entry)

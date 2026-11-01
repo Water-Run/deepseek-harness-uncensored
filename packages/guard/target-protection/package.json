@@ -132,7 +132,8 @@
     "@deepseek-ai/dsh-cordis-host-runner": "workspace:*",
     "@deepseek-ai/dsh-plugin-manager": "workspace:*",
     "@deepseek-ai/dsh-typert-protocol": "workspace:*",
-    "@deepseek-ai/dsh-ptc-runtime": "workspace:*"
+    "@deepseek-ai/dsh-ptc-runtime": "workspace:*",
+    "@deepseek-ai/dsh-win32-process": "workspace:*"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-mcp-client": "workspace:*",
@@ -178,6 +179,7 @@
     "@deepseek-ai/dsh-app-boot": "workspace:*",
     "@deepseek-ai/dsh-atomic-write": "workspace:*",
     "@deepseek-ai/dsh-ptc-runtime": "workspace:*",
-    "@deepseek-ai/dsh-tool-testkit": "workspace:*"
+    "@deepseek-ai/dsh-tool-testkit": "workspace:*",
+    "@deepseek-ai/dsh-win32-process": "workspace:*"
   }
 }

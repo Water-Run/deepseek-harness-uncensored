@@ -226,8 +226,40 @@ it('resolves directory links, changed ancestors and direct hard links before acc
   await h.configure([rule(path)])
   await expect(h.fs.readText(target(hard))).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
   await h.configure([rule(production)])
-  await expect(h.fs.readText(target(hard))).rejects.toMatchObject({ code: 'TARGET_IDENTITY_UNVERIFIED' })
+  await expect(h.fs.readText(target(hard))).rejects.toMatchObject({
+    code: process.platform === 'win32' ? 'TARGET_FULLY_PROTECTED' : 'TARGET_IDENTITY_UNVERIFIED',
+  })
   expect(await readFile(path, 'utf8')).toBe('production')
+})
+
+it.runIf(process.platform === 'win32')('uses complete native aliases to distinguish production links from unrelated test links', async () => {
+  const h = await harness(), production = join(h.workspace, 'production'), test = join(h.workspace, 'test')
+  await mkdir(production); await mkdir(test)
+  const source = join(test, '原稿.txt'), alias = join(test, '副本.txt')
+  await writeFile(source, 'test contents'); await link(source, alias)
+  await h.configure([rule(production)])
+  const identity = await resolveLocalPathIdentity(alias, new AbortController().signal)
+  expect(identity.aliases).toEqual(expect.arrayContaining([source, alias]))
+  expect(await h.fs.readText(target(alias))).toBe('test contents')
+  await h.fs.writeText(target(alias), 'test changed')
+  const protectedFile = join(production, 'production.txt'), outside = join(test, 'linked-production.txt')
+  await writeFile(protectedFile, 'production contents'); await link(protectedFile, outside)
+  await expect(h.fs.readText(target(outside))).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+  await h.configure([rule(production, { protection: 'audit' })])
+  expect(await h.fs.readText(target(outside))).toBe('production contents')
+  await expect(h.fs.writeText(target(outside), 'changed')).rejects.toMatchObject({ code: 'TARGET_READ_ONLY' })
+  expect(await readFile(protectedFile, 'utf8')).toBe('production contents')
+})
+
+it.runIf(process.platform === 'win32')('denies hard links into an owner directory even when no production rule is enabled', async () => {
+  const h = await harness(), secret = join(h.root, 'owner', 'settings.txt'), alias = join(h.workspace, 'settings-link.txt')
+  await writeFile(secret, 'owner settings'); await link(secret, alias)
+  const custom = new Context(); contexts.push(custom)
+  await custom.plugin(TargetProtection, { path: ':memory:', hostsFile: '', ownerPaths: [join(h.root, 'owner')] })
+  const current = await custom.targetProtection.snapshot()
+  await custom.targetProtection.configure({ mainlandEnabled: false, rules: [] }, current.revision)
+  expect((await custom.targetProtection.checkLocalFile(alias, 'read', new AbortController().signal)).decision)
+    .toMatchObject({ allowed: false, code: 'TARGET_OWNER_RESOURCE' })
 })
 
 it('protects the registry and its sidecars even when ordinary target rules are disabled', async () => {

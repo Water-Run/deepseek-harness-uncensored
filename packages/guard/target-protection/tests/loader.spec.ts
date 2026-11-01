@@ -3,7 +3,7 @@ import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { join } from 'node:path'
-import { copyFile, mkdtemp, rm } from 'node:fs/promises'
+import { copyFile, link, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
@@ -52,6 +52,21 @@ it('loads durable protection and its mandatory HTTP consumer from cordis.yml', a
     const safe = join(root, 'scratch.txt')
     await ctx.fs.writeText(await ctx.fs.resolve(safe), 'guarded fixture')
     expect(await ctx.fs.readText(await ctx.fs.resolve(safe))).toMatchInlineSnapshot('"guarded fixture"')
+    if (process.platform === 'win32') {
+      const production = join(root, 'production'), protectedAlias = join(root, 'production-link.txt')
+      const unrelated = join(root, 'scratch-link.txt')
+      await mkdir(production)
+      await writeFile(join(production, 'data.txt'), 'preserve')
+      await link(join(production, 'data.txt'), protectedAlias); await link(safe, unrelated)
+      const current = await ctx.targetProtection.snapshot()
+      await ctx.targetProtection.configure({ ...current.preferences, rules: [...current.preferences.rules, {
+        id: brandString<TargetRuleId>('4d4d4ba6-19ef-43f7-87c1-dbb540228180'), name: 'production directory', enabled: true,
+        kind: 'server', environment: 'production', protection: 'full', match: 'path', address: production,
+      }] }, current.revision)
+      expect(await ctx.fs.readText(await ctx.fs.resolve(unrelated))).toMatchInlineSnapshot('"guarded fixture"')
+      await expect(ctx.fs.resolve(protectedAlias)).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+      expect(await readFile(join(production, 'data.txt'), 'utf8')).toBe('preserve')
+    }
     const processError = (() => {
       try { ctx.subprocess.spawn({ argv: [process.execPath, '-e', 'process.exit(1)'], cwd: root,
         stdio: { stdin: 'ignore', stdout: { maxBytes: 100 }, stderr: { maxBytes: 100 } }, graceMs: 100 }) }

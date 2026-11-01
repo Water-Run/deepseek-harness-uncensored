@@ -2,6 +2,7 @@
 import { lstat, realpath, stat } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path'
 import { TargetProtectionError } from './errors.ts'
+import { windowsFileLinks } from './windows-file-links.ts'
 
 /** One freshly resolved host-local path, including a prospective file under existing parents. */
 export interface LocalPathIdentity {
@@ -13,6 +14,13 @@ export interface LocalPathIdentity {
   exists: boolean
   multipleLinks: boolean
   directory: boolean
+  /** Complete verified hard-link names, when the executor can enumerate them. */
+  aliases?: readonly string[]
+}
+
+/** @param identity - Resolved file or directory. @returns Logical, canonical and verified alias names. */
+export function localIdentityPaths(identity: LocalPathIdentity): readonly string[] {
+  return [identity.path, identity.canonical, ...identity.aliases ?? []]
 }
 
 /**
@@ -65,10 +73,27 @@ export async function resolveLocalPathIdentity(value: string, signal: AbortSigna
       const info = await stat(canonical, { bigint: true })
       signal.throwIfAborted()
       if (missing.length > 0 && !info.isDirectory()) throw new TargetProtectionError('invalid', 'A file target traverses a non-directory parent.')
+      let aliases: string[] | undefined
+      if (missing.length === 0 && info.isFile() && info.nlink > 1n && process.platform === 'win32') {
+        aliases = await windowsFileLinks(canonical, info.nlink, signal)
+        for (const alias of aliases) {
+          signal.throwIfAborted()
+          const identity = await stat(canonicalLocalPath(alias), { bigint: true })
+          if (info.ino === 0n || identity.dev !== info.dev || identity.ino !== info.ino || identity.nlink !== info.nlink) {
+            throw new TargetProtectionError('unavailable', 'File aliases changed during inspection.')
+          }
+        }
+        const after = await stat(canonical, { bigint: true })
+        if (after.dev !== info.dev || after.ino !== info.ino || after.nlink !== info.nlink) {
+          throw new TargetProtectionError('unavailable', 'File aliases changed during inspection.')
+        }
+      }
+      signal.throwIfAborted()
       return { path, canonical: canonicalLocalPath(join(canonical, ...missing)), exists: missing.length === 0,
         directory: missing.length === 0 && info.isDirectory(),
         multipleLinks: missing.length === 0 && info.isFile() && info.nlink > 1n,
         ...missing.length === 0 && info.ino !== 0n ? { fileId: `${String(info.dev)}:${String(info.ino)}` } : {},
+        ...aliases === undefined ? {} : { aliases },
       }
     } catch (error) {
       if (!absent(error)) throw error

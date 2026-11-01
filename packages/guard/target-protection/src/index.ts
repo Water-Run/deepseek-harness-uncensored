@@ -12,7 +12,7 @@ import { TargetProtectionError } from './errors.ts'
 import type {} from './country-provider.ts'
 import { resolveTargetDns, systemHostsFile, type TargetDnsResolution } from './dns-resolution.ts'
 import { parseDnsServer } from './dns-transport.ts'
-import { canonicalLocalPath, resolveLocalPathIdentity, localPathContains } from './file-identity.ts'
+import { canonicalLocalPath, resolveLocalPathIdentity, localPathContains, localIdentityPaths } from './file-identity.ts'
 import { decideLocalTarget, type LocalTargetOperation } from './file-rules.ts'
 import type { NetworkTarget, TargetDecision, TargetEffect, TargetPreferences, TargetSnapshot } from './types.ts'
 
@@ -156,7 +156,7 @@ export default class TargetProtection extends Service {
       for (const source of [...owner, ...operation === 'mutate' ? sources : []]) {
         const resource = await resolveLocalPathIdentity(source, timeout.signal)
         const sameFile = target.fileId !== undefined && target.fileId === resource.fileId
-        const overlap = [resource.path, resource.canonical].some(root => [target.path, target.canonical].some(candidate =>
+        const overlap = localIdentityPaths(resource).some(root => localIdentityPaths(target).some(candidate =>
           localPathContains(root, candidate) || ((operation === 'mutate' || operation === 'list' || operation === 'watch') && localPathContains(candidate, root))))
         if (sameFile || overlap) return { path: target.canonical, revision: snapshot.revision,
           decision: { allowed: false, code: 'TARGET_OWNER_RESOURCE', ruleIds: [] } }

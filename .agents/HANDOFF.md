@@ -1,5 +1,19 @@
 # Uncensored 开发交接
 
+## Windows 文件别名与原生命令候选（2026-11-02）
+
+Goal active，后台开发继续。开始时 main/origin/main 为 d8da2753e7，命名分支仍只有 main。最近实际账户剩余 51%，未使用重置或购买额度；未打开安装器、未替换正式应用。
+
+Windows 文件保护已增加 FindFirstFileNameW/FindNextFileNameW 与卷挂载路径枚举，逐项核对原生文件 ID、链接数并在结尾复查。生产/只读/所有者目录的外部硬链接按真实归属处理；无关测试硬链接可用。枚举不完整、重复、变更、取消或关闭失败均拒绝；非 Windows 的无法归属链接仍拒绝。复用现有 win32-process 原生绑定，无新增外部运行依赖，无 Session/SQLite 格式变化。物理文件及真实 Loader 验证通过。
+
+证据：windows-links-regressions-20261102.log 的早期 71 项通过；最新核心 Windows 47 项、Linux 45 项/2 个 Windows 专属跳过，枚举与本地规则模块覆盖率四项均 100%。SQLite 与 Loader 的相邻 Linux 回归 71 项通过/2 跳过；Windows Loader 新增硬链接路径另 1 项通过。两组独立 Windows 进程各 44 项通过。完整构建 10/10、JSDoc、第三方声明、README/配对及定向 lint 通过；最终 build:check 2/2 通过。hygiene 原运行 21/23 通过，两个失败为旧构建残留；归档后 constraints 与 publint 分别复验退出 0，未重复已通过的其余 21 项。原生 ABI 声明由 Windows 实测覆盖，覆盖率仅豁免该平台桥接，决策与关闭分支不豁免。 已确认无跟踪源码的旧 ui-deepseek-model-label-1017 目录（仅 lib/node_modules）和 mode-dossiers/lib/types/client 编译目录，整体移到 .dsh-build/retired-client-20261102，未删除文件、未跟随或删除依赖链接目标。不要恢复到 packages 目录。
+
+受限命令候选为微软 MXC 1.0.1 / fda29ac63bc306b7f97f3b86b4b63d44f7f40cf2，MIT，尚未加入产品依赖或默认组合。Windows 26340.9843 的实际 native probe 是 base-container，无 DACL augmentation。真实负例发现普通 IP/端口规则加 hostLoopback allow 仍可连其他本机端口；路径拒绝也不能自动覆盖已有硬链接。专用代理模式加完整别名拒绝列表后：允许端口 1 次连接、另一端口 0 次，生产读取/写入/别名变更均拒绝，允许测试写入成功。父进程复核生产与只读文件内容未变。没有 host-prep/UAC、管理员防火墙或遥测操作。
+
+候选与接入顺序详见 requirements/2026-11-02-native-execution.md；本机源码和 npm 安装分别位于 .dsh-build/mxc-reference-20261102、.dsh-build/mxc-probe-20261102，后者保留原始脚本、通过和失败 JSON 及 verified-results.json。不能把这些独立样例当作 Subprocess/PTY 已实现。下一步接真实策略生成、受控目标代理、进程/后代回收与规则变更同步，再覆盖 MCP/REA、数据库及产品 UI。原完整 P2/P3 范围均保留。
+
+Linux 验证环境沿用 /home/linzh/.cache/dshu-verification/alpha2-20261101.HlFeMf。一次 pnpm 安装因未指定原私有 store 拒绝迁移模块目录，未执行删除；修正 store 后离线缺 Android 元数据，在线保持冻结锁与供应链校验后安装及测试通过。其 SheetJS 临时同哈希本地镜像保留，主仓库锁仅新增内部 win32-process 引用。不重跑已应用的 windows-links-lock.patch，也不删除此前拒绝清理的缓存目录。
+
 ## SSH 代理执行节点（2026-11-02）
 
 历史回放节点已提交并推送唯一 main：63a5778d98。继续 Goal active 和后台开发，未打开安装器或替换系统应用。

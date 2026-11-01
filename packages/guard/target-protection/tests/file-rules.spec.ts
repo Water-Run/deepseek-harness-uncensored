@@ -29,3 +29,14 @@ it('does not confuse a prospective file with an existing file of unknown identit
   expect(decideLocalTarget(identity(rule.address), 'read', [{ rule, identity: production }]))
     .toMatchObject({ allowed: false, code: 'TARGET_FULLY_PROTECTED' })
 })
+
+it('requires complete alias evidence before allowing an unrelated hard link', () => {
+  const protectedDirectory = identity(resolve('production'), { directory: true })
+  const candidate = identity(resolve('test', 'data.txt'), { multipleLinks: true, fileId: 'volume:2' })
+  expect(decideLocalTarget(candidate, 'read', [{ rule, identity: protectedDirectory }]))
+    .toMatchObject({ allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED' })
+  expect(decideLocalTarget({ ...candidate, aliases: [candidate.path, resolve('test', 'other.txt')] }, 'read',
+    [{ rule, identity: protectedDirectory }]).allowed).toBe(true)
+  expect(decideLocalTarget({ ...candidate, aliases: [candidate.path, resolve('production', 'data.txt')] }, 'read',
+    [{ rule, identity: protectedDirectory }])).toMatchObject({ allowed: false, code: 'TARGET_FULLY_PROTECTED' })
+})
