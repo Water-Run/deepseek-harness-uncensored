@@ -179,11 +179,12 @@ export async function connectThrough(
       agent: false,
       signal: bounded.signal,
     })
-    request.once('connect', (response, socket) => {
+    request.once('connect', (response, socket, head) => {
       if (outcome !== undefined || bounded.signal.aborted) { socket.destroy(); request.destroy(); return }
       if (response.statusCode !== undefined && response.statusCode >= 200 && response.statusCode < 300) {
         // The consumer installs its handlers after this promise resumes; retain errors during that interval on the socket.
         socket.on('error', () => { socket.destroy() })
+        if (head.length > 0) socket.unshift(head)
         outcome = { socket, status: response.statusCode }
         resolve(outcome)
         return

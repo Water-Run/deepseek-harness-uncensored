@@ -65,7 +65,7 @@ POSIX 客户端可使用 OpenSSH 提供方；Windows、Linux 和 macOS 客户端
 | `passphraseRef` | 省略 | 私钥口令的凭据引用；需同时提供 `privateKeyRef` |
 | `passwordRef` | 省略 | 保存账号密码的凭据引用 |
 
-至少提供一种认证引用。每次建连解析凭据；已建立连接不会悄悄重新认证或重连。直连传输不经过网安模式的 HTTP 代理。需要目标准入时，应改为挂载 [`target-protection/ssh`](../../guard/target-protection/README.zh.md)；仅加载规则服务不会保护普通 SSH 提供方。
+至少提供一种认证引用。每次建连解析凭据；已建立连接不会悄悄重新认证或重连。直连传输不经过网安模式的 HTTP 代理。需要目标准入时，应改为挂载 [`target-protection/ssh`](../../guard/target-protection/README.zh.md)；仅加载规则服务不会保护普通 SSH 提供方。受保护提供方还可显式配置 HTTP(S) CONNECT 路由；原始目标和 SSH 主机密钥始终校验，失败不回退直连。
 
 -----
 

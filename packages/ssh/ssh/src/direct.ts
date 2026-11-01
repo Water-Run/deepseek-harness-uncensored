@@ -168,6 +168,28 @@ export class DirectSshConnection extends Service implements SshService {
   }
 
   /**
+   * Retain a connected transport through native closure, including failed activation.
+   * @param socket - Socket transferred by a transport provider; it must have no other owner.
+   * @returns The same socket, now owned by this SSH connection.
+   */
+  protected ownTransport(socket: Socket): Socket { return this.own(socket) }
+
+  /**
+   * Open the admitted peer; subclasses may select an explicit route without changing SSH identity checks.
+   * @param peer - Verified literal destination and final admission check.
+   * @param signal - Startup deadline and policy cancellation.
+   * @returns Connected socket retained with ownTransport until SSH disposal.
+   */
+  protected async connectPeer(peer: SshPeer, signal: AbortSignal): Promise<Socket> {
+    signal.throwIfAborted()
+    const socket = this.ownTransport(createConnection({ host: peer.address, port: this.config.port, family: peer.family }))
+    const abort = (): void => { socket.destroy() }
+    signal.addEventListener('abort', abort, { once: true })
+    try { await once(socket, 'connect', { signal }); return socket }
+    finally { signal.removeEventListener('abort', abort) }
+  }
+
+  /**
    * Check an actual helper request; protected adapters enforce effects here, including direct service callers.
    * @param method - Exact protocol operation; helper.start is the fixed helper launch.
    * @param params - Operation arguments, validated by the remote helper before execution.
@@ -234,11 +256,12 @@ export class DirectSshConnection extends Service implements SshService {
     }
     await peer.revalidate(timeout.signal)
     timeout.signal.throwIfAborted()
-    const socket = this.own(createConnection({ host: peer.address, port: this.config.port, family: peer.family }))
+    const socket = await this.connectPeer(peer, timeout.signal)
+    timeout.signal.throwIfAborted()
+    if (socket.destroyed) throw new HarnessError('SSH transport closed before authentication.', 'SSH_CONNECTION_CLOSED')
     const abort = (): void => { socket.destroy() }
     timeout.signal.addEventListener('abort', abort, { once: true })
     try {
-      await once(socket, 'connect', { signal: timeout.signal })
       const client = new ssh2.Client(); this.client = client
       client.on('error', (error) => { this.fail(error) })
       client.on('close', () => { this.fail(new HarnessError('SSH disconnected; remote outcomes and cleanup may be unknown.', 'SSH_CONNECTION_CLOSED')) })

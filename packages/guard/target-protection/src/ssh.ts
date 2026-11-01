@@ -1,16 +1,46 @@
 /** Fixed SSH peer admission and workspace-bound structured file RPCs. @module */
 import { Context } from '@deepseek-ai/cordis'
-import { DirectSshConnection, type Config, type SshPeer } from '@deepseek-ai/dsh-ssh/direct'
+import { DirectSshConnection, type Config as DirectConfig, type SshPeer } from '@deepseek-ai/dsh-ssh/direct'
+import schema from '@deepseek-ai/schemastery'
+import { credentialRef, isCredentialRefName } from '@deepseek-ai/dsh-credentials'
+import type CredentialProvider from '@deepseek-ai/dsh-credentials'
+import { connectThrough } from '@deepseek-ai/dsh-security-proxy-local'
 import { targetSchema, policySchema, entriesSchema } from '@deepseek-ai/dsh-ssh/schemas'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
 import { posix } from 'node:path'
+import { isIP, type Socket } from 'node:net'
+import { domainToASCII } from 'node:url'
 import { z } from 'zod'
 import type TargetProtection from './index.ts'
 import type { TargetConnectionResolution } from './index.ts'
 import type { TargetDecision, TargetEffect } from './types.ts'
 import { TARGET_REFUSAL_REASONS } from './network-decision.ts'
 
-export type { Config } from '@deepseek-ai/dsh-ssh/direct'
+/** Owner-selected SSH route, independent of ambient proxy variables and model arguments. */
+export interface Config extends DirectConfig {
+  /** Omit for direct TCP. The configured proxy must be trusted to honor the literal CONNECT destination. */
+  proxy?: {
+    /** Transport to the proxy; HTTPS keeps the system certificate verification. */
+    protocol: 'http' | 'https'
+    /** Trusted proxy hostname or unbracketed IP. */
+    host: string
+    /** Explicit proxy service port. */
+    port: number
+    /** Basic-auth user name; omitted when proxy authentication is disabled. */
+    username?: string
+    /** Stored proxy password; must be paired with a nonempty username. */
+    passwordRef?: string
+  } | undefined
+}
+
+const proxyValidation = z.object({
+  protocol: z.enum(['http', 'https']),
+  host: z.string().transform(value => isIP(value) === 0 ? domainToASCII(value).toLowerCase() : value)
+    .refine(value => value !== '' && !/[\s/@?#\\[\]]/u.test(value), 'Proxy host must be a DNS name or literal IP.'),
+  port: z.number().int().min(1).max(65535),
+  username: z.string().regex(/^[^\r\n:]*$/u).default(''),
+  passwordRef: z.string().refine(isCredentialRefName, 'Use a stored credential reference.').transform(credentialRef).optional(),
+}).strict().refine(value => (value.username !== '') === (value.passwordRef !== undefined), 'Proxy username and password reference must be paired')
 
 const EFFECTS: Readonly<Record<string, TargetEffect | undefined>> = Object.freeze({
   'helper.start': 'observe', 'fs.resolve': 'observe', 'fs.stat': 'observe', 'fs.lstat': 'observe',
@@ -32,13 +62,24 @@ function within(root: string, path: string): boolean {
 /** Mandatory target policy around the native SSH connection and every direct helper call. */
 export default class ProtectedSshConnection extends DirectSshConnection {
   static override inject = ['credentials', 'targetProtection']
+  static override Config: schema<Config> = schema.intersect([DirectSshConnection.Config, schema.object({
+    proxy: schema.union([schema.const(undefined), schema.object({
+      protocol: schema.union(['http', 'https']).required(), host: schema.string().required(),
+      port: schema.natural().required(), username: schema.string(), passwordRef: schema.string(),
+    })]),
+  })])
   private readonly protection: TargetProtection
+  private readonly proxy: z.infer<typeof proxyValidation> | undefined
+  private readonly proxyCredentials: CredentialProvider
   private peer: TargetConnectionResolution | undefined
 
   /** @param ctx - Owner providing credentials and target rules. @param config - Explicit endpoint and trusted helper. */
   constructor(ctx: Context, config: Config) {
-    super(ctx, config)
+    const { proxy, ...direct } = config
+    super(ctx, direct)
     this.protection = ctx.targetProtection
+    this.proxy = proxy === undefined ? undefined : proxyValidation.parse(proxy)
+    this.proxyCredentials = ctx.credentials
   }
 
   protected override executionSignal(): AbortSignal {
@@ -46,6 +87,23 @@ export default class ProtectedSshConnection extends DirectSshConnection {
   }
 
   protected override retainExecution(): () => void { return this.protection.retainExecution() }
+
+  protected override async connectPeer(peer: SshPeer, signal: AbortSignal): Promise<Socket> {
+    if (this.proxy === undefined) return super.connectPeer(peer, signal)
+    const proxy = this.proxy
+    const secret = proxy.passwordRef === undefined ? undefined : await this.proxyCredentials.resolve(proxy.passwordRef)
+    if (proxy.passwordRef !== undefined && secret === undefined) {
+      throw new HarnessError('SSH proxy credential is not configured.', 'SSH_CREDENTIAL_UNAVAILABLE')
+    }
+    await peer.revalidate(signal)
+    signal.throwIfAborted()
+    const tunnel = await connectThrough({ ...proxy, password: secret?.value }, peer.address, this.config.port,
+      this.config.requestTimeoutMs, signal)
+    const socket = this.ownTransport(tunnel.socket)
+    signal.throwIfAborted()
+    await peer.revalidate(signal)
+    return socket
+  }
 
   protected override async resolvePeer(signal: AbortSignal): Promise<SshPeer> {
     admitted(await this.protection.checkConnection(this.config.hostname, this.config.port, undefined, 'endpoint', 'observe', signal))

@@ -1,5 +1,17 @@
 # Uncensored 开发交接
 
+## SSH 代理执行节点（2026-11-02）
+
+历史回放节点已提交并推送唯一 main：63a5778d98。继续 Goal active 和后台开发，未打开安装器或替换系统应用。
+
+可选 target-protection/ssh 增加显式 HTTP(S) CONNECT 路由，默认仍为直连。原始域名/别名先判定，再把固定字面 IP 交给可信代理；代理凭据与 SSH 凭据独立，代理建连之后仍验证 SSH 指纹。读取凭据和建连后复查规则，生产完全保护在首次 TCP 前拒绝；代理失败没有直连回退。已建立或等待 CONNECT 的连接在保护撤下时关闭。此项不是网安设置的自动路由或解密流量捕获，也没有放开未约束的远端命令。
+
+同时修复现有 connectThrough 丢弃响应头后首批数据的问题。真实 HTTP 代理同包返回 SSH 标识时，修复前读到空字符串，修复后完整保留。Windows 与隔离 WSL Linux 各 59 项 SSH/代理测试通过，包含实际 ssh2 握手、Loader YAML 装配、只读写入拒绝、生产零连接、别名冲突、407/403/502 无回退、独立认证、主机密钥不符、凭据等待期间变更规则和撤下回收。这里的 SSH 测试使用可控协议 peer，不冒充重新安装真实远端 helper。原真实 helper 验收不变。
+
+完整构建 ssh-proxy-build2 为 10/10 通过；README、三个中英配对、修改源码的 lint 通过（格式和 Promise barrier 类型已修正，未改门禁）。并发独立进程检查日志 ssh-proxy-concurrent-0/1-20261102.log。其他证据：.dsh-build/ssh-proxy-all-20261102.log、ssh-proxy-linux-20261102.log、ssh-proxy-head-negative-20261102.log、ssh-proxy-build2-20261102.log、ssh-proxy-lint2/3-20261102.log。首轮未配置代理被 Schema 自动补空对象的问题已修复，直接连接与代理连接均复验。
+
+已更新目标保护计划的 SSH 子项。目录/远端资源身份、任意网络 SQL、受限本地/远端命令、原生旁路及 P3 审计/所有者界面继续保留未完成。现有 811717f230 检查包尚未包含这两个源码节点，未将旧包称为最新源码构建。
+
 ## 新内核历史回放收尾（2026-11-02）
 
 Goal active，继续后台推进全部待办。主工作区为 D:/Coding/deepseek-harness-uncensored，只有 main；安装器原生窗口和正式安装仍延后，Android/Fedora 与全新安装器仍为计划。02.10 内核适配可勾选完成，安装器、完整目标保护及产品联动仍未完成。

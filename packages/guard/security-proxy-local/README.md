@@ -50,7 +50,7 @@ The upstream password is stored through `ctx.credentials` under `DSH_SECURITY_PR
 |---|---|---|
 | Settings document | `settings.ts` | Atomic temp-then-rename write, validated on load and on every patch; a malformed document keeps defaults and reports why. |
 | Capture store | `capture.ts` | Ring buffer with flow-count, body-byte, and retention caps; headers and JSON/form secret fields are redacted once, at append. |
-| Upstream transport | `upstream.ts` | `ProxyAgent` over the configured `http:`/`https:` URL; CONNECT is a verified `node:http(s)` request. TLS verification is never relaxed. |
+| Upstream transport | `upstream.ts` | `ProxyAgent` over the configured `http:`/`https:` URL; CONNECT is a verified `node:http(s)` request. TLS verification is never relaxed. Bytes received with the CONNECT response headers are preserved for the tunnel consumer. |
 | Per-session chain proxy | `chain.ts` | Loopback-only listener: plain HTTP is forwarded and captured in full; CONNECT is tunnelled and recorded as metadata only. |
 | Engine | `engine.ts` | Owns the dispatcher, listeners, status machine, controlled fetch, and the once-per-conversation reminder. |
 | Remote surface | `service.ts` | `get`, `configure`, `setPassword`, `test`, `list`, `detail`, `clear`, `pause`; mutations require the application owner. |

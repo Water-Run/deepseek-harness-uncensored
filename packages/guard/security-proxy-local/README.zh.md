@@ -50,7 +50,7 @@ kind: "package-reference"
 |---|---|---|
 | 设置文档 | `settings.ts` | 先写临时文件再原子重命名，加载与每次修改都校验；文档损坏时保留默认值并说明原因。 |
 | 捕获存储 | `capture.ts` | 记录条数、正文字节和保留时长三重上限的环形缓冲；请求头与 JSON/表单密钥字段在写入时一次性脱敏。 |
-| 上游传输 | `upstream.ts` | 使用配置的 `http:`/`https:` 地址构造 `ProxyAgent`；CONNECT 是通过校验的 `node:http(s)` 请求，TLS 验证从不放宽。 |
+| 上游传输 | `upstream.ts` | 使用配置的 `http:`/`https:` 地址构造 `ProxyAgent`；CONNECT 是通过校验的 `node:http(s)` 请求，TLS 验证从不放宽。与 CONNECT 响应头一起收到的首批数据保留给隧道消费者。 |
 | 每会话链式代理 | `chain.ts` | 仅监听回环：明文 HTTP 完整转发并捕获；CONNECT 只建立隧道并记录元信息。 |
 | 引擎 | `engine.ts` | 拥有 dispatcher、监听、状态机、受控抓取，以及每对话一次的提醒。 |
 | Remote 界面 | `service.ts` | `get`、`configure`、`setPassword`、`test`、`list`、`detail`、`clear`、`pause`；写操作要求应用所有者身份。 |
