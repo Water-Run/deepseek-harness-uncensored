@@ -8,6 +8,8 @@
     "src"
   ],
   "references": [
+    { "path": "../../ptc-runtime/ptc-runtime" },
+    { "path": "../../util/values" },
     { "path": "../../extensions/cordis-host-runner" },
     { "path": "../../boot/plugin-manager" },
     { "path": "../../typert/protocol" },

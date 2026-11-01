@@ -83,6 +83,10 @@
     "./plugin-manager": {
       "types": "./lib/types/plugin-manager.d.ts",
       "default": "./lib/types/plugin-manager.js"
+    },
+    "./ptc": {
+      "types": "./lib/types/ptc.d.ts",
+      "default": "./lib/types/ptc.js"
     }
   },
   "files": [
@@ -99,7 +103,10 @@
     "zod": "4.4.3",
     "dns-packet": "5.6.1",
     "mmdb-lib": "3.0.3",
-    "pg": "8.23.1"
+    "pg": "8.23.1",
+    "@jitl/quickjs-wasmfile-release-sync": "0.32.0",
+    "quickjs-emscripten-core": "0.32.0",
+    "@deepseek-ai/dsh-util-values": "workspace:*"
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-tools": "workspace:*",
@@ -122,7 +129,8 @@
     "@deepseek-ai/dsh-browser-use": "workspace:*",
     "@deepseek-ai/dsh-cordis-host-runner": "workspace:*",
     "@deepseek-ai/dsh-plugin-manager": "workspace:*",
-    "@deepseek-ai/dsh-typert-protocol": "workspace:*"
+    "@deepseek-ai/dsh-typert-protocol": "workspace:*",
+    "@deepseek-ai/dsh-ptc-runtime": "workspace:*"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-mcp-client": "workspace:*",
@@ -166,6 +174,7 @@
     "@deepseek-ai/dsh-plugin-manager": "workspace:*",
     "@deepseek-ai/dsh-typert-protocol": "workspace:*",
     "@deepseek-ai/dsh-app-boot": "workspace:*",
-    "@deepseek-ai/dsh-atomic-write": "workspace:*"
+    "@deepseek-ai/dsh-atomic-write": "workspace:*",
+    "@deepseek-ai/dsh-ptc-runtime": "workspace:*"
   }
 }

@@ -5,7 +5,7 @@
  */
 
 import { Context, Service } from '@deepseek-ai/cordis'
-import type { PtcRunRequest, PtcRunResult, PtcRunSpec } from './types.ts'
+import type { PtcBindingNamespace, PtcRunRequest, PtcRunResult, PtcRunSpec } from './types.ts'
 import type { SandboxMode } from '@deepseek-ai/dsh-sandbox'
 
 export type {
@@ -88,6 +88,51 @@ export const PORTABLE_RESERVED_WORDS: ReadonlySet<string> = new Set([
   'global', 'is', 'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'match', 'type', '_',
 ])
 
+const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/
+/**
+ * Reject unusable namespaces before starting a process.
+ * @param request - Host-owned binding declarations.
+ * @param diagnosticPrefix - Owning provider named in validation failures.
+ * @returns Namespaces keyed by their declared global.
+ */
+export function validatePtcBindings(request: PtcRunRequest, diagnosticPrefix = 'ptc-runtime'): Map<string, PtcBindingNamespace> {
+  const bindings = new Map<string, PtcBindingNamespace>()
+  for (const namespace of request.bindings) {
+    if (!IDENTIFIER.test(namespace.global) || PORTABLE_RESERVED_WORDS.has(namespace.global)) {
+      throw new Error(`${diagnosticPrefix}: binding global ${JSON.stringify(namespace.global)} is not a usable identifier`)
+    }
+    if (RESERVED_BINDING_GLOBALS.has(namespace.global)) {
+      throw new Error(`${diagnosticPrefix}: reserved binding global ${JSON.stringify(namespace.global)}`)
+    }
+    if (bindings.has(namespace.global)) {
+      throw new Error(`${diagnosticPrefix}: duplicate binding global ${JSON.stringify(namespace.global)}`)
+    }
+    bindings.set(namespace.global, namespace)
+  }
+
+  const errorClassNames = new Set<string>()
+  for (const namespace of request.bindings) {
+    const descriptor = namespace.errorClass
+    if (!descriptor) continue
+    if (!IDENTIFIER.test(descriptor.name) || PORTABLE_RESERVED_WORDS.has(descriptor.name)) {
+      throw new Error(`${diagnosticPrefix}: binding error class ${JSON.stringify(descriptor.name)} is not a usable identifier`)
+    }
+    if (RESERVED_BINDING_GLOBALS.has(descriptor.name)) {
+      throw new Error(`${diagnosticPrefix}: reserved binding global ${JSON.stringify(descriptor.name)}`)
+    }
+    if (bindings.has(descriptor.name) || errorClassNames.has(descriptor.name)) {
+      throw new Error(`${diagnosticPrefix}: duplicate injected global ${JSON.stringify(descriptor.name)}`)
+    }
+    const member = descriptor.memberNameProperty
+    if (member.length === 0 || RESERVED_ERROR_MEMBERS.has(member) || DUNDER_MEMBER.test(member)) {
+      throw new Error(`${diagnosticPrefix}: binding error member property ${JSON.stringify(descriptor.memberNameProperty)} is not usable`)
+    }
+    errorClassNames.add(descriptor.name)
+  }
+  return bindings
+}
+
+
 declare module '@deepseek-ai/cordis' {
   interface Context {
     ptcRuntime: PtcRuntime
@@ -96,7 +141,7 @@ declare module '@deepseek-ai/cordis' {
 
 /**
  * Registers one `ctx.ptcRuntime` implementation. Program, budget, abort, and substrate
- * failures resolve in {@link PtcRunResult}; only Service Definition contract misuse rejects. Implementations bridge
+ * failures resolve in {@link PtcRunResult}; invalid resolved inputs and unconfirmed native shutdown reject. Implementations bridge
  * structured-cloneable bindings, materialize each declared namespace rejection
  * class, treat programs as hostile peers, isolate distinct state owners, and
  * terminate and await in-flight runs during disposal.
@@ -158,6 +203,7 @@ export abstract class PtcRuntime extends Service {
    * Execute resolved inputs; program outcomes resolve as result fields.
    * @param spec - directory, deadline, program, bindings, cancellation and supported policy.
    * @returns Captured output and the execution outcome.
+   * @throws When resolved inputs are invalid or native shutdown cannot be confirmed; callers must not assume execution has stopped.
    */
   abstract run(spec: PtcRunSpec): Promise<PtcRunResult>
 }

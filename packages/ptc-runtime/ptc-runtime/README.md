@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Use `dsh-ptc-runtime` to execute model programs against host-provided asynchronous functions. Requests return lossless JSON, captured logs, or structured failures; rejected promises indicate caller misuse. Providers isolate distinct state owners and declare whether source is an async function body or REPL statements. A provider may retain memory for an explicit owner until release; it never restores that memory from a Session. Language and isolation descriptors identify syntax and execution substrate, not security guarantees.
+Use `dsh-ptc-runtime` to execute model programs against host-provided asynchronous functions. Requests return lossless JSON, captured logs, or structured failures; rejected promises indicate invalid resolved inputs or unconfirmed native shutdown. Providers isolate distinct state owners and declare whether source is an async function body or REPL statements. A provider may retain memory for an explicit owner until release; it never restores that memory from a Session. Language and isolation descriptors identify syntax and execution substrate, not security guarantees.
 
 ## Table of Contents
 
@@ -48,6 +48,8 @@ For the optional [Node in-memory mode](../ptc-runtime-node/README.md#persistent-
 
 ### Name your bindings portably
 
+Providers share `validatePtcBindings(request, diagnosticPrefix)` for namespace and rejection-class validation. A runtime that cannot confirm native termination rejects rather than returning a completed outcome; retain failure visibility and do not assume effects have stopped. Binding callbacks remain caller-owned; consumers must cancel and drain their in-flight callbacks when execution settles.
+
 Binding-global and error-class names are language-portable: they must match `[A-Za-z_][A-Za-z0-9_]*`, avoid every portable target language's reserved words, and avoid backend-owned slots, so one namespace list is valid against every backend. A name like `$tools`, `lambda`, or `console` fails the run before it starts; the exact exclusion sets are part of the seam contract.
 
 ### What can go wrong
@@ -76,7 +78,7 @@ The readonly `timeout` descriptor exposes numeric `{ defaultMs, maxMs }` for con
 
 `resolve(request)` owns supported option validation and deployment defaulting. `run(spec)` executes the complete inputs and resolves program outcomes after cleanup. Language and substrate descriptors guide presentation; `sandboxMode` indicates whether the consumer can pass a resolved file policy. Neither descriptors nor a successful program result substitute for the backend's reported enforcement facts.
 
-The exhaustive semantics live in the [PTC runtime subsystem reference](../../../docs/subsystems/ptc-runtime.md); the exact signatures are in [`src/index.ts`](src/index.ts).
+See the [Node provider](../ptc-runtime-node/README.md) for its execution behavior; the shared signatures are in [`src/index.ts`](src/index.ts).
 
 ### Vocabulary
 
@@ -105,7 +107,7 @@ Read these when the package-level contract is not enough. They move from the PTC
 - [PTC mode Agent Note](../../../.agents/notes/implemented/feature/2026-06-15-ptc.md) — how the tool registry consumes `ctx.ptcRuntime` and presents `run_code` to the model.
 - [Node process backend](../ptc-runtime-node/README.md) — the shipped TypeScript execution backend.
 - [Experimental Python backend](../../experimental/ptc-runtime-python/README.md) — the private CPython subprocess provider and its fd-3 protocol.
-- [PTC runtime subsystem reference](../../../docs/subsystems/ptc-runtime.md) — request/result vocabulary, bindings, and the `ctx.ptcRuntime` cordis surface.
+- [PTC runtime subsystem reference](../ptc-runtime-node/README.md) — request/result vocabulary, bindings, and the `ctx.ptcRuntime` cordis surface.
 - [Capability seams](../../../.agents/notes/implemented/architecture/2026-06-13-capability-seams.md) — the Service Definition / Service Provider / Consumer split.
 
 -----

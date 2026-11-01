@@ -76,6 +76,12 @@ Mount `./cordis` instead of `dsh-cordis-host-runner` to refuse dynamic Host acti
 
 Mount `./plugin-manager` instead of `dsh-plugin-manager` to retain local plugin/bundle discovery while requiring a live, authenticated owner Remote invocation for profile changes, version exemptions, installation, removal, registry inspection and package lookup. Owner settings continue to use the existing methods. The model tool explicitly clears inherited Remote identity, including under full access. Direct in-process calls without an owner invocation are refused. Both adapters require `targetProtection`; owner withdrawal also disables them and cached references reject. These are management admission controls, not a sandbox against arbitrary trusted Host plugins or an owner who deliberately replaces the protected composition.
 
+Optional `./ptc` replaces `dsh-ptc-runtime-node` with a fresh QuickJS WebAssembly interpreter per call in a private Node Worker. It implements the existing `run_code` consumer, accepts an async TypeScript function body with erasable types, and exposes only declared async bindings and console output. It has no Node, process, native file/network access, timers or module loading. QuickJS allocation, stack, source/output/message sizes, queued calls, Worker count and deadlines have validated configuration fields. The ordinary Node PTC provider remains available in other compositions.
+
+Bind every side-effecting function to the appropriate protected provider; the interpreter does not confine arbitrary trusted Host functions. Bindings retain their own cancellation and cleanup ownership. `run_code` aborts and drains started tool calls before returning. Policy revocation stops the Worker. Unconfirmed native shutdown throws `PTC_SHUTDOWN_UNCONFIRMED`, rejects further calls on that runtime and retains its rule lease and capacity until actual exit; restart the Host before reuse. This optional provider is not yet part of the default product and does not implement arbitrary target-confined commands.
+
+QuickJS and [quickjs-emscripten](https://github.com/justjake/quickjs-emscripten) provide the MIT-licensed interpreter and WebAssembly bridge; `quickjs-emscripten-core` and `@jitl/quickjs-wasmfile-release-sync` are pinned to 0.32.0. Source and compiled Worker paths are verified separately.
+
 <a id="implementation"></a>
 ## Implementation
 

@@ -83,6 +83,8 @@ Web 地址为 **http://127.0.0.1:23333**；本地 CLI 安装见 [install-uncenso
 
 ## Credit
 
+[QuickJS](https://bellard.org/quickjs/) 与 [quickjs-emscripten](https://github.com/justjake/quickjs-emscripten)：可选 PTC 隔离运行时使用的解释器和 WebAssembly 桥接，保留 [MIT 许可与署名](LICENSES/quickjs-wasm-MIT.txt)。绑定的工具仍需独立执行目标保护；默认产品接入尚未完成。
+
 [DB-IP Lite](https://db-ip.com/db/download/ip-to-country-lite)：目标保护开发后端使用的本地国家数据，按 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 保留署名。数据是地区估计，不能替代手动生产目标规则；默认产品尚未启用完整保护。
 
 [REA](https://github.com/morluto/rea)：morluto 维护的开源逆向工具，采用 MIT 许可。本项目通过 MCP 连接已安装的 REA；分析引擎保留各自许可。

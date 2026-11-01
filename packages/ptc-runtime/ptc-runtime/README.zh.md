@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-使用 `dsh-ptc-runtime` 执行调用宿主异步函数的模型程序。请求返回无损 JSON、捕获日志或结构化失败；Promise 拒绝表示调用方误用。提供方隔离不同状态所有者，并声明源码是异步函数体还是 REPL 语句。提供方可以为显式所有者保留内存，直到释放，但不会从 Session 恢复这些内存。语言与隔离描述符标识语法和执行基底，不提供安全保证。
+使用 `dsh-ptc-runtime` 执行调用宿主异步函数的模型程序。请求返回无损 JSON、捕获日志或结构化失败；Promise 拒绝表示已解析输入无效或原生关闭无法确认。提供方隔离不同状态所有者，并声明源码是异步函数体还是 REPL 语句。提供方可以为显式所有者保留内存，直到释放，但不会从 Session 恢复这些内存。语言与隔离描述符标识语法和执行基底，不提供安全保证。
 
 ## 目录
 
@@ -48,6 +48,8 @@ const result = await ctx.ptcRuntime.run(spec)
 
 ### 可移植地命名绑定
 
+提供方共用 `validatePtcBindings(request, diagnosticPrefix)` 验证命名空间与拒绝类。运行时无法确认原生终止时会拒绝调用，而不是返回已完成结果；必须保留可见失败，不能假定效果已停止。绑定回调仍由调用方持有，执行结束时消费者必须取消并等待在途回调清理。
+
 binding-global 与 error-class 名称是语言可移植的：必须匹配 `[A-Za-z_][A-Za-z0-9_]*`，避开每个可移植目标语言的保留字，并避开后端拥有的槽位，因此同一份命名空间列表对每个后端都有效。`$tools`、`lambda` 或 `console` 之类的名称会在运行开始前失败；确切的排除集是 seam 约定的一部分。
 
 ### 可能出什么问题
@@ -76,7 +78,7 @@ binding-global 与 error-class 名称是语言可移植的：必须匹配 `[A-Za
 
 `resolve(request)` 负责支持选项的验证与部署默认值。`run(spec)` 执行完整输入，并在清理后返回程序结果。语言和执行基底描述符指导呈现；`sandboxMode` 表示消费方能否传入已解析文件策略。描述符与程序成功结果都不能代替后端报告的强制能力事实。
 
-穷尽式语义见[PTC 运行时子系统参考](../../../docs/subsystems/ptc-runtime.zh.md)；确切签名见 [`src/index.ts`](src/index.ts)。
+Node 提供方的执行行为见[对应说明](../ptc-runtime-node/README.zh.md)；共享签名见 [`src/index.ts`](src/index.ts)。
 
 ### 词汇
 
@@ -105,7 +107,7 @@ binding-global 与 error-class 名称是语言可移植的：必须匹配标识�
 - [PTC mode Agent Note](../../../.agents/notes/implemented/feature/2026-06-15-ptc.zh.md)——工具注册表如何消费 `ctx.ptcRuntime` 并把 `run_code` 呈现给模型。
 - [Node 进程后端](../ptc-runtime-node/README.zh.md)——已发布的 TypeScript 执行后端。
 - [实验性 Python 后端](../../experimental/ptc-runtime-python/README.zh.md)——私有的 CPython 子进程提供方及其 fd-3 协议。
-- [PTC 运行时子系统参考](../../../docs/subsystems/ptc-runtime.zh.md)——请求／结果词汇、绑定与 `ctx.ptcRuntime` 的 cordis 接口面。
+- [PTC 运行时子系统参考](../ptc-runtime-node/README.zh.md)——请求／结果词汇、绑定与 `ctx.ptcRuntime` 的 cordis 接口面。
 - [能力 seam](../../../.agents/notes/implemented/architecture/2026-06-13-capability-seams.zh.md)——Service Definition / Service Provider / Consumer 拆分。
 
 -----

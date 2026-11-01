@@ -1,5 +1,17 @@
 # Uncensored 开发交接
 
+## 能力绑定型 PTC 节点（2026-11-01）
+
+Goal active，继续完整 DSHU。前一节点 66637d14b7 已修复四项 UI/额度回归。本节点完成可选 target-protection/ptc：每次使用独立 Worker 与 QuickJS WebAssembly，只暴露声明绑定及控制台，不向程序暴露 Node、进程、模块、原生文件/网络或计时器。既有 run_code 消费者接通，Node PTC 保留；绑定仍必须使用受保护提供方并自行支持取消/清理，默认产品和任意命令隔离没有因此完成。
+
+修复两个实测生命周期缺陷：最终结果发送抛错曾使解释器永不结算，现明确拒绝并通过 using 释放端口、句柄、上下文及运行时；原生终止失败后旧实现仍接收新任务，现拒绝复用、保留执行资源和容量直到真实 exit。新增 shutdownTimeoutMs，默认 10 秒，终止长期不结算时明确抛 PTC_SHUTDOWN_UNCONFIRMED，不伪称线程已停止。真实 run_code 已验证取消时等待未 await 工具完成清理。
+
+验证：8 文件 110 项通过，另一个独立进程同时运行 45 项通过；ptc.ts、ptc-engine.ts 的语句/分支/函数/行均 100%。两个失败负对照见 ptc-delivery-negative.log 与 ptc-shutdown-negative.log，修复后的证据为 ptc-final-coverage.log、ptc-concurrent-native.log、ptc-consumer-drain.log。源码与编译产物分别验证；普通 Node 24.21.0 从公开编译入口实证生产文件未改、测试文件写入、process 不可用、保护撤下后旧引用拒绝，结果在 ptc-built-smoke.log 及其命名证据目录。没有使用用户生产文件。
+
+最终 build 9/9、定向 lint、工作区约束、导出 JSDoc、publint、应用入口检查及中英配对通过。新增 headless run_code 会话与全语料 3 项通过，见 ptc-final-replay.log、ptc-final-corpus.log。新夹具的语料固定点失败实际是 CRLF；只统一该未提交场景的换行，与旧源码 ZIP 对比两个代际 JSON 事件完全一致，未改冻结记录或共享正常化器。一次组合名称过滤意外选中整个 headless 套件，已主动停止并分别精确复验；该中止运行不算通过。
+
+所有日志位于 .dsh-build/target-protection-20261027。QuickJS/quickjs-emscripten 的 MIT 许可和署名已保存，完整依赖许可证审计仍待办。旧 ptc-worker 生成产物已校验目录后移入该目录的 stale-ptc-worker-20261101，不随发布包携带；此前被拒绝清理的 undefined 与 PostgreSQL 目录未动。本节点不打包或安装，下一步继续受限执行、网络数据库与其他入口，再接审计、所有者界面和默认组合，不暂停或缩小 Goal。
+
 ## 恢复开发（2026-11-01）
 
 用户明确恢复完整 DSHU 开发，旧暂停指令不再生效，Goal 已恢复 active。先处理 /side 参数、无工作区与未分组入口、限额暂停横幅及预计恢复、关闭旁问自动收起四项回归，编号 03.14、03.15、08.10、06.13。PTC 未提交代码仍单独保留；不混入此次修复，不声称保护完成。

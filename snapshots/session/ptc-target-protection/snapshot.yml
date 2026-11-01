@@ -1,0 +1,10 @@
+version: 1
+scenario: ptc-target-protection
+profile: headless
+composition: default
+recording: authored
+header:
+  class: ptc-target-protection
+  pin: true
+workspace:
+  final: true

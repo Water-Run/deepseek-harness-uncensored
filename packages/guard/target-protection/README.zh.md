@@ -76,6 +76,12 @@ SQLite 同时检查配置路径和真实路径旁的日志。主库必须只有�
 
 用 `./plugin-manager` 替换 `dsh-plugin-manager`，保留本地插件和 bundle 列表；修改配置、版本豁免、安装、删除、registry 检查和包查询要求来自经过身份认证且仍连接的所有者 Remote 调用。所有者设置沿用原方法。模型工具显式清除继承的 Remote 身份，完全权限也不例外；没有所有者调用身份的直接进程内调用会被拒绝。两个适配器都要求 `targetProtection`，所有者服务撤下会使提供方停用，旧引用也拒绝执行。这些是管理准入控制，不能隔离任意可信 Host 插件，也不能阻止所有者主动更换受控组合。
 
+可选 `./ptc` 替换 `dsh-ptc-runtime-node`，每次调用在独立 Node Worker 内创建 QuickJS WebAssembly 解释器。它接入现有 `run_code`，接受可擦除类型的异步 TypeScript 函数体，只暴露声明的异步绑定和控制台输出；不提供 Node、进程、原生文件/网络、计时器或模块加载。解释器分配、堆栈、源码/输出/消息大小、并发调用、Worker 数量和截止时间均有经过验证的配置项。其他组合仍可使用原 Node PTC 提供方。
+
+有副作用的绑定必须使用相应受保护提供方，解释器不能约束任意可信 Host 函数。绑定仍负责自身取消和清理；`run_code` 返回前会取消并等待已启动工具清理。策略撤销会停止 Worker；原生关闭无法确认时抛出 `PTC_SHUTDOWN_UNCONFIRMED`，拒绝该运行时后续调用，并保留规则租约和容量直到实际退出，重新使用前需重启 Host。此可选提供方尚未进入默认产品，不等同于任意命令的目标隔离。
+
+QuickJS 与 [quickjs-emscripten](https://github.com/justjake/quickjs-emscripten) 提供 MIT 许可的解释器和 WebAssembly 桥接；`quickjs-emscripten-core` 与 `@jitl/quickjs-wasmfile-release-sync` 固定为 0.32.0。源码与编译后的 Worker 路径分别验证。
+
 <a id="implementation"></a>
 ## 实现
 

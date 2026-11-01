@@ -1,0 +1,23 @@
+- id: security-proxy
+  disabled: true
+- id: tools
+  config:
+    mode: ptc
+- id: ptc-runtime
+  disabled: true
+- id: fs-sandbox
+  disabled: true
+- insert:
+    - id: ptc-target-rules
+      name: '../../../packages/guard/target-protection/src/index.ts'
+      config:
+        path: ':memory:'
+        hostsFile: ''
+    - id: ptc-guarded-runtime
+      name: '../../../packages/guard/target-protection/src/ptc.ts'
+    - id: ptc-guarded-fs
+      name: '../../../packages/guard/target-protection/src/fs.ts'
+      config:
+        cwd: !!js process.cwd()
+    - id: ptc-target-fixture
+      name: '../../../packages/guard/target-protection/tests/snapshot-ptc.ts'
