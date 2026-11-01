@@ -258,6 +258,8 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   '@deepseek-ai/dsh-skill-playbooks': ['assets'],
   '@deepseek-ai/dsh-target-protection': ['assets'],
   '@deepseek-ai/dsh-subprocess': ['lib/control.js'],
+  // The private bootstrap must run before source hooks or target code can create processes.
+  '@deepseek-ai/dsh-win32-process': ['assets/native-bootstrap.mjs'],
   // SSH launches a private helper and shares wire definitions and TLS setup
   // between that helper and the connection owner.
   '@deepseek-ai/dsh-ssh': [

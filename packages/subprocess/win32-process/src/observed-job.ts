@@ -1,5 +1,6 @@
 /** Independent Job ownership for a trusted bootstrap held before workload dispatch. @module */
 import { setTimeout as delay } from 'node:timers/promises'
+import { fileURLToPath } from 'node:url'
 import { extendWin32ProcessBindings, isNullPtr, throwLastError } from './ffi.ts'
 import type { CurrentTokenProcessBindings, NativePtr } from './ffi.ts'
 import { closeHandleChecked, isJobEmpty, terminateJob } from './process.ts'
@@ -10,6 +11,14 @@ export interface WindowsProcessIdentity {
   readonly pid: number
   /** Exact process creation FILETIME, in 100 ns ticks since the Windows epoch. */
   readonly creationTime: bigint
+}
+
+/**
+ * Locate the private bootstrap shipped with this Win32 process package.
+ * @returns Absolute asset path shared by source and built command providers.
+ */
+export function observedWindowsBootstrapPath(): string {
+  return fileURLToPath(new URL('../assets/native-bootstrap.mjs', import.meta.url))
 }
 
 /** Process observation calls added to the shared Win32 ABI owner. */

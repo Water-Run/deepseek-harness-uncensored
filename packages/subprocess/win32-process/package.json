@@ -23,6 +23,7 @@
   },
   "files": [
     "lib/index.js",
+    "assets/native-bootstrap.mjs",
     "lib/types/**/*.d.ts"
   ],
   "license": "MIT",

@@ -560,6 +560,22 @@ it('requires Office skill bodies and helpers in the published payload', () => {
   } })).toEqual([expect.stringContaining('package.json files must be')])
 })
 
+it('requires exactly the Win32 startup bootstrap asset in the published payload', () => {
+  const dir = 'packages/subprocess/win32-process'
+  const manifest = JSON.parse(readFileSync(new URL(`../${dir}/package.json`, import.meta.url), 'utf8')) as WorkspaceManifest['manifest']
+  const files = expectedDshPackageFiles(manifest)
+  expect(files).toEqual(['lib/index.js', 'assets/native-bootstrap.mjs', 'lib/types/**/*.d.ts'])
+  expect(checkWorkspaceManifest({ dir, manifest })).toEqual([])
+  for (const invalidFiles of [
+    files.filter(file => file !== 'assets/native-bootstrap.mjs'),
+    files.map(file => file === 'assets/native-bootstrap.mjs' ? 'assets/**' : file),
+    [...files, 'assets/unrelated.mjs'],
+  ]) {
+    expect(checkWorkspaceManifest({ dir, manifest: { ...manifest, files: invalidFiles } }))
+      .toEqual([expect.stringContaining('package.json files must be')])
+  }
+})
+
 it('requires the local speech worker and locked runtime in the published payload', () => {
   const dir = 'packages/experimental/speech-to-text-sensevoice'
   const manifest = JSON.parse(readFileSync(new URL(`../${dir}/package.json`, import.meta.url), 'utf8')) as WorkspaceManifest['manifest']

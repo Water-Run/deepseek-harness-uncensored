@@ -1,7 +1,10 @@
 /** Native ownership refuses PID reuse, incomplete observations and premature handle release. @module */
 import { afterEach, expect, it, vi } from 'vitest'
 import * as timers from 'node:timers/promises'
-import { attachObservedWindowsJob, currentWindowsProcessIdentity } from '../src/observed-job.ts'
+import { readFileSync, statSync } from 'node:fs'
+import { dirname, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { attachObservedWindowsJob, currentWindowsProcessIdentity, observedWindowsBootstrapPath } from '../src/observed-job.ts'
 import type { ObservedJobBindings, WindowsProcessIdentity } from '../src/observed-job.ts'
 import type { NativePtr } from '../src/ffi.ts'
 import * as abi from '../src/abi.ts'
@@ -12,6 +15,17 @@ vi.mock('node:timers/promises', async (original) => {
 })
 
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks() })
+
+it('resolves a bootstrap asset included in the published package', () => {
+  const manifest = fileURLToPath(new URL('../package.json', import.meta.url))
+  const value: unknown = JSON.parse(readFileSync(manifest, 'utf8'))
+  const asset = observedWindowsBootstrapPath()
+  expect(statSync(asset).isFile()).toBe(true)
+  if (typeof value !== 'object' || value === null || !('files' in value) || !Array.isArray(value.files)) {
+    throw new Error('The package must declare its published files')
+  }
+  expect(value.files).toContain(relative(dirname(manifest), asset).replaceAll('\\', '/'))
+})
 
 function fixture() {
   const root = 10n as NativePtr, job = 20n as NativePtr

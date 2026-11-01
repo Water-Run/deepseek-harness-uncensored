@@ -2,7 +2,7 @@
 
 export { ERROR_INSUFFICIENT_BUFFER } from './abi.ts'
 export * from './errors.ts'
-export { attachObservedWindowsJob, currentWindowsProcessIdentity, ObservedJobError } from './observed-job.ts'
+export { attachObservedWindowsJob, currentWindowsProcessIdentity, observedWindowsBootstrapPath, ObservedJobError } from './observed-job.ts'
 export type { ObservedWindowsJob, ObservedJobBindings, WindowsProcessIdentity } from './observed-job.ts'
 export {
   allocPtrSlot,

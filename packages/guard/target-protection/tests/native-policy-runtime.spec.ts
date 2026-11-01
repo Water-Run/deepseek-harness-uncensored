@@ -1,7 +1,7 @@
 /** Real native execution consumes compiled rules and retains them through process-tree shutdown. @module */
 import { Context } from '@deepseek-ai/cordis'
 import { probe, spawn, type ContainerRequest, type MxcProcess } from '@microsoft/mxc-sdk/v1'
-import { attachObservedWindowsJob, buildCommandLine, extendWin32ProcessBindings, isNullPtr, type CurrentTokenProcessBindings, type NativePtr, type ObservedWindowsJob } from '@deepseek-ai/dsh-win32-process'
+import { attachObservedWindowsJob, buildCommandLine, extendWin32ProcessBindings, isNullPtr, observedWindowsBootstrapPath, type CurrentTokenProcessBindings, type NativePtr, type ObservedWindowsJob } from '@deepseek-ai/dsh-win32-process'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import { mkdtemp, mkdir, writeFile, readFile, link, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
@@ -14,6 +14,8 @@ import { describe, expect, it, onTestFinished } from 'vitest'
 import { z } from 'zod'
 import TargetProtection, { type TargetRuleId } from '../src/index.ts'
 import { compileNativeFilePolicy } from '../src/native-file-policy.ts'
+import { readNativeBootstrapIdentity } from '../src/native-bootstrap.ts'
+import { NATIVE_FRAME, readNativeFrames, writeNativeFrame } from '../src/native-protocol.ts'
 
 const supported = process.platform === 'win32' && probe().tier === 'base-container'
 
@@ -74,6 +76,67 @@ async function fixture(source: string, extraReadonlyPaths: string[] = []) {
 }
 
 describe.skipIf(!supported)('Windows native target policy with MXC', () => {
+  it('runs the production bootstrap and framed worker only after native attachment', async () => {
+    const repository = fileURLToPath(new URL('../../../..', import.meta.url))
+    const h = await fixture('', [repository]), nonce = randomUUID()
+    const command = buildCommandLine(process.execPath, [observedWindowsBootstrapPath(), nonce,
+      new URL('../src/native-worker.ts', import.meta.url).href, import.meta.resolve('tsx/esm/api'), join(repository, 'tsconfig.base.json')])
+    const native = await spawn({ ...h.request, command }), errors = capture(native.standardError)
+    const input = native.standardInput, output = native.standardOutput
+    let job: ObservedWindowsJob | undefined, release: (() => void) | undefined
+    const stop = async () => {
+      if (job === undefined) throw new Error('Native Job is not attached')
+      job.terminate(1)
+      expect(await job.waitForExit(10, AbortSignal.timeout(30_000))).toBe(true)
+      release?.()
+    }
+    try {
+      if (input === null || output === null) throw new Error('Native transport is missing')
+      const identity = await readNativeBootstrapIdentity(output, nonce, native.id, AbortSignal.timeout(10_000))
+      job = attachObservedWindowsJob(identity)
+      release = h.ctx.targetProtection.retainNativeExecution(h.files.revision, stop)
+      input.write(Uint8Array.of(1))
+      await writeNativeFrame(input, { tag: NATIVE_FRAME.launch, data: Buffer.from(JSON.stringify({
+        argv: [process.execPath, '-e', `
+const fs=require('node:fs'),root=${JSON.stringify(h.root)};
+try { fs.writeFileSync(root+'/work/production/data.txt','wrong'); process.exit(99); } catch(error) { if(error.code!=='EPERM') throw error; }
+fs.writeFileSync(root+'/work/native-output.txt','confined');
+process.stdout.write(Buffer.alloc(192*1024,97),()=>{process.stderr.write('separate stderr');process.exitCode=23});`],
+        cwd: join(h.root, 'work'), env: h.request.environment, stdin: 'ignore', control: false,
+      })) })
+      let started = false, result: unknown
+      const stdout: Buffer[] = [], stderr: Buffer[] = [], closed = new Set<number>()
+      const frames = readNativeFrames(output)
+      while (true) {
+        const item = await frames.next()
+        if (item.done) break
+        const frame = item.value
+        if (frame.tag === NATIVE_FRAME.started) started = true
+        if (frame.tag === NATIVE_FRAME.stdout) stdout.push(Buffer.from(frame.data))
+        if (frame.tag === NATIVE_FRAME.stderr) stderr.push(Buffer.from(frame.data))
+        if (frame.tag === NATIVE_FRAME.streamClosed) closed.add(Buffer.from(frame.data).readUInt8(0))
+        if (frame.tag === NATIVE_FRAME.exited) result = JSON.parse(Buffer.from(frame.data).toString())
+        if (frame.tag === NATIVE_FRAME.failed) throw new Error(Buffer.from(frame.data).toString())
+        if (result !== undefined && closed.has(NATIVE_FRAME.stdout) && closed.has(NATIVE_FRAME.stderr)) break
+      }
+      expect(started).toBe(true)
+      expect(result).toEqual({ exitCode: 23, signal: null })
+      expect(Buffer.concat(stdout)).toEqual(Buffer.alloc(192 * 1024, 97))
+      expect(Buffer.concat(stderr).toString()).toBe('separate stderr')
+      expect(job.isEmpty()).toBe(false)
+      expect(await readFile(join(h.root, 'work', 'production', 'data.txt'), 'utf8')).toBe('production-preserve')
+      expect(await readFile(join(h.root, 'work', 'native-output.txt'), 'utf8')).toBe('confined')
+      const drained = (async () => { while (!(await frames.next()).done) { /* The Job owns the final transport EOF. */ } })()
+      await stop()
+      await drained
+      expect((await native.wait()).timedOut).toBe(false)
+      expect(await errors).toBe('')
+    } finally {
+      try { native.kill(); await native.wait(); if (job !== undefined) { await stop(); job.close() } }
+      finally { native.dispose() }
+    }
+  })
+
   it('retains the policy until independently owned Job accounting confirms all members exited', async () => {
     const repository = fileURLToPath(new URL('../../../..', import.meta.url))
     const h = await fixture('', [repository]), nonce = randomUUID()

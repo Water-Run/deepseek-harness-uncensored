@@ -1,5 +1,21 @@
 # Uncensored 开发交接
 
+## 可信命令工作进程与帧传输（2026-11-02）
+
+基点为已推送的唯一 main `7d4bd67ef2`；Goal active，继续后台开发。最近实际账户剩余 44%，未使用重置或购买额度；没有打开安装器或替换正式应用。
+
+新增 `win32-process/assets/native-bootstrap.mjs` 及其路径解析：先输出随机标识/PID/创建 FILETIME，再同步等待准入字节，之后才加载源码钩子或编译后的工作进程。`target-protection/src/native-bootstrap.ts` 限制身份头并清理监听；`native-protocol.ts` 区分标准流、控制流与生命周期；`native-worker.ts` 执行显式 argv/cwd/env，直接退出后继续保留根进程供独立 Job 管理。没有装配为正式 Subprocess，也没有代理或 PTY。SDK 仍只有测试依赖，默认完整保护仍不可用。
+
+关键修复：Windows 第 7 号描述符必须使用 overlapped 管道，否则 128 KiB 回写在 64 KiB 后 EAGAIN。源流经有界转接再进入异步帧写入，避免退出与背压交错；无错误关闭也必须结算写入等待并停止空闲工作进程。读取帧时不能为取一条消息而提前结束 `for await`，这会销毁整个底层传输；宿主读取循环须持续到实际关闭。
+
+验证：Windows 最新 6 文件/83 项通过；Linux 4 文件/76 项通过，四模块覆盖率均 100%；两组独立 Windows 进程各 21 项通过。源码实际 MXC 用例和 `.dsh-build/native-worker-built-20261102.mjs` 编译产物检查通过：192 KiB 二进制、退出码 23、生产保持原样、测试写入成功、Job 归零。完整 build 10/10、NodeNext 392 API、publint、启动入口、定向 lint、README/两组配对通过。JSDoc 缺说明和打包规则缺新资产的问题已修正，JSDoc 复验及发布规则 169 项通过；最终增量 build:check 2/2 通过。日志均为 `.dsh-build/native-worker-*-20261102.log`。
+
+负对照如实保留：普通控制往返去掉转接仍通过，不作为背压证据；另一个阻塞输出并等待真实子进程关闭的用例去掉转接后超时，早期清理也超时，随后修复关闭等待。Windows 控制管道改为 overlapped 前的 EAGAIN 与测试读取器提前销毁传输的失败记录仍在。最新源码已恢复并通过回归，没有放宽覆盖率。
+
+下一项是宿主侧 Native Subprocess 适配器，复用现有 collect/spill 和整个范围的等待语义；再接目标代理与 PTY。入口必须保护启动环境，持有规则和代理直到独立 Job 确认归零。源码链已验证在准入后注册 tsx；编译链直接导入 `lib/types/native-worker.js`。打包资产由 `check-workspace-constraints` 对单个路径显式约束，不能改成宽泛发布全部脚本。Linux 源验证副本仍为 `/home/linzh/.cache/dshu-verification/alpha2-20261101.HlFeMf`，新增同步脚本 `native-worker-linux-20261102.sh` 不重新应用旧锁补丁。现有安装包仍停在 `811717f230`。
+
+装配前必须处理正常完成：当前外层 Job 包含常驻引导和可能的 tsx/esbuild helper，不能直接用“外层 Job 为空”实现命令的自然完成等待。优先验证复用 `LocalSubprocessRuntime` 的内层受管理范围，再在其完成后退出引导，最后由宿主独立确认外层归零；不能在直接子进程退出后盲目杀掉仍合法运行的后代。当前工作进程直接使用 Node spawn，只证明传输和外部终止链；尚未证明最终 Subprocess 的自然完成语义。这也是该提供方未标完成的原因。
+
 ## 独立 Windows Job 所有者（2026-11-02）
 
 上一节点已按中文提交推送唯一 main：`85c6544059`。Goal active，继续后台开发；没有打开安装器或替换正式应用。最近实际剩余额度 46%，旧 40% 阈值已由用户后续授权撤销。
