@@ -24,6 +24,8 @@ This low-level Win32 process library is consumed by the Windows ACL sandbox and 
 <a id="behavior"></a>
 ## Behavior
 
+`buildCommandLine(program, args)` exposes the same Win32 argv quoting used by the process launchers; it does not invoke a shell.
+
 - **One reusable ABI owner** — `abi.ts` owns the Win32 constants and x64 layout values consumed by both process paths. `ffi.ts` lazily loads `kernel32.dll` and `advapi32.dll`, verifies `STARTUPINFOW` and `PROCESS_INFORMATION`, exposes typed operations and error formatting, and lets sandbox policy bind its remaining APIs through the same loaded libraries.
 - **Restricted-token creation** — `RestrictedProcessSpawnOptions` requires the sandbox's primary token and uses `CreateProcessAsUserW`. Piped and inherited-stdio paths share command-line quoting, cwd, the restricted-token null-environment policy, checked return values, and handle cleanup.
 - **Piped process primitive** — `spawnPipedProcess()` creates anonymous stdin/stdout/stderr pipes, closes stdin immediately, returns the two read ends, and leaves process waiting and pipe draining to the caller. Every partial failure closes the handles already owned by the operation, and every Koffi out-parameter or struct allocation is freed after its Win32 lifetime.

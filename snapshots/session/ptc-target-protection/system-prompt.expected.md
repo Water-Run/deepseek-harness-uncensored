@@ -287,7 +287,7 @@ Verify your work by running the code or tests. Keep answers brief and factual.
 
 `run_code` is the only tool you can call directly — a tool call naming any other tool fails. Reach every tool the SDK declares below from inside the program.
 
-Non-zero exits are reported as `[exit code: N]` markers; investigate failures before moving on. On Windows a killed process settles as `[exit code: 1]` without a signal marker; treat a bare exit 1 after an interruption as a termination, not a command failure.
+Check the [exit code: N] marker on every bash result; investigate failures before moving on.
 
 Use the read tool — not shell commands like cat — to inspect text files. Use offset and limit to continue reading large files.
 
@@ -313,7 +313,9 @@ Start independent delegations with `subagent` or `subagent_fork` together in one
 
 ## Writing code for run_code
 
-`run_code` takes two required arguments: `code`, the body of an async TypeScript function (erasable syntax only — no `enum` or namespaces; type annotations are advisory, the code runs type-stripped), and `description`, a short summary of what the program does. The declarations below are SDK bindings for this program. A declaration does not make its name a directly callable tool; only names supplied as separate tool schemas may be called directly.
+`run_code` takes two required arguments: `code`, the body of an async TypeScript function (erasable syntax only — no `enum` or namespaces; type annotations are advisory, the code runs type-stripped), and `description`, a short summary of what the program does. The declarations below are SDK bindings for this program. A declaration does not make its name a directly callable tool; only names supplied as separate tool schemas may be called directly. When no separate `bash` schema is supplied, invoke a declared `bash` binding inside `run_code`:
+
+`run_code({ code: "return await tools.bash({ description: 'Show current directory', command: 'pwd' })", description: "Show current directory" })`
 
 Inside the program:
 
@@ -328,6 +330,23 @@ Program-only SDK bindings:
 type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue }
 
 interface ToolArgsMap {
+  /** Execute a bash command (`bash -c`) and return its stdout/stderr. Each call runs in a fresh shell; pass `workdir` instead of using `cd`. Managed `$DSH_*` variables expose current harness environment facts. Long output is truncated to its tail; the full output is saved to a file whose path is reported when available. Provide `description` before `command` in the arguments. Before any delete or move, verify that the resolved absolute target path is the intended one; never run it against a computed path you have not checked. An unset variable expands to an empty string, so guard variables in such paths with `${VAR:?}`. Commands may run under a file sandbox; a blocked file operation is reported as `[sandbox: file access denied under <mode> mode]`, a policy denial: do not retry another way. */
+  bash: {
+    /** Clear, concise description of what this command does in active voice, 5-10 words (shown in the UI). Examples: "ls" → "List files in current directory"; "git status" → "Show working tree status"; "npm install" → "Install package dependencies". */
+    description: string;
+    /** The bash command to execute. */
+    command: string;
+    /** Timeout in milliseconds. The executor applies its configured default and cap; on expiry the command moves to the background as a job instead of being killed. */
+    timeoutMs?: number;
+    /** Working directory for this command. Defaults to the session workspace; a relative path is resolved against it. */
+    workdir?: string;
+    /** Run in the background and return a job id immediately (collect with job_output, stop with job_kill). No timeout applies. */
+    run_in_background?: boolean;
+    /** The narrowest wider sandbox mode for a one-shot retry of the exact command the sandbox just denied; the retry asks the user for approval. */
+    sandbox_permissions?: "workspace-write" | "danger-full-access";
+    /** Required with sandbox_permissions: one sentence for the user explaining why this exact command needs the wider access. Use the language of the user’s current request. */
+    justification?: string;
+  } & Record<string, JsonValue>;
   /** Create a persisted goal that keeps this session working across automatic continuation rounds. Use it when the direct human request is a long-running objective, even if the user did not say "goal"; not for single-turn work. */
   create_goal: {
     /** The concrete completion objective inferred from the direct human request. */
@@ -400,23 +419,6 @@ interface ToolArgsMap {
   protected_write: {
     path: string;
     text: string;
-  } & Record<string, JsonValue>;
-  /** Execute a PowerShell command (`pwsh -Command`) and return its stdout/stderr. Each call runs in a fresh pwsh process; pass `workdir` instead of using `cd`. Paths use native Windows form (`C:\...`); read environment variables with `$env:NAME`. Managed `$env:DSH_*` variables expose current harness environment facts. Long output is truncated to its tail; the full output is saved to a file whose path is reported when available. On Windows a force-killed command settles as `[exit code: 1]` without a signal marker — treat it as an interruption, not a command failure. Provide `description` before `command` in the arguments. Before any delete or move, verify that the resolved absolute target path is the intended one; never run it against a computed path you have not checked. Do not assign to automatic variables such as `$HOME`; variable names are case-insensitive, so `$home` is the same read-only variable. Commands may run under a file sandbox; a blocked file operation is reported as `[sandbox: file access denied under <mode> mode]`, a policy denial: do not retry another way. Under the Windows sandbox, read-only pwsh runs in PowerShell ConstrainedLanguage mode, while workspace-write stays in FullLanguage unless host policy says otherwise. In read-only, prefer cmdlets and core types (`[string]`, `[datetime]`, `[regex]`, `[guid]`); .NET static calls (`[System.IO.*]::`, `[math]::`), `Add-Type`, COM objects, and reflection fail with "only core types" errors. `-f` formatting, property access, and core cmdlets work. In both confined modes, programs cannot open named pipes, so a command that captures another program's output through piped stdio (Node.js `child_process.spawn`/`exec` with the default `stdio: 'pipe'`) fails with EPERM, while `stdio: 'inherit'` and `stdio: 'ignore'` spawns work and PowerShell's own pipelines are unaffected. That EPERM is the documented boundary: do not retry the command another way — escalate the exact command once or restructure it to avoid capturing output. */
-  pwsh: {
-    /** Clear, concise description of what this command does in active voice, 5-10 words (shown in the UI). Examples: "ls" → "List files in current directory"; "git status" → "Show working tree status"; "Get-Process" → "List running processes". */
-    description: string;
-    /** The PowerShell command to execute. */
-    command: string;
-    /** Timeout in milliseconds. The executor applies its configured default and cap; on expiry the command moves to the background as a job instead of being killed. */
-    timeoutMs?: number;
-    /** Working directory for this command. Defaults to the session workspace; a relative path is resolved against it. */
-    workdir?: string;
-    /** Run in the background and return a job id immediately (collect with job_output, stop with job_kill). No timeout applies. */
-    run_in_background?: boolean;
-    /** The narrowest wider sandbox mode for a one-shot retry of the exact command the sandbox just denied; the retry asks the user for approval. */
-    sandbox_permissions?: "workspace-write" | "danger-full-access";
-    /** Required with sandbox_permissions: one sentence for the user explaining why this exact command needs the wider access. Use the language of the user’s current request. */
-    justification?: string;
   } & Record<string, JsonValue>;
   /** Read a UTF-8 text file and return line-numbered content. */
   read: {
@@ -547,6 +549,42 @@ interface ToolArgsMap {
 }
 
 interface ToolOutputMap {
+  bash: {
+    kind: "background";
+    jobId: string;
+    cwd: string;
+  } | {
+    kind: "promoted";
+    cwd: string;
+    jobId: string;
+    timeoutMs: number;
+    output: string;
+  } | {
+    kind: "foreground";
+    cwd: string;
+    exitCode: number | null;
+    signal: string | null;
+    timedOut: boolean;
+    aborted: boolean;
+    stopped?: string;
+    timeoutMs: number;
+    stdout: {
+      text: string;
+      truncated: boolean;
+      spillPath?: string;
+    };
+    stderr: {
+      text: string;
+      truncated: boolean;
+      spillPath?: string;
+    };
+    sandbox?: {
+      mode: string;
+      denied: boolean;
+      enforcement?: string;
+      runnerFailed?: boolean;
+    };
+  };
   create_goal: {
     goal: null;
   } | {
@@ -649,42 +687,6 @@ interface ToolOutputMap {
     depth?: number;
   })[];
   protected_write: string;
-  pwsh: {
-    kind: "background";
-    jobId: string;
-    cwd: string;
-  } | {
-    kind: "promoted";
-    cwd: string;
-    jobId: string;
-    timeoutMs: number;
-    output: string;
-  } | {
-    kind: "foreground";
-    cwd: string;
-    exitCode: number | null;
-    signal: string | null;
-    timedOut: boolean;
-    aborted: boolean;
-    stopped?: string;
-    timeoutMs: number;
-    stdout: {
-      text: string;
-      truncated: boolean;
-      spillPath?: string;
-    };
-    stderr: {
-      text: string;
-      truncated: boolean;
-      spillPath?: string;
-    };
-    sandbox?: {
-      mode: string;
-      denied: boolean;
-      enforcement?: string;
-      runnerFailed?: boolean;
-    };
-  };
   read: {
     /** Canonical absolute path in the filesystem execution world. */
     path: string;

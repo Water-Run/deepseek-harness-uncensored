@@ -25,7 +25,7 @@ function registryFailure(error: unknown): TargetProtectionError {
 export class TargetStore {
   private closed = false
   private transactionActive = false
-  private leased = false
+  private leases = 0
   private constructor(private readonly db: DatabaseSync, private readonly memory: boolean) {}
 
   /**
@@ -154,6 +154,11 @@ export class TargetStore {
    */
   retainSnapshot(expectedRevision: number): () => void {
     this.assertOpen()
+    if (this.leases > 0) {
+      if (this.readSnapshot().revision !== expectedRevision) throw new TargetProtectionError('conflict', 'Target rules changed before execution commit.')
+      this.leases++
+      return this.snapshotRelease()
+    }
     if (this.transactionActive) throw new TargetProtectionError('busy', 'The registry already has an active transaction.')
     try { this.db.exec('BEGIN'); this.transactionActive = true }
     catch (error) { throw registryFailure(error) }
@@ -163,7 +168,7 @@ export class TargetStore {
       if (journal !== (this.memory ? 'memory' : 'delete')) {
         throw new TargetProtectionError('unavailable', 'Execution snapshot retention requires the registry rollback journal; WAL cannot block policy writers.')
       }
-      this.leased = true
+      this.leases = 1
     } catch (error) {
       try { this.db.exec('ROLLBACK') }
       catch (rollbackError) {
@@ -174,10 +179,15 @@ export class TargetStore {
       finally { this.transactionActive = false }
       throw registryFailure(error)
     }
+    return this.snapshotRelease()
+  }
+
+  private snapshotRelease(): () => void {
     let released = false
     return () => {
       if (released) return
-      released = true; this.leased = false
+      released = true
+      if (--this.leases > 0) return
       try { this.db.exec('ROLLBACK') }
       catch (error) { this.close(); throw registryFailure(error) }
       finally { this.transactionActive = false }
@@ -186,7 +196,7 @@ export class TargetStore {
 
   /** Release the SQLite handle; an active execution snapshot must be released first. Repeated closure is harmless. */
   close(): void {
-    if (this.leased) throw new TargetProtectionError('busy', 'Release the execution snapshot before closing its registry.')
+    if (this.leases > 0) throw new TargetProtectionError('busy', 'Release the execution snapshot before closing its registry.')
     if (!this.closed) { this.db.close(); this.closed = true }
   }
 }

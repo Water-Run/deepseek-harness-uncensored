@@ -85,6 +85,8 @@ export function isOwnerAuthorizedRuntime(name: string): boolean {
  * Each entry documents why the store cannot answer.
  */
 const OVERRIDES: Record<string, { license?: string; repo?: string }> = {
+  // The published SDK omits repository metadata; its README links the official MXC repository.
+  '@microsoft/mxc-sdk': { repo: 'https://github.com/microsoft/mxc' },
   // ssh2 declares MIT in the legacy `licenses` array; its packaged LICENSE contains the MIT grant.
   'ssh2': { license: 'MIT' },
   // Rust workspaces publishing npm bins without `license` in package.json.

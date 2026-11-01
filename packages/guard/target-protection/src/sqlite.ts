@@ -123,7 +123,9 @@ export default class SqliteDatabase extends Service {
    * @returns Bounded rows after confirmed commit; unknown outcomes reject and must not be replayed automatically.
    */
   execute(name: string, request: SqliteRequest, signal: AbortSignal): Promise<SqliteResult> {
-    if (this.pending.size >= this.config.maxPending) return Promise.reject(new HarnessError('SQLite request capacity is full; wait for active work.', 'SQLITE_BUSY'))
+    if (this.pending.size + this.quarantined.size >= this.config.maxPending) {
+      return Promise.reject(new HarnessError('SQLite request capacity is full; wait for active work or confirmed helper cleanup.', 'SQLITE_BUSY'))
+    }
     const operation = this.run(name, request, signal)
     this.pending.add(operation)
     return operation.finally(() => { this.pending.delete(operation) })

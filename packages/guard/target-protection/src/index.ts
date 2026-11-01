@@ -6,7 +6,7 @@ import { resolve } from 'node:path'
 import { deadline } from '@deepseek-ai/dsh-timeout'
 import { resolvePublicAddresses, resolveConnectionAddresses } from '@deepseek-ai/dsh-web-fetch-http'
 import type { HttpFetchDestination, PublicAddress, ResolvedSocketAddress } from '@deepseek-ai/dsh-web-fetch-http'
-import { canonicalTargetHost, TargetRules, expandTargetRules } from './rules.ts'
+import { canonicalTargetHost, TargetRules, expandTargetRules, parseTargetPreferences } from './rules.ts'
 import { TargetStore } from './store.ts'
 import { TargetProtectionError } from './errors.ts'
 import type {} from './country-provider.ts'
@@ -15,6 +15,7 @@ import { parseDnsServer } from './dns-transport.ts'
 import { canonicalLocalPath, resolveLocalPathIdentity, localPathContains, localIdentityPaths } from './file-identity.ts'
 import { decideLocalTarget, type LocalTargetOperation } from './file-rules.ts'
 import type { NetworkTarget, TargetDecision, TargetEffect, TargetPreferences, TargetSnapshot } from './types.ts'
+import type { NativeFileConstraints } from './native-file-policy.ts'
 
 export type * from './types.ts'
 export { TargetProtectionError } from './errors.ts'
@@ -84,6 +85,9 @@ export default class TargetProtection extends Service {
   private readonly lifetime = new AbortController()
   private generation = new AbortController()
   private readonly checking = new Set<Promise<unknown>>()
+  private readonly nativeExecutions = new Set<{ stop(): Promise<void>; finished: Promise<boolean> }>()
+  private updates: Promise<void> = Promise.resolve()
+  private nativeTransition: 'owner' | 'source' | 'failed' | undefined
 
   /**
    * @param ctx - Service owner whose lifetime contains all pending checks.
@@ -118,6 +122,7 @@ export default class TargetProtection extends Service {
    */
   checkUnconfined(): TargetDecision {
     this.lifetime.signal.throwIfAborted()
+    this.generation.signal.throwIfAborted()
     if (this.opened === undefined) throw new TargetProtectionError('unavailable', 'Target protection is not ready.')
     const { preferences } = this.opened.snapshot()
     const rules = preferences.rules.filter(rule => rule.enabled && rule.environment === 'production')
@@ -191,23 +196,68 @@ export default class TargetProtection extends Service {
   }
 
   /**
+   * Read the file restrictions a native executor must expand before launch.
+   * @returns One committed rule revision and immutable owner/production paths, without runtime grants.
+   */
+  async nativeFileConstraints(): Promise<NativeFileConstraints> {
+    const snapshot = await this.snapshot()
+    const owner = [...this.config.ownerPaths, ...this.config.path === ':memory:' ? []
+      : [this.config.path, `${this.config.path}-wal`, `${this.config.path}-shm`, `${this.config.path}-journal`]]
+    const sources = [...this.config.readOnlyPaths, ...this.config.hostsFile === '' ? [] : [this.config.hostsFile],
+      ...this.ctx.get('targetCountryData')?.sourcePaths() ?? []]
+    return { revision: snapshot.revision, entries: [
+      ...owner.map(path => ({ path, access: 'deny' as const })),
+      ...sources.map(path => ({ path, access: 'read-only' as const })),
+      ...expandTargetRules(snapshot.preferences).filter(rule => rule.enabled && rule.environment === 'production' && rule.match === 'path')
+        .map(rule => ({ path: rule.address, access: rule.protection === 'full' ? 'deny' as const : 'read-only' as const,
+          database: rule.kind === 'database' })),
+    ] }
+  }
+
+  /**
    * Save owner-selected preferences after a revision check.
    * @param preferences - Complete normalized rules.
    * @param expectedRevision - The caller's previously read revision.
    * @returns Committed successor settings.
    */
   async configure(preferences: TargetPreferences, expectedRevision: number): Promise<TargetSnapshot> {
+    const value = parseTargetPreferences(preferences)
+    const operation = this.updates.then(() => this.savePreferences(value, expectedRevision))
+    this.updates = operation.then(() => {}, () => {})
+    return operation
+  }
+
+  private async savePreferences(preferences: TargetPreferences, expectedRevision: number): Promise<TargetSnapshot> {
     this.lifetime.signal.throwIfAborted()
     const store = await this.ready
     this.lifetime.signal.throwIfAborted()
-    const saved = store.configure(preferences, expectedRevision)
-    this.invalidate()
-    return saved
+    if (store.snapshot().revision !== expectedRevision) throw new TargetProtectionError('conflict', 'Target settings changed; reload before saving.')
+    if (this.nativeExecutions.size === 0) {
+      const saved = store.configure(preferences, expectedRevision)
+      this.invalidate()
+      return saved
+    }
+    this.nativeTransition = 'owner'
+    this.generation.abort(new TargetProtectionError('conflict', 'Target policy is changing; native execution is stopping.'))
+    const executions = [...this.nativeExecutions]
+    try {
+      await Promise.all(executions.map(execution => execution.stop()))
+      await Promise.all(executions.map(execution => execution.finished))
+      this.lifetime.signal.throwIfAborted()
+      return store.configure(preferences, expectedRevision)
+    } catch (error) {
+      if (this.nativeExecutions.size > 0) this.nativeTransition = 'failed'
+      throw error
+    } finally {
+      if (this.nativeExecutions.size === 0) { this.nativeTransition = undefined; this.generation = new AbortController() }
+    }
   }
 
   private invalidate(): void {
     this.generation.abort(new TargetProtectionError('conflict', 'Target policy changed during the operation.'))
-    this.generation = new AbortController()
+    if (this.nativeExecutions.size === 0) {
+      if (this.nativeTransition !== 'owner') { this.nativeTransition = undefined; this.generation = new AbortController() }
+    } else if (this.nativeTransition !== 'owner' && this.nativeTransition !== 'failed') this.nativeTransition = 'source'
   }
 
   /**
@@ -244,6 +294,47 @@ export default class TargetProtection extends Service {
       unlock = this.opened.retainSnapshot(revision)
     } catch (error) { release(); throw error }
     return () => { try { unlock() } finally { release() } }
+  }
+
+  /**
+   * Retain a native command's immutable policy until its entire process range and transport have closed.
+   * @param revision - Revision used to construct the command's native policy.
+   * @param stop - Idempotent cancellation; rejection without a physical-closure acknowledgement disables new admission.
+   * @returns Idempotent release. Call only after physical shutdown is confirmed, including startup failure cleanup.
+   */
+  retainNativeExecution(revision: number, stop: () => Promise<void>): () => void {
+    if (this.nativeTransition === 'failed') throw new TargetProtectionError('unavailable', 'Native shutdown could not be confirmed; new execution is disabled.')
+    if (this.nativeTransition !== undefined) throw new TargetProtectionError('busy', 'Native execution is stopping for a policy change.')
+    const signal = this.executionSignal()
+    signal.throwIfAborted()
+    const release = this.retainSnapshot(revision), finished = Promise.withResolvers<boolean>()
+    let stopping: Promise<void> | undefined, released = false
+    const execution = { stop: () => stopping ??= Promise.resolve().then(stop).catch((error: unknown) => {
+      stopping = undefined
+      throw error
+    }), finished: finished.promise }
+    const revoked = (): void => {
+      void execution.stop().catch((_error: unknown) => {
+        if (this.nativeExecutions.has(execution)) {
+          this.nativeTransition = 'failed'
+          this.ctx.logger.error('Native shutdown could not be confirmed. Protected resources remain retained; verify or stop the tasks before retrying.')
+        } else this.ctx.logger.error('The native execution scope closed, but its cleanup callback failed.')
+      })
+    }
+    this.nativeExecutions.add(execution)
+    signal.addEventListener('abort', revoked, { once: true })
+    return () => {
+      if (released) return
+      released = true
+      signal.removeEventListener('abort', revoked)
+      try { release() }
+      finally {
+        this.nativeExecutions.delete(execution); finished.resolve(true)
+        if (this.nativeExecutions.size === 0 && (this.nativeTransition === 'source' || this.nativeTransition === 'failed')) {
+          this.nativeTransition = undefined; this.generation = new AbortController()
+        }
+      }
+    }
   }
 
   /**

@@ -1,5 +1,23 @@
 # Uncensored 开发交接
 
+## 原生文件策略与关闭同步节点（2026-11-02）
+
+Goal active，继续后台开发。基点为 main/origin/main 3533786caf；本节点检查完成，按中文提交推送。没有打开安装器或替换正式应用。最近实际剩余额度 46%，未使用重置或购买额度。
+
+新增 native-file-policy 构建器，消费 TargetProtection.nativeFileConstraints()；覆盖生产/所有者目录、硬链接、日志伴随文件、只读优先级、扫描预算和取消。修正了父目录枚举权限误覆盖读写授权的问题。TargetStore 支持同一修订的共享保留，retainNativeExecution() 在改规则时先等待原生关闭；关闭不明时保留旧修订并禁止新执行，显式所有者重试只重查关闭、不重放命令。国家数据源失效、并发保存和根所有者退出有定向验证。
+
+MXC 1.0.1 仅为 target-protection 的开发测试依赖，未进入产品运行依赖。真实 Windows 用例验证完整拒绝、审计只读、硬链接、未来日志路径、普通写入，以及分离子进程退出后才释放修订。子进程使用事先持有的内核句柄核验，避免 PID 复用；尚未装配 Subprocess、PTY 或目标代理。
+
+相邻回归发现：共享修订后，两次已提交的 SQLite 操作都应报告 committed-cleanup-failed，不能把第二次已提交操作说成 outcome-unknown。已据实际结果更新测试，同时修复隔离等待回收的 SQLite helper 未占 maxPending 的容量漏洞。关闭未知的 helper 现在占用容量，超额不再启动进程。
+
+验证：首次整组 35 文件/416 项通过、1 项失败；上述 SQLite 修复后，对应 SQLite 与真实原生用例 28 项通过。原生文件策略模块覆盖率四项 100%；后续生命周期 7 项通过，Windows 并发独立进程两组各 9 项通过。Linux 定向 58 项通过、3 个 Windows 专属跳过；8 个保护场景普通回放通过。原始 POSIX 回放失败是 Windows 作者侧车中的 pwsh 与旧 exit_plan_mode，已用 header-only 维护后复验；只更新 15 个可读侧车，未改 Session JSONL 或 normalizer。667 份冻结会话及声明生成测试共 44 项通过，语料检查 3 项通过。完整构建 10/10、定向 lint、README 与两个配对通过。
+
+日志位于 .dsh-build/native-policy-*-20261102.log。发布依赖检查已完成：hygiene 23/23 通过，日志 native-policy-hygiene-20261102.log，耗时 417.60 秒；不重复已通过检查。Linux 源码目录仍为 /home/linzh/.cache/dshu-verification/alpha2-20261101.HlFeMf；native-policy-lock.patch 已应用，不再应用。最新普通回放日志 native-policy-replay-final-20261102.log，侧车审阅清单 native-policy-header-review-20261102.json。
+
+已核实下一步关键条件：MXC BaseContainer 的 kill_process_tree 在 Job 排空超时后只写 stderr 并继续，普通 wait 成功不足以确认整个执行范围。独立验证已在发送工作前把等待输入的可信 Node 引导程序加入宿主独立持有的 kill-on-close Job，再放行目标；停止后独立 Job accounting 为零。脚本与结果在 .dsh-build/mxc-probe-20261102/outer-job.mjs、outer-job.json，日志 mxc-outer-job2-20261102.log。正式提供方需实现可信启动栅栏、运行时启动适配、启动环境剥离预加载变量、标准流及取消，并自行确认范围关闭；不可只解析 SDK stderr。详见 requirements/2026-11-02-native-execution.md。
+
+完整 Native Subprocess/PTY、受控目标代理、远端身份/数据库、所有原生入口及 P3 审计和 UI 仍未完成，默认完整保护继续不可用。不要把当前真实用例改记为完整命令后端已交付。
+
 ## Windows 文件别名与原生命令候选（2026-11-02）
 
 Goal active，后台开发继续。开始时 main/origin/main 为 d8da2753e7，命名分支仍只有 main。最近实际账户剩余 51%，未使用重置或购买额度；未打开安装器、未替换正式应用。

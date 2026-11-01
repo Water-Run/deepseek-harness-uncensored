@@ -19,6 +19,7 @@ export type {
   Win32ProcessBindings,
 } from './ffi.ts'
 export {
+  buildCommandLine,
   closeHandleChecked,
   drainPipe,
   isJobEmpty,

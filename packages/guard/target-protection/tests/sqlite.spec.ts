@@ -100,7 +100,7 @@ it.skipIf(!supported).each([false, true])('reports actual commit state when rule
 })
 
 it.skipIf(!supported)('rechecks quarantined native ranges and releases other owners despite one cleanup failure', async () => {
-  const h = await harness()
+  const h = await harness('test', { maxPending: 2 })
   const releases: (() => void)[] = [], observations: number[] = []
   const retain = h.ctx.targetProtection.retainExecution.bind(h.ctx.targetProtection)
   const retainSpy = vi.spyOn(h.ctx.targetProtection, 'retainExecution').mockImplementation(() => {
@@ -127,7 +127,10 @@ it.skipIf(!supported)('rechecks quarantined native ranges and releases other own
     retainSpy.mockRestore(); lockSpy.mockRestore(); spawnSpy.mockRestore()
   })
   await expect(h.query('SELECT 1')).rejects.toMatchObject({ code: 'SQLITE_COMMITTED_CLEANUP_FAILED' })
-  await expect(h.query('SELECT 2')).rejects.toMatchObject({ code: 'SQLITE_OUTCOME_UNKNOWN' })
+  // Both helpers can commit under one retained revision; their unconfirmed cleanup still occupies capacity.
+  await expect(h.query('SELECT 2')).rejects.toMatchObject({ code: 'SQLITE_COMMITTED_CLEANUP_FAILED' })
+  await expect(h.query('SELECT 3')).rejects.toMatchObject({ code: 'SQLITE_BUSY' })
+  expect(spawnSpy).toHaveBeenCalledTimes(2)
   const closing = h.owner.dispose()
   await expect.poll(() => observations).toEqual([2, 2])
   // Cordis reports the deliberately injected release error; all remaining leases must still settle.

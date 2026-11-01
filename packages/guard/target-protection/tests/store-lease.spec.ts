@@ -31,3 +31,19 @@ it('refuses WAL policy stores because their readers cannot block policy writers'
     expect(store.snapshot().revision).toBe(1)
   } finally { external.close(); store.close(); await rm(root, { recursive: true, force: true }) }
 })
+
+it('retains one revision until every concurrent execution releases it', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dshu-policy-shared-'))
+  const first = await TargetStore.open(join(root, 'rules.sqlite'), 10), second = await TargetStore.open(join(root, 'rules.sqlite'), 10)
+  const releases: (() => void)[] = []
+  try {
+    releases.push(first.retainSnapshot(1), first.retainSnapshot(1))
+    expect(() => first.retainSnapshot(2)).toThrow(expect.objectContaining({ code: 'conflict' }))
+    releases[0]!(); releases[0]!()
+    expect(() => { first.close() }).toThrow(expect.objectContaining({ code: 'busy' }))
+    expect(() => second.configure({ mainlandEnabled: false, rules: [] }, 1)).toThrow(expect.objectContaining({ code: 'busy' }))
+    releases[1]!()
+    expect(second.configure({ mainlandEnabled: false, rules: [] }, 1).revision).toBe(2)
+    expect(first.snapshot().revision).toBe(2)
+  } finally { for (const release of releases) release(); first.close(); second.close(); await rm(root, { recursive: true, force: true }) }
+})
