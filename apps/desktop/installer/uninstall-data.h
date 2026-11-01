@@ -94,17 +94,28 @@ inline DWORD RemoveTree(const std::wstring& path) {
 }
 
 // Never select a shell folder, its ancestor, Windows/Program Files descendants,
-// a path overlapping the installation, or a path overlapping the protected root
-// (the configured Harness home). Linked descendants are unlinked only.
-inline DWORD Remove(LPCWSTR input, LPCWSTR installation, LPCWSTR protectedRoot) {
+// a path overlapping the installation, or either retained Harness home.
+// Linked descendants are unlinked only.
+inline DWORD Remove(LPCWSTR input, LPCWSTR installation, LPCWSTR protectedRoot, LPCWSTR additionalRoot = nullptr) {
     std::wstring path, install;
+    Handles retainedHome;
     if (!Normalize(input, path) || !Normalize(installation, install)) return ERROR_INVALID_NAME;
     if (Contains(path, install) || Contains(install, path)) return ERROR_ACCESS_DENIED;
-    if (protectedRoot && *protectedRoot) {
+    const LPCWSTR roots[] = {protectedRoot, additionalRoot};
+    for (LPCWSTR root : roots) {
+        if (!root || !*root) continue;
         std::wstring home;
         // An unusable protected root cannot establish separation from retained data.
-        if (!Normalize(protectedRoot, home)) return ERROR_INVALID_NAME;
+        if (!Normalize(root, home)) return ERROR_INVALID_NAME;
         if (Contains(path, home) || Contains(home, path)) return ERROR_ACCESS_DENIED;
+        // An aliased or unreadable home cannot establish separation from the selected data directory.
+        for (size_t end = home.find(L'\\', 3); ; end = home.find(L'\\', end + 1)) {
+            const bool last = end == std::wstring::npos;
+            DWORD error = Pin(last ? home : home.substr(0, end), retainedHome);
+            if (error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND) break;
+            if (error) return error;
+            if (last) break;
+        }
     }
     struct ComScope {
         HRESULT result = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);

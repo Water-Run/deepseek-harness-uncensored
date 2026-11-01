@@ -12,6 +12,7 @@ ManifestDPIAware true
   !define /ifndef INSTALLER_STRINGS_FILE "${INSTALLER_SOURCE_DIR}\strings.nsh"
   !include "${INSTALLER_STRINGS_FILE}"
   !ifdef BUILD_UNINSTALLER
+    UninstallCaption "$(INSTALLER_UNINSTALL_TITLE)"
     BrandingText " "
     SetFont "Segoe UI" 9
     !ifdef LANG_SIMPCHINESE
@@ -20,6 +21,7 @@ ManifestDPIAware true
     !include "${INSTALLER_SOURCE_DIR}\uninstall.nsh"
   !endif
   !ifndef BUILD_UNINSTALLER
+    Caption "$(INSTALLER_PRODUCT_TITLE)"
     !include "${INSTALLER_SOURCE_DIR}\theme.nsh"
     !include "${INSTALLER_SOURCE_DIR}\pages.nsh"
     !include "${INSTALLER_SOURCE_DIR}\lifecycle.nsh"

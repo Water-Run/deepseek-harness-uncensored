@@ -1,5 +1,17 @@
 # Uncensored 开发交接
 
+## 安装器独立身份与数据保留（2026-11-01）
+
+Goal active。02.11 已完成源码和后台验证，用户明确选择“先继续后台开发”，因此不打开前台安装器测试窗口，也不操作正式安装。欢迎/进度/完成/卸载及窗口标题采用 DSHU，五张图来自现有 resources/icon.svg；render:installer-brand 可重现生成，浅深两图和卸载图已查看。包名为 deepseek-harness-uncensored，作者 WaterRun，应用全名/默认安装目录仍为 DeepSeek Harness Uncensored。新增独立 ID 校验并修正四个 Windows/macOS 预设例子及本地 macOS 默认值，拒绝已知官方 ID 的大小写变体。正式版本号与内核版本未变。
+
+卸载保留 ~/.dsh-uncensored / DSH_UNCENSORED_HOME 及 ~/.dsh / DSH_HOME，两者即便位于候选数据目录内部也不删除；历史共用 @deepseek-ai/dsh-desktop 不作为清理对象。保护目录别名或不可确认会保留数据。私有 Native ABI 与 NSIS 同步更新为 UninstallRemoveDataV2。新旧程序、根目录/项目链接均只用专用测试目录和 GUID 验证，未改用户会话。
+
+中英文各 7 项静默安装/卸载通过：silent、upgrade、replaced、home-inside、home-alias、home-invalid、official-home-inside，原生 C++ 清理回归也通过。源图已查看，生产式 NSIS 可编译，但不把静默结果当作前台 UI/DPI 验收。最终夹具在 apps/desktop/.desktop-build/installer-tests/run-iBsyg2；实际 dshu/dsh 注册树前后完全一致，见 .dsh-build/installer-protocol-proof-20261101.json。夹具自身使用随机独立协议。用户正式程序和协议仍指向各自安装路径。
+
+构建 9/9、后续 build:check 2/2 通过，相关单测/定向 lint/README 检查见 .dsh-build/installer-identity-*-20261101.log。旧测试原先要求官方强制更新配置，现按本分支的独立身份及签名要求修正，不恢复官方更新源。安装器迁移说明按用户精简文档要求集中在 README 及 apps/desktop/README；不新增公开升级文档站。
+
+内核三方树预览已保存在 .dsh-build/upstream-alpha2-merge-preview-20261101.log，347 个冲突路径，未修改工作树。下一步在无命名分支的隔离工作树中迁移 0.2.2-alpha.2，保留本分支功能、独立身份和这次安装器修改；前台安装器验收继续等待用户安排。
+
 ## 新增优先项：内核与安装器（2026-11-01）
 
 用户追加“DSH 内核跟进最新版本”“安装器体现独立 DSHU”。已落入 02.10/02.11，见 requirements/2026-11-01-upstream-installer.md，原目标不缩小。PTC 节点 27adabde75 已推送 main，110 项及编译/回放/语料等证据见下节；当前只剩先前被拒绝清理的 undefined 缓存，不再有未提交 PTC 源码。

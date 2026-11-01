@@ -12,12 +12,25 @@ vi.mock('node:child_process', async (importOriginal) => {
 })
 
 describe('installer preparation preserves application dependencies', () => {
-  it.each(['win32', 'darwin'] as const)('rejects a missing production policy before signing on %s', async (platform) => {
+  it.each(['com.deepseek.harness', 'com.deepseek.dsh', 'COM.DeepSeek.DSH'])('refuses the official installer identity %s', async (appId) => {
+    const { createElectronBuilderConfig } = await import('../scripts/electron-builder-config.mjs')
+    expect(() => createElectronBuilderConfig({ DSH_DESKTOP_APP_ID: appId, DSH_DESKTOP_UNSIGNED: '1' }, 'win32', 'x64'))
+      .toThrow('independent DSHU identity')
+  })
+
+  it('uses an independent default application ID and packaged name', async () => {
+    const { createElectronBuilderConfig } = await import('../scripts/electron-builder-config.mjs')
+    const config = createElectronBuilderConfig({ DSH_DESKTOP_UNSIGNED: '1' }, 'win32', 'x64')
+    expect(config.appId).toBe('com.deepseek.dsh.uncensored')
+    expect(config.extraMetadata.name).toBe('deepseek-harness-uncensored')
+    expect(config.protocols).toEqual([{ name: 'DeepSeek Harness Uncensored', schemes: ['dshu'] }])
+  })
+  it.each(['win32', 'darwin'] as const)('requires the independent product signing configuration on %s', async (platform) => {
     const { createElectronBuilderConfig } = await import('../scripts/electron-builder-config.mjs')
     expect(() => createElectronBuilderConfig({ DSH_DESKTOP_APP_ID: 'com.example.installer',
       DSH_DESKTOP_AUTO_UPDATE_ENV: 'production',
       DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://test.example.com',
-    }, platform, 'x64')).toThrow('DSH_DESKTOP_MANDATORY_UPDATE_PROD_ORIGIN')
+    }, platform, 'x64')).toThrow(platform === 'win32' ? 'DSH_DESKTOP_WINDOWS_CER_FILE' : 'DSH_DESKTOP_MACOS_SIGNING_IDENTITY')
   })
   it.each(['win32', 'darwin'] as const)('keeps electron-builder responsible for node_modules on %s', async (platform) => {
     execute.mockClear()
@@ -74,7 +87,9 @@ describe('installer preparation preserves application dependencies', () => {
       DSH_DESKTOP_TARGET_ARCH: 'x64',
       DSH_DESKTOP_UNSIGNED: '1',
     }, 'win32', 'x64')
-    expect(config.artifactName).toBe('deepseek-harness-${version}-${os}-${arch}-unsigned.${ext}')
+    expect(config.artifactName).toBe('deepseek-harness-uncensored-${version}-${os}-${arch}-unsigned.${ext}')
+    expect(config.extraMetadata.name).toBe('deepseek-harness-uncensored')
+    expect(config.productName).toBe('DeepSeek Harness Uncensored')
   })
 
   it('packages every preload entry point the shell loads', async () => {

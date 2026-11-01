@@ -18,6 +18,7 @@ Var InstallerEditFrame
 Var InstallerBrowse
 Var InstallerLaunch
 Var InstallerExpanded
+Var InstallerIdentity
 !include "${__FILEDIR__}\path.nsh"
 !include "${__FILEDIR__}\drawing.nsh"
 
@@ -80,6 +81,13 @@ Function InstallerCreate
     ${Else}
         ${NSD_SetStretchedImage} $4 "$PLUGINSDIR\$5-2x.bmp" $InstallerImage
     ${EndIf}
+
+    ${NSD_CreateLabel} 0 0 0 0 "$(INSTALLER_IDENTITY)"
+    Pop $InstallerIdentity
+    !insertmacro InstallerPlace $InstallerIdentity 48 386 504 28
+    ${NSD_AddStyle} $InstallerIdentity ${SS_CENTER}|${SS_CENTERIMAGE}
+    SendMessage $InstallerIdentity ${WM_SETFONT} $InstallerSmallFont 1
+    !insertmacro InstallerControlColors $InstallerIdentity
 
     ${NSD_CreateLabel} 0 0 0 0 ""
     Pop $InstallerStatus
@@ -187,6 +195,7 @@ Function InstallerRender
     ShowWindow $InstallerLaunch 0
     ShowWindow $InstallerStatus 0
     ${If} $InstallerPhase == "success"
+        ${NSD_SetText} $InstallerIdentity "$(INSTALLER_COMPLETE)"
         ${NSD_SetText} $InstallerButton "$(INSTALLER_FINISH)"
         ShowWindow $InstallerLaunch 5
     ${Else}

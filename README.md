@@ -60,6 +60,8 @@ Web 地址为 **http://127.0.0.1:23333**；本地 CLI 安装见 [install-uncenso
 
 ## 平台交付计划
 
+Windows 安装器使用独立 DSHU 标识。自行打包时，`DSH_DESKTOP_APP_ID` 应使用 `com.deepseek.dsh.uncensored` 或其他独立 ID，不能使用官方版的 `com.deepseek.harness` / `com.deepseek.dsh`；两版的数据目录与启动协议分别保留。
+
 | 优先级 | 平台 | 状态 |
 | --- | --- | --- |
 | 1 | Windows x64 Desktop | 当前优先交付与安装验证 |

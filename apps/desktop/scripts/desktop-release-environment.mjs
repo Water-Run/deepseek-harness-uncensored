@@ -56,12 +56,17 @@ export function resolveNpmRegistry(env) {
 }
 
 /**
- * Resolve and validate the application identifier shared by every platform target.
+ * Resolve and validate the independent application identifier shared by every platform target.
  * @param {NodeJS.ProcessEnv} env - Packaging environment.
  * @returns {string} Reverse-DNS application identifier.
+ * @throws {Error} When the identifier is invalid or belongs to official DeepSeek Harness.
  */
 export function resolveDesktopAppId(env) {
   const appId = requireEnvironmentValue(env, DESKTOP_APP_ID_ENV)
+  const canonicalId = appId.toLowerCase()
+  if (canonicalId === 'com.deepseek.harness' || canonicalId === 'com.deepseek.dsh') {
+    throw new Error('DSH_DESKTOP_APP_ID must use an independent DSHU identity; official DeepSeek Harness IDs are reserved.')
+  }
   if (!/^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/u.test(appId)) {
     throw new Error(`desktop release environment: ${DESKTOP_APP_ID_ENV} must be a reverse-DNS identifier`)
   }

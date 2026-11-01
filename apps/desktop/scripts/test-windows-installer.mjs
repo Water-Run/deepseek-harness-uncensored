@@ -24,6 +24,8 @@ const productName = `Harness Installer Test ${id.slice(0, 8)}`
 // Scoped like the shipped package so Electron user data nests under a scope directory; the scope is unique per run.
 const packageName = `@harness-installer-test-${id.slice(0, 8)}/app-${id}`
 const uninstallOnly = process.argv.includes('--uninstall-only')
+const silentOnly = process.argv.includes('--silent-only')
+if (silentOnly && !uninstallOnly) throw new Error('--silent-only requires --uninstall-only')
 const outputRoot = join(appRoot, '.desktop-build', 'installer-tests')
 await mkdir(outputRoot, { recursive: true })
 const output = await mkdtemp(join(outputRoot, 'run-'))
@@ -105,6 +107,7 @@ SectionEnd
     await writeFile(include, `!define INSTALLER_BUILD_DIR "${join(output, 'ui')}"\n!define INSTALLER_STRINGS_FILE "${strings}"\n!include "${join(appRoot, 'scripts', 'installer.nsh')}"\n`)
     await build({ projectDir: appRoot, prepackaged: payload, targets: Platform.WINDOWS.createTarget(['nsis'], Arch.x64), publish: 'never',
       config: { ...config, productName, extraMetadata: { ...config.extraMetadata, name: packageName },
+        protocols: [{ name: productName, schemes: [`dshu-installertest-${id}`] }],
         artifactName: 'installer-test.exe', directories: { output: languageOutput },
         nsis: { ...config.nsis, guid, include, installerLanguages: [language] }, beforeBuild: undefined, afterPack: undefined, afterSign: undefined, artifactBuildCompleted: undefined },
     })
@@ -113,7 +116,7 @@ SectionEnd
       join(appRoot, 'tests', uninstallOnly ? 'windows-uninstall-smoke.ps1' : 'windows-installer-smoke.ps1'),
       '-Installer', join(languageOutput, 'installer-test.exe'),
       '-ProductName', productName, '-RegistryKey', guid, '-OutputDirectory', languageOutput,
-      ...uninstallOnly ? ['-Language', languageId, '-PackageName', packageName] : []], childOptions)
+      ...uninstallOnly ? ['-Language', languageId, '-PackageName', packageName, ...silentOnly ? ['-SilentOnly'] : []] : []], childOptions)
     process.stdout.write(`${language}\n${result.stdout}`)
   }
   succeeded = true

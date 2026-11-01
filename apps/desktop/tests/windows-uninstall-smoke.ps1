@@ -2,7 +2,8 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][string]$Installer, [Parameter(Mandatory)][string]$ProductName,
     [Parameter(Mandatory)][string]$RegistryKey, [Parameter(Mandatory)][string]$OutputDirectory,
-    [Parameter(Mandatory)][string]$Language, [Parameter(Mandatory)][string]$PackageName)
+    [Parameter(Mandatory)][string]$Language, [Parameter(Mandatory)][string]$PackageName,
+    [switch]$SilentOnly)
 $ErrorActionPreference = 'Stop'
 $OutputDirectory = [IO.Path]::GetFullPath($OutputDirectory)
 . (Join-Path $PSScriptRoot 'windows-installer-ui.ps1')
@@ -20,6 +21,10 @@ $userDataPath = Join-Path $roaming ($PackageName -replace '/', '\')
 $cachePath = Join-Path $local (($PackageName -replace '[/\\?<>:*|"]', '').ToLowerInvariant() + '-updater')
 $uninstaller = Join-Path $OutputDirectory 'uninstall-copy.exe'
 $process = $null
+$previousHome = [Environment]::GetEnvironmentVariable('DSH_UNCENSORED_HOME', 'Process')
+$previousOfficialHome = [Environment]::GetEnvironmentVariable('DSH_HOME', 'Process')
+$officialHomePath = Join-Path $OutputDirectory 'Official Home'
+$aliasPath = Join-Path $OutputDirectory 'Home Alias'
 function Wait-Text([string]$Text) {
     $timer = [Diagnostics.Stopwatch]::StartNew()
     do {
@@ -44,6 +49,7 @@ function Wait-Exit {
 }
 try {
     foreach ($mode in $expected.cases) {
+        if ($SilentOnly -and $mode -eq 'interactive') { continue }
         $setup = Start-Process -FilePath $Installer -ArgumentList ('/S /D=' + $installPath) -PassThru -WindowStyle Hidden
         try {
             if (-not $setup.WaitForExit(30000)) { $setup.Kill(); $setup.WaitForExit(); throw 'Setup timed out' }
@@ -51,22 +57,33 @@ try {
         } finally { $setup.Dispose() }
         $entry = Get-ItemProperty ('HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\' + $RegistryKey)
         if ($entry.InstallLocation.TrimEnd('\') -ne $installPath) { throw 'Uninstall entry lacks InstallLocation' }
-        foreach ($path in @($homePath, $productDataPath, $userDataPath, $cachePath, $externalPath)) { New-Item -ItemType Directory -Force -Path $path | Out-Null }
+        foreach ($path in @($homePath, $officialHomePath, $productDataPath, $userDataPath, $cachePath, $externalPath)) { New-Item -ItemType Directory -Force -Path $path | Out-Null }
         [IO.File]::WriteAllText((Join-Path $externalPath 'keep.txt'), 'outside data root')
         if (-not (Test-Path -LiteralPath (Join-Path $userDataPath 'linked-project'))) {
             New-Item -ItemType Junction -Path (Join-Path $userDataPath 'linked-project') -Target $externalPath | Out-Null
         }
         [IO.File]::WriteAllText((Join-Path $homePath 'session.txt'), 'keep session')
+        [IO.File]::WriteAllText((Join-Path $officialHomePath 'session.txt'), 'keep official session')
         [IO.File]::WriteAllText((Join-Path $productDataPath 'state.txt'), 'product data')
         [IO.File]::WriteAllText((Join-Path $userDataPath 'Local State'), 'chromium profile')
         [IO.File]::WriteAllText((Join-Path $cachePath 'download.txt'), 'update')
         Copy-Item -LiteralPath (Join-Path $installPath ('Uninstall ' + $ProductName + '.exe')) -Destination $uninstaller -Force
         $arguments = '_?=' + $installPath
-        if ($mode -in @('silent', 'home-inside')) { $arguments = '/S ' + $arguments }
+        if ($mode -in @('silent', 'home-inside', 'home-alias', 'home-invalid', 'official-home-inside')) { $arguments = '/S ' + $arguments }
         # electron-builder's installUtil.nsh runs an older uninstaller with exactly these flags when replacing it.
         if ($mode -eq 'upgrade') { $arguments = '/S /KEEP_APP_DATA --updated /currentuser ' + $arguments }
         if ($mode -eq 'replaced') { $arguments = '/S /KEEP_APP_DATA /currentuser ' + $arguments }
-        if ($mode -eq 'home-inside') { $env:DSH_HOME = Join-Path $userDataPath 'home' } else { Remove-Item Env:DSH_HOME -ErrorAction SilentlyContinue }
+        $env:DSH_UNCENSORED_HOME = $homePath
+        $env:DSH_HOME = $officialHomePath
+        if ($mode -eq 'official-home-inside') { $env:DSH_HOME = Join-Path $userDataPath 'official-home' }
+        if ($mode -eq 'home-inside') { $env:DSH_UNCENSORED_HOME = Join-Path $userDataPath 'home' }
+        if ($mode -eq 'home-invalid') { $env:DSH_UNCENSORED_HOME = 'relative\home' }
+        if ($mode -eq 'home-alias') {
+            $targetHome = Join-Path $userDataPath 'home'
+            New-Item -ItemType Directory -Path $targetHome -Force | Out-Null
+            New-Item -ItemType Junction -Path $aliasPath -Target $targetHome | Out-Null
+            $env:DSH_UNCENSORED_HOME = $aliasPath
+        }
         $process = Start-Process -FilePath $uninstaller -ArgumentList $arguments -PassThru -WindowStyle ($(if ($mode -eq 'interactive') { 'Normal' } else { 'Hidden' }))
         if ($mode -eq 'interactive') {
             $welcomeText = if ($Language -eq 'ENGLISH') { 'Welcome' } else { -join [char[]]@(0x6B22, 0x8FCE) }
@@ -79,11 +96,12 @@ try {
             [InstallerCapture]::Click([InstallerCapture]::GetDlgItem($window, 1))
         }
         Wait-Exit
-        $retained = $mode -in @('upgrade', 'replaced')
-        # A DSH_HOME inside the Electron directory protects that directory (and its scope) but not the other roots.
-        $userDataRetained = $retained -or $mode -eq 'home-inside'
+        $retained = $mode -in @('upgrade', 'replaced', 'home-alias', 'home-invalid')
+        # An internal DSHU home protects its directory; unknown home mappings preserve all data candidates.
+        $userDataRetained = $retained -or $mode -in @('home-inside', 'official-home-inside')
         if ([IO.File]::ReadAllText((Join-Path $externalPath 'keep.txt')) -ne 'outside data root') { throw 'Cleanup followed a junction into a project' }
         if (-not (Test-Path (Join-Path $homePath 'session.txt'))) { throw "Harness home retention failed: $mode" }
+        if ([IO.File]::ReadAllText((Join-Path $officialHomePath 'session.txt')) -ne 'keep official session') { throw "Official home retention failed: $mode" }
         if ((Test-Path (Join-Path $productDataPath 'state.txt')) -ne $retained) { throw "Product data retention failed: $mode" }
         if ((Test-Path (Join-Path $userDataPath 'Local State')) -ne $userDataRetained) { throw "Electron user data retention failed: $mode" }
         if ((Test-Path -LiteralPath $scopePath) -ne $userDataRetained) { throw "Package scope directory retention failed: $mode" }
@@ -91,8 +109,13 @@ try {
         Write-Output "passed: $mode"
     }
 } finally {
-    Remove-Item Env:DSH_HOME -ErrorAction SilentlyContinue
+    if ($null -eq $previousHome) { Remove-Item Env:DSH_UNCENSORED_HOME -ErrorAction SilentlyContinue }
+    else { $env:DSH_UNCENSORED_HOME = $previousHome }
+    if ($null -eq $previousOfficialHome) { Remove-Item Env:DSH_HOME -ErrorAction SilentlyContinue }
+    else { $env:DSH_HOME = $previousOfficialHome }
     if ($process) { if (-not $process.HasExited) { $process.Kill(); $process.WaitForExit() }; $process.Dispose() }
+    if ([IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($aliasPath)) -ne $OutputDirectory) { throw 'Unexpected home alias path' }
+    if (Test-Path -LiteralPath $aliasPath) { Remove-Item -LiteralPath $aliasPath -Force }
     # Only unique test identities below known application-data parents are removed.
     foreach ($pair in @(@($productDataPath, $roaming), @($scopePath, $roaming), @($cachePath, $local))) {
         $target = [IO.Path]::GetFullPath($pair[0])

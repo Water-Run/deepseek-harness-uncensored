@@ -45,6 +45,7 @@ int wmain(int argc, wchar_t** argv) {
     // A protected root overlapping the target in either direction, or an unusable one, stops removal.
     assert(uninstall_data::Remove(cache.c_str(), installation.c_str(), data.c_str()) == ERROR_ACCESS_DENIED);
     assert(uninstall_data::Remove(data.c_str(), installation.c_str(), cache.c_str()) == ERROR_ACCESS_DENIED);
+    assert(uninstall_data::Remove(data.c_str(), installation.c_str(), (root + L"\\independent-home").c_str(), cache.c_str()) == ERROR_ACCESS_DENIED);
     assert(uninstall_data::Remove(cache.c_str(), installation.c_str(), L"relative\\home") == ERROR_INVALID_NAME);
     assert(Exists(cache + L"\\CURRENT"));
 
