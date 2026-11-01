@@ -1,6 +1,6 @@
 # Uncensored 开发交接
 
-## 内核迁移隔离工作树已建立（2026-11-01）
+## 内核迁移：源码适配与后台回归（2026-11-01）
 
 安装器后台节点 83b0eb2269 已推送 main；用户要求暂不打开前台测试窗口，02.11 的交互/DPI 验收继续延后。正式安装没有更换。42 项相关单测、14 项原生静默检查、构建和检查证据见下节。
 
@@ -8,11 +8,25 @@
 
 目标固定为上游 f3803c96974ad4a94195fb97e5c637e9c2a3afe3（0.2.2-alpha.2），源树基准 1f81c047fc48fa190a683e469daa699857e9afe8；rc.5 的 b830ec950faba0a46dda564be3e2d854afed94f1 思考展示修复另核准。首次完整 git apply 因 7 个本分支删除/上游删除但本分支修改的文件失败且没有改变工作树，不能把日志的 Applied 字样当作实际导入。现已用筛选后的三方补丁实际导入 6468 个文件补丁，保留根 README、公开 docs/website 删除、工作流与本分支指引、GPL 和 product.json。
 
-**当前有 148 个未合并路径，未安装依赖、未构建。** 已人工解决并 git add 四处：根 package.json（内核 alpha.2，GPL 保留，文档站脚本不恢复）、apps/desktop/package.json（产品 0.1.0、WaterRun 与独立描述保留）、PTC 服务的组合类型导入、Node PTC 的新 JSON wire 导入并保留共享绑定校验。不要重置此工作树或重新覆盖整份补丁。这里是 git apply --3way 的索引冲突，不是已开始的 git merge，不运行 merge --continue。
+**源码冲突已解决，索引仅余 3 份 settings-chrome 页面期望快照，待真实页面更新。** 迁移工作树已有独立 node_modules，锁文件完成三方结构合并及供应链校验。ssh2/cpu-features 的可选原生加速安装脚本经过读取后明确禁用，不关闭整个安装脚本策略。不要重置工作树或重新覆盖补丁；这里是 git apply --3way 的索引冲突，不运行 merge --continue。
 
-83 项被显式留待核对：76 份既有会话记录保持原字节；5 个本分支已删除文件（共享设置样式与旧 Cordis 预设）需将上游改进移植到当前所有者；2 个上游删除而本分支修改的文件（installer/strings.nsh、web-fetch-http/src/network.ts）需手工适配，不能直接丢弃本分支行为。旧记录不因为升级而重写，新增上游记录已随源码进入。614 份原有记录已按索引阶段及 Git blob 逐一验证未改。
+已适配 Agent 自有模型选择、异步投影句柄、新历史/状态订阅、独立旁问、输入预测、删除及跨重启额度恢复。删除会取消对应历史、投影与状态订阅；其他会话继续工作。记忆提炼的投影在预设插件激活时等待注册完成，停止使用旧的全局 key 读取。修复自动合并留下的重复 Service.init、缺少 agent 参数和失效 selectForNextRequest 调用。
 
-冲突及遗漏清单：主仓库 .dsh-build/upstream-alpha2-checkpoint-20261101.json、upstream-alpha2-manual-import-20261101.json；可重现筛选脚本 filter-upstream-alpha2.py 与补丁也在该目录。下一步先解决清单/锁文件/组合与核心接口冲突，再适配所有自定义消费者和 UI；不能仅以冲突清零视为升级完成。不要共享主工作树 node_modules 以免混用源码/产物，依赖安装须在迁移树内独立进行。当前内核升级未合入 main，product.json 仍是原版本记录。
+保留 DSHU 0.1.0、WaterRun、独立 ID、dshu 协议和双 HOME 卸载保护。安装器旧 strings.nsh 已移入上游 JSON 语言资源生成流程，四个独立身份/完成文案键均保留；没有打开前台窗口。上游移除了 web-fetch-http 地址校验与绑定，本分支的保护提供方仍依赖它，已保留 network.ts、授权钩子、相应依赖及回归，不跟随删除。
+
+后台证据统一在主仓库 .dsh-build/upstream-alpha2-*-20261101.log：session-regressions 首轮 68 文件 1259 项中有 32 项失败；修复夹具、读租约和取消语义后，失败所属三文件 95 项通过。asides-memory 36 项通过，额度恢复另通过。installer-tests2 三文件 45 项通过；client-first-tests 的五文件通过，工作区期望补入“不在工作区工作”后另 18 项通过。HTTP/插件/MCP 首轮 512 项通过，代理回归已修复；四项真实 Git/pnpm 场景首次因本地 5 秒预算超时，按上游 CI 的 90000ms 统一预算复验通过（git-ci-budget）。不把未运行、跳过或失败项记为通过。
+
+Host 契约生成与 Host 包检查通过（host-contracts2）；主要客户端包检查通过（client-types3）。直接运行聚合 tsc 时曾触及 Node 默认约 4 GiB 堆上限，未当作代码成功；后续使用仓库提供的 8 GiB 检查入口。构建首轮发现 armor 包没有注册 Host 编译引用，已补引用并重生成路径；第二轮发现扩展语言缺少本分支键和 LiveShare 缺少接口分类。修复后 build-artifacts3 的 8 阶段全部通过；这是后续 rc.5 与授权修复前的构建，不当作最新源码验收。当前 build-complete 正在跑最新 10 阶段串行构建及聚合检查。vendor 要求的测试、默认组合回放、SDK/持久化门禁、UI 实测与打包仍未完成。
+
+维护线 534dac8c81 的思考渲染修复不在 alpha.2 中，已移植 12 个源码/测试文件并解决 ReasoningRow 与文本选择的冲突。Body Slot 提供 rawText 和 display text；原始日志不改。51 项思考/翻译回归通过，另为流式签名、普通标签及换行边界补测，reasoning-text.ts 四项覆盖率均为 100%。已重新生成 Host、Client API 及 Slot catalog；README 记载自定义 Body 的兼容变化。
+
+LiveShare 增加 54 个 DSHU 接口分类，并修复上游允许插件声明覆盖 owner-only 的实际授权缺口：账户/额度、记忆、模式资料、代理流量、旁问/预测/删除不能因此暴露给查看者。负对照复现 allow，修复后 51 项通过，见 viewer-denial-negative/viewer-denial。原始 614 份会话记录的索引及工作区内容再次校验未变，证据 retained-sessions-20261101.json。
+
+23 组冲突文档已更新配对记录；修正 ui-primitives 的失效笔记链接后配对检查通过（doc-pairing-check2），后续新增思考与 LiveShare 文档也已重录。主 README 维持简洁，不恢复公开文档站。迁移树 product.json/README 已写入候选 alpha.2 元数据用于构建，main 的版本和正式安装仍是原版本，不代表发布完成。
+
+83 项手工清单仍需最终核对：76 份既有会话记录保持原字节；4 个旧设置样式文件继续由共享 PreferenceRow 承接；旧 Cordis 预设删除继续保留；strings.nsh/network.ts 已按上节处理。旧记录不因升级重写，新增上游记录已随源码进入。此前 614 份原有记录按索引阶段及 Git blob 检查未改，交付前复核。
+
+恢复入口：先读 build-complete 日志，修复聚合检查和实际组合问题；随后完成持久化/SDK、vendor 与真实 UI 验收，更新三份页面期望并做最终审查。清单为主仓库 .dsh-build/upstream-alpha2-checkpoint-20261101.json、upstream-alpha2-manual-import-20261101.json；resolve-alpha2-*.py 与 import-alpha2-maintenance.py 是已执行的一次性记录，不要重跑。两个工作树不共享 node_modules。Goal 保持 active；最近实际剩余额度 86%，未触发 40% 收尾规则。
 
 ## 安装器独立身份与数据保留（2026-11-01）
 
