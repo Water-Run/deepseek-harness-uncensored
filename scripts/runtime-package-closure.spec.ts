@@ -41,6 +41,15 @@ it('rejects a dependency resolved outside the prepared application', async () =>
   await expect(runtimePackageDirectories(staging, [entry], { platform: 'win32', arch: 'x64' })).rejects.toThrow('outside the deployed closure')
 })
 
+it('retains npm dependencies whose names overlap Node built-ins', async () => {
+  const { staging, pkg } = await fixture()
+  const entry = await pkg('rea-agents', { dependencies: { buffer: '1', events: '1' } })
+  const buffer = await pkg('buffer')
+  const events = await pkg('events')
+  expect(await runtimePackageDirectories(staging, [entry], { platform: 'win32', arch: 'x64' }))
+    .toEqual([buffer, events, entry].sort())
+})
+
 it('rejects absent required and incomplete optional packages instead of packaging a partial runtime', async () => {
   const { staging, pkg } = await fixture()
   const entry = await pkg('rea-agents', { dependencies: { missing: '1' } })

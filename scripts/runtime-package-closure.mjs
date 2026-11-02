@@ -31,7 +31,8 @@ export async function runtimePackageDirectories(staging, entries, target, exclud
       ...Object.keys(manifest.optionalDependencies ?? {}), ...Object.keys(manifest.peerDependencies ?? {})])) {
       if (ignored.has(name)) continue
       const optional = manifest.optionalDependencies?.[name] !== undefined || manifest.peerDependenciesMeta?.[name]?.optional === true
-      const dependency = (require.resolve.paths(name) ?? []).map(path => join(path, name))
+      // A manifest subpath keeps names such as buffer on the npm lookup path.
+      const dependency = (require.resolve.paths(`${name}/package.json`) ?? []).map(path => join(path, name))
         .find(path => existsSync(path))
       if (dependency === undefined) {
         if (optional) continue

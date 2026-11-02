@@ -2,6 +2,8 @@
 
 ## REA 内置与模式化关于页（2026-11-02，安装包验收前）
 
+代码节点已推送 `751ebe2632`。干净验证树已快进，冻结安装完成，并从主树复制仅本机使用且已忽略的 `.env.windows`。第一次完整打包的准备、真实 Desktop Host REA/Office 检查已通过；ASAR beforePack 遇到 `buffer` 与 Node 内置模块同名，使 `require.resolve.paths(name)` 返回 null。新增负例复现后，改查 `name/package.json` 的 npm 搜索路径；45 项打包/Office/依赖回归通过、3 个原有跳过，实际准备树已成功枚举 176 个 REA 依赖包，包含 buffer 和 Frida。需重跑最终打包，不把失败 run 记成完成。日志 `rea-package2-20261102.log`；run `2026-11-02T05-01-49.514Z-ATE92y` 已终止。现有系统安装仍未改动。
+
 基点是已推送的 main `d9fa8ae230`。用户追加关于页随模式使用深蓝/深红等配色，并显示 REA 等依赖来源；仍授权继续完整 DSHU。实际剩余额度 24%，未用重置或购买额度；旧 40% 暂停阈值已被后续继续授权撤销。11:55 后允许按需操作桌面，但本节点仍使用后台测试，未再次 Computer Use、卸载或替换系统应用。
 
 `dsh-rea` 直接依赖官方 `rea-agents@6.8.0`，product.json 固定发布提交 `160d821ac9a0310afcb8d1fc427862dd6508add5`、时间、仓库与 229 工具数。默认启用、按需启动；已保存的关闭偏好保留。空路径解析为内置包及应用 Node，自定义路径移到设置的可选折叠区。Desktop Host 指定 primary-runtime Node；锁升级到 Node 24.22.1，四平台 SHA-256 来自官方校验表。未运行 REA setup，未改其他客户端配置。
