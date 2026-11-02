@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This plugin renders the security mode's own network settings under the mode cards: the enable switch, protocol, address, port, the credential-backed password, a connection check whose result is the real proxy state, the honest coverage list, and a bounded viewer over the captured exchanges. It also paints the once-per-conversation reminder that the Host forwards when security mode runs with the proxy off.
+This plugin renders the security mode's own network settings under the mode cards: the enable switch, protocol, address, port, the credential-backed password, a connection check whose result is the real proxy state, the honest coverage list, and a bounded viewer over the captured exchanges. When reminders are enabled, a persistent banner at the top of a Security conversation reports that its dedicated proxy is off. The banner switch disables reminders without changing the proxy.
 
 ## Table of Contents
 
@@ -37,7 +37,7 @@ The Web app loads it as a browser row; nothing else to install. The area registe
 
 `controller.ts` owns the section's reads and writes: one serialized write slot, a generation counter so a slow read never publishes over a committed write, and a filter translated into the Remote query. `SecurityProxySection.tsx` renders from that store through the injected `hooks` compartment; local component state holds only the unsaved draft and the password field.
 
-The viewer shows the captured request and response headers (already redacted on the Host), bounded bodies, the tunnel note for CONNECT-only rows, and an explicit truncation marker. Tunnel rows never pretend to carry a body. Feedback uses the shared toast primitive; the reminder uses the shell overlay seat and is dismissed by the Host's message identity.
+The viewer shows the captured request and response headers (already redacted on the Host), bounded bodies, the tunnel note for CONNECT-only rows, and an explicit truncation marker. Tunnel rows never pretend to carry a body. Settings feedback uses the shared toast primitive. The reminder uses `conversation.mode.notice`, reads the current conversation mode and shares the settings controller; enabling the proxy or disabling reminders hides it.
 
 All copy lives in the typed locale dictionary (`en`/`zh`); no UI string is hardcoded in the components.
 
@@ -70,7 +70,7 @@ No effect.
 - **No export** — the viewer offers filtering, detail, pause, and clear; exporting a flow list is not implemented, so no export can bypass redaction.
 - **Memory-only records** — a restart clears the list with the Host's capture store.
 - **Seat dependency** — the area registers into `settings.mode.materials`, the seat the mode settings page renders; it paints only while the selected mode is `security`.
-- **Reminder delivery** — the reminder needs a connected Web client; a headless run emits the Host event with no surface to paint it.
+- **Reminder display** — the persistent banner needs a connected GUI; it does not alter command-line execution or proxy routing.
 
 <a id="dev-note"></a>
 ### Dev Note

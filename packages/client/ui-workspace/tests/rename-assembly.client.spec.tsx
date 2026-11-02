@@ -38,7 +38,7 @@ afterEach(cleanup)
 beforeEach(() => { localStorage.clear() })
 
 /** Runtime with the locale face installed (the browser entry declares `locale:` — zh default backs the t seat). */
-async function createRuntime(): Promise<SlotTestRuntime> {
+async function createRuntime(withSessionNamespace = true): Promise<SlotTestRuntime> {
   const runtime = await SlotTestRuntime.create()
   runtime.ctx.provide('shortcuts', { register: () => () => {}, catalog: createSnapshotStore([]) })
   runtime.ctx.provide('layout', { selectPanel: vi.fn(), beginNavigation: () => new AbortController().signal })
@@ -46,7 +46,7 @@ async function createRuntime(): Promise<SlotTestRuntime> {
   // The rename flow never picks a directory; the namespace only has to be there
   // for ui-workspace's inject to settle.
   const directoryPicker = {}
-  runtime.remote.provideNamespaces({ directoryPicker })
+  runtime.remote.provideNamespaces({ directoryPicker, ...withSessionNamespace ? { session: {} } : {} })
   const locale = new LocaleRuntime(runtime.ctx)
   runtime.ctx.provide('locale', locale)
   runtime.slots.installLocale(locale)
@@ -87,7 +87,7 @@ async function seedWorkspace(runtime: SlotTestRuntime): Promise<void> {
 
 describe('session rename through the assembled browser', () => {
   it('keeps delete confirmation alive after its row disappears and sends only after confirmation', async () => {
-    const runtime = await createRuntime()
+    const runtime = await createRuntime(false)
     const finish = Promise.withResolvers<undefined>()
     onTestFinished(async () => { finish.resolve(undefined); await runtime.dispose() })
     runtime.ctx.effect(() => runtime.ctx.locale.register('common', { zh: commonZh, en: commonEn }))

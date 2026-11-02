@@ -101,28 +101,35 @@ export class SessionDeletionController {
       throw new RemoteError('session/delete-owned', 'Delete this child conversation with its owning conversation.',
         { sessionId: root, parentSessionId: header.parentSession })
     }
-    const nativeChildren = new Map<SessionId, SessionId[]>()
+    const ownedChildren = new Map<SessionId, SessionHeader[]>()
     for (const candidate of headers.values()) {
-      if (candidate.parentSession === undefined || nativeAsideKind(candidate.id, candidate.parentSession) === undefined) continue
-      const children = nativeChildren.get(candidate.parentSession) ?? []
-      children.push(candidate.id); nativeChildren.set(candidate.parentSession, children)
+      if (candidate.parentSession === undefined || (candidate.origin !== 'subagent'
+        && nativeAsideKind(candidate.id, candidate.parentSession) === undefined)) continue
+      const children = ownedChildren.get(candidate.parentSession) ?? []
+      children.push(candidate); ownedChildren.set(candidate.parentSession, children)
     }
     const ids = new Set([root]), queue = [root], delegated = new Set<SessionId>(), catalogued = new Set<SessionId>()
     const add = (id: SessionId): void => { if (!ids.has(id)) { ids.add(id); queue.push(id) } }
     const subagents = this.ctx.get('subagents')
     for (let index = 0; index < queue.length; index++) {
       const id = queue[index] as SessionId
-      for (const child of nativeChildren.get(id) ?? []) add(child)
+      for (const child of ownedChildren.get(id) ?? []) {
+        add(child.id)
+        if (child.origin === 'subagent') delegated.add(child.id)
+      }
       if (subagents === undefined || catalogued.has(id) || !headers.has(id)) continue
       this.authorize([id], allows)
       for (const child of await subagents.listDescendants(id)) {
-        if (child.kind === 'diagnostic') {
-          if (child.reason === 'unavailable' && !headers.has(child.id)) { add(child.id); delegated.add(child.id); continue }
-          throw new RemoteError('gateway/internal', 'Associated conversation data could not be fully inspected. Nothing was deleted.', {})
-        }
         const stored = headers.get(child.id)
-        if (stored !== undefined && stored.parentSession !== child.parentId) {
+        if (stored !== undefined && (stored.parentSession !== child.parentId || stored.origin !== 'subagent')) {
           throw new RemoteError('gateway/internal', 'Associated conversation ownership does not match its stored parent.', {})
+        }
+        if (child.kind === 'diagnostic') {
+          const missingChild = child.reason === 'unavailable' && stored === undefined
+          const legacyOwnedChild = child.reason === 'unsupported' && stored !== undefined
+          if (!missingChild && !legacyOwnedChild) {
+            throw new RemoteError('gateway/internal', 'Associated conversation data could not be fully inspected. Nothing was deleted.', {})
+          }
         }
         add(child.id); delegated.add(child.id); catalogued.add(child.id); catalogued.add(child.parentId)
       }

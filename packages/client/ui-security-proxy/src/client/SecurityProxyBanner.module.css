@@ -1,0 +1,9 @@
+.banner { display: flex; align-items: center; gap: 12px; flex: none; margin: 8px 20px 0; padding: 12px 16px; border: 1px solid color-mix(in srgb, var(--dsw-alias-state-warn-primary) 26%, transparent); border-radius: var(--dsw-radius-lg); background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 7%, var(--dsw-alias-bg-base)); color: var(--dsw-alias-label-primary); animation: appear 240ms ease-out; }
+.icon { flex: none; color: var(--dsw-alias-state-warn-primary); }
+.copy { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; min-width: 0; flex: 1; font-size: 13px; line-height: 1.5; }
+.title { font-weight: 500; }
+.hint { color: var(--dsw-alias-label-secondary); }
+.preference { display: inline-flex; align-items: center; gap: 8px; color: var(--dsw-alias-label-secondary); font-size: 12px; flex: none; cursor: pointer; }
+@keyframes appear { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 620px) { .banner { margin: 8px 12px 0; padding: 10px 12px; align-items: flex-start; flex-wrap: wrap; } .copy { flex-basis: calc(100% - 32px); } .preference { margin-inline-start: 30px; } }
+@media (prefers-reduced-motion: reduce) { .banner { animation: none; } }

@@ -9,14 +9,14 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-agent-preset/client'
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 import { SecurityProxyController, type SecurityProxyPort } from './controller.ts'
-import { SecurityProxySection, SecurityProxyWarning } from './SecurityProxySection.tsx'
-import type { SecurityProxyInjected, SecurityProxyWarningInjected } from './SecurityProxySection.tsx'
+import { SecurityProxySection } from './SecurityProxySection.tsx'
+import { SecurityProxyBanner } from './SecurityProxyBanner.tsx'
+import type { SecurityProxyInjected } from './SecurityProxySection.tsx'
 import { en, zh, type SecurityProxyKey } from './locales.ts'
 
-export type { SecurityProxyInjected, SecurityProxyWarningInjected } from './SecurityProxySection.tsx'
+export type { SecurityProxyInjected } from './SecurityProxySection.tsx'
 export type { SecurityProxyKey } from './locales.ts'
 export type { SecurityProxyViewState } from './controller.ts'
 
@@ -40,13 +40,6 @@ async function unwrap<T>(request: Promise<RemoteResult<T>>): Promise<T> {
  */
 export function apply(ctx: Context): void {
   ctx.effect(() => ctx.locale.register('settings.securityProxy', { en, zh }), 'security-proxy: dictionaries')
-  const warning = createSnapshotStore<{ id: number } | null>(null)
-  let warningSequence = 0
-  const stopWarning = ctx.remote.$on('security-proxy/warning', () => {
-    warningSequence += 1
-    warning.set({ id: warningSequence })
-  })
-  ctx.effect(() => () => { stopWarning() }, 'security-proxy: proxy-off reminder subscription')
 
   ctx.inject(['remote.securityProxy'], (scope) => {
     const port: SecurityProxyPort = {
@@ -83,17 +76,9 @@ export function apply(ctx: Context): void {
       locale: 'settings.securityProxy',
       inject: sectionInject,
     }, SecurityProxySection))
+    scope.slots.inject('conversation.mode.notice', () => scope.slots.register({
+      name: 'conversation.mode.notice', id: 'security-proxy', locale: 'settings.securityProxy',
+      inject: () => ({ hooks: { securityProxy: controller.state }, load: controller.load, configure: controller.configure }),
+    }, SecurityProxyBanner))
   })
-
-  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
-    name: 'shell.overlay',
-    id: 'security-proxy-warning',
-    locale: 'settings.securityProxy',
-    inject: (): SecurityProxyWarningInjected => ({
-      hooks: { securityProxyWarning: warning },
-      dismissWarning: (id) => {
-        if (warning.getSnapshot()?.id === id) warning.set(null)
-      },
-    }),
-  }, SecurityProxyWarning))
 }

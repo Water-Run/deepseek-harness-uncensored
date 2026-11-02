@@ -12,7 +12,8 @@ import type {
 } from '@deepseek-ai/dsh-security-proxy/types'
 import { SecurityProxyController, type SecurityProxyPort, type SecurityProxyViewState } from '../src/client/controller.ts'
 import { en } from '../src/client/locales.ts'
-import { SecurityProxySection, SecurityProxyWarning, type SecurityProxySectionProps, type SecurityProxyWarningProps } from '../src/client/SecurityProxySection.tsx'
+import { SecurityProxySection, type SecurityProxySectionProps } from '../src/client/SecurityProxySection.tsx'
+import { SecurityProxyBanner } from '../src/client/SecurityProxyBanner.tsx'
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.useRealTimers() })
 
@@ -267,18 +268,27 @@ describe('settings surface', () => {
 })
 
 describe('proxy-off reminder', () => {
-  it('paints the reminder only while the host reports one', () => {
-    const store = createSnapshotStore<{ id: number } | null>({ id: 1 })
-    const props: SecurityProxyWarningProps = {
-      dismissWarning: vi.fn(),
+  it('stays visible in security mode and lets the owner disable the saved reminder', async () => {
+    const store = createSnapshotStore<SecurityProxyViewState>({ ...READY,
+      state: { ...STATE, settings: { ...SETTINGS, enabled: false, warnWhenDisabled: true } } })
+    const configure = vi.fn(async () => true)
+    const props: Parameters<typeof SecurityProxyBanner>[0] = {
+      modeId: 'security', load: vi.fn(), configure,
       usePanelInfo: unusedHook, useSessions: unusedHook, useSessionStatus: unusedHook, useSessionRetainInfo: unusedHook,
       useWorkspaces: unusedHook, useResource: unusedHook,
       ...allowAllAccess,
-      useSecurityProxyWarning: bindSnapshotSelector(store),
+      useSecurityProxy: bindSnapshotSelector(store),
       t,
     }
-    render(<SecurityProxyWarning {...props} />)
-    expect(screen.getByText(en['securityProxy.warnToast'])).toBeTruthy()
+    const view = render(<SecurityProxyBanner {...props} />)
+    expect(screen.getByText(en['securityProxy.bannerTitle'])).toBeTruthy()
+    await expect(`${screen.getByRole('status').textContent}\n`).toMatchFileSnapshot('./expected/proxy-banner.txt')
+    fireEvent.click(screen.getByRole('switch', { name: en['securityProxy.bannerPreference'] }))
+    expect(configure).toHaveBeenCalledWith({ warnWhenDisabled: false })
+    view.rerender(<SecurityProxyBanner {...props} modeId="reverse" />)
+    expect(screen.queryByText(en['securityProxy.bannerTitle'])).toBeNull()
+    view.rerender(<SecurityProxyBanner {...props} modeId="security" />)
+    expect(screen.getByText(en['securityProxy.bannerTitle'])).toBeTruthy()
   })
 })
 

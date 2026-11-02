@@ -13,6 +13,8 @@ Server-expired account credentials clear the displayed account details and emit 
 
 ## Summary
 
+The About dialog separates a dark product identity panel from source records. It displays the maintainer, independent version, build time, underlying DSH version and source commits. The columns stack in narrow windows and entrance motion respects reduced-motion preferences.
+
 Balance polling and spending controls exist only while the viewer has the corresponding Host access. Revocation stops their controllers and removes their surfaces; later access creates fresh state.
 
 A conversation waiting for the local spending limit shows a persistent banner above its composer, with estimated automatic continuation when known, manual recovery and a quick reset. Read failures retain the notice with a retry action.

@@ -23,6 +23,8 @@ import { createSessionTestController } from './test-remote.ts'
 import { ApiSessionAgentController } from '../src/agent.ts'
 import { SessionDeletionController } from '../src/deletion.ts'
 import SessionController from '../src/index.ts'
+import SubagentRuntime from '@deepseek-ai/dsh-subagent'
+import { mountWorkingDirectoryFixture } from '../../../subagent/subagent/tests/working-directory-fixture.ts'
 
 const contexts: Context[] = [], roots: string[] = []
 afterEach(async () => {
@@ -118,6 +120,59 @@ it('stops a running API-owned conversation before removing its writer and log', 
   expect(adapter.requests[0]?.signal?.aborted).toBe(true)
   expect(ctx.agents.get(sessionId)).toBeUndefined()
   expect(await ctx.sessionPersistence.stat(sessionId)).toBeUndefined()
+})
+
+it('deletes legacy children with unknown descriptors and uncatalogued owned descendants', async () => {
+  const { ctx, api, cwd } = await setup()
+  await mountWorkingDirectoryFixture(ctx)
+  await ctx.plugin(SubagentRuntime).await()
+  const { sessionId } = await api.create({ cwd })
+  const parent = ctx.agents.get(sessionId)!
+  parent.followup(createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'legacy parent' }] }))
+  await parent.whenIdle()
+  const childId = SessionId('legacy-owned-child')
+  const child = await ctx.agents.create({ sessionId: childId, agentOptions: { provider: 'mock', model: 'mock' }, meta: {
+    cwd, origin: 'subagent', parentSession: sessionId,
+  },
+  })
+  parent.session.append('subagent/catalog', {
+    version: 1, mode: 'unknown', childId, childCreatedAt: child.agent.session.header.createdAt,
+  })
+  const grandchildId = SessionId('uncatalogued-owned-grandchild')
+  const grandchild = await ctx.agents.create({ sessionId: grandchildId, agentOptions: { provider: 'mock', model: 'mock' }, meta: {
+    cwd, origin: 'subagent', parentSession: childId,
+  },
+  })
+  for (const handle of [child, grandchild]) {
+    handle.agent.followup(createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'owned child' }] }))
+    await handle.agent.whenIdle()
+  }
+  await grandchild.dispose()
+  await child.dispose()
+  expect(await ctx.subagents.listDescendants(sessionId)).toEqual([
+    { kind: 'diagnostic', id: childId, parentId: sessionId, depth: 1, reason: 'unsupported' },
+  ])
+  const fork = await api.fork({ sessionId })
+  const result = await api.delete({ sessionId })
+  expect(new Set(result.deletedSessionIds)).toEqual(new Set([sessionId, childId, grandchildId]))
+  expect((await ctx.sessionPersistence.list()).map(item => item.header.id)).toEqual([fork.sessionId])
+})
+
+it('preserves an independent fork incorrectly referenced by a child catalog', async () => {
+  const { ctx, api, cwd } = await setup()
+  await mountWorkingDirectoryFixture(ctx)
+  await ctx.plugin(SubagentRuntime).await()
+  const { sessionId } = await api.create({ cwd })
+  const parent = ctx.agents.get(sessionId)!
+  parent.followup(createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'independent fork' }] }))
+  await parent.whenIdle()
+  const fork = await api.fork({ sessionId })
+  parent.session.append('subagent/catalog', {
+    version: 1, mode: 'unknown', childId: fork.sessionId, childCreatedAt: ctx.agents.get(fork.sessionId)!.session.header.createdAt,
+  })
+  await expect(api.delete({ sessionId })).rejects.toThrow('ownership does not match')
+  expect(await ctx.sessionPersistence.stat(sessionId)).toBeDefined()
+  expect(await ctx.sessionPersistence.stat(fork.sessionId)).toBeDefined()
 })
 
 it('purges an already-indexed cold Session before another search and blocks delayed checkpoint writes', async () => {

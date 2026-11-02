@@ -33,17 +33,6 @@ export type SecurityProxySectionProps = PropsRuntime<'settings.mode.materials'>
   & PropsLocale<'settings.securityProxy'>
   & InjectFace<SecurityProxyInjected>
 
-/** Actions and state the proxy-off reminder receives. */
-export interface SecurityProxyWarningInjected {
-  hooks: { securityProxyWarning: SnapshotStore<{ id: number } | null> }
-  dismissWarning: (id: number) => void
-}
-
-/** Props assembled by the shell overlay renderer. */
-export type SecurityProxyWarningProps = PropsRuntime<'shell.overlay'>
-  & PropsLocale<'settings.securityProxy'>
-  & InjectFace<SecurityProxyWarningInjected>
-
 const STATUS_TONE = {
   off: 'idle',
   connecting: 'ongoing',
@@ -300,13 +289,6 @@ export function SecurityProxySection(props: SecurityProxySectionProps) {
       {...view.feedback.success ? { tone: 'success' as const } : {}}
       onDone={() => { dismissFeedback(view.feedback?.id ?? 0) }} />}
   </section>
-}
-
-/** The one-time reminder shown when security mode runs with the proxy off. */
-export function SecurityProxyWarning({ useSecurityProxyWarning, dismissWarning, t }: SecurityProxyWarningProps) {
-  const warning = useSecurityProxyWarning(value => value)
-  if (warning === null) return null
-  return <Toast key={String(warning.id)} text={t('securityProxy.warnToast')} onDone={() => { dismissWarning(warning.id) }} />
 }
 
 /** Map one feedback kind to its localized copy key. */

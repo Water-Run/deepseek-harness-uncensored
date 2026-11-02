@@ -9,6 +9,8 @@ English | [中文](README.zh.md)
 
 ## Summary
 
+Mode-specific persistent notices register in `conversation.mode.notice`. Its `modeId` comes from the same current-mode observation as the picker and theme, including the staged mode before a new conversation starts.
+
 Choose the current conversation's Agent preset in Web and read what each mode does and declares. New conversations start in Default.
 
 ## Table of Contents

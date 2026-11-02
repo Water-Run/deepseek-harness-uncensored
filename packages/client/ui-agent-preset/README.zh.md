@@ -9,6 +9,8 @@ kind: "package-reference"
 
 ## 概述
 
+模式专属的持续提示注册到 `conversation.mode.notice`。其 `modeId` 与选择器和主题使用同一当前模式观察值，包含新对话开始前暂选的模式。
+
 在 Web 中选择当前对话的 Agent preset，查看各模式的说明与声明的配置。新对话默认使用缺省。
 
 ## 目录

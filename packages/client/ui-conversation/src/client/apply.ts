@@ -351,6 +351,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
     name: 'main.conversation',
     children: {
       'conversation.header': { kind: 'single', scope: 'session-maybe' },
+      'conversation.header.notices': { kind: 'list', scope: 'root' },
     },
   }, ConversationRoot)
 

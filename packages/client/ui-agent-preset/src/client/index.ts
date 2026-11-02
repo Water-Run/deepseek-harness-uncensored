@@ -40,6 +40,7 @@ import type { SecurityEntryLocale } from '@deepseek-ai/dsh-agent-preset-registry
 import type { CurrentModeState } from './AgentPresetSection.tsx'
 import { installModeAccent } from './mode-accent.ts'
 import { analyticsMode } from './analytics.ts'
+import { ModeNoticeHost, type ModeNoticeInjected } from './ModeNoticeHost.tsx'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -48,6 +49,8 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   }
 
   interface SlotMap {
+    /** Persistent notices for the main view's selected or staged mode. */
+    'conversation.mode.notice': { kind: 'list'; scope: 'root'; owner: { modeId: string | undefined } }
     /**
      * Configuration of one mode, rendered under the mode page's configuration
      * tabs. A contribution registers under the preset id it configures, which
@@ -283,6 +286,11 @@ export function apply(ctx: ClientContext): void {
     return () => { stopList(); stopSeat(); stopSwitch(); stopPolicy(); stopEntry(); stopSensitive(); stopConnection() }
   }, 'ui-agent-preset: current selection and runtime policy')
   ctx.effect(() => installModeAccent(currentMode), 'ui-agent-preset: mode accent')
+  ctx.slots.inject('conversation.header.notices', () => ctx.slots.register({
+    name: 'conversation.header.notices', id: 'mode-notices',
+    children: { 'conversation.mode.notice': { kind: 'list', scope: 'root' } },
+    inject: (): ModeNoticeInjected => ({ hooks: { currentMode } }),
+  }, ModeNoticeHost))
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'mode-switch-feedback', order: 25, locale: 'settings.agentPreset', inject: modeInjected,
   }, ModeSwitchToast))
