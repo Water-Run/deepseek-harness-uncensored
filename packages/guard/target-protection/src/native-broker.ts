@@ -5,11 +5,13 @@ import type { Readable, Writable } from 'node:stream'
 import { fileURLToPath } from 'node:url'
 import { inspect } from 'node:util'
 import type { ContainerRequest, ProbeFacts } from '@microsoft/mxc-sdk/v1'
-import { buildCommandLine, observedWindowsBootstrapPath } from '@deepseek-ai/dsh-win32-process'
+import { attachObservedWindowsJob, buildCommandLine, observedWindowsBootstrapPath } from '@deepseek-ai/dsh-win32-process'
+import type { ObservedWindowsJob } from '@deepseek-ai/dsh-win32-process'
 import { readNativeBootstrapIdentity } from './native-bootstrap.ts'
 import { nativeBrokerConfigSchema, type NativeBrokerConfig } from './native-broker-config.ts'
 import { requireNativeRuntime } from './native-runtime.ts'
 import { NATIVE_FRAME, NativeProtocolError, readNativeFrames, writeNativeBytes, writeNativeFrame } from './native-protocol.ts'
+import { startNativeIngress, type NativeIngressLease, type NativeIngressOptions } from './native-ingress.ts'
 
 /** SDK process surface consumed by the broker; final physical closure is observed by the host's outer Job. */
 export interface NativeBrokerChild {
@@ -92,12 +94,14 @@ export async function runNativeBroker(
   const tasks: Promise<unknown>[] = []
   const abort = new AbortController()
   let child: NativeBrokerChild | undefined, failure: unknown
+  let ingressJob: ObservedWindowsJob | undefined, ingress: NativeIngressLease | undefined, ingressOptions: NativeIngressOptions | undefined
   let nativeInput: Writable | null = null, nativeOutput: Readable | null = null, nativeError: Readable | null = null
   const state = { finished: false, failureReported: false }
   const fail = (error: unknown): void => {
     failure ??= error
     abort.abort(error); input.destroy()
     try { child?.kill() } catch (killError) { failure = new AggregateError([failure, killError], 'Native broker termination failed') }
+    try { ingressJob?.terminate(1) } catch (killError) { failure = new AggregateError([failure, killError], 'Native ingress range termination failed') }
   }
   const closed = (): void => { if (!state.finished) fail(new NativeProtocolError('Native broker output closed.')) }
   const observe = (task: Promise<unknown>): void => { tasks.push(task); void task.catch(fail) }
@@ -126,7 +130,14 @@ export async function runNativeBroker(
       for await (const chunk of stderr as AsyncIterable<Uint8Array>) await writeNativeBytes(diagnostics, chunk)
     })())
     const startup = AbortSignal.any([abort.signal, AbortSignal.timeout(config.startupTimeoutMs)])
-    await readNativeBootstrapIdentity(stdout, nonce, native.id, startup)
+    const identity = await readNativeBootstrapIdentity(stdout, nonce, native.id, startup)
+    if (config.ingress !== undefined) {
+      ingressOptions = config.ingress
+      ingressJob = attachObservedWindowsJob(identity)
+      ingress = await startNativeIngress(config.ingress, ingressJob, identity, abort.signal)
+      void ingress.failed.catch(fail)
+    }
+    startup.throwIfAborted()
     abort.signal.throwIfAborted()
     await writeNativeBytes(stdin, Uint8Array.of(1))
     let rangeExited = false
@@ -177,8 +188,18 @@ export async function runNativeBroker(
         } finally { child.dispose() }
       }
     } finally {
-      await Promise.allSettled([...tasks, messages.return(undefined)])
-      output.off('error', fail); output.off('close', closed); diagnostics.off('error', fail)
+      try {
+        if (ingressJob !== undefined && ingressOptions !== undefined) {
+          if (!state.finished) ingressJob.terminate(1)
+          if (!await ingressJob.waitForExit(ingressOptions.pollIntervalMs, AbortSignal.timeout(ingressOptions.shutdownTimeoutMs))) {
+            throw new NativeProtocolError('Native ingress range shutdown remains unconfirmed; retain its rules.')
+          }
+          try { await ingress?.release() } finally { ingressJob.close() }
+        }
+      } finally {
+        await Promise.allSettled([...tasks, messages.return(undefined)])
+        output.off('error', fail); output.off('close', closed); diagnostics.off('error', fail)
+      }
     }
   }
 }

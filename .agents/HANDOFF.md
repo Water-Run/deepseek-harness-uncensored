@@ -1,5 +1,21 @@
 # Uncensored 开发交接
 
+## 入站辅助程序基础实现（2026-11-03）
+
+基点 `c3c88be8a2`，Goal active，完整范围不变。新增 `native/target-guard` 私有 Rust 组件、`native-ingress.ts` 客户端和 Broker 的内部可选 `ingress` 配置。公开 `subprocess-native` 配置、用户界面、默认 profile 与安装包均未启用该组件；系统仍为 `0e3e8d4261` 检查版。本节点没有 UAC、服务安装或成功写入系统 WFP 规则。
+
+辅助程序按继承 stdin/stdout 的创建者 PID 和精确 FILETIME 验证调用者，再核验目标身份、同一账户、容器 SID 及单成员非 breakaway Job。句柄通过 DUPLICATE_SAME_ACCESS 复制，NtQueryObject 检查原有 Query/Terminate 权限，不能利用辅助程序增加权限。已实测仅查询句柄被拒绝且目标仍存活；合法受控目标进入 WFP 安装阶段后，以权限不足拒绝并终止。接口只接受 install/release/stop 和严格序号，不接受任意规则、命令或文件路径。
+
+WFP 实现为每次执行建立独立 provider/子层及两条按容器 SID 匹配的 IPv4/IPv6 ALE 接收规则，采用持久对象和事务。正常移除前确认整个 Job 归零；未知关闭结果保留规则。异常退出后的遗留恢复还未实现，不能提前做有持久副作用的管理员验收。下一节点优先实现可审查的恢复，再处理安全提权/部署与实际成功过滤。不能仅凭父 PID 消失或可复用的句柄值判断后代已退出；也不能把运行整个 DSHU 为管理员当作产品方案。
+
+Broker 在发送启动字节前等待辅助程序确认，保留独立 Job 观察者，失去保护时停止目标，清理时等归零后释放。辅助程序使用执行生命周期信号，不能保留已完成启动阶段的超时信号，否则运行中的任务会被启动计时器误杀。客户端拒绝无效/过大/错序/多余回复，保持有界诊断；取消期间先终止范围，再处理准入结果和撤销；辅助程序不退出时报告不确定，而非无限等待。`ObservedWindowsJob.borrowHandle()` 只借用仍活动的句柄，调用者须保留至复制完成。
+
+验证：Rust 14 项及 Clippy -D warnings 通过；Windows 最终 4 文件 122 项通过，Linux 3 文件 79 项通过，客户端/Broker/Job 所有者三模块覆盖率均 100%。Windows 原生 3 项核验调用者创建时间、借用权限和实际权限拒绝；完整 Host/Broker 拒绝路径另通过，确认目标未写文件、范围关闭后原规则修订可更新。编译后的私有链路同样通过。完整 build 10/10、build:check 2/2、392 个 NodeNext API、JSDoc、定向 lint、文档配对及两包 publint 已执行；win32-process 保留原有 src 通配导出警告。
+
+关键日志：`.dsh-build/target-guard-tests-final-20261103.log`、`target-guard-clippy-20261103.log`、`native-ingress-final-tests-20261103.log`、`native-ingress-linux-20261103.log`、`native-ingress-access-runtime-20261103.log`、`native-ingress-broker-runtime2-20261103.log`、`native-ingress-built-20261103.mjs/.log`、`native-ingress-build-20261103.log`、`native-ingress-check-final-20261103.log`。首次原生夹具缺少 D 盘运行时祖先枚举，修正后才进入辅助程序；另修正 marker 必须位于可写目录，以及负例需同时断言 direct 和 settled 拒绝。不要把这些夹具问题归为产品故障。
+
+构建辅助程序：设置 CARGO_TARGET_DIR 为仓库 `.dsh-build/target-guard`，执行 `cargo +1.98.1 build --locked --manifest-path native/target-guard/Cargo.toml`。原生验收显式提供 `DSH_NATIVE_INGRESS_HELPER`，目前只在非提权条件验证拒绝路径；未提供时测试明确跳过。恢复入口是 `native/target-guard/src/windows.rs`、`lib.rs`、`native-ingress.ts`、`native-broker.ts` 和本节点测试。仍缺管理员成功过滤、普通/嵌套后代验证、遗留恢复、跨完整性级别的认证启动、受保护部署及默认产品接入。其他协议、任意网络 SQL、远端身份和 P3 审计/模式/代理联动全部保留。
+
 ## 入站约束可行性核查（2026-11-03）
 
 基点 `8e11dced69`，Goal active，本节点是实际验证和实施条件澄清，没有新增可交付的入站保护。完整范围保留，最新实际剩余额度 78%。已复查上游原生网络映射及微软 WFP 文档；普通进程、完全禁网和代理容器均通过自有 IPv4/IPv6 监听对照。禁网容器内部回环也返回 EACCES，不能采用内部 TCP 代理加管道的直接替代方案。代理容器当前虽拒绝同机入站，但 SDK 的声明仍开放私网能力，不能凭该现象启用完整保护。

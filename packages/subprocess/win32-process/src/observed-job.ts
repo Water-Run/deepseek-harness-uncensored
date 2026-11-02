@@ -31,7 +31,7 @@ export interface ObservedJobBindings extends CurrentTokenProcessBindings {
 /** Misidentified processes and premature release never authorize dispatch or policy replacement. */
 export class ObservedJobError extends Error {
   /** @param code - Stable ownership failure. @param message - Context without command arguments or credentials. */
-  constructor(readonly code: 'invalid-identity' | 'identity-changed' | 'still-running', message: string) {
+  constructor(readonly code: 'invalid-identity' | 'identity-changed' | 'still-running' | 'already-exited', message: string) {
     super(message)
     this.name = 'ObservedJobError'
   }
@@ -64,6 +64,12 @@ export function currentWindowsProcessIdentity(api: ObservedJobBindings = nativeB
 
 /** Independently owned Job; release is permitted only after its process accounting reaches zero. */
 export interface ObservedWindowsJob {
+  /**
+   * Borrow a process-local Job handle for an authenticated observer to duplicate.
+   * The caller must retain this owner until duplication completes; borrowing neither duplicates nor transfers ownership.
+   * @returns Exact numeric handle, only while the range remains active.
+   */
+  borrowHandle(): bigint
   /** @returns True once zero members have been observed; this terminal fact remains true after release. */
   isEmpty(): boolean
   /** @param exitCode - Windows exit code assigned to members. No-op after confirmed exit. */
@@ -125,6 +131,10 @@ export function attachObservedWindowsJob(
   let empty = false, closed = false
   const observedEmpty = (): boolean => empty ||= isJobEmpty(api, ownedJob)
   return {
+    borrowHandle() {
+      if (closed || observedEmpty()) throw new ObservedJobError('already-exited', 'An exited Job cannot admit another observer.')
+      return ownedJob
+    },
     isEmpty: observedEmpty,
     terminate(exitCode) { if (!empty) terminateJob(api, ownedJob, exitCode) },
     async waitForExit(pollIntervalMs, signal) {

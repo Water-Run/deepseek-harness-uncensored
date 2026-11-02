@@ -1,12 +1,22 @@
 /** Private broker tests isolate platform startup from byte transport and refusal semantics. @module */
 import { PassThrough } from 'node:stream'
 import { join } from 'node:path'
-import { expect, it, onTestFinished, vi } from 'vitest'
+import { afterEach, expect, it, onTestFinished, vi } from 'vitest'
+import { attachObservedWindowsJob, type ObservedWindowsJob } from '@deepseek-ai/dsh-win32-process'
+import { startNativeIngress, type NativeIngressLease } from '../src/native-ingress.ts'
 import { nativeContainerRequest, runNativeBroker, type NativeBrokerChild, type NativeBrokerSdk } from '../src/native-broker.ts'
 import { nativeBrokerConfigSchema, type NativeBrokerConfig } from '../src/native-broker-config.ts'
 import { encodeNativeFrame, NATIVE_FRAME, readNativeFrames, writeNativeFrame } from '../src/native-protocol.ts'
 import type { NativeFrame } from '../src/native-protocol.ts'
 import type { ContainerRequest } from '@microsoft/mxc-sdk/v1'
+
+vi.mock('@deepseek-ai/dsh-win32-process', async original => ({
+  ...await original<typeof import('@deepseek-ai/dsh-win32-process')>(), attachObservedWindowsJob: vi.fn(),
+}))
+vi.mock('../src/native-ingress.ts', async original => ({
+  ...await original<typeof import('../src/native-ingress.ts')>(), startNativeIngress: vi.fn(),
+}))
+afterEach(() => { vi.mocked(attachObservedWindowsJob).mockReset(); vi.mocked(startNativeIngress).mockReset() })
 
 function config(): NativeBrokerConfig {
   return { cwd: process.cwd(), temporaryRoot: join(process.cwd(), 'temporary'),
@@ -122,6 +132,75 @@ it('passes binary input and worker lifecycle through the configured native trans
   expect(h.frames.map(frame => frame.tag)).toEqual([NATIVE_FRAME.launch, NATIVE_FRAME.stdin, NATIVE_FRAME.stdinEnd])
   expect(h.received.find(frame => frame.tag === NATIVE_FRAME.stdout)?.data).toEqual(data)
   expect(h.received.at(-1)?.tag).toBe(NATIVE_FRAME.rangeExited)
+  expect(h.dispose).toHaveBeenCalledOnce()
+})
+
+function ingressFixture() {
+  const h = fixture(), failed = Promise.withResolvers<never>()
+  const job = { borrowHandle: () => 99n, isEmpty: () => false, terminate: vi.fn(), close: vi.fn(),
+    waitForExit: vi.fn(async () => { await h.child.wait(); return true }) } satisfies ObservedWindowsJob
+  const lease = { id: 'scope', failed: failed.promise, release: vi.fn(async () => {}), stop: vi.fn(async () => {}) } satisfies NativeIngressLease
+  vi.mocked(attachObservedWindowsJob).mockReturnValue(job)
+  vi.mocked(startNativeIngress).mockResolvedValue(lease)
+  const options = { executable: join(process.cwd(), 'guard.exe'), requestTimeoutMs: 1000,
+    shutdownTimeoutMs: 1000, pollIntervalMs: 1, diagnosticMaxBytes: 1024 }
+  return { ...h, job, lease, failed, options,
+    async configure() { await h.send(NATIVE_FRAME.configure, Buffer.from(JSON.stringify({ ...config(), ingress: options }))) } }
+}
+
+it('does not dispatch buffered target frames until inbound protection is acknowledged', async () => {
+  const h = ingressFixture(), installing = Promise.withResolvers<NativeIngressLease>(), reached = Promise.withResolvers<undefined>()
+  vi.mocked(startNativeIngress).mockImplementation(async () => { reached.resolve(undefined); return installing.promise })
+  const done = h.run()
+  await h.configure(); await reached.promise
+  await h.send(NATIVE_FRAME.launch, Buffer.from('{}')); await h.send(NATIVE_FRAME.stdinEnd)
+  expect(h.frames).toEqual([])
+  expect(attachObservedWindowsJob).toHaveBeenCalledWith({ pid: 42, creationTime: 1n })
+  installing.resolve(h.lease)
+  await done
+  expect(h.frames.map(frame => frame.tag)).toEqual([NATIVE_FRAME.launch, NATIVE_FRAME.stdinEnd])
+  expect(h.job.waitForExit).toHaveBeenCalledOnce()
+  expect(h.lease.release).toHaveBeenCalledOnce()
+  expect(h.job.close).toHaveBeenCalledOnce()
+})
+
+it('refuses helper admission without forwarding the target launch', async () => {
+  const h = ingressFixture()
+  vi.mocked(startNativeIngress).mockRejectedValue(new Error('permission required'))
+  const done = h.run()
+  await h.configure(); await h.send(NATIVE_FRAME.launch, Buffer.from('{}'))
+  await expect(done).rejects.toThrow('Native broker failed')
+  expect(h.frames).toEqual([])
+  expect(h.job.terminate).toHaveBeenCalled()
+  expect(h.job.close).toHaveBeenCalledOnce()
+})
+
+it('stops the worker if its established inbound guard fails', async () => {
+  const h = ingressFixture(), kill = vi.spyOn(h.child, 'kill'), done = h.run()
+  await h.configure(); await h.send(NATIVE_FRAME.launch, Buffer.from('{}'))
+  await expect.poll(() => h.frames.length).toBe(1)
+  h.failed.reject(new Error('guard lost'))
+  await expect(done).rejects.toThrow('Native broker failed')
+  expect(kill).toHaveBeenCalled()
+  expect(h.lease.release).toHaveBeenCalledOnce()
+})
+
+it('does not release inbound rules if independent Job closure is unknown', async () => {
+  const h = ingressFixture(), done = h.run()
+  vi.mocked(h.job.waitForExit).mockResolvedValue(false)
+  await h.configure(); await h.send(NATIVE_FRAME.launch, Buffer.from('{}')); await h.send(NATIVE_FRAME.stdinEnd)
+  await expect(done).rejects.toThrow('shutdown remains unconfirmed')
+  expect(h.lease.release).not.toHaveBeenCalled()
+  expect(h.job.close).not.toHaveBeenCalled()
+})
+
+it('contains independent Job termination failures and leaves its rules retained', async () => {
+  const h = ingressFixture(), done = h.run()
+  vi.mocked(h.job.terminate).mockImplementation(() => { throw new Error('independent stop failed') })
+  vi.mocked(startNativeIngress).mockRejectedValue(new Error('helper failed'))
+  await h.configure()
+  await expect(done).rejects.toThrow('independent stop failed')
+  expect(h.lease.release).not.toHaveBeenCalled()
   expect(h.dispose).toHaveBeenCalledOnce()
 })
 

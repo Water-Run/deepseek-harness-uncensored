@@ -4,6 +4,8 @@
 
 与 DeepSeek Harness 一同维护的原生源码和公开包。[`system/` workspace](system/README.zh.md) 负责 Landlock 启动器、POSIX flock 绑定、平台包和[发布流程](system/docs/release.md)。
 
+[`target-guard/`](target-guard/README.zh.md) 包含开发中的私有 Windows WFP 辅助程序，与已发布的 Node addon 分开维护，默认未启用或打包。
+
 ## Workspace 与发布边界
 
 `system/` 及其包属于仓库根 pnpm workspace，并共用根锁文件。开发和 CI 中的 harness 消费方直接使用当前 workspace 的入口包，因此启动器约定变更与消费方更新可以在同一个改动中落地并一起测试。

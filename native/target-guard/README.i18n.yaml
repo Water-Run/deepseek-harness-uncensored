@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write native/target-guard/README.md
+/dshu-native-target-guard:
+  en: 4da0333e170c234e
+  zh: 5d2cd45a8227345f
+/dshu-native-target-guard/ownership:
+  en: 0666bdefa185127c
+  zh: 0ef7d8283f91dca7
+/dshu-native-target-guard/development-checks:
+  en: b31c576f80493c01
+  zh: 13d9cbbb52cb378b
+/dshu-native-target-guard/license:
+  en: 6d549471264ed3ed
+  zh: 992e9d8d8218f18e

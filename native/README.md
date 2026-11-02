@@ -4,6 +4,8 @@ English | [中文](README.zh.md)
 
 Native source and public packages maintained with DeepSeek Harness. The [`system/` workspace](system/README.md) owns the Landlock launcher and POSIX flock binding, their platform packages, and the [release procedure](system/docs/release.md).
 
+[`target-guard/`](target-guard/README.md) contains the private Windows WFP helper under development. It is separate from the published Node addon and is not enabled or packaged by default.
+
 ## Workspace and release boundary
 
 `system/` and its packages belong to the repository's root pnpm workspace and lockfile. Harness consumers use the current workspace entry package during development and CI, so a launcher contract change and its consumer update can land and be tested together.

@@ -56,6 +56,16 @@ function fixture() {
     identity: { pid: 123, creationTime: 42n } satisfies WindowsProcessIdentity }
 }
 
+it('borrows an active Job without transferring ownership and refuses ended references', () => {
+  const h = fixture(), job = attachObservedWindowsJob(h.identity, h.api)
+  expect(job.borrowHandle()).toBe(20n)
+  expect(h.calls.some(call => call.startsWith('close:'))).toBe(false)
+  h.state.active = 0
+  expect(() => job.borrowHandle()).toThrow(expect.objectContaining({ code: 'already-exited' }))
+  job.close()
+  expect(() => job.borrowHandle()).toThrow(expect.objectContaining({ code: 'already-exited' }))
+})
+
 it('captures the current process creation time without closing a pseudo-handle', () => {
   const h = fixture()
   expect(currentWindowsProcessIdentity(h.api)).toEqual({ pid: process.pid, creationTime: 42n })

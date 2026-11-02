@@ -2,6 +2,7 @@
 import { isAbsolute } from 'node:path'
 import { z } from 'zod'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
+import { nativeIngressOptionsSchema } from './native-ingress.ts'
 
 const path = z.string().min(1).refine(value => !value.includes('\0') && isAbsolute(value))
 const interval = z.number().int().positive().max(MAX_TIMER_DELAY_MS)
@@ -18,6 +19,7 @@ export const nativeBrokerConfigSchema = z.object({
     readonlyPaths: z.array(path), readwritePaths: z.array(path), deniedPaths: z.array(path), enumeratePaths: z.array(path),
   }).strict(),
   proxyUrl: proxy.nullable(),
+  ingress: nativeIngressOptionsSchema.optional(),
   startupTimeoutMs: interval,
   timeoutMs: z.number().int().min(0).max(MAX_TIMER_DELAY_MS),
 }).strict()

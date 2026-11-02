@@ -87,6 +87,42 @@ async function stopNativeRange(job: ObservedWindowsJob | undefined, release: (()
 }
 
 describe.skipIf(!supported)('Windows native target policy with MXC', () => {
+  it.skipIf(process.env.DSH_NATIVE_INGRESS_HELPER === undefined || process.env.DSH_NATIVE_INGRESS_TEST_ELEVATED === '1')(
+    'keeps the real broker bootstrap closed when its mandatory inbound helper cannot install rules', async () => {
+      const helper = process.env.DSH_NATIVE_INGRESS_HELPER
+      if (helper === undefined) throw new Error('Helper path required')
+      const repository = fileURLToPath(new URL('../../../..', import.meta.url)), h = await fixture('', [repository])
+      const marker = join(h.root, 'work', 'must-not-start.txt'), reports: Error[] = []
+      const request: SubprocessSpawnSpec = { argv: [process.execPath, '-e', `require('node:fs').writeFileSync(${JSON.stringify(marker)},'started')`],
+        cwd: join(h.root, 'work'), stdio: { stdin: 'ignore', stdout: { maxBytes: 128 }, stderr: { maxBytes: 128 } }, graceMs: 1000 }
+      const host = createNativeHostExecution(request, async (signal) => {
+        const release = h.ctx.targetProtection.retainNativeExecution(h.files.revision, async () => {
+          host.launch.owner.signal('SIGKILL'); await host.launch.owner.waitForExit()
+        })
+        try {
+          return { carrier: launchNativeBroker(request.graceMs, signal), environment: {},
+            config: { cwd: request.cwd, temporaryRoot: join(h.root, 'temporary'), files: {
+              readonlyPaths: h.files.readonlyPaths, readwritePaths: h.files.readwritePaths,
+              deniedPaths: h.files.deniedPaths, enumeratePaths: h.files.enumeratePaths,
+            }, proxyUrl: null, startupTimeoutMs: 10000, timeoutMs: 20000,
+            ingress: { executable: helper, requestTimeoutMs: 5000, shutdownTimeoutMs: 5000,
+              pollIntervalMs: 10, diagnosticMaxBytes: 4096 } },
+            async release() { release() },
+          }
+        } catch (error) { release(); throw error }
+      }, 16384, (error) => { reports.push(error) })
+      try {
+        await expect(host.launch.direct).rejects.toBeDefined()
+        await host.launch.owner.waitForExit()
+        await expect(host.settled).rejects.toBeDefined()
+        await expect(readFile(marker)).rejects.toMatchObject({ code: 'ENOENT' })
+        expect(reports.some(error => error.message.includes('permission-required'))).toBe(true)
+        expect((await h.ctx.targetProtection.configure({ mainlandEnabled: false, rules: [] }, h.files.revision)).revision)
+          .toBe(h.files.revision + 1)
+      } finally { await host.dispose() }
+    },
+  )
+
   it('closes an SDK-created process when cancellation precedes handle publication', async () => {
     const repository = fileURLToPath(new URL('../../../..', import.meta.url)), h = await fixture('', [repository])
     const marker = join(h.root, 'sdk-created.pid'), diagnostics: Error[] = []
