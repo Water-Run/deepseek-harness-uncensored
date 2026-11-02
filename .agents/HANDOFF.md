@@ -1,5 +1,17 @@
 # Uncensored 开发交接
 
+## Windows 安装验收与下一步（2026-11-02）
+
+`b4e69aafad850c185b8f82ac4ddb0c7107199dbe` 已推送 main，并从干净 detached 验证树完成打包和系统安装。目标仍为完整 DSHU，未暂停或标完成。安装包为 `.dsh-build/deliverables/DSHU-0.1.0-core-0.2.2-alpha.2-REA-6.8.0-win-x64-unsigned-20261102.exe`，388736094 字节，SHA-256 `afc23c094290d8f9daef204a1755f52206901260166e03a32d3d78a3a97426d6`；交付清单 `DSHU-20261102-manifest.json`。构建 run `2026-11-02T05-22-51.607Z-0r80ug` 成功，日志 `rea-package3-20261102.log`。未签名、未上传或发布 GitHub Release。
+
+用户已授权卸载安装，要求优先非 Computer Use、11:55 前不操作桌面。安装前查询发现旧 DSHU 已退出，不需要 GUI 输入。私有备份目录 `C:/Users/linzh/AppData/Local/DSHU-Backups/20261102-134342-b4e69aafad` 已限制为当前用户与 SYSTEM：400 份关键数据共 62.4 MB 校验复制，另保留旧程序 7817 文件约 1.029 GiB。旧卸载器 `/currentuser /S /KEEP_APP_DATA` 返回 0，新安装器同样静默安装至原目录并返回 0。前后及测试后，400 份数据文件、官方版 exe/app.asar 两个文件的 SHA-256 均未改变。未删除会话或工作区文件；未启动真实用户配置以免自动续跑其任务。
+
+系统安装目录的 exe、app.asar、自带 Node 与已通过的包一致；元数据为 DSHU 0.1.0、DSH 0.2.2-alpha.2、REA 6.8.0、Node 24.22.1、干净源码 b4e69aafad。实际安装目录再次通过完整清单、原生依赖、CLI 插件安装/移除、REA 229 工具及 JavaScript、Office 三格式/PDF 检查，日志 `installed-runtime-smoke-20261102.log`。用实际安装资源和独立临时 profile 驱动浏览器，确认点击删除成功、旁问/随问联删、刷新不复活、关于页 commit/REA 正确；没有向真实模型发消息，使用自有回环 401 夹具建立失败会话。证据 `installed-ui-delete4-20261102.log`、`visible-20261102/installed-delete-evidence.json`、`installed-about.png`。早期夹具把空白会话当成有菜单的会话，以及刷新后未处理再次出现的欢迎层，导致验收脚本超时；产品删除请求本身已成功。
+
+审查新增待办：桌面“应用”菜单的 `main.ts:showAbout` 仍走旧原生文本框，没有复用侧栏的新关于页。15.07 已重新标为约 95%，下一节点优先统一入口并补初始化失败时的完整来源信息；不要把只有侧栏完成说成所有关于入口完成。新侧栏关于已按真实模式验证深蓝、深红、深绿、深金和 REA 来源，英文深色/390px 通过。安装器前台/DPI、真实用户配置启动及其余桌面矩阵仍留在 02/17。
+
+Native Broker/Host 草稿仍在主工作区未提交，完整保护仍未默认启用。验证树现为 detached b4e69aafad，只有一个命名 main 分支；其他工作树未改。主工作区隔离 Web 预览的运行句柄是 35724，日志 `rea-web-20261102.log`；此前 90023 已停止。安装版验证的临时 Host、浏览器和回环服务均已停止并清理，未留下调试端口。
+
 ## REA 内置与模式化关于页（2026-11-02，安装包验收前）
 
 代码节点已推送 `751ebe2632`。干净验证树已快进，冻结安装完成，并从主树复制仅本机使用且已忽略的 `.env.windows`。第一次完整打包的准备、真实 Desktop Host REA/Office 检查已通过；ASAR beforePack 遇到 `buffer` 与 Node 内置模块同名，使 `require.resolve.paths(name)` 返回 null。新增负例复现后，改查 `name/package.json` 的 npm 搜索路径；45 项打包/Office/依赖回归通过、3 个原有跳过，实际准备树已成功枚举 176 个 REA 依赖包，包含 buffer 和 Frida。需重跑最终打包，不把失败 run 记成完成。日志 `rea-package2-20261102.log`；run `2026-11-02T05-01-49.514Z-ATE92y` 已终止。现有系统安装仍未改动。
