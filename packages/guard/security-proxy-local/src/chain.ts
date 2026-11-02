@@ -12,12 +12,11 @@
 import { createServer, type IncomingHttpHeaders, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import { addAbortListener, once } from 'node:events'
 import type { Socket } from 'node:net'
-import type { ProxyAgent } from 'undici'
 import { WebError } from '@deepseek-ai/dsh-web'
 import type { PinnedResponse } from '@deepseek-ai/dsh-web-fetch-http'
 import type { ProxyHttpRequest } from './engine.ts'
 import type { CaptureStore, CapturedExchangeInput } from './capture.ts'
-import { describeFailure, type Upstream, type UpstreamTunnel, UpstreamFailure } from './upstream.ts'
+import { describeFailure, type UpstreamTunnel, UpstreamFailure } from './upstream.ts'
 
 /** Request and response bodies larger than this are refused rather than buffered. */
 const MAX_FORWARD_BODY_BYTES = 8 * 1_048_576
@@ -40,22 +39,18 @@ export interface ChainOptions {
   readonly sessionId: string
   /** Tool name shown for every flow this listener handles, read per exchange. */
   tool: () => string
-  /** Current upstream, resolved per request so a settings change applies without a new listener. */
-  upstream: () => Upstream
-  /** Dispatcher for plain HTTP forwards; owned by the engine and never closed here. */
-  dispatcher: () => ProxyAgent
   /** Current engine, upstream and policy cancellation. */
   signal: () => AbortSignal
   /** Hold execution dependencies until forwarding and native cleanup settle. */
   retainExecution: () => () => void
   /** Send one HTTP hop through the owner's selected enforcement adapter. */
   requestHttp: (
-    upstream: Upstream, dispatcher: ProxyAgent, url: URL, request: ProxyHttpRequest, signal: AbortSignal,
+    url: URL, request: ProxyHttpRequest, signal: AbortSignal,
   ) => Promise<PinnedResponse>
   /** Validate or refuse an opaque tunnel before any upstream connection. */
-  openTunnel: (upstream: Upstream, host: string, port: number, signal: AbortSignal) => Promise<UpstreamTunnel>
+  openTunnel: (host: string, port: number, signal: AbortSignal) => Promise<UpstreamTunnel>
   /** Capture store every exchange is appended to. */
-  capture: CaptureStore
+  capture: Pick<CaptureStore, 'append'>
   /** Whether capture is currently paused; forwarding continues regardless. */
   paused: () => boolean
   /** Whole HTTP exchange budget, including request-body arrival. */
@@ -179,7 +174,7 @@ export class SessionChainProxy {
       signal.throwIfAborted()
       body = await readBody(request)
       signal.throwIfAborted()
-      const exchange = await this.options.requestHttp(this.options.upstream(), this.options.dispatcher(), parsed, {
+      const exchange = await this.options.requestHttp(parsed, {
         method: request.method ?? 'GET',
         headers,
         ...body === undefined ? {} : { body: new Uint8Array(body) },
@@ -267,7 +262,7 @@ export class SessionChainProxy {
       const signal = AbortSignal.any([this.lifetime.signal, this.options.signal(), disconnected.signal])
       using _abort = addAbortListener(signal, () => { socket.destroy(); upstreamTunnel?.socket.destroy() })
       signal.throwIfAborted()
-      upstreamTunnel = await this.options.openTunnel(this.options.upstream(), host, port, signal)
+      upstreamTunnel = await this.options.openTunnel(host, port, signal)
       signal.throwIfAborted()
       const remote = upstreamTunnel.socket
       bridged = true

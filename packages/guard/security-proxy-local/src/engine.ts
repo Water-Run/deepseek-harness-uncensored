@@ -568,24 +568,24 @@ export class SecurityProxyEngine {
       existing.tool = tool
       return await existing.proxy
     }
+    const upstream = (): Upstream => {
+      if (this.upstreamNow === undefined) throw new UpstreamFailure('invalid-config', 'the security proxy has no upstream configured')
+      return this.upstreamNow
+    }
+    // proxy-exempt: the session relay shares the engine's independent Security proxy pool.
+    const dispatcher = (): ProxyAgent => {
+      if (this.dispatcher === undefined) throw new UpstreamFailure('invalid-config', 'the security proxy has no dispatcher configured')
+      return this.dispatcher
+    }
     const record: ChainRecord = {
       tool,
       proxy: SessionChainProxy.start({
         sessionId,
         tool: () => record.tool,
-        upstream: () => {
-          if (this.upstreamNow === undefined) throw new UpstreamFailure('invalid-config', 'the security proxy has no upstream configured')
-          return this.upstreamNow
-        },
-        // proxy-exempt: the session relay shares the engine's independent Security proxy pool.
-        dispatcher: () => {
-          if (this.dispatcher === undefined) throw new UpstreamFailure('invalid-config', 'the security proxy has no dispatcher configured')
-          return this.dispatcher
-        },
         signal: () => this.executionSignal(),
         retainExecution: () => this.retainExecution(),
-        requestHttp: (upstream, dispatcher, url, request, signal) => this.requestHttp(upstream, dispatcher, url, request, signal),
-        openTunnel: (upstream, host, port, signal) => this.openTunnel(upstream, host, port, signal),
+        requestHttp: (url, request, signal) => this.requestHttp(upstream(), dispatcher(), url, request, signal),
+        openTunnel: (host, port, signal) => this.openTunnel(upstream(), host, port, signal),
         capture: this.options.capture,
         paused: () => this.options.store.value.capturePaused,
         timeoutMs: this.options.requestTimeoutMs,

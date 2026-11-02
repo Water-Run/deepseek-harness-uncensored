@@ -1,5 +1,17 @@
 # Uncensored 开发交接
 
+## 原生命令出站网关（2026-11-02）
+
+基点 `50e667f485`，目标保持 active。新增 `native-gateway.ts`，持有一个已核准的原生执行修订，复用 `SessionChainProxy` 回环监听/流量记录/关闭等待；后者改为由 HTTP/CONNECT 回调选择路由，不再强制持有独立上游。`requestPinned` 新增可选方法/正文参数并导出，匿名 fetch 仍为公网 GET。原生 HTTP 保留方法与正文、验证 Host、固定已核准地址；私网需精确测试服务器标记，生产优先。CONNECT 对名称和字面地址分别验证；域名/正则/数据库身份歧义仍拒绝。代理上游失败不回退直连。
+
+宿主环境移入 `NativeHostStart.environment`，在网关分配后确定，不传给可信 Broker。网关用 `retainNativeExecution` 保留规则并调用宿主停止回调；原生范围和套接字关闭后才释放修订。真实 Windows 及无源码钩子的编译链均证明测试请求 200、生产 403 且零连接、直接绕过网关返回 EACCES；结束后规则才能提交。证据 `native-gateway-built-20261102.mjs/.log`、`native-gateway-runtime4-20261102.log`。
+
+首轮原生启动失败揭示 MXC 的 `runtimeConfig.networkProxy` 要求 ingress default=allow；原探针已用该配置，Broker 原实现错误设为 deny。修正后出站验证通过，但 MXC 文档明确不保证完整入站隔离，已列入剩余范围。Broker 现在先把错误原因写入独立有界诊断流，再发布失败帧，避免宿主立即停止进程后只剩泛化错误。未降低目标校验或开启普通进程回退。
+
+验证：Windows 相邻 7 文件/130 项、Linux 6 文件/129 项通过；宿主、Broker、网关三模块覆盖率均 100%。原宿主 SDK 部分启动取消和完整执行两项继续通过。完整 build 10/10，后续 build:check 2/2，392 个 NodeNext API、定向 lint、JSDoc、三组文档配对和 README 检查通过；三包 publint 无错误，web-fetch-http 保留原有 src 通配导出警告。早期测试误用 TargetStore.save、错误假设取消必然断开 HTTP（实际可返回 502），以及未调用 Socket 原生 _destroy 导致夹具不发 close，均已修正；不得把这些夹具失败当成产品失败。Linux 同步脚本 `native-gateway-linux-20261102.sh`。
+
+仍未注册为正式 Subprocess/PTY，未完成任意 TLS/协议身份、严格入站隔离、网络 SQL/远端身份及 P3 联动；清单未将完整代理或目标保护勾选。安装版仍是 `0e3e8d4261`，没有重新打包或触碰用户桌面。本节点不改变用户现有完整保护不可用的状态。下一步应实现受支持的原生命令服务装配并继续协议/入站边界，不能将已有普通网安代理开关等同于这条执行网关。
+
 ## 最新安装与宿主执行节点（2026-11-02）
 
 系统已更新到干净源码 `0e3e8d426183f5e8ee972cc11a329901d979a7cc`：DSHU 0.1.0、DSH 0.2.2-alpha.2、REA 6.8.0。包 `.dsh-build/deliverables/DSHU-0.1.0-core-0.2.2-alpha.2-REA-6.8.0-win-x64-unsigned-20261102-0e3e8d.exe`，388739777 字节，SHA-256 `36b934fc95b3cebc03143d4ad22cb40dcaa03c2892841704a2099e9a437e8ee1`。run `2026-11-02T08-29-22.851Z-Bf2wNd` 完成打包、REA/Office/原生依赖检查。安装前应用已退出，静默更新返回 0；400 份数据和官方版两个关键程序文件的哈希仍相同。备份沿用下文的私有目录，旧检查包保留。未签名、未发布 Release。

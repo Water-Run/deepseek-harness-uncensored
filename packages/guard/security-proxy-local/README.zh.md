@@ -63,6 +63,8 @@ kind: "package-reference"
 
 `mountSecurityProxy` 接收明确的引擎工厂；引擎的 HTTP、不透明隧道及连接探测方法是执行校验入口。普通提供方不应用目标规则；`dsh-target-protection/security-proxy` 提供具有必需依赖的受控实现，并拒绝无法验证的不透明隧道。
 
+导出的 `SessionChainProxy` 拥有回环监听、转发、捕获和套接字回收。`ChainOptions` 的传输回调自行选择并校验路由；监听器不创建 dispatcher，也不假定存在上游。网安引擎提供独立上游，原生目标保护可提供逐次执行的固定地址路由；两者均将资源保留到转发与关闭完成。
+
 提醒在“代理关闭且用户开启提醒”时，对每个对话最多触发一次；对话销毁时清除该记录。
 
 </details>

@@ -92,13 +92,13 @@ describe.skipIf(!supported)('Windows native target policy with MXC', () => {
     const marker = join(h.root, 'sdk-created.pid'), diagnostics: Error[] = []
     const request: SubprocessSpawnSpec = { argv: [process.execPath, '-e', 'throw Error("must not execute")'], cwd: join(h.root, 'work'),
       stdio: { stdin: 'ignore', stdout: { maxBytes: 128 }, stderr: { maxBytes: 128 } }, graceMs: 1000 }
-    const host = createNativeHostExecution(request, {}, async (signal) => {
+    const host = createNativeHostExecution(request, async (signal) => {
       signal.throwIfAborted()
       const release = h.ctx.targetProtection.retainNativeExecution(h.files.revision, async () => {
         host.launch.owner.signal('SIGKILL'); await host.launch.owner.waitForExit()
       })
       try {
-        return { carrier: launchWindowsJob({
+        return { environment: {}, carrier: launchWindowsJob({
           argv: [process.execPath, '--import', import.meta.resolve('tsx/esm'),
             fileURLToPath(new URL('./fixtures/native-broker-publish-gap.ts', import.meta.url))],
           cwd: repository, stdio: { stdin: 'pipe', stdout: 'pipe', stderr: 'pipe' }, graceMs: 1000,
@@ -158,23 +158,23 @@ fs.writeFileSync(root+'/work/host-output.txt','allowed');process.stdout.write(Bu
       cwd: join(h.root, 'work'), stdio: { stdin: 'ignore', stdout: { maxBytes: 64, spill: { maxBytes: 65536 } }, stderr: { maxBytes: 256 } }, graceMs: 1000,
     }
     const reports: Error[] = []
-    const host = createNativeHostExecution(request,
-      Object.fromEntries(Object.entries(h.request.environment ?? {}).filter((entry): entry is [string, string] => entry[1] !== undefined)),
-      async (signal) => {
-        const release = h.ctx.targetProtection.retainNativeExecution(h.files.revision, async () => {
-          host.launch.owner.signal('SIGKILL')
-          await host.launch.owner.waitForExit()
-        })
-        try {
-          return { carrier: launchNativeBroker(request.graceMs, signal),
-            config: { cwd: request.cwd, temporaryRoot: join(h.root, 'temporary'),
-              files: { readonlyPaths: h.files.readonlyPaths, readwritePaths: h.files.readwritePaths,
-                deniedPaths: h.files.deniedPaths, enumeratePaths: h.files.enumeratePaths },
-              proxyUrl: null, startupTimeoutMs: 10_000, timeoutMs: 20_000 },
-            async release() { release() },
-          }
-        } catch (error) { release(); throw error }
-      }, 4096, (error) => { reports.push(error) })
+    const host = createNativeHostExecution(request, async (signal) => {
+      const release = h.ctx.targetProtection.retainNativeExecution(h.files.revision, async () => {
+        host.launch.owner.signal('SIGKILL')
+        await host.launch.owner.waitForExit()
+      })
+      try {
+        return { carrier: launchNativeBroker(request.graceMs, signal),
+          environment: Object.fromEntries(Object.entries(h.request.environment ?? {})
+            .filter((entry): entry is [string, string] => entry[1] !== undefined)),
+          config: { cwd: request.cwd, temporaryRoot: join(h.root, 'temporary'),
+            files: { readonlyPaths: h.files.readonlyPaths, readwritePaths: h.files.readwritePaths,
+              deniedPaths: h.files.deniedPaths, enumeratePaths: h.files.enumeratePaths },
+            proxyUrl: null, startupTimeoutMs: 10_000, timeoutMs: 20_000 },
+          async release() { release() },
+        }
+      } catch (error) { release(); throw error }
+    }, 4096, (error) => { reports.push(error) })
     const handle = bindManagedProcess(request, host.launch, { spillDir: spill, onSpillFailure: (error) => { throw error } })
     try {
       expect(await handle.done).toEqual({ exitCode: 23, signal: null })

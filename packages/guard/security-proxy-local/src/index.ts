@@ -28,6 +28,8 @@ export type { PasswordVault, EngineOptions, ProxyHttpRequest } from './engine.ts
 export { proxyUrl, connectThrough } from './upstream.ts'
 export type { Upstream, UpstreamTunnel } from './upstream.ts'
 export type { ProxyAgent as ProxyDispatcher } from 'undici'
+export { SessionChainProxy } from './chain.ts'
+export type { ChainOptions } from './chain.ts'
 
 /** Deployment-owned file path plus the transport limits the proxy enforces. */
 export interface Config {

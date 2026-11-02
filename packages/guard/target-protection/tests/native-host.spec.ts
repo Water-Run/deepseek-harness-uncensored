@@ -32,8 +32,8 @@ function fixture(request: SubprocessSpawnSpec = spec()) {
   const config: NativeBrokerConfig = { cwd: process.cwd(), temporaryRoot: tmpdir(),
     files: { readonlyPaths: [], readwritePaths: [], deniedPaths: [], enumeratePaths: [] },
     proxyUrl: null, startupTimeoutMs: 1000, timeoutMs: 0 }
-  const prepare = vi.fn(async () => ({ carrier, config, release: released }))
-  const host = createNativeHostExecution(request, { TARGET: 'explicit' }, prepare, 256, report)
+  const prepare = vi.fn(async () => ({ carrier, config, environment: { TARGET: 'explicit' }, release: released }))
+  const host = createNativeHostExecution(request, prepare, 256, report)
   const incoming = readNativeFrames(input)
   onTestFinished(async () => { close(1); await Promise.allSettled([host.dispose(), incoming.return(undefined)]) })
   return { host, input, output, diagnostics, carrier, prepare, released, report, incoming, close, brokerDirect: direct,
@@ -88,7 +88,7 @@ it('reuses bounded collection and spill without forwarding the trusted broker en
 
 it('cancels before preparation and settles queued input writes', async () => {
   const prepare = vi.fn(async () => { throw new Error('must not prepare') })
-  const host = createNativeHostExecution({ ...spec(), stdio: { stdin: 'pipe', stdout: 'pipe', stderr: 'pipe' } }, {}, prepare, 32, vi.fn())
+  const host = createNativeHostExecution({ ...spec(), stdio: { stdin: 'pipe', stdout: 'pipe', stderr: 'pipe' } }, prepare, 32, vi.fn())
   const cancellation = new Error('owner cancelled')
   const write = new Promise((resolve) => { host.launch.stdin?.write('pending', (error) => { resolve(error) }) })
   host.launch.owner.signal('SIGTERM', cancellation)

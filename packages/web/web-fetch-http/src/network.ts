@@ -201,9 +201,10 @@ function embeddedIpv4Address(bytes: readonly number[], prefixLength: Nat64Prefix
  * only the URLs this tool fetches are the model's to choose.
  *
  * @param url - validated HTTP(S) URL the policy does not route through a proxy.
- * @param addresses - public addresses returned by {@link resolvePublicAddresses}.
+ * @param addresses - Addresses validated by the caller's policy; anonymous fetch uses {@link resolvePublicAddresses}.
  * @param headers - request headers.
  * @param signal - request and body-read cancellation signal.
+ * @param request - Structured method and optional bytes; defaults to an anonymous GET.
  * @returns a response plus the disposer its consumer must call.
  */
 export async function requestPinned(
@@ -211,6 +212,7 @@ export async function requestPinned(
   addresses: readonly PublicAddress[],
   headers: Record<string, string>,
   signal: AbortSignal,
+  request: { readonly method: string; readonly body?: Uint8Array<ArrayBuffer> } = { method: 'GET' },
 ): Promise<PinnedResponse> {
   // Keep the Node-only transport out of browser-worker startup. The preview can load the provider
   // and fail loud at its DNS stub without evaluating Undici; a real request resolves it here.
@@ -221,7 +223,7 @@ export async function requestPinned(
   const dispatcher = new Agent({ autoSelectFamily: true, connect: { lookup: createPinnedLookup(addresses) } })
   try {
     // proxy-exempt: the agent above, whose lifetime is this one request.
-    const response = await fetch(url, { method: 'GET', redirect: 'manual', headers, signal, dispatcher })
+    const response = await fetch(url, { ...request, redirect: 'manual', headers, signal, dispatcher })
     return { response, close: async () => { await dispatcher.close() } }
   } catch (error: unknown) {
     await dispatcher.close()

@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { extname } from 'node:path'
 import type { Readable, Writable } from 'node:stream'
 import { fileURLToPath } from 'node:url'
+import { inspect } from 'node:util'
 import type { ContainerRequest, ProbeFacts } from '@microsoft/mxc-sdk/v1'
 import { buildCommandLine, observedWindowsBootstrapPath } from '@deepseek-ai/dsh-win32-process'
 import { readNativeBootstrapIdentity } from './native-bootstrap.ts'
@@ -55,7 +56,9 @@ export function nativeContainerRequest(
     filesystem: { readonlyPaths: config.files.readonlyPaths, readwritePaths: config.files.readwritePaths,
       deniedPaths: config.files.deniedPaths },
     network: {
-      egress: { default: 'deny' }, ingress: { default: 'deny', hostLoopback: config.proxyUrl === null ? 'deny' : 'allow' },
+      egress: { default: 'deny' },
+      // MXC's identityless proxy requires ingress admission; this does not establish inbound peer isolation.
+      ingress: { default: config.proxyUrl === null ? 'deny' : 'allow', hostLoopback: config.proxyUrl === null ? 'deny' : 'allow' },
       ...config.proxyUrl === null ? {} : { runtimeConfig: { networkProxy: config.proxyUrl } },
     },
     ui: { disable: false, clipboard: 'none', allowInputInjection: false }, timeoutMs: config.timeoutMs,
@@ -158,6 +161,7 @@ export async function runNativeBroker(
   } catch (error) {
     fail(error)
     try {
+      await writeNativeBytes(diagnostics, Buffer.from(`${inspect(error, { depth: 3 })}\n`))
       if (!state.failureReported) await writeNativeFrame(output, { tag: NATIVE_FRAME.failed, data: Buffer.from('{"code":"NATIVE_BROKER_FAILED"}') })
     }
     catch (reportError) { throw new AggregateError([failure, reportError], 'Native broker and error reporting failed') }

@@ -109,7 +109,7 @@ it.each(['https://127.0.0.1:1234', 'http://example.com:1234', 'http://127.0.0.1:
 it('constructs proxy-only routing for the protected loopback gateway', () => {
   const value = nativeBrokerConfigSchema.parse({ ...config(), proxyUrl: 'http://127.0.0.1:1234' })
   expect(nativeContainerRequest(value, 'nonce', {}).network).toEqual({
-    egress: { default: 'deny' }, ingress: { default: 'deny', hostLoopback: 'allow' }, runtimeConfig: { networkProxy: value.proxyUrl },
+    egress: { default: 'deny' }, ingress: { default: 'allow', hostLoopback: 'allow' }, runtimeConfig: { networkProxy: value.proxyUrl },
   })
 })
 

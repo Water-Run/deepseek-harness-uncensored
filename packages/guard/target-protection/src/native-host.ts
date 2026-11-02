@@ -11,6 +11,8 @@ import { NATIVE_FRAME, NATIVE_FRAME_MAX_BYTES, NativeProtocolError, readNativeFr
 export interface NativeHostStart {
   carrier: ManagedProcessLaunch
   config: NativeBrokerConfig
+  /** Complete target environment, resolved after private gateway allocation; never used for broker startup. */
+  environment: Record<string, string>
   /** Release rules, proxy and private resources only after the outer range is confirmed empty. */
   release(): Promise<void>
 }
@@ -30,14 +32,13 @@ const failureSchema = z.object({ code: z.string().min(1).max(80) }).strict()
 /**
  * Allocate immediate subprocess streams while policy preparation and strict broker startup run asynchronously.
  * @param spec - Validated caller command, I/O dispositions and cancellation timing.
- * @param environment - Complete scrubbed target environment; never used to start the trusted broker.
  * @param prepare - Own configuration and create the strict broker range; rejection must leave no live execution.
  * @param diagnosticMaxBytes - Retained broker-diagnostic byte budget supplied by the mounting configuration.
  * @param report - Owner's visible failure reporter; receives protocol and post-exit transport failures.
  * @returns A managed launch plus independently retained transport cleanup.
  */
 export function createNativeHostExecution(
-  spec: SubprocessSpawnSpec, environment: Record<string, string>,
+  spec: SubprocessSpawnSpec,
   prepare: (signal: AbortSignal) => Promise<NativeHostStart>, diagnosticMaxBytes: number, report: (error: Error) => void,
 ): NativeHostExecution {
   validateSubprocessSpec(spec)
@@ -197,7 +198,7 @@ export function createNativeHostExecution(
         if (carrier.stdin === null) throw new NativeProtocolError('Native broker has no request pipe.')
         await writeNativeFrame(carrier.stdin, { tag: NATIVE_FRAME.configure, data: Buffer.from(JSON.stringify(start.config)) })
         await writeNativeFrame(carrier.stdin, { tag: NATIVE_FRAME.launch, data: Buffer.from(JSON.stringify({
-          argv: spec.argv, cwd: spec.cwd, env: environment, stdin: stdin === null ? 'ignore' : 'pipe',
+          argv: spec.argv, cwd: spec.cwd, env: start.environment, stdin: stdin === null ? 'ignore' : 'pipe',
           control: control !== undefined, graceMs: spec.graceMs,
         })) })
         ready.resolve(carrier.stdin)

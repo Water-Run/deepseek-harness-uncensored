@@ -63,6 +63,8 @@ Settings, password and capture-preference writes are serialized. Changing the up
 
 `mountSecurityProxy` accepts an explicit engine factory. The engine's HTTP, opaque-tunnel and connection-probe methods provide execution points for an enforcing implementation. The ordinary provider does not apply target rules; `dsh-target-protection/security-proxy` supplies the mandatory guarded implementation and refuses opaque tunnels it cannot verify.
 
+The exported `SessionChainProxy` owns loopback listening, forwarding, capture and socket cleanup. Its `ChainOptions` transport callbacks select and authorize their own route; the listener neither creates a dispatcher nor assumes an upstream. The Security engine supplies its private upstream, while native target protection can supply a per-execution pinned route. Both owners retain their resources through forwarding and closure.
+
 The reminder fires at most once per conversation, when a covered tool call finds the proxy off and the owner enabled the reminder; the set clears when the conversation is disposed.
 
 </details>
