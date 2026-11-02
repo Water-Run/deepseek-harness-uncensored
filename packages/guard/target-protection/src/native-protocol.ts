@@ -5,6 +5,7 @@ import type { Writable } from 'node:stream'
 export const NATIVE_FRAME = {
   launch: 1, stdin: 2, stdinEnd: 3, control: 4, controlEnd: 5, terminate: 6, configure: 7,
   stdout: 16, stderr: 17, controlOutput: 18, accepted: 19, exited: 20, failed: 21, streamClosed: 22, rangeExited: 23,
+  terminalRequest: 32, terminalReply: 33, terminalOutput: 34, terminalExit: 35,
 } as const
 
 /** Maximum payload in one protocol frame, including JSON or encoded control data. */

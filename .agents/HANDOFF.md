@@ -1,5 +1,19 @@
 # Uncensored 开发交接
 
+## 受保护 ConPTY 接入（2026-11-03）
+
+基点 `42a4e1631e`，Goal active。`subprocess-native.spawnTerminal` 已从明确拒绝改为受保护 ConPTY 实现；复用既有 LocalTerminalHandle/ProcessInspector 的控制台行为，辅助程序本身仍经严格原生命令范围启动。模型参数和环境在固定辅助程序启动后经 fd 7 传入，辅助程序的 cwd/预加载环境不受目标覆盖；目标输出使用独立帧，不能成为控制回复。输入分块保留代理对，操作有确认、序号及超时界限，不自动重放未知结果。
+
+终端分配成功后解除父取消信号关联；退出、显式关闭、传输失败和操作超时均通过外层原生 Job 结束整个会话。终端根进程的退出码与整个范围的关闭分开处理；正常退出保留交付的 UTF-8 尾部，显式关闭可丢弃暂停读取的数据。只有独立范围关闭后才发布空闲并释放保护。新增 terminalStartupTimeoutMs=30000、terminalRequestTimeoutMs=5000、maxTerminalRequests=64；Windows 前台仍采用控制台伪进程组语义，不伪造提示符或输入等待证据。
+
+实际 Windows 已验证：TTY 标志、生产写入拒绝、100×30 尺寸通知、输入、Ctrl-C、自然退出/中文 emoji 尾部、暂停输出关闭、启动失败后再启动，以及分离后代在关闭后由预先持有的内核句柄确认退出。命令和终端均验证测试 HTTP 200、生产 403/零连接、原始 TCP 直连 EACCES。源码完整节点 109 项通过，新增网络两项子集另通过；Linux 98 项可移植逻辑通过，Host/Worker/协议/提供方四模块覆盖率均 100%。Linux 不表示实现了原生终端后端。
+
+编译产物公开入口实际通过：`.dsh-build/native-terminal-built-20261103.mjs/.log` 包含 resize、UTF-8 尾部、退出码 7、原生范围关闭，原有 PowerShell/文件保护和目录清理检查也通过。完整 build 10/10、后续 build:check 2/2、392 个 NodeNext API、JSDoc、定向 lint 和文档配对通过。关键日志 `native-terminal-tests-final-20261103.log`、`native-terminal-linux-final-20261103.log`、`native-terminal-runtime3-20261103.log`、`native-terminal-descendant-20261103.log`、`native-terminal-startup-failure-20261103.log`、`native-terminal-network-20261103.log`。薄入口与 OS 分配胶水由真实子进程测试覆盖，没有关闭公共覆盖率门槛。
+
+探针记录保留：首次内部 ConPTY 探针没有父级截止时间，确认其独立进程仍存活后仅终止该测试树；后续探针均加截止时间。外部模块 require 最初受工作区缺少 package.json 的父目录搜索影响，修正了自有 Node 项目夹具；产品辅助程序使用只读运行时目录。尺寸误判来自 Node getWindowSize 返回缓存值，改用真实交互读取及 resize 事件后通过，未修改 node-pty 或 MXC。MXC 的 PTY 接口候选出现输入/关闭问题，因此采用已实测的容器内 ConPTY。覆盖率曾出现单行 for/if 的负分支计数，展开语句后通过，未改统计器。
+
+系统仍安装 `0e3e8d4261` 检查版，本节点没有打包安装或操作桌面。剩余仍为默认 profile/工具/Session 回放、界面消费者整合、任意 TLS/协议身份、严格入站隔离、网络数据库与远端身份、P3 审计及设置/代理联动。恢复入口是 native-terminal-host/worker/protocol、subprocess-native 和对应测试；不要将可选终端完成等同于完整目标保护或默认产品接入完成。
+
 ## 可装配原生命令提供方（2026-11-02）
 
 基点 `5914dae8f8`，Goal active，原始范围全部保留。新增公开子入口 `target-protection/subprocess-native`，显式配置只读/可写授权、独立私有根与 network disabled/gateway；必需 targetProtection、credentials。Windows Node 24 与 BaseContainer 路径之外不回退普通进程；PTY 明确不可用。该服务已能承接现有 PowerShell 执行器，但没有进入默认应用 profile。

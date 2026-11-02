@@ -18,9 +18,11 @@ import { nativeBrokerConfigSchema } from '../src/native-broker-config.ts'
 import { readNativeFrames, writeNativeFrame, NATIVE_FRAME } from '../src/native-protocol.ts'
 import type { NativeHostExecution } from '../src/native-host.ts'
 import { launchNativeBroker } from '../src/native-launch.ts'
+import { createNativeTerminal } from '../src/native-terminal-host.ts'
 
 vi.mock('../src/native-runtime.ts', () => ({ requireNativeRuntime: vi.fn() }))
 vi.mock('../src/native-launch.ts', () => ({ launchNativeBroker: vi.fn() }))
+vi.mock('../src/native-terminal-host.ts', () => ({ createNativeTerminal: vi.fn() }))
 vi.mock('node:fs/promises', async (original) => {
   const actual = await original<typeof import('node:fs/promises')>()
   return { ...actual, rm: vi.fn(actual.rm), mkdtemp: vi.fn(actual.mkdtemp) }
@@ -42,6 +44,7 @@ vi.mock('../src/native-host.ts', async (original) => {
 beforeEach(() => {
   captured.executions = []; vi.mocked(launchNativeBroker).mockReset()
   vi.mocked(bindManagedProcess).mockReset(); vi.mocked(rm).mockReset(); vi.mocked(mkdtemp).mockReset()
+  vi.mocked(createNativeTerminal).mockReset()
   vi.stubEnv('DSH_NATIVE_PROXY', undefined)
 })
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs() })
@@ -242,10 +245,16 @@ it('rejects a file supplied as a write directory before service activation', asy
   expect(await readFile(file, 'utf8')).toBe('preserve')
 })
 
-it('refuses terminal allocation without delegating to ordinary native code', async () => {
+it('allocates terminals through the protected helper spawn path', async () => {
   const h = await fixture()
+  vi.mocked(createNativeTerminal).mockImplementationOnce(async (_spec, spawn) => {
+    const handle = spawn(h.spec())
+    handle.terminate(); await handle.done.catch(() => undefined); await handle.waitForExit()
+    throw new Error('owned terminal fixture')
+  })
   await expect(h.ctx.subprocess.spawnTerminal({ argv: [process.execPath], cwd: h.work,
-    rows: 24, cols: 80, graceMs: 100, terminalType: 'xterm' })).rejects.toMatchObject({ code: 'TARGET_NATIVE_PTY_UNAVAILABLE' })
+    rows: 24, cols: 80, graceMs: 100, terminalType: 'xterm' })).rejects.toThrow('owned terminal fixture')
+  expect(createNativeTerminal).toHaveBeenCalledOnce()
   expect(h.brokers).toEqual([])
 })
 

@@ -12886,6 +12886,9 @@ importers:
       mmdb-lib:
         specifier: 3.0.3
         version: 3.0.3
+      node-pty:
+        specifier: 1.1.0
+        version: 1.1.0
       pg:
         specifier: 8.23.1
         version: 8.23.1

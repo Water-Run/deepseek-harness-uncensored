@@ -52,6 +52,8 @@ The `./managed` library shares `launchWindowsJob`, `bindManagedProcess`, `valida
 
 Executable lookup invokes the protected `authorizeExecutable(candidate, signal)` method before reading each candidate's metadata. The local provider admits candidates directly; enforcing subclasses can reject them. Cancellation after an asynchronous authorization prevents the metadata read, and a policy denial is not treated as a PATH miss.
 
+`./managed` also exports `LocalTerminalHandle` and `createProcessInspector` for contained terminal adapters. They supply the existing console transport and inspection behavior; the enclosing adapter must still own and independently join its complete native range.
+
 ### Control transport
 
 An ordinary spawn can request the [subprocess control pipe](../subprocess/README.md#using-a-control-pipe). A Node target receives fd 7 on every supported host; Windows descriptor numbering requires CRT initialization. POSIX runners preserve that descriptor across `execve`; Windows Job and ACL runners establish it in the child's CRT startup table before Node initializes and close their own carrier copies after spawning. Standard streams and the runner's private management channel remain independent.

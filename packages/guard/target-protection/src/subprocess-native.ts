@@ -20,6 +20,7 @@ import { launchNativeBroker } from './native-launch.ts'
 import { startNativeGateway, type NativeGateway } from './native-gateway.ts'
 import { requireNativeRuntime } from './native-runtime.ts'
 import { TARGET_REFUSAL_REASONS } from './network-decision.ts'
+import { createNativeTerminal } from './native-terminal-host.ts'
 
 /** Explicit deployment grants and bounded preparation for the native command service. */
 export interface NativeSubprocessConfig {
@@ -40,6 +41,9 @@ export interface NativeSubprocessConfig {
   diagnosticMaxBytes?: number
   cleanupRetries?: number
   cleanupRetryMs?: number
+  terminalStartupTimeoutMs?: number
+  terminalRequestTimeoutMs?: number
+  maxTerminalRequests?: number
 }
 
 type Config = Required<Omit<NativeSubprocessConfig, 'proxy'>> & Pick<NativeSubprocessConfig, 'proxy'>
@@ -62,6 +66,8 @@ export default class NativeTargetSubprocess extends LocalSubprocessRuntime {
     connectTimeoutMs: milliseconds().default(8000), requestTimeoutMs: milliseconds().default(60000),
     diagnosticMaxBytes: schema.natural().min(1).max(1048576).default(16384),
     cleanupRetries: schema.natural().max(100).default(4), cleanupRetryMs: schema.natural().max(30000).default(100),
+    terminalStartupTimeoutMs: milliseconds().default(30000), terminalRequestTimeoutMs: milliseconds().default(5000),
+    maxTerminalRequests: schema.natural().min(1).max(1024).default(64),
   })
   private readonly nativeConfig: Config
   private readonly protection: TargetProtection
@@ -242,9 +248,13 @@ export default class NativeTargetSubprocess extends LocalSubprocessRuntime {
     } catch (error) { void execution.dispose().catch((failure: unknown) => { this.ctx.logger.error(failure) }); throw error }
   }
 
-  // oxlint-disable-next-line typescript/require-await -- Terminal allocation failures use the asynchronous provider contract.
   override async spawnTerminal(spec: SubprocessTerminalSpawnSpec): Promise<SubprocessTerminalHandle> {
+    this.assertActive()
     spec.signal?.throwIfAborted()
-    throw new HarnessError('A protected native terminal provider is not available yet.', 'TARGET_NATIVE_PTY_UNAVAILABLE')
+    return createNativeTerminal(spec, request => this.spawn(request), {
+      startupTimeoutMs: this.nativeConfig.terminalStartupTimeoutMs,
+      requestTimeoutMs: this.nativeConfig.terminalRequestTimeoutMs,
+      maxRequests: this.nativeConfig.maxTerminalRequests, diagnosticMaxBytes: this.nativeConfig.diagnosticMaxBytes,
+    })
   }
 }

@@ -102,6 +102,7 @@
     "lib/types/**/*.d.ts"
   ],
   "dependencies": {
+    "node-pty": "1.1.0",
     "@deepseek-ai/dsh-brand": "workspace:*",
     "@deepseek-ai/schemastery": "workspace:~",
     "ipaddr.js": "2.5.0",

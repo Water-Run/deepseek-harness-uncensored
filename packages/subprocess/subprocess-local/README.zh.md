@@ -52,6 +52,8 @@ Windows 普通子进程通过 `windowsHide` 启动私有 Job runner，并为原�
 
 查找可执行文件时，在读取每个候选的元数据前调用受保护方法 `authorizeExecutable(candidate, signal)`。普通本地提供方直接准入，受控子类可拒绝；异步授权后的取消会阻止元数据读取，策略拒绝不会被当作 PATH 未命中。
 
+`./managed` 还向受限终端适配器导出 `LocalTerminalHandle` 与 `createProcessInspector`，复用现有控制台传输及检查行为；外层适配器仍须拥有并独立等待完整原生范围关闭。
+
 ### 控制传输
 
 普通 spawn 可以请求 [subprocess 控制管道](../subprocess/README.zh.md#using-a-control-pipe)。Node 目标在所有受支持的宿主上均收到 fd 7；Windows 描述符编号依赖 CRT 初始化。POSIX runner 在 `execve` 时保留该描述符；Windows Job 和 ACL runner 在 Node 初始化前通过子进程的 CRT 启动表建立它，并在 spawn 后关闭自身的承载副本。标准流与 runner 的私有管理通道保持独立。
