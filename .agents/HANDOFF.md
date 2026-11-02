@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## 关于入口统一与本地品牌（2026-11-02，待安装更新）
+
+基点 `a75da14e16`，Goal 继续 active。按当前模式的深蓝/深红/深绿/深金配色保留；侧栏与桌面“应用”菜单共用根级关于窗口。可信主文档通过仅含订阅/可见性的 preload 桥注册入口；导航、渲染失败和插件卸载撤销注册。关闭立即释放交互，保留退出动画，并取消该窗口的更新请求。原生 Platform 页面在关于窗口打开期间隐藏，关闭后恢复同一文档；启动或恢复阶段保留来源完整的外壳文本窗口。`ui-brand-official` 按 DSHU fork 版本保留本地构建品牌，不改 local 渠道及签名标记。
+
+实际 Electron 使用临时独立 profile、回环模型夹具和隐藏窗口，验证原生菜单→IPC→共享关于页、侧栏入口、单实例、Escape 关闭及 local 构建标识。未操作用户桌面或会话；测试代理选择菜单内实际 About 回调，不打开系统 popup。证据 `.dsh-build/about-native-evidence-20261102.json`、`about-native-20261102.log`。早期脚本错误使用 button 而非 menuitem；隐藏窗口导致 Playwright 稳定性等待和截图超时，后改为派发控件 click 事件验证功能，不把该测试当作原生截图验收。视觉证据沿用此前真实 Web 四模式/中英/窄屏截图。
+
+验证：9 文件 281 项通过；关于页更新请求取消与双语 3 项通过；修改异步夹具后其与原生 Platform 共 42 项通过。local 产物构建完成，最新 build:check 2/2 通过；JSDoc、定向 lint、客户端文案、README 与三组文档配对完成。系统仍安装干净 `b4e69aafad` 检查版；此节点待从干净验证树打包后更新，01.08 保留 95%。Native Broker/Host 未提交草稿保持原样，不包含在本节点中；P2/P3、默认保护装配及交付矩阵仍未完成。
+
 ## Windows 安装验收与下一步（2026-11-02）
 
 `b4e69aafad850c185b8f82ac4ddb0c7107199dbe` 已推送 main，并从干净 detached 验证树完成打包和系统安装。目标仍为完整 DSHU，未暂停或标完成。安装包为 `.dsh-build/deliverables/DSHU-0.1.0-core-0.2.2-alpha.2-REA-6.8.0-win-x64-unsigned-20261102.exe`，388736094 字节，SHA-256 `afc23c094290d8f9daef204a1755f52206901260166e03a32d3d78a3a97426d6`；交付清单 `DSHU-20261102-manifest.json`。构建 run `2026-11-02T05-22-51.607Z-0r80ug` 成功，日志 `rea-package3-20261102.log`。未签名、未上传或发布 GitHub Release。

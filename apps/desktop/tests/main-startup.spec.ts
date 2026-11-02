@@ -62,6 +62,7 @@ const harness = await vi.hoisted(async () => {
   // The native Platform view owns persistent browser storage; Desktop startup tests replace it so
   // each quit can control when that cleanup settles.
   const platformDispose = vi.fn(() => platformDisposeDeferred?.promise ?? Promise.resolve())
+  const platformOverlay = vi.fn()
   let platformCloseDeferred: ReturnType<typeof deferred> | undefined
   const platformCloseAndWait = vi.fn(() => platformCloseDeferred?.promise ?? Promise.resolve())
   const readLoginShell = async (base: NodeJS.ProcessEnv) => ({
@@ -214,7 +215,7 @@ const harness = await vi.hoisted(async () => {
   const shellDialog = { isOpen: false, focus: vi.fn() }
   return {
     failWindow(error: Error) { windowFailure = error },
-    windows, views, hosts, handlers, app, FakeWindow, FakeView, FakeHost, powerMonitor, nativeTheme, analytics,
+    windows, views, hosts, handlers, app, FakeWindow, FakeView, FakeHost, powerMonitor, nativeTheme, analytics, platformOverlay,
     trays, FakeTray, backgroundNotice, shellDialog,
     menu, popup, socketHeaders: vi.fn(), loginShell, readLoginShell, updateCheck, updateDownload, updateInstall,
     platformDispose,
@@ -384,6 +385,7 @@ vi.mock('../src/platform-view.ts', async importOriginal => ({
     setSession() {}
     setBounds() {}
     close() {}
+    setProductOverlay = harness.platformOverlay
     closeAndWait(): Promise<void> { return harness.platformCloseAndWait() }
     dispose(): Promise<void> { return harness.platformDispose() }
   },
@@ -560,6 +562,40 @@ describe('desktop main startup', () => {
       { role: 'toggleDevTools', visible: false, accelerator: 'F12' },
     ])
     expect(harness.windows[0]!.options).toMatchObject({ webPreferences: { devTools: true } })
+  })
+
+  it('routes About to the ready product page and restores fallback after navigation', async () => {
+    await readyForUpdate()
+    const window = harness.windows[0]!
+    await window.shown.promise
+    const receive = harness.ipcOn.mock.calls.find(([channel]) => channel === DESKTOP_IPC.aboutState)![1]
+    const sender = { sender: window.webContents, senderFrame: window.webContents.mainFrame }
+    const about = applicationMenuItems()[0]!.click as () => void
+    receive(sender, { ready: true, visible: false })
+    harness.dialog.showMessageBox.mockClear()
+    about()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(window.webContents.send).toHaveBeenCalledWith(DESKTOP_IPC.aboutOpen)
+    expect(harness.dialog.showMessageBox).not.toHaveBeenCalled()
+    receive(sender, { ready: true, visible: true })
+    expect(harness.platformOverlay).toHaveBeenLastCalledWith(true)
+    window.webContents.emit('did-start-navigation', {}, 'dsh-app://app/', false, true)
+    expect(harness.platformOverlay).toHaveBeenLastCalledWith(false)
+    about()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(harness.dialog.showMessageBox).toHaveBeenCalled()
+  })
+
+  it('rejects About state from another frame or malformed messages without changing native visibility', async () => {
+    await readyForUpdate()
+    const window = harness.windows[0]!
+    const receive = harness.ipcOn.mock.calls.find(([channel]) => channel === DESKTOP_IPC.aboutState)![1]
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    harness.platformOverlay.mockClear()
+    receive({ sender: window.webContents, senderFrame: { url: window.webContents.mainFrame.url } }, { ready: true, visible: true })
+    const sender = { sender: window.webContents, senderFrame: window.webContents.mainFrame }
+    for (const value of [null, {}, { ready: false, visible: true }, { ready: 'true', visible: true }]) receive(sender, value)
+    expect(harness.platformOverlay).not.toHaveBeenCalled()
   })
 
   it.each([

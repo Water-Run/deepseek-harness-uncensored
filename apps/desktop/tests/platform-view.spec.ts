@@ -80,6 +80,36 @@ function view() {
 }
 const bounds = { x: 10, y: 20, width: 800, height: 600 }
 
+it('hides a loaded Platform page for About and restores the same document', async () => {
+  const { manager, owner } = setup()
+  try {
+    await manager.open(owner, 'usage', bounds)
+    const current = view()
+    manager.setProductOverlay(true)
+    expect(current.setVisible).toHaveBeenLastCalledWith(false)
+    manager.setProductOverlay(false)
+    expect(current.setVisible).toHaveBeenLastCalledWith(true)
+    expect(current.webContents.close).not.toHaveBeenCalled()
+    expect(state.views).toHaveLength(1)
+  } finally { await manager.dispose() }
+})
+
+it('keeps a late-loading native page hidden until About closes', async () => {
+  const { manager, owner } = setup()
+  const finish = Promise.withResolvers<undefined>()
+  state.loadBarrier = finish.promise
+  const pending = manager.open(owner, 'usage', bounds)
+  try {
+    await vi.waitFor(() => { expect(state.views).toHaveLength(1) })
+    manager.setProductOverlay(true)
+    finish.resolve(undefined)
+    await pending
+    expect(view().setVisible).toHaveBeenLastCalledWith(false)
+    manager.setProductOverlay(false)
+    expect(view().setVisible).toHaveBeenLastCalledWith(true)
+  } finally { finish.resolve(undefined); await pending; await manager.dispose() }
+})
+
 it('bootstraps only the owned main frame and never puts the token in a URL', async () => {
   const { manager, owner } = setup()
   await manager.open(owner, 'usage', bounds)

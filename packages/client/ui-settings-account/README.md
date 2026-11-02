@@ -15,6 +15,8 @@ Server-expired account credentials clear the displayed account details and emit 
 
 The About dialog separates a dark product identity panel from source records. Its accent follows the current conversation mode. REA records include its version, repository and full commit link; optional engine requirements and third-party licenses remain accessible. It displays the maintainer, independent version, build time, underlying DSH version and source commits. The columns stack in narrow windows and entrance motion respects reduced-motion preferences.
 
+The sidebar and Desktop application menu open the same root-owned About dialog. Closing it releases modality immediately and preserves its exit transition. Release checks run only while it is open and are cancelled on dismissal. The optional Desktop bridge unregisters on plugin unload; older carriers and browsers can use the sidebar entry without it.
+
 Balance polling and spending controls exist only while the viewer has the corresponding Host access. Revocation stops their controllers and removes their surfaces; later access creates fresh state.
 
 A conversation waiting for the local spending limit shows a persistent banner above its composer, with estimated automatic continuation when known, manual recovery and a quick reset. Read failures retain the notice with a retry action.

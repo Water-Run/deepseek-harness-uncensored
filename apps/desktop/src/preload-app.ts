@@ -9,11 +9,19 @@ import { syncNativeTheme } from './preload-theme.ts'
 import { syncWindowsAppearance } from './preload-windows.ts'
 import { installMandatoryUpdateOverlay } from './preload-mandatory-overlay.ts'
 import { createDesktopBrowserBridge } from './preload-browser.ts'
+import { createAboutBridge } from './preload-about.ts'
 import type { FileDragHandle } from '@deepseek-ai/dsh-util-file-drag'
 
 function createProductApi(): DshDesktopProductApi {
   return {
     protocolVersion: 1,
+    about: createAboutBridge({
+      listen: (listener) => {
+        ipcRenderer.on(DESKTOP_IPC.aboutOpen, listener)
+        return () => { ipcRenderer.off(DESKTOP_IPC.aboutOpen, listener) }
+      },
+      publish: (ready, visible) => { ipcRenderer.send(DESKTOP_IPC.aboutState, { ready, visible }) },
+    }),
     browser: createDesktopBrowserBridge(),
     sessions: {
       publish: items => ipcRenderer.invoke(DESKTOP_IPC.sessionsPublish, items) as Promise<void>,

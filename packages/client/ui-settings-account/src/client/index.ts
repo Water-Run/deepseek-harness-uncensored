@@ -20,6 +20,9 @@ import { BrowserLogin } from './browser-login.ts'
 import { AccountOnboarding } from './AccountOnboarding.tsx'
 import { AccountPlatformHost, type AccountPlatformHostInjected } from './AccountPlatformHost.tsx'
 import { AccountMenu } from './AccountMenu.tsx'
+import { AboutController } from './about-controller.ts'
+import type { DesktopAboutBridge } from '../about-types.ts'
+import { AboutOverlay, type AboutOverlayInjected } from './AboutOverlay.tsx'
 import { createPlatformPages, type PlatformPages } from './platform-pages.ts'
 import { AccountSection, type AccountSnapshot, type AccountSectionInjected } from './AccountSection.tsx'
 import { createBonusNoticeController } from './bonus-notices.ts'
@@ -60,6 +63,9 @@ export const inject = ['slots', 'locale', 'remote', 'remote.account', 'remote.se
 /** Register account UI in Desktop and plain Web clients. @param ctx - client plugin context. */
 export function apply(ctx: Context): void {
   const desktop = 'dshDesktop' in globalThis
+  const carrier = (globalThis as typeof globalThis & { dshDesktop?: { protocolVersion: number; about?: DesktopAboutBridge } }).dshDesktop
+  const about = new AboutController(carrier?.protocolVersion === 1 ? carrier.about : undefined)
+  ctx.effect(() => { about.start(); return () => { about.dispose() } }, 'account: About carrier')
   ctx.effect(() => ctx.locale.register('settings.account', { en, zh, ja, es, fr, de, ru, pt }), 'account: dictionaries')
   const t = ctx.locale.bind('settings.account')
   const page = globalThis as Partial<Record<typeof CONTACT_CONFIG_GLOBAL, unknown>>
@@ -209,6 +215,7 @@ export function apply(ctx: Context): void {
       if (reason === 'returned' && page === 'top-up') void refreshAfterReturn(refreshing, reRead)
     })
   const operations: AccountSectionInjected = {
+    openAbout: about.open,
     avatarFailed: (value) => { avatar.failed(value) },
     subscribeSessionExpired: listener => ctx.remote.$on('deepseek-account/session-expired', listener),
     subscribeModelSignInRequired: listener => ctx.remote.$on('deepseek-account/model-sign-in-required', listener),
@@ -351,6 +358,10 @@ export function apply(ctx: Context): void {
   ctx.remoteAccess.whenAccess('account/watch', () => ctx.slots.inject('settings.launcher', () => ctx.slots.register({
     name: 'settings.launcher', locale: 'settings.account', inject: () => operations,
   }, AccountMenu)))
+  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay', id: 'product-about', locale: 'settings.account',
+    inject: (): AboutOverlayInjected => ({ hooks: { about: about.state }, close: about.close }),
+  }, AboutOverlay))
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'fork-release', locale: 'settings.account',
   }, ReleaseReminder))

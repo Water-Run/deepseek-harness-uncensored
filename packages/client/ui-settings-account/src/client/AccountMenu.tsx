@@ -10,12 +10,12 @@ import { SignInDialog } from './SignInDialog.tsx'
 import { LogoutIcon } from './LogoutIcon.tsx'
 import { AccountAvatar } from './AccountAvatar.tsx'
 import { AccountNoticeStack } from './AccountNotice.tsx'
-import { AboutDialog } from './AboutDialog.tsx'
 import { GitHubIcon } from './GitHubIcon.tsx'
 import css from './AccountMenu.module.css'
 
 /** Account launcher composed by the settings shell. */
-export type AccountMenuProps = PropsRuntime<'settings.launcher'> & PropsLocale<'settings.account'> & InjectFace<AccountSectionInjected>
+export type AccountMenuProps = PropsRuntime<'settings.launcher'> & PropsLocale<'settings.account'>
+  & InjectFace<AccountSectionInjected>
 
 /** The signed-in label stays empty while the profile loads.
  * @param props - sidebar geometry, settings navigation and account operations.
@@ -24,7 +24,7 @@ export type AccountMenuProps = PropsRuntime<'settings.launcher'> & PropsLocale<'
 export function AccountMenu({
   subscribeSessionExpired, subscribeModelSignInRequired, wide, settingsShortcut, openSettings, openOnboarding, settingsOpen,
   useAccount, useTheme, signOut, hasRunningAccountTasks, refreshAccount, bonusNoticeShown, bonusNoticeDismissed,
-  contactUs, showLogin, start, cancel, avatarFailed, t,
+  contactUs, showLogin, start, cancel, avatarFailed, openAbout, t,
 }: AccountMenuProps) {
   const anchor = useRef<HTMLDivElement>(null)
   // The launcher outlives the panel, so a false-to-true edge is one Settings entry:
@@ -45,7 +45,6 @@ export function AccountMenu({
   const label = profile === undefined ? null : profile.status === 'ready'
     ? profile.value.name ?? profile.value.contact ?? t('signedIn') : t('signedIn')
   const [open, setOpen] = useState(false)
-  const [aboutOpen, setAboutOpen] = useState(false)
   const trigger = useRef<HTMLButtonElement>(null)
   const [busy, setBusy] = useState(false)
   const [signOutImpact, setSignOutImpact] = useState<boolean | 'unknown'>()
@@ -88,11 +87,10 @@ export function AccountMenu({
         if (id === 'settings') { setOpen(false); trigger.current?.focus(); openSettings() }
         else if (id === 'contact') { setOpen(false); contactUs() }
         else if (id === 'repository') { setOpen(false); contactUs('repository') }
-        else if (id === 'about') { setOpen(false); setAboutOpen(true) }
+        else if (id === 'about') { setOpen(false); openAbout() }
         else if (id === 'signin') beginSignIn()
         else void requestSignOut()
       }} />
-    {aboutOpen && <AboutDialog t={t} close={() => { setAboutOpen(false) }} />}
     {account.loginVisible && !account.onboarding && <SignInDialog account={account} colorScheme={colorScheme}
       start={start} cancel={cancel} t={t}
       close={() => { showLogin(false) }} useApiKey={() => { showLogin(false); openOnboarding('deepseek-official') }} />}

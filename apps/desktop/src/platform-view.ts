@@ -46,6 +46,8 @@ export class DesktopPlatformView {
   private generation = 0
   private readonly storageCleanup = new Map<Session, Promise<{ error: unknown } | null>>()
   private disposed = false
+  private productOverlay = false
+  private loaded = false
 
   /**
    * @param preload - bundled sandboxed Platform preload path.
@@ -183,7 +185,16 @@ export class DesktopPlatformView {
         throw error
       }
     }
-    if (generation === this.generation && this.view === view) view.setVisible(true)
+    if (generation === this.generation && this.view === view) {
+      this.loaded = true
+      view.setVisible(!this.productOverlay)
+    }
+  }
+
+  /** @param active - A product dialog covers this native view; closing the dialog restores the loaded page. */
+  setProductOverlay(active: boolean): void {
+    this.productOverlay = active
+    this.view?.setVisible(this.loaded && !active)
   }
 
   /** @param bounds - current application viewport rectangle. */
@@ -215,6 +226,7 @@ export class DesktopPlatformView {
   /** Destroy the document and clear authentication; account-scoped page preferences survive reopening. */
   close(): void {
     this.generation++
+    this.loaded = false
     const view = this.view
     this.view = undefined
     this.releaseOwner?.()

@@ -67,7 +67,7 @@ function sectionOperations(account: AccountSnapshot, pages: PlatformPages): Acco
     avatarFailed: () => {},
     bonusNoticeShown: () => {}, bonusNoticeDismissed: () => {},
     hasRunningAccountTasks: async () => false,
-    contactUs: () => {}, showLogin: () => {}, setOnboarding: () => {},
+    contactUs: () => {}, openAbout: () => {}, showLogin: () => {}, setOnboarding: () => {},
     start: async () => {}, cancel: async () => {}, signOut: async () => {},
   }
 }

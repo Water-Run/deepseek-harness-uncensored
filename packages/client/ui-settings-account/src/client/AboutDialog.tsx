@@ -42,7 +42,7 @@ function statusText(notice: ReleaseNotice, t: AccountMenuProps['t']): string {
  * @param props - Localized labels and dismissal callback.
  * @returns The about dialog.
  */
-export function AboutDialog({ t, close }: { t: AccountMenuProps['t']; close: () => void }) {
+export function AboutDialog({ t, close, open = true }: { t: AccountMenuProps['t']; close: () => void; open?: boolean }) {
   const commit = process.env.DSH_CLIENT_COMMIT_HASH
   const version = process.env.DSH_CLIENT_FORK_VERSION
   const reaRepository = process.env.DSH_CLIENT_REA_REPOSITORY
@@ -50,14 +50,15 @@ export function AboutDialog({ t, close }: { t: AccountMenuProps['t']; close: () 
   const [notice, setNotice] = useState<ReleaseNotice>({ phase: 'checking' })
   const [check, setCheck] = useState(0)
   useEffect(() => {
+    if (!open) return
     const controller = new AbortController()
     setNotice({ phase: 'checking' })
     void loadForkRelease(fetch, version ?? '', { signal: controller.signal, timeoutMs: publicContactConfig().releaseCheckTimeoutMs }).then((next) => {
       if (!controller.signal.aborted) setNotice(next)
     })
     return () => { controller.abort() }
-  }, [version, check])
-  return <Modal open onClose={close} closeLabel={t('close')} title={t('about')} className={css.dialog ?? ''} contentClassName={css.scrollContent ?? ''}>
+  }, [version, check, open])
+  return <Modal open={open} onClose={close} closeLabel={t('close')} title={t('about')} className={css.dialog ?? ''} contentClassName={css.scrollContent ?? ''}>
     <div className={css.content}>
       <section className={css.identity} aria-label={t('aboutIdentity')}>
         <div className={css.brandRow}><div className={css.logo}><FishLogo size={56} /></div>

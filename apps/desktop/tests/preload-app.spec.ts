@@ -58,6 +58,22 @@ it('limits product documents to update status and a native confirmation action',
   expect(electron.ipcRenderer.off).toHaveBeenCalledWith(DESKTOP_IPC.updatesPresentation, handler)
 })
 
+it('forwards native About requests and releases its presentation state on unsubscribe', async () => {
+  vi.stubGlobal('location', new URL('dsh-app://app/'))
+  await import('../src/preload-app.ts')
+  const api = electron.contextBridge.exposeInMainWorld.mock.calls.find(([name]) => name === 'dshDesktop')?.[1] as DshDesktopProductApi
+  const listener = vi.fn()
+  const off = api.about.subscribe(listener)
+  expect(electron.ipcRenderer.send).toHaveBeenLastCalledWith(DESKTOP_IPC.aboutState, { ready: true, visible: false })
+  const request = electron.ipcRenderer.on.mock.calls.find(([channel]) => channel === DESKTOP_IPC.aboutOpen)![1] as () => void
+  request()
+  expect(listener).toHaveBeenCalledOnce()
+  api.about.visible(true)
+  expect(electron.ipcRenderer.send).toHaveBeenLastCalledWith(DESKTOP_IPC.aboutState, { ready: true, visible: true })
+  off()
+  expect(electron.ipcRenderer.send).toHaveBeenLastCalledWith(DESKTOP_IPC.aboutState, { ready: false, visible: false })
+})
+
 it.each(['dsh-app://shell/plugin-manager.html', 'dsh-app://other/index.html', 'https://shell/startup.html', 'http://example.com/'])('exposes only the carrier marker to %s', async (url) => {
   vi.stubGlobal('location', new URL(url))
   await import('../src/preload-app.ts')

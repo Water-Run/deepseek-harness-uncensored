@@ -1,11 +1,35 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { AboutDialog } from '../src/client/AboutDialog.tsx'
 import { en, zh } from '../src/client/locales.ts'
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.unstubAllEnvs() })
+
+it('checks releases only while open and cancels each dismissed request', async () => {
+  vi.stubEnv('DSH_CLIENT_FORK_VERSION', '0.1.0')
+  const signals: AbortSignal[] = []
+  const fetcher = vi.fn((_url: string, init: RequestInit) => new Promise<Response>((_resolve, reject) => {
+    const signal = init.signal!
+    signals.push(signal)
+    signal.addEventListener('abort', () => { reject(new DOMException('Dismissed', 'AbortError')) }, { once: true })
+  }))
+  vi.stubGlobal('fetch', fetcher)
+  const props = { t: makeTranslate(en), close: vi.fn() }
+  const view = render(<AboutDialog {...props} open={false} />)
+  expect(fetcher).not.toHaveBeenCalled()
+  expect(screen.queryByRole('dialog')).toBeNull()
+  view.rerender(<AboutDialog {...props} open />)
+  await waitFor(() => { expect(fetcher).toHaveBeenCalledTimes(1) })
+  view.rerender(<AboutDialog {...props} open={false} />)
+  expect(signals[0]!.aborted).toBe(true)
+  view.rerender(<AboutDialog {...props} open />)
+  await waitFor(() => { expect(fetcher).toHaveBeenCalledTimes(2) })
+  expect(signals[1]!.aborted).toBe(false)
+  view.unmount()
+  expect(signals[1]!.aborted).toBe(true)
+})
 
 it.each([en, zh])('shows the maintainer and separates product and foundation versions', async (locale) => {
   vi.stubEnv('DSH_CLIENT_FORK_VERSION', '0.1.0')

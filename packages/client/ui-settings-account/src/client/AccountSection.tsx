@@ -69,6 +69,8 @@ export interface AccountSectionInjected {
   refreshAccount: () => Promise<void>
   /** Open the issue destination by default, or the project's repository without account context. */
   contactUs: (destination?: 'issue' | 'repository') => void
+  /** Open the frame-owned product About page. */
+  openAbout: () => void
   /** Open or dismiss the login dialog. */
   showLogin: (visible: boolean) => void
   /** Claim dialog ownership for the onboarding step. */

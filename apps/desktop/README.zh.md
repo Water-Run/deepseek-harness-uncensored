@@ -43,7 +43,7 @@ Electron 在 `userData/desktop/locale-cache` 缓存最近确认的界面语言�
 
 Desktop 绑定 `127.0.0.1`，即 Electron 为就绪 URL 与 WebSocket 凭据过滤器拨号的地址。WebSocket 流按 Host 监听器使用 `ws:` 或 `wss:`；附加凭据要求 authority 与 scheme 均匹配。
 
-应用菜单第一项“**关于 DeepSeek Harness**”打开 Electron 原生关于面板，展示应用图标、产品名称和当前安装的发布版本。菜单文案跟随桌面壳的语言。macOS 的隐藏、隐藏其他、显示全部和退出条目使用本地化文案，隐藏和退出条目包含 DeepSeek Harness Uncensored 产品名称。这些条目保留原生动作和快捷键。macOS 从应用包读取图标，因此未打包的开发启动会显示 Electron 图标；Windows 使用随包分发的 PNG。
+应用菜单第一项“**关于 DeepSeek Harness Uncensored**”打开与侧栏相同的产品页面，显示模式配色、作者、构建记录与依赖来源。已打开的原生 Platform 页面暂时隐藏，关于页关闭后恢复，文档保持原状。启动或恢复期间使用外壳窗口显示已记录的 DSHU、DSH、dsh-purge 和 REA 元数据。只有可信主文档能注册关于入口及报告可见状态；导航和渲染进程故障会撤销注册。菜单跟随桌面壳的语言。macOS 的隐藏、隐藏其他、显示全部和退出保留本地化原生动作与快捷键。
 
 Desktop 的本地原生目录流程打开绑定应用窗口的 Electron 文件夹对话框，并先恢复、显示和聚焦该窗口。并发请求共用一个对话框；取消不返回路径，失败后可以重试。普通 Web 使用 Host 选择器。浏览模式列出 Host 目录。Linux 缺少 zenity 或 kdialog 时，自动选择使用浏览模式，不使用 Electron 对话框。
 

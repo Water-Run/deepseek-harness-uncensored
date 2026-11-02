@@ -68,6 +68,7 @@ import { DesktopQuitConfirmation } from './quit-confirmation.ts'
 import { DesktopTray } from './tray.ts'
 import { DesktopBackgroundNotice } from './background-notice.ts'
 import { desktopAboutDetails } from './about.ts'
+import { DesktopAboutRouting } from './about-routing.ts'
 import { parseDesktopSessionItems } from './session-menu.ts'
 
 let focusPrimaryWindow = (): void => {}
@@ -471,6 +472,7 @@ async function main(): Promise<void> {
   // Copy comes from the same locale as the update prompts so the dialog
   // chrome and its content never mix languages.
   const showAbout = async (): Promise<void> => {
+    if (aboutRouting.request()) return
     const result = await ordinaryMessageBox({ type: 'info', title: locale.messages.aboutMenu, message: locale.messages.aboutProduct,
       detail: desktopAboutDetails(manifest, app.getVersion(), locale.messages),
       buttons: [locale.messages.updateAcknowledge, locale.messages.aboutRepository], cancelId: 0 })
@@ -531,6 +533,24 @@ async function main(): Promise<void> {
   const platformView = new DesktopPlatformView(join(app.getAppPath(), 'lib', 'preload-platform-account.cjs'),
     () => locale.id === 'zh-CN' ? 'zh_CN' : 'en_US', process.platform === 'win32' ? 'win32' : 'darwin',
     owner => isMandatory() || updateOverlays.input(owner).blocked)
+  const aboutRouting = new DesktopAboutRouting({
+    canPresent: () => enteredWorkspace && mainWindow !== undefined && !mainWindow.isDestroyed()
+      && !mainWindow.webContents.isDestroyed() && !recovery.active && !isMandatory() && !updateOverlays.input(mainWindow).blocked,
+    request: () => { focusPrimaryWindow(); mainWindow?.webContents.focus(); mainWindow?.webContents.send(DESKTOP_IPC.aboutOpen) },
+    platformHidden: (hidden) => { platformView.setProductOverlay(hidden) },
+  })
+  ipcMain.on(DESKTOP_IPC.aboutState, (event, state: unknown) => {
+    try {
+      assertDesktopSender(event, ['app'])
+      if (mainWindow === undefined || event.sender !== mainWindow.webContents
+        || event.senderFrame !== mainWindow.webContents.mainFrame) throw new Error('desktop About: rejected sender')
+      if (typeof state !== 'object' || state === null || !('ready' in state) || typeof state.ready !== 'boolean'
+        || !('visible' in state) || typeof state.visible !== 'boolean' || (!state.ready && state.visible)) {
+        throw new Error('desktop About: invalid presentation state')
+      }
+      aboutRouting.synchronize(state.ready, state.visible)
+    } catch (error) { console.warn('desktop About state rejected', error) }
+  })
   const backend = new DesktopBackendController((onFailure) => {
     const hostInspectPort = developmentHostInspectPort(development)
     const host = new DesktopHostProcess(resources.node, resources.dsh, activeProject,
@@ -1069,8 +1089,7 @@ async function main(): Promise<void> {
       { role: 'unhide', label: currentDesktopLocale().messages.showAllApplications }, { type: 'separator' }]
     : []
   const applicationItems = (): MenuItemConstructorOptions[] => [
-    // Windows has no system About panel; Electron's fallback is a plain
-    // message box, so the shell shows its own dimmed dialog instead.
+    // The product page owns About; startup and recovery retain a shell fallback.
     { label: currentDesktopLocale().messages.aboutMenu,
       click: () => { void showAbout().catch((error: unknown) => { console.error(error) }) } },
     { type: 'separator' },
@@ -1232,9 +1251,11 @@ async function main(): Promise<void> {
         reportFatal(new Error(`Desktop renderer exited: ${details.reason}`), 'renderer')
       }
     })
-    window.webContents.on('did-start-navigation', (_event, _url, _inPlace, isMainFrame) => {
-      if (isMainFrame) tray?.setSessions([])
+    window.webContents.on('did-start-navigation', (_event, _url, inPlace, isMainFrame) => {
+      if (isMainFrame) { tray?.setSessions([]); if (!inPlace) aboutRouting.reset() }
     })
+    window.webContents.on('render-process-gone', () => { aboutRouting.reset() })
+    window.webContents.once('destroyed', () => { aboutRouting.reset() })
     return window
   }
   const enterWorkspace = async ({ activate = true }: { activate?: boolean } = {}): Promise<void> => {

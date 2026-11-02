@@ -36,7 +36,7 @@ function operationsOf(state: Omit<AccountView, 'links'>, details?: Partial<Accou
       theme: { getSnapshot: () => themeOf('light'), subscribe: () => () => {} },
     },
     hasRunningAccountTasks: vi.fn(async () => false),
-    contactUs: vi.fn(), showLogin: vi.fn(), setOnboarding: vi.fn(),
+    contactUs: vi.fn(), openAbout: vi.fn(), showLogin: vi.fn(), setOnboarding: vi.fn(),
     bonusNoticeShown: vi.fn(), bonusNoticeDismissed: vi.fn(),
     refreshAccount: vi.fn(() => Promise.resolve()),
     avatarFailed: vi.fn(),
@@ -141,6 +141,10 @@ it.each([en, zh].flatMap(copy => ([false, true, 'unknown'] as const).map(running
   fireEvent.click(screen.getByRole('button', { name: copy.menu }))
   fireEvent.click(screen.getByRole('menuitem', { name: copy.contactUs }))
   expect(operations.contactUs).toHaveBeenCalledOnce()
+  expect(screen.queryByRole('menu')).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: copy.menu }))
+  fireEvent.click(screen.getByRole('menuitem', { name: copy.about }))
+  expect(operations.openAbout).toHaveBeenCalledOnce()
   expect(screen.queryByRole('menu')).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: copy.menu }))
   await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: copy.signOut })) })

@@ -14,6 +14,7 @@ export function desktopAboutDetails(manifest: unknown, version: string, messages
   const fork = typeof record.dshUncensored === 'object' && record.dshUncensored !== null
     ? record.dshUncensored as Record<string, unknown> : {}
   const purge = typeof fork.purge === 'object' && fork.purge !== null ? fork.purge as Record<string, unknown> : {}
+  const rea = typeof fork.rea === 'object' && fork.rea !== null ? fork.rea as Record<string, unknown> : {}
   const text = (value: unknown) => typeof value === 'string' && value !== '' ? value : messages.aboutUnknown
   return formatDesktopMessage(messages.aboutDetails, {
     fork: text(fork.version ?? process.env.DSH_CLIENT_FORK_VERSION ?? version),
@@ -22,6 +23,10 @@ export function desktopAboutDetails(manifest: unknown, version: string, messages
     date: text(record.dshBuildDate ?? process.env.DSH_CLIENT_COMMIT_DATE),
     purge: text(purge.commit ?? process.env.DSH_CLIENT_PURGE_COMMIT),
     purgeDate: text(purge.commitTime ?? process.env.DSH_CLIENT_PURGE_DATE),
-    buildTime: text(process.env.DSH_CLIENT_BUILD_TIME),
+    buildTime: text(record.dshBuildTime ?? process.env.DSH_CLIENT_BUILD_TIME),
+    rea: text(rea.version ?? process.env.DSH_CLIENT_REA_VERSION),
+    reaCommit: text(rea.commit ?? process.env.DSH_CLIENT_REA_COMMIT),
+    reaDate: text(rea.commitTime ?? process.env.DSH_CLIENT_REA_DATE),
+    reaRepository: text(rea.repository ?? process.env.DSH_CLIENT_REA_REPOSITORY),
   })
 }

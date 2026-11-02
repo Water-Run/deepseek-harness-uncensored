@@ -39,6 +39,8 @@ export const DESKTOP_IPC = {
   windowFullscreen: 'dsh-desktop:window-fullscreen',
   windowsAppearance: 'dsh-desktop:windows-appearance',
   windowsMenu: 'dsh-desktop:windows-menu',
+  aboutOpen: 'dshu-desktop:about-open',
+  aboutState: 'dshu-desktop:about-state',
 } as const
 
 /** Desktop release update state rendered by desktop-owned UI. */
@@ -80,6 +82,13 @@ export interface DesktopUpdatePresentation {
 /** Product documents cannot supply update versions, package URLs, or installation authorization. */
 export interface DshDesktopProductApi {
   readonly protocolVersion: 1
+  /** Product-owned About presentation; no metadata or URLs cross this interface. */
+  readonly about: {
+    /** @param listener - Native-menu request. @returns Releases presentation readiness. */
+    subscribe(listener: () => void): () => void
+    /** @param visible - Whether the product About dialog is open. */
+    visible(visible: boolean): void
+  }
   readonly browser: DesktopBrowserBridge
   readonly sessions: DesktopSessionNavigation
   readonly fileDrag: DesktopFileDrag

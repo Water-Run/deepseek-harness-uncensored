@@ -42,8 +42,21 @@ describe('official browser-brand plugin', () => {
 
   it('leaves every slot empty outside the official build profile', async () => {
     vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'local')
+    vi.stubEnv('DSH_CLIENT_FORK_VERSION', undefined)
     const subject = await bench()
     await subject.ctx.plugin({ inject: [...inject], apply }).await()
+    for (const hole of HOLES) expect(subject.slots.entries(hole)).toHaveLength(0)
+  })
+
+  it('keeps DSHU branding in local builds without changing their build profile', async () => {
+    vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'local')
+    vi.stubEnv('DSH_CLIENT_FORK_VERSION', '0.1.0')
+    const subject = await bench()
+    const fiber = subject.ctx.plugin({ inject: [...inject], apply })
+    await fiber.await()
+    for (const hole of HOLES) expect(subject.slots.entries(hole)).toHaveLength(1)
+    expect(process.env.DSH_CLIENT_BUILD_PROFILE).toBe('local')
+    await fiber.dispose()
     for (const hole of HOLES) expect(subject.slots.entries(hole)).toHaveLength(0)
   })
 
