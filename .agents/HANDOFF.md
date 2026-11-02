@@ -1,5 +1,15 @@
 # Uncensored 开发交接
 
+## 最新安装与宿主执行节点（2026-11-02）
+
+系统已更新到干净源码 `0e3e8d426183f5e8ee972cc11a329901d979a7cc`：DSHU 0.1.0、DSH 0.2.2-alpha.2、REA 6.8.0。包 `.dsh-build/deliverables/DSHU-0.1.0-core-0.2.2-alpha.2-REA-6.8.0-win-x64-unsigned-20261102-0e3e8d.exe`，388739777 字节，SHA-256 `36b934fc95b3cebc03143d4ad22cb40dcaa03c2892841704a2099e9a437e8ee1`。run `2026-11-02T08-29-22.851Z-Bf2wNd` 完成打包、REA/Office/原生依赖检查。安装前应用已退出，静默更新返回 0；400 份数据和官方版两个关键程序文件的哈希仍相同。备份沿用下文的私有目录，旧检查包保留。未签名、未发布 Release。
+
+安装版实际 exe 经隐藏 Electron 和独立 profile 验证原生菜单、侧栏关于共用窗口、单实例与 Escape；实际安装 Host 经无界面 Chrome 验证父会话/旁问/随问联删、刷新不复活、完整品牌和正确构建信息。证据 `about-installed-native-evidence-20261102.json`、`installed-ui-about-final-20261102.log`、`visible-20261102/installed-about-0e3e8d.png`、`installed-delete-0e3e8d-evidence.json`。没有启动用户真实 profile，测试后的数据复核无变化。01.08、15.07 已勾选；真实用户配置启动、DPI、签名/发布和其他平台仍保留待验收。
+
+原生宿主草稿已收尾：新增固定 Broker、私有严格配置、运行条件校验和宿主句柄，外层 Job 在 SDK 调用前建立；SDK 尚未交付句柄时也能取消并确认其后代退出。显式目标环境不污染可信引导，有界标准流/控制流及独立诊断，复用 collect/spill；整个范围关闭前不释放规则。异步关闭、缓冲尾帧、诊断失败等用例补齐。真实 MXC 两项通过；编译宿主/Broker/工作进程链 192 KiB 往返、退出码 23、生产保持不变和测试写入通过。首次编译脚本错误多传 `revision` 被严格配置拒绝，修正为声明字段后通过，产品未放宽验证。
+
+验证：Linux 96 项及四模块覆盖率均 100%；Windows 宿主 43 项、Broker 27 项及相邻协议/运行条件通过，完整 build 10/10、JSDoc、定向 lint 和文档配对通过。编译脚本 `native-host-built-20261102.mjs`，成功日志 `native-host-built2-20261102.log`；Linux 脚本 `native-host-linux-20261102.sh`。此后端源码尚未随上述检查包分发，也没有注册为正式 Subprocess/PTY，不改变应用当前保护状态。下一步仍为受保护目标代理 → 原生 Subprocess/PTY 服务 → 数据库/远端身份缺项 → P3 审计与设置联动。Goal active，所有原始范围保留。
+
 ## 关于入口统一与本地品牌（2026-11-02，待安装更新）
 
 基点 `a75da14e16`，Goal 继续 active。按当前模式的深蓝/深红/深绿/深金配色保留；侧栏与桌面“应用”菜单共用根级关于窗口。可信主文档通过仅含订阅/可见性的 preload 桥注册入口；导航、渲染失败和插件卸载撤销注册。关闭立即释放交互，保留退出动画，并取消该窗口的更新请求。原生 Platform 页面在关于窗口打开期间隐藏，关闭后恢复同一文档；启动或恢复阶段保留来源完整的外壳文本窗口。`ui-brand-official` 按 DSHU fork 版本保留本地构建品牌，不改 local 渠道及签名标记。

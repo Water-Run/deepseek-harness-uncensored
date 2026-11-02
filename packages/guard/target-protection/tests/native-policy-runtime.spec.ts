@@ -16,6 +16,10 @@ import TargetProtection, { type TargetRuleId } from '../src/index.ts'
 import { compileNativeFilePolicy } from '../src/native-file-policy.ts'
 import { readNativeBootstrapIdentity } from '../src/native-bootstrap.ts'
 import { NATIVE_FRAME, readNativeFrames, writeNativeFrame } from '../src/native-protocol.ts'
+import { createNativeHostExecution } from '../src/native-host.ts'
+import { launchNativeBroker } from '../src/native-launch.ts'
+import { bindManagedProcess, launchWindowsJob } from '@deepseek-ai/dsh-subprocess-local/managed'
+import type { SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
 
 const supported = process.platform === 'win32' && probe().tier === 'base-container'
 
@@ -83,6 +87,111 @@ async function stopNativeRange(job: ObservedWindowsJob | undefined, release: (()
 }
 
 describe.skipIf(!supported)('Windows native target policy with MXC', () => {
+  it('closes an SDK-created process when cancellation precedes handle publication', async () => {
+    const repository = fileURLToPath(new URL('../../../..', import.meta.url)), h = await fixture('', [repository])
+    const marker = join(h.root, 'sdk-created.pid'), diagnostics: Error[] = []
+    const request: SubprocessSpawnSpec = { argv: [process.execPath, '-e', 'throw Error("must not execute")'], cwd: join(h.root, 'work'),
+      stdio: { stdin: 'ignore', stdout: { maxBytes: 128 }, stderr: { maxBytes: 128 } }, graceMs: 1000 }
+    const host = createNativeHostExecution(request, {}, async (signal) => {
+      signal.throwIfAborted()
+      const release = h.ctx.targetProtection.retainNativeExecution(h.files.revision, async () => {
+        host.launch.owner.signal('SIGKILL'); await host.launch.owner.waitForExit()
+      })
+      try {
+        return { carrier: launchWindowsJob({
+          argv: [process.execPath, '--import', import.meta.resolve('tsx/esm'),
+            fileURLToPath(new URL('./fixtures/native-broker-publish-gap.ts', import.meta.url))],
+          cwd: repository, stdio: { stdin: 'pipe', stdout: 'pipe', stderr: 'pipe' }, graceMs: 1000,
+        }, { SystemRoot: process.env.SystemRoot ?? '', WINDIR: process.env.WINDIR ?? '', SystemDrive: process.env.SystemDrive ?? '',
+          TEMP: process.env.TEMP ?? '', TMP: process.env.TMP ?? '', DSHU_TEST_NATIVE_MARKER: marker,
+          TSX_TSCONFIG_PATH: join(repository, 'tsconfig.base.json') }),
+        config: { cwd: request.cwd, temporaryRoot: join(h.root, 'temporary'),
+          files: { readonlyPaths: h.files.readonlyPaths, readwritePaths: h.files.readwritePaths,
+            deniedPaths: h.files.deniedPaths, enumeratePaths: h.files.enumeratePaths },
+          proxyUrl: null, startupTimeoutMs: 10_000, timeoutMs: 0 },
+        async release() { release() },
+        }
+      } catch (error) { release(); throw error }
+    }, 4096, (error) => { diagnostics.push(error) })
+    const api = extendWin32ProcessBindings(({ kernel32, bind }) => ({
+      openProcess: bind(kernel32, 'OpenProcess', 'void *', ['uint32', 'int', 'uint32']),
+      terminateProcess: bind(kernel32, 'TerminateProcess', 'int', ['void *', 'uint32']),
+    })) as ProcessObserver
+    let processHandle: NativePtr | null = null
+    try {
+      await expect.poll(async () => {
+        try { return await readFile(marker, 'utf8') }
+        catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return ''; throw error }
+      }).toMatch(/^\d+$/)
+      processHandle = api.openProcess(0x00100001, 0, Number(await readFile(marker, 'utf8')))
+      if (isNullPtr(processHandle)) throw new Error('The SDK bootstrap was not alive at the held startup point')
+      expect(api.waitForSingleObject(processHandle, 0)).not.toBe(0)
+      const cancellation = new Error('Cancelled during SDK handle publication')
+      host.launch.owner.signal('SIGTERM', cancellation)
+      await expect(host.launch.direct).rejects.toBe(cancellation)
+      await host.launch.owner.waitForExit()
+      expect(api.waitForSingleObject(processHandle, 0)).toBe(0)
+      await host.dispose()
+      const changed = await h.ctx.targetProtection.configure({ mainlandEnabled: false, rules: [] }, h.files.revision)
+      expect(changed.revision).toBe(h.files.revision + 1)
+    } finally {
+      try { await host.dispose() }
+      finally {
+        if (!isNullPtr(processHandle)) {
+          if (api.waitForSingleObject(processHandle, 0) !== 0) {
+            api.terminateProcess(processHandle, 1); api.waitForSingleObject(processHandle, 5000)
+          }
+          expect(api.closeHandle(processHandle)).toBe(1)
+        }
+      }
+    }
+  })
+
+  it('runs the complete host/broker/worker chain with retained policy and shared output collection', async () => {
+    const repository = fileURLToPath(new URL('../../../..', import.meta.url))
+    const h = await fixture('', [repository]), spill = join(h.root, 'spill')
+    await mkdir(spill)
+    const request: SubprocessSpawnSpec = {
+      argv: [process.execPath, '-e', `const fs=require('node:fs'),root=${JSON.stringify(h.root)};
+try{fs.writeFileSync(root+'/work/production/data.txt','wrong');process.exit(99)}catch(error){if(error.code!=='EPERM')throw error}
+fs.writeFileSync(root+'/work/host-output.txt','allowed');process.stdout.write(Buffer.alloc(32768,97));process.exitCode=23;`],
+      cwd: join(h.root, 'work'), stdio: { stdin: 'ignore', stdout: { maxBytes: 64, spill: { maxBytes: 65536 } }, stderr: { maxBytes: 256 } }, graceMs: 1000,
+    }
+    const reports: Error[] = []
+    const host = createNativeHostExecution(request,
+      Object.fromEntries(Object.entries(h.request.environment ?? {}).filter((entry): entry is [string, string] => entry[1] !== undefined)),
+      async (signal) => {
+        const release = h.ctx.targetProtection.retainNativeExecution(h.files.revision, async () => {
+          host.launch.owner.signal('SIGKILL')
+          await host.launch.owner.waitForExit()
+        })
+        try {
+          return { carrier: launchNativeBroker(request.graceMs, signal),
+            config: { cwd: request.cwd, temporaryRoot: join(h.root, 'temporary'),
+              files: { readonlyPaths: h.files.readonlyPaths, readwritePaths: h.files.readwritePaths,
+                deniedPaths: h.files.deniedPaths, enumeratePaths: h.files.enumeratePaths },
+              proxyUrl: null, startupTimeoutMs: 10_000, timeoutMs: 20_000 },
+            async release() { release() },
+          }
+        } catch (error) { release(); throw error }
+      }, 4096, (error) => { reports.push(error) })
+    const handle = bindManagedProcess(request, host.launch, { spillDir: spill, onSpillFailure: (error) => { throw error } })
+    try {
+      expect(await handle.done).toEqual({ exitCode: 23, signal: null })
+      expect(await handle.waitForExit(AbortSignal.timeout(30_000))).toBe(true)
+      await host.settled
+      const output = handle.collected.stdout?.readFrom(0)
+      expect(output).toMatchObject({ text: 'a'.repeat(64), lossy: true })
+      if (output?.spillPath === undefined) throw new Error('Native collection omitted the complete spill')
+      expect((await readFile(output.spillPath)).length).toBe(32768)
+      expect(await readFile(join(h.root, 'work', 'production', 'data.txt'), 'utf8')).toBe('production-preserve')
+      expect(await readFile(join(h.root, 'work', 'host-output.txt'), 'utf8')).toBe('allowed')
+      expect(reports).toEqual([])
+      const changed = await h.ctx.targetProtection.configure({ mainlandEnabled: false, rules: [] }, h.files.revision)
+      expect(changed.revision).toBe(h.files.revision + 1)
+    } finally { await host.dispose() }
+  })
+
   it('rejects a redirected temporary directory outside the owned root before loading the worker', async () => {
     const repository = fileURLToPath(new URL('../../../..', import.meta.url))
     const h = await fixture('', [repository]), nonce = randomUUID()

@@ -3,7 +3,7 @@ import type { Writable } from 'node:stream'
 
 /** Wire frame tags; separate data streams cannot forge lifecycle messages. */
 export const NATIVE_FRAME = {
-  launch: 1, stdin: 2, stdinEnd: 3, control: 4, controlEnd: 5, terminate: 6,
+  launch: 1, stdin: 2, stdinEnd: 3, control: 4, controlEnd: 5, terminate: 6, configure: 7,
   stdout: 16, stderr: 17, controlOutput: 18, accepted: 19, exited: 20, failed: 21, streamClosed: 22, rangeExited: 23,
 } as const
 
@@ -72,7 +72,7 @@ export function writeNativeBytes(output: Writable, bytes: Uint8Array): Promise<v
  * @param input - Byte transport; callers own cancellation, deadlines, and transport closure.
  * @returns Complete frames; malformed headers, oversized payloads, and truncated EOF throw.
  */
-export async function* readNativeFrames(input: AsyncIterable<Uint8Array>): AsyncGenerator<NativeFrame> {
+export async function* readNativeFrames(input: AsyncIterable<Uint8Array>): AsyncGenerator<NativeFrame, undefined> {
   const header = Buffer.alloc(5)
   let headerUsed = 0, payloadUsed = 0
   let payload: Buffer | undefined

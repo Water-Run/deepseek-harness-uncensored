@@ -32,7 +32,7 @@ it('accepts the exact maximum payload', async () => {
   expect(await decode([encodeNativeFrame(frame)])).toEqual([frame])
 })
 
-it.each([0, 7, 255, 256, -1, 1.5, NaN])('rejects an undefined outgoing tag %s', (tag) => {
+it.each([0, 8, 255, 256, -1, 1.5, NaN])('rejects an undefined outgoing tag %s', (tag) => {
   expect(() => encodeNativeFrame({ tag, data: Buffer.alloc(0) })).toThrow('Unknown native frame tag')
 })
 
