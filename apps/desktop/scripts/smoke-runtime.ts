@@ -11,6 +11,7 @@ import { readPrimaryRuntime, workspaceDependencyPaths } from '../../../packages/
 import { DesktopHostProcess } from '../src/host-process.ts'
 import { createPluginProfile } from '../src/project-manager.ts'
 import type { DesktopRuntimeDescriptor } from '../src/runtime-tree.ts'
+import product from '../../../product.json' with { type: 'json' }
 
 /**
  * Check CLI package operations, Host startup, its frontend, external plugins and real Office-to-PDF conversion.
@@ -40,6 +41,10 @@ export async function smokeDesktopRuntime(
   let timer: ReturnType<typeof setTimeout> | undefined
   try {
     writeFileSync(join(home, 'npmrc'), '')
+    const reaSample = join(home, 'rea-sample')
+    mkdirSync(reaSample)
+    writeFileSync(join(reaSample, 'package.json'), JSON.stringify({ name: 'rea-smoke', type: 'module' }))
+    writeFileSync(join(reaSample, 'index.js'), 'export function rea_smoke_value(left, right) { return left + right }\n')
     createPluginProfile(profile)
     const pluginName = 'desktop-runtime-smoke-plugin'
     const plugin = join(home, pluginName)
@@ -92,6 +97,25 @@ export function apply(ctx) {
   if (!(ctx instanceof Context)) throw new Error('desktop runtime: external plugin loaded another Cordis instance')
   ctx.effect(() => ctx.webServer.register({ kind: 'exact', path: '/desktop-smoke',
     handler(_request, response) { response.end('plugin route ready') } }))
+  ctx.effect(() => ctx.webServer.register({ kind: 'exact', path: '/desktop-smoke-rea',
+    async handler(_request, response) {
+      try {
+        const owned = await ctx.rea.connect(${JSON.stringify(reaSample)}, AbortSignal.timeout(60000))
+        let summary
+        try {
+          const description = owned.connection.describe()
+          const tool = owned.connection.tools().find(tool => tool.name === 'analyze_javascript_application')
+          if (tool === undefined) throw new Error('Bundled REA has no JavaScript analysis tool')
+          const result = await owned.connection.call(tool, { input_path: ${JSON.stringify(reaSample)} }, AbortSignal.timeout(60000))
+          if (result?.isError === true || !JSON.stringify(result).includes('rea_smoke_value')) throw new Error('Bundled REA did not analyze the owned sample')
+          summary = { version: description.version, tools: description.toolCount }
+        } finally { await owned.dispose() }
+        response.end(JSON.stringify(summary))
+      } catch (error) {
+        response.statusCode = 500
+        response.end(inspect(error, { depth: 5 }))
+      }
+    } }))
   ctx.effect(() => ctx.webServer.register({ kind: 'exact', path: '/desktop-smoke-install',
     async handler(_request, response) {
       try {
@@ -135,7 +159,7 @@ export function apply(ctx) {
   }
 }
 `)
-    writeFileSync(join(plugin, 'bundle.yml'), '- insert:\n    - id: desktop-runtime-smoke-plugin\n      name: desktop-runtime-smoke-plugin\n      inject: [webServer, officeToPdf, skills, pluginManager]\n')
+    writeFileSync(join(plugin, 'bundle.yml'), '- insert:\n    - id: desktop-runtime-smoke-plugin\n      name: desktop-runtime-smoke-plugin\n      inject: [webServer, officeToPdf, skills, pluginManager, rea]\n')
     cpSync(plugin, join(profile, 'node_modules', pluginName), { recursive: true })
     const manifest = JSON.parse(readFileSync(join(profile, 'package.json'), 'utf8')) as {
       dependencies?: Record<string, string>
@@ -157,6 +181,11 @@ export function apply(ctx) {
     }
     const pluginResponse = await fetch(new URL('/desktop-smoke', ready.url), { headers: { cookie } })
     if (await pluginResponse.text() !== 'plugin route ready') throw new Error('desktop runtime: plugin HTTP route failed')
+    const reaResponse = await fetch(new URL('/desktop-smoke-rea', ready.url), { headers: { cookie }, signal: AbortSignal.timeout(120000) })
+    if (!reaResponse.ok) throw new Error(`desktop runtime: bundled REA failed: ${await reaResponse.text()}`)
+    const reaResult = await reaResponse.json() as { version: string; tools: number }
+    if (reaResult.version !== product.rea.version || reaResult.tools !== product.rea.toolCount) throw new Error('desktop runtime: REA release or tool catalog mismatch')
+    console.log(`desktop runtime: bundled REA ${reaResult.version}, ${String(reaResult.tools)} tools and JavaScript analysis passed`)
     const installation = await fetch(new URL('/desktop-smoke-install', ready.url), {
       headers: { cookie }, signal: AbortSignal.timeout(120_000),
     })

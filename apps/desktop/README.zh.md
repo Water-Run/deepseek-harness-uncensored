@@ -8,6 +8,8 @@ description: "Desktop 在原生应用中运行 Harness 工作区。本参考文�
 
 ## 概述
 
+REA 及其 npm 依赖随包提供，使用内置 Node 24.22.1 运行。完整依赖树释放到 ASAR 外，供独立 Node 读取脚本、参数定义和原生绑定。自定义可执行文件路径为可选覆盖项；Ghidra、Java、IDA 与 Hopper 仍为独立引擎。打包检查通过实际 Desktop Host 验证固定的 REA 版本、全部 229 个工具定义和自有 JavaScript 样本，并关闭连接。
+
 DSHU 使用独立的应用身份、更新源与数据目录。桌面端和安装器提供中文与英文；安装器图片和 Web 安装图标使用统一的黑底白鲸 SVG。
 
 Desktop 在原生应用中运行 Harness 工作区。本参考文档说明应用行为、开发与集成；打包、Windows 签名和发布指南分别维护构建与发布操作。

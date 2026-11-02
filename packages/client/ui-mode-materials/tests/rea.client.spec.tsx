@@ -8,7 +8,7 @@ import { en } from '../src/client/locales.ts'
 
 afterEach(cleanup)
 const t = makeTranslate(en)
-const defaults: ReaOptions = { enabled: false, nodePath: '/node', cliPath: '/rea.mjs',
+const defaults: ReaOptions = { enabled: false, nodePath: '', cliPath: '',
   ghidraPath: '', javaHome: '', idaConfig: '', provider: 'auto',
   startupTimeoutMs: 60000, toolTimeoutMs: 180000, catalogPageSize: 20 }
 
@@ -21,6 +21,7 @@ it('keeps configuration explicit and searches the checked catalog', async () => 
   }
   render(<ReaPanel operations={operations} t={t} />)
   await screen.findByPlaceholderText(en['rea.nodePathHint'])
+  fireEvent.click(screen.getByText(en['rea.overrides']))
   await waitFor(() => { expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('false') })
   expect(screen.getByText(en['rea.check']).hasAttribute('disabled')).toBe(true)
   fireEvent.click(screen.getByRole('switch'))
@@ -45,6 +46,7 @@ it('retains editable values when a save fails and aborts checks on unmount', asy
   }
   const view = render(<ReaPanel operations={operations} t={t} />)
   const input = await screen.findByPlaceholderText(en['rea.nodePathHint'])
+  fireEvent.click(screen.getByText(en['rea.overrides']))
   fireEvent.change(input, { target: { value: '/changed' } })
   fireEvent.click(screen.getByText(en.save))
   expect((await screen.findByRole('alert')).textContent).toContain('settings conflict')

@@ -7,6 +7,7 @@ export type ModeMaterialsKey =
   | 'rea.engine.configured' | 'rea.engine.discover' | 'rea.engine.missing' | 'rea.engine.unreadable'
   | 'rea.title'
   | 'rea.intro'
+  | 'rea.overrides'
   | 'rea.enable'
   | 'rea.unavailable'
   | 'rea.nodePath'
@@ -71,8 +72,9 @@ export const en: Record<ModeMaterialsKey, string> = {
   'rea.engine.discover': 'Detected by REA when needed',
   'rea.engine.missing': 'Configured path is missing or has the wrong type',
   'rea.engine.unreadable': 'Configured path could not be checked',
-  'rea.title': 'REA external analysis',
-  'rea.intro': 'Connect an installed REA runtime and discover its full tool catalog on demand. Each reverse conversation owns its analysis process.',
+  'rea.title': 'REA analysis',
+  'rea.intro': 'REA is included with DSHU. Discover tools on demand, with a separate analysis process for each reverse conversation.',
+  'rea.overrides': 'Custom runtime · optional',
   'rea.enable': 'Enable REA',
   'rea.unavailable': 'REA settings cannot be saved in this profile',
   'rea.nodePath': 'Node executable',
@@ -80,8 +82,8 @@ export const en: Record<ModeMaterialsKey, string> = {
   'rea.ghidraPath': 'Ghidra installation',
   'rea.javaHome': 'Java home',
   'rea.idaConfig': 'IDA MCP configuration',
-  'rea.nodePathHint': 'Full path to the Node executable',
-  'rea.cliPathHint': 'Full path to rea-agents/scripts/rea.mjs',
+  'rea.nodePathHint': 'Empty uses the application runtime',
+  'rea.cliPathHint': 'Empty uses bundled REA',
   'rea.ghidraPathHint': 'Optional; let REA discover it when empty',
   'rea.javaHomeHint': 'Optional; let REA discover it when empty',
   'rea.idaConfigHint': 'Optional; path to existing IDA MCP configuration',
@@ -228,8 +230,9 @@ export const zh: Record<ModeMaterialsKey, string> = {
   'rea.engine.discover': '由 REA 在调用时检测',
   'rea.engine.missing': '配置路径不存在或类型不符',
   'rea.engine.unreadable': '无法检查配置路径',
-  'rea.title': 'REA 外部分析',
-  'rea.intro': '连接已安装的 REA，按需使用其完整工具目录；每个逆向会话拥有独立的分析进程。',
+  'rea.title': 'REA 分析',
+  'rea.intro': 'REA 随 DSHU 内置，按需使用完整工具目录；每个逆向会话拥有独立的分析进程。',
+  'rea.overrides': '自定义运行时 · 可选',
   'rea.enable': '启用 REA',
   'rea.unavailable': '当前配置无法保存 REA 设置',
   'rea.nodePath': 'Node 可执行文件',
@@ -237,8 +240,8 @@ export const zh: Record<ModeMaterialsKey, string> = {
   'rea.ghidraPath': 'Ghidra 安装目录',
   'rea.javaHome': 'Java 安装目录',
   'rea.idaConfig': 'IDA MCP 配置文件',
-  'rea.nodePathHint': 'Node 可执行文件的完整路径',
-  'rea.cliPathHint': 'rea-agents/scripts/rea.mjs 的完整路径',
+  'rea.nodePathHint': '留空使用应用自带运行时',
+  'rea.cliPathHint': '留空使用内置 REA',
   'rea.ghidraPathHint': '可选；留空由 REA 检测',
   'rea.javaHomeHint': '可选；留空由 REA 检测',
   'rea.idaConfigHint': '可选；现有 IDA MCP 配置路径',

@@ -19,8 +19,8 @@ const ghidraPath = process.env['DSH_REA_TEST_GHIDRA']
 const javaHome = process.env['DSH_REA_TEST_JAVA_HOME']
 const binary = process.env['DSH_REA_TEST_BINARY']
 
-it.skipIf(nodePath === undefined || cliPath === undefined)('discovers real REA, analyzes JavaScript and optionally an owned native sample', async () => {
-  if (nodePath === undefined || cliPath === undefined) throw new Error('Explicit installed REA paths required')
+it.skipIf(nodePath === undefined)('discovers bundled REA, analyzes JavaScript and optionally an owned native sample', async () => {
+  if (nodePath === undefined) throw new Error('A compatible Node runtime is required for REA acceptance')
   const cwd = await mkdtemp(join(tmpdir(), 'dshu-rea-product-'))
   const ctx = new Context()
   try {
@@ -28,7 +28,7 @@ it.skipIf(nodePath === undefined || cliPath === undefined)('discovers real REA, 
     await writeFile(join(cwd, 'index.js'), 'export function addValues(left, right) { return left + right }\n')
     await mountAgentLoopTestDependencies(ctx, { workingDirectory: true })
     await ctx.plugin(SandboxPolicy, { mode: 'danger-full-access', workspaceRoot: cwd })
-    await ctx.plugin(ReaService, { enabled: true, nodePath, cliPath,
+    await ctx.plugin(ReaService, { enabled: true, nodePath, ...cliPath === undefined ? {} : { cliPath },
       ...ghidraPath === undefined ? {} : { ghidraPath, provider: 'ghidra' },
       ...javaHome === undefined ? {} : { javaHome } })
     await ctx.plugin(AgentLoop, { agents: [] })

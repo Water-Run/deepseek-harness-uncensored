@@ -51,6 +51,7 @@ External packages installed for runtime use or embedded in distributed Host or b
 | [`@lexical/plain-text`](https://github.com/facebook/lexical) | MIT |
 | [`@lexical/text`](https://github.com/facebook/lexical) | MIT |
 | [`@lexical/utils`](https://github.com/facebook/lexical) | MIT |
+| [`@microsoft/mxc-sdk`](https://github.com/microsoft/mxc) | MIT |
 | [`@modelcontextprotocol/client`](https://github.com/modelcontextprotocol/typescript-sdk) | MIT |
 | [`@modelcontextprotocol/sdk`](https://github.com/modelcontextprotocol/typescript-sdk) | MIT |
 | [`@noble/hashes`](https://github.com/paulmillr/noble-hashes) | MIT |
@@ -133,6 +134,7 @@ External packages installed for runtime use or embedded in distributed Host or b
 | [`picomatch`](https://github.com/micromatch/picomatch) | MIT |
 | [`quickjs-emscripten-core`](https://github.com/justjake/quickjs-emscripten) | MIT |
 | [`re2js`](https://github.com/le0pard/re2js) | MIT |
+| [`rea-agents`](https://github.com/morluto/rea) | MIT |
 | [`react`](https://github.com/facebook/react) | MIT |
 | [`react-dom`](https://github.com/facebook/react) | MIT |
 | [`readable-stream`](https://github.com/nodejs/readable-stream) | MIT |
@@ -159,6 +161,15 @@ External packages installed for runtime use or embedded in distributed Host or b
 | [`yaml`](https://github.com/eemeli/yaml) | ISC |
 | [`zod`](https://github.com/colinhacks/zod) | MIT |
 | [`zustand`](https://github.com/pmndrs/zustand) | MIT |
+
+## Bundled REA analysis
+
+[REA](https://github.com/morluto/rea) is distributed as its pinned npm package under MIT. [product.json](product.json) records the release version and corresponding source commit. The package retains its LICENSE, THIRD_PARTY_NOTICES.md, and licenses/ directory, including the original notices collected for its runtime dependencies.
+
+The optional Frida binding declares LGPL-2.0 WITH WxWindows-exception-3.1. REA preserves the tagged Frida wxWindows notice and GNU Library GPL v2 text in licenses/frida-17.23.2-COPYING.txt and licenses/LGPL-2.0.txt. Those supplements do not supply missing binding or prebuild-component attribution; REA's notices record that upstream limitation. The original dependency license and notice files remain with the unmodified packages. This project's GPL declaration does not replace their terms.
+
+Ghidra, Java, IDA and Hopper are separately configured engines, not bundled by this integration.
+
 
 pnpm applies local patches to the following packages at install time, so shipped artifacts carry modified copies; each patch file is the complete record of the modification:
 
@@ -214,7 +225,6 @@ External packages **directly declared** for development, tests, types, or toolin
 | [`@electron/get`](https://github.com/electron/get) | MIT |
 | [`@electron/notarize`](https://github.com/electron/notarize) | MIT |
 | [`@lexical/headless`](https://github.com/facebook/lexical) | MIT |
-| [`@microsoft/mxc-sdk`](https://github.com/microsoft/mxc) | MIT |
 | [`@modelcontextprotocol/node`](https://github.com/modelcontextprotocol/typescript-sdk) | MIT |
 | [`@modelcontextprotocol/server`](https://github.com/modelcontextprotocol/typescript-sdk) | MIT |
 | [`@modelcontextprotocol/server-everything`](https://github.com/modelcontextprotocol/servers) | MIT / Apache-2.0 |

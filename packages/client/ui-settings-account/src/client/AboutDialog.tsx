@@ -45,6 +45,8 @@ function statusText(notice: ReleaseNotice, t: AccountMenuProps['t']): string {
 export function AboutDialog({ t, close }: { t: AccountMenuProps['t']; close: () => void }) {
   const commit = process.env.DSH_CLIENT_COMMIT_HASH
   const version = process.env.DSH_CLIENT_FORK_VERSION
+  const reaRepository = process.env.DSH_CLIENT_REA_REPOSITORY
+  const reaCommit = process.env.DSH_CLIENT_REA_COMMIT
   const [notice, setNotice] = useState<ReleaseNotice>({ phase: 'checking' })
   const [check, setCheck] = useState(0)
   useEffect(() => {
@@ -79,6 +81,7 @@ export function AboutDialog({ t, close }: { t: AccountMenuProps['t']; close: () 
           <h3><span className={css.sectionMark} aria-hidden="true" />{t('aboutFoundation')}</h3>
           <p className={css.foundation}>{t('aboutBasedOn', { version: recorded(process.env.DSH_CLIENT_UPSTREAM_VERSION, t('unknownBuild')) })}</p>
           <a href={`${REPOSITORY}/blob/main/LICENSE`} target="_blank" rel="noreferrer">{t('licenseName')}</a>
+          <a href={`${REPOSITORY}/blob/main/THIRD_PARTY_NOTICES.md`} target="_blank" rel="noreferrer">{t('aboutThirdParty')}</a>
         </section>
         <section className={css.group}>
           <h3><span className={css.sectionMark} aria-hidden="true" />{t('aboutSectionSource')}</h3>
@@ -93,6 +96,18 @@ export function AboutDialog({ t, close }: { t: AccountMenuProps['t']; close: () 
             <dt>{t('purgeCommit')}</dt><dd>{process.env.DSH_CLIENT_PURGE_COMMIT === undefined ? t('unknownBuild') : <a href={`https://github.com/Water-Run/dsh-purge/commit/${process.env.DSH_CLIENT_PURGE_COMMIT}`} target="_blank" rel="noreferrer">{process.env.DSH_CLIENT_PURGE_COMMIT.slice(0, 12)}</a>}</dd>
             <dt>{t('purgeDate')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_PURGE_DATE, t('unknownBuild'), t)}</dd>
           </dl>
+        </section>
+        <section className={css.group}>
+          <h3><span className={css.sectionMark} aria-hidden="true" />{t('aboutRea')}</h3>
+          <div className={css.dependencyHeading}><a href={reaRepository} target="_blank" rel="noreferrer">{t('aboutReaVersion', {
+            version: recorded(process.env.DSH_CLIENT_REA_VERSION, t('unknownBuild')),
+          })}</a>{reaRepository !== undefined && <GitHubIcon />}</div>
+          <dl className={css.metadata}>
+            <dt>{t('buildCommit')}</dt><dd>{reaRepository === undefined || reaCommit === undefined ? t('unknownBuild')
+              : <a href={`${reaRepository}/commit/${reaCommit}`} target="_blank" rel="noreferrer">{reaCommit.slice(0, 12)}</a>}</dd>
+            <dt>{t('commitDate')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_REA_DATE, t('unknownBuild'), t)}</dd>
+          </dl>
+          <p className={css.dependencyNote}>{t('aboutReaEngines')}</p>
         </section>
       </section>
     </div>

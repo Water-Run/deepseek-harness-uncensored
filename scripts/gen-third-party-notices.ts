@@ -811,6 +811,15 @@ External packages installed for runtime use or embedded in distributed Host or b
 
 ${renderNpmTable(runtimeDeps)}
 
+${runtimeDeps.some(dep => dep.name === 'rea-agents') ? `## Bundled REA analysis
+
+[REA](https://github.com/morluto/rea) is distributed as its pinned npm package under MIT. [product.json](product.json) records the release version and corresponding source commit. The package retains its LICENSE, THIRD_PARTY_NOTICES.md, and licenses/ directory, including the original notices collected for its runtime dependencies.
+
+The optional Frida binding declares LGPL-2.0 WITH WxWindows-exception-3.1. REA preserves the tagged Frida wxWindows notice and GNU Library GPL v2 text in licenses/frida-17.23.2-COPYING.txt and licenses/LGPL-2.0.txt. Those supplements do not supply missing binding or prebuild-component attribution; REA's notices record that upstream limitation. The original dependency license and notice files remain with the unmodified packages. This project's GPL declaration does not replace their terms.
+
+Ghidra, Java, IDA and Hopper are separately configured engines, not bundled by this integration.
+` : ''}
+
 pnpm applies local patches to the following packages at install time, so shipped artifacts carry modified copies; each patch file is the complete record of the modification:
 
 ${patchedLines.join('\n')}

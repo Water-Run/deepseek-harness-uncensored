@@ -1,5 +1,6 @@
 import { readInstallerLocales, renderInstallerStrings } from './installer-locales.mjs'
 import { officePackageDirectories } from '../../../scripts/libreoffice-packages.mjs'
+import { runtimePackageDirectories } from '../../../scripts/runtime-package-closure.mjs'
 import { X509Certificate } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
@@ -191,7 +192,9 @@ export function createElectronBuilderConfig(
     },
     beforePack: async context => {
       const office = await officePackageDirectories(buildPaths.dsh, { platform: resolvedPlatform, arch: resolvedArch })
-      const patterns = office.map(directory => `**/${relative(buildPaths.dsh, directory).split(sep).join('/')}/**/*`)
+      const rea = await runtimePackageDirectories(buildPaths.dsh, [join(buildPaths.dsh, 'node_modules', 'rea-agents')],
+        { platform: resolvedPlatform, arch: resolvedArch })
+      const patterns = [...new Set([...office, ...rea])].map(directory => `**/${relative(buildPaths.dsh, directory).split(sep).join('/')}/**/*`)
       const existing = context.packager.config.asarUnpack ?? []
       context.packager.config.asarUnpack = [...(typeof existing === 'string' ? [existing] : existing), ...patterns]
       if (packagesWindows) windowsCode = await prepareWindowsAsarUnpack(context, buildPaths.dsh)

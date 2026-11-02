@@ -8,6 +8,8 @@ English | [中文](README.zh.md)
 
 ## Summary
 
+REA is bundled with its npm dependencies and runs under the included Node 24.22.1. Its installed package tree stays outside ASAR so standalone Node can read scripts, schemas and native bindings. Custom executable paths remain optional; Ghidra, Java, IDA and Hopper are separate engines. Packaging checks the pinned REA version, all 229 tool definitions and an owned JavaScript sample through the actual Desktop Host, then closes the connection.
+
 DSHU uses its own application identity, update source and data directory. The desktop and installer offer Chinese and English; installer artwork and Web install icons use the canonical dark whale SVG.
 
 Desktop runs the Harness workspace in a native application. This reference covers application behavior, development and integration; the packaging, Windows signing and publication guides own build and release operations.

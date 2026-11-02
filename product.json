@@ -11,5 +11,13 @@
     "licensedContentCommit": "e1d8e59087857fa86d0ef2bb9878800274b13a29",
     "licensedContentLicense": "MIT"
   },
-  "license": "GPL-3.0-or-later"
+  "license": "GPL-3.0-or-later",
+  "rea": {
+    "repository": "https://github.com/morluto/rea",
+    "version": "6.8.0",
+    "toolCount": 229,
+    "commit": "160d821ac9a0310afcb8d1fc427862dd6508add5",
+    "commitTime": "2026-10-25T08:35:15Z",
+    "license": "MIT"
+  }
 }

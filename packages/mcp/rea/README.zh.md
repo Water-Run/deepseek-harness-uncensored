@@ -1,5 +1,5 @@
 ---
-description: "配置已安装的 REA，在独立的逆向分析对话中使用其工具。"
+description: "使用内置的 REA，在独立的逆向分析对话中使用其工具。"
 kind: "package-reference"
 ---
 
@@ -9,15 +9,15 @@ kind: "package-reference"
 
 ## 概述
 
-根服务管理 REA 启动配置和外部进程，`./agent` 消费端仅由逆向预设装配。REA 默认关闭；配置不会下载软件或修改其他客户端的设置。
+根服务管理 REA 启动配置和外部进程，`./agent` 消费端仅由逆向预设装配。REA 默认开启，使用时才启动进程；已保存的关闭设置保持不变。配置不会下载软件或修改其他客户端的设置。
 
 ## 配置
 
-打开设置 → 模式 → 逆向配置，填写实际的 Node 可执行文件和 `rea-agents/scripts/rea.mjs` 路径，启用 REA、保存并检测连接。可选字段指定 Ghidra、Java、IDA MCP 配置和原生分析引擎。检测会启动临时 MCP 进程，报告版本与工具，检查已配置的路径，然后关闭进程。握手成功不代表可选引擎已通过分析验证；打开样本时才会检查引擎版本和依赖。
+打开设置 → 模式 → 逆向配置，内置 REA 无需填写路径。桌面版提供 Node 24.22.1；源码启动使用当前 Node 或 `DSH_REA_NODE_PATH`。自定义 Node 和 CLI 路径为可选覆盖项，保存后可检测连接。可选字段指定 Ghidra、Java、IDA MCP 配置和原生分析引擎。检测会启动临时 MCP 进程，报告版本与工具，检查已配置的路径，然后关闭进程。握手成功不代表可选引擎已通过分析验证；打开样本时才会检查引擎版本和依赖。
 
 全部偏好由 Loader 设置系统管理。`startupTimeoutMs` 默认 60000，`toolTimeoutMs` 默认 180000，`catalogPageSize` 默认 20。保存配置变更会关闭现有进程；对话需要重置连接并重新打开样本。
 
-已验证 REA 6.8.0、Node 24.22.1、Ghidra 12.1.4 和 Java 27。该 REA 版本会拒绝 Ghidra 12.2，其支持版本检查保持启用。REA 与可选引擎需分别安装，并遵守各自许可。
+已验证 REA 6.8.0、Node 24.22.1、Ghidra 12.1.4 和 Java 27。该 REA 版本会拒绝 Ghidra 12.2，其支持版本检查保持启用。REA 6.8.0 固定到 [160d821ac9a0](https://github.com/morluto/rea/commit/160d821ac9a0310afcb8d1fc427862dd6508add5)，可选分析引擎按各自许可另行配置。
 
 ## 对话归属
 
@@ -37,12 +37,12 @@ kind: "package-reference"
 
 ## 已知限制与后续工作
 
-外部引擎在本机运行，需要完全权限。桥接不提供沙盒、远程执行环境或独立流量代理。应用不打包 REA、供 REA 使用的 Node、Ghidra、IDA、Hopper 或 Frida。这里接入 REA 工具目录，尚未适配 MCP 资源、提示词模板或要求任务扩展的工具。本次验收未运行 Frida 和商业引擎。
+外部引擎在本机运行，需要完全权限。桥接不提供沙盒、远程执行环境或独立流量代理。桌面版内置 REA、兼容的 Node 和 npm 依赖（含 Frida 绑定）。Ghidra、Java、IDA 和 Hopper 仍为可选外部引擎。这里接入 REA 工具目录，尚未适配 MCP 资源、提示词模板或要求任务扩展的工具。本次验收未运行 Frida 和商业引擎。
 
 ## 验证
 
-`tests/rea.spec.ts` 使用自有本地进程检查隔离、参数验证、取消、重置及实时权限变更。`tests/rea.e2e.ts` 使用显式的 `DSH_REA_TEST_NODE` 与 `DSH_REA_TEST_CLI` 路径；可选原生分析还需指定 `DSH_REA_TEST_GHIDRA`、`DSH_REA_TEST_JAVA_HOME` 和自有样本 `DSH_REA_TEST_BINARY`。测试关闭进程，并只清理自身临时目录。
+`tests/rea.spec.ts` 使用自有本地进程检查隔离、参数验证、取消、重置及实时权限变更。`tests/rea.e2e.ts` 使用兼容的 `DSH_REA_TEST_NODE`，默认验证内置 npm 包，`DSH_REA_TEST_CLI` 为可选覆盖项；可选原生分析还需指定 `DSH_REA_TEST_GHIDRA`、`DSH_REA_TEST_JAVA_HOME` 和自有样本 `DSH_REA_TEST_BINARY`。测试关闭进程，并只清理自身临时目录。
 
 ## 参考
 
-[REA](https://github.com/morluto/rea) 由 morluto 维护，采用 MIT 许可。本包复用其已安装的 MCP 服务，不复制或替换 REA 分析实现。结果校验和呈现参见共享 [MCP 适配器](../mcp-client/README.zh.md)。
+[REA](https://github.com/morluto/rea) 由 morluto 维护，采用 MIT 许可。本包分发固定版本的 npm MCP 服务并保留其许可。桌面版把服务及完整依赖树释放到 ASAR 外供独立 Node 使用，不替换 REA 分析实现。结果校验和呈现参见共享 [MCP 适配器](../mcp-client/README.zh.md)。

@@ -108,7 +108,8 @@
     "pg": "8.23.1",
     "@jitl/quickjs-wasmfile-release-sync": "0.32.0",
     "quickjs-emscripten-core": "0.32.0",
-    "@deepseek-ai/dsh-util-values": "workspace:*"
+    "@deepseek-ai/dsh-util-values": "workspace:*",
+    "@microsoft/mxc-sdk": "1.0.1"
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-tools": "workspace:*",
@@ -180,7 +181,6 @@
     "@deepseek-ai/dsh-atomic-write": "workspace:*",
     "@deepseek-ai/dsh-ptc-runtime": "workspace:*",
     "@deepseek-ai/dsh-tool-testkit": "workspace:*",
-    "@deepseek-ai/dsh-win32-process": "workspace:*",
-    "@microsoft/mxc-sdk": "1.0.1"
+    "@deepseek-ai/dsh-win32-process": "workspace:*"
   }
 }

@@ -7,7 +7,8 @@ import { Field, type Translate } from './ui.tsx'
 import css from './ReaPanel.module.css'
 
 /** Fields expose host paths, without guessing another client's installation. */
-const PATH_FIELDS = ['nodePath', 'cliPath', 'ghidraPath', 'javaHome', 'idaConfig'] as const
+const PATH_FIELDS = ['ghidraPath', 'javaHome', 'idaConfig'] as const
+const OVERRIDE_FIELDS = ['nodePath', 'cliPath'] as const
 
 /**
  * Render external engine configuration inside Reverse settings.
@@ -73,9 +74,16 @@ export function ReaPanel({ operations, t }: { operations: NonNullable<MaterialsO
           options={(['auto', 'ghidra', 'ida', 'hopper', 'kuna'] as const).map(value => ({ value, label: value === 'auto' ? t('rea.auto') : value }))}
           onChange={(provider) =>{  setOptions({ ...options, provider }) }} /></Field>
       </div>
+      <details className={css.overrides}>
+        <summary>{t('rea.overrides')}</summary>
+        <div className={css.fields}>{OVERRIDE_FIELDS.map(key => <Field key={key} label={t(`rea.${key}`)}>
+          <Input value={options[key]} disabled={busy} placeholder={t(`rea.${key}Hint`)}
+            onChange={(event) => { setOptions({ ...options, [key]: event.target.value }) }} />
+        </Field>)}</div>
+      </details>
       <p className={css.note}>{t('rea.note')}</p>
       <div className={css.actions}>
-        <Button size="sm" variant="primary" disabled={busy || !dirty || revision === null || (options.enabled && (!options.nodePath.trim() || !options.cliPath.trim()))}
+        <Button size="sm" variant="primary" disabled={busy || !dirty || revision === null}
           onClick={() => { void run('save') }}>{busy ? t('saving') : t('save')}</Button>
         <Button size="sm" variant="outline" disabled={busy || dirty || !saved?.enabled}
           onClick={() => { void run('probe') }}>{t('rea.check')}</Button>

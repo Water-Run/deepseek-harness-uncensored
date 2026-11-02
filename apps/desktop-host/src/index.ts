@@ -25,6 +25,8 @@ async function main(): Promise<void> {
   const runtimeDir = process.argv[2] as string
   const projectDir = process.argv[3] as string
   installOfficeEngineResolution(runtimeDir)
+  const primaryRuntime = process.argv[4] ?? join(runtimeDir, '..', 'runtime', 'primary-runtime')
+  process.env.DSH_REA_NODE_PATH = join(primaryRuntime, 'dependencies', 'node', 'bin', process.platform === 'win32' ? 'node.exe' : 'node')
   const installAnchor = join(runtimeDir, 'node_modules', '@deepseek-ai', 'dsh', 'package.json')
   const profile = loadProfileDirectory('dsh', projectDir, installAnchor)
   reportSkippedBundles('dsh', profile)
@@ -133,7 +135,7 @@ async function main(): Promise<void> {
   control.quitInspection = installDesktopQuitInspection(ctx)
   await ctx.plugin(desktopOffice, {
     runtimeDir,
-    source: process.argv[4] ?? join(runtimeDir, '..', 'runtime', 'primary-runtime'),
+    source: primaryRuntime,
     root: join(resolveDshHome(), 'dsh-runtimes', 'dsh-primary-runtime'),
   })
   installPlatformSessionPublisher(ctx, (session) => {

@@ -1,5 +1,5 @@
 ---
-description: "Configure an installed REA runtime and use its tools in isolated reverse-analysis conversations."
+description: "Use the bundled REA runtime and use its tools in isolated reverse-analysis conversations."
 kind: "package-reference"
 ---
 
@@ -9,15 +9,15 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-The root service owns REA launch preferences and external processes. The `./agent` consumer is mounted only by the Reverse preset. REA is disabled by default; configuring it does not download software or change another client's settings.
+The root service owns REA launch preferences and external processes. The `./agent` consumer is mounted only by the Reverse preset. REA is enabled by default and starts only when used. Saved opt-outs remain disabled; configuring it neither downloads software nor changes another client's settings.
 
 ## Configuration
 
-Open Settings → Mode → Reverse configuration. Supply a physical Node executable and `rea-agents/scripts/rea.mjs`, enable REA, save, and check the connection. Optional fields select Ghidra, Java, an IDA MCP configuration, and a native provider. The check starts a temporary MCP process, reports its version and tools, checks configured paths, then closes it. A successful handshake does not certify an optional engine; engine versions and dependencies are checked when a sample is opened.
+Open Settings → Mode → Reverse configuration. The bundled REA works without executable paths. Desktop supplies Node 24.22.1; source launches use their Node process or `DSH_REA_NODE_PATH`. Custom Node and CLI paths are optional overrides. Save and check the connection. Optional fields select Ghidra, Java, an IDA MCP configuration, and a native provider. The check starts a temporary MCP process, reports its version and tools, checks configured paths, then closes it. A successful handshake does not certify an optional engine; engine versions and dependencies are checked when a sample is opened.
 
 All preferences are Loader-managed settings. `startupTimeoutMs` defaults to 60000, `toolTimeoutMs` to 180000, and `catalogPageSize` to 20. Saving changed preferences closes existing processes. A conversation must reset its connection and reopen its sample after that change.
 
-REA 6.8.0 was tested with Node 24.22.1, Ghidra 12.1.4 and Java 27. That REA release rejects Ghidra 12.2; its supported-version checks remain active. Install REA and optional engines separately, respecting their licenses.
+REA 6.8.0 was tested with Node 24.22.1, Ghidra 12.1.4 and Java 27. That REA release rejects Ghidra 12.2; its supported-version checks remain active. REA 6.8.0 is pinned to [160d821ac9a0](https://github.com/morluto/rea/commit/160d821ac9a0310afcb8d1fc427862dd6508add5). Optional analysis engines remain separately configured under their own licenses.
 
 ## Conversation ownership
 
@@ -37,12 +37,12 @@ The tool prefix changes when selected tools are added or reset. Stable selection
 
 ## Known Limitations and Deferred Work
 
-External engines execute on the local host and require full access. The bridge does not provide a sandbox, remote execution environment, or independent traffic proxy. The app does not bundle REA, Node for REA, Ghidra, IDA, Hopper or Frida. REA's tool catalog is exposed; MCP resources, prompt templates and task-required tools are not adapted here. Frida and commercial engines were not exercised in the current acceptance run.
+External engines execute on the local host and require full access. The bridge does not provide a sandbox, remote execution environment, or independent traffic proxy. Desktop bundles REA, its compatible Node runtime and npm dependencies, including Frida's binding. Ghidra, Java, IDA and Hopper remain optional external engines. REA's tool catalog is exposed; MCP resources, prompt templates and task-required tools are not adapted here. Frida and commercial engines were not exercised in the current acceptance run.
 
 ## Verification
 
-`tests/rea.spec.ts` checks isolation, argument validation, cancellation, reset and live permission changes using owned local processes. `tests/rea.e2e.ts` uses explicit `DSH_REA_TEST_NODE` and `DSH_REA_TEST_CLI` paths; the optional native path additionally requires `DSH_REA_TEST_GHIDRA`, `DSH_REA_TEST_JAVA_HOME` and an owned `DSH_REA_TEST_BINARY`. Tests close processes and remove only their temporary directories.
+`tests/rea.spec.ts` checks isolation, argument validation, cancellation, reset and live permission changes using owned local processes. `tests/rea.e2e.ts` uses a compatible `DSH_REA_TEST_NODE` and defaults to the bundled npm package; `DSH_REA_TEST_CLI` is an optional override; the optional native path additionally requires `DSH_REA_TEST_GHIDRA`, `DSH_REA_TEST_JAVA_HOME` and an owned `DSH_REA_TEST_BINARY`. Tests close processes and remove only their temporary directories.
 
 ## References
 
-[REA](https://github.com/morluto/rea) is maintained by morluto under MIT. This package reuses its installed MCP server; it does not copy or replace REA's analysis implementations. See the shared [MCP adapter](../mcp-client/README.md) for result validation and presentation.
+[REA](https://github.com/morluto/rea) is maintained by morluto under MIT. This package distributes its pinned npm MCP server and preserves its license. The server and its complete dependency tree are unpacked from Desktop ASAR for standalone Node. It does not replace REA's analysis implementations. See the shared [MCP adapter](../mcp-client/README.md) for result validation and presentation.

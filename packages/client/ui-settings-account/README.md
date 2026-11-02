@@ -13,7 +13,7 @@ Server-expired account credentials clear the displayed account details and emit 
 
 ## Summary
 
-The About dialog separates a dark product identity panel from source records. It displays the maintainer, independent version, build time, underlying DSH version and source commits. The columns stack in narrow windows and entrance motion respects reduced-motion preferences.
+The About dialog separates a dark product identity panel from source records. Its accent follows the current conversation mode. REA records include its version, repository and full commit link; optional engine requirements and third-party licenses remain accessible. It displays the maintainer, independent version, build time, underlying DSH version and source commits. The columns stack in narrow windows and entrance motion respects reduced-motion preferences.
 
 Balance polling and spending controls exist only while the viewer has the corresponding Host access. Revocation stops their controllers and removes their surfaces; later access creates fresh state.
 

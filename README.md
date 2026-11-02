@@ -42,9 +42,9 @@ Uncensored 默认加载中文 armor，并内置英文文本，无需安装插件
 
 ## 快速开始
 
-**REA 外部工具：**在“设置 → 模式 → 逆向配置”填写已安装的 Node 与 REA 入口路径，启用、保存并检测连接。可选配置 Ghidra、Java 和 IDA MCP。已验证 REA 6.8.0 的 229 个工具目录、JavaScript 分析及 Ghidra 12.1.4 原生分析；该版本不支持 Ghidra 12.2。外部引擎需另行安装，调用要求完全权限，随问不能启动。保存配置会关闭现有分析连接，重开样本后继续。
+**REA 内置分析：**桌面版提供 REA 6.8.0 与兼容的 Node，无需另装 REA 或填写路径。在“设置 → 模式 → 逆向配置”可检测连接，或按需配置 Ghidra、Java、IDA MCP。已验证 229 个工具目录、JavaScript 分析及 Ghidra 12.1.4 原生分析；该版本不支持 Ghidra 12.2。调用要求完全权限，随问不能启动。保存配置会关闭现有连接，重开样本后继续。
 
-需要 **Node.js 24.9+、Corepack 和 Git**。
+源码开发建议使用 **Node.js 24.22.1 LTS、Corepack 和 Git**；其他 Node 版本需满足 REA 的兼容要求。桌面安装包自带运行时。
 
 ```powershell
 corepack pnpm install
@@ -91,6 +91,6 @@ Windows 安装器使用独立 DSHU 标识。自行打包时，`DSH_DESKTOP_APP_I
 
 [DB-IP Lite](https://db-ip.com/db/download/ip-to-country-lite)：目标保护开发后端使用的本地国家数据，按 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 保留署名。数据是地区估计，不能替代手动生产目标规则；默认产品尚未启用完整保护。
 
-[REA](https://github.com/morluto/rea)：morluto 维护的开源逆向工具，采用 MIT 许可。本项目通过 MCP 连接已安装的 REA；分析引擎保留各自许可。
+[REA](https://github.com/morluto/rea)：morluto 维护，采用 MIT 许可。内置 6.8.0，源节点 [160d821ac9a0](https://github.com/morluto/rea/commit/160d821ac9a0310afcb8d1fc427862dd6508add5)，保留上游许可、第三方声明及依赖许可文件；分析引擎保留各自许可。关于页同时显示版本、仓库、提交与依赖说明。
 
 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)：DeepSeek 原始工程及鲸鱼轮廓；黑底应用图标基于该轮廓调整，旁问、费用和限额图标在仓库内绘制并保留矢量代码。保留 [MIT 许可](LICENSES/deepseek-harness-MIT.txt)。<br>[dsh-purge](https://github.com/YuJunZhiXue/dsh-purge)：小杨（YuJunZhiXue）；破甲文本追溯至 [MIT 版本 e1d8e590](https://github.com/Water-Run/dsh-purge/tree/e1d8e59087857fa86d0ef2bb9878800274b13a29)，[原始许可](LICENSES/dsh-purge-MIT.txt)随仓库保留。<br>[dsh-purge-plus](https://github.com/JeffKeeping/dsh-purge-plus)：JeffKeeping；保留 purge fork 所要求的来源署名。<br>[Water-Run/dsh-purge](https://github.com/Water-Run/dsh-purge)：本分支对照的个人 fork，版本节点与时间见应用“关于”。<br>GitHub 图标来自 [Octicons](https://github.com/primer/octicons)，保留其 [MIT 许可](packages/client/ui-settings-account/GITHUB-MARK-LICENSE.txt)。<br>dsh-purge 后续专有许可分支不作为复制源码的授权依据；这里保留的是上述旧 MIT 文本的许可。

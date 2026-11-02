@@ -12,11 +12,11 @@ export interface ReaExecutionLease {
 
 /** Persisted launch preferences; executable paths refer to physical host files. */
 export interface ReaOptions {
-  /** Permit Reverse conversations to start REA; defaults to false. */
+  /** Permit Reverse conversations to start the bundled REA; defaults to true. Saved opt-outs remain off. */
   enabled: boolean
-  /** Physical executable for a Node version supported by the installed REA. */
+  /** Optional physical Node override; empty uses the application's compatible runtime. */
   nodePath: string
-  /** Physical path to the installed rea-agents/scripts/rea.mjs entry. */
+  /** Optional physical REA override; empty uses the pinned bundled package. */
   cliPath: string
   /** Optional Ghidra installation directory; empty delegates discovery to REA. */
   ghidraPath: string

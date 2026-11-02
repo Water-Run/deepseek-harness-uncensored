@@ -3,6 +3,7 @@ import { Context, Service, type Volatile } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/cordis-plugin-loader'
 import { ReaConnection } from './connection.ts'
+import { resolveReaLaunch } from './launch.ts'
 import type { ReaOptions, ReaExecutionLease } from './types.ts'
 
 export type { ReaOptions, ReaProbe, ReaExecutionLease } from './types.ts'
@@ -11,7 +12,7 @@ declare module '@deepseek-ai/cordis' {
   interface Context { /** REA connection owner and persisted launch preferences. */ rea: ReaService }
 }
 
-/** Config defaults leave external execution disabled until the owner configures REA. */
+/** Launch preferences; blank paths use the bundled REA and application runtime. */
 interface LiveOptions {
   /** Permit Reverse conversations to start REA. */
   enabled: Volatile<boolean>
@@ -36,7 +37,7 @@ interface LiveOptions {
 }
 type ServiceConfig = Partial<ReaOptions> | LiveOptions
 export const Config: z<Partial<ReaOptions>, LiveOptions> = z.object({
-  enabled: z.boolean().default(false).volatile(), nodePath: z.string().default('').volatile(), cliPath: z.string().default('').volatile(),
+  enabled: z.boolean().default(true).volatile(), nodePath: z.string().default('').volatile(), cliPath: z.string().default('').volatile(),
   ghidraPath: z.string().default('').volatile(), javaHome: z.string().default('').volatile(), idaConfig: z.string().default('').volatile(),
   provider: z.union(['auto', 'ghidra', 'ida', 'hopper', 'kuna']).default('auto').volatile(),
   startupTimeoutMs: z.natural().min(1000).max(600000).default(60000).volatile(),
@@ -71,9 +72,6 @@ export default class ReaService extends Service {
     super(ctx, 'rea')
     this.config = typeof config.enabled === 'object' ? config : Config(config)
     this.namespace = ctx.fiber.entry?.options.id
-    if (this.options.enabled && (this.options.nodePath.trim() === '' || this.options.cliPath.trim() === '')) {
-      throw new Error('REA requires both a Node executable and the installed REA CLI path')
-    }
     let previous = JSON.stringify(this.options)
     ctx.on('loader/volatile-update', () => {
       const current = JSON.stringify(this.options)
@@ -115,7 +113,7 @@ export default class ReaService extends Service {
     signal.throwIfAborted()
     const execution = this.acquireExecution()
     let connection: ReaConnection
-    try { connection = new ReaConnection(this.options, cwd, execution, (error) => { this.ctx.logger.error('REA execution could not close: %o', error) }) }
+    try { connection = new ReaConnection(resolveReaLaunch(this.options), cwd, execution, (error) => { this.ctx.logger.error('REA execution could not close: %o', error) }) }
     catch (error) { execution?.release(); throw error }
     this.connections.add(connection)
     const dispose = async (): Promise<void> => { await connection.close(); this.connections.delete(connection) }

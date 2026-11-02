@@ -69,6 +69,24 @@ function repositoryFixture(version = '1.2.3-rc.4'): string {
 }
 
 describe('client build environment', () => {
+  it('records the pinned REA source and rejects a metadata/package version mismatch', () => {
+    const root = repositoryFixture()
+    const rea = { version: '6.8.0', commit: COMMIT_HASH, commitTime: '2026-10-25T08:35:15Z', repository: 'https://github.com/morluto/rea' }
+    const product = { version: '0.1.0', upstreamVersion: '1.2.3', rea,
+      purge: { commit: COMMIT_HASH, commitTime: '2026-10-22T00:00:00Z' } }
+    write(join(root, 'product.json'), JSON.stringify(product))
+    write(join(root, 'apps/desktop/package.json'), JSON.stringify({ version: '0.1.0' }))
+    write(join(root, 'apps/cli/package.json'), JSON.stringify({ dshProductVersion: '0.1.0' }))
+    write(join(root, 'packages/mcp/rea/package.json'), JSON.stringify({ dependencies: { 'rea-agents': '6.8.0' } }))
+    const environment = officialClientBuildEnvironment(root)
+    expect(environment).toMatchObject({ DSH_CLIENT_REA_VERSION: '6.8.0', DSH_CLIENT_REA_COMMIT: COMMIT_HASH,
+      DSH_CLIENT_REA_DATE: rea.commitTime, DSH_CLIENT_REA_REPOSITORY: rea.repository })
+    expect(resolveClientBuildEnvironment(environment, 'local')).toMatchObject({ DSH_CLIENT_REA_VERSION: '6.8.0', DSH_CLIENT_REA_COMMIT: COMMIT_HASH })
+    write(join(root, 'packages/mcp/rea/package.json'), JSON.stringify({ dependencies: { 'rea-agents': '6.7.0' } }))
+    expect(() => officialClientBuildEnvironment(root)).toThrow('dependency must match product.json')
+    write(join(root, 'product.json'), JSON.stringify({ ...product, rea: { ...rea, commit: 'invalid' } }))
+    expect(() => officialClientBuildEnvironment(root)).toThrow('full commit')
+  })
   it('preserves a supplied fork build timestamp and rejects invalid values', () => {
     const root = repositoryFixture()
     write(join(root, 'product.json'), JSON.stringify({ version: '0.1.0', upstreamVersion: '1.2.3-rc.4',

@@ -44,7 +44,8 @@
     "@deepseek-ai/schemastery": "workspace:~",
     "@deepseek-ai/dsh-subprocess": "workspace:*",
     "@deepseek-ai/dsh-mcp-client": "workspace:*",
-    "@modelcontextprotocol/client": "2.2.0"
+    "@modelcontextprotocol/client": "2.2.0",
+    "rea-agents": "6.8.0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~",

@@ -232,9 +232,6 @@ export class ModeDossiers extends TypertRemoteService {
   @Remote
   async configureRea(request: { options: ReaOptions; expectedRevision: number }): Promise<void> {
     this.assertReaOwner()
-    if (request.options.enabled && (request.options.nodePath.trim() === '' || request.options.cliPath.trim() === '')) {
-      throw new Error('REA requires both a Node executable and the installed REA CLI path')
-    }
     const rea = this.ctx.get('rea'), settings = this.ctx.get('settings')
     if (rea?.namespace === undefined || settings === undefined) throw new Error('REA settings are unavailable')
     await settings.update(rea.namespace, request.options, request.expectedRevision)

@@ -33,7 +33,8 @@ export const CLIENT_BUILD_RECORD_PATH = '.dsh-build/client-build-environment.jso
 
 const CLIENT_BUILD_RECORD_FORMAT = 1
 const FORK_BUILD_KEYS = ['DSH_CLIENT_FORK_VERSION', 'DSH_CLIENT_UPSTREAM_VERSION', 'DSH_CLIENT_COMMIT_DATE',
-  'DSH_CLIENT_BUILD_TIME', 'DSH_CLIENT_PURGE_COMMIT', 'DSH_CLIENT_PURGE_DATE'] as const
+  'DSH_CLIENT_BUILD_TIME', 'DSH_CLIENT_PURGE_COMMIT', 'DSH_CLIENT_PURGE_DATE',
+  'DSH_CLIENT_REA_VERSION', 'DSH_CLIENT_REA_COMMIT', 'DSH_CLIENT_REA_DATE', 'DSH_CLIENT_REA_REPOSITORY'] as const
 
 /** Product-owned fork labels; repositories without product.json retain their selected build identity. */
 function forkBuildEnvironment(root: string, environment: NodeJS.ProcessEnv): ClientBuildEnvironment {
@@ -45,6 +46,21 @@ function forkBuildEnvironment(root: string, environment: NodeJS.ProcessEnv): Cli
   }
   if (!isObject(product.purge) || typeof product.purge.commit !== 'string' || typeof product.purge.commitTime !== 'string') {
     throw new Error('product.json must record the incorporated purge commit and commitTime')
+  }
+  const rea: Record<string, string> = {}
+  if (product.rea !== undefined) {
+    if (!isObject(product.rea) || typeof product.rea.version !== 'string'
+      || typeof product.rea.commit !== 'string' || !/^[a-f0-9]{40}$/u.test(product.rea.commit)
+      || typeof product.rea.commitTime !== 'string' || !Number.isFinite(Date.parse(product.rea.commitTime))
+      || typeof product.rea.repository !== 'string' || !/^https:\/\/github\.com\/[\w.-]+\/[\w.-]+$/u.test(product.rea.repository)) {
+      throw new Error('product.json must record the REA version, full commit, commitTime and GitHub repository')
+    }
+    const manifest: unknown = JSON.parse(readFileSync(resolve(root, 'packages/mcp/rea/package.json'), 'utf8'))
+    if (!isObject(manifest) || !isObject(manifest.dependencies) || manifest.dependencies['rea-agents'] !== product.rea.version) {
+      throw new Error('The bundled rea-agents dependency must match product.json')
+    }
+    Object.assign(rea, { DSH_CLIENT_REA_VERSION: product.rea.version, DSH_CLIENT_REA_COMMIT: product.rea.commit,
+      DSH_CLIENT_REA_DATE: product.rea.commitTime, DSH_CLIENT_REA_REPOSITORY: product.rea.repository })
   }
   const desktop: unknown = JSON.parse(readFileSync(resolve(root, 'apps/desktop/package.json'), 'utf8'))
   const cli: unknown = JSON.parse(readFileSync(resolve(root, 'apps/cli/package.json'), 'utf8'))
@@ -60,6 +76,7 @@ function forkBuildEnvironment(root: string, environment: NodeJS.ProcessEnv): Cli
   }
   return {
     ...OFFICIAL_CLIENT_BUILD_ENVIRONMENT,
+    ...rea,
     DSH_CLIENT_FORK_VERSION: product.version,
     DSH_CLIENT_UPSTREAM_VERSION: product.upstreamVersion,
     DSH_CLIENT_BUILD_TIME: buildTime,

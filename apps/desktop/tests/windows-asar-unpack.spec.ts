@@ -1,4 +1,6 @@
 import { chmod, lstat, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -78,6 +80,8 @@ async function fixture(external: boolean) {
     ['@deepseek-ai/libreoffice-kit', { name: '@deepseek-ai/libreoffice-kit', optionalDependencies: { '@deepseek-ai/libreoffice-kit-win32-x64': '0.0.4' }, dependencies: { 'office-codec': '1' } }],
     ['@deepseek-ai/libreoffice-kit-win32-x64', { name: '@deepseek-ai/libreoffice-kit-win32-x64' }],
     ['office-codec', { name: 'office-codec' }],
+    ['rea-agents', { name: 'rea-agents', dependencies: { 'rea-codec': '1' } }],
+    ['rea-codec', { name: 'rea-codec' }],
   ] as const) {
     const directory = join(source, 'node_modules', name)
     await mkdir(directory, { recursive: true })
@@ -288,6 +292,25 @@ it.each([false, true])('keeps the complete Office engine outside ASAR with exter
     expect(archive.getFile(join('dsh', engine, file), false).unpacked).toBe(true)
     expect(await readFile(join(input.resources, 'app.asar.unpacked', 'dsh', engine, file), 'utf8')).toBe('{}')
   }
+})
+
+it.each([false, true])('runs bundled REA dependencies outside ASAR with external source=%s', async (external) => {
+  const input = await fixture(external)
+  const entry = join(input.source, 'node_modules', 'rea-agents')
+  await mkdir(join(entry, 'scripts'))
+  await writeFile(join(entry, 'scripts', 'rea.mjs'), "import codec from 'rea-codec'; console.log(codec)\n")
+  await writeFile(join(input.source, 'node_modules', 'rea-codec', 'index.js'), "module.exports = 'bundled-rea-ready'\n")
+  const config = unsignedWindowsConfig('com.example.rea', input.source)
+  input.config.asarUnpack = [...config.asarUnpack]
+  await config.beforePack(input.context)
+  await packageFixture(input)
+  const archive = await readAsar(join(input.resources, 'app.asar'))
+  for (const name of ['rea-agents', 'rea-codec']) {
+    expect(archive.getFile(join('dsh', 'node_modules', name, 'package.json')).unpacked).toBe(true)
+  }
+  const command = join(input.resources, 'app.asar.unpacked', 'dsh', 'node_modules', 'rea-agents', 'scripts', 'rea.mjs')
+  const result = await promisify(execFile)(process.execPath, [command], { windowsHide: true, env: { ...process.env, NODE_OPTIONS: '' } })
+  expect(result.stdout.trim()).toBe('bundled-rea-ready')
 })
 
 async function seal(input: Awaited<ReturnType<typeof fixture>>): Promise<DesktopRuntimeDescriptor> {

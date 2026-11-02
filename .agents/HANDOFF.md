@@ -1,5 +1,21 @@
 # Uncensored 开发交接
 
+## REA 内置与模式化关于页（2026-11-02，安装包验收前）
+
+基点是已推送的 main `d9fa8ae230`。用户追加关于页随模式使用深蓝/深红等配色，并显示 REA 等依赖来源；仍授权继续完整 DSHU。实际剩余额度 24%，未用重置或购买额度；旧 40% 暂停阈值已被后续继续授权撤销。11:55 后允许按需操作桌面，但本节点仍使用后台测试，未再次 Computer Use、卸载或替换系统应用。
+
+`dsh-rea` 直接依赖官方 `rea-agents@6.8.0`，product.json 固定发布提交 `160d821ac9a0310afcb8d1fc427862dd6508add5`、时间、仓库与 229 工具数。默认启用、按需启动；已保存的关闭偏好保留。空路径解析为内置包及应用 Node，自定义路径移到设置的可选折叠区。Desktop Host 指定 primary-runtime Node；锁升级到 Node 24.22.1，四平台 SHA-256 来自官方校验表。未运行 REA setup，未改其他客户端配置。
+
+ASAR 释放规则复用从 Office 提取的安装依赖遍历，保留嵌套解析、必需 peer、兼容平台的可选包和资源；缺包、损坏的已安装可选包及越界解析失败。新增实际 builder/独立 Node 夹具验证 REA 与依赖在 ASAR 外可执行。Frida 17.23.2 安装脚本已读，明确允许此固定版本在源码和打包准备时安装；真实 N-API 绑定与本机设备初始化通过，没有附加目标进程。完整 Frida 插桩与商业引擎仍未验收。
+
+关于页改为读取现有模式强调色；深蓝、深红、深绿、深金均由真实当前对话状态驱动，未手改 DOM 伪造。新增 REA 版本、完整提交链接、时间、仓库、可选引擎说明及第三方声明入口。构建校验拒绝 product.json 与 npm pin 不一致。四模式、中英、深浅色和 390px 窄窗口已测；证据 `.dsh-build/visible-20261102/about-rea-*.png`、`rea-about-modes.json`。真实 Web `reaSettings/probeRea` 证明无需配置 Node/CLI 路径即可发现 229 项。
+
+验证：9 文件 107 项通过/3 跳过；声明与 primary-runtime 61 项通过/1 跳过；MCP 130 项、REA 保护/配置访问 10 项通过。新路径解析 4 项及覆盖率全部 100%。真实内置包 JavaScript 和现有 Ghidra 12.1.4/Java 27 自有样本两次验收均通过。完整 build 10/10，后续 build:check 2/2、JSDoc、定向 lint、i18n、README/配对通过。主要日志 `.dsh-build/rea-*-20261102.log`。首轮 registry 连接重置后以较低并发重试成功；Frida 构建最初被 pnpm 拦下，审核并添加精确允许项后安装成功。Frida 初次独立探针使用 symlink 路径导致解析失败，改从真实包目录解析后通过。
+
+打包 smoke 已新增真实 Desktop Host 下的 REA 版本、完整工具数和 JavaScript 样本检查，但完整安装包尚未跑完，11.05 保留进行中。后续从干净提交在已有 detached 验证树 `D:/Coding/deepseek-harness-uncensored-upstream-20261101` 快进并打包，避免把未提交的 Native Broker/Host 草稿混入交付。该树本节点检查为干净。可复用缓存与 `package:win:x64:unsigned`；主树 unsigned `--check` 已通过，勿用签名/上传流程。旧已验证包仍来自 `811717f230`。
+
+原 Native Broker/Host 文件仍待收尾，不装配为正式 Subprocess/PTY。已有 MXC 调用的生产依赖已随本节点补齐；后端未完成状态保持不变。2026-11-02 重新读取官方 Releases：主线仍为 0.2.2-alpha.2，维护线 rc.5；没有新主线版本需要迁移。README 和第三方声明已记录 REA 原样携带的许可材料；Frida npm/上游 Node 绑定缺少独立版权文件的限制按 REA 的原说明保留，不自行补造署名。
+
 ## 删除回归、关于页与顶部代理提醒（2026-11-02）
 
 基点 `b8b0dd4b29`，唯一命名分支 main，Goal active。用户授权按开发需要测试、卸载与安装；11:55 前不操作桌面，优先非 Computer Use。尝试查看原生界面时用户按 Escape 中止，此后只运行后台代码和无界面浏览器测试，未卸载或替换系统应用。最新实际额度为剩余 33%；后续明确继续的授权仍有效，未使用重置或购买额度。

@@ -3,17 +3,17 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/mcp/rea/README.md
 /:
-  en: 88eafe94cd714d5f
-  zh: 1e9b909342b3438f
+  en: c52463cddefc2fb8
+  zh: 000b3de4864e9ed6
 /deepseek-ai-dsh-rea:
   en: 9e5f8f1c015a7357
   zh: 012828c9c1f9bed9
 /deepseek-ai-dsh-rea/summary:
-  en: c7748455d0bc6391
-  zh: e244abd2d90b4557
+  en: 2272221a54cf8d9f
+  zh: 14cb07f6d238df95
 /deepseek-ai-dsh-rea/configuration:
-  en: 4a42a76769335a0d
-  zh: 2310041cda555e83
+  en: 307c1c8da30a5da3
+  zh: c1e9d302c71e8e58
 /deepseek-ai-dsh-rea/conversation-ownership:
   en: 6ca9053b003d796c
   zh: 99738ecdb06be415
@@ -24,11 +24,11 @@
   en: 2eb65ac7528d94f1
   zh: 83897894c1c6140a
 /deepseek-ai-dsh-rea/known-limitations-and-deferred-work:
-  en: 54dc11bb73f10ba6
-  zh: 6f6f1e672a75e5a1
+  en: 44df6fa26cfbfe07
+  zh: a691317adfe31503
 /deepseek-ai-dsh-rea/verification:
-  en: 493fd861e9430819
-  zh: 10ccd7e278ed1104
+  en: e9135e1e0b125572
+  zh: d393af10f97a1d0a
 /deepseek-ai-dsh-rea/references:
-  en: c586828a2a62058a
-  zh: c3d82cf167f67fcc
+  en: 444497ec7bd253ad
+  zh: 5c475b57e632b1d5
