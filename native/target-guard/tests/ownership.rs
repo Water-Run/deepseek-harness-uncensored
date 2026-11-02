@@ -11,11 +11,20 @@ struct State {
     stuck: bool,
     reject: &'static str,
     calls: Vec<&'static str>,
+    recovery_owner: Option<Identity>,
 }
 struct Fake(Rc<RefCell<State>>);
 impl Backend for Fake {
     type Scope = ();
     type Lease = ();
+    fn recover(
+        &mut self,
+        owner: Option<&Identity>,
+    ) -> Result<dshu_target_guard::recovery::RecoveryReport, Failure> {
+        self.call("recover")?;
+        self.0.borrow_mut().recovery_owner = owner.cloned();
+        Ok(Default::default())
+    }
     fn validate(&mut self, _: &Admission) -> Result<(), Failure> {
         self.call("validate")
     }
@@ -310,4 +319,48 @@ fn filetime_is_not_truncated_to_a_javascript_number() {
         created: "134121339991234567".into(),
     };
     assert_eq!(identity.ticks().unwrap(), 134121339991234567);
+}
+
+#[test]
+fn recovery_uses_a_fresh_helper_without_admitting_an_execution() {
+    let (state, backend) = fixture();
+    let mut output = Vec::new();
+    serve(
+        backend,
+        Cursor::new("{\"operation\":\"recover\",\"sequence\":1}\n"),
+        &mut output,
+        tiny(),
+        tiny(),
+    )
+    .unwrap();
+    assert_eq!(state.borrow().calls, ["recover"]);
+    let reply: serde_json::Value = serde_json::from_slice(&output).unwrap();
+    assert_eq!(
+        reply["value"],
+        serde_json::json!({ "removed": [], "retained": [], "unrecognized": 0 })
+    );
+}
+
+#[test]
+fn recovery_cannot_be_mixed_with_an_active_guard() {
+    let (state, backend) = fixture();
+    let input = install() + "{\"operation\":\"recover\",\"sequence\":2}\n";
+    assert!(serve(backend, Cursor::new(input), Vec::new(), tiny(), tiny()).is_err());
+    assert!(!state.borrow().calls.contains(&"recover"));
+    assert!(!state.borrow().active);
+}
+
+#[test]
+fn selected_recovery_keeps_the_exact_original_owner_identity() {
+    let (state, backend) = fixture();
+    let owner = Identity {
+        pid: 123,
+        created: "134121339991234567".into(),
+    };
+    let input = format!(
+        "{}\n",
+        serde_json::json!({ "operation": "recover", "sequence": 1, "owner": owner })
+    );
+    serve(backend, Cursor::new(input), Vec::new(), tiny(), tiny()).unwrap();
+    assert_eq!(state.borrow().recovery_owner.as_ref(), Some(&owner));
 }

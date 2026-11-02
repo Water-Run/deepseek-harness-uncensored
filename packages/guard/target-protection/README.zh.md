@@ -56,7 +56,7 @@ kind: "package-reference"
 
 每次检查执行通过 `NODE_EXTRA_CA_CERTS`、`SSL_CERT_FILE`、`REQUESTS_CA_BUNDLE` 和 `CURL_CA_BUNDLE` 获得临时公开 CA 证书。签名私钥仅存于宿主内存，不修改系统信任或代理设置；应用须支持这些进程级设置。`maxHttpsCertificates` 默认 64，`httpsCertificateLifetimeMs` 默认一天；到期或容量耗尽后拒绝新隧道，需启动新执行。`connectTimeoutMs` 限定准备及握手时间，`requestTimeoutMs` 限定完整检查连接的时间，包括未完成的请求头。关闭时等待转发请求结束后才释放保护。
 
-私有 Broker 还接受供 [Windows WFP 辅助程序](../../../native/target-guard/README.zh.md)使用的内部 `ingress` 配置。它保留第二个独立观察的 Job，等待原生规则安装完成后才放行工作进程；辅助程序失效时停止该范围，独立进程计数归零后才释放规则。公开原生提供方及默认 profile 未启用这条开发路径。提权、受保护安装、遗留规则恢复和高权限网络成功验收仍未完成；权限不足时拒绝执行，不放宽策略。
+私有 Broker 还接受供 [Windows WFP 辅助程序](../../../native/target-guard/README.zh.md)使用的内部 `ingress` 配置。它保留第二个独立观察的 Job，等待原生规则安装完成后才放行工作进程；辅助程序失效时停止该范围，独立进程计数归零后才释放规则。独立恢复客户端分别报告已删除、保留和无法识别的记录；进程身份未知或系统启动身份变化时保留规则。公开原生提供方及默认 profile 未启用这条开发路径。提权、受保护安装和高权限网络/恢复成功验收仍未完成；权限不足时拒绝执行，不放宽策略。
 
 规则库默认开启大陆保护。装配 `./country` 可使用固定版本的 DB-IP Lite 数据，`path` 默认指向内置文件，`maxBytes` 默认 32 MiB，`maxAgeDays` 默认 45。缺失、损坏、未来或过期数据不能证明目标位于境外；`.cn` 与中文中国域名标签作为独立依据。无法确认的名称或地区按拒绝处理，精确测试例外除外。界面不会将部分后端展示为完整保护。
 

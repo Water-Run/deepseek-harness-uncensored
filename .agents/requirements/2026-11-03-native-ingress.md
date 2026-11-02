@@ -37,8 +37,8 @@ node packages/guard/target-protection/tests/fixtures/native-wfp-access-probe.mjs
 
 - [ ] 〔进行中〕独立 WFP 辅助程序已有 Rust 实现和私有继承管道；它不自动提权。接口只接受核验后的 Job/容器，不提供通用防火墙规则、命令或任意文件接口。跨完整性级别启动及受保护部署仍待实现。
 - [ ] 〔进行中〕已核验调用进程/目标 PID 的精确创建时间、同一账户、Job 归属与容器 SID；复制句柄保持原权限并要求已有查询/终止权。还须验证真实高权限过滤，以及普通子进程和嵌套容器不能脱离规则。
-- [ ] 〔进行中〕正常清理已实现先确认整个 Job 归零、再事务删除自身对象；异常退出采用持久规则保留。遗留恢复尚未实现，不能仅凭父 PID 消失删除规则，因为后代可能仍存活。
-- [ ] 实现构建、部署、权限不足和撤销路径；需要管理员参与的实际验收，留到辅助程序及操作范围可审查后进行。不得静默修改全局 BFE 权限或退回宽松执行。
+- [ ] 〔进行中〕正常清理已实现先确认整个 Job 归零、再事务删除自身对象；异常退出采用持久规则保留。同一次系统启动内的遗留恢复已实现并通过进程观测验证，管理员实际删除与跨系统重启维护未完成。不能仅凭父 PID 或 Job 名称消失删除规则。
+- [ ] 实现受保护部署、正式提权和撤销路径。管理员夹具已可审查，仅操作临时容器及本次所有者记录；本次 UAC 启动被取消，没有写入 WFP 规则。不得静默修改全局 BFE 权限或退回宽松执行。
 - [ ] 覆盖 TCP/UDP、IPv4/IPv6、本机及独立网络对端、允许的出站代理、直接绕过、取消和异常关闭；通过后再接入默认 profile、产品状态及 P3 审计。
 
 ## 已接通的基础链路
@@ -49,6 +49,20 @@ node packages/guard/target-protection/tests/fixtures/native-wfp-access-probe.mjs
 - [x] Windows 最终 122 项（含相邻宿主检查）、Linux 79 项可移植 TypeScript 测试通过，客户端/Broker/Job 所有者三个模块覆盖率全部 100%。Linux 不代表实现了 WFP 后端。
 - [x] Windows 原生验证调用者创建时间错误、仅查询 Job 句柄不被扩权、WFP 权限不足时目标未放行，以及完整 Host/Broker 失败后的范围回收与保护修订释放。
 - [x] 编译后的 Host/Broker/辅助程序链再次拒绝权限不足，并核对目标文件未生成、范围已关闭和原规则可更新。
-- [ ] 管理员权限下的成功安装、实际流量阻止与撤销尚未运行；未触发 UAC、安装服务或向系统写入过滤规则。
+- [ ] 管理员权限下的成功安装、实际流量阻止与撤销尚未运行；UAC 启动被取消，未安装服务或向系统写入过滤规则。
 
-证据为 `.dsh-build/target-guard-tests-final-20261103.log`、`target-guard-clippy-20261103.log`、`native-ingress-portable-tests-20261103.log`、`native-ingress-linux-20261103.log`、`native-ingress-access-runtime-20261103.log`、`native-ingress-broker-runtime2-20261103.log` 和 `native-ingress-built-20261103.log`。完整工程 build 10/10、后续 build:check 2/2 通过。下一步先完成受控恢复和部署/提权设计，再做管理员实测；其余 SQL、远端资源身份及产品联动任务均保留。
+基础链路证据为 `.dsh-build/target-guard-tests-final-20261103.log`、`target-guard-clippy-20261103.log`、`native-ingress-portable-tests-20261103.log`、`native-ingress-linux-20261103.log`、`native-ingress-access-runtime-20261103.log`、`native-ingress-broker-runtime2-20261103.log` 和 `native-ingress-built-20261103.log`。完整工程 build 10/10、后续 build:check 2/2 通过；其余 SQL、远端资源身份及产品联动任务均保留。
+
+## 同启动内遗留恢复
+
+第 2 版 provider 记录包含账户、原所有者/辅助进程/目标身份、容器 SID、系统启动身份及准入前进程集合。新的 `recover` 操作可限定原所有者的 PID 与精确 FILETIME；仅处理当前账户的受支持记录。旧版或损坏记录单独计数并保留，不能从显示名称推断归属。已结束对象的删除在每个事务内复查记录、对象关联、动作、条件和标记。
+
+在可信引导屏障关闭时取得进程集合；[内核进程序号](https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysysteminformation)用于识别 PID 复用。恢复须确认原三个进程已结束，集合外全部进程均可分类，且前后快照相同；任何同容器进程、不可读取身份或变化均保留规则。系统启动身份读取采用 [PHNT 的 BootEnvironment 定义](https://github.com/winsiderss/phnt/blob/master/ntexapi.h)，读取失败或启动身份不同则拒绝自动清理；跨系统重启的维护仍待实现。没有用创建时间排序推断后代，也没有以命名 Job 不存在当作空 Job。
+
+- [x] Rust 34 项测试覆盖协议、选择原所有者、PID 复用、残留后代、快照变化及系统启动变化；Clippy 无告警检查通过。
+- [x] Windows 客户端 14 项及原生拒绝 4 项通过；Linux 客户端 14 项通过，新增恢复模块覆盖率 100%。
+- [x] 真实只读观测：活动容器返回 `scope-active`，终止并等待退出后返回 `quiescent`；没有 WFP 写入。
+- [x] 本机对照夹具的 TCP/UDP、IPv4/IPv6 四项入站与出站均可通信，临时容器及目录已清理。
+- [ ] 具备管理员令牌后运行固定夹具，验证四项入站阻止、出站保持、活动记录拒绝恢复、正常删除与辅助程序崩溃后的删除；仅限该次所有者，不检查或删除其他遗留规则。
+
+恢复源代码为 `native/target-guard/src/recovery.rs`、`src/windows/observation.rs`、`src/windows/recovery.rs` 和 `packages/guard/target-protection/src/native-ingress-recovery.ts`。验收入口为 `native/target-guard/tests/windows-acceptance.mjs`，非提权对照使用 `--baseline`。日志为 `.dsh-build/target-recovery-tests-final-20261103.log`、`target-recovery-clippy-final-20261103.log`、`target-recovery-runtime-final-20261103.log`、`target-recovery-linux-20261103.log` 和 `target-recovery-observe-final-20261103.log`。

@@ -1,5 +1,17 @@
 # Uncensored 开发交接
 
+## 遗留规则恢复与验收夹具（2026-11-03）
+
+基点 `3d6b6e070b`，Goal 继续 active，完整范围保留。新增 Rust 恢复记录/原生观测/WFP 归属复查、TypeScript 一次性恢复客户端及本机验收夹具。默认 profile 和安装版仍未启用入站辅助程序；系统安装版仍为 `0e3e8d4261`。当前额度实际剩余 73%，没有兑换或购买。
+
+恢复按认证账户及可选原所有者 PID/精确 FILETIME 选取记录。每项事务重查原进程、关联 WFP 规则和同容器残留进程；快照不完整、仍活动、对象修改或系统启动身份变化时保留。内核序号处理 PID 复用，第 2 版记录持有系统启动身份及准入前进程集合；旧版不猜测迁移。跨系统重启维护仍待实现，不能删除仅凭名称或父 PID 消失判断的对象。客户端分别报告已删除、保留、无法识别；取消/超时可能已有部分清理，不能自动重放。
+
+验证：Rust 34 项、Clippy -D warnings；Windows 客户端 14 项及真实非提权拒绝 4 项、Linux 客户端 14 项通过，恢复模块覆盖率 100%。实际 MXC 容器存活时只读观测拒绝清理，终止后确认空闲；普通本机对照的 TCP/UDP IPv4/IPv6 均能通信。管理员夹具已准备，仅使用临时容器和本次所有者记录；启动 UAC 返回“操作已被用户取消”，没有成功提权或写入 WFP。不重复弹出 UAC，不能将过滤成功、正常删除或崩溃删除标成通过。
+
+恢复入口：`native/target-guard/src/recovery.rs`、`src/windows/observation.rs`、`src/windows/recovery.rs`、`native-ingress-recovery.ts`。`native/target-guard/tests/windows-acceptance.mjs --baseline` 可在普通权限复现对照；不带参数需要已有管理员令牌，不自行提权。父进程对恢复请求的原所有者字段做独立校验，防止旧编译产物扩大维护范围。后续先完成管理员实测、跨重启清理和受保护部署，再接公开配置、默认 profile、审计和界面；P2 数据库/远端身份与 P3 联动任务不删除。
+
+最终完整 build 10/10 通过，编译后的恢复客户端同样报告实际权限拒绝；JSDoc、定向 lint、两个中英文档配对和 root README gate 通过。日志：`.dsh-build/target-recovery-build-final2-20261103.log`、`target-recovery-built-20261103.log`、`target-recovery-tests-final-20261103.log`、`target-recovery-clippy-final-20261103.log`、`target-recovery-client-tests3-20261103.log`、`target-recovery-runtime-final-20261103.log`、`target-recovery-linux-20261103.log`、`target-recovery-observe-final-20261103.log`。管理员对照结果在 `.dsh-build/guard-admin-results`；其中只有 baseline 记录，不能当作 WFP 成功记录。
+
 ## 入站辅助程序基础实现（2026-11-03）
 
 基点 `c3c88be8a2`，Goal active，完整范围不变。新增 `native/target-guard` 私有 Rust 组件、`native-ingress.ts` 客户端和 Broker 的内部可选 `ingress` 配置。公开 `subprocess-native` 配置、用户界面、默认 profile 与安装包均未启用该组件；系统仍为 `0e3e8d4261` 检查版。本节点没有 UAC、服务安装或成功写入系统 WFP 规则。

@@ -16,6 +16,9 @@ use windows_sys::Win32::System::Rpc::{UuidCreate, RPC_C_AUTHN_WINNT};
 use windows_sys::Win32::System::SystemServices::{JOB_OBJECT_QUERY, JOB_OBJECT_TERMINATE};
 use windows_sys::Win32::System::Threading::*;
 
+mod observation;
+mod recovery;
+
 fn status(code: u32, operation: &'static str) -> Result<(), Failure> {
     if code == 0 {
         return Ok(());
@@ -63,6 +66,57 @@ fn guid_text(value: &GUID) -> String {
     )
 }
 
+fn current_identity() -> Result<Identity, Failure> {
+    let pid = unsafe { GetCurrentProcessId() };
+    let created = process_time(unsafe { GetCurrentProcess() })?;
+    Ok(Identity {
+        pid,
+        created: created.to_string(),
+    })
+}
+
+fn process_time(handle: HANDLE) -> Result<u64, Failure> {
+    let mut created = FILETIME::default();
+    let mut exited = FILETIME::default();
+    let mut kernel = FILETIME::default();
+    let mut user = FILETIME::default();
+    boolean(
+        unsafe { GetProcessTimes(handle, &mut created, &mut exited, &mut kernel, &mut user) },
+        "GetProcessTimes",
+    )?;
+    Ok((u64::from(created.dwHighDateTime) << 32) | u64::from(created.dwLowDateTime))
+}
+
+fn identity_alive(identity: &Identity) -> Result<bool, Failure> {
+    let expected = identity.ticks()?;
+    let raw = unsafe {
+        OpenProcess(
+            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SYNCHRONIZE,
+            0,
+            identity.pid,
+        )
+    };
+    if raw.is_null() {
+        let code = unsafe { GetLastError() };
+        if code == ERROR_INVALID_PARAMETER {
+            return Ok(false);
+        }
+        return Err(os_failure(code, "OpenProcess(recovery identity)"));
+    }
+    let handle = Handle(raw);
+    if process_time(handle.0)? != expected {
+        return Ok(false);
+    }
+    match unsafe { WaitForSingleObject(handle.0, 0) } {
+        WAIT_OBJECT_0 => Ok(false),
+        WAIT_TIMEOUT => Ok(true),
+        _ => Err(os_failure(
+            unsafe { GetLastError() },
+            "WaitForSingleObject(recovery identity)",
+        )),
+    }
+}
+
 struct Handle(HANDLE);
 impl Drop for Handle {
     fn drop(&mut self) {
@@ -87,15 +141,7 @@ fn process(identity: &Identity, access: u32) -> Result<Handle, Failure> {
         return Err(os_failure(unsafe { GetLastError() }, "OpenProcess"));
     }
     let owned = Handle(handle);
-    let mut created = FILETIME::default();
-    let mut exited = FILETIME::default();
-    let mut kernel = FILETIME::default();
-    let mut user = FILETIME::default();
-    boolean(
-        unsafe { GetProcessTimes(handle, &mut created, &mut exited, &mut kernel, &mut user) },
-        "GetProcessTimes",
-    )?;
-    let observed = (u64::from(created.dwHighDateTime) << 32) | u64::from(created.dwLowDateTime);
+    let observed = process_time(handle)?;
     if observed != expected || unsafe { WaitForSingleObject(handle, 0) } != WAIT_TIMEOUT {
         return Err(Failure::new(
             "identity-changed",
@@ -127,7 +173,7 @@ pub struct Scope {
     job: Handle,
     _target: Handle,
     sid: Vec<u32>,
-    metadata: Vec<u8>,
+    record: crate::recovery::RecoveryRecord,
 }
 
 /// Object keys are created by this helper and never supplied by an IPC caller.
@@ -159,6 +205,12 @@ impl WindowsBackend {
                     "The private pipe was not created by the expected caller.",
                 ));
             }
+        }
+        if optional_container_sid(&process)?.is_some() {
+            return Err(Failure::new(
+                "caller-contained",
+                "A contained target cannot act as the guard owner.",
+            ));
         }
         Ok(Self {
             owner: process,
@@ -208,6 +260,29 @@ impl WindowsBackend {
     }
 }
 
+/// Read-only diagnostics for controlled Windows acceptance fixtures; this does not authorize deletion.
+pub fn inspect_recovery_record(record: &crate::recovery::RecoveryRecord) -> Result<(), Failure> {
+    record.validate()?;
+    observation::quiescent(record)
+}
+
+/// Capture kernel identities for a controlled fixture before its target exists; no process names are returned.
+pub fn recovery_fixture_cohort(
+) -> Result<(Vec<crate::recovery::ProcessStamp>, String, String), Failure> {
+    let owner = process(&current_identity()?, 0)?;
+    Ok((
+        observation::snapshot()?,
+        user_sid(&owner)?,
+        observation::boot_identity()?,
+    ))
+}
+
+/// Inspect only a fixture-owned process using caller rights; no privilege is enabled by this operation.
+pub fn recovery_fixture_target(identity: &Identity) -> Result<String, Failure> {
+    let target = process(identity, 0)?;
+    Ok(container_sid(&target)?.1)
+}
+
 impl Drop for WindowsBackend {
     fn drop(&mut self) {
         // These sessions are not dynamic: an unexpected helper exit must not remove admission filters.
@@ -223,6 +298,12 @@ impl Drop for WindowsBackend {
 impl Backend for WindowsBackend {
     type Scope = Scope;
     type Lease = Lease;
+    fn recover(
+        &mut self,
+        owner: Option<&Identity>,
+    ) -> Result<crate::recovery::RecoveryReport, Failure> {
+        self.recover_owned(owner)
+    }
 
     fn validate(&mut self, admission: &Admission) -> Result<Scope, Failure> {
         if unsafe { WaitForSingleObject(self.owner.0, 0) } != WAIT_TIMEOUT {
@@ -303,16 +384,38 @@ impl Backend for WindowsBackend {
             ));
         }
         let (sid, text) = container_sid(&target)?;
-        let metadata = serde_json::to_vec(
-            &serde_json::json!({ "format": "dshu-target-guard/1", "owner": self.identity,
-            "target": admission.target, "sid": text }),
-        )
-        .map_err(|error| Failure::new("invalid-identity", error.to_string()))?;
+        let snapshot = observation::snapshot()?;
+        let target_stamp = *snapshot
+            .iter()
+            .find(|stamp| stamp.pid == admission.target.pid)
+            .ok_or_else(|| {
+                Failure::new(
+                    "observation-unavailable",
+                    "The bootstrap disappeared before cohort capture.",
+                )
+            })?;
+        let helper = current_identity()?;
+        let record = crate::recovery::RecoveryRecord {
+            format: crate::recovery::RECORD_FORMAT.into(),
+            boot: observation::boot_identity()?,
+            scope: String::new(),
+            filters: Default::default(),
+            owner: self.identity.clone(),
+            helper,
+            target: admission.target.clone(),
+            user_sid: user_sid(&self.owner)?,
+            container_sid: text,
+            target_stamp,
+            prior: snapshot
+                .into_iter()
+                .filter(|stamp| stamp.pid != admission.target.pid)
+                .collect(),
+        };
         Ok(Scope {
             job,
             _target: target,
             sid,
-            metadata,
+            record,
         })
     }
 
@@ -326,7 +429,18 @@ impl Backend for WindowsBackend {
             guid_text(&lease.provider)
         ));
         let mut provider_key = lease.provider;
-        let mut metadata = scope.metadata.clone();
+        let mut record = scope.record.clone();
+        record.scope = guid_text(&lease.provider);
+        record.filters = lease.filters.map(|key| guid_text(&key));
+        record.validate()?;
+        let mut metadata = serde_json::to_vec(&record)
+            .map_err(|error| Failure::new("invalid-record", error.to_string()))?;
+        if metadata.len() > crate::recovery::MAX_RECORD_BYTES {
+            return Err(Failure::new(
+                "invalid-record",
+                "Guard record exceeds its byte bound.",
+            ));
+        }
         self.transaction(|engine| {
             let provider = FWPM_PROVIDER0 {
                 providerKey: lease.provider,
@@ -438,6 +552,15 @@ impl Backend for WindowsBackend {
 }
 
 fn container_sid(process: &Handle) -> Result<(Vec<u32>, String), Failure> {
+    optional_container_sid(process)?.ok_or_else(|| {
+        Failure::new(
+            "not-contained",
+            "The target must have an AppContainer identity.",
+        )
+    })
+}
+
+fn optional_container_sid(process: &Handle) -> Result<Option<(Vec<u32>, String)>, Failure> {
     let mut raw = null_mut();
     boolean(
         unsafe { OpenProcessToken(process.0, TOKEN_QUERY, &mut raw) },
@@ -459,10 +582,7 @@ fn container_sid(process: &Handle) -> Result<(Vec<u32>, String), Failure> {
         "GetTokenInformation(TokenIsAppContainer)",
     )?;
     if is_container == 0 {
-        return Err(Failure::new(
-            "not-contained",
-            "The target must have an AppContainer identity.",
-        ));
+        return Ok(None);
     }
     unsafe { GetTokenInformation(token.0, TokenAppContainerSid, null_mut(), 0, &mut length) };
     if length == 0 || length > 4096 {
@@ -497,9 +617,17 @@ fn container_sid(process: &Handle) -> Result<(Vec<u32>, String), Failure> {
         unsafe { CopySid(size, sid.as_mut_ptr().cast(), info.TokenAppContainer) },
         "CopySid",
     )?;
+    let result = sid_text(info.TokenAppContainer)?;
+    Ok(Some((sid, result)))
+}
+
+fn sid_text(sid: PSID) -> Result<String, Failure> {
+    if sid.is_null() || unsafe { IsValidSid(sid) } == 0 {
+        return Err(Failure::new("invalid-identity", "Invalid Windows SID."));
+    }
     let mut text = null_mut();
     boolean(
-        unsafe { ConvertSidToStringSidW(info.TokenAppContainer, &mut text) },
+        unsafe { ConvertSidToStringSidW(sid, &mut text) },
         "ConvertSidToStringSidW",
     )?;
     let result = unsafe {
@@ -511,43 +639,41 @@ fn container_sid(process: &Handle) -> Result<(Vec<u32>, String), Failure> {
         LocalFree(text.cast::<c_void>());
         value
     };
-    Ok((sid, result))
+    Ok(result)
 }
 
 fn same_user(owner: &Handle, target: &Handle) -> Result<bool, Failure> {
-    fn identity(process: &Handle) -> Result<Vec<usize>, Failure> {
-        let mut raw = null_mut();
-        boolean(
-            unsafe { OpenProcessToken(process.0, TOKEN_QUERY, &mut raw) },
-            "OpenProcessToken",
-        )?;
-        let token = Handle(raw);
-        let mut length = 0;
-        unsafe { GetTokenInformation(token.0, TokenUser, null_mut(), 0, &mut length) };
-        if length < size_of::<TOKEN_USER>() as u32 || length > 4096 {
-            return Err(Failure::new(
-                "invalid-identity",
-                "Unexpected user token information size.",
-            ));
-        }
-        let mut buffer = vec![0usize; (length as usize).div_ceil(size_of::<usize>())];
-        boolean(
-            unsafe {
-                GetTokenInformation(
-                    token.0,
-                    TokenUser,
-                    buffer.as_mut_ptr().cast(),
-                    length,
-                    &mut length,
-                )
-            },
-            "GetTokenInformation(TokenUser)",
-        )?;
-        Ok(buffer)
+    Ok(user_sid(owner)? == user_sid(target)?)
+}
+
+fn user_sid(process: &Handle) -> Result<String, Failure> {
+    let mut raw = null_mut();
+    boolean(
+        unsafe { OpenProcessToken(process.0, TOKEN_QUERY, &mut raw) },
+        "OpenProcessToken",
+    )?;
+    let token = Handle(raw);
+    let mut length = 0;
+    unsafe { GetTokenInformation(token.0, TokenUser, null_mut(), 0, &mut length) };
+    if length < size_of::<TOKEN_USER>() as u32 || length > 4096 {
+        return Err(Failure::new(
+            "invalid-identity",
+            "Unexpected user token information size.",
+        ));
     }
-    let owner_buffer = identity(owner)?;
-    let target_buffer = identity(target)?;
-    let owner_info = unsafe { &*owner_buffer.as_ptr().cast::<TOKEN_USER>() };
-    let target_info = unsafe { &*target_buffer.as_ptr().cast::<TOKEN_USER>() };
-    Ok(unsafe { EqualSid(owner_info.User.Sid, target_info.User.Sid) } != 0)
+    let mut buffer = vec![0usize; (length as usize).div_ceil(size_of::<usize>())];
+    boolean(
+        unsafe {
+            GetTokenInformation(
+                token.0,
+                TokenUser,
+                buffer.as_mut_ptr().cast(),
+                length,
+                &mut length,
+            )
+        },
+        "GetTokenInformation(TokenUser)",
+    )?;
+    let info = unsafe { &*buffer.as_ptr().cast::<TOKEN_USER>() };
+    sid_text(info.User.Sid)
 }

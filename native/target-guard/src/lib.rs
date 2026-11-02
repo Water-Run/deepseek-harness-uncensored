@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::io::{BufRead, Read, Write};
 use std::time::{Duration, Instant};
 
+pub mod recovery;
 #[cfg(windows)]
 pub mod windows;
 
@@ -38,9 +39,21 @@ pub struct Admission {
 #[derive(Debug, Deserialize)]
 #[serde(tag = "operation", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum Request {
-    Install { sequence: u32, admission: Admission },
-    Release { sequence: u32 },
-    Stop { sequence: u32 },
+    Install {
+        sequence: u32,
+        admission: Admission,
+    },
+    Release {
+        sequence: u32,
+    },
+    Stop {
+        sequence: u32,
+    },
+    Recover {
+        sequence: u32,
+        #[serde(default)]
+        owner: Option<Identity>,
+    },
 }
 
 impl Request {
@@ -48,7 +61,8 @@ impl Request {
         match self {
             Self::Install { sequence, .. }
             | Self::Release { sequence }
-            | Self::Stop { sequence } => *sequence,
+            | Self::Stop { sequence }
+            | Self::Recover { sequence, .. } => *sequence,
         }
     }
 }
@@ -108,6 +122,8 @@ pub trait Backend {
     fn terminate(&mut self, scope: &Self::Scope) -> Result<(), Failure>;
     fn remove(&mut self, lease: &Self::Lease) -> Result<(), Failure>;
     fn label(&self, lease: &Self::Lease) -> String;
+    /// Remove only validated orphaned records belonging to the authenticated account.
+    fn recover(&mut self, owner: Option<&Identity>) -> Result<recovery::RecoveryReport, Failure>;
 }
 
 pub struct Controller<B: Backend> {
@@ -171,6 +187,23 @@ impl<B: Backend> Controller<B> {
         self.scope = None;
         self.closed = true;
         Ok(())
+    }
+
+    pub fn recover(
+        &mut self,
+        owner: Option<&Identity>,
+    ) -> Result<recovery::RecoveryReport, Failure> {
+        if self.installed || self.closed {
+            return Err(Failure::new(
+                "invalid-state",
+                "Recovery requires a fresh maintenance helper.",
+            ));
+        }
+        if let Some(owner) = owner {
+            owner.ticks()?;
+        }
+        self.closed = true;
+        self.backend.recover(owner)
     }
 
     pub fn shutdown(&mut self, budget: Duration, poll: Duration) -> Result<(), Failure> {
@@ -239,6 +272,12 @@ pub fn serve<B: Backend>(
                 Request::Stop { .. } => controller
                     .shutdown(budget, poll)
                     .map(|_| serde_json::Value::Null),
+                Request::Recover { owner, .. } => {
+                    controller.recover(owner.as_ref()).and_then(|report| {
+                        serde_json::to_value(report)
+                            .map_err(|error| Failure::new("transport-failed", error.to_string()))
+                    })
+                }
             };
             let failed = result.is_err();
             let reply = match result {

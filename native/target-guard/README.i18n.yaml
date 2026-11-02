@@ -3,14 +3,17 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write native/target-guard/README.md
 /dshu-native-target-guard:
-  en: 4da0333e170c234e
-  zh: 5d2cd45a8227345f
+  en: 6333e83d125b3a74
+  zh: 6e77680a22db3f96
 /dshu-native-target-guard/ownership:
-  en: 0666bdefa185127c
-  zh: 0ef7d8283f91dca7
+  en: d97963fe36891531
+  zh: ca7a4ec350f2c283
+/dshu-native-target-guard/recovery:
+  en: f11028d8cfd9b771
+  zh: 14bf9c92549283fa
 /dshu-native-target-guard/development-checks:
-  en: b31c576f80493c01
-  zh: 13d9cbbb52cb378b
+  en: 9b8f1b99108ce84b
+  zh: 261dd43949804fcd
 /dshu-native-target-guard/license:
   en: 6d549471264ed3ed
   zh: 992e9d8d8218f18e

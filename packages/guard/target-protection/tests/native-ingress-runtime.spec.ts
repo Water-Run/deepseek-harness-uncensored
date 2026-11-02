@@ -12,12 +12,21 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { describe, expect, it, onTestFinished } from 'vitest'
 import { readNativeBootstrapIdentity } from '../src/native-bootstrap.ts'
 import { startNativeIngress } from '../src/native-ingress.ts'
+import { recoverNativeIngress } from '../src/native-ingress-recovery.ts'
 
 const helper = process.env.DSH_NATIVE_INGRESS_HELPER
 const supported = process.platform === 'win32' && helper !== undefined && probe().tier === 'base-container'
 const elevated = process.env.DSH_NATIVE_INGRESS_TEST_ELEVATED === '1'
 
 describe.skipIf(!supported)('private native ingress helper', () => {
+  it.skipIf(elevated)('refuses recovery when the authenticated account lacks WFP enumeration permission', async () => {
+    if (helper === undefined) throw new Error('Helper path required')
+    await expect(recoverNativeIngress({ executable: helper, requestTimeoutMs: 10000, shutdownTimeoutMs: 10000,
+      pollIntervalMs: 10, diagnosticMaxBytes: 4096 }, new AbortController().signal)).rejects.toMatchObject({
+      code: 'TARGET_INGRESS_RECOVERY_REFUSED', cause: { code: 'permission-required', win32: 5 },
+    })
+  })
+
   it('does not increase a borrowed query-only Job handle and leaves an unadmitted target alive', async () => {
     if (helper === undefined) throw new Error('Helper path required')
     const root = await mkdtemp(join(tmpdir(), 'dshu-ingress-access-')), nonce = randomUUID()
