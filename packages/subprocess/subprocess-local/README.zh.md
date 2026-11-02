@@ -48,6 +48,8 @@ Windows 普通子进程通过 `windowsHide` 启动私有 Job runner，并为原�
 
 `./output` 导出向进程适配器共享该收集器与保留 spill 的存储。`snapshot()` 返回保留的原始字节及总字节数，使远程适配器能够保留偏移量，而无需转发完整的流。
 
+`./managed` 库向受限进程适配器共享 `launchWindowsJob`、`bindManagedProcess`、`validateSubprocessSpec` 及其归属类型。`launchWindowsJob` 直接使用原生 Job runner，不选择较弱回退；独立的环境参数就是完整目标环境。调用者负责原始管道、直接结果观察、整个进程范围的终止和清理。`bindManagedProcess` 可为另一个 `ManagedProcessLaunch` 接入既有的输出收集和取消生命周期。这些辅助函数管理进程生命周期，不限制文件或网络访问。
+
 ### 控制传输
 
 普通 spawn 可以请求 [subprocess 控制管道](../subprocess/README.zh.md#using-a-control-pipe)。Node 目标在所有受支持的宿主上均收到 fd 7；Windows 描述符编号依赖 CRT 初始化。POSIX runner 在 `execve` 时保留该描述符；Windows Job 和 ACL runner 在 Node 初始化前通过子进程的 CRT 启动表建立它，并在 spawn 后关闭自身的承载副本。标准流与 runner 的私有管理通道保持独立。

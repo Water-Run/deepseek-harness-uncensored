@@ -1,5 +1,19 @@
 # Uncensored 开发交接
 
+## 内层命令范围与自然完成（2026-11-02）
+
+基点是已推送的唯一 main `0bf2867009`。用户再次明确“继续，完成 DSHU”；Goal active，仍按后台开发执行。最近实际剩余额度 41%；一次额度查询失败后重查成功，未使用免费重置或购买额度。完整原需求范围保留，安装器前台验收没有启动。
+
+`native-worker.ts` 已移除直接 Node spawn，改为复用严格 `launchWindowsJob`。新增 `subprocess-local/managed` 公开既有 launcher、binder、校验器与归属类型，补齐源码别名、构建入口、共享块发布规则。命令直接退出后继续等待真实内层范围；分离后代可自然结束或经终止帧停止，最后引导自行退出，宿主仍要独立确认外层 Job。`accepted` 只表示管道受理，不证明开始执行；私有启动请求新增必填 `graceMs`，增加 `terminate` 和 `rangeExited`。工作进程测试的 Node 适配器仅用于跨平台传输测试，生产默认不走弱回退。
+
+实际发现 MXC 会把临时目录重定向到私有根下尚未创建的 `Packages/sandbox.../AC/Temp`。引导新增第五个业务参数 `temporaryRoot`（nonce、entry、hook、tsconfig 之后），只在准入后于该根内创建临时目录并复核真实路径。实际目标 mkdtemp、越界拒绝、源码和编译链均通过。旧 `native-worker-built-20261102.mjs` 使用上一版私有协议，恢复时用新的 `native-range-built-20261102.mjs`。
+
+验证：Linux 85 项、四模块覆盖率均 100%；Windows 两组独立进程各 33 项通过；既有原生执行 5 项及源码/编译 runner 2 项通过。真实容器普通命令、分离后代自然/主动结束、继承生产拒绝和临时目录共 7 项。故意把范围等待改成直接结果等待时，两个后代测试均在错误完成通知上失败，源码已按原字节恢复。编译产物不使用源码钩子，192 KiB 往返、目标退出码 23、引导自然退出 0、生产保持不变、外层 Job 归零。完整 build 10/10、发布与别名 177 项、NodeNext 392 API、publint、JSDoc、定向 lint 和三组 README 配对通过。日志均在 `.dsh-build/native-range-*-20261102.log`。
+
+恢复入口：继续宿主 Native Subprocess 适配器，复用 `bindManagedProcess` 和 collect/spill。需把 SDK 启动期间也纳入可观察范围，不能在部分启动失败时只信 SDK 自报清理；可优先验证用严格 Job 拥有专用可信 Broker，再由 Broker 启动 MXC。此 Broker/宿主适配器尚未实现，仍须保持规则、代理和临时资源至真正关闭。之后继续受保护目标代理、PTY、其他数据库/远端身份及 P3 审计、设置联动。
+
+过程中误用了 `gen-module-graph`；它只生成文档，不生成源码别名。仅将它新生成的 3 个未跟踪文档移到 `.dsh-build/native-range-doc-graph-20261102`，未改历史文档。正确的 `gen-tsconfig-paths` 管理包主入口，新 `./managed` 子路径已在其生成区外显式加入。Linux 同步脚本为 `native-range-linux-20261102.sh`；私有 WSL 验证目录未变，不重新应用旧锁补丁。现有安装包仍是 `811717f230`，没有替换正式应用。
+
 ## 可信命令工作进程与帧传输（2026-11-02）
 
 基点为已推送的唯一 main `7d4bd67ef2`；Goal active，继续后台开发。最近实际账户剩余 44%，未使用重置或购买额度；没有打开安装器或替换正式应用。

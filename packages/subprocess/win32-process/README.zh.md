@@ -26,7 +26,7 @@ kind: "package-library"
 
 `buildCommandLine(program, args)` 公开进程启动器使用的 Win32 argv 引号处理，不会调用 shell。
 
-`observedWindowsBootstrapPath()` 定位随包发布的私有引导文件。它报告启动随机标识、PID 与创建 FILETIME，然后等待一个准入字节，之后才加载工作进程或源码 TypeScript 钩子。启动所有者提供可信的工作进程路径，以及不含目标预加载设置的显式引导环境；该文件不自行构建策略或授权。
+`observedWindowsBootstrapPath()` 定位随包发布的私有引导文件。它报告启动随机标识、PID 与创建 FILETIME，然后等待一个准入字节，之后才加载工作进程或源码 TypeScript 钩子。启动所有者提供可信的工作进程路径、私有临时根目录及不含目标预加载设置的显式引导环境。准入后，引导仅在该根目录内创建操作系统重定向的临时目录，并检查解析后的路径；它不自行构建策略或授权。
 
 `currentWindowsProcessIdentity()` 返回当前 PID 和精确的创建 FILETIME。`attachObservedWindowsJob()` 在已打开的进程句柄上核对该身份，再把可信引导进程加入独立持有的 kill-on-close Job。启动握手必须核对随机标识，并在分配成功前阻止目标工作运行。引导进程此前不得创建子进程或加入其他 Job，启动时不得使用预加载钩子；已有后代不会被纳入。`waitForExit()` 确认活动成员归零，取消返回 false，原生查询失败抛出错误；`close()` 拒绝关闭仍活动的 Job。即使 SDK 已报告完成，执行器仍须保留保护及网络资源，直到此项确认完成。该原语本身不启动或隔离命令。
 

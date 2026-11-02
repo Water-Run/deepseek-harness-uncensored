@@ -28,6 +28,10 @@
       "types": "./lib/types/output.d.ts",
       "default": "./lib/output.js"
     },
+    "./managed": {
+      "types": "./lib/types/managed.d.ts",
+      "default": "./lib/managed.js"
+    },
     "./locale/*.json": "./locale/*.json"
   },
   "files": [
@@ -36,6 +40,9 @@
     "lib/runner.js",
     "lib/runner-*.js",
     "lib/output.js",
+    "lib/managed.js",
+    "lib/windows-job-*.js",
+    "lib/linux-execve-*.js",
     "scripts/ensure-spawn-helper.mjs",
     "lib/types/**/*.d.ts"
   ],

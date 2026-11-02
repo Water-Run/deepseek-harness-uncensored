@@ -75,21 +75,115 @@ async function fixture(source: string, extraReadonlyPaths: string[] = []) {
   return { root, ctx, request, files, releases }
 }
 
+async function stopNativeRange(job: ObservedWindowsJob | undefined, release: (() => void) | undefined): Promise<void> {
+  if (job === undefined) throw new Error('Native Job is not attached')
+  job.terminate(1)
+  expect(await job.waitForExit(10, AbortSignal.timeout(30_000))).toBe(true)
+  release?.()
+}
+
 describe.skipIf(!supported)('Windows native target policy with MXC', () => {
+  it('rejects a redirected temporary directory outside the owned root before loading the worker', async () => {
+    const repository = fileURLToPath(new URL('../../../..', import.meta.url))
+    const h = await fixture('', [repository]), nonce = randomUUID()
+    const command = buildCommandLine(process.execPath, [observedWindowsBootstrapPath(), nonce,
+      new URL('./must-not-load.mjs', import.meta.url).href, '', '', join(h.root, 'work')])
+    const native = await spawn({ ...h.request, command }), errors = capture(native.standardError)
+    const input = native.standardInput, output = native.standardOutput
+    let job: ObservedWindowsJob | undefined, remainder: Promise<string> | undefined
+    try {
+      if (input === null || output === null) throw new Error('Native transport is missing')
+      job = attachObservedWindowsJob(await readNativeBootstrapIdentity(output, nonce, native.id, AbortSignal.timeout(10_000)))
+      remainder = capture(output)
+      input.write(Uint8Array.of(1))
+      expect(await native.wait()).toEqual({ exitCode: 127, timedOut: false })
+      expect(await remainder).toBe('')
+      expect(await errors).toContain('temporary directory escaped its private root')
+      expect(await job.waitForExit(10, AbortSignal.timeout(30_000))).toBe(true)
+    } finally {
+      try {
+        native.kill(); await native.wait()
+        if (job !== undefined) { await stopNativeRange(job, undefined); job.close() }
+        await remainder
+      } finally { native.dispose() }
+    }
+  })
+
+  it.each(['natural', 'terminate'] as const)('retains a detached command descendant until %s completion', async (finish) => {
+    const repository = fileURLToPath(new URL('../../../..', import.meta.url))
+    const h = await fixture('', [repository]), nonce = randomUUID(), work = join(h.root, 'work')
+    const command = buildCommandLine(process.execPath, [observedWindowsBootstrapPath(), nonce,
+      new URL('../src/native-worker.ts', import.meta.url).href, import.meta.resolve('tsx/esm/api'),
+      join(repository, 'tsconfig.base.json'), join(h.root, 'temporary')])
+    const native = await spawn({ ...h.request, command }), errors = capture(native.standardError)
+    const input = native.standardInput, output = native.standardOutput
+    let job: ObservedWindowsJob | undefined, release: (() => void) | undefined, reading: Promise<void> | undefined
+    const stop = () => stopNativeRange(job, release)
+    try {
+      if (input === null || output === null) throw new Error('Native transport is missing')
+      job = attachObservedWindowsJob(await readNativeBootstrapIdentity(output, nonce, native.id, AbortSignal.timeout(10_000)))
+      release = h.ctx.targetProtection.retainNativeExecution(h.files.revision, stop)
+      const direct = Promise.withResolvers<unknown>(), complete = Promise.withResolvers<undefined>()
+      let rangeExited = false
+      reading = (async () => {
+        for await (const frame of readNativeFrames(output)) {
+          if (frame.tag === NATIVE_FRAME.failed) throw new Error(Buffer.from(frame.data).toString())
+          if (frame.tag === NATIVE_FRAME.exited) direct.resolve(JSON.parse(Buffer.from(frame.data).toString()))
+          if (frame.tag === NATIVE_FRAME.rangeExited) { rangeExited = true; complete.resolve(undefined) }
+        }
+      })().catch((error: unknown) => { direct.reject(error); complete.reject(error); throw error })
+      void reading.catch(() => {}); void complete.promise.catch(() => {})
+      const descendant = `const fs=require('node:fs'),root=${JSON.stringify(work)};
+try{fs.writeFileSync(root+'/production/data.txt','wrong');process.exit(99)}catch(error){fs.writeFileSync(root+'/denied.txt',error.code)}
+let tick=0;const timer=setInterval(()=>{fs.writeFileSync(root+'/heartbeat.txt',String(++tick));if(fs.existsSync(root+'/release.txt')){clearInterval(timer);fs.writeFileSync(root+'/finished.txt','natural')}},25);`
+      const parent = `const fs=require('node:fs');const c=require('node:child_process').spawn(process.execPath,['-e',${JSON.stringify(descendant)}],{stdio:'ignore',detached:true,windowsHide:true});c.unref();
+const timer=setInterval(()=>{if(fs.existsSync(${JSON.stringify(join(work, 'heartbeat.txt'))})){clearInterval(timer);process.exit(23)}},10);`
+      input.write(Uint8Array.of(1))
+      await writeNativeFrame(input, { tag: NATIVE_FRAME.launch, data: Buffer.from(JSON.stringify({
+        argv: [process.execPath, '-e', parent], cwd: work, env: h.request.environment,
+        stdin: 'ignore', control: false, graceMs: 1000,
+      })) })
+      expect(await direct.promise).toEqual({ exitCode: 23, signal: null })
+      let firstTick: number | undefined
+      await expect.poll(async () => {
+        const value = await readFile(join(work, 'heartbeat.txt'), 'utf8')
+        if (!/^[1-9]\d*$/.test(value)) return false
+        const tick = Number(value)
+        if (firstTick === undefined) { firstTick = tick; return false }
+        return tick > firstTick
+      }).toBe(true)
+      expect(rangeExited).toBe(false)
+      expect(await readFile(join(work, 'denied.txt'), 'utf8')).toBe('EPERM')
+      if (finish === 'natural') await writeFile(join(work, 'release.txt'), 'finish')
+      else await writeNativeFrame(input, { tag: NATIVE_FRAME.terminate, data: Buffer.alloc(0) })
+      await complete.promise
+      expect(await native.wait()).toEqual({ exitCode: 0, timedOut: false })
+      await reading
+      expect(await job.waitForExit(10, AbortSignal.timeout(30_000))).toBe(true)
+      release()
+      expect(await readFile(join(work, 'production', 'data.txt'), 'utf8')).toBe('production-preserve')
+      if (finish === 'natural') expect(await readFile(join(work, 'finished.txt'), 'utf8')).toBe('natural')
+      else await expect(readFile(join(work, 'finished.txt'))).rejects.toMatchObject({ code: 'ENOENT' })
+      expect(await errors).toBe('')
+    } finally {
+      try {
+        native.kill(); await native.wait()
+        if (job !== undefined) { await stop(); job.close() }
+        await reading
+      } finally { native.dispose() }
+    }
+  })
+
   it('runs the production bootstrap and framed worker only after native attachment', async () => {
     const repository = fileURLToPath(new URL('../../../..', import.meta.url))
     const h = await fixture('', [repository]), nonce = randomUUID()
     const command = buildCommandLine(process.execPath, [observedWindowsBootstrapPath(), nonce,
-      new URL('../src/native-worker.ts', import.meta.url).href, import.meta.resolve('tsx/esm/api'), join(repository, 'tsconfig.base.json')])
+      new URL('../src/native-worker.ts', import.meta.url).href, import.meta.resolve('tsx/esm/api'),
+      join(repository, 'tsconfig.base.json'), join(h.root, 'temporary')])
     const native = await spawn({ ...h.request, command }), errors = capture(native.standardError)
     const input = native.standardInput, output = native.standardOutput
     let job: ObservedWindowsJob | undefined, release: (() => void) | undefined
-    const stop = async () => {
-      if (job === undefined) throw new Error('Native Job is not attached')
-      job.terminate(1)
-      expect(await job.waitForExit(10, AbortSignal.timeout(30_000))).toBe(true)
-      release?.()
-    }
+    const stop = () => stopNativeRange(job, release)
     try {
       if (input === null || output === null) throw new Error('Native transport is missing')
       const identity = await readNativeBootstrapIdentity(output, nonce, native.id, AbortSignal.timeout(10_000))
@@ -99,37 +193,38 @@ describe.skipIf(!supported)('Windows native target policy with MXC', () => {
       await writeNativeFrame(input, { tag: NATIVE_FRAME.launch, data: Buffer.from(JSON.stringify({
         argv: [process.execPath, '-e', `
 const fs=require('node:fs'),root=${JSON.stringify(h.root)};
+fs.mkdtempSync(require('node:path').join(require('node:os').tmpdir(),'native-target-'));
 try { fs.writeFileSync(root+'/work/production/data.txt','wrong'); process.exit(99); } catch(error) { if(error.code!=='EPERM') throw error; }
 fs.writeFileSync(root+'/work/native-output.txt','confined');
 process.stdout.write(Buffer.alloc(192*1024,97),()=>{process.stderr.write('separate stderr');process.exitCode=23});`],
-        cwd: join(h.root, 'work'), env: h.request.environment, stdin: 'ignore', control: false,
+        cwd: join(h.root, 'work'), env: h.request.environment, stdin: 'ignore', control: false, graceMs: 1000,
       })) })
-      let started = false, result: unknown
+      let accepted = false, rangeExited = false, result: unknown
       const stdout: Buffer[] = [], stderr: Buffer[] = [], closed = new Set<number>()
       const frames = readNativeFrames(output)
       while (true) {
         const item = await frames.next()
         if (item.done) break
         const frame = item.value
-        if (frame.tag === NATIVE_FRAME.started) started = true
+        if (frame.tag === NATIVE_FRAME.accepted) accepted = true
+        if (frame.tag === NATIVE_FRAME.rangeExited) rangeExited = true
         if (frame.tag === NATIVE_FRAME.stdout) stdout.push(Buffer.from(frame.data))
         if (frame.tag === NATIVE_FRAME.stderr) stderr.push(Buffer.from(frame.data))
         if (frame.tag === NATIVE_FRAME.streamClosed) closed.add(Buffer.from(frame.data).readUInt8(0))
         if (frame.tag === NATIVE_FRAME.exited) result = JSON.parse(Buffer.from(frame.data).toString())
         if (frame.tag === NATIVE_FRAME.failed) throw new Error(Buffer.from(frame.data).toString())
-        if (result !== undefined && closed.has(NATIVE_FRAME.stdout) && closed.has(NATIVE_FRAME.stderr)) break
       }
-      expect(started).toBe(true)
+      expect(accepted).toBe(true)
+      expect(rangeExited).toBe(true)
       expect(result).toEqual({ exitCode: 23, signal: null })
       expect(Buffer.concat(stdout)).toEqual(Buffer.alloc(192 * 1024, 97))
       expect(Buffer.concat(stderr).toString()).toBe('separate stderr')
-      expect(job.isEmpty()).toBe(false)
+      expect(await job.waitForExit(10, AbortSignal.timeout(30_000))).toBe(true)
       expect(await readFile(join(h.root, 'work', 'production', 'data.txt'), 'utf8')).toBe('production-preserve')
       expect(await readFile(join(h.root, 'work', 'native-output.txt'), 'utf8')).toBe('confined')
-      const drained = (async () => { while (!(await frames.next()).done) { /* The Job owns the final transport EOF. */ } })()
-      await stop()
-      await drained
-      expect((await native.wait()).timedOut).toBe(false)
+      const outcome = await native.wait()
+      expect(outcome).toEqual({ exitCode: 0, timedOut: false })
+      release()
       expect(await errors).toBe('')
     } finally {
       try { native.kill(); await native.wait(); if (job !== undefined) { await stop(); job.close() } }
