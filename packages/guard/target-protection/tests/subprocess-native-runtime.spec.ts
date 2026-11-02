@@ -11,6 +11,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { tmpdir } from 'node:os'
 import { once } from 'node:events'
 import { createServer } from 'node:http'
+import { createServer as createSecureServer } from 'node:https'
+import * as tls from 'node:tls'
+import { generate } from 'selfsigned'
 import type { AddressInfo } from 'node:net'
 import { extendWin32ProcessBindings, isNullPtr, type CurrentTokenProcessBindings, type NativePtr } from '@deepseek-ai/dsh-win32-process'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
@@ -21,7 +24,7 @@ import NativeSubprocess from '../src/subprocess-native.ts'
 
 const supported = process.platform === 'win32' && probe().tier === 'base-container'
 
-async function fixture(network: 'disabled' | 'gateway' = 'disabled') {
+async function fixture(network: 'disabled' | 'gateway' = 'disabled', httpsInspection = false) {
   const root = await mkdtemp(join(tmpdir(), 'dshu-native-provider-')), ctx = new Context()
   const work = join(root, 'work'), temporary = join(root, 'private'), production = join(work, 'production.txt')
   const listeners = process.listenerCount('exit')
@@ -38,6 +41,7 @@ async function fixture(network: 'disabled' | 'gateway' = 'disabled') {
     __NETWORK__: network, __WORK__: work, __PWSH__: pwsh }
   let config = await readFile(new URL('./fixtures/native.cordis.yml', import.meta.url), 'utf8')
   for (const [key, value] of Object.entries(replacements)) config = config.replace(key, JSON.stringify(value))
+  config = config.replace('    network:', `    httpsInspection: ${String(httpsInspection)}\n    network:`)
   const path = join(root, 'cordis.yml')
   await writeFile(path, config)
   await ctx.plugin(Loader)
@@ -131,6 +135,53 @@ async function direct(){return new Promise(resolve=>{const socket=net.connect(po
       } finally { await terminal.terminate() }
     }
     expect(connections).toEqual([1, 0])
+  })
+
+  it.each(['command', 'terminal'] as const)('inspects %s HTTPS inside the native range without trusting the CA system-wide', async (kind) => {
+    const h = await fixture('gateway', true), material = await generate([{ name: 'commonName', value: '127.0.0.1' }], {
+      keyType: 'ec', algorithm: 'sha256', extensions: [{ name: 'subjectAltName', altNames: [{ type: 7, ip: '127.0.0.1' }] }],
+    })
+    const original = tls.getCACertificates('default')
+    onTestFinished(() => { tls.setDefaultCACertificates(original) })
+    tls.setDefaultCACertificates([...original, material.cert])
+    let requests = 0
+    const target = createSecureServer({ key: material.private, cert: material.cert }, (_request, response) => {
+      requests++; response.end('native HTTPS target')
+    })
+    onTestFinished(async () => {
+      target.closeAllConnections()
+      await new Promise<void>((resolve, reject) => { target.close((error) => { if (error) reject(error); else resolve() }) })
+    })
+    await new Promise<void>((resolve) => { target.listen(0, '127.0.0.1', resolve) })
+    const port = (target.address() as AddressInfo).port, previous = await h.ctx.targetProtection.snapshot()
+    await h.ctx.targetProtection.configure({ mainlandEnabled: false, rules: [...previous.preferences.rules,
+      { id: '2e3a017d-ef02-427f-9c7f-860bed4d8148' as TargetRuleId, name: 'test HTTPS', enabled: true,
+        kind: 'server', environment: 'test', protection: 'full', match: 'host', address: '127.0.0.1', port },
+    ] }, previous.revision)
+    const program = `const https=require('node:https'),fs=require('node:fs'),net=require('node:net'),port=${port};
+async function get(host){return new Promise((resolve,reject)=>{https.get('https://127.0.0.1:'+port+'/',{headers:{host}},res=>{
+res.resume();res.on('end',()=>resolve(res.statusCode));res.on('error',reject)}).on('error',reject)})}
+async function direct(){return new Promise(resolve=>{const socket=net.connect(port,'127.0.0.1');socket.on('connect',()=>{socket.destroy();resolve('CONNECTED')});socket.on('error',error=>{socket.destroy();resolve(error.code)})})}
+(async()=>{const cert=fs.readFileSync(process.env.NODE_EXTRA_CA_CERTS,'utf8');process.stdout.write(JSON.stringify([
+await get('127.0.0.1:'+port),await get('production.test').catch(error=>error.code),await direct(),cert.includes('PRIVATE KEY')]))})()
+.catch(error=>{process.stderr.write(String(error));process.exitCode=1});`
+    if (kind === 'command') {
+      const handle = h.ctx.subprocess.spawn(h.spec(program))
+      const result = await handle.done
+      expect(result, handle.collected.stderr?.readFrom(0).text).toEqual({ exitCode: 0, signal: null })
+      expect(handle.collected.stdout?.readFrom(0).text).toBe('[200,"ECONNRESET","EACCES",false]')
+      expect(await handle.waitForExit()).toBe(true)
+    } else {
+      const terminal = await h.ctx.subprocess.spawnTerminal({ argv: [process.execPath, '-e', program], cwd: h.work,
+        cols: 80, rows: 24, terminalType: 'xterm', graceMs: 1000 })
+      let output = ''; terminal.output.on('data', (bytes: Buffer) => { output += bytes.toString() })
+      try {
+        expect(await terminal.done, output).toEqual({ exitCode: 0, signal: null })
+        expect(output).toContain('[200,"ECONNRESET","EACCES",false]')
+      } finally { await terminal.terminate() }
+    }
+    expect(requests).toBe(1)
+    expect(await readdir(h.temporary)).toEqual([])
   })
 
   it('cancels a running native command and waits for its entire managed range', async () => {

@@ -102,6 +102,7 @@
     "lib/types/**/*.d.ts"
   ],
   "dependencies": {
+    "selfsigned": "5.5.0",
     "node-pty": "1.1.0",
     "@deepseek-ai/dsh-brand": "workspace:*",
     "@deepseek-ai/schemastery": "workspace:~",
@@ -142,6 +143,7 @@
     "@deepseek-ai/dsh-win32-process": "workspace:*"
   },
   "devDependencies": {
+    "undici": "8.11.2",
     "@deepseek-ai/dsh-pwsh-local": "workspace:*",
     "@deepseek-ai/dsh-mcp-client": "workspace:*",
     "@deepseek-ai/dsh-system-prompt": "workspace:*",
@@ -175,7 +177,6 @@
     "@types/dns-packet": "5.6.5",
     "@deepseek-ai/dsh-credentials": "workspace:*",
     "@types/pg": "8.23.1",
-    "selfsigned": "4.0.1",
     "@deepseek-ai/dsh-browser-use": "workspace:*",
     "@deepseek-ai/dsh-experimental-browser-use-runtime": "workspace:*",
     "@deepseek-ai/dsh-experimental-browser-use-stagehand-native": "workspace:*",

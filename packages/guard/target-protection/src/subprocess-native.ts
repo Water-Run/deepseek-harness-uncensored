@@ -1,7 +1,7 @@
 /** Opt-in Windows native process provider; unsupported execution never uses an ordinary-process fallback. @module */
 import { Context, Service } from '@deepseek-ai/cordis'
 import schema from '@deepseek-ai/schemastery'
-import { mkdtemp, mkdir, realpath, rm, stat } from 'node:fs/promises'
+import { mkdtemp, mkdir, realpath, rm, stat, writeFile } from 'node:fs/promises'
 import { isAbsolute, join } from 'node:path'
 import type { Duplex } from 'node:stream'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
@@ -29,6 +29,10 @@ export interface NativeSubprocessConfig {
   temporaryRoot: string
   /** Gateway mode enforces egress but does not claim complete inbound isolation. */
   network: 'disabled' | 'gateway'
+  /** Inspect HTTP/1.1 over TLS with an execution-private CA; other CONNECT protocols are refused. */
+  httpsInspection?: boolean
+  maxHttpsCertificates?: number
+  httpsCertificateLifetimeMs?: number
   proxy?: { protocol: 'http' | 'https'; host: string; port: number; username?: string; passwordRef?: string } | undefined
   /** Maximum retained executions, including output settlement and cleanup. */
   maxProcesses?: number
@@ -55,6 +59,8 @@ export default class NativeTargetSubprocess extends LocalSubprocessRuntime {
   static Config: schema<NativeSubprocessConfig, Config> = schema.object({
     readonlyPaths: schema.array(String).required(), readwritePaths: schema.array(String).required(),
     temporaryRoot: schema.string().required(), network: schema.union(['disabled', 'gateway']).required(),
+    httpsInspection: schema.boolean().default(false), maxHttpsCertificates: schema.natural().min(1).max(4096).default(64),
+    httpsCertificateLifetimeMs: schema.natural().min(1000).max(MAX_TIMER_DELAY_MS).default(86400000),
     proxy: schema.union([schema.const(undefined), schema.object({ protocol: schema.union(['http', 'https']).required(),
       host: schema.string().required(), port: schema.natural().min(1).max(65535).required(),
       username: schema.string(), passwordRef: schema.string(),
@@ -82,6 +88,7 @@ export default class NativeTargetSubprocess extends LocalSubprocessRuntime {
     super(ctx)
     requireNativeRuntime(process.platform, process.versions.node, 'pkg' in process)
     this.nativeConfig = NativeTargetSubprocess.Config(config)
+    if (this.nativeConfig.httpsInspection && config.network !== 'gateway') throw new Error('HTTPS inspection requires the native gateway.')
     this.protection = ctx.targetProtection
     for (const path of [...config.readonlyPaths, ...config.readwritePaths, config.temporaryRoot]) {
       if (!isAbsolute(path)) throw new Error('Native subprocess grants and temporaryRoot must be absolute local paths.')
@@ -197,6 +204,9 @@ export default class NativeTargetSubprocess extends LocalSubprocessRuntime {
         gateway = await startNativeGateway(this.protection, { revision: files.revision, sessionId: null, tool: 'subprocess',
           ...upstream === undefined ? {} : { upstream }, stopExecution: stop,
           connectTimeoutMs: config.connectTimeoutMs, requestTimeoutMs: config.requestTimeoutMs,
+          ...config.httpsInspection ? { httpsInspection: { maxCertificates: config.maxHttpsCertificates,
+            certificateLifetimeMs: config.httpsCertificateLifetimeMs, handshakeTimeoutMs: config.connectTimeoutMs,
+            requestTimeoutMs: config.requestTimeoutMs } } : {},
         }, signal)
       } else release = this.protection.retainNativeExecution(files.revision, stop)
       bounded.throwIfAborted()
@@ -210,6 +220,17 @@ export default class NativeTargetSubprocess extends LocalSubprocessRuntime {
         USERPROFILE: directory, LOCALAPPDATA: directory })
       if (gateway !== undefined) Object.assign(environment, { HTTP_PROXY: gateway.url, HTTPS_PROXY: gateway.url,
         http_proxy: gateway.url, https_proxy: gateway.url, NO_PROXY: '', no_proxy: '', NODE_USE_ENV_PROXY: '1' })
+      if (gateway?.certificate !== undefined) {
+        const certificatePath = join(directory, 'https-ca.pem')
+        await writeFile(certificatePath, gateway.certificate, { flag: 'wx', mode: 0o600 })
+        for (const key of Object.keys(environment)) {
+          if (/^(NODE_EXTRA_CA_CERTS|SSL_CERT_FILE|REQUESTS_CA_BUNDLE|CURL_CA_BUNDLE)$/iu.test(key)) {
+            Reflect.deleteProperty(environment, key)
+          }
+        }
+        Object.assign(environment, { NODE_EXTRA_CA_CERTS: certificatePath, SSL_CERT_FILE: certificatePath,
+          REQUESTS_CA_BUNDLE: certificatePath, CURL_CA_BUNDLE: certificatePath })
+      }
       const carrier = launchNativeBroker(spec.graceMs, bounded)
       return { carrier, environment, config: { cwd: spec.cwd, temporaryRoot: directory,
         files: { readonlyPaths: files.readonlyPaths, readwritePaths: files.readwritePaths,

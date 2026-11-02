@@ -40,7 +40,7 @@ interface FixtureOptions {
 async function harness(options: FixtureOptions = {}) {
   const { full = false, hold = true, matchingCert = true, hostname = '127.0.0.1' } = options
   const root = await mkdtemp(join(tmpdir(), 'dshu-postgres-wire-')), ctx = new Context()
-  const material = generate([{ name: 'commonName', value: 'postgres.test' }], { keySize: 2048, days: 1, algorithm: 'sha256',
+  const material = await generate([{ name: 'commonName', value: 'postgres.test' }], { keySize: 2048, notAfterDate: new Date(Date.now() + 86400000), algorithm: 'sha256',
     extensions: [{ name: 'subjectAltName', altNames: matchingCert
       ? [{ type: 7, ip: '127.0.0.1' }, { type: 2, value: 'postgres.test' }]
       : [{ type: 2, value: 'wrong.test' }] }] })

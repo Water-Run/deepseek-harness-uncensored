@@ -140,6 +140,26 @@ it('resolves private paths and the scrubbed environment before starting the brok
   expect(handle.collected.stdout?.readFrom(0).text).toBe('owned output')
 })
 
+it('keeps HTTPS private keys in the Host and supplies only a temporary CA to native targets', async () => {
+  const h = await fixture({ network: 'gateway', httpsInspection: true })
+  const handle = h.ctx.subprocess.spawn({ ...h.spec(), env: { NODE_EXTRA_CA_CERTS: 'wrong.pem', CURL_CA_BUNDLE: 'wrong.pem' } })
+  const process = await h.started(), environment = await process.ready
+  const certificate = await readFile(environment.NODE_EXTRA_CA_CERTS!, 'utf8')
+  expect(certificate).toContain('BEGIN CERTIFICATE')
+  expect(certificate).not.toContain('PRIVATE KEY')
+  expect(environment.CURL_CA_BUNDLE).toBe(environment.NODE_EXTRA_CA_CERTS)
+  expect(environment.REQUESTS_CA_BUNDLE).toBe(environment.NODE_EXTRA_CA_CERTS)
+  expect(environment.SSL_CERT_FILE).toBe(environment.NODE_EXTRA_CA_CERTS)
+  expect(await readdir(environment.HOME!)).toEqual(['https-ca.pem'])
+  await process.finish(); await handle.done; await handle.waitForExit()
+  expect(await readdir(h.privateRoot)).toEqual([])
+})
+
+it('refuses HTTPS inspection without an execution gateway', async () => {
+  const h = await fixture({}, false)
+  expect(() => new NativeSubprocess(h.ctx, { ...h.config, httpsInspection: true })).toThrow('requires the native gateway')
+})
+
 it('enforces capacity until range closure and admits a later command', async () => {
   const h = await fixture(), first = h.ctx.subprocess.spawn(h.spec())
   expect(() => h.ctx.subprocess.spawn(h.spec())).toThrow(expect.objectContaining({ code: 'TARGET_NATIVE_CAPACITY' }))

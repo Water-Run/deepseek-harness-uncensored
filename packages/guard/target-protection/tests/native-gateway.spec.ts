@@ -3,6 +3,10 @@ import { Context } from '@deepseek-ai/cordis'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import { SessionChainProxy, type ChainOptions } from '@deepseek-ai/dsh-security-proxy-local'
 import { createServer, request, type Server, type ServerResponse } from 'node:http'
+import { createServer as createSecureServer } from 'node:https'
+import * as tls from 'node:tls'
+import { once } from 'node:events'
+import { generate } from 'selfsigned'
 import { connect, Socket, type AddressInfo } from 'node:net'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -108,6 +112,51 @@ it('forwards HTTP methods and bytes only to an explicit private test endpoint', 
   expect(h.seen).toEqual([{ method: 'POST', host: `target.test:${h.port}`, body: 'test payload' }])
   await gateway.close()
   expect(h.flows).toMatchObject([{ method: 'POST', outcome: 'complete', target: h.url + '/', responseBody: 'test payload' }])
+})
+
+it.skipIf(typeof tls.setDefaultCACertificates !== 'function')('inspects real HTTPS, validates each redirected target and retains upstream certificate checks', async () => {
+  const h = await fixture(), material = await generate([{ name: 'commonName', value: 'target.test' }], {
+    keyType: 'ec', algorithm: 'sha256', extensions: [{ name: 'subjectAltName', altNames: [{ type: 2, value: 'target.test' }] }],
+  })
+  const original = tls.getCACertificates('default')
+  onTestFinished(() => { tls.setDefaultCACertificates(original) })
+  tls.setDefaultCACertificates([...original, material.cert])
+  let requests = 0
+  const target = createSecureServer({ key: material.private, cert: material.cert }, (request, response) => {
+    requests++
+    if (request.url === '/redirect') response.writeHead(302, { location: `https://production.test:${port}/` })
+    response.end('secure target')
+  })
+  target.on('connection', h.own); target.on('tlsClientError', () => {})
+  h.servers.push(target)
+  await new Promise<void>((resolve) => { target.listen(0, '127.0.0.1', resolve) })
+  const port = (target.address() as AddressInfo).port
+  await h.configure([rule({ port }), rule({ id: '2e3a017d-ef02-427f-9c7f-860bed4d8148' as TargetRuleId,
+    environment: 'production', match: 'regex', address: '^production\\.', port })], false)
+  const gateway = await h.start({ httpsInspection: { maxCertificates: 8, certificateLifetimeMs: 60000,
+    handshakeTimeoutMs: 2000, requestTimeoutMs: 5000 } })
+  const send = async (path: string, authority = `target.test:${port}`, trusted = true) => {
+    const opened = await h.tunnel(gateway, authority)
+    if (opened.status !== 200) return { status: opened.status, text: '' }
+    const secure = tls.connect({ socket: opened.socket, servername: 'target.test', ca: gateway.certificate })
+    h.own(secure)
+    await once(secure, 'secureConnect')
+    const chunks: Buffer[] = []
+    secure.on('data', (chunk: Buffer) => { chunks.push(chunk) })
+    const closed = once(secure, 'close')
+    if (!trusted) tls.setDefaultCACertificates(original)
+    secure.write(`GET ${path} HTTP/1.1\r\nHost: ${authority}\r\nConnection: close\r\n\r\n`)
+    await closed
+    const text = Buffer.concat(chunks).toString()
+    return { status: Number(/^HTTP\/1.1 (\d+)/u.exec(text)?.[1]), text }
+  }
+  expect((await send('/')).text).toContain('secure target')
+  expect((await send('/redirect')).status).toBe(302)
+  expect((await send('/', `production.test:${port}`)).status).toBe(403)
+  expect((await send('/', undefined, false)).status).toBe(502)
+  expect(requests).toBe(2)
+  await gateway.close()
+  expect(h.flows.filter(flow => flow.kind === 'http' && flow.outcome === 'complete')).toHaveLength(2)
 })
 
 it('does not retain traffic when its generic process owner supplies no capture sink', async () => {

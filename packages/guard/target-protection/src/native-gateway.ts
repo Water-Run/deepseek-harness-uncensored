@@ -11,6 +11,7 @@ import type TargetProtection from './index.ts'
 import type { TargetConnectionResolution } from './index.ts'
 import { canonicalTargetHost, expandTargetRules } from './rules.ts'
 import { assertNetworkAllowed } from './network-decision.ts'
+import { createNativeHttps, type NativeHttpsOptions } from './native-https.ts'
 
 /** Execution attribution, optional owner-selected upstream and deployment time bounds. */
 export interface NativeGatewayOptions {
@@ -26,11 +27,15 @@ export interface NativeGatewayOptions {
   /** Omission disables traffic retention for generic non-session processes. */
   capture?: ChainOptions['capture']
   capturePaused?: (() => boolean) | undefined
+  /** Explicit HTTP-only TLS inspection. Absence retains policy-checked opaque tunnels. */
+  httpsInspection?: NativeHttpsOptions
 }
 
 /** Owned listener; the native process range must close before its owner releases this gateway. */
 export interface NativeGateway {
   readonly url: string
+  /** Public execution CA when HTTPS inspection is selected; never contains a private key. */
+  readonly certificate?: string
   /** Close admission, cancel in-flight checks and join sockets before releasing the policy owner. */
   close(): Promise<void>
 }
@@ -118,9 +123,16 @@ export async function startNativeGateway(
   }
   try {
     combined.throwIfAborted()
+    const https = options.httpsInspection === undefined ? undefined : await createNativeHttps(options.httpsInspection, combined)
+    combined.throwIfAborted()
     proxy = await SessionChainProxy.start({
       sessionId: options.sessionId, tool: () => options.tool, signal: () => combined,
       retainExecution: () => protection.retainExecution(), requestHttp,
+      ...https === undefined ? {} : { async inspectTunnel(host: string, port: number, requestSignal: AbortSignal) {
+        const bounded = AbortSignal.any([requestSignal, AbortSignal.timeout(options.connectTimeoutMs)])
+        await authorize(host, port, false, bounded)
+        return https.prepare(host, port, bounded)
+      } },
       async openTunnel(host, port, requestSignal) {
         const bounded = AbortSignal.any([requestSignal, AbortSignal.timeout(options.connectTimeoutMs)])
         const resolution = await authorize(host, port, true, bounded)
@@ -132,6 +144,6 @@ export async function startNativeGateway(
       capture: options.capture, paused: options.capturePaused, timeoutMs: options.requestTimeoutMs,
     })
     combined.throwIfAborted()
-    return { url: `http://127.0.0.1:${proxy.port}`, close }
+    return { url: `http://127.0.0.1:${proxy.port}`, ...https === undefined ? {} : { certificate: https.certificate }, close }
   } catch (error) { await close(); throw error }
 }

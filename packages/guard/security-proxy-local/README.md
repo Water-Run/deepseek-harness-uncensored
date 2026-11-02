@@ -67,6 +67,8 @@ The exported `SessionChainProxy` owns loopback listening, forwarding, capture an
 
 Generic non-session callers use `sessionId: null`. A missing capture sink disables retention; the Security engine continues to provide its bounded store and pause callback.
 
+An owner may supply `inspectTunnel` to authorize CONNECT before acknowledgement and consume it through an inspected transport. Its decrypted requests reuse the HTTP relay and capture store. The inspector must join its requests and sockets before returning; failures after acknowledgement close the transport instead of writing plaintext HTTP into TLS. The ordinary Security engine does not enable inspection.
+
 The reminder fires at most once per conversation, when a covered tool call finds the proxy off and the owner enabled the reminder; the set clears when the conversation is disposed.
 
 </details>

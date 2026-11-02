@@ -1,5 +1,19 @@
 # Uncensored 开发交接
 
+## 原生 HTTPS 检查（2026-11-03）
+
+基点 `fa1eb98941`，Goal active。关于页的深蓝/深红/深绿/深金及 REA 来源信息已在现有安装版交付，本节点没有改动桌面。实际额度查询为剩余 81%，未使用重置或购买额度。
+
+可选 `subprocess-native` 新增 `httpsInspection`（默认 false，要求 gateway）。CONNECT 在确认前授权，检查器验证 TLS SNI、HTTP Host 和请求 URL；每个请求继续走固定地址、生产规则与上游证书验证。字面 IP 可不发 SNI；命名目标不发或伪造 SNI 都拒绝。重定向不代调用者跟随，后续目标重新校验。临时 CA 私钥仅在宿主内存，子进程只获得公开证书与四种进程级信任变量；不修改系统证书库或代理。命令与 ConPTY 均保留这些设置。
+
+检查范围是 HTTP/1.1：拒绝升级、嵌套 CONNECT 和其他协议，不回退不透明连接。每次执行最多 64 张目标证书、默认有效一天；连接完整生命周期受 requestTimeoutMs 限定，包括未完成的请求头。标准库 HTTPS Server 接管 TLS，保留 CONNECT 同包到达的握手字节；传输与转发请求关闭后才释放保护。新接口是 SessionChainProxy.inspectTunnel，普通网安代理未启用它。
+
+Windows 6 文件 138 项行为测试通过；最后修正缺失 URL 的夹具后，检查器 29 项及覆盖率 100% 通过。Linux 最终 5 文件 126 项通过，HTTPS、网关、提供方三模块覆盖率全部 100%。实际 Windows 原生命令/ConPTY 两项验证测试目标成功、伪造名称 ECONNRESET、直连 EACCES、公开证书不含私钥及临时目录清理。编译公开入口经真实 Loader 再次验证命令/终端两种路径成功、拒绝伪造名称及回收。完整 build 10/10，最新 build:check 2/2、392 个 NodeNext API、JSDoc、定向 lint、两包 publint、README/配对和第三方声明检查通过。
+
+证据：`.dsh-build/native-https-tests-final-20261103.log`、`native-https-final-parser-20261103.log`、`native-https-linux-final-20261103.log`、`native-https-runtime2-20261103.log`、`native-https-built-20261103.mjs/.log`、`native-https-build-final-20261103.log`、`native-https-check-final2-20261103.log`。早期单元实现显式 TLS 包装在畸形请求测试中导致工作进程退出，已改用标准 HTTPS Server；SNI 失败后的缓冲请求需在转发入口再次拒绝，回归曾实际发现漏出。主动 resume 原始 socket 会提前消耗已回填的 ClientHello，移除后同包握手回归通过。selfsigned 5.5.0 的 X.509 依赖与 ASN.1 注册器解析到不同版本，按精确父版本约束为一致的 2.11.1；未改变其他依赖的注册器。旧 PostgreSQL TLS 夹具同步到异步证书 API。
+
+系统仍安装 `0e3e8d4261` 检查版，本节点未打包安装。恢复从 native-https.ts、native-gateway.ts 和对应测试继续；其他应用协议、严格入站隔离、任意网络 SQL/远端身份、默认 profile/Session 回放，以及 P3 审计和设置/代理流量联动仍未完成。新增 HTTPS 检查不能被写成完整保护已生效。Linux 验证树更新了 manifest/锁及依赖，仅用于可移植检查，不代表 Linux 原生执行后端完成。
+
 ## 受保护 ConPTY 接入（2026-11-03）
 
 基点 `42a4e1631e`，Goal active。`subprocess-native.spawnTerminal` 已从明确拒绝改为受保护 ConPTY 实现；复用既有 LocalTerminalHandle/ProcessInspector 的控制台行为，辅助程序本身仍经严格原生命令范围启动。模型参数和环境在固定辅助程序启动后经 fd 7 传入，辅助程序的 cwd/预加载环境不受目标覆盖；目标输出使用独立帧，不能成为控制回复。输入分块保留代理对，操作有确认、序号及超时界限，不自动重放未知结果。

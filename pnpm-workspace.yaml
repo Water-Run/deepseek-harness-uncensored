@@ -14,6 +14,8 @@ packages:
   - python/sdk-runtime
 
 overrides:
+  # X.509 extension classes and serializer must share the same ASN.1 schema registry.
+  '@peculiar/x509@1.14.3>@peculiar/asn1-schema': '2.11.1'
   'extract-zip>yauzl': '3.4.0'
   '@deepseek-ai/cosmokit': 'link:vendor/cosmokit'
   '@deepseek-ai/schemastery': 'link:vendor/schemastery'

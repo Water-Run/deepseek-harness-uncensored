@@ -49,6 +49,8 @@ export interface ChainOptions {
   ) => Promise<PinnedResponse>
   /** Validate or refuse an opaque tunnel before any upstream connection. */
   openTunnel: (host: string, port: number, signal: AbortSignal) => Promise<UpstreamTunnel>
+  /** Optional inspected CONNECT transport. Absence preserves opaque tunnelling. Prepare must authorize before acknowledgement. */
+  inspectTunnel?: (host: string, port: number, signal: AbortSignal) => Promise<InspectedTunnel>
   /** Capture store every exchange is appended to. */
   capture: Pick<CaptureStore, 'append'> | undefined
   /** Whether capture is currently paused; forwarding continues regardless. */
@@ -57,6 +59,20 @@ export interface ChainOptions {
   timeoutMs: number
   /** Clock, injectable for tests. */
   now?: () => number
+}
+
+/** Owner-prepared CONNECT inspector; run resolves only after its socket and requests close. */
+export interface InspectedTunnel {
+  /**
+   * Consume the acknowledged socket. Forward complete, validated HTTP URLs through the existing relay.
+   * @param socket - Owned downstream socket, already acknowledged with HTTP 200.
+   * @param head - Bytes received after CONNECT headers; preserve them before TLS parsing.
+   * @param forward - Relay one inspected request, including capture, cancellation and cleanup.
+   * @param signal - Tunnel lifetime, cancelled when the caller or owner closes.
+   * @returns Completion after all inspected work is quiescent.
+   */
+  run(socket: Socket, head: Buffer,
+    forward: (request: IncomingMessage, response: ServerResponse) => Promise<void>, signal: AbortSignal): Promise<void>
 }
 
 /**
@@ -262,6 +278,14 @@ export class SessionChainProxy {
       const signal = AbortSignal.any([this.lifetime.signal, this.options.signal(), disconnected.signal])
       using _abort = addAbortListener(signal, () => { socket.destroy(); upstreamTunnel?.socket.destroy() })
       signal.throwIfAborted()
+      if (this.options.inspectTunnel !== undefined) {
+        const inspector = await this.options.inspectTunnel(host, port, signal)
+        signal.throwIfAborted()
+        bridged = true
+        socket.write('HTTP/1.1 200 Connection Established\r\n\r\n')
+        await inspector.run(socket, head, (incoming, response) => this.forward(incoming, response), signal)
+        return
+      }
       upstreamTunnel = await this.options.openTunnel(host, port, signal)
       signal.throwIfAborted()
       const remote = upstreamTunnel.socket
@@ -314,6 +338,7 @@ export class SessionChainProxy {
     } catch (error: unknown) {
       const failure = error instanceof UpstreamFailure ? error : new UpstreamFailure('unreachable', describeFailure(error), { cause: error })
       this.record(errorInput(this.options, started, authority, request, startedAt, undefined, failure, error))
+      if (bridged) { socket.destroy(); return }
       const reply = policyStatus(error) === 403 ? '403 Forbidden' : '502 Bad Gateway'
       await new Promise<void>((resolve) => { socket.end(`HTTP/1.1 ${reply}\r\n\r\n`, () => { resolve() }) })
     } finally {
