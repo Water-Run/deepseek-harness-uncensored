@@ -76,6 +76,10 @@
       "types": "./lib/types/security-proxy.d.ts",
       "default": "./lib/types/security-proxy.js"
     },
+    "./subprocess-native": {
+      "types": "./lib/types/subprocess-native.d.ts",
+      "default": "./lib/types/subprocess-native.js"
+    },
     "./cordis": {
       "types": "./lib/types/cordis.d.ts",
       "default": "./lib/types/cordis.js"
@@ -137,6 +141,7 @@
     "@deepseek-ai/dsh-win32-process": "workspace:*"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh-pwsh-local": "workspace:*",
     "@deepseek-ai/dsh-mcp-client": "workspace:*",
     "@deepseek-ai/dsh-system-prompt": "workspace:*",
     "@deepseek-ai/dsh-mcp-resources": "workspace:*",

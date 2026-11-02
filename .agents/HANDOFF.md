@@ -1,5 +1,19 @@
 # Uncensored 开发交接
 
+## 可装配原生命令提供方（2026-11-02）
+
+基点 `5914dae8f8`，Goal active，原始范围全部保留。新增公开子入口 `target-protection/subprocess-native`，显式配置只读/可写授权、独立私有根与 network disabled/gateway；必需 targetProtection、credentials。Windows Node 24 与 BaseContainer 路径之外不回退普通进程；PTY 明确不可用。该服务已能承接现有 PowerShell 执行器，但没有进入默认应用 profile。
+
+复用 LocalSubprocessRuntime 查找和 managed 输出绑定，增加候选元数据读取前的可覆盖授权方法，并将整个查找绑定到原规则代次。原生服务保留执行和控制流直至完成，取消、规则更改、卸载与同步 Host 退出均停止所有归属范围；清理失败阻止新任务并报告原因。私有根解析后不得落在任何授权内，可写授权必须是目录；清理拒绝越界路径，但仍释放已结束执行的规则。目标 HOME/TEMP 私有化，代理变量由执行网关接管。代理密码用保存的凭据引用，每次重读；缺失时拒绝激活或新命令，密码不进入目标环境。
+
+`SessionChainProxy` 支持 null 会话归属及无捕获存储，通用 subprocess 不伪造会话或记录流量。原网安引擎仍传递真实会话、有界捕获和暂停回调；后续须接真实网安设置及流量归属，不能把临时网关当成已完成该联动。`subprocess-local/managed` 额外公开现有 targetEnvironment。旧 `target-protection/subprocess` 的准入拒绝行为未替换。
+
+验证：Windows 4 文件/77 项通过，其中 6 项真实 Loader/原生测试覆盖普通命令、PowerShell、Node HTTP 经网关 200/403、取消、规则变更和 PTY 拒绝。Linux 4 文件/102 项通过，包含既有 local.spec 的 31 项；Linux 只验证可移植提供方逻辑，原生启动为隔离夹具，不宣称 Linux 原生后端完成。提供方单文件覆盖率全部 100%。编译产物公开入口和真实 Loader/PowerShell 通过 `.dsh-build/native-provider-built-20261102.mjs/.log`，生产保留、测试写入、私有目录清空和退出监听恢复。完整 build 10/10，392 个 NodeNext API、JSDoc、定向 lint、三组文档配对和 README 检查通过；三包 publint 无错误，subprocess-local 保留既有 src 通配导出警告。
+
+回归中修正了夹具把 credentials-local 命名空间直接交给 ctx.plugin、错误使用带连字符的凭据名，以及把 Cordis 的卸载日志误当作 dispose Promise 拒绝。容量包含输出结算，测试通过服务接口等待再准入，不依赖固定延时。晚期补了凭据撤销、配置别名、可执行查找期间规则变更、已关闭控制流、同步停止异常和清理范围负例。主要日志 `native-provider-final-tests-20261102.log`、`native-provider-linux-final-20261102.log`、`native-provider-final-build-20261102.log`。
+
+剩余：PTY、任意 TLS/协议身份、严格入站隔离、默认 profile/工具/Session 回放、其他数据库/远端身份及 P3 审计、设置/代理联动。默认产品接入前必须补齐相关工具/Session 回放。系统安装仍为干净 `0e3e8d4261` 检查版，本节点未打包安装或操作桌面。恢复时从本文件对应源码及 `subprocess-native-runtime.spec.ts` 继续；Windows 原生验证与 Linux 可移植验证须分别标注范围。
+
 ## 原生命令出站网关（2026-11-02）
 
 基点 `50e667f485`，目标保持 active。新增 `native-gateway.ts`，持有一个已核准的原生执行修订，复用 `SessionChainProxy` 回环监听/流量记录/关闭等待；后者改为由 HTTP/CONNECT 回调选择路由，不再强制持有独立上游。`requestPinned` 新增可选方法/正文参数并导出，匿名 fetch 仍为公网 GET。原生 HTTP 保留方法与正文、验证 Host、固定已核准地址；私网需精确测试服务器标记，生产优先。CONNECT 对名称和字面地址分别验证；域名/正则/数据库身份歧义仍拒绝。代理上游失败不回退直连。

@@ -65,6 +65,8 @@ Settings, password and capture-preference writes are serialized. Changing the up
 
 The exported `SessionChainProxy` owns loopback listening, forwarding, capture and socket cleanup. Its `ChainOptions` transport callbacks select and authorize their own route; the listener neither creates a dispatcher nor assumes an upstream. The Security engine supplies its private upstream, while native target protection can supply a per-execution pinned route. Both owners retain their resources through forwarding and closure.
 
+Generic non-session callers use `sessionId: null`. A missing capture sink disables retention; the Security engine continues to provide its bounded store and pause callback.
+
 The reminder fires at most once per conversation, when a covered tool call finds the proxy off and the owner enabled the reminder; the set clears when the conversation is disposed.
 
 </details>

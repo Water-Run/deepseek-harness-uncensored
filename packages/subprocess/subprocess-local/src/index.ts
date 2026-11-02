@@ -158,7 +158,8 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
     signal?: AbortSignal,
   ): Promise<string> {
     if (command.length === 0) throw new Error('subprocess-local: executable must be non-empty')
-    signal?.throwIfAborted()
+    const lookupSignal = signal ?? new AbortController().signal
+    lookupSignal.throwIfAborted()
     const environment = childEnv(env)
     const absolute = isAbsolute(command)
     if (!absolute && (command.includes('/') || (process.platform === 'win32' && command.includes('\\')))) {
@@ -168,22 +169,32 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
     }
     const candidates = absolute ? [command] : this.executableCandidates(command, environment)
     for (const candidate of candidates) {
-      signal?.throwIfAborted()
+      lookupSignal.throwIfAborted()
+      await this.authorizeExecutable(candidate, lookupSignal)
+      lookupSignal.throwIfAborted()
       try {
         const info = await stat(candidate)
         if (!info.isFile()) continue
         await access(candidate, constants.X_OK)
-        signal?.throwIfAborted()
+        lookupSignal.throwIfAborted()
         return candidate
       } catch {
         // Try the next PATH candidate; the final miss receives one stable error.
       }
     }
-    signal?.throwIfAborted()
+    lookupSignal.throwIfAborted()
     throw new SubprocessExecutableNotFoundError(absolute
       ? `subprocess-local: command ${JSON.stringify(command)} is not an executable file`
       : `subprocess-local: command ${JSON.stringify(command)} was not found on PATH`)
   }
+
+  /**
+   * Enforcing providers may reject a candidate before its metadata is read.
+   * @param _candidate - Absolute candidate selected from the configured lookup path.
+   * @param _signal - Lookup cancellation.
+   * @returns Completion of the provider's admission check.
+   */
+  protected authorizeExecutable(_candidate: string, _signal: AbortSignal): Promise<void> { return Promise.resolve() }
 
   private executableCandidates(command: string, env: NodeJS.ProcessEnv): string[] {
     const path = environmentValue(env, 'PATH') ?? ''

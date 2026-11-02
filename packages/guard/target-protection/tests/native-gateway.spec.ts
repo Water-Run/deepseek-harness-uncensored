@@ -27,7 +27,7 @@ function rule(overrides: Partial<TargetRule> = {}): TargetRule {
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), 'dshu-native-gateway-')), ctx = new Context()
   const sockets = new Set<Socket>(), servers: Server[] = [], gateways: NativeGateway[] = []
-  const flows: Parameters<ChainOptions['capture']['append']>[0][] = []
+  const flows: Parameters<NonNullable<ChainOptions['capture']>['append']>[0][] = []
   const own = (socket: Socket) => {
     sockets.add(socket); socket.once('close', () => { sockets.delete(socket) }); socket.on('error', () => { socket.destroy() })
   }
@@ -108,6 +108,13 @@ it('forwards HTTP methods and bytes only to an explicit private test endpoint', 
   expect(h.seen).toEqual([{ method: 'POST', host: `target.test:${h.port}`, body: 'test payload' }])
   await gateway.close()
   expect(h.flows).toMatchObject([{ method: 'POST', outcome: 'complete', target: h.url + '/', responseBody: 'test payload' }])
+})
+
+it('does not retain traffic when its generic process owner supplies no capture sink', async () => {
+  const h = await fixture(), gateway = await h.start({ capture: undefined, capturePaused: undefined })
+  expect((await h.http(gateway)).status).toBe(200)
+  await gateway.close()
+  expect(h.flows).toEqual([])
 })
 
 it.each(['full', 'audit'] as const)('blocks %s production before a socket is opened', async (protection) => {

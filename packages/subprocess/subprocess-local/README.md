@@ -48,7 +48,9 @@ Collect mode keeps the last `maxBytes` of a stream in memory — errors and fina
 
 The `./output` export shares this collector and retained-spill storage with process adapters. `snapshot()` returns the retained raw bytes and total byte count, allowing remote adapters to preserve offsets without forwarding the complete stream.
 
-The `./managed` library shares `launchWindowsJob`, `bindManagedProcess`, `validateSubprocessSpec` and their ownership types with confined process adapters. `launchWindowsJob` uses the native Job runner directly, without selecting a weaker fallback; its separate environment argument is the complete target environment. The caller owns raw pipes, direct-result observation, whole-range termination and cleanup. `bindManagedProcess` can add the ordinary collection and cancellation lifecycle around another `ManagedProcessLaunch`. These helpers manage process lifetime; they do not restrict file or network access.
+The `./managed` library shares `launchWindowsJob`, `bindManagedProcess`, `validateSubprocessSpec`, `targetEnvironment` and their ownership types with confined process adapters. `launchWindowsJob` uses the native Job runner directly, without selecting a weaker fallback; its separate environment argument is the complete target environment. `targetEnvironment` resolves scrubbed ambient values, explicit overrides and the control descriptor. The caller owns raw pipes, direct-result observation, whole-range termination and cleanup. `bindManagedProcess` can add the ordinary collection and cancellation lifecycle around another `ManagedProcessLaunch`. These helpers manage process lifetime; they do not restrict file or network access.
+
+Executable lookup invokes the protected `authorizeExecutable(candidate, signal)` method before reading each candidate's metadata. The local provider admits candidates directly; enforcing subclasses can reject them. Cancellation after an asynchronous authorization prevents the metadata read, and a policy denial is not treated as a PATH miss.
 
 ### Control transport
 

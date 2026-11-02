@@ -36,7 +36,7 @@ const HOP_BY_HOP = new Set([
 /** Everything one session's listener needs from the owning engine. */
 export interface ChainOptions {
   /** Session the listener attributes its flows to. */
-  readonly sessionId: string
+  readonly sessionId: string | null
   /** Tool name shown for every flow this listener handles, read per exchange. */
   tool: () => string
   /** Current engine, upstream and policy cancellation. */
@@ -50,9 +50,9 @@ export interface ChainOptions {
   /** Validate or refuse an opaque tunnel before any upstream connection. */
   openTunnel: (host: string, port: number, signal: AbortSignal) => Promise<UpstreamTunnel>
   /** Capture store every exchange is appended to. */
-  capture: Pick<CaptureStore, 'append'>
+  capture: Pick<CaptureStore, 'append'> | undefined
   /** Whether capture is currently paused; forwarding continues regardless. */
-  paused: () => boolean
+  paused: (() => boolean) | undefined
   /** Whole HTTP exchange budget, including request-body arrival. */
   timeoutMs: number
   /** Clock, injectable for tests. */
@@ -325,7 +325,7 @@ export class SessionChainProxy {
 
   /** Append one exchange unless the owner paused capture. */
   private record(input: CapturedExchangeInput): void {
-    if (this.options.paused()) return
+    if (this.options.capture === undefined || this.options.paused?.() === true) return
     this.options.capture.append(input)
   }
 }

@@ -18,13 +18,14 @@ export interface NativeGatewayOptions {
   revision: number
   /** Stop and join the native process range; its release closes this gateway. */
   stopExecution(): Promise<void>
-  sessionId: SessionId
+  sessionId: SessionId | null
   tool: string
   upstream?: Upstream
   connectTimeoutMs: number
   requestTimeoutMs: number
-  capture: ChainOptions['capture']
-  capturePaused(): boolean
+  /** Omission disables traffic retention for generic non-session processes. */
+  capture?: ChainOptions['capture']
+  capturePaused?: (() => boolean) | undefined
 }
 
 /** Owned listener; the native process range must close before its owner releases this gateway. */
@@ -128,7 +129,7 @@ export async function startNativeGateway(
         return options.upstream === undefined ? directTunnel(first.address, port, bounded)
           : connectThrough(options.upstream, first.address, port, options.connectTimeoutMs, bounded)
       },
-      capture: options.capture, paused: () => options.capturePaused(), timeoutMs: options.requestTimeoutMs,
+      capture: options.capture, paused: options.capturePaused, timeoutMs: options.requestTimeoutMs,
     })
     combined.throwIfAborted()
     return { url: `http://127.0.0.1:${proxy.port}`, close }

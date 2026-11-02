@@ -48,7 +48,9 @@ Windows 普通子进程通过 `windowsHide` 启动私有 Job runner，并为原�
 
 `./output` 导出向进程适配器共享该收集器与保留 spill 的存储。`snapshot()` 返回保留的原始字节及总字节数，使远程适配器能够保留偏移量，而无需转发完整的流。
 
-`./managed` 库向受限进程适配器共享 `launchWindowsJob`、`bindManagedProcess`、`validateSubprocessSpec` 及其归属类型。`launchWindowsJob` 直接使用原生 Job runner，不选择较弱回退；独立的环境参数就是完整目标环境。调用者负责原始管道、直接结果观察、整个进程范围的终止和清理。`bindManagedProcess` 可为另一个 `ManagedProcessLaunch` 接入既有的输出收集和取消生命周期。这些辅助函数管理进程生命周期，不限制文件或网络访问。
+`./managed` 库向受限进程适配器共享 `launchWindowsJob`、`bindManagedProcess`、`validateSubprocessSpec`、`targetEnvironment` 及其归属类型。`launchWindowsJob` 直接使用原生 Job runner，不选择较弱回退；独立的环境参数就是完整目标环境。`targetEnvironment` 解析清理后的环境、显式覆盖和控制描述符。调用者负责原始管道、直接结果观察、整个进程范围的终止和清理。`bindManagedProcess` 可为另一个 `ManagedProcessLaunch` 接入既有的输出收集和取消生命周期。这些辅助函数管理进程生命周期，不限制文件或网络访问。
+
+查找可执行文件时，在读取每个候选的元数据前调用受保护方法 `authorizeExecutable(candidate, signal)`。普通本地提供方直接准入，受控子类可拒绝；异步授权后的取消会阻止元数据读取，策略拒绝不会被当作 PATH 未命中。
 
 ### 控制传输
 

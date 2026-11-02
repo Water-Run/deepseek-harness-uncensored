@@ -1,0 +1,28 @@
+- id: credentials
+  name: cordis:credentials
+  config:
+    path: __CREDENTIALS__
+    dshHome: __HOME__
+    watch: false
+- id: protection
+  name: cordis:protection
+  config:
+    path: __RULES__
+    hostsFile: ""
+- id: native
+  name: cordis:native
+  config:
+    readonlyPaths: __READ__
+    readwritePaths: __WRITE__
+    temporaryRoot: __TEMP__
+    network: __NETWORK__
+    maxProcesses: 2
+    maxPolicyEntries: 2000
+    maxPolicyPaths: 500
+    preparationTimeoutMs: 10000
+    startupTimeoutMs: 10000
+- id: shell
+  name: cordis:shell
+  config:
+    cwd: __WORK__
+    pwshPath: __PWSH__

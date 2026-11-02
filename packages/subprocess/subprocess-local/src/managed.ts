@@ -2,3 +2,4 @@
 export { launchWindowsJob } from './windows-job.ts'
 export { bindManagedProcess, validateSubprocessSpec } from './spawn.ts'
 export type { BoundProcessOwner, ManagedProcessLaunch } from './managed-owner.ts'
+export { targetEnvironment } from './runner-launch.ts'

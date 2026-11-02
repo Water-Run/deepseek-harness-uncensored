@@ -12968,6 +12968,9 @@ importers:
       '@deepseek-ai/dsh-ptc-runtime':
         specifier: workspace:*
         version: link:../../ptc-runtime/ptc-runtime
+      '@deepseek-ai/dsh-pwsh-local':
+        specifier: workspace:*
+        version: link:../../shell/pwsh-local
       '@deepseek-ai/dsh-rea':
         specifier: workspace:*
         version: link:../../mcp/rea
