@@ -1,5 +1,15 @@
 # Uncensored 开发交接
 
+## 最新 Windows 检查包（2026-11-03，待安装）
+
+干净源码 `192de49274d2140dfae682620008e1b1fd84f327` 已完成 Windows x64 未签名打包，DSHU 0.1.0 / DSH 0.2.2-alpha.2 / REA 6.8.0。包含地球图标、工作区模式主题色、余额向上竖虚线和新进阶规则库默认关闭；第三方声明总表已加入安装资源并核对字节一致。运行记录 `2026-11-03T01-53-14.076Z-1o1xvW` success=true；完整构建、实际 Desktop Host 的 REA 229 工具/JavaScript、Office 三类转换、原生模块、PTY 与离线插件操作在打包前后均通过。
+
+安装包：`.dsh-build/deliverables/DSHU-0.1.0-core-0.2.2-alpha.2-REA-6.8.0-win-x64-unsigned-20261103-192de4.exe`，388742305 字节，SHA-256 `e840e5ba7503c83eb5e3258867ad3b1d5abb858d45c01aad54915eb434d585bb`；同目录有 `.sha256` 和 `DSHU-20261103-192de4-manifest.json`。安装资源的 ASAR 源节点与 dirty=false 已核对，UI 修改确实进入产物。源码已推送 main，只有 main 主线；复用的打包工作树仍为 detached HEAD。
+
+系统安装版仍为 `0e3e8d4261`。检测到正式 DSHU 仍在运行，已询问何时安装，等待用户选择；没有关闭应用、修改真实配置或替换安装。包可直接用于后续更新，不要因等待用户选择重复构建。日志 `.dsh-build/package-ui-20261103.log`、内容核对 `package-ui-content-20261103.json`；完整打包树位于 `D:/Coding/deepseek-harness-uncensored-upstream-20261101/apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/runs/2026-11-03T01-53-14.076Z-1o1xvW`。
+
+官方版仅做只读核对：Desktop profile 的 bundles 包含 dsh-purge、dsh-side、余额插件；对应安装版本 1.2.3、0.1.1、0.1.0-local.2 的入口文件均存在。结果 `.dsh-build/official-profile-review-20261103.json`。未启动官方版用户 profile、未修改其配置，不将配置存在扩大为全部插件运行健康。完整许可证审计继续保留，新增总表不代表所有第三方许可缺项已解决。
+
 ## 默认关闭进阶保护与日常界面修复（2026-11-03）
 
 基点 `d00a4ff33e`。用户明确要求加快实现、减少复杂设计：模式与提示词是主线，真实目标/生产服务器/数据库保护仅为默认关闭的进阶边缘功能，不再作为主线交付前置条件。TODO、实施计划和 README 已同步；不继续以 P2/P3 的完整隔离为当前优先级。已有可选后端保留，未验证能力不能显示已生效。新 TargetStore 默认 mainlandEnabled=false、规则为空；已有明确保存的偏好保留，数据格式不变。
