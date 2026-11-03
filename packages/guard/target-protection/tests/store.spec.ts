@@ -24,13 +24,13 @@ async function open(path: string): Promise<TargetStore> {
   const store = await TargetStore.open(path, 1000); stores.push(store); return store
 }
 
-it('defaults mainland protection on and preserves committed settings across reopen', async () => {
+it('defaults protection off and preserves explicitly enabled settings across reopen', async () => {
   const path = await filename()
   const store = await open(path)
-  expect(store.snapshot()).toEqual({ revision: 1, preferences: { mainlandEnabled: true, rules: [] } })
-  expect(store.configure({ mainlandEnabled: false, rules: [] }, 1).revision).toBe(2)
+  expect(store.snapshot()).toEqual({ revision: 1, preferences: { mainlandEnabled: false, rules: [] } })
+  expect(store.configure({ mainlandEnabled: true, rules: [] }, 1).revision).toBe(2)
   store.close()
-  expect((await open(path)).snapshot()).toEqual({ revision: 2, preferences: { mainlandEnabled: false, rules: [] } })
+  expect((await open(path)).snapshot()).toEqual({ revision: 2, preferences: { mainlandEnabled: true, rules: [] } })
   expect(() => store.snapshot()).toThrow(expect.objectContaining({ code: 'unavailable' }))
 })
 
@@ -45,8 +45,8 @@ it('rejects stale writes across two connections and retains the current revision
 it('returns independently owned snapshots', async () => {
   const store = await open(await filename())
   const value = store.snapshot()
-  value.preferences.mainlandEnabled = false
-  expect(store.snapshot().preferences.mainlandEnabled).toBe(true)
+  value.preferences.mainlandEnabled = true
+  expect(store.snapshot().preferences.mainlandEnabled).toBe(false)
 })
 
 it('refuses a newer schema without modifying the database file', async () => {

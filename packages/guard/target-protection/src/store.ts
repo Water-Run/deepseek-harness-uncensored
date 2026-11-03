@@ -57,7 +57,7 @@ export class TargetStore {
           const tables = db.prepare("SELECT name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'").all()
           if (application !== 0 || tables.length !== 0) throw new TargetProtectionError('unrecognized-store', 'The selected database is not an empty target registry.')
           db.exec('CREATE TABLE preferences (id INTEGER PRIMARY KEY CHECK(id=1), revision INTEGER NOT NULL, value TEXT NOT NULL) STRICT')
-          db.prepare('INSERT INTO preferences VALUES(1, 1, ?)').run(JSON.stringify({ mainlandEnabled: true, rules: [] }))
+          db.prepare('INSERT INTO preferences VALUES(1, 1, ?)').run(JSON.stringify({ mainlandEnabled: false, rules: [] }))
           db.exec(`PRAGMA application_id=${String(APPLICATION_ID)}; PRAGMA user_version=${String(SCHEMA_VERSION)}`)
         } else if (application !== APPLICATION_ID) {
           throw new TargetProtectionError('unrecognized-store', 'The database belongs to a different application.')

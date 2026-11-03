@@ -13,6 +13,8 @@ Server-expired account credentials clear the displayed account details and emit 
 
 ## Summary
 
+Balance increases use a horizontal hold followed by a vertical dashed jump at the new sample time. Declines keep their normal curve; cumulative conversation-spending charts remain continuous.
+
 The About dialog separates a dark product identity panel from source records. Its accent follows the current conversation mode. REA records include its version, repository and full commit link; optional engine requirements and third-party licenses remain accessible. It displays the maintainer, independent version, build time, underlying DSH version and source commits. The columns stack in narrow windows and entrance motion respects reduced-motion preferences.
 
 The sidebar and Desktop application menu open the same root-owned About dialog. Closing it releases modality immediately and preserves its exit transition. Release checks run only while it is open and are cancelled on dismissal. The optional Desktop bridge unregisters on plugin unload; older carriers and browsers can use the sidebar entry without it.

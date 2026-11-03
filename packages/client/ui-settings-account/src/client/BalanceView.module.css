@@ -59,6 +59,7 @@
 .plotControl { position: relative; min-width: 0; height: 112px; cursor: crosshair; touch-action: pan-y; border-radius: var(--dsw-radius-sm); }
 .plotControl:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 4px; }
 .crosshair { stroke: var(--dsw-alias-label-secondary); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.increase { stroke-dasharray: 3 4; }
 .sampleTip { position: absolute; right: 8px; top: 0; max-width: calc(100% - 16px); display: grid; gap: 2px; padding: 6px 10px; border-radius: var(--dsw-radius-sm); background: var(--dsw-alias-bg-layer-2); box-shadow: var(--dsw-elevation-panel); color: var(--dsw-alias-label-primary); font-size: 11px; font-variant-numeric: tabular-nums; pointer-events: none; }
 .sampleTip strong { font-size: 13px; font-weight: 500; }
 .chartHelp { margin: 8px 0 0; color: var(--dsw-alias-label-secondary); font-size: 11px; line-height: 1.5; }

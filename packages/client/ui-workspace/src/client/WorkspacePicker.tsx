@@ -11,7 +11,7 @@
 import type { ReactNode, RefObject } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  Button, IconFolderCloseRegular, IconPlusOutlineRegular, Menu, Modal, type MenuEntry,
+  Button, IconFolderCloseRegular, IconGlobeOutlineRegular, IconPlusOutlineRegular, Menu, Modal, type MenuEntry,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
   WorkspaceId, WorkspaceSnapshot, WorkspaceView,
@@ -135,26 +135,26 @@ export function WorkspacePickFlow({
     return rows.map(row => ({ ...row, suffix: suffixes.get(row.id) }))
   }, [pinAdd, workspaces, defaultWorkspaceName])
   const items: MenuEntry[] = pinAdd
-    ? [...onPickNone === undefined || terms.length > 0 ? [] : [{ id: NO_WORKSPACE, label: t('workspace.none'), icon: <IconFolderCloseRegular size={16} />, disabled: flowBusy }],
+    ? [...onPickNone === undefined || terms.length > 0 ? [] : [{ id: NO_WORKSPACE, label: <span className={css.optionLabel}>{t('workspace.none')}</span>, icon: <IconGlobeOutlineRegular className={css.optionLabel} size={16} />, disabled: flowBusy }],
       ...listed.filter(row => matches.some(workspace => workspace.workspaceId === row.id)).map(({ id, title, path, suffix }) => ({
         id,
         // The title gives way first, so the suffix that tells the rows apart
         // stays visible; the native tooltip carries the full path.
         label: suffix === undefined
-          ? title
+          ? <span className={css.optionLabel}>{title}</span>
           : (
             <span className={css.disambiguated} title={path}>
-              <span className={css.title}>{title}</span>
+              <span className={`${css.title} ${css.optionLabel}`}>{title}</span>
               {' '}
               <span className={css.pathSuffix}>{suffix}</span>
             </span>
           ),
-        icon: <IconFolderCloseRegular size={16} />,
+        icon: <IconFolderCloseRegular className={css.optionLabel} size={16} />,
         disabled: flowBusy,
       }))]
     : addEntries
   if (pinAdd && terms.length > 0 && matches.length === 0) items.push({ type: 'label', id: '::no-match', text: t('picker.noMatches') })
-  const footer: MenuEntry[] = [...onPickNone !== undefined && terms.length > 0 ? [{ id: NO_WORKSPACE, label: t('workspace.none'), icon: <IconFolderCloseRegular size={16} />, disabled: flowBusy }] : [], ...addEntries]
+  const footer: MenuEntry[] = [...onPickNone !== undefined && terms.length > 0 ? [{ id: NO_WORKSPACE, label: <span className={css.optionLabel}>{t('workspace.none')}</span>, icon: <IconGlobeOutlineRegular className={css.optionLabel} size={16} />, disabled: flowBusy }] : [], ...addEntries]
   // Nothing listed and nothing to add with (a composition that mounts this
   // package without any directory-picker): an empty popover would claim a
   // choice that does not exist, so the anchor gesture shows nothing at all.

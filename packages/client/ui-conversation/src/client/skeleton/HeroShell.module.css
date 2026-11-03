@@ -159,7 +159,7 @@
   border: none;
   border-radius: var(--dsw-radius-sm);
   background: transparent;
-  color: var(--dsw-alias-label-primary);
+  color: var(--dsw-alias-state-business-primary);
   font-size: 13px;
   line-height: 20px;
   font-weight: 500;
@@ -184,7 +184,7 @@
 
 .folder {
   flex: none;
-  color: var(--dsw-alias-label-primary);
+  color: inherit;
 }
 
 .workspaceLabel {

@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import type { ReactNode, RefObject } from 'react'
 import {
-  FISH_LOGO_PATH, FISH_LOGO_VIEWBOX, IconChevronDownOutlineRegular, IconFolderCloseRegular, IconFolderOpenRegular,
+  FISH_LOGO_PATH, FISH_LOGO_VIEWBOX, IconChevronDownOutlineRegular, IconFolderCloseRegular, IconFolderOpenRegular, IconGlobeOutlineRegular,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { workspaceTitleOf } from '@deepseek-ai/dsh-util-workspace-path'
 import type { ConversationContentProps } from '../contract/slots.ts'
@@ -25,19 +25,21 @@ export function workspaceLabel(cwd: string): string {
 }
 
 /**
- * The workspace chip (folder + label + chevron), always interactive: before
+ * The workspace chip (location icon + label + chevron), always interactive: before
  * the first message the workspace stays switchable — picking another one
  * moves the New Session flow to that workspace's blank session. Without a
  * label the chip renders its placeholder state: closed folder + the
  * "Choose workspace" call to action.
  * @param props.label - chip label (see {@link workspaceLabel}); omitted → placeholder.
+ * @param props.unbound - Use the globe for a conversation explicitly outside a workspace.
  * @param props.menuOpen - menu expansion echo.
  * @param props.onClick - menu toggle.
  * @returns the chip button element.
  */
-export function WorkspaceChip({ buttonRef, label, menuOpen = false, onClick, t }: {
+export function WorkspaceChip({ buttonRef, label, unbound = false, menuOpen = false, onClick, t }: {
   buttonRef?: RefObject<HTMLButtonElement>
   label?: string | undefined
+  unbound?: boolean
   menuOpen?: boolean
   onClick?: () => void
   t: HeroTranslate
@@ -52,7 +54,7 @@ export function WorkspaceChip({ buttonRef, label, menuOpen = false, onClick, t }
       aria-expanded={menuOpen}
       onClick={onClick}
     >
-      {label === undefined
+      {unbound ? <IconGlobeOutlineRegular className={css.folder} size={16} /> : label === undefined
         ? <IconFolderCloseRegular className={css.folder} size={16} />
         : <IconFolderOpenRegular className={css.folder} size={16} />}
       <span className={css.workspaceLabel}>{label ?? t('hero.chooseWorkspace')}</span>

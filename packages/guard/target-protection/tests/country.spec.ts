@@ -54,6 +54,7 @@ it('uses fresh country evidence at admission and loses permission when the sourc
   vi.spyOn(Date, 'now').mockReturnValue(fresh)
   const ctx = new Context(); contexts.push(ctx)
   await ctx.plugin(TargetProtection, { path: ':memory:' })
+  await ctx.targetProtection.configure({ mainlandEnabled: true, rules: [] }, 1)
   const data = ctx.plugin(TargetCountryData)
   await data
   expect(ctx.targetCountryData.status().state).toBe('ready')
@@ -78,6 +79,7 @@ it('uses fresh country evidence at admission and loses permission when the sourc
 it('uses a mainland domain label even when country data is unavailable', async () => {
   const ctx = new Context(); contexts.push(ctx)
   await ctx.plugin(TargetProtection, { path: ':memory:' })
+  await ctx.targetProtection.configure({ mainlandEnabled: true, rules: [] }, 1)
   const result = await ctx.targetProtection.checkHttp({
     origin: 'https://fixture.cn', hostname: 'fixture.cn', port: 443, phase: 'before-resolution', route: 'direct',
   }, new AbortController().signal)

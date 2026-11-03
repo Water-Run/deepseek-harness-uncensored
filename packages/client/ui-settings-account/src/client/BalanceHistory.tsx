@@ -11,18 +11,19 @@ import css from './BalanceView.module.css'
  * @param props - Ordered observations, currency symbol and localized labels.
  * @returns The chart and its selected observation, or null without samples.
  */
-export function BalanceHistory({ samples, symbol, label, help, formatValue }: {
+export function BalanceHistory({ samples, symbol, label, help, formatValue, stepIncreases = false }: {
   samples: readonly BalanceChartSample[]
   symbol: '¥' | '$'
   label: string
   help: string
   formatValue?: (value: number) => string
+  stepIncreases?: boolean
 }) {
   const [hover, setHover] = useState<number | null>(null)
   const [cursor, setCursor] = useState<number | null>(null)
   const [focused, setFocused] = useState(false)
   const id = useId()
-  const geometry = balanceChart(samples)
+  const geometry = balanceChart(samples, stepIncreases)
   const first = samples[0], last = samples.at(-1), range = geometry.range
   if (first === undefined || last === undefined || range === undefined) return null
   const format = formatValue ?? ((value: number): string => formatBalance(new Big(value).toString(), symbol))
@@ -59,7 +60,9 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue }: {
         }}>
         <svg className={css.chart} viewBox="46 0 264 110" preserveAspectRatio="none" aria-hidden="true">
           <path d="M52 12H304 M52 55H304 M52 98H304" className={css.axis} />
-          {geometry.kind === 'series' && <polyline points={geometry.points} className={css.line} />}
+          {geometry.kind === 'series' && (geometry.path === undefined
+            ? <polyline points={geometry.points} className={css.line} />
+            : <><path d={geometry.path} className={css.line} /><path d={geometry.increases} className={`${css.line} ${css.increase}`} /></>)}
           {active && <path d={`M${x} 8V102`} className={css.crosshair} />}
         </svg>
         {(active || geometry.kind === 'single') && <span className={css.samplePoint} style={{ left: `${(x - 46) / 264 * 100}%`, top: `${y / 110 * 100}%` }} />}

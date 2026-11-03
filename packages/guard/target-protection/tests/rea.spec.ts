@@ -19,6 +19,7 @@ async function harness(persistent = false) {
   const ctx = new Context()
   onTestFinished(async () => { await ctx.fiber.dispose(); await rm(root, { recursive: true, force: true }) })
   const owner = await ctx.plugin(TargetProtection, { path: persistent ? join(root, 'rules.sqlite') : ':memory:', hostsFile: '' })
+  await ctx.targetProtection.configure({ mainlandEnabled: true, rules: [] }, 1)
   const rea = await ctx.plugin(TargetRea, { enabled: true, nodePath: process.execPath, cliPath })
   const configure = async (preferences: TargetPreferences) => {
     const before = await ctx.targetProtection.snapshot()
@@ -142,6 +143,7 @@ it('loads mandatory REA protection from a real Loader composition', async () => 
   ctx.loader.builtins['guarded-rea'] = TargetRea
   await ctx.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(configPath).href } })
   await ctx.loader.await()
+  await ctx.targetProtection.configure({ mainlandEnabled: true, rules: [] }, 1)
   await expect(hardRefusal()).resolves.toMatchInlineSnapshot('"TARGET_EXECUTION_UNCONFINED"')
   await expect(readFile(join(root, 'started'))).rejects.toMatchObject({ code: 'ENOENT' })
   async function hardRefusal() {

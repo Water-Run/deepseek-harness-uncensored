@@ -4,6 +4,10 @@
   min-width: 72px;
 }
 
+.optionLabel {
+  color: var(--dsw-alias-state-business-primary);
+}
+
 .modalError,
 .menuStatus {
   margin-top: 8px;

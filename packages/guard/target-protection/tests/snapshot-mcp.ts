@@ -30,6 +30,7 @@ export function apply(ctx: Context): void {
         await owner.plugin(SystemPrompt)
         await owner.plugin(ToolRuntime)
         await owner.plugin(TargetProtection, { path: ':memory:', hostsFile: '' })
+        await owner.targetProtection.configure({ mainlandEnabled: true, rules: [] }, 1)
         await assert.rejects(Promise.resolve(owner.plugin(ProtectedMcp, {
           transport: 'stdio', serverName: 'protected', command: process.execPath, cwd: root,
           args: [fileURLToPath(new URL('./fixtures/mcp.mjs', import.meta.url))],

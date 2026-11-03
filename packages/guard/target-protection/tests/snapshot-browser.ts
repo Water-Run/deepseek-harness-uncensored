@@ -27,6 +27,9 @@ export async function apply(ctx: Context): Promise<void> {
   const address = server.address()
   assert.ok(address !== null && typeof address !== 'string')
   await ctx.plugin(Protection, { path: ':memory:', hostsFile: '' })
+  await ctx.inject(['targetProtection'], async (owner) => {
+    await owner.targetProtection.configure({ mainlandEnabled: true, rules: [] }, 1)
+  })
   await ctx.plugin(TargetBrowserUse)
   const provider = await ctx.plugin(Stagehand, { mode: 'attach', cdpEndpoint: `http://127.0.0.1:${String(address.port)}`,
     model: { modelName: 'openai/gpt-4.1-mini', apiKey: 'unused-fixture-key' } })

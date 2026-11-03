@@ -2,6 +2,15 @@ import { expect, it } from 'vitest'
 import { balanceChart } from '../src/client/balance-chart.ts'
 import { amountNumber, amountPrefix, formatRolling } from '../src/client/rolling-amount.ts'
 
+it('draws additions vertically at the new sample time while preserving declines and expense curves', () => {
+  const samples = [{ time: 0, value: 10 }, { time: 10, value: 0 }, { time: 20, value: 10 }, { time: 30, value: 5 }]
+  const balance = balanceChart(samples, true)
+  expect(balance.path).toBe('M52,12 L136,98 H220 M220,12 L304,55')
+  expect(balance.increases).toBe('M220,98 V12')
+  expect(balanceChart(samples).path).toBeUndefined()
+  expect(balanceChart([{ time: 0, value: 10 }, { time: 10, value: 10 }], true).increases).toBe('')
+})
+
 it('draws nothing, one dot, or a bounded curve', () => {
   expect(balanceChart([])).toEqual({ kind: 'empty', points: '' })
   const single = balanceChart([{ time: 10, value: 4 }])

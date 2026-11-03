@@ -25,6 +25,7 @@ async function harness() {
   await mountAgentLoopTestDependencies(ctx)
   provideWorkingDirectoryFixture(ctx, root)
   const owner = await ctx.plugin(Protection, { path: ':memory:', hostsFile: '' })
+  await ctx.targetProtection.configure({ mainlandEnabled: true, rules: [] }, 1)
   await ctx.plugin(TargetBrowserUse)
   const runtime = await mountAgentLoopTestHarness(ctx)
   const configure = async (mainlandEnabled: boolean) => {

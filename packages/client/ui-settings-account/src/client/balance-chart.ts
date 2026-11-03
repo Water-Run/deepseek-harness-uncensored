@@ -10,6 +10,9 @@ export interface BalanceChartSample {
 export interface BalanceChartGeometry {
   readonly kind: 'empty' | 'single' | 'series'
   readonly points: string
+  /** Solid runs and vertical jumps when balance increases are drawn as discrete events. */
+  readonly path?: string
+  readonly increases?: string
   readonly dot?: { readonly x: number; readonly y: number }
   /** Observed value bounds; the vertical axis labels them. */
   readonly range?: { readonly low: number; readonly high: number }
@@ -25,9 +28,10 @@ const MAX_POINTS = 120
 /**
  * Project samples into the fixed balance chart view box.
  * @param samples - Observations for one currency, in time order.
+ * @param stepIncreases - Show balance additions at the newer sample time instead of interpolating a rise.
  * @returns Empty, one dot, or a downsampled polyline.
  */
-export function balanceChart(samples: readonly BalanceChartSample[]): BalanceChartGeometry {
+export function balanceChart(samples: readonly BalanceChartSample[], stepIncreases = false): BalanceChartGeometry {
   if (samples.length === 0) return { kind: 'empty', points: '' }
   const picked = downsample(samples, MAX_POINTS)
   const firstSample = picked[0]
@@ -49,7 +53,18 @@ export function balanceChart(samples: readonly BalanceChartSample[]): BalanceCha
   const first = coords[0]
   if (first === undefined) return { kind: 'empty', points: '' }
   if (coords.length === 1) return { kind: 'single', points: '', dot: first, range }
-  return { kind: 'series', points: coords.map(point => `${point.x},${point.y}`).join(' '), range }
+  const points = coords.map(point => `${point.x},${point.y}`).join(' ')
+  if (!stepIncreases) return { kind: 'series', points, range }
+  let path = `M${first.x},${first.y}`, increases = ''
+  let previous = first
+  for (const current of coords.slice(1)) {
+    if (current.y < previous.y) {
+      path += ` H${current.x} M${current.x},${current.y}`
+      increases += `M${current.x},${previous.y} V${current.y} `
+    } else path += ` L${current.x},${current.y}`
+    previous = current
+  }
+  return { kind: 'series', points, path, increases: increases.trimEnd(), range }
 }
 
 function downsample(items: readonly BalanceChartSample[], max: number): BalanceChartSample[] {

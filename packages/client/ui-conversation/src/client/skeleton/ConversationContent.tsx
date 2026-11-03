@@ -112,6 +112,7 @@ export function ConversationContent(props: ConversationContentProps) {
       <WorkspaceChip
         buttonRef={pickerAnchor}
         label={chipTitle}
+        unbound={storedChipTitle === undefined && chipTitle !== undefined}
         menuOpen={pickerOpen}
         onClick={() => { setPickerOpen(open => !open) }}
         t={t}

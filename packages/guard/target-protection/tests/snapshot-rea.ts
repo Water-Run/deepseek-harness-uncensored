@@ -27,6 +27,7 @@ export function apply(ctx: Context): void {
       try {
         exec.signal.throwIfAborted()
         await owner.plugin(TargetProtection, { path: ':memory:', hostsFile: '' })
+        await owner.targetProtection.configure({ mainlandEnabled: true, rules: [] }, 1)
         await owner.plugin(TargetRea, { enabled: true, nodePath: process.execPath,
           cliPath: fileURLToPath(new URL('./fixtures/rea.mjs', import.meta.url)) })
         await assert.rejects(owner.rea.connect(root, exec.signal), { code: 'TARGET_EXECUTION_UNCONFINED' })

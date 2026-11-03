@@ -25,6 +25,7 @@ async function harness() {
   await ctx.plugin(ToolRuntime)
   await ctx.plugin(McpResources)
   const owner = await ctx.plugin(TargetProtection, { path: ':memory:', hostsFile: '' })
+  await ctx.targetProtection.configure({ mainlandEnabled: true, rules: [] }, 1)
   const configure = async (mainlandEnabled: boolean) => {
     const before = await ctx.targetProtection.snapshot()
     await ctx.targetProtection.configure({ mainlandEnabled, rules: [] }, before.revision)
