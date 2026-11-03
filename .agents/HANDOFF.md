@@ -1,5 +1,15 @@
 # Uncensored 开发交接
 
+## 官方版插件与顶部入口验收（2026-11-03）
+
+基点 `6ffc51a22b`，Goal active。本节点完成 02.05 的插件加载及顶部入口核实。将系统官方 DeepSeek Harness 0.2.1-rc.3 的完整安装和三个现有插件复制到随机临时目录；使用副本 EXE 的实际 Desktop Host 与原 profile 配置，独立 HOME/APPDATA/缓存和空白会话，未复制真实凭据。插件为 dsh-purge 1.2.3、dsh-side 0.1.1、@sky_sun/dsh-balance 0.1.0-local.2。仅在测试 profile 将余额 baseURL 指向本地固定响应，purge 的原启动配置保持不变。
+
+实际验证：`/dsh-purge/status` 返回 200、ok=true、ready=true；`/api/balance` 返回本地夹具 ¥12.34；新建空白会话后命令列表包含 purge、side、btw，执行空参数 side/btw 返回对应使用说明，不调用模型。隐藏 Edge 加载副本随包客户端，正常关闭首次说明后打开顶部 dsh-purge 面板；页面无异常，余额入口和面板内容已截图核对。面板显示“待解开”，没有点击应用、还原、卸载或更新；不将入口加载通过扩大为原版清洗效果、真实模型或真实账户验证。
+
+原官方 EXE/ASAR、三个配置文件及插件文件共 312 项在测试前后哈希一致，未改官方配置或正式安装，也未改 DSHU 安装。测试 Host/浏览器退出，临时安装和数据已删除。首次夹具误以为环境变量会覆盖原余额配置，虚拟密钥得到 401；改为测试 profile 的本地端点后通过。另一次点击被延后出现的首次说明遮挡，改为等待并正常确认说明后通过；均未修改产品实现或放宽断言。
+
+证据：`.dsh-build/official-plugin-runtime-20261103.json`、`official-plugin-verified-20261103.log`、`screenshots/official-plugin-20261103.png`。恢复脚本 `.dsh-build/official-plugin-runtime-20261103.mjs`；固定 API 描述取自原 ASAR，空参数命令验收不产生模型费用。当前可用额度 57%，未重置或购买。概览改为已完成 27 项、进行中 8 项、待实现 1 项；其他交付、许可证及进阶保护未完成项保留。
+
 ## 依赖声明清点与补充原文（2026-11-03）
 
 基点 `3fbe95372c`，Goal active。本节点处理主线交付的 16.07，不扩张默认关闭的进阶保护。新增 `runtime-notices.ts`，在 `prepare-dsh.ts` 完整性封装前生成实际 npm 包版本/声明文件摘要清单；精确版本补充文件经 SHA-256 校验，读取/摘要失败中止准备。缺少原文及 REA 已记录的上游缺项保持待核查，不把候选文件存在当作许可证兼容性结论。
