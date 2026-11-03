@@ -2,6 +2,13 @@
 
 纳入当前 Goal「实现DSHU」，不替代已有目标保护、数据库、审计与其他未完成项目。
 
+## 02.12 Windows ConPTY 长路径兼容
+
+- [ ] 修复 node-pty 原生 ConPTY DLL 路径达到 260 字符时无法加载的问题。DLL 存在，失败来自 MAX_PATH 固定缓冲；短安装目录的相同包已通过实际侧栏终端代理检查。
+- [ ] 增加长目录下的真实终端创建、输入输出与退出验收，避免只用系统 ConPTY 的底层 smoke 掩盖应用实际使用的随包 DLL 路径。
+
+本项在 2026-11-03 对 e30 安装器的验收中发现，原始证据与短目录对照见 HANDOFF。保持现有默认安装与数据目录独立，不以关闭随包 ConPTY 来绕过问题。
+
 ## 02.10 跟进最新 DSH 内核
 
 - [x] 核对官方发布：当前产品记录为 DSH 0.2.1-rc.3，源节点 1f81c047fc48fa190a683e469daa699857e9afe8。2026-11-01 查到主线发布版本为 [0.2.2-alpha.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-alpha.2)，另有 10 月 30 日发布的 [0.2.1-rc.5](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-rc.5) 维护线补丁。

@@ -159,11 +159,15 @@
   border: none;
   border-radius: var(--dsw-radius-sm);
   background: transparent;
-  color: var(--dsw-alias-state-business-primary);
+  color: var(--dsw-alias-label-primary);
   font-size: 13px;
   line-height: 20px;
   font-weight: 500;
   cursor: pointer;
+}
+
+.workspaceAccent {
+  color: var(--dsw-alias-state-business-primary);
 }
 
 .workspace[aria-expanded='true'] {

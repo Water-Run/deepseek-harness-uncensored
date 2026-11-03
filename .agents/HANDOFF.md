@@ -1,5 +1,15 @@
 # Uncensored 开发交接
 
+## 工作区着色范围修正与检查包状态（2026-11-03）
+
+用户指出只应给“不在工作区工作”和“默认工作区”着色。已纠正此前扩大范围的实现：按原始默认工作区标识判断，只有这两类选项的名称和主图标使用模式主题色；普通工作区的列表项保持菜单常规颜色，选中后的顶部入口使用普通文字色。四模式 × 浅深色真实 Chromium 检查及三种顶部选择状态通过，原选择器 18 项通过，完整构建 10/10。截图 `.dsh-build/screenshots/workspace-special-colors-20261103.png`；日志 `workspace-special-colors-browser-final-20261103.log`、`workspace-accent-tests-20261103.log`、`workspace-accent-build-20261103.log`。不新增低价值的样式镜像单测。
+
+此前 `e30bf6d269` 已完成 Windows 未签名打包并验证实际安装器提取内容：`.dsh-build/deliverables/DSHU-0.1.0-core-0.2.2-alpha.2-REA-6.8.0-win-x64-unsigned-20261103-e30bf6.exe`，388930542 字节，SHA-256 `1cefc33dc8a2702f0402b0e471c1f5cc7774d0fda6e3a3f3edc7e25cc6e57bb2`。构建 run `2026-11-03T07-58-46.982Z-4ambCZ` success=true，四模式、REA 229 工具、Office、原生模块、实际安装器 dsh 文件清单及源码身份均通过。实际侧栏终端创建、按序输入、经独立代理的 HTTP 请求与正文捕获、关闭也通过，使用随包 Node 的正常 HTTP 请求；最初手动代理测试与 Node 自动环境代理叠加，改正测试后通过。
+
+发现长路径限制：node-pty 的 ConPTY 加载器使用 MAX_PATH 缓冲，深构建目录中 DLL 路径恰好 260 字符时 PathCombineW 失败。实际 DLL 已在包中；从安装器提取至短私有目录后，终端检查通过。保留此限制为 02.12，不将短目录通过当作长路径已修复。提取目录 `D:/Coding/.dshu-installer-check-kmVMy7/app`；证据 `packaged-terminal-proxy-20261103.log`、`extracted-terminal-proxy-verified-20261103.log`、`extracted-four-presets-e30-20261103.log`、`terminal-package-archive-20261103.log`。
+
+用户明确选择“等我关闭 DSHU 后再安装”。系统仍为 `538f99e405`，未关闭其当前进程或修改安装。e30 检查包不含本节着色修复，已标记等待新的颜色修复包，不应自动安装旧候选。后续须在用户退出后建立新的私有数据备份，再安装经验证的新包；不要复用上午的备份快照。安装延期不等于暂停 Goal，其他开发继续。打包工作树保持 detached e30，main 持续推进。
+
 ## 独立代理的终端接入与流量归属（2026-11-03）
 
 基点 `1f2315f5d2`，Goal active。普通代理此前只接网页抓取与单次命令。本节点将同一 Session 的独立代理环境接入 `terminal-bash` 的 Agent 持久终端和 `TerminalController` 的侧栏用户终端，流量分别归属 `terminal_open`、`user_terminal`。调用使用真实 Agent，不接受模型声明模式；代理环境只交给新 shell，不改 Host 全局环境。代理准备后再次检查取消，取消的请求不分配进程。其他模式保留原路由；已有终端环境不动态修改，模式/代理改变后需重建。应用仍须遵守代理环境变量，HTTPS 隧道只捕获元信息。

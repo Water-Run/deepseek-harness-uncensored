@@ -32,14 +32,16 @@ export function workspaceLabel(cwd: string): string {
  * "Choose workspace" call to action.
  * @param props.label - chip label (see {@link workspaceLabel}); omitted → placeholder.
  * @param props.unbound - Use the globe for a conversation explicitly outside a workspace.
+ * @param props.defaultWorkspace - Apply the mode accent to the built-in default workspace.
  * @param props.menuOpen - menu expansion echo.
  * @param props.onClick - menu toggle.
  * @returns the chip button element.
  */
-export function WorkspaceChip({ buttonRef, label, unbound = false, menuOpen = false, onClick, t }: {
+export function WorkspaceChip({ buttonRef, label, unbound = false, defaultWorkspace = false, menuOpen = false, onClick, t }: {
   buttonRef?: RefObject<HTMLButtonElement>
   label?: string | undefined
   unbound?: boolean
+  defaultWorkspace?: boolean
   menuOpen?: boolean
   onClick?: () => void
   t: HeroTranslate
@@ -48,7 +50,7 @@ export function WorkspaceChip({ buttonRef, label, unbound = false, menuOpen = fa
     <button
       ref={buttonRef}
       type="button"
-      className={css.workspace}
+      className={`${css.workspace}${unbound || defaultWorkspace ? ` ${css.workspaceAccent}` : ''}`}
       aria-label={t('hero.chooseWorkspace')}
       aria-haspopup="menu"
       aria-expanded={menuOpen}

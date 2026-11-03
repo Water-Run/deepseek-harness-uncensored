@@ -16,7 +16,7 @@ import {
 import type {
   WorkspaceId, WorkspaceSnapshot, WorkspaceView,
 } from '@deepseek-ai/dsh-api-workspace-controller/client'
-import { workspaceDisplayTitle } from '@deepseek-ai/dsh-api-workspace-controller/default-workspace'
+import { DEFAULT_WORKSPACE_DIRECTORY, workspaceDisplayTitle } from '@deepseek-ai/dsh-api-workspace-controller/default-workspace'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
 import type { DirectoryFlowOwnerProps, WorkspacePickerProps } from './contract/slots.ts'
 import { distinguishingPathSuffixes } from './path-suffix.ts'
@@ -129,6 +129,7 @@ export function WorkspacePickFlow({
     const rows = workspaces.map(workspace => ({
       id: workspace.workspaceId,
       title: workspaceDisplayTitle(workspace.title, defaultWorkspaceName),
+      accent: workspace.title === DEFAULT_WORKSPACE_DIRECTORY,
       path: workspace.path,
     }))
     const suffixes = distinguishingPathSuffixes(rows)
@@ -136,20 +137,20 @@ export function WorkspacePickFlow({
   }, [pinAdd, workspaces, defaultWorkspaceName])
   const items: MenuEntry[] = pinAdd
     ? [...onPickNone === undefined || terms.length > 0 ? [] : [{ id: NO_WORKSPACE, label: <span className={css.optionLabel}>{t('workspace.none')}</span>, icon: <IconGlobeOutlineRegular className={css.optionLabel} size={16} />, disabled: flowBusy }],
-      ...listed.filter(row => matches.some(workspace => workspace.workspaceId === row.id)).map(({ id, title, path, suffix }) => ({
+      ...listed.filter(row => matches.some(workspace => workspace.workspaceId === row.id)).map(({ id, title, path, suffix, accent }) => ({
         id,
         // The title gives way first, so the suffix that tells the rows apart
         // stays visible; the native tooltip carries the full path.
         label: suffix === undefined
-          ? <span className={css.optionLabel}>{title}</span>
+          ? <span className={accent ? css.optionLabel : undefined}>{title}</span>
           : (
             <span className={css.disambiguated} title={path}>
-              <span className={`${css.title} ${css.optionLabel}`}>{title}</span>
+              <span className={`${css.title}${accent ? ` ${css.optionLabel}` : ''}`}>{title}</span>
               {' '}
               <span className={css.pathSuffix}>{suffix}</span>
             </span>
           ),
-        icon: <IconFolderCloseRegular className={css.optionLabel} size={16} />,
+        icon: <IconFolderCloseRegular className={accent ? css.optionLabel : undefined} size={16} />,
         disabled: flowBusy,
       }))]
     : addEntries

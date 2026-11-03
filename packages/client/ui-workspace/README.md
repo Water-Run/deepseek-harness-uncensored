@@ -33,7 +33,7 @@ The Ungrouped header starts a conversation without a workspace. Explicit `startS
 
 The workspace picker searches names and paths, treating slash direction and letter case consistently. Search stays open with an empty-result message, while Add Workspace remains available.
 
-The no-workspace choice uses a globe; real workspaces retain folder icons. Picker names and icons use the current mode accent, including the default workspace.
+The no-workspace choice uses a globe; real workspaces retain folder icons. Only the no-workspace and default-workspace names and icons use the current mode accent. Other workspaces use the standard label color in the picker and selected chip.
 
 A project's running-conversation action opens its newest non-archived running conversation, excluding the one already open. It remains available while the project is folded and uses the normal session-opening path, preserving task state and drafts.
 
