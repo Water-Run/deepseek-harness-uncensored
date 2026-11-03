@@ -1,6 +1,8 @@
 version: 1
 scenario: browser-use-chrome-devtools-mcp
 profile: headless
+# The recorded common tool header includes Bash; real Chromium e2e tests also run on Windows.
+platform: posix
 composition: browser-use-chrome-devtools-mcp
 recording: authored
 header:

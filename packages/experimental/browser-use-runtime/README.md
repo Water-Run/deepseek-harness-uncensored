@@ -25,6 +25,8 @@ Browser providers use this library to reuse a browser across one Session's turns
 <a id="use-this-package"></a>
 ## Use this package
 
+When the optional security proxy covers an Agent, `mountSessionMcp` resolves its loopback endpoint before starting the MCP process. Launch providers supply `proxyArguments` to configure Chromium; an attachment without that capability rejects startup instead of using a direct route. Only Chromium receives these arguments; Host, MCP-control and application model transports are unchanged. Proxy configuration is captured when the browser starts: recreate the browser activation after changing it. HTTP page traffic can be captured; ordinary HTTPS tunnels retain metadata only.
+
 This public experimental library is a dependency of the browser providers. It has no plugin entry or mount configuration. The [browser-use service](../../browser-use/browser-use/README.md) remains independent of the library.
 
 Native providers construct `SessionResources` from the package root, supplying resource acquisition and cleanup callbacks. Calls pass the exact live Agent to `run()`; stale owners and a second owner of an exclusive attachment fail before acquisition. Canceling an acquisition wait leaves initialization available to other callers in the same Session; Session disposal aborts and awaits that initialization. Providers keep their registration until `dispose()` finishes.

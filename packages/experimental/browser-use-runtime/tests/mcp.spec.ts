@@ -80,7 +80,10 @@ class PresentationRuntime extends PtcRuntime {
   run(): Promise<never> { return Promise.reject(new Error('Unexpected PTC execution in a presentation test')) }
 }
 
-async function load(exclusive = false, mode?: string, toolCallTimeoutMs?: number, toolOrder?: string[]) {
+async function load(
+  exclusive = false, mode?: string, toolCallTimeoutMs?: number, toolOrder?: string[],
+  proxyArguments?: (server: string) => readonly string[],
+) {
   const root = await mkdtemp(join(tmpdir(), 'dsh-browser-mcp-'))
   roots.push(root)
   const model = new FixtureModel()
@@ -90,7 +93,10 @@ async function load(exclusive = false, mode?: string, toolCallTimeoutMs?: number
     ['fs', LocalFileSystem], ['workingDirectory', WorkingDirectory],
     ['model', { inject: ['llm'], apply(ctx: Context) { ctx.effect(() => ctx.llm.registerAdapter(['fixture'], model)) } }],
     ['browser', { inject: ['browserUse', 'agents', 'tools', 'systemPrompt', 'workingDirectory'], apply(ctx: Context) {
-      mountSessionMcp(ctx, { name: 'browser-fixture', exclusive, command: process.execPath, args: [fixture, root, ...mode === undefined ? [] : [mode]], ...toolCallTimeoutMs === undefined ? {} : { toolCallTimeoutMs, env: {} } })
+      mountSessionMcp(ctx, { name: 'browser-fixture', exclusive, command: process.execPath,
+        args: [fixture, root, ...mode === undefined ? [] : [mode]],
+        ...proxyArguments === undefined ? {} : { proxyArguments },
+        ...toolCallTimeoutMs === undefined ? {} : { toolCallTimeoutMs, env: {} } })
     } }],
   ])
   const configPath = join(root, 'cordis.yml')
@@ -145,8 +151,92 @@ function registerIndependentTool(ctx: Context) {
 }
 
 async function events(root: string) {
-  return (await readFile(join(root, 'events.ndjson'), 'utf8')).trim().split('\n').map(line => JSON.parse(line) as { event: string; pid: number; name?: string; cwd?: string })
+  return (await readFile(join(root, 'events.ndjson'), 'utf8')).trim().split('\n').map(line => JSON.parse(line) as {
+    event: string
+    pid: number
+    name?: string
+    cwd?: string
+    args?: string[]
+  })
 }
+
+it('passes a browser proxy only to its covered owner without changing the Host environment', async () => {
+  const { ctx, root } = await load(false, undefined, undefined, undefined, server => ['--proxy-server', server])
+  const before = process.env.HTTP_PROXY
+  const proxy: Pick<Context['securityProxy'], 'route' | 'environment'> = {
+    route: (agent: Agent | undefined, tool: string) => agent?.session.id === 'proxied'
+      ? { sessionId: agent.session.id, preset: 'security', tool } : undefined,
+    environment: vi.fn(async () => ({ HTTP_PROXY: 'http://127.0.0.1:1234' })),
+  }
+  // This fixture exercises only the routing methods consumed during browser startup.
+  ctx.provide('securityProxy', proxy as Context['securityProxy'])
+  await ctx.agents.create({ sessionId: SessionId('proxied') })
+  await ctx.agents.create({ sessionId: SessionId('direct') })
+  const starts = (await events(root)).filter(event => event.event === 'start')
+  expect(starts.filter(event => event.args?.includes('--proxy-server'))).toHaveLength(2)
+  expect(starts.filter(event => event.args?.length === 0)).toHaveLength(2)
+  expect(proxy.environment).toHaveBeenCalledOnce()
+  expect(process.env.HTTP_PROXY).toBe(before)
+})
+
+it('rejects a covered external attachment before starting its MCP process', async () => {
+  const { ctx, root } = await load(true)
+  const proxy: Pick<Context['securityProxy'], 'route' | 'environment'> = {
+    route: (agent: Agent | undefined, tool: string) => ({ sessionId: agent!.session.id, preset: 'security', tool }),
+    environment: vi.fn(async () => ({ HTTP_PROXY: 'http://127.0.0.1:1234' })),
+  }
+  ctx.provide('securityProxy', proxy as Context['securityProxy'])
+  await expect(ctx.agents.create({ sessionId: SessionId('external') })).rejects.toThrow('switch the browser provider from attach to launch')
+  expect(proxy.environment).not.toHaveBeenCalled()
+  await expect(readFile(join(root, 'events.ndjson'))).rejects.toMatchObject({ code: 'ENOENT' })
+})
+
+it.each([
+  [{}, 'did not provide an HTTP browser endpoint'],
+  [{ HTTP_PROXY: 'not a URL' }, 'invalid browser endpoint'],
+  [{ HTTP_PROXY: 'https://127.0.0.1:1234' }, 'loopback HTTP browser endpoint'],
+  [{ HTTP_PROXY: 'http://remote.invalid:1234' }, 'loopback HTTP browser endpoint'],
+  [{ HTTP_PROXY: 'http://user:secret@127.0.0.1:1234' }, 'loopback HTTP browser endpoint'],
+  [{ HTTP_PROXY: 'http://:secret@127.0.0.1:1234' }, 'loopback HTTP browser endpoint'],
+] as const)('rejects an invalid browser proxy endpoint before native startup (%s)', async (environment, message) => {
+  const { ctx, root } = await load(false, undefined, undefined, undefined, server => ['--proxy-server', server])
+  const proxy: Pick<Context['securityProxy'], 'route' | 'environment'> = {
+    route: (agent, tool) => ({ sessionId: agent!.session.id, preset: 'security', tool }),
+    environment: async () => environment,
+  }
+  ctx.provide('securityProxy', proxy as Context['securityProxy'])
+  await expect(ctx.agents.create({ sessionId: SessionId('invalid-proxy') })).rejects.toThrow(message)
+  await expect(readFile(join(root, 'events.ndjson'))).rejects.toMatchObject({ code: 'ENOENT' })
+})
+
+it('uses the current direct route if the proxy is disabled during preparation', async () => {
+  const { ctx, root } = await load(false, undefined, undefined, undefined, server => ['--proxy-server', server])
+  const proxy: Pick<Context['securityProxy'], 'route' | 'environment'> = {
+    route: (agent, tool) => ({ sessionId: agent!.session.id, preset: 'security', tool }),
+    environment: async () => undefined,
+  }
+  ctx.provide('securityProxy', proxy as Context['securityProxy'])
+  await ctx.agents.create({ sessionId: SessionId('proxy-disabled') })
+  expect((await events(root)).filter(event => event.event === 'start').every(event => event.args?.length === 0)).toBe(true)
+})
+
+it('does not start a browser MCP process after proxy preparation is canceled', async () => {
+  const { ctx, root, browser } = await load(false, undefined, undefined, undefined, server => ['--proxy-server', server])
+  const preparing = Promise.withResolvers<undefined>()
+  const release = Promise.withResolvers<Readonly<Record<string, string>>>()
+  const proxy: Pick<Context['securityProxy'], 'route' | 'environment'> = {
+    route: (agent: Agent | undefined, tool: string) => ({ sessionId: agent!.session.id, preset: 'security', tool }),
+    environment: async () => { preparing.resolve(undefined); return release.promise },
+  }
+  ctx.provide('securityProxy', proxy as Context['securityProxy'])
+  const creation = observeActivation(ctx.agents.create({ sessionId: SessionId('canceled') }))
+  const rejection = expect(creation).rejects.toBeDefined()
+  await preparing.promise
+  const closing = browser.dispose()
+  release.resolve({ HTTP_PROXY: 'http://127.0.0.1:1234' })
+  await Promise.all([closing, rejection])
+  await expect(readFile(join(root, 'events.ndjson'))).rejects.toMatchObject({ code: 'ENOENT' })
+})
 
 it('requires a browser mode and validates launch and attachment settings', () => {
   expect(BrowserMcpConfig({ mode: 'launch' })).toEqual({ mode: 'launch', headless: true })

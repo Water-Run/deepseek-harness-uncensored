@@ -1,6 +1,11 @@
 /** External browser fixture; screenshots contain no host or network content. */
 import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { createInterface } from 'node:readline'
+import assert from 'node:assert/strict'
+const proxyIndex = process.argv.indexOf('--proxy-server')
+assert.ok(proxyIndex >= 0, 'Session proxy did not reach the Playwright browser launch')
+assert.equal(process.argv[proxyIndex + 1], 'http://127.0.0.1:8787')
+assert.ok(process.argv.includes('<-loopback>'))
 mkdirSync('.dsh', { recursive: true })
 const catalog = JSON.parse(readFileSync(new URL('./catalog.json', import.meta.url), 'utf8'))
 const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADElEQVQImWNgZGIGAAAOAAeCcsnOAAAAAElFTkSuQmCC'

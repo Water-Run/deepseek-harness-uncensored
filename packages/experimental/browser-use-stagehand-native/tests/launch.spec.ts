@@ -59,6 +59,22 @@ it.each([true, false])('launches with scrubbed environment and owns the profile 
   await expect(access(profiles[0]!)).rejects.toThrow()
 })
 
+it('passes the session proxy only to Chromium and includes loopback target requests', async () => {
+  const fake = processFixture()
+  const opening = launchChromium(config, new AbortController().signal, 'http://127.0.0.1:1234')
+  await fake.started.promise
+  fake.ready.resolve('ws://127.0.0.1:4321/devtools/browser/fixture')
+  const browser = await opening
+  const options = state.launch.mock.calls[0]![0] as { args: string[]; env: Record<string, string> }
+  expect(options.args).toContain('--proxy-server=http://127.0.0.1:1234')
+  expect(browser.proxyControlHost).toMatch(/^dshu-[0-9a-f-]{36}\.localhost$/u)
+  expect(options.args).toContain(`--proxy-bypass-list=<-loopback>;${browser.proxyControlHost}`)
+  expect(options.args).toContain(`--host-resolver-rules=MAP ${browser.proxyControlHost} 127.0.0.1`)
+  expect(options.env.HTTP_PROXY).not.toBe('http://127.0.0.1:1234')
+  await browser.close()
+  expect(fake.kill).toHaveBeenCalledOnce()
+})
+
 it('cancels after spawn and waits for close before removing the profile', async () => {
   const fake = processFixture()
   fake.kill.mockImplementation(() => { fake.killed.resolve(undefined) })

@@ -25,6 +25,8 @@ kind: "package-library"
 <a id="use-this-package"></a>
 ## 使用本包
 
+可选独立代理覆盖当前 Agent 时，`mountSessionMcp` 在启动 MCP 进程前取得该会话的回环代理地址。启动型提供方通过 `proxyArguments` 配置 Chromium；不具备此能力的外部附加连接会拒绝启动，不会转为直连。参数只交给 Chromium，不修改 Host、MCP 控制通道或应用模型接口。浏览器启动时固定代理配置，修改后需重建浏览器会话。HTTP 网页流量可被记录，普通 HTTPS 隧道只保留元数据。
+
 此公共实验性库是浏览器提供方的依赖。它没有插件入口或挂载配置。[浏览器操作服务](../../browser-use/browser-use/README.zh.md)保持独立于此库。
 
 原生提供方从包根入口构造 `SessionResources`，提供资源获取与清理回调。调用向 `run()` 传递确切的实时 Agent；失效的所有者与独占附加的第二个所有者在获取资源前失败。取消资源获取等待不会终止初始化，同一 Session 的其他调用方仍可继续等待；释放 Session 会中止并等待该初始化结束。提供方将注册保留到 `dispose()` 完成。

@@ -38,6 +38,9 @@ export function apply(ctx: Context, config: Config): void {
     exclusive: config.mode === 'attach',
     command: process.execPath,
     args,
+    ...config.mode === 'launch' ? {
+      proxyArguments: (server: string) => ['--proxy-server', server, '--chrome-arg=--proxy-bypass-list=<-loopback>'],
+    } : {},
     ...config.toolCallTimeoutMs === undefined ? {} : { toolCallTimeoutMs: config.toolCallTimeoutMs },
   })
 }

@@ -20,6 +20,9 @@ it('uses the pinned Playwright executable with isolated Chromium launch settings
   expect(existsSync(options.args[0]!)).toBe(true)
   expect(options).toMatchObject({ name: 'playwright-mcp', exclusive: false, command: process.execPath, toolCallTimeoutMs: 123 })
   expect(options.env?.PLAYWRIGHT_MCP_CDP_ENDPOINT).toBe('')
+  expect(options.proxyArguments?.('http://127.0.0.1:1234')).toEqual([
+    '--proxy-server', 'http://127.0.0.1:1234', '--proxy-bypass', '<-loopback>',
+  ])
   expect(options.args.slice(1)).toEqual(['--browser', 'chromium', '--isolated', '--headless', '--executable-path', '/custom/chromium'])
   expect('default' in Provider).toBe(false)
 })
@@ -30,6 +33,7 @@ it('supports headed launch and attaches without launching a browser or creating 
   Provider.apply(new Context(), Provider.Config({ mode: 'attach', endpoint: 'http://127.0.0.1:9222' }))
   const options = vi.mocked(mountSessionMcp).mock.calls[1]![1]
   expect(options.exclusive).toBe(true)
+  expect(options.proxyArguments).toBeUndefined()
   expect(options.args.slice(1)).toEqual(['--browser', 'chromium', '--cdp-endpoint', 'http://127.0.0.1:9222'])
 })
 

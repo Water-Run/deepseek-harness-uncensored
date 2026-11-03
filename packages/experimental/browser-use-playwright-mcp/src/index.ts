@@ -46,6 +46,9 @@ export function apply(ctx: Context, config: Config): void {
     command: process.execPath,
     args,
     env,
+    ...config.mode === 'launch' ? {
+      proxyArguments: (server: string) => ['--proxy-server', server, '--proxy-bypass', '<-loopback>'],
+    } : {},
     ...config.toolCallTimeoutMs === undefined ? {} : { toolCallTimeoutMs: config.toolCallTimeoutMs },
   })
 }

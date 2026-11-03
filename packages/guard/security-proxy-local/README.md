@@ -97,7 +97,7 @@ No effect: routing changes no request content.
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **Coverage** — `web_fetch`, one-shot shell tools and persistent shell terminals are routed. The browser tool, MCP servers, delegated agents, and anything that ignores proxy environment variables are not; the settings surface says so instead of implying otherwise.
+- **Coverage** — `web_fetch`, one-shot shell tools, persistent shell terminals and newly launched Playwright MCP, Chrome DevTools MCP and Stagehand browsers are routed. External browser attachments, the browser sidebar, other MCP servers, delegated agents, and programs that ignore proxy environment variables remain outside this coverage. Browser routing is captured at launch; recreate browser activations after changing it. Stagehand's extension model requests follow its browser proxy; the application's own model requests do not.
 - **No interception** — HTTPS bodies carried by child processes stay sealed. Only the plaintext this application writes is captured.
 - **Loopback trust** — each session listener binds `127.0.0.1` on an operating-system-assigned port with no local authentication; another local process could use it while it is open. It closes with the conversation, with a settings change, and with Host shutdown.
 - **Record lifetime** — flows live in memory only and are lost on restart. Retention is capped by count, body bytes, and age.

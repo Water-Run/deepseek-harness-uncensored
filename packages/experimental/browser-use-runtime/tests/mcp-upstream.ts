@@ -19,6 +19,8 @@ import Llm from '@deepseek-ai/dsh-llm'
 import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import Sessions, { SessionId } from '@deepseek-ai/dsh-session'
 import Agents from '@deepseek-ai/dsh-agent'
+import type { Agent } from '@deepseek-ai/dsh-agent'
+import type {} from '@deepseek-ai/dsh-security-proxy'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import Projections from '@deepseek-ai/dsh-session-projection'
 import LocalFileSystem from '@deepseek-ai/dsh-fs-local'
@@ -28,6 +30,7 @@ import { promisify } from 'node:util'
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
 import { z } from 'zod'
 import type { BrowserMcpConfig } from '../src/mcp.ts'
+import { startBrowserProxy } from './proxy-fixture.ts'
 
 const processRecord = z.object({ pid: z.number().int(), parent: z.number().int(), created: z.string(), name: z.string() })
 type ProcessRecord = z.infer<typeof processRecord>
@@ -64,10 +67,12 @@ export async function verifyMcpBrowser(
   namespace: string,
   navigate: { name: string; arguments(url: string): Record<string, unknown> },
   mode: 'launch' | 'attach',
+  proxied = false,
 ): Promise<void> {
   const executable = process.env.DSH_BROWSER_EXECUTABLE!
   const root = await mkdtemp(join(tmpdir(), 'dsh-browser-upstream-'))
   const observed = new Set<string>()
+  let proxy: Awaited<ReturnType<typeof startBrowserProxy>> | undefined
   const server = createServer((request, response) => {
     observed.add(request.url!)
     response.writeHead(200, { 'Content-Type': 'text/html' })
@@ -96,6 +101,15 @@ export async function verifyMcpBrowser(
     const address = server.address()
     if (address === null || typeof address === 'string') throw new Error('Fixture has no TCP listener')
     const url = `http://127.0.0.1:${address.port}/${namespace}-${mode}`
+    if (proxied) {
+      proxy = await startBrowserProxy(new URL(url).origin)
+      const endpoint = proxy.url
+      const routing: Pick<Context['securityProxy'], 'route' | 'environment'> = {
+        route: (agent: Agent | undefined, tool: string) => ({ sessionId: agent!.session.id, preset: 'security', tool }),
+        environment: async () => ({ HTTP_PROXY: endpoint }),
+      }
+      ctx.provide('securityProxy', routing as Context['securityProxy'])
+    }
     let browserConfig: BrowserMcpConfig = { mode: 'launch', headless: true, executablePath: executable }
     if (mode === 'attach') {
       const profile = join(root, 'external-profile')
@@ -134,6 +148,7 @@ export async function verifyMcpBrowser(
     const result = await executeToolFixture(ctx, { agent: owner.agent, name: `mcp__${namespace}__${navigate.name}`, arguments: navigate.arguments(url), callId: ToolCallId('navigate'), signal: new AbortController().signal })
     expect(result.isError, JSON.stringify(result.content)).toBe(false)
     expect(observed.has(`/${namespace}-${mode}`)).toBe(true)
+    if (proxied) expect(proxy!.requests.has(url), 'Chromium bypassed the session proxy').toBe(true)
     expect(result.content.length).toBeGreaterThan(0)
     nativeBeforeClose = selectProcessRange(await processSnapshot(), nativeRoots)
     if (process.platform === 'win32') {
@@ -162,6 +177,7 @@ export async function verifyMcpBrowser(
       capture.mockRestore()
       if (external !== undefined && external.exitCode === null) external.kill('SIGTERM')
       if (exited !== undefined) await exited
+      await proxy?.close()
       server.closeAllConnections()
       await new Promise<void>((resolve, reject) => {
         server.close((error) => {

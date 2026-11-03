@@ -25,6 +25,8 @@ Navigate browser tabs, capture screenshots, and ask Stagehand to act, find actio
 <a id="use-this-package"></a>
 ## Use this package
 
+Security conversations use their independent proxy for a newly launched Chromium browser when enabled, including loopback page targets. Attach mode rejects this combination because it cannot reconfigure an external browser. Stagehand's extension model requests follow the browser route; the application's model, balance and update requests remain separate. Recreate the browser activation after changing proxy settings.
+
 Mount this provider in a profile that supplies Agents, Sessions, the tool registry, and system prompts. Add an attachment store and an image-capable Session model to receive screenshots as images.
 
 ### Minimal configuration
@@ -91,6 +93,8 @@ env -u NODE_USE_ENV_PROXY DSH_STAGEHAND_E2E=1 pnpm exec vitest run --config vite
 The host owns each launched Chromium process and its temporary profile before waiting for CDP readiness. Chromium receives the standard scrubbed child environment, preserving paths, locale, and proxy settings while excluding credential-shaped variables and DSH identity. Both modes connect the SDK inside a dedicated Worker. The Worker receives only explicit temporary-directory values and the source TypeScript configuration path, so its CDP connection does not inherit host proxy settings. SDK close waits for active operations. Cleanup terminates the connection Worker after the configured SDK grace; launch also kills and awaits its owned Chromium process before removing the profile. Attached external browsers remain open. Cleanup failures follow the [ownership limits](#known-limitations-and-deferred-work) below.
 
 The [native runtime](src/native.ts) passes the explicit model configuration to Stagehand's public initialization API. The adapter pins Zod to the version required by Stagehand because extraction passes Zod schemas to the SDK. Stagehand owns the model requests, response validation, and token accounting inside its browser extension. DSH records browser tool inputs and returned data, including SDK result metadata, through the existing Session log. Underlying inference request/response capture and integration into DSH Session usage accounting are deferred.
+
+For a proxied owned browser, the launcher creates a unique `.localhost` hostname mapped only inside that Chromium process. Only that hostname bypasses the page proxy; ordinary loopback page targets remain proxied. The extension uses this alias for its CDP connection. During SDK initialization, the Worker maps only the exact alias socket URL to the real loopback endpoint, then restores its WebSocket constructor. The mapping changes neither system DNS nor the Host proxy environment.
 
 </details>
 

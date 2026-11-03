@@ -53,6 +53,7 @@
     "@puppeteer/browsers": "3.2.2"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh-security-proxy": "workspace:*",
     "@deepseek-ai/dsh-timeout": "workspace:*",
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/cordis-plugin-include": "workspace:~",

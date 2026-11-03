@@ -123,6 +123,7 @@
       "@deepseek-ai/dsh-experimental-browser-use-chrome-devtools-mcp": ["./packages/experimental/browser-use-chrome-devtools-mcp/src/index.ts"],
       "@deepseek-ai/dsh-experimental-browser-use-stagehand-native": ["./packages/experimental/browser-use-stagehand-native/src/index.ts"],
       "@deepseek-ai/dsh-experimental-browser-use-runtime/mcp": ["./packages/experimental/browser-use-runtime/src/mcp.ts"],
+      "@deepseek-ai/dsh-experimental-browser-use-runtime/proxy": ["./packages/experimental/browser-use-runtime/src/proxy.ts"],
 
       "@deepseek-ai/dsh-office-to-pdf/types": ["./packages/document/office-to-pdf/src/types.ts"],
       "@deepseek-ai/dsh-api-terminal-controller": ["./packages/api/terminal-controller/src/index.ts"],

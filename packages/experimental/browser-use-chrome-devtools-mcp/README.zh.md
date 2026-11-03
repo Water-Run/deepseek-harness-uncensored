@@ -25,6 +25,8 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用此包
 
+网安对话开启独立代理后，launch 模式中的 Chromium 使用该会话的代理，回环网页目标也经过代理；其他模式保持原路由。attach 模式不能修改外部浏览器的代理，要求使用独立代理时会拒绝启动，请改用 launch。修改代理设置后需重建浏览器会话。见[共享路由行为](../browser-use-runtime/README.zh.md#use-this-package)。
+
 在创建或恢复 Session 前，将以下条目挂载到已提供 Agent、工具、系统提示词和工作目录服务的 profile 组合中。加载或重新加载此提供方不会接管已经活动的 Session。浏览器安装遵循上游运行时；使用 `executablePath` 选择已有 Chromium 安装。
 
 ```yaml

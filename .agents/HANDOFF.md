@@ -1,5 +1,19 @@
 # Uncensored 开发交接
 
+## 三种实验浏览器的会话代理（2026-11-03）
+
+基点 `92599ff204`。Playwright MCP、Chrome DevTools MCP 和 Stagehand 新启动的浏览器现在取得真实 Agent 对应的回环代理，只设置浏览器参数；Host、MCP 控制进程和应用模型请求不改全局路由。取消准备不启动子进程，代理端点必须为不含凭据的本机 HTTP 地址；其他模式不接管路由。开启代理时 attach 模式明确拒绝并指引 launch，配置变化后需重建浏览器会话。Stagehand 扩展发出的模型请求属于浏览器流量，此限制已写入 README。
+
+Stagehand 的扩展会自己连接 CDP，直接套代理参数会把控制 WebSocket 送进代理。现为每个受代理的自有 Chromium 生成唯一 `.localhost` 控制域名，仅在该进程内映射与豁免；Worker 初始化只把完全匹配的 SDK 控制 URL 映射回真实回环地址，之后恢复构造器。真实 Chrome 导航和后续新标签经过代理，CDP 未进入代理；普通回环目标未被整体豁免。没有修改系统 DNS、用户浏览器或应用的代理环境。
+
+验证：Windows 定向回归 83 项通过，之后扩展路由测试为 27 项；设置与引擎 32 项通过；真实 Playwright、DevTools、Stagehand 三项通过（筛选外 8 项未运行），没有模型调用费用。完整构建 10/10、最终 build:check 2/2、全仓 lint、补充定向 lint、导出 JSDoc、客户端 i18n、无新增 unknown 断言及 5 组文档配对通过。Linux 三项会话回放通过，语料检查 3 项通过。两份旧 MCP 基线固定 Bash，现明确标 POSIX；仅按当前已有产品提示词更新头部 sidecar，不修改提交过的 JSONL 代际。Windows 录制头的 Bash/PowerShell 差异保留原失败记录，实际 Windows 浏览器另外验收。
+
+构建首轮遗漏项目引用导致依赖输出落进两个 src 目录，已补引用并仅清除本轮生成的 16 个未跟踪文件，记录 `browser-proxy-generated-cleanup-20261103.txt`。Linux 验证树缺少无关 managed 入口的编译输出，改用同一构建选项仅打包四个受影响的浏览器包，随后回放通过；没有放宽产品检查。恢复脚本 `.dsh-build/browser-proxy-linux-20261103.sh`。
+
+文档路径检查另发现两份旧记录：协作取消的决策仍有效，修正其 PTC 测试路径并保留；内置插件预览图的集中映射已被包详情/README 展示替代，完整三文件归档并封存，未改历史正文，无其他活动引用。归档 1 份、保留并修正 1 份，无删除；归档测试 17 项、2775 个封存文件及路径检查通过。
+
+范围、迁移说明和日志见 [10.02 浏览器代理扩展](requirements/2026-11-03-browser-proxy.md)。内置侧栏浏览器、普通 MCP、子智能体和进阶目标保护仍待继续，不将三种提供方扩展称为全流量接管。已验证的 2914c5 安装包保持可用，但不含本节点浏览器改动；正式安装仍为 538f99e405，等待用户自行退出后更新，不能主动关闭其当前进程。
+
 ## 已验证的新检查包，等待用户退出后安装（2026-11-03 19:47）
 
 产品源码 `2914c59eb5f498ad8d6c23a847eaadcc966d8afa`，包含仅两个特殊工作区着色、终端独立代理、ConPTY 长路径修复及锁定 Electron 校验清单。安装包 `.dsh-build/deliverables/DSHU-0.1.0-core-0.2.2-alpha.2-REA-6.8.0-win-x64-unsigned-20261103-2914c5.exe`，388703750 字节，SHA-256 `93d3ef309cf853565e030fed6af2071dfc2102d13a46a9c9dfe40ea1d1d44f1c`。未签名，未发布 Release，尚未安装。

@@ -3,11 +3,18 @@ import { registerHooks } from 'node:module'
 import { readFile } from 'node:fs/promises'
 import { pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
+import { Service } from '@deepseek-ai/cordis'
 
 export const name = 'browser-provider-fixture'
 export const inject = ['browserUse', 'agents', 'tools']
 
 export async function apply(ctx) {
+  // Routing ownership is fixed by the fixture; browser launch and tool logging stay real.
+  await ctx.plugin(class BrowserSnapshotProxy extends Service {
+    constructor(inner) { super(inner, 'securityProxy') }
+    route(agent, tool) { return { sessionId: agent.session.id, preset: 'security', tool } }
+    async environment() { return { HTTP_PROXY: 'http://127.0.0.1:8787' } }
+  })
   let replaced = false
   ctx.effect(() => {
     const hooks = registerHooks({

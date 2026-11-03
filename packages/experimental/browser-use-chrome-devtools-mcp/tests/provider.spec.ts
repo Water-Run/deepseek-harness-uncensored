@@ -16,6 +16,9 @@ it('resolves the installed DevTools CLI and explicitly selects isolated headed o
   expect(existsSync(options.args[0]!)).toBe(true)
   expect(options).toMatchObject({ name: 'chrome-devtools-mcp', exclusive: false, command: process.execPath, toolCallTimeoutMs: 456 })
   expect(options.args.slice(1)).toEqual(['--no-usage-statistics', '--isolated', '--headless=true', '--executable-path', '/custom/chrome'])
+  expect(options.proxyArguments?.('http://127.0.0.1:1234')).toEqual([
+    '--proxy-server', 'http://127.0.0.1:1234', '--chrome-arg=--proxy-bypass-list=<-loopback>',
+  ])
   Provider.apply(new Context(), Provider.Config({ mode: 'launch', headless: false }))
   expect(vi.mocked(mountSessionMcp).mock.calls[1]![1].args.slice(1)).toEqual(['--no-usage-statistics', '--isolated', '--headless=false'])
   expect('default' in Provider).toBe(false)
@@ -28,6 +31,7 @@ it.each([
   Provider.apply(new Context(), Provider.Config({ mode: 'attach', endpoint }))
   const options = vi.mocked(mountSessionMcp).mock.calls[0]![1]
   expect(options.exclusive).toBe(true)
+  expect(options.proxyArguments).toBeUndefined()
   expect(options.args.slice(1)).toEqual(['--no-usage-statistics', flag, endpoint])
 })
 

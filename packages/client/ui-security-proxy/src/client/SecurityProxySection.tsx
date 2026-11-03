@@ -315,6 +315,8 @@ function Coverage({ state, t }: { state: SecurityProxyState | null; t: SecurityP
         </Tag>
       </li>)}
     </ul>
+    {rows.some(row => row.id === 'browser' && row.code !== 'uncovered')
+      && <p className={css.hint}>{t('securityProxy.coverage.browserHint')}</p>}
   </div>
 }
 

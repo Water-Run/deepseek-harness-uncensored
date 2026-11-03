@@ -13,6 +13,26 @@ class Socket extends EventTarget {
 }
 afterEach(() => { Socket.latest = undefined; vi.unstubAllGlobals() })
 
+it('rewrites only the exact private browser CDP address and restores the constructor', async () => {
+  const addresses: unknown[] = []
+  const opened: Socket[] = []
+  class RoutedSocket extends Socket {
+    constructor(address: unknown) { super(); addresses.push(address); opened.push(this) }
+  }
+  vi.stubGlobal('WebSocket', RoutedSocket)
+  const alias = 'ws://dshu-00000000-0000-0000-0000-000000000000.localhost:1234/devtools/browser/owned'
+  const direct = 'ws://127.0.0.1:1234/devtools/browser/owned'
+  const other = 'ws://127.0.0.1:4567/target'
+  const runtime = await openWithOwnedSockets(async () => {
+    new globalThis.WebSocket(new URL(alias))
+    new globalThis.WebSocket(other)
+    return { execute: async () => undefined, close: async () => { for (const socket of opened) socket.finish() } }
+  }, { from: alias, to: direct })
+  expect(addresses).toEqual([direct, other])
+  expect(globalThis.WebSocket).toBe(RoutedSocket)
+  await runtime.close()
+})
+
 it('restores the global constructor after initialization and waits for peer close after SDK drainage', async () => {
   vi.stubGlobal('WebSocket', Socket)
   let socket: Socket | undefined

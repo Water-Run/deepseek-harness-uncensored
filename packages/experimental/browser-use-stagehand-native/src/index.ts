@@ -7,6 +7,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
 import { BrowserUseProviderName } from '@deepseek-ai/dsh-browser-use/brand'
 import { BrowserResourceCleanupError, SessionResources } from '@deepseek-ai/dsh-experimental-browser-use-runtime'
+import { resolveBrowserProxy } from '@deepseek-ai/dsh-experimental-browser-use-runtime/proxy'
 import { createMcpToolDefinition } from '@deepseek-ai/dsh-mcp-client'
 import { z } from 'zod'
 import { browserInputs, stagehandModelSchema, StagehandDrainError } from './native.ts'
@@ -101,15 +102,17 @@ export function apply(ctx: Context, input: Config): void {
       label: 'stagehand-native',
       exclusive: config.mode === 'attach',
       acquireExecution: () => ctx.browserUse.acquireExecution(),
-      async open(_agent, signal) {
+      async open(agent, signal) {
         signal.throwIfAborted()
-        const chromium = config.mode === 'launch' ? await launchChromium(config, signal) : undefined
+        const proxy = await resolveBrowserProxy(ctx, agent, 'stagehand-native', config.mode === 'launch', signal)
+        const chromium = config.mode === 'launch' ? await launchChromium(config, signal, proxy) : undefined
         const connect = (connectionSignal: AbortSignal) => openBrowserWorker({
           mode: 'attach', model: config.model, headless: config.headless,
           operationTimeoutMs: config.operationTimeoutMs, shutdownGraceMs: config.shutdownGraceMs,
           ...config.extensionId === undefined ? {} : { extensionId: config.extensionId },
           ...config.cdpEndpoint === undefined ? {} : { cdpEndpoint: config.cdpEndpoint },
           ...chromium === undefined ? {} : { cdpEndpoint: chromium.endpoint },
+          ...chromium?.proxyControlHost === undefined ? {} : { proxyControlHost: chromium.proxyControlHost },
         }, connectionSignal, (message) => { ctx.logger.warn(message) })
         let connection: NativeBrowserRuntime | undefined
         try {

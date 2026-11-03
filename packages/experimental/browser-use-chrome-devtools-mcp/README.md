@@ -25,6 +25,8 @@ Use Chrome DevTools MCP to inspect pages and operate Chromium through its upstre
 <a id="use-this-package"></a>
 ## Use this package
 
+In security conversations with the independent proxy enabled, launch mode routes Chromium through the conversation-owned proxy, including loopback page targets. Other modes retain their existing route. Attach mode cannot change an external browser's proxy and rejects startup while that proxy is required; select launch instead. Recreate the browser activation after changing proxy settings. See the [shared routing behavior](../browser-use-runtime/README.md#use-this-package).
+
 Mount both entries before creating or resuming a Session, in a profile composition that supplies Agents, tools, system prompts, and the working-directory service. Loading or reloading this provider does not adopt Sessions that are already active. Browser installation follows the upstream runtime; select an existing Chromium installation with `executablePath`.
 
 ```yaml

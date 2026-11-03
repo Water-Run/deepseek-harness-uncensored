@@ -113,7 +113,7 @@ export interface EngineOptions {
 const COVERAGE: readonly SecurityProxyCoverage[] = [
   { id: 'web_fetch', code: 'captured' },
   { id: 'shell', code: 'partial' },
-  { id: 'browser', code: 'uncovered' },
+  { id: 'browser', code: 'partial' },
   { id: 'mcp', code: 'uncovered' },
   { id: 'model_api', code: 'uncovered' },
 ]

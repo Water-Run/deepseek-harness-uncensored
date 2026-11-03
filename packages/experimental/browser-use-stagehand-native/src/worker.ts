@@ -8,24 +8,34 @@ import { openWithOwnedSockets } from './socket-lifetime.ts'
 
 const port = parentPort
 if (port === null) throw new Error('Stagehand attachment requires a Worker parent')
-const { extensionId, cdpEndpoint, executablePath, ...config } = z.object({
+const { extensionId, cdpEndpoint, executablePath, proxyControlHost, ...config } = z.object({
   model: stagehandModelSchema,
   mode: z.enum(['launch', 'attach']),
   cdpEndpoint: z.string().optional(),
   executablePath: z.string().optional(),
   extensionId: z.string().optional(),
+  proxyControlHost: z.string().regex(/^dshu-[0-9a-f-]{36}\.localhost$/u).optional(),
   headless: z.boolean(),
   operationTimeoutMs: z.number().int().positive(),
   shutdownGraceMs: z.number().int().positive(),
 }).parse(workerData)
 const methodSchema = z.enum(Object.keys(browserInputs) as [keyof typeof browserInputs, ...Array<keyof typeof browserInputs>])
+let rewrite: { from: string; to: string } | undefined
+if (proxyControlHost !== undefined) {
+  const address = z.string().parse(cdpEndpoint)
+  const endpoint = new URL(address)
+  if (endpoint.protocol !== 'ws:' || endpoint.hostname !== '127.0.0.1') throw new Error('Owned proxy control requires a loopback CDP socket')
+  endpoint.hostname = proxyControlHost
+  rewrite = { from: endpoint.href, to: address }
+}
 const opening = openWithOwnedSockets(() => openNativeBrowser(
   {
     ...config, ...extensionId === undefined ? {} : { extensionId },
     ...cdpEndpoint === undefined ? {} : { cdpEndpoint },
     ...executablePath === undefined ? {} : { executablePath },
+    ...proxyControlHost === undefined ? {} : { proxyControlHost },
   },
-))
+), rewrite)
 // Initialization failure stays observable through the host's ready request.
 void opening.catch((error: unknown) => { void error })
 port.on('message', (raw: unknown) => {

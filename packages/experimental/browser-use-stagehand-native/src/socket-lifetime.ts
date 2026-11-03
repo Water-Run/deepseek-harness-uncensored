@@ -6,14 +6,18 @@ import { BrowserResourceCleanupError } from '@deepseek-ai/dsh-experimental-brows
  * Capture SDK WebSockets during one isolated Worker's initialization and await their close handshake.
  * The Worker accepts operations only after this function restores its global constructor.
  * @param open - The Worker's sole SDK initialization; concurrent initialization in the same realm is unsupported.
+ * @param rewrite - Exact launcher-owned CDP URL mapping for the Node-side socket; the extension retains the private browser alias.
  * @returns The native runtime with SDK drainage followed by socket closure, preserving external browsers.
  */
-export async function openWithOwnedSockets(open: () => Promise<NativeBrowserRuntime>): Promise<NativeBrowserRuntime> {
+export async function openWithOwnedSockets(
+  open: () => Promise<NativeBrowserRuntime>, rewrite?: { from: string; to: string },
+): Promise<NativeBrowserRuntime> {
   const OriginalWebSocket = globalThis.WebSocket
   const sockets = new Set<WebSocket>()
   const OwnedWebSocket = new Proxy(OriginalWebSocket, {
-    construct(target, args) {
-      const socket = Reflect.construct(target, args) as WebSocket
+    construct(target, args: unknown[]) {
+      const parameters = rewrite !== undefined && String(args[0]) === rewrite.from ? [rewrite.to, ...args.slice(1)] : args
+      const socket = Reflect.construct(target, parameters) as WebSocket
       sockets.add(socket)
       socket.addEventListener('close', () => { sockets.delete(socket) }, { once: true })
       return socket

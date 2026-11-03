@@ -7,7 +7,7 @@ const [root, mode] = process.argv.slice(2)
 const record = (event, values = {}) => appendFileSync(join(root, 'events.ndjson'), JSON.stringify({ event, pid: process.pid, ...values }) + '\n')
 const reply = (id, result) => process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id, result }) + '\n')
 let counter = 0
-record('start', { cwd: process.cwd() })
+record('start', { cwd: process.cwd(), args: process.argv.slice(3) })
 process.once('exit', () => record('exit'))
 const lines = createInterface({ input: process.stdin })
 lines.once('close', () => process.exit(0))

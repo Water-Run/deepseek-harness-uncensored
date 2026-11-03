@@ -25,6 +25,8 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用此包
 
+网安对话开启独立代理时，新启动的 Chromium 使用会话代理，回环网页目标也经过代理。attach 模式无法重新配置外部浏览器，因此拒绝此组合。Stagehand 扩展发出的模型请求随浏览器路由；应用本身的模型、余额和更新请求仍独立处理。修改代理设置后需重建浏览器会话。
+
 在已提供 Agent、Session、工具注册表和系统提示的 profile 中挂载此 Provider。若需以图像形式接收截图，还应配置附件存储和支持图像输入的 Session 模型。
 
 ### 最小配置
@@ -91,6 +93,8 @@ env -u NODE_USE_ENV_PROXY DSH_STAGEHAND_E2E=1 pnpm exec vitest run --config vite
 宿主在等待 CDP 就绪前即拥有启动的 Chromium 进程及其临时配置目录。Chromium 接收标准清理后的子进程环境，保留路径、区域设置和代理配置，排除凭据形式的变量及 DSH 身份信息。两种模式都在独立 Worker 中连接 SDK。Worker 仅接收显式的临时目录环境和源码 TypeScript 配置路径，因此其 CDP 连接不继承宿主代理设置。SDK 关闭会等待活动操作。清理在配置的 SDK 宽限时间后终止连接 Worker；启动模式还会终止并等待自有 Chromium 进程退出，再移除配置目录。外部连接的浏览器保持运行。清理失败遵循下方的[所有权限制](#known-limitations-and-deferred-work)。
 
 [原生运行时](src/native.ts)将显式模型配置传入 Stagehand 的公开初始化 API。适配器将 Zod 固定为 Stagehand 要求的版本，因为提取操作会向 SDK 传递 Zod schema。Stagehand 在其浏览器扩展中负责模型请求、响应验证与 token 计量。DSH 通过现有 Session 日志记录浏览器工具输入和返回数据，包括 SDK 结果元数据。底层推理请求/响应捕获及其与 DSH Session 用量计量的集成均属暂缓工作。
+
+代理下新启动的浏览器使用一个唯一的 `.localhost` 域名，仅在该 Chromium 进程内映射到本机。只有该专用域名绕过网页代理，普通回环网页目标仍经过代理。扩展使用此别名连接 CDP；SDK 初始化期间，Worker 仅将完全匹配的别名 WebSocket 地址转换为真实回环地址，随后恢复 WebSocket 构造器。此映射不修改系统 DNS 或 Host 的代理环境。
 
 </details>
 

@@ -20,6 +20,9 @@ import { SessionId } from '@deepseek-ai/dsh-session'
 import * as Provider from '../src/index.ts'
 import { stagehandModelSchema } from '../src/native.ts'
 import { nativeModel } from './fixtures/stagehand.ts'
+import { startBrowserProxy } from '../../browser-use-runtime/tests/proxy-fixture.ts'
+import type { Agent } from '@deepseek-ai/dsh-agent'
+import type {} from '@deepseek-ai/dsh-security-proxy'
 
 class ImageCapabilities extends LlmAdapter {
   override resolveModel(provider: string, model: string): Promise<LlmResolvedModelInfo> {
@@ -27,6 +30,57 @@ class ImageCapabilities extends LlmAdapter {
   }
   async * stream(_options: GenerateOptions): AsyncIterable<StreamChunk> { throw new Error('Unexpected model call in browser smoke') }
 }
+
+it.skipIf(process.env.DSH_BROWSER_EXECUTABLE === undefined)(
+  'routes native Chromium navigation through the session proxy', { retry: 0 }, async ({ signal }) => {
+    const executable = process.env.DSH_BROWSER_EXECUTABLE
+    if (executable === undefined) throw new Error('The browser proxy test requires DSH_BROWSER_EXECUTABLE')
+    const server = createServer((_request, response) => {
+      response.writeHead(200, { 'content-type': 'text/html' })
+      response.end('<!doctype html><title>Proxied Stagehand</title><h1>Private proxy target</h1>')
+    })
+    const ctx = new Context()
+    let proxy: Awaited<ReturnType<typeof startBrowserProxy>> | undefined
+    try {
+      server.listen(0, '127.0.0.1')
+      await once(server, 'listening')
+      const address = server.address()
+      if (address === null || typeof address === 'string') throw new Error('Fixture target has no TCP listener')
+      const url = `http://127.0.0.1:${address.port}/native-proxy`
+      proxy = await startBrowserProxy(new URL(url).origin)
+      const endpoint = proxy.url
+      const routing: Pick<Context['securityProxy'], 'route' | 'environment'> = {
+        route: (agent: Agent | undefined, tool: string) => ({ sessionId: agent!.session.id, preset: 'security', tool }),
+        environment: async () => ({ HTTP_PROXY: endpoint }),
+      }
+      ctx.provide('securityProxy', routing as Context['securityProxy'])
+      await mountAgentLoopTestDependencies(ctx)
+      await ctx.plugin(BrowserUseRegistry)
+      ctx.llm.registerAdapter(['visual-fixture'], new ImageCapabilities())
+      const harness = await mountAgentLoopTestHarness(ctx)
+      const agent = await harness.create(SessionId('stagehand-proxy'), { provider: 'visual-fixture', model: 'vision' })
+      await ctx.plugin(Provider, { model: nativeModel, mode: 'launch', headless: true, executablePath: executable })
+      const result = await executeToolFixture(ctx, {
+        agent, name: 'stagehand_navigate', arguments: { url }, callId: ToolCallId('proxied-navigation'), signal,
+      })
+      expect(result.isError, JSON.stringify({ content: result.content, proxyTargets: [...proxy.requests] })).toBe(false)
+      expect(proxy.requests.has(url), 'Native Chromium bypassed the session proxy').toBe(true)
+      const next = `${url}?next`
+      const tab = await executeToolFixture(ctx, {
+        agent, name: 'stagehand_tabs', arguments: { action: 'new', url: next }, callId: ToolCallId('proxied-tab'), signal,
+      })
+      expect(tab.isError, JSON.stringify(tab.content)).toBe(false)
+      expect(proxy.requests.has(next)).toBe(true)
+      expect([...proxy.requests].some(target => /^CONNECT (?:127\.0\.0\.1|dshu-)/u.test(target)), 'CDP reached the page proxy').toBe(false)
+    } finally {
+      try { await ctx.fiber.dispose() } finally {
+        await proxy?.close()
+        server.closeAllConnections()
+        await new Promise<void>((resolve, reject) => { server.close((error) => { if (error) reject(error); else resolve() }) })
+      }
+    }
+  },
+)
 
 it.skipIf(process.env.DSH_STAGEHAND_E2E !== '1')('launches and attaches to installed Chromium while preserving the external browser', { timeout: 120_000, retry: 0 }, async ({ signal }) => {
   const executable = process.env.DSH_BROWSER_EXECUTABLE

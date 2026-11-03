@@ -8901,6 +8901,9 @@ importers:
       '@deepseek-ai/dsh-scope':
         specifier: workspace:*
         version: link:../../core/scope
+      '@deepseek-ai/dsh-security-proxy':
+        specifier: workspace:*
+        version: link:../../guard/security-proxy
       '@deepseek-ai/dsh-session':
         specifier: workspace:*
         version: link:../../core/session
@@ -8989,6 +8992,9 @@ importers:
       '@deepseek-ai/dsh-llm':
         specifier: workspace:*
         version: link:../../llm/llm
+      '@deepseek-ai/dsh-security-proxy':
+        specifier: workspace:*
+        version: link:../../guard/security-proxy
       '@deepseek-ai/dsh-session':
         specifier: workspace:*
         version: link:../../core/session

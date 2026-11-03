@@ -8,6 +8,7 @@ import * as McpClient from '@deepseek-ai/dsh-mcp-client'
 import { createScope } from '@deepseek-ai/dsh-scope'
 import type { Scope } from '@deepseek-ai/dsh-scope'
 import { BrowserResourceCleanupError, SessionResources } from './index.ts'
+import { resolveBrowserProxy } from './proxy.ts'
 import type {} from '@deepseek-ai/dsh-browser-use'
 import type {} from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-system-prompt'
@@ -82,6 +83,8 @@ export interface SessionMcpOptions {
   args: string[]
   /** Explicit overrides merged into the MCP client's scrubbed child environment. */
   env?: Record<string, string>
+  /** Launch-only proxy arguments; omission rejects attached browsers when the security proxy is enabled. */
+  proxyArguments?: (server: string) => readonly string[]
   /** Per-call timeout override; omission retains the MCP client default. */
   toolCallTimeoutMs?: number
 }
@@ -139,6 +142,8 @@ export function mountSessionMcp(ctx: Context, options: SessionMcpOptions): void 
         signal.addEventListener('abort', cancel, { once: true })
         try {
           signal.throwIfAborted()
+          const proxyArguments = options.proxyArguments
+          const proxy = await resolveBrowserProxy(ctx, agent, options.name, proxyArguments !== undefined, signal)
           scope.ctx.on('tools/execute', async (exec, next) => {
             if (!exec.name.startsWith(toolPrefix)) return next()
             if (exec.agent !== agent) {
@@ -151,7 +156,7 @@ export function mountSessionMcp(ctx: Context, options: SessionMcpOptions): void 
             transport: 'stdio',
             serverName: options.name,
             command: options.command,
-            args: options.args,
+            args: proxy === undefined || proxyArguments === undefined ? options.args : [...options.args, ...proxyArguments(proxy)],
             ...options.env === undefined ? {} : { env: options.env },
             cwd: await workingDirectory.ensure(agent, signal),
             ...options.toolCallTimeoutMs === undefined ? {} : { toolCallTimeoutMs: options.toolCallTimeoutMs },
