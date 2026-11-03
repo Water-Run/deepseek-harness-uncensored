@@ -1,5 +1,15 @@
 # Uncensored 开发交接
 
+## 系统更新完成（2026-11-03）
+
+用户明确选择“现在退出 DSHU，保留数据并更新”。已使用 Windows Restart Manager 按实际映像路径、PID 和创建时间只关闭原 DSHU 主进程，未强制结束进程或操作桌面。退出后建立仅当前用户与 SYSTEM 可访问的备份：`C:/Users/linzh/AppData/Local/DSHU-Backups/20261103-104526-192de49274`。428 份数据文件共 62718645 字节逐项校验复制，另记录官方版两个程序文件哈希。
+
+旧卸载器 `/currentuser /S /KEEP_APP_DATA` 与新安装器 `/currentuser /S` 均退出 0；系统已安装干净源码 `192de49274d2140dfae682620008e1b1fd84f327` 的检查版，DSHU 0.1.0 / DSH 0.2.2-alpha.2 / REA 6.8.0。安装后及验证后，428 份数据文件与官方版 exe/app.asar 哈希保持不变；DSHU exe、app.asar、第三方声明和独立 Node 与构建产物一致。工作区图标/主题色、余额上升竖虚线及进阶保护默认关闭已进入系统安装。
+
+实际安装目录的运行时验证通过：原生模块、PTY、离线插件安装/移除、REA 229 工具与 JavaScript 分析、DOCX/XLSX/PPTX→PDF 及技能发现。全部运行验证使用独立测试数据，不启动真实用户 profile，应用目前保持关闭，由用户打开检查。无需再次询问此次安装授权，也不要重复更新相同安装包。
+
+证据：`.dsh-build/installation-update-20261103.log`、`installation-backup-20261103.log`、`installed-final-verification-20261103.log`、`installed-runtime-smoke-20261103.log`。交付清单 `.dsh-build/deliverables/DSHU-20261103-192de4-manifest.json` 已标记 installed=true 并记录验证。此前等待安装的状态由本节替代；签名发布、跨平台和进阶可选功能仍按清单推进，Goal active。
+
 ## 独立构建编号与旧上传入口清理（2026-11-03）
 
 基点 `180fc96d72`。移除根目录和 Desktop 的官方 `upload:*`、`purge:latest` 命令；直接执行旧 `upload-target.ts` 立即返回非零状态及 DSHU GitHub Releases 指引，不读取部署配置或执行上传。旧内部 COS/CI 维护库仍留在源码中，本节点不把其彻底清理标为完成，也没有对远端发布或删除任何资产。
