@@ -1,6 +1,7 @@
 # Agent Note: 内置插件功能配图
 
 Status: implemented
+Archived: 2026-11-03
 
 [English](2026-10-14-built-in-plugin-feature-previews.md) | 中文
 
