@@ -237,6 +237,8 @@ NSIS 在安装阶段清理临时解压目录，完成后才显示完成页或自
 
 ## Desktop 运行时准备
 
+私有 Desktop Host 将三个分支内的实验浏览器提供方列为运行时依赖，确保本地包覆盖和代理接入使用 DSHU 实现。随包提供模块不会挂载提供方或下载 Chromium；由 profile 选择提供方与已安装的浏览器。
+
 Electron 归档使用精确锁定的 Electron npm 包内 `checksums.json` 验证。缓存文件有效时无需重新向 GitHub 请求校验清单；目标校验值缺失或格式错误会停止准备，损坏缓存会在解压前被拒绝。没有缓存时仍需下载归档。
 
 Windows 并行准备 Electron 和 primary-runtime；macOS 串行准备二者。只有两份运行时资源均成功，才会准备 CLI 并写入 `versions.json`。任一 Windows 运行时准备失败时，流程会等待另一路结束后再报告失败，且不写入 CLI 资源或版本记录。嵌套准备阶段的计时存在重叠，不能直接相加。

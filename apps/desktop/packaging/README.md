@@ -237,6 +237,8 @@ NSIS removes its temporary extraction tree during installation, before the compl
 
 ## Desktop runtime preparation
 
+The private Desktop Host includes the three forked experimental browser providers as runtime dependencies so their package overrides and proxy integration remain local to DSHU. Shipping these modules does not mount a provider or download Chromium; profiles select the provider and an installed browser.
+
 Electron archives are verified against `checksums.json` from the exact locked Electron npm package. Valid cached archives require no GitHub checksum request; missing or malformed target checksums stop preparation, and corrupt cached files are rejected before extraction. A cache miss still requires downloading the archive.
 
 Windows prepares Electron and primary-runtime concurrently; macOS prepares them serially. CLI preparation and `versions.json` publication require both payloads to succeed. If either Windows payload fails, preparation waits for the other to settle before reporting failure and publishes neither CLI resources nor versions. Nested preparation timings overlap and must not be added together.

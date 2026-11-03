@@ -138,6 +138,16 @@ function checkHtml() {
   assert.match(markdown, /\| x\s+\| 7\s+\|/u)
 }
 
+/** Require the forked browser providers without activating them or opening a browser. */
+async function checkBrowserProviders() {
+  for (const name of ['playwright-mcp', 'chrome-devtools-mcp', 'stagehand-native']) {
+    const module = await import(pathToFileURL(requireRuntime.resolve(`@deepseek-ai/dsh-experimental-browser-use-${name}`)).href)
+    assert.equal(typeof module.apply, 'function', `Missing packaged browser provider: ${name}`)
+  }
+  const proxy = await import(pathToFileURL(requireRuntime.resolve('@deepseek-ai/dsh-experimental-browser-use-runtime/proxy')).href)
+  assert.equal(typeof proxy.resolveBrowserProxy, 'function')
+}
+
 try {
   const builtin = requireRuntime('node-addon-require-builtin')
   assert.equal(typeof builtin.requireBuiltin('internal/modules/esm/loader').getOrInitializeCascadedLoader, 'function')
@@ -149,6 +159,8 @@ try {
   await checkSharp()
   console.error('runtime payload: html')
   checkHtml()
+  console.error('runtime payload: browser providers')
+  await checkBrowserProviders()
   console.error('runtime payload: pty')
   await checkPty()
   console.error('runtime payload: search')
@@ -162,5 +174,5 @@ try {
 // Natural event-loop drain includes node-pty's worker and console-list helper teardown.
 process.once('beforeExit', () => {
   console.log(JSON.stringify({ node: process.versions.node, platform: process.platform, arch: process.arch,
-    koffi: true, sharp: true, html: true, pty: true, pnpm: true, grep: true, glob: true }))
+    koffi: true, sharp: true, html: true, pty: true, pnpm: true, grep: true, glob: true, browserProviders: true }))
 })

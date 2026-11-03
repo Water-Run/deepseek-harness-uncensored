@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## 浏览器提供方的桌面分发遗漏（2026-11-03）
+
+`4b4987ffa2` 的 run `2026-11-03T13-53-10.473Z-TpOiC7` 完整打包和运行 smoke 成功，但独立的实际安装器检查在导入浏览器模块时失败：三个实验提供方未进入 Desktop 生产依赖闭包，因此不能将此包标为浏览器功能已交付。提取目录 `D:/Coding/.dshu-installer-check-5oRHwP/app`；验证回执 `delivery-4b4987-verification-20261103-result.json` 保留失败。
+
+现将三个提供方加入私有 Desktop Host 的运行时依赖，使收集器包含分支内模块及本地包覆盖；不默认激活提供方，不下载浏览器，不改用户 profile。正在验证并重新打包。此前 2914c5 已验证包仍有效，其运行时清单已单独保存到 `DSHU-20261103-2914c5-runtime.json`，安装核对不能依赖随后会变动的 staging/dsh。当前 Goal 只收尾该节点，没有扩展新开发范围；最近实际剩余额度为 41%。
+
 ## 三种实验浏览器的会话代理（2026-11-03）
 
 基点 `92599ff204`。Playwright MCP、Chrome DevTools MCP 和 Stagehand 新启动的浏览器现在取得真实 Agent 对应的回环代理，只设置浏览器参数；Host、MCP 控制进程和应用模型请求不改全局路由。取消准备不启动子进程，代理端点必须为不含凭据的本机 HTTP 地址；其他模式不接管路由。开启代理时 attach 模式明确拒绝并指引 launch，配置变化后需重建浏览器会话。Stagehand 扩展发出的模型请求属于浏览器流量，此限制已写入 README。
