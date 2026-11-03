@@ -71,6 +71,8 @@ The local command builds Desktop and executes Electron 44 with the actual HTTP u
 
 Packaging supervision fixtures control their Git metadata and use real file hashes with inert child processes. Git-head and worktree changes still refuse packaging; concurrent tests cannot change the fixture’s recorded Git inputs.
 
+The native Windows installer runner matches actions by the Button class and exact localized label; status headings can contain the same words. Its English and Chinese variants each pass 16 installation, failure, retry and removal scenarios. The interactive flow was checked at 200% desktop scale; separate native progress-renderer checks cover 96 and 192 DPI in light and dark palettes. Each fixture uses a private product identity and installation directory. These unsigned test payloads do not qualify signed upgrades or other platforms.
+
 | Layer | Observed result |
 |---|---|
 | Ordinary updater | Same/older-version rejection, user-authorized full download, SHA-512 rejection, interrupted transfer, stalled-feed/download deadlines, explicit retry, coalesced requests, same-address feed replacement, readiness, and separate install handoff pass |

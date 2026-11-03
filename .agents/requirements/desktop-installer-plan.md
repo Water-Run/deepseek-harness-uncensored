@@ -1,6 +1,6 @@
 # 桌面安装器计划
 
-更新：2026-10-25。对应 [完整编号清单](development-checklist.md) 的 `02.04`、`02.06`、`02.09` 与 [进展概览](../TODO.md) 的「官方版并存与桌面交付」。新安装器设计仅为计划；当前用户已授权现有 Windows x64 安装器的本机构建与升级，不签名、不发布。
+更新：2026-11-03。对应 [完整编号清单](development-checklist.md) 的 `02.04`、`02.06`、`02.09` 及 [02.11](2026-11-01-upstream-installer.md#0211-安装器明确属于独立-dshu)。全新安装器架构仅为计划；当前用户已授权完善现有 Windows x64 安装器、测试与本机升级，不签名、不发布。
 
 ## 交付矩阵
 
@@ -14,16 +14,18 @@
 
 ## 本轮本机交付
 
-源码 8c1bc7cae6 的 v0.1.0 已在原安装目录覆盖安装并两次启动；107 个会话、设置与配置文件安装前后相同，官方 EXE 未改变。此次只验收手动安装更新，未验收下载更新、签名、卸载回滚或全新电脑。
+源码 `538f99e405` 的 v0.1.0 修复包已安装，内核为 DSH 0.2.2-alpha.2，内置 REA 6.8.0。434 份数据文件及官方版 EXE/ASAR 哈希未变；实际安装目录通过四模式加载、新建会话和命令执行验证。此前 `192de49274` 包遗漏子进程共享分块，已标记停用，不能作为可用交付。产物、私有备份与验证记录见 [HANDOFF](../HANDOFF.md)。下载更新、签名、卸载回滚与全新电脑仍未验收。
 
-## 现状（2026-10-25）
+现有原生安装界面中英文各 16 项通过，涵盖路径、安装、启动选择、失败重试、运行进程拒绝及卸载。实际交互在 200% 桌面缩放下完成；进度渲染器分别在 96/192 DPI、浅深色下检查。测试使用独立产品身份与目录，未覆盖所有物理显示器组合。
+
+## 现状（2026-11-03）
 
 - **身份已分离**：`appId` 为 `com.deepseek.dsh.uncensored`、产品名 `DeepSeek Harness Uncensored`、协议 `dshu://`、CLI `dsh-uncensored`、数据目录 `.dsh-uncensored`；官方版是 `com.deepseek.dsh` / `DeepSeek Harness` / `.dsh`，因此两者在注册表、安装目录、数据目录、协议与 CLI 上互不覆盖。
 - **可产出未签名包**：`pnpm run package:desktop:win:x64:unsigned` 已跑通，产物为 `apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/runs/<构建批次>/deepseek-harness-uncensored-0.1.0-win-x64-unsigned.exe`；未签名产物带 `-unsigned` 后缀，与发行产物不可能混淆。
-- **安装器只支持按用户安装**：NSIS 脚本 `installer.nsh` 在检测到全用户安装（`${isForAllUsers}`）或 `HKLM` 下已有 `InstallLocation` 时直接提示并以退出码 2 结束；安装目录固定为 `%LOCALAPPDATA%\Programs\DeepSeek Harness Uncensored`。
+- **安装器只支持按用户安装**：NSIS 脚本拒绝全用户安装；默认目录为 `%LOCALAPPDATA%\Programs\DeepSeek Harness Uncensored`，允许选择其他有效目录，拒绝磁盘根目录及未登记的非空目录。
 - **未签名构建不写更新配置**：未签名产物没有 `app-update.yml`，因此本阶段没有自动更新通道。
 - **卸载保留 Harness home**：uninstall.nsh 明确保留会话所在的 Harness home；清理的是 Electron 用户资料与 updater 缓存。升级及 /KEEP_APP_DATA 跳过该清理；不能把缓存清理写成删除全部会话。
-- **版本已解耦**：产品版本 `0.1.0` 与 DSH 引擎 `0.2.1-rc.2` 分别写入 runtime 描述与发行校验，引擎版本变化不再要求产品版本同步。
+- **版本已解耦**：产品版本 `0.1.0` 与 DSH 引擎 `0.2.2-alpha.2` 分别写入 runtime 描述与发行校验，引擎版本变化不要求产品版本同步。
 
 ## 阶段
 

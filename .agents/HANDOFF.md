@@ -1,5 +1,15 @@
 # Uncensored 开发交接
 
+## 原生安装器验收完成（2026-11-03）
+
+修复 `windows-installer-smoke.ps1` 的按钮定位：按 Button 类型和完整标签匹配，避免中文“完成”误匹配“DSHU 已安装完成”静态标题。首轮英文 16 项通过、中文首项失败是测试驱动误点；修复后中英文各 16 项全部通过，未改产品按钮、超时或期望。
+
+运行 `node apps/desktop/scripts/test-windows-installer.mjs`，结果及截图为 `apps/desktop/.desktop-build/installer-tests/run-L9KPpS`，日志 `.dsh-build/installer-native-fixed-20261103.log`。实际交互为 200% 桌面缩放；独立原生进度渲染器通过 96/192 DPI × 浅深色、每组 300 帧、按钮命中、最小化/恢复及 GDI 归还。已查看中英欢迎、路径和完成页截图。测试只使用随机产品身份与私有目录，结束后卸载测试载荷，不改正式 DSHU 或官方版安装。
+
+02.11 已勾选，概览为已完成 26 项、进行中 7 项、待实现 3 项；进阶保护继续默认关闭，签名、回滚、跨平台和发布保留未完成。本节点只改测试与文档，无需重打包或重复安装。系统修复包仍为 `538f99e405`，下节的四模式、新建会话、执行命令及 434 份数据保全结论有效。当前可用额度 59%，未兑换额度。
+
+PowerShell 语法解析、README 两项测试、README gate、中英配对、全仓 lint 与差异空白检查通过。lint 日志 `.dsh-build/installer-verification-lint-20261103.log`；本节点没有 TypeScript 或产品运行时代码变更，沿用修复包的完整构建证据。
+
 ## 模式加载故障已修复并重新安装（2026-11-03）
 
 用户安装后报告四个模式加载失败、新建会话失败。已用实际安装程序及用户 cordis.patch.yml 的隔离副本复现：`subprocess-local/lib/index.js` 引用的 `terminal-_xfjEY2v.js` 未进入 npm 发布白名单，导致 subprocess 未加载，继而影响 shell、ptcRuntime 和 workflowEngine。此前原生模块/REA/Office smoke 通过不能代表默认会话可用；192de49274 不再作为可用版本的完整验收依据。用户数据保全结果仍成立，未修改用户配置。
