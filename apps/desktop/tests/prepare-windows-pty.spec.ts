@@ -40,6 +40,7 @@ it('publishes only the compiled loader and removes build-directory precedence', 
   expect(compile).toHaveBeenCalledWith('electron', expect.arrayContaining([
     `--directory=${root}`, '--target=24.22.1', '--arch=x64',
   ]), expect.objectContaining({ windowsHide: true }))
+  expect(compile.mock.calls[0]![1].some(arg => arg.startsWith('--dist-url='))).toBe(true)
   expect(compile.mock.calls[0]![2].env?.ELECTRON_RUN_AS_NODE).toBe('1')
 })
 it('aborts packaging on compiler failure instead of retaining an apparently successful prebuild', async () => {

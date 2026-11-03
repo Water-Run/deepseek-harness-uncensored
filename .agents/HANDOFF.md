@@ -2,6 +2,8 @@
 
 ## Windows 终端长路径修复（2026-11-03）
 
+第一次完整打包在原生配置阶段失败，run `2026-11-03T09-44-10.276Z-olkS4O` success=false，没有生成新安装器。原因是 node-gyp 由 Electron 运行时默认读取 Electron 的 process.config，与 Node 头文件的 gyp 变量不一致。现显式指定 Node 发行头文件来源（保留 NODEJS_ORG_MIRROR），使 node-gyp 使用头文件中的 config.gypi。已直接通过实际打包用 Electron、运行时 node shim 和目标 24.21.0 头文件编译，所得 addon 在 Electron 下两组长路径并发再次通过；初始独立试编译使用 24.22.1，不是产品中 Electron 的 Node 版本。证据 `conpty-actual-electron-build-20261103.log`、`conpty-electron-build-concurrent-20261103.log`；失败日志保留，不以旧成功包代替此次结果。
+
 基点 `f017784270`，Goal active。02.12 已将 node-pty 的 ConPTY 加载器从 MAX_PATH 固定缓冲改为动态缓冲与扩展路径，继续加载随包 conpty.dll/OpenConsole。补丁沿用现有 pnpm 管理；Desktop 准备阶段使用目标 Node 头文件重编译 addon，编译失败中止，移除临时 build 目录后只发布选定 prebuild。普通源码依赖安装仍使用 npm 的旧预构建文件，不能将 Desktop 修复扩称为所有源码运行方式已修复。
 
 实际构建使用 Node 24.22.1 头文件。主机缺少 Spectre 库，已从本机微软 VS 清单固定 URL 下载并核验 SHA-256，解压至私有 `.dsh-build/msvc-spectre-14.51`；未修改系统编译器，未关闭 Spectre。后续本机打包需设置 `ForceImportAfterCppProps=D:/Coding/deepseek-harness-uncensored/.dsh-build/msvc-spectre.props`。其他构建机按打包 README 安装标准 MSVC、Spectre 库与 Python。

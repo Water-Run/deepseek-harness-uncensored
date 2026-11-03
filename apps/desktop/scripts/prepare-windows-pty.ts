@@ -26,6 +26,8 @@ export async function prepareWindowsPty(
   if (manifest.version !== '1.2.0-beta.15') throw new Error('desktop ConPTY: review the native patch before upgrading node-pty')
   const { stdout, stderr } = await promisify(execFile)(node, [
     require.resolve('node-gyp/bin/node-gyp.js'), 'rebuild', `--directory=${packageRoot}`, `--target=${nodeVersion}`, `--arch=${arch}`,
+    // node-gyp otherwise inherits Electron's process.config instead of the Node-API target headers.
+    `--dist-url=${process.env.NODEJS_ORG_MIRROR ?? 'https://nodejs.org/dist'}`,
   ], {
     windowsHide: true, timeout: 180_000, maxBuffer: 8 * 1024 * 1024,
     env: desktopNodeEnvironment(node, bin, { ...process.env, NODE_OPTIONS: '' }),
