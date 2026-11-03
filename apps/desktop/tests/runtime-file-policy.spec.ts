@@ -23,6 +23,7 @@ it('omits development artifacts while preserving executable modules, assets and 
     'fs-ext/build/binding.sln', 'fs-ext/build/config.gypi',
     'fs-ext/build/fs_ext.vcxproj', 'fs-ext/build/fs_ext.vcxproj.filters',
     'node-pty/prebuilds/win32-arm64/conpty.node',
+    'tr46/lib/.gitkeep',
     'node-pty/prebuilds/linux-x64/pty.node', 'node-pty/prebuilds/darwin-x64/pty.node',
     'node-pty/prebuilds/win32-x64/conpty.pdb',
     '@koromix/koffi-win32-x64/win32_x64/koffi.lib',
