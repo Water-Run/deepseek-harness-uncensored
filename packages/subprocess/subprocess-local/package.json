@@ -36,13 +36,7 @@
   },
   "files": [
     "locale/*.json",
-    "lib/index.js",
-    "lib/runner.js",
-    "lib/runner-*.js",
-    "lib/output.js",
-    "lib/managed.js",
-    "lib/windows-job-*.js",
-    "lib/linux-execve-*.js",
+    "lib/*.js",
     "scripts/ensure-spawn-helper.mjs",
     "lib/types/**/*.d.ts"
   ],

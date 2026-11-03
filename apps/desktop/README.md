@@ -14,6 +14,8 @@ DSHU uses its own application identity, update source and data directory. The de
 
 Installed resources include the DSHU license, preserved upstream licenses and `THIRD_PARTY_NOTICES.md`. Component-specific license and notice files remain with their respective runtime packages.
 
+Runtime qualification checks the actual Host's four built-in presets before REA and Office checks; a missing or broken preset fails packaging even if the web page loads.
+
 Desktop runs the Harness workspace in a native application. This reference covers application behavior, development and integration; the packaging, Windows signing and publication guides own build and release operations.
 
 ## Table of Contents

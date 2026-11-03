@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## 模式加载故障修复中（2026-11-03）
+
+用户安装后报告四个模式加载失败、新建会话失败。已用实际安装程序及用户 cordis.patch.yml 的隔离副本复现：`subprocess-local/lib/index.js` 引用的 `terminal-_xfjEY2v.js` 未进入 npm 发布白名单，导致 subprocess 未加载，继而影响 shell、ptcRuntime 和 workflowEngine。此前原生模块/REA/Office smoke 通过不能代表默认会话可用；192de49274 不再作为可用版本的完整验收依据。用户数据保全结果仍成立，未修改用户配置。
+
+修复将 subprocess-local 的发布 JavaScript 范围统一为 `lib/*.js`，覆盖构建器生成的共享分块。实际 tarball 已包含该文件，并在独立提取目录使用完整生产依赖成功导入；首次使用工作区相对链接的夹具无法解析依赖，已改为实际物化依赖树，不属于产品失败。Desktop smoke 新增实际 Host 四个内置模式的 ready 校验；已对当前坏安装包运行，准确在 standard 模式处拒绝继续，避免再次仅凭网页启动判为可用。
+
+尚须完成修复包构建、四模式/真实配置副本/新建会话验收，然后更新系统安装。证据 `.dsh-build/diagnosis-agent-preset-registry-list-20261103.json`、`diagnosis-host-stderr-20261103.log`、`preset-package-negative-20261103.log`、`subprocess-package-fix-20261103/`。本节优先于下方上一节点的安装成功描述。
+
 ## 系统更新完成（2026-11-03）
 
 用户明确选择“现在退出 DSHU，保留数据并更新”。已使用 Windows Restart Manager 按实际映像路径、PID 和创建时间只关闭原 DSHU 主进程，未强制结束进程或操作桌面。退出后建立仅当前用户与 SYSTEM 可访问的备份：`C:/Users/linzh/AppData/Local/DSHU-Backups/20261103-104526-192de49274`。428 份数据文件共 62718645 字节逐项校验复制，另记录官方版两个程序文件哈希。

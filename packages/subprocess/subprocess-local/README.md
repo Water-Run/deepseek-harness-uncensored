@@ -9,6 +9,8 @@ English | [中文](README.zh.md)
 
 ## Summary
 
+The published package includes every JavaScript entry and shared chunk emitted under `lib/`; loading only the entry files is insufficient for the subprocess provider to activate.
+
 Mount `dsh-subprocess-local` in any composition that runs child processes on the host. It resolves local executables, gives ordinary Linux and Windows commands plus supported Linux terminal sessions an OS-owned managed range, and provides real terminal sessions through `node-pty`; unsupported hosts use an explicit weaker fallback. It has no configuration, so every disposition, limit, terminal size, and grace arrives on the spawn request from the calling capability seam. Output collection keeps a bounded in-memory tail with optional spill files for full-stream recovery, children start from a scrubbed environment, and disposal terminates and joins every selected range or session.
 
 ## Table of Contents

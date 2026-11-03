@@ -12,6 +12,7 @@ import { DesktopHostProcess } from '../src/host-process.ts'
 import { createPluginProfile } from '../src/project-manager.ts'
 import type { DesktopRuntimeDescriptor } from '../src/runtime-tree.ts'
 import product from '../../../product.json' with { type: 'json' }
+import { z } from 'zod'
 
 /**
  * Check CLI package operations, Host startup, its frontend, external plugins and real Office-to-PDF conversion.
@@ -97,6 +98,11 @@ export function apply(ctx) {
   if (!(ctx instanceof Context)) throw new Error('desktop runtime: external plugin loaded another Cordis instance')
   ctx.effect(() => ctx.webServer.register({ kind: 'exact', path: '/desktop-smoke',
     handler(_request, response) { response.end('plugin route ready') } }))
+  ctx.effect(() => ctx.webServer.register({ kind: 'exact', path: '/desktop-smoke-presets',
+    async handler(_request, response) {
+      try { response.end(JSON.stringify(await ctx.agentPresets.list())) }
+      catch (error) { response.statusCode = 500; response.end(inspect(error, { depth: 5 })) }
+    } }))
   ctx.effect(() => ctx.webServer.register({ kind: 'exact', path: '/desktop-smoke-rea',
     async handler(_request, response) {
       try {
@@ -159,7 +165,7 @@ export function apply(ctx) {
   }
 }
 `)
-    writeFileSync(join(plugin, 'bundle.yml'), '- insert:\n    - id: desktop-runtime-smoke-plugin\n      name: desktop-runtime-smoke-plugin\n      inject: [webServer, officeToPdf, skills, pluginManager, rea]\n')
+    writeFileSync(join(plugin, 'bundle.yml'), '- insert:\n    - id: desktop-runtime-smoke-plugin\n      name: desktop-runtime-smoke-plugin\n      inject: [webServer, officeToPdf, skills, pluginManager, rea, agentPresets]\n')
     cpSync(plugin, join(profile, 'node_modules', pluginName), { recursive: true })
     const manifest = JSON.parse(readFileSync(join(profile, 'package.json'), 'utf8')) as {
       dependencies?: Record<string, string>
@@ -181,6 +187,16 @@ export function apply(ctx) {
     }
     const pluginResponse = await fetch(new URL('/desktop-smoke', ready.url), { headers: { cookie } })
     if (await pluginResponse.text() !== 'plugin route ready') throw new Error('desktop runtime: plugin HTTP route failed')
+    const presetResponse = await fetch(new URL('/desktop-smoke-presets', ready.url), { headers: { cookie }, signal: AbortSignal.timeout(30000) })
+    if (!presetResponse.ok) throw new Error(`desktop runtime: preset inspection failed: ${await presetResponse.text()}`)
+    const presets = z.array(z.object({ id: z.string(), broken: z.string().optional() })).parse(await presetResponse.json())
+    for (const id of ['standard', 'security', 'reverse', 'writing']) {
+      const preset = presets.find(row => row.id === id)
+      if (preset === undefined || preset.broken !== undefined) {
+        throw new Error(`desktop runtime: ${id} preset unavailable: ${preset?.broken ?? 'missing'}`)
+      }
+    }
+    console.log('desktop runtime: all four built-in presets are ready')
     const reaResponse = await fetch(new URL('/desktop-smoke-rea', ready.url), { headers: { cookie }, signal: AbortSignal.timeout(120000) })
     if (!reaResponse.ok) throw new Error(`desktop runtime: bundled REA failed: ${await reaResponse.text()}`)
     const reaResult = await reaResponse.json() as { version: string; tools: number }
