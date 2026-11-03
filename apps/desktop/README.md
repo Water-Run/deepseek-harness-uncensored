@@ -12,6 +12,8 @@ REA is bundled with its npm dependencies and runs under the included Node 24.22.
 
 DSHU uses its own application identity, update source and data directory. The desktop and installer offer Chinese and English; installer artwork and Web install icons use the canonical dark whale SVG.
 
+Installed resources include the DSHU license, preserved upstream licenses and `THIRD_PARTY_NOTICES.md`. Component-specific license and notice files remain with their respective runtime packages.
+
 Desktop runs the Harness workspace in a native application. This reference covers application behavior, development and integration; the packaging, Windows signing and publication guides own build and release operations.
 
 ## Table of Contents

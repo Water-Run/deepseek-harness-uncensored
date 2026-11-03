@@ -161,6 +161,7 @@ export function createElectronBuilderConfig(
     extraResources: [
       { from: fileURLToPath(new URL('../../../LICENSE', import.meta.url)), to: 'LICENSE' },
       { from: fileURLToPath(new URL('../../../LICENSES', import.meta.url)), to: 'LICENSES' },
+      { from: fileURLToPath(new URL('../../../THIRD_PARTY_NOTICES.md', import.meta.url)), to: 'THIRD_PARTY_NOTICES.md' },
       { from: buildPaths.runtime, to: 'runtime' },
       { from: fileURLToPath(new URL('../resources/icon-windows.png', import.meta.url)), to: 'icon.png' },
       // Windows tray bitmaps; macOS keeps the Dock and ships no menu bar icon.
