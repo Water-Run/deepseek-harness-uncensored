@@ -10,6 +10,7 @@ import { WebError } from '@deepseek-ai/dsh-web'
 import type TargetProtection from './index.ts'
 import type { TargetHttpResolution } from './index.ts'
 import { assertNetworkAllowed } from './network-decision.ts'
+import { canonicalTargetHost, hasExactTestServer } from './rules.ts'
 
 /** Cordis diagnostics name. */
 export const name = 'target-protected-security-proxy'
@@ -42,9 +43,15 @@ class ProtectedProxyEngine extends SecurityProxyEngine {
   private async resolve(url: URL, signal: AbortSignal): Promise<readonly PublicAddress[]> {
     const authority = { origin: url.origin, hostname: url.hostname, port: Number(url.port || (url.protocol === 'https:' ? 443 : 80)) }
     await this.authorize({ ...authority, phase: 'before-resolution', route: 'proxy' }, signal)
-    const resolution = await this.protection.resolveHttpTarget(url.hostname, signal)
+    const snapshot = await this.protection.snapshot()
+    const ownerTest = hasExactTestServer(snapshot.preferences, canonicalTargetHost(url.hostname), authority.port)
+    const resolution = ownerTest ? await this.protection.resolveConnectionTarget(url.hostname, signal)
+      : await this.protection.resolveHttpTarget(url.hostname, signal)
     const addresses = Object.freeze(resolution.addresses.map(address => Object.freeze({ ...address })))
     await this.authorize({ ...authority, phase: 'before-connect', route: 'proxy', binding: 'literal-connect', addresses }, signal, resolution)
+    if (ownerTest && (await this.protection.snapshot()).revision !== snapshot.revision) {
+      throw new WebError('The private target exception changed during resolution; no connection was opened.', 'TARGET_POLICY_CHANGED')
+    }
     return addresses
   }
 

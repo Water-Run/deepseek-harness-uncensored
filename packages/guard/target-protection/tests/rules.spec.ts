@@ -2,7 +2,7 @@
 import { randomUUID } from 'node:crypto'
 import { expect, it } from 'vitest'
 import { brandString } from '@deepseek-ai/dsh-brand'
-import { canonicalTargetHost, parseTargetPreferences, TargetRules, expandTargetRules } from '../src/rules.ts'
+import { canonicalTargetHost, canonicalDnsName, parseTargetPreferences, TargetRules, expandTargetRules, hasExactTestServer } from '../src/rules.ts'
 import type { NetworkTarget, TargetRule, TargetRuleId } from '../src/types.ts'
 import { resolve } from 'node:path'
 
@@ -14,6 +14,18 @@ function target(overrides: Partial<NetworkTarget> = {}): NetworkTarget {
   return { names: ['192.0.2.10'], nameResolution: 'verified', addresses: ['192.0.2.10'], port: 443, mainland: 'no', ...overrides }
 }
 function policy(rules: TargetRule[], mainlandEnabled = false): TargetRules { return new TargetRules({ mainlandEnabled, rules }) }
+
+it('requires the original exact server selector when admitting private resolution', () => {
+  const check = (overrides: Partial<TargetRule>) => hasExactTestServer({ mainlandEnabled: false,
+    rules: [rule({ environment: 'test', ...overrides })] }, '192.0.2.10', 443)
+  expect(check({})).toBe(true)
+  expect(check({ port: 443 })).toBe(true)
+  for (const wrong of [{ enabled: false }, { kind: 'database' }, { kind: 'domain' }, { match: 'path' },
+    { address: '192.0.2.11' }, { port: 8443 }, { environment: 'production' }] satisfies Partial<TargetRule>[]) {
+    expect(check(wrong)).toBe(false)
+  }
+  expect(check({ address: 'other.test', aliases: [{ match: 'host', address: '192.0.2.10', port: 443 }] })).toBe(true)
+})
 
 it('does not treat a different service port as proof that filesystem effects avoid its data', () => {
   const production = rule({ port: 5432, kind: 'database', database: 'production' })
@@ -176,4 +188,26 @@ it('rejects duplicate IDs, malformed CIDRs and broad test exceptions before savi
   for (const rules of [[existing, existing], [rule({ match: 'cidr', address: 'bad/99' })], [rule({ match: 'regex', address: '.*', environment: 'test' })]]) {
     expect(() => parseTargetPreferences({ mainlandEnabled: true, rules })).toThrow()
   }
+})
+
+it('rejects URL parsing failures, invalid DNS labels and database qualifiers on server rules', () => {
+  expect(() => canonicalTargetHost('[invalid')).toThrow()
+  for (const value of ['user@host', '\ud800', 'a'.repeat(64) + '.test']) expect(() => canonicalDnsName(value)).toThrow()
+  expect(() => policy([rule({ database: 'misplaced' })])).toThrow()
+  expect(() => policy([rule({ match: 'domain', address: '192.0.2.10' })])).toThrow()
+  expect(() => policy([rule({ match: 'cidr', address: '::ffff:192.0.2.0/64' })])).toThrow()
+})
+
+it('keeps local paths out of network matching and preserves Unicode and CIDR matching', () => {
+  expect(policy([rule({ match: 'path', address: resolve('owned') })]).decide([target()], 'mutate', new Map()).allowed).toBe(true)
+  expect(policy([rule({ match: 'regex', address: '^例子\\.中国$' })])
+    .decide([target({ names: ['xn--fsqu00a.xn--fiqs8s'] })], 'observe', new Map()).allowed).toBe(false)
+  expect(policy([rule({ match: 'cidr', address: '192.0.2.0/24' })])
+    .decide([target({ names: ['outside.test'], addresses: ['198.51.100.2'] })], 'observe', new Map()).allowed).toBe(true)
+})
+
+it('refuses missing target evidence before production preflight or region decisions', () => {
+  expect(policy([rule({ kind: 'database', address: 'db.test', database: 'prod' })])
+    .preflight(target({ names: ['db.test'] }))).toMatchObject({ allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED' })
+  expect(policy([], true).decide([], 'observe', new Map())).toMatchObject({ allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED' })
 })

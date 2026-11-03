@@ -1,5 +1,19 @@
 # Uncensored 开发交接
 
+## 精确私网测试服务器的受控代理（2026-11-03）
+
+基点 `94bd2a734f`，Goal active，完整范围不变。修复可选受控网安代理未采用精确测试服务器的私网解析路径；原测试替换 `resolvePublicAddresses`，漏掉真实解析会拒绝的问题。现与原生命令网关共用 `hasExactTestServer`：仅启用的 server/test 精确主机与端口范围（含显式别名）可走私网解析，其后仍检查实际地址和生产优先级。数据库专属、域名类别、已禁用及错误端口不扩权；普通匿名抓取保持公网限制。不透明 CONNECT、默认产品装配和 P2/P3 未完成项全部保留。
+
+Windows、Linux 定向回归各 79 项通过，rules/security-proxy/native-gateway 三模块覆盖率均 100%。增加真实私网 GET/POST、流量记录、代理探测、别名、生产完全保护/审计及零连接拒绝，并验证另一规则库连接在解析期间撤销例外后不建立连接。普通匿名抓取仍拒绝。负对照移除私网分支后实际探测失败，源码已恢复。移除路径规则中从不参与网络匹配的占位函数，路径策略行为由原规则和新增回归核对。
+
+新增 `private-target-proxy` Session：通过真实 headless profile 调用夹具工具，记录网安选择，验证测试响应及捕获，然后把同端点改为生产并确认无新增连接。Linux 录制/回放、Windows 回放及语料三项通过；编译公开包入口独立验证相同两条路径。夹具只使用本轮临时目录、监听和凭据；系统安装版仍为 `0e3e8d4261`，没有新的 UAC 或正式数据操作。
+
+扩展包检查首次使用默认 5 秒/1 秒轮询预算，导致八个 ConPTY 用例超时、SDK 发布屏障轮询过早结束；按仓库 `DSH_COVERAGE_TEST_TIMEOUT_MS=90000` 重跑原生两文件 23 项通过、1 项未提供入站辅助程序而跳过，未修改断言或生产代码。覆盖率缺口已用错误授权、默认端口、凭据转发和规则输入的针对性测试补齐，最终 79 项三个模块全覆盖。首次 aggregate check 的模拟 DNS 记录遗漏 source 字段，已补齐并重新检查。
+
+证据：`.dsh-build/private-proxy-final2-coverage-20261103.log`、`private-proxy-linux-final-20261103.log`、`private-proxy-linux-snapshot-20261103.log`、`private-proxy-snapshot-final-20261103.log`、`private-proxy-corpus-20261103.log`、`private-proxy-negative-20261103.log`、`private-proxy-native-recheck-20261103.log`、`private-proxy-built-20261103.mjs/.log`。恢复入口为 `security-proxy.ts`、`rules.ts`、`native-gateway.ts` 及 `snapshots/session/private-target-proxy`。Windows refresh 存在既有路径转义不定点，使用 Linux 刷新后在两平台回放；同时在该场景移除无关 bash/pwsh 工具，避免平台工具定义差异，未放宽正常化器。
+
+最终完整构建 10/10、JSDoc、定向 lint、文档配对和 README gate 通过；当前剩余额度 71%。构建日志为 `.dsh-build/private-proxy-build-final-20261103.log`，最终编译入口验收为 `private-proxy-built-final-20261103.log`。
+
 ## 遗留规则恢复与验收夹具（2026-11-03）
 
 基点 `3d6b6e070b`，Goal 继续 active，完整范围保留。新增 Rust 恢复记录/原生观测/WFP 归属复查、TypeScript 一次性恢复客户端及本机验收夹具。默认 profile 和安装版仍未启用入站辅助程序；系统安装版仍为 `0e3e8d4261`。当前额度实际剩余 73%，没有兑换或购买。

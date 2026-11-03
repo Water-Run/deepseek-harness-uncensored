@@ -1,0 +1,9 @@
+- id: security-proxy
+  disabled: true
+- id: tool-bash
+  disabled: true
+- id: tool-pwsh
+  disabled: true
+- insert:
+    - id: private-proxy-fixture
+      name: '../../../packages/guard/target-protection/tests/snapshot-private-proxy.ts'

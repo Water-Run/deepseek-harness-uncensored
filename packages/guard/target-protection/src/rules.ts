@@ -121,12 +121,25 @@ export function expandTargetRules(preferences: TargetPreferences): FlatTargetRul
   })
 }
 
+/**
+ * Identify an explicitly named test-server endpoint before allowing private-address resolution.
+ * @param preferences - Validated owner rules; aliases inherit their resource policy.
+ * @param hostname - Requested canonical hostname or literal IP, not a resolved alias.
+ * @param port - Actual service port.
+ * @returns Whether a matching enabled test-server selector permits private resolution; production checks still apply separately.
+ */
+export function hasExactTestServer(preferences: TargetPreferences, hostname: string, port: number): boolean {
+  return expandTargetRules(preferences).some(rule => rule.enabled && rule.kind === 'server'
+    && rule.environment === 'test' && rule.match === 'host' && rule.address === hostname
+    && (rule.port === undefined || rule.port === port))
+}
+
 interface CompiledRule { rule: TargetRule; matches: (host: string) => boolean }
 
-function compileRule(rule: TargetRule): CompiledRule {
+function compileRule(rule: TargetRule): CompiledRule | undefined {
+  if (rule.match === 'path') return undefined
   try {
     switch (rule.match) {
-      case 'path': return { rule, matches: () => false }
       case 'host': return { rule, matches: host => host === rule.address }
       case 'domain': {
         if (isIP(rule.address)) throw new TargetProtectionError('invalid', 'Use an exact host or CIDR rule for IP addresses.')
@@ -179,9 +192,12 @@ export class TargetRules {
    */
   constructor(input: TargetPreferences) {
     this.preferences = parseTargetPreferences(input)
-    this.entries = expandTargetRules(this.preferences).filter(rule => rule.enabled && rule.match !== 'path')
+    this.entries = expandTargetRules(this.preferences).filter(rule => rule.enabled)
       .sort((a, b) => Number(a.environment === 'test') - Number(b.environment === 'test')
-        || Number(a.protection === 'audit') - Number(b.protection === 'audit')).map(compileRule)
+        || Number(a.protection === 'audit') - Number(b.protection === 'audit')).flatMap((rule) => {
+        const entry = compileRule(rule)
+        return entry === undefined ? [] : [entry]
+      })
   }
 
   /**

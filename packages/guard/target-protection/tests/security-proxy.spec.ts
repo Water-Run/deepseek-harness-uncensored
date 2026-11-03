@@ -35,9 +35,15 @@ function production(overrides: Partial<TargetRule> = {}): TargetRule {
     environment: 'production', protection: 'full', match: 'host', address: 'origin.test', ...overrides }
 }
 
-async function harness() {
+async function harness(privateTarget = false) {
   const root = await mkdtemp(join(tmpdir(), 'dshu-guarded-proxy-'))
   const ctx = new Context()
+  let engine: ProxyHost.SecurityProxyEngine | undefined
+  const mount = ProxyHost.mountSecurityProxy
+  vi.spyOn(ProxyHost, 'mountSecurityProxy').mockImplementation((context, config, factory) => mount(context, config, (options) => {
+    if (factory === undefined) throw new Error('The protected fixture requires its explicit engine')
+    engine = factory(options); return engine
+  }))
   const sockets = new Set<Duplex>()
   const servers: Server[] = []
   const failed: unknown[] = []
@@ -102,7 +108,7 @@ async function harness() {
   const hosts = join(root, 'hosts')
   await writeFile(hosts, '127.0.0.1 origin.test\n')
   // Only anonymous-fetch SSRF resolution is substituted; DNS, policy, CONNECT and target I/O stay real.
-  vi.spyOn(Http, 'resolvePublicAddresses').mockResolvedValue([{ address: '127.0.0.1', family: 4 }])
+  if (!privateTarget) vi.spyOn(Http, 'resolvePublicAddresses').mockResolvedValue([{ address: '127.0.0.1', family: 4 }])
   const replacements: Record<string, string | number> = {
     __CREDENTIALS__: join(root, 'credentials.yaml'), __HOME__: root, __RULES__: rulesPath,
     __HOSTS__: hosts, __PROXY__: join(root, 'proxy.json'), __PORT__: port,
@@ -124,7 +130,7 @@ async function harness() {
     const snapshot = await ctx.targetProtection.snapshot()
     await ctx.targetProtection.configure({ rules, mainlandEnabled }, snapshot.revision)
   }
-  await configure([])
+  await configure(privateTarget ? [production({ environment: 'test', port })] : [])
   expect((await ctx.securityProxy.configure({ enabled: true, host: '127.0.0.1', port: proxyPort })).status).toBe('ready')
   await vi.waitFor(() => { expect(sockets.size).toBe(0) })
   proxyConnections = 0; targetConnections = 0; tunnels.length = 0
@@ -137,6 +143,7 @@ async function harness() {
     return Number(new URL(environment.HTTP_PROXY).port)
   }
   return { ctx, rulesPath, configure, fetch, url, port, agent, chain, seen, tunnels,
+    engine: () => { if (engine === undefined) throw new Error('Protected engine is absent'); return engine },
     counts: () => ({ targetConnections, proxyConnections }),
     respond: (next: typeof handle) => { handle = next },
   }
@@ -185,6 +192,107 @@ it('binds an exact test exception to literal CONNECT while preserving Host, meth
   const before = h.counts()
   expect((await throughChain(await h.chain(), h.url, '', 'other.test')).status).toBe(403)
   expect(h.counts()).toEqual(before)
+})
+
+it('reaches an owner-selected private test server through the real resolver and captures its response', async () => {
+  const h = await harness(true)
+  await h.configure([production({ environment: 'test', port: h.port })], true)
+  expect(await throughChain(await h.chain(), h.url, 'private test payload')).toEqual({ status: 200, body: 'private test payload' })
+  expect((await h.fetch()).body.content).toBe('guarded fixture')
+  expect(await h.ctx.securityProxy.test()).toMatchObject({ ok: true, state: { status: 'ready' } })
+  expect(h.tunnels.every(target => target === `127.0.0.1:${h.port}`)).toBe(true)
+  const rows = (await h.ctx.securityProxy.list({})).flows
+  const flow = rows.find(row => row.origin === 'proxy')
+  if (flow === undefined) throw new Error('Private test response was not recorded')
+  expect(await h.ctx.securityProxy.detail(flow.id)).toMatchObject({ requestBody: 'private test payload', responseBody: 'private test payload' })
+  const count = h.counts()
+  await expect(h.ctx.web.fetch({ url: h.url })).rejects.toMatchObject({ code: 'WEB_BLOCKED_URL' })
+  expect(h.counts()).toEqual(count)
+})
+
+it.each(['absent', 'disabled', 'database', 'domain', 'other-port'] as const)(
+  'does not widen private proxy access for a %s test selector', async (kind) => {
+    const h = await harness(true)
+    const rule = production({ environment: 'test', port: h.port })
+    if (kind === 'disabled') rule.enabled = false
+    if (kind === 'database') { rule.kind = 'database'; rule.database = 'owned' }
+    if (kind === 'domain') rule.kind = 'domain'
+    if (kind === 'other-port') rule.port = h.port === 65535 ? h.port - 1 : h.port + 1
+    await h.configure(kind === 'absent' ? [] : [rule])
+    await expect(h.fetch()).rejects.toMatchObject({ code: 'WEB_BLOCKED_URL' })
+    expect(h.counts()).toEqual({ targetConnections: 0, proxyConnections: 0 })
+  },
+)
+
+it.each(['full', 'audit'] as const)('keeps production %s stronger than private test access', async (protection) => {
+  const h = await harness(true)
+  await h.configure([production({ environment: 'test', port: h.port }),
+    production({ id: 'f5b044e3-8bf8-440f-840c-5351f794fe3c' as TargetRuleId, address: '127.0.0.1', port: h.port, protection })], true)
+  await expect(h.fetch()).rejects.toMatchObject({ code: protection === 'full' ? 'TARGET_FULLY_PROTECTED' : 'TARGET_READ_ONLY' })
+  expect(h.counts()).toEqual({ targetConnections: 0, proxyConnections: 0 })
+})
+
+it('does not carry a private test exception to an unlisted redirect authority', async () => {
+  const h = await harness(true)
+  h.respond(async (_request, response) => {
+    response.writeHead(302, { location: `http://127.0.0.1:${h.port}/redirected` }); response.end()
+  })
+  await expect(h.fetch()).rejects.toMatchObject({ code: 'WEB_REDIRECT_BLOCKED' })
+  expect(h.tunnels).toHaveLength(1)
+  expect(h.counts()).toEqual({ targetConnections: 1, proxyConnections: 1 })
+})
+
+it('allows an explicit private server alias without allowing unrelated ports', async () => {
+  const h = await harness(true)
+  await h.configure([production({ address: 'unused.test', environment: 'test', port: h.port,
+    aliases: [{ match: 'host', address: 'origin.test', port: h.port }] })])
+  expect((await h.fetch()).body.content).toBe('guarded fixture')
+  expect(h.tunnels).toEqual([`127.0.0.1:${h.port}`])
+})
+
+it('refuses a private exception revoked by another registry connection during resolution', async () => {
+  const h = await harness(true)
+  const resolve = h.ctx.targetProtection.resolveConnectionTarget.bind(h.ctx.targetProtection)
+  vi.spyOn(h.ctx.targetProtection, 'resolveConnectionTarget').mockImplementation(async (...args) => {
+    const result = await resolve(...args)
+    const store = await TargetStore.open(h.rulesPath, 1000)
+    try { store.configure({ mainlandEnabled: false, rules: [] }, store.snapshot().revision) } finally { store.close() }
+    return result
+  })
+  await expect(h.fetch()).rejects.toMatchObject({ code: 'TARGET_POLICY_CHANGED' })
+  expect(h.counts()).toEqual({ targetConnections: 0, proxyConnections: 0 })
+})
+
+it('honors authorization vetoes for default HTTP and HTTPS ports before opening a route', async () => {
+  const h = await harness(true)
+  h.ctx.on('web-fetch/authorize', async () => ({ reason: 'fixture veto' }))
+  for (const url of ['http://origin.test/', 'https://origin.test/']) {
+    await expect(h.ctx.securityProxy.fetchTarget(h.agent, url, new AbortController().signal)).rejects.toMatchObject({ code: 'WEB_TARGET_PROTECTED' })
+  }
+  expect(h.counts()).toEqual({ targetConnections: 0, proxyConnections: 0 })
+})
+
+it('strips caller proxy credentials while retaining an authenticated upstream route', async () => {
+  const h = await harness(true)
+  await h.ctx.securityProxy.setPassword('fixture-secret')
+  await h.ctx.securityProxy.configure({ authEnabled: true, username: 'fixture-user' })
+  const engine = h.engine(), transport = await engine['ensureTransport']()
+  const exchange = await engine['requestHttp'](transport.upstream, transport.dispatcher, new URL(h.url), {
+    method: 'GET', headers: { host: new URL(h.url).host, 'proxy-authorization': 'must-not-reach-origin' },
+  }, new AbortController().signal)
+  try { expect(await exchange.response.text()).toBe('guarded fixture') } finally { await exchange.close() }
+  expect(h.seen.at(-1)?.proxyAuthorization).toBeUndefined()
+})
+
+it('rejects an empty destination and an opaque IPv6 authority without opening upstream traffic', async () => {
+  const h = await harness()
+  vi.spyOn(h.ctx.targetProtection, 'resolveHttpTarget').mockResolvedValue({ hostname: 'origin.test', names: ['origin.test'], addresses: [], source: 'dns' })
+  expect(await h.ctx.securityProxy.test()).toMatchObject({ ok: false })
+  vi.restoreAllMocks()
+  const engine = h.engine(), transport = await engine['ensureTransport']()
+  await expect(engine['openTunnel'](transport.upstream, '::1', 443, new AbortController().signal))
+    .rejects.toMatchObject({ code: 'WEB_BLOCKED_URL' })
+  expect(h.counts()).toEqual({ targetConnections: 0, proxyConnections: 0 })
 })
 
 it('checks each redirect against another connection’s committed rules', async () => {

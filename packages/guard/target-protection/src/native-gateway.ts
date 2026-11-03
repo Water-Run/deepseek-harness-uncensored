@@ -9,7 +9,7 @@ import type { PinnedResponse } from '@deepseek-ai/dsh-web-fetch-http'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type TargetProtection from './index.ts'
 import type { TargetConnectionResolution } from './index.ts'
-import { canonicalTargetHost, expandTargetRules } from './rules.ts'
+import { canonicalTargetHost, hasExactTestServer } from './rules.ts'
 import { assertNetworkAllowed } from './network-decision.ts'
 import { createNativeHttps, type NativeHttpsOptions } from './native-https.ts'
 
@@ -83,9 +83,7 @@ export async function startNativeGateway(
     const host = canonicalTargetHost(hostname)
     assertNetworkAllowed(await protection.checkConnection(host, port, undefined, 'endpoint', 'unknown', requestSignal))
     const snapshot = await protection.snapshot()
-    const ownerTest = expandTargetRules(snapshot.preferences).some(rule => rule.enabled && rule.kind === 'server'
-      && rule.environment === 'test' && rule.match === 'host' && rule.address === host
-      && (rule.port === undefined || rule.port === port))
+    const ownerTest = hasExactTestServer(snapshot.preferences, host, port)
     const resolution = ownerTest ? await protection.resolveConnectionTarget(host, requestSignal)
       : await protection.resolveHttpTarget(host, requestSignal)
     assertNetworkAllowed(await protection.checkConnection(host, port, resolution, 'endpoint', 'unknown', requestSignal))
