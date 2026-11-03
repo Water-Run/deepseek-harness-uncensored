@@ -1,0 +1,26 @@
+[
+  {
+    "packages": ["@cfworker/json-schema@4.1.4"],
+    "file": "cfworker-4.1.4-MIT.txt",
+    "source": "https://raw.githubusercontent.com/cfworker/cfworker/e45acacf25e083ac1b4b09bdd940d27c33bffcc5/LICENSE.md",
+    "sha256": "376944252ab78ca6b41aee44ddea8894927ee67891e77e61eb9d59af63e35094"
+  },
+  {
+    "packages": ["@earendil-works/pi-ai@1.3.0", "@earendil-works/pi-telemetry@1.3.0"],
+    "file": "pi-1.3.0-MIT.txt",
+    "source": "https://raw.githubusercontent.com/earendil-works/pi/71023aec1546d6d677a65669c5665c0927ce0dd0/LICENSE",
+    "sha256": "0457f5bcec3b3b211605dfb5d1a49042fd638f3686a410fe099c24a25af13c48"
+  },
+  {
+    "packages": ["sherpa-onnx-node@1.13.8", "sherpa-onnx-win-x64@1.13.8"],
+    "file": "sherpa-onnx-1.13.8-Apache-2.0.txt",
+    "source": "https://raw.githubusercontent.com/csukuangfj/sherpa-onnx/11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf/LICENSE",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "packages": ["standardwebhooks@1.1.1"],
+    "file": "standardwebhooks-1.1.1-MIT.txt",
+    "source": "https://raw.githubusercontent.com/standard-webhooks/standard-webhooks/b4d2c14fc5b4ccff3ff271e3b087dff812254c59/libraries/LICENSE",
+    "sha256": "5ec8c7b26b64d881a6706617bed25c049f97f2f35de034c756de8546fd6dbe27"
+  }
+]

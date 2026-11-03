@@ -1,5 +1,15 @@
 # Uncensored 开发交接
 
+## 依赖声明清点与补充原文（2026-11-03）
+
+基点 `3fbe95372c`，Goal active。本节点处理主线交付的 16.07，不扩张默认关闭的进阶保护。新增 `runtime-notices.ts`，在 `prepare-dsh.ts` 完整性封装前生成实际 npm 包版本/声明文件摘要清单；精确版本补充文件经 SHA-256 校验，读取/摘要失败中止准备。缺少原文及 REA 已记录的上游缺项保持待核查，不把候选文件存在当作许可证兼容性结论。
+
+四份上游原文补齐六个包：cfworker 4.1.4、Pi AI/Telemetry 1.3.0、sherpa-onnx Node/Windows 1.13.8、Standard Webhooks 1.1.1。来源固定在 `LICENSES/npm/sources.json`，Standard Webhooks 使用库目录的 MIT 原文而非仓库根 Apache 文本。原文由固定提交取得，没有用通用许可模板代替作者声明。已对实际安装 ASAR 的清单/声明只读投影运行新生成器：759 个包，13 项待核查，详细分类见 [审计明细](requirements/2026-11-03-dependency-notices.md)。不包含 Electron 和独立 Node/Python 全量审计。
+
+完整 build 10/10、最终 build:check 2/2 通过。六文件共 66 项定向检查初次 65 通过、1 项触发原有 5 秒导入超时；按仓库已有 90 秒测试预算复验失败文件三项通过，未修改断言或生产代码。定向 lint、导出 JSDoc、389 个 DSH 包许可声明、生成文件时效/配对与 README gate 通过。日志 `runtime-notices-build-20261103.log`、`runtime-notices-check-final-20261103.log`、`runtime-notices-tests-20261103.log`、`runtime-notices-package-recheck-20261103.log`；实际清点 `.dsh-build/runtime-notices-audit-20261103.json`。本节点当前剩余额度 58%，未使用重置。
+
+系统仍为已验证的 `538f99e405` 修复版；本节点没有重打包、退出用户应用或操作安装数据。新声明将在下一次打包随 LICENSES 资源和准备树进入产物。16.07 转为进行中约 60%，不勾选完成；概览为已完成 26 项、进行中 8 项、待实现 2 项。
+
 ## 原生安装器验收完成（2026-11-03）
 
 修复 `windows-installer-smoke.ps1` 的按钮定位：按 Button 类型和完整标签匹配，避免中文“完成”误匹配“DSHU 已安装完成”静态标题。首轮英文 16 项通过、中文首项失败是测试驱动误点；修复后中英文各 16 项全部通过，未改产品按钮、超时或期望。
