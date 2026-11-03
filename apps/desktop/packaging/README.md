@@ -1,5 +1,5 @@
 ---
-description: "Build Desktop installers locally or through Windows or macOS Actions, choose deployment and signing mode, and retrieve artifacts and diagnostics. This guide keeps build operations separate from publishing and installed-application qualification. Platform signing details and shared-runner risks must be checked before using hardware credentials."
+description: "Build DSHU Desktop installers locally, choose deployment and signing mode, and retrieve artifacts and diagnostics. This guide keeps build operations separate from publishing and installed-application qualification. Platform signing details and shared-runner risks must be checked before using hardware credentials."
 ---
 
 # Desktop packaging
@@ -8,7 +8,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Build Desktop installers locally or through Windows or macOS Actions, choose deployment and signing mode, and retrieve artifacts and diagnostics. This guide keeps build operations separate from publishing and installed-application qualification. Platform signing details and shared-runner risks must be checked before using hardware credentials.
+Build DSHU Desktop installers locally, choose deployment and signing mode, and retrieve artifacts and diagnostics. This guide keeps build operations separate from publishing and installed-application qualification. Platform signing details and shared-runner risks must be checked before using hardware credentials.
 
 ## Table of Contents
 
@@ -30,7 +30,7 @@ Build Desktop installers locally or through Windows or macOS Actions, choose dep
 
 ## Choose a build path
 
-Run local commands from the repository root after installing locked dependencies. Use platform-specific commands for a local build, or platform Actions for the registered self-hosted runner. Choose test or production deployment independently from signed or unsigned mode. Read [Windows signing and runner operations](../windows-signing/README.md#trust-and-isolation) before any Windows signed build or shared-runner use. Installation is separate from packaging; [publication](../publishing/README.md) is a further explicit operation.
+Run local commands from the repository root after installing locked dependencies. Use the platform-specific local commands; this checkout has no active packaging workflow. Choose test or production deployment independently from signed or unsigned mode. Read [Windows signing and runner operations](../windows-signing/README.md#trust-and-isolation) before any Windows signed build or shared-runner use. Installation is separate from packaging; [publication](../publishing/README.md) is a further explicit operation.
 
 Set `DSH_DESKTOP_PACKAGE_CACHE_DIR` to an absolute build-cache directory for reuse across checkouts; see [cache configuration and lifecycle](#desktop-runtime-preparation).
 
@@ -38,42 +38,33 @@ Set `DSH_DESKTOP_PACKAGE_CACHE_DIR` to an absolute build-cache directory for reu
 
 ## Release versions
 
-Before each Desktop packaging run, first confirm the complete version string with the current user. Check the selected deployment, dsh base version, retained release records, and published objects, then propose the exact version for approval. Do not start packaging until the user confirms that version; the deployment setting alone does not authorize a version choice.
+Use the independent DSHU version in `apps/desktop/package.json`; the root package version identifies the DSH engine and does not determine the installer version. Local packaging within an existing authorization does not require another version confirmation. A public release needs its own publication authorization and a version checked against existing GitHub tags and assets.
 
-Record the current dsh version as the base. A production Desktop release uses that exact version, including any `alpha`, `beta`, or `rc` identifiers. A test release preserves the complete prerelease base and appends `.YYYYMMDD.index`; a stable base uses `-test.YYYYMMDD.index` instead.
+Omitting `--build-version` keeps the DSHU product version. Numbered test builds preserve a prerelease product version and append `.YYYYMMDD.index`; stable product versions append `-test.YYYYMMDD.index` instead. The tracked manifests are not rewritten.
 
-| dsh base | Production Desktop | Test Desktop example |
+| DSHU product | Unnumbered Desktop | Numbered test example |
 |---|---|---|
-| `0.1.6-alpha.1` | `0.1.6-alpha.1` | `0.1.6-alpha.1.20260916.1` |
-| `0.1.6-beta.2` | `0.1.6-beta.2` | `0.1.6-beta.2.20260916.1` |
-| `0.1.6-rc.3` | `0.1.6-rc.3` | `0.1.6-rc.3.20260916.1` |
-| `0.1.6` | `0.1.6` | `0.1.6-test.20260916.1` |
+| `0.1.0` | `0.1.0` | `0.1.0-test.20261103.1` |
+| `0.2.0-alpha.1` | `0.2.0-alpha.1` | `0.2.0-alpha.1.20261103.1` |
 
-Use the actual creation date in Asia/Shanghai. For each base and date, start the index at 1 and increment after checking retained release records and published objects; never reuse a published version. Test distribution does not publish the corresponding unsuffixed base.
-
-Manual Desktop CI uses a separate unpublished build identifier: `auto` appends the UTC date, workflow run number and attempt (`.YYYYMMDD.run.attempt`, with `-test` for a stable base). For example, `0.2.1-alpha.1.20261008.42.2`. These numbers are not reserved release sequence numbers.
-
-Pass the confirmed version to the packaging command as `--build-version`, which reaches the artifact names, the update feed, and the upload validation as one value. The manifests keep the product version, so a test build no longer rewrites the release family and leaves nothing to revert:
+`--build-version auto` uses the build host's date and the next index from this target's local DSHU artifacts, including retained run directories. It ignores official DSH filenames and does not access remote storage. The retained CI version formatter uses a UTC date, workflow run number and attempt; no workflow invokes it in this checkout. Neither mechanism reserves a public version.
 
 ```sh
-pnpm --dir apps/desktop run package:win:x64 --build-version 0.1.6-alpha.1.20260916.1
+pnpm --dir apps/desktop run package:win:x64:unsigned --build-version auto
 ```
 
-`--build-version auto` proposes today's next index from this target's local DSHU installers, including retained run directories. It ignores official DSH filenames and never reads COS credentials or contacts remote storage. This is local build numbering, not a reservation of a public release version. Review GitHub release tags and assets separately before publication; packaging itself does not upload.
+Packaging creates neither uploads nor release tags. Old cloud publishing entry files return exit code 1 before reading configuration or credentials; see the [migration instructions](../publishing/README.md). Publish reviewed artifacts separately through this repository's GitHub Releases. Every artifact records `dshBuildCommit` and `dshBuildDirty`.
 
-A DSHU release uses the independent Desktop product version and takes no `--build-version`. Packaging creates neither uploads nor release tags. The upstream cloud uploader, publication/retention/rollback implementation and credential launcher are removed; old entry files return exit code 1 before reading configuration or credentials. See the [migration instructions](../publishing/README.md). Publish reviewed artifacts separately through this repository's GitHub Releases. Every artifact records `dshBuildCommit` and `dshBuildDirty` in its manifest.
-
-Signed DSHU packages currently use the `latest` GitHub release channel; unsigned inspection builds contain no automatic-installation feed. Local qualification can exercise separate channel metadata without publishing it. A `-test.<date>.<sequence>` build ranks below its stable base and cannot automatically upgrade a higher installed version. Automatic downgrade remains disabled; an automatic corrective release needs a product version bump. See [release automation status](../publishing/ci/README.md).
+Signed DSHU packages use the `latest` GitHub release channel; unsigned inspection builds contain no automatic-installation feed. A `-test.<date>.<sequence>` build ranks below its stable base and cannot automatically upgrade a higher installed version. Automatic downgrade remains disabled; an automatic corrective release needs a product version bump. See [release automation status](../publishing/ci/README.md).
 
 <a id="configuration-and-local-builds"></a>
 
 ## Configuration and local builds
 
-Unsigned macOS and Windows packages use the same localized **DSH Local Build** label and version/commit badge as local Web builds. Signed packages keep official branding, including test deployments and macOS builds that skip notarization. Native application and installer names are unchanged.
+DSHU packages retain HARNESS / UNCENSORED branding independently of signing or build channel. Application and installer names identify DeepSeek Harness Uncensored. An unsigned build remains unsigned; the brand does not imply an official DSH release or verified signature.
 
-Set `DSH_PACKAGING_CONFIG_DIR` to the absolute machine configuration directory and `DSH_PACKAGING_PRESET` to `test` or `production` for local Windows commands. The loader reads `presets/<preset>.env`; signed commands additionally read `secrets/windows-signing.env`. Relative certificate and SignTool paths resolve beside the file declaring them. Public presets reject credentials, and the signing file cannot override public settings. Missing configuration fails without falling back to `.env.windows`; commands without a preset retain the existing dotenv behavior. Unsigned and preparation-only presets never read the signing file. Cache maintenance also reads only public preset settings. Test signed packages also require the existing download origin and release ID, but no upload credentials. Local preset commands with `--build-version auto` number from local artifacts only; Actions uses its run number and attempt.
+Set `DSH_PACKAGING_CONFIG_DIR` to the absolute machine configuration directory and `DSH_PACKAGING_PRESET` to `test` or `production` for local Windows commands. The loader reads `presets/<preset>.env`; signed commands additionally read `secrets/windows-signing.env`. Relative certificate and SignTool paths resolve beside the file declaring them. Public presets reject credentials, and the signing file cannot override public settings. Missing configuration fails without falling back to `.env.windows`; commands without a preset retain the existing dotenv behavior. Unsigned and preparation-only presets never read the signing file. Cache maintenance also reads only public preset settings. Signed DSHU packages use the repository GitHub update source. Local preset commands with `--build-version auto` number from local artifacts only; The retained CI formatter uses a run number and attempt.
 
-Both manual packaging workflows accept `test_release_id`. Blank uses the machine preset; a nonblank value must contain 32 lowercase hexadecimal characters and requires the test preset. The loader applies it through `PACKAGE_TEST_RELEASE_ID` without changing the preset file. Keep the same value for successive upgrade tests on that platform. Rotating the default affects future builds only: installed clients retain their original update address, and old objects remain accessible until separately removed. A random prefix reduces discoverability but does not authenticate downloads.
 
 Outside machine-preset mode, packaging, upload, and manual macOS signature verification (except local unsigned macOS builds) read `apps/desktop/.env.windows` or `.env.macos`, selected by target platform. Copy the [Windows template](../.env.windows.example) or [macOS template](../.env.macos.example) and fill in the local settings; Git ignores both local files, and packaged artifacts exclude them. Release fields come only from the selected configuration files, without fallback to system or shell variables; `PATH`, proxies, and build-tool settings remain inherited. The published version is an argument rather than a release field, and upload reads it from the completion record the packaging run wrote. Files use UTF-8 with optional BOM; relative certificate, SignTool, Apple API key, and keychain paths resolve from `apps/desktop`, values are not shell-expanded, and passwords containing `#` or spaces need quotes. Windows CI reads the same machine presets.
 
@@ -107,46 +98,13 @@ Each target owns its packed package inputs, prepared runtime, package set, dsh t
 
 ## Windows Actions packaging
 
-For supervised runner startup and recovery, follow [Windows runner machine setup](../windows-signing/README.md#machine-setup).
-
-The `Package Desktop · Windows · x64` [manual workflow](../../../.github/workflows/windows-package.yml) selects the dedicated Windows x64 runner label `dsh-win-package-trial` and the machine preset `test` or `production`. Choose `signed` (default) or `unsigned`; signed mode uses the existing EV token preflight, signature cache and failure interlock. It does not publish or upload a release. `build_version` defaults to `auto`, using the CI identifier in [Release versions](#release-versions); an explicit value may be the checkout's product version or an extended build version such as `0.2.1-alpha.1.20261009.1` for product `0.2.1-alpha.1`. The version prefix must match the selected checkout; validation errors show its current example. Manifests remain unchanged.
-
-Select the workflow in Actions, choose the source branch, preset, signing mode and version, then click Run workflow. Before merging input changes, test the pushed branch with `gh workflow run windows-package.yml --ref <branch> -f preset=test -f signing=unsigned -f build_version=auto`; verify the web form after merging. There is no push or PR trigger. Logs and successful EXEs are retained for 14 days. Inspect the retained logs and installer before relying on packaging; installation is separate. Before checkout, Node removes the runner-owned source directory without following dependency junctions; the workflow validates its location and rejects linked ancestors. Never point it at a development checkout. Runs share one concurrency group without cancelling an active build; only one run remains pending, and a newer dispatch replaces it. Diagnostics upload requires a successful clean checkout. Machine settings stay outside the checkout and are never uploaded as artifacts.
-
-Open the completed run in Actions and download its Artifacts. `windows-x64-signed-<version>-<run_id>-<run_attempt>` and `windows-x64-unsigned-<version>-<run_id>-<run_attempt>` contain the corresponding EXE; `windows-package-logs-<run_id>-<run_attempt>` contains packaging diagnostics. The upload steps are `Retain verified signed installer`, `Retain verified unsigned installer`, and `Retain packaging diagnostics`; their step durations and timestamped logs show upload time. These artifacts are not a Release or download-site publication.
-
-For path-sensitive Windows build measurements, `build_root` optionally selects an absolute directory outside existing Git checkouts. Each run clones the validated source commit into a new `windows-package-<run-id>-<attempt>/source` directory; ignored files and previous build outputs are not copied. Only the packaging process uses a sibling run-owned `temp` directory through `TEMP` and `TMP`; Actions steps and post-job hooks retain their original temporary directories. Dependency and signing caches retain their existing locations. Successful runs remove only their owned checkout after artifact uploads, retrying transient filesystem failures up to three times with 100 ms increasing delays; persistent cleanup errors fail the Job and may leave a partially removed directory. Failed builds retain their checkout for inspection. Leave the input empty to build in the original Actions checkout. Include checkout creation and cleanup in the complete Job timing.
-
-For cache measurements, `cache_namespace` selects a retained subdirectory for both dependency stores and upstream downloads; leave it empty for normal shared caches. Use a new name for a cold sample and repeat that name for warm samples. Names contain 1–64 lowercase letters, digits or hyphens, start with a letter or digit, and cannot be Windows device names. This does not reset the separate signature cache or OS file cache; report those states and Job start-to-completion time alongside phase timings and artifact size. Before dependency installation, the workflow records the Node version, available CPU parallelism, logical CPU count, and total/free memory.
-
-The dependency-install and packaging steps normalize their own shell to normal CPU, I/O and memory priority before launching children. Priority and isolated-workspace helpers are copied from the exact workflow commit into a run-specific temporary directory, independently of the selected product source. Missing helpers stop CI setup; unavailable priority adjustment emits a warning and marks scheduling unsuitable for performance comparison, but does not stop packaging. This does not modify the runner task or other processes. Version, preset and retained-artifact adapters remain tied to product source and its formats.
-
-Installer uploads store the already-compressed release files without ZIP recompression; this preserves installer bytes and signatures. Diagnostic uploads retain their ordinary compression.
+This checkout has no active Windows packaging workflow. Use the local unsigned command below; do not follow upstream Actions links or expect retained CI artifacts. A future DSHU workflow must preserve its independent product identity and publish only to the DSHU repository. See [automation status](../publishing/ci/README.md).
 
 <a id="macos-actions"></a>
 
 ## macOS self-hosted packaging
 
-The [Apple Silicon workflow](../../../.github/workflows/macos-package.yml) and [Intel workflow](../../../.github/workflows/macos-intel-package.yml) produce separate arm64 and x64 packages on the Apple Silicon runner labeled `dsh-mac-package-trial`. Both share one concurrency group. The Intel workflow checks Rosetta execution before dependency installation; its selected source must include the target-aware macOS CI adapter. Both select `test` or `production` and use the existing signing, notarization and packaged-runtime checks. Successful DMG/ZIP files and diagnostic logs are retained for 14 days without publishing a release. Installer uploads disable redundant ZIP compression. The operator must verify a complete Actions run and installation on the target architecture before release qualification. The `compression_level` dropdown defaults to `3` and also offers `7`; it overrides the machine preset for this run and affects only ZIP and automatic-update downloads, not DMG.
-
-All three platform forms put source, environment, update channel, version mode, manual version, test release ID and compression level first, with matching defaults. macOS notarization and Windows signing, cache measurement and isolated-workspace options follow these common fields.
-
-Run `node apps/desktop/scripts/setup-macos-packaging.mjs "$HOME/dsh-ci"` to prepare private `runner/`, `packaging/{presets,secrets,certificates}` and `cache/macos-signatures` directories without overwriting existing files; append `--check` to inspect them. Fill the [preset](../config/macos-packaging/test.env.example) and [signing](../config/macos-packaging/macos-signing.env.example) templates outside the checkout. Set secret and certificate files to mode `0600`. `DSH_PACKAGING_CONFIG_DIR` selects the absolute `packaging` directory and `DSH_PACKAGING_PRESET` selects its preset; missing files fail without falling back to `.env.macos`. Signed and preparation-only Mac builds read `secrets/macos-signing.env`; relative credential paths resolve beside that file. Public presets reject signing credentials, and signing files cannot override public settings. Local unsigned Mac builds retain their configuration-free behavior.
-
-Run `bash apps/desktop/scripts/start-macos-packaging-runner.sh "$HOME/dsh-ci/runner" "$HOME/dsh-ci/packaging" <absolute-node-24-bin-directory> --check` to check the host tools and configuration files. The script selects the active Xcode and its macOS SDK together and compiles a small linker probe. After registration, omit `--check` to run in the foreground with a cleared inherited environment and prevent idle sleep while the runner is alive. Stop it with Ctrl-C before installing the service below. The runner owns its `_work` checkout, separate from daily development. The account can read its signing files, so run only trusted code. The existing notarization proxy restoration rules apply; after forced termination, inspect retained recovery records before another build. New setup templates set `DSH_DESKTOP_MACOS_SIGNATURE_CACHE_DIR` to the absolute `cache/macos-signatures` directory outside checkout. For existing installations, rerun setup and add that field to each preset; existing files are preserved. This retains signatures across clean checkouts; cache verification and limits are described under [macOS signing](#macos-release-signing).
-
-
-ZIP compression uses the same configured level with or without notarization; the App is assembled once, then DMG and ZIP are built separately so the ZIP setting does not change DMG compression. The `skip_notarization` workflow option defaults to `false`; the equivalent CLI flag is `--skip-notarization`. It retains Developer ID signing, DMG signature verification and packaged-runtime verification, but omits Apple notarization and stapling and does not require Apple notarization credentials. DMG/ZIP filenames carry `-unnotarized`, are stored under `.desktop-build/targets/<target>/unnotarized-artifacts/`, and are uploaded with an `unnotarized-debug` label. These artifacts are for internal debugging only: Gatekeeper may block downloaded copies, and they are not qualified for distribution or update publishing. No release completion record is written. The flag rejects unsigned, Windows and preparation-only builds.
-
-Install the user service from the checkout as the same account that registered the runner, without `sudo`:
-
-```sh
-bash apps/desktop/scripts/macos-runner-service.sh install "$HOME/dsh-ci/runner" "$HOME/dsh-ci/packaging" /opt/homebrew/opt/node@24/bin
-bash apps/desktop/scripts/macos-runner-service.sh start "$HOME/dsh-ci/runner"
-bash apps/desktop/scripts/macos-runner-service.sh status "$HOME/dsh-ci/runner"
-```
-
-The installer copies its startup script into `runner/dsh-service`, sets the service PATH to Node 24 plus system tools, and uses GitHub's `svc.sh` and `runsvc.sh`. The LaunchAgent survives SSH disconnection, but requires that account's desktop login after reboot and stops on desktop logout. FileVault disk unlock remains an operator step; this does not provide unattended boot. Logs are `runner/dsh-service/stdout.log` and `stderr.log`; verify `Connected to GitHub` and `Listening for Jobs`. To update installed startup code or tool paths, wait until the runner is idle, run `stop`, then `uninstall`, and repeat installation. Neither action unregisters the runner or removes packaging credentials. Uninstall retains `runner/dsh-service` (including logs) and the explicit `.path`; reinstall replaces the startup snapshot and PATH.
+This checkout has no active macOS packaging workflow or registered runner commitment. Local macOS commands remain available below. Configure signing and notarization on the Mac build host using the [signing instructions](#macos-release-signing); a Windows build does not verify macOS delivery.
 
 <a id="unsigned-windows-test-installer"></a>
 
@@ -173,9 +131,9 @@ pnpm run package:desktop:mac:arm64:unsigned
 pnpm run package:desktop:mac:x64:unsigned
 ```
 
-Add `--check` to validate local configuration and tools without building, or `--dir` to stop at the unpacked application. The DMG is `apps/desktop/.desktop-build/targets/<target>/unsigned-artifacts/deepseek-harness-<version>-mac-<arch>-unsigned.dmg`. After all checks pass, the command prints `DMG:` followed by its absolute path. Open it and copy the application to a local test directory.
+Add `--check` to validate local configuration and tools without building, or `--dir` to stop at the unpacked application. The DMG is `apps/desktop/.desktop-build/targets/<target>/unsigned-artifacts/runs/<run-id>/deepseek-harness-uncensored-<version>-mac-<arch>-unsigned.dmg`. After all checks pass, the command prints `DMG:` followed by its absolute path. Open it and copy the application to a local test directory.
 
-These commands ignore `.env.macos` and inherited release settings, use `com.deepseek.harness` as the app ID, and omit automatic-update and mandatory-update configuration. Build tools, standard network proxies, and `DSH_DESKTOP_NPM_REGISTRY` remain available from the shell. They skip Developer ID signing, Apple notarization, temporary signing keychains, and notarization proxy changes. Electron receives a local ad-hoc signature without certificates so the modified executable can run; the DMG is unsigned. Both preparation and the assembled application still run runtime integrity and smoke checks. Local builds omit update feeds, ZIPs, and release completion records, and the upload commands cannot publish them. macOS may require approval in System Settings → Privacy & Security to open an unnotarized application.
+These commands ignore `.env.macos` and inherited release settings, use `com.deepseek.dsh.uncensored` as the app ID, and omit automatic-update and mandatory-update configuration. Build tools, standard network proxies, and `DSH_DESKTOP_NPM_REGISTRY` remain available from the shell. They skip Developer ID signing, Apple notarization, temporary signing keychains, and notarization proxy changes. Electron receives a local ad-hoc signature without certificates so the modified executable can run; the DMG is unsigned. Both preparation and the assembled application still run runtime integrity and smoke checks. Local builds omit update feeds, ZIPs, and release completion records, and the upload commands cannot publish them. macOS may require approval in System Settings → Privacy & Security to open an unnotarized application.
 
 <a id="macos-release-signing"></a>
 
@@ -267,7 +225,7 @@ The Windows installer checks for a running application at startup and after dest
 
 Directory renames, empty-destination removal, and restoration retry Windows errors 5, 32, and 33 up to ten attempts, with 250 ms increasing delays (11.25 seconds of total waiting per operation). Other errors stop immediately. A replacement failure reports the Windows error, affected paths, and restoration outcome in `directory-failure-<timestamp>.log` beside extraction reports. If restoration fails, the installer removes unlocked staging files and preserves the backup. After reporting that failure, exit cleanup does not retry restoration. Keep the backup path named in the report and contact support before reinstalling. Silent installs save the same diagnostic without a dialog.
 
-When extraction fails, the installer writes a report with the 7-Zip result and its complete error output to the updater cache directory as `%LOCALAPPDATA%\<package-derived name>-updater\installer-logs\extract-failure-<timestamp>.log` (currently `@deepseek-aidsh-desktop-updater`) and shows the first error line with a **Copy error details** button; silent installs write only the report. Unsigned Windows builds (`DSH_DESKTOP_UNSIGNED=1`) name their installer `deepseek-harness-<version>-win-x64-unsigned.exe` so they cannot be mistaken for release artifacts.
+When extraction fails, the installer writes a report with the 7-Zip result and its complete error output to the updater cache directory as `%LOCALAPPDATA%\<package-derived name>-updater\installer-logs\extract-failure-<timestamp>.log` (currently `deepseek-harness-uncensored-updater`) and shows the first error line with a **Copy error details** button; silent installs write only the report. Unsigned Windows builds (`DSH_DESKTOP_UNSIGNED=1`) name their installer `deepseek-harness-uncensored-<version>-win-x64-unsigned.exe` so they cannot be mistaken for release artifacts.
 
 Windows packaging fixes the 7-Zip filter to `BCJ` for compatibility with the bundled NSIS decoder. This preserves ARM64 binaries carried by dependencies in x64 installers; automatic ARM64 filtering produces entries that this decoder cannot extract.
 

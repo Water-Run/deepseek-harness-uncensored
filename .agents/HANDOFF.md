@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## 安装器组装中断与打包文档整理（2026-11-03）
+
+`84e6235247` 第二次完整打包 run `2026-11-03T09-50-14.579Z-DF2TZe` 在准备阶段通过目标 Electron 原生重编译、长路径实际终端、四模式、REA 229 工具、Office 和完整性检查。electron-builder 在组装阶段退出码为 `1073807364`（`0x40010004`），非超时，stderr 没有具体错误，应用事件日志未找到对应 Node/Electron 崩溃记录；不能断言为产品错误或确定的外部原因。该 run 的 result.success=false，尚无新安装器交付。保留全部证据，接下来从相同代码用隐藏后台进程重新打包，不把已通过的运行时检查当作整包成功。
+
+内部打包 README 的中英说明同步纠正独立 DSHU 版本、完整品牌、应用 ID、产物名和更新缓存名；删去已不存在的 Windows/macOS Actions 操作流程，保留平台签名、缓存和安装验收的实际说明。公开 README 的功能范围不变。本次文档不改变产品代码，单独提交；新包继续需要实际提取和安装验收。用户应用仍运行，保持“等我关闭后再安装”。
+
 ## Windows 终端长路径修复（2026-11-03）
 
 第一次完整打包在原生配置阶段失败，run `2026-11-03T09-44-10.276Z-olkS4O` success=false，没有生成新安装器。原因是 node-gyp 由 Electron 运行时默认读取 Electron 的 process.config，与 Node 头文件的 gyp 变量不一致。现显式指定 Node 发行头文件来源（保留 NODEJS_ORG_MIRROR），使 node-gyp 使用头文件中的 config.gypi。已直接通过实际打包用 Electron、运行时 node shim 和目标 24.21.0 头文件编译，所得 addon 在 Electron 下两组长路径并发再次通过；初始独立试编译使用 24.22.1，不是产品中 Electron 的 Node 版本。证据 `conpty-actual-electron-build-20261103.log`、`conpty-electron-build-concurrent-20261103.log`；失败日志保留，不以旧成功包代替此次结果。
