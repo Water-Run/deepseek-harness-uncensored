@@ -61,9 +61,9 @@ pnpm --dir apps/desktop run package:win:x64 --build-version 0.1.6-alpha.1.202609
 
 `--build-version auto` 仅从本目标的本地 DSHU 安装包（包含保留的 run 目录）计算当天的下一个序号，忽略官方 DSH 文件名，不读取 COS 凭据或访问远端存储。这是本地构建编号，不代表占用了公开发行版本；发布前单独核对 GitHub 标签与资产，打包本身不会上传。
 
-DSHU 正式发布使用独立的桌面产品版本，不传 `--build-version`。打包不会上传或创建发行标签；原官方版 `upload:*` 与 `purge:latest` 命令已移除，直接执行 `upload-target.ts` 会提示此分支不使用 COS 上传器。经核对的产物另行通过本仓库 GitHub Releases 发布；每份产物清单记录 `dshBuildCommit` 与 `dshBuildDirty`。
+DSHU 正式发布使用独立的桌面产品版本，不传 `--build-version`。打包不会上传或创建发行标签；原云上传器、发布/保留产物/回滚实现及凭据启动器已移除，旧入口在读取配置或凭据前返回退出码 1。详见[迁移说明](../publishing/README.zh.md)。经核对的产物另行通过本仓库 GitHub Releases 发布；每份产物清单记录 `dshBuildCommit` 与 `dshBuildDirty`。
 
-安装包独立于版本和发布环境内置 `DSH_DESKTOP_UPDATE_CHANNEL`（默认 `nightly`，也可选择 `latest`）。自动更新始终保留该通道，即使安装的是稳定版本；手动安装另一通道的包才会切换。latest 包拒绝预发布版本。稳定产品可生成 nightly 的 `-test.<date>.<sequence>` 构建，但该版本低于稳定基准，不能升级已安装的更高版本。保持自动降级关闭；稳定修复版需要提升产品版本。CI 版本选择与发布见 [CI 发布](../publishing/ci/README.zh.md#package-and-publish)。
+DSHU 签名包当前使用 GitHub 的 `latest` 发行渠道；未签名检查包不包含自动安装更新源。本地验收可测试独立渠道元数据，但不会发布。`-test.<date>.<sequence>` 版本低于对应稳定基准，不能自动升级已安装的更高版本。自动降级保持关闭，自动分发修复版需提升产品版本。见[发行自动化状态](../publishing/ci/README.zh.md)。
 
 <a id="configuration-and-local-builds"></a>
 

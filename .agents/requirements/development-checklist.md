@@ -244,7 +244,7 @@
 - [x] **15.03** 反馈入口指向本 fork GitHub Issue，已有 GitHub 入口和图标许可声明；继续核查所有遗留反馈入口是否统一。
 - [x] **15.04** 关于页和启动提醒读取 `Water-Run/deepseek-harness-uncensored` 的 GitHub Releases。补丁只在关于页提示，次版本和主版本启动时弹窗。测试 `release-status.client.spec.ts`。
 - [x] **15.05** 区分检查中、最新、可更新、尚无发行版、失败和离线。使用 semver 比较预发布与构建标签；校验 HTTPS 来源、发布链接与分页，提供超时和取消。桌面读取真实 app-update.yml 并设置校验后的源，不再依赖已弃用的 getFeedURL。真实 GitHub 返回空发布列表时显示尚无发行版，不冒充最新；测试 `release-status.client.spec.ts`、`update-source.spec.ts`、`update-coordinator.spec.ts`。
-- [ ] **15.06〔部分完成〕** 运行中的更新检查拒绝把官方下载站和 COS 当成可确认的最新版本。旧的打包上传脚本仍保留，本次没有上传或发布。签名和渠道代码没有改成官方版。
+- [ ] **15.06〔部分完成〕** 运行更新源与官方版分离；COS/EdgeOne 上传、原 CI 发布/保留/回滚、凭据启动器及 SDK 已移除，10 个旧入口在读取部署凭据前直接返回停用提示。签名包固定使用本仓库 GitHub latest，未签名包无自动安装更新源。真实下载、签名安装升级及发布验收仍待完成。
 
 <a id="group-16"></a>
 

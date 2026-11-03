@@ -1,5 +1,17 @@
 # Uncensored 开发交接
 
+## 旧云发布清理与校验遗漏修复（2026-11-03）
+
+基点 `fbd91c75f5`，Goal active。移除 COS/EdgeOne 传输、原 CI 保留/发布/回滚实现、旧测试发布器及相关专用测试。9 个 JavaScript/TypeScript 旧入口和 PowerShell 凭据启动器保留明确停用提示，均返回 1，不解析操作参数、不读取部署配置/解密凭据、不连接发布服务。COS SDK 从 Desktop 开发依赖和锁文件中移除；离线 lockfile-only 更新没有下载新包。公共 GitHub 更新源、产品/引擎版本解耦及本地编号保留，旧 cloud 目标解析从共享更新元数据模块中移除。
+
+精简 Desktop 发布、CI 和安装验收发布文档，并修正打包文档误写可选择 nightly 的段落：当前签名 DSHU 固定 GitHub latest，未签名检查包不带自动安装更新源。私有安装升级夹具仍读取历史 manifest 字段做本地一致性检查，不能据此执行云发布。保留已有安装包、私有回执和本地构建目录，未创建 Release 或上传远端资产。
+
+全仓 hygiene 首次 21 项通过、2 项失败：旧 constraints 白名单与此前 subprocess-local 共享分块修复冲突；两个可选原生入口含顶层 await。前者现要求 `lib/*.js` 并拒绝旧部分清单，170 项约束测试通过；后者改为显式处理 Promise 失败，58 项原生 Broker/终端/提供方回归通过，编译后终端入口在无控制描述符时确实报告错误并以 127 退出。保持终端确认消息刷出后退出。首次约束测试还保留旧显式文件名断言，已随新的发布行为更新，没有放宽全局检查。
+
+验证：6 文件 122 项打包/更新回归、43 项文档/声明检查通过；完整构建最终 10/10，两个失败 hygiene gate 单独复验通过，其余 21 项结果保留。全仓 lint 后对入口与约束修改再跑定向 lint；7 组文档配对更新。实际 `package-target.ts win-x64 --unsigned --build-version auto --check` 通过，未签名、未上传。日志 `.dsh-build/retire-publishing-final-tests-20261103.log`、`retire-publishing-doc-tests-20261103.log`、`retire-publishing-build-final-20261103.log`、`retire-publishing-hygiene-20261103.log`、`retire-publishing-constraints-final-20261103.log`、`retire-publishing-entry-checks-20261103.log`、`native-entry-built-20261103.log`。
+
+系统安装继续保持 `538f99e405` 修复版。本节点主要是发布工具与校验收尾；进阶保护默认关闭。15.06 约 80%、文档仓库整理约 90%；真实 GitHub 下载、签名升级、许可证剩余项和进阶保护范围继续保留。
+
 ## 官方版插件与顶部入口验收（2026-11-03）
 
 基点 `6ffc51a22b`，Goal active。本节点完成 02.05 的插件加载及顶部入口核实。将系统官方 DeepSeek Harness 0.2.1-rc.3 的完整安装和三个现有插件复制到随机临时目录；使用副本 EXE 的实际 Desktop Host 与原 profile 配置，独立 HOME/APPDATA/缓存和空白会话，未复制真实凭据。插件为 dsh-purge 1.2.3、dsh-side 0.1.1、@sky_sun/dsh-balance 0.1.0-local.2。仅在测试 profile 将余额 baseURL 指向本地固定响应，purge 的原启动配置保持不变。

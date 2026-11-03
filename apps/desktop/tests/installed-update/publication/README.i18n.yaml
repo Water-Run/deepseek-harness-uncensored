@@ -3,26 +3,14 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write apps/desktop/tests/installed-update/publication/README.md
 /:
-  en: d68b29f85e3467f2
-  zh: ab8af9ba530dbf58
-/test-update-upload-and-publication:
-  en: b2901cea239d33b8
-  zh: fc9e86660a05c9a7
-/test-update-upload-and-publication/summary:
-  en: 1bfd00a24050f90f
-  zh: baecac1b319c7474
-/test-update-upload-and-publication/table-of-contents:
-  en: 852cb727f419695e
-  zh: 4923ccde4b312dc6
-/test-update-upload-and-publication/prerequisites:
-  en: e435e427e38756b5
-  zh: 0a3fc104c7ea024d
-/test-update-upload-and-publication/operator-sequence:
-  en: ec62412e0327ba5b
-  zh: 90fe517535d8a116
-/test-update-upload-and-publication/evidence-and-recovery:
-  en: a34627fc81e143e3
-  zh: 5069e86f05987f4c
-/test-update-upload-and-publication/dev-note:
-  en: 6eb02d896722c4ca
-  zh: 9d08782425e6f1b0
+  en: 318aee458bd778b6
+  zh: 3a9697451ac47ba0
+/installed-update-publication-status:
+  en: 4ed3f6f370cf1476
+  zh: dfd30a8d95191276
+/installed-update-publication-status/local-evidence:
+  en: 5df33693055ffa6e
+  zh: 873f4e0a8b49015c
+/installed-update-publication-status/publication:
+  en: c2fee82c7db9cb4d
+  zh: 005429fe14335631
