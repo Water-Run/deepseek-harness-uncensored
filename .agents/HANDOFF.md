@@ -1,5 +1,15 @@
 # Uncensored 开发交接
 
+## 已验证的新检查包，等待用户退出后安装（2026-11-03 19:47）
+
+产品源码 `2914c59eb5f498ad8d6c23a847eaadcc966d8afa`，包含仅两个特殊工作区着色、终端独立代理、ConPTY 长路径修复及锁定 Electron 校验清单。安装包 `.dsh-build/deliverables/DSHU-0.1.0-core-0.2.2-alpha.2-REA-6.8.0-win-x64-unsigned-20261103-2914c5.exe`，388703750 字节，SHA-256 `93d3ef309cf853565e030fed6af2071dfc2102d13a46a9c9dfe40ea1d1d44f1c`。未签名，未发布 Release，尚未安装。
+
+原打包 run `2026-11-03T11-24-17.250Z-EepcTV` 已完成安装器组装，但新增验收夹具对 ASAR 虚拟目录直接使用 fs.cpSync，导致后验失败；原 result.success=false 保留。修复夹具为逐项复制目录内文件后，直接提取同一安装器并运行完整 smoke，长路径终端、四模式、REA 229 工具、Office、插件生命周期和归档完整性均通过。额外使用用户配置副本验证四模式、新建会话及受管 Node 命令；深构建目录的实际侧栏终端代理、输入顺序和响应正文捕获也通过。安装器、解包目录及完整 dsh 文件清单一致，产品字节未修改，无需为纯夹具修正重复打包。
+
+正式交付回执 `DSHU-20261103-2914c5-manifest.json` 明确保留 `packagingSuccess:false`，另记 `qualificationSuccess:true` 及复验脚本 SHA，不将原失败改写为成功。恢复入口 `.dsh-build/current-delivery-20261103.json` 已标记 `verified-awaiting-user-exit`；据此检查复验结果，不要因为旧打包 result 为 false 自动重开构建。提取目录 `D:/Coding/.dshu-installer-check-ydyq25/app`。证据 `installer-2914c5-recheck-20261103.log`、`installer-2914c5-presets-20261103.log`、`installer-2914c5-deep-terminal-20261103.log`、`installer-2914c5-archive-20261103.log`，均在 `.dsh-build`。
+
+19:46 核实用户正式安装仍在运行，主进程 PID 138128、创建于 19:08:57。继续遵守“等我关闭 DSHU 后再安装”，不能主动结束它。用户退出后再建立新的私有备份并更新；不复用上午备份，不触碰官方 DSH。e30 候选仍不是安装对象。当前账户剩余额度最近实查为 47%；Goal 继续 active，其他未完成项仍保留。
+
 ## Electron 缓存校验修复（2026-11-03）
 
 隐藏后台构建 `54a41ff7e5` 的 run `2026-11-03T11-13-46.576Z-dAhyQQ` 已终止，result.success=false；不是仍在运行。失败点为 download:electron，GitHub 443 连接超时。@electron/get 5 每次读取缓存时仍会联网获取 SHA 清单，缓存存在不能避免该失败。

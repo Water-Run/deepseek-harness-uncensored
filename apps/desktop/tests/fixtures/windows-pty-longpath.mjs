@@ -1,7 +1,7 @@
 /** Exercise the shipped ConPTY addon in a fresh process under an extended-length path. */
 import assert from 'node:assert/strict'
 import { execFile } from 'node:child_process'
-import { cpSync, mkdtempSync, mkdirSync } from 'node:fs'
+import { copyFileSync, mkdtempSync, mkdirSync, readdirSync, statSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
@@ -11,6 +11,13 @@ import { promisify, stripVTControlCharacters } from 'node:util'
 const [operation, root] = process.argv.slice(2)
 assert.equal(process.platform, 'win32')
 assert.ok(root)
+// Electron's cpSync extracts one ASAR file and cannot copy a virtual directory.
+function copyEntry(source, destination) {
+  if (statSync(source).isDirectory()) {
+    mkdirSync(destination, { recursive: true })
+    for (const name of readdirSync(source)) copyEntry(join(source, name), join(destination, name))
+  } else copyFileSync(source, destination)
+}
 if (operation === 'copy') {
   const scratch = mkdtempSync(join(tmpdir(), 'dshu-conpty-'))
   try {
@@ -19,7 +26,7 @@ if (operation === 'copy') {
     directory = join(directory, '中文 安装目录', 'node-pty')
     mkdirSync(directory, { recursive: true })
     for (const item of ['lib', `prebuilds/win32-${process.arch}`, 'package.json']) {
-      cpSync(join(root, item), join(directory, item), { recursive: true })
+      copyEntry(join(root, item), join(directory, item))
     }
     const result = await promisify(execFile)(process.execPath, [import.meta.filename, 'run', directory], {
       windowsHide: true, timeout: 30_000, env: process.env,
