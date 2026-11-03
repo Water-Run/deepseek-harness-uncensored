@@ -237,6 +237,8 @@ NSIS 在安装阶段清理临时解压目录，完成后才显示完成页或自
 
 ## Desktop 运行时准备
 
+Electron 归档使用精确锁定的 Electron npm 包内 `checksums.json` 验证。缓存文件有效时无需重新向 GitHub 请求校验清单；目标校验值缺失或格式错误会停止准备，损坏缓存会在解压前被拒绝。没有缓存时仍需下载归档。
+
 Windows 并行准备 Electron 和 primary-runtime；macOS 串行准备二者。只有两份运行时资源均成功，才会准备 CLI 并写入 `versions.json`。任一 Windows 运行时准备失败时，流程会等待另一路结束后再报告失败，且不写入 CLI 资源或版本记录。嵌套准备阶段的计时存在重叠，不能直接相加。
 
 打包进程环境中的 `DSH_DESKTOP_PACKAGE_CACHE_DIR` 为共享的 `downloads` 和 `pnpm-store` 缓存指定非空绝对目录；省略时使用 `.desktop-build`。临时安装项目、lockfile 和配置仍逐次独立创建。运行时安装校验 store 完整性并复制包文件，防止后续签名修改缓存字节；清理时保留这些缓存。两个打包工作流使用 `runner.tool_cache/dsh-desktop-package-cache`；Windows 仓库依赖安装使用工作区盘根目录下独立的 `.pnpm-store`。两次安装日志均标明各自的 store 并报告包复用情况。每次运行仍通过新的运行时 lockfile 解析依赖。可写缓存仅供可信构建任务共享；完整性校验不能隔离不可信的写入者。仅在没有任务使用缓存时清理。缓存磁盘用量由操作者管理，不自动淘汰。

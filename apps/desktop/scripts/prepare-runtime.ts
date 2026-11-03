@@ -13,6 +13,7 @@ import { packagingStep } from './packaging-step.mjs'
 import { preparePrimaryRuntime } from './prepare-primary-runtime.ts'
 import { prepareDesktopCli } from './prepare-cli.ts'
 import { prepareCommandLink } from './prepare-command-link.ts'
+import { electronArchiveChecksum } from './electron-checksum.ts'
 
 const BUILD_PATHS = resolveDesktopTargetBuildPaths()
 const RUNTIME_ROOT = BUILD_PATHS.runtime
@@ -23,8 +24,9 @@ type DesktopTarget = ReturnType<typeof desktopTargetPlatform>
 async function prepareElectron({ platform, arch }: DesktopTarget): Promise<string> {
   const require = createRequire(import.meta.url)
   const { version } = require('electron/package.json') as { version: string }
+  const checksums = electronArchiveChecksum(version, { platform, arch }, require('electron/checksums.json'))
   const archive = await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'download:electron',
-    () => downloadArtifact({ version, platform, arch, artifactName: 'electron', cacheRoot: BUILD_PATHS.downloads }))
+    () => downloadArtifact({ version, platform, arch, artifactName: 'electron', checksums, cacheRoot: BUILD_PATHS.downloads }))
   rmSync(BUILD_PATHS.electron, { recursive: true, force: true })
   await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'extract:electron', () => extractZip(archive, { dir: BUILD_PATHS.electron }))
   const executable = join(BUILD_PATHS.electron, platform === 'win32' ? 'electron.exe' : 'Electron.app/Contents/MacOS/Electron')

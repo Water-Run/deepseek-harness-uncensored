@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## Electron 缓存校验修复（2026-11-03）
+
+隐藏后台构建 `54a41ff7e5` 的 run `2026-11-03T11-13-46.576Z-dAhyQQ` 已终止，result.success=false；不是仍在运行。失败点为 download:electron，GitHub 443 连接超时。@electron/get 5 每次读取缓存时仍会联网获取 SHA 清单，缓存存在不能避免该失败。
+
+准备流程现使用锁定 Electron npm 包自带的 checksums.json，仅传入本版本/平台/架构对应的有效 SHA-256，继续由 @electron/get 校验文件。缺项或格式错误直接失败，不绕过完整性校验。实际 44.7.0 缓存在禁止网络请求的夹具中读取成功；故意损坏私有缓存副本时被拒绝并尝试重新下载。22 项定向测试通过，证据 `.dsh-build/electron-cache-verified-20261103.log`、`electron-checksum-tests-final-20261103.log`。本节点待构建通过后重新打包，前三个失败 run 全部保留，尚无新安装器可安装。用户 DSHU 主进程仍在运行。
+
 ## 安装器组装中断与打包文档整理（2026-11-03）
 
 `84e6235247` 第二次完整打包 run `2026-11-03T09-50-14.579Z-DF2TZe` 在准备阶段通过目标 Electron 原生重编译、长路径实际终端、四模式、REA 229 工具、Office 和完整性检查。electron-builder 在组装阶段退出码为 `1073807364`（`0x40010004`），非超时，stderr 没有具体错误，应用事件日志未找到对应 Node/Electron 崩溃记录；不能断言为产品错误或确定的外部原因。该 run 的 result.success=false，尚无新安装器交付。保留全部证据，接下来从相同代码用隐藏后台进程重新打包，不把已通过的运行时检查当作整包成功。
