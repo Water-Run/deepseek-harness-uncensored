@@ -1,12 +1,16 @@
 # Uncensored 开发交接
 
-## 模式加载故障修复中（2026-11-03）
+## 模式加载故障已修复并重新安装（2026-11-03）
 
 用户安装后报告四个模式加载失败、新建会话失败。已用实际安装程序及用户 cordis.patch.yml 的隔离副本复现：`subprocess-local/lib/index.js` 引用的 `terminal-_xfjEY2v.js` 未进入 npm 发布白名单，导致 subprocess 未加载，继而影响 shell、ptcRuntime 和 workflowEngine。此前原生模块/REA/Office smoke 通过不能代表默认会话可用；192de49274 不再作为可用版本的完整验收依据。用户数据保全结果仍成立，未修改用户配置。
 
 修复将 subprocess-local 的发布 JavaScript 范围统一为 `lib/*.js`，覆盖构建器生成的共享分块。实际 tarball 已包含该文件，并在独立提取目录使用完整生产依赖成功导入；首次使用工作区相对链接的夹具无法解析依赖，已改为实际物化依赖树，不属于产品失败。Desktop smoke 新增实际 Host 四个内置模式的 ready 校验；已对当前坏安装包运行，准确在 standard 模式处拒绝继续，避免再次仅凭网页启动判为可用。
 
-尚须完成修复包构建、四模式/真实配置副本/新建会话验收，然后更新系统安装。证据 `.dsh-build/diagnosis-agent-preset-registry-list-20261103.json`、`diagnosis-host-stderr-20261103.log`、`preset-package-negative-20261103.log`、`subprocess-package-fix-20261103/`。本节优先于下方上一节点的安装成功描述。
+修复包来自干净源码 `538f99e405574045c7b572b0a2081dcfac266e56`，构建 run `2026-11-03T03-33-21.091Z-iUnJqg` 成功。打包前后均通过四个模式检查；使用用户配置副本，对新 ASAR 和实际安装目录分别验证四模式及新建会话，安装目录还执行并回收了固定 Node 测试命令。系统已重新安装修复版，卸载/安装均返回 0；应用保持关闭供用户打开检查。
+
+修复包 `.dsh-build/deliverables/DSHU-0.1.0-core-0.2.2-alpha.2-REA-6.8.0-win-x64-unsigned-20261103-538f99.exe`，388754273 字节，SHA-256 `24a5c888d4f6b236e71ed04e9ad514bafe9081360681b2afc406a687ddae0791`。本次私有备份 `C:/Users/linzh/AppData/Local/DSHU-Backups/20261103-115331-538f99e405`，434 份数据文件与官方版两个程序文件在更新后哈希一致。旧 192de4 安装包保留为 `.exe.rejected`，交付清单标记 rejected=true，不应再安装。
+
+证据 `.dsh-build/preset-missing-chunk-before-20261103.json`、`preset-package-negative-20261103.log`、`subprocess-package-fix-20261103/`、`preset-fix-real-config-20261103.log`、`preset-fix-installed-20261103.log`、`preset-fix-data-verification-20261103.log`；交付清单 `DSHU-20261103-538f99-manifest.json` 已标记安装与功能验证。本节替代下方对 192de49274 的可用性描述。
 
 ## 系统更新完成（2026-11-03）
 
