@@ -173,5 +173,6 @@ export async function runDesktopUploadCommand(args: string[]): Promise<void> {
 }
 
 if (process.argv[1] !== undefined && import.meta.filename === resolve(process.argv[1])) {
-  void runDesktopUploadCommand(process.argv.slice(2))
+  process.stderr.write('DSHU does not use the upstream COS uploader. Publish reviewed artifacts to Water-Run/deepseek-harness-uncensored on GitHub Releases.\n')
+  process.exitCode = 1
 }

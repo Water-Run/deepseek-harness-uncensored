@@ -46,6 +46,8 @@ Uncensored 默认加载中文 armor，并内置英文文本，无需安装插件
 
 **REA 内置分析：**桌面版提供 REA 6.8.0 与兼容的 Node，无需另装 REA 或填写路径。在“设置 → 模式 → 逆向配置”可检测连接，或按需配置 Ghidra、Java、IDA MCP。已验证 229 个工具目录、JavaScript 分析及 Ghidra 12.1.4 原生分析；该版本不支持 Ghidra 12.2。调用要求完全权限，随问不能启动。保存配置会关闭现有连接，重开样本后继续。
 
+构建与发布分别操作：本地打包不会上传。DSHU 只使用本仓库的 GitHub Releases；原官方版的 `upload:*`、`purge:latest` 命令已移除。`--build-version auto` 仅按本机 DSHU 产物编号，正式发布前需独立核对版本与资产。
+
 源码开发建议使用 **Node.js 24.22.1 LTS、Corepack 和 Git**；其他 Node 版本需满足 REA 的兼容要求。桌面安装包自带运行时。
 
 ```powershell

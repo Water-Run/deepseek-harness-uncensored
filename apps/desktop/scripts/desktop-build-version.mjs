@@ -1,12 +1,12 @@
 /**
- * Resolve the version one build publishes, which is not always the version the
+ * Resolve the version embedded in one build, which is not always the version the
  * repository declares.
  *
  * Manual Desktop CI uses UTC date, workflow run number and attempt as
  * `.YYYYMMDD.run.attempt`; these identify unpublished builds, not release sequences.
  *
- * A production release publishes the version in the manifests, aligned with the
- * `dsh` npm package. A test build publishes a version that appends a date and a
+ * A production release uses the independent Desktop product version; the DSH
+ * engine version stays separate. A test build uses a version that appends a date and a
  * sequence number, so one test feed can carry several builds of a single
  * product version: `0.1.6-alpha.1.20260916.1` from a prerelease base and
  * `0.1.6-test.20260916.1` from a stable one, as the release versions table in

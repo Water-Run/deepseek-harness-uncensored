@@ -1,5 +1,15 @@
 # Uncensored 开发交接
 
+## 独立构建编号与旧上传入口清理（2026-11-03）
+
+基点 `180fc96d72`。移除根目录和 Desktop 的官方 `upload:*`、`purge:latest` 命令；直接执行旧 `upload-target.ts` 立即返回非零状态及 DSHU GitHub Releases 指引，不读取部署配置或执行上传。旧内部 COS/CI 维护库仍留在源码中，本节点不把其彻底清理标为完成，也没有对远端发布或删除任何资产。
+
+`--build-version auto` 改为只读取本目标的本地 DSHU 产物及 run 目录，忽略官方 DSH 文件名，不再接受远端环境配置或导入 COS 客户端。缺少目录视为首次构建；其他读取错误直接报告，避免误当作空目录。编号属于本机开发，不承诺跨机器的公开版本唯一性。版本继续从独立 Desktop 产品版本派生，DSH 引擎版本不参与。README 和内部打包参考已说明迁移及发布需单独核对标签/资产。
+
+验证：最终五文件 68 项通过，另有 package-target 定向测试；真实 `package:win:x64:unsigned --build-version auto --check` 生成 `0.1.0-test.20261103.1` 并通过本机预检，没有下载、签名或上传。完整 build 10/10、最终 build:check 2/2、JSDoc、定向 lint 与文档配对通过。日志 `.dsh-build/release-decoupling-final2-tests-20261103.log`、`release-decoupling-cli-final-20261103.log`、`release-decoupling-build-final-20261103.log`、`release-decoupling-check-final-20261103.log`。
+
+这次只改构建与发布工具，不改变前一节点安装包内的应用行为。已生成的 `192de49274` 检查包继续有效；仍等待用户选择何时退出运行中的 DSHU 并安装，不重复打包，也未关闭当前应用。
+
 ## 最新 Windows 检查包（2026-11-03，待安装）
 
 干净源码 `192de49274d2140dfae682620008e1b1fd84f327` 已完成 Windows x64 未签名打包，DSHU 0.1.0 / DSH 0.2.2-alpha.2 / REA 6.8.0。包含地球图标、工作区模式主题色、余额向上竖虚线和新进阶规则库默认关闭；第三方声明总表已加入安装资源并核对字节一致。运行记录 `2026-11-03T01-53-14.076Z-1o1xvW` success=true；完整构建、实际 Desktop Host 的 REA 229 工具/JavaScript、Office 三类转换、原生模块、PTY 与离线插件操作在打包前后均通过。

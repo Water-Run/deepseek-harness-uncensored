@@ -36,14 +36,7 @@
     "package:mac:x64:dir": "tsx scripts/package-target.ts mac-x64 --dir",
     "package:win:x64": "tsx scripts/package-target.ts win-x64",
     "package:win:x64:unsigned": "tsx scripts/package-target.ts win-x64 --unsigned",
-    "package:win:x64:dir": "tsx scripts/package-target.ts win-x64 --dir",
-    "upload:mac:arm64": "tsx scripts/upload-target.ts mac-arm64",
-    "upload:mac:x64": "tsx scripts/upload-target.ts mac-x64",
-    "upload:win:x64": "tsx scripts/upload-target.ts win-x64",
-    "upload:latest:mac:arm64": "tsx scripts/upload-target.ts mac-arm64 --latest",
-    "upload:latest:mac:x64": "tsx scripts/upload-target.ts mac-x64 --latest",
-    "upload:latest:win:x64": "tsx scripts/upload-target.ts win-x64 --latest",
-    "purge:latest": "tsx scripts/upload-target.ts --latest --purge-only"
+    "package:win:x64:dir": "tsx scripts/package-target.ts win-x64 --dir"
   },
   "dependencies": {
     "electron-updater": "^6.8.9",
