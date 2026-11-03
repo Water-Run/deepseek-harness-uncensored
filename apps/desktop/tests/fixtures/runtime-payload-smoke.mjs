@@ -23,6 +23,12 @@ const scratch = mkdtempSync(join(tmpdir(), 'dsh-runtime-payload-'))
 
 /** Spawn only a fixed Node program and await the terminal's drained exit event. */
 async function checkPty() {
+  if (process.platform === 'win32') {
+    const output = execFileSync(process.execPath, [
+      join(import.meta.dirname, 'windows-pty-longpath.mjs'), 'copy', dirname(requireRuntime.resolve('node-pty/package.json')),
+    ], { timeout: 45_000, windowsHide: true, encoding: 'utf8', env: process.env })
+    process.stdout.write(output)
+  }
   const pty = requireRuntime('node-pty')
   const script = join(scratch, 'pty.cjs')
   writeFileSync(script, "process.stdout.write('runtime-payload-pty-ok\\n')\n", { flag: 'wx', mode: 0o600 })

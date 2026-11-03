@@ -1,5 +1,17 @@
 # Uncensored 开发交接
 
+## Windows 终端长路径修复（2026-11-03）
+
+基点 `f017784270`，Goal active。02.12 已将 node-pty 的 ConPTY 加载器从 MAX_PATH 固定缓冲改为动态缓冲与扩展路径，继续加载随包 conpty.dll/OpenConsole。补丁沿用现有 pnpm 管理；Desktop 准备阶段使用目标 Node 头文件重编译 addon，编译失败中止，移除临时 build 目录后只发布选定 prebuild。普通源码依赖安装仍使用 npm 的旧预构建文件，不能将 Desktop 修复扩称为所有源码运行方式已修复。
+
+实际构建使用 Node 24.22.1 头文件。主机缺少 Spectre 库，已从本机微软 VS 清单固定 URL 下载并核验 SHA-256，解压至私有 `.dsh-build/msvc-spectre-14.51`；未修改系统编译器，未关闭 Spectre。后续本机打包需设置 `ForceImportAfterCppProps=D:/Coding/deepseek-harness-uncensored/.dsh-build/msvc-spectre.props`。其他构建机按打包 README 安装标准 MSVC、Spectre 库与 Python。
+
+新载荷夹具将分发文件复制到 301 字符且包含中文与空格的目录，独立进程验证实际终端输入、输出及正常退出；Electron 双进程并发通过，旧预构建在同一夹具明确报 DLL 路径错误。夹具已接入打包前后 smoke。21 项准备/补丁/载荷测试通过，最终修改过的准备测试 3 项复验通过；完整构建 10/10、最终 build:check 2/2、定向 lint、导出 JSDoc、文档配对、doc-sync 通过。
+
+证据 `.dsh-build/conpty-formal-build-20261103.log`、`conpty-electron-concurrent-20261103.log`、`conpty-longpath-negative-final-20261103.log`、`conpty-preparation-tests-20261103.log`、`conpty-longpath-build-20261103.log`、`conpty-check-final-20261103.log`。首次负对照的相对 symlink 路径写错，随后使用绝对包路径复现原生失败；首次本机链接缺 delayimp.lib，私有 MSBuild 属性补回常规库搜索路径后通过。最终产品编译选项和断言均未降低。
+
+下一步生成含工作区着色修复与此补丁的新检查包，完成实际安装器提取及深构建目录终端检查；这些交付验收尚未完成。系统仍为 `538f99e405`，用户 DSHU 主进程仍在运行，继续遵守“等我关闭 DSHU 后再安装”。不要安装已暂存但缺颜色修复的 e30 包。
+
 ## 工作区着色范围修正与检查包状态（2026-11-03）
 
 用户指出只应给“不在工作区工作”和“默认工作区”着色。已纠正此前扩大范围的实现：按原始默认工作区标识判断，只有这两类选项的名称和主图标使用模式主题色；普通工作区的列表项保持菜单常规颜色，选中后的顶部入口使用普通文字色。四模式 × 浅深色真实 Chromium 检查及三种顶部选择状态通过，原选择器 18 项通过，完整构建 10/10。截图 `.dsh-build/screenshots/workspace-special-colors-20261103.png`；日志 `workspace-special-colors-browser-final-20261103.log`、`workspace-accent-tests-20261103.log`、`workspace-accent-build-20261103.log`。不新增低价值的样式镜像单测。

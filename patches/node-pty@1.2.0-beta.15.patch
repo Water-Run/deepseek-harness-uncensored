@@ -43,3 +43,62 @@ index 90ffd8fb69764052b0714cfb2b1213c073603c28..399861d7bbd0fb733fa032e923efa8b6
              this._outSocket.on('data', function () {
                  _this._conoutSocketWorker.dispose();
              });
+diff --git a/src/win/conpty.cc b/src/win/conpty.cc
+index 931c5362d1..f03cb9c49d 100644
+--- a/src/win/conpty.cc
++++ b/src/win/conpty.cc
+@@ -165,25 +165,42 @@ HANDLE LoadConptyDll(const Napi::CallbackInfo& info,
+   if (!useConptyDll) {
+     return LoadLibraryExW(L"kernel32.dll", 0, 0);
+   }
+-  wchar_t currentDir[MAX_PATH];
+   HMODULE hModule = GetModuleHandleA("conpty.node");
+   if (hModule == NULL) {
+     throw errorWithCode(info, "Failed to get conpty.node module handle");
+   }
+-  DWORD result = GetModuleFileNameW(hModule, currentDir, MAX_PATH);
+-  if (result == 0) {
+-    throw errorWithCode(info, "Failed to get conpty.node module file name");
++  std::vector<wchar_t> modulePath(MAX_PATH);
++  DWORD length;
++  while (true) {
++    length = GetModuleFileNameW(hModule, modulePath.data(), static_cast<DWORD>(modulePath.size()));
++    if (length == 0) {
++      throw errorWithCode(info, "Failed to get conpty.node module file name");
++    }
++    if (length < modulePath.size()) break;
++    if (modulePath.size() == 32768) {
++      SetLastError(ERROR_FILENAME_EXCED_RANGE);
++      throw errorWithCode(info, "conpty.node module path exceeds Windows path limit");
++    }
++    modulePath.resize((std::min)(modulePath.size() * 2, size_t{32768}));
++  }
++  std::wstring conptyDllPath(modulePath.data(), length);
++  const auto separator = conptyDllPath.find_last_of(L"\\/");
++  if (separator == std::wstring::npos) {
++    throw Napi::Error::New(info.Env(), "conpty.node module path has no parent directory");
++  }
++  conptyDllPath.resize(separator + 1);
++  conptyDllPath += L"conpty\\conpty.dll";
++  // LoadLibraryW requires the extended prefix even in a long-path-aware process.
++  if (conptyDllPath.compare(0, 4, L"\\\\?\\") != 0) {
++    conptyDllPath = conptyDllPath.compare(0, 2, L"\\\\") == 0
++      ? L"\\\\?\\UNC\\" + conptyDllPath.substr(2)
++      : L"\\\\?\\" + conptyDllPath;
+   }
+-  PathRemoveFileSpecW(currentDir);
+-  wchar_t conptyDllPath[MAX_PATH];
+-  PathCombineW(conptyDllPath, currentDir, L"conpty\\conpty.dll");
+   if (!path_util::file_exists(conptyDllPath)) {
+-    std::wstring errorMessage = L"Cannot find conpty.dll at " + std::wstring(conptyDllPath);
+-    std::string errorMessageStr = path_util::wstring_to_string(errorMessage);
+-    throw errorWithCode(info, errorMessageStr.c_str());
++    std::string message = "Cannot find conpty.dll at " + path_util::wstring_to_string(conptyDllPath);
++    throw errorWithCode(info, message.c_str());
+   }
+-
+-  return LoadLibraryW(conptyDllPath);
++  return LoadLibraryW(conptyDllPath.c_str());
+ }
+ 
+ HRESULT CreateNamedPipesAndPseudoConsole(const Napi::CallbackInfo& info,
