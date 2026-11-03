@@ -576,16 +576,21 @@ it('requires exactly the Win32 startup bootstrap asset in the published payload'
   }
 })
 
-it('publishes managed subprocess primitives and their explicit shared chunks', () => {
+it('publishes all subprocess runtime chunks and rejects a partial filename list', () => {
   const dir = 'packages/subprocess/subprocess-local'
   const manifest = JSON.parse(readFileSync(new URL(`../${dir}/package.json`, import.meta.url), 'utf8')) as WorkspaceManifest['manifest']
   const files = expectedDshPackageFiles(manifest)
   expect(checkWorkspaceManifest({ dir, manifest })).toEqual([])
-  for (const omitted of ['lib/managed.js', 'lib/windows-job-*.js', 'lib/linux-execve-*.js']) {
+  for (const omitted of ['lib/*.js', 'scripts/ensure-spawn-helper.mjs']) {
     expect(files).toContain(omitted)
     expect(checkWorkspaceManifest({ dir, manifest: { ...manifest, files: files.filter(file => file !== omitted) } }))
       .toEqual([expect.stringContaining('package.json files must be')])
   }
+  const partial = files.flatMap(file => file === 'lib/*.js'
+    ? ['lib/index.js', 'lib/runner.js', 'lib/runner-*.js', 'lib/output.js', 'lib/managed.js', 'lib/windows-job-*.js', 'lib/linux-execve-*.js']
+    : [file])
+  expect(checkWorkspaceManifest({ dir, manifest: { ...manifest, files: partial } }))
+    .toEqual([expect.stringContaining('package.json files must be')])
 })
 
 it('requires the local speech worker and locked runtime in the published payload', () => {

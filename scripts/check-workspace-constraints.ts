@@ -267,17 +267,7 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
     'lib/helper.js', 'lib/protocol.js', 'lib/schemas.js',
     'lib/protocol-*.js', 'lib/schemas-*.js', 'lib/stream-security-*.js',
   ],
-  // Ordinary native containment ships a path-loaded runner and its shared
-  // runner chunk beside the existing node-pty permission repair.
-  '@deepseek-ai/dsh-subprocess-local': [
-    'lib/runner.js',
-    'lib/runner-*.js',
-    'lib/output.js',
-    'lib/managed.js',
-    'lib/windows-job-*.js',
-    'lib/linux-execve-*.js',
-    'scripts/ensure-spawn-helper.mjs',
-  ],
+  '@deepseek-ai/dsh-subprocess-local': ['scripts/ensure-spawn-helper.mjs'],
   // tsdown shares the repository/pack code between the lib entry and the bin
   // through a hashed chunk. The committed bin.js is the link target pnpm can
   // resolve at install time, before the build produces lib/bin.js.
@@ -355,7 +345,8 @@ export function expectedDshPackageFiles(manifest: PackageManifest, detailFiles: 
     ...new Set(icons),
     ...[...localeFiles].sort(),
     ...detailFiles,
-    'lib/index.js',
+    // Independent subprocess entries share builder-named JavaScript chunks.
+    manifest.name === '@deepseek-ai/dsh-subprocess-local' ? 'lib/*.js' : 'lib/index.js',
     ...manifest.bin ? ['lib/bin.js'] : [],
     // Worker-thread packages ship a CJS worker entry; the browser worker
     // bundle is an ES module a page loads with `new Worker(type: 'module')`.

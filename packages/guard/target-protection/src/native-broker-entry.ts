@@ -2,9 +2,8 @@
 import { runNativeBroker } from './native-broker.ts'
 
 if (import.meta.main) {
-  try { await runNativeBroker(process.stdin, process.stdout, process.stderr) }
-  catch (error) {
+  runNativeBroker(process.stdin, process.stdout, process.stderr).catch((error: unknown) => {
     console.error('Native broker failed:', error)
     process.exitCode = 127
-  }
+  })
 }
