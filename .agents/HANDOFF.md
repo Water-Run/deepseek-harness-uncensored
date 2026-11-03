@@ -1,5 +1,17 @@
 # Uncensored 开发交接
 
+## 独立代理的终端接入与流量归属（2026-11-03）
+
+基点 `1f2315f5d2`，Goal active。普通代理此前只接网页抓取与单次命令。本节点将同一 Session 的独立代理环境接入 `terminal-bash` 的 Agent 持久终端和 `TerminalController` 的侧栏用户终端，流量分别归属 `terminal_open`、`user_terminal`。调用使用真实 Agent，不接受模型声明模式；代理环境只交给新 shell，不改 Host 全局环境。代理准备后再次检查取消，取消的请求不分配进程。其他模式保留原路由；已有终端环境不动态修改，模式/代理改变后需重建。应用仍须遵守代理环境变量，HTTPS 隧道只捕获元信息。
+
+修复 Engine 一个会话共用可变工具标签的问题：现在按会话与工具分别维护监听，后开的命令不会重新标记已有终端请求。忘记会话关闭全部相关监听，其他会话保留；退出继续等待已移出可见映射的监听关闭。回退为仅按 Session 建立监听的负对照准确失败，源码已恢复。
+
+真实 Loader/PTY/上游代理/HTTP 目标测试在 Windows PowerShell 和 WSL Linux Bash 均通过，包含正文捕获、模式隔离与准备取消。侧栏控制器另验证环境归属、所有者 ID 不被覆盖及取消时零分配；其旧回收测试未等待实际进入底层分配，已加明确屏障，保留原回收断言。Windows 终端/Engine/控制器 84 项通过、1 项 POSIX 原有跳过，保护代理/输出流 33 项及代理组合/客户端检查通过；Linux 终端/Engine 22 项通过。最终完整构建 10/10，约束、无新增 unknown 断言、导出 JSDoc、全仓及补充定向 lint、4 组文档配对和 README gate 通过。侧栏消费路径采用控制器测试，实际 PTY 采用 Agent 终端 Loader 组合，不宣称此次打开真实桌面窗口验收。
+
+新增 `security-terminal-proxy` 录制会话，真实请求验证终端路由及后开的命令不改归属；Windows 刷新/回放、Linux 回放和语料 3 项通过。案例明确启用 headless 默认关闭的 credentials/proxy，使用本地目标；只新增当前 V4 输入，没有修改既有提交代际。录制案例验证代理路由/归属，实际 PTY 由独立 Loader 组合验证。首次初始化误用旧案例不合法的 V3 结构已改为新案例当前 V4；没有改旧案例或放宽正常化器。
+
+证据：`.dsh-build/terminal-proxy-confirmed-20261103.log`、`terminal-proxy-all-consumers-20261103.log`、`terminal-proxy-linux-20261103.log`、`terminal-proxy-snapshot-replay-20261103.log`、`terminal-proxy-linux-snapshot-20261103.log`、`terminal-proxy-corpus-final-20261103.log`、`terminal-proxy-negative-20261103.log`、`terminal-proxy-build-final-20261103.log`。恢复入口为两个终端提供方的代理环境合并、`engine.ts` 的 `chainFor`/`forgetSession` 和三个对应测试。README 与覆盖范围说明同步；浏览器/MCP/子智能体及进阶保护装配仍未完成，10 约 80%。系统安装仍为 `538f99e405`。当前实际剩余额度 54%，未重置或购买。
+
 ## 旧云发布清理与校验遗漏修复（2026-11-03）
 
 基点 `fbd91c75f5`，Goal active。移除 COS/EdgeOne 传输、原 CI 保留/发布/回滚实现、旧测试发布器及相关专用测试。9 个 JavaScript/TypeScript 旧入口和 PowerShell 凭据启动器保留明确停用提示，均返回 1，不解析操作参数、不读取部署配置/解密凭据、不连接发布服务。COS SDK 从 Desktop 开发依赖和锁文件中移除；离线 lockfile-only 更新没有下载新包。公共 GitHub 更新源、产品/引擎版本解耦及本地编号保留，旧 cloud 目标解析从共享更新元数据模块中移除。

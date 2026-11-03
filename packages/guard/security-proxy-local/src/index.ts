@@ -2,7 +2,7 @@
  * Security-mode egress proxy provider.
  *
  * One Host-wide service owns the configured upstream, the bounded capture store,
- * and one loopback chain proxy per conversation. Only the `security` preset is
+ * and loopback listeners separated by conversation and tool. Only the `security` preset is
  * covered; every other mode keeps its existing network behavior, and no control
  * plane traffic (model API, sign-in, balance, updates) is routed here because the
  * dispatcher is private to this plugin rather than installed globally.

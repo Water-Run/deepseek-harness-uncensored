@@ -69,6 +69,7 @@
     "@deepseek-ai/cordis": "workspace:~"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh-security-proxy": "workspace:*",
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-agent": "workspace:*",
     "@deepseek-ai/dsh-api-gateway": "workspace:*",

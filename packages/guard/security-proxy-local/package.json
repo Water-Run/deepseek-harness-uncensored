@@ -56,6 +56,7 @@
     "@deepseek-ai/dsh-agent": "workspace:*"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh-tools": "workspace:*",
     "@deepseek-ai/dsh-agent-preset-registry": "workspace:*",
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/cordis-plugin-include": "workspace:~",

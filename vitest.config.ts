@@ -44,7 +44,9 @@ const windowsUnsupportedPackages = process.platform === 'win32'
 
 const windowsUnsupportedTests = process.platform === 'win32'
   ? [
-      ...windowsUnsupportedPackages.flatMap(path => path === 'packages/ssh/*'
+      ...windowsUnsupportedPackages.flatMap(path => path === 'packages/terminal/terminal-bash'
+        ? ['packages/terminal/terminal-bash/tests/!(proxy).spec.ts']
+        : path === 'packages/ssh/*'
         // Direct SSH transport tests use owned TCP endpoints on every host; the existing helper suites require POSIX.
         ? ['packages/ssh/!(ssh)/tests/**/*.spec.ts', 'packages/ssh/ssh/tests/*.spec.ts']
         : [`${path}/tests/**/*.spec.ts`]),
@@ -173,6 +175,7 @@ const localWorkerBudget = process.env.CI === 'true' ? {} : { maxWorkers: default
 // that worker threads cannot isolate reliably under aggregate gate contention.
 // Keep the narrow exception in forks while the rest of the inventory avoids per-file processes.
 const processBoundTests = [
+  'packages/terminal/terminal-bash/tests/proxy.spec.ts',
   'packages/session/session-persistence-jsonl/tests/jsonl.spec.ts',
   'packages/subagent/subagent-acp/tests/subagent-acp.spec.ts',
   'packages/subprocess/subprocess-local/tests/process-exit.spec.ts',

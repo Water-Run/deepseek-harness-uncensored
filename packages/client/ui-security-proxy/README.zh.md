@@ -30,6 +30,8 @@ Web 应用以浏览器行加载，无需另行安装。该区域注册进 `setti
 -----
 
 <a id="understand-the-implementation"></a>
+命令覆盖项包含一次性命令和持久 shell 终端，需由应用遵守代理环境变量；已捕获的 HTTP 与保持加密的 HTTPS 隧道分别标注。
+
 ## 理解实现
 
 <details>

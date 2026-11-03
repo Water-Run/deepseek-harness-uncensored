@@ -119,6 +119,27 @@ function tunnelThrough(port: number, authority: string): Promise<string> {
 }
 
 describe('covered retrieval', () => {
+  it('retains tool attribution across concurrent commands and persistent terminals', async () => {
+    const h = await build({ presetOf: () => 'security' })
+    const terminal = await h.engine.environment(subject('sess-a'), 'terminal_open')
+    const terminalPort = Number(new URL(terminal!.HTTP_PROXY!).port)
+    expect(terminalPort).not.toBe(h.chainPort)
+    expect(await h.engine.environment(subject('sess-a'), 'terminal_open')).toEqual(terminal)
+    const other = await h.engine.environment(subject('sess-b'), 'terminal_open')
+    const otherPort = Number(new URL(other!.HTTP_PROXY!).port)
+    const terminalUrl = `${h.target.url}?from=terminal`
+    const shellUrl = `${h.target.url}?from=shell`
+    await Promise.all([throughChain(terminalPort, terminalUrl), throughChain(h.chainPort, shellUrl)])
+    expect(h.engine.list().map(row => [row.tool, row.target])).toEqual(expect.arrayContaining([
+      ['terminal_open', terminalUrl], ['bash', shellUrl],
+    ]))
+    h.engine.forgetSession(SessionId('sess-a'))
+    expect((await h.engine.state()).listeners).toBe(1)
+    expect((await throughChain(otherPort, h.target.url)).status).toBe(200)
+    await h.engine.dispose()
+    for (const port of [terminalPort, h.chainPort, otherPort]) await expect(throughChain(port, h.target.url)).rejects.toThrow()
+  })
+
   it('retrieves through the upstream and records the plaintext exchange', async () => {
     const h = await build()
     const result = await h.engine.fetchTarget(subject('sess-a'), h.target.url, new AbortController().signal)

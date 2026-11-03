@@ -45,6 +45,9 @@
     "@xterm/headless": "^6.0.0"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh-security-proxy": "workspace:*",
+    "@deepseek-ai/dsh-security-proxy-local": "workspace:*",
+    "@deepseek-ai/dsh-credentials-local": "workspace:*",
     "@deepseek-ai/dsh-agent": "workspace:*",
     "@deepseek-ai/dsh-agent-loop-testkit": "workspace:*",
     "@deepseek-ai/dsh-terminal": "workspace:*",

@@ -5,6 +5,7 @@
  */
 
 import type {} from '@deepseek-ai/dsh-working-directory'
+import type {} from '@deepseek-ai/dsh-security-proxy'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
@@ -202,10 +203,13 @@ export class BashTerminalBackend implements TerminalBackend {
     const argv = await spawnArgv(this.ctx, this.config, policy, spec.signal)
     spec.signal?.throwIfAborted()
     if (argv[0] === undefined) throw new Error('terminal-bash: sandbox returned empty argv')
+    const proxy = this.ctx.get('securityProxy')
+    const proxyEnv = proxy === undefined ? undefined : await proxy.environment(spec.owner, 'terminal_open')
+    spec.signal?.throwIfAborted()
     const terminal = await this.spawnTerminal({
       argv,
       cwd: spec.cwd ?? await this.ctx.workingDirectory.ensure(spec.owner, spec.signal),
-      env: childEnvironment(spec, this.config.shellDialect),
+      env: { ...proxyEnv, ...childEnvironment(spec, this.config.shellDialect) },
       rows: this.config.rows,
       cols: this.config.cols,
       terminalType: 'dumb',

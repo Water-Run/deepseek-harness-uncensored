@@ -5,6 +5,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-sandbox-policy'
 import type {} from '@deepseek-ai/dsh-working-directory'
+import type {} from '@deepseek-ai/dsh-security-proxy'
 import { Remote, RemoteError, TypertRemoteService, type RemoteStream } from '@deepseek-ai/dsh-typert-protocol'
 import { discoverShells, resolveShell } from './shells.ts'
 import { BrowserTerminal } from './terminal.ts'
@@ -317,9 +318,12 @@ export class TerminalController extends TypertRemoteService {
       ? await resolveShell(subprocess, this.config.shell, signal)
       : (await this.shells(agent, signal)).find(candidate => candidate.path === request.shellPath)
     if (shell === undefined) throw new Error('Selected shell is not available in this execution environment')
+    const proxy = this.ctx.get('securityProxy')
+    const proxyEnv = proxy === undefined ? undefined : await proxy.environment(agent, 'user_terminal')
+    signal.throwIfAborted()
     const handle = await subprocess.spawnTerminal({
       argv: [shell.path, ...shell.args], cwd, cols: request.cols, rows: request.rows,
-      terminalType: 'xterm-256color', env: { DSH_SESSION_ID: agent.id },
+      terminalType: 'xterm-256color', env: { ...proxyEnv, DSH_SESSION_ID: agent.id },
       shellActivity: true,
       graceMs: this.config.disposeGraceMs, signal,
     })

@@ -1,0 +1,19 @@
+- id: tool-bash
+  disabled: true
+- id: tool-pwsh
+  disabled: true
+- id: credentials
+  disabled: false
+  config:
+    path: !!js dshHomePath('storages', 'snapshot-credentials.yaml')
+    watch: false
+- id: security-proxy
+  disabled: false
+  config:
+    path: !!js dshHomePath('storages', 'security-proxy.json')
+    testHost: '127.0.0.1'
+    testPort: 9
+    connectTimeoutMs: 100
+- insert:
+    - id: terminal-proxy-fixture
+      name: '../../../packages/guard/security-proxy-local/tests/snapshot-terminal.ts'

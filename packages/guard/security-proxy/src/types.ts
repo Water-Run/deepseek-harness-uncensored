@@ -93,7 +93,7 @@ export interface SecurityProxyState {
   /** Handshake latency of the last successful check. */
   readonly latencyMs: number | null
   readonly capture: SecurityProxyCaptureStats
-  /** Session listeners currently open for child processes. */
+  /** Conversation/tool listeners currently open for child processes. */
   readonly listeners: number
   readonly coverage: readonly SecurityProxyCoverage[]
 }

@@ -59,6 +59,43 @@ function fixture(overrides: Partial<Config> = {}) {
 }
 
 describe('TerminalController', () => {
+  it('routes user terminals through their owner proxy without changing other owners', async () => {
+    const { ctx, controller, agent, subprocess } = fixture()
+    const environment = vi.fn(async (subject: Agent | undefined) => subject === agent
+      ? { HTTP_PROXY: 'http://127.0.0.1:30001', DSH_SESSION_ID: 'incorrect-overlay' } : undefined)
+    const proxy: Pick<Context['securityProxy'], 'environment'> = { environment }
+    ctx.provide('securityProxy', proxy as Context['securityProxy'])
+    await controller.create(agent, request, signal())
+    expect(environment).toHaveBeenCalledWith(agent, 'user_terminal')
+    expect(subprocess.spawnTerminal).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      env: { HTTP_PROXY: 'http://127.0.0.1:30001', DSH_SESSION_ID: agent.id },
+    }))
+    const other = owner(ctx, 'other-session')
+    await controller.create(other, request, signal())
+    expect(subprocess.spawnTerminal).toHaveBeenNthCalledWith(2, expect.objectContaining({ env: { DSH_SESSION_ID: other.id } }))
+  })
+
+  it('does not allocate a user terminal after proxy preparation is cancelled', async () => {
+    const { ctx, controller, agent, subprocess } = fixture()
+    const entered = Promise.withResolvers<undefined>()
+    const released = Promise.withResolvers<undefined>()
+    const proxy: Pick<Context['securityProxy'], 'environment'> = {
+      environment: async () => { entered.resolve(undefined); return released.promise },
+    }
+    ctx.provide('securityProxy', proxy as Context['securityProxy'])
+    const cancellation = new AbortController()
+    const error = new Error('cancel proxy startup')
+    const creating = controller.create(agent, request, cancellation.signal)
+    const rejected = expect(creating).rejects.toBe(error)
+    try {
+      await entered.promise
+      cancellation.abort(error)
+      released.resolve(undefined)
+      await rejected
+      expect(subprocess.spawnTerminal).not.toHaveBeenCalled()
+    } finally { cancellation.abort(); released.resolve(undefined) }
+  })
+
   it('resolves execution services from an Agent plugin context without consumer injections', async () => {
     const { ctx, controller } = fixture()
     let agent: Agent | undefined
@@ -308,10 +345,12 @@ describe('TerminalController', () => {
   it('lets close reclaim an allocation whose request failed while close was waiting', async () => {
     const { controller, agent, subprocess, handle } = fixture()
     const allocation = Promise.withResolvers<SubprocessTerminalHandle>()
+    const entered = Promise.withResolvers<undefined>()
     const abort = new AbortController()
-    subprocess.spawnTerminal.mockImplementationOnce(() => allocation.promise)
+    subprocess.spawnTerminal.mockImplementationOnce(() => { entered.resolve(undefined); return allocation.promise })
     const creating = controller.create(agent, request, abort.signal)
     const rejected = expect(creating).rejects.toThrow('cancelled')
+    await entered.promise
     const closing = controller.close(agent, id)
     abort.abort(new Error('cancelled'))
     allocation.resolve(handle)

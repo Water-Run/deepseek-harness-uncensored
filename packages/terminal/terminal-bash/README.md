@@ -48,6 +48,8 @@ Mount the terminal service, a subprocess provider, the sandbox and policy servic
 
 `danger-full-access` starts the shell directly. Confined modes require a same-world `ctx.sandbox` provider: without one, the spawn fails before the shell starts. Confinement preparation receives the opening signal; cancellation prevents terminal allocation even if the provider returns later.
 
+When `ctx.securityProxy` covers the owner, new terminals receive that conversation's independent proxy environment. Other modes keep their existing route. Applications must honor proxy environment variables; HTTP exchanges are captured, while HTTPS tunnels expose metadata only. A terminal retains its opening environment, so recreate it after changing or disabling the upstream. Cancellation during proxy preparation prevents shell allocation.
+
 ### Configuration
 
 | Field | Default | Meaning |

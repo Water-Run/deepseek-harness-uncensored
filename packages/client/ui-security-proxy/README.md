@@ -27,6 +27,8 @@ This plugin renders the security mode's own network settings under the mode card
 
 The Web app loads it as a browser row; nothing else to install. The area registers into `settings.mode.materials`, the mode-materials seat under the preset cards, and paints only while the selected mode is `security`. Its Remote namespace is `securityProxy` from [`@deepseek-ai/dsh-security-proxy-local`](../../guard/security-proxy-local/README.md).
 
+The shell coverage row includes one-shot commands and persistent shell terminals. They require applications to honor proxy environment variables; captured HTTP and opaque HTTPS tunnels retain their distinct labels.
+
 -----
 
 <a id="understand-the-implementation"></a>

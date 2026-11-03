@@ -1,5 +1,5 @@
 ---
-description: "Security-mode egress proxy provider: one configured upstream, a per-conversation loopback chain proxy, and a bounded capture store with default redaction."
+description: "Security-mode egress proxy provider: one configured upstream, loopback listeners separated by conversation and tool, and a bounded capture store with default redaction."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This provider makes the security-mode proxy real. It owns the upstream address and its credential reference, a connection check that opens a real CONNECT through that upstream, one loopback listener per security conversation so child processes reach the proxy without touching the Host environment, and a bounded store of captured exchanges. Only the `security` preset is covered; the model API, sign-in, balance, update checks, and every other mode keep their existing route because this plugin never installs a process-wide dispatcher.
+This provider makes the security-mode proxy real. It owns the upstream address and its credential reference, a connection check that opens a real CONNECT through that upstream, separate loopback listeners per security conversation and tool so child processes reach the proxy without touching the Host environment, and a bounded store of captured exchanges. Only the `security` preset is covered; the model API, sign-in, balance, update checks, and every other mode keep their existing route because this plugin never installs a process-wide dispatcher.
 
 ## Table of Contents
 
@@ -97,11 +97,11 @@ No effect: routing changes no request content.
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **Coverage** — `web_fetch` and one-shot shell tools are routed. The browser tool, MCP servers, persistent terminals, delegated agents, and anything that ignores proxy environment variables are not; the settings surface says so instead of implying otherwise.
+- **Coverage** — `web_fetch`, one-shot shell tools and persistent shell terminals are routed. The browser tool, MCP servers, delegated agents, and anything that ignores proxy environment variables are not; the settings surface says so instead of implying otherwise.
 - **No interception** — HTTPS bodies carried by child processes stay sealed. Only the plaintext this application writes is captured.
 - **Loopback trust** — each session listener binds `127.0.0.1` on an operating-system-assigned port with no local authentication; another local process could use it while it is open. It closes with the conversation, with a settings change, and with Host shutdown.
 - **Record lifetime** — flows live in memory only and are lost on restart. Retention is capped by count, body bytes, and age.
-- **Target protection** — no enforced protection provider exists in this build, so the proxy neither calls one nor claims one is active.
+- **Target protection** — this ordinary provider does not enforce target rules. The optional `dsh-target-protection/security-proxy` implementation is mounted separately and has its own documented restrictions.
 
 <a id="dev-note"></a>
 ### Dev Note
@@ -109,6 +109,6 @@ No effect: routing changes no request content.
 <details>
 <summary>Working context for maintainers — click to expand</summary>
 
-The chain listener exists because a child process needs an address, not a policy object. One listener per conversation is also what makes attribution honest: a flow's conversation is the listener that received it, not a guess made after the fact.
+The chain listener exists because a child process needs an address, not a policy object. Each listener retains one conversation and tool identity, so a later command cannot relabel traffic from an existing terminal.
 
 </details>

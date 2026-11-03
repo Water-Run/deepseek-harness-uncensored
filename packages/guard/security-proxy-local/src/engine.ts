@@ -118,9 +118,9 @@ const COVERAGE: readonly SecurityProxyCoverage[] = [
   { id: 'model_api', code: 'uncovered' },
 ]
 
-/** One session's loopback listener and the tool name most recently seen for it. */
+/** One conversation/tool listener retains its traffic attribution for its entire lifetime. */
 interface ChainRecord {
-  tool: string
+  readonly sessionId: SessionId
   readonly proxy: Promise<SessionChainProxy>
 }
 
@@ -469,22 +469,23 @@ export class SecurityProxyEngine {
   }
 
   /**
-   * Close one conversation's chain listener and forget its reminder state.
+   * Close one conversation's chain listeners and forget its reminder state.
    * @param sessionId - the disposed conversation.
    */
   forgetSession(sessionId: SessionId): void {
     this.warned.delete(sessionId)
-    const record = this.chains.get(sessionId)
-    if (record === undefined) return
-    this.chains.delete(sessionId)
-    const closing = record.proxy.then(proxy => proxy.close(), () => undefined)
-    this.retiringChains.add(closing)
-    void closing.then(() => { this.retiringChains.delete(closing) }, (error: unknown) => {
-      this.retiringChains.delete(closing)
-      this.lifetime.abort(error)
-      this.markFailed(error)
-      this.options.log?.('security-proxy: session listener cleanup failed; reload the proxy provider', error)
-    })
+    for (const [key, record] of this.chains) {
+      if (record.sessionId !== sessionId) continue
+      this.chains.delete(key)
+      const closing = record.proxy.then(proxy => proxy.close(), () => undefined)
+      this.retiringChains.add(closing)
+      void closing.then(() => { this.retiringChains.delete(closing) }, (error: unknown) => {
+        this.retiringChains.delete(closing)
+        this.lifetime.abort(error)
+        this.markFailed(error)
+        this.options.log?.('security-proxy: session listener cleanup failed; reload the proxy provider', error)
+      })
+    }
   }
 
   /** Close every listener, dispatcher, and in-flight request. */
@@ -560,12 +561,12 @@ export class SecurityProxyEngine {
     this.generation = new AbortController()
   }
 
-  /** Return the session's chain listener, starting it on first use. */
+  /** Return the conversation/tool listener, starting it on first use. */
   private async chainFor(sessionId: SessionId, tool: string): Promise<SessionChainProxy> {
     if (this.closing) throw new UpstreamFailure('unknown', 'the security proxy is closing')
-    const existing = this.chains.get(sessionId)
+    const key = JSON.stringify([sessionId, tool])
+    const existing = this.chains.get(key)
     if (existing !== undefined) {
-      existing.tool = tool
       return await existing.proxy
     }
     const upstream = (): Upstream => {
@@ -578,10 +579,10 @@ export class SecurityProxyEngine {
       return this.dispatcher
     }
     const record: ChainRecord = {
-      tool,
+      sessionId,
       proxy: SessionChainProxy.start({
         sessionId,
-        tool: () => record.tool,
+        tool: () => tool,
         signal: () => this.executionSignal(),
         retainExecution: () => this.retainExecution(),
         requestHttp: (url, request, signal) => this.requestHttp(upstream(), dispatcher(), url, request, signal),
@@ -592,8 +593,8 @@ export class SecurityProxyEngine {
         ...this.options.now === undefined ? {} : { now: this.options.now },
       }),
     }
-    this.chains.set(sessionId, record)
-    record.proxy.catch(() => { this.chains.delete(sessionId) })
+    this.chains.set(key, record)
+    record.proxy.catch(() => { if (this.chains.get(key) === record) this.chains.delete(key) })
     return await record.proxy
   }
 
