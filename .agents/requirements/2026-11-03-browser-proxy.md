@@ -12,9 +12,11 @@
 - [ ] 内置浏览器侧栏、普通 MCP 连接及委派子智能体的进一步接入。
 - [x] bcbae27d56 桌面检查包已验证实际安装器、完整文件清单、浏览器模块入口、四模式及终端代理；尚未安装到系统。
 - [x] 11 月 4 日从实际安装器启动独立 profile，Playwright 与 Chrome DevTools 的真实导航及会话代理捕获通过。
-- [ ] Stagehand 实包导航发现 SDK 扩展路径位于 ASAR 内；已补物理扩展目录、Worker 显式路径及打包检查，待重打包复验。
+- [x] Stagehand 实包导航发现 SDK 扩展路径位于 ASAR 内；已补物理扩展目录、Worker 显式路径及打包检查。11 月 4 日 f3f7315880 新安装器的三种浏览器真实导航、会话代理及响应正文检查通过。
 - [ ] 正式安装后的实际浏览器工作流验收，保持与源码环境的三项真实浏览器检查分开记录。
 
 迁移说明：独立代理开启时，外部浏览器的 attach 模式无法接管代理，会在启动前报错；改用 launch。代理和模式在浏览器启动时确定，修改后重建浏览器会话。Stagehand 扩展的模型请求随浏览器路由，应用本身的模型接口保持原路由。
 
 主要证据位于 `.dsh-build`：`browser-proxy-real-final-20261103.log`、`browser-proxy-regression-20261103.log`、`browser-proxy-routing-tests-final-20261103.log`、`browser-proxy-ui-engine-20261103.log`、`browser-proxy-complete-build-20261103.log`、`browser-proxy-final-aggregate-20261103.log`、`browser-proxy-linux-replay-20261103.log`。本项不代表完整目标保护或任意第三方程序的全流量代理已经实现。
+
+新包证据：`delivery-f3f731-verification-20261104.log`、`packaged-browser-20261104-all-result.json` 及 `DSHU-20261104-f3f731-manifest.json`。旧构建的大体积副本已清理，保留日志和哈希；当前实际安装器副本与冻结清单见 HANDOFF。

@@ -1,5 +1,19 @@
 # Uncensored 开发交接
 
+## 浏览器实包验收通过，产物已清理（2026-11-04 10:04）
+
+**最新检查包：**`.dsh-build/deliverables/DSHU-0.1.0-core-0.2.2-alpha.2-REA-6.8.0-win-x64-unsigned-20261104-f3f731.exe`，395182178 字节，SHA-256 `b52789bd9c6f772a4d57835bdc08c0627378974209ac2b2e5ed978c2153a1737`。产品源码 `f3f73158805128e29f6c55cee07fc08f36811af8`，dirty=false；DSHU 0.1.0 / DSH 0.2.2-alpha.2 / REA 6.8.0。未签名，未发布 Release，尚未安装。
+
+**已验证：**run `2026-11-04T01-46-23.920Z-Emxevo` success=true。准备与封装后检查通过；实际安装器提取后，完整 dsh 清单和关键文件哈希一致，四模式、新建会话、受管命令、长路径终端及代理捕获通过。三种真实浏览器均在独立 profile 完成导航、会话代理及响应正文检查；Stagehand 扩展现从物理目录加载，CDP 未进入页面代理。源码单项真实 Stagehand 测试也通过（其余四项未运行），没有调用付费模型。
+
+**恢复入口：**`.dsh-build/current-delivery-20261103.json` 已指向 `DSHU-20261104-f3f731-manifest.json`。冻结清单 `DSHU-20261104-f3f731-runtime.json`，SHA-256 `b164b0c1b4bd0b4be555549d2da9c56b5227c02075d6f21c9080e1b9deeeaa4a`。保留的实际安装器副本为 `D:/Coding/.dshu-installer-check-owjc2s/app`；回执 unpacked/extracted 均指向此处，另存关键文件哈希。原打包 win-unpacked 验成相同字节后清理，不再依赖 packagingUnpacked 历史路径。完整证据 `delivery-f3f731-verification-20261104.log`，最终 result.success=true。
+
+**空间清理：**两轮分别释放 44.00 GiB 和 6.99 GiB，含本次失败与重复构建副本；最终 D 盘可用 93.74 GiB。保留新候选、当前系统 538f99 的回退安装器、一份验收解包及必要缓存。旧安装器、提取目录、重复 win-unpacked、Electron 准备树和原生测试输出已清理；日志、回执、哈希与需求资料保留。明细 `build-space-cleanup-20261104-result.json` 与 `build-space-cleanup-qualified-20261104-result.json`。未删改用户数据、备份、官方 DSH 或源码。
+
+**构建注意：**本机 127.0.0.1:7890 代理使 npm 请求 TLS 重置，直连对照成功；本轮通过独立 test preset 选择官方源，仅为构建设置 npm 域名 NO_PROXY，没有修改用户代理或原 .env.windows。一次重试漏带 Spectre 库路径，最终启动器已恢复 `ForceImportAfterCppProps=.dsh-build/msvc-spectre.props`；不能省略。前三次失败保留原状态和日志，临时产物已清理。
+
+**安装与剩余范围：**10:01 正式 DSHU 主进程 138128 仍运行，遵守“等我关闭后再安装”，系统仍为 538f99。退出后先建立新的私有备份，再安装本包并核对数据及官方 DSH；正式安装后的浏览器工作流另验收。清点 811 个 npm 记录，17 处声明（16 种包版本）仍待核查。进阶保护、剩余代理路径、签名/更新/跨平台和总验收保留。Goal active，最近实查剩余额度 34%，用户已明确恢复；未标记完整目标完成，未暂停或自动安装。
+
 ## 已恢复开发及构建清理（2026-11-04）
 
 用户明确恢复并允许继续，Goal 为 active；本次实查剩余可用额度 35%。继续保留完整未完成范围，不以此前暂停记录覆盖新的授权。正式 DSHU 主进程仍为 138128，遵守“等我关闭后再安装”，未退出或更新用户应用。
