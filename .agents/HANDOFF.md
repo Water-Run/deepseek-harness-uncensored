@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## Windows 本机更新完成（2026-11-04）
+
+系统 DSHU 已更新至 `8c57e4899632d8ed3e2265fc618554041e0b7717`。实际安装器 SHA-256 `ca00705885c719054096c473c2e5dc3aefe41bb862914cd7739c377d4debf516`，回执为 `.dsh-build/deliverables/DSHU-20261104-8c57e4-manifest.json`。实际解包验证四模式、长路径终端、三种浏览器、侧栏路由及余额与 MCP 构建内容。装机后核对程序哈希，并通过隔离的四模式、新会话及子进程测试。
+
+Windows Restart Manager 停止已核准路径的 DSHU，随后做私有备份。旧卸载器改动了 200 个 Electron 配置或缓存文件，已从备份恢复后继续安装。安装后 6,939 个备份文件和官方 DSH 的两份程序文件哈希一致。系统更新回执 `.dsh-build/system-update-8c57e4-20261104-result.json`。保留备份与 `538f99e405` 回退包，删除过时的 `4edde32c4e` 检查包和重复构建副本，释放 3.82 GiB。
+
+四个可选提供方制品保存在 `.dsh-build/deliverables/optional-delegates-8c57e4`，编译内容及哈希已核对。隔离安装因离线缓存缺少依赖元数据及在线下载超时仍待验收。用户明确要求后续不使用 Computer Use。
+
 ## 外部委派独立代理（2026-11-04）
 
 10.02 新启动的 ACP、Codex、Claude Code 和 DSH SDK 子进程取得真实父会话的代理，覆盖该子进程的显式代理配置。四个实际进程都向本地测试服务请求并验证父会话与提供方归属。ACP 还验证切回缺省后的直连。DSH SDK 保留既有本机回环直连规则，其测试用保留测试地址经代理映射至本机监听。冷启动超过十秒的环境可单独配置 SDK 握手时限。Windows ACP 回放的文件 URL 已修正，下一处差异是该平台专有的 ACL 技能提示事件。
