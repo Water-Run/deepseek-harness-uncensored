@@ -10,7 +10,7 @@
 - [x] 原文随 `LICENSES` 资源分发，并在准备树中按实际依赖复制到 `dsh/licenses`；没有更改第三方代码或声明其重新授权。
 - [x] 六项新增测试覆盖嵌套/作用域包、内部 package.json 排除、精确版本、README 授权文字、未解决项、摘要拒绝和 I/O 错误。
 
-## 仍需核查的 13 项
+## 仍需核查的 14 项
 
 | 包与版本 | 剩余核查 |
 | --- | --- |
@@ -27,6 +27,7 @@
 | frida 17.23.2 | REA 已保留 LGPL 与例外文本，Node 绑定和预构建组件署名仍有缺项 |
 | minimisted 2.0.1 | REA 明确记录的上游原文/署名缺项，保留待核查 |
 | proxy-agent-negotiate 1.1.0 | 发布包与对应 tag 没有本包许可文件；相邻代理包文件不能未经核准直接替用 |
+| tr46 0.0.3 | 核对发布提交的 MIT 原文和 Unicode 映射数据的声明 |
 
 其他平台、Electron 外壳、独立 Node/Python 分发及源码提供义务另行核对；上述 759 项清点不能覆盖这些范围。新清单与补充文件已进入源码构建路径，当前系统安装仍为 `538f99e405`，未为此次纯声明变更重复卸载安装。
 
@@ -34,7 +35,9 @@
 
 2026-11-03 收尾包 bcbae27d56 包含浏览器提供方后，清点增至 809 个 npm 记录。待核查变为 17 处（16 种包版本）：原 13 项保留，新增 `@puppeteer/browsers@3.2.2`、`tr46@0.0.3`，以及两处 `undici-types@5.26.5`。这些新增项仅列入清单，尚未完成声明对应关系审核；不把构建通过当作许可审核完成。实际清单见该交付包及其回执。
 
-2026-11-04 新检查包 f3f7315880 清点为 811 个 npm 记录；待核查仍为上述 17 处、16 种包版本，身份与版本逐项相同。当前清单以 `DSHU-20261104-f3f731-manifest.json` 和该安装包的 `dsh/third-party-runtime.json` 为准。
+2026-11-04 检查包 f3f7315880 清点为 811 个 npm 记录，当时待核查 17 处、16 种包版本。该包证据为 `DSHU-20261104-f3f731-manifest.json` 和安装包中的 `dsh/third-party-runtime.json`。
+
+2026-11-04 以 `4564b41285` 实际安装包的 811 条记录复算。补入 `@puppeteer/browsers@3.2.2` 与 `undici-types@5.26.5` 的上游原文，来源同时匹配 npm 发布提交和上游标签，固定值见 `LICENSES/npm/sources.json`。两处相同版本的 undici-types 均匹配同一原文。用源码生成器重跑后余 14 处待核查。此次验证的是下一次打包的清单输出，当前安装仍保留原包的清单。结果为 `.dsh-build/runtime-notices-audit-4564b4-20261104.json`。
 
 实际安装内容的只读投影及结果：`.dsh-build/packaged-notice-projection-PYDZsU`、`.dsh-build/runtime-notices-audit-20261103.json`。原始 npm 元数据、固定提交查询和原文摘要为 `.dsh-build/license-sources-20261103.json`、`license-supplements-20261103/sources.json`。投影只提取清单和声明文件，不是新的可运行安装包。
 

@@ -12,6 +12,12 @@
     "sha256": "0457f5bcec3b3b211605dfb5d1a49042fd638f3686a410fe099c24a25af13c48"
   },
   {
+    "packages": ["@puppeteer/browsers@3.2.2"],
+    "file": "puppeteer-browsers-3.2.2-Apache-2.0.txt",
+    "source": "https://raw.githubusercontent.com/puppeteer/puppeteer/88b517ab3beb4a237b541cd18ada98ba43de71a7/LICENSE",
+    "sha256": "a27ca07269b3518550b2e83aed13eadd7d14d924b5864e14889b40cf227530ca"
+  },
+  {
     "packages": ["sherpa-onnx-node@1.13.8", "sherpa-onnx-win-x64@1.13.8"],
     "file": "sherpa-onnx-1.13.8-Apache-2.0.txt",
     "source": "https://raw.githubusercontent.com/csukuangfj/sherpa-onnx/11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf/LICENSE",
@@ -22,5 +28,11 @@
     "file": "standardwebhooks-1.1.1-MIT.txt",
     "source": "https://raw.githubusercontent.com/standard-webhooks/standard-webhooks/b4d2c14fc5b4ccff3ff271e3b087dff812254c59/libraries/LICENSE",
     "sha256": "5ec8c7b26b64d881a6706617bed25c049f97f2f35de034c756de8546fd6dbe27"
+  },
+  {
+    "packages": ["undici-types@5.26.5"],
+    "file": "undici-types-5.26.5-MIT.txt",
+    "source": "https://raw.githubusercontent.com/nodejs/undici/9197790ae0d015b40b75fd0c5cdb7420704b5272/LICENSE",
+    "sha256": "a6db8096b2707bc0102d256917d4d33f298ba36d8c3f25de067a2b5bb379db27"
   }
 ]
