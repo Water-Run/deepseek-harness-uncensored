@@ -3,6 +3,7 @@
 import { delimiter, dirname, join, resolve } from 'node:path'
 import { runCli } from '@deepseek-ai/dsh/lib/bin.js'
 import { installOfficeEngineResolution, runtimeArchivePath } from './office-engine.ts'
+import { stagehandExtensionEnvironment } from './browser-extension.ts'
 
 /**
  * Run the ordinary CLI with Desktop's bundled package manager and reserved-profile plugin access.
@@ -12,6 +13,7 @@ import { installOfficeEngineResolution, runtimeArchivePath } from './office-engi
  */
 export async function runDesktopCli(runtimeDir: string, supportDir: string): Promise<void> {
   installOfficeEngineResolution(runtimeDir)
+  Object.assign(process.env, stagehandExtensionEnvironment(runtimeDir))
   await runCli({
     manageDesktopProfile: true,
     packageManager: {

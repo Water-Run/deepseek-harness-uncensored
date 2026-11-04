@@ -31,6 +31,11 @@ describe('installer preparation preserves application dependencies', () => {
     expect(config.extraMetadata.name).toBe('deepseek-harness-uncensored')
     expect(config.protocols).toEqual([{ name: 'DeepSeek Harness Uncensored', schemes: ['dshu'] }])
   })
+  it.each(['win32', 'darwin'] as const)('keeps Stagehand extension resources outside ASAR on %s', async (platform) => {
+    const { createElectronBuilderConfig } = await import('../scripts/electron-builder-config.mjs')
+    const config = createElectronBuilderConfig({ DSH_DESKTOP_UNSIGNED: '1' }, platform, 'x64')
+    expect(config.asarUnpack).toContain('**/node_modules/@browserbasehq/stagehand/dist/extension/**/*')
+  })
   it.each(['win32', 'darwin'] as const)('requires the independent product signing configuration on %s', async (platform) => {
     const { createElectronBuilderConfig } = await import('../scripts/electron-builder-config.mjs')
     expect(() => createElectronBuilderConfig({ DSH_DESKTOP_APP_ID: 'com.example.installer',

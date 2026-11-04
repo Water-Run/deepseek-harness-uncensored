@@ -2,11 +2,11 @@
 
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
-import { delimiter, dirname, join, resolve } from 'node:path'
+import { basename, delimiter, dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { checkPnpm } from './pnpm-smoke.mjs'
 
@@ -146,6 +146,15 @@ async function checkBrowserProviders() {
   }
   const proxy = await import(pathToFileURL(requireRuntime.resolve('@deepseek-ai/dsh-experimental-browser-use-runtime/proxy')).href)
   assert.equal(typeof proxy.resolveBrowserProxy, 'function')
+  const archive = dirname(root)
+  const extension = join(basename(archive) === 'app.asar' ? join(`${archive}.unpacked`, 'dsh') : root,
+    'node_modules', '@browserbasehq', 'stagehand', 'dist', 'extension')
+  const manifest = JSON.parse(readFileSync(join(extension, 'manifest.json'), 'utf8'))
+  assert.equal(manifest.manifest_version, 3)
+  assert.equal(manifest.name, 'Stagehand Runtime')
+  const files = [manifest.background.service_worker, manifest.options_page,
+    ...manifest.content_scripts.flatMap(script => script.js)]
+  for (const file of files) assert.ok(statSync(join(extension, file)).isFile(), `Missing physical Stagehand resource: ${file}`)
 }
 
 try {

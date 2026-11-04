@@ -17,6 +17,7 @@ import { installDesktopUpdateTaskControl } from './update-tasks.ts'
 import { installDesktopQuitInspection } from './quit-inspection.ts'
 import { installPlatformSessionPublisher } from './platform-session.ts'
 import { installOfficeEngineResolution } from './office-engine.ts'
+import { stagehandExtensionEnvironment } from './browser-extension.ts'
 import { installOperationDiagnostics } from './operation-diagnostics.ts'
 
 async function main(): Promise<void> {
@@ -25,6 +26,7 @@ async function main(): Promise<void> {
   const runtimeDir = process.argv[2] as string
   const projectDir = process.argv[3] as string
   installOfficeEngineResolution(runtimeDir)
+  Object.assign(process.env, stagehandExtensionEnvironment(runtimeDir))
   const primaryRuntime = process.argv[4] ?? join(runtimeDir, '..', 'runtime', 'primary-runtime')
   process.env.DSH_REA_NODE_PATH = join(primaryRuntime, 'dependencies', 'node', 'bin', process.platform === 'win32' ? 'node.exe' : 'node')
   const installAnchor = join(runtimeDir, 'node_modules', '@deepseek-ai', 'dsh', 'package.json')

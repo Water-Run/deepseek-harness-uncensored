@@ -129,6 +129,15 @@ it('preserves the explicit source tsconfig for its Worker', async () => {
   expect(await runtime.execute('tabs', { action: 'list' })).toMatchObject({ env: { TSX_TSCONFIG_PATH: '/fixture/tsconfig.json' } })
 })
 
+it('passes the explicit SDK extension directory without ambient credentials', async () => {
+  vi.stubEnv('STAGEHAND_EXTENSION_DIRECTORY_PATH', '/fixture/stagehand-extension')
+  vi.stubEnv('DSH_BROWSER_API_KEY', 'private-fixture-key')
+  const runtime = await open()
+  const result = await runtime.execute('tabs', { action: 'list' })
+  expect(result).toMatchObject({ env: { STAGEHAND_EXTENSION_DIRECTORY_PATH: '/fixture/stagehand-extension' } })
+  expect(result).not.toHaveProperty('env.DSH_BROWSER_API_KEY')
+})
+
 it('waits for the active extension request to drain after cancellation', async () => {
   const runtime = await open()
   const worker = state.workers[0]!

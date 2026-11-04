@@ -22,9 +22,12 @@ export async function openBrowserWorker(
   using startup = deadline(signal, config.operationTimeoutMs, 'BROWSER_STARTUP_TIMEOUT')
   startup.signal.throwIfAborted()
   const entry = new URL('./worker.js', import.meta.url)
-  // Only explicit model credentials cross in workerData; ambient credentials and proxy settings stay outside.
+  // Explicit SDK resource paths let packaged Chromium read its extension outside ASAR.
   const temporaryDirectory = tmpdir()
   const env: NodeJS.ProcessEnv = { TMPDIR: temporaryDirectory, TEMP: temporaryDirectory, TMP: temporaryDirectory }
+  if (process.env.STAGEHAND_EXTENSION_DIRECTORY_PATH !== undefined) {
+    env.STAGEHAND_EXTENSION_DIRECTORY_PATH = process.env.STAGEHAND_EXTENSION_DIRECTORY_PATH
+  }
   if (process.env.TSX_TSCONFIG_PATH !== undefined) env.TSX_TSCONFIG_PATH = process.env.TSX_TSCONFIG_PATH
   let worker: Worker
   /* v8 ignore next 3 -- native.e2e.ts starts the bundled Worker through a plain-Node provider fixture. */
