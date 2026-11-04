@@ -6,6 +6,14 @@ import { balanceChart, nearestBalanceSample, type BalanceChartSample } from './b
 import { formatBalance } from './formatBalance.ts'
 import css from './BalanceView.module.css'
 
+function besidePointer(pointer: number, span: number, size: number): number {
+  const gap = 8
+  const end = Math.max(0, span - size)
+  const after = pointer + gap
+  const before = pointer - size - gap
+  return Math.min(end, Math.max(0, after <= end ? after : before))
+}
+
 /**
  * Inspect sampled balances by pointer, touch, or arrow keys.
  * @param props - Ordered observations, currency symbol and localized labels.
@@ -19,7 +27,7 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
   formatValue?: (value: number) => string
   stepIncreases?: boolean
 }) {
-  const [hover, setHover] = useState<number | null>(null)
+  const [hover, setHover] = useState<{ index: number; x: number; y: number } | null>(null)
   const [cursor, setCursor] = useState<number | null>(null)
   const [focused, setFocused] = useState(false)
   const id = useId()
@@ -27,7 +35,7 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
   const first = samples[0], last = samples.at(-1), range = geometry.range
   if (first === undefined || last === undefined || range === undefined) return null
   const format = formatValue ?? ((value: number): string => formatBalance(new Big(value).toString(), symbol))
-  const selected = Math.min(samples.length - 1, Math.max(0, hover ?? cursor ?? samples.length - 1))
+  const selected = Math.min(samples.length - 1, Math.max(0, hover?.index ?? cursor ?? samples.length - 1))
   const sample = samples[selected] ?? last
   const active = hover !== null || focused
   const ratio = first.time === last.time
@@ -36,10 +44,18 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
   const y = range.low === range.high ? 55 : 98 - (sample.value - range.low) * 86 / (range.high - range.low)
   const inspect = (event: PointerEvent<HTMLDivElement>): void => {
     const rect = event.currentTarget.getBoundingClientRect()
-    const fraction = ((event.clientX - rect.left) / Math.max(rect.width, 1) * 264 - 6) / 252
-    const index = nearestBalanceSample(samples, fraction)
-    setHover(index)
+    const x = (event.clientX - rect.left) / Math.max(rect.width, 1)
+    const y = (event.clientY - rect.top) / Math.max(rect.height, 1)
+    const index = nearestBalanceSample(samples, (x * 264 - 6) / 252)
+    setHover({ index, x, y })
     if (event.pointerType !== 'mouse') setCursor(index)
+  }
+  const placeTip = (element: HTMLDivElement | null): void => {
+    const plot = element?.parentElement
+    if (element === null || plot == null) return
+    // The localized date and amount determine the bubble's actual size.
+    element.style.left = hover === null ? '' : `${besidePointer(hover.x * plot.clientWidth, plot.clientWidth, element.offsetWidth)}px`
+    element.style.top = hover === null ? '' : `${besidePointer(hover.y * plot.clientHeight, plot.clientHeight, element.offsetHeight)}px`
   }
   return <div className={css.history}>
     <div className={css.plot}>
@@ -49,7 +65,7 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
       <div className={css.plotControl} role="slider" tabIndex={0} aria-label={label} aria-describedby={id}
         aria-valuemin={0} aria-valuemax={samples.length - 1} aria-valuenow={selected}
         aria-valuetext={`${new Date(sample.time).toLocaleString()} · ${format(sample.value)}`}
-        onPointerMove={inspect} onPointerDown={inspect} onPointerLeave={() => { setHover(null) }}
+        onPointerMove={inspect} onPointerDown={inspect} onPointerLeave={() => { setHover(null) }} onPointerCancel={() => { setHover(null) }}
         onFocus={() => { setFocused(true) }} onBlur={() => { setFocused(false); setHover(null) }}
         onKeyDown={(event) => {
           const next = event.key === 'Home' ? 0 : event.key === 'End' ? samples.length - 1
@@ -66,7 +82,10 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
           {active && <path d={`M${x} 8V102`} className={css.crosshair} />}
         </svg>
         {(active || geometry.kind === 'single') && <span className={css.samplePoint} style={{ left: `${(x - 46) / 264 * 100}%`, top: `${y / 110 * 100}%` }} />}
-        {active && <div className={css.sampleTip} role="status"><time dateTime={new Date(sample.time).toISOString()}>{new Date(sample.time).toLocaleString()}</time><strong>{format(sample.value)}</strong></div>}
+        {active && <div className={css.sampleTip} data-follow-pointer={hover !== null} ref={placeTip} role="status">
+          <time dateTime={new Date(sample.time).toISOString()}>{new Date(sample.time).toLocaleString()}</time>
+          <strong>{format(sample.value)}</strong>
+        </div>}
       </div>
     </div>
     <div className={css.timeRange}><time dateTime={new Date(first.time).toISOString()}>{new Date(first.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time><time dateTime={new Date(last.time).toISOString()}>{new Date(last.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time></div>

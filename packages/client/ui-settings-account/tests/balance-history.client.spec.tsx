@@ -32,3 +32,36 @@ it('chooses the nearest time, clamps pointer edges and handles coincident observ
   expect(nearestBalanceSample(samples.map(sample => ({ ...sample, time: 0 })), .5)).toBe(1)
   expect(nearestBalanceSample([], .5)).toBe(0)
 })
+
+it('follows the pointer between samples and flips inside the plot at its edges', () => {
+  render(<BalanceHistory samples={[{ time: 0, value: 1 }, { time: 100, value: 2 }]} symbol="¥" label="History" help="Inspect samples" />)
+  const slider = screen.getByRole('slider', { name: 'History' })
+  fireEvent.focus(slider)
+  const tip = screen.getByRole('status')
+  Object.defineProperties(slider, {
+    clientWidth: { value: 240 }, clientHeight: { value: 110 },
+    getBoundingClientRect: { value: () => new DOMRect(40, 60, 240, 110) },
+  })
+  Object.defineProperties(tip, { offsetWidth: { value: 120 }, offsetHeight: { value: 40 } })
+  function move(clientX: number, clientY: number): void {
+    const event = new MouseEvent('pointermove', { bubbles: true, clientX, clientY })
+    Object.defineProperty(event, 'pointerType', { value: 'mouse' })
+    fireEvent(slider, event)
+  }
+  move(50, 68)
+  expect(tip.style.left).toBe('18px')
+  expect(tip.style.top).toBe('16px')
+  expect(tip.textContent).toContain('¥1.00')
+  move(54, 74)
+  expect(tip.style.left).toBe('22px')
+  expect(tip.style.top).toBe('22px')
+  expect(tip.textContent).toContain('¥1.00')
+  move(278, 168)
+  expect(tip.style.left).toBe('110px')
+  expect(tip.style.top).toBe('60px')
+  expect(tip.textContent).toContain('¥2.00')
+  fireEvent.keyDown(slider, { key: 'Home' })
+  expect(tip.style.left).toBe('')
+  expect(tip.style.top).toBe('')
+  expect(tip.textContent).toContain('¥1.00')
+})

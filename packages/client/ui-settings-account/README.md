@@ -84,7 +84,7 @@ The welcome page requires Get started. The credit page always appears. A positiv
 Access: the account stream, quota notice, settings launcher, account settings section, and models sign-in entry exist only while the current Peer may call `account/watch`; Desktop onboarding and the platform page are not gated. Losing that access discards the account reads that grant started, closes a pending authorization tab, and clears the account view, details, picture, and sign-in dialog state; a later grant shows the account section again once its first frame arrives. The owner always has access.
 
 <a id="understand-the-implementation"></a>
-The sidebar balance uses two compact rows. Hovering, touching or using arrow keys on the history curve reveals the original sample time and amount, including samples omitted from the drawn polyline. Refreshing preserves the amounts and chart geometry; failure remains visible. Interval validation is associated with its input.
+The sidebar balance uses two compact rows. Hovering, touching or using arrow keys reveals the original sample time and amount, including samples omitted from the drawn curve. The tooltip follows the pointer and stays within the chart. Refreshing preserves the amounts and chart geometry. Interval validation is associated with its input.
 
 ## Understand the implementation
 
