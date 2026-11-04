@@ -1,5 +1,6 @@
 /** Independent security proxy backed by a mandatory, retained target-rule owner. @module */
 import type { Context } from '@deepseek-ai/cordis'
+import { isIP } from 'node:net'
 import {
   Config as ProxyConfig, SecurityProxyEngine, mountSecurityProxy, proxyUrl, connectThrough,
 } from '@deepseek-ai/dsh-security-proxy-local'
@@ -85,9 +86,49 @@ class ProtectedProxyEngine extends SecurityProxyEngine {
     }
   }
 
-  protected override async openTunnel(_upstream: Upstream, host: string, port: number, signal: AbortSignal): Promise<UpstreamTunnel> {
-    await this.resolve(tunnelUrl(host, port), signal)
-    throw new WebError('An opaque tunnel cannot verify its application targets. Use the guarded HTTP client.', 'TARGET_EXECUTION_UNCONFINED')
+  protected override async openTunnel(upstream: Upstream, host: string, port: number, signal: AbortSignal): Promise<UpstreamTunnel> {
+    const target = tunnelUrl(host, port)
+    const literal = canonicalTargetHost(target.hostname)
+    const snapshot = await this.protection.snapshot()
+    // A hostname or database selector cannot attest the application identity inside CONNECT.
+    const family = isIP(literal)
+    if (family === 0 || !hasExactTestServer(snapshot.preferences, literal, port)) {
+      if (family === 0) await this.resolve(target, signal)
+      throw new WebError('An opaque tunnel requires an exact test-server IP rule. Use the guarded HTTP client for hostnames.',
+        'TARGET_EXECUTION_UNCONFINED')
+    }
+    const addresses = await this.resolve(target, signal)
+    const address = addresses.at(0)
+    if (address === undefined || addresses.length !== 1 || canonicalTargetHost(address.address) !== literal) {
+      throw new WebError('The opaque tunnel did not resolve to its authorized IP.', 'TARGET_IDENTITY_UNVERIFIED')
+    }
+    signal.throwIfAborted()
+    const revocation = new AbortController()
+    const closed = Promise.withResolvers<undefined>()
+    let tunnel: UpstreamTunnel | undefined
+    const release = this.protection.retainNativeExecution(snapshot.revision, () => {
+      revocation.abort(new WebError('The test-server tunnel was revoked.', 'TARGET_POLICY_CHANGED'))
+      tunnel?.socket.destroy()
+      return closed.promise
+    })
+    const finish = (): void => {
+      try { release() }
+      catch (error: unknown) { this.ctx.logger.error(error) }
+      finally { closed.resolve(undefined) }
+    }
+    const execution = AbortSignal.any([signal, revocation.signal])
+    try {
+      tunnel = await connectThrough(upstream, address.address, port, this.options.connectTimeoutMs, execution)
+      if (tunnel.socket.closed) finish()
+      else tunnel.socket.once('close', finish)
+      execution.throwIfAborted()
+      return tunnel
+    } catch (error) {
+      if (tunnel === undefined) finish()
+      else tunnel.socket.destroy()
+      await closed.promise
+      throw error
+    }
   }
 
   protected override async probe(upstream: Upstream, signal: AbortSignal): Promise<number> {

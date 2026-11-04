@@ -162,6 +162,19 @@ function throughChain(port: number, target: string, body = '', host = new URL(ta
   })
 }
 
+function throughTunnel(port: number, authority: string, payload = ''): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const socket = connect(port, '127.0.0.1', () => {
+      socket.write(`CONNECT ${authority} HTTP/1.1\r\nHost: ${authority}\r\n\r\n${payload}`)
+    })
+    socket.setTimeout(5_000, () => { socket.destroy(new Error('Fixture tunnel did not close')) })
+    const chunks: Buffer[] = []
+    socket.on('data', (chunk: Buffer) => { chunks.push(chunk) })
+    socket.on('error', reject)
+    socket.on('close', () => { resolve(Buffer.concat(chunks).toString('utf8')) })
+  })
+}
+
 it('refuses production before either upstream or target connections, including direct service calls', async () => {
   const h = await harness()
   await h.configure([production()])
@@ -291,7 +304,7 @@ it('rejects an empty destination and an opaque IPv6 authority without opening up
   vi.restoreAllMocks()
   const engine = h.engine(), transport = await engine['ensureTransport']()
   await expect(engine['openTunnel'](transport.upstream, '::1', 443, new AbortController().signal))
-    .rejects.toMatchObject({ code: 'WEB_BLOCKED_URL' })
+    .rejects.toMatchObject({ code: 'TARGET_EXECUTION_UNCONFINED' })
   expect(h.counts()).toEqual({ targetConnections: 0, proxyConnections: 0 })
 })
 
@@ -327,19 +340,77 @@ it.each([false, true])('settles a probe whose socket closed before the consumer 
 it('refuses an opaque tunnel before forwarding bytes even when its named endpoint is a test exception', async () => {
   const h = await harness()
   await h.configure([production({ environment: 'test' })], true)
-  const port = await h.chain()
-  const reply = await new Promise<string>((resolve, reject) => {
-    const socket = connect(port, '127.0.0.1', () => {
-      socket.end(`CONNECT origin.test:${h.port} HTTP/1.1\r\nHost: origin.test:${h.port}\r\n\r\n`)
-    })
-    let text = ''
-    socket.on('data', (chunk: Buffer) => { text += chunk.toString() })
-    socket.on('error', reject)
-    socket.on('close', () => { resolve(text) })
-  })
+  const reply = await throughTunnel(await h.chain(), `origin.test:${h.port}`)
   expect(reply).toContain('403 Forbidden')
   expect(h.counts()).toEqual({ targetConnections: 0, proxyConnections: 0 })
   expect((await h.ctx.securityProxy.list({})).flows[0]?.note).toBe('TARGET_EXECUTION_UNCONFINED')
+})
+
+it('forwards opaque bytes only to the literal IP and port authorized as a test server', async () => {
+  const h = await harness(true)
+  const endpoint = `127.0.0.1:${h.port}`
+  const rule = production({ address: '127.0.0.1', environment: 'test', port: h.port })
+  await h.configure([rule], true)
+  const request = `GET / HTTP/1.1\r\nHost: ${endpoint}\r\nConnection: close\r\n\r\n`
+  const reply = await throughTunnel(await h.chain(), endpoint, request)
+  expect(reply).toContain('200 Connection Established')
+  expect(reply).toContain('guarded fixture')
+  expect(h.tunnels).toEqual([endpoint])
+  expect(h.counts()).toEqual({ targetConnections: 1, proxyConnections: 1 })
+  await vi.waitFor(async () => {
+    const { flows } = await h.ctx.securityProxy.list({})
+    expect(flows).toContainEqual(expect.objectContaining({
+      kind: 'tunnel', target: endpoint, status: null, note: 'tunnel-metadata-only', requestBytes: Buffer.byteLength(request),
+    }))
+  })
+})
+
+it.each(['other port', 'database selector', 'production alias'] as const)('refuses a literal tunnel for %s before dialing', async (caseName) => {
+  const h = await harness(true)
+  const literal = { address: '127.0.0.1', environment: 'test' as const, port: h.port }
+  const rule = production(caseName === 'other port' ? { ...literal, port: 1 }
+    : caseName === 'database selector' ? { ...literal, kind: 'database', database: 'sandbox' } : literal)
+  const blocked = production({ id: '6b344b4a-5882-43f2-90ac-6752f0237bad' as TargetRuleId, port: h.port })
+  await h.configure(caseName === 'production alias' ? [rule, blocked] : [rule])
+  const reply = await throughTunnel(await h.chain(), `127.0.0.1:${h.port}`)
+  expect(reply).toContain('403 Forbidden')
+  expect(h.counts()).toEqual({ targetConnections: 0, proxyConnections: 0 })
+})
+
+it('closes a live literal tunnel when its test-server rule is revoked', async () => {
+  const h = await harness(true)
+  const endpoint = `127.0.0.1:${h.port}`
+  await h.configure([production({ address: '127.0.0.1', environment: 'test', port: h.port })])
+  const proxyPort = await h.chain()
+  const external = await TargetStore.open(h.rulesPath, 0)
+  const { revision } = external.snapshot()
+  const opened = Promise.withResolvers<string>()
+  const closed = Promise.withResolvers<undefined>()
+  const socket = connect(proxyPort, '127.0.0.1', () => {
+    socket.write(`CONNECT ${endpoint} HTTP/1.1\r\nHost: ${endpoint}\r\n\r\n`)
+  })
+  socket.setTimeout(5_000, () => { socket.destroy(new Error('Fixture tunnel did not close')) })
+  let response = ''
+  socket.on('data', (chunk: Buffer) => {
+    response += chunk.toString('utf8')
+    if (response.includes('\r\n\r\n')) opened.resolve(response)
+  })
+  socket.once('error', opened.reject)
+  socket.once('close', () => {
+    opened.reject(new Error('Fixture tunnel closed before its response'))
+    closed.resolve(undefined)
+  })
+  try {
+    expect(await opened.promise).toContain('200 Connection Established')
+    expect(() => external.configure({ rules: [], mainlandEnabled: false }, revision)).toThrow(expect.objectContaining({ code: 'busy' }))
+    await h.configure([])
+    await closed.promise
+    expect(await throughTunnel(await h.chain(), endpoint)).toContain('403 Forbidden')
+    expect(h.counts()).toEqual({ targetConnections: 1, proxyConnections: 1 })
+  } finally {
+    socket.destroy()
+    external.close()
+  }
 })
 
 it('aborts a streaming target when policy changes and withdraws both guarded consumers', async () => {

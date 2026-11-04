@@ -291,7 +291,7 @@ export class SessionChainProxy {
       const remote = upstreamTunnel.socket
       bridged = true
       const finished = Promise.withResolvers<boolean>()
-      let sent = 0
+      let sent = head.byteLength
       let received = 0
       socket.on('data', (chunk: Buffer) => { sent += chunk.byteLength })
       remote.on('data', (chunk: Buffer) => { received += chunk.byteLength })

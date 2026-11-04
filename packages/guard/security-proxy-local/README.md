@@ -61,7 +61,7 @@ Status is `off`, `connecting`, `ready`, or `failed` with a machine reason (`inva
 
 Settings, password and capture-preference writes are serialized. Changing the upstream cancels its admitted operations before replacing the transport. Shutdown waits for requests, response cleanup and retiring session listeners, including listeners removed from the visible session map. The HTTP relay observes downstream backpressure and cancels its upstream when the client disconnects. CONNECT's deadline covers the handshake; established ordinary tunnels last until an endpoint closes or their owner cancels them.
 
-`mountSecurityProxy` accepts an explicit engine factory. The engine's HTTP, opaque-tunnel and connection-probe methods provide execution points for an enforcing implementation. The ordinary provider does not apply target rules; `dsh-target-protection/security-proxy` supplies the mandatory guarded implementation and refuses opaque tunnels it cannot verify.
+`mountSecurityProxy` accepts an explicit engine factory. The engine's HTTP, opaque-tunnel and connection-probe methods provide execution points for an enforcing implementation. Tunnel byte counts include payload bytes that arrive with the CONNECT request. Use [the guarded provider](../target-protection/README.md) to apply mandatory target rules to these operations.
 
 The exported `SessionChainProxy` owns loopback listening, forwarding, capture and socket cleanup. Its `ChainOptions` transport callbacks select and authorize their own route; the listener neither creates a dispatcher nor assumes an upstream. The Security engine supplies its private upstream, while native target protection can supply a per-execution pinned route. Both owners retain their resources through forwarding and closure.
 

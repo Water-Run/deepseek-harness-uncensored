@@ -89,6 +89,25 @@ export async function apply(ctx: Context): Promise<void> {
           const flow = (await active.securityProxy.list({})).flows.find(row => row.origin === 'client')
           assert.ok(flow)
           assert.equal((await active.securityProxy.detail(flow.id))?.responseBody, 'private target reached')
+          const environment = await active.securityProxy.environment(exec.agent, 'verify_private_proxy')
+          assert.ok(environment?.HTTP_PROXY)
+          const relay = new URL(environment.HTTP_PROXY)
+          const authority = `127.0.0.1:${port}`
+          const payload = `GET / HTTP/1.1\r\nHost: ${authority}\r\nConnection: close\r\n\r\n`
+          const tunneled = await new Promise<string>((resolve, reject) => {
+            const signal = AbortSignal.any([exec.signal, AbortSignal.timeout(5_000)])
+            const socket = connect({ host: relay.hostname, port: Number(relay.port), signal }, () => {
+              socket.write(`CONNECT ${authority} HTTP/1.1\r\nHost: ${authority}\r\n\r\n${payload}`)
+            })
+            const chunks: Buffer[] = []
+            socket.on('data', (chunk: Buffer) => { chunks.push(chunk) })
+            socket.on('error', reject)
+            socket.on('close', () => { resolve(Buffer.concat(chunks).toString('utf8')) })
+          })
+          assert.ok(tunneled.startsWith('HTTP/1.1 200 Connection Established\r\n'))
+          assert.ok(tunneled.includes('private target reached'))
+          assert.equal(requests, 2)
+          assert.equal(upstreamConnections, initialConnections + 2)
           return 'Private test target reached through the proxy; its response was captured.'
         },
       })))
@@ -99,7 +118,7 @@ export async function apply(ctx: Context): Promise<void> {
           const before = upstreamConnections
           await configure('production')
           await assert.rejects(active.securityProxy.fetchTarget(exec.agent, `http://127.0.0.1:${port}/`, exec.signal), { code: 'TARGET_FULLY_PROTECTED' })
-          assert.equal(requests, 1); assert.equal(upstreamConnections, before)
+          assert.equal(requests, 2); assert.equal(upstreamConnections, before)
           return 'Production protection refused the request before any new upstream or target connection.'
         },
       })))
