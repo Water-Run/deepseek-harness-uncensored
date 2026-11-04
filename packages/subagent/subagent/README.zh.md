@@ -129,6 +129,8 @@ kind: "package-reference"
 
 首条自有 descriptor 前没有该选择的日志，包括历史 spawn 与 fork 日志，继续通过 `composeFrom` 加入父方当前组装。header 中的 preset id、继承的选择或 descriptor 之后的选择，都不会让子级采用独立恢复；没有继承事件的 fork 也遵守此规则。Session 与 descriptor 格式不变。独立冷恢复使用当前注册的 preset 定义，不跨重启保留旧代际。
 
+继承组装与子会话记录的模式不同时，子会话在 descriptor 之后、激活之前记录实际预设。基于模式的路由与子任务的工具组装据此保持一致，后续恢复仍加入父方当前组装。
+
 ### 所有权与不变式
 
 - **管理器拥有已接受工作**——未发布的失败会回滚；已发布句柄取消对应 activation，并等待子级优先释放。

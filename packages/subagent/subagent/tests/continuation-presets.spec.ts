@@ -1,7 +1,7 @@
 /** Independent spawn presets and compatibility of persisted child compositions. */
 import { mountWorkingDirectoryFixture } from './working-directory-fixture.ts'
 
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -13,6 +13,8 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
 import AgentPresets from '@deepseek-ai/dsh-agent-preset-registry'
+import CredentialsLocal from '@deepseek-ai/dsh-credentials-local'
+import * as SecurityProxy from '@deepseek-ai/dsh-security-proxy-local'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import * as JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
@@ -20,6 +22,7 @@ import { queueHostSubagentPrompt } from '@deepseek-ai/dsh-subagent/internal'
 import * as SubagentFork from '@deepseek-ai/dsh-subagent-fork-in-process'
 import * as SubagentSpawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
 import { MockAdapter, textResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
+import { startLocalProxy, startLocalTarget, startTcpEcho } from '../../../guard/security-proxy-local/tests/support/local-proxy.ts'
 import SubagentRuntime, { SUBAGENT_DESCRIPTOR_VERSION, snapshotSubagentDescriptor } from '../src/index.ts'
 import { TestSessionQuery } from './test-session-query.ts'
 import { loadStoredSession } from './persistence-helpers.ts'
@@ -69,7 +72,7 @@ async function setup() {
     agentOptions: { provider: 'mock', model: 'mock' },
     setup: async (agentCtx) => { await ctx.agentPresets.mount(agentCtx, 'coding') },
   })
-  return { ctx, parent: handle.agent, adapter, spawn, presets, unregister }
+  return { ctx, parent: handle.agent, adapter, spawn, presets, unregister, root }
 }
 
 /** Settlement messages must not consume responses scripted for the child. */
@@ -246,7 +249,10 @@ describe('continuable child presets', () => {
     await continueChild(ctx, parent, childId)
     const stored = await settled(ctx, childId)
     expect(stored.meta.agentPreset).toBe(agentPreset)
-    expect(stored.events.some(event => event.type === 'agent-preset/selected')).toBe(false)
+    const descriptor = stored.events.findIndex(event => event.type === 'subagent/descriptor')
+    const selection = stored.events.findIndex(event => event.type === 'agent-preset/selected')
+    expect(selection).toBeGreaterThan(descriptor)
+    expect(stored.events[selection]?.data).toEqual({ agentPreset: 'reviewing' })
     expect((adapter.requests[0]?.tools ?? []).map(tool => tool.name)).toEqual([])
     expect(JSON.stringify(adapter.requests[0]?.messages.filter(message => message.role === 'system')))
       .toContain('Historical child persona.')
@@ -270,9 +276,63 @@ describe('continuable child presets', () => {
       .toBeGreaterThan(created.events.findIndex(event => event.type === 'subagent/descriptor'))
 
     await continueChild(ctx, parent, started.childId)
-    await settled(ctx, started.childId)
+    const restored = await settled(ctx, started.childId)
     expect(adapter.requests.map(request => request.tools?.map(tool => tool.name)))
       .toEqual([['reviewing_only'], ['preset_only']])
+    expect(restored.events.flatMap(event => event.type === 'agent-preset/selected' ? [event.data.agentPreset] : []))
+      .toEqual(['reviewing', 'coding'])
+  })
+
+  it('routes a cold child under the inherited Security mode and stops routing when the parent leaves it', async () => {
+    const { ctx, parent, root, adapter } = await setup()
+    parkParent(ctx, parent)
+    const cleanup: Array<() => Promise<void>> = []
+    onTestFinished(async () => {
+      try { await ctx.fiber.dispose() }
+      finally { await Promise.all(cleanup.map(close => close())) }
+    })
+    const target = await startLocalTarget('delegated proxy fixture')
+    cleanup.push(() => target.close())
+    const echo = await startTcpEcho()
+    cleanup.push(() => echo.close())
+    const upstream = await startLocalProxy({ origins: new Set([new URL(target.url).origin]),
+      tunnels: new Set([`127.0.0.1:${echo.port}`]) })
+    cleanup.push(() => upstream.close())
+    await ctx.plugin(CredentialsLocal, { dshHome: root, watch: false })
+    await ctx.plugin(SecurityProxy, SecurityProxy.Config({ path: join(root, 'proxy.json'), testHost: '127.0.0.1', testPort: echo.port }))
+    expect((await ctx.securityProxy.configure({ enabled: true, host: '127.0.0.1', port: upstream.port })).status).toBe('ready')
+    await ctx.agentPresets.register({ id: 'security', plugins: [
+      { name: pathToFileURL(join(fixtures, 'plugins/preset-tool.js')).href, config: { tool: 'security_only' } },
+    ] })
+
+    const started = await ctx.subagents.startActivation(startSpec(parent))
+    await settled(ctx, started.childId)
+    const routed: string[] = []
+    ctx.on('agent/created', async ({ agent, signal }) => {
+      if (agent.id !== started.childId) return
+      const route = ctx.securityProxy.route(agent, 'web_fetch')
+      routed.push(route?.preset ?? 'ordinary')
+      if (route !== undefined) {
+        const result = await ctx.securityProxy.fetchTarget(agent, target.url, signal ?? AbortSignal.timeout(5000))
+        expect(result.body).toEqual({ kind: 'text', content: 'delegated proxy fixture' })
+      }
+    })
+    await ctx.agentPresets.recompose(parent.ctx, 'security')
+    await continueChild(ctx, parent, started.childId)
+    await settled(ctx, started.childId)
+    await ctx.agentPresets.recompose(parent.ctx, 'reviewing')
+    await continueChild(ctx, parent, started.childId)
+    const stored = await settled(ctx, started.childId)
+
+    expect(routed).toEqual(['security', 'ordinary'])
+    expect(adapter.requests.map(entry => entry.tools?.map(tool => tool.name)))
+      .toEqual([['preset_only'], ['security_only'], ['reviewing_only']])
+    expect(stored.events.flatMap(event => event.type === 'agent-preset/selected' ? [event.data.agentPreset] : []))
+      .toEqual(['security', 'reviewing'])
+    expect(upstream.requests.map(entry => entry.url)).toEqual([target.url])
+    expect((await ctx.securityProxy.list({})).flows).toEqual([
+      expect.objectContaining({ sessionId: started.childId, tool: 'web_fetch', status: 200 }),
+    ])
   })
 
   it('ignores inherited selections when resuming a fork whose parent still owns a retired preset generation', async () => {

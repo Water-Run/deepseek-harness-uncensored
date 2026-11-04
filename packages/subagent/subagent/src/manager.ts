@@ -893,7 +893,15 @@ export class SubagentManager {
           if (workingDirectory === undefined) throw new Error('local subagents require the working-directory service')
           await workingDirectory.set(child, create.cwd, inputs.signal)
         }
-        if (inputs.composition.agentPreset === undefined) await applyChildComposition(childCtx, parent, inputs.composition)
+        if (inputs.composition.agentPreset === undefined) {
+          await applyChildComposition(childCtx, parent, inputs.composition)
+          const presets = childCtx.get('agentPresets')
+          const composed = presets?.composedPreset(childCtx)
+          if (composed !== undefined && presets?.presetForSession(child.session) !== composed) {
+            // After the descriptor, this records the inherited mode without making the child independent.
+            child.session.append('agent-preset/selected', { agentPreset: composed })
+          }
+        }
         if (inputs.outputSchema !== undefined) {
           structured = attachStructuredRuntime(childCtx, inputs.outputSchema, () =>
             this.resident.get(childId)?.ownedChildren.size === 0

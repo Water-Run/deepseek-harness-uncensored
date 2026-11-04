@@ -129,6 +129,8 @@ An independently selected spawn records `agent-preset/selected` before its first
 
 Logs without that selection before the first own descriptor, including historical spawn and fork logs, retain `composeFrom` of the parent's current composition. A header preset id, an inherited selection, or a selection after the descriptor does not opt a child into independent restoration, including a fork with no inherited events. Session and descriptor formats are unchanged. Independent cold resume uses the currently registered preset definition, without preserving an earlier revision across restarts.
 
+When an inherited composition differs from the child's recorded mode, the child records the effective preset after its descriptor and before activation. Mode-based routing and the tools presented to the child then agree. A later continuation still joins the parent's current composition.
+
 ### Ownership and invariants
 
 - **The manager owns accepted work** — unpublished failures roll back; published handles cancel their exact activation and await child-first disposal.

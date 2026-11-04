@@ -78,8 +78,9 @@ it.skipIf(MODE === 'record')('replays inherited schedule tools and refusals in a
           .split(scaffold.baseUrl).join('{{webUrl}}'))).toBe(promptPin)
       }
     }
-    const results = child.snapshotEvents().slice(child.inheritedEventCount)
-      .filter(event => event.type === 'tool/result')
+    const ownEvents = child.snapshotEvents().slice(child.inheritedEventCount)
+    expect(ownEvents.some(event => event.type === 'agent-preset/selected')).toBe(false)
+    const results = ownEvents.filter(event => event.type === 'tool/result')
     expect(results.map(event => event.data.message.content)).toEqual(Array.from({ length: 4 }, () => [
       { type: 'text', text: '{"code":"subagent_session","message":"A delegated subagent cannot use reminders."}' },
     ]))
