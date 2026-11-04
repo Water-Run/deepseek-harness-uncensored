@@ -17,7 +17,8 @@ export function createDesktopBrowserBridge(): DesktopBrowserBridge {
     }
   })
   return {
-    acquire: workspace => ipcRenderer.invoke(DESKTOP_IPC.browserAcquire, workspace) as ReturnType<DesktopBrowserBridge['acquire']>,
+    proxyRouting: true,
+    acquire: (workspace, proxy) => ipcRenderer.invoke(DESKTOP_IPC.browserAcquire, workspace, proxy) as ReturnType<DesktopBrowserBridge['acquire']>,
     release: lease => ipcRenderer.invoke(DESKTOP_IPC.browserRelease, lease) as Promise<void>,
     onOpenRequested(lease, listener) {
       let callbacks = listeners.get(lease)

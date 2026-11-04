@@ -11,6 +11,8 @@
     "src/css-modules.d.ts"
   ],
   "references": [
+    { "path": "../../api/remotes/tsconfig.client.json" },
+    { "path": "../../core/session" },
     { "path": "../../../vendor/cordis" },
     { "path": "../../api/workspace-controller/tsconfig.client.json" },
     { "path": "../../util/brand" },

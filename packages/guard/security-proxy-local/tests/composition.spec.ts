@@ -2,6 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { request } from 'node:http'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
@@ -133,7 +134,51 @@ describe('security proxy composition', () => {
     await expect(viewer.configure({ enabled: true })).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
     await expect(viewer.setPassword('x')).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
     await expect(viewer.clear()).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
+    await expect(viewer.browserEnvironment(subject('viewer-browser'))).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
     expect((await instance.securityProxy.get()).settings.enabled).toBe(false)
+  })
+
+  it('routes sidebar HTTP through the owning Security conversation without covering other modes', async () => {
+    const instance = await boot()
+    if (upstream === undefined || target === undefined) throw new Error('fixtures missing')
+    expect(await instance.securityProxy.browserEnvironment(subject('off'))).toBeUndefined()
+    await instance.securityProxy.configure({ enabled: true, host: '127.0.0.1', port: upstream.port })
+    expect(await instance.securityProxy.browserEnvironment(subject('ordinary', 'standard'))).toBeUndefined()
+    const endpoint = await instance.securityProxy.browserEnvironment(subject('sidebar-security'))
+    expect(endpoint).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/u)
+    const address = new URL(endpoint!)
+    const url = target.url
+    const body = await new Promise<string>((resolve, reject) => {
+      const outgoing = request({ host: address.hostname, port: address.port, path: url, agent: false, timeout: 5000 }, (response) => {
+        let text = ''
+        response.setEncoding('utf8')
+        response.on('data', (part: string) => { text += part })
+        response.once('end', () => { resolve(text) })
+      })
+      outgoing.once('error', reject)
+      outgoing.once('timeout', () => { outgoing.destroy(new Error('Sidebar proxy fixture timed out')) })
+      outgoing.end()
+    })
+    expect(body).toBe('target body')
+    const flow = (await instance.securityProxy.list({})).flows.find(row => row.target === url)
+    expect(flow).toMatchObject({ sessionId: 'sidebar-security', tool: 'sidebar_browser', status: 200 })
+    expect((await instance.securityProxy.detail(flow!.id))?.responseBody).toBe('target body')
+  })
+
+  it('announces committed transport changes without reconnecting for capture preferences', async () => {
+    const instance = await boot()
+    if (upstream === undefined) throw new Error('fixtures missing')
+    let changes = 0
+    instance.on('security-proxy/transport-changed', () => { changes++ })
+    await instance.securityProxy.configure({ enabled: true, host: '127.0.0.1', port: upstream.port })
+    expect(changes).toBe(1)
+    await instance.securityProxy.configure({ enabled: true, port: upstream.port, capturePaused: true })
+    await instance.securityProxy.pause(false)
+    expect(changes).toBe(1)
+    await instance.securityProxy.setPassword('private-fixture')
+    expect(changes).toBe(2)
+    await instance.securityProxy.configure({ enabled: false })
+    expect(changes).toBe(3)
   })
 
   it('emits the proxy-off reminder once per conversation', async () => {

@@ -193,6 +193,11 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
 declare module '@deepseek-ai/cordis' {
   interface Events {
     /**
+     * The independent browser proxy configuration has changed; open guests must reconnect.
+     * @mode emit
+     */
+    'security-proxy/transport-changed'(): void
+    /**
      * One security-mode tool call ran while the independent proxy was off, at
      * most once per session. The Client renders the reminder; it changes no
      * proxy state.

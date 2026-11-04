@@ -77,6 +77,9 @@ export class BrowserController implements HostObservable<BrowserControllerState>
   /** @param listener - state invalidation. @returns unsubscribe callback. */
   subscribe = (listener: () => void): (() => void) => this.store.subscribe(listener)
 
+  /** Refresh carrier-owned networking without changing the persisted page checkpoint. */
+  refreshNetwork(): void { if (!this.disposed) this.page.frame.refreshNetwork?.() }
+
   /**
    * Attach the page without transferring ownership of its tab occurrence.
    * @param viewportId - mounted content container.
@@ -181,6 +184,8 @@ export interface BrowserMountRequest {
 
 /** Plain Slot callbacks and a framework-bound state source, not a desktop protocol. */
 export interface BrowserInjected {
+  /** Refresh the native guests owned by this conversation. */
+  refreshNetwork(): void
   readonly keyedHooks: {
     readonly browserState: (key: string) => HostObservable<BrowserControllerState> | undefined
   }
@@ -257,6 +262,7 @@ export function createBrowserControllers(actions: BoundActions<BrowserStore>, cr
       currentActions = actions
       for (const { controller } of controllers.values()) controller.rebind(actions)
     },
+    refreshNetwork: () => { for (const { controller } of controllers.values()) controller.refreshNetwork() },
     loadUrl: (id, value) => { controller(id)?.loadUrl(value) },
     restore: (id) => { controller(id)?.restore() },
     goBack: (id) => { controller(id)?.goBack() },

@@ -259,7 +259,7 @@ export function SecurityProxySection(props: SecurityProxySectionProps) {
                 <td className={css.session} title={flow.sessionId ?? undefined}>
                   {flow.sessionId === null ? t('securityProxy.capture.sessionUnknown') : flow.sessionId.slice(0, 8)}
                 </td>
-                <td>{flow.tool}</td>
+                <td>{flow.tool === 'sidebar_browser' ? t('securityProxy.capture.sidebarBrowser') : flow.tool}</td>
                 <td className={css.target}>
                   <button type="button" className={css.targetButton} onClick={() => { void openFlow(flow.id) }}>
                     {flow.method} {flow.target}

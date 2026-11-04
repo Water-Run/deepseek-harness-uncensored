@@ -1,5 +1,12 @@
 /** Type-only Electron bridge declarations shared by the desktop shell and browser provider. */
 import type { Branded } from '@deepseek-ai/dsh-brand'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+
+/** Host-issued routing for one Security conversation's native browser. */
+export interface DesktopBrowserProxy {
+  readonly sessionId: SessionId
+  readonly server: string
+}
 
 /** Main-issued identity of one guest reservation. */
 export type DesktopBrowserLeaseId = Branded<'DesktopBrowserLeaseId'>
@@ -18,8 +25,14 @@ export interface DesktopBrowserOpenRequest {
 
 /** Origin-scoped operations; no Electron objects or arbitrary IPC cross this interface. */
 export interface DesktopBrowserBridge {
-  /** @param workspace - resolved storage account. @returns one approved guest reservation. */
-  acquire(workspace: string): Promise<DesktopBrowserReservation>
+  /** Present when the native shell accepts session-scoped proxy reservations. */
+  readonly proxyRouting?: true
+  /**
+   * @param workspace - resolved storage account.
+   * @param proxy - optional conversation-owned local proxy.
+   * @returns One approved guest reservation.
+   */
+  acquire(workspace: string, proxy?: DesktopBrowserProxy): Promise<DesktopBrowserReservation>
   /** @param lease - the caller's reservation. @returns after its guest has been destroyed. */
   release(lease: DesktopBrowserLeaseId): Promise<void>
   /** @param lease - originating guest. @param listener - approved URL consumer. @returns unsubscribe callback. */

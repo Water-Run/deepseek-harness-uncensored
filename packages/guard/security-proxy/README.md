@@ -37,7 +37,7 @@ const result = route === undefined
 
 `route` takes the executing `Agent`, never a mode argument: the provider reads the session's durable preset record. A call without an Agent, or from a session whose recorded preset is not `security`, is never covered.
 
-The provider registers as `ctx.securityProxy`.
+The provider registers as `ctx.securityProxy`. `browserEnvironment` resolves the sidebar's local endpoint from the owning Agent; only the application owner can request it through the Remote service.
 
 -----
 

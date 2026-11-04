@@ -58,6 +58,20 @@ export class SecurityProxyService extends TypertRemoteService {
   }
 
   /**
+   * Issue a sidebar-browser endpoint using the Host-resolved conversation and recorded mode.
+   * @param agent - Agent resolved by the ordinary Session resource loader.
+   * @returns A credential-free local endpoint, or undefined outside enabled Security mode.
+   */
+  @Remote
+  async browserEnvironment(agent: Agent): Promise<string | undefined> {
+    this.assertOwner('securityProxy/browserEnvironment')
+    const environment = await this.engine.environment(agent, 'sidebar_browser')
+    if (environment === undefined) return undefined
+    if (environment.HTTP_PROXY === undefined) throw new Error('Security proxy did not provide a browser endpoint')
+    return environment.HTTP_PROXY
+  }
+
+  /**
    * Retrieve one target through the proxy with full plaintext capture.
    * @param agent - the executing Agent.
    * @param url - the absolute HTTP(S) target.
@@ -85,7 +99,11 @@ export class SecurityProxyService extends TypertRemoteService {
   @Remote
   async configure(patch: SecurityProxySettingsPatch): Promise<SecurityProxyState> {
     this.assertOwner('securityProxy/configure')
-    return await this.engine.configure(patch)
+    const before = await this.engine.state()
+    const after = await this.engine.configure(patch)
+    if ((['enabled', 'protocol', 'host', 'port', 'authEnabled', 'username'] as const)
+      .some(key => before.settings[key] !== after.settings[key])) this.transportChanged()
+    return after
   }
 
   /**
@@ -96,7 +114,9 @@ export class SecurityProxyService extends TypertRemoteService {
   @Remote
   async setPassword(password: string | null): Promise<SecurityProxyState> {
     this.assertOwner('securityProxy/setPassword')
-    return await this.engine.setPassword(password)
+    const state = await this.engine.setPassword(password)
+    this.transportChanged()
+    return state
   }
 
   /**
@@ -160,5 +180,10 @@ export class SecurityProxyService extends TypertRemoteService {
     if (principalOf(this.ctx.invocation) !== undefined) {
       throw new RemoteError('security-proxy/owner-required', 'Only the application owner can change the security proxy.', { action })
     }
+  }
+
+  private transportChanged(): void {
+    try { this.ctx.emit('security-proxy/transport-changed') }
+    catch (error) { this.ctx.logger.warn('Browser proxy notification failed; reopen browser tabs before continuing.', error) }
   }
 }

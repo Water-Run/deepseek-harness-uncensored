@@ -14,7 +14,9 @@ import { apply, inject } from '../src/client/index.ts'
 import { en, ja, zh, es, fr, de, ru, pt } from '../src/client/locales.ts'
 import { createBrowserStore } from '../src/client/browser/store.ts'
 import type { TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
-import type { DesktopBrowserBridge, DesktopBrowserLeaseId } from '../src/types.ts'
+import type { DesktopBrowserBridge, DesktopBrowserLeaseId, DesktopBrowserProxy } from '../src/types.ts'
+import type { BrowserProxyPort } from '../src/client/electron/proxy.ts'
+import { proxyFixture, proxyState } from './proxy-fixture.client.ts'
 
 const contexts: Context[] = []
 
@@ -32,7 +34,7 @@ interface Recorded {
   component: unknown
 }
 
-async function boot(platform: ShortcutPlatform = 'macos', runtime: 'desktop' | 'web' = 'desktop') {
+async function boot(platform: ShortcutPlatform = 'macos', runtime: 'desktop' | 'web' = 'desktop', proxy?: BrowserProxyPort) {
   const ctx = new Context()
   contexts.push(ctx)
   const tabs = new SidebarRightTabRegistry(ctx)
@@ -64,12 +66,60 @@ async function boot(platform: ShortcutPlatform = 'macos', runtime: 'desktop' | '
   ctx.provide('workspaces', { list: createSnapshotStore({ phase: 'ready', items: [] }) } as never)
   ctx.provide('slots', slots as never)
   ctx.provide('locale', locale as never)
+  if (proxy !== undefined) {
+    ctx.provide('remote.securityProxy' as never, proxy as never)
+    ctx.provide('remote', { securityProxy: proxy,
+      $on: (event: 'agent-preset/selected' | 'security-proxy/transport-changed', listener: () => void) => ctx.on(event, listener),
+    } as never)
+    ctx.provide('remoteAccess', {
+      whenAccess: (_action: string, setup: Parameters<Context['effect']>[0]) => ctx.effect(setup),
+    } as never)
+  }
   const fiber = ctx.plugin({ inject: [...inject], apply })
   await fiber.await()
-  return { tabs, registered, dictionaries, fiber, openTabs, registry, sidebar, target }
+  return { tabs, registered, dictionaries, fiber, openTabs, registry, sidebar, target, ctx }
 }
 
 describe('ui-sidebar-browser apply', () => {
+  it('reconnects the native guest on its own mode change and restores ordinary routing when the proxy is off', async () => {
+    const proxy = proxyFixture(false)
+    let lease = 0
+    const acquire = vi.fn<DesktopBrowserBridge['acquire']>().mockImplementation(async () => ({
+      lease: `proxy-lease-${++lease}` as DesktopBrowserLeaseId, partition: 'fixture-partition',
+    }))
+    const bridge: DesktopBrowserBridge = { proxyRouting: true, acquire, release: vi.fn(async () => {}), onOpenRequested: () => () => {} }
+    vi.stubGlobal('dshDesktop', { protocolVersion: 1, browser: bridge })
+    const h = await boot('windows', 'desktop', proxy)
+    const face = h.registered.find(entry => entry.name === 'sidebar.right.pane.tab')!.inject as
+      (id: DesktopBrowserProxy['sessionId'], actions: Parameters<BrowserInjected['rebind']>[0]) => BrowserInjected
+    const id = 'routing-owner' as DesktopBrowserProxy['sessionId']
+    const store = createBrowserStore().create('apply-proxy-mode')
+    const controller = face(id, store.actions)
+    const host = document.createElement('div')
+    host.id = 'apply-proxy-host'
+    document.body.append(host)
+    const signal = new AbortController()
+    try {
+      controller.mount({ tabId: 'proxy-tab' as TabId, signal: signal.signal, viewportId: host.id, applicationOrigin: 'https://dsh.example',
+        initial: undefined, initialUrl: 'https://example.test/', openTab: vi.fn() })
+      await vi.waitFor(() => { expect(acquire).toHaveBeenCalledExactlyOnceWith(`session:${id}`) })
+      expect(proxy.browserEnvironment).not.toHaveBeenCalled()
+      proxy.get.mockResolvedValue({ ok: true, value: proxyState(true) })
+      h.ctx.emit('agent-preset/selected', 'other' as DesktopBrowserProxy['sessionId'], 'security')
+      expect(acquire).toHaveBeenCalledTimes(1)
+      h.ctx.emit('agent-preset/selected', id, 'security')
+      await vi.waitFor(() => {
+        expect(acquire).toHaveBeenLastCalledWith(`session:${id}`, { sessionId: id, server: 'http://127.0.0.1:49152' })
+      })
+      expect(proxy.browserEnvironment).toHaveBeenCalledExactlyOnceWith(id)
+      proxy.get.mockResolvedValue({ ok: true, value: proxyState(false) })
+      h.ctx.emit('security-proxy/transport-changed')
+      await vi.waitFor(() => {
+        expect(acquire).toHaveBeenCalledTimes(3)
+        expect(acquire).toHaveBeenLastCalledWith(`session:${id}`)
+      })
+    } finally { signal.abort(); host.remove() }
+  })
   it.each([0, 1])('binds and rebinds session controllers under desktop protocol %s', async (protocolVersion) => {
     const acquire = vi.fn(async () => ({ lease: 'test-lease' as DesktopBrowserLeaseId, partition: 'test-partition' }))
     const bridge: DesktopBrowserBridge = {

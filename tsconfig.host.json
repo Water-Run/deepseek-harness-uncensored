@@ -84,6 +84,7 @@
     "apps/web/tests/excel-opc.e2e.ts",
     "apps/web/tests/office-fixture.ts",
     "apps/web/tests/sidebar-browser.e2e.ts",
+    "apps/web/tests/desktop-sidebar-proxy.e2e.ts",
     "apps/web/tests/plugin-config.e2e.ts",
     "apps/web/tests/input-plugin-extensions.e2e.ts",
     "apps/web/tests/plugin-manager.e2e.ts",

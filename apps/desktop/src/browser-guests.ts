@@ -1,7 +1,7 @@
 /** Main-process ownership and fixed isolation policy for Sidebar webview guests. */
 import { randomUUID } from 'node:crypto'
 import { app, session, type BrowserWindow, type Session, type WebContents } from 'electron'
-import type { DesktopBrowserLeaseId, DesktopBrowserOpenRequest, DesktopBrowserReservation } from '@deepseek-ai/dsh-client-ui-sidebar-browser/types'
+import type { DesktopBrowserLeaseId, DesktopBrowserOpenRequest, DesktopBrowserProxy, DesktopBrowserReservation } from '@deepseek-ai/dsh-client-ui-sidebar-browser/types'
 import { DESKTOP_IPC } from './ipc.ts'
 
 interface GuestLease {
@@ -12,33 +12,62 @@ interface GuestLease {
   releaseInput?: () => void
 }
 
-/** Owns workspace storage partitions independently from individual tab guests. */
+/** Owns workspace and proxied-conversation storage independently from individual guests. */
 export class DesktopBrowserGuests {
-  private readonly partitions = new Map<string, string>()
+  private readonly partitions = new Map<string, Promise<string>>()
   private readonly leases = new Map<DesktopBrowserLeaseId, GuestLease>()
 
   /** @param hostUrl - current authenticated DSH Host, which guests cannot request. */
   constructor(private readonly hostUrl: () => string | undefined) {}
 
   /**
-   * Reserve one guest in a workspace's process-lifetime partition.
+   * Reserve one guest after its process-local storage and optional proxy are ready.
    * @param owner - authenticated primary application WebContents.
    * @param workspace - workspace identity received over IPC.
+   * @param routing - optional session proxy received over IPC; only credential-free loopback HTTP is accepted.
    * @returns opaque lease and the partition approved for it.
    */
-  acquire(owner: WebContents, workspace: unknown): DesktopBrowserReservation {
+  async acquire(owner: WebContents, workspace: unknown, routing?: unknown): Promise<DesktopBrowserReservation> {
     if (typeof workspace !== 'string' || workspace.length === 0 || workspace.length > 4096) {
       throw new Error('desktop browser: a workspace storage identity is required')
     }
-    let partition = this.partitions.get(workspace)
-    if (partition === undefined) {
-      partition = `dsh-sidebar-browser-${randomUUID()}`
-      this.configureSession(session.fromPartition(partition))
-      this.partitions.set(workspace, partition)
+    const proxy = this.proxy(routing)
+    const key = JSON.stringify([workspace, proxy?.sessionId, proxy?.server])
+    let pending = this.partitions.get(key)
+    if (pending === undefined) {
+      const selected = `dsh-sidebar-browser-${randomUUID()}`
+      const browserSession = session.fromPartition(selected)
+      this.configureSession(browserSession)
+      pending = (proxy === undefined ? Promise.resolve() : browserSession.setProxy({
+        mode: 'fixed_servers', proxyRules: proxy.server, proxyBypassRules: '<-loopback>',
+      })).then(() => selected).catch((error: unknown) => {
+        if (this.partitions.get(key) === pending) this.partitions.delete(key)
+        throw error
+      })
+      this.partitions.set(key, pending)
     }
+    const partition = await pending
+    if (owner.isDestroyed()) throw new Error('desktop browser: application window closed during reservation')
     const lease = randomUUID() as DesktopBrowserLeaseId
     this.leases.set(lease, { owner, partition, attached: false })
     return { lease, partition }
+  }
+
+  private proxy(value: unknown): DesktopBrowserProxy | undefined {
+    if (value === undefined) return undefined
+    if (typeof value !== 'object' || value === null || !('sessionId' in value) || !('server' in value)
+      || typeof value.sessionId !== 'string' || value.sessionId.length === 0 || value.sessionId.length > 4096
+      || typeof value.server !== 'string' || value.server.length > 256) {
+      throw new Error('desktop browser: invalid proxy reservation')
+    }
+    let server: URL
+    try { server = new URL(value.server) }
+    catch { throw new Error('desktop browser: invalid proxy address') }
+    if (server.protocol !== 'http:' || server.hostname !== '127.0.0.1' || server.port === ''
+      || server.username !== '' || server.password !== '' || server.pathname !== '/' || server.search !== '' || server.hash !== '') {
+      throw new Error('desktop browser: proxy must be a credential-free loopback HTTP endpoint')
+    }
+    return { sessionId: value.sessionId as DesktopBrowserProxy['sessionId'], server: server.origin }
   }
 
   /**

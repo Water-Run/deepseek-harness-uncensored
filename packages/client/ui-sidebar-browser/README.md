@@ -31,6 +31,8 @@ Browser is disabled by default in Web profiles and enabled on Desktop. Enable th
 
 Choose Browser for a Web page that should remain beside the current Session. Choose [Document Preview](../ui-sidebar-documentpreview/README.md) for local files, and use the explicit external-browser action when a site refuses iframe embedding or needs browser capabilities this package withholds.
 
+With the independent proxy enabled, Desktop uses the owning Security conversation's route and keeps its browser storage separate from ordinary Workspace tabs. Affected pages reconnect after the mode or proxy changes. A Desktop build with proxy routing support is required; Web iframes keep their browser's networking.
+
 ### Minimal configuration
 
 The package has no plugin configuration. A Web profile enables the shipped entry through its profile patch:
@@ -107,7 +109,7 @@ The isolation policy deliberately gives up some browser compatibility:
 - Browsers conceal many iframe failures for security: DNS, TLS, mixed-content, CSP, and `X-Frame-Options` failures may emit `load` or no actionable event instead of `error`. The load-failure notice is best-effort.
 - Saved title and URL survive reloads and plugin unload while the tab remains in Sidebar's layout. Closing the tab removes its checkpoint. Restart restoration does not recover page memory, unsaved forms or Chromium's history stack.
 - Local files are rejected and remain owned by Document Preview.
-- Desktop shares process-local storage partitions by canonical workspace CWD; Sessions without a resolved Workspace are isolated separately. Cookies and Web storage do not survive application restart. Guest permissions, downloads and native popups are denied; approved HTTP(S) popup requests open Sidebar tabs. Host-address filtering is not a general private-network or DNS-rebinding firewall.
+- Ordinary Desktop tabs share process-local storage by canonical Workspace CWD; ungrouped Sessions are isolated. Proxied tabs share storage only within the same conversation and route. Cookies and Web storage do not survive application restart. Guest permissions, downloads and native popups are denied; approved HTTP(S) popups open Sidebar tabs. Host-address filtering is not a private-network or DNS-rebinding firewall.
 
 <a id="dev-note"></a>
 ### Dev Note

@@ -835,9 +835,9 @@ async function main(): Promise<void> {
     reportFatal(new Error(message), 'web-boot')
   })
 
-  ipcMain.handle(DESKTOP_IPC.browserAcquire, (event, workspace: unknown) => {
+  ipcMain.handle(DESKTOP_IPC.browserAcquire, (event, workspace: unknown, proxy: unknown) => {
     assertProductSender(event)
-    return browserGuests.acquire(event.sender, workspace)
+    return browserGuests.acquire(event.sender, workspace, proxy)
   })
   ipcMain.handle(DESKTOP_IPC.browserRelease, (event, lease: unknown) => {
     assertProductSender(event)

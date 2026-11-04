@@ -1,5 +1,15 @@
 # Uncensored 开发交接
 
+## 桌面侧栏代理已通过源码验收（2026-11-04）
+
+10.08：桌面侧栏先向所有者专用 Remote 读取实际会话的代理；Host 按冷/热 Agent 的持久模式判定，只在网安且开启时发放本机端点。Electron 等代理设置完成再发放 guest lease，按会话与路由隔离存储。设置、模式与连接变化触发重读，普通标签路由未变时保留原 guest 和历史；无法确认旧 guest 已关闭时停止替换。未开启时不为浏览器预热 Agent。
+
+已通过 25 文件 192 项定向测试、完整构建 10/10、真实 Electron 的 IPC/preload/冷会话导航、正文捕获、归属、Cookie 隔离、控制地址阻止、guest 释放，以及录制会话的 Web 侧栏快照。无模型付费请求。测试首次超时来自 Electron 入口顶层等待 ready，后续导航竞争通过等待实际 `did-navigate` 解决；失败日志保留。Web 测试按现有规则归 Host 聚合，编译错误误生成的 60 个文件已逐项清理。证据见 [10.02 / 10.08](requirements/2026-11-03-browser-proxy.md)。
+
+最终 Host/Client 聚合检查 2/2，定向 lint、i18n、导出 JSDoc、五组文档配对及工作区检查通过。临时 Electron 副本已清理，D 盘可用 93.52 GiB；本轮清理回执 `sidebar-proxy-electron-cleanup-20261104.json`。
+
+安装候选仍为已经验证的 `f3f7315880`，本节点源码尚未打包。用户要求退出 DSHU 后再安装；应用仍运行时不关闭它。普通 MCP、委派扩展、进阶保护和完整交付验收继续保留，Goal 未完成。
+
 ## 浏览器实包验收通过，产物已清理（2026-11-04 10:04）
 
 **最新检查包：**`.dsh-build/deliverables/DSHU-0.1.0-core-0.2.2-alpha.2-REA-6.8.0-win-x64-unsigned-20261104-f3f731.exe`，395182178 字节，SHA-256 `b52789bd9c6f772a4d57835bdc08c0627378974209ac2b2e5ed978c2153a1737`。产品源码 `f3f73158805128e29f6c55cee07fc08f36811af8`，dirty=false；DSHU 0.1.0 / DSH 0.2.2-alpha.2 / REA 6.8.0。未签名，未发布 Release，尚未安装。

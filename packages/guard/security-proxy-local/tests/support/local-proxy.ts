@@ -31,8 +31,18 @@ export interface LocalProxy {
   close(): Promise<void>
 }
 
-/** Start the upstream proxy on loopback. */
-export async function startLocalProxy(): Promise<LocalProxy> {
+/** Destinations an isolated browser fixture owns. */
+export interface LocalProxyTargets {
+  readonly origins: ReadonlySet<string>
+  readonly tunnels: ReadonlySet<string>
+}
+
+/**
+ * Start the upstream proxy on loopback.
+ * @param targets - Optional restriction to explicitly owned HTTP and CONNECT fixtures.
+ * @returns The listener and its recorded requests.
+ */
+export async function startLocalProxy(targets?: LocalProxyTargets): Promise<LocalProxy> {
   const requests: ProxiedRequest[] = []
   const tunnels: ProxiedTunnel[] = []
   let credentials: { readonly user: string; readonly pass: string } | null = null
@@ -50,6 +60,11 @@ export async function startLocalProxy(): Promise<LocalProxy> {
       parsed = new URL(target)
     } catch {
       response.writeHead(400)
+      response.end()
+      return
+    }
+    if (targets !== undefined && !targets.origins.has(parsed.origin)) {
+      response.writeHead(403)
       response.end()
       return
     }
@@ -72,6 +87,11 @@ export async function startLocalProxy(): Promise<LocalProxy> {
     }
     if (tunnelStatus !== 0) {
       clientSocket.end(`HTTP/1.1 ${String(tunnelStatus)} Refused\r\n\r\n`)
+      return
+    }
+    if (targets !== undefined && !targets.tunnels.has(authority)) {
+      clientSocket.on('error', () => { clientSocket.destroy() })
+      clientSocket.end('HTTP/1.1 403 Forbidden\r\n\r\n')
       return
     }
     const separator = authority.lastIndexOf(':')

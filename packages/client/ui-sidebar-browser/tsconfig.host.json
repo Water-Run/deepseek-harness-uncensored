@@ -10,6 +10,7 @@
     "src/types.ts"
   ],
   "references": [
+    { "path": "../../core/session" },
     { "path": "../../../vendor/cordis" },
     { "path": "../../util/brand" }
   ]

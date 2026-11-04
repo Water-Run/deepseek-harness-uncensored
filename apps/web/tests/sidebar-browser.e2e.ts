@@ -73,6 +73,8 @@ describe.skipIf(MODE === 'record')('web e2e: Sidebar Browser', () => {
     await input.press('Enter')
     const frame = column.locator('[data-sidebar-browser-frame]')
     await frame.waitFor({ state: 'visible' })
+    const carrier = await frame.evaluate(element => element.tagName.toLowerCase())
+    expect(carrier).toBe('iframe')
     await page.frameLocator('[data-sidebar-browser-frame]').getByRole('heading', { name: 'one' }).waitFor()
     expect(await frame.getAttribute('allow')).toBeNull()
     await column.getByRole('button', { name: 'Disable sandbox restrictions' }).click()
@@ -110,6 +112,7 @@ describe.skipIf(MODE === 'record')('web e2e: Sidebar Browser', () => {
     await mkdir(SNAPSHOT_DIR, { recursive: true })
     await compareOrRefreshGolden(EXPECTED, [
       '# Sidebar Browser', '',
+      `- Web carrier: ${carrier}; native guest routing unavailable`,
       '- HTTPS sandbox: allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox',
       '- Permissions Policy: browser defaults',
       '- Sandbox toggle: per-tab and temporary',

@@ -119,6 +119,7 @@ export const VIEWER_ENDPOINT_CLASSES = {
   'modeDossiers/report': 'owner-only',
   'modeDossiers/selectStory': 'owner-only',
   'modeDossiers/writeStory': 'owner-only',
+  'securityProxy/browserEnvironment': 'owner-only',
   'securityProxy/clear': 'owner-only',
   'securityProxy/configure': 'owner-only',
   'securityProxy/detail': 'owner-only',

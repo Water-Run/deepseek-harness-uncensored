@@ -83,6 +83,13 @@ export abstract class SecurityProxyRuntime extends Service {
   abstract environment(agent: Agent | undefined, tool: string): Promise<Readonly<Record<string, string>> | undefined>
 
   /**
+   * Resolve the sidebar browser's loopback proxy from the actual owning Agent.
+   * @param agent - Conversation resolved by the Host's Agent resource loader.
+   * @returns A local proxy URL, or undefined when this conversation is not covered.
+   */
+  abstract browserEnvironment(agent: Agent): Promise<string | undefined>
+
+  /**
    * Retrieve one HTTP(S) target through the configured upstream, recording the
    * exchange at the controlled Client layer. TLS verification stays at the
    * Node defaults for both the proxy hop and the origin.

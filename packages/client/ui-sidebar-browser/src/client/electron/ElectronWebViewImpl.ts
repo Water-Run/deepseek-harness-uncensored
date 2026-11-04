@@ -1,6 +1,6 @@
 /** Electron navigation and guest lifetime, independent from DOM placement. */
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { DesktopBrowserBridge, DesktopBrowserLeaseId } from '../../types.ts'
+import type { DesktopBrowserBridge, DesktopBrowserLeaseId, DesktopBrowserProxy } from '../../types.ts'
 import type { ElectronWebviewPresentation, WebviewElement } from './ElectronWebviewPresentation.ts'
 import { emptyBrowserFrame, type BrowserFrame, type BrowserFrameState, type BrowserLoadError } from '../browser/BrowserFrame.ts'
 import type { BrowserPageOptions } from '../browser/BrowserPage.ts'
@@ -30,16 +30,21 @@ export class ElectronWebViewImpl implements BrowserFrame {
   private disposal: Promise<void> | undefined
   private attachment: AbortController | undefined
   private readonly releases = new Set<Promise<void>>()
+  private releaseFailed = false
+  private currentProxy: DesktopBrowserProxy | undefined
+  private networkRefresh: AbortController | undefined
 
   /**
    * @param options - saved address, persistence and source-tab opening callback.
    * @param bridge - main-process guest operations.
    * @param workspace - resolves the storage account once for this frame lifetime.
    * @param presentation - tag and Sidebar placement adapter.
+   * @param proxy - optional Host-owned route for this conversation.
    */
   constructor(private readonly options: BrowserPageOptions, private readonly bridge: DesktopBrowserBridge,
     private readonly workspace: (signal: AbortSignal) => Promise<string>,
-    private readonly presentation: ElectronWebviewPresentation) {
+    private readonly presentation: ElectronWebviewPresentation,
+    private readonly proxy?: (signal: AbortSignal) => Promise<DesktopBrowserProxy | undefined>) {
     this.checkpoint = currentBrowserTarget(options.initial)
     this.store = createSnapshotStore(emptyBrowserFrame())
   }
@@ -108,10 +113,49 @@ export class ElectronWebViewImpl implements BrowserFrame {
     } else this.navigate('reload')
   }
 
+  /** Recreate the guest after its conversation mode, transport or Host connection changes. */
+  refreshNetwork(): void {
+    if (this.lifetime.signal.aborted || this.store.getSnapshot().target === undefined) return
+    this.networkRefresh?.abort()
+    if (!this.ready || this.element === undefined || this.attachment === undefined) {
+      this.restartGuest()
+      return
+    }
+    const refresh = new AbortController()
+    this.networkRefresh = refresh
+    const signal = AbortSignal.any([this.lifetime.signal, this.attachment.signal, refresh.signal])
+    void (async () => {
+      const next = await this.proxy?.(signal)
+      if (signal.aborted) return
+      if (next?.server === this.currentProxy?.server && next?.sessionId === this.currentProxy?.sessionId) return
+      this.restartGuest()
+    })().catch(async (error: unknown) => {
+      if (signal.aborted) return
+      await this.dropGuest()
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- A newer refresh can abort this one while the guest closes.
+      if (!signal.aborted) this.commandFailed(error)
+    }).catch((error: unknown) => { this.commandFailed(error) })
+  }
+
+  private restartGuest(): void {
+    this.networkRefresh?.abort()
+    const current = this.store.getSnapshot()
+    if (this.attachment !== undefined) {
+      this.attachment.abort()
+      this.attachment = new AbortController()
+    }
+    this.revision++
+    this.pending = current.target ?? this.pending
+    this.store.set({ ...current, loading: this.pending !== undefined, error: undefined,
+      address: this.pending === undefined ? current.address : 'requested', canGoBack: false, canGoForward: false })
+    void this.dropGuest().then(() => { this.initialize() }).catch((error: unknown) => { this.commandFailed(error) })
+  }
+
   /** @returns after pending initialization and the owned guest have been released. */
   dispose(): Promise<void> {
     if (this.disposal !== undefined) return this.disposal
     this.lifetime.abort()
+    this.networkRefresh?.abort()
     this.pending = undefined
     this.disposal = Promise.all([this.dropGuest(), this.initializing])
       .then(() => Promise.all(this.releases)).then(() => {})
@@ -142,9 +186,15 @@ export class ElectronWebViewImpl implements BrowserFrame {
   }
 
   private async createGuest(attachmentSignal: AbortSignal): Promise<void> {
+    await Promise.all(this.releases)
+    if (this.releaseFailed) throw new Error('Previous browser shutdown could not be confirmed; restart DSHU before opening another page')
     this.workspaceKey ??= await this.workspace(attachmentSignal)
     if (attachmentSignal.aborted) return
-    const reservation = await this.bridge.acquire(this.workspaceKey)
+    const proxy = await this.proxy?.(attachmentSignal)
+    attachmentSignal.throwIfAborted()
+    if (proxy !== undefined && this.bridge.proxyRouting !== true) throw new Error('Update DSHU before using the sidebar browser proxy')
+    this.currentProxy = proxy
+    const reservation = await (proxy === undefined ? this.bridge.acquire(this.workspaceKey) : this.bridge.acquire(this.workspaceKey, proxy))
     // oxlint-disable-next-line typescript/no-unnecessary-condition -- The signal can abort while acquire is pending.
     if (attachmentSignal.aborted) { await this.release(reservation.lease); return }
     this.lease = reservation.lease
@@ -263,7 +313,10 @@ export class ElectronWebViewImpl implements BrowserFrame {
 
   private release(lease: DesktopBrowserLeaseId): Promise<void> {
     const released = this.bridge.release(lease)
-      .catch((error: unknown) => { console.error('Desktop browser guest release failed', error) })
+      .catch((error: unknown) => {
+        this.releaseFailed = true
+        console.error('Desktop browser guest shutdown could not be confirmed; restart DSHU before reuse.', error)
+      })
       .finally(() => { this.releases.delete(released) })
     this.releases.add(released)
     return released

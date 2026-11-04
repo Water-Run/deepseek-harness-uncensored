@@ -29,6 +29,8 @@ The Web app loads it as a browser row; nothing else to install. The area registe
 
 The shell coverage row includes one-shot commands and persistent shell terminals. They require applications to honor proxy environment variables; captured HTTP and opaque HTTPS tunnels retain their distinct labels.
 
+Native desktop pages appear as Sidebar browser in the traffic list. Web iframes and attached external browsers do not use this proxy.
+
 -----
 
 <a id="understand-the-implementation"></a>

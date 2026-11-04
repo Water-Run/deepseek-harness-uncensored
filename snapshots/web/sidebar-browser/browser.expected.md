@@ -1,5 +1,6 @@
 # Sidebar Browser
 
+- Web carrier: iframe; native guest routing unavailable
 - HTTPS sandbox: allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox
 - Permissions Policy: browser defaults
 - Sandbox toggle: per-tab and temporary

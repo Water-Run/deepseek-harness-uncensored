@@ -153,7 +153,7 @@ it('contains acquisition, native command and release failures and keeps retry av
   expect(h.frame.getSnapshot().error).toBeDefined()
   h.bridge.release.mockRejectedValueOnce(new Error('release failed'))
   await h.frame.dispose()
-  expect(error.mock.calls.some(call => call[0] === 'Desktop browser guest release failed')).toBe(true)
+  expect(error.mock.calls.some(call => String(call[0]).includes('guest shutdown could not be confirmed'))).toBe(true)
 })
 
 it('ignores superseded and aborted load promises, but publishes an active navigation rejection', async () => {

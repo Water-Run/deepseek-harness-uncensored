@@ -37,7 +37,7 @@ const result = route === undefined
 
 `route` 接收正在执行的 `Agent`，不接受模式参数：提供者读取会话日志中记录的预设。没有 Agent 的调用，或记录预设不是 `security` 的会话，一律不覆盖。
 
-提供者注册为 `ctx.securityProxy`。
+提供者注册为 `ctx.securityProxy`。`browserEnvironment` 根据实际拥有侧栏的 Agent 解析本机端点；只有应用所有者可通过 Remote 请求。
 
 -----
 

@@ -62,7 +62,7 @@ const installFixture = installDesktopShortcuts as (
   overlayInput: (window: WindowFixture) => { readonly revision: number; readonly blocked: boolean },
 ) => KeyboardFixture
 type GuestsFixture = {
-  acquire(owner: ContentsFixture, workspace: unknown): DesktopBrowserReservation
+  acquire(owner: ContentsFixture, workspace: unknown): Promise<DesktopBrowserReservation>
   release(owner: ContentsFixture, id: unknown): Promise<void>
   bind(window: WindowFixture, attachInput: (guest: ContentsFixture, name: DesktopBrowserLeaseId) => () => void): void
 }
@@ -204,7 +204,7 @@ it.each([false, true])('blocks approved browser guest input across update overla
   ])
   const guests = new DesktopBrowserGuests(() => undefined) as GuestsFixture
   guests.bind(f.window, (guest, name) => f.keyboard.attachGuest(f.window, guest, name))
-  const reservation = guests.acquire(f.contents, 'session:test')
+  const reservation = await guests.acquire(f.contents, 'session:test')
   const { frame, guest } = browserGuest(reservation)
   const attach = () => {
     const event = { preventDefault: vi.fn() }
@@ -718,7 +718,7 @@ it.each(['macos', 'windows', 'linux'] as const)('routes approved %s browser gues
   const guests = new DesktopBrowserGuests(() => undefined) as GuestsFixture
   const attach = vi.fn((guest: ContentsFixture, name: DesktopBrowserLeaseId) => f.keyboard.attachGuest(f.window, guest, name))
   guests.bind(f.window, attach)
-  const reservation = guests.acquire(f.contents, 'session:test')
+  const reservation = await guests.acquire(f.contents, 'session:test')
   const { frame, guest } = browserGuest(reservation)
   const rejected = { preventDefault: vi.fn() }
   f.contents.emit('will-attach-webview', rejected, {}, { src: 'about:blank#unknown', partition: reservation.partition })

@@ -31,6 +31,8 @@ Browser 在 Web profile 中默认禁用，在 Desktop 中默认启用。Web 用�
 
 当 Web 页面需要保留在当前 Session 旁时，选择 Browser。本地文件使用 [Document Preview](../ui-sidebar-documentpreview/README.zh.md)；站点拒绝 iframe 嵌入或需要本包不授予的浏览器 capability 时，使用明确的外部浏览器操作。
 
+独立代理开启后，Desktop 按网安会话路由，其浏览器存储与普通工作区标签分开。模式或代理变化后，受影响的页面会重新连接。此功能需要支持代理路由的桌面构建；Web 内嵌页仍使用浏览器原有的网络设置。
+
 ### 最小配置
 
 本包没有插件配置字段。Web profile 通过其 profile patch 启用随附条目：
@@ -107,7 +109,7 @@ Desktop 主进程批准 guest 租约，并执行挂载、导航和权限策略�
 - 出于安全原因，浏览器会隐藏很多 iframe 失败：DNS、TLS、mixed-content、CSP 与 `X-Frame-Options` 失败可能触发 `load`，也可能不提供可操作 event，而不是触发 `error`。加载失败 notice 只能作为 best-effort 提示。
 - 只要 tab 仍在 Sidebar 布局中，保存的标题和 URL 就会跨刷新与插件卸载保留。关闭 tab 会删除其检查点。重启恢复不恢复页面内存、未保存的表单或 Chromium history 栈。
 - 本地文件会被拒绝，并继续由 Document Preview 负责。
-- Desktop 按规范化的工作区 CWD 共享进程内存储分区；没有解析到 Workspace 的 Session 单独隔离。Cookie 与 Web storage 不跨应用重启保留。guest 权限、下载与原生 popup 均被拒绝；通过检查的 HTTP(S) popup 请求会打开 Sidebar tab。Host 地址过滤不是通用私网或 DNS-rebinding 防火墙。
+- 普通 Desktop 标签按规范化的工作区 CWD 共享进程内存储，未分组会话单独隔离。代理标签仅在同一会话与路由内共享存储。Cookie 与 Web storage 不跨应用重启保留。拒绝 guest 权限、下载与原生弹窗；通过检查的 HTTP(S) 弹窗在侧栏打开。Host 地址过滤不是私网或 DNS 重绑定防火墙。
 
 <a id="dev-note"></a>
 ### 开发备注

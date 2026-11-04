@@ -1,6 +1,7 @@
 /** Register the HTTP(S) Browser tab type in the right Sidebar. */
 import type { ShortcutCommandId } from '@deepseek-ai/dsh-client-shortcuts/client'
 import type { Context } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
@@ -14,6 +15,7 @@ import { createIframePage } from './pages.ts'
 import { createElectronPage } from './electron/pages.ts'
 import type { DesktopBrowserBridge } from '../types.ts'
 import { browserWorkspace } from './electron/workspace.ts'
+import { browserProxy, type BrowserProxyPort } from './electron/proxy.ts'
 import type { BrowserPageFactory } from './browser/BrowserPage.ts'
 import { BROWSER_ID, browserDefinition } from './definition.tsx'
 import { en, ja, es, fr, de, ru, pt, zh } from './locales.ts'
@@ -70,12 +72,17 @@ export function apply(ctx: Context): void {
     dshDesktop?: { readonly protocolVersion: number; readonly browser?: DesktopBrowserBridge }
   }).dshDesktop
   const desktop = carrier?.protocolVersion === 1 ? carrier.browser : undefined
+  const networkControllers = new Map<BrowserBodyProps['sessionId'], BrowserInjected>()
+  let proxyPort: BrowserProxyPort | 'unavailable' | undefined
+  let proxyOwner: symbol | undefined
+  const refreshNetworks = (): void => { for (const controller of networkControllers.values()) controller.refreshNetwork() }
   ctx.effect(() => ctx.locale.register(namespace, { zh, en, ja, es, fr, de, ru, pt }), 'ui-sidebar-browser.copy')
   ctx.effect(() => ctx.sidebarRightTabs.register({ ...browserDefinition(t), keepMounted: desktop !== undefined }), 'ui-sidebar-browser.type')
   const installFrames = (scope: Context, factory: (sessionId: BrowserBodyProps['sessionId']) => BrowserPageFactory): void => {
     const controllers = new Map<BrowserBodyProps['sessionId'], BrowserInjected>()
     scope.effect(() => async () => {
       const pending = [...controllers.values()].map(controller => controller.dispose())
+      for (const [id, controller] of controllers) if (networkControllers.get(id) === controller) networkControllers.delete(id)
       controllers.clear()
       await Promise.all(pending)
     }, 'ui-sidebar-browser.frames')
@@ -90,14 +97,36 @@ export function apply(ctx: Context): void {
         const controller = createBrowserControllers(actions, factory(sessionId), tabId =>
           openTabs.getSnapshot().some(tab => tab.sessionId === sessionId && tab.tabId === tabId))
         controllers.set(sessionId, controller)
+        networkControllers.set(sessionId, controller)
         return controller
       },
     }, BrowserBody)), 'ui-sidebar-browser.body')
   }
+  if (desktop !== undefined) ctx.inject(['remote.securityProxy', 'remoteAccess'], (scope) => {
+    proxyPort = 'unavailable'
+    scope.remoteAccess.whenAccess('securityProxy/browserEnvironment', function* () {
+      const owner = Symbol('sidebar browser proxy')
+      proxyOwner = owner
+      proxyPort = scope.remote.securityProxy
+      refreshNetworks()
+      yield scope.effect(() => () => {
+        if (proxyOwner !== owner) return
+        proxyOwner = undefined
+        proxyPort = 'unavailable'
+        refreshNetworks()
+      }, 'sidebar browser: proxy availability')
+      yield scope.effect(() => scope.remote.$on('security-proxy/transport-changed', refreshNetworks), 'sidebar browser: proxy changes')
+      yield scope.effect(() => scope.remote.$on('agent-preset/selected', (id) => {
+        networkControllers.get(id)?.refreshNetwork()
+      }), 'sidebar browser: mode changes')
+      yield scope.on('connection/reset', refreshNetworks)
+    })
+  })
   if (desktop === undefined) installFrames(ctx, () => createIframePage)
   else ctx.inject(['workspaces'], (scope) => {
     installFrames(scope, sessionId => options => createElectronPage(options, desktop,
-      signal => browserWorkspace(scope.workspaces.list, sessionId, signal)))
+      signal => browserWorkspace(scope.workspaces.list, sessionId, signal),
+      signal => browserProxy(proxyPort, sessionId, signal)))
   })
   ctx.effect(() => ctx.slots.inject('sidebar.right.pane.tab.title', () => ctx.slots.register({
     name: 'sidebar.right.pane.tab.title', key: BROWSER_ID, store,
