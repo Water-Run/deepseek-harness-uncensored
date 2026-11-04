@@ -24,7 +24,7 @@
 - **可产出未签名包**：`pnpm run package:desktop:win:x64:unsigned` 已跑通，产物为 `apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/runs/<构建批次>/deepseek-harness-uncensored-0.1.0-win-x64-unsigned.exe`；未签名产物带 `-unsigned` 后缀，与发行产物不可能混淆。
 - **安装器只支持按用户安装**：NSIS 脚本拒绝全用户安装；默认目录为 `%LOCALAPPDATA%\Programs\DeepSeek Harness Uncensored`，允许选择其他有效目录，拒绝磁盘根目录及未登记的非空目录。
 - **未签名构建不写更新配置**：未签名产物没有 `app-update.yml`，因此本阶段没有自动更新通道。
-- **卸载保留 Harness home**：uninstall.nsh 明确保留会话所在的 Harness home；清理的是 Electron 用户资料与 updater 缓存。升级及 /KEEP_APP_DATA 跳过该清理；不能把缓存清理写成删除全部会话。
+- **卸载保留用户资料**：普通和静默卸载均保留 Electron 用户资料、Harness home 和更新缓存。显式传入 `/DELETE_APP_DATA=1` 可清理 Electron 资料及更新缓存，升级参数优先保留。对仍使用旧卸载器的安装，保留数据的卸载参数为 `/S /KEEP_APP_DATA`。
 - **版本已解耦**：产品版本 `0.1.0` 与 DSH 引擎 `0.2.2-alpha.2` 分别写入 runtime 描述与发行校验，引擎版本变化不要求产品版本同步。
 
 ## 阶段

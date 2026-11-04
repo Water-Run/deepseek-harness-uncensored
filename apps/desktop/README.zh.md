@@ -270,9 +270,9 @@ Windows 打包使用 Visual C++ Build Tools 和 Windows SDK 编译 x86 Win32/GDI
 
 在有交互式桌面的 Windows x64 上，从仓库根目录运行 `pnpm --dir apps/desktop run test:installer`，可将小型原生测试载荷接入正式安装配置并执行验证。每次运行使用独立产品身份，依次验证仅英文和仅中文的安装器变体，并根据实际显示的欢迎页按钮选择测试文案。两个变体均安装到私有目录并在测试后卸载；截图和结果保留在 `.desktop-build/installer-tests/` 下。检查包含末尾带分隔符的已登记路径升级，以及磁盘根目录拒绝。绘制器接收 NSIS 主题传入的标题栏颜色；像素检查绘制到离屏位图，并在隐藏进度子窗口时验证。原生绘制检查覆盖 100% 和 200% 缩放下的浅色/深色配色、绘制到 100% 的完成状态、标题栏按钮的悬停／按下颜色和松开触发与取消、最小化恢复后的窗口位置和尺寸，以及 GDI 资源释放；`render-results.log` 中的重绘耗时仅供诊断，不作为 CI 性能阈值。运行生成的 `ui/render-test.exe <brand.bmp> <dpi> <light|dark> <hover-argb> <pressed-argb> [interactive-title]` 并指定标题，可在不安装载荷的情况下查看真实进度页。可选的 `--signed` 标志使用[Windows EV 配置](windows-signing/README.zh.md#signing-configuration)，在嵌入前对测试程序和辅助库签名；它不会启用更新源。
 
-Windows 卸载仅清理本产品的 Electron 数据与更新缓存。保留 DSHU 主目录（`~/.dsh-uncensored` 或 `DSH_UNCENSORED_HOME`）和官方版主目录（`~/.dsh` 或 `DSH_HOME`），不会选中历史共用的 `@deepseek-ai/dsh-desktop` 数据目录。主目录与候选目录重叠、包含目录别名或无法安全确认时，该候选目录不清理。未知映射保留数据。更新时使用 `--updated` 或 `/KEEP_APP_DATA` 保留应用数据。被占用文件可能留下残余，不会跟随链接清理外部工作文件。
+Windows 卸载默认保留用户资料与更新缓存，静默卸载也适用。显式传入 `/DELETE_APP_DATA=1` 才清理本产品的 Electron 用户资料和更新缓存。更新参数 `--updated` 或 `/KEEP_APP_DATA` 始终保留资料。清理保护 DSHU 主目录（`~/.dsh-uncensored` 或 `DSH_UNCENSORED_HOME`）、官方版主目录（`~/.dsh` 或 `DSH_HOME`）及历史共用的 `@deepseek-ai/dsh-desktop` 目录。主目录重叠、包含别名或无法安全确认时保留相应目录。链接指向的工作文件和被占用文件也会保留。
 
-使用 `node apps/desktop/scripts/test-windows-installer.mjs --uninstall-only --compile-only` 以每次运行唯一的带作用域包名编译独立的中英文夹具。省略 `--compile-only` 可对预置数据运行原生删除器回归，以及交互、静默、`--updated`、`/KEEP_APP_DATA` 和 `DSH_UNCENSORED_HOME` 位于 Electron 数据内的检查。编译本身不能证明已安装卸载行为。
+使用 `node apps/desktop/scripts/test-windows-installer.mjs --uninstall-only --compile-only` 以每次运行唯一的带作用域包名编译隔离夹具。省略 `--compile-only` 后，可对预置数据运行原生删除器回归，并检查默认保留、显式清理、升级参数及主目录保护。
 
 使用 `pnpm --dir apps/desktop run test:installer --uninstall-only --silent-only` 可运行隔离的非交互安装与卸载检查，包括嵌套、别名及无效 DSHU 主目录；它不验证前台布局，不能替代交互界面验收。
 

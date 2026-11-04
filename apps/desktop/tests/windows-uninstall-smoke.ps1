@@ -7,8 +7,10 @@ param([Parameter(Mandatory)][string]$Installer, [Parameter(Mandatory)][string]$P
 $ErrorActionPreference = 'Stop'
 $copy = (Get-Content (Join-Path $PSScriptRoot "../installer/locales/$Language.json") -Encoding UTF8 -Raw | ConvertFrom-Json).uninstaller
 $OutputDirectory = [IO.Path]::GetFullPath($OutputDirectory)
-. (Join-Path $PSScriptRoot 'windows-installer-ui.ps1')
-[InstallerCapture]::Initialize()
+if (-not $SilentOnly) {
+    . (Join-Path $PSScriptRoot 'windows-installer-ui.ps1')
+    [InstallerCapture]::Initialize()
+}
 $expected = Get-Content (Join-Path $PSScriptRoot 'expected/windows-uninstall.json') -Raw | ConvertFrom-Json
 $roaming = [Environment]::GetFolderPath('ApplicationData')
 $local = [Environment]::GetFolderPath('LocalApplicationData')
@@ -20,6 +22,7 @@ $productDataPath = Join-Path $roaming $ProductName
 $scopePath = Join-Path $roaming $PackageName.Split('/')[0]
 $userDataPath = Join-Path $roaming ($PackageName -replace '/', '\')
 $cachePath = Join-Path $local (($PackageName -replace '[/\\?<>:*|"]', '').ToLowerInvariant() + '-updater')
+$partitionFile = Join-Path $productDataPath 'Partitions\isolated\Local Storage\leveldb\fixture'
 $uninstaller = Join-Path $OutputDirectory 'uninstall-copy.exe'
 $process = $null
 $previousHome = [Environment]::GetEnvironmentVariable('DSH_UNCENSORED_HOME', 'Process')
@@ -48,6 +51,14 @@ function Wait-Exit {
         Start-Sleep -Milliseconds 100
     }
 }
+function Assert-SeededFile([string]$Path, [string]$Content, [bool]$Retained, [string]$Case) {
+    if ((Test-Path -LiteralPath $Path -PathType Leaf) -ne $Retained) {
+        throw "Unexpected file retention for $Case at $Path"
+    }
+    if ($Retained -and [IO.File]::ReadAllText($Path) -cne $Content) {
+        throw "Retained file contents changed for $Case at $Path"
+    }
+}
 try {
     foreach ($mode in $expected.cases) {
         if ($SilentOnly -and $mode -eq 'interactive') { continue }
@@ -68,12 +79,23 @@ try {
         [IO.File]::WriteAllText((Join-Path $productDataPath 'state.txt'), 'product data')
         [IO.File]::WriteAllText((Join-Path $userDataPath 'Local State'), 'chromium profile')
         [IO.File]::WriteAllText((Join-Path $cachePath 'download.txt'), 'update')
+        [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($partitionFile)) | Out-Null
+        [IO.File]::WriteAllText($partitionFile, 'browser storage')
         Copy-Item -LiteralPath (Join-Path $installPath ('Uninstall ' + $ProductName + '.exe')) -Destination $uninstaller -Force
+        $uninstallCommand = $uninstaller
         $arguments = '_?=' + $installPath
-        if ($mode -in @('silent', 'home-inside', 'home-alias', 'home-invalid', 'official-home-inside')) { $arguments = '/S ' + $arguments }
+        if ($mode -in @('silent', 'purge')) {
+            $uninstallCommand = Join-Path $installPath ('Uninstall ' + $ProductName + '.exe')
+            $arguments = '/S'
+            if ($mode -eq 'purge') { $arguments += ' /DELETE_APP_DATA=1' }
+        }
+        if ($mode -in @('home-inside', 'home-alias', 'home-invalid', 'official-home-inside')) {
+            $arguments = '/S /DELETE_APP_DATA=1 ' + $arguments
+        }
+        if ($mode -eq 'purge-lookalike') { $arguments = '/S /DELETE_APP_DATA=10 "/NOTE=/DELETE_APP_DATA=1" ' + $arguments }
         # electron-builder's installUtil.nsh runs an older uninstaller with exactly these flags when replacing it.
-        if ($mode -eq 'upgrade') { $arguments = '/S /KEEP_APP_DATA --updated /currentuser ' + $arguments }
-        if ($mode -eq 'replaced') { $arguments = '/S /KEEP_APP_DATA /currentuser ' + $arguments }
+        if ($mode -eq 'upgrade') { $arguments = '/S --updated /currentuser /DELETE_APP_DATA=1 ' + $arguments }
+        if ($mode -eq 'replaced') { $arguments = '/S /KEEP_APP_DATA /currentuser /DELETE_APP_DATA=1 ' + $arguments }
         $env:DSH_UNCENSORED_HOME = $homePath
         $env:DSH_HOME = $officialHomePath
         if ($mode -eq 'official-home-inside') { $env:DSH_HOME = Join-Path $userDataPath 'official-home' }
@@ -85,7 +107,7 @@ try {
             New-Item -ItemType Junction -Path $aliasPath -Target $targetHome | Out-Null
             $env:DSH_UNCENSORED_HOME = $aliasPath
         }
-        $process = Start-Process -FilePath $uninstaller -ArgumentList $arguments -PassThru -WindowStyle ($(if ($mode -eq 'interactive') { 'Normal' } else { 'Hidden' }))
+        $process = Start-Process -FilePath $uninstallCommand -ArgumentList $arguments -PassThru -WindowStyle ($(if ($mode -eq 'interactive') { 'Normal' } else { 'Hidden' }))
         if ($mode -eq 'interactive') {
             $welcomeText = $copy.welcome
             $welcome = Wait-Text $welcomeText
@@ -97,16 +119,17 @@ try {
             [InstallerCapture]::Click([InstallerCapture]::GetDlgItem($window, 1))
         }
         Wait-Exit
-        $retained = $mode -in @('upgrade', 'replaced', 'home-alias', 'home-invalid')
+        $retained = $mode -in @('interactive', 'silent', 'purge-lookalike', 'upgrade', 'replaced', 'home-alias', 'home-invalid')
         # An internal DSHU home protects its directory; unknown home mappings preserve all data candidates.
         $userDataRetained = $retained -or $mode -in @('home-inside', 'official-home-inside')
         if ([IO.File]::ReadAllText((Join-Path $externalPath 'keep.txt')) -ne 'outside data root') { throw 'Cleanup followed a junction into a project' }
-        if (-not (Test-Path (Join-Path $homePath 'session.txt'))) { throw "Harness home retention failed: $mode" }
-        if ([IO.File]::ReadAllText((Join-Path $officialHomePath 'session.txt')) -ne 'keep official session') { throw "Official home retention failed: $mode" }
-        if ((Test-Path (Join-Path $productDataPath 'state.txt')) -ne $retained) { throw "Product data retention failed: $mode" }
-        if ((Test-Path (Join-Path $userDataPath 'Local State')) -ne $userDataRetained) { throw "Electron user data retention failed: $mode" }
+        Assert-SeededFile (Join-Path $homePath 'session.txt') 'keep session' $true $mode
+        Assert-SeededFile (Join-Path $officialHomePath 'session.txt') 'keep official session' $true $mode
+        Assert-SeededFile (Join-Path $productDataPath 'state.txt') 'product data' $retained $mode
+        Assert-SeededFile $partitionFile 'browser storage' $retained $mode
+        Assert-SeededFile (Join-Path $userDataPath 'Local State') 'chromium profile' $userDataRetained $mode
         if ((Test-Path -LiteralPath $scopePath) -ne $userDataRetained) { throw "Package scope directory retention failed: $mode" }
-        if ((Test-Path (Join-Path $cachePath 'download.txt')) -ne $retained) { throw "Update cache retention failed: $mode" }
+        Assert-SeededFile (Join-Path $cachePath 'download.txt') 'update' $retained $mode
         Write-Output "passed: $mode"
     }
 } finally {

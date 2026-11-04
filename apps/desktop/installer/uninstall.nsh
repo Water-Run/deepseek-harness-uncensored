@@ -1,4 +1,4 @@
-; Electron user data and updater downloads leave with the application; the Harness home is never touched.
+; Uninstall retains the profile by default. Explicit cleanup is limited to Electron data and updater downloads.
 !include FileFunc.nsh
 Var UnTarget
 Var UnHome
@@ -19,6 +19,11 @@ Function un.CleanData
   ClearErrors
   ${GetOptions} $R0 "/KEEP_APP_DATA" $R1
   ${IfNot} ${Errors}
+    Return
+  ${EndIf}
+  StrCpy $R1 0
+  System::Call '$PLUGINSDIR\window-frame.dll::UninstallDeleteAppDataRequested() i.R1 ?c'
+  ${If} $R1 != 1
     Return
   ${EndIf}
   ; Match the independent DSHU launcher; the official DSH_HOME is not this product's data root.

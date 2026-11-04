@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## Windows 卸载默认保留用户资料（2026-11-04）
+
+02.12 已定位旧卸载器的 Electron 文件变化。普通 `/S` 会进入产品数据清理，旧版只有 `--updated` 或 `/KEEP_APP_DATA` 会提前返回。新源码默认保留 Electron 用户资料和更新缓存，只有独立参数 `/DELETE_APP_DATA=1` 才请求清理，升级保留选项优先。已安装的 `8c57e48996` 仍使用旧卸载器，保留数据的参数为 `/S /KEEP_APP_DATA`。
+
+基于生产 NSIS 配置构建中英文隔离安装器，两套各 9 项静默用例通过，包括真实卸载器默认保留、显式清理、近似参数、升级和嵌套浏览器资料内容核对。另有 19 项定向构建测试通过。日志为 `uninstall-default-profile-final-20261104.log` 和 `uninstall-default-packaging-tests-20261104.log`。修复等待下一实包。
+
 ## Windows 本机更新完成（2026-11-04）
 
 系统 DSHU 已更新至 `8c57e4899632d8ed3e2265fc618554041e0b7717`。实际安装器 SHA-256 `ca00705885c719054096c473c2e5dc3aefe41bb862914cd7739c377d4debf516`，回执为 `.dsh-build/deliverables/DSHU-20261104-8c57e4-manifest.json`。实际解包验证四模式、长路径终端、三种浏览器、侧栏路由及余额与 MCP 构建内容。装机后核对程序哈希，并通过隔离的四模式、新会话及子进程测试。

@@ -8,6 +8,7 @@
 #include <commctrl.h>
 #include <dwmapi.h>
 #include <gdiplus.h>
+#include <shellapi.h>
 #include <new>
 #include <algorithm>
 #include "progress.h"
@@ -63,6 +64,19 @@ extern "C" __declspec(dllexport) int __cdecl InstallerReportExtractFailure(
     } catch (const std::bad_alloc&) {
         return 0;
     }
+}
+
+// Require a standalone cleanup argument. A value embedded in another argument cannot authorize removal.
+extern "C" __declspec(dllexport) int __cdecl UninstallDeleteAppDataRequested() {
+    int count = 0;
+    LPWSTR* arguments = CommandLineToArgvW(GetCommandLineW(), &count);
+    if (arguments == nullptr) return 0;
+    bool requested = false;
+    for (int index = 1; index < count; ++index) {
+        if (lstrcmpiW(arguments[index], L"/DELETE_APP_DATA=1") == 0) requested = true;
+    }
+    LocalFree(arguments);
+    return requested ? 1 : 0;
 }
 
 // Returns a Win32 error code; no cleanup request may traverse a linked root or touch the protected root.

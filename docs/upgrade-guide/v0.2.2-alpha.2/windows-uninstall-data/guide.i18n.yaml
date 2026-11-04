@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.2-alpha.2/windows-uninstall-data/guide.md
+/:
+  en: c8fcee0a99e9985d
+  zh: 9d7f95c67f33ee3d
+/windows-uninstall-retains-user-data:
+  en: d193b7d50fb0c214
+  zh: 501a4844eb0add61
+/windows-uninstall-retains-user-data/change:
+  en: 092908a00a9ace63
+  zh: 577503e199e3d135
+/windows-uninstall-retains-user-data/migration:
+  en: f979bc6340d535d8
+  zh: fa34d366c76a089f

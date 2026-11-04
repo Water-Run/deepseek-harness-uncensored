@@ -1,3 +1,3 @@
 {
-  "cases": ["interactive", "silent", "upgrade", "replaced", "home-inside", "home-alias", "home-invalid", "official-home-inside"]
+  "cases": ["interactive", "silent", "purge", "purge-lookalike", "upgrade", "replaced", "home-inside", "home-alias", "home-invalid", "official-home-inside"]
 }
