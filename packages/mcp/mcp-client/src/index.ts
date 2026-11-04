@@ -22,6 +22,7 @@ import type { ConnectionHandle } from './connection.ts'
 import type { McpExecutionLease } from './execution.ts'
 import { registerServerContext } from './server-context.ts'
 import { reserveServerName } from './namespaces.ts'
+import { createMcpRouting, type McpRouting } from './routing.ts'
 // Side-effect type import: declaration-merges `ctx.tools` onto Context.
 import type {} from '@deepseek-ai/dsh-tools'
 
@@ -148,7 +149,7 @@ export const Config = z.union([
  * @returns startup readiness after connection and initial tool discovery settle.
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
-  await mountMcpClient(ctx, config, undefined)
+  await startMcpClient(ctx, config, undefined, createMcpRouting(ctx, config)).ready
 }
 
 /** One mounted MCP supervisor, including startup and verified native shutdown. */
@@ -180,11 +181,18 @@ export async function mountMcpClient(ctx: Context, config: Config, execution: Mc
  * @returns Startup readiness, verified shutdown and actual transport settlement.
  */
 export function createMcpClient(ctx: Context, config: Config, execution: McpExecutionLease | undefined): McpClientLifetime {
+  return startMcpClient(ctx, config, execution)
+}
+
+function startMcpClient(ctx: Context, config: Config, execution: McpExecutionLease | undefined, routing?: McpRouting): McpClientLifetime {
   let connection: ConnectionHandle | undefined = undefined
   let stopping: Promise<void> | undefined
   const dispose = (): Promise<void> => stopping ??= (async () => {
     execution?.signal.removeEventListener('abort', revoke)
-    if (execution === undefined) await connection?.dispose()
+    if (execution === undefined) {
+      try { await routing?.close() }
+      finally { await connection?.dispose() }
+    }
     else {
       if (connection === undefined) execution.release()
       else {
@@ -209,7 +217,8 @@ export function createMcpClient(ctx: Context, config: Config, execution: McpExec
   // The supervisor owns the client/transport generations, the reconnect
   // loop, and the live tool registrations; disposal stops reconnection,
   // quiesces in-flight work, and unregisters the current generation.
-  connection = startConnection(ctx, config, reconnect, execution)
+  connection = startConnection(ctx, config, reconnect, execution,
+    routing === undefined ? undefined : { selectConnection: routing.select })
   registerServerContext(ctx, config.serverName, connection)
   // Cordis announces unload before awaiting an unfinished apply(). Closing
   // the transport here releases startup requests that are still awaiting a reply.

@@ -8,6 +8,8 @@
     "src"
   ],
   "references": [
+    { "path": "../../core/agent" },
+    { "path": "../../guard/security-proxy" },
     {
       "path": "../../../vendor/cosmokit"
     },

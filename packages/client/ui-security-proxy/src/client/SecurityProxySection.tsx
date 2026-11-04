@@ -317,6 +317,8 @@ function Coverage({ state, t }: { state: SecurityProxyState | null; t: SecurityP
     </ul>
     {rows.some(row => row.id === 'browser' && row.code !== 'uncovered')
       && <p className={css.hint}>{t('securityProxy.coverage.browserHint')}</p>}
+    {rows.some(row => row.id === 'mcp' && row.code === 'partial')
+      && <p className={css.hint}>{t('securityProxy.coverage.mcpHint')}</p>}
   </div>
 }
 

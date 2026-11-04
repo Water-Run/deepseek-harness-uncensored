@@ -47,7 +47,7 @@ const STATE: SecurityProxyState = {
     { id: 'web_fetch', code: 'captured' },
     { id: 'shell', code: 'partial' },
     { id: 'browser', code: 'partial' },
-    { id: 'mcp', code: 'uncovered' },
+    { id: 'mcp', code: 'partial' },
     { id: 'model_api', code: 'uncovered' },
   ],
 }
@@ -234,8 +234,9 @@ describe('settings surface', () => {
     expect(screen.getByText(en['securityProxy.title'])).toBeTruthy()
     expect(screen.getByText(en['securityProxy.status.ready'])).toBeTruthy()
     expect(screen.getByText(en['securityProxy.coverage.captured'])).toBeTruthy()
-    expect(screen.getAllByText(en['securityProxy.coverage.uncovered'])).toHaveLength(2)
+    expect(screen.getAllByText(en['securityProxy.coverage.uncovered'])).toHaveLength(1)
     expect(screen.getByText(en['securityProxy.coverage.browserHint'])).toBeTruthy()
+    expect(screen.getByText(en['securityProxy.coverage.mcpHint'])).toBeTruthy()
     expect(screen.getAllByText('web_fetch').length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: `GET ${FLOW.target}` })).toBeTruthy()
   })

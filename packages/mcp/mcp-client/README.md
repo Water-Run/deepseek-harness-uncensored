@@ -82,6 +82,8 @@ The model sees each tool under a stable server-qualified name: `mcp__<serverName
 
 ### Calling tools and reading results
 
+With the independent proxy enabled, a Security session uses a private connection for tools and resource requests. Streamable HTTP uses the session relay directly. Stdio servers receive the relay's proxy variables and must honor them for outbound traffic. Startup discovery uses the application route and must succeed before the server's tools become available. Private tool definitions and server instructions must match the shared catalog before the call can run.
+
 When the model calls an MCP tool, the call runs against the remote server with a per-call timeout (default 60 seconds) and can be cancelled like any other tool call. The result comes back as ordinary text in block order; resource links appear as text with their name and URI. If the server reports an error, the call fails visibly — the model does not see a fake success.
 
 Images are supported when the current model accepts image input and the harness attachment feature is enabled; they then appear in the conversation like other images. Otherwise — and for audio or embedded resources — the model sees a clear diagnostic message instead of nothing.

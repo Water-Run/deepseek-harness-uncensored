@@ -68,7 +68,9 @@ export async function startLocalProxy(targets?: LocalProxyTargets): Promise<Loca
       response.end()
       return
     }
-    const upstream = httpRequest(parsed, { method: request.method }, (upstreamResponse) => {
+    const headers = { ...request.headers }
+    delete headers['proxy-authorization']
+    const upstream = httpRequest(parsed, { method: request.method, headers }, (upstreamResponse) => {
       response.writeHead(upstreamResponse.statusCode ?? 502, upstreamResponse.headers)
       upstreamResponse.pipe(response)
     })

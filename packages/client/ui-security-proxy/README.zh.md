@@ -27,13 +27,15 @@ kind: "package-reference"
 
 Web 应用以浏览器行加载，无需另行安装。该区域注册进 `settings.mode.materials`，也就是预设卡片下方的模式资料座；只有当前选中模式是 `security` 时才绘制。它使用的 Remote 命名空间是 [`@deepseek-ai/dsh-security-proxy-local`](../../guard/security-proxy-local/README.zh.md) 的 `securityProxy`。
 
------
-
-<a id="understand-the-implementation"></a>
 命令覆盖项包含一次性命令和持久 shell 终端，需由应用遵守代理环境变量；已捕获的 HTTP 与保持加密的 HTTPS 隧道分别标注。
 
 桌面原生页面在流量列表中标为「侧栏浏览器」。Web 内嵌页与附加的外部浏览器不使用此代理。
 
+MCP 覆盖项说明会话代理承载的 HTTP 工具和资源请求，以及传给 stdio 服务的代理环境变量。启动发现走应用路由。
+
+-----
+
+<a id="understand-the-implementation"></a>
 ## 理解实现
 
 <details>

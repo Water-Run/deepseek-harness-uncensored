@@ -748,10 +748,11 @@ function verifyMcpResources(log: string, ptc: boolean): void {
     expect(output).toMatch(/"binaryAvailable"\s*:\s*true/)
   }
   expect(log).not.toContain('bWNwLXJlc291cmNlLWJpbmFyeQ==')
-  expect(normalizedSystemPrompts(log, contextOf([log])).join('\n'))
-    .toContain('MCP_RESOURCE_INSTRUCTION: keep {{braces}} literal.')
-  expect(normalizedSystemPrompts(log, contextOf([log])).join('\n'))
-    .toContain('server argument: ["catalog"]')
+  const prompts = normalizedSystemPrompts(log, contextOf([log]))
+  const instructions = 'MCP_RESOURCE_INSTRUCTION: keep {{braces}} literal.'
+  expect(prompts.filter(prompt => prompt.includes(instructions)).length).toBeGreaterThan(0)
+  for (const prompt of prompts) expect(prompt.split(instructions).length).toBeLessThanOrEqual(2)
+  expect(prompts.join('\n')).toContain('server argument: ["catalog"]')
 }
 
 function verifyNoMcpServers(log: string, ptc: boolean): void {

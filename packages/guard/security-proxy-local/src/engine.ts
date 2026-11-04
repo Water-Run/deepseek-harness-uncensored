@@ -114,7 +114,7 @@ const COVERAGE: readonly SecurityProxyCoverage[] = [
   { id: 'web_fetch', code: 'captured' },
   { id: 'shell', code: 'partial' },
   { id: 'browser', code: 'partial' },
-  { id: 'mcp', code: 'uncovered' },
+  { id: 'mcp', code: 'partial' },
   { id: 'model_api', code: 'uncovered' },
 ]
 

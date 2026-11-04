@@ -20,12 +20,15 @@ export async function startHttpMcpFixture(): Promise<HttpMcpFixture> {
   const handler = createMcpHandler(() => {
     const mcp = new McpServer(
       { name: 'http-fixture', version: '1.0.0' },
-      { capabilities: { tools: {} } },
+      { capabilities: { tools: {}, resources: {} } },
     )
     mcp.registerTool('ping', { description: 'Replies pong.', inputSchema: z.object({}) }, async (): Promise<CallToolResult> => {
       calls.push('ping')
       return { content: [{ type: 'text', text: 'pong' }] }
     })
+    mcp.registerResource('routing', 'test://routing', { description: 'Owned resource' }, async () => ({
+      contents: [{ uri: 'test://routing', text: 'routed resource body' }],
+    }))
     return mcp
   })
   const handle = toNodeHandler(handler)

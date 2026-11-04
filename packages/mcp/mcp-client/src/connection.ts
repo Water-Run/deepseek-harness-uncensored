@@ -15,13 +15,15 @@
  * @module
  */
 
-import { Client, type Transport } from '@modelcontextprotocol/client'
+import { Client, type Tool, type Transport } from '@modelcontextprotocol/client'
+import { isDeepStrictEqual } from 'node:util'
 import type { Context } from '@deepseek-ai/cordis'
+import type { ToolExecution } from '@deepseek-ai/dsh-tools'
 import { assertNever, type JsonValue } from '@deepseek-ai/dsh-util-values'
 import type { ServerContext } from './server-context.ts'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
-import { createTransport } from './transport.ts'
+import { createTransport, type McpTransportOptions } from './transport.ts'
 import { syncTools } from './tools.ts'
 import type { ToolBridgeOptions, ToolDisposers } from './tools.ts'
 import type { Config } from './index.ts'
@@ -109,6 +111,8 @@ export interface ConnectionHandle extends ServerContext {
    * whether a failed startup is fatal via `failOnStartupError`.
    */
   ready: Promise<ConnectionOutcome>
+  /** Invoke a private connection only with the same definition advertised to the caller. */
+  callCatalogTool(tool: Tool, args: Record<string, unknown>, execution: ToolExecution): Promise<unknown>
   /**
    * Stop reconnection, close the negotiating transport or live client, wait
    * for the in-flight attempt and queued tool syncs to quiesce, then
@@ -121,6 +125,14 @@ export interface ConnectionHandle extends ServerContext {
   whenClosed(): Promise<void>
 }
 
+/** Connection-local routing and registration policy. */
+export interface McpConnectionOptions {
+  /** Discover tool definitions without replacing the shared model-visible registrations. */
+  readonly catalogOnly?: true
+  readonly transport?: McpTransportOptions
+  readonly selectConnection?: (execution: ToolExecution) => Promise<ConnectionHandle | undefined> | undefined
+}
+
 /**
  * Start the supervised connection for one MCP server and keep it alive per
  * the reconnect policy.
@@ -129,16 +141,24 @@ export interface ConnectionHandle extends ServerContext {
  * @param config - Resolved plugin config selecting the transport and server identity.
  * @param policy - Resolved reconnect policy from {@link resolveReconnectPolicy}.
  * @param execution - Optional executor checks and revocation signal for every generation and request.
+ * @param options - Private transport and routing configuration for this supervisor.
  * @returns Handle with a `ready` promise for startup-await and a `dispose` for teardown.
  */
 export function startConnection(
   ctx: Context, config: Config, policy: ResolvedReconnectPolicy, execution?: McpExecutionPolicy,
+  options?: McpConnectionOptions,
 ): ConnectionHandle {
   const label = `mcp-client(${config.serverName})`
   const incompleteDisposalMessage = `${label}: transport closure could not be confirmed during disposal — server shutdown may be incomplete; `
     + 'inspect the server process and restart the Host before retrying'
   const opts: ToolBridgeOptions = {
     ...execution === undefined ? {} : { execution },
+    ...options?.selectConnection === undefined ? {} : { routedCall: (tool, args, exec, direct) =>
+      options.selectConnection?.(exec)?.then((connection) => {
+        if (connection === undefined) return direct()
+        assertInstructions(connection)
+        return connection.callCatalogTool(tool, args, exec)
+      }) },
     registrationFailure: 'contain',
     serverName: config.serverName,
     toolCallTimeoutMs: config.toolCallTimeoutMs,
@@ -153,12 +173,18 @@ export function startConnection(
   let disposed = false
   const maxInstructionBytes = config.maxInstructionBytes ?? DEFAULT_MAX_INSTRUCTION_BYTES
   let serverInstructions = ''
+  function assertInstructions(connection: ConnectionHandle): void {
+    if (connection.instructions() !== serverInstructions) {
+      throw new Error(`${label}: independent connection instructions differ from the shared catalog; reload the MCP plugin`)
+    }
+  }
   /** Current generation: the connecting or connected client; undefined during backoff waits and after final failure. */
   let client: Client | undefined
   /** Transport-aware close operation paired with {@link client}. */
   let closeClient: (() => Promise<boolean>) | undefined
   /** Live tool registrations owned by this server; only {@link enqueueSync} and dispose swap it. */
   let disposers: ToolDisposers = new Map()
+  let catalog = new Map<string, Tool>()
   let reconnectTimer: NodeJS.Timeout | undefined
   /** Consecutive failed connection attempts within the current outage. */
   let failedAttempts = 0
@@ -182,7 +208,16 @@ export function startConnection(
   function enqueueSync(generation: Client, syncOpts: ToolBridgeOptions = opts): Promise<void> {
     const run = syncChain.then(async () => {
       if (!isCurrent(generation)) return
-      disposers = await syncTools(generation, ctx, syncOpts, disposers)
+      if (options?.catalogOnly) {
+        const tools = generation.getServerCapabilities()?.tools === undefined ? [] : (await generation.listTools(undefined, {
+          cacheMode: 'refresh', ...execution === undefined ? {} : { signal: execution.signal },
+        })).tools
+        const next = new Map(tools.map(tool => [tool.name, tool]))
+        if (next.size !== tools.length) throw new Error(`${label}: duplicate tool names in the private catalog`)
+        if (isCurrent(generation)) catalog = next
+      } else {
+        disposers = await syncTools(generation, ctx, syncOpts, disposers)
+      }
     })
     // The chain tail must survive a failed sync; the enqueuing caller owns reporting.
     syncChain = run.catch(() => {})
@@ -324,7 +359,7 @@ export function startConnection(
     let instructions: string
     try {
       execution?.signal.throwIfAborted(); execution?.check()
-      transport = createTransport(config)
+      transport = createTransport(config, options?.transport)
       await generation.connect(transport, execution === undefined ? undefined : { signal: execution.signal })
       if (hasClosed()) {
         attemptSettled = true
@@ -382,13 +417,34 @@ export function startConnection(
 
   return {
     ready,
+    async callCatalogTool(tool, args, exec): Promise<unknown> {
+      const generation = client
+      if (generation === undefined || connectedAt === undefined) throw new Error(`${label}: private connection is not ready`)
+      const actual = catalog.get(tool.name)
+      if (actual === undefined || !isDeepStrictEqual(actual, tool)) {
+        throw new Error(`${label}: private connection returned a different definition for ${tool.name}; reload the MCP plugin`)
+      }
+      execution?.signal.throwIfAborted(); execution?.check()
+      return generation.callTool({ name: actual.name, arguments: args }, {
+        signal: execution === undefined ? exec.signal : AbortSignal.any([exec.signal, execution.signal]),
+        timeout: config.toolCallTimeoutMs, toolDefinition: actual,
+      })
+    },
     instructions: () => serverInstructions,
     resources: {
       async request(request, exec): Promise<JsonValue> {
+        const selected = options?.selectConnection?.(exec)
+        if (selected !== undefined) {
+          const routed = await selected
+          if (routed !== undefined) {
+            assertInstructions(routed)
+            return routed.resources.request(request, exec)
+          }
+        }
         const generation = client
         if (!generation || connectedAt === undefined) throw new Error(`${label}: server is disconnected`)
         execution?.signal.throwIfAborted(); execution?.check()
-        const options = { signal: execution === undefined ? exec.signal : AbortSignal.any([exec.signal, execution.signal]),
+        const requestOptions = { signal: execution === undefined ? exec.signal : AbortSignal.any([exec.signal, execution.signal]),
           timeout: config.toolCallTimeoutMs }
         // The SDK answers an unadvertised capability with the same empty page, but
         // writes a console.debug line to stdout, which the ACP profile reserves for JSON-RPC.
@@ -397,17 +453,17 @@ export function startConnection(
           case 'resources/list':
             return listable
               ? await generation.listResources(
-                request.cursor === undefined ? undefined : { cursor: request.cursor }, options,
+                request.cursor === undefined ? undefined : { cursor: request.cursor }, requestOptions,
               ) as JsonValue
               : { resources: [] }
           case 'resources/templates/list':
             return listable
               ? await generation.listResourceTemplates(
-                request.cursor === undefined ? undefined : { cursor: request.cursor }, options,
+                request.cursor === undefined ? undefined : { cursor: request.cursor }, requestOptions,
               ) as JsonValue
               : { resourceTemplates: [] }
           case 'resources/read':
-            return await generation.readResource({ uri: request.uri }, options) as JsonValue
+            return await generation.readResource({ uri: request.uri }, requestOptions) as JsonValue
           /* v8 ignore next 2 -- resource requests are the closed, typed tool operation union */
           default:
             return assertNever(request)

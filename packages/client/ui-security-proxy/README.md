@@ -31,6 +31,8 @@ The shell coverage row includes one-shot commands and persistent shell terminals
 
 Native desktop pages appear as Sidebar browser in the traffic list. Web iframes and attached external browsers do not use this proxy.
 
+The MCP coverage row describes session-routed HTTP tools and resources and proxy variables for stdio servers. The application route handles startup discovery.
+
 -----
 
 <a id="understand-the-implementation"></a>

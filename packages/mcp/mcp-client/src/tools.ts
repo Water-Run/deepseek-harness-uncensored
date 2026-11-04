@@ -14,7 +14,7 @@
 
 import { createHash } from 'node:crypto'
 import { isDeepStrictEqual } from 'node:util'
-import { specTypeSchemas, type Client, type ImageContent } from '@modelcontextprotocol/client'
+import { specTypeSchemas, type Client, type ImageContent, type Tool } from '@modelcontextprotocol/client'
 import type { Context } from '@deepseek-ai/cordis'
 import { isImageAdmissionError } from '@deepseek-ai/dsh-attachment'
 import type { AttachmentStore, ImageAttachmentRef, ImageMediaType, SaveImageAttachment } from '@deepseek-ai/dsh-attachment'
@@ -29,6 +29,10 @@ import type { McpExecutionPolicy } from './execution.ts'
 export interface ToolBridgeOptions {
   /** Explicit executor checks for discovery and calls, independent of server annotations. */
   execution?: McpExecutionPolicy
+  /** Resolve the caller's independent connection when this tool is dispatched. */
+  routedCall?: (
+    tool: Tool, args: Record<string, unknown>, execution: ToolExecution, direct: () => Promise<unknown>,
+  ) => Promise<unknown> | undefined
   /** Whether a registry conflict is contained or rejects this synchronization. */
   registrationFailure: 'contain' | 'throw'
   serverName: string
@@ -141,10 +145,11 @@ export async function syncTools(
       taskRequired: tool.execution?.taskSupport === 'required',
       call: (args, execution) => {
         opts.execution?.signal.throwIfAborted(); opts.execution?.check()
-        return client.callTool({ name: tool.name, arguments: args }, {
+        const direct = () => client.callTool({ name: tool.name, arguments: args }, {
           signal: opts.execution === undefined ? execution.signal : AbortSignal.any([execution.signal, opts.execution.signal]),
           timeout: opts.toolCallTimeoutMs, toolDefinition: tool,
         })
+        return opts.routedCall?.(tool, args, execution, direct) ?? direct()
       },
     }))
   }
