@@ -13,6 +13,7 @@ import {
   assertPositiveFinite,
   NO_START_CAPABILITIES,
   assertUsableCwd,
+  resolveSubagentEnvironment,
   type ResolvedSubagentStartRequest,
   type SubagentCapabilities,
   type SubagentProvider,
@@ -70,7 +71,7 @@ class CodexProvider implements SubagentProvider {
     private readonly config: ResolvedConfig,
   ) {}
 
-  start(request: ResolvedSubagentStartRequest) {
+  async start(request: ResolvedSubagentStartRequest) {
     let cwd: string
     try {
       cwd = assertUsableCwd('subagent-codex', 'child cwd', request.cwd)
@@ -86,7 +87,7 @@ class CodexProvider implements SubagentProvider {
       cwd,
       ...this.config.model === undefined ? {} : { model: this.config.model },
       permissionMode: this.config.permissionMode,
-      env: this.config.env,
+      env: await resolveSubagentEnvironment(this.ctx, request, this.name, this.config.env),
       disposeGraceMs: this.config.disposeGraceMs,
       spawn: spawnSpec => this.ctx.subprocess.spawn(spawnSpec),
       onError: (error, stopReason) => {

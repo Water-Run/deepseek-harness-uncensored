@@ -97,7 +97,7 @@ kind: "package-reference"
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **覆盖范围** —— 接入 `web_fetch`、遵守代理变量的命令和终端、桌面侧栏，以及新启动的 Playwright MCP、Chrome DevTools MCP 和 Stagehand。所有者的侧栏端点由 Host 解析实际 Agent，路由或模式变化后受影响的标签会重连。普通 MCP 工具与资源请求通过 Streamable HTTP 或 stdio 代理变量接入会话代理。启动发现、Web 内嵌页、外部附加连接和外部委派走各自的路由。修改路由后须重建实验浏览器会话。Stagehand 扩展请求随浏览器代理，应用模型路由独立。
+- **覆盖范围** —— 接入 `web_fetch`、遵守代理变量的命令和终端、桌面侧栏，以及新启动的 Playwright MCP、Chrome DevTools MCP 和 Stagehand。所有者的侧栏端点由 Host 解析实际 Agent，路由或模式变化后受影响的标签会重连。普通 MCP 工具与资源请求通过 Streamable HTTP 或 stdio 代理变量接入会话代理。新启动的 ACP、Codex、Claude Code 和 DSH SDK 委派接收父会话代理变量。启动发现、Web 内嵌页和外部浏览器附加连接走各自的路由。修改路由后须重建实验浏览器会话。Stagehand 扩展请求随浏览器代理，应用模型路由独立。
 - **不做拦截** —— 子进程承载的 HTTPS 正文保持加密。只有本应用自己写出的明文会被捕获。
 - **回环信任** —— 每个会话监听绑定 `127.0.0.1` 与系统分配的端口，本地不做身份验证；监听打开期间，同机其他进程也能使用。它随对话、设置变更与 Host 退出关闭。
 - **记录生命周期** —— 流量只存在内存中，重启即丢失。保留受条数、正文字节与时间三重限制。

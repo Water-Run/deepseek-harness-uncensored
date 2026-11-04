@@ -48,6 +48,7 @@ const STATE: SecurityProxyState = {
     { id: 'shell', code: 'partial' },
     { id: 'browser', code: 'partial' },
     { id: 'mcp', code: 'partial' },
+    { id: 'delegates', code: 'partial' },
     { id: 'model_api', code: 'uncovered' },
   ],
 }
@@ -237,6 +238,7 @@ describe('settings surface', () => {
     expect(screen.getAllByText(en['securityProxy.coverage.uncovered'])).toHaveLength(1)
     expect(screen.getByText(en['securityProxy.coverage.browserHint'])).toBeTruthy()
     expect(screen.getByText(en['securityProxy.coverage.mcpHint'])).toBeTruthy()
+    expect(screen.getByText(en['securityProxy.coverage.delegatesHint'])).toBeTruthy()
     expect(screen.getAllByText('web_fetch').length).toBeGreaterThan(0)
     expect(screen.getByRole('button', { name: `GET ${FLOW.target}` })).toBeTruthy()
   })

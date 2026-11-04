@@ -1,5 +1,6 @@
 import { mountWorkingDirectoryFixture } from '../../subagent/tests/working-directory-fixture.ts'
 import { startExternalActivation } from '../../subagent/tests/external-activation-helpers.ts'
+import { setupExternalProxy } from '../../subagent/tests/external-proxy-fixture.ts'
 import { execFile } from 'node:child_process'
 import {
   existsSync,
@@ -292,6 +293,19 @@ function startRequest(
 describe('real Claude Agent SDK 0.3.263 and its distributed Claude Code 2.1.263 fixture', {
   timeout: 60_000,
 }, () => {
+  it('routes the real SDK-spawned CLI through the parent Security proxy', async () => {
+    const answer = 'PROXIED_CLAUDE_RESPONSE'
+    const { harness, fixture } = await realHarness({ kind: 'complete', text: answer })
+    const { parent } = await setupExternalProxy(harness.ctx, harness.workspace, fixture.baseUrl)
+    const run = await startRequest({ ...harness, parent }, 'Return the local response.', AbortSignal.timeout(15_000))
+    try {
+      expect(await run.result).toMatchObject({ output: [{ type: 'text', text: answer }], stopReason: 'completed' })
+    } finally { await run.dispose() }
+    const { flows } = await harness.ctx.securityProxy.list({})
+    expect(flows.some(flow => flow.sessionId === parent.id
+      && flow.tool === 'subagent:claude-code' && flow.responseBytes > 0)).toBe(true)
+  })
+
   it('inherits host settings and sends the exact task and fake key to local Messages', async () => {
     const sentinel = 'REAL_CLAUDE_CODE_SENTINEL_2_1_237'
     const task = 'Return the fixture sentinel exactly.'

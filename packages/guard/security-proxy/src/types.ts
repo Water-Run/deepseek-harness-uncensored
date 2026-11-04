@@ -63,7 +63,7 @@ export interface SecurityProxySettings {
 /** One tool's real coverage, so the surface never claims more than it delivers. */
 export interface SecurityProxyCoverage {
   /** Stable tool family id; the Client localizes it. */
-  readonly id: 'web_fetch' | 'shell' | 'browser' | 'mcp' | 'model_api'
+  readonly id: 'web_fetch' | 'shell' | 'browser' | 'mcp' | 'delegates' | 'model_api'
   /** How far this proxy reaches that family. */
   readonly code: SecurityProxyCoverageCode
 }

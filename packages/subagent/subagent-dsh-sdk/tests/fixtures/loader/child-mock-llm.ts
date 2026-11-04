@@ -48,9 +48,16 @@ class RouteEchoAdapter extends LlmAdapter {
         await setTimeout(10)
       }
     }
-    const reply = failure
+    const target = process.env.DSH_TEST_CHILD_PROXY_TARGET
+    let targetReply: string | undefined
+    if (target !== undefined) {
+      const response = await fetch(target, { signal: AbortSignal.timeout(5_000) })
+      if (!response.ok) throw new Error(`local proxy fixture returned HTTP ${response.status}`)
+      targetReply = await response.text()
+    }
+    const reply = targetReply ?? (failure
       ? 'partial child loader answer'
-      : `child route: mock/mock-routed/max/777; cwd: ${process.cwd()}`
+      : `child route: mock/mock-routed/max/777; cwd: ${process.cwd()}`)
     yield { type: 'block-start', index: 0, blockType: 'text' }
     yield { type: 'text-delta', index: 0, text: reply }
     yield { type: 'block-end', index: 0, block: { type: 'text', text: reply } }

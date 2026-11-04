@@ -29,6 +29,8 @@ Each start accepts an optional `cwd`; relative paths resolve against the parent'
 
 This package is the contract every delegation setup shares. You enable it by mounting the service together with one or more provider backends and the model-facing delegation tool; from then on, an agent can delegate work and the service routes each request to the named provider.
 
+With the independent proxy enabled for the parent Security session, the ACP, Codex, Claude Code, and DSH SDK providers supply the session relay's proxy variables to each new child process. The relay takes precedence over configured proxy variables for that launch. Capture is attributed to the parent session and provider. Traffic is routed when the delegate honors those variables. Other configured child variables still apply. The DSH SDK child keeps its profile's loopback bypass for local connections.
+
 ### Enabling delegation
 
 Mount the service with `@deepseek-ai/dsh-session-projection`, a provider, and the delegation tool; the service waits for the projection registry before initializing. The provider registers under its configured name; each tool row selects one provider. A minimal setup:

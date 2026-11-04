@@ -16953,6 +16953,9 @@ importers:
       '@deepseek-ai/dsh-scope':
         specifier: workspace:*
         version: link:../../core/scope
+      '@deepseek-ai/dsh-security-proxy':
+        specifier: workspace:*
+        version: link:../../guard/security-proxy
       '@deepseek-ai/dsh-security-proxy-local':
         specifier: workspace:*
         version: link:../../guard/security-proxy-local
@@ -17023,12 +17026,18 @@ importers:
       '@deepseek-ai/dsh-app-boot':
         specifier: workspace:*
         version: link:../../boot/app-boot
+      '@deepseek-ai/dsh-credentials-local':
+        specifier: workspace:*
+        version: link:../../credentials/credentials-local
       '@deepseek-ai/dsh-llm':
         specifier: workspace:*
         version: link:../../llm/llm
       '@deepseek-ai/dsh-loader-smoke':
         specifier: workspace:*
         version: link:../../test-support/loader-smoke
+      '@deepseek-ai/dsh-security-proxy-local':
+        specifier: workspace:*
+        version: link:../../guard/security-proxy-local
       '@deepseek-ai/dsh-session':
         specifier: workspace:*
         version: link:../../core/session

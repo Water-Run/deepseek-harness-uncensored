@@ -1,5 +1,6 @@
 import { mountWorkingDirectoryFixture } from '../../subagent/tests/working-directory-fixture.ts'
 import { startExternalActivation } from '../../subagent/tests/external-activation-helpers.ts'
+import { setupExternalProxy } from '../../subagent/tests/external-proxy-fixture.ts'
 import { execFile } from 'node:child_process'
 import {
   cpSync,
@@ -212,6 +213,21 @@ function responseInputTexts(body: Record<string, unknown>): string[] {
 }
 
 describe('real @openai/codex 0.153.4 product', () => {
+  it('routes the real app-server through the parent Security proxy', async () => {
+    const answer = 'PROXIED_CODEX_RESPONSE'
+    const { harness, fixture } = await realHarness([{ kind: 'complete', text: answer }], 'approve-for-me')
+    const { parent } = await setupExternalProxy(harness.ctx, harness.workspace, fixture.baseUrl)
+    const run = await startExternalActivation(harness.ctx, 'codex', {
+      parent, prompt: [{ type: 'text', text: 'Return the local response.' }], signal: AbortSignal.timeout(15_000),
+    })
+    try {
+      expect(await run.result).toMatchObject({ output: [{ type: 'text', text: answer }], stopReason: 'completed' })
+    } finally { await run.dispose() }
+    const { flows } = await harness.ctx.securityProxy.list({})
+    expect(flows.some(flow => flow.sessionId === parent.id
+      && flow.tool === 'subagent:codex' && flow.responseBytes > 0)).toBe(true)
+  })
+
   it('starts approve-for-me through the real app-server and returns exact text', async () => {
     const sentinel = 'REAL_CODEX_SENTINEL_0_149_1'
     const task = 'Return the fixture sentinel exactly.'

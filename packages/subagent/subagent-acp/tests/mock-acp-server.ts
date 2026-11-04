@@ -1,12 +1,13 @@
 /**
  * A minimal mock ACP AGENT, run as a subprocess, for the keyless
  * `dsh-subagent-acp` tests. It speaks the agent side of ACP over stdio and is
- * fully scripted by environment variables — no model, no network:
+ * fully scripted by environment variables without a model:
  *
  * - `MOCK_TEXT`        — the assistant text it streams as one `agent_message_chunk`.
  * - `MOCK_ECHO_ENV`    — if set to a variable NAME, stream that variable's value
  *                        (or `<NAME unset>`) instead of MOCK_TEXT — asserts what
  *                        environment actually reached the child process.
+ * - `MOCK_FETCH_URL`   — stream a response from the test's local HTTP fixture.
  * - `MOCK_STOP`        — the ACP `StopReason` it returns from `prompt`
  *                        (`end_turn` default, or `max_tokens`/`refusal`/…).
  * - `MOCK_HANG`        — if `1`, `prompt` never resolves on its own (it waits for
@@ -190,11 +191,13 @@ function makeAgent() {
       }
       // Stream the canned assistant text as one chunk (or, under MOCK_ECHO_CWD,
       // the observable process cwd + announced session cwd).
+      const target = process.env.MOCK_FETCH_URL
+      const response = target === undefined ? TEXT : await (await fetch(target, { signal: AbortSignal.timeout(5_000) })).text()
       await conn.notify(methods.client.session.update, {
         sessionId: params.sessionId,
         update: {
           sessionUpdate: 'agent_message_chunk',
-          content: { type: 'text', text: ECHO_CWD ? `${process.cwd()}\n${sessionCwd ?? ''}` : TEXT },
+          content: { type: 'text', text: ECHO_CWD ? `${process.cwd()}\n${sessionCwd ?? ''}` : response },
         },
       })
       if (CRASH_AFTER_CHUNK) {

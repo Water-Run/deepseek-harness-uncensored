@@ -41,7 +41,7 @@ kind: "package-bundle"
 |---|---|---|
 | `providerName` | `claude-code` | `ctx.subagents` 上的非空注册名称；每个已挂载实例都需要唯一值 |
 | `model` | Claude 原生设置 | 为本提供方实例的每次运行固定的可选非空模型名称；省略时不发送 SDK 覆盖 |
-| `env` | `{}` | 叠加在已清理凭据的父环境之上的显式 SDK/CLI 环境 |
+| `env` | `{}` | 叠加在已清理凭据的父环境之上的显式 SDK/CLI 环境。[网安路由](../subagent/README.zh.md#use-this-package)优先设置代理变量。 |
 | `permissionMode` | `dontAsk` | 为本提供方实例的每次运行固定的原生非交互权限策略 |
 | `disposeGraceMs` | `3000` | 共享 managed-range owner 各终止层级之间的宽限 |
 

@@ -41,7 +41,7 @@ kind: "package-bundle"
 |---|---|---|
 | `providerName` | `codex` | `ctx.subagents` 上的非空注册名称；每个已挂载实例都需要唯一值 |
 | `model` | Codex 原生设置 | 为本提供方实例的每个线程固定的可选非空模型名称；省略时不发送 app-server 覆盖 |
-| `env` | `{}` | 叠加在已清理凭据的父环境之上的显式子进程环境 |
+| `env` | `{}` | 叠加在已清理凭据的父环境之上的显式子进程环境。[网安路由](../subagent/README.zh.md#use-this-package)优先设置代理变量。 |
 | `permissionMode` | `never` | 为本提供方实例的每个线程固定的原生非交互审批与沙箱模式 |
 | `disposeGraceMs` | `3000` | 共享 managed-range owner 各终止层级之间的宽限 |
 

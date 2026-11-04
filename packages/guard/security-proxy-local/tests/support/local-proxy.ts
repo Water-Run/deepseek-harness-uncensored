@@ -31,10 +31,12 @@ export interface LocalProxy {
   close(): Promise<void>
 }
 
-/** Destinations an isolated browser fixture owns. */
+/** Destinations an isolated proxy fixture owns. */
 export interface LocalProxyTargets {
   readonly origins: ReadonlySet<string>
   readonly tunnels: ReadonlySet<string>
+  /** Map an allowed host and port to the fixture's actual listener. */
+  readonly aliases?: ReadonlyMap<string, string>
 }
 
 /**
@@ -68,6 +70,8 @@ export async function startLocalProxy(targets?: LocalProxyTargets): Promise<Loca
       response.end()
       return
     }
+    const destination = targets?.aliases?.get(parsed.host)
+    if (destination !== undefined) parsed.host = destination
     const headers = { ...request.headers }
     delete headers['proxy-authorization']
     const upstream = httpRequest(parsed, { method: request.method, headers }, (upstreamResponse) => {
@@ -96,9 +100,10 @@ export async function startLocalProxy(targets?: LocalProxyTargets): Promise<Loca
       clientSocket.end('HTTP/1.1 403 Forbidden\r\n\r\n')
       return
     }
-    const separator = authority.lastIndexOf(':')
-    const host = authority.slice(0, separator).replace(/^\[|\]$/g, '')
-    const port = Number(authority.slice(separator + 1))
+    const endpoint = targets?.aliases?.get(authority) ?? authority
+    const separator = endpoint.lastIndexOf(':')
+    const host = endpoint.slice(0, separator).replace(/^\[|\]$/g, '')
+    const port = Number(endpoint.slice(separator + 1))
     const upstream = netConnect(port, host, () => {
       clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n')
       if (head.byteLength > 0) upstream.write(head)

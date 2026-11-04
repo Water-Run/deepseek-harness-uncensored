@@ -33,6 +33,8 @@ Native desktop pages appear as Sidebar browser in the traffic list. Web iframes 
 
 The MCP coverage row describes session-routed HTTP tools and resources and proxy variables for stdio servers. The application route handles startup discovery.
 
+The external delegate row covers proxy-aware child processes launched by ACP, Codex, Claude Code, and DSH SDK providers.
+
 -----
 
 <a id="understand-the-implementation"></a>

@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## 外部委派独立代理（2026-11-04）
+
+10.02 新启动的 ACP、Codex、Claude Code 和 DSH SDK 子进程取得真实父会话的代理，覆盖该子进程的显式代理配置。四个实际进程都向本地测试服务请求并验证父会话与提供方归属。ACP 还验证切回缺省后的直连。DSH SDK 保留既有本机回环直连规则，其测试用保留测试地址经代理映射至本机监听。冷启动超过十秒的环境可单独配置 SDK 握手时限。Windows ACP 回放的文件 URL 已修正，下一处差异是该平台专有的 ACL 技能提示事件。
+
+外部提供方是可选插件。已验收的 `4edde32c4e` 安装包包含通用 MCP 客户端和进程内委派组件，外部提供方的插件制品和安装路径仍待交付。验证日志为 `external-delegate-proxy-actual-20261104.log`、`external-delegate-proxy-native-20261104.log`、`external-delegate-proxy-sdk-e2e-verified2-20261104.log`。目标保护和审计联动继续按原编号保留。
+
 ## 余额提示框实包与普通 MCP 代理（2026-11-04）
 
 最新检查包为 `.dsh-build/deliverables/DSHU-0.1.0-core-0.2.2-alpha.2-REA-6.8.0-win-x64-unsigned-20261104-4edde3.exe`，395184113 字节，SHA-256 `f6338f3e90d370fa8c243965c4103e6d832a1887f02ba0a61884166a3c261312`。已从实际安装器验证源版本、完整运行时清单、四模式、新建会话、长路径终端、三种实验浏览器与侧栏 Host 路由，余额指针组件已核对在包内。一次重复检查在测试 Host 退出时超时，单独复核通过，失败记录保留。回执 `.dsh-build/deliverables/DSHU-20261104-4edde3-manifest.json`。已清除上一候选与本次重复产物，释放 3.72 GiB。系统仍为 `538f99e405`，待用户退出后备份并更新。

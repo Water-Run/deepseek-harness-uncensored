@@ -45,8 +45,9 @@ The provider advertises `agentOptions: true`, with `agentPreset`/`outputSchema`/
 | `provider` | `deepseek-official` | Provider route sent in the child's `initialize` |
 | `model` | `deepseek-v4-flash` | Model sent in the child's `initialize` |
 | `maxTokens` | adapter/provider route default | Per-request output-token cap sent in the child's `initialize` |
-| `env` | `{}` | Explicit child environment layered over the credential-scrubbed parent environment |
+| `env` | `{}` | Explicit child environment over the scrubbed parent environment. [Security routing](../subagent/README.md#use-this-package) takes precedence for proxy variables. |
 | `shutdownTimeoutMs` | `1000` | Bound on the protocol `shutdown` exchange during dispose |
+| `initializeTimeoutMs` | SDK default (`10000`) | Wait for the child profile's initial SDK handshake |
 | `disposeEofGraceMs` | `6000` | Grace after stdin EOF before platform termination |
 | `disposeGraceMs` | `3000` | Exit-confirmation grace after termination |
 

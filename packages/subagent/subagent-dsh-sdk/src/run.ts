@@ -55,6 +55,8 @@ export interface SdkRunSpec {
    * current `DSH_*` fact survives while ambient namesakes never leak.
    */
   env: Record<string, string>
+  /** Optional bound (ms) for the child's initial SDK handshake. */
+  initializeTimeoutMs?: number
   /** Bound (ms) on the protocol `shutdown` exchange during dispose. */
   shutdownTimeoutMs: number
   /** Grace period (ms) for the child's EOF-driven quiesce on dispose. */
@@ -241,6 +243,7 @@ export async function startSdkRun(request: SubagentStartRequest, spec: SdkRunSpe
     dshHome: spec.dshHome,
     processCwd: spec.cwd,
     env: { ...scrubbedParentEnv(), ...spec.env },
+    ...spec.initializeTimeoutMs === undefined ? {} : { initializeTimeoutMs: spec.initializeTimeoutMs },
     shutdownTimeoutMs: spec.shutdownTimeoutMs,
     disposeEofGraceMs: spec.disposeEofGraceMs,
     disposeGraceMs: spec.disposeGraceMs,

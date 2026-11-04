@@ -41,7 +41,7 @@ The layer inserts Host rows only, so any profile can select it, including the sh
 |---|---|---|
 | `providerName` | `codex` | Non-empty registry name on `ctx.subagents`; each mounted instance needs a unique value |
 | `model` | native Codex settings | Optional non-empty model name fixed for every thread from this provider instance; omission sends no app-server override |
-| `env` | `{}` | Explicit child environment layered over the credential-scrubbed parent environment |
+| `env` | `{}` | Explicit child environment over the scrubbed parent environment. [Security routing](../subagent/README.md#use-this-package) takes precedence for proxy variables. |
 | `permissionMode` | `never` | Native non-interactive approval and sandbox mode fixed for every thread from this provider instance |
 | `disposeGraceMs` | `3000` | Grace between the shared managed-range owner's termination tiers |
 

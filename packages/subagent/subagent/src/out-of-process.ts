@@ -12,8 +12,38 @@
 
 import { accessSync, constants, statSync } from 'node:fs'
 import { isAbsolute } from 'node:path'
+import type { Context } from '@deepseek-ai/cordis'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import type { SubagentCapabilities, SubagentResult, SubagentRun, SubagentStopReason } from './types.ts'
+import type {} from '@deepseek-ai/dsh-security-proxy'
+import type { ResolvedSubagentStartRequest, SubagentCapabilities, SubagentResult, SubagentRun, SubagentStopReason } from './types.ts'
+
+/**
+ * Resolve launch variables for a proxy-aware external delegate.
+ * @param ctx - Provider context with the optional security proxy.
+ * @param request - The authenticated parent Agent and launch cancellation signal.
+ * @param provider - Registry name shown on captured traffic.
+ * @param configured - Explicit child variables, including any child credentials.
+ * @returns Child variables for this launch, with proxy names owned by the selected session relay.
+ */
+export async function resolveSubagentEnvironment(
+  ctx: Context, request: ResolvedSubagentStartRequest, provider: string, configured: Record<string, string>,
+): Promise<Record<string, string>> {
+  const { parent, signal } = request
+  const tool = `subagent:${provider}`
+  signal.throwIfAborted()
+  const overlay = await ctx.get('securityProxy')?.environment(parent, tool)
+  signal.throwIfAborted()
+  if (overlay === undefined) {
+    if (ctx.get('securityProxy')?.route(parent, tool) !== undefined) {
+      throw new Error(`subagent(${provider}): independent proxy changed during startup; retry the delegation`)
+    }
+    return configured
+  }
+  const routeEnvironment = { ...overlay, NODE_USE_ENV_PROXY: '1' }
+  const names = new Set(Object.keys(routeEnvironment).map(key => key.toUpperCase()))
+  const retained = Object.entries(configured).filter(([key]) => !names.has(key.toUpperCase()))
+  return { ...Object.fromEntries(retained), ...routeEnvironment }
+}
 
 /** Maximum UTF-8 size of {@link SubagentResult.diagnostic}. */
 const MAX_SUBAGENT_DIAGNOSTIC_BYTES = 4_096

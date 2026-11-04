@@ -17,7 +17,7 @@ import { isAbsolute, resolve } from 'node:path'
 import z from '@deepseek-ai/schemastery'
 import type { AgentOptions } from '@deepseek-ai/dsh-agent'
 import type { SubagentCapabilities, SubagentProvider, ResolvedSubagentStartRequest } from '@deepseek-ai/dsh-subagent'
-import { assertPositiveFinite, NO_START_CAPABILITIES, assertUsableCwd } from '@deepseek-ai/dsh-subagent'
+import { assertPositiveFinite, NO_START_CAPABILITIES, assertUsableCwd, resolveSubagentEnvironment } from '@deepseek-ai/dsh-subagent'
 import {
   DEFAULT_DISPOSE_EOF_GRACE_MS,
   DEFAULT_DISPOSE_GRACE_MS,
@@ -55,6 +55,8 @@ export interface Config {
    * not leak implicitly.
    */
   env: Record<string, string>
+  /** Bound (ms) for the child's initial SDK handshake. Omission uses the SDK default. */
+  initializeTimeoutMs?: number
   /** Bound (ms) on the protocol `shutdown` exchange during dispose. */
   shutdownTimeoutMs?: number
   /**
@@ -77,13 +79,15 @@ export const Config: z<Config> = z.object({
   model: z.string().default('deepseek-v4-flash'),
   maxTokens: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER),
   env: z.dict(z.string()).default({}),
+  initializeTimeoutMs: z.number().min(1),
   shutdownTimeoutMs: z.number().default(DEFAULT_SHUTDOWN_TIMEOUT_MS),
   disposeEofGraceMs: z.number().default(DEFAULT_DISPOSE_EOF_GRACE_MS),
   disposeGraceMs: z.number().default(DEFAULT_DISPOSE_GRACE_MS),
 })
 
 /** The shape after schemastery applied the defaults (`dshBin` and `maxTokens` have none). */
-type ResolvedConfig = Required<Omit<Config, 'maxTokens' | 'dshBin'>> & Pick<Config, 'maxTokens' | 'dshBin'>
+type OptionalConfig = 'maxTokens' | 'dshBin' | 'initializeTimeoutMs'
+type ResolvedConfig = Required<Omit<Config, OptionalConfig>> & Pick<Config, OptionalConfig>
 
 /** Resolve one configured runtime file against the harness launch directory and require a regular file. */
 function resolveConfiguredFile(field: string, value: string): string {
@@ -144,7 +148,7 @@ class SdkSubagentProvider implements SubagentProvider {
       throw failure
     }
     const route = resolveSdkRoute(this.config, request.agentOptions)
-    const spec: SdkRunSpec = {
+    const spec: Omit<SdkRunSpec, 'env'> = {
       ...this.config.dshBin === undefined ? {} : { dshBin: this.config.dshBin },
       profile: this.config.profile,
       patches: this.config.patches,
@@ -152,7 +156,7 @@ class SdkSubagentProvider implements SubagentProvider {
       cwd,
       originCwd: request.parent.session.header.cwd,
       ...route,
-      env: this.config.env,
+      ...this.config.initializeTimeoutMs === undefined ? {} : { initializeTimeoutMs: this.config.initializeTimeoutMs },
       shutdownTimeoutMs: this.config.shutdownTimeoutMs,
       disposeEofGraceMs: this.config.disposeEofGraceMs,
       disposeGraceMs: this.config.disposeGraceMs,
@@ -162,13 +166,17 @@ class SdkSubagentProvider implements SubagentProvider {
         this.ctx.logger.warn(`subagent-dsh-sdk "${this.name}": child run failed (${stopReason}): ${error.message}`)
       },
     }
-    return startSdkRun(request, spec)
+    return resolveSubagentEnvironment(this.ctx, request, this.name, this.config.env)
+      .then(env => startSdkRun(request, { ...spec, env }))
   }
 }
 
 export function apply(ctx: Context, config: Config): void {
   // schemastery (Config) has already filled every defaulted field.
   const resolved = config as ResolvedConfig
+  if (resolved.initializeTimeoutMs !== undefined) {
+    assertPositiveFinite('subagent-dsh-sdk', 'initializeTimeoutMs', resolved.initializeTimeoutMs)
+  }
   assertPositiveFinite('subagent-dsh-sdk', 'shutdownTimeoutMs', resolved.shutdownTimeoutMs)
   assertPositiveFinite('subagent-dsh-sdk', 'disposeEofGraceMs', resolved.disposeEofGraceMs)
   assertPositiveFinite('subagent-dsh-sdk', 'disposeGraceMs', resolved.disposeGraceMs)

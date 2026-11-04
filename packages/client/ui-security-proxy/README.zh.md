@@ -33,6 +33,8 @@ Web 应用以浏览器行加载，无需另行安装。该区域注册进 `setti
 
 MCP 覆盖项说明会话代理承载的 HTTP 工具和资源请求，以及传给 stdio 服务的代理环境变量。启动发现走应用路由。
 
+外部委派覆盖项包含 ACP、Codex、Claude Code 和 DSH SDK 启动并遵守代理变量的子进程。
+
 -----
 
 <a id="understand-the-implementation"></a>

@@ -39,7 +39,7 @@ kind: "package-reference"
 | `command` | 必填 | 每次运行时 spawn 的可执行文件（子 ACP agent） |
 | `args` | `[]` | 命令参数 |
 | `permission` | `reject` | 自动应答权限请求：拒绝，或选择第一个 `allow_once` 或 `allow_always` 选项（`allow`） |
-| `env` | `{}` | 叠加在已清理凭据的父环境之上的显式子环境 |
+| `env` | `{}` | 叠加在已清理凭据的父环境之上的显式子环境。[网安路由](../subagent/README.zh.md#use-this-package)优先设置代理变量。 |
 | `disposeEofGraceMs` | `6000` | stdin EOF 之后、平台终止之前的宽限 |
 | `disposeGraceMs` | `3000` | 失败后观察结构化进程事实的时限；在 POSIX 上也是 SIGTERM 到 SIGKILL 的宽限 |
 

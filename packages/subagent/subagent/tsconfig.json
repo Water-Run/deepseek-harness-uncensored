@@ -24,6 +24,9 @@
       "path": "../../core/agent"
     },
     {
+      "path": "../../guard/security-proxy"
+    },
+    {
       "path": "../../llm/llm"
     },
     {

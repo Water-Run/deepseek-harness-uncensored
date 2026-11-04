@@ -13,6 +13,7 @@ import {
   assertPositiveFinite,
   NO_START_CAPABILITIES,
   assertUsableCwd,
+  resolveSubagentEnvironment,
   type ResolvedSubagentStartRequest,
   type SubagentCapabilities,
   type SubagentProvider,
@@ -101,7 +102,7 @@ class ClaudeCodeProvider implements SubagentProvider {
       cwd,
       ...this.config.model === undefined ? {} : { model: this.config.model },
       permissionMode: this.config.permissionMode,
-      env: this.config.env,
+      env: await resolveSubagentEnvironment(this.ctx, request, this.name, this.config.env),
       disposeGraceMs: this.config.disposeGraceMs,
       spawn: spawnSpec => this.ctx.subprocess.spawn(spawnSpec),
       onError: (error, stopReason) => {
