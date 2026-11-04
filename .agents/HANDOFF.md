@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## 专用 PostgreSQL 测试库 SQL（2026-11-04）
+
+09.04–09.07 的可选 `database_test_sql` 要求绑定启用、精确测试服务器及测试库规则、会话完全权限和普通数据库角色。同一实例的生产规则优先。执行器固定 TLS 目标，在受管事务中使用扩展协议执行一条语句，规则修订保留至连接关闭。提交回执丢失会报告结果待核对。普通 PostgreSQL 绑定继续提供固定只读审计。
+
+真实 PostgreSQL 18.4 验证实际工具调用、落库、参数绑定、只读权限、高权限账号、多语句、同实例生产拒绝和撤销。39 项定向回归和构建检查通过，实测回执为 `.dsh-build/postgres-test-sql-real-20261104-result.json`。Windows 上 `postgres-target-protection` 的会话记录对比通过，随后工具头因录制使用 Bash、当前使用 PowerShell 而失败。旧基线 `4564b41285` 同样失败，录制文件保持原样。专用实例的网络隔离由所有者配置，共享实例写入、其他数据库协议和产品联动仍在清单。
+
 ## 委派插件实装与许可证核对（2026-11-04）
 
 10.02 四个已打包的委派插件通过桌面版 CLI 安装到隔离配置，并在系统安装版 `4564b41285` 的 Host 全部注册成功。使用 346 份本地同版本制品解决第一方依赖，第三方依赖由 pnpm 解析；未写用户配置。Codex 与 Claude Code 走功能包，ACP 与 DSH SDK 显式配置。回执 `.dsh-build/external-delegate-registry-20261104-result.json`，安装和加载日志 `external-delegate-registry-host-20261104.log`。正式发布源与升级路径仍待验收。

@@ -50,12 +50,17 @@ export async function apply(ctx: Context): Promise<void> {
     database: 'fixture', username: 'fixture', passwordRef: 'MISSING_POSTGRES_FIXTURE_PASSWORD' }] })
   closeExecutor = () => executor.dispose()
   await ctx.plugin(PostgresAgent)
-  ctx.effect(() => ctx.tools.register(defineTool({
-    name: 'verify_postgres_transport', description: 'Verify that the owned PostgreSQL listener received no connection.', parameters: {},
-    output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
-    execute() {
-      assert.equal(connections, 0)
-      return Promise.resolve('Protected PostgreSQL listener received zero connections.')
-    },
-  })))
+  await ctx.inject(['postgresAudit'], (active) => {
+    active.effect(() => active.tools.register(defineTool({
+      name: 'verify_postgres_transport', description: 'Verify that the owned PostgreSQL listener received no connection.', parameters: {},
+      output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
+      async execute() {
+        assert.equal(active.tools.get('database_test_sql'), undefined)
+        await assert.rejects(active.postgresAudit.executeTestSql('owned', 'SELECT 1', [], AbortSignal.timeout(5_000)),
+          { code: 'POSTGRES_TEST_ONLY' })
+        assert.equal(connections, 0)
+        return 'Protected PostgreSQL listener received zero connections.'
+      },
+    })))
+  })
 }

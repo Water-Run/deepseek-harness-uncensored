@@ -36,6 +36,10 @@ interface FixtureOptions {
   tableRows?: string[][]
   reset?: boolean
   maxPending?: number
+  testSql?: boolean
+  testRules?: boolean
+  elevatedRole?: boolean
+  loseCommit?: boolean
 }
 async function harness(options: FixtureOptions = {}) {
   const { full = false, hold = true, matchingCert = true, hostname = '127.0.0.1' } = options
@@ -46,6 +50,8 @@ async function harness(options: FixtureOptions = {}) {
       : [{ type: 2, value: 'wrong.test' }] }] })
   const sockets = new Set<Socket>(), query = Promise.withResolvers<string>()
   const peerClosed: PromiseWithResolvers<void> = Promise.withResolvers()
+  const parsed: string[] = []
+  let commits = 0
   let connections = 0, queries = 0
   const own = <T extends Socket>(socket: T): T => {
     sockets.add(socket); socket.on('error', () => {})
@@ -84,7 +90,8 @@ async function harness(options: FixtureOptions = {}) {
       }
       const catalogue = () => statement.includes('pg_class')
         ? { names: ['schema', 'name', 'kind', 'rls'], rows: options.tableRows ?? [['public', 'owned_table', 'r', 'false']] }
-        : { names: ['name', 'setting', 'unit'], rows: [['ssl', 'on', '']] }
+        : statement.startsWith('INSERT') ? { names: ['value'], rows: [['fixture row']] }
+          : { names: ['name', 'setting', 'unit'], rows: [['ssl', 'on', '']] }
       secure.on('data', (chunk: Buffer) => {
         bytes = Buffer.concat([bytes, chunk])
         while (bytes.length >= (startup ? 4 : 5)) {
@@ -97,9 +104,19 @@ async function harness(options: FixtureOptions = {}) {
           } else if (request[0] === 81) {
             const sql = request.subarray(5, -1).toString('utf8'); queries++; query.resolve(sql)
             if (hold) continue
-            if (sql === 'BEGIN READ ONLY' || sql === 'ROLLBACK') {
-              const command = sql === 'ROLLBACK' ? 'ROLLBACK' : 'BEGIN'
-              secure.write(Buffer.concat([frame('C', Buffer.from(command + '\0')), frame('Z', Buffer.from(sql === 'ROLLBACK' ? 'I' : 'T'))])); continue
+            if (sql === 'BEGIN READ ONLY' || sql === 'BEGIN READ WRITE' || sql === 'ROLLBACK' || sql === 'COMMIT') {
+              const command = sql.startsWith('BEGIN') ? 'BEGIN' : sql
+              if (command === 'COMMIT') {
+                commits++
+                if (options.loseCommit) { raw.destroy(); return }
+              }
+              secure.write(Buffer.concat([frame('C', Buffer.from(command + '\0')), frame('Z', Buffer.from(command === 'BEGIN' ? 'T' : 'I'))]))
+              continue
+            }
+            if (sql.includes('pg_catalog.pg_roles')) {
+              secure.write(Buffer.concat([columns(['role_allowed']), dataRow([options.elevatedRole ? 'false' : 'true']),
+                frame('C', Buffer.from('SELECT 1\0')), frame('Z', Buffer.from('T'))]))
+              continue
             }
             secure.write(Buffer.concat([columns(['database', 'username', 'version', 'readonly']),
               dataRow(options.identity ?? ['unexpected_database', 'fixture', '18.4', 'on']),
@@ -107,6 +124,7 @@ async function harness(options: FixtureOptions = {}) {
           } else if (request[0] === 80) {
             const offset = request.indexOf(0, 5) + 1
             statement = request.subarray(offset, request.indexOf(0, offset)).toString('utf8')
+            parsed.push(statement)
             queries++
             secure.write(frame('1', Buffer.alloc(0)))
           } else if (request[0] === 66) {
@@ -114,7 +132,8 @@ async function harness(options: FixtureOptions = {}) {
           } else if (request[0] === 68) {
             secure.write(columns(catalogue().names))
           } else if (request[0] === 69) {
-            secure.write(Buffer.concat([...catalogue().rows.map(dataRow), frame('C', Buffer.from('SELECT 1\0'))]))
+            const command = statement.startsWith('INSERT') ? 'INSERT 0 1' : 'SELECT 1'
+            secure.write(Buffer.concat([...catalogue().rows.map(dataRow), frame('C', Buffer.from(command + '\0'))]))
           } else if (request[0] === 83) {
             secure.write(frame('Z', Buffer.from('T')))
           }
@@ -141,16 +160,73 @@ async function harness(options: FixtureOptions = {}) {
   const rule: TargetRule = { id: brandString<TargetRuleId>(randomUUID()), name: 'owned fixture database', enabled: true,
     kind: 'database', match: 'host', address: '127.0.0.1', port: address.port, database: 'fixture', environment: 'production',
     protection: full ? 'full' : 'audit' }
-  await ctx.targetProtection.configure({ mainlandEnabled: false, rules: [rule] }, 1)
+  const testRules: TargetRule[] = [
+    { ...rule, environment: 'test' },
+    { id: brandString<TargetRuleId>(randomUUID()), name: 'dedicated test instance', enabled: true, kind: 'server', match: 'host',
+      address: rule.address, port: address.port, environment: 'test', protection: 'full' },
+  ]
+  await ctx.targetProtection.configure({ mainlandEnabled: false, rules: options.testRules ? testRules : [rule] }, 1)
   const config = { databases: [{ name: 'owned', hostname, port: address.port, database: 'fixture', username: 'fixture',
-    passwordRef: ref, caPem: material.cert }], timeoutMs: options.timeoutMs ?? 10000,
+    passwordRef: ref, caPem: material.cert, testSql: options.testSql ?? false }], timeoutMs: options.timeoutMs ?? 10000,
   ...options.maxResultBytes === undefined ? {} : { maxResultBytes: options.maxResultBytes },
   ...options.maxRows === undefined ? {} : { maxRows: options.maxRows },
   ...options.maxPending === undefined ? {} : { maxPending: options.maxPending } }
   const executor = await ctx.plugin(PostgresAuditService, config)
-  return { ctx, owner, executor, rule, config, ref, query: query.promise, peerClosed: peerClosed.promise,
-    connections: () => connections, queries: () => queries }
+  return { ctx, owner, executor, rule, testRules, config, ref, query: query.promise, peerClosed: peerClosed.promise, parsed,
+    connections: () => connections, queries: () => queries, commits: () => commits }
 }
+
+const writeSql = 'INSERT INTO owned_table VALUES ($1) RETURNING value'
+const writableFixture = { testSql: true, testRules: true, hold: false, identity: ['fixture', 'fixture', '18.4', 'off'] }
+
+it('executes an extended-protocol test statement after identity checks and returns an acknowledged commit', async () => {
+  const h = await harness(writableFixture)
+  await expect(h.ctx.postgresAudit.executeTestSql('owned', writeSql, ['fixture row'], AbortSignal.timeout(10_000)))
+    .resolves.toEqual({ columns: ['value'], rows: [['fixture row']], command: 'INSERT', rowCount: 1 })
+  expect(h.parsed).toEqual([writeSql])
+  expect(h.commits()).toBe(1)
+  await h.peerClosed
+})
+
+it('keeps ordinary bindings and incompletely marked test databases closed to test SQL', async () => {
+  const ordinary = await harness({ testRules: true })
+  await expect(ordinary.ctx.postgresAudit.executeTestSql('owned', writeSql, [], AbortSignal.timeout(10_000)))
+    .rejects.toMatchObject({ code: 'POSTGRES_TEST_ONLY' })
+  expect(ordinary.connections()).toBe(0)
+  const test = await harness(writableFixture)
+  await test.ctx.targetProtection.configure({ mainlandEnabled: false, rules: test.testRules.slice(0, 1) }, 2)
+  await expect(test.ctx.postgresAudit.executeTestSql('owned', writeSql, [], AbortSignal.timeout(10_000)))
+    .rejects.toMatchObject({ code: 'POSTGRES_TEST_ONLY' })
+  expect(test.connections()).toBe(0)
+})
+
+it('refuses test writes if the same instance has a protected production database', async () => {
+  const h = await harness(writableFixture)
+  await h.ctx.targetProtection.configure({ mainlandEnabled: false, rules: [...h.testRules, {
+    ...h.rule, id: brandString<TargetRuleId>(randomUUID()), database: 'production',
+  }] }, 2)
+  await expect(h.ctx.postgresAudit.executeTestSql('owned', writeSql, [], AbortSignal.timeout(10_000)))
+    .rejects.toMatchObject({ code: 'TARGET_IDENTITY_UNVERIFIED' })
+  expect(h.connections()).toBe(0)
+})
+
+it('rejects an elevated test login before parsing model SQL', async () => {
+  const h = await harness({ ...writableFixture, elevatedRole: true })
+  await expect(h.ctx.postgresAudit.executeTestSql('owned', writeSql, [], AbortSignal.timeout(10_000)))
+    .rejects.toMatchObject({ code: 'POSTGRES_TEST_ROLE' })
+  expect(h.parsed).toEqual([])
+  expect(h.commits()).toBe(0)
+})
+
+it('reports an unacknowledged commit without retrying the statement', async () => {
+  const h = await harness({ ...writableFixture, loseCommit: true })
+  await expect(h.ctx.postgresAudit.executeTestSql('owned', writeSql, [], AbortSignal.timeout(10_000)))
+    .rejects.toMatchObject({ code: 'POSTGRES_COMMIT_UNKNOWN' })
+  expect(h.parsed).toEqual([writeSql])
+  expect(h.commits()).toBe(1)
+  expect(h.connections()).toBe(1)
+  await h.peerClosed
+})
 
 it('refuses a fully protected database before TCP or authentication', async () => {
   const h = await harness({ full: true })
