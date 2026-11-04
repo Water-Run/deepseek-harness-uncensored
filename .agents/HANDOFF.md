@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## MySQL 固定只读目录审计（2026-11-04）
+
+09.04–09.07 新增可选 `./mysql` 与 `./mysql-agent`。从 `mysql_inspect` 读取核验后的库、账号、TLS 套件及表目录。固定实际 TCP 地址，证书仍校验配置的 DNS 名，目标规则同时检查端点与该名称。完全保护在连接前拒绝，允许审计时使用固定只读语句。取消和规则变更等待连接关闭。
+
+MySQL 8.0.46 隔离容器通过真实工具、生产零 TCP、认证账号和证书错配及原行数据核验。44 项定向回归和完整构建通过，真实结果为 `.dsh-build/mysql-protected-real-20261104-result.json`。私网代理会话回放通过，PostgreSQL 录制仍在 Windows 工具头遇到已核对的 Bash 与 PowerShell 差异。MySQL 测试写入和默认装配仍在清单。Docker 夹具停止后自动清理。
+
+02.10 已取得上游正式预发布标签 `dsh-v0.2.2-alpha.3`，提交为 `05b1cae8db6e674c5685101494d4eec24652424a`。与 alpha.2 的源码差异涉及 2,315 个文件。下一节点需在独立构建环境核对升级，尤其是 Cordis、双 SDK、会话恢复及 DSHU 自有功能。[上游发布说明](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-alpha.3)
+
 ## 专用 PostgreSQL 测试库 SQL（2026-11-04）
 
 09.04–09.07 的可选 `database_test_sql` 要求绑定启用、精确测试服务器及测试库规则、会话完全权限和普通数据库角色。同一实例的生产规则优先。执行器固定 TLS 目标，在受管事务中使用扩展协议执行一条语句，规则修订保留至连接关闭。提交回执丢失会报告结果待核对。普通 PostgreSQL 绑定继续提供固定只读审计。

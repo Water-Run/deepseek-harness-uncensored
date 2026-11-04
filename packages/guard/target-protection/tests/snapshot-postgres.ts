@@ -10,6 +10,7 @@ import { join } from 'node:path'
 import assert from 'node:assert/strict'
 import Protection from '../src/index.ts'
 import PostgresAudit from '../src/postgres.ts'
+import MysqlAudit from '../src/mysql.ts'
 import * as PostgresAgent from '../src/postgres-agent.ts'
 import type { TargetRuleId } from '../src/types.ts'
 
@@ -48,9 +49,12 @@ export async function apply(ctx: Context): Promise<void> {
   })
   const executor = await ctx.plugin(PostgresAudit, { databases: [{ name: 'owned', hostname: '127.0.0.1', port: address.port,
     database: 'fixture', username: 'fixture', passwordRef: 'MISSING_POSTGRES_FIXTURE_PASSWORD' }] })
-  closeExecutor = () => executor.dispose()
+  const mysql = await ctx.plugin(MysqlAudit, { databases: [{ name: 'owned', hostname: '127.0.0.1',
+    tlsServerName: 'mysql.fixture.test', port: address.port, database: 'fixture', username: 'fixture', accountHost: '%',
+    passwordRef: 'MISSING_MYSQL_FIXTURE_PASSWORD' }] })
+  closeExecutor = async () => { await mysql.dispose(); await executor.dispose() }
   await ctx.plugin(PostgresAgent)
-  await ctx.inject(['postgresAudit'], (active) => {
+  await ctx.inject(['postgresAudit', 'mysqlAudit'], (active) => {
     active.effect(() => active.tools.register(defineTool({
       name: 'verify_postgres_transport', description: 'Verify that the owned PostgreSQL listener received no connection.', parameters: {},
       output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
@@ -58,6 +62,7 @@ export async function apply(ctx: Context): Promise<void> {
         assert.equal(active.tools.get('database_test_sql'), undefined)
         await assert.rejects(active.postgresAudit.executeTestSql('owned', 'SELECT 1', [], AbortSignal.timeout(5_000)),
           { code: 'POSTGRES_TEST_ONLY' })
+        await assert.rejects(active.mysqlAudit.inspect('owned', AbortSignal.timeout(5_000)), { code: 'TARGET_FULLY_PROTECTED' })
         assert.equal(connections, 0)
         return 'Protected PostgreSQL listener received zero connections.'
       },

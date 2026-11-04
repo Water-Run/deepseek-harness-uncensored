@@ -94,6 +94,10 @@ SQLite 同时检查配置路径和真实路径旁的日志。主库必须只有�
 
 每次 PostgreSQL 操作解析一次 DNS，固定一个已检查字面地址，保留原始 TLS 名称，不重试其他地址。凭据解析后及每条查询前后复查规则；取消、超时或服务撤下会销毁套接字，确认原生关闭后才释放规则。默认限制为 30 秒、每条查询 1000 行、解码结果合计 1 MiB、四个待处理操作。输出限制不约束 PostgreSQL 协议报文的内存分配，只应连接所有者配置的可信服务器。错误采用不含凭据的稳定代码，不自动重放。
 
+装配 `./mysql` 并提供 `targetProtection` 与 `credentials`，再装配 `./mysql-agent` 提供 `mysql_inspect`。绑定需填写 `name`、`hostname`、`database`、`username`、`accountHost` 和 `passwordRef`，端口默认 3306。`accountHost` 对应 `CURRENT_USER()` 返回的账号主机部分，例如 `%`。使用字面 IP 时，需显式提供证书中的 DNS 名 `tlsServerName`。私有证书颁发机构可通过 `caPem` 配置。
+
+执行器在拨号前校验端点和配置的证书名称，固定到一个获准 IP，并用原始 DNS 名或显式配置的名称校验证书。审计核对所选数据库、实际认证账号和 TLS 密码套件，然后在只读事务内读取该库的表目录。执行器只发送固定 SQL。规则变更或取消时关闭连接，并限制结果大小和并发操作数。适用于目录信息可信的直连 MySQL 实例。
+
 装配 `./browser` 替换 `dsh-browser-use`，保留所选 Playwright MCP、Chrome DevTools MCP 或 Stagehand 提供方。三个提供方均在原生获取前解析必需执行许可，排队调用前复查。撤销后关闭资源，规则保持到原生结束；缺少策略会撤下注册服务及其提供方。拒绝条件与 `./subprocess` 相同。本适配器提供准入和撤销，不提供浏览器逐目标隔离；测试标签不能约束任意浏览器文件、网络或脱离进程的效果。普通无保护组合保留原行为。
 
 用 `./cordis` 替换 `dsh-cordis-host-runner`，在代码运行前拒绝动态 Host 启动、面板启动、Client 源码交付及处理器调用。定义和只读检查仍可用。即使目标规则关闭，此提供方也拒绝执行：Host VM 和页面代码无法在后续规则变化时可靠终止或隔离。完全权限和 Client 审批不能覆盖。可信配置可显式更换提供方，不会自动回退。
@@ -141,7 +145,7 @@ Windows 源码和编译链已验证测试访问成功、生产零连接，以及
 <a id="model-experience"></a>
 ## 模型体验
 
-根服务不增加模型请求。可选 `./sqlite-agent` 增加 `database_query`，`./postgres-agent` 增加 `database_inspect` 和按需启用的 `database_test_sql`。结果和带类型拒绝进入正常工具日志。其他适配器改变相应工具结果。效果由执行器提供，不能由模型宣称安全。
+根服务不增加模型请求。可选 `./sqlite-agent` 增加 `database_query`，`./postgres-agent` 增加 `database_inspect` 和按需启用的 `database_test_sql`，`./mysql-agent` 增加 `mysql_inspect`。结果和带类型拒绝进入正常工具日志。其他适配器改变相应工具结果。效果由执行器提供，不能由模型宣称安全。
 
 #### KV 缓存影响
 

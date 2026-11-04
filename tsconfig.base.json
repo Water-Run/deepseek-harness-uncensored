@@ -43,6 +43,8 @@
       "@deepseek-ai/dsh-target-protection/sqlite-agent": ["./packages/guard/target-protection/src/sqlite-agent.ts"],
       "@deepseek-ai/dsh-target-protection/postgres": ["./packages/guard/target-protection/src/postgres.ts"],
       "@deepseek-ai/dsh-target-protection/postgres-agent": ["./packages/guard/target-protection/src/postgres-agent.ts"],
+      "@deepseek-ai/dsh-target-protection/mysql": ["./packages/guard/target-protection/src/mysql.ts"],
+      "@deepseek-ai/dsh-target-protection/mysql-agent": ["./packages/guard/target-protection/src/mysql-agent.ts"],
       "@deepseek-ai/dsh-target-protection/browser": ["./packages/guard/target-protection/src/browser.ts"],
       "@deepseek-ai/dsh-target-protection/ptc": ["./packages/guard/target-protection/src/ptc.ts"],
       "@deepseek-ai/dsh-target-protection/cordis": ["./packages/guard/target-protection/src/cordis.ts"],

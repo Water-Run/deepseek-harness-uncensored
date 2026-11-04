@@ -56,7 +56,7 @@ export interface PostgresTestResult {
 type SqlParameter = string | number | null | string[]
 type SqlRow = (string | null)[]
 type RunQuery = (text: string, values?: SqlParameter[], extended?: true) => Promise<PostgresTestResult>
-const testParameters = z.array(z.union([z.string(), z.number().finite(), z.null()])).max(65_535)
+const testParameters = z.array(z.union([z.string(), z.number(), z.null()])).max(65_535)
 const testStatement = /^(?:SELECT|WITH|INSERT|UPDATE|DELETE|MERGE|CREATE|ALTER|DROP|TRUNCATE|EXPLAIN|ANALYZE|COMMENT)\b/iu
 
 declare module '@deepseek-ai/cordis' {
@@ -179,8 +179,7 @@ export default class PostgresAuditService extends Service {
     let snapshot: TargetSnapshot | undefined
     let releaseTest: (() => void) | undefined
     const finished = Promise.withResolvers<undefined>()
-    let commitDispatched = false
-    let commitAcknowledged = false
+    const commit = { dispatched: false, acknowledged: false }
     const admitted = async (): Promise<void> => {
       const decision = await this.protection.checkConnection(binding.hostname, binding.port, resolution,
         'endpoint', testSql ? 'mutate' : 'observe', timeout.signal, binding.database)
@@ -262,11 +261,11 @@ export default class PostgresAuditService extends Service {
             rows.push(row)
           })
           request.once('error', reject)
-          if (text === 'COMMIT' && !extended) commitDispatched = true
+          if (text === 'COMMIT' && !extended) commit.dispatched = true
           connection.query(request)
         })
         if (text === 'COMMIT' && !extended) {
-          commitAcknowledged = true
+          commit.acknowledged = true
           if (result.command !== 'COMMIT') throw new HarnessError('PostgreSQL reported a rollback for the test transaction.', 'POSTGRES_TEST_SQL_FAILED')
         } else { timeout.signal.throwIfAborted(); await admitted() }
         return { rows, columns: result.fields.map(field => field.name), rowCount: result.rowCount, command: result.command }
@@ -291,7 +290,7 @@ export default class PostgresAuditService extends Service {
       if (testSql) await query('COMMIT')
       return result
     } catch (error) {
-      if (commitDispatched && !commitAcknowledged) {
+      if (commit.dispatched && !commit.acknowledged) {
         throw new HarnessError('PostgreSQL did not acknowledge the commit. Check the test database before retrying.', 'POSTGRES_COMMIT_UNKNOWN', { cause: error })
       }
       if (timeout.signal.aborted) throw new HarnessError('PostgreSQL was cancelled or timed out; the connection was closed.', 'POSTGRES_CANCELLED', { cause: error })

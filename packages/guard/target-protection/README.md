@@ -94,6 +94,10 @@ Set `testSql: true` on a binding for a dedicated test instance isolated from pro
 
 PostgreSQL resolves DNS once per operation, binds one checked literal address, preserves the original TLS name and never retries another address. Policy is checked after credential resolution and before/after queries. Cancellation, timeout or provider withdrawal destroys the owned socket and waits for native closure before releasing rules. Default limits are 30 seconds, 1000 rows per query, 1 MiB total decoded result and four pending operations. Output limits do not bound PostgreSQL wire-frame allocation; use only trusted owner-configured servers. Errors return stable credential-free codes; no operation is automatically replayed.
 
+Mount `./mysql` with `targetProtection` and `credentials`, then mount `./mysql-agent` to offer `mysql_inspect`. Each binding specifies `name`, `hostname`, `database`, `username`, `accountHost` and `passwordRef`. The port defaults to 3306. Match `accountHost` to the host part of the account returned by `CURRENT_USER()`, such as `%`. Supply an explicit DNS `tlsServerName` for a literal IP binding and `caPem` for a private certificate authority.
+
+The executor checks the endpoint and configured certificate name before opening TCP, pins one authorized IP and verifies the certificate using the original DNS name or the explicitly configured name. Audit checks the selected database, authenticated account, and TLS cipher, then reads the selected database's table catalogue in a read-only transaction. Only fixed SQL is sent. Policy changes and cancellations close the connection, and result size and pending operations are bounded. Use direct MySQL endpoints with trusted catalogue metadata.
+
 Mount `./browser` instead of `dsh-browser-use`, keeping the chosen Playwright MCP, Chrome DevTools MCP or Stagehand provider. All three resolve mandatory execution permission before their native acquisition and recheck queued calls. Protection revocation closes resources and retains rules through native settlement; missing policy withdraws this registry and its providers. The refusal conditions match `./subprocess`. This adapter provides admission and revocation, not per-target browser isolation. Test labels do not confine arbitrary browser file, network or detached-process effects; ordinary unguarded compositions retain their existing behavior.
 
 Mount `./cordis` instead of `dsh-cordis-host-runner` to refuse dynamic Host activation, panel activation, Client source delivery and handler invocation before code runs. Definitions and read-only inspection remain available. This provider refuses even when target rules are disabled: Host VM and page code cannot be terminated or confined reliably after a later policy change. Full-access and Client approval do not override it. An explicit trusted configuration change may replace the provider; it never falls back automatically.
@@ -141,7 +145,7 @@ The independent registry does not change Session record types. Durable execution
 <a id="model-experience"></a>
 ## Model Experience
 
-The root service adds no model request. Optional `./sqlite-agent` adds `database_query`, and `./postgres-agent` adds `database_inspect` and the opt-in `database_test_sql`. Results and typed refusals use normal tool logging. Other adapters change affected tool results. Effects come from the executor, never a model's safety claim.
+The root service adds no model request. Optional `./sqlite-agent` adds `database_query`, `./postgres-agent` adds `database_inspect` and the opt-in `database_test_sql`, and `./mysql-agent` adds `mysql_inspect`. Results and typed refusals use normal tool logging. Other adapters change affected tool results. Effects come from the executor, never a model's safety claim.
 
 #### KV Cache effect
 
