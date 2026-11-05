@@ -4,18 +4,18 @@ import { createElement } from 'react'
 import { Context } from '@deepseek-ai/cordis'
 import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { DocumentPreviewRegistry } from '../src/client/registry.ts'
 import { createPdfStore } from '../src/client/pdf/store.ts'
-import type { PdfBodyInjected } from '../src/client/pdf/pdf.tsx'
+import type { PdfBodyInjected } from '../src/client/pdf/contract.ts'
 
 vi.mock('../src/client/pdf/runtime.ts', () => ({ openPdf: vi.fn() }))
 const renderedPdf = vi.hoisted(() => vi.fn(() => null))
 vi.mock('../src/client/pdf/pdf.tsx', () => ({ PdfBody: renderedPdf }))
 import { apply, PDF_BODY_ID } from '../src/client/pdf/index.ts'
 import { LazyPdfBody } from '../src/client/pdf/LazyPdfBody.tsx'
+import { PdfReaderSeat } from '../src/client/pdf/PdfReaderSeat.tsx'
 import { en, ja, zh, es, fr, de, ru, pt } from '../src/client/pdf/locales.ts'
 
 afterEach(() => { cleanup(); renderedPdf.mockClear() })
@@ -33,15 +33,19 @@ describe('PDF registration', () => {
     const dictionaries = new Map<string, unknown>()
     const entries: Array<{
       name: string
-      key: string
+      scope: string
       locale: string
       store: ReturnType<typeof createPdfStore>
-      inject: (sessionId: SessionId, actions: ReturnType<ReturnType<typeof createPdfStore>['create']>['actions']) => PdfBodyInjected
+      inject: (actions: ReturnType<ReturnType<typeof createPdfStore>['create']>['actions']) => PdfBodyInjected
     }> = []
-    const register = vi.fn((options: typeof entries[number], component: unknown) => {
+    const registerFactory = vi.fn((options: typeof entries[number], component: unknown) => {
       expect(component).toBe(LazyPdfBody)
       entries.push(options)
       return () => { entries.splice(entries.indexOf(options), 1) }
+    })
+    const register = vi.fn((_options: object, component: unknown) => {
+      expect(component).toBe(PdfReaderSeat)
+      return () => {}
     })
     ctx.provide('documentPreviews', previews)
     ctx.provide('locale', {
@@ -49,7 +53,7 @@ describe('PDF registration', () => {
       bind: () => makeTranslate(en),
     } as never)
     ctx.provide('slots', {
-      inject: (_name: string, callback: () => () => void) => callback(), register,
+      inject: (_name: string, callback: () => () => void) => callback(), register, registerFactory,
     } as never)
     const fiber = ctx.plugin({ apply })
     try {
@@ -59,9 +63,11 @@ describe('PDF registration', () => {
       ])
       expect(previews.candidates('report.pdf')[0]!.title()).toBe('PDF')
       expect(dictionaries.get('sidebarPdf')).toEqual({ zh, en, ja, es, fr, de, ru, pt })
-      expect(entries[0]).toMatchObject({ name: 'sidebar.right.tab.document', key: PDF_BODY_ID, locale: 'sidebarPdf' })
+      expect(entries[0]).toMatchObject({ name: 'sidebar.document.pdf.reader', scope: 'root', locale: 'sidebarPdf' })
+      expect(register).toHaveBeenCalledWith({ name: 'sidebar.right.tab.document', key: PDF_BODY_ID }, PdfReaderSeat)
       const instance = entries[0]!.store.create()
-      const face = entries[0]!.inject('s1' as SessionId, instance.actions)
+      const face = entries[0]!.inject(instance.actions)
+      expect(Object.keys(face).sort()).toEqual(['retainTab', 'zoomSurfaceClass'])
       const controller = new AbortController()
       face.retainTab('one' as TabId, controller.signal)
       face.retainTab('one' as TabId, controller.signal)

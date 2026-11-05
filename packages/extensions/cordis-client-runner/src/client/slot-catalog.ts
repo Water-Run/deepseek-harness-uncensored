@@ -4744,7 +4744,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'client-ui-sidebar-documentpreview ImageBody',
       'client-ui-sidebar-documentpreview MarkdownBody',
       'client-ui-sidebar-documentpreview OfficeBody',
-      'client-ui-sidebar-documentpreview LazyPdfBody',
+      'client-ui-sidebar-documentpreview PdfReaderSeat',
       'client-ui-sidebar-documentpreview TextBody',
     ],
     replaceRisk: 'none',
@@ -4909,7 +4909,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     slotInject: '{ hooks: { tabInfo: SlotHookFactory<\'sidebar.right.tab.document\', UseSidebarRightTabInfo> } }',
     declaredBy: 'an entry in \'sidebar.right.tab.document\' (client-ui-sidebar-documentpreview), so it exists while that entry is mounted',
     occupants: [
-      'client-ui-sidebar-documentpreview LazyPdfBody',
+      'client-ui-sidebar-documentpreview PdfReaderSeat',
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'sidebar.right.tab.document.office.pdf\', () => ctx.slots.register(\n      { name: \'sidebar.right.tab.document.office.pdf\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',

@@ -3,12 +3,12 @@ import type { Context } from '@deepseek-ai/cordis'
 import { retainDocumentTabs } from '../tab-lifetime.ts'
 import type {} from '../index.ts'
 import type { DocumentPreviewDefinition } from '../registry.ts'
-import type { PdfBodyInjected } from './pdf.tsx'
+import type { PdfBodyInjected } from './contract.ts'
 import { LazyPdfBody } from './LazyPdfBody.tsx'
+import { PdfReaderSeat } from './PdfReaderSeat.tsx'
 import type { BoundActions } from '@deepseek-ai/dsh-client-store'
-import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { createPdfStore, type PdfStore } from './store.ts'
-import { ZoomViewport, zoomSurfaceClass } from '../ZoomViewport.tsx'
+import { zoomSurfaceClass } from '../ZoomViewport.tsx'
 import { en, ja, es, fr, de, ru, pt, zh } from './locales.ts'
 
 /** PDF metadata and keyed body share this package-local implementation identity. */
@@ -29,9 +29,13 @@ export function apply(ctx: Context): void {
   const t = ctx.locale.bind('sidebarPdf')
   ctx.effect(() => ctx.documentPreviews.register(pdfBodyDefinition(() => t('title'))))
   const presentation = pdfBodyRegistration(ctx)
+  ctx.effect(() => ctx.slots.registerFactory({
+    name: 'sidebar.document.pdf.reader', scope: 'root', locale: 'sidebarPdf', ...presentation,
+    slots: { viewport: { scope: 'root' } },
+  }, LazyPdfBody))
   ctx.effect(() => ctx.slots.inject('sidebar.right.tab.document', () => ctx.slots.register({
-    name: 'sidebar.right.tab.document', key: PDF_BODY_ID, locale: 'sidebarPdf', ...presentation,
-  }, LazyPdfBody)))
+    name: 'sidebar.right.tab.document', key: PDF_BODY_ID,
+  }, PdfReaderSeat)))
 }
 
 /**
@@ -41,15 +45,14 @@ export function apply(ctx: Context): void {
  */
 export function pdfBodyRegistration(ctx: Context): {
   store: PdfStore
-  inject: (sessionId: SessionId, actions: BoundActions<PdfStore>) => PdfBodyInjected
+  inject: (actions: BoundActions<PdfStore>) => PdfBodyInjected
 } {
   const store = createPdfStore()
   const retainTab = retainDocumentTabs(ctx)
   return {
     store,
-    inject: (_sessionId, actions): PdfBodyInjected => ({
+    inject: (actions): PdfBodyInjected => ({
       retainTab: (tabId, signal) => { retainTab(tabId, signal, actions.forget) },
-      ZoomViewport,
       zoomSurfaceClass,
     }),
   }

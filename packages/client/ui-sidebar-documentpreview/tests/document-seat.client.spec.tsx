@@ -16,6 +16,21 @@ import type { DocumentPreviewProps } from '../src/client/contract.ts'
 import type { DocumentLoadMode } from '../src/client/registry.ts'
 import type { WorkspaceFilesReadRemote } from '../src/client/rpc.ts'
 import { PLAIN_BODY_ID } from '../src/client/text-definition.ts'
+import type { PdfBodyProps } from '../src/client/pdf/contract.ts'
+
+vi.mock('../src/client/pdf/pdf.tsx', () => ({ PdfBody: BoundPdfProbe }))
+
+function missingPdfViewport(): never { throw new Error('Missing selected PDF viewport') }
+
+function BoundPdfProbe(props: PdfBodyProps) {
+  const { tab } = props.useTabInfo()
+  const Viewport = props.useFactorySlot('viewport', missingPdfViewport)
+  return <Viewport preference={{ kind: 'fit-width' }} intrinsicWidth={100} horizontalInset={24}
+    labels={{ controls: 'Zoom controls', menu: 'Zoom', out: 'Out', into: 'In', fitWidth: 'Fit width', value: value => String(value) }}
+    signal={tab.signal} scrollportRef={props.scrollportRef} onPreference={() => {}}>
+    <span data-bound-pdf={tab.id}>{props.resourceAddress}:{props.t('title')}</span>
+  </Viewport>
+}
 
 const SESSION = 'documents' as SessionId
 const SHORTCUT_CATALOG: readonly never[] = []
@@ -114,6 +129,16 @@ describe('document extension seat', () => {
       expect(h.bytes).not.toHaveBeenCalled()
     },
   )
+
+  it('forwards the production document tab hook into the lazy PDF Factory', async () => {
+    const h = await boot()
+    h.open('report.pdf')
+    await waitFor(() => { expect(h.view.container.querySelector('[data-bound-pdf]')).not.toBeNull() })
+    expect(h.view.container.querySelector('[data-bound-pdf]')?.textContent)
+      .toContain('dsh-resource://file/session/documents/report.pdf:PDF')
+    expect(h.view.container.querySelector('[data-document-zoom-frame]')).not.toBeNull()
+    expect(h.bytes).toHaveBeenCalledOnce()
+  })
 
   it('rejects an unscoped absolute address through candidates before mounting a reader', async () => {
     const h = await boot()

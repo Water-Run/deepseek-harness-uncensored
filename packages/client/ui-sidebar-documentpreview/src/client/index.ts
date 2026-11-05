@@ -35,8 +35,8 @@ import { apply as registerText } from './text/index.ts'
 import { apply as registerMarkdown } from './markdown/index.ts'
 import { apply as registerHtml } from './html/index.ts'
 import { apply as registerImage } from './image/index.ts'
-import { apply as registerPdf, pdfBodyRegistration } from './pdf/index.ts'
-import { LazyPdfBody } from './pdf/LazyPdfBody.tsx'
+import { apply as registerPdf } from './pdf/index.ts'
+import { PdfReaderSeat } from './pdf/PdfReaderSeat.tsx'
 import { apply as registerCode } from './code/index.ts'
 import { apply as registerOffice, OFFICE_BODY_ID } from './office/index.ts'
 import { apply as registerExcel } from './excel/index.ts'
@@ -52,6 +52,7 @@ export type { ReadDocumentBytes, DocumentFileBytes, ReadWorkspaceFilePage, Sessi
 export type { TextPage, TextState, TextStore, TextTabState } from './store.ts'
 export type { DocumentContent, DocumentPreviewProps, DocumentTextPage } from './contract.ts'
 export type { DocumentLoadMode, DocumentPreviewDefinition } from './registry.ts'
+export type { PdfReaderInputProps } from './pdf/contract.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -128,10 +129,9 @@ export function apply(ctx: ClientContext): void {
   registerImage(ctx)
   registerPdf(ctx)
   registerOffice(ctx, config.office)
-  const officePdf = pdfBodyRegistration(ctx)
   ctx.effect(() => ctx.slots.inject('sidebar.right.tab.document.office.pdf', () => ctx.slots.register({
-    name: 'sidebar.right.tab.document.office.pdf', key: OFFICE_BODY_ID, locale: 'sidebarPdf', ...officePdf,
-  }, LazyPdfBody)))
+    name: 'sidebar.right.tab.document.office.pdf', key: OFFICE_BODY_ID,
+  }, PdfReaderSeat)))
   registerExcel(ctx, config.excel)
   registerCode(ctx)
 }

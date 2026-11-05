@@ -20,7 +20,7 @@
 - 8 个模型目录相关测试文件、140 项通过；NodeNext 395 个公开声明 API、publint、完整产物构建及后续 Host/Client 检查通过。
 - 产物缺失负例与恢复回执 `.dsh-build/client-layers-missing-bundle-20261106-result.json`，源移动与旧编译文件清单为 `client-layer-moves-20261106.json` 和 `client-layer-stale-emits-20261106.json`。这些路径均位于 `.dsh-build/`。
 
-## 继续保留的验收
+## 补充与后续验收
 
-- [ ] 惰性 PDF 正文目前通过 inject 接收主包 `ZoomViewport` 组件。需将该桥接与纯数据注入规则一起核对，评估具名 Factory Slot 等方案，并保留惰性分包、阅读状态及缩放功能；本节点不把领域图通过当作全部 Slot 输入约束已完成。
+- [x] 惰性 PDF 的组件注入已改为具名 Factory Local Slot。主包视口通过组件通道选择，注入仅保留回调与类名；原生 PDF 与 Office 转换 PDF 共用同一阅读器，按标签保留阅读状态。见[PDF 阅读器验收](2026-11-06-pdf-factory.md)。
 - [ ] 原有关闭竞态、历史回放、跨平台、原始截图及整份编号清单的最终核对。

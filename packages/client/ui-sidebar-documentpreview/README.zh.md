@@ -114,7 +114,7 @@ CSV 和 TSV 默认使用表格查看器，也可选择纯文本；CSV 还提供�
 <details>
 <summary>Office 实现——点击展开</summary>
 
-文档数据声明、渲染器注册表和共享缩放视口位于 Client 根目录，均为包内模块。各格式注册自己的实现，由根装配将 Office 的 PDF 子 slot 接到复用的 PDF 正文。
+文档数据声明、渲染器注册表和共享缩放视口位于 Client 根目录，均为包内模块。各格式注册自己的实现，由根装配将两个 PDF 入口接到 `sidebar.document.pdf.reader`。输入类型 `PdfReaderInputProps` 可从公开 client 入口读取。这个根作用域 Factory 按标签保留页码与缩放偏好，标签关闭或插件释放时清理。局部 `viewport` 组件通道选择主包视口，PDF 正文仍按需加载；注入数据仅包含标签保留回调和表面类名。
 
 Office 注册、加载、缓存和字体提示位于 `src/client/office/`。注入的 Office face 通过已声明的 store action 写入转换后的 PDF 字节、字体元数据和失败。Office 正文触发加载，将取消绑定到自身生命周期，并声明嵌套 PDF slot，复用惰性 PDF 正文及其 tab 阅读状态。keyed slot `sidebar.right.tab.document.action` 将渲染器操作放在刷新按钮前。Office 操作与正文共享 store，仅读取当前 revision 的字体元数据。Host 渲染器缺失时，注册仍然可用；可选的 `remote.officeToPdf` 和 `remote.workspaceFiles` 注入提供转换与版本检查回调，移除后恢复不可用提示。注册和 tab 状态保留都遵循 effect 生命周期。[转换服务](../../document/office-to-pdf/README.zh.md)拥有 Host Remote 方法，由 `api/remotes` 挂载。
 

@@ -595,8 +595,7 @@
     "fb9804cc2774409af6935d5a1369497b433c34cd9305cac88e3400eae0f70936": 1
   },
   "packages/client/ui-sidebar-documentpreview/tests/pdf-body.client.spec.tsx": {
-    "6061de0a1e01547eb1abf9d4e1b5fa79fda112fa35dda980775491123413dcce": 1,
-    "daaeb704a25654054557bac941f940572d4259209a3a942e3c361a1ff2804ca9": 1
+    "6061de0a1e01547eb1abf9d4e1b5fa79fda112fa35dda980775491123413dcce": 1
   },
   "packages/client/ui-sidebar-documentpreview/tests/pdf-document.client.spec.ts": {
     "09acce5c2c2785f021136cb1c978ffa5f510a8ef67fab5b0631c7827eef39e24": 1,

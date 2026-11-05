@@ -1,35 +1,18 @@
 /** PDF page presentation; binary content and tab information come from the document owner. */
-import { useCallback, useEffect, useRef, useState, type ComponentType, type CSSProperties, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PropsLocale, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
-import type { TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
-import type { DocumentPreviewProps } from '../contract.ts'
-import type { PdfStore, PdfView } from './store.ts'
+import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PdfView } from './store.ts'
+import type { PdfBodyProps } from './contract.ts'
 import { renderPdfPage, type PdfDocument } from './document.ts'
 import { openPdf } from './runtime.ts'
 import { PdfWorkerFailure } from './errors.ts'
 import { pdfTextRenderer } from './text.ts'
-import type { ZoomViewportProps } from '../ZoomViewport.tsx'
 import type { ZoomLabels, ZoomPreference } from '../zoom-types.ts'
 import type {} from './locales.ts'
 import css from './PdfBody.module.css'
 
-/** A record's viewing preferences survive body unmounts and leave with the tab. */
-export interface PdfBodyInjected {
-  /**
-   * Retain viewing preferences until the tab record ends.
-   * @param tabId - owning tab.
-   * @param signal - tab-record lifetime, not body visibility.
-   */
-  readonly retainTab: (tabId: TabId, signal: AbortSignal) => void
-  /** Main-bundle viewport reused by the lazy PDF body. */
-  readonly ZoomViewport: ComponentType<ZoomViewportProps>
-  /** Main-bundle class implementing fit-width and fixed-size surfaces. */
-  readonly zoomSurfaceClass: string
-}
-
-/** Standard document props plus the PDF entry's locale, viewing store, and lifetime callback. */
-export type PdfBodyProps = DocumentPreviewProps & PropsLocale<'sidebarPdf'> & PropsStore<PdfStore> & PdfBodyInjected
+export type { PdfBodyProps } from './contract.ts'
 
 type LoadState =
   | { readonly kind: 'loaded'; readonly data: Uint8Array<ArrayBuffer>; readonly document: PdfDocument }
@@ -37,12 +20,17 @@ type LoadState =
 
 const DEFAULT_PDF_VIEW: PdfView = { page: 1 }
 const FIT_WIDTH: ZoomPreference = { kind: 'fit-width' }
+
+function missingViewport(): never {
+  throw new Error('The PDF reader requires a viewport component selection')
+}
 /**
  * Present a PDF with tab-local viewing preferences and component-owned rendering resources.
  * @param props - complete bytes, framework-owned tab/store/locale seats, and main-bundle loading content.
  * @returns the PDF reader.
  */
 export function PdfBody(props: PdfBodyProps & { readonly loading: ReactNode }): ReactNode {
+  const ZoomViewport = props.useFactorySlot('viewport', missingViewport)
   const { tab } = props.useTabInfo()
   const view = props.useStore(state => state.byTab[tab.id] ?? DEFAULT_PDF_VIEW)
   const data = props.content.kind === 'bytes' ? props.content.data : undefined
@@ -50,7 +38,7 @@ export function PdfBody(props: PdfBodyProps & { readonly loading: ReactNode }): 
   const [attempt, setAttempt] = useState(0)
   const [pageWidth, setPageWidth] = useState<number>()
   const [renderZoom, setRenderZoom] = useState(1)
-  const { retainTab, actions, t, ZoomViewport, zoomSurfaceClass } = props
+  const { retainTab, actions, t, zoomSurfaceClass } = props
   const preference = view.zoom ?? FIT_WIDTH
   const labels: ZoomLabels = {
     controls: t('zoomControls'), menu: t('zoomMenu'), out: t('zoomOut'), into: t('zoomIn'),
