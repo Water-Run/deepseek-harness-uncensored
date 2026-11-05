@@ -4,11 +4,13 @@
 
 ## 当前安装包（2026-11-06）
 
-`09ad1610d3` 检查包已从实际安装器解包验收，并安装至系统。清单来自实装 ASAR，共 874 个 npm 包、15 份补充声明、7 个自动标记的待核查项。精确记录位于 `.dsh-build/deliverables/DSHU-20261106-09ad16-third-party-runtime.json`，摘要保存在同目录安装清单。该安装包未签名、未发布 Release。
+`7db7e35015` 检查包已从实际安装器解包验收，并安装至系统。清单来自实装 ASAR，共 874 个 npm 包、14 份补充声明、10 个自动标记的待核查项。精确记录位于 `.dsh-build/deliverables/DSHU-20261106-7db7e3-third-party-runtime.json`，摘要保存在同目录安装清单。该安装包未签名、未发布 Release。
+
+与前次 `09ad1610d3` 包相比，三个 AWS 包解析到了新版本：credential-provider-http `3.972.82 → 3.972.83`、credential-provider-login `3.972.87 → 3.972.88`、nested-clients `3.997.54 → 3.998.0`。包仍声明 Apache-2.0，但没有独立许可正文，旧版补充记录不自动匹配新版，故新增三项待核查。后续需复核固定源码与归档，并处理桌面准备树的依赖解析变化；不扩大旧记录的版本范围来消除标记。前次清单及其七项结论保持原样。
 
 ## 补充声明与复算（2026-11-06）
 
-先在 `4cf9f1cbfa` 实装 ASAR 的只读投影上复算，874 个包的待核查项从 11 项降至 7 项；原包、原 ASAR 和用户数据未被改写。投影保留实际包清单和逐一校验摘要的声明文件，回执 `.dsh-build/notice-projection-4cf9f1-20261106-final-result.json`。本轮补充与清点修复已进入上述 `09ad1610d3` 检查包，实包结果同为七项，投影本身不是可运行安装。
+先在 `4cf9f1cbfa` 实装 ASAR 的只读投影上复算，874 个包的待核查项从 11 项降至 7 项；原包、原 ASAR 和用户数据未被改写。投影保留实际包清单和逐一校验摘要的声明文件，回执 `.dsh-build/notice-projection-4cf9f1-20261106-final-result.json`。补充与清点修复已进入 `09ad1610d3` 检查包，该实包结果同为七项；最新包保留这些修复，另外记录上述版本变化。投影本身不是可运行安装。
 
 - [x] `@cfworker/json-schema 4.1.6`：npm 发布提交与同名 Git 标签均为 `1a0aa37471850c28a4673e12e871e010ea6c26e0`；该提交的 MIT 原文与已保存文本逐字相同，新增精确版本对应。[固定原文](https://raw.githubusercontent.com/cfworker/cfworker/1a0aa37471850c28a4673e12e871e010ea6c26e0/LICENSE.md)
 - [x] `@koromix/koffi-win32-x64 3.3.6`：主包与二进制包通过 npm SHA-512 校验；主包明确依赖同版本二进制。实装二进制与该归档逐字相同。补入主包 MIT、Node addon API 和 Node API headers 三份原文，摘要固定于 `LICENSES/npm/sources.json`。证据 `.dsh-build/license-supplements-20261105-result.json`。[版本归档](https://registry.npmjs.org/koffi/-/koffi-3.3.6.tgz)
@@ -25,10 +27,13 @@
 - [x] 原文随 `LICENSES` 资源分发，并在准备树中按实际依赖复制到 `dsh/licenses`；没有更改第三方代码或声明其重新授权。
 - [x] 六项新增测试覆盖嵌套/作用域包、内部 package.json 排除、精确版本、README 授权文字、未解决项、摘要拒绝和 I/O 错误。
 
-## 仍需核查的 7 项
+## 仍需核查的 10 项
 
 | 包与版本 | 剩余核查 |
 | --- | --- |
+| @aws-sdk/credential-provider-http 3.972.83 | 核对新版归档与固定源码，不能直接套用 3.972.82 的声明记录 |
+| @aws-sdk/credential-provider-login 3.972.88 | 核对新版归档与固定源码，不能直接套用 3.972.87 的声明记录 |
+| @aws-sdk/nested-clients 3.998.0 | 核对新版归档与固定源码，不能直接套用 3.997.54 的声明记录 |
 | brotli 1.3.3 | npm 包及固定源提交没有根许可原文，继续核对派生实现与内嵌代码 |
 | clean-git-ref 2.0.1 | REA 明确记录的上游原文/署名缺项，保留待核查 |
 | dfa 1.2.0 | npm 包及固定源提交没有独立许可原文 |

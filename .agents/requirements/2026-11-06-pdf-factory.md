@@ -1,6 +1,6 @@
 # 17.06 PDF 阅读器 Factory 验收
 
-状态：源码完成本节点迁移与验收，未重新打包安装。系统仍为 `09ad1610d3` 检查版；原有其他交付范围继续保留。
+状态：本节点源码已随 `7db7e35015` 检查包安装，安装器实际载荷和实装隔离运行验证通过。原有其他交付范围继续保留，安装证据见 [HANDOFF](../HANDOFF.md)。
 
 ## 已完成
 
@@ -16,4 +16,4 @@
 
 本节点日志前缀 `.dsh-build/pdf-factory-`：`regression-20261106.log` 为整包回归，`runtime-20261106.log` 为真实 Factory 组合，`bound-document-20261106.log` 为真实文档入口，`published-20261106.log` 为实包测试。产物构建为 `artifacts-final-20261106.log`，后续编译检查为 `check-final-20261106.log`，公开声明为 `types-20261106.log`。
 
-未修改 Session 字段、SDK 事件或模式提示；没有使用 Computer Use。新的安装包、原有关闭竞态、跨平台、历史回放和原图终验仍未完成。
+未修改 Session 字段、SDK 事件或模式提示；没有使用 Computer Use。原有关闭竞态、跨平台、历史回放和原图终验仍未完成，打包及无界面运行不替代 PDF 桌面交互终验。
