@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## DSH 0.2.2-rc.1 内核适配（2026-11-05）
+
+源码 `f1f0e5e8a2503113e89fe17f4c3f3a09d89654a7` 以 DSH `0.2.2-rc.1` 的 `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db` 为基线。该标签相对 alpha.3 只改上游包版本字段。DSHU Desktop 版本仍为 `0.1.0`。保留已录制的会话代、四模式、会话删除与旁问、工作区搜索及文件目标保护，关于页读取新的内核版本和来源提交。[上游发布说明](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.1)
+
+冻结锁文件安装、10 个构建门禁、42 项预设装配、119 项客户端回归、335 份 Cordis 配置及 113 份受影响文档配对通过。Windows 上实际恢复旧 V3 录制的定向用例通过。两条 TypeScript SDK 回放在临时路径转义处与录制文本不同，alpha.2 基线复现相同差异。ACP 的握手、拒绝额外目录和头部快照配对在恢复真实符号链接后复测通过。完整回放仍需在 POSIX 验收，Windows 的 Bash 录制使用 PowerShell 时会遇到工具差异。
+
+Python 客户端单测 30 项通过。仓库直接启动 `.js` 的运行时夹具在 Windows 触发 WinError 193；部署的 Node 开发载体已就绪，继续用它验证真实 `dsh --profile sdk`。单文件 Python 载体在打包工具下载环节遇到网络错误。Windows 桌面 unsigned 检查包正在从干净源码 `f1f0e5e8a2` 构建，进程与日志前缀为 `.dsh-build/package-browser-fix-official-direct-rc1-20261105`，待解包验收。系统仍运行 `4564b41285` 检查版。
+
 ## alpha.3 迁移检查点（2026-11-05）
 
 `main` 已推送 MySQL 只读审计 `af0c6ca2a551dc5b85908860a191f2c0d3ab2d56`。alpha.3 候选留在 `D:/Coding/deepseek-harness-uncensored-upstream-alpha3-20261104` 的 detached HEAD，基于同一提交。原始补丁已应用，索引剩 103 个冲突。恢复时先读 `.dsh-build/upstream-alpha3-checkpoint-20261104.md` 和候选树的 `git diff --name-only --diff-filter=U`。
