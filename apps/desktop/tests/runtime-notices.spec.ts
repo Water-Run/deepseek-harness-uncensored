@@ -62,12 +62,14 @@ it('copies every pinned supplement unchanged and leaves other versions for revie
   for (const source of sources) {
     for (const identity of source.packages) {
       const split = identity.lastIndexOf('@')
-      add(root, identity.slice(0, split), identity.slice(0, split), identity.slice(split + 1))
+      const name = identity.slice(0, split)
+      const version = identity.slice(split + 1)
+      add(root, `${version}/node_modules/${name}`, name, version)
     }
   }
-  add(root, 'next/node_modules/@cfworker/json-schema', '@cfworker/json-schema', '4.1.5')
+  add(root, 'next/node_modules/@cfworker/json-schema', '@cfworker/json-schema', '99.0.0')
   const packages = await prepareRuntimeNotices(root)
-  expect(packages.filter(pkg => pkg.reviewRequired).map(pkg => pkg.version)).toEqual(['4.1.5'])
+  expect(packages.filter(pkg => pkg.reviewRequired).map(pkg => pkg.version)).toEqual(['99.0.0'])
   for (const source of sources) {
     expect(createHash('sha256').update(readFileSync(join(root, 'licenses', source.file))).digest('hex')).toBe(source.sha256)
   }
