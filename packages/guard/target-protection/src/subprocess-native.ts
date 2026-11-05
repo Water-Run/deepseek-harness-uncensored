@@ -175,7 +175,8 @@ export default class NativeTargetSubprocess extends LocalSubprocessRuntime {
 
   private auditSource(): { sessionId: SessionId | null; audit: TargetAuditExecution; agent: Agent | undefined } {
     const scope = scopeOf(this.ctx)
-    const owner = scope === undefined ? undefined : this.ctx.get('agents')?.list().find(agent => agent === scope)
+    const scoped = scope === undefined ? undefined : this.ctx.get('agents')?.list().find(agent => agent === scope)
+    const owner = scope === undefined ? this.protection.currentExecutionAgent() : scoped
     const sessionId = owner?.id ?? this.protection.currentAuditSessionId()
     return { sessionId, audit: this.protection.bindAuditSession(sessionId ?? undefined), agent: owner }
   }

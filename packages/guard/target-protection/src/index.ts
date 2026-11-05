@@ -140,7 +140,7 @@ export default class TargetProtection extends Service {
         this.auditInitiator = current
         return () => { if (this.auditInitiator === current) this.auditInitiator = undefined }
       }, 'target-protection.auditInitiator')
-      if (this.config.auditPath !== '') scope.inject(['tools'], (tools) => {
+      scope.inject(['tools'], (tools) => {
         tools.on('tools/execute', (exec, next) => this.auditSessionScope.run({ session: exec.agent?.session }, () =>
           exec.agent === undefined ? agents.withoutInitiator(next) : agents.withInitiator(exec.agent, next)))
       })
@@ -202,6 +202,23 @@ export default class TargetProtection extends Service {
   }
 
   private auditScopeClosed(): boolean { return this.auditSessionScope.getStore()?.current?.() === false }
+
+  /**
+   * Read a live initiating Agent for Host callbacks, including Worker message handlers.
+   * Explicit audit scopes can suppress inherited identity but cannot establish an Agent.
+   * @returns The exact registered Agent, or undefined for Host and audit-only calls.
+   * @throws When the inherited Agent or its Session has been withdrawn or replaced.
+   */
+  currentExecutionAgent(): Agent | undefined {
+    this.lifetime.signal.throwIfAborted()
+    const agent = this.auditInitiator?.()
+    if (agent === undefined) return undefined
+    if (!this.ctx.get('agents')?.list().includes(agent) || this.ctx.get('sessions')?.get(agent.id) !== agent.session) {
+      throw new TargetProtectionError('unavailable', 'The initiating Agent is no longer available. The operation was stopped.')
+    }
+    const scoped = this.auditSessionScope.getStore()
+    return scoped === undefined || scoped.session === agent.session ? agent : undefined
+  }
 
   /**
    * Capture the current audit Session before work enters a background preparation queue.

@@ -4,6 +4,8 @@ import Credentials from '@deepseek-ai/dsh-credentials-local'
 import * as ProxyHost from '@deepseek-ai/dsh-security-proxy-local'
 import { mountAgentLoopTestDependencies, mountAgentLoopTestHarness } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { SessionId } from '@deepseek-ai/dsh-session'
+import type { Agent } from '@deepseek-ai/dsh-agent'
+import SandboxPolicy from '@deepseek-ai/dsh-sandbox-policy'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import { probe } from '@microsoft/mxc-sdk/v1'
 import { createServer, type Server } from 'node:http'
@@ -16,6 +18,7 @@ import { tmpdir } from 'node:os'
 import { describe, expect, it, onTestFinished } from 'vitest'
 import TargetProtection from '../src/index.ts'
 import NativeSubprocess from '../src/subprocess-native.ts'
+import TargetPtcRuntime from '../src/ptc.ts'
 import type { TargetRuleId } from '../src/types.ts'
 import { COVERAGE_TEST_TIMEOUT_ENV, coverageTestTimeoutOptions } from '../../../../scripts/coverage-partitions.ts'
 
@@ -89,6 +92,7 @@ async function fixture() {
   const work = join(root, 'work'), temporary = join(root, 'private')
   await mkdir(work)
   await mountAgentLoopTestDependencies(ctx); await mountAgentLoopTestHarness(ctx)
+  await ctx.plugin(SandboxPolicy, { mode: 'danger-full-access', workspaceRoot: work })
   await ctx.plugin(Credentials, { path: join(root, 'credentials.yml'), dshHome: root, watch: false })
   await ctx.plugin(TargetProtection, { path: join(root, 'rules.sqlite'), hostsFile: '' })
   await ctx.targetProtection.configure({ mainlandEnabled: false, rules: [
@@ -103,6 +107,7 @@ async function fixture() {
     readonlyPaths: [fileURLToPath(new URL('../../../..', import.meta.url)), dirname(process.execPath)], readwritePaths: [work],
     temporaryRoot: temporary, network: 'gateway', proxy: { protocol: 'http', host: '127.0.0.1', port: fallback.port },
   })
+  await ctx.plugin(TargetPtcRuntime)
   const owner = await ctx.agents.create({ sessionId: SessionId('native-proxy-owner') })
   owner.agent.session.append('agent-preset/selected', { agentPreset: 'security' })
   const subprocess = owner.agent.ctx.get('subprocess')
@@ -114,12 +119,46 @@ response.resume();response.once('end',()=>resolve(response.statusCode));response
 request.once('error',reject);request.end('{"password":"private-request","message":"owned"}')})}
 (async()=>{try{process.stdout.write(JSON.stringify([await post('127.0.0.1',${port}),await post('production.test',${productionPort})]))}
 finally{http.globalAgent.destroy()}})().catch(error=>{console.error(error);process.exitCode=1});`
-  return { ctx, work, temporary, subprocess, program, port, selected, fallback, arrived: arrived.promise,
+  return { ctx, owner: owner.agent, work, temporary, subprocess, program, port, selected, fallback, arrived: arrived.promise,
     targetClosed: targetClosed.promise, requests: () => requests, productionRequests: () => productionRequests }
 }
 
 describe.skipIf(!supported)('native Security proxy integration', () => {
-  it.each(['command', 'terminal'] as const)('captures real %s traffic through the selected upstream while production stays blocked', async (kind) => {
+  it('keeps concurrent Worker callbacks attributed to their own live Agents', async () => {
+    const h = await fixture(), other = await h.ctx.agents.create({ sessionId: SessionId('native-proxy-second') })
+    const entered: PromiseWithResolvers<void> = Promise.withResolvers()
+    let callbacks = 0
+    onTestFinished(() => { entered.resolve() })
+    other.agent.session.append('agent-preset/selected', { agentPreset: 'security' })
+    const run = (agent: Agent) => h.ctx.agents.withInitiator(agent, () => h.ctx.ptcRuntime.run(h.ctx.ptcRuntime.resolve({
+      program: 'return await tools.command({});', cwd: h.work, signal: AbortSignal.timeout(45000),
+      bindings: [{ global: 'tools', functions: { command: async () => {
+        if (++callbacks === 2) entered.resolve()
+        await entered.promise
+        expect(h.ctx.targetProtection.currentExecutionAgent()).toBe(agent)
+        const handle = h.ctx.subprocess.spawn({ argv: [process.execPath, '-e', h.program], cwd: h.work, graceMs: 1000,
+          signal: AbortSignal.timeout(45000), stdio: { stdin: 'ignore', stdout: { maxBytes: 8192 }, stderr: { maxBytes: 8192 } } })
+        expect(await handle.done, handle.collected.stderr?.readFrom(0).text).toEqual({ exitCode: 0, signal: null })
+        expect(await handle.waitForExit()).toBe(true)
+        return handle.collected.stdout?.readFrom(0).text ?? ''
+      } } }],
+    })))
+    expect(await Promise.all([run(h.owner), run(other.agent)])).toEqual([
+      { logs: [], value: '[200,403]' }, { logs: [], value: '[200,403]' },
+    ])
+    for (const agent of [h.owner, other.agent]) {
+      const flows = (await h.ctx.securityProxy.list({ sessionId: agent.id })).flows
+      expect(flows).toHaveLength(2)
+      expect(flows.every(flow => flow.sessionId === agent.id && flow.tool === 'subprocess')).toBe(true)
+      expect(flows.some(flow => flow.status === 200)).toBe(true)
+    }
+    expect(h.requests()).toBe(2)
+    expect(h.productionRequests()).toBe(0)
+    expect(h.fallback.seen).toEqual([])
+    expect(await readdir(h.temporary)).toEqual([])
+  }, nativeTimeout)
+
+  it.each(['command', 'terminal', 'worker'] as const)('captures real %s traffic through the selected upstream while production stays blocked', async (kind) => {
     const h = await fixture()
     if (kind === 'command') {
       const handle = h.subprocess.spawn({ argv: [process.execPath, '-e', h.program], cwd: h.work, graceMs: 1000,
@@ -128,6 +167,18 @@ describe.skipIf(!supported)('native Security proxy integration', () => {
       expect(await handle.waitForExit()).toBe(true)
       const details = await Promise.all((await h.ctx.securityProxy.list({})).flows.map(flow => h.ctx.securityProxy.detail(flow.id)))
       expect(handle.collected.stdout?.readFrom(0).text, JSON.stringify(details)).toBe('[200,403]')
+    } else if (kind === 'worker') {
+      const result = await h.ctx.agents.withInitiator(h.owner, () => h.ctx.ptcRuntime.run(h.ctx.ptcRuntime.resolve({
+        program: 'return await tools.command({});', cwd: h.work, signal: AbortSignal.timeout(45000),
+        bindings: [{ global: 'tools', functions: { command: async () => {
+          const handle = h.ctx.subprocess.spawn({ argv: [process.execPath, '-e', h.program], cwd: h.work, graceMs: 1000,
+            signal: AbortSignal.timeout(45000), stdio: { stdin: 'ignore', stdout: { maxBytes: 8192 }, stderr: { maxBytes: 8192 } } })
+          expect(await handle.done, handle.collected.stderr?.readFrom(0).text).toEqual({ exitCode: 0, signal: null })
+          expect(await handle.waitForExit()).toBe(true)
+          return handle.collected.stdout?.readFrom(0).text ?? ''
+        } } }],
+      })))
+      expect(result).toEqual({ logs: [], value: '[200,403]' })
     } else {
       const terminal = await h.subprocess.spawnTerminal({ argv: [process.execPath, '-e', h.program], cwd: h.work,
         cols: 100, rows: 24, terminalType: 'xterm', graceMs: 1000, signal: AbortSignal.timeout(45000) })
@@ -162,7 +213,7 @@ describe.skipIf(!supported)('native Security proxy integration', () => {
     expect(await readdir(h.temporary)).toEqual([])
   }, nativeTimeout)
 
-  it.each(['command', 'terminal'] as const)('joins a real %s and its held upstream response when the independent proxy is disabled', async (kind) => {
+  it.each(['command', 'terminal', 'worker'] as const)('joins a real %s and its held upstream response when the independent proxy is disabled', async (kind) => {
     const h = await fixture()
     const program = `const http=require('node:http');http.get('http://127.0.0.1:${h.port}/hold',response=>{
 response.on('data',()=>process.stdout.write('TRANSFER_STARTED\\n'));response.on('error',()=>{});
@@ -177,6 +228,21 @@ response.on('data',()=>process.stdout.write('TRANSFER_STARTED\\n'));response.on(
         expect(await handle.waitForExit()).toBe(true)
         await outcome; await h.targetClosed
       } finally { handle.terminate(); await handle.waitForExit() }
+    } else if (kind === 'worker') {
+      const running = h.ctx.agents.withInitiator(h.owner, () => h.ctx.ptcRuntime.run(h.ctx.ptcRuntime.resolve({
+        program: 'return await tools.command({});', cwd: h.work, signal: AbortSignal.timeout(45000),
+        bindings: [{ global: 'tools', functions: { command: async () => {
+          const handle = h.ctx.subprocess.spawn({ argv: [process.execPath, '-e', program], cwd: h.work, graceMs: 1000,
+            signal: AbortSignal.timeout(45000), stdio: { stdin: 'ignore', stdout: { maxBytes: 8192 }, stderr: { maxBytes: 8192 } } })
+          await Promise.allSettled([handle.done])
+          return await handle.waitForExit()
+        } } }],
+      })))
+      const outcome = Promise.allSettled([running])
+      await Promise.race([h.arrived, running.then(() => { throw new Error('Worker ended before its upstream request arrived') })])
+      expect((await h.ctx.securityProxy.configure({ enabled: false })).settings.enabled).toBe(false)
+      expect(await running).toEqual({ logs: [], value: true })
+      await outcome; await h.targetClosed
     } else {
       const terminal = await h.subprocess.spawnTerminal({ argv: [process.execPath, '-e', program], cwd: h.work,
         cols: 100, rows: 24, terminalType: 'xterm', graceMs: 1000, signal: AbortSignal.timeout(45000) })
