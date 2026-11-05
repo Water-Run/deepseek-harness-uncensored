@@ -1702,6 +1702,9 @@ importers:
       '@deepseek-ai/dsh-subagent':
         specifier: workspace:*
         version: link:../../subagent/subagent
+      '@deepseek-ai/dsh-target-protection':
+        specifier: workspace:*
+        version: link:../../guard/target-protection
       '@deepseek-ai/dsh-typert-protocol':
         specifier: workspace:*
         version: link:../../typert/protocol
@@ -5794,9 +5797,15 @@ importers:
       '@deepseek-ai/dsh-security-proxy':
         specifier: workspace:*
         version: link:../../guard/security-proxy
+      '@deepseek-ai/dsh-target-protection':
+        specifier: workspace:*
+        version: link:../../guard/target-protection
       '@deepseek-ai/dsh-typert-protocol':
         specifier: workspace:*
         version: link:../../typert/protocol
+      '@deepseek-ai/dsh-util-crypto':
+        specifier: workspace:*
+        version: link:../../util/crypto
       '@testing-library/react':
         specifier: ^16.3.3
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)

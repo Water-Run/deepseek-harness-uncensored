@@ -26,6 +26,8 @@ Mount the root service with an explicit `path` to a dedicated SQLite registry. M
 
 The [optional Web profile overlay](../../../apps/cli/config/examples/target-protection.yml) assembles the guarded providers. Run `pnpm dsh web --patch apps/cli/config/examples/target-protection.yml` from the source checkout. The registry starts with no rules and mainland protection off. This profile refuses unconfined local execution while it owns protected configuration files. Only the mounted adapters enforce target checks.
 
+Open Settings → Modes → Security → Target protection to view the current data source, edit rules and save them against their original revision.
+
 `./settings` exposes `targetProtectionSettings.get` and `configure` to authenticated application owners. `get` returns the committed rules, their revision, the live HTTP-route status, and DB-IP attribution and freshness. `configure` takes complete `preferences` and an `expectedRevision`, and refuses a stale edit or a disconnected owner before commit. Security entry reads mainland protection as enabled only when both guarded HTTP routes are mounted and country data is fresh. An expired source or withdrawn route leaves the status unavailable. A committed settings change invalidates open entry confirmations.
 
 `busyTimeoutMs` bounds SQLite lock waits (default 1000); `checkTimeoutMs` bounds address checks (default 5000); `maxRechecks` bounds retries after concurrent configuration changes (default 3). These options do not authorize replay of a network operation.

@@ -27,6 +27,14 @@
       "types": "./lib/types/settings.d.ts",
       "default": "./lib/types/settings.js"
     },
+    "./typert": {
+      "types": "./lib/typert.host.d.ts",
+      "default": "./lib/typert.host.js"
+    },
+    "./remote": {
+      "types": "./lib/typert.remote-client.d.ts",
+      "default": "./lib/typert.remote-client.js"
+    },
     "./http": {
       "types": "./lib/types/http.d.ts",
       "default": "./lib/types/http.js"
@@ -109,6 +117,10 @@
   "files": [
     "locale/*.json",
     "lib/index.js",
+    "lib/typert.host.js",
+    "lib/typert.host.d.ts",
+    "lib/typert.remote-client.js",
+    "lib/typert.remote-client.d.ts",
     "assets",
     "lib/types/**/*.js",
     "lib/types/**/*.d.ts"

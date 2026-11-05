@@ -1,0 +1,9 @@
+.heading, .rule { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 12px; min-width: 0; }
+.heading > div, .ruleDetails { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; }
+.rules { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.rule { padding-block: 10px; border-bottom: 0.5px solid var(--dsw-alias-border-l1); }
+.ruleDetails { display: grid; gap: 4px; }
+.ruleDetails strong { font-weight: 500; }
+.link { color: var(--dsw-alias-state-business-primary); overflow-wrap: anywhere; }
+.editor, .aliases { display: grid; gap: 12px; min-width: 0; }
+.aliases { padding-top: 12px; border-top: 0.5px solid var(--dsw-alias-border-l2); }

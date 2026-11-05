@@ -128,6 +128,8 @@ export const VIEWER_ENDPOINT_CLASSES = {
   'securityProxy/pause': 'owner-only',
   'securityProxy/setPassword': 'owner-only',
   'securityProxy/test': 'owner-only',
+  'targetProtectionSettings/configure': 'owner-only',
+  'targetProtectionSettings/get': 'owner-only',
   'session/aside': 'owner-only',
   'session/delete': 'owner-only',
   'session/predict': 'owner-only',

@@ -8,6 +8,8 @@
     "src"
   ],
   "references": [
+    { "path": "../../guard/target-protection" },
+    { "path": "../../util/crypto" },
     { "path": "../ui-agent-preset" },
     {
       "path": "../../../vendor/cordis"

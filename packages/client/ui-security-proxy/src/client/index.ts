@@ -15,6 +15,8 @@ import { SecurityProxySection } from './SecurityProxySection.tsx'
 import { SecurityProxyBanner } from './SecurityProxyBanner.tsx'
 import type { SecurityProxyInjected } from './SecurityProxySection.tsx'
 import { en, zh, type SecurityProxyKey } from './locales.ts'
+import { TargetSettingsController } from './target-protection-controller.ts'
+import { TargetProtectionSection } from './TargetProtectionSection.tsx'
 
 export type { SecurityProxyInjected } from './SecurityProxySection.tsx'
 export type { SecurityProxyKey } from './locales.ts'
@@ -40,6 +42,16 @@ async function unwrap<T>(request: Promise<RemoteResult<T>>): Promise<T> {
  */
 export function apply(ctx: Context): void {
   ctx.effect(() => ctx.locale.register('settings.securityProxy', { en, zh }), 'security-proxy: dictionaries')
+
+  ctx.inject(['remote.targetProtectionSettings'], (scope) => {
+    const controller = new TargetSettingsController(scope.remote.targetProtectionSettings)
+    scope.on('connection/reset', () => controller.reset())
+    scope.effect(() => () => controller.dispose(), 'target-protection: settings requests')
+    scope.slots.inject('settings.mode.materials', () => scope.slots.register({
+      name: 'settings.mode.materials', id: 'security-target-protection', order: 21, locale: 'settings.securityProxy',
+      inject: () => ({ hooks: { targetSettings: controller.state }, load: controller.load, save: controller.save }),
+    }, TargetProtectionSection))
+  })
 
   ctx.inject(['remote.securityProxy'], (scope) => {
     const port: SecurityProxyPort = {

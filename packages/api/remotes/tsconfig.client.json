@@ -11,6 +11,7 @@
     "src/types.ts"
   ],
   "references": [
+    { "path": "../../guard/target-protection" },
     {
       "path": "../../client/product-analytics/tsconfig.client.json"
     },
