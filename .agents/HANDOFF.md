@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## rc.1 Windows 检查包与 Python 运行时验收（2026-11-05）
+
+`c4685cedb7c00a1fa5bd9b6a52e25f89a14d1a0d` 的 Windows x64 检查包已完成实际安装器解包和资源核对。DSHU 0.1.0、DSH 0.2.2-rc.1、REA 6.8.0。安装器为 `.dsh-build/deliverables/DSHU-0.1.0-core-0.2.2-rc.1-REA-6.8.0-win-x64-unsigned-20261105-c4685c.exe`，394,382,004 字节，SHA-256 `d9378ab57e23acd8a6d4f335ea7a593739473e5c36050ebbbe1e81c54bf204e0`。回执 `.dsh-build/deliverables/DSHU-20261105-c4685c-manifest.json`。实际包四模式新建会话、ConPTY 长路径终端和四条浏览器代理路径通过。检查包未签名，系统当前安装 `4564b41285`。等待现有 DSHU 退出后，使用该版本安装器作为回滚副本，原位更新并核对资料与官方 DSH 文件哈希。
+
+同一源码生成了 Windows x64 Python SDK SEA 单文件运行时，内嵌 Node 24.22.2。使用 Python SDK 的 `exe` 模式通过 11 项真实命令和恢复测试。可执行文件 228,021,760 字节，SHA-256 `3fe3192e31ed3817fab12b2f08075f9f146c33717614cc42f71020176e40cfe5`。回执 `.dsh-build/rc1-python-sea-runtime-20261105.json`。核对三对文件哈希一致后，删除了 627,833,524 字节的重复安装器和 SDK 输出副本，保留交付包、回滚包、验收解包和 SDK 运行目录。
+
+此检查包记录 15 处依赖声明待核查。之后的 `e715fe9742` 补入两项原文，在 811 条清单投影上复算为 13 处。完整 POSIX 回放及安装验收进度见 [TODO](TODO.md)。
+
 ## DSH 0.2.2-rc.1 内核适配（2026-11-05）
 
 源码 `f1f0e5e8a2503113e89fe17f4c3f3a09d89654a7` 以 DSH `0.2.2-rc.1` 的 `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db` 为基线。该标签相对 alpha.3 只改上游包版本字段。DSHU Desktop 版本仍为 `0.1.0`。保留已录制的会话代、四模式、会话删除与旁问、工作区搜索及文件目标保护，关于页读取新的内核版本和来源提交。[上游发布说明](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.1)
