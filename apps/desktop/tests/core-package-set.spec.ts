@@ -1,8 +1,11 @@
 import { createHash } from 'node:crypto'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
+import yaml from 'js-yaml'
+import { createRuntimeProjectMetadata } from '../src/project-manager.ts'
+import { runtimeFixture } from './runtime-fixture.ts'
 import {
   DESKTOP_PACKAGES_DIR,
   DESKTOP_PACKAGE_SET_FILE,
@@ -57,6 +60,15 @@ afterEach(() => {
 })
 
 describe('desktop core package set', () => {
+  it('explicitly declines optional SSH native acceleration in the strict runtime installation', () => {
+    const { root } = packageSetProject()
+    const runtime = runtimeFixture(root, '0.1.0', '24.17.0', '1.2.3')
+    createRuntimeProjectMetadata(root, runtime.release)
+    expect(yaml.load(readFileSync(join(root, 'pnpm-workspace.yaml'), 'utf8'))).toMatchObject({
+      allowBuilds: { 'node-pty': true, koffi: true, ssh2: false, 'cpu-features': false },
+    })
+  })
+
   it('pins the direct dsh dependency and every internal package to local tarballs', () => {
     const { root } = packageSetProject()
     const packageSet = verifyDesktopCorePackageSet(root, '1.2.3')
