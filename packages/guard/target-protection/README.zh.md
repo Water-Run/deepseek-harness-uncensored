@@ -34,6 +34,8 @@ kind: "package-reference"
 
 审计覆盖受保护的 HTTP、代理 HTTP、端点、本机文件及无法约束执行的检查。预检通过会省略，准入结果和工具执行结果分别记录。已启用的审计库写入失败时，会拦截新的放行操作，所有者可以查看不可用状态。恢复审计库后重启即可继续使用。
 
+在「设置 → 模式 → 网安 → 准入审计」查看最近的判定。读取条目带有数据库分配的稳定 ID。
+
 `busyTimeoutMs` 限制 SQLite 锁等待（默认 1000）；`checkTimeoutMs` 限制地址检查（默认 5000）；`maxRechecks` 限制并发配置变化后的复查次数（默认 3）。这些选项不授权重放网络操作。
 
 `dnsServers` 默认使用系统解析器列表，`hostsFile` 默认使用系统 hosts 文件。`dnsQueryTimeoutMs` 默认 1500，`dnsMaxCnameDepth` 默认 8，`dnsMaxRecords` 默认 256，`hostsMaxBytes` 默认 1 MiB。DNS 使用这些配置的解析器，不擅自选择外部公共解析器；遇到拒绝或无效回答，不会通过询问另一台服务器规避。

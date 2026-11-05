@@ -1,9 +1,11 @@
 /** Security-proxy settings copy, owned by this feature. */
 import { targetEn, targetZh } from './target-protection-locales.ts'
+import { auditEn, auditZh } from './target-audit-locales.ts'
 
 /** English dictionary for the security proxy surface. */
 export const en = {
   ...targetEn,
+  ...auditEn,
   'securityProxy.title': 'Security proxy',
   'securityProxy.intro': 'Target access from security conversations can run through one upstream proxy. Other modes, model requests, sign-in, balance and update checks never use it.',
   'securityProxy.enabled': 'Route security traffic through this proxy',
@@ -110,6 +112,7 @@ export type SecurityProxyKey = keyof typeof en
 /** Simplified Chinese copy for the security proxy surface. */
 export const zh: Record<SecurityProxyKey, string> = {
   ...targetZh,
+  ...auditZh,
   'securityProxy.title': '网安独立代理',
   'securityProxy.intro': '网安对话的目标访问可以统一经这个上游代理发出。其他模式、模型请求、登录、余额和更新检查都不会走它。',
   'securityProxy.enabled': '让网安流量经过这个代理',

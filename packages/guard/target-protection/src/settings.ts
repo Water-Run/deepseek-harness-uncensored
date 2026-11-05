@@ -9,7 +9,7 @@ import type {} from './country-provider.ts'
 import type {} from './index.ts'
 import type { TargetPreferences, TargetSnapshot } from './types.ts'
 
-export type { TargetAuditHistory, TargetAuditRecord } from './audit.ts'
+export type { TargetAuditHistory, TargetAuditRecord, TargetAuditEntry, TargetAuditId } from './audit.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {

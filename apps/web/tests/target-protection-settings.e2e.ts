@@ -45,6 +45,18 @@ it('saves a real production rule and fits the editor at the narrow settings widt
         name: 'Production database', kind: 'database', environment: 'production', protection: 'full',
         match: 'host', address: 'db.example.test', port: 5432, database: 'production',
       }])
+      await scaffold.ctx.targetProtection.checkConnection('db.example.test', 5432, undefined, 'endpoint', 'mutate',
+        new AbortController().signal, 'production')
+      const audit = settings.getByRole('region', { name: 'Admission audit', exact: true })
+      await audit.getByRole('button', { name: 'View audit records' }).click()
+      await audit.getByText('Fully protected target').first().waitFor()
+      expect(await audit.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+      expect(await audit.textContent()).not.toContain('db.example.test')
+      const refusal = audit.getByRole('listitem').filter({ hasText: 'Fully protected target' }).first()
+      await refusal.getByRole('button', { name: 'Decision details' }).click()
+      const recorded = scaffold.ctx.targetProtection.auditHistory().entries.find(entry => entry.code === 'TARGET_FULLY_PROTECTED')
+      if (recorded?.fingerprint == null) throw new Error('Missing persisted production refusal')
+      await audit.getByText(recorded.fingerprint, { exact: true }).waitFor()
     } finally { await browser.close() }
   } finally { await scaffold.close() }
 })

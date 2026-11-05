@@ -17,6 +17,8 @@ import type { SecurityProxyInjected } from './SecurityProxySection.tsx'
 import { en, zh, type SecurityProxyKey } from './locales.ts'
 import { TargetSettingsController } from './target-protection-controller.ts'
 import { TargetProtectionSection } from './TargetProtectionSection.tsx'
+import { TargetAuditController } from './target-audit-controller.ts'
+import { TargetAuditSection } from './TargetAuditSection.tsx'
 
 export type { SecurityProxyInjected } from './SecurityProxySection.tsx'
 export type { SecurityProxyKey } from './locales.ts'
@@ -52,6 +54,13 @@ export function apply(ctx: Context): void {
       inject: () => ({ hooks: { targetSettings: controller.state }, load: controller.load, save: controller.save,
         updateCountry: controller.updateCountry }),
     }, TargetProtectionSection))
+    const audit = new TargetAuditController(() => scope.remote.targetProtectionSettings.auditHistory())
+    scope.on('connection/reset', () => audit.reset())
+    scope.effect(() => () => audit.dispose(), 'target-protection: audit reads')
+    scope.slots.inject('settings.mode.materials', () => scope.slots.register({
+      name: 'settings.mode.materials', id: 'security-target-audit', order: 22, locale: 'settings.securityProxy',
+      inject: () => ({ hooks: { targetAudit: audit.state }, load: audit.load }),
+    }, TargetAuditSection))
   })
 
   ctx.inject(['remote.securityProxy'], (scope) => {

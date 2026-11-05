@@ -10846,8 +10846,16 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type TableValueOf<S extends DomainSpec, N extends keyof S[\'tables\']> = S[\'tables\'][N] extends DomainTableSpec<string, infer V> ? V : never;',
   },
   {
+    name: 'TargetAuditEntry',
+    declaration: 'export type TargetAuditEntry = TargetAuditRecord & {\n    id: TargetAuditId;\n};',
+  },
+  {
     name: 'TargetAuditHistory',
-    declaration: 'export interface TargetAuditHistory {\n    state: \'off\' | \'ready\' | \'unavailable\';\n    entries: TargetAuditRecord[];\n}',
+    declaration: 'export interface TargetAuditHistory {\n    state: \'off\' | \'ready\' | \'unavailable\';\n    entries: TargetAuditEntry[];\n}',
+  },
+  {
+    name: 'TargetAuditId',
+    declaration: 'export type TargetAuditId = Branded<\'TargetAuditId\'>;',
   },
   {
     name: 'TargetAuditRecord',

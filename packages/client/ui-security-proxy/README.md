@@ -29,6 +29,8 @@ The Web app loads it as a browser row; nothing else to install. The area registe
 
 The Target protection panel uses the [optional guarded Web profile](../../guard/target-protection/README.md#use-this-package). An application owner can configure mainland protection, add and edit production or test rules, manage aliases, and view the active revision and country data. Check for update refreshes the managed data independently of the rule draft. Edits remain drafts until Save rules. A conflict or connection change keeps the draft visible and prevents it from replacing the current Host rules.
 
+Admission audit starts collapsed and loads the latest 100 records when opened. Filter by decision or search a fingerprint, rule ID or reason code. Each record expands to show the rule revision, check stage and complete redacted identifiers. A failed refresh preserves the previously read page. Reconnecting clears the previous Host's records. An unavailable audit writer has a persistent notice.
+
 The shell coverage row includes one-shot commands and persistent shell terminals. They require applications to honor proxy environment variables; captured HTTP and opaque HTTPS tunnels retain their distinct labels.
 
 Native desktop pages appear as Sidebar browser in the traffic list. Web iframes and attached external browsers do not use this proxy.

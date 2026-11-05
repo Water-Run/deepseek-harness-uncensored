@@ -34,6 +34,8 @@ Set `auditPath` to enable the separate local admission log. The optional Web ove
 
 The audit records the protected HTTP, proxy HTTP, endpoint, local file and unconfined checks. Successful preflight checks are omitted. Execution admission and tool outcomes have separate records. If an enabled audit store fails to write, new allowed effects are refused and the owner can inspect its unavailable status. Restart after restoring the audit store.
 
+Open Settings → Modes → Security → Admission audit to inspect recent decisions. Read entries include a stable database-assigned ID.
+
 `busyTimeoutMs` bounds SQLite lock waits (default 1000); `checkTimeoutMs` bounds address checks (default 5000); `maxRechecks` bounds retries after concurrent configuration changes (default 3). These options do not authorize replay of a network operation.
 
 `dnsServers` defaults to the OS resolver list; `hostsFile` defaults to the system hosts file. `dnsQueryTimeoutMs` defaults to 1500, `dnsMaxCnameDepth` to 8, `dnsMaxRecords` to 256 and `hostsMaxBytes` to 1 MiB. DNS uses these configured resolvers rather than choosing an external public resolver. Refusals and invalid replies are not evaded by asking another server.

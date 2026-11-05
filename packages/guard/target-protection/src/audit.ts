@@ -4,6 +4,7 @@ import { mkdir, open } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import type { DatabaseSync } from 'node:sqlite'
 import { z } from 'zod'
+import { brandString, type Branded } from '@deepseek-ai/dsh-brand'
 import { TargetProtectionError } from './errors.ts'
 
 const applicationId = 0x44535441
@@ -24,10 +25,16 @@ const recordSchema = z.object({
 /** Typed audit outcome. A fingerprint is keyed to the local audit store and carries no raw target. */
 export type TargetAuditRecord = z.infer<typeof recordSchema>
 
+/** Stable row identity within its owning audit database. */
+export type TargetAuditId = Branded<'TargetAuditId'>
+
+/** One persisted check with its database-assigned identity. */
+export type TargetAuditEntry = TargetAuditRecord & { id: TargetAuditId }
+
 /** Latest accepted audit records, newest first. */
 export interface TargetAuditHistory {
   state: 'off' | 'ready' | 'unavailable'
-  entries: TargetAuditRecord[]
+  entries: TargetAuditEntry[]
 }
 
 /** One internal audit subject. Raw inputs exist only long enough to fingerprint them. */
@@ -105,9 +112,12 @@ export class TargetAuditStore {
   }
 
   /** @returns Up to 100 verified audit records, newest first. */
-  recent(): TargetAuditRecord[] {
-    return this.db.prepare('SELECT record FROM admission ORDER BY id DESC LIMIT 100').all()
-      .map(row => recordSchema.parse(JSON.parse(z.string().parse(row.record))))
+  recent(): TargetAuditEntry[] {
+    const statement = this.db.prepare('SELECT id, record FROM admission ORDER BY id DESC LIMIT 100')
+    statement.setReadBigInts(true)
+    return statement.all()
+      .map(row => ({ ...recordSchema.parse(JSON.parse(z.string().parse(row.record))),
+        id: brandString<TargetAuditId>(z.bigint().positive().parse(row.id).toString()) }))
   }
 
   /** Release the local SQLite connection. */
