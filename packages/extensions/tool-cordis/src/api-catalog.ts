@@ -2464,8 +2464,8 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
   },
   {
     key: 'mysqlAudit',
-    summary: 'Fixed read-only queries over verified TLS, with endpoint admission and revocation.',
-    description: 'Fixed read-only queries over verified TLS, with endpoint admission and revocation.',
+    summary: 'Fixed audits and explicit test writes over verified TLS, with endpoint admission and revocation.',
+    description: 'Fixed audits and explicit test writes over verified TLS, with endpoint admission and revocation.',
     methods: [
       {
         signature: 'names(): string[]',
@@ -2474,10 +2474,22 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'Binding names without endpoint or credential data.',
       },
       {
+        signature: 'testWriteNames(): string[]',
+        description: 'List bindings configured for structured test writes.',
+        parameters: [],
+        returns: 'Names of bindings with at least one writable test table.',
+      },
+      {
         signature: 'inspect(name: string, signal: AbortSignal): Promise<MysqlAudit>',
         description: 'Audit one bound database using executor-owned catalogue statements.',
         parameters: [{ name: 'name', description: 'Configured binding name.' }, { name: 'signal', description: 'Request cancellation.' }],
         returns: 'Verified identity and bounded table metadata.',
+      },
+      {
+        signature: 'async writeTest(name: string, input: unknown, signal: AbortSignal): Promise<MysqlWriteResult>',
+        description: 'Apply one structured mutation to a dedicated test binding after target, grant and table checks.',
+        parameters: [{ name: 'name', description: 'Configured test binding.' }, { name: 'input', description: 'JSON mutation with values and an equality filter for update or delete.' }, { name: 'signal', description: 'Request cancellation.' }],
+        returns: 'Result after MySQL confirms the commit.',
       },
     ],
   },
@@ -8457,6 +8469,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'MysqlAudit',
     declaration: 'export interface MysqlAudit {\n    database: string;\n    account: string;\n    serverVersion: string;\n    tlsCipher: string;\n    tables: {\n        name: string;\n        kind: string;\n        engine: string | null;\n    }[];\n}',
+  },
+  {
+    name: 'MysqlWriteResult',
+    declaration: 'export interface MysqlWriteResult {\n    database: string;\n    table: string;\n    operation: \'insert\' | \'update\' | \'delete\';\n    affectedRows: number;\n}',
   },
   {
     name: 'NativeFileApplication',

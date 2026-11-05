@@ -1,0 +1,11 @@
+- id: security-proxy
+  disabled: true
+- id: tool-bash
+  disabled: true
+- id: tool-pwsh
+  disabled: true
+- insert:
+    - id: mysql-write-protection-fixture
+      name: '../../../packages/guard/target-protection/tests/snapshot-postgres.ts'
+      config:
+        mysqlWrite: true

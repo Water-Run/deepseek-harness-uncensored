@@ -96,7 +96,11 @@ SQLite 同时检查配置路径和真实路径旁的日志。主库必须只有�
 
 装配 `./mysql` 并提供 `targetProtection` 与 `credentials`，再装配 `./mysql-agent` 提供 `mysql_inspect`。绑定需填写 `name`、`hostname`、`database`、`username`、`accountHost` 和 `passwordRef`，端口默认 3306。`accountHost` 对应 `CURRENT_USER()` 返回的账号主机部分，例如 `%`。使用字面 IP 时，需显式提供证书中的 DNS 名 `tlsServerName`。私有证书颁发机构可通过 `caPem` 配置。
 
-执行器在拨号前校验端点和配置的证书名称，固定到一个获准 IP，并用原始 DNS 名或显式配置的名称校验证书。审计核对所选数据库、实际认证账号和 TLS 密码套件，然后在只读事务内读取该库的表目录。执行器只发送固定 SQL。规则变更或取消时关闭连接，并限制结果大小和并发操作数。适用于目录信息可信的直连 MySQL 实例。
+执行器在拨号前校验端点和配置的证书名称，固定到一个获准 IP，并用原始 DNS 名或显式配置的名称校验证书。`mysql_inspect` 核对数据库、实际认证账号和 TLS 密码套件，再用固定的只读查询读取该库的表目录。规则变更或取消时，执行器关闭连接后再释放所用的规则修订。
+
+绑定列出 `testTables` 且沙盒策略服务可用时，提供 `mysql_test_write`。写入要求会话完全权限、精确的专用测试服务器和测试库规则，以及使用直接表授权的 MySQL 8 账号。给配置的表授予 `SELECT`、`TRIGGER` 与所需的 `INSERT`、`UPDATE` 或 `DELETE`。执行器借助 `TRIGGER` 权限确认目标表没有触发器，并在持有事务的表元数据锁期间检查 InnoDB 引擎和触发器元数据。
+
+提交包含 `operation` 和 `table` 的 JSON 操作。插入、更新还需提供 `values`，更新、删除还需提供非空的 `where` 等值条件。执行器生成预处理语句，并独立绑定参数。`maxRows` 约束语句直接影响的行数，`maxResultBytes` 约束输入和结果。InnoDB 外键仍可能改动关联测试行。请使用无生产资源和复制链路的专用实例。服务器确认提交后才返回成功，回执丢失时应先核对测试库再决定是否重试。
 
 装配 `./browser` 替换 `dsh-browser-use`，保留所选 Playwright MCP、Chrome DevTools MCP 或 Stagehand 提供方。三个提供方均在原生获取前解析必需执行许可，排队调用前复查。撤销后关闭资源，规则保持到原生结束；缺少策略会撤下注册服务及其提供方。拒绝条件与 `./subprocess` 相同。本适配器提供准入和撤销，不提供浏览器逐目标隔离；测试标签不能约束任意浏览器文件、网络或脱离进程的效果。普通无保护组合保留原行为。
 

@@ -1059,6 +1059,7 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   PostgresAudit: 'PostgresAudit fields and operation guarantees are owned by packages/guard/target-protection/README.md',
   PostgresTestResult: 'PostgresTestResult fields and operation guarantees are owned by packages/guard/target-protection/README.md',
   MysqlAudit: 'MysqlAudit fields and operation guarantees are owned by packages/guard/target-protection/README.md',
+  MysqlWriteResult: 'MysqlWriteResult fields and operation guarantees are owned by packages/guard/target-protection/README.md',
   NativeFileConstraints: 'NativeFileConstraints fields and operation guarantees are owned by packages/guard/target-protection/README.md',
   SqliteRequest: 'SqliteRequest fields and operation guarantees are owned by packages/guard/target-protection/README.md',
   SqliteResult: 'SqliteResult fields and operation guarantees are owned by packages/guard/target-protection/README.md',

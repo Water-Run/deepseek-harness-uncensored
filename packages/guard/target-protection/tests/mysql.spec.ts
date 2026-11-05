@@ -1,4 +1,4 @@
-/** MySQL refuses protected identities before connecting or resolving credentials. */
+/** MySQL verifies admissions before TCP and releases active handshakes on policy changes. */
 import { Context } from '@deepseek-ai/cordis'
 import Credentials from '@deepseek-ai/dsh-credentials-local'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
@@ -11,6 +11,7 @@ import { randomUUID } from 'node:crypto'
 import { expect, it, onTestFinished } from 'vitest'
 import TargetProtection from '../src/index.ts'
 import MysqlAudit from '../src/mysql.ts'
+import { checkMysqlWriteGrants, mysqlWriteInput, mysqlWriteStatement } from '../src/mysql-write.ts'
 import type { TargetRuleId } from '../src/types.ts'
 
 async function fixture(holdHandshake = false) {
@@ -51,7 +52,11 @@ async function fixture(holdHandshake = false) {
   const rule = (address: string) => ({ id: brandString<TargetRuleId>(randomUUID()), name: 'owned production fixture', enabled: true,
     kind: 'database' as const, match: 'host' as const, address, port: endpoint.port, database: 'fixture',
     environment: 'production' as const, protection: 'full' as const })
-  return { ctx, owner, binding, rule, accepted: accepted.promise, closed: closed.promise, connections: () => connections }
+  const serverRule = (address: string) => {
+    const { database: _database, ...fields } = rule(address)
+    return { ...fields, kind: 'server' as const }
+  }
+  return { ctx, owner, binding, rule, serverRule, accepted: accepted.promise, closed: closed.promise, connections: () => connections }
 }
 
 it.each(['127.0.0.1', 'mysql.fixture.test'])('rejects the protected %s identity before TCP', async (address) => {
@@ -94,4 +99,66 @@ it('closes a pending MySQL handshake when the target becomes protected', async (
   await closed
   await expect(ctx.mysqlAudit.inspect('owned', AbortSignal.timeout(5_000))).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
   expect(connections()).toBe(1)
+})
+
+const mutation = { operation: 'update', table: 'items', values: { name: 'a?; --' }, where: { id: 7 } }
+
+it('binds all values and rejects unscoped mutations', async () => {
+  const { ctx, binding, connections } = await fixture()
+  await ctx.plugin(MysqlAudit, { databases: [{ ...binding, testTables: ['items'] }] })
+  await expect(ctx.mysqlAudit.writeTest('owned', { ...mutation, where: {} }, new AbortController().signal))
+    .rejects.toMatchObject({ code: 'MYSQL_INVALID_WRITE' })
+  await expect(ctx.mysqlAudit.writeTest('owned', { ...mutation, table: 'production.items' }, new AbortController().signal))
+    .rejects.toMatchObject({ code: 'MYSQL_INVALID_WRITE' })
+  expect(mysqlWriteStatement('fixture', mysqlWriteInput.parse(mutation), 2)).toEqual({
+    target: '`fixture`.`items`', sql: 'UPDATE `fixture`.`items` SET `name` = ? WHERE `id` <=> ? LIMIT 2', values: ['a?; --', 7],
+  })
+  expect(connections()).toBe(0)
+})
+
+it('requires exact dedicated server and database rules and refuses a production database on that instance', async () => {
+  const { ctx, binding, rule, serverRule, connections } = await fixture()
+  await ctx.plugin(MysqlAudit, { databases: [{ ...binding, testTables: ['items'] }] })
+  const database = { ...rule(binding.hostname), environment: 'test' as const }
+  const server = { ...serverRule(binding.hostname), environment: 'test' as const }
+  const write = () => ctx.mysqlAudit.writeTest('owned', mutation, new AbortController().signal)
+  await ctx.targetProtection.configure({ mainlandEnabled: false, rules: [database] }, 1)
+  await expect(write()).rejects.toMatchObject({ code: 'MYSQL_TEST_ONLY' })
+  await ctx.targetProtection.configure({ mainlandEnabled: false, rules: [database, server] }, 2)
+  await expect(write()).rejects.toMatchObject({ code: 'MYSQL_CREDENTIAL_UNAVAILABLE' })
+  await ctx.targetProtection.configure({ mainlandEnabled: false, rules: [
+    database, server, { ...rule(binding.tlsServerName), database: 'other' },
+  ] }, 3)
+  await expect(write()).rejects.toMatchObject({ code: 'TARGET_IDENTITY_UNVERIFIED' })
+  await ctx.targetProtection.configure({ mainlandEnabled: false, rules: [database, server, serverRule(binding.tlsServerName)] }, 4)
+  await expect(write()).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+  expect(connections()).toBe(0)
+})
+
+it('waits for the dedicated write handshake to close before publishing protection changes', async () => {
+  const { ctx, binding, rule, serverRule, accepted, closed, connections } = await fixture(true)
+  const database = { ...rule(binding.hostname), environment: 'test' as const }
+  const server = { ...serverRule(binding.hostname), environment: 'test' as const }
+  await ctx.targetProtection.configure({ mainlandEnabled: false, rules: [database, server] }, 1)
+  await ctx.credentials.set(credentialRef(binding.passwordRef), 'owned fixture password')
+  await ctx.plugin(MysqlAudit, { databases: [{ ...binding, testTables: ['items'] }] })
+  const operation = ctx.mysqlAudit.writeTest('owned', mutation, AbortSignal.timeout(5_000))
+  const rejection = expect(operation).rejects.toMatchObject({ code: 'MYSQL_CANCELLED' })
+  await Promise.race([accepted, rejection.then(() => { throw new Error('Missing write handshake barrier') })])
+  await ctx.targetProtection.configure({ mainlandEnabled: false, rules: [rule(binding.hostname)] }, 2)
+  await rejection
+  await closed
+  expect(connections()).toBe(1)
+})
+
+it.each([
+  'GRANT SELECT, UPDATE ON `fixture`.`items` TO `audit`@`%`',
+  'GRANT SELECT, UPDATE, TRIGGER ON `fixture`.* TO `audit`@`%`',
+  'GRANT SELECT, UPDATE, TRIGGER ON `fixture`.`items` TO `audit`@`%` WITH GRANT OPTION',
+  'GRANT `production_admin`@`%` TO `audit`@`%`',
+  'GRANT UPDATE ON `production`.`items` TO `audit`@`%`',
+])('rejects an incomplete or elevated grant in a write account', (grant) => {
+  const binding = { database: 'fixture', username: 'audit', accountHost: '%', testTables: ['items'] }
+  expect(() => checkMysqlWriteGrants([[grant]], binding, mysqlWriteInput.parse(mutation)))
+    .toThrow(expect.objectContaining({ code: 'MYSQL_TEST_GRANTS' }))
 })

@@ -1,8 +1,9 @@
-/** Owned loopback endpoint for the real database_inspect Session refusal. @module */
+/** Owned loopback endpoint for recorded database tool refusals. @module */
 import { Context } from '@deepseek-ai/cordis'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import Credentials from '@deepseek-ai/dsh-credentials-local'
+import schema from '@deepseek-ai/schemastery'
 import { createServer } from 'node:net'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -11,6 +12,7 @@ import assert from 'node:assert/strict'
 import Protection from '../src/index.ts'
 import PostgresAudit from '../src/postgres.ts'
 import MysqlAudit from '../src/mysql.ts'
+import * as MysqlAgent from '../src/mysql-agent.ts'
 import * as PostgresAgent from '../src/postgres-agent.ts'
 import type { TargetRuleId } from '../src/types.ts'
 
@@ -19,8 +21,11 @@ export const name = 'postgres-protection-snapshot'
 /** Use the shipped tool registry and credential provider. */
 export const inject = ['tools']
 
-/** @param ctx - Dedicated snapshot owner. */
-export async function apply(ctx: Context): Promise<void> {
+/** Select the MySQL write refusal fixture when enabled. */
+export const Config = schema.object({ mysqlWrite: schema.boolean().default(false) })
+
+/** @param ctx - Dedicated snapshot owner. @param config - Fixture selection. */
+export async function apply(ctx: Context, config: { mysqlWrite?: boolean }): Promise<void> {
   const root = await mkdtemp(join(tmpdir(), 'dshu-postgres-snapshot-'))
   ctx.effect(() => () => rm(root, { recursive: true, force: true }), 'postgres-snapshot.files')
   await ctx.plugin(Credentials, { path: join(root, 'credentials.yaml'), dshHome: root, watch: false })
@@ -47,6 +52,25 @@ export async function apply(ctx: Context): Promise<void> {
       protection: 'full', match: 'host', address: '127.0.0.1', port: address.port, database: 'fixture',
     }] }, 1)
   })
+  if (config.mysqlWrite) {
+    const mysql = await ctx.plugin(MysqlAudit, { databases: [{ name: 'owned', hostname: '127.0.0.1', port: address.port,
+      tlsServerName: 'mysql.fixture.test', database: 'fixture', username: 'fixture', accountHost: '%',
+      passwordRef: 'MISSING_MYSQL_FIXTURE_PASSWORD', testTables: ['items'] }] })
+    closeExecutor = () => mysql.dispose()
+    await ctx.plugin(MysqlAgent)
+    await ctx.inject(['mysqlAudit'], (active) => {
+      active.effect(() => active.tools.register(defineTool({
+        name: 'verify_mysql_transport', description: 'Verify that the owned MySQL listener received no connection.', parameters: {},
+        output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
+        execute() {
+          assert.ok(active.tools.get('mysql_test_write'))
+          assert.equal(connections, 0)
+          return Promise.resolve('Protected MySQL listener received zero connections.')
+        },
+      })))
+    })
+    return
+  }
   const executor = await ctx.plugin(PostgresAudit, { databases: [{ name: 'owned', hostname: '127.0.0.1', port: address.port,
     database: 'fixture', username: 'fixture', passwordRef: 'MISSING_POSTGRES_FIXTURE_PASSWORD' }] })
   const mysql = await ctx.plugin(MysqlAudit, { databases: [{ name: 'owned', hostname: '127.0.0.1',

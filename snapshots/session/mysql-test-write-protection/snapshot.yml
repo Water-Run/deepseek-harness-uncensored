@@ -1,0 +1,11 @@
+version: 1
+scenario: mysql-test-write-protection
+profile: headless
+permission: danger-full-access
+composition: default
+recording: authored
+header:
+  class: mysql-test-write-protection
+  pin: true
+workspace:
+  final: true
