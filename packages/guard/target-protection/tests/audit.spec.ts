@@ -47,7 +47,8 @@ it('persists exact revisions, redacts targets and records a production denial be
   await h.ctx.fs.writeText(target, 'fixture')
   expect(await readFile(file, 'utf8')).toBe('fixture')
   const allowed = h.ctx.targetProtection.auditHistory().entries.find(entry => entry.operation === 'file' && entry.effect === 'mutate')
-  expect(allowed).toMatchObject({ revision: 1, decision: 'allow', fingerprint: expect.stringMatching(/^[a-f0-9]{64}$/u) })
+  expect(allowed).toMatchObject({ revision: 1, decision: 'allow' })
+  expect(allowed?.fingerprint).toMatch(/^[a-f0-9]{64}$/u)
   await h.ctx.targetProtection.configure({ mainlandEnabled: false, rules: [{ id: ruleId, name: 'private fixture', enabled: true,
     kind: 'server', environment: 'production', protection: 'full', match: 'host', address: '127.0.0.1', port: address.port }] }, 1)
   await h.ctx.plugin(Web)

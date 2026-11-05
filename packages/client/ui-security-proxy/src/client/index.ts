@@ -47,16 +47,16 @@ export function apply(ctx: Context): void {
 
   ctx.inject(['remote.targetProtectionSettings'], (scope) => {
     const controller = new TargetSettingsController(scope.remote.targetProtectionSettings)
-    scope.on('connection/reset', () => controller.reset())
-    scope.effect(() => () => controller.dispose(), 'target-protection: settings requests')
+    scope.on('connection/reset', () => { controller.reset() })
+    scope.effect(() => () => { controller.dispose() }, 'target-protection: settings requests')
     scope.slots.inject('settings.mode.materials', () => scope.slots.register({
       name: 'settings.mode.materials', id: 'security-target-protection', order: 21, locale: 'settings.securityProxy',
       inject: () => ({ hooks: { targetSettings: controller.state }, load: controller.load, save: controller.save,
         updateCountry: controller.updateCountry }),
     }, TargetProtectionSection))
     const audit = new TargetAuditController(() => scope.remote.targetProtectionSettings.auditHistory())
-    scope.on('connection/reset', () => audit.reset())
-    scope.effect(() => () => audit.dispose(), 'target-protection: audit reads')
+    scope.on('connection/reset', () => { audit.reset() })
+    scope.effect(() => () => { audit.dispose() }, 'target-protection: audit reads')
     scope.slots.inject('settings.mode.materials', () => scope.slots.register({
       name: 'settings.mode.materials', id: 'security-target-audit', order: 22, locale: 'settings.securityProxy',
       inject: () => ({ hooks: { targetAudit: audit.state }, load: audit.load }),

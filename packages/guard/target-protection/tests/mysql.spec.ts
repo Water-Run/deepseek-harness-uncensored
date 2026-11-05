@@ -173,11 +173,11 @@ it('limits shared grants to approved tables and the global foreign-key inspectio
   const write = mysqlWriteInput.parse(mutation)
   const direct = ['GRANT SELECT, UPDATE, TRIGGER ON `fixture`.`items` TO `audit`@`%`']
   const process = ['GRANT PROCESS ON *.* TO `audit`@`%`']
-  expect(() => checkMysqlWriteGrants([process, direct], binding, write)).not.toThrow()
-  expect(() => checkMysqlWriteGrants([direct], binding, write)).toThrow(expect.objectContaining({ code: 'MYSQL_TEST_GRANTS' }))
-  expect(() => checkMysqlWriteGrants([['GRANT SELECT, PROCESS ON *.* TO `audit`@`%`'], direct], binding, write))
+  expect(() => { checkMysqlWriteGrants([process, direct], binding, write) }).not.toThrow()
+  expect(() => { checkMysqlWriteGrants([direct], binding, write) }).toThrow(expect.objectContaining({ code: 'MYSQL_TEST_GRANTS' }))
+  expect(() => { checkMysqlWriteGrants([['GRANT SELECT, PROCESS ON *.* TO `audit`@`%`'], direct], binding, write) })
     .toThrow(expect.objectContaining({ code: 'MYSQL_TEST_GRANTS' }))
-  expect(() => checkMysqlWriteGrants([process, direct], { ...binding, sharedTestWrites: false }, write))
+  expect(() => { checkMysqlWriteGrants([process, direct], { ...binding, sharedTestWrites: false }, write) })
     .toThrow(expect.objectContaining({ code: 'MYSQL_TEST_GRANTS' }))
 })
 
@@ -198,6 +198,6 @@ it.each([
   'GRANT UPDATE ON `production`.`items` TO `audit`@`%`',
 ])('rejects an incomplete or elevated grant in a write account', (grant) => {
   const binding = { database: 'fixture', username: 'audit', accountHost: '%', testTables: ['items'] }
-  expect(() => checkMysqlWriteGrants([[grant]], binding, mysqlWriteInput.parse(mutation)))
+  expect(() => { checkMysqlWriteGrants([[grant]], binding, mysqlWriteInput.parse(mutation)) })
     .toThrow(expect.objectContaining({ code: 'MYSQL_TEST_GRANTS' }))
 })

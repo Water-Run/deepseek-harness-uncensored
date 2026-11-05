@@ -85,7 +85,7 @@ export function TargetProtectionSection({ modeId, useTargetSettings, load, save,
           </div>
         </div>
         <Switch label={t('target.mainland')} checked={preferences?.mainlandEnabled ?? false} disabled={editingDisabled}
-          onChange={mainlandEnabled => stage(value => ({ ...value, mainlandEnabled }))} />
+          onChange={(mainlandEnabled) => { stage(value => ({ ...value, mainlandEnabled })) }} />
       </div>
       <div className={shared.status}>
         <span className={shared.muted}>{t('target.country')}</span>
@@ -103,7 +103,7 @@ export function TargetProtectionSection({ modeId, useTargetSettings, load, save,
     {preferences !== undefined && <>
       <div className={shared.actions}>
         <Button size="sm" variant="outline" disabled={editingDisabled}
-          onClick={() => edit(newRule(), false)}>{t('target.add')}</Button>
+          onClick={() => { edit(newRule(), false) }}>{t('target.add')}</Button>
       </div>
       {preferences.rules.length === 0 ? <p className={shared.hint}>{t('target.empty')}</p> :
         <ul className={css.rules}>{preferences.rules.map(rule => <li key={rule.id} className={css.rule}>
@@ -118,9 +118,9 @@ export function TargetProtectionSection({ modeId, useTargetSettings, load, save,
           </div>
           <div className={shared.actions}>
             <Button size="sm" variant="ghost" disabled={editingDisabled}
-              onClick={() => edit(rule, true)}>{t('target.edit')}</Button>
+              onClick={() => { edit(rule, true) }}>{t('target.edit')}</Button>
             <Button size="sm" variant="ghost" disabled={editingDisabled}
-              onClick={() => stage(value => ({ ...value, rules: value.rules.filter(item => item.id !== rule.id) }))}>
+              onClick={() => { stage(value => ({ ...value, rules: value.rules.filter(item => item.id !== rule.id) })) }}>
               {t('target.remove')}
             </Button>
           </div>
@@ -135,8 +135,8 @@ export function TargetProtectionSection({ modeId, useTargetSettings, load, save,
         </Button>
       </>}
     </div>}
-    {editor !== null && !editingDisabled && editor.generation === view.generation && editor.revision === state?.snapshot.revision
-      && <TargetRuleEditor rule={editor.rule} existing={editor.existing} t={t} onClose={() => setEditor(null)} onApply={(rule) => {
+    {editor !== null && !editingDisabled && editor.generation === view.generation && editor.revision === state.snapshot.revision
+      && <TargetRuleEditor rule={editor.rule} existing={editor.existing} t={t} onClose={() => { setEditor(null) }} onApply={(rule) => {
         stage(value => ({ ...value, rules: editor.existing
           ? value.rules.map(item => item.id === rule.id ? rule : item) : [...value.rules, rule] }))
         setEditor(null)

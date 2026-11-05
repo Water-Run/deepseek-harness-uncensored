@@ -201,7 +201,7 @@ it('admits an exact shared test database without exempting its production siblin
   const signal = AbortSignal.timeout(10_000)
   const production = { ...h.rule, id: brandString<TargetRuleId>(randomUUID()), database: 'production', protection: 'full' as const }
   await h.ctx.targetProtection.configure({ mainlandEnabled: false, rules: [{ ...h.rule, environment: 'test' }, production] }, 2)
-  const operation = h.ctx.postgresAudit.writeSharedTest('owned', sharedInput, signal).catch(error => error)
+  const operation = h.ctx.postgresAudit.writeSharedTest('owned', sharedInput, signal).catch((error: unknown) => error)
   expect(await h.query).toBe('BEGIN ISOLATION LEVEL READ COMMITTED READ WRITE')
   const server = h.testRules[1]!
   await h.ctx.targetProtection.configure({ mainlandEnabled: false,

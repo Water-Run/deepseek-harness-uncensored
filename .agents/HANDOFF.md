@@ -1,5 +1,15 @@
 # Uncensored 开发交接
 
+## 类型感知 lint 与双编译面隔离（2026-11-05）
+
+17.06 的全仓类型感知 lint 已通过，规则保持开启。原生 TypeScript 在旁问文件中读到 `ISessions`，lint 的源码重定向却同时加载了 Host `SessionStore` 和 Client `ISessions` 声明。原生编译器开启重定向也复现该混淆，关闭后恢复正确类型。`tsconfig.base.client.json` 现在显式使用引用项目的已编译声明；新增正反测试允许 Client 刷新、拒绝 Host 专用 flush。未升级依赖、用类型强制转换掩盖错误或降低 lint 规则。
+
+`lint`、`lint:fix` 及共用 CI 预备门改用 `all-contracts`，依次生成 Typert、编译 Host 与 Client 包，不运行聚合测试程序或 bundler。原有 `host-contracts` 保留给只需 Host 的消费者。清理剩余 45 条具体诊断；Menu 的退出阶段及 SSH 配置在 await 后仍保留重新读取检查。国家数据下载在不可信 reader 值处验证字节类型，非字节流拒绝并释放 reader，已测取消与现有缓存保留。
+
+构建产物八项通过，最终 Host/Client 聚合检查通过。`lint:contracts-ready` 全仓通过；`lint` 的两面预编译及独立 bundle-free 用例通过。脚本/门禁 169 项通过、5 项跳过；11 文件 131 项回归、2 项 viewer 隐私制品用例及 2 项编译产物 Web 流程通过。脚本探针测试会临时写入源码目录，必须与全仓 lint 串行，避免探针在扫描期间删除。日志 `.dsh-build/lint-face-build-final-20261105.log`、`.dsh-build/lint-face-check-final-20261105.log`、`.dsh-build/lint-face-full-final-20261105.log`、`.dsh-build/lint-face-build-tests-20261105.log`、`.dsh-build/lint-face-regression-all-20261105.log`、`.dsh-build/lint-face-viewer-artifact-20261105.log`、`.dsh-build/lint-face-web-final-20261105.log`。
+
+测试早期留下一个空目录 `scripts/.oxlint-contract-face-7lIb3C` 和配置 `.oxlintrc.contract-438f9dc1-e2c1-4748-b032-9b7c5d7d6634.json`。自动审批对递归及已确认空目录的非递归清理均返回 `blocked by policy`，未再改换工具删除；这两个小型临时项暂留，不属于提交内容。新的测试从资源创建时就注册清理回调。本节点未打包或安装，系统仍为 `c4685cedb7`。接下来继续交付验收及总清单剩余功能，Goal 保持 active。
+
 ## 旁问专用清理与关闭偏好（2026-11-05）
 
 03.17–03.18 已实现。旁问内裸 `/clear` 直接执行，主对话和随问不提供该命令，Host 也拒绝对二者清理。通用设置“旁问关闭后自动清除上下文”默认关闭，由 Host 实时保存。只有实际关闭旁问标签触发该偏好，页面刷新、资源重连和插件卸载不触发。快速重开等待关闭处理结束；删除家族时不额外触发自动清理。

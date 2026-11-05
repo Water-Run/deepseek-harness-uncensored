@@ -13,14 +13,16 @@ afterEach(() => { cleanup() })
 
 it('reads auto-clear as off and writes only that preference with the Host revision', async () => {
   const preferences = describeValue({ namespaces: [namespaceView({ value: { sideClearOnClose: false } })] })
+  const update = vi.fn(async () => ({ ok: true as const,
+    value: namespaceView({ revision: 4, value: { sideClearOnClose: true } }) }))
   const settings = remote({
     describe: vi.fn(async () => ({ ok: true as const, value: preferences })),
-    update: vi.fn(async () => ({ ok: true as const, value: namespaceView({ revision: 4, value: { sideClearOnClose: true } }) })),
+    update,
   })
   const controller = new AsideClearController(settings)
   expect(await controller.load()).toEqual({ status: 'ready', value: false, writable: true })
   expect(await controller.save(true)).toEqual({ status: 'ready', value: true, writable: true })
-  expect(settings.update).toHaveBeenCalledExactlyOnceWith('session-controller', { sideClearOnClose: true }, 3)
+  expect(update).toHaveBeenCalledExactlyOnceWith('session-controller', { sideClearOnClose: true }, 3)
 })
 
 it('keeps auto-clear disabled when unavailable or rejected, and displays a failed write', async () => {

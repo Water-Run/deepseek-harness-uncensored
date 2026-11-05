@@ -36,7 +36,7 @@ function AuditEntry({ entry, t }: { entry: TargetAuditEntry; t: TargetAuditSecti
         <span className={shared.muted}>{entry.revision === null ? t('audit.revisionUnknown')
           : t('audit.revision', { revision: entry.revision })}</span>
       </div>
-      <Button size="sm" variant="ghost" aria-expanded={open} onClick={() => setOpen(value => !value)}>{t('audit.details')}</Button>
+      <Button size="sm" variant="ghost" aria-expanded={open} onClick={() => { setOpen(value => !value) }}>{t('audit.details')}</Button>
     </div>
     {entry.code !== null && <p className={css.reason}>{t(`audit.reason.${entry.code}`)}</p>}
     {open && <dl className={css.details}>
@@ -79,7 +79,7 @@ export function TargetAuditSection({ modeId, useTargetAudit, load, t }: TargetAu
       <div><h3 className={shared.title}>{t('audit.title')}</h3><p className={shared.intro}>{t('audit.hint')}</p></div>
       <div className={shared.actions}>
         {open && <Button size="sm" variant="outline" disabled={view.loading} onClick={load}>{t('audit.refresh')}</Button>}
-        <Button size="sm" variant="outline" aria-expanded={open} onClick={() => setOpen(value => !value)}>
+        <Button size="sm" variant="outline" aria-expanded={open} onClick={() => { setOpen(value => !value) }}>
           {t(open ? 'audit.close' : 'audit.open')}
         </Button>
       </div>
@@ -102,7 +102,7 @@ export function TargetAuditSection({ modeId, useTargetAudit, load, t }: TargetAu
           </div>}
           {entries.length === 0 ? <p className={shared.hint}>{t('audit.empty')}</p>
             : <ul className={css.entries}>{entries.slice(0, shown).map(entry => <AuditEntry key={entry.id} entry={entry} t={t} />)}</ul>}
-          {entries.length > shown && <Button size="sm" variant="outline" onClick={() => setShown(value => value + 10)}>
+          {entries.length > shown && <Button size="sm" variant="outline" onClick={() => { setShown(value => value + 10) }}>
             {t('audit.more')}
           </Button>}
         </>}

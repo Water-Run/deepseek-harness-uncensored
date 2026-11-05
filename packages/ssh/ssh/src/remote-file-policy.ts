@@ -111,7 +111,7 @@ export class RemoteFileProtection {
     if (this.configured !== undefined || process.platform !== 'linux' || rules.length === 0) throw unverified()
     const mounts = parseMountInfo(await readFile('/proc/self/mountinfo', 'utf8'))
     for (const rule of rules) visible((await identify(posix.resolve(rule.path), false, signal)).path, mounts)
-    if (this.configured !== undefined) throw unverified()
+    if (this.active) throw unverified()
     this.configured = { workspace, rules }
   }
 

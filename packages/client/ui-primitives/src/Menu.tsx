@@ -310,10 +310,11 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
   // Keep the dismissal fade at the last interactive anchor position.
   const lastAnchorRect = useRef<DOMRect | null>(null)
   const readAnchor = useCallback(() => {
-    if (!openRef.current || exitingRef.current !== undefined) return lastAnchorRect.current
+    const isExiting = (): boolean => exitingRef.current !== undefined
+    if (!openRef.current || isExiting()) return lastAnchorRect.current
     const anchorElement = returnFocus?.() ?? rootRef.current
     if (anchorElement?.closest('[inert], [hidden]') != null) {
-      if (exitingRef.current === undefined) close.current()
+      if (!isExiting()) close.current()
       return lastAnchorRect.current
     }
     lastAnchorRect.current = getAnchorRect === undefined ? rootRef.current?.getBoundingClientRect() ?? null : getAnchorRect()

@@ -55,8 +55,10 @@ it('stages aliases with the original revision and preserves edits on a conflict'
   expect(configure).not.toHaveBeenCalled()
   fireEvent.click(screen.getByRole('button', { name: en['target.save'] }))
   expect(await screen.findByText(en['target.failure.conflict'])).toBeTruthy()
+  const ruleId = configure.mock.calls[0]?.[0].preferences.rules[0]?.id
+  expect(ruleId).toEqual(expect.any(String))
   expect(configure).toHaveBeenCalledWith({ expectedRevision: 4, preferences: { mainlandEnabled: false, rules: [{
-    id: expect.any(String), enabled: true, name: 'Production web', environment: 'production', protection: 'full',
+    id: ruleId, enabled: true, name: 'Production web', environment: 'production', protection: 'full',
     kind: 'server', match: 'host', address: 'prod.example.test', aliases: [{ match: 'host', address: '127.0.0.1', port: 443 }],
   }] } })
   expect(screen.getByText('Production web')).toBeTruthy()
@@ -64,7 +66,7 @@ it('stages aliases with the original revision and preserves edits on a conflict'
   fireEvent.click(screen.getByRole('button', { name: en['target.refresh'] }))
   await screen.findByText('Rule revision 5')
   expect(screen.getByText('Production web')).toBeTruthy()
-  expect((screen.getByRole('button', { name: en['target.save'] }) as HTMLButtonElement).disabled).toBe(true)
+  expect(screen.getByRole<HTMLButtonElement>('button', { name: en['target.save'] }).disabled).toBe(true)
   fireEvent.click(screen.getByRole('button', { name: en['target.discard'] }))
   await screen.findByText(en['target.empty'])
   expect(screen.queryByText('Production web')).toBeNull()
@@ -103,6 +105,6 @@ it('keeps an old draft visible and blocks saving it to another connection with t
   expect(screen.getByText(en['target.unsaved'])).toBeTruthy()
   await act(async () => { controller.reset() })
   expect(await screen.findByText(en['target.connectionChanged'])).toBeTruthy()
-  expect((screen.getByRole('button', { name: en['target.save'] }) as HTMLButtonElement).disabled).toBe(true)
+  expect(screen.getByRole<HTMLButtonElement>('button', { name: en['target.save'] }).disabled).toBe(true)
   expect(configure).not.toHaveBeenCalled()
 })

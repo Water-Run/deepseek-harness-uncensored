@@ -450,7 +450,7 @@ describe('cancellation and shutdown', () => {
 
   it('does not publish a pending listener endpoint after its Session has been withdrawn', async () => {
     const h = await build(), entered = Promise.withResolvers<boolean>(), release = Promise.withResolvers<boolean>()
-    const start = SessionChainProxy.start
+    const start = SessionChainProxy.start.bind(SessionChainProxy)
     const opening = vi.spyOn(SessionChainProxy, 'start').mockImplementation(async (...args) => {
       const proxy = await start(...args)
       entered.resolve(true)

@@ -1,6 +1,7 @@
 /** Pinned real country data, freshness policy and independent-provider failure behavior. @module */
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
+import { ReadableStream } from 'node:stream/web'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import { gzipSync, gunzipSync } from 'node:zlib'
@@ -67,7 +68,10 @@ it('publishes a validated update, cancels old decisions and reopens the last val
     const downloading = options?.signal
     if (downloading == null) throw new Error('Country download has no cancellation signal')
     return await new Promise<Response>((_resolve, reject) => {
-      downloading.addEventListener('abort', () => reject(downloading.reason), { once: true })
+      downloading.addEventListener('abort', () => {
+        const reason: unknown = downloading.reason
+        reject(reason instanceof Error ? reason : new Error('Download aborted', { cause: reason }))
+      }, { once: true })
       started.resolve(undefined)
     })
   })
@@ -92,6 +96,21 @@ it('tries the previous month only after a 404 and bounds an undeclared response 
     'https://download.db-ip.com/free/dbip-country-lite-2026-11.mmdb.gz',
     'https://download.db-ip.com/free/dbip-country-lite-2026-10.mmdb.gz',
   ])
+})
+
+it('rejects non-binary download chunks and releases its response reader', async () => {
+  const cancelled = vi.fn()
+  const body = new ReadableStream<unknown>({
+    start(controller) { controller.enqueue('not binary data') }, cancel: cancelled,
+  })
+  const response = new Response(null)
+  const bodyReader = vi.spyOn(response, 'body', 'get').mockReturnValue(body)
+  vi.mocked(fetch).mockReset().mockResolvedValueOnce(response)
+  try {
+    await expect(downloadCountry(fresh, 1000, new AbortController().signal)).rejects.toMatchObject({ code: 'unavailable' })
+    expect(cancelled).toHaveBeenCalledOnce()
+    expect(body.locked).toBe(false)
+  } finally { bodyReader.mockRestore() }
 })
 
 it('checks the bundled bytes and classifies actual IPv4, IPv6 and mapped records offline', async () => {

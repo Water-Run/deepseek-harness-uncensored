@@ -55,18 +55,19 @@ function SelectorFields({ value, kind, environment, onChange, t }: {
       <Select label={t('target.match')} value={value.match} invalid={!matchAllowed(value.match, kind, environment)}
         options={matches.map(match => ({ value: match,
           label: t(`target.match.${match}`), disabled: !matchAllowed(match, kind, environment) }))}
-        onChange={match => onChange({ ...value, match })} />
+        onChange={(match) => { onChange({ ...value, match }) }} />
     </div>
     <label className={shared.field}><span>{t('target.address')}</span>
-      <Input value={value.address} maxLength={512} onChange={event => onChange({ ...value, address: event.currentTarget.value })} />
+      <Input value={value.address} maxLength={512} onChange={(event) => { onChange({ ...value, address: event.currentTarget.value }) }} />
     </label>
     {value.match === 'path' ? null : <>
       <label className={shared.field}><span>{t('target.port')}</span>
         <Input value={value.port} inputMode="numeric" maxLength={5}
-          onChange={event => onChange({ ...value, port: event.currentTarget.value })} />
+          onChange={(event) => { onChange({ ...value, port: event.currentTarget.value }) }} />
       </label>
       {kind === 'database' && <label className={shared.field}><span>{t('target.database')}</span>
-        <Input value={value.database} maxLength={128} onChange={event => onChange({ ...value, database: event.currentTarget.value })} />
+        <Input value={value.database} maxLength={128}
+          onChange={(event) => { onChange({ ...value, database: event.currentTarget.value }) }} />
       </label>}
     </>}
   </div>
@@ -91,9 +92,9 @@ export function TargetRuleEditor({ rule, existing, onApply, onClose, t }: {
   const aliasSelectors = aliases.map(value => selectorOf(value, kind, environment))
   const valid = name.trim() !== '' && selector !== undefined && aliasSelectors.every(value => value !== undefined)
   const apply = (): void => {
-    if (!valid || selector === undefined) return
+    if (!valid) return
     onApply({ id: rule.id, name: name.trim(), kind, environment, protection, enabled, ...selector,
-      ...(aliasSelectors.length > 0 ? { aliases: aliasSelectors.filter(value => value !== undefined) } : {}) })
+      ...(aliasSelectors.length > 0 ? { aliases: aliasSelectors } : {}) })
   }
   return <Modal open title={t(existing ? 'target.edit' : 'target.add')} closeLabel={t('target.cancel')} onClose={onClose}
     contentClassName={css.editor as string} footer={<>
@@ -101,7 +102,7 @@ export function TargetRuleEditor({ rule, existing, onApply, onClose, t }: {
       <Button variant="primary" onClick={apply} disabled={!valid}>{t('target.apply')}</Button>
     </>}>
     <label className={shared.field}><span>{t('target.name')}</span>
-      <Input data-modal-autofocus value={name} maxLength={100} onChange={event => setName(event.currentTarget.value)} />
+      <Input data-modal-autofocus value={name} maxLength={100} onChange={(event) => { setName(event.currentTarget.value) }} />
     </label>
     <div className={shared.grid}>
       <div className={shared.field}><span>{t('target.kind')}</span>
@@ -123,16 +124,16 @@ export function TargetRuleEditor({ rule, existing, onApply, onClose, t }: {
     </div>
     <section className={css.aliases} aria-label={t('target.aliases')}>
       <div className={shared.row}><span>{t('target.aliases')}</span>
-        <Button size="sm" variant="outline" onClick={() => setAliases(current => [...current, draftOf()])}>{t('target.addAlias')}</Button>
+        <Button size="sm" variant="outline" onClick={() => { setAliases(current => [...current, draftOf()]) }}>{t('target.addAlias')}</Button>
       </div>
       {aliases.map((alias, index) => <div key={alias.key} className={shared.coverage}>
         <div className={shared.row}><span>{t('target.alias', { number: index + 1 })}</span>
-          <Button size="sm" variant="ghost" onClick={() => setAliases(current => current.filter(item => item.key !== alias.key))}>
+          <Button size="sm" variant="ghost" onClick={() => { setAliases(current => current.filter(item => item.key !== alias.key)) }}>
             {t('target.remove')}
           </Button>
         </div>
         <SelectorFields value={alias} kind={kind} environment={environment} t={t}
-          onChange={value => setAliases(current => current.map(item => item.key === value.key ? value : item))} />
+          onChange={(value) => { setAliases(current => current.map(item => item.key === value.key ? value : item)) }} />
       </div>)}
     </section>
   </Modal>

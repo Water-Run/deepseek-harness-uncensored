@@ -40,9 +40,11 @@ async function downloadRelease(now: number, maxBytes: number, request: RequestIn
         request.signal.throwIfAborted()
         const next = await reader.read()
         if (next.done) return { bytes: Buffer.concat(chunks, length), month }
-        length += next.value.byteLength
+        const bytes: unknown = next.value
+        if (!(bytes instanceof Uint8Array)) throw new TargetProtectionError('unavailable', 'DB-IP country download did not return binary data.')
+        length += bytes.byteLength
         if (length > maxBytes) throw new TargetProtectionError('unavailable', 'DB-IP country download exceeds the size limit.')
-        chunks.push(Buffer.from(next.value))
+        chunks.push(Buffer.from(bytes))
       }
     } finally {
       try { await reader.cancel() }
