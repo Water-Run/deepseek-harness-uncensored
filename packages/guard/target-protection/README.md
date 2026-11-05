@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This optional backend protects named production targets in HTTP and local file operations. It binds DNS to connection addresses, supports local country data, and allows structured file reads under audit rules. Production restrictions win over test exceptions. Arbitrary processes are refused when their effects cannot be confined. The default product has not enabled this integration; additional adapters and management UI remain unfinished.
+This optional backend protects named production targets in HTTP and local file operations. It binds DNS to connection addresses, supports local country data, and allows structured file reads under audit rules. Production restrictions win over test exceptions. Arbitrary processes are refused when their effects cannot be confined. The default product omits this integration; only explicitly composed guarded providers are covered.
 
 ## Table of Contents
 
@@ -35,6 +35,12 @@ Set `auditPath` to enable the separate local admission log. The optional Web ove
 The audit records the protected HTTP, proxy HTTP, endpoint, local file and unconfined checks. Successful preflight checks are omitted. Execution admission and tool outcomes have separate records. If an enabled audit store fails to write, new allowed effects are refused and the owner can inspect its unavailable status. Restart after restoring the audit store.
 
 Open Settings → Modes → Security → Admission audit to inspect recent decisions. Read entries include a stable database-assigned ID.
+
+When `agents` is mounted, audit checks capture the current process-local initiating Session before waiting. Its ID and recorded parent are stored with the decision, and `target/admission` is appended to that Session before returning admission. Concurrent main, side, by-the-way and subagent drivers keep their own records. These log-only events do not enter model history. Calls without an initiating Agent and older entries omit `source`; no conversation is inferred. Worker, proxy-listener and external-process attribution requires an explicit validated identity and is not supplied by this process-local capture.
+
+With audit recording enabled, the tool dispatch wrapper uses the tool's explicit Agent and clears inherited attribution for standalone calls. A parent invoking another Agent's tool does not receive the child's audit record.
+
+The audit database upgrades version 1 to 2 in a transaction, retaining records and the fingerprint key. Restore a pre-upgrade backup to use an older audit implementation. Earlier Session readers refuse the new required event before replay. Keep the current runtime for Sessions containing `target/admission`. An initiating Session that refuses its audit append also stops new allowed effects until the Host is restarted after repair.
 
 `busyTimeoutMs` bounds SQLite lock waits (default 1000); `checkTimeoutMs` bounds address checks (default 5000); `maxRechecks` bounds retries after concurrent configuration changes (default 3). These options do not authorize replay of a network operation.
 
@@ -164,7 +170,7 @@ The source and compiled Windows chain verifies test access, zero production conn
 
 `retainNativeExecution(revision, stop)` holds the checked registry revision until the caller confirms that its process range and network transports have closed. Concurrent commands share the retained revision. Owner configuration changes stop every admitted native execution before committing; failed shutdown keeps admission disabled and the old revision retained. An explicit owner retry rechecks shutdown without replaying the command. Country-source changes also revoke native execution. A release callback is a physical-closure acknowledgement, not a general cleanup callback.
 
-The independent registry and local admission log have separate SQLite files. Session audit projections and SDK replay remain separate work.
+The independent registry and local admission log have separate SQLite files. Session projections retain the same redacted entry and source identity. TypeScript and Python SDKs preserve these events outside the assistant reply.
 
 </details>
 
@@ -180,7 +186,7 @@ Only optional database tools add prompt schemas. No auxiliary model is called.
 <a id="known-limitations-and-deferred-work"></a>
 ## Known Limitations and Deferred Work
 
-Only explicitly composed guarded providers are covered. Structured file removal and renaming support local files and the matching SSH helper. Other database protocols, remote database resource mappings, default integration for constrained commands, and browser/MCP/REA native execution remain incomplete. Deployments must keep the remote runtime trusted and outside Agent-writable workspaces. The guarded Security proxy only permits opaque tunnels to explicitly marked test IPs. Such tunnels carry metadata and cannot verify application names or database identities. The optional native gateway can inspect HTTP/1.1 over TLS. Security-mode UI routing and SSH payload capture remain separate work. Ordinary anonymous fetch still refuses private networks. DNS evidence cannot enumerate every hostname sharing an IP, and country data or CONNECT cannot attest physical forwarding. Default composition, owner UI, security-entry status and durable audit remain unfinished.
+Only explicitly composed guarded providers are covered. Structured file removal and renaming support local files and the matching SSH helper. Other database protocols, remote database resource mappings, default integration for constrained commands, and browser/MCP/REA native execution remain incomplete. Deployments must keep the remote runtime trusted and outside Agent-writable workspaces. The guarded Security proxy only permits opaque tunnels to explicitly marked test IPs. Such tunnels carry metadata and cannot verify application names or database identities. The optional native gateway can inspect HTTP/1.1 over TLS. Security-mode UI routing and SSH payload capture remain separate work. Ordinary anonymous fetch still refuses private networks. DNS evidence cannot enumerate every hostname sharing an IP, and country data or CONNECT cannot attest physical forwarding. Cross-process and listener-based audit attribution remains incomplete.
 
 <a id="dev-note"></a>
 ## Dev Note

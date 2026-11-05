@@ -41,6 +41,8 @@ function AuditEntry({ entry, t }: { entry: TargetAuditEntry; t: TargetAuditSecti
     {entry.code !== null && <p className={css.reason}>{t(`audit.reason.${entry.code}`)}</p>}
     {open && <dl className={css.details}>
       <div><dt>{t(`audit.phase.${entry.phase}`)}</dt><dd>{t(`audit.effect.${entry.effect}`)}</dd></div>
+      <div><dt>{t('audit.session')}</dt><dd><code>{entry.source?.sessionId ?? t('audit.sourceUnknown')}</code></dd></div>
+      {entry.source?.parentSessionId !== undefined && <div><dt>{t('audit.parent')}</dt><dd><code>{entry.source.parentSessionId}</code></dd></div>}
       {entry.code !== null && <div><dt>{t('audit.code')}</dt><dd><code>{entry.code}</code></dd></div>}
       <div><dt>{t('audit.target')}</dt><dd><code>{entry.fingerprint ?? t('audit.none')}</code></dd></div>
       {entry.peerFingerprint !== null && <div><dt>{t('audit.peer')}</dt><dd><code>{entry.peerFingerprint}</code></dd></div>}

@@ -2,6 +2,7 @@
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it } from 'vitest'
+import { SessionId } from '@deepseek-ai/dsh-session'
 import { launchWebScaffold } from './scaffold.ts'
 import { newEnglishPage, openSettings } from './support.ts'
 
@@ -45,8 +46,10 @@ it('saves a real production rule and fits the editor at the narrow settings widt
         name: 'Production database', kind: 'database', environment: 'production', protection: 'full',
         match: 'host', address: 'db.example.test', port: 5432, database: 'production',
       }])
-      await scaffold.ctx.targetProtection.checkConnection('db.example.test', 5432, undefined, 'endpoint', 'mutate',
-        new AbortController().signal, 'production')
+      const initiator = await scaffold.ctx.agents.create({ sessionId: SessionId('target-audit-web-fixture') })
+      await scaffold.ctx.agents.withInitiator(initiator.agent, () =>
+        scaffold.ctx.targetProtection.checkConnection('db.example.test', 5432, undefined, 'endpoint', 'mutate',
+          new AbortController().signal, 'production'))
       const audit = settings.getByRole('region', { name: 'Admission audit', exact: true })
       await audit.getByRole('button', { name: 'View audit records' }).click()
       await audit.getByText('Fully protected target').first().waitFor()
@@ -57,6 +60,8 @@ it('saves a real production rule and fits the editor at the narrow settings widt
       const recorded = scaffold.ctx.targetProtection.auditHistory().entries.find(entry => entry.code === 'TARGET_FULLY_PROTECTED')
       if (recorded?.fingerprint == null) throw new Error('Missing persisted production refusal')
       await audit.getByText(recorded.fingerprint, { exact: true }).waitFor()
+      await audit.getByText(initiator.agent.id, { exact: true }).waitFor()
+      expect(await audit.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
     } finally { await browser.close() }
   } finally { await scaffold.close() }
 })

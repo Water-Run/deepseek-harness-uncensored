@@ -8,6 +8,8 @@
     "src"
   ],
   "references": [
+    { "path": "../../core/agent" },
+    { "path": "../../core/session" },
     { "path": "../../util/atomic-write" },
     { "path": "../../preset/agent-preset-registry" },
     { "path": "../../subprocess/win32-process" },

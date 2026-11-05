@@ -5,10 +5,12 @@ import { dirname } from 'node:path'
 import type { DatabaseSync } from 'node:sqlite'
 import { z } from 'zod'
 import { brandString, type Branded } from '@deepseek-ai/dsh-brand'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { TargetProtectionError } from './errors.ts'
 
 const applicationId = 0x44535441
-const schemaVersion = 1
+const schemaVersion = 2
+const sessionIdSchema = z.string().min(1).transform(value => brandString<SessionId>(value))
 const operationSchema = z.enum(['http', 'proxy-http', 'connection', 'file', 'unconfined', 'http-dns', 'connection-dns'])
 const effectSchema = z.enum(['observe', 'mutate', 'unknown', 'unconfined', 'metadata', 'read', 'list', 'watch'])
 const recordSchema = z.object({
@@ -20,6 +22,7 @@ const recordSchema = z.object({
     'TARGET_OWNER_RESOURCE', 'TARGET_EXECUTION_UNCONFINED', 'TARGET_CHECK_CANCELLED', 'TARGET_SETTINGS_CHANGED',
     'TARGET_CHECK_FAILED', 'TARGET_RESOLUTION_FAILED', 'TARGET_CHECK_TIMEOUT']).nullable(),
   ruleIds: z.array(z.uuid()).max(64), matchedRules: z.number().int().nonnegative(),
+  source: z.object({ sessionId: sessionIdSchema, parentSessionId: sessionIdSchema.optional() }).strict().optional(),
 }).strict()
 
 /** Typed audit outcome. A fingerprint is keyed to the local audit store and carries no raw target. */
@@ -30,6 +33,13 @@ export type TargetAuditId = Branded<'TargetAuditId'>
 
 /** One persisted check with its database-assigned identity. */
 export type TargetAuditEntry = TargetAuditRecord & { id: TargetAuditId }
+
+declare module '@deepseek-ai/dsh-session/types' {
+  interface SessionEventMap {
+    /** Redacted execution admission recorded by the optional target audit owner; never model-visible. */
+    'target/admission': TargetAuditEntry
+  }
+}
 
 /** Latest accepted audit records, newest first. */
 export interface TargetAuditHistory {
@@ -76,9 +86,10 @@ export class TargetAuditStore {
           CREATE TABLE admission (id INTEGER PRIMARY KEY AUTOINCREMENT, record TEXT NOT NULL) STRICT;
           PRAGMA application_id=${applicationId}; PRAGMA user_version=${schemaVersion}`)
         db.prepare('INSERT INTO audit_identity VALUES(1, ?)').run(randomBytes(32).toString('hex'))
-      } else if (application !== applicationId || version !== schemaVersion) {
+      } else if (application !== applicationId || (version !== 1 && version !== schemaVersion)) {
         throw new TargetProtectionError('unrecognized-store', 'The selected database is not a supported target audit store.')
       }
+      if (version === 1) db.exec(`PRAGMA user_version=${schemaVersion}`)
       const identity = db.prepare('SELECT secret FROM audit_identity WHERE id=1').get()
       const key = z.object({ secret: z.string().regex(/^[a-f0-9]{64}$/u) }).parse(identity)
       db.exec('COMMIT')
@@ -90,20 +101,25 @@ export class TargetAuditStore {
    * Persist one decision and remove records beyond the retention limit in the same transaction.
    * @param subject - Execution stage and identities to fingerprint.
    * @param outcome - Stable rule decision or redacted check failure.
+   * @param source - Exact initiating Session and its recorded parent; absent for agentless calls.
+   * @returns The committed redacted entry, including its database identity.
    */
-  append(subject: AuditSubject, outcome: Outcome): void {
+  append(subject: AuditSubject, outcome: Outcome, source?: TargetAuditRecord['source']): TargetAuditEntry {
     const fingerprint = (identity: readonly (string | number | undefined)[]) =>
       createHmac('sha256', this.secret).update(JSON.stringify(identity)).digest('hex')
     const { operation, effect, phase, identity, peers } = subject
-    const record = recordSchema.parse({ at: Date.now(), operation, effect, phase, ...outcome,
+    const record = recordSchema.parse({ at: Date.now(), operation, effect, phase, ...outcome, ...source === undefined ? {} : { source },
       fingerprint: identity === undefined ? null : fingerprint(identity),
       peerFingerprint: peers === undefined ? null : fingerprint(['peers', ...new Set(peers.toSorted())]),
       ruleIds: outcome.ruleIds.slice(0, 64), matchedRules: outcome.ruleIds.length })
     this.db.exec('BEGIN IMMEDIATE')
     try {
-      const { lastInsertRowid } = this.db.prepare('INSERT INTO admission(record) VALUES(?)').run(JSON.stringify(record))
+      const insert = this.db.prepare('INSERT INTO admission(record) VALUES(?)')
+      insert.setReadBigInts(true)
+      const { lastInsertRowid } = insert.run(JSON.stringify(record))
       this.db.prepare('DELETE FROM admission WHERE id <= ?').run(BigInt(lastInsertRowid) - BigInt(this.limit))
       this.db.exec('COMMIT')
+      return { ...record, id: brandString<TargetAuditId>(lastInsertRowid.toString()) }
     } catch (error) {
       try { this.db.exec('ROLLBACK') }
       catch (rollback) { throw new AggregateError([error, rollback], 'Target audit transaction failed.') }

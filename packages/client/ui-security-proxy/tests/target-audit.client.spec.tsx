@@ -2,6 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { allowAllAccess, bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import type { TargetAuditHistory, TargetAuditId } from '@deepseek-ai/dsh-target-protection/settings'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { RemoteError, type RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 import { afterEach, expect, it, vi } from 'vitest'
 import type {} from '../src/client/index.ts'
@@ -14,7 +15,8 @@ afterEach(cleanup)
 function history(id = '1'): TargetAuditHistory {
   return { state: 'ready', entries: [{ id: id as TargetAuditId, at: 1_792_800_000_000, revision: 5,
     operation: 'http', phase: 'preflight', effect: 'unknown', decision: 'deny', code: 'TARGET_FULLY_PROTECTED',
-    fingerprint: 'b'.repeat(64), peerFingerprint: null, ruleIds: ['b7777777-7777-4777-8777-777777777777'], matchedRules: 1 }] }
+    fingerprint: 'b'.repeat(64), peerFingerprint: null, ruleIds: ['b7777777-7777-4777-8777-777777777777'], matchedRules: 1,
+    source: { sessionId: 'audit-side' as SessionId, parentSessionId: 'audit-main' as SessionId } }] }
 }
 
 function mount(read: () => Promise<RemoteResult<TargetAuditHistory>>) {
@@ -37,6 +39,10 @@ it('loads on expansion and exposes the complete redacted record', async () => {
   expect(screen.getByText('b'.repeat(64))).toBeTruthy()
   expect(screen.getByText('b7777777-7777-4777-8777-777777777777')).toBeTruthy()
   expect(screen.getByText('Rule revision 5')).toBeTruthy()
+  expect(screen.getByText('audit-side')).toBeTruthy()
+  expect(screen.getByText('audit-main')).toBeTruthy()
+  fireEvent.change(screen.getByRole('textbox', { name: en['audit.search'] }), { target: { value: 'audit-side' } })
+  expect(screen.getByText(en['audit.reason.TARGET_FULLY_PROTECTED'])).toBeTruthy()
   fireEvent.change(screen.getByRole('textbox', { name: en['audit.search'] }), { target: { value: 'no-such-fingerprint' } })
   expect(screen.getByText(en['audit.empty'])).toBeTruthy()
   expect(read).toHaveBeenCalledOnce()

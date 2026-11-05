@@ -1,0 +1,112 @@
+{
+  "finalResponse": "Main response unchanged.",
+  "auditEvents": [
+    {
+      "type": "target/admission",
+      "seq": 3,
+      "time": 0,
+      "data": {
+        "at": 0,
+        "revision": 2,
+        "operation": "file",
+        "effect": "read",
+        "phase": "execution",
+        "fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "peerFingerprint": null,
+        "source": {
+          "sessionId": "sdk-audit",
+          "parentSessionId": "sdk-main"
+        },
+        "id": "1",
+        "decision": "allow",
+        "code": null,
+        "ruleIds": [],
+        "matchedRules": 0
+      }
+    },
+    {
+      "type": "target/admission",
+      "seq": 4,
+      "time": 0,
+      "data": {
+        "at": 0,
+        "revision": 2,
+        "operation": "file",
+        "effect": "read",
+        "phase": "execution",
+        "fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "peerFingerprint": null,
+        "source": {
+          "sessionId": "sdk-audit",
+          "parentSessionId": "sdk-main"
+        },
+        "id": "2",
+        "decision": "deny",
+        "code": "TARGET_FULLY_PROTECTED",
+        "ruleIds": [
+          "b7777777-7777-4777-8777-777777777777"
+        ],
+        "matchedRules": 1
+      }
+    }
+  ],
+  "auditNotifications": [
+    {
+      "method": "session.event",
+      "event": {
+        "type": "target/admission",
+        "seq": 3,
+        "time": 0,
+        "data": {
+          "at": 0,
+          "revision": 2,
+          "operation": "file",
+          "effect": "read",
+          "phase": "execution",
+          "fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "peerFingerprint": null,
+          "source": {
+            "sessionId": "sdk-audit",
+            "parentSessionId": "sdk-main"
+          },
+          "id": "1",
+          "decision": "allow",
+          "code": null,
+          "ruleIds": [],
+          "matchedRules": 0
+        }
+      }
+    },
+    {
+      "method": "session.event",
+      "event": {
+        "type": "target/admission",
+        "seq": 4,
+        "time": 0,
+        "data": {
+          "at": 0,
+          "revision": 2,
+          "operation": "file",
+          "effect": "read",
+          "phase": "execution",
+          "fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "peerFingerprint": null,
+          "source": {
+            "sessionId": "sdk-audit",
+            "parentSessionId": "sdk-main"
+          },
+          "id": "2",
+          "decision": "deny",
+          "code": "TARGET_FULLY_PROTECTED",
+          "ruleIds": [
+            "b7777777-7777-4777-8777-777777777777"
+          ],
+          "matchedRules": 1
+        }
+      }
+    }
+  ],
+  "assistantTexts": [
+    "Main response unchanged."
+  ]
+}

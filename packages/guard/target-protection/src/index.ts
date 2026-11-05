@@ -1,6 +1,9 @@
 /** Durable target rules and network admission; no model assessment grants permission. @module */
 import { Context, Service } from '@deepseek-ai/cordis'
 import schema from '@deepseek-ai/schemastery'
+import type { Agent } from '@deepseek-ai/dsh-agent'
+import type { Session } from '@deepseek-ai/dsh-session'
+import type {} from '@deepseek-ai/dsh-tools'
 import { isIP } from 'node:net'
 import { resolve } from 'node:path'
 import { deadline, TimeoutReason } from '@deepseek-ai/dsh-timeout'
@@ -104,6 +107,7 @@ export default class TargetProtection extends Service {
   private nativeTransition: 'owner' | 'source' | 'failed' | undefined
   private audit: TargetAuditStore | undefined
   private auditFailed = false
+  private auditInitiator: (() => Agent | undefined) | undefined
 
   /**
    * @param ctx - Service owner whose lifetime contains all pending checks.
@@ -120,6 +124,18 @@ export default class TargetProtection extends Service {
     this.config.readOnlyPaths = this.config.readOnlyPaths.map(canonicalLocalPath)
     for (const server of this.config.dnsServers) parseDnsServer(server)
     this.ready = TargetStore.open(this.config.path, this.config.busyTimeoutMs)
+    ctx.inject(['agents'], (scope) => {
+      const agents = scope.agents
+      const current = () => agents.currentInitiator()
+      scope.effect(() => {
+        this.auditInitiator = current
+        return () => { if (this.auditInitiator === current) this.auditInitiator = undefined }
+      }, 'target-protection.auditInitiator')
+      if (this.config.auditPath !== '') scope.inject(['tools'], (tools) => {
+        tools.on('tools/execute', (exec, next) => exec.agent === undefined
+          ? agents.withoutInitiator(next) : agents.withInitiator(exec.agent, next))
+      })
+    })
     ctx.on('target-country/changed', () => { this.invalidate() })
     void this.ready.catch((_error: unknown) => { /* Service.init reports the failure; disposal also observes this promise. */ })
     ctx.effect(() => async () => {
@@ -146,10 +162,19 @@ export default class TargetProtection extends Service {
 
   private recordAudit(
     subject: AuditSubject, result: Pick<TargetAuditRecord, 'revision' | 'decision' | 'code'>, ruleIds: readonly string[],
+    session: Session | undefined,
   ): void {
     if (this.audit === undefined) return
     if (!this.auditFailed) {
-      try { this.audit.append(subject, { ...result, ruleIds }); return }
+      try {
+        const source = session === undefined ? undefined : {
+          sessionId: session.id,
+          ...session.header.parentSession === undefined ? {} : { parentSessionId: session.header.parentSession },
+        }
+        const entry = this.audit.append(subject, { ...result, ruleIds }, source)
+        session?.append('target/admission', entry)
+        return
+      }
       catch (error) {
         this.auditFailed = true
         this.ctx.logger.warn('Target audit is unavailable; protected admission has stopped.', error)
@@ -158,26 +183,33 @@ export default class TargetProtection extends Service {
     if (result.decision === 'allow') throw new TargetProtectionError('unavailable', 'Target audit is unavailable. The operation was stopped.')
   }
 
-  private recordDecision(subject: AuditSubject, { revision, decision }: VersionedDecision): void {
-    if (subject.phase === 'preflight' && decision.allowed) return
-    this.recordAudit(subject, { revision, decision: decision.allowed ? 'allow' : 'deny', code: decision.allowed ? null : decision.code },
-      decision.ruleIds)
+  private auditSession(): Session | undefined {
+    return this.audit === undefined ? undefined : this.auditInitiator?.()?.session
   }
 
-  private recordFailure(subject: AuditSubject, error: unknown, signal?: AbortSignal, resolving = false): void {
+  private recordDecision(subject: AuditSubject, { revision, decision }: VersionedDecision, session: Session | undefined): void {
+    if (subject.phase === 'preflight' && decision.allowed) return
+    this.recordAudit(subject, { revision, decision: decision.allowed ? 'allow' : 'deny', code: decision.allowed ? null : decision.code },
+      decision.ruleIds, session)
+  }
+
+  private recordFailure(
+    subject: AuditSubject, error: unknown, signal: AbortSignal | undefined, session: Session | undefined, resolving = false,
+  ): void {
     const timedOut = error instanceof TimeoutReason || (error instanceof Error && error.name === 'TimeoutError')
     const cancelled = !timedOut && (signal?.aborted === true || (error instanceof Error && error.name === 'AbortError'))
     const conflict = error instanceof TargetProtectionError && error.code === 'conflict'
     const code = timedOut ? 'TARGET_CHECK_TIMEOUT' : cancelled ? 'TARGET_CHECK_CANCELLED' : conflict ? 'TARGET_SETTINGS_CHANGED'
       : resolving ? 'TARGET_RESOLUTION_FAILED' : 'TARGET_CHECK_FAILED'
-    this.recordAudit(subject, { revision: null, decision: cancelled ? 'cancelled' : 'error', code }, [])
+    this.recordAudit(subject, { revision: null, decision: cancelled ? 'cancelled' : 'error', code }, [], session)
   }
 
   private async audited<T extends VersionedDecision>(subject: AuditSubject, signal: AbortSignal, check: () => Promise<T>): Promise<T> {
+    const session = this.auditSession()
     let value
     try { value = await check() }
-    catch (error) { this.recordFailure(subject, error, signal); throw error }
-    this.recordDecision(subject, value)
+    catch (error) { this.recordFailure(subject, error, signal, session); throw error }
+    this.recordDecision(subject, value, session)
     return value
   }
 
@@ -197,11 +229,12 @@ export default class TargetProtection extends Service {
    * @throws When initialization, durable settings or the service lifetime is unavailable.
    */
   checkUnconfined(): TargetDecision {
+    const session = this.auditSession()
     const subject = { operation: 'unconfined', effect: 'unconfined', phase: 'execution' } satisfies AuditSubject
     let result
     try { result = this.unconfinedDecision() }
-    catch (error) { this.recordFailure(subject, error); throw error }
-    this.recordDecision(subject, result)
+    catch (error) { this.recordFailure(subject, error, undefined, session); throw error }
+    this.recordDecision(subject, result, session)
     return result.decision
   }
 
@@ -464,8 +497,9 @@ export default class TargetProtection extends Service {
    */
   resolveHttpTarget(hostname: string, signal: AbortSignal): Promise<TargetHttpResolution> {
     this.lifetime.signal.throwIfAborted()
+    const session = this.auditSession()
     const operation = this.resolveTarget(hostname, signal).catch((error: unknown) => {
-      this.recordFailure({ operation: 'http-dns', effect: 'unknown', phase: 'preflight', identity: ['dns', hostname] }, error, signal, true)
+      this.recordFailure({ operation: 'http-dns', effect: 'unknown', phase: 'preflight', identity: ['dns', hostname] }, error, signal, session, true)
       throw error
     })
     this.checking.add(operation)
@@ -480,9 +514,10 @@ export default class TargetProtection extends Service {
    */
   resolveConnectionTarget(hostname: string, signal: AbortSignal): Promise<TargetConnectionResolution> {
     this.lifetime.signal.throwIfAborted()
+    const session = this.auditSession()
     const operation = this.resolveConnection(hostname, signal).catch((error: unknown) => {
       this.recordFailure({ operation: 'connection-dns', effect: 'unknown', phase: 'preflight', identity: ['dns', hostname] },
-        error, signal, true)
+        error, signal, session, true)
       throw error
     })
     this.checking.add(operation)

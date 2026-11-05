@@ -86,3 +86,19 @@ it('bounds retention and blocks newly allowed effects if the audit writer is una
   expect(h.ctx.targetProtection.auditHistory()).toMatchObject({ state: 'unavailable' })
   await expect(h.ctx.targetProtection.checkLocalFile(file, 'metadata', signal)).rejects.toMatchObject({ code: 'unavailable' })
 })
+
+it('upgrades a version-one audit store without replacing its records or target fingerprints', async () => {
+  const h = await fixture()
+  await h.ctx.targetProtection.checkLocalFile(join(h.root, 'historical'), 'metadata', new AbortController().signal)
+  const original = h.ctx.targetProtection.auditHistory()
+  await h.owner.dispose()
+  const legacy = new DatabaseSync(h.auditPath)
+  try { legacy.exec('PRAGMA user_version=1') }
+  finally { legacy.close() }
+  const upgraded = await h.ctx.plugin(Protection, h.config)
+  expect(h.ctx.targetProtection.auditHistory()).toEqual(original)
+  await upgraded.dispose()
+  const inspect = new DatabaseSync(h.auditPath, { readOnly: true })
+  try { expect(inspect.prepare('PRAGMA user_version').get()).toMatchObject({ user_version: 2 }) }
+  finally { inspect.close() }
+})
