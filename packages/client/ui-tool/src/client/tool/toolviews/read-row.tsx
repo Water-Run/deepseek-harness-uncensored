@@ -1,4 +1,4 @@
-import type { ToolFileInjected } from '../file-menu.ts'
+import type { ToolFileInjected } from '../../contract/file-menu.ts'
 import { toolFileInject } from '../file-menu.ts'
 import type { Context } from '@deepseek-ai/cordis'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'

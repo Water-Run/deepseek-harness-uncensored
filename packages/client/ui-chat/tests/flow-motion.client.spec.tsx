@@ -5,8 +5,9 @@ import { StrictMode, useRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import {
   createFlowMotion, hiddenOrCollapsing, motionEnabled, useFlowHidden, useMotionHidden,
-  type FlowMotion, type FlowMotionRows, type InputFoldBox, type InputFoldDriver,
+  type FlowMotion, type InputFoldBox, type InputFoldDriver,
 } from '../src/client/chat/flow-motion.ts'
+import type { FlowMotionRows } from '../src/client/contract/flow-motion.ts'
 
 const ownedRows = new Set<HTMLElement>()
 const subscriptions = new Set<() => void>()

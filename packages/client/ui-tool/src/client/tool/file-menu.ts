@@ -3,12 +3,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type {} from '@deepseek-ai/dsh-api-session-controller/client'
 import { resolveWorkspacePath } from '@deepseek-ai/dsh-util-workspace-path'
-
-/** File paths are resolved when a gesture begins, not when the Slot is mounted. */
-export interface ToolFileInjected {
-  /** Resolve an argument from the live Session directory. @param path - Recorded path. @returns Host path. */
-  resolveFilePath: (path: string) => string
-}
+import type { ToolFileInjected } from '../contract/file-menu.ts'
 
 /**
  * Bind a toolview's path reader to its originating Session.

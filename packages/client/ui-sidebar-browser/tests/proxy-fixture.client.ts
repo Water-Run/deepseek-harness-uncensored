@@ -1,7 +1,7 @@
 /** Controlled Remote answers for desktop browser routing. */
 import { vi } from 'vitest'
 import type { SecurityProxyState } from '@deepseek-ai/dsh-api-remotes/client'
-import type { BrowserProxyPort } from '../src/client/electron/proxy.ts'
+import type { BrowserProxyPort } from '../src/client/browser/electron/proxy.ts'
 
 /** @param enabled - saved proxy switch. @returns a credential-free fixture state. */
 export function proxyState(enabled: boolean): SecurityProxyState {

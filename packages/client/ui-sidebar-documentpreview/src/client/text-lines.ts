@@ -1,8 +1,8 @@
 /** Source-line helpers shared by the plain renderer and the document scroller. */
 import clsx from 'clsx'
-import type { DocumentTextPage } from '../document/contract.ts'
-import type { TextPage } from '../store.ts'
-import css from '../TextPreview.module.css'
+import type { DocumentTextPage } from './contract.ts'
+import type { TextPage } from './store.ts'
+import css from './TextPreview.module.css'
 
 /**
  * Split a loaded page into its source lines.

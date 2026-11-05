@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { WorkspaceId, WorkspaceView } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { WorkspaceActionRequest, WorkspaceBrowserProps } from '../contract/slots.ts'
-import css from './WorkspaceBrowser.module.css'
+import css from '../WorkspaceDialogs.module.css'
 
 type Props = Pick<WorkspaceBrowserProps, 'renameWorkspace' | 'deleteWorkspace' | 'settleWorkspaceAction' | 't'> & {
   request: WorkspaceActionRequest

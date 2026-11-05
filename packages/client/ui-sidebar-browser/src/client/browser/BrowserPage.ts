@@ -1,5 +1,5 @@
 /** Composition of one navigation provider and its presentation. */
-import type { BrowserPresentation } from '../view/BrowserPresentation.ts'
+import type { BrowserPresentation } from './view/BrowserPresentation.ts'
 import type { BrowserFrame } from './BrowserFrame.ts'
 import type { BrowserTabState } from './BrowserPersistence.ts'
 

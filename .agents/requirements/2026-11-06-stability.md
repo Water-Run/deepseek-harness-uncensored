@@ -18,11 +18,11 @@
 | `verify-no-bare-dispatcher` | 地区数据下载不覆盖 Host 的统一路由。 |
 | `verify-no-unknown-casts` | 删除上一节点已移除断言的陈旧基线；剩 1,277 项，没有新增允许项。 |
 
-## 未完成
+## 领域依赖图与后续验收
 
-- [ ] **客户端领域依赖图**：当前检查报告 85 处，原始输出 `.dsh-build/hygiene-client-domain-20261106.log`，按包统计 `.dsh-build/hygiene-client-domain-20261106-summary.json`。需区分实际实现依赖、共享 API 位置和纯资源目录的误分类；不能一概当作 85 个运行故障，也不能放宽规则掩盖实际耦合。
+- [x] **客户端领域依赖图**：初查报告 85 处，已在[客户端层验收](2026-11-06-client-layers.md)分类修正并通过。原始输出 `.dsh-build/hygiene-client-domain-20261106.log`，按包统计 `.dsh-build/hygiene-client-domain-20261106-summary.json`。本轮已区分共享 API、实际实现依赖、图片误分类和重复计数；原报告不是 85 个运行故障。
 
-| 界面包 | 待核对数量 |
+| 界面包 | 初查数量 |
 | --- | ---: |
 | `ui-chat` | 1 |
 | `ui-conversation` | 3 |

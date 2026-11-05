@@ -3,7 +3,7 @@ import { Button, IconTrashOutlineRegular, MenuItemButton, Modal, Toast } from '@
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionMenuItemProps } from '../contract/slots.ts'
 import type { DeleteSessionController } from './delete-controller.ts'
-import css from '../rows/WorkspaceBrowser.module.css'
+import css from '../WorkspaceDialogs.module.css'
 
 /** Shared operation owner supplied by the Workspace plugin. */
 export interface DeleteSessionInjected {

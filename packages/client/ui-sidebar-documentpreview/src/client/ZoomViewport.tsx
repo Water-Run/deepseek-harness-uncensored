@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent,
   type ReactNode, type RefCallback } from 'react'
 import { DOCUMENT_ZOOM, ZoomControls, type ZoomControlsHandle } from '@deepseek-ai/dsh-client-ui-primitives'
-import { FIT_WIDTH, type ZoomLabels, type ZoomPreference } from './types.ts'
+import { FIT_WIDTH, type ZoomLabels, type ZoomPreference } from './zoom-types.ts'
 import css from './ZoomViewport.module.css'
 
 const PINCH_SETTLE_DELAY_MS = 120

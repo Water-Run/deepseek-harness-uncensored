@@ -25,9 +25,9 @@ import type { TextInjected } from '../src/client/face.ts'
 import type { DocumentFileBytes, ReadDocumentBytes, ReadWorkspaceFilePage, SessionFile } from '../src/client/rpc.ts'
 import { createTextStore } from '../src/client/store.ts'
 import type { TextStore } from '../src/client/store.ts'
-import type { DocumentPreviewProps } from '../src/client/document/contract.ts'
+import type { DocumentPreviewProps } from '../src/client/contract.ts'
 import { TextBody } from '../src/client/text/TextBody.tsx'
-import { textBodyDefinition } from '../src/client/text/index.ts'
+import { textBodyDefinition } from '../src/client/text-definition.ts'
 import type { TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
 
 type BodySlot = PropsRenderSlots<'sidebar.right.tab.document'>['renderSlot']

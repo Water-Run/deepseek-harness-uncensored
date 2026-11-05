@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { browserProxy } from '../src/client/electron/proxy.ts'
+import { browserProxy } from '../src/client/browser/electron/proxy.ts'
 import type { DesktopBrowserProxy } from '../src/types.ts'
 import { proxyFixture as port, proxyState as state } from './proxy-fixture.client.ts'
 

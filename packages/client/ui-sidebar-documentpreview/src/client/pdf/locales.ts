@@ -1,4 +1,4 @@
-import { zoomEn, zoomJa, zoomEs, zoomFr, zoomDe, zoomRu, zoomPt, zoomZh } from '../zoom/locales.ts'
+import { zoomEn, zoomJa, zoomEs, zoomFr, zoomDe, zoomRu, zoomPt, zoomZh } from '../zoom-locales.ts'
 
 /** Copy owned by the PDF renderer. */
 export const zh = {

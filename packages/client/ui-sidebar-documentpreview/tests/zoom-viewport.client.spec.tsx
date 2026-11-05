@@ -3,8 +3,8 @@
 import { useState, type CSSProperties } from 'react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { fitWidthZoom, ZoomViewport, zoomSurfaceClass } from '../src/client/zoom/ZoomViewport.tsx'
-import { FIT_WIDTH, type ZoomPreference } from '../src/client/zoom/types.ts'
+import { fitWidthZoom, ZoomViewport, zoomSurfaceClass } from '../src/client/ZoomViewport.tsx'
+import { FIT_WIDTH, type ZoomPreference } from '../src/client/zoom-types.ts'
 
 let width = 500
 let resize: ResizeObserverCallback | undefined

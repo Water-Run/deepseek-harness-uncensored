@@ -10,7 +10,7 @@ import type {
 import type { MessageImageLoader, MessageImageSource } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { AskUserQuestionAnswerItem, AskUserQuestionItem } from '@deepseek-ai/dsh-user-questions/types'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
-import type { ToolFileInjected } from '../tool/file-menu.ts'
+import type { ToolFileInjected } from './file-menu.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {

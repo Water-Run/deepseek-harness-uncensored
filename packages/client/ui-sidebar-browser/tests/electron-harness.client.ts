@@ -2,8 +2,8 @@
 import { vi } from 'vitest'
 import type { DesktopBrowserBridge, DesktopBrowserLeaseId, DesktopBrowserProxy, DesktopBrowserReservation } from '../src/types.ts'
 import type { BrowserTabState } from '../src/client/browser/BrowserPersistence.ts'
-import { createElectronPage } from '../src/client/electron/pages.ts'
-import { ElectronWebviewPresentation } from '../src/client/electron/ElectronWebviewPresentation.ts'
+import { createElectronPage } from '../src/client/browser/electron/pages.ts'
+import { ElectronWebviewPresentation } from '../src/client/browser/electron/ElectronWebviewPresentation.ts'
 
 let sequence = 0
 

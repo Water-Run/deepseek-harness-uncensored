@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import './control-row-dom.ts'
 import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
-import { observeControlRow } from '../src/client/skeleton/control-row-layout.ts'
+import { observeControlRow } from '../src/client/input/control-row-layout.ts'
 
 afterEach(() => { document.body.replaceChildren() })
 

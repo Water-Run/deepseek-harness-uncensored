@@ -117,6 +117,8 @@ The package injects the Client `remoteAccess` service and provides the root stan
 <details>
 <summary>Implementation internals — click to expand</summary>
 
+Row action hit-target styles are shared in `src/client/RowActionButton.module.css`; modal fields and notices share `src/client/WorkspaceDialogs.module.css`. The pin button exposes `data-session-pinned-action` while pinned, which row styles use for touch visibility.
+
 The package is one composition: both target slots are declared by other plugins, so `apply` uses `slots.inject()` to register for each declaration lifetime and re-register after a declaring slot is restored.
 
 The browser entry declares three root-scoped `list` child seats on each Session row: `sidebar.session.row.leading`, `sidebar.session.row.trailing`, and `sidebar.session.row.hover`. All receive only `sessionId`, which occupants use to address their own data without creating a Session binding. A Session-scoped seat would activate and retain every listed Session.

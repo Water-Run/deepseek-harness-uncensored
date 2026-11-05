@@ -345,7 +345,7 @@ describe('ui-workspace apply', () => {
     const rowToastEntry = entry(b.slots, 'shell.overlay', 'workspace.row-toast')
     expect(rowToastEntry.store).toBeUndefined()
     expect(b.slots.entries('workspace.toast').map(row => row.options.key)).toEqual([
-      'sessionIdCopied', 'sessionIdCopyFailed', 'pinFailed', 'unpinFailed', 'archivedNotOpenable',
+      'sessionIdCopied', 'sessionIdCopyFailed', 'pinFailed', 'unpinFailed', 'pinDragBlocked', 'archivedNotOpenable',
       'defaultWorkspaceFailed', 'shortcutForkFailed', 'createFailed', 'forkRequiresOpen', 'archived', 'stoppedAndArchived',
     ])
     for (const registration of b.slots.entries('workspace.toast')) {

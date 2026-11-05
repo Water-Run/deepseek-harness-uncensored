@@ -1,6 +1,6 @@
 /** Iframe navigation provider with bounded application-known history. */
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { IframePresentation } from '../view/IframePresentation.ts'
+import type { IframePresentation } from './view/IframePresentation.ts'
 import { emptyBrowserFrame, type BrowserFrame, type BrowserFrameState, type BrowserLoadError, type BrowserSandboxControl } from './BrowserFrame.ts'
 import type { BrowserPageOptions } from './BrowserPage.ts'
 import { BrowserNavigation } from './BrowserNavigation.ts'

@@ -10,7 +10,7 @@ import type { Resources, ResourceSnapshot } from '@deepseek-ai/dsh-client-resour
 import type { WorkspaceFileStat } from '@deepseek-ai/dsh-api-workspace-files/types'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { TextPreview } from '../src/client/TextPreview.tsx'
-import type { DocumentBodyOwner } from '../src/client/document/contract.ts'
+import type { DocumentBodyOwner } from '../src/client/contract.ts'
 import { textFace } from '../src/client/face.ts'
 import { HtmlBody } from '../src/client/html/HtmlBody.tsx'
 import type { HtmlBodyProps } from '../src/client/html/HtmlBody.tsx'

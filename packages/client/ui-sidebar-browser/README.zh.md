@@ -56,6 +56,8 @@ Client 插件可以调用 `ctx.sidebarRight.openTab('browser', { params: { url }
 <details>
 <summary>实现细节——点击展开</summary>
 
+`browser/` 领域拥有统一的标签生命周期，视图位于 `browser/view/`，Desktop 适配位于 `browser/electron/`。根入口负责装配，不向其他功能插件导出实现值。
+
 ### 协议策略
 
 地址解析器接受 HTTP 与 HTTPS，包括 loopback 目标。`file:` URL、脚本/data/blob 输入、内嵌凭据、DSH 应用自身 origin 和畸形地址会被拒绝。本地文件由 Document Preview 负责渲染。

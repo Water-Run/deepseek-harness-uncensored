@@ -16,16 +16,17 @@
 
 import { globSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, posix, resolve, sep } from 'node:path'
+import ts from 'typescript'
 
 const root = resolve(import.meta.dirname, '..')
-const CLIENT_DIR = join(root, 'packages/client')
 
 /** Directory names treated as the shared contract layer (importable by all). */
 const CONTRACT_DIRS = new Set(['contract'])
 /** Top-level client files allowed to import across domains (assembly layer). */
 const ASSEMBLY_FILES = new Set(['apply.ts', 'index.ts', 'index.tsx'])
 
-interface Violation { file: string; imported: string; reason: string }
+/** One source dependency that crosses the package's declared directory layers. */
+export interface ClientDomainViolation { file: string; imported: string; reason: string }
 
 /** Recursively list .ts/.tsx files under dir (relative paths). */
 function listSources(dir: string): string[] {
@@ -51,17 +52,45 @@ export function resolveClientImport(file: string, specifier: string): string {
   return posix.normalize(posix.join(posix.dirname(file), specifier))
 }
 
-function checkPackage(pkgName: string, clientDir: string): Violation[] {
-  const violations: Violation[] = []
+function localImports(file: string, source: string): string[] {
+  const parsed = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true)
+  const imports = new Set<string>()
+  const visited = new Set<ts.Node>()
+  const visit = (node: ts.Node): void => {
+    if (visited.has(node)) return
+    visited.add(node)
+    let specifier: ts.Node | undefined
+    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node) || ts.isJSDocImportTag(node)) specifier = node.moduleSpecifier
+    else if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) {
+      specifier = node.moduleReference.expression
+    }
+    else if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument)) specifier = node.argument.literal
+    else if (ts.isCallExpression(node) && (node.expression.kind === ts.SyntaxKind.ImportKeyword
+      || (ts.isIdentifier(node.expression) && node.expression.text === 'require'))) specifier = node.arguments[0]
+    if (specifier !== undefined && ts.isStringLiteralLike(specifier) && specifier.text.startsWith('.')) imports.add(specifier.text)
+    ts.forEachChild(node, visit)
+    for (const doc of ts.getJSDocCommentsAndTags(node)) visit(doc)
+  }
+  visit(parsed)
+  return [...imports]
+}
+
+function imageResource(specifier: string): boolean {
+  const [path, search] = specifier.split('?'), query = search?.split('#')[0]
+  return path !== undefined && /\.(?:svg|png|jpe?g|gif|webp|avif|ico)$/i.test(path.split('#')[0] ?? '')
+    && (query === undefined || query === 'url')
+}
+
+function checkPackage(pkgName: string, clientDir: string): ClientDomainViolation[] {
+  const violations: ClientDomainViolation[] = []
   const files = listSources(clientDir)
   for (const rel of files) {
     const fromDomain = domainOf(rel)
     const isAssembly = fromDomain === '' && ASSEMBLY_FILES.has(rel)
     if (isAssembly) continue
     const source = readFileSync(join(clientDir, rel), 'utf8')
-    for (const match of source.matchAll(/from\s+['"](\.[^'"]+)['"]/g)) {
-      const spec = match[1]
-      if (spec === undefined) continue
+    for (const spec of localImports(rel, source)) {
+      if (imageResource(spec)) continue
       const target = resolveClientImport(rel, spec)
       if (target === '..' || target.startsWith('../')) continue // package-level rules govern
       const toDomain = domainOf(target)
@@ -79,19 +108,25 @@ function checkPackage(pkgName: string, clientDir: string): Violation[] {
   return violations
 }
 
-function main(): void {
-  const violations: Violation[] = []
-  for (const pkg of readdirSync(CLIENT_DIR)) {
-    const clientDir = join(CLIENT_DIR, pkg, 'src/client')
-    try {
-      if (!statSync(clientDir).isDirectory()) continue
-    } catch {
-      // No client half in this package — nothing to layer-check.
-      continue
-    }
-    violations.push(...checkPackage(pkg, clientDir))
+/**
+ * Check source, type, re-export and literal dynamic imports within every client package.
+ * Static image URLs are resources; script and stylesheet dependencies retain their layer checks.
+ * @param repoRoot - Repository containing packages/client.
+ * @returns All directory-layer violations, without executing client modules.
+ */
+export function verifyClientDomainGraph(repoRoot: string): ClientDomainViolation[] {
+  const violations: ClientDomainViolation[] = [], packages = join(repoRoot, 'packages/client')
+  for (const pkg of readdirSync(packages, { withFileTypes: true })) {
+    if (!pkg.isDirectory()) continue
+    const clientDir = join(packages, pkg.name, 'src/client')
+    if (!statSync(clientDir, { throwIfNoEntry: false })?.isDirectory()) continue
+    violations.push(...checkPackage(pkg.name, clientDir))
   }
+  return violations
+}
 
+function main(): void {
+  const violations = verifyClientDomainGraph(root)
   if (violations.length > 0) {
     console.error(`verify-client-domain-graph: ${violations.length} violation(s):`)
     for (const v of violations) console.error(`  ${v.file} -> ${v.imported}\n    ${v.reason}`)

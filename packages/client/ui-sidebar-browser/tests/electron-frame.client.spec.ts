@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { expect, it, vi } from 'vitest'
-import { ElectronWebViewImpl } from '../src/client/electron/ElectronWebViewImpl.ts'
-import { ElectronWebviewPresentation, type WebviewElement } from '../src/client/electron/ElectronWebviewPresentation.ts'
+import { ElectronWebViewImpl } from '../src/client/browser/electron/ElectronWebViewImpl.ts'
+import { ElectronWebviewPresentation, type WebviewElement } from '../src/client/browser/electron/ElectronWebviewPresentation.ts'
 import type { DesktopBrowserBridge, DesktopBrowserLeaseId } from '../src/types.ts'
 
 it('clears a failed load when the main page retries without a toolbar command', async () => {

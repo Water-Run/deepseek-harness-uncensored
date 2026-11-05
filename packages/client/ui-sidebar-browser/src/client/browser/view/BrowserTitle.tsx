@@ -2,8 +2,8 @@
 import type { ReactNode } from 'react'
 import { IconGlobeOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
-import { currentBrowserTarget } from '../browser/BrowserPersistence.ts'
-import type { BrowserStore } from '../browser/store.ts'
+import { currentBrowserTarget } from '../BrowserPersistence.ts'
+import type { BrowserStore } from '../store.ts'
 import css from './Browser.module.css'
 
 /** Browser title props assembled by the Sidebar title seat. */

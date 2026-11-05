@@ -2,9 +2,8 @@
 import {
   IconPinFillRegular, IconPinOutlineRegular, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import clsx from 'clsx'
 import type { PinSessionInjected, SessionRowActionProps } from '../contract/slots.ts'
-import css from '../rows/Rows.module.css'
+import css from '../RowActionButton.module.css'
 
 type PinState = Pick<SessionRowActionProps<PinSessionInjected>, 'sessionId' | 'usePinned' | 'useArchived' | 'useSessionAccess'>
 
@@ -34,7 +33,8 @@ export function PinSessionRowButton(props: SessionRowActionProps<PinSessionInjec
     <Tooltip label={t(pinned ? 'actions.unpin' : 'actions.pin')} side="bottom" align="end" delayMs={500} portal>
       <button
         type="button"
-        className={clsx(css.iconButton, pinned && css.pinnedAction)}
+        className={css.iconButton}
+        data-session-pinned-action={pinned ? '' : undefined}
         aria-label={t(pinned ? 'menu.unpinSession' : 'menu.pinSession')}
         onClick={() => { (pinned ? unpinSession : pinSession)(sessionId) }}
       >

@@ -110,11 +110,13 @@ describe('pin action', () => {
   it('row button toggles the pin', () => {
     const pin = pinShare()
     const view = render(<PinSessionRowButton {...actionRow} {...pin} />)
+    expect(screen.getByRole('button', { name: '置顶会话' }).hasAttribute('data-session-pinned-action')).toBe(false)
     fireEvent.click(screen.getByRole('button', { name: '置顶会话' }))
     expect(pin.pinSession).toHaveBeenCalledWith(sid('one'))
     expect(pin.unpinSession).not.toHaveBeenCalled()
 
     view.rerender(<PinSessionRowButton {...actionRow} {...pin} usePinned={hook(idSet('one'))} />)
+    expect(screen.getByRole('button', { name: '取消置顶' }).hasAttribute('data-session-pinned-action')).toBe(true)
     fireEvent.click(screen.getByRole('button', { name: '取消置顶' }))
     expect(pin.unpinSession).toHaveBeenCalledWith(sid('one'))
     expect(pin.pinSession).toHaveBeenCalledOnce()

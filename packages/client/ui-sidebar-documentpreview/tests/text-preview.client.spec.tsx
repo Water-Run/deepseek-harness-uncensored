@@ -19,9 +19,9 @@ import type { OwnerOf } from '@deepseek-ai/dsh-client-ui-slots'
 import { TextPreview } from '../src/client/TextPreview.tsx'
 import type { TextPreviewProps } from '../src/client/TextPreview.tsx'
 import { CodeBody } from '../src/client/code/CodeBody.tsx'
-import type { DocumentPreviewDefinition } from '../src/client/document/registry.ts'
+import type { DocumentPreviewDefinition } from '../src/client/registry.ts'
 import { TextBody } from '../src/client/text/TextBody.tsx'
-import { PLAIN_BODY_ID } from '../src/client/text/index.ts'
+import { PLAIN_BODY_ID } from '../src/client/text-definition.ts'
 import { documentSlots, ABSOLUTE_PATH, ADDRESS, PATH, SESSION, TAB_ID, failure, harness, page, settle } from './fixtures.client.ts'
 
 const LINE_HEIGHT = 20

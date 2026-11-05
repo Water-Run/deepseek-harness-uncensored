@@ -69,6 +69,8 @@ File and URL controls declare context-menu targets through the scoped Markdown d
 <details>
 <summary>Implementation internals — click to expand</summary>
 
+Tool path-resolution callback types live in `src/client/contract/file-menu.ts`; the tool implementation binds them to the originating Session when a gesture begins.
+
 The package realizes one dispatch rule: atomic Tool views are keyed by wire Tool name and registered by their owning business packages; this package only renders the tree and the fallback.
 
 ### Rendering contract

@@ -2,7 +2,7 @@
 import { Context } from '@deepseek-ai/cordis'
 import { expect, it, vi } from 'vitest'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
-import { binaryDocumentPath, DocumentPreviewRegistry } from '../src/client/document/registry.ts'
+import { binaryDocumentPath, DocumentPreviewRegistry } from '../src/client/registry.ts'
 import { Config } from '../src/config.ts'
 import { apply } from '../src/client/excel/index.ts'
 import { LazyExcelBody } from '../src/client/excel/LazyExcelBody.tsx'

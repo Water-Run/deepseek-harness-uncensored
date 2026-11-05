@@ -12,10 +12,10 @@ import {
   ICON_REGULAR_STROKE,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
-import type { BrowserInjected } from '../browser/BrowserController.ts'
-import { emptyBrowserFrame } from '../browser/BrowserFrame.ts'
-import { currentBrowserTarget } from '../browser/BrowserPersistence.ts'
-import type { BrowserStore } from '../browser/store.ts'
+import type { BrowserInjected } from '../BrowserController.ts'
+import { emptyBrowserFrame } from '../BrowserFrame.ts'
+import { currentBrowserTarget } from '../BrowserPersistence.ts'
+import type { BrowserStore } from '../store.ts'
 import css from './Browser.module.css'
 
 const EMPTY_FRAME = emptyBrowserFrame()

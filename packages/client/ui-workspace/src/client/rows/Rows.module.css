@@ -385,13 +385,13 @@
 
   /* Only update timestamps disappear; pending-interaction labels remain visible. */
   .sessionRow .timestamp,
-  .sessionRow:has(.pinnedAction) .pinIndicator,
-  .sessionRow .rowQuickActions > :global([data-slot]) > :not(.pinnedAction),
+  .sessionRow:has(:global([data-session-pinned-action])) .pinIndicator,
+  .sessionRow .rowQuickActions > :global([data-slot]) > :not(:global([data-session-pinned-action])),
   .projectRow[aria-expanded='false'] .rowActions {
     display: none;
   }
 
-  .sessionRow .pinnedAction {
+  .sessionRow :global([data-session-pinned-action]) {
     /* Keep More aligned across rows. Tab order remains More, then Unpin. */
     order: -1;
   }
@@ -500,34 +500,6 @@
 .hoverArchived svg {
   flex-shrink: 0;
   margin: 0 -4px;
-}
-
-/* Compensated margins keep the 24px target on the compact icon's center. */
-.iconButton {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  margin: -4px;
-  border: none;
-  border-radius: var(--dsw-radius-xs);
-  padding: 0;
-  background: transparent;
-  cursor: pointer;
-  color: var(--dsw-alias-label-tertiary);
-}
-
-/* Keep the focus ring on its original compact outline. */
-.iconButton:focus-visible {
-  outline-offset: -2px;
-}
-
-@media (hover: hover) {
-  .iconButton:hover {
-    color: var(--dsw-alias-label-primary);
-  }
 }
 
 /* Chevrons ride the caption grey (#ADB2B8); the folder glyph stays one step

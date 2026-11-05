@@ -13,6 +13,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent, RefObject } from 'react'
 import clsx from 'clsx'
+import actionCss from '../RowActionButton.module.css'
 import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import {
   HoverCard, IconArchiveOutlineRegular,
@@ -331,7 +332,7 @@ function ProjectRow({
           <Tooltip label={t('actions.openRunning')} side="bottom" align="end" delayMs={500} portal>
             <button
               type="button"
-              className={css.iconButton}
+              className={actionCss.iconButton}
               aria-label={t('actions.openRunning.aria', { name: label })}
               onClick={(e) => {
                 e.stopPropagation()
@@ -344,7 +345,7 @@ function ProjectRow({
           </Tooltip>
         )}
         {workspaceMenuTarget !== undefined && (
-          <button type="button" className={css.iconButton} data-context-menu-trigger
+          <button type="button" className={actionCss.iconButton} data-context-menu-trigger
             aria-label={t('actions.workspace.aria', { name: label })} aria-haspopup="menu" aria-expanded={menuOpen}
             onClick={(event) => {
               event.stopPropagation()
@@ -356,7 +357,7 @@ function ProjectRow({
           <Tooltip label={t('actions.newSession')} shortcutKeys={newShortcut?.keys} side="bottom" align="end" delayMs={500} portal>
             <button
               type="button"
-              className={css.iconButton}
+              className={actionCss.iconButton}
               aria-keyshortcuts={newShortcut?.aria}
               aria-label={t('actions.newSession.aria', { name: label })}
               onClick={(e) => { e.stopPropagation(); onCreate() }}
@@ -572,7 +573,7 @@ export function SearchResultItem({
             <Tooltip label={t('actions.unarchive')} side="bottom" align="end" delayMs={500} portal>
               <button
                 type="button"
-                className={css.iconButton}
+                className={actionCss.iconButton}
                 aria-label={t('menu.unarchiveSession')}
                 onClick={(e) => { e.stopPropagation(); onUnarchive(result.id) }}
               >
@@ -781,7 +782,7 @@ export function SessionNodeItem({
           button needs no propagation handling of its own. */}
       {!row.blank && (
         <span className={css.rowActions} onClick={(e) => { e.stopPropagation() }}>
-          <button type="button" className={css.iconButton}
+          <button type="button" className={actionCss.iconButton}
             aria-label={t('actions.session.aria', { name: title })}
             onPointerDown={(event) => { event.stopPropagation() }}
             data-context-menu-trigger=""

@@ -1,0 +1,27 @@
+/* Compensated margins keep the 24px target on the compact icon's center. */
+.iconButton {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin: -4px;
+  border: none;
+  border-radius: var(--dsw-radius-xs);
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* Keep the focus ring on its original compact outline. */
+.iconButton:focus-visible {
+  outline-offset: -2px;
+}
+
+@media (hover: hover) {
+  .iconButton:hover {
+    color: var(--dsw-alias-label-primary);
+  }
+}

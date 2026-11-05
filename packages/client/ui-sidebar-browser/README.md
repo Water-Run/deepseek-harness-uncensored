@@ -56,6 +56,8 @@ The toolbar provides Back, Forward, Reload, Go, and Open in system browser. Web 
 <details>
 <summary>Implementation internals — click to expand</summary>
 
+The `browser/` domain owns one tab lifecycle, with its views in `browser/view/` and Desktop adapters in `browser/electron/`. The root entry assembles these implementations without exporting their values to other feature plugins.
+
 ### Protocol policy
 
 The address parser accepts HTTP and HTTPS, including loopback targets. It rejects `file:` URLs, script/data/blob input, embedded credentials, the DSH application origin, and malformed addresses. Document Preview owns local-file rendering.

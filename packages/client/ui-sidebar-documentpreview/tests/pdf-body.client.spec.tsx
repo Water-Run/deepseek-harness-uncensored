@@ -20,7 +20,7 @@ import { createPdfStore, type PdfState } from '../src/client/pdf/store.ts'
 import { en } from '../src/client/pdf/locales.ts'
 import { LoadingIndicator } from '../src/client/LoadingIndicator.tsx'
 import { PdfWorkerFailure } from '../src/client/pdf/errors.ts'
-import { ZoomViewport, zoomSurfaceClass } from '../src/client/zoom/ZoomViewport.tsx'
+import { ZoomViewport, zoomSurfaceClass } from '../src/client/ZoomViewport.tsx'
 
 const loads: Array<{
   deferred: ReturnType<typeof Promise.withResolvers<PdfDocument>>

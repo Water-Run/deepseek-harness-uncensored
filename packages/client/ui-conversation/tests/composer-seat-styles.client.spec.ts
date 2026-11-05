@@ -7,8 +7,8 @@ function readStyles(path: string): string {
 }
 
 const conversationCss = readStyles('../src/client/skeleton/ConversationRoot.module.css')
-const inputBarCss = readStyles('../src/client/skeleton/InputBar.module.css')
-const contextMeterCss = readStyles('../src/client/skeleton/ContextMeter.module.css')
+const inputBarCss = readStyles('../src/client/input/InputBar.module.css')
+const contextMeterCss = readStyles('../src/client/input/ContextMeter.module.css')
 
 /** Return the body of the rule whose selector list starts with `selector`. */
 function rule(css: string, selector: string): string {

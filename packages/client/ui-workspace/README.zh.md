@@ -117,6 +117,8 @@ Workspace 和 Session 的启动基线均就绪后，空安装环境调用 `works
 <details>
 <summary>实现细节——点击展开</summary>
 
+行操作的点击热区样式共用 `src/client/RowActionButton.module.css`，模态输入和提示共用 `src/client/WorkspaceDialogs.module.css`。置顶按钮仅在已置顶时提供 `data-session-pinned-action`，行样式据此处理触屏可见性。
+
 本包是一条组合：两个目标 slot 都由其他插件声明，因此 `apply` 使用 `slots.inject()` 在各自的声明生命周期内完成注册，并在目标 slot 的声明恢复后重新注册。
 
 浏览器入口为每个 Session 行声明三个 root 作用域的 `list` 子 slot：`sidebar.session.row.leading`、`sidebar.session.row.trailing` 和 `sidebar.session.row.hover`。三者只接收 `sessionId`，占用方据此读取自己的数据，不建立 Session 绑定。Session 作用域的 slot 会激活并保留列表中每个 Session。

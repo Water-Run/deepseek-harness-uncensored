@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
-import { unviewableBinaryPath } from '../src/client/document/unviewable.ts'
+import { unviewableBinaryPath } from '../src/client/unviewable.ts'
 
 describe('unviewableBinaryPath', () => {
   it('matches one sample from every listed category', () => {

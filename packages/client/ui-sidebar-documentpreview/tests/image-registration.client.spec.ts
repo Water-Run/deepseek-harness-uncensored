@@ -3,12 +3,12 @@ import { Context } from '@deepseek-ai/cordis'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
-import { DocumentPreviewRegistry } from '../src/client/document/registry.ts'
+import { DocumentPreviewRegistry } from '../src/client/registry.ts'
 import { ImageBody } from '../src/client/image/ImageBody.tsx'
 import { apply, BINARY_IMAGE_EXTENSIONS, IMAGE_BODY_ID, IMAGE_EXTENSIONS, imageBodyDefinition } from '../src/client/image/index.ts'
 import { en, ja, zh, es, fr, de, ru, pt } from '../src/client/image/locales.ts'
 import type { ImageBodyInjected } from '../src/client/image/ImageBody.tsx'
-import type { ZoomStore } from '../src/client/zoom/store.ts'
+import type { ZoomStore } from '../src/client/zoom-store.ts'
 
 let dispose: (() => Promise<void>) | undefined
 afterEach(async () => { await dispose?.(); dispose = undefined })

@@ -1,5 +1,5 @@
 /** Iframe DOM and revision-tagged load observations. */
-import type { BrowserTarget } from '../browser/url.ts'
+import type { BrowserTarget } from '../url.ts'
 import type { BrowserPresentation } from './BrowserPresentation.ts'
 import css from './Browser.module.css'
 

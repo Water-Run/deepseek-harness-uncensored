@@ -3,7 +3,7 @@
 import { act, cleanup, fireEvent, render, within } from '@testing-library/react'
 import { useLayoutEffect } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { FlowMotionRows } from '../src/client/chat/flow-motion.ts'
+import type { FlowMotionRows } from '../src/client/contract/flow-motion.ts'
 import { useChatScroll, type ChatScrollInput } from '../src/client/chat/use-chat-scroll.ts'
 
 beforeEach(() => { vi.useFakeTimers() })

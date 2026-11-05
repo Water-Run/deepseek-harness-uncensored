@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest'
 
 const css = readFileSync(fileURLToPath(new URL('../src/client/rows/WorkspaceBrowser.module.css', import.meta.url)), 'utf8')
 const rowsCss = readFileSync(fileURLToPath(new URL('../src/client/rows/Rows.module.css', import.meta.url)), 'utf8')
+const rowActionCss = readFileSync(fileURLToPath(new URL('../src/client/RowActionButton.module.css', import.meta.url)), 'utf8')
 
 /**
  * Declarations of one selector rule, keyed by property with whitespace collapsed.
@@ -32,13 +33,14 @@ function declarationsFrom(source: string, selector: string): Map<string, string>
 
 const declarations = (selector: string): Map<string, string> | undefined => declarationsFrom(css, selector)
 const rowDeclarations = (selector: string): Map<string, string> | undefined => declarationsFrom(rowsCss, selector)
+const actionDeclarations = (selector: string): Map<string, string> | undefined => declarationsFrom(rowActionCss, selector)
 
 describe('WorkspaceBrowser.module.css list', () => {
   it('hides touch timestamps without hiding pending-interaction labels', () => {
     const touch = /@media \(hover: none\) \{([\s\S]*?)\n\}/.exec(rowsCss)?.[1]
     expect(touch).toContain('.sessionRow .timestamp')
     expect(touch).not.toMatch(/\.sessionRow(?:\.selected)? \.time[\s,{]/)
-    expect(rowDeclarations('.sessionRow .pinnedAction')?.get('order')).toBe('-1')
+    expect(rowDeclarations('.sessionRow :global([data-session-pinned-action])')?.get('order')).toBe('-1')
   })
 
   const root = declarations('.root')
@@ -129,19 +131,19 @@ describe('WorkspaceBrowser.module.css list', () => {
       expect(rowDeclarations(selector)?.get('border-inline')).toBe('var(--dsh-sidebar-paint-inset) solid transparent')
     }
     expect(rowDeclarations('.rowActions')?.get('gap')).toBe('13px')
-    expect(rowDeclarations('.iconButton')?.get('width')).toBe('24px')
+    expect(actionDeclarations('.iconButton')?.get('width')).toBe('24px')
     expect(rowDeclarations('.time')?.get('margin-inline-end')).toBe('-1px')
     expect(declarations('.sectionLabel')?.get('left')).toBe('-1px')
   })
 
   it('extends native row action targets while retaining the compact layout footprint', () => {
-    const button = rowDeclarations('.iconButton')
+    const button = actionDeclarations('.iconButton')
     expect(button?.get('width')).toBe('24px')
     expect(button?.get('height')).toBe('24px')
     expect(button?.get('margin')).toBe('-4px')
     expect(button?.get('background')).toBe('transparent')
-    expect(rowDeclarations('.iconButton::after')).toBeUndefined()
-    expect(rowDeclarations('.iconButton:focus-visible')?.get('outline-offset')).toBe('-2px')
+    expect(actionDeclarations('.iconButton::after')).toBeUndefined()
+    expect(actionDeclarations('.iconButton:focus-visible')?.get('outline-offset')).toBe('-2px')
   })
 
   it('enables header spacing transitions only for search gestures in wide layout', () => {

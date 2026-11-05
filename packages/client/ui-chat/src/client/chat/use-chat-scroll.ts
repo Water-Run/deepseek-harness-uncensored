@@ -6,7 +6,7 @@ import type { ChatViewSlotProps } from '../contract/slots.ts'
 import { useChatNavigation, type ChatNavigation, type ChatNavigationInput } from './use-chat-navigation.ts'
 import { useChatReading, type ChatReadingState } from './use-chat-reading.ts'
 import { useChatViewport } from './use-chat-viewport.ts'
-import type { FlowMotionRows } from './flow-motion.ts'
+import type { FlowMotionRows } from '../contract/flow-motion.ts'
 
 /** Committed content and Session operations used to reconcile scroll ownership. */
 export interface ChatScrollInput extends ChatNavigationInput {

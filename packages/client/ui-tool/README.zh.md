@@ -69,6 +69,8 @@ owner 载荷为 `ToolCallOwnerProps`：`callId`、`toolName`、`phase` 判别字
 <details>
 <summary>实现细节——点击展开</summary>
 
+工具路径解析的回调类型位于 `src/client/contract/file-menu.ts`；工具实现在操作开始时将其绑定到发起 Session。
+
 本包实现一条分派规则：原子工具视图按 wire 工具名称键控、由所属业务包注册；本包只渲染树与回退。
 
 ### 渲染约定

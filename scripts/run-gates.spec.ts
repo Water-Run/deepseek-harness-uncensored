@@ -308,7 +308,7 @@ describe('gate graph validation', () => {
     expect(ids).toEqual([
       'rescope-vendor', 'publint', 'constraints', 'default-product-isolation', 'product-use', 'official-bundle-catalog', 'provider-data', 'package-dependencies', 'application-entrypoints',
       'dsh-package-licenses', 'node-next-types',
-      'optional-dependency-imports', 'client-packages', 'installer-locales', 'locale-metadata', 'client-ui-i18n', 'client-route-resolution', 'no-bare-dispatcher',
+      'optional-dependency-imports', 'client-packages', 'client-slot-catalog', 'installer-locales', 'locale-metadata', 'client-ui-i18n', 'client-route-resolution', 'no-bare-dispatcher',
       'plugin-record-callers', 'no-unknown-casts', 'no-top-level-await',
       'cordis-config', 'runtime-closure',
     ])
@@ -456,6 +456,13 @@ describe('gate graph validation', () => {
       ]))
       expect((completeGate?.needs ?? []).filter(id => id !== 'build')).toEqual(gate.needs ?? [])
     }
+  })
+
+  it('validates packed document licenses after building their artifacts', () => {
+    const built = withPnpmEntrypoint(() => gatesForMode('ci-primary')).find(gate => gate.id === 'built-bin-smoke')
+    expect(built?.needs).toContain('build')
+    expect(built?.args).toContain('packages/client/ui-sidebar-documentpreview/tests/document-preview-license-bundle.built.e2e.ts')
+    expect(built?.env).toMatchObject({ DSH_EXAMPLE_MODE: 'lib' })
   })
 
   it('runs the Windows built-bin smoke after other observational gates settle', () => {

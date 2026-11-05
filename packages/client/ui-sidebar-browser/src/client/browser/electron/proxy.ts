@@ -1,6 +1,6 @@
 /** Resolve native browser routing through the owning conversation's Host resource. */
 import type { ClientRemote } from '@deepseek-ai/dsh-api-remotes/client'
-import type { DesktopBrowserProxy } from '../../types.ts'
+import type { DesktopBrowserProxy } from '../../../types.ts'
 
 /** Only the Remote reads needed before acquiring a native guest. */
 export type BrowserProxyPort = Pick<ClientRemote['securityProxy'], 'get' | 'browserEnvironment'>

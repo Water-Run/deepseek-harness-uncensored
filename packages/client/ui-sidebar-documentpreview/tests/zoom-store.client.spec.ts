@@ -1,7 +1,7 @@
 /** Shared image zoom preferences remain isolated by tab identity. */
 import { describe, expect, it } from 'vitest'
 import type { TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
-import { createZoomStore, DEFAULT_ZOOM } from '../src/client/zoom/store.ts'
+import { createZoomStore, DEFAULT_ZOOM } from '../src/client/zoom-store.ts'
 
 describe('document zoom store', () => {
   it('retains fixed and fit-width preferences and forgets only the closed tab', () => {

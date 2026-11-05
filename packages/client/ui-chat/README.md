@@ -172,6 +172,8 @@ While the pointer is outside the rail, automatic follow keeps the rail still whe
 <details>
 <summary>Scroll implementation — click to expand</summary>
 
+Row motion callbacks are declared in `src/client/contract/flow-motion.ts` and implemented by the Chat viewport; slot consumers share the callback type independently of animation implementation.
+
 Within a process group, wheel, touchstart, and any pointerdown interrupt an active smooth animation, including presses on tool cards. ArrowUp/ArrowDown, PageUp/PageDown, Home/End, and Space keys also interrupt it unless a child has prevented the key's default action; editable controls are not excluded. These events stop the animation without requiring a scroll displacement. Subsequent position sampling determines whether following continues.
 
 `useScrollFollow` supplies independent controllers for shared bottom thresholds, follow intent, and native scrolling. `useProcessScroll` owns group observation, initial placement, and edge fades. Outer following remains immediate; group growth uses native smooth scrolling unless reduced motion is requested. Growth retains an in-flight target until `scrollend`; arrival at that target or its shrink-clamped position continues toward the latest floor, while another endpoint releases following. Opening placement remains immediate. A bottom-follow request within tolerance uses immediate positioning when no animation is outstanding, so a fractional no-op cannot leave a pending smooth target.

@@ -4,7 +4,7 @@ import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
   SessionRenameDialogInjected, SessionRenameDialogProps, SessionRenameTarget,
 } from '../contract/slots.ts'
-import css from '../rows/WorkspaceBrowser.module.css'
+import css from '../WorkspaceDialogs.module.css'
 
 /**
  * The `shell.overlay` entry: nothing while no rename is requested, otherwise

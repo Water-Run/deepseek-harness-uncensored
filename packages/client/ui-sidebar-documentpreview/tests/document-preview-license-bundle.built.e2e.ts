@@ -43,8 +43,9 @@ function runPnpm(args: string[], cwd: string, timeout: number): string {
     : run(entrypoint, args, cwd, timeout)
 }
 
-describe('published document preview licenses', () => {
-  it.skipIf(!existsSync(bundlePath))('keeps bundled licenses in the packed lazy chunks', ({ task }) => {
+describe.skipIf(process.env.DSH_EXAMPLE_MODE !== 'lib')('published document preview licenses', { retry: 0 }, () => {
+  it('keeps bundled licenses in the packed lazy chunks', ({ task }) => {
+    expect(existsSync(bundlePath)).toBe(true)
     expect(existsSync(pdfChunkPath)).toBe(true)
     const output = mkdtempSync(join(tmpdir(), 'dsh-document-preview-pack-'))
     try {
@@ -111,7 +112,7 @@ describe('published document preview licenses', () => {
         expect(pdf, `${name} must be visible in package/lib/client.pdf.js`).toContain(commented)
       }
     } finally {
-      rmSync(output, { recursive: true, force: true })
+      rmSync(output, { recursive: true, force: true, maxRetries: 8, retryDelay: 50 })
     }
   })
 })

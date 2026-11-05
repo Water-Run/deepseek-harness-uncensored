@@ -74,6 +74,8 @@ The existing semantic `DraftSnapshot` retains quote text and clipboard-coordinat
 <a id="shell-and-standard-props"></a>
 ## Shell and standard props
 
+Composer controls, the draft editor binding, and control-row measurement belong to `src/client/input/`. The shell assembly registers the input surface alongside the conversation views.
+
 Input prediction is enabled by default. After an 800ms pause, an editable composer may request a suffix for its exact draft; newer input cancels the request and late replies cannot overwrite it. Gray text follows the draft, including an empty editor. Tab accepts it only with a collapsed caret at the end, after completion menus pass and outside IME composition; it never sends the message. Complete questions and locked composers request no suggestion. The browser preference is shared across its windows; storage or request failures remain visible.
 
 Below 768px, Web view tabs align with the header's 20px left inset. Desktop and wider Web windows retain the additional 8px tab inset.
