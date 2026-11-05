@@ -22,6 +22,8 @@
         path: !!js dshHomePath('storages', 'target-protection.sqlite')
     - id: target-protection-country
       name: '@deepseek-ai/dsh-target-protection/country'
+      config:
+        cacheDirectory: !!js dshHomePath('storages', 'target-country')
     - id: target-protection-settings
       name: '@deepseek-ai/dsh-target-protection/settings'
     - id: target-protected-http

@@ -49,7 +49,8 @@ export function apply(ctx: Context): void {
     scope.effect(() => () => controller.dispose(), 'target-protection: settings requests')
     scope.slots.inject('settings.mode.materials', () => scope.slots.register({
       name: 'settings.mode.materials', id: 'security-target-protection', order: 21, locale: 'settings.securityProxy',
-      inject: () => ({ hooks: { targetSettings: controller.state }, load: controller.load, save: controller.save }),
+      inject: () => ({ hooks: { targetSettings: controller.state }, load: controller.load, save: controller.save,
+        updateCountry: controller.updateCountry }),
     }, TargetProtectionSection))
   })
 

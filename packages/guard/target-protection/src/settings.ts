@@ -29,6 +29,7 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'target-protection/unavailable': Record<string, never>
     'target-protection/unsupported-version': Record<string, never>
     'target-protection/unrecognized-store': Record<string, never>
+    'target-protection/country-update-failed': Record<string, never>
   }
 }
 
@@ -37,6 +38,8 @@ export interface TargetProtectionSettingsState {
   snapshot: TargetSnapshot
   protection: SecurityProtectionStatus
   country: CountryDatabaseStatus | null
+  /** Available only for a provider with a managed DB-IP cache. */
+  countryUpdateAvailable?: true
 }
 
 /** Replace all rules only against the revision the owner edited. */
@@ -63,6 +66,7 @@ export default class TargetProtectionSettings extends TypertRemoteService {
       catch (error) { ctx.logger.warn('A security protection status observer failed.', error) }
     }
     ctx.on('target-protection/changed', changed)
+    ctx.on('target-country/changed', changed)
     ctx.on('internal/service', (name) => { if (statusServices.has(name)) changed() })
     ctx.provide('securityProtection', { read: () => this.readProtection() })
   }
@@ -110,7 +114,12 @@ export default class TargetProtectionSettings extends TypertRemoteService {
   @Remote
   get(): TargetProtectionSettingsState {
     this.ownerSignal()
-    return { snapshot: this.ctx.targetProtection.currentSnapshot(), protection: this.readProtection(), country: this.readCountry() }
+    return this.state(this.ctx.targetProtection.currentSnapshot())
+  }
+
+  private state(snapshot: TargetSnapshot): TargetProtectionSettingsState {
+    return { snapshot, protection: this.readProtection(), country: this.readCountry(),
+      ...this.ctx.get('targetCountryData')?.canUpdate() === true ? { countryUpdateAvailable: true } : {} }
   }
 
   /**
@@ -124,10 +133,31 @@ export default class TargetProtectionSettings extends TypertRemoteService {
     if (!this.guarded()) throw new RemoteError('target-protection/unavailable', 'The guarded HTTP routes are unavailable.', {})
     try {
       const snapshot = await this.ctx.targetProtection.configure(update.preferences, update.expectedRevision, signal)
-      return { snapshot, protection: this.readProtection(), country: this.readCountry() }
+      return this.state(snapshot)
     } catch (error) {
       if (error instanceof TargetProtectionError) throw new RemoteError(`target-protection/${error.code}`, error.message, {})
       throw error
     }
+  }
+
+  /**
+   * Check the official DB-IP release and apply a verified newer country database for this Host.
+   * @returns Live protection and country data status after the check.
+   */
+  @Remote
+  async updateCountry(): Promise<TargetProtectionSettingsState> {
+    const signal = this.ownerSignal()
+    const provider = this.ctx.get('targetCountryData')
+    if (provider === undefined || !provider.canUpdate()) {
+      throw new RemoteError('target-protection/unavailable', 'Managed country updates are unavailable.', {})
+    }
+    try { await provider.update(signal) }
+    catch (error) {
+      if (error instanceof TargetProtectionError) {
+        throw new RemoteError('target-protection/country-update-failed', error.message, {})
+      }
+      throw error
+    }
+    return this.state(this.ctx.targetProtection.currentSnapshot())
   }
 }

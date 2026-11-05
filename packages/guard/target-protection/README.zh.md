@@ -70,7 +70,9 @@ kind: "package-reference"
 
 新规则库默认关闭大陆保护且不添加目标规则；重新打开时保留已明确保存的偏好。这是可选进阶后端，不进入默认执行路径。装配 `./country` 可使用固定版本的 DB-IP Lite 数据，`path` 默认指向内置文件，`maxBytes` 默认 32 MiB，`maxAgeDays` 默认 45。启用大陆保护后，缺失、损坏、未来或过期数据不能证明目标位于境外；`.cn` 与中文中国域名标签作为独立依据。无法确认的名称或地区按拒绝处理，精确测试例外除外。界面不会将部分后端展示为完整保护。
 
-国家数据是覆盖和精度有限的估计。[IP Geolocation by DB-IP](https://db-ip.com) 按 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 分发，详见[内置署名](assets/NOTICE.md)。使用这些结果的 Web 组合必须展示该署名链接。当前更新数据需要替换配置的本地来源并重载提供方，产品设置接入尚未完成。
+国家数据是覆盖和精度有限的估计。[IP Geolocation by DB-IP](https://db-ip.com) 按 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 分发。使用这些结果的 Web 组合展示署名链接。详见[内置署名](assets/NOTICE.md)。
+
+配置托管 `cacheDirectory` 后，应用所有者可在目标保护面板点击「检查数据更新」。`targetProtectionSettings.updateCountry` 通过 HTTPS 检查 [DB-IP 官方月度归档](https://db-ip.com/db/download/ip-to-country-lite)，遵循 Host 进程代理环境。提供方限制下载和解压大小，校验 Country Lite 格式与编制月份，然后原子写入更新的有效缓存。重启优先读取最近一次校验通过的新缓存。无效或较旧的数据不会替换当前数据。显式 `path` 仍由所有者维护。成功更新会刷新首次网安确认，并取消使用旧数据的请求。
 
 用 `./security-proxy` 替换 `security-proxy-local`，并提供必需的凭据和目标保护服务。受控客户端、HTTP 转发及连接检查先校验原始目标，再通过字面 IP CONNECT 连接。转发保留原始 Host 和 TLS 身份，拒绝不匹配的 Host，并逐跳检查重定向。不透明 CONNECT 要求所有者将该字面 IP 和请求端口明确标记为测试服务器，生产规则仍检查目标 IP 与已知别名。隧道关闭前保留规则版本，所有者撤销规则时先关闭隧道，再保存新规则。保留受控普通 HTTP 提供方可让独立代理关闭时继续执行规则。
 

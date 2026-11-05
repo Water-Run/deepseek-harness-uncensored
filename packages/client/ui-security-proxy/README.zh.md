@@ -27,7 +27,7 @@ kind: "package-reference"
 
 Web 应用以浏览器行加载，无需另行安装。该区域注册进 `settings.mode.materials`，也就是预设卡片下方的模式资料座；只有当前选中模式是 `security` 时才绘制。它使用的 Remote 命名空间是 [`@deepseek-ai/dsh-security-proxy-local`](../../guard/security-proxy-local/README.zh.md) 的 `securityProxy`。
 
-目标保护面板使用[可选受控 Web 配置](../../guard/target-protection/README.zh.md#use-this-package)。应用所有者可配置境内保护、新增和编辑生产或测试规则、管理别名，并查看当前规则版本与地区数据。点击「保存规则」才提交草稿。遇到版本冲突或连接切换时，页面保留草稿并禁止覆盖当前服务的规则。
+目标保护面板使用[可选受控 Web 配置](../../guard/target-protection/README.zh.md#use-this-package)。应用所有者可配置境内保护、新增和编辑生产或测试规则、管理别名，并查看当前规则版本与地区数据。「检查数据更新」独立更新托管数据，保留规则草稿。点击「保存规则」才提交草稿。遇到版本冲突或连接切换时，页面保留草稿并禁止覆盖当前服务的规则。
 
 命令覆盖项包含一次性命令和持久 shell 终端，需由应用遵守代理环境变量；已捕获的 HTTP 与保持加密的 HTTPS 隧道分别标注。
 

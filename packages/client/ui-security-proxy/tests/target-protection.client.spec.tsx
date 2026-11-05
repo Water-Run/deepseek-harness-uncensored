@@ -16,11 +16,12 @@ function snapshot(revision = 4): TargetProtectionSettingsState {
     protection: { state: 'disabled', revision, capabilities: [] }, country: null }
 }
 
-function mount(remote: TargetSettingsRemote) {
-  const controller = new TargetSettingsController(remote)
+function mount(remote: Pick<TargetSettingsRemote, 'get' | 'configure'> & Partial<Pick<TargetSettingsRemote, 'updateCountry'>>) {
+  const controller = new TargetSettingsController({ updateCountry: async () => ({ ok: true, value: snapshot() }), ...remote })
   const unused = (): never => { throw new Error('Unused settings hook') }
   const screenHandle = render(<TargetProtectionSection modeId="security" t={makeTranslate(en)} {...allowAllAccess}
     useTargetSettings={bindSnapshotSelector(controller.state)} load={controller.load} save={controller.save}
+    updateCountry={controller.updateCountry}
     usePanelInfo={unused} useSessions={unused} useSessionStatus={unused} useSessionRetainInfo={unused}
     useWorkspaces={unused} useResource={unused} useContextMenu={unused} />)
   return { controller, ...screenHandle }
@@ -71,7 +72,8 @@ it('stages aliases with the original revision and preserves edits on a conflict'
 
 it('does not publish a save reply from a departed connection', async () => {
   const oldSave = Promise.withResolvers<RemoteResult<TargetProtectionSettingsState>>()
-  const controller = new TargetSettingsController({ get: async () => ({ ok: true, value: snapshot(1) }), configure: () => oldSave.promise })
+  const controller = new TargetSettingsController({ get: async () => ({ ok: true, value: snapshot(1) }),
+    configure: () => oldSave.promise, updateCountry: async () => ({ ok: true, value: snapshot() }) })
   const pending = controller.save({ expectedRevision: 4, preferences: { mainlandEnabled: true, rules: [] } })
   controller.reset()
   await waitFor(() => { expect(controller.state.getSnapshot().value?.snapshot.revision).toBe(1) })
@@ -79,6 +81,19 @@ it('does not publish a save reply from a departed connection', async () => {
   expect(await pending).toBe(false)
   expect(controller.state.getSnapshot()).toMatchObject({ generation: 1, saving: false, saved: false })
   expect(controller.state.getSnapshot().value?.snapshot.revision).toBe(1)
+})
+
+it('shows an update failure without clearing the country status or the rule draft', async () => {
+  const value = { ...snapshot(), countryUpdateAvailable: true as const }
+  const updateCountry = vi.fn<TargetSettingsRemote['updateCountry']>(async () => ({ ok: false,
+    error: new RemoteError('target-protection/country-update-failed', 'invalid', {}) }))
+  mount({ get: async () => ({ ok: true, value }), configure: vi.fn(), updateCountry })
+  fireEvent.click(await screen.findByRole('switch', { name: en['target.mainland'] }))
+  fireEvent.click(screen.getByRole('button', { name: en['target.countryUpdate'] }))
+  expect(await screen.findByText(en['target.failure.countryUpdate'])).toBeTruthy()
+  expect(screen.getByText(en['target.unsaved'])).toBeTruthy()
+  expect(screen.getByText('Rule revision 4')).toBeTruthy()
+  expect(updateCountry).toHaveBeenCalledOnce()
 })
 
 it('keeps an old draft visible and blocks saving it to another connection with the same rule revision', async () => {

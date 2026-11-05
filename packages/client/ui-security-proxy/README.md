@@ -27,7 +27,7 @@ This plugin renders the security mode's own network settings under the mode card
 
 The Web app loads it as a browser row; nothing else to install. The area registers into `settings.mode.materials`, the mode-materials seat under the preset cards, and paints only while the selected mode is `security`. Its Remote namespace is `securityProxy` from [`@deepseek-ai/dsh-security-proxy-local`](../../guard/security-proxy-local/README.md).
 
-The Target protection panel uses the [optional guarded Web profile](../../guard/target-protection/README.md#use-this-package). An application owner can configure mainland protection, add and edit production or test rules, manage aliases, and view the active revision and country data. Edits remain drafts until Save rules. A conflict or connection change keeps the draft visible and prevents it from replacing the current Host rules.
+The Target protection panel uses the [optional guarded Web profile](../../guard/target-protection/README.md#use-this-package). An application owner can configure mainland protection, add and edit production or test rules, manage aliases, and view the active revision and country data. Check for update refreshes the managed data independently of the rule draft. Edits remain drafts until Save rules. A conflict or connection change keeps the draft visible and prevents it from replacing the current Host rules.
 
 The shell coverage row includes one-shot commands and persistent shell terminals. They require applications to honor proxy environment variables; captured HTTP and opaque HTTPS tunnels retain their distinct labels.
 

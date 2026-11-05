@@ -59,21 +59,37 @@ export class CountryDatabase {
       if (bundled && createHash('sha256').update(source).digest('hex') !== BUNDLED_COUNTRY_SOURCE.compressedSha256) {
         throw new TargetProtectionError('unavailable', 'Bundled country archive failed its integrity check.')
       }
-      const bytes = source[0] === 0x1f && source[1] === 0x8b
-        ? await decompress(source, { maxOutputLength: options.maxBytes }) : source
-      signal.throwIfAborted()
-      const hash = createHash('sha256').update(bytes).digest('hex')
-      if (bundled && hash !== BUNDLED_COUNTRY_SOURCE.sha256) throw new TargetProtectionError('unavailable', 'Country database failed its integrity check.')
-      const reader = new Reader<CountryResponse>(bytes)
-      if (reader.metadata.binaryFormatMajorVersion !== 2 || !reader.metadata.databaseType.includes('Country')
-        || !Number.isFinite(reader.metadata.buildEpoch.getTime())) {
-        throw new TargetProtectionError('unavailable', 'Unsupported country database format.')
-      }
-      return new CountryDatabase(reader, { ...options }, hash, bundled)
+      return await CountryDatabase.decode(source, options, bundled, signal)
     } catch (error) {
       if (error instanceof TargetProtectionError) throw error
       throw new TargetProtectionError('unavailable', 'Country data could not be loaded.', { cause: error })
     }
+  }
+
+  /**
+   * Validate a complete, bounded country archive before it can be published.
+   * @param source - Acquired MMDB bytes or gzip archive.
+   * @param options - Configured size and freshness policy.
+   * @param bundled - Verify the pinned digest for distribution data.
+   * @param signal - Cancels after native decompression settles.
+   * @returns A reader over validated data and its content digest.
+   */
+  static async decode(source: Buffer, options: CountryDatabaseOptions, bundled: boolean, signal: AbortSignal): Promise<CountryDatabase> {
+    signal.throwIfAborted()
+    if (source.length > options.maxBytes) throw new TargetProtectionError('unavailable', 'Country database exceeds the size limit.')
+    const bytes = source[0] === 0x1f && source[1] === 0x8b
+      ? await decompress(source, { maxOutputLength: options.maxBytes }) : source
+    signal.throwIfAborted()
+    const hash = createHash('sha256').update(bytes).digest('hex')
+    if (bundled && hash !== BUNDLED_COUNTRY_SOURCE.sha256) {
+      throw new TargetProtectionError('unavailable', 'Country database failed its integrity check.')
+    }
+    const reader = new Reader<CountryResponse>(bytes)
+    if (reader.metadata.binaryFormatMajorVersion !== 2 || !reader.metadata.databaseType.includes('Country')
+      || !Number.isFinite(reader.metadata.buildEpoch.getTime())) {
+      throw new TargetProtectionError('unavailable', 'Unsupported country database format.')
+    }
+    return new CountryDatabase(reader, { ...options }, hash, bundled)
   }
 
   /**

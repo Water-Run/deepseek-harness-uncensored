@@ -4511,6 +4511,18 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Country data is independent of the durable target-rule owner and never supplies a permissive fallback.',
     methods: [
       {
+        signature: 'canUpdate(): boolean',
+        description: 'Report whether the Host can check for a managed DB-IP update.',
+        parameters: [],
+        returns: 'Whether this active provider has an owner-managed DB-IP cache.',
+      },
+      {
+        signature: 'async update(caller: AbortSignal): Promise<CountryDatabaseStatus>',
+        description: 'Acquire a newer official dataset and atomically replace the managed cache after validation.',
+        parameters: [{ name: 'caller', description: 'Owner request cancellation.' }],
+        returns: 'Status of the currently accepted database, including when it is already current.',
+      },
+      {
         signature: 'status(): CountryDatabaseStatus',
         description: 'Read current freshness and attribution for management and audit.',
         parameters: [],
@@ -4520,7 +4532,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         signature: 'sourcePaths(): readonly string[]',
         description: 'Identify the local source that guarded file executors must preserve.',
         parameters: [],
-        returns: 'One configured or bundled database path; no remote lookup is performed.',
+        returns: 'The configured or bundled source and, when present, the managed cache directory.',
       },
       {
         signature: 'mainland(addresses: readonly string[]): \'yes\' | \'no\' | \'unknown\'',
@@ -4639,6 +4651,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Save one versioned rule edit for an authenticated owner.',
         parameters: [{ name: 'update', description: 'Replacement settings and their expected revision.' }],
         returns: 'The new rule revision with the effective protection status.',
+      },
+      {
+        signature: '@Remote async updateCountry(): Promise<TargetProtectionSettingsState>',
+        description: 'Check the official DB-IP release and apply a verified newer country database for this Host.',
+        parameters: [],
+        returns: 'Live protection and country data status after the check.',
       },
     ],
   },
@@ -10845,7 +10863,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'TargetProtectionSettingsState',
-    declaration: 'export interface TargetProtectionSettingsState {\n    snapshot: TargetSnapshot;\n    protection: SecurityProtectionStatus;\n    country: CountryDatabaseStatus | null;\n}',
+    declaration: 'export interface TargetProtectionSettingsState {\n    snapshot: TargetSnapshot;\n    protection: SecurityProtectionStatus;\n    country: CountryDatabaseStatus | null;\n    countryUpdateAvailable?: true;\n}',
   },
   {
     name: 'TargetProtectionSettingsUpdate',

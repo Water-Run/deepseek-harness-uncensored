@@ -4,7 +4,7 @@ import type { TargetProtectionSettingsState, TargetProtectionSettingsUpdate } fr
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 
 /** Error and readiness states displayed beside the owner's unsaved edits. */
-export type TargetSettingsFailure = 'notMounted' | 'denied' | 'conflict' | 'invalid' | 'unavailable' | 'failed'
+export type TargetSettingsFailure = 'notMounted' | 'denied' | 'conflict' | 'invalid' | 'unavailable' | 'countryUpdate' | 'failed'
 
 /** The latest accepted state and the current Remote operation. */
 export interface TargetSettingsView {
@@ -13,6 +13,8 @@ export interface TargetSettingsView {
   saving: boolean
   failure: TargetSettingsFailure | null
   saved: boolean
+  updatingCountry: boolean
+  countryChecked: boolean
   generation: number
 }
 
@@ -20,9 +22,12 @@ export interface TargetSettingsView {
 export interface TargetSettingsRemote {
   get(): Promise<RemoteResult<TargetProtectionSettingsState>>
   configure(update: TargetProtectionSettingsUpdate): Promise<RemoteResult<TargetProtectionSettingsState>>
+  updateCountry(): Promise<RemoteResult<TargetProtectionSettingsState>>
 }
 
-const initial: TargetSettingsView = { value: null, loading: true, saving: false, failure: null, saved: false, generation: 0 }
+const initial: TargetSettingsView = {
+  value: null, loading: true, saving: false, failure: null, saved: false, generation: 0, updatingCountry: false, countryChecked: false,
+}
 
 function classify(code: string): TargetSettingsFailure {
   switch (code) {
@@ -35,6 +40,7 @@ function classify(code: string): TargetSettingsFailure {
     case 'target-protection/conflict': return 'conflict'
     case 'target-protection/invalid': return 'invalid'
     case 'target-protection/unavailable': return 'unavailable'
+    case 'target-protection/country-update-failed': return 'countryUpdate'
     default: return 'failed'
   }
 }
@@ -50,9 +56,9 @@ export class TargetSettingsController {
 
   /** Refresh the authoritative revision without altering the editor's draft. */
   readonly load = (): void => {
-    if (this.disposed || this.state.getSnapshot().saving) return
-    this.patch({ loading: true, failure: null, saved: false })
-    void this.run(() => this.remote.get(), false)
+    if (this.busy()) return
+    this.patch({ loading: true, failure: null, saved: false, countryChecked: false })
+    void this.run(() => this.remote.get(), 'read')
   }
 
   /**
@@ -61,9 +67,16 @@ export class TargetSettingsController {
    * @returns Whether the current connection accepted the change.
    */
   readonly save = (update: TargetProtectionSettingsUpdate): Promise<boolean> => {
-    if (this.disposed || this.state.getSnapshot().saving) return Promise.resolve(false)
-    this.patch({ loading: false, saving: true, failure: null, saved: false })
-    return this.run(() => this.remote.configure(update), true)
+    if (this.busy()) return Promise.resolve(false)
+    this.patch({ loading: false, saving: true, failure: null, saved: false, countryChecked: false })
+    return this.run(() => this.remote.configure(update), 'rules')
+  }
+
+  /** Check for a newer database independently of the local rule draft. */
+  readonly updateCountry = (): void => {
+    if (this.busy()) return
+    this.patch({ loading: false, updatingCountry: true, failure: null, saved: false, countryChecked: false })
+    void this.run(() => this.remote.updateCountry(), 'country')
   }
 
   /** Drop data from the departed connection and read the current Host. */
@@ -78,20 +91,28 @@ export class TargetSettingsController {
 
   private patch(value: Partial<TargetSettingsView>): void { this.state.set({ ...this.state.getSnapshot(), ...value }) }
 
-  private async run(call: () => Promise<RemoteResult<TargetProtectionSettingsState>>, writing: boolean): Promise<boolean> {
+  private busy(): boolean {
+    const { saving, updatingCountry } = this.state.getSnapshot()
+    return this.disposed || saving || updatingCountry
+  }
+
+  private async run(
+    call: () => Promise<RemoteResult<TargetProtectionSettingsState>>, action: 'read' | 'rules' | 'country',
+  ): Promise<boolean> {
     const epoch = ++this.epoch
     try {
       const result = await call()
       if (epoch !== this.epoch) return false
       if (result.ok) {
-        this.patch({ loading: false, saving: false, failure: null, value: result.value, saved: writing })
+        this.patch({ loading: false, saving: false, updatingCountry: false, failure: null, value: result.value,
+          saved: action === 'rules', countryChecked: action === 'country' })
         return true
       }
       const failure = classify(result.error.code)
-      this.patch({ failure, loading: false, saving: false,
+      this.patch({ failure, loading: false, saving: false, updatingCountry: false,
         ...(failure === 'notMounted' || failure === 'denied' ? { value: null } : {}) })
     } catch (_error) {
-      if (epoch === this.epoch) this.patch({ failure: 'failed', loading: false, saving: false })
+      if (epoch === this.epoch) this.patch({ failure: 'failed', loading: false, saving: false, updatingCountry: false })
     }
     return false
   }

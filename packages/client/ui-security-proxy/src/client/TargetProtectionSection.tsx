@@ -15,6 +15,7 @@ interface TargetProtectionInjected {
   hooks: { targetSettings: SnapshotStore<TargetSettingsView> }
   load(): void
   save(update: TargetProtectionSettingsUpdate): Promise<boolean>
+  updateCountry(): void
 }
 
 /** Props supplied by the mode configuration slot. */
@@ -29,7 +30,7 @@ function newRule(): TargetRule {
 }
 
 /** Render stored rules and stage changes for a version-checked save. */
-export function TargetProtectionSection({ modeId, useTargetSettings, load, save, t }: TargetProtectionSectionProps) {
+export function TargetProtectionSection({ modeId, useTargetSettings, load, save, updateCountry, t }: TargetProtectionSectionProps) {
   const view = useTargetSettings(value => value)
   const titleId = useId()
   const [draft, setDraft] = useState<Draft | null>(null)
@@ -42,7 +43,7 @@ export function TargetProtectionSection({ modeId, useTargetSettings, load, save,
   const connectionChanged = draft !== null && draft.generation !== view.generation
   const revisionChanged = draft !== null && state !== null && draft.expectedRevision !== state.snapshot.revision
   const stage = (change: (value: TargetPreferences) => TargetPreferences): void => {
-    if (state === null || view.saving || connectionChanged || revisionChanged) return
+    if (state === null || view.saving || view.updatingCountry || connectionChanged || revisionChanged) return
     setDraft((current) => {
       const base = current ?? {
         expectedRevision: state.snapshot.revision, preferences: state.snapshot.preferences, generation: view.generation,
@@ -55,7 +56,8 @@ export function TargetProtectionSection({ modeId, useTargetSettings, load, save,
     void save({ expectedRevision: draft.expectedRevision, preferences: draft.preferences }).then((ok) => { if (ok) setDraft(null) })
   }
   const discard = (): void => { setDraft(null); setEditor(null); load() }
-  const editingDisabled = view.saving || view.loading || state === null || connectionChanged || revisionChanged
+  const busy = view.saving || view.updatingCountry || view.loading
+  const editingDisabled = busy || state === null || connectionChanged || revisionChanged
   const edit = (rule: TargetRule, existing: boolean): void => {
     if (state !== null) setEditor({ rule, existing, generation: view.generation, revision: state.snapshot.revision })
   }
@@ -64,12 +66,12 @@ export function TargetProtectionSection({ modeId, useTargetSettings, load, save,
   const problem = connectionChanged ? 'target.connectionChanged' : revisionChanged ? 'target.failure.conflict'
     : view.failure === null ? null : `target.failure.${view.failure}` as const
 
-  return <section className={shared.section} aria-labelledby={titleId} aria-busy={view.loading || view.saving}>
+  return <section className={shared.section} aria-labelledby={titleId} aria-busy={busy}>
     <div className={css.heading}>
       <div><h3 id={titleId} className={shared.title}>{t('target.title')}</h3>
         <p className={shared.intro}>{t('target.intro')}</p>
       </div>
-      <Button variant="outline" size="sm" disabled={view.loading || view.saving} onClick={load}>{t('target.refresh')}</Button>
+      <Button variant="outline" size="sm" disabled={busy} onClick={load}>{t('target.refresh')}</Button>
     </div>
     {view.loading && state === null && <p className={shared.hint}>{t('target.loading')}</p>}
     {problem !== null && <p className={view.failure === 'notMounted' ? shared.hint : shared.error} role="status">{t(problem)}</p>}
@@ -92,7 +94,11 @@ export function TargetProtectionSection({ modeId, useTargetSettings, load, save,
           <time dateTime={country.builtAt}>{country.builtAt.slice(0, 10)}</time>
           <a className={css.link} href={country.attributionUrl} target="_blank" rel="noreferrer">{country.attribution}</a>
         </>}
+        {state.countryUpdateAvailable === true && <Button variant="outline" size="sm" disabled={busy} onClick={updateCountry}>
+          {t(view.updatingCountry ? 'target.countryUpdating' : 'target.countryUpdate')}
+        </Button>}
       </div>
+      {view.countryChecked && <span className={shared.muted} role="status">{t('target.countryChecked')}</span>}
     </div>}
     {preferences !== undefined && <>
       <div className={shared.actions}>
@@ -123,7 +129,7 @@ export function TargetProtectionSection({ modeId, useTargetSettings, load, save,
     {(draft !== null || view.saved) && <div className={shared.actions}>
       <span className={shared.muted} role="status">{t(draft === null ? 'target.saved' : 'target.unsaved')}</span>
       {draft !== null && <>
-        <Button variant="outline" size="sm" disabled={view.saving} onClick={discard}>{t('target.discard')}</Button>
+        <Button variant="outline" size="sm" disabled={busy} onClick={discard}>{t('target.discard')}</Button>
         <Button variant="primary" size="sm" disabled={editingDisabled} onClick={commit}>
           {t(view.saving ? 'target.saving' : 'target.save')}
         </Button>

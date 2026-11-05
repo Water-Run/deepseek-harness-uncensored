@@ -42,6 +42,7 @@ it('exposes owner-only, revisioned rules and tracks the actual guarded providers
     const owner = ctx.extend({ invocation }).targetProtectionSettings
     expect(owner.get().protection.state).toBe('unavailable')
     expect(() => ctx.targetProtectionSettings.get()).toThrow(expect.objectContaining({ code: 'target-protection/owner-required' }))
+    await expect(ctx.targetProtectionSettings.updateCountry()).rejects.toMatchObject({ code: 'target-protection/owner-required' })
     await ctx.plugin(Http)
     const proxy = await ctx.plugin(Proxy, { path: join(root, 'proxy.json') })
     expect(owner.get().protection.state).toBe('disabled')

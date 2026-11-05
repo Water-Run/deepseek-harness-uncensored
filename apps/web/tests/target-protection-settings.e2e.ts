@@ -24,6 +24,7 @@ it('saves a real production rule and fits the editor at the narrow settings widt
         await page.getByRole('menuitem', { name: /^Security/ }).click()
       }
       await target.getByText('Rule revision 1').waitFor()
+      expect(await target.getByRole('button', { name: 'Check for update' }).isEnabled()).toBe(true)
       await page.setViewportSize({ width: 390, height: 844 })
       expect(await target.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
       await target.getByRole('button', { name: 'Add rule' }).click()

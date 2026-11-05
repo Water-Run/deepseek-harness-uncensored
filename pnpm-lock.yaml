@@ -13125,6 +13125,9 @@ importers:
 
   packages/guard/target-protection:
     dependencies:
+      '@deepseek-ai/dsh-atomic-write':
+        specifier: workspace:*
+        version: link:../../util/atomic-write
       '@deepseek-ai/dsh-brand':
         specifier: workspace:*
         version: link:../../util/brand
@@ -13167,6 +13170,9 @@ importers:
       selfsigned:
         specifier: 5.5.0
         version: 5.5.0
+      undici:
+        specifier: 8.11.2
+        version: 8.11.2
       zod:
         specifier: 4.4.3
         version: 4.4.3
@@ -13192,9 +13198,6 @@ importers:
       '@deepseek-ai/dsh-app-boot':
         specifier: workspace:*
         version: link:../../boot/app-boot
-      '@deepseek-ai/dsh-atomic-write':
-        specifier: workspace:*
-        version: link:../../util/atomic-write
       '@deepseek-ai/dsh-browser-use':
         specifier: workspace:*
         version: link:../../browser-use/browser-use
@@ -13309,9 +13312,6 @@ importers:
       '@types/pg':
         specifier: 8.23.1
         version: 8.23.1
-      undici:
-        specifier: 8.11.2
-        version: 8.11.2
 
   packages/guard/timeout-policy:
     devDependencies:
