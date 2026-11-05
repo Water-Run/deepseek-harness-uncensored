@@ -3112,7 +3112,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
   {
     key: 'securityProtection',
     summary: 'Optional protection backend a deployment may compose.',
-    description: 'Optional protection backend a deployment may compose.\n\nThe Web product ships no provider today: `ctx.get(\'securityProtection\')` returns undefined and the acknowledgement reports protection as unavailable. A provider must emit `security-protection/changed` after a status change.',
+    description: 'Optional protection backend a deployment may compose.\n\nWithout a configured provider, the acknowledgement reports protection as unavailable. A provider must emit `security-protection/changed` after a status change.',
     methods: [
       {
         signature: 'read(): SecurityProtectionStatus',
@@ -4555,15 +4555,21 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'The latest durable revision and rule values.',
       },
       {
+        signature: 'currentSnapshot(): TargetSnapshot',
+        description: 'Read the active registry for synchronous runtime status consumers.',
+        parameters: [],
+        returns: 'The committed preferences and revision; unavailable before readiness or after withdrawal.',
+      },
+      {
         signature: 'async nativeFileConstraints(): Promise<NativeFileConstraints>',
         description: 'Read the file restrictions a native executor must expand before launch.',
         parameters: [],
         returns: 'One committed rule revision and immutable owner/production paths, without runtime grants.',
       },
       {
-        signature: 'async configure(preferences: TargetPreferences, expectedRevision: number): Promise<TargetSnapshot>',
+        signature: 'async configure(preferences: TargetPreferences, expectedRevision: number, signal?: AbortSignal): Promise<TargetSnapshot>',
         description: 'Save owner-selected preferences after a revision check.',
-        parameters: [{ name: 'preferences', description: 'Complete normalized rules.' }, { name: 'expectedRevision', description: 'The caller\'s previously read revision.' }],
+        parameters: [{ name: 'preferences', description: 'Complete normalized rules.' }, { name: 'expectedRevision', description: 'The caller\'s previously read revision.' }, { name: 'signal', description: 'Optional cancellation checked before any durable commit.' }],
         returns: 'Committed successor settings.',
       },
       {
@@ -4614,6 +4620,25 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Check a pinned connection or an operation on its authenticated peer.',
         parameters: [{ name: 'hostname', description: 'Original configured host.' }, { name: 'port', description: 'Known service port; omission requires decisions without a verified port scope.' }, { name: 'resolution', description: 'Actual pinned address evidence; omission performs only pre-resolution checks.' }, { name: 'scope', description: 'Whether effects stay on one port or may access the peer filesystem.' }, { name: 'effect', description: 'Effect guaranteed by the protocol executor, not supplied by the model.' }, { name: 'signal', description: 'Operation cancellation and deadline.' }, { name: 'database', description: 'Executor-selected protocol database, verified before application queries; omission leaves database scope unknown.' }, { name: 'foldDatabaseCase', description: 'Treat database names that differ only in case as possible aliases.' }],
         returns: 'A current rule decision; unavailable identity and registry failures never authorize fallback.',
+      },
+    ],
+  },
+  {
+    key: 'targetProtectionSettings',
+    summary: 'Connect durable rules and verified transport readiness to owner settings and Security entry.',
+    description: 'Connect durable rules and verified transport readiness to owner settings and Security entry.',
+    methods: [
+      {
+        signature: '@Remote get(): TargetProtectionSettingsState',
+        description: 'Return the editable rule revision and current enforcement availability to the owner.',
+        parameters: [],
+        returns: 'Durable rule snapshot and live protected-route and country status.',
+      },
+      {
+        signature: '@Remote async configure(update: TargetProtectionSettingsUpdate): Promise<TargetProtectionSettingsState>',
+        description: 'Save one versioned rule edit for an authenticated owner.',
+        parameters: [{ name: 'update', description: 'Replacement settings and their expected revision.' }],
+        returns: 'The new rule revision with the effective protection status.',
       },
     ],
   },
@@ -6124,6 +6149,14 @@ export const EVENT_API: readonly EventApiEntry[] = [
     signature: '\'target-country/changed\'(): void',
     summary: 'Invalidate operations using a country-data generation when it activates or is withdrawn.',
     description: 'Invalidate operations using a country-data generation when it activates or is withdrawn.',
+    parameters: [],
+  },
+  {
+    name: 'target-protection/changed',
+    mode: 'emit',
+    signature: '\'target-protection/changed\'(): void',
+    summary: 'Notify status consumers after a rule revision is committed.',
+    description: 'Notify status consumers after a rule revision is committed.',
     parameters: [],
   },
   {
@@ -10809,6 +10842,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'TargetPreferences',
     declaration: 'export interface TargetPreferences {\n    mainlandEnabled: boolean;\n    rules: TargetRule[];\n}',
+  },
+  {
+    name: 'TargetProtectionSettingsState',
+    declaration: 'export interface TargetProtectionSettingsState {\n    snapshot: TargetSnapshot;\n    protection: SecurityProtectionStatus;\n    country: CountryDatabaseStatus | null;\n}',
+  },
+  {
+    name: 'TargetProtectionSettingsUpdate',
+    declaration: 'export interface TargetProtectionSettingsUpdate {\n    preferences: TargetPreferences;\n    expectedRevision: number;\n}',
   },
   {
     name: 'TargetRule',

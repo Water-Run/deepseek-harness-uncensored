@@ -10,6 +10,7 @@ import type { HttpFetchDestination, PinnedResponse, PublicAddress } from '@deeps
 import { WebError } from '@deepseek-ai/dsh-web'
 import type TargetProtection from './index.ts'
 import type { TargetHttpResolution } from './index.ts'
+import type {} from './settings.ts'
 import { assertNetworkAllowed } from './network-decision.ts'
 import { canonicalTargetHost, hasExactTestServer } from './rules.ts'
 
@@ -161,4 +162,5 @@ function tunnelUrl(host: string, port: number): URL {
 export async function apply(ctx: Context, config: Config): Promise<void> {
   const protection = ctx.targetProtection
   await mountSecurityProxy(ctx, config, options => new ProtectedProxyEngine(options, ctx, protection))
+  ctx.provide('targetProtectedProxy', true)
 }

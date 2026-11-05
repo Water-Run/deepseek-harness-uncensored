@@ -66,6 +66,13 @@ export interface LocalFileAdmission { path: string; revision: number; decision: 
 
 declare module '@deepseek-ai/cordis' {
   interface Context { /** Current target registry and deterministic execution decisions. */ targetProtection: TargetProtection }
+  interface Events {
+    /**
+     * Notify status consumers after a rule revision is committed.
+     * @mode emit
+     */
+    'target-protection/changed'(): void
+  }
 }
 
 /** Root owner; the HTTP consumer requires this service and cannot fall back after its removal. */
@@ -196,6 +203,16 @@ export default class TargetProtection extends Service {
   }
 
   /**
+   * Read the active registry for synchronous runtime status consumers.
+   * @returns The committed preferences and revision; unavailable before readiness or after withdrawal.
+   */
+  currentSnapshot(): TargetSnapshot {
+    this.lifetime.signal.throwIfAborted()
+    if (this.opened === undefined) throw new TargetProtectionError('unavailable', 'Target protection is not ready.')
+    return this.opened.snapshot()
+  }
+
+  /**
    * Read the file restrictions a native executor must expand before launch.
    * @returns One committed rule revision and immutable owner/production paths, without runtime grants.
    */
@@ -218,19 +235,26 @@ export default class TargetProtection extends Service {
    * Save owner-selected preferences after a revision check.
    * @param preferences - Complete normalized rules.
    * @param expectedRevision - The caller's previously read revision.
+   * @param signal - Optional cancellation checked before any durable commit.
    * @returns Committed successor settings.
    */
-  async configure(preferences: TargetPreferences, expectedRevision: number): Promise<TargetSnapshot> {
+  async configure(preferences: TargetPreferences, expectedRevision: number, signal?: AbortSignal): Promise<TargetSnapshot> {
     const value = parseTargetPreferences(preferences)
-    const operation = this.updates.then(() => this.savePreferences(value, expectedRevision))
+    const operation = this.updates.then(async () => {
+      const saved = await this.savePreferences(value, expectedRevision, signal)
+      try { this.ctx.emit('target-protection/changed') }
+      catch (error) { this.ctx.logger.warn('A target protection observer failed after the rules were saved.', error) }
+      return saved
+    })
     this.updates = operation.then(() => {}, () => {})
     return operation
   }
 
-  private async savePreferences(preferences: TargetPreferences, expectedRevision: number): Promise<TargetSnapshot> {
+  private async savePreferences(preferences: TargetPreferences, expectedRevision: number, signal?: AbortSignal): Promise<TargetSnapshot> {
     this.lifetime.signal.throwIfAborted()
     const store = await this.ready
     this.lifetime.signal.throwIfAborted()
+    signal?.throwIfAborted()
     if (store.snapshot().revision !== expectedRevision) throw new TargetProtectionError('conflict', 'Target settings changed; reload before saving.')
     if (this.nativeExecutions.size === 0) {
       const saved = store.configure(preferences, expectedRevision)
@@ -244,6 +268,7 @@ export default class TargetProtection extends Service {
       await Promise.all(executions.map(execution => execution.stop()))
       await Promise.all(executions.map(execution => execution.finished))
       this.lifetime.signal.throwIfAborted()
+      signal?.throwIfAborted()
       return store.configure(preferences, expectedRevision)
     } catch (error) {
       if (this.nativeExecutions.size > 0) this.nativeTransition = 'failed'

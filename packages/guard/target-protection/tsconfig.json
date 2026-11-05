@@ -8,6 +8,7 @@
     "src"
   ],
   "references": [
+    { "path": "../../preset/agent-preset-registry" },
     { "path": "../../subprocess/win32-process" },
     { "path": "../../ptc-runtime/ptc-runtime" },
     { "path": "../../util/values" },

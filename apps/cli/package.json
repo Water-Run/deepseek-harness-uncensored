@@ -16,6 +16,7 @@
     "dsh-uncensored": "lib/bin.js"
   },
   "files": [
+    "config/examples/target-protection.yml",
     "lib/*.js",
     "lib/types/*.d.ts"
   ],
@@ -62,6 +63,7 @@
     "@deepseek-ai/dsh-skill": "workspace:*",
     "@deepseek-ai/dsh-skill-filesystem": "workspace:*",
     "@deepseek-ai/dsh-skill-office": "workspace:*",
+    "@deepseek-ai/dsh-target-protection": "workspace:*",
     "@deepseek-ai/dsh-tool-workspace-dependencies": "workspace:*",
     "@deepseek-ai/dsh-terminal": "workspace:*",
     "@deepseek-ai/dsh-terminal-bash": "workspace:*",

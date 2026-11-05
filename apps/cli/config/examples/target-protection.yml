@@ -1,0 +1,44 @@
+# Opt-in composition for a Web profile. Rules start empty and mainland protection starts disabled.
+- id: web-fetch-http
+  disabled: true
+- id: security-proxy
+  disabled: true
+- id: fs-sandbox
+  disabled: true
+- id: subprocess
+  disabled: true
+- id: ptc-runtime
+  disabled: true
+- id: rea
+  disabled: true
+- id: cordis-host-runner
+  disabled: true
+- id: plugin-manager
+  disabled: true
+- insert:
+    - id: target-protection
+      name: '@deepseek-ai/dsh-target-protection'
+      config:
+        path: !!js dshHomePath('storages', 'target-protection.sqlite')
+    - id: target-protection-country
+      name: '@deepseek-ai/dsh-target-protection/country'
+    - id: target-protection-settings
+      name: '@deepseek-ai/dsh-target-protection/settings'
+    - id: target-protected-http
+      name: '@deepseek-ai/dsh-target-protection/http'
+    - id: target-protected-security-proxy
+      name: '@deepseek-ai/dsh-target-protection/security-proxy'
+      config:
+        path: !!js dshHomePath('storages', 'security-proxy.json')
+    - id: target-protected-fs
+      name: '@deepseek-ai/dsh-target-protection/fs'
+    - id: target-protected-subprocess
+      name: '@deepseek-ai/dsh-target-protection/subprocess'
+    - id: target-protected-ptc
+      name: '@deepseek-ai/dsh-target-protection/ptc'
+    - id: target-protected-rea
+      name: '@deepseek-ai/dsh-target-protection/rea'
+    - id: target-protected-cordis
+      name: '@deepseek-ai/dsh-target-protection/cordis'
+    - id: target-protected-plugin-manager
+      name: '@deepseek-ai/dsh-target-protection/plugin-manager'

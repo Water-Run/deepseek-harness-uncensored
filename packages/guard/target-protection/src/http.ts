@@ -3,6 +3,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { HttpFetchProvider, Config as HttpConfig, resolveHttpFetchLimits } from '@deepseek-ai/dsh-web-fetch-http'
 import { WebError } from '@deepseek-ai/dsh-web'
 import type {} from './index.ts'
+import type {} from './settings.ts'
 import type { TargetHttpResolution } from './index.ts'
 import { TargetProtectionError } from '@deepseek-ai/dsh-target-protection'
 import { assertNetworkAllowed } from './network-decision.ts'
@@ -66,4 +67,5 @@ export function apply(ctx: Context, config: Config): void {
       } finally { settled.resolve(true); pending.delete(settled.promise); release() }
     },
   })
+  ctx.provide('targetProtectedHttp', true)
 }

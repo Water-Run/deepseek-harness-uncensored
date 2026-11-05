@@ -442,6 +442,7 @@ it('aborts a streaming target when policy changes and withdraws both guarded con
 it('retains the rule store until the proxy dispatcher has actually finished cleanup', async () => {
   const h = await harness()
   const cleanupStarted = Promise.withResolvers<boolean>(), cleanupAllowed = Promise.withResolvers<boolean>()
+  onTestFinished(() => { cleanupAllowed.resolve(true) })
   const native = Http.requestPinnedViaProxy
   vi.spyOn(Http, 'requestPinnedViaProxy').mockImplementation(async (...args) => {
     const exchange = await native(...args)
@@ -454,10 +455,15 @@ it('retains the rule store until the proxy dispatcher has actually finished clea
   const outcome = request.catch((error: unknown) => error)
   await cleanupStarted.promise
   const stopping = Promise.withResolvers<boolean>()
-  h.ctx.targetProtection.executionSignal().addEventListener('abort', () => { stopping.resolve(true) }, { once: true })
+  const engine = h.engine(), dispose = engine.dispose.bind(engine)
+  vi.spyOn(engine, 'dispose').mockImplementation(() => {
+    const result = dispose()
+    stopping.resolve(true)
+    return result
+  })
   const shutdown = h.ctx.fiber.dispose()
   try {
-    await stopping.promise
+    await Promise.race([stopping.promise, shutdown.then(() => { throw new Error('Owner closed before dispatcher cleanup') })])
     expect(closed).not.toHaveBeenCalled()
   } finally { cleanupAllowed.resolve(true); await Promise.all([outcome, shutdown]) }
   expect(closed).toHaveBeenCalledOnce()

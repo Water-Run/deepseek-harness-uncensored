@@ -65,8 +65,7 @@ export interface SecurityProtectionStatus {
 /**
  * Optional protection backend a deployment may compose.
  *
- * The Web product ships no provider today: `ctx.get('securityProtection')`
- * returns undefined and the acknowledgement reports protection as unavailable.
+ * Without a configured provider, the acknowledgement reports protection as unavailable.
  * A provider must emit `security-protection/changed` after a status change.
  */
 export interface SecurityProtectionProvider {

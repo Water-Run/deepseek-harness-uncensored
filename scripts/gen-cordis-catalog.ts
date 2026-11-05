@@ -1069,6 +1069,8 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   LocalFileAdmission: 'LocalFileAdmission fields and operation guarantees are owned by packages/guard/target-protection/README.md',
   LocalTargetOperation: 'LocalTargetOperation fields and operation guarantees are owned by packages/guard/target-protection/README.md',
   TargetSnapshot: 'TargetSnapshot fields and operation guarantees are owned by packages/guard/target-protection/README.md',
+  TargetProtectionSettingsState: 'TargetProtectionSettingsState is documented in packages/guard/target-protection/README.md',
+  TargetProtectionSettingsUpdate: 'TargetProtectionSettingsUpdate is documented in packages/guard/target-protection/README.md',
   TargetPreferences: 'TargetPreferences fields and operation guarantees are owned by packages/guard/target-protection/README.md',
   TargetHttpResolution: 'TargetHttpResolution fields and operation guarantees are owned by packages/guard/target-protection/README.md',
   TargetConnectionResolution: 'TargetConnectionResolution fields and operation guarantees are owned by packages/guard/target-protection/README.md',

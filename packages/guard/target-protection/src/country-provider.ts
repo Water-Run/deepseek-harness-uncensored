@@ -2,7 +2,7 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import schema from '@deepseek-ai/schemastery'
 import { CountryDatabase, type CountryDatabaseStatus } from './country.ts'
-import { TargetProtectionError } from './errors.ts'
+import { TargetProtectionError } from '@deepseek-ai/dsh-target-protection'
 import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
 import { BUNDLED_COUNTRY_SOURCE } from './country-source.ts'

@@ -24,6 +24,10 @@ kind: "package-reference"
 
 装配根服务时，通过 `path` 明确指定独立的 SQLite 规则库。与 Web 服务一起装配 `./http`，替换普通 HTTP 抓取提供方。两者使用同一个 ID，不能同时装配。受控消费者必须依赖 `targetProtection`；移除该服务会撤下消费者，而不会恢复无保护抓取。
 
+[可选 Web 配置](../../../apps/cli/config/examples/target-protection.yml) 会装配受控提供方。在源码目录执行 `pnpm dsh web --patch apps/cli/config/examples/target-protection.yml` 启动。初始规则为空，境内保护关闭。此配置为保护规则文件而拒绝效果无法约束的本地执行。实际检查由已装配的适配器执行。
+
+`./settings` 向已认证的应用所有者提供 `targetProtectionSettings.get` 和 `configure`。`get` 返回已提交规则、版本、HTTP 路由的实时状态及 DB-IP 署名和数据时效。`configure` 接收完整的 `preferences` 和 `expectedRevision`，提交前拒绝过期编辑或断开的所有者。只有两条受控 HTTP 路由均就绪且地区数据有效时，网安确认才显示境内保护已启用。数据过期或路由撤下时显示不可用。规则提交后，已打开的首次确认失效。
+
 `busyTimeoutMs` 限制 SQLite 锁等待（默认 1000）；`checkTimeoutMs` 限制地址检查（默认 5000）；`maxRechecks` 限制并发配置变化后的复查次数（默认 3）。这些选项不授权重放网络操作。
 
 `dnsServers` 默认使用系统解析器列表，`hostsFile` 默认使用系统 hosts 文件。`dnsQueryTimeoutMs` 默认 1500，`dnsMaxCnameDepth` 默认 8，`dnsMaxRecords` 默认 256，`hostsMaxBytes` 默认 1 MiB。DNS 使用这些配置的解析器，不擅自选择外部公共解析器；遇到拒绝或无效回答，不会通过询问另一台服务器规避。

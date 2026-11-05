@@ -49,6 +49,18 @@ it('rejects stale edits without cancelling the execution that owns the current r
   active.close(); active.release()
 })
 
+it('preserves the committed rules when the editor disconnects during native shutdown', async () => {
+  const h = await fixture(), active = h.native(), editor = new AbortController()
+  const change = h.ctx.targetProtection.configure({ mainlandEnabled: true, rules: [] }, 1, editor.signal)
+  const outcome = change.catch((error: unknown) => error)
+  await active.stopping
+  editor.abort()
+  active.close()
+  expect(await outcome).toBe(editor.signal.reason)
+  expect(h.external.snapshot()).toEqual({ revision: 1, preferences: { mainlandEnabled: false, rules: [] } })
+  expect(h.ctx.targetProtection.executionSignal().aborted).toBe(false)
+})
+
 it('keeps new execution disabled when physical shutdown cannot be confirmed', async () => {
   const h = await fixture()
   const release = h.ctx.targetProtection.retainNativeExecution(1, async () => { throw new Error('unconfirmed native shutdown') })

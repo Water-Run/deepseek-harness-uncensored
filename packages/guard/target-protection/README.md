@@ -24,6 +24,10 @@ This optional backend protects named production targets in HTTP and local file o
 
 Mount the root service with an explicit `path` to a dedicated SQLite registry. Mount `./http` instead of the ordinary HTTP fetch provider, alongside the web service. Both providers use the same ID and cannot coexist. The guarded consumer requires `targetProtection`; removing that service withdraws the consumer rather than restoring unrestricted fetches.
 
+The [optional Web profile overlay](../../../apps/cli/config/examples/target-protection.yml) assembles the guarded providers. Run `pnpm dsh web --patch apps/cli/config/examples/target-protection.yml` from the source checkout. The registry starts with no rules and mainland protection off. This profile refuses unconfined local execution while it owns protected configuration files. Only the mounted adapters enforce target checks.
+
+`./settings` exposes `targetProtectionSettings.get` and `configure` to authenticated application owners. `get` returns the committed rules, their revision, the live HTTP-route status, and DB-IP attribution and freshness. `configure` takes complete `preferences` and an `expectedRevision`, and refuses a stale edit or a disconnected owner before commit. Security entry reads mainland protection as enabled only when both guarded HTTP routes are mounted and country data is fresh. An expired source or withdrawn route leaves the status unavailable. A committed settings change invalidates open entry confirmations.
+
 `busyTimeoutMs` bounds SQLite lock waits (default 1000); `checkTimeoutMs` bounds address checks (default 5000); `maxRechecks` bounds retries after concurrent configuration changes (default 3). These options do not authorize replay of a network operation.
 
 `dnsServers` defaults to the OS resolver list; `hostsFile` defaults to the system hosts file. `dnsQueryTimeoutMs` defaults to 1500, `dnsMaxCnameDepth` to 8, `dnsMaxRecords` to 256 and `hostsMaxBytes` to 1 MiB. DNS uses these configured resolvers rather than choosing an external public resolver. Refusals and invalid replies are not evaded by asking another server.
