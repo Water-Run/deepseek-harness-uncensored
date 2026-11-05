@@ -2,7 +2,7 @@
 export const balanceEn = {
   'balance.title': 'Balance and history', 'balance.enabled': 'Show balance and collect samples',
   'balance.sampling': 'Sampling settings',
-  'balance.interval': 'Refresh interval (seconds)', 'balance.intervalError': 'Enter a whole number from 15 to 3600',
+  'balance.interval': 'Refresh interval (seconds)', 'balance.intervalError': 'Enter a whole number from 3 to 3600',
   'balance.source': 'Data source', 'balance.local': 'Local records', 'balance.api': 'Live API',
   'balance.apiHint': 'Fetch the current balance and add a local sample. The public API does not return past balance history.',
   'balance.localHint': 'Read samples already saved on this computer without querying the balance API.',
@@ -25,7 +25,7 @@ export const balanceEn = {
 export const balanceZh: Record<keyof typeof balanceEn, string> = {
   'balance.title': '余额与统计', 'balance.enabled': '显示余额并采样',
   'balance.sampling': '采样设置',
-  'balance.interval': '刷新间隔（秒）', 'balance.intervalError': '请输入 15–3600 之间的整数',
+  'balance.interval': '刷新间隔（秒）', 'balance.intervalError': '请输入 3–3600 之间的整数',
   'balance.source': '数据源', 'balance.local': '本机记录', 'balance.api': 'API 实时',
   'balance.apiHint': '读取当前余额并保存本机采样。公开 API 不提供过去的余额历史，曲线从首次采样开始累积。',
   'balance.localHint': '读取这台电脑已保存的采样记录，不请求余额 API。',

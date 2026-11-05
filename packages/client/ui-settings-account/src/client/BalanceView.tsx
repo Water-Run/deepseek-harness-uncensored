@@ -108,7 +108,7 @@ export function BalanceSettings({ useBalance, useBalancePreferences, refresh, sa
   const id = useId()
   if (preferences === undefined) return null
   const interval = draft ?? String(preferences.refreshSeconds)
-  const invalid = draft !== null && (!Number.isInteger(Number(draft)) || Number(draft) < 15 || Number(draft) > 3600)
+  const invalid = draft !== null && (!Number.isInteger(Number(draft)) || Number(draft) < 3 || Number(draft) > 3600)
   return <section className={css.settings}>
     <header className={css.sectionHead}><h3>{t('balance.title')}</h3><Switch label={t('balance.enabled')} checked={preferences.enabled} busy={state.saving} disabled={!form.writable} onChange={(value) => { void save('enabled', value) }} /></header>
     <div className={css.observation}>
@@ -123,7 +123,7 @@ export function BalanceSettings({ useBalance, useBalancePreferences, refresh, sa
     </div>
     <details className={css.preferences}><summary>{t('balance.sampling')}</summary>
       <PreferenceControlRow title={t('balance.interval')}>
-        <div className={css.interval}><Input id={`${id}-interval`} aria-label={t('balance.interval')} type="number" min={15} max={3600} step={1} value={interval} aria-invalid={invalid} aria-describedby={invalid ? `${id}-error` : undefined} disabled={state.saving || !form.writable}
+        <div className={css.interval}><Input id={`${id}-interval`} aria-label={t('balance.interval')} type="number" min={3} max={3600} step={1} value={interval} aria-invalid={invalid} aria-describedby={invalid ? `${id}-error` : undefined} disabled={state.saving || !form.writable}
           onChange={(event) => { setDraft(event.target.value) }} onBlur={() => { if (!invalid && draft !== null) void save('refreshSeconds', Number(draft)).then((ok) => { if (ok) setDraft(null) }) }} /></div>
       </PreferenceControlRow>
       {invalid && <p id={`${id}-error`} role="alert" className={css.error}>{t('balance.intervalError')}</p>}
