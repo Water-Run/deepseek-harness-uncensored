@@ -30,6 +30,7 @@
     "paths": {
       "@deepseek-ai/dsh-target-protection": ["./packages/guard/target-protection/src/index.ts"],
       "@deepseek-ai/dsh-target-protection/types": ["./packages/guard/target-protection/src/types.ts"],
+      "@deepseek-ai/dsh-target-protection/settings": ["./packages/guard/target-protection/src/settings.ts"],
       "@deepseek-ai/dsh-target-protection/http": ["./packages/guard/target-protection/src/http.ts"],
       "@deepseek-ai/dsh-target-protection/country": ["./packages/guard/target-protection/src/country-provider.ts"],
       "@deepseek-ai/dsh-target-protection/fs": ["./packages/guard/target-protection/src/fs.ts"],

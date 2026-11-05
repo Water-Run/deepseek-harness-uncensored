@@ -10,7 +10,7 @@ import { TargetProtectionError } from './errors.ts'
 
 const applicationId = 0x44535441
 const schemaVersion = 2
-const sessionIdSchema = z.string().min(1).transform(value => brandString<SessionId>(value))
+const sessionIdSchema: z.ZodType<SessionId, string> = z.string().min(1).transform(value => brandString<SessionId>(value))
 const operationSchema = z.enum(['http', 'proxy-http', 'connection', 'file', 'unconfined', 'http-dns', 'connection-dns'])
 const effectSchema = z.enum(['observe', 'mutate', 'unknown', 'unconfined', 'metadata', 'read', 'list', 'watch'])
 const recordSchema = z.object({
