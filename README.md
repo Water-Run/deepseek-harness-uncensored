@@ -76,7 +76,7 @@ Windows 安装器使用独立 DSHU 标识。自行打包时，`DSH_DESKTOP_APP_I
 ## 当前限制
 
 > [!WARNING]
-> 网安首次确认展示**真实保护状态**。可选后端覆盖 HTTP、独立代理、文件、SSH、REA/MCP/浏览器及动态插件准入、本地 SQLite 和网络数据库固定审计。PostgreSQL 和 MySQL 支持为指定测试表开启结构化写入，PostgreSQL 专用测试实例还可启用单语句 SQL。各后端需显式装配。其他数据库协议、远端资源身份、受限执行和完整审计仍待完成。
+> 网安首次确认展示**真实保护状态**。可选后端覆盖 HTTP、独立代理、文件、SSH、REA/MCP/浏览器及动态插件准入、本地 SQLite 和网络数据库固定审计。SSH 支持在 Linux helper 内校验受保护文件与绑定挂载。PostgreSQL 和 MySQL 支持为指定测试表开启结构化写入，PostgreSQL 专用测试实例还可启用单语句 SQL。各后端需显式装配。其他数据库协议、远端数据库资源映射、受限执行和完整审计仍待完成。
 
 - 独立代理覆盖 `web_fetch`、遵守代理变量的命令与终端、桌面侧栏，以及新启动的 Playwright MCP、Chrome DevTools MCP 和 Stagehand。普通 MCP 的 HTTP 工具与资源请求走会话代理，stdio 服务接收代理环境变量，启动发现走应用路由。新启动的 ACP、Codex、Claude Code 和 DSH SDK 外部委派同样接收父会话代理环境，实际出站取决于对应程序。受影响的桌面标签自动重连，终端和实验浏览器需重建。HTTPS 隧道仅记录元数据。Web 内嵌页、外部浏览器附加连接和应用模型走各自的原有路由。
 - 桌面包包含上述三个浏览器提供方，默认不加载。使用时在 profile 中选择一种并指定已安装的 Chrome/Chromium；程序不会额外安装浏览器。

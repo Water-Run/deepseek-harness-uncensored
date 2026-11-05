@@ -16,8 +16,9 @@ import type { SandboxExecutionPolicy, SandboxPolicy } from '@deepseek-ai/dsh-san
 import { z } from 'zod'
 import { SshRpcPeer, RemoteOperationError, SSH_MAX_PROCESS_HANDLES, SSH_MAX_TEXT_STREAMS, SSH_PROTOCOL_VERSION } from './protocol.ts'
 import { RemoteProcesses } from './helper-processes.ts'
+import { RemoteFileProtection } from './remote-file-policy.ts'
 import { hunkSchema, moveOptionsSchema, versionGuardSchema, editSchema, environmentSchema, intentSchema, policySchema, processIdSchema, remotePath, targetSchema, textStreamIdSchema } from './schemas.ts'
-import type { SshTextStreamId } from './schemas.ts'
+import { remoteFileProtectionSchema, type SshTextStreamId } from './schemas.ts'
 
 const MAX_FRAME_BYTES = 64 * 1024 * 1024
 const MAX_TEXT_BYTES = 8 * 1024 * 1024
@@ -25,11 +26,17 @@ const object = z.object({}).strict()
 const processIdRequest = z.object({ id: processIdSchema }).strict()
 const textStreamIdRequest = z.object({ id: textStreamIdSchema }).strict()
 
-async function services() {
+async function services(protection: RemoteFileProtection) {
+  class RemoteFileSystem extends SandboxedFileSystem {
+    protected override async authorizeMutation(target: FsTarget, signal?: AbortSignal): Promise<void> {
+      await super.authorizeMutation(target, signal)
+      await protection.check([target], 'mutate', signal)
+    }
+  }
   const ctx = new Context()
   const fibers = [await ctx.plugin(SessionProjectionRegistry)]
   fibers.push(await ctx.plugin(SandboxPolicyService, { mode: 'read-only', workspaceRoot: process.cwd() }))
-  fibers.push(await ctx.plugin(SandboxedFileSystem, { cwd: process.cwd() }))
+  fibers.push(await ctx.plugin(RemoteFileSystem, { cwd: process.cwd() }))
   fibers.push(await ctx.plugin(LocalSubprocessRuntime))
   fibers.push(await ctx.plugin(LocalSandboxProvider))
   return { ctx, close: async () => { for (const fiber of fibers.reverse()) await fiber.dispose() } }
@@ -56,12 +63,13 @@ export interface HelperTransport {
 export async function runSshHelper(transport: HelperTransport): Promise<void> {
   if (process.platform !== 'linux' && process.platform !== 'darwin') throw new Error('SSH helper requires a POSIX host')
   transport.signal.throwIfAborted()
-  const runtime = await services()
+  const protection = new RemoteFileProtection()
+  const runtime = await services(protection)
   const { ctx } = runtime
   const root = await mkdtemp('/tmp/dsh-ssh-')
   const processes = new RemoteProcesses(ctx, root, SSH_MAX_PROCESS_HANDLES, 30_000)
   const lifetime = new AbortController()
-  const iterators = new Map<SshTextStreamId, { iterator: AsyncIterator<string>; controller: AbortController }>()
+  const iterators = new Map<SshTextStreamId, { target: FsTarget; iterator: AsyncIterator<string>; controller: AbortController }>()
   let lease: NodeJS.Timeout | undefined
   let leaseMs = 30_000
   let initialized = false
@@ -120,6 +128,13 @@ export async function runSshHelper(transport: HelperTransport): Promise<void> {
     if (!initialized || cleanup !== undefined) throw new Error('SSH helper is not accepting operations')
     if (method === 'heartbeat') { object.parse(raw); touchLease(); return null }
     if (method === 'close') { object.parse(raw); await close(); return null }
+    if (method === 'fs.protection') {
+      await protection.configure(workspace, remoteFileProtectionSchema.parse(raw), signal)
+      return null
+    }
+    if (protection.active && !method.startsWith('fs.')) {
+      throw new RemoteOperationError('This operation cannot be confined to protected remote files.', 'TARGET_EXECUTION_UNCONFINED')
+    }
     if (method === 'process.prepare') return processes.prepare(raw)
     if (method === 'process.start') return processes.start(processIdRequest.parse(raw).id, signal)
     if (method === 'process.done') return processes.done(processIdRequest.parse(raw).id)
@@ -161,12 +176,23 @@ export async function runSshHelper(transport: HelperTransport): Promise<void> {
     }
     if (method === 'fs.resolve' || method === 'fs.lstat') {
       const input = z.object({ path: z.string(), cwd: remotePath.optional() }).strict().parse(raw)
-      return method === 'fs.resolve' ? ctx.fs.resolve(input.path, { cwd: input.cwd ?? workspace, signal }) : await ctx.fs.lstat(input.path, { cwd: input.cwd ?? workspace }, signal) ?? null
+      const cwd = input.cwd ?? workspace
+      if (method === 'fs.resolve' || protection.active) {
+        const target = await ctx.fs.resolve(input.path, { cwd, signal })
+        await protection.check([target], 'observe', signal)
+        if (method === 'fs.resolve') return target
+      }
+      return await ctx.fs.lstat(input.path, { cwd }, signal) ?? null
     }
     if (method === 'fs.stat' || method === 'fs.list' || method === 'fs.readText' || method === 'fs.stream') {
       const target = asTarget(z.object({ target: targetSchema }).strict().parse(raw).target)
+      await protection.check([target], method === 'fs.list' ? 'list' : 'observe', signal)
       if (method === 'fs.stat') return await ctx.fs.stat(target, signal) ?? null
-      if (method === 'fs.list') return ctx.fs.listDir(target, signal)
+      if (method === 'fs.list') {
+        const entries = await ctx.fs.listDir(target, signal)
+        if (protection.active) await protection.check(entries.map(entry => entry.target), 'observe', signal)
+        return entries
+      }
       if (method === 'fs.stream') {
         if (iterators.size >= SSH_MAX_TEXT_STREAMS) throw new Error('SSH text stream limit reached')
         const controller = new AbortController()
@@ -176,7 +202,7 @@ export async function runSshHelper(transport: HelperTransport): Promise<void> {
           signal.throwIfAborted()
           if (iterators.size >= SSH_MAX_TEXT_STREAMS) throw new Error('SSH text stream limit reached')
           const id = randomUUID() as SshTextStreamId
-          iterators.set(id, { iterator, controller })
+          iterators.set(id, { target, iterator, controller })
           return id
         } catch (error) {
           controller.abort(error)
@@ -208,6 +234,7 @@ export async function runSshHelper(transport: HelperTransport): Promise<void> {
       signal.addEventListener('abort', abort, { once: true })
       try {
         signal.throwIfAborted()
+        await protection.check([record.target], 'observe', signal)
         const next = await record.iterator.next()
         if (next.done) iterators.delete(id)
         return { done: next.done ?? false, value: next.done ? '' : next.value }
@@ -224,6 +251,7 @@ export async function runSshHelper(transport: HelperTransport): Promise<void> {
         offset: z.number().int().nonnegative().optional(), length: z.number().int().nonnegative().optional(),
       }).strict().parse(raw)
       const target = asTarget(input.target)
+      await protection.check([target], 'observe', signal)
       const bytes = method === 'fs.readBytes'
         ? await ctx.fs.readBytes(target, signal, Math.min(z.number().int().nonnegative().parse(input.maxBytes), MAX_TEXT_BYTES))
         : await ctx.fs.readByteRange(target, {

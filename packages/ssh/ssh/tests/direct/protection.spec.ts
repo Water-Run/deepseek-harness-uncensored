@@ -15,9 +15,14 @@ const remoteRoot = '/fixture/workspace'
 const fileTarget = { displayPath: `${remoteRoot}/data.txt`, targetKey: `${remoteRoot}/data.txt` }
 const policy = { mode: 'danger-full-access', workspaceRoot: '/' }
 
-async function setup() {
+async function setup(acceptRemoteProtection = false) {
   const h = await harness({ handle: async (method, params, signal, root) => {
     signal.throwIfAborted()
+    if (method === 'fs.protection') {
+      if (!acceptRemoteProtection) throw new Error('Fixture helper does not support remote path protection')
+      expect(params).toEqual([{ path: '/production', protection: 'full' }])
+      return null
+    }
     if (method === 'fs.resolve') {
       const input = z.object({ path: z.string(), cwd: z.string() }).parse(params)
       const path = posix.resolve(input.cwd, input.path)
@@ -47,6 +52,26 @@ async function setup() {
   }
   return { ...h, rule, configure, protection, contents: () => readFile(join(h.root, 'remote-data.txt'), 'utf8') }
 }
+
+it('requires the verified helper to accept configured production paths before publishing SSH readiness', async () => {
+  const fixture = await setup()
+  await expect(Promise.resolve(fixture.ctx.plugin(ProtectedSsh, {
+    ...fixture.config, protectedPaths: [{ path: '/production', protection: 'full' }],
+  }))).rejects.toMatchObject({ code: 'TARGET_IDENTITY_UNVERIFIED' })
+  expect(fixture.requests).toContain('fs.protection')
+  expect(fixture.ctx.get('ssh')).toBeUndefined()
+})
+
+it('blocks attempts to replace remote path protection or execute an arbitrary remote process', async () => {
+  const fixture = await setup(true)
+  await fixture.ctx.plugin(ProtectedSsh, { ...fixture.config, protectedPaths: [{ path: '/production', protection: 'full' }] })
+  await expect(fixture.ctx.ssh.request('fs.protection', [], z.null())).rejects.toMatchObject({ code: 'TARGET_EXECUTION_UNCONFINED' })
+  await expect(fixture.ctx.ssh.request('process.prepare', { argv: ['arbitrary'] }, z.unknown()))
+    .rejects.toMatchObject({ code: 'TARGET_EXECUTION_UNCONFINED' })
+  expect(await fixture.ctx.ssh.request('fs.readText', { target: fileTarget }, z.string())).toBe('preserve')
+  expect(fixture.requests.filter(method => method === 'fs.protection')).toHaveLength(1)
+  expect(fixture.requests).not.toContain('process.prepare')
+})
 
 it('full production protection makes no SSH connection and cannot be overridden by a test label', async () => {
   const h = await setup()

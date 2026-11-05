@@ -10,16 +10,27 @@ import { randomUUID } from 'node:crypto'
 import assert from 'node:assert/strict'
 import { z } from 'zod'
 import { createSshFixture } from './peer.ts'
+import { RemoteOperationError } from '../../src/protocol.ts'
 
 export const name = 'snapshot-ssh-protection'
 export const inject = ['tools']
 
 async function probe(mode: 'full' | 'audit' | 'test', signal: AbortSignal): Promise<string> {
+  const protectedPath = '/fixture/workspace/protected.txt'
+  let configured = false
   const fixture = await createSshFixture({ handle: async (method, params, signal, root) => {
     signal.throwIfAborted()
+    if (method === 'fs.protection') {
+      assert.deepEqual(params, [{ path: protectedPath, protection: 'full' }])
+      configured = true
+      return null
+    }
     if (method === 'fs.resolve') {
       const input = z.object({ path: z.string(), cwd: z.string() }).parse(params)
       const path = posix.resolve(input.cwd, input.path)
+      if (configured && path === protectedPath) {
+        throw new RemoteOperationError('This remote file is fully protected.', 'TARGET_FULLY_PROTECTED')
+      }
       return { displayPath: path, targetKey: path }
     }
     const path = join(root, 'contents.txt')
@@ -50,7 +61,13 @@ async function probe(mode: 'full' | 'audit' | 'test', signal: AbortSignal): Prom
       assert.equal(fixture.connected(), 0)
       return 'blocked before TCP'
     }
-    await ctx.plugin(ProtectedSsh, config)
+    await ctx.plugin(ProtectedSsh, {
+      ...config, ...mode === 'test' ? { protectedPaths: [{ path: protectedPath, protection: 'full' }] } : {},
+    })
+    if (mode === 'test') {
+      assert.equal(configured, true)
+      await assert.rejects(ctx.ssh.request('fs.resolve', { path: protectedPath }, z.unknown(), signal), { code: 'TARGET_FULLY_PROTECTED' })
+    }
     const target = { displayPath: '/fixture/workspace/contents.txt', targetKey: '/fixture/workspace/contents.txt' }
     assert.equal(await ctx.ssh.request('fs.readText', { target }, z.string(), signal), 'preserve')
     const write = () => ctx.ssh.request('fs.write', { target, content: 'changed', policy: {

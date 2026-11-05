@@ -15,6 +15,8 @@ export const textStreamIdSchema = z.uuid().transform((value): SshTextStreamId =>
 
 /** A remote POSIX absolute path; spelling is preserved until remote canonicalization. */
 export const remotePath = z.string().min(1).refine(value => value.startsWith('/') && !value.includes('\0'), 'expected an absolute POSIX path')
+/** Owner-configured production paths bound to one authenticated SSH helper. */
+export const remoteFileProtectionSchema = z.array(z.object({ path: remotePath, protection: z.enum(['full', 'audit']) }).strict()).max(128)
 /** Filesystem identity returned by the remote filesystem provider. */
 export const targetSchema = z.object({ targetKey: remotePath, displayPath: z.string() }).strict()
 /** Remote metadata observation. */

@@ -65,7 +65,7 @@ The direct provider retains the helper and limit fields above, replacing `host` 
 | `passphraseRef` | omitted | Credential reference for the key passphrase; requires `privateKeyRef` |
 | `passwordRef` | omitted | Credential reference containing the account password |
 
-At least one authentication reference is required. Credentials are resolved for each connection; established connections do not silently reauthenticate or reconnect. The direct transport is not routed through the security-mode HTTP proxy. For target admission, mount [`target-protection/ssh`](../../guard/target-protection/README.md) instead; loading the rule service alone does not guard an ordinary SSH provider. That protected provider also accepts an explicit HTTP(S) CONNECT route; its original target and SSH host key remain verified and failure never falls back to direct TCP.
+At least one authentication reference is required. Credentials are resolved for each connection; established connections do not silently reauthenticate or reconnect. The direct transport is not routed through the security-mode HTTP proxy. For target admission, mount [`target-protection/ssh`](../../guard/target-protection/README.md) instead; loading the rule service alone does not guard an ordinary SSH provider. That protected provider also accepts an explicit HTTP(S) CONNECT route; its original target and SSH host key remain verified and failure never falls back to direct TCP. Optional Linux file rules are installed on the verified helper before readiness.
 
 -----
 

@@ -200,6 +200,15 @@ export class DirectSshConnection extends Service implements SshService {
     void method; void params; signal.throwIfAborted(); return Promise.resolve()
   }
 
+  /**
+   * Install executor policy after verifying the helper and before publishing readiness.
+   * @param peer - The authenticated, digest-verified private helper channel.
+   * @param signal - Activation cancellation and deadline.
+   */
+  protected configureHelper(peer: SshRpcPeer, signal: AbortSignal): Promise<void> {
+    void peer; signal.throwIfAborted(); return Promise.resolve()
+  }
+
   private assertOpen(): void {
     if (this.failure !== undefined) throw this.failure
     if (this.closing) throw new HarnessError('SSH connection is closed.', 'SSH_UNAVAILABLE')
@@ -294,6 +303,7 @@ export class DirectSshConnection extends Service implements SshService {
         || remote.bootstrapHash !== (launch.kind === 'node-script' ? launch.bootstrapHash : undefined)) {
         throw new HarnessError('SSH helper identity differs from the configured artifact.', 'SSH_IDENTITY_MISMATCH')
       }
+      await this.configureHelper(rpc, timeout.signal)
       return remote
     } finally { timeout.signal.removeEventListener('abort', abort) }
   }

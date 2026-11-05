@@ -5,7 +5,8 @@ import schema from '@deepseek-ai/schemastery'
 import { credentialRef, isCredentialRefName } from '@deepseek-ai/dsh-credentials'
 import type CredentialProvider from '@deepseek-ai/dsh-credentials'
 import { connectThrough } from '@deepseek-ai/dsh-security-proxy-local'
-import { targetSchema, policySchema, entriesSchema } from '@deepseek-ai/dsh-ssh/schemas'
+import { targetSchema, policySchema, entriesSchema, remoteFileProtectionSchema } from '@deepseek-ai/dsh-ssh/schemas'
+import { RemoteOperationError, type SshRpcPeer } from '@deepseek-ai/dsh-ssh/protocol'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
 import { posix } from 'node:path'
 import { isIP, type Socket } from 'node:net'
@@ -18,6 +19,8 @@ import { TARGET_REFUSAL_REASONS } from './network-decision.ts'
 
 /** Owner-selected SSH route, independent of ambient proxy variables and model arguments. */
 export interface Config extends DirectConfig {
+  /** Production paths interpreted by the verified remote Linux helper. */
+  protectedPaths?: z.input<typeof remoteFileProtectionSchema>
   /** Omit for direct TCP. The configured proxy must be trusted to honor the literal CONNECT destination. */
   proxy?: {
     /** Transport to the proxy; HTTPS keeps the system certificate verification. */
@@ -63,6 +66,9 @@ function within(root: string, path: string): boolean {
 export default class ProtectedSshConnection extends DirectSshConnection {
   static override inject = ['credentials', 'targetProtection']
   static override Config: schema<Config> = schema.intersect([DirectSshConnection.Config, schema.object({
+    protectedPaths: schema.array(schema.object({
+      path: schema.string().required(), protection: schema.union(['full', 'audit']).required(),
+    })).default([]),
     proxy: schema.union([schema.const(undefined), schema.object({
       protocol: schema.union(['http', 'https']).required(), host: schema.string().required(),
       port: schema.natural().required(), username: schema.string(), passwordRef: schema.string(),
@@ -71,15 +77,27 @@ export default class ProtectedSshConnection extends DirectSshConnection {
   private readonly protection: TargetProtection
   private readonly proxy: z.infer<typeof proxyValidation> | undefined
   private readonly proxyCredentials: CredentialProvider
+  private readonly protectedPaths: z.output<typeof remoteFileProtectionSchema>
   private peer: TargetConnectionResolution | undefined
 
   /** @param ctx - Owner providing credentials and target rules. @param config - Explicit endpoint and trusted helper. */
   constructor(ctx: Context, config: Config) {
-    const { proxy, ...direct } = config
+    const { proxy, protectedPaths = [], ...direct } = config
     super(ctx, direct)
     this.protection = ctx.targetProtection
     this.proxy = proxy === undefined ? undefined : proxyValidation.parse(proxy)
     this.proxyCredentials = ctx.credentials
+    this.protectedPaths = remoteFileProtectionSchema.parse(protectedPaths)
+  }
+
+  protected override async configureHelper(peer: SshRpcPeer, signal: AbortSignal): Promise<void> {
+    if (this.protectedPaths.length === 0) return
+    try { await peer.request('fs.protection', this.protectedPaths, z.null(), signal) }
+    catch (error) {
+      signal.throwIfAborted()
+      throw new HarnessError('SSH helper could not verify remote file protection. Check the helper version and paths.',
+        'TARGET_IDENTITY_UNVERIFIED', { cause: error })
+    }
   }
 
   protected override executionSignal(): AbortSignal {
@@ -121,6 +139,9 @@ export default class ProtectedSshConnection extends DirectSshConnection {
     signal.throwIfAborted()
     if (CLEANUP.includes(method)) return
     const effect = EFFECTS[method]
+    if (method === 'fs.protection' || (this.protectedPaths.length > 0 && effect === undefined)) {
+      throw new HarnessError('This SSH operation cannot be confined to the protected remote filesystem.', 'TARGET_EXECUTION_UNCONFINED')
+    }
     if (effect === undefined) {
       // Remote arbitrary code has no target-bounded executor yet; an endpoint label cannot constrain its later effects.
       admitted(this.protection.checkUnconfined())
@@ -141,7 +162,7 @@ export default class ProtectedSshConnection extends DirectSshConnection {
 
   private async resolved(path: string, root: string, signal?: AbortSignal) {
     const absolute = this.path(path, root)
-    const target = await super.request('fs.resolve', { path: absolute, cwd: root }, targetSchema, signal)
+    const target = await this.requestHelper('fs.resolve', { path: absolute, cwd: root }, targetSchema, signal)
     if (!within(root, target.targetKey)) throw new HarnessError('SSH file link leaves the configured workspace.', 'TARGET_EXECUTION_UNCONFINED')
     return target
   }
@@ -155,7 +176,7 @@ export default class ProtectedSshConnection extends DirectSshConnection {
       const display = await this.resolved(input.displayPath, root, signal)
       if (display.targetKey !== target.targetKey) throw new HarnessError('SSH file identity changed; resolve it again.', 'TARGET_IDENTITY_UNVERIFIED')
     }
-    return target
+    return this.protectedPaths.length > 0 ? { ...target, displayPath: input.displayPath } : target
   }
 
   override async request<T>(method: string, params: unknown, result: z.ZodType<T>, signal?: AbortSignal, wait = false): Promise<T> {
@@ -184,7 +205,7 @@ export default class ProtectedSshConnection extends DirectSshConnection {
         prepared = { ...input, target, policy: { ...policy, workspaceRoot: root, mode: policy.mode === 'read-only' ? 'read-only' : 'workspace-write' } }
       }
     }
-    const value = await super.request(method, prepared, result, bounded, wait)
+    const value = await this.requestHelper(method, prepared, result, bounded, wait)
     bounded.throwIfAborted()
     if (method === 'fs.resolve') {
       const target = targetSchema.parse(value)
@@ -194,5 +215,15 @@ export default class ProtectedSshConnection extends DirectSshConnection {
       throw new HarnessError('SSH directory entries leave the configured workspace.', 'TARGET_EXECUTION_UNCONFINED')
     }
     return value
+  }
+
+  private async requestHelper<T>(method: string, params: unknown, result: z.ZodType<T>, signal?: AbortSignal, wait = false): Promise<T> {
+    try { return await super.request(method, params, result, signal, wait) }
+    catch (error) {
+      if (error instanceof RemoteOperationError && error.code !== undefined && Object.hasOwn(TARGET_REFUSAL_REASONS, error.code)) {
+        throw new HarnessError(error.message, error.code, { cause: error })
+      }
+      throw error
+    }
   }
 }
