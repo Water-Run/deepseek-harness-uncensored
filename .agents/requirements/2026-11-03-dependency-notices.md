@@ -2,13 +2,13 @@
 
 状态：进行中，不代表整合发行的许可核对已完成。用户的 GPL 许可偏好、上游 Credit 和各组件原有许可保持不变。
 
-## 当前安装包（2026-11-05）
+## 当前安装包（2026-11-06）
 
-`4cf9f1cbfa` 检查包已从实际安装器解包验收，并安装至系统。原始清单来自实装 ASAR，共 874 个 npm 包、9 份补充声明、11 个自动标记的待核查项。精确记录位于 `.dsh-build/deliverables/DSHU-20261105-4cf9f1-third-party-runtime.json`，摘要保存在同目录安装清单。该安装包未签名、未发布 Release。
+`09ad1610d3` 检查包已从实际安装器解包验收，并安装至系统。清单来自实装 ASAR，共 874 个 npm 包、15 份补充声明、7 个自动标记的待核查项。精确记录位于 `.dsh-build/deliverables/DSHU-20261106-09ad16-third-party-runtime.json`，摘要保存在同目录安装清单。该安装包未签名、未发布 Release。
 
-## 最新源码复算（2026-11-06）
+## 补充声明与复算（2026-11-06）
 
-在实装 ASAR 的只读投影上使用最新清点器，仍为 874 个包，待核查项从 11 项降至 7 项。没有修改现有安装器、ASAR 或用户数据；下次打包才包含本轮补充与清点修复。投影包含实际包清单和逐一校验摘要的声明文件，不是新的可运行安装。回执 `.dsh-build/notice-projection-4cf9f1-20261106-final-result.json`。
+先在 `4cf9f1cbfa` 实装 ASAR 的只读投影上复算，874 个包的待核查项从 11 项降至 7 项；原包、原 ASAR 和用户数据未被改写。投影保留实际包清单和逐一校验摘要的声明文件，回执 `.dsh-build/notice-projection-4cf9f1-20261106-final-result.json`。本轮补充与清点修复已进入上述 `09ad1610d3` 检查包，实包结果同为七项，投影本身不是可运行安装。
 
 - [x] `@cfworker/json-schema 4.1.6`：npm 发布提交与同名 Git 标签均为 `1a0aa37471850c28a4673e12e871e010ea6c26e0`；该提交的 MIT 原文与已保存文本逐字相同，新增精确版本对应。[固定原文](https://raw.githubusercontent.com/cfworker/cfworker/1a0aa37471850c28a4673e12e871e010ea6c26e0/LICENSE.md)
 - [x] `@koromix/koffi-win32-x64 3.3.6`：主包与二进制包通过 npm SHA-512 校验；主包明确依赖同版本二进制。实装二进制与该归档逐字相同。补入主包 MIT、Node addon API 和 Node API headers 三份原文，摘要固定于 `LICENSES/npm/sources.json`。证据 `.dsh-build/license-supplements-20261105-result.json`。[版本归档](https://registry.npmjs.org/koffi/-/koffi-3.3.6.tgz)

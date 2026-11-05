@@ -1,10 +1,20 @@
 # Uncensored 开发交接
 
+## 当前交付：0.1.0-test.20261106.1（2026-11-06）
+
+已原位安装 `09ad1610d322bd35384cbdefc71eeec13245acba` 检查包；DSHU 产品 `0.1.0`、DSH `0.2.2-rc.1`、REA `6.8.0`。包括本页后续三批源码改动。更新前后 6,953 个用户数据文件和官方 DSH 的两份程序文件哈希一致，跳过链接与恢复文件均为零。全程未使用 Computer Use。
+
+实际安装器解包、完整 DSH 文件清单、四模式/新建会话、真实命令、终端代理、浏览器模块导入及纯 JavaScript SSH 通过。实际安装目录复验四模式、会话、命令、终端代理和 SSH 通过。标准流水线另通过 301 字符 ConPTY 路径、REA 229 工具/JavaScript 分析、Office 三种文档转 PDF 及插件离线装卸。原生编译使用已补装 Spectre 的 MSVC `14.52.36629`，只对打包进程选择工具集，未修改系统默认版本。
+
+安装器在 `.dsh-build/deliverables/DSHU-0.1.0-test.20261106.1-core-0.2.2-rc.1-REA-6.8.0-win-x64-unsigned-20261106-09ad16.exe`，429,722,944 字节，SHA-256 `9eeb1217696e22b58ff19d50a5dba2aecfba4f0c960cd66b32e3e2ea367bcd6c`。同目录 `DSHU-20261106-09ad16-manifest.json` 保存安装与运行验证、源码及依赖信息。系统更新回执为 `.dsh-build/system-update-09ad16-20261106-result.json`；数据备份在 `%LOCALAPPDATA%/DSHU-Backups/2026-11-05T19-14-23-487Z-09ad16`。本次回退材料为 `4cf9f1cbfa` 安装器及其清单，较早回退包也保留。
+
+新实包包含 874 个 npm 包、15 份补充声明、7 项自动待核查记录，明细与摘要保存在同目录 `DSHU-20261106-09ad16-third-party-runtime.json`。这是未签名本地检查版；正式发布、签名、回滚演练、自动更新、跨平台交付及完整许可审计仍待完成。可选原生保护仍未默认装配，其他协议与入站范围继续保留。被自动审批拒绝的生成目录未删除，详见下方原始回执；Goal active。
+
 ## PTC Worker 共享网安出口（2026-11-06）
 
 已补齐 10.05、09.11 的 PTC Worker Host 回调归属：原生提供方可继承准确的存活发起 Agent；关闭审计仍有效，明确 Agent 作用域优先。明确无 Agent 的工具派发清除外围身份，审计编号不会建立 Agent，撤销或同编号替换会被拒绝。真实改前负例及归属、代理关闭、并行 Worker 的验证见[执行后端验收](requirements/2026-11-02-native-execution.md#ptc-worker-发起归属2026-11-06)。
 
-相关回归分批通过 72 项，公开编译入口通过命令/ConPTY/Worker、七条流量、脱敏、生产零连接及关闭回收：`.dsh-build/native-worker-built-20261106-result.json`。`build:artifacts` 八项及其后的 `build:check` 两项、全仓类型感知 lint、395 个 NodeNext 声明 API、导出说明及文档检查通过，日志前缀 `.dsh-build/native-worker-`。没有修改持久化字段、模型提示、权限和保护默认值；当前仍是源码更新，系统安装版为 `4cf9f1cbfa`。其他 Worker、入站、协议和最终产品装配继续列为未完成。
+相关回归分批通过 72 项，公开编译入口通过命令/ConPTY/Worker、七条流量、脱敏、生产零连接及关闭回收：`.dsh-build/native-worker-built-20261106-result.json`。`build:artifacts` 八项及其后的 `build:check` 两项、全仓类型感知 lint、395 个 NodeNext 声明 API、导出说明及文档检查通过，日志前缀 `.dsh-build/native-worker-`。没有修改持久化字段、模型提示、权限和保护默认值；源码已进入本页记录的 `09ad1610d3` 检查包。其他 Worker、入站、协议和最终产品装配继续列为未完成。
 
 ## 可选原生保护共享网安出口与流量（2026-11-06）
 
@@ -12,7 +22,7 @@
 
 新测试覆盖凭据期间撤销、启动信号解绑、归属/脱敏/暂停、关闭等待、单会话撤销、配置回收和未知清理。网关新增启动前所有权交接并等待迟到监听器。四项真实 Windows 命令/终端场景通过，生产目标零连接，静态备用代理零使用；包含传输中关闭独立代理。编译公开入口通过相同链路，保留五条流量并回收私有目录：`.dsh-build/native-egress-built-20261106-result.json`。两项负对照按预期失败且已还原：`.dsh-build/native-egress-negative-20261106-result.json`。相关回归分批通过，原有 14 项原生用例已按实际协议/观测期限对齐测试预算。
 
-最新产物八项构建与后续 Host/Client 检查通过；使用仓库 `build:check` 的 8 GiB Host 预算，裸 `tsc` 的本机默认 4 GiB 曾耗尽。395 个 NodeNext 声明 API、导出说明、持久化清单通过。未修改 Session 字段、模型提示或权限默认值。源码未重新安装，系统仍为 `4cf9f1cbfa`。完整入站与产品默认装配尚未完成，实际 Agent 之外的 Worker 也不据审计 ID 授予代理。其他原始需求和被拒的构建目录清理继续保留，Goal active。
+最新产物八项构建与后续 Host/Client 检查通过；使用仓库 `build:check` 的 8 GiB Host 预算，裸 `tsc` 的本机默认 4 GiB 曾耗尽。395 个 NodeNext 声明 API、导出说明、持久化清单通过。未修改 Session 字段、模型提示或权限默认值。源码已随 `09ad1610d3` 检查包安装。完整入站与产品默认装配尚未完成，实际 Agent 之外的 Worker 也不据审计 ID 授予代理。其他原始需求和被拒的构建目录清理继续保留，Goal active。
 
 ## 版本化许可补充与 Office 嵌套声明（2026-11-06）
 
@@ -20,7 +30,7 @@
 
 清点器只采用已核对版本的 Office 路径；不完整或空白的已知声明不会被根目录的其他许可证掩盖。11 项定向测试通过，I/O 和摘要失败仍阻止发布清单。完整 Host/Client 编译检查、全仓类型感知 lint 及后续改动文件检查通过；最终 Host 检查为 `.dsh-build/notice-audit-host-complete-20261106.log`。投影回执 `.dsh-build/notice-projection-4cf9f1-20261106-final-result.json`。
 
-本批是源码中的构建声明修复，未重新打包、改写已安装 ASAR 或用户数据。系统仍安装 `4cf9f1cbfa`，其原始清单保留 11 项。全项目继续进行；其他平台、Electron、独立 Node/Python、整合兼容性和表中七项仍未完成，不能把自动标记减少当作最终许可结论。被自动审批拒绝的生成目录保持原样，未换工具或提权删除。
+本批构建声明修复已随 `09ad1610d3` 检查包重新打包并安装，实包清单为七项；原 `4cf9f1cbfa` 回退包及其十一项清单保持原样，用户数据哈希未变。全项目继续进行；其他平台、Electron、独立 Node/Python、整合兼容性和表中七项仍未完成，不能把自动标记减少当作最终许可结论。被自动审批拒绝的生成目录保持原样，未换工具或提权删除。
 
 ## 已安装 Windows 检查包与后续入口（2026-11-05）
 
