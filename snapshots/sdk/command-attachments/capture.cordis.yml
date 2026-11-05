@@ -1,3 +1,12 @@
+# The recorded request pins the upstream persona.
+- id: uncensored-armor
+  disabled: true
+
+- id: system-prompt
+  config:
+    includeHarnessIdentity: true
+    personaPrefix: You are a coding agent powered by the {{model}} model.
+
 - id: llm-replay
   config:
     providers:

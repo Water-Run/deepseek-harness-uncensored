@@ -101,7 +101,7 @@
 
 ## 下一步与编号
 
-1. **02.10 / 10.08 / 02.12**：[DSH 0.2.2-rc.1](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.1) 已通过完整构建、四模式、客户端回归、Windows 检查包解包及 Python 单文件运行时命令验证。继续完成 POSIX 历史会话回放与 Windows 原位安装验收。系统当前安装 alpha.2。
+1. **02.10 / 10.08 / 02.12**：[DSH 0.2.2-rc.1](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.1) 已通过完整构建、四模式、客户端回归、Windows 检查包解包、Python 单文件命令验证，以及 Linux 的 SDK/ACP 会话回放。下一步为 Windows 原位安装验收。系统当前安装 alpha.2。
 2. **10.02 / 16 / 17**：继续外部委派正式发布源与升级、稳定性、依赖许可和实装验收。签名与发布按真实条件安排。
 3. **09 / 05.06 / 10.05**：目标保护与审计转为默认关闭的进阶可选增强，保留[现有实现与剩余范围](requirements/2026-11-03-native-ingress.md)，不阻塞主线日常使用，也不把尚未验证的后端展示为已生效。
 

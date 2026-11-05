@@ -6,13 +6,15 @@
 
 同一源码生成了 Windows x64 Python SDK SEA 单文件运行时，内嵌 Node 24.22.2。使用 Python SDK 的 `exe` 模式通过 11 项真实命令和恢复测试。可执行文件 228,021,760 字节，SHA-256 `3fe3192e31ed3817fab12b2f08075f9f146c33717614cc42f71020176e40cfe5`。回执 `.dsh-build/rc1-python-sea-runtime-20261105.json`。核对三对文件哈希一致后，删除了 627,833,524 字节的重复安装器和 SDK 输出副本，保留交付包、回滚包、验收解包和 SDK 运行目录。
 
-此检查包记录 15 处依赖声明待核查。之后的 `e715fe9742` 补入两项原文，在 811 条清单投影上复算为 13 处。完整 POSIX 回放及安装验收进度见 [TODO](TODO.md)。
+此检查包记录 15 处依赖声明待核查。之后的 `e715fe9742` 补入两项原文，在 811 条清单投影上复算为 13 处。
+
+Linux x64 在锁定的 Node 24.22.1 上通过 8 个产物构建门禁、55 项 TypeScript SDK/ACP 回放、1 项共享工具清单的无界面回放及 11 项 Python SDK 真实命令测试。修正仅涉及夹具的权限、提示词和可选工具配置，以及对应的预期清单，已提交的会话 JSONL 保留原样。日志 `.dsh-build/rc1-posix-fixtures-shared-20261105.log` 和 `.dsh-build/rc1-posix-python-20261105.log`。此处验收范围为 SDK、ACP 与无界面运行，桌面跨平台交付仍见 [TODO](TODO.md)。
 
 ## DSH 0.2.2-rc.1 内核适配（2026-11-05）
 
 源码 `f1f0e5e8a2503113e89fe17f4c3f3a09d89654a7` 以 DSH `0.2.2-rc.1` 的 `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db` 为基线。该标签相对 alpha.3 只改上游包版本字段。DSHU Desktop 版本仍为 `0.1.0`。保留已录制的会话代、四模式、会话删除与旁问、工作区搜索及文件目标保护，关于页读取新的内核版本和来源提交。[上游发布说明](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.1)
 
-冻结锁文件安装、10 个构建门禁、42 项预设装配、119 项客户端回归、335 份 Cordis 配置及 113 份受影响文档配对通过。Windows 上实际恢复旧 V3 录制的定向用例通过。两条 TypeScript SDK 回放在临时路径转义处与录制文本不同，alpha.2 基线复现相同差异。ACP 的握手、拒绝额外目录和头部快照配对在恢复真实符号链接后复测通过。完整回放仍需在 POSIX 验收，Windows 的 Bash 录制使用 PowerShell 时会遇到工具差异。
+冻结锁文件安装、10 个构建门禁、42 项预设装配、119 项客户端回归、335 份 Cordis 配置及 113 份受影响文档配对通过。Windows 上实际恢复旧 V3 录制的定向用例通过。两条 TypeScript SDK 回放在临时路径转义处与录制文本不同，alpha.2 基线复现相同差异。ACP 的握手、拒绝额外目录和头部快照配对在恢复真实符号链接后复测通过。Bash 录制与 PowerShell 的工具差异由上文 Linux 回放覆盖。
 
 Python 客户端单测 30 项通过。Windows 用已部署的 Node 开发载体运行真实 `dsh --profile sdk`，11 项命令与恢复测试通过。单文件 Python 载体在打包工具下载环节遇到网络错误，仍待验收。`rc.1` 上另有 103 项文件、数据库、会话投影及 Cordis 回归通过，1 项跳过。系统当前安装 `4564b41285` 检查版。
 

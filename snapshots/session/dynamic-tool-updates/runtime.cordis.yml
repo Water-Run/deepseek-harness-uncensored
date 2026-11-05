@@ -1,0 +1,4 @@
+# The initial catalog and its recorded changes omit the optional patch tool.
+- id: tool-fs
+  config:
+    applyPatch: false

@@ -1,6 +1,7 @@
 version: 1
 scenario: manual-compact
 profile: sdk
+permission: workspace-write
 composition: sdk-desktop
 # The full SDK runtime captures the Session against a controlled model endpoint.
 recording: authored

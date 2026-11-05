@@ -1,3 +1,7 @@
+- id: tool-fs
+  config:
+    applyPatch: false
+
 # Switching models on resume requires known capacity for the destination route.
 - id: llm-replay
   config:

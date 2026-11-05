@@ -203,6 +203,7 @@ const SDK_ASSERTIONS: Readonly<Record<string, SdkAssertions>> = {
   'session-title-stability': { waitForProviderTitle: true },
   'dynamic-tool-updates': {
     expectedFinalResponse: 'DONE',
+    patches: [fileURLToPath(new URL('../session/dynamic-tool-updates/runtime.cordis.yml', import.meta.url))],
   },
   'tool-scheduler-recovery': {
     patches: [fileURLToPath(new URL('./tool-scheduler-recovery/runtime.cordis.yml', import.meta.url))],
