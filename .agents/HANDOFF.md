@@ -6,7 +6,7 @@
 
 同一源码生成了 Windows x64 Python SDK SEA 单文件运行时，内嵌 Node 24.22.2。使用 Python SDK 的 `exe` 模式通过 11 项真实命令和恢复测试。可执行文件 228,021,760 字节，SHA-256 `3fe3192e31ed3817fab12b2f08075f9f146c33717614cc42f71020176e40cfe5`。回执 `.dsh-build/rc1-python-sea-runtime-20261105.json`。核对三对文件哈希一致后，删除了 627,833,524 字节的重复安装器和 SDK 输出副本，保留交付包、回滚包、验收解包和 SDK 运行目录。
 
-此检查包记录 15 处依赖声明待核查。之后的 `e715fe9742` 补入两项原文，在 811 条清单投影上复算为 13 处。
+此检查包记录 15 处依赖声明待核查。之后的 `e715fe9742` 补入两项原文，再补齐三个 AWS SDK 包和 Koffi Windows x64 条目后，811 条清单投影余 9 处待核查。源文件、版本及哈希见[依赖声明审计](requirements/2026-11-03-dependency-notices.md)。
 
 Linux x64 在锁定的 Node 24.22.1 上通过 8 个产物构建门禁、55 项 TypeScript SDK/ACP 回放、1 项共享工具清单的无界面回放及 11 项 Python SDK 真实命令测试。修正仅涉及夹具的权限、提示词和可选工具配置，以及对应的预期清单，已提交的会话 JSONL 保留原样。日志 `.dsh-build/rc1-posix-fixtures-shared-20261105.log` 和 `.dsh-build/rc1-posix-python-20261105.log`。此处验收范围为 SDK、ACP 与无界面运行，桌面跨平台交付仍见 [TODO](TODO.md)。
 

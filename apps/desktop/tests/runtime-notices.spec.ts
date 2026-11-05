@@ -72,6 +72,10 @@ it('copies every pinned supplement unchanged and leaves other versions for revie
   expect(packages.filter(pkg => pkg.reviewRequired).map(pkg => pkg.version)).toEqual(['99.0.0'])
   for (const source of sources) {
     expect(createHash('sha256').update(readFileSync(join(root, 'licenses', source.file))).digest('hex')).toBe(source.sha256)
+    for (const identity of source.packages) {
+      expect(packages.find(pkg => `${pkg.name}@${pkg.version}` === identity)?.notices)
+        .toContainEqual({ path: `licenses/${source.file}`, sha256: source.sha256 })
+    }
   }
 })
 
