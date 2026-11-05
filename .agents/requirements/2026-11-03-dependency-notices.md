@@ -4,7 +4,18 @@
 
 ## 当前安装包（2026-11-05）
 
-`4cf9f1cbfa` 检查包已从实际安装器解包验收，并安装至系统。清单来自实装 ASAR，共 874 个 npm 包、9 份补充声明、11 个自动标记的待核查项。精确记录位于 `.dsh-build/deliverables/DSHU-20261105-4cf9f1-third-party-runtime.json`，摘要保存在同目录安装清单。此前源码投影中的九项继续保留；当前实包另外标记 `@cfworker/json-schema 4.1.6` 和 `@koromix/koffi-win32-x64 3.3.6`，需要核对对应精确版本的许可原文。不能直接沿用其他版本的补充记录。新包未签名、未发布 Release。
+`4cf9f1cbfa` 检查包已从实际安装器解包验收，并安装至系统。原始清单来自实装 ASAR，共 874 个 npm 包、9 份补充声明、11 个自动标记的待核查项。精确记录位于 `.dsh-build/deliverables/DSHU-20261105-4cf9f1-third-party-runtime.json`，摘要保存在同目录安装清单。该安装包未签名、未发布 Release。
+
+## 最新源码复算（2026-11-06）
+
+在实装 ASAR 的只读投影上使用最新清点器，仍为 874 个包，待核查项从 11 项降至 7 项。没有修改现有安装器、ASAR 或用户数据；下次打包才包含本轮补充与清点修复。投影包含实际包清单和逐一校验摘要的声明文件，不是新的可运行安装。回执 `.dsh-build/notice-projection-4cf9f1-20261106-final-result.json`。
+
+- [x] `@cfworker/json-schema 4.1.6`：npm 发布提交与同名 Git 标签均为 `1a0aa37471850c28a4673e12e871e010ea6c26e0`；该提交的 MIT 原文与已保存文本逐字相同，新增精确版本对应。[固定原文](https://raw.githubusercontent.com/cfworker/cfworker/1a0aa37471850c28a4673e12e871e010ea6c26e0/LICENSE.md)
+- [x] `@koromix/koffi-win32-x64 3.3.6`：主包与二进制包通过 npm SHA-512 校验；主包明确依赖同版本二进制。实装二进制与该归档逐字相同。补入主包 MIT、Node addon API 和 Node API headers 三份原文，摘要固定于 `LICENSES/npm/sources.json`。证据 `.dsh-build/license-supplements-20261105-result.json`。[版本归档](https://registry.npmjs.org/koffi/-/koffi-3.3.6.tgz)
+- [x] Windows Office 引擎 `0.1.5`：五份许可/声明已经随包分发，清点器此前漏读嵌套目录。现记录三份 `licenses/` 文件及 `program/NOTICE`、`program/license.txt`；缺少或空白的预期文件仍待核查，不能用另一份根许可证代替。实包声明的 90 份源码、构建与修改材料均存在；上游核心修订 `bce0998afefdbc355585ca324285661a2170ba77` 可读取，版本为 `26.8.0.3`。其他平台和最终兼容性另行核对。证据 `.dsh-build/office-source-identity-20261105.log`。[核心源码](https://github.com/LibreOffice/core/tree/bce0998afefdbc355585ca324285661a2170ba77)
+- [x] `tr46 0.0.3`：发布提交 `a8009f9ce80ff5dbe71dd71e203afe4e4c878d28` 的直接后继 `3a6f29721e7063b9ffd421e461a54beae6170001` 只增加 MIT 文件，代码和版本均未变。发布包中的 8,179 条映射与 Unicode 8.0.0 原始数据按上游算法转换后的结果逐条一致；7.0 和 6.3 不匹配。补入 MIT 原文、Unicode 数据许可及明示 JSON 转换说明。许可段从 Unicode 官方 ICU 56.1 固定提交的 HTML 提取为纯文本，移除行尾空格，保留原文文字。证据 `.dsh-build/tr46-notice-20261106-result.json`、`.dsh-build/tr46-data-20261106-result.json`。[MIT 提交](https://github.com/jsdom/tr46/commit/3a6f29721e7063b9ffd421e461a54beae6170001)、[Unicode 原始数据](https://www.unicode.org/Public/idna/8.0.0/IdnaMappingTable.txt)、[数据许可原文](https://raw.githubusercontent.com/unicode-org/icu/24c90c0693a0ba7aea00986c34676b55f766cfac/icu4c/license.html)
+
+11 项定向回归通过，包括版本不匹配、声明不完整、空白文件、I/O 失败与补充文件摘要变动。缺少上游正文或有其他已记录缺项的包继续保留待核查标记；不以清点器通过替代许可兼容性结论。
 
 ## 已落地
 
@@ -14,21 +25,21 @@
 - [x] 原文随 `LICENSES` 资源分发，并在准备树中按实际依赖复制到 `dsh/licenses`；没有更改第三方代码或声明其重新授权。
 - [x] 六项新增测试覆盖嵌套/作用域包、内部 package.json 排除、精确版本、README 授权文字、未解决项、摘要拒绝和 I/O 错误。
 
-## 前序源码投影中的 9 项
+## 仍需核查的 7 项
 
 | 包与版本 | 剩余核查 |
 | --- | --- |
-| @deepseek-ai/libreoffice-kit-win32-x64 0.1.5 | 引擎内部集中许可、组件记录及 MPL 源码获取信息 |
 | brotli 1.3.3 | npm 包及固定源提交没有根许可原文，继续核对派生实现与内嵌代码 |
 | clean-git-ref 2.0.1 | REA 明确记录的上游原文/署名缺项，保留待核查 |
 | dfa 1.2.0 | npm 包及固定源提交没有独立许可原文 |
-| fontkit 2.0.4 | 固定源树仅找到测试字体许可，不能当作库本身的许可 |
-| frida 17.23.2 | REA 已保留 LGPL 与例外文本，Node 绑定和预构建组件署名仍有缺项 |
+| fontkit 2.0.4 | 官方仓库已新增 LICENSE；仍需核对其与发布代码及单独版权片段的对应关系 |
+| frida 17.23.2 | 版本及源码链已核对，Node 绑定和预构建组件的完整署名仍待核查 |
 | minimisted 2.0.1 | REA 明确记录的上游原文/署名缺项，保留待核查 |
 | proxy-agent-negotiate 1.1.0 | 发布包与对应 tag 没有本包许可文件；相邻代理包文件不能未经核准直接替用 |
-| tr46 0.0.3 | 核对发布提交的 MIT 原文和 Unicode 映射数据的声明 |
 
 其他平台、Electron 外壳、独立 Node/Python 分发及源码提供义务另行核对；早期 759 项清点不能覆盖这些范围。新清单与补充文件已进入源码构建路径，当前安装状态以本页开头的实包记录为准。
+
+Fontkit 的 [PR 300](https://github.com/foliojs/fontkit/pull/300) 于 2026-11-02 合并，提交为 `d65a577ea30bfce9ce84dc8045860b2abbc1968b`；它与 npm 发布提交之间有 62 个提交，包含运行时代码变化，尚未按后来的文本替旧版本作结论。Frida 总仓库 `17.23.2` 标签对应 `9adf8ed33ab6f1122b17399ee96dcbe101b941c9`，其中 Node 子模块恰为 npm 声明的 `11d56293686c5494f538247ccf89f08ab57912ef`；这一关系不代表所有预编译组件声明已核查完毕。
 
 ## 证据与恢复
 

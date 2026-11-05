@@ -205,7 +205,7 @@ pnpm run dev:bundle-registry
 
 Windows 打包在签名和清单封装前，使用捆绑 Node 的头文件重新编译已修补的 node-pty ConPTY 加载器。构建机需要 Python、MSVC C++ 工具及对应的 Spectre 库；编译失败会中止打包。加载器使用动态长度模块路径和 Windows 扩展路径，继续使用随包控制台宿主。载荷检查将实际分发的 addon 和控制台资源复制到超过 300 字符、包含空格与中文的私有路径，在新进程中验证终端输入、输出及正常退出。此重编译针对 Desktop 产物；普通源码安装仍使用 npm 预构建文件，直到显式重编译。
 
-准备阶段在完整性封装前生成 `dsh/third-party-runtime.json`，记录物化 npm 树中的包名、版本、声明许可证和声明文件摘要。`LICENSES/npm/sources.json` 中按版本固定的补充原文经校验后复制至 `dsh/licenses`；文件缺失或摘要不符会中止准备。清单将 REA 集中声明中的精确版本条目，以及含已识别许可授权文字的 README 记为声明候选文件。缺少原文及已知上游缺项仍标为待核查。此清单只覆盖 dsh npm 树，不包含 Electron、独立 Node/Python 分发或法律兼容性结论，也不代表获准发布。
+准备阶段在完整性封装前生成 `dsh/third-party-runtime.json`，记录物化 npm 树中的包名、版本、声明许可证和声明文件摘要。`LICENSES/npm/sources.json` 中按版本固定的补充原文经校验后复制至 `dsh/licenses`；文件缺失或摘要不符会中止准备。清单将 REA 集中声明中的精确版本条目，以及含已识别许可授权文字的 README 记为声明候选文件。已核对的 Windows x64 Office 引擎 `0.1.5` 另记录五份嵌套声明文件，此选择不适用于其他版本。空白文件不计为许可文本。原文缺失、已核对的嵌套声明不齐全或存在已知上游缺项，都会标为待核查。此清单只覆盖 dsh npm 树，不包含 Electron、独立 Node/Python 分发或法律兼容性结论，也不代表获准发布。
 
 Desktop 在本地打包工作区包，并通过目标捆绑的 Node 和 pnpm 安装外部依赖。[Desktop 文件策略](../scripts/runtime-file-policy.ts)随后在签名和完整性封装前过滤不可变的 `resources/app.asar/dsh/node_modules` 副本。它排除版本控制 .gitkeep 占位文件、TypeScript 声明、已识别的 JavaScript/CSS/TypeScript source map、TypeScript 构建缓存、Domino 测试目录及 Yarn 开发元数据、选定的原生编译器输出和其他平台的 node-pty 预构建文件。非 Windows 目标还会排除 `node-pty/third_party/conpty`；Windows 目标保留该目录。它保留运行时 JavaScript、目标平台的原生模块及其 DLL/EXE 辅助文件、WASM、未知资源、许可证和 notices。依赖清单在完整性封装前经过 electron-builder 的元数据清理，确保归档保持已记录的字节。该策略不修改 npm tarball、捆绑的包管理器或用户安装的插件文件。
 
