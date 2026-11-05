@@ -2487,7 +2487,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: 'async writeTest(name: string, input: unknown, signal: AbortSignal): Promise<MysqlWriteResult>',
-        description: 'Apply one structured mutation to a dedicated test binding after target, grant and table checks.',
+        description: 'Apply one structured mutation after test target, grant and table checks.',
         parameters: [{ name: 'name', description: 'Configured test binding.' }, { name: 'input', description: 'JSON mutation with values and an equality filter for update or delete.' }, { name: 'signal', description: 'Request cancellation.' }],
         returns: 'Result after MySQL confirms the commit.',
       },
@@ -4610,9 +4610,9 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'Names and literal addresses that the connection consumer must authorize and pin.',
       },
       {
-        signature: 'checkConnection( hostname: string, port: number | undefined, resolution: TargetConnectionResolution | undefined, scope: \'endpoint\' | \'filesystem\', effect: TargetEffect, signal: AbortSignal, database?: string, ): Promise<TargetDecision>',
+        signature: 'checkConnection( hostname: string, port: number | undefined, resolution: TargetConnectionResolution | undefined, scope: \'endpoint\' | \'filesystem\', effect: TargetEffect, signal: AbortSignal, database?: string, foldDatabaseCase: boolean = false, ): Promise<TargetDecision>',
         description: 'Check a pinned connection or an operation on its authenticated peer.',
-        parameters: [{ name: 'hostname', description: 'Original configured host.' }, { name: 'port', description: 'Known service port; omission requires decisions without a verified port scope.' }, { name: 'resolution', description: 'Actual pinned address evidence; omission performs only pre-resolution checks.' }, { name: 'scope', description: 'Whether effects stay on one port or may access the peer filesystem.' }, { name: 'effect', description: 'Effect guaranteed by the protocol executor, not supplied by the model.' }, { name: 'signal', description: 'Operation cancellation and deadline.' }, { name: 'database', description: 'Executor-selected protocol database, verified before application queries; omission leaves database scope unknown.' }],
+        parameters: [{ name: 'hostname', description: 'Original configured host.' }, { name: 'port', description: 'Known service port; omission requires decisions without a verified port scope.' }, { name: 'resolution', description: 'Actual pinned address evidence; omission performs only pre-resolution checks.' }, { name: 'scope', description: 'Whether effects stay on one port or may access the peer filesystem.' }, { name: 'effect', description: 'Effect guaranteed by the protocol executor, not supplied by the model.' }, { name: 'signal', description: 'Operation cancellation and deadline.' }, { name: 'database', description: 'Executor-selected protocol database, verified before application queries; omission leaves database scope unknown.' }, { name: 'foldDatabaseCase', description: 'Treat database names that differ only in case as possible aliases.' }],
         returns: 'A current rule decision; unavailable identity and registry failures never authorize fallback.',
       },
     ],

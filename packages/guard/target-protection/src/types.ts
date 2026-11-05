@@ -49,6 +49,8 @@ export interface NetworkTarget {
   port?: number
   /** Database explicitly selected by protocol startup; executors verify it before application queries. Omission remains unknown. */
   database?: string
+  /** Match case variants for production rules when database names can be case-insensitive. */
+  foldDatabaseCase?: boolean
   /** Filesystem effects can reach resources served on other ports; omission describes only the connected endpoint. */
   spansServicePorts?: boolean
   /** Region of every pinned address, supplied by a separately verified classifier. */

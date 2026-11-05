@@ -151,6 +151,45 @@ it('waits for the dedicated write handshake to close before publishing protectio
   expect(connections()).toBe(1)
 })
 
+it('admits a shared test schema only by exact rule and protects production case aliases before TCP', async () => {
+  const { ctx, binding, rule, serverRule, connections } = await fixture()
+  await ctx.plugin(MysqlAudit, { databases: [{ ...binding, testTables: ['items'], sharedTestWrites: true }] })
+  const database = { ...rule(binding.hostname), environment: 'test' as const }
+  const production = { ...rule(binding.tlsServerName), database: 'other' }
+  const write = () => ctx.mysqlAudit.writeTest('owned', mutation, AbortSignal.timeout(5_000))
+  await ctx.targetProtection.configure({ mainlandEnabled: false, rules: [production] }, 1)
+  await expect(write()).rejects.toMatchObject({ code: 'MYSQL_TEST_ONLY' })
+  await ctx.targetProtection.configure({ mainlandEnabled: false, rules: [production, database] }, 2)
+  await expect(write()).rejects.toMatchObject({ code: 'MYSQL_CREDENTIAL_UNAVAILABLE' })
+  await ctx.targetProtection.configure({ mainlandEnabled: false, rules: [database, { ...production, database: 'FIXTURE' }] }, 3)
+  await expect(write()).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+  await ctx.targetProtection.configure({ mainlandEnabled: false, rules: [database, serverRule(binding.tlsServerName)] }, 4)
+  await expect(write()).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+  expect(connections()).toBe(0)
+})
+
+it('limits shared grants to approved tables and the global foreign-key inspection privilege', () => {
+  const binding = { database: 'fixture', username: 'audit', accountHost: '%', testTables: ['items'], sharedTestWrites: true }
+  const write = mysqlWriteInput.parse(mutation)
+  const direct = ['GRANT SELECT, UPDATE, TRIGGER ON `fixture`.`items` TO `audit`@`%`']
+  const process = ['GRANT PROCESS ON *.* TO `audit`@`%`']
+  expect(() => checkMysqlWriteGrants([process, direct], binding, write)).not.toThrow()
+  expect(() => checkMysqlWriteGrants([direct], binding, write)).toThrow(expect.objectContaining({ code: 'MYSQL_TEST_GRANTS' }))
+  expect(() => checkMysqlWriteGrants([['GRANT SELECT, PROCESS ON *.* TO `audit`@`%`'], direct], binding, write))
+    .toThrow(expect.objectContaining({ code: 'MYSQL_TEST_GRANTS' }))
+  expect(() => checkMysqlWriteGrants([process, direct], { ...binding, sharedTestWrites: false }, write))
+    .toThrow(expect.objectContaining({ code: 'MYSQL_TEST_GRANTS' }))
+})
+
+it('rejects empty shared table lists and system database bindings at configuration load', async () => {
+  const { ctx, binding } = await fixture()
+  await expect(Promise.resolve(ctx.plugin(MysqlAudit, { databases: [{ ...binding, sharedTestWrites: true }] })))
+    .rejects.toMatchObject({ code: 'MYSQL_TEST_ONLY' })
+  await expect(Promise.resolve(ctx.plugin(MysqlAudit, { databases: [
+    { ...binding, database: 'MYSQL', sharedTestWrites: true, testTables: ['user'] },
+  ] }))).rejects.toMatchObject({ code: 'MYSQL_TEST_ONLY' })
+})
+
 it.each([
   'GRANT SELECT, UPDATE ON `fixture`.`items` TO `audit`@`%`',
   'GRANT SELECT, UPDATE, TRIGGER ON `fixture`.* TO `audit`@`%`',

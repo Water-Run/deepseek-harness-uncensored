@@ -248,7 +248,7 @@
     },
     {
       "name": "mysql_test_write",
-      "description": "Apply one parameterized insert, update or delete on an owner-configured table in a dedicated MySQL test database. Update and delete require equality filters. A result is returned only after commit acknowledgement.",
+      "description": "Apply one parameterized insert, update or delete on an owner-configured MySQL test table. Update and delete require equality filters. A result is returned only after commit acknowledgement.",
       "parameters": {
         "type": "object",
         "properties": {

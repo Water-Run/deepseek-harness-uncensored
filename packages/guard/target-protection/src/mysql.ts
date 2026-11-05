@@ -1,4 +1,4 @@
-/** Address-pinned MySQL catalogue audits and dedicated test mutations. @module */
+/** Address-pinned MySQL catalogue audits and structured test mutations. @module */
 import type { Context } from '@deepseek-ai/cordis'
 import { Service } from '@deepseek-ai/cordis'
 import type CredentialProvider from '@deepseek-ai/dsh-credentials'
@@ -30,8 +30,10 @@ export interface MysqlBinding {
   /** A DNS name in the certificate, required when hostname is a literal IP. */
   tlsServerName?: string
   caPem?: string
-  /** Explicit tables allowed for writes on a dedicated test instance. Defaults to empty. */
+  /** Explicit tables allowed for test writes. Defaults to empty. */
   testTables?: string[]
+  /** Require instance-wide foreign-key inspection instead of a dedicated test-server rule. */
+  sharedTestWrites?: boolean
 }
 
 /** Request, row and payload limits for MySQL operations. */
@@ -65,6 +67,7 @@ declare module '@deepseek-ai/cordis' {
 }
 
 const accountPart = (length: number) => z.string().min(1).max(length).refine(value => !value.includes('@') && !value.includes('\0'))
+const systemDatabases = new Set(['mysql', 'sys', 'performance_schema', 'information_schema', 'ndbinfo'])
 const configSchema = z.object({
   databases: z.array(z.object({
     name: z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/u), hostname: z.string().min(1),
@@ -72,7 +75,7 @@ const configSchema = z.object({
     database: z.string().min(1).max(64).refine(value => !value.includes('\0')),
     username: accountPart(32), accountHost: accountPart(255), passwordRef: z.string(),
     tlsServerName: z.string().min(1).optional(), caPem: z.string().max(131072).optional(),
-    testTables: z.array(mysqlWriteIdentifier).max(16).default([]),
+    testTables: z.array(mysqlWriteIdentifier).max(16).default([]), sharedTestWrites: z.boolean().default(false),
   }).strict()).min(1),
   timeoutMs: z.number().int().min(1).max(300000).default(30000),
   maxRows: z.number().int().min(1).max(10000).default(1000),
@@ -92,7 +95,7 @@ export default class MysqlAuditService extends Service {
       name: schema.string().required(), hostname: schema.string().required(), port: schema.natural().default(3306),
       database: schema.string().required(), username: schema.string().required(), accountHost: schema.string().required(),
       passwordRef: schema.string().required(), tlsServerName: schema.string(), caPem: schema.string(),
-      testTables: schema.array(schema.string()).default([]),
+      testTables: schema.array(schema.string()).default([]), sharedTestWrites: schema.boolean().default(false),
     })).required(),
     timeoutMs: schema.natural().default(30000), maxRows: schema.natural().default(1000),
     maxResultBytes: schema.natural().default(1048576), maxPending: schema.natural().default(4),
@@ -122,6 +125,9 @@ export default class MysqlAuditService extends Service {
       if (binding.testTables.length > 0 && (!mysqlWriteIdentifier.safeParse(binding.database).success
         || new Set(binding.testTables.map(table => table.toLowerCase())).size !== binding.testTables.length)) {
         throw new HarnessError('MySQL test writes require a simple database name and unique table names.', 'MYSQL_TEST_ONLY')
+      }
+      if (binding.sharedTestWrites && (binding.testTables.length === 0 || systemDatabases.has(binding.database.toLowerCase()))) {
+        throw new HarnessError('Shared MySQL writes require an explicit table list in a non-system database.', 'MYSQL_TEST_ONLY')
       }
       createSecureContext(binding.caPem === undefined ? {} : { ca: binding.caPem })
     }
@@ -163,7 +169,7 @@ export default class MysqlAuditService extends Service {
   }
 
   /**
-   * Apply one structured mutation to a dedicated test binding after target, grant and table checks.
+   * Apply one structured mutation after test target, grant and table checks.
    * @param name - Configured test binding.
    * @param input - JSON mutation with values and an equality filter for update or delete.
    * @param signal - Request cancellation.
@@ -183,11 +189,19 @@ export default class MysqlAuditService extends Service {
       const baseTable = z.tuple([z.tuple([z.literal('BASE TABLE'), z.literal('InnoDB')])])
       const unsafeTable = () => new HarnessError('MySQL test writes require an InnoDB base table without triggers.', 'MYSQL_TEST_TABLE')
       if (!baseTable.safeParse(await query(tableSql, tableArgs)).success) throw unsafeTable()
-      // Hold the table metadata lock through the transaction before checking its engine and triggers again.
-      await query(`SELECT 1 FROM ${statement.target} LIMIT 0`)
+      // The shared write lock conflicts with the parent locks acquired by online ADD FOREIGN KEY.
+      await query(`SELECT 1 FROM ${statement.target} LIMIT 0${binding.sharedTestWrites ? ' FOR UPDATE' : ''}`)
       if (!baseTable.safeParse(await query(tableSql, tableArgs)).success
         || !z.tuple([]).safeParse(await query('SELECT 1 FROM information_schema.TRIGGERS WHERE EVENT_OBJECT_SCHEMA=? AND EVENT_OBJECT_TABLE=? LIMIT 1', tableArgs)).success) {
         throw unsafeTable()
+      }
+      if (binding.sharedTestWrites) {
+        const qualified = `${binding.database}/${write.table}`.toLowerCase()
+        const keys = await query('SELECT 1 FROM information_schema.INNODB_FOREIGN WHERE LOWER(FOR_NAME)=? OR LOWER(REF_NAME)=? LIMIT 1',
+          [qualified, qualified])
+        if (!z.tuple([]).safeParse(keys).success) {
+          throw new HarnessError('Shared MySQL test tables cannot participate in foreign keys.', 'MYSQL_TEST_FOREIGN_KEY')
+        }
       }
       const result = await query(statement.sql, statement.values)
       const { affectedRows } = z.object({ affectedRows: z.number().int().nonnegative() }).parse(result)
@@ -212,6 +226,7 @@ export default class MysqlAuditService extends Service {
     const binding = this.config.databases.find(item => item.name === name)
     if (binding === undefined) throw new HarnessError('Choose a configured MySQL binding.', 'MYSQL_DATABASE_UNKNOWN')
     const writing = table !== undefined
+    const dedicatedWrite = writing && !binding.sharedTestWrites
     if (writing && !binding.testTables.includes(table)) {
       throw new HarnessError('This MySQL table is not enabled for test writes.', 'MYSQL_TEST_ONLY')
     }
@@ -228,9 +243,9 @@ export default class MysqlAuditService extends Service {
     const commit = { dispatched: false, acknowledged: false }
     const admitted = async (hostname = binding.hostname): Promise<void> => {
       const decision = await this.protection.checkConnection(hostname, binding.port, resolution,
-        'endpoint', writing ? 'mutate' : 'observe', timeout.signal, binding.database)
+        'endpoint', writing ? 'mutate' : 'observe', timeout.signal, binding.database, true)
       if (!decision.allowed) throw new HarnessError(TARGET_REFUSAL_REASONS[decision.code], decision.code)
-      if (writing) {
+      if (dedicatedWrite) {
         const instance = await this.protection.checkConnection(hostname, binding.port, resolution, 'endpoint', 'mutate', timeout.signal)
         if (!instance.allowed) throw new HarnessError(TARGET_REFUSAL_REASONS[instance.code], instance.code)
       }
@@ -244,8 +259,10 @@ export default class MysqlAuditService extends Service {
         const database = expandTargetRules(snapshot.preferences).some(rule => rule.enabled && rule.kind === 'database'
           && rule.environment === 'test' && rule.match === 'host' && rule.address === binding.hostname
           && rule.port === binding.port && rule.database === binding.database)
-        if (!database || !hasExactTestServer(snapshot.preferences, binding.hostname, binding.port)) {
-          throw new HarnessError('MySQL test writes require an exact test-server and test-database rule.', 'MYSQL_TEST_ONLY')
+        if (!database || (dedicatedWrite && !hasExactTestServer(snapshot.preferences, binding.hostname, binding.port))) {
+          const reason = dedicatedWrite ? 'MySQL test writes require an exact test-server and test-database rule.'
+            : 'Shared MySQL writes require an exact test-database rule.'
+          throw new HarnessError(reason, 'MYSQL_TEST_ONLY')
         }
       }
       const target = await this.protection.resolveConnectionTarget(binding.hostname, timeout.signal)
@@ -294,6 +311,7 @@ export default class MysqlAuditService extends Service {
         return rows
       }
       await query(writing ? 'SET SESSION TRANSACTION READ WRITE' : 'SET SESSION TRANSACTION READ ONLY')
+      if (writing && binding.sharedTestWrites) await query('SET TRANSACTION ISOLATION LEVEL READ COMMITTED')
       await query(writing ? 'START TRANSACTION READ WRITE' : 'START TRANSACTION READ ONLY')
       const identity = z.tuple([z.tuple([z.string(), z.string(), z.string(), z.union([z.number(), z.string()])])])
         .parse(await query('SELECT DATABASE(), CURRENT_USER(), VERSION(), @@session.transaction_read_only'))[0]

@@ -1,4 +1,4 @@
-/** Prepared mutations for owner-selected tables in a dedicated MySQL test database. */
+/** Prepared mutations and grants for owner-selected MySQL test tables. */
 import { HarnessError } from '@deepseek-ai/dsh-llm'
 import { z } from 'zod'
 import { databaseWriteInput, type DatabaseWriteValue } from './database-write.ts'
@@ -56,16 +56,22 @@ export function checkMysqlWriteGrants(rows: unknown, binding: {
   username: string
   accountHost: string
   testTables: readonly string[]
+  sharedTestWrites?: boolean
 }, input: WriteInput): void {
   const reject = () => new HarnessError('MySQL test writes require direct table grants with SELECT, TRIGGER and the requested write privilege.', 'MYSQL_TEST_GRANTS')
   const suffix = ` TO ${quoteIdentifier(binding.username)}@${quoteIdentifier(binding.accountHost)}`
   const grants = new Set<string>()
+  let canInspectForeignKeys = false
   const parsed = z.array(z.tuple([z.string()])).safeParse(rows)
   if (!parsed.success) throw reject()
   for (const [grant] of parsed.data) {
     if (!grant.endsWith(suffix)) throw reject()
     const body = grant.slice(0, -suffix.length)
     if (body === 'GRANT USAGE ON *.*') continue
+    if (binding.sharedTestWrites && body === 'GRANT PROCESS ON *.*') {
+      canInspectForeignKeys = true
+      continue
+    }
     const [, privilegesText, database, table] = tableGrant.exec(body) ?? []
     if (privilegesText === undefined || table === undefined || database !== binding.database || !binding.testTables.includes(table)) {
       throw reject()
@@ -75,4 +81,9 @@ export function checkMysqlWriteGrants(rows: unknown, binding: {
     if (table === input.table) for (const privilege of privileges) grants.add(privilege)
   }
   if (!grants.has('SELECT') || !grants.has('TRIGGER') || !grants.has(input.operation.toUpperCase())) throw reject()
+  if (binding.sharedTestWrites && (!canInspectForeignKeys || !(grants.has('UPDATE') || grants.has('DELETE')))) {
+    throw new HarnessError(
+      'Shared MySQL writes require PROCESS for foreign-key checks and UPDATE or DELETE for the metadata lock.', 'MYSQL_TEST_GRANTS',
+    )
+  }
 }

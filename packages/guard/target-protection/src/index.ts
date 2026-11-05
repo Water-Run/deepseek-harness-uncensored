@@ -398,11 +398,12 @@ export default class TargetProtection extends Service {
    * @param effect - Effect guaranteed by the protocol executor, not supplied by the model.
    * @param signal - Operation cancellation and deadline.
    * @param database - Executor-selected protocol database, verified before application queries; omission leaves database scope unknown.
+   * @param foldDatabaseCase - Treat database names that differ only in case as possible aliases.
    * @returns A current rule decision; unavailable identity and registry failures never authorize fallback.
    */
   checkConnection(
     hostname: string, port: number | undefined, resolution: TargetConnectionResolution | undefined,
-    scope: 'endpoint' | 'filesystem', effect: TargetEffect, signal: AbortSignal, database?: string,
+    scope: 'endpoint' | 'filesystem', effect: TargetEffect, signal: AbortSignal, database?: string, foldDatabaseCase: boolean = false,
   ): Promise<TargetDecision> {
     this.lifetime.signal.throwIfAborted()
     const name = canonicalTargetHost(hostname)
@@ -412,7 +413,7 @@ export default class TargetProtection extends Service {
     const target: NetworkTarget = {
       names: resolution?.names ?? [name], ...port === undefined ? {} : { port },
       spansServicePorts: scope === 'filesystem',
-      ...database === undefined ? {} : { database },
+      ...database === undefined ? {} : { database, foldDatabaseCase },
       nameResolution: resolution === undefined ? 'unknown' : 'verified', mainland: 'unknown',
       addresses: resolution === undefined ? null : resolution.addresses.flatMap(address =>
         address.translatedIpv4 === undefined ? [address.address] : [address.address, address.translatedIpv4]),

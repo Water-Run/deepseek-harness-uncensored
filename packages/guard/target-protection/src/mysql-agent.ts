@@ -1,4 +1,4 @@
-/** Optional model-facing MySQL audits and dedicated test writes. @module */
+/** Optional model-facing MySQL audits and structured test writes. @module */
 import type { Context } from '@deepseek-ai/cordis'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
 import { defineTool } from '@deepseek-ai/dsh-tools'
@@ -25,7 +25,7 @@ export function apply(ctx: Context): void {
   ctx.inject(['sandboxPolicy'], (scope) => {
     scope.effect(() => scope.tools.register(defineTool({
       name: 'mysql_test_write',
-      description: 'Apply one parameterized insert, update or delete on an owner-configured table in a dedicated MySQL test database. Update and delete require equality filters. A result is returned only after commit acknowledgement.',
+      description: 'Apply one parameterized insert, update or delete on an owner-configured MySQL test table. Update and delete require equality filters. A result is returned only after commit acknowledgement.',
       parameters: {
         database: { type: 'string', required: true, enum: names, description: 'Configured test database name.' },
         mutation: { type: 'string', required: true, description: 'JSON object with operation, table and values for insert or update. Include a nonempty where object for update or delete. Use strings, numbers, booleans or null as field values.' },

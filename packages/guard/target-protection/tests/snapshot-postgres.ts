@@ -49,13 +49,13 @@ export async function apply(ctx: Context, config: { mysqlWrite?: boolean; postgr
     await owner.targetProtection.configure({ mainlandEnabled: false, rules: [{
       id: brandString<TargetRuleId>('74444444-4444-4444-8444-444444444444'),
       name: 'owned production fixture', enabled: true, kind: 'database', environment: 'production',
-      protection: 'full', match: 'host', address: '127.0.0.1', port: address.port, database: 'fixture',
+      protection: 'full', match: 'host', address: '127.0.0.1', port: address.port, database: config.mysqlWrite ? 'FIXTURE' : 'fixture',
     }] }, 1)
   })
   if (config.mysqlWrite) {
     const mysql = await ctx.plugin(MysqlAudit, { databases: [{ name: 'owned', hostname: '127.0.0.1', port: address.port,
       tlsServerName: 'mysql.fixture.test', database: 'fixture', username: 'fixture', accountHost: '%',
-      passwordRef: 'MISSING_MYSQL_FIXTURE_PASSWORD', testTables: ['items'] }] })
+      passwordRef: 'MISSING_MYSQL_FIXTURE_PASSWORD', testTables: ['items'], sharedTestWrites: true }] })
     closeExecutor = () => mysql.dispose()
     await ctx.plugin(MysqlAgent)
     await ctx.inject(['mysqlAudit'], (active) => {
