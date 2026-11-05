@@ -1,0 +1,11 @@
+version: 1
+scenario: postgres-shared-write-protection
+profile: headless
+permission: danger-full-access
+composition: default
+recording: authored
+header:
+  class: postgres-shared-write-protection
+  pin: true
+workspace:
+  final: true

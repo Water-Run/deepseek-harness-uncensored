@@ -1,26 +1,17 @@
 /** Prepared mutations for owner-selected tables in a dedicated MySQL test database. */
 import { HarnessError } from '@deepseek-ai/dsh-llm'
 import { z } from 'zod'
+import { databaseWriteInput, type DatabaseWriteValue } from './database-write.ts'
 
 /** Identifier subset accepted by the structured write tool and its grant check. */
 export const mysqlWriteIdentifier = z.string().regex(/^[a-zA-Z0-9_]{1,64}$/u)
 
-const value = z.union([z.string(), z.number(), z.boolean(), z.null()])
-const fields = z.record(mysqlWriteIdentifier, value).refine((entries) => {
-  const count = Object.keys(entries).length
-  return count > 0 && count <= 64
-})
-
 /** One insert, update, or delete. Update and delete require an equality filter. */
-export const mysqlWriteInput = z.discriminatedUnion('operation', [
-  z.object({ operation: z.literal('insert'), table: mysqlWriteIdentifier, values: fields }).strict(),
-  z.object({ operation: z.literal('update'), table: mysqlWriteIdentifier, values: fields, where: fields }).strict(),
-  z.object({ operation: z.literal('delete'), table: mysqlWriteIdentifier, where: fields }).strict(),
-])
+export const mysqlWriteInput = databaseWriteInput(mysqlWriteIdentifier)
 
 type WriteInput = z.infer<typeof mysqlWriteInput>
 /** Scalar sent separately from the prepared MySQL statement. */
-export type MysqlParameter = z.infer<typeof value>
+export type MysqlParameter = DatabaseWriteValue
 
 function quoteIdentifier(name: string): string { return `\`${name.replaceAll('`', '``')}\`` }
 

@@ -2789,6 +2789,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'Names whose owners opted into test SQL.',
       },
       {
+        signature: 'sharedWriteNames(): string[]',
+        description: 'List configured shared test bindings for tool registration.',
+        parameters: [],
+        returns: 'Names whose owners enabled structured writes for specific test tables.',
+      },
+      {
         signature: 'inspect(name: string, signal: AbortSignal): Promise<PostgresAudit>',
         description: 'Inspect the selected database using only fixed built-in catalogue queries.',
         parameters: [{ name: 'name', description: 'Owner-configured binding name, never a connection string.' }, { name: 'signal', description: 'Caller cancellation and deadline.' }],
@@ -2799,6 +2805,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Execute and commit one statement against an owner-isolated test database.',
         parameters: [{ name: 'name', description: 'Configured test binding.' }, { name: 'sql', description: 'One statement, with optional $1-style placeholders.' }, { name: 'parameters', description: 'JSON values passed separately to the PostgreSQL driver.' }, { name: 'signal', description: 'Cancellation and deadline.' }],
         returns: 'A result after PostgreSQL confirms the commit. A lost commit acknowledgement is reported separately.',
+      },
+      {
+        signature: 'async writeSharedTest(name: string, input: unknown, signal: AbortSignal): Promise<PostgresWriteResult>',
+        description: 'Apply one bounded mutation to an explicitly allowed table in an exact test database.',
+        parameters: [{ name: 'name', description: 'Configured PostgreSQL binding name.' }, { name: 'input', description: 'Schema and structured mutation from the tool request.' }, { name: 'signal', description: 'Caller cancellation and deadline.' }],
+        returns: 'Affected rows after PostgreSQL acknowledges the commit.',
       },
     ],
   },
@@ -8733,6 +8745,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'PostgresTestResult',
     declaration: 'export interface PostgresTestResult {\n    columns: string[];\n    rows: (string | null)[][];\n    command: string;\n    rowCount: number | null;\n}',
+  },
+  {
+    name: 'PostgresWriteResult',
+    declaration: 'export interface PostgresWriteResult {\n    operation: \'insert\' | \'update\' | \'delete\';\n    affectedRows: number;\n}',
   },
   {
     name: 'PostToolDecision',

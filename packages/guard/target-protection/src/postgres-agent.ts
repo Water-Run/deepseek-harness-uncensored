@@ -1,4 +1,4 @@
-/** Optional model-facing PostgreSQL audit and dedicated test SQL tools. @module */
+/** Optional model-facing PostgreSQL audit and test database tools. @module */
 import type { Context } from '@deepseek-ai/cordis'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
 import { defineTool } from '@deepseek-ai/dsh-tools'
@@ -21,9 +21,10 @@ export function apply(ctx: Context): void {
     presentCall: args => ({ card: 'generic', kind: 'other', title: `PostgreSQL · ${args.database}` }),
   })))
   const names = ctx.postgresAudit.testSqlNames()
-  if (names.length === 0) return
+  const shared = ctx.postgresAudit.sharedWriteNames()
+  if (names.length === 0 && shared.length === 0) return
   ctx.inject(['sandboxPolicy'], (scope) => {
-    scope.effect(() => scope.tools.register(defineTool({
+    if (names.length > 0) scope.effect(() => scope.tools.register(defineTool({
       name: 'database_test_sql',
       description: 'Run one PostgreSQL statement on a dedicated test binding configured by the owner. The test server and database are checked before connecting, and the verified role must have no elevated privileges. A successful result means PostgreSQL acknowledged the commit.',
       parameters: {
@@ -41,6 +42,25 @@ export function apply(ctx: Context): void {
           catch (error) { throw new HarnessError('PostgreSQL parameters must be a JSON array.', 'POSTGRES_INVALID_SQL', { cause: error }) }
         }
         return scope.postgresAudit.executeTestSql(args.database, args.sql, parameters, exec.signal).then(result => ({ ...result }))
+      },
+      presentCall: args => ({ card: 'generic', kind: 'other', title: `PostgreSQL · ${args.database}` }),
+    })))
+    if (shared.length > 0) scope.effect(() => scope.tools.register(defineTool({
+      name: 'postgres_test_write',
+      description: 'Apply one parameterized insert, update or delete to an owner-selected PostgreSQL test table, even when other databases on the same server are protected. Update and delete require equality filters. Success means PostgreSQL acknowledged the commit.',
+      parameters: {
+        database: { type: 'string', required: true, enum: shared, description: 'Configured PostgreSQL test binding.' },
+        schema: { type: 'string', required: true, description: 'Owner-selected schema containing the test table.' },
+        mutation: { type: 'string', required: true, description: 'JSON with operation, table and values for insert or update. Include a nonempty where object for update or delete. Use strings, numbers, booleans or null as field values.' },
+      },
+      output: { schema: { type: 'json' }, render: (_args, result) => [{ type: 'text', text: JSON.stringify(result) }] },
+      async execute(args, exec) {
+        const policy = scope.sandboxPolicy.resolve(exec.agent === undefined ? {} : { session: exec.agent.session })
+        if (policy.mode !== 'danger-full-access') throw new HarnessError('Test writes require full conversation permissions.', 'POSTGRES_TEST_PERMISSION')
+        let mutation: unknown
+        try { mutation = JSON.parse(args.mutation) }
+        catch (error) { throw new HarnessError('PostgreSQL test mutation must be a JSON object.', 'POSTGRES_INVALID_WRITE', { cause: error }) }
+        return { ...await scope.postgresAudit.writeSharedTest(args.database, { schema: args.schema, mutation }, exec.signal) }
       },
       presentCall: args => ({ card: 'generic', kind: 'other', title: `PostgreSQL · ${args.database}` }),
     })))

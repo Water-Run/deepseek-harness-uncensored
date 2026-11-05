@@ -37,6 +37,7 @@ interface FixtureOptions {
   reset?: boolean
   maxPending?: number
   testSql?: boolean
+  sharedWrite?: boolean
   testRules?: boolean
   elevatedRole?: boolean
   loseCommit?: boolean
@@ -167,7 +168,8 @@ async function harness(options: FixtureOptions = {}) {
   ]
   await ctx.targetProtection.configure({ mainlandEnabled: false, rules: options.testRules ? testRules : [rule] }, 1)
   const config = { databases: [{ name: 'owned', hostname, port: address.port, database: 'fixture', username: 'fixture',
-    passwordRef: ref, caPem: material.cert, testSql: options.testSql ?? false }], timeoutMs: options.timeoutMs ?? 10000,
+    passwordRef: ref, caPem: material.cert, testSql: options.testSql ?? false,
+    sharedTestTables: options.sharedWrite ? [{ schema: 'public', table: 'items' }] : [] }], timeoutMs: options.timeoutMs ?? 10000,
   ...options.maxResultBytes === undefined ? {} : { maxResultBytes: options.maxResultBytes },
   ...options.maxRows === undefined ? {} : { maxRows: options.maxRows },
   ...options.maxPending === undefined ? {} : { maxPending: options.maxPending } }
@@ -178,6 +180,37 @@ async function harness(options: FixtureOptions = {}) {
 
 const writeSql = 'INSERT INTO owned_table VALUES ($1) RETURNING value'
 const writableFixture = { testSql: true, testRules: true, hold: false, identity: ['fixture', 'fixture', '18.4', 'off'] }
+const sharedInput = { schema: 'public', mutation: { operation: 'delete', table: 'items', where: { id: 1 } } }
+
+it('rejects malformed, unlisted and incompletely marked shared test writes before TCP', async () => {
+  const h = await harness({ sharedWrite: true, testRules: true })
+  const signal = AbortSignal.timeout(10_000)
+  await expect(h.ctx.postgresAudit.writeSharedTest('owned', { ...sharedInput, schema: 'pg_catalog' }, signal))
+    .rejects.toMatchObject({ code: 'POSTGRES_INVALID_WRITE' })
+  await expect(h.ctx.postgresAudit.writeSharedTest('owned', { ...sharedInput, mutation: { ...sharedInput.mutation, where: {} } }, signal))
+    .rejects.toMatchObject({ code: 'POSTGRES_INVALID_WRITE' })
+  await expect(h.ctx.postgresAudit.writeSharedTest('owned', { ...sharedInput, schema: 'unlisted' }, signal))
+    .rejects.toMatchObject({ code: 'POSTGRES_TEST_TABLE_NOT_ALLOWED' })
+  await h.ctx.targetProtection.configure({ mainlandEnabled: false, rules: h.testRules.slice(1) }, 2)
+  await expect(h.ctx.postgresAudit.writeSharedTest('owned', sharedInput, signal)).rejects.toMatchObject({ code: 'POSTGRES_TEST_ONLY' })
+  expect(h.connections()).toBe(0)
+})
+
+it('admits an exact shared test database without exempting its production sibling or server', async () => {
+  const h = await harness({ sharedWrite: true })
+  const signal = AbortSignal.timeout(10_000)
+  const production = { ...h.rule, id: brandString<TargetRuleId>(randomUUID()), database: 'production', protection: 'full' as const }
+  await h.ctx.targetProtection.configure({ mainlandEnabled: false, rules: [{ ...h.rule, environment: 'test' }, production] }, 2)
+  const operation = h.ctx.postgresAudit.writeSharedTest('owned', sharedInput, signal).catch(error => error)
+  expect(await h.query).toBe('BEGIN ISOLATION LEVEL READ COMMITTED READ WRITE')
+  const server = h.testRules[1]!
+  await h.ctx.targetProtection.configure({ mainlandEnabled: false,
+    rules: [{ ...h.rule, environment: 'test' }, production, { ...server, environment: 'production' }] }, 3)
+  await expect(operation).resolves.toMatchObject({ code: 'POSTGRES_CANCELLED' })
+  await expect(h.ctx.postgresAudit.writeSharedTest('owned', sharedInput, signal)).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+  expect(h.connections()).toBe(1)
+  expect(h.commits()).toBe(0)
+})
 
 it('executes an extended-protocol test statement after identity checks and returns an acknowledged commit', async () => {
   const h = await harness(writableFixture)

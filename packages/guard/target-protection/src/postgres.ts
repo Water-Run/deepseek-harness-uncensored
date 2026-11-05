@@ -1,4 +1,4 @@
-/** Pinned TLS PostgreSQL catalogue audits and dedicated test-database execution. @module */
+/** Pinned TLS PostgreSQL audits and bounded test-database writes. @module */
 import { Context, Service } from '@deepseek-ai/cordis'
 import schema from '@deepseek-ai/schemastery'
 import pg from 'pg'
@@ -14,6 +14,7 @@ import type { TargetConnectionResolution } from './index.ts'
 import { canonicalTargetHost, expandTargetRules, hasExactTestServer } from './rules.ts'
 import type { TargetSnapshot } from './types.ts'
 import { TARGET_REFUSAL_REASONS } from './network-decision.ts'
+import { postgresWrite, postgresWriteInput, postgresWriteTables, type PostgresWriteResult } from './postgres-write.ts'
 
 /** Owner-configured direct PostgreSQL endpoint; auth values are resolved per operation. */
 export interface PostgresBinding {
@@ -26,6 +27,8 @@ export interface PostgresBinding {
   caPem?: string
   /** Enable one-statement SQL for an owner-isolated test server and database. */
   testSql?: boolean
+  /** Opt in to structured writes on these test tables without marking the entire server as test. */
+  sharedTestTables?: { schema: string; table: string }[]
 }
 /** Request and response limits for the configured database bindings. */
 export interface Config {
@@ -56,6 +59,7 @@ export interface PostgresTestResult {
 type SqlParameter = string | number | null | string[]
 type SqlRow = (string | null)[]
 type RunQuery = (text: string, values?: SqlParameter[], extended?: true) => Promise<PostgresTestResult>
+type Access = { kind: 'audit' } | { kind: 'dedicated' } | { kind: 'shared'; schema: string; table: string }
 const testParameters = z.array(z.union([z.string(), z.number(), z.null()])).max(65_535)
 const testStatement = /^(?:SELECT|WITH|INSERT|UPDATE|DELETE|MERGE|CREATE|ALTER|DROP|TRUNCATE|EXPLAIN|ANALYZE|COMMENT)\b/iu
 
@@ -67,7 +71,7 @@ const configSchema = z.object({
   databases: z.array(z.object({ name: z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/u), hostname: z.string().min(1),
     port: z.number().int().min(1).max(65535).default(5432), database: z.string().min(1).max(128).refine(value => !value.includes('\0')),
     username: z.string().min(1).max(128).refine(value => !value.includes('\0')), passwordRef: z.string(), caPem: z.string().max(131072).optional(),
-    testSql: z.boolean().default(false),
+    testSql: z.boolean().default(false), sharedTestTables: postgresWriteTables.default([]),
   }).strict()).min(1),
   timeoutMs: z.number().int().min(1).max(300000).default(30000), maxRows: z.number().int().min(1).max(10000).default(1000),
   maxResultBytes: z.number().int().min(256).max(16777216).default(1048576), maxPending: z.number().int().min(1).max(64).default(4),
@@ -80,7 +84,9 @@ export default class PostgresAuditService extends Service {
   static Config: schema<Config> = schema.object({
     databases: schema.array(schema.object({ name: schema.string().required(), hostname: schema.string().required(),
       port: schema.natural().default(5432), database: schema.string().required(), username: schema.string().required(),
-      passwordRef: schema.string().required(), caPem: schema.string(), testSql: schema.boolean().default(false) })).required(),
+      passwordRef: schema.string().required(), caPem: schema.string(), testSql: schema.boolean().default(false),
+      sharedTestTables: schema.array(schema.object({ schema: schema.string().required(), table: schema.string().required() })).default([]),
+    })).required(),
     timeoutMs: schema.natural().default(30000), maxRows: schema.natural().default(1000),
     maxResultBytes: schema.natural().default(1048576), maxPending: schema.natural().default(4),
     maxSqlBytes: schema.natural().default(65536),
@@ -122,13 +128,21 @@ export default class PostgresAuditService extends Service {
   testSqlNames(): string[] { return this.config.databases.filter(binding => binding.testSql).map(binding => binding.name) }
 
   /**
+   * List configured shared test bindings for tool registration.
+   * @returns Names whose owners enabled structured writes for specific test tables.
+   */
+  sharedWriteNames(): string[] {
+    return this.config.databases.filter(binding => binding.sharedTestTables.length > 0).map(binding => binding.name)
+  }
+
+  /**
    * Inspect the selected database using only fixed built-in catalogue queries.
    * @param name - Owner-configured binding name, never a connection string.
    * @param signal - Caller cancellation and deadline.
    * @returns Verified identity, table metadata and selected security settings; no arbitrary SQL is accepted.
    */
   inspect(name: string, signal: AbortSignal): Promise<PostgresAudit> {
-    return this.enqueue(() => this.run(name, signal, false, async (query, identity) => {
+    return this.enqueue(() => this.run(name, signal, { kind: 'audit' }, async (query, identity) => {
       const { rows: tableRows } = await query("SELECT n.nspname::text,c.relname::text,c.relkind::text,c.relrowsecurity::text FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname NOT IN ('pg_catalog','information_schema') AND n.nspname NOT LIKE 'pg_toast%' AND c.relkind IN ('r','p','v','m','f') ORDER BY n.nspname,c.relname LIMIT $1", [this.config.maxRows + 1])
       const { rows: settingRows } = await query('SELECT name,setting,unit FROM pg_catalog.pg_settings WHERE name=ANY($1::text[]) ORDER BY name',
         [['ssl', 'password_encryption', 'default_transaction_read_only', 'log_connections', 'log_statement', 'search_path']])
@@ -154,7 +168,24 @@ export default class PostgresAuditService extends Service {
       || Buffer.byteLength(JSON.stringify(values.data)) > this.config.maxSqlBytes || !testStatement.test(sql.trimStart())) {
       throw new HarnessError('Use one supported PostgreSQL statement with bounded JSON parameters.', 'POSTGRES_INVALID_SQL')
     }
-    return this.enqueue(() => this.run(name, signal, true, query => query(sql, values.data, true)))
+    return this.enqueue(() => this.run(name, signal, { kind: 'dedicated' }, query => query(sql, values.data, true)))
+  }
+
+  /**
+   * Apply one bounded mutation to an explicitly allowed table in an exact test database.
+   * @param name - Configured PostgreSQL binding name.
+   * @param input - Schema and structured mutation from the tool request.
+   * @param signal - Caller cancellation and deadline.
+   * @returns Affected rows after PostgreSQL acknowledges the commit.
+   */
+  async writeSharedTest(name: string, input: unknown, signal: AbortSignal): Promise<PostgresWriteResult> {
+    const parsed = postgresWriteInput.safeParse(input)
+    if (!parsed.success || Buffer.byteLength(JSON.stringify(parsed.data)) > this.config.maxSqlBytes) {
+      throw new HarnessError('Use a bounded PostgreSQL test mutation with a schema, table and scalar fields.', 'POSTGRES_INVALID_WRITE')
+    }
+    const { schema, mutation } = parsed.data
+    return this.enqueue(() => this.run(name, signal, { kind: 'shared', schema, table: mutation.table },
+      query => postgresWrite(query, parsed.data, this.config.maxRows)))
   }
 
   private enqueue<T>(start: () => Promise<T>): Promise<T> {
@@ -165,12 +196,17 @@ export default class PostgresAuditService extends Service {
   }
 
   private async run<T>(
-    name: string, caller: AbortSignal, testSql: boolean,
+    name: string, caller: AbortSignal, access: Access,
     operation: (query: RunQuery, identity: [string, string, string, string]) => Promise<T>,
   ): Promise<T> {
     const binding = this.config.databases.find(binding => binding.name === name)
     if (binding === undefined) throw new HarnessError('Choose a configured PostgreSQL binding.', 'POSTGRES_DATABASE_UNKNOWN')
-    if (testSql && !binding.testSql) throw new HarnessError('Test SQL is disabled for this binding.', 'POSTGRES_TEST_ONLY')
+    const write = access.kind !== 'audit'
+    const dedicated = access.kind === 'dedicated'
+    if (dedicated && !binding.testSql) throw new HarnessError('Test SQL is disabled for this binding.', 'POSTGRES_TEST_ONLY')
+    if (access.kind === 'shared' && !binding.sharedTestTables.some(({ schema, table }) => schema === access.schema && table === access.table)) {
+      throw new HarnessError('Choose an owner-configured PostgreSQL test table.', 'POSTGRES_TEST_TABLE_NOT_ALLOWED')
+    }
     const signal = AbortSignal.any([caller, this.lifetime.signal, this.protection.executionSignal()])
     using timeout = deadline(signal, this.config.timeoutMs, 'POSTGRES_TIMEOUT')
     const release = this.protection.retainExecution()
@@ -182,9 +218,9 @@ export default class PostgresAuditService extends Service {
     const commit = { dispatched: false, acknowledged: false }
     const admitted = async (): Promise<void> => {
       const decision = await this.protection.checkConnection(binding.hostname, binding.port, resolution,
-        'endpoint', testSql ? 'mutate' : 'observe', timeout.signal, binding.database)
+        'endpoint', write ? 'mutate' : 'observe', timeout.signal, binding.database)
       if (!decision.allowed) throw new HarnessError(TARGET_REFUSAL_REASONS[decision.code], decision.code)
-      if (testSql) {
+      if (dedicated) {
         const instance = await this.protection.checkConnection(binding.hostname, binding.port, resolution, 'endpoint', 'mutate', timeout.signal)
         if (!instance.allowed) throw new HarnessError(TARGET_REFUSAL_REASONS[instance.code], instance.code)
       }
@@ -193,13 +229,15 @@ export default class PostgresAuditService extends Service {
     let abort: (() => void) | undefined
     try {
       await admitted()
-      if (testSql) {
+      if (write) {
         snapshot = await this.protection.snapshot()
         const exactDatabase = expandTargetRules(snapshot.preferences).some(rule => rule.enabled && rule.kind === 'database'
           && rule.environment === 'test' && rule.match === 'host' && rule.address === binding.hostname
           && rule.port === binding.port && rule.database === binding.database)
-        if (!exactDatabase || !hasExactTestServer(snapshot.preferences, binding.hostname, binding.port)) {
-          throw new HarnessError('Test SQL requires both a dedicated test-server rule and an exact test-database rule.', 'POSTGRES_TEST_ONLY')
+        if (!exactDatabase || (dedicated && !hasExactTestServer(snapshot.preferences, binding.hostname, binding.port))) {
+          const reason = dedicated ? 'Test SQL requires both a dedicated test-server rule and an exact test-database rule.'
+            : 'Structured PostgreSQL writes require an exact test-database rule.'
+          throw new HarnessError(reason, 'POSTGRES_TEST_ONLY')
         }
       }
       const addresses = await this.protection.resolveConnectionTarget(binding.hostname, timeout.signal)
@@ -226,9 +264,8 @@ export default class PostgresAuditService extends Service {
         ssl: { rejectUnauthorized: true, minVersion: 'TLSv1.2', ...binding.caPem === undefined ? {} : { ca: binding.caPem },
           ...isIP(binding.hostname) ? {} : { servername: binding.hostname },
           checkServerIdentity: (_hostname, cert) => checkServerIdentity(binding.hostname, cert) },
-        options: testSql ? '-c search_path=public -c default_transaction_read_only=off'
-          : '-c search_path=pg_catalog -c default_transaction_read_only=on',
-        application_name: testSql ? 'dshu-test-sql' : 'dshu-catalog-audit',
+        options: `-c search_path=${dedicated ? 'public' : 'pg_catalog'} -c default_transaction_read_only=${write ? 'off' : 'on'}`,
+        application_name: dedicated ? 'dshu-test-sql' : write ? 'dshu-test-write' : 'dshu-catalog-audit',
         statement_timeout: this.config.timeoutMs, lock_timeout: this.config.timeoutMs, query_timeout: this.config.timeoutMs,
         idle_in_transaction_session_timeout: this.config.timeoutMs, connectionTimeoutMillis: this.config.timeoutMs,
         keepAlive: false, client_encoding: 'UTF8', sslnegotiation: 'postgres',
@@ -270,12 +307,14 @@ export default class PostgresAuditService extends Service {
         } else { timeout.signal.throwIfAborted(); await admitted() }
         return { rows, columns: result.fields.map(field => field.name), rowCount: result.rowCount, command: result.command }
       }
-      await query(testSql ? 'BEGIN READ WRITE' : 'BEGIN READ ONLY')
+      const transaction = access.kind === 'shared' ? 'BEGIN ISOLATION LEVEL READ COMMITTED READ WRITE'
+        : write ? 'BEGIN READ WRITE' : 'BEGIN READ ONLY'
+      await query(transaction)
       const identity = z.tuple([z.string(), z.string(), z.string(), z.string()]).parse((await query("SELECT pg_catalog.current_database(), session_user, pg_catalog.current_setting('server_version'), pg_catalog.current_setting('transaction_read_only')")).rows[0])
-      if (identity[0] !== binding.database || identity[1] !== binding.username || identity[3] !== (testSql ? 'off' : 'on')) {
+      if (identity[0] !== binding.database || identity[1] !== binding.username || identity[3] !== (write ? 'off' : 'on')) {
         throw new HarnessError('PostgreSQL database, login or transaction mode differs from its configured binding.', 'POSTGRES_IDENTITY_MISMATCH')
       }
-      if (testSql) {
+      if (write) {
         const role = await query(`SELECT (NOT (r.rolsuper OR r.rolcreatedb OR r.rolcreaterole OR r.rolreplication OR r.rolbypassrls
           OR EXISTS (SELECT 1 FROM pg_catalog.pg_roles other_role WHERE other_role.oid <> r.oid AND other_role.rolname <> 'pg_database_owner'
             AND pg_catalog.pg_has_role(r.oid, other_role.oid, 'MEMBER'))))::text
@@ -283,11 +322,11 @@ export default class PostgresAuditService extends Service {
         if (role.rows[0]?.[0] !== 'true') throw new HarnessError('Test SQL requires a dedicated role without elevated attributes or memberships.', 'POSTGRES_TEST_ROLE')
       }
       const result = await operation(query, identity)
-      if (!testSql) await query('ROLLBACK')
+      if (!write) await query('ROLLBACK')
       if (Buffer.byteLength(JSON.stringify(result)) > this.config.maxResultBytes) {
         throw new HarnessError('PostgreSQL exceeded its configured result limit.', 'POSTGRES_OUTPUT_LIMIT')
       }
-      if (testSql) await query('COMMIT')
+      if (write) await query('COMMIT')
       return result
     } catch (error) {
       if (commit.dispatched && !commit.acknowledged) {
@@ -295,7 +334,8 @@ export default class PostgresAuditService extends Service {
       }
       if (timeout.signal.aborted) throw new HarnessError('PostgreSQL was cancelled or timed out; the connection was closed.', 'POSTGRES_CANCELLED', { cause: error })
       if (error instanceof HarnessError) throw error
-      if (testSql) throw new HarnessError('PostgreSQL test SQL failed before a confirmed commit.', 'POSTGRES_TEST_SQL_FAILED', { cause: error })
+      if (dedicated) throw new HarnessError('PostgreSQL test SQL failed before a confirmed commit.', 'POSTGRES_TEST_SQL_FAILED', { cause: error })
+      if (write) throw new HarnessError('PostgreSQL test write failed. Check the table schema and role privileges.', 'POSTGRES_TEST_WRITE_FAILED', { cause: error })
       throw new HarnessError('PostgreSQL audit failed. Check the endpoint, credential reference and TLS configuration.', 'POSTGRES_AUDIT_FAILED', { cause: error })
     } finally {
       if (abort !== undefined) timeout.signal.removeEventListener('abort', abort)

@@ -21,11 +21,11 @@ export const name = 'postgres-protection-snapshot'
 /** Use the shipped tool registry and credential provider. */
 export const inject = ['tools']
 
-/** Select the MySQL write refusal fixture when enabled. */
-export const Config = schema.object({ mysqlWrite: schema.boolean().default(false) })
+/** Select a database write refusal fixture. */
+export const Config = schema.object({ mysqlWrite: schema.boolean().default(false), postgresSharedWrite: schema.boolean().default(false) })
 
 /** @param ctx - Dedicated snapshot owner. @param config - Fixture selection. */
-export async function apply(ctx: Context, config: { mysqlWrite?: boolean }): Promise<void> {
+export async function apply(ctx: Context, config: { mysqlWrite?: boolean; postgresSharedWrite?: boolean }): Promise<void> {
   const root = await mkdtemp(join(tmpdir(), 'dshu-postgres-snapshot-'))
   ctx.effect(() => () => rm(root, { recursive: true, force: true }), 'postgres-snapshot.files')
   await ctx.plugin(Credentials, { path: join(root, 'credentials.yaml'), dshHome: root, watch: false })
@@ -72,7 +72,8 @@ export async function apply(ctx: Context, config: { mysqlWrite?: boolean }): Pro
     return
   }
   const executor = await ctx.plugin(PostgresAudit, { databases: [{ name: 'owned', hostname: '127.0.0.1', port: address.port,
-    database: 'fixture', username: 'fixture', passwordRef: 'MISSING_POSTGRES_FIXTURE_PASSWORD' }] })
+    database: 'fixture', username: 'fixture', passwordRef: 'MISSING_POSTGRES_FIXTURE_PASSWORD',
+    sharedTestTables: config.postgresSharedWrite ? [{ schema: 'public', table: 'items' }] : [] }] })
   const mysql = await ctx.plugin(MysqlAudit, { databases: [{ name: 'owned', hostname: '127.0.0.1',
     tlsServerName: 'mysql.fixture.test', port: address.port, database: 'fixture', username: 'fixture', accountHost: '%',
     passwordRef: 'MISSING_MYSQL_FIXTURE_PASSWORD' }] })
@@ -84,6 +85,7 @@ export async function apply(ctx: Context, config: { mysqlWrite?: boolean }): Pro
       output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
       async execute() {
         assert.equal(active.tools.get('database_test_sql'), undefined)
+        assert.equal(active.tools.get('postgres_test_write') !== undefined, config.postgresSharedWrite === true)
         await assert.rejects(active.postgresAudit.executeTestSql('owned', 'SELECT 1', [], AbortSignal.timeout(5_000)),
           { code: 'POSTGRES_TEST_ONLY' })
         await assert.rejects(active.mysqlAudit.inspect('owned', AbortSignal.timeout(5_000)), { code: 'TARGET_FULLY_PROTECTED' })
