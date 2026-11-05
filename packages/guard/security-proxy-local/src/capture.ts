@@ -18,6 +18,7 @@ import type {
   SecurityProxyFlowSummary,
   SecurityProxyHeader,
 } from '@deepseek-ai/dsh-security-proxy/types'
+import type { SecurityProxyCaptureInput } from '@deepseek-ai/dsh-security-proxy'
 
 /** Header names whose values never reach the store. */
 const SECRET_HEADERS = new Set([
@@ -74,16 +75,7 @@ export interface CaptureLimits {
 }
 
 /** Everything an append supplies; identity, outcome, and redaction are the store's. */
-export type CapturedExchangeInput = Omit<
-  CapturedExchange,
-  'id' | 'requestHeaders' | 'responseHeaders' | 'requestBody' | 'responseBody' | 'bodyTruncated'
-> & {
-  readonly requestHeaders: readonly (readonly [string, string])[]
-  readonly responseHeaders: readonly (readonly [string, string])[]
-  readonly requestBody: string | null
-  readonly responseBody: string | null
-  readonly contentType: string | null
-}
+export type CapturedExchangeInput = SecurityProxyCaptureInput
 
 /**
  * Redact one header list.

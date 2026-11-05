@@ -19,6 +19,7 @@ import type {
   SecurityProxyState,
   SecurityProxyTestResult,
 } from '@deepseek-ai/dsh-security-proxy/types'
+import type { SecurityProxyEgressLease } from '@deepseek-ai/dsh-security-proxy'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WebFetchResult } from '@deepseek-ai/dsh-web'
@@ -55,6 +56,21 @@ export class SecurityProxyService extends TypertRemoteService {
    */
   async environment(agent: Agent | undefined, tool: string): Promise<Readonly<Record<string, string>> | undefined> {
     return await this.engine.environment(agent, tool)
+  }
+
+  /**
+   * Retain native forwarding and capture under the executing conversation.
+   * @param agent - Executing Agent; absence acquires nothing.
+   * @param tool - Traffic attribution.
+   * @param stop - Join delegated resources after cancellation.
+   * @param signal - Caller lifetime.
+   * @param admission - Optional cancellation during startup only; omitted for caller lifetime alone.
+   * @returns Covered execution lease, or undefined outside enabled Security mode.
+   */
+  async openEgress(
+    agent: Agent | undefined, tool: string, stop: () => Promise<void>, signal: AbortSignal, admission?: AbortSignal,
+  ): Promise<SecurityProxyEgressLease | undefined> {
+    return await this.engine.openEgress(agent, tool, stop, signal, admission)
   }
 
   /**

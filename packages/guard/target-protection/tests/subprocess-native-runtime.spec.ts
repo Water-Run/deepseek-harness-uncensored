@@ -21,8 +21,11 @@ import type { SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
 import TargetProtection from '../src/index.ts'
 import type { TargetRuleId } from '../src/types.ts'
 import NativeSubprocess from '../src/subprocess-native.ts'
+import { COVERAGE_TEST_TIMEOUT_ENV, coverageTestTimeoutOptions } from '../../../../scripts/coverage-partitions.ts'
 
 const supported = process.platform === 'win32' && probe().tier === 'base-container'
+// Startup, three ten-second observations and joined native teardown can outlast the default five-second case budget.
+const nativeBudget = Math.max(120000, coverageTestTimeoutOptions(process.env[COVERAGE_TEST_TIMEOUT_ENV]).testTimeout ?? 0)
 
 async function fixture(network: 'disabled' | 'gateway' = 'disabled', httpsInspection = false) {
   const root = await mkdtemp(join(tmpdir(), 'dshu-native-provider-')), ctx = new Context()
@@ -32,7 +35,7 @@ async function fixture(network: 'disabled' | 'gateway' = 'disabled', httpsInspec
     await ctx.fiber.dispose()
     expect(process.listenerCount('exit')).toBe(listeners)
     await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
-  })
+  }, nativeBudget)
   await mkdir(work); await writeFile(production, 'production unchanged')
   const repository = fileURLToPath(new URL('../../../..', import.meta.url))
   const pwsh = resolvePwshPath()
@@ -64,7 +67,7 @@ async function fixture(network: 'disabled' | 'gateway' = 'disabled', httpsInspec
   return { root, work, temporary, production, ctx, fiber: entry.fiber, spec }
 }
 
-describe.skipIf(!supported)('native subprocess through the Loader', () => {
+describe.skipIf(!supported)('native subprocess through the Loader', { timeout: nativeBudget }, () => {
   it('runs a real command, keeps production unchanged and removes its private directory', async () => {
     const h = await fixture()
     expect(await h.ctx.subprocess.resolveExecutable(process.execPath)).toBe(process.execPath)

@@ -4,9 +4,10 @@
  * The seam answers three questions for a tool execution: whether this Agent's
  * session is a security-mode session the proxy serves, which environment a child
  * process needs to reach it, and how to retrieve one target through it while
- * recording the exchange. The provideing plugin owns configuration, the upstream
+ * recording the exchange. The providing plugin owns configuration, the upstream
  * connection, the loopback chain proxy, and the capture store; consumers never
- * build a transport of their own.
+ * build ordinary transports of their own. Native enforcement retains an egress
+ * lease when it needs its own policy-checked gateway.
  *
  * The session's mode is read from its durable log, never from a tool argument: a
  * consumer passes the executing {@link Agent}, and a call without one is never
@@ -26,6 +27,7 @@ import type {
   SecurityProxySettingsPatch,
   SecurityProxyState,
   SecurityProxyTestResult,
+  SecurityProxyProtocol,
 } from './types.ts'
 
 export type * from './types.ts'
@@ -48,6 +50,41 @@ export interface SecurityProxyRoute {
   readonly preset: string
   /** Tool that is about to reach the network. */
   readonly tool: string
+}
+
+/** Host-only raw exchange; the proxy owner assigns identity and redacts it before storage. */
+export type SecurityProxyCaptureInput = Omit<SecurityProxyFlowDetail,
+  'id' | 'requestHeaders' | 'responseHeaders' | 'bodyTruncated'> & {
+    readonly requestHeaders: readonly (readonly [string, string])[]
+    readonly responseHeaders: readonly (readonly [string, string])[]
+  }
+
+/** Host-only upstream snapshot. Credentials must never enter a Remote result or diagnostic. */
+export interface SecurityProxyUpstream {
+  readonly protocol: SecurityProxyProtocol
+  readonly host: string
+  readonly port: number
+  readonly username: string
+  readonly password: string | undefined
+}
+
+/** Native enforcement's retained use of one conversation's independent proxy and capture store. */
+export interface SecurityProxyEgressLease {
+  readonly upstream: SecurityProxyUpstream
+  /** Cancels when configuration, conversation, caller or provider ownership is withdrawn. */
+  readonly signal: AbortSignal
+  readonly capture: {
+    /** @param input - Observed exchange; conversation and tool attribution are overwritten by the owner.
+     * @returns The redacted stored flow, or undefined while capture is paused. */
+    append(input: SecurityProxyCaptureInput): SecurityProxyFlowDetail | undefined
+  }
+  /** @returns Whether the user currently pauses capture, without changing forwarding. */
+  paused(): boolean
+  /**
+   * Report delegated cleanup after the process range and gateway have closed.
+   * @param failure - Omitted for confirmed closure. An error reports untrusted closure and retains dependencies.
+   */
+  release(failure?: { readonly error: unknown }): void
 }
 
 /**
@@ -81,6 +118,20 @@ export abstract class SecurityProxyRuntime extends Service {
    * @returns the overlay for one spawn, or `undefined` when not covered.
    */
   abstract environment(agent: Agent | undefined, tool: string): Promise<Readonly<Record<string, string>> | undefined>
+
+  /**
+   * Retain the configured upstream and capture writer for a native enforcement gateway.
+   * This Host-only operation exposes credentials; it is never a Remote method.
+   * @param agent - Actual executing Agent; omission and uncovered modes acquire nothing.
+   * @param tool - Tool attribution bound to every captured exchange.
+   * @param stop - Stop and join the delegated process range and gateway when ownership is withdrawn.
+   * @param signal - Caller cancellation, retained for the entire lease.
+   * @param admission - Optional startup-only cancellation; omission uses the caller lifetime alone.
+   * @returns A lease for enabled Security mode, otherwise undefined. Covered admission failures reject without fallback.
+   */
+  abstract openEgress(
+    agent: Agent | undefined, tool: string, stop: () => Promise<void>, signal: AbortSignal, admission?: AbortSignal,
+  ): Promise<SecurityProxyEgressLease | undefined>
 
   /**
    * Resolve the sidebar browser's loopback proxy from the actual owning Agent.

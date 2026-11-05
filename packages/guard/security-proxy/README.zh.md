@@ -39,6 +39,8 @@ const result = route === undefined
 
 提供者注册为 `ctx.securityProxy`。`browserEnvironment` 根据实际拥有侧栏的 Agent 解析本机端点；只有应用所有者可通过 Remote 请求。
 
+原生执行保护使用仅限 Host 的 `openEgress`，传入实际 Agent、停止并等待回收的回调和完整执行期限。已开启网安模式代理时返回配置的上游及有界捕获入口；未覆盖的调用不取得资源。可单独指定启动取消信号，公布租约后解除该信号。调用方在整个进程范围及网关关闭后报告释放；无法确认清理时报告失败，保留依赖并拒绝后续原生委派。上游凭据和原始捕获输入只从 Host 入口导出，不属于客户端安全载荷模块或 Remote 方法。
+
 -----
 
 <a id="understand-the-implementation"></a>
@@ -47,7 +49,7 @@ const result = route === undefined
 <details>
 <summary>实现细节 —— 点击展开</summary>
 
-入口是一个抽象 `Service`，包含三个操作——`route`、`environment` 和 `fetchTarget`——以及 Remote 界面读取的数据类型。`route` 返回流量归属的会话身份与工具名；`environment` 返回只用于一次 spawn 的环境覆盖；`fetchTarget` 返回 web 接缝已定义的 `WebFetchResult`，因此被覆盖与未被覆盖的抓取交给模型的是同一种值。
+入口是一个抽象 `Service`，定义路由选择、子进程/浏览器环境、受控抓取、原生出口委派和管理界面。`route` 返回流量归属的会话身份与工具名；`environment` 返回只用于一次 spawn 的环境覆盖；`fetchTarget` 返回 web 接缝已定义的 `WebFetchResult`，因此被覆盖与未被覆盖的抓取交给模型的是同一种值。
 
 `fetchTarget` 的失败使用接缝的开放 `WebError` 代码（`SECURITY_PROXY_NOT_COVERED`、`SECURITY_PROXY_UNREACHABLE`、`SECURITY_PROXY_AUTH`，以及 web 提供者自身的超时与取消码），因此工具结果能说明是代理还是目标出了问题。
 

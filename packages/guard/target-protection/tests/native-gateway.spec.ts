@@ -313,6 +313,30 @@ it('closes a listener acquired concurrently with cancellation and releases its r
   expect((await h.ctx.targetProtection.snapshot()).preferences.rules).toEqual([])
 })
 
+it('keeps an early cleanup owner pending until a delayed listener is acquired and closed', async () => {
+  const h = await fixture(), entered = Promise.withResolvers<undefined>(), resume = Promise.withResolvers<undefined>()
+  const original = SessionChainProxy.start.bind(SessionChainProxy)
+  let owner: Pick<NativeGateway, 'close'> | undefined, signal: AbortSignal | undefined, late: SessionChainProxy | undefined
+  vi.spyOn(SessionChainProxy, 'start').mockImplementationOnce(async (options) => {
+    signal = options.signal(); entered.resolve(undefined); await resume.promise
+    late = await original(options)
+    return late
+  })
+  const creating = h.start({ own: (value) => { owner = value } })
+  const refused = expect(creating).rejects.toThrow('closing')
+  try {
+    await entered.promise
+    const revoked = once(signal!, 'abort')
+    const closing = owner!.close()
+    await revoked
+    resume.resolve(undefined)
+    await Promise.all([refused, closing])
+    expect(late).toBeDefined()
+    await expect(h.http({ url: `http://127.0.0.1:${late!.port}`, close: () => late!.close() })).rejects.toThrow()
+    await h.configure([], false)
+  } finally { resume.resolve(undefined); await Promise.allSettled([creating, owner?.close()]); await late?.close() }
+})
+
 it.each(['http', 'https'])('checks the default %s port before connecting to a protected name', async (scheme) => {
   const h = await fixture()
   await h.configure([rule({ environment: 'production' })])

@@ -16,6 +16,8 @@ import type TargetProtection from './index.ts'
 import type { TargetAuditExecution } from './index.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { scopeOf } from '@deepseek-ai/dsh-scope'
+import type { Agent } from '@deepseek-ai/dsh-agent'
+import type { SecurityProxyEgressLease } from '@deepseek-ai/dsh-security-proxy'
 import { canonicalLocalPath, localPathContains } from './file-identity.ts'
 import { compileNativeFilePolicy } from './native-file-policy.ts'
 import { createNativeHostExecution, type NativeHostExecution, type NativeHostStart } from './native-host.ts'
@@ -171,11 +173,11 @@ export default class NativeTargetSubprocess extends LocalSubprocessRuntime {
     return this.auditSource().audit(ownerSignal => super.resolveExecutable(command, env, AbortSignal.any([bounded, ownerSignal])))
   }
 
-  private auditSource(): { sessionId: SessionId | null; audit: TargetAuditExecution } {
+  private auditSource(): { sessionId: SessionId | null; audit: TargetAuditExecution; agent: Agent | undefined } {
     const scope = scopeOf(this.ctx)
     const owner = scope === undefined ? undefined : this.ctx.get('agents')?.list().find(agent => agent === scope)
     const sessionId = owner?.id ?? this.protection.currentAuditSessionId()
-    return { sessionId, audit: this.protection.bindAuditSession(sessionId ?? undefined) }
+    return { sessionId, audit: this.protection.bindAuditSession(sessionId ?? undefined), agent: owner }
   }
 
   private async upstream(): Promise<Upstream | undefined> {
@@ -190,20 +192,25 @@ export default class NativeTargetSubprocess extends LocalSubprocessRuntime {
 
   private async prepare(
     spec: SubprocessSpawnSpec, execution: NativeHostExecution, signal: AbortSignal,
-    source: { sessionId: SessionId | null; audit: TargetAuditExecution },
+    source: { sessionId: SessionId | null; audit: TargetAuditExecution; agent: Agent | undefined },
   ): Promise<NativeHostStart> {
     const root = this.assertActive(), config = this.nativeConfig
     const bounded = AbortSignal.any([signal, this.protection.executionSignal(), AbortSignal.timeout(config.preparationTimeoutMs)])
     bounded.throwIfAborted()
     const directory = await mkdtemp(join(root, 'execution-'))
     let gateway: NativeGateway | undefined, release: (() => void) | undefined
+    let gatewayOwner: Pick<NativeGateway, 'close'> | undefined, egress: SecurityProxyEgressLease | undefined
     const cleanup = async () => {
       const canonical = canonicalLocalPath(directory)
       try {
         if (canonical === root || !localPathContains(root, canonical)) throw new Error('Native private directory escaped its owner root.')
         await rm(directory, { recursive: true, force: true, maxRetries: config.cleanupRetries, retryDelay: config.cleanupRetryMs })
       }
-      finally { await gateway?.close(); release?.() }
+      finally {
+        try { await gatewayOwner?.close(); release?.() }
+        catch (error) { egress?.release({ error }); throw error }
+        egress?.release()
+      }
     }
     try {
       const files = await compileNativeFilePolicy(await this.protection.nativeFileConstraints(), {
@@ -212,16 +219,21 @@ export default class NativeTargetSubprocess extends LocalSubprocessRuntime {
       }, bounded)
       const stop = async () => { execution.launch.owner.signal('SIGKILL'); await execution.launch.owner.waitForExit() }
       if (config.network === 'gateway') {
-        const upstream = await this.upstream()
+        egress = await this.ctx.get('securityProxy')?.openEgress(source.agent, 'subprocess', () => execution.dispose(), signal, bounded)
+        const upstream = egress?.upstream ?? await this.upstream()
+        const captureOwner = egress
         bounded.throwIfAborted()
+        egress?.signal.throwIfAborted()
         gateway = await startNativeGateway(this.protection, { revision: files.revision, sessionId: source.sessionId,
           auditExecution: source.audit, tool: 'subprocess',
+          own: (owner) => { gatewayOwner = owner }, capture: captureOwner?.capture,
+          capturePaused: captureOwner === undefined ? undefined : () => captureOwner.paused(),
           ...upstream === undefined ? {} : { upstream }, stopExecution: stop,
           connectTimeoutMs: config.connectTimeoutMs, requestTimeoutMs: config.requestTimeoutMs,
           ...config.httpsInspection ? { httpsInspection: { maxCertificates: config.maxHttpsCertificates,
             certificateLifetimeMs: config.httpsCertificateLifetimeMs, handshakeTimeoutMs: config.connectTimeoutMs,
             requestTimeoutMs: config.requestTimeoutMs } } : {},
-        }, signal)
+        }, egress === undefined ? signal : AbortSignal.any([signal, egress.signal]))
       } else release = this.protection.retainNativeExecution(files.revision, stop)
       bounded.throwIfAborted()
       const environment = targetEnvironment(spec)

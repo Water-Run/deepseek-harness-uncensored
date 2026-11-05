@@ -31,6 +31,8 @@ export interface NativeGatewayOptions {
   capturePaused?: (() => boolean) | undefined
   /** Explicit HTTP-only TLS inspection. Absence retains policy-checked opaque tunnels. */
   httpsInspection?: NativeHttpsOptions
+  /** Retain cleanup before asynchronous startup; the owner remains usable when startup rejects. */
+  own?: (owner: Pick<NativeGateway, 'close'>) => void
 }
 
 /** Owned listener; the native process range must close before its owner releases this gateway. */
@@ -74,9 +76,11 @@ export async function startNativeGateway(
   const release = protection.retainNativeExecution(options.revision, () => options.stopExecution()), lifetime = new AbortController()
   const combined = AbortSignal.any([signal, lifetime.signal, protection.executionSignal()])
   let proxy: SessionChainProxy | undefined, closing: Promise<void> | undefined
+  const initialized = Promise.withResolvers<undefined>()
   const close = (): Promise<void> => {
     closing ??= Promise.resolve().then(async () => {
       lifetime.abort(new Error('Native target gateway is closing.'))
+      await initialized.promise
       await proxy?.close()
       release()
     })
@@ -123,6 +127,7 @@ export async function startNativeGateway(
     return requestPinnedViaProxy(route.toString(), target, resolution.addresses, headers, requestSignal, request)
   }
   try {
+    options.own?.({ close })
     combined.throwIfAborted()
     const https = options.httpsInspection === undefined ? undefined : await createNativeHttps(options.httpsInspection, combined)
     combined.throwIfAborted()
@@ -146,5 +151,6 @@ export async function startNativeGateway(
     })
     combined.throwIfAborted()
     return { url: `http://127.0.0.1:${proxy.port}`, ...https === undefined ? {} : { certificate: https.certificate }, close }
-  } catch (error) { await close(); throw error }
+  } catch (error) { initialized.resolve(undefined); await close(); throw error }
+  finally { initialized.resolve(undefined) }
 }

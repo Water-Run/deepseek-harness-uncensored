@@ -11,6 +11,7 @@
  */
 
 import { fetch as undiciFetch, type ProxyAgent } from 'undici'
+import { addAbortListener } from 'node:events'
 import { WebError } from '@deepseek-ai/dsh-web'
 import type { WebFetchResult } from '@deepseek-ai/dsh-web'
 import type { PinnedResponse } from '@deepseek-ai/dsh-web-fetch-http'
@@ -32,6 +33,7 @@ import type {
   SecurityProxyStatus,
   SecurityProxyTestResult,
 } from '@deepseek-ai/dsh-security-proxy/types'
+import type { SecurityProxyEgressLease } from '@deepseek-ai/dsh-security-proxy'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { CaptureStore, prepareBody, redactHeaders, type CapturedExchangeInput } from './capture.ts'
 import { SessionChainProxy } from './chain.ts'
@@ -125,6 +127,15 @@ interface ChainRecord {
   readonly proxy: Promise<SessionChainProxy>
 }
 
+interface EgressRecord {
+  readonly sessionId: SessionId
+  readonly cancel: AbortController
+  phase: 'opening' | 'leased' | 'released' | 'failed'
+  readonly done: Promise<void>
+  stop(): Promise<void>
+  release(failure?: { readonly error: unknown }): void
+}
+
 /**
  * Owns the proxy's whole runtime. One instance serves every conversation in the
  * Host; attribution and child environments are per session.
@@ -140,6 +151,7 @@ export class SecurityProxyEngine {
   private upstreamNow: Upstream | undefined
   private readonly chains = new Map<string, ChainRecord>()
   private readonly retiringChains = new Set<Promise<void>>()
+  private readonly egress = new Set<EgressRecord>()
   private readonly warned = new Set<string>()
   private closing = false
   private readonly lifetime = new AbortController()
@@ -423,6 +435,74 @@ export class SecurityProxyEngine {
   }
 
   /**
+   * Retain this owner's upstream and redacted capture for native enforcement.
+   * @param subject - Actual executing conversation; absent or uncovered subjects acquire nothing.
+   * @param tool - Attribution bound to the returned capture writer.
+   * @param stop - Stop and join all delegated resources when the lease is revoked.
+   * @param caller - Caller cancellation for admission and the published lease.
+   * @param admission - Optional startup-only cancellation; omission adds no further signal.
+   * @returns Covered lease, otherwise undefined. A route withdrawn during admission rejects.
+   */
+  async openEgress(
+    subject: EgressSubject | undefined, tool: string, stop: () => Promise<void>, caller: AbortSignal, admission?: AbortSignal,
+  ): Promise<SecurityProxyEgressLease | undefined> {
+    const route = this.route(subject, tool)
+    if (route === undefined) {
+      if (this.closing && subject !== undefined && this.options.store.value.enabled && this.options.presetOf(subject) === SECURITY_PRESET) {
+        this.assertOpen()
+      }
+      return undefined
+    }
+    if ([...this.egress].some(record => record.phase === 'failed')) {
+      throw new UpstreamFailure('unknown', 'Native egress cleanup is unconfirmed. Restart the Host before retrying.')
+    }
+    return this.execute(async (starting) => {
+      const cancel = new AbortController(), completed = Promise.withResolvers<undefined>()
+      const signal = AbortSignal.any([this.executionSignal(), caller, cancel.signal])
+      let retained: (() => void) | undefined, abort: Disposable | undefined, stopping: Promise<void> | undefined
+      const record: EgressRecord = {
+        sessionId: route.sessionId, cancel, phase: 'opening', done: completed.promise,
+        stop: () => { stopping ??= Promise.resolve().then(stop); return stopping },
+        release: (failure) => {
+          if (record.phase === 'released' || record.phase === 'failed') return
+          abort?.[Symbol.dispose]()
+          if (failure !== undefined) {
+            const error = new UpstreamFailure('unknown', 'Native egress cleanup is unconfirmed. Restart the Host before retrying.', { cause: failure.error })
+            record.phase = 'failed'; cancel.abort(error); completed.reject(error); this.markFailed(error)
+            return
+          }
+          retained?.()
+          record.phase = 'released'; cancel.abort(new Error('Native egress was released.'))
+          this.egress.delete(record); completed.resolve(undefined)
+        },
+      }
+      // Provider shutdown observes failed closure even when the caller's cleanup throws first.
+      void completed.promise.catch((_closureFailure: unknown) => {})
+      this.egress.add(record)
+      try {
+        const { upstream } = await this.ensureTransport()
+        starting.throwIfAborted()
+        signal.throwIfAborted()
+        if (this.route(subject, tool) === undefined) throw new UpstreamFailure('invalid-config', 'The native egress route was withdrawn during admission.')
+        retained = this.retainExecution()
+        record.phase = 'leased'
+        abort = addAbortListener(signal, () => {
+          void record.stop().then(() => { record.release() }, (error: unknown) => { record.release({ error }) })
+        })
+        return {
+          upstream, signal, paused: () => this.options.store.value.capturePaused,
+          capture: { append: (input) => {
+            if (record.phase === 'released') throw new UpstreamFailure('unknown', 'The native egress lease was released.')
+            if (this.options.store.value.capturePaused) return undefined
+            return this.options.capture.append({ ...input, sessionId: route.sessionId, tool: route.tool })
+          } },
+          release: (failure) => { record.release(failure) },
+        }
+      } catch (error) { record.release(); throw error }
+    }, admission === undefined ? caller : AbortSignal.any([caller, admission]))
+  }
+
+  /**
    * Retrieve one target through the upstream, recording the exchange at the
    * controlled Client layer.
    * @param subject - the Agent executing the call.
@@ -484,6 +564,9 @@ export class SecurityProxyEngine {
    */
   forgetSession(sessionId: SessionId): void {
     this.warned.delete(sessionId)
+    for (const record of this.egress) {
+      if (record.sessionId === sessionId) record.cancel.abort(new Error('The native egress conversation was withdrawn.'))
+    }
     for (const [key, record] of this.chains) {
       if (record.sessionId !== sessionId) continue
       this.chains.delete(key)
@@ -507,11 +590,26 @@ export class SecurityProxyEngine {
   private async close(): Promise<void> {
     this.closing = true
     this.lifetime.abort(new Error('Security proxy is closing.'))
-    try { await this.closeChains() }
+    try { await this.closeRoutes() }
     finally {
       try { await this.closeDispatcher() }
       finally { await Promise.allSettled([...this.pending, this.changes]) }
     }
+  }
+
+  private async closeRoutes(): Promise<void> {
+    const native = [...this.egress].map(async (record) => {
+      record.cancel.abort(new Error('Native egress is closing.'))
+      if (record.phase === 'leased' || record.phase === 'failed') {
+        try { await record.stop(); record.release() }
+        catch (error) { record.release({ error }) }
+      }
+      await record.done
+    })
+    const results = await Promise.allSettled([this.closeChains(), ...native])
+    const failures: unknown[] = []
+    for (const result of results) if (result.status === 'rejected') failures.push(result.reason)
+    if (failures.length > 0) throw new AggregateError(failures, 'Security proxy routes failed to close.')
   }
 
   /** Resolve the upstream and dispatcher for the current settings, rebuilding them when the key changed. */
@@ -566,7 +664,7 @@ export class SecurityProxyEngine {
   /** Close the dispatcher and listeners before a settings change takes effect. */
   private async resetTransport(): Promise<void> {
     this.generation.abort(new Error('Security proxy upstream changed.'))
-    try { await this.closeChains() }
+    try { await this.closeRoutes() }
     finally { await this.closeDispatcher() }
     this.generation = new AbortController()
   }

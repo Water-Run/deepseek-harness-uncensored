@@ -39,6 +39,8 @@ const result = route === undefined
 
 The provider registers as `ctx.securityProxy`. `browserEnvironment` resolves the sidebar's local endpoint from the owning Agent; only the application owner can request it through the Remote service.
 
+Native enforcement calls the Host-only `openEgress` with the actual Agent, a stop-and-join callback and its execution lifetime. Enabled Security mode receives the configured upstream and bounded capture writer; an uncovered call acquires nothing. Startup cancellation can be supplied separately and is detached when the lease is published. The consumer reports release after its process range and gateway close, or reports a cleanup failure that retains dependencies and refuses further native delegation. Upstream credentials and raw capture inputs are exported only from the Host entry, not the Client-safe payload module or Remote methods.
+
 -----
 
 <a id="understand-the-implementation"></a>
@@ -47,7 +49,7 @@ The provider registers as `ctx.securityProxy`. `browserEnvironment` resolves the
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-The entry point is an abstract `Service` with three operations — `route`, `environment`, and `fetchTarget` — plus the payload types the Remote surface reads. `route` returns the conversation identity and tool name a flow is attributed to; `environment` returns the overlay for exactly one spawn; `fetchTarget` returns the ordinary `WebFetchResult` the web seam already defines, so a covered fetch and an uncovered one hand the model the same value.
+The entry point is an abstract `Service` for route selection, child/browser environments, controlled fetching, native egress delegation and the administration surface. `route` returns the conversation identity and tool name a flow is attributed to; `environment` returns the overlay for exactly one spawn; `fetchTarget` returns the ordinary `WebFetchResult` the web seam already defines, so a covered fetch and an uncovered one hand the model the same value.
 
 `fetchTarget` failures use the seam's open `WebError` codes (`SECURITY_PROXY_NOT_COVERED`, `SECURITY_PROXY_UNREACHABLE`, `SECURITY_PROXY_AUTH`, plus the web provider's own timeout and abort codes), so a tool result explains whether the proxy or the target failed.
 
