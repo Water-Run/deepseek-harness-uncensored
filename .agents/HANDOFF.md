@@ -1,5 +1,19 @@
 # Uncensored 开发交接
 
+## 已安装 Windows 检查包与后续入口（2026-11-05）
+
+系统已原位更新至 `0.1.0-test.20261105.1`，产品版本 `0.1.0`，安装源码 `4cf9f1cbfa580a5e13b17ddde45a061b5f4385bb`；DSH `0.2.2-rc.1`、REA `6.8.0`。包括旁问 `/clear`、默认关闭的关闭后清理选项，以及余额默认 15 秒、最小 3 秒采样。全部操作通过命令、隔离 Host 和测试接口完成，没有使用 Computer Use。
+
+标准构建 `2026-11-05T15-01-35.159Z-VILhod` 成功。完整构建十项、运行时清单、301 字符路径 ConPTY、四模式加载、REA 229 工具注册与 JavaScript 分析、Office 文档往返均通过。实际安装器载荷与实装目录分别通过四模式、新建会话、真实 Node 命令、终端代理流量与响应捕获、SSH 回环命令。后者确认使用 JavaScript SSH 实现，无原生加速绑定。没有用线上模型测评输出质量。
+
+安装前备份位于 `C:/Users/linzh/AppData/Local/DSHU-Backups/2026-11-05T15-20-05-133Z-4cf9f1`。安装前后 6,953 个 DSHU 数据文件及官方 DSH 的两份程序文件哈希相同，恢复文件数为 0。安装清单、安装器 SHA-256、运行时描述和许可记录保存在 `.dsh-build/deliverables/DSHU-20261105-4cf9f1-manifest.json` 及其引用文件；安装器文件名为 `DSHU-0.1.0-test.20261105.1-core-0.2.2-rc.1-REA-6.8.0-win-x64-unsigned-20261105-4cf9f1.exe`。`c4685cedb7` 安装器保留为回退包。新包未签名，未发布 Release。
+
+当前宿主已通过 Windows UAC 补装微软的 x64/x86 MSVC Preview Spectre 组件，安装退出码 0、无需重启。私有副本原生编译和整包编译均通过。恢复本机打包时使用子进程环境 `VCToolsVersion=14.52.36629`、`MSVCPreviewEnabled=true`；下载缓存仍为前述 `deepseek-harness-uncensored-upstream-20261101/apps/desktop/.desktop-build`。证据为 `.dsh-build/spectre-component-install-20261105.json`、`.dsh-build/pty-compiler-preflight-20261105.log` 及 `.dsh-build/delivery-4cf9f1-package-spectre-20261105.log`。
+
+本轮生成目录与临时解包副本的删除被自动审批拒绝，原因仅为 `blocked by policy`，没有执行删除。待清理路径为 `D:/Coding/deepseek-harness-uncensored/apps/desktop/.desktop-build/targets/win-x64` 与 `D:/Coding/.dshu-installer-check-CjHrur`。两处均已确认是自有生成目录、无占用进程；没有改用 Node、Python 或提权删除。回执 `.dsh-build/build-cleanup-4cf9f1-20261105-result.json`。此前被拒的两个小型 lint 临时项仍保留。
+
+最新实包记录 874 个 npm 包、9 份补充声明，11 项仍需人工核查，详见依赖审计；不将成功打包等同于许可核查完成。仅 main，Goal 保持 active。继续入口为 TODO 中的清理、交互/回滚/更新/跨平台验收、依赖许可与其余进阶功能；保留全部原始需求。
+
 ## Desktop 的 SSH 安装声明补齐（2026-11-05）
 
 `a7aa1cd867` 已推送 main。之后的打包 `2026-11-05T14-20-23.082Z-Jo6rlr` 因早先诊断进程占用生成的 Node 目录而失败；已核对 PID、启动时间、可执行文件及探针内容，停止该自有进程，未操作用户应用。`2026-11-05T14-24-56.634Z-yiAtOn` 的完整构建、运行时准备与补丁校验通过，但 pnpm 严格安装检查发现 Desktop 漏列 `ssh2`、`cpu-features`。临时安装项目已由原流程清理，两次运行均未产出安装器。
