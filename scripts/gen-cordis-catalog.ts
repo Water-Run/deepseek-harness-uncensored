@@ -1024,6 +1024,7 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   SessionDeleteRequest: 'SessionDeleteRequest fields and operation guarantees are owned by packages/api/session-controller/README.md',
   SessionDeleteValue: 'SessionDeleteValue fields and operation guarantees are owned by packages/api/session-controller/README.md',
   SessionAsideRequest: 'SessionAsideRequest fields and operation guarantees are owned by packages/api/session-controller/README.md',
+  SessionAsideResetRequest: 'SessionAsideResetRequest fields and operation guarantees are owned by packages/api/session-controller/README.md',
   SessionPredictionRequest: 'SessionPredictionRequest fields and operation guarantees are owned by packages/api/session-controller/README.md',
   SessionPredictionValue: 'SessionPredictionValue fields and operation guarantees are owned by packages/api/session-controller/README.md',
   BalanceSnapshot: 'BalanceSnapshot fields and operation guarantees are owned by packages/credentials/balance/README.md',

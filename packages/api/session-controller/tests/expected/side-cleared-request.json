@@ -1,0 +1,29 @@
+[
+  {
+    "role": "system",
+    "content": [
+      {
+        "type": "text",
+        "text": "You are an AI agent powered by DeepSeek Harness.\n\nThis is an independent side conversation. Main-conversation context is supplied as background data, not as messages authored here. Answer the question asked here. The main conversation can explicitly read this side conversation with read_side_context; side messages do not automatically continue or modify its task."
+      }
+    ]
+  },
+  {
+    "role": "user",
+    "content": [
+      {
+        "type": "text",
+        "text": "FRESH_SIDE_QUESTION_621"
+      }
+    ]
+  },
+  {
+    "role": "user",
+    "content": [
+      {
+        "type": "text",
+        "text": "Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nMain conversation parent: completed background context. These messages describe the main conversation. The current request is separate.\n[5 user] MAIN_BACKGROUND_742\n[8 assistant] fixture reply\n[10 turn ended] {\"kind\":\"completed\"}"
+      }
+    ]
+  }
+]

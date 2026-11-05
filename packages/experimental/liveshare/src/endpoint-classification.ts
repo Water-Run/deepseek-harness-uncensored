@@ -133,6 +133,7 @@ export const VIEWER_ENDPOINT_CLASSES = {
   'targetProtectionSettings/get': 'owner-only',
   'targetProtectionSettings/updateCountry': 'owner-only',
   'session/aside': 'owner-only',
+  'session/resetAside': 'owner-only',
   'session/delete': 'owner-only',
   'session/predict': 'owner-only',
   'spending/configure': 'owner-only',

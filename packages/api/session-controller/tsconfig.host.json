@@ -16,6 +16,7 @@
     "src/asides.ts",
     "src/deletion.ts",
     "src/aside-context.ts",
+    "src/aside-identity.ts",
     "src/aside-reader.ts",
     "src/aside-main-context.ts",
     "src/aside-question-context.ts",

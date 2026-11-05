@@ -338,8 +338,15 @@ export interface SessionForkRequest {
 /** Native side conversation request. The source stays unchanged. */
 export interface SessionAsideRequest {
   readonly sessionId: SessionId
-  /** Side reopens the same child; btw creates an empty child on every invocation. */
+  /** Side reopens the current context generation; btw creates an empty child on every invocation. */
   readonly kind: 'side' | 'btw'
+}
+
+/** Native side-only context replacement; stale identities make retries idempotent. */
+export interface SessionAsideResetRequest {
+  readonly sessionId: SessionId
+  /** Actual tab close honors the preference; a manual /clear always clears. */
+  readonly cause: 'manual' | 'close'
 }
 
 /** Explicit deletion of an ordinary conversation and its owned child conversations. */
@@ -727,6 +734,12 @@ declare module '@deepseek-ai/cordis' {
      * @param sessionId - Deleted identity; clients must release views and related resources.
      */
     'api-session/deleted'(sessionId: SessionId): void
+    /**
+     * A main conversation's current side context was replaced durably.
+     * @mode emit
+     * @param parentSessionId - Owning main Session; consumers reopen its side resource.
+     */
+    'api-session/side-reset'(parentSessionId: SessionId): void
     /**
      * One Agent changed running state.
      * @mode emit

@@ -1,21 +1,20 @@
 /** The main Agent can explicitly read its own independent side conversation. */
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { SessionId } from '@deepseek-ai/dsh-session'
 import { SessionQueryError } from '@deepseek-ai/dsh-session-query'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import { latestCompletedPrefixBoundary } from './commands.ts'
 import { mainProgressContext } from './aside-main-context.ts'
+import { currentSide } from './aside-identity.ts'
 
 /**
  * Register an Agent-scoped, read-only view of its linked side conversation.
  * @param ctx - Main Agent composition.
  * @param agent - Main Agent allowed to use this reader.
- * @param childId - Stable side identity derived by the owning caller.
  * @param maxBytes - Complete output byte budget.
  * @returns Completion of the scoped tool and instruction registration.
  */
-export async function installSideReader(ctx: Context, agent: Agent, childId: SessionId, maxBytes: number): Promise<void> {
+export async function installSideReader(ctx: Context, agent: Agent, maxBytes: number): Promise<void> {
   await ctx.plugin({ name: 'native-side-reader', inject: ['tools', 'systemPrompt', 'sessionQuery'], apply(scope: Context) {
     scope.effect(() => scope.systemPrompt.section({ name: 'conversation:side-reader',
       order: scope.systemPrompt.getSectionOrder('DEPLOYMENT_PERSONA_SUFFIX'), interpolate: false,
@@ -30,6 +29,9 @@ export async function installSideReader(ctx: Context, agent: Agent, childId: Ses
         if (exec.agent?.id !== agent.id) throw new Error('Side conversation access requires its owning main Agent.')
         exec.signal.throwIfAborted()
         try {
+          const current = await currentSide(scope, agent.id)
+          if (current === undefined) return 'No side conversation has been opened for this main conversation.'
+          const childId = current.id
           using source = await scope.sessionQuery.observeSession(childId)
           if (source.header.parentSession !== agent.id) throw new Error('Side conversation parent does not match.')
           exec.signal.throwIfAborted()

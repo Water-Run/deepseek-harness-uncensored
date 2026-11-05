@@ -53,6 +53,7 @@ import type {
   SessionForkRequest,
   SessionForkValue,
   SessionAsideRequest,
+  SessionAsideResetRequest,
   SessionDeleteRequest,
   SessionDeleteValue,
   SessionListRequest,
@@ -134,6 +135,8 @@ export interface Config {
   readonly btwMaxTokens?: number
   /** Reasoning effort used for a one-shot quick question; the quick question never inherits the conversation's own level. */
   readonly btwReasoningEffort?: BtwReasoningEffort
+  /** Replace a side conversation's context when its actual sidebar tab closes. */
+  readonly sideClearOnClose?: boolean
   /** Maximum time to wait for cancelled jobs and turns before refusing deletion. */
   readonly deleteDrainTimeoutMs?: number
   /** Interval between deletion activity checks, in milliseconds. */
@@ -151,9 +154,11 @@ export interface Config {
 }
 
 /** Deployment policy after schema defaults have been applied. */
-export type ResolvedConfig = Required<Omit<Config, 'nativeOpen' | 'btwReasoningEffort'>> & Pick<Config, 'nativeOpen'> & {
+export type ResolvedConfig = Required<Omit<Config, 'nativeOpen' | 'btwReasoningEffort' | 'sideClearOnClose'>> & Pick<Config, 'nativeOpen'> & {
   /** Live quick-question reasoning preference, owned by Settings after schema resolution. */
   readonly btwReasoningEffort: Volatile<BtwReasoningEffort>
+  /** Live opt-in preference; default false preserves side history on close. */
+  readonly sideClearOnClose: Volatile<boolean>
 }
 
 /**
@@ -213,6 +218,7 @@ export class SessionController extends TypertRemoteService {
     // Volatile: the owner picks the quick-question level from Settings and the
     // Host treats it as live configuration, not a restart-scoped deployment value.
     btwReasoningEffort: z.union(['off', 'low', 'high', 'max']).default('low').volatile(),
+    sideClearOnClose: z.boolean().default(false).volatile(),
     deleteDrainTimeoutMs: z.natural().min(1).max(300000).default(30000),
     deletePollMs: z.natural().min(1).max(1000).default(50),
     predictionDraftBytes: z.natural().min(1).max(65536).default(16384),
@@ -276,6 +282,7 @@ export class SessionController extends TypertRemoteService {
       this.agents,
       () => resolved.btwReasoningEffort.get(),
       resolved.btwMaxTokens,
+      () => resolved.sideClearOnClose.get(),
     )
     ctx.effect(() => () => this.asides.close(), 'session-controller: side conversations')
     ctx.effect(() => ctx.fileUploads.registerAgentResolver(async (sessionId) => {
@@ -585,6 +592,16 @@ export class SessionController extends TypertRemoteService {
   @Remote('aside')
   aside(request: SessionAsideRequest): Promise<SessionForkValue> {
     return this.asides.open(request)
+  }
+
+  /**
+   * Clear only a native side's own context without changing its main conversation.
+   * @param request - Exact current side and manual or actual-close cause.
+   * @returns The fresh context identity, or the unchanged identity when auto-clear is off.
+   */
+  @Remote('resetAside')
+  resetAside(request: SessionAsideResetRequest): Promise<SessionForkValue> {
+    return this.asides.reset(request)
   }
 
   /**

@@ -27,6 +27,8 @@ Typing a `/` command opens a registered popup, a client action, a host command's
 
 `/side question` opens the persistent side conversation and sends only the question there; `/side` without text opens it without sending. A failed send retains the composer draft for retry.
 
+`/clear` is a built-in action available only inside the side conversation. It cancels the old side's work and opens a fresh context with the same mode, model and permission settings. Main-task background continues to update. General Settings offers `Clear side context when closed`, off by default. Actual tab closure honors this preference; resource reconnect and page reload do not clear the conversation. Historical logs remain stored with the owning main conversation.
+
 Side questions have a header shortcut and a distinct Start icon. Their own messages remain separate from main background; legacy inherited messages stay stored but are hidden in the side view. Quick-question results contain just the question, answer and necessary status; the embedded composer still hosts pending approval or question panels.
 
 An open side-question tab updates its label with the interface language; changing language preserves its conversation and draft. General Settings gains one row for the one-shot quick question's reasoning level; it reads and writes the live `btwReasoningEffort` field of the Host session-controller settings namespace, so a changed level applies to the next `/btw` without restarting anything. The row renders through the shared preference row, so its level reads as one value among the other Settings choices rather than as a control of its own shape.

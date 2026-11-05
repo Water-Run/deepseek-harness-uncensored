@@ -104,9 +104,10 @@ describe('session mode markers', () => {
   it('keeps native aside records out of ordinary groups and search, including when retained', () => {
     const parent = summary('parent', 1)
     const side = { ...summary(`session-side-${'a'.repeat(64)}`, 3), parentId: parent.id }
+    const clearedSide = { ...summary(`session-side-${'a'.repeat(64)}-2`, 5), parentId: parent.id }
     const quick = { ...summary('session-btw-12345678-1234-4567-8234-123456789abc', 4), parentId: parent.id }
     const fork = { ...summary('independent-fork', 2), parentId: parent.id }
-    const sessions = withMain(list(parent, side, quick, fork), quick.id)
+    const sessions = withMain(list(parent, side, clearedSide, quick, fork), quick.id)
     expect(visibleSessionIds(sessions, noArchive, 'default')).toEqual([parent.id, fork.id])
     expect(visibleSessionIds(sessions, noArchive, 'show')).toEqual([parent.id, fork.id])
   })

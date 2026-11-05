@@ -1,8 +1,6 @@
 /** Durable native aside identities restore their prompt section during Agent composition. */
-import { createHash } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { brandString } from '@deepseek-ai/dsh-brand'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@deepseek-ai/dsh-session-query'
@@ -10,6 +8,8 @@ import { latestCompletedPrefixBoundary } from './commands.ts'
 import { mainProgressContext } from './aside-main-context.ts'
 import { quickQuestionContext } from './aside-question-context.ts'
 import { installSideReader } from './aside-reader.ts'
+import { nativeAsideKind } from './aside-identity.ts'
+export { sideIdentity, nativeAsideKind } from './aside-identity.ts'
 
 /** Byte budgets for the context each native aside kind receives. */
 export interface AsideContextLimits {
@@ -17,27 +17,6 @@ export interface AsideContextLimits {
   readonly sideContextBytes: number
   /** Live progress snapshot supplied to a one-shot quick question. */
   readonly btwContextBytes: number
-}
-
-/**
- * Derive the persistent side conversation associated with a main session.
- * @param parent - Owning main session.
- * @returns Its stable side-question identity.
- */
-export function sideIdentity(parent: SessionId): SessionId {
-  return brandString<SessionId>(`session-side-${createHash('sha256').update(parent).digest('hex')}`)
-}
-
-/**
- * Classify a reserved native-aside identity against its recorded parent.
- * @param id - Child Session identity.
- * @param parent - Recorded direct parent.
- * @returns Native aside kind, or undefined for ordinary conversations and forks.
- */
-export function nativeAsideKind(id: SessionId, parent: SessionId | undefined): 'side' | 'btw' | undefined {
-  if (parent === undefined) return undefined
-  if (id === sideIdentity(parent)) return 'side'
-  return /^session-btw-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(id) ? 'btw' : undefined
 }
 
 /**
@@ -55,7 +34,7 @@ export async function installAsideContext(ctx: Context, agent: Agent, limits: As
   const parent = agent.session.header.parentSession
   const kind = nativeAsideKind(agent.id, parent)
   if (kind === undefined || parent === undefined) {
-    await installSideReader(ctx, agent, sideIdentity(agent.id), limits.sideContextBytes)
+    await installSideReader(ctx, agent, limits.sideContextBytes)
     return
   }
   await ctx.plugin({ name: 'native-aside-context', inject: ['systemPrompt', 'sessionQuery'], apply(scope: Context) {

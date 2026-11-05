@@ -13,6 +13,7 @@ import { SessionQueryError, type SessionObservation } from '@deepseek-ai/dsh-ses
 import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import type {} from '@deepseek-ai/dsh-typert-registry'
 import { installAsideContext, nativeAsideKind, type AsideContextLimits } from './aside-context.ts'
+import { currentSide } from './aside-identity.ts'
 
 /** Cold Session identity absent from persistence. */
 export class ApiSessionNotFound extends Error {}
@@ -131,6 +132,7 @@ export class ApiSessionAgentController {
   private readonly owned = new Map<SessionId, AgentHandle>()
   private readonly acquiring = new Set<Promise<Agent>>()
   private readonly deleting = new Set<SessionId>()
+  private readonly clearing = new Set<SessionId>()
   private readonly deleted = new Set<SessionId>()
 
   /**
@@ -142,7 +144,7 @@ export class ApiSessionAgentController {
       if (this.owned.get(agent.id)?.agent === agent) this.owned.delete(agent.id)
     })
     ctx.on('session-persistence/deleted', (id) => { this.deleted.add(id) })
-    ctx.on('agent/pre-step', ({ agent }, next) => this.isDeleting(agent.id)
+    ctx.on('agent/pre-step', ({ agent }, next) => (this.isDeleting(agent.id) || this.clearing.has(agent.id))
       ? Promise.resolve({ kind: 'reject' as const }) : next())
   }
 
@@ -172,7 +174,7 @@ export class ApiSessionAgentController {
    * @returns the live Agent or a stable Session-domain failure.
    */
   async resolveAgent(sessionId: SessionId): Promise<ApiSessionAgentResult> {
-    const error = this.unavailable(sessionId)
+    const error = this.unavailable(sessionId) ?? await this.retiredSide(sessionId)
     if (error !== undefined) return { error }
     return this.resolve(sessionId)
   }
@@ -183,9 +185,35 @@ export class ApiSessionAgentController {
    * @returns the live Agent or a stable Session-domain failure.
    */
   async resolveObservedAgent(observation: SessionObservation): Promise<ApiSessionAgentResult> {
-    const error = this.unavailable(observation.header.id)
+    const error = this.unavailable(observation.header.id) ?? await this.retiredSide(observation.header.id, observation.header)
     if (error !== undefined) return { error }
     return this.resolve(observation.header.id, observation)
+  }
+
+  private async retiredSide(id: SessionId, observed?: SessionHeader): Promise<ApiSessionAgentError | undefined> {
+    // An exact API-owned writer cannot be replaced by another Host before this owner releases it.
+    if (!id.startsWith('session-side-') || this.owns(id)) return undefined
+    const header = observed ?? this.ctx.sessions.get(id)?.header ?? (await this.ctx.get('sessionPersistence')?.stat(id))?.header
+    const parent = header?.parentSession
+    if (parent === undefined || nativeAsideKind(id, parent) !== 'side') return undefined
+    const current = await currentSide(this.ctx, parent)
+    if (current !== undefined && current.id !== id) {
+      return new RemoteError('session/agent-busy', 'This side context was cleared. Reopen the side conversation.', { reason: 'side-context-cleared' })
+    }
+  }
+
+  /**
+   * Stop API admission to one side while its owner drains and publishes a fresh context.
+   * @param id - Exact current side identity; the main conversation remains available.
+   * @param operation - Owned teardown and successor publication.
+   * @returns Completion after releasing the temporary admission guard.
+   */
+  async withAsideReset<T>(id: SessionId, operation: () => Promise<T>): Promise<T> {
+    const error = this.unavailable(id)
+    if (error !== undefined) throw error
+    this.clearing.add(id)
+    try { return await operation() }
+    finally { this.clearing.delete(id) }
   }
 
   /**
@@ -228,6 +256,7 @@ export class ApiSessionAgentController {
   }
 
   private unavailable(id: SessionId, parent?: SessionId): ApiSessionAgentError | undefined {
+    if (this.clearing.has(id)) return new RemoteError('session/agent-busy', 'The side conversation is clearing its context.', { reason: 'clearing' })
     if (this.deleted.has(id) || (parent !== undefined && this.deleted.has(parent))) {
       return new RemoteError('session/not-found', 'Session was deleted.', { sessionId: id })
     }

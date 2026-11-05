@@ -246,7 +246,7 @@ function sessionVisible(
   archivedFilter: ArchivedFilter,
 ): boolean {
   if (session.origin === 'subagent') return false
-  if (session.parentId !== undefined && /^session-(?:side-[0-9a-f]{64}|btw-[0-9a-f-]{36})$/u.test(session.id)) return false
+  if (session.parentId !== undefined && /^session-(?:side-[0-9a-f]{64}(?:-[1-9][0-9]*)?|btw-[0-9a-f-]{36})$/u.test(session.id)) return false
   if (session.blank && session.id !== current) return false
   switch (archivedFilter) {
     case 'default':

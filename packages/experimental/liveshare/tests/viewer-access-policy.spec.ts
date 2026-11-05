@@ -167,7 +167,7 @@ it('refuses owner controls even when a plugin offers them and a share selects th
   const f = await fixture({ mode: 'write' })
   const actions: RemoteAccessEndpoint[] = [
     'balance/get', 'spending/reset', 'memory/list', 'securityProxy/detail',
-    'session/delete', 'session/aside', 'session/predict', 'modeDossiers/readStory',
+    'session/delete', 'session/aside', 'session/resetAside', 'session/predict', 'modeDossiers/readStory',
     'agentPresets/confirmSecurityEntry', 'account/watch',
   ]
   f.offer([capabilityGroup(actions, actions)])

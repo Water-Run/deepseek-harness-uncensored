@@ -109,6 +109,60 @@ it('deletes native asides and derived data while preserving independent forks an
   await expect(api.aside({ sessionId, kind: 'side' })).rejects.toThrow()
 })
 
+it('keeps cleared side generations historical across restart, routes to the new context, and deletes the entire family', async () => {
+  const first = await setup()
+  const { sessionId } = await first.api.create({ cwd: first.cwd })
+  const original = await first.api.aside({ sessionId, kind: 'side' })
+  const old = first.ctx.agents.get(original.sessionId)!
+  old.followup(createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'HISTORICAL_SIDE_493' }] }))
+  await old.whenIdle()
+  const rawBefore = await first.ctx.sessionPersistence.open(original.sessionId, 'read')
+  const oldEvents = await rawBefore.read()
+  await rawBefore.close()
+  const [one, two] = await Promise.all([
+    first.api.resetAside({ sessionId: old.id, cause: 'manual' }),
+    first.api.resetAside({ sessionId: old.id, cause: 'manual' }),
+  ])
+  expect(two.sessionId).toBe(one.sessionId)
+  expect(one.sessionId).not.toBe(old.id)
+  const historical = await first.ctx.sessionPersistence.open(old.id, 'read')
+  try { expect((await historical.read()).events.slice(0, oldEvents.events.length)).toEqual(oldEvents.events) }
+  finally { await historical.close() }
+  await expect(first.api.selectModel({ sessionId: old.id, provider: 'mock', model: 'mock' }))
+    .rejects.toMatchObject({ code: 'session/agent-busy', details: { reason: 'side-context-cleared' } })
+  await first.ctx.fiber.dispose()
+  const reopened = await setup(undefined, first.root)
+  expect((await reopened.api.aside({ sessionId, kind: 'side' })).sessionId).toBe(one.sessionId)
+  const child = reopened.ctx.agents.get(one.sessionId)!
+  child.followup(createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'NEW_SIDE_720' }] }))
+  await child.whenIdle()
+  expect(JSON.stringify(reopened.adapter.requests.at(-1))).not.toContain('HISTORICAL_SIDE_493')
+  expect((await reopened.api.resetAside({ sessionId: old.id, cause: 'manual' })).sessionId).toBe(one.sessionId)
+  const deleted = await reopened.api.delete({ sessionId })
+  expect(new Set(deleted.deletedSessionIds)).toEqual(new Set([sessionId, old.id, one.sessionId]))
+  expect(await readFile(join(reopened.cwd, 'keep.txt'), 'utf8')).toBe('workspace file')
+})
+
+it('recovers a clear after successor initialization fails without restoring old messages', async () => {
+  const { ctx, api, cwd, adapter } = await setup()
+  const { sessionId } = await api.create({ cwd })
+  const old = await api.aside({ sessionId, kind: 'side' })
+  const side = ctx.agents.get(old.sessionId)!
+  side.followup(createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'FAILED_CLEAR_OLD_492' }] }))
+  await side.whenIdle()
+  const off = ctx.on('agent/created', ({ agent }) => {
+    if (agent.id === `${old.sessionId}-1`) throw new Error('fixture successor setup failed')
+  })
+  try { await expect(api.resetAside({ sessionId: side.id, cause: 'manual' })).rejects.toThrow('fixture successor setup failed') }
+  finally { off() }
+  const current = await api.aside({ sessionId, kind: 'side' })
+  expect(current.sessionId).not.toBe(side.id)
+  const fresh = ctx.agents.get(current.sessionId)!
+  fresh.followup(createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'RETRY_NEW_273' }] }))
+  await fresh.whenIdle()
+  expect(JSON.stringify(adapter.requests.at(-1))).not.toContain('FAILED_CLEAR_OLD_492')
+})
+
 it('stops a running API-owned conversation before removing its writer and log', async () => {
   const { ctx, api, cwd, adapter } = await setup(['hang'])
   const { sessionId } = await api.create({ cwd })

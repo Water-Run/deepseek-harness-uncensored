@@ -3300,6 +3300,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'The independent child session identity.',
       },
       {
+        signature: '@Remote(\'resetAside\') resetAside(request: SessionAsideResetRequest): Promise<SessionForkValue>',
+        description: 'Clear only a native side\'s own context without changing its main conversation.',
+        parameters: [{ name: 'request', description: 'Exact current side and manual or actual-close cause.' }],
+        returns: 'The fresh context identity, or the unchanged identity when auto-clear is off.',
+      },
+      {
         signature: '@Remote(\'predict\') async predict(request: SessionPredictionRequest, signal: AbortSignal): Promise<SessionPredictionValue>',
         description: 'Predict the unsent suffix for the composer. The call is logged, spends against the limit, and is not sent.',
         parameters: [{ name: 'request', description: 'Session, current draft, and the client revision that must still be current when the reply returns.' }, { name: 'signal', description: 'Cancellation for a newer draft or a closed composer.' }],
@@ -5712,6 +5718,14 @@ export const EVENT_API: readonly EventApiEntry[] = [
     summary: 'A Session left the live Host registry.',
     description: 'A Session left the live Host registry.',
     parameters: [{ name: 'sessionId', description: 'removed Session identity.' }],
+  },
+  {
+    name: 'api-session/side-reset',
+    mode: 'emit',
+    signature: '\'api-session/side-reset\'(parentSessionId: SessionId): void',
+    summary: 'A main conversation\'s current side context was replaced durably.',
+    description: 'A main conversation\'s current side context was replaced durably.',
+    parameters: [{ name: 'parentSessionId', description: 'Owning main Session; consumers reopen its side resource.' }],
   },
   {
     name: 'api-session/status',
@@ -9648,6 +9662,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SessionAsideRequest',
     declaration: 'export interface SessionAsideRequest {\n    readonly sessionId: SessionId;\n    readonly kind: \'side\' | \'btw\';\n}',
+  },
+  {
+    name: 'SessionAsideResetRequest',
+    declaration: 'export interface SessionAsideResetRequest {\n    readonly sessionId: SessionId;\n    readonly cause: \'manual\' | \'close\';\n}',
   },
   {
     name: 'SessionAssistantStreamAttempt',

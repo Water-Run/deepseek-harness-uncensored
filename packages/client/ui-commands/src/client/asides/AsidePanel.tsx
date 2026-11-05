@@ -60,6 +60,7 @@ export function SidebarAsidePanel({ sessionId, useTabInfo, useResource, SessionP
   const resource = useResource<'aside'>(asideParent(tab.contentId) === undefined ? asideAddress(sessionId) : tab.contentId)
   return <section className={css.sidebar} aria-label={t('aside.side')} data-aside="side">
     <div className={css.context}>{t('aside.inherited')}</div>
+    {resource.status === 'failed' && resource.value !== undefined && <p role="alert" className={css.notice}>{t('aside.failed')}</p>}
     {resource.value === undefined
       ? resource.status === 'failed'
         ? <div className={css.state} role="alert">{t('aside.failed')}</div>

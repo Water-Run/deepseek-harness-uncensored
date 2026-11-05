@@ -16,6 +16,11 @@ import type { CommandUiContract } from '../src/client/contract.ts'
 import type { PopupSelectInjected } from '../src/client/PopupSelectView.tsx'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { apply, CommandUiRuntime, inject } from '../src/client/index.ts'
+import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+import type { SidebarRightOpenTab, TabId } from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
+import type { ResourceProvider } from '@deepseek-ai/dsh-client-resources/client'
+import { asideAddress } from '../src/client/asides/address.ts'
+import type {} from '../src/client/asides/index.ts'
 
 const sid = (k: string): SessionId => k as SessionId
 
@@ -59,6 +64,58 @@ async function bench() {
 }
 
 describe('apply', () => {
+  it('offers /clear only in the side, replaces its retained resource, and reacts only to actual tab closure', async () => {
+    const { ctx, sources, sessions, fiber } = await bench()
+    await sessions.add({ id: 'side-one' })
+    await sessions.add({ id: 'side-two' })
+    await sessions.add({ id: 'side-three' })
+    let child = sid('side-one')
+    let cleared = 0
+    const aside = vi.fn(async () => ({ ok: true as const, value: { sessionId: child } }))
+    const resetAside = vi.fn(async (request: { sessionId: SessionId; cause: string }) => {
+      if (request.cause === 'manual') child = sid(++cleared === 1 ? 'side-two' : 'side-three')
+      return { ok: true as const, value: { sessionId: child } }
+    })
+    const remote = { aside, resetAside }
+    Object.assign(ctx.remote, { session: remote })
+    ctx.provide('remote.session', remote)
+    let provider: ResourceProvider<'aside'> | undefined
+    ctx.provide('resources', { register: (value: ResourceProvider<'aside'>) => { provider = value; return () => {} } })
+    ctx.provide('sidebarRightTabs', { register: () => () => {} })
+    const tabs = createSnapshotStore<readonly SidebarRightOpenTab[]>([])
+    ctx.provide('sidebarRight', { mounted: { getSnapshot: () => sid('s1') }, openTabs: tabs })
+    await Promise.all([...ctx.registry.values()].flatMap(runtime => [...runtime.fibers].map(value => value.await())))
+    if (provider === undefined) throw new Error('Missing side provider')
+    const abort = new AbortController()
+    const stream = provider.open(asideAddress(sid('s1')), { signal: abort.signal })[Symbol.asyncIterator]()
+    try {
+      expect((await stream.next()).value).toMatchObject({ ok: true, value: { reference: { sessionId: 'side-one' } } })
+      const source = sources.get('/ command')!
+      const request = { query: '', position: 'leading' as const, drilled: false, signal: new AbortController().signal }
+      expect((await source.candidates({ sessionId: sid('s1') }, request)).some(value => value.name === 'clear')).toBe(false)
+      expect((await source.candidates({ sessionId: sid('side-one') }, request)).some(value => value.name === 'clear')).toBe(true)
+      const match = await source.matchEnter!({ sessionId: sid('side-one') }, '/clear', new AbortController().signal, { attachments: 0 })
+      expect(match).toBe('handled')
+      expect((await stream.next()).value).toMatchObject({ ok: true, value: { reference: { sessionId: 'side-two' } } })
+      aside.mockRejectedValueOnce(new Error('reconnect failed'))
+      expect(await source.matchEnter!({ sessionId: sid('side-two') }, '/clear', new AbortController().signal, { attachments: 0 })).toBe('handled')
+      expect((await stream.next()).value).toMatchObject({ ok: false })
+      expect(sessions.retainInfo(sid('side-one')).getSnapshot().referenceCount).toBe(0)
+      expect(sessions.retainInfo(sid('side-two')).getSnapshot().referenceCount).toBe(1)
+      const tab = { sessionId: sid('s1'), tabId: 'side-tab' as TabId, kind: 'aside', contentId: asideAddress(sid('s1')) }
+      tabs.set([tab]); tabs.set([])
+      await vi.waitFor(() => { expect(resetAside).toHaveBeenCalledWith({ sessionId: sid('side-three'), cause: 'close' }) })
+      expect(resetAside).toHaveBeenCalledTimes(3)
+      abort.abort()
+      await stream.next()
+      expect(resetAside).toHaveBeenCalledTimes(3)
+      expect(sessions.retainInfo(sid('side-two')).getSnapshot().referenceCount).toBe(0)
+      await fiber.dispose()
+      tabs.set([tab]); tabs.set([])
+      expect(resetAside).toHaveBeenCalledTimes(3)
+    } finally { abort.abort(); await stream.return?.() }
+  })
+
   it('opens /side with optional text and sends only the text to the independent child', async () => {
     const { ctx, sources, sessions } = await bench()
     const prompt = vi.fn(async () => ({ ok: true as const, value: { accepted: true as const } }))
@@ -69,7 +126,8 @@ describe('apply', () => {
     ctx.provide('resources', { register: vi.fn(() => () => {}) })
     ctx.provide('sidebarRightTabs', { register: vi.fn(() => () => {}) })
     const openTab = vi.fn()
-    ctx.provide('sidebarRight', { openTab, mounted: { getSnapshot: () => sid('s1') } })
+    ctx.provide('sidebarRight', { openTab, mounted: { getSnapshot: () => sid('s1') },
+      openTabs: { getSnapshot: () => [], subscribe: () => () => {} } })
     await Promise.all([...ctx.registry.values()].flatMap(runtime => [...runtime.fibers].map(child => child.await())))
     const source = sources.get('/ command')!
     const match = await source.matchEnter!({ sessionId: sid('s1') }, '/side 现在情况如何', new AbortController().signal, { attachments: 0 })
@@ -96,7 +154,8 @@ describe('apply', () => {
     ctx.provide('remote.session', sessionRemote)
     ctx.provide('resources', { register: vi.fn(() => () => {}) })
     ctx.provide('sidebarRightTabs', { register: vi.fn(() => () => {}) })
-    ctx.provide('sidebarRight', { mounted: { getSnapshot: () => sid('s1') } })
+    ctx.provide('sidebarRight', { mounted: { getSnapshot: () => sid('s1') },
+      openTabs: { getSnapshot: () => [], subscribe: () => () => {} } })
     await Promise.all([...ctx.registry.values()].flatMap(runtime => [...runtime.fibers].map(child => child.await())))
     const source = sources.get('/ command')!
     const match = await source.matchEnter!({ sessionId: sid('s1') }, '/btw', new AbortController().signal, { attachments: 0 })
@@ -116,7 +175,8 @@ describe('apply', () => {
     ctx.provide('remote.session', { aside: vi.fn() })
     ctx.provide('resources', { register: vi.fn(() => () => {}) })
     ctx.provide('sidebarRightTabs', { register: vi.fn(() => () => {}) })
-    ctx.provide('sidebarRight', { openResource: vi.fn(), mounted: { getSnapshot: () => sid('s1') } })
+    ctx.provide('sidebarRight', { openResource: vi.fn(), mounted: { getSnapshot: () => sid('s1') },
+      openTabs: { getSnapshot: () => [], subscribe: () => () => {} } })
     await Promise.all([...ctx.registry.values()].flatMap(runtime => [...runtime.fibers].map(child => child.await())))
     const source = sources.get('/ command')!
     const rows = await source.candidates({ sessionId: sid('s1') }, { query: '', position: 'leading', drilled: false, signal: new AbortController().signal })

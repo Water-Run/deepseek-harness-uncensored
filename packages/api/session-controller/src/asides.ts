@@ -8,26 +8,28 @@ import type { Session, SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-permission-presets'
 import { setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy'
 import { setApprovalPolicy } from '@deepseek-ai/dsh-user-approval'
-import { SessionQueryError } from '@deepseek-ai/dsh-session-query'
+import type { SessionObservation } from '@deepseek-ai/dsh-session-query'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import type { ApiSessionAgentController } from './agent.ts'
-import type { SessionAsideRequest, SessionForkValue } from './types.ts'
-import { sideIdentity } from './aside-context.ts'
+import type { SessionAsideRequest, SessionAsideResetRequest, SessionForkValue } from './types.ts'
+import { sideIdentity, currentSide, nativeAsideKind } from './aside-identity.ts'
 
 /** Execution preset pinned to every one-shot quick question: it may look, never modify. */
 const QUICK_QUESTION_PRESET = 'read-only'
 
 /** Owns concurrent native aside creation until every admitted request finishes. */
 export class SessionAsideController {
-  private readonly opening = new Map<SessionId, Promise<SessionForkValue>>()
+  private readonly queues = new Map<SessionId, Promise<SessionForkValue>>()
   private readonly pending = new Set<Promise<SessionForkValue>>()
   private closed = false
 
   /** @param ctx - Host session services. @param agents - Shared composition and resume owner.
    * @param btwReasoningEffort - Live configured reasoning level for one-shot quick questions.
-   * @param btwMaxTokens - Output cap that keeps a quick answer short and fast. */
+   * @param btwMaxTokens - Output cap that keeps a quick answer short and fast.
+   * @param clearOnClose - Live setting; manual clearing does not depend on it. */
   constructor(private readonly ctx: Context, private readonly agents: ApiSessionAgentController,
-    private readonly btwReasoningEffort: () => string, private readonly btwMaxTokens: number) {}
+    private readonly btwReasoningEffort: () => string, private readonly btwMaxTokens: number,
+    private readonly clearOnClose: () => boolean) {}
 
   /**
    * Open a persistent side question, or create a fresh inline question.
@@ -35,19 +37,79 @@ export class SessionAsideController {
    * @returns Independent child identity; no model request is started.
    */
   open(request: SessionAsideRequest): Promise<SessionForkValue> {
-    if (this.closed) return Promise.reject(new RemoteError('gateway/internal', 'Session service is closing', {}))
-    if (request.kind === 'side') {
-      const existing = this.opening.get(request.sessionId)
-      if (existing !== undefined) return existing
+    return this.inOrder(request.sessionId, async () => {
+      this.authorize(request.sessionId)
+      if (request.kind === 'btw') return this.create(request, brandString<SessionId>(`session-btw-${randomUUID()}`))
+      using parent = await this.ctx.sessionQuery.observeSession(request.sessionId)
+      const current = await currentSide(this.ctx, parent.header.id)
+      if (current === undefined) return await this.create(request, sideIdentity(request.sessionId))
+      this.authorize(current.id)
+      const resumed = await this.agents.resolveAgent(current.id)
+      if ('error' in resumed) throw resumed.error
+      return { sessionId: current.id, inheritedEventCount: resumed.agent.session.inheritedEventCount }
+    })
+  }
+
+  /**
+   * Replace only a native side conversation with a fresh, durable context generation.
+   * The old log remains historical. Retrying an old identity returns the already-published successor.
+   * @param request - Exact side identity and whether an actual tab close initiated the request.
+   * @returns The current side identity after the operation; close is a no-op when disabled.
+   */
+  async reset(request: SessionAsideResetRequest): Promise<SessionForkValue> {
+    this.authorize(request.sessionId)
+    using source = await this.ctx.sessionQuery.observeSession(request.sessionId)
+    const parent = source.header.parentSession
+    if (parent === undefined || nativeAsideKind(request.sessionId, parent) !== 'side') {
+      throw new RemoteError('gateway/bad-request', 'Context clearing is available only inside a native side conversation.', {})
     }
-    const persistence = this.ctx.get('sessionPersistence')
-    const operation = persistence === undefined ? this.create(request)
-      : persistence.withCatalogMutation(request.sessionId, () => this.create(request))
+    this.authorize(parent)
+    return await this.inOrder(parent, async () => {
+      using main = await this.ctx.sessionQuery.observeSession(parent)
+      const current = await currentSide(this.ctx, main.header.id)
+      if (current === undefined) throw new RemoteError('session/not-found', 'Side conversation is unavailable.', { sessionId: request.sessionId })
+      this.authorize(current.id)
+      if (current.id !== request.sessionId || (request.cause === 'close' && !this.clearOnClose())) {
+        return { sessionId: current.id }
+      }
+      if (!Number.isSafeInteger(current.generation + 1)) throw new RemoteError('gateway/internal', 'Side context generation is exhausted.', {})
+      const childId = sideIdentity(parent, current.generation + 1)
+      this.authorize(childId)
+      this.agents.assertOwnedOrCold(current.id)
+      const resolved = await this.agents.resolveAgent(current.id)
+      if ('error' in resolved) throw resolved.error
+      return await this.agents.withAsideReset(current.id, async () => {
+        using settings = await this.ctx.sessionQuery.observeSession(current.id, { projectionMode: 'all' })
+        resolved.agent.cancel({ kind: 'user' })
+        await this.ctx.parallel('workspace/session-stop', { sessionId: current.id })
+        await this.ctx.get('subagents')?.drainDescendants([resolved.agent])
+        await this.agents.disposeOwned(current.id)
+        const fresh = await this.create({ sessionId: parent, kind: 'side' }, childId, settings)
+        this.ctx.emit('api-session/side-reset', parent)
+        return fresh
+      })
+    })
+  }
+
+  private authorize(id: SessionId): void {
+    if (!this.ctx.remoteAccess.allows({ kind: 'session', id })) {
+      throw new RemoteError('remote-access/denied', 'Side conversation access denied.', { action: 'session/aside', reason: 'no-allow' })
+    }
+  }
+
+  private inOrder(parent: SessionId, run: () => Promise<SessionForkValue>): Promise<SessionForkValue> {
+    if (this.closed) return Promise.reject(new RemoteError('gateway/internal', 'Session service is closing', {}))
+    const previous = this.queues.get(parent)
+    const operation = (async () => {
+      if (previous !== undefined) await Promise.allSettled([previous])
+      const persistence = this.ctx.get('sessionPersistence')
+      return persistence === undefined ? run() : persistence.withCatalogMutation(parent, run)
+    })()
+    this.queues.set(parent, operation)
     this.pending.add(operation)
-    if (request.kind === 'side') this.opening.set(request.sessionId, operation)
     const finished = (): void => {
       this.pending.delete(operation)
-      if (this.opening.get(request.sessionId) === operation) this.opening.delete(request.sessionId)
+      if (this.queues.get(parent) === operation) this.queues.delete(parent)
     }
     void operation.then(finished, finished)
     return operation
@@ -59,30 +121,14 @@ export class SessionAsideController {
     await Promise.allSettled([...this.pending])
   }
 
-  private async create(request: SessionAsideRequest): Promise<SessionForkValue> {
+  private async create(request: SessionAsideRequest, childId: SessionId, copy?: SessionObservation): Promise<SessionForkValue> {
+    if (copy !== undefined) return this.publish(request, childId, copy)
     using source = await this.ctx.sessionQuery.observeSession(request.sessionId, { projectionMode: 'all' })
-    const childId = request.kind === 'side' ? sideIdentity(request.sessionId)
-      : brandString<SessionId>(`session-btw-${randomUUID()}`)
-    if (!this.ctx.remoteAccess.allows({ kind: 'session', id: childId })) {
-      throw new RemoteError('remote-access/denied', 'Side conversation access denied', { action: 'session/aside', reason: 'no-allow' })
-    }
-    if (request.kind === 'side') {
-      let exists = false
-      try {
-        using child = await this.ctx.sessionQuery.observeSession(childId)
-        if (child.header.parentSession !== request.sessionId) {
-          throw new RemoteError('gateway/internal', 'Side conversation belongs to another parent', {})
-        }
-        exists = true
-      } catch (error) {
-        if (!(error instanceof SessionQueryError && error.code === 'SESSION_QUERY_SESSION_NOT_FOUND')) throw error
-      }
-      if (exists) {
-        const resumed = await this.agents.resolveAgent(childId)
-        if ('error' in resumed) throw resumed.error
-        return { sessionId: childId, inheritedEventCount: resumed.agent.session.inheritedEventCount }
-      }
-    }
+    return await this.publish(request, childId, source)
+  }
+
+  private async publish(request: SessionAsideRequest, childId: SessionId, source: SessionObservation): Promise<SessionForkValue> {
+    this.authorize(childId)
     const composition = await this.agents.composeAgent(this.agents.presetForObservation(source))
     const latestConfig = source.projections?.values.modelSelection?.next
       ?? source.events.findLast(event => event.type === 'request/header')?.data.header.config

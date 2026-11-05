@@ -6,8 +6,40 @@ import type { SettingsDescribeValue, SettingsNamespaceView } from '@deepseek-ai/
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import { AsideReasoningController, type SettingsRemoteFace } from '../src/client/asides/reasoning-settings.ts'
 import { AsideReasoningRow } from '../src/client/asides/ReasoningSettings.tsx'
+import { AsideClearController } from '../src/client/asides/clear-settings.ts'
+import { AsideClearRow } from '../src/client/asides/ClearSettings.tsx'
 
 afterEach(() => { cleanup() })
+
+it('reads auto-clear as off and writes only that preference with the Host revision', async () => {
+  const preferences = describeValue({ namespaces: [namespaceView({ value: { sideClearOnClose: false } })] })
+  const settings = remote({
+    describe: vi.fn(async () => ({ ok: true as const, value: preferences })),
+    update: vi.fn(async () => ({ ok: true as const, value: namespaceView({ revision: 4, value: { sideClearOnClose: true } }) })),
+  })
+  const controller = new AsideClearController(settings)
+  expect(await controller.load()).toEqual({ status: 'ready', value: false, writable: true })
+  expect(await controller.save(true)).toEqual({ status: 'ready', value: true, writable: true })
+  expect(settings.update).toHaveBeenCalledExactlyOnceWith('session-controller', { sideClearOnClose: true }, 3)
+})
+
+it('keeps auto-clear disabled when unavailable or rejected, and displays a failed write', async () => {
+  const missing = new AsideClearController(remote())
+  expect(await missing.load()).toEqual({ status: 'unavailable', value: false, writable: false })
+  const preferences = describeValue({ namespaces: [namespaceView({ value: { sideClearOnClose: false } })] })
+  const settings = remote({
+    describe: vi.fn(async () => ({ ok: true as const, value: preferences })),
+    update: vi.fn(async () => ({ ok: false as const, error: new RemoteError('gateway/internal', 'down', {}) })),
+  })
+  const controller = new AsideClearController(settings)
+  render(<AsideClearRow load={() => controller.load()} save={value => controller.save(value)} t={key => key} />)
+  const toggle = await screen.findByRole<HTMLButtonElement>('switch', { name: 'aside.clearOnClose' })
+  await waitFor(() => { expect(toggle.disabled).toBe(false) })
+  expect(toggle.getAttribute('aria-checked')).toBe('false')
+  await act(async () => { fireEvent.click(toggle) })
+  expect((await screen.findByRole('alert')).textContent).toBe('aside.clearSettingFailed')
+  expect(toggle.getAttribute('aria-checked')).toBe('false')
+})
 
 function namespaceView(overrides: Partial<SettingsNamespaceView> = {}): SettingsNamespaceView {
   return {
