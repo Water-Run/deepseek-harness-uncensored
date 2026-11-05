@@ -4,11 +4,13 @@
 
 09.04–09.07 的可选 `mysql_test_write` 支持预处理插入、更新与删除。它沿用固定 IP、TLS 名称和认证账号核对，并要求显式表清单、精确专用测试服务器和测试库规则、会话完全权限、直接表授权、InnoDB 及无触发器。更新和删除需提供非空等值条件。服务器确认提交后才报告成功，回执丢失返回 `MYSQL_COMMIT_UNKNOWN`。共享实例与其他协议仍在 [TODO](TODO.md)。
 
-隔离的 MySQL 8.0.46 实测模型工具提交、生产零 TCP、超行数回滚、触发器与非事务表拒绝、宽权限拒绝，并通过夹具丢弃一次真实提交回执验证未知结果。回执 `.dsh-build/mysql-test-write-real-20261105-result.json`。新增无密钥会话夹具 `mysql-test-write-protection` 通过实际工具入口验证生产规则拒绝与零连接。旧会话 JSONL 保留原样。临时 MySQL 实例已停止，约 376 MiB 夹具目录已清理。
+隔离的 MySQL 8.0.46 实测模型工具提交、生产零 TCP、超行数回滚、触发器与非事务表拒绝、宽权限拒绝，并通过夹具丢弃一次真实提交回执验证未知结果。回执 `.dsh-build/mysql-test-write-real-20261105-result.json`。新增无密钥会话夹具 `mysql-test-write-protection` 通过实际工具入口验证生产规则拒绝与零连接。旧会话 JSONL 保留原样。临时 MySQL 实例已停止，约 376 MiB 夹具目录已清理。该工具由后续源码构建带入。
 
 ## rc.1 Windows 检查包与 Python 运行时验收（2026-11-05）
 
-`c4685cedb7c00a1fa5bd9b6a52e25f89a14d1a0d` 的 Windows x64 检查包已完成实际安装器解包和资源核对。DSHU 0.1.0、DSH 0.2.2-rc.1、REA 6.8.0。安装器为 `.dsh-build/deliverables/DSHU-0.1.0-core-0.2.2-rc.1-REA-6.8.0-win-x64-unsigned-20261105-c4685c.exe`，394,382,004 字节，SHA-256 `d9378ab57e23acd8a6d4f335ea7a593739473e5c36050ebbbe1e81c54bf204e0`。回执 `.dsh-build/deliverables/DSHU-20261105-c4685c-manifest.json`。实际包四模式新建会话、ConPTY 长路径终端和四条浏览器代理路径通过。检查包未签名，系统当前安装 `4564b41285`。等待现有 DSHU 退出后，使用该版本安装器作为回滚副本，原位更新并核对资料与官方 DSH 文件哈希。
+`c4685cedb7c00a1fa5bd9b6a52e25f89a14d1a0d` 的 Windows x64 检查包已完成实际安装器解包和资源核对。DSHU 0.1.0、DSH 0.2.2-rc.1、REA 6.8.0。安装器为 `.dsh-build/deliverables/DSHU-0.1.0-core-0.2.2-rc.1-REA-6.8.0-win-x64-unsigned-20261105-c4685c.exe`，394,382,004 字节，SHA-256 `d9378ab57e23acd8a6d4f335ea7a593739473e5c36050ebbbe1e81c54bf204e0`。回执 `.dsh-build/deliverables/DSHU-20261105-c4685c-manifest.json`。实际包四模式新建会话、ConPTY 长路径终端和四条浏览器代理路径通过。检查包未签名。
+
+系统已从 `4564b41285` 原位更新到 `c4685cedb7`。安装前后核对了 6,942 个用户文件及两份官方 DSH 程序文件，哈希一致，恢复数为零。安装文件与已验收检查包一致。安装目录实际 Host 复测四模式、新建会话和隔离子进程通过。保留上一版本安装器和私有备份。安装回执 `.dsh-build/system-update-c4685c-20261105-result.json`，启动日志 `.dsh-build/rc1-installed-presets-20261105.log`。
 
 同一源码生成了 Windows x64 Python SDK SEA 单文件运行时，内嵌 Node 24.22.2。使用 Python SDK 的 `exe` 模式通过 11 项真实命令和恢复测试。可执行文件 228,021,760 字节，SHA-256 `3fe3192e31ed3817fab12b2f08075f9f146c33717614cc42f71020176e40cfe5`。回执 `.dsh-build/rc1-python-sea-runtime-20261105.json`。核对三对文件哈希一致后，删除了 627,833,524 字节的重复安装器和 SDK 输出副本，保留交付包、回滚包、验收解包和 SDK 运行目录。
 
