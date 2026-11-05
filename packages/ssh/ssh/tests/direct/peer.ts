@@ -41,6 +41,7 @@ export async function createSshFixture(options: {
   const forwards = new Map<Duplex, Promise<void>>()
   const sockets = new Set<Socket>()
   const execEntered = Promise.withResolvers<boolean>(), streamEntered = Promise.withResolvers<boolean>()
+  const peerClosed = Promise.withResolvers<undefined>()
   const password = randomUUID()
   const reference = credentialRef(`SSH_FIXTURE_${randomUUID().replaceAll('-', '_')}`)
   let connected = 0
@@ -94,7 +95,7 @@ export async function createSshFixture(options: {
   const listener = createServer((socket) => {
     connected++; sockets.add(socket)
     socket.on('error', () => {})
-    socket.once('close', () => { sockets.delete(socket) })
+    socket.once('close', () => { sockets.delete(socket); peerClosed.resolve(undefined) })
     server.injectSocket(socket)
   })
   let disposal: Promise<void> | undefined
@@ -118,13 +119,13 @@ export async function createSshFixture(options: {
     await new Promise<void>((resolve, reject) => { listener.once('error', reject); listener.listen(0, '127.0.0.1', resolve) })
     const address = listener.address()
     if (address === null || typeof address === 'string') throw new Error('Fixture listener did not bind an IP port')
-    await ctx.plugin(Credentials, { path: join(root, 'credentials.yaml'), dshHome: root, watch: false })
+    const credentials = await ctx.plugin(Credentials, { path: join(root, 'credentials.yaml'), dshHome: root, watch: false })
     await ctx.credentials.set(reference, password)
     const config = { hostname: '127.0.0.1', port: address.port, username: 'fixture', hostKeySha256: fingerprint,
       passwordRef: reference, helper: '/fixture/helper.js', helperHash: hello.hash,
       launch: { kind: 'node-script', node: '/fixture/node' }, workspace: '/fixture/workspace',
       maxFrameBytes: 65536, maxPending: 16, requestTimeoutMs: 5000, leaseMs: 30000 } satisfies Config
-    return { ctx, root, config, requests, commands, close, connected: () => connected,
-      execEntered: execEntered.promise, streamEntered: streamEntered.promise }
+    return { ctx, root, config, credentials, requests, commands, close, connected: () => connected,
+      execEntered: execEntered.promise, streamEntered: streamEntered.promise, peerClosed: peerClosed.promise }
   } catch (error) { await close(); throw error }
 }

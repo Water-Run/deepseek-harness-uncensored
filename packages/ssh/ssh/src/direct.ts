@@ -126,6 +126,12 @@ export class DirectSshConnection extends Service implements SshService {
       if (this.remote === undefined) this.fail(new HarnessError('SSH provider was withdrawn.', 'SSH_UNAVAILABLE'))
       else this.closing = true
     })
+    ctx.on('internal/service', (name) => {
+      // Withdrawal waits for this fiber's activation to settle before disposing its effects.
+      if (this.remote === undefined && Object.hasOwn(owner.inject, name) && ctx.get(name) === undefined) {
+        this.fail(new HarnessError('A service required to start SSH was withdrawn.', 'SSH_UNAVAILABLE'))
+      }
+    })
     ctx.effect(() => () => this.dispose(), 'ssh-direct.lifetime')
   }
 

@@ -122,13 +122,15 @@ it('settles a checksum refusal received before the helper RPC reader starts', as
   expect(h.requests).toEqual([])
 })
 
-it('stops a pending helper launch and closes its transport when the provider is withdrawn', async () => {
+it.each(['SSH provider', 'credential service'])('closes a pending helper launch when the %s is withdrawn', async (owner) => {
   const h = await harness({ holdExec: true })
   const fiber = h.ctx.plugin(Direct, h.config)
-  const failed = expect(fiber).rejects.toBeDefined()
   await h.execEntered
-  await fiber.dispose()
-  await failed
+  await (owner === 'SSH provider' ? fiber : h.credentials).dispose()
+  await fiber.await()
+  await h.peerClosed
+  expect(h.ctx.get('ssh')).toBeUndefined()
+  expect(h.connected()).toBe(1)
   expect(h.commands).toHaveLength(1)
 })
 

@@ -49,6 +49,7 @@ it('pins the literal target through the proxy and retains read-only file enforce
   expect(h.connected()).toBe(1)
   const stale = h.ctx.ssh
   await h.protection.dispose()
+  expect(h.requests).toContain('close')
   await vi.waitFor(() => { expect(h.proxy.open()).toBe(0) })
   await expect(stale.request('fs.readText', { target }, z.string())).rejects.toBeDefined()
 })
@@ -112,12 +113,13 @@ it('refuses a missing proxy credential before making a connection', async () => 
 
 it('closes a pending CONNECT when the rule owner is withdrawn', async () => {
   const h = await setup({ hold: true })
-  const pending = Promise.resolve(h.ctx.plugin(ProtectedSsh, h.config))
-  const rejection = expect(pending).rejects.toBeDefined()
+  const fiber = h.ctx.plugin(ProtectedSsh, h.config)
   await h.proxy.entered
   await h.protection.dispose()
-  await rejection
-  await vi.waitFor(() => { expect(h.proxy.open()).toBe(0) })
+  await fiber.await()
+  await h.proxy.peerClosed
+  expect(h.ctx.get('ssh')).toBeUndefined()
+  expect(h.proxy.open()).toBe(0)
   expect(h.connected()).toBe(0)
 })
 

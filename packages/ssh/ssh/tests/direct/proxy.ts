@@ -9,6 +9,7 @@ export async function proxyFixture(options: { status?: number; authorization?: s
   const server = createServer()
   const sockets = new Map<Duplex, Promise<void>>()
   const entered = Promise.withResolvers<boolean>()
+  const peerClosed = Promise.withResolvers<undefined>()
   const requests: { authority: string; authorization: string | undefined }[] = []
   let connections = 0
   function own(socket: Duplex) {
@@ -16,7 +17,10 @@ export async function proxyFixture(options: { status?: number; authorization?: s
     sockets.set(socket, new Promise<void>((resolve) => { socket.once('close', () => { sockets.delete(socket); resolve() }) }))
     return socket
   }
-  server.on('connection', (socket) => { connections++; own(socket) })
+  server.on('connection', (socket) => {
+    connections++; own(socket)
+    socket.once('close', () => { peerClosed.resolve(undefined) })
+  })
   server.on('connect', (request, client, head) => {
     const authority = request.url ?? ''
     requests.push({ authority, authorization: request.headers['proxy-authorization'] })
@@ -51,5 +55,5 @@ export async function proxyFixture(options: { status?: number; authorization?: s
   const address = server.address()
   if (address === null || typeof address === 'string') throw new Error('Proxy listener has no IP port')
   return { config: { protocol: 'http' as const, host: '127.0.0.1', port: address.port },
-    requests, entered: entered.promise, connections: () => connections, open: () => sockets.size }
+    requests, entered: entered.promise, peerClosed: peerClosed.promise, connections: () => connections, open: () => sockets.size }
 }
