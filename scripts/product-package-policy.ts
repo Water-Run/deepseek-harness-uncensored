@@ -17,7 +17,6 @@ export interface ProductPackagePolicy {
  */
 export const PRODUCT_PACKAGE_POLICY: Readonly<Record<string, ProductPackagePolicy>> = {
   'packages/guard/security-proxy': { category: 'optional', reason: 'Abstract contract for explicitly configured egress proxy providers; the local provider owns the runtime mount.' },
-  'packages/guard/target-protection': { category: 'optional', reason: 'The target-protection profile overlay is explicitly enabled by the owner.' },
   'packages/core/agent-tool-presentation': { category: 'optional', reason: 'Deprecated selector retained for existing executor configurations.' },
   'packages/browser-use/browser-use': { category: 'optional', reason: 'Service definition used by explicitly selected browser providers.' },
   'packages/computer-use/computer-use': { category: 'optional', reason: 'Service definition used by explicitly selected computer providers.' },

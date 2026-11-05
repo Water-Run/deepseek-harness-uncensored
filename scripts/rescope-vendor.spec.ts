@@ -88,7 +88,7 @@ describe('product identifiers', () => {
     'apps/cli/tests/optional-bundle-transitions.e2e.ts',
     'apps/web/tests/agent-preset-selection.e2e.ts',
     'apps/web/tests/developer-tools-settings.e2e.ts',
-    'packages/bundle/web-app/cordis.patch.yml',
+    'scripts/gen-tool-catalog.ts',
     'packages/client/ui-agent-preset/src/client/CreatePluginMenuItem.tsx',
     'packages/client/ui-agent-preset/src/client/analytics.ts',
     'packages/client/ui-agent-preset/tests/analytics.client.spec.ts',
@@ -107,6 +107,12 @@ describe('product identifiers', () => {
     const text = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8')
     expect(text).toMatch(/(['"`])cordis(?:\/inspect-query(?:-resolved)?)?\1/)
     expect(isRescopeExcluded(file)).toBe(false)
+    expect(rescopeText(text, file)).toEqual({ text, lines: 0 })
+  })
+
+  it('keeps the current four-mode Web composition idempotent', () => {
+    const file = 'packages/bundle/web-app/cordis.patch.yml'
+    const text = readFileSync(new URL(`../${file}`, import.meta.url), 'utf8')
     expect(rescopeText(text, file)).toEqual({ text, lines: 0 })
   })
 
@@ -169,7 +175,7 @@ describe('product identifiers', () => {
   })
 
   it('rewrites multiline fenced imports while preserving prose and fenced product data', () => {
-    const file = 'docs/subsystems/extensions.md'
+    const file = 'docs/user/guide/schedule.md'
     const text = "The `cordis` preset.\n```ts\nconst preset = 'cordis'\nimport {\n  Context,\n} from 'cordis'\n```\n"
     const scoped = "The `cordis` preset.\n```ts\nconst preset = 'cordis'\nimport {\n  Context,\n} from '@deepseek-ai/cordis'\n```\n"
     expectRoundTrip(file, text, scoped, 1)
@@ -180,7 +186,7 @@ describe('product identifiers', () => {
     const scoped = `# The 'cordis' preset.\n- name: ${name.replace('cordis', '@deepseek-ai/cordis')} # 'cordis' stays product data\n`
     for (const [file, wrap] of [
       ['packages/bundle/web-app/cordis.patch.yml', (value: string) => value],
-      ['docs/subsystems/extensions.md', (value: string) => `The \`cordis\` preset.\n\`\`\`yaml\n${value}\`\`\`\n`],
+      ['docs/user/guide/schedule.md', (value: string) => `The \`cordis\` preset.\n\`\`\`yaml\n${value}\`\`\`\n`],
     ] as const) {
       expectRoundTrip(file, wrap(text), wrap(scoped), 1)
     }

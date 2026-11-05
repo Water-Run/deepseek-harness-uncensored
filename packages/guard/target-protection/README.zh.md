@@ -90,7 +90,7 @@ kind: "package-reference"
 
 国家数据是覆盖和精度有限的估计。[IP Geolocation by DB-IP](https://db-ip.com) 按 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) 分发。使用这些结果的 Web 组合展示署名链接。详见[内置署名](assets/NOTICE.md)。
 
-配置托管 `cacheDirectory` 后，应用所有者可在目标保护面板点击「检查数据更新」。`targetProtectionSettings.updateCountry` 通过 HTTPS 检查 [DB-IP 官方月度归档](https://db-ip.com/db/download/ip-to-country-lite)，遵循 Host 进程代理环境。提供方限制下载和解压大小，校验 Country Lite 格式与编制月份，然后原子写入更新的有效缓存。重启优先读取最近一次校验通过的新缓存。无效、非字节流或较旧的数据不会替换当前数据。显式 `path` 仍由所有者维护。成功更新会刷新首次网安确认，并取消使用旧数据的请求。
+配置托管 `cacheDirectory` 后，应用所有者可在目标保护面板点击「检查数据更新」。`targetProtectionSettings.updateCountry` 通过 HTTPS 检查 [DB-IP 官方月度归档](https://db-ip.com/db/download/ip-to-country-lite)，沿用 Host 当前的传输与代理策略，不替换或关闭进程拥有的传输。提供方限制下载和解压大小，校验 Country Lite 格式与编制月份，然后原子写入更新的有效缓存。重启优先读取最近一次校验通过的新缓存。无效、非字节流或较旧的数据不会替换当前数据。显式 `path` 仍由所有者维护。成功更新会刷新首次网安确认，并取消使用旧数据的请求。
 
 用 `./security-proxy` 替换 `security-proxy-local`，并提供必需的凭据和目标保护服务。受控客户端、HTTP 转发及连接检查先校验原始目标，再通过字面 IP CONNECT 连接。转发保留原始 Host 和 TLS 身份，拒绝不匹配的 Host，并逐跳检查重定向。不透明 CONNECT 要求所有者将该字面 IP 和请求端口明确标记为测试服务器，生产规则仍检查目标 IP 与已知别名。隧道关闭前保留规则版本，所有者撤销规则时先关闭隧道，再保存新规则。保留受控普通 HTTP 提供方可让独立代理关闭时继续执行规则。
 

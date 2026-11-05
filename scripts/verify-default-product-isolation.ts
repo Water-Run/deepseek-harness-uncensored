@@ -1,7 +1,8 @@
 /**
- * Keep experimental packages outside default installations, runtime imports, and shipped compositions.
- * The one declared exception is a bundle the launcher names in `OPTIONAL_BUNDLES`: shipped for the person to
+ * Keep experimental packages outside default runtime imports and shipped compositions.
+ * An optional bundle the launcher names in `OPTIONAL_BUNDLES` is shipped for the person to
  * switch on, selected by no shipped template, its own dependency graph outside the default product's.
+ * DSHU Desktop also ships three opt-in browser providers; only their payload dependency edges are exempt.
  */
 
 import { existsSync, globSync, readFileSync, statSync } from 'node:fs'
@@ -23,6 +24,13 @@ import {
 import { isExperimentalPackageName } from './experimental-package-policy.ts'
 // The independently published entry package owns platform-engine dependencies.
 const EXTERNAL_KIT_PACKAGES = new Set(['@deepseek-ai/libreoffice-kit'])
+const BROWSER_PAYLOAD_RUNTIME = '@deepseek-ai/dsh-experimental-browser-use-runtime'
+const DESKTOP_BROWSER_PAYLOADS = new Set([
+  BROWSER_PAYLOAD_RUNTIME,
+  '@deepseek-ai/dsh-experimental-browser-use-playwright-mcp',
+  '@deepseek-ai/dsh-experimental-browser-use-chrome-devtools-mcp',
+  '@deepseek-ai/dsh-experimental-browser-use-stagehand-native',
+])
 const PROFILE_SOURCE = 'packages/util/official-bundles/src/bundles.ts'
 const PRESET_PATTERN = 'packages/bundle/web-app/presets/*.patch.yml'
 const RUNTIME_SECTIONS = ['dependencies', 'optionalDependencies', 'peerDependencies'] as const
@@ -151,6 +159,23 @@ export function verifyDefaultProductIsolation(root: string): ProductIsolationRes
       reference(range.replace(/^workspace:/, ''), origin, owner)
     } else if (/^(?:npm:|workspace:)(?:@|[a-zA-Z])/.test(range)) {
       reference(range.replace(/^(?:npm:|workspace:)/, ''), origin, owner)
+    }
+  }
+  const browserPayload = (name: string, range: string): Package | undefined => {
+    const pkg = packages.get(name)
+    return range === 'workspace:*' && DESKTOP_BROWSER_PAYLOADS.has(name)
+      && pkg !== undefined && display(pkg.directory) === `packages/experimental/${name.slice('@deepseek-ai/dsh-experimental-'.length)}`
+      ? pkg : undefined
+  }
+  const browserPayloads = new Set<string>()
+  // Payload dependencies remain checked, while their source and config are not default entrypoints.
+  const includeBrowserPayload = (pkg: Package): void => {
+    if (browserPayloads.has(pkg.directory)) return
+    browserPayloads.add(pkg.directory)
+    for (const section of RUNTIME_SECTIONS) for (const [name, range] of Object.entries(pkg.manifest[section] ?? {})) {
+      const target = browserPayload(name, range)
+      if (target !== undefined) includeBrowserPayload(target)
+      else dependency(name, range, pkg, `${pkg.manifest.name} ${section}`)
     }
   }
   const sourceReference = (specifier: string, path: string): void => {
@@ -295,6 +320,11 @@ export function verifyDefaultProductIsolation(root: string): ProductIsolationRes
       for (const [name, range] of Object.entries(manifest[section] ?? {})) {
         const target = packages.get(name)
         if (pkg === cli && section === 'dependencies' && optionalBundles.has(name) && target !== undefined && isExperimental(target)) continue
+        if (display(pkg.directory) === 'apps/desktop-host' && manifest.name === '@deepseek-ai/dsh-desktop-host'
+          && section === 'dependencies' && name !== BROWSER_PAYLOAD_RUNTIME) {
+          const payload = browserPayload(name, range)
+          if (payload !== undefined) { includeBrowserPayload(payload); continue }
+        }
         dependency(name, range, pkg, `${manifest.name} ${section}`)
       }
     }

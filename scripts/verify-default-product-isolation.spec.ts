@@ -48,6 +48,44 @@ afterEach(() => {
 })
 
 describe('default product isolation', () => {
+  describe.each(['playwright-mcp', 'chrome-devtools-mcp', 'stagehand-native'])('Desktop opt-in browser payload %s', (suffix) => {
+    const provider = `@deepseek-ai/dsh-experimental-browser-use-${suffix}`
+    const runtime = '@deepseek-ai/dsh-experimental-browser-use-runtime'
+    function browserFixture(): string {
+      const root = fixture()
+      write(root, 'apps/desktop-host/package.json', {
+        name: '@deepseek-ai/dsh-desktop-host', dependencies: { [provider]: 'workspace:*' },
+      })
+      write(root, 'apps/desktop-host/src/index.ts', 'export {}\n')
+      write(root, `packages/experimental/browser-use-${suffix}/package.json`, {
+        name: provider, dependencies: { [runtime]: 'workspace:*' },
+      })
+      write(root, 'packages/experimental/browser-use-runtime/package.json', { name: runtime })
+      return root
+    }
+
+    it('ships the provider but continues checking its dependency graph', () => {
+      const root = browserFixture()
+      expect(verifyDefaultProductIsolation(root).failures).toEqual([])
+      manifest(root, 'packages/experimental/browser-use-runtime/package.json', { dependencies: { [experimental]: 'workspace:*' } })
+      expect(verifyDefaultProductIsolation(root).failures.join('\n')).toContain(`${runtime} dependencies -> ${experimental}`)
+    })
+
+    it.each(['import', 'subpath import', 'dynamic import', 'default config', 'other consumer', 'alias', 'direct support'])(
+      'rejects default use through %s', (route) => {
+        const root = browserFixture()
+        if (route === 'import') write(root, 'apps/desktop-host/src/index.ts', `import '${provider}'\n`)
+        if (route === 'subpath import') write(root, 'apps/desktop-host/src/index.ts', `import '${provider}/types'\n`)
+        if (route === 'dynamic import') write(root, 'apps/desktop-host/src/index.ts', `void import('${provider}')\n`)
+        if (route === 'default config') write(root, patch, [{ insert: [{ name: provider }] }])
+        if (route === 'other consumer') manifest(root, 'packages/core/core/package.json', { dependencies: { [provider]: 'workspace:*' } })
+        if (route === 'alias') manifest(root, 'apps/desktop-host/package.json', { dependencies: { browser: `npm:${provider}@1.0.0` } })
+        if (route === 'direct support') manifest(root, 'apps/desktop-host/package.json', { dependencies: { [runtime]: 'workspace:*' } })
+        expect(verifyDefaultProductIsolation(root).failures.join('\n')).toContain('default product must not include experimental packages')
+      },
+    )
+  })
+
   describe.each(Object.entries(EXPERIMENTAL_PACKAGE_NAME_EXCEPTIONS))('retained experimental identity %s', (directory, name) => {
     it.each(['direct dependency', 'transitive dependency', 'npm alias', 'value import', 'subpath import', 'profile row', 'preset row'])(
       'rejects default product use through a %s', (route) => {

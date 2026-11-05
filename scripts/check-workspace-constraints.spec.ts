@@ -537,11 +537,17 @@ describe('package payload constraints', () => {
   )
 })
 
-it('publishes CLI runtime declarations and rejects a payload that omits them', () => {
+it('publishes CLI declarations and the opt-in target overlay without allowing arbitrary config payloads', () => {
   const manifest = JSON.parse(readFileSync(new URL('../apps/cli/package.json', import.meta.url), 'utf8')) as WorkspaceManifest['manifest']
   expect(checkWorkspaceManifest({ dir: 'apps/cli', manifest })).toEqual([])
   expect(checkWorkspaceManifest({ dir: 'apps/cli', manifest: { ...manifest, files: ['lib/*.js'] } }))
-    .toEqual([expect.stringContaining('@deepseek-ai/dsh: package.json files must be ["lib/*.js","lib/types/*.d.ts"]')])
+    .toEqual([expect.stringContaining('package.json files must be')])
+  expect(checkWorkspaceManifest({ dir: 'apps/cli', manifest: {
+    ...manifest, files: manifest.files!.filter(file => file !== 'config/examples/target-protection.yml'),
+  } })).toEqual([expect.stringContaining('package.json files must be')])
+  expect(checkWorkspaceManifest({ dir: 'apps/cli', manifest: {
+    ...manifest, files: [...manifest.files!, 'config/examples/unrelated.yml'],
+  } })).toEqual([expect.stringContaining('package.json files must be')])
 })
 
 it('requires the shared Web injection entry in the published payload', () => {
