@@ -4548,6 +4548,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Root owner; the HTTP consumer requires this service and cannot fall back after its removal.',
     methods: [
       {
+        signature: 'bindAuditSession(sessionId: SessionId | undefined): TargetAuditExecution',
+        description: 'Bind trusted listener ownership for admission logging, without granting target access. An enabled audit refuses a missing or replaced Session before running the operation.',
+        parameters: [{ name: 'sessionId', description: 'Owner-established Session identity; undefined clears inherited attribution for Host checks.' }],
+        returns: 'A request runner retaining the exact Session and checking its membership on each invocation.',
+      },
+      {
         signature: 'auditHistory(): TargetAuditHistory',
         description: 'Read the local protection admission log without exposing raw targets or the fingerprint key.',
         parameters: [],
@@ -10848,6 +10854,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'TargetAuditEntry',
     declaration: 'export type TargetAuditEntry = TargetAuditRecord & {\n    id: TargetAuditId;\n};',
+  },
+  {
+    name: 'TargetAuditExecution',
+    declaration: 'export interface TargetAuditExecution {\n    <T>(operation: () => Promise<T>): Promise<T>;\n}',
   },
   {
     name: 'TargetAuditHistory',

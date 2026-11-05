@@ -127,7 +127,10 @@ export async function mountSecurityProxy(
   const engine = createEngine(callbacks)
   const service = ctx.plugin(SecurityProxyService, engine)
   const stopSessionEvent = ctx.on('session/event', (session, event) => {
-    if (event.type === 'agent-preset/selected') presets.set(session.id, event.data.agentPreset)
+    if (event.type === 'agent-preset/selected') {
+      presets.set(session.id, event.data.agentPreset)
+      if (event.data.agentPreset !== 'security') engine.forgetSession(session.id)
+    }
   })
   const stopSession = ctx.on('session/disposed', (session) => {
     presets.delete(session.id)

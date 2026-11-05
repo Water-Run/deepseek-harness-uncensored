@@ -419,6 +419,59 @@ describe('cancellation and shutdown', () => {
     expect(order.slice(1)).toContain('dispatcher')
   })
 
+  it('refuses a retiring listener even while a replacement for the same Session is already active', async () => {
+    const h = await build(), entered = Promise.withResolvers<boolean>(), release = Promise.withResolvers<boolean>()
+    // oxlint-disable-next-line typescript/unbound-method -- The spy forwards with the listener's original receiver.
+    const close = SessionChainProxy.prototype.close
+    const closing = vi.spyOn(SessionChainProxy.prototype, 'close').mockImplementation(async function (this: SessionChainProxy) {
+      if (this.port === h.chainPort) { entered.resolve(true); await release.promise }
+      await close.call(this)
+    })
+    try {
+      h.engine.forgetSession(SessionId('sess-a'))
+      await entered.promise
+      const before = { requests: h.upstream.requests.length, tunnels: h.upstream.tunnels.length }
+      expect((await throughChain(h.chainPort, h.target.url)).status).toBeGreaterThanOrEqual(400)
+      expect({ requests: h.upstream.requests.length, tunnels: h.upstream.tunnels.length }).toEqual(before)
+      const replacement = await h.engine.environment(subject('sess-a'), 'bash')
+      if (replacement?.HTTP_PROXY === undefined) throw new Error('Missing replacement route')
+      const port = Number(new URL(replacement.HTTP_PROXY).port)
+      expect(port).not.toBe(h.chainPort)
+      expect((await throughChain(port, h.target.url)).status).toBe(200)
+      const after = { requests: h.upstream.requests.length, tunnels: h.upstream.tunnels.length }
+      expect((await throughChain(h.chainPort, h.target.url)).status).toBeGreaterThanOrEqual(400)
+      expect({ requests: h.upstream.requests.length, tunnels: h.upstream.tunnels.length }).toEqual(after)
+    } finally {
+      release.resolve(true)
+      await h.engine.dispose()
+      closing.mockRestore()
+    }
+  })
+
+  it('does not publish a pending listener endpoint after its Session has been withdrawn', async () => {
+    const h = await build(), entered = Promise.withResolvers<boolean>(), release = Promise.withResolvers<boolean>()
+    const start = SessionChainProxy.start
+    const opening = vi.spyOn(SessionChainProxy, 'start').mockImplementation(async (...args) => {
+      const proxy = await start(...args)
+      entered.resolve(true)
+      await release.promise
+      return proxy
+    })
+    try {
+      const pending = h.engine.environment(subject('sess-a'), 'pending-listener')
+      const rejected = expect(pending).rejects.toThrow('This proxy route was withdrawn.')
+      await entered.promise
+      h.engine.forgetSession(SessionId('sess-a'))
+      release.resolve(true)
+      await rejected
+      expect((await h.engine.state()).listeners).toBe(0)
+    } finally {
+      release.resolve(true)
+      await h.engine.dispose()
+      opening.mockRestore()
+    }
+  })
+
   it('reports caller cancellation instead of a proxy failure', async () => {
     const h = await build({ requestTimeoutMs: 30_000 })
     const slow = createServer((_request, response) => {

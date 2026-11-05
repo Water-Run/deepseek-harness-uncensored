@@ -12,6 +12,10 @@ import Include from '@deepseek-ai/cordis-plugin-include'
 import * as Credentials from '@deepseek-ai/dsh-credentials-local'
 import { Session, SessionId, SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session'
 import type { Agent } from '@deepseek-ai/dsh-agent'
+import { mountAgentLoopTestDependencies, mountAgentLoopTestHarness } from '@deepseek-ai/dsh-agent-loop-testkit'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
+import { fileURLToPath } from 'node:url'
 import WebRuntime from '@deepseek-ai/dsh-web'
 import * as Http from '@deepseek-ai/dsh-web-fetch-http'
 import * as ProxyHost from '@deepseek-ai/dsh-security-proxy-local'
@@ -35,9 +39,10 @@ function production(overrides: Partial<TargetRule> = {}): TargetRule {
     environment: 'production', protection: 'full', match: 'host', address: 'origin.test', ...overrides }
 }
 
-async function harness(privateTarget = false) {
+async function harness(privateTarget = false, audit = false) {
   const root = await mkdtemp(join(tmpdir(), 'dshu-guarded-proxy-'))
   const ctx = new Context()
+  const unblock: (() => void)[] = []
   let engine: ProxyHost.SecurityProxyEngine | undefined
   const mount = ProxyHost.mountSecurityProxy
   vi.spyOn(ProxyHost, 'mountSecurityProxy').mockImplementation((context, config, factory) => mount(context, config, (options) => {
@@ -53,6 +58,7 @@ async function harness(privateTarget = false) {
     socket.on('error', () => { socket.destroy() })
   }
   onTestFinished(async () => {
+    for (const release of unblock) release()
     try { await ctx.fiber.dispose() }
     finally {
       for (const socket of sockets) socket.destroy()
@@ -65,6 +71,10 @@ async function harness(privateTarget = false) {
     }
     expect(failed).toEqual([])
   })
+  if (audit) {
+    await mountAgentLoopTestDependencies(ctx)
+    await mountAgentLoopTestHarness(ctx)
+  }
   const seen: { method: string; host: string | undefined; body: string; proxyAuthorization: string | undefined }[] = []
   let targetConnections = 0, proxyConnections = 0
   let handle: (request: IncomingMessage, response: ServerResponse) => Promise<void> = async (request, response) => {
@@ -112,6 +122,7 @@ async function harness(privateTarget = false) {
   const replacements: Record<string, string | number> = {
     __CREDENTIALS__: join(root, 'credentials.yaml'), __HOME__: root, __RULES__: rulesPath,
     __HOSTS__: hosts, __PROXY__: join(root, 'proxy.json'), __PORT__: port,
+    __AUDIT__: audit ? join(root, 'audit.sqlite') : '',
   }
   let config = await readFile(new URL('./fixtures/proxy.cordis.yml', import.meta.url), 'utf8')
   for (const [key, value] of Object.entries(replacements)) config = config.replace(key, JSON.stringify(value))
@@ -134,7 +145,8 @@ async function harness(privateTarget = false) {
   expect((await ctx.securityProxy.configure({ enabled: true, host: '127.0.0.1', port: proxyPort })).status).toBe('ready')
   await vi.waitFor(() => { expect(sockets.size).toBe(0) })
   proxyConnections = 0; targetConnections = 0; tunnels.length = 0
-  const agent = subject()
+  const agent = audit ? (await ctx.agents.create({ sessionId: SessionId('guarded-proxy-fixture'),
+    meta: { agentPreset: 'security' } })).agent : subject()
   const url = `http://origin.test:${port}/`
   const fetch = (path = '') => ctx.securityProxy.fetchTarget(agent, url + path, new AbortController().signal)
   const chain = async () => {
@@ -142,7 +154,7 @@ async function harness(privateTarget = false) {
     if (environment?.HTTP_PROXY === undefined) throw new Error('proxy route is absent')
     return Number(new URL(environment.HTTP_PROXY).port)
   }
-  return { ctx, rulesPath, configure, fetch, url, port, agent, chain, seen, tunnels,
+  return { ctx, rulesPath, configure, fetch, url, port, agent, chain, seen, tunnels, unblock,
     engine: () => { if (engine === undefined) throw new Error('Protected engine is absent'); return engine },
     counts: () => ({ targetConnections, proxyConnections }),
     respond: (next: typeof handle) => { handle = next },
@@ -174,6 +186,73 @@ function throughTunnel(port: number, authority: string, payload = ''): Promise<s
     socket.on('close', () => { resolve(Buffer.concat(chunks).toString('utf8')) })
   })
 }
+
+async function processTraffic(
+  environment: Readonly<Record<string, string>> | undefined, mode: 'http' | 'connect', target: string,
+): Promise<unknown> {
+  if (environment?.HTTP_PROXY === undefined) throw new Error('Missing issued fixture route')
+  const fixture = fileURLToPath(new URL('./fixtures/proxy-traffic.mjs', import.meta.url))
+  const { stdout } = await promisify(execFile)(process.execPath, [fixture, mode, target], {
+    env: { ...process.env, ...environment }, windowsHide: true, timeout: 15_000, encoding: 'utf8', maxBuffer: 64 * 1024,
+  })
+  const result: unknown = JSON.parse(stdout)
+  return result
+}
+
+it('attributes concurrent external processes to their issued listeners and leaves Host checks unassigned', async () => {
+  const h = await harness(true, true)
+  const side = await h.ctx.agents.create({ sessionId: SessionId('guarded-side'),
+    meta: { agentPreset: 'security', parentSession: h.agent.id } })
+  const unrelated = await h.ctx.agents.create({ sessionId: SessionId('unrelated-initiator') })
+  const issue = (agent: Agent) => h.ctx.agents.withInitiator(unrelated.agent, () => h.ctx.securityProxy.environment(agent, 'delegate'))
+  const [mainRoute, sideRoute] = await Promise.all([issue(h.agent), issue(side.agent)])
+  const entered = Promise.withResolvers<boolean>(), release = Promise.withResolvers<boolean>()
+  h.unblock.push(() => { release.resolve(true) })
+  let waiting = 0
+  h.respond(async (_request, response) => {
+    if (++waiting === 2) entered.resolve(true)
+    await release.promise
+    response.writeHead(200, { 'content-type': 'text/plain' })
+    response.end('audited relay')
+  })
+  const requests = Promise.all([processTraffic(mainRoute, 'http', h.url), processTraffic(sideRoute, 'http', h.url)])
+  await Promise.race([entered.promise, requests.then(() => { throw new Error('Traffic ended before reaching the concurrency barrier') })])
+  release.resolve(true)
+  expect(await requests).toEqual([{ status: 200, body: 'audited relay' }, { status: 200, body: 'audited relay' }])
+  for (const agent of [h.agent, side.agent]) {
+    const records = agent.session.snapshotEvents().filter(event => event.type === 'target/admission')
+    expect(records).toHaveLength(1)
+    expect(records[0]?.data).toMatchObject({ source: { sessionId: agent.id }, decision: 'allow', operation: 'proxy-http' })
+  }
+  expect(side.agent.session.snapshotEvents().find(event => event.type === 'target/admission')?.data.source?.parentSessionId).toBe(h.agent.id)
+  expect(unrelated.agent.session.snapshotEvents().filter(event => event.type === 'target/admission')).toEqual([])
+  const before = h.counts()
+  await h.configure([production()])
+  expect(await processTraffic(sideRoute, 'http', h.url)).toMatchObject({ status: 403 })
+  expect(h.counts()).toEqual(before)
+  expect(h.ctx.targetProtection.auditHistory().entries[0]).toMatchObject({ source: { sessionId: side.agent.id },
+    code: 'TARGET_FULLY_PROTECTED', decision: 'deny' })
+  await h.ctx.agents.withInitiator(unrelated.agent, () => h.ctx.securityProxy.test())
+  expect(h.ctx.targetProtection.auditHistory().entries[0]).not.toHaveProperty('source')
+  expect(unrelated.agent.session.snapshotEvents().filter(event => event.type === 'target/admission')).toEqual([])
+})
+
+it('attributes an external CONNECT client and withdraws its listener after leaving Security mode', async () => {
+  const h = await harness(true, true)
+  await h.configure([production({ environment: 'test', address: '127.0.0.1', port: h.port })])
+  const route = await h.ctx.securityProxy.environment(h.agent, 'external-browser')
+  const result = await processTraffic(route, 'connect', `127.0.0.1:${h.port}`)
+  expect(result).toContain('200 Connection Established')
+  expect(result).toContain('guarded fixture')
+  expect(h.agent.session.snapshotEvents().filter(event => event.type === 'target/admission').map(event => event.data))
+    .toContainEqual(expect.objectContaining({ decision: 'allow', operation: 'proxy-http', source: { sessionId: h.agent.id } }))
+  h.agent.session.append('agent-preset/selected', { agentPreset: 'standard' })
+  expect((await h.ctx.securityProxy.get()).listeners).toBe(0)
+  const before = h.counts()
+  await expect(processTraffic(route, 'connect', `127.0.0.1:${h.port}`)).rejects.toBeDefined()
+  expect(h.counts()).toEqual(before)
+  expect(await h.ctx.securityProxy.environment(h.agent, 'external-browser')).toBeUndefined()
+})
 
 it('refuses production before either upstream or target connections, including direct service calls', async () => {
   const h = await harness()

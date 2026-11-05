@@ -222,6 +222,15 @@ export class SecurityProxyEngine {
   }
 
   /**
+   * Bind request attribution for a route or Host check; subclasses may validate the live owner.
+   * @param _sessionId - Route owner, or undefined for a Host-level connection check.
+   * @returns The request runner; the default preserves the operation without adding context.
+   */
+  protected executionScope(_sessionId: SessionId | undefined): <T>(operation: () => Promise<T>) => Promise<T> {
+    return operation => operation()
+  }
+
+  /**
    * Check a proxy path without forwarding application bytes.
    * @param upstream - Selected upstream with private credentials.
    * @param signal - Execution cancellation.
@@ -243,7 +252,7 @@ export class SecurityProxyEngine {
    * @returns the check outcome and the state after it.
    */
   async test(): Promise<SecurityProxyTestResult> {
-    return this.execute(signal => this.runTest(signal))
+    return this.executionScope(undefined)(() => this.execute(signal => this.runTest(signal)))
   }
 
   private async runTest(signal: AbortSignal): Promise<SecurityProxyTestResult> {
@@ -426,11 +435,11 @@ export class SecurityProxyEngine {
     if (route === undefined) {
       throw new WebError('the security-mode proxy does not cover this request', 'SECURITY_PROXY_NOT_COVERED')
     }
-    return this.execute(async (executionSignal) => {
+    return this.executionScope(route.sessionId)(() => this.execute(async (executionSignal) => {
       const { upstream, dispatcher } = await this.ensureTransport()
       executionSignal.throwIfAborted()
       return this.retrieve(url, upstream, dispatcher, route.sessionId, 'web_fetch', executionSignal)
-    }, signal)
+    }, signal))
   }
 
   /**
@@ -568,8 +577,9 @@ export class SecurityProxyEngine {
     const key = JSON.stringify([sessionId, tool])
     const existing = this.chains.get(key)
     if (existing !== undefined) {
-      return await existing.proxy
+      return this.resolveChain(key, existing)
     }
+    const execution = this.executionScope(sessionId)
     const upstream = (): Upstream => {
       if (this.upstreamNow === undefined) throw new UpstreamFailure('invalid-config', 'the security proxy has no upstream configured')
       return this.upstreamNow
@@ -586,8 +596,14 @@ export class SecurityProxyEngine {
         tool: () => tool,
         signal: () => this.executionSignal(),
         retainExecution: () => this.retainExecution(),
-        requestHttp: (url, request, signal) => this.requestHttp(upstream(), dispatcher(), url, request, signal),
-        openTunnel: (host, port, signal) => this.openTunnel(upstream(), host, port, signal),
+        requestHttp: (url, request, signal) => {
+          if (this.chains.get(key) !== record) return Promise.reject(new UpstreamFailure('unknown', 'This proxy route was withdrawn.'))
+          return execution(() => this.requestHttp(upstream(), dispatcher(), url, request, signal))
+        },
+        openTunnel: (host, port, signal) => {
+          if (this.chains.get(key) !== record) return Promise.reject(new UpstreamFailure('unknown', 'This proxy route was withdrawn.'))
+          return execution(() => this.openTunnel(upstream(), host, port, signal))
+        },
         capture: this.options.capture,
         paused: () => this.options.store.value.capturePaused,
         timeoutMs: this.options.requestTimeoutMs,
@@ -596,7 +612,13 @@ export class SecurityProxyEngine {
     }
     this.chains.set(key, record)
     record.proxy.catch(() => { if (this.chains.get(key) === record) this.chains.delete(key) })
-    return await record.proxy
+    return this.resolveChain(key, record)
+  }
+
+  private async resolveChain(key: string, record: ChainRecord): Promise<SessionChainProxy> {
+    const proxy = await record.proxy
+    if (this.chains.get(key) !== record) throw new UpstreamFailure('unknown', 'This proxy route was withdrawn.')
+    return proxy
   }
 
   /** Follow same-origin redirects, read a capped body, and record the exchange. */

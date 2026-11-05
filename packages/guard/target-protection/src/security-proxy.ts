@@ -1,5 +1,6 @@
 /** Independent security proxy backed by a mandatory, retained target-rule owner. @module */
 import type { Context } from '@deepseek-ai/cordis'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { isIP } from 'node:net'
 import {
   Config as ProxyConfig, SecurityProxyEngine, mountSecurityProxy, proxyUrl, connectThrough,
@@ -9,7 +10,7 @@ import { requestPinnedViaProxy, validateFetchUrl } from '@deepseek-ai/dsh-web-fe
 import type { HttpFetchDestination, PinnedResponse, PublicAddress } from '@deepseek-ai/dsh-web-fetch-http'
 import { WebError } from '@deepseek-ai/dsh-web'
 import type TargetProtection from './index.ts'
-import type { TargetHttpResolution } from './index.ts'
+import type { TargetHttpResolution, TargetAuditExecution } from './index.ts'
 import type {} from './settings.ts'
 import { assertNetworkAllowed } from './network-decision.ts'
 import { canonicalTargetHost, hasExactTestServer } from './rules.ts'
@@ -33,6 +34,10 @@ class ProtectedProxyEngine extends SecurityProxyEngine {
   }
 
   protected override retainExecution(): () => void { return this.protection.retainExecution() }
+
+  protected override executionScope(sessionId: SessionId | undefined): TargetAuditExecution {
+    return this.protection.bindAuditSession(sessionId)
+  }
 
   private async authorize(destination: HttpFetchDestination, signal: AbortSignal, resolution?: TargetHttpResolution): Promise<void> {
     signal.throwIfAborted()

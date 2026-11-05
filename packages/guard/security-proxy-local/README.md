@@ -63,6 +63,8 @@ Settings, password and capture-preference writes are serialized. Changing the up
 
 `mountSecurityProxy` accepts an explicit engine factory. The engine's HTTP, opaque-tunnel and connection-probe methods provide execution points for an enforcing implementation. Tunnel byte counts include payload bytes that arrive with the CONNECT request. Use [the guarded provider](../target-protection/README.md) to apply mandatory target rules to these operations.
 
+The protected `executionScope` hook binds a route's Session before publishing its listener, and runs controlled fetches and relay callbacks in that scope. Connection checks use an explicitly unassigned scope. The default hook leaves requests unchanged; the guarded provider validates ownership for its audit store. Leaving Security mode withdraws that Session's listeners. A retiring or replaced listener rejects new forwarding immediately, and a pending listener cannot publish its address after withdrawal.
+
 The exported `SessionChainProxy` owns loopback listening, forwarding, capture and socket cleanup. Its `ChainOptions` transport callbacks select and authorize their own route; the listener neither creates a dispatcher nor assumes an upstream. The Security engine supplies its private upstream, while native target protection can supply a per-execution pinned route. Both owners retain their resources through forwarding and closure.
 
 Generic non-session callers use `sessionId: null`. A missing capture sink disables retention; the Security engine continues to provide its bounded store and pause callback.

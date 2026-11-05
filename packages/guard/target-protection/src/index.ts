@@ -2,8 +2,9 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import schema from '@deepseek-ai/schemastery'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import type { Session } from '@deepseek-ai/dsh-session'
+import type { Session, SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-tools'
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { isIP } from 'node:net'
 import { resolve } from 'node:path'
 import { deadline, TimeoutReason } from '@deepseek-ai/dsh-timeout'
@@ -73,6 +74,15 @@ export interface TargetConnectionResolution extends Omit<TargetDnsResolution, 'a
 export interface LocalFileAdmission { path: string; revision: number; decision: TargetDecision }
 type VersionedDecision = { revision: number | null; decision: TargetDecision }
 
+/** Session attribution captured by a trusted local request or listener owner. */
+export interface TargetAuditExecution {
+  /**
+   * @param operation - Complete request lifetime, including cancellation and cleanup.
+   * @returns The operation's outcome after its attribution scope has drained.
+   */
+  <T>(operation: () => Promise<T>): Promise<T>
+}
+
 declare module '@deepseek-ai/cordis' {
   interface Context { /** Current target registry and deterministic execution decisions. */ targetProtection: TargetProtection }
   interface Events {
@@ -108,6 +118,7 @@ export default class TargetProtection extends Service {
   private audit: TargetAuditStore | undefined
   private auditFailed = false
   private auditInitiator: (() => Agent | undefined) | undefined
+  private readonly auditSessionScope = new AsyncLocalStorage<{ session: Session | undefined; current?: () => boolean }>()
 
   /**
    * @param ctx - Service owner whose lifetime contains all pending checks.
@@ -132,8 +143,8 @@ export default class TargetProtection extends Service {
         return () => { if (this.auditInitiator === current) this.auditInitiator = undefined }
       }, 'target-protection.auditInitiator')
       if (this.config.auditPath !== '') scope.inject(['tools'], (tools) => {
-        tools.on('tools/execute', (exec, next) => exec.agent === undefined
-          ? agents.withoutInitiator(next) : agents.withInitiator(exec.agent, next))
+        tools.on('tools/execute', (exec, next) => this.auditSessionScope.run({ session: exec.agent?.session }, () =>
+          exec.agent === undefined ? agents.withoutInitiator(next) : agents.withInitiator(exec.agent, next)))
       })
     })
     ctx.on('target-country/changed', () => { this.invalidate() })
@@ -143,7 +154,10 @@ export default class TargetProtection extends Service {
       await Promise.allSettled(this.checking)
       const opened = await Promise.allSettled([this.ready])
       try { this.audit?.close() }
-      finally { if (opened[0].status === 'fulfilled') opened[0].value.close() }
+      finally {
+        this.auditSessionScope.disable()
+        if (opened[0].status === 'fulfilled') opened[0].value.close()
+      }
     }, 'target-protection.store')
   }
 
@@ -172,7 +186,7 @@ export default class TargetProtection extends Service {
           ...session.header.parentSession === undefined ? {} : { parentSessionId: session.header.parentSession },
         }
         const entry = this.audit.append(subject, { ...result, ruleIds }, source)
-        session?.append('target/admission', entry)
+        if (!this.auditScopeClosed()) session?.append('target/admission', entry)
         return
       }
       catch (error) {
@@ -184,10 +198,44 @@ export default class TargetProtection extends Service {
   }
 
   private auditSession(): Session | undefined {
-    return this.audit === undefined ? undefined : this.auditInitiator?.()?.session
+    if (this.audit === undefined) return undefined
+    const scoped = this.auditSessionScope.getStore()
+    return scoped === undefined ? this.auditInitiator?.()?.session : scoped.session
+  }
+
+  private auditScopeClosed(): boolean { return this.auditSessionScope.getStore()?.current?.() === false }
+
+  /**
+   * Bind trusted listener ownership for admission logging, without granting target access.
+   * An enabled audit refuses a missing or replaced Session before running the operation.
+   * @param sessionId - Owner-established Session identity; undefined clears inherited attribution for Host checks.
+   * @returns A request runner retaining the exact Session and checking its membership on each invocation.
+   */
+  bindAuditSession(sessionId: SessionId | undefined): TargetAuditExecution {
+    this.lifetime.signal.throwIfAborted()
+    const sessions = this.ctx.get('sessions')
+    const session = this.audit === undefined || sessionId === undefined ? undefined : sessions?.get(sessionId)
+    if (this.audit !== undefined && sessionId !== undefined && session === undefined) {
+      throw new TargetProtectionError('unavailable', 'The audit conversation is no longer available. The operation was stopped.')
+    }
+    const current = () => session === undefined || this.ctx.get('sessions')?.get(session.id) === session
+    return async (operation) => {
+      this.lifetime.signal.throwIfAborted()
+      if (!current()) {
+        throw new TargetProtectionError('unavailable', 'The audit conversation was replaced or closed. The operation was stopped.')
+      }
+      const running = this.auditSessionScope.run({ session, current }, operation)
+      this.checking.add(running)
+      try { return await running }
+      finally { this.checking.delete(running) }
+    }
   }
 
   private recordDecision(subject: AuditSubject, { revision, decision }: VersionedDecision, session: Session | undefined): void {
+    if (decision.allowed && this.auditScopeClosed()) {
+      this.recordAudit(subject, { revision, decision: 'cancelled', code: 'TARGET_CHECK_CANCELLED' }, decision.ruleIds, session)
+      throw new TargetProtectionError('unavailable', 'The initiating conversation closed before admission. The operation was stopped.')
+    }
     if (subject.phase === 'preflight' && decision.allowed) return
     this.recordAudit(subject, { revision, decision: decision.allowed ? 'allow' : 'deny', code: decision.allowed ? null : decision.code },
       decision.ruleIds, session)

@@ -10,6 +10,7 @@
   name: cordis:target-protection
   config:
     path: __RULES__
+    auditPath: __AUDIT__
     hostsFile: __HOSTS__
 - id: http
   name: cordis:protected-http
