@@ -5,6 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  '@microsoft/mxc-sdk@1.0.1>node-pty': 1.2.0-beta.15
   '@peculiar/x509@1.14.3>@peculiar/asn1-schema': 2.11.1
   extract-zip>yauzl: 3.4.0
   '@deepseek-ai/cosmokit': link:vendor/cosmokit
@@ -13156,8 +13157,8 @@ importers:
         specifier: 3.24.6
         version: 3.24.6(@types/node@22.20.1)
       node-pty:
-        specifier: 1.1.0
-        version: 1.1.0
+        specifier: 1.2.0-beta.15
+        version: 1.2.0-beta.15(patch_hash=8ca339955248c8df2012b298a0fab289a99e2cba3ace1c99b6d12481d7bb8d32)
       pg:
         specifier: 8.23.1
         version: 8.23.1
@@ -25514,9 +25515,6 @@ packages:
   node-int64@0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
 
-  node-pty@1.1.0:
-    resolution: {integrity: sha512-20JqtutY6JPXTUnL0ij1uad7Qe1baT46lyolh2sSENDd4sTzKZ4nmAFkeAARDKwmlLjPx6XKRlwRUxwjOy+lUg==}
-
   node-pty@1.2.0-beta.15:
     resolution: {integrity: sha512-vORSzHXi4Ofl7HemVWpuudLqCPdaQb4LfpRCUpE5HPxhp4JYscl8zZwxh11p26v2wvW24WMwnMfLjhRLixrfxA==}
 
@@ -28847,7 +28845,7 @@ snapshots:
   '@microsoft/mxc-sdk@1.0.1':
     dependencies:
       koffi: 3.3.6
-      node-pty: 1.1.0
+      node-pty: 1.2.0-beta.15(patch_hash=8ca339955248c8df2012b298a0fab289a99e2cba3ace1c99b6d12481d7bb8d32)
       semver: 7.8.5
 
   '@mixmark-io/domino@2.2.0': {}
@@ -33398,10 +33396,6 @@ snapshots:
       which: 6.0.1
 
   node-int64@0.4.0: {}
-
-  node-pty@1.1.0:
-    dependencies:
-      node-addon-api: 7.1.1
 
   node-pty@1.2.0-beta.15(patch_hash=8ca339955248c8df2012b298a0fab289a99e2cba3ace1c99b6d12481d7bb8d32):
     dependencies:

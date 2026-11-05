@@ -14,13 +14,19 @@ export type NativeTerminalLauncher = (spec: NativeTerminalLaunch) => Promise<Sub
 
 const require = createRequire(import.meta.url)
 /* v8 ignore start -- Real contained source and compiled terminal tests exercise the platform allocator. */
-const launch: NativeTerminalLauncher = (spec) => {
+const launch: NativeTerminalLauncher = async (spec) => {
   if (process.platform !== 'win32') return Promise.reject(new NativeProtocolError('Native terminal requires Windows.'))
   const pty = require('node-pty') as typeof NodePty
   const terminal = pty.spawn(spec.argv[0], [...spec.argv.slice(1)], {
     cwd: spec.cwd, env: spec.env, cols: spec.cols, rows: spec.rows, name: spec.terminalType, useConptyDll: true,
   })
-  return Promise.resolve(new LocalTerminalHandle(terminal, createProcessInspector(), spec.graceMs, 'win32'))
+  const handle = new LocalTerminalHandle(terminal, createProcessInspector(), spec.graceMs, 'win32')
+  try { await handle.waitForStart(); return handle }
+  catch (error) {
+    try { await handle.terminate() }
+    catch (cleanup) { throw new AggregateError([error, cleanup], 'Native terminal startup and cleanup failed.') }
+    throw error
+  }
 }
 /* v8 ignore stop */
 
@@ -56,7 +62,9 @@ export async function runNativeTerminalWorker(
       }
       env.TERM = request.spec.terminalType
       terminal = await allocate({ ...request.spec, env })
-      return { pid: terminal.pid }
+      const pid = terminal.pid
+      if (!Number.isInteger(pid) || pid < 1 || pid > 0xffffffff) throw new NativeProtocolError('The terminal did not publish a valid process identity.')
+      return { pid }
     }
     if (terminal === undefined) throw new NativeProtocolError('Terminal operation preceded startup.')
     if (request.operation === 'close') { await terminal.terminate(); await completion; state.closed = true; return null }

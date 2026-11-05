@@ -50,14 +50,17 @@ function signalName(number: number | undefined): NodeJS.Signals | null {
 /**
  * A local terminal whose native managed range or fallback process-session
  * ownership stays below the PTY backend.
- * The seam's terminate() promise — no write, inspection, or signal in flight
+ * Startup finishes before the provider publishes the handle. The published
+ * seam's terminate() promise — no write, inspection, or signal in flight
  * after settlement — holds here without operation tracking only because every
  * handle call completes synchronously under the hood (node-pty write, ps-based
  * inspection). A first genuinely asynchronous step in any handle call must add
  * the tracking a remote provider needs.
  */
 export class LocalTerminalHandle implements SubprocessTerminalHandle {
-  readonly pid: number
+  private rootPid: number | undefined
+  /** The allocated process identity; fixed after asynchronous startup completes. */
+  get pid(): number { return this.rootPid ?? this.terminal.pid }
   readonly output = new PassThrough()
   readonly done: Promise<SubprocessOutcome>
 
@@ -74,7 +77,8 @@ export class LocalTerminalHandle implements SubprocessTerminalHandle {
   private quiescent = false
   private managedRangeEmpty = false
   /** The spawned shell's start identity; scans stop adopting members once the root pid no longer carries it. */
-  private readonly rootIdentity: ProcessIdentity | undefined
+  private rootIdentity: ProcessIdentity | undefined
+  private rootIdentityCaptured = false
 
   /**
    * @param terminal - allocated node-pty process.
@@ -93,9 +97,7 @@ export class LocalTerminalHandle implements SubprocessTerminalHandle {
     private readonly onQuiescence?: () => void,
     private readonly observeShellExit = false,
   ) {
-    this.pid = terminal.pid
-    try { this.rootIdentity = inspector.snapshot().tree(this.pid).find(member => member.pid === this.pid) }
-    catch (_rootIdentityUnavailable) { this.rootIdentity = undefined }
+    if (terminal.pid > 0) { this.rootPid = terminal.pid; this.captureRootIdentity() }
     this.done = this.outcome.promise
     const resume = (): void => {
       if (!this.outputPaused) return
@@ -129,6 +131,32 @@ export class LocalTerminalHandle implements SubprocessTerminalHandle {
         this.outcome.reject(error)
       }
     })
+  }
+
+  /**
+   * Wait for ConPTY's process identity without losing output emitted during pipe connection.
+   * @param signal - Caller-owned startup cancellation; provider disposal also stops this wait.
+   * @returns Completion after the exact process identity has been captured.
+   */
+  async waitForStart(signal?: AbortSignal): Promise<void> {
+    for (;;) {
+      signal?.throwIfAborted()
+      if (this.cleanup !== undefined) throw new Error('The terminal was closed during startup.')
+      if (this.terminal.pid > 0) {
+        this.rootPid ??= this.terminal.pid
+        if (!this.exited) this.captureRootIdentity()
+        return
+      }
+      if (this.exited) throw new Error('The terminal exited before starting a process.')
+      await delay(0, signal)
+    }
+  }
+
+  private captureRootIdentity(): void {
+    if (this.rootIdentityCaptured || this.rootPid === undefined) return
+    this.rootIdentityCaptured = true
+    try { this.rootIdentity = this.inspector.snapshot().tree(this.rootPid).find(member => member.pid === this.rootPid) }
+    catch (_rootIdentityUnavailable) { /* An unavailable snapshot cannot authorize process signalling. */ }
   }
 
   /** Whether node-pty has not yet published the top-level exit event. */

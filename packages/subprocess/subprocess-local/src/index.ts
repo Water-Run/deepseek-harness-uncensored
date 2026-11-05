@@ -296,8 +296,7 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
     return { platform, ...defaultShell === undefined ? {} : { defaultShell } }
   }
 
-  // Local PTY allocation is synchronous, but the provider contract permits remote asynchronous allocation.
-  // oxlint-disable-next-line typescript/require-await -- Preserve promise rejection semantics at the async provider contract.
+  // ConPTY's process identity arrives after its output pipe connects.
   async spawnTerminal(spec: SubprocessTerminalSpawnSpec): Promise<SubprocessTerminalHandle> {
     const file = spec.argv[0]
     if (file === undefined || file.length === 0) {
@@ -370,6 +369,12 @@ export class LocalSubprocessRuntime extends SubprocessRuntime {
       this.terminals.delete(handle)
     }
     void handle.done.then(release, release).catch(() => {})
+    try { await handle.waitForStart(spec.signal); this.ctx.fiber.assertActive() }
+    catch (error) {
+      try { await handle.terminate() }
+      catch (cleanup) { throw new AggregateError([error, cleanup], 'Terminal startup and cleanup failed.') }
+      throw error
+    }
     return handle
   }
 }

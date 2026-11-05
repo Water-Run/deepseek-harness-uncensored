@@ -7,6 +7,7 @@ import { promisify } from 'node:util'
 import { afterEach, expect, it } from 'vitest'
 import yaml from 'js-yaml'
 import { pnpmCommand } from '../../../scripts/release/process.ts'
+import { COVERAGE_TEST_TIMEOUT_ENV, coverageTestTimeoutOptions } from '../../../scripts/coverage-partitions.ts'
 import { prepareRuntimePatches, verifyRuntimePatches } from '../scripts/prepare-runtime-patches.ts'
 import type { DesktopRuntimePatch } from '../scripts/runtime-patch-policy.ts'
 
@@ -14,6 +15,8 @@ const roots: string[] = []
 const shared = { scope: 'shared', reason: 'Runtime fixture.' } as const
 const excluded = { scope: 'workspace-only', reason: 'Build fixture.' } as const
 const patch = 'diff --git a/value.txt b/value.txt\n--- a/value.txt\n+++ b/value.txt\n@@ -1 +1 @@\n-original\n+patched\n'
+// Repository-sized YAML parsing needs more time than the small in-memory patch fixtures.
+const workspaceInspectionTimeout = Math.max(30_000, coverageTestTimeoutOptions(process.env[COVERAGE_TEST_TIMEOUT_ENV]).testTimeout ?? 0)
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 })
 })
@@ -49,6 +52,7 @@ it('classifies the current workspace and shares only runtime patch bytes', () =>
   const settings = yaml.load(readFileSync(join(project, 'pnpm-workspace.yaml'), 'utf8')) as { overrides: Record<string, string> }
   expect(settings.overrides['@earendil-works/pi-ai']).toBeUndefined()
   expect(settings.overrides['@earendil-works/pi-ai@^1.3.0']).toBe('1.3.0')
+  expect(settings.overrides['@microsoft/mxc-sdk@1.0.1>node-pty']).toBe('1.2.0-beta.15')
   expect(readFileSync(join(repository, 'pnpm-lock.yaml'))).toEqual(before)
   writeFileSync(join(project, 'pnpm-lock.yaml'), yaml.dump({
     patchedDependencies: Object.fromEntries(plan.patches.map(entry => [entry.spec, entry.hash])),
@@ -59,7 +63,7 @@ it('classifies the current workspace and shares only runtime patch bytes', () =>
   }))
   expect(() => { verifyRuntimePatches(project, plan) })
     .toThrow('workspace-only dependency entered the runtime: @botiverse/oar@0.67.0')
-})
+}, workspaceInspectionTimeout)
 
 it('does not infer version overrides from selected patches', () => {
   const { source, project } = fixture()

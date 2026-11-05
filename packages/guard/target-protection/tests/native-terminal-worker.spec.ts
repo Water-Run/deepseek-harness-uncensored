@@ -55,6 +55,15 @@ it('refuses a frame from another protocol direction', async () => {
   await expect(h.running).rejects.toThrow('Unexpected terminal request frame')
 })
 
+it.each([0, -1, 0x100000000])('refuses unpublished process identity %s and closes the allocated terminal', async (pid) => {
+  const h = worker()
+  h.terminal.pid = pid
+  await h.send({ sequence: 1, operation: 'start', spec: h.spec })
+  await expect(h.running).rejects.toThrow('valid process identity')
+  expect(h.frames).toHaveLength(0)
+  expect(h.terminal.terminate).toHaveBeenCalledOnce()
+})
+
 it.each(['sequence', 'start'] as const)('refuses a repeated %s before another target is created', async (repeat) => {
   const h = worker()
   await h.start()

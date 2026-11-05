@@ -1,5 +1,15 @@
 # Uncensored 开发交接
 
+## Windows 打包依赖与终端启动修复（2026-11-05）
+
+余额采样保持默认 15 秒、可配置 3–3600 秒的整数。系统仍安装 `c4685cedb7`，尚未更新；本节点继续准备新的未签名检查包。已在线核对 DSH 最新 Release 仍为 `0.2.2-rc.1`（`66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db`），REA 仍为 `6.8.0`（`160d821ac9a0310afcb8d1fc427862dd6508add5`），当前源码均已跟进。
+
+两次标准打包均未产出安装器：`2026-11-05T13-05-54.833Z-KvJCx7` 的运行时下载超时，停止了尚未完成的并行任务；改用已有缓存后，`2026-11-05T13-22-16.083Z-sthZ8l` 被补丁校验拒绝。后者引入的 `node-pty@1.1.0` 没有受支持补丁，未绕过校验。受保护终端和 MXC SDK 现在统一到仓库已修补的 `1.2.0-beta.15`，Desktop 临时运行时也声明相同约束。
+
+真实 ConPTY 验收进一步复现了初始化期间 PID 为 0 的情况。共享终端提供方和受保护辅助程序现在等待有效 PID 后发布句柄，缓存早期输出，取消或释放时回收未发布的终端；捕获的初始进程身份不因后续扫描而替换。原生协议拒绝 0、负数及超出范围的 PID。跨平台启动回归、原生协议与打包补丁测试共 73 项通过；本机子进程套件 189 项通过、19 项平台用例跳过。最新完整构建十项通过。真实 Windows 命令、ConPTY、会话归属、连接关闭和目录释放均通过，回执 `.dsh-build/pty-alignment-built-20261105-result.json`，日志 `.dsh-build/pty-startup-native-final-20261105.log`。
+
+恢复入口：完成本节点提交后，从干净提交重新运行标准未签名打包，设置 `DSH_DESKTOP_PACKAGE_CACHE_DIR=D:/Coding/deepseek-harness-uncensored-upstream-20261101/apps/desktop/.desktop-build` 复用已验证下载。必须校验最终安装器实际载荷、四模式及终端，再备份两处 DSHU 数据、核对官方 DSH 文件并原位安装；不使用 Computer Use。打包通过不等于安装通过，后续记录须分别更新。
+
 ## 类型感知 lint 与双编译面隔离（2026-11-05）
 
 17.06 的全仓类型感知 lint 已通过，规则保持开启。原生 TypeScript 在旁问文件中读到 `ISessions`，lint 的源码重定向却同时加载了 Host `SessionStore` 和 Client `ISessions` 声明。原生编译器开启重定向也复现该混淆，关闭后恢复正确类型。`tsconfig.base.client.json` 现在显式使用引用项目的已编译声明；新增正反测试允许 Client 刷新、拒绝 Host 专用 flush。未升级依赖、用类型强制转换掩盖错误或降低 lint 规则。

@@ -136,7 +136,7 @@
     "ipaddr.js": "2.5.0",
     "mmdb-lib": "3.0.3",
     "mysql2": "3.24.6",
-    "node-pty": "1.1.0",
+    "node-pty": "1.2.0-beta.15",
     "pg": "8.23.1",
     "quickjs-emscripten-core": "0.32.0",
     "re2js": "2.9.0",
