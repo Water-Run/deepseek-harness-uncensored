@@ -6,6 +6,7 @@
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
+  'toast.pinDragBlocked': '置顶会话与普通会话分区排序，可先调整置顶状态。',
   'picker.search': '搜索工作区名称或路径',
   'picker.noMatches': '没有匹配的工作区',
   'mode.standard': '缺省模式',
@@ -154,6 +155,7 @@ export type WorkspaceKey = keyof typeof zh
 
 /** English dictionary, checked complete against the zh key set. */
 export const en = {
+  'toast.pinDragBlocked': 'Pinned and unpinned conversations are ordered separately. Change pin status to move between them.',
   'picker.search': 'Search workspace names or paths',
   'picker.noMatches': 'No matching workspaces',
   'mode.standard': 'Default mode',
@@ -300,6 +302,7 @@ export const en = {
 /** Japanese copy, checked against the English keys. */
 export const ja = {
   ...en,
+  'toast.pinDragBlocked': '固定した会話と通常の会話は別々に並びます。移動するには固定状態を変更してください。',
   'defaultWorkspace.failed': 'デフォルトのワークスペースを作成できません。ワークスペースを選択してフォルダーを選んでください。',
   'draft.workspaceRequired': '先にワークスペースを選択してください。',
   'draft.initializationFailed': '下書きを埋め込めませんでした。しばらくしてからもう一度お試しください。',
@@ -424,6 +427,7 @@ export const ja = {
 /** Spanish dictionary, checked against the English keys. */
 export const es = {
   ...en,
+  'toast.pinDragBlocked': 'Las conversaciones fijadas y las demás se ordenan por separado. Cambia su estado de fijación para moverlas.',
   'defaultWorkspace.failed': 'No se puede crear el espacio de trabajo predeterminado. Utilice Elegir espacio de trabajo para seleccionar una carpeta.',
   'draft.workspaceRequired': 'Elija un espacio de trabajo primero.',
   'draft.initializationFailed': 'No se pudo completar el borrador. Inténtelo de nuevo en breve.',
@@ -548,6 +552,7 @@ export const es = {
 /** French dictionary, checked against the English keys. */
 export const fr = {
   ...en,
+  'toast.pinDragBlocked': 'Les conversations épinglées et les autres sont triées séparément. Modifiez leur épinglage pour les déplacer.',
   'defaultWorkspace.failed': 'Impossible de créer un espace de travail par défaut. Utilisez Choisir un espace de travail pour sélectionner un dossier.',
   'draft.workspaceRequired': "Choisissez d'abord un espace de travail.",
   'draft.initializationFailed': 'Impossible de remplir le projet. Veuillez réessayer sous peu.',
@@ -672,6 +677,7 @@ export const fr = {
 /** German dictionary, checked against the English keys. */
 export const de = {
   ...en,
+  'toast.pinDragBlocked': 'Angeheftete und andere Unterhaltungen werden getrennt sortiert. Ändere zum Verschieben den Anheftstatus.',
   'defaultWorkspace.failed': 'Der Standardarbeitsbereich kann nicht erstellt werden. Verwenden Sie „Arbeitsbereich auswählen“, um einen Ordner auszuwählen.',
   'draft.workspaceRequired': 'Wählen Sie zunächst einen Arbeitsbereich.',
   'draft.initializationFailed': 'Der Entwurf konnte nicht ausgefüllt werden. Bitte versuchen Sie es in Kürze noch einmal.',
@@ -796,6 +802,7 @@ export const de = {
 /** Russian dictionary, checked against the English keys. */
 export const ru = {
   ...en,
+  'toast.pinDragBlocked': 'Закреплённые и обычные беседы сортируются отдельно. Для перемещения измените закрепление.',
   'defaultWorkspace.failed': 'Невозможно создать рабочую область по умолчанию. Используйте «Выбрать рабочее пространство», чтобы выбрать папку.',
   'draft.workspaceRequired': 'Сначала выберите рабочее место.',
   'draft.initializationFailed': 'Не удалось заполнить черновик. Пожалуйста, повторите попытку в ближайшее время.',
@@ -920,6 +927,7 @@ export const ru = {
 /** Portuguese dictionary, checked against the English keys. */
 export const pt = {
   ...en,
+  'toast.pinDragBlocked': 'As conversas fixadas e as restantes são ordenadas separadamente. Altere a fixação para as mover.',
   'defaultWorkspace.failed': 'Não foi possível criar o espaço de trabalho padrão. Use Escolher espaço de trabalho para selecionar uma pasta.',
   'draft.workspaceRequired': 'Escolha um espaço de trabalho primeiro.',
   'draft.initializationFailed': 'Não foi possível preencher o rascunho. Por favor, tente novamente em breve.',

@@ -141,6 +141,7 @@ function mount(overrides: Partial<WorkspaceBrowserProps> = {}) {
     searchSessions: vi.fn(async () => ({ items: [], hasMore: false })),
     searchResultLimit: 20,
     notifyArchivedNotOpenable: vi.fn(),
+    notifyPinnedReorderBlocked: vi.fn(),
     renameWorkspace: vi.fn(async () => {}),
     deleteWorkspace: vi.fn(async () => {}),
     unarchiveSession: vi.fn(async () => {}),
@@ -2218,7 +2219,11 @@ describe('WorkspaceBrowser', () => {
 
     // A pinned source ignores unpinned targets…
     fireEvent.dragStart(one, { dataTransfer: dragData() })
+    fireDrag(one, 'dragOver', 105)
+    expect(one.className).toMatch(/dropBefore/u)
     fireDrag(two, 'dragOver', 105)
+    expect(one.className).not.toMatch(/dropBefore|dropAfter/u)
+    expect(two.className).not.toMatch(/dropBefore|dropAfter/u)
     fireDrag(two, 'drop', 105)
     fireEvent.dragEnd(one)
     expect(b.store.getSnapshot().sessionOrderByAccount.alpha).toEqual(before)
@@ -2229,6 +2234,7 @@ describe('WorkspaceBrowser', () => {
     fireDrag(one, 'drop', 105)
     fireEvent.dragEnd(two)
     expect(b.store.getSnapshot().sessionOrderByAccount.alpha).toEqual(before)
+    expect(b.props.notifyPinnedReorderBlocked).toHaveBeenCalledTimes(2)
   })
 
   it('ignores a pinned drop whose pin state moved in flight', () => {
@@ -2305,6 +2311,7 @@ describe('WorkspaceBrowser', () => {
     fireEvent.dragEnd(three)
     expect(b.store.getSnapshot().sessionOrderByAccount[FLAT_SESSION_ORDER_KEY])
       .toEqual(['two', 'one', 'three'])
+    expect(b.props.notifyPinnedReorderBlocked).toHaveBeenCalledOnce()
   })
 
   it('persists Ungrouped drag order in both modes', async () => {

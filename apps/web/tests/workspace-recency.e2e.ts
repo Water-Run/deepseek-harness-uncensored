@@ -1,6 +1,6 @@
 /** Recency and saved manual order through the shipped Web composition. */
 import { readFile } from 'node:fs/promises'
-import { basename, join } from 'node:path'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium, type Browser, type Page, type WebSocketRoute } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
@@ -9,11 +9,13 @@ import {
   launchWebScaffold, seedSession, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { newEnglishPage, saveFailureShot } from './support.ts'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/workspace-recency', import.meta.url))
 const SEED = fileURLToPath(new URL('../../../snapshots/web/seeded-history/session.v3.jsonl', import.meta.url))
 const MODE = webSnapshotMode()
 const TITLES = ['Newest conversation', 'Middle conversation', 'Oldest conversation']
+const WORKSPACE_TITLE = 'Recency workspace'
 
 describe('web e2e: workspace recency', () => {
   let scaffold: WebScaffold
@@ -23,11 +25,13 @@ describe('web e2e: workspace recency', () => {
   let socket: WebSocketRoute
   let holdWorkspace = false
   let releaseWorkspace: (() => void) | undefined
+  let firstSessionId: SessionId | undefined
 
   beforeAll(async () => {
     scaffold = await launchWebScaffold({})
     const fixture = await readFile(SEED, 'utf8')
     const workspace = await scaffold.ctx.workspaceRegistry.create(scaffold.workspaceCwd)
+    await workspace.setTitle(WORKSPACE_TITLE)
     const now = Date.now()
     const ids = []
     for (const [index, title] of TITLES.entries()) {
@@ -37,6 +41,7 @@ describe('web e2e: workspace recency', () => {
       await workspace.attachSession(id)
       await scaffold.ctx.sessionController.rename({ sessionId: id, title })
       ids.push(id)
+      if (index === 0) firstSessionId = id
     }
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
@@ -129,7 +134,7 @@ describe('web e2e: workspace recency', () => {
     holdWorkspace = true
     await socket.close()
     await expect.poll(() => releaseWorkspace !== undefined).toBe(true)
-    const workspaceTitle = basename(scaffold.workspaceCwd)
+    const workspaceTitle = WORKSPACE_TITLE
     // Session titles can fall back to the workspace name while reconnect projections reload.
     await page.locator('[role="treeitem"][aria-expanded]')
       .filter({ has: page.getByText(workspaceTitle, { exact: true }) }).hover()
@@ -162,6 +167,16 @@ describe('web e2e: workspace recency', () => {
     await expect.poll(titles).toEqual(['New Session', ...TITLES])
     await pick('Manual')
     await expect.poll(titles).toEqual(['New Session', ...TITLES])
+    if (firstSessionId === undefined) throw new Error('Missing pin feedback fixture')
+    await scaffold.ctx.workspaceRegistry.pinSession(firstSessionId)
+    const pinnedTarget = page.getByRole('treeitem').filter({ has: page.getByText(TITLES[0]!, { exact: true }) })
+    await pinnedTarget.getByRole('img', { name: 'Pinned', exact: true }).waitFor()
+    const unpinnedSource = page.getByRole('treeitem').filter({ has: page.getByText(TITLES[2]!, { exact: true }) })
+    const saved = await page.evaluate(() => localStorage.getItem('dsh.workspace.view.v5'))
+    await unpinnedSource.dragTo(pinnedTarget, { targetPosition: { x: 30, y: 3 } })
+    await page.getByText('Pinned and unpinned conversations are ordered separately. Change pin status to move between them.',
+      { exact: true }).waitFor()
+    expect(await page.evaluate(() => localStorage.getItem('dsh.workspace.view.v5'))).toBe(saved)
     await assertFixtureInventory(SNAPSHOT_DIR, ['sidebar.expected.md', 'manual-blank.expected.md'])
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])

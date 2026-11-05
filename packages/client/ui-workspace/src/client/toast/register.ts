@@ -46,6 +46,12 @@ export function registerToasts(
       }),
     }, ToastEntry<PropsRuntime<'workspace.toast', 'unpinFailed'>>)
     yield ctx.slots.register({
+      name: 'workspace.toast', key: 'pinDragBlocked', locale: 'workspace',
+      inject: (): ToastDisplayInjected<'pinDragBlocked'> => ({
+        display: (_notice, t) => ({ text: t('toast.pinDragBlocked'), tone: 'plain' }),
+      }),
+    }, ToastEntry<PropsRuntime<'workspace.toast', 'pinDragBlocked'>>)
+    yield ctx.slots.register({
       name: 'workspace.toast', key: 'archivedNotOpenable', locale: 'workspace',
       inject: (): ToastDisplayInjected<'archivedNotOpenable'> => ({
         display: (_notice, t) => ({ text: t('toast.archivedNotOpenable'), tone: 'warning' }),

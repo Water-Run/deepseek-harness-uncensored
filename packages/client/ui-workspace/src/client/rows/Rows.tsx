@@ -197,13 +197,15 @@ function WorkspaceHoverContent({ label, cwd, createdAt, t }: {
 export interface RowDragProps {
   /** Start dragging this row. */
   start: () => void
-  /** A compatible row drag is in flight. */
+  /** A row drag from the same account is in flight. */
   active: boolean
+  /** False shows a blocked native drop cursor; omission permits this row's drop. */
+  acceptsDrop?: boolean
   /** Preset id of the row being dragged, so its insert marker carries that mode's color. */
   mode?: string | undefined
   /** Current marker on this row: insert line above, below, or none. */
   marker: 'before' | 'after' | null
-  /** Report the hovered half while a compatible drag passes over this row. */
+  /** Report the hovered half while an account-local drag passes over this row. */
   hover: (half: 'before' | 'after') => void
   drop: (half: 'before' | 'after') => void
   end: () => void
@@ -718,7 +720,7 @@ export function SessionNodeItem({
         : (e) => {
           if (!drag.active) return
           e.preventDefault()
-          e.dataTransfer.dropEffect = 'move'
+          e.dataTransfer.dropEffect = drag.acceptsDrop === false ? 'none' : 'move'
           drag.hover(rowHalf(e))
         }}
       onDrop={drag === undefined

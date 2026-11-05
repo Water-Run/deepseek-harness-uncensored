@@ -290,6 +290,8 @@ export type WorkspaceBrowserInjected = {
   requestSessionRename: (sessionId: SessionId, currentTitle: string) => void
   /** Tell the user an archived row cannot be opened (a click on it). */
   notifyArchivedNotOpenable: () => void
+  /** Explain why a drag cannot cross the pinned/unpinned boundary. */
+  notifyPinnedReorderBlocked: () => void
   /** Rename a Host Workspace (rejects on name conflict; resolves on durability). */
   renameWorkspace: (workspaceId: WorkspaceId, title: string) => Promise<void>
   /** Delete only a Host Workspace registration; directory and Session logs remain. */
@@ -328,6 +330,7 @@ export type RowToast =
   | { kind: 'sessionIdCopyFailed' }
   | { kind: 'pinFailed' }
   | { kind: 'unpinFailed' }
+  | { kind: 'pinDragBlocked' }
   | { kind: 'archivedNotOpenable' }
   | { kind: 'defaultWorkspaceFailed' }
   | { kind: 'forkRequiresOpen'; sessionId: SessionId }

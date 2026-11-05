@@ -255,7 +255,7 @@ function workspaceGroupHalf(e: { clientY: number; currentTarget: HTMLElement }):
 type SessionTreeProps = Pick<
   WorkspaceBrowserProps,
   'useSessionStatus' | 'startSession' | 'open' | 'openSessionMenu' | 'openWorkspaceMenu' | 'useContextMenuTarget' | 'useContextMenu'
-  | 'insertWorkspaceBefore' | 't' | 'usePanelInfo'
+  | 'insertWorkspaceBefore' | 't' | 'usePanelInfo' | 'notifyPinnedReorderBlocked'
   | 'useRemoteAccess' | 'useSessionAccess' | 'useWorkspaceAccess'
 > & PropsRenderSlots<
   | 'sidebar.workspaces.session.row.action'
@@ -321,7 +321,7 @@ function SessionTree({
   renderSlot, openSessionMenu, openWorkspaceMenu, useContextMenuTarget, useContextMenu,
   insertWorkspaceBefore,
   nestWorkspaces, groupExpansion, setGroupExpanded,
-  setSessionOrder, home, t,
+  setSessionOrder, home, t, notifyPinnedReorderBlocked,
   revealSessionId, onSessionRevealed, shortcuts,
 }: SessionTreeProps) {
   const panelActive = usePanelInfo(info => info.activePanelId !== null)
@@ -426,6 +426,11 @@ function SessionTree({
       : workspaces.find(workspace => workspace.workspaceId === activeDrag.accountKey)?.sessionIds
     if (accountSessionIds === undefined) return
     const renderedSessions = watermarkRows(group.sessions, sessionWatermarks[group.key] ?? SESSION_WATERMARK_BASE).rows
+    const target = renderedSessions.find(row => row.id === over.id)
+    if (target !== undefined && target.pinned !== activeDrag.pinned) {
+      notifyPinnedReorderBlocked()
+      return
+    }
     const nextOrder = sessionDragOrder(accountSessionIds, renderedSessions, activeDrag, over)
     if (nextOrder !== undefined) setSessionOrder(activeDrag.accountKey, nextOrder)
   }
@@ -590,9 +595,10 @@ function SessionTree({
               sessionDropCommitted.current = false
               setDrag({ accountKey: group.key, sessionId: node.id, mode: node.mode, pinned: node.pinned, over: null })
             },
-            active: compatibleTarget,
+            active: sameGroupDrag,
+            acceptsDrop: compatibleTarget,
             mode: drag?.mode,
-            marker: sameGroupDrag && drag.over?.id === node.id ? drag.over.half : null,
+            marker: compatibleTarget && drag.over?.id === node.id ? drag.over.half : null,
             hover: (half: 'before' | 'after') => {
             /* v8 ignore next -- narrowing guard: Rows gates hover on `active`, which is false while the drag state is null. */
               setDrag(d => (d === null ? d : {
@@ -683,7 +689,7 @@ function SessionTree({
 /** The flat "In one list" body: every session is one draggable top-level row. */
 function FlatList({
   list, sessionIds, rowState, onLeaveArchivedOnly, useSessionStatus, useSessionAccess, open, onSessionRenameRequest,
-  usePanelInfo, setSessionOrder, workspaceReady, animationResetKey,
+  usePanelInfo, setSessionOrder, workspaceReady, animationResetKey, notifyPinnedReorderBlocked,
   revealSessionId, onSessionRevealed, renderSlot, openSessionMenu, useContextMenuTarget, useContextMenu, home, t,
 }: Pick<
   SessionTreeProps,
@@ -695,6 +701,7 @@ function FlatList({
   | 'openSessionMenu' | 'useContextMenuTarget' | 'useContextMenu'
   | 'usePanelInfo'
   | 'setSessionOrder'
+  | 'notifyPinnedReorderBlocked'
   | 'workspaceReady'
   | 'animationResetKey'
   | 'revealSessionId'
@@ -723,6 +730,11 @@ function FlatList({
     if (dropCommitted.current) return
     dropCommitted.current = true
     setDrag(null)
+    const target = rows.find(row => row.id === over.id)
+    if (target !== undefined && target.pinned !== activeDrag.pinned) {
+      notifyPinnedReorderBlocked()
+      return
+    }
     const nextOrder = sessionDragOrder(sessionIds, rows, activeDrag, over)
     if (nextOrder !== undefined) setSessionOrder(FLAT_SESSION_ORDER_KEY, nextOrder)
   }
@@ -764,7 +776,8 @@ function FlatList({
                   dropCommitted.current = false
                   setDrag({ accountKey: FLAT_SESSION_ORDER_KEY, sessionId: node.id, mode: node.mode, pinned: node.pinned, over: null })
                 },
-                active,
+                active: drag !== null,
+                acceptsDrop: active,
                 mode: drag?.mode,
                 marker: active && drag.over?.id === node.id ? drag.over.half : null,
                 hover: (half) => {
@@ -915,6 +928,7 @@ export function WorkspaceBrowser({
   open,
   requestSessionRename,
   notifyArchivedNotOpenable,
+  notifyPinnedReorderBlocked,
   renameWorkspace, useWorkspaceActionRequest, settleWorkspaceAction,
   deleteWorkspace,
   insertWorkspaceBefore,
@@ -1391,6 +1405,7 @@ export function WorkspaceBrowser({
                 openSessionMenu={openSessionMenu} useContextMenu={useContextMenu}
                 useContextMenuTarget={useContextMenuTarget}
                 setSessionOrder={saveSessionOrder}
+                notifyPinnedReorderBlocked={notifyPinnedReorderBlocked}
                 revealSessionId={revealSessionId}
                 onSessionRevealed={acknowledgeSessionReveal}
                 home={home}
@@ -1419,6 +1434,7 @@ export function WorkspaceBrowser({
                 groupExpansion={groupExpansion}
                 setGroupExpanded={actions.setGroupExpanded}
                 setSessionOrder={saveSessionOrder}
+                notifyPinnedReorderBlocked={notifyPinnedReorderBlocked}
                 rowState={rowState}
                 onLeaveArchivedOnly={leaveArchivedOnly}
                 startSession={startSession}
