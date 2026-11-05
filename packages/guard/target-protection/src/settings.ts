@@ -3,10 +3,13 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { SecurityProtectionCapability, SecurityProtectionStatus } from '@deepseek-ai/dsh-agent-preset-registry/types'
 import { TargetProtectionError } from '@deepseek-ai/dsh-target-protection'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import type { TargetAuditHistory } from './audit.ts'
 import type { CountryDatabaseStatus } from './country.ts'
 import type {} from './country-provider.ts'
 import type {} from './index.ts'
 import type { TargetPreferences, TargetSnapshot } from './types.ts'
+
+export type { TargetAuditHistory, TargetAuditRecord } from './audit.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -115,6 +118,16 @@ export default class TargetProtectionSettings extends TypertRemoteService {
   get(): TargetProtectionSettingsState {
     this.ownerSignal()
     return this.state(this.ctx.targetProtection.currentSnapshot())
+  }
+
+  /**
+   * Read recent redacted protection decisions for the authenticated owner.
+   * @returns The audit availability and latest decisions, newest first.
+   */
+  @Remote
+  auditHistory(): TargetAuditHistory {
+    this.ownerSignal()
+    return this.ctx.targetProtection.auditHistory()
   }
 
   private state(snapshot: TargetSnapshot): TargetProtectionSettingsState {

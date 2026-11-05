@@ -20,6 +20,7 @@
       name: '@deepseek-ai/dsh-target-protection'
       config:
         path: !!js dshHomePath('storages', 'target-protection.sqlite')
+        auditPath: !!js dshHomePath('storages', 'target-audit.sqlite')
     - id: target-protection-country
       name: '@deepseek-ai/dsh-target-protection/country'
       config:

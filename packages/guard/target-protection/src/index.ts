@@ -3,7 +3,7 @@ import { Context, Service } from '@deepseek-ai/cordis'
 import schema from '@deepseek-ai/schemastery'
 import { isIP } from 'node:net'
 import { resolve } from 'node:path'
-import { deadline } from '@deepseek-ai/dsh-timeout'
+import { deadline, TimeoutReason } from '@deepseek-ai/dsh-timeout'
 import { resolvePublicAddresses, resolveConnectionAddresses } from '@deepseek-ai/dsh-web-fetch-http'
 import type { HttpFetchDestination, PublicAddress, ResolvedSocketAddress } from '@deepseek-ai/dsh-web-fetch-http'
 import { canonicalTargetHost, TargetRules, expandTargetRules, parseTargetPreferences } from './rules.ts'
@@ -16,6 +16,7 @@ import { canonicalLocalPath, resolveLocalPathIdentity, localPathContains, localI
 import { decideLocalTarget, type LocalTargetOperation } from './file-rules.ts'
 import type { NetworkTarget, TargetDecision, TargetEffect, TargetPreferences, TargetSnapshot } from './types.ts'
 import type { NativeFileConstraints } from './native-file-policy.ts'
+import { TargetAuditStore, type AuditSubject, type TargetAuditHistory, type TargetAuditRecord } from './audit.ts'
 
 export type * from './types.ts'
 export { TargetProtectionError } from './errors.ts'
@@ -26,6 +27,10 @@ export { TargetStore } from './store.ts'
 export interface Config {
   /** Registry file belonging only to target protection. */
   path: string
+  /** Separate local audit store; empty disables admission recording. */
+  auditPath?: string
+  /** Maximum retained decisions in the audit store. */
+  auditLimit?: number
   /** SQLite lock wait in milliseconds, default 1000. */
   busyTimeoutMs?: number
   /** Deadline for one address-aware check, default 5000 milliseconds. */
@@ -63,6 +68,7 @@ export interface TargetConnectionResolution extends Omit<TargetDnsResolution, 'a
 
 /** File identity and policy revision selected for the executing local provider. */
 export interface LocalFileAdmission { path: string; revision: number; decision: TargetDecision }
+type VersionedDecision = { revision: number | null; decision: TargetDecision }
 
 declare module '@deepseek-ai/cordis' {
   interface Context { /** Current target registry and deterministic execution decisions. */ targetProtection: TargetProtection }
@@ -79,6 +85,7 @@ declare module '@deepseek-ai/cordis' {
 export default class TargetProtection extends Service {
   static Config: schema<Config, ResolvedConfig> = schema.object({
     path: schema.string().required(), busyTimeoutMs: schema.natural().max(30000).default(1000),
+    auditPath: schema.string().default(''), auditLimit: schema.natural().min(1).max(10000).default(2000),
     checkTimeoutMs: schema.natural().min(1).max(300000).default(5000), maxRechecks: schema.natural().min(1).max(20).default(3),
     dnsServers: schema.array(String).default([]), hostsFile: schema.string().default(systemHostsFile()),
     dnsQueryTimeoutMs: schema.natural().min(1).max(30000).default(1500),
@@ -95,6 +102,8 @@ export default class TargetProtection extends Service {
   private readonly nativeExecutions = new Set<{ stop(): Promise<void>; finished: Promise<boolean> }>()
   private updates: Promise<void> = Promise.resolve()
   private nativeTransition: 'owner' | 'source' | 'failed' | undefined
+  private audit: TargetAuditStore | undefined
+  private auditFailed = false
 
   /**
    * @param ctx - Service owner whose lifetime contains all pending checks.
@@ -104,6 +113,8 @@ export default class TargetProtection extends Service {
     super(ctx, 'targetProtection')
     this.config = TargetProtection.Config(config)
     if (this.config.path !== ':memory:') this.config.path = canonicalLocalPath(resolve(this.config.path))
+    if (this.config.auditPath !== '') this.config.auditPath = canonicalLocalPath(resolve(this.config.auditPath))
+    if (this.config.auditPath === this.config.path) throw new TargetProtectionError('invalid', 'Target audit requires a separate database.')
     if (this.config.hostsFile !== '') this.config.hostsFile = canonicalLocalPath(resolve(this.config.hostsFile))
     this.config.ownerPaths = this.config.ownerPaths.map(canonicalLocalPath)
     this.config.readOnlyPaths = this.config.readOnlyPaths.map(canonicalLocalPath)
@@ -115,12 +126,70 @@ export default class TargetProtection extends Service {
       this.lifetime.abort(new TargetProtectionError('unavailable', 'Target protection is closing.'))
       await Promise.allSettled(this.checking)
       const opened = await Promise.allSettled([this.ready])
-      if (opened[0].status === 'fulfilled') opened[0].value.close()
+      try { this.audit?.close() }
+      finally { if (opened[0].status === 'fulfilled') opened[0].value.close() }
     }, 'target-protection.store')
   }
 
   /** Refuse activation when durable settings cannot be validated. */
-  protected async [Service.init](): Promise<void> { this.opened = await this.ready }
+  protected async [Service.init](): Promise<void> {
+    this.opened = await this.ready
+    if (this.config.auditPath !== '') {
+      this.audit = await TargetAuditStore.open(this.config.auditPath, this.config.busyTimeoutMs, this.config.auditLimit)
+    }
+  }
+
+  private registryPaths(): string[] {
+    return [this.config.path, this.config.auditPath].filter(path => path !== '' && path !== ':memory:')
+      .flatMap(path => [path, `${path}-wal`, `${path}-shm`, `${path}-journal`])
+  }
+
+  private recordAudit(
+    subject: AuditSubject, result: Pick<TargetAuditRecord, 'revision' | 'decision' | 'code'>, ruleIds: readonly string[],
+  ): void {
+    if (this.audit === undefined) return
+    if (!this.auditFailed) {
+      try { this.audit.append(subject, { ...result, ruleIds }); return }
+      catch (error) {
+        this.auditFailed = true
+        this.ctx.logger.warn('Target audit is unavailable; protected admission has stopped.', error)
+      }
+    }
+    if (result.decision === 'allow') throw new TargetProtectionError('unavailable', 'Target audit is unavailable. The operation was stopped.')
+  }
+
+  private recordDecision(subject: AuditSubject, { revision, decision }: VersionedDecision): void {
+    if (subject.phase === 'preflight' && decision.allowed) return
+    this.recordAudit(subject, { revision, decision: decision.allowed ? 'allow' : 'deny', code: decision.allowed ? null : decision.code },
+      decision.ruleIds)
+  }
+
+  private recordFailure(subject: AuditSubject, error: unknown, signal?: AbortSignal, resolving = false): void {
+    const timedOut = error instanceof TimeoutReason || (error instanceof Error && error.name === 'TimeoutError')
+    const cancelled = !timedOut && (signal?.aborted === true || (error instanceof Error && error.name === 'AbortError'))
+    const conflict = error instanceof TargetProtectionError && error.code === 'conflict'
+    const code = timedOut ? 'TARGET_CHECK_TIMEOUT' : cancelled ? 'TARGET_CHECK_CANCELLED' : conflict ? 'TARGET_SETTINGS_CHANGED'
+      : resolving ? 'TARGET_RESOLUTION_FAILED' : 'TARGET_CHECK_FAILED'
+    this.recordAudit(subject, { revision: null, decision: cancelled ? 'cancelled' : 'error', code }, [])
+  }
+
+  private async audited<T extends VersionedDecision>(subject: AuditSubject, signal: AbortSignal, check: () => Promise<T>): Promise<T> {
+    let value
+    try { value = await check() }
+    catch (error) { this.recordFailure(subject, error, signal); throw error }
+    this.recordDecision(subject, value)
+    return value
+  }
+
+  /**
+   * Read the local protection admission log without exposing raw targets or the fingerprint key.
+   * @returns The audit state and up to 100 newest accepted records.
+   */
+  auditHistory(): TargetAuditHistory {
+    if (this.audit === undefined) return { state: 'off', entries: [] }
+    try { return { state: this.auditFailed ? 'unavailable' : 'ready', entries: this.audit.recent() } }
+    catch (_error) { return { state: 'unavailable', entries: [] } }
+  }
 
   /**
    * Admit only executions whose effects are bounded by a structured adapter. Arbitrary code cannot establish a target set.
@@ -128,17 +197,24 @@ export default class TargetProtection extends Service {
    * @throws When initialization, durable settings or the service lifetime is unavailable.
    */
   checkUnconfined(): TargetDecision {
-    this.lifetime.signal.throwIfAborted()
+    const subject = { operation: 'unconfined', effect: 'unconfined', phase: 'execution' } satisfies AuditSubject
+    let result
+    try { result = this.unconfinedDecision() }
+    catch (error) { this.recordFailure(subject, error); throw error }
+    this.recordDecision(subject, result)
+    return result.decision
+  }
+
+  private unconfinedDecision(): VersionedDecision {
     this.generation.signal.throwIfAborted()
-    if (this.opened === undefined) throw new TargetProtectionError('unavailable', 'Target protection is not ready.')
-    const { preferences } = this.opened.snapshot()
+    const { revision, preferences } = this.currentSnapshot()
     const rules = preferences.rules.filter(rule => rule.enabled && rule.environment === 'production')
-    const ownerResources = this.config.path !== ':memory:' || this.config.ownerPaths.length > 0
+    const ownerResources = this.config.path !== ':memory:' || this.config.auditPath !== '' || this.config.ownerPaths.length > 0
       || this.config.readOnlyPaths.length > 0 || this.config.hostsFile !== '' || this.ctx.get('targetCountryData') !== undefined
     if (preferences.mainlandEnabled || rules.length > 0 || ownerResources) {
-      return { allowed: false, code: 'TARGET_EXECUTION_UNCONFINED', ruleIds: rules.map(rule => rule.id) }
+      return { revision, decision: { allowed: false, code: 'TARGET_EXECUTION_UNCONFINED', ruleIds: rules.map(rule => rule.id) } }
     }
-    return { allowed: true, ruleIds: [] }
+    return { revision, decision: { allowed: true, ruleIds: [] } }
   }
 
   /**
@@ -150,7 +226,8 @@ export default class TargetProtection extends Service {
    */
   checkLocalFile(path: string, operation: LocalTargetOperation, signal: AbortSignal): Promise<LocalFileAdmission> {
     this.lifetime.signal.throwIfAborted()
-    const checking = this.checkFile(path, operation, signal)
+    const checking = this.audited({ operation: 'file', effect: operation, phase: 'execution', identity: ['file', path] },
+      signal, () => this.checkFile(path, operation, signal))
     this.checking.add(checking)
     return checking.finally(() => { this.checking.delete(checking) })
   }
@@ -158,8 +235,7 @@ export default class TargetProtection extends Service {
   private async checkFile(path: string, operation: LocalTargetOperation, signal: AbortSignal): Promise<LocalFileAdmission> {
     using timeout = deadline(AbortSignal.any([signal, this.executionSignal()]), this.config.checkTimeoutMs, 'TARGET_FILE_TIMEOUT')
     const store = await this.ready
-    const owner = [...this.config.ownerPaths, ...this.config.path === ':memory:' ? []
-      : [this.config.path, `${this.config.path}-wal`, `${this.config.path}-shm`, `${this.config.path}-journal`]]
+    const owner = [...this.config.ownerPaths, ...this.registryPaths()]
     const sources = [...this.config.readOnlyPaths, ...this.config.hostsFile === '' ? [] : [this.config.hostsFile],
       ...this.ctx.get('targetCountryData')?.sourcePaths() ?? []]
     for (let attempt = 0; attempt < this.config.maxRechecks; attempt++) {
@@ -218,8 +294,7 @@ export default class TargetProtection extends Service {
    */
   async nativeFileConstraints(): Promise<NativeFileConstraints> {
     const snapshot = await this.snapshot()
-    const owner = [...this.config.ownerPaths, ...this.config.path === ':memory:' ? []
-      : [this.config.path, `${this.config.path}-wal`, `${this.config.path}-shm`, `${this.config.path}-journal`]]
+    const owner = [...this.config.ownerPaths, ...this.registryPaths()]
     const sources = [...this.config.readOnlyPaths, ...this.config.hostsFile === '' ? [] : [this.config.hostsFile],
       ...this.ctx.get('targetCountryData')?.sourcePaths() ?? []]
     return { revision: snapshot.revision, entries: [
@@ -371,7 +446,12 @@ export default class TargetProtection extends Service {
    */
   checkHttp(destination: HttpFetchDestination, signal: AbortSignal, resolution?: TargetHttpResolution): Promise<TargetDecision> {
     this.lifetime.signal.throwIfAborted()
-    const operation = this.check(destination, signal, resolution)
+    const phase = destination.phase === 'before-resolution' ? 'preflight' : 'execution'
+    const subject: AuditSubject = { operation: destination.route === 'proxy' ? 'proxy-http' : 'http', phase, effect: 'unknown',
+      identity: ['network', destination.hostname, destination.port],
+      ...destination.phase === 'before-connect' && destination.addresses !== null
+        ? { peers: destination.addresses.map(address => address.address) } : {} }
+    const operation = this.audited(subject, signal, () => this.check(destination, signal, resolution)).then(result => result.decision)
     this.checking.add(operation)
     return operation.finally(() => { this.checking.delete(operation) })
   }
@@ -384,7 +464,10 @@ export default class TargetProtection extends Service {
    */
   resolveHttpTarget(hostname: string, signal: AbortSignal): Promise<TargetHttpResolution> {
     this.lifetime.signal.throwIfAborted()
-    const operation = this.resolveTarget(hostname, signal)
+    const operation = this.resolveTarget(hostname, signal).catch((error: unknown) => {
+      this.recordFailure({ operation: 'http-dns', effect: 'unknown', phase: 'preflight', identity: ['dns', hostname] }, error, signal, true)
+      throw error
+    })
     this.checking.add(operation)
     return operation.finally(() => { this.checking.delete(operation) })
   }
@@ -397,7 +480,11 @@ export default class TargetProtection extends Service {
    */
   resolveConnectionTarget(hostname: string, signal: AbortSignal): Promise<TargetConnectionResolution> {
     this.lifetime.signal.throwIfAborted()
-    const operation = this.resolveConnection(hostname, signal)
+    const operation = this.resolveConnection(hostname, signal).catch((error: unknown) => {
+      this.recordFailure({ operation: 'connection-dns', effect: 'unknown', phase: 'preflight', identity: ['dns', hostname] },
+        error, signal, true)
+      throw error
+    })
     this.checking.add(operation)
     return operation.finally(() => { this.checking.delete(operation) })
   }
@@ -431,9 +518,22 @@ export default class TargetProtection extends Service {
     scope: 'endpoint' | 'filesystem', effect: TargetEffect, signal: AbortSignal, database?: string, foldDatabaseCase: boolean = false,
   ): Promise<TargetDecision> {
     this.lifetime.signal.throwIfAborted()
+    const subject: AuditSubject = { operation: 'connection', effect, phase: resolution === undefined ? 'preflight' : 'execution',
+      identity: ['network', hostname, port, database],
+      ...resolution === undefined ? {} : { peers: resolution.addresses.map(address => address.address) } }
+    const operation = this.audited(subject, signal, () => this.connectionDecision(hostname, port, resolution, scope, effect,
+      signal, database, foldDatabaseCase)).then(result => result.decision)
+    this.checking.add(operation)
+    return operation.finally(() => { this.checking.delete(operation) })
+  }
+
+  private async connectionDecision(
+    hostname: string, port: number | undefined, resolution: TargetConnectionResolution | undefined,
+    scope: 'endpoint' | 'filesystem', effect: TargetEffect, signal: AbortSignal, database: string | undefined, foldDatabaseCase: boolean,
+  ): Promise<VersionedDecision> {
     const name = canonicalTargetHost(hostname)
     if (resolution !== undefined && resolution.hostname !== name) {
-      return Promise.resolve({ allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED', ruleIds: [] })
+      return { revision: null, decision: { allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED', ruleIds: [] } }
     }
     const target: NetworkTarget = {
       names: resolution?.names ?? [name], ...port === undefined ? {} : { port },
@@ -443,9 +543,7 @@ export default class TargetProtection extends Service {
       addresses: resolution === undefined ? null : resolution.addresses.flatMap(address =>
         address.translatedIpv4 === undefined ? [address.address] : [address.address, address.translatedIpv4]),
     }
-    const operation = this.decideNetwork(target, effect, resolution === undefined, signal)
-    this.checking.add(operation)
-    return operation.finally(() => { this.checking.delete(operation) })
+    return await this.decideNetwork(target, effect, resolution === undefined, signal)
   }
 
   private dnsOptions() {
@@ -466,7 +564,9 @@ export default class TargetProtection extends Service {
     return { ...resolution, addresses }
   }
 
-  private async check(destination: HttpFetchDestination, signal: AbortSignal, resolution?: TargetHttpResolution): Promise<TargetDecision> {
+  private async check(
+    destination: HttpFetchDestination, signal: AbortSignal, resolution?: TargetHttpResolution,
+  ): Promise<VersionedDecision> {
     signal.throwIfAborted()
     const hostname = canonicalTargetHost(destination.hostname)
     const verified = resolution !== undefined && resolution.hostname === hostname
@@ -490,27 +590,30 @@ export default class TargetProtection extends Service {
 
   private async decideNetwork(
     target: NetworkTarget, effect: TargetEffect, beforeResolution: boolean, signal: AbortSignal,
-  ): Promise<TargetDecision> {
+  ): Promise<VersionedDecision> {
     using timeout = deadline(AbortSignal.any([signal, this.executionSignal()]), this.config.checkTimeoutMs, 'TARGET_CHECK_TIMEOUT')
     const store = await this.ready
     for (let attempt = 0; attempt < this.config.maxRechecks; attempt++) {
       timeout.signal.throwIfAborted()
       const snapshot = store.snapshot()
+      const checked = (decision: TargetDecision): VersionedDecision => ({ revision: snapshot.revision, decision })
       if (target.spansServicePorts) {
         const unresolved = expandTargetRules(snapshot.preferences).filter(rule =>
           rule.enabled && rule.environment === 'production' && rule.match === 'path')
-        if (unresolved.length > 0) return { allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED', ruleIds: unresolved.map(rule => rule.id) }
+        if (unresolved.length > 0) {
+          return checked({ allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED', ruleIds: unresolved.map(rule => rule.id) })
+        }
       }
       const namedMainland = target.names.some(host => ['cn', 'xn--fiqs8s', 'xn--fiqz9s'].some(tld => host === tld || host.endsWith(`.${tld}`)))
       target.mainland = namedMainland ? 'yes' : 'unknown'
       const rules = new TargetRules(snapshot.preferences)
       const early = rules.preflight(target)
-      if (early !== undefined) return early
+      if (early !== undefined) return checked(early)
       if (beforeResolution && effect !== 'observe' && snapshot.preferences.mainlandEnabled && namedMainland
         && !snapshot.preferences.rules.some(rule => rule.enabled && rule.environment === 'test')) {
-        return { allowed: false, code: 'TARGET_MAINLAND_PROTECTED', ruleIds: [] }
+        return checked({ allowed: false, code: 'TARGET_MAINLAND_PROTECTED', ruleIds: [] })
       }
-      if (beforeResolution) return { allowed: true, ruleIds: [] }
+      if (beforeResolution) return checked({ allowed: true, ruleIds: [] })
       const bindings = new Map<string, readonly string[] | null>()
       for (const rule of rules.namedHosts(target)) {
         timeout.signal.throwIfAborted()
@@ -532,7 +635,7 @@ export default class TargetProtection extends Service {
       timeout.signal.throwIfAborted()
       if (store.snapshot().revision !== snapshot.revision) continue
       if (!namedMainland && target.addresses !== null) target.mainland = this.ctx.get('targetCountryData')?.mainland(target.addresses) ?? 'unknown'
-      return rules.decide([target], effect, bindings)
+      return checked(rules.decide([target], effect, bindings))
     }
     throw new TargetProtectionError('conflict', 'Target settings kept changing during validation; retry after changes settle.')
   }

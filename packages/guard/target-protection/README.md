@@ -30,6 +30,10 @@ Open Settings → Modes → Security → Target protection to view the current d
 
 `./settings` exposes `targetProtectionSettings.get` and `configure` to authenticated application owners. `get` returns the committed rules, their revision, the live HTTP-route status, and DB-IP attribution and freshness. `configure` takes complete `preferences` and an `expectedRevision`, and refuses a stale edit or a disconnected owner before commit. Security entry reads mainland protection as enabled only when both guarded HTTP routes are mounted and country data is fresh. An expired source or withdrawn route leaves the status unavailable. A committed settings change invalidates open entry confirmations.
 
+Set `auditPath` to enable the separate local admission log. The optional Web overlay provides this path. `auditLimit` retains the latest 2000 entries by default. Each entry carries the evaluated rule revision, operation, phase, decision code, up to 64 matching rule IDs and the full match count. Raw hosts, paths, credentials and error details are excluded. The store uses keyed fingerprints for correlating the same target across restarts. `targetProtectionSettings.auditHistory` returns up to 100 recent entries to the authenticated application owner.
+
+The audit records the protected HTTP, proxy HTTP, endpoint, local file and unconfined checks. Successful preflight checks are omitted. Execution admission and tool outcomes have separate records. If an enabled audit store fails to write, new allowed effects are refused and the owner can inspect its unavailable status. Restart after restoring the audit store.
+
 `busyTimeoutMs` bounds SQLite lock waits (default 1000); `checkTimeoutMs` bounds address checks (default 5000); `maxRechecks` bounds retries after concurrent configuration changes (default 3). These options do not authorize replay of a network operation.
 
 `dnsServers` defaults to the OS resolver list; `hostsFile` defaults to the system hosts file. `dnsQueryTimeoutMs` defaults to 1500, `dnsMaxCnameDepth` to 8, `dnsMaxRecords` to 256 and `hostsMaxBytes` to 1 MiB. DNS uses these configured resolvers rather than choosing an external public resolver. Refusals and invalid replies are not evaded by asking another server.
@@ -158,7 +162,7 @@ The source and compiled Windows chain verifies test access, zero production conn
 
 `retainNativeExecution(revision, stop)` holds the checked registry revision until the caller confirms that its process range and network transports have closed. Concurrent commands share the retained revision. Owner configuration changes stop every admitted native execution before committing; failed shutdown keeps admission disabled and the old revision retained. An explicit owner retry rechecks shutdown without replaying the command. Country-source changes also revoke native execution. A release callback is a physical-closure acknowledgement, not a general cleanup callback.
 
-The independent registry does not change Session record types. Durable execution-audit events and SDK projections belong to the remaining audit integration. The archived development draft is not a supported database predecessor and is never silently imported.
+The independent registry and local admission log have separate SQLite files. Session audit projections and SDK replay remain separate work.
 
 </details>
 

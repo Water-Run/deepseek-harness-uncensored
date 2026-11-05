@@ -4548,6 +4548,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Root owner; the HTTP consumer requires this service and cannot fall back after its removal.',
     methods: [
       {
+        signature: 'auditHistory(): TargetAuditHistory',
+        description: 'Read the local protection admission log without exposing raw targets or the fingerprint key.',
+        parameters: [],
+        returns: 'The audit state and up to 100 newest accepted records.',
+      },
+      {
         signature: 'checkUnconfined(): TargetDecision',
         description: 'Admit only executions whose effects are bounded by a structured adapter. Arbitrary code cannot establish a target set.',
         parameters: [],
@@ -4645,6 +4651,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Return the editable rule revision and current enforcement availability to the owner.',
         parameters: [],
         returns: 'Durable rule snapshot and live protected-route and country status.',
+      },
+      {
+        signature: '@Remote auditHistory(): TargetAuditHistory',
+        description: 'Read recent redacted protection decisions for the authenticated owner.',
+        parameters: [],
+        returns: 'The audit availability and latest decisions, newest first.',
       },
       {
         signature: '@Remote async configure(update: TargetProtectionSettingsUpdate): Promise<TargetProtectionSettingsState>',
@@ -10832,6 +10844,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'TableValueOf',
     declaration: 'export type TableValueOf<S extends DomainSpec, N extends keyof S[\'tables\']> = S[\'tables\'][N] extends DomainTableSpec<string, infer V> ? V : never;',
+  },
+  {
+    name: 'TargetAuditHistory',
+    declaration: 'export interface TargetAuditHistory {\n    state: \'off\' | \'ready\' | \'unavailable\';\n    entries: TargetAuditRecord[];\n}',
+  },
+  {
+    name: 'TargetAuditRecord',
+    declaration: 'export type TargetAuditRecord = z.infer<typeof recordSchema>;',
   },
   {
     name: 'TargetConnectionResolution',

@@ -129,6 +129,7 @@ export const VIEWER_ENDPOINT_CLASSES = {
   'securityProxy/setPassword': 'owner-only',
   'securityProxy/test': 'owner-only',
   'targetProtectionSettings/configure': 'owner-only',
+  'targetProtectionSettings/auditHistory': 'owner-only',
   'targetProtectionSettings/get': 'owner-only',
   'targetProtectionSettings/updateCountry': 'owner-only',
   'session/aside': 'owner-only',

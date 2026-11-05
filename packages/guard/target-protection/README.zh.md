@@ -30,6 +30,10 @@ kind: "package-reference"
 
 `./settings` 向已认证的应用所有者提供 `targetProtectionSettings.get` 和 `configure`。`get` 返回已提交规则、版本、HTTP 路由的实时状态及 DB-IP 署名和数据时效。`configure` 接收完整的 `preferences` 和 `expectedRevision`，提交前拒绝过期编辑或断开的所有者。只有两条受控 HTTP 路由均就绪且地区数据有效时，网安确认才显示境内保护已启用。数据过期或路由撤下时显示不可用。规则提交后，已打开的首次确认失效。
 
+设置 `auditPath` 可启用独立的本机准入日志。可选 Web 配置已提供该路径。`auditLimit` 默认保留最新 2000 条。每条记录包含判定采用的规则版本、操作、阶段、结果代码、最多 64 个命中规则 ID 和总命中数。日志排除原始主机、路径、凭据与错误详情。带密钥的指纹可关联重启前后的同一目标。`targetProtectionSettings.auditHistory` 向已认证的应用所有者返回最近最多 100 条。
+
+审计覆盖受保护的 HTTP、代理 HTTP、端点、本机文件及无法约束执行的检查。预检通过会省略，准入结果和工具执行结果分别记录。已启用的审计库写入失败时，会拦截新的放行操作，所有者可以查看不可用状态。恢复审计库后重启即可继续使用。
+
 `busyTimeoutMs` 限制 SQLite 锁等待（默认 1000）；`checkTimeoutMs` 限制地址检查（默认 5000）；`maxRechecks` 限制并发配置变化后的复查次数（默认 3）。这些选项不授权重放网络操作。
 
 `dnsServers` 默认使用系统解析器列表，`hostsFile` 默认使用系统 hosts 文件。`dnsQueryTimeoutMs` 默认 1500，`dnsMaxCnameDepth` 默认 8，`dnsMaxRecords` 默认 256，`hostsMaxBytes` 默认 1 MiB。DNS 使用这些配置的解析器，不擅自选择外部公共解析器；遇到拒绝或无效回答，不会通过询问另一台服务器规避。
@@ -158,7 +162,7 @@ Windows 源码和编译链已验证测试访问成功、生产零连接，以及
 
 `retainNativeExecution(revision, stop)` 保持已核准的规则修订，直到调用方确认其进程范围和网络传输均已关闭。并行命令可共享保留的修订；所有者配置变更先停止全部已准入原生执行，再提交新规则。无法确认停止时保持禁止准入，并保留旧修订。所有者显式重试会再次检查关闭，不会重放命令。国家数据源变更也会撤销原生执行。释放回调代表物理关闭确认，不能当作无条件清理回调。
 
-独立规则库不改变 Session 记录类型。持久化执行审计事件及 SDK 投影属于后续审计接入。归档开发草稿不是受支持的数据库前代，不会自动导入。
+规则库和本机准入日志使用独立的 SQLite 文件。Session 审计投影和 SDK 回放仍待接入。
 
 </details>
 

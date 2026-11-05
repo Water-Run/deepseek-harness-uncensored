@@ -41,6 +41,8 @@ it('exposes owner-only, revisioned rules and tracks the actual guarded providers
     ctx.on('security-protection/changed', changed)
     const owner = ctx.extend({ invocation }).targetProtectionSettings
     expect(owner.get().protection.state).toBe('unavailable')
+    expect(owner.auditHistory()).toEqual({ state: 'off', entries: [] })
+    expect(() => ctx.targetProtectionSettings.auditHistory()).toThrow(expect.objectContaining({ code: 'target-protection/owner-required' }))
     expect(() => ctx.targetProtectionSettings.get()).toThrow(expect.objectContaining({ code: 'target-protection/owner-required' }))
     await expect(ctx.targetProtectionSettings.updateCountry()).rejects.toMatchObject({ code: 'target-protection/owner-required' })
     await ctx.plugin(Http)
