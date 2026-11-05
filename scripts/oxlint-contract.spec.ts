@@ -5,11 +5,11 @@
 import { spawnSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { join, relative } from 'node:path'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { flattenDiagnosticMessageText, parseConfigFileTextToJson } from 'typescript'
-import { describe, expect, it } from 'vitest'
+import { flattenDiagnosticMessageText, getParsedCommandLineOfConfigFile, parseConfigFileTextToJson, sys } from 'typescript'
+import { describe, expect, it, onTestFinished } from 'vitest'
 
 const repositoryRoot = fileURLToPath(new URL('..', import.meta.url))
 const oxlintCli = fileURLToPath(new URL('../node_modules/oxlint/bin/oxlint', import.meta.url))
@@ -51,6 +51,47 @@ async function writeContractConfig(suffix: string): Promise<string> {
 }
 
 describe('Oxlint executable contract', () => {
+  it('uses Client declarations while rejecting Host-only Session operations', async () => {
+    const suffix = randomUUID(), configPath = await writeContractConfig(suffix)
+    onTestFinished(async () => { await rm(configPath, { force: true }) })
+    const parent = join(repositoryRoot, 'scripts')
+    const root = await mkdtemp(join(parent, '.oxlint-contract-face-'))
+    onTestFinished(async () => {
+      if (resolve(root, '..') !== resolve(parent)) throw new Error('Unexpected lint fixture parent')
+      await rm(root, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
+    })
+    const file = join(root, 'probe.ts')
+    const clientConfig = join(repositoryRoot, 'packages/client/ui-commands/tsconfig.json')
+    const parsed = getParsedCommandLineOfConfigFile(clientConfig, {}, { ...sys,
+      onUnRecoverableConfigFileDiagnostic(error) { throw new Error(flattenDiagnosticMessageText(error.messageText, '\n')) },
+    })
+    if (parsed?.projectReferences === undefined) throw new Error('Missing Client compiler references')
+    const source = `import type { Context } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-api-session-controller/client'
+import { SessionId } from '@deepseek-ai/dsh-session/types'
+export async function refresh(context: Context): Promise<void> {
+  await context.sessions.refresh()
+}
+`
+    await writeFile(join(root, 'tsconfig.json'), JSON.stringify({ extends: clientConfig,
+      compilerOptions: { rootDir: root, noEmit: true }, files: [file], include: [],
+      references: parsed.projectReferences.map(reference => ({ path: reference.path })),
+    }))
+    const args = ['--config', relative(repositoryRoot, configPath), '--type-check', relative(repositoryRoot, file)]
+    await writeFile(file, source + "export const identity = SessionId('lint-client-probe')\n")
+    const positive = runOxlint(args)
+    expect(positive.error).toBeUndefined()
+    expect(positive.status, normalizedOutput(positive)).toBe(0)
+    await writeFile(file, source + `export function hostOperation(context: Context): void {
+  context.sessions.flush(SessionId('lint-client-probe'))
+}
+`)
+    const negative = runOxlint(args)
+    expect(negative.error).toBeUndefined()
+    expect(negative.status, normalizedOutput(negative)).toBe(1)
+    expect(normalizedOutput(negative)).toContain("Property 'flush' does not exist on type 'ISessions'")
+  }, 90_000)
+
   it('discovers the owning TypeScript project for every file class', async () => {
     const suffix = randomUUID()
     const configPath = await writeContractConfig(suffix)

@@ -237,17 +237,18 @@ export function buildLibraryArtifacts(root: string, hostOnly: boolean, mode: Com
 }
 
 /**
- * Generate Typert declarations from source, then compile Host package projects.
+ * Generate Typert declarations from source, then compile the selected package faces.
  * @param root - Repository root containing the compiler configuration and source contributors.
+ * @param faces - Host declarations alone, or Host followed by Client declarations.
  * @returns a promise that settles after generation and compilation exit.
  * @throws the first failed step's error; dependent compilation does not start after generation fails.
  */
-export async function buildHostContracts(root: string): Promise<void> {
-  for (const step of contractSteps(root, 'host')) await runStepAsync(root, step)
+export async function buildContracts(root: string, faces: 'host' | 'all'): Promise<void> {
+  for (const step of contractSteps(root, faces)) await runStepAsync(root, step)
 }
 
 if (import.meta.main) {
-  const usage = 'compile-referenced-projects: expected exactly one mode: host, client, host-contracts, or host-libraries'
+  const usage = 'compile-referenced-projects: expected exactly one mode: host, client, host-contracts, all-contracts, or host-libraries'
   const { positionals } = parseArgs({ allowPositionals: true })
   const [mode] = positionals
   if (positionals.length !== 1) throw new Error(usage)
@@ -258,7 +259,8 @@ if (import.meta.main) {
       compileReferencedProjects(root, mode)
       break
     case 'host-contracts':
-      await buildHostContracts(root)
+    case 'all-contracts':
+      await buildContracts(root, mode === 'all-contracts' ? 'all' : 'host')
       break
     case 'host-libraries':
       buildLibraryArtifacts(root, true)

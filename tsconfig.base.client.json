@@ -5,6 +5,8 @@
   // node types (packages that need them override locally).
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
+    // Referenced declarations keep Host implementations out of the Client's Cordis service merges.
+    "disableSourceOfProjectReferenceRedirect": true,
     "jsx": "react-jsx",
     "lib": ["ES2024", "DOM", "DOM.Iterable", "ESNext.Disposable"],
     "typeRoots": ["./scripts/types", "./node_modules/@types"],

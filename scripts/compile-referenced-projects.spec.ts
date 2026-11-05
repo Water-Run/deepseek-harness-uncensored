@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
-import { aggregateCheckArgs, buildHostContracts, buildLibraryArtifacts, compileReferencedProjects } from './compile-referenced-projects.ts'
+import { aggregateCheckArgs, buildContracts, buildLibraryArtifacts, compileReferencedProjects } from './compile-referenced-projects.ts'
 import { runCiBench } from './run-ci-bench.ts'
 import { removeFixtureSafely } from './test-fixture-cleanup.ts'
 import { setPublishedFiles, writeTypertWorkspace } from './typert-workspace.fixture.ts'
@@ -166,17 +166,22 @@ describe('internal artifact build order', () => {
   })
 })
 
-describe('bundle-free Host contracts', { timeout: 60_000 }, () => {
-  function typertWorkspace(source?: string): { pkg: string; run: () => Promise<void>; outputs: () => string[] } {
+describe('bundle-free contracts', { timeout: 60_000 }, () => {
+  function typertWorkspace(source?: string): {
+    root: string
+    pkg: string
+    run: (faces?: 'host' | 'all') => Promise<void>
+    outputs: () => string[]
+  } {
     const root = mkdtempSync(join(tmpdir(), 'dsh-host-contracts-'))
     onTestFinished(() => { removeFixtureSafely(root) })
     const pkg = writeTypertWorkspace(root, source)
     const commands = recordedCommands(root)
     return {
-      pkg,
-      run: async () => {
+      root, pkg,
+      run: async (faces = 'host') => {
         try {
-          await buildHostContracts(root)
+          await buildContracts(root, faces)
         } finally {
           expect(existsSync(join(root, 'commands.jsonl')) ? commands() : []).toEqual([])
         }
@@ -191,6 +196,21 @@ describe('bundle-free Host contracts', { timeout: 60_000 }, () => {
     await run()
 
     expect(outputs()).toEqual(['typert.host.d.ts', 'typert.host.js', 'types/index.d.ts', 'types/index.js'])
+  })
+
+  it('prepares both compiler faces without running an aggregate or a bundler', async () => {
+    const { root, pkg, run } = typertWorkspace()
+    const client = join(root, 'packages/fixture/client')
+    mkdirSync(join(client, 'src'), { recursive: true })
+    writeFileSync(join(client, 'src/index.ts'), 'export const clientValue = 1\n')
+    writeFileSync(join(client, 'tsconfig.json'), JSON.stringify({
+      extends: '../../../tsconfig.base.json', compilerOptions: { rootDir: 'src', outDir: 'lib/types' }, include: ['src'],
+    }))
+    writeFileSync(join(root, 'tsconfig.client.json'), JSON.stringify({
+      extends: './tsconfig.base.json', compilerOptions: { noEmit: true }, files: [], references: [{ path: pkg }, { path: client }],
+    }))
+    await run('all')
+    expect(existsSync(join(client, 'lib/types/index.d.ts'))).toBe(true)
   })
 
   it('writes Typert declarations from source when Host compilation fails', async () => {
@@ -414,6 +434,6 @@ describe('package project compilation', () => {
     ], { cwd: repository, encoding: 'utf8' })
 
     expect(result.status).not.toBe(0)
-    expect(result.stderr).toContain('expected exactly one mode: host, client, host-contracts, or host-libraries')
+    expect(result.stderr).toContain('expected exactly one mode: host, client, host-contracts, all-contracts, or host-libraries')
   })
 })
