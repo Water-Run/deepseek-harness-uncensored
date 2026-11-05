@@ -103,6 +103,7 @@ interface SpawnReservation {
 
 /** In-process registry for replaceable PTY backends and exact-Agent sessions. */
 export class TerminalSessionService extends Service {
+  static inject = ['agents']
   private readonly backends = new Map<string, TerminalBackend>()
   private readonly sessions = new Map<TerminalSessionId, SessionRecord>()
   private readonly reservedNames = new Map<Agent, Set<string>>()
@@ -167,14 +168,14 @@ export class TerminalSessionService extends Service {
     let session: TerminalBackendSession | undefined
     let cleanupFailure: { error: unknown } | undefined
     try {
-      session = await backend.spawn({
+      session = await this.ctx.agents.withInitiator(owner, () => backend.spawn({
         sessionId,
         owner,
         type: request.type,
         ...request.name !== undefined ? { name: request.name } : {},
         ...request.cwd !== undefined ? { cwd: request.cwd } : {},
         signal: backendSignal,
-      })
+      }))
       signal?.throwIfAborted()
       if (this.disposing) {
         throw new TerminalError('PTY service is disposing', 'SERVICE_DISPOSING')

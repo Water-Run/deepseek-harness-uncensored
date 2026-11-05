@@ -33,6 +33,15 @@ const HOP_BY_HOP = new Set([
   'trailer',
 ])
 
+/** Owner-defined attribution and cancellation for one complete exchange. */
+export interface ProxyExecutionScope {
+  /**
+   * @param operation - Request or tunnel lifetime observing the supplied cancellation signal.
+   * @returns Completion after the request and its cleanup settle.
+   */
+  <T>(operation: (signal: AbortSignal) => Promise<T>): Promise<T>
+}
+
 /** Everything one session's listener needs from the owning engine. */
 export interface ChainOptions {
   /** Session the listener attributes its flows to. */
@@ -43,6 +52,8 @@ export interface ChainOptions {
   signal: () => AbortSignal
   /** Hold execution dependencies until forwarding and native cleanup settle. */
   retainExecution: () => () => void
+  /** Optional owner attribution and cancellation. Absence preserves the listener's existing signals. */
+  executionScope?: ProxyExecutionScope
   /** Send one HTTP hop through the owner's selected enforcement adapter. */
   requestHttp: (
     url: URL, request: ProxyHttpRequest, signal: AbortSignal,
@@ -104,13 +115,13 @@ export class SessionChainProxy {
     const server = createServer()
     const proxy = new SessionChainProxy(server, options)
     server.on('request', (request, response) => {
-      void proxy.track(proxy.forward(request, response)).catch((error: unknown) => {
+      void proxy.track(proxy.scoped(signal => proxy.forward(request, response, signal))).catch((error: unknown) => {
         if (!response.headersSent) response.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' })
         response.end(`security proxy forward failed: ${describeFailure(error)}\n`)
       })
     })
     server.on('connect', (request, socket, head) => {
-      void proxy.track(proxy.tunnel(request, socket as Socket, head)).catch(() => { socket.destroy() })
+      void proxy.track(proxy.scoped(signal => proxy.tunnel(request, socket as Socket, head, signal))).catch(() => { socket.destroy() })
     })
     server.on('connection', (socket) => {
       proxy.sockets.add(socket)
@@ -146,6 +157,10 @@ export class SessionChainProxy {
     return owned
   }
 
+  private scoped<T>(operation: (signal?: AbortSignal) => Promise<T>): Promise<T> {
+    return this.options.executionScope === undefined ? operation() : this.options.executionScope(operation)
+  }
+
   private async dispose(): Promise<void> {
     this.closing = true
     this.lifetime.abort(new Error('Security proxy listener is closing.'))
@@ -158,7 +173,7 @@ export class SessionChainProxy {
   }
 
   /** Forward one absolute-form HTTP request through the upstream and capture it. */
-  private async forward(request: IncomingMessage, response: ServerResponse): Promise<void> {
+  private async forward(request: IncomingMessage, response: ServerResponse, sourceSignal?: AbortSignal): Promise<void> {
     if (this.closing) { response.destroy(); return }
     const started = this.options.now?.() ?? Date.now()
     const startedAt = performance.now()
@@ -185,7 +200,7 @@ export class SessionChainProxy {
     try {
       release = this.options.retainExecution()
       const signal = AbortSignal.any([this.lifetime.signal, this.options.signal(), disconnected.signal,
-        AbortSignal.timeout(this.options.timeoutMs)])
+        AbortSignal.timeout(this.options.timeoutMs), ...sourceSignal === undefined ? [] : [sourceSignal]])
       using _abort = addAbortListener(signal, () => { request.destroy(new Error('Proxy request cancelled.', { cause: signal.reason })) })
       signal.throwIfAborted()
       body = await readBody(request)
@@ -257,7 +272,7 @@ export class SessionChainProxy {
   }
 
   /** Tunnel one CONNECT request and record only what the tunnel itself reveals. */
-  private async tunnel(request: IncomingMessage, socket: Socket, head: Buffer): Promise<void> {
+  private async tunnel(request: IncomingMessage, socket: Socket, head: Buffer, sourceSignal?: AbortSignal): Promise<void> {
     if (this.closing) { socket.destroy(); return }
     const started = this.options.now?.() ?? Date.now()
     const startedAt = performance.now()
@@ -275,7 +290,8 @@ export class SessionChainProxy {
     socket.once('close', onClose)
     try {
       release = this.options.retainExecution()
-      const signal = AbortSignal.any([this.lifetime.signal, this.options.signal(), disconnected.signal])
+      const signal = AbortSignal.any([this.lifetime.signal, this.options.signal(), disconnected.signal,
+        ...sourceSignal === undefined ? [] : [sourceSignal]])
       using _abort = addAbortListener(signal, () => { socket.destroy(); upstreamTunnel?.socket.destroy() })
       signal.throwIfAborted()
       if (this.options.inspectTunnel !== undefined) {
@@ -283,7 +299,7 @@ export class SessionChainProxy {
         signal.throwIfAborted()
         bridged = true
         socket.write('HTTP/1.1 200 Connection Established\r\n\r\n')
-        await inspector.run(socket, head, (incoming, response) => this.forward(incoming, response), signal)
+        await inspector.run(socket, head, (incoming, response) => this.forward(incoming, response, sourceSignal), signal)
         return
       }
       upstreamTunnel = await this.options.openTunnel(host, port, signal)

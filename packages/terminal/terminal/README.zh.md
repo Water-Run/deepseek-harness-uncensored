@@ -82,6 +82,8 @@ kind: "package-reference"
 
 ### 所有权与清理规则
 
+本服务依赖 `agents`。后端启动采用明确注册的终端所有者作为发起 Agent，包含从其他 Agent 或 GUI 发起的请求；该执行归属持续到异步启动结束。
+
 - 限制基于确切的 `Agent` 对象：`hasOwnerActivity(owner)` 覆盖从尚未发布的设置到最终关闭的全过程，没有发布竞态，因此生命周期策略可以精确限制所有者。
 - 无法清理部分启动资源的后端会以 `TerminalBackendCleanupError` 拒绝；服务会将该失败保留为受跟踪的所有者活动，直到所有者或服务 dispose 消费并报告它。
 - 调用方取消保留其确切的 `AbortSignal.reason`；`kill()` 与 dispose 只在后端捕获的进程树完全停稳后完成。

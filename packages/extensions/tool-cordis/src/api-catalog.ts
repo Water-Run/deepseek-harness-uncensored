@@ -4548,6 +4548,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Root owner; the HTTP consumer requires this service and cannot fall back after its removal.',
     methods: [
       {
+        signature: 'currentAuditSessionId(): SessionId | null',
+        description: 'Capture the current audit Session before work enters a background preparation queue.',
+        parameters: [],
+        returns: 'Its ID, or null when audit recording or conversation attribution is absent.',
+      },
+      {
         signature: 'bindAuditSession(sessionId: SessionId | undefined): TargetAuditExecution',
         description: 'Bind trusted listener ownership for admission logging, without granting target access. An enabled audit refuses a missing or replaced Session before running the operation.',
         parameters: [{ name: 'sessionId', description: 'Owner-established Session identity; undefined clears inherited attribution for Host checks.' }],
@@ -8976,6 +8982,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type ProviderRequestId = Branded<\'ProviderRequestId\'>;',
   },
   {
+    name: 'ProxyExecutionScope',
+    declaration: 'export interface ProxyExecutionScope {\n    <T>(operation: (signal: AbortSignal) => Promise<T>): Promise<T>;\n}',
+  },
+  {
     name: 'PrunedEntry',
     declaration: 'export interface PrunedEntry {\n    readonly originalSeq: SessionSeq;\n    readonly replacementSeq: SessionSeq;\n    readonly callId: ToolCallId;\n    readonly charsBefore: number;\n    readonly charsAfter: number;\n}',
   },
@@ -10857,7 +10867,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'TargetAuditExecution',
-    declaration: 'export interface TargetAuditExecution {\n    <T>(operation: () => Promise<T>): Promise<T>;\n}',
+    declaration: 'export interface TargetAuditExecution extends ProxyExecutionScope {\n}',
   },
   {
     name: 'TargetAuditHistory',

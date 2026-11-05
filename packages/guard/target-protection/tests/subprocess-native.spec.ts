@@ -3,6 +3,10 @@ import { Context } from '@deepseek-ai/cordis'
 import Credentials from '@deepseek-ai/dsh-credentials-local'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import type { ManagedProcessLaunch } from '@deepseek-ai/dsh-subprocess-local/managed'
+import { mountAgentLoopTestDependencies, mountAgentLoopTestHarness } from '@deepseek-ai/dsh-agent-loop-testkit'
+import { SessionId } from '@deepseek-ai/dsh-session'
+import { createServer, request } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { bindManagedProcess } from '@deepseek-ai/dsh-subprocess-local/managed'
 import type { SubprocessHandle, SubprocessOutcome, SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
 import { PassThrough } from 'node:stream'
@@ -91,7 +95,7 @@ function broker() {
   }
 }
 
-async function fixture(change: Partial<NativeSubprocessConfig> = {}, mount = true) {
+async function fixture(change: Partial<NativeSubprocessConfig> = {}, mount = true, audit = false) {
   const root = await mkdtemp(join(tmpdir(), 'dshu-native-service-')), ctx = new Context()
   const work = join(root, 'work'), privateRoot = join(root, 'private')
   const brokers: ReturnType<typeof broker>[] = [], exits = new Set(process.listeners('exit'))
@@ -108,8 +112,13 @@ async function fixture(change: Partial<NativeSubprocessConfig> = {}, mount = tru
     }
   })
   await mkdir(work)
+  if (audit) {
+    await mountAgentLoopTestDependencies(ctx)
+    await mountAgentLoopTestHarness(ctx)
+  }
   await ctx.plugin(Credentials, { path: join(root, 'credentials.yml'), dshHome: root, watch: false })
-  await ctx.plugin(TargetProtection, { path: join(root, 'rules.sqlite'), hostsFile: '' })
+  await ctx.plugin(TargetProtection, { path: join(root, 'rules.sqlite'), hostsFile: '',
+    ...audit ? { auditPath: join(root, 'audit.sqlite') } : {} })
   await ctx.targetProtection.configure({ mainlandEnabled: false, rules: [] }, 1)
   vi.mocked(launchNativeBroker).mockImplementation(() => { const value = broker(); brokers.push(value); return value.carrier })
   const config: NativeSubprocessConfig = { readonlyPaths: [dirname(process.execPath)], readwritePaths: [work],
@@ -138,6 +147,48 @@ it('resolves private paths and the scrubbed environment before starting the brok
   await process.finish(); await handle.done; await handle.waitForExit()
   expect(await readdir(h.privateRoot)).toEqual([])
   expect(handle.collected.stdout?.readFrom(0).text).toBe('owned output')
+})
+
+it('captures the scoped command owner before native preparation and ignores environment identity', async () => {
+  const h = await fixture({ network: 'gateway' }, true, true)
+  const owner = await h.ctx.agents.create({ sessionId: SessionId('native-command-owner') })
+  const other = await h.ctx.agents.create({ sessionId: SessionId('unrelated-command-initiator') })
+  const target = createServer((_request, response) => { response.end('native owner response') })
+  onTestFinished(async () => {
+    target.closeAllConnections()
+    if (target.listening) await new Promise<void>((accept) => { target.close(() => { accept() }) })
+  })
+  await new Promise<void>((accept) => { target.listen(0, '127.0.0.1', accept) })
+  const port = (target.address() as AddressInfo).port
+  const before = await h.ctx.targetProtection.snapshot()
+  await h.ctx.targetProtection.configure({ mainlandEnabled: false, rules: [{
+    id: '5e90f895-6fb0-4da1-8f7e-47b644892284' as TargetRuleId, name: 'owned native target', enabled: true,
+    kind: 'server', environment: 'test', protection: 'full', match: 'host', address: '127.0.0.1', port,
+  }] }, before.revision)
+  const run = h.ctx.targetProtection.bindAuditSession(other.agent.id)
+  const subprocess = owner.agent.ctx.get('subprocess')
+  if (subprocess === undefined) throw new Error('Missing scoped native provider')
+  await run(() => subprocess.resolveExecutable(process.execPath))
+  const handle = await run(async () => subprocess.spawn({ ...h.spec(),
+    env: { DSH_SESSION_ID: other.agent.id } }))
+  const processFixture = await h.started(), environment = await processFixture.ready
+  const url = `http://127.0.0.1:${port}/`
+  await new Promise<void>((accept, reject) => {
+    const call = request(environment.HTTP_PROXY!, { path: url, headers: { host: `127.0.0.1:${port}` } }, (response) => {
+      response.resume()
+      response.on('error', reject)
+      response.once('end', () => { expect(response.statusCode).toBe(200); accept() })
+    })
+    call.on('error', reject)
+    call.end()
+  })
+  const records = owner.agent.session.snapshotEvents().filter(event => event.type === 'target/admission')
+  expect(records.some(event => event.data.operation === 'connection')).toBe(true)
+  expect(records.every(event => event.data.source?.sessionId === owner.agent.id)).toBe(true)
+  expect(other.agent.session.snapshotEvents().filter(event => event.type === 'target/admission')).toEqual([])
+  await processFixture.finish()
+  await handle.done
+  await handle.waitForExit()
 })
 
 it('keeps HTTPS private keys in the Host and supplies only a temporary CA to native targets', async () => {

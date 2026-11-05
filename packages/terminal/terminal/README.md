@@ -82,6 +82,8 @@ Each published session is a record of its id, owner, optional name, backend type
 
 ### Ownership and cleanup rules
 
+The service requires `agents`. Backend startup runs with its explicit registered owner as the initiating Agent, including requests made from another Agent or the GUI. The boundary remains active through asynchronous backend startup.
+
 - Fencing uses the exact `Agent` object: `hasOwnerActivity(owner)` spans unpublished setup through final close with no publication gap, so lifecycle policy can fence the owner precisely.
 - A backend that cannot clean partial startup resources rejects with `TerminalBackendCleanupError`; the service retains that failure as tracked owner activity until owner or service disposal consumes and reports it.
 - Caller cancellation keeps its exact `AbortSignal.reason`; `kill()` and disposal resolve only after the backend's captured process tree is quiescent.

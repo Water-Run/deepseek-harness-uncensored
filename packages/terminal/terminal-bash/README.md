@@ -130,6 +130,8 @@ Read these pages when the package-level contract is not enough. They move from t
 
 -----
 
+Backend startup selects the process provider from the exact owning Agent context, including scoped overrides. The registry establishes that Agent as the initiator before asynchronous startup. The provider receives an explicit owner alongside its terminal spawn request.
+
 <a id="model-experience"></a>
 ## Model Experience
 

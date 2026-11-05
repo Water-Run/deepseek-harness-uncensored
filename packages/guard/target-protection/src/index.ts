@@ -4,6 +4,7 @@ import schema from '@deepseek-ai/schemastery'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { Session, SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-tools'
+import type { ProxyExecutionScope } from '@deepseek-ai/dsh-security-proxy-local'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { isIP } from 'node:net'
 import { resolve } from 'node:path'
@@ -75,13 +76,7 @@ export interface LocalFileAdmission { path: string; revision: number; decision: 
 type VersionedDecision = { revision: number | null; decision: TargetDecision }
 
 /** Session attribution captured by a trusted local request or listener owner. */
-export interface TargetAuditExecution {
-  /**
-   * @param operation - Complete request lifetime, including cancellation and cleanup.
-   * @returns The operation's outcome after its attribution scope has drained.
-   */
-  <T>(operation: () => Promise<T>): Promise<T>
-}
+export interface TargetAuditExecution extends ProxyExecutionScope {}
 
 declare module '@deepseek-ai/cordis' {
   interface Context { /** Current target registry and deterministic execution decisions. */ targetProtection: TargetProtection }
@@ -119,6 +114,8 @@ export default class TargetProtection extends Service {
   private auditFailed = false
   private auditInitiator: (() => Agent | undefined) | undefined
   private readonly auditSessionScope = new AsyncLocalStorage<{ session: Session | undefined; current?: () => boolean }>()
+  /** Plain holder keeps listener ownership at the provider when Cordis traces a borrowed service. */
+  private readonly auditOwner: { ctx: Context }
 
   /**
    * @param ctx - Service owner whose lifetime contains all pending checks.
@@ -126,6 +123,7 @@ export default class TargetProtection extends Service {
    */
   constructor(ctx: Context, config: Config) {
     super(ctx, 'targetProtection')
+    this.auditOwner = { ctx }
     this.config = TargetProtection.Config(config)
     if (this.config.path !== ':memory:') this.config.path = canonicalLocalPath(resolve(this.config.path))
     if (this.config.auditPath !== '') this.config.auditPath = canonicalLocalPath(resolve(this.config.auditPath))
@@ -206,6 +204,19 @@ export default class TargetProtection extends Service {
   private auditScopeClosed(): boolean { return this.auditSessionScope.getStore()?.current?.() === false }
 
   /**
+   * Capture the current audit Session before work enters a background preparation queue.
+   * @returns Its ID, or null when audit recording or conversation attribution is absent.
+   */
+  currentAuditSessionId(): SessionId | null {
+    this.lifetime.signal.throwIfAborted()
+    const session = this.auditSession()
+    if (session !== undefined && this.ctx.get('sessions')?.get(session.id) !== session) {
+      throw new TargetProtectionError('unavailable', 'The initiating conversation is no longer available. The operation was stopped.')
+    }
+    return session?.id ?? null
+  }
+
+  /**
    * Bind trusted listener ownership for admission logging, without granting target access.
    * An enabled audit refuses a missing or replaced Session before running the operation.
    * @param sessionId - Owner-established Session identity; undefined clears inherited attribution for Host checks.
@@ -224,10 +235,17 @@ export default class TargetProtection extends Service {
       if (!current()) {
         throw new TargetProtectionError('unavailable', 'The audit conversation was replaced or closed. The operation was stopped.')
       }
-      const running = this.auditSessionScope.run({ session, current }, operation)
-      this.checking.add(running)
-      try { return await running }
-      finally { this.checking.delete(running) }
+      const closed = new AbortController()
+      const stop = session === undefined ? () => {} : this.auditOwner.ctx.on('session/disposed', (source) => {
+        if (source === session) closed.abort(new TargetProtectionError('unavailable', 'The audit conversation was closed.'))
+      })
+      try {
+        const signal = AbortSignal.any([closed.signal, this.lifetime.signal])
+        const running = this.auditSessionScope.run({ session, current }, () => operation(signal))
+        this.checking.add(running)
+        try { return await running }
+        finally { this.checking.delete(running) }
+      } finally { stop() }
     }
   }
 

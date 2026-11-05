@@ -157,6 +157,21 @@ describe('TerminalSessionService backend registry', () => {
 })
 
 describe('TerminalSessionService ownership and lifecycle', () => {
+  it('enters the exact terminal owner while an unrelated Agent initiates backend startup', async () => {
+    const ctx = await harness(), owner = stubAgent(ctx, 'terminal-owner'), other = stubAgent(ctx, 'request-initiator')
+    try {
+      await ctx.agents.register(owner)
+      await ctx.agents.register(other)
+      ctx.terminals.registerBackend({ type: 'attributed', async spawn() {
+        expect(ctx.agents.currentInitiator()).toBe(owner)
+        await Promise.resolve()
+        expect(ctx.agents.currentInitiator()).toBe(owner)
+        return new StubSession()
+      } })
+      await ctx.agents.withInitiator(other, () => ctx.terminals.spawn(owner, { type: 'attributed' }))
+      expect(ctx.agents.currentInitiator()).toBeUndefined()
+    } finally { await ctx.fiber.dispose() }
+  })
   it('publishes only after spawn and fences every operation to the exact owner', async () => {
     const ctx = await harness()
     const b = backend()

@@ -8,7 +8,7 @@ import { requestPinned, requestPinnedViaProxy, validateFetchUrl } from '@deepsee
 import type { PinnedResponse } from '@deepseek-ai/dsh-web-fetch-http'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type TargetProtection from './index.ts'
-import type { TargetConnectionResolution } from './index.ts'
+import type { TargetConnectionResolution, TargetAuditExecution } from './index.ts'
 import { canonicalTargetHost, hasExactTestServer } from './rules.ts'
 import { assertNetworkAllowed } from './network-decision.ts'
 import { createNativeHttps, type NativeHttpsOptions } from './native-https.ts'
@@ -20,6 +20,8 @@ export interface NativeGatewayOptions {
   /** Stop and join the native process range; its release closes this gateway. */
   stopExecution(): Promise<void>
   sessionId: SessionId | null
+  /** Earlier validated binding for queued preparation; omission binds sessionId at gateway creation. */
+  auditExecution?: TargetAuditExecution
   tool: string
   upstream?: Upstream
   connectTimeoutMs: number
@@ -68,6 +70,7 @@ export async function startNativeGateway(
   protection: TargetProtection, options: NativeGatewayOptions, signal: AbortSignal,
 ): Promise<NativeGateway> {
   signal.throwIfAborted()
+  const audit = options.auditExecution ?? protection.bindAuditSession(options.sessionId ?? undefined)
   const release = protection.retainNativeExecution(options.revision, () => options.stopExecution()), lifetime = new AbortController()
   const combined = AbortSignal.any([signal, lifetime.signal, protection.executionSignal()])
   let proxy: SessionChainProxy | undefined, closing: Promise<void> | undefined
@@ -125,7 +128,7 @@ export async function startNativeGateway(
     combined.throwIfAborted()
     proxy = await SessionChainProxy.start({
       sessionId: options.sessionId, tool: () => options.tool, signal: () => combined,
-      retainExecution: () => protection.retainExecution(), requestHttp,
+      retainExecution: () => protection.retainExecution(), requestHttp, executionScope: audit,
       ...https === undefined ? {} : { async inspectTunnel(host: string, port: number, requestSignal: AbortSignal) {
         const bounded = AbortSignal.any([requestSignal, AbortSignal.timeout(options.connectTimeoutMs)])
         await authorize(host, port, false, bounded)

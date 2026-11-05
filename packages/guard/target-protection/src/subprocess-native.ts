@@ -13,6 +13,9 @@ import { credentialRef, isCredentialRefName } from '@deepseek-ai/dsh-credentials
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
 import type { Upstream } from '@deepseek-ai/dsh-security-proxy-local'
 import type TargetProtection from './index.ts'
+import type { TargetAuditExecution } from './index.ts'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import { scopeOf } from '@deepseek-ai/dsh-scope'
 import { canonicalLocalPath, localPathContains } from './file-identity.ts'
 import { compileNativeFilePolicy } from './native-file-policy.ts'
 import { createNativeHostExecution, type NativeHostExecution, type NativeHostStart } from './native-host.ts'
@@ -165,7 +168,14 @@ export default class NativeTargetSubprocess extends LocalSubprocessRuntime {
   override async resolveExecutable(command: string, env?: Readonly<Record<string, string>>, signal?: AbortSignal): Promise<string> {
     this.assertActive()
     const bounded = AbortSignal.any([this.protection.executionSignal(), ...signal === undefined ? [] : [signal]])
-    return super.resolveExecutable(command, env, bounded)
+    return this.auditSource().audit(ownerSignal => super.resolveExecutable(command, env, AbortSignal.any([bounded, ownerSignal])))
+  }
+
+  private auditSource(): { sessionId: SessionId | null; audit: TargetAuditExecution } {
+    const scope = scopeOf(this.ctx)
+    const owner = scope === undefined ? undefined : this.ctx.get('agents')?.list().find(agent => agent === scope)
+    const sessionId = owner?.id ?? this.protection.currentAuditSessionId()
+    return { sessionId, audit: this.protection.bindAuditSession(sessionId ?? undefined) }
   }
 
   private async upstream(): Promise<Upstream | undefined> {
@@ -178,7 +188,10 @@ export default class NativeTargetSubprocess extends LocalSubprocessRuntime {
     return { ...proxy, username: proxy.username ?? '', password: secret?.value }
   }
 
-  private async prepare(spec: SubprocessSpawnSpec, execution: NativeHostExecution, signal: AbortSignal): Promise<NativeHostStart> {
+  private async prepare(
+    spec: SubprocessSpawnSpec, execution: NativeHostExecution, signal: AbortSignal,
+    source: { sessionId: SessionId | null; audit: TargetAuditExecution },
+  ): Promise<NativeHostStart> {
     const root = this.assertActive(), config = this.nativeConfig
     const bounded = AbortSignal.any([signal, this.protection.executionSignal(), AbortSignal.timeout(config.preparationTimeoutMs)])
     bounded.throwIfAborted()
@@ -201,7 +214,8 @@ export default class NativeTargetSubprocess extends LocalSubprocessRuntime {
       if (config.network === 'gateway') {
         const upstream = await this.upstream()
         bounded.throwIfAborted()
-        gateway = await startNativeGateway(this.protection, { revision: files.revision, sessionId: null, tool: 'subprocess',
+        gateway = await startNativeGateway(this.protection, { revision: files.revision, sessionId: source.sessionId,
+          auditExecution: source.audit, tool: 'subprocess',
           ...upstream === undefined ? {} : { upstream }, stopExecution: stop,
           connectTimeoutMs: config.connectTimeoutMs, requestTimeoutMs: config.requestTimeoutMs,
           ...config.httpsInspection ? { httpsInspection: { maxCertificates: config.maxHttpsCertificates,
@@ -244,9 +258,11 @@ export default class NativeTargetSubprocess extends LocalSubprocessRuntime {
     this.assertActive()
     validateSubprocessSpec(spec)
     if (this.executions.size >= this.nativeConfig.maxProcesses) throw new HarnessError('Native execution capacity is full.', 'TARGET_NATIVE_CAPACITY')
+    const source = this.auditSource()
     const binding = prepareManagedProcessBinding({ onSpillFailure: logSpillFailure(this.ctx.logger, 'target-native-subprocess') })
-    const execution = createNativeHostExecution(spec, signal => this.prepare(spec, execution, signal),
-      this.nativeConfig.diagnosticMaxBytes, (error) => { this.ctx.logger.error(error) })
+    const execution = createNativeHostExecution(spec, signal => source.audit(ownerSignal =>
+      this.prepare(spec, execution, AbortSignal.any([signal, ownerSignal]), source)),
+    this.nativeConfig.diagnosticMaxBytes, (error) => { this.ctx.logger.error(error) })
     const finished = (async () => {
       await Promise.allSettled([execution.settled])
       await execution.launch.owner.waitForExit()

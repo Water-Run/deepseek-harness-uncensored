@@ -47,6 +47,7 @@ function classify(code: string): TargetSettingsFailure {
 
 /** Keep stale replies from replacing the current connection's settings. */
 export class TargetSettingsController {
+  /** Current settings response and connection-local operation status. */
   readonly state = createSnapshotStore<TargetSettingsView>(initial)
   private epoch = 0
   private disposed = false

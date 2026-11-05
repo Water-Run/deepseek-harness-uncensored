@@ -226,8 +226,8 @@ export class SecurityProxyEngine {
    * @param _sessionId - Route owner, or undefined for a Host-level connection check.
    * @returns The request runner; the default preserves the operation without adding context.
    */
-  protected executionScope(_sessionId: SessionId | undefined): <T>(operation: () => Promise<T>) => Promise<T> {
-    return operation => operation()
+  protected executionScope(_sessionId: SessionId | undefined): import('./chain.ts').ProxyExecutionScope {
+    return operation => operation(this.executionSignal())
   }
 
   /**
@@ -435,11 +435,11 @@ export class SecurityProxyEngine {
     if (route === undefined) {
       throw new WebError('the security-mode proxy does not cover this request', 'SECURITY_PROXY_NOT_COVERED')
     }
-    return this.executionScope(route.sessionId)(() => this.execute(async (executionSignal) => {
+    return this.executionScope(route.sessionId)(sourceSignal => this.execute(async (executionSignal) => {
       const { upstream, dispatcher } = await this.ensureTransport()
       executionSignal.throwIfAborted()
       return this.retrieve(url, upstream, dispatcher, route.sessionId, 'web_fetch', executionSignal)
-    }, signal))
+    }, AbortSignal.any([signal, sourceSignal])))
   }
 
   /**
@@ -596,13 +596,14 @@ export class SecurityProxyEngine {
         tool: () => tool,
         signal: () => this.executionSignal(),
         retainExecution: () => this.retainExecution(),
+        executionScope: execution,
         requestHttp: (url, request, signal) => {
           if (this.chains.get(key) !== record) return Promise.reject(new UpstreamFailure('unknown', 'This proxy route was withdrawn.'))
-          return execution(() => this.requestHttp(upstream(), dispatcher(), url, request, signal))
+          return this.requestHttp(upstream(), dispatcher(), url, request, signal)
         },
         openTunnel: (host, port, signal) => {
           if (this.chains.get(key) !== record) return Promise.reject(new UpstreamFailure('unknown', 'This proxy route was withdrawn.'))
-          return execution(() => this.openTunnel(upstream(), host, port, signal))
+          return this.openTunnel(upstream(), host, port, signal)
         },
         capture: this.options.capture,
         paused: () => this.options.store.value.capturePaused,

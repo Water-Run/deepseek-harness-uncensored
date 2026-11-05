@@ -63,6 +63,7 @@ export const targetEn = {
   'target.alias': 'Alias {number}',
 } as const
 
+/** Chinese target protection settings and validation messages. */
 export const targetZh: Record<keyof typeof targetEn, string> = {
   'target.title': '目标保护',
   'target.intro': '为受控工具和网络入口配置生产保护与测试例外。',

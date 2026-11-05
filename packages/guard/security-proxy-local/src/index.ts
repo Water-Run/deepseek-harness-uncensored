@@ -29,7 +29,7 @@ export { proxyUrl, connectThrough } from './upstream.ts'
 export type { Upstream, UpstreamTunnel } from './upstream.ts'
 export type { ProxyAgent as ProxyDispatcher } from 'undici'
 export { SessionChainProxy } from './chain.ts'
-export type { ChainOptions, InspectedTunnel } from './chain.ts'
+export type { ChainOptions, InspectedTunnel, ProxyExecutionScope } from './chain.ts'
 
 /** Deployment-owned file path plus the transport limits the proxy enforces. */
 export interface Config {

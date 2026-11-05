@@ -9,7 +9,7 @@ import type {} from '@deepseek-ai/dsh-security-proxy'
 import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
-import { TerminalBackendCleanupError } from '@deepseek-ai/dsh-terminal'
+import { TerminalBackendCleanupError, TerminalError } from '@deepseek-ai/dsh-terminal'
 import type { TerminalBackend, TerminalBackendSpawnSpec, TerminalSendOperation } from '@deepseek-ai/dsh-terminal'
 import type { SubprocessTerminalHandle, SubprocessTerminalSpawnSpec } from '@deepseek-ai/dsh-subprocess'
 import type { SandboxExecutionPolicy } from '@deepseek-ai/dsh-sandbox'
@@ -186,8 +186,12 @@ export class BashTerminalBackend implements TerminalBackend {
     private readonly ctx: Context,
     private readonly config: ResolvedConfig,
     private readonly spawnTerminal: (
-      spec: SubprocessTerminalSpawnSpec,
-    ) => Promise<SubprocessTerminalHandle> = spec => ctx.subprocess.spawnTerminal(spec),
+      spec: SubprocessTerminalSpawnSpec, owner: Agent,
+    ) => Promise<SubprocessTerminalHandle> = (spec, owner) => {
+      const subprocess = owner.ctx.get('subprocess')
+      if (subprocess === undefined) throw new TerminalError('The terminal process service is unavailable.', 'NO_BACKEND')
+      return subprocess.spawnTerminal(spec)
+    },
     private readonly createSession: (
       terminal: SubprocessTerminalHandle,
       config: ResolvedConfig,
@@ -200,7 +204,7 @@ export class BashTerminalBackend implements TerminalBackend {
     spec.signal?.throwIfAborted()
     ensureSandboxModeFence(this.ctx, spec.owner)
     const policy = this.ctx.sandboxPolicy.resolve({ session: spec.owner.session })
-    const argv = await spawnArgv(this.ctx, this.config, policy, spec.signal)
+    const argv = await spawnArgv(spec.owner.ctx, this.config, policy, spec.signal)
     spec.signal?.throwIfAborted()
     if (argv[0] === undefined) throw new Error('terminal-bash: sandbox returned empty argv')
     const proxy = this.ctx.get('securityProxy')
@@ -215,7 +219,7 @@ export class BashTerminalBackend implements TerminalBackend {
       terminalType: 'dumb',
       graceMs: this.config.disposeGraceMs,
       signal: spec.signal,
-    })
+    }, spec.owner)
     let session: LocalPtySession
     try {
       session = this.createSession(terminal, this.config)

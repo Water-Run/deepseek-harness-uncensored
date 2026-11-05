@@ -1,6 +1,6 @@
 /** Actual loopback egress verifies policy before HTTP or tunnel bytes reach a target. @module */
 import { Context } from '@deepseek-ai/cordis'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import { SessionChainProxy, type ChainOptions } from '@deepseek-ai/dsh-security-proxy-local'
 import { createServer, request, type Server, type ServerResponse } from 'node:http'
 import { createServer as createSecureServer } from 'node:https'
@@ -28,7 +28,7 @@ function rule(overrides: Partial<TargetRule> = {}): TargetRule {
     kind: 'server', environment: 'test', protection: 'full', match: 'host', address: 'target.test', ...overrides }
 }
 
-async function fixture() {
+async function fixture(audit = false) {
   const root = await mkdtemp(join(tmpdir(), 'dshu-native-gateway-')), ctx = new Context()
   const sockets = new Set<Socket>(), servers: Server[] = [], gateways: NativeGateway[] = []
   const flows: Parameters<NonNullable<ChainOptions['capture']>['append']>[0][] = []
@@ -68,7 +68,12 @@ async function fixture() {
   const port = (target.address() as AddressInfo).port, url = `http://target.test:${port}`
   const hosts = join(root, 'hosts')
   await writeFile(hosts, '127.0.0.1 target.test\n127.0.0.2 production.test\n127.0.0.1 alias.test\n')
-  await ctx.plugin(TargetProtection, { path: join(root, 'rules.sqlite'), hostsFile: hosts })
+  await ctx.plugin(SessionStore)
+  const owner = await ctx.plugin({ inject: ['sessions'], apply(scope: Context) {
+    scope.sessions.create(SessionId('native-gateway-fixture'))
+  } })
+  await ctx.plugin(TargetProtection, { path: join(root, 'rules.sqlite'), hostsFile: hosts,
+    ...audit ? { auditPath: join(root, 'audit.sqlite') } : {} })
   const configure = async (rules: TargetRule[], mainlandEnabled = true) => {
     const previous = await ctx.targetProtection.snapshot()
     await ctx.targetProtection.configure({ rules, mainlandEnabled }, previous.revision)
@@ -103,8 +108,42 @@ async function fixture() {
       req.once('connect', (response, socket) => { own(socket); resolve({ status: response.statusCode ?? 0, socket }) })
       req.end()
     })
-  return { ctx, root, port, url, start, configure, http, tunnel, seen, flows, arrived, own, servers, connections: () => connections }
+  return { ctx, root, port, url, start, configure, http, tunnel, seen, flows, arrived, own, servers, owner,
+    connections: () => connections }
 }
+
+it('keeps native HTTP bodies bound to their Session and cancels transfer after that owner closes', async () => {
+  const h = await fixture(true), borrowed = h.owner.ctx.get('targetProtection')
+  if (borrowed === undefined) throw new Error('Missing borrowed audit owner')
+  const gateway = await h.start({ auditExecution: borrowed.bindAuditSession(SessionId('native-gateway-fixture')) })
+  const received = Promise.withResolvers<boolean>(), disconnected = Promise.withResolvers<boolean>()
+  let ended = false
+  const client = request(gateway.url, { path: h.url + '/hold', headers: { host: `target.test:${h.port}` },
+    signal: AbortSignal.timeout(10_000) }, (response) => {
+    response.on('data', () => { received.resolve(true) })
+    response.on('end', () => { ended = true })
+    response.on('error', () => { disconnected.resolve(true) })
+    response.once('close', () => { disconnected.resolve(true) })
+  })
+  client.on('error', () => { disconnected.resolve(true) })
+  onTestFinished(() => { client.destroy() })
+  client.end()
+  const response = await h.arrived.promise
+  const targetClosed = new Promise<void>((accept) => { response.once('close', () => { accept() }) })
+  response.writeHead(200)
+  response.write('partial transfer')
+  await received.promise
+  const recorded = h.ctx.targetProtection.auditHistory().entries.filter(entry => entry.source?.sessionId === 'native-gateway-fixture')
+  expect(recorded.some(entry => entry.operation === 'connection' && entry.decision === 'allow')).toBe(true)
+  await h.owner.dispose()
+  await Promise.all([disconnected.promise, targetClosed])
+  expect(ended).toBe(false)
+  expect(h.ctx.targetProtection.auditHistory().state).toBe('ready')
+  await vi.waitFor(() => { expect(h.flows.at(-1)).toMatchObject({ sessionId: 'native-gateway-fixture', outcome: 'error' }) })
+  const connections = h.connections()
+  expect((await h.http(gateway)).status).toBeGreaterThanOrEqual(400)
+  expect(h.connections()).toBe(connections)
+})
 
 it('forwards HTTP methods and bytes only to an explicit private test endpoint', async () => {
   const h = await fixture(), gateway = await h.start()

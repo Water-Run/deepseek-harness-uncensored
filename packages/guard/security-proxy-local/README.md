@@ -65,6 +65,8 @@ Settings, password and capture-preference writes are serialized. Changing the up
 
 The protected `executionScope` hook binds a route's Session before publishing its listener, and runs controlled fetches and relay callbacks in that scope. Connection checks use an explicitly unassigned scope. The default hook leaves requests unchanged; the guarded provider validates ownership for its audit store. Leaving Security mode withdraws that Session's listeners. A retiring or replaced listener rejects new forwarding immediately, and a pending listener cannot publish its address after withdrawal.
 
+`ChainOptions.executionScope` encloses each complete HTTP exchange or CONNECT tunnel, including response bodies and inspected requests. The callback receives an owner cancellation signal, combined with the listener's existing signals. Omitting this option preserves the listener's transport behavior. Cancellation after headers still closes both downstream and upstream before the scope settles.
+
 The exported `SessionChainProxy` owns loopback listening, forwarding, capture and socket cleanup. Its `ChainOptions` transport callbacks select and authorize their own route; the listener neither creates a dispatcher nor assumes an upstream. The Security engine supplies its private upstream, while native target protection can supply a per-execution pinned route. Both owners retain their resources through forwarding and closure.
 
 Generic non-session callers use `sessionId: null`. A missing capture sink disables retention; the Security engine continues to provide its bounded store and pause callback.
