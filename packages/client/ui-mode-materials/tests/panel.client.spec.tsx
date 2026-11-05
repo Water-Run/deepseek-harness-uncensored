@@ -113,6 +113,7 @@ function surface(modeId: string | undefined, loaded: DossierInventory | undefine
     useSessionStatus: unusedHook,
     useSessionRetainInfo: unusedHook,
     useResource: unusedHook,
+    useContextMenu: unusedHook,
     ...allowAllAccess,
     t,
   }

@@ -102,8 +102,12 @@ it.each(['full', 'audit'] as const)('guards both rename endpoints and deletion u
   await h.configure([rule(sourcePath, { protection }), rule(sourcePath, { environment: 'test' })])
   await expect(h.fs.removeFile(source, { version })).rejects.toMatchObject({ code })
   await expect(h.fs.renameFile(source, destination, { version })).rejects.toMatchObject({ code })
+  await expect(h.fs.patchText(source, [], { version })).rejects.toMatchObject({ code })
+  await expect(h.fs.deleteFile(source, { version })).rejects.toMatchObject({ code })
+  await expect(h.fs.moveFile(source, destination, { expectedSource: { version } })).rejects.toMatchObject({ code })
   await h.configure([rule(destinationPath, { protection })])
   await expect(h.fs.renameFile(source, destination, { version })).rejects.toMatchObject({ code })
+  await expect(h.fs.moveFile(source, destination, { expectedSource: { version } })).rejects.toMatchObject({ code })
   expect(await readFile(sourcePath, 'utf8')).toBe('keep')
   await expect(readFile(destinationPath)).rejects.toMatchObject({ code: 'ENOENT' })
 })
@@ -119,31 +123,42 @@ it('allows a test file move and deletion beside an unrelated protected directory
   await expect(readFile(destination.targetKey)).rejects.toMatchObject({ code: 'ENOENT' })
 })
 
-it.each(['remove', 'rename'] as const)('rechecks cross-connection rules before %s makes its first effect', async (operation) => {
+it.each(['remove', 'rename', 'patch', 'delete', 'move'] as const)('rechecks cross-connection rules before %s makes its first effect', async (operation) => {
   const h = await harness(), path = join(h.workspace, 'source'); await writeFile(path, 'keep')
   await h.configure([])
   const source = await h.fs.resolve(path), destination = await h.fs.resolve(join(h.workspace, 'destination'))
   const expected = { version: (await h.fs.stat(source))!.version }
   const other = await TargetStore.open(h.store, 1000)
   try {
-    h.fs.internals.beforeFileMutation = () => {
+    const protect = () => {
       const current = other.snapshot()
       other.configure({ mainlandEnabled: false, rules: [rule(path)] }, current.revision)
     }
-    await expect(operation === 'remove' ? h.fs.removeFile(source, expected) : h.fs.renameFile(source, destination, expected))
-      .rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+    h.fs.internals.beforeFileMutation = protect
+    h.fs.internals.inspectTemp = protect
+    h.fs.internals.inspectBeforeMutation = protect
+    const mutate = {
+      remove: () => h.fs.removeFile(source, expected),
+      rename: () => h.fs.renameFile(source, destination, expected),
+      patch: () => h.fs.patchText(source, [{ lineNumber: 1, oldLines: ['keep'], newLines: ['changed'], isEndOfFile: true }], expected),
+      delete: () => h.fs.deleteFile(source, expected),
+      move: () => h.fs.moveFile(source, destination, { expectedSource: expected }),
+    }
+    await expect(mutate[operation]()).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
     expect(await readFile(path, 'utf8')).toBe('keep')
     await expect(readFile(destination.targetKey)).rejects.toMatchObject({ code: 'ENOENT' })
   } finally { other.close() }
 })
 
-it('refuses a rule revision change between the final source and destination checks', async () => {
+it.each(['rename', 'move'] as const)('refuses a rule revision change between final %s endpoint checks', async (operation) => {
   const h = await harness(), path = join(h.workspace, 'source'); await writeFile(path, 'keep')
   await h.configure([])
   const source = await h.fs.resolve(path), destination = await h.fs.resolve(join(h.workspace, 'destination'))
   const expected = { version: (await h.fs.stat(source))!.version }, other = await TargetStore.open(h.store, 1000)
   let armed = false
-  h.fs.internals.beforeFileMutation = () => { armed = true }
+  const arm = () => { armed = true }
+  h.fs.internals.beforeFileMutation = arm
+  h.fs.internals.inspectBeforeMutation = arm
   const owner = h.ctx.targetProtection
   // oxlint-disable-next-line typescript/unbound-method -- The spy calls the captured method with its owner.
   const check = owner.checkLocalFile
@@ -157,10 +172,31 @@ it('refuses a rule revision change between the final source and destination chec
     return result
   })
   try {
-    await expect(h.fs.renameFile(source, destination, expected)).rejects.toMatchObject({ code: 'conflict' })
+    const result = operation === 'rename' ? h.fs.renameFile(source, destination, expected)
+      : h.fs.moveFile(source, destination, { expectedSource: expected })
+    await expect(result).rejects.toMatchObject({ code: 'conflict' })
     expect(armed).toBe(false)
     expect(await readFile(path, 'utf8')).toBe('keep')
     await expect(readFile(destination.targetKey)).rejects.toMatchObject({ code: 'ENOENT' })
+  } finally { other.close() }
+})
+
+it('reports the published move destination and retains a source protected before unlink', async () => {
+  const h = await harness(), path = join(h.workspace, 'source'); await writeFile(path, 'keep')
+  const source = await h.fs.resolve(path), destination = await h.fs.resolve(join(h.workspace, 'destination'))
+  const expectedSource = { version: (await h.fs.stat(source))!.version }
+  const other = await TargetStore.open(h.store, 1000)
+  try {
+    h.fs.internals.removeStagingDir = async (directory) => {
+      await rm(directory, { recursive: true, force: true })
+      const current = other.snapshot()
+      other.configure({ mainlandEnabled: false, rules: [rule(path)] }, current.revision)
+    }
+    await expect(h.fs.moveFile(source, destination, { expectedSource })).resolves.toMatchObject({
+      sourceDeleted: false, sourceFailure: { code: 'FS_PARTIAL_MUTATION' }, destination: { operation: 'create' },
+    })
+    expect(await readFile(source.targetKey, 'utf8')).toBe('keep')
+    expect(await readFile(destination.targetKey, 'utf8')).toBe('keep')
   } finally { other.close() }
 })
 

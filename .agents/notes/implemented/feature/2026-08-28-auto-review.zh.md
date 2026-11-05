@@ -42,6 +42,10 @@ Integration 只使用最新 `request/header.config` 的 provider／model 与 shi
 
 reviewer 从 Session 的完整动作历史构建这两个动作分节：授权是符合 `REVIEW_POLICY` 来源规则的那个更早调用，而重复或冲突的身份必须在整份日志的任何位置都可见，而不是只在近期窗口内可见，因此 Session 投影与有界读取都无法支撑该判定。这次读取使用已废弃的同步 `snapshotEvents()`，并带有行级 `typescript/no-deprecated` 豁免。
 
+请求还携带被评审 Session 的 `sessionId` 与 `purpose: 'auto-review'`。需要按对话标识路由或以其为 prompt 缓存键的路由（例如 OpenCode 要求的 `x-opencode-session` header 与 OpenAI 的 `prompt_cache_key`）由该 id 派生；缺少它时 OpenCode 会拒绝每次评审，Auto 会让每个调用失败。[DeepSeek session-log 上传](../../../../packages/session/session-log-deepseek/README.zh.md#request-field)对评审和其他请求应用相同的上传资格与注册排除条件。上传的是权威 Session 日志；评审提示词和决策仍不进入该日志。
+
+reviewer 从 Session 的完整动作历史构建历史与待审调用：授权是符合 `REVIEW_POLICY` 来源规则的那个更早调用，而重复或冲突的身份必须在整份日志的任何位置都可见，而不是只在近期窗口内可见，因此 Session 投影与有界读取都无法支撑该判定。这次读取使用已废弃的同步 `snapshotEvents()`，并带有行级 `typescript/no-deprecated` 豁免。
+
 主 agent 的 V3 `system/message` 节点、assistant 正文／reasoning 与 tool results 全部排除。当前调用必须属于 `step/start` 记录的开放 step；缺少 step 归属时拒绝执行。该调用只在 `PENDING_ACTION` 出现；尚未开始的 sibling 没有历史调用事实。原生 schema 来自最新 request header。PTC 在 binding 构造时捕获冻结 schema，经由调度器传入 `ToolExecution`；描述与参数 schema 不进入开始／结算事件或 Session／SDK wire。动作事实缺失、不一致或有歧义时拒绝调用，不查询 live registry。超窗请求直接拒绝，不做摘要、截断、额外 compaction 或设置小型输出 token 预算。
 
 ### 结果与取消

@@ -200,7 +200,7 @@ function renderSection(state: SecurityProxyViewState, modeId = 'security') {
     ...actions,
     modeId,
     usePanelInfo: unusedHook, useSessions: unusedHook, useSessionStatus: unusedHook, useSessionRetainInfo: unusedHook,
-    useWorkspaces: unusedHook, useResource: unusedHook,
+    useWorkspaces: unusedHook, useResource: unusedHook, useContextMenu: unusedHook,
     ...allowAllAccess,
     useSecurityProxy: bindSnapshotSelector(store),
     t,
@@ -279,7 +279,7 @@ describe('proxy-off reminder', () => {
     const props: Parameters<typeof SecurityProxyBanner>[0] = {
       modeId: 'security', load: vi.fn(), configure,
       usePanelInfo: unusedHook, useSessions: unusedHook, useSessionStatus: unusedHook, useSessionRetainInfo: unusedHook,
-      useWorkspaces: unusedHook, useResource: unusedHook,
+      useWorkspaces: unusedHook, useResource: unusedHook, useContextMenu: unusedHook,
       ...allowAllAccess,
       useSecurityProxy: bindSnapshotSelector(store),
       t,

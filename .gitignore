@@ -51,3 +51,6 @@ native/system/test/bin/
 # Local packaging/install logs
 desktop-build.log
 build.log
+
+# Generated company-signed CUA release record.
+/packages/experimental/cua-macos/cua-helper.json

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { allowAllAccess, bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
@@ -41,6 +42,7 @@ function view(partial: Partial<AgentPresetSectionState> = {}, startCreatorDraft?
       return null
     }) as AgentPresetSectionProps['renderSlot'],
     ...allowAllAccess,
+    useContextMenu: contextMenuHook(),
     useAgentPresetSection: bindSnapshotSelector(store),
     useCurrentMode: bindSnapshotSelector(currentMode), useModePolicy: bindSnapshotSelector(mode.policy),
     useModeSwitchState: bindSnapshotSelector(mode.state),

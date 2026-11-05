@@ -2,7 +2,7 @@
 import { Context } from '@deepseek-ai/cordis'
 import { FsTargetKey } from '@deepseek-ai/dsh-fs'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
-import type { FsTarget, FsInfo, FsPathInfo, FsDirEntry, FsWriteIntent, FsWriteOutcome, FsEditRequest, FsEditOutcome, FsVersion } from '@deepseek-ai/dsh-fs'
+import type { FsTarget, FsInfo, FsPathInfo, FsDirEntry, FsWriteIntent, FsWriteOutcome, FsEditRequest, FsEditOutcome, FsVersion, FsDeleteOutcome, FsMoveOutcome } from '@deepseek-ai/dsh-fs'
 import { SandboxedFileSystem } from '@deepseek-ai/dsh-fs-sandbox'
 import type { Config } from '@deepseek-ai/dsh-fs-sandbox'
 import type { SandboxExecutionPolicy } from '@deepseek-ai/dsh-sandbox'
@@ -63,6 +63,14 @@ export default class TargetFileSystem extends SandboxedFileSystem {
   protected override async authorizeMutation(target: FsTarget, signal?: AbortSignal): Promise<void> {
     const checked = await this.admitted(target, 'mutate', this.signal(signal))
     if (checked.targetKey !== target.targetKey) throw new HarnessError('The file target changed during execution.', 'TARGET_IDENTITY_UNVERIFIED')
+  }
+
+  protected override async authorizeMove(source: FsTarget, destination: FsTarget, signal?: AbortSignal): Promise<void> {
+    const before = await this.protection.snapshot()
+    await super.authorizeMove(source, destination, signal)
+    if ((await this.protection.snapshot()).revision !== before.revision) {
+      throw new TargetProtectionError('conflict', 'Target rules changed while checking file endpoints; retry after changes settle.')
+    }
   }
 
   protected override async authorizeFileMutation(
@@ -168,6 +176,29 @@ export default class TargetFileSystem extends SandboxedFileSystem {
   ): Promise<FsEditOutcome> {
     const bounded = this.signal(signal)
     return this.run(async () => super.editText(await this.admitted(target, 'mutate', bounded), edit, expected, bounded, sandboxPolicy))
+  }
+
+  override async patchText(
+    target: FsTarget, hunks: Parameters<SandboxedFileSystem['patchText']>[1], expected?: { version: FsVersion },
+    signal?: AbortSignal, sandboxPolicy?: SandboxExecutionPolicy,
+  ): Promise<FsEditOutcome> {
+    const bounded = this.signal(signal)
+    return this.run(() => super.patchText(target, hunks, expected, bounded, sandboxPolicy))
+  }
+
+  override async deleteFile(
+    target: FsTarget, expected?: { version: FsVersion }, signal?: AbortSignal, sandboxPolicy?: SandboxExecutionPolicy,
+  ): Promise<FsDeleteOutcome> {
+    const bounded = this.signal(signal)
+    return this.run(() => super.deleteFile(target, expected, bounded, sandboxPolicy))
+  }
+
+  override async moveFile(
+    source: FsTarget, destination: FsTarget, options: Parameters<SandboxedFileSystem['moveFile']>[2],
+    signal?: AbortSignal, sandboxPolicy?: SandboxExecutionPolicy,
+  ): Promise<FsMoveOutcome> {
+    const bounded = this.signal(signal)
+    return this.run(() => super.moveFile(source, destination, options, bounded, sandboxPolicy))
   }
 
   override async removeFile(

@@ -1,3 +1,4 @@
+import type { FileSaveResult } from '@deepseek-ai/dsh-client-ui-file-actions/types'
 /** Origin-scoped boot, native directory selection, host paths of picked files, and update presentation with native confirmation actions. */
 
 import type { DesktopShortcutInput, ShortcutConfigSnapshot, ShortcutSaveResult } from '@deepseek-ai/dsh-client-shortcuts/protocol'
@@ -22,6 +23,11 @@ function createProductApi(): DshDesktopProductApi {
       },
       publish: (ready, visible) => { ipcRenderer.send(DESKTOP_IPC.aboutState, { ready, visible }) },
     }),
+    fileActions: {
+      save: request => ipcRenderer.invoke(DESKTOP_IPC.fileSave, request) as Promise<FileSaveResult>,
+      readClipboardImage: url => ipcRenderer.invoke(DESKTOP_IPC.clipboardImageRead, url) as
+        Promise<{ bytes: Uint8Array; mediaType: string }>,
+    },
     browser: createDesktopBrowserBridge(),
     sessions: {
       publish: items => ipcRenderer.invoke(DESKTOP_IPC.sessionsPublish, items) as Promise<void>,

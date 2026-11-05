@@ -9,7 +9,7 @@ function unused(): never { throw new Error('This focused view read an unconfigur
 export const unreadGlobalProps: GlobalStandardProps = {
   ...allowAllAccess,
   usePanelInfo: unused, useSessions: unused, useSessionStatus: unused,
-  useSessionRetainInfo: unused, useWorkspaces: unused, useResource: unused,
+  useSessionRetainInfo: unused, useWorkspaces: unused, useResource: unused, useContextMenu: unused,
 }
 
 /** Session hooks and actions that fail if a focused view unexpectedly uses them. */

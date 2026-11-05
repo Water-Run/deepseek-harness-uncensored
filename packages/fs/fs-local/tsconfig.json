@@ -8,6 +8,9 @@
   "references": [
     { "path": "../../sandbox/sandbox" },
     {
+      "path": "../fs-patch"
+    },
+    {
       "path": "../../../vendor/cosmokit"
     },
     {

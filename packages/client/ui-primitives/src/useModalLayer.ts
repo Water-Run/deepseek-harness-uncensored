@@ -45,23 +45,18 @@ const focusable = 'button:not(:disabled), input:not(:disabled), textarea:not(:di
  */
 export function useModalLayer(dialog: RefObject<HTMLElement | null>, open: boolean, onClose: () => void): void {
   const close = useRef(onClose)
-  const returnFocus = useRef<HTMLElement | undefined>(undefined)
+  const pendingRestore = useRef<HTMLElement | undefined>(undefined)
   close.current = onClose
   useLayoutEffect(() => {
+    const target = pendingRestore.current
+    pendingRestore.current = undefined
     const element = dialog.current
-    if (!open) {
-      // React restores selection after mutation. A fading dialog remains connected,
-      // so reapply its released focus after that restoration, before paint.
-      let target = returnFocus.current
-      returnFocus.current = undefined
-      if (target !== undefined && (!target.isConnected || target.matches(':disabled') || target.closest('[inert]'))) {
-        const parent = element === null ? undefined : layers.get(element.ownerDocument)?.at(-1)?.element
-        target = parent?.querySelector<HTMLElement>('[data-modal-autofocus]:not(:disabled)') ?? parent
-      }
-      if (target?.isConnected) focusWithoutRing(target)
-      return
+    // Restore only focus left inside the retained dialog, preserving the owner's chosen target.
+    if (!open && element?.contains(element.ownerDocument.activeElement)
+      && target?.isConnected && !target.matches(':disabled') && !target.closest('[inert], [hidden]') && !isBehindModal(target)) {
+      focusWithoutRing(target, { preventScroll: true })
     }
-    if (element === null) return
+    if (!open || element === null) return
     const document = element.ownerDocument
     const composition = observeComposition(document)
     const previous = document.activeElement
@@ -104,9 +99,14 @@ export function useModalLayer(dialog: RefObject<HTMLElement | null>, open: boole
       const active = document.activeElement
       // A caller may have explicitly focused its next destination before closing.
       if (wasTop && (active === null || active === document.body || element.contains(active))) {
-        const target = previous instanceof HTMLElement && previous.isConnected ? previous : stack.at(-1)?.element
-        returnFocus.current = target
-        if (target !== undefined) focusWithoutRing(target)
+        const parent = stack.at(-1)?.element
+        const target = previous instanceof HTMLElement && previous.isConnected && !previous.matches(':disabled')
+          && !previous.closest('[inert], [hidden]') && !isBehindModal(previous)
+          ? previous : parent?.querySelector<HTMLElement>('[data-modal-autofocus]:not(:disabled)') ?? parent
+        if (target !== undefined) {
+          pendingRestore.current = target
+          focusWithoutRing(target)
+        }
       }
     }
   }, [dialog, open])

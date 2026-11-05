@@ -78,6 +78,10 @@
         iconTimeoutMs: 10000
         launchWatchMs: 1000
 
+    - id: ui-file-actions
+      name: '@deepseek-ai/dsh-client-ui-file-actions'
+    - id: ui-context-menu
+      name: '@deepseek-ai/dsh-client-ui-context-menu'
     - id: ui-open-in-app
       name: '@deepseek-ai/dsh-client-ui-open-in-app'
 
@@ -133,8 +137,8 @@
       name: '@deepseek-ai/dsh-rea'
 
     # The Schedule service owns the task store and delivers each due occurrence
-    # as a follow-up in its original Session. Each preset declares its own
-    # clock and reminder tools.
+    # as a follow-up to the task's target Session. Clock and reminder tools
+    # belong to the presets that declare them.
     - id: schedule
       name: '@deepseek-ai/dsh-schedule'
 
