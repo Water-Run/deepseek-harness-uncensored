@@ -6,7 +6,7 @@
 
 冻结锁文件安装、10 个构建门禁、42 项预设装配、119 项客户端回归、335 份 Cordis 配置及 113 份受影响文档配对通过。Windows 上实际恢复旧 V3 录制的定向用例通过。两条 TypeScript SDK 回放在临时路径转义处与录制文本不同，alpha.2 基线复现相同差异。ACP 的握手、拒绝额外目录和头部快照配对在恢复真实符号链接后复测通过。完整回放仍需在 POSIX 验收，Windows 的 Bash 录制使用 PowerShell 时会遇到工具差异。
 
-Python 客户端单测 30 项通过。仓库直接启动 `.js` 的运行时夹具在 Windows 触发 WinError 193；部署的 Node 开发载体已就绪，继续用它验证真实 `dsh --profile sdk`。单文件 Python 载体在打包工具下载环节遇到网络错误。Windows 桌面 unsigned 检查包正在从干净源码 `f1f0e5e8a2` 构建，进程与日志前缀为 `.dsh-build/package-browser-fix-official-direct-rc1-20261105`，待解包验收。系统仍运行 `4564b41285` 检查版。
+Python 客户端单测 30 项通过。Windows 用已部署的 Node 开发载体运行真实 `dsh --profile sdk`，11 项命令与恢复测试通过。单文件 Python 载体在打包工具下载环节遇到网络错误，仍待验收。Windows 桌面 unsigned 检查包从干净源码 `f1f0e5e8a2` 构建，进程与日志前缀为 `.dsh-build/package-browser-fix-official-direct-rc1-20261105`，待解包验收。系统当前安装 `4564b41285` 检查版。
 
 ## alpha.3 迁移检查点（2026-11-05）
 
