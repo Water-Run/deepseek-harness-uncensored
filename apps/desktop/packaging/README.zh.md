@@ -243,11 +243,13 @@ Electron 归档使用精确锁定的 Electron npm 包内 `checksums.json` 验证
 
 Windows 并行准备 Electron 和 primary-runtime；macOS 串行准备二者。只有两份运行时资源均成功，才会准备 CLI 并写入 `versions.json`。任一 Windows 运行时准备失败时，流程会等待另一路结束后再报告失败，且不写入 CLI 资源或版本记录。嵌套准备阶段的计时存在重叠，不能直接相加。
 
-打包进程环境中的 `DSH_DESKTOP_PACKAGE_CACHE_DIR` 为共享的 `downloads` 和 `pnpm-store` 缓存指定非空绝对目录；省略时使用 `.desktop-build`。临时安装项目、lockfile 和配置仍逐次独立创建。运行时安装校验 store 完整性并复制包文件，防止后续签名修改缓存字节；清理时保留这些缓存。两个打包工作流使用 `runner.tool_cache/dsh-desktop-package-cache`；Windows 仓库依赖安装使用工作区盘根目录下独立的 `.pnpm-store`。两次安装日志均标明各自的 store 并报告包复用情况。每次运行仍通过新的运行时 lockfile 解析依赖。可写缓存仅供可信构建任务共享；完整性校验不能隔离不可信的写入者。仅在没有任务使用缓存时清理。缓存磁盘用量由操作者管理，不自动淘汰。
+打包进程环境中的 `DSH_DESKTOP_PACKAGE_CACHE_DIR` 为共享的 `downloads` 和 `pnpm-store` 缓存指定非空绝对目录；省略时使用 `.desktop-build`。临时安装项目、lockfile 和配置仍逐次独立创建。运行时安装校验 store 完整性并复制包文件，防止后续签名修改缓存字节；清理时保留这些缓存。两个打包工作流使用 `runner.tool_cache/dsh-desktop-package-cache`；Windows 仓库依赖安装使用工作区盘根目录下独立的 `.pnpm-store`。两次安装日志均标明各自的 store 并报告包复用情况。可写缓存仅供可信构建任务共享；完整性校验不能隔离不可信的写入者。仅在没有任务使用缓存时清理。缓存磁盘用量由操作者管理，不自动淘汰。
 
 Desktop [补丁策略](../scripts/runtime-patch-policy.ts) 将每份工作区补丁明确归为共享、仅工作区或仅运行时。共享项复用根目录补丁字节，并对照根锁文件校验 hash；仅运行时项使用仓库内的独立文件，不改变工作区安装。仅工作区补丁用于构建工具或已嵌入客户端 bundle 的依赖。未分类或过期的条目、文件缺失、hash 改变、解析版本不兼容，以及仅工作区包进入运行时，都会阻止打包。[准备脚本](../scripts/prepare-runtime-patches.ts) 只写入临时项目；pnpm 负责应用选中的补丁，应用失败时会报错。
 
-Desktop 依赖 overrides 在补丁策略模块中单独声明，不从补丁版本推导。pi-ai 约束使运行时版本保持在共享补丁已验证的版本。受保护终端提供方和 `@microsoft/mxc-sdk@1.0.1` 均使用已验证的 `node-pty@1.2.0-beta.15` 补丁；出现第二个未修补的 PTY 版本会阻止打包。Desktop 仍会在每次构建时重新解析运行时锁文件，再通过 `--frozen-lockfile` 安装；不同构建之间的依赖解析尚不保证可复现。CLI 打包安装测试及其他交付流程保留各自的配置。
+Desktop 依赖 overrides 在补丁策略模块中单独声明，不从补丁版本推导。pi-ai 约束使运行时版本保持在共享补丁已验证的版本。受保护终端提供方和 `@microsoft/mxc-sdk@1.0.1` 均使用已验证的 `node-pty@1.2.0-beta.15` 补丁；出现第二个未修补的 PTY 版本会阻止打包。CLI 打包安装测试及其他交付流程保留各自的配置。
+
+构建用临时项目以已提交的工作区锁文件为起点。冻结安装生产依赖前，[解析校验](../scripts/prepare-runtime-lockfile.ts)要求 registry 版本和解析记录与捕获的根锁文件一致，本地核心归档须匹配记录的完整性摘要。目标平台未选用的第一方可选原生包固定为源码版本，并保持排除本平台的 OS/CPU 元数据，不随本平台分发。意外版本、归档或解析记录会停止准备。主动升级依赖时，先更新工作区依赖与锁文件；准备过程不改写这些源码文件。
 
 运行时安装保留严格的依赖构建审批。SSH 使用可移植的 JavaScript 实现：`ssh2` 和 `cpu-features` 明确拒绝可选原生构建脚本，与工作区策略一致。必要的 PTY 和 Koffi 构建脚本保持启用。外部插件配置仍保留各自设置。
 

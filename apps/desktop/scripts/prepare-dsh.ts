@@ -25,6 +25,7 @@ import { prepareRuntimeManifests } from './prepare-runtime-manifests.ts'
 import { prepareRuntimeNotices } from './runtime-notices.ts'
 import { prepareWindowsPty } from './prepare-windows-pty.ts'
 import { prepareRuntimePatches, verifyRuntimePatches } from './prepare-runtime-patches.ts'
+import { prepareRuntimeLockfile, verifyRuntimeLockfile } from './prepare-runtime-lockfile.ts'
 import { writeDesktopRuntime, writeDesktopRuntimeAsync, verifyDesktopRuntime } from '../src/runtime-tree.ts'
 import {
   resolveDesktopAppId,
@@ -127,8 +128,14 @@ async function main(): Promise<void> {
       createRuntimeProjectMetadata(BUILD_ROOT, release)
       return prepareRuntimePatches(BUILD_ROOT, resolve(APP_ROOT, '..', '..'))
     })
-    await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'runtime:lockfile', () => runPnpm(['install', '--lockfile-only']))
+    const packageSet = readDesktopCorePackageSet(BUILD_ROOT, release.engineVersion)
+    const targetName = resolveDesktopBuildTarget()
+    const target = desktopTargetPlatform(targetName)
+    const resolution = prepareRuntimeLockfile(BUILD_ROOT, resolve(APP_ROOT, '..', '..'), packageSet, target)
+    console.log(`desktop runtime: source lockfile sha256 ${resolution.sourceSha256}`)
+    await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'runtime:lockfile', () => runPnpm(['install', '--lockfile-only', '--no-frozen-lockfile']))
     verifyRuntimePatches(BUILD_ROOT, patches)
+    verifyRuntimeLockfile(BUILD_ROOT, resolution)
     const lockfile = readFileSync(join(BUILD_ROOT, 'pnpm-lock.yaml'), 'utf8')
     console.log(`desktop runtime: lockfile sha256 ${createHash('sha256').update(lockfile).digest('hex')}`)
     verifyDesktopCoreLockfile(
@@ -136,9 +143,6 @@ async function main(): Promise<void> {
       readDesktopCorePackageSet(BUILD_ROOT, release.engineVersion),
     )
     await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'runtime:install', () => runPnpm(['install', '--prod', '--frozen-lockfile', '--trust-lockfile']))
-    const packageSet = readDesktopCorePackageSet(BUILD_ROOT, release.engineVersion)
-    const targetName = resolveDesktopBuildTarget()
-    const target = desktopTargetPlatform(targetName)
     const modules = join(BUILD_ROOT, 'node_modules')
     if (target.platform === 'win32') {
       await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'runtime:windows-pty',

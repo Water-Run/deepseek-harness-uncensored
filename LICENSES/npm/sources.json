@@ -6,6 +6,18 @@
     "sha256": "4186c3f89c23f27b4c0caab574737c49ee5137c36a3c103484feaca4aeec2310"
   },
   {
+    "packages": ["@aws-sdk/credential-provider-http@3.972.74", "@aws-sdk/credential-provider-login@3.972.79", "@aws-sdk/nested-clients@3.997.46"],
+    "file": "aws-sdk-js-v3-Apache-2.0.txt",
+    "source": "https://raw.githubusercontent.com/aws/aws-sdk-js-v3/c68e50e4a6e0469a20c2894fe8a29c140553ebb8/LICENSE",
+    "sha256": "4186c3f89c23f27b4c0caab574737c49ee5137c36a3c103484feaca4aeec2310"
+  },
+  {
+    "packages": ["@aws-sdk/credential-provider-http@3.972.83", "@aws-sdk/credential-provider-login@3.972.88", "@aws-sdk/nested-clients@3.998.0"],
+    "file": "aws-sdk-js-v3-Apache-2.0.txt",
+    "source": "https://raw.githubusercontent.com/aws/aws-sdk-js-v3/80cb7896f530f5d7cb33b3c5abbdae1212dbd768/LICENSE",
+    "sha256": "4186c3f89c23f27b4c0caab574737c49ee5137c36a3c103484feaca4aeec2310"
+  },
+  {
     "packages": ["@cfworker/json-schema@4.1.4"],
     "file": "cfworker-4.1.4-MIT.txt",
     "source": "https://raw.githubusercontent.com/cfworker/cfworker/e45acacf25e083ac1b4b09bdd940d27c33bffcc5/LICENSE.md",

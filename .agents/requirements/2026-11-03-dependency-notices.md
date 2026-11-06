@@ -6,7 +6,15 @@
 
 `7db7e35015` 检查包已从实际安装器解包验收，并安装至系统。清单来自实装 ASAR，共 874 个 npm 包、14 份补充声明、10 个自动标记的待核查项。精确记录位于 `.dsh-build/deliverables/DSHU-20261106-7db7e3-third-party-runtime.json`，摘要保存在同目录安装清单。该安装包未签名、未发布 Release。
 
-与前次 `09ad1610d3` 包相比，三个 AWS 包解析到了新版本：credential-provider-http `3.972.82 → 3.972.83`、credential-provider-login `3.972.87 → 3.972.88`、nested-clients `3.997.54 → 3.998.0`。包仍声明 Apache-2.0，但没有独立许可正文，旧版补充记录不自动匹配新版，故新增三项待核查。后续需复核固定源码与归档，并处理桌面准备树的依赖解析变化；不扩大旧记录的版本范围来消除标记。前次清单及其七项结论保持原样。
+与前次 `09ad1610d3` 包相比，三个 AWS 包解析到了新版本：credential-provider-http `3.972.82 → 3.972.83`、credential-provider-login `3.972.87 → 3.972.88`、nested-clients `3.997.54 → 3.998.0`。原安装包的十项记录保留；下述源码补充不改写原 ASAR 或交付清单。
+
+## 源码补充与锁定依赖（2026-11-06）
+
+六个精确 AWS 版本已核对 npm 归档的 SHA-512、发布 manifest 和对应源码 manifest。工作区锁定的 http 3.972.74、login 3.972.79、nested 3.997.46 对应发布提交 `c68e50e4a6e0469a20c2894fe8a29c140553ebb8`；当前安装包的三个新版本对应 `80cb7896f530f5d7cb33b3c5abbdae1212dbd768`。依赖字段仅展开发布时的 `workspace:` 前缀后比较。nested-clients 的源码实际位于 `packages-internal/nested-clients`，其发布 manifest 仍写旧目录，未据旧目录的 404 放弃对应关系核对。
+
+两处固定提交的根 Apache-2.0 原文均与已保存文本逐字一致，只保留原有的末尾换行处理；新增精确版本记录，不放宽为版本范围。[工作区版本原文](https://raw.githubusercontent.com/aws/aws-sdk-js-v3/c68e50e4a6e0469a20c2894fe8a29c140553ebb8/LICENSE)、[安装包版本原文](https://raw.githubusercontent.com/aws/aws-sdk-js-v3/80cb7896f530f5d7cb33b3c5abbdae1212dbd768/LICENSE)。核对回执 `.dsh-build/aws-lock-licenses-20261106-result.json`。
+
+原安装包 874 项和新准备树 859 项分别建立只读投影，均仅有上述三个 AWS 标记由待核查变为已补充，剩余七项不变。原包、原准备树及用户数据未改写，临时投影已清理；回执 `.dsh-build/aws-lock-notice-projection-20261106-result.json`。准备树的包名集合与原包相同，版本与重复实例数变化不能据总数推断功能减少。新的锁定流程及实际构建验收见[运行时锁定记录](2026-11-06-runtime-lock.md)。源码补充尚需随新的完整安装包交付，不能把投影当作新安装包或最终许可兼容性结论。
 
 ## 补充声明与复算（2026-11-06）
 
