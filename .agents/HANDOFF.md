@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## Linux x64 `.3` 干净构建与 Ubuntu 验收（2026-11-10）
+
+`4b1e43674002d93f1dc57967780deb0ac99ae7c4` 通过增量 Git bundle 同步到 WSL，独立干净检出完成十项构建检查。标准命令 `pnpm --dir apps/desktop run package:linux:x64:unsigned --build-version 0.1.0-test.20261110.linux.3` 一次生成 deb 与 tar.gz。包内和 Ubuntu 实装均通过四模式、离线插件装卸、REA 229 项工具与 JavaScript 分析，以及三种 Office 文档转 PDF。
+
+在 Ubuntu WSL2 中从 `.2` 原位升级到 `.3`，92 个隔离资料文件摘要一致，应用用同一份资料重新打开。安装的 `deepseek-harness-uncensored.desktop` 与实际 X11 窗口均使用 `deepseek-harness-uncensored` 类名。首次卸载前的快照检查遇到 WSL 空闲退出清理 `/tmp`。随后在同一次 WSL 调用中启动、快照、卸载并比对，96 个资料文件摘要一致，应用和启动链接已移除。
+
+产物位于 `.dsh-build/deliverables/`。deb 为 369,503,044 字节，SHA-256 `7f9c4a2aa9085493983f0060604973b4a056f9e6d224409602327365e9428ad2`。tar.gz 为 461,806,545 字节，SHA-256 `47cc722a908c3c3fff7f2c7a325ad63c728f5deec38fc1b0e911816c0455de37`，其中 ASAR 与实装摘要一致。交付回执为 `DSHU-20261110-linux-4b1e43-manifest.json`，构建批次 `2026-11-10T14-02-56.943Z-cdvA5V`。日志、截图和资料比对保存在 `.dsh-build/linux-desktop-*20261110*`。独立构建检出已清理。Linux 实包有 861 个 npm 包和 12 项待核查声明，便携归档独立启动、Wayland、其他发行版和正式发行仍列在 TODO。
+
 ## Windows `.4` 检查包与本机升级（2026-11-10）
 
 干净检出的 `9df061a06a052eef07dc8572b830ceaf70e02575` 已构建并安装为 `0.1.0-test.20261110.4`。十项构建检查、包内四模式、REA 229 项工具、三种 Office 文档转 PDF、离线插件装卸和 301 字符路径终端检查通过。实际 NSIS 安装器解包后核对完整 DSH 文件清单、源码、终端代理和 SSH 回环。包内模式指南在 1440px 浅色下高 362px，在 390px 深色下高 447.5px，两种宽度均通过横向溢出、焦点恢复和插件工具栏底色检查。旧 `.3` 触发预期的固定高度断言。新版首次验收脚本改为等待欢迎页关闭后通过。

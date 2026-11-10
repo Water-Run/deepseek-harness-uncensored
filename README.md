@@ -32,7 +32,7 @@ DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH �
 
 ## 安装与开发
 
-- **桌面**　正式版本与更新使用本仓库的 [GitHub Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases)。Windows x64 已提供本机检查版；Linux x64 正在验证独立桌面打包，macOS arm64 和 Android＋PRoot Fedora 保留为计划。签名与在线升级仍待验收。
+- **桌面**　Windows x64 已提供本机检查版。Linux x64 检查版 `0.1.0-test.20261110.linux.3` 已构建 deb 和 tar.gz，并通过 Ubuntu 上的 deb 安装、升级和卸载检查。macOS arm64 和 Android＋PRoot Fedora 保留为计划。签名与在线升级仍待验收。正式版本与更新使用本仓库的 [GitHub Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases)。
 - **源码**　使用 Node.js 24.22.1、Git 与 Corepack。依次运行 `corepack pnpm install`、`corepack pnpm run build`、`corepack pnpm dsh web`。CLI 安装见[安装脚本](scripts/install-uncensored.ps1)。
 - **独立标识**　默认数据目录为 `~/.dsh-uncensored`，可用 `DSH_UNCENSORED_HOME` 修改。CLI 为 `dsh-uncensored`，深链为 `dshu://open`。关于页列出作者、DSHU 与 DSH 版本、构建时间、源码提交及依赖来源。
 
@@ -56,6 +56,6 @@ DSHU v0.1.0 is an independent desktop fork of DeepSeek Harness 0.2.2-rc.1. It ca
 
 - **General** · Use `/side` for a persistent side conversation with image attachments and `/clear`, or `/btw question` for a quick one-off answer. Balance history, spending limits, scoped memory, and Tab suggestions are available in Settings.
 - **Modes** · Standard covers daily development. Security adds case notes, reports, and an independent proxy with traffic inspection. Reverse integrates REA for analysis. Writing uses selected style references and story materials.
-- **Delivery** · Unsigned Windows x64 inspection build `0.1.0-test.20261110.4` has passed local installation and runtime checks. Linux x64 Desktop packaging is under validation. macOS arm64 and Android with Fedora under PRoot remain planned. Advanced target protection is opt-in. See [development status](.agents/TODO.md) and [Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases).
+- **Delivery** · Unsigned Windows x64 inspection build `0.1.0-test.20261110.4` has passed local installation and runtime checks. Linux x64 inspection build `0.1.0-test.20261110.linux.3` produced deb and tar.gz archives and passed deb installation, upgrade, and removal checks on Ubuntu. macOS arm64 and Android with Fedora under PRoot remain planned. Advanced target protection is opt-in. See [development status](.agents/TODO.md) and [Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases).
 
 </details>

@@ -4,7 +4,7 @@
 
 ## 交付矩阵
 
-优先级固定为 Windows x64 Desktop → Linux x64 Desktop → macOS ARM Desktop → Android＋PRoot Fedora。Windows 已完成多轮本机检查版交付，Linux 的 deb 与 tar.gz 正在验证。macOS 和 Android 尚未完成桌面发行验收。Android 草案与验收项见 [追加需求](2026-10-25-followups.md#平台交付矩阵)。
+优先级固定为 Windows x64 Desktop → Linux x64 Desktop → macOS ARM Desktop → Android＋PRoot Fedora。Windows 已完成多轮本机检查版交付。Linux 已完成干净源码打包与 Ubuntu WSL2 的 deb 验收。macOS 和 Android 尚未完成桌面发行验收。Android 草案与验收项见 [追加需求](2026-10-25-followups.md#平台交付矩阵)。
 
 ## 目标
 
@@ -31,9 +31,9 @@ Windows 已安装检查版 `0.1.0-test.20261110.4`，源码 `9df061a06a`，产�
 
 ### Linux x64 检查阶段
 
-- 已生成未签名 deb/tar.gz，并在 Ubuntu WSL2 安装目录验证四模式、REA、Office、原生 Electron 窗口及用户 CLI。原生窗口在 Xvfb 中验收，不代表物理桌面和所有发行版均已验证。
-- 卸载保留 96 个隔离资料文件；测试安装已移除，Windows 系统版本未动。产物和摘要见 [HANDOFF](../HANDOFF.md)。
-- 当前是脏树检查包；deb 在修正主页和维护者信息后独立恢复生成。剩最终干净源码的完整流水线、desktopName 关联、升级、其他发行版及发布签名，不标记平台交付完成。
+- 干净源码 `4b1e436740` 的标准流水线生成未签名 deb/tar.gz。Ubuntu WSL2 安装目录通过四模式、REA、Office 和 CLI 检查，tar.gz 中的 ASAR 与实装摘要一致。
+- `.2` 原位升级到 `.3` 后保留 92 个隔离资料文件，使用同一份资料重新打开。Xvfb 中实际窗口的 `WM_CLASS` 与已安装桌面入口的 `StartupWMClass` 一致。
+- `.3` 卸载后保留 96 个隔离资料文件，应用和启动链接已移除。便携归档独立启动、Wayland、其他发行版及正式发行仍待验收。产物和摘要见 [HANDOFF](../HANDOFF.md)。
 
 ### 阶段 0 — 工具链与预检
 
