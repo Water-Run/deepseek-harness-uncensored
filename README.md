@@ -4,7 +4,7 @@
   <p><b>DSHU v0.1.0</b> · 基于 DeepSeek Harness 0.2.2-rc.1 · WaterRun</p>
 </div>
 
-DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH 与 DSHU 可同时安装，分别使用自己的程序目录、配置、会话和更新渠道。Windows x64 检查版 `0.1.0-test.20261110.3` 已完成本机安装验收，尚未签名。
+DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH 与 DSHU 可同时安装，分别使用自己的程序目录、配置、会话和更新渠道。未签名的 Windows x64 检查版 `0.1.0-test.20261110.4` 已完成本机安装与运行验收。
 
 ## 通用增强
 
@@ -56,6 +56,6 @@ DSHU v0.1.0 is an independent desktop fork of DeepSeek Harness 0.2.2-rc.1. It ca
 
 - **General** · Use `/side` for a persistent side conversation with image attachments and `/clear`, or `/btw question` for a quick one-off answer. Balance history, spending limits, scoped memory, and Tab suggestions are available in Settings.
 - **Modes** · Standard covers daily development. Security adds case notes, reports, and an independent proxy with traffic inspection. Reverse integrates REA for analysis. Writing uses selected style references and story materials.
-- **Delivery** · Windows x64 inspection build `0.1.0-test.20261110.3` has passed local installation checks and is unsigned. Linux x64 Desktop packaging is under validation; macOS arm64 and Android with Fedora under PRoot remain planned. Advanced target protection is opt-in. See [development status](.agents/TODO.md) and [Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases).
+- **Delivery** · Unsigned Windows x64 inspection build `0.1.0-test.20261110.4` has passed local installation and runtime checks. Linux x64 Desktop packaging is under validation. macOS arm64 and Android with Fedora under PRoot remain planned. Advanced target protection is opt-in. See [development status](.agents/TODO.md) and [Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases).
 
 </details>
