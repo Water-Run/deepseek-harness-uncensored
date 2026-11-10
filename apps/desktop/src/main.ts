@@ -497,10 +497,11 @@ async function main(): Promise<void> {
   let hostUrl: string | undefined
   let hostCookie: string | undefined
   const browserGuests = new DesktopBrowserGuests(() => hostUrl, async (proxy) => {
+    const hostInstance = backend.host
     const host = hostUrl, cookie = hostCookie
-    if (backend.host === undefined || host === undefined || cookie === undefined) throw new Error('Desktop Host is unavailable')
+    if (hostInstance === undefined || host === undefined || cookie === undefined) throw new Error('Desktop Host is unavailable')
     const certificate = await readBrowserProxyCertificate(proxy, request => forwardWebRequest(request, host, cookie))
-    if (backend.host === undefined || hostUrl !== host || hostCookie !== cookie) throw new Error('Desktop Host changed during browser reservation')
+    if (backend.host !== hostInstance || hostUrl !== host || hostCookie !== cookie) throw new Error('Desktop Host changed during browser reservation')
     return certificate
   })
   let injections: readonly unknown[] = []

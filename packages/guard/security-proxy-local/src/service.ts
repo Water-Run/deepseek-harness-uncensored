@@ -180,7 +180,7 @@ export class SecurityProxyService extends TypertRemoteService {
   @Remote
   async detail(id: string): Promise<SecurityProxyFlowDetail | null> {
     this.assertOwner('securityProxy/detail')
-    return this.engine.detail(id)
+    return Promise.resolve(this.engine.detail(id))
   }
 
   /**

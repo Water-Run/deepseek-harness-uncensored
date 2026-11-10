@@ -76,7 +76,9 @@ export function installBrowserProxyTrust(partition: Pick<Session, 'setCertificat
         const leaf = new X509Certificate(request.certificate.data)
         const hostname = request.hostname.replace(/^\[|\]$/gu, '')
         const identity = isIP(hostname) === 0 ? leaf.checkHost(hostname, { subject: 'never', wildcards: false }) : leaf.checkIP(hostname)
-        if (!leaf.ca && validAt(leaf, now) && leaf.keyUsage?.includes(SERVER_AUTH) && identity !== undefined
+        // Node can return undefined when the certificate has no extended key usage.
+        const keyUsage = leaf.keyUsage
+        if (!leaf.ca && validAt(leaf, now) && Array.isArray(keyUsage) && keyUsage.includes(SERVER_AUTH) && identity !== undefined
           && leaf.checkIssued(root) && leaf.verify(root.publicKey)) result = 0
       } catch (_error) {
         callback(CHROMIUM_DEFAULT)

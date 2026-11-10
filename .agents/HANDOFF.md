@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## Windows 干净检出与类型感知 lint（2026-11-11）
+
+以 `367bf2db6a` 建立独立检出，离线锁定安装通过。干净基线复现 5 条源码 lint 报错。证书用途缺失时继续由 Chromium 判定，预留浏览器期间更换 Host 时丢弃旧证书结果。代理详情保留 Promise 错误语义，回环用例继续验证完整 HTTP 响应中的正文。Corepack 环境下的 lint 入口统一通过 pnpm 调用。
+
+八项构建产物步骤通过，随后 Host 和 Client 聚合检查通过。干净检出的完整 `pnpm run lint` 返回 0，未生成源码旁残留。桌面 26 项和代理 40 项定向回归、文档校验通过。日志前缀为 `.dsh-build/lint-clean-` 与 `.dsh-build/lint-fix-`。
+
+主工作区已有 56 个未跟踪编译文件。此前清理被自动审批以 `blocked by policy` 拒绝，记录见 `.dsh-build/mode-guide-compiler-residue-blocked-20261110.json`。
+
 ## 工程文档链接核验（2026-11-11）
 
 修复 222 处失效链接，其中 175 处来自 `verify-md-links`，47 处来自对 GitHub 说明、持久化记录和开发脚本说明等目录的补扫。迁移后仍在仓库中的目标使用本地相对路径。上游文档和历史工作流链接固定到已核对的 `dsh-v0.2.2-rc.1`。DSHU 打包、发布和持久化操作分别链接到当前说明。[上游版本](https://github.com/deepseek-ai/deepseek-harness/tree/dsh-v0.2.2-rc.1)

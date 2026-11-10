@@ -97,7 +97,7 @@ async function harness(privateTarget = false, audit = false, tlsOptions?: Secure
   }
   const target = tlsOptions === undefined ? createServer(dispatch) : createSecureServer(tlsOptions, dispatch)
   servers.push(target)
-  target.on('connection', (socket) => { targetConnections++; own(socket) })
+  target.on('connection', (socket: Duplex) => { targetConnections++; own(socket) })
   await new Promise<void>((resolve) => { target.listen(0, '127.0.0.1', resolve) })
   const port = (target.address() as AddressInfo).port
   const tunnels: string[] = []
@@ -227,7 +227,8 @@ it.skipIf(typeof tls.setDefaultCACertificates !== 'function')('inspects HTTPS on
   const before = h.counts()
   expect(await processTraffic(opaque, 'https', target)).toMatchObject({ status: 403 })
   expect(h.counts()).toEqual(before)
-  expect(await processTraffic(inspected, 'https', target)).toMatchObject({ status: 200, text: expect.stringContaining('guarded fixture') })
+  const fixtureBody: unknown = expect.stringContaining('guarded fixture')
+  expect(await processTraffic(inspected, 'https', target)).toMatchObject({ status: 200, text: fixtureBody })
   expect(h.tunnels).toEqual([`127.0.0.1:${h.port}`])
   const flow = (await h.ctx.securityProxy.list({})).flows.find(row => row.kind === 'http' && row.status === 200)
   expect(flow).toMatchObject({ sessionId: h.agent.id, tool: 'fixture', outcome: 'complete' })
