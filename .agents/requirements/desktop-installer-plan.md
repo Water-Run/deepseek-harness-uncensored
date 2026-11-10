@@ -36,6 +36,7 @@ Windows 已安装检查版 `0.1.0-test.20261111.6`，源码 `1408c12cc1`，产�
 - `.3` 卸载后保留 96 个隔离资料文件，应用和启动链接已移除。随后直接运行带空格路径中解压的 tar.gz，工作区、命令菜单和关于页通过。Xvfb 的窗口类及 Weston 原生 Wayland 的应用标识均为 `deepseek-harness-uncensored`。物理桌面、门户集成、其他发行版及正式发行仍待验收。产物和摘要见 [HANDOFF](../HANDOFF.md)。
 - `.4` 的 deb 已在 Debian 12 隔离根文件系统验收。先移除 ALSA 和 GBM，再由 APT 从 deb 声明解析并安装两项依赖。原生 X11 窗口、关于页与命令菜单通过，卸载保留 87 个隔离资料文件。chroot 的用户命名空间受限，真实桌面沙箱另行验收。
 - `.5` 由 `1408c12cc1` 干净打包。deb 和 tar.gz 中的 ASAR 摘要一致，deb 保留 ALSA 与 GBM 声明。在 Ubuntu WSL2 从含空格的便携路径启动，X11 窗口、关于页及三个实包浏览器的 HTTPS 正反例通过。
+- 同一 `.5` 便携包通过 Ubuntu WSL2 的 Wayland 目录门户检查。真实门户前端搭配可控后端验证选择、取消、重试及并发请求合并。Ubuntu 自带 GTK 后端通过原生选择器打开检查。实包渲染进程启用 Seccomp 和 `NoNewPrivs`。Headless Weston 无键鼠席位，实体桌面的父窗口模态与输入仍待验收。见[交接记录](../HANDOFF.md#linux-wayland-目录门户与渲染沙箱2026-11-11)。
 
 ### 阶段 0 — 工具链与预检
 

@@ -6,7 +6,7 @@
 
 **本次交付**　`.6` 在实际安装器中验收桌面侧栏和三个启动型浏览器的可选 HTTPS 检查。源站校验、正文脱敏、会话信任与配置清理均通过。实际安装器还通过终端代理和 SSH 回环。安装器、摘要和回退信息见 [HANDOFF](HANDOFF.md)。
 
-**Linux 交付**　检查版 `0.1.0-test.20261111.linux.5` 生成 deb 与 tar.gz，实际便携包在 Ubuntu WSL2 中通过 X11 窗口、关于页和三个浏览器的受控 HTTPS。`.4` 在 Debian 12 验证依赖解析、启动及卸载，87 个隔离资料文件摘要一致。`.3` 已验证 Ubuntu WSL2 升级与原生 Wayland 便携启动。产物摘要见 [HANDOFF](HANDOFF.md)。
+**Linux 交付**　检查版 `0.1.0-test.20261111.linux.5` 生成 deb 与 tar.gz。实际便携包在 Ubuntu WSL2 中通过 X11、三个浏览器的受控 HTTPS、Wayland 目录门户与渲染沙箱验收。`.4` 在 Debian 12 验证依赖解析、启动及卸载，87 个隔离资料文件摘要一致。产物摘要见 [HANDOFF](HANDOFF.md)。
 
 **剩余交付**　进阶保护后端、依赖许可、签名更新、跨平台和最终验收继续列在“进行中”。当前 Windows 包包含 859 个 npm 包、19 份补充声明，7 项许可待核查。详见[许可明细](requirements/2026-11-03-dependency-notices.md)。
 
@@ -60,7 +60,7 @@
 
 ## 进行中（10 项）
 
-- [ ] **Linux x64 Desktop — 约 95%**（02.09、17.07）。`.5` 的实际便携包通过 Ubuntu WSL2 的 X11 窗口和三个浏览器的 HTTPS 正反例，deb 含同一 ASAR 及 ALSA 与 GBM 依赖。`.4` 的 Debian 12 安装与卸载、`.3` 的 Ubuntu 升级和 Weston 原生 Wayland 已通过。剩真实桌面沙箱与门户集成、其余发行版和正式发行验收。见[安装交付计划](requirements/desktop-installer-plan.md)。
+- [ ] **Linux x64 Desktop — 约 96%**（02.09、17.07）。`.5` 实际便携包通过 Ubuntu WSL2 的 X11、浏览器 HTTPS、Wayland 目录门户及渲染沙箱检查，deb 含同一 ASAR 及 ALSA 与 GBM 依赖。`.4` 的 Debian 12 安装与卸载、`.3` 的 Ubuntu 升级已通过。实体桌面的键鼠选择、父窗口模态、其他发行版和正式发行仍待验收。见[安装交付计划](requirements/desktop-installer-plan.md)。
 
 - [ ] **真实目标保护 — 约 80%**（09.01–09.11、05.06、10.05）。可选后端已覆盖 HTTP/DNS、文件、SSH、SQLite、数据库固定审计、测试库写入、受保护命令/ConPTY 和 HTTPS 检查。SSH 支持绑定级 Linux 文件、硬链接和绑定挂载保护。下一步覆盖其他协议、远端数据库资源映射、配置与审计联动。入站管理员过滤/删除、跨系统重启清理和受保护部署见[执行后端清单](requirements/2026-11-02-native-execution.md)。
 
@@ -85,7 +85,7 @@
 
 后续按以下编号推进。
 
-1. **02.09 / 17.07**：补 Linux 物理桌面与门户集成、其他发行版验收。Windows 继续验证系统重启、签名与自动更新。02.12 的 Windows ConPTY 长路径修复已完成。
+1. **02.09 / 17.07**：在实体 Linux 桌面复验门户交互、渲染沙箱和其他发行版。Windows 继续验证系统重启、签名与自动更新。02.12 的 Windows ConPTY 长路径修复已完成。
 2. **10.02 / 16 / 17**：继续外部委派正式发布源与升级、稳定性、依赖许可和实装验收。签名与发布按真实条件安排。
 3. **09 / 05.06 / 10.05**：目标保护与审计转为默认关闭的进阶可选增强，保留[现有实现与剩余范围](requirements/2026-11-03-native-ingress.md)，不阻塞主线日常使用，也不把尚未验证的后端展示为已生效。
 

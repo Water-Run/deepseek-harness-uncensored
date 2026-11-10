@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## Linux Wayland 目录门户与渲染沙箱（2026-11-11）
+
+校验 Linux `.5` tar.gz 摘要后，从实际解包目录启动 DSHU，使用独立 Weston 13 和 Ubuntu WSL2 的会话 D-Bus。实际 `xdg-desktop-portal` 1.18.4 提供 FileChooser v3。可控后端记录三次目录请求，两次并发调用共享首次选择。带中文和空格的路径正确返回，取消返回 `null`，随后重试成功。[FileChooser 接口](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.FileChooser.html)
+
+另用 Ubuntu 自带的 `xdg-desktop-portal-gtk` 1.15.1，在同类隔离 Wayland 会话中打开原生 GTK 目录选择器。门户日志记录 `OpenFile`，Weston 记录 `xdg-desktop-portal-gtk` 的新窗口。Headless Weston 无输入席位，父窗口句柄为空。实体桌面的键鼠选择及父窗口模态仍待验收。
+
+应用直接启动时无 `--no-sandbox`。通过 DevTools 获取实际渲染进程 PID，再核对内核状态为 `Seccomp: 2` 和 `NoNewPrivs: 1`。目录选择器、桌面桥接与客户端流程共 22 项回归通过。临时资料、D-Bus 会话及解包目录已清理。合并回执 `.dsh-build/linux-portal-1408c1-20261111-manifest.json`，日志前缀 `.dsh-build/linux-portal-`。[DevTools 进程接口](https://chromedevtools.github.io/devtools-protocol/tot/SystemInfo/#method-getProcessInfo)
+
 ## Windows `.6` 检查包与本机升级（2026-11-11）
 
 源码 `1408c12cc193bcfd90ff10e68dec7423c7917764` 的干净检出生成 `0.1.0-test.20261111.6`。复用校验过的 Electron `44.7.0` 和包缓存。十项构建检查、四模式、离线插件装卸、REA 229 项工具、三类 Office 文档转 PDF 及 301 字符路径 ConPTY 通过。
