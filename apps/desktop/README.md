@@ -278,7 +278,7 @@ Windows uninstall preserves user data and the updater cache by default, includin
 
 Use `node apps/desktop/scripts/test-windows-installer.mjs --uninstall-only --compile-only` to compile isolated fixtures with a per-run scoped package name. Omit `--compile-only` to run the native remover regression and check default retention, explicit cleanup, update flags, and protected homes against seeded data.
 
-Use `pnpm --dir apps/desktop run test:installer --uninstall-only --silent-only` for isolated non-interactive installation and removal checks, including nested, aliased and invalid DSHU homes. This does not verify foreground layout or replace the interactive UI checks.
+Use `pnpm --dir apps/desktop run test:installer --uninstall-only --silent-only` for isolated non-interactive installation and removal checks, including version checks and nested, aliased and invalid DSHU homes. Setup rejects an older Desktop product version or an unreadable installed version before replacing files, returning exit code 2 in silent mode. Same-version repair and upgrades are accepted. An intentional rollback requires uninstalling the current version first. These checks use isolated registry entries and inert application files. Foreground layout requires separate interactive verification.
 
 <a id="updates"></a>
 

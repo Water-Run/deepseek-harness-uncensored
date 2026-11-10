@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## Windows 安装器版本覆盖检查（2026-11-11）
+
+安装器在替换程序前比较当前用户已登记的 DSHU 独立产品版本，较低版本或无法识别的版本退出。检查位于实际替换之前，静默模式返回 2，同版修复与升级可继续。中英文两份独立测试安装器均拒绝以预发布版覆盖同号稳定版，并在登记版本具有较新预发布序号、较新产品版本、无效或缺失版本时拒绝替换，随后通过升级与修复。每份安装器还通过九类卸载与数据保留场景。另有 34 项原生版本比较用例通过。[回退指南](../docs/upgrade-guide/v0.2.2-rc.1/windows-installer-version-check/guide.zh.md)
+
+实际 NSIS 验收日志为 `.dsh-build/installer-version-guard-20261111.log`，最终文档命令回放为 `.dsh-build/installer-version-final-20261111.log`，原生比较日志为 `.dsh-build/installer-version-native-20261111.log`。汇总回执与两份安装器摘要为 `.dsh-build/installer-version-acceptance-20261111.json`。这些测试使用隔离产品身份和测试载荷，系统仍安装 Windows 检查版 `.6`。交互错误提示、完整新包及签名升级仍待验收。
+
+三处临时夹具文件共 28,149,817 字节。已核对绝对路径及重解析点，自动审批以 `blocked by policy` 拒绝递归删除，保留 `apps/desktop/.desktop-build/installer-tests/run-WaxlCf`、`run-Ej9pPS` 和 `.dsh-build/installer-version-native-20261111`。
+
 ## Brotli 编码器的 Emscripten 声明（2026-11-11）
 
 Brotli 1.3.0 到 1.3.3 分发相同的编码器与内存数据。Windows `.6` 的两份编译产物及包装代码与发布归档一致。运行时清点新增固定 Emscripten 原文。以实装的 859 项清单复算后，连同已补的 Fontkit 声明共 21 份，待核查仍为 7 项。12 项清点器测试和 Host、Client 构建检查通过。完整证据、未解决项与复算回执见[审计明细](requirements/2026-11-03-dependency-notices.md#brotli-编码器内嵌的-emscripten-运行时2026-11-11)。

@@ -1,6 +1,8 @@
 {
   "nsisLanguage": "FRENCH",
   "strings": {
+    "INSTALLER_DOWNGRADE": "Une version plus récente de {productName} est déjà installée. Utilisez un programme d’installation de la même version ou d’une version plus récente. Pour revenir en arrière, désinstallez d’abord la version actuelle.",
+    "INSTALLER_VERSION_UNKNOWN": "Impossible de vérifier la version installée de {productName}. Désinstallez la version actuelle avant de réinstaller.",
     "INSTALLER_INSTALL": "Installer maintenant",
     "INSTALLER_FINISH": "Terminer",
     "INSTALLER_NATIVE_PROGRESS": "Préparation de l'installation… %d%%",

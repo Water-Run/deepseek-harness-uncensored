@@ -3,6 +3,7 @@
 param([Parameter(Mandatory)][string]$Installer, [Parameter(Mandatory)][string]$ProductName,
     [Parameter(Mandatory)][string]$RegistryKey, [Parameter(Mandatory)][string]$OutputDirectory,
     [Parameter(Mandatory)][string]$Language, [Parameter(Mandatory)][string]$PackageName,
+    [Parameter(Mandatory)][string]$Version,
     [switch]$SilentOnly)
 $ErrorActionPreference = 'Stop'
 $copy = (Get-Content (Join-Path $PSScriptRoot "../installer/locales/$Language.json") -Encoding UTF8 -Raw | ConvertFrom-Json).uninstaller
@@ -88,16 +89,58 @@ function Assert-SeededFile([string]$Path, [string]$Content, [bool]$Retained, [st
         throw "Retained file contents changed for $Case at $Path"
     }
 }
+function Invoke-SilentSetup([int]$ExpectedExitCode, [string]$Options = '') {
+    $setup = Start-Process -FilePath $Installer -ArgumentList ("/S $Options /D=" + $installPath) -PassThru -WindowStyle Hidden
+    try {
+        if (-not $setup.WaitForExit(30000)) { $setup.Kill(); $setup.WaitForExit(); throw 'Setup timed out' }
+        if ($setup.ExitCode -ne $ExpectedExitCode) {
+            throw "Setup returned $($setup.ExitCode), expected $ExpectedExitCode ($Options)"
+        }
+    } finally { $setup.Dispose() }
+}
+
+function Assert-VersionGuard {
+    $sentinel = Join-Path $installPath 'preserve-on-rejection.txt'
+    [IO.File]::WriteAllText($sentinel, 'installed files')
+    $cases = @(
+        @{ Name = 'release'; Installed = '0.1.0'; Options = '' },
+        @{ Name = 'newer prerelease'; Installed = '0.1.0-test.20261111.10'; Options = '--updated /currentuser' },
+        @{ Name = 'newer product'; Installed = '0.1.1-alpha.1'; Options = '' },
+        @{ Name = 'invalid version'; Installed = '0.1.0-test.01'; Options = '' },
+        @{ Name = 'missing version'; Installed = ''; Options = '' }
+    )
+    try {
+        foreach ($case in $cases) {
+            Set-ItemProperty -LiteralPath $entryKey -Name DisplayVersion -Value $case.Installed
+            Invoke-SilentSetup 2 $case.Options
+            if ((Get-ItemPropertyValue -LiteralPath $entryKey -Name DisplayVersion) -cne $case.Installed) {
+                throw "A rejected setup changed the installed version: $($case.Name)"
+            }
+            Assert-SeededFile $sentinel 'installed files' $true $case.Name
+            Assert-SeededFile (Join-Path $homePath 'session.txt') 'keep session' $true $case.Name
+            Write-Output "passed: rejected $($case.Name)"
+        }
+        Set-ItemProperty -LiteralPath $entryKey -Name DisplayVersion -Value '0.1.0-test.20261111.8'
+        Invoke-SilentSetup 0 '--updated /currentuser'
+        Invoke-SilentSetup 0
+        if ((Get-ItemPropertyValue -LiteralPath $entryKey -Name DisplayVersion) -cne $Version) {
+            throw 'Accepted setup did not register the candidate version'
+        }
+        Assert-SeededFile (Join-Path $homePath 'session.txt') 'keep session' $true 'accepted setup'
+        Write-Output 'passed: allowed upgrade and same-version repair'
+    } finally {
+        Set-ItemProperty -LiteralPath $entryKey -Name DisplayVersion -Value $Version
+    }
+}
+
 try {
     foreach ($mode in $expected.cases) {
         if ($SilentOnly -and $mode -eq 'interactive') { continue }
-        $setup = Start-Process -FilePath $Installer -ArgumentList ('/S /D=' + $installPath) -PassThru -WindowStyle Hidden
-        try {
-            if (-not $setup.WaitForExit(30000)) { $setup.Kill(); $setup.WaitForExit(); throw 'Setup timed out' }
-            if ($setup.ExitCode -ne 0) { throw "Setup failed: $($setup.ExitCode)" }
-        } finally { $setup.Dispose() }
+        Invoke-SilentSetup 0
         $entry = Get-ItemProperty -LiteralPath $entryKey
-        if ($entry.InstallLocation.TrimEnd('\') -ne $installPath) { throw 'Uninstall entry lacks InstallLocation' }
+        if ($entry.InstallLocation.TrimEnd('\') -ne $installPath -or $entry.DisplayVersion -cne $Version) {
+            throw 'Uninstall entry differs from the fixture location or version'
+        }
         $shortcutIdentityError = $null
         if ($mode -eq 'silent') {
             try { Assert-ShortcutIdentity } catch { $shortcutIdentityError = $_ }
@@ -118,6 +161,11 @@ try {
         [IO.File]::WriteAllText((Join-Path $cachePath 'download.txt'), 'update')
         [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($partitionFile)) | Out-Null
         [IO.File]::WriteAllText($partitionFile, 'browser storage')
+        if ($mode -eq 'silent') {
+            $env:DSH_UNCENSORED_HOME = $homePath
+            $env:DSH_HOME = $officialHomePath
+            Assert-VersionGuard
+        }
         Copy-Item -LiteralPath (Join-Path $installPath ('Uninstall ' + $ProductName + '.exe')) -Destination $uninstaller -Force
         $uninstallCommand = $uninstaller
         $arguments = '_?=' + $installPath

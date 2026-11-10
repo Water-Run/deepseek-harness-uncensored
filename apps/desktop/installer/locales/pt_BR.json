@@ -1,6 +1,8 @@
 {
   "nsisLanguage": "PORTUGUESEBR",
   "strings": {
+    "INSTALLER_DOWNGRADE": "Uma versão mais recente de {productName} já está instalada. Use um instalador da mesma versão ou de uma versão mais recente. Para voltar, desinstale primeiro a versão atual.",
+    "INSTALLER_VERSION_UNKNOWN": "Não foi possível verificar a versão instalada de {productName}. Desinstale a versão atual antes de instalar novamente.",
     "INSTALLER_INSTALL": "Instale agora",
     "INSTALLER_FINISH": "Concluir",
     "INSTALLER_NATIVE_PROGRESS": "Preparando a instalação… %d%%",

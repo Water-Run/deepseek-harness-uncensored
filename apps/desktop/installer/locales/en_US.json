@@ -1,6 +1,8 @@
 {
   "nsisLanguage": "ENGLISH",
   "strings": {
+    "INSTALLER_DOWNGRADE": "A newer version of {productName} is already installed. Use the same or a newer installer. To go back, uninstall the current version first.",
+    "INSTALLER_VERSION_UNKNOWN": "Could not verify the installed {productName} version. Uninstall the current version before installing again.",
     "INSTALLER_INSTALL": "Install now",
     "INSTALLER_FINISH": "Finish",
     "INSTALLER_NATIVE_PROGRESS": "Preparing installation… %d%%",

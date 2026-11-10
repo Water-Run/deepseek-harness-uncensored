@@ -1,6 +1,8 @@
 {
   "nsisLanguage": "RUSSIAN",
   "strings": {
+    "INSTALLER_DOWNGRADE": "Уже установлена более новая версия {productName}. Используйте установщик той же или более новой версии. Для возврата сначала удалите текущую версию.",
+    "INSTALLER_VERSION_UNKNOWN": "Не удалось проверить установленную версию {productName}. Перед повторной установкой удалите текущую версию.",
     "INSTALLER_INSTALL": "Установить сейчас",
     "INSTALLER_FINISH": "Готово",
     "INSTALLER_NATIVE_PROGRESS": "Подготовка установки… %d%%",

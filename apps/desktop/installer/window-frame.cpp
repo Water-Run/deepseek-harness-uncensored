@@ -14,6 +14,7 @@
 #include <wrl/client.h>
 #include <new>
 #include <algorithm>
+#include <string_view>
 #include "progress.h"
 #include "extract.h"
 #include "extract-report.h"
@@ -30,6 +31,69 @@ struct ShortcutCom {
     ~ShortcutCom() { if (SUCCEEDED(result)) CoUninitialize(); }
     bool Ready() const { return SUCCEEDED(result) || result == RPC_E_CHANGED_MODE; }
 };
+
+bool VersionDigit(wchar_t value) { return value >= L'0' && value <= L'9'; }
+
+std::wstring_view TakeVersionIdentifier(std::wstring_view& version) {
+    const auto separator = version.find(L'.');
+    const auto identifier = version.substr(0, separator);
+    version.remove_prefix(separator == std::wstring_view::npos ? version.size() : separator + 1);
+    return identifier;
+}
+
+bool ValidVersionIdentifiers(std::wstring_view version, bool core) {
+    if (version.empty() || version.back() == L'.') return false;
+    unsigned count = 0;
+    while (!version.empty()) {
+        const auto identifier = TakeVersionIdentifier(version);
+        if (identifier.empty()) return false;
+        const bool numeric = std::all_of(identifier.begin(), identifier.end(), VersionDigit);
+        if (numeric && identifier.size() > 1 && identifier.front() == L'0') return false;
+        if (core && !numeric) return false;
+        if (!std::all_of(identifier.begin(), identifier.end(), [](wchar_t value) {
+            return VersionDigit(value) || (value >= L'A' && value <= L'Z') ||
+                (value >= L'a' && value <= L'z') || value == L'-';
+        })) return false;
+        ++count;
+    }
+    return !core || count == 3;
+}
+
+bool ReadInstallerVersion(std::wstring_view version, std::wstring_view& core, std::wstring_view& prerelease) {
+    const auto separator = version.find(L'-');
+    core = version.substr(0, separator);
+    if (separator != std::wstring_view::npos) prerelease = version.substr(separator + 1);
+    return ValidVersionIdentifiers(core, true) &&
+        (separator == std::wstring_view::npos || ValidVersionIdentifiers(prerelease, false));
+}
+
+int CompareVersionIdentifiers(std::wstring_view left, std::wstring_view right) {
+    while (!left.empty() && !right.empty()) {
+        const auto a = TakeVersionIdentifier(left);
+        const auto b = TakeVersionIdentifier(right);
+        const bool aNumeric = std::all_of(a.begin(), a.end(), VersionDigit);
+        const bool bNumeric = std::all_of(b.begin(), b.end(), VersionDigit);
+        if (aNumeric != bNumeric) return aNumeric ? -1 : 1;
+        if (aNumeric && a.size() != b.size()) return a.size() < b.size() ? -1 : 1;
+        const int comparison = a.compare(b);
+        if (comparison != 0) return comparison;
+    }
+    if (left.empty() == right.empty()) return 0;
+    return left.empty() ? -1 : 1;
+}
+}
+
+// Desktop build versions use SemVer precedence and exclude build metadata.
+// Returns 0 for an equal or newer candidate, 1 for a downgrade, and -1 for an invalid version.
+extern "C" __declspec(dllexport) int __cdecl InstallerCheckVersion(LPCWSTR installed, LPCWSTR candidate) {
+    if (!installed || !candidate) return -1;
+    std::wstring_view installedCore, installedPrerelease, candidateCore, candidatePrerelease;
+    if (!ReadInstallerVersion(installed, installedCore, installedPrerelease) ||
+        !ReadInstallerVersion(candidate, candidateCore, candidatePrerelease)) return -1;
+    const int core = CompareVersionIdentifiers(installedCore, candidateCore);
+    if (core != 0) return core > 0 ? 1 : 0;
+    if (installedPrerelease.empty() != candidatePrerelease.empty()) return installedPrerelease.empty() ? 1 : 0;
+    return CompareVersionIdentifiers(installedPrerelease, candidatePrerelease) > 0 ? 1 : 0;
 }
 
 // Save the application identity on an existing shortcut without changing its target or arguments.

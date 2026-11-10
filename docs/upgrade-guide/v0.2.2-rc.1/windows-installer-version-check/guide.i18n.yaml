@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.2-rc.1/windows-installer-version-check/guide.md
+/:
+  en: 280b0c08a7537f1a
+  zh: 2878ce43ec29de7d
+/windows-installer-version-checks:
+  en: 6641b29ae9e183c7
+  zh: e368cb07607db627
+/windows-installer-version-checks/change:
+  en: 6868884fd4687ffa
+  zh: 46fbf33e3f022620
+/windows-installer-version-checks/migration:
+  en: 3bef2e087d630b1f
+  zh: 20d470ca8579f9c9

@@ -1,6 +1,8 @@
 {
   "nsisLanguage": "GERMAN",
   "strings": {
+    "INSTALLER_DOWNGRADE": "Eine neuere Version von {productName} ist bereits installiert. Verwenden Sie dieselbe oder eine neuere Installationsdatei. Deinstallieren Sie für ein Downgrade zuerst die aktuelle Version.",
+    "INSTALLER_VERSION_UNKNOWN": "Die installierte Version von {productName} konnte nicht geprüft werden. Deinstallieren Sie die aktuelle Version vor der Neuinstallation.",
     "INSTALLER_INSTALL": "Jetzt installieren",
     "INSTALLER_FINISH": "Fertigstellen",
     "INSTALLER_NATIVE_PROGRESS": "Installation wird vorbereitet… %d%%",

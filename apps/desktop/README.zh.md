@@ -278,7 +278,7 @@ Windows 卸载默认保留用户资料与更新缓存，静默卸载也适用。
 
 使用 `node apps/desktop/scripts/test-windows-installer.mjs --uninstall-only --compile-only` 以每次运行唯一的带作用域包名编译隔离夹具。省略 `--compile-only` 后，可对预置数据运行原生删除器回归，并检查默认保留、显式清理、升级参数及主目录保护。
 
-使用 `pnpm --dir apps/desktop run test:installer --uninstall-only --silent-only` 可运行隔离的非交互安装与卸载检查，包括嵌套、别名及无效 DSHU 主目录；它不验证前台布局，不能替代交互界面验收。
+使用 `pnpm --dir apps/desktop run test:installer --uninstall-only --silent-only` 可运行隔离的非交互安装与卸载检查，包括版本检查和嵌套、别名及无效 DSHU 主目录。安装器在替换文件前拒绝较旧的 Desktop 产品版本及无法读取的已安装版本，静默模式返回退出码 2。同版修复与升级均可继续。主动回退需先卸载当前版本。检查使用独立注册表项和测试程序文件。前台布局仍需单独的交互验收。
 
 <a id="updates"></a>
 

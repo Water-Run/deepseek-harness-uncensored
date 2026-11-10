@@ -1,5 +1,27 @@
 Var InstallerProgressWindow
 
+Function InstallerRequireCurrentVersion
+    ReadRegStr $0 HKCU "${UNINSTALL_REGISTRY_KEY}" "DisplayVersion"
+    ${If} $0 == ""
+        ReadRegStr $1 HKCU "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+        ${If} $1 == ""
+        ${OrIfNot} ${FileExists} "$1\${APP_EXECUTABLE_FILENAME}"
+            Return
+        ${EndIf}
+    ${EndIf}
+    System::Call '$PLUGINSDIR\window-frame.dll::InstallerCheckVersion(w r0, w "${VERSION}") i.r1 ?c'
+    ${If} $1 == 0
+        Return
+    ${EndIf}
+    ${If} $1 == 1
+        MessageBox MB_OK|MB_ICONEXCLAMATION "$(INSTALLER_DOWNGRADE)$\r$\n$0 → ${VERSION}" /SD IDOK
+    ${Else}
+        MessageBox MB_OK|MB_ICONEXCLAMATION "$(INSTALLER_VERSION_UNKNOWN)" /SD IDOK
+    ${EndIf}
+    SetErrorLevel 2
+    Quit
+FunctionEnd
+
 Function InstallerGuiInit
     HideWindow
     System::Call 'user32::SetWindowLongW(p $HWNDPARENT, i -16, i 0x800A0000)'

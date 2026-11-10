@@ -1,6 +1,8 @@
 {
   "nsisLanguage": "JAPANESE",
   "strings": {
+    "INSTALLER_DOWNGRADE": "より新しいバージョンの {productName} がインストールされています。同じバージョンまたは新しいバージョンのインストーラーを使用してください。以前のバージョンに戻すには、現在のバージョンを先にアンインストールしてください。",
+    "INSTALLER_VERSION_UNKNOWN": "インストール済みの {productName} のバージョンを確認できませんでした。現在のバージョンをアンインストールしてから再インストールしてください。",
     "INSTALLER_INSTALL": "今すぐインストール",
     "INSTALLER_FINISH": "完了",
     "INSTALLER_NATIVE_PROGRESS": "インストールを準備しています… %d%%",
