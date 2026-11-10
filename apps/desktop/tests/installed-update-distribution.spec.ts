@@ -16,7 +16,7 @@ async function fixture<T>(body: (manifest: string) => Promise<T>): Promise<T> {
     for (const version of versions) {
       const output = join(run.root, version, 'installer')
       await mkdir(output, { recursive: true })
-      const filename = `deepseek-harness-${version}-win-x64.exe`
+      const filename = `dshu-qualification-${version}-win-x64.exe`
       const body = Buffer.from(`inert fixture ${version}`)
       await writeFile(join(output, filename), body)
       await writeFile(join(output, `${filename}.blockmap`), 'inert map')
@@ -33,30 +33,40 @@ describe('qualification distribution file planning', () => {
       const [old, next] = await Promise.all(versions.map(version => planInstalledUpdateDistribution(manifest, version)))
       expect(old!.feed.url).toBe(next!.feed.url)
       expect(old!.feed.sha512).not.toBe(next!.feed.sha512)
-      expect(old!.binaries.map(file => file.key)).not.toEqual(next!.binaries.map(file => file.key))
+      expect(old!.releaseTag).toBe(next!.releaseTag)
+      expect(old!.binaries.map(file => file.name)).not.toEqual(next!.binaries.map(file => file.name))
       expect(next!.binaries).toHaveLength(2)
-      expect(next!.binaries.every(file => file.key.startsWith('dsh-desk/bin/qualification/'))).toBe(true)
-      expect(next!.feed.key).toMatch(/^dsh-desk\/feeds\/qualification\/[a-f0-9]{24}\/win-x64\/nightly.yml$/u)
+      const base = `https://github.com/Water-Run/deepseek-harness-uncensored/releases/download/${next!.releaseTag}/`
+      expect(next!.binaries.map(file => file.url)).toEqual(next!.binaries.map(file => base + file.name))
+      expect(next!.feed.url).toBe(base + 'nightly.yml')
+      expect(next!.feed.contents).toBe(await readFile(join(next!.binaries[0]!.path, '..', 'nightly.yml'), 'utf8'))
       expect(next!.publicationAuthorized).toBe(false)
       expect(next!.verified).toBe('file-integrity-only')
       expect(load(next!.feed.contents)).toMatchObject({ version: versions[1],
-        files: [{ url: `https://download-test.deepseek.com/${next!.binaries[0]!.key}` }] })
+        files: [{ url: next!.binaries[0]!.name }] })
     })
   })
 
-  it.each(['changed-bytes', 'missing-map', 'foreign-url', 'wrong-version', 'legacy-hash'])(
+  it.each(['changed-bytes', 'missing-map', 'foreign-url', 'wrong-version', 'legacy-hash', 'invalid-utf8', 'web-package'])(
     'rejects %s before producing any distribution plan', async (failure) => {
       await fixture(async (manifest) => {
         const plan = await planInstalledUpdateDistribution(manifest, versions[0])
         const installer = plan.binaries[0]!.path
         const metadataPath = join(installer, '..', 'nightly.yml')
-        const metadata = JSON.parse(await readFile(metadataPath, 'utf8')) as { version: string; files: { url: string }[]; sha512?: string }
+        const metadata = JSON.parse(await readFile(metadataPath, 'utf8')) as {
+          version: string
+          files: { url: string }[]
+          sha512?: string
+          packages?: object
+        }
         if (failure === 'changed-bytes') await writeFile(installer, 'changed')
         if (failure === 'missing-map') await rm(plan.binaries[1]!.path)
         if (failure === 'foreign-url') metadata.files[0]!.url = 'https://other.invalid/unrelated.exe'
         if (failure === 'wrong-version') metadata.version = versions[1]
         if (failure === 'legacy-hash') metadata.sha512 = 'wrong'
-        await writeFile(metadataPath, JSON.stringify(metadata))
+        if (failure === 'web-package') metadata.packages = { x64: { path: 'https://other.invalid/alternate.7z' } }
+        const body = Buffer.from(JSON.stringify(metadata))
+        await writeFile(metadataPath, failure === 'invalid-utf8' ? Buffer.concat([body, Buffer.from([10, 35, 255])]) : body)
         await expect(planInstalledUpdateDistribution(manifest, versions[0])).rejects.toThrow()
       })
     },

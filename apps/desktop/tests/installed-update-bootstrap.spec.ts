@@ -67,7 +67,7 @@ console.log(JSON.stringify({ paths: app.paths, home: process.env.DSH_HOME, uncen
     })
   })
 
-  it.each(['origin', 'bucket', 'appId', 'root', 'feedKey', 'binPrefix', 'versions', 'source'])(
+  it.each(['releaseTag', 'feedBaseUrl', 'appId', 'root', 'versions', 'source'])(
     'rejects altered %s in a retained manifest', async (field) => {
       await fixture(async (directory) => {
         const run = await createInstalledUpdateRun(directory, versions, source)
@@ -79,6 +79,17 @@ console.log(JSON.stringify({ paths: app.paths, home: process.env.DSH_HOME, uncen
       })
     },
   )
+
+  it('preserves an earlier manifest while refusing to reuse its retired feed', async () => {
+    await fixture(async (directory) => {
+      const run = await createInstalledUpdateRun(directory, versions, source)
+      const path = join(run.root, 'run.json')
+      const previous = JSON.stringify({ ...run, schemaVersion: 1 })
+      await writeFile(path, previous)
+      await expect(readInstalledUpdateRun(path)).rejects.toThrow('retired feed')
+      expect(await readFile(path, 'utf8')).toBe(previous)
+    })
+  })
 
   it('loads the original manifest without adding credential fields to bootstrap output', async () => {
     await fixture(async (directory) => {

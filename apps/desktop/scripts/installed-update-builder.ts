@@ -2,6 +2,7 @@
 import { join } from 'node:path'
 import { createElectronBuilderConfig } from './electron-builder-config.mjs'
 import { readInstalledUpdateRun } from './installed-update-qualification.ts'
+import { installedUpdateArtifactName } from './installed-update-distribution.ts'
 import { verifyInstalledUpdateApplication } from './prepare-installed-update-application.ts'
 import { verifyDesktopRuntime } from '../src/runtime-tree.ts'
 
@@ -15,9 +16,8 @@ import { verifyDesktopRuntime } from '../src/runtime-tree.ts'
 export async function createInstalledUpdateBuilderConfig(manifest: string, version: string, environment: NodeJS.ProcessEnv) {
   const run = await readInstalledUpdateRun(manifest)
   if (!run.versions.includes(version)) throw new Error('installed update: package version is outside the qualification run')
-  if (environment.DSH_DESKTOP_AUTO_UPDATE_ENV !== 'test' || environment.DSH_DESKTOP_UNSIGNED === '1'
-    || environment.DOWNLOAD_TEST_ORIGIN !== run.origin || environment.DOWNLOAD_TEST_COS_BUCKET !== run.bucket) {
-    throw new Error('installed update: signed ordinary-update qualification requires matching test deployment settings')
+  if (environment.DSH_DESKTOP_AUTO_UPDATE_ENV !== 'test' || environment.DSH_DESKTOP_UNSIGNED === '1') {
+    throw new Error('installed update: ordinary-update qualification requires a signed test build')
   }
   const application = await verifyInstalledUpdateApplication(run.root)
   const dsh = join(run.root, version, 'dsh')
@@ -26,8 +26,10 @@ export async function createInstalledUpdateBuilderConfig(manifest: string, versi
     DSH_DESKTOP_TARGET_PLATFORM: 'win32', DSH_DESKTOP_TARGET_ARCH: 'x64', DSH_DESKTOP_UNSIGNED: '0' }, 'win32', 'x64', dsh, version)
   return { ...config,
     productName: run.productName,
+    artifactName: installedUpdateArtifactName(version),
     directories: { ...config.directories, output: join(run.root, version, 'installer') },
-    extraMetadata: { ...config.extraMetadata, name: `dsh-update-test-${run.id}`, version, main: 'qualification-bootstrap.mjs' },
+    extraMetadata: { ...config.extraMetadata, name: `dsh-update-test-${run.id}`, version, main: 'qualification-bootstrap.mjs',
+      dshDesktopUpdateChannel: 'nightly' },
     files: [
       { from: application, to: '.', filter: ['lib/*.js', 'lib/*.cjs', 'lib/welcome/design-platform.css', 'renderer/**/*', 'qualification-bootstrap.mjs', 'installed-update-identity.mjs'] },
       'package.json',
@@ -35,6 +37,6 @@ export async function createInstalledUpdateBuilderConfig(manifest: string, versi
       { from: dsh, to: 'dsh', filter: ['**/*'] },
       { from: join(dsh, 'node_modules'), to: 'dsh/node_modules', filter: ['**/*'] },
     ],
-    publish: [{ provider: 'generic' as const, url: `${run.origin}/${run.feedKey.slice(0, -'nightly.yml'.length)}`, channel: 'nightly' }],
+    publish: [{ provider: 'generic' as const, url: run.feedBaseUrl, channel: 'nightly' }],
   }
 }

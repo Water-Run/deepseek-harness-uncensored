@@ -14,4 +14,4 @@ description: "本地安装升级验收涉及的发布范围。"
 
 原 COS 测试发布器及 `publish-installed-update.ts` 操作流程已移除。保留入口会以退出码 1 提示迁移，传入 `--execute` 也不会上传文件、修改更新源或解密凭据。
 
-保留已有本地产物和报告。分发目标以 [DSHU 发布说明](../../../publishing/README.zh.md)为准。本地更新测试与替代传输不代表真实 GitHub 下载或签名安装升级已通过验收。
+保留已有本地产物和报告。每个新验收批次固定独立的 DSHU GitHub 发行标签及 `nightly.yml` 资产 URL。同版本和升级场景使用不同的预发布。`files` 命令生成供审阅的本地证据。发布任一预发布均须按 [DSHU 发布说明](../../../publishing/README.zh.md)另行授权。真实 GitHub 下载与签名安装升级需分别验收。

@@ -3,12 +3,14 @@ import { tmpdir } from 'node:os'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
-import { createInstalledUpdateRun } from '../scripts/installed-update-qualification.ts'
+import { createInstalledUpdateRun, readInstalledUpdateRun } from '../scripts/installed-update-qualification.ts'
 import { prepareInstalledUpdateBootstrap } from '../scripts/prepare-installed-update-bootstrap.ts'
 import { prepareInstalledUpdateApplication, verifyInstalledUpdateApplication } from '../scripts/prepare-installed-update-application.ts'
 import { createInstalledUpdateBuilderConfig } from '../scripts/installed-update-builder.ts'
 import { runtimeFixture } from './runtime-fixture.ts'
 import { writeDesktopRuntime } from '../src/runtime-tree.ts'
+import { desktopUpdateChannel } from '../src/update-channel.ts'
+import { forkUpdateSource } from '../src/update-source.ts'
 
 vi.mock('../scripts/windows-sign.mjs', () => ({
   createWindowsTokenSigner: () => () => { throw new Error('test must not invoke hardware signing') },
@@ -18,10 +20,9 @@ vi.mock('../scripts/windows-sign.mjs', () => ({
 }))
 
 const versions = ['0.1.6-nightly.20260914.1', '0.1.6-nightly.20260914.2'] as const
-const environment = { DSH_DESKTOP_AUTO_UPDATE_ENV: 'test', DOWNLOAD_TEST_ORIGIN: 'https://download-test.deepseek.com', DOWNLOAD_TEST_RELEASE_ID: '0123456789abcdef0123456789abcdef',
+const environment = { DSH_DESKTOP_AUTO_UPDATE_ENV: 'test',
   DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://policy.example.com',
-  DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: JSON.stringify({ allowedAuthOrigins: ['https://login.example.com'] }),
-  DOWNLOAD_TEST_COS_BUCKET: 'bj-toc-download-test-1320056602' }
+  DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: JSON.stringify({ allowedAuthOrigins: ['https://login.example.com'] }) }
 const require = createRequire(import.meta.url)
 const { validateConfiguration } = require('app-builder-lib/out/util/config/config.js') as {
   validateConfiguration: (config: object, logger: { isEnabled: false }) => Promise<void>
@@ -83,6 +84,7 @@ describe('installed-update application inputs and builder configuration', () => 
   it('keeps signed NSIS hooks and one isolated identity/feed while selecting each private runtime and output', async () => {
     await fixture(async (manifest, source) => {
       await prepareInstalledUpdateApplication(manifest, source)
+      const run = await readInstalledUpdateRun(manifest)
       const [first, second] = await Promise.all(versions.map(version => createInstalledUpdateBuilderConfig(manifest, version, environment)))
       expect(first!.appId).toBe(second!.appId)
       expect(first!.extraMetadata.name).toBe(second!.extraMetadata.name)
@@ -92,6 +94,9 @@ describe('installed-update application inputs and builder configuration', () => 
         await validateConfiguration(config, { isEnabled: false })
         expect(config.extraMetadata.version).toBe(versions[index])
         expect(config.extraMetadata.main).toBe('qualification-bootstrap.mjs')
+        expect(config.extraMetadata.dshDesktopUpdateChannel).toBe('nightly')
+        expect(desktopUpdateChannel(config.extraMetadata)).toBe('nightly')
+        expect(config.artifactName).toBe(`dshu-qualification-${versions[index]}-win-x64.exe`)
         expect(config.directories.output).toBe(join(manifest, '..', versions[index]!, 'installer'))
         const dsh = join(manifest, '..', versions[index]!, 'dsh')
         expect(config.files.at(-2)).toMatchObject({ from: dsh, to: 'dsh' })
@@ -103,8 +108,10 @@ describe('installed-update application inputs and builder configuration', () => 
         expect(typeof config.win.signtoolOptions.sign).toBe('function')
         expect(typeof config.beforeBuild).toBe('function')
         expect(config.nsis.include).toMatch(/scripts[\\/]installer\.nsh$/u)
-        expect(config.publish[0]!.url)
-          .toMatch(/^https:\/\/download-test\.deepseek\.com\/dsh-desk\/feeds\/qualification\/[a-f0-9]{24}\/win-x64\/$/u)
+        expect(config.publish[0]!.url).toBe(run.feedBaseUrl)
+        expect(forkUpdateSource(config.publish[0])).toEqual({
+          provider: 'generic', url: config.publish[0]!.url, useMultipleRangeRequest: false,
+        })
       }
     })
   })
@@ -121,10 +128,9 @@ describe('installed-update application inputs and builder configuration', () => 
   it.each([
     { DSH_DESKTOP_AUTO_UPDATE_ENV: 'production' },
     { DSH_DESKTOP_UNSIGNED: '1' },
-    { DOWNLOAD_TEST_ORIGIN: 'https://download.deepseek.com' },
   ])('rejects incompatible qualification settings %j', async (override) => {
     await fixture(async (manifest) => {
-      await expect(createInstalledUpdateBuilderConfig(manifest, versions[0], { ...environment, ...override })).rejects.toThrow('test deployment')
+      await expect(createInstalledUpdateBuilderConfig(manifest, versions[0], { ...environment, ...override })).rejects.toThrow('signed test build')
     })
   })
 })

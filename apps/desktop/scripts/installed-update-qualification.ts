@@ -13,7 +13,7 @@ export interface InstalledUpdateSource {
 
 /** A private test namespace; creating it performs no signing, installation, or remote operation. */
 export interface InstalledUpdateRun {
-  readonly schemaVersion: 1
+  readonly schemaVersion: 2
   readonly id: string
   readonly root: string
   readonly createdAt: string
@@ -22,10 +22,13 @@ export interface InstalledUpdateRun {
   readonly appId: string
   readonly productName: string
   readonly environment: 'test'
-  readonly origin: string
-  readonly bucket: string
-  readonly feedKey: string
-  readonly binPrefix: string
+  readonly releaseTag: string
+  readonly feedBaseUrl: string
+}
+
+function qualificationDestination(id: string): { releaseTag: string; feedBaseUrl: string } {
+  const releaseTag = `dshu-qualification-${id}`
+  return { releaseTag, feedBaseUrl: `https://github.com/Water-Run/deepseek-harness-uncensored/releases/download/${releaseTag}/` }
 }
 
 /**
@@ -46,11 +49,9 @@ export async function createInstalledUpdateRun(
   const root = await mkdtemp(join(resolve(parent), 'installed-update-'))
   const id = randomBytes(12).toString('hex')
   const run: InstalledUpdateRun = {
-    schemaVersion: 1, id, root, createdAt: new Date().toISOString(), source, versions,
+    schemaVersion: 2, id, root, createdAt: new Date().toISOString(), source, versions,
     appId: `com.deepseek.dsh.qualification.q${id}`, productName: `DSH Update Test ${id}`,
-    environment: 'test', origin: 'https://download-test.deepseek.com', bucket: 'bj-toc-download-test-1320056602',
-    feedKey: `dsh-desk/feeds/qualification/${id}/win-x64/nightly.yml`,
-    binPrefix: `dsh-desk/bin/qualification/${id}/win-x64`,
+    environment: 'test', ...qualificationDestination(id),
   }
   await writeFile(join(root, 'run.json'), `${JSON.stringify(run, null, 2)}\n`, { flag: 'wx', mode: 0o600, flush: true })
   return run
@@ -73,14 +74,16 @@ export async function readInstalledUpdateRun(path: string): Promise<InstalledUpd
   const value: unknown = JSON.parse(await readFile(path, 'utf8'))
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error('installed update: invalid run manifest')
   const row = value as Record<string, unknown>
-  if (row.schemaVersion !== 1 || typeof row.id !== 'string' || !/^[a-f0-9]{24}$/u.test(row.id)
+  if (row.schemaVersion === 1) throw new Error('installed update: legacy run uses the retired feed. Create a new qualification run')
+  if (row.schemaVersion !== 2 || typeof row.id !== 'string' || !/^[a-f0-9]{24}$/u.test(row.id)
     || row.root !== resolve(dirname(path)) || row.environment !== 'test'
-    || row.origin !== 'https://download-test.deepseek.com' || row.bucket !== 'bj-toc-download-test-1320056602'
     || row.appId !== `com.deepseek.dsh.qualification.q${row.id}` || row.productName !== `DSH Update Test ${row.id}`
-    || row.feedKey !== `dsh-desk/feeds/qualification/${row.id}/win-x64/nightly.yml`
-    || row.binPrefix !== `dsh-desk/bin/qualification/${row.id}/win-x64`
     || !Array.isArray(row.versions) || row.versions.length !== 2 || row.versions.some(version => typeof version !== 'string')) {
     throw new Error('installed update: manifest identity, location, versions, or test destination changed')
+  }
+  const destination = qualificationDestination(row.id)
+  if (row.releaseTag !== destination.releaseTag || row.feedBaseUrl !== destination.feedBaseUrl) {
+    throw new Error('installed update: manifest GitHub qualification destination changed')
   }
   validateVersions(row.versions as [string, string])
   if (typeof row.source !== 'object' || row.source === null || Array.isArray(row.source)) {

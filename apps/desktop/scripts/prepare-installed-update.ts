@@ -50,7 +50,8 @@ async function main(): Promise<void> {
     dirtyFiles: git(['status', '--porcelain=v1', '--untracked-files=normal']).split('\n').filter(Boolean),
   })
   console.log(JSON.stringify({ manifest: resolve(run.root, 'run.json'), appId: run.appId,
-    versions: run.versions, feedUrl: `${run.origin}/${run.feedKey}`, artifactsPrepared: false, published: false }, null, 2))
+    versions: run.versions, releaseTag: run.releaseTag, feedUrl: new URL('nightly.yml', run.feedBaseUrl).href,
+    artifactsPrepared: false, published: false }, null, 2))
 }
 
 main().catch(() => {

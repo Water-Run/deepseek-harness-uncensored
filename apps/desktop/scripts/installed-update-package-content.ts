@@ -40,8 +40,8 @@ export async function verifyInstalledUpdatePackageContent(manifest: string, vers
   const policy = resolveDesktopPolicyConfig(metadata.dshMandatoryUpdatePolicy)
   if (metadata.name !== `dsh-update-test-${run.id}` || metadata.version !== version
     || metadata.dshDesktopAppId !== run.appId || metadata.main !== 'qualification-bootstrap.mjs'
-    || metadata.type !== 'module' || policy?.authentication !== 'feishu-test') {
-    throw new Error('installed update: packaged application identity, version, entry, or policy differs')
+    || metadata.type !== 'module' || metadata.dshDesktopUpdateChannel !== 'nightly' || policy?.authentication !== 'feishu-test') {
+    throw new Error('installed update: packaged application identity, version, entry, channel, or policy differs')
   }
   const inventory = JSON.parse(await readFile(join(run.root, 'application/result.json'), 'utf8')) as {
     files: { path: string; sha256: string }[]
@@ -81,8 +81,7 @@ export async function verifyInstalledUpdatePackageContent(manifest: string, vers
     dependencies.push({ name, version: actual.version })
   }
   const update = object(load(await readFile(join(payload, 'resources/app-update.yml'), 'utf8')))
-  const url = `${run.origin}/${run.feedKey.slice(0, -'nightly.yml'.length)}`
-  if (update.provider !== 'generic' || update.url !== url || update.channel !== 'nightly'
+  if (update.provider !== 'generic' || update.url !== run.feedBaseUrl || update.channel !== 'nightly'
     || update.updaterCacheDirName !== `dsh-update-test-${run.id}-updater`
     || !Array.isArray(update.publisherName) || update.publisherName.length !== 1 || update.publisherName[0] !== publisher) {
     throw new Error('installed update: packaged feed, cache identity, channel, or publisher differs')
@@ -115,7 +114,7 @@ export async function verifyInstalledUpdatePackageContent(manifest: string, vers
     }
   }
   return { version, appId: run.appId, applicationFiles: inventory.files.length, dependencies, dependenciesFrozen: false,
-    runtimeFiles: runtime.files.length, feedUrl: `${run.origin}/${run.feedKey}`, installed: false,
+    runtimeFiles: runtime.files.length, feedUrl: new URL('nightly.yml', run.feedBaseUrl).href, installed: false,
     resignedExecutables: runtime.files.filter(file => file.path.endsWith('.exe')).map((file) => {
       if (archive.getFile(join('dsh', file.path), false).unpacked !== true) {
         throw new Error('installed update: executable runtime file must be outside ASAR')

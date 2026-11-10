@@ -65,7 +65,7 @@ async function fixture(body: (context: {
     await prepareInstalledUpdateApplication(manifest, source)
     await cp(join(run.root, 'application/files'), source, { recursive: true })
     await writeFile(join(source, 'package.json'), JSON.stringify({ name: `dsh-update-test-${run.id}`, version,
-      dshDesktopAppId: run.appId, main: 'qualification-bootstrap.mjs', type: 'module',
+      dshDesktopAppId: run.appId, main: 'qualification-bootstrap.mjs', type: 'module', dshDesktopUpdateChannel: 'nightly',
       dshMandatoryUpdatePolicy: { origin: 'https://policy.example.com', allowedPageOrigins: ['https://policy.example.com'],
         authentication: 'feishu-test', allowedAuthOrigins: ['https://login.example.com'] } }))
     for (const name of ['electron-updater', 'semver']) {
@@ -83,7 +83,7 @@ async function fixture(body: (context: {
     const payload = join(root, 'payload')
     await mkdir(join(payload, 'resources'), { recursive: true })
     await writeFile(join(payload, 'resources/app-update.yml'), JSON.stringify({ provider: 'generic', channel: 'nightly',
-      url: `${run.origin}/${run.feedKey.slice(0, -'nightly.yml'.length)}`, publisherName: [publisher],
+      url: run.feedBaseUrl, publisherName: [publisher],
       updaterCacheDirName: `dsh-update-test-${run.id}-updater` }))
     const seal = async () => {
       // ASAR 3 returns the output stream after end(), before its writes finish.
@@ -112,7 +112,7 @@ describe('installed update archive contents', () => {
     }, version)
   })
 
-  it.each(['name', 'version', 'dshDesktopAppId', 'main', 'type', 'dshMandatoryUpdatePolicy'])(
+  it.each(['name', 'version', 'dshDesktopAppId', 'main', 'type', 'dshDesktopUpdateChannel', 'dshMandatoryUpdatePolicy'])(
     'rejects mismatched packaged %s', async (field) => {
       await fixture(async ({ manifest, source, payload, version, seal }) => {
         const path = join(source, 'package.json')
@@ -227,7 +227,7 @@ describe('installed update verification records', () => {
         const root = join(manifest, '..')
         const output = join(root, version, 'installer')
         await mkdir(output)
-        const name = `deepseek-harness-${version}-win-x64.exe`
+        const name = `dshu-qualification-${version}-win-x64.exe`
         const bytes = Buffer.from('inert installer fixture, never executed')
         const installer = join(output, name)
         await writeFile(installer, bytes)

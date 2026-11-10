@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## 安装升级验收迁移到 DSHU GitHub 标签（2026-11-11）
+
+旧安装升级验收指向已停用的云地址，且验收清单与包内频道、安装器名称不一致。新版批次清单为每轮分配独立的 `dshu-qualification-<id>` GitHub 标签。两个版本共用该批次的测试身份和固定下载目录，封存 `nightly` 频道，安装器使用独立的验收名称。`files` 保留生成的 UTF-8 清单字节，核对安装器及块映射，并拒绝附加的 Web 安装包配置。旧版清单保留供存档，历史日志可通过 `inspect` 读取。[验收入口](../apps/desktop/tests/installed-update/README.zh.md)
+
+157 项定向测试通过。以实际 `electron-updater` 6.8.9 在离线夹具中确认请求路径为同一标签下的 `nightly.yml`，相对资产地址解析至预期安装器。证据为 `.dsh-build/installed-update-github-target-20261111.json`。同版本对照与升级使用独立预发布标签。真实 GitHub 下载、硬件签名及安装重启仍待验收。
+
 ## Desktop 开发与验收的 Harness 主目录隔离（2026-11-11）
 
 DSHU 主进程按 `DSH_UNCENSORED_HOME` 重算 Host 的 `DSH_HOME`。原开发与安装升级验收入口只写 `DSH_HOME`，可能被继承的已安装目录覆盖。开发入口改用 `DSH_DESKTOP_DEV_HOME` 显式选址，默认使用工作区的开发目录。Windows/Linux 启动、macOS 冷启动脚本和安装升级验收入口都将两个变量设为同一私有路径。工作区更新夹具也将启动路径与预置 profile 对齐。[迁移指南](../docs/upgrade-guide/v0.2.2-rc.1/desktop-development-home/guide.zh.md)

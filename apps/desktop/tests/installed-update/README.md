@@ -29,7 +29,7 @@ The examples use base version `0.1.6-alpha.1`. Before creating new material, sub
 node --import tsx apps/desktop/scripts/prepare-installed-update.ts init 0.1.6-alpha.1.20260916.1 0.1.6-alpha.1.20260916.2
 ```
 
-Retain the returned `run.json` and reuse its random identity and `qualification/<id>` paths for both packages. The source commit and dirty-file list identify the starting checkout, not the contents of a later package. Record final build source identifiers and artifact hashes separately; do not regenerate the manifest midway through an update.
+Retain the returned schema 2 `run.json`. Both packages share its application identity and GitHub release tag `dshu-qualification-<id>`. The source commit and dirty-file list identify the starting checkout. Record the final build source and artifact hashes separately. For a legacy manifest, allocate a new run for packaging and use `inspect` with the original versions and journal directory to read historical evidence.
 
 Prepare fresh source resources with the repository's preparation-only workflow, then generate the shared bootstrap, two private version-bound runtime copies, and frozen application files. Replace `<run.json>` with the allocator's manifest path. Preparation-only builds and checks the source runtime but stops before signing; the other commands never invoke a signer or installer. These commands refuse to overwrite existing per-run outputs; retain partial material after an error instead of retrying over it.
 
@@ -44,7 +44,7 @@ Package both files from the generated `bootstrap` directory beside `lib/`, and s
 
 The `application` command copies built main/preload modules, renderer files, and the prepared bootstrap into `application/files`, with SHA-256 values in `application/result.json`. It does not copy the app's root `.env.windows` or freeze `node_modules` and build tools. The [qualification builder configuration](../../scripts/installed-update-builder.ts) verifies this inventory and the selected private runtime, selects the shared frozen files and isolated package metadata, and preserves ordinary installer and signing hooks. Its tests substitute the signer and pass the pinned builder's configuration validator; they do not produce an installer. A separately authorized supervised build must still record dependency/tool inputs and verify final package contents and signatures.
 
-The [packaging entry](../../scripts/package-installed-update.ts) defaults to checks. A retained signing interlock rejects before credentials are loaded; it never clears that interlock. With no interlock, checks load `.env.windows`, validate prepared inputs, and launch no child. The private builder requires the selected test origin and historical bucket field to match the qualification manifest; these fields do not authorize or perform a cloud upload. Run this from the repository root with one exact version:
+The [packaging entry](../../scripts/package-installed-update.ts) defaults to checks. A retained signing interlock stops the command before it reads credentials. With the interlock clear, checks read the signed test settings in `.env.windows` and validate the prepared inputs. The private builder takes its ordinary update feed from the qualification manifest and seals the `nightly` channel into both packages. Run this from the repository root with one exact version:
 
 ```powershell
 node --import tsx apps/desktop/scripts/package-installed-update.ts "<run.json>" 0.1.6-alpha.1.20260916.1 --check
@@ -66,7 +66,7 @@ The verifier validates the outer NSIS paths and rejects residual WinShell DLLs. 
 
 The old test uploader is retired; see [publication status](publication/README.md). Local transport tests cover missing feeds and same-version responses without publishing a release. Real download and signed installed-upgrade qualification remain separate delivery work. Preserve existing receipts and artifacts; do not alter a public feed to recreate a test case.
 
-The local `files` command accepts `<run.json>` and one exact run version. It reads that version's `installer/nightly.yml`, verifies the expected installer name, size, SHA-512, and nonempty external blockmap, and prints separate binary destinations and a fixed-feed body. Missing installers fail validation. It writes nothing and reads no credentials. Its `file-integrity-only` result cannot authorize upload or replace verification of signed package contents and application identity; those remain required before publication.
+The local `files` command accepts `<run.json>` and one exact run version. It checks the generated `installer/nightly.yml` against the installer name, size, SHA-512, and nonempty external blockmap. It prints the exact GitHub tag, asset filenames and URLs, and the unchanged feed contents. The relative installer URL resolves beside `nightly.yml`. The `file-integrity-only` result is local evidence. Signed package contents, application identity, and explicit publication authorization are separate prerequisites.
 
 <a id="sequence"></a>
 
@@ -75,10 +75,10 @@ The local `files` command accepts `<run.json>` and one exact run version. It rea
 Proceed manually only after preparation passes. Use disposable test conversations and settings, never a production workspace or unsaved work.
 
 1. Install version 1. Record installer path, hash, signature result, and time. Start the installed shortcut and verify its executable path and displayed version; do not launch an unpacked build or development server.
-2. Confirm version 1 `started` and `workspace-ready` in a new journal. Create an identifiable test conversation and change a harmless setting; record expected values privately. Complete the two feed checks below and keep version 1 running.
+2. Confirm version 1 `started` and `workspace-ready` in a new journal. Create an identifiable test conversation and change a harmless setting. Record expected values privately and keep version 1 running for the upgrade.
    - **Missing feed:** retain a timestamped GET of the configured fixed URL returning 404. Observe startup automatic checking without a disruptive dialog, then manually check: expect checking followed by failure, not “no updates,” and no download or installation. Save screenshots and journals before publishing anything.
-   - **Same-version feed:** after separate authorization, publish version 1 to that same URL and retain the complete 200 response, version, and SHA-512. Check manually in the still-running version 1: expect no available update and its current version, no download or installation, and no stale error indicator from the 404 case. Automatic no-update checking must remain quiet. Retain evidence before authorizing version 2.
-3. Authorize version 2 metadata publication at the existing fixed feed URL. Re-read that URL and verify version 2 and its binary hash. Preserve publication evidence after version 1 startup evidence.
+   - **Same-version control:** use a separate qualification run and tag. Observe the missing feed there, then, after separate authorization, publish that run's version 1 assets as a prerelease. In its still-running version 1, check that the error clears and the current version is shown without download or installation. Retain its 200 response, version, and SHA-512 separately.
+3. After explicit authorization, publish version 2 of the upgrade run as a prerelease under its fixed tag. Attach its original `nightly.yml`, installer, and blockmap together. Re-read the feed URL and verify version 2 and the installer hash. Retain publication evidence dated after version 1 startup.
 4. In version 1, check manually and confirm availability without automatic download. Prepare the reviewed [application-scoped fault and recovery](network/README.md). Never disable the adapter, VPN, shared proxy, remote-control connection, or domain-wide access.
 5. Click download and interrupt only the test application's transfer after progress begins. Capture one failure and persistent retry feedback; confirm no installation or silent retry. A connection failure before progress begins is a different observation and does not satisfy a transfer-interruption test.
 6. Remove the exact run-owned fault and verify recovery. Click retry yourself. Record progress, verification, and readiness. Expect a separate installation confirmation; download completion alone must not approve restart.
@@ -113,7 +113,7 @@ Use this report template; leave unobserved results pending:
 |---|---|---|
 | Both installers and signatures verified | | pending |
 | Feed 404: automatic quiet failure and manual visible failure, no download | | pending |
-| Version 1 feed: no available update in running version 1, prior error cleared | | pending |
+| Separate same-version run: no available update in running version 1, prior error cleared | | pending |
 | Version 1 running before version 2 publication | | pending |
 | Test-only fault and observed download failure | | pending |
 | Fault removed and explicit retry reached readiness | | pending |
