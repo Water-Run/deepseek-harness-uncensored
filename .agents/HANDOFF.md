@@ -2,11 +2,15 @@
 
 ## Electron 与 NSIS 声明核对（2026-11-11）
 
-按锁定摘要核对 Electron `44.7.0` 的 Windows x64 与 Linux x64 分发归档。Windows `.6` 实装、Linux `.5` 的 deb 与 tar.gz 均保留两份 Electron 和 Chromium 声明原文。Windows 与 Linux 打包后的验证已加入原文字节比对，定向测试覆盖缺失、改写和空白声明。[Electron 发布归档](https://github.com/electron/electron/releases/tag/v44.7.0)
+按锁定摘要核对 Electron `44.7.0` 的 Windows x64 与 Linux x64 分发归档。Windows `.6` 实装、Linux `.5` 的 deb 与 tar.gz 均保留两份 Electron 和 Chromium 声明原文。Windows 与 Linux 打包后的验证已加入原文字节比对，定向测试覆盖缺失、改写和空文件。[Electron 发布归档](https://github.com/electron/electron/releases/tag/v44.7.0)
 
 从实际 `.6` NSIS 安装器核对 7-Zip 解包器及两份声明。五个随安装器分发的插件逐字匹配各自的 NSIS 和 NSIS Resources 归档。新打包路径从实际选用的编译工具集保存 `nsis-installer-COPYING.txt`。中英文生产模板的测试安装器均包含完整原文，英文隔离测试包经静默安装后再次核对原文并卸载。[NSIS 工具集](https://github.com/electron-userland/electron-builder-binaries/releases/tag/nsis-3.0.4.1) · [NSIS Resources](https://github.com/electron-userland/electron-builder-binaries/releases/tag/nsis-resources-3.4.1)
 
-Windows 十项构建检查通过，44 项打包定向测试通过，3 项平台用例跳过。原文摘要、插件归属和安装器测试回执在 `.dsh-build/installer-license-20261111/`。新 NSIS 声明随下次 Windows 检查包分发。个别插件的源码许可与整合发行义务继续见[依赖审计](requirements/2026-11-03-dependency-notices.md)。
+Windows 与 Linux 各通过十项构建检查。Windows 44 项打包定向测试通过，3 项平台用例跳过，Linux 47 项通过。新校验器直接通过 Windows `.6` 实装和 Linux `.5` 便携包里的两份原文核对。中英文各 9 个静默安装及卸载场景通过，每次核对安装目录里的 NSIS 原文。Linux 独立检出已清理，日志为 `.dsh-build/desktop-notices-linux-20261111.log`。
+
+原文摘要、插件归属和安装器测试回执在 `.dsh-build/installer-license-20261111/`。新 NSIS 声明随下次 Windows 检查包分发。个别插件的源码许可与整合发行义务继续见[依赖审计](requirements/2026-11-03-dependency-notices.md)。
+
+自动审批以 `blocked by policy` 拒绝递归删除本轮三个 Windows 编译测试目录。逻辑总量为 27,153,730 字节，路径已记录在 `.dsh-build/installer-license-20261111/cleanup.json`。
 
 ## Linux Wayland 目录门户与渲染沙箱（2026-11-11）
 

@@ -4,7 +4,7 @@
 
 ## Electron 与 Windows 安装器声明（2026-11-11）
 
-校验 [Electron 44.7.0](https://github.com/electron/electron/releases/tag/v44.7.0) 的 Windows x64 和 Linux x64 分发归档。Windows `.6` 实装、Linux `.5` 的 deb 和 tar.gz 均保留与对应分发包逐字一致的 `LICENSE.electron.txt` 和 `LICENSES.chromium.html`。Windows 和 Linux 打包后的检查现会拒绝缺失、空白或内容变动的声明。
+校验 [Electron 44.7.0](https://github.com/electron/electron/releases/tag/v44.7.0) 的 Windows x64 和 Linux x64 分发归档。Windows `.6` 实装、Linux `.5` 的 deb 和 tar.gz 均保留与对应分发包逐字一致的 `LICENSE.electron.txt` 和 `LICENSES.chromium.html`。Windows 和 Linux 打包后的检查现会拒绝缺失、空文件或内容变动的声明。
 
 Windows `.6` 安装器的解包器及两份 7-Zip 原文均与构建工具集一致。`System.dll` 和 `nsDialogs.dll` 与 [NSIS 3.0.4.1 归档](https://github.com/electron-userland/electron-builder-binaries/releases/tag/nsis-3.0.4.1)的 x86 Unicode 成员逐字一致，`UAC.dll`、`StdUtils.dll` 和 `WinShell.dll` 对应 [NSIS Resources 3.4.1](https://github.com/electron-userland/electron-builder-binaries/releases/tag/nsis-resources-3.4.1)。插件二进制归属已核对，个别插件的源码与许可对应关系仍待核查。
 
