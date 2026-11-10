@@ -123,8 +123,9 @@ it('copies every pinned supplement unchanged and leaves other versions for revie
   add(root, 'next/node_modules/tr46', 'tr46', '0.0.4')
   const packages = await prepareRuntimeNotices(root)
   expect(packages.filter(pkg => pkg.reviewRequired).map(pkg => `${pkg.name}@${pkg.version}`).sort()).toEqual([
-    '@cfworker/json-schema@99.0.0', 'tr46@0.0.4',
+    '@cfworker/json-schema@99.0.0', 'brotli@1.3.3', 'tr46@0.0.4',
   ])
+  expect(packages.find(pkg => pkg.name === 'brotli')?.notices).toHaveLength(3)
   for (const source of sources) {
     expect(createHash('sha256').update(readFileSync(join(root, 'licenses', source.file))).digest('hex')).toBe(source.sha256)
     for (const identity of source.packages) {

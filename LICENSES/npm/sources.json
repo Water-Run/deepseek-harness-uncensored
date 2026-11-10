@@ -1,5 +1,23 @@
 [
   {
+    "packages": ["brotli@1.3.3"],
+    "file": "brotli-1.3.3-Google-NOTICE.txt",
+    "source": "https://raw.githubusercontent.com/foliojs/brotli.js/e36051345f6d27a56e5f39ea70d2f789b8574046/dec/decode.js",
+    "sha256": "ee178003a69424cf7302b4df6a746b6bdec7aea3b3a07b1b8dcfe0d78f108051"
+  },
+  {
+    "packages": ["brotli@1.3.3"],
+    "file": "brotli-1.3.3-Apache-2.0.txt",
+    "source": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "packages": ["brotli@1.3.3"],
+    "file": "brotli-1.3.3-upstream-MIT.txt",
+    "source": "https://raw.githubusercontent.com/google/brotli/5ce9bf11b3fe0924d87b2a2d47eb7a53a76a4421/LICENSE",
+    "sha256": "3d180008e36922a4e8daec11c34c7af264fed5962d07924aea928c38e8663c94"
+  },
+  {
     "packages": ["@aws-sdk/credential-provider-http@3.972.82", "@aws-sdk/credential-provider-login@3.972.87", "@aws-sdk/nested-clients@3.997.54"],
     "file": "aws-sdk-js-v3-Apache-2.0.txt",
     "source": "https://raw.githubusercontent.com/aws/aws-sdk-js-v3/258c14447eefd8e028db1a50ab49aac8312c0af9/LICENSE",

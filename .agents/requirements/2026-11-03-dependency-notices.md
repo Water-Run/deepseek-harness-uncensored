@@ -2,11 +2,19 @@
 
 状态：进行中，不代表整合发行的许可核对已完成。用户的 GPL 许可偏好、上游 Credit 和各组件原有许可保持不变。
 
-## 最新检查包（2026-11-06）
+## 当前实装与源码补充（2026-11-10）
+
+实装源码 `3dda4cf411`，检查版 `0.1.0-test.20261110.2`，包含 859 个 npm 包、15 份补充声明和 7 项待核查。实包记录为 `.dsh-build/deliverables/DSHU-20261110-3dda4c-third-party-runtime.json`。
+
+源码补入 `brotli 1.3.3` 的 Google 解码器版权头、Apache-2.0 原文和固定 Google Brotli 子模块的 MIT 原文。七个解码器文件已逐字比对 npm 归档、发布提交及当前实装内容，归档通过 npm SHA-512 校验。版权头只去除注释起始符并截取至许可段结束，其他原文仅统一末尾换行。包装代码与编译编码器的声明范围仍未核清，清点器继续标记此包待核查。[发布源码](https://github.com/foliojs/brotli.js/tree/e36051345f6d27a56e5f39ea70d2f789b8574046)、[所固定的 Google Brotli 许可](https://raw.githubusercontent.com/google/brotli/5ce9bf11b3fe0924d87b2a2d47eb7a53a76a4421/LICENSE)、[Apache-2.0 原文](https://www.apache.org/licenses/LICENSE-2.0.txt)。
+
+实装 ASAR 的独立清单复算包含 859 个包、18 份补充声明和相同的 7 项待核查。除 brotli 增加三份文本外，逐包记录完全相同；实装 ASAR 摘要未变。回执 `.dsh-build/brotli-notices-20261110-result.json` 与 `.dsh-build/brotli-notice-projection-20261110-result.json` 保存固定来源、文件摘要和复算结果。11 项定向回归验证精确版本、缺失与篡改文件，以及部分补充后的待核查状态。
+
+## 历史检查包（2026-11-06）
 
 `bc9fdc59d5` 的 `0.1.0-test.20261106.2` 完整安装器已通过实际载荷与运行验收，含 859 个 npm 包、15 份补充声明、7 项自动待核查；尚未安装。清单 `.dsh-build/deliverables/DSHU-20261106-bc9fdc-third-party-runtime.json` 与安装器摘要均由实际 ASAR 提取，记录在同目录交付清单中。剩余七项及其他平台范围保留。
 
-## 当前安装包（2026-11-06）
+## 历史安装包（2026-11-06）
 
 `7db7e35015` 检查包已从实际安装器解包验收，并安装至系统。清单来自实装 ASAR，共 874 个 npm 包、14 份补充声明、10 个自动标记的待核查项。精确记录位于 `.dsh-build/deliverables/DSHU-20261106-7db7e3-third-party-runtime.json`，摘要保存在同目录安装清单。该安装包未签名、未发布 Release。
 
@@ -43,7 +51,7 @@
 
 | 包与版本 | 剩余核查 |
 | --- | --- |
-| brotli 1.3.3 | npm 包及固定源提交没有根许可原文，继续核对派生实现与内嵌代码 |
+| brotli 1.3.3 | 已补 Google 解码器版权头与 Apache-2.0、固定子模块 MIT 原文，包装代码及编译编码器声明范围仍待核对 |
 | clean-git-ref 2.0.1 | REA 明确记录的上游原文/署名缺项，保留待核查 |
 | dfa 1.2.0 | npm 包及固定源提交没有独立许可原文 |
 | fontkit 2.0.4 | 官方仓库已新增 LICENSE；仍需核对其与发布代码及单独版权片段的对应关系 |
