@@ -17,7 +17,7 @@
 - [x] bcbae27d56 桌面检查包已验证实际安装器、完整文件清单、浏览器模块入口、四模式及终端代理；尚未安装到系统。
 - [x] 11 月 4 日从实际安装器启动独立 profile，Playwright 与 Chrome DevTools 的真实导航及会话代理捕获通过。
 - [x] Stagehand 实包导航发现 SDK 扩展路径位于 ASAR 内；已补物理扩展目录、Worker 显式路径及打包检查。11 月 4 日 f3f7315880 新安装器的三种浏览器真实导航、会话代理及响应正文检查通过。
-- [ ] 正式安装后的实际浏览器工作流验收，保持与源码环境的三项真实浏览器检查分开记录。
+- [x] 系统实装 `5a2eb34359` 的 Playwright MCP、Chrome DevTools MCP、Stagehand 三种无界面浏览器均完成真实导航与正文捕获。侧栏另验证实装 Host 的代理端点、模式隔离与会话归属。回执 `.dsh-build/installed-browser-5a2eb3-20261110-all-with-sidebar-result.json`。
 
 普通 MCP 验证日志为 `mcp-routing-regression-20261104.log`，共 17 文件、200 项。录制回放的 Windows 提示事件差异见 [HANDOFF](../HANDOFF.md)。
 

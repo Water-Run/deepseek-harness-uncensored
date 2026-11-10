@@ -8,7 +8,7 @@ export type MemorySettingsLocaleKey =
   | 'typeAll' | 'typePreference' | 'typeProjectFact' | 'typeOperationResult' | 'typeWritingSetting'
   | 'statusEnabled' | 'statusDisabled'
   | 'sourcePresent' | 'sourceMissing' | 'sourceUnknown'
-  | 'autoExtract' | 'autoExtractHint' | 'autoSaved' | 'autoFailed' | 'retrySaved' | 'retryFailed' | 'refresh'
+  | 'autoExtract' | 'autoExtractHint' | 'autoSaved' | 'autoFailed' | 'retrySaved' | 'retryFailed' | 'refresh' | 'draftPending'
   | 'extractionHistory' | 'extractionSession' | 'extracting' | 'extracted' | 'extractionCancelled' | 'extractionFailed'
   | 'extractionBudget' | 'extractionTimeout'
   | 'modeStandard' | 'modeSecurity' | 'modeReverse' | 'modeWriting' | 'globalShared'
@@ -24,6 +24,7 @@ export const en: Record<MemorySettingsLocaleKey, string> = {
   autoExtractHint: 'After a completed turn, use the current model to summarize durable facts in this workspace and mode. Off by default; model usage is billed and subject to limits.',
   autoSaved: 'Memory extraction preference saved', autoFailed: 'Could not save the preference; refresh and retry',
   retrySaved: 'Memory extraction completed', retryFailed: 'Extraction failed; keep the source conversation open and idle, then retry',
+  draftPending: 'Save or discard the current memory draft before adding the case note',
   refresh: 'Refresh', extractionHistory: 'Extraction in open conversations', extractionSession: '{label} · turn {turn}',
   modeStandard: 'Default', modeSecurity: 'Security', modeReverse: 'Reverse', modeWriting: 'Writing', globalShared: 'Shared globally',
   retrievalLimits: 'Retrieval limits',
@@ -95,6 +96,7 @@ export const zh: Record<MemorySettingsLocaleKey, string> = {
   autoExtractHint: '回合完成后，用当前模型整理长期事实，保存在当前工作区与模式。默认关闭；提炼会计费，并受额度限制。',
   autoSaved: '已保存记忆提炼设置', autoFailed: '设置未保存，请刷新后重试',
   retrySaved: '记忆提炼已完成', retryFailed: '提炼失败，请保持来源会话打开且空闲后重试',
+  draftPending: '请先保存或取消当前记忆草稿，再添加案件备注',
   refresh: '刷新', extractionHistory: '打开会话的提炼状态', extractionSession: '{label} · 第 {turn} 轮',
   modeStandard: '缺省', modeSecurity: '网安', modeReverse: '逆向', modeWriting: '写作', globalShared: '全局共享',
   retrievalLimits: '检索上限',

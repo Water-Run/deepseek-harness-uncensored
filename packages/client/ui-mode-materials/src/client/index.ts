@@ -97,6 +97,13 @@ export function apply(ctx: ClientContext): void {
       probe: signal => unwrap(ctx.remote.modeDossiers.probeRea(signal)),
     },
     openMemory: (mode, workspaceId) => { ctx.emit('memory/open-manager', mode, workspaceId === undefined ? undefined : `workspace:${workspaceId}`) },
+    draftCaseNote: (workspaceId, slug, note) => {
+      ctx.emit('memory/open-manager', 'security', `workspace:${workspaceId}`, {
+        title: `${slug} · ${note.title}`,
+        content: note.body,
+        topic: `case:${slug}:note:${note.id}`,
+      })
+    },
     hooks: { materials: store },
     load,
     readCase: request => unwrap(ctx.remote.modeDossiers.readCase({ ...request }, signal())),

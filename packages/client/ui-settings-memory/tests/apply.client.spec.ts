@@ -64,6 +64,23 @@ async function bench() {
 }
 
 describe('ui-settings-memory apply', () => {
+  it('reviews a case note before creating a workspace-and-mode memory and keeps pending edits', async () => {
+    const { ctx, createMemory } = await bench()
+    try {
+      const controller = createMemoryController(ctx)
+      const seed = { title: 'acme · Timeline', content: 'Confirmed timeline', topic: 'case:acme:note:N-0001' }
+      await controller.showManager('security', 'workspace:a', seed)
+      expect(createMemory).not.toHaveBeenCalled()
+      controller.changeDraft({ content: 'Reviewed timeline' })
+      controller.closeManager()
+      await controller.showManager('security', 'workspace:b', { ...seed, content: 'Another note' })
+      expect(controller.hooks.memories.getSnapshot().toast?.key).toBe('draftPending')
+      await controller.saveDraft()
+      expect(createMemory).toHaveBeenCalledExactlyOnceWith({ ...seed, content: 'Reviewed timeline', type: 'project-fact',
+        scope: { global: false, workspace: 'workspace:a', mode: 'security' } })
+    } finally { await ctx.fiber.dispose() }
+  })
+
   it('preserves the mode entry point workspace when creating a new record', async () => {
     const { ctx } = await bench()
     try {

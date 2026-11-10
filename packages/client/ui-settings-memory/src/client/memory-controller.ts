@@ -11,7 +11,7 @@ import type { MemoryDescribeValue, MemoryScopeFilter, MemorySourceAvailability }
 import type { MemoryId, MemoryRecord, MemoryScope, MemoryStatus, MemoryType } from '@deepseek-ai/dsh-memory/types'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 
-type ExtractionToast = { id: number; key: 'autoSaved' | 'autoFailed' | 'retrySaved' | 'retryFailed'; success: boolean }
+type MemoryToastMessage = { id: number; key: 'autoSaved' | 'autoFailed' | 'retrySaved' | 'retryFailed' | 'draftPending'; success: boolean }
 
 /** Error keys the row renders; every one maps to a localized line. */
 export type MemoryErrorKey =
@@ -45,6 +45,9 @@ export interface MemoryDraft {
   readonly mode: string
 }
 
+/** Editable text offered by another surface before the user chooses to save it. */
+export type MemoryDraftSeed = Pick<MemoryDraft, 'title' | 'content' | 'topic'>
+
 /** Everything the row and its manager render. */
 export interface MemoryRowState {
   /** Whether the root-owned memory manager is open. */
@@ -72,7 +75,7 @@ export interface MemoryRowState {
   /** Whether a write is in flight. */
   saving: boolean
   /** Operation feedback hosted outside the settings dialog. */
-  toast: ExtractionToast | undefined
+  toast: MemoryToastMessage | undefined
   /** Record identity awaiting delete confirmation. */
   confirming: MemoryId | undefined
 }
@@ -80,7 +83,7 @@ export interface MemoryRowState {
 /** The inject face the renderer binds. */
 export interface MemoryRowFace {
   /** Open the manager, optionally restricted to one mode. */
-  readonly showManager: (mode?: string, workspace?: string) => Promise<void>
+  readonly showManager: (mode?: string, workspace?: string, seed?: MemoryDraftSeed) => Promise<void>
   /** Close the manager without discarding its draft. */
   readonly closeManager: () => void
   /** Persist the automatic extraction preference. */
@@ -278,8 +281,22 @@ export function createMemoryController(ctx: Context): MemoryRowFace {
 
   return {
     hooks: { memories: store },
-    async showManager(mode, workspace) {
-      store.update((state) => { state.managerOpen = true; state.scope = mode ?? 'all'; state.preferredWorkspace = workspace })
+    async showManager(mode, workspace, seed) {
+      store.update((state) => {
+        state.managerOpen = true
+        if (seed !== undefined && (state.draft !== undefined || state.saving)) {
+          state.toast = { id: ++toastId, key: 'draftPending', success: false }
+          return
+        }
+        state.scope = mode ?? 'all'
+        state.preferredWorkspace = workspace
+        if (seed !== undefined) {
+          state.error = undefined
+          state.text = ''
+          state.type = 'all'
+          state.draft = { ...seed, type: 'project-fact', shareGlobal: false, workspace: workspace ?? '', mode: mode ?? '' }
+        }
+      })
       await reload()
     },
     closeManager() { store.update((state) => { state.managerOpen = false }) },

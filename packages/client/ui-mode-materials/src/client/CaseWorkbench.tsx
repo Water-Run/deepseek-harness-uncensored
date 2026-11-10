@@ -14,6 +14,7 @@ import type {
   CaseCollectionView,
   CaseDocument,
   CaseMutation,
+  CaseNote,
   CaseSummary,
   DossierCaseView,
   DossierKind,
@@ -158,12 +159,13 @@ function failureOf(error: unknown): MaterialsFailure {
 }
 
 /** Rows of one collection, with their edit and delete actions. */
-function RecordList({ collection, document, t, onEdit, onDelete }: {
+function RecordList({ collection, document, t, onEdit, onDelete, onRemember }: {
   readonly collection: CaseCollection
   readonly document: CaseDocument
   readonly t: Translate
   readonly onEdit: (id: string) => void
   readonly onDelete: (id: string) => void
+  readonly onRemember?: ((note: CaseNote) => void) | undefined
 }): ReactNode {
   const rows = collection === 'targets'
     ? document.targets
@@ -194,6 +196,9 @@ function RecordList({ collection, document, t, onEdit, onDelete }: {
           <span className={css.rowMeta}>{id}{secondary === '' ? '' : ` · ${secondary}`}</span>
         </span>
         <span className={css.rowActions}>
+          {onRemember !== undefined && 'body' in row && row.body.trim() !== '' &&
+            <Button variant="ghost" size="sm" aria-label={`${t('security.rememberNote')} ${id}`}
+              onClick={() => { onRemember(row) }}>{t('security.rememberNote')}</Button>}
           <Button variant="ghost" size="sm" aria-label={`${t('edit')} ${id}`} onClick={() => { onEdit(id) }}>
             {t('edit')}
           </Button>
@@ -432,6 +437,7 @@ export function CaseWorkbench(props: CaseWorkbenchProps): ReactNode {
             </div>
             <RecordList collection={collectionName} document={open.view.document} t={t}
               onEdit={(id) => { setEditor({ collection: collectionName, id, fields: fieldsOf(open.view.document, collectionName, id) }) }}
+              onRemember={kind === 'security' ? (note) => { operations.draftCaseNote(open.workspaceId, open.slug, note) } : undefined}
               onDelete={(id) => { setPendingDelete({ collection: collectionName, id }) }} />
           </section>
         })}

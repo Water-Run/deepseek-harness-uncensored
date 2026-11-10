@@ -39,7 +39,7 @@ export type ModeMaterialsKey =
   | 'problem.corrupt' | 'problem.unsupported-version' | 'problem.conflict'
   | 'security.title' | 'security.intro' | 'security.empty' | 'security.new' | 'security.newTitle'
   | 'security.slug' | 'security.slugHint' | 'security.objective' | 'security.create' | 'security.open'
-  | 'security.records' | 'security.targets' | 'security.evidence' | 'security.findings' | 'security.notes'
+  | 'security.records' | 'security.targets' | 'security.evidence' | 'security.findings' | 'security.notes' | 'security.rememberNote'
   | 'security.report' | 'security.reportTitle' | 'security.broken' | 'security.protection'
   | 'security.extraKeys' | 'security.updatedAt' | 'security.counts' | 'security.noRecords'
   | 'reverse.title' | 'reverse.intro' | 'reverse.tools' | 'reverse.toolsHint'
@@ -138,6 +138,7 @@ export const en: Record<ModeMaterialsKey, string> = {
   'security.create': 'Create case',
   'security.open': 'Open case',
   'security.records': 'Case records',
+  'security.rememberNote': 'Save to memory',
   'security.targets': 'Targets',
   'security.evidence': 'Evidence',
   'security.findings': 'Findings',
@@ -296,6 +297,7 @@ export const zh: Record<ModeMaterialsKey, string> = {
   'security.create': '创建案件',
   'security.open': '打开案件',
   'security.records': '案件记录',
+  'security.rememberNote': '存入记忆',
   'security.targets': '目标',
   'security.evidence': '证据',
   'security.findings': '发现',

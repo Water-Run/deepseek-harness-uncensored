@@ -13,6 +13,8 @@ Use this package to manage the files the specialized modes keep, from Settings â
 
 Each panel can open the shared memory manager with its mode filter selected. New records inherit that mode; the workspace and sharing scope remain visible in the editor.
 
+For a Security case note, **Save to memory** opens the shared editor with the note text and its case label. Review the text before saving. The draft starts in the case workspace and Security mode, with global sharing off. The saved memory is independent of the case file.
+
 ## Table of Contents
 
 - [Use this package](#use-this-package)
@@ -58,12 +60,12 @@ Deleting a case record removes that record from `case.json` and says so; samples
 <a id="model-experience"></a>
 ## Model Experience
 
-This package adds nothing to a model request. It edits the files that the Host service then uses, and the model-visible effect of a writing selection is owned and documented by `@deepseek-ai/dsh-api-mode-dossiers`.
+This package edits the files that the Host service uses. `@deepseek-ai/dsh-api-mode-dossiers` owns how selected writing materials reach a request. The memory service owns retrieval and Session logging for a case note the user saves.
 
 <a id="known-limitations-and-deferred-work"></a>
 ## Known Limitations and Deferred Work
 
-- Target protection is not implemented. Proxy controls are owned by ui-security-proxy; memory opens its shared manager.
+- The target-protection and proxy panels own their respective rules and connection settings.
 - The Reverse panel uses bundled REA by default, persists revision-checked settings, and checks a temporary connection. Optional executable overrides are collapsed under Custom runtime. Tool search lists the checked catalog; optional engine paths remain distinct from actual analysis readiness.
 - The inventory is reloaded on demand and after each save; there is no filesystem watcher, so a change made by another process appears after the next reload.
 - The selection editor is a checkbox per material; there is no drag ordering, and the Host renders materials in registry order.

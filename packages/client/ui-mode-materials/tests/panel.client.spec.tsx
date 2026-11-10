@@ -94,6 +94,7 @@ function surface(modeId: string | undefined, loaded: DossierInventory | undefine
     createWorkspace: vi.fn(async () => 'w2'),
     pickDirectory: vi.fn(async () => '/work/other'),
     openMemory: vi.fn(),
+    draftCaseNote: vi.fn(),
   }
   const workspaceSnapshot: WorkspaceSnapshot = {
     items: [{ workspaceId: 'w1' as WorkspaceSnapshot['items'][number]['workspaceId'], path: '/work/novel', title: 'Novel', sessionIds: [], createdAt: 'c', updatedAt: 'u' }],

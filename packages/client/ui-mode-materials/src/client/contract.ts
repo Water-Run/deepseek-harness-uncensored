@@ -53,6 +53,8 @@ export interface MaterialsOperations {
   }
   /** Open scoped memory management for the configured mode. */
   openMemory(mode?: string, workspaceId?: string): void
+  /** Open an editable, workspace-scoped memory draft for a Security case note. */
+  draftCaseNote(workspaceId: string, slug: string, note: { readonly id: string; readonly title: string; readonly body: string }): void
   /** Read one workspace's inventory. */
   load(workspaceId: string | undefined): Promise<void>
   /** Read one case ledger. */
