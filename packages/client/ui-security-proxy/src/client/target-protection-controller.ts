@@ -51,6 +51,8 @@ export class TargetSettingsController {
   readonly state = createSnapshotStore<TargetSettingsView>(initial)
   private epoch = 0
   private disposed = false
+  private requested = false
+  private refreshPending = false
 
   /** @param remote - Narrow settings operations for this connection. */
   constructor(private readonly remote: TargetSettingsRemote) {}
@@ -58,8 +60,16 @@ export class TargetSettingsController {
   /** Refresh the authoritative revision without altering the editor's draft. */
   readonly load = (): void => {
     if (this.busy()) return
+    this.requested = true
     this.patch({ loading: true, failure: null, saved: false, countryChecked: false })
     void this.run(() => this.remote.get(), 'read')
+  }
+
+  /** Refresh an opened settings snapshot after a Host notification, preserving feedback and drafts. */
+  readonly refresh = (): void => {
+    if (!this.requested || this.disposed) return
+    if (this.busy() || this.state.getSnapshot().loading) { this.refreshPending = true; return }
+    void this.run(() => this.remote.get(), 'refresh')
   }
 
   /**
@@ -83,6 +93,7 @@ export class TargetSettingsController {
   /** Drop data from the departed connection and read the current Host. */
   reset(): void {
     if (this.disposed) return
+    this.refreshPending = false
     this.state.set({ ...initial, generation: this.state.getSnapshot().generation + 1 })
     this.load()
   }
@@ -98,7 +109,7 @@ export class TargetSettingsController {
   }
 
   private async run(
-    call: () => Promise<RemoteResult<TargetProtectionSettingsState>>, action: 'read' | 'rules' | 'country',
+    call: () => Promise<RemoteResult<TargetProtectionSettingsState>>, action: 'read' | 'rules' | 'country' | 'refresh',
   ): Promise<boolean> {
     const epoch = ++this.epoch
     try {
@@ -106,7 +117,7 @@ export class TargetSettingsController {
       if (epoch !== this.epoch) return false
       if (result.ok) {
         this.patch({ loading: false, saving: false, updatingCountry: false, failure: null, value: result.value,
-          saved: action === 'rules', countryChecked: action === 'country' })
+          ...(action === 'refresh' ? {} : { saved: action === 'rules', countryChecked: action === 'country' }) })
         return true
       }
       const failure = classify(result.error.code)
@@ -114,6 +125,11 @@ export class TargetSettingsController {
         ...(failure === 'notMounted' || failure === 'denied' ? { value: null } : {}) })
     } catch (_error) {
       if (epoch === this.epoch) this.patch({ failure: 'failed', loading: false, saving: false, updatingCountry: false })
+    } finally {
+      if (epoch === this.epoch && this.refreshPending) {
+        this.refreshPending = false
+        this.refresh()
+      }
     }
     return false
   }

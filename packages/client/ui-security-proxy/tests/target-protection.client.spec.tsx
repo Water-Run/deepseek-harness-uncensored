@@ -13,7 +13,7 @@ afterEach(cleanup)
 
 function snapshot(revision = 4): TargetProtectionSettingsState {
   return { snapshot: { revision, preferences: { mainlandEnabled: false, rules: [] } },
-    protection: { state: 'disabled', revision, capabilities: [] }, country: null }
+    protection: { state: 'disabled', revision, capabilities: [] }, country: null, routes: { webFetch: true, independentProxy: true } }
 }
 
 function mount(remote: Pick<TargetSettingsRemote, 'get' | 'configure'> & Partial<Pick<TargetSettingsRemote, 'updateCountry'>>) {
@@ -107,4 +107,37 @@ it('keeps an old draft visible and blocks saving it to another connection with t
   expect(await screen.findByText(en['target.connectionChanged'])).toBeTruthy()
   expect(screen.getByRole<HTMLButtonElement>('button', { name: en['target.save'] }).disabled).toBe(true)
   expect(configure).not.toHaveBeenCalled()
+})
+
+it('preserves the draft when a guarded route disappears and restores saving after it returns', async () => {
+  let value = snapshot()
+  const configure = vi.fn<TargetSettingsRemote['configure']>()
+  const { controller } = mount({ get: async () => ({ ok: true, value }), configure })
+  fireEvent.click(await screen.findByRole('switch', { name: en['target.mainland'] }))
+  value = { ...value, routes: { webFetch: true, independentProxy: false } }
+  controller.refresh()
+  await screen.findByText(en['target.routesRequired'])
+  expect(screen.getByText(en['target.route.missing'])).toBeTruthy()
+  expect(screen.getByRole('switch', { name: en['target.mainland'] }).getAttribute('aria-checked')).toBe('true')
+  expect(screen.getByRole<HTMLButtonElement>('button', { name: en['target.save'] }).disabled).toBe(true)
+  expect(configure).not.toHaveBeenCalled()
+  value = snapshot()
+  controller.refresh()
+  await waitFor(() => { expect(screen.getByRole<HTMLButtonElement>('button', { name: en['target.save'] }).disabled).toBe(false) })
+  expect(screen.getByText(en['target.unsaved'])).toBeTruthy()
+})
+
+it('refreshes a Host change received during save without losing its success feedback', async () => {
+  const writing = Promise.withResolvers<RemoteResult<TargetProtectionSettingsState>>()
+  const get = vi.fn<TargetSettingsRemote['get']>()
+    .mockResolvedValueOnce({ ok: true, value: snapshot(4) }).mockResolvedValueOnce({ ok: true, value: snapshot(6) })
+  const { controller } = mount({ get, configure: () => writing.promise })
+  fireEvent.click(await screen.findByRole('switch', { name: en['target.mainland'] }))
+  fireEvent.click(screen.getByRole('button', { name: en['target.save'] }))
+  controller.refresh()
+  expect(get).toHaveBeenCalledOnce()
+  writing.resolve({ ok: true, value: snapshot(5) })
+  await screen.findByText('Rule revision 6')
+  expect(screen.getByText(en['target.saved'])).toBeTruthy()
+  expect(get).toHaveBeenCalledTimes(2)
 })

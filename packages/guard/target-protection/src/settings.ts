@@ -41,8 +41,16 @@ export interface TargetProtectionSettingsState {
   snapshot: TargetSnapshot
   protection: SecurityProtectionStatus
   country: CountryDatabaseStatus | null
+  /** Mounted guarded routes. Older Hosts omit this information. */
+  routes?: TargetProtectionRoutes
   /** Available only for a provider with a managed DB-IP cache. */
   countryUpdateAvailable?: true
+}
+
+/** Which optional HTTP enforcement providers the Host has mounted. */
+export interface TargetProtectionRoutes {
+  readonly webFetch: boolean
+  readonly independentProxy: boolean
 }
 
 /** Replace all rules only against the revision the owner edited. */
@@ -67,6 +75,8 @@ export default class TargetProtectionSettings extends TypertRemoteService {
     const changed = () => {
       try { ctx.emit('security-protection/changed') }
       catch (error) { ctx.logger.warn('A security protection status observer failed.', error) }
+      try { ctx.emit('target-protection/status-changed') }
+      catch (error) { ctx.logger.warn('A target settings observer failed.', error) }
     }
     ctx.on('target-protection/changed', changed)
     ctx.on('target-country/changed', changed)
@@ -84,8 +94,8 @@ export default class TargetProtectionSettings extends TypertRemoteService {
     return signal
   }
 
-  private guarded(): boolean {
-    return this.ctx.get('targetProtectedHttp') === true && this.ctx.get('targetProtectedProxy') === true
+  private routes(): TargetProtectionRoutes {
+    return { webFetch: this.ctx.get('targetProtectedHttp') === true, independentProxy: this.ctx.get('targetProtectedProxy') === true }
   }
 
   private readCountry(): CountryDatabaseStatus | null {
@@ -96,16 +106,16 @@ export default class TargetProtectionSettings extends TypertRemoteService {
     }
   }
 
-  private readProtection(): SecurityProtectionStatus {
-    const snapshot = this.ctx.get('targetProtection')?.currentSnapshot()
-    const country = this.readCountry()
-    const guarded = this.guarded() && snapshot !== undefined
+  private readProtection(
+    snapshot = this.ctx.get('targetProtection')?.currentSnapshot(), country = this.readCountry(), routes = this.routes(),
+  ): SecurityProtectionStatus {
+    const guarded = routes.webFetch && routes.independentProxy && snapshot !== undefined
     const capabilities: SecurityProtectionCapability[] = []
     if (guarded && snapshot.preferences.rules.some(rule => rule.enabled)) capabilities.push('target-rules')
     const state = !guarded ? 'unavailable' : !snapshot.preferences.mainlandEnabled ? 'disabled'
       : country?.state === 'ready' ? 'enabled' : 'unavailable'
     if (state === 'enabled') capabilities.unshift('mainland-domains')
-    const identity = JSON.stringify([snapshot?.revision, country?.sha256, country?.state, guarded, state, capabilities])
+    const identity = JSON.stringify([snapshot?.revision, country?.sha256, country?.state, routes, state, capabilities])
     if (identity !== this.statusIdentity) { this.statusIdentity = identity; this.statusRevision++ }
     return { state, capabilities, revision: this.statusRevision }
   }
@@ -131,7 +141,8 @@ export default class TargetProtectionSettings extends TypertRemoteService {
   }
 
   private state(snapshot: TargetSnapshot): TargetProtectionSettingsState {
-    return { snapshot, protection: this.readProtection(), country: this.readCountry(),
+    const routes = this.routes(), country = this.readCountry()
+    return { snapshot, routes, protection: this.readProtection(snapshot, country, routes), country,
       ...this.ctx.get('targetCountryData')?.canUpdate() === true ? { countryUpdateAvailable: true } : {} }
   }
 
@@ -143,7 +154,8 @@ export default class TargetProtectionSettings extends TypertRemoteService {
   @Remote
   async configure(update: TargetProtectionSettingsUpdate): Promise<TargetProtectionSettingsState> {
     const signal = this.ownerSignal()
-    if (!this.guarded()) throw new RemoteError('target-protection/unavailable', 'The guarded HTTP routes are unavailable.', {})
+    const routes = this.routes()
+    if (!routes.webFetch || !routes.independentProxy) throw new RemoteError('target-protection/unavailable', 'The guarded HTTP routes are unavailable.', {})
     try {
       const snapshot = await this.ctx.targetProtection.configure(update.preferences, update.expectedRevision, signal)
       return this.state(snapshot)

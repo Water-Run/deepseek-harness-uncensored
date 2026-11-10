@@ -90,7 +90,7 @@ Selection changes affect only later tasks; existing plugins and prompts remain u
 <a id="known-limitations-and-deferred-work"></a>
 
 - Web creates and edits no preset: the configuration viewer is read-only, and a bundle installed through Creator mode declares a new preset or overrides a shipped one by row id, replacing its complete child list.
-- The Security entry confirmation reports the composed protection provider's live state. The Web product ships no provider, so it takes the unavailable branch and asks for the declaration; the enabled branch is covered with a test provider, not a production backend.
+- The Security entry confirmation reports the composed protection provider’s live state. Default Web uses the unavailable branch and asks for the declaration. The optional guarded Web profile can confirm enabled coverage for its HTTP fetch and independent proxy when country data is current. Changes in protection restart the reading interval.
 
 <a id="dev-note"></a>
 ### Dev Note

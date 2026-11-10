@@ -34,11 +34,13 @@ export function TargetProtectionSection({ modeId, useTargetSettings, load, save,
   const view = useTargetSettings(value => value)
   const titleId = useId()
   const [draft, setDraft] = useState<Draft | null>(null)
-  const [editor, setEditor] = useState<{ rule: TargetRule; existing: boolean; generation: number; revision: number } | null>(null)
+  const [editor, setEditor] = useState<{ rule: TargetRule; existing: boolean; base: Draft } | null>(null)
   useEffect(() => { if (modeId === 'security') load() }, [load, modeId])
   if (modeId !== 'security') return null
 
   const state = view.value
+  const routes = state?.routes
+  const missingRoute = routes !== undefined && (!routes.webFetch || !routes.independentProxy)
   const preferences = draft?.preferences ?? state?.snapshot.preferences
   const connectionChanged = draft !== null && draft.generation !== view.generation
   const revisionChanged = draft !== null && state !== null && draft.expectedRevision !== state.snapshot.revision
@@ -52,14 +54,18 @@ export function TargetProtectionSection({ modeId, useTargetSettings, load, save,
     })
   }
   const commit = (): void => {
-    if (draft === null || state === null || connectionChanged || revisionChanged) return
+    if (draft === null || state === null || connectionChanged || revisionChanged || missingRoute) return
     void save({ expectedRevision: draft.expectedRevision, preferences: draft.preferences }).then((ok) => { if (ok) setDraft(null) })
   }
   const discard = (): void => { setDraft(null); setEditor(null); load() }
   const busy = view.saving || view.updatingCountry || view.loading
-  const editingDisabled = busy || state === null || connectionChanged || revisionChanged
+  const editingDisabled = busy || state === null || connectionChanged || revisionChanged || missingRoute
   const edit = (rule: TargetRule, existing: boolean): void => {
-    if (state !== null) setEditor({ rule, existing, generation: view.generation, revision: state.snapshot.revision })
+    if (state === null) return
+    const base = draft ?? {
+      preferences: state.snapshot.preferences, expectedRevision: state.snapshot.revision, generation: view.generation,
+    }
+    setEditor({ rule, existing, base })
   }
   const country = state?.country
   const protection = state?.protection.state ?? 'unavailable'
@@ -87,6 +93,17 @@ export function TargetProtectionSection({ modeId, useTargetSettings, load, save,
         <Switch label={t('target.mainland')} checked={preferences?.mainlandEnabled ?? false} disabled={editingDisabled}
           onChange={(mainlandEnabled) => { stage(value => ({ ...value, mainlandEnabled })) }} />
       </div>
+      {routes !== undefined && <dl className={css.routes}>
+        <div className={shared.status}>
+          <dt>{t('target.route.webFetch')}</dt>
+          <dd><Tag>{t(routes.webFetch ? 'target.route.mounted' : 'target.route.missing')}</Tag></dd>
+        </div>
+        <div className={shared.status}>
+          <dt>{t('target.route.independentProxy')}</dt>
+          <dd><Tag>{t(routes.independentProxy ? 'target.route.mounted' : 'target.route.missing')}</Tag></dd>
+        </div>
+      </dl>}
+      {missingRoute && <p className={shared.hint} role="status">{t('target.routesRequired')}</p>}
       <div className={shared.status}>
         <span className={shared.muted}>{t('target.country')}</span>
         {country == null ? <span>{t('target.countryMissing')}</span> : <>
@@ -135,10 +152,12 @@ export function TargetProtectionSection({ modeId, useTargetSettings, load, save,
         </Button>
       </>}
     </div>}
-    {editor !== null && !editingDisabled && editor.generation === view.generation && editor.revision === state.snapshot.revision
-      && <TargetRuleEditor rule={editor.rule} existing={editor.existing} t={t} onClose={() => { setEditor(null) }} onApply={(rule) => {
-        stage(value => ({ ...value, rules: editor.existing
-          ? value.rules.map(item => item.id === rule.id ? rule : item) : [...value.rules, rule] }))
+    {editor !== null && <TargetRuleEditor rule={editor.rule} existing={editor.existing} t={t}
+      onClose={() => { setEditor(null) }} onApply={(rule) => {
+        const { base } = editor
+        const rules = editor.existing
+          ? base.preferences.rules.map(item => item.id === rule.id ? rule : item) : [...base.preferences.rules, rule]
+        setDraft({ ...base, preferences: { ...base.preferences, rules } })
         setEditor(null)
       }} />}
   </section>

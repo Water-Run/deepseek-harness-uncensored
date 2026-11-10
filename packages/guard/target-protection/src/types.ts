@@ -1,6 +1,16 @@
 /** Owner rules and executor-supplied target identities. @module */
 import type { Branded } from '@deepseek-ai/dsh-brand'
 
+declare module '@deepseek-ai/cordis' {
+  interface Events {
+    /**
+     * Invalidate a previously read owner settings snapshot without sending its contents.
+     * @mode emit
+     */
+    'target-protection/status-changed'(): void
+  }
+}
+
 /** Stable owner-managed rule identity. */
 export type TargetRuleId = Branded<'TargetRuleId'>
 

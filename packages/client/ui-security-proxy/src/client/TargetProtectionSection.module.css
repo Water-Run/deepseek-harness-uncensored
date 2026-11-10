@@ -4,6 +4,8 @@
 .rule { padding-block: 10px; border-bottom: 0.5px solid var(--dsw-alias-border-l1); }
 .ruleDetails { display: grid; gap: 4px; }
 .ruleDetails strong { font-weight: 500; }
+.routes { display: grid; gap: 6px; margin: 0; }
+.routes dd { margin: 0; }
 .link { color: var(--dsw-alias-state-business-primary); overflow-wrap: anywhere; }
 .editor, .aliases { display: grid; gap: 12px; min-width: 0; }
 .aliases { padding-top: 12px; border-top: 0.5px solid var(--dsw-alias-border-l2); }

@@ -320,6 +320,8 @@ export interface LaunchOptions {
    * ordering.
    */
   extraOverlayPath?: string | readonly string[]
+  /** Preserve the shipped preset registry policy for scenarios that exercise entry acknowledgements. */
+  preservePresetRegistryConfig?: true
   /**
    * Additional package manifests whose dependency closures supply experimental
    * profile layers named by {@link extraOverlayPath}.
@@ -596,7 +598,7 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
       ? []
       : [{ id: 'agent-default-model', config: { provider: 'deepseek-official', model: 'deepseek-v4-flash' } }],
     ...extraOverlayPatches,
-    { id: 'agent-preset-registry', config: { default: 'standard' } },
+    ...options.preservePresetRegistryConfig === true ? [] : [{ id: 'agent-preset-registry', config: { default: 'standard' } }],
     { id: 'session-persistence-jsonl', config: { root: persistenceRoot } },
     // Content search is enabled here although the shipped bundles default it
     // off (`openAt: never`, pinned by apps/cli/tests/lazy-search-startup):

@@ -28,7 +28,7 @@ kind: "package-reference"
 
 在「设置 → 模式 → 网安 → 目标保护」查看当前数据来源、编辑规则并按草稿对应的版本保存。
 
-`./settings` 向已认证的应用所有者提供 `targetProtectionSettings.get` 和 `configure`。`get` 返回已提交规则、版本、HTTP 路由的实时状态及 DB-IP 署名和数据时效。`configure` 接收完整的 `preferences` 和 `expectedRevision`，提交前拒绝过期编辑或断开的所有者。只有两条受控 HTTP 路由均就绪且地区数据有效时，网安确认才显示境内保护已启用。数据过期或路由撤下时显示不可用。规则提交后，已打开的首次确认失效。
+`./settings` 向已认证的应用所有者提供 `targetProtectionSettings.get` 和 `configure`。`get` 返回已提交规则、版本、两个受控 HTTP 入口的挂载状态及 DB-IP 署名和数据时效。挂载状态表示使用该入口时会执行检查。独立代理的开关仍由代理设置控制。两个入口均挂载后才可保存规则。`configure` 接收完整的 `preferences` 和 `expectedRevision`，提交前拒绝过期编辑或断开的所有者。只有两条受控 HTTP 路由均就绪且地区数据有效时，网安确认才显示境内保护已启用。数据过期或路由撤下时显示不可用。规则提交后，已打开的首次确认失效。
 
 设置 `auditPath` 可启用独立的本机准入日志。可选 Web 配置已提供该路径。`auditLimit` 默认保留最新 2000 条。每条记录包含判定采用的规则版本、操作、阶段、结果代码、最多 64 个命中规则 ID 和总命中数。日志排除原始主机、路径、凭据与错误详情。带密钥的指纹可关联重启前后的同一目标。`targetProtectionSettings.auditHistory` 向已认证的应用所有者返回最近最多 100 条。
 

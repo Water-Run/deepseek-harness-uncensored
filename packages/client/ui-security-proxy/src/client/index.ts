@@ -48,6 +48,7 @@ export function apply(ctx: Context): void {
   ctx.inject(['remote.targetProtectionSettings'], (scope) => {
     const controller = new TargetSettingsController(scope.remote.targetProtectionSettings)
     scope.on('connection/reset', () => { controller.reset() })
+    scope.effect(() => scope.remote.$on('target-protection/status-changed', controller.refresh), 'target-protection: status updates')
     scope.effect(() => () => { controller.dispose() }, 'target-protection: settings requests')
     scope.slots.inject('settings.mode.materials', () => scope.slots.register({
       name: 'settings.mode.materials', id: 'security-target-protection', order: 21, locale: 'settings.securityProxy',
