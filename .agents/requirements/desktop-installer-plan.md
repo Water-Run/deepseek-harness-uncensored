@@ -34,6 +34,7 @@ Windows 已安装检查版 `0.1.0-test.20261110.4`，源码 `9df061a06a`，产�
 - 干净源码 `4b1e436740` 的标准流水线生成未签名 deb/tar.gz。Ubuntu WSL2 安装目录通过四模式、REA、Office 和 CLI 检查，tar.gz 中的 ASAR 与实装摘要一致。
 - `.2` 原位升级到 `.3` 后保留 92 个隔离资料文件，使用同一份资料重新打开。Xvfb 中实际窗口的 `WM_CLASS` 与已安装桌面入口的 `StartupWMClass` 一致。
 - `.3` 卸载后保留 96 个隔离资料文件，应用和启动链接已移除。随后直接运行带空格路径中解压的 tar.gz，工作区、命令菜单和关于页通过。Xvfb 的窗口类及 Weston 原生 Wayland 的应用标识均为 `deepseek-harness-uncensored`。物理桌面、门户集成、其他发行版及正式发行仍待验收。产物和摘要见 [HANDOFF](../HANDOFF.md)。
+- `.4` 的 deb 已在 Debian 12 隔离根文件系统验收。先移除 ALSA 和 GBM，再由 APT 从 deb 声明解析并安装两项依赖。原生 X11 窗口、关于页与命令菜单通过，卸载保留 87 个隔离资料文件。chroot 的用户命名空间受限，真实桌面沙箱另行验收。
 
 ### 阶段 0 — 工具链与预检
 

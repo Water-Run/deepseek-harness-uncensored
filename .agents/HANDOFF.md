@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## Linux `.4` 打包与 Debian 12 验收（2026-11-10）
+
+源码 `d8c7f8964dadaae98092e528f912f7a362084d7e` 的干净检出通过十项构建检查，标准流水线生成 `0.1.0-test.20261110.linux.4` 的 deb 和 tar.gz。两种归档的 ASAR 摘要一致。包内通过四模式、离线插件装卸、REA 229 项工具与 JavaScript 分析，以及三类 Office 文档转 PDF。实包许可清单为 861 个 npm 包和 9 项待核查。
+
+Debian 12 测试复用了暂停前保留的基础包并校验签名。串行下载较慢，剩余 127 个包按签名 APT 索引的 SHA-256 并行下载。离线 APT 处理本地 deb 路径时失败，随后由 APT 从控制字段解析依赖并由 dpkg 安装原包，`.3` 完成启动与卸载验收。`.4` 复验先移除 ALSA 和 GBM，再从新版 deb 的 `Depends` 由 APT 选中 `libasound2` 与 `libgbm1`。X11 窗口标识、工作区、命令菜单和关于页通过，页面错误为零。卸载后 87 个隔离资料文件摘要一致。chroot 内的用户命名空间受限，真实桌面沙箱仍待验收。Debian 根目录、下载缓存和独立构建检出已清理。
+
+产物位于 `.dsh-build/deliverables/`。deb 为 369,504,792 字节，SHA-256 `5b9e42d193a6359be678a3d77792c1c96089b4ab663e5ed3316094d276f249bf`。tar.gz 为 461,802,993 字节，SHA-256 `91301d6a1573507c717a46b816c720f64e2544c99edfa60846917857edb48976`。回执为 `DSHU-20261110-linux-d8c7f8-manifest.json`，构建批次 `2026-11-10T15-22-36.029Z-9vIqH3`。Debian 验收日志为 `.dsh-build/debian12-dshu-d8c7f8-20261110.log`。
+
 ## 恢复开发与 Linux 许可清点（2026-11-10）
 
 用户将收尾线调整到剩余周额度 10%，目标从 39% 恢复。Debian 12 验收继续使用此前保留的基础包和签名清单，执行日志为 `.dsh-build/debian12-dshu-4b1e43-resumed-20261110.log`。
