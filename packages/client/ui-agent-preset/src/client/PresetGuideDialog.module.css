@@ -1,7 +1,7 @@
 .guideDialog {
+  --guide-accent: color-mix(in srgb, var(--mode-fill) 76%, var(--dsw-alias-label-primary));
   box-sizing: border-box;
   width: min(640px, 100%);
-  height: min(600px, 100%);
   max-height: 100%;
   padding: 0;
   gap: 0;
@@ -11,26 +11,37 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  height: 100%;
+  flex: 1;
 }
 
 .guideHeader {
   flex: none;
-  padding: 24px 24px 20px 28px;
+  padding: 24px 24px 18px;
 }
 
 .guideTitleRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
+}
+
+.guideIcon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--dsw-radius-lg);
+  color: var(--guide-accent);
+  background: color-mix(in srgb, var(--mode-fill) 10%, transparent);
 }
 
 .guideTitle {
+  flex: 1;
   margin: 0;
   font-size: 20px;
   line-height: 28px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .guideIntro {
@@ -51,19 +62,26 @@
 
 .guideTabs {
   flex: none;
-  margin: 0 28px 22px;
+  align-self: flex-start;
+  width: min(288px, calc(100% - 48px));
+  box-sizing: border-box;
+  margin: 0 24px 18px;
+}
+
+.guideTabs [role='tab'][aria-selected='true'] {
+  color: var(--guide-accent);
 }
 
 .guidePanel {
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
-  flex: 1;
+  flex: 0 1 auto;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
-  padding: 0 24px 24px 28px;
-  font-size: 16px;
+  padding: 0 24px 24px;
+  font-size: 14px;
   color: var(--dsw-alias-label-primary);
   overflow-wrap: anywhere;
 }
@@ -74,10 +92,10 @@
 }
 
 .guidePanel h3 {
-  margin: 28px 0 10px;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 600;
+  margin: 20px 0 8px;
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 500;
 }
 
 .guidePanel h3:first-child {
@@ -85,9 +103,9 @@
 }
 
 .guidePanel p {
-  margin: 0 0 16px;
-  font-size: 16px;
-  line-height: 1.625;
+  margin: 0 0 14px;
+  font-size: 14px;
+  line-height: 1.75;
   color: var(--dsw-alias-label-primary);
 }
 
@@ -96,7 +114,8 @@
   padding: 14px 16px;
   border: 0;
   border-radius: var(--dsw-radius-lg);
-  background: var(--dsw-alias-bg-module-platform);
+  background: color-mix(in srgb, var(--mode-fill) 6%, var(--dsw-alias-bg-layer-2));
+  border-inline-start: 2px solid color-mix(in srgb, var(--guide-accent) 45%, transparent);
 }
 
 .guidePanel blockquote p {
@@ -117,7 +136,9 @@
 }
 
 .guideExample + .guideExample {
-  margin-top: 28px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 0.5px solid var(--dsw-alias-border-l3);
 }
 
 .guideExampleHeader {
@@ -140,7 +161,18 @@
 
 .guidePanel[data-guide-page='usage'] blockquote p {
   margin: 0;
-  font-size: 16px;
-  line-height: 26px;
+  font-size: 14px;
+  line-height: 24px;
   color: var(--dsw-alias-label-primary);
+}
+
+.guidePanel > :last-child,
+.guideExample > :last-child > :last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 480px) {
+  .guideHeader { padding: 20px 18px 16px; }
+  .guideTabs { margin-inline: 18px; width: calc(100% - 36px); }
+  .guidePanel { padding-inline: 18px; padding-bottom: 20px; }
 }

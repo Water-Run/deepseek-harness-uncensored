@@ -23,6 +23,7 @@
   // this client-registered project must not also hold them (one program
   // cannot see both sides of the cordis Context merges).
   "exclude": [
+    "tests/mode-guides.e2e.ts",
     "tests/uncensored-recovery.e2e.ts",
     "tests/sidebar-drawer.e2e.ts",
     "tests/creation-recommendations.e2e.ts",

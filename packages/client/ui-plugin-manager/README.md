@@ -11,7 +11,7 @@ Desktop product events use the optional [product analytics service](../product-a
 
 ## Summary
 
-The embedded manager follows the Settings navigation lifetime. With no access to Settings it contributes no page; other client plugins can still finish starting. Revoking plugin access immediately withdraws its page and navigation, without waiting for Settings to unload.
+The embedded toolbar shares the Settings background in both themes. The embedded manager follows the Settings navigation lifetime. With no access to Settings it contributes no page; other client plugins can still finish starting. Revoking plugin access immediately withdraws its page and navigation, without waiting for Settings to unload.
 
 Use **Settings → Plugins** to manage the profile's installed bundles and the official bundles the installation ships switched off. Switch bundles and their rows on and off, install a bundle after the Host has read what the spec names, watch pnpm's output, stop a run, and enable what it added. Uninstalling asks for confirmation. A plugin that registers a configuration page is edited here, on its own page; The same settings page includes the built-in inventory.
 

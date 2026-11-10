@@ -154,6 +154,7 @@
 .page[data-embedded] { --plugin-page-inset: 0px; --plugin-page-top-inset: 0px; height: 100%; min-height: 360px; padding: 0; align-items: stretch; }
 .page[data-embedded] .pageHead, .page[data-embedded] .detailTop { padding-top: 0; }
 .page[data-embedded] .pageHeading { display: none; }
+.page[data-embedded] .pageBar[data-natural]::before { background: var(--dsw-alias-bg-layer-2); }
 
 .pageHead {
   display: flex;

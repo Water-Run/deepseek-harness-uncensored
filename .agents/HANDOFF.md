@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## 模式指南与插件工具栏样式（2026-11-10）
+
+模式说明与如何使用采用内容定高的阅读器，不再固定占用 600px 高度。标题使用对应模式图标和颜色，页签收紧，正文统一 14px，使用示例以淡色引用区分；长内容仍可在弹窗内滚动。关闭和键盘切换继续使用共享组件。嵌入设置页的插件工具栏使用同一层背景，消除深色主题中的黑色条块。
+
+42 项既有组件回归通过；新增真实 Web 场景覆盖 1440px/390px、浅色/深色、两页内容、横向溢出、内容定高、关闭焦点恢复和工具栏底色。12 张截图在 `.artifacts/screenshots/mode-guides/`。最初的浏览器定位误把包含说明的主题卡片作为精确名称，改为现有卡片的可访问名称匹配后通过，没有放宽布局断言。完整构建十项及最终两项聚合检查通过；中英配对、本地化和相关 lint 通过。日志前缀 `.dsh-build/mode-guide-`。
+
+新 Web 测试已归入 Host 测试程序，并从客户端工程显式排除。首次遗漏排除导致编译器在四个源目录留下 56 个未跟踪输出，共 565,961 字节。自动审批以 `blocked by policy` 拒绝清理；没有换工具重试，也未把这些文件加入提交。清单为 `.dsh-build/mode-guide-compiler-residue-blocked-20261110.json`。本节点是源码交付，Windows 仍为 `.3` 检查版；Linux `.2` 检查包也不含本次样式。
+
 ## Linux x64 Desktop 检查包（2026-11-10）
 
 Linux 已接通独立 Electron 目标、原生组件编译、deb/tar.gz、`dsh-uncensored` 命令和用户目录安装。Ubuntu WSL2 下的实际 Electron 在 Xvfb 中启动，隔离资料、工作区、菜单和关于页通过。安装到 `/opt/DeepSeek Harness Uncensored` 后，四模式、REA 229 项工具、JavaScript、三种 Office 转 PDF及 CLI 装卸通过；程序卸载后 96 个隔离用户文件哈希相同。Ubuntu 测试安装已移除，Windows 正式使用的 `.3` 检查版没有更换。未使用 Computer Use。

@@ -4,19 +4,23 @@ import type { KeyboardEvent, ReactNode } from 'react'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { Button, IconCloseOutlineRegular, IconListPenOutlineRegular, MarkdownText, Modal, SegmentedTabs, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { AgentPresetSettingsKey } from './locales.ts'
+import { PresetIcon } from './PresetIcon.tsx'
+import { modeTone } from './mode-tone.ts'
+import modeCard from './ModeCard.module.css'
 import css from './PresetGuideDialog.module.css'
 
 export type PresetGuidePage = 'explanation' | 'usage'
 
 /** Locale references for one known, shipped preset. */
 interface PresetGuide {
+  id: string
   name: AgentPresetSettingsKey
   intro: AgentPresetSettingsKey
   explanation: AgentPresetSettingsKey
   usage: AgentPresetSettingsKey
 }
 
-const guides = new Map<string, PresetGuide>([
+const guides = new Map<string, Omit<PresetGuide, 'id'>>([
   ['standard', { name: 'presetStandardName', intro: 'guideStandardIntro', explanation: 'guideStandardExplanation', usage: 'guideStandardUsage' }],
   ['security', { name: 'presetSecurityName', intro: 'guideSecurityIntro', explanation: 'guideSecurityExplanation', usage: 'guideSecurityUsage' }],
   ['reverse', { name: 'presetReverseName', intro: 'guideReverseIntro', explanation: 'guideReverseExplanation', usage: 'guideReverseUsage' }],
@@ -33,7 +37,8 @@ const guides = new Map<string, PresetGuide>([
  * @returns the shipped guide, or undefined for unknown and custom presets.
  */
 export function presetGuide(id: string, trust: string): PresetGuide | undefined {
-  return trust === 'system' ? guides.get(id) : undefined
+  const guide = trust === 'system' ? guides.get(id) : undefined
+  return guide === undefined ? undefined : { ...guide, id }
 }
 
 /** Keep keyboard focus inside a preset reader while Tab moves through its controls.
@@ -112,10 +117,11 @@ export function PresetGuideDialog({ guide, initialPage, t, onClose }: {
   }
 
   return (
-    <Modal open headless onClose={onClose} title={t(guide.name)} className={css.guideDialog as string}>
+    <Modal open headless onClose={onClose} title={t(guide.name)} className={`${css.guideDialog} ${modeCard[modeTone(guide.id)]}`}>
       <div ref={content} className={css.guideLayout} role="presentation" onKeyDownCapture={onKeyDown}>
         <div className={css.guideHeader}>
           <div className={css.guideTitleRow}>
+            <span className={css.guideIcon} aria-hidden="true"><PresetIcon id={guide.id} size={20} /></span>
             <h2 className={css.guideTitle}>{t(guide.name)}</h2>
             <Button variant="ghost" className={css.guideClose} aria-label={t('close')} onClick={onClose}>
               <IconCloseOutlineRegular size={18} />
@@ -124,6 +130,7 @@ export function PresetGuideDialog({ guide, initialPage, t, onClose }: {
           <p className={css.guideIntro}>{t(guide.intro)}</p>
         </div>
         <SegmentedTabs<PresetGuidePage>
+          size="sm"
           className={css.guideTabs}
           label={t('guideSections')}
           value={page}
