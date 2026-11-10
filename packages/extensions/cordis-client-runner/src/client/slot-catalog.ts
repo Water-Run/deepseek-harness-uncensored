@@ -4110,6 +4110,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'client-ui-settings-account AboutOverlay id \'product-about\'',
       'client-ui-settings-account ReleaseReminder id \'fork-release\'',
       'client-ui-settings-account SpendingToast id \'spending-feedback\'',
+      'client-ui-settings-general SettingsDocumentToast id \'settings-document-result\'',
       'client-ui-settings-general HostReleasePrompt id \'host-release-change\'',
       'client-ui-settings-memory MemoryManager id \'memory-manager\'',
       'client-ui-settings-memory MemoryToast id \'memory-toast\'',

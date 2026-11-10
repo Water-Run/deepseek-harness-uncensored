@@ -1,7 +1,8 @@
 - banner:
   - navigation "Session hierarchy": "Remember the project requirements: imple"
-  - text: Minimal mode
+  - 'button "Conversation mode: minimal" [disabled]': minimal
   - button "More actions"
+  - button "Side question"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat" [selected]
@@ -37,6 +38,8 @@
 - 'button "Access mode, current: Workspace Write"': Workspace Write
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message" [disabled]
-- button "2 turns 2 steps"
+- 'button "Turns: 2 · Steps: 2"'
 - button "28 tok · Cache hit 0%": 28 tokCache hit 0%
+- 'button "Conversation cost: ￥0.000104"': ￥0.000104
+- 'button "Spending limits: Off"': "Off"
 - button "0% of context used": 0%

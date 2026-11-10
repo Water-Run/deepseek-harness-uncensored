@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## POSIX 历史回放与插槽目录（2026-11-10）
+
+17.04 已补 Ubuntu x64 验收。独立目录 `/home/linzh/.cache/dshu-verification/rc1-20261110.BkOyxE/source` 从源码 `84978f6775` 建立，按锁文件离线安装，使用 Node 24.21.0 完成八项产物构建及后续两项聚合检查。Playwright 对应的 Chromium Headless Shell 1228 和 FFmpeg 1011 已在 Linux 缓存，后续可复用。Windows 主工作区的依赖未改写。
+
+四项 Bash 回放、16 项 Minimal/旧 PTC 界面与恢复场景、17 项会话删除测试全部通过。Bash 后台超时场景以独立 `writer.expected.jsonl` 记录当前提示与退出结算，原 v3/v4 输入不变。历史 Web 页面只在测试内关闭未录制的预测调用，展开用例显式选择紧凑视图。三份 UI 预期跟进模式按钮、旁问、费用及限额，三份会话文件哈希不变。关键日志为 `.dsh-build/linux-bash-replay-final-20261110.log`、`linux-history-web-accepted-20261110.log`、`linux-deletion-20261110.log` 和 `linux-check-final-20261110.log`。
+
+Slots/Renderer 的 178 项测试和目录查询 6 项测试通过，补回配置文件提示组件在模型插槽目录中的登记。三项录制语料检查通过。本轮为源码交付，系统安装仍为 `0.1.0-test.20261110.2`；结果覆盖上述 Linux 场景，完整浏览器和桌面平台矩阵继续见 TODO。
+
 ## Brotli 组件声明补充（2026-11-10）
 
 16.07 从实际安装包核对 `brotli 1.3.3`。npm 元数据的 MIT 字段之外，七个解码器文件带有 Google Apache-2.0 版权头。npm 归档校验值、固定发布提交和实装字节相符，源码固定的 Google 子模块也已核验。三份原文进入版本及摘要锁定的补充声明，打包时按精确版本复制。
