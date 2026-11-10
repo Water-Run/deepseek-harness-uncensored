@@ -36,7 +36,7 @@ import type {
 import type { SecurityProxyEgressLease } from '@deepseek-ai/dsh-security-proxy'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { CaptureStore, prepareBody, redactHeaders, type CapturedExchangeInput } from './capture.ts'
-import { SessionChainProxy } from './chain.ts'
+import { SessionChainProxy, type ChainOptions } from './chain.ts'
 import { applyPatch, assertUpstream, SettingsStore, type StoredSettings } from './settings.ts'
 import {
   connectThrough,
@@ -124,7 +124,12 @@ const COVERAGE: readonly SecurityProxyCoverage[] = [
 /** One conversation/tool listener retains its traffic attribution for its entire lifetime. */
 interface ChainRecord {
   readonly sessionId: SessionId
-  readonly proxy: Promise<SessionChainProxy>
+  readonly route: Promise<ChainRoute>
+}
+
+interface ChainRoute {
+  readonly proxy: SessionChainProxy
+  readonly certificate?: string
 }
 
 interface EgressRecord {
@@ -416,7 +421,7 @@ export class SecurityProxyEngine {
     return this.execute(async (signal) => {
       await this.ensureTransport()
       signal.throwIfAborted()
-      const proxy = await this.chainFor(route.sessionId, tool)
+      const { proxy, certificate } = await this.chainFor(route.sessionId, tool)
       signal.throwIfAborted()
       const url = `http://127.0.0.1:${String(proxy.port)}`
       return {
@@ -430,6 +435,7 @@ export class SecurityProxyEngine {
         // specially; a target on loopback is still a target of this engagement.
         NO_PROXY: '',
         no_proxy: '',
+        ...certificate === undefined ? {} : { DSH_SECURITY_PROXY_CA_PEM: certificate },
       }
     })
   }
@@ -570,7 +576,7 @@ export class SecurityProxyEngine {
     for (const [key, record] of this.chains) {
       if (record.sessionId !== sessionId) continue
       this.chains.delete(key)
-      const closing = record.proxy.then(proxy => proxy.close(), () => undefined)
+      const closing = record.route.then(({ proxy }) => proxy.close(), () => undefined)
       this.retiringChains.add(closing)
       void closing.then(() => { this.retiringChains.delete(closing) }, (error: unknown) => {
         this.retiringChains.delete(closing)
@@ -653,8 +659,8 @@ export class SecurityProxyEngine {
     const records = [...this.chains.values()]
     this.chains.clear()
     const results = await Promise.allSettled([...records.map(async (record) => {
-      const proxy = await record.proxy.catch(() => undefined)
-      await proxy?.close()
+      const route = await record.route.catch(() => undefined)
+      await route?.proxy.close()
     }), ...this.retiringChains])
     const failures: unknown[] = []
     for (const result of results) if (result.status === 'rejected') failures.push(result.reason)
@@ -669,8 +675,19 @@ export class SecurityProxyEngine {
     this.generation = new AbortController()
   }
 
+  /**
+   * Start a listener with the selected transport's optional inspection and public trust material.
+   * @param options - Listener ownership, forwarding, and capture callbacks.
+   * @param signal - Current provider and transport generation lifetime.
+   * @returns The listener and optional PEM certificate for its own clients.
+   */
+  protected async startChain(options: ChainOptions, signal: AbortSignal): Promise<ChainRoute> {
+    signal.throwIfAborted()
+    return { proxy: await SessionChainProxy.start(options) }
+  }
+
   /** Return the conversation/tool listener, starting it on first use. */
-  private async chainFor(sessionId: SessionId, tool: string): Promise<SessionChainProxy> {
+  private async chainFor(sessionId: SessionId, tool: string): Promise<ChainRoute> {
     if (this.closing) throw new UpstreamFailure('unknown', 'the security proxy is closing')
     const key = JSON.stringify([sessionId, tool])
     const existing = this.chains.get(key)
@@ -689,7 +706,7 @@ export class SecurityProxyEngine {
     }
     const record: ChainRecord = {
       sessionId,
-      proxy: SessionChainProxy.start({
+      route: this.startChain({
         sessionId,
         tool: () => tool,
         signal: () => this.executionSignal(),
@@ -707,17 +724,17 @@ export class SecurityProxyEngine {
         paused: () => this.options.store.value.capturePaused,
         timeoutMs: this.options.requestTimeoutMs,
         ...this.options.now === undefined ? {} : { now: this.options.now },
-      }),
+      }, this.executionSignal()),
     }
     this.chains.set(key, record)
-    record.proxy.catch(() => { if (this.chains.get(key) === record) this.chains.delete(key) })
+    record.route.catch(() => { if (this.chains.get(key) === record) this.chains.delete(key) })
     return this.resolveChain(key, record)
   }
 
-  private async resolveChain(key: string, record: ChainRecord): Promise<SessionChainProxy> {
-    const proxy = await record.proxy
+  private async resolveChain(key: string, record: ChainRecord): Promise<ChainRoute> {
+    const route = await record.route
     if (this.chains.get(key) !== record) throw new UpstreamFailure('unknown', 'This proxy route was withdrawn.')
-    return proxy
+    return route
   }
 
   /** Follow same-origin redirects, read a capped body, and record the exchange. */

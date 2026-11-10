@@ -115,7 +115,8 @@ export abstract class SecurityProxyRuntime extends Service {
    * here mutates the Host process or the operating system.
    * @param agent - the Agent executing the tool call.
    * @param tool - the model-facing tool name, used for traffic attribution.
-   * @returns the overlay for one spawn, or `undefined` when not covered.
+   * @returns The overlay for one spawn, or `undefined` when not covered. An inspected listener may supply its public certificate as
+   * `DSH_SECURITY_PROXY_CA_PEM` for explicit client trust.
    */
   abstract environment(agent: Agent | undefined, tool: string): Promise<Readonly<Record<string, string>> | undefined>
 

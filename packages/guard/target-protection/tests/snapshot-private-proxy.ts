@@ -3,7 +3,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import Credentials from '@deepseek-ai/dsh-credentials-local'
 import { brandString } from '@deepseek-ai/dsh-brand'
-import { createServer, type Server } from 'node:http'
+import { createServer, request, type Server } from 'node:http'
 import { connect } from 'node:net'
 import type { Duplex } from 'node:stream'
 import { mkdtemp, rm } from 'node:fs/promises'
@@ -72,7 +72,8 @@ export async function apply(ctx: Context): Promise<void> {
       await policy.targetProtection.configure({ mainlandEnabled: true, rules: [{ ...rule, environment }] }, before.revision)
     }
     await configure('test')
-    const proxy = await ctx.plugin(ProtectedProxy, { path: join(root, 'proxy.json'), testHost: '127.0.0.1', testPort: port })
+    const proxy = await ctx.plugin(ProtectedProxy, { path: join(root, 'proxy.json'), testHost: '127.0.0.1', testPort: port,
+      httpsInspection: { tools: ['verify_production_proxy'] } })
     stopProviders = async () => { await proxy.dispose(); await protection.dispose() }
     await policy.inject(['securityProxy'], async (active) => {
       assert.equal((await active.securityProxy.configure({ enabled: true, host: '127.0.0.1', port: proxyPort })).status, 'ready')
@@ -118,6 +119,17 @@ export async function apply(ctx: Context): Promise<void> {
           const before = upstreamConnections
           await configure('production')
           await assert.rejects(active.securityProxy.fetchTarget(exec.agent, `http://127.0.0.1:${port}/`, exec.signal), { code: 'TARGET_FULLY_PROTECTED' })
+          const environment = await active.securityProxy.environment(exec.agent, 'verify_production_proxy')
+          assert.ok(environment?.HTTPS_PROXY && environment.DSH_SECURITY_PROXY_CA_PEM)
+          const relay = new URL(environment.HTTPS_PROXY)
+          const status = await new Promise<number | undefined>((resolve, reject) => {
+            const call = request({ host: relay.hostname, port: Number(relay.port), method: 'CONNECT', path: `127.0.0.1:${port}`,
+              signal: AbortSignal.any([exec.signal, AbortSignal.timeout(5_000)]) })
+            call.once('error', reject)
+            call.once('connect', (response, socket) => { socket.destroy(); resolve(response.statusCode) })
+            call.end()
+          })
+          assert.equal(status, 403)
           assert.equal(requests, 2); assert.equal(upstreamConnections, before)
           return 'Production protection refused the request before any new upstream or target connection.'
         },

@@ -3137,7 +3137,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         signature: 'abstract environment(agent: Agent | undefined, tool: string): Promise<Readonly<Record<string, string>> | undefined>',
         description: 'Environment entries a child process needs to send its traffic through this proxy. The caller merges them into that one execution\'s environment; nothing here mutates the Host process or the operating system.',
         parameters: [{ name: 'agent', description: 'the Agent executing the tool call.' }, { name: 'tool', description: 'the model-facing tool name, used for traffic attribution.' }],
-        returns: 'the overlay for one spawn, or `undefined` when not covered.',
+        returns: 'The overlay for one spawn, or `undefined` when not covered. An inspected listener may supply its public certificate as `DSH_SECURITY_PROXY_CA_PEM` for explicit client trust.',
       },
       {
         signature: 'abstract openEgress( agent: Agent | undefined, tool: string, stop: () => Promise<void>, signal: AbortSignal, admission?: AbortSignal, ): Promise<SecurityProxyEgressLease | undefined>',

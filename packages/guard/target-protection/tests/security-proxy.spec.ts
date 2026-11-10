@@ -1,7 +1,9 @@
 /** Guarded proxy execution against real listeners and a real Loader composition. @module */
 import { createServer, request as httpRequest, type IncomingMessage, type ServerResponse, type Server } from 'node:http'
+import { createServer as createSecureServer, type ServerOptions as SecureServerOptions } from 'node:https'
 import { connect, type AddressInfo } from 'node:net'
 import type { Duplex } from 'node:stream'
+import * as tls from 'node:tls'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -19,6 +21,7 @@ import { fileURLToPath } from 'node:url'
 import WebRuntime from '@deepseek-ai/dsh-web'
 import * as Http from '@deepseek-ai/dsh-web-fetch-http'
 import * as ProxyHost from '@deepseek-ai/dsh-security-proxy-local'
+import { generate } from 'selfsigned'
 import { afterEach, expect, it, onTestFinished, vi } from 'vitest'
 import TargetProtection, { TargetStore } from '../src/index.ts'
 import * as ProtectedProxy from '../src/security-proxy.ts'
@@ -39,7 +42,7 @@ function production(overrides: Partial<TargetRule> = {}): TargetRule {
     environment: 'production', protection: 'full', match: 'host', address: 'origin.test', ...overrides }
 }
 
-async function harness(privateTarget = false, audit = false) {
+async function harness(privateTarget = false, audit = false, tlsOptions?: SecureServerOptions) {
   const root = await mkdtemp(join(tmpdir(), 'dshu-guarded-proxy-'))
   const ctx = new Context()
   const unblock: (() => void)[] = []
@@ -89,9 +92,10 @@ async function harness(privateTarget = false, audit = false) {
     response.writeHead(200, { 'content-type': 'text/plain' })
     response.end(body || 'guarded fixture')
   }
-  const target = createServer((request, response) => {
+  const dispatch = (request: IncomingMessage, response: ServerResponse) => {
     void handle(request, response).catch((error: unknown) => { failed.push(error); response.destroy() })
-  })
+  }
+  const target = tlsOptions === undefined ? createServer(dispatch) : createSecureServer(tlsOptions, dispatch)
   servers.push(target)
   target.on('connection', (socket) => { targetConnections++; own(socket) })
   await new Promise<void>((resolve) => { target.listen(0, '127.0.0.1', resolve) })
@@ -126,6 +130,7 @@ async function harness(privateTarget = false, audit = false) {
   }
   let config = await readFile(new URL('./fixtures/proxy.cordis.yml', import.meta.url), 'utf8')
   for (const [key, value] of Object.entries(replacements)) config = config.replace(key, JSON.stringify(value))
+  config = config.replace('__INSPECTION__', tlsOptions === undefined ? 'null' : '{ tools: [fixture] }')
   const path = join(root, 'cordis.yml')
   await writeFile(path, config)
   await ctx.plugin(Loader)
@@ -188,7 +193,7 @@ function throughTunnel(port: number, authority: string, payload = ''): Promise<s
 }
 
 async function processTraffic(
-  environment: Readonly<Record<string, string>> | undefined, mode: 'http' | 'connect', target: string,
+  environment: Readonly<Record<string, string>> | undefined, mode: 'http' | 'connect' | 'https', target: string,
 ): Promise<unknown> {
   if (environment?.HTTP_PROXY === undefined) throw new Error('Missing issued fixture route')
   const fixture = fileURLToPath(new URL('./fixtures/proxy-traffic.mjs', import.meta.url))
@@ -198,6 +203,37 @@ async function processTraffic(
   const result: unknown = JSON.parse(stdout)
   return result
 }
+
+it.skipIf(typeof tls.setDefaultCACertificates !== 'function')('inspects HTTPS only for the selected tool and preserves origin verification', async () => {
+  const material = await generate([{ name: 'commonName', value: 'origin.test' }], {
+    keyType: 'ec', algorithm: 'sha256', extensions: [{ name: 'subjectAltName', altNames: [{ type: 2, value: 'origin.test' }] }],
+  })
+  const original = tls.getCACertificates('default')
+  onTestFinished(() => { tls.setDefaultCACertificates(original) })
+  tls.setDefaultCACertificates([...original, material.cert])
+  const h = await harness(true, true, { key: material.private, cert: material.cert })
+  const rule = production({ environment: 'test', port: h.port })
+  await h.configure([rule], true)
+  const target = `https://origin.test:${h.port}/inspection?api_key=fixture-secret`
+  const inspected = await h.ctx.securityProxy.environment(h.agent, 'fixture')
+  const opaque = await h.ctx.securityProxy.environment(h.agent, 'other-fixture')
+  expect(inspected?.DSH_SECURITY_PROXY_CA_PEM).toMatch(/^-----BEGIN CERTIFICATE-----/u)
+  expect(opaque).not.toHaveProperty('DSH_SECURITY_PROXY_CA_PEM')
+  const before = h.counts()
+  expect(await processTraffic(opaque, 'https', target)).toMatchObject({ status: 403 })
+  expect(h.counts()).toEqual(before)
+  expect(await processTraffic(inspected, 'https', target)).toMatchObject({ status: 200, text: expect.stringContaining('guarded fixture') })
+  expect(h.tunnels).toEqual([`127.0.0.1:${h.port}`])
+  const flow = (await h.ctx.securityProxy.list({})).flows.find(row => row.kind === 'http' && row.status === 200)
+  expect(flow).toMatchObject({ sessionId: h.agent.id, tool: 'fixture', outcome: 'complete' })
+  expect(flow?.target).not.toContain('fixture-secret')
+  tls.setDefaultCACertificates(original)
+  expect(await processTraffic(inspected, 'https', target)).toMatchObject({ status: 502 })
+  const admitted = h.counts()
+  await h.configure([production({ port: h.port })])
+  expect(await processTraffic(inspected, 'https', target)).toMatchObject({ status: 403 })
+  expect(h.counts()).toEqual(admitted)
+})
 
 it('attributes concurrent external processes to their issued listeners and leaves Host checks unassigned', async () => {
   const h = await harness(true, true)

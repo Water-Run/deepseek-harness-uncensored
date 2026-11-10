@@ -22,3 +22,4 @@
     testPort: __PORT__
     requestTimeoutMs: 5000
     connectTimeoutMs: 2000
+    httpsInspection: __INSPECTION__

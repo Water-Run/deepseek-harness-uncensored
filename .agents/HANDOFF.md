@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## 网安独立代理可选 HTTPS 检查（2026-11-11）
+
+受控独立代理可通过 `httpsInspection.tools` 为指定工具启用 HTTP/1.1 TLS 检查，配置缺省时关闭。客户端显式读取 `DSH_SECURITY_PROXY_CA_PEM`，各监听器独享内存 CA，系统信任和源站验证沿用原设置。解密后的请求重新经过目标准入、固定 IP 转发和脱敏捕获。配置示例位于 `apps/cli/config/examples/target-protection.yml`，浏览器自动信任与其他应用协议仍待接入。
+
+Windows 66 项代理回归、十项构建检查及 `private-target-proxy` 无密钥回放通过。真实 HTTPS 测试包含源站证书负例、未选中工具及生产保护零新连接。回放在原有生产拒绝场景中增加检查，录制 JSONL 不变。日志前缀 `.dsh-build/security-proxy-https-`。
+
 ## 网安代理捕获权限与 URL 脱敏（2026-11-10）
 
 负对照复现委派对端读取实际回环捕获记录。现在 `securityProxy/list` 和 `securityProxy/detail` 复用所有者检查，委派对端仍可读 `securityProxy/get` 状态。已知流量 ID 和会话过滤均不扩大读取范围。迁移步骤见 [捕获访问升级说明](../docs/upgrade-guide/v0.2.2-rc.1/security-proxy-capture-access/guide.zh.md)。

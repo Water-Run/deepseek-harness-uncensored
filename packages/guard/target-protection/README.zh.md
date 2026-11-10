@@ -98,6 +98,8 @@ kind: "package-reference"
 
 用 `./security-proxy` 替换 `security-proxy-local`，并提供必需的凭据和目标保护服务。受控客户端、HTTP 转发及连接检查先校验原始目标，再通过字面 IP CONNECT 连接。转发保留原始 Host 和 TLS 身份，拒绝不匹配的 Host，并逐跳检查重定向。不透明 CONNECT 要求所有者将该字面 IP 和请求端口明确标记为测试服务器，生产规则仍检查目标 IP 与已知别名。隧道关闭前保留规则版本，所有者撤销规则时先关闭隧道，再保存新规则。保留受控普通 HTTP 提供方可让独立代理关闭时继续执行规则。
 
+在 `./security-proxy` 的 `httpsInspection.tools` 中列出工具名，可为这些工具启用 HTTP/1.1 检查。子进程通过 `DSH_SECURITY_PROXY_CA_PEM` 获得监听器的公开 PEM 证书，请把它传给工具中使用该代理的 TLS 客户端。每个对话和工具独享内存 CA，Host 仍按常规信任验证源站证书。解密后的请求在转发前重新校验目标，并进入现有脱敏 HTTP 捕获。`httpsInspection.maxCertificates` 和 `httpsInspection.certificateLifetimeMs` 限制监听器证书。过期或达到上限时，切换代理开关重建监听器，再重新打开客户端。桌面浏览器不会自动信任该 CA。
+
 装配 `./ssh` 替换普通 SSH 连接，要求 `credentials` 与 `targetProtection`，再使用 `fs-ssh`。它采用[显式直连 SSH 配置](../../ssh/ssh/README.zh.md#direct-connection)，校验原始名称和 DNS 别名，固定一个字面目标并验证服务器密钥。服务器完全保护在 TCP 建连前拒绝；审计允许结构化文件读取并拒绝变更。精确的私有测试端点可执行有界文件操作，不放宽匿名 HTTP 限制。文件调用在远端工作区重新解析两种路径表示并拒绝越界链接；完全权限也不能扩大该工作区。
 
 共享 Linux 主机可在该 SSH 绑定上设置 `protectedPaths: [{ path: /srv/production, protection: full }]`。每条规则要求路径为已存在的绝对路径。通过摘要核验的 helper 在连接就绪前安装规则，并在文件读取、目录条目返回、流式分段读取和变更生效时检查路径与文件身份。`audit` 允许读取并拒绝变更。[Linux 挂载坐标](https://www.kernel.org/doc/html/latest/filesystems/proc.html#proc-pid-mountinfo-information-about-mounts)可识别绑定挂载别名。精确文件规则也匹配设备与 inode。无法确认是否指向受保护目录的外部硬链接会被拒绝。开启远端路径保护后，任意进程和转发请求不可用。使用配套的 Linux helper，并由可信管理员管理其挂载命名空间和运行时。独立挂载的网络文件系统和外部进程的并发修改需要另行隔离。
@@ -196,7 +198,7 @@ Windows 源码和编译链已验证测试访问成功、生产零连接，以及
 <a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与后续工作
 
-仅覆盖明确装配的受控提供方。结构化文件删除和改名支持本地文件及匹配的 SSH helper。其他数据库协议、远端数据库资源映射、受限命令的默认装配以及浏览器/MCP/REA 原生执行仍未完成。部署方必须确保远端运行时可信，且位于 Agent 可写工作区之外。受控网安代理仅接受明确标记的测试 IP 不透明隧道。这类隧道记录元数据，无法验证应用名称或数据库身份。可选原生网关可检查 TLS 内的 HTTP/1.1。网安模式界面路由与 SSH 负载捕获仍需独立实现。普通匿名抓取仍拒绝私有网络。DNS 证据不能枚举共享某个 IP 的所有主机名，国家数据或 CONNECT 也不能证明实际转发位置。已绑定网安代理以外的审计归属仍未完成。
+仅覆盖明确装配的受控提供方。结构化文件删除和改名支持本地文件及匹配的 SSH helper。其他数据库协议、远端数据库资源映射、受限命令的默认装配以及浏览器/MCP/REA 原生执行仍未完成。部署方必须确保远端运行时可信，且位于 Agent 可写工作区之外。受控网安代理仅接受明确标记的测试 IP 不透明隧道。这类隧道记录元数据，无法验证应用名称或数据库身份。SSH 负载捕获仍需独立实现。普通匿名抓取仍拒绝私有网络。DNS 证据不能枚举共享某个 IP 的所有主机名，国家数据或 CONNECT 也不能证明实际转发位置。已绑定网安代理以外的审计归属仍未完成。
 
 <a id="dev-note"></a>
 ## 开发备注

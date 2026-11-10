@@ -33,6 +33,9 @@
       name: '@deepseek-ai/dsh-target-protection/security-proxy'
       config:
         path: !!js dshHomePath('storages', 'security-proxy.json')
+        # Only name tools whose clients explicitly trust DSH_SECURITY_PROXY_CA_PEM.
+        # httpsInspection:
+        #   tools: [pwsh, terminal_open]
     - id: target-protected-fs
       name: '@deepseek-ai/dsh-target-protection/fs'
     - id: target-protected-subprocess

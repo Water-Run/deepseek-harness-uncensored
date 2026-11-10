@@ -1,11 +1,13 @@
 /** Independent security proxy backed by a mandatory, retained target-rule owner. @module */
 import type { Context } from '@deepseek-ai/cordis'
+import schema from '@deepseek-ai/schemastery'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
 import { isIP } from 'node:net'
 import {
   Config as ProxyConfig, SecurityProxyEngine, mountSecurityProxy, proxyUrl, connectThrough,
 } from '@deepseek-ai/dsh-security-proxy-local'
-import type { EngineOptions, ProxyHttpRequest, ProxyDispatcher, Upstream, UpstreamTunnel } from '@deepseek-ai/dsh-security-proxy-local'
+import type { ChainOptions, EngineOptions, ProxyHttpRequest, ProxyDispatcher, Upstream, UpstreamTunnel } from '@deepseek-ai/dsh-security-proxy-local'
 import { requestPinnedViaProxy, validateFetchUrl } from '@deepseek-ai/dsh-web-fetch-http'
 import type { HttpFetchDestination, PinnedResponse, PublicAddress } from '@deepseek-ai/dsh-web-fetch-http'
 import { WebError } from '@deepseek-ai/dsh-web'
@@ -14,18 +16,28 @@ import type { TargetHttpResolution, TargetAuditExecution } from './index.ts'
 import type {} from './settings.ts'
 import { assertNetworkAllowed, authorizeGuardedHttp, guardedTunnelUrl } from './network-decision.ts'
 import { canonicalTargetHost, hasExactTestServer } from './rules.ts'
+import { createNativeHttps } from './native-https.ts'
 
 /** Cordis diagnostics name. */
 export const name = 'target-protected-security-proxy'
 /** Removing either dependency withdraws this proxy instead of restoring an unguarded one. */
 export const inject = ['credentials', 'targetProtection']
-/** Existing independent-proxy deployment settings. */
-export const Config = ProxyConfig
-/** Existing independent-proxy deployment configuration. */
-export type Config = ProxyConfig
+const inspectionSchema = schema.object({
+  tools: schema.array(schema.string().pattern(/^[a-zA-Z0-9_.:-]+$/u)).required(),
+  maxCertificates: schema.natural().min(1).max(4096).default(64),
+  certificateLifetimeMs: schema.natural().min(1000).max(MAX_TIMER_DELAY_MS).default(86400000),
+})
+
+/** Independent proxy settings with optional HTTP/1.1 inspection for named tools. */
+export const Config = schema.intersect([ProxyConfig, schema.object({
+  httpsInspection: schema.union([schema.const(undefined), schema.const(null), inspectionSchema]),
+})])
+/** Validated independent proxy deployment configuration. */
+export type Config = ReturnType<typeof Config>
 
 class ProtectedProxyEngine extends SecurityProxyEngine {
-  constructor(options: EngineOptions, private readonly ctx: Context, private readonly protection: TargetProtection) {
+  constructor(options: EngineOptions, private readonly ctx: Context, private readonly protection: TargetProtection,
+    private readonly inspection: NonNullable<Config['httpsInspection']> | undefined) {
     super(options)
   }
 
@@ -37,6 +49,23 @@ class ProtectedProxyEngine extends SecurityProxyEngine {
 
   protected override executionScope(sessionId: SessionId | undefined): TargetAuditExecution {
     return this.protection.bindAuditSession(sessionId)
+  }
+
+  protected override async startChain(options: ChainOptions, signal: AbortSignal) {
+    const inspection = this.inspection
+    if (inspection === undefined || !inspection.tools.includes(options.tool())) return super.startChain(options, signal)
+    const https = await createNativeHttps({
+      maxCertificates: inspection.maxCertificates,
+      certificateLifetimeMs: inspection.certificateLifetimeMs,
+      handshakeTimeoutMs: this.options.connectTimeoutMs,
+      requestTimeoutMs: this.options.requestTimeoutMs,
+    }, signal)
+    const route = await super.startChain({ ...options, inspectTunnel: async (host, port, requestSignal) => {
+      const bounded = AbortSignal.any([requestSignal, AbortSignal.timeout(this.options.connectTimeoutMs)])
+      await this.resolve(guardedTunnelUrl(host, port), bounded)
+      return https.prepare(host, port, bounded)
+    } }, signal)
+    return { ...route, certificate: https.certificate }
   }
 
   private async authorize(destination: HttpFetchDestination, signal: AbortSignal, resolution?: TargetHttpResolution): Promise<void> {
@@ -159,6 +188,6 @@ class ProtectedProxyEngine extends SecurityProxyEngine {
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
   const protection = ctx.targetProtection
-  await mountSecurityProxy(ctx, config, options => new ProtectedProxyEngine(options, ctx, protection))
+  await mountSecurityProxy(ctx, config, options => new ProtectedProxyEngine(options, ctx, protection, config.httpsInspection ?? undefined))
   ctx.provide('targetProtectedProxy', true)
 }
