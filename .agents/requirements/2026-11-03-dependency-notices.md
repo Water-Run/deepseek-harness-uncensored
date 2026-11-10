@@ -14,7 +14,9 @@ libvips 补入 Sharp 构建的第三方清单、libvips 8.18.7 的源码许可�
 
 Windows `.6` 的 `StdUtils.dll` 与作者 1.14 发行归档和 NSIS Resources 3.4.1 中的 Unicode DLL 逐字一致。作者单独发布的源码归档解压后，与同一二进制归档内的源码 tar 一致，内含 LGPL 文本及作者说明。源码归档及 ANSI、Unicode DLL 摘要固定在 `LICENSES/installer/stdutils-1.14.json`。[StdUtils 1.14 发行](https://github.com/lordmulder/stdutils/releases/tag/1.14)
 
-Windows 安装器构建会核对所用 StdUtils DLL 和源码归档，并嵌入 `StdUtils-1.14-sources.tbz2`。验收从外层 NSIS 读取归档与 DLL 并同暂存输入比对。此项补入对应源码原件，UAC 与 WinShell 的原始条款及整合发行义务继续核查。
+Windows 安装器构建会核对所用 StdUtils DLL 和源码归档，并嵌入 `StdUtils-1.14-sources.tbz2`。验收从外层 NSIS 读取归档与 DLL 并同暂存输入比对。
+
+`.6` 安装器的 `UAC.dll` 和 `WinShell.dll` 均与作者归档中的 Unicode 版本逐字一致，NSIS Resources 3.4.1 中的 ANSI 版本也分别匹配。UAC 0.2.4c 归档附有 zlib 条款，现随包携带 `UAC-0.2.4c-LICENSE.txt`，仅统一换行和文件末尾空白。打包与外层 NSIS 验收核对 DLL 和声明。WinShell 作者页标注 Freeware，归档只有两种 DLL，没有找到明确再分发条款，保留发行审计项。[UAC 作者归档](https://nsis.sourceforge.io/UAC_plug-in) · [WinShell 作者归档](https://nsis.sourceforge.io/WinShell_plug-in)
 
 校验 [Electron 44.7.0](https://github.com/electron/electron/releases/tag/v44.7.0) 的 Windows x64 和 Linux x64 分发归档。Windows `.6` 实装、Linux `.5` 的 deb 和 tar.gz 均保留与对应分发包逐字一致的 `LICENSE.electron.txt` 和 `LICENSES.chromium.html`。Windows 和 Linux 打包后的检查现会拒绝缺失、空文件或内容变动的声明。
 

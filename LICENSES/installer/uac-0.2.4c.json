@@ -1,0 +1,11 @@
+{
+  "version": "0.2.4c",
+  "source": "https://nsis.sourceforge.io/mediawiki/images/8/8f/UAC.zip",
+  "archiveSha256": "20e3192af5598568887c16d88de59a52c2ce4a26e42c5fb8bee8105dcbbd1760",
+  "license": "UAC-0.2.4c-LICENSE.txt",
+  "licenseSha256": "d773ae072eeb95cc5056b7338a5052c2ea4dc2cff6081710a2e83e157724ffb1",
+  "pluginSha256": {
+    "x86-ansi": "32dd7269abf5a0e5db888e307d9df313e87cef4f1b597965a9d8e00934658822",
+    "x86-unicode": "2f7f8fc05dc4fd0d5cda501b47e4433357e887bbfed7292c028d99c73b52dc08"
+  }
+}

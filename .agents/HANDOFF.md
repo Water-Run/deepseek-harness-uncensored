@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## Windows 安装器 UAC 与 WinShell 来源核验（2026-11-11）
+
+实际 `.6` 安装器中的 UAC 与 WinShell Unicode DLL 均与作者发布的归档逐字一致，NSIS Resources 中的 ANSI 版本也与各自作者归档一致。UAC 0.2.4c 的 zlib 条款仅统一换行和末尾空白后随包分发，构建与双层验收均核对 DLL 和许可文本。两份新编译的中英文测试 EXE 均提取到匹配原件的 UAC DLL 和声明，StdUtils 对应源码检查也通过。70 项定向测试、9 项静默目录替换与恢复以及 Host、Client 聚合检查通过。[UAC](https://nsis.sourceforge.io/UAC_plug-in)
+
+WinShell 作者页标注 Freeware，原 ZIP 只有两个 DLL，再分发条款仍待核查。原始归档、摘要与测试 EXE 读取回执见 `.dsh-build/installer-plugin-sources-20261111/`。[WinShell](https://nsis.sourceforge.io/WinShell_plug-in)
+
 ## Windows 安装器 StdUtils 对应源码（2026-11-11）
 
 校验 Windows `.6` 安装器摘要后，将其中的 `StdUtils.dll` 与作者 1.14 发行包和 NSIS Resources 3.4.1 对照，Unicode DLL 逐字一致。作者单独发布的源码归档解压后也与二进制发行包内嵌的源码 tar 逐字一致。源码原件包含 LGPL 文本和作者说明。[StdUtils 1.14](https://github.com/lordmulder/stdutils/releases/tag/1.14)

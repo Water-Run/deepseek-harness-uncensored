@@ -4,6 +4,7 @@ import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import stdUtils from '../../../LICENSES/installer/stdutils-1.14.json' with { type: 'json' }
+import uac from '../../../LICENSES/installer/uac-0.2.4c.json' with { type: 'json' }
 
 const require = createRequire(import.meta.url)
 const templates = join(dirname(require.resolve('app-builder-lib/package.json')), 'templates/nsis')
@@ -86,17 +87,22 @@ export function installWindowsDirectoryInstaller() {
     }
     const pluginArch = this.isUnicodeEnabled ? 'x86-unicode' : 'x86-ansi'
     const plugins = await getNsisPluginsPath(this.packager.config.toolsets?.nsis, this.options.customNsisResources)
-    const plugin = await readFile(join(plugins, pluginArch, 'StdUtils.dll'))
-    if (createHash('sha256').update(plugin).digest('hex') !== stdUtils.pluginSha256[pluginArch]) {
-      throw new Error(`Desktop NSIS toolset has an unreviewed StdUtils.dll for ${pluginArch}`)
+    const pinned = [
+      { plugin: 'StdUtils.dll', digests: stdUtils.pluginSha256, file: stdUtils.archive, sha256: stdUtils.archiveSha256 },
+      { plugin: 'UAC.dll', digests: uac.pluginSha256, file: uac.license, sha256: uac.licenseSha256 },
+    ]
+    for (const { plugin, digests, file, sha256 } of pinned) {
+      const binary = await readFile(join(plugins, pluginArch, plugin))
+      if (createHash('sha256').update(binary).digest('hex') !== digests[pluginArch]) {
+        throw new Error(`Desktop NSIS toolset has an unreviewed ${plugin} for ${pluginArch}`)
+      }
+      const supplement = await readFile(new URL(`../../../LICENSES/installer/${file}`, import.meta.url))
+      if (createHash('sha256').update(supplement).digest('hex') !== sha256) {
+        throw new Error(`Desktop NSIS supplement differs from the pinned release: ${file}`)
+      }
+      await writeFile(join(directory, file), supplement)
+      await writeFile(join(directory, plugin), binary)
     }
-    const sources = await readFile(new URL(`../../../LICENSES/installer/${stdUtils.archive}`, import.meta.url))
-    if (createHash('sha256').update(sources).digest('hex') !== stdUtils.archiveSha256) {
-      throw new Error('Desktop StdUtils source archive differs from the pinned release')
-    }
-    const sourceArchive = join(directory, stdUtils.archive)
-    await writeFile(sourceArchive, sources)
-    await writeFile(join(directory, 'StdUtils.dll'), plugin)
     let adapted = replaceOnce(source, '!include "installSection.nsh"', `!include "${section}"`)
     for (const helper of ['allowOnlyOneInstallerInstance.nsh', 'installUtil.nsh']) {
       const path = join(directory, helper)
@@ -111,7 +117,8 @@ export function installWindowsDirectoryInstaller() {
       `!define DSH_SEVENZIP_PATH "${tool}"`,
       `!define DSH_SEVENZIP_LICENSE_DIR "${directory}"`,
       `!define DSH_NSIS_COPYING "${notice}"`,
-      `!define DSH_STDUTILS_SOURCE "${sourceArchive}"`,
+      `!define DSH_STDUTILS_SOURCE "${join(directory, stdUtils.archive)}"`,
+      `!define DSH_UAC_LICENSE "${join(directory, uac.license)}"`,
       await compute.call(this, adapted, ...args),
     ].join('\n')
   }

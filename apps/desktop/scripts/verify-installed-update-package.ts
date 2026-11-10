@@ -11,6 +11,7 @@ import { resolveWindowsUpdatePublisher } from './windows-sign.mjs'
 import { verifyInstalledUpdatePackageContent } from './installed-update-package-content.ts'
 import { recordPackagingEvent } from './packaging-run.mjs'
 import stdUtils from '../../../LICENSES/installer/stdutils-1.14.json' with { type: 'json' }
+import uac from '../../../LICENSES/installer/uac-0.2.4c.json' with { type: 'json' }
 
 /**
  * Reject nonrelative archive names and link entries before extraction into a new directory.
@@ -35,10 +36,12 @@ export function validateInstalledUpdateArchivePaths(listing: string): readonly s
 
 const PAYLOAD_ARCHIVE = '$PLUGINSDIR/app-64.7z'
 const STDUTILS_DLL = '$PLUGINSDIR/StdUtils.dll'
+const UAC_DLL = '$PLUGINSDIR/UAC.dll'
 const INSTALLER_NOTICES = [
   ['nsis-installer-COPYING.txt', 'nsis-installer-COPYING.txt'],
   ['7zip-installer-LICENSE.txt', 'LICENSE.txt'],
   ['7zip-installer-COPYING.txt', 'COPYING'],
+  [uac.license, uac.license],
 ] as const
 
 /**
@@ -61,7 +64,7 @@ export async function extractInstalledUpdateArchive(
   const outerListing = await execute(['l', '-tNsis', '-slt', '-ba', '-sccUTF-8', '--', installer])
   await writeFile(join(record, 'nsis-list.txt'), outerListing.stdout, { flag: 'wx', flush: true })
   const outerEntries = validateInstalledUpdateArchivePaths(outerListing.stdout)
-  const required = [PAYLOAD_ARCHIVE, ...INSTALLER_NOTICES.map(([name]) => name), STDUTILS_DLL, stdUtils.archive]
+  const required = [PAYLOAD_ARCHIVE, ...INSTALLER_NOTICES.map(([name]) => name), STDUTILS_DLL, stdUtils.archive, UAC_DLL]
   for (const name of required) {
     if (!outerEntries.includes(name)) throw new Error(`installed update: missing NSIS entry ${name}`)
   }
@@ -88,6 +91,7 @@ export async function extractInstalledUpdateArchive(
   const installerNotices = await Promise.all(INSTALLER_NOTICES.map(([name, source]) => compareEntry(name, source)))
   const stdUtilsSource = await compareEntry(stdUtils.archive, stdUtils.archive)
   const stdUtilsBinary = await compareEntry(STDUTILS_DLL, 'StdUtils.dll')
+  const uacBinary = await compareEntry(UAC_DLL, 'UAC.dll')
 
   stage('archive-paths')
   const listing = await execute(['l', '-t7z', '-slt', '-ba', '-sccUTF-8', '--', inner])
@@ -99,7 +103,8 @@ export async function extractInstalledUpdateArchive(
   const extraction = await execute(['x', '-t7z', '-y', '-bd', '-bso0', '-bsp0', `-o${payload}`, '--', inner])
   await writeFile(join(record, 'extraction.log'), `${extraction.stdout}\n${extraction.stderr}`, { flag: 'wx', flush: true })
   return { payload, archiveEntries: entries.length, outerArchiveEntries: outerEntries.length, installerNotices,
-    stdUtils: { version: stdUtils.version, source: stdUtilsSource, binary: stdUtilsBinary } }
+    stdUtils: { version: stdUtils.version, source: stdUtilsSource, binary: stdUtilsBinary },
+    uac: { version: uac.version, binary: uacBinary } }
 }
 
 /**
