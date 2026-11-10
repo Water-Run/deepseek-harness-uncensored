@@ -84,8 +84,9 @@ function timeAxis(samples: readonly BalanceChartSample[], compress: boolean) {
  * @returns Empty, one dot, or a downsampled curve with positions for every original observation.
  */
 export function balanceChart(
-  samples: readonly BalanceChartSample[], { stepIncreases = false, compressFlat = false } = {},
+  samples: readonly BalanceChartSample[], options: { stepIncreases?: boolean; compressFlat?: boolean } = {},
 ): BalanceChartGeometry {
+  const { stepIncreases = false, compressFlat = false } = options
   if (samples.length === 0) return { kind: 'empty', points: '', positions: [] }
   const { positions, runs } = timeAxis(samples, compressFlat)
   const kept = new Set(downsample(samples, MAX_POINTS))
