@@ -40,7 +40,7 @@ node --import tsx apps/desktop/scripts/prepare-installed-update.ts runtime "<run
 node --import tsx apps/desktop/scripts/prepare-installed-update.ts application "<run.json>"
 ```
 
-将生成的 `bootstrap` 目录中的两个文件放在包内 `lib/` 同级，将包主入口设为 `qualification-bootstrap.mjs`。该入口在加载生产主程序前验证已安装应用的 ID 与版本。它将 Electron 用户/会话数据、Harness home 和日志放在操作系统应用数据目录下的 `dsh-update-qualification/<id>/`；两个版本使用相同路径。运行时复制器仅修改发布家族包版本和对应依赖引用，保留第三方版本，并重新校验两个副本清单和未修改的原始资源。其 `runtime-preparation/result.json` 记录哈希，并明确不宣称签名或副本版本的启动验收通过。这些合成版本属于测试物料，不是 npm 发布版本。
+将生成的 `bootstrap` 目录中的两个文件放在包内 `lib/` 同级，将包主入口设为 `qualification-bootstrap.mjs`。该入口在加载生产主程序前验证已安装应用的 ID 与版本。两个版本共用操作系统应用数据目录下 `dsh-update-qualification/<id>/` 的 Electron 用户与会话数据、Harness 主目录和日志。启动器将 `DSH_UNCENSORED_HOME` 和 `DSH_HOME` 都设为测试主目录。运行时复制器仅修改发布家族包版本和对应依赖引用，保留第三方版本，并重新校验两个副本清单和未修改的原始资源。其 `runtime-preparation/result.json` 记录哈希，并明确不宣称签名或副本版本的启动验收通过。这些合成版本属于测试物料，不是 npm 发布版本。
 
 `application` 命令将已构建的主程序/预加载模块、界面文件和准备好的启动入口复制到 `application/files`，并在 `application/result.json` 中记录 SHA-256。它不复制应用根目录的 `.env.windows`，也不冻结 `node_modules` 与构建工具。[验收打包配置](../../scripts/installed-update-builder.ts)校验该清单与选定的独立运行时，选用共享冻结文件和隔离包元数据，并保留常规安装器与签名钩子。其测试替换签名器，并通过固定版本构建器的配置校验；测试不生成安装器。另行授权的受监督构建仍须记录依赖/工具输入，并验证最终包内容及签名。
 

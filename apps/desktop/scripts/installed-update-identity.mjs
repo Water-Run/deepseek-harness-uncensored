@@ -22,6 +22,7 @@ export function configureInstalledUpdateIdentity(app, run, metadata, environment
   app.setPath('userData', paths.userData)
   app.setPath('sessionData', paths.userData)
   environment.DSH_HOME = paths.harnessHome
+  environment.DSH_UNCENSORED_HOME = paths.harnessHome
   environment.DSH_DESKTOP_UPDATE_JOURNAL_DIR = paths.journals
   return paths
 }

@@ -61,7 +61,7 @@ try {
     /^(?:path|systemroot|windir|comspec|pathext)$/iu.test(name)))
   const child = spawn(electron, [fileURLToPath(new URL('../tests/fixtures/workspace-updates.mjs', import.meta.url)), '--lang=zh-CN',
     ...(interactive ? ['--interactive'] : [])], {
-    cwd: root, env: { ...environment, DSH_HOME: join(root, 'home'), USERPROFILE: root, HOME: root,
+    cwd: root, env: { ...environment, DSH_HOME: join(root, 'home'), DSH_UNCENSORED_HOME: join(root, 'home'), USERPROFILE: root, HOME: root,
       TEMP: root, TMP: root, TMPDIR: root, DSH_WORKSPACE_UPDATE_ROOT: root, DSH_WORKSPACE_UPDATE_TOKEN: randomUUID(),
       DSH_DESKTOP_PRIMARY_RUNTIME_DIR: developmentRuntimeDirectory(), DSH_DESKTOP_OPEN_DEVTOOLS: '0' },
     // Hiding the GUI process suppresses its first window and can suspend renderer frame callbacks.

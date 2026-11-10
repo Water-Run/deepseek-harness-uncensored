@@ -35,21 +35,22 @@ export const app = {
 `)
       await writeFile(join(bootstrap, 'lib/main.js'), `
 import { app } from 'electron'
-console.log(JSON.stringify({ paths: app.paths, home: process.env.DSH_HOME, journals: process.env.DSH_DESKTOP_UPDATE_JOURNAL_DIR }))
+console.log(JSON.stringify({ paths: app.paths, home: process.env.DSH_HOME, uncensoredHome: process.env.DSH_UNCENSORED_HOME,
+  journals: process.env.DSH_DESKTOP_UPDATE_JOURNAL_DIR }))
 `)
       const results = []
       for (const version of versions) {
         await writeFile(join(bootstrap, 'package.json'), JSON.stringify({ type: 'module', version, dshDesktopAppId: run.appId }))
         const { stdout, stderr } = await promisify(execFile)(process.execPath, [join(bootstrap, 'qualification-bootstrap.mjs')], {
           windowsHide: true, env: { SystemRoot: process.env.SystemRoot, PATH: process.env.PATH,
-            DSH_HOME: 'must-not-be-used', DSH_DESKTOP_UPDATE_JOURNAL_DIR: 'must-not-be-used' },
+            DSH_HOME: 'official-home', DSH_UNCENSORED_HOME: 'installed-home', DSH_DESKTOP_UPDATE_JOURNAL_DIR: 'installed-journals' },
         })
         expect(stderr).toBe('')
         results.push(JSON.parse(stdout))
       }
       const root = join(directory, 'application-data/dsh-update-qualification', run.id)
       expect(results).toEqual([0, 1].map(() => ({ paths: { userData: join(root, 'user-data'), sessionData: join(root, 'user-data') },
-        home: join(root, 'dsh-home'), journals: join(root, 'journals') })))
+        home: join(root, 'dsh-home'), uncensoredHome: join(root, 'dsh-home'), journals: join(root, 'journals') })))
       expect((await readdir(root)).sort()).toEqual(['dsh-home', 'journals', 'user-data'])
       await expect(prepareInstalledUpdateBootstrap(join(run.root, 'run.json'))).rejects.toMatchObject({ code: 'EEXIST' })
     })

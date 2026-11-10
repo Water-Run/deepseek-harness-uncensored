@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## Desktop 开发与验收的 Harness 主目录隔离（2026-11-11）
+
+DSHU 主进程按 `DSH_UNCENSORED_HOME` 重算 Host 的 `DSH_HOME`。原开发与安装升级验收入口只写 `DSH_HOME`，可能被继承的已安装目录覆盖。开发入口改用 `DSH_DESKTOP_DEV_HOME` 显式选址，默认使用工作区的开发目录。Windows/Linux 启动、macOS 冷启动脚本和安装升级验收入口都将两个变量设为同一私有路径。工作区更新夹具也将启动路径与预置 profile 对齐。[迁移指南](../docs/upgrade-guide/v0.2.2-rc.1/desktop-development-home/guide.zh.md)
+
+Windows 165 项开发、验收启动与 Desktop 启动测试通过，1 项 POSIX 测试按平台跳过。用 WSL 和 Node 24.22.1 对生成的实际 POSIX 冷启动脚本执行同类检查，继承目录替换和带空格、引号的路径传递均通过。日志前缀 `.dsh-build/desktop-harness-home-` 及 `.dsh-build/desktop-development-home-cold-`。签名实装更新和 macOS Launch Services 仍需原生环境验收。
+
 ## Fontkit 2.0.4 的 Mac 编码数据归属（2026-11-11）
 
 Windows `.6` 实装的 Fontkit 源文件和四个打包入口与锁定 npm 归档一致，`src/encodings.js` 也与发布提交一致。八张 Mac 编码表的 1,024 个位置中，1,016 个与 Apple 原表一致。八个差异均是 `0xCA` 从 U+00A0 改为 U+0020。四个打包入口均包含同样的映射。六张表注明 Apple 版权，Gaelic 与 Inuit 两张注明字符集由 Michael Everson 开发。[Apple 映射资料](https://www.unicode.org/Public/MAPPINGS/VENDORS/APPLE/Readme.txt)

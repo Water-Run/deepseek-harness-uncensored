@@ -2,7 +2,7 @@
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 
 /** Workspace and runtime settings captured for Launch Services cold starts. */
 export interface DevelopmentAppOptions {
@@ -18,6 +18,16 @@ export interface DevelopmentAppOptions {
 }
 
 function quote(value: string): string { return `'${value.replaceAll("'", "'\\''")}'` }
+
+/**
+ * Resolve the development-only Harness home independently of installed profiles.
+ * @param directory - Workspace's Desktop development directory.
+ * @param environment - Launcher environment.
+ * @returns The absolute path passed to the Desktop and its Host.
+ */
+export function developmentHarnessHome(directory: string, environment: NodeJS.ProcessEnv): string {
+  return resolve(environment.DSH_DESKTOP_DEV_HOME || join(directory, 'home'))
+}
 
 /**
  * Prepare and register a disposable .app without changing the installed Electron package.
@@ -62,6 +72,7 @@ export function prepareDevelopmentApp(options: DevelopmentAppOptions): string {
 export function developmentLauncher(options: DevelopmentAppOptions, bundle: string): string {
   const environment = {
     DSH_HOME: options.home,
+    DSH_UNCENSORED_HOME: options.home,
     DSH_DESKTOP_DEV_APP: '1',
     DSH_DESKTOP_HOST_INSPECT_PORT: String(options.hostPort),
     DSH_DESKTOP_OPEN_DEVTOOLS: options.openDevtools,
