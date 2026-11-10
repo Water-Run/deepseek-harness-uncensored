@@ -7,7 +7,10 @@ import type { TargetAuditHistory } from './audit.ts'
 import type { CountryDatabaseStatus } from './country.ts'
 import type {} from './country-provider.ts'
 import type {} from './index.ts'
-import type { TargetPreferences, TargetSnapshot } from './types.ts'
+import type {} from './sqlite.ts'
+import type {} from './postgres.ts'
+import type {} from './mysql.ts'
+import type { TargetPreferences, TargetSnapshot, TargetSshCoverage } from './types.ts'
 
 export type { TargetAuditHistory, TargetAuditRecord, TargetAuditEntry, TargetAuditId } from './audit.ts'
 
@@ -47,7 +50,7 @@ export interface TargetProtectionSettingsState {
   country: CountryDatabaseStatus | null
   /** Mounted guarded routes. Older Hosts omit this information. */
   routes?: TargetProtectionRoutes
-  /** Local executor coverage. Older Hosts omit this information. */
+  /** Guarded executor coverage. Older Hosts omit this information. */
   execution?: TargetProtectionExecution
   /** Available only for a provider with a managed DB-IP cache. */
   countryUpdateAvailable?: true
@@ -62,10 +65,18 @@ export interface TargetProtectionRoutes {
 /** Mounted process policy, independent of whether any target rules are enabled. */
 export type TargetProtectedProcessMode = 'missing' | 'admission-only' | 'native-gateway' | 'native-offline'
 
-/** Local providers with mandatory target-rule checks. */
+/** Mounted execution providers and verified SSH connections with mandatory target-rule checks. */
 export interface TargetProtectionExecution {
   readonly files: boolean
   readonly processes: TargetProtectedProcessMode
+  /** Verified connections, absent on older Hosts. */
+  readonly ssh?: TargetSshCoverage
+  /** Loaded binding counts; null means the provider is absent. */
+  readonly databases?: {
+    readonly sqlite: number | null
+    readonly postgres: number | null
+    readonly mysql: number | null
+  }
 }
 
 /** Replace all rules only against the revision the owner edited. */
@@ -77,6 +88,7 @@ export interface TargetProtectionSettingsUpdate {
 const statusServices = new Set([
   'targetProtection', 'targetCountryData', 'targetProtectedHttp', 'targetProtectedProxy', 'securityProtection',
   'targetProtectedFiles', 'targetProtectedSubprocess',
+  'sqliteDatabase', 'postgresAudit', 'mysqlAudit',
 ])
 
 /** Connect durable rules and verified transport readiness to owner settings and Security entry. */
@@ -96,6 +108,7 @@ export default class TargetProtectionSettings extends TypertRemoteService {
     }
     ctx.on('target-protection/changed', changed)
     ctx.on('target-country/changed', changed)
+    ctx.on('target-protection/execution-changed', changed)
     ctx.on('internal/service', (name) => { if (statusServices.has(name)) changed() })
     ctx.provide('securityProtection', { read: () => this.readProtection() })
   }
@@ -115,7 +128,16 @@ export default class TargetProtectionSettings extends TypertRemoteService {
   }
 
   private execution(): TargetProtectionExecution {
-    return { files: this.ctx.get('targetProtectedFiles') === true, processes: this.ctx.get('targetProtectedSubprocess') ?? 'missing' }
+    return {
+      files: this.ctx.get('targetProtectedFiles') === true,
+      processes: this.ctx.get('targetProtectedSubprocess') ?? 'missing',
+      ssh: this.ctx.get('targetProtection')?.sshCoverage() ?? { connections: 0, pathProtectedConnections: 0 },
+      databases: {
+        sqlite: this.ctx.get('sqliteDatabase')?.names().length ?? null,
+        postgres: this.ctx.get('postgresAudit')?.names().length ?? null,
+        mysql: this.ctx.get('mysqlAudit')?.names().length ?? null,
+      },
+    }
   }
 
   private readCountry(): CountryDatabaseStatus | null {

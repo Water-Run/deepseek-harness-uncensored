@@ -19,7 +19,7 @@ import { resolveTargetDns, systemHostsFile, type TargetDnsResolution } from './d
 import { parseDnsServer } from './dns-transport.ts'
 import { canonicalLocalPath, resolveLocalPathIdentity, localPathContains, localIdentityPaths } from './file-identity.ts'
 import { decideLocalTarget, type LocalTargetOperation } from './file-rules.ts'
-import type { NetworkTarget, TargetDecision, TargetEffect, TargetPreferences, TargetSnapshot } from './types.ts'
+import type { NetworkTarget, TargetDecision, TargetEffect, TargetPreferences, TargetSnapshot, TargetSshCoverage } from './types.ts'
 import type { NativeFileConstraints } from './native-file-policy.ts'
 import { TargetAuditStore, type AuditSubject, type TargetAuditHistory, type TargetAuditRecord } from './audit.ts'
 
@@ -108,6 +108,7 @@ export default class TargetProtection extends Service {
   private generation = new AbortController()
   private readonly checking = new Set<Promise<unknown>>()
   private readonly nativeExecutions = new Set<{ stop(): Promise<void>; finished: Promise<boolean> }>()
+  private readonly sshConnections = new Set<{ pathRules: boolean }>()
   private updates: Promise<void> = Promise.resolve()
   private nativeTransition: 'owner' | 'source' | 'failed' | undefined
   private audit: TargetAuditStore | undefined
@@ -170,6 +171,32 @@ export default class TargetProtection extends Service {
   private registryPaths(): string[] {
     return [this.config.path, this.config.auditPath].filter(path => path !== '' && path !== ':memory:')
       .flatMap(path => [path, `${path}-wal`, `${path}-shm`, `${path}-journal`])
+  }
+
+  /**
+   * Retain one verified SSH connection in the owner's coverage summary.
+   * @param pathRules - Whether the helper accepted remote path protection.
+   * @returns Idempotent removal, owned by the connection and called when it stops accepting requests.
+   */
+  registerSshCoverage(pathRules: boolean): () => void {
+    this.lifetime.signal.throwIfAborted()
+    const connection = { pathRules }
+    const notify = (): void => {
+      try { this.auditOwner.ctx.emit('target-protection/execution-changed') }
+      catch (error) { this.auditOwner.ctx.logger.warn('An execution coverage observer failed.', error) }
+    }
+    this.sshConnections.add(connection)
+    notify()
+    return () => { if (this.sshConnections.delete(connection)) notify() }
+  }
+
+  /**
+   * Read verified SSH coverage retained by this policy owner.
+   * @returns Connection counts, including the subset with remote path rules.
+   */
+  sshCoverage(): TargetSshCoverage {
+    return { connections: this.sshConnections.size,
+      pathProtectedConnections: [...this.sshConnections].filter(connection => connection.pathRules).length }
   }
 
   private recordAudit(

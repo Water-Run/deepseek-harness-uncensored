@@ -7,6 +7,7 @@ import Web from '@deepseek-ai/dsh-web'
 import SandboxPolicy from '@deepseek-ai/dsh-sandbox-policy'
 import SessionProjections from '@deepseek-ai/dsh-session-projection'
 import { createServer } from 'node:http'
+import { DatabaseSync } from 'node:sqlite'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -15,6 +16,9 @@ import Protection from '../src/index.ts'
 import Settings from '../src/settings.ts'
 import Files from '../src/fs.ts'
 import Subprocess from '../src/subprocess.ts'
+import Sqlite from '../src/sqlite.ts'
+import Postgres from '../src/postgres.ts'
+import Mysql from '../src/mysql.ts'
 import * as Http from '../src/http.ts'
 import * as Proxy from '../src/security-proxy.ts'
 import Country from '../src/country-provider.ts'
@@ -62,13 +66,33 @@ it('exposes owner-only, revisioned rules and tracks the actual guarded providers
     const proxy = await ctx.plugin(Proxy, { path: join(root, 'proxy.json') })
     expect(owner.get().protection.state).toBe('disabled')
     const before = owner.get()
-    expect(before.execution).toEqual({ files: false, processes: 'missing' })
+    expect(before.execution).toEqual({ files: false, processes: 'missing',
+      ssh: { connections: 0, pathProtectedConnections: 0 }, databases: { sqlite: null, postgres: null, mysql: null } })
+    const binding = { name: 'owner-only', hostname: 'private.example.test', database: 'private_database',
+      username: 'private_user', passwordRef: 'DATABASE_PASSWORD' }
+    await expect(ctx.plugin(Postgres, { databases: [binding, binding] })).rejects.toThrow('unique')
+    expect(owner.get().execution?.databases?.postgres).toBeNull()
+    const observedPostgres: (number | null | undefined)[] = []
+    ctx.on('target-protection/status-changed', () => { observedPostgres.push(owner.get().execution?.databases?.postgres) })
+    const postgres = await ctx.plugin(Postgres, { databases: [binding] })
+    expect(observedPostgres.at(-1)).toBe(1)
+    const connectedRevision = owner.get().protection.revision
+    expect(connectedRevision).toBeGreaterThan(before.protection.revision)
+    const mysql = await ctx.plugin(Mysql, { databases: [{ ...binding, accountHost: '%' }] })
+    const sqlite = 'setAuthorizer' in DatabaseSync.prototype
+      ? await ctx.plugin(Sqlite, { databases: [{ name: 'owner-only', path: join(root, 'database.sqlite') }] }) : undefined
+    expect(owner.get().execution?.databases).toEqual({ sqlite: sqlite === undefined ? null : 1, postgres: 1, mysql: 1 })
+    expect(JSON.stringify(owner.get().execution)).not.toMatch(/private_|owner-only|DATABASE_PASSWORD/u)
+    await postgres.dispose(); await mysql.dispose(); await sqlite?.dispose()
+    expect(observedPostgres.at(-1)).toBeNull()
+    expect(owner.get().protection.revision).toBeGreaterThan(connectedRevision)
+    expect(owner.get().execution?.databases).toEqual({ sqlite: null, postgres: null, mysql: null })
     await ctx.plugin(SessionProjections)
     await ctx.plugin(SandboxPolicy, { mode: 'danger-full-access', workspaceRoot: root })
     const files = await ctx.plugin(Files, {})
     const subprocess = await ctx.plugin(Subprocess)
     const executors = owner.get()
-    expect(executors.execution).toEqual({ files: true, processes: 'admission-only' })
+    expect(executors.execution).toMatchObject({ files: true, processes: 'admission-only' })
     expect(executors.protection.revision).toBeGreaterThan(before.protection.revision)
     const preferences = { mainlandEnabled: true, rules: [{
       id: brandString<TargetRuleId>('b8888888-8888-4888-8888-888888888888'), name: 'protected listener', enabled: true,
@@ -90,7 +114,7 @@ it('exposes owner-only, revisioned rules and tracks the actual guarded providers
     expect(changed).toHaveBeenCalled()
     await files.dispose()
     await subprocess.dispose()
-    expect(owner.get().execution).toEqual({ files: false, processes: 'missing' })
+    expect(owner.get().execution).toMatchObject({ files: false, processes: 'missing' })
     expect(owner.get().protection.revision).toBeGreaterThan(updated.protection.revision)
     const now = vi.spyOn(Date, 'now').mockReturnValue(Date.parse(BUNDLED_COUNTRY_SOURCE.buildTime) + 86_400_000)
     try {

@@ -33,6 +33,8 @@ Admission audit starts collapsed and loads the latest 100 records when opened. F
 
 The local execution rows display the Host's mounted file provider and its command/terminal policy. Admission checks, native gateway egress and native execution with networking disabled have distinct labels. Native commands still check platform support and target rules when launched. Older Hosts that omit execution status show only their reported HTTP routes.
 
+SSH and database coverage is collapsed by default. SSH reports verified connections and connections with remote path rules; disconnect or revocation removes their count. SQLite, PostgreSQL and MySQL report configured binding counts separately from missing providers. Actual operations still check target, connection and access permissions. Older Hosts without these fields omit the group.
+
 The shell coverage row includes one-shot commands and persistent shell terminals. They require applications to honor proxy environment variables; captured HTTP and opaque HTTPS tunnels retain their distinct labels.
 
 Native desktop pages appear as Sidebar browser in the traffic list. Web iframes and attached external browsers do not use this proxy.

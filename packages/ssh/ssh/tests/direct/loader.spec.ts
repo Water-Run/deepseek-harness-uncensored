@@ -49,9 +49,11 @@ it.each([['full', false], ['audit', false], ['full', true], ['audit', true]] as 
       expect(h.connected()).toBe(0)
       if (proxy !== undefined) expect(proxy.connections()).toBe(0)
       expect(h.ctx.get('ssh')).toBeUndefined()
+      expect(h.ctx.targetProtection.sshCoverage().connections).toBe(0)
       return
     }
     await entry.fiber.await()
+    expect(h.ctx.targetProtection.sshCoverage().connections).toBe(1)
     if (proxy !== undefined) expect(proxy.requests.map(request => request.authority)).toEqual([`127.0.0.1:${h.config.port}`])
     expect(await h.ctx.ssh.request('fs.resolve', { path: '/fixture/workspace/readme' }, targetSchema)).toMatchInlineSnapshot(`
     {
@@ -62,7 +64,9 @@ it.each([['full', false], ['audit', false], ['full', true], ['audit', true]] as 
     const target = [...h.ctx.loader.entries()].find(entry => entry.options.id === 'target')
     if (target?.fiber === undefined) throw new Error('Fixture rule entry is missing')
     const stale = h.ctx.ssh
+    const coverage = h.ctx.targetProtection
     await target.fiber.dispose(); await h.ctx.loader.await()
+    expect(coverage.sshCoverage().connections).toBe(0)
     expect(h.ctx.get('ssh')).toBeUndefined()
     await expect(stale.request('fs.resolve', { path: '/fixture/workspace/readme' }, targetSchema)).rejects.toBeDefined()
   })

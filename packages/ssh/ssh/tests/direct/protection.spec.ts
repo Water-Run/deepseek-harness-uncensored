@@ -5,10 +5,11 @@ import { randomUUID } from 'node:crypto'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import TargetProtection from '@deepseek-ai/dsh-target-protection'
 import ProtectedSsh from '@deepseek-ai/dsh-target-protection/ssh'
+import TargetSettings from '@deepseek-ai/dsh-target-protection/settings'
 import type { TargetRule, TargetRuleId } from '@deepseek-ai/dsh-target-protection'
 import { targetSchema } from '../../src/schemas.ts'
 import { harness } from './fixture.ts'
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
 const remoteRoot = '/fixture/workspace'
@@ -60,11 +61,13 @@ it('requires the verified helper to accept configured production paths before pu
   }))).rejects.toMatchObject({ code: 'TARGET_IDENTITY_UNVERIFIED' })
   expect(fixture.requests).toContain('fs.protection')
   expect(fixture.ctx.get('ssh')).toBeUndefined()
+  expect(fixture.ctx.targetProtection.sshCoverage()).toEqual({ connections: 0, pathProtectedConnections: 0 })
 })
 
 it('blocks attempts to replace remote path protection or execute an arbitrary remote process', async () => {
   const fixture = await setup(true)
   await fixture.ctx.plugin(ProtectedSsh, { ...fixture.config, protectedPaths: [{ path: '/production', protection: 'full' }] })
+  expect(fixture.ctx.targetProtection.sshCoverage()).toEqual({ connections: 1, pathProtectedConnections: 1 })
   await expect(fixture.ctx.ssh.request('fs.protection', [], z.null())).rejects.toMatchObject({ code: 'TARGET_EXECUTION_UNCONFINED' })
   await expect(fixture.ctx.ssh.request('process.prepare', { argv: ['arbitrary'] }, z.unknown()))
     .rejects.toMatchObject({ code: 'TARGET_EXECUTION_UNCONFINED' })
@@ -80,8 +83,42 @@ it('full production protection makes no SSH connection and cannot be overridden 
     (error: unknown) => error instanceof Error && 'code' in error ? String(error.code) : 'unstructured-error')
   expect(outcome).toBe('TARGET_FULLY_PROTECTED')
   expect(h.connected()).toBe(0)
+  expect(h.ctx.targetProtection.sshCoverage()).toEqual({ connections: 0, pathProtectedConnections: 0 })
   expect(h.requests).toEqual([])
   expect(await h.contents()).toBe('preserve')
+})
+
+it('tracks isolated SSH connections independently and withdraws them on close or policy revocation', async () => {
+  const h = await setup()
+  await h.configure([h.rule({ environment: 'test' })])
+  const first = await h.ctx.plugin(ProtectedSsh, h.config)
+  const secondContext = h.ctx.isolate('ssh', Symbol('second guarded SSH'))
+  await secondContext.plugin(ProtectedSsh, h.config)
+  expect(h.ctx.targetProtection.sshCoverage()).toEqual({ connections: 2, pathProtectedConnections: 0 })
+  await first.dispose()
+  expect(h.ctx.targetProtection.sshCoverage()).toEqual({ connections: 1, pathProtectedConnections: 0 })
+  await h.configure([h.rule()])
+  expect(h.ctx.targetProtection.sshCoverage()).toEqual({ connections: 0, pathProtectedConnections: 0 })
+  await expect(secondContext.ssh.request('fs.readText', { target: fileTarget }, z.string())).rejects.toBeDefined()
+})
+
+it('withdraws SSH coverage when the peer disconnects', async () => {
+  const h = await setup()
+  await h.configure([h.rule({ environment: 'test' })])
+  await h.ctx.plugin(TargetSettings)
+  const changed = vi.fn()
+  h.ctx.on('target-protection/status-changed', changed)
+  const before = h.ctx.securityProtection.read()
+  await h.ctx.plugin(ProtectedSsh, h.config)
+  expect(h.ctx.targetProtection.sshCoverage().connections).toBe(1)
+  const connected = h.ctx.securityProtection.read()
+  expect(connected.revision).toBeGreaterThan(before.revision)
+  changed.mockClear()
+  await h.disconnect()
+  await expect.poll(() => h.ctx.targetProtection.sshCoverage().connections).toBe(0)
+  expect(changed).toHaveBeenCalled()
+  expect(h.ctx.securityProtection.read().revision).toBeGreaterThan(connected.revision)
+  await expect(h.ctx.ssh.request('fs.readText', { target: fileTarget }, z.string())).rejects.toBeDefined()
 })
 
 it('allows structured audit reads but refuses direct mutation and arbitrary process calls', async () => {

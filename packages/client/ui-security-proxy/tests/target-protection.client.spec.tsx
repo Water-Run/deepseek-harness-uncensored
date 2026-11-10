@@ -54,6 +54,19 @@ it('does not infer local executor coverage from an older Host response', async (
   expect(screen.queryByText(en['target.execution.processes'])).toBeNull()
 })
 
+it('shows verified SSH counts and configured database bindings in the expanded coverage list', async () => {
+  const value: TargetProtectionSettingsState = { ...snapshot(), execution: { files: true, processes: 'admission-only',
+    ssh: { connections: 2, pathProtectedConnections: 1 }, databases: { sqlite: 0, postgres: 1, mysql: null } } }
+  mount({ get: async () => ({ ok: true, value }), configure: vi.fn() })
+  const toggle = await screen.findByText(en['target.execution.more'])
+  fireEvent.click(toggle)
+  expect(screen.getByText('Verified connections · 2')).toBeTruthy()
+  expect(screen.getByText('Connections with remote path rules · 1')).toBeTruthy()
+  expect(screen.getByText('Configured bindings · 0')).toBeTruthy()
+  expect(screen.getByText('Configured bindings · 1')).toBeTruthy()
+  expect(screen.getByText(en['target.route.missing'])).toBeTruthy()
+})
+
 it('stages aliases with the original revision and preserves edits on a conflict', async () => {
   let revision = 4
   const configure = vi.fn<TargetSettingsRemote['configure']>(async () => ({

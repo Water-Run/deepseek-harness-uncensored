@@ -4560,6 +4560,18 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Root owner; the HTTP consumer requires this service and cannot fall back after its removal.',
     methods: [
       {
+        signature: 'registerSshCoverage(pathRules: boolean): () => void',
+        description: 'Retain one verified SSH connection in the owner\'s coverage summary.',
+        parameters: [{ name: 'pathRules', description: 'Whether the helper accepted remote path protection.' }],
+        returns: 'Idempotent removal, owned by the connection and called when it stops accepting requests.',
+      },
+      {
+        signature: 'sshCoverage(): TargetSshCoverage',
+        description: 'Read verified SSH coverage retained by this policy owner.',
+        parameters: [],
+        returns: 'Connection counts, including the subset with remote path rules.',
+      },
+      {
         signature: 'currentExecutionAgent(): Agent | undefined',
         description: 'Read a live initiating Agent for Host callbacks, including Worker message handlers. Explicit audit scopes can suppress inherited identity but cannot establish an Agent.',
         parameters: [],
@@ -6226,6 +6238,14 @@ export const EVENT_API: readonly EventApiEntry[] = [
     signature: '\'target-protection/changed\'(): void',
     summary: 'Notify status consumers after a rule revision is committed.',
     description: 'Notify status consumers after a rule revision is committed.',
+    parameters: [],
+  },
+  {
+    name: 'target-protection/execution-changed',
+    mode: 'emit',
+    signature: '\'target-protection/execution-changed\'(): void',
+    summary: 'Notify owner settings when live execution coverage changes.',
+    description: 'Notify owner settings when live execution coverage changes.',
     parameters: [],
   },
   {
@@ -10966,7 +10986,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'TargetProtectionExecution',
-    declaration: 'export interface TargetProtectionExecution {\n    readonly files: boolean;\n    readonly processes: TargetProtectedProcessMode;\n}',
+    declaration: 'export interface TargetProtectionExecution {\n    readonly files: boolean;\n    readonly processes: TargetProtectedProcessMode;\n    readonly ssh?: TargetSshCoverage;\n    readonly databases?: {\n        readonly sqlite: number | null;\n        readonly postgres: number | null;\n        readonly mysql: number | null;\n    };\n}',
   },
   {
     name: 'TargetProtectionRoutes',
@@ -10995,6 +11015,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'TargetSnapshot',
     declaration: 'export interface TargetSnapshot {\n    revision: number;\n    preferences: TargetPreferences;\n}',
+  },
+  {
+    name: 'TargetSshCoverage',
+    declaration: 'export interface TargetSshCoverage {\n    readonly connections: number;\n    readonly pathProtectedConnections: number;\n}',
   },
   {
     name: 'TeamId',

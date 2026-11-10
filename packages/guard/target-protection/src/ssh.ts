@@ -1,5 +1,6 @@
 /** Fixed SSH peer admission and workspace-bound structured file RPCs. @module */
-import { Context } from '@deepseek-ai/cordis'
+import { Context, Service } from '@deepseek-ai/cordis'
+import { addAbortListener } from 'node:events'
 import { DirectSshConnection, type Config as DirectConfig, type SshPeer } from '@deepseek-ai/dsh-ssh/direct'
 import schema from '@deepseek-ai/schemastery'
 import { credentialRef, isCredentialRefName } from '@deepseek-ai/dsh-credentials'
@@ -79,6 +80,7 @@ export default class ProtectedSshConnection extends DirectSshConnection {
   private readonly proxyCredentials: CredentialProvider
   private readonly protectedPaths: z.output<typeof remoteFileProtectionSchema>
   private peer: TargetConnectionResolution | undefined
+  private withdrawCoverage: (() => void) | undefined
 
   /** @param ctx - Owner providing credentials and target rules. @param config - Explicit endpoint and trusted helper. */
   constructor(ctx: Context, config: Config) {
@@ -88,6 +90,28 @@ export default class ProtectedSshConnection extends DirectSshConnection {
     this.proxy = proxy === undefined ? undefined : proxyValidation.parse(proxy)
     this.proxyCredentials = ctx.credentials
     this.protectedPaths = remoteFileProtectionSchema.parse(protectedPaths)
+  }
+
+  /** Publish coverage after peer and helper verification have completed. */
+  override async [Service.init](): Promise<void> {
+    await super[Service.init]()
+    const signal = this.executionSignal()
+    signal.throwIfAborted()
+    this.ctx.effect(() => {
+      const withdraw = this.protection.registerSshCoverage(this.protectedPaths.length > 0)
+      this.withdrawCoverage = withdraw
+      const aborted = addAbortListener(signal, withdraw)
+      return () => { aborted[Symbol.dispose](); withdraw() }
+    }, 'target-protected-ssh.coverage')
+  }
+
+  /**
+   * Withdraw reported coverage before closing the verified SSH connection.
+   * @returns Completion after the connection and its operations close.
+   */
+  override dispose(): Promise<void> {
+    this.withdrawCoverage?.()
+    return super.dispose()
   }
 
   protected override async configureHelper(peer: SshRpcPeer, signal: AbortSignal): Promise<void> {

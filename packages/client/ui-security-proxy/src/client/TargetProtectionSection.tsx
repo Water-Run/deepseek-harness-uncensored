@@ -1,6 +1,6 @@
 /** Owner target-rule settings in the existing Security mode panel. @module */
 import { useEffect, useId, useState } from 'react'
-import { Button, StateDot, Switch, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, DisclosureRow, IconDataOutlineMedium, StateDot, Switch, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { TargetProtectionSettingsUpdate } from '@deepseek-ai/dsh-target-protection/settings'
@@ -35,12 +35,15 @@ export function TargetProtectionSection({ modeId, useTargetSettings, load, save,
   const titleId = useId()
   const [draft, setDraft] = useState<Draft | null>(null)
   const [editor, setEditor] = useState<{ rule: TargetRule; existing: boolean; base: Draft } | null>(null)
+  const [coverageOpen, setCoverageOpen] = useState(false)
   useEffect(() => { if (modeId === 'security') load() }, [load, modeId])
   if (modeId !== 'security') return null
 
   const state = view.value
   const routes = state?.routes
   const execution = state?.execution
+  const databases = execution?.databases
+  const ssh = execution?.ssh
   const missingRoute = routes !== undefined && (!routes.webFetch || !routes.independentProxy)
   const preferences = draft?.preferences ?? state?.snapshot.preferences
   const connectionChanged = draft !== null && draft.generation !== view.generation
@@ -117,6 +120,27 @@ export function TargetProtectionSection({ modeId, useTargetSettings, load, save,
       {execution?.processes === 'admission-only' && <p className={shared.hint}>{t('target.execution.admissionHint')}</p>}
       {(execution?.processes === 'native-gateway' || execution?.processes === 'native-offline') &&
         <p className={shared.hint}>{t('target.execution.nativeHint')}</p>}
+      {(databases !== undefined || ssh !== undefined) && <DisclosureRow icon={<IconDataOutlineMedium size={16} />}
+        title={t('target.execution.more')} open={coverageOpen} expandable expandOnRowClick
+        onToggle={() => { setCoverageOpen(value => !value) }}>
+        <dl className={css.routes}>
+          {ssh !== undefined && <div className={shared.status}>
+            <dt>{t('target.execution.ssh')}</dt>
+            <dd><Tag>{ssh.connections === 0 ? t('target.execution.sshMissing')
+              : t('target.execution.sshReady', { count: ssh.connections })}</Tag></dd>
+          </div>}
+          {databases !== undefined && (['sqlite', 'postgres', 'mysql'] as const).map((engine) => {
+            const count = databases[engine]
+            return <div className={shared.status} key={engine}>
+              <dt>{t(`target.execution.${engine}`)}</dt>
+              <dd><Tag>{count === null ? t('target.route.missing') : t('target.execution.bindings', { count })}</Tag></dd>
+            </div>
+          })}
+        </dl>
+        {ssh !== undefined && ssh.pathProtectedConnections > 0 &&
+          <p className={shared.hint}>{t('target.execution.sshPaths', { count: ssh.pathProtectedConnections })}</p>}
+        <p className={shared.hint}>{t('target.execution.databaseHint')}</p>
+      </DisclosureRow>}
       {missingRoute && <p className={shared.hint} role="status">{t('target.routesRequired')}</p>}
       <div className={shared.status}>
         <span className={shared.muted}>{t('target.country')}</span>

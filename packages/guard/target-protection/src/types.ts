@@ -8,7 +8,18 @@ declare module '@deepseek-ai/cordis' {
      * @mode emit
      */
     'target-protection/status-changed'(): void
+    /**
+     * Notify owner settings when live execution coverage changes.
+     * @mode emit
+     */
+    'target-protection/execution-changed'(): void
   }
+}
+
+/** Live verified SSH connections retained by one target-policy owner. */
+export interface TargetSshCoverage {
+  readonly connections: number
+  readonly pathProtectedConnections: number
 }
 
 /** Stable owner-managed rule identity. */

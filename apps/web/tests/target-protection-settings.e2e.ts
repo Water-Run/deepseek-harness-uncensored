@@ -14,6 +14,41 @@ const patch = fileURLToPath(new URL('../../cli/config/examples/target-protection
 const cliManifest = fileURLToPath(new URL('../../cli/package.json', import.meta.url))
 const picker = fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url))
 
+it('shows configured database counts and unready SSH in expanded narrow coverage', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dshu-database-settings-'))
+  try {
+    const bindings = join(root, 'bindings.yml')
+    const database = { name: 'fixture', hostname: 'database.invalid', database: 'fixture', username: 'fixture', passwordRef: 'FIXTURE_PASSWORD' }
+    await writeFile(bindings, JSON.stringify([{ insert: [
+      { id: 'sqlite-status', name: '@deepseek-ai/dsh-target-protection/sqlite', config: {
+        databases: [{ name: 'fixture', path: join(root, 'fixture.sqlite') }],
+      } },
+      { id: 'postgres-status', name: '@deepseek-ai/dsh-target-protection/postgres', config: { databases: [database] } },
+      { id: 'mysql-status', name: '@deepseek-ai/dsh-target-protection/mysql', config: { databases: [{ ...database, accountHost: '%' }] } },
+    ] }]))
+    const scaffold = await launchWebScaffold({ extraOverlayPath: [patch, bindings, picker], extraInstallAnchors: [cliManifest] })
+    try {
+      const browser = await chromium.launch()
+      try {
+        const page = await newEnglishPage(browser)
+        await page.goto(scaffold.authenticatedUrl)
+        await openSettings(page, 'en')
+        const settings = page.getByRole('dialog', { name: 'Settings' })
+        await settings.getByRole('button', { name: 'Modes', exact: true }).click()
+        await settings.getByRole('button', { name: 'Modes with configuration' }).click()
+        await page.getByRole('menuitem', { name: /^Security/ }).click()
+        const target = settings.getByRole('region', { name: 'Target protection', exact: true })
+        await target.getByText('SSH and databases', { exact: true }).click()
+        await target.getByText('Configured bindings · 1', { exact: true }).first().waitFor()
+        expect(await target.getByText('Configured bindings · 1', { exact: true }).count()).toBe(3)
+        await target.getByText('Not ready', { exact: true }).waitFor()
+        await page.setViewportSize({ width: 390, height: 844 })
+        expect(await target.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+      } finally { await browser.close() }
+    } finally { await scaffold.close() }
+  } finally { await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }) }
+})
+
 it.skipIf(process.platform !== 'win32').each(['gateway', 'disabled'] as const)(
   'reports the mounted native %s executor in narrow Security settings', async (network) => {
     const root = await mkdtemp(join(tmpdir(), 'dshu-native-settings-'))
@@ -142,6 +177,8 @@ it('reissues the real first-entry challenge as the optional protection changes',
       try {
         const page = await newEnglishPage(browser)
         await page.goto(scaffold.authenticatedUrl)
+        // First-use workspace preparation replaces the temporary sessionless hero.
+        await page.locator('[data-conversation-session]').waitFor()
         const modePicker = page.getByRole('button', { name: 'Default', exact: true })
           .and(page.getByTitle('Choose the agent preset for your new task'))
         await modePicker.click()

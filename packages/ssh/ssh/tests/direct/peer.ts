@@ -125,7 +125,13 @@ export async function createSshFixture(options: {
       passwordRef: reference, helper: '/fixture/helper.js', helperHash: hello.hash,
       launch: { kind: 'node-script', node: '/fixture/node' }, workspace: '/fixture/workspace',
       maxFrameBytes: 65536, maxPending: 16, requestTimeoutMs: 5000, leaseMs: 30000 } satisfies Config
-    return { ctx, root, config, credentials, requests, commands, close, connected: () => connected,
+    const disconnect = async (): Promise<void> => {
+      await Promise.all([...connections].map(connection => new Promise<void>((resolve) => {
+        connection.once('close', () => { resolve() })
+        connection.end()
+      })))
+    }
+    return { ctx, root, config, credentials, requests, commands, close, disconnect, connected: () => connected,
       execEntered: execEntered.promise, streamEntered: streamEntered.promise, peerClosed: peerClosed.promise }
   } catch (error) { await close(); throw error }
 }
