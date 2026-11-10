@@ -1,6 +1,13 @@
 /** Types for the pinned NSIS directory installation adapter. */
 
 /**
+ * Keep the pinned shortcut flow while using the native Windows shell helper.
+ * @param source Pinned electron-builder include/installer.nsh contents.
+ * @returns Shortcut macros that unpin before renaming an existing link.
+ */
+export function directoryInstallerShortcuts(source: string): string
+
+/**
  * Replace payload installation while preserving registration and uninstall UI.
  * @param source Pinned electron-builder installSection.nsh contents.
  * @returns Section with staged directory replacement.

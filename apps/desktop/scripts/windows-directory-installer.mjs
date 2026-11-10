@@ -15,6 +15,34 @@ function replaceOnce(source, before, after) {
   return source.replace(before, after)
 }
 
+function replaceWinShellCalls(source) {
+  const call = "System::Call '$PLUGINSDIR\\window-frame.dll::"
+  const result = source
+    .replaceAll(/WinShell::SetLnkAUMI ("[^"\r\n]+") ("[^"\r\n]+")/gu,
+      (_match, path, appId) => `${call}InstallerSetShortcutAppId(w ${path}, w ${appId}) i ?c'`)
+    .replaceAll(/WinShell::UninstShortcut ("[^"\r\n]+")/gu,
+      (_match, path) => `${call}InstallerUnpinShortcut(w ${path}) v ?c'`)
+    .replaceAll(/WinShell::UninstAppUserModelId ("[^"\r\n]+")/gu,
+      (_match, appId) => `${call}InstallerClearJumpList(w ${appId}) v ?c'`)
+  if (result.includes('WinShell::')) throw new Error('Desktop NSIS template contains an unhandled WinShell call')
+  return result
+}
+
+/**
+ * Keep the pinned shortcut flow while using the native Windows shell helper.
+ * @param {string} source - Pinned electron-builder include/installer.nsh contents.
+ * @returns {string} Shortcut macros that unpin before renaming an existing link.
+ */
+export function directoryInstallerShortcuts(source) {
+  let result = source.replaceAll('\r\n', '\n')
+  for (const [name, indent] of [['StartMenu', '      '], ['Desktop', '        ']]) {
+    const rename = `${indent}Rename $old${name}Link $new${name}Link`
+    const unpin = `${indent}WinShell::UninstShortcut "$old${name}Link"`
+    result = replaceOnce(result, `${rename}\n${unpin}`, `${unpin}\n${rename}`)
+  }
+  return replaceWinShellCalls(result)
+}
+
 /**
  * Preserve upstream registration and uninstall UI while replacing payload installation.
  * @param {string} source - Pinned electron-builder installSection.nsh contents.
@@ -70,7 +98,10 @@ export function installWindowsDirectoryInstaller() {
     const directory = join(this.outDir, '.nsis-directory-installer')
     await mkdir(directory, { recursive: true })
     const section = join(directory, 'installSection.nsh')
-    await writeFile(section, directoryInstallSection(await readFile(join(templates, 'installSection.nsh'), 'utf8')))
+    const shortcuts = join(directory, 'installer-shortcuts.nsh')
+    await writeFile(shortcuts, directoryInstallerShortcuts(await readFile(join(templates, 'include', 'installer.nsh'), 'utf8')))
+    await writeFile(section, replaceOnce(directoryInstallSection(await readFile(join(templates, 'installSection.nsh'), 'utf8')),
+      '!include installer.nsh', `!include "${shortcuts}"`))
     const sourceTool = await getPath7za()
     const tool = join(directory, '7za.exe')
     await copyFile(sourceTool, tool)
@@ -134,5 +165,7 @@ export function directoryUninstaller(source) {
   const start = normalized.indexOf('  Var /GLOBAL isDeleteAppData\n')
   const end = normalized.indexOf('  DeleteRegKey SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY}"', start)
   if (start < 0 || end < 0) throw new Error('NSIS uninstaller data removal template changed')
-  return replaceOnce(normalized.slice(0, start) + normalized.slice(end), 'RMDir /r $INSTDIR', 'RMDir /r "\\\\?\\$INSTDIR"')
+  return replaceWinShellCalls(
+    replaceOnce(normalized.slice(0, start) + normalized.slice(end), 'RMDir /r $INSTDIR', 'RMDir /r "\\\\?\\$INSTDIR"'),
+  )
 }

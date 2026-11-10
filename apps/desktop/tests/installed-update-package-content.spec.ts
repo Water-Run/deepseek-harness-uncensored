@@ -219,7 +219,7 @@ describe('installed update verification records', () => {
       expect(() => validateInstalledUpdateArchivePaths(listing)).toThrow()
     })
 
-  it.each(['success', 'signature', 'outer-unsafe', 'missing-notice', 'changed-notice', 'changed-stdutils', 'changed-uac',
+  it.each(['success', 'signature', 'outer-unsafe', 'winshell', 'missing-notice', 'changed-notice', 'changed-stdutils', 'changed-uac',
     'unsafe-path', 'extraction', 'content', 'changed-input'])(
     'retains %s evidence and stops later stages after failure', async (failure) => {
       await fixture(async ({ manifest, payload, version }) => {
@@ -264,6 +264,7 @@ describe('installed update verification records', () => {
             if (args[0] === 'l') {
               if (failure === 'missing-notice') entries.splice(entries.indexOf('UAC-0.2.4c-LICENSE.txt'), 1)
               if (failure === 'outer-unsafe') entries.push('../outside')
+              if (failure === 'winshell') entries.push('$PLUGINSDIR\\WinShell.dll')
               return { stdout: entries.map(path => `Path = ${path}\n`).join(''), stderr: '' }
             }
             const target = args.find(arg => arg.startsWith('-o'))!.slice(2)
@@ -298,12 +299,12 @@ describe('installed update verification records', () => {
         const result = JSON.parse(await readFile(join(record, 'result.json'), 'utf8')) as Record<string, unknown>
         expect(result).toMatchObject({ version, passed: failure === 'success', installerExecuted: false, published: false,
           manualChecks: ['installer-registration', 'startup', 'upgrade', 'data-retention'] })
-        const stage = { success: 'complete', signature: 'installer-signature', 'outer-unsafe': 'outer-archive-paths',
+        const stage = { success: 'complete', signature: 'installer-signature', 'outer-unsafe': 'outer-archive-paths', winshell: 'outer-archive-paths',
           'missing-notice': 'outer-archive-paths', 'changed-notice': 'installer-notices',
           'changed-stdutils': 'installer-notices', 'changed-uac': 'installer-notices', 'unsafe-path': 'archive-paths',
           extraction: 'extraction', content: 'payload-content', 'changed-input': 'unchanged-inputs' }[failure]
         expect(result.stage).toBe(stage)
-        const archiveCalls: Record<string, number> = { signature: 0, 'outer-unsafe': 1, 'missing-notice': 1,
+        const archiveCalls: Record<string, number> = { signature: 0, 'outer-unsafe': 1, winshell: 1, 'missing-notice': 1,
           'changed-notice': 2, 'changed-stdutils': 2, 'changed-uac': 2, 'unsafe-path': 3 }
         expect(external.archive).toHaveBeenCalledTimes(archiveCalls[failure] ?? 4)
         if (failure === 'success') {

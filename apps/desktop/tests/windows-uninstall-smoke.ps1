@@ -27,6 +27,12 @@ $userDataPath = Join-Path $roaming ($PackageName -replace '/', '\')
 $cachePath = Join-Path $local (($PackageName -replace '[/\\?<>:*|"]', '').ToLowerInvariant() + '-updater')
 $partitionFile = Join-Path $productDataPath 'Partitions\isolated\Local Storage\leveldb\fixture'
 $uninstaller = Join-Path $OutputDirectory 'uninstall-copy.exe'
+$entryKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\' + $RegistryKey
+$appId = 'com.deepseek.harness.installertest.n' + $RegistryKey.Replace('-', '')
+$shortcutPaths = @(
+    (Join-Path ([Environment]::GetFolderPath('Programs')) "$ProductName.lnk")
+    (Join-Path ([Environment]::GetFolderPath('DesktopDirectory')) "$ProductName.lnk")
+)
 $process = $null
 $previousHome = [Environment]::GetEnvironmentVariable('DSH_UNCENSORED_HOME', 'Process')
 $previousOfficialHome = [Environment]::GetEnvironmentVariable('DSH_HOME', 'Process')
@@ -49,10 +55,30 @@ function Wait-Exit {
     $script:process = $null
     # The NSIS uninstaller hands its section to a temporary copy; the launched process exits before removal completes.
     $timer = [Diagnostics.Stopwatch]::StartNew()
-    while (Test-Path -LiteralPath $installPath) {
-        if ($timer.Elapsed.TotalSeconds -gt 20) { throw 'Application directory remained' }
+    while ((Test-Path -LiteralPath $installPath) -or (Test-Path -LiteralPath $entryKey)) {
+        if ($timer.Elapsed.TotalSeconds -gt 20) { throw 'Application directory or uninstall entry remained' }
         Start-Sleep -Milliseconds 100
     }
+}
+function Assert-ShortcutIdentity {
+    $shell = New-Object -ComObject Shell.Application
+    try {
+        foreach ($path in $shortcutPaths) {
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Shortcut is missing: $path" }
+            $folder = $shell.NameSpace((Split-Path -Parent $path))
+            if ($null -eq $folder) { throw "Cannot open shortcut directory: $path" }
+            $item = $null
+            try {
+                $item = $folder.ParseName([IO.Path]::GetFileName($path))
+                if ($null -eq $item -or $item.ExtendedProperty('System.AppUserModel.ID') -cne $appId) {
+                    throw "Shortcut AppID differs: $path"
+                }
+            } finally {
+                if ($null -ne $item) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($item) }
+                [void][Runtime.InteropServices.Marshal]::ReleaseComObject($folder)
+            }
+        }
+    } finally { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($shell) }
 }
 function Assert-SeededFile([string]$Path, [string]$Content, [bool]$Retained, [string]$Case) {
     if ((Test-Path -LiteralPath $Path -PathType Leaf) -ne $Retained) {
@@ -70,8 +96,12 @@ try {
             if (-not $setup.WaitForExit(30000)) { $setup.Kill(); $setup.WaitForExit(); throw 'Setup timed out' }
             if ($setup.ExitCode -ne 0) { throw "Setup failed: $($setup.ExitCode)" }
         } finally { $setup.Dispose() }
-        $entry = Get-ItemProperty ('HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\' + $RegistryKey)
+        $entry = Get-ItemProperty -LiteralPath $entryKey
         if ($entry.InstallLocation.TrimEnd('\') -ne $installPath) { throw 'Uninstall entry lacks InstallLocation' }
+        $shortcutIdentityError = $null
+        if ($mode -eq 'silent') {
+            try { Assert-ShortcutIdentity } catch { $shortcutIdentityError = $_ }
+        }
         $installedNsisNoticePath = Join-Path $installPath $nsisNoticeName
         $installedNsisNotice = if ([IO.File]::Exists($installedNsisNoticePath)) {
             [Convert]::ToBase64String([IO.File]::ReadAllBytes($installedNsisNoticePath))
@@ -126,6 +156,13 @@ try {
             [InstallerCapture]::Click([InstallerCapture]::GetDlgItem($window, 1))
         }
         Wait-Exit
+        if ($null -ne $shortcutIdentityError) { throw $shortcutIdentityError }
+        if ($mode -eq 'silent') {
+            foreach ($path in $shortcutPaths) {
+                if (Test-Path -LiteralPath $path) { throw "Shortcut remained after uninstall: $path" }
+            }
+            Write-Output 'passed: installed shortcut AppIDs and removal'
+        }
         if ($installedNsisNotice -cne $expectedNsisNotice) { throw "Installed NSIS notice was missing or changed: $mode" }
         $retained = $mode -in @('interactive', 'silent', 'purge-lookalike', 'upgrade', 'replaced', 'home-alias', 'home-invalid')
         # An internal DSHU home protects its directory; unknown home mappings preserve all data candidates.

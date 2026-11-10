@@ -16,7 +16,9 @@ Windows `.6` 的 `StdUtils.dll` 与作者 1.14 发行归档和 NSIS Resources 3.
 
 Windows 安装器构建会核对所用 StdUtils DLL 和源码归档，并嵌入 `StdUtils-1.14-sources.tbz2`。验收从外层 NSIS 读取归档与 DLL 并同暂存输入比对。
 
-`.6` 安装器的 `UAC.dll` 和 `WinShell.dll` 均与作者归档中的 Unicode 版本逐字一致，NSIS Resources 3.4.1 中的 ANSI 版本也分别匹配。UAC 0.2.4c 归档附有 zlib 条款，现随包携带 `UAC-0.2.4c-LICENSE.txt`，仅统一换行和文件末尾空白。打包与外层 NSIS 验收核对 DLL 和声明。WinShell 作者页标注 Freeware，归档只有两种 DLL，没有找到明确再分发条款，保留发行审计项。[UAC 作者归档](https://nsis.sourceforge.io/UAC_plug-in) · [WinShell 作者归档](https://nsis.sourceforge.io/WinShell_plug-in)
+`.6` 安装器的 `UAC.dll` 和 `WinShell.dll` 均与作者归档中的 Unicode 版本逐字一致，NSIS Resources 3.4.1 中的 ANSI 版本也分别匹配。UAC 0.2.4c 归档附有 zlib 条款，现随包携带 `UAC-0.2.4c-LICENSE.txt`，仅统一换行和文件末尾空白。打包与外层 NSIS 验收核对 DLL 和声明。[UAC 作者归档](https://nsis.sourceforge.io/UAC_plug-in)
+
+WinShell 作者页标注 Freeware，归档只有两种 DLL，未找到明确再分发条款。当前安装器改用 Windows Shell API 写入快捷方式 AppID、取消固定旧链接并清理对应应用的跳转列表。新编译的中英文夹具均在安装时写入正确 AppID，卸载时移除两个快捷方式。双层检查确认安装器和内嵌卸载器均已移除 WinShell DLL。旧 `.6` 仍保留该组件，完整 Windows 包须用新源码重建。[WinShell 作者页](https://nsis.sourceforge.io/WinShell_plug-in) · [Windows AppUserModelID](https://learn.microsoft.com/en-us/windows/win32/properties/props-system-appusermodel-id)
 
 校验 [Electron 44.7.0](https://github.com/electron/electron/releases/tag/v44.7.0) 的 Windows x64 和 Linux x64 分发归档。Windows `.6` 实装、Linux `.5` 的 deb 和 tar.gz 均保留与对应分发包逐字一致的 `LICENSE.electron.txt` 和 `LICENSES.chromium.html`。Windows 和 Linux 打包后的检查现会拒绝缺失、空文件或内容变动的声明。
 

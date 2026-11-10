@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## Windows 安装器移除 WinShell（2026-11-11）
+
+使用现有原生辅助库调用 Windows Shell API 写快捷方式 AppID、取消固定旧链接并清理应用跳转列表。开始菜单与桌面链接沿用原安装流程，改名前先取消固定旧链接。归档验收拒绝 WinShell.dll。[Windows 快捷方式身份](https://learn.microsoft.com/en-us/windows/win32/properties/props-system-appusermodel-id) · [取消固定接口](https://learn.microsoft.com/en-us/windows/win32/api/shobjidl/nn-shobjidl-istartmenupinnedlist)
+
+中英文各 9 个静默场景通过，两个位置的真实快捷方式 AppID 及卸载后的移除均通过。新编译的中英文安装器和内嵌卸载器均无 WinShell.dll，旧 `.6` 作为正对照检出该组件。UAC、StdUtils 和原有声明继续通过双层归档核对。72 项定向测试通过。证据前缀为 `.dsh-build/winshell-removal-`。本轮测试使用独立安装器夹具，任务栏固定状态和跳转列表的可视验收及完整 Windows 检查包重建仍待完成。
+
 ## Windows 安装器 UAC 与 WinShell 来源核验（2026-11-11）
 
 实际 `.6` 安装器中的 UAC 与 WinShell Unicode DLL 均与作者发布的归档逐字一致，NSIS Resources 中的 ANSI 版本也与各自作者归档一致。UAC 0.2.4c 的 zlib 条款仅统一换行和末尾空白后随包分发，构建与双层验收均核对 DLL 和许可文本。两份新编译的中英文测试 EXE 均提取到匹配原件的 UAC DLL 和声明，StdUtils 对应源码检查也通过。70 项定向测试、9 项静默目录替换与恢复以及 Host、Client 聚合检查通过。[UAC](https://nsis.sourceforge.io/UAC_plug-in)

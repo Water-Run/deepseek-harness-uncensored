@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { expect, it } from 'vitest'
-import { directoryInstallerExits, directoryInstallSection, directoryUninstaller } from '../scripts/windows-directory-installer.mjs'
+import { directoryInstallerExits, directoryInstallerShortcuts, directoryInstallSection, directoryUninstaller } from '../scripts/windows-directory-installer.mjs'
 
 const require = createRequire(import.meta.url)
 const section = readFileSync(join(dirname(require.resolve('app-builder-lib/package.json')),
@@ -17,10 +17,27 @@ it('keeps data cleanup out of the upstream template while retaining application 
   expect(adapted).toContain('!insertmacro customUnInstall')
   expect(adapted).toContain('DeleteRegKey SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY}"')
   expect(adapted).toContain('DeleteRegKey SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY_2}"')
+  expect(adapted).toContain('InstallerClearJumpList(w "${APP_ID}")')
+  expect(adapted).toContain('InstallerUnpinShortcut(w "$oldDesktopLink")')
+  expect(adapted).toContain('InstallerUnpinShortcut(w "$oldStartMenuLink")')
+  expect(adapted).not.toContain('WinShell::')
   expect(directoryUninstaller(source.replaceAll('\n', '\r\n'))).toBe(adapted)
   expect(adapted).toContain('RMDir /r "\\\\?\\$INSTDIR"')
   expect(() => directoryUninstaller(source.replace('  Var /GLOBAL isDeleteAppData\n', ''))).toThrow('template changed')
   expect(() => directoryUninstaller(source.replace('  DeleteRegKey SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY}"', ''))).toThrow('template changed')
+})
+
+it('keeps the upstream shortcut targets and unpins their previous paths before renaming', () => {
+  const source = readFileSync(join(dirname(require.resolve('app-builder-lib/package.json')), 'templates/nsis/include/installer.nsh'), 'utf8')
+  const result = directoryInstallerShortcuts(source)
+  expect(result).not.toContain('WinShell::')
+  for (const name of ['StartMenu', 'Desktop']) {
+    expect(result).toContain('InstallerSetShortcutAppId(w "$new' + name + 'Link", w "${APP_ID}")')
+    const unpin = result.indexOf(`InstallerUnpinShortcut(w "$old${name}Link")`)
+    expect(unpin).toBeGreaterThanOrEqual(0)
+    expect(unpin).toBeLessThan(result.indexOf(`Rename $old${name}Link $new${name}Link`))
+  }
+  expect(() => directoryInstallerShortcuts(`${source}\nWinShell::Unrecognized`)).toThrow('unhandled WinShell')
 })
 
 it.each(['allowOnlyOneInstallerInstance.nsh', 'installUtil.nsh'])('cleans staged files before %s exits', (helper) => {

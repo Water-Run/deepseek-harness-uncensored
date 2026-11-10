@@ -64,6 +64,9 @@ export async function extractInstalledUpdateArchive(
   const outerListing = await execute(['l', '-tNsis', '-slt', '-ba', '-sccUTF-8', '--', installer])
   await writeFile(join(record, 'nsis-list.txt'), outerListing.stdout, { flag: 'wx', flush: true })
   const outerEntries = validateInstalledUpdateArchivePaths(outerListing.stdout)
+  if (outerEntries.some(name => name.split('/').at(-1)?.toLowerCase() === 'winshell.dll')) {
+    throw new Error('installed update: unreviewed WinShell.dll remains in the installer')
+  }
   const required = [PAYLOAD_ARCHIVE, ...INSTALLER_NOTICES.map(([name]) => name), STDUTILS_DLL, stdUtils.archive, UAC_DLL]
   for (const name of required) {
     if (!outerEntries.includes(name)) throw new Error(`installed update: missing NSIS entry ${name}`)

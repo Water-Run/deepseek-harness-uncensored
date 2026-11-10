@@ -8,7 +8,10 @@
 #include <commctrl.h>
 #include <dwmapi.h>
 #include <gdiplus.h>
+#include <propkey.h>
 #include <shellapi.h>
+#include <shobjidl.h>
+#include <wrl/client.h>
 #include <new>
 #include <algorithm>
 #include "progress.h"
@@ -18,6 +21,71 @@
 #include "uninstall-data.h"
 
 using namespace Gdiplus;
+
+namespace {
+using Microsoft::WRL::ComPtr;
+
+struct ShortcutCom {
+    const HRESULT result = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+    ~ShortcutCom() { if (SUCCEEDED(result)) CoUninitialize(); }
+    bool Ready() const { return SUCCEEDED(result) || result == RPC_E_CHANGED_MODE; }
+};
+}
+
+// Save the application identity on an existing shortcut without changing its target or arguments.
+extern "C" __declspec(dllexport) HRESULT __cdecl InstallerSetShortcutAppId(LPCWSTR path, LPCWSTR appId) {
+    if (!path || !*path || !appId || !*appId) return E_INVALIDARG;
+    const ShortcutCom com;
+    if (!com.Ready()) return com.result;
+    ComPtr<IShellLinkW> link;
+    HRESULT result = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(link.GetAddressOf()));
+    if (FAILED(result)) return result;
+    ComPtr<IPersistFile> file;
+    result = link.As(&file);
+    if (FAILED(result)) return result;
+    result = file->Load(path, STGM_READWRITE);
+    if (FAILED(result)) return result;
+    ComPtr<IPropertyStore> properties;
+    result = link.As(&properties);
+    if (FAILED(result)) return result;
+    PROPVARIANT value{};
+    value.vt = VT_LPWSTR;
+    value.pwszVal = const_cast<PWSTR>(appId);
+    result = properties->SetValue(PKEY_AppUserModel_ID, value);
+    if (FAILED(result)) return result;
+    result = properties->Commit();
+    if (FAILED(result)) return result;
+    return file->Save(path, TRUE);
+}
+
+// Ask the shell to unpin the installer's shortcut before it is renamed or deleted.
+extern "C" __declspec(dllexport) void __cdecl InstallerUnpinShortcut(LPCWSTR path) {
+    if (!path || !*path) return;
+    const ShortcutCom com;
+    if (!com.Ready()) return;
+    ComPtr<IShellItem> item;
+    if (FAILED(SHCreateItemFromParsingName(path, nullptr, IID_PPV_ARGS(item.GetAddressOf())))) return;
+    ComPtr<IStartMenuPinnedList> pins;
+    if (SUCCEEDED(CoCreateInstance(CLSID_StartMenuPin, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(pins.GetAddressOf())))) {
+        pins->RemoveFromList(item.Get());
+    }
+}
+
+// Remove the uninstalling application's automatic and custom Jump List entries independently.
+extern "C" __declspec(dllexport) void __cdecl InstallerClearJumpList(LPCWSTR appId) {
+    if (!appId || !*appId) return;
+    const ShortcutCom com;
+    if (!com.Ready()) return;
+    ComPtr<IApplicationDestinations> automatic;
+    if (SUCCEEDED(CoCreateInstance(CLSID_ApplicationDestinations, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(automatic.GetAddressOf())))
+        && SUCCEEDED(automatic->SetAppID(appId))) {
+        automatic->RemoveAllDestinations();
+    }
+    ComPtr<ICustomDestinationList> custom;
+    if (SUCCEEDED(CoCreateInstance(CLSID_DestinationList, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(custom.GetAddressOf())))) {
+        custom->DeleteList(appId);
+    }
+}
 
 // Returns whether the UTF-8 report was saved; failure still presents the original error unless silent.
 extern "C" __declspec(dllexport) int __cdecl InstallerReportDirectoryFailure(
