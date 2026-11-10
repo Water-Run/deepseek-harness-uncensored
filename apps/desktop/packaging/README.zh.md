@@ -151,6 +151,8 @@ pnpm run package:desktop:linux:x64:unsigned --build-version auto
 
 便携启动时，将完整的 tar.gz 解压到有权限的目录，再进入解压后的应用目录运行 `./deepseek-harness-uncensored`。将 `resources/` 保留在可执行文件旁。启动后使用独立的 DSHU 配置和资料。
 
+通过发行版的包管理器安装 deb，以便解析桌面运行库。deb 声明 ALSA 和 GBM，并兼容 time64 迁移前后的 ALSA 包名。
+
 Linux 未签名构建无需 dotenv 文件，并忽略继承的发布凭据。保留标准网络代理、构建工具变量、`DSH_DESKTOP_NPM_REGISTRY` 和 `DSH_DESKTOP_LINUX_PACK_CONCURRENCY`；并发数为正整数，默认四个 worker。构建省略更新源与发布记录，不上传产物。可选的 [Linux 模板](../.env.linux.example) 用于配置式打包，不由此本地检查命令读取。
 
 <a id="macos-release-signing"></a>

@@ -54,6 +54,9 @@ export interface DesktopElectronBuilderConfig {
     readonly category: 'Development'
     readonly target: readonly ['deb', 'tar.gz']
   }
+  readonly deb: {
+    readonly depends: readonly string[]
+  }
   readonly nsis: {
     readonly uninstallDisplayName: '${productName}'
     readonly include: string

@@ -265,6 +265,13 @@ export function createElectronBuilderConfig(
       category: 'Development',
       target: ['deb', 'tar.gz'],
     },
+    deb: {
+      // A custom list replaces electron-builder's defaults. Electron also links ALSA and GBM.
+      depends: [
+        'libgtk-3-0', 'libnotify4', 'libnss3', 'libxss1', 'libxtst6', 'xdg-utils',
+        'libatspi2.0-0', 'libuuid1', 'libsecret-1-0', 'libasound2t64 | libasound2', 'libgbm1',
+      ],
+    },
     nsis: {
       uninstallDisplayName: '${productName}',
       installerSidebar: join(buildPaths.root, 'installer-ui', 'uninstaller-sidebar.bmp'),
