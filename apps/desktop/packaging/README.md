@@ -149,6 +149,8 @@ pnpm run package:desktop:linux:x64:unsigned --build-version auto
 
 The command produces deb and tar.gz artifacts under `apps/desktop/.desktop-build/targets/linux-x64/unsigned-artifacts/runs/<run-id>/`. Add `--dir` to stop at `linux-unpacked`. The executable and desktop entry use `deepseek-harness-uncensored`; runtime, CLI and profile identities remain separate from official DSH. Directory smoke checks the packaged runtime, not installation, desktop integration, upgrades or removal.
 
+For a portable launch, extract the complete tar.gz into a directory you own and run `./deepseek-harness-uncensored` from the extracted application directory. Keep `resources/` beside the executable. The launch uses the separate DSHU profile.
+
 Unsigned Linux builds require no dotenv file and ignore inherited release credentials. Standard network proxies, build-tool variables, `DSH_DESKTOP_NPM_REGISTRY` and `DSH_DESKTOP_LINUX_PACK_CONCURRENCY` remain available; concurrency defaults to four positive-integer workers. The build omits update feeds and release records and does not publish artifacts. The optional [Linux template](../.env.linux.example) belongs to configured packaging, not this local inspection command.
 
 <a id="macos-release-signing"></a>

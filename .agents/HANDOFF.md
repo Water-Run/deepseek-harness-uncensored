@@ -6,7 +6,9 @@
 
 在 Ubuntu WSL2 中从 `.2` 原位升级到 `.3`，92 个隔离资料文件摘要一致，应用用同一份资料重新打开。安装的 `deepseek-harness-uncensored.desktop` 与实际 X11 窗口均使用 `deepseek-harness-uncensored` 类名。首次卸载前的快照检查遇到 WSL 空闲退出清理 `/tmp`。随后在同一次 WSL 调用中启动、快照、卸载并比对，96 个资料文件摘要一致，应用和启动链接已移除。
 
-产物位于 `.dsh-build/deliverables/`。deb 为 369,503,044 字节，SHA-256 `7f9c4a2aa9085493983f0060604973b4a056f9e6d224409602327365e9428ad2`。tar.gz 为 461,806,545 字节，SHA-256 `47cc722a908c3c3fff7f2c7a325ad63c728f5deec38fc1b0e911816c0455de37`，其中 ASAR 与实装摘要一致。交付回执为 `DSHU-20261110-linux-4b1e43-manifest.json`，构建批次 `2026-11-10T14-02-56.943Z-cdvA5V`。日志、截图和资料比对保存在 `.dsh-build/linux-desktop-*20261110*`。独立构建检出已清理。Linux 实包有 861 个 npm 包和 12 项待核查声明，便携归档独立启动、Wayland、其他发行版和正式发行仍列在 TODO。
+产物位于 `.dsh-build/deliverables/`。deb 为 369,503,044 字节，SHA-256 `7f9c4a2aa9085493983f0060604973b4a056f9e6d224409602327365e9428ad2`。tar.gz 为 461,806,545 字节，SHA-256 `47cc722a908c3c3fff7f2c7a325ad63c728f5deec38fc1b0e911816c0455de37`，其中 ASAR 与实装摘要一致。交付回执为 `DSHU-20261110-linux-4b1e43-manifest.json`，构建批次 `2026-11-10T14-02-56.943Z-cdvA5V`。日志、截图和资料比对保存在 `.dsh-build/linux-desktop-*20261110*`。独立构建检出已清理。Linux 实包有 861 个 npm 包和 12 项待核查声明，Wayland、其他发行版和正式发行仍列在 TODO。
+
+便携启动另从归档验收。确认系统安装目录与启动链接均已移除后，校验 tar.gz 并解压到含空格路径。Ubuntu WSL2 的 Xvfb 中通过原生窗口、独立资料目录、工作区、命令菜单、关于页和 `WM_CLASS` 检查，页面错误为零。临时解包目录已清理，结果为 `.dsh-build/linux-desktop-portable-4b1e43-20261110-result.json`。
 
 ## Windows `.4` 检查包与本机升级（2026-11-10）
 

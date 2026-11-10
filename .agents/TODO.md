@@ -6,7 +6,7 @@
 
 **本次交付**　`.4` 带来模式指南紧凑布局、插件工具栏底色修复、Office 解包加载和浏览器会话归属修复。包内界面通过 1440px 浅色与 390px 深色验收，实际安装器通过终端代理和 SSH 回环检查。安装器、摘要和回退信息见 [HANDOFF](HANDOFF.md)。
 
-**Linux 交付**　检查版 `0.1.0-test.20261110.linux.3` 已从干净源码生成 deb 与 tar.gz。Ubuntu WSL2 通过 deb 升级和卸载检查，分别核对 92 和 96 个隔离资料文件。实装 X11 桌面关联、四模式、REA 和 Office 通过。产物摘要见 [HANDOFF](HANDOFF.md)。
+**Linux 交付**　检查版 `0.1.0-test.20261110.linux.3` 已从干净源码生成 deb 与 tar.gz。Ubuntu WSL2 通过 deb 升级和卸载检查，分别核对 92 和 96 个隔离资料文件。实装 X11 桌面关联、四模式、REA 和 Office 通过，tar.gz 已在带空格的路径中解包并独立启动。产物摘要见 [HANDOFF](HANDOFF.md)。
 
 **剩余交付**　进阶保护后端、依赖许可、签名更新、跨平台和最终验收继续列在“进行中”。当前包包含 859 个 npm 包、18 份补充声明，7 项许可待核查。详见[许可明细](requirements/2026-11-03-dependency-notices.md)。
 
@@ -60,7 +60,7 @@
 
 ## 进行中（10 项）
 
-- [ ] **Linux x64 Desktop — 约 90%**（02.09、17.07）。干净检出的标准流水线已生成 deb 和 tar.gz。Ubuntu WSL2 的升级、资料保全、X11 桌面关联、实装运行时和卸载通过，tar.gz 中的 ASAR 与实装摘要一致。剩便携归档独立启动、Wayland、其他发行版和正式发行验收。见[安装交付计划](requirements/desktop-installer-plan.md)。
+- [ ] **Linux x64 Desktop — 约 90%**（02.09、17.07）。干净检出的标准流水线已生成 deb 和 tar.gz。Ubuntu WSL2 的升级、资料保全、X11 桌面关联、实装运行时和卸载通过，tar.gz 中的 ASAR 与实装摘要一致，便携包通过独立启动。剩 Wayland、其他发行版和正式发行验收。见[安装交付计划](requirements/desktop-installer-plan.md)。
 
 - [ ] **真实目标保护 — 约 80%**（09.01–09.11、05.06、10.05）。可选后端已覆盖 HTTP/DNS、文件、SSH、SQLite、数据库固定审计、测试库写入、受保护命令/ConPTY 和 HTTPS 检查。SSH 支持绑定级 Linux 文件、硬链接和绑定挂载保护。下一步覆盖其他协议、远端数据库资源映射、配置与审计联动。入站管理员过滤/删除、跨系统重启清理和受保护部署见[执行后端清单](requirements/2026-11-02-native-execution.md)。
 
@@ -79,7 +79,7 @@
 
 后续按以下编号推进。
 
-1. **02.09 / 17.07**：补 Linux 便携归档独立启动、Wayland 和其他发行版验收。Windows 继续验证系统重启、签名与自动更新。macOS arm64、Android＋PRoot Fedora 仍在后续计划。02.12 的 Windows ConPTY 长路径修复已完成。
+1. **02.09 / 17.07**：补 Linux Wayland 和其他发行版验收。Windows 继续验证系统重启、签名与自动更新。macOS arm64、Android＋PRoot Fedora 仍在后续计划。02.12 的 Windows ConPTY 长路径修复已完成。
 2. **10.02 / 16 / 17**：继续外部委派正式发布源与升级、稳定性、依赖许可和实装验收。签名与发布按真实条件安排。
 3. **09 / 05.06 / 10.05**：目标保护与审计转为默认关闭的进阶可选增强，保留[现有实现与剩余范围](requirements/2026-11-03-native-ingress.md)，不阻塞主线日常使用，也不把尚未验证的后端展示为已生效。
 
