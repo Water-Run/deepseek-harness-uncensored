@@ -18,6 +18,12 @@
     "sha256": "3d180008e36922a4e8daec11c34c7af264fed5962d07924aea928c38e8663c94"
   },
   {
+    "packages": ["frida@17.23.2"],
+    "file": "frida-gum-17.23.2-COPYING.txt",
+    "source": "https://raw.githubusercontent.com/frida/frida-gum/2b0e6a661702097d77474223ebc429ece092cb46/COPYING",
+    "sha256": "00764fcc23f0f2ac6d2619a1f9192e55176ecaaa525e76a47aaabc5d87fb087f"
+  },
+  {
     "packages": ["@aws-sdk/credential-provider-http@3.972.82", "@aws-sdk/credential-provider-login@3.972.87", "@aws-sdk/nested-clients@3.997.54"],
     "file": "aws-sdk-js-v3-Apache-2.0.txt",
     "source": "https://raw.githubusercontent.com/aws/aws-sdk-js-v3/258c14447eefd8e028db1a50ab49aac8312c0af9/LICENSE",
