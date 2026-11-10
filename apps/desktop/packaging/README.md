@@ -151,7 +151,7 @@ The command produces deb and tar.gz artifacts under `apps/desktop/.desktop-build
 
 For a portable launch, extract the complete tar.gz into a directory you own and run `./deepseek-harness-uncensored` from the extracted application directory. Keep `resources/` beside the executable. The launch uses the separate DSHU profile.
 
-Install the deb through the distribution's package manager so it can resolve the desktop libraries. The deb declares ALSA and GBM, including the ALSA package names used before and after the time64 transition.
+Install the deb through the distribution's package manager so it can resolve the desktop libraries. The deb declares ALSA and GBM, including the ALSA package names used before and after the time64 transition. Debian orders the package's `~test` suffix below its stable version. The Debian 12 qualification installed the older local deb with APT, upgraded it in place, and purged the newer package while preserving the test user's profile files.
 
 Unsigned Linux builds require no dotenv file and ignore inherited release credentials. Standard network proxies, build-tool variables, `DSH_DESKTOP_NPM_REGISTRY` and `DSH_DESKTOP_LINUX_PACK_CONCURRENCY` remain available; concurrency defaults to four positive-integer workers. The build omits update feeds and release records and does not publish artifacts. The optional [Linux template](../.env.linux.example) belongs to configured packaging, not this local inspection command.
 

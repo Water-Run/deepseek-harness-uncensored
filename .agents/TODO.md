@@ -60,7 +60,7 @@
 
 ## 进行中（10 项）
 
-- [ ] **Linux x64 Desktop — 约 96%**（02.09、17.07）。`.5` 实际便携包通过 Ubuntu WSL2 的 X11、浏览器 HTTPS、Wayland 目录门户及渲染沙箱检查，deb 含同一 ASAR 及 ALSA 与 GBM 依赖。`.4` 的 Debian 12 安装与卸载、`.3` 的 Ubuntu 升级已通过。实体桌面的键鼠选择、父窗口模态、其他发行版和正式发行仍待验收。见[安装交付计划](requirements/desktop-installer-plan.md)。
+- [ ] **Linux x64 Desktop — 约 97%**（02.09、17.07）。`.5` 便携包通过 Ubuntu WSL2 的 X11、浏览器 HTTPS、Wayland 目录门户及渲染沙箱检查。Debian 12 已用实际 deb 完成 `.4 → .5` 升级和彻底卸载，7 个隔离用户文件摘要一致。实体桌面的键鼠选择、父窗口模态、其他发行版和正式发行仍待验收。见[安装交付计划](requirements/desktop-installer-plan.md)。
 
 - [ ] **真实目标保护 — 约 80%**（09.01–09.11、05.06、10.05）。可选后端已覆盖 HTTP/DNS、文件、SSH、SQLite、数据库固定审计、测试库写入、受保护命令/ConPTY 和 HTTPS 检查。SSH 支持绑定级 Linux 文件、硬链接和绑定挂载保护。下一步覆盖其他协议、远端数据库资源映射、配置与审计联动。入站管理员过滤/删除、跨系统重启清理和受保护部署见[执行后端清单](requirements/2026-11-02-native-execution.md)。
 
