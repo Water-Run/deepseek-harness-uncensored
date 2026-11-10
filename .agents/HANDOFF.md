@@ -1,5 +1,17 @@
 # Uncensored 开发交接
 
+## 浏览器启动拒绝补齐会话归属（2026-11-10）
+
+09.11 的实际缺口是 MCP 浏览器在 `agent/created` 阶段发现工具，早于 `tools/execute` 的发起者绑定。改前两个拒绝记录的 source 均缺失。`SessionResources` 现在把租约、初始化、排队操作及读取检查置于确切资源所有者的发起作用域内，返回时恢复外层作用域，原权限和取消规则不变。两个并发启动均记录各自 Session，且未创建目标进程。
+
+110 项邻接回归与真实 Chromium 经会话代理导航通过。Windows/Linux 各 32 项核心回归通过，覆盖并发、排队、外层 Agent 干扰、获取、关闭与取消。两平台完整构建均为十项通过。Linux 源码验证目录已同步到 `3c0f30969e` 加本节点修改，仍为 `/home/linzh/.cache/dshu-verification/rc1-20261110.BkOyxE/source`。
+
+Windows 录制回放先遇到 Bash/PowerShell 平台差异；Linux 复验另发现旧请求头未登记已交付的 `apply_patch`。按 headers 流程仅更新该场景的两份请求头预期，差异已核对为新增工具定义和现有文件操作说明。v3/v4 原始会话哈希相同，后续 replay 通过。日志前缀 `.dsh-build/browser-owner-`，改前负例为 `browser-startup-audit-before-20261110.log`。
+
+本节点为源码修复，系统仍运行 `.3` 检查版、源码 `ee42e33938`。Inspector 管理调试面、独立 WebWorker 部署、其他协议、入站和远端资源映射仍保留，未把浏览器归属修复当作完整目标隔离。
+
+自动审批以 `blocked by policy` 拒绝删除本轮 `.dsh-build/browser-owner-source-20261110.tar`。归档保留 173,864,960 字节，约 166 MiB，未换工具重试。回执为 `browser-owner-cleanup-blocked-20261110.json`，验证日志与源码补丁继续保留。
+
 ## Windows 原生工具链提前验证（2026-11-10）
 
 17.06 修复打包 `--check` 的假通过。Visual Studio 定位后，用打包环境执行 MSBuild 的 `PrepareForBuild`，固定 x64 与 Spectre 要求，输出所选工具集和 SDK 诊断。不会编译探针程序或修改系统工具集，私有项目在结束后清理。目录包及仅准备运行时仍要编译 ConPTY，因此移除目录包对 C++ 工具的豁免。

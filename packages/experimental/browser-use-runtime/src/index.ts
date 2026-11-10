@@ -113,7 +113,7 @@ export class SessionResources<T> {
     const resource = await (signal === undefined ? entry.ready : awaitOperation(entry.ready, signal))
     signal?.throwIfAborted()
     entry.signal.throwIfAborted()
-    entry.execution?.lease.check()
+    this.ctx.agents.withInitiator(agent, () => { entry.execution?.lease.check() })
     return resource.value
   }
 
@@ -139,8 +139,7 @@ export class SessionResources<T> {
         this.ctx.logger.warn(`${this.options.label}: browser cleanup during Session cancellation failed: ${String(error)}`)
       })
     }
-    signal.addEventListener('abort', releaseDisposed, { once: true })
-    const task = entry.tail.then(async () => {
+    const task = this.ctx.agents.withInitiator(agent, () => entry.tail.then(async () => {
       combined.throwIfAborted()
       const resource = await awaitOperation(entry.ready, combined)
       combined.throwIfAborted()
@@ -148,7 +147,8 @@ export class SessionResources<T> {
       const result = await operation(resource.value, combined)
       combined.throwIfAborted()
       return result
-    }).finally(() => { signal.removeEventListener('abort', releaseDisposed) })
+    }).finally(() => { signal.removeEventListener('abort', releaseDisposed) }))
+    signal.addEventListener('abort', releaseDisposed, { once: true })
     // The queue tracks settlement independently of a caller observing its error.
     entry.tail = task.then(() => {}, () => {})
     return task
@@ -186,12 +186,12 @@ export class SessionResources<T> {
       }, `${this.options.label}.session`)
       this.ownerCleanups.set(agent, cleanup)
     }
-    const lease = this.options.acquireExecution?.()
+    const lease = this.ctx.agents.withInitiator(agent, () => this.options.acquireExecution?.())
     const controller = new AbortController()
     const signal = lease === undefined ? controller.signal : AbortSignal.any([controller.signal, lease.signal])
     const entry: Entry<T> = {
       controller, signal,
-      ready: Promise.resolve().then(() => {
+      ready: this.ctx.agents.withInitiator(agent, () => Promise.resolve().then(() => {
         signal.throwIfAborted()
         lease?.check()
         return this.options.open(agent, signal)
@@ -202,7 +202,7 @@ export class SessionResources<T> {
           this.releaseExecution(entry)
         }
         throw error
-      }),
+      })),
       tail: Promise.resolve(),
     }
     if (lease !== undefined) {

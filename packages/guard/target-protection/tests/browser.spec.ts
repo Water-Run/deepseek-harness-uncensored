@@ -19,12 +19,13 @@ import Protection from '../src/index.ts'
 import TargetBrowserUse from '../src/browser.ts'
 
 const mcpFixture = fileURLToPath(new URL('../../../experimental/browser-use-runtime/tests/mcp-fixture.mjs', import.meta.url))
-async function harness() {
+async function harness(audit = false) {
   const root = await mkdtemp(join(tmpdir(), 'dshu-browser-protection-')), ctx = new Context()
   onTestFinished(async () => { await ctx.fiber.dispose(); await rm(root, { recursive: true, force: true }) })
   await mountAgentLoopTestDependencies(ctx)
   provideWorkingDirectoryFixture(ctx, root)
-  const owner = await ctx.plugin(Protection, { path: ':memory:', hostsFile: '' })
+  const owner = await ctx.plugin(Protection, { path: ':memory:', hostsFile: '',
+    ...audit ? { auditPath: join(root, 'audit.sqlite') } : {} })
   await ctx.targetProtection.configure({ mainlandEnabled: true, rules: [] }, 1)
   await ctx.plugin(TargetBrowserUse)
   const runtime = await mountAgentLoopTestHarness(ctx)
@@ -53,6 +54,22 @@ it('refuses MCP browser startup before its discovery process is allocated', asyn
     throw error
   })
   expect(outcome).toBe('TARGET_EXECUTION_UNCONFINED')
+  await expect(readFile(join(h.root, 'events.ndjson'))).rejects.toMatchObject({ code: 'ENOENT' })
+})
+
+it('attributes browser startup refusals to each owning Session before a tool call exists', async () => {
+  const h = await harness(true)
+  await h.mount()
+  const ids = [SessionId('startup-main'), SessionId('startup-side')]
+  const outcomes = await Promise.all(ids.map(id => h.runtime.create(id).then(() => 'started', (error: unknown) => {
+    if (error instanceof HarnessError) return error.code
+    throw error
+  })))
+  expect(outcomes).toEqual(['TARGET_EXECUTION_UNCONFINED', 'TARGET_EXECUTION_UNCONFINED'])
+  const audit = h.ctx.targetProtection.auditHistory()
+  expect(audit.state).toBe('ready')
+  expect(audit.entries).toHaveLength(2)
+  expect(audit.entries.map(entry => entry.source?.sessionId).sort()).toEqual([...ids].sort())
   await expect(readFile(join(h.root, 'events.ndjson'))).rejects.toMatchObject({ code: 'ENOENT' })
 })
 

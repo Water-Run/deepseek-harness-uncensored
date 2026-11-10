@@ -36,6 +36,59 @@ afterEach(async () => {
   await Promise.all(contexts.splice(0).map(ctx => ctx.fiber.dispose()))
 })
 
+it('keeps startup, lease checks and queued calls in their exact owner scope', async () => {
+  const { ctx, owner } = await fixture()
+  const a = await owner('owner-a'), b = await owner('owner-b')
+  const entered = Promise.withResolvers<undefined>(), release = Promise.withResolvers<undefined>()
+  const acquisitions: Agent[] = [], operations: Agent[] = [], tasks: Promise<void>[] = []
+  let active = 0
+  const resources = new SessionResources(ctx, { label: 'attributed browsers', exclusive: false,
+    acquireExecution() {
+      const agent = ctx.agents.requireInitiator()
+      acquisitions.push(agent)
+      return { signal: new AbortController().signal, release() {},
+        check() { expect(ctx.agents.currentInitiator()).toBe(agent) } }
+    },
+    async open(agent) {
+      expect(ctx.agents.currentInitiator()).toBe(agent)
+      await Promise.resolve()
+      expect(ctx.agents.currentInitiator()).toBe(agent)
+      return { value: agent, close: async () => {} }
+    },
+  })
+  const run = (agent: Agent) => resources.run(agent, new AbortController().signal, async (resource) => {
+    expect(resource).toBe(agent)
+    expect(ctx.agents.currentInitiator()).toBe(agent)
+    if (++active === 2) entered.resolve(undefined)
+    await release.promise
+    expect(ctx.agents.currentInitiator()).toBe(agent)
+    operations.push(agent)
+  })
+  try {
+    tasks.push(ctx.agents.withInitiator(b.agent, () => run(a.agent)))
+    tasks.push(run(b.agent))
+    const queued = vi.fn(async () => { expect(ctx.agents.currentInitiator()).toBe(a.agent) })
+    tasks.push(ctx.agents.withInitiator(b.agent, () => resources.run(a.agent, new AbortController().signal, queued)))
+    const finished = Promise.all(tasks)
+    await Promise.race([entered.promise, finished.then(() => { throw new Error('Operations did not overlap') })])
+    expect(queued).not.toHaveBeenCalled()
+    release.resolve(undefined)
+    await finished
+    expect(new Set(acquisitions)).toEqual(new Set([a.agent, b.agent]))
+    expect(new Set(operations)).toEqual(new Set([a.agent, b.agent]))
+    expect(queued).toHaveBeenCalledOnce()
+    await ctx.agents.withInitiator(b.agent, async () => {
+      expect(await resources.get(a.agent)).toBe(a.agent)
+      expect(ctx.agents.currentInitiator()).toBe(b.agent)
+    })
+    expect(ctx.agents.currentInitiator()).toBeUndefined()
+  } finally {
+    release.resolve(undefined)
+    await Promise.allSettled(tasks)
+    await resources.dispose()
+  }
+})
+
 it('retains a failed acquisition whose native rollback is unconfirmed', async () => {
   const { ctx, owner } = await fixture()
   const a = await owner('unconfirmed'), b = await owner('other')
