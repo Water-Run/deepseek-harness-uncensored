@@ -27,6 +27,8 @@ kind: "package-reference"
 
 网安对话开启独立代理时，新启动的 Chromium 使用会话代理，回环网页目标也经过代理。attach 模式无法重新配置外部浏览器，因此拒绝此组合。Stagehand 扩展发出的模型请求随浏览器路由；应用本身的模型、余额和更新请求仍独立处理。修改代理设置后需重建浏览器会话。
 
+受控代理为 `stagehand-native` 启用 HTTPS 检查时，启动器会先把公开 CA 写入本次 Chromium 的临时配置目录，再启动浏览器。
+
 在已提供 Agent、Session、工具注册表和系统提示的 profile 中挂载此 Provider。若需以图像形式接收截图，还应配置附件存储和支持图像输入的 Session 模型。
 
 ### 最小配置

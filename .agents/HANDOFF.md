@@ -1,10 +1,18 @@
 # Uncensored 开发交接
 
+## 外部浏览器 HTTPS 会话信任（2026-11-11）
+
+Playwright MCP、Chrome DevTools MCP 和 Stagehand 的启动模式可按提供方名称启用受控 HTTPS 检查。Host 向每个浏览器提供各自监听器的公开 CA。临时 Chromium 配置通过其证书首选项加载 CA，浏览器仍执行常规证书链与名称验证。会话结束后清理目录。[Chromium 配置读取](https://chromium.googlesource.com/chromium/src/+/main/chrome/browser/net/profile_network_context_service.cc)
+
+真实 Web Host 分别连接本机 Edge `158.0.4370.12` 和 Chrome `157.0.8103.39`。三个提供方均打开受控 HTTPS 页面，正文脱敏写入正确会话。只信任对照源站的 Host 拒绝未知源站证书，对照服务收到零 HTTP 请求。三个会话删除后各自的临时浏览器配置均已清理。回执和日志前缀 `.dsh-build/external-browser-https-`。改动随下一检查包交付。
+
+Windows 完整构建和 78 项定向测试通过。Playwright 与 DevTools 的回放夹具核对临时目录及 CA。Stagehand 仅更新预期工具清单中的现有 `apply_patch`，录制 Session JSONL 保持一致。
+
 ## 桌面侧栏 HTTPS 会话信任（2026-11-11）
 
 可选受控代理配置 `httpsInspection.tools: [sidebar_browser]` 后，桌面主进程通过认证 Host 查询现有监听器的公开证书。查询复核对话与端点，旧路由和委派对端均拒绝。分区身份包含证书指纹。Chromium 只有在原判定为未知证书颁发机构，且服务器证书的签名、SAN、期限及用途均与本次监听器相符时才接受。其他请求沿用 Chromium 的验证结果。[Electron Session API](https://www.electronjs.org/docs/latest/api/session#sessetcertificateverifyprocproc)
 
-95 项定向测试覆盖证书负例、路由与代理回归。真实 Web Host 和隐藏 Electron 侧栏验证 HTTPS 页面、脱敏捕获、固定 IP、未授权分区拒绝同一证书，以及旧路由撤回。`private-target-proxy` 无密钥回放保留原录制 JSONL，并检查现有浏览器路由的证书。日志前缀 `.dsh-build/sidebar-https-`。这项源码改动随下一次检查包交付，三个外部浏览器提供方的证书信任继续列在 TODO。
+95 项定向测试覆盖证书负例、路由与代理回归。真实 Web Host 和隐藏 Electron 侧栏验证 HTTPS 页面、脱敏捕获、固定 IP、未授权分区拒绝同一证书，以及旧路由撤回。`private-target-proxy` 无密钥回放保留原录制 JSONL，并检查现有浏览器路由的证书。日志前缀 `.dsh-build/sidebar-https-`。这项源码改动随下一次检查包交付。
 
 Live Share 将 `securityProxy/browserTrust` 分类为仅所有者可用。Windows 完整构建与 Linux 干净检出各通过十项构建检查。Linux 47 项定向测试及 `private-target-proxy`、`security-terminal-proxy` 两项无密钥回放通过，独立验收检出已清理。Linux 日志为 `.dsh-build/linux-sidebar-https-final-20261111.log`。
 

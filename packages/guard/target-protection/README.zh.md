@@ -100,6 +100,8 @@ kind: "package-reference"
 
 在 `./security-proxy` 的 `httpsInspection.tools` 中列出工具名，可为这些工具启用 HTTP/1.1 检查。桌面侧栏使用 `sidebar_browser`，桌面主进程从已认证的 Host 获取公开 CA，在该浏览器的代理分区验证检查证书。子进程通过 `DSH_SECURITY_PROXY_CA_PEM` 获得监听器的公开 PEM 证书，可显式传给使用该代理的 TLS 客户端。每个对话和工具独享内存 CA，Host 仍按常规信任验证源站证书。解密后的请求在转发前重新校验目标，并进入现有脱敏 HTTP 捕获。`httpsInspection.maxCertificates` 和 `httpsInspection.certificateLifetimeMs` 限制监听器证书。过期或达到上限时，切换代理开关重建监听器，再重新打开客户端。
 
+`playwright-mcp`、`chrome-devtools-mcp` 和 `stagehand-native` 的启动模式将各自的 CA 加载到临时 Chromium 配置目录。路由变化后重新创建浏览器。平台证书库与该目录独立。
+
 装配 `./ssh` 替换普通 SSH 连接，要求 `credentials` 与 `targetProtection`，再使用 `fs-ssh`。它采用[显式直连 SSH 配置](../../ssh/ssh/README.zh.md#direct-connection)，校验原始名称和 DNS 别名，固定一个字面目标并验证服务器密钥。服务器完全保护在 TCP 建连前拒绝；审计允许结构化文件读取并拒绝变更。精确的私有测试端点可执行有界文件操作，不放宽匿名 HTTP 限制。文件调用在远端工作区重新解析两种路径表示并拒绝越界链接；完全权限也不能扩大该工作区。
 
 共享 Linux 主机可在该 SSH 绑定上设置 `protectedPaths: [{ path: /srv/production, protection: full }]`。每条规则要求路径为已存在的绝对路径。通过摘要核验的 helper 在连接就绪前安装规则，并在文件读取、目录条目返回、流式分段读取和变更生效时检查路径与文件身份。`audit` 允许读取并拒绝变更。[Linux 挂载坐标](https://www.kernel.org/doc/html/latest/filesystems/proc.html#proc-pid-mountinfo-information-about-mounts)可识别绑定挂载别名。精确文件规则也匹配设备与 inode。无法确认是否指向受保护目录的外部硬链接会被拒绝。开启远端路径保护后，任意进程和转发请求不可用。使用配套的 Linux helper，并由可信管理员管理其挂载命名空间和运行时。独立挂载的网络文件系统和外部进程的并发修改需要另行隔离。

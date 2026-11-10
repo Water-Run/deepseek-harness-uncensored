@@ -10,10 +10,11 @@ export const inject = ['browserUse', 'agents', 'tools']
 
 export async function apply(ctx) {
   // Routing ownership is fixed by the fixture; browser launch and tool logging stay real.
+  const certificate = await readFile(new URL('../../../packages/experimental/browser-use-runtime/tests/profile-ca.pem', import.meta.url), 'utf8')
   await ctx.plugin(class BrowserSnapshotProxy extends Service {
     constructor(inner) { super(inner, 'securityProxy') }
     route(agent, tool) { return { sessionId: agent.session.id, preset: 'security', tool } }
-    async environment() { return { HTTP_PROXY: 'http://127.0.0.1:8787' } }
+    async environment() { return { HTTP_PROXY: 'http://127.0.0.1:8787', DSH_SECURITY_PROXY_CA_PEM: certificate } }
   })
   let replaced = false
   ctx.effect(() => {

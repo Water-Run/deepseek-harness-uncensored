@@ -1,6 +1,7 @@
 import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
 import * as PtcToolExecutor from '@deepseek-ai/dsh-tool-executor-ptc'
+import { X509Certificate } from 'node:crypto'
 import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -83,6 +84,7 @@ class PresentationRuntime extends PtcRuntime {
 async function load(
   exclusive = false, mode?: string, toolCallTimeoutMs?: number, toolOrder?: string[],
   proxyArguments?: (server: string) => readonly string[],
+  trustedProfile = false,
 ) {
   const root = await mkdtemp(join(tmpdir(), 'dsh-browser-mcp-'))
   roots.push(root)
@@ -96,6 +98,7 @@ async function load(
       mountSessionMcp(ctx, { name: 'browser-fixture', exclusive, command: process.execPath,
         args: [fixture, root, ...mode === undefined ? [] : [mode]],
         ...proxyArguments === undefined ? {} : { proxyArguments },
+        ...trustedProfile ? { profileArguments: (profile: string) => [fixture, root, '--user-data-dir', profile] } : {},
         ...toolCallTimeoutMs === undefined ? {} : { toolCallTimeoutMs, env: {} } })
     } }],
   ])
@@ -177,6 +180,41 @@ it('passes a browser proxy only to its covered owner without changing the Host e
   expect(starts.filter(event => event.args?.length === 0)).toHaveLength(2)
   expect(proxy.environment).toHaveBeenCalledOnce()
   expect(process.env.HTTP_PROXY).toBe(before)
+})
+
+it('seeds the issued CA only in the covered browser profile and removes it after shutdown', async () => {
+  const { ctx, root } = await load(false, undefined, undefined, undefined, server => ['--proxy-server', server], true)
+  const certificate = await readFile(new URL('./profile-ca.pem', import.meta.url), 'utf8')
+  const proxy: Pick<Context['securityProxy'], 'route' | 'environment'> = {
+    route: (agent, tool) => agent?.session.id === 'inspected-profile' ? { sessionId: agent.session.id, preset: 'security', tool } : undefined,
+    environment: async () => ({ HTTP_PROXY: 'http://127.0.0.1:1234', DSH_SECURITY_PROXY_CA_PEM: certificate }),
+  }
+  ctx.provide('securityProxy', proxy as Context['securityProxy'])
+  const owner = await ctx.agents.create({ sessionId: SessionId('inspected-profile') })
+  await ctx.agents.create({ sessionId: SessionId('ordinary-profile') })
+  const starts = (await events(root)).filter(event => event.event === 'start')
+  const args = starts.find(event => event.args?.includes('--user-data-dir'))?.args
+  const profile = args?.[1]
+  if (profile === undefined) throw new Error('Expected an owned Chromium profile')
+  expect(args).toEqual(['--user-data-dir', profile, '--proxy-server', 'http://127.0.0.1:1234'])
+  expect(starts.filter(event => event.args?.length === 0)).toHaveLength(2)
+  const preferences = join(profile, 'Default', 'Preferences')
+  expect(JSON.parse(await readFile(preferences, 'utf8'))).toEqual({
+    certificates: { ca_certificates: [new X509Certificate(certificate).raw.toString('base64')] },
+  })
+  await owner.dispose()
+  await expect(readFile(preferences)).rejects.toMatchObject({ code: 'ENOENT' })
+})
+
+it('refuses invalid trust material before starting the MCP process', async () => {
+  const { ctx, root } = await load(false, undefined, undefined, undefined, server => ['--proxy-server', server], true)
+  const proxy: Pick<Context['securityProxy'], 'route' | 'environment'> = {
+    route: (agent, tool) => ({ sessionId: agent!.session.id, preset: 'security', tool }),
+    environment: async () => ({ HTTP_PROXY: 'http://127.0.0.1:1234', DSH_SECURITY_PROXY_CA_PEM: 'invalid' }),
+  }
+  ctx.provide('securityProxy', proxy as Context['securityProxy'])
+  await expect(ctx.agents.create({ sessionId: SessionId('invalid-trust') })).rejects.toThrow('invalid browser trust material')
+  await expect(readFile(join(root, 'events.ndjson'))).rejects.toMatchObject({ code: 'ENOENT' })
 })
 
 it('rejects a covered external attachment before starting its MCP process', async () => {

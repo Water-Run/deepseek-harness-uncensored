@@ -48,6 +48,7 @@ export function apply(ctx: Context, config: Config): void {
     env,
     ...config.mode === 'launch' ? {
       proxyArguments: (server: string) => ['--proxy-server', server, '--proxy-bypass', '<-loopback>'],
+      profileArguments: (profile: string) => [...args.filter(arg => arg !== '--isolated'), '--user-data-dir', profile],
     } : {},
     ...config.toolCallTimeoutMs === undefined ? {} : { toolCallTimeoutMs: config.toolCallTimeoutMs },
   })

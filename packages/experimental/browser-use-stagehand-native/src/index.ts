@@ -7,7 +7,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
 import { BrowserUseProviderName } from '@deepseek-ai/dsh-browser-use/brand'
 import { BrowserResourceCleanupError, SessionResources } from '@deepseek-ai/dsh-experimental-browser-use-runtime'
-import { resolveBrowserProxy } from '@deepseek-ai/dsh-experimental-browser-use-runtime/proxy'
+import { resolveBrowserProxyRoute } from '@deepseek-ai/dsh-experimental-browser-use-runtime/proxy'
 import { createMcpToolDefinition } from '@deepseek-ai/dsh-mcp-client'
 import { z } from 'zod'
 import { browserInputs, stagehandModelSchema, StagehandDrainError } from './native.ts'
@@ -104,7 +104,7 @@ export function apply(ctx: Context, input: Config): void {
       acquireExecution: () => ctx.browserUse.acquireExecution(),
       async open(agent, signal) {
         signal.throwIfAborted()
-        const proxy = await resolveBrowserProxy(ctx, agent, 'stagehand-native', config.mode === 'launch', signal)
+        const proxy = await resolveBrowserProxyRoute(ctx, agent, 'stagehand-native', config.mode === 'launch', signal)
         const chromium = config.mode === 'launch' ? await launchChromium(config, signal, proxy) : undefined
         const connect = (connectionSignal: AbortSignal) => openBrowserWorker({
           mode: 'attach', model: config.model, headless: config.headless,

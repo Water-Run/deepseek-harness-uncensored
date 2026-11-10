@@ -61,7 +61,7 @@ it.each([true, false])('launches with scrubbed environment and owns the profile 
 
 it('passes the session proxy only to Chromium and includes loopback target requests', async () => {
   const fake = processFixture()
-  const opening = launchChromium(config, new AbortController().signal, 'http://127.0.0.1:1234')
+  const opening = launchChromium(config, new AbortController().signal, { server: 'http://127.0.0.1:1234' })
   await fake.started.promise
   fake.ready.resolve('ws://127.0.0.1:4321/devtools/browser/fixture')
   const browser = await opening

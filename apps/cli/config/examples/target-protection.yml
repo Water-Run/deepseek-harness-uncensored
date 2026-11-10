@@ -33,7 +33,8 @@
       name: '@deepseek-ai/dsh-target-protection/security-proxy'
       config:
         path: !!js dshHomePath('storages', 'security-proxy.json')
-        # The desktop sidebar owns its trust. Other clients must explicitly trust DSH_SECURITY_PROXY_CA_PEM.
+        # Browser IDs: sidebar_browser, playwright-mcp, chrome-devtools-mcp, stagehand-native.
+        # Other clients must explicitly trust DSH_SECURITY_PROXY_CA_PEM.
         # httpsInspection:
         #   tools: [sidebar_browser, pwsh, terminal_open]
     - id: target-protected-fs

@@ -27,6 +27,8 @@ Navigate browser tabs, capture screenshots, and ask Stagehand to act, find actio
 
 Security conversations use their independent proxy for a newly launched Chromium browser when enabled, including loopback page targets. Attach mode rejects this combination because it cannot reconfigure an external browser. Stagehand's extension model requests follow the browser route; the application's model, balance and update requests remain separate. Recreate the browser activation after changing proxy settings.
 
+When the guarded proxy enables HTTPS inspection for `stagehand-native`, the launcher puts its public CA in the owned temporary Chromium profile before starting the browser.
+
 Mount this provider in a profile that supplies Agents, Sessions, the tool registry, and system prompts. Add an attachment store and an image-capable Session model to receive screenshots as images.
 
 ### Minimal configuration

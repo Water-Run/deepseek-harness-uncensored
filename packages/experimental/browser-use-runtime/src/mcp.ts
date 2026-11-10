@@ -2,13 +2,16 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import Schema from '@deepseek-ai/schemastery'
 import { BrowserUseProviderName } from '@deepseek-ai/dsh-browser-use/brand'
 import * as McpClient from '@deepseek-ai/dsh-mcp-client'
 import { createScope } from '@deepseek-ai/dsh-scope'
 import type { Scope } from '@deepseek-ai/dsh-scope'
 import { BrowserResourceCleanupError, SessionResources } from './index.ts'
-import { resolveBrowserProxy } from './proxy.ts'
+import { resolveBrowserProxyRoute, writeChromiumProfileTrust } from './proxy.ts'
 import type {} from '@deepseek-ai/dsh-browser-use'
 import type {} from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-system-prompt'
@@ -85,6 +88,8 @@ export interface SessionMcpOptions {
   env?: Record<string, string>
   /** Launch-only proxy arguments; omission rejects attached browsers when the security proxy is enabled. */
   proxyArguments?: (server: string) => readonly string[]
+  /** Full startup arguments when the provider uses a session-owned Chromium profile. */
+  profileArguments?: (profile: string) => readonly string[]
   /** Per-call timeout override; omission retains the MCP client default. */
   toolCallTimeoutMs?: number
 }
@@ -137,13 +142,34 @@ export function mountSessionMcp(ctx: Context, options: SessionMcpOptions): void 
       async open(agent, signal) {
         const scope = createScope(ctx, agent)
         let client: McpClient.McpClientLifetime | undefined
+        let profile: string | undefined
         let cancellation: Promise<void> | undefined
+        const removeProfile = async (): Promise<void> => {
+          if (profile !== undefined) await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+        }
+        const closeClient = async (): Promise<void> => {
+          try { await client?.close() }
+          catch (error) {
+            throw new BrowserResourceCleanupError('Browser MCP shutdown could not be confirmed. Inspect the server process before reuse.',
+              { cause: error }, client?.whenClosed().then(removeProfile))
+          }
+          await removeProfile()
+        }
         const cancel = (): void => { cancellation = scope.dispose() }
         signal.addEventListener('abort', cancel, { once: true })
         try {
           signal.throwIfAborted()
           const proxyArguments = options.proxyArguments
-          const proxy = await resolveBrowserProxy(ctx, agent, options.name, proxyArguments !== undefined, signal)
+          const proxy = await resolveBrowserProxyRoute(ctx, agent, options.name, proxyArguments !== undefined, signal)
+          let args: readonly string[] = options.args
+          if (proxy?.certificate !== undefined) {
+            if (options.profileArguments === undefined) throw new Error(`${options.name}: HTTPS inspection requires an owned Chromium profile`)
+            profile = await mkdtemp(join(tmpdir(), 'dshu-browser-mcp-'))
+            await writeChromiumProfileTrust(profile, proxy.certificate)
+            args = options.profileArguments(profile)
+          }
+          const cwd = await workingDirectory.ensure(agent, signal)
+          signal.throwIfAborted()
           scope.ctx.on('tools/execute', async (exec, next) => {
             if (!exec.name.startsWith(toolPrefix)) return next()
             if (exec.agent !== agent) {
@@ -156,9 +182,9 @@ export function mountSessionMcp(ctx: Context, options: SessionMcpOptions): void 
             transport: 'stdio',
             serverName: options.name,
             command: options.command,
-            args: proxy === undefined || proxyArguments === undefined ? options.args : [...options.args, ...proxyArguments(proxy)],
+            args: proxy === undefined || proxyArguments === undefined ? [...args] : [...args, ...proxyArguments(proxy.server)],
             ...options.env === undefined ? {} : { env: options.env },
-            cwd: await workingDirectory.ensure(agent, signal),
+            cwd,
             ...options.toolCallTimeoutMs === undefined ? {} : { toolCallTimeoutMs: options.toolCallTimeoutMs },
             failOnStartupError: true,
             reconnect: { enabled: false },
@@ -166,23 +192,20 @@ export function mountSessionMcp(ctx: Context, options: SessionMcpOptions): void 
           client = McpClient.createMcpClient(scope.ctx, config, undefined)
           await client.ready
           signal.throwIfAborted()
-          const ownedClient = client
           return {
             value: scope,
             async close() {
               clients.delete(agent)
-              try { await ownedClient.close() }
-              catch (error) {
-                throw new BrowserResourceCleanupError('Browser MCP shutdown could not be confirmed. Inspect the server process before reuse.',
-                  { cause: error }, ownedClient.whenClosed())
-              } finally { await scope.dispose() }
+              try { await closeClient() }
+              finally { await scope.dispose() }
             },
           }
         } catch (error) {
-          try { await client?.close() }
+          try { await closeClient() }
           catch (cleanupError) {
+            const closed = cleanupError instanceof BrowserResourceCleanupError ? cleanupError.closed : undefined
             throw new BrowserResourceCleanupError('Browser MCP shutdown could not be confirmed. Inspect the server process and restart the Host before reuse.',
-              { cause: new AggregateError([error, cleanupError]) }, client?.whenClosed())
+              { cause: new AggregateError([error, cleanupError]) }, closed)
           } finally { await (cancellation ?? scope.dispose()) }
           throw error
         } finally {
