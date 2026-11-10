@@ -77,6 +77,11 @@ export function installWindowsDirectoryInstaller() {
     if (copying.toString('utf8').trim() === '') throw new Error('Desktop NSIS toolset has an empty COPYING notice')
     const notice = join(directory, 'nsis-installer-COPYING.txt')
     await writeFile(notice, copying)
+    for (const name of ['LICENSE.txt', 'COPYING']) {
+      const bytes = await readFile(join(dirname(dirname(sourceTool)), name))
+      if (bytes.toString('utf8').trim() === '') throw new Error(`Desktop 7-Zip toolset has an empty ${name} notice`)
+      await writeFile(join(directory, name), bytes)
+    }
     let adapted = replaceOnce(source, '!include "installSection.nsh"', `!include "${section}"`)
     for (const helper of ['allowOnlyOneInstallerInstance.nsh', 'installUtil.nsh']) {
       const path = join(directory, helper)
@@ -89,7 +94,7 @@ export function installWindowsDirectoryInstaller() {
     return [
       `!define DSH_UPDATER_CACHE_NAME "${this.packager.appInfo.updaterCacheDirName}"`,
       `!define DSH_SEVENZIP_PATH "${tool}"`,
-      `!define DSH_SEVENZIP_LICENSE_DIR "${dirname(dirname(sourceTool))}"`,
+      `!define DSH_SEVENZIP_LICENSE_DIR "${directory}"`,
       `!define DSH_NSIS_COPYING "${notice}"`,
       await compute.call(this, adapted, ...args),
     ].join('\n')

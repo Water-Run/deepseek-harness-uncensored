@@ -204,7 +204,8 @@ describe('installed update archive contents', () => {
 
 describe('installed update verification records', () => {
   it('accepts relative Windows archive entries', () => {
-    expect(validateInstalledUpdateArchivePaths('Path = resources\r\nFolder = +\r\n\r\nPath = resources\\app.asar\r\nFolder = -\r\n')).toBe(2)
+    expect(validateInstalledUpdateArchivePaths('Path = resources\r\nFolder = +\r\n\r\nPath = resources\\app.asar\r\nFolder = -\r\n'))
+      .toEqual(['resources', 'resources/app.asar'])
   })
 
   it.each(['../escape', '/absolute', 'C:\\absolute', 'file:stream', 'a//b', 'a/./b', 'a/../b', 'CON', 'NUL.txt',
@@ -218,7 +219,7 @@ describe('installed update verification records', () => {
       expect(() => validateInstalledUpdateArchivePaths(listing)).toThrow()
     })
 
-  it.each(['success', 'signature', 'unsafe-path', 'extraction', 'content', 'changed-input'])(
+  it.each(['success', 'signature', 'outer-unsafe', 'missing-notice', 'changed-notice', 'unsafe-path', 'extraction', 'content', 'changed-input'])(
     'retains %s evidence and stops later stages after failure', async (failure) => {
       await fixture(async ({ manifest, payload, version }) => {
         vi.spyOn(console, 'log').mockImplementation(() => undefined)
@@ -229,6 +230,14 @@ describe('installed update verification records', () => {
         const bytes = Buffer.from('inert installer fixture, never executed')
         const installer = join(output, name)
         await writeFile(installer, bytes)
+        const staged = join(output, '.nsis-directory-installer')
+        await mkdir(staged)
+        const notices = [
+          ['nsis-installer-COPYING.txt', 'nsis-installer-COPYING.txt'],
+          ['7zip-installer-LICENSE.txt', 'LICENSE.txt'],
+          ['7zip-installer-COPYING.txt', 'COPYING'],
+        ] as const
+        for (const [notice, source] of notices) await writeFile(join(staged, source), notice)
         await writeFile(join(output, `${name}.blockmap`), 'inert blockmap')
         await writeFile(join(output, 'nightly.yml'), JSON.stringify({ version,
           files: [{ url: name, size: bytes.length, sha512: createHash('sha512').update(bytes).digest('base64') }] }))
@@ -240,8 +249,26 @@ describe('installed update verification records', () => {
         if (failure === 'signature') external.signature.mockRejectedValueOnce(new Error('fixture signature failure'))
         external.archive.mockImplementation(async (command, args, options) => {
           expect(command).toBe(tool)
-          expect(args.at(-1)).toBe(installer)
           expect(Object.keys(options.env).some(key => /KEY|SECRET|TOKEN|PASSWORD/iu.test(key))).toBe(false)
+          const inner = join(options.cwd, 'nsis', '$PLUGINSDIR', 'app-64.7z')
+          if (args.includes('-tNsis')) {
+            expect(args[args.indexOf('--') + 1]).toBe(installer)
+            if (args[0] === 'l') {
+              const entries = ['$PLUGINSDIR\\app-64.7z', ...notices.map(([notice]) => notice)]
+              if (failure === 'missing-notice') entries.pop()
+              if (failure === 'outer-unsafe') entries.push('../outside')
+              return { stdout: entries.map(path => `Path = ${path}\n`).join(''), stderr: '' }
+            }
+            const target = args.find(arg => arg.startsWith('-o'))!.slice(2)
+            expect(target).toBe(join(options.cwd, 'nsis'))
+            expect(args.slice(args.indexOf('--') + 2)).toEqual(['$PLUGINSDIR\\app-64.7z', ...notices.map(([notice]) => notice)])
+            await mkdir(join(target, '$PLUGINSDIR'))
+            await writeFile(inner, 'inert inner archive')
+            for (const [notice] of notices) await writeFile(join(target, notice), failure === 'changed-notice' ? 'changed' : notice)
+            return { stdout: '', stderr: '' }
+          }
+          expect(args).toContain('-t7z')
+          expect(args.at(-1)).toBe(inner)
           if (args[0] === 'l') return { stdout: `Path = ${failure === 'unsafe-path' ? '../outside' : 'resources/app.asar'}\n`, stderr: '' }
           if (failure === 'extraction') throw new Error('fixture extraction failure')
           const target = args.find(arg => arg.startsWith('-o'))!.slice(2)
@@ -261,10 +288,19 @@ describe('installed update verification records', () => {
         const result = JSON.parse(await readFile(join(record, 'result.json'), 'utf8')) as Record<string, unknown>
         expect(result).toMatchObject({ version, passed: failure === 'success', installerExecuted: false, published: false,
           manualChecks: ['installer-registration', 'startup', 'upgrade', 'data-retention'] })
-        const stage = { success: 'complete', signature: 'installer-signature', 'unsafe-path': 'archive-paths',
+        const stage = { success: 'complete', signature: 'installer-signature', 'outer-unsafe': 'outer-archive-paths',
+          'missing-notice': 'outer-archive-paths', 'changed-notice': 'installer-notices', 'unsafe-path': 'archive-paths',
           extraction: 'extraction', content: 'payload-content', 'changed-input': 'unchanged-inputs' }[failure]
         expect(result.stage).toBe(stage)
-        expect(external.archive).toHaveBeenCalledTimes(failure === 'signature' ? 0 : failure === 'unsafe-path' ? 1 : 2)
+        const archiveCalls: Record<string, number> = { signature: 0, 'outer-unsafe': 1, 'missing-notice': 1, 'changed-notice': 2, 'unsafe-path': 3 }
+        expect(external.archive).toHaveBeenCalledTimes(archiveCalls[failure] ?? 4)
+        if (failure === 'success') {
+          expect(result.outerArchiveEntries).toBe(4)
+          expect(result.archiveEntries).toBe(1)
+          expect(result.installerNotices).toEqual(notices.map(([notice]) => ({
+            name: notice, bytes: Buffer.byteLength(notice), sha256: createHash('sha256').update(notice).digest('hex'),
+          })))
+        }
         expect(external.signature).toHaveBeenCalledTimes(['success', 'changed-input'].includes(failure) ? 3 : 1)
         expect(await readFile(join(record, 'events.jsonl'), 'utf8')).toContain(`"stage":"${stage}"`)
       })

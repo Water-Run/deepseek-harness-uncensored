@@ -18,6 +18,8 @@ Windows `.6` 安装器的解包器及两份 7-Zip 原文均与构建工具集一
 
 Windows 安装器现随包附带实际编译工具集的 `COPYING` 原文，文件名为 `nsis-installer-COPYING.txt`。原文 15,488 字节，SHA-256 `3c8de989f6504d52f5f8dfafedb6668cd47201f5d01f1319570727c091425dd6`。该声明随下一次 Windows 打包分发。证据见 `.dsh-build/installer-license-20261111/` 及同轮 `desktop-notices-*` 日志。
 
+安装升级检查器已从新编译的中英文夹具复核外层 NSIS 与内层应用。三份工具集声明逐字匹配暂存原文。旧 `.6` 因缺少 NSIS 声明在解包前被拒绝。证据见 `.dsh-build/installer-archive-20261111-result.json`。[双层校验入口](../../apps/desktop/tests/installed-update/README.zh.md)
+
 ## 当前检查包（2026-11-11）
 
 源码 `1408c12cc1` 的 Windows `.6` 实装包含 859 个 npm 包，7 项待核查。Linux `.5` 的 deb 与 tar.gz 包含同一 ASAR，包含 861 个 npm 包，9 项待核查。两边都分发 19 份补充声明，并从实际载荷核对 Frida Gum 原文摘要。完整清单保存在 `.dsh-build/deliverables/`，交付回执与摘要见 [HANDOFF](../HANDOFF.md)。

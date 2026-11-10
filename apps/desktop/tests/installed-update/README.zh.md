@@ -56,13 +56,13 @@ node --import tsx apps/desktop/scripts/package-installed-update.ts "<run.json>" 
 
 Windows [只读签名检查器](../../scripts/installed-update-signature.mjs)使用真实 updater 验签，发布者来自可信公钥证书，随后要求 Authenticode 与时间戳属性有效且 SHA-512 未变。验签子进程不继承签名/上传秘密或 PowerShell 模块路径覆盖。检查器绝不加载 `.env.windows`、签名文件或执行被检查的可执行文件。本地已观察到签名探针通过、未签名安装包被拒绝；这些结果不能证明任一准备版本、包身份或安装行为已验收。
 
-[安装包检查器](../../scripts/verify-installed-update-package.ts)先校验最终安装包，再使用经过审查的本地 7-Zip 可执行文件解包。清单、可信公钥证书和工具均须提供绝对路径；绝不选择从待验安装包中解出的工具。此命令创建全新的 `verification/check-*` 目录，保留部分记录，安装包缺失时立即失败：
+[安装包检查器](../../scripts/verify-installed-update-package.ts)先验证最终安装包签名，再解包。提供清单、可信公钥证书和支持 NSIS 的完整 `7z.exe` 的绝对路径。安装器输出目录须保留 `.nsis-directory-installer` 中暂存的工具集声明。命令在新建的 `verification/check-*` 目录记录各阶段结果。
 
 ```powershell
-node --import tsx apps/desktop/scripts/verify-installed-update-package.ts "<run.json>" 0.1.6-alpha.1.20260916.1 "<public.cer>" "<reviewed-7za.exe>"
+node --import tsx apps/desktop/scripts/verify-installed-update-package.ts "<run.json>" 0.1.6-alpha.1.20260916.1 "<public.cer>" "<reviewed-7z.exe>"
 ```
 
-检查器核对实际归档内的应用身份、入口、冻结应用字节、updater 依赖版本、feed/缓存/发布者配置，并将内置 Harness 运行时与准备输入比较；测试强更策略也必须有效。它从 `app.asar` 提取运行时，并在 `app.asar.unpacked` 路径核对可执行文件签名。发生变化的运行时可执行文件须单独验签；其他运行时字节在经过 electron-builder 的依赖 manifest 转换后必须与准备输入一致。它在解包前拒绝不安全归档路径，记录安装器、应用及运行时可执行文件的签名。成功前再次核对安装包、feed/blockmap、清单、证书和工具哈希。`passed` 仅覆盖这些检查：依赖字节未冻结，安装器注册、启动、升级和数据保留仍是明确的人工检查项。保留的旧包已完成真实归档读取；本批次准备版本的完整签名包检查仍待执行。
+检查器先验证外层 NSIS 路径，将内嵌的三份 NSIS 和 7-Zip 声明与暂存原文逐字比对，再核对内层 7z 路径并解出应用。它对照准备输入核验归档中的应用身份、入口、冻结的应用字节、更新器依赖版本、更新源、缓存、发布者、测试策略与内置 Harness 运行时。在 `app.asar.unpacked` 中核对可执行文件签名，其他运行时字节按 electron-builder 转换依赖清单后的结果比对。报告通过前重查安装包、更新清单及块映射、验收清单、证书和工具的哈希。注册、启动、升级和数据保留需要安装后验收。中英文测试安装器已通过两层检查，准备的签名版本仍需执行完整校验。
 
 旧测试上传器已停用，见[发布状态](publication/README.zh.md)。本地传输测试覆盖更新源缺失和同版本响应，不发布发行版。真实下载与签名安装升级验收仍属单独的交付工作。保留已有回执和产物，不通过修改公开更新源重建测试场景。
 
