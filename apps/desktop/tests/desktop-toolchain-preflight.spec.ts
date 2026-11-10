@@ -81,3 +81,14 @@ it('reports missing C++ tools before attempting native preparation', async () =>
   await expect(requireDesktopToolchain('win32', environment)).rejects.toThrow('Windows runtime and installer helpers')
   expect(execute.mock.calls.some(([file]) => basename(file) === 'MSBuild.exe')).toBe(false)
 })
+
+it('checks the Linux C and musl compilers before building native payloads', async () => {
+  execute.mockImplementation(async (file) => {
+    if (file === 'musl-gcc') throw new Error('musl-gcc not found')
+    return { stdout: file === 'tar' ? 'probe.txt' : 'compiler version', stderr: '' }
+  })
+  expect(await probeDesktopToolchain('linux', { PATH: 'build-tools' })).toEqual([
+    { tool: 'musl-gcc', detail: 'Linux native packaging requires musl-gcc. Install the C compiler and musl development tools. musl-gcc not found' },
+  ])
+  expect(execute.mock.calls.some(([file]) => file === 'cc')).toBe(true)
+})

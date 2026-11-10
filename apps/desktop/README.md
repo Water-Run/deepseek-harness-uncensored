@@ -67,11 +67,13 @@ Press F12 (Fn+F12 on media-key keyboards), Command+Option+I on macOS, or Ctrl+Sh
 
 ## Terminal command
 
-The application menu's **Manage dsh Command…** entry, immediately below **Check for Updates…**, shows the current command and offers Install, Repair, and Remove. The command uses Desktop's installed runtime and the ordinary [dsh CLI](../cli/README.md), including when the Desktop application is closed. Open a new terminal after installation and run `dsh --version`.
+The application menu's **Manage dsh-uncensored Command…** entry shows the current command and offers Install, Repair, and Remove. The command uses Desktop's installed runtime and the ordinary [dsh CLI](../cli/README.md), including when the Desktop application is closed. Open a new terminal after installation and run `dsh-uncensored --version`.
 
 On macOS, installation creates `/usr/local/bin/dsh-uncensored` and requests administrator authentication when the directory requires it. Shell startup files are unchanged. On Windows, the management dialog registers the command in the current user's PATH. A pre-existing command requires confirmation before switching; repairing Desktop's own selected command does not repeat that confirmation. The macOS link preserves and restores the displaced launcher; Windows preserves other PATH entries, including entries that predate registration. A command with higher PATH precedence is reported with its location. After moving the application, use Repair on macOS or Install from the new location on Windows. Remove leaves unrelated installations intact.
 
-Command registration is optional after installing Desktop. Use **Manage dsh Command… → Remove** before uninstalling Desktop to remove its CLI registration; the application uninstaller does not remove it. Finish CLI commands before updating or uninstalling Desktop. The CLI runtime version follows the installed Desktop release. See [bundled command runtime](#bundled-command-runtime) for Desktop plugin commands and runtime limitations.
+On Linux, registration creates `~/.local/bin/dsh-uncensored` without administrator privileges. The dialog reports when that directory is absent from the login shell's PATH; add it to PATH and open a new terminal. Shell startup files stay unchanged. Repair updates the link after moving the application; Remove restores a displaced launcher only while the link is still owned by this installation.
+
+Command registration is optional after installing Desktop. Use **Manage dsh-uncensored Command… → Remove** before uninstalling Desktop to remove its CLI registration; the application uninstaller does not remove it. Finish CLI commands before updating or uninstalling Desktop. The CLI runtime version follows the installed Desktop release. See [bundled command runtime](#bundled-command-runtime) for Desktop plugin commands and runtime limitations.
 
 <a id="closing-the-window-and-quitting"></a>
 
@@ -138,6 +140,8 @@ Welcome loads the shared Toast palette and shadow tokens, with system typography
 <a id="bundled-command-runtime"></a>
 
 ## Bundled command runtime
+
+Office code and its selected engine load from the complete `app.asar.unpacked` package tree. Native children can read those resources directly, and Linux can detect an absent optional native engine before selecting WASM. Missing required unpacked files fail the packaged-runtime check.
 
 The installed `resources/runtime/cli/bin/dsh-uncensored` shell script (`dsh-uncensored.cmd` on Windows) runs the ordinary CLI dispatcher using Desktop's Electron executable and bundled pnpm. It works while Desktop is closed and retains the Electron runtime limitations. Ordinary profile, configuration, and plugin commands use the same implementation as npm dsh; the command does not open Desktop.
 

@@ -15,15 +15,18 @@ const paths = resolveDesktopTargetBuildPaths()
 const { values } = parseArgs({ options: { unsigned: { type: 'boolean', default: false }, 'skip-notarization': { type: 'boolean', default: false } }, allowPositionals: false })
 const target = resolveDesktopBuildTarget()
 const windows = target === 'win-x64'
+const linux = target === 'linux-x64'
 const artifacts = desktopArtifactOutput(paths, { unsigned: values.unsigned, skipNotarization: values['skip-notarization'] }).directory
 const application = windows ? join(artifacts, 'win-unpacked')
-  : join(artifacts, target === 'mac-arm64' ? 'mac-arm64' : 'mac', `${DESKTOP_PRODUCT_NAME}.app`, 'Contents')
+  : linux ? join(artifacts, 'linux-unpacked')
+    : join(artifacts, target === 'mac-arm64' ? 'mac-arm64' : 'mac', `${DESKTOP_PRODUCT_NAME}.app`, 'Contents')
 const descriptor = await verifyDesktopRuntime(paths.dsh, readDesktopRuntime(paths.dsh).release.version,
   resolveDesktopPackageTarget(target))
 if (windows && !values.unsigned) await verifyWindowsCode(application)
 const verify = async (path: string): Promise<void> => {
-  const resources = join(path, windows ? 'resources' : 'Resources')
-  const executable = windows ? join(path, `${DESKTOP_PRODUCT_NAME}.exe`) : join(path, 'MacOS', DESKTOP_PRODUCT_NAME)
+  const resources = join(path, windows || linux ? 'resources' : 'Resources')
+  const executable = windows ? join(path, `${DESKTOP_PRODUCT_NAME}.exe`)
+    : linux ? join(path, 'deepseek-harness-uncensored') : join(path, 'MacOS', DESKTOP_PRODUCT_NAME)
   await smokePreparedRuntime(join(resources, 'app.asar', 'dsh'), executable, join(resources, 'runtime'), descriptor)
 }
 if (windows) await withPackagedSmokePath(application, verify)

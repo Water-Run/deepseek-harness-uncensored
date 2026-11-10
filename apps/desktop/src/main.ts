@@ -80,6 +80,7 @@ let shuttingDown = false
 // `app.getPath('userData')`, so this build keeps its own profile beside the
 // official one instead of failing to create `%APPDATA%\@scope/name`.
 app.setName('DeepSeek Harness Uncensored')
+if (process.platform === 'linux') app.setDesktopName('deepseek-harness-uncensored.desktop')
 // A machine-wide DSH_HOME would otherwise hand this build the official
 // installation's home, and with it the same login, sessions, and settings.
 // DSH_UNCENSORED_HOME names this build's own home; setting DSH_HOME here runs
@@ -280,6 +281,8 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
     minWidth: 520,
     minHeight: 600,
     show,
+    ...process.platform === 'linux' ? { icon: app.isPackaged ? join(process.resourcesPath, 'icon.png')
+      : join(app.getAppPath(), 'resources', 'icon.png') } : {},
     ...(process.platform === 'win32' && primary ? {
       titleBarStyle: 'hidden' as const,
       titleBarOverlay: { height: WINDOWS_TITLEBAR_HEIGHT, color: chromeFallbackFill(),
@@ -532,7 +535,8 @@ async function main(): Promise<void> {
     return next.promise
   }
   const platformView = new DesktopPlatformView(join(app.getAppPath(), 'lib', 'preload-platform-account.cjs'),
-    () => locale.id === 'zh-CN' ? 'zh_CN' : 'en_US', process.platform === 'win32' ? 'win32' : 'darwin',
+    () => locale.id === 'zh-CN' ? 'zh_CN' : 'en_US',
+    process.platform === 'win32' || process.platform === 'darwin' ? process.platform : null,
     owner => isMandatory() || updateOverlays.input(owner).blocked)
   const aboutRouting = new DesktopAboutRouting({
     canPresent: () => enteredWorkspace && mainWindow !== undefined && !mainWindow.isDestroyed()
@@ -1096,7 +1100,7 @@ async function main(): Promise<void> {
       click: () => { void showAbout().catch((error: unknown) => { console.error(error) }) } },
     { type: 'separator' },
     { label: currentDesktopLocale().messages.checkUpdatesMenu, click: () => { void openUpdatePrompt(true) } },
-    ...process.platform === 'darwin' || process.platform === 'win32'
+    ...process.platform === 'darwin' || process.platform === 'win32' || process.platform === 'linux'
       ? [{ label: currentDesktopLocale().messages.cliCommandMenu, click: () => { void commandManager.show() } }] : [],
     { type: 'separator' },
     ...development ? [
@@ -1452,10 +1456,10 @@ async function main(): Promise<void> {
         () => mandatoryUI?.confirmationWindow ?? currentDialogWindow(),
         (event) => { console.info(`desktop policy authentication: ${event}`); updateJournal?.action(`policy-login-${event}`) })
     }
-    if (!['win32', 'darwin'].includes(process.platform) || !['x64', 'arm64'].includes(process.arch)) throw new Error('desktop policy: unsupported platform')
+    if (!['win32', 'darwin', 'linux'].includes(process.platform) || !['x64', 'arm64'].includes(process.arch)) throw new Error('desktop policy: unsupported platform')
     let wasBlocking = false
     mandatoryPolicy = new DesktopMandatoryUpdatePolicy(policyConfig, {
-      platform: process.platform as 'win32' | 'darwin', arch: process.arch as 'x64' | 'arm64',
+      platform: process.platform as 'win32' | 'darwin' | 'linux', arch: process.arch as 'x64' | 'arm64',
       channel: updateChannel,
       bundledDshVersion: readDesktopRuntime(resources.dsh).release.engineVersion,
     }, (state) => {

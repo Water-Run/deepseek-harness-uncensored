@@ -19,6 +19,7 @@ Build DSHU Desktop installers locally, choose deployment and signing mode, and r
 - [macOS self-hosted packaging](#macos-actions)
 - [Unsigned Windows test installer](#unsigned-windows-test-installer)
 - [Local macOS DMG without release signing](#local-macos-dmg-without-release-signing)
+- [Linux x64 inspection packages](#linux-x64-inspection-packages)
 - [macOS release signing and diagnostics](#macos-release-signing)
 - [Directory builds and preparation](#directory-and-preparation)
 - [Local Official bundles from a loopback registry](#local-official-bundles-from-a-loopback-registry)
@@ -88,7 +89,7 @@ pnpm run package:desktop:mac:x64
 pnpm run package:desktop:win:x64
 ```
 
-The macOS arm64 command requires Apple Silicon. The macOS x64 command runs on Intel macOS or Apple Silicon with Rosetta. The Windows x64 command requires Windows x64. Linux is not a supported Desktop release target.
+The macOS arm64 command requires Apple Silicon. The macOS x64 command runs on Intel macOS or Apple Silicon with Rosetta. The Windows x64 command requires Windows x64. Linux x64 has a separate unsigned inspection path below; packaging support does not establish release qualification.
 
 Both release and local unsigned macOS DMGs use LZMA compression (`dmg.format: 'ULMO'`) in [the electron-builder configuration](../scripts/electron-builder-config.mjs). A [build-time patch](../../../patches/app-builder-lib@26.17.0.patch) adds this format to the pinned builder's validation and TypeScript declarations.
 
@@ -134,6 +135,21 @@ pnpm run package:desktop:mac:x64:unsigned
 Add `--check` to validate local configuration and tools without building, or `--dir` to stop at the unpacked application. The DMG is `apps/desktop/.desktop-build/targets/<target>/unsigned-artifacts/runs/<run-id>/deepseek-harness-uncensored-<version>-mac-<arch>-unsigned.dmg`. After all checks pass, the command prints `DMG:` followed by its absolute path. Open it and copy the application to a local test directory.
 
 These commands ignore `.env.macos` and inherited release settings, use `com.deepseek.dsh.uncensored` as the app ID, and omit automatic-update and mandatory-update configuration. Build tools, standard network proxies, and `DSH_DESKTOP_NPM_REGISTRY` remain available from the shell. They skip Developer ID signing, Apple notarization, temporary signing keychains, and notarization proxy changes. Electron receives a local ad-hoc signature without certificates so the modified executable can run; the DMG is unsigned. Both preparation and the assembled application still run runtime integrity and smoke checks. Local builds omit update feeds, ZIPs, and release completion records, and the upload commands cannot publish them. macOS may require approval in System Settings → Privacy & Security to open an unnotarized application.
+
+<a id="linux-x64-inspection-packages"></a>
+
+## Linux x64 inspection packages
+
+Build on Linux x64 with Node 24, the locked pnpm version, Git, tar, a C compiler, and musl development tools (`build-essential` and `musl-tools` on Ubuntu). Electron also needs the desktop libraries for the distribution. The preflight checks `cc` and `musl-gcc`; the build compiles and packs the local Linux native payload before assembling the runtime.
+
+```sh
+pnpm run package:desktop:linux:x64:unsigned --check
+pnpm run package:desktop:linux:x64:unsigned --build-version auto
+```
+
+The command produces deb and tar.gz artifacts under `apps/desktop/.desktop-build/targets/linux-x64/unsigned-artifacts/runs/<run-id>/`. Add `--dir` to stop at `linux-unpacked`. The executable and desktop entry use `deepseek-harness-uncensored`; runtime, CLI and profile identities remain separate from official DSH. Directory smoke checks the packaged runtime, not installation, desktop integration, upgrades or removal.
+
+Unsigned Linux builds require no dotenv file and ignore inherited release credentials. Standard network proxies, build-tool variables, `DSH_DESKTOP_NPM_REGISTRY` and `DSH_DESKTOP_LINUX_PACK_CONCURRENCY` remain available; concurrency defaults to four positive-integer workers. The build omits update feeds and release records and does not publish artifacts. The optional [Linux template](../.env.linux.example) belongs to configured packaging, not this local inspection command.
 
 <a id="macos-release-signing"></a>
 

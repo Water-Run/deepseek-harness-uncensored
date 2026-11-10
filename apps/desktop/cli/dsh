@@ -13,4 +13,9 @@ done
 resources=$(CDPATH= cd -- "$(dirname -- "$launcher")/../../.." && pwd -P)
 DSH_HOME=${DSH_UNCENSORED_HOME:-"$HOME/.dsh-uncensored"}
 export DSH_HOME
-ELECTRON_RUN_AS_NODE=1 exec "$resources/../MacOS/DeepSeek Harness Uncensored" --expose-internals "$resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-desktop-host/lib/cli.js" "$@"
+case "$(uname -s)" in
+  Darwin) executable="$resources/../MacOS/DeepSeek Harness Uncensored" ;;
+  Linux) executable="$resources/../deepseek-harness-uncensored" ;;
+  *) printf '%s\n' 'DSHU CLI requires macOS or Linux.' >&2; exit 1 ;;
+esac
+ELECTRON_RUN_AS_NODE=1 exec "$executable" --expose-internals "$resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-desktop-host/lib/cli.js" "$@"

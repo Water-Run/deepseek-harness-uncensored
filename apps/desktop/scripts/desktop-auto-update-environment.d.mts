@@ -3,7 +3,7 @@ export const DESKTOP_AUTO_UPDATE_ENV: 'DSH_DESKTOP_AUTO_UPDATE_ENV'
 /** Supported policy-service deployment. */
 export type DesktopAutoUpdateEnvironment = 'test' | 'production'
 /** Supported Desktop release target. */
-export type DesktopAutoUpdateTarget = 'mac-arm64' | 'mac-x64' | 'win-x64'
+export type DesktopAutoUpdateTarget = 'mac-arm64' | 'mac-x64' | 'win-x64' | 'linux-x64'
 
 /**
  * Resolve optional policy-service deployment settings, defaulting to test.

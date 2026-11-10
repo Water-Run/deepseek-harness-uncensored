@@ -1,5 +1,15 @@
 # Uncensored 开发交接
 
+## Linux x64 Desktop 检查包（2026-11-10）
+
+Linux 已接通独立 Electron 目标、原生组件编译、deb/tar.gz、`dsh-uncensored` 命令和用户目录安装。Ubuntu WSL2 下的实际 Electron 在 Xvfb 中启动，隔离资料、工作区、菜单和关于页通过。安装到 `/opt/DeepSeek Harness Uncensored` 后，四模式、REA 229 项工具、JavaScript、三种 Office 转 PDF及 CLI 装卸通过；程序卸载后 96 个隔离用户文件哈希相同。Ubuntu 测试安装已移除，Windows 正式使用的 `.3` 检查版没有更换。未使用 Computer Use。
+
+检查包 `0.1.0-test.20261110.linux.2` 来自 `ef0ce80147` 加本节点未提交修改。标准流水线先发现缺少本地 Linux 原生 tarball，再发现 ASAR 中 `lstatSync(..., { throwIfNoEntry: false })` 返回 `null`，导致 Office 把缺失的可选引擎当成损坏安装。现编译并打包原生组件，Office 入口及引擎均从完整解包目录加载。最后 deb 的主页和维护者字段缺失已补齐，并从同一组装目录恢复生成 deb；原失败记录不改成成功。最终源码另补 desktopName 与桌面入口对齐，尚需干净源码的一次完整流水线及升级复验，不能把本检查包作为正式发行。
+
+Linux 源码与产物在 `/home/linzh/.cache/dshu-verification/rc1-20261110.BkOyxE/source`，批次 `2026-11-10T12-45-35.158Z-bePkI3`。Windows `.dsh-build/linux-desktop-installed-smoke-20261110-result.json` 记录 deb/tar.gz 摘要及实装关键文件一致性；`linux-desktop-installed-ui-20261110-result.json`、`linux-desktop-installed-cli-20261110-result.json`、`linux-desktop-uninstall-data-20261110.json` 分别记录原生界面、命令和卸载。Windows 367 项相关回归通过、1 跳过；Linux 41 项通过。两平台完整构建十项通过，后续 UI 修改及聚合检查另记下方节点。
+
+Linux 实包清单为 861 个 npm 包、12 项声明待核查，不能沿用 Windows 的 7 项统计。构建代理仅用于将 WSL 下载接到已有本机代理，不改全局网络设置。恢复时使用 `.dsh-build/linux-desktop-package-full-20261110.sh` 作为环境参考，先重新建立私有构建代理并同步源码；正式入口为 `pnpm run package:desktop:linux:x64:unsigned`。macOS arm64 和 Android＋PRoot Fedora仍保留计划状态。
+
 ## 浏览器启动拒绝补齐会话归属（2026-11-10）
 
 09.11 的实际缺口是 MCP 浏览器在 `agent/created` 阶段发现工具，早于 `tools/execute` 的发起者绑定。改前两个拒绝记录的 source 均缺失。`SessionResources` 现在把租约、初始化、排队操作及读取检查置于确切资源所有者的发起作用域内，返回时恢复外层作用域，原权限和取消规则不变。两个并发启动均记录各自 Session，且未创建目标进程。

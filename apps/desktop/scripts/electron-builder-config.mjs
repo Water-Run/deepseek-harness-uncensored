@@ -259,8 +259,11 @@ export function createElectronBuilderConfig(
       target: ['nsis'],
     },
     linux: {
+      executableName: 'deepseek-harness-uncensored',
+      syncDesktopName: true,
+      icon: fileURLToPath(new URL('../resources/icon.png', import.meta.url)),
       category: 'Development',
-      target: ['AppImage'],
+      target: ['deb', 'tar.gz'],
     },
     nsis: {
       uninstallDisplayName: '${productName}',

@@ -1,10 +1,10 @@
 # 桌面安装器计划
 
-更新：2026-11-06。对应 [完整编号清单](development-checklist.md) 的 `02.04`、`02.06`、`02.09` 及 [02.11](2026-11-01-upstream-installer.md#0211-安装器明确属于独立-dshu)。全新安装器架构仅为计划；当前用户已授权完善现有 Windows x64 安装器、测试与本机升级，不签名、不发布。
+更新：2026-11-10。对应 [完整编号清单](development-checklist.md) 的 `02.04`、`02.06`、`02.09` 及 [02.11](2026-11-01-upstream-installer.md#0211-安装器明确属于独立-dshu)。Windows 现有安装器继续完善，Linux x64 开始适配与验收。全新安装器架构和 Android 草案仍为计划，不签名、不发布。
 
 ## 交付矩阵
 
-优先级固定为 Windows x64 Desktop → Linux x64 Desktop → macOS ARM Desktop → Android＋PRoot Fedora。当前只执行 Windows 安装交付；其余平台与新安装器设计均处于计划阶段。Android 草案与验收项见 [追加需求](2026-10-25-followups.md#平台交付矩阵计划)。
+优先级固定为 Windows x64 Desktop → Linux x64 Desktop → macOS ARM Desktop → Android＋PRoot Fedora。Windows 已完成多轮本机检查版交付，Linux 的 deb 与 tar.gz 正在验证。macOS 和 Android 尚未完成桌面发行验收。Android 草案与验收项见 [追加需求](2026-10-25-followups.md#平台交付矩阵)。
 
 ## 目标
 
@@ -14,11 +14,11 @@
 
 ## 本轮本机交付
 
-源码 `7db7e35015` 的检查版 `0.1.0-test.20261106.1` 已安装，产品版本 0.1.0、内核 DSH 0.2.2-rc.1、内置 REA 6.8.0。本机实际完成保留数据卸载、`4cf9f1cbfa` 旧包安装及最新包原位升级；两代实装四模式、新建会话、命令、终端代理和 SSH 通过。6,953 个用户文件及官方版 EXE/ASAR 哈希一致，最新独立注册项、协议和快捷方式通过。产物、备份与验证记录见 [HANDOFF](../HANDOFF.md)。仅覆盖同内核检查包；跨数据格式回退、系统重启、交互终验、签名更新与全新电脑仍待验收。
+Windows 已安装检查版 `0.1.0-test.20261110.3`，源码 `ee42e33938`，产品版本 0.1.0、内核 DSH 0.2.2-rc.1、内置 REA 6.8.0。原位升级后重新打开，7,232 个用户文件及官方版 EXE/ASAR 哈希一致。四模式、新建会话、命令、终端代理和 SSH 通过。此前已验证同内核检查包回退与再升级；跨数据格式回退、系统重启、签名更新与全新电脑仍待验收。产物、备份与验证记录见 [HANDOFF](../HANDOFF.md)。
 
 现有原生安装界面中英文各 16 项通过，涵盖路径、安装、启动选择、失败重试、运行进程拒绝及卸载。实际交互在 200% 桌面缩放下完成；进度渲染器分别在 96/192 DPI、浅深色下检查。测试使用独立产品身份与目录，未覆盖所有物理显示器组合。
 
-## 现状（2026-11-06）
+## 现状（2026-11-10）
 
 - **身份已分离**：`appId` 为 `com.deepseek.dsh.uncensored`、产品名 `DeepSeek Harness Uncensored`、协议 `dshu://`、CLI `dsh-uncensored`、数据目录 `.dsh-uncensored`；官方版是 `com.deepseek.dsh` / `DeepSeek Harness` / `.dsh`，因此两者在注册表、安装目录、数据目录、协议与 CLI 上互不覆盖。
 - **可产出未签名包**：`pnpm run package:desktop:win:x64:unsigned` 已跑通。产物按构建批次隔离，验证后另存 `.dsh-build/deliverables` 并保留源码节点、构建编号和摘要；未签名构建不作为正式发行包。
@@ -28,6 +28,12 @@
 - **版本已解耦**：产品版本 `0.1.0` 与 DSH 引擎 `0.2.2-rc.1` 分别写入 runtime 描述与发行校验，引擎版本变化不要求产品版本同步。同日检查包需同时核对源码节点，构建编号不保证源码唯一。
 
 ## 阶段
+
+### Linux x64 检查阶段
+
+- 已生成未签名 deb/tar.gz，并在 Ubuntu WSL2 安装目录验证四模式、REA、Office、原生 Electron 窗口及用户 CLI。原生窗口在 Xvfb 中验收，不代表物理桌面和所有发行版均已验证。
+- 卸载保留 96 个隔离资料文件；测试安装已移除，Windows 系统版本未动。产物和摘要见 [HANDOFF](../HANDOFF.md)。
+- 当前是脏树检查包；deb 在修正主页和维护者信息后独立恢复生成。剩最终干净源码的完整流水线、desktopName 关联、升级、其他发行版及发布签名，不标记平台交付完成。
 
 ### 阶段 0 — 工具链与预检
 

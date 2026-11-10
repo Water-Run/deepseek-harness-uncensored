@@ -1,7 +1,7 @@
 /** Native command-management dialogs; only fixed installation locations reach the worker. */
 
 import { execFile } from 'node:child_process'
-import { isAbsolute, join, normalize, win32 } from 'node:path'
+import { isAbsolute, join, normalize, posix, win32 } from 'node:path'
 import { userInfo } from 'node:os'
 import { promisify } from 'node:util'
 import type { MessageBoxOptions, MessageBoxReturnValue } from 'electron'
@@ -91,15 +91,18 @@ export function presentCommandManagement(
   state: CommandPresentation, messages: DesktopMessages, platform: NodeJS.Platform,
 ): MessageBoxOptions {
   const other = state.activeCommand !== undefined && !sameCommand(state.activeCommand, state.destination, platform)
+  const notOnPath = platform === 'linux' && state.managed && state.available
+    && state.activeCommand === undefined && !state.selectionUnknown
   const detail = [
     format(messages.cliCommandLocation, state.destination),
     ...state.activeCommand === undefined ? [] : [format(messages.cliCommandSelected, state.activeCommand)],
     ...state.target === undefined ? [] : [format(messages.cliCommandTarget, state.target)],
     ...other ? [messages.cliCommandShadowed] : [],
     ...state.selectionUnknown ? [messages.cliCommandSelectionUnknown] : [],
+    ...notOnPath ? [format(messages.cliCommandNotOnPath, posix.dirname(state.destination))] : [],
   ].join('\n\n')
   return {
-    type: other ? 'warning' : 'info', title: messages.cliCommandTitle,
+    type: other || notOnPath ? 'warning' : 'info', title: messages.cliCommandTitle,
     message: state.managed ? (state.available ? messages.cliCommandInstalled : messages.cliCommandBroken) : messages.cliCommandNotInstalled,
     detail,
     buttons: state.managed
@@ -171,7 +174,7 @@ export class DesktopCommandManager {
 
   private async inspect(): Promise<CommandState> {
     const state = await this.worker('inspect')
-    if (process.platform !== 'darwin') return state
+    if (process.platform !== 'darwin' && process.platform !== 'linux') return state
     try {
       return { ...state, ...await shellCommand() }
     } catch {

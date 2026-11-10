@@ -19,6 +19,7 @@ description: "在本地生成 DSHU Desktop 安装包，选择部署与签名模�
 - [macOS 自托管打包](#macos-actions)
 - [未签名 Windows 测试安装包](#unsigned-windows-test-installer)
 - [无发布签名的本地 macOS DMG](#local-macos-dmg-without-release-signing)
+- [Linux x64 检查包](#linux-x64-inspection-packages)
 - [macOS 发布签名与诊断](#macos-release-signing)
 - [目录构建与准备](#directory-and-preparation)
 - [用回环 registry 安装本地 Official 包](#local-official-bundles-from-a-loopback-registry)
@@ -88,7 +89,7 @@ pnpm run package:desktop:mac:x64
 pnpm run package:desktop:win:x64
 ```
 
-macOS arm64 命令要求 Apple Silicon。macOS x64 命令可以在 Intel macOS 或带 Rosetta 的 Apple Silicon 上运行。Windows x64 命令要求 Windows x64。Linux 不是受支持的 Desktop 发布目标。
+macOS arm64 命令要求 Apple Silicon。macOS x64 命令可以在 Intel macOS 或带 Rosetta 的 Apple Silicon 上运行。Windows x64 命令要求 Windows x64。Linux x64 使用下方独立的未签名检查流程；支持打包不代表通过发行验收。
 
 macOS 正式发布和本地未签名 DMG 都通过 [electron-builder 配置](../scripts/electron-builder-config.mjs)中的 `dmg.format: 'ULMO'` 使用 LZMA 压缩。[构建时补丁](../../../patches/app-builder-lib@26.17.0.patch)为固定版本 builder 的校验规则和 TypeScript 声明添加此格式。
 
@@ -134,6 +135,21 @@ pnpm run package:desktop:mac:x64:unsigned
 添加 `--check` 仅验证本地配置和工具而不构建，或添加 `--dir` 只生成解包应用。DMG 路径为 `apps/desktop/.desktop-build/targets/<target>/unsigned-artifacts/runs/<run-id>/deepseek-harness-uncensored-<version>-mac-<arch>-unsigned.dmg`。所有检查通过后，命令打印 `DMG:` 及其绝对路径。打开后将应用复制到本地测试目录。
 
 这些命令忽略 `.env.macos` 和继承的发布配置，使用 `com.deepseek.dsh.uncensored` 作为应用 ID，并省略自动更新和强制更新配置。构建工具、标准网络代理与 `DSH_DESKTOP_NPM_REGISTRY` 仍可从 shell 提供。它们跳过 Developer ID 签名、Apple 公证、临时签名钥匙串和公证代理修改。Electron 使用无需证书的本地 ad-hoc 签名，以便修改后的可执行文件能够运行；DMG 不签名。准备阶段和组装后的应用仍执行运行时完整性与冒烟检查。本地构建不生成更新源、ZIP 或发布完成记录，上传命令无法发布这些产物。macOS 可能要求在“系统设置 → 隐私与安全性”中批准打开未经公证的应用。
+
+<a id="linux-x64-inspection-packages"></a>
+
+## Linux x64 检查包
+
+在 Linux x64 上构建，准备 Node 24、锁定版本的 pnpm、Git、tar、C 编译器和 musl 开发工具（Ubuntu 的 `build-essential` 与 `musl-tools`）。Electron 还需要发行版的桌面库。预检检查 `cc` 和 `musl-gcc`，构建在组装运行时前编译并打包本地 Linux 原生组件。
+
+```sh
+pnpm run package:desktop:linux:x64:unsigned --check
+pnpm run package:desktop:linux:x64:unsigned --build-version auto
+```
+
+命令在 `apps/desktop/.desktop-build/targets/linux-x64/unsigned-artifacts/runs/<run-id>/` 生成 deb 和 tar.gz。追加 `--dir` 时停在 `linux-unpacked`。可执行文件和桌面入口使用 `deepseek-harness-uncensored`；运行时、CLI 和资料身份与官方 DSH 分开。目录 smoke 检查打包运行时，不代表安装、桌面集成、升级和移除通过。
+
+Linux 未签名构建无需 dotenv 文件，并忽略继承的发布凭据。保留标准网络代理、构建工具变量、`DSH_DESKTOP_NPM_REGISTRY` 和 `DSH_DESKTOP_LINUX_PACK_CONCURRENCY`；并发数为正整数，默认四个 worker。构建省略更新源与发布记录，不上传产物。可选的 [Linux 模板](../.env.linux.example) 用于配置式打包，不由此本地检查命令读取。
 
 <a id="macos-release-signing"></a>
 

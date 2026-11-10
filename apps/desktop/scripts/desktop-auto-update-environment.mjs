@@ -3,7 +3,7 @@ import { valid } from 'semver'
 
 /** Environment variable selecting optional policy-service deployment settings. */
 export const DESKTOP_AUTO_UPDATE_ENV = 'DSH_DESKTOP_AUTO_UPDATE_ENV'
-const UPDATE_TARGETS = new Set(['mac-arm64', 'mac-x64', 'win-x64'])
+const UPDATE_TARGETS = new Set(['mac-arm64', 'mac-x64', 'win-x64', 'linux-x64'])
 
 /**
  * Resolve the channel embedded in the installer; omitted local settings retain nightly.
@@ -33,7 +33,7 @@ export function resolveDesktopAutoUpdateEnvironment(env) {
  * Resolve a supported platform and architecture to its release target.
  * @param {NodeJS.Platform} platform Target Node.js platform.
  * @param {string} arch Target Node.js architecture.
- * @returns {'mac-arm64' | 'mac-x64' | 'win-x64'} Release target.
+ * @returns {'mac-arm64' | 'mac-x64' | 'win-x64' | 'linux-x64'} Release target.
  */
 export function resolveDesktopAutoUpdateTarget(platform, arch) {
   const os = platform === 'darwin' ? 'mac' : platform === 'win32' || platform === 'win' ? 'win' : platform
@@ -44,7 +44,7 @@ export function resolveDesktopAutoUpdateTarget(platform, arch) {
 
 /**
  * Return the local completion record filename for a packaged target.
- * @param {'mac-arm64' | 'mac-x64' | 'win-x64'} target Supported release target.
+ * @param {'mac-arm64' | 'mac-x64' | 'win-x64' | 'linux-x64'} target Supported release target.
  * @returns {string} Filename stored beside electron-builder artifacts.
  */
 export function desktopBuildRecordFilename(target) {
@@ -61,7 +61,7 @@ export function desktopBuildRecordFilename(target) {
  */
 export function desktopUpdateMetadataFilename(version, platform, channel = 'nightly') {
   if (valid(version) === null) throw new Error(`desktop auto-update: invalid Desktop version ${JSON.stringify(version)}`)
-  if (platform !== 'darwin' && platform !== 'win32') throw new Error(`desktop auto-update: unsupported metadata platform ${platform}`)
+  if (platform !== 'darwin' && platform !== 'win32' && platform !== 'linux') throw new Error(`desktop auto-update: unsupported metadata platform ${platform}`)
   resolveDesktopUpdateChannel({ DSH_DESKTOP_UPDATE_CHANNEL: channel })
-  return `${channel}${platform === 'darwin' ? '-mac' : ''}.yml`
+  return `${channel}${platform === 'darwin' ? '-mac' : platform === 'linux' ? '-linux' : ''}.yml`
 }

@@ -122,6 +122,18 @@ it.each(['pack', 'runtime'] as const)('drains the other Windows preparation afte
   }
 })
 
+it('packages the Linux native variant before materializing its runtime', async () => {
+  const { run, stages } = supervisor()
+  await packageTarget(parseDesktopPackageInvocation(['linux-x64', '--unsigned', '--dir'], 'linux', 'x64'), environment, run)
+  const nativeBuild = stages.indexOf('--dir native/system run build:native')
+  const nativePack = stages.findIndex(stage => stage.startsWith('--dir native/system/packages/linux-x64 pack '))
+  const closure = stages.indexOf('run prepare:packages')
+  expect(nativeBuild).toBeGreaterThan(-1)
+  expect(nativePack).toBeGreaterThan(nativeBuild)
+  expect(closure).toBeGreaterThan(nativePack)
+  expect(stages.some(stage => stage.startsWith('run sign:primary-runtime'))).toBe(false)
+})
+
 it.each([undefined, '3'])('passes the package cache and selected compression to their subprocesses (%s)', async (level) => {
   const { run } = supervisor()
   const cache = resolve('fixture-package-cache')

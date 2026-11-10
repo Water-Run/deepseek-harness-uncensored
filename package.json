@@ -39,6 +39,7 @@
     "package:desktop:mac:x64:unsigned": "pnpm --filter @deepseek-ai/dsh-desktop run package:mac:x64:unsigned",
     "package:desktop:mac:x64:dir": "pnpm --filter @deepseek-ai/dsh-desktop run package:mac:x64:dir",
     "package:desktop:win:x64": "pnpm --filter @deepseek-ai/dsh-desktop run package:win:x64",
+    "package:desktop:linux:x64:unsigned": "pnpm --dir apps/desktop run package:linux:x64:unsigned",
     "package:desktop:win:x64:unsigned": "pnpm --filter @deepseek-ai/dsh-desktop run package:win:x64:unsigned",
     "package:desktop:win:x64:dir": "pnpm --filter @deepseek-ai/dsh-desktop run package:win:x64:dir",
     "clean": "tsx scripts/clean.ts",

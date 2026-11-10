@@ -2,6 +2,7 @@
 
 import { spawn } from 'node:child_process'
 import { dirname, join, resolve } from 'node:path'
+import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { CommandInstallationError, inspectFileCommand, installFileCommand, removeFileCommand } from './command-installation.ts'
 
@@ -9,14 +10,15 @@ const [operation, expected] = process.argv.slice(2)
 const fingerprint = expected ?? ''
 const resources = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 // This dedicated worker writes public command ownership metadata, not user secrets.
-if (process.platform === 'darwin') process.umask(0o022)
+if (process.platform === 'darwin' || process.platform === 'linux') process.umask(0o022)
 
 try {
   if (!['inspect', 'install', 'remove'].includes(operation ?? '')) throw new CommandInstallationError('EINVAL', 'Invalid command-management operation.')
   if (operation !== 'inspect' && !/^[a-f0-9]{64}$/u.test(fingerprint)) throw new CommandInstallationError('EINVAL', 'Missing command confirmation.')
-  if (process.platform === 'darwin') {
-    const options = { destination: '/usr/local/bin/dsh-uncensored', launcher: join(resources, 'runtime', 'cli', 'bin', 'dsh-uncensored'),
-      linkHelper: join(resources, 'runtime', 'cli', 'link-entry') }
+  if (process.platform === 'darwin' || process.platform === 'linux') {
+    const options = { destination: process.platform === 'darwin' ? '/usr/local/bin/dsh-uncensored'
+      : join(homedir(), '.local', 'bin', 'dsh-uncensored'), launcher: join(resources, 'runtime', 'cli', 'bin', 'dsh-uncensored'),
+    ...process.platform === 'darwin' ? { linkHelper: join(resources, 'runtime', 'cli', 'link-entry') } : {} }
     const state = operation === 'inspect' ? await inspectFileCommand(options)
       : operation === 'install' ? await installFileCommand(options, fingerprint) : await removeFileCommand(options, fingerprint)
     process.stdout.write(JSON.stringify({ ok: true, state }) + '\n')
@@ -34,7 +36,7 @@ try {
     child.stdin.end(JSON.stringify({ operation, expected, directory: join(resources, 'runtime', 'cli', 'bin') }))
     process.exitCode = await exited ?? 1
   } else {
-    throw new CommandInstallationError('EUNSUPPORTED', 'Command installation is supported on macOS and Windows.')
+    throw new CommandInstallationError('EUNSUPPORTED', 'Command installation is supported on macOS, Windows and Linux.')
   }
 } catch (error) {
   // osascript preserves stdout only when the command exits successfully; the response owns operation failures.

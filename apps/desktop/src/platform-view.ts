@@ -56,7 +56,7 @@ export class DesktopPlatformView {
    * @param blocked - Whether shell policy or an update prompt prevents opening a product view.
    */
   constructor(private readonly preload: string, private readonly getLocale: () => PlatformLocale,
-    private readonly platform: 'darwin' | 'win32', private readonly blocked: (owner: PlatformOwner) => boolean) {}
+    private readonly platform: 'darwin' | 'win32' | null, private readonly blocked: (owner: PlatformOwner) => boolean) {}
 
   /** @param next - private Host credentials; identity enrichment preserves an already open temporary document. */
   setSession(next: PlatformSession | null): void {

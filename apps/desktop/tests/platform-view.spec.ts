@@ -180,6 +180,17 @@ it('injects the deployment and client identity headers only at the Platform orig
   manager.close()
 })
 
+it('uses the existing web identity for platforms without a native account header', async () => {
+  const { owner } = setup()
+  const manager = new DesktopPlatformView('/bundled/preload.cjs', () => 'en_US', null, () => false)
+  manager.setSession({ origin: 'https://platform.deepseek.com', userId: null, token: 'fixture-secret' })
+  await manager.open(owner, 'usage', bounds)
+  const headers = interceptHeaders(1, 'https://platform.deepseek.com/api/v0/users/current', {})
+  expect(headers['x-client-platform']).toBe('web')
+  expect(headers['x-client-version']).toBe('1.2.3')
+  await manager.dispose()
+})
+
 it('samples the language and UTC offset on every Platform request', async () => {
   let locale: 'en_US' | 'zh_CN' = 'en_US'
   const owner = Object.assign(new EventEmitter(), {
