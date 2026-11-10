@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## 周额度收尾与恢复入口（2026-11-10）
+
+剩余周额度降至 39%，触发用户设定的暂停条件。产品源码停在 `1d25ee23d8` 对应的验收节点，本次 Debian 环境准备未产生产品代码修改。Windows `.4` 安装包及 Linux `.3` 的 deb、tar.gz 共三份产物已重新核对大小和 SHA-256，本机 Windows ASAR 与实装回执一致。汇总回执为 `.dsh-build/deliverables/DSHU-20261110-quota-handoff.json`。各平台的已验证范围见下方交付记录。
+
+Debian 12 验收先尝试本机 Docker，后端初始化推理 socket 时崩溃，启动留下的进程已结束。随后在 Ubuntu WSL 的独立挂载命名空间准备 Debian 12 根文件系统。发行签名已校验，基础包下载阶段收到收尾信号并以 143 退出。部分文件保存在 `/home/linzh/.cache/dshu-verification/rc1-20261110.BkOyxE/debian12-check.itxlm7/rootfs`。Debian 安装、启动和卸载均待验收。
+
+恢复后先从 `.dsh-build/debian12-dshu-rootfs-20261110.sh` 继续 Debian 验证。入口会创建新的隔离根目录，旧目录可用于核对下载记录。测试脚本为 `.dsh-build/debian12-dshu-check-20261110.sh`，日志为 `.dsh-build/debian12-dshu-4b1e43-20261110.log`。Ubuntu 中的 `debootstrap`、Debian 归档密钥和 Weston 保留供复验。物理桌面与门户集成、其他平台、签名更新、依赖许可及进阶保护等完整余项继续见 [TODO](TODO.md)。
+
 ## Linux x64 `.3` 干净构建与 Ubuntu 验收（2026-11-10）
 
 `4b1e43674002d93f1dc57967780deb0ac99ae7c4` 通过增量 Git bundle 同步到 WSL，独立干净检出完成十项构建检查。标准命令 `pnpm --dir apps/desktop run package:linux:x64:unsigned --build-version 0.1.0-test.20261110.linux.3` 一次生成 deb 与 tar.gz。包内和 Ubuntu 实装均通过四模式、离线插件装卸、REA 229 项工具与 JavaScript 分析，以及三种 Office 文档转 PDF。
