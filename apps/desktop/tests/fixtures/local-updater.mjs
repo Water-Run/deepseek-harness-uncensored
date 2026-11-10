@@ -6,7 +6,7 @@ import { once } from 'node:events'
 import fs from 'node:fs'
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { join, sep } from 'node:path'
-import { app, BrowserWindow, protocol, shell, clipboard } from 'electron'
+import { app, BrowserWindow, Notification, protocol, shell, clipboard } from 'electron'
 import { fileURLToPath } from 'node:url'
 import updaterModule from 'electron-updater'
 import { DesktopUpdateCoordinator } from '../../lib/types/update-coordinator.js'
@@ -24,13 +24,14 @@ import { qualifyUpdateDialogs } from './update-dialogs.mjs'
 const root = process.env.DSH_LOCAL_UPDATE_TEST_ROOT
 assert.ok(root, 'The launcher must allocate a private test root')
 const transportOnly = process.argv.includes('--transport-only')
+const hiddenWindows = process.argv.includes('--hidden-windows')
 app.setPath('userData', join(root, 'electron'))
 // Sequential window scenarios share one Electron process; main() owns its final exit.
 app.on('window-all-closed', () => {})
 protocol.registerSchemesAsPrivileged([{ scheme: 'dsh-app', privileges: { standard: true, secure: true, supportFetchAPI: true } }])
 const cases = []
 const presentations = []
-let screenshot = { captured: false, reason: transportOnly ? 'transport-only' : 'not attempted' }
+let screenshot = { captured: false, reason: transportOnly ? 'transport-only' : hiddenWindows ? 'hidden-windows' : 'not attempted' }
 let dialogScreenshots = []
 const { NsisUpdater } = updaterModule
 const messages = resolveDesktopLocale('zh-CN').messages
@@ -227,7 +228,7 @@ async function main() {
       assert.equal(f.states.length, 0)
     })
     if (!transportOnly) await scenario('ordinary-real-dialog-cancel-and-explicit-install', async () => {
-      dialogScreenshots = await qualifyUpdateDialogs(root, fixture)
+      dialogScreenshots = await qualifyUpdateDialogs(root, fixture, hiddenWindows)
     })
     if (!transportOnly) await scenario('mandatory-real-window-policy-download-retry-and-clear', async () => {
       protocol.handle('dsh-app', async request => {
@@ -237,8 +238,9 @@ async function main() {
         const mime = path.endsWith('.js') ? 'text/javascript' : path.endsWith('.css') ? 'text/css' : 'text/html'
         return new Response(await readFile(new URL(`${path === 'design-platform.css' ? '../../lib/welcome' : '../../renderer'}/${path}`, import.meta.url)), { headers: { 'content-type': mime } })
       })
-      const parent = new BrowserWindow({ show: true, width: 900, height: 650, webPreferences: { preload: fileURLToPath(new URL('../../lib/preload-app.cjs', import.meta.url)), sandbox: true, contextIsolation: true } })
-      await parent.loadURL('dsh-app://app/')
+      const parent = new BrowserWindow({ show: !hiddenWindows, skipTaskbar: hiddenWindows, width: 900, height: 650,
+        webPreferences: { preload: fileURLToPath(new URL('../../lib/preload-app.cjs', import.meta.url)), sandbox: true, contextIsolation: true,
+          backgroundThrottling: !hiddenWindows } })
       const f = await fixture('hold-download')
       const config = resolveDesktopPolicyConfig({ origin: server.url, allowedPageOrigins: ['https://downloads.example.com'],
         intervalMs: 600_000, timeoutMs: 1000 }, true)
@@ -261,19 +263,28 @@ async function main() {
       f.restart(() => modal.confirm(f.coordinator.state.version, true))
       const originalRead = clipboard.readText
       const originalCopy = clipboard.writeText
+      const originalNotificationSupport = Notification.isSupported
       const opened = []
       const copied = []
       const copyComplete = Promise.withResolvers()
       shell.openExternal = async url => { opened.push(url); throw new Error('Simulated unavailable browser') }
       clipboard.writeText = async value => { copied.push(value); copyComplete.resolve() }
       clipboard.readText = async () => copied.at(-1)
+      if (hiddenWindows) Notification.isSupported = () => false
       try {
+        await parent.loadURL('dsh-app://app/')
         server.policy('force')
         await policy.check('launch')
         const window = modal.confirmationWindow
         assert.ok(window)
         const contents = process.platform === 'win32' ? await mandatoryFrame(parent)
           : parent.contentView.children.at(-1).webContents
+        const captureContents = process.platform === 'win32' ? parent.webContents : contents
+        async function capture(name) {
+          const image = await captureContents.capturePage()
+          assert.equal(image.isEmpty(), false, name)
+          await writeFile(join(root, name), image.toPNG())
+        }
         assert.equal(window.isModal(), false)
         assert.equal(parent.isEnabled(), true)
         contents.on('console-message', event => { console.log('mandatory renderer:', event.message) })
@@ -289,6 +300,8 @@ async function main() {
             throw error
           }
         }
+        const taskConfirmation = `document.getElementById('update').textContent === ${JSON.stringify(messages.updateStopTasks)}
+          && !document.getElementById('update').disabled`
         await until("document.getElementById('title')?.textContent === '需要更新'")
         assert.equal(await contents.executeJavaScript("document.querySelector('#title b') === null"), true)
         if (process.platform === 'win32') {
@@ -299,11 +312,11 @@ async function main() {
         assert.equal(window.isDestroyed(), false)
         assert.equal(f.installations.length, 0)
         await contents.executeJavaScript("document.getElementById('page').click()")
-        await until("document.getElementById('browser-message').textContent.includes('无法打开浏览器')")
+        await until(`document.getElementById('browser-message').textContent === ${JSON.stringify(messages.mandatoryPageFailed)}`)
         assert.deepEqual(opened, ['https://downloads.example.com/desktop'])
         await contents.executeJavaScript("document.getElementById('copy').click()")
         await copyComplete.promise
-        await until("document.getElementById('copy').textContent === '已复制链接'")
+        await until(`document.getElementById('copy').textContent === ${JSON.stringify(messages.mandatoryCopied)}`)
         assert.deepEqual(copied, opened)
         await f.coordinator.check()
         modal.sync()
@@ -313,7 +326,7 @@ async function main() {
         assert.equal(f.coordinator.state.phase, 'downloading')
         assert.equal(await contents.executeJavaScript("document.getElementById('page').hidden"), true)
         server.release()
-        await until("document.getElementById('update').textContent === '停止任务并更新' && !document.getElementById('update').disabled")
+        await until(taskConfirmation)
         assert.equal(f.installations.length, 0)
         assert.equal(modal.confirmationWindow, window)
         server.policy('stall')
@@ -327,13 +340,11 @@ async function main() {
         })`)
         assert.deepEqual(snapshot, JSON.parse(await readFile(new URL('../expected/mandatory-update-zh.json', import.meta.url), 'utf8')))
         await contents.executeJavaScript("document.getElementById('later').click()")
-        await until("document.getElementById('update').textContent === '继续安装更新' && !document.getElementById('update').disabled")
+        await until(`document.getElementById('update').textContent === ${JSON.stringify(messages.mandatoryContinue)}
+          && !document.getElementById('update').disabled`)
         assert.equal(f.installations.length, 0)
-        let capture
-        try { capture = await contents.capturePage() }
-        catch (error) { screenshot = { captured: false, reason: String(error) } }
-        if (capture !== undefined) {
-          await writeFile(join(root, 'mandatory-update.png'), capture.toPNG())
+        if (!hiddenWindows) {
+          await capture('mandatory-update.png')
           screenshot = { captured: true }
         }
         const restartRequested = Promise.withResolvers()
@@ -353,11 +364,24 @@ async function main() {
             assert.equal(await contents.executeJavaScript("document.getElementById('technical-details-label').click(); document.getElementById('technical-details').open"), true)
           }
           const name = expanded ? 'mandatory-error-expanded.png' : 'mandatory-error-collapsed.png'
-          await writeFile(join(root, name), (await contents.capturePage()).toPNG())
-          dialogScreenshots.push(name)
+          if (!hiddenWindows) {
+            await capture(name)
+            dialogScreenshots.push(name)
+          }
         }
         assert.equal(policy.state.blocking, true)
         assert.equal(f.installations.length, 0)
+        const handoff = Promise.withResolvers()
+        const recordInstall = f.updater.quitAndInstall
+        f.updater.quitAndInstall = (...args) => { recordInstall(...args); handoff.resolve() }
+        f.restart(() => modal.confirm(f.coordinator.state.version, true))
+        await contents.executeJavaScript("document.getElementById('update').click()")
+        await until(taskConfirmation)
+        assert.equal(f.installations.length, 0)
+        await contents.executeJavaScript("document.getElementById('update').click()")
+        await handoff.promise
+        assert.deepEqual(f.installations, [[true, true]])
+        assert.equal(policy.state.blocking, true)
         server.policy('clear')
         const closed = process.platform === 'win32' ? undefined : once(contents, 'destroyed')
         await policy.check('manual', true)
@@ -368,6 +392,7 @@ async function main() {
           assert.equal(contents.detached, true)
         }
         assert.equal(parent.isDestroyed(), false)
+        if (hiddenWindows) assert.equal(parent.isVisible(), false)
       } finally {
         server.release()
         parent.destroy()
@@ -376,14 +401,17 @@ async function main() {
         shell.openExternal = originalOpen
         clipboard.writeText = originalCopy
         clipboard.readText = originalRead
+        Notification.isSupported = originalNotificationSupport
         protocol.unhandle('dsh-app')
       }
     })
     assert.deepEqual(server.failures, [])
     if (transportOnly) assert.equal(BrowserWindow.getAllWindows().length, 0)
-    console.log(`LOCAL_UPDATER_RESULT=${JSON.stringify({ cases, presentations, actualElectron: process.versions.electron,
-      actualTransport: 'DesktopUpdateHttpExecutor (ElectronHttpExecutor)', transportOnly, installerExecuted: false, screenshot, requests: server.requests.length })}`)
-    await writeFile(join(root, 'result.json'), `${JSON.stringify({ cases, presentations, transportOnly, installerExecuted: false, screenshot, dialogScreenshots }, null, 2)}\n`)
+    const report = { cases, presentations, actualElectron: process.versions.electron,
+      actualTransport: 'DesktopUpdateHttpExecutor (ElectronHttpExecutor)', transportOnly, hiddenWindows, installerExecuted: false,
+      screenshot, requests: server.requests.length, dialogScreenshots }
+    await writeFile(join(root, 'result.json'), `${JSON.stringify(report, null, 2)}\n`)
+    console.log(`LOCAL_UPDATER_RESULT=${JSON.stringify(report)}`)
   } finally {
     for (const f of fixtures) f.coordinator.dispose()
     await server.close()

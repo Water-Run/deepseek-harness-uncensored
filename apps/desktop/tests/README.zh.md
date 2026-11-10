@@ -68,7 +68,7 @@ Host、客户端与 Desktop 产物构建完成后，在 Windows 仓库根目录�
 
 ## 验证证据
 
-本地命令构建 Desktop，并在 Electron 44 中运行真实 HTTP 更新器。夹具核对打包时的更新源选项后，将流量转到私有回环监听器。默认还会验收策略客户端、沙箱预加载和更新窗口。`--transport-only` 模式仅运行网络与协调器用例。`.desktop-build/qualification/local-updater-*` 中的报告列出已执行用例和截图状态。安装器调用、外部浏览器和剪贴板使用观测替身。
+本地命令构建 Desktop，并在 Electron 44 中运行真实 HTTP 更新器。夹具核对打包时的更新源选项后，将请求转到私有回环监听器。`--hidden-windows` 覆盖 17 项，包括两类更新页面、策略解除、任务延后和交接安装前确认。`--transport-only` 覆盖 15 项网络与协调器用例。安装器调用、浏览器导航和剪贴板使用观测替身。`.desktop-build/qualification/local-updater-*` 中的报告记录用例、请求数和截图状态。
 
 打包监督 fixture 控制自己的 Git 元数据，并使用真实文件哈希和无签名行为的子进程。Git 提交或工作区变化仍会拒绝打包；并发测试不会改变该 fixture 记录的 Git 输入。
 

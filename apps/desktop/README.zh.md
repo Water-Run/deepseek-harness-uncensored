@@ -367,7 +367,7 @@ Electron 主进程在启动时读取一次 `app.getPath('userData')/desktop/sett
 node apps/desktop/node_modules/pnpm/bin/pnpm.mjs --dir apps/desktop run test:updates:local
 ```
 
-此命令构建 Desktop 壳，让协调器通过真实 Electron HTTP 请求和 `NsisUpdater` 访问私有回环服务器。它验证用户授权的完整下载、SHA-512 拒绝、显式重试、并发请求合并、清单替换和安装交接。默认还会验收普通更新和强制更新窗口。追加 `--transport-only` 可仅运行网络与协调器用例，全程不打开窗口。成功时打印 `LOCAL_UPDATER_RESULT` 并以零退出码结束。每次运行独占随机端口、临时用户数据与缓存目录，关闭监听器、等待 Electron 退出并清理临时文件。报告注明运行模式，与截图一并保存在独立的 `.desktop-build/qualification/local-updater-*` 目录。
+此命令构建 Desktop 壳，让协调器通过真实 Electron HTTP 请求和 `NsisUpdater` 访问私有回环服务器。它验证用户授权的完整下载、SHA-512 拒绝、显式重试、并发请求合并、清单替换和安装交接。默认验收两类更新窗口并保存截图。追加 `--hidden-windows` 可在隐藏窗口中验证页面渲染及主进程操作，关闭通知和截图。追加 `--transport-only` 可只运行网络与协调器用例。每次运行结束时关闭回环监听器，清理临时资料和缓存。运行模式、请求数及结果保存在 `.desktop-build/qualification/local-updater-*`。
 
 下载内容是不可执行的测试字节，安装调用仅记录而不执行。测试替换浏览器打开与剪贴板写入，避免外部导航和剪贴板修改。它不启动完整产品工作区，不验证真实安装器或重启，不验证发布者签名，也不覆盖差分更新或 macOS。停滞的策略请求、清单请求和负载传输会执行真实截止时间及恢复。真实常规弹窗验证隔离预加载、卡片尺寸、未施加模糊的父页面、取消、任务警告选项与显式安装批准；账户行组件测试另行提供证据。[本地验证决策](../../.agents/notes/implemented/testing/2026-09-10-desktop-local-updater-qualification.zh.md)和[验证记录](tests/README.zh.md)保留这些限制；生产发布要求保持不变。
 

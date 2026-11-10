@@ -68,7 +68,7 @@ With Host, client, and Desktop artifacts built, run `node --import tsx apps/desk
 
 ## Evidence
 
-The local command builds Desktop and runs Electron 44 with the actual HTTP updater. Its fixtures validate the packaged feed options before routing traffic to a private loopback listener. The default run also exercises the policy client, sandboxed preload, and update windows. The `--transport-only` mode runs the network and coordinator cases. Reports under `.desktop-build/qualification/local-updater-*` record the executed cases and whether screenshots were captured. The installer call, external browser, and clipboard are observation substitutes.
+The local command builds Desktop and runs Electron 44 with the actual HTTP updater. Its fixtures validate packaged feed options before routing requests to a private loopback listener. The `--hidden-windows` run covers 17 cases, including both update renderers, policy clearance, task deferral, and approval before the installer handoff. The `--transport-only` mode covers the 15 network and coordinator cases. The installer call, browser navigation, and clipboard use observation substitutes. Reports under `.desktop-build/qualification/local-updater-*` record the cases, request count, and screenshot status.
 
 Packaging supervision fixtures control their Git metadata and use real file hashes with inert child processes. Git-head and worktree changes still refuse packaging; concurrent tests cannot change the fixture’s recorded Git inputs.
 
