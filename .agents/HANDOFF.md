@@ -1,5 +1,19 @@
 # Uncensored 开发交接
 
+## 检查版 0.1.0-test.20261110.3 实装（2026-11-10）
+
+源码 `ee42e33938ae52352592e64d6341d7c34b6456e9` 已生成、验收并原位安装为独立检查版 `.3`。DSHU 0.1.0、DSH 0.2.2-rc.1、REA 6.8.0 的版本继续独立。新版已重新打开，主进程为 70292。备份 `%LOCALAPPDATA%/DSHU-Backups/2026-11-10T08-40-09-422Z-ee42e3` 保留 7,232 个数据文件，更新前后摘要一致，官方 DSH 两份程序文件未变。回退基线为 `DSHU-20261110-3dda4c-manifest.json`。
+
+安装器 `.dsh-build/deliverables/DSHU-0.1.0-test.20261110.3-core-0.2.2-rc.1-REA-6.8.0-win-x64-unsigned-20261110-ee42e3.exe` 为 387,349,678 字节，SHA-256 为 `06b9c8eef6b03fe0c6e82fc452efc14832288569ccda8aa1a435b84024565951`。实装 ASAR 摘要为 `82c629608840ac985d02a97a8d684adf74e89efec50c907af46fec16b886ae54`。完整交付回执为同目录 `DSHU-20261110-ee42e3-manifest.json`。
+
+标准流水线验证 301 字符 ConPTY 路径、四模式、离线插件装卸、REA 229 项工具及 JavaScript、Office 三类文档转 PDF。实际安装器解包后核对完整 DSH 清单、源码、四模式、新会话、命令、终端代理和 SSH。安装目录复验相同运行链，并通过真实浏览器核对数据库提供方撤下后的自动刷新及 390px 布局。SSH 的初次 PowerShell GUI 调用未留下可用输出，改用等待退出并捕获输出的 `execFile` 完成验证。没有使用 Computer Use。
+
+实包 npm 清单为 859 包、18 份补充声明、7 项待核查。独立运行时清单包含 3 个组件、14 个 Python 发行包及 88 份声明文件，实际安装目录逐项复算一致。两份清单随安装器交付回执保存。完整许可、签名更新、系统重启和跨平台等范围继续保留在 TODO。
+
+成功打包批次为 `2026-11-10T08-16-28.832Z-3aZ0kB`，日志 `delivery-ee42e3-package-toolset-20261110.log`。本机必须在打包子进程设置 `VCToolsVersion=14.52.36629`、`MSVCPreviewEnabled=true`，默认 14.51 缺少 Spectre。此前一批因 GitHub 正文超时退出，一批因遗漏工具集选择失败。Electron 镜像归档已按锁定 npm 包中的 SHA-256 核验后放入正常缓存，未关闭校验；回执 `electron-cache-recovery-20261110.json`。保持本机系统默认工具集不变。
+
+自动审批以 `blocked by policy` 拒绝删除本轮两处临时产物，未换工具重试。`D:/Coding/.dshu-installer-check-89pxe6` 为 1,885,666,129 字节，成功批次的 unsigned-artifacts 目录为 1,495,713,371 字节，合计约 3.15 GiB。回执 `delivery-ee42e3-cleanup-blocked-20261110.json`，历史拒绝目标仍保留。
+
 ## 独立运行时声明纳入构建（2026-11-10）
 
 16.07 的清点范围补到独立 Node/Python/pnpm。共享运行时构建器在发布目录前生成 `third-party-runtime.json`，记录解释器及包管理器的声明、嵌套组件文本和 Python 发行包元数据。Python 元数据按版本解析声明文件位置，缺失、空白和版本不符各有明确结果。payload 组装标识由 8 升至 9，复制与复用沿用原运行时流程。

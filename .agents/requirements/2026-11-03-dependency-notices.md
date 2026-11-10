@@ -2,6 +2,10 @@
 
 状态：进行中，不代表整合发行的许可核对已完成。用户的 GPL 许可偏好、上游 Credit 和各组件原有许可保持不变。
 
+## 当前检查版实装（2026-11-10）
+
+`ee42e33938` 的 `0.1.0-test.20261110.3` 已安装并重新打开。实际安装器及安装目录核对 859 个 npm 包、18 份补充声明、7 项待核查。独立 Node/Python/pnpm 的清单也已随包分发，3 个组件、14 个 Python 发行包及 88 份声明文件通过实装复算。清单和安装证据位于 `.dsh-build/deliverables/DSHU-20261110-ee42e3-manifest.json` 及同前缀的 npm 与独立运行时清单。未发布 Release，其他未完成范围保留。
+
 ## 独立脚本运行时（2026-11-10）
 
 共享构建器新增 `runtime/primary-runtime/third-party-runtime.json`，覆盖独立 Node、Python、pnpm 及已安装 Python 发行包。记录声明路径、SHA-256、包元数据与版本，保留嵌套组件原文。按 Python 元数据版本定位 `License-File`，缺失和空白文件标为待核查，缺失或版本不符的已声明发行包会中止准备。组装标识已更新，旧运行时副本不会因复用而漏掉报告。
@@ -10,9 +14,9 @@
 
 这些结果证明文本随包保留与声明路径可核对，不代替内嵌组件来源、许可兼容性及源码提供义务审查。npm 的七个待核查项不变；Electron、安装器和其他平台继续保留在范围内。
 
-## 当前实装与源码补充（2026-11-10）
+## 上一检查包与源码补充（2026-11-10）
 
-实装源码 `3dda4cf411`，检查版 `0.1.0-test.20261110.2`，包含 859 个 npm 包、15 份补充声明和 7 项待核查。实包记录为 `.dsh-build/deliverables/DSHU-20261110-3dda4c-third-party-runtime.json`。
+上一实装源码 `3dda4cf411`，检查版 `0.1.0-test.20261110.2`，包含 859 个 npm 包、15 份补充声明和 7 项待核查。实包记录为 `.dsh-build/deliverables/DSHU-20261110-3dda4c-third-party-runtime.json`。
 
 源码补入 `brotli 1.3.3` 的 Google 解码器版权头、Apache-2.0 原文和固定 Google Brotli 子模块的 MIT 原文。七个解码器文件已逐字比对 npm 归档、发布提交及当前实装内容，归档通过 npm SHA-512 校验。版权头只去除注释起始符并截取至许可段结束，其他原文仅统一末尾换行。包装代码与编译编码器的声明范围仍未核清，清点器继续标记此包待核查。[发布源码](https://github.com/foliojs/brotli.js/tree/e36051345f6d27a56e5f39ea70d2f789b8574046)、[所固定的 Google Brotli 许可](https://raw.githubusercontent.com/google/brotli/5ce9bf11b3fe0924d87b2a2d47eb7a53a76a4421/LICENSE)、[Apache-2.0 原文](https://www.apache.org/licenses/LICENSE-2.0.txt)。
 
