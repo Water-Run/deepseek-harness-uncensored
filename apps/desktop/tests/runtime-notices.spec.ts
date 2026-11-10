@@ -64,21 +64,27 @@ it('requires exact aggregate versions and keeps documented upstream notice gaps 
   expect(packages.find(pkg => pkg.name === 'clean-git-ref')).toMatchObject({ reviewRequired: true, notices: [expect.objectContaining({ path: 'node_modules/rea-agents/licenses/npm-runtime-notices.txt' })] })
 })
 
-it('records the native Office release texts without borrowing notices for other packages or versions', async () => {
+it.each([
+  { name: '@deepseek-ai/libreoffice-kit-win32-x64', files: nativeOfficeNotices },
+  { name: '@deepseek-ai/libreoffice-kit-wasm', files: {
+    'licenses/DeepSeek-Harness-MIT.txt': 'DeepSeek integration notice',
+    'licenses/LICENSE': 'WASM engine licenses',
+    'licenses/NOTICE': 'WASM engine attribution',
+  } },
+])('records $name release texts only for the pinned package and version', async ({ name, files }) => {
   const root = fixture()
-  const files = nativeOfficeNotices
-  add(root, '@deepseek-ai/libreoffice-kit-win32-x64', '@deepseek-ai/libreoffice-kit-win32-x64', '0.1.5', files)
-  add(root, 'next/node_modules/@deepseek-ai/libreoffice-kit-win32-x64', '@deepseek-ai/libreoffice-kit-win32-x64', '0.1.6', files)
+  add(root, name, name, '0.1.5', files)
+  add(root, `next/node_modules/${name}`, name, '0.1.6', files)
   add(root, 'other', 'other', '0.1.5', files)
   const packages = await prepareRuntimeNotices(root)
-  const native = packages.find(pkg => pkg.version === '0.1.5' && pkg.name.startsWith('@deepseek-ai/'))!
-  expect(native.reviewRequired).toBe(false)
-  expect(native.notices).toHaveLength(5)
+  const engine = packages.find(pkg => pkg.version === '0.1.5' && pkg.name === name)!
+  expect(engine.reviewRequired).toBe(false)
+  expect(engine.notices).toHaveLength(Object.keys(files).length)
   for (const [path, text] of Object.entries(files)) {
-    expect(native.notices).toContainEqual({ path: `${native.path}/${path}`, sha256: createHash('sha256').update(text).digest('hex') })
+    expect(engine.notices).toContainEqual({ path: `${engine.path}/${path}`, sha256: createHash('sha256').update(text).digest('hex') })
   }
   expect(packages.filter(pkg => pkg.reviewRequired).map(pkg => `${pkg.name}@${pkg.version}`)).toEqual([
-    '@deepseek-ai/libreoffice-kit-win32-x64@0.1.6', 'other@0.1.5',
+    `${name}@0.1.6`, 'other@0.1.5',
   ])
 })
 

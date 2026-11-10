@@ -4,7 +4,13 @@
 
 ## 当前检查版实装（2026-11-10）
 
-`ee42e33938` 的 `0.1.0-test.20261110.3` 已安装并重新打开。实际安装器及安装目录核对 859 个 npm 包、18 份补充声明、7 项待核查。独立 Node/Python/pnpm 的清单也已随包分发，3 个组件、14 个 Python 发行包及 88 份声明文件通过实装复算。清单和安装证据位于 `.dsh-build/deliverables/DSHU-20261110-ee42e3-manifest.json` 及同前缀的 npm 与独立运行时清单。未发布 Release，其他未完成范围保留。
+`9df061a06a` 的 Windows `0.1.0-test.20261110.4` 已安装并重新打开。实际安装器包含 859 个 npm 包、18 份补充声明及 7 项待核查。独立运行时清单包含 3 个组件、14 个 Python 发行包及 88 份声明文件。清单和安装证据位于 `.dsh-build/deliverables/DSHU-20261110-9df061-manifest.json` 及同前缀的 npm 与独立运行时清单。
+
+## Linux Office 与 Koffi 声明（2026-11-10）
+
+Linux `.3` 实包原清单为 861 个 npm 包和 12 项待核查。`@deepseek-ai/libreoffice-kit-wasm@0.1.5` 随包提供 `licenses/DeepSeek-Harness-MIT.txt`、`licenses/LICENSE` 和 `licenses/NOTICE`。三份文本在实际归档内与该包 `prebuilds.json` 的摘要一致，清点器按版本记录这些路径。实包中的两个 Koffi 主包明确锁定同版本 Linux x64 二进制包，现将已固定的主包、Node addon API 和 Node API headers 声明关联到 `3.1.1` 与 `3.3.6`。来源见 [Koffi 3.1.1 归档](https://registry.npmjs.org/koffi/-/koffi-3.1.1.tgz)及 [Koffi 3.3.6 归档](https://registry.npmjs.org/koffi/-/koffi-3.3.6.tgz)。
+
+校验 Linux tar.gz 和 ASAR 摘要后，以归档中的清单和声明建立只读投影。新版清点器复算为 9 项待核查，只有上述三个记录变化。12 项定向测试和两项构建聚合检查通过。复算回执为 `.dsh-build/linux-notice-projection-20261110-result.json`。归档仍保留原清单，新规则随下一次构建交付。剩余 Linux 平台项包括 libvips 与 sherpa-onnx 二进制，其余范围继续见下文。
 
 ## 独立脚本运行时（2026-11-10）
 

@@ -23,8 +23,13 @@ const REA_AGGREGATE = 'node_modules/rea-agents/licenses/npm-runtime-notices.txt'
 // Brotli's component supplements leave its wrapper and compiled encoder notices unverified.
 const UPSTREAM_GAPS = new Set(['brotli@1.3.3', 'clean-git-ref@2.0.1', 'minimisted@2.0.1', 'frida@17.23.2'])
 const SUPPLEMENTS_ROOT = join(import.meta.dirname, '../../../LICENSES/npm')
-// This engine release ships its package, upstream and third-party notices beside the native payload.
+// Engine releases ship their notice collections below the package root.
 const NESTED_NOTICE_FILES: Readonly<Record<string, readonly string[]>> = {
+  '@deepseek-ai/libreoffice-kit-wasm@0.1.5': [
+    'licenses/DeepSeek-Harness-MIT.txt',
+    'licenses/LICENSE',
+    'licenses/NOTICE',
+  ],
   '@deepseek-ai/libreoffice-kit-win32-x64@0.1.5': [
     'licenses/DeepSeek-Harness-MIT.txt',
     'licenses/LibreOffice-MPL-2.0.txt',

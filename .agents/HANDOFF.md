@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## 恢复开发与 Linux 许可清点（2026-11-10）
+
+用户将收尾线调整到剩余周额度 10%，目标从 39% 恢复。Debian 12 验收继续使用此前保留的基础包和签名清单，执行日志为 `.dsh-build/debian12-dshu-4b1e43-resumed-20261110.log`。
+
+Linux `.3` tar.gz 的只读投影确认 LibreOffice WASM 的三份内嵌声明摘要，并核对两个 Linux Koffi 二进制包与同版本主包的依赖关系。源码清点器现可覆盖这三个条目，复算由 12 项待核查降至 9 项，其他包记录一致。12 项定向测试和 Host/Client 聚合检查通过。新清单随下次打包，当前归档及原回执保持原样。证据与剩余范围见 [依赖声明审计](requirements/2026-11-03-dependency-notices.md)。
+
 ## 周额度收尾与恢复入口（2026-11-10）
 
 剩余周额度降至 39%，触发用户设定的暂停条件。产品源码停在 `1d25ee23d8` 对应的验收节点，本次 Debian 环境准备未产生产品代码修改。Windows `.4` 安装包及 Linux `.3` 的 deb、tar.gz 共三份产物已重新核对大小和 SHA-256，本机 Windows ASAR 与实装回执一致。汇总回执为 `.dsh-build/deliverables/DSHU-20261110-quota-handoff.json`。各平台的已验证范围见下方交付记录。

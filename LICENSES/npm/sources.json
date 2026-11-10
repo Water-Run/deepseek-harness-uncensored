@@ -54,37 +54,37 @@
     "sha256": "376944252ab78ca6b41aee44ddea8894927ee67891e77e61eb9d59af63e35094"
   },
   {
-    "packages": ["@koromix/koffi-win32-x64@3.1.1"],
+    "packages": ["@koromix/koffi-linux-x64@3.1.1", "@koromix/koffi-win32-x64@3.1.1"],
     "file": "koffi-3.1.1-MIT.txt",
     "source": "https://registry.npmjs.org/koffi/-/koffi-3.1.1.tgz",
     "sha256": "22bcbbbacd739b026a8dc484f62a31484ce4c4e31f3408b60b29b4e41d62b290"
   },
   {
-    "packages": ["@koromix/koffi-win32-x64@3.1.1"],
+    "packages": ["@koromix/koffi-linux-x64@3.1.1", "@koromix/koffi-win32-x64@3.1.1"],
     "file": "koffi-3.1.1-node-addon-api-LICENSE.txt",
     "source": "https://registry.npmjs.org/koffi/-/koffi-3.1.1.tgz",
     "sha256": "89024017b88a9f2b763f79b941a4f2db3b4428edfcacdc0b23866b2da633ad0c"
   },
   {
-    "packages": ["@koromix/koffi-win32-x64@3.1.1"],
+    "packages": ["@koromix/koffi-linux-x64@3.1.1", "@koromix/koffi-win32-x64@3.1.1"],
     "file": "koffi-3.1.1-node-api-headers-LICENSE.txt",
     "source": "https://registry.npmjs.org/koffi/-/koffi-3.1.1.tgz",
     "sha256": "a553508f516031c91f3af1148d44970cb81bbae6c4f091be6835d39cc252238c"
   },
   {
-    "packages": ["@koromix/koffi-win32-x64@3.3.6"],
+    "packages": ["@koromix/koffi-linux-x64@3.3.6", "@koromix/koffi-win32-x64@3.3.6"],
     "file": "koffi-3.3.6-MIT.txt",
     "source": "https://registry.npmjs.org/koffi/-/koffi-3.3.6.tgz",
     "sha256": "22bcbbbacd739b026a8dc484f62a31484ce4c4e31f3408b60b29b4e41d62b290"
   },
   {
-    "packages": ["@koromix/koffi-win32-x64@3.3.6"],
+    "packages": ["@koromix/koffi-linux-x64@3.3.6", "@koromix/koffi-win32-x64@3.3.6"],
     "file": "koffi-3.3.6-node-addon-api-LICENSE.txt",
     "source": "https://registry.npmjs.org/koffi/-/koffi-3.3.6.tgz",
     "sha256": "89024017b88a9f2b763f79b941a4f2db3b4428edfcacdc0b23866b2da633ad0c"
   },
   {
-    "packages": ["@koromix/koffi-win32-x64@3.3.6"],
+    "packages": ["@koromix/koffi-linux-x64@3.3.6", "@koromix/koffi-win32-x64@3.3.6"],
     "file": "koffi-3.3.6-node-api-headers-LICENSE.txt",
     "source": "https://registry.npmjs.org/koffi/-/koffi-3.3.6.tgz",
     "sha256": "a553508f516031c91f3af1148d44970cb81bbae6c4f091be6835d39cc252238c"
