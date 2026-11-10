@@ -4,7 +4,13 @@ import { forkUpdateSource } from '../src/update-source.ts'
 it('accepts this fork and its packaged GitHub artifact feed', () => {
   expect(forkUpdateSource({ provider: 'github', owner: 'Water-Run', repo: 'deepseek-harness-uncensored' })).toMatchObject({ provider: 'github' })
   const url = 'https://github.com/Water-Run/deepseek-harness-uncensored/releases/latest/download/'
-  expect(forkUpdateSource({ provider: 'generic', url })).toEqual({ provider: 'generic', url })
+  expect(forkUpdateSource({ provider: 'generic', url })).toEqual({ provider: 'generic', url, useMultipleRangeRequest: false })
+})
+
+it('uses single ranges for a pinned GitHub release even if its configuration requests multipart', () => {
+  const url = 'https://github.com/Water-Run/deepseek-harness-uncensored/releases/download/v1.0.0/'
+  expect(forkUpdateSource({ provider: 'generic', url, useMultipleRangeRequest: true }))
+    .toEqual({ provider: 'generic', url, useMultipleRangeRequest: false })
 })
 
 it.each([

@@ -6,7 +6,7 @@ import { load } from 'js-yaml'
 /** Supported public update providers for this repository. */
 export type ForkUpdateSource =
   | { provider: 'github'; owner: 'Water-Run'; repo: 'deepseek-harness-uncensored' }
-  | { provider: 'generic'; url: string }
+  | { provider: 'generic'; url: string; useMultipleRangeRequest: false }
 
 /**
  * Read the installed update provider configuration for validation.
@@ -35,7 +35,8 @@ export function forkUpdateSource(value: unknown): ForkUpdateSource {
     if (url.protocol === 'https:' && url.hostname === 'github.com' && url.port === ''
       && url.username === '' && url.password === '' && url.search === '' && url.hash === ''
       && /^\/Water-Run\/deepseek-harness-uncensored\/releases\/(?:latest\/download|download\/[^/]+)\/?$/u.test(url.pathname)) {
-      return { provider: 'generic', url: url.href }
+      // GitHub's release asset CDN accepts single ranges and rejects multipart requests.
+      return { provider: 'generic', url: url.href, useMultipleRangeRequest: false }
     }
   }
   throw new Error('desktop update: only this fork\'s public GitHub Releases can provide updates')

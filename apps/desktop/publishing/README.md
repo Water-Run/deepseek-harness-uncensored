@@ -14,7 +14,7 @@ DSHU uses [its own GitHub Releases](https://github.com/Water-Run/deepseek-harnes
 
 Use the [packaging commands](../packaging/README.md) to prepare and verify local artifacts. Retain the source commit, product and engine versions, build time, hashes and qualification result with each deliverable. Unsigned inspection builds remain distinct from signed releases; changing the filename does not qualify an artifact.
 
-Signed packages use the fork's GitHub latest-release asset directory as their update feed. Unsigned packages do not contain an automatic-installation feed. Release publishing and signed installed-upgrade acceptance remain separate from local build success.
+Signed packages use the fork's GitHub latest-release asset directory as their update feed. Differential downloads from this feed request one byte range at a time. Windows downloads the full signed artifact when a required blockmap or cached installer is unavailable. Unsigned packages do not contain an automatic-installation feed. Release publishing and signed installed-upgrade acceptance remain separate from local build success.
 
 ## Retired upstream tools
 

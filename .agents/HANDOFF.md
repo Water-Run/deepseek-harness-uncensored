@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## GitHub 发行资产差分下载（2026-11-11）
+
+DSHU 公开发行列表为空，`latest/download/latest.yml` 返回 404。另实测 GitHub 上两个公开发行资产，`latest/download` 与指定标签路径重定向后的单段请求返回 206，多段请求返回 501。桌面通用更新源现固定使用单段请求，覆盖最新和指定标签的发行路径。[GitHub 发行资产链接](https://docs.github.com/en/repositories/releasing-projects-on-github/linking-to-releases)
+
+实际 `electron-updater` 6.8.9 在只接受单段请求的回环服务上完成两段下载，从 24 字节样本重建结果并通过 SHA-512。旧配置的多段请求触发 501，覆盖负例。31 项更新源和协调器测试通过。实测记录为 `.dsh-build/github-release-range-curl-20261111.json` 与 `.dsh-build/github-release-differential-20261111.json`。正式 DSHU 资产及签名安装升级待验收。
+
 ## Linux 图像与语音运行库声明（2026-11-11）
 
 将 Linux `.5` 便携包的 libvips 与 Sherpa-ONNX 二进制同锁定的 npm 归档对照，5 个文件逐字一致。随包 ONNX Runtime 与 Sherpa 固定的 1.28.2 归档一致。已补入 5 份版本固定的原文。实包输入复算覆盖 861 项，补充声明记录从 19 增至 24，两个平台项的内嵌组件审计保留在 16.07。10 项完整构建检查、12 项清点器测试和仓库第三方声明校验通过。[依赖审计](requirements/2026-11-03-dependency-notices.md)
