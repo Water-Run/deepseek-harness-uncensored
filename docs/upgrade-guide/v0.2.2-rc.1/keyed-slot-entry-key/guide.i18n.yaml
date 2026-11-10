@@ -3,14 +3,14 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.2-rc.1/keyed-slot-entry-key/guide.md
 /:
-  en: f19534e24f056fc9
-  zh: 1468fabf149437b1
-/keyed-slot-render-options:
-  en: f7b840d1af52fc71
-  zh: b9ba88da86b8c796
-/keyed-slot-render-options/change:
-  en: ec6b8cbd2dc74856
-  zh: 0ac696716bbbffad
-/keyed-slot-render-options/migration:
-  en: 06c0d328bcba6b75
-  zh: 2b5f7d02427138f9
+  en: bcb67b8fd197a312
+  zh: 407cc9dbb13c6952
+/slot-render-inputs:
+  en: 73642ae1bf996564
+  zh: fb02b69c24fbad8a
+/slot-render-inputs/change:
+  en: 73859d17fc90a3db
+  zh: 09d18eeeff1b990b
+/slot-render-inputs/migration:
+  en: aff928cdcbaef011
+  zh: 7372204aa94c4400

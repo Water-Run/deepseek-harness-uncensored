@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { JsonBlock } from '@deepseek-ai/dsh-client-ui-primitives'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+import type { KeyedRenderSlotArgs } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ConversationLocationDataStore, ConversationTurnDataMap } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { ChatNodeHookContext, ChatNodeOwnerProps, ChatFlowSlotProps, UsePresentation } from '../contract/slots.ts'
 import { hasAssistantReplyContent } from '../contract/assistant-content.ts'
@@ -27,10 +28,6 @@ interface ChatNodeSeatProps extends ChatNodeOwnerProps {
   readonly deferCollapse: boolean
   readonly useGroupAction: ChatFlowSlotProps['useGroupAction']
 }
-
-type RoutedChatNodeOwner = {
-  [Kind in ChatNode['kind']]: ChatNodeOwnerProps & { readonly node: ChatNode<Kind> }
-}[ChatNode['kind']]
 
 function turnDataOf(node: ChatNode | undefined): ConversationLocationDataStore<ConversationTurnDataMap> | undefined {
   const location = node?.location
@@ -144,10 +141,19 @@ export const ChatNodeSeat = memo(function ChatNodeSeat({
     loadImage, turnProcess,
   ])
   if (routedNode === undefined || owner === null) return null
-  // Runtime dispatch owns the correlation: every Node's discriminant is the
-  // keyed-slot entry passed alongside that same Node. TypeScript does not
-  // distribute an object containing a union into a union of objects itself.
-  const routedOwner = { ...owner, node: routedNode } as RoutedChatNodeOwner
+  const fallback = (
+    <JsonBlock
+      label={t('message.unknownSurface', { type: routedNode.kind })}
+      payload={routedNode.data}
+      truncatedLabel={total => t('json.truncated', { total })}
+    />
+  )
+  // The selected key and its payload come from the same routed node.
+  const args = [
+    'conversation.chat.node',
+    { ...owner, node: routedNode },
+    { entryKey: routedNode.kind, hookContext, fallback },
+  ] as KeyedRenderSlotArgs<'conversation.chat.node'>
   const flowKey = groupPart === undefined || groupPart === 'response' ? routedNode.key : JSON.stringify([routedNode.key, groupPart])
   return (
     <div
@@ -163,17 +169,7 @@ export const ChatNodeSeat = memo(function ChatNodeSeat({
       data-turn-process-member={processMember || undefined}
       data-turn-process-hidden={processHidden || undefined}
     >
-      {renderSlot('conversation.chat.node', routedOwner, {
-        entryKey: routedNode.kind,
-        hookContext,
-        fallback: (
-          <JsonBlock
-            label={t('message.unknownSurface', { type: routedNode.kind })}
-            payload={routedNode.data}
-            truncatedLabel={total => t('json.truncated', { total })}
-          />
-        ),
-      })}
+      {renderSlot(...args)}
     </div>
   )
 })

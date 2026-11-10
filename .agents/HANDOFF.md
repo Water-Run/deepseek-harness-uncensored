@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## 动态 Slot 渲染参数（2026-11-11）
+
+独立变化的 Slot 名称或分派键需要一组能满足所有候选的参数。检查覆盖 owner props、按键的 owner props、分派键及 `hookContext`，也覆盖传给 `renderSlotChain` 的 selector 输入。单个候选内部声明的联合类型仍可使用。聊天节点、用户消息内联节点和工作区提示把由同一对象决定的键和参数作为 `KeyedRenderSlotArgs` 元组传入。
+
+五个无效调用在改前通过编译，改后由类型测试拒绝。八项产物构建、Host 和 Client 聚合检查、73 项 Slot 回归、231 项渲染路径回归、客户端 API 目录及其四项测试均通过。调整测试替身后复跑的三套用例共 250 项通过。日志前缀为 `.dsh-build/slot-dispatch-`。[迁移指南](../docs/upgrade-guide/v0.2.2-rc.1/keyed-slot-entry-key/guide.zh.md)
+
 ## Keyed Slot 分派键的类型检查（2026-11-11）
 
 `renderSlot` 的 keyed 调用要求显式提供 `entryKey`，包括携带 `hookContext` 的调用。名称联合可能选中 keyed Slot 时也要求键。普通 Slot 的选项可省略，传入合法但未注册的键仍走原有 fallback。

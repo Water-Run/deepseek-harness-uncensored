@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ReactNode } from 'react'
 import type {
-  BoundActions, DefineStore, FactoryComponentPropsOf, FactoryLocalComponentPropsOf,
+  BoundActions, DefineStore, FactoryComponentPropsOf, FactoryLocalComponentPropsOf, KeyedRenderSlotArgs,
   PropsRenderFactories, PropsRenderSlots, PropsRuntime, PropsStore, SlotComponent, SlotHookFactory,
 } from '@deepseek-ai/dsh-client-ui-slots'
 import { SlotCore } from '@deepseek-ai/dsh-client-ui-slots'
@@ -19,6 +19,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
     'chain.frame': { kind: 'single'; scope: 'root' }
     'chain.side': { kind: 'single'; scope: 'root'; owner: { collapsed: boolean; width: number } }
+    'chain.variant': { kind: 'single'; scope: 'root'; owner: { name: string } | { id: number } }
     'chain.conv': { kind: 'single'; scope: 'session' }
     'chain.context': {
       kind: 'single'
@@ -26,6 +27,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
       hookContext: string
       inject: ContextInjected
     }
+    'chain.numeric-context': { kind: 'single'; scope: 'session'; hookContext: number }
     'chain.tools': { kind: 'keyed'; scope: 'session' }
     'chain.keyed-context': {
       kind: 'keyed'
@@ -34,6 +36,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
       keyProps: { first: { count: number }; second: { label: string } }
     }
     'chain.takeover': { kind: 'chain'; scope: 'session'; owner: { items: readonly Item[] } }
+    'chain.default-takeover': { kind: 'chain'; scope: 'session' }
   }
 
   interface LocaleNamespaceMap {
@@ -157,6 +160,13 @@ describe('terminal-design type chain', () => {
     const samples = (
       core: SlotCore, chat: ChatHandle, fp: FrameProps, cp: ConvProps, acts: BoundActions<ChatHandle>,
       mixedKey: 'chain.tools' | 'chain.frame',
+      choices: {
+        ordinary: 'chain.side' | 'chain.frame'
+        entry: 'first' | 'second'
+        keyed: 'chain.context' | 'chain.keyed-context'
+        contextual: 'chain.context' | 'chain.numeric-context'
+        chain: 'chain.takeover' | 'chain.default-takeover'
+      },
     ) => {
       // ── positive chain ─────────────────────────────────────────────
       // Frame: children + factory store + inject; actions arrive baked.
@@ -336,6 +346,32 @@ describe('terminal-design type chain', () => {
       mixed.renderSlot(mixedKey, {}, { entryKey: 'custom-tool' })
       // @ts-expect-error this union can select a keyed slot
       mixed.renderSlot(mixedKey, {})
+
+      const ordinary: PropsRenderSlots<'chain.side' | 'chain.frame' | 'chain.variant'> = null as never
+      ordinary.renderSlot(choices.ordinary, { collapsed: false, width: 280 })
+      ordinary.renderSlot('chain.variant', { name: 'named' })
+      ordinary.renderSlot('chain.variant', { id: 1 })
+      // @ts-expect-error every possible slot must receive its required owner props
+      ordinary.renderSlot(choices.ordinary, {})
+      keyed.renderSlot('chain.keyed-context', { count: 1, label: 'both' }, { entryKey: choices.entry, hookContext: 'sample' })
+      // @ts-expect-error every possible entry must receive its required owner props
+      keyed.renderSlot('chain.keyed-context', { count: 1 }, { entryKey: choices.entry, hookContext: 'sample' })
+      const dispatch: KeyedRenderSlotArgs<'chain.keyed-context'> = choices.entry === 'first'
+        ? ['chain.keyed-context', { count: 1 }, { entryKey: 'first', hookContext: 'sample' }]
+        : ['chain.keyed-context', { label: 'second' }, { entryKey: 'second', hookContext: 'sample' }]
+      keyed.renderSlot(...dispatch)
+      const contextualKeyed: PropsRenderSlots<'chain.context' | 'chain.keyed-context'> = null as never
+      contextualKeyed.renderSlot(choices.keyed, { count: 1 }, { entryKey: 'first', hookContext: 'sample' })
+      // @ts-expect-error the key must be valid for every possible keyed slot
+      contextualKeyed.renderSlot(choices.keyed, {}, { entryKey: 'other', hookContext: 'sample' })
+      const contexts: PropsRenderSlots<'chain.context' | 'chain.numeric-context'> = null as never
+      contexts.renderSlot('chain.numeric-context', {}, { hookContext: 1 })
+      // @ts-expect-error hookContext must match every possible slot
+      contexts.renderSlot(choices.contextual, {}, { hookContext: 'sample' })
+      const chains: PropsRenderSlots<'chain.takeover' | 'chain.default-takeover'> = null as never
+      chains.renderSlotChain(choices.chain, { items: [] })
+      // @ts-expect-error the possible chain selector still needs its owner props
+      chains.renderSlotChain(choices.chain, {})
 
       // Contextual hooks preserve both the business key and value type.
       // @ts-expect-error unknown Turn-data key

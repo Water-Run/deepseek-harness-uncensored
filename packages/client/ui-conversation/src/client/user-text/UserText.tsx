@@ -1,12 +1,10 @@
 /** User-text presentation delegates evaluation to its data-layer document and renders JSON business nodes. */
 import { Fragment, useEffect, useMemo } from 'react'
-import type { FactoryComponentPropsOf } from '@deepseek-ai/dsh-client-ui-slots'
+import type { FactoryComponentPropsOf, KeyedRenderSlotArgs } from '@deepseek-ai/dsh-client-ui-slots'
 import { HoverCardGroup, ReferenceChip, UserTextRun } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { UserTextNodeProps } from '../contract/slots.ts'
 import type { UserTextNode } from '../contract/user-text.ts'
 import css from './UserText.module.css'
-
-type UserTextOwner = Parameters<FactoryComponentPropsOf<'conversation.user.text'>['renderSlot']>[1]
 
 /**
  * Render original text through pure matching rules and business-owned node Slots.
@@ -33,13 +31,13 @@ export function UserText({
   }, [failed, error, reportTransformFailure])
   const content = useMemo(() => nodes === undefined ? <UserTextRun text={text} /> : <>{nodes.map((node) => {
     const raw = text.slice(node.start, node.end)
-    // The node ID determines its payload; TypeScript does not distribute this enclosing owner over the node union.
-    const owner = { node, raw, interactive } as UserTextOwner
+    const fallback = <UserTextRun text={node.id === 'text' ? node.data.display ?? raw : raw} />
+    // The selected key and its payload come from the same text node.
+    const args = [
+      'conversation.user.text.node', { node, raw, interactive }, { entryKey: node.id, fallback },
+    ] as KeyedRenderSlotArgs<'conversation.user.text.node'>
     return <Fragment key={`${node.id}:${node.start}`}>
-      {renderSlot('conversation.user.text.node', owner, {
-        entryKey: node.id,
-        fallback: <UserTextRun text={node.id === 'text' ? node.data.display ?? raw : raw} />,
-      })}
+      {renderSlot(...args)}
     </Fragment>
   })}</>, [nodes, text, interactive, renderSlot])
   return <HoverCardGroup as="span" className={ellipsis ? css.ellipsis : css.root}>{content}</HoverCardGroup>

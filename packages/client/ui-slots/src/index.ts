@@ -319,6 +319,29 @@ type KeyedWithoutContext<S extends keyof SlotMap & string> = Exclude<KeyedKeysOf
 /** Keys in a render share with the ordinary optional options bag. */
 type OrdinaryKeysOf<S extends keyof SlotMap & string> = Exclude<S, ContextualKeysOf<S> | KeyedKeysOf<S>>
 
+/** Intersect the inputs of possible dispatch targets while preserving unions declared within each target. */
+type RenderSlotInputs<K extends keyof SlotMap & string, EntryKey extends string = string> = (
+  K extends unknown
+    ? EntryKey extends EntryKeyOf<K>
+      ? (input: { owner: OwnerOf<K> & KeyPropsOf<K, EntryKey>; hookContext: HookContextOf<K> }) => void
+      : (input: never) => void
+    : never
+) extends (input: infer Input extends { owner: object; hookContext: unknown }) => void ? Input : never
+
+/** Correlated render arguments for slots with a declared keyed prop table. */
+export type KeyedRenderSlotArgs<K extends keyof SlotMap & string> = K extends unknown
+  ? SlotMap[K] extends { kind: 'keyed'; keyProps: object }
+    ? {
+      [EntryKey in EntryKeyOf<K>]: [
+        key: K,
+        owner: OwnerOf<K> & KeyPropsOf<K, EntryKey>,
+        opts: Omit<RenderOpts<EntryKey>, 'hookContext'> & { entryKey: EntryKey } &
+          (SlotMap[K] extends { hookContext: infer Context } ? { hookContext: Context } : object),
+      ]
+    }[EntryKeyOf<K>]
+    : never
+  : never
+
 /**
  * Child dispatch signatures preserve the optional options bag for ordinary
  * slots. Contextual slots require hookContext, and keyed slots require entryKey.
@@ -331,8 +354,8 @@ type RenderSlotFn<S extends keyof SlotMap & string> =
       EntryKey extends EntryKeyOf<K> = EntryKeyOf<K>,
     >(
       key: K,
-      owner: OwnerOf<K> & KeyPropsOf<K, NoInfer<EntryKey>>,
-      opts: RenderOpts<EntryKey> & { hookContext: HookContextOf<K> } &
+      owner: RenderSlotInputs<K, NoInfer<EntryKey>>['owner'],
+      opts: RenderOpts<EntryKey> & { hookContext: RenderSlotInputs<K, NoInfer<EntryKey>>['hookContext'] } &
         ('keyed' extends SlotMap[K]['kind'] ? { entryKey: EntryKey } : object),
     ): ReactNode
   }) &
@@ -342,7 +365,7 @@ type RenderSlotFn<S extends keyof SlotMap & string> =
       EntryKey extends EntryKeyOf<K> = EntryKeyOf<K>,
     >(
       key: K,
-      owner: OwnerOf<K> & KeyPropsOf<K, NoInfer<EntryKey>>,
+      owner: RenderSlotInputs<K, NoInfer<EntryKey>>['owner'],
       opts: Omit<RenderOpts<EntryKey>, 'hookContext'> & { entryKey: EntryKey },
     ): ReactNode
   }) &
@@ -352,9 +375,12 @@ type RenderSlotFn<S extends keyof SlotMap & string> =
       EntryKey extends EntryKeyOf<K> = EntryKeyOf<K>,
     >(
       key: K,
-      owner: OwnerOf<K> & KeyPropsOf<K, NoInfer<EntryKey>>,
+      owner: RenderSlotInputs<K, NoInfer<EntryKey>>['owner'],
       opts?: Omit<RenderOpts<EntryKey>, 'hookContext'>,
     ): ReactNode
+  }) &
+  ([KeyedRenderSlotArgs<S>] extends [never] ? object : {
+    (...args: KeyedRenderSlotArgs<S>): ReactNode
   })
 
 /**
@@ -399,7 +425,7 @@ export type PropsRenderSlots<S extends keyof SlotMap & string> = {
    * Render a declared non-chain child slot (chain keys dispatch through
    * `renderSlotChain` — their routing lives in entry selectors).
    * @param key - declared child key.
-   * @param owner - owner props share for that key (decided at the render site).
+   * @param owner - props that satisfy every slot and entry the call can select.
    * @param opts - kind dispatch options, including the required `entryKey` for keyed children.
    * @returns rendered node(s).
    */
@@ -415,7 +441,7 @@ export type PropsRenderSlots<S extends keyof SlotMap & string> = {
    * @param opts - fallback body for the all-null case.
    * @returns rendered node(s).
    */
-  renderSlotChain: <K extends ChainKeysOf<S>>(key: K, owner: OwnerOf<K>, opts?: ChainRenderOpts) => ReactNode
+  renderSlotChain: <K extends ChainKeysOf<S>>(key: K, owner: RenderSlotInputs<K>['owner'], opts?: ChainRenderOpts) => ReactNode
 }) & ([Extract<ScopeOf<S>, 'session' | 'session-maybe'>] extends [never]
   ? object
   : { SessionProvider: SessionProviderComponent })

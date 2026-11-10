@@ -4,7 +4,7 @@ import { contextMenuHook } from '@deepseek-ai/dsh-client-test-runtime'
 import type { ProcessGroupData } from '../src/client/contract/process-groups.ts'
 import type { InboxState } from '@deepseek-ai/dsh-agent/types'
 import { MessageId } from '@deepseek-ai/dsh-llm/brand'
-import type { GlobalStandardProps, PropsRenderFactories, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
+import type { GlobalStandardProps, KeyedRenderSlotArgs, PropsRenderFactories, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { useEffect, useMemo } from 'react'
@@ -91,7 +91,8 @@ beforeEach(() => {
 })
 
 const SID = 's1' as SessionId
-type RoutedChatNodeOwner = Parameters<NodeRenderer>[1]
+type NodeSlotArgs = KeyedRenderSlotArgs<'conversation.chat.node'>
+type RoutedChatNodeOwner = NodeSlotArgs[1]
 
 interface TestSessionSnapshot extends SessionSnapshot {
   readonly testInbox?: InboxState
@@ -261,9 +262,8 @@ function bindKeyedSnapshotSelector<Value>(
   }) as KeyedSnapshotSelectorHook<Value>
 }
 
-declare const nodeDispatch: PropsRenderSlots<'conversation.chat.node'>['renderSlot']
 declare const flowDispatch: PropsRenderSlots<'conversation.chat.flow'>['renderSlot']
-type NodeRenderer = typeof nodeDispatch<'conversation.chat.node'>
+type NodeRenderer = (key: NodeSlotArgs[0], owner: RoutedChatNodeOwner, opts: NodeSlotArgs[2]) => React.ReactNode
 type FlowRenderer = typeof flowDispatch<'conversation.chat.flow'>
 type ImageRenderer = (owner: MessageImagesOwnerProps) => React.ReactNode
 declare const userChainDispatch: PropsRenderSlots<'conversation.chat.user.before'>['renderSlotChain']

@@ -27,6 +27,8 @@ English | [中文](README.zh.md)
 
 Compose UI through this package whenever you write a client plugin: register a component into a slot your parent declared, or declare child slots your component renders. The four kinds cover the composition shapes — `single` (one occupant), `list` (ordered entries), `keyed` (dispatch by a key), and `chain` (entries elect themselves). When rendering a keyed child, pass `entryKey` in the `renderSlot` options. The supplied fallback renders when that key has no registration.
 
+When a Slot name or entry key can vary independently of its inputs, the inputs must satisfy each possible target. For a Slot with a keyed prop table, `KeyedRenderSlotArgs` keeps a selected key and its matching inputs together as a tuple. Pass that tuple to `renderSlot` with spread syntax. Owner props passed to `renderSlotChain` must satisfy each possible Slot.
+
 ### Reusable Component Factories
 
 A designer may choose a Component Factory for a component or assembly they consider reusable, even with one current caller; unrelated parents, separate packages, and additional injection or local slots are not prerequisites. A one-off component need not use a Factory. Declare its complete type in `SlotFactoryMap`, install the definition with `ctx.slots.registerFactory()`, render occurrences through the injected `renderFactorySlot()`, and select each declared local Component through the call's `slots` option. The definition reads that choice through `useFactorySlot(name, fallback)`.

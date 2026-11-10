@@ -27,6 +27,8 @@ kind: "package-library"
 
 编写客户端插件时都通过本包组合 UI：把组件注册进父级已声明的 slot，或声明组件将要渲染的子 slot。四种 kind 覆盖组合形态——`single`（单个占位者）、`list`（有序条目）、`keyed`（按键分派）与 `chain`（条目自行提名）。渲染 keyed 子 slot 时，在 `renderSlot` 的选项中传入 `entryKey`。该键没有已注册条目时，渲染传入的 fallback。
 
+Slot 名称或分派键独立于参数变化时，参数必须满足每个可能的目标。对声明了按键参数表的 Slot，可用 `KeyedRenderSlotArgs` 把选定的键及对应参数放在同一个元组中，再展开传给 `renderSlot`。`renderSlotChain` 的 owner props 必须满足每个可能的 Slot。
+
 ### 可复用 Component Factory
 
 设计者认为组件或装配可复用时，即使当前只有一个调用方，也可以选择 Component Factory；互不相关的父级、不同的包、额外注入或局部 slot 都不是前提。一次性组件不必使用 Factory。在 `SlotFactoryMap` 中声明完整类型，通过 `ctx.slots.registerFactory()` 安装 definition，通过注入的 `renderFactorySlot()` 渲染 occurrences，并通过调用的 `slots` 选项选择每个已声明的局部 Component。definition 通过 `useFactorySlot(name, fallback)` 读取该选择。
