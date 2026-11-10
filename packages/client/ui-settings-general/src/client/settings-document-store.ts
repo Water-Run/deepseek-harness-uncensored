@@ -14,16 +14,19 @@ export interface SettingsDocumentState {
   opening: boolean
   /** Last metadata/native-open diagnostic; UI exposes only localized copy. */
   error: string | null
+  /** Last explicit open result, presented outside the settings dialog. */
+  notice: { id: number; opened: boolean } | null
 }
 
 /** Derives local-document availability from the shared mirror and invokes the pathless Host-owned open operation. */
 export class SettingsDocumentStore {
   /** uSES-safe state source shared by the registered header action. */
   readonly store: SnapshotStore<SettingsDocumentState> = createSnapshotStore({
-    status: 'idle', opening: false, error: null,
+    status: 'idle', opening: false, error: null, notice: null,
   })
 
   private following: (() => void) | undefined
+  private noticeId = 0
 
   /**
    * @param ctx - the plugin's context, whose loopback `remote.settings`
@@ -63,13 +66,26 @@ export class SettingsDocumentStore {
     })
     try {
       const result = await this.ctx.remote.settings.openSettingsDocument()
-      if (!result.ok) {
-        const { message } = result.error
-        this.store.update((state) => { state.error = message })
-      }
+      this.store.update((state) => {
+        state.error = result.ok ? null : result.error.message
+        state.notice = { id: ++this.noticeId, opened: result.ok }
+      })
+    } catch (error) {
+      this.store.update((state) => {
+        state.error = error instanceof Error ? error.message : String(error)
+        state.notice = { id: ++this.noticeId, opened: false }
+      })
     } finally {
       this.store.update((state) => { state.opening = false })
     }
+  }
+
+  /**
+   * Dismiss only the result whose notification has finished.
+   * @param id - Notification identity.
+   */
+  dismissNotice(id: number): void {
+    this.store.update((state) => { if (state.notice?.id === id) state.notice = null })
   }
 
   /** Stop following the mirror. */

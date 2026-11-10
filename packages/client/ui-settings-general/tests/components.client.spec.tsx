@@ -8,7 +8,7 @@ import type { GeneralSectionComponentProps } from '../src/client/GeneralSection.
 import { GeneralSection } from '../src/client/GeneralSection.tsx'
 import { CloseLabel, HeaderContent, TriggerContent } from '../src/client/chrome.tsx'
 import type { TriggerContentProps } from '../src/client/chrome.tsx'
-import { SettingsDocumentAction } from '../src/client/SettingsDocumentAction.tsx'
+import { SettingsDocumentAction, SettingsDocumentToast } from '../src/client/SettingsDocumentAction.tsx'
 import { DeveloperToolsRow } from '../src/client/DeveloperToolsRow.tsx'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { SettingsDescribeMirror } from '@deepseek-ai/dsh-client-ui-settings/src/client/settings-mirror.ts'
@@ -202,12 +202,12 @@ describe('SettingsDocumentAction', () => {
         })),
       },
     })
-    render(<SettingsDocumentAction
+    render(<><SettingsDocumentAction
       {...kit}
       t={t}
       controller={controller}
       useSnapshot={bindSnapshotSelector(controller.store)}
-    />)
+    /><SettingsDocumentToast {...kit} t={t} controller={controller} useSnapshot={bindSnapshotSelector(controller.store)} /></>)
     fireEvent.click(await screen.findByRole('button', { name: 'Open configuration file' }))
     expect((await screen.findByRole('alert')).textContent).toBe('Could not open configuration file')
     expect(screen.getByRole('button', { name: 'Open configuration file' })).toBeTruthy()

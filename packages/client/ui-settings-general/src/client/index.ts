@@ -40,7 +40,7 @@ import { CloseLabel, HeaderContent, TriggerContent } from './chrome.tsx'
 import { GeneralSection } from './GeneralSection.tsx'
 import { CurrentVersionRow } from './CurrentVersionRow.tsx'
 import { DeveloperToolsRow, type DeveloperToolsRowInjected } from './DeveloperToolsRow.tsx'
-import { SettingsDocumentAction } from './SettingsDocumentAction.tsx'
+import { SettingsDocumentAction, SettingsDocumentToast } from './SettingsDocumentAction.tsx'
 import type { SettingsDocumentActionInjected } from './SettingsDocumentAction.tsx'
 import { SettingsDocumentStore } from './settings-document-store.ts'
 import { HostReleasePrompt, type HostReleasePromptInjected } from './HostReleasePrompt.tsx'
@@ -246,6 +246,9 @@ export function apply(ctx: ClientContext): void {
       locale: NS,
       inject: documentInjected,
     }, SettingsDocumentAction))
+    ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+      name: 'shell.overlay', id: 'settings-document-result', locale: NS, inject: documentInjected,
+    }, SettingsDocumentToast))
   }
   ctx.slots.inject('settings.close', () =>
     ctx.slots.register({ name: 'settings.close', locale: NS }, CloseLabel))

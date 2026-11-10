@@ -22,9 +22,11 @@ Use this package to give the dsh web client a Settings panel, connection-recover
 
 -----
 
-The Settings panel uses a shared 1000 × 800 layout, bounded by the viewport. At widths up to 640px, navigation becomes a horizontally scrollable row above the content; the close button remains visible. Longer sections scroll inside the content column; the Account entry uses the account icon. The panel portals beside `#root` rather than inside it, so a macOS window drag region a chrome row declares later in document order cannot swallow its controls.
+The Settings panel uses a shared 1000 × 800 layout, bounded by the viewport. Windows custom captions and macOS titlebars retain the desktop navigation rail. Longer sections scroll inside the content column. The panel portals beside `#root`, keeping its controls outside the window drag regions.
 
 In browsers below 768px viewport width, the panel fills the viewport and navigation becomes a horizontal strip: the title shares the first row with the header's action and close seats, the registered section cells scroll sideways on the second, and the active section fills the rest. Cells grow into spare width and hold a minimum width, and the strip scrolls instead of truncating, so a registrant's label length or a longer section roster cannot wrap or clip a name; the selected cell carries initial focus, which brings it into the strip's view. Section content keeps a 16px inline padding at that width, and the 48px gutter separating a preference label from its control narrows with it.
+
+Configuration-file actions report their result through the shared toast overlay. A failed open keeps the button available for retry, and the notification remains visible when Settings closes. Resizing preserves focus on the header control.
 
 <a id="use-this-package"></a>
 ## Use this package

@@ -54,6 +54,8 @@
   - button "详细"
   - text: 随问思考等级 一次性的 /btw 提问默认使用低思考等级，回答更快；主对话与旁问不受影响。
   - button "低"
+  - text: 旁问关闭后自动清除上下文 默认关闭，重开可接着聊；开启后关闭标签会清理旁问，主对话不受影响。也可在旁问中使用 /clear。
+  - switch "旁问关闭后自动清除上下文"
   - text: 在使用官方模型 API 时上传 Session Log 帮助改进 DeepSeek 模型与产品
   - switch "在使用官方模型 API 时上传 Session Log"
   - text: 当前版本：{{version}}

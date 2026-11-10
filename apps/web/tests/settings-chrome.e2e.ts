@@ -286,6 +286,76 @@ describe('web e2e: settings modal and General preferences', () => {
     expect(console.warnings).toEqual([])
   })
 
+  it.each([
+    { locale: 'en' as const, browserLocale: 'en-US', title: 'Settings', action: 'Open configuration file', close: 'Close' },
+    { locale: 'zh' as const, browserLocale: ZH_BROWSER_LOCALE, title: '设置', action: '打开配置文件', close: '关闭' },
+  ])('keeps the $locale settings header readable and focused across narrow layouts', async (copy) => {
+    const narrow = await newSettingsPage(browser, { viewport: { width: 1000, height: 844 }, locale: copy.browserLocale })
+    onTestFinished(() => narrow.close())
+    onTestFailed(() => saveSettingsFailureShot(narrow, `settings-header-${copy.locale}`))
+    await narrow.goto(scaffold.authenticatedUrl)
+    await openSettings(narrow, copy.locale)
+    const dialog = narrow.getByRole('dialog', { name: copy.title, exact: true })
+    const action = dialog.getByRole('button', { name: copy.action, exact: true })
+    await action.focus()
+    for (const platform of ['browser', 'windows', 'darwin'] as const) {
+      await narrow.evaluate((platform) => {
+        document.documentElement.toggleAttribute('data-windows-titlebar', platform === 'windows')
+        if (platform === 'darwin') document.documentElement.setAttribute('data-platform', 'darwin')
+        else document.documentElement.removeAttribute('data-platform')
+      }, platform)
+      await narrow.setViewportSize({ width: platform === 'browser' ? 390 : 520, height: 844 })
+      await expect.poll(() => action.evaluate(element => element === document.activeElement)).toBe(true)
+      const geometry = await action.evaluate((element) => {
+        const button = element.getBoundingClientRect(), range = document.createRange()
+        range.selectNodeContents(element)
+        const lines = [...range.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0)
+        return { textLines: new Set(lines.map(rect => Math.round(rect.top))).size,
+          contentInside: lines.every(rect => rect.left >= button.left && rect.right <= button.right
+            && rect.top >= button.top && rect.bottom <= button.bottom),
+          hit: element.contains(document.elementFromPoint(button.x + button.width / 2, button.y + button.height / 2)),
+          top: button.top, bottom: button.bottom, right: button.right }
+      })
+      expect(geometry.textLines).toBe(1)
+      expect(geometry.contentInside).toBe(true)
+      expect(geometry.hit).toBe(true)
+      const title = await dialog.locator('[class*="_navTitle"]').boundingBox()
+      const close = await dialog.getByRole('button', { name: copy.close, exact: true }).boundingBox()
+      const navigation = await dialog.getByRole('navigation').boundingBox()
+      expect(geometry.right).toBeLessThanOrEqual(close!.x)
+      expect(geometry.bottom).toBeLessThanOrEqual(navigation!.y)
+      expect(title!.y + title!.height).toBeLessThanOrEqual(navigation!.y)
+      expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+      await narrow.keyboard.press('Tab')
+      expect(await dialog.getByRole('button', { name: copy.close, exact: true }).evaluate(element => element === document.activeElement)).toBe(true)
+      await action.focus()
+    }
+    await narrow.evaluate(() => { document.documentElement.removeAttribute('data-platform') })
+    await narrow.setViewportSize({ width: 390, height: 844 })
+    await mkdir(SCREENSHOT_DIR, { recursive: true })
+    await narrow.screenshot({ path: join(SCREENSHOT_DIR, `header-${copy.locale}.png`) })
+    await narrow.route('**/api/settings/openSettingsDocument', async (route) => {
+      const envelope = route.request().postDataJSON() as { rpcId: string }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+        type: 'server-response', rpcId: envelope.rpcId,
+        result: { ok: false, error: { code: 'gateway/internal', message: 'Fixture editor unavailable', details: {} } },
+      }) })
+    })
+    await action.click()
+    await narrow.getByRole('alert').waitFor()
+    const closeAfterFailure = await dialog.getByRole('button', { name: copy.close, exact: true }).boundingBox()
+    expect(closeAfterFailure!.x + closeAfterFailure!.width).toBeLessThanOrEqual(390)
+    expect(await action.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+    expect(await action.evaluate((element) => {
+      const range = document.createRange()
+      range.selectNodeContents(element)
+      return new Set([...range.getClientRects()].filter(rect => rect.width > 0).map(rect => Math.round(rect.top))).size
+    })).toBe(1)
+    await narrow.keyboard.press('Escape')
+    await dialog.waitFor({ state: 'hidden' })
+    expect(await narrow.getByRole('alert').isVisible()).toBe(true)
+  })
+
   it('fills a phone viewport and turns the rail into the horizontal section strip', async () => {
     const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, locale: ZH_BROWSER_LOCALE })
     onTestFinished(() => phone.close())

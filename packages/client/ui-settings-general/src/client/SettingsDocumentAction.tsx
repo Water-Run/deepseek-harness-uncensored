@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import type { ReactNode } from 'react'
-import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SettingsDocumentStore } from './settings-document-store.ts'
 import css from './SettingsDocumentAction.module.css'
@@ -37,7 +37,6 @@ export function SettingsDocumentAction({ controller, useSnapshot, t }: SettingsD
 
   return (
     <div className={css.action}>
-      {state.error === null ? null : <span className={css.error} role="alert">{t('openDocument.error')}</span>}
       <Button
         variant="outline"
         size="sm"
@@ -48,4 +47,18 @@ export function SettingsDocumentAction({ controller, useSnapshot, t }: SettingsD
       </Button>
     </div>
   )
+}
+
+/**
+ * Keep open-document feedback visible after the settings dialog closes.
+ * @param props - Root overlay, localized copy and the document operation state.
+ * @returns The latest operation result, or null before a result is available.
+ */
+export function SettingsDocumentToast({ controller, useSnapshot, t }:
+  PropsRuntime<'shell.overlay'> & PropsLocale<'settings'> & InjectFace<SettingsDocumentActionInjected>): ReactNode {
+  const notice = useSnapshot(snapshot => snapshot.notice)
+  if (notice === null) return null
+  return <Toast key={notice.id} text={t(notice.opened ? 'openDocument.success' : 'openDocument.error')}
+    {...notice.opened ? { tone: 'success' as const } : {}}
+    onDone={() => { controller.dismissNotice(notice.id) }} />
 }

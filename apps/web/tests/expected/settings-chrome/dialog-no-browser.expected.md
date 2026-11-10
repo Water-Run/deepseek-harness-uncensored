@@ -54,6 +54,8 @@
   - button "Detailed"
   - text: Quick-question reasoning One-shot /btw questions use low reasoning by default for faster answers; the main conversation and side questions are not affected.
   - button "Low"
+  - text: "Clear side context when closed Off by default: reopen to continue. When enabled, closing the tab clears the side conversation. The main conversation is unchanged. You can also use /clear inside the side conversation."
+  - switch "Clear side context when closed"
   - text: Upload Session Log when using the official model API Help improve DeepSeek models and products.
   - switch "Upload Session Log when using the official model API"
   - text: "Current version: {{version}}"

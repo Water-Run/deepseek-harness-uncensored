@@ -29,7 +29,7 @@ describe('SettingsDocumentStore', () => {
     const controller = derivedDocumentStore({ settings: { describe, openSettingsDocument: openDocument } })
     await controller.load()
     expect(controller.store.getSnapshot()).toEqual({
-      status: 'ready', opening: false, error: null,
+      status: 'ready', opening: false, error: null, notice: null,
     })
     await controller.open()
     expect(openDocument).toHaveBeenCalledWith()
@@ -96,5 +96,20 @@ describe('SettingsDocumentStore', () => {
     expect(caught.store.getSnapshot()).toMatchObject({ status: 'unavailable', error: 'offline' })
     await mirror.load()
     expect(caught.store.getSnapshot()).toMatchObject({ status: 'ready', error: null })
+  })
+
+  it('reports a rejected open request and keeps a newer result when an older notice finishes', async () => {
+    const openDocument = vi.fn().mockRejectedValueOnce(new Error('connection closed')).mockResolvedValue(opened())
+    const controller = derivedDocumentStore({
+      settings: { describe: () => Promise.resolve(response(true)), openSettingsDocument: openDocument },
+    })
+    await controller.load()
+    await controller.open()
+    expect(controller.store.getSnapshot()).toMatchObject({ opening: false, error: 'connection closed', notice: { id: 1, opened: false } })
+    await controller.open()
+    controller.dismissNotice(1)
+    expect(controller.store.getSnapshot().notice).toEqual({ id: 2, opened: true })
+    controller.dismissNotice(2)
+    expect(controller.store.getSnapshot().notice).toBeNull()
   })
 })
