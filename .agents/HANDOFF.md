@@ -1,5 +1,15 @@
 # Uncensored 开发交接
 
+## 工程文档链接核验（2026-11-11）
+
+修复 222 处失效链接，其中 175 处来自 `verify-md-links`，47 处来自对 GitHub 说明、持久化记录和开发脚本说明等目录的补扫。迁移后仍在仓库中的目标使用本地相对路径。上游文档和历史工作流链接固定到已核对的 `dsh-v0.2.2-rc.1`。DSHU 打包、发布和持久化操作分别链接到当前说明。[上游版本](https://github.com/deepseek-ai/deepseek-harness/tree/dsh-v0.2.2-rc.1)
+
+主检查与补扫合计覆盖 1,850 份文档，失效相对引用为零。19 组修改过的双语文档通过配对校验，`doc-sync` 与两项 README 测试通过。目标路径和锚点核对清单位于 `.dsh-build/md-links-plan-20261111.json` 与 `.dsh-build/md-links-extra-plan-20261111.json`。
+
+复查远端仍只有 `main`，开放 PR 和 Releases 均为零。Actions 只列出动态 Dependabot 项。漏洞提醒与自动安全更新当前关闭，密钥扫描与推送保护已启用。[仓库 Actions](https://github.com/Water-Run/deepseek-harness-uncensored/actions)
+
+持久化声明检查通过，68 个根类型与 20 份历史记录一致。全仓 lint 仍报告未跟踪的 `src/*.d.ts` 格式错误，以及未改动的代理与桌面端类型规则错误。待从干净检出区分生成残留和源码问题。
+
 ## Electron 与 NSIS 声明核对（2026-11-11）
 
 按锁定摘要核对 Electron `44.7.0` 的 Windows x64 与 Linux x64 分发归档。Windows `.6` 实装、Linux `.5` 的 deb 与 tar.gz 均保留两份 Electron 和 Chromium 声明原文。Windows 与 Linux 打包后的验证已加入原文字节比对，定向测试覆盖缺失、改写和空文件。[Electron 发布归档](https://github.com/electron/electron/releases/tag/v44.7.0)

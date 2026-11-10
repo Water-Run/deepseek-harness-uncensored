@@ -44,7 +44,7 @@ changes:
 <a id="verification"></a>
 ## 验证
 
-注册表和快照归一化测试覆盖因果顺序与唯一 JobId。CLI 和 SDK 快照验证运行中的注册、结算和通知；[job 生命周期约定](../subsystems/jobs.zh.md#session-lifecycle-records)允许应用销毁时留下不完整的终态历史。
+注册表和快照归一化测试覆盖因果顺序与唯一 JobId。CLI 和 SDK 快照验证运行中的注册、结算和通知；[job 生命周期约定](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/docs/subsystems/jobs.md#session-lifecycle-records)允许应用销毁时留下不完整的终态历史。
 
 <a id="dev-note"></a>
 ## 开发备注

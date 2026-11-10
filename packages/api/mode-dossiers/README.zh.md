@@ -63,9 +63,10 @@ kind: "package-reference"
 
 `src/casefile.ts` 负责账本校验、编辑、序列化与报告渲染；`src/story.ts` 负责登记表、文档读写和选择；`src/sample.ts` 从字节计算清点结果；`src/tools.ts` 给出工具状态；`src/index.ts` 是 Remote 服务与 pre-step 上下文。面板位于 `@deepseek-ai/dsh-client-ui-mode-materials`。
 
+<a id="further-exploration"></a>
 ## 延伸阅读
 
-- [模式特化手册](../skill/skill-playbooks/README.md) —— 读取这些文件并记录其格式的技能。
+- [技能注册表](../../skill/skill/README.zh.md) —— 软件包如何注册会话技能。
 - [工作区文件服务](../workspace-files/README.zh.md) —— 本包没有重复实现的只读文件接口。
 
 <a id="model-experience"></a>

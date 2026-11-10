@@ -52,6 +52,7 @@ kind: "package-reference"
 
 `src/client/index.ts` 负责 Remote 调用、清单 store 与三个注册；`src/client/contract.ts` 是面板收到的注入接口；`ModeMaterials.tsx` 是按模式分派的面板；`CaseWorkbench.tsx`、`ReversePanel.tsx`、`WritingPanel.tsx` 是具体面板；`ui.tsx` 与 `scope.tsx` 是共享的对话框与工作区部件。组件看不到 `ctx`：它们只接收普通数据、回调与绑定的清单 hook。
 
+<a id="further-exploration"></a>
 ## 延伸阅读
 
 - [模式资料存储](../../api/mode-dossiers/README.zh.md) —— 本界面渲染的 Host 服务、文件格式与失败代码。

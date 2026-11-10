@@ -8,11 +8,11 @@ English | [中文](2026-06-19-real-api-e2e-ci.zh.md)
 
 The harness leans hard on real-API tests by policy: [docs/testing.md](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/testing.md) argues that a no-key suite proves the plumbing but not the product, and the [ACP inject postmortem](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/postmortem/0001-acp-default-export-drops-inject.md) is the standing proof — 178 keyless tests stayed green while a real ACP client session crashed instantly. The real-API e2e suite (`pnpm run test:e2e`, the `*.e2e.ts` files) exists precisely to close that gap: it drives the agent against the live DeepSeek API — real model calls, real bash tools, multi-turn, resume, ACP-over-stdio.
 
-The default gate ([.github/workflows/ci.yml](../../../../.github/workflows/ci.yml)) is deliberately keyless: it carries no secret and runs for forks. `test:e2e` self-skips without a key (`describe.skipIf(!process.env.DEEPSEEK_API_KEY)`), so adding it there would report green without exercising the real suite. A separate secret-bearing workflow is required to make real-API coverage a merge signal.
+The default gate ([.github/workflows/ci.yml](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/.github/workflows/ci.yml)) is deliberately keyless: it carries no secret and runs for forks. `test:e2e` self-skips without a key (`describe.skipIf(!process.env.DEEPSEEK_API_KEY)`), so adding it there would report green without exercising the real suite. A separate secret-bearing workflow is required to make real-API coverage a merge signal.
 
 ## Decision
 
-A dedicated workflow, [.github/workflows/e2e.yml](../../../../.github/workflows/e2e.yml), separate from ci.yml, runs only `pnpm run test:e2e` against the external API using a repo secret, on trusted events, with a preflight that converts a missing secret into a loud failure instead of a false green. The keyless workflow remains separate so forkable quality gates and secret-consuming real-API gates keep different trigger and credential policies.
+A dedicated workflow, [.github/workflows/e2e.yml](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/.github/workflows/e2e.yml), separate from ci.yml, runs only `pnpm run test:e2e` against the external API using a repo secret, on trusted events, with a preflight that converts a missing secret into a loud failure instead of a false green. The keyless workflow remains separate so forkable quality gates and secret-consuming real-API gates keep different trigger and credential policies.
 
 ### A separate workflow, not a job in ci.yml
 
@@ -54,7 +54,7 @@ The repo secret is named `DEEPSEEK_API_KEY_EXTERNAL`; it is mapped to the `DEEPS
 
 ### Scope, runtime shape
 
-The job runs only `test:e2e` on Node 24; keyless gates and version compatibility belong to the main CI workflow. Tests run unbuilt through the workspace paths map with a bounded configurable worker pool, per-test retries, and a job timeout. The [superseded-CI cancellation policy](../../../../.github/workflows/e2e.yml) cancels older runs in the same workflow/ref group across PR, push, schedule, and manual triggers; a post-merge or nightly trigger does not guarantee completion.
+The job runs only `test:e2e` on Node 24; keyless gates and version compatibility belong to the main CI workflow. Tests run unbuilt through the workspace paths map with a bounded configurable worker pool, per-test retries, and a job timeout. The [superseded-CI cancellation policy](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/.github/workflows/e2e.yml) cancels older runs in the same workflow/ref group across PR, push, schedule, and manual triggers; a post-merge or nightly trigger does not guarantee completion.
 
 The DeepSeek native `web_search` probe is registered but skipped. The live Anthropic-compatible endpoint can return a successful response without structured source blocks, so its positive-source assertion is not a reliable merge signal; unit coverage still pins response parsing, but CI does not prove the live source-block wire shape.
 

@@ -33,7 +33,7 @@ kind: "package-library"
 pnpm exec tsx scripts/build-exe-for-ssh-helper.ts
 ```
 
-构建器需要 Node 24、C/C++ 编译器和该 Node 安装附带的开发头文件。Linux 还需要 `musl-gcc`，其 node-pty 扩展必须满足 glibc 基线。[原生构建工作流](../../../.github/workflows/build-exe-for-ssh-helper.yml) 在打包前准备兼容扩展。`--target` 选择一个原生目标，`--skip-build` 复用已准备的 JS／原生输出，`--dry-run` 校验目标与依赖声明而不构建。
+构建器需要 Node 24、C/C++ 编译器和该 Node 安装附带的开发头文件。Linux 还需要 `musl-gcc`，其 node-pty 扩展必须满足 glibc 基线。[原生构建工作流](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/.github/workflows/build-exe-for-ssh-helper.yml) 在打包前准备兼容扩展。`--target` 选择一个原生目标，`--skip-build` 复用已准备的 JS／原生输出，`--dry-run` 校验目标与依赖声明而不构建。
 
 | 目标 | 原生发行包 | 检查的部署基线 |
 |---|---|---|
@@ -52,7 +52,7 @@ pnpm exec tsx scripts/build-exe-for-ssh-helper.ts
 
 [OpenSSH 验证器](../../../scripts/verify-ssh-helper-ssh.ts) 接受 Linux `--archive`。它创建未安装 Node 的临时 glibc 2.28 SSH 服务器，仅挂载发行包和一次性公钥，并验证生产连接。这个可移植性测试不声明内核隔离能力，该检查由原生主机测试负责。测试身份、主机密钥、端口和工作区均由本次运行独占。
 
-普通 PR 和 master CI 运行源码及构建脚本检查，不构建 SSH 可执行文件。修改 helper 启动、原生依赖或打包逻辑时，应在合并前手动运行[原生工作流](../../../.github/workflows/build-exe-for-ssh-helper.yml)；它支持指定目标，默认构建全部四个平台。`CI master` 也提供手动 `ssh-helper` 测试入口。[Release (SSH helper)](../../../.github/workflows/publish-ssh-helper.yml) 默认为 `publish=false`：从选定 ref 构建四个平台，并校验干净源码构建提供的同一提交完整验证证据。设置 `publish=true` 时，必须选择匹配的 `dsh-v<version>` 标签，工作流将已测试的压缩包及 `SHA256SUMS` 附加到对应 GitHub Release；Release 不存在时创建草稿。发布前仍须通过原生运行验证。仅检查部署目标不能证明已在最低 macOS 版本上运行。
+普通 PR 和 master CI 运行源码及构建脚本检查，不构建 SSH 可执行文件。修改 helper 启动、原生依赖或打包逻辑时，应在合并前手动运行[原生工作流](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/.github/workflows/build-exe-for-ssh-helper.yml)；它支持指定目标，默认构建全部四个平台。`CI master` 也提供手动 `ssh-helper` 测试入口。[Release (SSH helper)](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/.github/workflows/publish-ssh-helper.yml) 默认为 `publish=false`：从选定 ref 构建四个平台，并校验干净源码构建提供的同一提交完整验证证据。设置 `publish=true` 时，必须选择匹配的 `dsh-v<version>` 标签，工作流将已测试的压缩包及 `SHA256SUMS` 附加到对应 GitHub Release；Release 不存在时创建草稿。发布前仍须通过原生运行验证。仅检查部署目标不能证明已在最低 macOS 版本上运行。
 
 -----
 

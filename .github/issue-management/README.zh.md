@@ -8,6 +8,8 @@ description: "面向仓库维护者的 Issue 策略强制范围、Project 访问
 
 ## 摘要
 
+本文描述上游 DeepSeek Harness 的 Issue 自动化。
+
 贡献者可以引用 Issue 作为背景，而无需让 PR（Pull Request）校验依赖 Project 可用性。解决型引用还会强制检查 Project Priority。必需的 `Issue policy` job 与独立的生命周期工作流使用受信任的默认分支代码。
 
 ## 目录
@@ -24,7 +26,7 @@ description: "面向仓库维护者的 Issue 策略强制范围、Project 访问
 <a id="pull-request-policy"></a>
 ## PR 策略
 
-[Issue policy](../workflows/issue-policy.yml)适用于已请求评审或已有评审、非草稿且由人类创建的 PR。豁免 PR 成功结束，不解析 Issue 引用、不签发 Project App token，也不查询 ProjectV2。工作流在昂贵读取前根据仓库实时状态判断强制范围；订阅事件仍保留必需 job。最终校验重新读取实时状态：预检不是缓存结论，也不是元数据编辑的豁免。
+[Issue policy](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/.github/workflows/issue-policy.yml)适用于已请求评审或已有评审、非草稿且由人类创建的 PR。豁免 PR 成功结束，不解析 Issue 引用、不签发 Project App token，也不查询 ProjectV2。工作流在昂贵读取前根据仓库实时状态判断强制范围；订阅事件仍保留必需 job。最终校验重新读取实时状态：预检不是缓存结论，也不是元数据编辑的豁免。
 
 选择性预检要求受信任的检出中存在 [selective-preflight.json](selective-preflight.json)。缺少该标记时，工作流保留旧版行为：人类 PR 获取 Project token 并执行完整旧版校验；Bot/App PR 跳过两者。受支持的预检执行失败时，job 失败而不回退。
 
@@ -41,7 +43,7 @@ REST 读取使用仓库 `GITHUB_TOKEN`。Project 校验使用独立的 App token
 <a id="lifecycle-events"></a>
 ## 生命周期事件
 
-[Issue lifecycle](../workflows/issue-lifecycle.yml)独立于 PR 校验强制范围修改 Project 数据。PR 打开、重新打开和正文编辑可将解决型 Issue 推进至 `In progress`；仅编辑标题不会。请求评审以 `In review` 为目标。请求修改的评审以 `In progress` 为目标，并遵守[人工状态归属与终态保护](../../.agents/notes/implemented/process/2026-08-10-event-directed-pr-review-status.zh.md)。
+[Issue lifecycle](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/.github/workflows/issue-lifecycle.yml)独立于 PR 校验强制范围修改 Project 数据。PR 打开、重新打开和正文编辑可将解决型 Issue 推进至 `In progress`；仅编辑标题不会。请求评审以 `In review` 为目标。请求修改的评审以 `In progress` 为目标，并遵守[人工状态归属与终态保护](../../.agents/notes/implemented/process/2026-08-10-event-directed-pr-review-status.zh.md)。
 
 仅批准或仅评论的评审不分配生命周期 runner。PR 推送与标签变更，以及 Issue 指派变更，不触发生命周期工作。其他已订阅的 Issue 事件维护 Project 归属、状态及审计评论；精确订阅列表由工作流定义。
 

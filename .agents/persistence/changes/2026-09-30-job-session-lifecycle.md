@@ -44,7 +44,7 @@ Adds required job event kinds without changing the Session envelope. New JobIds 
 <a id="verification"></a>
 ## Verification
 
-Registry and snapshot-normalizer tests cover causal order and unique JobIds. CLI and SDK snapshots verify registration, settlement, and notices during execution; the [job lifecycle contract](../subsystems/jobs.md#session-lifecycle-records) allows incomplete terminal history during application teardown.
+Registry and snapshot-normalizer tests cover causal order and unique JobIds. CLI and SDK snapshots verify registration, settlement, and notices during execution; the [job lifecycle contract](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/docs/subsystems/jobs.md#session-lifecycle-records) allows incomplete terminal history during application teardown.
 
 <a id="dev-note"></a>
 ## Dev Note

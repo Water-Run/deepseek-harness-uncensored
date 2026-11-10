@@ -9,7 +9,7 @@ Find changes that remove maintained obligations: APIs, representations, lifecycl
 
 ## Establish scope and constraints
 
-Read `AGENTS.md`, [architecture](../../../docs/architecture.md) before judging packages, [defensive patterns](../../../docs/defensive-patterns/README.md), and [testing policy](../../../docs/testing.md). Consult the relevant active Agent Notes for intentional decisions; use the [note rules](../../notes/README.md) for new records. Archived notes are historical examples, not current authority: never inspect, verify, or repair their outbound links.
+Read `AGENTS.md`, [architecture](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/docs/architecture.md) before judging packages, [defensive patterns](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/docs/defensive-patterns/README.md), and [testing policy](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/docs/testing.md). Consult the relevant active Agent Notes for intentional decisions; use the [note rules](../../notes/README.md) for new records. Archived notes are historical examples, not current authority: never inspect, verify, or repair their outbound links.
 
 The two LLM adapters are intentional. JSONL is the sole first-party Session persistence provider, while the backend-neutral Service Definition supports out-of-tree providers. Do not propose deleting an LLM twin or the persistence seam unless the user explicitly overrides that constraint. Unused members within a protected design remain candidates when their removal preserves its purpose.
 
@@ -38,7 +38,7 @@ For each candidate, record the current owner, effective producer/consumer path, 
 - a narrower public or product behavior with an explicit loss;
 - a protected obligation or insufficient evidence.
 
-Reject a candidate when it breaks a retained obligation, merely relocates the same complexity, or has no meaningful reduction. Read rejection reasons at the level of the proposed change: a stale inventory or a mixed proposal's rejected behavior does not settle every independent item. Refresh the evidence before re-proposing one. Small local improvements belong in actionable `TODO`/`FIXME`/`XXX` comments under the [urgency rules](../../../docs/development.md), not standalone design records.
+Reject a candidate when it breaks a retained obligation, merely relocates the same complexity, or has no meaningful reduction. Read rejection reasons at the level of the proposed change: a stale inventory or a mixed proposal's rejected behavior does not settle every independent item. Refresh the evidence before re-proposing one. Small local improvements belong in actionable `TODO`/`FIXME`/`XXX` comments under the [urgency rules](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/docs/development.md), not standalone design records.
 
 ## Preserve ownership and failure semantics
 

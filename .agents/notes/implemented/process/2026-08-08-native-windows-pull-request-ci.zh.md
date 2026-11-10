@@ -12,7 +12,7 @@ Wine 在 Linux 内核与区分大小写的 ext4 之上采用 hoisted 依赖布�
 
 ## 决策
 
-[ci-master.yml](../../../../.github/workflows/ci-master.yml) 中仅 master 触发的 `windows` 作业在 `ubuntu-latest` 上运行 `windows node 24 / wine`。它保留经过校验和验证的 Windows Node、Wine apt 与 pnpm 缓存、仅限工作区快照的 hoisted 安装，以及运行工作区构建与生产网站的[共享 Wine 门禁脚本](../../../../scripts/wine-windows-gates.sh)。Node 分发文件传输采用有界重试；nodejs.org 的大文件传输停滞时，由支持范围请求的传输镜像续传相同字节，但版本和 SHA-256 权威仍属于 nodejs.org，归档通过该校验前绝不会投入使用。根据[仅 master 平台策略](../../../../.github/workflows/ci-master.yml)，Wine 不参与 PR 聚合。[已归档的 Wine 实验](../../archived/process/2026-07-27-wine-windows-gates-experiment.md)保留其实测取舍，而本文负责当前双通道拓扑。
+[ci-master.yml](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/.github/workflows/ci-master.yml) 中仅 master 触发的 `windows` 作业在 `ubuntu-latest` 上运行 `windows node 24 / wine`。它保留经过校验和验证的 Windows Node、Wine apt 与 pnpm 缓存、仅限工作区快照的 hoisted 安装，以及运行工作区构建与生产网站的[共享 Wine 门禁脚本](../../../../scripts/wine-windows-gates.sh)。Node 分发文件传输采用有界重试；nodejs.org 的大文件传输停滞时，由支持范围请求的传输镜像续传相同字节，但版本和 SHA-256 权威仍属于 nodejs.org，归档通过该校验前绝不会投入使用。根据[仅 master 平台策略](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/.github/workflows/ci-master.yml)，Wine 不参与 PR 聚合。[已归档的 Wine 实验](../../archived/process/2026-07-27-wine-windows-gates-experiment.md)保留其实测取舍，而本文负责当前双通道拓扑。
 
 每个拉取请求都会启动三个原生作业：`windows-build`、`windows-coverage` 和 `windows-native-tests`。每个作业都会为 workspace 符号链接启用开发者模式，通过 `pnpm/action-setup` 提供仓库固定版本的 pnpm，在不传输 store 归档的情况下执行不可变安装，并在原生 PowerShell 下运行自己的清单。Windows 故障切换变量（`DSH_CI_FAILOVER_WINDOWS`）默认选择组织自有的 `dsh-windows-2025-16core` 运行器，在 `selfhosted` 下选择公司内部运行器池，在 `blacksmith` 下选择 Blacksmith 运行器（见 [blacksmith 故障切换支路笔记](2026-09-09-blacksmith-failover-leg.zh.md)）。Blacksmith 构建和覆盖率作业请求 16 vCPU；逐文件串行的原生测试请求 2 vCPU。各作业的截止时间为 60 至 120 分钟。
 

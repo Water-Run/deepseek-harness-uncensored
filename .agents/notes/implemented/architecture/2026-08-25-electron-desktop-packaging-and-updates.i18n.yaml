@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-25-electron-desktop-packaging-and-updates.md
 /agent-note-package-and-update-the-electron-desktop-application:
-  en: 477aadc664db857a
-  zh: fa18c8ec5fe00746
+  en: b50facd74d2287c9
+  zh: 32a4967ff242ae22
 /agent-note-package-and-update-the-electron-desktop-application/problem:
   en: 5a39322836f06cd9
   zh: 7a7ab48fe38a5788
@@ -21,8 +21,8 @@
   en: 29def175ab33b7d6
   zh: 87e55ec28c20c7c1
 /agent-note-package-and-update-the-electron-desktop-application/updates-and-recovery:
-  en: 4cb7014acfe71762
-  zh: 2178e0337cba0324
+  en: f7f4a5d0c48e3209
+  zh: c3bd7da265660bc8
 /agent-note-package-and-update-the-electron-desktop-application/security-and-release-policy:
   en: 5faaa53b58121311
   zh: e1c3fc8d21a27d1a

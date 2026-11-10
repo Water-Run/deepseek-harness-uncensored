@@ -9,7 +9,7 @@ Draw recognizable artwork that belongs beside the existing official icons. Offic
 
 ## Optional feature previews
 
-Before drawing a larger image below a built-in bundle's description, read and follow [adding a built-in plugin feature preview](../../../docs/cookbook/adding-a-plugin-preview.md). It owns optionality, image count, design canvas, display size and position, language variants, asset limits, and acceptance. The guide also owns the embedded-raster exception for SVG previews; small icons remain geometry-only. The icon dimensions below do not apply to previews. Inspect the real feature, preserve its produced assets, and keep built-in previews in the Plugin Manager client assets directory and its internal bilingual map.
+Before drawing a larger image below a built-in bundle's description, read and follow [adding a built-in plugin feature preview](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/docs/cookbook/adding-a-plugin-preview.md). It owns optionality, image count, design canvas, display size and position, language variants, asset limits, and acceptance. The guide also owns the embedded-raster exception for SVG previews; small icons remain geometry-only. The icon dimensions below do not apply to previews. Inspect the real feature, preserve its produced assets, and keep built-in previews in the Plugin Manager client assets directory and its internal bilingual map.
 
 ## Establish the subject
 

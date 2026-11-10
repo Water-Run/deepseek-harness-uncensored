@@ -23,7 +23,7 @@ kind: persistence-release
 
 ## Snapshot and history rules
 
-The [archive reference](../../../../docs/persistence-changes/releases/README.md) owns the pinned release manifest and extraction limits. The first record contains every extracted root; later schema companions contain only changed roots that remain present, with all their reachable type definitions. Empty changes and snapshots preserve releases with unchanged types. Each record references the immediately preceding manifest entry.
+The [archive reference](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/docs/persistence-changes/releases/README.md) owns the pinned release manifest and extraction limits. The first record contains every extracted root; later schema companions contain only changed roots that remain present, with all their reachable type definitions. Empty changes and snapshots preserve releases with unchanged types. Each record references the immediately preceding manifest entry.
 
 The index table, inventory cell, and structural-change facts use `persistence-release-index`, `persistence-release-inventory`, and `persistence-release-changes` start/end comment markers. Keep human explanations outside these generated regions. `pnpm run verify-persistence-releases --write` validates all machine data before refreshing factual regions and pairing records; it preserves authored prose, machine declarations, and schema files. Default verification rejects stale generated facts and missing fixed index files.
 

@@ -13,7 +13,7 @@ kind: persistence-change
 
 ## Skeleton
 
-The generator fills the machine declaration, schema companion, and consistency records. Structural changes outside the established same-version cases require an explicit compatibility decision. Supply `--prose` JSON with `en` and `zh` objects, each containing authored `summary`, `compatibility`, and `verification` strings. Use Compatibility to explain both reader directions and Verification to record executed checks. The [cookbook](../../../../docs/cookbook/reviewing-persistence-type-changes.md) shows the operation. Use the actual generated root names, record ids, and digests in the following fields.
+The generator fills the machine declaration, schema companion, and consistency records. Structural changes outside the established same-version cases require an explicit compatibility decision. Supply `--prose` JSON with `en` and `zh` objects, each containing authored `summary`, `compatibility`, and `verification` strings. Use Compatibility to explain both reader directions and Verification to record executed checks. The [cookbook](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/docs/cookbook/reviewing-persistence-type-changes.md) shows the operation. Use the actual generated root names, record ids, and digests in the following fields.
 
 ````markdown
 # Persistence change: <specific persisted change>
@@ -70,4 +70,4 @@ None.
 - Explain only the detected persistence-type changes. This kind permits the before/after facts and historical evidence needed for that transition; behavior-only changes remain out of scope.
 - Record creation and terminal-record update generate the catalog pair and consistency sidecars. Review both languages and retain the generated companions. Direct prose edits still require re-recording pairing; do not hand-maintain schema nodes or digests.
 - Use explicit `--update` only for an unaccepted terminal record. It rejects baselines and depended-on records; `--prose` replaces its authored explanations, while omission preserves them. A flagged same-version update requires explicit `--decision same-version`; reassess the explanation against the complete transition. Accepted records receive successors.
-- The [folder reference](../../../../docs/persistence-changes/README.md) owns compatibility rules; the [cookbook](../../../../docs/cookbook/reviewing-persistence-type-changes.md) owns commands and recovery.
+- The [folder reference](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/docs/persistence-changes/README.md) owns compatibility rules; the [cookbook](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/docs/cookbook/reviewing-persistence-type-changes.md) owns commands and recovery.

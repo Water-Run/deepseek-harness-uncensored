@@ -89,13 +89,13 @@ changes:
 
 工具角色声明会改变十个事件根，因为 inbox 条目、消息事件、compaction 摘要、标题请求、团队消息和 PTC dispatch 嵌入了共享的 `Message` 或 `ContentBlock` 声明。从联合中移除 `tool-result` 并按角色细化消息，会改变这些可达 schema，并非新增十套独立事件协议。`turn/end` 的变更单独记录 forked reason；`SessionHeader` 记录版本递增。
 
-[原生 V4 校验决策](../../.agents/notes/implemented/architecture/2026-09-17-native-v4-read-validation.zh.md) 负责说明这些当前字段所需的读取接纳规则。
+[原生 V4 校验决策](../../notes/implemented/architecture/2026-09-17-native-v4-read-validation.zh.md) 负责说明这些当前字段所需的读取接纳规则。
 
 V3-to-V4 迁移将已发布的 user 角色工具结果提升为 tool 角色消息，包含必需的 toolCallId 和可选的 isError。工具结果包装不再属于内容块联合。迁移保留每个已接纳源事件和继承切分点，并根据同一持久化根目录中保留的直属子 Session 日志追加缺失的父级 subagent/catalog 记录。历史正文恢复要求显式提供子日志证据集合；没有可供补全的子日志时也须传入空集合。子日志的 descriptor 缺失、多条或版本未知时，跳过该子项的补全；身份、时间戳或模式冲突会拒绝迁移且不发布后继。已有 catalog 事实保持不变。历史读取打开在内存中准备结果。写入打开在重新校验子项成员与修订后，将当前后继发布到未修改的前代文件旁。Delivery generation 校验防止历史确认成为有效的 V4 水位。V3 读取方拒绝更新的 generation。已定稿迁移向 turn/end.reason 添加 forked。精确切点的 fork 在继承标记之后追加子会话自有的错误结果和结束事件。V4 接纳经过校验、使用确定性分支 ID 和文案的未启动 fork 结果；已发布的 V0–V3 校验器和已记录的前驱代际保持不变。
 
 `request/header` schema 还将退役的 `system` 键记录为禁止字段。这项声明记录已有的原生读取拒绝规则，不改变存储数据或提示词重建；以后允许该字段携带值时，同版本变更必须经过兼容性评审，或显式提升格式版本，而不能归类为普通可选字段添加。
 
-生产者拥有的 source 通过 [V3→V4 迁移](../../packages/session/session-format-v3-to-v4/README.zh.md#v3-to-v4-specification)替代已发布的 plugin wrapper。冻结的重命名表和冲突规则保留 source 字段与事件坐标；未知生产者归属保留每个自有 JSON 属性。原生读取和写入打开在公开 Session 之前校验 source 字段。已有 V4 文件不会重新运行迁入边。
+生产者拥有的 source 通过 [V3→V4 迁移](../../../packages/session/session-format-v3-to-v4/README.zh.md#v3-to-v4-specification)替代已发布的 plugin wrapper。冻结的重命名表和冲突规则保留 source 字段与事件坐标；未知生产者归属保留每个自有 JSON 属性。原生读取和写入打开在公开 Session 之前校验 source 字段。已有 V4 文件不会重新运行迁入边。
 
 核心拥有的 user source 属性记录归属保留策略；tmux-context 将位置归属标记为符合条件，同时保留生产者内部的去重。Auto Review 和压缩摘要器使用仅供请求使用的 user 输入，移除其活动 source 注册，同时保留历史迁移支持。这些输入不能写为持久化 Session 消息。目录 formatVersion 2 保存策略元数据，不改变 Session 版本，也不重写冻结的 schema 记录。System、model 和 tool source 保持严格的语义规则。
 

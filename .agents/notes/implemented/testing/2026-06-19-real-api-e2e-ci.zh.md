@@ -8,11 +8,11 @@ Status: implemented
 
 根据策略，harness 高度依赖真实 API 测试：[docs/testing.md](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/testing.md) 指出，无密钥套件证明的是管线，而非产品；[ACP（Agent Client Protocol）inject 事故复盘（postmortem）](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/postmortem/0001-acp-default-export-drops-inject.md)则是常设证据——178 项无密钥测试保持绿色时，真实 ACP 客户端会话却立即崩溃。真实 API e2e 套件（`pnpm run test:e2e`，即 `*.e2e.ts` 文件）的存在正是为了弥合这一缺口：它针对线上 DeepSeek API 驱动 agent（智能体）——真实模型调用、真实 bash 工具、多轮次、恢复、ACP-over-stdio。
 
-默认门禁（[.github/workflows/ci.yml](../../../../.github/workflows/ci.yml)）刻意无密钥：不携带 secret，可供 fork 运行。`test:e2e` 在无密钥时自动跳过（`describe.skipIf(!process.env.DEEPSEEK_API_KEY)`），因此将其加入该工作流只会报绿而不会真正执行真实套件。要让真实 API 覆盖率成为合并信号，需要一个独立的、携带 secret 的工作流。
+默认门禁（[.github/workflows/ci.yml](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/.github/workflows/ci.yml)）刻意无密钥：不携带 secret，可供 fork 运行。`test:e2e` 在无密钥时自动跳过（`describe.skipIf(!process.env.DEEPSEEK_API_KEY)`），因此将其加入该工作流只会报绿而不会真正执行真实套件。要让真实 API 覆盖率成为合并信号，需要一个独立的、携带 secret 的工作流。
 
 ## 决策
 
-一个与 ci.yml 分离的专用工作流 [.github/workflows/e2e.yml](../../../../.github/workflows/e2e.yml) 使用 repo secret 对外部 API 运行且仅运行 `pnpm run test:e2e`，仅在可信事件上触发，并带有一个 preflight 检查：将缺失的 secret 转化为明确的失败而非虚假的绿色。无密钥工作流保持独立，使可 fork 的质量门禁与消费 secret 的真实 API 门禁各自拥有不同的触发和凭证策略。
+一个与 ci.yml 分离的专用工作流 [.github/workflows/e2e.yml](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/.github/workflows/e2e.yml) 使用 repo secret 对外部 API 运行且仅运行 `pnpm run test:e2e`，仅在可信事件上触发，并带有一个 preflight 检查：将缺失的 secret 转化为明确的失败而非虚假的绿色。无密钥工作流保持独立，使可 fork 的质量门禁与消费 secret 的真实 API 门禁各自拥有不同的触发和凭证策略。
 
 ### 独立工作流，而非 ci.yml 中的一个 job
 
@@ -54,7 +54,7 @@ repo secret 命名为 `DEEPSEEK_API_KEY_EXTERNAL`；映射到适配器和测试�
 
 ### 范围与运行时形态
 
-job 仅在 Node 24 上运行 `test:e2e`；无密钥门禁和版本兼容性属于主 CI 工作流。测试通过 workspace paths 映射以未构建形式运行，使用有界的可配置 worker 池、逐测试重试和 job 超时。[被取代 CI 的取消策略](../../../../.github/workflows/e2e.yml)会在 PR、push、schedule 和手动触发之间取消同一工作流/引用组内的旧运行；合并后或每夜触发并不保证完成。
+job 仅在 Node 24 上运行 `test:e2e`；无密钥门禁和版本兼容性属于主 CI 工作流。测试通过 workspace paths 映射以未构建形式运行，使用有界的可配置 worker 池、逐测试重试和 job 超时。[被取代 CI 的取消策略](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/.github/workflows/e2e.yml)会在 PR、push、schedule 和手动触发之间取消同一工作流/引用组内的旧运行；合并后或每夜触发并不保证完成。
 
 DeepSeek 原生 `web_search` 探测已注册但会跳过。线上 Anthropic 兼容端点可能返回成功响应却没有结构化来源块，因此对来源存在性的正向断言不是可靠的合并信号；单元测试仍会锁定响应解析行为，但 CI 不会验证线上端点返回的来源块协议格式（wire format）。
 

@@ -18,7 +18,7 @@ Issue 生命周期工作流把评审 webhook 视为命令。`pull_request.review
 
 状态投影仅解析同一仓库内严格匹配的 `Fixes`、`Closes` 或 `Resolves` 引用。它不会更改终态、将没有 Project 状态的 Issue 添加到 Project、依赖 PR 元数据是否有效、查询 `reviewDecision`、重建评审轮次、从 Issue 反向查找 PR，或运行定时协调器。独立的日期初始化由[Project 局部 Issue 规划字段](../../../../.github/issue-management/README.zh.md)负责，并处理每个同仓库 Issue 引用。
 
-[Issue 生命周期](../../../../.github/workflows/issue-lifecycle.yml)仍不订阅 `pull_request.ready_for_review`；两条事件命令均不依赖该动作。[Issue 策略](../../../../.github/workflows/issue-policy.yml)保留 `ready_for_review`，因为人工提交的 PR 进入评审时，该工作流负责执行必需检查门禁。
+[Issue 生命周期](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/.github/workflows/issue-lifecycle.yml)仍不订阅 `pull_request.ready_for_review`；两条事件命令均不依赖该动作。[Issue 策略](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/.github/workflows/issue-policy.yml)保留 `ready_for_review`，因为人工提交的 PR 进入评审时，该工作流负责执行必需检查门禁。
 
 ## 验证
 

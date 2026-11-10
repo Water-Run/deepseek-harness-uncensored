@@ -4,7 +4,9 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-The [preview workflow](../workflows/build-preview-cloudflare.yml) builds pull-request previews on standard GitHub-hosted `ubuntu-24.04`. Runner sizing compares complete job cost, not price per minute or core count alone.
+This page describes the upstream DeepSeek Harness preview workflow.
+
+The [preview workflow](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/.github/workflows/build-preview-cloudflare.yml) builds pull-request previews on standard GitHub-hosted `ubuntu-24.04`. Runner sizing compares complete job cost, not price per minute or core count alone.
 
 ## Table of Contents
 

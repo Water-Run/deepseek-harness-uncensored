@@ -1,8 +1,10 @@
 # AGENTS.md — Implemented Agent Notes
 
-These Agent Notes describe shipped decisions. Follow the [root instructions](../../../AGENTS.md), [documentation standard](../../../docs/AGENTS.md), and [Agent Note format](../README.md#the-file-format); `verify-agent-note-format` gates the lifecycle-specific structure.
+These Agent Notes describe shipped decisions. Follow the [root instructions](../../../AGENTS.md), [documentation standard](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/docs/AGENTS.md), and [Agent Note format](../README.md#the-file-format); `verify-agent-note-format` gates the lifecycle-specific structure.
 
 ## Keep an implemented Agent Note current with what actually shipped
+
+Notes that link to versioned upstream workflows describe how DeepSeek Harness shipped those decisions. The [DSHU delivery checklist](../../TODO.md) records this fork's release and verification status.
 
 Keep paths, symbols, defaults, and mechanisms current in the same change that alters them. Rewrite stale facts in place; do not append change history.
 

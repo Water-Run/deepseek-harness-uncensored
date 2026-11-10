@@ -4,7 +4,9 @@
 
 ## 摘要
 
-[预览工作流](../workflows/build-preview-cloudflare.yml) 在标准 GitHub 托管 `ubuntu-24.04` 上构建 PR（Pull Request）预览。运行器规格选择比较完整作业成本，而非仅比较每分钟价格或核心数。
+本文描述上游 DeepSeek Harness 的预览工作流。
+
+[预览工作流](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/.github/workflows/build-preview-cloudflare.yml) 在标准 GitHub 托管 `ubuntu-24.04` 上构建 PR（Pull Request）预览。运行器规格选择比较完整作业成本，而非仅比较每分钟价格或核心数。
 
 ## 目录
 

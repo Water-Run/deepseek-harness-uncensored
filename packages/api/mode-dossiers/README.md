@@ -63,9 +63,10 @@ Storage conditions arrive as reported problems on `inventory` — no workspace, 
 
 `src/casefile.ts` owns ledger validation, mutation, serialization, and report rendering; `src/story.ts` owns the registry, the document reads, and the selection; `src/sample.ts` computes the inventory from bytes; `src/tools.ts` publishes the tool status; `src/index.ts` is the Remote service and the pre-step context. The panels live in `@deepseek-ai/dsh-client-ui-mode-materials`.
 
+<a id="further-exploration"></a>
 ## Further Exploration
 
-- [Mode specialization playbooks](../skill/skill-playbooks/README.md) — the skills that read these files and the script formats they document.
+- [Skill registry](../../skill/skill/README.md) — how packages register session skills.
 - [Workspace file service](../workspace-files/README.md) — the read-only file surface this package does not duplicate.
 
 <a id="model-experience"></a>

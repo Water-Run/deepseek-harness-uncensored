@@ -52,6 +52,7 @@ Deleting a case record removes that record from `case.json` and says so; samples
 
 `src/client/index.ts` owns the Remote calls, the inventory store, and the three registrations; `src/client/contract.ts` is the injected face the panels receive; `ModeMaterials.tsx` is the per-mode dispatcher; `CaseWorkbench.tsx`, `ReversePanel.tsx`, and `WritingPanel.tsx` are the panels; `ui.tsx` and `scope.tsx` are the shared modal and workspace pieces. Components never see `ctx`: they receive plain data, callbacks, and the bound inventory hook.
 
+<a id="further-exploration"></a>
 ## Further Exploration
 
 - [Mode dossier storage](../../api/mode-dossiers/README.md) — the Host service, file formats, and failure codes this surface renders.

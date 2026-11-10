@@ -2,7 +2,9 @@
 
 ## Summary
 
-The [`weighted-approval` workflow](../workflows/weighted-approval.yml) publishes an approval score for branch rules. Reviewers are chosen manually; an eligible delegation command requests review from its recipient.
+This page describes the upstream DeepSeek Harness review policy.
+
+The [`weighted-approval` workflow](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/.github/workflows/weighted-approval.yml) publishes an approval score for branch rules. Reviewers are chosen manually; an eligible delegation command requests review from its recipient.
 
 ## Table of Contents
 
@@ -28,7 +30,7 @@ Production source means supported code files under `src/` in `packages/`, `apps/
 
 Each reviewer contributes only the current `APPROVED` or `CHANGES_REQUESTED` decision that GitHub returns. A `DISMISSED` record clears that reviewer's standing decision, including earlier approvals. Comment-only and pending records do not replace a decision. Reviews from deleted accounts and reviewers without current repository access do not count. The workflow does not invalidate an approval by its review commit; the repository's native pull-request rules own stale-review and latest-push requirements.
 
-The publisher runs when a pull request opens, synchronizes, reopens, becomes ready, becomes a draft, or is edited, including a base-branch change. Conversation comment events run the publisher only when the current or previous body contains `/delegate`. Closed or merged PRs and stale review heads are skipped before status writes or dependency setup; the workflow does not subscribe to master pushes. GitHub associates `workflow_run` publisher runs with the default branch even though approval statuses target the open PR head. Pull-request, review, and comment events share one concurrency group per PR. Review submissions, edits, and dismissals run the no-permission [`weighted-approval-review-event` workflow](../workflows/weighted-approval-review-event.yml); its validated run title supplies the pull-request number to the default-branch publisher. The publisher validates the current head, fetches every review and conversation comment, and resolves current repository permission before publishing the status. Permission changes take effect on the next subscribed event.
+The publisher runs when a pull request opens, synchronizes, reopens, becomes ready, becomes a draft, or is edited, including a base-branch change. Conversation comment events run the publisher only when the current or previous body contains `/delegate`. Closed or merged PRs and stale review heads are skipped before status writes or dependency setup; the workflow does not subscribe to master pushes. GitHub associates `workflow_run` publisher runs with the default branch even though approval statuses target the open PR head. Pull-request, review, and comment events share one concurrency group per PR. Review submissions, edits, and dismissals run the no-permission [`weighted-approval-review-event` workflow](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.1/.github/workflows/weighted-approval-review-event.yml); its validated run title supplies the pull-request number to the default-branch publisher. The publisher validates the current head, fetches every review and conversation comment, and resolves current repository permission before publishing the status. Permission changes take effect on the next subscribed event.
 
 <a id="delegating-points"></a>
 
