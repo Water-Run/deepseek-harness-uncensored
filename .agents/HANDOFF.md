@@ -1,5 +1,9 @@
 # Uncensored 开发交接
 
+## Linux 图像与语音运行库声明（2026-11-11）
+
+将 Linux `.5` 便携包的 libvips 与 Sherpa-ONNX 二进制同锁定的 npm 归档对照，5 个文件逐字一致。随包 ONNX Runtime 与 Sherpa 固定的 1.28.2 归档一致。已补入 5 份版本固定的原文。实包输入复算覆盖 861 项，补充声明记录从 19 增至 24，两个平台项的内嵌组件审计保留在 16.07。10 项完整构建检查、12 项清点器测试和仓库第三方声明校验通过。[依赖审计](requirements/2026-11-03-dependency-notices.md)
+
 ## Windows 干净检出与类型感知 lint（2026-11-11）
 
 以 `367bf2db6a` 建立独立检出，离线锁定安装通过。干净基线复现 5 条源码 lint 报错。证书用途缺失时继续由 Chromium 判定，预留浏览器期间更换 Host 时丢弃旧证书结果。代理详情保留 Promise 错误语义，回环用例继续验证完整 HTTP 响应中的正文。Corepack 环境下的 lint 入口统一通过 pnpm 调用。

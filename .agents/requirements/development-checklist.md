@@ -286,7 +286,7 @@
 - [x] **16.04〔已验收〕** 公开说明集中在 README，并在同一文件保留英文概要。README 链接和长度校验通过。工程文档修复 222 处失效引用，主检查与补扫覆盖 1,850 份文档。上游参考指向已核对的 `dsh-v0.2.2-rc.1`，本地发布与持久化操作指向各自的 DSHU 文档。
 - [x] **16.05** 已保留 DeepSeek Harness、YuJunZhiXue/小杨、JeffKeeping、Water-Run 及 GitHub 图标等 Credit；保留上游 MIT 与相关许可文件。
 - [x] **16.06** 根整合发行使用 GPL-3.0-or-later。已集成 armor 文本对照 MIT 历史提交；fork 参考节点与可复用内容的授权节点分开记录。
-- [ ] **16.07〔进行中〕** npm 声明清单和独立 Node/Python/pnpm 清单已进入构建。Windows 实装及独立重建核对 14 个 Python 包、88 份声明，Windows npm 仍有七项待核查。Windows、Linux 实包已核对 Electron 原文，Windows 已核对 7-Zip 原文及五个 NSIS 插件的二进制归属。NSIS 工具集原文已接入打包。内嵌组件、个别插件的源码许可、其他平台及整合发行义务仍待完成。purge 使用已固定的 MIT 历史内容，后续分支不能按 fork 来源直接纳入。详见[许可审计](2026-11-03-dependency-notices.md)。
+- [ ] **16.07〔进行中〕** npm 声明清单和独立 Node/Python/pnpm 清单已进入构建。Windows 实装及独立重建核对 14 个 Python 包、88 份声明，Windows npm 有七项待核查。Linux 已匹配实包的 libvips、Sherpa-ONNX 和 ONNX Runtime，补充原文后仍有九项待核查。Windows、Linux 实包已核对 Electron 原文，Windows 已核对 7-Zip 原文及五个 NSIS 插件的二进制归属。NSIS 工具集原文已接入打包。内嵌组件、个别插件的源码许可、其他平台及整合发行义务仍待完成。purge 使用已固定的 MIT 历史内容，后续分支不能按 fork 来源直接纳入。详见[许可审计](2026-11-03-dependency-notices.md)。
 - [ ] **16.08〔持续验收〕** README 与模式说明、提示词、真实工具列表保持一致；不能宣传所有保护、代理、记忆、逆向后端或更新流程已经完成。
 
 <a id="group-17"></a>

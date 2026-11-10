@@ -20,8 +20,15 @@ interface PackageNotice {
 }
 
 const REA_AGGREGATE = 'node_modules/rea-agents/licenses/npm-runtime-notices.txt'
-// Brotli's component supplements leave its wrapper and compiled encoder notices unverified.
-const UPSTREAM_GAPS = new Set(['brotli@1.3.3', 'clean-git-ref@2.0.1', 'minimisted@2.0.1', 'frida@17.23.2'])
+// These packages have incomplete upstream notice coverage even with the pinned supplements.
+const UPSTREAM_GAPS = new Set([
+  '@img/sharp-libvips-linux-x64@1.3.4',
+  'brotli@1.3.3',
+  'clean-git-ref@2.0.1',
+  'frida@17.23.2',
+  'minimisted@2.0.1',
+  'sherpa-onnx-linux-x64@1.13.8',
+])
 const SUPPLEMENTS_ROOT = join(import.meta.dirname, '../../../LICENSES/npm')
 // Engine releases ship their notice collections below the package root.
 const NESTED_NOTICE_FILES: Readonly<Record<string, readonly string[]>> = {

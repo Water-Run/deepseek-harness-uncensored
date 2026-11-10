@@ -108,10 +108,40 @@
     "sha256": "a27ca07269b3518550b2e83aed13eadd7d14d924b5864e14889b40cf227530ca"
   },
   {
-    "packages": ["sherpa-onnx-node@1.13.8", "sherpa-onnx-win-x64@1.13.8"],
+    "packages": ["@img/sharp-libvips-linux-x64@1.3.4"],
+    "file": "sharp-libvips-1.3.4-THIRD-PARTY-NOTICES.txt",
+    "source": "https://raw.githubusercontent.com/lovell/sharp-libvips/ebb95f8add54eee8bed840e3fb587e4cbec857d7/THIRD-PARTY-NOTICES.md",
+    "sha256": "6f0d5086e3bcbee12bcdacf5878b31d1104002aeecaeb241d3fff466108082fe"
+  },
+  {
+    "packages": ["@img/sharp-libvips-linux-x64@1.3.4"],
+    "file": "libvips-8.18.7-LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/libvips/libvips/24ad4d042940e6bf99a68871ba886ca8847c9c82/LICENSE",
+    "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551"
+  },
+  {
+    "packages": ["@img/sharp-libvips-linux-x64@1.3.4"],
+    "file": "sharp-libvips-1.3.4-LGPL-3.0.txt",
+    "source": "https://www.gnu.org/licenses/lgpl-3.0.txt",
+    "sha256": "e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118"
+  },
+  {
+    "packages": ["sherpa-onnx-node@1.13.8", "sherpa-onnx-linux-x64@1.13.8", "sherpa-onnx-win-x64@1.13.8"],
     "file": "sherpa-onnx-1.13.8-Apache-2.0.txt",
     "source": "https://raw.githubusercontent.com/csukuangfj/sherpa-onnx/11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf/LICENSE",
     "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "packages": ["sherpa-onnx-linux-x64@1.13.8"],
+    "file": "onnxruntime-1.28.2-LICENSE.txt",
+    "source": "https://github.com/csukuangfj/onnxruntime-libs/releases/download/v1.28.2/onnxruntime-linux-x64-glibc2_17-Release-1.28.2.zip",
+    "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c"
+  },
+  {
+    "packages": ["sherpa-onnx-linux-x64@1.13.8"],
+    "file": "onnxruntime-1.28.2-ThirdPartyNotices.txt",
+    "source": "https://github.com/csukuangfj/onnxruntime-libs/releases/download/v1.28.2/onnxruntime-linux-x64-glibc2_17-Release-1.28.2.zip",
+    "sha256": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2"
   },
   {
     "packages": ["standardwebhooks@1.1.1"],

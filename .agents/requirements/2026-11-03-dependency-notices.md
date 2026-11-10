@@ -2,6 +2,14 @@
 
 状态：进行中，不代表整合发行的许可核对已完成。用户的 GPL 许可偏好、上游 Credit 和各组件原有许可保持不变。
 
+## Linux x64 图像与语音依赖（2026-11-11）
+
+校验 Linux `.5` tar.gz 与 ASAR 的交付摘要。实包中的 `libvips-cpp.so.8.18.7` 和 Sherpa-ONNX 的四个二进制与 npm 归档逐字一致。两个 npm 归档均通过 `pnpm-lock.yaml` 的 SHA-512 核对，发布提交与上游标签一致。[Sharp libvips 1.3.4](https://github.com/lovell/sharp-libvips/releases/tag/v1.3.4) · [Sherpa-ONNX 1.13.8](https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.8)
+
+libvips 补入 Sharp 构建的第三方清单、libvips 8.18.7 的源码许可文件及该构建采用的 LGPL 3.0 原文。Sherpa-ONNX 使用对应版本 Apache 2.0 原文。其 `libonnxruntime.so` 与 Sherpa 构建固定的 ONNX Runtime 1.28.2 Linux 归档逐字一致，随包补入该归档的 LICENSE 和 ThirdPartyNotices。[Sharp 第三方清单](https://github.com/lovell/sharp-libvips/blob/v1.3.4/THIRD-PARTY-NOTICES.md) · [libvips 源码许可](https://github.com/libvips/libvips/blob/v8.18.7/LICENSE) · [Sherpa 固定的 ONNX 构建](https://github.com/k2-fsa/sherpa-onnx/blob/v1.13.8/cmake/onnxruntime-linux-x86_64.cmake)
+
+使用实包中的 861 个包清单及声明原文复算。补充声明记录由 19 份增至 24 份，仅两个 Linux 平台条目变化。清点器继续标记这两项，待核对内嵌库署名及对应发行义务。二进制摘要与复算回执位于 `.dsh-build/platform-native-notices-20261111/`。新增原文随下一次 Linux 打包进入载荷。
+
 ## Electron 与 Windows 安装器声明（2026-11-11）
 
 校验 [Electron 44.7.0](https://github.com/electron/electron/releases/tag/v44.7.0) 的 Windows x64 和 Linux x64 分发归档。Windows `.6` 实装、Linux `.5` 的 deb 和 tar.gz 均保留与对应分发包逐字一致的 `LICENSE.electron.txt` 和 `LICENSES.chromium.html`。Windows 和 Linux 打包后的检查现会拒绝缺失、空文件或内容变动的声明。
