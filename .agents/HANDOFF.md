@@ -1,5 +1,17 @@
 # Uncensored 开发交接
 
+## Windows `.5` 检查包与本机升级（2026-11-11）
+
+源码 `ac8f9fa7ec120bf38d79bf063f8065b5bf85554d` 的干净检出完成 Windows x64 未签名检查包 `0.1.0-test.20261111.5`。首次构建的 Electron 下载长期停在零字节，确认进程归属后停止该下载。用锁定的 `44.7.0` 归档 SHA-256 核对缓存，复用同一独立检出完成正式流水线。后续独立检出可通过 `DSH_DESKTOP_PACKAGE_CACHE_DIR` 复用已校验下载。
+
+十项构建检查、四模式、REA 229 项工具、三类 Office 文档转 PDF、离线插件装卸及 301 字符路径 ConPTY 通过。实际 NSIS 安装器解包后核对完整载荷、终端代理和 SSH 回环。受控 HTTPS 验证实际 TLS、固定 IP、正文脱敏、源站证书拒绝和生产规则零新增连接。旧 `.4` 包在缺少会话 CA 的断言处按预期失败。Windows 和 Linux 源码构建各十项通过，Windows `private-target-proxy` 及 Linux 两项代理 Session 回放通过。
+
+从 `.4` 原位升级后，7,262 个用户数据文件及官方 DSH 的 EXE/ASAR 摘要一致。实装的四模式、新建会话和命令执行通过，新窗口已启动。用户备份位于 `%LOCALAPPDATA%/DSHU-Backups/2026-11-10T16-53-45-203Z-ac8f9f`，回退回执为 `DSHU-20261110-9df061-manifest.json`。
+
+安装器为 `.dsh-build/deliverables/DSHU-0.1.0-test.20261111.5-core-0.2.2-rc.1-REA-6.8.0-win-x64-unsigned-20261111-ac8f9f.exe`，387,270,834 字节，SHA-256 `1437b720968bbf5f18e9aa7927f3bfff6b7296cb0dd5dc6e1895b9936cf19cf3`。实装 ASAR 摘要为 `05ac49dc1b51fa8bd501117e96e9ba9e3be64412663ed90edb16540c6ebddf80`。回执 `DSHU-20261111-ac8f9f-manifest.json` 包含源码、版本和安装结果。实包保留 859 个 npm 包、19 份补充声明及 7 项待核查，已核对 Frida Gum 原文摘要。
+
+Git 清理独立构建目录时遇到 Windows 长路径错误，D 盘实测增加 5,466,877,952 字节可用空间。自动审批以 `blocked by policy` 拒绝递归删除剩余的 `D:/Coding/dshu-win-774a0c`，现有文件逻辑总量约 3.63 GB。日志和回执位于 `.dsh-build/`，前缀 `delivery-ac8f9f-`、`system-update-ac8f9f-`、`installed-launch-ac8f9f-`。
+
 ## 网安独立代理可选 HTTPS 检查（2026-11-11）
 
 受控独立代理可通过 `httpsInspection.tools` 为指定工具启用 HTTP/1.1 TLS 检查，配置缺省时关闭。客户端显式读取 `DSH_SECURITY_PROXY_CA_PEM`，各监听器独享内存 CA，系统信任和源站验证沿用原设置。解密后的请求重新经过目标准入、固定 IP 转发和脱敏捕获。配置示例位于 `apps/cli/config/examples/target-protection.yml`，浏览器自动信任与其他应用协议仍待接入。

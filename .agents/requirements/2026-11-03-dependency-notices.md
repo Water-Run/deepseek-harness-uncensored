@@ -8,9 +8,9 @@ Windows `.4` 实装和 Linux `.4` tar.gz 内的 `frida_binding.node` 与 [Frida 
 
 发布版 Node 绑定依赖 Frida Core，Core 的 [Gum 版本声明](https://github.com/frida/frida-core/blob/78028da11b850329cb4bfa665a6034bf49b78249/subprojects/frida-gum.wrap)固定 `17.23.2`。新增该版本 Gum 的 [COPYING 原文](https://github.com/frida/frida-gum/blob/2b0e6a661702097d77474223ebc429ece092cb46/COPYING)，核对 Git blob 与 SHA-256。Frida 仍标记待核查，剩余内容包括绑定独立声明及预构建中其他组件的完整署名。
 
-以 Windows `.4` 实装 ASAR 的 859 项包清单复算，补充声明由 18 份增至 19 份，7 项待核查保持。仅 Frida 条目增加 Gum 原文，实装 ASAR 摘要保持一致。12 项清点器回归通过。复算回执为 `.dsh-build/frida-notice-projection-20261111-result.json`，原文随下一次完整构建分发。
+以 Windows `.4` 实装 ASAR 的 859 项包清单复算，补充声明由 18 份增至 19 份，7 项待核查保持。仅 Frida 条目增加 Gum 原文，实装 ASAR 摘要保持一致。12 项清点器回归通过。复算回执为 `.dsh-build/frida-notice-projection-20261111-result.json`。随后 `.5` 安装器完成实包原文摘要核对，详见 [HANDOFF](../HANDOFF.md)。
 
-## 当前检查版实装（2026-11-10）
+## 上一检查版实装（2026-11-10）
 
 `9df061a06a` 的 Windows `0.1.0-test.20261110.4` 已安装并重新打开。实际安装器包含 859 个 npm 包、18 份补充声明及 7 项待核查。独立运行时清单包含 3 个组件、14 个 Python 发行包及 88 份声明文件。清单和安装证据位于 `.dsh-build/deliverables/DSHU-20261110-9df061-manifest.json` 及同前缀的 npm 与独立运行时清单。
 
