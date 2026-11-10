@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## 桌面更新弹窗的紧凑布局（2026-11-11）
+
+在 Windows Electron 44 隐藏窗口中，展开强制更新诊断时复现重试按钮盖住文字，原生滚动条还会贴到卡片圆角。普通和强制更新弹窗现将操作区留在正文滚动区之外，滚动条跟随主题并收在卡片内。紧凑高度下诊断与正文共用一个滚动区。
+
+24 项真实 Electron 用例通过，覆盖约 390×420 和 600×650 CSS px 两种布局、浅深色切换及跟随系统。八张截图和回执位于 `apps/desktop/.desktop-build/qualification/update-theme-jtzXQh/`。200 项定向测试、Desktop 构建和 Host、Client 类型检查通过。实装与原生窗口焦点另行验收。[复验入口](../apps/desktop/tests/README.zh.md#verification-theme)
+
+同目录的五个中间主题夹具共 32,158,543 字节。自动审批以 `blocked by policy` 拒绝清理，保留 `update-theme-PPpun4`、`update-theme-atJMzO`、`update-theme-G1auiQ`、`update-theme-kaIkvt` 和 `update-theme-1atEPj`。
+
 ## Windows 安装器版本覆盖检查（2026-11-11）
 
 安装器在替换程序前比较当前用户已登记的 DSHU 独立产品版本，较低版本或无法识别的版本退出。检查位于实际替换之前，静默模式返回 2，同版修复与升级可继续。中英文两份独立测试安装器均拒绝以预发布版覆盖同号稳定版，并在登记版本具有较新预发布序号、较新产品版本、无效或缺失版本时拒绝替换，随后通过升级与修复。每份安装器还通过九类卸载与数据保留场景。另有 34 项原生版本比较用例通过。[回退指南](../docs/upgrade-guide/v0.2.2-rc.1/windows-installer-version-check/guide.zh.md)

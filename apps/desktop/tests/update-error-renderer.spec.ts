@@ -58,18 +58,19 @@ it.each(['en', 'zh-CN'])('keeps ordinary diagnostics folded, text-only, and keyb
   expect(respond).toHaveBeenCalledWith(1, 0)
   const backdrop = p.document.body
   const dialog = p.element('dialog')
-  dialog.scrollTop = 170
+  const content = p.element('dialog-content')
+  content.scrollTop = 170
   publish({ ...state, revision: 2, message: locale.messages.updateChecking, technicalDetails: '', buttons: ['OK'] })
   expect(p.document.body).toBe(backdrop)
   expect(p.element('dialog')).toBe(dialog)
-  expect(dialog.scrollTop).toBe(0)
+  expect(content.scrollTop).toBe(0)
   expect(backdrop.classList.contains('visible')).toBe(true)
   expect(p.element('actions').childElementCount).toBe(1)
   expect(disclosure.open).toBe(false)
   expect(p.document.activeElement).toBe(dialog)
-  dialog.scrollTop = 80
+  content.scrollTop = 80
   publish(state)
-  expect(dialog.scrollTop).toBe(80)
+  expect(content.scrollTop).toBe(80)
   expect(p.element('title').textContent).toBe(locale.messages.updateChecking)
   publish(null)
   expect(backdrop.classList.contains('visible')).toBe(false)

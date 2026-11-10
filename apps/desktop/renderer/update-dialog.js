@@ -47,7 +47,7 @@ function render(state) {
     document.getElementById('actions').append(button)
   }
   document.querySelector('main').hidden = false
-  document.getElementById('dialog').scrollTop = 0
+  document.getElementById('dialog-content').scrollTop = 0
   document.body.classList.add('visible')
   document.getElementById('dialog').focus()
 }

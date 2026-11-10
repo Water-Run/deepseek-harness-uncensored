@@ -34,13 +34,14 @@ For resource checks, use large sparse history files, unrelated files, dense reco
 
 ## Update dialog themes
 
-After `pnpm --dir apps/desktop run build`, run the real Electron palette fixture on macOS:
+After `pnpm --dir apps/desktop run build`, run the real Electron palette fixture with the development runtime or the cached macOS runtime:
 
 ```sh
+pnpm --dir apps/desktop exec electron tests/fixtures/update-theme.mjs
 apps/desktop/.desktop-build/targets/mac-arm64/electron/Electron.app/Contents/MacOS/Electron apps/desktop/tests/fixtures/update-theme.mjs
 ```
 
-The fixture creates a private profile, loads the production shell HTML, sandboxed preloads, renderer scripts, and bundled design tokens, and substitutes only fixed IPC status responses. Its 12 cases cover ordinary and mandatory documents starting in light/dark mode, switching while open, and following system appearance. It checks transparent document backgrounds, surface/text/button/mask colors, the code/address surface, the dark-only 1 CSS px inset outline, and the ordinary close icon, then writes four screenshots and `result.json` to `.desktop-build/qualification/update-theme-*`. It does not start a Host, download updates, run an installer, or qualify Windows native rendering. The first-close notice shares the ordinary document's CSS and theme script.
+The fixture uses hidden windows and a private profile. It loads the shipped shell pages, sandboxed preloads and theme tokens with fixed IPC responses. Its 24 cases cover both update dialogs, normal and compact layouts, explicit light and dark themes, and system appearance. The compact cases expand diagnostics and check that the body scrolls without covering the primary action or overflowing horizontally. The fixture saves eight screenshots and `result.json` under `.desktop-build/qualification/update-theme-*`. It verifies the renderer. Native window focus, downloads and installation have separate checks.
 
 <a id="verification-overlay"></a>
 
