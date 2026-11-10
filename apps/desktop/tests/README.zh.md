@@ -37,11 +37,11 @@
 执行 `pnpm --dir apps/desktop run build` 后，可使用开发运行时或 macOS 缓存运行时执行真实 Electron 配色夹具：
 
 ```sh
-pnpm --dir apps/desktop exec electron tests/fixtures/update-theme.mjs
-apps/desktop/.desktop-build/targets/mac-arm64/electron/Electron.app/Contents/MacOS/Electron apps/desktop/tests/fixtures/update-theme.mjs
+node apps/desktop/scripts/test-local-updater.mjs --theme-only
+node apps/desktop/scripts/test-local-updater.mjs --theme-only --electron=apps/desktop/.desktop-build/targets/mac-arm64/electron/Electron.app/Contents/MacOS/Electron
 ```
 
-夹具使用隐藏窗口和独立资料目录，加载发布版壳页面、沙箱预加载脚本及主题 token，并提供固定的 IPC 状态响应。24 项用例覆盖两类更新弹窗、常规和紧凑布局、浅深色切换及跟随系统。紧凑用例展开诊断，核对正文滚动时主操作可点且没有横向溢出。八张截图和 `result.json` 保存在 `.desktop-build/qualification/update-theme-*`。这组检查覆盖渲染层。原生窗口焦点、下载及安装另有验收。
+夹具使用隐藏窗口和临时资料目录，加载发布版壳页面、沙箱预加载脚本及主题 token，并提供固定的 IPC 状态响应。24 项用例覆盖两类更新弹窗、常规和紧凑布局、浅深色切换及跟随系统。紧凑用例展开诊断，核对正文滚动时主操作可点且没有横向溢出。Electron 退出后清理资料和缓存，只保留八张截图及 `result.json`，位于 `.desktop-build/qualification/update-theme-*`。原生窗口焦点、下载及安装另有验收。
 
 <a id="verification-overlay"></a>
 

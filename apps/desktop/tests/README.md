@@ -37,11 +37,11 @@ For resource checks, use large sparse history files, unrelated files, dense reco
 After `pnpm --dir apps/desktop run build`, run the real Electron palette fixture with the development runtime or the cached macOS runtime:
 
 ```sh
-pnpm --dir apps/desktop exec electron tests/fixtures/update-theme.mjs
-apps/desktop/.desktop-build/targets/mac-arm64/electron/Electron.app/Contents/MacOS/Electron apps/desktop/tests/fixtures/update-theme.mjs
+node apps/desktop/scripts/test-local-updater.mjs --theme-only
+node apps/desktop/scripts/test-local-updater.mjs --theme-only --electron=apps/desktop/.desktop-build/targets/mac-arm64/electron/Electron.app/Contents/MacOS/Electron
 ```
 
-The fixture uses hidden windows and a private profile. It loads the shipped shell pages, sandboxed preloads and theme tokens with fixed IPC responses. Its 24 cases cover both update dialogs, normal and compact layouts, explicit light and dark themes, and system appearance. The compact cases expand diagnostics and check that the body scrolls without covering the primary action or overflowing horizontally. The fixture saves eight screenshots and `result.json` under `.desktop-build/qualification/update-theme-*`. It verifies the renderer. Native window focus, downloads and installation have separate checks.
+The fixture uses hidden windows and a private temporary profile. It loads the shipped shell pages, sandboxed preloads and theme tokens with fixed IPC responses. Its 24 cases cover both update dialogs, normal and compact layouts, explicit light and dark themes, and system appearance. The compact cases expand diagnostics and check that the body scrolls without covering the primary action or overflowing horizontally. After Electron exits, the launcher removes its profile and cache and retains eight screenshots and `result.json` under `.desktop-build/qualification/update-theme-*`. Native window focus, downloads and installation have separate checks.
 
 <a id="verification-overlay"></a>
 

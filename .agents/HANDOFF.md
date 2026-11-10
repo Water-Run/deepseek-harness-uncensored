@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## 更新主题验收的临时资料清理（2026-11-11）
+
+主题验收通过 `test-local-updater.mjs --theme-only` 使用临时 Electron 资料目录。启动器等待子进程退出，保存报告及截图，再清理临时资料和缓存。旧验收目录包含 13 个 Chromium 子目录，共 7,577,184 字节。新的 Windows 默认运行和显式运行时各通过 24 项，只保留八张截图和一份报告，分别为 389,428 和 401,598 字节。
+
+隐藏窗口更新验收仍通过 17 项。指定不存在的运行时返回 ENOENT，临时目录清零且没有生成证据目录。报告位于 `apps/desktop/.desktop-build/qualification/update-theme-CjPG9o/`、`update-theme-j8ULu1/` 和 `local-updater-oENurL/`。显式运行时入口用 Windows 验证，macOS 原生运行待验收。[运行方式](../apps/desktop/tests/README.zh.md#verification-theme)
+
 ## Windows 隐藏窗口更新演练（2026-11-11）
 
 本地更新夹具支持 `--hidden-windows`。普通弹窗验证取消、安装确认、错误诊断和首次关闭提示。强制更新验证下载、浏览器打开失败、复制反馈、任务延后、安装准备失败后的重试、明确批准后的安装交接和策略解除。夹具先注册主进程 IPC，再加载页面，按当前语言字典核对文案。可见模式的强制更新截图从嵌入页面所属的窗口采集。

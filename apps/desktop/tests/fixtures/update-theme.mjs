@@ -1,6 +1,5 @@
 /** Real Chromium qualification of shared shell tokens and app-resolved palette changes. */
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -9,10 +8,9 @@ import { resolveDesktopLocale } from '../../lib/types/locale.js'
 import { UPDATE_DIALOG_IPC } from '../../lib/types/update-dialog.js'
 import { MANDATORY_IPC } from '../../lib/types/mandatory-update-ipc.js'
 
-const directory = fileURLToPath(new URL('../../.desktop-build/qualification/', import.meta.url))
-mkdirSync(directory, { recursive: true })
-const root = mkdtempSync(join(directory, 'update-theme-'))
-app.setPath('userData', root)
+const root = process.env.DSH_LOCAL_UPDATE_TEST_ROOT
+assert.ok(root, 'The launcher must allocate a private test root')
+app.setPath('userData', join(root, 'electron'))
 protocol.registerSchemesAsPrivileged([{ scheme: 'dsh-app', privileges: { standard: true, secure: true, supportFetchAPI: true } }])
 app.on('window-all-closed', () => {})
 
@@ -131,7 +129,7 @@ async function main() {
       }
     }
     await writeFile(join(root, 'result.json'), JSON.stringify(results, null, 2) + '\n')
-    console.log(`Update theme qualification passed (${results.length} cases): ${root}`)
+    console.log(`Update theme qualification passed (${results.length} cases)`)
   } finally {
     clearTimeout(deadline)
     for (const window of windows) if (!window.isDestroyed()) window.destroy()
