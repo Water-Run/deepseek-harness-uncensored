@@ -1,7 +1,9 @@
 /** Adapt the pinned NSIS template to stage and rename complete application directories. */
+import { createHash } from 'node:crypto'
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
+import stdUtils from '../../../LICENSES/installer/stdutils-1.14.json' with { type: 'json' }
 
 const require = createRequire(import.meta.url)
 const templates = join(dirname(require.resolve('app-builder-lib/package.json')), 'templates/nsis')
@@ -58,7 +60,7 @@ export function installWindowsDirectoryInstaller() {
   require('app-builder-lib')
   const { NsisTarget } = require('app-builder-lib/out/targets/nsis/NsisTarget.js')
   const { getPath7za } = require('app-builder-lib/out/toolsets/7zip.js')
-  const { getMakeNsisPath } = require('app-builder-lib/out/toolsets/windows.js')
+  const { getMakeNsisPath, getNsisPluginsPath } = require('app-builder-lib/out/toolsets/windows.js')
   const prototype = NsisTarget.prototype
   if (prototype[patched]) return
   prototype[patched] = true
@@ -82,6 +84,19 @@ export function installWindowsDirectoryInstaller() {
       if (bytes.toString('utf8').trim() === '') throw new Error(`Desktop 7-Zip toolset has an empty ${name} notice`)
       await writeFile(join(directory, name), bytes)
     }
+    const pluginArch = this.isUnicodeEnabled ? 'x86-unicode' : 'x86-ansi'
+    const plugins = await getNsisPluginsPath(this.packager.config.toolsets?.nsis, this.options.customNsisResources)
+    const plugin = await readFile(join(plugins, pluginArch, 'StdUtils.dll'))
+    if (createHash('sha256').update(plugin).digest('hex') !== stdUtils.pluginSha256[pluginArch]) {
+      throw new Error(`Desktop NSIS toolset has an unreviewed StdUtils.dll for ${pluginArch}`)
+    }
+    const sources = await readFile(new URL(`../../../LICENSES/installer/${stdUtils.archive}`, import.meta.url))
+    if (createHash('sha256').update(sources).digest('hex') !== stdUtils.archiveSha256) {
+      throw new Error('Desktop StdUtils source archive differs from the pinned release')
+    }
+    const sourceArchive = join(directory, stdUtils.archive)
+    await writeFile(sourceArchive, sources)
+    await writeFile(join(directory, 'StdUtils.dll'), plugin)
     let adapted = replaceOnce(source, '!include "installSection.nsh"', `!include "${section}"`)
     for (const helper of ['allowOnlyOneInstallerInstance.nsh', 'installUtil.nsh']) {
       const path = join(directory, helper)
@@ -96,6 +111,7 @@ export function installWindowsDirectoryInstaller() {
       `!define DSH_SEVENZIP_PATH "${tool}"`,
       `!define DSH_SEVENZIP_LICENSE_DIR "${directory}"`,
       `!define DSH_NSIS_COPYING "${notice}"`,
+      `!define DSH_STDUTILS_SOURCE "${sourceArchive}"`,
       await compute.call(this, adapted, ...args),
     ].join('\n')
   }

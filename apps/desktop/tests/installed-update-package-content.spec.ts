@@ -219,7 +219,8 @@ describe('installed update verification records', () => {
       expect(() => validateInstalledUpdateArchivePaths(listing)).toThrow()
     })
 
-  it.each(['success', 'signature', 'outer-unsafe', 'missing-notice', 'changed-notice', 'unsafe-path', 'extraction', 'content', 'changed-input'])(
+  it.each(['success', 'signature', 'outer-unsafe', 'missing-notice', 'changed-notice', 'changed-stdutils',
+    'unsafe-path', 'extraction', 'content', 'changed-input'])(
     'retains %s evidence and stops later stages after failure', async (failure) => {
       await fixture(async ({ manifest, payload, version }) => {
         vi.spyOn(console, 'log').mockImplementation(() => undefined)
@@ -238,6 +239,9 @@ describe('installed update verification records', () => {
           ['7zip-installer-COPYING.txt', 'COPYING'],
         ] as const
         for (const [notice, source] of notices) await writeFile(join(staged, source), notice)
+        const stdUtilsArchive = 'StdUtils-1.14-sources.tbz2'
+        await writeFile(join(staged, stdUtilsArchive), 'pinned source archive')
+        await writeFile(join(staged, 'StdUtils.dll'), 'pinned binary')
         await writeFile(join(output, `${name}.blockmap`), 'inert blockmap')
         await writeFile(join(output, 'nightly.yml'), JSON.stringify({ version,
           files: [{ url: name, size: bytes.length, sha512: createHash('sha512').update(bytes).digest('base64') }] }))
@@ -253,18 +257,21 @@ describe('installed update verification records', () => {
           const inner = join(options.cwd, 'nsis', '$PLUGINSDIR', 'app-64.7z')
           if (args.includes('-tNsis')) {
             expect(args[args.indexOf('--') + 1]).toBe(installer)
+            const entries = ['$PLUGINSDIR\\app-64.7z', ...notices.map(([notice]) => notice),
+              '$PLUGINSDIR\\StdUtils.dll', stdUtilsArchive]
             if (args[0] === 'l') {
-              const entries = ['$PLUGINSDIR\\app-64.7z', ...notices.map(([notice]) => notice)]
               if (failure === 'missing-notice') entries.pop()
               if (failure === 'outer-unsafe') entries.push('../outside')
               return { stdout: entries.map(path => `Path = ${path}\n`).join(''), stderr: '' }
             }
             const target = args.find(arg => arg.startsWith('-o'))!.slice(2)
             expect(target).toBe(join(options.cwd, 'nsis'))
-            expect(args.slice(args.indexOf('--') + 2)).toEqual(['$PLUGINSDIR\\app-64.7z', ...notices.map(([notice]) => notice)])
+            expect(args.slice(args.indexOf('--') + 2)).toEqual(entries)
             await mkdir(join(target, '$PLUGINSDIR'))
             await writeFile(inner, 'inert inner archive')
             for (const [notice] of notices) await writeFile(join(target, notice), failure === 'changed-notice' ? 'changed' : notice)
+            await writeFile(join(target, '$PLUGINSDIR', 'StdUtils.dll'), failure === 'changed-stdutils' ? 'changed' : 'pinned binary')
+            await writeFile(join(target, stdUtilsArchive), 'pinned source archive')
             return { stdout: '', stderr: '' }
           }
           expect(args).toContain('-t7z')
@@ -289,17 +296,24 @@ describe('installed update verification records', () => {
         expect(result).toMatchObject({ version, passed: failure === 'success', installerExecuted: false, published: false,
           manualChecks: ['installer-registration', 'startup', 'upgrade', 'data-retention'] })
         const stage = { success: 'complete', signature: 'installer-signature', 'outer-unsafe': 'outer-archive-paths',
-          'missing-notice': 'outer-archive-paths', 'changed-notice': 'installer-notices', 'unsafe-path': 'archive-paths',
+          'missing-notice': 'outer-archive-paths', 'changed-notice': 'installer-notices',
+          'changed-stdutils': 'installer-notices', 'unsafe-path': 'archive-paths',
           extraction: 'extraction', content: 'payload-content', 'changed-input': 'unchanged-inputs' }[failure]
         expect(result.stage).toBe(stage)
-        const archiveCalls: Record<string, number> = { signature: 0, 'outer-unsafe': 1, 'missing-notice': 1, 'changed-notice': 2, 'unsafe-path': 3 }
+        const archiveCalls: Record<string, number> = { signature: 0, 'outer-unsafe': 1, 'missing-notice': 1,
+          'changed-notice': 2, 'changed-stdutils': 2, 'unsafe-path': 3 }
         expect(external.archive).toHaveBeenCalledTimes(archiveCalls[failure] ?? 4)
         if (failure === 'success') {
-          expect(result.outerArchiveEntries).toBe(4)
+          expect(result.outerArchiveEntries).toBe(6)
           expect(result.archiveEntries).toBe(1)
           expect(result.installerNotices).toEqual(notices.map(([notice]) => ({
             name: notice, bytes: Buffer.byteLength(notice), sha256: createHash('sha256').update(notice).digest('hex'),
           })))
+          expect(result.stdUtils).toMatchObject({
+            version: '1.14',
+            source: { name: stdUtilsArchive, sha256: createHash('sha256').update('pinned source archive').digest('hex') },
+            binary: { name: '$PLUGINSDIR/StdUtils.dll', sha256: createHash('sha256').update('pinned binary').digest('hex') },
+          })
         }
         expect(external.signature).toHaveBeenCalledTimes(['success', 'changed-input'].includes(failure) ? 3 : 1)
         expect(await readFile(join(record, 'events.jsonl'), 'utf8')).toContain(`"stage":"${stage}"`)

@@ -235,7 +235,7 @@ Desktop 在本地打包工作区包，并通过目标捆绑的 Node 和 pnpm 安
 
 [Electron 外壳文件清单](../scripts/electron-builder-config.mjs)从单独收集的 `resources/app.asar/node_modules` 依赖中排除已识别的 JavaScript/CSS/TypeScript source map 和 TypeScript 构建缓存。这些排除规则保留运行时代码、原生模块、WASM、数据文件（包括普通 `.map` 资源）、许可证和 notices；[外壳归档测试](../tests/shell-file-selection.spec.ts)检查保留文件的字节和排除项。
 
-Windows 与 Linux 打包后的检查将 `LICENSE.electron.txt` 和 `LICENSES.chromium.html` 与准备好的 Electron 分发包原文逐字比对，并要求原文非空。Windows 安装器在编译前暂存所用 NSIS 编译工具集的 `COPYING` 和两份 7-Zip 声明。[安装升级检查器](../tests/installed-update/README.zh.md)将外层 NSIS 条目与这些原文比对，再解出内层应用。
+Windows 与 Linux 打包后的检查将 `LICENSE.electron.txt` 和 `LICENSES.chromium.html` 与准备好的 Electron 分发包原文逐字比对，并要求原文非空。Windows 安装器暂存所用 NSIS 编译工具集的 `COPYING` 和两份 7-Zip 声明，并核验固定版本的 StdUtils 1.14 DLL，随包携带包含上游许可原文的 `StdUtils-1.14-sources.tbz2`。[安装升级检查器](../tests/installed-update/README.zh.md)将外层 NSIS 条目与这些原件比对，再解出内层应用。
 
 [Office 转换提供方](../../../packages/document/office-to-pdf/README.zh.md)携带目标已声明的原生引擎；kit 未声明匹配原生目标时携带 WASM 引擎。准备阶段在打包前拒绝缺少目标引擎的情况。完整 Office 依赖（CLI、JavaScript 库和选定引擎的可执行文件、数据、许可证及 notices）解包到 `resources/app.asar.unpacked/dsh/node_modules/` 下。Desktop Host 将引擎清单解析到这些物理目录，并向加载的技能提供独立 Node 和解包后 CLI 的绝对路径。Node 位于 `resources/runtime/primary-runtime/dependencies/node/bin/`；CLI 位于解包后的 `@deepseek-ai/libreoffice-kit/lib/cli.js`。macOS 上的原生辅助程序获得 [LibreOffice UNO 桥](https://github.com/LibreOffice/core/blob/master/sysui/desktop/macosx/hardened_runtime.xcent.in)所需的 JIT entitlement。
 

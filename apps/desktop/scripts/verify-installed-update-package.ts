@@ -10,6 +10,7 @@ import { installedUpdateFileHash, verifyInstalledUpdateSignature } from './insta
 import { resolveWindowsUpdatePublisher } from './windows-sign.mjs'
 import { verifyInstalledUpdatePackageContent } from './installed-update-package-content.ts'
 import { recordPackagingEvent } from './packaging-run.mjs'
+import stdUtils from '../../../LICENSES/installer/stdutils-1.14.json' with { type: 'json' }
 
 /**
  * Reject nonrelative archive names and link entries before extraction into a new directory.
@@ -33,6 +34,7 @@ export function validateInstalledUpdateArchivePaths(listing: string): readonly s
 }
 
 const PAYLOAD_ARCHIVE = '$PLUGINSDIR/app-64.7z'
+const STDUTILS_DLL = '$PLUGINSDIR/StdUtils.dll'
 const INSTALLER_NOTICES = [
   ['nsis-installer-COPYING.txt', 'nsis-installer-COPYING.txt'],
   ['7zip-installer-LICENSE.txt', 'LICENSE.txt'],
@@ -59,7 +61,7 @@ export async function extractInstalledUpdateArchive(
   const outerListing = await execute(['l', '-tNsis', '-slt', '-ba', '-sccUTF-8', '--', installer])
   await writeFile(join(record, 'nsis-list.txt'), outerListing.stdout, { flag: 'wx', flush: true })
   const outerEntries = validateInstalledUpdateArchivePaths(outerListing.stdout)
-  const required = [PAYLOAD_ARCHIVE, ...INSTALLER_NOTICES.map(([name]) => name)]
+  const required = [PAYLOAD_ARCHIVE, ...INSTALLER_NOTICES.map(([name]) => name), STDUTILS_DLL, stdUtils.archive]
   for (const name of required) {
     if (!outerEntries.includes(name)) throw new Error(`installed update: missing NSIS entry ${name}`)
   }
@@ -74,15 +76,18 @@ export async function extractInstalledUpdateArchive(
 
   stage('installer-notices')
   const staged = join(dirname(installer), '.nsis-directory-installer')
-  const installerNotices = await Promise.all(INSTALLER_NOTICES.map(async ([name, source]) => {
-    const path = join(outer, name)
-    if (!(await lstat(path)).isFile()) throw new Error(`installed update: NSIS notice is not a regular file: ${name}`)
+  const compareEntry = async (name: string, source: string) => {
+    const path = join(outer, ...name.split('/'))
+    if (!(await lstat(path)).isFile()) throw new Error(`installed update: NSIS entry is not a regular file: ${name}`)
     const [actual, expected] = await Promise.all([readFile(path), readFile(join(staged, source))])
-    if (expected.toString('utf8').trim() === '' || !actual.equals(expected)) {
-      throw new Error(`installed update: NSIS notice differs from the staged toolset: ${name}`)
+    if (expected.length === 0 || (name.endsWith('.txt') && expected.toString('utf8').trim() === '') || !actual.equals(expected)) {
+      throw new Error(`installed update: NSIS entry differs from the staged input: ${name}`)
     }
     return { name, bytes: actual.length, sha256: createHash('sha256').update(actual).digest('hex') }
-  }))
+  }
+  const installerNotices = await Promise.all(INSTALLER_NOTICES.map(([name, source]) => compareEntry(name, source)))
+  const stdUtilsSource = await compareEntry(stdUtils.archive, stdUtils.archive)
+  const stdUtilsBinary = await compareEntry(STDUTILS_DLL, 'StdUtils.dll')
 
   stage('archive-paths')
   const listing = await execute(['l', '-t7z', '-slt', '-ba', '-sccUTF-8', '--', inner])
@@ -93,7 +98,8 @@ export async function extractInstalledUpdateArchive(
   stage('extraction')
   const extraction = await execute(['x', '-t7z', '-y', '-bd', '-bso0', '-bsp0', `-o${payload}`, '--', inner])
   await writeFile(join(record, 'extraction.log'), `${extraction.stdout}\n${extraction.stderr}`, { flag: 'wx', flush: true })
-  return { payload, archiveEntries: entries.length, outerArchiveEntries: outerEntries.length, installerNotices }
+  return { payload, archiveEntries: entries.length, outerArchiveEntries: outerEntries.length, installerNotices,
+    stdUtils: { version: stdUtils.version, source: stdUtilsSource, binary: stdUtilsBinary } }
 }
 
 /**

@@ -121,6 +121,7 @@ Var dshRecoveryStopped
   SetOutPath $INSTDIR
   !insertmacro installApplicationFiles
   File /oname=nsis-installer-COPYING.txt "${DSH_NSIS_COPYING}"
+  File "${DSH_STDUTILS_SOURCE}"
   !ifdef DSH_SEVENZIP_LICENSE_DIR
     File /oname=7zip-installer-LICENSE.txt "${DSH_SEVENZIP_LICENSE_DIR}\LICENSE.txt"
     File /oname=7zip-installer-COPYING.txt "${DSH_SEVENZIP_LICENSE_DIR}\COPYING"

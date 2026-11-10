@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## Windows 安装器 StdUtils 对应源码（2026-11-11）
+
+校验 Windows `.6` 安装器摘要后，将其中的 `StdUtils.dll` 与作者 1.14 发行包和 NSIS Resources 3.4.1 对照，Unicode DLL 逐字一致。作者单独发布的源码归档解压后也与二进制发行包内嵌的源码 tar 逐字一致。源码原件包含 LGPL 文本和作者说明。[StdUtils 1.14](https://github.com/lordmulder/stdutils/releases/tag/1.14)
+
+打包时核对 DLL 和源码归档摘要，安装器随包携带源码归档。中英文测试安装器均从外层 NSIS 核对了 102,400 字节 DLL、206,896 字节源码归档及原有三份声明。69 项定向测试、9 项静默目录替换与恢复以及 Host、Client 聚合检查通过。证据见 `.dsh-build/installer-plugin-sources-20261111/`。UAC、WinShell 与完整发行义务继续见[依赖审计](requirements/2026-11-03-dependency-notices.md)。
+
 ## Debian 12 的 deb 原位升级与卸载（2026-11-11）
 
 校验 Linux `.4`、`.5` 两份 deb 的交付摘要后，在新建 Debian 12 amd64 根目录从签名 APT 索引解析依赖并安装 `.4`。保留四个位置的测试资料，包括 DSHU 会话、Electron 设置、缓存和官方 `.dsh`。在无网络的命名空间内用 APT 本地文件路径原位升级至 `.5`。实装 ASAR 摘要与交付记录一致，命令链接、桌面入口、`dshu` 协议注册及包内 Node 24.22.1 通过。

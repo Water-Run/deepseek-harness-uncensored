@@ -12,6 +12,10 @@ libvips 补入 Sharp 构建的第三方清单、libvips 8.18.7 的源码许可�
 
 ## Electron 与 Windows 安装器声明（2026-11-11）
 
+Windows `.6` 的 `StdUtils.dll` 与作者 1.14 发行归档和 NSIS Resources 3.4.1 中的 Unicode DLL 逐字一致。作者单独发布的源码归档解压后，与同一二进制归档内的源码 tar 一致，内含 LGPL 文本及作者说明。源码归档及 ANSI、Unicode DLL 摘要固定在 `LICENSES/installer/stdutils-1.14.json`。[StdUtils 1.14 发行](https://github.com/lordmulder/stdutils/releases/tag/1.14)
+
+Windows 安装器构建会核对所用 StdUtils DLL 和源码归档，并嵌入 `StdUtils-1.14-sources.tbz2`。验收从外层 NSIS 读取归档与 DLL 并同暂存输入比对。此项补入对应源码原件，UAC 与 WinShell 的原始条款及整合发行义务继续核查。
+
 校验 [Electron 44.7.0](https://github.com/electron/electron/releases/tag/v44.7.0) 的 Windows x64 和 Linux x64 分发归档。Windows `.6` 实装、Linux `.5` 的 deb 和 tar.gz 均保留与对应分发包逐字一致的 `LICENSE.electron.txt` 和 `LICENSES.chromium.html`。Windows 和 Linux 打包后的检查现会拒绝缺失、空文件或内容变动的声明。
 
 Windows `.6` 安装器的解包器及两份 7-Zip 原文均与构建工具集一致。`System.dll` 和 `nsDialogs.dll` 与 [NSIS 3.0.4.1 归档](https://github.com/electron-userland/electron-builder-binaries/releases/tag/nsis-3.0.4.1)的 x86 Unicode 成员逐字一致，`UAC.dll`、`StdUtils.dll` 和 `WinShell.dll` 对应 [NSIS Resources 3.4.1](https://github.com/electron-userland/electron-builder-binaries/releases/tag/nsis-resources-3.4.1)。插件二进制归属已核对，个别插件的源码与许可对应关系仍待核查。

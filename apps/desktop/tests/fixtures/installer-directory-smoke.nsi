@@ -6,6 +6,8 @@ Name "Desktop directory replacement smoke"
 OutFile "${OUTPUT_FILE}"
 LoadLanguageFile "${NSISDIR}\Contrib\Language files\English.nlf"
 LangString decompressionFailed ${LANG_ENGLISH} "Payload extraction failed"
+!define DSH_NSIS_COPYING "${NSISDIR}\COPYING"
+!define DSH_STDUTILS_SOURCE "${__FILEDIR__}\..\..\..\..\LICENSES\installer\StdUtils-1.14-sources.tbz2"
 
 !macro installApplicationFiles
   !insertmacro dshExtractPayload "${PAYLOAD_FILE}"

@@ -1,0 +1,10 @@
+{
+  "version": "1.14",
+  "source": "https://github.com/lordmulder/stdutils/releases/tag/1.14",
+  "archive": "StdUtils-1.14-sources.tbz2",
+  "archiveSha256": "c5e3b1a66219bc9564c2ccc1702691327eecf044ad33404ac268d725d22dca49",
+  "pluginSha256": {
+    "x86-ansi": "c18b46a68436d164c964ba9b208e5c27ccc50e6a5a2db115e8fb086663b5308f",
+    "x86-unicode": "b72e9013a6204e9f01076dc38dabbf30870d44dfc66962adbf73619d4331601e"
+  }
+}
