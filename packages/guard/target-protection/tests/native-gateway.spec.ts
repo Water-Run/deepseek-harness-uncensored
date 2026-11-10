@@ -2,6 +2,8 @@
 import { Context } from '@deepseek-ai/cordis'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import { SessionChainProxy, type ChainOptions } from '@deepseek-ai/dsh-security-proxy-local'
+import { WebError } from '@deepseek-ai/dsh-web'
+import type { HttpFetchDestination } from '@deepseek-ai/dsh-web-fetch-http'
 import { createServer, request, type Server, type ServerResponse } from 'node:http'
 import { createServer as createSecureServer } from 'node:https'
 import * as tls from 'node:tls'
@@ -151,6 +153,30 @@ it('forwards HTTP methods and bytes only to an explicit private test endpoint', 
   expect(h.seen).toEqual([{ method: 'POST', host: `target.test:${h.port}`, body: 'test payload' }])
   await gateway.close()
   expect(h.flows).toMatchObject([{ method: 'POST', outcome: 'complete', target: h.url + '/', responseBody: 'test payload' }])
+})
+
+it('refuses HTTP before connecting and CONNECT before resolving when deployment policy vetoes them', async () => {
+  const h = await fixture()
+  const resolve = vi.spyOn(h.ctx.targetProtection, 'resolveConnectionTarget')
+  const seen: HttpFetchDestination[] = []
+  const gateway = await h.start({ async authorizeHttp(destination: HttpFetchDestination) {
+    seen.push(destination)
+    if (destination.origin.startsWith('https:') || destination.phase === 'before-connect') {
+      throw new WebError('Fixture veto', 'WEB_TARGET_PROTECTED')
+    }
+  } })
+  expect((await h.http(gateway)).status).toBe(403)
+  const tunnel = await h.tunnel(gateway)
+  tunnel.socket.destroy()
+  expect(tunnel.status).toBe(403)
+  expect(seen).toEqual([
+    { origin: h.url, hostname: 'target.test', port: h.port, phase: 'before-resolution', route: 'direct' },
+    { origin: h.url, hostname: 'target.test', port: h.port, phase: 'before-connect', route: 'direct',
+      addresses: [{ address: '127.0.0.1', family: 4 }] },
+    { origin: `https://target.test:${h.port}`, hostname: 'target.test', port: h.port, phase: 'before-resolution', route: 'direct' },
+  ])
+  expect(resolve).toHaveBeenCalledExactlyOnceWith('target.test', expect.any(AbortSignal))
+  expect(h.connections()).toBe(0)
 })
 
 it.skipIf(typeof tls.setDefaultCACertificates !== 'function')('inspects real HTTPS, validates each redirected target and retains upstream certificate checks', async () => {

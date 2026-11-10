@@ -5,6 +5,7 @@ import * as ProxyHost from '@deepseek-ai/dsh-security-proxy-local'
 import { mountAgentLoopTestDependencies, mountAgentLoopTestHarness } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type { Agent } from '@deepseek-ai/dsh-agent'
+import type { HttpFetchDestination } from '@deepseek-ai/dsh-web-fetch-http'
 import SandboxPolicy from '@deepseek-ai/dsh-sandbox-policy'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import { probe } from '@microsoft/mxc-sdk/v1'
@@ -211,6 +212,35 @@ describe.skipIf(!supported)('native Security proxy integration', () => {
       `)
     expect(flows.some(flow => flow.outcome === 'error' && flow.note === 'TARGET_FULLY_PROTECTED')).toBe(true)
     expect(await readdir(h.temporary)).toEqual([])
+  }, nativeTimeout)
+
+  it('applies a deployment veto to pinned native command traffic before contacting the selected upstream', async () => {
+    const h = await fixture()
+    const selectedBeforeCommand = [...h.selected.seen]
+    const seen: HttpFetchDestination[] = []
+    h.ctx.on('web-fetch/authorize', (destination) => {
+      if (destination.hostname !== '127.0.0.1' || destination.port !== h.port) return undefined
+      seen.push(destination)
+      return destination.phase === 'before-connect' ? { reason: 'Fixture veto' } : undefined
+    })
+    const handle = h.subprocess.spawn({ argv: [process.execPath, '-e', h.program], cwd: h.work, graceMs: 1000,
+      signal: AbortSignal.timeout(45000), stdio: { stdin: 'ignore', stdout: { maxBytes: 8192 }, stderr: { maxBytes: 8192 } } })
+    try {
+      expect(await handle.done, handle.collected.stderr?.readFrom(0).text).toEqual({ exitCode: 0, signal: null })
+      expect(handle.collected.stdout?.readFrom(0).text).toBe('[403,403]')
+      const authority = { origin: `http://127.0.0.1:${h.port}`, hostname: '127.0.0.1', port: h.port }
+      expect(seen).toEqual([
+        { ...authority, phase: 'before-resolution', route: 'proxy' },
+        { ...authority, phase: 'before-connect', route: 'proxy', binding: 'literal-connect',
+          addresses: [{ address: '127.0.0.1', family: 4 }] },
+      ])
+      expect(h.selected.seen).toEqual(selectedBeforeCommand)
+      expect(h.fallback.seen).toEqual([])
+      expect(h.requests()).toBe(0)
+      expect(h.productionRequests()).toBe(0)
+      const flows = (await h.ctx.securityProxy.list({ sessionId: 'native-proxy-owner' })).flows
+      expect(flows).toContainEqual(expect.objectContaining({ outcome: 'error', note: 'WEB_TARGET_PROTECTED' }))
+    } finally { handle.terminate(); await handle.waitForExit() }
   }, nativeTimeout)
 
   it.each(['command', 'terminal', 'worker'] as const)('joins a real %s and its held upstream response when the independent proxy is disabled', async (kind) => {

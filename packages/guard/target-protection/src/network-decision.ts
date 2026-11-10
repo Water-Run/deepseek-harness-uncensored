@@ -1,5 +1,7 @@
 /** Stable execution refusals shared by the guarded HTTP consumers. @module */
+import type { Context } from '@deepseek-ai/cordis'
 import { WebError } from '@deepseek-ai/dsh-web'
+import { validateFetchUrl, type HttpFetchDestination } from '@deepseek-ai/dsh-web-fetch-http'
 import type { TargetDecision, TargetDenialCode } from './types.ts'
 
 /** Credential-free explanations shared by guarded network protocol adapters. */
@@ -19,4 +21,29 @@ export const TARGET_REFUSAL_REASONS: Readonly<Record<TargetDenialCode, string>> 
  */
 export function assertNetworkAllowed(decision: TargetDecision): void {
   if (!decision.allowed) throw new WebError(TARGET_REFUSAL_REASONS[decision.code], decision.code)
+}
+
+/**
+ * Apply the deployment veto shared by guarded HTTP transports.
+ * @param ctx - Transport owner's context.
+ * @param destination - Logical authority and available connection facts.
+ * @param signal - Deadline and cancellation for this request.
+ * @returns Completion of the checkpoint or rejection before transport admission.
+ */
+export async function authorizeGuardedHttp(ctx: Context, destination: HttpFetchDestination, signal: AbortSignal): Promise<void> {
+  signal.throwIfAborted()
+  const veto = await ctx.serial('web-fetch/authorize', Object.freeze(destination), signal)
+  signal.throwIfAborted()
+  if (veto !== undefined) throw new WebError(veto.reason, 'WEB_TARGET_PROTECTED')
+}
+
+/**
+ * Represent a CONNECT authority for HTTP destination checks.
+ * @param host - CONNECT host or IP literal.
+ * @param port - Effective CONNECT port.
+ * @returns Validated authority URL without any inner request data.
+ */
+export function guardedTunnelUrl(host: string, port: number): URL {
+  const name = host.includes(':') && !host.startsWith('[') ? `[${host}]` : host
+  return validateFetchUrl(`https://${name}:${String(port)}/`)
 }

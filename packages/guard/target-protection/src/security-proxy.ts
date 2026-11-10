@@ -12,7 +12,7 @@ import { WebError } from '@deepseek-ai/dsh-web'
 import type TargetProtection from './index.ts'
 import type { TargetHttpResolution, TargetAuditExecution } from './index.ts'
 import type {} from './settings.ts'
-import { assertNetworkAllowed } from './network-decision.ts'
+import { assertNetworkAllowed, authorizeGuardedHttp, guardedTunnelUrl } from './network-decision.ts'
 import { canonicalTargetHost, hasExactTestServer } from './rules.ts'
 
 /** Cordis diagnostics name. */
@@ -40,9 +40,7 @@ class ProtectedProxyEngine extends SecurityProxyEngine {
   }
 
   private async authorize(destination: HttpFetchDestination, signal: AbortSignal, resolution?: TargetHttpResolution): Promise<void> {
-    signal.throwIfAborted()
-    const veto = await this.ctx.serial('web-fetch/authorize', Object.freeze(destination), signal)
-    if (veto !== undefined) throw new WebError(veto.reason, 'WEB_TARGET_PROTECTED')
+    await authorizeGuardedHttp(this.ctx, destination, signal)
     assertNetworkAllowed(await this.protection.checkHttp(destination, signal, resolution))
     signal.throwIfAborted()
   }
@@ -93,7 +91,7 @@ class ProtectedProxyEngine extends SecurityProxyEngine {
   }
 
   protected override async openTunnel(upstream: Upstream, host: string, port: number, signal: AbortSignal): Promise<UpstreamTunnel> {
-    const target = tunnelUrl(host, port)
+    const target = guardedTunnelUrl(host, port)
     const literal = canonicalTargetHost(target.hostname)
     const snapshot = await this.protection.snapshot()
     // A hostname or database selector cannot attest the application identity inside CONNECT.
@@ -139,7 +137,7 @@ class ProtectedProxyEngine extends SecurityProxyEngine {
 
   protected override async probe(upstream: Upstream, signal: AbortSignal): Promise<number> {
     const started = performance.now()
-    const target = tunnelUrl(this.options.testTarget.host, this.options.testTarget.port)
+    const target = guardedTunnelUrl(this.options.testTarget.host, this.options.testTarget.port)
     const addresses = await this.resolve(target, signal)
     const address = addresses.at(0)
     if (address === undefined) throw new WebError('The proxy check has no authorized destination.', 'TARGET_IDENTITY_UNVERIFIED')
@@ -151,11 +149,6 @@ class ProtectedProxyEngine extends SecurityProxyEngine {
     if (tunnel.socket.errored !== null) throw tunnel.socket.errored
     return Math.round(performance.now() - started)
   }
-}
-
-function tunnelUrl(host: string, port: number): URL {
-  const name = host.includes(':') && !host.startsWith('[') ? `[${host}]` : host
-  return validateFetchUrl(`https://${name}:${String(port)}/`)
 }
 
 /**

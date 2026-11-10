@@ -361,6 +361,9 @@ it('honors authorization vetoes for default HTTP and HTTPS ports before opening 
   for (const url of ['http://origin.test/', 'https://origin.test/']) {
     await expect(h.ctx.securityProxy.fetchTarget(h.agent, url, new AbortController().signal)).rejects.toMatchObject({ code: 'WEB_TARGET_PROTECTED' })
   }
+  const chain = await h.chain()
+  expect((await throughChain(chain, h.url)).status).toBe(403)
+  expect(await throughTunnel(chain, `origin.test:${h.port}`)).toContain('403 Forbidden')
   expect(h.counts()).toEqual({ targetConnections: 0, proxyConnections: 0 })
 })
 

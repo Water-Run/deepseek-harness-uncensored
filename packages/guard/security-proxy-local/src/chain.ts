@@ -378,7 +378,7 @@ async function closeSocket(socket: Socket): Promise<void> {
 }
 
 function policyStatus(error: unknown): number {
-  return error instanceof WebError && error.code.startsWith('TARGET_') ? 403 : 502
+  return error instanceof WebError && (error.code.startsWith('TARGET_') || error.code === 'WEB_TARGET_PROTECTED') ? 403 : 502
 }
 
 /** Synthesize the failed exchange row for one refused request. */

@@ -24,7 +24,7 @@ import { createNativeHostExecution, type NativeHostExecution, type NativeHostSta
 import { launchNativeBroker } from './native-launch.ts'
 import { startNativeGateway, type NativeGateway } from './native-gateway.ts'
 import { requireNativeRuntime } from './native-runtime.ts'
-import { TARGET_REFUSAL_REASONS } from './network-decision.ts'
+import { authorizeGuardedHttp, TARGET_REFUSAL_REASONS } from './network-decision.ts'
 import { createNativeTerminal } from './native-terminal-host.ts'
 
 /** Explicit deployment grants and bounded preparation for the native command service. */
@@ -227,6 +227,7 @@ export default class NativeTargetSubprocess extends LocalSubprocessRuntime {
         egress?.signal.throwIfAborted()
         gateway = await startNativeGateway(this.protection, { revision: files.revision, sessionId: source.sessionId,
           auditExecution: source.audit, tool: 'subprocess',
+          authorizeHttp: (destination, requestSignal) => authorizeGuardedHttp(this.ctx, destination, requestSignal),
           own: (owner) => { gatewayOwner = owner }, capture: captureOwner?.capture,
           capturePaused: captureOwner === undefined ? undefined : () => captureOwner.paused(),
           ...upstream === undefined ? {} : { upstream }, stopExecution: stop,

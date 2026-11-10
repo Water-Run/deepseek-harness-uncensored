@@ -5,12 +5,12 @@ import { WebError } from '@deepseek-ai/dsh-web'
 import { SessionChainProxy, connectThrough, proxyUrl } from '@deepseek-ai/dsh-security-proxy-local'
 import type { ChainOptions, ProxyHttpRequest, Upstream, UpstreamTunnel } from '@deepseek-ai/dsh-security-proxy-local'
 import { requestPinned, requestPinnedViaProxy, validateFetchUrl } from '@deepseek-ai/dsh-web-fetch-http'
-import type { PinnedResponse } from '@deepseek-ai/dsh-web-fetch-http'
+import type { HttpFetchAuthorizer, PinnedResponse } from '@deepseek-ai/dsh-web-fetch-http'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type TargetProtection from './index.ts'
 import type { TargetConnectionResolution, TargetAuditExecution } from './index.ts'
 import { canonicalTargetHost, hasExactTestServer } from './rules.ts'
-import { assertNetworkAllowed } from './network-decision.ts'
+import { assertNetworkAllowed, guardedTunnelUrl } from './network-decision.ts'
 import { createNativeHttps, type NativeHttpsOptions } from './native-https.ts'
 
 /** Execution attribution, optional owner-selected upstream and deployment time bounds. */
@@ -24,6 +24,8 @@ export interface NativeGatewayOptions {
   auditExecution?: TargetAuditExecution
   tool: string
   upstream?: Upstream
+  /** Additional deployment veto for each HTTP request and CONNECT authority. */
+  authorizeHttp?: HttpFetchAuthorizer
   connectTimeoutMs: number
   requestTimeoutMs: number
   /** Omission disables traffic retention for generic non-session processes. */
@@ -86,13 +88,25 @@ export async function startNativeGateway(
     })
     return closing
   }
-  const authorize = async (hostname: string, port: number, opaque: boolean, requestSignal: AbortSignal) => {
-    const host = canonicalTargetHost(hostname)
+  const route = options.upstream === undefined ? 'direct' : 'proxy'
+  const authorize = async (url: URL, opaque: boolean, requestSignal: AbortSignal) => {
+    const port = Number(url.port || (url.protocol === 'https:' ? 443 : 80))
+    const authority = { origin: url.origin, hostname: url.hostname, port }
+    const host = canonicalTargetHost(url.hostname)
+    await options.authorizeHttp?.({ ...authority, phase: 'before-resolution', route }, requestSignal)
+    requestSignal.throwIfAborted()
     assertNetworkAllowed(await protection.checkConnection(host, port, undefined, 'endpoint', 'unknown', requestSignal))
     const snapshot = await protection.snapshot()
     const ownerTest = hasExactTestServer(snapshot.preferences, host, port)
     const resolution = ownerTest ? await protection.resolveConnectionTarget(host, requestSignal)
       : await protection.resolveHttpTarget(host, requestSignal)
+    if (options.authorizeHttp !== undefined) {
+      const addresses = Object.freeze(resolution.addresses.map(address => Object.freeze({ ...address })))
+      await options.authorizeHttp(route === 'proxy'
+        ? { ...authority, phase: 'before-connect', route, binding: 'literal-connect', addresses }
+        : { ...authority, phase: 'before-connect', route, addresses }, requestSignal)
+      requestSignal.throwIfAborted()
+    }
     assertNetworkAllowed(await protection.checkConnection(host, port, resolution, 'endpoint', 'unknown', requestSignal))
     if (opaque) {
       // Encrypted and arbitrary protocols do not attest their application names or database selection.
@@ -119,12 +133,12 @@ export async function startNativeGateway(
       }
     }
     headers.host = target.host
-    const resolution = await authorize(target.hostname, Number(target.port || (target.protocol === 'https:' ? 443 : 80)), false, requestSignal)
+    const resolution = await authorize(target, false, requestSignal)
     const upstream = options.upstream
     if (upstream === undefined) return requestPinned(target, resolution.addresses, headers, requestSignal, request)
-    const route = new URL(proxyUrl(upstream))
-    if (upstream.password !== undefined) { route.username = upstream.username; route.password = upstream.password }
-    return requestPinnedViaProxy(route.toString(), target, resolution.addresses, headers, requestSignal, request)
+    const upstreamUrl = new URL(proxyUrl(upstream))
+    if (upstream.password !== undefined) { upstreamUrl.username = upstream.username; upstreamUrl.password = upstream.password }
+    return requestPinnedViaProxy(upstreamUrl.toString(), target, resolution.addresses, headers, requestSignal, request)
   }
   try {
     options.own?.({ close })
@@ -136,12 +150,12 @@ export async function startNativeGateway(
       retainExecution: () => protection.retainExecution(), requestHttp, executionScope: audit,
       ...https === undefined ? {} : { async inspectTunnel(host: string, port: number, requestSignal: AbortSignal) {
         const bounded = AbortSignal.any([requestSignal, AbortSignal.timeout(options.connectTimeoutMs)])
-        await authorize(host, port, false, bounded)
+        await authorize(guardedTunnelUrl(host, port), false, bounded)
         return https.prepare(host, port, bounded)
       } },
       async openTunnel(host, port, requestSignal) {
         const bounded = AbortSignal.any([requestSignal, AbortSignal.timeout(options.connectTimeoutMs)])
-        const resolution = await authorize(host, port, true, bounded)
+        const resolution = await authorize(guardedTunnelUrl(host, port), true, bounded)
         const first = resolution.addresses.at(0)
         if (first === undefined) throw new WebError('No verified target address.', 'TARGET_IDENTITY_UNVERIFIED')
         return options.upstream === undefined ? directTunnel(first.address, port, bounded)

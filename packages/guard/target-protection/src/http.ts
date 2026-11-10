@@ -6,7 +6,7 @@ import type {} from './index.ts'
 import type {} from './settings.ts'
 import type { TargetHttpResolution } from './index.ts'
 import { TargetProtectionError } from '@deepseek-ai/dsh-target-protection'
-import { assertNetworkAllowed } from './network-decision.ts'
+import { assertNetworkAllowed, authorizeGuardedHttp } from './network-decision.ts'
 
 /** Cordis diagnostics name. */
 export const name = 'target-protected-http'
@@ -43,10 +43,8 @@ export function apply(ctx: Context, config: Config): void {
           return [...resolution.addresses]
         }, async (destination, requestSignal) => {
           if (destination.phase === 'before-resolution') resolution = undefined
-          requestSignal.throwIfAborted()
           try {
-            const extra = await ctx.serial('web-fetch/authorize', destination, requestSignal)
-            if (extra !== undefined) throw new WebError(extra.reason, 'WEB_TARGET_PROTECTED')
+            await authorizeGuardedHttp(ctx, destination, requestSignal)
             const decision = await protection.checkHttp(destination, requestSignal, resolution)
             requestSignal.throwIfAborted()
             assertNetworkAllowed(decision)
