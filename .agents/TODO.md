@@ -71,7 +71,7 @@
 - [ ] **稳定性与完整需求总验收 — 约 80%**（00.08、05.08、05.10、17.01、17.03–17.08）：全仓类型感知 lint 通过，Host/Client 声明隔离及干净检出的预编译已接通，规则保持开启。插件目录和旧设置浏览器断言已修复，既有 GUI 688 文件/11191 项通过、2 跳过，设置浏览器 20 项通过。hygiene 23 项已分批验证通过。客户端领域图已通过，并增加运行时 UI 目录新鲜度门禁；另保留 Slot 输入约束、关闭、跨平台、历史回放与原始截图验收。见[稳定性检查](requirements/2026-11-06-stability.md)。
 - [ ] **更新下载与发布路径 — 约 90%**（15.06）。GitHub 更新源独立，旧云发布入口已停用。真实 Electron 的 15 项无窗口传输和 4 项样本签名验收通过。两版 NSIS 测试安装器已验证包内频道、清单、文件名与块映射，实际更新器通过单段请求重建新版。发布前校验会拒绝不匹配的块映射。更新窗口、正式 DSHU 资产下载与签名安装升级待验收。
 
-- [ ] **完整依赖许可证审计 — 约 83%**（16.07）。Windows `.6` 的 859 项中有 7 项待核查，Linux `.5` 的 861 项中有 9 项待核查。Windows 实装复算已补入 Fontkit 的 Apple 编码表归属。Linux 实包复算已补入 libvips、Sherpa-ONNX 和 ONNX Runtime 原文。Windows 与 Linux 已核对 Electron 原文。Windows 安装器的 NSIS、7-Zip、UAC 声明与 StdUtils 对应源码通过夹具校验，WinShell 已由 Windows Shell API 替代。独立 Node/Python/pnpm 清单已接入构建，14 个 Python 包与 88 份声明通过实装复算及独立重建。新源码的完整实包、其他上游缺口、内嵌组件及整合发行义务仍待核对。见[审计明细](requirements/2026-11-03-dependency-notices.md)。
+- [ ] **完整依赖许可证审计 — 约 83%**（16.07）。Windows `.6` 的 859 项中有 7 项待核查，Linux `.5` 的 861 项中有 9 项待核查。Windows 实装复算已补入 Fontkit 的 Apple 编码表及 Brotli 内嵌的 Emscripten 声明。Linux 实包复算已补入 libvips、Sherpa-ONNX 和 ONNX Runtime 原文。Windows 与 Linux 已核对 Electron 原文。Windows 安装器的 NSIS、7-Zip、UAC 声明与 StdUtils 对应源码通过夹具校验，WinShell 已由 Windows Shell API 替代。独立 Node/Python/pnpm 清单已接入构建，14 个 Python 包与 88 份声明通过实装复算及独立重建。新源码的完整实包、其他上游缺口、内嵌组件及整合发行义务仍待核对。见[审计明细](requirements/2026-11-03-dependency-notices.md)。
 
 - [ ] **保护审计与各功能联动 — 约 85%**（05.06、09.09–09.11、10.05）。所有者规则、地区数据、首次确认、Session/双 SDK 与多会话来源已验证。原生命令/ConPTY 共享网安上游和流量，PTC 回调、浏览器启动及排队操作跟随准确的 Agent。网安捕获已补所有者读取边界与 URL 凭据脱敏。管理调试面、独立 Worker 部署、入站、其他协议及最终装配仍待完成。见[执行后端验收](requirements/2026-11-02-native-execution.md)。
 

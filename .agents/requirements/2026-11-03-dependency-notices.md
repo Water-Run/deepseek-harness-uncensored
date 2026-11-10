@@ -38,6 +38,12 @@ Windows 安装器现随包附带实际编译工具集的 `COPYING` 原文，文�
 
 补充声明列明六张表的 Apple 版权和 Gaelic、Inuit 表所注明的 Michael Everson 作者归属。实装输入复算仅改变 Fontkit 条目，补充声明记录由 19 增至 20。保留 Fontkit 的待核查状态，继续核对 2.0.4 本体的原始许可和 Apple 数据的具体分发条款。映射数据摘要、逐项比较和复算回执在 `.dsh-build/fontkit-apple-20261111/`。[Unicode 使用条款](https://www.unicode.org/copyright.html)
 
+## Brotli 编码器内嵌的 Emscripten 运行时（2026-11-11）
+
+按 npm 发布完整性校验 Brotli 1.3.0、1.3.1、1.3.2 和 1.3.3 的归档，四版的 `build/encode.js` 与 `build/mem.js` 逐字相同，最早比对的发行日期为 2016 年 9 月 11 日。Windows `.6` 的这两个文件及包装代码 `compress.js`、`enc/pre.js` 与 1.3.3 归档一致。发行源码的 Makefile 使用 `emcc`，编译结果保留三个可在同时期 Emscripten 运行时源码中核对的字符串。[Brotli 构建规则](https://github.com/foliojs/brotli.js/blob/e36051345f6d27a56e5f39ea70d2f789b8574046/Makefile) · [Emscripten 运行时源码](https://github.com/emscripten-core/emscripten/blob/365212e71060771e167e88e9d0d337684f7587c5/src/shell.js)
+
+随包清单补入同时期 Emscripten 的 MIT 与 NCSA 原文，仅统一行尾空白和文件末尾换行。核对的 1.36.3、1.36.7、1.36.8 和 1.37.0 根许可文件逐字一致。用 Windows `.6` 实装 ASAR 的 859 项清单复算，Brotli 和 Fontkit 各新增一份文本，补充声明从 19 份增至 21 份，其余条目一致。待核查仍为 7 项，Brotli 的包装代码原始署名、精确编译器版本和链接组件清单继续保留。复算回执为 `.dsh-build/brotli-encoder-projection-20261111.json`。[Emscripten 许可原文](https://raw.githubusercontent.com/emscripten-core/emscripten/365212e71060771e167e88e9d0d337684f7587c5/LICENSE)
+
 ## Frida 预构建二进制（2026-11-11）
 
 Windows `.4` 实装和 Linux `.4` tar.gz 内的 `frida_binding.node` 与 [Frida 17.23.2 官方预构建归档](https://github.com/frida/frida/releases/tag/17.23.2)逐字一致。两份归档先比对 GitHub 提供的 SHA-256，再以流式读取核对二进制摘要。结果见 `.dsh-build/frida-prebuild-projection-20261111.json`。
@@ -113,7 +119,7 @@ Linux `.3` 实包原清单为 861 个 npm 包和 12 项待核查。`@deepseek-ai
 
 | 包与版本 | 剩余核查 |
 | --- | --- |
-| brotli 1.3.3 | 已补 Google 解码器版权头与 Apache-2.0、固定子模块 MIT 原文，包装代码及编译编码器声明范围仍待核对 |
+| brotli 1.3.3 | 已补 Google 解码器、固定子模块和 Emscripten 运行时声明，包装代码原始署名、精确编译器版本及链接组件清单待核对 |
 | clean-git-ref 2.0.1 | REA 明确记录的上游原文/署名缺项，保留待核查 |
 | dfa 1.2.0 | npm 包及固定源提交没有独立许可原文 |
 | fontkit 2.0.4 | 已补八张 Mac 编码表的归属声明。该版本的完整许可原文与 Apple 数据分发条款仍待核对 |

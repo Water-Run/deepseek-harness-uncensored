@@ -1,5 +1,9 @@
 # Uncensored 开发交接
 
+## Brotli 编码器的 Emscripten 声明（2026-11-11）
+
+Brotli 1.3.0 到 1.3.3 分发相同的编码器与内存数据。Windows `.6` 的两份编译产物及包装代码与发布归档一致。运行时清点新增固定 Emscripten 原文。以实装的 859 项清单复算后，连同已补的 Fontkit 声明共 21 份，待核查仍为 7 项。12 项清点器测试和 Host、Client 构建检查通过。完整证据、未解决项与复算回执见[审计明细](requirements/2026-11-03-dependency-notices.md#brotli-编码器内嵌的-emscripten-运行时2026-11-11)。
+
 ## NSIS 升级资产与差分重建验收（2026-11-11）
 
 用 electron-builder 26.17.0 生成两个隔离的 Windows x64 NSIS 测试安装器。解出内嵌 7z，核对 ASAR 中的版本、测试身份和 `nightly` 频道，以及 `app-update.yml` 的固定标签、发布者字段和独立缓存名。两个版本均通过 `files` 检查。用 electron-updater 6.8.9 和生成的两份块映射，经三次回环单段请求取得 258,709 字节，从旧版重建 582,059 字节的新版安装器，SHA-512 一致，篡改下载字节被拒绝。回执为 `.dsh-build/installed-update-nsis-metadata-20261111.json`。夹具使用测试载荷和发布者字段，未签名、安装或发布。
