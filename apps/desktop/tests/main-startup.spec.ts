@@ -1604,17 +1604,31 @@ describe('desktop main startup', () => {
     expect(harness.updateInstall).toHaveBeenCalledWith('1.0.1')
   })
 
-  it('waits for Platform view storage cleanup before an ordinary quit completes', async () => {
+  it('waits for Host and Platform cleanup when an ordinary quit is requested again', async () => {
     const host = await readyForUpdate()
+    const window = harness.windows[0]!
     const disposal = harness.deferPlatformDispose()
+    harness.closeWindowsOnQuit = true
     harness.app.quit()
-    await host.stopping.promise
-    expect(harness.platformDispose).toHaveBeenCalledOnce()
-    host.exited.resolve()
-    expect(harness.app.quit).toHaveBeenCalledOnce()
-    disposal.resolve()
+    try {
+      await host.stopping.promise
+      expect(harness.platformDispose).toHaveBeenCalledOnce()
+      harness.app.quit()
+      expect(window.isDestroyed()).toBe(false)
+      host.exited.resolve()
+      await vi.advanceTimersByTimeAsync(0)
+      harness.app.quit()
+      expect(window.isDestroyed()).toBe(false)
+      expect(harness.app.quit).toHaveBeenCalledTimes(3)
+    } finally {
+      host.exited.resolve()
+      disposal.resolve()
+    }
     await harness.quitCompleted.promise
-    expect(harness.app.quit).toHaveBeenCalledTimes(2)
+    expect(window.isDestroyed()).toBe(true)
+    expect(host.stop).toHaveBeenCalledOnce()
+    expect(harness.platformDispose).toHaveBeenCalledOnce()
+    expect(harness.app.quit).toHaveBeenCalledTimes(4)
   })
 
   it('reports a Platform cleanup failure without ending the Host shutdown early', async () => {
@@ -1668,6 +1682,29 @@ describe('desktop main startup', () => {
     expect(console.error).toHaveBeenCalledWith(failure)
     host.exited.resolve()
     await expect(preparing).resolves.toBe(true)
+  })
+
+  it('cancels an installer handoff when an ordinary quit starts during preparation', async () => {
+    const host = await readyForUpdate()
+    const installCleanup = harness.deferPlatformClose()
+    const quitCleanup = harness.deferPlatformDispose()
+    harness.dialog.showMessageBox.mockResolvedValueOnce({ response: 0 })
+    const preparing = harness.prepareUpdate()
+    try {
+      await vi.waitFor(() => { expect(harness.platformCloseAndWait).toHaveBeenCalledOnce() })
+      harness.app.quit()
+      await host.stopping.promise
+      installCleanup.resolve()
+      host.exited.resolve()
+      await expect(preparing).resolves.toBe(false)
+      expect(harness.app.quit).toHaveBeenCalledOnce()
+      expect(harness.platformDispose).toHaveBeenCalledOnce()
+    } finally {
+      installCleanup.resolve()
+      host.exited.resolve()
+      quitCleanup.resolve()
+    }
+    await harness.quitCompleted.promise
   })
 
   it('finishes quitting when the native window is destroyed before its closed listener clears ownership', async () => {

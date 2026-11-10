@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## 桌面重复退出与安装交接竞态（2026-11-11）
+
+普通退出期间，再次退出会等待 Host 和内嵌页面清理完成。Host 先退出时，Electron 仍会等待页面清理。若安装准备和普通退出重叠，已开始的普通退出继续完成，待交接的安装取消。
+
+两项主入口回归均在修复前失败，修复后通过。四个测试文件共 196 项通过，Desktop 构建及 Host、Client 类型检查通过。日志为 `.dsh-build/desktop-repeat-quit-before-20261111.log`、`desktop-install-quit-before-20261111.log` 和 `desktop-quit-races-20261111.log`。用例替换 Electron 事件和 Host 清理时机，操作系统关机仍待实测。[退出行为](../apps/desktop/README.zh.md#closing-the-window-and-quitting)
+
 ## 更新主题验收的临时资料清理（2026-11-11）
 
 主题验收通过 `test-local-updater.mjs --theme-only` 使用临时 Electron 资料目录。启动器等待子进程退出，保存报告及截图，再清理临时资料和缓存。旧验收目录包含 13 个 Chromium 子目录，共 7,577,184 字节。新的 Windows 默认运行和显式运行时各通过 24 项，只保留八张截图和一份报告，分别为 389,428 和 401,598 字节。

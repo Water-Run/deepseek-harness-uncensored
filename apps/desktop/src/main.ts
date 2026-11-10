@@ -769,6 +769,7 @@ async function main(): Promise<void> {
         const stopFailure = updateStopFailure as DesktopHostUncleanExitError | undefined
         if (stopFailure !== undefined) throw new DesktopUpdatePreparationError('stop-failed', locale.messages.updateStopFailed, stopFailure.message)
         await operationJournal?.drain(500)
+        if (quitting) return false
         updateJournal?.action('install-confirmed')
         shellInstallerOwnsQuit = true
       } catch (error) {
@@ -1404,6 +1405,7 @@ async function main(): Promise<void> {
     if (process.platform !== 'darwin') app.quit()
   })
   if (process.platform !== 'win32') powerMonitor.on('shutdown', () => { sessionEnding = true })
+  let quitReady = false
   const finishQuit = (): void => {
     quitting = true
     shuttingDown = true
@@ -1425,9 +1427,13 @@ async function main(): Promise<void> {
       platformView.dispose(),
       disposeFileDrag(),
     ].map(cleanup => cleanup.catch((error: unknown) => { console.error(error) })))
-      .then(() => { app.quit() })
+      .then(() => { quitReady = true; app.quit() })
   }
   app.on('before-quit', (event) => {
+    if (quitting) {
+      if (!quitReady) event.preventDefault()
+      return
+    }
     if (shellInstallerOwnsQuit) {
       shuttingDown = true
       quitConfirmation.dispose()
@@ -1440,7 +1446,6 @@ async function main(): Promise<void> {
       void platformView.dispose().catch((error: unknown) => { console.error(error) })
       return
     }
-    if (quitting) return
     event.preventDefault()
     if (skipQuitConfirmation || sessionEnding) { finishQuit(); return }
     void quitConfirmation.confirm().then((approved) => {
