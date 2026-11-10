@@ -6,6 +6,8 @@
 
 95 项定向测试覆盖证书负例、路由与代理回归。真实 Web Host 和隐藏 Electron 侧栏验证 HTTPS 页面、脱敏捕获、固定 IP、未授权分区拒绝同一证书，以及旧路由撤回。`private-target-proxy` 无密钥回放保留原录制 JSONL，并检查现有浏览器路由的证书。日志前缀 `.dsh-build/sidebar-https-`。这项源码改动随下一次检查包交付，三个外部浏览器提供方的证书信任继续列在 TODO。
 
+Live Share 将 `securityProxy/browserTrust` 分类为仅所有者可用。Windows 完整构建与 Linux 干净检出各通过十项构建检查。Linux 47 项定向测试及 `private-target-proxy`、`security-terminal-proxy` 两项无密钥回放通过，独立验收检出已清理。Linux 日志为 `.dsh-build/linux-sidebar-https-final-20261111.log`。
+
 ## Windows `.5` 检查包与本机升级（2026-11-11）
 
 源码 `ac8f9fa7ec120bf38d79bf063f8065b5bf85554d` 的干净检出完成 Windows x64 未签名检查包 `0.1.0-test.20261111.5`。首次构建的 Electron 下载长期停在零字节，确认进程归属后停止该下载。用锁定的 `44.7.0` 归档 SHA-256 核对缓存，复用同一独立检出完成正式流水线。后续独立检出可通过 `DSH_DESKTOP_PACKAGE_CACHE_DIR` 复用已校验下载。
