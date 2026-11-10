@@ -1,5 +1,15 @@
 # Uncensored 开发交接
 
+## 独立运行时声明纳入构建（2026-11-10）
+
+16.07 的清点范围补到独立 Node/Python/pnpm。共享运行时构建器在发布目录前生成 `third-party-runtime.json`，记录解释器及包管理器的声明、嵌套组件文本和 Python 发行包元数据。Python 元数据按版本解析声明文件位置，缺失、空白和版本不符各有明确结果。payload 组装标识由 8 升至 9，复制与复用沿用原运行时流程。
+
+当前实装只读复算得到 Node 24.22.1、Python 3.12.14、pnpm 11.28.5，共 88 份声明文件和 14 个 Python 发行包。使用现有锁定归档独立重建后，清单与实装逐项一致，原生解释器、库导入、pip 依赖和 Office 读写 smoke 通过。报告分别为 `.dsh-build/installed-primary-notices-20261110.json`、`prepared-primary-runtime-notices-20261110.json`，完整重建回执为 `primary-notice-build-20261110-result.json`。系统应用及用户数据未改写。
+
+134 项定向测试通过，5 项平台条件跳过；完整构建十项、相关类型感知 lint、README 和两组中英配对通过。原 npm 七个缺项、Electron/安装器、其他平台、内嵌组件与整合发行义务继续待核查。没有把文件清点通过标为许可审核完成。
+
+自动审批以 `blocked by policy` 拒绝删除本轮临时目录 `.dsh-build/primary-notice-build-z1bZMX`，未换工具重试。目录保留 267,237,606 字节，约 255 MiB。回执 `primary-notice-cleanup-20261110.json`，此前被拒绝的目标仍保留。
+
 ## SSH 与数据库状态完成模式页联动（2026-11-10）
 
 04.05、04.05.7 完成。可选保护设置新增默认折叠的 SSH 与数据库摘要。数据库区分提供方缺失、零绑定和已配置数量，不把配置数作为连接或权限验证。SSH 在端点与 helper 验证完成后登记，连接断开、规则撤销或卸载即撤下。多个隔离连接独立计数，远端路径规则数量单独报告。变化通知设置页，并更新未完成网安确认的版本。

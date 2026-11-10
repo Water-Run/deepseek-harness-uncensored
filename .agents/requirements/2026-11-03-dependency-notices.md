@@ -2,6 +2,14 @@
 
 状态：进行中，不代表整合发行的许可核对已完成。用户的 GPL 许可偏好、上游 Credit 和各组件原有许可保持不变。
 
+## 独立脚本运行时（2026-11-10）
+
+共享构建器新增 `runtime/primary-runtime/third-party-runtime.json`，覆盖独立 Node、Python、pnpm 及已安装 Python 发行包。记录声明路径、SHA-256、包元数据与版本，保留嵌套组件原文。按 Python 元数据版本定位 `License-File`，缺失和空白文件标为待核查，缺失或版本不符的已声明发行包会中止准备。组装标识已更新，旧运行时副本不会因复用而漏掉报告。
+
+当前实装的只读复算与从锁定归档重新准备的结果完全相同，Node 24.22.1、Python 3.12.14、pnpm 11.28.5 共 88 份声明文件，14 个 Python 发行包含解释器自带 pip；声明指定的文件没有缺失。Windows 原生解释器、库导入、pip 依赖与 Office 读写 smoke 通过。回执为 `.dsh-build/installed-primary-notices-20261110.json` 和 `primary-notice-build-20261110-result.json`。这不是完整安装包重建，系统应用未修改。
+
+这些结果证明文本随包保留与声明路径可核对，不代替内嵌组件来源、许可兼容性及源码提供义务审查。npm 的七个待核查项不变；Electron、安装器和其他平台继续保留在范围内。
+
 ## 当前实装与源码补充（2026-11-10）
 
 实装源码 `3dda4cf411`，检查版 `0.1.0-test.20261110.2`，包含 859 个 npm 包、15 份补充声明和 7 项待核查。实包记录为 `.dsh-build/deliverables/DSHU-20261110-3dda4c-third-party-runtime.json`。

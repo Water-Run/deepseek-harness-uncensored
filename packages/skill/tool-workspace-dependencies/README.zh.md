@@ -54,6 +54,8 @@ kind: "package-reference"
 
 容器可将这两个目录复制到不可变镜像层，并将 `DSH_PRIMARY_RUNTIME` 设为 `primary-runtime/` 的绝对路径。SDK 原位查询该 payload。Desktop 使用同一构建器，并保留 Harness-home 安装与签名检查。
 
+构建器在 `runtime.json` 旁写入 `third-party-runtime.json`，记录实际 Node、Python、pnpm 声明文件与已安装 Python 发行包元数据。`License-File` 路径按 [Python 元数据规范](https://packaging.python.org/en/latest/specifications/core-metadata/#license-file-multiple-use)解析，缺失或空白文本保留标记。发行包版本必须匹配运行时清单。报告保留文件摘要及随包组件声明，不代表许可兼容性结论。安装复用标识包含此组装格式，更新时会携带新报告。
+
 -----
 
 <a id="understand-the-implementation"></a>

@@ -54,6 +54,8 @@ From a repository checkout with dependencies installed, `CI=true pnpm run prepar
 
 A container can copy both directories into an immutable image layer and set `DSH_PRIMARY_RUNTIME` to the absolute `primary-runtime/` path. The SDK queries that payload in place. Desktop uses the same builder and retains its Harness-home installation and signing checks.
 
+The builder adds `third-party-runtime.json` beside `runtime.json`, recording the actual Node, Python and pnpm notice files and installed Python distribution metadata. Declared `License-File` paths follow the [Python metadata specification](https://packaging.python.org/en/latest/specifications/core-metadata/#license-file-multiple-use); missing or blank texts remain flagged. Distribution versions must match the payload manifest. The report retains byte hashes and copied vendor notices without certifying license compatibility. Payload identity includes this assembly format, so installation reuse does not discard the report.
+
 -----
 
 <a id="understand-the-implementation"></a>
