@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
+import { buildBlockMap } from 'app-builder-lib/out/targets/blockmap/blockmap.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createInstalledUpdateRun } from '../scripts/installed-update-qualification.ts'
 import { prepareInstalledUpdateBootstrap } from '../scripts/prepare-installed-update-bootstrap.ts'
@@ -244,7 +245,7 @@ describe('installed update verification records', () => {
         await writeFile(join(staged, stdUtilsArchive), 'pinned source archive')
         await writeFile(join(staged, 'StdUtils.dll'), 'pinned binary')
         await writeFile(join(staged, 'UAC.dll'), 'pinned UAC binary')
-        await writeFile(join(output, `${name}.blockmap`), 'inert blockmap')
+        await buildBlockMap(installer, 'gzip', join(output, `${name}.blockmap`))
         await writeFile(join(output, 'nightly.yml'), JSON.stringify({ version,
           files: [{ url: name, size: bytes.length, sha512: createHash('sha512').update(bytes).digest('base64') }] }))
         const certificate = join(root, 'public.cer')

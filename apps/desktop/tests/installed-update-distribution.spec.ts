@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { gunzipSync, gzipSync } from 'node:zlib'
+import { buildBlockMap } from 'app-builder-lib/out/targets/blockmap/blockmap.js'
 import { describe, expect, it } from 'vitest'
 import { load } from 'js-yaml'
 import { createInstalledUpdateRun } from '../scripts/installed-update-qualification.ts'
@@ -18,8 +20,9 @@ async function fixture<T>(body: (manifest: string) => Promise<T>): Promise<T> {
       await mkdir(output, { recursive: true })
       const filename = `dshu-qualification-${version}-win-x64.exe`
       const body = Buffer.from(`inert fixture ${version}`)
-      await writeFile(join(output, filename), body)
-      await writeFile(join(output, `${filename}.blockmap`), 'inert map')
+      const installer = join(output, filename)
+      await writeFile(installer, body)
+      await buildBlockMap(installer, 'gzip', join(output, `${filename}.blockmap`))
       await writeFile(join(output, 'nightly.yml'), JSON.stringify({ version,
         files: [{ url: filename, size: body.length, sha512: createHash('sha512').update(body).digest('base64') }] }))
     }
@@ -44,6 +47,34 @@ describe('qualification distribution file planning', () => {
       expect(next!.verified).toBe('file-integrity-only')
       expect(load(next!.feed.contents)).toMatchObject({ version: versions[1],
         files: [{ url: next!.binaries[0]!.name }] })
+    })
+  })
+
+  it('keeps the original gzip bytes when their blockmap matches the installer', async () => {
+    await fixture(async (manifest) => {
+      const original = await planInstalledUpdateDistribution(manifest, versions[0])
+      const path = original.binaries[1]!.path
+      const bytes = gzipSync(gunzipSync(await readFile(path)), { level: 1 })
+      await writeFile(path, bytes)
+      const updated = await planInstalledUpdateDistribution(manifest, versions[0])
+      expect(updated.binaries[1]!.sha512).toBe(createHash('sha512').update(bytes).digest('base64'))
+    })
+  })
+
+  it('rejects a valid blockmap from a different installer of the same size', async () => {
+    await fixture(async (manifest) => {
+      const [old, next] = await Promise.all(versions.map(version => planInstalledUpdateDistribution(manifest, version)))
+      expect(old!.binaries[0]!.size).toBe(next!.binaries[0]!.size)
+      await writeFile(next!.binaries[1]!.path, await readFile(old!.binaries[1]!.path))
+      await expect(planInstalledUpdateDistribution(manifest, versions[1])).rejects.toThrow('external blockmap differs')
+    })
+  })
+
+  it('rejects a nonempty blockmap with invalid gzip bytes', async () => {
+    await fixture(async (manifest) => {
+      const plan = await planInstalledUpdateDistribution(manifest, versions[0])
+      await writeFile(plan.binaries[1]!.path, 'invalid blockmap')
+      await expect(planInstalledUpdateDistribution(manifest, versions[0])).rejects.toThrow('invalid external blockmap')
     })
   })
 

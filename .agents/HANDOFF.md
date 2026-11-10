@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## NSIS 升级资产与差分重建验收（2026-11-11）
+
+用 electron-builder 26.17.0 生成两个隔离的 Windows x64 NSIS 测试安装器。解出内嵌 7z，核对 ASAR 中的版本、测试身份和 `nightly` 频道，以及 `app-update.yml` 的固定标签、发布者字段和独立缓存名。两个版本均通过 `files` 检查。用 electron-updater 6.8.9 和生成的两份块映射，经三次回环单段请求取得 258,709 字节，从旧版重建 582,059 字节的新版安装器，SHA-512 一致，篡改下载字节被拒绝。回执为 `.dsh-build/installed-update-nsis-metadata-20261111.json`。夹具使用测试载荷和发布者字段，未签名、安装或发布。
+
+发布前校验现用固定版本的 electron-builder 重建块映射，并核对外置映射的解压内容。错误 gzip 和同大小其他安装器的映射会被拒绝。结果仍返回原始资产的 SHA-512。[本地校验入口](../apps/desktop/tests/installed-update/README.zh.md#prepare)
+
 ## 安装升级验收迁移到 DSHU GitHub 标签（2026-11-11）
 
 旧安装升级验收指向已停用的云地址，且验收清单与包内频道、安装器名称不一致。新版批次清单为每轮分配独立的 `dshu-qualification-<id>` GitHub 标签。两个版本共用该批次的测试身份和固定下载目录，封存 `nightly` 频道，安装器使用独立的验收名称。`files` 保留生成的 UTF-8 清单字节，核对安装器及块映射，并拒绝附加的 Web 安装包配置。旧版清单保留供存档，历史日志可通过 `inspect` 读取。[验收入口](../apps/desktop/tests/installed-update/README.zh.md)

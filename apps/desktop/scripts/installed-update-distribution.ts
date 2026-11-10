@@ -1,8 +1,10 @@
 /** Validate local qualification payload bytes and prepare separate binary and fixed-feed operations. */
 import { createHash } from 'node:crypto'
-import { createReadStream } from 'node:fs'
-import { readFile, stat } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, rmdir, stat } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { gunzipSync } from 'node:zlib'
+import { buildBlockMap } from 'app-builder-lib/out/targets/blockmap/blockmap.js'
 import { load } from 'js-yaml'
 import { readInstalledUpdateRun } from './installed-update-qualification.ts'
 
@@ -34,12 +36,32 @@ export function installedUpdateArtifactName(version: string): string {
   return `dshu-qualification-${version}-win-x64.exe`
 }
 
-async function binary(path: string, name: string, base: string): Promise<InstalledUpdateBinary> {
+async function binaryPath(directory: string, name: string, base: string) {
+  const path = join(directory, name)
   const file = await stat(path)
   if (!file.isFile() || file.size === 0) throw new Error('installed update: missing or empty binary material')
-  const hash = createHash('sha512')
-  for await (const chunk of createReadStream(path)) hash.update(chunk)
-  return { path, name, url: new URL(name, base).href, size: file.size, sha512: hash.digest('base64') }
+  return { path, name, url: new URL(name, base).href, size: file.size }
+}
+
+async function inspectInstaller(installer: string, blockmap: string) {
+  const scratch = await mkdtemp(join(tmpdir(), 'dshu-blockmap-'))
+  const generated = join(scratch, 'installer.blockmap')
+  try {
+    const digest = await buildBlockMap(installer, 'gzip', generated)
+    const expected = gunzipSync(await readFile(generated))
+    const bytes = await readFile(blockmap)
+    let actual: Buffer
+    try {
+      actual = gunzipSync(bytes, { maxOutputLength: expected.length })
+    } catch (cause) {
+      throw new Error('installed update: invalid external blockmap', { cause })
+    }
+    if (!actual.equals(expected)) throw new Error('installed update: external blockmap differs from the installer')
+    return { digest, map: { size: bytes.length, sha512: createHash('sha512').update(bytes).digest('base64') } }
+  } finally {
+    await rm(generated, { force: true })
+    await rmdir(scratch)
+  }
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -48,7 +70,7 @@ function record(value: unknown): Record<string, unknown> {
 }
 
 /**
- * Check the generated YAML against installer bytes and retain the same bytes for the fixed GitHub feed.
+ * Check the generated YAML and external blockmap against installer bytes.
  * @param manifest Original qualification run.json; test identity and destinations are revalidated.
  * @param version One of the run's two versions, never a version inferred from YAML.
  * @returns Read-only binary and feed plans; no credentials, network, signing, or installation are involved.
@@ -70,16 +92,17 @@ export async function planInstalledUpdateDistribution(manifest: string, version:
   if (info.url !== filename || (metadata.path !== undefined && metadata.path !== filename)) {
     throw new Error('installed update: feed filename must identify the selected local Windows installer')
   }
-  const installer = await binary(join(directory, filename), filename, run.feedBaseUrl)
-  if (info.size !== installer.size || info.sha512 !== installer.sha512
-    || (metadata.sha512 !== undefined && metadata.sha512 !== installer.sha512)) {
+  const installer = await binaryPath(directory, filename, run.feedBaseUrl)
+  const blockmap = await binaryPath(directory, `${filename}.blockmap`, run.feedBaseUrl)
+  const { digest, map } = await inspectInstaller(installer.path, blockmap.path)
+  if (digest.size !== installer.size || info.size !== installer.size || info.sha512 !== digest.sha512
+    || (metadata.sha512 !== undefined && metadata.sha512 !== digest.sha512)) {
     throw new Error('installed update: installer size or SHA-512 differs from the generated feed')
   }
-  const blockmapName = `${filename}.blockmap`
-  const blockmap = await binary(join(directory, blockmapName), blockmapName, run.feedBaseUrl)
+  if (map.size !== blockmap.size) throw new Error('installed update: external blockmap size changed during verification')
   if (metadata.releaseDate !== undefined && (typeof metadata.releaseDate !== 'string'
     || !Number.isFinite(Date.parse(metadata.releaseDate)))) throw new Error('installed update: invalid feed release date')
-  return { version, releaseTag: run.releaseTag, binaries: [installer, blockmap],
+  return { version, releaseTag: run.releaseTag, binaries: [{ ...installer, sha512: digest.sha512 }, { ...blockmap, ...map }],
     feed: { name: feedName, url: new URL(feedName, run.feedBaseUrl).href, contents,
       sha512: createHash('sha512').update(bytes).digest('base64') },
     verified: 'file-integrity-only', publicationAuthorized: false }

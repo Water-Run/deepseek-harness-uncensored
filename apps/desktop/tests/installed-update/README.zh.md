@@ -66,7 +66,7 @@ node --import tsx apps/desktop/scripts/verify-installed-update-package.ts "<run.
 
 旧测试上传器已停用，见[发布状态](publication/README.zh.md)。本地传输测试覆盖更新源缺失和同版本响应，不发布发行版。真实下载与签名安装升级验收仍属单独的交付工作。保留已有回执和产物，不通过修改公开更新源重建测试场景。
 
-本地 `files` 命令接受 `<run.json>` 和本批次的一个准确版本。它用安装包文件名、大小、SHA-512 和非空块映射校验生成的 `installer/nightly.yml`，输出准确的 GitHub 标签、资产名称和 URL，并保留清单原文。相对安装包地址解析到 `nightly.yml` 所在目录。`file-integrity-only` 是本地证据。签名包内容、应用身份和发布授权需分别核对。
+本地 `files` 命令接受 `<run.json>` 和本批次的一个准确版本。它用安装包文件名、大小和 SHA-512 校验生成的 `installer/nightly.yml`，再用固定版本的 electron-builder 重建块映射，并与外置块映射的解压内容比对。命令输出准确的 GitHub 标签、资产名称和 URL，并保留清单原文。相对安装包地址解析到 `nightly.yml` 所在目录。`file-integrity-only` 是本地证据。签名包内容、应用身份和发布授权需分别核对。
 
 <a id="sequence"></a>
 

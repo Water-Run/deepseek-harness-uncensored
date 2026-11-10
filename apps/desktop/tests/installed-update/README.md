@@ -66,7 +66,7 @@ The verifier validates the outer NSIS paths and rejects residual WinShell DLLs. 
 
 The old test uploader is retired; see [publication status](publication/README.md). Local transport tests cover missing feeds and same-version responses without publishing a release. Real download and signed installed-upgrade qualification remain separate delivery work. Preserve existing receipts and artifacts; do not alter a public feed to recreate a test case.
 
-The local `files` command accepts `<run.json>` and one exact run version. It checks the generated `installer/nightly.yml` against the installer name, size, SHA-512, and nonempty external blockmap. It prints the exact GitHub tag, asset filenames and URLs, and the unchanged feed contents. The relative installer URL resolves beside `nightly.yml`. The `file-integrity-only` result is local evidence. Signed package contents, application identity, and explicit publication authorization are separate prerequisites.
+The local `files` command accepts `<run.json>` and one exact run version. It checks the generated `installer/nightly.yml` against the installer name, size, and SHA-512. It regenerates the blockmap with the pinned electron-builder and compares the decompressed contents with the external blockmap. It prints the exact GitHub tag, asset filenames and URLs, and the unchanged feed contents. The relative installer URL resolves beside `nightly.yml`. The `file-integrity-only` result is local evidence. Signed package contents, application identity, and explicit publication authorization are separate prerequisites.
 
 <a id="sequence"></a>
 
