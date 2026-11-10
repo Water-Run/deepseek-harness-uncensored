@@ -1,12 +1,4 @@
-/**
- * Probe the external tools a packaging run will shell out to, before it starts.
- *
- * The packaging sequence reaches its first archive step minutes in, and its
- * first installer step later still, so a tool that is absent or behaves
- * differently than the scripts assume wastes a whole run. Each probe here
- * exercises the specific behaviour the run depends on rather than merely
- * checking that the executable resolves.
- */
+/** Check archive round trips and Windows native preparation without modifying installed tools. */
 
 import { execFile } from 'node:child_process'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
@@ -43,7 +35,45 @@ async function probeTar(): Promise<string | undefined> {
   }
 }
 
-async function probeWindowsInstallerToolchain(environment: NodeJS.ProcessEnv): Promise<DesktopToolchainProbeFailure[]> {
+async function probeWindowsRuntimeToolchain(installation: string, environment: NodeJS.ProcessEnv): Promise<string | undefined> {
+  const directory = await mkdtemp(join(tmpdir(), 'dshu-msvc-probe-'))
+  try {
+    const project = join(directory, 'probe.vcxproj')
+    await writeFile(project, `<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="PrepareForBuild" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration><Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\\Microsoft.Cpp.Default.props" />
+  <PropertyGroup>
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\\Microsoft.Cpp.props" />
+  <Import Project="$(VCTargetsPath)\\Microsoft.Cpp.targets" />
+  <Target Name="DescribeToolchain" BeforeTargets="PrepareForBuild">
+    <Message Importance="high" Text="DSHU toolchain: $(VCToolsVersion); SDK: $(WindowsTargetPlatformVersion)" />
+  </Target>
+</Project>
+`)
+    await run(join(installation, 'MSBuild/Current/Bin/MSBuild.exe'), [project,
+      '/nologo', '/verbosity:minimal', '/nodeReuse:false', '/maxcpucount:1', '/target:PrepareForBuild',
+      '/p:Configuration=Release;Platform=x64;SpectreMitigation=Spectre;CheckMSVCComponents=true',
+    ], { cwd: directory, env: environment, windowsHide: true, timeout: 30_000, maxBuffer: 64 * 1024 })
+    return undefined
+  } catch (error) {
+    const output = error instanceof Error && 'stdout' in error && typeof error.stdout === 'string' ? error.stdout.trim() : ''
+    const reason = error instanceof Error ? error.message : String(error)
+    return 'Windows native runtime preparation failed. Check the diagnostic below. For MSB8040, install matching x64 Spectre libraries '
+      + `or select a complete toolset with VCToolsVersion (and MSVCPreviewEnabled=true for Preview).\n${reason}\n${output}`
+  } finally {
+    await rm(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+  }
+}
+
+async function probeWindowsToolchain(environment: NodeJS.ProcessEnv): Promise<DesktopToolchainProbeFailure[]> {
   const failures: DesktopToolchainProbeFailure[] = []
   const programFiles = environment['ProgramFiles(x86)']
   const vswhere = programFiles === undefined
@@ -53,26 +83,32 @@ async function probeWindowsInstallerToolchain(environment: NodeJS.ProcessEnv): P
     failures.push({ tool: 'vswhere', detail: 'ProgramFiles(x86) is not set, so Visual Studio cannot be located' })
   }
   else {
+    let installation: string
     try {
       const located = await run(vswhere, ['-latest', '-prerelease', '-products', '*',
         '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64', '-property', 'installationPath'],
-      { windowsHide: true, timeout: 30_000 })
-      if (located.stdout.trim() === '') {
-        failures.push({ tool: 'vswhere', detail: 'Visual Studio C++ build tools are not installed, so the installer helper cannot compile' })
-      }
+      { env: environment, windowsHide: true, timeout: 30_000 })
+      installation = located.stdout.trim()
     }
     catch (error) {
       failures.push({ tool: 'vswhere', detail: error instanceof Error ? error.message : String(error) })
+      return failures
+    }
+    if (installation === '') {
+      failures.push({ tool: 'vswhere', detail: 'Visual Studio C++ build tools are required for the Windows runtime and installer helpers' })
+    } else {
+      const native = await probeWindowsRuntimeToolchain(installation, environment)
+      if (native !== undefined) failures.push({ tool: 'MSVC/Spectre', detail: native })
     }
   }
   return failures
 }
 
 /**
- * Probe every external tool one packaging run needs.
+ * Probe archive access and Windows native preparation before packaging.
  * @param platform - Target platform; a Windows target already requires a Windows build host.
  * @param environment - Packaging environment used to locate Windows tooling.
- * @returns Every probe that failed, empty when the host can run the packaging sequence.
+ * @returns Every failed probe; successful preparation does not replace compilation and packaged-runtime checks.
  */
 export async function probeDesktopToolchain(
   platform: 'darwin' | 'win32',
@@ -81,26 +117,22 @@ export async function probeDesktopToolchain(
   const failures: DesktopToolchainProbeFailure[] = []
   const tar = await probeTar()
   if (tar !== undefined) failures.push({ tool: 'tar', detail: tar })
-  if (platform === 'win32') failures.push(...await probeWindowsInstallerToolchain(environment))
+  if (platform === 'win32') failures.push(...await probeWindowsToolchain(environment))
   return failures
 }
 
 /**
  * Probe the toolchain and fail with every problem the host has.
+ * Windows directory and preparation-only builds also require the native runtime toolchain.
  * @param platform - Target platform; a Windows target already requires a Windows build host.
  * @param environment - Packaging environment used to locate Windows tooling.
- * @param options - `directory` builds emit an unpacked app and never compile the
- * NSIS installer helper, so the Visual Studio C++ requirement does not apply.
  * @returns Resolves when every probe passes.
  */
 export async function requireDesktopToolchain(
   platform: 'darwin' | 'win32',
   environment: NodeJS.ProcessEnv = process.env,
-  options: { directory?: boolean } = {},
 ): Promise<void> {
-  const installerFree = platform === 'win32' && options.directory === true
-  const failures = (await probeDesktopToolchain(platform, environment))
-    .filter(failure => !(installerFree && failure.tool === 'vswhere'))
+  const failures = await probeDesktopToolchain(platform, environment)
   if (failures.length === 0) return
   throw new Error(`desktop package: the build host cannot run this packaging sequence:\n${
     failures.map(failure => `  ${failure.tool}: ${failure.detail}`).join('\n')}`)

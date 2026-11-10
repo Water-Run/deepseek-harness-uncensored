@@ -205,6 +205,8 @@ pnpm run dev:bundle-registry
 
 Windows 打包在签名和清单封装前，使用捆绑 Node 的头文件重新编译已修补的 node-pty ConPTY 加载器。构建机需要 Python、MSVC C++ 工具及对应的 Spectre 库；编译失败会中止打包。加载器使用动态长度模块路径和 Windows 扩展路径，继续使用随包控制台宿主。载荷检查将实际分发的 addon 和控制台资源复制到超过 300 字符、包含空格与中文的私有路径，在新进程中验证终端输入、输出及正常退出。此重编译针对 Desktop 产物；普通源码安装仍使用 npm 预构建文件，直到显式重编译。
 
+Windows 前置检查和 `--check` 先用 `vswhere` 定位 Visual Studio，再在打包环境中执行启用 Spectre 的 MSBuild x64 准备检查。临时项目在成功和失败后都会清理。所选工具集缺少库或 SDK 时，在仓库构建和下载前停止并显示原始 MSBuild 诊断。目录包和仅准备运行时同样需要此检查，因为它们也编译 ConPTY。可通过 `VCToolsVersion` 选择已完整安装的工具集，Preview 另设 `MSVCPreviewEnabled=true`，或按 [Microsoft 的 MSB8040 说明](https://learn.microsoft.com/en-us/visualstudio/msbuild/errors/msb8040)补装匹配组件。检查不改动系统工具集设置，也不替代完整原生编译。
+
 准备阶段在完整性封装前生成 `dsh/third-party-runtime.json`，记录物化 npm 树中的包名、版本、声明许可证和声明文件摘要。`LICENSES/npm/sources.json` 中按版本固定的补充原文经校验后复制至 `dsh/licenses`；文件缺失或摘要不符会中止准备。清单将 REA 集中声明中的精确版本条目，以及含已识别许可授权文字的 README 记为声明候选文件。已核对的 Windows x64 Office 引擎 `0.1.5` 另记录五份嵌套声明文件，此选择不适用于其他版本。空白文件不计为许可文本。原文缺失、已核对的嵌套声明不齐全或存在已知上游缺项，都会标为待核查。
 
 独立的 `runtime/primary-runtime/third-party-runtime.json` 清点 Node、Python 与 pnpm，记录嵌套声明及每个已安装 Python 包的元数据、声明文件和摘要。[共享运行时构建器](../../../packages/skill/tool-workspace-dependencies/README.zh.md#use-this-package)会拒绝缺失或版本不符的已声明发行包。清单不代表许可兼容性或全部内嵌组件署名已核清。Electron 和安装器声明另行审查。
