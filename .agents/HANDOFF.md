@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## Fontkit 2.0.4 的 Mac 编码数据归属（2026-11-11）
+
+Windows `.6` 实装的 Fontkit 源文件和四个打包入口与锁定 npm 归档一致，`src/encodings.js` 也与发布提交一致。八张 Mac 编码表的 1,024 个位置中，1,016 个与 Apple 原表一致。八个差异均是 `0xCA` 从 U+00A0 改为 U+0020。四个打包入口均包含同样的映射。六张表注明 Apple 版权，Gaelic 与 Inuit 两张注明字符集由 Michael Everson 开发。[Apple 映射资料](https://www.unicode.org/Public/MAPPINGS/VENDORS/APPLE/Readme.txt)
+
+新增按版本固定的归属声明。用 859 个实装包清单复算后，补充声明记录从 19 增至 20，仅 Fontkit 条目变化，待核查项仍为七。12 项清点器测试通过，实装 ASAR 摘要一致。Fontkit 2.0.4 的完整版权许可原文与 Apple 数据的适用分发条款仍需确认。证据见 `.dsh-build/fontkit-apple-20261111/`。[依赖审计](requirements/2026-11-03-dependency-notices.md)
+
 ## Windows 安装器移除 WinShell（2026-11-11）
 
 使用现有原生辅助库调用 Windows Shell API 写快捷方式 AppID、取消固定旧链接并清理应用跳转列表。开始菜单与桌面链接沿用原安装流程，改名前先取消固定旧链接。归档验收拒绝 WinShell.dll。[Windows 快捷方式身份](https://learn.microsoft.com/en-us/windows/win32/properties/props-system-appusermodel-id) · [取消固定接口](https://learn.microsoft.com/en-us/windows/win32/api/shobjidl/nn-shobjidl-istartmenupinnedlist)

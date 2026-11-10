@@ -1,0 +1,23 @@
+Fontkit 2.0.4 Mac OS encoding data attribution
+
+Fontkit's src/encodings.js contains eight single-byte mappings
+corresponding to the Apple vendor tables hosted by the Unicode Consortium.
+For each table, entries 0x80 through 0xFF match the referenced data
+except at 0xCA. Fontkit maps that byte to U+0020 in place of U+00A0.
+
+The Croatian, Greek, Icelandic, Central European, Romanian, and Turkish
+tables carry this copyright notice:
+(c) 1995-2002, 2005 by Apple Computer, Inc., all rights reserved.
+
+https://www.unicode.org/Public/MAPPINGS/VENDORS/APPLE/CROATIAN.TXT
+https://www.unicode.org/Public/MAPPINGS/VENDORS/APPLE/GREEK.TXT
+https://www.unicode.org/Public/MAPPINGS/VENDORS/APPLE/ICELAND.TXT
+https://www.unicode.org/Public/MAPPINGS/VENDORS/APPLE/CENTEURO.TXT
+https://www.unicode.org/Public/MAPPINGS/VENDORS/APPLE/ROMANIAN.TXT
+https://www.unicode.org/Public/MAPPINGS/VENDORS/APPLE/TURKISH.TXT
+
+The Gaelic and Inuit tables credit Michael Everson of Everson Typography
+for developing the character sets.
+
+https://www.unicode.org/Public/MAPPINGS/VENDORS/APPLE/GAELIC.TXT
+https://www.unicode.org/Public/MAPPINGS/VENDORS/APPLE/INUIT.TXT

@@ -18,6 +18,12 @@
     "sha256": "3d180008e36922a4e8daec11c34c7af264fed5962d07924aea928c38e8663c94"
   },
   {
+    "packages": ["fontkit@2.0.4"],
+    "file": "fontkit-2.0.4-Apple-mappings-NOTICE.txt",
+    "source": "https://www.unicode.org/Public/MAPPINGS/VENDORS/APPLE/",
+    "sha256": "31ac95f2a52a86a1fc59bc8c665436074d371852a090912f07972959417d77d9"
+  },
+  {
     "packages": ["frida@17.23.2"],
     "file": "frida-gum-17.23.2-COPYING.txt",
     "source": "https://raw.githubusercontent.com/frida/frida-gum/2b0e6a661702097d77474223ebc429ece092cb46/COPYING",

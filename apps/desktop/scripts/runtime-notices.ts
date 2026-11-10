@@ -25,6 +25,7 @@ const UPSTREAM_GAPS = new Set([
   '@img/sharp-libvips-linux-x64@1.3.4',
   'brotli@1.3.3',
   'clean-git-ref@2.0.1',
+  'fontkit@2.0.4',
   'frida@17.23.2',
   'minimisted@2.0.1',
   'sherpa-onnx-linux-x64@1.13.8',

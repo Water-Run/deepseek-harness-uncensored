@@ -130,7 +130,7 @@ it('copies every pinned supplement unchanged and leaves other versions for revie
   const packages = await prepareRuntimeNotices(root)
   expect(packages.filter(pkg => pkg.reviewRequired).map(pkg => `${pkg.name}@${pkg.version}`).sort()).toEqual([
     '@cfworker/json-schema@99.0.0', '@img/sharp-libvips-linux-x64@1.3.4', 'brotli@1.3.3',
-    'frida@17.23.2', 'sherpa-onnx-linux-x64@1.13.8', 'tr46@0.0.4',
+    'fontkit@2.0.4', 'frida@17.23.2', 'sherpa-onnx-linux-x64@1.13.8', 'tr46@0.0.4',
   ])
   expect(packages.find(pkg => pkg.name === 'brotli')?.notices).toHaveLength(3)
   for (const source of sources) {

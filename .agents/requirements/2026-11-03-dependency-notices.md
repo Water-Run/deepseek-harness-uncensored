@@ -32,6 +32,12 @@ Windows 安装器现随包附带实际编译工具集的 `COPYING` 原文，文�
 
 源码 `1408c12cc1` 的 Windows `.6` 实装包含 859 个 npm 包，7 项待核查。Linux `.5` 的 deb 与 tar.gz 包含同一 ASAR，包含 861 个 npm 包，9 项待核查。两边都分发 19 份补充声明，并从实际载荷核对 Frida Gum 原文摘要。完整清单保存在 `.dsh-build/deliverables/`，交付回执与摘要见 [HANDOFF](../HANDOFF.md)。
 
+## Fontkit 内嵌的 Mac 编码表（2026-11-11）
+
+按锁文件 SHA-512 校验 Fontkit 2.0.4 归档，从 Windows `.6` 实装核对 `src/encodings.js` 和四个打包入口的完整字节。编码源文件还与 npm 对应的 Git 发布提交一致。将八张表的 1,024 个字节映射与 Apple 发布的数据逐项比较，八张表各有 127 项匹配，唯一差异均为 `0xCA` 从 U+00A0 改为 U+0020。四个打包入口也都包含同样的映射。[发布源码](https://github.com/foliojs/fontkit/tree/fbf3b9ef21eebd219eb73e666faed573af0fba09) · [Apple 映射说明](https://www.unicode.org/Public/MAPPINGS/VENDORS/APPLE/Readme.txt)
+
+补充声明列明六张表的 Apple 版权和 Gaelic、Inuit 表所注明的 Michael Everson 作者归属。实装输入复算仅改变 Fontkit 条目，补充声明记录由 19 增至 20。保留 Fontkit 的待核查状态，继续核对 2.0.4 本体的原始许可和 Apple 数据的具体分发条款。映射数据摘要、逐项比较和复算回执在 `.dsh-build/fontkit-apple-20261111/`。[Unicode 使用条款](https://www.unicode.org/copyright.html)
+
 ## Frida 预构建二进制（2026-11-11）
 
 Windows `.4` 实装和 Linux `.4` tar.gz 内的 `frida_binding.node` 与 [Frida 17.23.2 官方预构建归档](https://github.com/frida/frida/releases/tag/17.23.2)逐字一致。两份归档先比对 GitHub 提供的 SHA-256，再以流式读取核对二进制摘要。结果见 `.dsh-build/frida-prebuild-projection-20261111.json`。
@@ -110,7 +116,7 @@ Linux `.3` 实包原清单为 861 个 npm 包和 12 项待核查。`@deepseek-ai
 | brotli 1.3.3 | 已补 Google 解码器版权头与 Apache-2.0、固定子模块 MIT 原文，包装代码及编译编码器声明范围仍待核对 |
 | clean-git-ref 2.0.1 | REA 明确记录的上游原文/署名缺项，保留待核查 |
 | dfa 1.2.0 | npm 包及固定源提交没有独立许可原文 |
-| fontkit 2.0.4 | 官方仓库已新增 LICENSE；仍需核对其与发布代码及单独版权片段的对应关系 |
+| fontkit 2.0.4 | 已补八张 Mac 编码表的归属声明。该版本的完整许可原文与 Apple 数据分发条款仍待核对 |
 | frida 17.23.2 | 版本及源码链已核对，Node 绑定和预构建组件的完整署名仍待核查 |
 | minimisted 2.0.1 | REA 明确记录的上游原文/署名缺项，保留待核查 |
 | proxy-agent-negotiate 1.1.0 | 发布包与对应 tag 没有本包许可文件；相邻代理包文件不能未经核准直接替用 |
