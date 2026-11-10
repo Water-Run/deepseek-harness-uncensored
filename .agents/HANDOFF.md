@@ -6,6 +6,8 @@
 
 捕获写入会移除 HTTP URL 用户凭据，并遮盖目标、`Location`、`Content-Location` 与 `Referer` 中已识别的密钥字段。普通参数的编码、顺序及重复键保持原样。回环测试核对实际转发 URL、存储结果和搜索行为。98 项代理与受控代理回归、最后修改后的 23 项定向测试，以及升级说明和中英配对均通过。全仓 Markdown 链接检查仍报告原有裁剪文档和工作流引用，变更的说明及 README 链接已单独核对通过。本次修复将随下一检查包交付。
 
+Windows 和 Linux 完整构建各十项通过。Linux `private-target-proxy` 与 `security-terminal-proxy` 均通过无密钥回放。后者首次报旧请求头缺少当前已有的 `apply_patch`，只更新工具 schema 与配套文件操作提示，`session.v4.jsonl` 摘要保持一致。Linux 验收检出已清理。日志为 `.dsh-build/linux-proxy-privacy-check-20261110.log` 与 `.dsh-build/linux-proxy-terminal-headers-20261110.log`。
+
 ## Linux `.4` 打包与 Debian 12 验收（2026-11-10）
 
 源码 `d8c7f8964dadaae98092e528f912f7a362084d7e` 的干净检出通过十项构建检查，标准流水线生成 `0.1.0-test.20261110.linux.4` 的 deb 和 tar.gz。两种归档的 ASAR 摘要一致。包内通过四模式、离线插件装卸、REA 229 项工具与 JavaScript 分析，以及三类 Office 文档转 PDF。实包许可清单为 861 个 npm 包和 9 项待核查。
