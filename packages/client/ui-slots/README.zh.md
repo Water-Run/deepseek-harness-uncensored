@@ -25,7 +25,7 @@ kind: "package-library"
 <a id="use-this-package"></a>
 ## 使用本包
 
-编写客户端插件时都通过本包组合 UI：把组件注册进父级已声明的 slot，或声明组件将要渲染的子 slot。四种 kind 覆盖组合形态——`single`（单个占位者）、`list`（有序条目）、`keyed`（按键分派）与 `chain`（条目自行提名）。
+编写客户端插件时都通过本包组合 UI：把组件注册进父级已声明的 slot，或声明组件将要渲染的子 slot。四种 kind 覆盖组合形态——`single`（单个占位者）、`list`（有序条目）、`keyed`（按键分派）与 `chain`（条目自行提名）。渲染 keyed 子 slot 时，在 `renderSlot` 的选项中传入 `entryKey`。该键没有已注册条目时，渲染传入的 fallback。
 
 ### 可复用 Component Factory
 

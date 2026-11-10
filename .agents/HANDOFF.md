@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## Keyed Slot 分派键的类型检查（2026-11-11）
+
+`renderSlot` 的 keyed 调用要求显式提供 `entryKey`，包括携带 `hookContext` 的调用。名称联合可能选中 keyed Slot 时也要求键。普通 Slot 的选项可省略，传入合法但未注册的键仍走原有 fallback。
+
+改前三种缺键调用触发未使用的 `@ts-expect-error`，证明当时可以编译。改后八项产物构建、Host 和 Client 聚合检查、309 项定向测试及文档检查通过。日志前缀 `.dsh-build/keyed-slot-`。本次覆盖分派键约束，其他 Slot 输入约束继续留在稳定性清单。[迁移指南](../docs/upgrade-guide/v0.2.2-rc.1/keyed-slot-entry-key/guide.zh.md)
+
 ## 桌面重复退出与安装交接竞态（2026-11-11）
 
 普通退出期间，再次退出会等待 Host 和内嵌页面清理完成。Host 先退出时，Electron 仍会等待页面清理。若安装准备和普通退出重叠，已开始的普通退出继续完成，待交接的安装取消。

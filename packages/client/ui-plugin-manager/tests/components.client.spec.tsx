@@ -10,6 +10,7 @@ import { allowAllAccess, bindSnapshotSelector, stubConfigForm } from '@deepseek-
 import type { ConfigForm, ConfigFormSnapshot, SettingsMirrorSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { MenuItemButton } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { RenderOpts } from '@deepseek-ai/dsh-client-ui-slots'
 import { StrictMode, type ReactNode } from 'react'
 import type { LocaleSnapshot } from '@deepseek-ai/dsh-client-locale/client'
 import { bundleDetailKey, type BundleDetailsState } from '../src/client/detail-store.ts'
@@ -186,7 +187,7 @@ function renderTab(
       stub.publish(forms[id]!.state as ConfigFormSnapshot<T>)
       return { ...stub.scope, mutate: forms[id]!.mutate }
     },
-    renderSlot: (name, owner, opts) => {
+    renderSlot: (name: string, owner: object, opts?: RenderOpts) => {
       const body = bodies[`${name}:${opts?.only ?? opts?.entryKey ?? ''}`]
       if (body === undefined) return null
       if (name === 'plugins.bundle.activation') return body('activation', owner)

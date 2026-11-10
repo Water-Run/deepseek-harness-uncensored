@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.2-rc.1/keyed-slot-entry-key/guide.md
+/:
+  en: f19534e24f056fc9
+  zh: 1468fabf149437b1
+/keyed-slot-render-options:
+  en: f7b840d1af52fc71
+  zh: b9ba88da86b8c796
+/keyed-slot-render-options/change:
+  en: ec6b8cbd2dc74856
+  zh: 0ac696716bbbffad
+/keyed-slot-render-options/migration:
+  en: 06c0d328bcba6b75
+  zh: 2b5f7d02427138f9

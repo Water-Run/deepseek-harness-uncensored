@@ -27,6 +27,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
       inject: ContextInjected
     }
     'chain.tools': { kind: 'keyed'; scope: 'session' }
+    'chain.keyed-context': {
+      kind: 'keyed'
+      scope: 'session'
+      hookContext: string
+      keyProps: { first: { count: number }; second: { label: string } }
+    }
     'chain.takeover': { kind: 'chain'; scope: 'session'; owner: { items: readonly Item[] } }
   }
 
@@ -148,7 +154,10 @@ declare function FactoryStoreBody(props: FactoryComponentPropsOf<'chain.factory.
 describe('terminal-design type chain', () => {
   it('holds the positive chain and the compile-time negatives', () => {
     // Everything below is compile-time only.
-    const samples = (core: SlotCore, chat: ChatHandle, fp: FrameProps, cp: ConvProps, acts: BoundActions<ChatHandle>) => {
+    const samples = (
+      core: SlotCore, chat: ChatHandle, fp: FrameProps, cp: ConvProps, acts: BoundActions<ChatHandle>,
+      mixedKey: 'chain.tools' | 'chain.frame',
+    ) => {
       // ── positive chain ─────────────────────────────────────────────
       // Frame: children + factory store + inject; actions arrive baked.
       core.register({
@@ -310,6 +319,23 @@ describe('terminal-design type chain', () => {
       fp.renderSlot('chain.side', { collapsed: false })
       // @ts-expect-error key not in this render share
       fp.renderSlot('chain.tools', {})
+
+      const keyed: PropsRenderSlots<'chain.tools' | 'chain.keyed-context'> = null as never
+      keyed.renderSlot('chain.tools', {}, { entryKey: 'custom-tool', fallback: null })
+      keyed.renderSlot('chain.keyed-context', { count: 1 }, { entryKey: 'first', hookContext: 'sample' })
+      // @ts-expect-error keyed dispatch requires options with an entryKey
+      keyed.renderSlot('chain.tools', {})
+      // @ts-expect-error fallback does not supply the keyed dispatch key
+      keyed.renderSlot('chain.tools', {}, { fallback: null })
+      // @ts-expect-error contextual keyed dispatch also requires an entryKey
+      keyed.renderSlot('chain.keyed-context', { count: 1 }, { hookContext: 'sample' })
+      // @ts-expect-error key-specific owner props must match the chosen key
+      keyed.renderSlot('chain.keyed-context', { count: 1 }, { entryKey: 'second', hookContext: 'sample' })
+      const mixed: PropsRenderSlots<'chain.tools' | 'chain.frame'> = null as never
+      mixed.renderSlot('chain.frame', {})
+      mixed.renderSlot(mixedKey, {}, { entryKey: 'custom-tool' })
+      // @ts-expect-error this union can select a keyed slot
+      mixed.renderSlot(mixedKey, {})
 
       // Contextual hooks preserve both the business key and value type.
       // @ts-expect-error unknown Turn-data key

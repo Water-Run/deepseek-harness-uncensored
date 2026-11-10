@@ -309,13 +309,20 @@ export type ChainKeysOf<S extends keyof SlotMap & string> =
 type ContextualKeysOf<S extends keyof SlotMap & string> =
   S extends unknown ? (SlotMap[S] extends { hookContext: unknown } ? S : never) : never
 
+/** Keys whose renderer dispatches to a specific entry. */
+type KeyedKeysOf<S extends keyof SlotMap & string> =
+  S extends unknown ? (SlotMap[S]['kind'] extends 'keyed' ? S : never) : never
+
+/** Keyed slots that need a dispatch key and have no occurrence context. */
+type KeyedWithoutContext<S extends keyof SlotMap & string> = Exclude<KeyedKeysOf<S>, ContextualKeysOf<S>>
+
 /** Keys in a render share with the ordinary optional options bag. */
-type OrdinaryKeysOf<S extends keyof SlotMap & string> = Exclude<S, ContextualKeysOf<S>>
+type OrdinaryKeysOf<S extends keyof SlotMap & string> = Exclude<S, ContextualKeysOf<S> | KeyedKeysOf<S>>
 
 /**
- * Plain and contextual child dispatch signatures. Keeping them as separate
- * call signatures preserves ordinary renderSlot assignability while making a
- * declared hookContext mandatory only for the Slot keys that need it.
+ * Child dispatch signatures preserve the optional options bag for ordinary
+ * slots. Contextual slots require hookContext, and keyed slots require entryKey.
+ * A supplied entryKey also permits a union of slot names without hookContext.
  */
 type RenderSlotFn<S extends keyof SlotMap & string> =
   ([ContextualKeysOf<S>] extends [never] ? object : {
@@ -325,7 +332,18 @@ type RenderSlotFn<S extends keyof SlotMap & string> =
     >(
       key: K,
       owner: OwnerOf<K> & KeyPropsOf<K, NoInfer<EntryKey>>,
-      opts: RenderOpts<EntryKey> & { hookContext: HookContextOf<K> },
+      opts: RenderOpts<EntryKey> & { hookContext: HookContextOf<K> } &
+        ('keyed' extends SlotMap[K]['kind'] ? { entryKey: EntryKey } : object),
+    ): ReactNode
+  }) &
+  ([KeyedWithoutContext<S>] extends [never] ? object : {
+    <
+      K extends Exclude<S, ContextualKeysOf<S>>,
+      EntryKey extends EntryKeyOf<K> = EntryKeyOf<K>,
+    >(
+      key: K,
+      owner: OwnerOf<K> & KeyPropsOf<K, NoInfer<EntryKey>>,
+      opts: Omit<RenderOpts<EntryKey>, 'hookContext'> & { entryKey: EntryKey },
     ): ReactNode
   }) &
   ([OrdinaryKeysOf<S>] extends [never] ? object : {
@@ -382,7 +400,7 @@ export type PropsRenderSlots<S extends keyof SlotMap & string> = {
    * `renderSlotChain` — their routing lives in entry selectors).
    * @param key - declared child key.
    * @param owner - owner props share for that key (decided at the render site).
-   * @param opts - kind dispatch options.
+   * @param opts - kind dispatch options, including the required `entryKey` for keyed children.
    * @returns rendered node(s).
    */
   renderSlot: RenderSlotFn<Exclude<S, ChainKeysOf<S>>>

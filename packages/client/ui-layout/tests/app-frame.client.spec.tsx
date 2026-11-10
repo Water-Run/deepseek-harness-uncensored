@@ -12,6 +12,7 @@ import type { MainPanelId, RightbarOwnerProps, SidebarOwnerProps } from '../src/
 import { createLayoutStore } from '../src/client/stores.ts'
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { ReactNode } from 'react'
 
 const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined })) as GlobalStandardProps['useResource']
 let selectedSession: SessionId | undefined
@@ -63,11 +64,13 @@ function resize(width: number): void {
   })
 }
 
-function mountFrame(windowWidth = frameWidth, content?: AppFrameProps['renderSlot']) {
+type TestSlotRenderer = (key: string, owner: object, options?: RenderOpts) => ReactNode
+
+function mountFrame(windowWidth = frameWidth, content?: TestSlotRenderer) {
   vi.stubGlobal('innerWidth', windowWidth)
   const instance = createLayoutStore().create()
   const slotCalls: { key: string; props: object; options: RenderOpts | undefined }[] = []
-  const renderSlot: AppFrameProps['renderSlot'] = (key, owner, options) => {
+  const renderSlot: TestSlotRenderer = (key, owner, options) => {
     slotCalls.push({ key, props: owner, options })
     return content?.(key, owner, options) ?? <div data-testid={`${key}-content`} data-entry-key={options?.entryKey} />
   }
