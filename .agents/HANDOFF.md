@@ -1,5 +1,19 @@
 # Uncensored 开发交接
 
+## 检查版 0.1.0-test.20261110.2 实装（2026-11-10）
+
+源码 `3dda4cf4116b88a9b4c2fbcd6428f6439e190551` 已生成独立检查版 `0.1.0-test.20261110.2` 并原位安装、重启。DSHU 产品 0.1.0，DSH 0.2.2-rc.1，REA 6.8.0。安装前备份在 `C:/Users/linzh/AppData/Local/DSHU-Backups/2026-11-10T04-04-40-011Z-3dda4c`，7,228 个数据文件和官方 DSH 两份程序文件的摘要一致，恢复文件数为零。回退基线为 `DSHU-20261110-5a2eb3-manifest.json`。
+
+安装器 `.dsh-build/deliverables/DSHU-0.1.0-test.20261110.2-core-0.2.2-rc.1-REA-6.8.0-win-x64-unsigned-20261110-3dda4c.exe` 共 387,309,934 字节，SHA-256 为 `4c984947973c6f0b43efc6a92cdd1e5287f103c4ea147c74632364f6c722f54e`。完整实包清单与运行记录见同目录 `DSHU-20261110-3dda4c-manifest.json`。859 个 npm 包、15 份补充声明和 7 项许可待核查记录已从实际 ASAR 保存。
+
+标准打包完成构建、原生长路径终端、离线插件装卸、REA JavaScript 和 Office 转 PDF。实际安装器解包后核对完整文件清单与源码身份，验证四模式、命令、终端代理和 SSH。系统安装目录再次通过四模式、真实命令、终端代理、SSH，以及案件备注审阅后保存、跨工作区/模式隔离和原资料字节不变。回执前缀为 `.dsh-build/installed-*-3dda4c-20261110`。DSHU 启动进程为 55244。
+
+打包遇到镜像 502/503 和本机代理重置。前面三次运行中止后，以独立配置 `.dsh-build/package-official-20261110` 使用 npm 官方源直连，原有锁与完整性检查保留。最终成功批次为 `2026-11-10T03-49-06.796Z-r7MfiR`，日志为 `.dsh-build/delivery-3dda4c-package-direct-20261110.log`。
+
+新增已知样式问题为 390px 英文设置顶部“Open configuration file”按钮换成三行，待优化紧凑布局。截图 `.dsh-build/installed-case-memory-3dda4c-20261110.png`。许可、签名更新和跨平台范围仍保留。
+
+自动审批以 `blocked by policy` 拒绝删除本次两份临时产物，未更换工具重试。`D:/Coding/.dshu-installer-check-ipOEK2` 占 1,885,471,410 字节，`apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/runs/2026-11-10T03-49-06.796Z-r7MfiR` 占 1,495,557,474 字节。两处合计约 3.15 GiB，清点保存在 `.dsh-build/delivery-3dda4c-cleanup-blocked-20261110.json`。
+
 ## 网安案件记忆、实装浏览器验收与 README（2026-11-10）
 
 10.06 的案件备注可通过“存入记忆”打开已有编辑器。用户确认前无写入，默认仅当前案件工作区和网安模式。已有记忆草稿保留，保存后的记录独立于原备注。真实 Web 390 像素窗口验证保存内容、原文件字节不变、同工作区网安检索及跨模式和工作区隔离。此功能本节点交付源码。
