@@ -1044,6 +1044,7 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   MemorySearchResult: 'MemorySearchResult fields and operation guarantees are owned by packages/memory/memory/README.md',
   ReaConnection: 'ReaConnection fields and operation guarantees are owned by packages/mcp/rea/README.md',
   SecurityProxyRoute: 'SecurityProxyRoute fields and operation guarantees are owned by packages/guard/security-proxy/README.md',
+  SecurityProxyEgressLease: 'SecurityProxyEgressLease lifetime and Host-only credential access are owned by packages/guard/security-proxy/README.md',
   SecurityProxyState: 'SecurityProxyState fields and operation guarantees are owned by packages/guard/security-proxy/README.md',
   SecurityProxySettingsPatch: 'SecurityProxySettingsPatch fields and operation guarantees are owned by packages/guard/security-proxy/README.md',
   SecurityProxyTestResult: 'SecurityProxyTestResult fields and operation guarantees are owned by packages/guard/security-proxy/README.md',

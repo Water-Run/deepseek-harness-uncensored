@@ -1,4 +1,4 @@
-/** Owner Remote operations and live status for the guarded HTTP routes. @module */
+/** Owner Remote operations and live status for guarded execution providers. @module */
 import type { Context } from '@deepseek-ai/cordis'
 import type { SecurityProtectionCapability, SecurityProtectionStatus } from '@deepseek-ai/dsh-agent-preset-registry/types'
 import { TargetProtectionError } from '@deepseek-ai/dsh-target-protection'
@@ -17,6 +17,10 @@ declare module '@deepseek-ai/cordis' {
     targetProtectedHttp: true
     /** Present only while the guarded independent proxy is mounted. */
     targetProtectedProxy: true
+    /** Present while the local filesystem provider enforces target rules. */
+    targetProtectedFiles: true
+    /** Process protection installed by the active subprocess provider. */
+    targetProtectedSubprocess: Exclude<TargetProtectedProcessMode, 'missing'>
     /** Authenticated application owner's rule settings. */
     targetProtectionSettings: TargetProtectionSettings
   }
@@ -43,6 +47,8 @@ export interface TargetProtectionSettingsState {
   country: CountryDatabaseStatus | null
   /** Mounted guarded routes. Older Hosts omit this information. */
   routes?: TargetProtectionRoutes
+  /** Local executor coverage. Older Hosts omit this information. */
+  execution?: TargetProtectionExecution
   /** Available only for a provider with a managed DB-IP cache. */
   countryUpdateAvailable?: true
 }
@@ -53,6 +59,15 @@ export interface TargetProtectionRoutes {
   readonly independentProxy: boolean
 }
 
+/** Mounted process policy, independent of whether any target rules are enabled. */
+export type TargetProtectedProcessMode = 'missing' | 'admission-only' | 'native-gateway' | 'native-offline'
+
+/** Local providers with mandatory target-rule checks. */
+export interface TargetProtectionExecution {
+  readonly files: boolean
+  readonly processes: TargetProtectedProcessMode
+}
+
 /** Replace all rules only against the revision the owner edited. */
 export interface TargetProtectionSettingsUpdate {
   preferences: TargetPreferences
@@ -61,6 +76,7 @@ export interface TargetProtectionSettingsUpdate {
 
 const statusServices = new Set([
   'targetProtection', 'targetCountryData', 'targetProtectedHttp', 'targetProtectedProxy', 'securityProtection',
+  'targetProtectedFiles', 'targetProtectedSubprocess',
 ])
 
 /** Connect durable rules and verified transport readiness to owner settings and Security entry. */
@@ -98,6 +114,10 @@ export default class TargetProtectionSettings extends TypertRemoteService {
     return { webFetch: this.ctx.get('targetProtectedHttp') === true, independentProxy: this.ctx.get('targetProtectedProxy') === true }
   }
 
+  private execution(): TargetProtectionExecution {
+    return { files: this.ctx.get('targetProtectedFiles') === true, processes: this.ctx.get('targetProtectedSubprocess') ?? 'missing' }
+  }
+
   private readCountry(): CountryDatabaseStatus | null {
     try { return this.ctx.get('targetCountryData')?.status() ?? null }
     catch (error) {
@@ -115,7 +135,7 @@ export default class TargetProtectionSettings extends TypertRemoteService {
     const state = !guarded ? 'unavailable' : !snapshot.preferences.mainlandEnabled ? 'disabled'
       : country?.state === 'ready' ? 'enabled' : 'unavailable'
     if (state === 'enabled') capabilities.unshift('mainland-domains')
-    const identity = JSON.stringify([snapshot?.revision, country?.sha256, country?.state, routes, state, capabilities])
+    const identity = JSON.stringify([snapshot?.revision, country?.sha256, country?.state, routes, this.execution(), state, capabilities])
     if (identity !== this.statusIdentity) { this.statusIdentity = identity; this.statusRevision++ }
     return { state, capabilities, revision: this.statusRevision }
   }
@@ -142,7 +162,7 @@ export default class TargetProtectionSettings extends TypertRemoteService {
 
   private state(snapshot: TargetSnapshot): TargetProtectionSettingsState {
     const routes = this.routes(), country = this.readCountry()
-    return { snapshot, routes, protection: this.readProtection(snapshot, country, routes), country,
+    return { snapshot, routes, execution: this.execution(), protection: this.readProtection(snapshot, country, routes), country,
       ...this.ctx.get('targetCountryData')?.canUpdate() === true ? { countryUpdateAvailable: true } : {} }
   }
 

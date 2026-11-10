@@ -161,6 +161,7 @@ describe.skipIf(!supported)('native Security proxy integration', () => {
 
   it.each(['command', 'terminal', 'worker'] as const)('captures real %s traffic through the selected upstream while production stays blocked', async (kind) => {
     const h = await fixture()
+    expect(h.ctx.get('targetProtectedSubprocess')).toBe('native-gateway')
     if (kind === 'command') {
       const handle = h.subprocess.spawn({ argv: [process.execPath, '-e', h.program], cwd: h.work, graceMs: 1000,
         signal: AbortSignal.timeout(45000), stdio: { stdin: 'ignore', stdout: { maxBytes: 8192 }, stderr: { maxBytes: 8192 } } })

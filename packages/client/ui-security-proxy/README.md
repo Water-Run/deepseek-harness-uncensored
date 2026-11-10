@@ -31,6 +31,8 @@ The Target protection panel uses the [optional guarded Web profile](../../guard/
 
 Admission audit starts collapsed and loads the latest 100 records when opened. Filter by decision or search a fingerprint, rule ID or reason code. Each record expands to show the rule revision, check stage and complete redacted identifiers. A failed refresh preserves the previously read page. Reconnecting clears the previous Host's records. An unavailable audit writer has a persistent notice.
 
+The local execution rows display the Host's mounted file provider and its command/terminal policy. Admission checks, native gateway egress and native execution with networking disabled have distinct labels. Native commands still check platform support and target rules when launched. Older Hosts that omit execution status show only their reported HTTP routes.
+
 The shell coverage row includes one-shot commands and persistent shell terminals. They require applications to honor proxy environment variables; captured HTTP and opaque HTTPS tunnels retain their distinct labels.
 
 Native desktop pages appear as Sidebar browser in the traffic list. Web iframes and attached external browsers do not use this proxy.

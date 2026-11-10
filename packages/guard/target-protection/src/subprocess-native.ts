@@ -26,6 +26,7 @@ import { startNativeGateway, type NativeGateway } from './native-gateway.ts'
 import { requireNativeRuntime } from './native-runtime.ts'
 import { authorizeGuardedHttp, TARGET_REFUSAL_REASONS } from './network-decision.ts'
 import { createNativeTerminal } from './native-terminal-host.ts'
+import type {} from './settings.ts'
 
 /** Explicit deployment grants and bounded preparation for the native command service. */
 export interface NativeSubprocessConfig {
@@ -153,6 +154,7 @@ export default class NativeTargetSubprocess extends LocalSubprocessRuntime {
       throw new Error('Native temporaryRoot resolves inside a deployment grant.')
     }
     this.privateRoot = root
+    this.ctx.provide('targetProtectedSubprocess', this.nativeConfig.network === 'gateway' ? 'native-gateway' : 'native-offline')
   }
 
   private assertActive(): string {

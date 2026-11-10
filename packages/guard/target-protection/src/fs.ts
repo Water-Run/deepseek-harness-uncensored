@@ -7,6 +7,7 @@ import { SandboxedFileSystem } from '@deepseek-ai/dsh-fs-sandbox'
 import type { Config } from '@deepseek-ai/dsh-fs-sandbox'
 import type { SandboxExecutionPolicy } from '@deepseek-ai/dsh-sandbox'
 import type TargetProtection from '@deepseek-ai/dsh-target-protection'
+import type {} from './settings.ts'
 import type { LocalTargetOperation } from './file-rules.ts'
 import { TargetProtectionError } from './errors.ts'
 
@@ -35,6 +36,7 @@ export default class TargetFileSystem extends SandboxedFileSystem {
       for (const result of closed) if (result.status === 'rejected') failures.push(result.reason)
       if (failures.length > 0) throw new AggregateError(failures, 'Guarded file streams could not be closed.')
     }, 'target-protected-fs.lifetime')
+    ctx.provide('targetProtectedFiles', true)
   }
 
   private signal(signal?: AbortSignal): AbortSignal {

@@ -149,6 +149,15 @@ it('resolves private paths and the scrubbed environment before starting the brok
   expect(handle.collected.stdout?.readFrom(0).text).toBe('owned output')
 })
 
+it.each(['disabled', 'gateway'] as const)('publishes %s process coverage only for the mounted provider', async (network) => {
+  const h = await fixture({ network }, false)
+  expect(h.ctx.get('targetProtectedSubprocess')).toBeUndefined()
+  const fiber = await h.ctx.plugin(NativeSubprocess, h.config)
+  expect(h.ctx.get('targetProtectedSubprocess')).toBe(network === 'gateway' ? 'native-gateway' : 'native-offline')
+  await fiber.dispose()
+  expect(h.ctx.get('targetProtectedSubprocess')).toBeUndefined()
+})
+
 it('captures the scoped command owner before native preparation and ignores environment identity', async () => {
   const h = await fixture({ network: 'gateway' }, true, true)
   const owner = await h.ctx.agents.create({ sessionId: SessionId('native-command-owner') })
@@ -273,6 +282,7 @@ it('rejects an unavailable proxy credential during activation', async () => {
   const h = await fixture({ network: 'gateway', proxy: { protocol: 'http', host: 'proxy.invalid', port: 8888,
     username: 'owner', passwordRef: 'DSH_NATIVE_PROXY' } }, false)
   await expect(h.ctx.plugin(NativeSubprocess, h.config)).rejects.toMatchObject({ code: 'TARGET_NATIVE_PROXY_CREDENTIAL' })
+  expect(h.ctx.get('targetProtectedSubprocess')).toBeUndefined()
   expect(h.brokers).toEqual([])
 })
 

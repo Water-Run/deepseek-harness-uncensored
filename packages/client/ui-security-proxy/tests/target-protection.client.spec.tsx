@@ -38,6 +38,22 @@ it('shows how to enable the optional protection profile when its endpoint is abs
   expect(configure).not.toHaveBeenCalled()
 })
 
+it.each(['missing', 'admission-only', 'native-gateway', 'native-offline'] as const)('shows the Host-reported %s executor coverage', async (processes) => {
+  const value = { ...snapshot(), execution: { files: true, processes } }
+  mount({ get: async () => ({ ok: true, value }), configure: vi.fn() })
+  await screen.findByText(en['target.execution.files'])
+  expect(screen.getByText(en[`target.execution.${processes}`])).toBeTruthy()
+  expect(screen.getByText(en['target.execution.processes'])).toBeTruthy()
+  if (processes === 'admission-only') expect(screen.getByText(en['target.execution.admissionHint'])).toBeTruthy()
+})
+
+it('does not infer local executor coverage from an older Host response', async () => {
+  mount({ get: async () => ({ ok: true, value: snapshot() }), configure: vi.fn() })
+  await screen.findByText('Rule revision 4')
+  expect(screen.queryByText(en['target.execution.files'])).toBeNull()
+  expect(screen.queryByText(en['target.execution.processes'])).toBeNull()
+})
+
 it('stages aliases with the original revision and preserves edits on a conflict', async () => {
   let revision = 4
   const configure = vi.fn<TargetSettingsRemote['configure']>(async () => ({

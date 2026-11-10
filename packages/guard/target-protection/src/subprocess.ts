@@ -4,6 +4,7 @@ import { LocalSubprocessRuntime } from '@deepseek-ai/dsh-subprocess-local'
 import type { SubprocessSpawnSpec, SubprocessHandle, SubprocessTerminalSpawnSpec, SubprocessTerminalHandle } from '@deepseek-ai/dsh-subprocess'
 import type TargetProtection from '@deepseek-ai/dsh-target-protection'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
+import type {} from './settings.ts'
 
 /** Replaces subprocess-local; test host labels and full-access approvals do not confine arbitrary code. */
 export default class TargetSubprocess extends LocalSubprocessRuntime {
@@ -16,6 +17,7 @@ export default class TargetSubprocess extends LocalSubprocessRuntime {
   constructor(ctx: Context) {
     super(ctx)
     this.protection = ctx.targetProtection
+    ctx.provide('targetProtectedSubprocess', 'admission-only')
   }
 
   private admitted(signal?: AbortSignal): AbortSignal {

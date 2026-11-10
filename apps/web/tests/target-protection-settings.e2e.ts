@@ -1,14 +1,56 @@
 /** Owner editing and actual persistence through the Web settings surface. @module */
 import { fileURLToPath } from 'node:url'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { chromium } from 'playwright'
 import { expect, it, vi } from 'vitest'
 import { SessionId } from '@deepseek-ai/dsh-session'
+import type {} from '@deepseek-ai/dsh-target-protection/settings'
 import { launchWebScaffold } from './scaffold.ts'
 import { newEnglishPage, openSettings } from './support.ts'
 
 const patch = fileURLToPath(new URL('../../cli/config/examples/target-protection.yml', import.meta.url))
 const cliManifest = fileURLToPath(new URL('../../cli/package.json', import.meta.url))
 const picker = fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url))
+
+it.skipIf(process.platform !== 'win32').each(['gateway', 'disabled'] as const)(
+  'reports the mounted native %s executor in narrow Security settings', async (network) => {
+    const root = await mkdtemp(join(tmpdir(), 'dshu-native-settings-'))
+    try {
+      const native = join(root, 'native.yml')
+      await writeFile(native, `- id: target-protected-subprocess
+  disabled: true
+- insert:
+    - id: native-settings-subprocess
+      name: '@deepseek-ai/dsh-target-protection/subprocess-native'
+      config:
+        readonlyPaths: [${JSON.stringify(dirname(process.execPath))}]
+        readwritePaths: []
+        temporaryRoot: ${JSON.stringify(join(root, 'private'))}
+        network: ${network}
+`)
+      const scaffold = await launchWebScaffold({ extraOverlayPath: [patch, native, picker], extraInstallAnchors: [cliManifest] })
+      try {
+        expect(scaffold.ctx.get('targetProtectedSubprocess')).toBe(network === 'gateway' ? 'native-gateway' : 'native-offline')
+        const browser = await chromium.launch()
+        try {
+          const page = await newEnglishPage(browser)
+          await page.goto(scaffold.authenticatedUrl)
+          await openSettings(page, 'en')
+          const settings = page.getByRole('dialog', { name: 'Settings' })
+          await settings.getByRole('button', { name: 'Modes', exact: true }).click()
+          await settings.getByRole('button', { name: 'Modes with configuration' }).click()
+          await page.getByRole('menuitem', { name: /^Security/ }).click()
+          const target = settings.getByRole('region', { name: 'Target protection', exact: true })
+          await target.getByText(network === 'gateway' ? 'Native confinement · gateway' : 'Native confinement · network disabled', { exact: true }).waitFor()
+          await page.setViewportSize({ width: 390, height: 844 })
+          expect(await target.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+        } finally { await browser.close() }
+      } finally { await scaffold.close() }
+    } finally { await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }) }
+  },
+)
 
 it('saves a real production rule and fits the editor at the narrow settings width', async () => {
   const scaffold = await launchWebScaffold({ extraOverlayPath: [patch, picker], extraInstallAnchors: [cliManifest] })
@@ -26,7 +68,9 @@ it('saves a real production rule and fits the editor at the narrow settings widt
         await page.getByRole('menuitem', { name: /^Security/ }).click()
       }
       await target.getByText('Rule revision 1').waitFor()
-      expect(await target.getByText('Mounted', { exact: true }).count()).toBe(2)
+      expect(await target.getByText('Mounted', { exact: true }).count()).toBe(3)
+      await target.getByText('Guarded local files', { exact: true }).waitFor()
+      await target.getByText('Admission checks', { exact: true }).waitFor()
       expect(await target.getByRole('button', { name: 'Check for update' }).isEnabled()).toBe(true)
       await page.setViewportSize({ width: 390, height: 844 })
       expect(await target.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)

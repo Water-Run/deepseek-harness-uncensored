@@ -40,6 +40,7 @@ export function TargetProtectionSection({ modeId, useTargetSettings, load, save,
 
   const state = view.value
   const routes = state?.routes
+  const execution = state?.execution
   const missingRoute = routes !== undefined && (!routes.webFetch || !routes.independentProxy)
   const preferences = draft?.preferences ?? state?.snapshot.preferences
   const connectionChanged = draft !== null && draft.generation !== view.generation
@@ -103,6 +104,19 @@ export function TargetProtectionSection({ modeId, useTargetSettings, load, save,
           <dd><Tag>{t(routes.independentProxy ? 'target.route.mounted' : 'target.route.missing')}</Tag></dd>
         </div>
       </dl>}
+      {execution !== undefined && <dl className={css.routes}>
+        <div className={shared.status}>
+          <dt>{t('target.execution.files')}</dt>
+          <dd><Tag>{t(execution.files ? 'target.route.mounted' : 'target.route.missing')}</Tag></dd>
+        </div>
+        <div className={shared.status}>
+          <dt>{t('target.execution.processes')}</dt>
+          <dd><Tag>{t(`target.execution.${execution.processes}`)}</Tag></dd>
+        </div>
+      </dl>}
+      {execution?.processes === 'admission-only' && <p className={shared.hint}>{t('target.execution.admissionHint')}</p>}
+      {(execution?.processes === 'native-gateway' || execution?.processes === 'native-offline') &&
+        <p className={shared.hint}>{t('target.execution.nativeHint')}</p>}
       {missingRoute && <p className={shared.hint} role="status">{t('target.routesRequired')}</p>}
       <div className={shared.status}>
         <span className={shared.muted}>{t('target.country')}</span>

@@ -3140,6 +3140,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'the overlay for one spawn, or `undefined` when not covered.',
       },
       {
+        signature: 'abstract openEgress( agent: Agent | undefined, tool: string, stop: () => Promise<void>, signal: AbortSignal, admission?: AbortSignal, ): Promise<SecurityProxyEgressLease | undefined>',
+        description: 'Retain the configured upstream and capture writer for a native enforcement gateway. This Host-only operation exposes credentials; it is never a Remote method.',
+        parameters: [{ name: 'agent', description: 'Actual executing Agent; omission and uncovered modes acquire nothing.' }, { name: 'tool', description: 'Tool attribution bound to every captured exchange.' }, { name: 'stop', description: 'Stop and join the delegated process range and gateway when ownership is withdrawn.' }, { name: 'signal', description: 'Caller cancellation, retained for the entire lease.' }, { name: 'admission', description: 'Optional startup-only cancellation; omission uses the caller lifetime alone.' }],
+        returns: 'A lease for enabled Security mode, otherwise undefined. Covered admission failures reject without fallback.',
+      },
+      {
         signature: 'abstract browserEnvironment(agent: Agent): Promise<string | undefined>',
         description: 'Resolve the sidebar browser\'s loopback proxy from the actual owning Agent.',
         parameters: [{ name: 'agent', description: 'Conversation resolved by the Host\'s Agent resource loader.' }],
@@ -4553,6 +4559,13 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     summary: 'Root owner; the HTTP consumer requires this service and cannot fall back after its removal.',
     description: 'Root owner; the HTTP consumer requires this service and cannot fall back after its removal.',
     methods: [
+      {
+        signature: 'currentExecutionAgent(): Agent | undefined',
+        description: 'Read a live initiating Agent for Host callbacks, including Worker message handlers. Explicit audit scopes can suppress inherited identity but cannot establish an Agent.',
+        parameters: [],
+        returns: 'The exact registered Agent, or undefined for Host and audit-only calls.',
+        throws: ['When the inherited Agent or its Session has been withdrawn or replaced.'],
+      },
       {
         signature: 'currentAuditSessionId(): SessionId | null',
         description: 'Capture the current audit Session before work enters a background preparation queue.',
@@ -6213,6 +6226,14 @@ export const EVENT_API: readonly EventApiEntry[] = [
     signature: '\'target-protection/changed\'(): void',
     summary: 'Notify status consumers after a rule revision is committed.',
     description: 'Notify status consumers after a rule revision is committed.',
+    parameters: [],
+  },
+  {
+    name: 'target-protection/status-changed',
+    mode: 'emit',
+    signature: '\'target-protection/status-changed\'(): void',
+    summary: 'Invalidate a previously read owner settings snapshot without sending its contents.',
+    description: 'Invalidate a previously read owner settings snapshot without sending its contents.',
     parameters: [],
   },
   {
@@ -9524,6 +9545,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SecurityProtectionStatus {\n    readonly state: SecurityProtectionState;\n    readonly revision: number;\n    readonly capabilities: readonly SecurityProtectionCapability[];\n}',
   },
   {
+    name: 'SecurityProxyCaptureInput',
+    declaration: 'export type SecurityProxyCaptureInput = Omit<SecurityProxyFlowDetail, \'id\' | \'requestHeaders\' | \'responseHeaders\' | \'bodyTruncated\'> & {\n    readonly requestHeaders: readonly (readonly [\n        string,\n        string\n    ])[];\n    readonly responseHeaders: readonly (readonly [\n        string,\n        string\n    ])[];\n};',
+  },
+  {
     name: 'SecurityProxyCaptureStats',
     declaration: 'export interface SecurityProxyCaptureStats {\n    readonly paused: boolean;\n    readonly total: number;\n    readonly retained: number;\n    readonly bytes: number;\n}',
   },
@@ -9534,6 +9559,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SecurityProxyCoverageCode',
     declaration: 'export type SecurityProxyCoverageCode = \'captured\' | \'proxied\' | \'partial\' | \'uncovered\';',
+  },
+  {
+    name: 'SecurityProxyEgressLease',
+    declaration: 'export interface SecurityProxyEgressLease {\n    readonly upstream: SecurityProxyUpstream;\n    readonly signal: AbortSignal;\n    readonly capture: {\n        append(input: SecurityProxyCaptureInput): SecurityProxyFlowDetail | undefined;\n    };\n    paused(): boolean;\n    release(failure?: {\n        readonly error: unknown;\n    }): void;\n}',
   },
   {
     name: 'SecurityProxyFailure',
@@ -9594,6 +9623,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SecurityProxyTestResult',
     declaration: 'export interface SecurityProxyTestResult {\n    readonly ok: boolean;\n    readonly durationMs: number;\n    readonly failure: SecurityProxyFailure | null;\n    readonly detail: string | null;\n    readonly state: SecurityProxyState;\n}',
+  },
+  {
+    name: 'SecurityProxyUpstream',
+    declaration: 'export interface SecurityProxyUpstream {\n    readonly protocol: SecurityProxyProtocol;\n    readonly host: string;\n    readonly port: number;\n    readonly username: string;\n    readonly password: string | undefined;\n}',
   },
   {
     name: 'SendTeamMessageRequest',
@@ -10928,8 +10961,20 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface TargetPreferences {\n    mainlandEnabled: boolean;\n    rules: TargetRule[];\n}',
   },
   {
+    name: 'TargetProtectedProcessMode',
+    declaration: 'export type TargetProtectedProcessMode = \'missing\' | \'admission-only\' | \'native-gateway\' | \'native-offline\';',
+  },
+  {
+    name: 'TargetProtectionExecution',
+    declaration: 'export interface TargetProtectionExecution {\n    readonly files: boolean;\n    readonly processes: TargetProtectedProcessMode;\n}',
+  },
+  {
+    name: 'TargetProtectionRoutes',
+    declaration: 'export interface TargetProtectionRoutes {\n    readonly webFetch: boolean;\n    readonly independentProxy: boolean;\n}',
+  },
+  {
     name: 'TargetProtectionSettingsState',
-    declaration: 'export interface TargetProtectionSettingsState {\n    snapshot: TargetSnapshot;\n    protection: SecurityProtectionStatus;\n    country: CountryDatabaseStatus | null;\n    countryUpdateAvailable?: true;\n}',
+    declaration: 'export interface TargetProtectionSettingsState {\n    snapshot: TargetSnapshot;\n    protection: SecurityProtectionStatus;\n    country: CountryDatabaseStatus | null;\n    routes?: TargetProtectionRoutes;\n    execution?: TargetProtectionExecution;\n    countryUpdateAvailable?: true;\n}',
   },
   {
     name: 'TargetProtectionSettingsUpdate',
