@@ -145,6 +145,7 @@ describe('security proxy composition', () => {
     await expect(viewer.setPassword('x')).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
     await expect(viewer.clear()).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
     await expect(viewer.browserEnvironment(subject('viewer-browser'))).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
+    await expect(viewer.browserTrust(subject('viewer-browser'), 'http://127.0.0.1:49152')).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
     await expect(viewer.list({ sessionId: 'owner-capture' })).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
     await expect(viewer.detail(flow.id)).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
     expect((await instance.securityProxy.get()).settings.enabled).toBe(true)
@@ -158,6 +159,9 @@ describe('security proxy composition', () => {
     expect(await instance.securityProxy.browserEnvironment(subject('ordinary', 'standard'))).toBeUndefined()
     const endpoint = await instance.securityProxy.browserEnvironment(subject('sidebar-security'))
     expect(endpoint).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/u)
+    expect(await instance.securityProxy.browserTrust(subject('sidebar-security'), endpoint!)).toBeNull()
+    await expect(instance.securityProxy.browserTrust(subject('unrelated'), endpoint!)).rejects.toMatchObject({ code: 'security-proxy/browser-route-changed' })
+    expect((await instance.securityProxy.get()).listeners).toBe(1)
     const address = new URL(endpoint!)
     const url = target.url
     const body = await new Promise<string>((resolve, reject) => {

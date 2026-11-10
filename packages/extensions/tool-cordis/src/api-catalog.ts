@@ -3152,6 +3152,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'A local proxy URL, or undefined when this conversation is not covered.',
       },
       {
+        signature: 'abstract browserTrust(agent: Agent, server: string): Promise<string | null>',
+        description: 'Read the public certificate for the sidebar listener issued to this conversation.',
+        parameters: [{ name: 'agent', description: 'Conversation resolved by the Host\'s Agent resource loader.' }, { name: 'server', description: 'Previously issued loopback proxy URL, which must still belong to the conversation.' }],
+        returns: 'The listener\'s public PEM certificate, or null for opaque CONNECT.',
+      },
+      {
         signature: 'abstract fetchTarget(agent: Agent | undefined, url: string, signal: AbortSignal): Promise<WebFetchResult>',
         description: 'Retrieve one HTTP(S) target through the configured upstream, recording the exchange at the controlled Client layer. TLS verification stays at the Node defaults for both the proxy hop and the origin.',
         parameters: [{ name: 'agent', description: 'the Agent executing the tool call.' }, { name: 'url', description: 'the absolute HTTP(S) target.' }, { name: 'signal', description: 'caller cancellation.' }],

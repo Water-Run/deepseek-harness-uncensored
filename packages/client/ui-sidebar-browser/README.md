@@ -31,7 +31,7 @@ Browser is disabled by default in Web profiles and enabled on Desktop. Enable th
 
 Choose Browser for a Web page that should remain beside the current Session. Choose [Document Preview](../ui-sidebar-documentpreview/README.md) for local files, and use the explicit external-browser action when a site refuses iframe embedding or needs browser capabilities this package withholds.
 
-With the independent proxy enabled, Desktop uses the owning Security conversation's route and keeps its browser storage separate from ordinary Workspace tabs. Affected pages reconnect after the mode or proxy changes. A Desktop build with proxy routing support is required; Web iframes keep their browser's networking.
+With the independent proxy enabled, Desktop uses the owning Security conversation's route and keeps its browser storage separate from ordinary Workspace tabs. Affected pages reconnect after the mode or proxy changes. If the guarded proxy enables inspection for `sidebar_browser`, the shell verifies its certificates in that route's partition and the Host continues verifying the origin certificate. Web iframes keep their browser's networking.
 
 ### Minimal configuration
 

@@ -120,6 +120,7 @@ export const VIEWER_ENDPOINT_CLASSES = {
   'modeDossiers/selectStory': 'owner-only',
   'modeDossiers/writeStory': 'owner-only',
   'securityProxy/browserEnvironment': 'owner-only',
+  'securityProxy/browserTrust': 'owner-only',
   'securityProxy/clear': 'owner-only',
   'securityProxy/configure': 'owner-only',
   'securityProxy/detail': 'owner-only',

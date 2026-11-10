@@ -87,6 +87,22 @@ export class SecurityProxyService extends TypertRemoteService {
   }
 
   /**
+   * Bind public certificate material to the owner-requested conversation and current listener.
+   * @param agent - Agent resolved by the ordinary Session resource loader.
+   * @param server - Exact loopback endpoint already issued for this browser.
+   * @returns Public PEM for an inspected listener, or null for an opaque listener.
+   */
+  @Remote
+  async browserTrust(agent: Agent, server: string): Promise<string | null> {
+    this.assertOwner('securityProxy/browserTrust')
+    const certificate = await this.engine.issuedCertificate(agent, 'sidebar_browser', server)
+    if (certificate === undefined) {
+      throw new RemoteError('security-proxy/browser-route-changed', 'The browser proxy route changed. Reopen the page to use the current route.', {})
+    }
+    return certificate
+  }
+
+  /**
    * Retrieve one target through the proxy with full plaintext capture.
    * @param agent - the executing Agent.
    * @param url - the absolute HTTP(S) target.

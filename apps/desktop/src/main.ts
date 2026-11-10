@@ -63,6 +63,7 @@ import { readDesktopLocaleCache, writeDesktopLocaleCache } from './locale-cache.
 import { DesktopUpdateDialog, type UpdateDialogOptions } from './update-dialog.ts'
 import { readDesktopRuntime } from './runtime-tree.ts'
 import { DesktopBrowserGuests } from './browser-guests.ts'
+import { readBrowserProxyCertificate } from './browser-trust.ts'
 import { installDesktopShortcuts } from './keyboard.ts'
 import { DesktopUpdateOverlays } from './update-overlay.ts'
 import { DesktopQuitConfirmation } from './quit-confirmation.ts'
@@ -495,7 +496,13 @@ async function main(): Promise<void> {
   const applicationUrl = `${SCHEME}://app/`
   let hostUrl: string | undefined
   let hostCookie: string | undefined
-  const browserGuests = new DesktopBrowserGuests(() => hostUrl)
+  const browserGuests = new DesktopBrowserGuests(() => hostUrl, async (proxy) => {
+    const host = hostUrl, cookie = hostCookie
+    if (backend.host === undefined || host === undefined || cookie === undefined) throw new Error('Desktop Host is unavailable')
+    const certificate = await readBrowserProxyCertificate(proxy, request => forwardWebRequest(request, host, cookie))
+    if (backend.host === undefined || hostUrl !== host || hostCookie !== cookie) throw new Error('Desktop Host changed during browser reservation')
+    return certificate
+  })
   let injections: readonly unknown[] = []
   let welcomeBackend: DesktopWelcomeBackend | undefined
   let reportedLaunch = false

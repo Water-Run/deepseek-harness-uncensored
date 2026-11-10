@@ -132,6 +132,14 @@ interface ChainRoute {
   readonly certificate?: string
 }
 
+function chainKey(sessionId: SessionId, tool: string): string {
+  return JSON.stringify([sessionId, tool])
+}
+
+function chainUrl(proxy: SessionChainProxy): string {
+  return `http://127.0.0.1:${String(proxy.port)}`
+}
+
 interface EgressRecord {
   readonly sessionId: SessionId
   readonly cancel: AbortController
@@ -423,7 +431,7 @@ export class SecurityProxyEngine {
       signal.throwIfAborted()
       const { proxy, certificate } = await this.chainFor(route.sessionId, tool)
       signal.throwIfAborted()
-      const url = `http://127.0.0.1:${String(proxy.port)}`
+      const url = chainUrl(proxy)
       return {
         HTTP_PROXY: url,
         HTTPS_PROXY: url,
@@ -438,6 +446,22 @@ export class SecurityProxyEngine {
         ...certificate === undefined ? {} : { DSH_SECURITY_PROXY_CA_PEM: certificate },
       }
     })
+  }
+
+  /**
+   * Read trust material for an existing listener without issuing another one.
+   * @param subject - Actual conversation owning the requested listener.
+   * @param tool - Tool name bound to the listener.
+   * @param server - Previously issued endpoint.
+   * @returns Public certificate, null for opaque CONNECT, or undefined for an unissued route.
+   */
+  async issuedCertificate(subject: EgressSubject, tool: string, server: string): Promise<string | null | undefined> {
+    if (this.closing || !this.options.store.value.enabled || this.options.presetOf(subject) !== SECURITY_PRESET) return undefined
+    const key = chainKey(this.options.sessionIdOf(subject), tool)
+    const record = this.chains.get(key)
+    if (record === undefined) return undefined
+    const route = await this.resolveChain(key, record)
+    return chainUrl(route.proxy) === server ? route.certificate ?? null : undefined
   }
 
   /**
@@ -689,7 +713,7 @@ export class SecurityProxyEngine {
   /** Return the conversation/tool listener, starting it on first use. */
   private async chainFor(sessionId: SessionId, tool: string): Promise<ChainRoute> {
     if (this.closing) throw new UpstreamFailure('unknown', 'the security proxy is closing')
-    const key = JSON.stringify([sessionId, tool])
+    const key = chainKey(sessionId, tool)
     const existing = this.chains.get(key)
     if (existing !== undefined) {
       return this.resolveChain(key, existing)

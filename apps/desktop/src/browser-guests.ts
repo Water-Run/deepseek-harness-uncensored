@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { app, session, type BrowserWindow, type Session, type WebContents } from 'electron'
 import type { DesktopBrowserLeaseId, DesktopBrowserOpenRequest, DesktopBrowserProxy, DesktopBrowserReservation } from '@deepseek-ai/dsh-client-ui-sidebar-browser/types'
 import { DESKTOP_IPC } from './ipc.ts'
+import { installBrowserProxyTrust, parseBrowserProxyCa } from './browser-trust.ts'
 
 interface GuestLease {
   readonly owner: WebContents
@@ -17,8 +18,12 @@ export class DesktopBrowserGuests {
   private readonly partitions = new Map<string, Promise<string>>()
   private readonly leases = new Map<DesktopBrowserLeaseId, GuestLease>()
 
-  /** @param hostUrl - current authenticated DSH Host, which guests cannot request. */
-  constructor(private readonly hostUrl: () => string | undefined) {}
+  /**
+   * @param hostUrl - Current authenticated DSH Host, which guests cannot request.
+   * @param readCertificate - Authenticated Host lookup for the exact issued route.
+   */
+  constructor(private readonly hostUrl: () => string | undefined,
+    private readonly readCertificate: (proxy: DesktopBrowserProxy) => Promise<string | null>) {}
 
   /**
    * Reserve one guest after its process-local storage and optional proxy are ready.
@@ -32,7 +37,9 @@ export class DesktopBrowserGuests {
       throw new Error('desktop browser: a workspace storage identity is required')
     }
     const proxy = this.proxy(routing)
-    const key = JSON.stringify([workspace, proxy?.sessionId, proxy?.server])
+    const pem = proxy === undefined ? null : await this.readCertificate(proxy)
+    const certificate = pem === null ? undefined : parseBrowserProxyCa(pem)
+    const key = JSON.stringify([workspace, proxy?.sessionId, proxy?.server, certificate?.fingerprint256])
     let pending = this.partitions.get(key)
     if (pending === undefined) {
       const selected = `dsh-sidebar-browser-${randomUUID()}`
@@ -40,7 +47,10 @@ export class DesktopBrowserGuests {
       this.configureSession(browserSession)
       pending = (proxy === undefined ? Promise.resolve() : browserSession.setProxy({
         mode: 'fixed_servers', proxyRules: proxy.server, proxyBypassRules: '<-loopback>',
-      })).then(() => selected).catch((error: unknown) => {
+      })).then(() => {
+        if (certificate !== undefined) installBrowserProxyTrust(browserSession, certificate)
+        return selected
+      }).catch((error: unknown) => {
         if (this.partitions.get(key) === pending) this.partitions.delete(key)
         throw error
       })

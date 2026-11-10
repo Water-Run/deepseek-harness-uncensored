@@ -73,7 +73,7 @@ export async function apply(ctx: Context): Promise<void> {
     }
     await configure('test')
     const proxy = await ctx.plugin(ProtectedProxy, { path: join(root, 'proxy.json'), testHost: '127.0.0.1', testPort: port,
-      httpsInspection: { tools: ['verify_production_proxy'] } })
+      httpsInspection: { tools: ['verify_production_proxy', 'sidebar_browser'] } })
     stopProviders = async () => { await proxy.dispose(); await protection.dispose() }
     await policy.inject(['securityProxy'], async (active) => {
       assert.equal((await active.securityProxy.configure({ enabled: true, host: '127.0.0.1', port: proxyPort })).status, 'ready')
@@ -116,11 +116,15 @@ export async function apply(ctx: Context): Promise<void> {
         name: 'verify_production_proxy', description: 'Protect the same owned endpoint and verify that the next request creates no connection.', parameters: {},
         output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
         async execute(_args, exec) {
+          assert.ok(exec.agent)
           const before = upstreamConnections
           await configure('production')
           await assert.rejects(active.securityProxy.fetchTarget(exec.agent, `http://127.0.0.1:${port}/`, exec.signal), { code: 'TARGET_FULLY_PROTECTED' })
           const environment = await active.securityProxy.environment(exec.agent, 'verify_production_proxy')
           assert.ok(environment?.HTTPS_PROXY && environment.DSH_SECURITY_PROXY_CA_PEM)
+          const sidebar = await active.securityProxy.browserEnvironment(exec.agent)
+          assert.ok(sidebar)
+          assert.match(await active.securityProxy.browserTrust(exec.agent, sidebar) ?? '', /^-----BEGIN CERTIFICATE-----/u)
           const relay = new URL(environment.HTTPS_PROXY)
           const status = await new Promise<number | undefined>((resolve, reject) => {
             const call = request({ host: relay.hostname, port: Number(relay.port), method: 'CONNECT', path: `127.0.0.1:${port}`,

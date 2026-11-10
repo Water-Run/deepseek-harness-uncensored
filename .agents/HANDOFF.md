@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## 桌面侧栏 HTTPS 会话信任（2026-11-11）
+
+可选受控代理配置 `httpsInspection.tools: [sidebar_browser]` 后，桌面主进程通过认证 Host 查询现有监听器的公开证书。查询复核对话与端点，旧路由和委派对端均拒绝。分区身份包含证书指纹。Chromium 只有在原判定为未知证书颁发机构，且服务器证书的签名、SAN、期限及用途均与本次监听器相符时才接受。其他请求沿用 Chromium 的验证结果。[Electron Session API](https://www.electronjs.org/docs/latest/api/session#sessetcertificateverifyprocproc)
+
+95 项定向测试覆盖证书负例、路由与代理回归。真实 Web Host 和隐藏 Electron 侧栏验证 HTTPS 页面、脱敏捕获、固定 IP、未授权分区拒绝同一证书，以及旧路由撤回。`private-target-proxy` 无密钥回放保留原录制 JSONL，并检查现有浏览器路由的证书。日志前缀 `.dsh-build/sidebar-https-`。这项源码改动随下一次检查包交付，三个外部浏览器提供方的证书信任继续列在 TODO。
+
 ## Windows `.5` 检查包与本机升级（2026-11-11）
 
 源码 `ac8f9fa7ec120bf38d79bf063f8065b5bf85554d` 的干净检出完成 Windows x64 未签名检查包 `0.1.0-test.20261111.5`。首次构建的 Electron 下载长期停在零字节，确认进程归属后停止该下载。用锁定的 `44.7.0` 归档 SHA-256 核对缓存，复用同一独立检出完成正式流水线。后续独立检出可通过 `DSH_DESKTOP_PACKAGE_CACHE_DIR` 复用已校验下载。

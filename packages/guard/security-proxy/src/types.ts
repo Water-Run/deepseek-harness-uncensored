@@ -187,6 +187,8 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
   interface RemoteErrorDetailsMap {
     /** The caller is not the application owner. */
     'security-proxy/owner-required': { readonly action: string }
+    /** The issued browser endpoint has been withdrawn or belongs to another conversation. */
+    'security-proxy/browser-route-changed': Record<string, never>
   }
 }
 

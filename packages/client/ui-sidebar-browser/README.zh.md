@@ -31,7 +31,7 @@ Browser 在 Web profile 中默认禁用，在 Desktop 中默认启用。Web 用�
 
 当 Web 页面需要保留在当前 Session 旁时，选择 Browser。本地文件使用 [Document Preview](../ui-sidebar-documentpreview/README.zh.md)；站点拒绝 iframe 嵌入或需要本包不授予的浏览器 capability 时，使用明确的外部浏览器操作。
 
-独立代理开启后，Desktop 按网安会话路由，其浏览器存储与普通工作区标签分开。模式或代理变化后，受影响的页面会重新连接。此功能需要支持代理路由的桌面构建；Web 内嵌页仍使用浏览器原有的网络设置。
+独立代理开启后，Desktop 按网安会话路由，其浏览器存储与普通工作区标签分开。模式或代理变化后，受影响的页面会重新连接。受控代理为 `sidebar_browser` 启用检查时，桌面主进程在该路由分区验证检查证书，Host 仍验证源站证书。Web 内嵌页沿用浏览器的网络设置。
 
 ### 最小配置
 

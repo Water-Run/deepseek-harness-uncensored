@@ -142,6 +142,14 @@ export abstract class SecurityProxyRuntime extends Service {
   abstract browserEnvironment(agent: Agent): Promise<string | undefined>
 
   /**
+   * Read the public certificate for the sidebar listener issued to this conversation.
+   * @param agent - Conversation resolved by the Host's Agent resource loader.
+   * @param server - Previously issued loopback proxy URL, which must still belong to the conversation.
+   * @returns The listener's public PEM certificate, or null for opaque CONNECT.
+   */
+  abstract browserTrust(agent: Agent, server: string): Promise<string | null>
+
+  /**
    * Retrieve one HTTP(S) target through the configured upstream, recording the
    * exchange at the controlled Client layer. TLS verification stays at the
    * Node defaults for both the proxy hop and the origin.
