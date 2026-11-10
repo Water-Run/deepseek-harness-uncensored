@@ -31,8 +31,9 @@ const SECRET_HEADERS = new Set([
   'x-auth-token',
   'x-csrf-token',
 ])
+const URL_HEADERS = new Set(['location', 'content-location', 'referer'])
 
-/** Object keys whose values are replaced before a body is stored. */
+/** Field names whose values are replaced before an exchange is stored. */
 const SECRET_FIELDS = /^(?:pass(?:word|wd)?|secret|token|api[-_]?key|authorization|cookie|access[-_]?token|refresh[-_]?token)$/i
 
 /** The marker stored in place of a redacted header or field value. */
@@ -77,16 +78,37 @@ export interface CaptureLimits {
 /** Everything an append supplies; identity, outcome, and redaction are the store's. */
 export type CapturedExchangeInput = SecurityProxyCaptureInput
 
+function redactUrlFields(fields: string): string {
+  // Preserve the original encoding and order of unmasked fields, including duplicate keys.
+  return fields.split('&').map((field) => {
+    const separator = field.indexOf('=')
+    if (separator === -1) return field
+    const name = field.slice(0, separator)
+    const key = new URLSearchParams(name).keys().next().value
+    return key !== undefined && SECRET_FIELDS.test(key) ? `${name}=${encodeURIComponent(REDACTED)}` : field
+  }).join('&')
+}
+
+function redactUrl(value: string): string {
+  const fragmentAt = value.indexOf('#')
+  const address = fragmentAt === -1 ? value : value.slice(0, fragmentAt)
+  const fragment = fragmentAt === -1 ? '' : `#${redactUrlFields(value.slice(fragmentAt + 1))}`
+  const queryAt = address.indexOf('?')
+  const base = queryAt === -1 ? address : address.slice(0, queryAt)
+  const query = queryAt === -1 ? '' : `?${redactUrlFields(address.slice(queryAt + 1))}`
+  return base.replace(/^(\s*(?:https?:)?\/\/)[^/?#]*@/iu, '$1') + query + fragment
+}
+
 /**
  * Redact one header list.
  * @param headers - raw header entries in peer order.
  * @returns the entries with secret-bearing values replaced.
  */
 export function redactHeaders(headers: readonly (readonly [string, string])[]): SecurityProxyHeader[] {
-  return headers.map(([name, value]) => ({
-    name,
-    value: SECRET_HEADERS.has(name.toLowerCase()) ? REDACTED : value,
-  }))
+  return headers.map(([name, value]) => {
+    const field = name.toLowerCase()
+    return { name, value: SECRET_HEADERS.has(field) ? REDACTED : URL_HEADERS.has(field) ? redactUrl(value) : value }
+  })
 }
 
 /**
@@ -219,6 +241,7 @@ export class CaptureStore {
     const flow: CapturedExchange = {
       ...input,
       id: randomUUID(),
+      target: redactUrl(input.target),
       requestHeaders: redactHeaders(input.requestHeaders),
       responseHeaders: redactHeaders(input.responseHeaders),
       requestBody: prepareBody(input.requestHeaders.find(([name]) => name.toLowerCase() === 'content-type')?.[1] ?? null, input.requestBody, limits.maxBodyBytes).body,

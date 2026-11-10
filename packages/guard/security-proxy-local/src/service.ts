@@ -2,9 +2,8 @@
  * The Remote surface of the security-mode egress proxy: settings, connection
  * check, and the bounded traffic list/detail the settings panel renders.
  *
- * Mutations require the application owner. Reads carry no credential: the
- * upstream password is reported as presence only and flows are stored already
- * redacted.
+ * Mutations and captured exchanges require the application owner. Status reads
+ * report upstream password presence without returning the secret.
  * @module @deepseek-ai/dsh-security-proxy-local/service
  */
 
@@ -146,24 +145,26 @@ export class SecurityProxyService extends TypertRemoteService {
   }
 
   /**
-   * List retained flows, newest first.
+   * List retained flows for the application owner, newest first.
    * @param query - optional filters.
    * @returns matching rows and the capture counters.
    */
   @Remote
   async list(query: SecurityProxyFlowQuery): Promise<SecurityProxyFlowsResult> {
+    this.assertOwner('securityProxy/list')
     const state = await this.engine.state()
     return { flows: this.engine.list(query), capture: state.capture }
   }
 
   /**
-   * Read one flow's detail.
+   * Read one flow's detail for the application owner.
    * @param id - flow identity.
    * @returns the detail, or null when pruned or unknown.
    */
   @Remote
-  detail(id: string): Promise<SecurityProxyFlowDetail | null> {
-    return Promise.resolve(this.engine.detail(id))
+  async detail(id: string): Promise<SecurityProxyFlowDetail | null> {
+    this.assertOwner('securityProxy/detail')
+    return this.engine.detail(id)
   }
 
   /**
@@ -189,12 +190,12 @@ export class SecurityProxyService extends TypertRemoteService {
   }
 
   /**
-   * Refuse a mutation that did not come from the application owner.
+   * Refuse an owner-only operation from a delegated Remote peer.
    * @param action - the attempted Remote method.
    */
   private assertOwner(action: string): void {
     if (principalOf(this.ctx.invocation) !== undefined) {
-      throw new RemoteError('security-proxy/owner-required', 'Only the application owner can change the security proxy.', { action })
+      throw new RemoteError('security-proxy/owner-required', 'This security proxy operation requires the application owner.', { action })
     }
   }
 

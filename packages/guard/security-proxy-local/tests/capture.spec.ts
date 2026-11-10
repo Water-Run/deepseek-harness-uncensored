@@ -41,18 +41,22 @@ const limits = (patch: Partial<{ maxFlows: number; maxBodyBytes: number; retenti
 })
 
 describe('redaction', () => {
-  it('masks every credential-bearing header and keeps the rest', () => {
+  it('masks secret headers and recognized URL credentials', () => {
     expect(redactHeaders([
       ['Authorization', 'Bearer secret'],
       ['proxy-authorization', 'Basic abc'],
       ['Cookie', 'a=1'],
       ['set-cookie', 'b=2'],
+      ['Referer', 'https://user:pass@example.test/?token=secret&display=a%20b'],
+      ['Location', '/callback?keep=1#access_token=secret&expires_in=300'],
       ['accept', 'text/html'],
     ])).toEqual([
       { name: 'Authorization', value: '[redacted]' },
       { name: 'proxy-authorization', value: '[redacted]' },
       { name: 'Cookie', value: '[redacted]' },
       { name: 'set-cookie', value: '[redacted]' },
+      { name: 'Referer', value: 'https://example.test/?token=%5Bredacted%5D&display=a%20b' },
+      { name: 'Location', value: '/callback?keep=1#access_token=%5Bredacted%5D&expires_in=300' },
       { name: 'accept', value: 'text/html' },
     ])
   })

@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## 网安代理捕获权限与 URL 脱敏（2026-11-10）
+
+负对照复现委派对端读取实际回环捕获记录。现在 `securityProxy/list` 和 `securityProxy/detail` 复用所有者检查，委派对端仍可读 `securityProxy/get` 状态。已知流量 ID 和会话过滤均不扩大读取范围。迁移步骤见 [捕获访问升级说明](../docs/upgrade-guide/v0.2.2-rc.1/security-proxy-capture-access/guide.zh.md)。
+
+捕获写入会移除 HTTP URL 用户凭据，并遮盖目标、`Location`、`Content-Location` 与 `Referer` 中已识别的密钥字段。普通参数的编码、顺序及重复键保持原样。回环测试核对实际转发 URL、存储结果和搜索行为。98 项代理与受控代理回归、最后修改后的 23 项定向测试，以及升级说明和中英配对均通过。全仓 Markdown 链接检查仍报告原有裁剪文档和工作流引用，变更的说明及 README 链接已单独核对通过。本次修复将随下一检查包交付。
+
 ## Linux `.4` 打包与 Debian 12 验收（2026-11-10）
 
 源码 `d8c7f8964dadaae98092e528f912f7a362084d7e` 的干净检出通过十项构建检查，标准流水线生成 `0.1.0-test.20261110.linux.4` 的 deb 和 tar.gz。两种归档的 ASAR 摘要一致。包内通过四模式、离线插件装卸、REA 229 项工具与 JavaScript 分析，以及三类 Office 文档转 PDF。实包许可清单为 861 个 npm 包和 9 项待核查。

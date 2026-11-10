@@ -49,11 +49,11 @@ The upstream password is stored through `ctx.credentials` under `DSH_SECURITY_PR
 | Piece | Owner | Boundary |
 |---|---|---|
 | Settings document | `settings.ts` | Atomic temp-then-rename write, validated on load and on every patch; a malformed document keeps defaults and reports why. |
-| Capture store | `capture.ts` | Ring buffer with flow-count, body-byte, and retention caps; headers and JSON/form secret fields are redacted once, at append. |
+| Capture store | `capture.ts` | Ring buffer with flow-count, body-byte, and retention caps. Masks recognized secrets in headers, URL fields and JSON/form bodies at append. |
 | Upstream transport | `upstream.ts` | `ProxyAgent` over the configured `http:`/`https:` URL; CONNECT is a verified `node:http(s)` request. TLS verification is never relaxed. Bytes received with the CONNECT response headers are preserved for the tunnel consumer. |
 | Per-session chain proxy | `chain.ts` | Loopback-only listener: plain HTTP is forwarded and captured in full; CONNECT is tunnelled and recorded as metadata only. |
 | Engine | `engine.ts` | Owns the dispatcher, listeners, status machine, controlled fetch, and the once-per-conversation reminder. |
-| Remote surface | `service.ts` | `get`, `configure`, `setPassword`, `test`, `list`, `detail`, `clear`, `pause`; mutations require the application owner. |
+| Remote surface | `service.ts` | `get` reports status. The application owner can configure, set passwords, test, read captures, clear, and pause. |
 
 The controlled fetch follows same-origin redirects, classifies content with the web provider's own helpers, caps the decoded body, and records the exchange it actually sent and received. That is why an HTTPS target is fully visible for this one tool while a child process's HTTPS tunnel is not: nothing intercepts TLS, and the plaintext exists only where the application itself wrote the request.
 

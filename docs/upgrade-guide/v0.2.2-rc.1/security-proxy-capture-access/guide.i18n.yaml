@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.2-rc.1/security-proxy-capture-access/guide.md
+/:
+  en: b8d9934a47862a06
+  zh: 6b14ca2eee47c513
+/captured-security-proxy-exchanges-require-owner-access:
+  en: b5047bad99b08dbb
+  zh: 33717506eac95b5b
+/captured-security-proxy-exchanges-require-owner-access/change:
+  en: 5ee6a601717f14ca
+  zh: b84cd285bd5d1bc8
+/captured-security-proxy-exchanges-require-owner-access/migration:
+  en: c607badd3c5a3284
+  zh: afa63807297a1d0d

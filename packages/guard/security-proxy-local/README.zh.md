@@ -49,11 +49,11 @@ kind: "package-reference"
 | 部分 | 归属 | 边界 |
 |---|---|---|
 | 设置文档 | `settings.ts` | 先写临时文件再原子重命名，加载与每次修改都校验；文档损坏时保留默认值并说明原因。 |
-| 捕获存储 | `capture.ts` | 记录条数、正文字节和保留时长三重上限的环形缓冲；请求头与 JSON/表单密钥字段在写入时一次性脱敏。 |
+| 捕获存储 | `capture.ts` | 限制记录条数、正文字节和保留时长的环形缓冲。写入时遮盖已识别的头部、URL 字段及 JSON/表单密钥。 |
 | 上游传输 | `upstream.ts` | 使用配置的 `http:`/`https:` 地址构造 `ProxyAgent`；CONNECT 是通过校验的 `node:http(s)` 请求，TLS 验证从不放宽。与 CONNECT 响应头一起收到的首批数据保留给隧道消费者。 |
 | 每会话链式代理 | `chain.ts` | 仅监听回环：明文 HTTP 完整转发并捕获；CONNECT 只建立隧道并记录元信息。 |
 | 引擎 | `engine.ts` | 拥有 dispatcher、监听、状态机、受控抓取，以及每对话一次的提醒。 |
-| Remote 界面 | `service.ts` | `get`、`configure`、`setPassword`、`test`、`list`、`detail`、`clear`、`pause`；写操作要求应用所有者身份。 |
+| Remote 界面 | `service.ts` | `get` 返回状态。应用所有者可以配置代理、保存密码、测试连接、读取捕获、清空及暂停捕获。 |
 
 受控抓取只跟随同源重定向，复用 web 提供者的内容分类与字符集解码，限制正文字符数，并记录它真正发出和收到的交换。这解释了一个事实：同一个工具的 HTTPS 目标是完整可见的，而子进程的 HTTPS 隧道不是——没有任何地方拦截 TLS，明文只存在于应用自己写出请求的那一层。
 

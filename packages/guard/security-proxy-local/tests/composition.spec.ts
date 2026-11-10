@@ -105,15 +105,24 @@ describe('security proxy composition', () => {
     if (upstream === undefined || target === undefined || echo === undefined) throw new Error('fixtures missing')
     const configured = await instance.securityProxy.configure({ enabled: true, host: '127.0.0.1', port: upstream.port })
     expect(configured.status).toBe('ready')
-    const result = await instance.securityProxy.fetchTarget(subject('sess-a'), target.url, new AbortController().signal)
+    const url = `${target.url}?api%5Fkey=first&keep=a%20b&api_key=second`
+    const result = await instance.securityProxy.fetchTarget(subject('sess-a'), url, new AbortController().signal)
     expect(result.body).toEqual({ kind: 'text', content: 'target body' })
-    expect(upstream.requests.map(entry => entry.url)).toEqual([target.url])
+    expect(upstream.requests.map(entry => entry.url)).toEqual([url])
     const flows = await instance.securityProxy.list({})
-    expect(flows.flows[0]).toMatchObject({ sessionId: 'sess-a', tool: 'web_fetch', status: 200 })
+    expect(flows.flows[0]).toMatchObject({ sessionId: 'sess-a', tool: 'web_fetch', status: 200,
+      target: `${target.url}?api%5Fkey=%5Bredacted%5D&keep=a%20b&api_key=%5Bredacted%5D` })
+    expect((await instance.securityProxy.list({ text: 'first' })).flows).toEqual([])
   })
 
-  it('refuses mutations from a delegated viewer', async () => {
+  it('allows delegated status reads while protecting capture and configuration', async () => {
     const instance = await boot()
+    if (upstream === undefined || target === undefined) throw new Error('fixtures missing')
+    await instance.securityProxy.configure({ enabled: true, host: '127.0.0.1', port: upstream.port })
+    await instance.securityProxy.fetchTarget(subject('owner-capture'), target.url, new AbortController().signal)
+    const flow = (await instance.securityProxy.list({})).flows[0]
+    if (flow === undefined) throw new Error('expected a captured exchange')
+    expect(await instance.securityProxy.detail(flow.id)).toMatchObject({ responseBody: 'target body' })
     const invocation: RemoteInvocation = {
       request: { namespace: 'securityProxy', method: 'configure', args: {} },
       service: 'securityProxy',
@@ -131,11 +140,14 @@ describe('security proxy composition', () => {
       }),
     }
     const viewer = instance.extend({ invocation }).securityProxy
-    await expect(viewer.configure({ enabled: true })).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
+    expect((await viewer.get()).status).toBe('ready')
+    await expect(viewer.configure({ enabled: false })).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
     await expect(viewer.setPassword('x')).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
     await expect(viewer.clear()).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
     await expect(viewer.browserEnvironment(subject('viewer-browser'))).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
-    expect((await instance.securityProxy.get()).settings.enabled).toBe(false)
+    await expect(viewer.list({ sessionId: 'owner-capture' })).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
+    await expect(viewer.detail(flow.id)).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
+    expect((await instance.securityProxy.get()).settings.enabled).toBe(true)
   })
 
   it('routes sidebar HTTP through the owning Security conversation without covering other modes', async () => {
