@@ -1,4 +1,8 @@
-import { describe, expect, it, vi } from 'vitest'
+import { mkdir, mkdtemp, rm, unlink, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { describe, expect, it, onTestFinished, vi } from 'vitest'
+import { verifyElectronNotices } from '../scripts/verify-runtime-archive.ts'
 
 const { verifyDesktopRuntime } = vi.hoisted(() => ({
   verifyDesktopRuntime: vi.fn<(root: string, expected: string) => Promise<void>>(async () => undefined),
@@ -61,4 +65,29 @@ describe('packaged runtime verification', () => {
     await config.afterPack(CONTEXT as never)
     expect(verifyDesktopRuntime.mock.calls[0]?.[1]).toBe(productVersion)
   })
+})
+
+it('requires both nonempty Electron notices to match the prepared distribution', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dsh-electron-notices-'))
+  onTestFinished(async () => { await rm(root, { recursive: true, force: true }) })
+  const distribution = join(root, 'distribution')
+  const application = join(root, 'application')
+  await Promise.all([mkdir(distribution), mkdir(application)])
+  const electron = 'Electron license text\n'
+  const chromium = '<html>Chromium notice text</html>\n'
+  const packagedElectron = join(application, 'LICENSE.electron.txt')
+  const packagedChromium = join(application, 'LICENSES.chromium.html')
+  await Promise.all([
+    writeFile(join(distribution, 'LICENSE'), electron),
+    writeFile(join(distribution, 'LICENSES.chromium.html'), chromium),
+    writeFile(packagedElectron, electron),
+    writeFile(packagedChromium, chromium),
+  ])
+  await expect(verifyElectronNotices(distribution, application)).resolves.toBeUndefined()
+  await writeFile(packagedChromium, 'changed')
+  await expect(verifyElectronNotices(distribution, application)).rejects.toThrow('LICENSES.chromium.html')
+  await unlink(packagedElectron)
+  await expect(verifyElectronNotices(distribution, application)).rejects.toMatchObject({ code: 'ENOENT' })
+  await Promise.all([writeFile(packagedElectron, ''), writeFile(join(distribution, 'LICENSE'), '')])
+  await expect(verifyElectronNotices(distribution, application)).rejects.toThrow('LICENSE.electron.txt')
 })

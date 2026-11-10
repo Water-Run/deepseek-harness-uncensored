@@ -12,6 +12,9 @@ if (-not $SilentOnly) {
     [InstallerCapture]::Initialize()
 }
 $expected = Get-Content (Join-Path $PSScriptRoot 'expected/windows-uninstall.json') -Raw | ConvertFrom-Json
+$nsisNoticeName = 'nsis-installer-COPYING.txt'
+$nsisNoticeSource = Join-Path (Join-Path $OutputDirectory '.nsis-directory-installer') $nsisNoticeName
+$expectedNsisNotice = [Convert]::ToBase64String([IO.File]::ReadAllBytes($nsisNoticeSource))
 $roaming = [Environment]::GetFolderPath('ApplicationData')
 $local = [Environment]::GetFolderPath('LocalApplicationData')
 $installPath = Join-Path $OutputDirectory 'Uninstall App'
@@ -69,6 +72,10 @@ try {
         } finally { $setup.Dispose() }
         $entry = Get-ItemProperty ('HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\' + $RegistryKey)
         if ($entry.InstallLocation.TrimEnd('\') -ne $installPath) { throw 'Uninstall entry lacks InstallLocation' }
+        $installedNsisNoticePath = Join-Path $installPath $nsisNoticeName
+        $installedNsisNotice = if ([IO.File]::Exists($installedNsisNoticePath)) {
+            [Convert]::ToBase64String([IO.File]::ReadAllBytes($installedNsisNoticePath))
+        }
         foreach ($path in @($homePath, $officialHomePath, $productDataPath, $userDataPath, $cachePath, $externalPath)) { New-Item -ItemType Directory -Force -Path $path | Out-Null }
         [IO.File]::WriteAllText((Join-Path $externalPath 'keep.txt'), 'outside data root')
         if (-not (Test-Path -LiteralPath (Join-Path $userDataPath 'linked-project'))) {
@@ -119,6 +126,7 @@ try {
             [InstallerCapture]::Click([InstallerCapture]::GetDlgItem($window, 1))
         }
         Wait-Exit
+        if ($installedNsisNotice -cne $expectedNsisNotice) { throw "Installed NSIS notice was missing or changed: $mode" }
         $retained = $mode -in @('interactive', 'silent', 'purge-lookalike', 'upgrade', 'replaced', 'home-alias', 'home-invalid')
         # An internal DSHU home protects its directory; unknown home mappings preserve all data candidates.
         $userDataRetained = $retained -or $mode -in @('home-inside', 'official-home-inside')

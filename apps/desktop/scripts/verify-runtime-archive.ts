@@ -1,9 +1,22 @@
-/** Verify runtime bytes and executable permissions using ASAR records and physical unpacked files. */
+/** Verify packaged Electron notices and the archived runtime's bytes and executable permissions. */
 import { createHash } from 'node:crypto'
-import { lstat, readdir } from 'node:fs/promises'
+import { lstat, readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { readAsar, type Node } from 'app-builder-lib/out/asar/asar.js'
 import type { DesktopRuntimeDescriptor, DesktopRuntimeFile } from '../src/runtime-tree.ts'
+
+/**
+ * Compare packaged Windows or Linux shell notices with the prepared Electron distribution.
+ * @param distribution - Unpacked upstream Electron distribution used by the build.
+ * @param application - Packaged application directory containing the copied notices.
+ * @returns Resolves when both nonempty notices are preserved byte for byte.
+ */
+export async function verifyElectronNotices(distribution: string, application: string): Promise<void> {
+  for (const [source, target] of [['LICENSE', 'LICENSE.electron.txt'], ['LICENSES.chromium.html', 'LICENSES.chromium.html']] as const) {
+    const [expected, actual] = await Promise.all([readFile(join(distribution, source)), readFile(join(application, target))])
+    if (expected.length === 0 || !actual.equals(expected)) throw new Error(`desktop package: Electron notice differs from distribution: ${target}`)
+  }
+}
 
 /**
  * Compare the complete archived dsh tree with the sealed preparation inventory.

@@ -120,6 +120,7 @@ Var dshRecoveryStopped
   StrCpy $INSTDIR $dshNewDirectory
   SetOutPath $INSTDIR
   !insertmacro installApplicationFiles
+  File /oname=nsis-installer-COPYING.txt "${DSH_NSIS_COPYING}"
   !ifdef DSH_SEVENZIP_LICENSE_DIR
     File /oname=7zip-installer-LICENSE.txt "${DSH_SEVENZIP_LICENSE_DIR}\LICENSE.txt"
     File /oname=7zip-installer-COPYING.txt "${DSH_SEVENZIP_LICENSE_DIR}\COPYING"

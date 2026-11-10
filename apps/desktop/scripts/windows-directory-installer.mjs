@@ -58,6 +58,7 @@ export function installWindowsDirectoryInstaller() {
   require('app-builder-lib')
   const { NsisTarget } = require('app-builder-lib/out/targets/nsis/NsisTarget.js')
   const { getPath7za } = require('app-builder-lib/out/toolsets/7zip.js')
+  const { getMakeNsisPath } = require('app-builder-lib/out/toolsets/windows.js')
   const prototype = NsisTarget.prototype
   if (prototype[patched]) return
   prototype[patched] = true
@@ -71,6 +72,11 @@ export function installWindowsDirectoryInstaller() {
     const tool = join(directory, '7za.exe')
     await copyFile(sourceTool, tool)
     await this.packager.signIf(tool)
+    const compiler = await getMakeNsisPath(this.packager.config.toolsets?.nsis, this.options.customNsisBinary)
+    const copying = await readFile(join(compiler.env?.NSISDIR ?? dirname(compiler.path), 'COPYING'))
+    if (copying.toString('utf8').trim() === '') throw new Error('Desktop NSIS toolset has an empty COPYING notice')
+    const notice = join(directory, 'nsis-installer-COPYING.txt')
+    await writeFile(notice, copying)
     let adapted = replaceOnce(source, '!include "installSection.nsh"', `!include "${section}"`)
     for (const helper of ['allowOnlyOneInstallerInstance.nsh', 'installUtil.nsh']) {
       const path = join(directory, helper)
@@ -80,7 +86,13 @@ export function installWindowsDirectoryInstaller() {
     const uninstaller = join(directory, 'uninstaller.nsh')
     await writeFile(uninstaller, directoryUninstaller(await readFile(join(templates, 'uninstaller.nsh'), 'utf8')))
     adapted = replaceOnce(adapted, '!include "uninstaller.nsh"', `!include "${uninstaller}"`)
-    return `!define DSH_UPDATER_CACHE_NAME "${this.packager.appInfo.updaterCacheDirName}"\n!define DSH_SEVENZIP_PATH "${tool}"\n!define DSH_SEVENZIP_LICENSE_DIR "${dirname(dirname(sourceTool))}"\n${await compute.call(this, adapted, ...args)}`
+    return [
+      `!define DSH_UPDATER_CACHE_NAME "${this.packager.appInfo.updaterCacheDirName}"`,
+      `!define DSH_SEVENZIP_PATH "${tool}"`,
+      `!define DSH_SEVENZIP_LICENSE_DIR "${dirname(dirname(sourceTool))}"`,
+      `!define DSH_NSIS_COPYING "${notice}"`,
+      await compute.call(this, adapted, ...args),
+    ].join('\n')
   }
 }
 
