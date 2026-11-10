@@ -347,8 +347,8 @@ export class CommandUiRuntime extends Service implements CommandUiContract {
     const contribution = this.live.contributions.get(typedName)
     if (contribution !== undefined && contribution.available(session)) {
       if (contribution.ui.kind === 'input') {
-        if (envelope.attachments > 0) refuseAttachments()
-        if (bare && contribution.ui.runEmpty !== undefined) {
+        if (envelope.attachments > 0 && contribution.ui.attachments !== true) refuseAttachments()
+        if (bare && envelope.attachments === 0 && contribution.ui.runEmpty !== undefined) {
           this.consumeVia(session.sessionId, { via: 'enter', token })
           contribution.ui.runEmpty(session)
           return 'handled'
@@ -425,9 +425,13 @@ export class CommandUiRuntime extends Service implements CommandUiContract {
     }
   }
 
-  /** Bind a built-in text command to the originating conversation's draft transaction. */
+  /** Bind a built-in command to the originating conversation's draft transaction. */
   private inputClaim(name: string, input: InputSpec, session: ClientSessionContext): CommandClaim {
-    return { name, token: `/${name} `, hint: input.hint(), submit: text => input.submit(session, text) }
+    return {
+      name, token: `/${name} `, hint: input.hint(),
+      ...(input.attachments === true ? { attachments: true } : {}),
+      submit: (text, _actx, attachments) => input.submit(session, text, input.attachments === true ? attachments : undefined),
+    }
   }
 
   /**

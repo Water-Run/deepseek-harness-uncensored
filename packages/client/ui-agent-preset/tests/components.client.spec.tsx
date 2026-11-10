@@ -422,16 +422,16 @@ describe('the session-header label', () => {
     expect(screen.getByTitle(en.headerHint).textContent).toBe('standard')
   })
 
-  it('shows the mode grayed and inert while switching is off', () => {
+  it('explains the mode lock through the shared tooltip without offering a switch', () => {
     renderLabel({ blank: false, projectionValues: { agentPreset: 'standard' } }, {}, true)
 
     const control = screen.getByRole<HTMLButtonElement>('button', { name: en['modeSwitch.current'].replace('{mode}', en.presetStandardName) })
-    expect(control.disabled).toBe(true)
     expect(control.getAttribute('aria-disabled')).toBe('true')
-    // The card is the mode badge, not a select box: no menu affordance while inert.
     expect(control.hasAttribute('aria-haspopup')).toBe(false)
-    expect(control.title).toBe(en['modeSwitch.disabled'])
+    expect(control.hasAttribute('title')).toBe(false)
     expect(control.textContent).toContain(en.presetStandardName)
+    fireEvent.focus(control)
+    expect(screen.getByText(en['modeSwitch.disabled'])).toBeTruthy()
     expect(screen.queryByRole('menu')).toBeNull()
   })
 

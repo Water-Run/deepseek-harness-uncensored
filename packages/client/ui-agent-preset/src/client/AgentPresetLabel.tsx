@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
+import { Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { PresetIcon } from './PresetIcon.tsx'
 // Type-only: pulls the ui-conversation SlotMap merge (the header actions).
@@ -58,11 +59,13 @@ export function AgentPresetLabel({
   const tone = card[modeTone(preset)]
   if (locked) {
     return (
-      <button type="button" className={`${card.card} ${tone} ${css.locked}`} disabled aria-disabled="true"
-        aria-label={t('modeSwitch.current', { mode: name })} title={t('modeSwitch.disabled')}>
-        <PresetIcon key={preset} id={preset} size={14} className={card.icon} />
-        {name}
-      </button>
+      <Tooltip label={t('modeSwitch.disabled')} side="bottom" portal openOnClick>
+        <button type="button" className={`${card.card} ${tone} ${css.locked}`} aria-disabled="true"
+          aria-label={t('modeSwitch.current', { mode: name })}>
+          <PresetIcon key={preset} id={preset} size={14} className={card.icon} />
+          {name}
+        </button>
+      </Tooltip>
     )
   }
   return (

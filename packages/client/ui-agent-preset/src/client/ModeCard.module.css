@@ -41,7 +41,7 @@ button.card {
 }
 
 @media (hover: hover) {
-  button.card:not(:disabled):hover {
+  button.card:not(:disabled):not([aria-disabled='true']):hover {
     background: color-mix(in srgb, var(--mode-fill) 88%, var(--dsw-mode-label-ink));
   }
 }

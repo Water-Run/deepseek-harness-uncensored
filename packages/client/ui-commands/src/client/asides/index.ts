@@ -7,7 +7,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import { IconNewChatOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { SessionForkValue } from '@deepseek-ai/dsh-api-session-controller/types'
+import type { PromptContentPart, SessionForkValue } from '@deepseek-ai/dsh-api-session-controller/types'
 import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import { AsideConversation, AsideTitle, AsideHeaderAction, InlineAsidePanel, SidebarAsidePanel, type InlineAsideInjected } from './AsidePanel.tsx'
 import { InlineAsideController } from './controller.ts'
@@ -152,7 +152,7 @@ export function registerAsides(ctx: Context): void {
         })
       }
     }), 'conversation: actual side tab closure')
-    const sendSide = async (parent: SessionId, question: string): Promise<SubmitOutcome> => {
+    const sendSide = async (parent: SessionId, content: PromptContentPart[]): Promise<SubmitOutcome> => {
       try {
         const child = await create(parent, 'side')
         if (isClosed()) return { kind: 'error', text: t('aside.submitFailed') }
@@ -160,7 +160,10 @@ export function registerAsides(ctx: Context): void {
         try {
           await reference.ready
           if (isClosed()) return { kind: 'error', text: t('aside.submitFailed') }
-          const result = await reference.binding.session.prompt([{ type: 'text', text: question }], 'queue')
+          const result = await reference.binding.session.prompt(content, 'queue')
+          if (!result.ok && result.error.code === 'session/attachment-invalid' && result.error.details.reason === 'MODEL_DOES_NOT_SUPPORT_IMAGES') {
+            return { kind: 'error', text: t('aside.imageModelUnsupported') }
+          }
           return result.ok ? { kind: 'success' } : { kind: 'error', text: t('aside.submitFailed') }
         } finally { reference.release() }
       } catch (_sendFailed) {
@@ -266,12 +269,15 @@ export function registerAsides(ctx: Context): void {
     scope.effect(() => scope.commandUi.register({ name: 'side',
       label: () => t('aside.side'), description: () => t('aside.sideDescription'), icon: AsideIcon,
       available: session => session.sessionId === scope.sidebarRight.mounted.getSnapshot(),
-      ui: { kind: 'input', hint: () => t('aside.placeholder'),
-        runEmpty: () => { if (!closed) scope.sidebarRight.openTab('aside') }, submit: async (session, question) => {
+      ui: { kind: 'input', attachments: true, hint: () => t('aside.placeholder'),
+        runEmpty: () => { if (!closed) scope.sidebarRight.openTab('aside') }, submit: async (session, question, attachments = []) => {
           if (closed) return { kind: 'error', text: t('aside.submitFailed') }
+          const images = attachments.filter(part => part.type === 'image')
+          if (images.length !== attachments.length) return { kind: 'error', text: t('aside.imageOnly') }
           scope.sidebarRight.openTab('aside')
-          if (!question.trim()) return { kind: 'success' }
-          const pending = sendSide(session.sessionId, question)
+          const text = question.trim() ? [{ type: 'text' as const, text: question }] : []
+          if (text.length === 0 && images.length === 0) return { kind: 'success' }
+          const pending = sendSide(session.sessionId, [...images, ...text])
           requests.add(pending)
           try { return await pending }
           finally { requests.delete(pending) }

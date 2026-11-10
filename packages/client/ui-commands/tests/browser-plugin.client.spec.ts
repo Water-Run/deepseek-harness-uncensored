@@ -116,7 +116,7 @@ describe('apply', () => {
     } finally { abort.abort(); await stream.return?.() }
   })
 
-  it('opens /side with optional text and sends only the text to the independent child', async () => {
+  it('sends text or images to the independent child and opens without sending when empty', async () => {
     const { ctx, sources, sessions } = await bench()
     const prompt = vi.fn(async () => ({ ok: true as const, value: { accepted: true as const } }))
     await sessions.add({ id: 'side-question', session: { prompt } })
@@ -140,6 +140,14 @@ describe('apply', () => {
     expect(prompt).toHaveBeenCalledTimes(1)
     expect(await source.matchEnter!({ sessionId: sid('s1') }, '/side', new AbortController().signal, { attachments: 0 })).toBe('handled')
     expect(prompt).toHaveBeenCalledTimes(1)
+    const image = { type: 'image', mediaType: 'image/png', data: 'AA==' } as const
+    const imageMatch = await source.matchEnter!({ sessionId: sid('s1') }, '/side', new AbortController().signal, { attachments: 1 })
+    if (imageMatch === undefined || imageMatch === 'handled' || !('claim' in imageMatch)) throw new Error('side must claim an image-only draft')
+    expect(imageMatch.claim.attachments).toBe(true)
+    expect(await imageMatch.claim.submit('', ctx, [image])).toEqual({ kind: 'success' })
+    expect(prompt).toHaveBeenLastCalledWith([image], 'queue')
+    expect((await imageMatch.claim.submit('file', ctx, [{ type: 'file', receiptId: 'parent-owned' }])).kind).toBe('error')
+    expect(prompt).toHaveBeenCalledTimes(2)
     expect(sessions.retainInfo(sid('side-question')).getSnapshot().referenceCount).toBe(0)
     prompt.mockRejectedValueOnce(new Error('connection lost'))
     expect((await match.claim.submit('保留这条草稿', ctx, [])).kind).toBe('error')

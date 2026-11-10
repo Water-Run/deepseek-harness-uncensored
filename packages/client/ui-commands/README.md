@@ -25,7 +25,7 @@ Typing a `/` command opens a registered popup, a client action, a host command's
 <a id="use-this-package"></a>
 ## Use this package
 
-`/side question` opens the persistent side conversation and sends only the question there; `/side` without text opens it without sending. A failed send retains the composer draft for retry.
+`/side question` opens the persistent side conversation and sends the question and any attached images to it. You can also send an image by itself or attach one in the side composer. `/side` with an empty draft opens the panel without sending. The side model must support images. A failed send keeps the draft and its attachments available for retry.
 
 `/clear` is a built-in action available only inside the side conversation. It cancels the old side's work and opens a fresh context with the same mode, model and permission settings. Main-task background continues to update. General Settings offers `Clear side context when closed`, off by default. Actual tab closure honors this preference; resource reconnect and page reload do not clear the conversation. Historical logs remain stored with the owning main conversation.
 
@@ -51,7 +51,7 @@ First-party command definitions carry stable `definitionId` values. The client s
 
 ### Attachment-carrying submissions
 
-When the composer submits with images or generic files, only a host command declaring `input.attachments` proceeds. Every other command route throws the localized `attachmentsUnsupported` refusal, rendered as a transient toast while the draft and attachment cards stay in place. Handler errors preserve the same draft state for retry.
+Commands that submit content accept attachments when the Host descriptor declares `input.attachments` or a client input contribution opts in with `attachments`. `/side` accepts images. Other submitting routes report a localized refusal. The composer retains the draft and attachment cards on refusal or handler error.
 
 -----
 

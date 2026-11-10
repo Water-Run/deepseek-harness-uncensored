@@ -12,12 +12,15 @@
 
 .dock {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 2px 12px;
   max-width: 100%;
   padding-top: 4px;
 }
+
+.dock > * { max-width: 100%; }
 
 /* The docked composer reserves one statistics row before its readings
    arrive, so the projections landing never change the composer height. The

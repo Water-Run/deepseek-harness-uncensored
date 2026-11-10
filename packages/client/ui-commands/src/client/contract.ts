@@ -5,7 +5,7 @@
  */
 import type { ComponentType } from 'react'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
-import type { ClientSessionContext, SubmitOutcome } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
+import type { ClientSessionContext, SubmitAttachment, SubmitOutcome } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
 import type { IconProps } from '@deepseek-ai/dsh-client-ui-primitives'
 
 /** Copy for an option that must be acknowledged before onSelect can run. */
@@ -88,9 +88,11 @@ export interface ActionSpec {
   run(session: ClientSessionContext): void
 }
 
-/** A built-in text command submitted through the composer's draft transaction. */
+/** A built-in command submitted through the composer's draft transaction. */
 export interface InputSpec {
   readonly kind: 'input'
+  /** Opt in to receiving serialized attachments from the initiating draft. */
+  readonly attachments?: true
   /** Open an input surface on a menu pick or bare Enter without submitting a question. @param session - Initiating conversation. */
   runEmpty?(session: ClientSessionContext): void
   /** Return the localized argument hint shown while composing the command. @returns Input hint. */
@@ -99,9 +101,10 @@ export interface InputSpec {
    * Submit the text after the command token; error outcomes preserve the draft.
    * @param session - Exact initiating conversation.
    * @param text - Argument text, without the slash command.
-   * @returns Admission outcome; attachments are not accepted.
+   * @param attachments - Serialized draft attachments when accepted by this command.
+   * @returns Admission outcome.
    */
-  submit(session: ClientSessionContext, text: string): Promise<SubmitOutcome>
+  submit(session: ClientSessionContext, text: string, attachments?: readonly SubmitAttachment[]): Promise<SubmitOutcome>
 }
 
 /** The UI behavior of a client-owned contribution. */

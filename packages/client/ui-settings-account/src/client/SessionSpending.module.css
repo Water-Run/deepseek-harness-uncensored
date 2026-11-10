@@ -1,4 +1,4 @@
-.pills { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 2px 8px; }
+.pills { display: inline-flex; flex: none; align-items: center; gap: 8px; }
 .total { margin-bottom: 12px; font-size: 24px; line-height: 1.2; font-weight: 500; font-variant-numeric: tabular-nums; }
 .hint { margin: 8px 0 0; font-size: 11px; line-height: 1.55; color: var(--dsw-alias-label-secondary); }
 .window { margin-top: 12px; }

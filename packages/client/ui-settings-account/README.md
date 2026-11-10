@@ -13,7 +13,7 @@ Server-expired account credentials clear the displayed account details and emit 
 
 ## Summary
 
-Balance increases use a horizontal hold followed by a vertical dashed jump at the new sample time. Declines keep their normal curve; cumulative conversation-spending charts remain continuous.
+Balance increases use a vertical dashed jump at the new sample time. Unchanged periods of at least 30 minutes can be shortened and marked with horizontal dashes to leave room for changes. Hover, touch or keyboard inspection still reads the original timestamps and amounts. Cumulative conversation spending uses its original continuous time axis.
 
 The About dialog separates a dark product identity panel from source records. Its accent follows the current conversation mode. REA records include its version, repository and full commit link; optional engine requirements and third-party licenses remain accessible. It displays the maintainer, independent version, build time, underlying DSH version and source commits. The columns stack in narrow windows and entrance motion respects reduced-motion preferences.
 

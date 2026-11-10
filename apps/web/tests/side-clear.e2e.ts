@@ -1,4 +1,6 @@
 /** Actual Web commands, context replacement, preference persistence and reconnect. */
+import { readFile } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it } from 'vitest'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
@@ -12,9 +14,10 @@ class SideFixtureAdapter extends MockAdapter {
   }
 }
 
-it('clears only the side context and makes actual tab-close cleanup opt-in', async () => {
-  const scaffold = await launchWebScaffold()
+it('sends side images and clears only the side context', async () => {
+  const scaffold = await launchWebScaffold({ extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
   try {
+    const png = await readFile(new URL('../../../snapshots/session/read-image/workspace/red.png', import.meta.url))
     const adapter = new SideFixtureAdapter(Array.from({ length: 30 }, () => textResponse('Side fixture answer')))
     scaffold.ctx.llm.registerAdapter(['side-clear-fixture'], adapter)
     const api = scaffold.ctx.sessionController
@@ -38,21 +41,60 @@ it('clears only the side context and makes actual tab-close cleanup opt-in', asy
       if (await group.getAttribute('aria-expanded') === 'false') await group.press('ArrowRight')
       await page.getByRole('treeitem').filter({ hasText: 'Side cleanup fixture' }).click()
       const mainInput = page.locator('[data-composer-input][contenteditable="true"]:visible').first()
+      const mode = page.getByRole('button', { name: /^Conversation mode:/u })
+      await mode.hover()
+      await page.getByRole('tooltip').filter({ hasText: 'Changing the mode of an existing conversation is off' }).waitFor()
+      expect(await mode.getAttribute('title')).toBeNull()
+
+      const dock = page.locator('[data-composer-dock]').first()
+      await page.setViewportSize({ width: 390, height: 844 })
+      const cost = dock.getByRole('button', { name: /^Conversation cost:/u })
+      const limit = dock.getByRole('button', { name: /^Spending limits:/u })
+      await cost.waitFor()
+      await limit.waitFor()
+      expect(await dock.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+      const costBox = await cost.boundingBox(), limitBox = await limit.boundingBox()
+      expect(costBox?.y).toBe(limitBox?.y)
+      await cost.press('Enter')
+      await page.getByRole('dialog', { name: 'Conversation cost' }).waitFor()
+      await page.keyboard.press('Escape')
+      await limit.press('Enter')
+      await page.getByRole('dialog', { name: 'Spending limits' }).waitFor()
+      await page.keyboard.press('Escape')
+      await page.setViewportSize({ width: 1280, height: 900 })
+
       await mainInput.fill('/side OLD_SIDE_732')
+      await page.locator('[data-composer-card] input[type=file]').first().setInputFiles({ name: 'command.png', mimeType: 'image/png', buffer: png })
+      await page.getByRole('img', { name: 'command.png' }).waitFor()
+      await page.locator('button[aria-busy="false"]', { has: page.getByRole('img', { name: 'command.png' }) }).waitFor()
       await mainInput.press('Enter')
       const side = page.locator('[data-aside="side"]:visible')
       await side.getByText('Side fixture answer', { exact: true }).waitFor()
+      const commandRequest = adapter.requests.findLast(request => JSON.stringify(request.messages).includes('OLD_SIDE_732'))
+      const commandImage = commandRequest?.messages.flatMap(message => message.content).find(part => part.type === 'image')
+      if (commandImage?.type !== 'image') throw new Error('Side command did not deliver an image to the adapter')
+      expect(commandImage.attachment.name).toBe('command.png')
+      expect(Buffer.from((await scaffold.ctx.attachments.readImage(commandImage.attachment)).data)).toEqual(png)
       const sideInput = side.locator('[data-composer-input][contenteditable="true"]')
       await sideInput.fill('/clear')
       await sideInput.press('Enter')
       await expect.poll(() => side.getByText('OLD_SIDE_732', { exact: true }).count()).toBe(0)
       await sideInput.waitFor()
       await sideInput.fill('NEW_SIDE_593')
+      await sideInput.evaluate((surface, bytes) => {
+        const clipboardData = new DataTransfer()
+        clipboardData.items.add(new File([new Uint8Array(bytes)], 'side.png', { type: 'image/png' }))
+        surface.dispatchEvent(new ClipboardEvent('paste', { clipboardData, bubbles: true, cancelable: true }))
+      }, [...png])
+      await side.getByRole('img', { name: 'side.png' }).waitFor()
+      await side.locator('button[aria-busy="false"]', { has: page.getByRole('img', { name: 'side.png' }) }).waitFor()
       await sideInput.press('Enter')
       await side.getByText('Side fixture answer', { exact: true }).waitFor()
       const freshRequest = adapter.requests.findLast(request => JSON.stringify(request.messages).includes('NEW_SIDE_593'))
       expect(JSON.stringify(freshRequest?.messages)).toContain('MAIN_CONTEXT_265')
       expect(JSON.stringify(freshRequest?.messages)).not.toContain('OLD_SIDE_732')
+      expect(freshRequest?.messages.flatMap(message => message.content).filter(part => part.type === 'image').map(part => part.attachment.name))
+        .toEqual(['side.png'])
       const closeSide = async (): Promise<void> => {
         await page.getByRole('tab').filter({ hasText: 'Side question' }).locator('[data-dockkit-tab-close]').click()
         await expect.poll(() => side.count()).toBe(0)
