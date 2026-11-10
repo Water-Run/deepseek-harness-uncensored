@@ -2,6 +2,10 @@
 
 状态：进行中，不代表整合发行的许可核对已完成。用户的 GPL 许可偏好、上游 Credit 和各组件原有许可保持不变。
 
+## 当前检查包（2026-11-11）
+
+源码 `1408c12cc1` 的 Windows `.6` 实装包含 859 个 npm 包，7 项待核查。Linux `.5` 的 deb 与 tar.gz 包含同一 ASAR，包含 861 个 npm 包，9 项待核查。两边都分发 19 份补充声明，并从实际载荷核对 Frida Gum 原文摘要。完整清单保存在 `.dsh-build/deliverables/`，交付回执与摘要见 [HANDOFF](../HANDOFF.md)。
+
 ## Frida 预构建二进制（2026-11-11）
 
 Windows `.4` 实装和 Linux `.4` tar.gz 内的 `frida_binding.node` 与 [Frida 17.23.2 官方预构建归档](https://github.com/frida/frida/releases/tag/17.23.2)逐字一致。两份归档先比对 GitHub 提供的 SHA-256，再以流式读取核对二进制摘要。结果见 `.dsh-build/frida-prebuild-projection-20261111.json`。

@@ -9,6 +9,7 @@
 - [x] 设置页明确列出三种 launch 提供方与尚未覆盖的路径，保留 HTTPS 正文不解密的说明。
 - [x] 桌面侧栏接通可选 HTTP/1.1 检查。主进程通过认证 Host 核对当前会话和已签发端点，信任限制在该 Electron 分区。真实 Electron 验证网页、脱敏捕获、普通分区证书拒绝及旧路由撤回。
 - [x] 三个外部浏览器提供方的启动模式接通可选受控 HTTPS 检查。Windows 实测 Edge `158.0.4370.12` 和 Chrome `157.0.8103.39`，Linux WSL2 实测 Chrome for Testing `156.0.8078.4`。Playwright MCP、Chrome DevTools MCP 和 Stagehand 分别经过实际 Web Host 验证正文捕获、源站证书拒绝及会话结束后的配置目录清理。物理桌面及 macOS 继续见平台清单。
+- [x] Windows `.6` 的实际安装器和 Linux `.5` 的实际便携包均复验三个启动型提供方的 HTTPS 正反例。Windows 另通过实包 Host 的侧栏会话信任联调。两个检查包来自 `1408c12cc1`，见[交付回执](../HANDOFF.md)。
 - [x] Windows 三种真实无界面浏览器场景通过；路由/生命周期、设置及引擎测试通过，完整构建与最终聚合检查通过。
 - [x] Linux 三项无密钥 Session 回放通过。两份旧 MCP 提示词头更新为当前已有的产品提示词；未修改任何已提交的 Session JSONL。其 Bash 工具头明确按 POSIX 验证，Windows 另由真实浏览器场景覆盖。
 - [x] 桌面浏览器侧栏接入：从冷会话记录解析实际模式，独立分区保留同会话存储并隔离普通标签；受影响的标签随模式和代理重连。真实 Electron HTTP、归属、正文及 Host 阻止通过，详见 10.08。

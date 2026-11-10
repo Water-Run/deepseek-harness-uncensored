@@ -1,10 +1,30 @@
 # Uncensored 开发交接
 
+## Windows `.6` 检查包与本机升级（2026-11-11）
+
+源码 `1408c12cc193bcfd90ff10e68dec7423c7917764` 的干净检出生成 `0.1.0-test.20261111.6`。复用校验过的 Electron `44.7.0` 和包缓存。十项构建检查、四模式、离线插件装卸、REA 229 项工具、三类 Office 文档转 PDF 及 301 字符路径 ConPTY 通过。
+
+实际 NSIS 安装器解包后复核源码、完整载荷、终端代理与 SSH 回环。包内 Host 搭配真实隔离 Electron 侧栏验证会话信任、未授权分区拒绝及旧路由撤回。实际解包的 Playwright MCP、Chrome DevTools MCP 和 Stagehand 分别通过 HTTPS 正反例、正文脱敏和临时配置清理。旧 `.5` 对照缺少侧栏信任接口，旧 Playwright 按预期拒绝检查证书。
+
+从 `.5` 原位升级后，7,266 个用户资料文件及官方 DSH 的 EXE/ASAR 摘要一致。系统安装目录通过四模式、新建会话和命令执行。独立卸载项 `DeepSeek Harness Uncensored` 的 `DisplayVersion` 与 `.6` 一致，实际应用窗口已重新打开。备份位于 `%LOCALAPPDATA%/DSHU-Backups/2026-11-10T18-26-13-292Z-1408c1`，回退回执为 `DSHU-20261111-ac8f9f-manifest.json`。
+
+安装器为 `.dsh-build/deliverables/DSHU-0.1.0-test.20261111.6-core-0.2.2-rc.1-REA-6.8.0-win-x64-unsigned-20261111-1408c1.exe`，387,243,103 字节，SHA-256 `e3e137062465d6d1246823836f428322d26d1f0b5fda220cc7b66ebcd396e76b`。实装 ASAR 摘要 `7070a68de489572ff3c34715e739eb4413b95fe4068e326c9ae4c5a1c29fbfa9`。回执 `DSHU-20261111-1408c1-manifest.json`，构建批次 `2026-11-10T18-01-05.681Z-9HcrEv`。实包许可清单含 859 个 npm 包、19 份补充声明及 7 项待核查。
+
+安装、启动和验收完成后，启用 Git 长路径支持清理本次独立检出及安装器解包目录。D 盘实测增加 5,636,288,512 字节可用空间。清理、安装与启动日志前缀分别为 `delivery-1408c1-cleanup-`、`system-update-1408c1-` 和 `installed-launch-1408c1-`。
+
+## Linux `.5` 检查包（2026-11-11）
+
+源码 `1408c12cc193bcfd90ff10e68dec7423c7917764` 的干净检出生成 `0.1.0-test.20261111.linux.5` 的 deb 和 tar.gz。十项构建检查通过，两个归档与构建输出的 ASAR 摘要一致。deb 声明 `libasound2t64 | libasound2` 和 `libgbm1`。包内四模式、离线插件装卸、REA 229 项工具与 JavaScript 分析，以及三类 Office 文档转 PDF 通过。
+
+从实际 tar.gz 解包到带空格的路径，在 Ubuntu WSL2 的 Xvfb 中启动，核对 X11 窗口类、工作区、命令菜单和关于页。三个浏览器提供方通过实包 Host 验证 HTTPS 正例、脱敏记录、拒绝不受信源站及临时目录清理。验收后的独立构建检出和临时资料已清理。Debian 12 的系统安装与卸载证据见下方 `.4` 记录。
+
+产物位于 `.dsh-build/deliverables/`。deb 为 369,512,840 字节，SHA-256 `782c0cc0e71dd07b65a45294387b1f65d97b25ed5efb09d2840ccb8f494bbcc3`。tar.gz 为 461,814,820 字节，SHA-256 `fd25a6245cea402a2813c690bc9681a342212cb3cee26e43324afca3c03f4a60`。实包 ASAR 摘要 `91e1b59c2c9f8d25cdb353e7206c3bd44bd8f9bf8c21be6069029f15eb222300`。回执为 `DSHU-20261111-linux-1408c1-manifest.json`，实包许可清单含 861 个 npm 包、19 份补充声明及 9 项待核查。日志前缀 `.dsh-build/linux-desktop-`，构建批次 `2026-11-10T18-05-30.472Z-Z7NUJr`。
+
 ## 外部浏览器 HTTPS 会话信任（2026-11-11）
 
 Playwright MCP、Chrome DevTools MCP 和 Stagehand 的启动模式可按提供方名称启用受控 HTTPS 检查。Host 向每个浏览器提供各自监听器的公开 CA。临时 Chromium 配置通过其证书首选项加载 CA，浏览器仍执行常规证书链与名称验证。会话结束后清理目录。[Chromium 配置读取](https://chromium.googlesource.com/chromium/src/+/main/chrome/browser/net/profile_network_context_service.cc)
 
-真实 Web Host 分别连接本机 Edge `158.0.4370.12` 和 Chrome `157.0.8103.39`。三个提供方均打开受控 HTTPS 页面，正文脱敏写入正确会话。只信任对照源站的 Host 拒绝未知源站证书，对照服务收到零 HTTP 请求。三个会话删除后各自的临时浏览器配置均已清理。回执和日志前缀 `.dsh-build/external-browser-https-`。改动随下一检查包交付。
+真实 Web Host 分别连接本机 Edge `158.0.4370.12` 和 Chrome `157.0.8103.39`。三个提供方均打开受控 HTTPS 页面，正文脱敏写入正确会话。只信任对照源站的 Host 拒绝未知源站证书，对照服务收到零 HTTP 请求。三个会话删除后各自的临时浏览器配置均已清理。源码联调回执和日志前缀为 `.dsh-build/external-browser-https-`，实包结果见本页交付记录。
 
 Windows 完整构建和 78 项定向测试通过。Playwright 与 DevTools 的回放夹具核对临时目录及 CA。Stagehand 仅更新预期工具清单中的现有 `apply_patch`，录制 Session JSONL 保持一致。
 
@@ -14,7 +34,7 @@ Linux WSL2 干净检出通过十项构建检查、78 项定向测试和三项浏
 
 可选受控代理配置 `httpsInspection.tools: [sidebar_browser]` 后，桌面主进程通过认证 Host 查询现有监听器的公开证书。查询复核对话与端点，旧路由和委派对端均拒绝。分区身份包含证书指纹。Chromium 只有在原判定为未知证书颁发机构，且服务器证书的签名、SAN、期限及用途均与本次监听器相符时才接受。其他请求沿用 Chromium 的验证结果。[Electron Session API](https://www.electronjs.org/docs/latest/api/session#sessetcertificateverifyprocproc)
 
-95 项定向测试覆盖证书负例、路由与代理回归。真实 Web Host 和隐藏 Electron 侧栏验证 HTTPS 页面、脱敏捕获、固定 IP、未授权分区拒绝同一证书，以及旧路由撤回。`private-target-proxy` 无密钥回放保留原录制 JSONL，并检查现有浏览器路由的证书。日志前缀 `.dsh-build/sidebar-https-`。这项源码改动随下一次检查包交付。
+95 项定向测试覆盖证书负例、路由与代理回归。真实 Web Host 和隐藏 Electron 侧栏验证 HTTPS 页面、脱敏捕获、固定 IP、未授权分区拒绝同一证书，以及旧路由撤回。`private-target-proxy` 无密钥回放保留原录制 JSONL，并检查现有浏览器路由的证书。源码日志前缀为 `.dsh-build/sidebar-https-`，实包结果见本页交付记录。
 
 Live Share 将 `securityProxy/browserTrust` 分类为仅所有者可用。Windows 完整构建与 Linux 干净检出各通过十项构建检查。Linux 47 项定向测试及 `private-target-proxy`、`security-terminal-proxy` 两项无密钥回放通过，独立验收检出已清理。Linux 日志为 `.dsh-build/linux-sidebar-https-final-20261111.log`。
 

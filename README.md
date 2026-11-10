@@ -4,7 +4,7 @@
   <p><b>DSHU v0.1.0</b> · 基于 DeepSeek Harness 0.2.2-rc.1 · WaterRun</p>
 </div>
 
-DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH 与 DSHU 可同时安装，分别使用自己的程序目录、配置、会话和更新渠道。未签名的 Windows x64 检查版 `0.1.0-test.20261111.5` 已完成本机安装与运行验收。
+DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH 与 DSHU 可同时安装，分别使用自己的程序目录、配置、会话和更新渠道。未签名的 Windows x64 检查版 `0.1.0-test.20261111.6` 已在本机原位升级并核对资料。
 
 ## 通用增强
 
@@ -32,7 +32,7 @@ DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH �
 
 ## 安装与开发
 
-- **桌面**　Windows x64 已提供本机检查版。Linux x64 检查版 `0.1.0-test.20261110.linux.4` 已构建 deb 和 tar.gz，并通过 Debian 12 的依赖解析、安装、启动与卸载。上一 Linux 检查版已通过 Ubuntu 的升级与便携启动。macOS arm64 和 Android＋PRoot Fedora 保留为计划。签名与在线升级仍待验收。正式版本与更新使用本仓库的 [GitHub Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases)。
+- **桌面**　Windows x64 已提供本机检查版。Linux x64 检查版 `0.1.0-test.20261111.linux.5` 提供 deb 和 tar.gz，便携包已通过 Ubuntu WSL2 的 X11 启动和浏览器 HTTPS 验收。`.4` 检查版已通过 Debian 12 安装与卸载。macOS arm64 和 Android＋PRoot Fedora 保留为计划。签名与在线升级仍待验收。正式版本与更新使用本仓库的 [GitHub Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases)。
 - **源码**　使用 Node.js 24.22.1、Git 与 Corepack。依次运行 `corepack pnpm install`、`corepack pnpm run build`、`corepack pnpm dsh web`。CLI 安装见[安装脚本](scripts/install-uncensored.ps1)。
 - **独立标识**　默认数据目录为 `~/.dsh-uncensored`，可用 `DSH_UNCENSORED_HOME` 修改。CLI 为 `dsh-uncensored`，深链为 `dshu://open`。关于页列出作者、DSHU 与 DSH 版本、构建时间、源码提交及依赖来源。
 
@@ -56,6 +56,6 @@ DSHU v0.1.0 is an independent desktop fork of DeepSeek Harness 0.2.2-rc.1. It ca
 
 - **General** · Use `/side` for a persistent side conversation with image attachments and `/clear`, or `/btw question` for a quick one-off answer. Balance history, spending limits, scoped memory, and Tab suggestions are available in Settings.
 - **Modes** · Standard covers daily development. Security adds case notes, reports, and an independent proxy with traffic inspection. Reverse integrates REA for analysis. Writing uses selected style references and story materials.
-- **Delivery** · Unsigned Windows x64 inspection build `0.1.0-test.20261110.4` has passed local installation and runtime checks. Linux x64 inspection build `0.1.0-test.20261110.linux.4` produced deb and tar.gz archives and passed dependency resolution, installation, startup, and removal on Debian 12. The previous Linux inspection build passed upgrade and portable launch checks on Ubuntu. macOS arm64 and Android with Fedora under PRoot remain planned. Advanced target protection is opt-in. See [development status](.agents/TODO.md) and [Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases).
+- **Delivery** · Unsigned Windows x64 inspection build `0.1.0-test.20261111.6` passed an in-place upgrade with data verification. Linux x64 inspection build `0.1.0-test.20261111.linux.5` provides deb and tar.gz archives. The portable build passed X11 startup and browser HTTPS checks on Ubuntu WSL2. Build `.4` passed installation and removal on Debian 12. macOS arm64 and Android with Fedora under PRoot remain planned. Advanced target protection is opt-in. See [development status](.agents/TODO.md) and [Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases).
 
 </details>
