@@ -26,7 +26,7 @@ DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH �
 | **逆向 · 绿色** | 样本清点、静态与动态分析、协议分析和案件记录。桌面内置 REA 6.8.0，可在设置中检查连接。Ghidra、IDA 等引擎按需接入。 |
 | **写作 · 黄色** | 小说、剧本和长文，支持参考文风、六轴风格卡和 `story/bible/` 设定集。选中资料才进入请求，模式不挂载终端或代码执行工具。 |
 
-独立代理仅用于网安模式，覆盖受控抓取、遵守代理变量的命令与终端、桌面侧栏及以 launch 方式运行的 Playwright MCP、Chrome DevTools MCP 和 Stagehand。HTTPS 隧道记录连接元数据。网安可启用未开代理的顶部提醒。
+独立代理仅用于网安模式，覆盖受控抓取、遵守代理变量的命令与终端、桌面侧栏及以 launch 方式运行的 Playwright MCP、Chrome DevTools MCP 和 Stagehand。不透明 HTTPS 隧道记录连接元数据。[进阶目标保护](packages/guard/target-protection/README.zh.md)可为指定工具启用 HTTP/1.1 检查并脱敏记录正文，客户端需显式信任其会话证书。网安可启用未开代理的顶部提醒。
 
 境内、手动目标及生产资源规则由[可选保护配置](apps/cli/config/examples/target-protection.yml)接入，默认关闭。已覆盖的后端支持真实执行拦截与审计，设置页分别显示 HTTP、本机文件、命令/终端、SSH 和数据库的覆盖。SSH 显示已验证连接，数据库显示配置数，连接和权限在执行时核验。原生入站隔离、其他协议和部分远端资源仍在开发。
 
