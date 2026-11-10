@@ -8,6 +8,7 @@ import { DesktopUpdateCoordinator } from '../../lib/types/update-coordinator.js'
 import { DesktopUpdateHttpExecutor } from '../../lib/types/update-http-executor.js'
 import { resolveWindowsUpdatePublisher } from '../../scripts/windows-sign.mjs'
 import { artifactDigest, createArtifactUpdateServer } from './artifact-update-server.mjs'
+import { fixtureUpdateFeed } from './update-feed-adapter.mjs'
 
 const root = process.env.DSH_SIGNED_UPDATE_TEST_ROOT
 assert.ok(root, 'Launcher must supply a private test root')
@@ -51,12 +52,12 @@ async function main() {
     updater.httpExecutor = new DesktopUpdateHttpExecutor(60_000)
     updater.disableDifferentialDownload = !differential
     updater.disableWebInstaller = true
-    updater.setFeedURL({ provider: 'generic', url: server.url, channel: 'nightly', useMultipleRangeRequest: multipleRanges })
+    const readSource = fixtureUpdateFeed(updater, server.url, multipleRanges)
     updater.on('error', error => errors.push(error.code))
     updater.quitAndInstall = () => { installed++ }
     let authorized = false
     const coordinator = new DesktopUpdateCoordinator(state => { states.push(state); return state },
-      async () => authorized, updater, () => true, () => '1.0.0')
+      async () => authorized, updater, () => true, () => '1.0.0', undefined, 'nightly', readSource)
     const f = { coordinator, updater, logs, errors, states, directory, authorize: () => { authorized = true } }
     fixtures.push(f)
     return f

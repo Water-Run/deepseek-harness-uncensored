@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## Electron 更新验收入口恢复（2026-11-11）
+
+原本地夹具在第一项检查时尝试读开发版 Electron 的 `app-update.yml`，返回 ENOENT。三套更新夹具现用打包配置提供校验输入，检查协调器传出的单段请求设置，再将该夹具的流量转到它自己的回环端口。常规验收新增 `--transport-only`，报告分别记录传输和窗口验收范围。
+
+Electron 44.7.0 无窗口模式通过 15 个场景、36 次回环请求，覆盖同版本、禁止降级、清单失败、超时、并发合并、SHA-512、断流、写盘失败及显式重试。签名夹具使用系统已有的 Microsoft 签名 `pwsh.exe` 和未签名的本地测试程序，四项均通过，包括拒绝错误发布者、拒绝未签名输入、拒绝损坏内容和合法签名重试。安装交接只记录调用。窗口、完整工作区与正式 DSHU 签名升级仍待本轮对应环境验收。
+
+证据见 `.dsh-build/local-updater-transport-*-20261111.log` 及 `apps/desktop/.desktop-build/qualification/signed-downloads-LiHYC8/`。
+
 ## GitHub 发行资产差分下载（2026-11-11）
 
 DSHU 公开发行列表为空，`latest/download/latest.yml` 返回 404。另实测 GitHub 上两个公开发行资产，`latest/download` 与指定标签路径重定向后的单段请求返回 206，多段请求返回 501。桌面通用更新源现固定使用单段请求，覆盖最新和指定标签的发行路径。[GitHub 发行资产链接](https://docs.github.com/en/repositories/releasing-projects-on-github/linking-to-releases)

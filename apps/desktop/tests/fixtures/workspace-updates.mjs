@@ -9,6 +9,7 @@ import { pathToFileURL } from 'node:url'
 import { app, BrowserWindow, Menu, webContents } from 'electron'
 import updaterModule from 'electron-updater'
 import { createUpdateServer } from './update-server.mjs'
+import { fixtureUpdateFeed } from './update-feed-adapter.mjs'
 import { fixture } from './workspace-update-adapters.mjs'
 import { DesktopUpdateHttpExecutor } from '../../lib/types/update-http-executor.js'
 import { desktopUpdateReadyConfirmation, resolveDesktopLocale } from '../../lib/types/locale.js'
@@ -44,7 +45,7 @@ updater.logger = null
 updater.httpExecutor = new DesktopUpdateHttpExecutor(interactive ? 600_000 : 10_000)
 updater.disableDifferentialDownload = true
 updater.disableWebInstaller = true
-updater.setFeedURL({ provider: 'generic', url: server.url, channel: 'nightly' })
+fixture.readUpdateSource = fixtureUpdateFeed(updater, server.url)
 updater.quitAndInstall = (...args) => { fixture.installations.push(args) }
 fixture.updater = updater
 

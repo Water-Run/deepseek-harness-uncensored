@@ -13,6 +13,7 @@ import { DesktopUpdateCoordinator } from '../../lib/types/update-coordinator.js'
 import { presentDesktopUpdate } from '../../lib/types/update-presentation.js'
 import { resolveDesktopLocale } from '../../lib/types/locale.js'
 import { createUpdateServer } from './update-server.mjs'
+import { fixtureUpdateFeed } from './update-feed-adapter.mjs'
 import { DesktopMandatoryUpdatePolicy, resolveDesktopPolicyConfig } from '../../lib/types/mandatory-update-policy.js'
 import { DesktopMandatoryUpdateWindow } from '../../lib/types/mandatory-update-window.js'
 import { DesktopUpdatePreparationError } from '../../lib/types/update-error.js'
@@ -22,13 +23,14 @@ import { qualifyUpdateDialogs } from './update-dialogs.mjs'
 
 const root = process.env.DSH_LOCAL_UPDATE_TEST_ROOT
 assert.ok(root, 'The launcher must allocate a private test root')
+const transportOnly = process.argv.includes('--transport-only')
 app.setPath('userData', join(root, 'electron'))
 // Sequential window scenarios share one Electron process; main() owns its final exit.
 app.on('window-all-closed', () => {})
 protocol.registerSchemesAsPrivileged([{ scheme: 'dsh-app', privileges: { standard: true, secure: true, supportFetchAPI: true } }])
 const cases = []
 const presentations = []
-let screenshot = { captured: false, reason: 'not attempted' }
+let screenshot = { captured: false, reason: transportOnly ? 'transport-only' : 'not attempted' }
 let dialogScreenshots = []
 const { NsisUpdater } = updaterModule
 const messages = resolveDesktopLocale('zh-CN').messages
@@ -55,13 +57,13 @@ async function main() {
     updater.httpExecutor = new DesktopUpdateHttpExecutor(timeoutMs)
     updater.disableDifferentialDownload = true
     updater.disableWebInstaller = true
-    updater.setFeedURL({ provider: 'generic', url: server.url, channel: 'nightly' })
+    const readSource = fixtureUpdateFeed(updater, server.url)
     const installations = []
     const states = []
     let restart = async () => true
     updater.quitAndInstall = (...args) => { installations.push(args) }
     const coordinator = new DesktopUpdateCoordinator(state => { states.push(state); return state },
-      () => restart(), updater, () => true, () => '1.0.0')
+      () => restart(), updater, () => true, () => '1.0.0', undefined, 'nightly', readSource)
     const result = { updater, coordinator, installations, states, directory, restart: handler => { restart = handler } }
     fixtures.push(result)
     return result
@@ -224,10 +226,10 @@ async function main() {
       await check
       assert.equal(f.states.length, 0)
     })
-    await scenario('ordinary-real-dialog-cancel-and-explicit-install', async () => {
+    if (!transportOnly) await scenario('ordinary-real-dialog-cancel-and-explicit-install', async () => {
       dialogScreenshots = await qualifyUpdateDialogs(root, fixture)
     })
-    await scenario('mandatory-real-window-policy-download-retry-and-clear', async () => {
+    if (!transportOnly) await scenario('mandatory-real-window-policy-download-retry-and-clear', async () => {
       protocol.handle('dsh-app', async request => {
         if (new URL(request.url).hostname === 'app') return new Response('<!doctype html><title>Updater qualification</title>', { headers: { 'content-type': 'text/html' } })
         const path = new URL(request.url).pathname.slice(1)
@@ -378,9 +380,10 @@ async function main() {
       }
     })
     assert.deepEqual(server.failures, [])
+    if (transportOnly) assert.equal(BrowserWindow.getAllWindows().length, 0)
     console.log(`LOCAL_UPDATER_RESULT=${JSON.stringify({ cases, presentations, actualElectron: process.versions.electron,
-      actualTransport: 'DesktopUpdateHttpExecutor (ElectronHttpExecutor)', installerExecuted: false, screenshot, requests: server.requests.length })}`)
-    await writeFile(join(root, 'result.json'), `${JSON.stringify({ cases, presentations, installerExecuted: false, screenshot, dialogScreenshots }, null, 2)}\n`)
+      actualTransport: 'DesktopUpdateHttpExecutor (ElectronHttpExecutor)', transportOnly, installerExecuted: false, screenshot, requests: server.requests.length })}`)
+    await writeFile(join(root, 'result.json'), `${JSON.stringify({ cases, presentations, transportOnly, installerExecuted: false, screenshot, dialogScreenshots }, null, 2)}\n`)
   } finally {
     for (const f of fixtures) f.coordinator.dispose()
     await server.close()
