@@ -8,6 +8,8 @@ Playwright MCP、Chrome DevTools MCP 和 Stagehand 的启动模式可按提供�
 
 Windows 完整构建和 78 项定向测试通过。Playwright 与 DevTools 的回放夹具核对临时目录及 CA。Stagehand 仅更新预期工具清单中的现有 `apply_patch`，录制 Session JSONL 保持一致。
 
+Linux WSL2 干净检出通过十项构建检查、78 项定向测试和三项浏览器无密钥回放。Chrome for Testing `156.0.8078.4` 的三个真实提供方均通过授权页面、脱敏正文、拒绝不受信源站及配置目录清理。独立验收检出已清理，日志为 `.dsh-build/external-browser-https-linux-20261111.log` 和 `.dsh-build/external-browser-https-linux-native-20261111.log`。
+
 ## 桌面侧栏 HTTPS 会话信任（2026-11-11）
 
 可选受控代理配置 `httpsInspection.tools: [sidebar_browser]` 后，桌面主进程通过认证 Host 查询现有监听器的公开证书。查询复核对话与端点，旧路由和委派对端均拒绝。分区身份包含证书指纹。Chromium 只有在原判定为未知证书颁发机构，且服务器证书的签名、SAN、期限及用途均与本次监听器相符时才接受。其他请求沿用 Chromium 的验证结果。[Electron Session API](https://www.electronjs.org/docs/latest/api/session#sessetcertificateverifyprocproc)
