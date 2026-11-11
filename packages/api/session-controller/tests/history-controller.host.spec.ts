@@ -31,7 +31,7 @@ describe('HistoryController passive reads', () => {
   it('ends only the deleted Session subscriptions and releases their projection listeners', async () => {
     const f = await fixture()
     const dispose = vi.fn()
-    vi.spyOn(f.ctx.sessionProjections, 'onChanged').mockReturnValue(dispose)
+    vi.spyOn(f.ctx.sessionProjections, 'onEventChanged').mockReturnValue(dispose)
     const events = f.history.observeEvent({ address: f.address }, f.abort.signal)[Symbol.asyncIterator]()
     const projections = f.history.observeProjections({ sessionId: f.session.id }, f.abort.signal)[Symbol.asyncIterator]()
     const other = f.history.observeEvent({ address: { kind: 'session', sessionId: SessionId('other-session') } }, f.abort.signal)[Symbol.asyncIterator]()
