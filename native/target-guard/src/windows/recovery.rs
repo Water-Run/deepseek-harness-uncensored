@@ -267,9 +267,11 @@ impl WindowsBackend {
                         "Guard metadata changed during recovery.",
                     ));
                 }
-                if identity_alive(&record.owner)?
-                    || identity_alive(&record.helper)?
-                    || identity_alive(&record.target)?
+                let same_boot = record.matches_boot(&observation::boot_identity()?)?;
+                if same_boot
+                    && (identity_alive(&record.owner)?
+                        || identity_alive(&record.helper)?
+                        || identity_alive(&record.target)?)
                 {
                     return Err(Failure::new(
                         "scope-active",

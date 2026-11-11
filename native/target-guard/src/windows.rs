@@ -25,7 +25,7 @@ fn status(code: u32, operation: &'static str) -> Result<(), Failure> {
     }
     Err(os_failure(code, operation))
 }
-fn os_failure(code: u32, operation: &'static str) -> Failure {
+fn os_failure(code: u32, operation: &str) -> Failure {
     Failure {
         code: if code == ERROR_ACCESS_DENIED {
             "permission-required"

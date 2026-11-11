@@ -64,6 +64,7 @@ impl RecoveryRecord {
             || self.prior.len() > MAX_PROCESSES
             || unique.len() != self.prior.len()
             || self.prior.iter().any(|stamp| stamp.pid == self.target.pid)
+            || [self.owner.pid, self.helper.pid, self.target.pid].contains(&4)
             || self.owner.pid == self.helper.pid
             || self.owner.pid == self.target.pid
             || self.helper.pid == self.target.pid
@@ -76,28 +77,35 @@ impl RecoveryRecord {
         Ok(())
     }
 
-    /// Every process outside the pre-admission cohort must be classified, including reused PIDs.
-    pub fn candidates(&self, snapshot: &[ProcessStamp]) -> Result<Vec<ProcessStamp>, Failure> {
-        self.validate()?;
-        let before = snapshot_map(snapshot)?;
-        let prior: BTreeSet<_> = self.prior.iter().copied().collect();
-        Ok(before
+    /// Exclude the recorded cohort only in its own boot; a new boot requires a full process scan.
+    pub fn candidates_for_boot(
+        &self,
+        current: &str,
+        snapshot: &[ProcessStamp],
+    ) -> Result<Vec<ProcessStamp>, Failure> {
+        let prior: BTreeSet<_> = if self.matches_boot(current)? {
+            self.prior.iter().copied().collect()
+        } else {
+            BTreeSet::new()
+        };
+        Ok(snapshot_map(snapshot)?
             .into_iter()
             .map(|(pid, sequence)| ProcessStamp { pid, sequence })
-            .filter(|stamp| !prior.contains(stamp))
+            // Windows reserves 0 and 4 for Idle and kernel System, outside user AppContainer workloads.
+            .filter(|stamp| ![0, 4].contains(&stamp.pid) && !prior.contains(stamp))
             .collect())
     }
 
-    /// Kernel process sequences cannot exclude candidates from a different system boot.
-    pub fn require_boot(&self, current: &str) -> Result<(), Failure> {
+    /// Validate the observation boot before comparing any boot-scoped process identities.
+    pub fn matches_boot(&self, current: &str) -> Result<bool, Failure> {
         self.validate()?;
-        if self.boot != current {
+        if !uuid(current) || current == "00000000-0000-0000-0000-000000000000" {
             return Err(Failure::new(
-                "boot-changed",
-                "The boot identity changed; retain this record for explicit maintenance.",
+                "observation-unavailable",
+                "The current kernel boot identity is unavailable.",
             ));
         }
-        Ok(())
+        Ok(self.boot == current)
     }
 }
 
@@ -126,16 +134,19 @@ pub enum ProcessClass {
     OtherAccount,
     OtherContainer,
     MatchingContainer,
+    /// A held kernel process object is signaled, independently of its exit code.
+    Exited,
 }
 
 /// PID disappearance, inaccessible tokens and snapshot changes are failures, never evidence of exit.
-pub fn confirm_quiescent(
+pub fn confirm_quiescent_for_boot(
     record: &RecoveryRecord,
+    current: &str,
     before: &[ProcessStamp],
     observations: &[(ProcessStamp, ProcessClass)],
     after: &[ProcessStamp],
 ) -> Result<(), Failure> {
-    let candidates = record.candidates(before)?;
+    let candidates = record.candidates_for_boot(current, before)?;
     if snapshot_map(before)? != snapshot_map(after)? {
         return Err(Failure::new(
             "observation-changed",
@@ -152,14 +163,16 @@ pub fn confirm_quiescent(
             "Not every possible descendant was classified.",
         ));
     }
-    if observed
-        .values()
-        .any(|class| *class == ProcessClass::MatchingContainer)
-    {
-        return Err(Failure::new(
-            "scope-active",
-            "A process still uses this container identity; its rules remain.",
-        ));
+    for class in observed.values() {
+        match class {
+            ProcessClass::MatchingContainer => {
+                return Err(Failure::new(
+                    "scope-active",
+                    "A process still uses this container identity; its rules remain.",
+                ));
+            }
+            ProcessClass::OtherAccount | ProcessClass::OtherContainer | ProcessClass::Exited => {}
+        }
     }
     Ok(())
 }

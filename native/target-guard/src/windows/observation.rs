@@ -214,46 +214,72 @@ fn users() -> Result<BTreeMap<u32, Option<String>>, Failure> {
     Ok(result)
 }
 
-/// A successful scan classifies every process outside the recorded cohort and rejects any concurrent set change.
+/// Hold queried objects through the final snapshot; a signaled object proves exit independently of its exit status.
+fn classify_candidate(
+    pid: u32,
+    reported_sid: Option<&String>,
+    account: &str,
+    container: &str,
+) -> Result<(ProcessClass, Option<Handle>), Failure> {
+    if reported_sid.is_some_and(|sid| sid != account) {
+        return Ok((ProcessClass::OtherAccount, None));
+    }
+    let raw = unsafe {
+        OpenProcess(
+            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SYNCHRONIZE,
+            0,
+            pid,
+        )
+    };
+    if raw.is_null() {
+        return Err(os_failure(
+            unsafe { GetLastError() },
+            &format!("OpenProcess(recovery PID {pid})"),
+        ));
+    }
+    let process = Handle(raw);
+    match unsafe { WaitForSingleObject(process.0, 0) } {
+        WAIT_OBJECT_0 => return Ok((ProcessClass::Exited, Some(process))),
+        WAIT_TIMEOUT => {}
+        _ => {
+            return Err(os_failure(
+                unsafe { GetLastError() },
+                "WaitForSingleObject(recovery)",
+            ))
+        }
+    }
+    let actual_sid = user_sid(&process)?;
+    if reported_sid.is_some_and(|reported| reported != &actual_sid) {
+        return Err(Failure::new(
+            "observation-changed",
+            "Process account changed during recovery observation.",
+        ));
+    }
+    if actual_sid != account {
+        return Ok((ProcessClass::OtherAccount, Some(process)));
+    }
+    let class = match optional_container_sid(&process)? {
+        Some((_, sid)) if sid == container => ProcessClass::MatchingContainer,
+        _ => ProcessClass::OtherContainer,
+    };
+    Ok((class, Some(process)))
+}
+
+/// A new boot classifies all executable processes; the recorded cohort applies only within its original boot.
 pub(super) fn quiescent(record: &RecoveryRecord) -> Result<(), Failure> {
-    record.require_boot(&boot_identity()?)?;
+    let boot = boot_identity()?;
     let before = snapshot()?;
-    let candidates = record.candidates(&before)?;
+    let candidates = record.candidates_for_boot(&boot, &before)?;
     let users = users()?;
     let mut observations = Vec::new();
     let mut retained = Vec::new();
     for stamp in candidates {
-        let sid = users
-            .get(&stamp.pid)
-            .and_then(Option::as_ref)
-            .ok_or_else(|| {
-                Failure::new(
-                    "observation-unavailable",
-                    "A possible descendant has no verified account identity.",
-                )
-            })?;
-        if sid != &record.user_sid {
-            observations.push((stamp, ProcessClass::OtherAccount));
-            continue;
-        }
-        let raw = unsafe { OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, stamp.pid) };
-        if raw.is_null() {
-            return Err(os_failure(
-                unsafe { GetLastError() },
-                "OpenProcess(recovery)",
-            ));
-        }
-        let process = Handle(raw);
-        if user_sid(&process)? != record.user_sid {
-            return Err(Failure::new(
-                "observation-changed",
-                "Process account changed during recovery observation.",
-            ));
-        }
-        let class = match optional_container_sid(&process)? {
-            Some((_, sid)) if sid == record.container_sid => ProcessClass::MatchingContainer,
-            _ => ProcessClass::OtherContainer,
-        };
+        let (class, process) = classify_candidate(
+            stamp.pid,
+            users.get(&stamp.pid).and_then(Option::as_ref),
+            &record.user_sid,
+            &record.container_sid,
+        )?;
         if class == ProcessClass::MatchingContainer {
             return Err(Failure::new(
                 "scope-active",
@@ -261,15 +287,50 @@ pub(super) fn quiescent(record: &RecoveryRecord) -> Result<(), Failure> {
             ));
         }
         observations.push((stamp, class));
-        retained.push(process);
+        if let Some(process) = process {
+            retained.push(process)
+        }
     }
     let after = snapshot()?;
-    crate::recovery::confirm_quiescent(record, &before, &observations, &after)
+    if boot_identity()? != boot {
+        return Err(Failure::new(
+            "observation-changed",
+            "The kernel boot identity changed during recovery observation.",
+        ));
+    }
+    crate::recovery::confirm_quiescent_for_boot(record, &boot, &before, &observations, &after)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::os::windows::process::CommandExt;
+
+    #[test]
+    fn a_missing_wts_entry_can_be_verified_through_the_live_process_token() {
+        let pid = unsafe { GetCurrentProcessId() };
+        let process = process(&current_identity().unwrap(), 0).unwrap();
+        let account = user_sid(&process).unwrap();
+        let (class, handle) = classify_candidate(pid, None, &account, "S-1-15-2-1").unwrap();
+        assert_eq!(class, ProcessClass::OtherContainer);
+        assert!(handle.is_some());
+    }
+
+    #[test]
+    fn a_signaled_process_handle_establishes_exit_without_an_account_entry() {
+        let executable = std::path::PathBuf::from(std::env::var_os("SystemRoot").unwrap())
+            .join("System32/cmd.exe");
+        let mut child = std::process::Command::new(executable)
+            .args(["/d", "/c", "exit", "0"])
+            .creation_flags(CREATE_NO_WINDOW)
+            .spawn()
+            .unwrap();
+        child.wait().unwrap();
+        let (class, handle) =
+            classify_candidate(child.id(), None, "S-1-5-21-1", "S-1-15-2-1").unwrap();
+        assert_eq!(class, ProcessClass::Exited);
+        assert!(handle.is_some());
+    }
 
     #[test]
     fn boot_observation_is_nonempty_and_stable() {

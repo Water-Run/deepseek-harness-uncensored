@@ -22,7 +22,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let record: RecoveryRecord = serde_json::from_slice(&bytes)?;
             match inspect_recovery_record(&record) {
                 Ok(()) => println!("quiescent"),
-                Err(error) => println!("{}", error.code),
+                Err(error) => {
+                    eprintln!("{error:?}");
+                    println!("{}", error.code)
+                }
             }
         }
         _ => return Err("expected cohort, target or inspect".into()),

@@ -20,8 +20,11 @@ import { createNativeHostExecution } from '../src/native-host.ts'
 import { launchNativeBroker } from '../src/native-launch.ts'
 import { bindManagedProcess, launchWindowsJob } from '@deepseek-ai/dsh-subprocess-local/managed'
 import type { SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
+import { COVERAGE_TEST_TIMEOUT_ENV, coverageTestTimeoutOptions } from '../../../../scripts/coverage-partitions.ts'
 
 const supported = process.platform === 'win32' && probe().tier === 'base-container'
+// Native startup allows ten seconds and joined range shutdown allows thirty; preserve a larger lane budget.
+const nativeBudget = Math.max(60000, coverageTestTimeoutOptions(process.env[COVERAGE_TEST_TIMEOUT_ENV]).testTimeout ?? 0)
 
 interface ProcessObserver extends CurrentTokenProcessBindings {
   openProcess(access: number, inherit: number, pid: number): NativePtr | null
@@ -86,7 +89,7 @@ async function stopNativeRange(job: ObservedWindowsJob | undefined, release: (()
   release?.()
 }
 
-describe.skipIf(!supported)('Windows native target policy with MXC', () => {
+describe.skipIf(!supported)('Windows native target policy with MXC', { timeout: nativeBudget }, () => {
   it.skipIf(process.env.DSH_NATIVE_INGRESS_HELPER === undefined || process.env.DSH_NATIVE_INGRESS_TEST_ELEVATED === '1')(
     'keeps the real broker bootstrap closed when its mandatory inbound helper cannot install rules', async () => {
       const helper = process.env.DSH_NATIVE_INGRESS_HELPER
@@ -158,7 +161,7 @@ describe.skipIf(!supported)('Windows native target policy with MXC', () => {
       await expect.poll(async () => {
         try { return await readFile(marker, 'utf8') }
         catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return ''; throw error }
-      }).toMatch(/^\d+$/)
+      }, { timeout: nativeBudget }).toMatch(/^\d+$/)
       processHandle = api.openProcess(0x00100001, 0, Number(await readFile(marker, 'utf8')))
       if (isNullPtr(processHandle)) throw new Error('The SDK bootstrap was not alive at the held startup point')
       expect(api.waitForSingleObject(processHandle, 0)).not.toBe(0)
@@ -296,7 +299,7 @@ const timer=setInterval(()=>{if(fs.existsSync(${JSON.stringify(join(work, 'heart
         const tick = Number(value)
         if (firstTick === undefined) { firstTick = tick; return false }
         return tick > firstTick
-      }).toBe(true)
+      }, { timeout: nativeBudget }).toBe(true)
       expect(rangeExited).toBe(false)
       expect(await readFile(join(work, 'denied.txt'), 'utf8')).toBe('EPERM')
       if (finish === 'natural') await writeFile(join(work, 'release.txt'), 'finish')

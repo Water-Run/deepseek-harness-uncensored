@@ -33,16 +33,12 @@ fn record() -> RecoveryRecord {
 }
 
 #[test]
-fn a_new_boot_cannot_reuse_the_old_exclusion_cohort() {
+fn process_exemptions_require_a_verified_matching_boot() {
     let value = record();
-    value.require_boot(&value.boot).unwrap();
-    assert_eq!(
-        value
-            .require_boot("ec0e52e1-c072-450f-b643-a4ae95ffea52")
-            .unwrap_err()
-            .code,
-        "boot-changed"
-    );
+    assert!(value.matches_boot(&value.boot).unwrap());
+    assert!(!value
+        .matches_boot("ec0e52e1-c072-450f-b643-a4ae95ffea52")
+        .unwrap());
     let mut missing = value.clone();
     missing.boot.clear();
     assert!(missing.validate().is_err());
@@ -53,7 +49,10 @@ fn old_processes_are_excluded_only_while_their_kernel_sequence_still_matches() {
     let value = record();
     assert_eq!(
         value
-            .candidates(&[stamp(10, 100), stamp(20, 201), stamp(50, 500)])
+            .candidates_for_boot(
+                &value.boot,
+                &[stamp(10, 100), stamp(20, 201), stamp(50, 500)]
+            )
             .unwrap(),
         [stamp(20, 201), stamp(50, 500)]
     );
@@ -65,7 +64,7 @@ fn orphan_descendant_blocks_removal_even_after_all_recorded_pids_disappear() {
     let before = [stamp(10, 100), stamp(99, 900)];
     let observed = [(stamp(99, 900), ProcessClass::MatchingContainer)];
     assert_eq!(
-        confirm_quiescent(&value, &before, &observed, &before)
+        confirm_quiescent_for_boot(&value, &value.boot, &before, &observed, &before)
             .unwrap_err()
             .code,
         "scope-active"
@@ -77,7 +76,7 @@ fn incomplete_classification_cannot_mean_no_descendants() {
     let value = record();
     let before = [stamp(10, 100), stamp(99, 900)];
     assert_eq!(
-        confirm_quiescent(&value, &before, &[], &before)
+        confirm_quiescent_for_boot(&value, &value.boot, &before, &[], &before)
             .unwrap_err()
             .code,
         "observation-unavailable"
@@ -89,13 +88,14 @@ fn reused_parent_pid_is_classified_instead_of_inheriting_an_old_exemption() {
     let value = record();
     let before = [stamp(20, 999)];
     assert_eq!(
-        confirm_quiescent(&value, &before, &[], &before)
+        confirm_quiescent_for_boot(&value, &value.boot, &before, &[], &before)
             .unwrap_err()
             .code,
         "observation-unavailable"
     );
-    assert!(confirm_quiescent(
+    assert!(confirm_quiescent_for_boot(
         &value,
+        &value.boot,
         &before,
         &[(before[0], ProcessClass::OtherContainer)],
         &before
@@ -107,8 +107,9 @@ fn reused_parent_pid_is_classified_instead_of_inheriting_an_old_exemption() {
 fn a_stable_complete_observation_allows_cleanup() {
     let value = record();
     let before = [stamp(10, 100), stamp(60, 600), stamp(70, 700)];
-    assert!(confirm_quiescent(
+    assert!(confirm_quiescent_for_boot(
         &value,
+        &value.boot,
         &before,
         &[
             (before[1], ProcessClass::OtherAccount),
@@ -130,7 +131,7 @@ fn births_exits_and_pid_reuse_during_the_scan_all_keep_rules() {
         vec![before[0], before[1], stamp(80, 800)],
     ] {
         assert_eq!(
-            confirm_quiescent(&value, &before, &observations, &after)
+            confirm_quiescent_for_boot(&value, &value.boot, &before, &observations, &after)
                 .unwrap_err()
                 .code,
             "observation-changed"
@@ -142,7 +143,10 @@ fn births_exits_and_pid_reuse_during_the_scan_all_keep_rules() {
 fn no_wall_clock_order_is_used_for_process_sequences() {
     let value = record();
     let current = [stamp(10, 7), stamp(99, 2)];
-    assert_eq!(value.candidates(&current).unwrap(), current);
+    assert_eq!(
+        value.candidates_for_boot(&value.boot, &current).unwrap(),
+        current
+    );
 }
 
 #[test]
@@ -154,7 +158,7 @@ fn duplicate_or_extra_classifications_are_not_a_complete_scan() {
         vec![(stamp(80, 800), ProcessClass::OtherAccount)],
     ] {
         assert_eq!(
-            confirm_quiescent(&value, &current, &rows, &current)
+            confirm_quiescent_for_boot(&value, &value.boot, &current, &rows, &current)
                 .unwrap_err()
                 .code,
             "observation-unavailable"
@@ -194,4 +198,108 @@ fn empty_or_ambiguous_kernel_snapshots_are_not_accepted() {
     assert!(snapshot_map(&[]).is_err());
     assert!(snapshot_map(&[stamp(10, 1), stamp(10, 2)]).is_err());
     assert!(snapshot_map(&vec![stamp(1, 1); MAX_PROCESSES + 1]).is_err());
+}
+
+const NEXT_BOOT: &str = "ec0e52e1-c072-450f-b643-a4ae95ffea52";
+
+#[test]
+fn a_new_boot_classifies_even_exactly_reused_prior_stamps() {
+    let value = record();
+    let current = [stamp(10, 100), stamp(20, 200), stamp(99, 900)];
+    assert_eq!(
+        value.candidates_for_boot(NEXT_BOOT, &current).unwrap(),
+        current
+    );
+    assert_eq!(
+        value.candidates_for_boot(&value.boot, &current).unwrap(),
+        [current[2]]
+    );
+}
+
+#[test]
+fn a_reboot_cannot_exempt_a_live_container_using_an_old_prior_stamp() {
+    let value = record();
+    let current = [stamp(10, 100), stamp(20, 200)];
+    let observed = [
+        (current[0], ProcessClass::OtherAccount),
+        (current[1], ProcessClass::MatchingContainer),
+    ];
+    assert_eq!(
+        confirm_quiescent_for_boot(&value, NEXT_BOOT, &current, &observed, &current)
+            .unwrap_err()
+            .code,
+        "scope-active"
+    );
+}
+
+#[test]
+fn a_new_boot_requires_every_non_idle_process_to_be_classified() {
+    let value = record();
+    let current = [stamp(10, 100), stamp(20, 200)];
+    let partial = [(current[1], ProcessClass::OtherContainer)];
+    assert_eq!(
+        confirm_quiescent_for_boot(&value, NEXT_BOOT, &current, &partial, &current)
+            .unwrap_err()
+            .code,
+        "observation-unavailable"
+    );
+    let complete = [
+        (current[0], ProcessClass::OtherAccount),
+        (current[1], ProcessClass::OtherContainer),
+    ];
+    assert!(confirm_quiescent_for_boot(&value, NEXT_BOOT, &current, &complete, &current).is_ok());
+    assert_eq!(
+        confirm_quiescent_for_boot(&value, NEXT_BOOT, &current, &complete, &[current[0]])
+            .unwrap_err()
+            .code,
+        "observation-changed"
+    );
+}
+
+#[test]
+fn only_reserved_windows_kernel_pids_need_no_account_classification() {
+    let value = record();
+    let current = [stamp(0, 0), stamp(4, 4), stamp(10, 100)];
+    assert_eq!(
+        value.candidates_for_boot(NEXT_BOOT, &current).unwrap(),
+        [current[2]]
+    );
+    assert!(confirm_quiescent_for_boot(
+        &value,
+        NEXT_BOOT,
+        &current,
+        &[(current[2], ProcessClass::OtherAccount)],
+        &current,
+    )
+    .is_ok());
+}
+
+#[test]
+fn an_unknown_current_boot_never_selects_a_recovery_scope() {
+    let value = record();
+    for boot in ["", "unknown", "00000000-0000-0000-0000-000000000000"] {
+        assert_eq!(
+            value
+                .candidates_for_boot(boot, &[stamp(10, 100)])
+                .unwrap_err()
+                .code,
+            "observation-unavailable"
+        );
+    }
+}
+
+#[test]
+fn kernel_process_exemptions_cannot_be_claimed_as_application_owners_or_targets() {
+    for role in 0..3 {
+        let mut value = record();
+        match role {
+            0 => value.owner.pid = 4,
+            1 => value.helper.pid = 4,
+            _ => {
+                value.target.pid = 4;
+                value.target_stamp.pid = 4;
+            }
+        }
+        assert_eq!(value.validate().unwrap_err().code, "invalid-record");
+    }
 }

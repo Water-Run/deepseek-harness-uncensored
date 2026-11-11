@@ -37,7 +37,7 @@ node packages/guard/target-protection/tests/fixtures/native-wfp-access-probe.mjs
 
 - [ ] 〔进行中〕独立 WFP 辅助程序已有 Rust 实现和私有继承管道；它不自动提权。接口只接受核验后的 Job/容器，不提供通用防火墙规则、命令或任意文件接口。跨完整性级别启动及受保护部署仍待实现。
 - [ ] 〔进行中〕已核验调用进程/目标 PID 的精确创建时间、同一账户、Job 归属与容器 SID；复制句柄保持原权限并要求已有查询/终止权。还须验证真实高权限过滤，以及普通子进程和嵌套容器不能脱离规则。
-- [ ] 〔进行中〕正常清理已实现先确认整个 Job 归零、再事务删除自身对象；异常退出采用持久规则保留。同一次系统启动内的遗留恢复已实现并通过进程观测验证，管理员实际删除与跨系统重启维护未完成。不能仅凭父 PID 或 Job 名称消失删除规则。
+- [ ] 〔进行中〕正常清理已实现先确认整个 Job 归零、再事务删除自身对象；异常退出采用持久规则保留。同启动遗留恢复及跨启动全量观测策略已有实现，管理员实际删除、受保护部署和真实冷重启验收仍未完成。不能仅凭父 PID 或 Job 名称消失删除规则。
 - [ ] 实现受保护部署、正式提权和撤销路径。管理员夹具已可审查，仅操作临时容器及本次所有者记录；本次 UAC 启动被取消，没有写入 WFP 规则。不得静默修改全局 BFE 权限或退回宽松执行。
 - [ ] 覆盖 TCP/UDP、IPv4/IPv6、本机及独立网络对端、允许的出站代理、直接绕过、取消和异常关闭；通过后再接入默认 profile、产品状态及 P3 审计。
 
@@ -57,7 +57,7 @@ node packages/guard/target-protection/tests/fixtures/native-wfp-access-probe.mjs
 
 第 2 版 provider 记录包含账户、原所有者/辅助进程/目标身份、容器 SID、系统启动身份及准入前进程集合。新的 `recover` 操作可限定原所有者的 PID 与精确 FILETIME；仅处理当前账户的受支持记录。旧版或损坏记录单独计数并保留，不能从显示名称推断归属。已结束对象的删除在每个事务内复查记录、对象关联、动作、条件和标记。
 
-在可信引导屏障关闭时取得进程集合；[内核进程序号](https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysysteminformation)用于识别 PID 复用。恢复须确认原三个进程已结束，集合外全部进程均可分类，且前后快照相同；任何同容器进程、不可读取身份或变化均保留规则。系统启动身份读取采用 [PHNT 的 BootEnvironment 定义](https://github.com/winsiderss/phnt/blob/master/ntexapi.h)，读取失败或启动身份不同则拒绝自动清理；跨系统重启的维护仍待实现。没有用创建时间排序推断后代，也没有以命名 Job 不存在当作空 Job。
+在可信引导屏障关闭时取得进程集合；[内核进程序号](https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysysteminformation)用于识别 PID 复用。同启动恢复须确认原三个进程已结束，集合外全部进程均可分类，且前后快照相同；任何同容器进程、不可读取身份或变化均保留规则。系统启动身份读取采用 [PHNT 的 BootEnvironment 定义](https://github.com/winsiderss/phnt/blob/master/ntexapi.h)，读取失败时拒绝清理。核实启动变化后改用全量观测，旧 PID/序号不获得豁免；真实冷重启和管理员删除仍待验收。没有用创建时间排序推断后代，也没有以命名 Job 不存在当作空 Job。
 
 - [x] Rust 34 项测试覆盖协议、选择原所有者、PID 复用、残留后代、快照变化及系统启动变化；Clippy 无告警检查通过。
 - [x] Windows 客户端 14 项及原生拒绝 4 项通过；Linux 客户端 14 项通过，新增恢复模块覆盖率 100%。
@@ -66,3 +66,11 @@ node packages/guard/target-protection/tests/fixtures/native-wfp-access-probe.mjs
 - [ ] 具备管理员令牌后运行固定夹具，验证四项入站阻止、出站保持、活动记录拒绝恢复、正常删除与辅助程序崩溃后的删除；仅限该次所有者，不检查或删除其他遗留规则。
 
 恢复源代码为 `native/target-guard/src/recovery.rs`、`src/windows/observation.rs`、`src/windows/recovery.rs` 和 `packages/guard/target-protection/src/native-ingress-recovery.ts`。验收入口为 `native/target-guard/tests/windows-acceptance.mjs`，非提权对照使用 `--baseline`。日志为 `.dsh-build/target-recovery-tests-final-20261103.log`、`target-recovery-clippy-final-20261103.log`、`target-recovery-runtime-final-20261103.log`、`target-recovery-linux-20261103.log` 和 `target-recovery-observe-final-20261103.log`。
+
+## 跨启动策略与直接进程观测（2026-11-11）
+
+跨启动范围选择、WTS 缺失时的直接核验及句柄退出确认已实现，第 2 版记录字段不变。完整契约见[辅助程序说明](../../native/target-guard/README.zh.md#遗留恢复)。
+
+六项新增恢复规则在旧逻辑下分别检出失败；当前 Rust 共 42 项测试通过，Clippy 无告警检查通过。真实 AppContainer 的同启动观测通过活跃拒绝及退出后确认，私有目录已清理，没有写入 WFP。模拟启动身份变化后，当前非提权会话在 Registry 进程的 `OpenProcess` 检查中得到 `permission-required`/Windows 5，活跃及退出后均未报告可回收。该拒绝是权限边界的验证，不代表跨启动成功清理。
+
+宿主及辅助程序四个文件的 50 项回归通过，包括无 WFP 权限时不放行目标。进程句柄发布间隙测试原先的默认 1 秒轮询小于内部 10 秒启动预算；现与原生范围的关闭预算及更大的 CI 测试预算对齐，仍验证取消原因、真实内核退出和规则释放。日志使用 `.dsh-build/target-crossboot-` 及 `target-sameboot-observe-` 前缀。完整管理权限、真实冷重启、受保护部署和实际过滤删除继续保留待验收。
