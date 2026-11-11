@@ -15,7 +15,7 @@
 .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 12px 18px; }
 .fields > * { min-width: 0; }
 .fields input { width: 100%; min-width: 0; box-sizing: border-box; }
-.overrides { min-width: 0; border-top: 1px solid var(--dsw-alias-border-l3); }
+.overrides { min-width: 0; border-top: 0.5px solid var(--dsw-alias-border-l3); }
 .overrides summary { cursor: pointer; padding-block: 12px; font-size: 13px; color: var(--dsw-alias-label-secondary); }
 .overrides summary:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 2px; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
