@@ -1,6 +1,6 @@
 # 17.06 稳定性检查
 
-状态：进行中。本页修复已随源码 `7db7e35015`、检查版 `0.1.0-test.20261106.1` 安装，实际载荷及实装隔离运行验证通过。安装证据见 [HANDOFF](../HANDOFF.md)，保留全部原始交付范围。
+状态：进行中。系统安装版 `0.1.0-test.20261111.6` 基于源码 `1408c12cc1`。本轮 Windows 会话结束修复等待下一次打包。安装证据见 [HANDOFF](../HANDOFF.md)，保留全部原始交付范围。
 
 ## 已完成
 
@@ -41,6 +41,7 @@
 | `ui-workspace` | 5 |
 
 - [x] **桌面退出竞态（2026-11-11）**。主进程回归用例复现了重复退出提前关闭窗口，以及普通退出开始后仍交接安装器。修复后重复请求等待同一次清理，普通退出会取消竞争中的安装交接。Host 退出后仍会等待内嵌页面清理完成。
+- [x] **Windows 会话结束清理（2026-11-11）**。工作区和欢迎窗口在收到 `session-end` 时直接启动清理。查询或取消通知继续保留运行状态，多窗口通知共用同一次清理。两个新增回归在修复前均未调用 Host 停止，修复后主进程的 156 项测试通过。隐藏 Electron 44.7.0 窗口接收实际 `WM_QUERYENDSESSION`、取消与确认的 `WM_ENDSESSION`，确认通知触发从当前源码编译的回调，清理开始时 `before-quit` 次数为零。报告为 `.dsh-build/windows-session-end-20261111/result.json`，整机重启仍待验收。[Electron 退出事件](https://www.electronjs.org/docs/latest/api/app#event-before-quit)
 - [x] **Keyed Slot 分派键（2026-11-11）**。`renderSlot` 要求 keyed 子 Slot 显式传入 `entryKey`，包括使用 `hookContext` 的子 Slot。三个缺键负例由编译检查覆盖。合法键未注册时仍使用 fallback，相关渲染器测试通过。[迁移指南](../../docs/upgrade-guide/v0.2.2-rc.1/keyed-slot-entry-key/guide.zh.md)
 - [x] **动态 Slot 参数（2026-11-11）**。独立变化的 Slot 名称和分派键需满足所有可能目标的参数约束。编译负例覆盖普通 owner props、按键的 owner props、不适用的分派键、不匹配的 `hookContext` 以及 chain selector 的输入。单个目标允许其自身声明的联合参数类型，同一对象决定的键与参数可作为元组传入。
 - [ ] **其他验收**。原生系统关机、历史回放、跨平台、原始截图和完整编号终验待验收。

@@ -34,6 +34,7 @@ vi.mock('../src/crash-report.ts', async importOriginal => ({
 
 const harness = await vi.hoisted(async () => {
   const { EventEmitter } = await import('node:events')
+  const { pathToFileURL } = await import('node:url')
   function deferred() {
     let resolve!: () => void
     let reject!: (error: Error) => void
@@ -126,6 +127,7 @@ const harness = await vi.hoisted(async () => {
       this.webContents.mainFrame.url = url
       if (url === 'dsh-app://app/') navigated.resolve()
     }
+    loadFile(path: string): Promise<void> { return this.loadURL(pathToFileURL(path).href) }
     static getAllWindows() { return windows.filter(window => !window.destroyed) }
     setMenu() {}
     getContentBounds() { return { x: 0, y: 0, width: 900, height: 650 } }
@@ -1563,6 +1565,55 @@ describe('desktop main startup', () => {
     await host.stopping.promise
     host.exited.resolve()
     await harness.quitCompleted.promise
+  })
+
+  it.each(['workspace', 'welcome'] as const)('starts cleanup from a Windows session end in the %s window', async (screen) => {
+    let host: (typeof harness.hosts)[number]
+    if (screen === 'workspace') host = await readyWorkspace()
+    else {
+      await import('../src/main.ts')
+      await harness.preparing.promise
+      harness.prepared.resolve()
+      await harness.hostStarted.promise
+      host = harness.hosts[0]!
+      host.fetch.mockResolvedValue(Response.json({ hasApiKey: false, localePreference: null }))
+      host.ready.resolve()
+      await vi.advanceTimersByTimeAsync(0)
+    }
+    const window = screen === 'workspace' ? harness.windows[0]! : harness.windows.at(-1)!
+    if (screen === 'welcome') expect(window.urls.some(url => url.includes('welcome'))).toBe(true)
+    const disposal = harness.deferPlatformDispose()
+    let exited = false
+    void harness.quitCompleted.promise.then(() => { exited = true })
+    try {
+      const query = { preventDefault: vi.fn(), reasons: ['shutdown'] }
+      window.emit('query-session-end', query)
+      await vi.advanceTimersByTimeAsync(0)
+      expect(query.preventDefault).not.toHaveBeenCalled()
+      expect(host.stop).not.toHaveBeenCalled()
+      window.emit('session-end', { reasons: ['shutdown'] })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(host.stop).toHaveBeenCalledOnce()
+      expect(harness.platformDispose).toHaveBeenCalledOnce()
+      expect(harness.dialog.showMessageBox).not.toHaveBeenCalled()
+      expect(host.inspectQuit).not.toHaveBeenCalled()
+      expect(harness.app.quit).not.toHaveBeenCalled()
+      harness.windows[0]!.emit('session-end', { reasons: ['shutdown'] })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(host.stop).toHaveBeenCalledOnce()
+      expect(harness.platformDispose).toHaveBeenCalledOnce()
+      host.exited.resolve()
+      await vi.advanceTimersByTimeAsync(0)
+      expect(exited).toBe(false)
+      disposal.resolve()
+      await harness.quitCompleted.promise
+    } finally {
+      disposal.resolve()
+      host.exited.resolve()
+      harness.app.quit()
+      await vi.advanceTimersByTimeAsync(0)
+      await harness.quitCompleted.promise
+    }
   })
 
   it('does not block a Windows session end on the quit confirmation', async () => {

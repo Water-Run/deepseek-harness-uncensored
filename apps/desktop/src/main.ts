@@ -1240,9 +1240,8 @@ async function main(): Promise<void> {
       else backgroundNotice.close(hide)
     })
     if (process.platform === 'win32') {
-      // Shutdown, restart, and log-off must not wait on a confirmation. query-session-end is only a
-      // question that another application can veto without any follow-up message, so it does not count.
-      window.on('session-end', () => { sessionEnding = true })
+      // A query can be cancelled by another application. Only the definitive notification starts cleanup.
+      window.on('session-end', finishWindowsSession)
     } else {
       // The macOS power-off notification arrives before the terminate request; a cancelled shutdown
       // leaves the process running, and user attention on the window shows the session continues.
@@ -1341,6 +1340,7 @@ async function main(): Promise<void> {
         skip: enterWorkspace,
       })
       const window = welcomeWindow
+      if (process.platform === 'win32') window.on('session-end', finishWindowsSession)
       window.once('closed', () => {
         void welcomeBackend?.account.state().then((state) => {
           if (state.attempt !== null && !enteredWorkspace) return welcomeBackend?.account.cancel(state.attempt.id)
@@ -1428,6 +1428,11 @@ async function main(): Promise<void> {
       disposeFileDrag(),
     ].map(cleanup => cleanup.catch((error: unknown) => { console.error(error) })))
       .then(() => { quitReady = true; app.quit() })
+  }
+  const finishWindowsSession = (): void => {
+    sessionEnding = true
+    // Windows session termination does not emit before-quit.
+    if (!quitting && !shellInstallerOwnsQuit) finishQuit()
   }
   app.on('before-quit', (event) => {
     if (quitting) {
