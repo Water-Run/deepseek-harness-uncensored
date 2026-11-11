@@ -2,9 +2,13 @@
 
 ## 会话底栏浏览器回归（2026-11-11）
 
-费用和限额加入现有详情面板浏览器用例。Chromium 在有、无 Chat 统计贡献时均通过。390px 下检查浅深主题与 14px、22px 字号，核对两项同排、读数和页面无横向溢出，以及费用与原有统计文字的颜色一致。两个详情面板还覆盖 390px、800px、1280px 下的定位，模态焦点、Escape 关闭及焦点返回，限额展示两个已启用窗口的进度条。
+费用和限额加入现有详情面板浏览器用例。Chromium 与 WebKit 在有、无 Chat 统计贡献时的四项场景均通过。390px 下检查浅深主题与 14px、22px 字号，核对两项同排、读数和页面无横向溢出，以及费用与原有统计静止读数的颜色一致。两个详情面板还覆盖 390px、800px、1280px 下的定位，模态焦点、Escape 关闭及焦点返回，限额展示两个已启用窗口的进度条。
 
-两项 Chromium 场景、Host/Client 聚合检查及定向 lint 通过。WebKit 场景本轮未运行。录制 Session 与已提交版本摘要一致。日志为 `.dsh-build/footer-responsive-verified-20261111.log`，用例见[详情面板缩放测试](../apps/web/tests/context-meter.e2e.ts)。
+WebKit 复现了费用面板关闭后焦点未返回入口的问题。打开时现会让触发按钮先获得焦点，再交给共享模态层管理。两个组件回归通过，组件的行、分支和函数覆盖率均为 100%。完整 GUI 初查的三项失败分别来自两处粗边框、两处圆角和定时任务测试未注册扩展语言，修正后 769 个文件通过，12,884 项测试通过、2 项跳过。八项产物构建、Host/Client 聚合检查及定向 lint 通过。录制 Session 与已提交版本摘要一致，本轮源码修复等待下次检查包。
+
+浏览器日志为 `.dsh-build/footer-two-browsers-20261111.log`，完整回归日志为 `.dsh-build/footer-focus-gui-verified-20261111.log`，组件覆盖率为 `.dsh-build/footer-focus-coverage-20261111.log`。用例见[详情面板缩放测试](../apps/web/tests/context-meter.e2e.ts)。
+
+测试使用项目 Playwright 1.61.1 对应的 WebKit 26.5。安装时额外下载的 `webkit-2287` 缓存约 166 MiB，自动审批拒绝其删除并返回 `blocked by policy`，该缓存暂留。路径和大小见 `.dsh-build/footer-webkit-cache-blocked-20261111.json`。
 
 ## 推送钩子与主分支跟踪（2026-11-11）
 
