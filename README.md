@@ -32,7 +32,7 @@ DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH �
 
 ## 安装与开发
 
-- **桌面**　Windows x64 已提供本机检查版。Linux x64 检查版 `0.1.0-test.20261111.linux.5` 提供 deb 和 tar.gz，便携包已通过 Ubuntu WSL2 的 X11 启动、浏览器 HTTPS、Wayland 目录门户和渲染沙箱验收。`.4` 检查版已通过 Debian 12 安装与卸载。macOS arm64 和 Android＋PRoot Fedora 保留为计划。签名与在线升级仍待验收。正式版本与更新使用本仓库的 [GitHub Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases)。
+- **桌面**　Windows x64 已提供本机检查版。Linux x64 检查版 `0.1.0-test.20261111.linux.5` 提供 deb 和 tar.gz，便携包已通过 Ubuntu WSL2 的 X11 启动、浏览器 HTTPS、Wayland 目录门户和渲染沙箱验收。Debian 12 已完成 `.4 → .5` 升级与卸载，Fedora 45 隔离环境已通过包内 Electron 的动态库加载和 Node 模式启动检查。macOS arm64 和 Android＋PRoot Fedora 保留为计划。签名与在线升级仍待验收。正式版本与更新使用本仓库的 [GitHub Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases)。
 - **源码**　使用 Node.js 24.22.1、Git 与 Corepack。依次运行 `corepack pnpm install`、`corepack pnpm run build`、`corepack pnpm dsh web`。CLI 安装见[安装脚本](scripts/install-uncensored.ps1)。
 - **独立标识**　默认数据目录为 `~/.dsh-uncensored`，可用 `DSH_UNCENSORED_HOME` 修改。CLI 为 `dsh-uncensored`，深链为 `dshu://open`。关于页列出作者、DSHU 与 DSH 版本、构建时间、源码提交及依赖来源。
 

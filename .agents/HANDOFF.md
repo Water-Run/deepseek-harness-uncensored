@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## Fedora 45 便携运行时验收（2026-11-11）
+
+从实际 `.5` Linux x64 便携归档抽取 Electron、`libffmpeg.so`、ICU 数据和 V8 快照。归档 SHA-256 与原交付回执一致。Fedora 45 Container Base 1.4 的镜像摘要和 OpenPGP 签名均通过，签名指纹为 `4F50A6114CD5C6976A7F1179655A4B02F577861E`。依赖从 Fedora 45 发行仓库解析，112 个 RPM 经校验后安装在 WSL2 的独立根目录。[Fedora 镜像](https://fedoraproject.org/en/misc/) · [发行密钥](https://fedoraproject.org/security/)
+
+基础镜像缺少 `libnspr4.so`，安装依赖后加载器解析 97 个库。复验在独立的 PID 命名空间中挂载 `/proc`，并保留包内 V8 快照。实际 Electron 44.7.0 以 UID 65534 启动 Node 24.21.0。临时根目录已清理，Fedora 图形会话仍待验收。报告为 `.dsh-build/linux-fedora45-portable-abi-result-20261111.json`，原始日志为 `.dsh-build/linux-fedora45-portable-abi-acceptance-20261111.log`。
+
 ## 动态 Slot 渲染参数（2026-11-11）
 
 独立变化的 Slot 名称或分派键需要一组能满足所有候选的参数。检查覆盖 owner props、按键的 owner props、分派键及 `hookContext`，也覆盖传给 `renderSlotChain` 的 selector 输入。单个候选内部声明的联合类型仍可使用。聊天节点、用户消息内联节点和工作区提示把由同一对象决定的键和参数作为 `KeyedRenderSlotArgs` 元组传入。
