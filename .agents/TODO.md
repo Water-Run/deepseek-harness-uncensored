@@ -8,7 +8,7 @@
 
 **Linux 交付**　检查版 `0.1.0-test.20261111.linux.5` 提供 deb 和 tar.gz。Ubuntu WSL2 和 Fedora 45 隔离环境已通过图形启动与渲染沙箱检查，Debian 12 已通过 `.4 → .5` 升级和卸载。各平台的验证范围和产物摘要见 [HANDOFF](HANDOFF.md)。
 
-**剩余交付**　进阶保护后端、依赖许可、签名更新、跨平台和最终验收继续列在“进行中”。当前 Windows 包包含 859 个 npm 包、19 份补充声明，7 项许可待核查。详见[许可明细](requirements/2026-11-03-dependency-notices.md)。
+**剩余交付**　进阶保护后端、依赖许可、签名更新、跨平台和最终验收继续列在“进行中”。当前 Windows 包包含 859 个 npm 包、19 份补充声明，7 项许可待核查。Fontkit 源表的商标和免责声明已补齐并通过两平台实包清单复算，待下一次打包分发。详见[许可明细](requirements/2026-11-03-dependency-notices.md)。
 
 **开发约定**　仅 main，中文提交并推送。不使用 Computer Use；后台和无界面验收优先。交付证据、限制和恢复入口见 [HANDOFF](HANDOFF.md)。下列百分比为实现与验收的综合估算。
 

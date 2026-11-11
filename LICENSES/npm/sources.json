@@ -33,7 +33,7 @@
     "packages": ["fontkit@2.0.4"],
     "file": "fontkit-2.0.4-Apple-mappings-NOTICE.txt",
     "source": "https://www.unicode.org/Public/MAPPINGS/VENDORS/APPLE/",
-    "sha256": "31ac95f2a52a86a1fc59bc8c665436074d371852a090912f07972959417d77d9"
+    "sha256": "731d2f298c322c6bc349c4bba17bdccde980acc3830fc7eec0b037c76b860365"
   },
   {
     "packages": ["frida@17.23.2"],
