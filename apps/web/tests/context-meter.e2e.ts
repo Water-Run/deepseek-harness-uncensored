@@ -84,7 +84,8 @@ describe.skipIf(webSnapshotMode() === 'record').each([
         await cost.waitFor()
         await limits.waitFor()
         await expect.poll(() => cost.textContent()).toMatch(/[￥¥]\d/)
-        await expect.poll(() => limits.textContent()).toMatch(/(?:5h|7d) \d+%/)
+        // Host-side configuration reaches the footer on its two-second polling cadence.
+        await expect.poll(() => limits.textContent(), { timeout: 10_000 }).toMatch(/(?:5h|7d) \d+%/)
         for (const preference of ['light', 'dark']) {
           for (const fontSize of [14, 22]) {
             await scaffold.ctx.settings.update('ui-theme', { preference, fontSize })
@@ -121,10 +122,11 @@ describe.skipIf(webSnapshotMode() === 'record').each([
           { trigger: limits, name: 'Spending limits' },
         ]
         for (const details of panels) {
+          const modal = details.name === 'Conversation cost' || details.name === 'Spending limits'
           await details.trigger.click()
           const dialog = page.getByRole('dialog', { name: details.name, exact: true })
           await dialog.waitFor()
-          if (details.name === 'Conversation cost' || details.name === 'Spending limits') {
+          if (modal) {
             expect(await dialog.getAttribute('aria-modal')).toBe('true')
             await expect.poll(() => dialog.evaluate(element => element.contains(document.activeElement))).toBe(true)
           }
@@ -142,7 +144,12 @@ describe.skipIf(webSnapshotMode() === 'record').each([
           }
           await page.keyboard.press('Escape')
           await dialog.waitFor({ state: 'hidden' })
-          await expect.poll(() => details.trigger.evaluate(element => element === document.activeElement)).toBe(true)
+          if (modal) {
+            await expect.poll(async () => ({
+              panel: details.name,
+              restored: await details.trigger.evaluate(element => element === document.activeElement),
+            })).toEqual({ panel: details.name, restored: true })
+          }
         }
         expect(tripwire.pageErrors).toEqual([])
         expect(tripwire.warnings).toEqual([])

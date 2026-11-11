@@ -7,10 +7,11 @@ import { useDismissOnOutsidePointer } from './useDismissOnOutsidePointer.ts'
 import { MenuSurface } from './MenuSurface.tsx'
 import { useOverlayPresence } from './useOverlayPresence.ts'
 import { useModalLayer } from './useModalLayer.ts'
+import { focusWithoutRing } from './focus.ts'
 import css from './StatPopover.module.css'
 
 /**
- * Render a footer reading with a viewport-fitting details panel.
+ * Render a footer reading whose viewport-fitting details return focus to their trigger.
  * @param props - Localized reading, panel title, decorative icon and details.
  * @returns Clickable reading and its keyboard-accessible details.
  */
@@ -18,14 +19,17 @@ export function StatPopover({ label, title, icon, children }: { label: string; t
   const [open, setOpen] = useState(false)
   const present = useOverlayPresence(open)
   const root = useRef<HTMLSpanElement>(null)
-  const trigger = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLDivElement>(null)
   const position = useAnchoredPosition({ open: present, anchorRef: root, panelRef: panel, side: 'top', gap: 8, margin: 12 })
   useDismissOnOutsidePointer(root, open, setOpen, panel)
   useModalLayer(panel, open && position !== null, () => { setOpen(false) })
   return <span ref={root} className={css.root}>
-    <button ref={trigger} type="button" className={css.trigger} aria-label={`${title}: ${label}`} aria-haspopup="dialog" aria-expanded={open}
-      onClick={() => { setOpen(value => !value) }}>{icon}<span>{label}</span></button>
+    <button type="button" className={css.trigger} aria-label={`${title}: ${label}`} aria-haspopup="dialog" aria-expanded={open}
+      onClick={(event) => {
+        const control = event.currentTarget
+        if (!open && control.ownerDocument.activeElement !== control) focusWithoutRing(control, { preventScroll: true })
+        setOpen(value => !value)
+      }}>{icon}<span>{label}</span></button>
     {present && createPortal(<MenuSurface ref={panel} tabIndex={-1} className={css.panel} role={open ? 'dialog' : undefined} aria-modal={open || undefined} aria-label={title}
       {...(open ? {} : { inert: '' })} aria-hidden={!open || undefined} data-exiting={!open || undefined}
       style={position ?? { visibility: 'hidden', left: 0, top: 0 }}>
