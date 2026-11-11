@@ -12,7 +12,7 @@ REA is bundled with its npm dependencies and runs under the included Node 24.22.
 
 DSHU uses its own application identity, update source and data directory. The desktop and installer offer Chinese and English; installer artwork and Web install icons use the canonical dark whale SVG.
 
-Installed resources include the DSHU license, preserved upstream licenses and `THIRD_PARTY_NOTICES.md`. Component-specific license and notice files remain with their respective runtime packages.
+Installed resources include the DSHU license, preserved upstream licenses and `THIRD_PARTY_NOTICES.md`. Component-specific license and notice files remain with their respective runtime packages. Exact-version supplements and outstanding checks are listed in the [dependency notice audit](../../.agents/requirements/2026-11-03-dependency-notices.md).
 
 Runtime qualification checks the actual Host's four built-in presets before REA and Office checks; a missing or broken preset fails packaging even if the web page loads.
 

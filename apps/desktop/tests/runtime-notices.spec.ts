@@ -61,7 +61,13 @@ it('requires exact aggregate versions and keeps documented upstream notice gaps 
   const packages = await prepareRuntimeNotices(root)
   expect(packages.find(pkg => pkg.name === 'covered' && pkg.version === '1.0.0')).toMatchObject({ reviewRequired: false })
   expect(packages.find(pkg => pkg.version === '1.0.1')).toMatchObject({ reviewRequired: true, notices: [] })
-  expect(packages.find(pkg => pkg.name === 'clean-git-ref')).toMatchObject({ reviewRequired: true, notices: [expect.objectContaining({ path: 'node_modules/rea-agents/licenses/npm-runtime-notices.txt' })] })
+  expect(packages.find(pkg => pkg.name === 'clean-git-ref')).toMatchObject({ reviewRequired: true, notices: [
+    {
+      path: 'licenses/clean-git-ref-2.0.1-Apache-2.0.txt',
+      sha256: 'cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30',
+    },
+    expect.objectContaining({ path: 'node_modules/rea-agents/licenses/npm-runtime-notices.txt' }),
+  ] })
 })
 
 it.each([
@@ -129,7 +135,7 @@ it('copies every pinned supplement unchanged and leaves other versions for revie
   add(root, 'next/node_modules/tr46', 'tr46', '0.0.4')
   const packages = await prepareRuntimeNotices(root)
   expect(packages.filter(pkg => pkg.reviewRequired).map(pkg => `${pkg.name}@${pkg.version}`).sort()).toEqual([
-    '@cfworker/json-schema@99.0.0', '@img/sharp-libvips-linux-x64@1.3.4', 'brotli@1.3.3',
+    '@cfworker/json-schema@99.0.0', '@img/sharp-libvips-linux-x64@1.3.4', 'brotli@1.3.3', 'clean-git-ref@2.0.1',
     'fontkit@2.0.4', 'frida@17.23.2', 'sherpa-onnx-linux-x64@1.13.8', 'tr46@0.0.4',
   ])
   expect(packages.find(pkg => pkg.name === 'brotli')?.notices).toHaveLength(4)

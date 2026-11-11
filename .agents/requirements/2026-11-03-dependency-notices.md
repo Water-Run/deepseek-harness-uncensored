@@ -2,6 +2,12 @@
 
 状态：进行中，不代表整合发行的许可核对已完成。用户的 GPL 许可偏好、上游 Credit 和各组件原有许可保持不变。
 
+## clean-git-ref 的 Apache 许可正文（2026-11-11）
+
+`clean-git-ref 2.0.1` 的 npm 归档通过锁文件 SHA-512 校验，发布提交为 `bf3c8afc8032bcdc6a53634c18b601dc6df478fb`。源码和归档均声明 Apache-2.0，作者字段为 Eli White。Windows `.6` 实装和 Linux `.5` 便携包的入口文件均与 npm 归档逐字一致。打包后的 manifest 只移除了 `scripts`，其余字段与发布源码一致。该版本的归档和源码树均缺少独立许可正文。[发布源码](https://github.com/TheSavior/clean-git-ref/tree/bf3c8afc8032bcdc6a53634c18b601dc6df478fb)
+
+补入 Apache 基金会提供的 Apache 2.0 正文，SHA-256 为 `cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`，仅匹配 `2.0.1`。原 REA 汇总声明和该包的待核查状态继续保留，上游专属署名与整合发行核对仍待完成。12 项清点器回归及 Host/Client 聚合检查通过。Windows 和 Linux 的实包输入复算分别为 859 和 861 个包、22 和 27 份补充声明，待核查数量分别为 7 和 9。复算包含此前尚未交付的补充声明，新原文随下次打包分发。回执位于 `.dsh-build/clean-git-ref-license-20261111/`。[Apache 正文](https://www.apache.org/licenses/LICENSE-2.0.txt)
+
 ## Linux x64 图像与语音依赖（2026-11-11）
 
 校验 Linux `.5` tar.gz 与 ASAR 的交付摘要。实包中的 `libvips-cpp.so.8.18.7` 和 Sherpa-ONNX 的四个二进制与 npm 归档逐字一致。两个 npm 归档均通过 `pnpm-lock.yaml` 的 SHA-512 核对，发布提交与上游标签一致。[Sharp libvips 1.3.4](https://github.com/lovell/sharp-libvips/releases/tag/v1.3.4) · [Sherpa-ONNX 1.13.8](https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.13.8)
@@ -120,7 +126,7 @@ Linux `.3` 实包原清单为 861 个 npm 包和 12 项待核查。`@deepseek-ai
 | 包与版本 | 剩余核查 |
 | --- | --- |
 | brotli 1.3.3 | 已补 Google 解码器、固定子模块和 Emscripten 运行时声明，包装代码原始署名、精确编译器版本及链接组件清单待核对 |
-| clean-git-ref 2.0.1 | REA 明确记录的上游原文/署名缺项，保留待核查 |
+| clean-git-ref 2.0.1 | 已补所声明的 Apache 2.0 正文，上游专属署名和整合发行核对仍待完成 |
 | dfa 1.2.0 | npm 包及固定源提交没有独立许可原文 |
 | fontkit 2.0.4 | 已补八张 Mac 编码表的归属声明。该版本的完整许可原文与 Apple 数据分发条款仍待核对 |
 | frida 17.23.2 | 版本及源码链已核对，Node 绑定和预构建组件的完整署名仍待核查 |
