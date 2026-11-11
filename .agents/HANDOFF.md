@@ -1,5 +1,17 @@
 # Uncensored 开发交接
 
+## D 盘构建产物清理（2026-11-11）
+
+按用户要求清理已完成节点的产物。D 盘实际可用空间从 61.58 GiB 增至 92.46 GiB，净增 30.88 GiB。清理范围包括 16 份旧安装归档、四个安装测试目录内的程序与解包载荷、三个旧展开目录、主工作区及两个暂存副本的打包缓存，以及本轮许可复算临时目录。遍历检查排除了重解析点和进程占用，按文件删除后只移除空目录。
+
+当前 Windows `.6`、回退用 `.5`、Linux `.5` 的 deb/tar.gz，以及升级验证用 Linux `.4` deb 均可读取。三份最新包和 Windows 实装 ASAR 的摘要通过核对，源码工作区状态通过比对。打包缓存会在下次构建时重新准备。已移除旧包的历史摘要、清单、日志及截图继续可查。
+
+清理范围与实测空闲量保存在 `.dsh-build/disk-cleanup-owned-20261111-summary.json`，逐项计划和结果使用 `disk-cleanup-archives-`、`disk-cleanup-expanded-` 和 `disk-cleanup-caches-` 前缀。
+
+## clean-git-ref 许可正文（2026-11-11）
+
+已补 `clean-git-ref 2.0.1` 所声明的 Apache 2.0 正文。Windows `.6` 与 Linux `.5` 的原包输入复算通过，12 项清点器回归和 Host/Client 聚合检查通过。待核查数量仍为 7 和 9，新原文随下一次打包分发。来源、实包对应关系和剩余范围见[依赖声明审计](requirements/2026-11-03-dependency-notices.md#clean-git-ref-的-apache-许可正文2026-11-11)。
+
 ## Fedora 45 便携运行时验收（2026-11-11）
 
 从实际 `.5` Linux x64 便携归档抽取 Electron、`libffmpeg.so`、ICU 数据和 V8 快照。归档 SHA-256 与原交付回执一致。Fedora 45 Container Base 1.4 的镜像摘要和 OpenPGP 签名均通过，签名指纹为 `4F50A6114CD5C6976A7F1179655A4B02F577861E`。依赖从 Fedora 45 发行仓库解析，112 个 RPM 经校验后安装在 WSL2 的独立根目录。[Fedora 镜像](https://fedoraproject.org/en/misc/) · [发行密钥](https://fedoraproject.org/security/)
