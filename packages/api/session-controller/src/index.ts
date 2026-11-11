@@ -23,6 +23,7 @@ import {
 } from './agent.ts'
 import { SessionCommandController, hasPromptContent } from './commands.ts'
 import { SessionAsideController } from './asides.ts'
+import { nativeAsideKind, selectCurrentSide } from './aside-identity.ts'
 import { SessionDeletionController } from './deletion.ts'
 import { SessionControlController } from './control.ts'
 import { HistoryController } from './history/controller.ts'
@@ -237,6 +238,7 @@ export class SessionController extends TypertRemoteService {
   private controlState!: SessionControlController
   private listState!: ApiSessionList
   private asides!: SessionAsideController
+  private reconcileSpendingPauses: (() => Promise<void>) | undefined
   private deletions!: SessionDeletionController
   private readonly openPath: (path: string, signal: AbortSignal) => Promise<void>
   private readonly fileApplications: typeof nativeFileApplications
@@ -306,7 +308,7 @@ export class SessionController extends TypertRemoteService {
     }, (ids) => { this.historyController.closeSessions(ids) })
     ctx.effect(() => () => this.deletions.close(), 'session-controller: deletion operations')
     await this.deletions.recover()
-    ctx.inject(['spendLimit', 'workspaceRegistry', 'sessions', 'sessionPersistence'], (child) => {
+    ctx.inject(['spendLimit', 'workspaceRegistry', 'sessions', 'sessionPersistence', 'sessionQuery'], (child) => {
       child.effect(() => child.spendLimit.registerContinuation(async (claim, signal) => {
         signal.throwIfAborted()
         if (child.workspaceRegistry.archivedSessionIds.includes(claim.sessionId)) return 'unavailable'
@@ -323,21 +325,40 @@ export class SessionController extends TypertRemoteService {
       child.on('api-session/deleted', (id) => {
         void child.spendLimit.forgetSession(id).catch((error: unknown) => { child.logger.error('session-controller: spending pause cleanup failed'); child.logger.error(error) })
       })
-      if (child.sessionPersistence.supportsDeletion) {
-        child.effect(() => {
-          const persistence = child.sessionPersistence
-          const spending = child.spendLimit
-          const cleanup = (async () => {
-            const deleted = new Set(await persistence.deletedSessionIds())
-            const { pausedSessions } = await spending.get()
-            for (const { sessionId } of pausedSessions) if (deleted.has(sessionId)) await spending.forgetSession(sessionId)
-          })().catch((error: unknown) => {
+      child.effect(() => {
+        const persistence = child.sessionPersistence
+        const spending = child.spendLimit
+        const query = child.sessionQuery
+        const sweep = async () => {
+          const deleted = new Set(persistence.supportsDeletion ? await persistence.deletedSessionIds() : [])
+          const { pausedSessions } = await spending.get()
+          for (const { sessionId } of pausedSessions) if (deleted.has(sessionId)) await spending.forgetSession(sessionId)
+          const sides = pausedSessions.filter(({ sessionId }) => !deleted.has(sessionId) && sessionId.startsWith('session-side-'))
+          if (sides.length === 0) return
+          const headers = (await query.listSessions()).map(entry => entry.header)
+          const byId = new Map(headers.map(header => [header.id, header]))
+          for (const { sessionId } of sides) {
+            const parent = byId.get(sessionId)?.parentSession
+            if (parent === undefined || nativeAsideKind(sessionId, parent) !== 'side') continue
+            const current = selectCurrentSide(headers, parent)
+            if (current !== undefined && current.id !== sessionId) await spending.forgetSession(sessionId)
+          }
+        }
+        let pending = Promise.resolve()
+        const reconcile = () => {
+          pending = pending.then(sweep).catch((error: unknown) => {
             child.logger.error('session-controller: spending pause recovery failed')
             child.logger.error(error)
           })
-          return () => cleanup
-        }, 'session-controller: deleted spending pause recovery')
-      }
+          return pending
+        }
+        this.reconcileSpendingPauses = reconcile
+        void reconcile()
+        return async () => {
+          this.reconcileSpendingPauses = undefined
+          await pending
+        }
+      }, 'session-controller: retired spending pause recovery')
     })
     this.listState = new ApiSessionList(ctx, this.listWorkSliceMs)
     await this.listState.initialize()
@@ -615,8 +636,10 @@ export class SessionController extends TypertRemoteService {
    * @returns The fresh context identity, or the unchanged identity when auto-clear is off.
    */
   @Remote('resetAside')
-  resetAside(request: SessionAsideResetRequest): Promise<SessionForkValue> {
-    return this.asides.reset(request)
+  async resetAside(request: SessionAsideResetRequest): Promise<SessionForkValue> {
+    const result = await this.asides.reset(request)
+    await this.reconcileSpendingPauses?.()
+    return result
   }
 
   /**

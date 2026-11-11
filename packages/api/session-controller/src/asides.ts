@@ -129,6 +129,8 @@ export class SessionAsideController {
 
   private async publish(request: SessionAsideRequest, childId: SessionId, source: SessionObservation): Promise<SessionForkValue> {
     this.authorize(childId)
+    const parent = this.ctx.sessions.get(request.sessionId)
+    if (parent !== undefined) await this.ctx.sessions.flush(parent)
     const composition = await this.agents.composeAgent(this.agents.presetForObservation(source))
     const latestConfig = source.projections?.values.modelSelection?.next
       ?? source.events.findLast(event => event.type === 'request/header')?.data.header.config

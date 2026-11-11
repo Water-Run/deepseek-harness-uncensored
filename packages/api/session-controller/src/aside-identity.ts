@@ -2,7 +2,7 @@
 import { createHash } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
 import { brandString } from '@deepseek-ai/dsh-brand'
-import type { SessionId } from '@deepseek-ai/dsh-session'
+import type { SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-session-query'
 
 /**
@@ -51,8 +51,18 @@ export function nativeAsideKind(id: SessionId, parent: SessionId | undefined): '
  * @returns The highest published generation, or undefined before any side was opened.
  */
 export async function currentSide(ctx: Context, parent: SessionId): Promise<{ id: SessionId; generation: number } | undefined> {
+  return selectCurrentSide((await ctx.sessionQuery.listSessions()).map(entry => entry.header), parent)
+}
+
+/**
+ * Select the latest published side context from observed Session headers.
+ * @param headers - Durable and exact live Session headers.
+ * @param parent - Owning main conversation.
+ * @returns The highest published generation, or undefined before any side was opened.
+ */
+export function selectCurrentSide(headers: readonly SessionHeader[], parent: SessionId): { id: SessionId; generation: number } | undefined {
   let current: { id: SessionId; generation: number } | undefined
-  for (const { header } of await ctx.sessionQuery.listSessions()) {
+  for (const header of headers) {
     if (header.parentSession !== parent) continue
     const generation = sideGeneration(header.id, parent)
     if (generation !== undefined && (current === undefined || generation > current.generation)) {

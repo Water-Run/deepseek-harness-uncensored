@@ -12,6 +12,7 @@ import SqliteQuery from '@deepseek-ai/dsh-session-query-sqlite'
 import WorkspaceRegistry from '@deepseek-ai/dsh-workspace'
 import { mountAgentLoopTestDependencies, mountAgentLoopTestHarness } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import type { SessionId } from '@deepseek-ai/dsh-session'
 import * as spending from '@deepseek-ai/dsh-spend-limit'
 import type { SpendSnapshot } from '@deepseek-ai/dsh-spend-limit/types'
 import { SpendLedger, DEFAULT_PREFERENCES, MICRO_CNY } from '@deepseek-ai/dsh-spend-limit/src/ledger.ts'
@@ -50,7 +51,7 @@ async function setup(existingRoot?: string, prepareApi?: (ctx: Context) => Promi
   return { root, cwd, path, ctx, api, adapter, spendingFiber }
 }
 
-async function exhaust(fixture: Awaited<ReturnType<typeof setup>>) {
+async function exhaust(fixture: Awaited<ReturnType<typeof setup>>, existingId?: SessionId) {
   await fixture.ctx.spendLimit.configure({ ...DEFAULT_PREFERENCES, enabledPeriods: ['15m', '1h', '5h', '1d', '7d', '30d'],
     limits: { ...DEFAULT_PREFERENCES.limits, '15m': 3 } })
   const ledger = await SpendLedger.open(fixture.path)
@@ -59,7 +60,7 @@ async function exhaust(fixture: Awaited<ReturnType<typeof setup>>) {
     if (reservation.kind !== 'reserved') throw new Error(reservation.kind)
     ledger.settle(reservation.id, 3 * MICRO_CNY)
   } finally { ledger.close() }
-  const { sessionId } = await fixture.api.create({ cwd: fixture.cwd })
+  const sessionId = existingId ?? (await fixture.api.create({ cwd: fixture.cwd })).sessionId
   const agent = fixture.ctx.agents.get(sessionId)!
   agent.followup(createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'finish-original-task' }] }))
   await vi.waitFor(async () => {
@@ -111,6 +112,77 @@ it('deletes a waiting conversation and clears its spending pause before capacity
   expect((await fixture.ctx.spendLimit.get()).pausedSessions).toEqual([])
   expect(await fixture.ctx.sessionPersistence.stat(agent.id)).toBeUndefined()
   expect(fixture.ctx.agents.get(agent.id)).toBeUndefined()
+  await fixture.ctx.spendLimit.reset()
+  expect(fixture.adapter.requests).toHaveLength(0)
+})
+
+it.each([false, true])('clears a paused side context without recovering its old question (restart=%s)', async (restart) => {
+  const first = await setup()
+  const parent = await first.api.create({ cwd: first.cwd })
+  const side = await first.api.aside({ sessionId: parent.sessionId, kind: 'side' })
+  await exhaust(first, side.sessionId)
+  let fixture = first
+  if (restart) {
+    await first.ctx.fiber.dispose()
+    fixture = await setup(first.root)
+  }
+  expect((await fixture.api.resetAside({ sessionId: side.sessionId, cause: 'close' })).sessionId).toBe(side.sessionId)
+  expect((await fixture.ctx.spendLimit.get()).pausedSessions).toHaveLength(1)
+  const fresh = await fixture.api.resetAside({ sessionId: side.sessionId, cause: 'manual' })
+  expect(fresh.sessionId).not.toBe(side.sessionId)
+  expect((await fixture.ctx.spendLimit.get()).pausedSessions).toEqual([])
+  await fixture.ctx.spendLimit.reset()
+  expect(fixture.adapter.requests).toHaveLength(0)
+  expect((await fixture.api.aside({ sessionId: parent.sessionId, kind: 'side' })).sessionId).toBe(fresh.sessionId)
+})
+
+it('keeps a newer side pause when clearing an older side is retried', async () => {
+  const first = await setup()
+  const parent = await first.api.create({ cwd: first.cwd })
+  const side = await first.api.aside({ sessionId: parent.sessionId, kind: 'side' })
+  await exhaust(first, side.sessionId)
+  await first.ctx.fiber.dispose()
+  const fixture = await setup(first.root)
+  const fresh = await fixture.api.resetAside({ sessionId: side.sessionId, cause: 'manual' })
+  const agent = fixture.ctx.agents.get(fresh.sessionId)!
+  agent.followup(createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'new independent side question' }] }))
+  await vi.waitFor(async () => { expect((await fixture.ctx.spendLimit.get()).pausedSessions).toEqual([{ sessionId: fresh.sessionId, state: 'waiting', resumeAt: null }]) })
+  expect((await fixture.api.resetAside({ sessionId: side.sessionId, cause: 'manual' })).sessionId).toBe(fresh.sessionId)
+  expect((await fixture.ctx.spendLimit.get()).pausedSessions).toEqual([{ sessionId: fresh.sessionId, state: 'waiting', resumeAt: null }])
+  expect(fixture.adapter.requests).toHaveLength(0)
+})
+
+it('retries retired side pause cleanup after a failed spending read', async () => {
+  const first = await setup()
+  const parent = await first.api.create({ cwd: first.cwd })
+  const side = await first.api.aside({ sessionId: parent.sessionId, kind: 'side' })
+  await exhaust(first, side.sessionId)
+  await first.ctx.fiber.dispose()
+  const fixture = await setup(first.root)
+  await fixture.api.resetAside({ sessionId: side.sessionId, cause: 'close' })
+  vi.spyOn(fixture.ctx.spendLimit, 'get').mockRejectedValueOnce(new Error('spending read unavailable'))
+  const fresh = await fixture.api.resetAside({ sessionId: side.sessionId, cause: 'manual' })
+  expect((await fixture.ctx.spendLimit.get()).pausedSessions).toEqual([{ sessionId: side.sessionId, state: 'blocked', resumeAt: null }])
+  expect((await fixture.api.resetAside({ sessionId: side.sessionId, cause: 'manual' })).sessionId).toBe(fresh.sessionId)
+  expect((await fixture.ctx.spendLimit.get()).pausedSessions).toEqual([])
+  await fixture.ctx.spendLimit.reset()
+  expect(fixture.adapter.requests).toHaveLength(0)
+})
+
+it.each([false, true])('clears a retired side pause when the spending provider returns (deletion support=%s)', async (supportsDeletion) => {
+  const first = await setup()
+  const parent = await first.api.create({ cwd: first.cwd })
+  const side = await first.api.aside({ sessionId: parent.sessionId, kind: 'side' })
+  await exhaust(first, side.sessionId)
+  await first.ctx.fiber.dispose()
+  const fixture = await setup(first.root, async (ctx) => {
+    vi.spyOn(ctx.sessionPersistence, 'supportsDeletion', 'get').mockReturnValue(supportsDeletion)
+  })
+  await fixture.spendingFiber.dispose()
+  const fresh = await fixture.api.resetAside({ sessionId: side.sessionId, cause: 'manual' })
+  expect(fresh.sessionId).not.toBe(side.sessionId)
+  await fixture.ctx.plugin(spending, { path: fixture.path, pollMs: 50 }).await()
+  await vi.waitFor(async () => { expect((await fixture.ctx.spendLimit.get()).pausedSessions).toEqual([]) })
   await fixture.ctx.spendLimit.reset()
   expect(fixture.adapter.requests).toHaveLength(0)
 })

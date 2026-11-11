@@ -48,6 +48,20 @@ async function fixture(ctx: Context, withPermissions = true) {
 }
 
 describe('native side conversations', () => {
+  it.each(['side', 'btw'] as const)('does not publish a %s when its parent checkpoint fails', async (kind) => {
+    const ctx = new Context()
+    try {
+      const { parent, controller, adapter } = await fixture(ctx)
+      const failure = new Error('parent checkpoint unavailable')
+      const flush = vi.spyOn(ctx.sessions, 'flush').mockRejectedValueOnce(failure)
+      const before = ctx.agents.list().map(agent => agent.id)
+      await expect(controller.open({ sessionId: parent.id, kind })).rejects.toBe(failure)
+      expect(flush).toHaveBeenCalledWith(parent.session)
+      expect(ctx.agents.list().map(agent => agent.id)).toEqual(before)
+      expect(adapter.requests).toHaveLength(0)
+    } finally { await ctx.fiber.dispose() }
+  })
+
   it('preserves side history on close by default, then starts a truly fresh context on manual clear', async () => {
     const ctx = new Context()
     try {

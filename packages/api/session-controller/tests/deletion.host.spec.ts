@@ -32,7 +32,7 @@ afterEach(async () => {
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true })
 })
 
-async function setup(script?: ConstructorParameters<typeof MockAdapter>[0], existingRoot?: string) {
+async function setup(script?: ConstructorParameters<typeof MockAdapter>[0], existingRoot?: string, withProjectionCache = true) {
   const root = existingRoot ?? await mkdtemp(join(tmpdir(), 'dshu-delete-api-'))
   if (existingRoot === undefined) roots.push(root)
   const cwd = join(root, 'workspace'), stored = join(root, 'sessions'), cache = join(root, 'storage')
@@ -44,7 +44,7 @@ async function setup(script?: ConstructorParameters<typeof MockAdapter>[0], exis
   await ctx.plugin(JsonStorage, { root: cache }).await()
   await ctx.plugin(StorageDomain, { backend: 'json' }).await()
   await ctx.plugin(WorkspaceRegistry).await()
-  await ctx.plugin(ProjectionCache, { writeEveryEvents: 1000, writeIntervalMs: 60000 }).await()
+  if (withProjectionCache) await ctx.plugin(ProjectionCache, { writeEveryEvents: 1000, writeIntervalMs: 60000 }).await()
   await ctx.plugin(SqliteQuery, { path: join(root, 'search.sqlite'), openAt: 'startup' }).await()
   const harness = await mountAgentLoopTestHarness(ctx)
   const adapter = new MockAdapter(script ?? Array.from({ length: 8 }, () => textResponse('fixture answer')))
@@ -59,6 +59,23 @@ async function setup(script?: ConstructorParameters<typeof MockAdapter>[0], exis
   const api = await createSessionTestController(ctx, { cwd, defaultModelSelection: () => ({ provider: 'mock', model: 'mock' }) })
   return { root, cwd, stored, cache, ctx, api, harness, adapter }
 }
+
+it.each(['side', 'btw'] as const)('checkpoints an empty parent before publishing its %s without adding messages', async (kind) => {
+  const first = await setup(undefined, undefined, false)
+  const parent = await first.api.create({ cwd: first.cwd })
+  const agent = first.ctx.agents.get(parent.sessionId)!
+  const before = agent.session.snapshotEvents()
+  const aside = await first.api.aside({ sessionId: parent.sessionId, kind })
+  expect(agent.session.snapshotEvents()).toEqual(before)
+  expect((await first.ctx.sessionPersistence.stat(parent.sessionId))?.sizeBytes).toBeGreaterThan(0)
+  expect(await first.ctx.sessionPersistence.stat(aside.sessionId)).toBeDefined()
+  expect(first.adapter.requests).toHaveLength(0)
+  await first.ctx.fiber.dispose()
+  const restored = await setup(undefined, first.root, false)
+  const reopened = await restored.api.aside({ sessionId: parent.sessionId, kind })
+  if (kind === 'side') expect(reopened.sessionId).toBe(aside.sessionId)
+  expect(restored.adapter.requests).toHaveLength(0)
+})
 
 it('deletes through a dependency-checked scope with optional persistence', async () => {
   const { ctx, cwd } = await setup()
