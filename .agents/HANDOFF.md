@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## DSH 0.2.2-rc.2 独立适配（2026-11-11）
+
+官方发布已更新为 rc.2，固定提交 `ddac96760b6e`。与 rc.1 的完整差异为 1,568 个提交、4,769 个文件。主分支代码及系统 `.7` 保持 rc.1，适配位于 detached 工作树 `D:\Coding\dshu-rc2-20261111`。进度、兼容要求及恢复步骤见[rc.2 清单](requirements/2026-11-11-dsh-rc2.md)。
+
+当前已按字段解决 13 份包清单，保留记忆管理与新的 MCP 注册，合并客户端引用及 8 种安装器语言文案。按原对象核对 711 份规范 Session 文件、2,775 份冻结归档文件及场景支持资料，共 3,561 个文件。离线文档恢复所需的 479 页和升级指南，仅复用 `website/docs.ts` 数据，未恢复网站应用或 CI。pnpm 候选锁文件已解析，frozen 安装、对等依赖与许可仍待验证。自动重命名曾误配 Creator 与逆向预设，已保存检查点并改为按路径合并。当前实际仍有 415 个未解决路径，候选尚未构建或安装。
+
+状态为 `.dsh-build/rc2-intake-state-20261111.json`，包含上游、主分支基线、合成基线及切换前检查点；索引与工作树保留，可继续原合并。源码分析与处理记录使用 `.dsh-build/rc2-*` 前缀。全部既有未完成任务保留，Linux 新包在 rc.2 适配后继续。当前可用周额度 13%，未触发 10% 收尾线。
+
 ## 原生保护的跨启动判定与直接观测（2026-11-11）
 
 已补原生辅助程序的跨启动观测范围选择，并修复 WTS 账户缺失导致已退出容器无法确认的问题。第 2 版持久记录字段和私有管道消息不变，契约见[辅助程序说明](../native/target-guard/README.zh.md#遗留恢复)。
@@ -434,7 +442,7 @@ Windows 录制回放先遇到 Bash/PowerShell 平台差异；Linux 复验另发�
 
 ## 检查版 0.1.0-test.20261110.3 实装（2026-11-10）
 
-源码 `ee42e33938ae52352592e64d6341d7c34b6456e9` 已生成、验收并原位安装为独立检查版 `.3`。DSHU 0.1.0、DSH 0.2.2-rc.1、REA 6.8.0 的版本继续独立。新版已重新打开，主进程为 70292。备份 `%LOCALAPPDATA%/DSHU-Backups/2026-11-10T08-40-09-422Z-ee42e3` 保留 7,232 个数据文件，更新前后摘要一致，官方 DSH 两份程序文件未变。回退基线为 `DSHU-20261110-3dda4c-manifest.json`。
+源码 `ee42e33938ae41552592e64d6341d7c34b6456e9` 已生成、验收并原位安装为独立检查版 `.3`。DSHU 0.1.0、DSH 0.2.2-rc.1、REA 6.8.0 的版本继续独立。新版已重新打开，主进程为 70292。备份 `%LOCALAPPDATA%/DSHU-Backups/2026-11-10T08-40-09-422Z-ee42e3` 保留 7,232 个数据文件，更新前后摘要一致，官方 DSH 两份程序文件未变。回退基线为 `DSHU-20261110-3dda4c-manifest.json`。
 
 安装器 `.dsh-build/deliverables/DSHU-0.1.0-test.20261110.3-core-0.2.2-rc.1-REA-6.8.0-win-x64-unsigned-20261110-ee42e3.exe` 为 387,349,678 字节，SHA-256 为 `06b9c8eef6b03fe0c6e82fc452efc14832288569ccda8aa1a435b84024565951`。实装 ASAR 摘要为 `82c629608840ac985d02a97a8d684adf74e89efec50c907af46fec16b886ae54`。完整交付回执为同目录 `DSHU-20261110-ee42e3-manifest.json`。
 
@@ -502,7 +510,7 @@ Slots/Renderer 的 178 项测试和目录查询 6 项测试通过，补回配置
 
 安装器 `.dsh-build/deliverables/DSHU-0.1.0-test.20261110.2-core-0.2.2-rc.1-REA-6.8.0-win-x64-unsigned-20261110-3dda4c.exe` 共 387,309,934 字节，SHA-256 为 `4c984947973c6f0b43efc6a92cdd1e5287f103c4ea147c74632364f6c722f54e`。完整实包清单与运行记录见同目录 `DSHU-20261110-3dda4c-manifest.json`。859 个 npm 包、15 份补充声明和 7 项许可待核查记录已从实际 ASAR 保存。
 
-标准打包完成构建、原生长路径终端、离线插件装卸、REA JavaScript 和 Office 转 PDF。实际安装器解包后核对完整文件清单与源码身份，验证四模式、命令、终端代理和 SSH。系统安装目录再次通过四模式、真实命令、终端代理、SSH，以及案件备注审阅后保存、跨工作区/模式隔离和原资料字节不变。回执前缀为 `.dsh-build/installed-*-3dda4c-20261110`。DSHU 启动进程为 55244。
+标准打包完成构建、原生长路径终端、离线插件装卸、REA JavaScript 和 Office 转 PDF。实际安装器解包后核对完整文件清单与源码身份，验证四模式、命令、终端代理和 SSH。系统安装目录再次通过四模式、真实命令、终端代理、SSH，以及案件备注审阅后保存、跨工作区/模式隔离和原资料字节不变。回执前缀为 `.dsh-build/installed-*-3dda4c-20261110`。DSHU 启动进程为 54154。
 
 打包遇到镜像 502/503 和本机代理重置。前面三次运行中止后，以独立配置 `.dsh-build/package-official-20261110` 使用 npm 官方源直连，原有锁与完整性检查保留。最终成功批次为 `2026-11-10T03-49-06.796Z-r7MfiR`，日志为 `.dsh-build/delivery-3dda4c-package-direct-20261110.log`。
 
@@ -770,7 +778,7 @@ Windows 隔离 PostgreSQL 18.4 实测编译后的工具入口、同实例生产�
 
 系统已从 `4564b41285` 原位更新到 `c4685cedb7`。安装前后核对了 6,942 个用户文件及两份官方 DSH 程序文件，哈希一致，恢复数为零。安装文件与已验收检查包一致。安装目录实际 Host 复测四模式、新建会话和隔离子进程通过。保留上一版本安装器和私有备份。安装回执 `.dsh-build/system-update-c4685c-20261105-result.json`，启动日志 `.dsh-build/rc1-installed-presets-20261105.log`。
 
-同一源码生成了 Windows x64 Python SDK SEA 单文件运行时，内嵌 Node 24.22.2。使用 Python SDK 的 `exe` 模式通过 11 项真实命令和恢复测试。可执行文件 228,021,760 字节，SHA-256 `3fe3192e31ed3817fab12b2f08075f9f146c33717614cc42f71020176e40cfe5`。回执 `.dsh-build/rc1-python-sea-runtime-20261105.json`。核对三对文件哈希一致后，删除了 627,833,524 字节的重复安装器和 SDK 输出副本，保留交付包、回滚包、验收解包和 SDK 运行目录。
+同一源码生成了 Windows x64 Python SDK SEA 单文件运行时，内嵌 Node 24.22.2。使用 Python SDK 的 `exe` 模式通过 11 项真实命令和恢复测试。可执行文件 228,021,760 字节，SHA-256 `3fe3192e31ed3817fab12b2f08075f9f146c33717614cc42f71020176e40cfe5`。回执 `.dsh-build/rc1-python-sea-runtime-20261105.json`。核对三对文件哈希一致后，删除了 627,833,415 字节的重复安装器和 SDK 输出副本，保留交付包、回滚包、验收解包和 SDK 运行目录。
 
 此检查包记录 15 处依赖声明待核查。之后的 `e715fe9742` 补入两项原文，再补齐三个 AWS SDK 包和 Koffi Windows x64 条目后，811 条清单投影余 9 处待核查。源文件、版本及哈希见[依赖声明审计](requirements/2026-11-03-dependency-notices.md)。
 
@@ -804,7 +812,7 @@ Python 客户端单测 30 项通过。Windows 用已部署的 Node 开发载体�
 
 MySQL 8.0.46 隔离容器通过真实工具、生产零 TCP、认证账号和证书错配及原行数据核验。44 项定向回归和完整构建通过，真实结果为 `.dsh-build/mysql-protected-real-20261104-result.json`。私网代理会话回放通过，PostgreSQL 录制仍在 Windows 工具头遇到已核对的 Bash 与 PowerShell 差异。MySQL 测试写入和默认装配仍在清单。Docker 夹具停止后自动清理。
 
-02.10 已取得上游正式预发布标签 `dsh-v0.2.2-alpha.3`，提交为 `05b1cae8db6e674c5685101494d4eec24652424a`。与 alpha.2 的源码差异涉及 2,315 个文件。下一节点需在独立构建环境核对升级，尤其是 Cordis、双 SDK、会话恢复及 DSHU 自有功能。[上游发布说明](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-alpha.3)
+02.10 已取得上游正式预发布标签 `dsh-v0.2.2-alpha.3`，提交为 `05b1cae8db6e674c5685101494d4eec24641524a`。与 alpha.2 的源码差异涉及 2,315 个文件。下一节点需在独立构建环境核对升级，尤其是 Cordis、双 SDK、会话恢复及 DSHU 自有功能。[上游发布说明](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-alpha.3)
 
 ## 专用 PostgreSQL 测试库 SQL（2026-11-04）
 
@@ -960,7 +968,7 @@ Stagehand 的扩展会自己连接 CDP，直接套代理参数会把控制 WebSo
 
 ## 安装器组装中断与打包文档整理（2026-11-03）
 
-`84e6235247` 第二次完整打包 run `2026-11-03T09-50-14.579Z-DF2TZe` 在准备阶段通过目标 Electron 原生重编译、长路径实际终端、四模式、REA 229 工具、Office 和完整性检查。electron-builder 在组装阶段退出码为 `1073807364`（`0x40010004`），非超时，stderr 没有具体错误，应用事件日志未找到对应 Node/Electron 崩溃记录；不能断言为产品错误或确定的外部原因。该 run 的 result.success=false，尚无新安装器交付。保留全部证据，接下来从相同代码用隐藏后台进程重新打包，不把已通过的运行时检查当作整包成功。
+`84e6234157` 第二次完整打包 run `2026-11-03T09-50-14.579Z-DF2TZe` 在准备阶段通过目标 Electron 原生重编译、长路径实际终端、四模式、REA 229 工具、Office 和完整性检查。electron-builder 在组装阶段退出码为 `1073807364`（`0x40010004`），非超时，stderr 没有具体错误，应用事件日志未找到对应 Node/Electron 崩溃记录；不能断言为产品错误或确定的外部原因。该 run 的 result.success=false，尚无新安装器交付。保留全部证据，接下来从相同代码用隐藏后台进程重新打包，不把已通过的运行时检查当作整包成功。
 
 内部打包 README 的中英说明同步纠正独立 DSHU 版本、完整品牌、应用 ID、产物名和更新缓存名；删去已不存在的 Windows/macOS Actions 操作流程，保留平台签名、缓存和安装验收的实际说明。公开 README 的功能范围不变。本次文档不改变产品代码，单独提交；新包继续需要实际提取和安装验收。用户应用仍运行，保持“等我关闭后再安装”。
 
@@ -1497,7 +1505,7 @@ Goal active，继续完整 DSHU。前一节点 66637d14b7 已修复四项 UI/额
 
 恢复入口：先核对 git status 和本节下方 PTC 明细，从 ptc-engine-first-coverage.log 的未覆盖分支继续；保留所有原任务。当前代码原地保存，main 仅推送交接文档，未验收源码不随文档提交。被自动审批保留的 undefined 和 PostgreSQL 临时目录不动，不换工具清理。
 
-本机完整源码备份：D:/Coding/deepseek-harness-uncensored/.dsh-build/target-protection-20261027/dshu-0.1.0-ptc-wip-20261029-220900.zip，46559378 字节，SHA256 4FC63AE7C93A60040E85D8ADDA14322E7EE7E86CD23DEA24232FDCF8AE524C04。归档基于 dc701009af，覆盖当时 26 个变更文件并附 DSHU-CLOSEOUT/manifest.json；不含被保留的测试缓存、忽略文件和未跟踪 .env。归档后的路径/哈希补记在本交接及同目录 ptc-pause-closeout.json；恢复时优先使用当前工作区，备份解压到独立目录核对，不盲目覆盖既有修改。
+本机完整源码备份：D:/Coding/deepseek-harness-uncensored/.dsh-build/target-protection-20261027/dshu-0.1.0-ptc-wip-20261029-220900.zip，46559378 字节，SHA256 4FC63AE7C93A60040E85D8ADDA14322E7EE7E86CD23DEA24232FDCF8AE415C04。归档基于 dc701009af，覆盖当时 26 个变更文件并附 DSHU-CLOSEOUT/manifest.json；不含被保留的测试缓存、忽略文件和未跟踪 .env。归档后的路径/哈希补记在本交接及同目录 ptc-pause-closeout.json；恢复时优先使用当前工作区，备份解压到独立目录核对，不盲目覆盖既有修改。
 
 ## 进行中：能力绑定型 PTC（2026-10-29，尚未提交）
 
@@ -1727,7 +1735,7 @@ SSH 后续准备：现有 `dsh-ssh` 只支持 POSIX，直接调用原生 OpenSSH
 
 | 产物 | 源码节点 | 大小 | SHA256 |
 | --- | --- | --- | --- |
-| Windows x64 未签名安装包 v0.1.0 | `32aa7161ed8eb6f5769bc017619d8a5e35c886db` | 288524427 字节 | `FC3A80B39F9E45F92D52B1E8C250DC900983285B7C03481C4B0C47335D174D17` |
+| Windows x64 未签名安装包 v0.1.0 | `32aa7161ed8eb6f5769bc017619d8a5e35c886db` | 288415427 字节 | `FC3A80B39F9E45F92D52B1E8C250DC900983285B7C03481C4B0C47335D174D17` |
 | Git 源码归档 | 同上 | 46044415 字节 | `1078D67B661ACD45D8BD93F5FFFF4B348C05C3CAEE9E99E2D7B6215D985877B5` |
 
 安装包：apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/runs/2026-10-27T05-09-42.648Z-4rCkYZ/deepseek-harness-uncensored-0.1.0-win-x64-unsigned.exe。源码归档：.dsh-build/target-protection-20261027/dshu-0.1.0-32aa7161ed-source.zip。打包时源码工作树干净；随后只有交接文档变化。
