@@ -4,6 +4,8 @@
 
 ## 已完成
 
+- [x] **会话底栏浏览器回归（2026-11-11）**。费用与限额加入详情面板缩放测试。两项 Chromium 场景覆盖有、无 Chat 统计贡献，390px 浅深主题和 14px、22px 字号下的同排、横向溢出及字体颜色。两面板还覆盖三个窗口宽度、限额进度条、模态焦点与 Escape 后返回。Host/Client 聚合检查和定向 lint 通过，录制输入摘要一致。WebKit 本轮未运行。日志为 `.dsh-build/footer-responsive-verified-20261111.log`。
+
 - [x] **推送检查触发（2026-11-11）**。当前主分支缺少上游跟踪，Lefthook 回退为比较 `HEAD` 与本地 `main`，跳过了推送类型检查。已配置 `main` 跟踪 `origin/main`，独立仓库用真实推送复现漏检并验证修复。报告为 `.dsh-build/lefthook-native-probe-20261111.json`，临时仓库已清理。
 
 - [x] **Windows 干净检出 lint（2026-11-11）**。修复复现的 5 条源码规则问题及 Corepack 下的 lint 启动失败。完整 lint、八项构建产物步骤、Host/Client 聚合检查和 66 项定向回归通过。主工作区已有的 56 个编译残留详见[交接记录](../HANDOFF.md)。

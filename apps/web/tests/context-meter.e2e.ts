@@ -1,4 +1,4 @@
-/** Context details stay inside the viewport with and without Chat's statistics contribution. */
+/** Footer readings and details fit the viewport with and without Chat's statistics contribution. */
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { chromium, webkit } from 'playwright'
@@ -77,17 +77,58 @@ describe.skipIf(webSnapshotMode() === 'record').each([
         await panel.waitFor()
         await page.mouse.click(1260, 400)
         await panel.waitFor({ state: 'hidden' })
+        const spending = await scaffold.ctx.spendLimit.get()
+        await scaffold.ctx.spendLimit.configure({ ...spending.preferences, enabledPeriods: ['5h', '7d'] })
+        const cost = page.getByRole('button', { name: /^Conversation cost:/ })
+        const limits = page.getByRole('button', { name: /^Spending limits:/ })
+        await cost.waitFor()
+        await limits.waitFor()
+        await expect.poll(() => cost.textContent()).toMatch(/[￥¥]\d/)
+        await expect.poll(() => limits.textContent()).toMatch(/(?:5h|7d) \d+%/)
+        for (const preference of ['light', 'dark']) {
+          for (const fontSize of [14, 22]) {
+            await scaffold.ctx.settings.update('ui-theme', { preference, fontSize })
+            await expect.poll(() => page.locator('body').evaluate(element => element.hasAttribute('data-ds-dark-theme')))
+              .toBe(preference === 'dark')
+            await expect.poll(() => page.evaluate(() => document.body.style.getPropertyValue('--dsh-content-font-size')))
+              .toBe(`${String(fontSize)}px`)
+            await page.setViewportSize({ width: 390, height: 900 })
+            await expect.poll(async () => {
+              const first = await cost.boundingBox()
+              const second = await limits.boundingBox()
+              return first !== null && second !== null && Math.abs(first.y - second.y) <= 1
+                && first.x >= 0 && second.x + second.width <= 390
+            }).toBe(true)
+            for (const reading of [cost, limits]) {
+              expect(await reading.evaluate(element => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1)
+            }
+            expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390)
+            if (withStats) {
+              await expect.poll(() => cost.evaluate((element) => {
+                const activity = document.querySelector('[data-composer-stat="activity"] button')
+                return activity !== null && getComputedStyle(element).color === getComputedStyle(activity).color
+              })).toBe(true)
+            }
+          }
+        }
         const panels = [
           { trigger, name: 'of context used' },
           ...withStats ? [
             { trigger: page.locator('[data-composer-stat="activity"] button'), name: 'Session statistics' },
             { trigger: page.locator('[data-composer-stat="usage"] button'), name: 'Token usage' },
           ] : [],
+          { trigger: cost, name: 'Conversation cost' },
+          { trigger: limits, name: 'Spending limits' },
         ]
         for (const details of panels) {
           await details.trigger.click()
           const dialog = page.getByRole('dialog', { name: details.name, exact: true })
           await dialog.waitFor()
+          if (details.name === 'Conversation cost' || details.name === 'Spending limits') {
+            expect(await dialog.getAttribute('aria-modal')).toBe('true')
+            await expect.poll(() => dialog.evaluate(element => element.contains(document.activeElement))).toBe(true)
+          }
+          if (details.name === 'Spending limits') expect(await dialog.getByRole('progressbar').count()).toBe(2)
           for (const width of [1280, 800, 390]) {
             await page.setViewportSize({ width, height: 900 })
             await expect.poll(async () => {
@@ -101,6 +142,7 @@ describe.skipIf(webSnapshotMode() === 'record').each([
           }
           await page.keyboard.press('Escape')
           await dialog.waitFor({ state: 'hidden' })
+          await expect.poll(() => details.trigger.evaluate(element => element === document.activeElement)).toBe(true)
         }
         expect(tripwire.pageErrors).toEqual([])
         expect(tripwire.warnings).toEqual([])

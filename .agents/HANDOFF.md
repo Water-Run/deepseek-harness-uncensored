@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## 会话底栏浏览器回归（2026-11-11）
+
+费用和限额加入现有详情面板浏览器用例。Chromium 在有、无 Chat 统计贡献时均通过。390px 下检查浅深主题与 14px、22px 字号，核对两项同排、读数和页面无横向溢出，以及费用与原有统计文字的颜色一致。两个详情面板还覆盖 390px、800px、1280px 下的定位，模态焦点、Escape 关闭及焦点返回，限额展示两个已启用窗口的进度条。
+
+两项 Chromium 场景、Host/Client 聚合检查及定向 lint 通过。WebKit 场景本轮未运行。录制 Session 与已提交版本摘要一致。日志为 `.dsh-build/footer-responsive-verified-20261111.log`，用例见[详情面板缩放测试](../apps/web/tests/context-meter.e2e.ts)。
+
 ## 推送钩子与主分支跟踪（2026-11-11）
 
 当前检出缺少 `main` 的上游跟踪。Lefthook 2.1.12 因而回退为 `git diff HEAD main`，使类型检查显示“没有匹配的推送文件”并跳过。已将本地 `main` 配置为跟踪 `origin/main`。

@@ -38,7 +38,7 @@ A new account-model sign-in-required event displays “Model unavailable. Please
 <a id="use-this-package"></a>
 ## Use this package
 
-Budget is one continuous page. The footer shows only the conversation estimate and the most occupied enabled window; click to inspect the cumulative curve or all window bars. Session estimates reconstruct recorded responses and retries at configured prices even while limits are off, exclude inherited work and auxiliary requests, and identify missing usage or prices. Sidebar balance details use a compact layout without normal-size scrolling.
+Budget is one continuous page. The footer shows the conversation estimate and the most occupied enabled window. The two readings stay together when the dock wraps. Click to inspect the cumulative curve or all window bars. Session estimates reconstruct recorded responses and retries at configured prices even while limits are off, exclude inherited work and auxiliary requests, and identify missing usage or prices. Sidebar balance details use a compact layout without normal-size scrolling.
 
 Each invalid spending-limit input identifies its error through `aria-invalid` and a linked localized explanation; saving stays disabled until every draft is valid. Limit switches report pending writes through the shared busy state.
 
