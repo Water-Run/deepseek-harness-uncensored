@@ -1,12 +1,24 @@
 # Uncensored 开发交接
 
+## Windows .7 实装与构建产物清理（2026-11-11）
+
+系统已安装并重新打开 `0.1.0-test.20261111.7`，干净源码 `21b1f17ae0`，产品 0.1.0 / DSH 0.2.2-rc.1 / REA 6.8.0。安装包为 `.dsh-build/deliverables/DSHU-0.1.0-test.20261111.7-core-0.2.2-rc.1-win-x64-unsigned-20261111-21b1f1.exe`，SHA-256 为 `1cce60b3e8be75971c678f19ddd9dba69781e045188536efd07ae03bf388183f`。同目录保留摘要、blockmap、完整运行时描述及 `DSHU-20261111-21b1f1-manifest.json`。当前包未签名，没有发布到公共更新源。
+
+打包通过长路径 ConPTY、原生运行时、离线插件安装、四模式就绪、REA 工具目录和 Office 转换检查。实际安装器外层 NSIS、内层 7z、安装器声明及完整 DSH 运行时均通过校验；安装后再次核对完整运行时、独立卸载项、深链及两份快捷方式。隔离 HOME 的 Host 通过四模式、新建会话和本机 Node 命令，未请求线上模型，临时资料已清理。Fontkit 和 clean-git-ref 新文本摘要与源码固定值一致，Windows 清单为 859 个包、22 份补充声明，7 项许可仍待核查。原生交互、签名更新、跨平台和全部历史语料的剩余验收继续保留。
+
+旧 `.6` 在本次 Restart Manager 正常关闭尝试中返回 351。先复制了主资料和可读取的 Electron 资料，仅 Cookies 及其 journal 被占用；随后按可执行路径、PID 与创建时间核对并结束五个 DSHU 进程。停机后另做完整备份，升级前后 7,270 个用户文件与官方 DSH 的 EXE/ASAR 摘要一致。停机备份位于 `%LOCALAPPDATA%/DSHU-Backups/2026-11-11T10-42-18-305Z-21b1f1`，包含逐文件摘要。回退包 `.6` 和更早的 `.5` 均保留；本次没有执行回退。停机、安装、隔离 Host 和重新启动回执分别为 `.dsh-build/owned-dshu-close-20261111-result.json`、`installed-update-21b1f1-20261111-result.json`、`installed-smoke-21b1f1-20261111-result.json`、`installed-launch-21b1f1-20261111-result.json`。
+
+按用户要求回收两份闲置上游验证工作区的依赖、两份打包 pnpm 缓存及当前交付的重复安装归档、解包副本、准备运行时与 Electron 副本。D 盘可用空间从本轮初查的 75.56 GiB 增至 80.81 GiB，净增约 5.25 GiB。依赖目录多为硬链接，逻辑体积不等于可回收物理空间。遍历不跟随链接，核对了源码状态及六份保留安装归档；含 23 项未提交修改的 `dshu-verify` 未清理。最新 `.7`、Windows 回退包、Linux 归档、截图、日志、安装器声明和归档列表保留，准备树可由源码重建。逐项计划和结果使用 `.dsh-build/storage-cleanup-idle-20261111-` 与 `storage-cleanup-delivered-21b1f1-20261111-` 前缀。
+
+交付文档通过 `test:docs` 的两项测试、`doc-sync`、八份改动文档的本地链接核对、完整 `lint` 及 `git diff --check`。本节点没有使用 Computer Use。Codex 共享周额度复查剩余 14%，尚未触发用户设定的 10% 收尾线；Goal 继续 active，全部原始需求保留。
+
 ## 余额提示框与字体响应式布局（2026-11-11）
 
 余额采样提示框在容器、文字尺寸、窗口及滚动变化后重新定位，保留当前采样选择，并在退出或卸载时撤销观察器和监听。改前单元用例中提示框右缘为 288px，缩窄后的图宽仅 170px；旧构建在 Chromium、WebKit 中也复现越界。字体输入行原先引用已删除的字号行样式，现与字号行一起复用共享设置行。字体框在窄窗排到说明下方，字号按钮保持右侧，调整窗口保留焦点与草稿。
 
 公共控件、主题与账号模块 149 个文件、2,579 项测试通过。与构建并发的初查出现测试池退出告警，独立复验未再出现。三个浏览器文件共六项通过，余额覆盖 Chromium/WebKit、390/1280px、浅深主题及 14/22 字号设置；模式帮助另覆盖 390/1440px，字体覆盖三种窗口布局模拟及断点两侧。八项产物构建、Host/Client 聚合检查、完整 lint、JSDoc、文档和链接检查通过。帮助与字体用例读取本机余额记录，不触发实时余额采样。截图为 `.artifacts/screenshots/balance-history-layout/`、`settings-font-rows/` 和 `mode-guides/density/`。
 
-两份浏览器场景现分别登记到 Host 程序、从 Client 程序排除。登记前失败编译产生的 56 个输出，经 28 份 source map 及文件摘要核对后保留在 `.dsh-build/source-emit-quarantine-20261111-balance/`；回执为同名 JSON。验证日志前缀 `.dsh-build/settings-layout-` 和 `balance-tip-resize-`。当前系统仍安装 `.6`，本轮 UI 修复为源码交付。
+两份浏览器场景现分别登记到 Host 程序、从 Client 程序排除。登记前失败编译产生的 56 个输出，经 28 份 source map 及文件摘要核对后保留在 `.dsh-build/source-emit-quarantine-20261111-balance/`；回执为同名 JSON。验证日志前缀 `.dsh-build/settings-layout-` 和 `balance-tip-resize-`。本轮 UI 修复已随 `.7` 安装。
 
 ## 协议历史回放与 Windows Python 夹具（2026-11-11）
 
@@ -20,7 +32,7 @@ Python 构建产物测试载体改为通过既有私有测试入口显式启动 
 
 三个用例复现了额度暂停被撤销或替换后，等待恢复的旧任务仍投递继续通知并发出模型请求。恢复工作现于调用提供方前、异步恢复完成后，核对账本中同一暂停标识的领取归属。已撤销或替换的领取不再执行后续恢复，后来新增的暂停保留。另一个批量恢复用例核对未开始的撤销项不会再调用提供方。
 
-修复前两个实际 AgentLoop 用例各发出一次 MockAdapter 请求，修复后均为零，没有追加继续通知。跨句柄测试覆盖领取、释放、转交和确认后的归属。会话 API 与额度模块共 61 个文件、1,199 项测试通过，1 项跳过。八项产物构建、Host/Client 聚合检查、完整 lint、JSDoc、文档及链接检查通过。日志前缀为 `.dsh-build/spending-withdrawn-`，恢复入口为 `packages/guard/spend-limit/tests/recovery.spec.ts` 和 `packages/api/session-controller/tests/spending-recovery.host.spec.ts`。系统仍安装 `.6`，本轮源码修复待下一检查包。
+修复前两个实际 AgentLoop 用例各发出一次 MockAdapter 请求，修复后均为零，没有追加继续通知。跨句柄测试覆盖领取、释放、转交和确认后的归属。会话 API 与额度模块共 61 个文件、1,199 项测试通过，1 项跳过。八项产物构建、Host/Client 聚合检查、完整 lint、JSDoc、文档及链接检查通过。日志前缀为 `.dsh-build/spending-withdrawn-`，恢复入口为 `packages/guard/spend-limit/tests/recovery.spec.ts` 和 `packages/api/session-controller/tests/spending-recovery.host.spec.ts`。修复已随 `.7` 安装。
 
 本轮核对 Codex 剩余周额度为 17%。额度规则主页已按用户“允许继续到10%”的最新授权修正，旧暂停与 40% 阈值保留为历史记录。Goal 保持 active，原始任务范围不变。[当前额度与收尾规则](requirements/2026-10-27-quota-closeout.md)
 
@@ -34,7 +46,7 @@ Windows `.6` 和 Linux `.5` 的实际清单复算通过，分别为 859 和 861 
 
 冷启动后执行旁问 `/clear` 会残留旧代次的额度暂停，空白主对话还可能缺少持久头部。现在发布子对话前先完成父会话落盘，不追加主线事件。额度接入在挂载及清理后核对已删除会话和历史旁问代次，保留当前代次的暂停，读取失败记入 Host 日志并在下次挂载或清理时重试。核对任务串行执行，卸载等待其排空。
 
-会话 API 与额度模块共 61 个测试文件通过，1,196 项通过、1 项跳过。额外复验的无投影缓存场景 14 项通过。两类负向控制分别移除父会话检查点和卸载等待，均检出故障，源码已恢复。八项产物构建、Host/Client 聚合检查及定向 lint 通过。日志前缀为 `.dsh-build/side-clear-spending-` 和 `side-parent-`。系统仍安装 `.6`，本轮源码等待下一检查包。恢复入口为 [旁问清理验收](requirements/2026-11-05-side-clear.md)。
+会话 API 与额度模块共 61 个测试文件通过，1,196 项通过、1 项跳过。额外复验的无投影缓存场景 14 项通过。两类负向控制分别移除父会话检查点和卸载等待，均检出故障，源码已恢复。八项产物构建、Host/Client 聚合检查及定向 lint 通过。日志前缀为 `.dsh-build/side-clear-spending-` 和 `side-parent-`。修复已随 `.7` 安装。恢复入口为 [旁问清理验收](requirements/2026-11-05-side-clear.md)。
 
 ## D 盘缓存整理（2026-11-11，本轮）
 

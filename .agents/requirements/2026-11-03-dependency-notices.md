@@ -2,6 +2,8 @@
 
 状态：进行中，不代表整合发行的许可核对已完成。用户的 GPL 许可偏好、上游 Credit 和各组件原有许可保持不变。
 
+Windows 检查版 `0.1.0-test.20261111.7` 已包含下列 Fontkit 标准说明及 clean-git-ref 的 Apache 正文，实际安装器中的文本与固定摘要一致。实包为 859 个 npm 包、22 份补充声明，仍有 7 项待核查。Linux `.5` 保留原包，新文本待下一次 Linux 打包；其 9 项待核查状态不变。交付证据见 [HANDOFF](../HANDOFF.md)。
+
 ## clean-git-ref 的 Apache 许可正文（2026-11-11）
 
 `clean-git-ref 2.0.1` 的 npm 归档通过锁文件 SHA-512 校验，发布提交为 `bf3c8afc8032bcdc6a53634c18b601dc6df478fb`。源码和归档均声明 Apache-2.0，作者字段为 Eli White。Windows `.6` 实装和 Linux `.5` 便携包的入口文件均与 npm 归档逐字一致。打包后的 manifest 只移除了 `scripts`，其余字段与发布源码一致。该版本的归档和源码树均缺少独立许可正文。[发布源码](https://github.com/TheSavior/clean-git-ref/tree/bf3c8afc8032bcdc6a53634c18b601dc6df478fb)
