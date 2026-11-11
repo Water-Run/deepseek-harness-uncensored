@@ -8,6 +8,8 @@
 
 原现场 `D:\Coding\dshu-rc2-20261111` 保留，状态在 `.dsh-build/rc2-intake-state-20261111.json`；不要重跑一次性准备脚本。收尾包位于 `.dsh-build/deliverables/DSHU-closeout-20261112-4105e9.zip`。全部原始保护任务、平台交付、许可、签名和计划保留，等待用户继续指令。
 
+收尾包 45 成员逐项哈希通过，SHA-256 `51050fafcd112a41dc874c70be7bcf1b58854e411e417060f9014a8b346438a0`。原仓库为浅历史，恢复必须连同 `source/shallow` 初始化再导入 bundle；独立空仓库已验证 21,470 个索引对象，未实际还原完整工作树。源码包 main 为 `f05d9aaaa8c4`。中间裸仓库和独立 bundle 副本已清理，ZIP 保留，D 盘空闲约 78.25 GiB。
+
 ## DSH 0.2.2-rc.2 独立适配（2026-11-11）
 
 官方发布已更新为 rc.2，固定提交 `ddac96760b6e`。与 rc.1 的完整差异为 1,568 个提交、4,769 个文件。主分支代码及系统 `.7` 保持 rc.1，适配位于 detached 工作树 `D:\Coding\dshu-rc2-20261111`。进度、兼容要求及恢复步骤见[rc.2 清单](requirements/2026-11-11-dsh-rc2.md)。
