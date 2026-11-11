@@ -14,7 +14,11 @@
 
 未分组新增按全局创建授权门控，明确传入空 Workspace；授予和撤回均已测试。新上下文菜单 Factory 保留运行中会话入口和置顶拖动反馈。品牌、两项特殊工作区主题色、模式动效及日出日落默认行为保留。关于页深色品牌面板和固定配色预览使用主题层的语义别名，功能样式不直接引用基础调色板。
 
-当前实际剩余 319 个未解决路径。最新私有检查点为 `92ca5b07d6e2`，引用 `refs/dshu-checkpoints/rc2-client-ui-checkpoint-e9jluQ`；原索引和回执在 `.dsh-build/rc2-client-ui-checkpoint-e9jluQ`。真实合并索引未改写，711 份 Session 和 2,775 份冻结归档仍与原对象一致。Host Remote 生成、完整构建、真实浏览器及安装包仍待完成。许可检查保留在 `document-preview-license-bundle.built.e2e.ts` 并合入新引号匹配，尚未执行；PDF 夹具标准字体路径提示仍需在实包中核验。
+客户端节点检查点为 `92ca5b07d6e2`，引用 `refs/dshu-checkpoints/rc2-client-ui-checkpoint-e9jluQ`。许可检查保留在 `document-preview-license-bundle.built.e2e.ts` 并合入新引号匹配，尚未执行；PDF 夹具标准字体路径提示仍需在实包中核验。
+
+后续 MCP 节点采用 rc.2 世代监督器，合入状态观察、凭据刷新及脱敏，并保留 DSHU 规则校验、撤销信号、私有工具目录和按 Agent 代理。连接状态由实际 Fiber 持有，不使用模块缓存；名称预留仍归应用根。`close()` 的预算结果与 `whenClosed()` 的真实传输/工作结束分别保留。迟到的真实确认可清除等待超时，真实本地清理错误继续阻止正常替换；规则租约、名称和代理 dispatcher 不因超时提前释放。MCP、强制保护和 REA 三部分 19 文件、214 项测试通过，含真实 Loader/进程场景。85 项生命周期专项通过，说明文档配对和非类型感知 lint 通过。Windows SDK 夹具会输出目录名提示；单文件类型探针直接用根严格选项编译 vendor 而失败，不能作为类型检查通过。无 vendor 源码改动。
+
+当前实际剩余 310 个未解决路径，最新检查点为 `77be98067de6`，引用 `refs/dshu-checkpoints/rc2-mcp-checkpoint-iwZgCe`；原索引和回执在 `.dsh-build/rc2-mcp-checkpoint-iwZgCe`。真实合并索引未改写，711 份 Session 和 2,775 份冻结归档仍与原对象一致。下一步继续剩余 Host、子代理、终端和浏览器实现；Host Remote 生成、完整构建、真实浏览器和安装包均待验收。MCP 源码改写前备份位于 `.dsh-build/rc2-mcp-before-KTAykO`；后续应以当前代码和索引为准，不直接重跑一次性改写脚本。
 
 状态为 `.dsh-build/rc2-intake-state-20261111.json`，包含上游、主分支基线、合成基线及检查点；索引与工作树保留，可继续原合并。初始合并、整目录恢复与一次性改写脚本不可盲目重跑；当前内容和索引优先。Git 状态读取使用 `--no-optional-locks`，索引写入串行，避免与状态刷新争锁。全部既有未完成任务保留，Linux 新包在 rc.2 适配后继续。当前可用周额度 11%，未触发 10% 收尾线。
 
