@@ -6,7 +6,11 @@
 
 当前已按字段解决 13 份包清单，保留记忆管理与新的 MCP 注册，合并客户端引用及 8 种安装器语言文案。按原对象再次核对 711 份规范 Session 文件、2,775 份冻结归档文件及场景支持资料，共 3,561 个文件。离线文档恢复所需的 479 页和升级指南，仅复用 `website/docs.ts` 数据，未恢复网站应用或 CI。pnpm 候选锁文件和 frozen 安装已完成，未执行生命周期脚本；对等依赖与许可仍待验证。自动重命名曾误配 Creator 与逆向预设，已保存检查点并改为按路径合并。
 
-桌面 Host/CLI 已移除旧 Office 全局解析钩子，采用 rc.2 的包内资源解析，并保留 Stagehand 4.4 物理扩展及 REA 独立 Node；6 个相关测试文件 26 项通过。终端已适配新的启动接口，保留用户代理并接通新 Agent 终端代理，取消准备不创建进程；控制器 83 项通过、2 项平台跳过。API 装配源码及 3 份编译配置已合并，但装配测试缺少生成的 `product-analytics/remote` 产物，未计为通过。当前实际仍有 404 个未解决路径，候选尚未完成完整构建或安装。
+桌面 Host/CLI 已移除旧 Office 全局解析钩子，采用 rc.2 的包内资源解析，并保留 Stagehand 4.4 物理扩展及 REA 独立 Node；6 个相关测试文件 26 项通过。终端已适配新的启动接口，保留用户代理并接通新 Agent 终端代理，取消准备不创建进程；控制器 83 项通过、2 项平台跳过。API 装配源码及 3 份编译配置已合并，但装配测试缺少生成的 `product-analytics/remote` 产物，未计为通过。
+
+2026-11-12 完成独立发布策略和更新通道的下一轮适配，未恢复官方 COS/官网流程；保留 DSHU 的 `nightly` / `latest` 文件名及新通道切换机制。菜单接入新 CSS 锚点与子菜单，保留搜索及退出释放交互；统计浮层仍需要的测量 hook 和导出已恢复。25 个聚焦测试文件 438 项通过，ASAR 检查另有 23 项通过、3 项平台跳过。40 文件的非类型感知 lint 无错误，有 2 条未使用禁用指令提示；完整类型检查待执行。两组中英文文档配对通过。当前实际剩余 346 个未解决路径，完整构建、浏览器及实包尚未验收。
+
+完整设置页集成仍被 `packages/client/ui-chat/src/client/chat/ChatView.tsx` 和 `packages/extensions/cordis-client-runner/src/client/api-catalog.ts` 的冲突阻挡，不能计为通过。最新私有内容检查点为 `7dc5febc0d04`，引用 `refs/dshu-checkpoints/rc2-delivery-menu-checkpoint-23HCvi`；原索引和回执在 `.dsh-build/rc2-delivery-menu-checkpoint-23HCvi`。真实合并索引未被改写。恢复后继续这些实际依赖，保留既有待验收项目。
 
 状态为 `.dsh-build/rc2-intake-state-20261111.json`，包含上游、主分支基线、合成基线及切换前检查点；索引与工作树保留，可继续原合并。源码分析与处理记录使用 `.dsh-build/rc2-*` 前缀。全部既有未完成任务保留，Linux 新包在 rc.2 适配后继续。当前可用周额度 12%，未触发 10% 收尾线。
 
