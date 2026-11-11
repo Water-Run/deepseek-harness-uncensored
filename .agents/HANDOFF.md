@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## SDK 回放的 Windows 路径别名（2026-11-11）
+
+SDK 回放现与 headless 夹具一致，登记测试临时目录的原生、斜杠及 JSON 转义拼写。实际运行与历史预期均使用同一登记方式。Windows 审批及最小图片压缩场景原先在持久日志比较中泄漏本次临时路径，修复后越过该比较。两个完整场景仍在后续检查中失败：审批的静态工具头固定为 Bash，Windows 实际为 PowerShell；最小图片场景的工具参数断言也固定为 Bash。平台工具头和原生 ACL 技能目录继续待验收，不将这两个场景报告为通过。
+
+Windows 的归一化与回放支撑测试共 241 项通过、1 项跳过，Host/Client 聚合检查通过。Linux 独立源码使用 Node 24.21.0、pnpm 11.28.5 离线构建，八项产物与两项聚合检查通过，SDK/ACP 回放 53 项通过、2 项桌面场景未执行，临时源码已清理。714 份已提交 JSONL 的实际字节与 Git 对象一致；没有刷新录制，也没有修改通用归一化。日志和清理回执使用 `.dsh-build/sdk-aliases-` 前缀，Windows 的改前与改后检查分别使用 `protocol-approval-windows-` 和 `protocol-minimal-images-windows-` 前缀。D 盘源码输入归档 `.dsh-build/sdk-aliases-source-20261111.tar` 约 167 MiB，自动审批以 `blocked by policy` 拒绝删除，已保留，没有改用其他方法删除。
+
+本节点为回放夹具与验证文档交付，系统安装版保持 `.7`。完整原始任务和 10% 额度收尾约定不变。
+
 ## Windows .7 实装与构建产物清理（2026-11-11）
 
 系统已安装并重新打开 `0.1.0-test.20261111.7`，干净源码 `21b1f17ae0`，产品 0.1.0 / DSH 0.2.2-rc.1 / REA 6.8.0。安装包为 `.dsh-build/deliverables/DSHU-0.1.0-test.20261111.7-core-0.2.2-rc.1-win-x64-unsigned-20261111-21b1f1.exe`，SHA-256 为 `1cce60b3e8be75971c678f19ddd9dba69781e045188536efd07ae03bf388183f`。同目录保留摘要、blockmap、完整运行时描述及 `DSHU-20261111-21b1f1-manifest.json`。当前包未签名，没有发布到公共更新源。
