@@ -213,6 +213,17 @@ def _dsh_bin() -> str | None:
     return str(binary)
 
 
+def _source_launch_args(dsh_bin: str | None, patches: tuple[str, ...]) -> tuple[str, ...] | None:
+    """Launch the built test carrier through Node; installed carriers use normal resolution."""
+    if dsh_bin is None:
+        return None
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("requires Node for the built dsh CLI")
+    return (node, dsh_bin, "--profile", "sdk",
+            *(argument for patch in patches for argument in ("--patch", patch)))
+
+
 @dataclass
 class _Runtime:
     harness: DeepSeekHarness
@@ -264,8 +275,9 @@ def _runtime(
             base_url=model_server.url, api_key="keyless-commands-runtime",
             initialize_timeout_seconds=60, request_timeout_seconds=20, shutdown_timeout_seconds=20,
             on_user_question=on_user_question,
-            env={"DSH_PERMISSION_MODE": initial_permission,
+            env={"DSH_HOME": str(home), "DSH_PERMISSION_MODE": initial_permission,
                  "DSH_TELEMETRY_DISABLED": "1", "DSH_TOOLS_MODE": "native"},
+            _launch_args=_source_launch_args(dsh_bin, tuple(str(item) for item in patches)),
         )
         try:
             harness.start()
@@ -276,9 +288,16 @@ def _runtime(
             harness.close()
 
 
+def _session_log_paths(root: Path) -> Iterator[Path]:
+    """Enumerate raw logs using Windows extended-length filesystem paths."""
+    if sys.platform == "win32":
+        root = Path("\\\\?\\" + str(root.resolve()))
+    return root.rglob("session*.jsonl")
+
+
 def _read_events(root: Path, *, live: bool = False, session_id: str = _SESSION_ID) -> list[dict]:
     paths = []
-    for path in root.rglob("session*.jsonl"):
+    for path in _session_log_paths(root):
         with path.open(encoding="utf-8") as log:
             header = json.loads(log.readline())
         if header.get("id") == session_id:

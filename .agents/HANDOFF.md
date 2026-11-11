@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## 协议历史回放与 Windows Python 夹具（2026-11-11）
+
+核对 GitHub 发布记录，最新发布仍为已适配的 `dsh-v0.2.2-rc.1`。当前源码 `ca3a37202b` 在 Ubuntu WSL2 独立检出中通过离线依赖安装、八项产物构建及 Host/Client 聚合检查。Node 24.21.0、pnpm 11.28.5 下 SDK/ACP 回放 53 项通过，2 项桌面相关场景按本轮范围未执行。181 份已提交 JSONL 的摘要一致，临时检出已清理。记录使用 `.dsh-build/protocol-history-linux-` 前缀，清理回执为同前缀 `cleanup-20261111.json`。
+
+Windows 初查发现 7 个夹具符号链接被 Git 检出为文本。核对 Git blob、链接目标和未提交状态后，用单次 `core.symlinks=true` 检出这些路径，源码仍干净；ACP 握手复验通过。原生 Windows 全语料还存在路径表示、ACL 内置技能和 Bash 工具集差异，仍待验收，没有改写录制或放宽比较。链接回执为 `.dsh-build/protocol-history-symlinks-20261111.json`，初查日志为 `protocol-history-windows-20261111.log`。
+
+Python 构建产物测试载体改为通过既有私有测试入口显式启动 Node 和 `dsh --profile sdk`，并保留独立 home。计划示例复用此路径。确认一份 265 字符的物理日志通过普通 Python 路径无法读取、通过 Windows 扩展长度路径可读取，现统一在共用夹具中枚举该路径。Windows 命令/审批 13 项、图片附件 10 项、计划及示例 15 项全部通过，使用回环模型服务。日志为 `.dsh-build/protocol-python-windows-{commands,images,plan}-final-20261111.log`。公共 SDK 启动接口未变，本节点为测试与文档交付。
+
 ## 已撤销暂停的恢复竞态（2026-11-11）
 
 三个用例复现了额度暂停被撤销或替换后，等待恢复的旧任务仍投递继续通知并发出模型请求。恢复工作现于调用提供方前、异步恢复完成后，核对账本中同一暂停标识的领取归属。已撤销或替换的领取不再执行后续恢复，后来新增的暂停保留。另一个批量恢复用例核对未开始的撤销项不会再调用提供方。

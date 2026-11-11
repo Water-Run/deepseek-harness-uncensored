@@ -11,7 +11,10 @@ import pytest
 
 from deepseek_harness import DeepSeekHarness, Notification
 import test_commands_runtime as runtime_helpers
-from test_commands_runtime import _Completion, _ModelServer, _dsh_bin, _of_type, _read_events
+from test_commands_runtime import (
+    _Completion, _ModelServer, _dsh_bin, _of_type, _read_events,
+    _session_log_paths, _source_launch_args,
+)
 
 
 _EXAMPLE = Path(__file__).resolve().parents[1] / "examples/plan.py"
@@ -44,15 +47,18 @@ def test_plan_example_reports_truncation_and_accepts_explicit_dismissal(
     terminal_input.write_text("d\n", encoding="utf-8")
     monkeypatch.setenv("DSH_TELEMETRY_DISABLED", "1")
     monkeypatch.setenv("DSH_TOOLS_MODE", "native")
+    monkeypatch.setenv("DSH_HOME", str(tmp_path / "home"))
     monkeypatch.setattr(sys, "argv", [str(_EXAMPLE), "--dsh-home", str(tmp_path / "home"),
                                      "--workspace", str(workspace), "Plan a small change."])
     with terminal_input.open(encoding="utf-8") as terminal, _ModelServer([completion]) as model:
         monkeypatch.setattr(sys, "stdin", terminal)
         def configured_harness(**options: object) -> DeepSeekHarness:
+            dsh_bin = _dsh_bin()
             return DeepSeekHarness(
-                **options, dsh_bin=_dsh_bin(), patches=(str(patch),),
+                **options, dsh_bin=dsh_bin, patches=(str(patch),),
                 base_url=model.url, api_key="keyless-plan-example",
                 initialize_timeout_seconds=30, request_timeout_seconds=20, shutdown_timeout_seconds=20,
+                _launch_args=_source_launch_args(dsh_bin, (str(patch),)),
             )
 
         monkeypatch.setitem(example["main"].__globals__, "DeepSeekHarness", configured_harness)
@@ -62,7 +68,7 @@ def test_plan_example_reports_truncation_and_accepts_explicit_dismissal(
         else:
             example["main"]()
         assert len(model.captured()) == 1
-    [log] = logs.rglob("session*.jsonl")
+    [log] = _session_log_paths(logs)
     session_id = json.loads(log.read_text(encoding="utf-8").splitlines()[0])["id"]
     events = _read_events(logs, session_id=session_id)
     assert [event["data"]["reason"]["kind"] for event in _of_type(events, "turn/end")] == [

@@ -27,6 +27,8 @@ uv run --project python/sdk pytest
 
 `python/sdk/tests/test_bundled_runtime.py` exercises available bundled carriers and skips a carrier when its artifact has not been built. For repository-wide test policy, see [Testing](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/testing.md).
 
+The command, image-attachment and plan integration tests use an isolated Harness home and a loopback model server. Their built-runtime test carrier invokes Node with the built CLI, `--profile sdk` and its scenario patches, including on Windows. Set `DSH_COMMANDS_TEST_RUNTIME=installed` to use the SDK's normal bundled-runtime resolution.
+
 LibreOffice Kit CI owns visible Office content checks through its installed Node API and CLI on macOS, Windows, and Linux when matching engine packages are published. Harness verifies the relocated Office sidecar through the installed-wheel smoke; the Python tests reject white, transparent, reversed, and text-free output.
 
 Set `DSH_OFFICE_TEST_ARTIFACTS` to a new directory to retain the installed-wheel smoke's Office inputs, PNGs, manifests, and failure diagnostics. CI uploads these files on success and failure; temporary runtime files are excluded.

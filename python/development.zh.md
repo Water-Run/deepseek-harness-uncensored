@@ -27,6 +27,8 @@ uv run --project python/sdk pytest
 
 `python/sdk/tests/test_bundled_runtime.py` 会运行可用的内置载体；某个载体的产物尚未构建时，会跳过该载体。仓库级测试政策见 [测试](https://github.com/deepseek-ai/deepseek-harness/blob/f3803c96974ad4a94195fb97e5c637e9c2a3afe3/docs/testing.md)。
 
+命令、图片附件和计划集成测试使用隔离的 Harness home 与回环模型服务。构建产物测试载体通过 Node 启动已构建 CLI，并传入 `--profile sdk` 和场景补丁，Windows 也使用此路径。设置 `DSH_COMMANDS_TEST_RUNTIME=installed` 可使用 SDK 常规的内置运行时解析路径。
+
 匹配的 engine 包已发布时，LibreOffice Kit CI 负责在 macOS、Windows 和 Linux 上通过已安装的 Node API 与 CLI 检查可见的 Office 内容。Harness 则通过已安装 wheel 包的冒烟测试验证搬移后的 Office sidecar；Python 测试会拒绝全白、全透明、左右颠倒和缺少文字的输出。
 
 将 `DSH_OFFICE_TEST_ARTIFACTS` 设为一个新目录，即可保留已安装 wheel 包冒烟测试的 Office 输入、PNG、清单与失败诊断信息。CI 在成功与失败时都会上传这些文件，不包含临时运行时文件。
