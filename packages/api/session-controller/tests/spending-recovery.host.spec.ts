@@ -280,6 +280,41 @@ it('drains deleted-pause reconciliation before the spending provider closes', as
   }
 })
 
+it.each([false, true])('does not deliver a withdrawn recovery after delayed restoration (replacement=%s)', async (replacement) => {
+  const fixture = await setup()
+  const { sessionId } = await fixture.api.create({ cwd: fixture.cwd })
+  const agent = fixture.ctx.agents.get(sessionId)!
+  const ledger = await SpendLedger.open(':memory:')
+  const gate = new SpendGate(ledger, [], 50, () => true)
+  const report = vi.fn()
+  const recovery = new SpendRecovery(report)
+  const release = Promise.withResolvers<undefined>()
+  const flush = vi.fn(async () => { await fixture.ctx.sessionPersistence.flush() })
+  const handler = vi.fn(async () => { await release.promise; return { agent, flush } })
+  const id = ledger.waitForSession(sessionId, MICRO_CNY)
+  ledger.blockSession(id)
+  recovery.register(handler, () => true)
+  const running = recovery.flush(gate)
+  try {
+    await vi.waitFor(() => { expect(handler).toHaveBeenCalledOnce() })
+    ledger.clearSession(sessionId)
+    const next = replacement ? ledger.waitForSession(sessionId, MICRO_CNY) : undefined
+    if (next !== undefined) ledger.blockSession(next)
+    release.resolve(undefined)
+    await running
+    await agent.whenIdle()
+    expect(fixture.adapter.requests).toHaveLength(0)
+    expect(flush).not.toHaveBeenCalled()
+    expect(report).not.toHaveBeenCalled()
+    expect(agent.session.snapshotEvents().filter(event => event.type === 'user/message' && event.data.source.kind === 'spend-limit')).toEqual([])
+    expect(ledger.claimBlockedSessions()).toEqual(next === undefined ? [] : [{ id: next, sessionId }])
+  } finally {
+    release.resolve(undefined)
+    try { await running }
+    finally { await recovery.close(); await gate.close() }
+  }
+})
+
 it('acknowledges recovery only after persistence succeeds and does not repeat an accepted notice', async () => {
   const fixture = await setup()
   const { sessionId } = await fixture.api.create({ cwd: fixture.cwd })

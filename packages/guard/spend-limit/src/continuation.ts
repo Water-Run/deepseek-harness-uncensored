@@ -102,9 +102,10 @@ export class SpendRecovery {
       const claims = gate.ledger.claimBlockedSessions()
       for (const claim of claims) {
         try {
-          if (cancelled()) { gate.ledger.releaseClaim(claim.id); continue }
+          if (cancelled() || !gate.ledger.ownsClaim(claim.id)) { gate.ledger.releaseClaim(claim.id); continue }
           const result = await provider.handler(claim, provider.abort.signal)
           provider.abort.signal.throwIfAborted()
+          if (!gate.ledger.ownsClaim(claim.id)) continue
           if (result === 'unavailable') gate.ledger.releaseClaim(claim.id)
           else {
             if (result !== 'missing') {

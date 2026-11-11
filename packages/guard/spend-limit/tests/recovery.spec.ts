@@ -65,3 +65,25 @@ it('serializes recovery and drains a cancelled provider before releasing the led
   expect(ledger.snapshot().pausedSessions).toHaveLength(1)
   expect(ledger.claimBlockedSessions()).toHaveLength(1)
 })
+
+it('skips a withdrawn pause while another restoration in the same batch is pending', async () => {
+  const { ledger, gate, recovery } = await fixture()
+  const secondId = ledger.waitForSession(SessionId('other-paused'), MICRO_CNY)
+  ledger.blockSession(secondId)
+  const release = Promise.withResolvers<undefined>()
+  const handler = vi.fn(async (_claim: SpendPauseClaim) => {
+    await release.promise
+    return 'missing' as const
+  })
+  recovery.register(handler, () => true)
+  const running = recovery.flush(gate)
+  try {
+    await vi.waitFor(() => { expect(handler).toHaveBeenCalledOnce() })
+    const first = handler.mock.calls[0]![0].sessionId
+    ledger.clearSession(SessionId(first === 'paused' ? 'other-paused' : 'paused'))
+    release.resolve(undefined)
+    await running
+    expect(handler).toHaveBeenCalledOnce()
+    expect(ledger.snapshot().pausedSessions).toEqual([])
+  } finally { release.resolve(undefined); await running }
+})

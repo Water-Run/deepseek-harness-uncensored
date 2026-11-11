@@ -58,8 +58,8 @@ export class SpendLimitRemote extends TypertRemoteService {
     return this.runtime.recovery.register(handler, capture)
   }
   /**
-   * Discard recovery work for a deleted conversation.
-   * @param sessionId - Deleted conversation whose pending continuation must be discarded.
+   * Discard a conversation's saved continuation, including one awaiting restoration.
+   * @param sessionId - Conversation whose pending continuation has been withdrawn.
    */
   async forgetSession(sessionId: SessionId): Promise<void> { (await this.runtime.ready).ledger.clearSession(sessionId) }
   /**

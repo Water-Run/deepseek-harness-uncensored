@@ -379,6 +379,15 @@ export class SpendLedger {
   }
 
   /**
+   * Read whether this handle still owns an unreplaced recovery claim.
+   * @param id - Recovery claim captured before an asynchronous restoration.
+   * @returns False after withdrawal, replacement, or release of the claim.
+   */
+  ownsClaim(id: SpendPauseId): boolean {
+    return this.db.prepare('SELECT 1 FROM session_pauses WHERE ticket = ? AND claim_owner = ?').get(id, this.owner) !== undefined
+  }
+
+  /**
    * Remove an acknowledged claim only while this handle still owns it.
    * @param id - Claim whose continuation was accepted or whose session was deleted.
    */

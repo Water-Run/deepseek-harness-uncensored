@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## 已撤销暂停的恢复竞态（2026-11-11）
+
+三个用例复现了额度暂停被撤销或替换后，等待恢复的旧任务仍投递继续通知并发出模型请求。恢复工作现于调用提供方前、异步恢复完成后，核对账本中同一暂停标识的领取归属。已撤销或替换的领取不再执行后续恢复，后来新增的暂停保留。另一个批量恢复用例核对未开始的撤销项不会再调用提供方。
+
+修复前两个实际 AgentLoop 用例各发出一次 MockAdapter 请求，修复后均为零，没有追加继续通知。跨句柄测试覆盖领取、释放、转交和确认后的归属。会话 API 与额度模块共 61 个文件、1,199 项测试通过，1 项跳过。八项产物构建、Host/Client 聚合检查、完整 lint、JSDoc、文档及链接检查通过。日志前缀为 `.dsh-build/spending-withdrawn-`，恢复入口为 `packages/guard/spend-limit/tests/recovery.spec.ts` 和 `packages/api/session-controller/tests/spending-recovery.host.spec.ts`。系统仍安装 `.6`，本轮源码修复待下一检查包。
+
+本轮核对 Codex 剩余周额度为 17%。额度规则主页已按用户“允许继续到10%”的最新授权修正，旧暂停与 40% 阈值保留为历史记录。Goal 保持 active，原始任务范围不变。[当前额度与收尾规则](requirements/2026-10-27-quota-closeout.md)
+
 ## Fontkit 源表标准说明（2026-11-11）
 
 八张 Mac 编码源表重新从 Unicode 官方目录读取，摘要与既有映射证据逐一相符。去掉注释前缀和行尾空白后，八份标准头部逐字一致。补充声明现同时保留这些商标、免责声明和原始数据说明，固定摘要为 `731d2f298c322c6bc349c4bba17bdccde980acc3830fc7eec0b037c76b860365`。
