@@ -4,6 +4,8 @@
 
 ## 已完成
 
+- [x] **推送检查触发（2026-11-11）**。当前主分支缺少上游跟踪，Lefthook 回退为比较 `HEAD` 与本地 `main`，跳过了推送类型检查。已配置 `main` 跟踪 `origin/main`，独立仓库用真实推送复现漏检并验证修复。报告为 `.dsh-build/lefthook-native-probe-20261111.json`，临时仓库已清理。
+
 - [x] **Windows 干净检出 lint（2026-11-11）**。修复复现的 5 条源码规则问题及 Corepack 下的 lint 启动失败。完整 lint、八项构建产物步骤、Host/Client 聚合检查和 66 项定向回归通过。主工作区已有的 56 个编译残留详见[交接记录](../HANDOFF.md)。
 
 - [x] **Windows 工具链前置检查（2026-11-10）**：`--check` 与正常打包均通过 MSBuild x64 准备阶段核验所选工具集的 Spectre/SDK 条件，目录构建也不再跳过。真实 14.51 缺库场景从旧检查通过变为 `MSB8040` 提前拒绝，14.52 Preview 通过。正常打包失败记录仅包含配置和工具链两阶段，尚未构建或下载。82 项定向回归、最终 Host/Client 聚合检查和相关 lint 通过，日志前缀 `.dsh-build/preflight-spectre-` 与 `msvc-preflight-`。此改动用于后续源码打包。

@@ -1,5 +1,11 @@
 # Uncensored 开发交接
 
+## 推送钩子与主分支跟踪（2026-11-11）
+
+当前检出缺少 `main` 的上游跟踪。Lefthook 2.1.12 因而回退为 `git diff HEAD main`，使类型检查显示“没有匹配的推送文件”并跳过。已将本地 `main` 配置为跟踪 `origin/main`。
+
+独立仓库的真实推送复现了漏检。在相同文件改动下，设置上游后检查标记正常写入。报告为 `.dsh-build/lefthook-native-probe-20261111.json`，当前仓库的诊断日志为 `.dsh-build/lefthook-real-current-20261111.log`。三个临时仓库已清理。日常推送前仍按仓库规则检查完整改动范围。
+
 ## Windows 会话结束清理（2026-11-11）
 
 Windows 关机或注销可能跳过 Electron 的 `before-quit`。主窗口和欢迎窗口现从确定性的 `session-end` 直接启动 Host、诊断任务和内嵌页面清理。重复通知共用同一次清理，查询或取消通知继续保持运行。
