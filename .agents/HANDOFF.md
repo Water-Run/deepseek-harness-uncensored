@@ -4,7 +4,9 @@
 
 从实际 `.5` Linux x64 便携归档抽取 Electron、`libffmpeg.so`、ICU 数据和 V8 快照。归档 SHA-256 与原交付回执一致。Fedora 45 Container Base 1.4 的镜像摘要和 OpenPGP 签名均通过，签名指纹为 `4F50A6114CD5C6976A7F1179655A4B02F577861E`。依赖从 Fedora 45 发行仓库解析，112 个 RPM 经校验后安装在 WSL2 的独立根目录。[Fedora 镜像](https://fedoraproject.org/en/misc/) · [发行密钥](https://fedoraproject.org/security/)
 
-基础镜像缺少 `libnspr4.so`，安装依赖后加载器解析 97 个库。复验在独立的 PID 命名空间中挂载 `/proc`，并保留包内 V8 快照。实际 Electron 44.7.0 以 UID 65534 启动 Node 24.21.0。临时根目录已清理，Fedora 图形会话仍待验收。报告为 `.dsh-build/linux-fedora45-portable-abi-result-20261111.json`，原始日志为 `.dsh-build/linux-fedora45-portable-abi-acceptance-20261111.log`。
+基础镜像缺少 `libnspr4.so`，安装依赖后加载器解析 97 个库。复验在独立的 PID 命名空间中挂载 `/proc`，并保留包内 V8 快照。实际 Electron 44.7.0 以 UID 65534 启动 Node 24.21.0。临时根目录已清理。报告为 `.dsh-build/linux-fedora45-portable-abi-result-20261111.json`，原始日志为 `.dsh-build/linux-fedora45-portable-abi-acceptance-20261111.log`。
+
+同一便携包在 Fedora 45 的 Xvfb 虚拟显示中以 UID 65534 打开欢迎页。归档和解包后的 ASAR 摘要与交付记录一致。应用使用空白资料、独立 D-Bus 会话和仅回环的网络命名空间，关闭 GPU 加速，保留 Chromium 沙箱。可见窗口的 `WM_CLASS` 为 `deepseek-harness-uncensored`，两个实际渲染进程均为 `Seccomp: 2`、`NoNewPrivs: 1`。修正测试脚本在精简镜像中的设备与文件描述符依赖后复测通过，临时根目录已清理。Fedora 原生 Wayland、实体桌面键鼠和父窗口模态待验收。日志为 `.dsh-build/linux-fedora45-x11-20261111-final.log`。[Fedora Xvfb](https://packages.fedoraproject.org/pkgs/xorg-x11-server/xorg-x11-server-Xvfb/)
 
 ## 动态 Slot 渲染参数（2026-11-11）
 

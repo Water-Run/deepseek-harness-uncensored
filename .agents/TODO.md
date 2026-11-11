@@ -6,7 +6,7 @@
 
 **本次交付**　`.6` 在实际安装器中验收桌面侧栏和三个启动型浏览器的可选 HTTPS 检查。源站校验、正文脱敏、会话信任与配置清理均通过。实际安装器还通过终端代理和 SSH 回环。安装器、摘要和回退信息见 [HANDOFF](HANDOFF.md)。
 
-**Linux 交付**　检查版 `0.1.0-test.20261111.linux.5` 生成 deb 与 tar.gz。实际便携包在 Ubuntu WSL2 中通过 X11、三个浏览器的受控 HTTPS、Wayland 目录门户与渲染沙箱验收。`.4` 在 Debian 12 验证依赖解析、启动及卸载，87 个隔离资料文件摘要一致。产物摘要见 [HANDOFF](HANDOFF.md)。
+**Linux 交付**　检查版 `0.1.0-test.20261111.linux.5` 提供 deb 和 tar.gz。Ubuntu WSL2 和 Fedora 45 隔离环境已通过图形启动与渲染沙箱检查，Debian 12 已通过 `.4 → .5` 升级和卸载。各平台的验证范围和产物摘要见 [HANDOFF](HANDOFF.md)。
 
 **剩余交付**　进阶保护后端、依赖许可、签名更新、跨平台和最终验收继续列在“进行中”。当前 Windows 包包含 859 个 npm 包、19 份补充声明，7 项许可待核查。详见[许可明细](requirements/2026-11-03-dependency-notices.md)。
 
@@ -60,7 +60,7 @@
 
 ## 进行中（10 项）
 
-- [ ] **Linux x64 Desktop — 约 97%**（02.09、17.07）。`.5` 便携包通过 Ubuntu WSL2 的 X11、浏览器 HTTPS、Wayland 目录门户及渲染沙箱检查。Debian 12 已用实际 deb 完成 `.4 → .5` 升级和彻底卸载，7 个隔离用户文件摘要一致。Fedora 45 隔离环境通过包内 Electron 动态库加载和 Node 模式启动。实体桌面的键鼠选择、父窗口模态、Fedora 图形会话和正式发行仍待验收。见[安装交付计划](requirements/desktop-installer-plan.md)。
+- [ ] **Linux x64 Desktop — 约 98%**（02.09、17.07）。`.5` 便携包通过 Ubuntu WSL2 的 X11、浏览器 HTTPS、Wayland 目录门户及渲染沙箱检查。Debian 12 已用实际 deb 完成 `.4 → .5` 升级和彻底卸载，7 个隔离用户文件摘要一致。Fedora 45 隔离环境通过 X11 欢迎页启动和渲染沙箱检查。Fedora 原生 Wayland、实体桌面的键鼠选择和父窗口模态，以及正式发行仍待验收。见[安装交付计划](requirements/desktop-installer-plan.md)。
 
 - [ ] **真实目标保护 — 约 80%**（09.01–09.11、05.06、10.05）。可选后端已覆盖 HTTP/DNS、文件、SSH、SQLite、数据库固定审计、测试库写入、受保护命令/ConPTY 和 HTTPS 检查。SSH 支持绑定级 Linux 文件、硬链接和绑定挂载保护。下一步覆盖其他协议、远端数据库资源映射、配置与审计联动。入站管理员过滤/删除、跨系统重启清理和受保护部署见[执行后端清单](requirements/2026-11-02-native-execution.md)。
 
