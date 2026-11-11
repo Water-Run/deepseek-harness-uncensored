@@ -20,6 +20,16 @@
 
 .control { display: flex; align-items: center; min-width: 0; max-width: 100%; }
 
+.row[data-preference-layout='inline'], .row[data-preference-layout='responsive'] { flex-wrap: nowrap; }
+.row[data-preference-layout='inline'] > .rowText, .row[data-preference-layout='responsive'] > .rowText { flex-basis: 0; }
+.row[data-preference-layout='inline'] > .control { flex-shrink: 0; }
+
+@media (max-width: 767px) {
+  .row[data-preference-layout='responsive'] { flex-direction: column; align-items: stretch; }
+  .row[data-preference-layout='responsive'] > .rowText { flex-basis: auto; }
+  .row[data-preference-layout='responsive'] > .control { width: 100%; }
+}
+
 .title {
   font-size: 14px;
   font-weight: 400;

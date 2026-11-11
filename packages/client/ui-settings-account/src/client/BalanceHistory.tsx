@@ -1,5 +1,5 @@
 /** Sample inspection uses the original observations, independently of curve downsampling. */
-import { useId, useMemo, useState } from 'react'
+import { useId, useMemo, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
 import { Big } from 'big.js'
 import { balanceChart, nearestBalanceSample, type BalanceChartSample } from './balance-chart.ts'
@@ -16,6 +16,7 @@ function besidePointer(pointer: number, span: number, size: number): number {
 
 /**
  * Inspect sampled balances by pointer, touch, or arrow keys.
+ * Pointer bubbles refit to layout changes without changing the selected observation.
  * @param props - Ordered observations, currency symbol and localized labels.
  * @returns The chart and its selected observation, or null without samples.
  */
@@ -31,6 +32,7 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
   const [hover, setHover] = useState<{ index: number; x: number; y: number } | null>(null)
   const [cursor, setCursor] = useState<number | null>(null)
   const [focused, setFocused] = useState(false)
+  const releaseTip = useRef<(() => void) | null>(null)
   const id = useId()
   const compressFlat = compressionHint !== undefined
   const geometry = useMemo(() => balanceChart(samples, { stepIncreases, compressFlat }), [samples, stepIncreases, compressFlat])
@@ -47,17 +49,44 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
   const inspect = (event: PointerEvent<HTMLDivElement>): void => {
     const rect = event.currentTarget.getBoundingClientRect()
     const x = (event.clientX - rect.left) / Math.max(rect.width, 1)
-    const y = (event.clientY - rect.top) / Math.max(rect.height, 1)
     const index = nearestBalanceSample(geometry.positions, (x * 264 - 6) / 252)
-    setHover({ index, x, y })
+    setHover({ index, x: event.clientX, y: event.clientY })
     if (event.pointerType !== 'mouse') setCursor(index)
   }
   const placeTip = (element: HTMLDivElement | null): void => {
+    releaseTip.current?.()
+    releaseTip.current = null
     const plot = element?.parentElement
     if (element === null || plot == null) return
-    // The localized date and amount determine the bubble's actual size.
-    element.style.left = hover === null ? '' : `${besidePointer(hover.x * plot.clientWidth, plot.clientWidth, element.offsetWidth)}px`
-    element.style.top = hover === null ? '' : `${besidePointer(hover.y * plot.clientHeight, plot.clientHeight, element.offsetHeight)}px`
+    if (hover === null) {
+      element.style.left = ''; element.style.top = ''
+      return
+    }
+    let active = true
+    const place = (): void => {
+      if (!active) return
+      const rect = plot.getBoundingClientRect()
+      const width = plot.clientWidth, height = plot.clientHeight
+      const tipWidth = element.offsetWidth, tipHeight = element.offsetHeight
+      // Localized text determines the bubble size; layout changes retain the selected sample.
+      const x = (hover.x - rect.left) * width / Math.max(rect.width, 1)
+      const y = (hover.y - rect.top) * height / Math.max(rect.height, 1)
+      element.style.left = `${besidePointer(x, width, tipWidth)}px`
+      element.style.top = `${besidePointer(y, height, tipHeight)}px`
+    }
+    place()
+    const win = plot.ownerDocument.defaultView
+    const Observer = win?.ResizeObserver
+    const observer = Observer === undefined ? undefined : new Observer(place)
+    observer?.observe(plot); observer?.observe(element)
+    win?.addEventListener('resize', place)
+    win?.addEventListener('scroll', place, true)
+    releaseTip.current = () => {
+      active = false
+      observer?.disconnect()
+      win?.removeEventListener('resize', place)
+      win?.removeEventListener('scroll', place, true)
+    }
   }
   return <div className={css.history}>
     <div className={css.plot}>

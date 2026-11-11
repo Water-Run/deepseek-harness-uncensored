@@ -50,7 +50,7 @@ export function FontSizeRow({ t, role, setFontSize, useStore, expander }: FontSi
   const fontSize = useStore(s => s.fontSizes[role])
   const { min, max } = FONT_SIZE_SPECS[role]
   return (
-    <PreferenceControlRow title={t(`fontSize.${role}.title`)} description={t(`fontSize.${role}.description`)}>
+    <PreferenceControlRow title={t(`fontSize.${role}.title`)} description={t(`fontSize.${role}.description`)} layout="inline">
       <div className={css.control}>
         <div className={css.stepper}>
           <span className={css.value}>{fontSize}</span>

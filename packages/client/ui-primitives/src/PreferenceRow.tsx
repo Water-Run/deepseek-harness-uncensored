@@ -15,19 +15,20 @@ export interface PreferenceControlRowProps {
   feedback?: string | undefined
   /** Announces the description itself as an error. */
   descriptionRole?: 'alert' | undefined
-  /** The control shown on the right of the row. */
+  /** Wrap controls as needed, keep them inline, or stack them below copy on narrow viewports. */
+  layout?: 'wrap' | 'inline' | 'responsive' | undefined
+  /** The control rendered beside or below the row copy. */
   children: ReactNode
 }
 
 /**
- * Render the row shell every Settings preference shares: the label block on
- * the left, the control on the right, and the hairline separator between rows.
+ * Render the shared Settings label, control, and separator in the selected layout.
  * @param props - row copy and the control.
  * @returns the settings row.
  */
-export function PreferenceControlRow({ title, description, feedback, descriptionRole, children }: PreferenceControlRowProps) {
+export function PreferenceControlRow({ title, description, feedback, descriptionRole, layout = 'wrap', children }: PreferenceControlRowProps) {
   return (
-    <div className={css.row}>
+    <div className={css.row} data-preference-layout={layout}>
       <div className={css.rowText}>
         <div className={css.title}>{title}</div>
         {description === undefined ? null : <div className={css.desc} role={descriptionRole}>{description}</div>}

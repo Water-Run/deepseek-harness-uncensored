@@ -50,7 +50,7 @@ StatPopover 为点击展开的统计信息复用定位、菜单材质与焦点�
 |---|---|
 | `Button` | 可点击操作；`variant` 选择 `primary`、`ghost`、`outline` 或 `toolbar`。描边操作使用内侧细线。ref 指向原生按钮，供焦点控制与浮层锚定使用。 |
 | `Switch` | 36×20 的双态开关。关闭态滑块读取 `--dsw-alias-switch-thumb`，在两种主题下均保持亮色；开启态滑块与品牌色轨道形成对比。禁用控件使用半透明样式。`label` 必填，控件不可能在没有名称的情况下发布。 |
-| `PreferenceRow`、`PreferenceControlRow` | 设置页所有偏好行共用的行骨架：左侧标题与说明，右侧控件，行间以发丝线分隔。`PreferenceRow` 额外提供打开菜单的选择器胶囊，选中后键盘回到胶囊；`PreferenceControlRow` 接受任意控件，开关或步进器因此坐在同一行里。 |
+| `PreferenceRow`、`PreferenceControlRow` | 设置偏好行，包含标题、说明、控件与细分隔线。`PreferenceRow` 提供菜单选择器，选中后恢复其焦点。`PreferenceControlRow` 接受任意控件；`layout` 可选默认换行的 `wrap`、保持与说明并排的 `inline`，或在 767px 以上并排、较窄时移到说明下方的 `responsive`。 |
 | `SegmentedControl` | 两段或更多等宽分段加一个滑动指示块的 tablist，用于在几种模式间切换一张卡片或面板；选中项由调用方持有，`label` 为列表命名。`id` 派生每个 tab 的 id（`<id>-<value>`）及其控制的面板 id（`<id>-<value>-panel`），面板由调用方渲染并用 `aria-labelledby` 指回 tab；分段可 `disabled` 并带 `title`，控件级 `disabled` 在当前面板有进行中的操作时锁住全部分段。 |
 | `Checkbox` | 带标签的原生复选框，支持受控状态、键盘交互和禁用样式；调用方提供本地化的 `label` 文本。 |
 | `Input` | 单行文本输入，用于搜索框与行内表单。ref 指向原生输入框，供焦点控制使用，并在卸载时清空。 |

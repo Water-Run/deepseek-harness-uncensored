@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## 余额提示框与字体响应式布局（2026-11-11）
+
+余额采样提示框在容器、文字尺寸、窗口及滚动变化后重新定位，保留当前采样选择，并在退出或卸载时撤销观察器和监听。改前单元用例中提示框右缘为 288px，缩窄后的图宽仅 170px；旧构建在 Chromium、WebKit 中也复现越界。字体输入行原先引用已删除的字号行样式，现与字号行一起复用共享设置行。字体框在窄窗排到说明下方，字号按钮保持右侧，调整窗口保留焦点与草稿。
+
+公共控件、主题与账号模块 149 个文件、2,579 项测试通过。与构建并发的初查出现测试池退出告警，独立复验未再出现。三个浏览器文件共六项通过，余额覆盖 Chromium/WebKit、390/1280px、浅深主题及 14/22 字号设置；模式帮助另覆盖 390/1440px，字体覆盖三种窗口布局模拟及断点两侧。八项产物构建、Host/Client 聚合检查、完整 lint、JSDoc、文档和链接检查通过。帮助与字体用例读取本机余额记录，不触发实时余额采样。截图为 `.artifacts/screenshots/balance-history-layout/`、`settings-font-rows/` 和 `mode-guides/density/`。
+
+两份浏览器场景现分别登记到 Host 程序、从 Client 程序排除。登记前失败编译产生的 56 个输出，经 28 份 source map 及文件摘要核对后保留在 `.dsh-build/source-emit-quarantine-20261111-balance/`；回执为同名 JSON。验证日志前缀 `.dsh-build/settings-layout-` 和 `balance-tip-resize-`。当前系统仍安装 `.6`，本轮 UI 修复为源码交付。
+
 ## 协议历史回放与 Windows Python 夹具（2026-11-11）
 
 核对 GitHub 发布记录，最新发布仍为已适配的 `dsh-v0.2.2-rc.1`。当前源码 `ca3a37202b` 在 Ubuntu WSL2 独立检出中通过离线依赖安装、八项产物构建及 Host/Client 聚合检查。Node 24.21.0、pnpm 11.28.5 下 SDK/ACP 回放 53 项通过，2 项桌面相关场景按本轮范围未执行。181 份已提交 JSONL 的摘要一致，临时检出已清理。记录使用 `.dsh-build/protocol-history-linux-` 前缀，清理回执为同前缀 `cleanup-20261111.json`。

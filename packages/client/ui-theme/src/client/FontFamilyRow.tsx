@@ -5,13 +5,11 @@
  * an empty field restores the built-in stack. The field shows the persisted
  * list and resets whenever that list changes.
  */
-import clsx from 'clsx'
-import { Input } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Input, PreferenceControlRow } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import { normalizeFontFamily, type FontRole } from '../theme-settings.ts'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { createFontRowStore } from './settings-store.ts'
-import rowCss from './FontSizeRow.module.css'
 import css from './FontFamilyRow.module.css'
 
 /** Injected business face: the row's font role and its write. */
@@ -40,11 +38,7 @@ export function FontFamilyRow({ t, role, setFontFamily, useStore }: FontFamilyRo
     setFontFamily(input.value)
   }
   return (
-    <div className={clsx(rowCss.row, rowCss.stacked)}>
-      <div className={rowCss.rowText}>
-        <div className={rowCss.title}>{title}</div>
-        <div className={rowCss.desc}>{t(`fontFamily.${role}.description`)}</div>
-      </div>
+    <PreferenceControlRow title={title} description={t(`fontFamily.${role}.description`)} layout="responsive">
       <Input
         key={value}
         className={css.field as string}
@@ -61,6 +55,6 @@ export function FontFamilyRow({ t, role, setFontFamily, useStore }: FontFamilyRo
           if (event.key === 'Enter') event.currentTarget.blur()
         }}
       />
-    </div>
+    </PreferenceControlRow>
   )
 }

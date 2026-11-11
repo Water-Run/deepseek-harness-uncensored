@@ -1,13 +1,16 @@
-/* Font-family fields; shared row text and separators live in FontSizeRow.module.css. */
+/* Font-family fields inside the shared responsive preference row. */
 
 .field {
   flex: 0 1 240px;
+  width: 240px;
+  max-width: 100%;
   min-width: 0;
 }
 
 @media (max-width: 767px) {
   .field {
     flex-basis: auto;
+    width: 100%;
   }
 }
 

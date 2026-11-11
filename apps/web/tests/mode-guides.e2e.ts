@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { chromium } from 'playwright'
 import { expect, it, onTestFinished } from 'vitest'
+import type {} from '@deepseek-ai/dsh-settings'
 import { launchWebScaffold } from './scaffold.ts'
 import { openSettings, ZH_BROWSER_LOCALE } from './support.ts'
 
@@ -11,11 +12,13 @@ it('fits mode help to its content and keeps plugin actions on the settings surfa
   const scaffold = await launchWebScaffold({ developerTools: false,
     extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
   onTestFinished(() => scaffold.close())
+  await scaffold.ctx.settings.update('balance', { source: 'local' })
   const browser = await chromium.launch()
   onTestFinished(() => browser.close())
-  const screenshots = fileURLToPath(new URL('../../../.artifacts/screenshots/mode-guides', import.meta.url))
+  const screenshots = fileURLToPath(new URL('../../../.artifacts/screenshots/mode-guides/density', import.meta.url))
   await mkdir(screenshots, { recursive: true })
-  for (const width of [1440, 390]) for (const theme of ['浅色', '深色']) {
+  for (const width of [1440, 390]) for (const theme of ['浅色', '深色']) for (const fontSize of [14, 22]) {
+    await scaffold.ctx.settings.update('ui-theme', { preference: theme === '深色' ? 'dark' : 'light', fontSize })
     const page = await browser.newPage({ viewport: { width, height: 900 }, locale: ZH_BROWSER_LOCALE,
       reducedMotion: 'reduce' })
     try {
@@ -37,12 +40,12 @@ it('fits mode help to its content and keeps plugin actions on the settings surfa
       expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(900)
       if (width === 1440) expect(bounds!.height).toBeLessThan(520)
       expect(await guide.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
-      await page.screenshot({ path: join(screenshots, `${width}-${theme}-explanation.png`) })
+      await page.screenshot({ path: join(screenshots, `${width}-${theme}-${fontSize}-explanation.png`) })
       await guide.getByRole('tab', { name: '如何使用', exact: true }).click()
       const usage = guide.getByRole('tabpanel', { name: '如何使用', exact: true })
       await usage.waitFor()
       expect(await usage.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
-      await page.screenshot({ path: join(screenshots, `${width}-${theme}-usage.png`) })
+      await page.screenshot({ path: join(screenshots, `${width}-${theme}-${fontSize}-usage.png`) })
       await page.keyboard.press('Escape')
       await guide.waitFor({ state: 'hidden' })
       expect(await trigger.evaluate(node => node === document.activeElement)).toBe(true)
@@ -52,7 +55,7 @@ it('fits mode help to its content and keeps plugin actions on the settings surfa
       expect(await bar.evaluate(node => getComputedStyle(node, '::before').backgroundColor))
         .toBe(await settings.evaluate(node => getComputedStyle(node).backgroundColor))
       await settings.getByRole('button', { name: '刷新', exact: true }).waitFor()
-      await page.screenshot({ path: join(screenshots, `${width}-${theme}-plugins.png`) })
+      await page.screenshot({ path: join(screenshots, `${width}-${theme}-${fontSize}-plugins.png`) })
     } finally { await page.close() }
   }
 })

@@ -37,6 +37,8 @@ Desktop's fixed `Cmd`/`Ctrl` + `+` (or `=`) and `Cmd`/`Ctrl` + `-` shortcuts cha
 
 ### Fonts
 
+Font-family fields share the Settings row and stack below their copy at viewport widths of 767px and below. Wider layouts keep them beside the copy, while font-size steppers stay on the right at every width. Resizing retains focus and uncommitted text.
+
 Three rows set the text font (interface and conversation text), the code font (code blocks, inline code, and other `--ds-font-family-code` text), and the sidebar terminal font independently. Each field takes comma-separated family names and commits on blur or Enter; an empty field restores the built-in stack. The service normalizes each list by dropping quotes, backslashes, angle brackets, and control characters and double-quoting every name except CSS generic families, then stores it in `textFontFamily`, `codeFontFamily`, or `terminalFontFamily`. The user list precedes the role's built-in stack, so a font missing on the machine falls back to the default. The field accepts any installed font name; it does not enumerate local fonts.
 
 ### Registering a theme

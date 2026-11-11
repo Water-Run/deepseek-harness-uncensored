@@ -1,5 +1,6 @@
 /** Built settings controls share materials and adapt their geometry to the viewport and pointer. */
 import { fileURLToPath } from 'node:url'
+import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { chromium, type Locator } from 'playwright'
 import { expect, it, onTestFinished, vi } from 'vitest'
@@ -25,7 +26,8 @@ function appearance(element: Locator) {
 
 function rowGeometry(control: Locator) {
   return control.evaluate((node) => {
-    const row = node.parentElement!
+    const row = node.closest('[data-preference-layout]')
+    if (row === null) throw new Error('The control has no preference row')
     const text = row.firstElementChild!
     const description = text.lastElementChild!.getBoundingClientRect()
     const rowBox = row.getBoundingClientRect()
@@ -46,8 +48,11 @@ function rowGeometry(control: Locator) {
 it('stacks font fields at narrow widths while keeping font-size controls on the right', async () => {
   const scaffold = await launchWebScaffold({ developerTools: false })
   onTestFinished(() => scaffold.close())
+  await scaffold.ctx.settings.update('balance', { source: 'local' })
   const browser = await chromium.launch()
   onTestFinished(() => browser.close())
+  const screenshots = fileURLToPath(new URL('../../../.artifacts/screenshots/settings-font-rows', import.meta.url))
+  await mkdir(screenshots, { recursive: true })
 
   for (const platform of ['web', 'darwin', 'win32'] as const) {
     const context = await browser.newContext({
@@ -84,6 +89,10 @@ it('stacks font fields at narrow widths while keeping font-size controls on the 
           expect(Math.abs(geometry.centerDifference), `${platform} ${width}px ${name} centering`).toBeLessThan(1)
         }
         expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
+        if (platform === 'web' && width === 390) {
+          await dialog.getByRole('textbox', { name: '正文字体', exact: true })
+            .locator('xpath=ancestor::*[@data-preference-layout][1]').screenshot({ path: join(screenshots, '390-font-family.png') })
+        }
       }
 
       const field = dialog.getByRole('textbox', { name: '正文字体', exact: true })
@@ -103,6 +112,7 @@ it('stacks font fields at narrow widths while keeping font-size controls on the 
 it('uses 16px text for coarse-pointer font fields and preserves compact fine-pointer fields', async () => {
   const scaffold = await launchWebScaffold({ developerTools: false })
   onTestFinished(() => scaffold.close())
+  await scaffold.ctx.settings.update('balance', { source: 'local' })
   const browser = await chromium.launch()
   onTestFinished(() => browser.close())
 
