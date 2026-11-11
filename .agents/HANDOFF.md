@@ -10,9 +10,13 @@
 
 2026-11-12 完成独立发布策略和更新通道的下一轮适配，未恢复官方 COS/官网流程；保留 DSHU 的 `nightly` / `latest` 文件名及新通道切换机制。菜单接入新 CSS 锚点与子菜单，保留搜索及退出释放交互；统计浮层仍需要的测量 hook 和导出已恢复。25 个聚焦测试文件 438 项通过，ASAR 检查另有 23 项通过、3 项平台跳过。40 文件的非类型感知 lint 无错误，有 2 条未使用禁用指令提示；完整类型检查待执行。两组中英文文档配对通过。当前实际剩余 346 个未解决路径，完整构建、浏览器及实包尚未验收。
 
-完整设置页集成仍被 `packages/client/ui-chat/src/client/chat/ChatView.tsx` 和 `packages/extensions/cordis-client-runner/src/client/api-catalog.ts` 的冲突阻挡，不能计为通过。最新私有内容检查点为 `7dc5febc0d04`，引用 `refs/dshu-checkpoints/rc2-delivery-menu-checkpoint-23HCvi`；原索引和回执在 `.dsh-build/rc2-delivery-menu-checkpoint-23HCvi`。真实合并索引未被改写。恢复后继续这些实际依赖，保留既有待验收项目。
+上述设置集成阻挡现已解决。2026-11-12 后续节点完成客户端 TS/TSX/CSS 适配，将旧输入目录变更合入实际加载组件，保留预测并接入继续生成和文件粘贴路由。输入区 929 项、聊天 1,033 项、工作区/设置 572 项、文档预览 611 项、模式/主题 532 项通过，共 235 个测试文件、3,677 项。全仓扫描在并发时曾超过默认 5 秒，模式/主题组最终使用 30 秒预算通过，未改动颜色检查断言。242 份 CSS 解析及两个动态目录的新鲜度检查通过，当前节点非类型感知 lint 无错误或警告。
 
-状态为 `.dsh-build/rc2-intake-state-20261111.json`，包含上游、主分支基线、合成基线及切换前检查点；索引与工作树保留，可继续原合并。源码分析与处理记录使用 `.dsh-build/rc2-*` 前缀。全部既有未完成任务保留，Linux 新包在 rc.2 适配后继续。当前可用周额度 12%，未触发 10% 收尾线。
+未分组新增按全局创建授权门控，明确传入空 Workspace；授予和撤回均已测试。新上下文菜单 Factory 保留运行中会话入口和置顶拖动反馈。品牌、两项特殊工作区主题色、模式动效及日出日落默认行为保留。关于页深色品牌面板和固定配色预览使用主题层的语义别名，功能样式不直接引用基础调色板。
+
+当前实际剩余 319 个未解决路径。最新私有检查点为 `92ca5b07d6e2`，引用 `refs/dshu-checkpoints/rc2-client-ui-checkpoint-e9jluQ`；原索引和回执在 `.dsh-build/rc2-client-ui-checkpoint-e9jluQ`。真实合并索引未改写，711 份 Session 和 2,775 份冻结归档仍与原对象一致。Host Remote 生成、完整构建、真实浏览器及安装包仍待完成。许可检查保留在 `document-preview-license-bundle.built.e2e.ts` 并合入新引号匹配，尚未执行；PDF 夹具标准字体路径提示仍需在实包中核验。
+
+状态为 `.dsh-build/rc2-intake-state-20261111.json`，包含上游、主分支基线、合成基线及检查点；索引与工作树保留，可继续原合并。初始合并、整目录恢复与一次性改写脚本不可盲目重跑；当前内容和索引优先。Git 状态读取使用 `--no-optional-locks`，索引写入串行，避免与状态刷新争锁。全部既有未完成任务保留，Linux 新包在 rc.2 适配后继续。当前可用周额度 11%，未触发 10% 收尾线。
 
 桌面/API 节点另有完整内容检查点 `46823fe3f27b`，本机引用 `refs/dshu-checkpoints/rc2-runtime-api-checkpoint-joZVrM`；原冲突索引保存在 `.dsh-build/rc2-runtime-api-checkpoint-joZVrM/conflicted-index`，真实合并索引未被改写。该检查点含未解决内容，仅用于恢复，不用于发布。
 
