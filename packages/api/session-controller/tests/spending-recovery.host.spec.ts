@@ -13,6 +13,7 @@ import WorkspaceRegistry from '@deepseek-ai/dsh-workspace'
 import { mountAgentLoopTestDependencies, mountAgentLoopTestHarness } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import * as spending from '@deepseek-ai/dsh-spend-limit'
+import type { SpendSnapshot } from '@deepseek-ai/dsh-spend-limit/types'
 import { SpendLedger, DEFAULT_PREFERENCES, MICRO_CNY } from '@deepseek-ai/dsh-spend-limit/src/ledger.ts'
 import { SpendGate } from '@deepseek-ai/dsh-spend-limit/src/gate.ts'
 import { SpendRecovery } from '@deepseek-ai/dsh-spend-limit/src/continuation.ts'
@@ -25,7 +26,7 @@ afterEach(async () => {
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true })
 })
 
-async function setup(existingRoot?: string) {
+async function setup(existingRoot?: string, prepareApi?: (ctx: Context) => Promise<void>) {
   const root = existingRoot ?? await mkdtemp(join(tmpdir(), 'dshu-budget-api-'))
   if (existingRoot === undefined) roots.push(root)
   const cwd = join(root, 'workspace'), path = join(root, 'budget.sqlite')
@@ -41,10 +42,12 @@ async function setup(existingRoot?: string) {
   await mountAgentLoopTestHarness(ctx)
   const adapter = new MockAdapter([textResponse('continued original task')])
   ctx.llm.registerAdapter(['mock'], adapter)
-  await ctx.plugin(spending, { path, pollMs: 50, rates: [{ providers: ['mock'], models: ['mock'], input: 1,
-    cachedInput: 1, cacheWrite: 1, output: 1, contextTokens: 1000000, maxOutputTokens: 100, searchRequest: 0 }] }).await()
+  const spendingFiber = ctx.plugin(spending, { path, pollMs: 50, rates: [{ providers: ['mock'], models: ['mock'], input: 1,
+    cachedInput: 1, cacheWrite: 1, output: 1, contextTokens: 1000000, maxOutputTokens: 100, searchRequest: 0 }] })
+  await spendingFiber.await()
+  await prepareApi?.(ctx)
   const api = await createSessionTestController(ctx, { cwd, defaultModelSelection: () => ({ provider: 'mock', model: 'mock' }) })
-  return { root, cwd, path, ctx, api, adapter }
+  return { root, cwd, path, ctx, api, adapter, spendingFiber }
 }
 
 async function exhaust(fixture: Awaited<ReturnType<typeof setup>>) {
@@ -99,6 +102,110 @@ it('does not resume a task the user stopped while it was waiting', async () => {
   expect((await fixture.ctx.spendLimit.get()).pausedSessions).toEqual([])
   await fixture.ctx.spendLimit.reset()
   expect(fixture.adapter.requests).toHaveLength(0)
+})
+
+it('deletes a waiting conversation and clears its spending pause before capacity is reset', async () => {
+  const fixture = await setup()
+  const agent = await exhaust(fixture)
+  expect((await fixture.api.delete({ sessionId: agent.id })).deletedSessionIds).toEqual([agent.id])
+  expect((await fixture.ctx.spendLimit.get()).pausedSessions).toEqual([])
+  expect(await fixture.ctx.sessionPersistence.stat(agent.id)).toBeUndefined()
+  expect(fixture.ctx.agents.get(agent.id)).toBeUndefined()
+  await fixture.ctx.spendLimit.reset()
+  expect(fixture.adapter.requests).toHaveLength(0)
+})
+
+it('clears a deleted conversation spending pause after interrupted derived cleanup and restart', async () => {
+  const first = await setup()
+  const agent = await exhaust(first)
+  const sessionId = agent.id
+  const other = await first.api.create({ cwd: first.cwd })
+  first.ctx.agents.get(other.sessionId)!.followup(createUserMessage({
+    source: { kind: 'user' }, content: [{ type: 'text', text: 'independent paused task' }],
+  }))
+  await vi.waitFor(async () => { expect((await first.ctx.spendLimit.get()).pausedSessions).toHaveLength(2) })
+  await first.ctx.fiber.dispose()
+  const second = await setup(first.root)
+  const failed = vi.spyOn(second.ctx.sessionQuery, 'forgetSessions').mockRejectedValueOnce(new Error('cleanup interrupted'))
+  try {
+    await expect(second.api.delete({ sessionId })).rejects.toMatchObject({ code: 'session/delete-incomplete' })
+  } finally { failed.mockRestore() }
+  expect(await second.ctx.sessionPersistence.stat(sessionId)).toBeUndefined()
+  expect((await second.ctx.spendLimit.get()).pausedSessions).toContainEqual({ sessionId, state: 'blocked', resumeAt: null })
+  await second.ctx.fiber.dispose()
+  const restored = await setup(first.root)
+  await restored.api.list({}, new AbortController().signal)
+  await vi.waitFor(async () => {
+    expect((await restored.ctx.spendLimit.get()).pausedSessions).toEqual([{ sessionId: other.sessionId, state: 'blocked', resumeAt: null }])
+  })
+  await restored.api.delete({ sessionId: other.sessionId })
+  await restored.ctx.spendLimit.reset()
+  expect(restored.adapter.requests).toHaveLength(0)
+  expect(await restored.ctx.sessionPersistence.stat(sessionId)).toBeUndefined()
+  expect(restored.ctx.agents.get(sessionId)).toBeUndefined()
+})
+
+it('skips retired-pause reconciliation when the persistence provider has no deletion catalog', async () => {
+  const query = vi.fn(async () => [])
+  const fixture = await setup(undefined, async (ctx) => {
+    vi.spyOn(ctx.sessionPersistence, 'supportsDeletion', 'get').mockReturnValue(false)
+    vi.spyOn(ctx.sessionPersistence, 'deletedSessionIds').mockImplementation(query)
+  })
+  const { sessionId } = await fixture.api.create({ cwd: fixture.cwd })
+  await expect(fixture.api.delete({ sessionId })).rejects.toMatchObject({ code: 'session/delete-unsupported' })
+  expect(query).not.toHaveBeenCalled()
+})
+
+it('clears a pause deleted while the spending provider was unavailable when that provider returns', async () => {
+  const first = await setup()
+  const agent = await exhaust(first)
+  const sessionId = agent.id
+  await first.ctx.fiber.dispose()
+  const fixture = await setup(first.root)
+  await fixture.spendingFiber.dispose()
+  await fixture.api.delete({ sessionId })
+  await fixture.ctx.plugin(spending, { path: fixture.path, pollMs: 50 }).await()
+  await vi.waitFor(async () => { expect((await fixture.ctx.spendLimit.get()).pausedSessions).toEqual([]) })
+  await fixture.ctx.spendLimit.reset()
+  expect(fixture.adapter.requests).toHaveLength(0)
+  expect(fixture.ctx.agents.get(sessionId)).toBeUndefined()
+})
+
+it('keeps the Session API available after the deleted-pause catalog query fails', async () => {
+  const failure = new Error('retired spending catalog unavailable')
+  const failedRead = vi.fn(async () => { throw failure })
+  const fixture = await setup(undefined, async (ctx) => {
+    vi.spyOn(ctx.sessionPersistence, 'deletedSessionIds').mockResolvedValueOnce([]).mockImplementationOnce(failedRead)
+  })
+  await vi.waitFor(() => { expect(failedRead).toHaveBeenCalledOnce() })
+  const { sessionId } = await fixture.api.create({ cwd: fixture.cwd })
+  expect(fixture.ctx.agents.get(sessionId)).toBeDefined()
+  expect((await fixture.ctx.spendLimit.get()).pausedSessions).toEqual([])
+})
+
+it('drains deleted-pause reconciliation before the spending provider closes', async () => {
+  const entered = Promise.withResolvers<undefined>()
+  const release = Promise.withResolvers<SpendSnapshot>()
+  let snapshot!: SpendSnapshot
+  const fixture = await setup(undefined, async (ctx) => {
+    snapshot = await ctx.spendLimit.get()
+    vi.spyOn(ctx.spendLimit, 'get').mockImplementationOnce(() => { entered.resolve(undefined); return release.promise })
+  })
+  await entered.promise
+  vi.useFakeTimers({ shouldClearNativeTimers: true })
+  let closed = false
+  const closing = fixture.spendingFiber.dispose().then(() => { closed = true })
+  try {
+    await vi.advanceTimersByTimeAsync(0)
+    expect(closed).toBe(false)
+    release.resolve(snapshot)
+    await closing
+    expect(closed).toBe(true)
+  } finally {
+    release.resolve(snapshot)
+    try { await closing }
+    finally { vi.useRealTimers() }
+  }
 })
 
 it('acknowledges recovery only after persistence succeeds and does not repeat an accepted notice', async () => {

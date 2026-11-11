@@ -323,6 +323,21 @@ export class SessionController extends TypertRemoteService {
       child.on('api-session/deleted', (id) => {
         void child.spendLimit.forgetSession(id).catch((error: unknown) => { child.logger.error('session-controller: spending pause cleanup failed'); child.logger.error(error) })
       })
+      if (child.sessionPersistence.supportsDeletion) {
+        child.effect(() => {
+          const persistence = child.sessionPersistence
+          const spending = child.spendLimit
+          const cleanup = (async () => {
+            const deleted = new Set(await persistence.deletedSessionIds())
+            const { pausedSessions } = await spending.get()
+            for (const { sessionId } of pausedSessions) if (deleted.has(sessionId)) await spending.forgetSession(sessionId)
+          })().catch((error: unknown) => {
+            child.logger.error('session-controller: spending pause recovery failed')
+            child.logger.error(error)
+          })
+          return () => cleanup
+        }, 'session-controller: deleted spending pause recovery')
+      }
     })
     this.listState = new ApiSessionList(ctx, this.listWorkSliceMs)
     await this.listState.initialize()
