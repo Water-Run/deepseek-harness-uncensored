@@ -1,5 +1,13 @@
 # Uncensored 开发交接
 
+## 额度收尾暂停（2026-11-12）
+
+实际剩余可用周额度已到 10%，按用户约定停止开发、打包当前可交付成果并暂停 Goal；目标未完成。恢复入口、完整失败清单及交付边界见[收尾记录](requirements/2026-11-12-quota-closeout.md)。Windows 系统仍安装 `.7`，稳定分支已打包运行时代码自该版无变化；原生保护新源码未纳入分发。收尾重新校验并归档 Windows `.7`、Linux `.5` 及源码恢复资料，不生成未验收的 rc.2 安装器。
+
+最新内容检查点 `4105e9344f34` / `refs/dshu-checkpoints/rc2-closeout-checkpoint-FfiEWS` 保留当前源码，原索引仍有 310 个未解决路径。最后八个 Host / 浏览器文件已有修改但未验收：Host 广测 1,831 通过、14 失败、1 跳过；浏览器组 156 通过、2 失败；lint 1 错误、2 警告。优先检查 `continuation-presets.spec.ts` 冲突、LiveShare 的 `capabilityGroup` 夹具、TypeScript 配置冲突、终端代理超时，以及 Stagehand `extensionId` 未转发和两例 `Invalid URL`。不要把这些工作计为完成。
+
+原现场 `D:\Coding\dshu-rc2-20261111` 保留，状态在 `.dsh-build/rc2-intake-state-20261111.json`；不要重跑一次性准备脚本。收尾包位于 `.dsh-build/deliverables/DSHU-closeout-20261112-4105e9.zip`。全部原始保护任务、平台交付、许可、签名和计划保留，等待用户继续指令。
+
 ## DSH 0.2.2-rc.2 独立适配（2026-11-11）
 
 官方发布已更新为 rc.2，固定提交 `ddac96760b6e`。与 rc.1 的完整差异为 1,568 个提交、4,769 个文件。主分支代码及系统 `.7` 保持 rc.1，适配位于 detached 工作树 `D:\Coding\dshu-rc2-20261111`。进度、兼容要求及恢复步骤见[rc.2 清单](requirements/2026-11-11-dsh-rc2.md)。
