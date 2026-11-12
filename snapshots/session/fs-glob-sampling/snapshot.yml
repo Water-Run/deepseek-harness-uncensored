@@ -6,6 +6,10 @@ recording: live
 header:
   class: fs-search
   pin: true
+  systemPromptSource: apply-patch-update
 platform: posix
 workspace:
   setup: fixed-search-mtimes
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

@@ -3,11 +3,11 @@ import { agentPresetProjectionDefinition } from '@deepseek-ai/dsh-agent-preset-r
 import { subagentModelSelectionProjectionDefinition } from '@deepseek-ai/dsh-tool-subagent/src/model-selection-state.ts'
 import { createRequire } from 'node:module'
 import { randomUUID } from 'node:crypto'
-import { mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import {
   initProfile,
@@ -50,7 +50,7 @@ const CLAUDE_CODE_PACKAGE_DIR = join(REPO_ROOT, 'packages/subagent/subagent-clau
 const INSTALL_ANCHOR = join(REPO_ROOT, 'apps/cli/package.json')
 const MINIMAL_PROMPT = 'You are a helpful software engineer assistant.'
 const SHELL_TOOL = process.platform === 'win32' ? 'pwsh' : 'bash'
-const MINIMAL_TOOLS = [SHELL_TOOL, 'read_image', 'working_directory']
+const MINIMAL_TOOLS = [SHELL_TOOL, 'read_image', 'team_task_create', 'team_task_get', 'team_task_list', 'team_task_update', 'working_directory'].sort()
 /** Deterministic model responses for the shipped minimal compaction path. */
 class MinimalCompactionAdapter extends LlmAdapter {
   readonly requests: GenerateOptions[] = []
@@ -131,6 +131,8 @@ async function bootWeb(
     // Fixed Session IDs must stay inside this boot's temporary profile root.
     { id: 'session-persistence-jsonl', config: { root: join(profileHome, 'sessions') } },
     { id: 'attachment-local', config: { dshHome: profileHome } },
+    // Keep the bundled armor choice independent of the developer's shell.
+    { id: 'uncensored-armor', config: { language: 'zh' } },
     // Host rows with side effects outside this process: a bound port, a served
     // asset tree, a telemetry exporter. `api-gateway` and `directory-picker`
     // stay ENABLED on purpose — the api-proxy is the host row that injects
@@ -258,9 +260,9 @@ beforeAll(async () => {
 }, 120_000)
 
 describe('the shipped Web composition', () => {
-  it('exposes only the directory tool in the global layer', () => {
-    // Directory selection is global; action tools belong to their Agent presets.
-    expect(toolNames(ctx)).toEqual(['working_directory'])
+  it('registers the directory and conditional Team tools in the global layer', () => {
+    // Team registrations are shared; session mode controls their step-time availability.
+    expect(toolNames(ctx)).toEqual(['team_task_create', 'team_task_get', 'team_task_list', 'team_task_update', 'working_directory'])
   })
 
   it('keeps the token meter and its context-meter projections on the host plane', async () => {
@@ -316,6 +318,107 @@ describe('the shipped Web composition', () => {
     } finally { await handle.dispose() }
   })
 
+  it.each([
+    ['standard', 'You are a coding agent'],
+    ['security', 'You are the operator on a security engagement'],
+    ['reverse', 'You are a reverse-engineering analyst'],
+    ['writing', 'You are a novelist, screenwriter, and story editor'],
+  ] as const)('sends and logs the complete armor and %s persona on successive turns', async (preset, introduction) => {
+    const adapter = new MinimalCompactionAdapter()
+    const provider = `dshu-mode-proof-${preset}`
+    const unregister = ctx.llm.registerAdapter([provider], adapter)
+    onTestFinished(unregister)
+    const handle = await ctx.agents.create({
+      sessionId: SessionId(`dshu-mode-request-${preset}-${randomUUID()}`),
+      agentOptions: { provider, model: provider },
+      setup: owner => ctx.agentPresets.mount(owner, preset).then(() => undefined),
+    })
+    try {
+      const assembly = await ctx.systemPrompt.assemble({ scope: handle.agent })
+      const armor = assembly.sections.find(section => section.name === 'uncensored:armor')
+      if (armor === undefined) throw new Error(`${preset} has no bundled armor section`)
+      expect(assembly.sections[0]?.name).toBe('uncensored:armor')
+      expect(armor.text.length).toBeGreaterThan(1000)
+      for (const text of ['Reply with Ready.', 'Reply with Ready again.']) {
+        handle.agent.followup(createUserMessage({ content: [{ type: 'text', text }], source: { kind: 'user' } }))
+        await handle.agent.whenIdle()
+      }
+      const requests = adapter.requests.filter(request => request.purpose === undefined)
+      expect(requests).toHaveLength(2)
+      const prompts = handle.agent.session.snapshotEvents().flatMap(event => event.type === 'system/message'
+        ? [event.data.message.content.flatMap(block => block.type === 'text' ? [block.text] : []).join('')] : [])
+      const headers = handle.agent.session.snapshotEvents().filter(event => event.type === 'request/header')
+      for (const request of requests) {
+        const system = request.messages[0]
+        if (system?.role !== 'system') throw new Error(`${preset} did not send a leading system message`)
+        const text = system.content.flatMap(block => block.type === 'text' ? [block.text] : []).join('')
+        expect(request.system).toBeUndefined()
+        expect(text.startsWith(armor.text)).toBe(true)
+        expect(text.split(armor.text)).toHaveLength(2)
+        expect(text).toContain(introduction)
+        expect(prompts).toContain(text)
+        const registered = new Map(ctx.tools.schemas(handle.agent).map(tool => [tool.name, tool]))
+        const sent = request.tools ?? []
+        expect(new Set(sent.map(tool => tool.name)).size).toBe(sent.length)
+        // Step admission may hide conditional registrations; unconditional tools must remain available.
+        for (const [name] of registered) {
+          if (ctx.tools.executable(name, handle.agent) !== undefined) expect(sent.map(tool => tool.name)).toContain(name)
+        }
+        for (const tool of sent) expect(tool).toEqual(registered.get(tool.name))
+        expect(headers.some(header => JSON.stringify(header.data.header.tools) === JSON.stringify(request.tools))).toBe(true)
+      }
+    } finally { await handle.dispose() }
+  })
+
+  it.each(['ptc'] as const)('keeps interruption disabled in %s with Team mode off or on', async (preset) => {
+    const handle = await ctx.agents.create({
+      sessionId: SessionId(`preset-interrupt-${preset}`),
+      setup: agentCtx => ctx.agentPresets.mount(agentCtx, preset).then(() => undefined),
+    })
+    try {
+      for (const enabled of [false, true]) {
+        await ctx.agentTeams.setEnabled(handle.agent, enabled)
+        const names = toolNames(ctx, handle.agent)
+        expect(names).not.toContain('interrupt_agent')
+        expect(names).toEqual(expect.arrayContaining(['send_message', 'list_agents', 'wait_agent']))
+      }
+    } finally {
+      await handle.dispose()
+    }
+  })
+
+  it.each(['ptc'] as const)('restores interruption through a complete %s declaration override', async (preset) => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-preset-interrupt-'))
+    onTestFinished(() => rm(root, { recursive: true, force: true }))
+    const declaration = composeEntries([webPatches('interrupt migration')])
+      .find(row => row.id === `preset-${preset}`)!.config as {
+      id: string
+      order: number
+      plugins: import('@deepseek-ai/cordis-plugin-loader').EntryOptions[]
+    }
+    const configured = await bootWeb(root, [{
+      id: `preset-${preset}`,
+      config: {
+        ...declaration,
+        plugins: composeEntries([[{ insert: declaration.plugins }, {
+          id: 'tool-subagent-control', config: { interrupt: true },
+        }]]),
+      },
+    }])
+    try {
+      const handle = await configured.agents.create({
+        sessionId: SessionId(`preset-interrupt-enabled-${preset}`),
+        setup: agentCtx => configured.agentPresets.mount(agentCtx, preset).then(() => undefined),
+      })
+      try {
+        expect(toolNames(configured)).not.toContain('interrupt_agent')
+        expect(toolNames(configured, handle.agent)).toEqual(expect.arrayContaining([
+          'interrupt_agent', 'send_message', 'list_agents', 'wait_agent',
+        ]))
+      } finally { await handle.dispose() }
+    } finally { await configured.fiber.dispose() }
+  })
+
   it('composes the full agent from `standard`', async () => {
     const handle = await ctx.agents.create({
       sessionId: SessionId('preset-standard'),
@@ -329,10 +432,10 @@ describe('the shipped Web composition', () => {
       // depend on ripgrep being present on the machine.
       expect(toolNames(ctx, handle.agent).filter(name => name !== 'glob' && name !== 'grep')).toEqual([
         'ask_user_question', SHELL_TOOL, 'create_goal', 'edit', 'exit_plan_mode',
-        'get_goal', 'interrupt_agent', 'job_kill', 'job_list', 'job_output', 'list_agents', 'list_subagent_models', 'memory_search', 'memory_write', 'plugin_manager', 'present', 'read', 'read_image',
+        'get_goal', 'interrupt_agent', 'job_kill', 'job_list', 'job_output', 'list_agents', 'list_subagent_models', 'memory_search', 'memory_write', 'office_convert', 'office_recalculate', 'office_render', 'plugin_manager', 'present', 'read', 'read_image',
         'schedule_create', 'schedule_edit', 'schedule_list', 'schedule_view',
         'send_message', 'skill',
-        'subagent', 'subagent_fork', 'todo_write', 'update_goal', 'web_fetch', 'web_search',
+        'subagent', 'subagent_fork', 'team_task_create', 'team_task_get', 'team_task_list', 'team_task_update', 'todo_write', 'update_goal', 'wait_agent', 'web_fetch', 'web_search',
         'workflow', 'working_directory', 'write',
       ].sort())
       expect(ctx.commands.find(handle.agent, 'goal')).toBeDefined()
@@ -373,7 +476,7 @@ describe('the shipped Web composition', () => {
         'model', 'provider', 'reasoning_effort',
       ]))
       for (const agent of [disabled.agent, enabled.agent]) {
-        expect(toolParameterNames(ctx, agent, 'subagent_fork')).toEqual(['cwd', 'description', 'prompt'])
+        expect(toolParameterNames(ctx, agent, 'subagent_fork')).toEqual(['cwd', 'description', 'name', 'prompt'])
       }
     } finally {
       await policy.dispose()
@@ -478,7 +581,7 @@ describe('the shipped Web composition', () => {
       if (image?.type !== 'image') throw new Error('minimal image read produced no durable image')
       expect((await ctx.attachments.readImage(image.attachment)).data.byteLength).toBe(image.attachment.bytes)
       expect(JSON.stringify(adapter.requests[1]?.messages)).toContain(image.attachment.attachmentId)
-      expect(adapter.requests[0]?.tools?.map(tool => tool.name)).toEqual(MINIMAL_TOOLS)
+      expect(adapter.requests[0]?.tools?.map(tool => tool.name)).toEqual([SHELL_TOOL, 'read_image', 'working_directory'])
       expect(result?.data.meta).toMatchObject({ path: await realpath(join(cwd, 'red.png')) })
     } finally {
       await handle.dispose()
@@ -566,7 +669,7 @@ describe('the shipped Web composition', () => {
 
       // Tearing the minimal session down leaves the full one whole.
       expect(toolNames(ctx, full.agent).length).toBeGreaterThan(10)
-      expect(toolNames(ctx)).toEqual(['working_directory'])
+      expect(toolNames(ctx)).toEqual(['team_task_create', 'team_task_get', 'team_task_list', 'team_task_update', 'working_directory'])
     } finally {
       await full.dispose()
     }
@@ -618,12 +721,10 @@ describe('the shipped Web composition', () => {
     }
   })
 
-  it('ships the composition-authoring skill in the declaration package', async () => {
-    const skill = join(
-      REPO_ROOT, 'packages/preset/agent-preset', 'skills', 'editing-cordis-compositions', 'SKILL.md',
-    )
+  it('ships the dsh-doc skill in the declaration package', async () => {
+    const skill = join(REPO_ROOT, 'packages/preset/agent-preset', 'skills', 'dsh-doc', 'SKILL.md')
 
-    expect((await readFile(skill, 'utf8')).startsWith('---\nname: editing-cordis-compositions')).toBe(true)
+    expect((await readFile(skill, 'utf8')).startsWith('---\nname: dsh-doc\n')).toBe(true)
   })
 
   it('merges the global skill layer into a preset agent\'s catalog, keeping local discovery preset-side', async () => {
@@ -647,10 +748,11 @@ describe('the shipped Web composition', () => {
       setup: agentCtx => ctx.agentPresets.mount(agentCtx, 'standard').then(() => undefined),
     })
     try {
-      // The host (global) view carries the deployment-level provider alone:
+      // The host (global) view carries the deployment-level providers alone:
       // local discovery moved behind the presets with `skill-filesystem`.
       expect((await ctx.skills.list({ cwd: proj })).map(skill => skill.name).sort()).toEqual(
-        process.platform === 'win32' ? ['diagnose-windows-sandbox-acl', 'dsh-badge'] : ['dsh-badge'],
+        [...(process.platform === 'win32' ? ['diagnose-windows-sandbox-acl'] : []),
+          'dsh-badge', 'office', 'office-docx', 'office-pptx', 'office-xlsx'].sort(),
       )
 
       // The standard agent's view merges the global layer with its preset's
@@ -777,7 +879,7 @@ describe.each(['web', 'desktop'] as const)('%s native subagent bundles', (surfac
       const productCtx = await bootSelected(installed)
       const spawn = vi.spyOn(productCtx.subprocess, 'spawn')
       try {
-        expect(productCtx.subagents.list().filter(name => (products as readonly string[]).includes(name)).sort())
+        expect(products.filter(name => productCtx.subagents.getProvider(name) !== undefined).sort())
           .toEqual([...installed].sort())
         const expected = installed.map(toolName).sort()
         for (const preset of ['standard', 'security', 'reverse', 'writing', 'ptc', 'minimal']) {
@@ -789,7 +891,7 @@ describe.each(['web', 'desktop'] as const)('%s native subagent bundles', (surfac
         })
         try {
           for (const product of installed) {
-            expect(toolParameterNames(productCtx, handle.agent, toolName(product))).toEqual(['cwd', 'description', 'prompt'])
+            expect(toolParameterNames(productCtx, handle.agent, toolName(product))).toEqual(['cwd', 'description', 'name', 'prompt'])
           }
         } finally { await handle.dispose() }
         expect(spawn).not.toHaveBeenCalled()
@@ -818,6 +920,156 @@ describe.each(['web', 'desktop'] as const)('%s native subagent bundles', (surfac
       }
     } finally { await productCtx.fiber.dispose() }
   }, 120_000)
+})
+
+describe('the standard preset documentation skill', () => {
+  it.for([false, true])('loads the packaged skill without adding tools (badge skill: %s)', async (withBadge: boolean) => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-standard-doc-'))
+    vi.stubEnv('DSH_HOME', join(root, 'home'))
+    vi.stubEnv('DSH_AGENTS_HOME', join(root, 'agents-home'))
+    vi.stubEnv('DSH_BUNDLED_SKILL_DIR', join(root, 'bundled-skills'))
+    let docCtx: Context | undefined
+    try {
+      const baselineSkillRoot = join(root, 'baseline-skills')
+      await cp(join(REPO_ROOT, 'packages/preset/agent-preset/skills'), baselineSkillRoot, {
+        recursive: true, filter: path => basename(path) !== 'dsh-doc',
+      })
+      const standard = composeEntries([webPatches('standard documentation')])
+        .find(row => row.id === 'preset-standard')!.config as import('@deepseek-ai/dsh-agent-preset-registry').PresetDefinition
+      docCtx = await bootWeb(root, [
+        { id: 'skill-badge', disabled: !withBadge },
+        { insert: [{
+          id: 'preset-standard-without-doc', name: '@deepseek-ai/dsh-agent-preset',
+          config: {
+            ...standard, id: 'standard-without-doc',
+            plugins: standard.plugins.map(row => row.id === 'skill-filesystem'
+              ? { ...row, config: { customSkillDirs: [baselineSkillRoot] } }
+              : row),
+          },
+        }] },
+      ])
+      const testCtx = docCtx
+      const adapter = new MinimalCompactionAdapter()
+      testCtx.llm.registerAdapter(['standard-doc-test'], adapter)
+      const baseline = await testCtx.agents.create({
+        sessionId: SessionId('standard-doc-baseline'), meta: { cwd: root },
+        agentOptions: { provider: 'standard-doc-test', model: 'standard-doc-test' },
+        setup: agentCtx => testCtx.agentPresets.mount(agentCtx, 'standard-without-doc').then(() => undefined),
+      })
+      const standardAgent = await testCtx.agents.create({
+        sessionId: SessionId('standard-doc-current'), meta: { cwd: root },
+        agentOptions: { provider: 'standard-doc-test', model: 'standard-doc-test' },
+        setup: agentCtx => testCtx.agentPresets.mount(agentCtx, 'standard').then(() => undefined),
+      })
+      const baselineSkills = await testCtx.skills.list({ cwd: root, scope: baseline.agent })
+      const skills = await testCtx.skills.list({ cwd: root, scope: standardAgent.agent })
+      expect(skills.map(skill => skill.name).sort())
+        .toEqual([...baselineSkills.map(skill => skill.name), 'dsh-doc'].sort())
+      const definition = await testCtx.skills.get('dsh-doc', { cwd: root, scope: standardAgent.agent })
+      expect(definition?.path).toBe(await realpath(join(REPO_ROOT, 'packages/preset/agent-preset/skills/dsh-doc/SKILL.md')))
+      if (definition === undefined) throw new Error('standard has no packaged dsh-doc skill')
+      const schemas = testCtx.tools.schemas(standardAgent.agent)
+      expect(schemas).toEqual(testCtx.tools.schemas(baseline.agent))
+      expect(schemas.map(tool => tool.name)).not.toContain('cordis_inspect_list')
+      expect(schemas.map(tool => tool.name)).not.toContain('cordis_inspect_query')
+      for (const handle of [baseline, standardAgent]) {
+        handle.agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Reply ready.' }], source: { kind: 'user' } }))
+        await handle.agent.whenIdle()
+      }
+      const baselineCatalogs = baseline.agent.session.snapshotEvents().flatMap(event =>
+        event.type === 'user/message' && event.data.source.kind === 'skill-catalog' ? [event.data] : [])
+      const catalogs = standardAgent.agent.session.snapshotEvents().flatMap(event =>
+        event.type === 'user/message' && event.data.source.kind === 'skill-catalog' ? [event.data] : [])
+      expect(baselineCatalogs).toHaveLength(baselineSkills.length > 0 ? 1 : 0)
+      expect(catalogs).toHaveLength(1)
+      expect(catalogs[0]?.source).toMatchObject({
+        entries: skills.map(skill => ({ name: skill.name, description: skill.description })),
+      })
+      const requests = adapter.requests.filter(request => request.purpose === undefined)
+      expect(requests).toHaveLength(2)
+      expect(requests[0]?.tools).toEqual(requests[1]?.tools)
+      const catalogSize = (messages: typeof catalogs) => {
+        const text = messages.flatMap(message => message.content.flatMap(block => block.type === 'text' ? [block.text] : [])).join('')
+        return {
+          utf8Bytes: Buffer.byteLength(text, 'utf8'), codePoints: Array.from(text).length,
+          heuristicTokens: messages.reduce((total, message) => total + testCtx.tokenMeter.estimateMessage(message), 0),
+        }
+      }
+      const beforeCatalog = catalogSize(baselineCatalogs)
+      const afterCatalog = catalogSize(catalogs)
+      expect({
+        utf8Bytes: afterCatalog.utf8Bytes - beforeCatalog.utf8Bytes,
+        codePoints: afterCatalog.codePoints - beforeCatalog.codePoints,
+        heuristicTokens: afterCatalog.heuristicTokens - beforeCatalog.heuristicTokens,
+      }).toEqual({ utf8Bytes: 500, codePoints: 500, heuristicTokens: 125 })
+      const requestTexts = requests.flatMap(request => request.messages.flatMap(message =>
+        message.content.flatMap(block => block.type === 'text' ? [block.text] : [])))
+      expect(requestTexts.some(text => text.includes(definition.content))).toBe(false)
+      expect(standardAgent.agent.session.snapshotEvents().filter(event => event.type === 'tool/call')).toEqual([])
+      const profileManifest = join(root, 'profiles/spec/package.json')
+      const before = await readFile(profileManifest, 'utf8')
+      const loaded = await executeToolFixture(testCtx, {
+        agent: standardAgent.agent, callId: ToolCallId('standard-doc-load'),
+        name: 'skill', arguments: { name: 'dsh-doc' }, signal: new AbortController().signal,
+      })
+      expect(loaded.isError).toBe(false)
+      expect(loaded.content.some(block => block.type === 'text' && block.text.includes(definition.content))).toBe(true)
+      expect(testCtx.tools.schemas(standardAgent.agent)).toEqual(schemas)
+      expect(await readFile(profileManifest, 'utf8')).toBe(before)
+    } finally {
+      try { await docCtx?.fiber.dispose() } finally {
+        vi.unstubAllEnvs()
+        await rm(root, { recursive: true, force: true })
+      }
+    }
+  })
+  it('prefers project dsh-doc overrides while packaged guidance wins over user skills', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-standard-doc-priority-'))
+    const home = join(root, 'home')
+    const agentsHome = join(root, 'agents-home')
+    const workspace = join(root, 'workspace')
+    const projectAgents = join(root, 'project-agents')
+    const projectDsh = join(root, 'project-dsh')
+    vi.stubEnv('DSH_HOME', home)
+    vi.stubEnv('DSH_AGENTS_HOME', agentsHome)
+    vi.stubEnv('DSH_BUNDLED_SKILL_DIR', join(root, 'bundled-skills'))
+    let priorityCtx: Context | undefined
+    try {
+      await mkdir(workspace)
+      for (const project of [projectAgents, projectDsh]) await mkdir(join(project, '.git'), { recursive: true })
+      for (const [directory, description] of [
+        [join(home, 'skills'), 'User DSH skill'],
+        [join(agentsHome, 'skills'), 'User agents skill'],
+        [join(projectAgents, '.agents/skills'), 'Project agents skill'],
+        [join(projectDsh, '.agents/skills'), 'Lower priority project skill'],
+        [join(projectDsh, '.dsh/skills'), 'Project DSH skill'],
+      ] as const) {
+        const skill = join(directory, 'dsh-doc')
+        await mkdir(skill, { recursive: true })
+        await writeFile(join(skill, 'SKILL.md'), `---\nname: dsh-doc\ndescription: ${description}\n---\n\n${description}\n`)
+      }
+      priorityCtx = await bootWeb(root)
+      const testCtx = priorityCtx
+      const handle = await testCtx.agents.create({
+        sessionId: SessionId('standard-doc-priority'), meta: { cwd: workspace },
+        setup: agentCtx => testCtx.agentPresets.mount(agentCtx, 'standard').then(() => undefined),
+      })
+      for (const [cwd, path] of [
+        [workspace, join(REPO_ROOT, 'packages/preset/agent-preset/skills/dsh-doc/SKILL.md')],
+        [projectAgents, join(projectAgents, '.agents/skills/dsh-doc/SKILL.md')],
+        [projectDsh, join(projectDsh, '.dsh/skills/dsh-doc/SKILL.md')],
+      ] as const) {
+        const skills = await testCtx.skills.list({ cwd, scope: handle.agent })
+        expect(skills.filter(skill => skill.name === 'dsh-doc')).toHaveLength(1)
+        expect((await testCtx.skills.get('dsh-doc', { cwd, scope: handle.agent }))?.path).toBe(await realpath(path))
+      }
+    } finally {
+      try { await priorityCtx?.fiber.dispose() } finally {
+        vi.unstubAllEnvs()
+        await rm(root, { recursive: true, force: true })
+      }
+    }
+  })
 })
 
 describe('custom inspection presets declared from standard mode', () => {
@@ -866,6 +1118,8 @@ describe('custom inspection presets declared from standard mode', () => {
         // The `Tool` provider is the one built over the host context: it
         // answers with the shared registry's view of the REQUESTING agent,
         // so the copy sees its own preset's tools, not the host's empty set.
+        const spills = vi.spyOn(copyCtx.spillStore, 'saveText')
+        onTestFinished(() => { spills.mockRestore() })
         const queried = await executeToolFixture(copyCtx, {
           callId: ToolCallId('copied-preset-inspect-tools'),
           name: 'cordis_inspect_query',
@@ -874,11 +1128,8 @@ describe('custom inspection presets declared from standard mode', () => {
           agent: copied.agent,
         })
         expect(queried.isError).toBe(false)
-        // The whole-table answer can pass the inline token budget once the
-        // preset's tool table grows, and the spill policy then replaces its
-        // middle with a gap plus a spill footer. What this case proves is the
-        // provider's answer, so assert the names it must carry.
-        const queriedText = resultText(queried)
+        // The tool catalog may exceed the inline budget; assert its complete stored text.
+        const queriedText = spills.mock.calls.at(-1)?.[0].content ?? resultText(queried)
         for (const toolName of [SHELL_TOOL, 'cordis_inspect_list', 'cordis_inspect_query', 'plugin_manager']) {
           expect(queriedText).toContain(`"name": "${toolName}"`)
         }

@@ -1,6 +1,0 @@
-{
-  "meta": {
-    "title": "MCP 连接示例",
-    "description": "连接远端 MCP 服务，使智能体可以使用其工具。"
-  }
-}

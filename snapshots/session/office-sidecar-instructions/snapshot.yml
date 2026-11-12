@@ -6,6 +6,8 @@ recording: authored
 header:
   class: office-sidecar-instructions
   pin: true
-  toolSchemasSource: office-progressive-native
 workspace:
   setup: office-skills
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

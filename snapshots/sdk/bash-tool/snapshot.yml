@@ -7,6 +7,8 @@ recording: live
 header:
   class: sdk-default
   pin: true
+  systemPromptSource: text-turn
+  toolSchemasSource: session/text-turn
 sessionFormat:
   version: 4
   coverage: [behavior-update]

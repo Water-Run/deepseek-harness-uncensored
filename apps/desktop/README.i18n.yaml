@@ -15,8 +15,8 @@
   en: 127ea90553cb6af7
   zh: 7b1c5aec8558c684
 /deepseek-harness-uncensored-desktop/application-overview:
-  en: 899871448709261b
-  zh: c8d078e1f059a4a1
+  en: 4f27f7a34ea6c39a
+  zh: 8ca3e4f1efbffa50
 /deepseek-harness-uncensored-desktop/terminal-command:
   en: 6acfde29026ec764
   zh: b166239489f676fc
@@ -27,14 +27,14 @@
   en: 3724c53da4f7647b
   zh: 76ae549d43c99bb4
 /deepseek-harness-uncensored-desktop/key-technical-decisions/bundled-workspace-dependencies:
-  en: 1e0ba299769a3828
-  zh: 69208d314150dbf5
+  en: b4959ad365dbaab6
+  zh: 20207a61b4a6728c
 /deepseek-harness-uncensored-desktop/bundled-command-runtime:
   en: 8d718291bf7c48ea
   zh: 482e066b87d477cb
 /deepseek-harness-uncensored-desktop/installation-ownership:
-  en: 331dd0637abdd6bb
-  zh: 7306259a49eddb33
+  en: 6be7362fa6542e80
+  zh: eba6bf0b93f2016a
 /deepseek-harness-uncensored-desktop/installation-ownership/runtime-and-plugin-activation:
   en: 4951cd3ee659eb33
   zh: 96bdd6358dad587a
@@ -54,14 +54,14 @@
   en: a2c549f42d653427
   zh: 4c9b5afd549210dd
 /deepseek-harness-uncensored-desktop/windows-installer-interface:
-  en: e8941bf6dd26834c
-  zh: 7816655727aa1e28
+  en: dc08d9b151ecdac4
+  zh: e98759520f41c7c3
 /deepseek-harness-uncensored-desktop/updates:
-  en: c43034d4806b1479
-  zh: 914e3c169b36f7c8
+  en: 003edec2a3d94009
+  zh: 6d20e06941ac660c
 /deepseek-harness-uncensored-desktop/updates/local-desktop-settings:
-  en: 2e57457c44c85b5f
-  zh: 5b8510a3dc4c6c9d
+  en: dbe57394894b7368
+  zh: a3bb788c2ce631a4
 /deepseek-harness-uncensored-desktop/updates/mandatory-update-policy:
   en: 182a9c6705213e13
   zh: 681762f83490f4c6

@@ -5,3 +5,6 @@ composition: multimodal-spill
 recording: authored
 header:
   class: multimodal-spill
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

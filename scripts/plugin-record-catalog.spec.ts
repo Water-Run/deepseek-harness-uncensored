@@ -226,5 +226,13 @@ export type SessionEvent<T extends keyof SessionEventMap = keyof SessionEventMap
     put(root, RECORDS, `interface SavedEntry { nested: { count: number } }\n${nullable}`)
     expect(persistenceCatalogArtifacts(root, schema)).toEqual(changedAnnotation)
     expect(extractPersistenceSchema(root)).toEqual(schema)
+    put(root, 'scripts/persistence-layout.json', '{"documentation":"internal"}')
+    const machine = persistenceCatalogArtifacts(root, schema)
+    expect(machine.map(artifact => artifact.path)).toEqual([
+      'packages/core/session/src/known-event-types.ts', 'docs/persistence-schema.json',
+    ])
+    const offline = persistenceCatalogArtifacts(root, schema, true)
+    expect(offline.map(artifact => artifact.path)).toEqual(empty.map(artifact => artifact.path))
+    expect(offline.slice(-2)).toEqual(machine)
   })
 })

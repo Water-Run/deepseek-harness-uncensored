@@ -57,6 +57,8 @@ export interface InputFoldDriver {
 
 /** Animation lifetime and fold coordination for one viewport. */
 export interface FlowMotion extends FlowMotionRows {
+  /** @returns whether owned transitions or a scheduled, running, or settling batch remain active. */
+  active(): boolean
   /** @returns whether a row owned by this viewport is closing. */
   foldActive(): boolean
   /** @param listener - callback after the last fold. @returns cancellation for a pending callback. */
@@ -479,6 +481,7 @@ export function createFlowMotion(
 
   return {
     collapse, reveal, cancelMotion, foldActive, onFoldIdle, cancelInput, resumeInput, clear, hideNow,
+    active: () => running.size > 0 || batchScheduled || batch || settling,
     inputActive: () => batch || (batchScheduled && [...boxes.values()].some(box => box.closing && batchMember(box))),
   }
 }

@@ -8,3 +8,6 @@ header:
 platform: posix
 workspace:
   setup: skill-root-isolation
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

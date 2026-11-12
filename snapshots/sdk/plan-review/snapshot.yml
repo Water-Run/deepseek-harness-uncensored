@@ -8,3 +8,6 @@ header:
   pin: true
   changes: 4
   promptChanges: 4
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

@@ -9,3 +9,6 @@ platform: posix
 permission: read-only
 environment:
   DSH_SNAPSHOT_MISSING_SANDBOX_RUNNER: '1'
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

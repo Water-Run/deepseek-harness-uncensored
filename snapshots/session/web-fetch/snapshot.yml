@@ -7,3 +7,6 @@ permission: workspace-write
 header:
   class: web
   pin: true
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

@@ -1,0 +1,12 @@
+version: 1
+scenario: office-render-rejection-current
+profile: headless
+composition: office-render-tools
+recording: authored
+header:
+  class: office-render-tools
+workspace:
+  setup: office-skills
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

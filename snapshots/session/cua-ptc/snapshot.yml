@@ -6,7 +6,11 @@ recording: authored
 header:
   class: cua-ptc
   pin: true
+  toolSchemasSource: ptc-turn
 replay:
   override: true
 platform: posix
 permission: danger-full-access
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

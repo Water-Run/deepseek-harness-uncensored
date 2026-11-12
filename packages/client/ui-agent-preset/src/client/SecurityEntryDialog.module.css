@@ -136,9 +136,9 @@
 
 .input::placeholder { color: var(--dsw-alias-label-tertiary); opacity: 1; }
 .input:focus,
-.input[data-state='progress'] { border-color: var(--dsw-static-deepseek-500); }
-.input[data-state='progress'] { color: var(--dsw-static-deepseek-600); }
-:global(body[data-ds-dark-theme]) .input[data-state='progress'] { color: var(--dsw-static-deepseek-400); }
+.input[data-state='progress'] { border-color: var(--dsw-alias-state-business-primary); }
+.input[data-state='progress'] { color: var(--dsw-alias-state-business-primary); }
+:global(body[data-ds-dark-theme]) .input[data-state='progress'] { color: var(--dsw-alias-state-business-primary); }
 .input[data-state='error'] { color: var(--dsw-alias-state-error-primary); border-color: var(--dsw-alias-state-error-primary); }
 
 .hint,

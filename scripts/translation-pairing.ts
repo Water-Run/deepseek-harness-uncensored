@@ -142,6 +142,7 @@ export const TRANSLATION_SCOPE_GLOB_EXCLUDES = [
   '**/__pycache__/**',
   '**/.pytest_cache/**',
   'apps/web/dist/**',
+  'apps/cli/docs/**',
   '.artifacts/**',
   'python/sdk-runtime/src/deepseek_harness_runtime/runtime/**',
   'vendor/**',
@@ -154,6 +155,7 @@ function isTranslationSourceExcluded(file: string): boolean {
       || segment.startsWith('.doc-typecheck-')
     || segment.startsWith('.node-next-types-'))
     || file.startsWith('apps/web/dist/')
+    || file.startsWith('apps/cli/docs/')
     || file.startsWith('python/sdk-runtime/src/deepseek_harness_runtime/runtime/')
 }
 
@@ -163,6 +165,7 @@ export function isTranslationScopeFile(file: string): boolean {
     && !isTranslationSourceExcluded(file) && (README_ARTIFACT.test(file)
     || ROOT_PAIRED_DOCUMENT_ARTIFACT.test(file)
     || file.startsWith('.agents/notes/')
+    || /^\.agents\/persistence\/status(?:\.zh\.md|\.md|\.i18n\.yaml)$/u.test(file)
     || file.startsWith('docs/')
     || file.startsWith('python/'))
 }

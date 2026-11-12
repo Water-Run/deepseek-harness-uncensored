@@ -10,6 +10,7 @@
     "docs/i18n/terminology.md",
     "docs/i18n/translation-prompt.md",
     "README.md",
+    ".agents/persistence/README.md",
     "packages/api/memory-controller/README.md",
     "packages/client/ui-settings-memory/README.md",
     "packages/context/uncensored-armor/README.md",

@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-security-proxy-local",
   "description": "Security-mode egress proxy provider: upstream HTTP(S) proxy, loopback chain proxy, and bounded traffic capture",
-  "version": "0.2.2-rc.1",
+  "version": "0.2.2-rc.2",
   "publishConfig": {
     "access": "public"
   },
@@ -33,10 +33,14 @@
     "locale/*.json",
     "lib/index.js",
     "lib/types/**/*.d.ts",
+    "lib/types/**/*.d.ts.map",
+    "lib/**/*.js.map",
     "lib/typert.host.js",
     "lib/typert.host.d.ts",
     "lib/typert.remote-client.js",
-    "lib/typert.remote-client.d.ts"
+    "lib/typert.remote-client.d.ts",
+    "lib/typert.remote-client.d.ts.map",
+    "src"
   ],
   "license": "GPL-3.0-or-later",
   "dependencies": {
@@ -48,7 +52,7 @@
     "@deepseek-ai/dsh-web-fetch-http": "workspace:*",
     "@deepseek-ai/schemastery": "workspace:~",
     "undici": "8.11.2",
-    "zod": "4.4.3"
+    "zod": "4.6.6"
   },
   "peerDependencies": {
     "@deepseek-ai/dsh-timeout": "workspace:*",

@@ -48,13 +48,14 @@ kind: "package-reference"
 
 提供方通过 Worker 将 `model.apiKey` 和可选的 `model.headers` 转发给 Stagehand 浏览器扩展，由扩展发送原生模型请求。
 
+Stagehand 4.4 负责发现和选择运行时扩展。附加浏览器需通过元数据预检，启动器拥有的浏览器提供已确认的安装标识。提供方不向 SDK 传入其忽略的 `extensionId` 选项。
+
 安装与固定版本 Stagehand SDK 兼容的 Chrome 或 Chromium 可执行程序。首次浏览器工具调用时才启动原生运行时。默认查找稳定版 Chrome 的标准安装路径；其他 Chrome 或 Chromium 安装位置通过 `executablePath` 指定。Stagehand 管理其运行时扩展；运行时不兼容或不可用时，启动会失败。
 
 | 字段 | 默认值 | 含义 |
 |---|---|---|
 | `mode` | `launch` | 启动独立浏览器，或以 `attach` 连接现有浏览器。 |
 | `cdpEndpoint` | `attach` 必填 | 由 profile 选择的 HTTP 或 WebSocket 调试端点。 |
-| `extensionId` | 加载内置扩展 | 在现有浏览器中使用的已安装 Stagehand 扩展。 |
 | `executablePath` | 已安装的稳定版 Chrome | Chrome 或 Chromium 可执行程序，仅适用于 `launch`。 |
 | `headless` | `true` | 隐藏启动的浏览器窗口。 |
 | `operationTimeoutMs` | `30000` | Chromium 启动、导航和自然语言操作的超时时间。 |

@@ -2,17 +2,19 @@
 
 import { delimiter, dirname, join, resolve } from 'node:path'
 import { runCli } from '@deepseek-ai/dsh/lib/bin.js'
-import { installOfficeEngineResolution, runtimeArchivePath } from './office-engine.ts'
 import { stagehandExtensionEnvironment } from './browser-extension.ts'
+import { runtimeArchivePath } from './runtime-archive.ts'
 
 /**
  * Run the ordinary CLI with Desktop's bundled package manager and reserved-profile plugin access.
- * @param runtimeDir - Prepared or ASAR-contained production DSH package tree.
+ * @param runtimeDir - Prepared or ASAR-contained dsh runtime directory.
  * @param supportDir - Physical Desktop runtime directory containing the primary-runtime payload and Node launchers.
  * @returns Completion of the selected CLI command; profile plugins own their process lifetime.
  */
 export async function runDesktopCli(runtimeDir: string, supportDir: string): Promise<void> {
-  installOfficeEngineResolution(runtimeDir)
+  const primaryRuntime = join(supportDir, 'primary-runtime')
+  process.env.DSH_PRIMARY_RUNTIME = primaryRuntime
+  process.env.DSH_REA_NODE_PATH = join(primaryRuntime, 'dependencies', 'node', 'bin', process.platform === 'win32' ? 'node.exe' : 'node')
   Object.assign(process.env, stagehandExtensionEnvironment(runtimeDir))
   await runCli({
     manageDesktopProfile: true,

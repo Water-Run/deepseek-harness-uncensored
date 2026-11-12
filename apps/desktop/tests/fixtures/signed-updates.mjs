@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { app } from 'electron'
 import updaterModule from 'electron-updater'
 import { DesktopUpdateCoordinator } from '../../lib/types/update-coordinator.js'
-import { DesktopUpdateHttpExecutor } from '../../lib/types/update-http-executor.js'
+import { DesktopUpdateHttpExecutor } from '../../lib/types/updates/electron-updater/http-executor.js'
 import { resolveWindowsUpdatePublisher } from '../../scripts/windows-sign.mjs'
 import { artifactDigest, createArtifactUpdateServer } from './artifact-update-server.mjs'
 import { fixtureUpdateFeed } from './update-feed-adapter.mjs'
@@ -57,7 +57,7 @@ async function main() {
     updater.quitAndInstall = () => { installed++ }
     let authorized = false
     const coordinator = new DesktopUpdateCoordinator(state => { states.push(state); return state },
-      async () => authorized, updater, () => true, () => '1.0.0', undefined, 'nightly', readSource)
+      async () => authorized, updater, () => true, () => '1.0.0', undefined, 'nightly', undefined, readSource)
     const f = { coordinator, updater, logs, errors, states, directory, authorize: () => { authorized = true } }
     fixtures.push(f)
     return f

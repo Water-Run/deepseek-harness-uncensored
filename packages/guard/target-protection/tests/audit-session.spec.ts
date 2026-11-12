@@ -60,7 +60,7 @@ it('attributes overlapping main, side, btw and subagent work to their own Sessio
     meta: { parentSession: main.agent.id }, agentOptions: options })
   const btw = await ctx.agents.create({ sessionId: SessionId(`session-btw-${randomUUID()}`),
     meta: { parentSession: main.agent.id }, agentOptions: options })
-  const child = await ctx.agents.create({ sessionId: SessionId('audit-child'), parentAgent: main.agent,
+  const child = await ctx.agents.create({ sessionId: SessionId('audit-child'),
     meta: { parentSession: main.agent.id, origin: 'subagent', delegationDepth: 1 }, agentOptions: options })
   const agents = [main.agent, side.agent, btw.agent, child.agent]
   const finished = agents.map(agent => new Promise<void>((resolve) => {

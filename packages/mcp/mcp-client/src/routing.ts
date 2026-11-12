@@ -5,6 +5,7 @@ import type {} from '@deepseek-ai/dsh-security-proxy'
 import type { ToolExecution } from '@deepseek-ai/dsh-tools'
 import { Dispatcher1Wrapper, ProxyAgent } from 'undici'
 import type { Config } from './index.ts'
+import { McpStatusCell } from './status.ts'
 import { resolveReconnectPolicy, startConnection, type ConnectionHandle } from './connection.ts'
 import type { McpTransportOptions } from './transport.ts'
 
@@ -69,14 +70,24 @@ export function createMcpRouting(ctx: Context, config: Config): McpRouting {
         return fetch(input, request)
       },
     }
-    const handle = startConnection(ctx, config, reconnect,
+    const status = new McpStatusCell((message, error) => {
+      ctx.logger.warn(`${label}: ${message}`)
+      if (!config.expandTemplates) ctx.logger.warn(error)
+    })
+    const handle = startConnection(ctx, config, reconnect, status,
       { signal: abort.signal, check: () => { abort.signal.throwIfAborted() } }, { catalogOnly: true, transport })
     return {
       endpoint, handle, abort,
       async close(): Promise<void> {
         abort.abort(new Error(`${label}: independent proxy connection changed`))
         try { await handle.disposeVerified() }
-        finally { await dispatcher?.destroy() }
+        catch (error) {
+          void handle.whenClosed().then(async () => { await dispatcher?.destroy() }).catch((cleanupError: unknown) => {
+            ctx.logger.error('MCP proxy dispatcher remains retained after incomplete shutdown: %o', cleanupError)
+          })
+          throw error
+        }
+        await dispatcher?.destroy()
       },
     }
   }

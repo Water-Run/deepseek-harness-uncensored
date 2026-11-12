@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import { SESSION_FORMAT_VERSION, SessionSeq } from '@deepseek-ai/dsh-session'
+import { SESSION_FORMAT_VERSION, SessionId, SessionSeq } from '@deepseek-ai/dsh-session'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import { CompactionId } from '@deepseek-ai/dsh-compaction'
 import DeepSeekLlmApiExtensionRegistry from '@deepseek-ai/dsh-deepseek-llm-api-extensions'
@@ -1859,6 +1859,59 @@ describe('parseSessionHeader', () => {
 })
 
 describe('loadSessionScripts', () => {
+  it('patches declared child roles before sorting and preserves their source files', () => {
+    const parent = writeSession('parent.jsonl', { id: 'parent', createdAt: 1 }, [TEXT_CHUNKS])
+    const late = writeSession('late.jsonl', { id: 'late', createdAt: 3 }, [TEXT_CHUNKS, TEXT_CHUNKS])
+    const early = writeSession('early.jsonl', { id: 'early', createdAt: 2 }, [TEXT_CHUNKS])
+    const before = [parent, late, early].map(path => readFileSync(path, 'utf8'))
+    const overrideFile = join(dir, 'replay.override.json')
+    const replacement: ReplayEntry = { kind: 'throw', chunks: [], message: 'child failure', code: 'SERVER' }
+    writeFileSync(overrideFile, JSON.stringify({ patches: [], children: [{ child: 1, patches: [{ at: 1, entry: replacement }] }] }))
+
+    const scripts = loadSessionScripts({ file: parent, childFiles: [late, early], overrideFile })
+    expect(scripts.map(script => script.recordedId)).toEqual(['parent', 'early', 'late'])
+    expect(scripts[0]?.entries).toEqual([{ kind: 'chunks', chunks: TEXT_CHUNKS }])
+    expect(scripts[1]?.entries).toEqual([{ kind: 'chunks', chunks: TEXT_CHUNKS }])
+    expect(scripts[2]?.entries).toEqual([{ kind: 'chunks', chunks: TEXT_CHUNKS }, replacement])
+    expect([parent, late, early].map(path => readFileSync(path, 'utf8'))).toEqual(before)
+  })
+
+  it.each([
+    { children: {}, message: /children must be an array/ },
+    { children: [null], message: /must contain exactly child and patches/ },
+    { children: [{ child: 0, patches: [] }], message: /positive safe integer/ },
+    { children: [{ child: 1.5, patches: [] }], message: /positive safe integer/ },
+    { children: [{ child: 2, patches: [] }], message: /no declared child fixture/ },
+    { children: [{ child: 1, patches: [] }, { child: 1, patches: [] }], message: /duplicates child 1/ },
+    { children: [{ child: 1, patches: {} }], message: /child 1 patch must be an array/ },
+    { children: [{ child: 1, patches: [{ at: 2, entry: { kind: 'hang' } }] }], message: /child 1 patch index 2 out of range/ },
+    { children: [{ child: 1, patches: [{ at: 0, entry: { kind: 'hang' } }, { at: 0, entry: { kind: 'hang' } }] }], message: /duplicate override child 1 patch index 0/ },
+  ])('rejects invalid child patches: $message', ({ children, message }) => {
+    const parent = writeSession('parent.jsonl', { id: 'p', createdAt: 1 }, [TEXT_CHUNKS])
+    const child = writeSession('child.jsonl', { id: 'c', createdAt: 2 }, [TEXT_CHUNKS])
+    const overrideFile = join(dir, 'replay.override.json')
+    writeFileSync(overrideFile, JSON.stringify({ patches: [], children }))
+    expect(() => loadSessionScripts({ file: parent, childFiles: [child], overrideFile })).toThrow(message)
+  })
+
+  it('delivers a patched child stream through the LlmRuntime without changing the parent', async () => {
+    const parent = writeSession('parent.jsonl', { id: 'p', createdAt: 1 }, [TEXT_CHUNKS])
+    const child = writeSession('child.jsonl', { id: 'c', createdAt: 2 }, [TEXT_CHUNKS])
+    const overrideFile = join(dir, 'replay.override.json')
+    writeFileSync(overrideFile, JSON.stringify({ patches: [], children: [{ child: 1, patches: [{ at: 0,
+      entry: { kind: 'chunks', chunks: [{ type: 'text-delta', index: 0, text: 'named child' }, { type: 'finish', reason: { kind: 'stop' } }] },
+    }] }] }))
+    const context = new Context()
+    try {
+      await context.plugin(LlmRuntime)
+      const handle = installLlmReplay(context, { file: parent, childFiles: [child], overrideFile })
+      expect(await drain(context.llm.stream({ provider: 'm', model: 'm', messages: [], sessionId: SessionId('live-parent') }))).toEqual(TEXT_CHUNKS)
+      expect(await drain(context.llm.stream({ provider: 'm', model: 'm', messages: [], sessionId: SessionId('live-child') })))
+        .toEqual([{ type: 'text-delta', index: 0, text: 'named child' }, { type: 'finish', reason: { kind: 'stop' } }])
+      handle.assertConsumed()
+    } finally { await context.fiber.dispose() }
+  })
+
   it('returns one primary script for a single-session scenario', () => {
     const f = writeSession('session.jsonl', { id: 'p', createdAt: 100 }, [TEXT_CHUNKS])
     const scripts: SessionScript[] = loadSessionScripts({ file: f })
@@ -1921,6 +1974,9 @@ describe('loadSessionScripts', () => {
     // The child script is ONLY the child's own model call — the parent's seeded
     // chunk is gone.
     expect(scripts[1]?.entries).toEqual([{ kind: 'chunks', chunks: childChunks }])
+    const overrideFile = join(dir, 'replay.override.json')
+    writeFileSync(overrideFile, JSON.stringify({ patches: [], children: [{ child: 1, patches: [{ at: 0, entry: { kind: 'hang' } }] }] }))
+    expect(loadSessionScripts({ file: f, childFiles: [childPath], overrideFile })[1]?.entries).toEqual([{ kind: 'hang' }])
   })
 
   it('uses the override for the primary and still derives children', () => {
@@ -2031,7 +2087,7 @@ describe('installLlmReplay (per-session keying)', () => {
           type: 'tool-call',
           id: ToolCallId('send-child'),
           name: 'send_message',
-          arguments: '{"agent_id":"{{session:2}}"}',
+          arguments: '{"agent":"{{session:2}}"}',
         },
       },
       { type: 'finish', reason: { kind: 'stop' } },
@@ -2052,7 +2108,7 @@ describe('installLlmReplay (per-session keying)', () => {
           type: 'tool-call',
           id: ToolCallId('send-child'),
           name: 'send_message',
-          arguments: '{"agent_id":"live-child"}',
+          arguments: '{"agent":"live-child"}',
         },
       },
       { type: 'finish', reason: { kind: 'stop' } },
@@ -2071,45 +2127,6 @@ describe('installLlmReplay (per-session keying)', () => {
     installLlmReplay(ctx, { file: parentFile, childFiles: [childFile] })
 
     await expect(drain(ctx.llm.stream(live('live-parent')))).rejects.toThrow(/used before.*bound/)
-  })
-
-  it('learns a background child id from its started-subagent tool result', async () => {
-    const reference: StreamChunk[] = [
-      { type: 'text-delta', index: 0, text: '{{session:2}}' },
-      { type: 'finish', reason: { kind: 'stop' } },
-    ]
-    const parentFile = writeSession('session.jsonl', { id: '{{session:1}}', createdAt: 1 }, [reference])
-    const childFile = writeSession('session.1.jsonl', { id: '{{session:2}}', createdAt: 2 }, [second])
-    const ctx = new Context()
-    await ctx.plugin(LlmRuntime)
-    installLlmReplay(ctx, { file: parentFile, childFiles: [childFile] })
-    const options: GenerateOptions = {
-      ...live('live-parent'),
-      messages: [createUserMessage({
-        content: [{ type: 'text', text: 'started subagent live-child-before-call started subagent live-child-before-call' }],
-        source: { kind: 'user' },
-      })],
-    }
-
-    expect(await drain(ctx.llm.stream(options))).toEqual([
-      { type: 'text-delta', index: 0, text: 'live-child-before-call' },
-      { type: 'finish', reason: { kind: 'stop' } },
-    ])
-  })
-
-  it('ignores started-subagent text after every recorded session has bound', async () => {
-    const parentFile = writeSession('session.jsonl', { id: '{{session:1}}', createdAt: 1 }, [TEXT_CHUNKS])
-    const ctx = new Context()
-    await ctx.plugin(LlmRuntime)
-    installLlmReplay(ctx, { file: parentFile })
-
-    expect(await drain(ctx.llm.stream({
-      ...live('live-parent'),
-      messages: [createUserMessage({
-        content: [{ type: 'text', text: 'started subagent unrecorded-child' }],
-        source: { kind: 'user' },
-      })],
-    }))).toEqual(TEXT_CHUNKS)
   })
 
   it('treats a call with no sessionId as the single anonymous (primary) session', async () => {

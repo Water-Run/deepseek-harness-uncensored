@@ -13,13 +13,6 @@
     "src/assistant-stream.ts",
     "src/catalog.ts",
     "src/commands.ts",
-    "src/asides.ts",
-    "src/deletion.ts",
-    "src/aside-context.ts",
-    "src/aside-identity.ts",
-    "src/aside-reader.ts",
-    "src/aside-main-context.ts",
-    "src/aside-question-context.ts",
     "src/control.ts",
     "src/file-references.ts",
     "src/history.ts",
@@ -33,13 +26,17 @@
     "src/media-references.ts",
     "src/archived-session-gate.ts",
     "src/skill-catalog.ts",
+    "src/continuation.ts",
+    "src/asides.ts",
+    "src/deletion.ts",
+    "src/aside-context.ts",
+    "src/aside-identity.ts",
+    "src/aside-reader.ts",
+    "src/aside-main-context.ts",
+    "src/aside-question-context.ts",
     "src/prediction.ts"
   ],
   "references": [
-    { "path": "../../core/tools" },
-    { "path": "../../sandbox/sandbox-policy" },
-    { "path": "../../interaction/user-approval" },
-    { "path": "../../guard/spend-limit" },
     {
       "path": "../gateway/tsconfig.host.json"
     },
@@ -138,6 +135,21 @@
     },
     {
       "path": "../../session/working-directory"
+    },
+    {
+      "path": "../../util/brand"
+    },
+    {
+      "path": "../../core/tools"
+    },
+    {
+      "path": "../../sandbox/sandbox-policy"
+    },
+    {
+      "path": "../../interaction/user-approval"
+    },
+    {
+      "path": "../../guard/spend-limit"
     },
     {
       "path": "../../core/system-prompt"

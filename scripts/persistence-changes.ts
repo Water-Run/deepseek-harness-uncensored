@@ -680,13 +680,7 @@ export function validatePersistenceHistory(entries: readonly PersistenceHistoryE
   for (const entry of entries) {
     if (records.has(entry.record.id)) throw new Error(`duplicate persistence record ${entry.record.id}`)
     records.set(entry.record.id, entry)
-    const expected = entry.record.changes.filter(change => change.after !== null).map(change => change.root).sort()
-    if (JSON.stringify(expected) !== JSON.stringify(entry.snapshot.roots.map(root => root.key).sort())) throw new Error(`${entry.record.id}: snapshot roots do not match acknowledged after schemas`)
-    for (const change of entry.record.changes) {
-      const root = entry.snapshot.roots.find(root => root.key === change.root)
-      if ((root?.digest ?? null) !== change.after) throw new Error(`${entry.record.id}: after digest mismatch for ${change.root}`)
-      if (entry.record.baseline && (change.previous !== null || change.after === null || change.decision !== 'same-version')) throw new Error(`${entry.record.id}: invalid baseline transition`)
-    }
+    validateEntrySnapshot(entry)
   }
   const states = new Map<string, 'visiting' | 'visited'>()
   const successors = new Map<string, string>()
@@ -748,6 +742,35 @@ export function loadPersistenceHistory(root: string): PersistenceHistory {
   return validatePersistenceHistory(readPersistenceEntries(root))
 }
 
+/** Bind one declaration to its exact after schemas without selecting a history tip. */
+function validateEntrySnapshot(entry: PersistenceHistoryEntry): void {
+  const expected = entry.record.changes.filter(change => change.after !== null).map(change => change.root).sort()
+  if (JSON.stringify(expected) !== JSON.stringify(entry.snapshot.roots.map(root => root.key).sort())) throw new Error(`${entry.record.id}: snapshot roots do not match acknowledged after schemas`)
+  for (const change of entry.record.changes) {
+    const root = entry.snapshot.roots.find(root => root.key === change.root)
+    if ((root?.digest ?? null) !== change.after) throw new Error(`${entry.record.id}: after digest mismatch for ${change.root}`)
+    if (entry.record.baseline && (change.previous !== null || change.after === null || change.decision !== 'same-version')) throw new Error(`${entry.record.id}: invalid baseline transition`)
+  }
+}
+
+function readHistoryEntry(
+  directory: string, filename: string, snapshotDirectory: string, allowIncomplete: boolean,
+): PersistenceHistoryEntry {
+  const source = readFileSync(join(directory, filename), 'utf8').replaceAll('\r\n', '\n')
+  const change = parseDocument(source, filename, allowIncomplete)
+  const snapshotName = `${change.id}.schema.json`
+  if (!existsSync(join(snapshotDirectory, snapshotName))) throw new Error(`${filename}: missing schema snapshot ${snapshotName}`)
+  const snapshot = parsePersistenceSnapshot(readFileSync(join(snapshotDirectory, snapshotName), 'utf8').replaceAll('\r\n', '\n'))
+  const translatedName = `${change.id}.zh.md`
+  if (!existsSync(join(directory, translatedName))) throw new Error(`${filename}: missing Chinese counterpart`)
+  const translated = readFileSync(join(directory, translatedName), 'utf8').replaceAll('\r\n', '\n')
+  const englishBlock = source.match(/^```yaml persistence-change[^\S\n]*\n([\s\S]*?)^```[^\S\n]*$/mu)?.[1]
+  const chineseBlocks = [...translated.matchAll(/^```yaml persistence-change[^\S\n]*\n([\s\S]*?)^```[^\S\n]*$/gmu)]
+  if (chineseBlocks.length !== 1 || chineseBlocks[0]?.[1] !== englishBlock) throw new Error(`${filename}: bilingual machine records differ`)
+  if (!allowIncomplete && (translated.includes(EXPLANATION_PLACEHOLDER) || translated.includes(EVIDENCE_PLACEHOLDER))) throw new Error(`${translatedName}: complete compatibility and verification prose`)
+  return { record: change, snapshot }
+}
+
 function readPersistenceEntries(root: string, allowIncompleteId?: string): PersistenceHistoryEntry[] {
   const directory = join(root, persistenceLayout(root).records)
   if (!existsSync(directory)) throw new Error('persistence history is missing; use pnpm run persistence-changes --baseline ID for explicit initialization')
@@ -756,21 +779,22 @@ function readPersistenceEntries(root: string, allowIncompleteId?: string): Persi
   const snapshotDirectory = join(root, HISTORY_DIRECTORY)
   const snapshots = new Set(readdirSync(snapshotDirectory).filter(file => file.endsWith('.schema.json')))
   const entries = documents.map((filename) => {
-    const source = readFileSync(join(directory, filename), 'utf8').replaceAll('\r\n', '\n')
     const allowIncomplete = filename === `${allowIncompleteId}.md`
-    const change = parseDocument(source, filename, allowIncomplete)
-    const snapshotName = `${change.id}.schema.json`
+    const entry = readHistoryEntry(directory, filename, snapshotDirectory, allowIncomplete)
+    const snapshotName = `${entry.record.id}.schema.json`
     if (!snapshots.delete(snapshotName)) throw new Error(`${filename}: missing schema snapshot ${snapshotName}`)
-    const snapshot = parsePersistenceSnapshot(readFileSync(join(snapshotDirectory, snapshotName), 'utf8').replaceAll('\r\n', '\n'))
-    const translatedName = `${change.id}.zh.md`
-    if (!files.includes(translatedName)) throw new Error(`${filename}: missing Chinese counterpart`)
-    const translated = readFileSync(join(directory, translatedName), 'utf8').replaceAll('\r\n', '\n')
-    const englishBlock = source.match(/^```yaml persistence-change[^\S\n]*\n([\s\S]*?)^```[^\S\n]*$/mu)?.[1]
-    const chineseBlocks = [...translated.matchAll(/^```yaml persistence-change[^\S\n]*\n([\s\S]*?)^```[^\S\n]*$/gmu)]
-    if (chineseBlocks.length !== 1 || chineseBlocks[0]?.[1] !== englishBlock) throw new Error(`${filename}: bilingual machine records differ`)
-    if (!allowIncomplete && (translated.includes(EXPLANATION_PLACEHOLDER) || translated.includes(EVIDENCE_PLACEHOLDER))) throw new Error(`${translatedName}: complete compatibility and verification prose`)
-    return { record: change, snapshot }
+    return entry
   })
+  if (directory !== snapshotDirectory) {
+    // Released upstream declarations remain evidence; only internal records acknowledge this fork's current types.
+    const references = readdirSync(snapshotDirectory).filter(file => file.endsWith('.md') && !file.endsWith('.zh.md') && file !== 'README.md' && file !== 'AGENTS.md')
+    for (const filename of references) {
+      if (documents.includes(filename)) throw new Error(`duplicate public persistence record ${filename}`)
+      const entry = readHistoryEntry(snapshotDirectory, filename, snapshotDirectory, false)
+      validateEntrySnapshot(entry)
+      snapshots.delete(`${entry.record.id}.schema.json`)
+    }
+  }
   if (snapshots.size !== 0) throw new Error(`unreferenced persistence schema snapshot: ${[...snapshots].join(', ')}`)
   return entries
 }

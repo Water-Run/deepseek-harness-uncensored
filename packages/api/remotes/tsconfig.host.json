@@ -12,9 +12,6 @@
   ],
   "references": [
     {
-      "path": "../../guard/target-protection"
-    },
-    {
       "path": "../../../vendor/cordis"
     },
     {
@@ -84,16 +81,22 @@
       "path": "../../boot/plugin-manager"
     },
     {
+      "path": "../../mcp/mcp-manager"
+    },
+    {
       "path": "../../boot/plugin-market"
     },
     {
       "path": "../../host/plugin-inventory"
     },
     {
-      "path": "../account-controller"
+      "path": "../../credentials/deepseek-account"
     },
     {
-      "path": "../../credentials/deepseek-account"
+      "path": "../../web/web"
+    },
+    {
+      "path": "../../guard/target-protection"
     },
     {
       "path": "../../credentials/balance"

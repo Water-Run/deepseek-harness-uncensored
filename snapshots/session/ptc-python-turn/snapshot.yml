@@ -7,3 +7,6 @@ platform: posix
 header:
   class: ptc-python
   pin: true
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

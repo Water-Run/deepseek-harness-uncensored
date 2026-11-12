@@ -6,6 +6,8 @@ recording: authored
 header:
   class: dynamic-tool-prompt-updates
   pin: true
-  toolSchemasSource: dynamic-tool-updates
   changes: 2
   promptChanges: 1
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

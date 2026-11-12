@@ -5,3 +5,6 @@ composition: default
 recording: authored
 header:
   class: default
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

@@ -82,7 +82,19 @@ Headless/ACP 与 SDK 适配器在规范化之前，将原始目录中的子创�
 
 `sessionFormat.coverage: [behavior-update]` 用于格式未变、应用行为已变化的当前格式录制。原 Session 文件保持不变，继续作为回放输入；独立的 `writer.expected.jsonl` 描述当前输出。这些场景计入当前编解码器覆盖，不能替代历史格式迁移覆盖。保留输入的场景从 writer 期望文件核对请求头；接受刷新结果前须审阅输出差异。
 
+Headless 输出和思考投影也使用保留场景的当前 writer 期望文件。额外回放较旧代际时，校验的是明确选中的输入字节，而非该 owner 的最新代际。
+
+退休 Office 样本保留其已发布请求，并断言已移除工具或资源的明确错误。当前路由与渲染另有场景；退休输出期望文件不能证明当前 Office 操作成功。
+
+在 `agent/created` 内运行的预设 fixture 使用 `agentPresets.recompose()`，并为每次准备好的选择追加 `agent-preset/selected`。Agent 创建过程已持有维护权限，因此只能在空闲时调用的 `select()` API 不能嵌套在该监听器中运行。
+
+压缩 fixture 的预算包含完整 DSHU 提示词和工具目录。输出预留场景让未压缩历史处于预留与未预留时的两个触发阈值之间，再验证一次摘要将其降到预留后的阈值之下。去掉输出预留时不得触发该摘要。模型切换场景核对较小模型的请求头在压缩完成后才提交。
+
+刷新时，任务注册、工具调用和已变更的完成通知使用一致的关联任务标识。通知的新文案会保留，未注册的相似标识文本保持原样。
+
 ### 录制、回放与刷新
+
+刷新在复用易变字段之前，会规范化每份完整的 Session 日志，使作业 id 在注册事件、工具输出和后续工具调用中保持相同的引用关系。
 
 `pnpm run test:snapshot:record` 调用在线 LLM（大语言模型），并在规范具名版本文件下写入收集到的当前 generation。已提交的 generation 保持不变，包括后续运行不再产生的 child 角色。同一 writer 格式下变更的样本使用新场景目录，保留的原样本继续参与读取检查。显式声明 `sessionFormat` 的场景在录制模式下保持只读。`pnpm run test:snapshot:refresh` 保持无密钥，运行选定的最高 replay 输入，并写入 stdout、各 pin 自有的提示词与工具 schema 伴随文件，以及新鲜当前 generation 的可比较 Session 输出；保留历史输入的场景写入单独的 writer 输出比较基准，而非规范当前格式 replay 代际。Headless 与 SDK 场景可通过本地 `runtime.cordis.yml` patch 添加执行 fixture。每个组合 owner 把 replay patch 放在 live patch 旁；顶层 `snapshots/` 拥有 Session 驱动场景，其他预期输出留在其 package owner 旁。[`dsh-llm-replay`](../llm-replay/README.zh.md) 提供通过 `DSH_SNAPSHOT_*` 环境值选择的已记录流。
 
@@ -94,7 +106,7 @@ Headless/ACP 与 SDK 适配器在规范化之前，将原始目录中的子创�
 
 ### 固定请求 header 与系统提示
 
-每个 pin 默认拥有其生成的 `system-prompt.expected.md` 或 `tool-schemas.expected.json` 伴随文件；当完整的对应序列相同时，`systemPromptSource` 与 `toolSchemasSource` 指定另一个 pin 作为来源，因此每个不同版本只提交一次。系统提示是 surface 节点 0，作为 `system/message` 事件记录在该步骤第一个 `request/header` 之前；每个 fixture 把其文本块存储为 `"text":"{{system}}"`，提示词伴随文件保留完整文本。该 pin 的 `request/header` 事件存储 `"tools":"{{tools}}"`，同时保留配置与原因，结构化 schema 伴随文件保留完整目录。包含 developer 消息的日志会在各 header 中保留有序工具名，而不使用 token，以便继续校验历史工具添加引用。自身作用域组合出不同请求的 child Session 按 fixture 索引以 `pinsChildToolSchemas` 与 `pinsChildSystemPrompts` 单独声明。运行中改变请求 header 的场景声明 `expectedHeaderChanges`；运行中提示词发生变化的场景——替换节点 0，或在 `in-history` 路由上追加到已缓存历史之后——声明 `expectedPromptChanges`，每次变化在提示词伴随文件中增加一个 `<!-- system/message change N -->` 小节。manifest 中对应字段为 `header.changes` 与 `header.promptChanges`。
+每个 pin 默认拥有其生成的 `system-prompt.expected.md` 或 `tool-schemas.expected.json` 伴随文件；当完整的对应序列相同时，`systemPromptSource` 与 `toolSchemasSource` 指定另一个 pin 作为来源，因此每个不同版本只提交一次。系统提示是 surface 节点 0，作为 `system/message` 事件记录在该步骤第一个 `request/header` 之前；每个 fixture 把其文本块存储为 `"text":"{{system}}"`，提示词伴随文件保留完整文本。该 pin 的 `request/header` 事件存储 `"tools":"{{tools}}"`，同时保留配置与原因，结构化 schema 伴随文件保留完整目录。包含 developer 消息的日志会在各 header 中保留有序工具名，而不使用 token，以便继续校验历史工具添加引用。自身作用域组合出不同请求的 child Session 按 fixture 索引以 `pinsChildToolSchemas` 与 `pinsChildSystemPrompts` 单独声明。运行中改变请求 header 的场景声明 `expectedHeaderChanges`；运行中提示词发生变化的场景——替换节点 0，或在 `in-history` 路由上追加到已缓存历史之后——声明 `expectedPromptChanges`，每次变化在提示词伴随文件中增加一个 `<!-- system/message change N -->` 小节。manifest 中对应字段为 `header.changes` 与 `header.promptChanges`。没有工具的请求头在 sidecar 中保留空 schema 集，使后续首次添加仍与其请求头对齐。
 
 ### 平台与组合变体
 

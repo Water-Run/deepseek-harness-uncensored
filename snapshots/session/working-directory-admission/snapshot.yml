@@ -9,3 +9,6 @@ header:
   pin: true
   systemPromptSource: text-turn
   toolSchemasSource: text-turn
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

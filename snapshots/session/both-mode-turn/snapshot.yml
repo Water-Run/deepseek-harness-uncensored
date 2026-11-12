@@ -6,3 +6,7 @@ recording: live
 header:
   class: ptc-shell
   pin: true
+  toolSchemasSource: ptc-turn
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

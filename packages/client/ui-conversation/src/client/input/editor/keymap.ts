@@ -24,6 +24,7 @@ import {
 import { mergeRegister } from '@lexical/utils'
 import type { ArbitrateKey, ArbitrateOutcome } from '../../contract/draft-editor.ts'
 import { $canAcceptPrediction } from './prediction-selection.ts'
+import { clipboardFiles } from '../file-intake.ts'
 import { $isQuoteNode } from './QuoteNode.tsx'
 
 /** The bar-supplied behavior behind each intercepted gesture. */
@@ -298,17 +299,7 @@ export function registerComposerKeymap(editor: LexicalEditor, handlers: Composer
       // deliver clipboardData on plain events.
       const clipboardData = (event as ClipboardEvent).clipboardData ?? null
       if (clipboardData === null) return false
-      const files: File[] = []
-      const directories = new Set<File>()
-      for (const item of clipboardData.items) {
-        if (item.kind !== 'file') continue
-        const file = item.getAsFile()
-        if (file === null) continue
-        files.push(file)
-        if (typeof item.webkitGetAsEntry === 'function' && item.webkitGetAsEntry()?.isDirectory === true) {
-          directories.add(file)
-        }
-      }
+      const { files, directories } = clipboardFiles(clipboardData)
       if (files.length > 0) handlers.intakeFiles(files, directories.size === 0 ? undefined : directories)
       const text = clipboardData.getData('text/plain')
       if (text === '') {

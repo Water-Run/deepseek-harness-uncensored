@@ -6,3 +6,6 @@ recording: authored
 header:
   class: product-subagent-codex
   pin: true
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

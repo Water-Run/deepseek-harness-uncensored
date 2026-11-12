@@ -1,16 +1,12 @@
-/** Public contact and bonus notice options shared by Host and Client. */
+/** Public contact options shared by Host and Client. */
 import z from '@deepseek-ai/schemastery'
 
-/** Questionnaire destination and bonus notice timings shared by Host and Client. */
+/** Questionnaire destination shared by Host and Client. */
 export interface ContactConfig {
   /** HTTPS questionnaire URL; override for a test form. */
   contactFormUrl: string
   /** Questionnaire source option; empty until Harness is supported by the form. */
   contactSource: string
-  /** First delay before retrying a failed bonus acknowledgement. */
-  bonusAckRetryDelayMs: number
-  /** Ceiling for the acknowledgement retry backoff. */
-  bonusAckRetryMaxDelayMs: number
   /** Deadline for one GitHub release check, including response parsing. */
   releaseCheckTimeoutMs: number
 }
@@ -18,8 +14,6 @@ export interface ContactConfig {
 export const ContactConfigFields = {
   contactFormUrl: z.string().pattern(/^https:\/\/[^/\s]+\//).default('https://github.com/Water-Run/deepseek-harness-uncensored/issues/new/choose'),
   contactSource: z.string().default(''),
-  bonusAckRetryDelayMs: z.number().min(1).default(1_000),
-  bonusAckRetryMaxDelayMs: z.number().min(1).default(60_000),
   releaseCheckTimeoutMs: z.natural().min(100).max(60_000).default(10_000),
 }
 /** Validate public questionnaire options. */

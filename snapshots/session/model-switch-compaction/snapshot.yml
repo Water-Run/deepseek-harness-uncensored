@@ -7,6 +7,8 @@ platform: posix
 header:
   class: model-switch-compaction
   pin: true
-  toolSchemasSource: compaction-recovery
   changes: 1
   promptChanges: 1
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

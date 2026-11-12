@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-ssh",
   "description": "Shared OpenSSH connection and versioned POSIX remote helper",
-  "version": "0.2.2-rc.1",
+  "version": "0.2.2-rc.2",
   "publishConfig": {
     "access": "public"
   },
@@ -48,7 +48,10 @@
     "lib/protocol-*.js",
     "lib/schemas-*.js",
     "lib/stream-security-*.js",
-    "lib/types/**/*.d.ts"
+    "lib/types/**/*.d.ts",
+    "lib/types/**/*.d.ts.map",
+    "lib/**/*.js.map",
+    "src"
   ],
   "license": "MIT",
   "peerDependencies": {
@@ -71,7 +74,7 @@
   "dependencies": {
     "ssh2": "1.17.0",
     "@deepseek-ai/schemastery": "workspace:~",
-    "zod": "4.4.3"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-tools": "workspace:*",

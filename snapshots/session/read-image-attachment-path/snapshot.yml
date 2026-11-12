@@ -7,3 +7,6 @@ header:
   class: image
 replay:
   override: true
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

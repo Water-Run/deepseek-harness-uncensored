@@ -6,7 +6,8 @@ recording: authored
 header:
   class: subagent-no-message-tool
   pin: true
-  systemPromptSource: text-turn
-  toolSchemasSource: text-turn
   childSystemPrompts: [1]
   childToolSchemas: [1]
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

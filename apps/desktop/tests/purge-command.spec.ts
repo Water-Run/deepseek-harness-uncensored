@@ -21,6 +21,7 @@ it('omits upstream upload aliases and the storage SDK', async () => {
 
 const retired = ['upload-target.ts', 'publish-desktop-ci.ts', 'rollback-desktop-channel.ts', 'publish-installed-update.ts',
   'retain-desktop-ci.ts', 'resolve-desktop-publish-ci.ts', 'resolve-retained-desktop-publish-ci.ts',
+  'archive-desktop-ci.ts', 'publish-desktop-rollout-ci.ts', 'publish-website-ci.ts',
   'preflight-desktop-publish.mjs', 'preflight-desktop-publish-local.mjs']
 
 it.each(retired)('refuses %s before parsing arguments or consulting deployment credentials', async (entry) => {

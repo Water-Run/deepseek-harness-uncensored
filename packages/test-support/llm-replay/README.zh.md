@@ -58,7 +58,7 @@ kind: "package-reference"
 | 字段 | 默认值 | 含义 |
 |---|---|---|
 | `file` | `$DSH_SNAPSHOT_FILE` | 选定 primary fixture 路径：v0 为 `session.jsonl`，正 generation 为 `session.vN.jsonl`；必需（config 或 env） |
-| `overrideFile` | `$DSH_SNAPSHOT_OVERRIDE` | 主会话的可选 `ReplayOverrideDoc` 伴随文件 |
+| `overrideFile` | `$DSH_SNAPSHOT_OVERRIDE` | 主会话及已声明子角色补丁的可选 `ReplayOverrideDoc` 伴随文件 |
 | `childFiles` | `$DSH_SNAPSHOT_CHILD_FILES` | 嵌套场景中已记录的 subagent 子会话日志 |
 | `providers` | 无 | 可选的仅回放提供方与模型目录；模型可声明 `contextWindow`、文本／图片模态、图片模型使用的正整数 `imageRequestTokens`，以及让无密钥场景演练历史内系统提示词替换的 `systemPromptUpdate: in-history`；非法值会在加载时失败（`llm-replay: provider "…" model "…" systemPromptUpdate must be "in-history" when present`），路由绝不执行提供方 I/O |
 | `paceMs` | 无（突发） | 可选的每分片延迟（毫秒），用于真正的增量投递 |
@@ -78,6 +78,8 @@ parent agent 委托给进程内 subagent 的场景会为每个 Session 记录一
 当回放在带有 `ctx.deepseekLlmApiExtensions` 的组合中服务 `deepseek-official` 时，它会在选择有效脚本条目后、产生首个分片前准备并接受这些字段。这与实时适配器的 2xx 后提交点一致，因此持久接受水位与 SDK 事件通知在录制和回放中行为相同。回放提供合成 `{ messages: [] }` 基础 body：它证明接受副作用，而非准备后的字段字节。
 
 有两种失败模式无法仅根据持久 Assistant settlement 重建：任何 chunk 之前的纯 throw 没有携带异常的 stream member，而 cancel/hang 需要的是不终止语义，不能用有限前缀回放。需要这些行为的场景可提供可选伴随文件（`<scenario>/replay.override.json`）：它用裸 `ReplayEntry[]` 替换派生脚本，或用 `{ patches: [{ at, entry }] }` 增补——保留所有派生调用，只替换指定的从 0 开始计数的调用索引；当 `at` 等于派生长度时，则在注入瞬态异常后的重试位置追加。有前缀分片的 `throw` 条目会接受 DeepSeek 请求扩展；零分片 throw 默认表示 2xx 前未接受，也可设 `accepted: true` 表示 2xx 后无分片失败。`hang` 条目可以指定 `readyFile`，回放在等待取消前写入它，使外部 driver 可以确定性取消。
+
+增补文档还可包含 `children: [{ child: 1, patches: [{ at, entry }] }]`。`child` 是 `childFiles` 中从 1 开始、按创建时间排序前的角色序号；调用索引不包含继承的 parent 事件。缺失的 child 角色、重复角色或调用索引、越界调用会在加载时被拒绝。显式补丁可在保留较旧且不可变的 Session 输入时提供当前模型工具参数；所属场景仍比较完整 writer 输出以及真实工具或工作区效果。
 
 ### 可能出什么问题
 
@@ -147,7 +149,7 @@ parent agent 委托给进程内 subagent 的场景会为每个 Session 记录一
 这些限制说明何时回放无法代替在线模型。它们是当前包约束，不是任务积压。
 
 - **首次调用顺序脚本绑定假设串行委托**——并发运行同级 subagent 的实现会非确定性地将实时会话绑定到已记录脚本；在这种场景出现前暂不实现更强的键控。
-- **只有普通 loop 分片与带标记的本地压缩输出才能派生**——在产生分片前直接抛出、取消/挂起，或未标记的外部摘要器调用场景需要 `replay.override.json` 伴随文件；替换与补丁两种形式都只影响主会话，子会话脚本仍从各自日志派生。
+- **只有普通 loop 分片与带标记的本地压缩输出才能派生**——在产生分片前直接抛出、取消/挂起，或未标记的外部摘要器调用场景需要 `replay.override.json` 伴随文件。完整脚本数组替换 primary；增补补丁也可指定已声明的 child 角色。未被补丁覆盖的调用均从各自日志派生。
 
 <a id="dev-note"></a>
 ### 开发备注

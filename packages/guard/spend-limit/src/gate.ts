@@ -1,6 +1,6 @@
 /** Cancellable request admission and stream settlement over a durable ledger. */
 import { setTimeout as delay } from 'node:timers/promises'
-import { isAgentLoopRequest, LlmError } from '@deepseek-ai/dsh-llm'
+import { isAgentLoopRequest, HarnessError } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk, TokenUsage } from '@deepseek-ai/dsh-llm'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { SpendLedger } from './ledger.ts'
@@ -42,7 +42,7 @@ export class SpendGate {
         const result = this.ledger.reserve(cost)
         if (result.kind === 'disabled') return
         if (result.kind === 'reserved') return result.id
-        if (result.kind === 'too-large') throw new LlmError('单次请求的预留费用超过限额。请提高额度或降低模型的最大输出长度。 / Request reservation exceeds a limit. Raise the limit or lower the model output ceiling.', 'SPEND_REQUEST_TOO_LARGE')
+        if (result.kind === 'too-large') throw new HarnessError('单次请求的预留费用超过限额。请提高额度或降低模型的最大输出长度。 / Request reservation exceeds a limit. Raise the limit or lower the model output ceiling.', 'SPEND_REQUEST_TOO_LARGE')
         onWait?.()
         await delay(this.pollMs, undefined, { signal: combined })
       }
@@ -51,7 +51,7 @@ export class SpendGate {
 
   private rate(provider: string, model: string): SpendRate {
     const rate = this.rates.find(value => value.providers.includes(provider) && value.models.includes(model))
-    if (rate === undefined) throw new LlmError('此模型没有可用的人民币费率。请配置费率后重试，或关闭额度限制。 / No CNY rate configured for this model. Configure a rate or disable spending limits.', 'SPEND_RATE_UNKNOWN')
+    if (rate === undefined) throw new HarnessError('此模型没有可用的人民币费率。请配置费率后重试，或关闭额度限制。 / No CNY rate configured for this model. Configure a rate or disable spending limits.', 'SPEND_RATE_UNKNOWN')
     return rate
   }
 

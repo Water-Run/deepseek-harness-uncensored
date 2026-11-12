@@ -1,8 +1,7 @@
 {
   "nsisLanguage": "SIMPCHINESE",
   "strings": {
-    "INSTALLER_DOWNGRADE": "已安装较新版本的 {productName}。请使用同版或更新的安装包。如需回退，请先卸载当前版本。",
-    "INSTALLER_VERSION_UNKNOWN": "无法确认已安装的 {productName} 版本。请先卸载当前版本，再重新安装。",
+    "INSTALLER_UPDATE_WAIT": "正在安装更新，更新完成后将自动重启应用。",
     "INSTALLER_INSTALL": "立即安装",
     "INSTALLER_FINISH": "完成",
     "INSTALLER_NATIVE_PROGRESS": "正在准备安装… %d%%",
@@ -34,6 +33,8 @@
     "INSTALLER_EXTRACT_SAVED": "完整错误报告已保存到 %s",
     "INSTALLER_EXTRACT_UNSAVED": "无法保存完整错误报告，请使用“复制错误信息”保留。",
     "INSTALLER_EXTRACT_COPIED": "错误信息已复制到剪贴板。",
+    "INSTALLER_DOWNGRADE": "已安装较新版本的 {productName}。请使用同版或更新的安装包。如需回退，请先卸载当前版本。",
+    "INSTALLER_VERSION_UNKNOWN": "无法确认已安装的 {productName} 版本。请先卸载当前版本，再重新安装。",
     "INSTALLER_PRODUCT_TITLE": "DSHU — {productName}",
     "INSTALLER_UNINSTALL_TITLE": "卸载 DSHU — {productName}",
     "INSTALLER_IDENTITY": "独立安装，可与官方版 DeepSeek Harness 并存",

@@ -216,14 +216,17 @@ export function renderKnownEventTypes(events: AnnotatedLogEventEntry[]): string 
  * Render the complete generated persistence reference from one extracted inventory.
  * @param scanRoot - checkout whose source event declarations supply JSDoc.
  * @param schema - already extracted source schemas; shared with record validation.
+ * @param includeDocumentation - include readable offline references even when change records use the internal layout.
  * @returns Runtime names and schemas, plus readable catalog pairs when the checkout requests them.
  */
-export function persistenceCatalogArtifacts(scanRoot: string, schema: PersistenceSchemaInventory): PersistenceArtifact[] {
+export function persistenceCatalogArtifacts(
+  scanRoot: string, schema: PersistenceSchemaInventory, includeDocumentation = false,
+): PersistenceArtifact[] {
   const events = annotateSurface(collectLogEvents(scanRoot), collectSurfaceEventTypes(scanRoot))
   const envelope = collectEventEnvelopeTypes(scanRoot)
   const pluginRecords = collectPluginRecords(scanRoot)
   return [
-    ...(persistenceLayout(scanRoot).catalogs === 'full' ? [
+    ...(includeDocumentation || persistenceLayout(scanRoot).catalogs === 'full' ? [
       ...renderPersistencePair(scanRoot, OUT, render(events, envelope, schema), render(events, envelope, schema, 'zh')),
       ...renderPersistencePair(scanRoot, OUT_PLUGIN_RECORDS, renderPluginRecordCatalog(pluginRecords), renderPluginRecordCatalog(pluginRecords, 'zh')),
     ] : []),
@@ -237,7 +240,7 @@ export function persistenceCatalogArtifacts(scanRoot: string, schema: Persistenc
  * tests neither regenerates the committed files nor calls process.exit. */
 function main(): void {
   const schema = extractPersistenceSchema(root)
-  const artifacts = persistenceCatalogArtifacts(root, schema)
+  const artifacts = persistenceCatalogArtifacts(root, schema, process.argv.includes('--documentation'))
   if (process.argv.includes('--check')) {
     const stale = artifacts.filter((artifact) => {
       let committed: string | null = null

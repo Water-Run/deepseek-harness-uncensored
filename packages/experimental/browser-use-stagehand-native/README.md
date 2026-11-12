@@ -48,13 +48,14 @@ Set `OPENAI_API_KEY` before using this example. `model` is required even for nav
 
 The provider forwards `model.apiKey` and optional `model.headers` through the Worker to the Stagehand browser extension, which sends the native model requests.
 
+Stagehand 4.4 discovers and selects its runtime extension. Attached browsers pass the metadata preflight; launcher-owned browsers supply their confirmed installation identity. The provider does not pass the SDK's ignored `extensionId` option.
+
 Install a Chrome or Chromium executable that supports the pinned Stagehand SDK. Native startup happens on the first browser tool call. Default discovery uses the standard stable Chrome installation path; select other Chrome or Chromium installations with `executablePath`. Stagehand manages its runtime extension; an incompatible or unavailable runtime rejects startup.
 
 | Field | Default | Meaning |
 |---|---|---|
 | `mode` | `launch` | Start a fresh browser or `attach` to an existing browser. |
 | `cdpEndpoint` | Required for `attach` | HTTP or WebSocket debugging endpoint selected by the profile. |
-| `extensionId` | Load bundled extension | Installed Stagehand extension to use in an existing browser. |
 | `executablePath` | Installed stable Chrome | Chrome or Chromium executable, for `launch` only. |
 | `headless` | `true` | Hide a launched browser's window. |
 | `operationTimeoutMs` | `30000` | Deadline for Chromium startup, navigation, and natural-language actions. |

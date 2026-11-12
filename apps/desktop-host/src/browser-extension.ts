@@ -1,7 +1,7 @@
 /** Physical Stagehand resources passed to Chrome outside Electron's archive reader. */
 import { statSync } from 'node:fs'
 import { join } from 'node:path'
-import { runtimeArchivePath } from './office-engine.ts'
+import { runtimeArchivePath } from './runtime-archive.ts'
 
 /**
  * Locate the shipped extension on the real filesystem for Stagehand's SDK.

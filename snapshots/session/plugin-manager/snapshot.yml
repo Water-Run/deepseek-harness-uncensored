@@ -7,3 +7,7 @@ permission: danger-full-access
 header:
   class: plugin-manager
   pin: true
+  systemPromptSource: text-turn
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

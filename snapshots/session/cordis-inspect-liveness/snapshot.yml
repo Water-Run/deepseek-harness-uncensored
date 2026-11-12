@@ -8,3 +8,6 @@ header:
   pin: true
   systemPromptSource: cordis-inspect-jsdoc
   toolSchemasSource: cordis-inspect-jsdoc
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

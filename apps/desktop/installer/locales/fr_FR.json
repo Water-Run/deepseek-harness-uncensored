@@ -1,8 +1,7 @@
 {
   "nsisLanguage": "FRENCH",
   "strings": {
-    "INSTALLER_DOWNGRADE": "Une version plus récente de {productName} est déjà installée. Utilisez un programme d’installation de la même version ou d’une version plus récente. Pour revenir en arrière, désinstallez d’abord la version actuelle.",
-    "INSTALLER_VERSION_UNKNOWN": "Impossible de vérifier la version installée de {productName}. Désinstallez la version actuelle avant de réinstaller.",
+    "INSTALLER_UPDATE_WAIT": "Installation de la mise à jour en cours. L’application redémarrera automatiquement.",
     "INSTALLER_INSTALL": "Installer maintenant",
     "INSTALLER_FINISH": "Terminer",
     "INSTALLER_NATIVE_PROGRESS": "Préparation de l'installation… %d%%",
@@ -34,6 +33,8 @@
     "INSTALLER_EXTRACT_SAVED": "Le rapport complet a été enregistré dans %s",
     "INSTALLER_EXTRACT_UNSAVED": "Le rapport complet n'a pas pu être enregistré. Utilisez Copier les détails de l'erreur pour le conserver.",
     "INSTALLER_EXTRACT_COPIED": "Les détails de l'erreur ont été copiés dans le presse-papiers.",
+    "INSTALLER_DOWNGRADE": "Une version plus récente de {productName} est déjà installée. Utilisez un programme d’installation de la même version ou d’une version plus récente. Pour revenir en arrière, désinstallez d’abord la version actuelle.",
+    "INSTALLER_VERSION_UNKNOWN": "Impossible de vérifier la version installée de {productName}. Désinstallez la version actuelle avant de réinstaller.",
     "INSTALLER_PRODUCT_TITLE": "DSHU — {productName}",
     "INSTALLER_UNINSTALL_TITLE": "Désinstaller DSHU — {productName}",
     "INSTALLER_IDENTITY": "Installation indépendante compatible avec DeepSeek Harness officiel",

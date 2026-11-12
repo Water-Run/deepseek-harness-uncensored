@@ -3,6 +3,7 @@
 
 /* A changed mode remounts the glyph, so it pops in with the new color. */
 .icon {
+  flex: none;
   animation: label-icon-in 480ms cubic-bezier(0.22, 0.8, 0.16, 1) both;
 }
 

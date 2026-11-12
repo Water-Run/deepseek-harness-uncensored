@@ -8,3 +8,6 @@ header:
 replay:
   override: true
 platform: posix
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

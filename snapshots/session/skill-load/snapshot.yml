@@ -8,5 +8,6 @@ header:
   pin: true
   systemPromptSource: text-turn
   toolSchemasSource: text-turn
-workspace:
-  setup: editing-cordis-skill
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

@@ -11,7 +11,9 @@
     "src/types.ts"
   ],
   "references": [
-    { "path": "../../guard/target-protection" },
+    {
+      "path": "../../team/agent-team"
+    },
     {
       "path": "../../client/product-analytics/tsconfig.client.json"
     },
@@ -94,12 +96,6 @@
       "path": "../workspace-controller/tsconfig.client.json"
     },
     {
-      "path": "../memory-controller"
-    },
-    {
-      "path": "../mode-dossiers/tsconfig.host.json"
-    },
-    {
       "path": "../../typert/protocol"
     },
     {
@@ -112,16 +108,28 @@
       "path": "../../boot/plugin-manager"
     },
     {
+      "path": "../../mcp/mcp-manager"
+    },
+    {
       "path": "../../boot/plugin-market"
     },
     {
-      "path": "../../document/office-to-pdf"
-    },
-    {
-      "path": "../account-controller"
+      "path": "../../document/office-kit"
     },
     {
       "path": "../../credentials/deepseek-account"
+    },
+    {
+      "path": "../../web/web"
+    },
+    {
+      "path": "../../guard/target-protection"
+    },
+    {
+      "path": "../memory-controller"
+    },
+    {
+      "path": "../mode-dossiers/tsconfig.host.json"
     },
     {
       "path": "../../credentials/balance"

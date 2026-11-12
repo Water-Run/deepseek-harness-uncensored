@@ -1,0 +1,112 @@
+{
+  "patches": [
+    {
+      "at": 0,
+      "entry": {
+        "kind": "chunks",
+        "chunks": [
+          {
+            "type": "block-start",
+            "index": 0,
+            "blockType": "tool-call"
+          },
+          {
+            "type": "block-end",
+            "index": 0,
+            "block": {
+              "type": "tool-call",
+              "id": "direct-1",
+              "name": "subagent",
+              "arguments": "{\"name\":\"reviewer\",\"description\":\"Check direct inbox delivery\",\"prompt\":\"Create the empty file team-ready, then wait in Bash until interrupted.\"}"
+            }
+          },
+          {
+            "type": "usage",
+            "usage": {
+              "inputTokens": 3,
+              "outputTokens": 3
+            }
+          },
+          {
+            "type": "finish",
+            "reason": {
+              "kind": "tool-calls"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": 2,
+      "entry": {
+        "kind": "chunks",
+        "chunks": [
+          {
+            "type": "block-start",
+            "index": 0,
+            "blockType": "tool-call"
+          },
+          {
+            "type": "block-end",
+            "index": 0,
+            "block": {
+              "type": "tool-call",
+              "id": "direct-3",
+              "name": "send_message",
+              "arguments": "{\"agent\":\"reviewer\",\"message\":\"Review the direct inbox delivery.\"}"
+            }
+          },
+          {
+            "type": "usage",
+            "usage": {
+              "inputTokens": 3,
+              "outputTokens": 3
+            }
+          },
+          {
+            "type": "finish",
+            "reason": {
+              "kind": "tool-calls"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": 3,
+      "entry": {
+        "kind": "chunks",
+        "chunks": [
+          {
+            "type": "block-start",
+            "index": 0,
+            "blockType": "tool-call"
+          },
+          {
+            "type": "block-end",
+            "index": 0,
+            "block": {
+              "type": "tool-call",
+              "id": "direct-4",
+              "name": "interrupt_agent",
+              "arguments": "{\"agent\":\"reviewer\"}"
+            }
+          },
+          {
+            "type": "usage",
+            "usage": {
+              "inputTokens": 3,
+              "outputTokens": 3
+            }
+          },
+          {
+            "type": "finish",
+            "reason": {
+              "kind": "tool-calls"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

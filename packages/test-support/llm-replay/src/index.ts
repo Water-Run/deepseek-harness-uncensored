@@ -138,9 +138,9 @@ export interface ReplayConfig {
   /**
    * Optional sidecar for the PRIMARY session: a bare `ReplayEntry[]` replaces
    * the derived script; `{ patches }` keeps it and swaps the named call
-   * indexes ({@link ReplayOverrideDoc}). Used by single-session scenarios not
-   * expressible as a durable embedded stream (throw-before-chunk, cancel/hang,
-   * injected transient failures). Absent for normal and nested scenarios.
+   * indexes ({@link ReplayOverrideDoc}). The augmentation form can also patch
+   * declared child roles. Without an override, every role derives its own
+   * durable streams.
    */
   overrideFile?: string
   /**
@@ -520,13 +520,22 @@ export interface ReplayOverridePatch {
   entry: ReplayEntry
 }
 
+/** Call patches for one recorded child role, before scripts are sorted into bind order. */
+export interface ReplayChildOverride {
+  /** One-based ordinal in {@link ReplayConfig.childFiles}. */
+  child: number
+  /** Call patches applied only to this child's own, non-inherited streams. */
+  patches: ReplayOverridePatch[]
+}
+
 /**
  * Override sidecar document: either a whole-script replacement (a
  * bare `ReplayEntry[]`) or the augmentation form `{ patches }`, which keeps
  * the JSONL-derived script and swaps only the named call indexes — the shape
- * for "turn N errors, everything else replays as recorded".
+ * for "turn N errors, everything else replays as recorded". Optional child
+ * patches select one-based `childFiles` roles and the child's own call indexes.
  */
-export type ReplayOverrideDoc = ReplayEntry[] | { patches: ReplayOverridePatch[] }
+export type ReplayOverrideDoc = ReplayEntry[] | { patches: ReplayOverridePatch[]; children?: ReplayChildOverride[] }
 
 const REPLAY_CHUNK_TYPES = new Set<StreamChunk['type']>([
   'block-start',
@@ -650,25 +659,6 @@ function materializeSessionTokens(entry: ReplayEntry, liveSessionIds: readonly (
   return replace(entry) as ReplayEntry
 }
 
-/** Learn a background child id from the stable tool-result text before that child reaches its first model call. */
-function inferStartedSubagents(
-  messages: GenerateOptions['messages'],
-  liveSessionIds: (string | undefined)[],
-): void {
-  const leaves: string[] = []
-  collectStrings(messages, leaves)
-  for (const leaf of leaves) {
-    for (const match of leaf.matchAll(/started subagent ([^\s"'<>]+)/g)) {
-      const id = match[1]
-      /* v8 ignore next -- the fixed regular expression always has capture group 1. */
-      if (id === undefined || liveSessionIds.includes(id)) continue
-      const index = liveSessionIds.findIndex((value, candidate) => candidate > 0 && value === undefined)
-      if (index < 0) return
-      liveSessionIds[index] = id
-    }
-  }
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -739,24 +729,52 @@ function readReplayEntry(value: unknown, file: string, location: string): Replay
   }
 }
 
+function readOverridePatches(value: unknown, file: string, label: string): ReplayOverridePatch[] {
+  if (!Array.isArray(value)) return invalidOverride(file, label, 'must be an array')
+  return value.map((value: unknown, index): ReplayOverridePatch => {
+    const location = `${label} ${index}`
+    if (!isRecord(value) || !hasExactKeys(value, ['at', 'entry'])) {
+      return invalidOverride(file, location, 'must contain exactly at and entry')
+    }
+    const at = value['at']
+    if (typeof at !== 'number' || !Number.isSafeInteger(at) || at < 0) {
+      return invalidOverride(file, location, 'at must be a non-negative safe integer')
+    }
+    return { at, entry: readReplayEntry(value['entry'], file, `${location}.entry`) }
+  })
+}
+
 function readOverrideDoc(value: unknown, file: string): ReplayOverrideDoc {
   if (Array.isArray(value)) return value.map((entry, index) => readReplayEntry(entry, file, `entry ${index}`))
-  if (!isRecord(value) || !hasExactKeys(value, ['patches']) || !Array.isArray(value['patches'])) {
-    return invalidOverride(file, 'document', 'must be a ReplayEntry[] or { patches: [...] }')
+  if (!isRecord(value) || !hasExactKeys(value, value['children'] === undefined ? ['patches'] : ['patches', 'children']) || !Array.isArray(value['patches'])) {
+    return invalidOverride(file, 'document', 'must be a ReplayEntry[] or { patches: [...], children?: [...] }')
   }
-  return {
-    patches: value['patches'].map((value, index): ReplayOverridePatch => {
-      const location = `patch ${index}`
-      if (!isRecord(value) || !hasExactKeys(value, ['at', 'entry'])) {
-        return invalidOverride(file, location, 'must contain exactly at and entry')
-      }
-      const at = value['at']
-      if (typeof at !== 'number' || !Number.isSafeInteger(at) || at < 0) {
-        return invalidOverride(file, location, 'at must be a non-negative safe integer')
-      }
-      return { at, entry: readReplayEntry(value['entry'], file, `${location}.entry`) }
-    }),
+  const patches = readOverridePatches(value['patches'], file, 'patch')
+  if (value['children'] === undefined) return { patches }
+  if (!Array.isArray(value['children'])) return invalidOverride(file, 'children', 'must be an array')
+  const seen = new Set<number>()
+  const children = value['children'].map((item: unknown, index): ReplayChildOverride => {
+    const location = `children[${index}]`
+    if (!isRecord(item) || !hasExactKeys(item, ['child', 'patches'])) return invalidOverride(file, location, 'must contain exactly child and patches')
+    const child = item['child']
+    if (typeof child !== 'number' || !Number.isSafeInteger(child) || child < 1) return invalidOverride(file, location, 'child must be a positive safe integer')
+    if (seen.has(child)) return invalidOverride(file, location, `duplicates child ${child}`)
+    seen.add(child)
+    return { child, patches: readOverridePatches(item['patches'], file, `child ${child} patch`) }
+  })
+  return { patches, children }
+}
+
+function configuredOverride(config: ReplayConfig): ReplayOverrideDoc | undefined {
+  if (config.overrideFile === undefined || !existsSync(config.overrideFile)) return undefined
+  const value: unknown = JSON.parse(readFileSync(config.overrideFile, 'utf8'))
+  const doc = readOverrideDoc(value, config.overrideFile)
+  if (!Array.isArray(doc)) for (const entry of doc.children ?? []) {
+    if (entry.child > (config.childFiles?.length ?? 0)) {
+      invalidOverride(config.overrideFile, `child ${entry.child}`, 'has no declared child fixture')
+    }
   }
+  return doc
 }
 
 /**
@@ -764,12 +782,12 @@ function readOverrideDoc(value: unknown, file: string): ReplayOverrideDoc {
  * (whole-script replacement or `{ patches }` augmentation over the derived
  * script), else the script derived from the session JSONL (fail-loud when the
  * fixture is missing).
- * @param config - the fixture paths; only `file` and `overrideFile` are consulted.
+ * @param config - the fixture paths; child declarations validate any child-role patches.
  * @returns the resolved primary-session script.
  */
 export function loadReplayScript(config: ReplayConfig): ReplayEntry[] {
   const fixture = readPrimaryFixture(config)
-  return resolveReplayScript(config, fixture)
+  return resolveReplayScript(config, fixture, configuredOverride(config))
 }
 
 /** Read a primary JSONL unless a whole-script sidecar intentionally occupies the same path. */
@@ -782,29 +800,34 @@ function readPrimaryFixture(config: ReplayConfig): ParsedSessionFixture | undefi
 function resolveReplayScript(
   config: ReplayConfig,
   fixture: ParsedSessionFixture | undefined,
+  doc: ReplayOverrideDoc | undefined,
 ): ReplayEntry[] {
-  if (config.overrideFile !== undefined && existsSync(config.overrideFile)) {
-    const doc = readOverrideDoc(JSON.parse(readFileSync(config.overrideFile, 'utf8')) as unknown, config.overrideFile)
+  if (doc !== undefined) {
     if (Array.isArray(doc)) return doc
     const script = deriveScriptFromFixture(config.file, fixture)
-    const derivedLength = script.length
-    const seenIndexes = new Set<number>()
-    for (const patch of doc.patches) {
-      if (patch.at > derivedLength) {
-        throw new Error(
-          `llm-replay: override patch index ${String(patch.at)} out of range `
-          + `(derived script has ${derivedLength} call(s); == length appends): ${config.overrideFile}`,
-        )
-      }
-      if (seenIndexes.has(patch.at)) {
-        throw new Error(`llm-replay: duplicate override patch index ${patch.at}: ${config.overrideFile}`)
-      }
-      seenIndexes.add(patch.at)
-      script[patch.at] = patch.entry
-    }
-    return script
+    return patchReplayScript(script, doc.patches, config.overrideFile ?? config.file, 'override')
   }
   return deriveScriptFromFixture(config.file, fixture)
+}
+
+/** Apply validated call patches to one role's freshly derived script. */
+function patchReplayScript(script: ReplayEntry[], patches: ReplayOverridePatch[], file: string, label: string): ReplayEntry[] {
+  const derivedLength = script.length
+  const seenIndexes = new Set<number>()
+  for (const patch of patches) {
+    if (patch.at > derivedLength) {
+      throw new Error(
+        `llm-replay: ${label} patch index ${String(patch.at)} out of range `
+        + `(derived script has ${derivedLength} call(s); == length appends): ${file}`,
+      )
+    }
+    if (seenIndexes.has(patch.at)) {
+      throw new Error(`llm-replay: duplicate ${label} patch index ${patch.at}: ${file}`)
+    }
+    seenIndexes.add(patch.at)
+    script[patch.at] = patch.entry
+  }
+  return script
 }
 
 /** Derive a script from an already migrated fixture, failing loud when it is absent. */
@@ -818,13 +841,15 @@ function deriveScriptFromFixture(file: string, fixture: ParsedSessionFixture | u
 /**
  * Load the primary and child scripts in bind order. Child derivation begins at
  * the v0 header's inherited-event cut so parent chunks are never replayed as child calls.
+ * Child patches select the declared file ordinal before creation-time sorting.
  *
  * @param config - the fixture paths: the primary log plus any recorded child logs.
  * @returns the primary script first, then the child scripts in bind order.
  */
 export function loadSessionScripts(config: ReplayConfig): SessionScript[] {
   const primaryFixture = readPrimaryFixture(config)
-  const primaryEntries = resolveReplayScript(config, primaryFixture)
+  const override = configuredOverride(config)
+  const primaryEntries = resolveReplayScript(config, primaryFixture, override)
   // The override path replaces the derived script but carries no header; read
   // the header off the JSONL when it exists, else use a stable default so an
   // override-only fixture (header-less) still orders first as the primary.
@@ -833,7 +858,7 @@ export function loadSessionScripts(config: ReplayConfig): SessionScript[] {
     recordedId: primaryHeader.id, createdAt: primaryHeader.createdAt, entries: primaryEntries, primary: true,
   }
   const children: SessionScript[] = []
-  for (const childFile of config.childFiles ?? []) {
+  for (const [index, childFile] of (config.childFiles ?? []).entries()) {
     if (!existsSync(childFile)) {
       throw new Error(`llm-replay: child fixture not found: ${childFile} — re-record the scenario`)
     }
@@ -842,10 +867,12 @@ export function loadSessionScripts(config: ReplayConfig): SessionScript[] {
     // Derive the child's script from its own events only — events AT OR after the seed
     // boundary.
     const ownEvents = fixture.events.slice(fixture.inheritedEventCount)
+    const entries = deriveReplayScript(ownEvents)
+    const childOverride = Array.isArray(override) ? undefined : override?.children?.find(entry => entry.child === index + 1)
     children.push({
       recordedId: fixture.id,
       createdAt: fixture.createdAt,
-      entries: deriveReplayScript(ownEvents),
+      entries: childOverride === undefined ? entries : patchReplayScript(entries, childOverride.patches, config.overrideFile ?? config.file, `override child ${index + 1}`),
       primary: false,
     })
   }
@@ -990,7 +1017,7 @@ async function* replayEntry(entry: ReplayEntry, signal: AbortSignal | undefined,
         if (paceMs > 0) await paceDelay(paceMs, signal)
         yield chunk
       }
-      throw new LlmError(entry.message, entry.code)
+      throw LlmError.fromFailure({ message: entry.message, code: entry.code })
     case 'hang':
       // Replay a stream that stalls until cancelled (mirrors MockAdapter): one
       // chunk, then wait for abort and surface it as the consumer expects.
@@ -1085,7 +1112,6 @@ export function installLlmReplay(ctx: Context, config: ReplayConfig): ReplayHand
           + `but its script has only ${boundState.entries.length}; re-record the scenario`,
         )
       }
-      inferStartedSubagents(options.messages, liveSessionIds)
       const resolved = resolveScriptedEntry(materializeSessionTokens(entry, liveSessionIds), options.messages)
       if (options.provider === 'deepseek-official' && providerAccepted(resolved)) {
         const extensions = ctx.get('deepseekLlmApiExtensions')

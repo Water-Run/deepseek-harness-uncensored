@@ -12,14 +12,17 @@ export type {} from '@deepseek-ai/dsh-spend-limit/remote'
 import securityProxyRemote from '@deepseek-ai/dsh-security-proxy-local/remote'
 import targetProtectionRemote from '@deepseek-ai/dsh-target-protection/remote'
 import type {} from '@deepseek-ai/dsh-security-proxy-local/remote'
-import accountRemote from '@deepseek-ai/dsh-api-account-controller/remote'
+import agentTeamsRemote from '@deepseek-ai/dsh-agent-team/remote'
+export type {} from '@deepseek-ai/dsh-agent-team/remote'
+import accountRemote from '@deepseek-ai/dsh-deepseek-account/remote'
 import settingsControllerRemote from '@deepseek-ai/dsh-api-settings-controller/remote'
-import officeToPdfRemote from '@deepseek-ai/dsh-office-to-pdf/remote'
+import officeKitRemote from '@deepseek-ai/dsh-office-kit/remote'
 import goalsRemote from '@deepseek-ai/dsh-goal/remote'
 import scheduleRemote from '@deepseek-ai/dsh-schedule/remote'
 import llmRemote from '@deepseek-ai/dsh-llm/remote'
 import dynamicRemote from '@deepseek-ai/dsh-cordis-host-runner/remote'
 import pluginManagerRemote from '@deepseek-ai/dsh-plugin-manager/remote'
+import mcpManagerRemote from '@deepseek-ai/dsh-mcp-manager/remote'
 import toolResultsRemote from '@deepseek-ai/dsh-client-ui-trajectory/remote'
 import pluginRegistryProbeRemote from '@deepseek-ai/dsh-client-ui-plugin-manager/remote'
 import pluginMarketRemote from '@deepseek-ai/dsh-plugin-market/remote'
@@ -37,6 +40,7 @@ import terminalRemote from '@deepseek-ai/dsh-api-terminal-controller/remote'
 import workspaceFilesRemote from '@deepseek-ai/dsh-api-workspace-files/remote'
 import memoryRemote from '@deepseek-ai/dsh-api-memory-controller/remote'
 import modeDossiersRemote from '@deepseek-ai/dsh-api-mode-dossiers/remote'
+import webRemote from '@deepseek-ai/dsh-web/remote'
 import type { ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
 
 export type { ClientRemote } from '@deepseek-ai/dsh-api-gateway/client'
@@ -48,7 +52,9 @@ export type {
   PluginUpdateProgress, PluginUpdateResult, PluginUpdateStep, PluginVersion, PluginVersionList, RegistryAttempt,
   ReadOnlyReason, Registry, RestartReason,
 } from '@deepseek-ai/dsh-plugin-manager/types'
+export type { McpManagedServerStatus, McpManagedServerView } from '@deepseek-ai/dsh-mcp-manager/types'
 export type {} from '@deepseek-ai/dsh-plugin-manager/remote'
+export type {} from '@deepseek-ai/dsh-mcp-manager/remote'
 export type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/remote'
 export type {} from '@deepseek-ai/dsh-client-ui-trajectory/remote'
 export type {} from '@deepseek-ai/dsh-plugin-market/remote'
@@ -63,12 +69,13 @@ export type * from '@deepseek-ai/dsh-security-proxy/types'
 export type {} from '@deepseek-ai/dsh-target-protection/remote'
 export type {} from '@deepseek-ai/dsh-user-questions/remote'
 export type {} from '@deepseek-ai/dsh-commands/remote'
+export type {} from '@deepseek-ai/dsh-web/remote'
 export type {} from '@deepseek-ai/dsh-api-settings-controller/remote'
-export type {} from '@deepseek-ai/dsh-api-account-controller/remote'
 export type {} from '@deepseek-ai/dsh-balance/remote'
+export type {} from '@deepseek-ai/dsh-deepseek-account/remote'
 export type {} from '@deepseek-ai/dsh-goal/remote'
 export type {} from '@deepseek-ai/dsh-schedule/remote'
-export type {} from '@deepseek-ai/dsh-office-to-pdf/remote'
+export type {} from '@deepseek-ai/dsh-office-kit/remote'
 export type {} from '@deepseek-ai/dsh-llm/remote'
 export type {} from '@deepseek-ai/dsh-host-plugin-inventory/remote'
 export type {} from '@deepseek-ai/dsh-message-feedback/remote'
@@ -97,6 +104,7 @@ export type { ApiRemoteForwardedEvent } from '../types.ts'
 // signatures `$on` hands to a listener, so a consumer reads the very
 // declaration the Host emits rather than a flattened restatement of it.
 export type {} from '@deepseek-ai/dsh-commands/types'
+export type {} from '@deepseek-ai/dsh-web/types'
 export type {} from '@deepseek-ai/dsh-cordis-host-runner/types'
 export type {} from '@deepseek-ai/dsh-credentials/types'
 export type {} from '@deepseek-ai/dsh-llm/types'
@@ -203,15 +211,16 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
   const disposers: Array<() => Promise<void>> = []
   try {
     for (const contribution of [
-      productAnalyticsRemote, agentPresetsRemote, commandsRemote, settingsControllerRemote, accountRemote, balanceRemote, spendingRemote,
-      securityProxyRemote, targetProtectionRemote,
+      productAnalyticsRemote, agentPresetsRemote, commandsRemote, agentTeamsRemote,
+      settingsControllerRemote, accountRemote, balanceRemote, spendingRemote, securityProxyRemote, targetProtectionRemote,
       goalsRemote, llmRemote, dynamicRemote, scheduleRemote,
-      pluginInventoryRemote, pluginManagerRemote, pluginMarketRemote, pluginRegistryProbeRemote, toolResultsRemote,
+      pluginInventoryRemote, pluginManagerRemote, mcpManagerRemote, pluginMarketRemote, pluginRegistryProbeRemote,
+      toolResultsRemote,
       messageFeedbackRemote, sessionFeedbackRemote,
       fileUploadsRemote, sessionReferencesRemote,
       permissionPresetsRemote, subagentsRemote, sessionRemote, jobRemote, workspaceRemote, workspaceFilesRemote, terminalRemote,
       memoryRemote, modeDossiersRemote,
-      officeToPdfRemote, userQuestionsRemote,
+      officeKitRemote, userQuestionsRemote, webRemote,
     ]) {
       disposers.push(await ctx.remote.$mount(contribution))
     }

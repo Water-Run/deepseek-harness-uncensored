@@ -39,7 +39,7 @@ function buildChildEnv(extra: Record<string, string>, overlay?: Readonly<Record<
  *
  * @param config - Resolved plugin config discriminated on `transport`.
  * @param options - Optional networking owned by this connection.
- * @returns A connected-ready MCP Transport (stdio or Streamable HTTP).
+ * @returns An unstarted MCP transport (stdio or Streamable HTTP).
  */
 export function createTransport(config: Config, options?: McpTransportOptions): Transport {
   switch (config.transport) {

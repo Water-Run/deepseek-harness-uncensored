@@ -161,7 +161,7 @@ it('keeps consolidated settings controls and cards usable in both palettes', asy
       bonusWallets: [{ currency: 'CNY', balance: '12.00' }],
     }),
     vi.spyOn(account, 'watch').mockImplementation(async function* (signal) {
-      yield state
+      yield { type: 'snapshot', state }
       if (signal.aborted) return
       await new Promise<void>((resolve) => { signal.addEventListener('abort', () => { resolve() }, { once: true }) })
     }),

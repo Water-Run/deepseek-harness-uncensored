@@ -41,7 +41,7 @@ export interface NativeBrowserConfig {
   cdpEndpoint?: string
   /** Launcher-owned hostname used only by the extension to reach this browser's CDP socket directly. */
   proxyControlHost?: string
-  /** Optional existing Stagehand extension id. */
+  /** Launcher-confirmed installation identity; attached browsers need the metadata preflight. */
   extensionId?: string
   /** Executable selected for an owned Chromium instance. */
   executablePath?: string
@@ -98,7 +98,7 @@ export interface NativeBrowserRuntime {
 export async function openNativeBrowser(config: NativeBrowserConfig): Promise<NativeBrowserRuntime> {
   const { Stagehand, localBrowser } = await import('@browserbasehq/stagehand')
   const endpoint = z.string().parse(config.cdpEndpoint)
-  const extensionId = config.extensionId ?? await findRuntimeExtension(endpoint, config.operationTimeoutMs)
+  if (config.extensionId === undefined) await findRuntimeExtension(endpoint, config.operationTimeoutMs)
   let browserEndpoint = endpoint
   if (config.proxyControlHost !== undefined) {
     const address = new URL(endpoint)
@@ -107,7 +107,6 @@ export async function openNativeBrowser(config: NativeBrowserConfig): Promise<Na
   }
   const browser = await localBrowser.connect({
     cdpUrl: browserEndpoint,
-    ...extensionId === undefined ? {} : { extensionId },
   })
   const stagehand = await Stagehand.create({ browser, model: config.model, logging: { level: 'off' } })
   return {

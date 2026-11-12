@@ -9,7 +9,6 @@ header:
   pin: true
   changes: 1
   promptChanges: 1
-  toolSchemasSource: session/compaction-recovery
 sessionFormat:
   version: 4
   coverage: [behavior-update]

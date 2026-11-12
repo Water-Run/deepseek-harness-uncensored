@@ -17,7 +17,7 @@ import { fixtureUpdateFeed } from './update-feed-adapter.mjs'
 import { DesktopMandatoryUpdatePolicy, resolveDesktopPolicyConfig } from '../../lib/types/mandatory-update-policy.js'
 import { DesktopMandatoryUpdateWindow } from '../../lib/types/mandatory-update-window.js'
 import { DesktopUpdatePreparationError } from '../../lib/types/update-error.js'
-import { DesktopUpdateHttpExecutor } from '../../lib/types/update-http-executor.js'
+import { DesktopUpdateHttpExecutor } from '../../lib/types/updates/electron-updater/http-executor.js'
 import { DesktopUpdateOverlays } from '../../lib/types/update-overlay.js'
 import { qualifyUpdateDialogs } from './update-dialogs.mjs'
 
@@ -64,7 +64,7 @@ async function main() {
     let restart = async () => true
     updater.quitAndInstall = (...args) => { installations.push(args) }
     const coordinator = new DesktopUpdateCoordinator(state => { states.push(state); return state },
-      () => restart(), updater, () => true, () => '1.0.0', undefined, 'nightly', readSource)
+      () => restart(), updater, () => true, () => '1.0.0', undefined, 'nightly', undefined, readSource)
     const result = { updater, coordinator, installations, states, directory, restart: handler => { restart = handler } }
     fixtures.push(result)
     return result

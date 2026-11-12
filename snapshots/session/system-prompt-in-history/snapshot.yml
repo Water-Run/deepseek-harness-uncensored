@@ -6,6 +6,10 @@ recording: authored
 header:
   class: system-prompt-in-history
   pin: true
+  toolSchemasSource: text-turn
   promptChanges: 1
 replay:
   override: true
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

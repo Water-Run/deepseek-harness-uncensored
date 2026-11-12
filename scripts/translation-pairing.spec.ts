@@ -385,6 +385,9 @@ describe('translation scope discovery', () => {
     'packages/example/README.zh.md',
     'native/example/README.i18n.yaml',
     '.agents/notes/proposed/feature.md',
+    '.agents/persistence/status.md',
+    '.agents/persistence/status.zh.md',
+    '.agents/persistence/status.i18n.yaml',
     'docs/guide.md',
     'python/guide.md',
     'python/sdk-runtime/README.md',
@@ -399,6 +402,9 @@ describe('translation scope discovery', () => {
     'packages/example/CONTRIBUTING.md',
     'packages/example/BRAND_GUIDELINES.md',
     'other/tutorial.md',
+    '.agents/persistence/retained-session-fixtures.json',
+    '.agents/persistence/changes/example.md',
+    '.agents/persistence/status-extra.md',
     'website/reference.md',
     'packages/example/README.txt',
     'vendor/example/README.md',
@@ -407,7 +413,6 @@ describe('translation scope discovery', () => {
     'coverage/report/README.md',
     'python/sdk-runtime/src/deepseek_harness_runtime/runtime/deepseek-harness-sdk-runtime-macos-arm64/README.md',
     'python/sdk-runtime/src/deepseek_harness_runtime/runtime/node/README.md',
-    'python/sdk-runtime/src/deepseek_harness_runtime/runtime/macos-arm64/office-skills/office-docx/SKILL.md',
   ])('excludes non-source or non-README path %s', (file) => {
     expect(isTranslationScopeFile(file)).toBe(false)
   })

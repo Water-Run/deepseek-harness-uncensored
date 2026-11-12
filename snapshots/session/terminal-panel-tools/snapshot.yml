@@ -1,0 +1,11 @@
+version: 1
+scenario: terminal-panel-tools
+profile: headless
+composition: terminal-panel
+recording: authored
+header:
+  class: terminal-panel
+  pin: true
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

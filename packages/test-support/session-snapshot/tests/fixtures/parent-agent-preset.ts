@@ -1,4 +1,4 @@
-/** Compose a blank headless Session through the scenario's preset selections. */
+/** Compose a blank headless Session within its creation maintenance task. */
 
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-agent'
@@ -16,7 +16,8 @@ export function apply(ctx: Context, config: { presets?: string[] } = {}): void {
   ctx.on('agent/created', async ({ agent }) => {
     if (agent.session.header.parentSession !== undefined) return
     for (const preset of config.presets ?? ['parent']) {
-      await ctx.agentPresets.select(agent, preset)
+      const selected = await ctx.agentPresets.recompose(agent.ctx, preset)
+      agent.session.append('agent-preset/selected', { agentPreset: selected.id })
     }
   }, { prepend: true })
 }

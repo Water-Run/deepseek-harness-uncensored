@@ -9,3 +9,8 @@ header:
   toolSchemasSource: team-targets
 workspace:
   final: true
+replay:
+  override: true
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

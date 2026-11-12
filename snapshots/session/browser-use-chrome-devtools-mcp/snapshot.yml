@@ -10,3 +10,6 @@ header:
   pin: true
 replay:
   override: true
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

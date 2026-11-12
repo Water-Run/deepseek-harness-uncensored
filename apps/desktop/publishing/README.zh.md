@@ -20,6 +20,6 @@ DSHU 使用[自己的 GitHub Releases](https://github.com/Water-Run/deepseek-har
 
 COS 传输、EdgeOne 缓存刷新、原保留产物/发布/回滚实现和凭据解密启动器已移除。旧上传、发布、回滚、保留产物及发布预检入口会在读取部署配置或凭据前，以退出码 1 提示迁移至 GitHub Releases。没有新增自动发布发行版的替代命令。
 
-停止调用 `upload-target.ts`、`publish-desktop-ci.ts`、`publish-installed-update.ts`、`rollback-desktop-channel.ts`、`retain-desktop-ci.ts`、`resolve-desktop-publish-ci.ts`、`resolve-retained-desktop-publish-ci.ts`、两个 `preflight-desktop-publish*.mjs` 入口及 `upload-with-credentials.ps1`。已有本地安装包和验收记录不会被移除。DSHU 不复用原下载域名、存储桶、云密钥或发布路由文件。
+停止调用 `upload-target.ts`、`publish-desktop-ci.ts`、`publish-installed-update.ts`、`rollback-desktop-channel.ts`、`retain-desktop-ci.ts`、`resolve-desktop-publish-ci.ts`、`resolve-retained-desktop-publish-ci.ts`、`archive-desktop-ci.ts`、`publish-desktop-rollout-ci.ts`、`publish-website-ci.ts`、两个 `preflight-desktop-publish*.mjs` 入口及 `upload-with-credentials.ps1`。已有本地安装包和验收记录不会被移除。DSHU 不复用原下载域名、存储桶、云密钥或发布路由文件。
 
 当前仓库没有启用的发行工作流，见 [CI 状态](ci/README.zh.md)。后续发行须明确选择本仓库及已审查的 DSHU 产物。

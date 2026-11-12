@@ -1,0 +1,133 @@
+{
+  "patches": [
+    {
+      "at": 1,
+      "entry": {
+        "kind": "chunks",
+        "chunks": [
+          {
+            "type": "block-start",
+            "index": 0,
+            "blockType": "tool-call"
+          },
+          {
+            "type": "tool-call-delta",
+            "index": 0,
+            "id": "call_followup_1",
+            "name": "send_message",
+            "argumentsDelta": "{\"agent\": \"agent-1\", \"message\": \"Now reply with exactly SECOND_OK.\"}"
+          },
+          {
+            "type": "block-end",
+            "index": 0,
+            "block": {
+              "type": "tool-call",
+              "id": "call_followup_1",
+              "name": "send_message",
+              "arguments": "{\"agent\": \"agent-1\", \"message\": \"Now reply with exactly SECOND_OK.\"}"
+            }
+          },
+          {
+            "type": "usage",
+            "usage": {
+              "inputTokens": 10,
+              "outputTokens": 5
+            }
+          },
+          {
+            "type": "finish",
+            "reason": {
+              "kind": "tool-calls"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": 2,
+      "entry": {
+        "kind": "chunks",
+        "chunks": [
+          {
+            "type": "block-start",
+            "index": 0,
+            "blockType": "tool-call"
+          },
+          {
+            "type": "tool-call-delta",
+            "index": 0,
+            "id": "call_followup_2",
+            "name": "send_message",
+            "argumentsDelta": "{\"agent\": \"agent-1\", \"message\": \"Now reply with exactly THIRD_OK.\"}"
+          },
+          {
+            "type": "block-end",
+            "index": 0,
+            "block": {
+              "type": "tool-call",
+              "id": "call_followup_2",
+              "name": "send_message",
+              "arguments": "{\"agent\": \"agent-1\", \"message\": \"Now reply with exactly THIRD_OK.\"}"
+            }
+          },
+          {
+            "type": "usage",
+            "usage": {
+              "inputTokens": 10,
+              "outputTokens": 5
+            }
+          },
+          {
+            "type": "finish",
+            "reason": {
+              "kind": "tool-calls"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": 3,
+      "entry": {
+        "kind": "chunks",
+        "chunks": [
+          {
+            "type": "block-start",
+            "index": 0,
+            "blockType": "tool-call"
+          },
+          {
+            "type": "tool-call-delta",
+            "index": 0,
+            "id": "call_followup_unknown",
+            "name": "send_message",
+            "argumentsDelta": "{\"agent\": \"22222222-2222-4222-8222-222222222222\", \"message\": \"Please continue.\"}"
+          },
+          {
+            "type": "block-end",
+            "index": 0,
+            "block": {
+              "type": "tool-call",
+              "id": "call_followup_unknown",
+              "name": "send_message",
+              "arguments": "{\"agent\": \"22222222-2222-4222-8222-222222222222\", \"message\": \"Please continue.\"}"
+            }
+          },
+          {
+            "type": "usage",
+            "usage": {
+              "inputTokens": 10,
+              "outputTokens": 5
+            }
+          },
+          {
+            "type": "finish",
+            "reason": {
+              "kind": "tool-calls"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

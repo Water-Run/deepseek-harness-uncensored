@@ -1,8 +1,7 @@
 {
   "nsisLanguage": "SPANISHINTERNATIONAL",
   "strings": {
-    "INSTALLER_DOWNGRADE": "Ya hay una versión más reciente de {productName} instalada. Use un instalador de la misma versión o de una versión posterior. Para volver a una anterior, desinstale primero la versión actual.",
-    "INSTALLER_VERSION_UNKNOWN": "No se pudo verificar la versión instalada de {productName}. Desinstale la versión actual antes de volver a instalar.",
+    "INSTALLER_UPDATE_WAIT": "Instalando la actualización. La aplicación se reiniciará automáticamente al terminar.",
     "INSTALLER_INSTALL": "Instalar ahora",
     "INSTALLER_FINISH": "Finalizar",
     "INSTALLER_NATIVE_PROGRESS": "Preparando la instalación… %d%%",
@@ -34,6 +33,8 @@
     "INSTALLER_EXTRACT_SAVED": "El informe completo se guardó en %s.",
     "INSTALLER_EXTRACT_UNSAVED": "No se pudo guardar el informe completo. Utilice Copiar detalles del error para conservarlo.",
     "INSTALLER_EXTRACT_COPIED": "Los detalles del error se copiaron al portapapeles.",
+    "INSTALLER_DOWNGRADE": "Ya hay una versión más reciente de {productName} instalada. Use un instalador de la misma versión o de una versión posterior. Para volver a una anterior, desinstale primero la versión actual.",
+    "INSTALLER_VERSION_UNKNOWN": "No se pudo verificar la versión instalada de {productName}. Desinstale la versión actual antes de volver a instalar.",
     "INSTALLER_PRODUCT_TITLE": "DSHU — {productName}",
     "INSTALLER_UNINSTALL_TITLE": "Desinstalar DSHU — {productName}",
     "INSTALLER_IDENTITY": "Instalación independiente junto a DeepSeek Harness oficial",

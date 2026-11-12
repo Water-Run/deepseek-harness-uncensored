@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.2-alpha.2/css-anchored-menus/guide.md
+/:
+  en: c8444f0569081f0d
+  zh: 11742602e69ca74a
+/css-anchored-menus:
+  en: 2d9b87ac50fc94bb
+  zh: 97f8c85f921b3793
+/css-anchored-menus/change:
+  en: a88e42e27073ebb1
+  zh: 946a8c9450a6fa99
+/css-anchored-menus/migration:
+  en: 0a4923d413cc4e48
+  zh: e0d06571267c0947

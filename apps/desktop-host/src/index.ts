@@ -9,14 +9,11 @@ import { runProfile } from '@deepseek-ai/dsh/profile-boot'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-deepseek-account'
-import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
-import * as desktopOffice from './office.ts'
 import { localDragResource } from './file-drag.ts'
 
 import { installDesktopUpdateTaskControl } from './update-tasks.ts'
 import { installDesktopQuitInspection } from './quit-inspection.ts'
 import { installPlatformSessionPublisher } from './platform-session.ts'
-import { installOfficeEngineResolution } from './office-engine.ts'
 import { stagehandExtensionEnvironment } from './browser-extension.ts'
 import { installOperationDiagnostics } from './operation-diagnostics.ts'
 
@@ -25,9 +22,10 @@ async function main(): Promise<void> {
   if (process.connected) process.send?.({ type: 'starting', runId }, (error) => { if (error !== null) console.error(error) })
   const runtimeDir = process.argv[2] as string
   const projectDir = process.argv[3] as string
-  installOfficeEngineResolution(runtimeDir)
   Object.assign(process.env, stagehandExtensionEnvironment(runtimeDir))
-  const primaryRuntime = process.argv[4] ?? join(runtimeDir, '..', 'runtime', 'primary-runtime')
+  // Set before the launch-environment snapshot and profile evaluation.
+  const primaryRuntime = process.argv[4] || join(runtimeDir, '..', 'runtime', 'primary-runtime')
+  process.env.DSH_PRIMARY_RUNTIME = primaryRuntime
   process.env.DSH_REA_NODE_PATH = join(primaryRuntime, 'dependencies', 'node', 'bin', process.platform === 'win32' ? 'node.exe' : 'node')
   const installAnchor = join(runtimeDir, 'node_modules', '@deepseek-ai', 'dsh', 'package.json')
   const profile = loadProfileDirectory('dsh', projectDir, installAnchor)
@@ -135,11 +133,6 @@ async function main(): Promise<void> {
   installOperationDiagnostics(ctx, record => send({ type: 'plugin-operation', record }), 32, runId)
   control.updateTasks = installDesktopUpdateTaskControl(ctx)
   control.quitInspection = installDesktopQuitInspection(ctx)
-  await ctx.plugin(desktopOffice, {
-    runtimeDir,
-    source: primaryRuntime,
-    root: join(resolveDshHome(), 'dsh-runtimes', 'dsh-primary-runtime'),
-  })
   installPlatformSessionPublisher(ctx, (session) => {
     if (process.connected) process.send?.({ type: 'platform-session', session })
   })

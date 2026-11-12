@@ -1,6 +1,6 @@
 /** Composer next-phrase prediction. The suggestion is not sent and does not enter the conversation surface. */
 import { randomUUID } from 'node:crypto'
-import { boundContextSummary, createUserMessage, LlmError } from '@deepseek-ai/dsh-llm'
+import { boundContextSummary, createUserMessage, HarnessError } from '@deepseek-ai/dsh-llm'
 import { brandString, type Branded } from '@deepseek-ai/dsh-brand'
 import type { ContextFormed, GenerateOptions, ReasoningEffortId, StreamChunk, TokenUsage, UserMessage } from '@deepseek-ai/dsh-llm'
 import type { Session, SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
@@ -161,14 +161,14 @@ export async function requestPrediction(input: {
       input.signal.throwIfAborted()
       if (chunk.type === 'text-delta') suggestion += chunk.text
       if (chunk.type === 'usage') usage = chunk.usage
-      if (Buffer.byteLength(suggestion, 'utf8') > input.maxSuggestionBytes) throw new LlmError('Input suggestion exceeded its size limit.', 'PREDICTION_OUTPUT_LIMIT')
+      if (Buffer.byteLength(suggestion, 'utf8') > input.maxSuggestionBytes) throw new HarnessError('Input suggestion exceeded its size limit.', 'PREDICTION_OUTPUT_LIMIT')
       if (chunk.type === 'finish') {
-        if (chunk.reason.kind !== 'stop') throw new LlmError('Input suggestion did not finish successfully.', 'PREDICTION_INCOMPLETE')
+        if (chunk.reason.kind !== 'stop') throw new HarnessError('Input suggestion did not finish successfully.', 'PREDICTION_INCOMPLETE')
         finished = true
       }
     }
     input.signal.throwIfAborted()
-    if (!finished) throw new LlmError('Input suggestion ended without a completion record.', 'PREDICTION_INCOMPLETE')
+    if (!finished) throw new HarnessError('Input suggestion ended without a completion record.', 'PREDICTION_INCOMPLETE')
     suggestion = suggestion.split(/\r?\n/u)[0]?.trimEnd() ?? ''
     if (input.draft !== '' && suggestion.startsWith(input.draft)) suggestion = suggestion.slice(input.draft.length)
     if (input.draft === '') suggestion = suggestion.trimStart()

@@ -12,3 +12,6 @@ environment:
 workspace:
   final: true
   parent: outside-temp
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

@@ -54,7 +54,7 @@
   height: 16px;
   border-radius: 999px;
   corner-shape: round;
-  background: var(--dsw-static-neutral-bluish-00);
+  background: var(--dsw-alias-switch-thumb);
   box-shadow: 0 1px 2px rgb(0 0 0 / 22%);
   transition:
     transform 220ms cubic-bezier(0.34, 1.4, 0.64, 1),

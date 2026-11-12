@@ -41,6 +41,12 @@ it('leaves Chromium owned by the host when Stagehand cleanup fails', async () =>
   expect(fixture.browsers[0]?.closed).toBe(false)
 })
 
+it('lets the SDK select its runtime extension after launcher admission', async () => {
+  const runtime = await openNativeBrowser({ ...config, extensionId: 'fixture-installed-runtime' })
+  runtimes.push(runtime)
+  expect(fixture.browsers[0]?.options).toEqual({ cdpUrl: config.cdpEndpoint })
+})
+
 
 it('returns a native screenshot as canonical text and image content', async () => {
   const runtime = await openNativeBrowser(config)

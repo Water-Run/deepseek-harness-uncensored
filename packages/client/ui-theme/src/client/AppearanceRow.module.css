@@ -77,9 +77,9 @@
 }
 
 .pane {
-  --pane-bg: var(--dsw-static-neutral-bluish-00);
-  --pane-track: var(--dsw-static-neutral-bluish-200);
-  --pane-body: var(--dsw-static-neutral-bluish-60);
+  --pane-bg: var(--dsw-alias-appearance-preview-light-surface);
+  --pane-track: var(--dsw-alias-appearance-preview-light-track);
+  --pane-body: var(--dsw-alias-appearance-preview-light-body);
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
@@ -90,9 +90,9 @@
 }
 
 .pane[data-scheme='dark'] {
-  --pane-bg: var(--dsw-static-neutral-bluish-950);
-  --pane-track: var(--dsw-static-neutral-bluish-800);
-  --pane-body: var(--dsw-static-neutral-bluish-875);
+  --pane-bg: var(--dsw-alias-appearance-preview-dark-surface);
+  --pane-track: var(--dsw-alias-appearance-preview-dark-track);
+  --pane-body: var(--dsw-alias-appearance-preview-dark-body);
 }
 
 .paneBar {

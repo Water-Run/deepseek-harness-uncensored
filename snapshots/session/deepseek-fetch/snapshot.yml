@@ -9,3 +9,8 @@ header:
   pin: true
   systemPromptSource: web-fetch
   toolSchemasSource: web-fetch
+environment:
+  DSH_SNAPSHOT_FETCH_KEY: snapshot-key
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

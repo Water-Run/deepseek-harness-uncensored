@@ -1,12 +1,12 @@
 <div align="center">
   <img src="apps/desktop/resources/icon.svg" width="112" alt="DSHU 黑底白鲸标志">
   <h1>Deepseek Harness Uncensored: 更自由的探索未至之境</h1>
-  <p><b>DSHU v0.1.0</b> · 基于 DeepSeek Harness 0.2.2-rc.1 · WaterRun</p>
+  <p><b>DSHU v0.1.0</b> · 基于 DeepSeek Harness 0.2.2-rc.2 · WaterRun</p>
 </div>
 
 DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH 与 DSHU 可同时安装，分别使用自己的程序目录、配置、会话和更新渠道。未签名的 Windows x64 检查版 `0.1.0-test.20261111.7` 已在本机原位升级并核对资料。
 
-上游 **DSH 0.2.2-rc.2** 正在[独立适配](.agents/requirements/2026-11-11-dsh-rc2.md)，开发已获授权恢复。候选已通过源码构建、聚合类型检查和四模式配置验证，文档与安装包验收尚未完成，当前检查版仍基于 rc.1。此前的[收尾包和恢复资料](.agents/requirements/2026-11-12-quota-closeout.md)继续保留。
+源码已[适配 DSH 0.2.2-rc.2](.agents/requirements/2026-11-11-dsh-rc2.md)，通过完整构建、271 项协议回放及四模式实际请求检查。当前已安装检查版仍基于 rc.1，新安装包另行验收。此前的[收尾包和恢复资料](.agents/requirements/2026-11-12-quota-closeout.md)继续保留。
 
 ## 通用增强
 
@@ -42,7 +42,7 @@ DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH �
 
 ## Credit
 
-- **DeepSeek** 提供原始 Harness 和鲸鱼轮廓。DSHU 使用黑底图标，基于 [DeepSeek Harness 0.2.2-rc.1](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.1) 并保留 [MIT 许可](LICENSES/deepseek-harness-MIT.txt)。
+- **DeepSeek** 提供原始 Harness 和鲸鱼轮廓。DSHU 使用黑底图标，基于 [DeepSeek Harness 0.2.2-rc.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.2) 并保留 [MIT 许可](LICENSES/deepseek-harness-MIT.txt)。
 - **小杨（YuJunZhiXue）** 的 [dsh-purge](https://github.com/YuJunZhiXue/dsh-purge) 提供破甲文本。沿用 [MIT 历史版本 e1d8e590](https://github.com/Water-Run/dsh-purge/tree/e1d8e59087857fa86d0ef2bb9878800274b13a29) 与[原许可](LICENSES/dsh-purge-MIT.txt)。同时感谢 **JeffKeeping** 的 [dsh-purge-plus](https://github.com/JeffKeeping/dsh-purge-plus)。关于页记录 [Water-Run/dsh-purge fork 对照提交 19082c2b9788](https://github.com/Water-Run/dsh-purge/commit/19082c2b9788039fa7f8888c4a69086f43adc1ff) 及其时间。
 - **morluto** 维护 [REA](https://github.com/morluto/rea)。内置版本为 [6.8.0 · 160d821ac9a0](https://github.com/morluto/rea/commit/160d821ac9a0310afcb8d1fc427862dd6508add5)，保留 MIT 许可和第三方声明。
 - 可选保护使用 [DB-IP Lite](https://db-ip.com/db/download/ip-to-country-lite)（[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)）和 [QuickJS](https://bellard.org/quickjs/) / [quickjs-emscripten](https://github.com/justjake/quickjs-emscripten)（[MIT 声明](LICENSES/quickjs-wasm-MIT.txt)）。GitHub 标志来自 [Octicons](https://github.com/primer/octicons)，保留 [MIT 许可](packages/client/ui-settings-account/GITHUB-MARK-LICENSE.txt)。
@@ -54,10 +54,10 @@ DSHU 采用 [GPL-3.0-or-later](LICENSE)。上游和第三方组件保留各自�
 
 **DeepSeek Harness Uncensored · Explore the Unknown More Freely**
 
-DSHU v0.1.0 is an independent desktop fork of DeepSeek Harness 0.2.2-rc.1. It can coexist with the official app and uses a separate profile and update channel. It includes built-in armor prompts, four modes, and Chinese and English UI.
+DSHU v0.1.0 is an independent desktop fork of DeepSeek Harness 0.2.2-rc.2. It can coexist with the official app and uses a separate profile and update channel. It includes built-in armor prompts, four modes, and Chinese and English UI.
 
 - **General** · Use `/side` for a persistent side conversation with image attachments and `/clear`, or `/btw question` for a quick one-off answer. Balance history, spending limits, scoped memory, and Tab suggestions are available in Settings.
-- **Kernel intake** · Authorized development of DSH 0.2.2-rc.2 has resumed in an isolated working tree. Source builds, aggregate type checks and four-mode configuration tests passed. Documentation and installer qualification remain pending; inspection builds remain on rc.1. The earlier [closeout archive and recovery material](.agents/requirements/2026-11-12-quota-closeout.md) remain available.
+- **Kernel intake** · Source is adapted to DSH 0.2.2-rc.2. The complete build, 271 protocol replay tests, and actual requests from all four modes passed. The installed inspection build remains on rc.1; the new installer requires separate acceptance. The earlier [closeout archive and recovery material](.agents/requirements/2026-11-12-quota-closeout.md) remain available.
 - **Modes** · Standard covers daily development. Security adds case notes, reports, and an independent proxy with traffic inspection. Reverse integrates REA for analysis. Writing uses selected style references and story materials.
 - **Delivery** · Unsigned Windows x64 inspection build `0.1.0-test.20261111.7` passed an in-place upgrade with data verification. Linux x64 inspection build `0.1.0-test.20261111.linux.5` provides deb and tar.gz archives. The portable build passed X11 startup, browser HTTPS, Wayland directory portal, and renderer sandbox checks on Ubuntu WSL2. The welcome screen and renderer sandbox passed under virtual X11 and headless Wayland on Fedora 45. Debian 12 passed the upgrade from `.4` to `.5` and uninstallation. macOS arm64 and Android with Fedora under PRoot remain planned. Advanced target protection is opt-in. See [development status](.agents/TODO.md) and [Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases).
 

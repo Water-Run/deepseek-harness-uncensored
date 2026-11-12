@@ -1,3 +1,47 @@
+# DSHU 开发交接
+
+更新于 2026-11-12。Goal「实现DSHU」继续 active；源码已适配 DSH 0.2.2-rc.2，实际安装仍为 `.7` / rc.1，不能把源码验证视作新版安装完成。逐项状态见 [TODO](TODO.md)，本轮细节和继续验收见 [rc.2 清单](requirements/2026-11-11-dsh-rc2.md)。
+
+## 当前范围
+
+- 继续现有 Windows x64、Linux x64 Desktop、内核跟进与已报告问题。
+- macOS、Android＋PRoot Fedora、全新独立安装器仅保留未来计划，不实施，不作为当前验收前置。
+- 仅 main，中文提交并推送；保留官方 DSH 与 DSHU 的独立身份和用户资料。
+- 不使用 Computer Use。已获授权按需要测试、重启、卸载和原位安装 DSHU，保留用户数据。
+- 进阶真实目标/生产资源保护默认关闭。限额默认全关，优先展示 5h 与周；余额默认 15 秒采样、最短 3 秒；输入预测默认开；旁问自动清理默认关，`/clear` 仅在旁问中使用。
+
+## 本轮已完成
+
+rc.2 运行时代码、消费者、持久化声明、菜单/输入等客户端接口和包清单已适配。四模式各自的实际请求验证完整破甲、专属提示词、工具与持久日志。修复后台任务 ID 引用、回放子代理补丁、预设创建维护、压缩预算、脚手架中文归属、发布文件和 Stagehand 新版接口。
+
+最近完整构建 10 项通过，Host/Client 聚合类型检查包含在内。Linux SDK/ACP/Headless 275 项中 271 通过、4 项按条件跳过、0 失败；这覆盖历史协议，不代表实体桌面验收。四模式检查 51 项、子代理回放支持 158 项、快照归属 23 项、包名迁移 78 项、入口与 README 13 项、Stagehand 18 项、实际打包预览许可 1 项通过。全仓类型感知 lint 退出 0。
+
+发布卫生首轮 20 项通过、5 项失败，失败项已修复并分别复验。新增门禁中的 49 个既有导出逐项对照迁移前主线，作为既有债务登记；不放行新导出。原始失败日志保留。原 711 份规范 Session 与 2,775 份冻结归档的路径、字节、索引及候选快照对象一致；新场景使用另外 4 份当前录制角色。
+
+证据集中在 `.dsh-build/rc2-delivery-ready-evidence-20261112.json`、`rc2-linux-final-profile-replay-20261112.json`、`rc2-final-metadata-complete-build-20261112.log`、`rc2-final-complete-lint-20261112.log`。完整候选为 `6a169e4d7c01723874c74e0212eceb5c83851589`，本地引用 `refs/dshu-checkpoints/rc2-delivery-ready-checkpoint-QRTzL7`。该合成历史不发布；主线只合入验收后的内容，并保留后续八份进度文档。合入回执为 `.dsh-build/rc2-qualified-promotion-20261112.json`。
+
+## 当前交付与下一步
+
+最近实装验收的 Windows 是 `0.1.0-test.20261111.7`，内核 rc.1、REA 6.8.0，源码 `21b1f17ae0`。此前原位升级核对 7,270 个用户数据文件和官方 DSH 两份程序文件，独立卸载项、四模式、新建会话及命令执行通过。Linux `.5` 已有 Ubuntu WSL2、Debian 12、Fedora 45 隔离验收；具体边界和历史日志在下方折叠记录。
+
+1. 提交并推送已验收的 rc.2 内容，继续使用现有 DSHU Windows 安装器生成新检查包。
+2. 检查新包的独立身份、依赖、四模式就绪、新会话、命令、REA 及 Office，然后原位安装并核对资料；新包验收完成前不修改“已安装”记录。
+3. 更新 Linux x64 包并执行对应隔离验收。实体桌面选择、父窗口模态、正式签名与发布仍按 TODO 保留。
+4. Office 退休工具回放明确验证其不再可用，不替代新工具的真实转换、重算和渲染。`office_render` 新场景已验证请求到达当前工具并报告文本模型不支持图片，实包操作继续验收。
+5. GitHub 已发布 REA 6.9.0 / `d74549e495c5`；2026-11-12 对应 npm 版本返回 404，`latest` 仍为 6.8.0。当前保留内置 6.8.0 / `160d821ac9a0`，待真实安装包可用后适配、验证工具目录及引擎，并同步关于页来源。
+
+保护后端、依赖许可、签名更新及完整终验尚未完成，不标记 Goal 完成。用户此前要求的额度收尾已经执行，后来明确恢复；当前不因旧阈值自行再次暂停。
+
+## 恢复与历史
+
+主工作区 `D:\Coding\deepseek-harness-uncensored`，候选暂存区 `D:\Coding\dshu-rc2-20261111`，状态 `.dsh-build/rc2-intake-state-20261111.json`。合入前主线保存在 `refs/dshu-checkpoints/main-before-rc2-20261112`。不要重跑初始三方合并或整目录恢复脚本。Linux 已有镜像和稳定交付包继续保留；D 盘只清理已核实不再使用的构建缓存。
+
+以下为原始交付与验证记录，保留旧链接、摘要、失败与恢复材料；旧“当前状态”标题属于当时记录，以本页顶部和 TODO 为准。
+
+<details>
+<summary>展开历史交付、验证日志和恢复记录</summary>
+
+
 # Uncensored 开发交接
 
 ## 当前 rc.2 回放验收节点（2026-11-12）
@@ -2417,3 +2461,5 @@ JSONL 将已删除目录移入私有清理区，保留仅含标识的删除记�
 - 验证：`tsc -b packages/api/mode-dossiers/tsconfig.host.json` 通过；Host 测试 35 项、客户端组件测试 7 项通过（`vitest run packages/api/mode-dossiers/tests`、`packages/client/ui-mode-materials/tests`）；`pnpm --filter @deepseek-ai/dsh-client-ui-mode-materials bundle` 成功（`lib/client.js` 85.8 kB）；`verify-client-packages`、`verify-export-jsdoc`、`verify-client-ui-i18n`、`verify-package-dependencies` 对本节点新增包无报错；两个新包的 README 中英配对已记录。
 - 阻塞与边界：完整 `build:artifacts` 未能跑通——Client 编译器当前因另一任务未提交的 `SessionStore` 漂移（`ui-chat`、`ui-approval`、`ui-sidebar-right`）失败，属既有 `17.06` 债务；`generate-typert` 也因他人未完成的 `@deepseek-ai/dsh-memory/types` 路径映射失败，本包产物已在先前一次成功运行中生成（`lib/typert.host.*`、`lib/typert.remote-client.*`）。因此本轮**没有**真实浏览器截图：Web 前端无法构建，运行中的 127.0.0.1:62766 是已安装的旧打包产物，不代表本节点代码。深浅主题与 390px 窄窗口的浏览器验收仍需在 Client 编译恢复后补做。
 - 协作：`settings.mode.materials` 槽位同时被 `ui-security-proxy` 使用（它读取 `modeId` 并只在 `security` 渲染），两者共存；`ui-mode-materials` 的面板 id 为 `security`/`reverse`/`writing`，顺序 10/20/30。本节点未打包、未安装、未发布。
+
+</details>

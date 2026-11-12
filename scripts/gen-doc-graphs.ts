@@ -108,6 +108,69 @@ const GROUP_ORDER = [
 
 const SERVICE_ROLES: ServiceRole[] = [
   {
+    key: 'memory', pkg: 'memory', title: 'Scoped cross-conversation memory', mode: 'core',
+    consumers: ['api-memory-controller', 'agent-preset-registry'],
+    note: 'Owns durable memory, scope selection and optional extraction; only selected records enter model requests.',
+  },
+  {
+    key: 'memoryController', pkg: 'api-memory-controller', title: 'Owner memory management Remote', mode: 'service',
+    consumers: ['client-ui-settings-memory'],
+    note: 'Publishes bounded, owner-authorized memory reads and version-checked writes.',
+  },
+  {
+    key: 'modeDossiers', pkg: 'api-mode-dossiers', title: 'Mode case and story materials', mode: 'service',
+    consumers: ['client-ui-mode-materials'],
+    note: 'Owns selected Security, Reverse and Writing materials and their logged request contributions.',
+  },
+  {
+    key: 'rea', pkg: 'rea', title: 'Embedded reverse-engineering integration', mode: 'core',
+    note: 'Configures the bundled REA runtime and its MCP registration without a separate user installation.',
+  },
+  {
+    key: 'securityProxy', pkg: 'security-proxy', title: 'Agent-scoped Security proxy', mode: 'seam',
+    implementations: ['security-proxy-local'], consumers: ['mcp-client', 'terminal-bash', 'subagent'],
+    note: 'The definition exposes routing and lifetime operations; the local provider owns listeners, upstream transport and traffic evidence.',
+  },
+  {
+    key: 'spendLimit', pkg: 'spend-limit', title: 'CNY spending admission and recovery', mode: 'service',
+    consumers: ['api-session-controller', 'client-ui-settings-account'],
+    note: 'Owns durable reservations, independent rolling limits and the saved pauses that the Session controller recovers.',
+  },
+  {
+    key: 'uncensoredBalance', pkg: 'balance', title: 'Owner balance samples', mode: 'service',
+    consumers: ['client-ui-settings-account'],
+    note: 'Samples configured account balances and retains local history separately from estimated conversation costs.',
+  },
+  {
+    key: 'targetProtection', pkg: 'target-protection', title: 'Optional target execution protection', mode: 'core',
+    note: 'Owns explicit domain, server, database and path rules and execution-time admission; advanced protection starts disabled.',
+  },
+  {
+    key: 'targetProtectionSettings', pkg: 'target-protection', title: 'Owner protection settings Remote', mode: 'service',
+    consumers: ['client-ui-security-proxy'],
+    note: 'Publishes owner-only rule, coverage and audit snapshots rather than inferring that an unverified backend is active.',
+  },
+  {
+    key: 'targetCountryData', pkg: 'target-protection', title: 'Target country database', mode: 'core',
+    note: 'Loads the configured country dataset for optional regional rule decisions.',
+  },
+  {
+    key: 'securityProtection', pkg: 'target-protection', title: 'Protection coverage snapshot', mode: 'core',
+    note: 'Exposes the actual protection coverage assembled by the owner settings provider.',
+  },
+  {
+    key: 'sqliteDatabase', pkg: 'target-protection', title: 'Protected SQLite operations', mode: 'core',
+    note: 'Applies configured target rules to the owned SQLite execution surface.',
+  },
+  {
+    key: 'postgresAudit', pkg: 'target-protection', title: 'Protected PostgreSQL audit', mode: 'core',
+    note: 'Owns configured PostgreSQL audit connections and execution admission.',
+  },
+  {
+    key: 'mysqlAudit', pkg: 'target-protection', title: 'Protected MySQL audit', mode: 'core',
+    note: 'Owns configured MySQL audit connections and execution admission.',
+  },
+  {
     key: 'actionCards',
     pkg: 'action-cards',
     title: 'Optional action cards',
@@ -269,9 +332,9 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'The native provider owns application consent and cancellation; the optional Client page queries and changes those decisions through its Remote.',
   },
   {
-    key: 'officeToPdf', pkg: 'office-to-pdf', title: 'Office to PDF conversion',
-    mode: 'core', consumers: ['client-ui-sidebar-documentpreview'],
-    note: 'Authorized Office bytes are converted on the Host using the declared native target engine, or Node WASM when no native target is declared.',
+    key: 'officeKit', pkg: 'office-kit', title: 'Office rendering, conversion, and recalculation',
+    mode: 'core', consumers: ['client-ui-sidebar-documentpreview', 'tool-office'],
+    note: 'Authorized Office bytes are rendered as PDFs or images, converted, or recalculated on the Host using the declared native target engine, or Node WASM when no native target is declared.',
   },
   {
     key: 'attachments',
@@ -493,9 +556,9 @@ const SERVICE_ROLES: ServiceRole[] = [
     key: 'deepseekAccount',
     pkg: 'deepseek-account',
     title: 'DeepSeek account',
-    mode: 'seam',
-    implementations: ['deepseek-account-platform'],
-    consumers: ['api-account-controller', 'llm-deepseek'],
+    mode: 'service',
+    implementations: [],
+    consumers: ['llm-deepseek'],
     note: 'The Host owns browser authorization and local credentials; UI consumers receive state without tokens.',
   },
   {
@@ -706,6 +769,13 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'The one concrete loop plugin; extension packages depend on dsh-agent events and services, not on this package.',
   },
   {
+    key: 'mcpManager',
+    pkg: 'mcp-manager',
+    title: 'Settings-driven MCP server fleet',
+    mode: 'core',
+    note: 'Reconciles mcp-client instances against its volatile servers configuration, aggregates their connection statuses, and serves restart and probe to management surfaces.',
+  },
+  {
     key: 'schedule',
     pkg: 'schedule',
     title: 'Host scheduled messages',
@@ -758,7 +828,7 @@ const SERVICE_ROLES: ServiceRole[] = [
     pkg: 'terminal',
     title: 'Persistent PTY session registry',
     mode: 'seam',
-    implementations: ['terminal-bash'],
+    implementations: ['terminal-bash', 'terminal-panel'],
     consumers: ['tool-terminal'],
     note: 'The registry owns exact-Agent session identity and cleanup; backends own terminal mechanics, while tool-terminal exposes the owner-scoped model tools.',
   },
@@ -768,7 +838,7 @@ const SERVICE_ROLES: ServiceRole[] = [
     title: 'Process-sandbox seam',
     mode: 'seam',
     implementations: ['sandbox-local', 'sandbox-ssh'],
-    consumers: ['bash-sandbox', 'terminal-bash'],
+    consumers: ['bash-sandbox', 'terminal-bash', 'api-terminal-controller'],
     note: 'Consumers hand over the exact argv they are about to spawn; same-world backends wrap it under a per-call policy and report enforcement.',
   },
   {
@@ -777,7 +847,7 @@ const SERVICE_ROLES: ServiceRole[] = [
     title: 'Sandbox policy home',
     mode: 'core',
     implementations: [],
-    consumers: ['bash-sandbox', 'fs-sandbox', 'terminal-bash'],
+    consumers: ['bash-sandbox', 'fs-sandbox', 'terminal-bash', 'terminal-panel'],
     note: 'The one home for the deployment default mode + workspace root; only the sandboxed executor and provider read the service (the tool layers use the pure `sandbox/mode` fold it also exports). Both enforcing families read it so bash and fs cannot confine to different roots.',
   },
   {
@@ -845,11 +915,11 @@ const SERVICE_ROLES: ServiceRole[] = [
   },
   {
     key: 'agentTeams',
-    pkg: 'experimental-agent-team',
+    pkg: 'agent-team',
     title: 'Agent Teams coordination domain',
     mode: 'core',
-    consumers: ['experimental-tool-agent-team'],
-    note: 'Owns the implicit-root roster, direct peer inbox delivery, shared task DAG, and continuable-child lifecycle; tool-agent-team contributes model controls.',
+    consumers: ['tool-agent-team'],
+    note: 'Owns the shared task DAG for a subagent tree; tool-agent-team contributes task controls.',
   },
   {
     key: 'claudeCodeMods',
@@ -879,7 +949,7 @@ const SERVICE_ROLES: ServiceRole[] = [
     pkg: 'web',
     title: 'Web access provider registry',
     mode: 'seam',
-    implementations: ['web-search-exa', 'web-search-perplexity', 'web-search-deepseek', 'web-deepseek-api', 'web-fetch-http'],
+    implementations: ['web-search-deepseek', 'web-deepseek-api', 'web-fetch-http'],
     consumers: ['tool-web'],
     note: 'Search and fetch providers register into one ctx.web seam; tool-web owns the stable model-facing names.',
   },

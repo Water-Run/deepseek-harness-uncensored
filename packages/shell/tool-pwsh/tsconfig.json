@@ -55,6 +55,9 @@
     },
     {
       "path": "../../guard/security-proxy"
+    },
+    {
+      "path": "../../subprocess/subprocess"
     }
   ]
 }

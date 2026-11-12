@@ -7,3 +7,6 @@ composition: sdk-desktop
 recording: authored
 header:
   class: sdk-desktop
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

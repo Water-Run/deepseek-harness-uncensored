@@ -30,9 +30,10 @@ if (proxyControlHost !== undefined) {
 }
 const opening = openWithOwnedSockets(() => openNativeBrowser(
   {
-    ...config, ...extensionId === undefined ? {} : { extensionId },
+    ...config,
     ...cdpEndpoint === undefined ? {} : { cdpEndpoint },
     ...executablePath === undefined ? {} : { executablePath },
+    ...extensionId === undefined ? {} : { extensionId },
     ...proxyControlHost === undefined ? {} : { proxyControlHost },
   },
 ), rewrite)

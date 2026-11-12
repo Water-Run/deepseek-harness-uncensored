@@ -17,6 +17,7 @@ import type {} from '@deepseek-ai/dsh-schedule/client'
 import type {} from '@deepseek-ai/dsh-security-proxy/types'
 import type {} from '@deepseek-ai/dsh-target-protection/types'
 import type { TypertForwardableEventEntry } from '@deepseek-ai/dsh-typert-protocol'
+import type {} from '@deepseek-ai/dsh-web/types'
 
 /**
  * Host events this application forwards without renaming. The explicit mode is
@@ -65,4 +66,5 @@ export const API_REMOTE_FORWARDED_EVENTS = [
   { event: 'schedule/changed', mode: 'emit' },
   { event: 'security-proxy/warning', mode: 'emit', resources: { session: (sessionId): SessionId => sessionId } },
   { event: 'user-questions/request', mode: 'waterfall' },
+  { event: 'web/providers-changed', mode: 'emit' },
 ] as const satisfies readonly TypertForwardableEventEntry[]

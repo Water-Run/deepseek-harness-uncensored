@@ -11,3 +11,6 @@ header:
   toolSchemasSource: session/text-turn
 replay:
   override: true
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

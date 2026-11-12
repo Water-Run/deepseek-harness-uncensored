@@ -3,6 +3,20 @@
  * --dsw-font-* variables resolve and motion rides the upstream curve. Code
  * font stack deliberately omits a bare `monospace` tail (Windows CJK falls
  * back to SimSun otherwise). */
+/* Branded panels stay dark, and appearance previews show their named palette in either active theme. */
+body {
+  --dsw-alias-brand-panel-label: var(--dsw-static-neutral-bluish-00);
+  --dsw-alias-brand-panel-border: var(--dsw-static-neutral-bluish-800);
+  --dsw-alias-brand-panel-start: var(--dsw-static-neutral-bluish-900);
+  --dsw-alias-brand-panel-end: var(--dsw-static-neutral-bluish-1000);
+  --dsw-alias-appearance-preview-light-surface: var(--dsw-static-neutral-bluish-00);
+  --dsw-alias-appearance-preview-light-track: var(--dsw-static-neutral-bluish-200);
+  --dsw-alias-appearance-preview-light-body: var(--dsw-static-neutral-bluish-60);
+  --dsw-alias-appearance-preview-dark-surface: var(--dsw-static-neutral-bluish-950);
+  --dsw-alias-appearance-preview-dark-track: var(--dsw-static-neutral-bluish-800);
+  --dsw-alias-appearance-preview-dark-body: var(--dsw-static-neutral-bluish-875);
+}
+
 :root {
   /* Mode colors: each `-ink` keeps at least 4.5:1 contrast on its color. */
   --dsw-brand-blue: #2563eb;

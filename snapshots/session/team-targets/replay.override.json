@@ -1,0 +1,40 @@
+{
+  "patches": [
+    {
+      "at": 1,
+      "entry": {
+        "kind": "chunks",
+        "chunks": [
+          {
+            "type": "block-start",
+            "index": 0,
+            "blockType": "tool-call"
+          },
+          {
+            "type": "block-end",
+            "index": 0,
+            "block": {
+              "type": "tool-call",
+              "id": "team-list-2",
+              "name": "send_message",
+              "arguments": "{\"agent\":\"lead\",\"message\":\"self delivery must fail\"}"
+            }
+          },
+          {
+            "type": "usage",
+            "usage": {
+              "inputTokens": 3,
+              "outputTokens": 3
+            }
+          },
+          {
+            "type": "finish",
+            "reason": {
+              "kind": "tool-calls"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

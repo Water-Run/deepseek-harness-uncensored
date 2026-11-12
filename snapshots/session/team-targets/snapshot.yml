@@ -6,3 +6,8 @@ recording: authored
 header:
   class: team-targets
   pin: true
+replay:
+  override: true
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

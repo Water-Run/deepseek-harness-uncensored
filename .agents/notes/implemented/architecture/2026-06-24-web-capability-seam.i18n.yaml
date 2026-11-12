@@ -6,23 +6,23 @@
   en: ca120635fc40431c
   zh: 6be7c5ae3c86cdcc
 /agent-note-web-capability-seam-stable-tools-over-multiple-providers/problem:
-  en: c8b932b02a4e1c80
-  zh: 96c466be1a521f3f
+  en: df1e82a74c42fa1d
+  zh: 8d5452360a0dec8a
 /agent-note-web-capability-seam-stable-tools-over-multiple-providers/decision:
-  en: b57eb0f268033ff1
-  zh: 4143382a50181414
+  en: 7a4921d82cd11749
+  zh: 6ab506109afc1351
 /agent-note-web-capability-seam-stable-tools-over-multiple-providers/package-topology:
-  en: 5ea3ddfae82df181
-  zh: 2d05d95e51081696
+  en: 3394139c17d28ba8
+  zh: 66857733ba51d98c
 /agent-note-web-capability-seam-stable-tools-over-multiple-providers/ctx-web-contract:
   en: b432f80a424c3e49
   zh: faa26925fdd98387
 /agent-note-web-capability-seam-stable-tools-over-multiple-providers/provider-availability-and-selection:
-  en: 4e4ec068c2a22383
-  zh: b7030d0f00bfdb74
+  en: afc540d986e00d68
+  zh: 84795770d00228c3
 /agent-note-web-capability-seam-stable-tools-over-multiple-providers/search-request-and-result-schema:
-  en: ec3703b7e7c6b23d
-  zh: 325755e6e90092da
+  en: ccf6404ae7f3172e
+  zh: 3253035ea49e2548
 /agent-note-web-capability-seam-stable-tools-over-multiple-providers/fetch-request-and-result-schema:
   en: f734fdc57a6546c9
   zh: 027c28cbc584a8c2
@@ -33,8 +33,8 @@
   en: 3440f2b34b93f4a1
   zh: 57a8f784c7e26eff
 /agent-note-web-capability-seam-stable-tools-over-multiple-providers/testing:
-  en: 9a473170bb541e1f
-  zh: ac10f95e5a988ede
+  en: 7eb40a2bc2aef61a
+  zh: d2618a529e9af4d9
 /agent-note-web-capability-seam-stable-tools-over-multiple-providers/alternatives-considered:
   en: 6119e2aff3b6be5a
   zh: 76136ef5249c23eb
@@ -42,8 +42,8 @@
   en: e0d84a9b1b9c2123
   zh: 9e116a7b96751563
 /agent-note-web-capability-seam-stable-tools-over-multiple-providers/alternatives-considered/put-provider-dispatch-directly-in-dsh-tool-web:
-  en: dc01d014d03b49d2
-  zh: b956b02f41c62682
+  en: 68ef45e8e5a36de9
+  zh: 0013786ed77e03a8
 /agent-note-web-capability-seam-stable-tools-over-multiple-providers/alternatives-considered/split-search-and-fetch-into-two-seams-dsh-search-dsh-fetch:
   en: 3fb72ba3e554f20a
   zh: aff5f0add5773388
@@ -66,11 +66,11 @@
   en: f8d1fc8e9c9659cf
   zh: da5792520e35cba0
 /agent-note-web-capability-seam-stable-tools-over-multiple-providers/consequences:
-  en: 12fd20ba54818215
-  zh: c1ca000b13666701
+  en: 8284ace433a861e0
+  zh: 0e867444f6a7afa3
 /agent-note-web-capability-seam-stable-tools-over-multiple-providers/deferred-work:
-  en: 48b7b8e7310cd56b
-  zh: d406cd6a8a649e58
+  en: ddb599fd2ac1647c
+  zh: c0b8f446cf483b3c
 /agent-note-web-capability-seam-stable-tools-over-multiple-providers/open-questions:
   en: 63848c6ef9a6ab44
   zh: 041b340802091e60

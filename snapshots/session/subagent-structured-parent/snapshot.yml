@@ -9,3 +9,6 @@ header:
   systemPromptSource: text-turn
   childSystemPrompts: [1]
   childToolSchemas: [1]
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

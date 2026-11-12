@@ -10,3 +10,6 @@ header:
   toolSchemasSource: text-turn
 platform: posix
 permission: read-only
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

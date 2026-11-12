@@ -33,9 +33,10 @@ import type { InputBarProps } from '../src/client/input/InputBar.tsx'
 import type {
   ComposerBarOwnerProps, ConversationContentInputProps, ConversationContentProps,
   ConversationHeaderLineageOwnerProps, ConversationSessionHeaderSlotProps, ConversationSessionSlotProps, ConversationSlotProps,
-  ConversationViewActionsOwnerProps, ConversationViewsProps,
+  ConversationViewActionsOwnerProps, ConversationViewsProps, HeroFrameOwnerProps,
 } from '../src/client/contract/slots.ts'
 import type { ViewTab } from '../src/client/contract/views.ts'
+import { createComposerFileIntake } from '../src/client/input/file-intake.ts'
 
 // Every session-scope fixture carries the resource hook the resources plugin merges into GlobalStandardProps.
 const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined })) as GlobalStandardProps['useResource']
@@ -193,6 +194,7 @@ function mount(
   const stop = vi.fn()
   const open = vi.fn()
   const slotCalls: string[] = []
+  const headerFactory = vi.fn<ConversationSessionHeaderSlotProps['renderFactorySlot']>(() => null)
   const lineageOwners: ConversationHeaderLineageOwnerProps[] = []
   const viewTabs = options.viewTabs ?? [
     { id: 'chat', label: 'Chat' },
@@ -202,14 +204,20 @@ function mount(
   /** Owner share handed to the two composer tool-row seats, per render. */
   const seatOwners: { key: string; owner: unknown }[] = []
   let pickerOwner: unknown
+  const frameOwners: HeroFrameOwnerProps[] = []
   let actionsOwner: ConversationViewActionsOwnerProps | undefined
   const setPinned = vi.fn<(id: string, pinned: boolean) => void>()
-  const renderSlot = ((key: string, owner: object, opts?: { only?: string; fallback?: ReactNode }) => {
+  const renderSlot = ((key: string, owner: object, opts?: { only?: string; fallback?: ReactNode; children?: ReactNode }) => {
     slotCalls.push(key)
     if (key === 'conversation.input.model' || key === 'conversation.input.plan') {
       seatOwners.push({ key, owner })
     }
     if (key === 'conversation.hero.workspace') { pickerOwner = owner; return null }
+    if (key === 'conversation.hero.frame') {
+      // A hoc slot with no layers renders its content unchanged.
+      frameOwners.push(owner as HeroFrameOwnerProps)
+      return <div data-testid="hero-frame">{opts?.children}</div>
+    }
     if (key === 'conversation.session.header.views.actions') {
       actionsOwner = owner as ConversationViewActionsOwnerProps
       return <button type="button" role="menuitem" onClick={actionsOwner.onDismiss}>Header view action</button>
@@ -248,6 +256,7 @@ function mount(
           useStore={bindSnapshotSelector(store)}
           actions={store.actions}
           renderSlot={renderSlot as never}
+          renderFactorySlot={headerFactory}
           open={open}
           selectView={(view) => { store.actions.setView(view) }}
           t={t}
@@ -307,11 +316,13 @@ function mount(
           addFiles={() => null}
           useFileUploads={bindSnapshotSelector(createSnapshotStore({}))}
           retryFileUpload={undefined}
+          registerFileIntake={createComposerFileIntake()}
           removeAttachment={() => {}}
           resolveDraftAttachments={() => []}
           toggleCommandMenu={vi.fn()}
           usePredictionPreference={bindSnapshotSelector(createSnapshotStore({ enabled: true, failed: false }))}
           useBusyEnter={bindSnapshotSelector(createSnapshotStore<'queue' | 'steer'>('queue'))}
+          retry={undefined}
           useStopShortcut={bindSnapshotSelector(createSnapshotStore<readonly string[]>([]))}
           useNotices={bindSnapshotSelector(wiring.notices)}
           useLexicon={bindSnapshotSelector(wiring.lexicon)}
@@ -401,8 +412,9 @@ function mount(
   const props: ConversationSlotProps = { ...runtimeProps, renderSlot, renderFactorySlot }
   const view = render(<ConversationMainPanel {...props} />)
   return {
-    view, store, wiring, sink, retargetWorkspace, session, conversation, slotCalls, lineageOwners, seatOwners, open,
+    view, store, wiring, sink, retargetWorkspace, session, conversation, slotCalls, headerFactory, lineageOwners, seatOwners, open,
     pickerOwner: () => pickerOwner,
+    frameOwner: () => frameOwners.at(-1),
     setPinned,
     actionsOwner: () => {
       if (actionsOwner === undefined) throw new Error('View actions not rendered')
@@ -530,14 +542,16 @@ describe('ConversationRoot resident composer', () => {
     expect(b.open).toHaveBeenCalledWith(sid('root'))
   })
 
-  it('keeps intermediate subagent breadcrumbs at the compact title size', () => {
+  it('keeps intermediate subagent breadcrumbs navigable and the current crumb read-only', () => {
     const b = mount(sessionSnapshotOf(), undefined, undefined, {
       summaryOrigin: 'subagent',
       nestedSubagent: true,
     })
-    expect(b.view.getByRole('button', { name: 'Root' }).className).not.toContain('crumbSubagent')
-    expect(b.view.getByRole('button', { name: 'Parent' }).className).toContain('crumbSubagent')
-    expect(b.view.getByText('Child').className).toContain('crumbSubagent')
+    expect(b.view.getByRole('button', { name: 'Root' })).toBeTruthy()
+    fireEvent.click(b.view.getByRole('button', { name: 'Parent' }))
+    expect(b.open).toHaveBeenCalledWith(sid('parent'))
+    expect(b.view.queryByRole('button', { name: 'Child' })).toBeNull()
+    expect(b.view.getByText('Child').tagName).toBe('SPAN')
     expect(b.lineageOwners.slice(-2).map(owner => owner.lineageSessionId)).toEqual([
       sid('parent'),
       SID,
@@ -564,6 +578,9 @@ describe('ConversationRoot resident composer', () => {
     expect(b.slotCalls).toContain('conversation.session.header.actions')
     expect(b.slotCalls).toContain('conversation.session.header.utilities')
     expect(b.slotCalls).toContain('conversation.session.header.corner')
+    expect(b.headerFactory).toHaveBeenCalledWith('contextMenu.button', expect.objectContaining({
+      target: { kind: 'sessionHeader', value: { sessionId: SID } }, label: zh['header.more'], size: 'sm',
+    }))
   })
 
   it('sticky composer seat wraps the whole overlay chain, not only the fallback stack', () => {
@@ -591,6 +608,7 @@ describe('ConversationRoot resident composer', () => {
     expect(b.view.getByTestId('view-conversation.session.header.corner')).toBeTruthy()
     expect(b.view.queryByRole('tablist')).toBeNull()
     expect(b.slotCalls).not.toContain('conversation.session.header.utilities')
+    expect(b.headerFactory).not.toHaveBeenCalled()
     expect(b.slotCalls).not.toContain('conversation.session.header.actions')
     expect(b.view.getByText('更自由的探索未至之境')).toBeTruthy()
     expect(b.view.queryByText('预览版')).toBeNull()
@@ -664,6 +682,8 @@ describe('ConversationRoot resident composer', () => {
 
   it('same textarea DOM node survives the hero → active flip into the sticky scrollport', () => {
     const b = mount(sessionSnapshotOf({ blank: true }))
+    const frame = b.view.getByTestId('hero-frame')
+    expect(b.frameOwner()).toEqual({ hero: true })
     const before = b.view.getByRole('textbox')
     act(() => { b.wiring.setDraft('kept across flip') })
     // First message landed: content exists, phase leaves blank. Composer
@@ -677,7 +697,17 @@ describe('ConversationRoot resident composer', () => {
     expect(b.store.store.getSnapshot().draft).toEqual({ text: 'kept across flip', references: [] })
     expect(b.view.container.querySelector('[data-conversation-scroll]')?.contains(after)).toBe(true)
     expect(b.view.queryByTestId('hero-headline')).toBeNull()
+    // The frame wraps the scroll body in every phase, so leaving the home does not remount it.
+    expect(b.view.getByTestId('hero-frame')).toBe(frame)
+    expect(frame.contains(after)).toBe(true)
+    expect(b.frameOwner()).toEqual({ hero: false })
     expect(b.view.getByTestId('view-chat')).toBeTruthy()
+  })
+
+  it('wraps the scroll body in the hero frame', () => {
+    const b = mount(sessionSnapshotOf({ blank: true }))
+    const scroll = b.view.container.querySelector('[data-conversation-scroll]')
+    expect(scroll?.parentElement).toBe(b.view.getByTestId('hero-frame'))
   })
 
   it('keeps the Chat fallback selected by id when a view is inserted before it', () => {
@@ -1014,16 +1044,6 @@ describe('ConversationRoot resident composer', () => {
     fireEvent.wheel(handle, { deltaY: 0, deltaMode: 0 })
     fireEvent.wheel(handle, { ctrlKey: true, deltaY: 120, deltaMode: 0 })
     expect(scrollBy).toHaveBeenCalledTimes(calls)
-
-    scrollport.removeAttribute('data-conversation-scroll')
-    const nestedScrollport = document.createElement('div')
-    nestedScrollport.setAttribute('data-conversation-scroll', '')
-    const nestedScrollBy = vi.fn()
-    Object.defineProperty(nestedScrollport, 'scrollBy', { value: nestedScrollBy, configurable: true })
-    scrollport.append(nestedScrollport)
-    fireEvent.wheel(handle, { deltaY: 120, deltaMode: 0 })
-    expect(scrollBy).toHaveBeenCalledTimes(calls)
-    expect(nestedScrollBy).not.toHaveBeenCalled()
   })
 
   it('does not check capture, measure, style, or schedule width-handle moves before dragging', () => {

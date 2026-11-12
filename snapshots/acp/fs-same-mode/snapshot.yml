@@ -8,3 +8,6 @@ header:
 permission: danger-full-access
 workspace:
   final: true
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

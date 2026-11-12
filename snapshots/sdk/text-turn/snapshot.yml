@@ -9,6 +9,7 @@ environment:
 header:
   class: sdk-upload
   pin: true
+  toolSchemasSource: session/text-turn
 sessionFormat:
   version: 4
   coverage: [behavior-update]

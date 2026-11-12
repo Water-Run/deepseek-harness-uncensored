@@ -8,3 +8,6 @@ header:
   class: default
 workspace:
   final: true
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

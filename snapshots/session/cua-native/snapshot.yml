@@ -10,3 +10,6 @@ replay:
   override: true
 platform: posix
 permission: danger-full-access
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

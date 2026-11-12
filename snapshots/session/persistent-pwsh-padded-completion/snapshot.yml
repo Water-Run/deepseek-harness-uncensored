@@ -6,5 +6,6 @@ recording: authored
 header:
   class: persistent-pwsh-padded-completion
   pin: true
-  systemPromptSource: persistent-pwsh-tool-turn
-  toolSchemasSource: persistent-pwsh-tool-turn
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

@@ -8,3 +8,8 @@ header:
   class: subagent-durability-failure
   childSystemPrompts: [1]
   childToolSchemas: [1]
+replay:
+  override: true
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

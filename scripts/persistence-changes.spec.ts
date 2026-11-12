@@ -479,6 +479,30 @@ function baseline(root: string, schema = inventory()): void {
   commitCurrent(root, schema)
 }
 
+function internalHistoryWithUpstreamReference() {
+  const root = fixture(), upstream = fixture()
+  const before = inventory({ value: 'string' })
+  const local = inventory({ value: 'string', 'local?': 'boolean' })
+  const reference = inventory({ value: 'string', 'remote?': 'number' })
+  const localId = '2026-09-11-local'
+  baseline(root, before)
+  runPersistenceChanges(['--record', localId, '--prose', proseFile(root)], root, () => local)
+  baseline(upstream, before)
+  runPersistenceChanges(['--record', NEXT_ID, '--prose', proseFile(upstream)], upstream, () => reference)
+  const records = join(root, '.agents/persistence/changes')
+  mkdirSync(records, { recursive: true })
+  mkdirSync(join(root, 'scripts'))
+  writeFileSync(join(root, 'scripts/persistence-layout.json'), JSON.stringify({ documentation: 'internal' }))
+  for (const file of readdirSync(join(root, 'docs/persistence-changes'))) {
+    if (/^\d{4}-/u.test(file) && !file.endsWith('.schema.json')) renameSync(join(root, 'docs/persistence-changes', file), join(records, file))
+  }
+  for (const suffix of ['.md', '.zh.md', '.schema.json']) {
+    const file = `${NEXT_ID}${suffix}`
+    writeFileSync(join(root, 'docs/persistence-changes', file), readFileSync(join(upstream, 'docs/persistence-changes', file)))
+  }
+  return { root, local, reference, localId, records }
+}
+
 function unionBody(arms: readonly (readonly SchemaProperty[])[]): PersistenceRoot {
   const nodes: SchemaNode[] = [
     { kind: 'object', indices: [], properties: [{ name: 'data', type: 1, optional: false }] },
@@ -761,6 +785,45 @@ describe('persistence changes current-tree commands', () => {
     writeFileSync(chinese, original)
     writeFileSync(join(root, 'docs/persistence-changes/2026-09-11-orphan.schema.json'), '{}\n')
     expect(() => loadPersistenceHistory(root)).toThrow('unreferenced')
+  })
+
+  it('keeps released upstream reference snapshots outside the internal fork history', () => {
+    const { root, local, localId } = internalHistoryWithUpstreamReference()
+    const history = loadPersistenceHistory(root)
+    expect(history.entries.map(entry => entry.record.id)).toEqual([BASE_ID, localId])
+    expect(history.tips.get('event:example/value')?.id).toBe(localId)
+    expect(() => verifyPersistenceChanges(root, local)).not.toThrow()
+  })
+
+  it('does not accept current fork changes merely because an upstream reference matches them', () => {
+    const { root, reference } = internalHistoryWithUpstreamReference()
+    commitCurrent(root, reference)
+    expect(jsonResult(runPersistenceChanges(['--check', '--json'], root, () => reference)).ok).toBe(false)
+  })
+
+  it('rejects mismatched bilingual upstream reference declarations', () => {
+    const { root } = internalHistoryWithUpstreamReference()
+    const chinese = join(root, 'docs/persistence-changes', `${NEXT_ID}.zh.md`)
+    writeFileSync(chinese, readFileSync(chinese, 'utf8').replace(`id: ${NEXT_ID}`, 'id: 2026-09-11-other'))
+    expect(() => loadPersistenceHistory(root)).toThrow('bilingual machine records differ')
+  })
+
+  it('rejects a reference snapshot with a different after digest', () => {
+    const { root } = internalHistoryWithUpstreamReference()
+    writeFileSync(join(root, 'docs/persistence-changes', `${NEXT_ID}.schema.json`), encodePersistenceSnapshot(onlyEvent(inventory({ value: 'string' }))))
+    expect(() => loadPersistenceHistory(root)).toThrow('after digest mismatch')
+  })
+
+  it('still rejects orphan snapshots and duplicate reference IDs under the internal layout', () => {
+    const { root, localId, records } = internalHistoryWithUpstreamReference()
+    const orphan = join(root, 'docs/persistence-changes/orphan.schema.json')
+    writeFileSync(orphan, '{}\n')
+    expect(() => loadPersistenceHistory(root)).toThrow('unreferenced persistence schema snapshot')
+    rmSync(orphan)
+    for (const suffix of ['.md', '.zh.md']) {
+      writeFileSync(join(root, 'docs/persistence-changes', `${localId}${suffix}`), readFileSync(join(records, `${localId}${suffix}`)))
+    }
+    expect(() => loadPersistenceHistory(root)).toThrow('duplicate public persistence record')
   })
 
   it('excludes nested historical format documents and schemas from acknowledgements', () => {

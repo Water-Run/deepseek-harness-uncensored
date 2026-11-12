@@ -29,7 +29,7 @@ function fixture(jitter = 0, random = () => 0.5) {
   const updater = events as AppUpdater
   const states: DesktopUpdateState[] = []
   const coordinator = new DesktopUpdateCoordinator((state) => { states.push(state); return state }, async () => true,
-    updater, () => true, () => '1.0.0', undefined, 'nightly', async () => ({
+    updater, () => true, () => '1.0.0', undefined, 'nightly', undefined, async () => ({
       provider: 'github', owner: 'Water-Run', repo: 'deepseek-harness-uncensored',
     }))
   const schedule = new DesktopUpdateSchedule(coordinator, { intervalMs: 10_000, maxBackoffMs: 40_000, jitter }, random)

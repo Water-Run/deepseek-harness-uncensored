@@ -14,3 +14,5 @@ header:
 sessionFormat:
   version: 4
   coverage: [behavior-update]
+replay:
+  override: true

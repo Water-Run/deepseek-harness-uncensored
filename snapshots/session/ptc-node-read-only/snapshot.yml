@@ -6,6 +6,8 @@ recording: authored
 header:
   class: ptc-node-read-only
   pin: true
+  systemPromptSource: ptc-turn
+  toolSchemasSource: ptc-turn
 replay:
   override: true
 platform: posix
@@ -13,3 +15,6 @@ permission: read-only
 workspace:
   final: true
   parent: outside-temp
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

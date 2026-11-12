@@ -23,6 +23,8 @@ The section sorts ahead of `HARNESS_IDENTITY`, so the operating rules precede th
 
 The armor is a fixed prefix of the system prompt: it is identical across turns, so it costs one cached prompt read and never changes mid-session. Its size is the dominant fixed prompt cost of this build; the text is registered with `interpolate: false`, so `{{` sequences in operator prose stay literal rather than raising an unknown-variable assembly error.
 
+Default, Security, Reverse engineering and Writing retain the enabled armor alongside their own persona. Each assembled system prompt contains one copy of the armor, and the complete prompt sent to the model adapter is logged through ordinary `system/message` events.
+
 ## Known Limitations and Deferred Work
 
 - Only two shipped texts exist. A deployment that needs a third language adds an entry to `ARMOR_TEXT` and the `Config` union together.

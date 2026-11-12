@@ -8,3 +8,6 @@ header:
   class: default
   childSystemPrompts: [1]
   childToolSchemas: [1]
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

@@ -58,7 +58,7 @@ With `providers` configured, the plugin registers a replay-only adapter whose ca
 | Field | Default | Meaning |
 |---|---|---|
 | `file` | `$DSH_SNAPSHOT_FILE` | Path to the selected primary fixture: `session.jsonl` for v0 or `session.vN.jsonl` for a positive generation; required (config or env) |
-| `overrideFile` | `$DSH_SNAPSHOT_OVERRIDE` | Optional `ReplayOverrideDoc` sidecar for the primary session |
+| `overrideFile` | `$DSH_SNAPSHOT_OVERRIDE` | Optional `ReplayOverrideDoc` sidecar for the primary and declared child-role patches |
 | `childFiles` | `$DSH_SNAPSHOT_CHILD_FILES` | Recorded subagent child-session logs for a nested scenario |
 | `providers` | — | Optional replay-only provider and model catalog; a model may declare `contextWindow`, text/image modalities, positive `imageRequestTokens` when image-capable, and `systemPromptUpdate: in-history` so a keyless scenario exercises in-history system prompt replacement; invalid values fail at load (`llm-replay: provider "…" model "…" systemPromptUpdate must be "in-history" when present`) and routes never perform provider I/O |
 | `paceMs` | — (burst) | Optional per-chunk delay in ms for genuinely incremental delivery |
@@ -78,6 +78,8 @@ A scenario where a parent agent delegates to in-process subagents records one ro
 When replay serves `deepseek-official` with `ctx.deepseekLlmApiExtensions`, it prepares and accepts those fields after selecting a valid script entry and before yielding the first chunk. This mirrors the live adapter's post-2xx commit point, so durable acceptance watermarks and SDK event notifications behave the same in recording and replay. Replay supplies a synthetic `{ messages: [] }` base body: it proves acceptance side effects, not prepared field bytes.
 
 Two failure modes are not reconstructable from a durable Assistant settlement alone: a pure throw before any chunk has no exception-bearing stream member, and a cancel/hang requires nontermination rather than a replayed finite prefix. A scenario that needs those supplies an optional sidecar (`<scenario>/replay.override.json`) that either replaces the derived script with a bare `ReplayEntry[]` or augments it with `{ patches: [{ at, entry }] }`, which keeps every derived call and swaps the named 0-based call indexes; `at` equal to the derived length appends the retry attempt after an injected transient throw. A `throw` entry accepts DeepSeek request extensions when it has prefix chunks; a zero-chunk throw defaults to pre-2xx non-acceptance and may set `accepted: true` for a post-2xx failure. A `hang` entry may name `readyFile`, which replay writes before waiting for cancellation so an external driver can cancel deterministically.
+
+An augmentation may include `children: [{ child: 1, patches: [{ at, entry }] }]`. `child` is the one-based ordinal in `childFiles`, before creation-time sorting; call indexes exclude inherited parent events. Missing child roles, duplicate roles or call indexes, and out-of-range calls fail during loading. Explicit patches can supply current model tool arguments while retaining an older immutable Session input; the owning scenario still compares the complete writer output and real tool or workspace effects.
 
 ### What can go wrong
 
@@ -147,7 +149,7 @@ None; this package neither assembles nor sends a provider request.
 These limits define when replay cannot stand in for a live model. They are current package constraints, not a task backlog.
 
 - **First-call-order script binding assumes sequential delegation** — a cut that runs sibling subagents concurrently would bind live sessions to recorded scripts non-deterministically; a stronger keying is deferred until such a scenario exists.
-- **Only ordinary loop chunks and marked local compaction outputs are derivable** — a pure pre-chunk throw, a cancel/hang, or an unmarked external summarizer call needs the `replay.override.json` sidecar; replacement and patch forms affect only the primary session, and child scripts still derive from their logs.
+- **Only ordinary loop chunks and marked local compaction outputs are derivable** — a pure pre-chunk throw, a cancel/hang, or an unmarked external summarizer call needs the `replay.override.json` sidecar. A whole-script array replaces the primary; augmentation patches may also name declared child roles. All unpatched calls derive from their own logs.
 
 <a id="dev-note"></a>
 ### Dev Note

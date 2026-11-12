@@ -4,11 +4,10 @@ import { delimiter, join } from 'node:path'
 import { afterEach, expect, it, vi } from 'vitest'
 import { runCli } from '@deepseek-ai/dsh/lib/bin.js'
 import { runDesktopCli } from '../../desktop-host/src/cli.ts'
-import { installOfficeEngineResolution } from '../../desktop-host/src/office-engine.ts'
+import { runtimeArchivePath } from '../../desktop-host/src/runtime-archive.ts'
 import { stagehandExtensionEnvironment } from '../../desktop-host/src/browser-extension.ts'
 
 vi.mock('@deepseek-ai/dsh/lib/bin.js', () => ({ runCli: vi.fn() }))
-vi.mock('../../desktop-host/src/office-engine.ts', () => ({ installOfficeEngineResolution: vi.fn() }))
 vi.mock('../../desktop-host/src/browser-extension.ts', () => ({
   stagehandExtensionEnvironment: vi.fn(() => ({ STAGEHAND_EXTENSION_DIRECTORY_PATH: '/bundled-extension' })),
 }))
@@ -21,14 +20,20 @@ afterEach(() => {
 it.each(['system-bin', undefined])('dispatches with bundled pnpm when PATH is %s', async (path) => {
   vi.stubEnv('PATH', path)
   vi.stubEnv('STAGEHAND_EXTENSION_DIRECTORY_PATH', undefined)
+  vi.stubEnv('DSH_PRIMARY_RUNTIME', '/inherited-runtime')
+  vi.stubEnv('DSH_REA_NODE_PATH', '/inherited-node')
   const runtime = join('Application 中文 with spaces', 'resources', 'app.asar', 'dsh')
   const support = join('Application 中文 with spaces', 'resources', 'runtime')
+  const primaryRuntime = join(support, 'primary-runtime')
+  vi.mocked(runCli).mockImplementationOnce(async () => {
+    expect(process.env.DSH_PRIMARY_RUNTIME).toBe(primaryRuntime)
+    expect(process.env.DSH_REA_NODE_PATH).toBe(join(primaryRuntime, 'dependencies', 'node', 'bin', process.platform === 'win32' ? 'node.exe' : 'node'))
+    expect(process.env.STAGEHAND_EXTENSION_DIRECTORY_PATH).toBe('/bundled-extension')
+  })
 
   await runDesktopCli(runtime, support)
 
-  expect(installOfficeEngineResolution).toHaveBeenCalledExactlyOnceWith(runtime)
   expect(stagehandExtensionEnvironment).toHaveBeenCalledExactlyOnceWith(runtime)
-  expect(process.env.STAGEHAND_EXTENSION_DIRECTORY_PATH).toBe('/bundled-extension')
   expect(runCli).toHaveBeenCalledExactlyOnceWith({
     manageDesktopProfile: true,
     packageManager: {
@@ -41,4 +46,11 @@ it.each(['system-bin', undefined])('dispatches with bundled pnpm when PATH is %s
       },
     },
   })
+})
+
+it('locates the archive of an ASAR-contained runtime and leaves a prepared runtime without one', () => {
+  const resources = join('Application 中文', 'resources')
+  expect(runtimeArchivePath(join(resources, 'app.asar', 'dsh'))).toBe(join(resources, 'app.asar'))
+  expect(runtimeArchivePath(join(resources, 'app.asar.unpacked', 'dsh'))).toBeUndefined()
+  expect(runtimeArchivePath(join(resources, 'dsh'))).toBeUndefined()
 })

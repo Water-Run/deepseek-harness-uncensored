@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-skill-playbooks",
   "description": "Bundled security, reverse-engineering, and writing playbooks that give the specialized session modes real field manuals instead of persona text alone",
-  "version": "0.2.2-rc.1",
+  "version": "0.2.2-rc.2",
   "publishConfig": {
     "access": "public"
   },
@@ -25,7 +25,10 @@
     "locale/*.json",
     "lib/index.js",
     "assets",
-    "lib/types/**/*.d.ts"
+    "lib/types/**/*.d.ts",
+    "lib/types/**/*.d.ts.map",
+    "lib/**/*.js.map",
+    "src"
   ],
   "license": "GPL-3.0-or-later",
   "peerDependencies": {

@@ -1,8 +1,7 @@
 {
   "nsisLanguage": "RUSSIAN",
   "strings": {
-    "INSTALLER_DOWNGRADE": "Уже установлена более новая версия {productName}. Используйте установщик той же или более новой версии. Для возврата сначала удалите текущую версию.",
-    "INSTALLER_VERSION_UNKNOWN": "Не удалось проверить установленную версию {productName}. Перед повторной установкой удалите текущую версию.",
+    "INSTALLER_UPDATE_WAIT": "Идёт установка обновления. После установки приложение перезапустится автоматически.",
     "INSTALLER_INSTALL": "Установить сейчас",
     "INSTALLER_FINISH": "Готово",
     "INSTALLER_NATIVE_PROGRESS": "Подготовка установки… %d%%",
@@ -34,6 +33,8 @@
     "INSTALLER_EXTRACT_SAVED": "Полный отчет сохранен в %s.",
     "INSTALLER_EXTRACT_UNSAVED": "Полный отчет не удалось сохранить. Используйте Скопировать сведения об ошибке, чтобы сохранить их.",
     "INSTALLER_EXTRACT_COPIED": "Подробности об ошибке скопированы в буфер обмена.",
+    "INSTALLER_DOWNGRADE": "Уже установлена более новая версия {productName}. Используйте установщик той же или более новой версии. Для возврата сначала удалите текущую версию.",
+    "INSTALLER_VERSION_UNKNOWN": "Не удалось проверить установленную версию {productName}. Перед повторной установкой удалите текущую версию.",
     "INSTALLER_PRODUCT_TITLE": "DSHU — {productName}",
     "INSTALLER_UNINSTALL_TITLE": "Удалить DSHU — {productName}",
     "INSTALLER_IDENTITY": "Независимая установка рядом с официальным DeepSeek Harness",

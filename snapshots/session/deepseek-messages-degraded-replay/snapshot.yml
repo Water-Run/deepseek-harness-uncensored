@@ -5,3 +5,6 @@ composition: default
 recording: authored
 header:
   class: deepseek-messages
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

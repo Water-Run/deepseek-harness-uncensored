@@ -25,7 +25,7 @@ kind: "package-library"
 <a id="use-this-package"></a>
 ## 使用本包
 
-编写客户端插件时都通过本包组合 UI：把组件注册进父级已声明的 slot，或声明组件将要渲染的子 slot。四种 kind 覆盖组合形态——`single`（单个占位者）、`list`（有序条目）、`keyed`（按键分派）与 `chain`（条目自行提名）。渲染 keyed 子 slot 时，在 `renderSlot` 的选项中传入 `entryKey`。该键没有已注册条目时，渲染传入的 fallback。
+编写客户端插件时都通过本包组合 UI：把组件注册进父级已声明的 slot，或声明组件将要渲染的子 slot。五种 kind 覆盖组合形态——`single`（单个占位者）、`list`（有序条目）、`keyed`（按键分派）、`chain`（条目自行提名）与 `hoc`（各层包裹 owner 的 `children`，每层至多渲染它一次；可选的 `key` 让该层只作用于 owner 传入的相同 `entryKey`）。渲染 keyed 子 slot 时，在 `renderSlot` 的选项中传入 `entryKey`。该键没有已注册条目时，渲染传入的 fallback。
 
 Slot 名称或分派键独立于参数变化时，参数必须满足每个可能的目标。对声明了按键参数表的 Slot，可用 `KeyedRenderSlotArgs` 把选定的键及对应参数放在同一个元组中，再展开传给 `renderSlot`。`renderSlotChain` 的 owner props 必须满足每个可能的 Slot。
 

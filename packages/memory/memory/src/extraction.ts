@@ -4,7 +4,7 @@ import { z } from 'zod'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { brandString } from '@deepseek-ai/dsh-brand'
-import { boundContextSummary, createUserMessage, LlmError } from '@deepseek-ai/dsh-llm'
+import { boundContextSummary, createUserMessage, HarnessError } from '@deepseek-ai/dsh-llm'
 import type { TokenUsage } from '@deepseek-ai/dsh-llm'
 import type { MemoryExtractionId, MemoryExtractionResult, MemoryExtractionStatus } from './extraction-types.ts'
 import { resolveSessionScope } from './scope.ts'
@@ -98,7 +98,7 @@ export async function extractTurn(
       outcome = 'completed'
       failure = undefined
     } catch (error) {
-      if (error instanceof LlmError && error.code.startsWith('SPEND_')) failure = 'budget'
+      if (error instanceof HarnessError && error.code.startsWith('SPEND_')) failure = 'budget'
       if (timeout.aborted) failure = 'timeout'
       if (ownedSignal.aborted) { outcome = 'cancelled'; failure = undefined }
     } finally {

@@ -9,3 +9,6 @@ platform: posix
 workspace:
   final: true
   setup: readonly-patch-directory
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

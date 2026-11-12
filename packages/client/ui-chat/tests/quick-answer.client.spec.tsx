@@ -22,6 +22,7 @@ it('shows one compact question and streamed answer without reasoning, timestamps
   ] }))
   const session = createSnapshotStore<SessionSnapshot>({ sessionId: SessionId('quick'), running: true, pendingSubmissions: [],
     removed: false, subagent: null, openState: 'open', openError: null, hasMore: false, loadingOlder: false,
+    historyWasPartial: false, historyLoadStatus: 'idle',
     promptError: null, blank: false, lastAgentError: null, promptAttempted: true, awaitingFirstTurn: false })
   render(<QuickAnswer useChat={bindSnapshotSelector(chat)} useSession={bindSnapshotSelector(session)} t={makeTranslate(zh, commonZh)} />)
   expect(screen.getByText('进度如何？')).toBeTruthy()

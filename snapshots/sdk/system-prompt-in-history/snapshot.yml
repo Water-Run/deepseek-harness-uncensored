@@ -8,3 +8,6 @@ header:
   class: system-prompt-in-history
 replay:
   override: true
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]

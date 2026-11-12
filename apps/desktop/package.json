@@ -4,9 +4,11 @@
   "version": "0.1.0",
   "private": true,
   "license": "GPL-3.0-or-later",
-  "author": { "name": "WaterRun", "url": "https://github.com/Water-Run", "email": "linzhangrun49@gmail.com" },
-  "homepage": "https://github.com/Water-Run/deepseek-harness-uncensored",
-  "desktopName": "deepseek-harness-uncensored.desktop",
+  "author": {
+    "name": "WaterRun",
+    "url": "https://github.com/Water-Run",
+    "email": "linzhangrun49@gmail.com"
+  },
   "type": "module",
   "main": "lib/main.js",
   "scripts": {
@@ -15,10 +17,10 @@
     "bundle": "tsdown --config-loader native",
     "dev": "tsx scripts/dev.ts",
     "start": "tsx scripts/dev.ts --skip-build",
+    "test:updates:channels": "pnpm run build && node scripts/test-update-channels.mjs",
     "test:updates:local": "pnpm run build && node scripts/test-local-updater.mjs",
     "prepare:runtime": "tsx scripts/prepare-runtime.ts",
     "render:tray-icon": "tsx scripts/render-tray-icon.ts",
-    "render:installer-brand": "tsx scripts/render-installer-brand.ts",
     "prepare:primary-runtime": "tsx scripts/prepare-primary-runtime.ts",
     "sign:primary-runtime": "tsx scripts/sign-primary-runtime.ts",
     "cache:windows-signatures": "node scripts/manage-windows-signature-cache.mjs",
@@ -37,10 +39,11 @@
     "package:mac:x64:unsigned": "tsx scripts/package-target.ts mac-x64 --unsigned",
     "package:mac:x64:dir": "tsx scripts/package-target.ts mac-x64 --dir",
     "package:win:x64": "tsx scripts/package-target.ts win-x64",
-    "package:linux:x64:unsigned": "tsx scripts/package-target.ts linux-x64 --unsigned",
-    "package:linux:x64": "tsx scripts/package-target.ts linux-x64",
     "package:win:x64:unsigned": "tsx scripts/package-target.ts win-x64 --unsigned",
-    "package:win:x64:dir": "tsx scripts/package-target.ts win-x64 --dir"
+    "package:win:x64:dir": "tsx scripts/package-target.ts win-x64 --dir",
+    "render:installer-brand": "tsx scripts/render-installer-brand.ts",
+    "package:linux:x64:unsigned": "tsx scripts/package-target.ts linux-x64 --unsigned",
+    "package:linux:x64": "tsx scripts/package-target.ts linux-x64"
   },
   "dependencies": {
     "electron-updater": "^6.8.9",
@@ -50,8 +53,6 @@
     "@deepseek-ai/cordis": "workspace:~"
   },
   "devDependencies": {
-    "node-gyp": "12.4.0",
-    "@deepseek-ai/dsh-api-session-controller": "workspace:*",
     "@deepseek-ai/dsh-app-boot": "workspace:*",
     "@deepseek-ai/dsh-client-ui-settings-general": "workspace:*",
     "@deepseek-ai/dsh-client-ui-sidebar-browser": "workspace:*",
@@ -83,10 +84,14 @@
     "@deepseek-ai/dsh-atomic-write": "workspace:*",
     "@deepseek-ai/dsh-client-product-analytics": "workspace:*",
     "@deepseek-ai/dsh-plugin-manager": "workspace:*",
-    "zod": "4.4.3",
+    "zod": "4.6.6",
     "@deepseek-ai/dsh-util-file-drag": "workspace:*",
     "@deepseek-ai/dsh-client-ui-file-actions": "workspace:*",
     "tencentcloud-sdk-nodejs-teo": "4.1.330",
+    "node-gyp": "12.4.0",
+    "@deepseek-ai/dsh-api-session-controller": "workspace:*",
     "@deepseek-ai/dsh-client-ui-settings-account": "workspace:*"
-  }
+  },
+  "homepage": "https://github.com/Water-Run/deepseek-harness-uncensored",
+  "desktopName": "deepseek-harness-uncensored.desktop"
 }

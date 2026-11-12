@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.2-rc.2/dshu-local-admission-errors/guide.md
+/:
+  en: 2ca9e2389ce510c9
+  zh: e9568a4b93ecc833
+/handle-dshu-local-admission-errors:
+  en: bf4f295f4b5229fe
+  zh: 3a997962a856efe0
+/handle-dshu-local-admission-errors/change:
+  en: 3009443ebd0f92aa
+  zh: e7a19829c3c97478
+/handle-dshu-local-admission-errors/migration:
+  en: d873918e377384ac
+  zh: d10034a2b21da62b

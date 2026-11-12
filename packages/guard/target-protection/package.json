@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-target-protection",
-  "version": "0.2.2-rc.1",
+  "version": "0.2.2-rc.2",
   "description": "Persistent target rules and mandatory execution admission",
   "type": "module",
   "license": "GPL-3.0-or-later",
@@ -120,10 +120,14 @@
     "assets",
     "lib/types/**/*.js",
     "lib/types/**/*.d.ts",
+    "lib/types/**/*.d.ts.map",
+    "lib/**/*.js.map",
     "lib/typert.host.js",
     "lib/typert.host.d.ts",
     "lib/typert.remote-client.js",
-    "lib/typert.remote-client.d.ts"
+    "lib/typert.remote-client.d.ts",
+    "lib/typert.remote-client.d.ts.map",
+    "src"
   ],
   "dependencies": {
     "@deepseek-ai/dsh-atomic-write": "workspace:*",
@@ -142,7 +146,7 @@
     "re2js": "2.9.0",
     "selfsigned": "5.5.0",
     "undici": "8.11.2",
-    "zod": "4.4.3"
+    "zod": "4.6.6"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:~",

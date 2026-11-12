@@ -25,7 +25,7 @@ English | [中文](README.zh.md)
 <a id="use-this-package"></a>
 ## Use this package
 
-Compose UI through this package whenever you write a client plugin: register a component into a slot your parent declared, or declare child slots your component renders. The four kinds cover the composition shapes — `single` (one occupant), `list` (ordered entries), `keyed` (dispatch by a key), and `chain` (entries elect themselves). When rendering a keyed child, pass `entryKey` in the `renderSlot` options. The supplied fallback renders when that key has no registration.
+Compose UI through this package whenever you write a client plugin: register a component into a slot your parent declared, or declare child slots your component renders. The five kinds cover the composition shapes — `single` (one occupant), `list` (ordered entries), `keyed` (dispatch by a key), `chain` (entries elect themselves), and `hoc` (layers nest around the owner's `children`, each rendering it at most once; an optional `key` limits a layer to the owner's matching `entryKey`). When rendering a keyed child, pass `entryKey` in the `renderSlot` options. The supplied fallback renders when that key has no registration.
 
 When a Slot name or entry key can vary independently of its inputs, the inputs must satisfy each possible target. For a Slot with a keyed prop table, `KeyedRenderSlotArgs` keeps a selected key and its matching inputs together as a tuple. Pass that tuple to `renderSlot` with spread syntax. Owner props passed to `renderSlotChain` must satisfy each possible Slot.
 

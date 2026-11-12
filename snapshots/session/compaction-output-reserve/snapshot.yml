@@ -7,6 +7,7 @@ platform: posix
 header:
   class: compaction-output-reserve
   pin: true
-  systemPromptSource: compaction-recovery
-  toolSchemasSource: compaction-recovery
   changes: 1
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]
