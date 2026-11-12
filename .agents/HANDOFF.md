@@ -1,5 +1,15 @@
 # Uncensored 开发交接
 
+## 文档与持久化验收节点（2026-11-12）
+
+Goal「实现DSHU」保持 active。本轮指定检查覆盖 81 组双语文档，全部通过；另有 Python SDK 投影 5 项、内部双语范围 101 项、Windows 原生安装器版本 34 项通过。安装器 DLL 和测试程序已编译，除控制台版本检查外未运行原生界面测试；当前系统仍为 `.7` / rc.1。最新两个聚合类型检查通过，局部脚本 lint 无错误或警告。源构建及四模式、浏览器证据见下方。
+
+当前完整内容检查点 `fae60e1b6e485451d3b03cc619bb464df2a51664`，本机引用 `refs/dshu-checkpoints/rc2-documentation-checkpoint-xjzYTn`，目录 `.dsh-build/rc2-documentation-checkpoint-xjzYTn` 保存原冲突索引；复制前后真实索引摘要一致。证据索引 `.dsh-build/rc2-documentation-evidence-20261112.json`。原 711 份规范 Session、2,775 份冻结归档仍匹配基线；归档封印检查通过 2,778 份。D 盘最近空闲约 75.98 GiB，旧合格包和恢复 ZIP 保留。
+
+下一步按依赖推进：处理 5 份上游声明的内部记录接入，保留现有 `docs/persistence-changes/*.schema.json` 原路径，检查接受历史和每个根的前驱；再审查剩余 16 个快照路径、运行对应回放。持久化检查目前以“未引用 schema”失败，日志 `.dsh-build/rc2-persistence-ack-check-20261112.log`。上游新增声明仍在公开 docs 路径，当前 DSHU 检查读取 `.agents/persistence/changes/`，不可盲目覆盖接受记录或移动冻结 schema。
+
+全仓双语检查未通过：日志 `.dsh-build/rc2-corpus-pairing-20261112.log` 列出生成区域、缺少 sidecar、缺失 translation 子系统引用和旧记录不同步；指定的 81 组通过不等于全仓通过。按所属生成器处理，避免全量无审查重录。`rc2-reference-link-pins-20261112.json` 记录经 rc.2 Git 对象核准的缺失上游引用，未改写冻结档案。一次性合并脚本不得重跑；当前状态入口仍为 `.dsh-build/rc2-intake-state-20261111.json`。
+
 ## 已恢复开发：rc.2 Host 集成（2026-11-12）
 
 用户已明确恢复并授权继续 Goal「实现DSHU」。当前在 `D:\Coding\dshu-rc2-20261111` 推进，保留独立 main 和全部原始范围，不使用 Computer Use。此前收尾档案仍有效，但暂停状态已被后续授权解除。
