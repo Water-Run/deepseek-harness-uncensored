@@ -1,18 +1,18 @@
 # Uncensored 开发交接
 
-## 当前 Linux 回放与文档节点（2026-11-12）
+## 当前 rc.2 回放验收节点（2026-11-12）
 
 Goal「实现DSHU」继续 active。macOS、Android＋PRoot Fedora 和全新独立安装器仍为未来计划；现有 Windows/Linux 桌面、rc.2 内核及已有问题继续推进。当前系统与 main 运行时代码仍为 `.7` / rc.1，尚未制作 rc.2 安装包。
 
-全仓 1,164 组双语文档配对通过，随后修改的快照支持 README 也通过指定配对检查。配置目录、模块/能力/事件图和持久化参考由所属生成器更新；内部历史与离线可读参考保持分开。生成器及保留策略 90 项通过，最新 Host/客户端两个聚合类型检查通过，五个维护源文件的类型感知 lint 退出 0；语法错误负向探针确认 lint 实际执行并拒绝错误，临时探针已删除。
+最新完整构建 10 个门禁通过，包含 Host/客户端聚合类型检查；当前三个维护源文件的类型感知 lint 退出 0。已有 1,164 组双语配对通过，随后修改的快照支持 README 已通过指定配对；生成器与保留策略的 90 项既有证据继续有效。
 
-Linux 选定 15 项 SDK/Headless 回放通过。另三项子代理预设原先因夹具在创建维护期间嵌套调用 `select()` 而启动失败，现已按创建权限重组并显式记录选择；三项只读回放及 header pin 检查通过。快照归属检查 3 项、拒绝退休工具作为当前 header 的负向校验通过。原 711 份规范 Session 和 2,775 份冻结归档仍匹配基线，未用新输出覆盖录制输入。
+原选定回归、三项预设、三项压缩和两项具名代理合并回放为 23 个场景及一个 header 检查通过。压缩预算覆盖完整 DSHU 提示词，去掉输出预留会阻止摘要并触发断言。具名代理验证真实子收件箱、中断及不可用目标的结构化拒绝。另 148 项共同场景通过独立只读回放：142 项工具结果保持一致，6 项回执/文档/指引变化有逐项审阅记录；最终工作区断言保留。仅导入所属的 366 个派生文件和元数据，补丁约 3.37 MB；原录制未改写。
 
-扩大回归的最近完整结果为 50 通过、218 失败、4 跳过；上述修复后没有重跑整组，不能把这一组计为通过。日志 `rc2-linux-profile-replay-20261112.log` 和分类 `rc2-replay-classification-20261112.json` 均在 `.dsh-build/`。下一步区分兼容录制的 writer 差异与移除工具参数的旧脚本，补当前接口场景；再处理完整 DSHU 提示词下的压缩阈值、Office 预期和剩余实包验收。不放宽断言，不改写冻结 Session。
+最新扩大回归为 211 通过、59 失败、4 跳过，报告 `rc2-linux-current-profile-replay-20261112.json` 保持原样。随后已修复后台通知刷新：稳定化后的注册 ID 与新文案中的引用使用同一映射；交换 ID 不会折叠，未注册文本仍保留。修复前的失败已复现，162 项相关测试通过、1 项跳过，真实后台拒绝场景只读回放通过；尚未再次整组复跑。分诊 `rc2-current-failure-triage-20261112.json` 标明此项后续解决状态，不能把整组计为通过。
 
-完整内容检查点 `dec828f39fc38c8d01908273183007edcecca1de`，引用 `refs/dshu-checkpoints/rc2-replay-docs-checkpoint-q3L4Jn`；目录 `.dsh-build/rc2-replay-docs-checkpoint-q3L4Jn` 保存原索引，复制前后真实索引摘要一致。证据 `.dsh-build/rc2-replay-docs-evidence-20261112.json`。Linux 镜像 `/home/linzh/.cache/dshu-verification/rc2-replay-20261112.KcsyY5/source` 保留用于继续排查，基于 `c97d7a578007`，已覆盖两个最新夹具/适配器源文件；源码和冻结输入必须分别核对。该临时合成历史不可发布，只能在验收后把内容变更带回独立 main。
+完整内容检查点 `acbc7ad17a6889ce1e025d97995d93de45ef6fdf`，引用 `refs/dshu-checkpoints/rc2-replay-admission-checkpoint-c1Bz0j`；目录 `.dsh-build/rc2-replay-admission-checkpoint-c1Bz0j` 保存原索引，复制前后真实索引摘要一致。检查点内原 711 份规范 Session、2,775 份冻结归档对象，以及工作树均匹配基线。证据 `.dsh-build/rc2-replay-admission-evidence-20261112.json`。Linux 镜像 `/home/linzh/.cache/dshu-verification/rc2-replay-20261112.KcsyY5/source` 基于 `c97d7a578007`，覆盖的三个源文件已与候选逐字节核对并记录摘要；保留用于后续排查。临时合成历史不可发布，只能在验收后把内容变更带回独立 main。
 
-本节替代下方历史节点中“15 项未通过”“全仓配对失败”的当前状态。旧日志、稳定安装包和恢复 ZIP 保留；本轮未使用 Computer Use。
+下一步处理剩余旧代理接口、Office、终端、模型服务及 ACP 场景，同时核对四个实际模式请求中的提示词和能力；再推进现有 Windows/Linux 实包。后台通知的完整定位记录为 `rc2-job-trace-*-20261112.jsonl`，追踪时的临时修改已恢复，后续只使用正式修复。本节替代下方历史节点中的旧失败计数；旧日志、稳定包和恢复 ZIP 保留。未使用 Computer Use。
 
 ## 当前范围及持久化节点（2026-11-12）
 
