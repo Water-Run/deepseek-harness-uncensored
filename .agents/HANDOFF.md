@@ -1,5 +1,17 @@
 # Uncensored 开发交接
 
+## 当前范围及持久化节点（2026-11-12）
+
+用户明确将 macOS、Android＋PRoot Fedora 和全新独立安装器保留为未来计划，本轮不开发，也不作为完成或交付前置。当前聚焦 Windows/Linux 桌面、rc.2 内核和已报问题，继续维护并打包现有 Windows 安装包。Goal「实现DSHU」保持 active。
+
+持久化声明检查已通过：69 个根匹配 21 条当前本地记录。直接混入上游声明会在收件箱事件形成分叉，因此保留原始上游声明为独立参考证据，新增 `.agents/persistence/changes/2026-11-12-rc2-intake.md` 及其中文与新 schema，确认实际合并后的 9 个根。既有本地接受记录不改写，原始参考 schema 保持路径和字节。97 项历史检查、460 项 codec/团队/接续、4 项 TypeScript SDK 审计投影通过；最新两个聚合类型检查与局部 lint 通过。原 711 份规范 Session、2,775 份冻结归档仍与基线一致，2,778 份封印校验通过。
+
+当前完整内容检查点 `c97d7a57800783563dc01ac06e027b001690b800`，引用 `refs/dshu-checkpoints/rc2-persistence-checkpoint-D2pK0N`，目录 `.dsh-build/rc2-persistence-checkpoint-D2pK0N` 保存原索引，复制前后真实索引摘要一致。证据 `.dsh-build/rc2-persistence-evidence-20261112.json`。临时合成历史不可发布，完成后只把验收后的内容变更带回独立 main。
+
+索引冲突已清零，但预期仅作为回放验证种子。Windows 的 15 项只读回放均失败：已见运行时上下文/身份、Office/Windows 技能、Bash/Pwsh schema 及 writer 预期差异。不要对整组直接 refresh，也不要用 Windows 请求头覆盖跨平台金样。下一步复用隔离 Linux 工具链验证适用场景，再只更新有明确 owner 的预期；无 `sessionFormat` 保护的场景须先明确保留策略，禁止改写历史 Session。WSL Ubuntu 默认 Node 是 22.23.2，不满足当前 24.9 下限；此前 Node 24.21.0、pnpm 11.28.5 的独立构建脚本及回执使用 `protocol-history-linux-`、`sdk-aliases-` 前缀，源检出已清理，需重新核对工具路径。相关日志 `.dsh-build/rc2-conflicted-snapshot-replay-20261112.log`。
+
+全仓双语门禁仍未通过，见下方文档节点。系统仍为 `.7` / rc.1，尚未制作 rc.2 安装包。本节覆盖下方历史节点中“5 份声明待接入”和“16 个冲突待解决”的旧状态。
+
 ## 文档与持久化验收节点（2026-11-12）
 
 Goal「实现DSHU」保持 active。本轮指定检查覆盖 81 组双语文档，全部通过；另有 Python SDK 投影 5 项、内部双语范围 101 项、Windows 原生安装器版本 34 项通过。安装器 DLL 和测试程序已编译，除控制台版本检查外未运行原生界面测试；当前系统仍为 `.7` / rc.1。最新两个聚合类型检查通过，局部脚本 lint 无错误或警告。源构建及四模式、浏览器证据见下方。
