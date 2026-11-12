@@ -6,7 +6,7 @@
 
 DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH 与 DSHU 可同时安装，分别使用自己的程序目录、配置、会话和更新渠道。未签名的 Windows x64 检查版 `0.1.0-test.20261111.7` 已在本机原位升级并核对资料。
 
-上游 **DSH 0.2.2-rc.2** 正在[独立适配](.agents/requirements/2026-11-11-dsh-rc2.md)，候选尚未构建验收，当前检查版仍基于 rc.1。开发已按剩余额度 10% 规则[收尾暂停](.agents/requirements/2026-11-12-quota-closeout.md)，未完成项与恢复资料保留。
+上游 **DSH 0.2.2-rc.2** 正在[独立适配](.agents/requirements/2026-11-11-dsh-rc2.md)，开发已获授权恢复。候选已通过源码构建、聚合类型检查和四模式配置验证，文档与安装包验收尚未完成，当前检查版仍基于 rc.1。此前的[收尾包和恢复资料](.agents/requirements/2026-11-12-quota-closeout.md)继续保留。
 
 ## 通用增强
 
@@ -57,7 +57,7 @@ DSHU 采用 [GPL-3.0-or-later](LICENSE)。上游和第三方组件保留各自�
 DSHU v0.1.0 is an independent desktop fork of DeepSeek Harness 0.2.2-rc.1. It can coexist with the official app and uses a separate profile and update channel. It includes built-in armor prompts, four modes, and Chinese and English UI.
 
 - **General** · Use `/side` for a persistent side conversation with image attachments and `/clear`, or `/btw question` for a quick one-off answer. Balance history, spending limits, scoped memory, and Tab suggestions are available in Settings.
-- **Kernel intake** · DSH 0.2.2-rc.2 remains in an isolated working tree without build acceptance; inspection builds remain on rc.1. Development is paused at the user's 10% remaining-quota threshold. Unfinished work and recovery material are preserved in the [closeout record](.agents/requirements/2026-11-12-quota-closeout.md).
+- **Kernel intake** · Authorized development of DSH 0.2.2-rc.2 has resumed in an isolated working tree. Source builds, aggregate type checks and four-mode configuration tests passed. Documentation and installer qualification remain pending; inspection builds remain on rc.1. The earlier [closeout archive and recovery material](.agents/requirements/2026-11-12-quota-closeout.md) remain available.
 - **Modes** · Standard covers daily development. Security adds case notes, reports, and an independent proxy with traffic inspection. Reverse integrates REA for analysis. Writing uses selected style references and story materials.
 - **Delivery** · Unsigned Windows x64 inspection build `0.1.0-test.20261111.7` passed an in-place upgrade with data verification. Linux x64 inspection build `0.1.0-test.20261111.linux.5` provides deb and tar.gz archives. The portable build passed X11 startup, browser HTTPS, Wayland directory portal, and renderer sandbox checks on Ubuntu WSL2. The welcome screen and renderer sandbox passed under virtual X11 and headless Wayland on Fedora 45. Debian 12 passed the upgrade from `.4` to `.5` and uninstallation. macOS arm64 and Android with Fedora under PRoot remain planned. Advanced target protection is opt-in. See [development status](.agents/TODO.md) and [Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases).
 
