@@ -2,6 +2,7 @@ import type { ProductEvent } from '@deepseek-ai/dsh-client-product-analytics/typ
 /** Native welcome operations using the shared Web authentication and RPC APIs. */
 
 import { randomUUID } from 'node:crypto'
+import { isSunLocation, resolveSunCity, SUN_LOCATION_AUTO, sunPhase } from '@deepseek-ai/dsh-client-ui-theme/src/sun.ts'
 import { desktopAccountBackend, type DesktopAccountBackend } from './account-backend.ts'
 
 /** Metadata needed before the native entry or workspace becomes visible. */
@@ -10,7 +11,7 @@ export interface WelcomeState {
   readonly hasApiKey: boolean
   readonly writable: boolean
   readonly localePreference: string | null
-  /** Effective Host theme preference; absent or invalid optional theme settings use system appearance. */
+  /** Native appearance at read time; sun uses the selected city, unavailable or invalid settings use the system. */
   readonly themePreference: 'light' | 'dark' | 'system'
 }
 
@@ -90,8 +91,19 @@ export function connectDesktopWelcome(
   const themePreference = (namespaces: unknown[]): WelcomeState['themePreference'] => {
     const theme = namespaces.find(item => record(item) && item.ns === 'ui-theme')
     if (theme === undefined) return 'system'
-    const preference = record(theme) && record(theme.value) ? theme.value.preference : undefined
+    const appearance = record(theme) && record(theme.value) ? theme.value : undefined
+    const preference = appearance?.preference
     if (preference === 'light' || preference === 'dark' || preference === 'system') return preference
+    if (preference === 'sun') {
+      const storedLocation = appearance?.sunLocation
+      const location = storedLocation === undefined ? SUN_LOCATION_AUTO : storedLocation
+      if (isSunLocation(location)) {
+        const at = Date.now()
+        const city = resolveSunCity(location, Intl.DateTimeFormat().resolvedOptions().timeZone, at)?.city
+        if (city === undefined) return 'system'
+        return sunPhase(at, city.latitude, city.longitude).daylight ? 'light' : 'dark'
+      }
+    }
     console.warn('desktop appearance: invalid Host theme preference; using system appearance')
     return 'system'
   }

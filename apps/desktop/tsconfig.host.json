@@ -46,6 +46,9 @@
       "path": "../../packages/client/ui-settings-general/tsconfig.host.json"
     },
     {
+      "path": "../../packages/client/ui-theme/tsconfig.host.json"
+    },
+    {
       "path": "../../packages/client/ui-file-actions"
     }
   ],

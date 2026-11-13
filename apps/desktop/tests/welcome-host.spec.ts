@@ -52,6 +52,61 @@ describe('desktop welcome Web operations', () => {
     } finally { warn.mockRestore() }
   })
 
+  it.each([
+    { at: Date.UTC(2026, 10, 13, 4), expected: 'light' },
+    { at: Date.UTC(2026, 10, 13, 16), expected: 'dark' },
+  ])('resolves the selected sun city to $expected at $at', async ({ at, expected }) => {
+    const host = transport()
+    const theme = { preference: 'sun', sunLocation: 'beijing' }
+    host.namespaces.push({ ns: 'ui-theme', value: theme })
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(at)
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      expect(await connectDesktopWelcome(url, cookie, host.send).read()).toMatchObject({ themePreference: expected })
+      expect(warn).not.toHaveBeenCalled()
+    } finally { clock.mockRestore(); warn.mockRestore() }
+  })
+
+  it('observes sun location changes without recreating the welcome backend', async () => {
+    const host = transport()
+    const theme = { preference: 'sun', sunLocation: 'new-york' }
+    host.namespaces.push({ ns: 'ui-theme', value: theme })
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(Date.UTC(2026, 10, 13, 4))
+    try {
+      const backend = connectDesktopWelcome(url, cookie, host.send)
+      expect(await backend.read()).toMatchObject({ themePreference: 'dark' })
+      theme.sunLocation = 'beijing'
+      expect(await backend.read()).toMatchObject({ themePreference: 'light' })
+    } finally { clock.mockRestore() }
+  })
+
+  it.each([
+    { zone: 'Asia/Shanghai', expected: 'light' },
+    { zone: 'Asia/Kathmandu', expected: 'system' },
+  ])('resolves an omitted sun location from $zone', async ({ zone, expected }) => {
+    const host = transport()
+    host.namespaces.push({ ns: 'ui-theme', value: { preference: 'sun' } })
+    const options = new Intl.DateTimeFormat().resolvedOptions()
+    const timezone = vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({ ...options, timeZone: zone })
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(Date.UTC(2026, 10, 13, 4))
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      expect(await connectDesktopWelcome(url, cookie, host.send).read()).toMatchObject({ themePreference: expected })
+      expect(warn).not.toHaveBeenCalled()
+    } finally { timezone.mockRestore(); clock.mockRestore(); warn.mockRestore() }
+  })
+
+  it('keeps an invalid sun location visible as a configuration warning', async () => {
+    const host = transport()
+    const theme = { preference: 'sun', sunLocation: 'unknown-city' }
+    host.namespaces.push({ ns: 'ui-theme', value: theme })
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      expect(await connectDesktopWelcome(url, cookie, host.send).read()).toMatchObject({ themePreference: 'system' })
+      expect(warn).toHaveBeenCalledOnce()
+    } finally { warn.mockRestore() }
+  })
+
   it('authenticates with the explicit Host cookie and stores only through the configured credential reference', async () => {
     const host = transport()
     const backend = connectDesktopWelcome(url, cookie, host.send)
