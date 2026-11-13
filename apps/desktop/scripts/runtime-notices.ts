@@ -31,20 +31,24 @@ const UPSTREAM_GAPS = new Set([
   'sherpa-onnx-linux-x64@1.13.8',
 ])
 const SUPPLEMENTS_ROOT = join(import.meta.dirname, '../../../LICENSES/npm')
+const NATIVE_OFFICE_NOTICE_FILES = [
+  'licenses/DeepSeek-Harness-MIT.txt',
+  'licenses/LibreOffice-MPL-2.0.txt',
+  'licenses/LibreOffice-third-party.html',
+  'program/NOTICE',
+  'program/license.txt',
+]
+const WASM_OFFICE_NOTICE_FILES = [
+  'licenses/DeepSeek-Harness-MIT.txt',
+  'licenses/LICENSE',
+  'licenses/NOTICE',
+]
 // Engine releases ship their notice collections below the package root.
 const NESTED_NOTICE_FILES: Readonly<Record<string, readonly string[]>> = {
-  '@deepseek-ai/libreoffice-kit-wasm@0.1.5': [
-    'licenses/DeepSeek-Harness-MIT.txt',
-    'licenses/LICENSE',
-    'licenses/NOTICE',
-  ],
-  '@deepseek-ai/libreoffice-kit-win32-x64@0.1.5': [
-    'licenses/DeepSeek-Harness-MIT.txt',
-    'licenses/LibreOffice-MPL-2.0.txt',
-    'licenses/LibreOffice-third-party.html',
-    'program/NOTICE',
-    'program/license.txt',
-  ],
+  '@deepseek-ai/libreoffice-kit-wasm@0.1.5': WASM_OFFICE_NOTICE_FILES,
+  '@deepseek-ai/libreoffice-kit-wasm@0.2.3': WASM_OFFICE_NOTICE_FILES,
+  '@deepseek-ai/libreoffice-kit-win32-x64@0.1.5': NATIVE_OFFICE_NOTICE_FILES,
+  '@deepseek-ai/libreoffice-kit-win32-x64@0.2.3': NATIVE_OFFICE_NOTICE_FILES,
 }
 
 function sha256(bytes: Buffer): string {
@@ -84,7 +88,9 @@ export async function prepareRuntimeNotices(root: string, sourceDirectory = SUPP
     }
     const identity = `${manifest.name}@${manifest.version}`
     const notices: NoticeFile[] = []
-    let missingExpectedText = false
+    const engineCollection = NESTED_NOTICE_FILES[identity]
+    const officeEngine = manifest.name === '@deepseek-ai/libreoffice-kit-win32-x64' || manifest.name === '@deepseek-ai/libreoffice-kit-wasm'
+    let missingExpectedText = officeEngine && engineCollection === undefined
     for (const file of await readdir(directory, { withFileTypes: true })) {
       if (!file.isFile()) continue
       const namedNotice = /^(?:licen[cs]e|copying|copyright|notice)(?:[._-].*)?$/iu.test(file.name)
@@ -95,7 +101,7 @@ export async function prepareRuntimeNotices(root: string, sourceDirectory = SUPP
         notices.push({ path: `${path}/${file.name}`, sha256: sha256(bytes) })
       }
     }
-    for (const file of NESTED_NOTICE_FILES[identity] ?? []) {
+    for (const file of engineCollection ?? []) {
       const bytes = await optionalFile(join(directory, ...file.split('/')))
       if (bytes === undefined || bytes.toString('utf8').trim().length === 0) missingExpectedText = true
       else notices.push({ path: `${path}/${file}`, sha256: sha256(bytes) })

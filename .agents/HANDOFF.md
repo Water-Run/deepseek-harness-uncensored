@@ -11,7 +11,7 @@
 | 内置 REA | `6.9.0`，上游 `d74549e495c58eb4a560279fd9f05508401ea0a0`，255 项目录 |
 | 安装源码 | `093923a2a69f6ea70701c32009323ca2a1ce9cf3`，已推送 main |
 | 签名 | 本机未签名检查包；正式签名、发布与在线升级仍待验收 |
-| Linux x64 | `0.1.0-test.20261113.linux.1` 正在独立目录构建，尚未交付 |
+| Linux x64 | `0.1.0-test.20261113.linux.2` 正在独立目录构建，尚未交付 |
 
 安装器位于 `%USERPROFILE%/DSHU-Deliveries/20261113/DSHU-0.1.0-test.20261113.3-core-0.2.2-rc.2-REA-6.9.0-win-x64-093923a.exe`，SHA-256 为 `a06e5a8ae2eb4f9106fcf723ef1c40ea9b18ec2abb2f728e0a4a8811922db774`。同目录保留块映射、摘要、`current-windows-manifest.json`、运行时描述符和验证日志。
 
@@ -41,7 +41,7 @@
 - 旧 `.7` 程序：`%USERPROFILE%/DSHU-Backups/20261113T022030Z-installed-program`，15,518 个文件已校验。
 - 安装前资料：`%USERPROFILE%/DSHU-Backups/20261113T034338Z-before-20261113-3`，7,273 个文件已校验；自动回退仍未验收。
 - 当前 Windows 回执：`current-windows-manifest.json`、`installed-update-result.json`、`physical-installation-result.json`、`installed-runtime-result.json`、`physical-data-backup-result.json`。旁问/删除检查见 `installed-side-delete-verification.log`。
-- Linux 源码：`/home/linzh/.cache/dshu-verification/linux-rc2-20261113.iLMw1C/source`，detached `093923a2a69f`；当前构建日志 `linux-build-2.log`，运行记录 `2026-11-13T04-30-34.464Z-1BeCcF`。前轮资源下载超时，缓存恢复后 15 份锁定资源全部校验通过；本轮解释器检查已通过，正在装配应用。继续时先验证当前进程或原运行句柄，不能因观察超时直接重启。
+- Linux 源码：`/home/linzh/.cache/dshu-verification/linux-rc2-20261113.iLMw1C/source`，detached `093923a2a69f`；前轮日志 `linux-build-2.log`，运行记录 `2026-11-13T04-30-34.464Z-1BeCcF`，已主动停止慢速重复下载。15 份锁定资源和解释器检查通过；后续重构建复用同机 Linux pnpm 内容缓存，保持摘要校验，并带入 Office 0.2.3 声明记录。继续时先验证当前进程或原运行句柄，不能因观察超时直接重启。
 - 原始合并现场仍有 Git 引用：`refs/dshu-checkpoints/rc2-delivery-ready-checkpoint-QRTzL7`（`6a169e4d7c01`）、`refs/dshu-checkpoints/main-before-rc2-20261112`（`2184cb541c3e`）、`refs/dshu-checkpoints/runtime-release-age-policy-20261113`（`989f789b3c17`）。不要重跑初始合并或整目录恢复脚本。
 
 用户确认清理结束后，锁定依赖已恢复。旧 `.dsh-build` 安装包、ZIP、状态及部分日志已移除；源文件、Git 检查点和系统安装保留。重新核对的 3,523 份规范 Session、归档及其目录说明文件与 Git 对象一致。项目内只保留可重建的临时构建，用户主目录的交付、备份和 Git 检查点不作为缓存清理。

@@ -15,6 +15,11 @@ const nativeOfficeNotices = {
   'program/NOTICE': 'Engine attribution',
   'program/license.txt': 'Engine license collection',
 }
+const wasmOfficeNotices = {
+  'licenses/DeepSeek-Harness-MIT.txt': 'DeepSeek integration notice',
+  'licenses/LICENSE': 'WASM engine licenses',
+  'licenses/NOTICE': 'WASM engine attribution',
+}
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 })
 })
@@ -71,38 +76,46 @@ it('requires exact aggregate versions and keeps documented upstream notice gaps 
 })
 
 it.each([
-  { name: '@deepseek-ai/libreoffice-kit-win32-x64', files: nativeOfficeNotices },
-  { name: '@deepseek-ai/libreoffice-kit-wasm', files: {
-    'licenses/DeepSeek-Harness-MIT.txt': 'DeepSeek integration notice',
-    'licenses/LICENSE': 'WASM engine licenses',
-    'licenses/NOTICE': 'WASM engine attribution',
-  } },
-])('records $name release texts only for the pinned package and version', async ({ name, files }) => {
+  { name: '@deepseek-ai/libreoffice-kit-win32-x64', version: '0.1.5', next: '0.1.6', files: nativeOfficeNotices },
+  { name: '@deepseek-ai/libreoffice-kit-win32-x64', version: '0.2.3', next: '0.2.4', files: nativeOfficeNotices },
+  { name: '@deepseek-ai/libreoffice-kit-wasm', version: '0.1.5', next: '0.1.6', files: wasmOfficeNotices },
+  { name: '@deepseek-ai/libreoffice-kit-wasm', version: '0.2.3', next: '0.2.4', files: wasmOfficeNotices },
+])('records $name@$version release texts only for the pinned package and version', async ({ name, version, next, files }) => {
   const root = fixture()
-  add(root, name, name, '0.1.5', files)
-  add(root, `next/node_modules/${name}`, name, '0.1.6', files)
+  add(root, name, name, version, files)
+  add(root, `next/node_modules/${name}`, name, next, { ...files, LICENSE: 'Package-level notice' })
   add(root, 'other', 'other', '0.1.5', files)
   const packages = await prepareRuntimeNotices(root)
-  const engine = packages.find(pkg => pkg.version === '0.1.5' && pkg.name === name)!
+  const engine = packages.find(pkg => pkg.version === version && pkg.name === name)!
   expect(engine.reviewRequired).toBe(false)
   expect(engine.notices).toHaveLength(Object.keys(files).length)
   for (const [path, text] of Object.entries(files)) {
     expect(engine.notices).toContainEqual({ path: `${engine.path}/${path}`, sha256: createHash('sha256').update(text).digest('hex') })
   }
   expect(packages.filter(pkg => pkg.reviewRequired).map(pkg => `${pkg.name}@${pkg.version}`)).toEqual([
-    `${name}@0.1.6`, 'other@0.1.5',
+    `${name}@${next}`, 'other@0.1.5',
   ])
 })
 
-it.each([undefined, ' \n'])('keeps an incomplete native collection review-required despite a root license: %s', async (text) => {
+it.each(['0.1.5', '0.2.3'].flatMap(version => [undefined, ' \n'].map(text => ({ version, text }))))(
+  'keeps an incomplete native $version collection review-required despite a root license: $text', async ({ version, text }) => {
+    const root = fixture()
+    const files: Record<string, string> = { ...nativeOfficeNotices, LICENSE: 'Package-level notice' }
+    if (text === undefined) delete files['licenses/LibreOffice-third-party.html']
+    else files['licenses/LibreOffice-third-party.html'] = text
+    add(root, '@deepseek-ai/libreoffice-kit-win32-x64', '@deepseek-ai/libreoffice-kit-win32-x64', version, files)
+    const packages = await prepareRuntimeNotices(root)
+    expect(packages).toEqual([expect.objectContaining({ reviewRequired: true })])
+    expect(packages[0]!.notices).toHaveLength(5)
+  })
+
+it.each([undefined, ' \n'])('keeps incomplete WASM 0.2.3 texts review-required despite a root license: %s', async (text) => {
   const root = fixture()
-  const files: Record<string, string> = { ...nativeOfficeNotices, LICENSE: 'Package-level notice' }
-  if (text === undefined) delete files['licenses/LibreOffice-third-party.html']
-  else files['licenses/LibreOffice-third-party.html'] = text
-  add(root, '@deepseek-ai/libreoffice-kit-win32-x64', '@deepseek-ai/libreoffice-kit-win32-x64', '0.1.5', files)
-  const packages = await prepareRuntimeNotices(root)
-  expect(packages).toEqual([expect.objectContaining({ reviewRequired: true })])
-  expect(packages[0]!.notices).toHaveLength(5)
+  const files: Record<string, string> = { ...wasmOfficeNotices, LICENSE: 'Package-level notice' }
+  if (text === undefined) delete files['licenses/NOTICE']
+  else files['licenses/NOTICE'] = text
+  add(root, '@deepseek-ai/libreoffice-kit-wasm', '@deepseek-ai/libreoffice-kit-wasm', '0.2.3', files)
+  expect(await prepareRuntimeNotices(root)).toEqual([expect.objectContaining({ reviewRequired: true })])
 })
 
 it('keeps absent and blank native engine texts review-required', async () => {

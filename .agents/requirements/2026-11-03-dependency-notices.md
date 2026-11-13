@@ -6,6 +6,12 @@
 
 当前 8 项分别为 `@deepseek-ai/libreoffice-kit-win32-x64@0.2.3`、`brotli@1.3.3`、`dfa@1.2.0`、`fontkit@2.0.4`、`frida@17.23.2`、`proxy-agent-negotiate@1.1.0`、`clean-git-ref@2.0.1`、`minimisted@2.0.1`。自动清点的待核查标志继续保留，不能以安装器已能运行推定许可证义务已完成。下文各版本和数量属于其注明日期的验证。
 
+## Office 0.2.3 声明清点（2026-11-13）
+
+实际 Windows 载荷中的五份原生引擎声明，以及 Linux 工作区中的三份 WASM 引擎声明，均与各自 0.2.3 `prebuilds.json` 的固定摘要一致。清点器现按确切版本记录这些嵌套文件，保留 0.1.5 记录；缺失或空白的原文仍标记待核查。声明路径和摘要回执为当前交付目录中的 `office-023-notice-verification.json` 和 `office-wasm-023-notice-verification.json`。
+
+对 Windows `.13.3` 的 917 项实包输入执行只读副本复算，仅 Office 条目发生变化，待核查从 8 项降为 7 项。原安装和实包清单保持不变；新清点记录需随下一次打包交付，不能将这次复算写成已安装。回执为 `office-023-notice-projection.json`。这些结果只核对文本覆盖，不代表内嵌组件及整合发行义务审查完成。
+
 ## clean-git-ref 的 Apache 许可正文（2026-11-11）
 
 `clean-git-ref 2.0.1` 的 npm 归档通过锁文件 SHA-512 校验，发布提交为 `bf3c8afc8032bcdc6a53634c18b601dc6df478fb`。源码和归档均声明 Apache-2.0，作者字段为 Eli White。Windows `.6` 实装和 Linux `.5` 便携包的入口文件均与 npm 归档逐字一致。打包后的 manifest 只移除了 `scripts`，其余字段与发布源码一致。该版本的归档和源码树均缺少独立许可正文。[发布源码](https://github.com/TheSavior/clean-git-ref/tree/bf3c8afc8032bcdc6a53634c18b601dc6df478fb)
