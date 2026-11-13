@@ -4,9 +4,9 @@
   <p><b>DSHU v0.1.0</b> · 基于 DeepSeek Harness 0.2.2-rc.2 · WaterRun</p>
 </div>
 
-DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH 与 DSHU 可同时安装，分别使用自己的程序目录、配置、会话和更新渠道。未签名的 Windows x64 检查版 `0.1.0-test.20261111.7` 已在本机原位升级并核对资料。
+DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH 与 DSHU 可同时安装，分别使用自己的程序目录、配置、会话和更新渠道。未签名的 Windows x64 检查版 `0.1.0-test.20261113.3` 已在本机原位升级并核对资料。
 
-源码已[适配 DSH 0.2.2-rc.2](.agents/requirements/2026-11-11-dsh-rc2.md)，通过完整构建、271 项协议回放及四模式实际请求检查。源码内置 REA 6.9.0；当前已安装检查版仍是 rc.1 / REA 6.8.0，新安装包另行验收。此前的[收尾包和恢复资料](.agents/requirements/2026-11-12-quota-closeout.md)继续保留。
+当前 Windows 检查版基于 DSH 0.2.2-rc.2，内置 REA 6.9.0。四模式、旁问清理、会话删除、命令执行和用户资料保全已在实际安装目录验证；Office 转换、渲染与重算及 REA 分析通过包内检查。Linux 新包正在构建，详见[开发进度](.agents/TODO.md)。
 
 ## 通用增强
 
@@ -34,7 +34,7 @@ DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH �
 
 ## 安装与开发
 
-- **桌面**　Windows x64 已提供本机检查版。Linux x64 检查版 `0.1.0-test.20261111.linux.5` 提供 deb 和 tar.gz。便携包通过 Ubuntu WSL2 的 X11 启动、浏览器 HTTPS、Wayland 目录门户和渲染沙箱验收，也通过 Fedora 45 虚拟 X11 与 headless Wayland 的欢迎页启动和渲染沙箱验收。Debian 12 已完成 `.4 → .5` 升级与卸载。macOS arm64 和 Android＋PRoot Fedora 保留为计划。签名与在线升级仍待验收。正式版本与更新使用本仓库的 [GitHub Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases)。
+- **桌面**　Windows x64 当前本机检查版为 `0.1.0-test.20261113.3`。Linux x64 的 deb 和 tar.gz 新包正在跟进同一内核；此前 `.5` 已完成 Ubuntu WSL2、Fedora 45 虚拟显示及 Debian 12 升级/卸载等隔离验收，旧本地包已清理。macOS arm64、Android＋PRoot Fedora 和全新安装器仅保留未来计划。签名与在线升级仍待验收，正式发行使用本仓库的 [GitHub Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases)。
 - **源码**　使用 Node.js 24.22.1、Git 与 Corepack。依次运行 `corepack pnpm install`、`corepack pnpm run build`、`corepack pnpm dsh web`。CLI 安装见[安装脚本](scripts/install-uncensored.ps1)。
 - **独立标识**　默认数据目录为 `~/.dsh-uncensored`，可用 `DSH_UNCENSORED_HOME` 修改。CLI 为 `dsh-uncensored`，深链为 `dshu://open`。关于页列出作者、DSHU 与 DSH 版本、构建时间、源码提交及依赖来源。
 
@@ -57,8 +57,8 @@ DSHU 采用 [GPL-3.0-or-later](LICENSE)。上游和第三方组件保留各自�
 DSHU v0.1.0 is an independent desktop fork of DeepSeek Harness 0.2.2-rc.2. It can coexist with the official app and uses a separate profile and update channel. It includes built-in armor prompts, four modes, and Chinese and English UI.
 
 - **General** · Use `/side` for a persistent side conversation with image attachments and `/clear`, or `/btw question` for a quick one-off answer. Balance history, spending limits, scoped memory, and Tab suggestions are available in Settings.
-- **Kernel intake** · Source is adapted to DSH 0.2.2-rc.2. The complete build, 271 protocol replay tests, and actual requests from all four modes passed. The installed inspection build remains on rc.1; the new installer requires separate acceptance. The earlier [closeout archive and recovery material](.agents/requirements/2026-11-12-quota-closeout.md) remain available.
+- **Kernel intake** · The installed Windows inspection build uses DSH 0.2.2-rc.2 and bundled REA 6.9.0. Actual installed-runtime checks cover all four modes, side-context clearing, session deletion, command execution and preserved user data. Package checks cover Office conversion, rendering, recalculation and REA analysis.
 - **Modes** · Standard covers daily development. Security adds case notes, reports, and an independent proxy with traffic inspection. Reverse integrates REA for analysis. Writing uses selected style references and story materials.
-- **Delivery** · Unsigned Windows x64 inspection build `0.1.0-test.20261111.7` passed an in-place upgrade with data verification. Linux x64 inspection build `0.1.0-test.20261111.linux.5` provides deb and tar.gz archives. The portable build passed X11 startup, browser HTTPS, Wayland directory portal, and renderer sandbox checks on Ubuntu WSL2. The welcome screen and renderer sandbox passed under virtual X11 and headless Wayland on Fedora 45. Debian 12 passed the upgrade from `.4` to `.5` and uninstallation. macOS arm64 and Android with Fedora under PRoot remain planned. Advanced target protection is opt-in. See [development status](.agents/TODO.md) and [Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases).
+- **Delivery** · Unsigned Windows x64 inspection build `0.1.0-test.20261113.3` passed an in-place upgrade with data verification. New Linux x64 deb and tar.gz builds are in progress. Earlier `.5` qualification covered Ubuntu WSL2, Fedora 45 virtual displays and Debian 12 upgrade/uninstall; those old local packages have been cleaned. macOS arm64, Android with Fedora under PRoot and a new installer remain future plans. Advanced target protection is opt-in. See [development status](.agents/TODO.md) and [Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases).
 
 </details>

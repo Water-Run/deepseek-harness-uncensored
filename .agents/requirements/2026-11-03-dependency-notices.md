@@ -2,7 +2,9 @@
 
 状态：进行中，不代表整合发行的许可核对已完成。用户的 GPL 许可偏好、上游 Credit 和各组件原有许可保持不变。
 
-Windows 检查版 `0.1.0-test.20261111.7` 已包含下列 Fontkit 标准说明及 clean-git-ref 的 Apache 正文，实际安装器中的文本与固定摘要一致。实包为 859 个 npm 包、22 份补充声明，仍有 7 项待核查。Linux `.5` 保留原包，新文本待下一次 Linux 打包；其 9 项待核查状态不变。交付证据见 [HANDOFF](../HANDOFF.md)。
+当前 Windows 检查版 `0.1.0-test.20261113.3` 包含 917 个 npm 包、21 份补充声明，8 项待核查。实际安装器内适用的补充原文逐项匹配固定摘要，Electron 与安装器声明核对通过。Linux 新包正在重新清点；旧 `.5` 的 9 项待核查保留为历史，旧本地包已清理。现存交付证据见 [HANDOFF](../HANDOFF.md)。
+
+当前 8 项分别为 `@deepseek-ai/libreoffice-kit-win32-x64@0.2.3`、`brotli@1.3.3`、`dfa@1.2.0`、`fontkit@2.0.4`、`frida@17.23.2`、`proxy-agent-negotiate@1.1.0`、`clean-git-ref@2.0.1`、`minimisted@2.0.1`。自动清点的待核查标志继续保留，不能以安装器已能运行推定许可证义务已完成。下文各版本和数量属于其注明日期的验证。
 
 ## clean-git-ref 的 Apache 许可正文（2026-11-11）
 
