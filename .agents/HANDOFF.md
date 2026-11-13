@@ -41,7 +41,7 @@
 - 旧 `.7` 程序：`%USERPROFILE%/DSHU-Backups/20261113T022030Z-installed-program`，15,518 个文件已校验。
 - 安装前资料：`%USERPROFILE%/DSHU-Backups/20261113T034338Z-before-20261113-3`，7,273 个文件已校验；自动回退仍未验收。
 - 当前 Windows 回执：`current-windows-manifest.json`、`installed-update-result.json`、`physical-installation-result.json`、`installed-runtime-result.json`、`physical-data-backup-result.json`。旁问/删除检查见 `installed-side-delete-verification.log`。
-- Linux 源码：`/home/linzh/.cache/dshu-verification/linux-rc2-20261113.iLMw1C/source`，detached `093923a2a69f`；构建日志 `linux-build-1.log`，运行记录 `2026-11-13T03-48-00.400Z-BiNGPW`。继续时先验证当前进程或原运行句柄，不能因观察超时直接重启。
+- Linux 源码：`/home/linzh/.cache/dshu-verification/linux-rc2-20261113.iLMw1C/source`，detached `093923a2a69f`；当前构建日志 `linux-build-2.log`，运行记录 `2026-11-13T04-30-34.464Z-1BeCcF`。前轮资源下载超时，缓存恢复后 15 份锁定资源全部校验通过；本轮解释器检查已通过，正在装配应用。继续时先验证当前进程或原运行句柄，不能因观察超时直接重启。
 - 原始合并现场仍有 Git 引用：`refs/dshu-checkpoints/rc2-delivery-ready-checkpoint-QRTzL7`（`6a169e4d7c01`）、`refs/dshu-checkpoints/main-before-rc2-20261112`（`2184cb541c3e`）、`refs/dshu-checkpoints/runtime-release-age-policy-20261113`（`989f789b3c17`）。不要重跑初始合并或整目录恢复脚本。
 
 用户确认清理结束后，锁定依赖已恢复。旧 `.dsh-build` 安装包、ZIP、状态及部分日志已移除；源文件、Git 检查点和系统安装保留。重新核对的 3,523 份规范 Session、归档及其目录说明文件与 Git 对象一致。项目内只保留可重建的临时构建，用户主目录的交付、备份和 Git 检查点不作为缓存清理。

@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { zipSync } from 'fflate'
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { downloadPrimaryRuntimeAsset, primaryRuntimePayloadDigest, prunePnpmForeignNativePackages, smokePrimaryRuntime, unpackPrimaryRuntimeWheel } from './prepare.ts'
 import lock from './lock.json' with { type: 'json' }
 
@@ -83,6 +83,27 @@ it('extracts a hash-verified cached library without a Python installer or networ
     await writeFile(archive, 'corrupt archive')
     await expect(downloadPrimaryRuntimeAsset('https://unused.invalid/library.whl', hash, root)).rejects.toThrow('checksum mismatch')
   } finally {
+    await rm(root, { recursive: true, force: true })
+  }
+})
+
+it.each(['request', 'body', 'status'] as const)('identifies the failed archive and leaves no cache entry on a %s failure', async (stage) => {
+  const root = await mkdtemp(join(tmpdir(), 'runtime-download-failure-'))
+  const cause = new DOMException('The operation was aborted due to timeout', 'TimeoutError')
+  const fetch = vi.spyOn(globalThis, 'fetch')
+  try {
+    if (stage === 'request') fetch.mockRejectedValue(cause)
+    else if (stage === 'body') {
+      fetch.mockResolvedValue(new Response(new ReadableStream({ start(controller) { controller.error(cause) } })))
+    } else fetch.mockResolvedValue(new Response(null, { status: 503 }))
+    const failure = downloadPrimaryRuntimeAsset('https://example.invalid/pinned-runtime.tar.gz', 'a'.repeat(64), root)
+    await expect(failure).rejects.toHaveProperty('message',
+      'primary runtime download: failed to download https://example.invalid/pinned-runtime.tar.gz')
+    if (stage === 'status') await expect(failure).rejects.toHaveProperty('cause.message', 'primary runtime download: HTTP 503')
+    else await expect(failure).rejects.toHaveProperty('cause', cause)
+    expect(await readdir(root)).toEqual([])
+  } finally {
+    fetch.mockRestore()
     await rm(root, { recursive: true, force: true })
   }
 })
