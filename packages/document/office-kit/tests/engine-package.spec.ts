@@ -102,6 +102,15 @@ it.each(['missing manifest', 'dangling symlink', 'absent'] as const)(
   },
 )
 
+it('preserves missing engine resolution when Electron ASAR reports null', () => {
+  const fixture = engineTree()
+  const electronLstat: (...args: Parameters<typeof lstatSync>) => ReturnType<typeof lstatSync> | null = lstatSync
+  vi.mocked(electronLstat).mockReturnValue(null)
+  const error = thrownBy(() => fixture.resolveEnginePackage(fixture.name))
+  expect(error).toMatchObject({ code: 'MODULE_NOT_FOUND' })
+  expect(error).toBe(fixture.resolve.mock.results[0]?.value)
+})
+
 it('keeps a Node resolution error other than MODULE_NOT_FOUND unchanged', () => {
   const fixture = engineTree()
   mkdirSync(fixture.directory, { recursive: true })

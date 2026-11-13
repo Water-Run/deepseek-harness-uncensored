@@ -76,7 +76,7 @@ Kit 缺失时提供方照常注册，例如未下载 Office sidecar 就启动的
 
 在 Kit 导入成功之前，每次需要转换器时，提供方都把返回自身 `import.meta.resolve('@deepseek-ai/libreoffice-kit')` 的查找函数传给 [`resolveKitModule`](src/locate.ts)，它返回 Kit 入口和以其为起点的引擎包解析器，或返回 `missing`。随后提供方动态导入该入口；提供方没有静态导入 Kit 的值。这使引擎查找以提供方实际使用的 Kit 安装为起点。
 
-引擎包解析器以 Kit 入口为起点创建；每个解析器互相独立。解析成功时返回引擎 `package.json` 的绝对路径。包不存在时保留 Node 原始的 `MODULE_NOT_FOUND`，允许 Kit 从原生引擎回退到 WASM。如果包目录存在（包括断开的符号链接），但清单无法解析，解析器抛出安装不完整错误，并将 Node 错误保存在 `cause` 中；此时应重新安装该包。其他解析错误和文件系统检查错误原样传播。Kit 负责验证返回的清单和必需资源。
+引擎包解析器以 Kit 入口为起点创建；每个解析器互相独立。解析成功时返回引擎 `package.json` 的绝对路径。包不存在（包括 ASAR 的缺失条目结果）时保留 Node 原始的 `MODULE_NOT_FOUND`，允许 Kit 从原生引擎回退到 WASM。如果包目录存在（包括断开的符号链接），但清单无法解析，解析器抛出安装不完整错误，并将 Node 错误保存在 `cause` 中；此时应重新安装该包。其他解析错误和文件系统检查错误原样传播。Kit 负责验证返回的清单和必需资源。
 
 定位函数每次解析调用一次提供方的查找函数，并把任何抛出的值视为 Kit 缺失。原生引擎路径使用同一映射，只将第一个 `.asar` 归档段替换为 `.asar.unpacked`，不论进程是否运行在 Electron 中。已解包路径及归档外路径保持不变。`@deepseek-ai/libreoffice-kit-wasm` 始终保留 Node 逻辑路径，供支持归档的文件系统访问。这些函数不导入 Kit、不加载引擎代码、不注册服务、不修改模块解析，也不保留模块级状态；[Desktop 打包](../../../apps/desktop/packaging/README.zh.md#runtime-file-selection)负责决定解包哪些包。
 
