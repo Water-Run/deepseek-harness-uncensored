@@ -26,6 +26,7 @@ function fixture(): { source: string; project: string } {
   const source = join(root, 'source'), project = join(root, 'project')
   mkdirSync(source); mkdirSync(project)
   writeLock(source, { 'external@1.0.0': external })
+  writeFileSync(join(source, 'pnpm-workspace.yaml'), '{}\n')
   writeFileSync(join(project, 'pnpm-workspace.yaml'), yaml.dump({ packages: ['.'], overrides: { core: 'file:./desktop-packages/core.tgz' }, allowBuilds: { core: false } }))
   return { source, project }
 }
@@ -43,6 +44,33 @@ function native(source: string): { name: string; version: string; os: string[]; 
   writeFileSync(join(root, 'linux-x64/package.json'), JSON.stringify(manifest))
   return manifest
 }
+
+it('carries reviewed source release-age exceptions without disabling the age policy or modifying source files', () => {
+  const { source, project } = fixture()
+  const sourcePath = join(source, 'pnpm-workspace.yaml')
+  const policy = yaml.dump({ minimumReleaseAgeExclude: ['external@1.0.0'] })
+  writeFileSync(sourcePath, policy)
+  const sourceLock = readFileSync(join(source, 'pnpm-lock.yaml'))
+  const plan = prepareRuntimeLockfile(project, source, packageSet, target)
+  expect(yaml.load(readFileSync(join(project, 'pnpm-workspace.yaml'), 'utf8'))).toMatchObject({
+    minimumReleaseAgeExclude: ['external@1.0.0'],
+    overrides: { core: 'file:./desktop-packages/core.tgz' },
+    allowBuilds: { core: false },
+  })
+  expect(yaml.load(readFileSync(join(project, 'pnpm-workspace.yaml'), 'utf8'))).not.toHaveProperty('minimumReleaseAge')
+  expect(readFileSync(sourcePath, 'utf8')).toBe(policy)
+  expect(readFileSync(join(source, 'pnpm-lock.yaml'))).toEqual(sourceLock)
+  writeLock(project, { [coreSpec]: core, 'external@2.0.0': external })
+  expect(() => { verifyRuntimeLockfile(project, plan) }).toThrow('unreviewed registry resolution external@2.0.0')
+})
+
+it('rejects malformed source release-age exceptions before changing the isolated project', () => {
+  const { source, project } = fixture()
+  writeFileSync(join(source, 'pnpm-workspace.yaml'), yaml.dump({ minimumReleaseAgeExclude: [42] }))
+  const before = readFileSync(join(project, 'pnpm-workspace.yaml'))
+  expect(() => { prepareRuntimeLockfile(project, source, packageSet, target) }).toThrow()
+  expect(readFileSync(join(project, 'pnpm-workspace.yaml'))).toEqual(before)
+})
 
 it('seeds source bytes without mutating them or losing build policy', () => {
   const { source, project } = fixture()

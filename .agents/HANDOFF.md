@@ -16,9 +16,9 @@ rc.2 运行时代码、消费者、持久化声明、菜单/输入等客户端�
 
 最近完整构建 10 项通过，Host/Client 聚合类型检查包含在内。Linux SDK/ACP/Headless 275 项中 271 通过、4 项按条件跳过、0 失败；这覆盖历史协议，不代表实体桌面验收。四模式检查 51 项、子代理回放支持 158 项、快照归属 23 项、包名迁移 78 项、入口与 README 13 项、Stagehand 18 项、实际打包预览许可 1 项通过。全仓类型感知 lint 退出 0。
 
-发布卫生首轮 20 项通过、5 项失败，失败项已修复并分别复验。新增门禁中的 49 个既有导出逐项对照迁移前主线，作为既有债务登记；不放行新导出。原始失败日志保留。原 711 份规范 Session 与 2,775 份冻结归档的路径、字节、索引及候选快照对象一致；新场景使用另外 4 份当前录制角色。
+发布卫生首轮 20 项通过、5 项失败，失败项已修复并分别复验。新增门禁中的 49 个既有导出逐项对照迁移前主线，作为既有债务登记；不放行新导出。原 711 份规范 Session 与 2,775 份冻结归档的路径、字节、索引及候选快照对象一致；新场景使用另外 4 份当前录制角色。临时日志的保留状态见“恢复与历史”。
 
-证据集中在 `.dsh-build/rc2-delivery-ready-evidence-20261112.json`、`rc2-linux-final-profile-replay-20261112.json`、`rc2-final-metadata-complete-build-20261112.log`、`rc2-final-complete-lint-20261112.log`。完整候选为 `6a169e4d7c01723874c74e0212eceb5c83851589`，本地引用 `refs/dshu-checkpoints/rc2-delivery-ready-checkpoint-QRTzL7`。该合成历史不发布；主线只合入验收后的内容，并保留后续八份进度文档。合入回执为 `.dsh-build/rc2-qualified-promotion-20261112.json`。
+完整候选 `6a169e4d7c01723874c74e0212eceb5c83851589` 仍由 `refs/dshu-checkpoints/rc2-delivery-ready-checkpoint-QRTzL7` 保留。合成历史未发布；真实主线保留独立历史和后续八份进度文档。既有构建和回放已通过，部分本地 JSON/日志随缓存清理移除；不要将已删除的本地文件列为现存交付附件。
 
 ## 当前交付与下一步
 
@@ -32,11 +32,17 @@ rc.2 运行时代码、消费者、持久化声明、菜单/输入等客户端�
 
 上一包 `.12.1` 已通过源码完整构建，停在 Python 虚拟环境的 ensurepip 检查，尚未生成安装器，也未修改系统安装。保留原失败 `rc2-windows-package-20261112.log`；同一实际 payload 随后在共享和 Desktop 两种入口完成整套检查，日志为 `rc2-primary-runtime-smoke-recheck-20261113.log`、`rc2-desktop-primary-smoke-recheck-20261113.log`。原故障未稳定复现，不作已修复结论；新包继续运行同一检查，不跳过或自动忽略失败。Windows 使用本机完整的 `VCToolsVersion=14.52.36629` 与 `MSVCPreviewEnabled=true`，保持系统默认工具集不变。
 
+`.13.1` 已通过十项源码构建和重新解包后的 Python 整套检查，但隔离依赖组装未传递根项目已审核的 REA 发布年龄例外，pnpm 拒绝安装，因此该轮未生成安装器。`prepareRuntimeLockfile` 现从源 workspace 读取例外，并保留注册表版本和完整性校验；18 项回归涵盖不同版本仍被拒绝、错误配置不写入及源文件不变，两个聚合类型检查通过。未关闭发布年龄策略。重新打包前核对具体运行句柄与状态；依赖恢复后使用 `node_modules/.bin` 内的 pnpm 11.28.5，不依赖用户 PowerShell profile。
+
 保护后端、依赖许可、签名更新及完整终验尚未完成，不标记 Goal 完成。用户此前要求的额度收尾已经执行，后来明确恢复；当前不因旧阈值自行再次暂停。
 
 ## 恢复与历史
 
-主工作区 `D:\Coding\deepseek-harness-uncensored`，候选暂存区 `D:\Coding\dshu-rc2-20261111`，状态 `.dsh-build/rc2-intake-state-20261111.json`。合入前主线保存在 `refs/dshu-checkpoints/main-before-rc2-20261112`。不要重跑初始三方合并或整目录恢复脚本。Linux 已有镜像和稳定交付包继续保留；D 盘只清理已核实不再使用的构建缓存。
+主工作区 `D:\Coding\deepseek-harness-uncensored`，合入前主线为 `refs/dshu-checkpoints/main-before-rc2-20261112`。发布年龄修复的待提交现场另存于 `refs/dshu-checkpoints/runtime-release-age-policy-20261113`（`989f789b3c17`）。不要重跑初始三方合并或整目录恢复脚本。
+
+2026-11-13 的清理移除了 `node_modules`、旧 `.dsh-build` 交付包、日志和状态文件，用户已确认清理结束。锁定依赖已恢复，源文件未因清理改变；重新核对的 3,523 份规范 Session/归档及其目录说明文件均与 Git 对象一致。当前状态和新交付记录位于 `%LOCALAPPDATA%/DSHU-Deliveries/20261113`，发布年龄修复补丁在 `%LOCALAPPDATA%/DSHU-Development-Backups/20261113T020553Z-release-age-policy`。旧日志路径只用于历史定位。
+
+系统旧版 `.7` 的 15,518 个程序文件已逐文件复制并校验，保存在 `%LOCALAPPDATA%/DSHU-Backups/20261113T022030Z-installed-program`；自动回退尚未验收。正式更新前仍须停止 DSHU 并另行备份、核对其当时的用户数据。新安装包放入上述系统交付目录，项目内仅留可重建的临时构建；保留的 Git 检查点与系统备份不属于可清理缓存。
 
 以下为原始交付与验证记录，保留旧链接、摘要、失败与恢复材料；旧“当前状态”标题属于当时记录，以本页顶部和 TODO 为准。
 

@@ -17,6 +17,7 @@ const nativeSchema = z.object({
   name: z.string(), version: z.string(), os: z.array(z.string()).nonempty(), cpu: z.array(z.string()).nonempty(),
 })
 const workspaceSchema = z.object({ overrides: z.record(z.string(), z.string()).optional() }).passthrough()
+const sourcePolicySchema = z.object({ minimumReleaseAgeExclude: z.array(z.string().min(1)).default([]) })
 
 /** Captured source resolutions, local archive integrities and unshipped optional native metadata. */
 export interface PreparedRuntimeLockfile {
@@ -28,7 +29,8 @@ export interface PreparedRuntimeLockfile {
 
 /**
  * Seed the build-only project from the source lockfile and pin unshipped native variants.
- * Source files remain unchanged; failures stop preparation before production installation.
+ * Source files remain unchanged; reviewed release-age exceptions accompany the locked resolutions.
+ * Failures stop preparation before production installation.
  * @param projectRoot Disposable project with staged core packages and patch configuration.
  * @param repositoryRoot Source workspace containing the committed lockfile and native manifests.
  * @param packageSet Verified core tarballs selected for this target.
@@ -42,6 +44,7 @@ export function prepareRuntimeLockfile(
   if (resolve(projectRoot) === resolve(repositoryRoot)) throw new Error('desktop lockfile: destination must not be the source workspace')
   const bytes = readFileSync(join(repositoryRoot, 'pnpm-lock.yaml'))
   const source = lockSchema.parse(yaml.load(bytes.toString('utf8')))
+  const sourcePolicy = sourcePolicySchema.parse(yaml.load(readFileSync(join(repositoryRoot, 'pnpm-workspace.yaml'), 'utf8')))
   const settingsPath = join(projectRoot, 'pnpm-workspace.yaml')
   const settings = workspaceSchema.parse(yaml.load(readFileSync(settingsPath, 'utf8')))
   const overrides = { ...settings.overrides }
@@ -66,7 +69,8 @@ export function prepareRuntimeLockfile(
       omittedNative.set(`${native.name}@${native.version}`, native)
     }
   }
-  writeFileSync(settingsPath, yaml.dump({ ...settings, overrides }))
+  writeFileSync(settingsPath, yaml.dump({ ...settings, overrides,
+    minimumReleaseAgeExclude: sourcePolicy.minimumReleaseAgeExclude }))
   writeFileSync(join(projectRoot, 'pnpm-lock.yaml'), bytes)
   return {
     sourceSha256: createHash('sha256').update(bytes).digest('hex'),
