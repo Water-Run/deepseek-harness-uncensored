@@ -12,6 +12,7 @@ import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import SandboxPolicy from '@deepseek-ai/dsh-sandbox-policy'
 import ReaService from '../src/index.ts'
 import * as ReaAgent from '../src/agent.ts'
+import product from '../../../../product.json' with { type: 'json' }
 
 const nodePath = process.env['DSH_REA_TEST_NODE']
 const cliPath = process.env['DSH_REA_TEST_CLI']
@@ -42,7 +43,7 @@ it.skipIf(nodePath === undefined)('discovers bundled REA, analyzes JavaScript an
       return JSON.stringify(result)
     }
     const discovery = await call('rea_tools', { names: ['analyze_javascript_application'] })
-    expect(discovery).toContain('229')
+    expect(discovery).toContain(String(product.rea.toolCount))
     expect(ctx.tools.schemas(agent).filter(tool => tool.name.startsWith('mcp__rea__'))).toHaveLength(1)
     expect(await call('mcp__rea__analyze_javascript_application', { input_path: cwd })).toContain('addValues')
     if (binary !== undefined && ghidraPath !== undefined && javaHome !== undefined) {

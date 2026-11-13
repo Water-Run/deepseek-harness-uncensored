@@ -17,7 +17,7 @@ kind: "package-reference"
 
 全部偏好由 Loader 设置系统管理。`startupTimeoutMs` 默认 60000，`toolTimeoutMs` 默认 180000，`catalogPageSize` 默认 20。保存配置变更会关闭现有进程；对话需要重置连接并重新打开样本。
 
-已验证 REA 6.8.0、Node 24.22.1、Ghidra 12.1.4 和 Java 27。该 REA 版本会拒绝 Ghidra 12.2，其支持版本检查保持启用。REA 6.8.0 固定到 [160d821ac9a0](https://github.com/morluto/rea/commit/160d821ac9a0310afcb8d1fc427862dd6508add5)，可选分析引擎按各自许可另行配置。
+已验证 REA 6.9.0、Node 24.22.1、Ghidra 12.1.4 和 Java 27。其他引擎版本仍须通过上游版本校验。REA 6.9.0 固定到 [d74549e495c5](https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0)，可选分析引擎按各自许可另行配置。
 
 ## 对话归属
 
@@ -29,7 +29,7 @@ kind: "package-reference"
 
 ## 模型体验
 
-逆向对话初始只增加 `rea_tools`。发现结果说明可用工具，启用名称后只把选中的定义加入后续请求。工具结果和可用性变更沿用现有 Session 日志。已验证版本的全部 229 个工具均可发现，无需把完整目录加入每次请求。
+逆向对话初始只增加 `rea_tools`。发现结果说明可用工具，启用名称后只把选中的定义加入后续请求。工具结果和可用性变更沿用现有 Session 日志。已验证版本的全部 255 个工具均可发现，无需把完整目录加入每次请求。
 
 #### KV 缓存影响
 

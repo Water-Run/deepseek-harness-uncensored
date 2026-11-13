@@ -17,7 +17,7 @@ Open Settings → Mode → Reverse configuration. The bundled REA works without 
 
 All preferences are Loader-managed settings. `startupTimeoutMs` defaults to 60000, `toolTimeoutMs` to 180000, and `catalogPageSize` to 20. Saving changed preferences closes existing processes. A conversation must reset its connection and reopen its sample after that change.
 
-REA 6.8.0 was tested with Node 24.22.1, Ghidra 12.1.4 and Java 27. That REA release rejects Ghidra 12.2; its supported-version checks remain active. REA 6.8.0 is pinned to [160d821ac9a0](https://github.com/morluto/rea/commit/160d821ac9a0310afcb8d1fc427862dd6508add5). Optional analysis engines remain separately configured under their own licenses.
+REA 6.9.0 was tested with Node 24.22.1, Ghidra 12.1.4 and Java 27. Other engine versions remain subject to upstream version checks. REA 6.9.0 is pinned to [d74549e495c5](https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0). Optional analysis engines remain separately configured under their own licenses.
 
 ## Conversation ownership
 
@@ -29,7 +29,7 @@ The optional [`target-protection/rea`](../../guard/target-protection/README.md) 
 
 ## Model Experience
 
-Only `rea_tools` is initially added to Reverse conversations. Discovery results describe available tools; enabling names adds only those definitions to later requests. Tool results and availability changes use existing Session logging. All 229 tools in the tested release remain discoverable without adding the complete catalog to every request.
+Only `rea_tools` is initially added to Reverse conversations. Discovery results describe available tools; enabling names adds only those definitions to later requests. Tool results and availability changes use existing Session logging. All 255 tools in the tested release remain discoverable without adding the complete catalog to every request.
 
 #### KV Cache effect
 

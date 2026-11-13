@@ -6,7 +6,7 @@
 
 DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH 与 DSHU 可同时安装，分别使用自己的程序目录、配置、会话和更新渠道。未签名的 Windows x64 检查版 `0.1.0-test.20261111.7` 已在本机原位升级并核对资料。
 
-源码已[适配 DSH 0.2.2-rc.2](.agents/requirements/2026-11-11-dsh-rc2.md)，通过完整构建、271 项协议回放及四模式实际请求检查。当前已安装检查版仍基于 rc.1，新安装包另行验收。此前的[收尾包和恢复资料](.agents/requirements/2026-11-12-quota-closeout.md)继续保留。
+源码已[适配 DSH 0.2.2-rc.2](.agents/requirements/2026-11-11-dsh-rc2.md)，通过完整构建、271 项协议回放及四模式实际请求检查。源码内置 REA 6.9.0；当前已安装检查版仍是 rc.1 / REA 6.8.0，新安装包另行验收。此前的[收尾包和恢复资料](.agents/requirements/2026-11-12-quota-closeout.md)继续保留。
 
 ## 通用增强
 
@@ -25,7 +25,7 @@ DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH �
 | --- | --- |
 | **缺省 · 蓝色** | 开发和日常任务，使用文件、终端、检索、协作及工作流。 |
 | **网安 · 红色** | 现场手册、目标与证据账本、报告、独立代理和流量查看。案件保存在 `.security/<案件>/`。可把选定备注审阅后存入跨对话记忆，默认限定当前工作区和网安模式。首次进入新网安对话时有责任确认。 |
-| **逆向 · 绿色** | 样本清点、静态与动态分析、协议分析和案件记录。桌面内置 REA 6.8.0，可在设置中检查连接。Ghidra、IDA 等引擎按需接入。 |
+| **逆向 · 绿色** | 样本清点、静态与动态分析、协议分析和案件记录。桌面内置 REA 6.9.0，可在设置中检查连接。Ghidra、IDA 等引擎按需接入。 |
 | **写作 · 黄色** | 小说、剧本和长文，支持参考文风、六轴风格卡和 `story/bible/` 设定集。选中资料才进入请求，模式不挂载终端或代码执行工具。 |
 
 独立代理仅用于网安模式，覆盖受控抓取、遵守代理变量的命令与终端、桌面侧栏及以 launch 方式运行的 Playwright MCP、Chrome DevTools MCP 和 Stagehand。不透明 HTTPS 隧道记录连接元数据。[进阶目标保护](packages/guard/target-protection/README.zh.md)可为指定工具启用 HTTP/1.1 检查并脱敏记录正文。桌面侧栏和三个启动型浏览器提供方使用各自的会话信任，命令行客户端可显式使用监听器的公开证书。网安可启用未开代理的顶部提醒。
@@ -44,7 +44,7 @@ DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH �
 
 - **DeepSeek** 提供原始 Harness 和鲸鱼轮廓。DSHU 使用黑底图标，基于 [DeepSeek Harness 0.2.2-rc.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.2) 并保留 [MIT 许可](LICENSES/deepseek-harness-MIT.txt)。
 - **小杨（YuJunZhiXue）** 的 [dsh-purge](https://github.com/YuJunZhiXue/dsh-purge) 提供破甲文本。沿用 [MIT 历史版本 e1d8e590](https://github.com/Water-Run/dsh-purge/tree/e1d8e59087857fa86d0ef2bb9878800274b13a29) 与[原许可](LICENSES/dsh-purge-MIT.txt)。同时感谢 **JeffKeeping** 的 [dsh-purge-plus](https://github.com/JeffKeeping/dsh-purge-plus)。关于页记录 [Water-Run/dsh-purge fork 对照提交 19082c2b9788](https://github.com/Water-Run/dsh-purge/commit/19082c2b9788039fa7f8888c4a69086f43adc1ff) 及其时间。
-- **morluto** 维护 [REA](https://github.com/morluto/rea)。内置版本为 [6.8.0 · 160d821ac9a0](https://github.com/morluto/rea/commit/160d821ac9a0310afcb8d1fc427862dd6508add5)，保留 MIT 许可和第三方声明。
+- **morluto** 维护 [REA](https://github.com/morluto/rea)。内置版本为 [6.9.0 · d74549e495c5](https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0)，保留 MIT 许可和第三方声明。
 - 可选保护使用 [DB-IP Lite](https://db-ip.com/db/download/ip-to-country-lite)（[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)）和 [QuickJS](https://bellard.org/quickjs/) / [quickjs-emscripten](https://github.com/justjake/quickjs-emscripten)（[MIT 声明](LICENSES/quickjs-wasm-MIT.txt)）。GitHub 标志来自 [Octicons](https://github.com/primer/octicons)，保留 [MIT 许可](packages/client/ui-settings-account/GITHUB-MARK-LICENSE.txt)。
 
 DSHU 采用 [GPL-3.0-or-later](LICENSE)。上游和第三方组件保留各自的许可与署名。
