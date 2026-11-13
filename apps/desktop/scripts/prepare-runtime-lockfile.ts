@@ -7,6 +7,7 @@ import yaml from 'js-yaml'
 import { valid } from 'semver'
 import { z } from 'zod'
 import { desktopCorePackageSpec, type DesktopCorePackageSet } from '../src/core-package-set.ts'
+import { acceptsNpmPlatform } from '../../../scripts/npm-platform.ts'
 
 const packageSchema = z.object({
   resolution: z.object({ integrity: z.string().optional() }).passthrough(),
@@ -18,6 +19,9 @@ const nativeSchema = z.object({
 })
 const workspaceSchema = z.object({ overrides: z.record(z.string(), z.string()).optional() }).passthrough()
 const sourcePolicySchema = z.object({ minimumReleaseAgeExclude: z.array(z.string().min(1)).default([]) })
+const workspacePackageSchema = z.object({ name: z.string(), version: z.string(),
+  os: z.array(z.string()).optional(), cpu: z.array(z.string()).optional(),
+  optionalDependencies: z.record(z.string(), z.string()).optional() })
 
 /** Captured source resolutions, local archive integrities and unshipped optional native metadata. */
 export interface PreparedRuntimeLockfile {
@@ -28,7 +32,8 @@ export interface PreparedRuntimeLockfile {
 }
 
 /**
- * Seed the build-only project from the source lockfile and pin unshipped native variants.
+ * Seed the build-only project from the source lockfile, pin unshipped native variants,
+ * and exclude workspace optional providers incompatible with the target.
  * Source files remain unchanged; reviewed release-age exceptions accompany the locked resolutions.
  * Failures stop preparation before production installation.
  * @param projectRoot Disposable project with staged core packages and patch configuration.
@@ -48,6 +53,25 @@ export function prepareRuntimeLockfile(
   const settingsPath = join(projectRoot, 'pnpm-workspace.yaml')
   const settings = workspaceSchema.parse(yaml.load(readFileSync(settingsPath, 'utf8')))
   const overrides = { ...settings.overrides }
+  const workspacePackages = new Map(globSync('packages/*/*/package.json', { cwd: repositoryRoot }).map((path) => {
+    const manifest = workspacePackageSchema.parse(JSON.parse(readFileSync(join(repositoryRoot, path), 'utf8')))
+    return [manifest.name, manifest] as const
+  }))
+  const selectedNames = new Set(packageSet.packages.map(pkg => pkg.name))
+  for (const core of packageSet.packages) {
+    const owner = workspacePackages.get(core.name)
+    for (const dependency of Object.keys(owner?.optionalDependencies ?? {})) {
+      const optional = workspacePackages.get(dependency)
+      if (optional === undefined || (acceptsNpmPlatform(optional.os, target.platform)
+        && acceptsNpmPlatform(optional.cpu, target.arch))) continue
+      if (selectedNames.has(dependency)) throw new Error(`desktop lockfile: unsupported optional package was selected: ${dependency}`)
+      const selector = `${core.name}@${core.version}>${dependency}`
+      if (overrides[selector] !== undefined && overrides[selector] !== '-') {
+        throw new Error(`desktop lockfile: conflicting unsupported optional override for ${dependency}`)
+      }
+      overrides[selector] = '-'
+    }
+  }
   const omittedNative = new Map<string, z.infer<typeof nativeSchema>>()
   const nativeRoot = join(repositoryRoot, 'native/system/packages')
   const entryPath = join(nativeRoot, 'entry/package.json')

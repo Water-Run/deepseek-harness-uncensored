@@ -45,6 +45,42 @@ function native(source: string): { name: string; version: string; os: string[]; 
   return manifest
 }
 
+function platformOptional(source: string, field: 'os' | 'cpu' = 'os'): string {
+  const dependency = '@deepseek-ai/dsh-platform-fixture'
+  const owner = join(source, 'packages/bundle/core')
+  const optional = join(source, 'packages/native/platform')
+  mkdirSync(owner, { recursive: true }); mkdirSync(optional, { recursive: true })
+  writeFileSync(join(owner, 'package.json'), JSON.stringify({ name: 'core', version: '1.0.0', optionalDependencies: { [dependency]: 'workspace:*', external: '^1' } }))
+  writeFileSync(join(optional, 'package.json'), JSON.stringify({ name: dependency, version: '1.0.0',
+    [field]: field === 'os' ? ['darwin'] : ['arm64'] }))
+  return dependency
+}
+
+it.each(['os', 'cpu'] as const)('removes only unsupported workspace optional %s edges from this target resolution', (field) => {
+  const { source, project } = fixture()
+  const dependency = platformOptional(source, field)
+  prepareRuntimeLockfile(project, source, packageSet, target)
+  expect(yaml.load(readFileSync(join(project, 'pnpm-workspace.yaml'), 'utf8'))).toEqual({
+    packages: ['.'], allowBuilds: { core: false }, minimumReleaseAgeExclude: [],
+    overrides: { core: 'file:./desktop-packages/core.tgz', [`core@1.0.0>${dependency}`]: '-' },
+  })
+  expect(readFileSync(join(source, 'packages/bundle/core/package.json'), 'utf8')).toContain('workspace:*')
+  const supported = join(source, 'supported')
+  mkdirSync(supported)
+  writeFileSync(join(supported, 'pnpm-workspace.yaml'), '{}')
+  prepareRuntimeLockfile(supported, source, packageSet, { platform: 'darwin', arch: 'arm64' })
+  expect(yaml.load(readFileSync(join(supported, 'pnpm-workspace.yaml'), 'utf8'))).toHaveProperty('overrides', {})
+})
+
+it('rejects selecting an unsupported optional package or overriding its removal', () => {
+  const { source, project } = fixture()
+  const dependency = platformOptional(source)
+  expect(() => { prepareRuntimeLockfile(project, source, { ...packageSet, packages: [...packageSet.packages,
+    { name: dependency, version: '1.0.0', file: 'platform.tgz', bytes: 4, integrity: coreIntegrity }] }, target) }).toThrow('unsupported optional package was selected')
+  writeFileSync(join(project, 'pnpm-workspace.yaml'), yaml.dump({ overrides: { [`core@1.0.0>${dependency}`]: '1.0.0' } }))
+  expect(() => { prepareRuntimeLockfile(project, source, packageSet, target) }).toThrow('conflicting unsupported optional override')
+})
+
 it('carries reviewed source release-age exceptions without disabling the age policy or modifying source files', () => {
   const { source, project } = fixture()
   const sourcePath = join(source, 'pnpm-workspace.yaml')

@@ -34,6 +34,8 @@ rc.2 运行时代码、消费者、持久化声明、菜单/输入等客户端�
 
 `.13.1` 已通过十项源码构建和重新解包后的 Python 整套检查，但隔离依赖组装未传递根项目已审核的 REA 发布年龄例外，pnpm 拒绝安装，因此该轮未生成安装器。`prepareRuntimeLockfile` 现从源 workspace 读取例外，并保留注册表版本和完整性校验；18 项回归涵盖不同版本仍被拒绝、错误配置不写入及源文件不变，两个聚合类型检查通过。未关闭发布年龄策略。重新打包前核对具体运行句柄与状态；依赖恢复后使用 `node_modules/.bin` 内的 pnpm 11.28.5，不依赖用户 PowerShell profile。
 
+`.13.2` 已通过发布年龄检查，锁文件校验拒绝了 Windows 上不适用的 macOS 可选插件的注册表解析。现按源清单的 OS/CPU，仅从声明父包移除不兼容的工作区可选依赖；保留兼容、必需和外部依赖，且不扩展注册表信任。21 项回归通过，真实隔离 pnpm 解析、补丁与源锁完整性校验通过，共选择 355 个本地核心包。证据在系统交付目录的 `platform-optional-tests-final.log`、`runtime-resolution-result.json`、`runtime-resolution-settings.yaml` 和 `runtime-resolution-lock.yaml`。当前两轮均未生成安装器，系统仍为 `.7`。
+
 保护后端、依赖许可、签名更新及完整终验尚未完成，不标记 Goal 完成。用户此前要求的额度收尾已经执行，后来明确恢复；当前不因旧阈值自行再次暂停。
 
 ## 恢复与历史
