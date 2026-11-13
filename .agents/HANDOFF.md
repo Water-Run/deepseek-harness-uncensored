@@ -1,53 +1,60 @@
 # DSHU 开发交接
 
-更新于 2026-11-13。Goal「实现DSHU」继续 active。Windows 新版已安装并打开供检查；Linux 新包正在构建。实际剩余额度降到 1% 时完成收尾、保存恢复入口并暂停，不把未完成目标标为完成。
+**额度收尾**　当前实时剩余 1%，已停止新增开发；完成打包、安装、文档与推送后暂停。见[本次收尾记录](requirements/2026-11-13-quota-closeout.md)。
+
+更新于 2026-11-13。Goal「实现DSHU」已触发剩余 1% 的收尾条件，目前仅收尾打包，完成后暂停。Windows `.13.4` 已安装并通过隔离 API 验收，Linux `.linux.3` 已完成归档与隔离验收。实际剩余额度降到 1% 时收尾并暂停，不把未完成目标标为完成。
 
 ## 当前交付
 
 | 项目 | 状态 |
 | --- | --- |
-| Windows x64 检查版 | `0.1.0-test.20261113.3`，已原位安装 |
-| DSHU 产品 / DSH 内核 | `0.1.0` / `0.2.2-rc.2` |
-| 内置 REA | `6.9.0`，上游 `d74549e495c58eb4a560279fd9f05508401ea0a0`，255 项目录 |
-| 安装源码 | `093923a2a69f6ea70701c32009323ca2a1ce9cf3`，已推送 main |
-| 签名 | 本机未签名检查包；正式签名、发布与在线升级仍待验收 |
-| Linux x64 | `0.1.0-test.20261113.linux.2` 正在独立目录构建，尚未交付 |
+| Windows x64 | `0.1.0-test.20261113.4`，已原位安装并复验 |
+| Windows 安装源码 | `15062d2875c6043cfb065f46d4242da2ac443b35` |
+| DSHU / DSH 内核 | `0.1.0` / `0.2.2-rc.2` |
+| REA | `6.9.0`，`d74549e495c58eb4a560279fd9f05508401ea0a0`，255 项目录 |
+| Linux x64 | `0.1.0-test.20261113.linux.3`，deb 与便携包已校验，源码 `45e00378b9329c2cbe1806cc789e4cdf3499b891` |
+| 正式发行 | 签名、在线升级、完整许可及实体桌面验收未完成 |
 
-安装器位于 `%USERPROFILE%/DSHU-Deliveries/20261113/DSHU-0.1.0-test.20261113.3-core-0.2.2-rc.2-REA-6.9.0-win-x64-093923a.exe`，SHA-256 为 `a06e5a8ae2eb4f9106fcf723ef1c40ea9b18ec2abb2f728e0a4a8811922db774`。同目录保留块映射、摘要、`current-windows-manifest.json`、运行时描述符和验证日志。
+Windows 安装器：`%USERPROFILE%/DSHU-Deliveries/20261113/15062d/DSHU-0.1.0-test.20261113.4-core-0.2.2-rc.2-REA-6.9.0-win-x64-15062d2.exe`。SHA-256：`a1c0b033488ae48acfe177e181c9b7cca67b691ae002b6ef5eb0146a2a18a41e`。同目录保留块映射、摘要、运行时描述符、安装及校验回执。
 
-## 验证与边界
+## 已验证与剩余边界
 
-- 实际 NSIS 两层归档、31,124 个运行时文件的清单、源码身份和 21 份补充声明摘要通过；归档检验使用系统实际路径。
-- 打包前后均通过四模式、REA 255 项目录与 JavaScript 分析、Office 三种文档的转换/渲染/重算、插件安装卸载，以及 301 字符路径 ConPTY 检查。
-- 系统安装后，7,273 个原用户文件与原版 DSH 两份程序文件摘要一致。WSL 从物理安装目录重新核对程序和 ASAR，均匹配合格安装器。
-- 实际安装目录的完整运行时、四模式、新会话、命令执行、旁问重开、手动清理及主旁会话删除通过。测试使用独立资料和固定本地命令，没有发起模型请求，也没有删除用户会话。
-- REA 6.9.0 已通过 Ghidra 12.1.4、Java 27、Node 24.22.1 的原生样本检查。Frida 目标插桩和商业引擎仍未验收。
-- Windows 当前包有 917 个 npm 包、21 份补充声明，8 项许可仍需核查。正式发布、实体桌面和其他完整终验见 [TODO](TODO.md)。
+- 实际 NSIS 两层归档、31,124 个运行时文件、源码身份、Electron 声明与 21 份补充声明摘要通过。Windows Office 0.2.3 的五份嵌套原文也与预构建清单一致。
+- 打包前后均通过四模式、REA 255 项目录及 JavaScript、Office 三种文档转换/渲染/重算、插件安装卸载与 301 字符路径 ConPTY 检查。
+- 原位更新保留 7,280 个用户文件；官方 DSH 两份程序文件保持不变。WSL 直接核对物理安装的 EXE 和 ASAR，匹配合格安装器。
+- 实装的完整运行时、四模式、新会话、命令执行、旁问重开/清理及主旁会话删除通过。验收使用独立资料，没有发起模型请求或删除用户会话。
+- Windows 新包为 917 个 npm 包、21 份补充声明、7 项许可待核查；文本覆盖不代表整合发行许可已审完。
+- REA 6.9.0 的 Ghidra 12.1.4、Java 27、Node 24.22.1 原生样本检查已通过；Frida 目标插桩及商业引擎未验收。
 
-本轮同时修复了发布年龄例外未传入隔离安装，以及不兼容平台的工作区可选插件误解析到注册表的问题。21 项回归、两个聚合类型检查和 355 个本地核心包的真实隔离解析通过；源锁版本与完整性检查保留。完整内核适配、271 项回放和冻结历史保护的范围见 [rc.2 清单](requirements/2026-11-11-dsh-rc2.md)。
+Linux `.linux.2` 通过准备阶段的四模式、REA 和 Office 检查，但最终 ASAR 冒烟失败，因此没有交付。真实 Electron 验证发现：ASAR 对缺失目录返回 `null`，被引擎解析器误判为安装不完整，阻止了 WASM 回退。`45e00378b9` 采用最小修正；失败先复现，随后 17 项定向测试、完整构建和真实 Electron 缺失目录/WASM 解析回归通过。随后 `.linux.3` 已通过最终 ASAR 冒烟、两种归档的运行时清单与原文摘要、四模式及主旁会话 API；X11、Wayland 引导页和渲染沙箱通过。
 
-## 范围与约定
+当前源码另完成引导页长名称换行及窄窗表单（`6be4222726`）、日出日落外观读取（`14b7314cd1`）。前者有 30 项测试和五种实页布局状态，后者有 19 项测试及完整构建；尚未包含在当前检查包中，下一轮统一打包。
 
-仅 main，中文提交并推送。不使用 Computer Use。已有授权允许测试、重启、卸载和原位安装 DSHU，保留用户资料；当前实际 GUI 已打开，后续后台验证继续使用独立资料。
+Linux 交付位于 `%USERPROFILE%/DSHU-Deliveries/20261113/45e003`。tar.gz SHA-256 为 `405746d94cd137f3dec80e756f94b0b057967dd278c95436ed4af01e99dbfcb2`，deb 为 `050ff456c5e372b8cf8e819797e3b359650e62cd41d8c24095407c69507e80d9`；包含同一 ASAR。清单为 919 个 npm 包、26 份补充声明、9 项待核查。主工作区与原资料保持隔离，图形检查未使用沙箱绕过参数。
 
-本轮继续 Windows x64、Linux x64 Desktop 与已报告问题。macOS、Android＋PRoot Fedora、全新独立安装器仅保留未来计划，不作为本轮验收前置。现有 DSHU 品牌安装器继续维护。
+完整范围见 [TODO](TODO.md) 和 [rc.2 清单](requirements/2026-11-11-dsh-rc2.md)。进阶保护后端、许可、签名、更新与其他终验继续保留，不能以界面状态替代执行验证。
 
-进阶真实目标与生产资源保护默认关闭。限额默认全关，优先展示 5h 与周；余额默认 15 秒、最短 3 秒；输入预测默认开；旁问自动清理默认关，`/clear` 仅在旁问中使用。
+## 约定与默认值
 
-## 恢复与历史
+仅 main，中文提交并推送；不使用 Computer Use。已有授权允许测试、重启、卸载和原位安装 DSHU，并保留资料。本次正常退出请求失败后，仅结束核对过路径及启动时间的 DSHU 进程，待全部退出后才备份资料和安装；记录为 `scoped-app-stop.json`。
 
-主工作区为 `D:/Coding/deepseek-harness-uncensored`。运行时代码对应安装源码 `093923a2a69f`；后续文档提交不改变该已安装源码身份。当前状态为 `%USERPROFILE%/DSHU-Deliveries/20261113/development-state.json`，新交付和备份放在用户主目录，避免 AppData 在不同进程中的重定向差异。
+当前范围为 Windows/Linux 桌面。macOS、Android＋PRoot Fedora、全新独立安装器只保留未来计划。进阶真实目标和生产资源保护默认关闭；限额全关，优先展示 5h 与周；采样默认 15 秒、最短 3 秒；输入预测默认开；旁问关闭自动清理默认关，`/clear` 仅在旁问中可用。
 
-- 旧 `.7` 程序：`%USERPROFILE%/DSHU-Backups/20261113T022030Z-installed-program`，15,518 个文件已校验。
-- 安装前资料：`%USERPROFILE%/DSHU-Backups/20261113T034338Z-before-20261113-3`，7,273 个文件已校验；自动回退仍未验收。
-- 当前 Windows 回执：`current-windows-manifest.json`、`installed-update-result.json`、`physical-installation-result.json`、`installed-runtime-result.json`、`physical-data-backup-result.json`。旁问/删除检查见 `installed-side-delete-verification.log`。
-- Linux 源码：`/home/linzh/.cache/dshu-verification/linux-rc2-20261113.iLMw1C/source`，detached `093923a2a69f`；前轮日志 `linux-build-2.log`，运行记录 `2026-11-13T04-30-34.464Z-1BeCcF`，已主动停止慢速重复下载。15 份锁定资源和解释器检查通过；后续重构建复用同机 Linux pnpm 内容缓存，保持摘要校验，并带入 Office 0.2.3 声明记录。继续时先验证当前进程或原运行句柄，不能因观察超时直接重启。
-- 原始合并现场仍有 Git 引用：`refs/dshu-checkpoints/rc2-delivery-ready-checkpoint-QRTzL7`（`6a169e4d7c01`）、`refs/dshu-checkpoints/main-before-rc2-20261112`（`2184cb541c3e`）、`refs/dshu-checkpoints/runtime-release-age-policy-20261113`（`989f789b3c17`）。不要重跑初始合并或整目录恢复脚本。
+## 恢复入口
 
-用户确认清理结束后，锁定依赖已恢复。旧 `.dsh-build` 安装包、ZIP、状态及部分日志已移除；源文件、Git 检查点和系统安装保留。重新核对的 3,523 份规范 Session、归档及其目录说明文件与 Git 对象一致。项目内只保留可重建的临时构建，用户主目录的交付、备份和 Git 检查点不作为缓存清理。
+主工作区：`D:/Coding/deepseek-harness-uncensored`。源码修正 `45e00378b9` 已推送 main。Windows 与 Linux 检查包各自记录实际构建提交；不能把文档 HEAD 当作已安装源码。
 
-以下保留旧交付、验证和恢复记录及其锚点。旧“当前状态”属于当时记录，当前状态以上文和 TODO 为准；其中已清理的临时文件不代表现存附件。
+- 当前状态：`%USERPROFILE%/DSHU-Deliveries/20261113/development-state.json`。
+- Windows 回执：`20261113/15062d/current-windows-manifest.json`、`installed-update-result.json`、`physical-installation-result.json`、`installed-runtime-result.json`。
+- `.13.3` 程序备份：`%USERPROFILE%/DSHU-Backups/20261113-before-4-program`，16,429 个文件；更新前资料：`20261113T051756Z-before-20261113-4`，7,280 个文件。均在用户目录，避免 AppData 虚拟映射。自动回退未验收。
+- 旧 `.7` 程序与 `.13.3` 更新前资料备份仍在 `DSHU-Backups`，保留为恢复点。
+- Linux 源码：`/home/linzh/.cache/dshu-verification/linux-rc2-20261113.iLMw1C/source`，detached `45e00378b9`。构建日志 `linux-build-5.log`，运行 `2026-11-13T05-21-28.118Z-uSPDkR`；新交付目录 `20261113/45e003`，包含 `current-linux-manifest.json`、归档/API 回执和 X11/Wayland 记录。本轮构建已结束；继续时先查终态，不重复启动旧运行。
+- 源码跨 Windows/WSL 用增量 Git bundle 传递，保留真实 main 祖先，不发布临时合成历史。锁文件及 15 份解释器/库资源摘要保持；Linux 重用内容缓存时仍验证完整性。
+- 合并检查点：`refs/dshu-checkpoints/rc2-delivery-ready-checkpoint-QRTzL7`、`refs/dshu-checkpoints/main-before-rc2-20261112`、`refs/dshu-checkpoints/runtime-release-age-policy-20261113`。不要重跑初始合并或整目录恢复。
 
+用户已确认清理结束。锁定依赖已恢复；旧 `.dsh-build` 包、ZIP、状态和部分日志已移除。Git 检查点与系统安装保留，3,523 份规范 Session、冻结归档及其目录说明匹配 Git 对象。交付、备份及 Git 检查点不作为构建缓存清理。
+
+以下保留历史记录和锚点；旧“当前状态”属于当时记录。已清理的临时文件不代表现存附件。
 
 <details>
 <summary>展开历史交付、验证日志和恢复记录</summary>
@@ -57,7 +64,7 @@
 
 ## 当前 rc.2 回放验收节点（2026-11-12）
 
-Goal「实现DSHU」继续 active。macOS、Android＋PRoot Fedora 和全新独立安装器仍为未来计划；现有 Windows/Linux 桌面、rc.2 内核及已有问题继续推进。当前系统与 main 运行时代码仍为 `.7` / rc.1，尚未制作 rc.2 安装包。
+Goal「实现DSHU」已触发剩余 1% 的收尾条件，目前仅收尾打包，完成后暂停。macOS、Android＋PRoot Fedora 和全新独立安装器仍为未来计划；现有 Windows/Linux 桌面、rc.2 内核及已有问题继续推进。当前系统与 main 运行时代码仍为 `.7` / rc.1，尚未制作 rc.2 安装包。
 
 最新完整构建 10 个门禁通过，包含 Host/客户端聚合类型检查；当前三个维护源文件的类型感知 lint 退出 0。已有 1,164 组双语配对通过，随后修改的快照支持 README 已通过指定配对；生成器与保留策略的 90 项既有证据继续有效。
 
