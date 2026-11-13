@@ -81,6 +81,7 @@ body {
   flex: 1;
   min-height: 0;
   grid-template-rows: 40px minmax(0, 1fr) 104px;
+  grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   align-items: center;
   padding: 24px 48px 76px;
@@ -104,12 +105,14 @@ body {
 
 .tagline {
   margin: 0;
+  min-width: 0;
+  max-width: 100%;
   color: var(--dsw-alias-label-secondary);
   font-size: 24px;
   font-weight: 300;
   line-height: 40px;
   text-align: center;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .tagline h1,
@@ -139,7 +142,7 @@ body {
   flex: none;
   flex-direction: column;
   gap: 16px;
-  width: 240px;
+  width: min(240px, 100%);
 }
 
 .actions button {
@@ -234,7 +237,7 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 40px;
-  width: 440px;
+  width: min(440px, 100%);
 }
 
 .key-heading {
