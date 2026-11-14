@@ -24,7 +24,16 @@ export interface PluginInventorySettingsTabInjected {
   /** Resolve local package text in the current Client locale at render time. */
   resolveText: (text: LocalizedText) => string
   /** Page-local module synchronization, independent from the Host inventory. */
-  hooks: { clientSync: ObservableSnapshot<ClientEntryState> }
+  hooks: {
+    clientSync: ObservableSnapshot<ClientEntryState>
+    /** Client-owned filter retained while the UI withdraws for module teardown. */
+    inventoryFilter: ObservableSnapshot<string>
+  }
+  /**
+   * Replace this client's inventory filter.
+   * @param query - Untrimmed search input.
+   */
+  setFilter: (query: string) => void
   /** Retry the latest client graph without changing the Host composition. */
   retryClient: () => void
   /** Read a current Host inventory snapshot. */
@@ -250,12 +259,14 @@ function StateTag({ kind, label }: { readonly kind: EnablementKind; readonly lab
 
 /** Render the read-only plugin inventory: agent presets first, then the global plane. */
 export function PluginInventorySettingsTab(
-  { list, presetName, resolveText, t, useClientSync, retryClient }: PluginInventorySettingsTabProps,
+  {
+    list, presetName, resolveText, t, useClientSync, useInventoryFilter, setFilter: setQuery, retryClient,
+  }: PluginInventorySettingsTabProps,
 ): ReactNode {
   const clientSync = useClientSync(snapshot => snapshot)
   const sectionId = useId()
   const [request, setRequest] = useState(0)
-  const [query, setQuery] = useState('')
+  const query = useInventoryFilter(value => value)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [chosenPreset, setChosenPreset] = useState<string | null>(null)
   const [switcherOpen, setSwitcherOpen] = useState(false)

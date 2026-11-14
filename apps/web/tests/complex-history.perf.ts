@@ -34,7 +34,7 @@ import {
   webSnapshotMode,
   type WebScaffold,
 } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage } from './support.ts'
+import { connectFreshWorkspace, newConversationReplayPage } from './support.ts'
 
 const SIDEBAR_SESSION_COUNT = 1_000
 const LONG_SESSION_ID = 'perf-long-history'
@@ -869,7 +869,7 @@ async function launchPerformanceWorld(
       await seedSession(scaffold, longHistoryFixture(), LONG_SESSION_ID)
     }
     const setupMs = performance.now() - setupStarted
-    page = await newEnglishPage(options.browser)
+    page = await newConversationReplayPage(options.browser)
     return {
       scaffold,
       page,

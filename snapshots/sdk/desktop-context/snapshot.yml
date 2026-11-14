@@ -7,3 +7,7 @@ recording: authored
 header:
   class: sdk-desktop
   pin: true
+sessionFormat:
+  version: 4
+  coverage:
+    - behavior-update

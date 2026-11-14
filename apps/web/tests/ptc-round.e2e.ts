@@ -11,7 +11,7 @@ import {
   acknowledgeReloadConnectionLoss, captureExpandedTurnProcessAria, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
   launchWebScaffold, recordFixture, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { connectFreshWorkspace, expandOwningTurnProcess, newEnglishPage, openSettings, saveFailureShot } from './support.ts'
+import { connectFreshWorkspace, expandOwningTurnProcess, newConversationReplayPage, openSettings, saveFailureShot } from './support.ts'
 
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/ptc-round/session.v3.jsonl', import.meta.url))
 const UI_EXPECTED = fileURLToPath(new URL('../../../snapshots/web/ptc-round/ui.expected.md', import.meta.url))
@@ -41,7 +41,7 @@ describe('web e2e: PTC mode round renders nested sub-calls', () => {
     })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { sessionEvents.push(event) })
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
@@ -258,7 +258,8 @@ describe('web e2e: PTC mode round renders nested sub-calls', () => {
     const wrap = page.getByRole('button', { name: 'Wrap lines', exact: true })
     expect(await wrap.getAttribute('aria-pressed')).toBe('false')
     const content = page.locator('[data-wrap]').filter({ has: source })
-    expect(await content.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true)
+    await content.evaluate((element) => { element.style.maxWidth = '240px' })
+    await expect.poll(() => content.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true)
     await wrap.click()
     expect(await wrap.getAttribute('aria-pressed')).toBe('true')
     await expect.poll(() => content.evaluate(element => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1)
@@ -271,28 +272,29 @@ describe('web e2e: PTC mode round renders nested sub-calls', () => {
     expect(await json.textContent()).toContain(args.description)
     await page.getByRole('button', { name: 'Original JSON' }).click()
     expect(await source.textContent()).toBe(args.code.endsWith('\n') ? args.code.slice(0, -1) : args.code)
+    await content.evaluate((element) => { element.style.removeProperty('max-width') })
     await page.getByRole('tab', { name: 'Summary', exact: true }).click()
     expect(await wrap.getAttribute('aria-pressed')).toBe('true')
   })
 
-  it.skipIf(MODE === 'record')('renders the same recorded tool round in Japanese without translating model or tool data', async () => {
-    onTestFailed(() => saveFailureShot(page, 'web-e2e-ptc-japanese'))
+  it.skipIf(MODE === 'record')('renders the same recorded tool round in Chinese without translating model or tool data', async () => {
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-ptc-chinese'))
     await openSettings(page, 'en')
     const settings = page.getByRole('dialog', { name: 'Settings', exact: true })
     await settings.getByRole('button', { name: 'English', exact: true }).click()
-    await page.getByRole('menuitem', { name: '日本語', exact: true }).click()
-    await page.getByRole('dialog', { name: '設定', exact: true }).waitFor()
+    await page.getByRole('menuitem', { name: '中文', exact: true }).click()
+    await page.getByRole('dialog', { name: '设置', exact: true }).waitFor()
     await page.keyboard.press('Escape')
-    await page.getByRole('tab', { name: 'チャット', exact: true }).click()
+    await page.getByRole('tab', { name: '对话', exact: true }).click()
     await page.getByText('DONE', { exact: true }).waitFor()
-    expect(await page.evaluate(() => document.documentElement.lang)).toBe('ja')
+    expect(await page.evaluate(() => document.documentElement.lang)).toBe('zh-CN')
     const row = page.locator('[data-subcalls] [data-sample="bash"]').first()
     await expandOwningTurnProcess(page, row)
     if (await row.getAttribute('aria-expanded') !== 'true') await row.click()
     await row.locator('xpath=..').getByText('echo CODE_ROUND_OK', { exact: true }).waitFor()
     const snapshot = await captureExpandedTurnProcessAria(page, '[class*="centerCol"]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(
-      fileURLToPath(new URL('../../../snapshots/web/ptc-round/ui-ja.expected.md', import.meta.url)), snapshot, MODE,
+      fileURLToPath(new URL('../../../snapshots/web/ptc-round/ui-zh.expected.md', import.meta.url)), snapshot, MODE,
     )
   })
 

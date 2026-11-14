@@ -295,7 +295,7 @@ const EXACT_EDITS: readonly ExactEdit[] = [
     id: 'root-agents-vendored-name-contract',
     file: 'AGENTS.md',
     find: 'vendored packages keep upstream names and are `private: true`. `cordis` is a peerDependency (+ dev) of every harness package.',
-    replace: 'vendor is [rescoped](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.2/docs/rescope.md) and `private: true`. Harness packages declare `@deepseek-ai/cordis` in `peerDependencies`/`devDependencies`.',
+    replace: 'vendor is [rescoped](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.3/docs/rescope.md) and `private: true`. Harness packages declare `@deepseek-ai/cordis` in `peerDependencies`/`devDependencies`.',
     expect: 1,
   },
   {
@@ -626,13 +626,16 @@ export type ExactEditState = 'pending' | 'applied' | 'invalid'
  * An insertion keeps its anchor (`replace` contains `find`) and a deletion
  * keeps its remainder (`find` contains `replace`), so neither can be judged by
  * the source form alone: the surviving side counts the target form instead.
- * @param text - the complete current text of the edited file.
+ * @param text - the complete current text of the edited file; LF and CRLF are equivalent.
  * @param find - the source form, already oriented for the running direction.
  * @param replace - the target form, already oriented for the running direction.
  * @param expect - how many occurrences one complete application produces.
  * @returns Whether the edit is pending, already applied, or invalid.
  */
 export function exactEditState(text: string, find: string, replace: string, expect: number): ExactEditState {
+  text = text.replaceAll('\r\n', '\n')
+  find = find.replaceAll('\r\n', '\n')
+  replace = replace.replaceAll('\r\n', '\n')
   const hits = text.split(find).length - 1
   const landed = text.split(replace).length - 1
   if (replace.includes(find)) {
@@ -700,7 +703,7 @@ function main(): void {
     // Re-read per edit: two edits can target one file, and a stale snapshot
     // would let the second write discard the first.
     for (const { path, find, replace } of planned) {
-      writeFileSync(path, readFileSync(path, 'utf8').split(find).join(replace))
+      writeFileSync(path, readFileSync(path, 'utf8').replaceAll('\r\n', '\n').split(find).join(replace))
     }
   }
 
@@ -726,7 +729,7 @@ function main(): void {
     for (const check of POSTCONDITIONS) {
       if (reverse) break
       const path = resolve(root, check.file)
-      const hits = existsSync(path) ? readFileSync(path, 'utf8').split(check.text).length - 1 : -1
+      const hits = existsSync(path) ? readFileSync(path, 'utf8').replaceAll('\r\n', '\n').split(check.text).length - 1 : -1
       if (hits !== check.count) {
         failures.push(`postcondition: ${check.file} has ${String(hits)} occurrence(s) of ${JSON.stringify(check.text)}, expected ${String(check.count)}`)
       }

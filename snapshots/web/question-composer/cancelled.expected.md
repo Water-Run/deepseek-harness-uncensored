@@ -1,5 +1,6 @@
 - banner:
   - navigation "Session hierarchy": Use the ask_user_question tool to
+  - button "Side question"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -23,6 +24,8 @@
 - 'button "Access mode, current: Workspace Write"': Workspace Write
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message" [disabled]
-- button "1 turns 1 steps · {{throughput}} tok/s": 1 turns 1 steps{{throughput}} tok/s
+- 'button "Turns: 1 · Steps: 1 · {{throughput}} tok/s"': "Turns: 1 · Steps: {{throughput}} tok/s"
 - button "4.4K tok · Cache hit 97%": 4.4K tokCache hit 97%
+- 'button "Conversation cost: ￥0.001654"': ￥0.001654
+- 'button "Spending limits: Off"': "Off"
 - button "3% of context used": 3%

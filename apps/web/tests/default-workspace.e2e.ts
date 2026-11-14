@@ -8,7 +8,7 @@ import {
   assertFinalWorkspaceSnapshot, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts, launchWebScaffold,
   selectedSessionFixture, watchConsole, webSnapshotMode,
 } from './scaffold.ts'
-import { newEnglishPage, saveFailureShot } from './support.ts'
+import { configureConversationReplay, newConversationReplayPage, saveFailureShot } from './support.ts'
 
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/fresh-round-trip/session.v3.jsonl', import.meta.url))
 const EXPECTED = fileURLToPath(new URL('../../../snapshots/web/default-workspace/ui.expected.md', import.meta.url))
@@ -28,7 +28,7 @@ describe.skipIf(MODE === 'record')('web e2e: default Workspace', () => {
     onTestFinished(() => scaffold.close())
     const browser = await chromium.launch()
     try {
-      const page = await newEnglishPage(browser)
+      const page = await newConversationReplayPage(browser)
       const tripwire = watchConsole(page)
       try {
         await page.goto(scaffold.authenticatedUrl)
@@ -76,10 +76,10 @@ describe.skipIf(MODE === 'record')('web e2e: default Workspace', () => {
       onTestFinished(() => scaffold.close())
       const browser = await engine.launch()
       onTestFinished(() => browser.close())
-      const page = await browser.newPage({
+      const page = await configureConversationReplay(await browser.newPage({
         viewport: { width: 390, height: 844 }, locale: 'en-US', timezoneId: 'Asia/Shanghai',
         isMobile: true, hasTouch: true,
-      })
+      }))
       await page.goto(scaffold.authenticatedUrl)
       const trigger = page.getByRole('button', { name: 'Choose workspace', exact: true })
       await trigger.getByText('Default workspace', { exact: true }).waitFor()
@@ -105,7 +105,7 @@ describe.skipIf(MODE === 'record')('web e2e: default Workspace', () => {
     await mkdir(chosen)
     const browser = await chromium.launch()
     try {
-      const page = await browser.newPage({ locale: 'zh-CN', timezoneId: 'Asia/Shanghai' })
+      const page = await configureConversationReplay(await browser.newPage({ locale: 'zh-CN', timezoneId: 'Asia/Shanghai' }))
       const tripwire = watchConsole(page)
       try {
         await page.goto(scaffold.authenticatedUrl)
@@ -148,7 +148,7 @@ describe.skipIf(MODE === 'record')('web e2e: default Workspace', () => {
     onTestFinished(() => scaffold.close())
     const browser = await chromium.launch()
     try {
-      const page = await newEnglishPage(browser)
+      const page = await newConversationReplayPage(browser)
       const attempted = page.waitForResponse(response => response.url().includes('/api/workspace/initializeDefault'))
       await page.goto(scaffold.authenticatedUrl)
       expect((await attempted).ok()).toBe(true)

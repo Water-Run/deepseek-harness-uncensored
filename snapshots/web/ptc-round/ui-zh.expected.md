@@ -1,0 +1,43 @@
+- banner:
+  - navigation "会话层级": "Using ONE run_code program: run"
+  - button "会话模式：ptc" [disabled]: ptc
+  - button "旁问"
+  - button "更多操作"
+  - button "打开右侧边栏"
+  - tablist:
+    - tab "对话" [selected]
+    - tab "轨迹"
+  - button "更多会话视图"
+- text: "Using ONE run_code program: run bash `echo CODE_ROUND_OK`, then read the file missing.txt catching its error in the program. Return an object with both outcomes. Then reply DONE and stop. {{clock}}"
+- button "复制"
+- status: 已完成
+- button "已完成，用时 {{duration}}" [disabled] [expanded]
+- button "上下文注入 runtime-context"
+- button "上下文注入 skill-catalog"
+- button "上下文注入 time-context"
+- 'button "思考 The user wants me to write a single `run_code` program that:"'
+- button "代码 Run bash echo and catch missing file read"
+- button "运行命令 Echo CODE_ROUND_OK" [expanded]
+- text: 已完成 workspace echo CODE_ROUND_OK
+- button "复制"
+- text: CODE_ROUND_OK
+- button "查看"
+- text: 失败
+- 'button "读取 Error: cannot read \"{{cwd}}/workspace/missing.txt\": not found"'
+- button "思考 The program ran successfully. Let me now reply DONE as instructed."
+- paragraph: DONE
+- button "复制"
+- button "好的回答"
+- button "有问题的回答"
+- button "在新对话中分支"
+- text: {{clock}}
+- textbox "发消息或创建任务, / 调用指令, @ 文件或对话"
+- button "添加文件或调用指令"
+- button "访问模式，当前：完全权限": 完全权限
+- button "选择模型，当前 DeepSeek-V4-Flash": DeepSeek-V4-Flash
+- button "发送消息" [disabled]
+- button "1 轮 2 步 · {{throughput}} tok/s": 1 轮 2 步{{throughput}} tok/s
+- button "17.5K tok · 缓存命中 52%": 17.5K tok缓存命中 52%
+- 'button "本对话费用: ￥0.02"': ￥0.02
+- 'button "额度限制: 未启用"': 未启用
+- button "上下文已用 7%": 7%

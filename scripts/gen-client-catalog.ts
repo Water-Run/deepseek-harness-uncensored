@@ -583,6 +583,7 @@ export function renderClientCatalog(entries: readonly SlotEntry[]): string {
 
 /**
  * CLI entry: regenerate the catalog, or with `--check` fail when it is stale.
+ * LF and CRLF checkouts compare against the same generated source.
  * @returns nothing; writes the artifact or reports freshness through the process.
  */
 export function main(): void {
@@ -597,7 +598,7 @@ export function main(): void {
       // same as a stale artifact's: regenerate.
       committed = null
     }
-    if (committed === content) {
+    if (committed?.replaceAll('\r\n', '\n') === content) {
       console.log(`gen-client-catalog: ${OUT} is up to date.`)
       process.exit(0)
     }

@@ -14,7 +14,7 @@ import {
   webSnapshotMode,
   type WebScaffold,
 } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
+import { connectFreshWorkspace, newConversationReplayPage, saveFailureShot } from './support.ts'
 
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/lifecycle-chrome/session.v3.jsonl', import.meta.url))
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/sidebar-browser', import.meta.url))
@@ -35,7 +35,7 @@ describe.skipIf(MODE === 'record')('web e2e: Sidebar Browser', () => {
       extraOverlayPath: fileURLToPath(new URL('./sidebar-browser.overlay.yml', import.meta.url)),
     })
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     await page.route('https://browser.test/**', async (route) => {
       const name = new URL(route.request().url()).pathname.slice(1) || 'one'
       await route.fulfill({

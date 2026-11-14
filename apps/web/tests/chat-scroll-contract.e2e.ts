@@ -24,7 +24,7 @@ import {
   webSnapshotMode,
   type WebScaffold,
 } from './scaffold.ts'
-import { expandOwningTurnProcess, newEnglishPage, openSettings, saveFailureShot } from './support.ts'
+import { expandOwningTurnProcess, newConversationReplayPage, openSettings, saveFailureShot } from './support.ts'
 
 const MODE = webSnapshotMode()
 const HISTORY_SESSION_ID = 'chat-scroll-history-e2e'
@@ -207,7 +207,7 @@ async function launchScrollWorld(options: ScrollWorldOptions): Promise<ScrollWor
     const assistantFrames: AssistantStreamFrame[] = []
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { events.push(event) })
     scaffold.ctx.on('agent/assistant-stream', ({ frame }) => { assistantFrames.push(frame) })
-    page = await newEnglishPage(browser, 900)
+    page = await newConversationReplayPage(browser, 900)
     if (options.controlledClock) await page.clock.install()
     const tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
@@ -239,7 +239,7 @@ async function launchScrollWorld(options: ScrollWorldOptions): Promise<ScrollWor
 
 async function closeScrollWorld(world: ScrollWorld): Promise<void> {
   const failures: unknown[] = []
-  // newEnglishPage/browser.newPage owns an isolated context. Close the whole
+  // newConversationReplayPage/browser.newPage owns an isolated context. Close the whole
   // context so its SSE connection and cache cannot leak into the next world
   // in this file's shared Chromium process.
   await world.page.context().close().catch((error: unknown) => failures.push(error))
@@ -1358,6 +1358,7 @@ describe('web e2e: long Chat scroll contract', () => {
       replay: [replayEntry(textStream(LIVE_TEXT_FIRST, LIVE_TEXT_DONE, 120))],
       seeds: [{ fixture: HISTORY_FIXTURE, id: HISTORY_SESSION_ID }],
     }, async (world) => {
+      await world.scaffold.ctx.settings.update('ui-chat', { transcriptView: 'detailed', collapseTiming: 'completion' })
       await openSeed(
         world.page,
         HISTORY_FIXTURE,
@@ -1439,7 +1440,8 @@ describe('web e2e: long Chat scroll contract', () => {
         if (consumed || await loadedFlowRows(world.page) > before) additionalPages += 1
         if (await world.page.locator('[data-chat-history]').getByRole('button').isDisabled()) break
       }
-      expect(additionalPages).toBeGreaterThan(0)
+      // The held fetch can already contain all earlier turns.
+      expect(historyRequests).toBeGreaterThan(0)
       // The whole log is loaded: turn 1's unique marker renders in the
       // transcript (scoped: the sidebar search row also carries it) and no
       // page remains.
@@ -1479,7 +1481,7 @@ describe('web e2e: long Chat scroll contract', () => {
       await openSettings(world.page, 'en')
       await world.page.getByRole('dialog', { name: 'Settings', exact: true })
         .getByText('Work details', { exact: true }).locator('../..')
-        .getByRole('button', { name: 'Detailed', exact: true }).click()
+        .getByRole('button').click()
       await world.page.getByRole('menuitem', { name: 'Standard', exact: true }).click()
       await expect.poll(() => world.scaffold.ctx.settings.describe().find(row => row.ns === 'ui-chat')?.value)
         .toMatchObject({ transcriptView: 'standard' })

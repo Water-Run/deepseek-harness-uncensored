@@ -19,7 +19,7 @@ import {
   type WebScaffold,
 } from './scaffold.ts'
 import {
-  connectFreshWorkspace, conversationContextKey, expandOwningTurnProcess, newEnglishPage, saveFailureShot,
+  connectFreshWorkspace, conversationContextKey, expandOwningTurnProcess, newConversationReplayPage, saveFailureShot,
 } from './support.ts'
 
 const MODE = webSnapshotMode()
@@ -195,7 +195,7 @@ describe('web e2e: continuous conversation grown through the composer', () => {
       sessionEvents.push(event)
     })
     browser = await chromium.launch()
-    page = await newEnglishPage(browser, 900)
+    page = await newConversationReplayPage(browser, 900)
     tripwire = watchConsole(page)
     page.on('console', (message) => {
       if (message.type() === 'warning') consoleWarnings.push(message.text())

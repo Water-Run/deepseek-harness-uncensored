@@ -22,8 +22,8 @@ import {
   captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
   launchWebScaffold, recordFixture, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import {
-  connectFreshWorkspace, connectFreshWorkspaceZh, expandOwningTurnProcess, newEnglishPage, saveFailureShot,
+import { configureConversationReplay,
+  connectFreshWorkspace, connectFreshWorkspaceZh, expandOwningTurnProcess, newConversationReplayPage, saveFailureShot,
   writeComposerDraft, ZH_BROWSER_LOCALE,
 } from './support.ts'
 
@@ -59,7 +59,7 @@ describe('web e2e: lifecycle & chrome (workspace flow / reload / dark mode)', ()
       : { replayFixture: FIXTURE, replayOverride: REPLAY_OVERRIDE, paceMs: REPLAY_PACE_MS })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { sessionEvents.push(event) })
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
@@ -115,7 +115,9 @@ describe('web e2e: lifecycle & chrome (workspace flow / reload / dark mode)', ()
   })
 
   it.skipIf(MODE === 'record')('localizes slash-command descriptions from the browser language', async () => {
-    const zhPage = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE })
+    const zhPage = await configureConversationReplay(await browser.newPage({
+      viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE,
+    }))
     const zhTripwire = watchConsole(zhPage)
     onTestFailed(() => saveFailureShot(zhPage, 'web-e2e-command-menu-zh'))
     try {
@@ -141,7 +143,7 @@ describe('web e2e: lifecycle & chrome (workspace flow / reload / dark mode)', ()
     { locale: ZH_BROWSER_LOCALE, token: '/目标', row: '目标 goal 设置或查看长期任务目标', hint: '输入目标，智能体将持续执行' },
     { locale: ZH_BROWSER_LOCALE, token: '/计划', row: '计划 plan 进入或退出计划模式', hint: '描述你的任务以生成计划' },
   ])('keeps $token claimed across separator edits and hides hints during IME composition', async ({ locale, token, row, hint }) => {
-    const inputPage = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale })
+    const inputPage = await configureConversationReplay(await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale }))
     const inputTripwire = watchConsole(inputPage)
     onTestFailed(() => saveFailureShot(inputPage, `web-e2e-command-input-${locale}-${token.slice(1)}`))
     try {
@@ -208,7 +210,7 @@ describe('web e2e: lifecycle & chrome (workspace flow / reload / dark mode)', ()
 
   it.skipIf(MODE === 'record')('shows active Plan as the business-state status action', async () => {
     const activeScaffold = await launchWebScaffold()
-    const activePage = await newEnglishPage(browser)
+    const activePage = await newConversationReplayPage(browser)
     const activeTripwire = watchConsole(activePage)
     try {
       await activePage.goto(activeScaffold.authenticatedUrl, { waitUntil: 'load' })
@@ -277,7 +279,9 @@ describe('web e2e: lifecycle & chrome (workspace flow / reload / dark mode)', ()
 
   it.skipIf(MODE === 'record')('shows the active Plan chip with the Chinese copy', async () => {
     const zhScaffold = await launchWebScaffold()
-    const zhPage = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE })
+    const zhPage = await configureConversationReplay(await browser.newPage({
+      viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE,
+    }))
     const zhTripwire = watchConsole(zhPage)
     try {
       await zhPage.goto(zhScaffold.authenticatedUrl, { waitUntil: 'load' })
@@ -490,7 +494,7 @@ describe('web e2e: lifecycle & chrome (workspace flow / reload / dark mode)', ()
   }, 60_000)
 
   it.skipIf(MODE === 'record')('shows automatic and user-requested connection recovery beside Settings', async () => {
-    const recoveryPage = await newEnglishPage(browser)
+    const recoveryPage = await newConversationReplayPage(browser)
     const recoveryTripwire = watchConsole(recoveryPage)
     const sockets: WebSocketRoute[] = []
     let rejectConnections = false

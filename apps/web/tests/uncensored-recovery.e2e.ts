@@ -6,7 +6,7 @@ import { SpendLedger, DEFAULT_PREFERENCES } from '@deepseek-ai/dsh-spend-limit/s
 import { chromium } from 'playwright'
 import { expect, it, onTestFinished } from 'vitest'
 import { launchWebScaffold, selectedSessionFixture } from './scaffold.ts'
-import { newEnglishPage } from './support.ts'
+import { newConversationReplayPage } from './support.ts'
 
 it('sends side arguments and collapses on close', async () => {
   const fixture = await selectedSessionFixture(fileURLToPath(new URL('../../../snapshots/web/feedback-command/session.v4.jsonl', import.meta.url)))
@@ -15,7 +15,7 @@ it('sends side arguments and collapses on close', async () => {
   onTestFinished(() => scaffold.close())
   const browser = await chromium.launch()
   try {
-    const page = await newEnglishPage(browser)
+    const page = await newConversationReplayPage(browser)
     page.setDefaultTimeout(15000)
     await page.goto(scaffold.authenticatedUrl)
     const mainInput = page.locator('[data-composer-input][contenteditable="true"]').first()
@@ -51,7 +51,7 @@ it('offers an icon and a working ungrouped creation action', async () => {
   onTestFinished(() => scaffold.close())
   const browser = await chromium.launch()
   try {
-    const page = await newEnglishPage(browser)
+    const page = await newConversationReplayPage(browser)
     page.setDefaultTimeout(15000)
     await page.goto(scaffold.authenticatedUrl)
     await page.getByRole('button', { name: 'Choose workspace', exact: true }).click()
@@ -82,7 +82,7 @@ it('shows a real admission wait and continues after the banner reset', async () 
   } finally { ledger.close() }
   const browser = await chromium.launch()
   try {
-    const page = await newEnglishPage(browser)
+    const page = await newConversationReplayPage(browser)
     page.setDefaultTimeout(15000)
     await page.goto(scaffold.authenticatedUrl)
     const input = page.locator('[data-composer-input][contenteditable="true"]').first()

@@ -35,7 +35,7 @@ import {
   webSnapshotMode,
   type WebScaffold,
 } from './scaffold.ts'
-import {
+import { configureConversationReplay,
   REPO_ROOT,
   connectFreshWorkspace,
   conversationContextKey,
@@ -342,11 +342,11 @@ describe.skipIf(MODE === 'record')('web e2e: conversational reminders', () => {
     )
 
     browser = await chromium.launch()
-    page = await browser.newPage({
+    page = await configureConversationReplay(await browser.newPage({
       viewport: { width: 1680, height: 1000 },
       locale: 'en-US',
       timezoneId: AT_BROWSER_ZONE,
-    })
+    }))
     await page.addInitScript(() => { localStorage.setItem('dsh.locale', 'en') })
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
@@ -813,11 +813,11 @@ describe.skipIf(MODE === 'record')('web e2e: active Schedule catalog', () => {
     await workspace.attachSession(CATALOG_SESSION_ID)
 
     browser = await chromium.launch()
-    page = await browser.newPage({
+    page = await configureConversationReplay(await browser.newPage({
       viewport: { width: 900, height: 900 },
       locale: 'en-US',
       timezoneId: AT_BROWSER_ZONE,
-    })
+    }))
     await page.clock.setFixedTime(new Date(CATALOG_NOW))
     await page.addInitScript(() => { localStorage.setItem('dsh.locale', 'en') })
     tripwire = watchConsole(page)

@@ -24,7 +24,7 @@ import { sessionFixtureName } from '@deepseek-ai/dsh-session-snapshot'
 import { snapshotSubagentDescriptor } from '@deepseek-ai/dsh-subagent'
 import { createChatScrollFixture, type ChatScrollFixture } from './chat-scroll-fixture.ts'
 import { launchWebScaffold, parseSeedFixture, seedSession, watchConsole, webSnapshotMode, type WebScaffold } from './scaffold.ts'
-import { newEnglishPage, openSettings } from './support.ts'
+import { configureConversationReplay, newConversationReplayPage, openSettings } from './support.ts'
 
 declare global {
   interface Window {
@@ -560,7 +560,7 @@ async function openWorld(browser: Browser, scenario: Case, replayDir: string): P
   const scaffold = await launchScaffold(scenario, replayDir)
   let page: Page | undefined
   try {
-    page = await newEnglishPage(browser, 900)
+    page = await newConversationReplayPage(browser, 900)
     return await prepareWorld(browser, scenario, scaffold, page)
   } catch (error) {
     const failures: unknown[] = [error]
@@ -593,6 +593,7 @@ async function launchScaffold(scenario: Case, replayDir: string): Promise<WebSca
 
 /** Seed the case's Sessions, open the surface, and choose the display preferences. */
 async function prepareWorld(browser: Browser, scenario: Case, scaffold: WebScaffold, page: Page): Promise<World> {
+  await scaffold.ctx.settings.update('ui-conversation', { busyEnter: 'queue' })
   await writeFile(join(scaffold.workspaceCwd, READ_FILE), 'fold matrix notes\n')
   const tripwire = watchConsole(page)
   await page.addInitScript(installMeasure)
@@ -733,7 +734,7 @@ async function run(world: World, scenario: Case): Promise<RunResult> {
     }
     case 'other-tab': {
       await expandSeededSteps(page, root, scenario)
-      const other = await newEnglishPage(world.browser, 720)
+      const other = await newConversationReplayPage(world.browser, 720)
       await other.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
       await openSessionBySearch(other, world.searchQuery)
       await other.locator(MAIN_ROOT).getByText('FOLDMX_BODY', { exact: false }).last().waitFor({ timeout: 30_000 })
@@ -902,7 +903,7 @@ describe('web e2e: fold blank measurement', () => {
   it('skips a band between fully transparent rows and counts a band beside a visible row', async () => {
     const browser = await chromium.launch()
     try {
-      const page = await browser.newPage()
+      const page = await configureConversationReplay(await browser.newPage())
       await page.setContent(`<body style="margin:0"><div data-measure-root style="height:800px">
         <div data-chat-flow-key="a" style="height:100px"></div>
         <div data-chat-motion="collapse" data-chat-flow-key="b" style="height:50px;opacity:0;margin-bottom:300px"></div>

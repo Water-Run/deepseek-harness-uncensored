@@ -22,7 +22,7 @@ import {
   webSnapshotMode,
   type WebScaffold,
 } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
+import { connectFreshWorkspace, newConversationReplayPage, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/skill-user-invoke', import.meta.url))
 const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')
@@ -81,7 +81,7 @@ describe.skipIf(MODE === 'record')('web e2e: user-explicit skill invocation thro
     await seedUserOnlySkill(scaffold.workspaceCwd)
     await writeFile(join(scaffold.workspaceCwd, 'workspace', FILE_NAME), '# Meeting notes\n\nSent reference preview.\n')
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })

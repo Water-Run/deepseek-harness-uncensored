@@ -102,3 +102,23 @@ function oscColor(value: string): string | undefined {
     return n.toString(16).padStart(2, '0')
   }).join('')}`
 }
+
+/**
+ * Read applied document colors after delayed palette changes.
+ * @param node - Mounted terminal surface in this client document.
+ * @param update - Apply its resolved background and text color.
+ * @returns Disconnect the observer and discard pending palette notifications.
+ */
+export function observeTerminalPalette(node: HTMLElement, update: (background: string, foreground: string) => void): () => void {
+  const refresh = (): void => {
+    const style = getComputedStyle(node)
+    update(style.backgroundColor, style.color)
+  }
+  const observer = new MutationObserver(refresh)
+  const document = node.ownerDocument
+  observer.observe(document.body, { attributes: true })
+  observer.observe(document.documentElement, { attributes: true })
+  try { refresh() }
+  catch (error) { observer.disconnect(); throw error }
+  return () => { observer.disconnect() }
+}

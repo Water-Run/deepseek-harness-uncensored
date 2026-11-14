@@ -1,14 +1,12 @@
 - text: 简单画一个 SVG 表示冯诺依曼架构, 保存为 von-neumann.svg {{clock}}
 - button "复制"
 - status: 已完成
-- button "已完成，用时 {{duration}}" [expanded]
-- button "已完成分析" [expanded]
+- button "已完成，用时 {{duration}}" [disabled] [expanded]
 - button "上下文注入 runtime-context"
 - button "上下文注入 skill-catalog"
 - button "上下文注入 time-context"
 - button "思考 The user wants a simple SVG diagram of the von Neumann architecture, saved as von-neumann.svg. Let me create a clean SVG showing CPU (control unit, ALU), memory, input, and output with bidirectional data/control buses."
 - paragraph: 我来创建一个冯诺依曼架构的 SVG 示意图。
-- button "已写入文件并调用工具" [expanded]
 - button "写入 von-neumann.svg 6KB +83 -0":
   - text: 写入
   - button "von-neumann.svg"

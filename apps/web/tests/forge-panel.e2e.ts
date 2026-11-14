@@ -17,7 +17,7 @@ import {
   captureStableAria, compareOrRefreshGolden, fixtureUserPrompts, launchWebScaffold, readPersistedEvents, watchConsole,
   webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { connectFreshWorkspaceZh, saveFailureShot, writeComposerDraft, ZH_BROWSER_LOCALE } from './support.ts'
+import { configureConversationReplay, connectFreshWorkspaceZh, saveFailureShot, writeComposerDraft, ZH_BROWSER_LOCALE } from './support.ts'
 
 declare global {
   interface Window {
@@ -496,7 +496,7 @@ async function launchPanel(failureShot: string, scenario: 'normal' | 'follow-up'
   const overlay = join(root, 'forge.patch.yml')
   await writeFile(overlay, `- id: forge-github\n  config: ${JSON.stringify({ ghCommand: gh })}\n`
     + (options.maxDiffBytes === undefined ? '' : `- id: forge-panel\n  config: ${JSON.stringify({ maxDiffBytes: options.maxDiffBytes })}\n`)
-    + (options.missingSandbox ? `- id: sandbox\n  config: ${JSON.stringify({ runnerCommand: [join(root, 'missing-sandbox')], runnerFailureSignatures: ['sandbox startup failed'] })}\n` : ''))
+    + (options.missingSandbox ? `- id: permission\n  config: { defaultPreset: workspace-write }\n- id: sandbox\n  config: ${JSON.stringify({ runnerCommand: [join(root, 'missing-sandbox')], runnerFailureSignatures: ['sandbox startup failed'] })}\n` : ''))
   const override = join(root, 'replay.override.json')
   // The borrowed scenario records one model call, so index 1 appends the reply to the follow-up.
   if (scenario === 'follow-up') await writeFile(override, JSON.stringify({ patches: [{ at: 1, entry: { kind: 'chunks', chunks: textReply(FOLLOW_UP_REPLY) } }] }))
@@ -545,8 +545,8 @@ async function launchPanel(failureShot: string, scenario: 'normal' | 'follow-up'
 
   const browser = await chromium.launch()
   resources.browser = browser
-  const page = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE, timezoneId: 'Asia/Shanghai',
-    hasTouch: options.hasTouch ?? false })
+  const page = await configureConversationReplay(await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE, timezoneId: 'Asia/Shanghai',
+    hasTouch: options.hasTouch ?? false }))
   if (desktop !== undefined) {
     // Only Electron's keyboard transport is substituted; the product registry and menus remain real.
     await page.addInitScript(({ device, config }) => {
@@ -1670,7 +1670,6 @@ it.skipIf(MODE === 'record')('aligns localized status rows by their glyphs and k
   for (const [locale, labels] of [
     ['zh', ['检查', '评审', '合并', '变更']],
     ['en', ['Checks', 'Review', 'Merge', 'Changes']],
-    ['de', ['Prüfungen', 'Review', 'Zusammenführen', 'Änderungen']],
   ] as const) {
     await scaffold.ctx.settings.update('locale', { preference: locale })
     await change.getByText(labels[0], { exact: true }).waitFor()
@@ -1724,7 +1723,7 @@ it.skipIf(MODE === 'record')('keeps long branch details accessible by touch and 
   const chip = option.locator('[data-forge-current-branch]')
   await chip.waitFor()
   await page.getByRole('button', { name: '收起侧边栏', exact: true }).click()
-  for (const [locale, label] of [['zh', `当前分支：${branch}`], ['en', `Current branch: ${branch}`], ['de', `Aktueller Branch: ${branch}`]] as const) {
+  for (const [locale, label] of [['zh', `当前分支：${branch}`], ['en', `Current branch: ${branch}`]] as const) {
     await scaffold.ctx.settings.update('locale', { preference: locale })
     await option.getByRole('button', { name: label, exact: true }).waitFor()
     for (const width of [390, 600, 601, 700, 1280]) {

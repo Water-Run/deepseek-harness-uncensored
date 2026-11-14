@@ -54,6 +54,16 @@ describe('rescope file selection', () => {
 })
 
 describe('exactEditState', () => {
+  it.each(['\n', '\r\n'])('matches complete multiline edits across %j line endings and rejects duplicates', (ending) => {
+    const source = 'old(\n  value\n)'
+    const target = 'new(\n  value\n)'
+    const text = (value: string) => value.replaceAll('\n', ending)
+    expect(exactEditState(text(source), source, target, 1)).toBe('pending')
+    expect(exactEditState(text(target), source, target, 1)).toBe('applied')
+    expect(exactEditState(text(`${target}\n${target}`), source, target, 1)).toBe('invalid')
+    expect(exactEditState(text(`${source}\n${target}`), source, target, 1)).toBe('invalid')
+  })
+
   it('classifies an insertion by its target form, so a duplicate is invalid', () => {
     expect(exactEditState(`log\n${ANCHOR}\n`, ANCHOR, INSERTED, 1)).toBe('pending')
     expect(exactEditState(`log${INSERTED}\n`, ANCHOR, INSERTED, 1)).toBe('applied')

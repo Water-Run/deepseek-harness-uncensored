@@ -276,7 +276,7 @@ Desktop 在 Host 启动后、打开工作区前检查模型 API Key 引用是否
 
 安装器显示 DSHU、黑化应用图标与完整名称 DeepSeek Harness Uncensored。打包后的名称为 `deepseek-harness-uncensored`，默认应用 ID 为 `com.deepseek.dsh.uncensored`，协议为 `dshu`；构建校验拒绝官方应用的标识。已有构建配置若使用 `com.deepseek.harness` 或 `com.deepseek.dsh`，须改为独立的 DSHU ID。Windows/macOS 预设示例已使用默认独立 ID。运行 `pnpm --dir apps/desktop run render:installer-brand` 可从 `resources/icon.svg` 重新生成安装器图片。
 
-Windows 更新确认重启后，独立进程显示可拖动的状态提示，直到安装阶段结束。安装器不等待提示窗；提示窗无法启动或失去响应时，安装和重新启动仍会继续。新版应用窗口出现前仍可能有一段空白。可选的 DPI API 在运行时解析，不可用时采用 96 DPI 布局。
+Windows 更新确认重启后，独立进程显示可拖动的状态提示，直到安装阶段结束。状态进程以 Windows 系统目录为工作目录，避免在替换期间占用安装目录。安装器不等待提示窗；提示窗无法启动或失去响应时，安装和重新启动仍会继续。新版应用窗口出现前仍可能有一段空白。可选的 DPI API 在运行时解析，不可用时采用 96 DPI 布局。
 
 Windows 安装程序使用原生 NSIS 页面，提供亮暗配色、系统阴影、可编辑的安装目录，以及默认勾选立即启动的完成页。安装仅面向当前用户。点击安装或按 Enter 均校验当前路径；路径规范化后仍拒绝磁盘根目录，包括带重复末尾分隔符的写法。新安装位置必须为空，非空位置必须是已登记的安装目录。受影响安装路径中的程序运行时显示系统提示，并保持应用运行；其他目录中的同名应用不阻止安装。静默更新最多等待受影响应用退出十秒，若仍在运行则以退出码 2 结束。
 

@@ -724,7 +724,7 @@ describe('the shipped Web composition', () => {
   it('ships the dsh-doc skill in the declaration package', async () => {
     const skill = join(REPO_ROOT, 'packages/preset/agent-preset', 'skills', 'dsh-doc', 'SKILL.md')
 
-    expect((await readFile(skill, 'utf8')).startsWith('---\nname: dsh-doc\n')).toBe(true)
+    expect(await readFile(skill, 'utf8')).toMatch(/^---\r?\nname: dsh-doc\r?\n/)
   })
 
   it('merges the global skill layer into a preset agent\'s catalog, keeping local discovery preset-side', async () => {

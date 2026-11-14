@@ -138,7 +138,7 @@ describe.each([en, zh])('saved delivery records', (dictionary) => {
     expect(rowRule).toMatch(/line-height:\s*22px;/)
     // Timeline segments hang on the glyph centre, skip the edge beyond the
     // first and last glyphs, and stay 6px clear of each glyph.
-    const segmentRule = ruleBlock(stylesheet, 'delivery::before,\n.delivery::after')
+    const segmentRule = ruleBlock(stylesheet, 'delivery::before,\\s*\\.delivery::after')
     expect(segmentRule).toMatch(/left:\s*15\.75px;/)
     expect(segmentRule).toMatch(/width:\s*0\.5px;/)
     expect(segmentRule).toMatch(/background:\s*var\(--dsw-alias-border-l3\);/)

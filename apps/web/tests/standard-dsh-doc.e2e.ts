@@ -5,7 +5,7 @@ import { dirname } from 'node:path'
 import { chromium } from 'playwright'
 import { expect, it } from 'vitest'
 import { assertFixtureInventory, fixtureUserPrompts, launchWebScaffold } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage } from './support.ts'
+import { connectFreshWorkspace, newConversationReplayPage } from './support.ts'
 
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/standard-dsh-doc/session.v4.jsonl', import.meta.url))
 
@@ -14,7 +14,7 @@ it('lists dsh-doc once without loading instructions or calling tools for an ordi
   try {
     const browser = await chromium.launch()
     try {
-      const page = await newEnglishPage(browser)
+      const page = await newConversationReplayPage(browser)
       await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
       await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
       await connectFreshWorkspace(page, scaffold.workspaceCwd)

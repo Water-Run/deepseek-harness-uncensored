@@ -9,7 +9,7 @@ import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
   fixtureUserPrompts, launchWebScaffold, watchConsole, type WebScaffold,
 } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage } from './support.ts'
+import { connectFreshWorkspace, newConversationReplayPage } from './support.ts'
 
 const directory = fileURLToPath(new URL('../../../snapshots/web/plugin-recommendations', import.meta.url))
 const fixture = join(directory, 'session.v4.jsonl')
@@ -32,7 +32,7 @@ describe('official plugin recommendation in a conversation', () => {
       .mockImplementation(async () => (await listBundles()).filter(bundle => bundle.name === voiceBundle))
     restoreCatalog = () => { catalog.mockRestore() }
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
   })
 
   afterAll(async () => {

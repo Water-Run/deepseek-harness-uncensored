@@ -21,7 +21,7 @@ import {
   launchWebScaffold, recordFixture, seedSession, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import {
-  connectFreshWorkspace, expandTurnProcesses, newEnglishPage, pinBrowserClock, pinHostClock, saveFailureShot, WEB_FIXTURE_TIME,
+  connectFreshWorkspace, expandTurnProcesses, newConversationReplayPage, pinBrowserClock, pinHostClock, saveFailureShot, WEB_FIXTURE_TIME,
 } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/question-composer', import.meta.url))
@@ -295,11 +295,12 @@ interface SeededTranscript {
  */
 async function openSeededTranscript(fixtureText: string, seedId: string): Promise<SeededTranscript> {
   const scaffold = await launchWebScaffold({})
+  await scaffold.ctx.settings.update('ui-chat', { transcriptView: 'detailed', collapseTiming: 'completion' })
   let browser: Browser | undefined
   try {
     await seedSession(scaffold, fixtureText, seedId, undefined, { createdAt: WEB_FIXTURE_TIME })
     browser = await chromium.launch()
-    const page = await newEnglishPage(browser)
+    const page = await newConversationReplayPage(browser)
     await pinBrowserClock(page)
     const tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
@@ -330,9 +331,10 @@ describe('web e2e: resident question composer round trip', () => {
   beforeAll(async () => {
     if (MODE !== 'record') hostClock = pinHostClock()
     scaffold = await launchWebScaffold(MODE === 'record' ? {} : { replayFixture: FIXTURE, paceMs: 15, compareReplaySession: true })
+    await scaffold.ctx.settings.update('ui-chat', { transcriptView: 'detailed', collapseTiming: 'completion' })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { sessionEvents.push(event) })
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     if (MODE !== 'record') await pinBrowserClock(page)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
@@ -1246,10 +1248,11 @@ it.each(['another-feature', 'cua-app-access'])('answers %s approval without a sp
     await resources.scaffold?.close()
   })
   const scaffold = await launchWebScaffold()
+  await scaffold.ctx.settings.update('ui-chat', { transcriptView: 'detailed', collapseTiming: 'completion' })
   resources.scaffold = scaffold
   const browser = await chromium.launch()
   resources.browser = browser
-  const page = await newEnglishPage(browser)
+  const page = await newConversationReplayPage(browser)
   const tripwire = watchConsole(page)
   onTestFailed(() => saveFailureShot(page, `web-approval-fallback-${id}`))
   await page.goto(scaffold.authenticatedUrl)

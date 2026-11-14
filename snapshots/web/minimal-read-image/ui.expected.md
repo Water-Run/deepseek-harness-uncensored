@@ -1,8 +1,8 @@
 - banner:
   - navigation "Session hierarchy": Use read_image to inspect red.png.
   - 'button "Conversation mode: minimal" [disabled]': minimal
-  - button "More actions"
   - button "Side question"
+  - button "More actions"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat" [selected]
@@ -12,6 +12,7 @@
 - button "Copy"
 - status: Completed
 - button "Completed in {{duration}}" [disabled] [expanded]
+- button "Context injection runtime-context"
 - button "Read image red.png" [expanded]:
   - text: Read image
   - button "red.png"

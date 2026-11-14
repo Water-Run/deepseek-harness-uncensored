@@ -19,7 +19,7 @@ import {
   webSnapshotMode,
   type WebScaffold,
 } from './scaffold.ts'
-import { conversationContextKey, expandOwningTurnProcess, newEnglishPage, saveFailureShot } from './support.ts'
+import { conversationContextKey, expandOwningTurnProcess, newConversationReplayPage, saveFailureShot } from './support.ts'
 
 const MODE = webSnapshotMode()
 const SESSION_ID = 'chat-long-interactions-e2e'
@@ -152,7 +152,7 @@ describe('web e2e: long Chat interaction contract', () => {
     })
     await seedSession(scaffold, FIXTURE.log, SESSION_ID)
     browser = await chromium.launch()
-    page = await newEnglishPage(browser, 900)
+    page = await newConversationReplayPage(browser, 900)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })

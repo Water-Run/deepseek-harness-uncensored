@@ -21,13 +21,15 @@ async function openInventory(page: Page, url: string) {
   await page.goto(url, { waitUntil: 'load' })
   await openSettings(page, 'zh')
   const dialog = page.getByRole('dialog', { name: '设置' })
-  await dialog.getByRole('button', { name: '内置插件', exact: true }).click()
+  await dialog.getByRole('button', { name: '插件', exact: true }).click()
+  await dialog.getByRole('tab', { name: '插件列表', exact: true }).click()
   await dialog.getByRole('searchbox', { name: '搜索插件' }).waitFor()
   return dialog
 }
 
 it('keeps ordered legacy Session menu rows before Archive and removes them with their fiber', async () => {
   const scaffold = await launchWebScaffold({ extraInstallAnchors: [join(FIXTURE, 'package.json')] })
+  await scaffold.ctx.settings.update('ui-theme', { preference: 'system' })
   onTestFinished(() => scaffold.close())
   const workspace = await scaffold.ctx.workspaceRegistry.create(scaffold.workspaceCwd)
   const sessionId = await seedSession(scaffold, await readFile(SESSION_SEED, 'utf8'), 'session-c4421b66-252e-44c0-80ed-6e320abeba25')
@@ -196,7 +198,7 @@ it('keeps ordered legacy Session menu rows before Archive and removes them with 
     await row.hover()
     await trigger.click()
     await menu.waitFor()
-    const remainingNames = ['Pin session', 'Rename', 'Fork session', 'Copy Session ID', 'Archive session']
+    const remainingNames = ['Pin session', 'Rename', 'Fork session', 'Copy Session ID', 'Delete conversation', 'Archive session']
     const remainingItems = menu.getByRole('menuitem')
     expect(await remainingItems.count()).toBe(remainingNames.length)
     for (const [index, name] of remainingNames.entries()) {

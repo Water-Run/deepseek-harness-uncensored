@@ -1,19 +1,14 @@
-# Plugin header responsive layout
+# Plugin manager in Settings
 
-en 1680px: actions beside the heading, single-line; contained; information follows subtitle; focus retained
-en 768px: actions beside or below (according to intrinsic fit) the heading, single-line; contained; information follows subtitle; focus retained
-en 520px: actions beside or below (according to intrinsic fit) the heading, single-line; contained; information follows subtitle; focus retained
-en 440px: actions beside or below (according to intrinsic fit) the heading, single-line; contained; information follows subtitle; focus retained
-en 390px: actions beside or below (according to intrinsic fit) the heading, single-line; contained; information follows subtitle; focus retained
-en 430px: actions beside or below (according to intrinsic fit) the heading, single-line; contained; information follows subtitle; focus retained
-en 1024px: actions beside the heading, single-line; contained; information follows subtitle; focus retained
-zh 1680px: actions beside the heading, single-line; contained; information follows subtitle; focus retained
-zh 768px: actions beside or below (according to intrinsic fit) the heading, single-line; contained; information follows subtitle; focus retained
-zh 520px: actions beside or below (according to intrinsic fit) the heading, single-line; contained; information follows subtitle; focus retained
-zh 440px: actions beside or below (according to intrinsic fit) the heading, single-line; contained; information follows subtitle; focus retained
-zh 390px: actions beside or below (according to intrinsic fit) the heading, single-line; contained; information follows subtitle; focus retained
-zh 430px: actions beside or below (according to intrinsic fit) the heading, single-line; contained; information follows subtitle; focus retained
-zh 1024px: actions beside the heading, single-line; contained; information follows subtitle; focus retained
-
-A forced no-wrap layout at 240px fails the same measured layout check in both locales; restoring wrap and 390px passes.
-Add menu dismisses on Escape and returns focus in both locales.
+en light 1280px: one Settings title, actions fit, focus retained
+en light 600px: one Settings title, actions fit, focus retained
+en light 390px: one Settings title, actions fit, focus retained
+en dark 1280px: one Settings title, actions fit, focus retained
+en dark 600px: one Settings title, actions fit, focus retained
+en dark 390px: one Settings title, actions fit, focus retained
+zh light 1280px: one Settings title, actions fit, focus retained
+zh light 600px: one Settings title, actions fit, focus retained
+zh light 390px: one Settings title, actions fit, focus retained
+zh dark 1280px: one Settings title, actions fit, focus retained
+zh dark 600px: one Settings title, actions fit, focus retained
+zh dark 390px: one Settings title, actions fit, focus retained

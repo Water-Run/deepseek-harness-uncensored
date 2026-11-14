@@ -20,7 +20,7 @@ import {
   launchWebScaffold, readPersistedEvents, realizeSeedFixture, seedSession, selectedSessionFixture, watchConsole,
   webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage, pinBrowserClock, pinHostClock, saveFailureShot, writeComposerDraft } from './support.ts'
+import { connectFreshWorkspace, newConversationReplayPage, pinBrowserClock, pinHostClock, saveFailureShot, writeComposerDraft } from './support.ts'
 
 const BASE_FIXTURE = fileURLToPath(new URL('../../../snapshots/web/live-interactions/session.v3.jsonl', import.meta.url))
 const AVAILABLE_CHILD_EXPECTED = fileURLToPath(new URL('../../../snapshots/web/subagent-conversation/ui.expected.md', import.meta.url))
@@ -131,7 +131,7 @@ describe('web e2e: persisted subagent conversation and human continuation', () =
     })
     browser = await chromium.launch()
     await mkdir(fileURLToPath(new URL('../../../.artifacts/screenshots/non-migrating-session-reads', import.meta.url)), { recursive: true })
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     await pinBrowserClock(page)
     page.on('request', (request) => {
       const path = new URL(request.url()).pathname
@@ -1048,7 +1048,7 @@ describe('web e2e: migration-required subagent catalog', () => {
       expect(scaffold.ctx.sessionProjectionCache.cachedSnapshot(stored.header)).toBeUndefined()
     }
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     tripwire = watchConsole(page)
   })
 

@@ -1,6 +1,7 @@
 - banner:
   - navigation "Session hierarchy": Use the ask_user_question tool to
-  - text: Standard mode
+  - 'button "Conversation mode: Default" [disabled]': Default
+  - button "Side question"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -35,9 +36,11 @@
 - text: {{clock}}
 - textbox "Message or run a task, / commands, @ files or sessions"
 - button "Add files or run commands"
-- 'button "Access mode, current: Workspace Write"': Workspace Write
+- 'button "Access mode, current: Full access"': Full access
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message" [disabled]
-- button "1 turns 2 steps · {{throughput}} tok/s": 1 turns 2 steps{{throughput}} tok/s
+- 'button "Turns: 1 · Steps: 2 · {{throughput}} tok/s"': "Turns: 1 · Steps: {{throughput}} tok/s"
 - button "8.8K tok · Cache hit 95%": 8.8K tokCache hit 95%
+- 'button "Conversation cost: ￥0.002562"': ￥0.002562
+- 'button "Spending limits: Off"': "Off"
 - button "3% of context used": 3%

@@ -27,19 +27,13 @@ import {
   webSnapshotMode,
   type WebScaffold,
 } from './scaffold.ts'
-import { expandOwningTurnProcess, newEnglishPage, saveFailureShot } from './support.ts'
+import { expandOwningTurnProcess, newConversationReplayPage, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/minimal-preset', import.meta.url))
 const FIXTURE = join(SNAPSHOT_DIR, 'session.v3.jsonl')
 const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')
 const MODE = webSnapshotMode()
 
-/** Frozen Minimal recordings have no model replies for composer predictions. */
-async function historicalPage(browser: Browser): Promise<Page> {
-  const page = await newEnglishPage(browser)
-  await page.addInitScript(() => { localStorage.setItem('dsh.uncensored.prediction', '0') })
-  return page
-}
 const LEGACY_PERMISSIONS = fileURLToPath(new URL('./fixtures/legacy-minimal-permissions.overlay.yml', import.meta.url))
 // These frozen recordings include Bash schemas and POSIX commands. Windows has a native PowerShell scenario in legacy-presets.e2e.ts.
 const posixScenario = describe.skipIf(process.platform === 'win32')
@@ -164,7 +158,7 @@ posixScenario('minimal agent preset', () => {
     onTestFailed(() => { if (page !== undefined) void saveFailureShot(page, 'web-minimal-persistent-bash-card') })
     await scaffold.ctx.settings.update('ui-chat', { transcriptView: 'compact', collapseTiming: 'completion' })
     browser = await chromium.launch()
-    page = await historicalPage(browser)
+    page = await newConversationReplayPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
@@ -312,7 +306,7 @@ posixScenario('minimal manual compaction', () => {
   it.skipIf(MODE === 'record')('renders the manual compaction card and its summary', async () => {
     onTestFailed(() => { if (page !== undefined) void saveFailureShot(page, 'web-minimal-compact') })
     browser = await chromium.launch()
-    page = await historicalPage(browser)
+    page = await newConversationReplayPage(browser)
     const tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
@@ -346,7 +340,7 @@ posixScenario('minimal image reading', () => {
   async function openSession(id: SessionId): Promise<Page> {
     if (browser === undefined) throw new Error('image scenario browser has not started')
     await page?.close()
-    page = await historicalPage(browser)
+    page = await newConversationReplayPage(browser)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.locator('[role="treeitem"]').first().click()
     await page.locator(`[data-row-key="session:${id}"]`).click()

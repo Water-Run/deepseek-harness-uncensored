@@ -10,7 +10,7 @@ import { chromium, type Locator, type Page } from 'playwright'
 import { expect, it, onTestFailed, onTestFinished } from 'vitest'
 import { createLaunchEnvironmentSnapshot, type LaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
 import { launchWebScaffold, seedSession, watchConsole } from './scaffold.ts'
-import { connectFreshWorkspace, saveFailureShot } from './support.ts'
+import { configureConversationReplay, connectFreshWorkspace, saveFailureShot } from './support.ts'
 
 /** Press at the centre of `from`, travel in steps, and release at `to`. */
 async function drag(page: Page, from: Locator, to: { x: number; y: number }): Promise<void> {
@@ -54,7 +54,7 @@ async function openWorkspace(
   onTestFinished(() => scaffold.close())
   const browser = await chromium.launch()
   onTestFinished(() => browser.close())
-  const page = await browser.newPage({ locale: 'en-US', viewport: { width: 1680, height: 1000 } })
+  const page = await configureConversationReplay(await browser.newPage({ locale: 'en-US', viewport: { width: 1680, height: 1000 } }))
   await page.addInitScript(() => { Object.defineProperty(navigator, 'platform', { value: 'Win32' }) })
   onTestFailed(() => saveFailureShot(page, shot))
   const errors = watchConsole(page)
@@ -556,7 +556,7 @@ it('searches the whole workspace, respects .gitignore on request, saves exclusio
   await seedSession(scaffold, await readFile(seed, 'utf8'), 'file-search')
   const browser = await chromium.launch()
   onTestFinished(() => browser.close())
-  const page = await browser.newPage({ locale: 'en-US', viewport: { width: 1680, height: 1000 } })
+  const page = await configureConversationReplay(await browser.newPage({ locale: 'en-US', viewport: { width: 1680, height: 1000 } }))
   onTestFailed(() => saveFailureShot(page, 'web-e2e-file-search'))
   const errors = watchConsole(page)
   await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })

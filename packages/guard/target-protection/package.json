@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-target-protection",
-  "version": "0.2.2-rc.2",
+  "version": "0.2.2-rc.3",
   "description": "Persistent target rules and mandatory execution admission",
   "type": "module",
   "license": "GPL-3.0-or-later",

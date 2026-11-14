@@ -7,3 +7,7 @@ header:
   class: web-default
 replay:
   override: true
+sessionFormat:
+  version: 4
+  coverage:
+    - behavior-update

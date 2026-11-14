@@ -1251,18 +1251,23 @@ describe('web e2e: Host-backed collapse timing preference', () => {
     await page.setViewportSize({ width: 640, height: 480 })
     await timing.getByRole('button').click()
     await menu.waitFor()
-    await expect.poll(() => menu.evaluate((element) => {
-      const rect = element.getBoundingClientRect()
-      return {
-        fits: rect.width > 0 && rect.height > 0
-          && rect.left > 0 && rect.top > 0
-          && rect.right < window.innerWidth && rect.bottom < window.innerHeight,
-        uncovered: [...element.querySelectorAll('[role="menuitem"]')].every((item) => {
-          const bounds = item.getBoundingClientRect()
-          return item.contains(document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2))
-        }),
-      }
-    }), uiWait).toEqual({ fits: true, uncovered: true })
+    try {
+      await expect.poll(() => menu.evaluate((element) => {
+        const rect = element.getBoundingClientRect()
+        return {
+          fits: rect.width > 0 && rect.height > 0
+            && rect.left > 0 && rect.top > 0
+            && rect.right < window.innerWidth && rect.bottom < window.innerHeight,
+          uncovered: [...element.querySelectorAll('[role="menuitem"]')].every((item) => {
+            const bounds = item.getBoundingClientRect()
+            return item.contains(document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2))
+          }),
+        }
+      }), uiWait).toEqual({ fits: true, uncovered: true })
+    } catch (error) {
+      await saveSettingsFailureShot(page, `compact-menu-${copy.locale}`)
+      throw error
+    }
     if (screenshotDir !== undefined) {
       await page.screenshot({ path: join(screenshotDir, 'menu-compact.png'), fullPage: true })
     }

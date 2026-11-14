@@ -290,6 +290,20 @@ export function Menu({ open, anchor, items = [], children, submenuBackLabel, sel
     element.style.setProperty('anchor-name', anchorName)
     return () => { element.style.setProperty('anchor-name', previous, priority) }
   })
+  useLayoutEffect(() => {
+    if (!open || !portal || !positioned || exiting !== undefined) return
+    const list = listRef.current
+    if (list === null) return
+    // Reopened native anchors must resolve against the current scroll and viewport before paint.
+    const value = list.style.getPropertyValue('position-anchor')
+    const priority = list.style.getPropertyPriority('position-anchor')
+    list.style.setProperty('position-anchor', 'auto')
+    try { void list.offsetWidth }
+    finally {
+      if (value === '') list.style.removeProperty('position-anchor')
+      else list.style.setProperty('position-anchor', value, priority)
+    }
+  }, [open, portal, positioned, exiting, externalAnchor])
   useEffect(() => {
     if (!open || !portal || exiting !== undefined) return
     const currentAnchor = (): HTMLElement | null => returnFocus?.() ?? (anchorRef === undefined ? rootRef.current : anchorRef.current)

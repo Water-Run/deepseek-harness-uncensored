@@ -56,7 +56,9 @@ import {
   stabilizeFixtureMessageIds,
   stabilizeRefreshLog,
   writesCurrentSessionFixtures,
+  writerSnapshotName,
   type NormalizeContext,
+  type SnapshotManifest,
 } from '@deepseek-ai/dsh-session-snapshot'
 import type { Profile, ProfileContext } from '@deepseek-ai/dsh-app-boot'
 import type { PresetDefinition } from '@deepseek-ai/dsh-agent-preset-registry'
@@ -1212,6 +1214,17 @@ function stableSessionFixture(
   return stable
 }
 
+/**
+ * Select the primary Session's current-output oracle without replacing its replay input.
+ * @param fixturePath - Primary Session replay-input path.
+ * @param retained - Retention metadata; behavior-update uses a writer oracle, other or absent metadata keeps the input.
+ * @returns The file whose complete persisted output the Web scenario compares.
+ */
+export function webReplayExpectationPath(fixturePath: string, retained: SnapshotManifest['sessionFormat']): string {
+  return retained?.coverage.includes('behavior-update') === true
+    ? join(dirname(fixturePath), writerSnapshotName(0)) : fixturePath
+}
+
 async function assertReplaySession(
   sessions: readonly Session[],
   fixturePath: string,
@@ -1219,12 +1232,14 @@ async function assertReplaySession(
   webUrl: string,
   harnessHome: string,
 ): Promise<void> {
-  let expected = await readFile(fixturePath, 'utf8')
+  const input = await readFile(fixturePath, 'utf8')
   const fixtureDir = dirname(fixturePath)
   const manifestPath = join(fixtureDir, 'snapshot.yml')
   const manifest = parseSnapshotManifest(await readFile(manifestPath, 'utf8'), manifestPath)
-  let expectedPath = fixturePath
-  const userPrompts = fixtureUserPrompts(expected)
+  let expectedPath = webReplayExpectationPath(fixturePath, manifest.sessionFormat)
+  let expected = expectedPath === fixturePath ? input : await readFile(expectedPath, 'utf8')
+  const behaviorOracle = expectedPath !== fixturePath
+  const userPrompts = fixtureUserPrompts(input)
   const candidates = sessions.filter((session) => {
     if (session.header.origin === 'subagent' || session.header.isSeeded) return false
     const actual = session.snapshotEvents().flatMap((event) => {
@@ -1239,9 +1254,9 @@ async function assertReplaySession(
   const sessionCwd = session.header.cwd
   if (sessionCwd === undefined) throw new Error(`${fixturePath}: replayed session has no cwd`)
   const actual = rawSessionLog(session)
-  if (mode === 'refresh' && writesCurrentSessionFixtures(manifest, mode)) {
+  if (mode === 'refresh' && (behaviorOracle || writesCurrentSessionFixtures(manifest, mode))) {
     expected = stableSessionFixture(session, expected, sessionCwd, harnessHome)
-    expectedPath = recordedSessionFixturePath(fixturePath, session.header.version)
+    if (!behaviorOracle) expectedPath = recordedSessionFixturePath(fixturePath, session.header.version)
     await writeFile(expectedPath, expected)
   }
   const expectedHeader = JSON.parse(expected.split('\n').find(line => line.trim() !== '') ?? '{}') as {
@@ -1281,7 +1296,8 @@ async function assertReplaySession(
  * system-prompt text to {{system}} and header tool schemas to {{tools}},
  * tokenize the run-local cwd, redact opaque identities with typed
  * relationship-preserving tokens, and write the fixture.
- * A manifest-retained historical generation makes the write-back a no-op.
+ * A behavior-update owner writes its separate writer oracle. Other retained
+ * generations make write-back a no-op.
  * @param scaffold - the record-mode scaffold.
  * @param sessionId - the driven session.
  * @param fixturePath - the committed session.jsonl target.
@@ -1291,8 +1307,9 @@ export async function recordFixture(scaffold: WebScaffold, sessionId: SessionId,
   if (agent === undefined) throw new Error(`record harvest: no live agent for ${sessionId}`)
   const manifestPath = join(dirname(fixturePath), 'snapshot.yml')
   const manifest = parseSnapshotManifest(await readFile(manifestPath, 'utf8'), manifestPath)
-  if (!writesCurrentSessionFixtures(manifest, 'record')) return
-  const target = recordedSessionFixturePath(fixturePath, agent.session.header.version)
+  const oracle = webReplayExpectationPath(fixturePath, manifest.sessionFormat)
+  if (oracle === fixturePath && !writesCurrentSessionFixtures(manifest, 'record')) return
+  const target = oracle === fixturePath ? recordedSessionFixturePath(fixturePath, agent.session.header.version) : oracle
   const existingPath = existsSync(target) ? target : fixturePath
   const existing = existsSync(existingPath) ? await readFile(existingPath, 'utf8') : ''
   await writeFile(target, stableSessionFixture(
@@ -1739,20 +1756,22 @@ export async function compareOrRefreshGolden(goldenPath: string, actual: string,
  * Fixture-inventory guard: the scenario directory holds exactly the expected
  * files and every committed JSONL is a header-scrubbed, typed-redaction fixed point.
  * @param dir - the scenario snapshot directory.
- * @param expected - the exact expected file inventory.
+ * @param expected - UI artifacts and Session roles; behavior-update metadata also requires the primary writer oracle.
  */
 export async function assertFixtureInventory(dir: string, expected: string[]): Promise<void> {
   const entries = (await readdir(dir)).sort()
   const ownsManifest = entries.includes('snapshot.yml')
   const artifacts = entries.filter(name => name !== 'snapshot.yml')
+  const manifestPath = join(dir, 'snapshot.yml')
+  const manifest = ownsManifest ? parseSnapshotManifest(await readFile(manifestPath, 'utf8'), manifestPath) : undefined
+  const expectedArtifacts = manifest?.session === undefined && manifest?.sessionFormat?.coverage.includes('behavior-update') === true
+    ? [...expected, writerSnapshotName(0)] : expected
   const roleInventory = (names: readonly string[]): string[] => [...new Set(names.map((name) => {
     const fixture = parseSessionFixtureName(name)
     return fixture === undefined ? name : sessionFixtureName(fixture.index, 0)
   }))].sort()
-  expect(roleInventory(artifacts)).toEqual(roleInventory(expected))
-  if (ownsManifest) {
-    const manifestPath = join(dir, 'snapshot.yml')
-    const manifest = parseSnapshotManifest(await readFile(manifestPath, 'utf8'), manifestPath)
+  expect(roleInventory(artifacts)).toEqual(roleInventory(expectedArtifacts))
+  if (manifest !== undefined) {
     expect(manifest.profile).toBe('web')
     if (manifest.session === undefined) {
       expect(

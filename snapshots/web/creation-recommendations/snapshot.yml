@@ -3,6 +3,9 @@ scenario: creation-recommendations
 profile: web
 composition: web-creation-recommendations
 recording: authored
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]
 header:
   class: web-creation-recommendations
   pin: true

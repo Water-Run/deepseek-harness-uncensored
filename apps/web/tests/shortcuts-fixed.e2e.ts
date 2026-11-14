@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-user-approval'
 import { fixtureUserPrompts, launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage } from './support.ts'
+import { connectFreshWorkspace, newConversationReplayPage } from './support.ts'
 
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/approval-composer/session.v3.jsonl', import.meta.url))
 
@@ -29,7 +29,7 @@ describe('web e2e: fixed approval rejection keys', () => {
       scaffold = await launchWebScaffold({ replayFixture: FIXTURE, compareReplaySession: false })
       scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { events.push(event) })
       browser = await chromium.launch()
-      page = await newEnglishPage(browser)
+      page = await newConversationReplayPage(browser)
       const tripwire = watchConsole(page)
       await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
       await connectFreshWorkspace(page, scaffold.workspaceCwd)

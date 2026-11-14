@@ -14,7 +14,7 @@ import {
   compareOrRefreshGolden, fixtureUserPrompts, launchWebScaffold, recordFixture,
   watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { connectFreshWorkspace, expandTurnProcesses, newEnglishPage, scrollIntoView } from './support.ts'
+import { configureConversationReplay, connectFreshWorkspace, expandTurnProcesses, newConversationReplayPage, scrollIntoView } from './support.ts'
 
 const DIR = fileURLToPath(new URL('../../../snapshots/web/present', import.meta.url))
 const FIXTURE = join(DIR, 'session.v3.jsonl')
@@ -69,7 +69,7 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
     disposeApproval = scaffold.ctx.on('approval/request', () => Promise.resolve('allowed-once'), { prepend: true })
     scaffold.ctx.on('session/event', (_session, event) => { events.push(event) })
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     tripwire = watchConsole(page)
     page.on('download', (download) => { downloads.push(download.suggestedFilename()) })
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
@@ -305,7 +305,7 @@ fs.appendFileSync(${JSON.stringify(openLog)}, JSON.stringify({ path, action, con
       viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'en-US', timezoneId: 'Asia/Shanghai',
     })
     try {
-      const phone = await context.newPage()
+      const phone = await configureConversationReplay(await context.newPage())
       const consoleWatch = watchConsole(phone)
       const phoneDownloads: string[] = []
       phone.on('download', (download) => { phoneDownloads.push(download.suggestedFilename()) })

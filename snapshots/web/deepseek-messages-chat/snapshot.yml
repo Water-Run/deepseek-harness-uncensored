@@ -5,3 +5,7 @@ composition: web-default
 recording: live
 header:
   class: web-default
+sessionFormat:
+  version: 4
+  coverage:
+    - behavior-update

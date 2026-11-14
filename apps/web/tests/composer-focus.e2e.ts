@@ -7,7 +7,7 @@ import {
   assertFixtureInventory, compareOrRefreshGolden, launchWebScaffold, seedSession, watchConsole, webSnapshotMode,
 } from './scaffold.ts'
 import { createChatScrollFixture } from './chat-scroll-fixture.ts'
-import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
+import { configureConversationReplay, connectFreshWorkspace, newConversationReplayPage, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/composer-focus', import.meta.url))
 const EXPECTED = join(SNAPSHOT_DIR, 'focus.expected.md')
@@ -184,7 +184,7 @@ it('restores the previous caret or selection in fresh and existing sessions', as
   const browser = await browserPromise
   const fixture = createChatScrollFixture({ markerPrefix: 'COMPOSER_FOCUS', title: 'Composer focus', turns: 1 })
   await seedSession(scaffold, fixture.log, 'composer-focus-web-e2e')
-  const page = await newEnglishPage(browser)
+  const page = await newConversationReplayPage(browser)
   onTestFailed(() => saveFailureShot(page, 'web-e2e-composer-focus'))
   const tripwire = watchConsole(page)
   await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
@@ -224,14 +224,14 @@ it('keeps mobile submission keyboard navigation in the composer while retaining 
     try {
       const browser = await engine.launch()
       try {
-        const page = await browser.newPage({
+        const page = await configureConversationReplay(await browser.newPage({
           viewport: { width: mobile ? 390 : 1280, height: 844 },
           locale: 'en-US', timezoneId: 'Asia/Shanghai',
           ...mobile ? {
             userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 Version/18.6 Mobile/15E148 Safari/604.1',
             isMobile: true, hasTouch: true,
           } : {},
-        })
+        }))
         const tripwire = watchConsole(page)
         const platform = `${engine.name()} ${mobile ? 'mobile' : 'desktop'} ${submission}`
         let finished = false

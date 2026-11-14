@@ -1,8 +1,8 @@
 - banner:
   - navigation "Session hierarchy": Use the bash tool to
   - 'button "Conversation mode: minimal" [disabled]': minimal
-  - button "More actions"
   - button "Side question"
+  - button "More actions"
   - button "Open right sidebar"
   - tablist:
     - tab "Chat" [selected]

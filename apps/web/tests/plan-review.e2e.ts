@@ -22,7 +22,7 @@ import {
   compareOrRefreshGolden, fixtureUserPrompts,
   launchWebScaffold, recordFixture, seedSession, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
+import { connectFreshWorkspace, newConversationReplayPage, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/plan-review', import.meta.url))
 const FIXTURE = join(SNAPSHOT_DIR, 'session.v3.jsonl')
@@ -59,7 +59,7 @@ describe('web e2e: plan review takeover round trip', () => {
     browser = await chromium.launch()
     // English page: the decision copy is the surface under test, and the
     // golden pins one language.
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
@@ -224,11 +224,11 @@ describe('web e2e: plan review takeover round trip', () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-plan-review-panel-return'))
     const agent = scaffold.ctx.agents.get(reviewedSession)
     if (agent === undefined) throw new Error('The reviewed Session has no active agent')
-    // The Plugins panel replaces the Conversation and its right Sidebar. The
+    // The Automation tasks panel replaces the Conversation and its right Sidebar. The
     // review arrives while neither is mounted; returning mounts both in one
     // commit, and the review's automatic open runs before the Sidebar's own
     // effects. A crash there retires the opener for the rest of the page.
-    await page.getByRole('button', { name: 'Plugins', exact: true }).click()
+    await page.getByRole('button', { name: 'Automation tasks', exact: true }).click()
     await expect.poll(() => page.locator('[data-composer-input]').count()).toBe(0)
     const crashes: string[] = []
     const onConsole = (message: ConsoleMessage): void => {
@@ -239,7 +239,7 @@ describe('web e2e: plan review takeover round trip', () => {
     const asked = scaffold.ctx.userQuestions.ask({
       agent, signal: controller.signal,
       questions: [{ id: 'off-screen', question: 'Approve this plan?',
-        detail: '# Off-screen review\n\nSubmitted while the Plugins panel was open.',
+        detail: '# Off-screen review\n\nSubmitted while the Automation tasks panel was open.',
         options: [{ label: 'Approve' }, { label: 'Keep planning' }], intent: { kind: 'plan-review', approve: 'Approve' },
       }],
     })
@@ -252,7 +252,7 @@ describe('web e2e: plan review takeover round trip', () => {
       await card.waitFor({ timeout: 10_000 })
       const preview = page.locator('[data-plan-preview^="dsh-resource://plan-review/"]')
       await preview.waitFor({ state: 'visible', timeout: 10_000 })
-      expect(await preview.getByText('Submitted while the Plugins panel was open.').isVisible()).toBe(true)
+      expect(await preview.getByText('Submitted while the Automation tasks panel was open.').isVisible()).toBe(true)
       expect(await card.getByRole('button', { name: 'Open plan in sidebar' }).count()).toBe(1)
       expect(await page.locator('[data-slot-error]').count()).toBe(0)
       expect(crashes).toEqual([])
@@ -307,8 +307,8 @@ describe.skipIf(MODE === 'record')('web e2e: pending plan review across Sidebar 
     }
   }
 
-  async function showPlugins(): Promise<void> {
-    await page.getByRole('button', { name: 'Plugins', exact: true }).click()
+  async function showAutomations(): Promise<void> {
+    await page.getByRole('button', { name: 'Automation tasks', exact: true }).click()
     await expect.poll(() => page.locator('[data-composer-input]').count(), { timeout: 10_000 }).toBe(0)
   }
 
@@ -352,7 +352,7 @@ describe.skipIf(MODE === 'record')('web e2e: pending plan review across Sidebar 
     planned = await seedSession(scaffold, await readFile(FIXTURE, 'utf8'), 'plan-review-seat-planned')
     other = await seedSession(scaffold, await readFile(OTHER_FIXTURE, 'utf8'), 'plan-review-seat-other')
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     tripwire = watchConsole(page)
     page.on('console', (message: ConsoleMessage) => {
       if (message.type() === 'error' && /slot entry crashed/i.test(message.text())) crashes.push(message.text())
@@ -389,7 +389,7 @@ describe.skipIf(MODE === 'record')('web e2e: pending plan review across Sidebar 
     await page.reload({ waitUntil: 'load' })
     await showSessions()
     acknowledgeReloadConnectionLoss(tripwire, warningStart)
-    await showPlugins()
+    await showAutomations()
     await whileReviewing(planned, '# Layout review\n\nSubmitted to a Session without a saved Sidebar layout.', async () => {
       await row(planned).click()
       await expectOpened('Submitted to a Session without a saved Sidebar layout.')
@@ -410,7 +410,7 @@ describe('web e2e: dismissed plan history', () => {
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { events.push(event) })
     try {
       browser = await chromium.launch()
-      const page = await newEnglishPage(browser)
+      const page = await newConversationReplayPage(browser)
       await page.setViewportSize({ width: 620, height: 900 })
       const tripwire = watchConsole(page)
       await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })

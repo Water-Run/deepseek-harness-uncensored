@@ -8,7 +8,7 @@ import {
   captureStableAria, compareOrRefreshGolden, fixtureUserPrompts, launchWebScaffold,
   recordFixture, watchConsole, webSnapshotMode,
 } from './scaffold.ts'
-import { connectFreshWorkspace, expandTurnProcesses, newEnglishPage } from './support.ts'
+import { connectFreshWorkspace, expandTurnProcesses, newConversationReplayPage } from './support.ts'
 
 const DIR = fileURLToPath(new URL('../../../snapshots/web/code-language', import.meta.url))
 const FIXTURE = join(DIR, 'session.v4.jsonl')
@@ -33,7 +33,7 @@ it('replays highlighted Python stubs, PowerShell and CSV reads with their docume
     await mkdir(cwd, { recursive: true })
     await Promise.all(FILES.map(file => writeFile(join(cwd, file.name), file.text)))
     browser = await chromium.launch()
-    const page = await newEnglishPage(browser)
+    const page = await newConversationReplayPage(browser)
     const tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await connectFreshWorkspace(page, scaffold.workspaceCwd)

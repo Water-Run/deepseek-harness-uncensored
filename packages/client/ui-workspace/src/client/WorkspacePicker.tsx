@@ -2,13 +2,14 @@
  * Workspace pick/add flow. WorkspacePickFlow is the reusable core (menu +
  * path error dialog) consumed directly by WorkspaceBrowser (same package) and
  * wrapped by WorkspacePicker for the conversation empty-state slot
- * registration. Directory picking itself lives in the composed flow package's
+ * registration and by WorkspacePickerFactory for the `workspace.picker`
+ * Factory. Directory picking itself lives in the composed flow package's
  * slot occupant (see the contract module doc): this core only opens the flow,
  * adopts the picked path, and owns the error surface. Adding a workspace has
  * exactly one route — pick a host directory, new or existing — because the
  * occupant's own create-folder affordance already covers creating one.
  */
-import type { ReactNode, RefObject } from 'react'
+import type { ReactElement, ReactNode, RefObject } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Button, IconFolderCloseRegular, IconGlobeOutlineRegular, IconPlusOutlineRegular, Menu, Modal, type MenuEntry,
@@ -18,7 +19,7 @@ import type {
 } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import { DEFAULT_WORKSPACE_DIRECTORY, workspaceDisplayTitle } from '@deepseek-ai/dsh-api-workspace-controller/default-workspace'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
-import type { DirectoryFlowOwnerProps, WorkspacePickerProps } from './contract/slots.ts'
+import type { DirectoryFlowOwnerProps, WorkspacePickerFactoryProps, WorkspacePickerProps } from './contract/slots.ts'
 import { distinguishingPathSuffixes } from './path-suffix.ts'
 import css from './WorkspacePicker.module.css'
 
@@ -264,23 +265,19 @@ export function WorkspacePickFlow({
 }
 
 /**
- * The conversation empty-state registration: adapts the owner share to the
- * core flow (all state and semantics live in the flow / the owner).
- * @param props - empty-state slot props (owner share + injected creation callback).
- * @returns the flow element.
+ * Workspace selection inputs shared by both surfaces. The conversation
+ * surface additionally supplies its action for starting without a workspace.
  */
-export function WorkspacePicker({
-  open,
-  anchorRef,
-  useWorkspaces,
-  selectedId,
-  onPick,
-  onClose,
-  createWorkspace,
-  useDirectoryFlow,
-  renderSlot,
-  t,
-}: WorkspacePickerProps) {
+type PickerSurfaceProps = Pick<
+  WorkspacePickFlowProps,
+  't' | 'open' | 'anchorRef' | 'useWorkspaces' | 'createWorkspace' | 'useDirectoryFlow' | 'selectedId' | 'onPick' | 'onClose'
+>
+
+function surfaceFlow(
+  { t, open, anchorRef, useWorkspaces, createWorkspace, useDirectoryFlow, selectedId, onPick, onClose }: PickerSurfaceProps,
+  renderDirectoryFlow: WorkspacePickFlowProps['renderDirectoryFlow'],
+  onPickNone?: () => void,
+): ReactElement {
   return (
     <WorkspacePickFlow
       t={t}
@@ -289,11 +286,33 @@ export function WorkspacePicker({
       useWorkspaces={useWorkspaces}
       createWorkspace={createWorkspace}
       useDirectoryFlow={useDirectoryFlow}
-      renderDirectoryFlow={owner => renderSlot('conversation.hero.workspace.directoryFlow', owner)}
+      renderDirectoryFlow={renderDirectoryFlow}
       selectedId={selectedId}
       onPick={onPick}
-      onPickNone={() => { onPick(null) }}
+      onPickNone={onPickNone}
       onClose={onClose}
     />
   )
+}
+
+/**
+ * The conversation empty-state registration: adapts the owner share to the
+ * core flow (all state and semantics live in the flow / the owner).
+ * @param props - empty-state slot props (owner share + injected creation callback).
+ * @returns the flow element.
+ */
+export function WorkspacePicker(props: WorkspacePickerProps) {
+  const { renderSlot } = props
+  return surfaceFlow(props, owner => renderSlot('conversation.hero.workspace.directoryFlow', owner), () => { props.onPick(null) })
+}
+
+/**
+ * The `workspace.picker` Factory definition: the same flow for another
+ * plugin's surface, under the Factory's own directory-flow hole.
+ * @param props - caller input, injected creation share, and the locale seat.
+ * @returns the flow element.
+ */
+export function WorkspacePickerFactory(props: WorkspacePickerFactoryProps) {
+  const { renderSlot } = props
+  return surfaceFlow(props, owner => renderSlot('workspace.picker.directoryFlow', owner))
 }

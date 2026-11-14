@@ -7,7 +7,7 @@ import {
   acknowledgeReloadConnectionLoss, captureExpandedTurnProcessAria, compareOrRefreshGolden, fixtureUserPrompts,
   launchWebScaffold, selectedSessionFixture, watchConsole, webSnapshotMode,
 } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
+import { connectFreshWorkspace, newConversationReplayPage, saveFailureShot } from './support.ts'
 
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/fresh-round-trip/session.v3.jsonl', import.meta.url))
 const UI_EXPECTED = fileURLToPath(new URL('../../../snapshots/web/fresh-round-trip/ui-expanded.expected.md', import.meta.url))
@@ -34,7 +34,7 @@ describe.skipIf(webSnapshotMode() === 'record')('web session replay', () => {
       onTestFinished(() => { release.resolve(undefined); dispose() })
       const browser = await engine.launch()
       onTestFinished(() => browser.close())
-      const page = await newEnglishPage(browser)
+      const page = await newConversationReplayPage(browser)
       onTestFailed(() => saveFailureShot(page, `session-replay-reload-${engine.name()}`))
       const tripwire = watchConsole(page)
       await page.goto(scaffold.authenticatedUrl)

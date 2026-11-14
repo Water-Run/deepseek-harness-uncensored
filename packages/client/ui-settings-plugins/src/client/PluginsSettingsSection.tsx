@@ -41,11 +41,9 @@ export function PluginsSettingsSection({ t, renderSlot, useTabs, useNavigation, 
   const activeId = useNavigation(value => value)
   const [visitedIds, setVisitedIds] = useState<ReadonlySet<string>>(() => new Set())
   const active = rows.find(row => row.id === activeId)?.id ?? rows[0]?.id
-  const single = rows.length === 1 ? rows[0] : undefined
+  const tabbed = rows.length > 1
 
-  // A tab mounts only when first selected, then stays mounted while hidden so
-  // local drafts, disclosure state, search, and the inventory snapshot survive
-  // switching between the two views.
+  // Visited tabs remain mounted across selection and sibling tab changes.
   useEffect(() => {
     if (active === undefined) return
     setVisitedIds((previous) => {
@@ -58,66 +56,63 @@ export function PluginsSettingsSection({ t, renderSlot, useTabs, useNavigation, 
     <div className={css.section}>
       <h2 className={css.heading}>{t('title')}</h2>
       <p className={css.intro}>{t('intro')}</p>
-      {rows.length === 0 ? <p className={css.empty}>{t('empty')}</p> : single !== undefined ? (
-        <div className={css.panel}>{renderSlot('settings.plugins.tab', {}, { only: single.id })}</div>
-      ) : (
-        <>
-          <div className={css.tabs} role="tablist" aria-label={t('tabs')}>
-            {rows.map((row, index) => {
-              const selected = row.id === active
-              return (
-                <button
-                  key={row.id}
-                  ref={(element) => { tabRefs.current[index] = element }}
-                  id={`${tabsId}-tab-${row.id}`}
-                  type="button"
-                  role="tab"
-                  className={css.tab}
-                  aria-selected={selected}
-                  aria-controls={`${tabsId}-panel-${row.id}`}
-                  data-active={selected ? 'true' : undefined}
-                  tabIndex={selected ? 0 : -1}
-                  onClick={() => { selectTab(row.id) }}
-                  onKeyDown={(event) => {
-                    let nextIndex: number
-                    switch (event.key) {
-                      case 'ArrowRight': nextIndex = (index + 1) % rows.length; break
-                      case 'ArrowLeft': nextIndex = (index - 1 + rows.length) % rows.length; break
-                      case 'Home': nextIndex = 0; break
-                      case 'End': nextIndex = rows.length - 1; break
-                      default: return
-                    }
-                    event.preventDefault()
-                    const nextRow = rows[nextIndex] as PluginsSettingsTabEntry
-                    const nextTab = tabRefs.current[nextIndex] as HTMLButtonElement
-                    selectTab(nextRow.id)
-                    nextTab.focus()
-                  }}
-                >
-                  {row.label}
-                </button>
-              )
-            })}
-          </div>
-          {rows
-            .filter(row => row.id === active || visitedIds.has(row.id))
-            .map((row) => {
-              const selected = row.id === active
-              return (
-                <div
-                  key={row.id}
-                  id={`${tabsId}-panel-${row.id}`}
-                  className={css.panel}
-                  role="tabpanel"
-                  aria-labelledby={`${tabsId}-tab-${row.id}`}
-                  hidden={!selected}
-                >
-                  {renderSlot('settings.plugins.tab', {}, { only: row.id })}
-                </div>
-              )
-            })}
-        </>
-      )}
+      {rows.length === 0 ? <p className={css.empty}>{t('empty')}</p> : null}
+      {tabbed ? (
+        <div className={css.tabs} role="tablist" aria-label={t('tabs')}>
+          {rows.map((row, index) => {
+            const selected = row.id === active
+            return (
+              <button
+                key={row.id}
+                ref={(element) => { tabRefs.current[index] = element }}
+                id={`${tabsId}-tab-${row.id}`}
+                type="button"
+                role="tab"
+                className={css.tab}
+                aria-selected={selected}
+                aria-controls={`${tabsId}-panel-${row.id}`}
+                data-active={selected ? 'true' : undefined}
+                tabIndex={selected ? 0 : -1}
+                onClick={() => { selectTab(row.id) }}
+                onKeyDown={(event) => {
+                  let nextIndex: number
+                  switch (event.key) {
+                    case 'ArrowRight': nextIndex = (index + 1) % rows.length; break
+                    case 'ArrowLeft': nextIndex = (index - 1 + rows.length) % rows.length; break
+                    case 'Home': nextIndex = 0; break
+                    case 'End': nextIndex = rows.length - 1; break
+                    default: return
+                  }
+                  event.preventDefault()
+                  const nextRow = rows[nextIndex] as PluginsSettingsTabEntry
+                  const nextTab = tabRefs.current[nextIndex] as HTMLButtonElement
+                  selectTab(nextRow.id)
+                  nextTab.focus()
+                }}
+              >
+                {row.label}
+              </button>
+            )
+          })}
+        </div>
+      ) : null}
+      {rows
+        .filter(row => row.id === active || visitedIds.has(row.id))
+        .map((row) => {
+          const selected = row.id === active
+          return (
+            <div
+              key={row.id}
+              id={tabbed ? `${tabsId}-panel-${row.id}` : undefined}
+              className={css.panel}
+              role={tabbed ? 'tabpanel' : undefined}
+              aria-labelledby={tabbed ? `${tabsId}-tab-${row.id}` : undefined}
+              hidden={!selected}
+            >
+              {renderSlot('settings.plugins.tab', {}, { only: row.id })}
+            </div>
+          )
+        })}
     </div>
   )
 }

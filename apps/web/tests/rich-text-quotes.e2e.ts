@@ -15,7 +15,7 @@ import {
   parseSeedFixture, renderSeedFixture, seedSession, selectedSessionFixture, watchConsole, webSnapshotMode,
   type WebScaffold,
 } from './scaffold.ts'
-import { newEnglishPage, pinBrowserClock, pinHostClock, saveFailureShot } from './support.ts'
+import { newConversationReplayPage, pinBrowserClock, pinHostClock, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/rich-text-quotes', import.meta.url))
 const BORROWED = fileURLToPath(new URL('../../../snapshots/web/seeded-history/session.jsonl', import.meta.url))
@@ -317,7 +317,7 @@ describe.skipIf(MODE === 'record')('web e2e: rich-text quotes', () => {
     await seedSession(scaffold, quoteHistoryFixture(borrowed), SESSION_ID, undefined, { createdAt })
     await seedSession(scaffold, otherSessionFixture(borrowed), OTHER_ID, undefined, { createdAt: createdAt + 1_000 })
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     await pinBrowserClock(page)
     await page.addInitScript(({ key, value }) => {
       if (localStorage.getItem(key) === null) localStorage.setItem(key, value)

@@ -49,6 +49,20 @@ function updateManifest(root: string, name: string, changes: Record<string, unkn
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }) })
 
 describe('Official bundle catalog generation', () => {
+  it('accepts an unchanged CRLF checkout without rewriting it and rejects changed metadata', () => {
+    const root = fixture()
+    const canonical = renderOfficialBundleCatalog(generateOfficialBundleCatalog(root))
+    const checkedOut = canonical.replaceAll('\n', '\r\n')
+    write(root, output, checkedOut)
+    expect(() => { syncOfficialBundleCatalog(root, true) }).not.toThrow()
+    syncOfficialBundleCatalog(root, false)
+    expect(readFileSync(join(root, output), 'utf8')).toBe(checkedOut)
+    write(root, `${directory(ON_DEMAND_BUNDLES[0]!)}/locale/en.json`, {
+      meta: { title: 'Changed agent', description: 'Delegate a task.' },
+    })
+    expect(() => { syncOfficialBundleCatalog(root, true) }).toThrow('is stale')
+  })
+
   it('reads package resources without evaluating native provider entries or pinning a version', () => {
     const entries = generateOfficialBundleCatalog(fixture())
     expect(entries.map(entry => entry.packageName)).toEqual(ON_DEMAND_BUNDLES)

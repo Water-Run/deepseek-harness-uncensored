@@ -22,7 +22,7 @@ import type { ReplayEntry } from '@deepseek-ai/dsh-llm-replay'
 import { SessionId, type SessionEvent } from '@deepseek-ai/dsh-session'
 import { createChatScrollFixture } from './chat-scroll-fixture.ts'
 import { launchWebScaffold, parseSeedFixture, seedSession, watchConsole, webSnapshotMode, type WebScaffold } from './scaffold.ts'
-import { newEnglishPage, openSettings } from './support.ts'
+import { newConversationReplayPage, openSettings } from './support.ts'
 
 declare global {
   interface Window {
@@ -231,7 +231,7 @@ async function sendFromOpenedGroup(browser: Browser, id: string, answerParagraph
   })
   const turn = Promise.withResolvers<undefined>()
   let maintenance: Promise<undefined> = Promise.resolve(undefined)
-  const page = await newEnglishPage(browser, 826)
+  const page = await newConversationReplayPage(browser, 826)
   const close = async (): Promise<void> => {
     turn.resolve(undefined)
     model.resolve(undefined)

@@ -133,7 +133,8 @@ describe('CodeBody', () => {
     const code = 'def answer():\n    return 42'
     const view = render(<CodeBody {...props(contents([code], true), { resourceAddress: sessionFileAddress(SESSION, 'answer.py') })} />)
     expect(element(view.container, 'pre').textContent).toBe(code)
-    await waitFor(() => { expect(view.container.querySelector('.shiki')).not.toBeNull() })
+    // Lazy grammar imports share the GUI lane's test budget under concurrent module loading.
+    await waitFor(() => { expect(view.container.querySelector('.shiki')).not.toBeNull() }, { timeout: 5000 })
     expect(element(view.container, '.shiki').textContent).toBe(code)
     expect(view.container.querySelectorAll('.shiki span[style]').length).toBeGreaterThan(1)
   })

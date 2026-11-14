@@ -1,12 +1,12 @@
 <div align="center">
   <img src="apps/desktop/resources/icon.svg" width="112" alt="DSHU 黑底白鲸标志">
   <h1>Deepseek Harness Uncensored: 更自由的探索未至之境</h1>
-  <p><b>DSHU v0.1.0</b> · 基于 DeepSeek Harness 0.2.2-rc.2 · WaterRun</p>
+  <p><b>DSHU v0.1.0</b> · 开发源码基于 DeepSeek Harness 0.2.2-rc.3 · WaterRun</p>
 </div>
 
 DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH 与 DSHU 可同时安装，分别使用自己的程序目录、配置、会话和更新渠道。未签名的 Windows x64 检查版 `0.1.0-test.20261113.5` 已在本机原位升级并核对资料。
 
-当前 Windows 检查版基于 DSH 0.2.2-rc.2，内置 REA 6.9.0。四模式、旁问清理、会话删除、命令执行和用户资料保全已在实际安装目录验证；Office 转换、渲染与重算及 REA 分析通过包内检查。Linux x64 的 deb 与便携归档也已通过检查。两平台检查包已包含引导页窄窗布局和日出日落外观读取修正，详见[开发进度](.agents/TODO.md)。
+当前 Windows 检查版基于 DSH 0.2.2-rc.2，内置 REA 6.9.0。四模式、旁问清理、会话删除、命令执行和用户资料保全已在实际安装目录验证；Office 转换、渲染与重算及 REA 分析通过包内检查。Linux x64 的 deb 与便携归档也已通过检查。rc.3 开发源码正在进行浏览器与历史回放验收，新检查包尚未交付。两平台检查包已包含引导页窄窗布局和日出日落外观读取修正，详见[开发进度](.agents/TODO.md)。
 
 ## 通用增强
 
@@ -42,7 +42,7 @@ DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH �
 
 ## Credit
 
-- **DeepSeek** 提供原始 Harness 和鲸鱼轮廓。DSHU 使用黑底图标，基于 [DeepSeek Harness 0.2.2-rc.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.2) 并保留 [MIT 许可](LICENSES/deepseek-harness-MIT.txt)。
+- **DeepSeek** 提供原始 Harness 和鲸鱼轮廓。DSHU 使用黑底图标，开发源码基于 [DeepSeek Harness 0.2.2-rc.3](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.3) 并保留 [MIT 许可](LICENSES/deepseek-harness-MIT.txt)。
 - **小杨（YuJunZhiXue）** 的 [dsh-purge](https://github.com/YuJunZhiXue/dsh-purge) 提供破甲文本。沿用 [MIT 历史版本 e1d8e590](https://github.com/Water-Run/dsh-purge/tree/e1d8e59087857fa86d0ef2bb9878800274b13a29) 与[原许可](LICENSES/dsh-purge-MIT.txt)。同时感谢 **JeffKeeping** 的 [dsh-purge-plus](https://github.com/JeffKeeping/dsh-purge-plus)。关于页记录 [Water-Run/dsh-purge fork 对照提交 19082c2b9788](https://github.com/Water-Run/dsh-purge/commit/19082c2b9788039fa7f8888c4a69086f43adc1ff) 及其时间。
 - **morluto** 维护 [REA](https://github.com/morluto/rea)。内置版本为 [6.9.0 · d74549e495c5](https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0)，保留 MIT 许可和第三方声明。
 - 可选保护使用 [DB-IP Lite](https://db-ip.com/db/download/ip-to-country-lite)（[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)）和 [QuickJS](https://bellard.org/quickjs/) / [quickjs-emscripten](https://github.com/justjake/quickjs-emscripten)（[MIT 声明](LICENSES/quickjs-wasm-MIT.txt)）。GitHub 标志来自 [Octicons](https://github.com/primer/octicons)，保留 [MIT 许可](packages/client/ui-settings-account/GITHUB-MARK-LICENSE.txt)。
@@ -54,7 +54,7 @@ DSHU 采用 [GPL-3.0-or-later](LICENSE)。上游和第三方组件保留各自�
 
 **DeepSeek Harness Uncensored · Explore the Unknown More Freely**
 
-DSHU v0.1.0 is an independent desktop fork of DeepSeek Harness 0.2.2-rc.2. It can coexist with the official app and uses a separate profile and update channel. It includes built-in armor prompts, four modes, and Chinese and English UI.
+DSHU v0.1.0 is an independent desktop fork whose development source uses DeepSeek Harness 0.2.2-rc.3. Current qualified inspection builds still use rc.2. It can coexist with the official app and uses a separate profile and update channel. It includes built-in armor prompts, four modes, and Chinese and English UI.
 
 - **General** · Use `/side` for a persistent side conversation with image attachments and `/clear`, or `/btw question` for a quick one-off answer. Balance history, spending limits, scoped memory, and Tab suggestions are available in Settings.
 - **Kernel intake** · The installed Windows inspection build uses DSH 0.2.2-rc.2 and bundled REA 6.9.0. Actual installed-runtime checks cover all four modes, side-context clearing, session deletion, command execution and preserved user data. Package checks cover Office conversion, rendering, recalculation and REA analysis. Both desktop inspection builds include the narrow welcome layout and sun-based appearance fixes.

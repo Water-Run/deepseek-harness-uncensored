@@ -5,7 +5,7 @@ import { chromium } from 'playwright'
 import { expect, it } from 'vitest'
 import type {} from '@deepseek-ai/dsh-token-meter'
 import { fixtureUserPrompts, launchWebScaffold } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage } from './support.ts'
+import { connectFreshWorkspace, newConversationReplayPage } from './support.ts'
 
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/creator-persona/session.v4.jsonl', import.meta.url))
 const CUSTOMIZATION_INTENT = 'You help the user customize DeepSeek Harness itself.'
@@ -18,7 +18,7 @@ it('sends the Creator customization intent without taking actions for an ordinar
   try {
     const browser = await chromium.launch()
     try {
-      const page = await newEnglishPage(browser)
+      const page = await newConversationReplayPage(browser)
       await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
       await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
       await connectFreshWorkspace(page, scaffold.workspaceCwd)

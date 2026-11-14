@@ -15,7 +15,7 @@ import {
   launchWebScaffold, parseSeedFixture, seedSession,
   watchConsole, webSnapshotMode, selectedSessionFixture, type WebScaffold,
 } from './scaffold.ts'
-import { newEnglishPage, saveFailureShot, writeComposerDraft } from './support.ts'
+import { newConversationReplayPage, saveFailureShot, writeComposerDraft } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/fork-mid-turn', import.meta.url))
 // Borrowed read-only from its recorded-session owner.
@@ -80,7 +80,7 @@ describe('web e2e: exact-boundary fork seeds branch closers and continues', () =
     forkAt = firstCall.seq
     await seedSession(scaffold, fixture, SEED_ID)
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })

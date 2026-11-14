@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { chromium, webkit } from 'playwright'
 import { describe, expect, it } from 'vitest'
 import { fixtureUserPrompts, launchWebScaffold, selectedSessionFixture, watchConsole, webSnapshotMode } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage } from './support.ts'
+import { connectFreshWorkspace, newConversationReplayPage } from './support.ts'
 
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/fresh-round-trip/session.v3.jsonl', import.meta.url))
 const NO_CHAT = fileURLToPath(new URL('./fixtures/context-meter-no-chat.patch.yml', import.meta.url))
@@ -24,7 +24,7 @@ describe.skipIf(webSnapshotMode() === 'record').each([
     try {
       const browser = await engine.launch()
       try {
-        const page = await newEnglishPage(browser)
+        const page = await newConversationReplayPage(browser)
         const tripwire = watchConsole(page)
         await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
         await connectFreshWorkspace(page, scaffold.workspaceCwd)

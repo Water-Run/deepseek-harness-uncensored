@@ -14,7 +14,7 @@ import {
   fixtureUserPrompts, launchWebScaffold, recordFixture, watchConsole,
   webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { connectFreshWorkspaceZh, ZH_BROWSER_LOCALE } from './support.ts'
+import { configureConversationReplay, connectFreshWorkspaceZh, ZH_BROWSER_LOCALE } from './support.ts'
 
 const DIR = fileURLToPath(new URL('../../../snapshots/web/present-svg', import.meta.url))
 const FIXTURE = join(DIR, 'session.v3.jsonl')
@@ -91,9 +91,9 @@ describe('web e2e: requested SVG is explicitly delivered', () => {
       ...(replayOverride === undefined ? {} : { replayFixture: FIXTURE, replayOverride, paceMs: 5 }),
     })
     browser = await chromium.launch()
-    page = await browser.newPage({
+    page = await configureConversationReplay(await browser.newPage({
       viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE, timezoneId: 'Asia/Shanghai',
-    })
+    }))
     tripwire = watchConsole(page)
     page.on('console', (message) => {
       if (message.text().startsWith('[connection]')) connectionDiagnostics.push(message.text())

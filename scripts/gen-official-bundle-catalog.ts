@@ -117,6 +117,7 @@ function localized(value: LocalizedText): string {
 
 /**
  * Write changed metadata or freshness-check it against the owning package resources.
+ * An LF/CRLF-only checkout difference leaves the file unchanged.
  * @param root - Repository root containing source and metadata resources.
  * @param check - Reject drift without changing the generated file.
  */
@@ -126,7 +127,7 @@ export function syncOfficialBundleCatalog(root: string, check: boolean): void {
   let current: string | undefined
   try { current = readFileSync(path, 'utf8') }
   catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error }
-  if (current === source) return
+  if (current?.replaceAll('\r\n', '\n') === source) return
   if (check) throw new Error(`${OUTPUT} is stale; run pnpm gen-official-bundle-catalog`)
   writeFileSync(path, source)
 }

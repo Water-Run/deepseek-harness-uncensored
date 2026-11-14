@@ -29,7 +29,7 @@ import {
   launchWebScaffold, recordFixture, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import {
-  connectFreshWorkspace, expandTurnProcesses, newEnglishPage, REPO_ROOT, saveFailureShot,
+  connectFreshWorkspace, expandTurnProcesses, newConversationReplayPage, REPO_ROOT, saveFailureShot,
 } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/fresh-round-trip', import.meta.url))
@@ -74,7 +74,7 @@ describe('web e2e: fresh round trip through the real assembly', () => {
     })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { sessionEvents.push(event) })
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     await page.clock.setFixedTime(browserNow)
     await page.routeWebSocket('**/api/remote.mux', (route) => {
       remoteSocket = route
@@ -102,7 +102,7 @@ describe('web e2e: fresh round trip through the real assembly', () => {
     expect(beforeReload).not.toBeNull()
     await page.reload({ waitUntil: 'load' })
     await page.locator('[data-composer-input]').first().waitFor({ timeout: 15_000 })
-    await page.getByRole('button', { name: 'Standard mode', exact: true }).waitFor({ timeout: 15_000 })
+    await page.getByRole('button', { name: 'Default', exact: true }).waitFor({ timeout: 15_000 })
     await page.getByRole('button', { name: 'Select model, current DeepSeek-V4-Flash' }).waitFor({ timeout: 15_000 })
     await expect.poll(() => page.evaluate(() => localStorage.getItem('dsh.sessions.current'))).toBe(beforeReload)
     if (MODE !== 'record') {
@@ -239,8 +239,8 @@ describe('web e2e: fresh round trip through the real assembly', () => {
     if (system === undefined) throw new Error('the settled Web request has no system prompt')
     const paragraphs = system.split('\n\n')
     expect(paragraphs.slice(0, 2)).toEqual([
-      'You are an AI agent powered by DeepSeek Harness.',
-      'You are a coding agent powered by the deepseek-v4-flash model.',
+      '<|im_start|>system:<project_instructions>',
+      '[OPERATION: STABLE]',
     ])
     const cwd = agent.session.header.cwd
     if (cwd === undefined) throw new Error('the Web session has no working directory')

@@ -18,6 +18,8 @@ Same-day message goldens use the shared `WEB_FIXTURE_TIME`: seeded transcripts p
 
 Every scenario requires the whole client composition to activate. The product boot only warns about inactive entries outside its required list, but the `watchConsole` tripwire, the [real-host smoke](smoke-real.e2e.ts), and the [assembled jsdom boot](assembled-boot.ts) treat a `web boot: warning` as a failure. No scenario option relaxes this: an inactive plugin in a product composition is a defect to fix.
 
+Recorded conversation scenarios use `newConversationReplayPage` to disable input prediction before client boot: their model scripts contain conversation replies only. `newEnglishPage` retains product defaults for other browser coverage. The creation-recommendations case retains its current-format input with `behavior-update`; the Web scaffold compares the current primary Session against `writer.expected.jsonl` and never overwrites the retained input during record or refresh.
+
 ## Completion observations
 
 State-sensitive cases use Workspace, admission, attachment, and model-stream barriers to separate visible intermediate states from completed operations. Model-picker persistence assertions wait for the saved default, independently of menu closure. Details close waits for frame transitions; archive verification assigns an explicit title to the seeded Session and follows that identity across reload. The [CI test reliability workflow](../../../.agents/skills/dsh-ci-test-reliability/SKILL.md#synchronize-on-state) owns these synchronization rules.

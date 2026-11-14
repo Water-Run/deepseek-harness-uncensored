@@ -9,7 +9,7 @@ import type {} from '@deepseek-ai/dsh-api-terminal-controller'
 import type { SubprocessTerminalHandle } from '@deepseek-ai/dsh-subprocess'
 import { createProcessInspector, type ProcessIdentity } from '@deepseek-ai/dsh-subprocess-local/src/process-inspector.ts'
 import { compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold } from './scaffold.ts'
-import { openSettings, connectFreshWorkspace, saveFailureShot } from './support.ts'
+import { configureConversationReplay, openSettings, connectFreshWorkspace, saveFailureShot } from './support.ts'
 
 const expected = fileURLToPath(new URL('./expected/sidebar-terminal/running.expected.md', import.meta.url))
 const shots = fileURLToPath(new URL('../../../.artifacts/screenshots/sidebar-terminal/', import.meta.url))
@@ -47,14 +47,12 @@ async function controlTransport(page: Page) {
   }
 }
 
-async function selectTerminalTheme(page: Page, name: string): Promise<void> {
+async function selectTerminalTheme(page: Page, scaffold: WebScaffold, name: 'Light' | 'Dark' | 'System'): Promise<void> {
   await openSettings(page, 'en')
   const dialog = page.getByRole('dialog', { name: 'Settings' })
-  const [response] = await Promise.all([
-    page.waitForResponse(candidate => new URL(candidate.url()).pathname === '/api/settings/mutate' && candidate.request().method() === 'POST'),
-    dialog.getByRole('button', { name, exact: true }).click(),
-  ])
-  expect(response.ok()).toBe(true)
+  await dialog.locator(`[data-theme-card="${name.toLowerCase()}"]`).click()
+  await expect.poll(() => scaffold.ctx.settings.describe().find(row => row.ns === 'ui-theme')?.value)
+    .toMatchObject({ preference: name.toLowerCase() })
   await page.keyboard.press('Escape')
   await dialog.waitFor({ state: 'hidden' })
 }
@@ -77,11 +75,12 @@ describe.skipIf(process.platform === 'win32')('Web sidebar terminal', () => {
 
   beforeEach(async () => {
     scaffold = await launchWebScaffold({ extraOverlayPath: fileURLToPath(new URL('./fixtures/sidebar-terminal.patch.yml', import.meta.url)) })
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'system' })
     browser = await chromium.launch()
     const context = await browser.newContext({ viewport: { width: 1680, height: 1000 }, locale: 'en-US', timezoneId: 'Asia/Shanghai' })
     // These snapshots use the Linux Web shortcut defaults.
     await context.addInitScript(() => { Object.defineProperty(navigator, 'platform', { configurable: true, value: 'Linux x86_64' }) })
-    page = await context.newPage()
+    page = await configureConversationReplay(await context.newPage())
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
@@ -133,9 +132,9 @@ describe.skipIf(process.platform === 'win32')('Web sidebar terminal', () => {
     expect(contrastRatio(lightText.foreground, 'rgb(255, 255, 255)')).toBeGreaterThanOrEqual(4.5)
     await command(page, "printf '\\033]4;1;#009900;255;#990099\\007\\033[31mANSI_CUSTOM\\033[38;5;255mEXTENDED_CUSTOM\\033[0m\\n'")
     const customLight = { ansi: await colorOf('ANSI_CUSTOM'), extended: await colorOf('EXTENDED_CUSTOM') }
-    await selectTerminalTheme(page, 'Dark')
+    await selectTerminalTheme(page, scaffold, 'Dark')
     await expect.poll(() => screen.evaluate(element => getComputedStyle(element).color)).toBe('rgb(249, 250, 251)')
-    await selectTerminalTheme(page, 'Light')
+    await selectTerminalTheme(page, scaffold, 'Light')
     await expect.poll(() => screen.evaluate(element => getComputedStyle(element).color)).toBe('rgb(15, 17, 21)')
     expect({ ansi: await colorOf('ANSI_CUSTOM'), extended: await colorOf('EXTENDED_CUSTOM') }).toEqual(customLight)
     await command(page, "printf '\\033]104;1;255\\007'")
@@ -149,13 +148,13 @@ describe.skipIf(process.platform === 'win32')('Web sidebar terminal', () => {
     }))
     const applicationDefaults = { foreground: 'rgb(17, 34, 51)', background: 'rgb(221, 238, 255)' }
     await expect.poll(defaults).toEqual(applicationDefaults)
-    await selectTerminalTheme(page, 'Dark')
+    await selectTerminalTheme(page, scaffold, 'Dark')
     await expect.poll(() => terminal.evaluate(root => getComputedStyle(root.querySelector('.xterm')!.parentElement!).backgroundColor))
       .toBe('rgb(21, 21, 23)')
     expect(await defaults()).toEqual(applicationDefaults)
     await command(page, "printf '\\033]110\\007\\033]111\\007\\033]112\\007'")
     await expect.poll(defaults).toEqual({ foreground: 'rgb(249, 250, 251)', background: 'rgb(21, 21, 23)' })
-    await selectTerminalTheme(page, 'Light')
+    await selectTerminalTheme(page, scaffold, 'Light')
     await expect.poll(defaults).toEqual({ foreground: 'rgb(15, 17, 21)', background: 'rgb(255, 255, 255)' })
 
     const cursorColors = () => screen.locator('.xterm-cursor').evaluate((cursor) => {
@@ -175,7 +174,7 @@ describe.skipIf(process.platform === 'win32')('Web sidebar terminal', () => {
     const ronLight = await cursorColors()
     expect(ronLight.foreground).toBe('rgb(0, 0, 0)')
     await terminal.screenshot({ path: `${shots}/ron-light.png`, animations: 'disabled' })
-    await selectTerminalTheme(page, 'Dark')
+    await selectTerminalTheme(page, scaffold, 'Dark')
     await page.locator('.xterm-helper-textarea:visible').click()
     await expect.poll(async () => (await cursorColors()).background).toBe('rgb(249, 250, 251)')
     await paintCursor('38;2;0;0;0;48;2;255;255;255')
@@ -223,16 +222,16 @@ describe.skipIf(process.platform === 'win32')('Web sidebar terminal', () => {
     expect(light.viewport).toBe(light.surface)
     expect(light.underlay).toBe(light.surface)
     await terminal.screenshot({ path: `${shots}/theme-light.png`, animations: 'disabled' })
-    await selectTerminalTheme(page, 'Dark')
+    await selectTerminalTheme(page, scaffold, 'Dark')
     await expect.poll(async () => (await readColors()).viewport).not.toBe(light.viewport)
     const dark = await readColors()
     expect(dark.viewport).toBe(dark.surface)
     expect(dark.underlay).toBe(dark.surface)
     expect(dark.foreground).not.toBe(light.foreground)
     await terminal.screenshot({ path: `${shots}/theme-dark.png`, animations: 'disabled' })
-    await selectTerminalTheme(page, 'Light')
+    await selectTerminalTheme(page, scaffold, 'Light')
     await expect.poll(readColors).toEqual(light)
-    await selectTerminalTheme(page, 'System')
+    await selectTerminalTheme(page, scaffold, 'System')
     await page.emulateMedia({ colorScheme: 'dark' })
     await expect.poll(readColors).toEqual(dark)
     await page.emulateMedia({ colorScheme: 'light' })
@@ -304,7 +303,8 @@ describe.skipIf(process.platform === 'win32')('Web sidebar terminal', () => {
     const pid = Number((await screen.innerText()).match(/DSH_PID:(\d+)/u)?.[1])
     const firstProcess = processIdentity(0)
     expect(alive(firstProcess)).toBe(true)
-    await command(page, 'dsh_terminal_completion_probe(){ printf "completed_from_shell\\n"; }')
+    await command(page, 'PATH=/usr/bin:/bin; PS1="DSH_COMPLETION_READY> "; dsh_terminal_completion_probe(){ printf "completed_from_shell\\n"; }')
+    await expect.poll(async () => (await screen.innerText()).trimEnd().endsWith('DSH_COMPLETION_READY>')).toBe(true)
     await page.keyboard.press('Control+l')
     await page.keyboard.insertText('dsh_terminal_completion_pro')
     await page.keyboard.press('Tab')
@@ -435,7 +435,7 @@ describe.skipIf(process.platform === 'win32')('Web sidebar terminal', () => {
       await expect.poll(() => terminals().filter(info => info.state === 'exited').length).toBe(count)
     }
     await openTerminal(page, false)
-    const alert = page.getByRole('alert')
+    const alert = page.locator('[data-sidebar-terminal]').getByRole('alert')
     await expect.poll(async () => await alert.innerText()).toContain('Exited terminals also count toward the limit.')
     const expectedLimit = fileURLToPath(new URL('./expected/sidebar-terminal/limit.expected.md', import.meta.url))
     await compareOrRefreshGolden(expectedLimit, await alert.ariaSnapshot(), webSnapshotMode())

@@ -9,7 +9,7 @@ import { chromium } from 'playwright'
 import { afterEach, describe, expect, it, onTestFailed } from 'vitest'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import { launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
+import { connectFreshWorkspace, newConversationReplayPage, saveFailureShot } from './support.ts'
 
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/live-interactions/session.v3.jsonl', import.meta.url))
 const MODE = webSnapshotMode()
@@ -40,7 +40,7 @@ describe('web e2e: prompt admission', () => {
     const userMessages = (): number => sessionEvents
       .filter(event => event.type === 'user/message' && event.data.source.kind === 'user').length
     browser = await chromium.launch()
-    const page = await newEnglishPage(browser)
+    const page = await newConversationReplayPage(browser)
     const tripwire = watchConsole(page)
     await page.goto(host.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })

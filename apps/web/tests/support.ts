@@ -2,7 +2,7 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { createRequire } from 'node:module'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Browser, Locator, Page } from 'playwright'
 import { expect, vi, type MockInstance } from 'vitest'
@@ -222,6 +222,30 @@ export async function newEnglishPage(browser: Browser, height = 1000): Promise<P
 }
 
 /**
+ * Open a recorded conversation without unrecorded composer model requests.
+ * Product-default pages continue to use {@link newEnglishPage}.
+ * @param browser - Playwright browser owning the page.
+ * @param height - Viewport height; width is fixed to the lane baseline.
+ * @returns the page with input prediction disabled before client boot.
+ */
+export async function newConversationReplayPage(browser: Browser, height = 1000): Promise<Page> {
+  return await configureConversationReplay(await newEnglishPage(browser, height))
+}
+
+/**
+ * Disable unrecorded composer requests on the top-level HTTP page.
+ * @param page - Page whose locale, viewport, or input devices the scenario owns.
+ * @returns The page with input prediction disabled before client boot.
+ */
+export async function configureConversationReplay(page: Page): Promise<Page> {
+  await page.addInitScript(() => {
+    if (window !== window.top || !['http:', 'https:'].includes(location.protocol)) return
+    localStorage.setItem('dsh.uncensored.prediction', '0')
+  })
+  return page
+}
+
+/**
  * Scroll a locator whose rendered element can be replaced during layout.
  * @param target - locator resolved again when its previous element detached.
  */
@@ -405,11 +429,12 @@ export async function writeComposerDraft(
 /** Failure evidence goes to the gitignored .artifacts/ (repo convention). */
 export async function saveFailureShot(page: Page, name: string): Promise<void> {
   const dir = fileURLToPath(new URL('../../../.artifacts', import.meta.url))
-  mkdirSync(dir, { recursive: true })
+  const path = join(dir, `${name}.png`)
+  mkdirSync(dirname(path), { recursive: true })
   try {
-    await page.screenshot({ path: `${dir}/${name}.png`, fullPage: true })
-  } catch {
-    // Best-effort evidence: a dead page/browser at failure time must not mask the real assertion error.
+    await page.screenshot({ path, fullPage: true })
+  } catch (_screenshotFailed) {
+    // The page or browser may be gone; preserve the original test failure.
   }
 }
 
@@ -467,4 +492,22 @@ export async function openSettings(page: Page, locale: 'en' | 'zh' | 'ja'): Prom
   }
   await trigger.click()
   await page.getByRole('menuitem', { name: labels[locale][1], exact: true }).click()
+}
+
+/**
+ * Open plugin management through its product Settings group.
+ * @param page - Browser page with the mounted sidebar.
+ * @param locale - Current UI language.
+ * @returns The visible manager page within Settings.
+ */
+export async function openPluginManager(page: Page, locale: 'en' | 'zh'): Promise<Locator> {
+  const labels = locale === 'en' ? { settings: 'Settings', plugins: 'Plugins' } : { settings: '设置', plugins: '插件' }
+  const dialog = page.getByRole('dialog', { name: labels.settings, exact: true })
+  if (!await dialog.isVisible()) await openSettings(page, locale)
+  await dialog.getByRole('button', { name: labels.plugins, exact: true }).click()
+  const managerTab = dialog.getByRole('tab', { name: labels.plugins, exact: true })
+  if (await managerTab.count() > 0) await managerTab.click()
+  const panel = dialog.locator('[data-plugin-panel]')
+  await panel.waitFor()
+  return panel
 }

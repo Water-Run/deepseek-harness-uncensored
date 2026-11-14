@@ -71,7 +71,7 @@ it('retains independent tab views and stable local viewport content through upda
   const view = runtime.renderRoot()
   await waitFor(() => { expect(view.getByRole('button', { name: 'Next first' })).toBeTruthy() })
   fireEvent.click(view.getByRole('button', { name: 'Next first' }))
-  expect(view.container.querySelector('[data-reader-page="first"]')?.textContent).toBe('2')
+  await waitFor(() => { expect(view.container.querySelector('[data-reader-page="first"]')?.textContent).toBe('2') })
   expect(view.container.querySelector('[data-reader-page="second"]')?.textContent).toBe('1')
   fireEvent.change(view.getByRole('textbox', { name: 'Local first' }), { target: { value: 'retained' } })
   a = { ...a, content: { kind: 'bytes', data: new Uint8Array([2]) } }

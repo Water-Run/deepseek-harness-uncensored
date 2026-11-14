@@ -97,4 +97,27 @@ describe('PluginsSettingsSection', () => {
     expect(document.activeElement).toBe(configurable)
     expect(configurable.getAttribute('aria-selected')).toBe('true')
   })
+
+  it('retains a tab draft when another tab is removed and restored', () => {
+    function Draft() {
+      const [value, setValue] = useState('')
+      return <input aria-label="Inventory filter" value={value} onChange={(event) => { setValue(event.currentTarget.value) }} />
+    }
+    const all = { id: 'all', order: 10, label: 'Plugin list' }
+    const manager = { id: 'manager', order: 0, label: 'Plugins' }
+    const propsOf = (rows: readonly PluginsSettingsTabEntry[]) => ({
+      t,
+      selectTab: () => {},
+      useNavigation: (selector: (value: string | undefined) => unknown) => selector('all'),
+      useTabs: (selector: (value: readonly PluginsSettingsTabEntry[]) => unknown) => selector(rows),
+      renderSlot: (_name: string, _owner: unknown, options: { only?: string }) => options.only === 'all' ? <Draft /> : <span>Manager</span>,
+    }) as PluginsSettingsSectionProps
+    const view = render(<PluginsSettingsSection {...propsOf([manager, all])} />)
+    fireEvent.change(screen.getByRole('textbox', { name: 'Inventory filter' }), { target: { value: 'unfinished-filter' } })
+    view.rerender(<PluginsSettingsSection {...propsOf([all])} />)
+    expect(screen.getByRole('textbox', { name: 'Inventory filter' })).toHaveProperty('value', 'unfinished-filter')
+    view.rerender(<PluginsSettingsSection {...propsOf([manager, all])} />)
+    expect(screen.getByRole('textbox', { name: 'Inventory filter' })).toHaveProperty('value', 'unfinished-filter')
+  })
+
 })

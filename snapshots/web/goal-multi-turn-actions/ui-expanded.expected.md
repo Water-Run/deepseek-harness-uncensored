@@ -1,6 +1,7 @@
 - banner:
   - navigation "Session hierarchy": workspace
-  - text: Standard mode
+  - 'button "Conversation mode: Default" [disabled]': Default
+  - button "Side question"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -147,9 +148,11 @@
 - button "Back to bottom"
 - textbox "Message or run a task, / commands, @ files or sessions"
 - button "Add files or run commands"
-- 'button "Access mode, current: Workspace Write"': Workspace Write
+- 'button "Access mode, current: Full access"': Full access
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message" [disabled]
-- button "2 turns 12 steps · {{throughput}} tok/s": 2 turns 12 steps{{throughput}} tok/s
+- 'button "Turns: 2 · Steps: 12 · {{throughput}} tok/s"': "Turns: 2 · Steps: {{throughput}} tok/s"
 - button "115K tok · Cache hit 91%": 115K tokCache hit 91%
+- 'button "Conversation cost: ￥0.04"': ￥0.04
+- 'button "Spending limits: Off"': "Off"
 - button "9% of context used": 9%

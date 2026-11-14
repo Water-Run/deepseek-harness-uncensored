@@ -8,6 +8,7 @@ import {
   parseSeedFixture,
   recordedSessionFixturePath,
   selectedSessionFixture,
+  webReplayExpectationPath,
 } from './scaffold.ts'
 
 const roots: string[] = []
@@ -44,6 +45,14 @@ describe('Web seed stream timing', () => {
 })
 
 describe('Web snapshot generation filenames', () => {
+  it('uses a separate behavior oracle while retaining the canonical replay-input path', () => {
+    const input = join('/', 'fixtures', 'session.v4.jsonl')
+    expect(webReplayExpectationPath(input, undefined)).toBe(input)
+    expect(webReplayExpectationPath(input, { version: 3, coverage: ['retired-tools'] })).toBe(input)
+    expect(webReplayExpectationPath(input, { version: 4, coverage: ['behavior-update'] }))
+      .toBe(join('/', 'fixtures', 'writer.expected.jsonl'))
+  })
+
   it('selects the highest parent and child generations without counting retained inputs twice', async () => {
     const root = await mkdtemp(join(tmpdir(), 'dsh-web-fixture-generations-'))
     roots.push(root)
@@ -102,4 +111,21 @@ describe('Web snapshot generation filenames', () => {
     await expect(assertFixtureInventory(root, ['session.jsonl', 'ui.expected.md']))
       .resolves.toBeUndefined()
   })
+
+  it('requires the declared writer oracle and rejects undeclared writer roles', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-web-writer-inventory-'))
+    roots.push(root)
+    const fixture = `${JSON.stringify({ type: 'session', version: 4, id: '{{session:1}}', createdAt: 0, delegationDepth: 0 })}\n`
+    await writeFile(join(root, 'session.v4.jsonl'), fixture)
+    await writeFile(join(root, 'snapshot.yml'), [
+      'version: 1', 'scenario: writer-inventory', 'profile: web', 'composition: web-default', 'recording: authored',
+      'sessionFormat:', '  version: 4', '  coverage:', '    - behavior-update', '',
+    ].join('\n'))
+    await expect(assertFixtureInventory(root, ['session.v4.jsonl'])).rejects.toThrow()
+    await writeFile(join(root, 'writer.expected.jsonl'), fixture)
+    await expect(assertFixtureInventory(root, ['session.v4.jsonl'])).resolves.toBeUndefined()
+    await writeFile(join(root, 'writer.1.expected.jsonl'), fixture)
+    await expect(assertFixtureInventory(root, ['session.v4.jsonl'])).rejects.toThrow()
+  })
+
 })

@@ -15,7 +15,7 @@ import {
   assertFinalWorkspaceSnapshot, assertFixtureInventory, captureExpandedTurnProcessAria, compareOrRefreshGolden,
   fixtureUserPrompts, launchWebScaffold, seedSession, selectedSessionFixture, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
+import { connectFreshWorkspace, newConversationReplayPage, saveFailureShot } from './support.ts'
 
 const DIR = fileURLToPath(new URL('../../../snapshots/web/official-subagent-bundle', import.meta.url))
 const FIXTURE = join(DIR, 'session.v4.jsonl')
@@ -106,7 +106,7 @@ describe.skipIf(MODE === 'record')('web snapshot: Official native subagent bundl
       .toMatchObject({ application: 'applied', changed: true })
     expect(scaffold.ctx.tools.schemas().some(tool => tool.name === 'subagent_claude_code')).toBe(true)
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
@@ -191,7 +191,7 @@ it.skipIf(MODE === 'record')('renders recorded official notice titles after reop
     const fixture = await readFile(await selectedSessionFixture(FIXTURE), 'utf8')
     await seedSession(scaffold, fixture, 'official-subagent-recorded-ui')
     browser = await chromium.launch()
-    const page = await newEnglishPage(browser)
+    const page = await newConversationReplayPage(browser)
     await page.clock.setFixedTime(parseSessionHeader(fixture).createdAt)
     const tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })

@@ -10,7 +10,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-subagent'
 import { launchWebScaffold, selectedSessionFixture, webSnapshotMode, type WebScaffold } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage, openSettings, saveFailureShot } from './support.ts'
+import { connectFreshWorkspace, newConversationReplayPage, openSettings, saveFailureShot } from './support.ts'
 
 const BASE_FIXTURE = fileURLToPath(new URL('../../../snapshots/web/live-interactions/session.v3.jsonl', import.meta.url))
 const LABEL = 'event-sourcing researcher'
@@ -86,7 +86,7 @@ describe('web e2e: composer paste routing', () => {
       paceMs: 25,
     })
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })

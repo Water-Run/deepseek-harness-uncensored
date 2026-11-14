@@ -10,7 +10,7 @@ import type { ReplayEntry } from '@deepseek-ai/dsh-llm-replay'
 import type {} from '@deepseek-ai/dsh-tool-executor-ptc/types'
 import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import { launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage } from './support.ts'
+import { connectFreshWorkspace, newConversationReplayPage } from './support.ts'
 
 const question = 'Which PTC answer should remain visible?'
 const args = JSON.stringify({
@@ -52,7 +52,7 @@ describe.skipIf(webSnapshotMode() === 'record')('web e2e: PTC answered question'
     })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { events.push(event) })
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })

@@ -11,7 +11,7 @@ import {
   captureStableAria, compareOrRefreshGolden, fixtureUserPrompts, launchWebScaffold, webSnapshotMode, watchConsole,
   type WebScaffold,
 } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage } from './support.ts'
+import { connectFreshWorkspace, newConversationReplayPage } from './support.ts'
 
 const fixture = fileURLToPath(new URL('../../../snapshots/web/fresh-round-trip/session.v3.jsonl', import.meta.url))
 const expected = fileURLToPath(new URL('../../../snapshots/web/voice-input/ui.expected.md', import.meta.url))
@@ -60,7 +60,7 @@ it.skipIf(webSnapshotMode() === 'record')('guides voice setup, records from stan
   })
   const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] })
   resources.browser = browser
-  const page = await newEnglishPage(browser), tripwire = watchConsole(page)
+  const page = await newConversationReplayPage(browser), tripwire = watchConsole(page)
   await page.addInitScript(() => {
     const holder = window as Window & {
       voiceTestStreams?: MediaStream[]

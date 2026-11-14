@@ -6,3 +6,7 @@ recording: authored
 header:
   class: web-minimal-image
   pin: true
+sessionFormat:
+  version: 4
+  coverage:
+    - behavior-update

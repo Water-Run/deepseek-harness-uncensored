@@ -21,7 +21,7 @@ import {
   launchWebScaffold, recordFixture, seedSession, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { createChatScrollFixture } from './chat-scroll-fixture.ts'
-import { openSettings, connectFreshWorkspace, expandOwningTurnProcess, newEnglishPage, saveFailureShot, WEB_FIXTURE_TIME } from './support.ts'
+import { configureConversationReplay, openSettings, connectFreshWorkspace, expandOwningTurnProcess, newConversationReplayPage, saveFailureShot, WEB_FIXTURE_TIME } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/turn-tail-actions', import.meta.url))
 const FIXTURE = join(SNAPSHOT_DIR, 'session.v3.jsonl')
@@ -87,7 +87,7 @@ describe('web e2e: assistant IconActions wait for the turn to end', () => {
   ): Promise<void> {
     sessionEvents = []
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     if (MODE !== 'record') {
       // Playwright records real installation time; align Host time before booting it.
       await page.clock.install({ time: WEB_FIXTURE_TIME })
@@ -111,6 +111,7 @@ describe('web e2e: assistant IconActions wait for the turn to end', () => {
           paceMs,
         },
     )
+    await scaffold.ctx.settings.update('ui-chat', { transcriptView: 'detailed', collapseTiming: 'completion' })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { sessionEvents.push(event) })
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
@@ -277,7 +278,7 @@ describe('web e2e: assistant IconActions wait for the turn to end', () => {
     await openSettings(page, 'en')
     const dialog = page.getByRole('dialog', { name: 'Settings' })
     await dialog.getByText('Work details', { exact: true }).locator('../..')
-      .getByRole('button', { name: 'Detailed', exact: true }).click()
+      .getByRole('button').click()
     await page.getByRole('menuitem', { name: label, exact: true }).click()
     await page.keyboard.press('Escape')
 
@@ -351,6 +352,7 @@ describe('web e2e: assistant IconActions wait for the turn to end', () => {
 
 it('keeps copy tooltips hidden during a WebKit touch copy', async () => {
   const scaffold = await launchWebScaffold({})
+  await scaffold.ctx.settings.update('ui-chat', { transcriptView: 'detailed', collapseTiming: 'completion' })
   const browserPromise = webkit.launch()
   onTestFinished(async () => {
     try { await (await browserPromise).close() }
@@ -360,7 +362,7 @@ it('keeps copy tooltips hidden during a WebKit touch copy', async () => {
   const context = await browser.newContext({
     ...devices['iPhone 13'], locale: 'en-US', viewport: { width: 1280, height: 900 },
   })
-  const page = await context.newPage()
+  const page = await configureConversationReplay(await context.newPage())
   // LAN HTTP pages use the clipboard fallback on iOS.
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined })

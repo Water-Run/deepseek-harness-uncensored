@@ -28,7 +28,10 @@ function props(
   presetName: PluginInventorySettingsTabInjected['presetName'] = preset => preset.name ?? preset.id,
   resolveText: PluginInventorySettingsTabInjected['resolveText'] = text => typeof text === 'string' ? text : text.en,
 ): PluginInventorySettingsTabProps {
+  const filter = createSnapshotStore('')
   return {
+    useInventoryFilter: bindSnapshotSelector(filter),
+    setFilter: (query: string) => { filter.set(query) },
     t,
     list,
     presetName,
@@ -660,4 +663,21 @@ it('shows current-page sync errors and retries without re-reading Host inventory
   expect(list).toHaveBeenCalledOnce()
   act(() => { sync.set({ syncing: false, failures: [] }) })
   expect(screen.queryByRole('alert')).toBeNull()
+
+
+})
+
+it('retains the filter across UI withdrawal without sharing it with another client', async () => {
+  const pageProps = props(async () => SNAPSHOT)
+  const first = render(<PluginInventorySettingsTab {...pageProps} />)
+  const filter = await screen.findByRole('searchbox', { name: 'Search plugins' })
+  fireEvent.change(filter, { target: { value: 'fixture' } })
+  expect(filter).toHaveProperty('value', 'fixture')
+  first.unmount()
+  const restored = render(<PluginInventorySettingsTab {...pageProps} />)
+  expect(await screen.findByRole('searchbox', { name: 'Search plugins' })).toHaveProperty('value', 'fixture')
+  restored.unmount()
+  render(<PluginInventorySettingsTab {...props(async () => SNAPSHOT)} />)
+  expect(await screen.findByRole('searchbox', { name: 'Search plugins' })).toHaveProperty('value', '')
+  await waitFor(() => { expect(screen.queryByRole('status')).toBeNull() })
 })

@@ -10,7 +10,7 @@ import type { TerminalBodyInjected } from './face.ts'
 import type {} from './locales.ts'
 import '@xterm/xterm/css/xterm.css'
 import css from './terminal.module.css'
-import { TerminalTheme } from './terminal-theme.ts'
+import { observeTerminalPalette, TerminalTheme } from './terminal-theme.ts'
 import { observeTerminalCursor } from './terminal-cursor.ts'
 
 /** Standard sidebar owner share plus terminal model and localized copy. */
@@ -108,6 +108,7 @@ function TerminalScreen({ state, model, visible, label, theme }: {
     xterm.open(node)
     const palette = new TerminalTheme(xterm)
     colors.current = palette
+    const stopPalette = observeTerminalPalette(node, (background, foreground) => { palette.update(background, foreground) })
     const cursor = observeTerminalCursor(xterm, node, () => palette.cursor)
     xterm.textarea?.setAttribute('aria-label', label)
     terminal.current = xterm
@@ -127,6 +128,7 @@ function TerminalScreen({ state, model, visible, label, theme }: {
     observer.observe(node)
     return () => {
       observer.disconnect()
+      stopPalette()
       for (const type of INPUT_GESTURES) node.removeEventListener(type, gesture, { capture: true })
       input.dispose()
       cursor.dispose()

@@ -8,7 +8,7 @@ import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
   fixtureUserPrompts, launchWebScaffold, watchConsole, type WebScaffold,
 } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage } from './support.ts'
+import { connectFreshWorkspace, newConversationReplayPage } from './support.ts'
 
 const directory = fileURLToPath(new URL('../../../snapshots/web/creation-recommendations', import.meta.url))
 const fixture = join(directory, 'session.v4.jsonl')
@@ -23,7 +23,7 @@ describe('creation recommendation after an explicit wish', () => {
       profile: { packages: [{ dir: fileURLToPath(new URL('../../../packages/experimental/personalized-recommendations', import.meta.url)), enabled: true }] },
     })
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
   })
   afterAll(async () => { await browser?.close(); await scaffold?.close() })
 
@@ -124,7 +124,7 @@ describe('creation recommendation after an explicit wish', () => {
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
     if (scaffold.mode === 'replay') await assertFixtureInventory(directory, [
-      'session.v4.jsonl', 'offered.expected.md', 'info.expected.md', 'expanded.expected.md', 'options.expected.md', 'dismissed.expected.md', 'location-menu.expected.md', 'custom-location.expected.md', 'system-prompt.expected.md', 'tool-schemas.expected.json',
+      'session.v4.jsonl', 'writer.expected.jsonl', 'offered.expected.md', 'info.expected.md', 'expanded.expected.md', 'options.expected.md', 'dismissed.expected.md', 'location-menu.expected.md', 'custom-location.expected.md', 'system-prompt.expected.md', 'tool-schemas.expected.json',
     ])
   })
 })

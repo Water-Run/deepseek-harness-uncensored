@@ -12,7 +12,7 @@ import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
   launchWebScaffold, readPersistedEvents, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import {
+import { configureConversationReplay,
   connectFreshWorkspaceZh, expandOwningTurnProcess, PLUGIN_TOGGLE_SETTLE_MS, saveFailureShot, ZH_BROWSER_LOCALE,
 } from './support.ts'
 
@@ -159,8 +159,8 @@ it.skipIf(MODE === 'record')('persists Bing reasoning translation across reopen 
   const browser = await chromium.launch()
   resources.browser = browser
   const context = await browser.newContext({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE, timezoneId: 'Asia/Shanghai' })
-  const page = await context.newPage()
-  const settings = await context.newPage()
+  const page = await configureConversationReplay(await context.newPage())
+  const settings = await configureConversationReplay(await context.newPage())
   const consoles = [watchConsole(page), watchConsole(settings)]
   onTestFailed(async () => {
     await saveFailureShot(page, 'web-e2e-cot-translation')

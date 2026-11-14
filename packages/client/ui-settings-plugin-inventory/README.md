@@ -37,6 +37,8 @@ A small enablement tag marks only the states that differ from plainly enabled: d
 
 A card paints its hover surface only where the pointer can hover: a tap answers with the pressed fill, and an expanded card keeps its open surface on every device. The search field takes a 16px face under a coarse pointer, so iOS Safari does not zoom the page for a focused field.
 
+The filter belongs to this Client plugin instance and survives UI withdrawal during another module's teardown. It is not written to Host settings; reloading this client or unloading the inventory plugin clears it.
+
 ### The preset switcher
 
 The switcher is the same selector-pill-plus-menu control the General settings rows use. It lists every roster preset — the default suffixed as such, broken ones marked — and changes only what the list shows: it writes no settings, and selecting a broken preset shows the discovery-reported reason in place of rows. Choosing the default preset or a session's preset stays where it was: the Agent presets section and the new-session screen.

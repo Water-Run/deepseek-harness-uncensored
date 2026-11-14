@@ -7,3 +7,7 @@ header:
   class: web-minimal-compact
   pin: true
   changes: 1
+sessionFormat:
+  version: 4
+  coverage:
+    - behavior-update

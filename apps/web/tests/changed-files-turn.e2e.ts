@@ -15,7 +15,7 @@ import {
   fixtureUserPrompts, launchWebScaffold, recordFixture, watchConsole,
   webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { openSettings, connectFreshWorkspaceZh, expandOwningTurnProcess, ZH_BROWSER_LOCALE } from './support.ts'
+import { configureConversationReplay, openSettings, connectFreshWorkspaceZh, expandOwningTurnProcess, ZH_BROWSER_LOCALE } from './support.ts'
 
 const DIR = fileURLToPath(new URL('../../../snapshots/web/changed-files-turn', import.meta.url))
 const FIXTURE = join(DIR, 'session.v3.jsonl')
@@ -86,7 +86,7 @@ describe('web e2e: a git workspace turn ends with its changed files', () => {
     const context = await browser.newContext({
       viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE, timezoneId: 'Asia/Shanghai',
     })
-    page = await context.newPage()
+    page = await configureConversationReplay(await context.newPage())
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]')
@@ -676,7 +676,7 @@ describe('web e2e: a git workspace turn ends with its changed files', () => {
   })
 
   it('fills empty alignment rows across a mixed comparison’s scrollable columns', async () => {
-    const preview = await page.context().newPage()
+    const preview = await configureConversationReplay(await page.context().newPage())
     onTestFinished(async () => { await preview.close() })
     await preview.route('**/api/changes.diff?*', route => route.fulfill({ json: {
       kind: 'text', path: 'notes.txt', display: 'notes.txt', before: true, after: true, coarse: false,
@@ -728,7 +728,7 @@ describe('web e2e: a git workspace turn ends with its changed files', () => {
   })
 
   it('preserves filename endings when the review narrows and updates the fade after resizing or selecting another file', async () => {
-    const preview = await page.context().newPage()
+    const preview = await configureConversationReplay(await page.context().newPage())
     onTestFinished(async () => { await preview.close() })
     const previewTripwire = watchConsole(preview)
     const prefix = 'src/components/review/' + 'long-filename-'.repeat(8)

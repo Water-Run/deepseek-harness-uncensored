@@ -14,7 +14,7 @@ import { excelDrawingFixture } from '../../../packages/client/ui-sidebar-documen
 import { xlsFixture } from '../../../packages/client/ui-sidebar-documentpreview/tests/xls-fixture.ts'
 import { pdfFixture, selectionPdfFixture } from '../../../packages/client/ui-sidebar-documentpreview/tests/pdf-fixture.ts'
 import { assertFixtureInventory, compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold } from './scaffold.ts'
-import { openSettings, connectFreshWorkspace, connectFreshWorkspaceZh, newEnglishPage, saveFailureShot, scrollIntoView } from './support.ts'
+import { configureConversationReplay, openSettings, connectFreshWorkspace, connectFreshWorkspaceZh, newConversationReplayPage, saveFailureShot, scrollIntoView } from './support.ts'
 
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/lifecycle-chrome/session.v3.jsonl', import.meta.url))
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/document-preview', import.meta.url))
@@ -70,10 +70,19 @@ async function copyPdfText(page: Page, preview: Locator, expected: string): Prom
   const text = preview.locator('[data-pdf-text] span:not(.markedContent)').filter({ hasText: expected }).first()
   await text.waitFor({ state: 'visible' })
   await expect.poll(() => text.evaluate(node => getComputedStyle(node).userSelect)).toBe('text')
+  const selectionBackground = await text.evaluate((node) => {
+    const probe = document.createElement('span')
+    probe.style.backgroundColor = 'var(--dsw-alias-bg-document-selection)'
+    node.append(probe)
+    const value = getComputedStyle(probe).backgroundColor
+    probe.remove()
+    return value
+  })
+  expect(selectionBackground).not.toBe('rgba(0, 0, 0, 0)')
   await expect.poll(() => text.evaluate(node => ({
     background: getComputedStyle(node, '::selection').backgroundColor,
     color: getComputedStyle(node, '::selection').color,
-  }))).toEqual({ background: 'color(srgb 0.231373 0.509804 0.964706 / 0.4)', color: 'rgba(0, 0, 0, 0)' })
+  }))).toEqual({ background: selectionBackground, color: 'rgba(0, 0, 0, 0)' })
   await text.click({ clickCount: 3 })
   await expect.poll(() => page.evaluate(() => window.getSelection()?.toString().trim())).toBe(expected)
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: new URL(page.url()).origin })
@@ -165,18 +174,26 @@ async function expectExcelLayout(excel: Locator): Promise<void> {
       Math.abs(scroller.left - tabs.left), scroller.right - controls[0]!.left,
       ...controls.map((control, index) => control.right - (controls[index + 1]?.left ?? tabs.right)))
   })).toBeLessThanOrEqual(1)
-  expect(await excel.locator('.fortune-sheettab-scroll, .fortune-zoom-button').evaluateAll(controls => controls.every((control) => {
+  await expect.poll(() => excel.page().locator('html[data-dsh-theme-reveal], html[data-dsh-mode-reveal]').count()).toBe(0)
+  const blocked = await excel.locator('.fortune-sheettab-scroll, .fortune-zoom-button').evaluateAll(controls => controls.flatMap((control) => {
     const rect = control.getBoundingClientRect()
-    return control.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2))
-  }))).toBe(true)
+    const cover = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)
+    return control.contains(cover) ? [] : [{
+      control: control.getAttribute('class'), x: rect.x, y: rect.y, width: rect.width, height: rect.height,
+      cover: cover?.getAttribute('class') ?? null, tag: cover?.tagName,
+    }]
+  }))
+  if (blocked.length > 0) await saveFailureShot(excel.page(), `screenshots/excel-hit-${process.pid}-${Date.now()}`)
+  expect(blocked).toEqual([])
 }
 
 it.skipIf(MODE === 'record').each(['en-US', 'zh-CN'])('fills the spreadsheet pane with read-only controls in %s', async (locale) => {
   const scaffold = await launchWebScaffold({ replayFixture: FIXTURE, paceMs: 5, compareReplaySession: false })
+  await scaffold.ctx.settings.update('ui-theme', { preference: 'system' })
   let browser: Browser | undefined
   try {
     browser = await chromium.launch()
-    const page = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale, timezoneId: 'Asia/Shanghai' })
+    const page = await configureConversationReplay(await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale, timezoneId: 'Asia/Shanghai' }))
     const consoleErrors = watchConsole(page)
     onTestFailed(async () => { await saveFailureShot(page, `screenshots/0908-document-preview/excel-resize-${locale}-${process.pid}`) })
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
@@ -430,10 +447,11 @@ async function freezeDividerInk(excel: Locator, axis: 'x' | 'y'): Promise<number
 
 it.skipIf(MODE === 'record').each([1, 2])('keeps frozen headings without dividers at DPR %i', async (deviceScaleFactor) => {
   const scaffold = await launchWebScaffold({ replayFixture: FIXTURE, paceMs: 5, compareReplaySession: false })
+  await scaffold.ctx.settings.update('ui-theme', { preference: 'system' })
   let browser: Browser | undefined
   try {
     browser = await chromium.launch()
-    const page = await browser.newPage({ viewport: { width: 1680, height: 1000 }, deviceScaleFactor, locale: 'en-US' })
+    const page = await configureConversationReplay(await browser.newPage({ viewport: { width: 1680, height: 1000 }, deviceScaleFactor, locale: 'en-US' }))
     const consoleErrors = watchConsole(page)
     onTestFailed(async () => { await saveFailureShot(page, `screenshots/0908-document-preview/excel-freeze-${deviceScaleFactor}-${process.pid}`) })
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
@@ -584,8 +602,9 @@ else process.exit(1);
       developerTools: false, replayFixture: FIXTURE, paceMs: 5, compareReplaySession: false, extraOverlayPath: [PAGING_PATCH, fileURLToPath(new URL('./fixtures/native-open-on.patch.yml', import.meta.url))],
       openInAppEnvironment: createLaunchEnvironmentSnapshot([{ source: 'process', values: { SSH_CONNECTION: '10.0.0.2 55000 10.0.0.9 22' } }]),
     })
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'system' })
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
@@ -610,8 +629,8 @@ else process.exit(1);
       await mkdir(SHOT_DIR, { recursive: true })
       await saveFailureShot(page, `screenshots/0908-document-preview/smoke-${process.pid}`)
     })
-    await page.locator('[data-slot="conversation.hero.agentPreset"]').getByRole('button', { name: 'Standard mode', exact: true }).click()
-    await expect.poll(() => page.getByRole('menuitem').count()).toBe(2)
+    await page.locator('[data-slot="conversation.hero.agentPreset"]').getByRole('button', { name: 'Default', exact: true }).click()
+    await expect.poll(() => page.getByRole('menuitem').count()).toBe(4)
     expect(await page.getByRole('menuitem', { name: /^PTC mode|^Minimal mode/ }).count()).toBe(0)
     await page.keyboard.press('Escape')
     expect(scaffold.ctx.settings.describe().find(row => row.ns === 'ui-settings')?.value).toEqual({ enabled: false })
@@ -1637,9 +1656,10 @@ describe.skipIf(MODE === 'record')('web e2e: Host Office preview', () => {
         fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)),
       ],
     })
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'system' })
     browser = await chromium.launch()
-    page = await browser.newPage({ viewport: { width: 1680, height: 1000 }, deviceScaleFactor: 2,
-      locale: 'en-US', timezoneId: 'Asia/Shanghai' })
+    page = await configureConversationReplay(await browser.newPage({ viewport: { width: 1680, height: 1000 }, deviceScaleFactor: 2,
+      locale: 'en-US', timezoneId: 'Asia/Shanghai' }))
     const tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await connectFreshWorkspace(page, scaffold.workspaceCwd)

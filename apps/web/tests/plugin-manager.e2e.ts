@@ -1,4 +1,4 @@
-// Web e2e scenario: the plugin manager page behind the sidebar's Plugins entry over a
+// Web e2e scenario: plugin management inside Settings over a
 // managed scaffold profile: installed bundles, their rows, and bundle enablement. Zero
 // model calls: everything is client state, seeded Session state, profile files, and the settings
 // document, so there is no fixture and a stray stream would fail loud on the open llm seam.
@@ -17,7 +17,8 @@ import {
   launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import {
-  ZH_BROWSER_LOCALE, connectFreshWorkspaceZh, experimentalBundleDescription, openSettings, PLUGIN_TOGGLE_SETTLE_MS, saveFailureShot,
+  ZH_BROWSER_LOCALE, connectFreshWorkspaceZh, experimentalBundleDescription, openPluginManager,
+  PLUGIN_TOGGLE_SETTLE_MS, saveFailureShot,
 } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/plugin-manager', import.meta.url))
@@ -58,39 +59,31 @@ describe('web e2e: plugin manager', () => {
 
   /** Close any open settings dialog, so the sidebar and the main column are clickable. */
   async function closeSettings() {
-    if (await page.getByRole('dialog', { name: '设置' }).count() > 0) {
+    const dialog = page.getByRole('dialog', { name: /^(设置|Settings)$/ })
+    if (await dialog.count() > 0) {
       await page.keyboard.press('Escape')
-      await expect.poll(() => page.getByRole('dialog', { name: '设置' }).count(), { timeout: 5_000 }).toBe(0)
+      await expect.poll(() => dialog.count(), { timeout: 5_000 }).toBe(0)
     }
   }
 
-  /** Change the UI language through Settings and close the dialog. */
+  /** Apply the Host locale while retaining the plugin detail under test. */
   async function setLanguage(language: 'en' | 'zh'): Promise<void> {
-    if (await page.locator('html').getAttribute('lang') === language) return
-    const settings = language === 'en' ? '设置' : 'Settings'
-    const source = language === 'en' ? '中文' : 'English'
-    const target = language === 'en' ? 'English' : '中文'
-    if (await page.getByRole('dialog', { name: settings }).count() === 0) {
-      await openSettings(page, language === 'en' ? 'zh' : 'en')
-    }
-    await page.getByRole('dialog', { name: settings }).getByRole('button', { name: source }).click()
-    await page.getByRole('menuitem', { name: target }).click()
-    const dialog = page.getByRole('dialog', { name: language === 'en' ? 'Settings' : '设置' })
-    await dialog.waitFor()
-    await page.keyboard.press('Escape')
-    await expect.poll(() => dialog.count()).toBe(0)
+    await scaffold.ctx.settings.update('locale', { preference: language })
+    await expect.poll(() => page.locator('html').getAttribute('lang'))
+      .toBe(language === 'zh' ? 'zh-CN' : language)
   }
 
-  /** Select the sidebar's Plugins entry and wait for the management page in the main column. */
+  /** Open Settings' plugin manager and return to its list. */
   async function openPluginsPanel() {
     await closeSettings()
-    await page.getByRole('navigation', { name: '全局面板' }).getByRole('button', { name: '插件', exact: true }).click()
+    await openPluginManager(page, 'zh')
     const panel = page.locator('[data-plugin-panel]')
     await panel.waitFor({ timeout: 10_000 })
     while (await panel.getByRole('button', { name: /^返回/ }).count() > 0) {
       await panel.getByRole('button', { name: /^返回/ }).first().click()
     }
-    await panel.getByRole('heading', { name: '插件', exact: true }).waitFor({ timeout: 10_000 })
+    await page.getByRole('dialog', { name: '设置', exact: true })
+      .getByRole('heading', { name: '插件', exact: true }).waitFor({ timeout: 10_000 })
     return panel
   }
 
@@ -99,313 +92,119 @@ describe('web e2e: plugin manager', () => {
     return readFile(join(scaffold.harnessHome, ...segments), 'utf8').catch(() => '')
   }
 
-  it('keeps plugin header actions on one line as the available width changes', async () => {
-    const facts: string[] = []
-    // A dedicated scaffold keeps the measured header deterministic: an install
-    // task left by an earlier test swaps the toolbar's add control for the
-    // view-installation button, which moves the wrap threshold.
+  it('keeps embedded plugin actions within Settings in both languages and themes', async () => {
     const headerScaffold = await launchWebScaffold()
+    const facts: string[] = []
     try {
-      // Pin the extremes; at intermediate widths, the rendered font and locale
-      // determine whether the two intrinsic items fit beside each other. Narrow
-      // widths shrink the actions to icons before they wrap; the collapsed-bar case
-      // pins those widths.
-      const PINNED_PLACEMENT: Record<number, 'beside' | 'below'> = { 1680: 'beside', 1024: 'beside' }
       for (const language of ['en', 'zh'] as const) {
-        const context = await browser.newContext({
-          viewport: { width: 1680, height: 1000 }, locale: language === 'en' ? 'en-US' : ZH_BROWSER_LOCALE,
-          reducedMotion: 'reduce',
-        })
-        try {
+        for (const scheme of ['light', 'dark'] as const) {
+          await headerScaffold.ctx.settings.update('ui-theme', { preference: scheme })
+          const context = await browser.newContext({
+            viewport: { width: 1280, height: 900 }, locale: language === 'en' ? 'en-US' : ZH_BROWSER_LOCALE,
+            reducedMotion: 'reduce',
+          })
           const probe = await context.newPage()
-          const consoleWatch = watchConsole(probe)
-          await probe.goto(headerScaffold.authenticatedUrl, { waitUntil: 'load' })
-          const title = language === 'en' ? 'Plugins' : '插件'
-          await probe.getByRole('button', { name: title, exact: true }).click()
-          const panel = probe.locator('[data-plugin-panel]')
-          const header = panel.locator('[data-plugin-bar] > header')
-          await header.getByRole('heading', { name: title, exact: true }).waitFor()
-          await probe.evaluate(() => document.fonts.ready)
-          const add = header.getByRole('button', { name: language === 'en' ? 'Add plugin' : '添加插件', exact: true })
-          await expect.poll(() => add.isEnabled()).toBe(true)
-          await add.focus()
-          const measure = () => header.evaluate((element) => {
-            const heading = element.firstElementChild!
-            const actions = element.querySelector('[data-plugin-toolbar]')!
-            const titleRect = heading.querySelector('h1')!.getBoundingClientRect()
-            const introRect = heading.querySelector('h1 + div')!.getBoundingClientRect()
-            const headingRect = {
-              right: Math.max(titleRect.right, introRect.right),
-              bottom: Math.max(titleRect.bottom, introRect.bottom),
-              width: Math.max(titleRect.right, introRect.right) - Math.min(titleRect.left, introRect.left),
-            }
-            const actionRect = actions.getBoundingClientRect()
-            const headerRect = element.getBoundingClientRect()
-            const intrinsicHeading = heading.cloneNode(true) as HTMLElement
-            intrinsicHeading.querySelectorAll('[data-plugin-header-part]').forEach((part) => {
-              part.removeAttribute('data-plugin-header-part')
-              part.removeAttribute('style')
-            })
-            Object.assign(intrinsicHeading.style, {
-              display: 'block', position: 'absolute', width: 'max-content', maxWidth: 'none', visibility: 'hidden', pointerEvents: 'none',
-            })
-            element.append(intrinsicHeading)
-            let intrinsicHeadingWidth: number
-            try {
-              intrinsicHeadingWidth = intrinsicHeading.getBoundingClientRect().width
-            } finally {
-              intrinsicHeading.remove()
-            }
-            const headerStyle = getComputedStyle(element)
-            const contentWidth = headerRect.width - Number.parseFloat(headerStyle.paddingLeft) - Number.parseFloat(headerStyle.paddingRight)
-            const fitsBeside = intrinsicHeadingWidth + actionRect.width + Number.parseFloat(headerStyle.columnGap) <= contentWidth + 1
-            const subtitle = heading.querySelector('h1 + div > span')!
-            const range = document.createRange()
-            range.selectNodeContents(subtitle)
-            const lastText = Array.from(range.getClientRects()).at(-1)!
-            const info = heading.querySelector('button')!.getBoundingClientRect()
-            const buttons = Array.from(actions.querySelectorAll('button'))
-            const singleLine = buttons.every((button) => {
-              const walker = document.createTreeWalker(button, NodeFilter.SHOW_TEXT)
-              const tops: number[] = []
-              while (walker.nextNode()) {
-                if (!walker.currentNode.textContent?.trim()) continue
-                range.selectNodeContents(walker.currentNode)
-                for (const rect of range.getClientRects()) tops.push(rect.top)
-              }
-              return tops.length === 0 || Math.max(...tops) - Math.min(...tops) < 1
-            })
-            return {
-              singleLine, fitsBeside,
-              diagnostic: { flexWrap: headerStyle.flexWrap, headingMaxWidth: getComputedStyle(heading).maxWidth,
-                introDisplay: getComputedStyle(heading.querySelector('h1 + div')!).display,
-                intrinsicHeadingWidth, headingWidth: headingRect.width, actionsWidth: actionRect.width,
-                contentWidth, gap: Number.parseFloat(headerStyle.columnGap),
-                subtitleRight: lastText.right, infoLeft: info.left,
-              },
-              placement: actionRect.left >= headingRect.right - 1
-                ? 'beside' as const
-                : actionRect.top >= headingRect.bottom - 1 ? 'below' as const : 'overlapping' as const,
-              contained: actionRect.left >= headerRect.left - 1 && actionRect.right <= headerRect.right + 1,
-              infoFollowsText: info.left >= lastText.right && info.left - lastText.right <= 5
-                && info.top < lastText.bottom && info.bottom > lastText.top,
-              focused: buttons.includes(document.activeElement as HTMLButtonElement),
-            }
-          })
-          const validLayout = (layout: Awaited<ReturnType<typeof measure>>) =>
-            layout.singleLine && layout.contained && layout.infoFollowsText && layout.focused
-            && layout.placement === (layout.fitsBeside ? 'beside' : 'below')
-          for (const width of [1680, 768, 520, 440, 390, 430, 1024]) {
-            await probe.setViewportSize({ width, height: 1000 })
-            await expect.poll(async () => {
-              const layout = await measure()
-              return validLayout(layout) ? true : layout
-            }, { message: `${language} ${width}px plugin header geometry` }).toBe(true)
-            const { placement } = await measure()
-            const pinned = PINNED_PLACEMENT[width]
-            if (pinned !== undefined) expect(placement).toBe(pinned)
-            facts.push(`${language} ${width}px: actions ${pinned === undefined ? 'beside or below (according to intrinsic fit)' : placement} the heading, single-line; contained; information follows subtitle; focus retained`)
-          }
-          // Force less room than even the icon actions need beside the heading.
-          await probe.setViewportSize({ width: 240, height: 1000 })
-          const previousWrap = await header.evaluate((element) => {
-            const style = element.style
-            const previous = { value: style.getPropertyValue('flex-wrap'), priority: style.getPropertyPriority('flex-wrap') }
-            element.parentElement!.removeAttribute('data-natural')
-            style.setProperty('flex-wrap', 'nowrap')
-            return previous
-          })
           try {
-            const noWrap = await measure()
-            expect(noWrap.fitsBeside).toBe(false)
-            expect(noWrap.placement).not.toBe('below')
-            expect(validLayout(noWrap)).toBe(false)
+            const consoleWatch = watchConsole(probe)
+            await probe.goto(headerScaffold.authenticatedUrl, { waitUntil: 'load' })
+            const panel = await openPluginManager(probe, language)
+            const title = language === 'en' ? 'Plugins' : '插件'
+            const dialog = probe.getByRole('dialog', { name: language === 'en' ? 'Settings' : '设置', exact: true })
+            await dialog.getByRole('heading', { name: title, exact: true }).waitFor()
+            expect(await panel.getByRole('heading', { name: title, exact: true }).count()).toBe(0)
+            const bar = panel.locator('[data-plugin-bar]')
+            const refresh = bar.getByRole('button', { name: language === 'en' ? 'Refresh' : '刷新', exact: true })
+            const add = bar.getByRole('button', { name: language === 'en' ? 'Add plugin' : '添加插件', exact: true })
+            await expect.poll(() => add.isEnabled()).toBe(true)
+            await add.focus()
+            for (const width of [1280, 600, 390]) {
+              await probe.setViewportSize({ width, height: 900 })
+              await expect.poll(() => panel.evaluate((node) => {
+                const bounds = node.getBoundingClientRect()
+                return [...node.querySelectorAll('[data-plugin-toolbar] button')].every((button) => {
+                  const rect = button.getBoundingClientRect()
+                  return rect.width > 0 && rect.left >= bounds.left - 1 && rect.right <= bounds.right + 1
+                    && rect.left >= 0 && rect.right <= innerWidth
+                })
+              })).toBe(true)
+              expect(await refresh.isVisible()).toBe(true)
+              expect(await add.evaluate(node => node === document.activeElement)).toBe(true)
+              expect(await probe.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+              facts.push(`${language} ${scheme} ${String(width)}px: one Settings title, actions fit, focus retained`)
+            }
+            await saveFailureShot(probe, `screenshots/plugin-settings-${language}-${scheme}`)
+            expect(consoleWatch.pageErrors).toEqual([])
+            expect(consoleWatch.warnings).toEqual([])
+          } catch (error) {
+            await saveFailureShot(probe, `screenshots/plugin-settings-failed-${language}-${scheme}`)
+            throw error
           } finally {
-            await header.evaluate((element, previous) => {
-              if (previous.value === '') element.style.removeProperty('flex-wrap')
-              else element.style.setProperty('flex-wrap', previous.value, previous.priority)
-              element.parentElement!.setAttribute('data-natural', '')
-            }, previousWrap)
+            await context.close()
           }
-          await probe.setViewportSize({ width: 390, height: 1000 })
-          await expect.poll(async () => validLayout(await measure())).toBe(true)
-          const menuTrigger = header.getByRole('button', { name: language === 'en' ? 'Choose how to add a plugin' : '选择添加插件方式' })
-          await menuTrigger.click()
-          await probe.getByRole('menu').waitFor()
-          await probe.keyboard.press('Escape')
-          await expect.poll(() => probe.getByRole('menu').count()).toBe(0)
-          expect(await menuTrigger.evaluate(element => element === document.activeElement)).toBe(true)
-          expect(consoleWatch.pageErrors).toEqual([])
-        } finally {
-          await context.close()
         }
       }
-      await compareOrRefreshGolden(
-        join(SNAPSHOT_DIR, 'header-responsive.expected.md'),
-        `# Plugin header responsive layout\n\n${facts.join('\n')}\n\nA forced no-wrap layout at 240px fails the same measured layout check in both locales; restoring wrap and 390px passes.\nAdd menu dismisses on Escape and returns focus in both locales.`,
-        MODE,
-      )
+      await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'header-responsive.expected.md'),
+        `# Plugin manager in Settings\n\n${facts.join('\n')}`, MODE)
     } finally {
       await headerScaffold.close()
     }
   })
 
-  it('uses icon actions before shrinking tabs and wraps only when both still cannot fit', async () => {
+  it('keeps embedded plugin tabs and icon actions accessible at narrow widths', async () => {
     const compactScaffold = await launchWebScaffold({
       profile: { packages: [], bundles: ['@deepseek-ai/dsh-experimental-plugin-market-bundle'] },
     })
-    const context = await browser.newContext({ viewport: { width: 1280, height: 480 }, locale: 'en-US', reducedMotion: 'reduce' })
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'en-US', reducedMotion: 'reduce' })
     try {
       const probe = await context.newPage()
       await probe.goto(compactScaffold.authenticatedUrl, { waitUntil: 'load' })
-      await probe.getByRole('button', { name: 'Plugins', exact: true }).click()
-      const panel = probe.locator('[data-plugin-panel]')
+      const panel = await openPluginManager(probe, 'en')
       const bar = panel.locator('[data-plugin-bar]')
-      const body = panel.locator('[data-plugin-body]')
-      const refresh = bar.getByRole('button', { name: 'Refresh', exact: true })
-      const add = bar.getByRole('button', { name: 'Add plugin', exact: true })
       await panel.locator('[data-plugin-package]').first().waitFor()
-      await bar.getByRole('tablist').waitFor()
-      await add.focus()
-      for (const [width, icons, narrowTabs, wraps] of [
-        [1280, false, false, false], [544, true, false, false],
-        [390, true, true, false], [320, true, true, true], [244, true, true, true],
-      ] as const) {
-        await probe.setViewportSize({ width, height: 480 })
-        await body.evaluate((element) => { element.scrollTop = 180 })
-        await probe.waitForFunction(() => document.querySelector('[data-plugin-bar]')?.hasAttribute('data-compact'))
-        await expect.poll(() => bar.evaluate((element) => {
-          const tablist = element.querySelector('[role="tablist"]')!
-          const toolbar = element.querySelector('[data-plugin-toolbar]')!
-          const action = toolbar.querySelector('button')!
-          const tabRect = tablist.getBoundingClientRect(), actions = toolbar.getBoundingClientRect()
-          const actionRect = action.getBoundingClientRect()
-          const wrapped = actions.top >= tabRect.bottom
-          return {
-            icons: getComputedStyle(action.lastElementChild!).display === 'none',
-            narrowTabs: tabRect.width < 240,
-            wraps: wrapped,
-            centered: wrapped || Math.abs(tabRect.top + tabRect.height / 2 - actionRect.top - actionRect.height / 2) < 1,
-          }
-        }), { message: `compact toolbar at ${width}px` }).toEqual({ icons, narrowTabs, wraps, centered: true })
-        expect(await add.evaluate(element => element === document.activeElement)).toBe(true)
-        // The collapsed bar hides the title visually but keeps the page's heading for assistive technology.
-        expect(await bar.getByRole('heading', { name: 'Plugins', level: 1, exact: true }).count()).toBe(1)
+      const tabs = bar.getByRole('tablist')
+      await tabs.waitFor()
+      for (const width of [1280, 600, 390]) {
+        await probe.setViewportSize({ width, height: 900 })
+        await expect.poll(() => bar.evaluate((node) => {
+          const panel = node.closest('[data-plugin-panel]')!.getBoundingClientRect()
+          return [...node.querySelectorAll('button')].filter(button => button.getClientRects().length > 0).every((button) => {
+            const rect = button.getBoundingClientRect()
+            return rect.left >= panel.left - 1 && rect.right <= panel.right + 1
+          })
+        })).toBe(true)
+        for (const name of ['Refresh', 'Add plugin']) {
+          await bar.getByRole('button', { name, exact: true }).click({ trial: true })
+        }
+        expect(await tabs.getByRole('tab').count()).toBeGreaterThan(1)
       }
-      // A short list keeps its range even when the available travel cannot fully compact the tabs.
-      await probe.setViewportSize({ width: 1280, height: 480 })
-      await body.evaluate((element) => { element.scrollTop = 0 })
-      await expect.poll(() => bar.evaluate(element => element.hasAttribute('data-compact'))).toBe(false)
-      const range = await body.evaluate(element => element.scrollHeight - element.clientHeight)
-      await probe.setViewportSize({ width: 1280, height: 480 + range - 30 })
-      await expect.poll(() => body.evaluate(element => element.scrollHeight - element.clientHeight)).toBe(30)
-      await probe.mouse.move(800, 400)
-      await probe.mouse.wheel(0, 200)
-      await expect.poll(() => body.evaluate(element => element.scrollTop)).toBe(30)
-      expect(await body.evaluate(element => element.scrollHeight - element.clientHeight)).toBe(30)
-      expect(await bar.evaluate(element => element.hasAttribute('data-compact'))).toBe(false)
-      await probe.setViewportSize({ width: 390, height: 480 })
-      // Locator hover scrolls its target into view, and scrolling this list moves the header controls away from
-      // the pointer; once the resized header stops moving, move the pointer onto each control instead.
-      const pointAt = async (target: Locator): Promise<void> => {
-        await expect.poll(() => target.evaluate(element => new Promise<boolean>((resolve) => {
-          const before = element.getBoundingClientRect()
-          requestAnimationFrame(() => requestAnimationFrame(() => {
-            const after = element.getBoundingClientRect()
-            resolve(before.x === after.x && before.y === after.y)
-          }))
-        }))).toBe(true)
-        const bounds = await target.boundingBox()
-        if (bounds === null) throw new Error('Header control is not visible')
-        await probe.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2)
-      }
-      await pointAt(refresh)
-      await probe.getByRole('tooltip', { name: 'Refresh', exact: true }).waitFor()
-      await pointAt(add)
-      await probe.getByRole('tooltip', { name: 'Add plugin', exact: true }).waitFor()
-      await bar.getByRole('button', { name: 'Choose how to add a plugin', exact: true }).click()
-      await probe.getByRole('menu').waitFor()
-      await probe.keyboard.press('Escape')
-      await probe.getByRole('menu').waitFor({ state: 'hidden' })
-      await add.click()
-      await probe.getByRole('dialog').waitFor()
     } finally {
       await context.close()
       await compactScaffold.close()
     }
   })
 
-  it('keeps the plugin page title and actions pinned while the cards scroll', async () => {
-    await page.setViewportSize({ width: 1000, height: 480 })
+  it('keeps embedded plugin actions reachable after scrolling its cards', async () => {
+    await page.setViewportSize({ width: 1000, height: 600 })
     const panel = await openPluginsPanel()
-    const body = panel.locator('[data-plugin-body]')
+    const scroller = await panel.locator('[data-plugin-body]').evaluateHandle((node) => {
+      for (let element: Element | null = node; element !== null; element = element.parentElement) {
+        if (element.scrollHeight > element.clientHeight && ['auto', 'scroll'].includes(getComputedStyle(element).overflowY)) return element
+      }
+      throw new Error('Plugin cards have no vertical scroll container')
+    })
     try {
       await panel.locator('[data-plugin-package]').first().waitFor()
-      const headerTop = () => panel.locator('[data-plugin-bar] > header').evaluate(element => element.getBoundingClientRect().top)
-      const bar = panel.locator('[data-plugin-bar]')
-      const barHeight = () => bar.evaluate(element => element.getBoundingClientRect().height)
-      const resting = await headerTop()
-      const restingHeight = await barHeight()
-      const refreshButton = bar.getByRole('button', { name: '刷新', exact: true })
-      const addButton = bar.getByRole('button', { name: '添加插件', exact: true })
-      const restingActions = await Promise.all([refreshButton.boundingBox(), addButton.boundingBox()])
-      expect(resting).toBe(await panel.evaluate(element => element.getBoundingClientRect().top))
-      const restingBarBottom = await bar.evaluate(element => element.getBoundingClientRect().bottom)
-      expect(await body.locator('[data-plugin-group]').first().evaluate(element => element.getBoundingClientRect().top))
-        .toBeCloseTo(restingBarBottom + 32, 1)
-      await body.evaluate((element) => { element.scrollTop = element.scrollHeight })
-      const bottom = await body.evaluate(element => element.scrollTop)
-      expect(bottom).toBeGreaterThan(100)
-      expect(await headerTop()).toBe(resting)
-      // The painted bar compacts while its document-flow height remains unchanged.
-      await page.waitForFunction(() => document.querySelector('[data-plugin-bar]')?.hasAttribute('data-compact') === true)
-      expect(await barHeight()).toBe(restingHeight)
-      expect(await bar.evaluate(element => getComputedStyle(element, '::after').borderBottomWidth)).not.toBe('0px')
-      expect(await bar.evaluate(element => Number.parseFloat(getComputedStyle(element, '::before').height))).toBe(64)
-      expect(await body.evaluate(element => element.getBoundingClientRect().top)).toBe(resting)
-      expect(await Promise.all([refreshButton.boundingBox(), addButton.boundingBox()]))
-        .toEqual(restingActions.map((bounds) => {
-          if (bounds === null) throw new Error('Plugin toolbar action is not visible')
-          return { ...bounds, y: bounds.y - 12 }
-        }))
-      // Reverse keyboard navigation scrolls each focused control into view below the bar, never under it.
-      await panel.locator('[data-plugin-package] [role="switch"]').last().focus()
-      const barBottom = await bar.evaluate(element => element.getBoundingClientRect().top + Number.parseFloat(getComputedStyle(element, '::before').height))
-      const hidden: string[] = []
-      for (let step = 0; step < 30; step++) {
-        await page.keyboard.press('Shift+Tab')
-        const focus = await page.evaluate(() => {
-          const element = document.activeElement
-          const box = element?.getBoundingClientRect()
-          return {
-            inBody: element?.closest('[data-plugin-body]') !== null && element?.closest('[data-plugin-bar]') === null,
-            top: box?.top ?? 0,
-            name: element?.getAttribute('aria-label') ?? element?.textContent ?? '',
-          }
-        })
-        if (!focus.inBody) break
-        if (focus.top < barBottom) hidden.push(`${focus.name} at ${String(focus.top)}`)
-      }
-      expect(hidden).toEqual([])
-      expect(await body.evaluate(element => element.scrollTop)).toBeLessThan(bottom)
-      expect(await headerTop()).toBe(resting)
-      await page.setViewportSize({ width: 1680, height: 480 })
-      await body.evaluate((element) => { element.scrollTop = element.scrollHeight })
-      await page.waitForFunction(() => document.querySelector('[data-plugin-bar]')?.hasAttribute('data-compact') === true)
-      await expect.poll(() => panel.evaluate((element) => {
-        const bounds = element.getBoundingClientRect()
-        const barElement = element.querySelector('[data-plugin-bar]')!
-        const barBounds = barElement.getBoundingClientRect()
-        const bodyBounds = element.querySelector('[data-plugin-body]')!.getBoundingClientRect()
-        const dividerStyle = getComputedStyle(barElement, '::after')
-        return {
-          left: barBounds.left + Number.parseFloat(dividerStyle.left) - bounds.left,
-          right: barBounds.right - Number.parseFloat(dividerStyle.right) - bounds.right,
-          gap: bodyBounds.top - barBounds.top,
-        }
-      })).toEqual({ left: 0, right: 0, gap: 0 })
+      await scroller.evaluate((node) => { node.scrollTop = node.scrollHeight })
+      expect(await scroller.evaluate(node => node.scrollTop)).toBeGreaterThan(100)
+      const refresh = panel.getByRole('button', { name: '刷新', exact: true })
+      const add = panel.getByRole('button', { name: '添加插件', exact: true })
+      await refresh.click({ trial: true })
+      await add.focus()
+      expect(await add.evaluate(node => node === document.activeElement)).toBe(true)
+      await add.click({ trial: true })
     } finally {
-      await body.evaluate((element) => { element.scrollTop = 0 })
+      await scroller.evaluate((node) => { node.scrollTop = 0 })
+      await scroller.dispose()
       await page.setViewportSize({ width: 1680, height: 1000 })
     }
   })
@@ -429,7 +228,7 @@ describe('web e2e: plugin manager', () => {
         const consoleWatch = watchConsole(probe)
         await probe.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
         await probe.waitForSelector('[class*="frame"]', { timeout: 30_000 })
-        await probe.getByRole('navigation', { name: '全局面板' }).getByRole('button', { name: '插件', exact: true }).click()
+        await openPluginManager(probe, 'zh')
         await expect.poll(() => spy.mock.calls.length, { timeout: 10_000 }).toBeGreaterThan(0)
         const panel = probe.locator('[data-plugin-panel]')
         const skeleton = panel.locator('[data-plugin-loading]')
@@ -442,7 +241,7 @@ describe('web e2e: plugin manager', () => {
         const actions = panel.locator('[data-plugin-bar] > header > div:last-child button')
         expect(await actions.count()).toBe(3)
         for (const action of await actions.all()) expect(await action.isDisabled()).toBe(true)
-        expect(await panel.getByRole('button', { name: '插件说明' }).isEnabled()).toBe(true)
+        expect(await panel.getByRole('button', { name: '插件说明' }).count()).toBe(0)
         const loadingAria = await captureStableAria(probe, '[data-plugin-panel]', scaffold.workspaceCwd)
         if (aria === '') aria = loadingAria
         else expect(loadingAria).toBe(aria)
@@ -532,7 +331,7 @@ describe('web e2e: plugin manager', () => {
     }
     await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'loading.expected.md'), [
       aria, '', ...facts,
-      'Loading: header actions disabled; action spaces are empty 36×20 areas, with no switch placeholders',
+      'Loading: header actions disabled; action spaces are empty 58×20 areas, with no switch placeholders',
       'Loaded: skeleton removed; header actions enabled',
       'Motion: 13 opacity-only pulses, 2000ms; reduced motion stops all pulses',
     ].join('\n'), MODE)
@@ -548,7 +347,7 @@ describe('web e2e: plugin manager', () => {
       onTestFailed(() => saveFailureShot(probe, 'web-e2e-plugin-manager-refresh'))
       await probe.clock.install()
       await probe.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
-      await probe.getByRole('navigation', { name: '全局面板' }).getByRole('button', { name: '插件', exact: true }).click()
+      await openPluginManager(probe, 'zh')
       const panel = probe.locator('[data-plugin-panel]')
       const refresh = panel.getByRole('button', { name: '刷新', exact: true })
       const add = panel.getByRole('button', { name: '添加插件', exact: true })
@@ -685,10 +484,9 @@ describe('web e2e: plugin manager', () => {
       onTestFailed(() => saveFailureShot(probe, 'web-e2e-touch-tooltips'))
       await probe.clock.install()
       await probe.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
-      await probe.getByRole('button', { name: '插件', exact: true }).click()
+      await openPluginManager(probe, 'zh')
       const panel = probe.locator('[data-plugin-panel]')
       const refresh = panel.getByRole('button', { name: '刷新', exact: true })
-      const info = panel.getByRole('button', { name: '插件说明', exact: true })
       await expect.poll(() => refresh.isEnabled()).toBe(true)
       await probe.setViewportSize({ width: 390, height: 844 })
       await probe.evaluate(() => document.fonts.ready)
@@ -704,24 +502,6 @@ describe('web e2e: plugin manager', () => {
       await probe.clock.runFor(500)
       expect(await probe.getByRole('tooltip').count()).toBe(0)
       const facts = ['Touch refresh: one refresh request; no tooltip']
-
-      await tap(info)
-      const help = probe.getByRole('tooltip')
-      await help.waitFor()
-      const bounds = await help.boundingBox()
-      if (bounds === null) throw new Error('Tapped plugin explanation is not visible')
-      expect(bounds.x).toBeGreaterThanOrEqual(12)
-      expect(bounds.x + bounds.width).toBeLessThanOrEqual(390 - 12)
-      expect(bounds.y).toBeGreaterThanOrEqual(12)
-      expect(bounds.y + bounds.height).toBeLessThanOrEqual(844 - 12)
-      facts.push('Touch explanation: visible within the 390px viewport', await help.ariaSnapshot())
-      await tap(info)
-      expect(await help.count()).toBe(0)
-      await tap(info)
-      await help.waitFor()
-      await tap(panel.getByRole('heading', { name: '插件', exact: true }))
-      expect(await help.count()).toBe(0)
-      facts.push('Explanation closes on another tap or an outside touch')
 
       await probe.keyboard.press('Tab')
       await refresh.focus()
@@ -775,39 +555,9 @@ describe('web e2e: plugin manager', () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-plugin-manager-list'))
     const panel = await openPluginsPanel()
 
-    const info = panel.getByRole('button', { name: '插件说明' })
-    const infoBounds = await info.boundingBox()
-    const iconBounds = await info.locator('svg').boundingBox()
-    const subtitleBounds = await panel.getByText('安装、启用和配置插件', { exact: true }).boundingBox()
-    if (infoBounds === null || iconBounds === null || subtitleBounds === null) {
-      throw new Error('Plugin information button, icon, and subtitle must be visible')
-    }
-    expect(infoBounds.width).toBe(20)
-    expect(infoBounds.height).toBe(20)
-    expect(iconBounds.width).toBe(11)
-    expect(iconBounds.height).toBe(11)
-    expect(infoBounds.x - subtitleBounds.x - subtitleBounds.width).toBeCloseTo(4)
-    expect(iconBounds.y + iconBounds.height / 2).toBeCloseTo(subtitleBounds.y + subtitleBounds.height / 2)
-    await info.hover()
-    const hoverHelp = page.getByRole('tooltip')
-    await hoverHelp.waitFor()
-    expect(await hoverHelp.textContent()).toBe('在这里配置官方插件，安装和管理其他插件。内置插件列表及运行状态可在「设置 → 内置插件」中查看')
-    await panel.getByRole('heading', { name: '插件', exact: true }).hover()
-    await hoverHelp.waitFor({ state: 'hidden' })
-    await info.focus()
-    await page.keyboard.press('Enter')
-    const help = page.getByRole('tooltip')
-    await help.waitFor()
-    expect(await help.textContent()).toContain('设置 → 内置插件')
-    await page.keyboard.press('Escape')
-    expect(await help.count()).toBe(0)
-    expect(await info.evaluate(element => element === document.activeElement)).toBe(true)
-    await info.click()
-    await panel.getByRole('heading', { name: '插件', exact: true }).hover()
-    await help.hover()
-    expect(await help.isVisible()).toBe(true)
-    await panel.getByRole('heading', { name: '插件', exact: true }).click()
-    expect(await help.count()).toBe(0)
+    const settings = page.getByRole('dialog', { name: '设置', exact: true })
+    expect(await settings.getByRole('paragraph').filter({ hasText: /^安装、启用和配置插件$/ }).isVisible()).toBe(true)
+    expect(await panel.getByRole('button', { name: '插件说明' }).count()).toBe(0)
 
     await panel.getByRole('button', { name: '查看 @fixture/bundle', exact: true }).waitFor({ timeout: 20_000 })
     const toggle = panel.getByRole('switch', { name: '启用 @fixture/bundle' })
@@ -882,6 +632,7 @@ describe('web e2e: plugin manager', () => {
       ['@deepseek-ai/dsh-experimental-cot-translation-bundle', 1],
       ['@deepseek-ai/dsh-experimental-session-titles-bundle', 1],
       ['@deepseek-ai/dsh-experimental-badge-skill-bundle', 1],
+      ['@deepseek-ai/dsh-deepseek-chat-import', 1],
       ['@deepseek-ai/dsh-subagent-codex', 0],
       ['@deepseek-ai/dsh-subagent-claude-code', 0],
     ])
@@ -934,11 +685,8 @@ describe('web e2e: plugin manager', () => {
   it('keeps off-state switch thumbs light in both themes', async () => {
     // The off-state thumb must stay light so an operable toggle cannot read as
     // disabled, whose only other difference is reduced opacity.
-    for (const [theme, label] of [['light', '浅色'], ['dark', '深色']] as const) {
-      await openSettings(page, 'zh')
-      const settings = page.getByRole('dialog', { name: '设置', exact: true })
-      await settings.getByRole('button', { name: '通用设置', exact: true }).click()
-      await settings.getByRole('button', { name: label, exact: true }).click()
+    for (const theme of ['light', 'dark'] as const) {
+      await scaffold.ctx.settings.update('ui-theme', { preference: theme })
       await expect.poll(() => page.evaluate(() => document.body.hasAttribute('data-ds-dark-theme'))).toBe(theme === 'dark')
       const panel = await openPluginsPanel()
       const toggle = panel.getByRole('switch', { name: '启用 @fixture/bundle', exact: true })
@@ -961,11 +709,7 @@ describe('web e2e: plugin manager', () => {
         opacity: '1',
       })
     }
-    // Leave the shared page in the default theme for the tests after this one.
-    await openSettings(page, 'zh')
-    const settings = page.getByRole('dialog', { name: '设置', exact: true })
-    await settings.getByRole('button', { name: '通用设置', exact: true }).click()
-    await settings.getByRole('button', { name: '浅色', exact: true }).click()
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'light' })
     await expect.poll(() => page.evaluate(() => document.body.hasAttribute('data-ds-dark-theme'))).toBe(false)
     await closeSettings()
   })
@@ -1238,7 +982,7 @@ describe('web e2e: plugin manager', () => {
       onTestFailed(() => saveFailureShot(probe, 'web-e2e-plugin-manager-ime-enter'))
       await probe.clock.install()
       await probe.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
-      await probe.getByRole('navigation', { name: '全局面板' }).getByRole('button', { name: '插件', exact: true }).click()
+      await openPluginManager(probe, 'zh')
       const panel = probe.locator('[data-plugin-panel]')
       await panel.getByRole('button', { name: '查看 @fixture/bundle', exact: true }).waitFor({ timeout: 20_000 })
       const trace: string[] = ['Synthetic browser KeyboardEvents, not an OS input-method test.']
@@ -1473,9 +1217,10 @@ describe('web e2e: plugin manager', () => {
       onTestFailed(() => saveFailureShot(probe, 'web-e2e-plugin-manager-liveshare-visibility'))
       const consoleWatch = watchConsole(probe)
       await probe.goto(visibilityScaffold.authenticatedUrl, { waitUntil: 'load' })
-      await probe.getByRole('button', { name: '插件', exact: true }).click()
+      await openPluginManager(probe, 'zh')
       const panel = probe.locator('[data-plugin-panel]')
-      await panel.getByRole('heading', { name: '插件', exact: true }).waitFor({ timeout: 20_000 })
+      await probe.getByRole('dialog', { name: '设置', exact: true })
+        .getByRole('heading', { name: '插件', exact: true }).waitFor({ timeout: 20_000 })
       const liveShare = '@deepseek-ai/dsh-experimental-liveshare'
       const card = panel.locator(`[data-plugin-package="${liveShare}"]`)
       // The profile is a managed one (the plugin manager lists its bundles) whose base bundle keeps HMR
@@ -1558,7 +1303,7 @@ describe('web e2e: startup-applied plugin management', () => {
       const tripwire = watchConsole(page)
       onTestFailed(() => saveFailureShot(page, 'web-e2e-plugin-manager-live'))
       await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
-      await page.getByRole('navigation', { name: '全局面板' }).getByRole('button', { name: '插件', exact: true }).click()
+      await openPluginManager(page, 'zh')
       const panel = page.locator('[data-plugin-panel]')
       const toggle = panel.getByRole('switch', { name: '启用 @fixture/bundle' })
       await toggle.waitFor({ timeout: 20_000 })

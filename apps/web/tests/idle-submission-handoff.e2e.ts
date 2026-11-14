@@ -9,7 +9,7 @@ import {
   parseRemoteStreamClientMessage, parseRemoteStreamServerMessage,
 } from '@deepseek-ai/dsh-api-gateway/stream-protocol'
 import { launchWebScaffold, seedSession, watchConsole, webSnapshotMode } from './scaffold.ts'
-import { newEnglishPage } from './support.ts'
+import { newConversationReplayPage } from './support.ts'
 
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/live-interactions/session.v3.jsonl', import.meta.url))
 const SESSION_ID = 'idle-submission-handoff'
@@ -124,7 +124,7 @@ it.skipIf(webSnapshotMode() === 'record').each(['inbox-first', 'transcript-first
       await seedSession(scaffold, await readFile(FIXTURE, 'utf8'), SESSION_ID)
       const browser = await chromium.launch()
       onTestFinished(() => browser.close())
-      const page = await newEnglishPage(browser)
+      const page = await newConversationReplayPage(browser)
       const tripwire = watchConsole(page)
       await gate.install(page)
       await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })

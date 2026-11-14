@@ -8,3 +8,7 @@ header:
   class: sdk-desktop-ptc
   pin: true
   toolSchemasSource: session/ptc-turn
+sessionFormat:
+  version: 4
+  coverage:
+    - behavior-update

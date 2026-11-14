@@ -7,7 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   captureStableAria, compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { connectFreshWorkspaceZh, ZH_BROWSER_LOCALE } from './support.ts'
+import { configureConversationReplay, connectFreshWorkspaceZh, ZH_BROWSER_LOCALE } from './support.ts'
 
 const NAME = 'DeepSeek-V4.1-Flash'
 const LONG_NAME = 'DeepSeek model with a very long release and capability description that exceeds the selector width'
@@ -46,7 +46,7 @@ describe.skipIf(MODE === 'record')('web e2e: catalog model badges', () => {
       ],
     })
     browser = await chromium.launch()
-    page = await browser.newPage({ viewport: { width: 1440, height: 900 }, locale: ZH_BROWSER_LOCALE })
+    page = await configureConversationReplay(await browser.newPage({ viewport: { width: 1440, height: 900 }, locale: ZH_BROWSER_LOCALE }))
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await connectFreshWorkspaceZh(page, scaffold.workspaceCwd)
