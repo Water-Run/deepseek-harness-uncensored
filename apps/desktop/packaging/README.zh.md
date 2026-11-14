@@ -43,6 +43,8 @@ DSHU 使用 `YYYY.MM.DD.N` 日期版本，例如 `2026.11.14.1`，最后一项�
 
 包声明和 Electron 更新元数据将同一版本表示为 `YYYY.MMDD.N`，例如 `2026.1114.1`，使现有 SemVer 更新引擎可以按数字排序。关于页、CLI、安装包文件名和 Windows 卸载登记展示四段日期。`apps/desktop/package.json` 中的独立产品版本是当前源码允许的最早日期构建。
 
+CLI 包、桌面运行时描述和主运行时载荷记录本次选定的构建版本。外壳使用较新构建而运行时仍为声明中的基础版本时，打包会失败；冒烟检查会实际执行内置 CLI 并核对显示版本。
+
 省略 `--build-version` 或传入 `auto` 时，按 Asia/Shanghai 日期，从本目标的本地产物及 `%USERPROFILE%/DSHU-Deliveries/YYYYMMDD`（含保留的 run 和 closeout 目录）取得下一个序号。清理构建缓存时保留交付记录，编号即可接续。明确传入 `--build-version 2026.11.14.2` 可为 Windows/Linux 矩阵指定同一构建。旧语义版本编号仍用于读取此前版本。
 
 ```sh

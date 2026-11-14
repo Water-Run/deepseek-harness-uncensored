@@ -3,6 +3,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { verifyElectronNotices } from '../scripts/verify-runtime-archive.ts'
+import { runtimeFixture } from './runtime-fixture.ts'
+import { verifyDesktopRuntime as verifyRuntimeFiles, writeDesktopRuntime } from '../src/runtime-tree.ts'
 
 const { verifyDesktopRuntime } = vi.hoisted(() => ({
   verifyDesktopRuntime: vi.fn<(root: string, expected: string) => Promise<void>>(async () => undefined),
@@ -52,7 +54,7 @@ describe('packaged runtime verification', () => {
     expect(await requiredRuntimeVersion('/qualification/dsh', '0.1.6-alpha.2.20260921.1')).toBe('0.1.6-alpha.2.20260921.1')
   })
 
-  it('does not let a build version change what the bundled runtime must declare', async () => {
+  it('requires the runtime and application to carry the same selected build version', async () => {
     const productVersion = (JSON.parse(
       await import('node:fs/promises').then(async fs => fs.readFile(new URL('../package.json', import.meta.url), 'utf8')),
     ) as { version: string }).version
@@ -63,7 +65,21 @@ describe('packaged runtime verification', () => {
     const config = createElectronBuilderConfig({ ...ENVIRONMENT, DSH_DESKTOP_BUILD_VERSION: buildVersion }, 'win32', 'x64')
     expect(config.extraMetadata).toMatchObject({ version: buildVersion })
     await config.afterPack(CONTEXT as never)
-    expect(verifyDesktopRuntime.mock.calls[0]?.[1]).toBe(productVersion)
+    expect(verifyDesktopRuntime.mock.calls[0]?.[1]).toBe(buildVersion)
+  })
+
+  it('rejects a base-version runtime when packaging a newer build', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'stale-desktop-runtime-'))
+    onTestFinished(() => rm(root, { recursive: true, force: true }))
+    const { readFile } = await import('node:fs/promises')
+    const productVersion = (JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version
+    const fixture = runtimeFixture(root, productVersion)
+    writeDesktopRuntime(root, fixture.release, fixture.sharedPackages.map(item => item.name), { platform: 'win32', arch: 'x64' })
+    const { inc } = await import('semver')
+    const { createElectronBuilderConfig } = await import('../scripts/electron-builder-config.mjs')
+    verifyDesktopRuntime.mockImplementationOnce(async (path, version) => { await verifyRuntimeFiles(path, version, { platform: 'win32', arch: 'x64' }) })
+    const config = createElectronBuilderConfig({ ...ENVIRONMENT, DSH_DESKTOP_BUILD_VERSION: inc(productVersion, 'patch')! }, 'win32', 'x64', root)
+    await expect(config.afterPack(CONTEXT as never)).rejects.toThrow('is not the expected')
   })
 })
 

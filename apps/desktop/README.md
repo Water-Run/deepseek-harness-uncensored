@@ -8,9 +8,9 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-REA is bundled with its npm dependencies and runs under the included Node 24.22.1. Its installed package tree stays outside ASAR so standalone Node can read scripts, schemas and native bindings. Custom executable paths remain optional; Ghidra, Java, IDA and Hopper are separate engines. Packaging checks the pinned REA version, all 229 tool definitions and an owned JavaScript sample through the actual Desktop Host, then closes the connection.
+REA is bundled with its npm dependencies and runs under the included Node 24.22.1. Its installed package tree stays outside ASAR so standalone Node can read scripts, schemas and native bindings. Custom executable paths remain optional; Ghidra, Java, IDA and Hopper are separate engines. Packaging checks the pinned REA version, all 255 tool definitions and an owned JavaScript sample through the actual Desktop Host, then closes the connection.
 
-DSHU uses its own application identity, update source and data directory. The desktop and installer offer Chinese and English; installer artwork and Web install icons use the canonical dark whale SVG.
+DSHU uses its own application identity, update source and data directory. The desktop and installer offer Chinese and English; installer artwork and Web install icons use the canonical dark whale SVG. The native welcome page uses the same localized DSHU slogan as the main page and About.
 
 Installed resources include the DSHU license, preserved upstream licenses and `THIRD_PARTY_NOTICES.md`. Component-specific license and notice files remain with their respective runtime packages. Exact-version supplements and outstanding checks are listed in the [dependency notice audit](../../.agents/requirements/2026-11-03-dependency-notices.md).
 

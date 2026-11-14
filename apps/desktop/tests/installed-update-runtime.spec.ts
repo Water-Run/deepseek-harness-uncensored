@@ -31,8 +31,10 @@ describe('installed-update runtime preparation', () => {
         expect(descriptor.sharedPackages.find(entry => entry.name === '@deepseek-ai/cordis')?.version).toBe(source.version)
         expect(descriptor.sharedPackages.find(entry => entry.name === '@deepseek-ai/dsh')?.version).toBe(version)
         const metadata = JSON.parse(await readFile(join(runtime, 'node_modules/@deepseek-ai/dsh/package.json'), 'utf8')) as {
+          dshProductVersion: string
           dependencies: Record<string, string>
         }
+        expect(metadata.dshProductVersion).toBe(version)
         expect(metadata.dependencies['@deepseek-ai/dsh-desktop-host']).toBe(version)
         expect(metadata.dependencies['@deepseek-ai/cordis']).toBe(source.version)
       }

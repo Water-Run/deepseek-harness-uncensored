@@ -43,6 +43,8 @@ DSHU displays calendar versions as `YYYY.MM.DD.N`, for example `2026.11.14.1`. T
 
 The package manifests and Electron update feed encode the same identity as `YYYY.MMDD.N`, for example `2026.1114.1`. This preserves numeric ordering in existing SemVer update engines. About, CLI output, installer filenames and Windows registration display the four-field date. The independent product version in `apps/desktop/package.json` is the earliest accepted calendar build for the checkout.
 
+The CLI package, Desktop runtime descriptor and primary payload record the selected build version. Packaging rejects a runtime from the manifest baseline when the shell carries a later build, and its smoke checks execute the bundled CLI to verify the displayed version.
+
 Omitting `--build-version`, or passing `auto`, uses the Asia/Shanghai day and the next sequence found in this target's local artifacts and `%USERPROFILE%/DSHU-Deliveries/YYYYMMDD`, including retained run and closeout directories. Keep delivery records when clearing build caches so numbering continues. An explicit public version such as `--build-version 2026.11.14.2` selects one build for the Windows/Linux matrix. Old semantic build identifiers remain readable for earlier checkouts.
 
 ```sh

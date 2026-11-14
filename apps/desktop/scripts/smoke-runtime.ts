@@ -13,6 +13,7 @@ import { createPluginProfile } from '../src/project-manager.ts'
 import type { DesktopRuntimeDescriptor } from '../src/runtime-tree.ts'
 import product from '../../../product.json' with { type: 'json' }
 import { z } from 'zod'
+import { displayProductVersion } from '@deepseek-ai/dsh-product-version/bootstrap'
 
 const OFFICE_SKILLS = ['office', 'office-docx', 'office-pptx', 'office-xlsx']
 
@@ -80,6 +81,12 @@ export function apply(ctx) {
     writeFileSync(join(installedPlugin, 'bundle.yml'), `- insert:\n    - id: ${installedName}\n      name: ${installedName}\n      inject: [webServer]\n`)
     appendFileSync(join(profile, 'pnpm-workspace.yaml'), 'offline: true\nupdateNotifier: false\n')
     const cli = join(root, 'node_modules', '@deepseek-ai', 'dsh-desktop-host', 'lib', 'cli.js')
+    const version = await promisify(execFile)(node, ['--expose-internals', cli, '--version'], {
+      cwd: home, env: { ...hostEnvironment, ELECTRON_RUN_AS_NODE: '1' }, timeout: 30_000, windowsHide: true,
+    })
+    if (version.stdout.trim() !== displayProductVersion(runtime.release.version)) {
+      throw new Error(`desktop runtime: CLI version ${version.stdout.trim()} differs from ${runtime.release.version}`)
+    }
     const runCli = (args: string[]) => promisify(execFile)(node,
       ['--expose-internals', cli, 'plugin', '--profile', 'desktop', ...args],
       { cwd: home, env: { ...hostEnvironment, ELECTRON_RUN_AS_NODE: '1' }, timeout: 120_000, windowsHide: true })
@@ -92,7 +99,10 @@ export function apply(ctx) {
     if (existsSync(installedEntry)) throw new Error('desktop runtime: CLI did not remove the local plugin')
     console.log('desktop runtime: CLI offline plugin installation and removal passed')
     const primary = join(resourcesRuntime, 'primary-runtime')
-    const dependencies = workspaceDependencyPaths(primary, await readPrimaryRuntime(primary))
+    const primaryManifest = await readPrimaryRuntime(primary)
+    if (primaryManifest.desktopVersion !== runtime.release.version) throw new Error('desktop runtime: primary payload version differs from the release')
+    console.log(`desktop runtime: CLI and primary payload version ${displayProductVersion(runtime.release.version)} matched`)
+    const dependencies = workspaceDependencyPaths(primary, primaryManifest)
     await promisify(execFile)(dependencies.python, ['-I', '-B',
       fileURLToPath(new URL('../tests/fixtures/office-conversion-inputs.py', import.meta.url)), home],
     { env: environment, timeout: 120_000, windowsHide: true })

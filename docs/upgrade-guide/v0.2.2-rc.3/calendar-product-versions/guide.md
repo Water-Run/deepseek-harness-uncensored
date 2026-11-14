@@ -11,6 +11,8 @@ English | [中文](guide.zh.md)
 
 DSHU uses `YYYY.MM.DD.N` for displays, installer names and Windows registration. Package manifests and update feeds encode the same ordered version as `YYYY.MMDD.N`. The DSH engine version is independent. Earlier `0.1.0` installations can upgrade to calendar builds.
 
+The private CLI and runtime payloads carry the selected build version rather than the checkout baseline. Rebuild inspection packages whose CLI still reports the earlier baseline; Session data does not need migration.
+
 ## Migration
 
 1. Build locally with `--build-version auto`, or pass a public version such as `2026.11.14.2` for the same Windows/Linux source. Keep retained delivery files when cleaning build caches.

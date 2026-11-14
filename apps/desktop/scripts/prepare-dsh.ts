@@ -9,8 +9,7 @@ import { tmpdir } from 'node:os'
 import { delimiter, join, relative, resolve } from 'node:path'
 import { desktopNodeEnvironment } from '../src/node-environment.ts'
 import { createRuntimeProjectMetadata } from '../src/project-manager.ts'
-import { DESKTOP_HOST_PROTOCOL_VERSION } from '../src/host-protocol.ts'
-import { parseDesktopRelease, type DesktopRelease } from '../src/release.ts'
+import { readPreparedDesktopRelease } from './prepare-runtime-release.ts'
 import {
   DESKTOP_HOST_PACKAGE,
   DESKTOP_HOST_RUNTIME_FILES,
@@ -50,24 +49,6 @@ const PACKAGE_SET_ROOT = BUILD_PATHS.packageSet
 const NODE = join(BUILD_PATHS.electron, process.platform === 'win32' ? 'electron.exe'
   : process.platform === 'darwin' ? 'Electron.app/Contents/MacOS/Electron' : 'electron')
 const PNPM = join(RUNTIME_ROOT, 'primary-runtime', 'dependencies', 'pnpm', 'bin', 'pnpm.mjs')
-
-function manifestVersion(path: string, subject: string): string {
-  const manifest = JSON.parse(readFileSync(path, 'utf8')) as { version?: unknown }
-  if (typeof manifest.version !== 'string') throw new Error(`desktop runtime: ${subject} has no version`)
-  return manifest.version
-}
-
-function desktopRelease(): DesktopRelease {
-  const runtime = JSON.parse(readFileSync(join(RUNTIME_ROOT, 'versions.json'), 'utf8')) as Record<string, unknown>
-  return parseDesktopRelease({
-    schemaVersion: 2,
-    version: manifestVersion(join(APP_ROOT, 'package.json'), 'desktop package'),
-    engineVersion: manifestVersion(resolve(APP_ROOT, '..', '..', 'package.json'), 'root dsh package'),
-    hostProtocolVersion: DESKTOP_HOST_PROTOCOL_VERSION,
-    nodeVersion: runtime.node,
-    pnpmVersion: runtime.pnpm,
-  })
-}
 
 function runPnpm(args: readonly string[]): Promise<void> {
   return new Promise((resolvePromise, reject) => {
@@ -122,7 +103,7 @@ async function main(): Promise<void> {
       rmSync(PNPM_BUILD_STATE, { recursive: true, force: true })
       mkdirSync(STORE_ROOT, { recursive: true })
     })
-    const release = desktopRelease()
+    const release = readPreparedDesktopRelease(APP_ROOT, RUNTIME_ROOT, process.env)
     const patches = await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'runtime:stage-packages', async () => {
       copyFileSync(join(PACKAGE_SET_ROOT, DESKTOP_PACKAGE_SET_FILE), join(BUILD_ROOT, DESKTOP_PACKAGE_SET_FILE))
       cpSync(join(PACKAGE_SET_ROOT, DESKTOP_PACKAGES_DIR), join(BUILD_ROOT, DESKTOP_PACKAGES_DIR), { recursive: true })

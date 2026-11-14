@@ -8,9 +8,9 @@ description: "Desktop 在原生应用中运行 Harness 工作区。本参考文�
 
 ## 概述
 
-REA 及其 npm 依赖随包提供，使用内置 Node 24.22.1 运行。完整依赖树释放到 ASAR 外，供独立 Node 读取脚本、参数定义和原生绑定。自定义可执行文件路径为可选覆盖项；Ghidra、Java、IDA 与 Hopper 仍为独立引擎。打包检查通过实际 Desktop Host 验证固定的 REA 版本、全部 229 个工具定义和自有 JavaScript 样本，并关闭连接。
+REA 及其 npm 依赖随包提供，使用内置 Node 24.22.1 运行。完整依赖树释放到 ASAR 外，供独立 Node 读取脚本、参数定义和原生绑定。自定义可执行文件路径为可选覆盖项；Ghidra、Java、IDA 与 Hopper 仍为独立引擎。打包检查通过实际 Desktop Host 验证固定的 REA 版本、全部 255 个工具定义和自有 JavaScript 样本，并关闭连接。
 
-DSHU 使用独立的应用身份、更新源与数据目录。桌面端和安装器提供中文与英文；安装器图片和 Web 安装图标使用统一的黑底白鲸 SVG。
+DSHU 使用独立的应用身份、更新源与数据目录。桌面端和安装器提供中文与英文；安装器图片和 Web 安装图标使用统一的黑底白鲸 SVG。 原生欢迎页与主页、关于页使用同一组本地化 DSHU Slogan。
 
 安装资源包含 DSHU 许可证、保留的上游许可及 `THIRD_PARTY_NOTICES.md` 总表。组件自身的许可与声明文件随各自运行时包保留。精确版本的补充声明和未完成检查见[依赖声明审计](../../.agents/requirements/2026-11-03-dependency-notices.md)。
 
@@ -215,7 +215,7 @@ macOS 和 Linux 从图形界面启动的程序只继承会话管理器提供的�
 pnpm run dev:desktop
 ```
 
-开发 Harness 状态默认写入 `apps/desktop/.desktop-build/development/home`，一次性 npm 项目位于 `apps/desktop/.desktop-build/development/project`，Electron 浏览器数据位于 `apps/desktop/.desktop-build/development/electron-user-data`。设置 `DSH_DESKTOP_DEV_HOME` 可指定自定义开发目录。启动器向 Desktop 和 Host 传入同一目录，使开发会话、设置、凭据和包链接与已安装应用的资料分离。Renderer DevTools 默认自动打开。Main、Renderer 和 dsh Host 调试端口依次为 9229、9222 和 9230。`DSH_DESKTOP_MAIN_INSPECT_PORT`、`DSH_DESKTOP_RENDERER_DEBUG_PORT` 与 `DSH_DESKTOP_HOST_INSPECT_PORT` 可替换这些端口，`DSH_DESKTOP_OPEN_DEVTOOLS=0` 保持 Renderer 调试窗口关闭。
+开发 Harness 状态默认写入 `apps/desktop/.desktop-build/development/home`，一次性 npm 项目位于 `apps/desktop/.desktop-build/development/project`，Electron 浏览器数据位于 `apps/desktop/.desktop-build/development/electron-user-data`。设置 `DSH_DESKTOP_DEV_HOME` 可指定自定义开发目录。启动器向 Desktop 和 Host 传入同一目录，使开发会话、设置、凭据和包链接与已安装应用的资料分离。Renderer DevTools 默认自动打开。Main、Renderer 和 dsh Host 调试端口依次为 9255、9222 和 9230。`DSH_DESKTOP_MAIN_INSPECT_PORT`、`DSH_DESKTOP_RENDERER_DEBUG_PORT` 与 `DSH_DESKTOP_HOST_INSPECT_PORT` 可替换这些端口，`DSH_DESKTOP_OPEN_DEVTOOLS=0` 保持 Renderer 调试窗口关闭。
 
 显式构建完成后，`start:desktop` 会重新生成一次性项目，并跳过构建直接启动已有产物：
 

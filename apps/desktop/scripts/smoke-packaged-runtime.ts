@@ -1,8 +1,9 @@
 /** Validate the assembled application, including native Office conversion outside ASAR. */
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { desktopArtifactOutput, resolveDesktopBuildTarget, resolveDesktopTargetBuildPaths } from './desktop-build-paths.mjs'
-import { readDesktopRuntime, verifyDesktopRuntime } from '../src/runtime-tree.ts'
+import { verifyDesktopRuntime } from '../src/runtime-tree.ts'
+import { readPreparedProductVersion } from './prepare-runtime-release.ts'
 import { verifyWindowsCode } from './windows-runtime-signature.mjs'
 import { smokePreparedRuntime } from './smoke-prepared-runtime.ts'
 import { resolveDesktopPackageTarget } from './package-target.ts'
@@ -22,7 +23,7 @@ const application = windows ? join(artifacts, 'win-unpacked')
   : linux ? join(artifacts, 'linux-unpacked')
     : join(artifacts, target === 'mac-arm64' ? 'mac-arm64' : 'mac', `${DESKTOP_PRODUCT_NAME}.app`, 'Contents')
 if (windows || linux) await verifyElectronNotices(paths.electron, application)
-const descriptor = await verifyDesktopRuntime(paths.dsh, readDesktopRuntime(paths.dsh).release.version,
+const descriptor = await verifyDesktopRuntime(paths.dsh, readPreparedProductVersion(resolve(import.meta.dirname, '..'), process.env),
   resolveDesktopPackageTarget(target))
 if (windows && !values.unsigned) await verifyWindowsCode(application)
 const verify = async (path: string): Promise<void> => {
