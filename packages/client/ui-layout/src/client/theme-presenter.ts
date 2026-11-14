@@ -111,6 +111,11 @@ export class ThemePresenter {
     }
     const transition = document.startViewTransition(() => { if (this.revision === current) this.write(snapshot) })
     this.reveal = transition
+    // Skipping visual capture rejects ready independently of the completed state update.
+    void transition.ready.catch((_skippedTransition: unknown) => undefined)
+    void transition.updateCallbackDone.catch((error: unknown) => {
+      console.warn('Could not apply the theme:', error)
+    })
     // A skipped transition can finish after its replacement has started.
     void transition.finished.catch(() => undefined).finally(() => {
       if (this.reveal !== transition) return

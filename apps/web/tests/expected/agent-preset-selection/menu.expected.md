@@ -1,5 +1,5 @@
 - menu:
-  - menuitem "Standard mode Work with code, files, and information. Suitable for most tasks, with search, editing, terminal commands, and other tools available as needed."
-  - menuitem "PTC mode Includes all Standard mode capabilities. Better suited to tasks that call tools in batches and then filter, organize, deduplicate, count, or summarize the results."
-  - menuitem "Minimal mode The agent uses a terminal and image reading, with context compaction. Useful for testing and comparing its basic performance."
-  - menuitem "Creator mode Customize DSH through conversation. Let the agent write plugins that add features or UI, or combine tools and prompts to create your own mode."
+  - 'menuitem "Default Development and everyday work: edit files, run commands, research, and delegate tasks."'
+  - 'menuitem "Security Security analysis and testing: inspect code and configuration, reproduce issues, verify fixes, and retain evidence."'
+  - menuitem "Reverse engineering Trace application behavior, inspect binaries and protocols, and connect findings to verifiable evidence."
+  - 'menuitem "Writing Fiction, scripts, and long-form writing: research, continue, and revise while preserving characters, viewpoint, and continuity."'

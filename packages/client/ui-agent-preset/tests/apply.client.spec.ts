@@ -1228,6 +1228,8 @@ describe('ui-agent-preset apply', () => {
     const conversation = declareConversation(slots)
     ctx.provide('conversation', {} as never)
     ctx.provide('sessions', sessionsDouble(ctx, { byId: {} }) as never)
+    const closeSettings = vi.fn()
+    ctx.provide('settingsNavigation', { openSection: vi.fn(), close: closeSettings })
     const uiWorkspace = uiWorkspaceDouble()
     ctx.provide('uiWorkspace', uiWorkspace as never)
     await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply }).await()
@@ -1238,6 +1240,7 @@ describe('ui-agent-preset apply', () => {
 
     await section.load()
     section.startCreatorDraft?.()
+    expect(closeSettings).toHaveBeenCalledOnce()
 
     // The pick is staged on the chip's own controller — the session the
     // workspace start produces is what the stage lands on — and exactly one

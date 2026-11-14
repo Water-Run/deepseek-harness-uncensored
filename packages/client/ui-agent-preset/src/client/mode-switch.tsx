@@ -44,7 +44,7 @@ export function SessionModeControl(props: AgentPresetLabelProps & Common & { sel
   // no hint that existing conversations are locked or where to unlock them.
   if (!allowed) return <AgentPresetLabel {...props} locked />
   const option = options.find(item => item.id === mode)
-  const label = option === undefined ? mode ?? t('noDescription') : presetDisplayText(option, t).name
+  const label = typeof mode === 'string' ? presetDisplayText(option ?? { id: mode }, t).name : t('noDescription')
   // The card itself is the control: no chevron, so it reads as this
   // conversation's mode rather than as a select box. Clicking still opens the
   // roster, which keeps in-place switching available where it is allowed.

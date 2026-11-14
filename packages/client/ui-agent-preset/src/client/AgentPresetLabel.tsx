@@ -54,8 +54,8 @@ export function AgentPresetLabel({
   if (preset === undefined) return null
 
   const option = options.find(entry => entry.id === preset)
-  const text = option === undefined ? undefined : presetDisplayText(option, t)
-  const name = text?.name ?? preset
+  const text = presetDisplayText(option ?? { id: preset }, t)
+  const name = text.name
   const tone = card[modeTone(preset)]
   if (locked) {
     return (
@@ -69,7 +69,7 @@ export function AgentPresetLabel({
     )
   }
   return (
-    <span className={`${card.card} ${tone} ${css.passive}`} title={text?.description ?? t('headerHint')}>
+    <span className={`${card.card} ${tone} ${css.passive}`} title={text.description ?? t('headerHint')}>
       <PresetIcon key={preset} id={preset} size={14} className={card.icon} />
       {name}
     </span>

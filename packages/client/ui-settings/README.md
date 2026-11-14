@@ -27,6 +27,8 @@ This package lets web-client features expose editable preferences backed by the 
 
 Feature plugins use this package to store and edit their preferences without re-implementing transport or schema handling. Mount it once per composition; it injects the `remote` service with its `settings` namespace and owns the single `settings.describe` reader in the browser.
 
+The shell supplies `ctx.settingsNavigation`: `openSection(id)` opens a registered settings page, and `close()` dismisses Settings without changing feature data. Actions that navigate to a conversation can close Settings before handing over focus.
+
 ### Configuration forms
 
 `ctx.configForms.developerTools` owns the Coding Tools switch and the shared Web and desktop preference `ui-settings.enabled`, defaulting to `true`. Its `enabled` observable publishes accepted choices and `setEnabled` uses the same ordered settings writes. Desktop and every authenticated Web browser persist to the Host document. This controls presentation and HTML preview permissions, not Host authorization or Session recording. Host-backed clients keep developer features disabled until the first accepted schema-resolved value arrives; missing or failed initial responses do not enable them. Later refreshes retain the last accepted choice.

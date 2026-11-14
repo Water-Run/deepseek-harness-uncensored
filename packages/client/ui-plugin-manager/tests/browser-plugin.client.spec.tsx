@@ -92,7 +92,7 @@ async function bench(allows: ((action: string) => boolean) | 'switchable' = () =
   ctx.provide('layout', { panelInfo, selectPanel, beginNavigation: () => new AbortController().signal,
     toggleSidebar: vi.fn(), openRightbar: vi.fn(), closeRightbar: vi.fn() })
   const openSection = vi.fn()
-  ctx.provide('settingsNavigation', { openSection })
+  ctx.provide('settingsNavigation', { openSection, close: vi.fn() })
   await ctx.plugin(settings).await()
   return { ctx, slots: ctx.get('slots') as SlotRegistry, locale, list, remote, selectPanel, panelInfo, openSection, access }
 }

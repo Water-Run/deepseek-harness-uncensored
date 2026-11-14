@@ -212,6 +212,7 @@ export function apply(ctx: ClientContext): void {
       const shellStore: typeof shellHandle = { ...shellHandle, create: () => shellInstance }
       const disposeNavigation = ctx.reflect.provide('settingsNavigation', {
         openSection: (id: string) => { shellInstance.actions.openSection(id); ctx.emit('settings/section-opened', id) },
+        close: () => { shellInstance.actions.close() },
       })
       const disposeCommand = ctx.shortcuts.register({
         id: 'settings.open' as ShortcutCommandId, label: () => t('shortcut.open'), aliases: ['settings', 'preferences'],

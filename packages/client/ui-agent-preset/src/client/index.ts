@@ -412,6 +412,7 @@ export function apply(ctx: ClientContext): void {
       // Navigation opens another blank when the main blank lists a different preset, so that blank is not staged.
       const listed = mainBlank()?.projectionValues?.agentPreset
       if (typeof listed !== 'string' || listed === 'cordis') (mainBlankSeat() ?? unboundSeat).stage('cordis', true)
+      scope.get('settingsNavigation')?.close()
       scope.uiWorkspace.startSession(undefined, { clearPreviousDraft: false, agentPreset: 'cordis' })
     }
 

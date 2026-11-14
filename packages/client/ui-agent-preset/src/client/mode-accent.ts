@@ -66,7 +66,7 @@ export function installModeAccent(currentMode: ObservableSnapshot<CurrentModeSta
     const mode = accentMode(state.id)
     const previous = shown
     shown = { sessionId: state.sessionId, mode }
-    if (previous?.mode === mode && document.body.dataset.dshMode === mode) return
+    if (previous?.mode === mode && (reveal !== undefined || document.body.dataset.dshMode === mode)) return
     const current = ++revision
     reveal?.skipTransition()
     reveal = undefined
@@ -86,6 +86,11 @@ export function installModeAccent(currentMode: ObservableSnapshot<CurrentModeSta
     root.style.setProperty('--dsh-mode-reveal-radius', `${String(Math.ceil(origin.radius))}px`)
     const transition = document.startViewTransition(() => { if (revision === current) write(mode) })
     reveal = transition
+    // Skipping visual capture rejects ready independently of the completed state update.
+    void transition.ready.catch((_skippedTransition: unknown) => undefined)
+    void transition.updateCallbackDone.catch((error: unknown) => {
+      console.warn('Could not apply the conversation mode accent:', error)
+    })
     // A skipped transition can finish after its replacement has started.
     void transition.finished.catch(() => undefined).finally(() => {
       if (reveal !== transition) return

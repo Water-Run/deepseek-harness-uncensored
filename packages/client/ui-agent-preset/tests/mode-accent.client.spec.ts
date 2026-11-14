@@ -5,7 +5,7 @@ import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { CurrentModeState } from '../src/client/AgentPresetSection.tsx'
 import { accentMode, installModeAccent } from '../src/client/mode-accent.ts'
 
-type Transition = { finished: Promise<void>; skipTransition: () => void }
+type Transition = Pick<ViewTransition, 'ready' | 'updateCallbackDone' | 'finished' | 'skipTransition'>
 
 let reducedMotion = false
 let startViewTransition: ReturnType<typeof vi.fn<(update: () => void) => Transition>>
@@ -14,7 +14,7 @@ beforeEach(() => {
   reducedMotion = false
   startViewTransition = vi.fn((update: () => void) => {
     update()
-    return { finished: Promise.resolve(), skipTransition: vi.fn() }
+    return { ready: Promise.resolve(), updateCallbackDone: Promise.resolve(), finished: Promise.resolve(), skipTransition: vi.fn() }
   })
   Object.assign(document, { startViewTransition })
   vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce') && reducedMotion }))
@@ -27,11 +27,63 @@ afterEach(() => {
 })
 
 describe('mode accent', () => {
+  it('keeps the current reveal when only the conversation activity changes', () => {
+    const updates: (() => void)[] = []
+    startViewTransition.mockImplementation((update) => {
+      updates.push(update)
+      return { ready: Promise.resolve(), updateCallbackDone: Promise.resolve(), finished: Promise.resolve(), skipTransition: vi.fn() }
+    })
+    const mode = createSnapshotStore<CurrentModeState>({ id: 'standard', sessionId: 'a', blank: false, busy: false })
+    const dispose = installModeAccent(mode)
+    try {
+      mode.set({ id: 'writing', sessionId: 'a', blank: false, busy: false })
+      mode.set({ id: 'writing', sessionId: 'a', blank: false, busy: true })
+      mode.set({ id: 'writing', sessionId: 'a', blank: false, busy: false })
+      expect(startViewTransition).toHaveBeenCalledOnce()
+      updates[0]!()
+      expect(document.body.dataset.dshMode).toBe('writing')
+    } finally { dispose() }
+  })
+
+  it('handles skipped native captures while retaining the newest accent', async () => {
+    startViewTransition.mockImplementation((update) => {
+      update()
+      const ready = Promise.withResolvers<undefined>()
+      return {
+        ready: ready.promise, updateCallbackDone: Promise.resolve(), finished: Promise.resolve(),
+        skipTransition: () => { ready.reject(new DOMException('Transition was skipped', 'AbortError')) },
+      }
+    })
+    const mode = createSnapshotStore<CurrentModeState>({ id: 'standard', sessionId: 'a', blank: false, busy: false })
+    const dispose = installModeAccent(mode)
+    mode.set({ id: 'security', sessionId: 'a', blank: false, busy: false })
+    mode.set({ id: 'writing', sessionId: 'a', blank: false, busy: false })
+    expect(document.body.dataset.dshMode).toBe('writing')
+    dispose()
+    await Promise.resolve()
+    expect(document.documentElement.dataset.dshModeReveal).toBeUndefined()
+  })
+
+  it('reports a failed state update and releases the reveal', async () => {
+    const error = new Error('State update failed')
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    startViewTransition.mockImplementation(() => ({
+      ready: Promise.reject(error), updateCallbackDone: Promise.reject(error), finished: Promise.reject(error), skipTransition: vi.fn(),
+    }))
+    const mode = createSnapshotStore<CurrentModeState>({ id: 'standard', blank: true, busy: false })
+    const dispose = installModeAccent(mode)
+    try {
+      mode.set({ id: 'writing', blank: true, busy: false })
+      await vi.waitFor(() => { expect(document.documentElement.dataset.dshModeReveal).toBeUndefined() })
+      expect(warning).toHaveBeenCalledExactlyOnceWith('Could not apply the conversation mode accent:', error)
+    } finally { dispose(); warning.mockRestore() }
+  })
+
   it('ignores delayed updates after another conversation is selected or the presenter is disposed', () => {
     const updates: (() => void)[] = []
     startViewTransition.mockImplementation((update) => {
       updates.push(update)
-      return { finished: Promise.resolve(), skipTransition: vi.fn() }
+      return { ready: Promise.resolve(), updateCallbackDone: Promise.resolve(), finished: Promise.resolve(), skipTransition: vi.fn() }
     })
     const mode = createSnapshotStore<CurrentModeState>({ id: 'standard', sessionId: 'a', blank: false, busy: false })
     const dispose = installModeAccent(mode)

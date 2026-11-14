@@ -411,15 +411,14 @@ describe('the session-header label', () => {
     expect(screen.getByTitle(en.headerHint).textContent).toBe('mine')
   })
 
-  it('shows the id until the roster resolves it', () => {
+  it.each(['standard', 'minimal', 'ptc'] as const)('localizes %s when absent from the selectable roster', (id) => {
     renderLabel({
       blank: false,
-      projectionValues: { agentPreset: 'standard' },
+      projectionValues: { agentPreset: id },
     }, { options: [] })
 
-    // The session's own summary is the authority on which preset it runs; the
-    // roster only supplies the display name, and its arrival is a later frame.
-    expect(screen.getByTitle(en.headerHint).textContent).toBe('standard')
+    const labels = { standard: en.presetStandardName, minimal: en.presetMinimalName, ptc: en.presetPtcName }
+    expect(screen.getByText(labels[id])).toBeTruthy()
   })
 
   it('explains the mode lock through the shared tooltip without offering a switch', () => {

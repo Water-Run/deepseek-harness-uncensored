@@ -13,8 +13,13 @@ import type {} from '@deepseek-ai/dsh-client-ui-slots'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
-    /** Opens a feature-owned page in the shared settings dialog. */
-    settingsNavigation: { openSection(id: string): void }
+    /** Navigation owned by the shared settings dialog. */
+    settingsNavigation: {
+      /** Open a feature-owned settings page. @param id - Registered section identity. */
+      openSection(id: string): void
+      /** Close Settings when an action leaves for another view; repeated calls have no effect. */
+      close(): void
+    }
   }
   interface Events {
     /**

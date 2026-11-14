@@ -55,7 +55,7 @@ describe('ThemePresenter', () => {
     Object.assign(document, {
       startViewTransition: (update: () => void) => {
         updates.push(update)
-        return { finished: Promise.resolve(), skipTransition: vi.fn() }
+        return { ready: Promise.resolve(), updateCallbackDone: Promise.resolve(), finished: Promise.resolve(), skipTransition: vi.fn() }
       },
     })
     vi.stubGlobal('matchMedia', () => ({ matches: false }))
@@ -160,6 +160,54 @@ describe('ThemePresenter', () => {
     presenter.dispose()
   })
 
+  it('handles a skipped capture without an unhandled rejection', async () => {
+    Object.assign(document, {
+      startViewTransition: (update: () => void) => {
+        update()
+        const ready = Promise.withResolvers<undefined>()
+        return {
+          ready: ready.promise, updateCallbackDone: Promise.resolve(), finished: Promise.resolve(),
+          skipTransition: () => { ready.reject(new DOMException('Transition was skipped', 'AbortError')) },
+        }
+      },
+    })
+    vi.stubGlobal('matchMedia', () => ({ matches: false }))
+    const presenter = new ThemePresenter()
+    try {
+      presenter.apply(snapshot('light'))
+      presenter.apply(snapshot('dark'))
+      presenter.apply(snapshot('light'))
+      expect(document.body.hasAttribute(DARK_ATTRIBUTE)).toBe(false)
+    } finally {
+      presenter.dispose()
+      Reflect.deleteProperty(document, 'startViewTransition')
+      vi.unstubAllGlobals()
+    }
+    await Promise.resolve()
+    expect(document.documentElement.hasAttribute(THEME_REVEAL_ATTRIBUTE)).toBe(false)
+  })
+
+  it('reports a failed theme update and releases the reveal', async () => {
+    const error = new Error('Theme update failed')
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    Object.assign(document, { startViewTransition: () => ({
+      ready: Promise.reject(error), updateCallbackDone: Promise.reject(error), finished: Promise.reject(error), skipTransition: vi.fn(),
+    }) })
+    vi.stubGlobal('matchMedia', () => ({ matches: false }))
+    const presenter = new ThemePresenter()
+    try {
+      presenter.apply(snapshot('light'))
+      presenter.apply(snapshot('dark'))
+      await vi.waitFor(() => { expect(document.documentElement.hasAttribute(THEME_REVEAL_ATTRIBUTE)).toBe(false) })
+      expect(warning).toHaveBeenCalledExactlyOnceWith('Could not apply the theme:', error)
+    } finally {
+      presenter.dispose()
+      warning.mockRestore()
+      Reflect.deleteProperty(document, 'startViewTransition')
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('runs a light/dark change in a view transition: a circle from a recent press, a fade otherwise', async () => {
     const transitions: { finished: PromiseWithResolvers<undefined> }[] = []
     Object.assign(document, {
@@ -167,7 +215,7 @@ describe('ThemePresenter', () => {
         update()
         const finished = Promise.withResolvers<undefined>()
         transitions.push({ finished })
-        return { finished: finished.promise, skipTransition: vi.fn() }
+        return { ready: Promise.resolve(), updateCallbackDone: Promise.resolve(), finished: finished.promise, skipTransition: vi.fn() }
       }),
     })
     vi.stubGlobal('matchMedia', () => ({ matches: false }))

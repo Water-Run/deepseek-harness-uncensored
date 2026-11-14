@@ -27,6 +27,8 @@ kind: "package-reference"
 
 功能插件用本包存储与编辑自己的偏好设置，而无需重新实现传输层或 schema 处理。每个组合挂载一次即可；它注入 `remote` 服务及其 `settings` 命名空间，并持有浏览器中唯一的 `settings.describe` 读取方。
 
+外壳提供 `ctx.settingsNavigation`：`openSection(id)` 打开已注册的设置页，`close()` 关闭设置而不修改功能数据。跳转到对话的操作可先关闭设置，再交出焦点。
+
 ### 配置表单
 
 `ctx.configForms.developerTools` 管理代码工作工具开关与 Web 和桌面端共享的偏好 `ui-settings.enabled`，默认为 `true`。其 `enabled` 可观察值发布已接受的选择，`setEnabled` 使用相同的有序设置写入。桌面端和每个已认证的 Web 浏览器都将设置持久化到 Host 文档。此设置控制界面展示和 HTML 预览权限，不控制 Host 授权或 Session 记录。 使用 Host 偏好的客户端在首个经过 schema 解析并接受的值到达前保持开发者功能关闭；首次响应缺失或失败不会启用它们。后续刷新保留已接受的选择。
