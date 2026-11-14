@@ -6,58 +6,51 @@
 
 | 项目 | 当前状态 |
 | --- | --- |
-| 产品版本 | `2026.11.15.2`，内部版本 `2026.1115.2` |
+| 产品版本 | `2026.11.15.3`，内部版本 `2026.1115.3` |
 | Windows x64 | 已保留数据安装；关于、CLI、文件资源、卸载登记和主载荷版本一致 |
-| Linux x64 | deb/tar.gz 归档、CLI/API、隔离 X11/Wayland 欢迎页和渲染沙箱通过 |
-| 构建源码 | `5882a52921c7e33b24242b0c2fba240647e66884`；后续交付文档提交不改变程序字节 |
+| Linux x64 | deb/tar.gz、CLI/API、隔离 X11/Wayland 欢迎页与渲染沙箱通过 |
+| 构建源码 | `80686a962218bdc3706f18f5e27ff5a7bde37c50`；后续交付文档提交不改变程序字节 |
 | DSH 内核 | `0.2.2-rc.3`，`38a6a5c965aa99ab525161efb7cc5cf1fe62fced` |
 | REA | `6.9.0`，`d74549e495c58eb4a560279fd9f05508401ea0a0`，255 项目录 |
-| 发行状态 | 未签名检查包；签名、正式在线升级、完整许可及平台验收继续进行 |
+| 发行状态 | 未签名检查包；正式签名、在线升级、完整许可和平台验收未完成 |
 
-Windows 安装包和两平台回执位于 `%USERPROFILE%/DSHU-Deliveries/20261115`；Linux 归档位于 `D:/DSHU-Deliveries/20261115`。文件名包含公开版本、内核、REA、平台及源码短提交。构建日期使用 Asia/Shanghai，规则见[打包指南](../apps/desktop/packaging/README.zh.md)。
+Windows 安装包及回执位于 `%USERPROFILE%/DSHU-Deliveries/20261115`，Linux 归档位于 `D:/DSHU-Deliveries/20261115`。文件名包含版本、内核、REA、平台和源码短提交。日期按 Asia/Shanghai 编号，见[打包指南](../apps/desktop/packaging/README.zh.md)。
 
 | 产物 | SHA-256 |
 | --- | --- |
-| Windows x64 EXE | `d289685c91ef6b362a5582f6f835c7c793a5c6307c5f920db3b7ec0d4519d097` |
-| Linux x64 tar.gz | `a7e592ea1c2a87923349afb18bcd997037c1240a13b9e533dcf5171b6be95cfa` |
-| Linux x64 deb | `88e8d160d102a7dd2ad8df3e02c75a333d541ef06307c56a148dd142342af109` |
+| Windows x64 EXE | `d11f65b1854b56c952572f50539058976a2259b4dd20263ded74f273d8842ceb` |
+| Linux x64 tar.gz | `66f96d09a87a8be4257714680e6e53dc9ca9a6b2e0e4c7a65f671171e62a9364` |
+| Linux x64 deb | `1605b4606402983b694e9a4769a892184e83cf9364b649cc0f4c0f129b504e38` |
 
-## 本轮验证
+## 本版修复与验证
 
-- 修复 CLI、桌面运行时描述与主载荷未跟随构建编号的问题；构建和实装均实际运行 CLI 检查。`2026.11.15.1` 未通过该检查，记录保留于 `attempt1`，请使用修正版。
-- 两平台实际产物通过四模式、新会话、命令执行、旁问重开/清理及主旁会话删除；无付费模型调用。REA JavaScript、Office 转换/渲染/重算及 CLI 离线插件安装卸载通过。
-- Windows 两次更新均核对 7,318 个用户文件和官方 DSH 的两份程序文件；修正版的实际关于页、CLI、PE 和登记版本为 `2026.11.15.2`。
-- 原生欢迎页统一中英文 Slogan，41 项对应测试通过；X11/Wayland 实际欢迎页可见，截图内容一致，渲染器保留 seccomp 与 NoNewPrivs。没有使用 Computer Use。
-- 运行时版本相关 38 项测试通过，包括拒绝旧基线运行时；完整 GUI 14,023 项通过、2 项跳过。两平台打包流水线完整构建各 10 项通过，3,683 份历史输入和冻结归档摘要保持。
+- 模式和主题过渡取消不再产生未处理拒绝，运行状态更新不重复启动同一模式的扩散动画。
+- 旧 PTC/极简会话恢复本地化标题，可选 Creator 创建会话后关闭 Settings 并聚焦输入框；默认保持四模式。
+- 插件设置的可选语言文案已统一，模式资料的未选工作区提示已去重。
+- 相关模块 812 项回归、20 项动效用例通过；11 项模式流程与 15 项生命周期浏览器场景只读通过。取消处理的负对照按预期失败，源码已恢复并复验。
+- 两平台实包通过四模式、新会话、命令执行、旁问重开/清理及主旁会话删除；未调用付费模型。REA JavaScript、Office 转换/渲染/重算和 CLI 离线插件安装卸载通过。
+- Windows 更新前后 7,318 个用户文件及官方 DSH 两份程序文件摘要一致；CLI、关于页、PE 和卸载登记均为 `2026.11.15.3`。系统应用在验证后保持关闭。
+- Linux 原生欢迎页可见，renderer 保留 seccomp 与 NoNewPrivs；这是隔离图形环境验证。Wayland 的后台加载窗口截图超时，最终欢迎窗口截图成功并已检查。
 
-新增下拉和设置回归见[设置记录](requirements/2026-11-15-settings-regression.md)，31 项核心交互只读回放见[核心流程记录](requirements/2026-11-15-core-flow.md)，打包、版本修复和环境细节见[本次交付](requirements/2026-11-15-delivery.md)。
+源码与浏览器记录见[模式流程](requirements/2026-11-15-mode-flow.md)、[设置回归](requirements/2026-11-15-settings-regression.md)和[核心流程](requirements/2026-11-15-core-flow.md)。版本传递、实装与环境记录见[本次交付](requirements/2026-11-15-delivery.md)。
 
-## 安装后源码进展
-
-原生 Cua Driver 可选保护入口已实现：初始化与直接工具调用均校验，策略变更撤销并等待原生关闭，关闭失败保留保护资源。30 项测试及编译公开入口的四类拒绝通过；未执行真实桌面操作。此改动尚未包含在 `2026.11.15.2`，完整范围和限制见[执行层记录](requirements/2026-11-02-native-execution.md)。
-
-另已修正可选语言的插件分组说明及旧测试入口，12 个浏览器场景和 79 项相关测试通过；默认仍只提供中英文。实际浅深色、1440/390px 页面已检查。这批源码也未进入现有安装包，见[设置记录](requirements/2026-11-15-settings-regression.md)。
-
-四模式设置页另通过 5 项浏览器回归、339 项模式与资料测试；工作区未选提示已去重。模式帮助的焦点恢复和配置/选择分离已复验。
-
-模式选择和旧会话流程另通过 11 项浏览器场景，并与生命周期场景合计 26 项只读复验。已修复旧模式名称、可选 Creator 跳转后的 Settings 遮挡，以及模式/主题取消动效产生的未处理拒绝。默认仍为四模式；本批源码尚未进入现有安装包，见[模式流程记录](requirements/2026-11-15-mode-flow.md)。
+原生 Cua Driver 保护入口已在源码实现准入、撤销、审计和关闭等待，30 项回归及编译入口检查通过；实际确认默认检查包不包含该实验包，不能把源码验证当成产品集成完成。[执行层记录](requirements/2026-11-02-native-execution.md)
 
 ## 继续验收
 
-上次完整 Web 基线为 778 项通过、270 项失败、44 项跳过及 10 项异步错误；其后设置/工作区 45 项、可选插件 13 项、核心交互 31 项分批通过，整套尚未重新运行。完整 Desktop 原基线为 2,003 项通过、28 项失败、65 项跳过；已分组修复的结果不能代表整套通过。
+上次完整 Web 基线为 778 项通过、270 项失败、44 项跳过及 10 项异步错误；其后多组场景已修复并复验，旧失败数不能直接当作当前剩余数。完整 Desktop 原基线为 2,003 项通过、28 项失败、65 项跳过。下一步继续处理剩余分组，再重新取得完整基线。
 
-Linux 仍需原生门户、Debian/Fedora 与实体桌面验收。自动回退、系统重启、正式签名/下载升级，以及外部引擎和可选目标保护的剩余场景保留在 TODO。许可清单仍为 Windows 919 包中 7 项、Linux 921 包中 9 项待审。
+Linux 原生门户、Debian/Fedora 与实体桌面、自动回退、系统重启、正式签名/下载升级，以及外部引擎与可选目标保护的剩余场景仍在 TODO。许可清单为 Windows 919 包中 7 项、Linux 921 包中 9 项待审。
 
 ## 恢复入口
 
-- 最近通过版本核对的旧程序 `2026.11.14.1`：`D:/DSHU-Backups/20261114T180858Z-20261114-1-installed-program`，16,417 文件已校验；自动回退未验收。
-- 修正版安装前的数据：`D:/DSHU-Backups/20261114T193059Z-before-20261115-2-data`，7,318 文件已校验。备份仅允许当前用户、SYSTEM 和管理员访问。
-- 当前证据：`current-windows-manifest.json`、`current-linux-manifest.json`、`installed-update-result.json`、`installed-runtime-result.json`、`installed-cli-version.json`、`linux-*-startup.json`。此前 20261113/20261114 的有效安装包和备份继续保留。
-
-首次常规退出返回 Restart Manager 351，按已有重启授权结束了已核对路径的 DSHU 进程，然后备份停止后的磁盘数据。没有进行系统重启，也没有卸载官方 DSH。
+- 上一版 `2026.11.15.2` 程序：`D:/DSHU-Backups/20261114T221752Z-20261115-2-installed-program`，16,417 文件已校验。
+- 本次安装前的数据：`D:/DSHU-Backups/20261114T223028Z-before-20261115-3-data`，7,318 文件已校验，仅当前用户、SYSTEM 和管理员可访问。自动回退仍未验收。
+- 当前证据：`current-windows-manifest.json`、`current-linux-manifest.json`、`installed-update-result.json`、`installed-runtime-result.json`、`installed-cli-version.json`、`linux-*-startup.json` 和 `delivery-index.json`。
+- `.2` 的原交付回执保存于同日目录的 `accepted-2026.11.15.2`。更早的有效安装包、程序/数据备份及 `.1` 版本一致性失败记录继续保留。
 
 ## 清理与工作约束
 
-已清除本轮 Linux 旧解包副本的 33,895 个文件、约 2.92 GiB 逻辑数据，两种原始归档及回执保留；不能将逻辑数据量当作 Windows 宿主即时释放量。先前约 5.78 GiB、两个构建目录以及本轮 C 盘约 1.9 GiB 旧解包目录被自动审批以 `blocked by policy` 拒绝删除，仍保留，没有换方式重试。
+此前已删除约 2.92 GiB 的 Linux 旧解包逻辑数据；未把它当作 Windows 宿主即时释放量。历史上约 5.78 GiB、两个构建目录及 C 盘约 1.9 GiB 旧解包目录的删除被自动审批以 `blocked by policy` 拒绝，仍保留，没有换方式重试。本轮已核验 `.2` 的旧 Windows 解包目录 `D:/DSHU-Delivery-Work/20261115/installer-check-CtUwda`：16,422 个文件、2,035,029,157 字节、无链接或进程引用，原安装包摘要一致。其删除同样被自动审批以 `blocked by policy` 拒绝；约 1.90 GiB 仍保留，未换方式重试，回执为 `old-windows-2-extraction-cleanup-rejected.json`。当前产物、备份和验收目录继续保留。
 
-继续时读取 TODO 并核对实际代码和安装版本。保持 main、中文提交、正常 Git hooks、不使用 Computer Use。进阶真实目标保护和所有限额默认关闭；保护验收按域名/主机规则、服务器/数据库、审计联动顺序推进。
+继续时读取 TODO 并核对实际工作树与安装版本。保持 main、中文提交、正常 Git hooks，不使用 Computer Use。进阶目标保护和所有限额默认关闭；保护按域名/主机规则、服务器/数据库、审计联动顺序推进。
