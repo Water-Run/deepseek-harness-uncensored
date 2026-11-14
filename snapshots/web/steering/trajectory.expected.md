@@ -1,6 +1,7 @@
 - banner:
   - navigation "Session hierarchy": Use the ask_user_question tool to
-  - text: Standard mode
+  - 'button "Conversation mode: Default" [disabled]': Default
+  - button "Side question"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -22,9 +23,9 @@
     - row "USER, Use the ask_user_question tool to ask me exactly one question with id \"checkpoint\", question \"Ready to continue?\", header \"Checkpoint\", and options labeled \"Yes\" and \"No\". After I answer, reply with one short sentence acknowledging my answer and stop.":
       - cell "Turn 1 USER": USER
       - cell "Use the ask_user_question tool to ask me exactly one question with id \"checkpoint\", question \"Ready to continue?\", header \"Checkpoint\", and options labeled \"Yes\" and \"No\". After I answer, reply with one short sentence acknowledging my answer and stop."
-    - 'row "CONTEXT, <system-reminder> The following information describes your current session: Current working directory: \"{{cwd}}/workspace\". Current DSH file policy: workspace-write. Any available operation enforced by the DSH file sandbox may modify files under the session workspace: \"{{cwd}}/workspace\". Some platform te…"':
+    - 'row "CONTEXT, <system-reminder> The following information describes your current session: Current working directory: \"{{cwd}}/workspace\". Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations. Approval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set sandb…"':
       - cell "CONTEXT"
-      - 'cell "<system-reminder> The following information describes your current session: Current working directory: \"{{cwd}}/workspace\". Current DSH file policy: workspace-write. Any available operation enforced by the DSH file sandbox may modify files under the session workspace: \"{{cwd}}/workspace\". Some platform te…"'
+      - 'cell "<system-reminder> The following information describes your current session: Current working directory: \"{{cwd}}/workspace\". Current DSH file policy: danger-full-access. The DSH file sandbox does not restrict file modifications by available operations. Approval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set sandb…"'
     - 'row "CONTEXT, <system-reminder> A skill is a reusable set of task-specific instructions. The following skills are available in this session: <available_skills> dsh-doc: Use when a task needs facts about DeepSeek Harness (DSH) itself, such as how a feature, setting, plugin, agent preset, tool, or Cordis API of the running installation works; when the user asks to design, review, build, install, enable, or debug a DSH plugin, bundle, MCP connection, agent preset, plugin icon or detail page, or a DSH tool definition or skil…"':
       - cell "CONTEXT"
       - 'cell "<system-reminder> A skill is a reusable set of task-specific instructions. The following skills are available in this session: <available_skills> dsh-doc: Use when a task needs facts about DeepSeek Harness (DSH) itself, such as how a feature, setting, plugin, agent preset, tool, or Cordis API of the running installation works; when the user asks to design, review, build, install, enable, or debug a DSH plugin, bundle, MCP connection, agent preset, plugin icon or detail page, or a DSH tool definition or skil…"'
@@ -49,9 +50,11 @@
       - cell "Great, let's move forward. BANANA!"
 - textbox "Message or run a task, / commands, @ files or sessions"
 - button "Add files or run commands"
-- 'button "Access mode, current: Workspace Write"': Workspace Write
+- 'button "Access mode, current: Full access"': Full access
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message" [disabled]
-- button "1 turns 2 steps · {{throughput}} tok/s": 1 turns 2 steps{{throughput}} tok/s
+- 'button "Turns: 1 · Steps: 2 · {{throughput}} tok/s"': "Turns: 1 · Steps: {{throughput}} tok/s"
 - button "30 tok · Cache hit 0%": 30 tokCache hit 0%
+- 'button "Conversation cost: ￥0.000120"': ￥0.000120
+- 'button "Spending limits: Off"': "Off"
 - button "0% of context used": 0%

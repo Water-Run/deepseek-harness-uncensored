@@ -121,9 +121,10 @@ describe.skipIf(MODE === 'record')('web e2e: recorded collapse timing', () => {
       const directory = await mkdtemp(join(SCREENSHOT_DIR, 'recorded-'))
       await saveFailureShot(page, `${SCREENSHOTS}/${basename(directory)}/failure`)
     })
-    // Selecting the current client default does not create a saved Host preference.
+    // Configure the completion case explicitly; DSHU defaults to Verbose and next-message folding.
     await selectPreference('Work details', 'Compact')
     await selectPreference('Work details', 'Detailed')
+    await selectPreference('When to Collapse Work Details', 'On completion')
     const group = page.getByRole('treeitem').first()
     await group.waitFor()
     if (await group.getAttribute('aria-expanded') === 'false') await group.click()

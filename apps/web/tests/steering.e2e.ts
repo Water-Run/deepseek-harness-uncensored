@@ -128,11 +128,11 @@ describe('web e2e: mid-turn steering lands durably and visibly', () => {
       { timeout: 10_000 },
     ).toBe(true)
 
-    // Enter remains the Queue gesture. In this live window the row action
+    // Cmd/Ctrl+Enter queues with the default busy behavior. In this live window the row action
     // atomically moves this exact occurrence into the current turn's steering outbox.
     await page.locator('[data-composer-input][contenteditable="true"]').first().waitFor({ timeout: 10_000 })
     await input.fill(STEER)
-    await input.press('Enter')
+    await input.press('Meta+Enter')
     const queuedRow = page.getByRole('listitem').filter({ hasText: STEER })
     await queuedRow.waitFor({ timeout: 10_000 })
     const steerButton = queuedRow.getByRole('button', { name: 'Steer queued message' })
@@ -303,7 +303,7 @@ describe.skipIf(MODE === 'record')('web e2e: retained steering and a post-stop m
     await questionStarted.promise
     await expect.poll(() => requestInputs.length, { timeout: 10_000 }).toBe(1)
     await input.fill(STEER)
-    await input.press('Meta+Enter')
+    await input.press('Enter')
     await page.locator('[data-pending-steering]').filter({ hasText: STEER }).waitFor({ timeout: 10_000 })
     await page.getByRole('button', { name: 'Stop generating', exact: true }).click()
     await expect.poll(() => firstRequestSignal?.aborted).toBe(true)
@@ -413,7 +413,7 @@ describe.each(['reconnect', 'delayed-inbox'] as const)('web e2e: composer shortc
     await scaffold?.close()
   })
 
-  it.skipIf(MODE === 'record')('uses Cmd+Enter without creating a Queue row', async () => {
+  it.skipIf(MODE === 'record')('uses default Enter without creating a Queue row', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-composer-steering'))
     expect(fixtureUserPrompts(await readFile(FIXTURE, 'utf8'))).toEqual([PROMPT, STEER])
     const input = page.locator('[data-composer-input]').first()
@@ -427,7 +427,7 @@ describe.each(['reconnect', 'delayed-inbox'] as const)('web e2e: composer shortc
 
     await page.locator('[data-composer-input][contenteditable="true"]').first().waitFor({ timeout: 10_000 })
     await input.fill(STEER)
-    await input.press('Meta+Enter')
+    await input.press('Enter')
     await expect.poll(() => input.textContent(), { timeout: 5_000 }).toBe('')
     expect(await page.locator('[data-queue-dock]').count()).toBe(0)
 
@@ -511,13 +511,13 @@ describe('web e2e: composer shortcut follows the swapped busy behavior', () => {
     await scaffold?.close()
   })
 
-  it.skipIf(MODE === 'record')('queues Cmd+Enter when plain Enter is configured to Steer', async () => {
+  it.skipIf(MODE === 'record')('queues plain Enter after switching the busy preference from Steer to Queue', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-composer-swapped-shortcut'))
     await openSettings(page, 'en')
     const dialog = page.getByRole('dialog', { name: 'Settings' })
-    await dialog.getByRole('button', { name: 'Queue' }).click()
-    await page.getByRole('menuitem', { name: 'Steer' }).click()
-    await dialog.getByRole('button', { name: 'Steer' }).waitFor({ timeout: 10_000 })
+    await dialog.getByRole('button', { name: 'Steer', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Queue', exact: true }).click()
+    await dialog.getByRole('button', { name: 'Queue', exact: true }).waitFor({ timeout: 10_000 })
     await page.keyboard.press('Escape')
 
     const input = page.locator('[data-composer-input]').first()
@@ -527,10 +527,10 @@ describe('web e2e: composer shortcut follows the swapped busy behavior', () => {
     await input.press('Enter')
     await page.getByRole('button', { name: 'Stop generating' }).waitFor({ timeout: 10_000 })
 
-    const queuedText = 'Queued by the complementary Cmd+Enter shortcut.'
+    const queuedText = 'Queued by Enter after changing the preference.'
     await page.locator('[data-composer-input][contenteditable="true"]').first().waitFor({ timeout: 10_000 })
     await input.fill(queuedText)
-    await input.press('Meta+Enter')
+    await input.press('Enter')
     const queuedRow = page.locator('[data-queue-dock]').getByRole('listitem').filter({ hasText: queuedText })
     await queuedRow.getByText(queuedText, { exact: true }).waitFor({ timeout: 10_000 })
     expect(await page.locator('[data-pending-steering]').filter({ hasText: queuedText }).count()).toBe(0)
@@ -585,7 +585,7 @@ describe('web e2e: empty-draft Cmd+Enter steers the whole queue', () => {
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
-    await page.getByText('Standard mode', { exact: true }).waitFor({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Default', exact: true }).waitFor({ timeout: 10_000 })
   }, 120_000)
 
   afterAll(async () => {
@@ -610,16 +610,16 @@ describe('web e2e: empty-draft Cmd+Enter steers the whole queue', () => {
     await page.locator('[data-composer-input][contenteditable="true"]').first().waitFor({ timeout: 10_000 })
     await input.fill(PROMPT)
     await input.press('Enter')
-    // The turn must report busy before the next two sends: Enter's queue gesture
+    // The turn must report busy before the next two accelerated sends: the queue gesture
     // resolved against a not-yet-running agent admits the message into the turn
     // instead of publishing a Queue row.
     await page.getByRole('button', { name: 'Stop generating' }).waitFor({ timeout: 10_000 })
     await page.locator('[data-composer-input][contenteditable="true"]').first().waitFor({ timeout: 10_000 })
     await input.fill(STEER_ONE)
-    await input.press('Enter')
+    await input.press('Meta+Enter')
     await page.locator('[data-composer-input][contenteditable="true"]').first().waitFor({ timeout: 10_000 })
     await input.fill(STEER_TWO)
-    await input.press('Enter')
+    await input.press('Meta+Enter')
     const dock = page.locator('[data-queue-dock]')
     // Both messages queued: the two-row dock is collapsed, so it renders the
     // count header and no rows. Expand it through the header, then assert each

@@ -126,7 +126,7 @@ describe('web e2e: queued image submission', () => {
     const dockThumb = page.locator('[data-queue-dock] img[alt="Queued message image"]')
     try {
       await input.fill(QUEUED_TEXT)
-      await input.press('Enter')
+      await input.press('Control+Enter')
       // The composer keeps the text and image, read-only, until the Host accepts the prompt.
       await expect.poll(() => input.getAttribute('contenteditable'), { timeout: 15_000 }).toBe('false')
       expect(await page.getByRole('img', { name: 'queued.png' }).count()).toBe(1)
@@ -183,7 +183,7 @@ describe('web e2e: queued image submission', () => {
       .getByRole('button', { name: 'Branch into a new conversation', exact: true })
       .waitFor({ timeout: 15_000 })
     await expect.poll(
-      () => page.getByRole('button', { name: /^3 turns 3 steps/ }).count(),
+      () => page.getByRole('button', { name: /^Turns: 3 · Steps: 3(?: ·|$)/ }).count(),
       { timeout: 15_000 },
     ).toBe(1)
     const deliveredSnapshot = await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd)

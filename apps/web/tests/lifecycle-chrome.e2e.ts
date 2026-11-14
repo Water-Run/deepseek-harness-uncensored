@@ -461,13 +461,8 @@ describe('web e2e: lifecycle & chrome (workspace flow / reload / dark mode)', ()
     expect(tripwire.pageErrors).toEqual([])
   }, 90_000)
 
-  it.skipIf(MODE === 'record')('cascades the dark theme from the body attribute to painted surfaces', async () => {
+  it.skipIf(MODE === 'record')('cascades explicit light and dark preferences to painted surfaces', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-lifecycle-dark'))
-    // This scenario pins the ThemeRuntime's DOM contract directly (the
-    // body[data-ds-dark-theme] attribute -> stylesheet cascade); the REAL
-    // user gesture above it (Settings -> Appearance cubes) is owned by
-    // settings-chrome.e2e.ts. Driving the attribute here keeps the cascade
-    // pinned independently of the settings surface's own lifecycle.
     const sample = async (): Promise<{ token: string; sidebarBg: string; bodyBg: string }> =>
       await page.evaluate(() => {
         const sidebar = document.querySelector('[class*="sidebar"], [class*="rail"]') ?? document.body
@@ -477,19 +472,24 @@ describe('web e2e: lifecycle & chrome (workspace flow / reload / dark mode)', ()
           bodyBg: getComputedStyle(document.body).backgroundColor,
         }
       })
-    const light = await sample()
-    await page.evaluate(() => { document.body.setAttribute('data-ds-dark-theme', '') })
-    const dark = await sample()
-    // The alias token itself must flip — the cascade's root fact.
-    expect(dark.token).not.toBe(light.token)
-    // And a real painted surface must consume it (not just variables in a
-    // void): at least one of the sampled backgrounds repaints.
-    expect(dark.sidebarBg !== light.sidebarBg || dark.bodyBg !== light.bodyBg).toBe(true)
-    // Removing the attribute restores the light values exactly (the palettes
-    // live in one stylesheet; activation is attribute-only by design).
-    await page.evaluate(() => { document.body.removeAttribute('data-ds-dark-theme') })
-    const restored = await sample()
-    expect(restored).toEqual(light)
+    const previous = scaffold.ctx.settings.describe().find(row => row.ns === 'ui-theme')?.value
+    if (typeof previous !== 'object' || previous === null || !('preference' in previous)) throw new Error('Theme preference is unavailable')
+    const selectTheme = async (preference: 'light' | 'dark') => {
+      await scaffold.ctx.settings.update('ui-theme', { preference })
+      await expect.poll(() => page.locator('body').getAttribute('data-ds-dark-theme')).toBe(preference === 'dark' ? '' : null)
+    }
+    try {
+      await selectTheme('light')
+      const light = await sample()
+      await selectTheme('dark')
+      await expect.poll(async () => (await sample()).token).not.toBe(light.token)
+      await expect.poll(async () => {
+        const dark = await sample()
+        return dark.sidebarBg !== light.sidebarBg || dark.bodyBg !== light.bodyBg
+      }).toBe(true)
+      await selectTheme('light')
+      await expect.poll(sample).toEqual(light)
+    } finally { await scaffold.ctx.settings.update('ui-theme', { preference: previous.preference }) }
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)
 

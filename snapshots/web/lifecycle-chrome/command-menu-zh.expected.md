@@ -3,9 +3,11 @@
   - option "文件 file" [selected]
   - option "目标 goal 设置或查看长期任务目标"
   - option "计划 plan 进入或退出计划模式"
-  - option "反馈 feedback 发送关于当前会话的反馈"
+  - option "提交 Issue feedback 在 GitHub 提交问题或建议"
   - text: 指令
   - option "压缩 compact 压缩以上对话内容"
   - option "权限 permission 切换权限预设（沙箱模式与审批策略）"
   - option "模型 model 选择本会话使用的模型"
   - option "下载日志 export 将当前会话内容导出为 ZIP"
+  - option "随问 btw 任务进行中只读地问一句进度或小问题，快速回答一次"
+  - option "旁问 side 在右侧接着当前上下文提问；关闭后可继续"

@@ -3,9 +3,11 @@
   - option "File" [selected]
   - option "Goal Set or view the goal for a long-running task"
   - option "Plan Enter or leave plan mode"
-  - option "Feedback Record feedback about this session"
+  - option "Submit an issue feedback Report a problem or suggestion on GitHub"
   - text: Commands
   - option "Compact Compact older conversation history"
   - option "Permission Switch the permission preset (sandbox mode + approval policy)"
   - option "Model Select the model for this conversation"
   - option "Export Download this Session log as a ZIP archive"
+  - option "Quick question btw Ask one read-only question while a task runs; answered once and briefly"
+  - option "Side question side Ask in the right panel with the current context; reopen to continue"

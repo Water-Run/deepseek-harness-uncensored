@@ -1,6 +1,7 @@
 - banner:
   - navigation "Session hierarchy": Queue item to remove
-  - text: Standard mode
+  - 'button "Conversation mode: Default" [disabled]': Default
+  - button "Side question"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -18,7 +19,9 @@
   - time: {{clock}}
 - status: Stopped
 - button "Stopped" [disabled] [expanded]
-- button "Injected context"
+- button "Context injection runtime-context"
+- button "Context injection skill-catalog"
+- button "Context injection time-context"
 - paragraph: partial
 - text: Stopped
 - button "Copy"
@@ -38,7 +41,8 @@
 - text: {{clock}} Wake the preserved queue {{clock}}
 - button "Copy"
 - status: Completed
-- button "Completed in {{duration}}"
+- button "Completed in {{duration}}" [disabled] [expanded]
+- button "Think The user is asking for a one-sentence description of event sourcing. This is a straightforward knowledge question that doesn't require any skill loading or tool calls."
 - paragraph: Event sourcing is a pattern where all changes to an application's state are stored as an immutable, append-only sequence of events, rather than persisting only the current state, enabling full auditability, temporal queries, and event-driven architectures.
 - button "Copy"
 - button "Good response"
@@ -50,9 +54,11 @@
 - button "Resume goal"
 - textbox "Message or run a task, / commands, @ files or sessions"
 - button "Add files or run commands"
-- 'button "Access mode, current: Workspace Write"': Workspace Write
+- 'button "Access mode, current: Full access"': Full access
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message" [disabled]
-- button "3 turns 3 steps · {{throughput}} tok/s": 3 turns 3 steps{{throughput}} tok/s
+- 'button "Turns: 3 · Steps: 3 · {{throughput}} tok/s"': "Turns: 3 · Steps: {{throughput}} tok/s"
 - button "7.9K tok · Cache hit 99%": 7.9K tokCache hit 99%
+- 'button "Conversation cost: ￥0.001160"': ￥0.001160
+- 'button "Spending limits: Off"': "Off"
 - button "6% of context used": 6%

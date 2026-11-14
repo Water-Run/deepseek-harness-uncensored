@@ -2,7 +2,6 @@
 - button "Collapse sidebar"
 - button "New session": New Session
 - navigation "Global panels":
-  - button "Plugins"
   - button "Automation tasks"
   - button "Unpin Automation tasks from sidebar"
   - button "More"
@@ -17,12 +16,12 @@
 - button "Account menu": More
 - banner:
   - button "Open right sidebar"
-- text: Into the Unknown Preview
+- text: Explore the Unknown, More Freely
 - button "Choose workspace": workspace
-- button "Standard mode"
+- button "Default"
 - textbox "Describe what you want to build, / commands, @ files or sessions"
 - button "Add files or run commands"
-- 'button "Access mode, current: Workspace Write"': Workspace Write
+- 'button "Access mode, current: Full access"': Full access
 - button "Plan mode on, press to turn off": Plan
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message" [disabled]
