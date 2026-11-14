@@ -1,12 +1,12 @@
 <div align="center">
   <img src="apps/desktop/resources/icon.svg" width="112" alt="DSHU 黑底白鲸标志">
-  <h1>Deepseek Harness Uncensored: 更自由的探索未至之境</h1>
-  <p><b>DSHU 2026.11.14.1</b> · 开发源码基于 DeepSeek Harness 0.2.2-rc.3 · WaterRun</p>
+  <h1>DeepSeek Harness Uncensored: 更自由的探索未至之境</h1>
+  <p><b>DSHU 2026.11.15.2</b> · 开发源码基于 DeepSeek Harness 0.2.2-rc.3 · WaterRun</p>
 </div>
 
 DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH 与 DSHU 可同时安装，分别使用自己的程序目录、配置、会话和更新渠道。
 
-当前检查版 **2026.11.14.1** 基于 **DSH 0.2.2-rc.3**，内置 **REA 6.9.0**。Windows 已完成保留数据的安装检查；Linux 的 deb 与便携归档已完成归档和 API 检查。正式发行及完整平台验收仍在推进，详见[开发进度](.agents/TODO.md)。
+当前检查版 **2026.11.15.2** 基于 **DSH 0.2.2-rc.3**，内置 **REA 6.9.0**。Windows 已保留数据安装，关于页、CLI、文件及登记版本一致；Linux 的 deb 与便携归档已完成版本、API 和隔离 X11/Wayland 启动检查。正式发行及完整平台验收仍在推进，详见[开发进度](.agents/TODO.md)。
 
 版本采用 `YYYY.MM.DD.N`，最后一项为当天构建序号。关于页、CLI、安装包和 Windows 登记使用相同日期版本；DSH 内核与 REA 的来源独立记录。打包与更新规则见[打包指南](apps/desktop/packaging/README.zh.md)。
 
@@ -16,7 +16,7 @@ DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH �
 | --- | --- |
 | **旁问和随问** | 输入 `/side 问题` 在右侧开旁问，单独输入 `/side` 可打开或重开。旁问参考主线最新进展，自身历史单独保存，支持传图及 `/clear`。可开启关闭时自动清除。输入 `/btw 问题` 在主对话内获得一次简短回答。 |
 | **余额和额度** | 余额默认每 15 秒采样，最短 3 秒，点击立即刷新。曲线可查看各时点，长时间平稳区间用虚线缩短。六档限额独立启停和重置，默认全关。暂停横幅显示恢复时间和快捷重置，开启自动恢复后会继续被暂停的对话。底栏可展开费用和限额。 |
-| **记忆和输入预测** | 结构化记忆可按范围检索和编辑，自动提炼默认关闭。输入预测默认开启，主线、旁问和随问各自预测，按 Tab 填入。启用的预测与提炼请求使用当前模型并计费。 |
+| **记忆和输入预测** | 结构化记忆可按范围检索和编辑，自动提炼默认关闭。输入预测默认开启，主线、旁问和随问各自预测，按 Tab 填入。启用的预测与提炼会调用当前模型，按提供方规则计入用量。 |
 | **会话和外观** | 支持会话删除、项目内进行中会话入口、工作区搜索和插话发送。主题色随模式变化，侧栏色条标识会话模式。外观支持日出日落、跟随系统、浅色和深色。 |
 
 ## 四种模式
@@ -36,7 +36,7 @@ DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH �
 
 ## 安装与开发
 
-- **桌面**　Windows x64 当前本机检查版为 `0.1.0-test.20261113.5`。Linux x64 检查版 `0.1.0-test.20261113.linux.4` 的 deb 和 tar.gz 已完成归档、隔离 API，以及 Ubuntu WSL2 的 X11/Wayland 引导页和渲染沙箱检查；当前 Debian/Fedora 及实体桌面复验待完成。macOS arm64、Android＋PRoot Fedora 和全新安装器仅保留未来计划。签名与在线升级仍待验收，正式发行使用本仓库的 [GitHub Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases)。
+- **桌面**　Windows x64 与 Linux x64 的当前检查版均为 `2026.11.15.2`。Windows 已完成保留数据更新；Linux 已检查 deb、tar.gz、隔离 API、X11/Wayland 欢迎页及渲染沙箱。原生门户、Debian/Fedora 和实体桌面仍待验收。macOS arm64、Android＋PRoot Fedora 和全新安装器仅保留未来计划。签名与正式在线升级尚未验收，未来发行使用本仓库的 [GitHub Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases)。
 - **源码**　使用 Node.js 24.22.1、Git 与 Corepack。依次运行 `corepack pnpm install`、`corepack pnpm run build`、`corepack pnpm dsh web`。CLI 安装见[安装脚本](scripts/install-uncensored.ps1)。
 - **独立标识**　默认数据目录为 `~/.dsh-uncensored`，可用 `DSH_UNCENSORED_HOME` 修改。CLI 为 `dsh-uncensored`，深链为 `dshu://open`。关于页列出作者、DSHU 与 DSH 版本、构建时间、源码提交及依赖来源。
 
@@ -56,11 +56,11 @@ DSHU 采用 [GPL-3.0-or-later](LICENSE)。上游和第三方组件保留各自�
 
 **DeepSeek Harness Uncensored · Explore the Unknown More Freely**
 
-DSHU 日期版本 is an independent desktop fork whose development source uses DeepSeek Harness 0.2.2-rc.3. Current qualified inspection builds still use rc.2. It can coexist with the official app and uses a separate profile and update channel. It includes built-in armor prompts, four modes, and Chinese and English UI.
+DSHU 2026.11.15.2 is an independent desktop fork based on DeepSeek Harness 0.2.2-rc.3. It can coexist with the official app and uses a separate profile and update channel. It includes built-in armor prompts, four modes, and Chinese and English UI.
 
-- **General** · Use `/side` for a persistent side conversation with image attachments and `/clear`, or `/btw question` for a quick one-off answer. Balance history, spending limits, scoped memory, and Tab suggestions are available in Settings.
-- **Kernel intake** · The installed Windows inspection build uses DSH 0.2.2-rc.2 and bundled REA 6.9.0. Actual installed-runtime checks cover all four modes, side-context clearing, session deletion, command execution and preserved user data. Package checks cover Office conversion, rendering, recalculation and REA analysis. Both desktop inspection builds include the narrow welcome layout and sun-based appearance fixes.
-- **Modes** · Standard covers daily development. Security adds case notes, reports, and an independent proxy with traffic inspection. Reverse integrates REA for analysis. Writing uses selected style references and story materials.
-- **Delivery** · Unsigned Windows x64 inspection build `0.1.0-test.20261113.5` passed an in-place upgrade with data verification. Linux x64 inspection build `0.1.0-test.20261113.linux.4` has verified deb and tar.gz archives, isolated API checks and Ubuntu WSL2 X11/Wayland welcome startup with renderer sandboxing. Current Debian/Fedora and physical desktop qualification remains pending. macOS arm64, Android with Fedora under PRoot and a new installer remain future plans. Advanced target protection is opt-in. See [development status](.agents/TODO.md) and [Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases).
+- **General** · Use `/side` for a persistent side conversation with image attachments and `/clear`, or `/btw question` for a quick one-off answer. Locally sampled balance history, spending limits, scoped memory, and Tab suggestions are available in Settings. Limits default to off; input prediction defaults to on and sends requests to the selected model, which may incur charges.
+- **Kernel intake** · The inspection builds use DSH 0.2.2-rc.3 and bundled REA 6.9.0. Actual runtime checks cover four modes, side-context clearing, session deletion and command execution. Package checks also cover Office conversion, rendering, recalculation and REA analysis.
+- **Modes** · Default covers daily development. Security adds case notes, reports, and an independent proxy with traffic inspection. Reverse integrates REA for analysis. Writing uses selected style references and story materials.
+- **Delivery** · Windows x64 inspection build `2026.11.15.2` is installed with user data preserved. Its About page, CLI, native resource versions and uninstall registration agree. The same-source Linux deb and tar.gz pass archive, CLI, API and isolated X11/Wayland welcome-startup checks with renderer sandboxing. Portal, Debian/Fedora and physical desktop qualification remain pending. macOS arm64, Android with Fedora under PRoot and a new installer remain future plans. See [development status](.agents/TODO.md) and [Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases).
 
 </details>

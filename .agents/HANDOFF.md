@@ -1,65 +1,53 @@
 # DSHU 开发交接
 
-**Goal「实现DSHU」保持活动。** 本轮完成日期版本交付；完整项目当前有 12 项进行中，见 [TODO](TODO.md)。实际剩余额度达到 1% 时按用户规则收尾暂停，不将未完成目标标记为完成。macOS、Android＋Fedora PRoot、全新独立安装器仅保留未来计划。
+**Goal「实现DSHU」保持活动。** 当前 34 项完成、11 项进行中，见 [TODO](TODO.md)。实际剩余额度达到 1% 时按用户规则收尾暂停。macOS、Android＋Fedora PRoot、全新安装器仍只规划。
 
-最新源码进展见[设置与工作区回归](requirements/2026-11-15-settings-regression.md)：重试策略及补查的 7 处可选插件下拉均已统一，窄屏麦克风布局与 Cordis 版本菜单交互已修复；设置/工作区 45 项和可选插件 13 项浏览器只读复验通过。最新还完成[插话、排队、图片及会话生命周期 31 场景验收](requirements/2026-11-15-core-flow.md)，并补查 Ctrl+Enter。上述源码尚未打包，当前安装包仍为下表中的日期版。
-
-## 正在验证的交付
-
-`2026.11.15.1` 已保留数据安装，实装核对发现内置 CLI/载荷版本未跟随构建编号；修正源码后将使用新序号重新打包。当前状态、备份和恢复入口见[交付记录](requirements/2026-11-15-delivery.md)。下表是此前通过版本核对的日期版。
-
-## 此前已验证交付
+## 当前交付
 
 | 项目 | 当前状态 |
 | --- | --- |
-| 产品版本 | `2026.11.14.1`；关于、CLI、文件资源和 Windows 卸载登记一致 |
-| Windows x64 | 已保留数据原位安装，并打开供检查 |
-| Linux x64 | deb 与 tar.gz 已完成归档、运行时和隔离 API 检查 |
-| 构建源码 | `438e8537b088aeb38754cf5341c4f19777f928a2`；后续文档提交不改变包内源码 |
+| 产品版本 | `2026.11.15.2`，内部版本 `2026.1115.2` |
+| Windows x64 | 已保留数据安装；关于、CLI、文件资源、卸载登记和主载荷版本一致 |
+| Linux x64 | deb/tar.gz 归档、CLI/API、隔离 X11/Wayland 欢迎页和渲染沙箱通过 |
+| 构建源码 | `5882a52921c7e33b24242b0c2fba240647e66884`；后续交付文档提交不改变程序字节 |
 | DSH 内核 | `0.2.2-rc.3`，`38a6a5c965aa99ab525161efb7cc5cf1fe62fced` |
 | REA | `6.9.0`，`d74549e495c58eb4a560279fd9f05508401ea0a0`，255 项目录 |
-| 正式发行 | 签名、正式在线升级、完整许可和实体平台验收仍未完成 |
+| 发行状态 | 未签名检查包；签名、正式在线升级、完整许可及平台验收继续进行 |
 
-安装包及回执位于 `%USERPROFILE%/DSHU-Deliveries/20261114`。日期按打包开始时的 Asia/Shanghai 日历分配；同日序号自动递增，打包缓存清理后可从保留交付文件接续。内部更新版本 `2026.1114.1` 对应公开版本 `2026.11.14.1`。规则见[日期版本](requirements/2026-11-14-calver.md)和[打包指南](../apps/desktop/packaging/README.zh.md)。
+Windows 安装包和两平台回执位于 `%USERPROFILE%/DSHU-Deliveries/20261115`；Linux 归档位于 `D:/DSHU-Deliveries/20261115`。文件名包含公开版本、内核、REA、平台及源码短提交。构建日期使用 Asia/Shanghai，规则见[打包指南](../apps/desktop/packaging/README.zh.md)。
 
 | 产物 | SHA-256 |
 | --- | --- |
-| Windows x64 EXE | `bce488f9527d75e93bd788b1d1d3720e3e1838251403329f4e6d3e46cda5b17b` |
-| Linux x64 tar.gz | `5bf741ec9c9387d2c3248e851378f1eda2dddfaf9332c725e572503ee4987c01` |
-| Linux x64 deb | `d46c160d92219ede053b41d08322791f9f814cc69067f4bc8b2747edb29574ff` |
+| Windows x64 EXE | `d289685c91ef6b362a5582f6f835c7c793a5c6307c5f920db3b7ec0d4519d097` |
+| Linux x64 tar.gz | `a7e592ea1c2a87923349afb18bcd997037c1240a13b9e533dcf5171b6be95cfa` |
+| Linux x64 deb | `88e8d160d102a7dd2ad8df3e02c75a333d541ef06307c56a148dd142342af109` |
 
-## 已完成的本轮验证
+## 本轮验证
 
-- 两个平台的实际产物通过四模式、新会话、命令执行、旁问重开/清理及主旁会话删除；这些检查未调用模型。
-- 包内 REA 目录与 JavaScript、Office 转换/渲染/重算、CLI 离线插件安装卸载通过。
-- Windows 安装器两层归档、完整 DSH 文件清单和原生资源版本通过；实际安装后的 CLI 输出 `2026.11.14.1`。
-- 保留 7,311 个用户文件和官方 DSH 的两份程序文件，安装前后摘要一致；没有卸载官方 DSH。
-- 草稿按工作区隔离：81 项单测、Linux 完整构建及 9 项浏览器场景通过。旧共享草稿保留恢复数据，迁移说明见[指南](../docs/upgrade-guide/v0.2.2-rc.3/workspace-drafts/guide.zh.md)。
-- 日期版本相关 116 项检查及额外边界检查、46 项实际原生比较、中英文关于页宽窄窗通过。完整构建 10 项、最终类型检查 2 项通过，1,169 组双语配对一致，3,523 份历史输入与冻结归档摘要未变。
+- 修复 CLI、桌面运行时描述与主载荷未跟随构建编号的问题；构建和实装均实际运行 CLI 检查。`2026.11.15.1` 未通过该检查，记录保留于 `attempt1`，请使用修正版。
+- 两平台实际产物通过四模式、新会话、命令执行、旁问重开/清理及主旁会话删除；无付费模型调用。REA JavaScript、Office 转换/渲染/重算及 CLI 离线插件安装卸载通过。
+- Windows 两次更新均核对 7,318 个用户文件和官方 DSH 的两份程序文件；修正版的实际关于页、CLI、PE 和登记版本为 `2026.11.15.2`。
+- 原生欢迎页统一中英文 Slogan，41 项对应测试通过；X11/Wayland 实际欢迎页可见，截图内容一致，渲染器保留 seccomp 与 NoNewPrivs。没有使用 Computer Use。
+- 运行时版本相关 38 项测试通过，包括拒绝旧基线运行时；完整 GUI 14,023 项通过、2 项跳过。两平台打包流水线完整构建各 10 项通过，3,683 份历史输入和冻结归档摘要保持。
 
-## 尚未完成的验证
+新增下拉和设置回归见[设置记录](requirements/2026-11-15-settings-regression.md)，31 项核心交互只读回放见[核心流程记录](requirements/2026-11-15-core-flow.md)，打包、版本修复和环境细节见[本次交付](requirements/2026-11-15-delivery.md)。
 
-上次完整 Web 基线为 778 项通过、270 项失败、44 项跳过，另有 10 项异步错误。完整 Desktop 首轮为 2,003 项通过、28 项失败、65 项跳过；日期相关旧假设已分组修复复验，其他失败继续处理，不能视为整套通过。
+## 继续验收
 
-GUI 首轮 14,019 项通过、3 项失败、2 项跳过；新字段的旧断言已更新，两项 HTTP 桥接超时单独复验通过，相关两文件共 74 项通过。包检查首轮 22/25 通过；文件清单、客户端依赖分类和生成目录修正后，对应检查及新包 publint 通过。
+上次完整 Web 基线为 778 项通过、270 项失败、44 项跳过及 10 项异步错误；其后设置/工作区 45 项、可选插件 13 项、核心交互 31 项分批通过，整套尚未重新运行。完整 Desktop 原基线为 2,003 项通过、28 项失败、65 项跳过；已分组修复的结果不能代表整套通过。
 
-Linux 本版本的图形/门户与实体桌面仍待继续。此前 `.linux.4` 的 X11、Wayland 启动和沙箱结果保留为历史，不替代新包验收。Windows 第一次 rc.3 构建的 MSBuild 返回 `0xC000013A`，同配置重试及新日期版流水线通过，具体中断原因未确认。更早的 pnpm 退出等待超时也未定根因。
+Linux 仍需原生门户、Debian/Fedora 与实体桌面验收。自动回退、系统重启、正式签名/下载升级，以及外部引擎和可选目标保护的剩余场景保留在 TODO。许可清单仍为 Windows 919 包中 7 项、Linux 921 包中 9 项待审。
 
-许可清单：Windows 919 包、21 份补充文本、7 项待审；Linux 921 包、26 份补充文本、9 项待审。外部引擎、签名与发布、原生入站及其他保护边界继续按原编号推进。
+## 恢复入口
 
-## 数据保全和恢复
+- 最近通过版本核对的旧程序 `2026.11.14.1`：`D:/DSHU-Backups/20261114T180858Z-20261114-1-installed-program`，16,417 文件已校验；自动回退未验收。
+- 修正版安装前的数据：`D:/DSHU-Backups/20261114T193059Z-before-20261115-2-data`，7,318 文件已校验。备份仅允许当前用户、SYSTEM 和管理员访问。
+- 当前证据：`current-windows-manifest.json`、`current-linux-manifest.json`、`installed-update-result.json`、`installed-runtime-result.json`、`installed-cli-version.json`、`linux-*-startup.json`。此前 20261113/20261114 的有效安装包和备份继续保留。
 
-此前逐轮细节保存在[交接历史快照](https://github.com/Water-Run/deepseek-harness-uncensored/blob/438e8537b088aeb38754cf5341c4f19777f928a2/.agents/HANDOFF.md)；当前状态以本页和 TODO 为准。
+首次常规退出返回 Restart Manager 351，按已有重启授权结束了已核对路径的 DSHU 进程，然后备份停止后的磁盘数据。没有进行系统重启，也没有卸载官方 DSH。
 
-- 程序回退副本：`%LOCALAPPDATA%/DSHU-Backups/20261114T124002Z-installed-program`，16,429 文件已逐一校验。自动回退流程未验收。
-- 本次数据备份：`%USERPROFILE%/DSHU-Backups/20261114T155119Z-before-20261114-calendar-1`，7,311 文件及完整清单有效。
-- 历史 `.13.5` 安装器、此前有效数据备份和源码 bundle 保留在 20261113 交付目录；缺少清单的中断备份不作为恢复点。
-- 本次 Windows 清单为 `current-windows-manifest.json`，Linux 为 `current-linux-manifest.json`；实际安装、运行和 CLI 回执分别是 `installed-update-result.json`、`installed-runtime-result.json`、`installed-cli-version.json`。
+## 清理与工作约束
 
-安装前发现旧卸载登记写成 `0.1.0`，而实际 ASAR 为 `.13.5`。备份核对实际程序路径与文件摘要；本次安装后登记已为 `DeepSeek Harness Uncensored` / `2026.11.14.1`。
+已清除本轮 Linux 旧解包副本的 33,895 个文件、约 2.92 GiB 逻辑数据，两种原始归档及回执保留；不能将逻辑数据量当作 Windows 宿主即时释放量。先前约 5.78 GiB、两个构建目录以及本轮 C 盘约 1.9 GiB 旧解包目录被自动审批以 `blocked by policy` 拒绝删除，仍保留，没有换方式重试。
 
-## 清理与继续入口
-
-已删除本轮编译失败误落到源码目录的生成文件，保留 TypeScript 源文件。旧约 5.78 GiB 的清理遭拒绝；本轮另两个已核验用途的构建目录也被自动审批以 `blocked by policy` 拒绝，未执行删除、未计入空间释放，没有通过其他方式重试。有效程序和数据备份继续保留。
-
-继续时先读 TODO 和日期版本记录，并核对当前 Goal 状态、仓库和实际安装。保持仅 main、中文提交、正常 Git hooks、不使用 Computer Use。进阶真实目标保护和所有限额默认关闭；按域名/主机规则、服务器/数据库、审计联动顺序完成剩余真实后端验收。
+继续时读取 TODO 并核对实际代码和安装版本。保持 main、中文提交、正常 Git hooks、不使用 Computer Use。进阶真实目标保护和所有限额默认关闭；保护验收按域名/主机规则、服务器/数据库、审计联动顺序推进。
