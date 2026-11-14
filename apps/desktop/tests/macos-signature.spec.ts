@@ -163,7 +163,9 @@ describe('desktop macOS release signature', () => {
       DSH_DESKTOP_UNSIGNED: '1',
     }, 'darwin', arch)
     expect(portablePath(config.directories.output)).toContain(`/targets/mac-${arch}/unsigned-artifacts`)
-    expect(config.artifactName).toBe('deepseek-harness-uncensored-${version}-${os}-${arch}-unsigned.${ext}')
+    expect(config.artifactName).toMatch(
+      /^deepseek-harness-uncensored-\d{4}\.\d{2}\.\d{2}\.[1-9]\d*-\$\{os\}-\$\{arch\}-unsigned\.\$\{ext\}$/u,
+    )
     expect(config.mac).toMatchObject({ identity: '-', forceCodeSigning: false, notarize: false, target: ['dmg'] })
     expect(config.dmg).toMatchObject({ sign: false, writeUpdateInfo: false })
     expect(config.publish).toBeNull()

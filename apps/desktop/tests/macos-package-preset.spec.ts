@@ -83,7 +83,7 @@ it.each(['arm64', 'x64'])('records %s debugging artifact paths only for an expli
         ...process.env, DSH_PACKAGING_CONFIG_DIR: root, DSH_PACKAGING_PRESET: 'test',
         DSH_DESKTOP_TARGET_PLATFORM: 'darwin', DSH_DESKTOP_TARGET_ARCH: arch,
         PACKAGE_SKIP_NOTARIZATION: skip, PACKAGE_BUILD_VERSION: 'auto',
-        GITHUB_RUN_NUMBER: '1', GITHUB_RUN_ATTEMPT: '1', GITHUB_OUTPUT: output, GITHUB_STEP_SUMMARY: summary,
+        GITHUB_RUN_NUMBER: '1', GITHUB_RUN_ATTEMPT: '1', PACKAGE_BUILD_SEQUENCE: '1', GITHUB_OUTPUT: output, GITHUB_STEP_SUMMARY: summary,
       } })
     const missingCredentials = run('false')
     expect(missingCredentials.status).toBe(1)

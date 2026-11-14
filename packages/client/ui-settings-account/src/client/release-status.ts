@@ -1,4 +1,5 @@
 /** GitHub Releases status for this fork. Official DeepSeek and COS hosts are not update sources. */
+import { displayProductVersion, runtimeProductVersion, parseCalendarVersion } from '@deepseek-ai/dsh-product-version'
 import { compare, parse, type SemVer } from 'semver'
 
 /** Observable update state. A failed or offline check is never reported as current. */
@@ -46,12 +47,13 @@ export function assertForkReleaseUrl(url: string): void {
 }
 
 function versionParts(value: string): SemVer | undefined {
-  return parse(value.trim().replace(/^(?:desktop|dshu)-/u, '')) ?? undefined
+  return parse(runtimeProductVersion(value.trim().replace(/^(?:desktop|dshu)-/u, '').replace(/^v/u, ''))) ?? undefined
 }
 
 function compareRelease(left: SemVer, right: SemVer): number { return compare(left, right) }
 
 function severity(current: SemVer, next: SemVer): ReleaseSeverity {
+  if (parseCalendarVersion(next.version) !== undefined) return 'patch'
   if (next.major !== current.major) return 'major'
   if (next.minor !== current.minor) return 'minor'
   return 'patch'
@@ -80,7 +82,7 @@ export function classifyReleases(current: string, releases: readonly ReleaseReco
   return {
     phase: 'available',
     severity: severity(currentParts, best.parts),
-    version: best.release.version,
+    version: parseCalendarVersion(best.parts.version) === undefined ? best.release.version : displayProductVersion(best.parts.version),
     url: best.release.url,
   }
 }

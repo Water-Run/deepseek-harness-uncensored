@@ -12,6 +12,7 @@ ManifestDPIAware true
 !macro customHeader
   !define /ifndef INSTALLER_STRINGS_FILE "${INSTALLER_BUILD_DIR}\strings.nsh"
   !include "${INSTALLER_STRINGS_FILE}"
+  !define /ifndef DSHU_DISPLAY_VERSION "${VERSION}"
   !ifdef BUILD_UNINSTALLER
     UninstallCaption "$(INSTALLER_UNINSTALL_TITLE)"
     BrandingText " "
@@ -254,6 +255,7 @@ ManifestDPIAware true
   ${EndIf}
   ; Standard uninstall-entry metadata read by inventory tools; the upstream template records it only under its private key.
   WriteRegStr SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY}" InstallLocation "$INSTDIR"
+  WriteRegStr SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY}" DisplayVersion "${DSHU_DISPLAY_VERSION}"
   ${If} $0 == 1
     SetErrors
   ${Else}

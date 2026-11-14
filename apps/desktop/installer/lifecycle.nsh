@@ -14,7 +14,7 @@ Function InstallerRequireCurrentVersion
         Return
     ${EndIf}
     ${If} $1 == 1
-        MessageBox MB_OK|MB_ICONEXCLAMATION "$(INSTALLER_DOWNGRADE)$\r$\n$0 → ${VERSION}" /SD IDOK
+        MessageBox MB_OK|MB_ICONEXCLAMATION "$(INSTALLER_DOWNGRADE)$\r$\n$0 → ${DSHU_DISPLAY_VERSION}" /SD IDOK
     ${Else}
         MessageBox MB_OK|MB_ICONEXCLAMATION "$(INSTALLER_VERSION_UNKNOWN)" /SD IDOK
     ${EndIf}

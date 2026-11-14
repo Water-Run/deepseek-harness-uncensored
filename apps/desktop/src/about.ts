@@ -1,4 +1,5 @@
 /** Display metadata sealed into the installed application's manifest. */
+import { displayProductVersion } from '@deepseek-ai/dsh-product-version'
 import type { DesktopMessages } from './locale.ts'
 import { formatDesktopMessage } from './locale.ts'
 
@@ -17,7 +18,7 @@ export function desktopAboutDetails(manifest: unknown, version: string, messages
   const rea = typeof fork.rea === 'object' && fork.rea !== null ? fork.rea as Record<string, unknown> : {}
   const text = (value: unknown) => typeof value === 'string' && value !== '' ? value : messages.aboutUnknown
   return formatDesktopMessage(messages.aboutDetails, {
-    fork: text(fork.version ?? process.env.DSH_CLIENT_FORK_VERSION ?? version),
+    fork: displayProductVersion(text(record.dshDisplayVersion ?? fork.version ?? process.env.DSH_CLIENT_FORK_VERSION ?? version)),
     upstream: text(fork.upstreamVersion ?? process.env.DSH_CLIENT_UPSTREAM_VERSION),
     commit: text(record.dshBuildCommit ?? process.env.DSH_CLIENT_COMMIT_HASH),
     date: text(record.dshBuildDate ?? process.env.DSH_CLIENT_COMMIT_DATE),

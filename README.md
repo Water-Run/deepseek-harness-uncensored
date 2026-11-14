@@ -1,12 +1,14 @@
 <div align="center">
   <img src="apps/desktop/resources/icon.svg" width="112" alt="DSHU 黑底白鲸标志">
   <h1>Deepseek Harness Uncensored: 更自由的探索未至之境</h1>
-  <p><b>DSHU v0.1.0</b> · 开发源码基于 DeepSeek Harness 0.2.2-rc.3 · WaterRun</p>
+  <p><b>DSHU 日期版本</b> · 开发源码基于 DeepSeek Harness 0.2.2-rc.3 · WaterRun</p>
 </div>
 
 DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH 与 DSHU 可同时安装，分别使用自己的程序目录、配置、会话和更新渠道。未签名的 Windows x64 检查版 `0.1.0-test.20261113.5` 已在本机原位升级并核对资料。
 
 当前 Windows 检查版基于 DSH 0.2.2-rc.2，内置 REA 6.9.0。四模式、旁问清理、会话删除、命令执行和用户资料保全已在实际安装目录验证；Office 转换、渲染与重算及 REA 分析通过包内检查。Linux x64 的 deb 与便携归档也已通过检查。rc.3 开发源码正在进行浏览器与历史回放验收，新检查包尚未交付。两平台检查包已包含引导页窄窗布局和日出日落外观读取修正，详见[开发进度](.agents/TODO.md)。
+
+版本采用 `YYYY.MM.DD.N`，例如 `2026.11.14.1`，最后一项为当天构建序号。日期版本正在接入；本页所列已安装检查包仍使用旧编号，后续交付会同步安装包、关于页和更新提示。
 
 ## 通用增强
 
@@ -54,7 +56,7 @@ DSHU 采用 [GPL-3.0-or-later](LICENSE)。上游和第三方组件保留各自�
 
 **DeepSeek Harness Uncensored · Explore the Unknown More Freely**
 
-DSHU v0.1.0 is an independent desktop fork whose development source uses DeepSeek Harness 0.2.2-rc.3. Current qualified inspection builds still use rc.2. It can coexist with the official app and uses a separate profile and update channel. It includes built-in armor prompts, four modes, and Chinese and English UI.
+DSHU 日期版本 is an independent desktop fork whose development source uses DeepSeek Harness 0.2.2-rc.3. Current qualified inspection builds still use rc.2. It can coexist with the official app and uses a separate profile and update channel. It includes built-in armor prompts, four modes, and Chinese and English UI.
 
 - **General** · Use `/side` for a persistent side conversation with image attachments and `/clear`, or `/btw question` for a quick one-off answer. Balance history, spending limits, scoped memory, and Tab suggestions are available in Settings.
 - **Kernel intake** · The installed Windows inspection build uses DSH 0.2.2-rc.2 and bundled REA 6.9.0. Actual installed-runtime checks cover all four modes, side-context clearing, session deletion, command execution and preserved user data. Package checks cover Office conversion, rendering, recalculation and REA analysis. Both desktop inspection builds include the narrow welcome layout and sun-based appearance fixes.

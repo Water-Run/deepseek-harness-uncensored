@@ -61,3 +61,13 @@ it('ends a hung request at its deadline', async () => {
   await vi.advanceTimersByTimeAsync(100)
   expect(await pending).toMatchObject({ phase: 'failed', message: 'timeout' })
 })
+
+it('orders calendar tags numerically and presents ordinary date updates without semantic-version warnings', () => {
+  expect(classifyReleases('2026.11.14.9', [release('dshu-2026.11.14.10'), release('2026.11.14.2')]))
+    .toMatchObject({ phase: 'available', severity: 'patch', version: '2026.11.14.10' })
+  expect(classifyReleases('2026.1231.5', [release('v2027.01.01.1')]))
+    .toMatchObject({ phase: 'available', severity: 'patch', version: '2027.01.01.1' })
+  expect(classifyReleases('0.1.0-test.20261113.5', [release('2026.11.14.1')]).phase).toBe('available')
+  expect(classifyReleases('2026.11.14.10', [release('2026.1114.10')]).phase).toBe('latest')
+  expect(classifyReleases('2026.11.14.1', [release('2026.02.30.99')]).phase).toBe('unpublished')
+})

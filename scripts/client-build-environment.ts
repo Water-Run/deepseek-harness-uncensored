@@ -1,3 +1,4 @@
+import { displayProductVersion } from '@deepseek-ai/dsh-product-version/bootstrap'
 import { createHash } from 'node:crypto'
 import { execFileSync, spawnSync } from 'node:child_process'
 import {
@@ -77,7 +78,7 @@ function forkBuildEnvironment(root: string, environment: NodeJS.ProcessEnv): Cli
   return {
     ...OFFICIAL_CLIENT_BUILD_ENVIRONMENT,
     ...rea,
-    DSH_CLIENT_FORK_VERSION: product.version,
+    DSH_CLIENT_FORK_VERSION: displayProductVersion(environment.DSH_DESKTOP_BUILD_VERSION ?? product.version),
     DSH_CLIENT_UPSTREAM_VERSION: product.upstreamVersion,
     DSH_CLIENT_BUILD_TIME: buildTime,
     DSH_CLIENT_PURGE_COMMIT: product.purge.commit,

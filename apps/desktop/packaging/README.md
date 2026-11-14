@@ -39,24 +39,21 @@ Set `DSH_DESKTOP_PACKAGE_CACHE_DIR` to an absolute build-cache directory for reu
 
 ## Release versions
 
-Use the independent DSHU version in `apps/desktop/package.json`; the root package version identifies the DSH engine and does not determine the installer version. Local packaging within an existing authorization does not require another version confirmation. A public release needs its own publication authorization and a version checked against existing GitHub tags and assets.
+DSHU displays calendar versions as `YYYY.MM.DD.N`, for example `2026.11.14.1`. The final field is the daily build sequence. The DSH engine and bundled REA retain their own upstream versions. Packaging within existing authorization needs no extra confirmation; publishing a public release still requires separate authorization.
 
-Omitting `--build-version` keeps the DSHU product version. Numbered test builds preserve a prerelease product version and append `.YYYYMMDD.index`; stable product versions append `-test.YYYYMMDD.index` instead. The tracked manifests are not rewritten.
+The package manifests and Electron update feed encode the same identity as `YYYY.MMDD.N`, for example `2026.1114.1`. This preserves numeric ordering in existing SemVer update engines. About, CLI output, installer filenames and Windows registration display the four-field date. The independent product version in `apps/desktop/package.json` is the earliest accepted calendar build for the checkout.
 
-| DSHU product | Unnumbered Desktop | Numbered test example |
-|---|---|---|
-| `0.1.0` | `0.1.0` | `0.1.0-test.20261103.1` |
-| `0.2.0-alpha.1` | `0.2.0-alpha.1` | `0.2.0-alpha.1.20261103.1` |
-
-`--build-version auto` uses the build host's date and the next index from this target's local DSHU artifacts, including retained run directories. It ignores official DSH filenames and does not access remote storage. The retained CI version formatter uses a UTC date, workflow run number and attempt; no workflow invokes it in this checkout. Neither mechanism reserves a public version.
+Omitting `--build-version`, or passing `auto`, uses the Asia/Shanghai day and the next sequence found in this target's local artifacts and `%USERPROFILE%/DSHU-Deliveries/YYYYMMDD`, including retained run and closeout directories. Keep delivery records when clearing build caches so numbering continues. An explicit public version such as `--build-version 2026.11.14.2` selects one build for the Windows/Linux matrix. Old semantic build identifiers remain readable for earlier checkouts.
 
 ```sh
 pnpm --dir apps/desktop run package:win:x64:unsigned --build-version auto
 ```
 
+The retained CI formatter accepts a manual calendar version or requires `PACKAGE_BUILD_SEQUENCE` for `build-number` mode. The CI operator must allocate a distinct daily sequence for each attempt; workflow run numbers are not silently treated as daily counters. No workflow invokes this formatter in this checkout. Local numbering does not reserve GitHub release tags or assets.
+
 Packaging creates neither uploads nor release tags. Old cloud publishing entry files return exit code 1 before reading configuration or credentials; see the [migration instructions](../publishing/README.md). Publish reviewed artifacts separately through this repository's GitHub Releases. Every artifact records `dshBuildCommit` and `dshBuildDirty`.
 
-Signed DSHU packages use the `latest` GitHub release channel; unsigned inspection builds contain no automatic-installation feed. A `-test.<date>.<sequence>` build ranks below its stable base and cannot automatically upgrade a higher installed version. Automatic downgrade remains disabled; an automatic corrective release needs a product version bump. See [release automation status](../publishing/ci/README.md).
+Signed DSHU packages use the `latest` GitHub release channel; unsigned inspection builds contain no automatic-installation feed. The channel feed keeps the runtime version and names the public-date installer path. Calendar builds sort after earlier `0.1.0` builds, and automatic downgrade remains disabled. See [release automation status](../publishing/ci/README.md).
 
 <a id="configuration-and-local-builds"></a>
 

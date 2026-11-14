@@ -8,7 +8,9 @@
     "src"
   ],
   "references": [
-    { "path": "../../packages/api/session-controller/tsconfig.host.json" },
+    {
+      "path": "../../packages/api/session-controller/tsconfig.host.json"
+    },
     {
       "path": "../../packages/boot/app-boot"
     },
@@ -50,6 +52,9 @@
     },
     {
       "path": "../../packages/client/ui-file-actions"
+    },
+    {
+      "path": "../../packages/util/product-version"
     }
   ],
   "exclude": [

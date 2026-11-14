@@ -254,3 +254,12 @@ describe('installed-update qualification materials', () => {
     })
   })
 })
+
+it('normalizes public calendar inputs before persisting an isolated update qualification', async () => {
+  await fixture(async (directory) => {
+    const run = await createInstalledUpdateRun(directory, ['2026.11.14.1', '2026.11.14.2'], { ...source, version: '2026.11.14.1' })
+    expect(run.versions).toEqual(['2026.1114.1', '2026.1114.2'])
+    expect(run.source.version).toBe('2026.1114.1')
+    expect(run.appId).toMatch(/^com\.deepseek\.dsh\.qualification\./u)
+  })
+})

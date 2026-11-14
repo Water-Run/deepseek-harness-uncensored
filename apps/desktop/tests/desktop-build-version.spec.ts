@@ -63,3 +63,10 @@ describe('desktop build version', () => {
       expect(desktopBuildVersionPrefix(productVersion)).toBe(prefix)
     })
 })
+
+it('accepts public calendar builds and rejects an older or invalid calendar date', () => {
+  expect(validateDesktopBuildVersion('2026.11.14.2', '2026.1114.1')).toBe('2026.1114.2')
+  expect(validateDesktopBuildVersion('2026.1115.1', '2026.1114.1')).toBe('2026.1115.1')
+  expect(() => validateDesktopBuildVersion('2026.11.13.9', '2026.1114.1')).toThrow(/calendar build/)
+  expect(() => validateDesktopBuildVersion('2026.02.30.1', '2026.1114.1')).toThrow(/calendar build/)
+})

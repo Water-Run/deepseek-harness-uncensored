@@ -1,4 +1,5 @@
 /** Semantic content for the Web-localized optional Desktop status indicator. */
+import { displayProductVersion } from '@deepseek-ai/dsh-product-version'
 import type { DesktopUpdateFailureKind, DesktopUpdatePresentation, DesktopUpdateState } from './ipc.ts'
 import type { DesktopMessages } from './locale.ts'
 
@@ -51,7 +52,7 @@ export function desktopUpdateErrorSummary(state: DesktopUpdateState, messages: D
 export function presentDesktopUpdate(state: DesktopUpdateState): DesktopUpdatePresentation {
   return {
     phase: state.phase,
-    ...(state.version === undefined ? {} : { version: state.version }),
+    ...(state.version === undefined ? {} : { version: displayProductVersion(state.version) }),
     ...(state.percent === undefined ? {} : { percent: Math.floor(state.percent) }),
     ...(state.phase === 'error' ? { failure: desktopUpdateFailureKind(state) } : {}),
   }

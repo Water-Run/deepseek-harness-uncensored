@@ -59,7 +59,7 @@ function render(view) {
   element('title').textContent = title
   element('detail').textContent = detail
   element('status').textContent = status
-  element('version').textContent = update.version === undefined ? '' : format(messages.mandatoryVersion, { version: update.version })
+  element('version').textContent = update.version === undefined ? '' : format(messages.mandatoryVersion, { version: view.displayVersion ?? update.version })
   element('progress').hidden = update.phase !== 'downloading'
   element('progress').value = update.percent ?? 0
   element('progress').setAttribute('aria-label', status)

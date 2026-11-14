@@ -1,4 +1,5 @@
 /** Resolve manual Desktop CI build versions without release storage access. */
+import { calendarBuildVersion, parseCalendarVersion } from '@deepseek-ai/dsh-product-version/bootstrap'
 import { desktopBuildVersionPrefix, validateDesktopBuildVersion } from './desktop-build-version.mjs'
 
 /**
@@ -17,10 +18,18 @@ export function desktopCiVersion(environment, productVersion, now = new Date()) 
   const requested = selected === 'follow-dsh' ? productVersion : selected === 'build-number' ? 'auto' : environment.PACKAGE_BUILD_VERSION?.trim()
   if (selected === 'manual' && (!requested || requested === 'auto')) throw new Error('Manual version mode requires an explicit version')
   const date = now.toISOString().slice(0, 10).replaceAll('-', '')
-  const example = `${desktopBuildVersionPrefix(productVersion)}${date}.1`
+  const calendar = parseCalendarVersion(productVersion)
+  const example = calendar === undefined ? `${desktopBuildVersionPrefix(productVersion)}${date}.1` : calendar.display
   if (!requested) throw new Error(`Build version is required: select version_mode=build-number, or use ${productVersion}, or e.g. ${example}`)
   let candidate = requested
-  if (requested === 'auto') {
+  if (requested === 'auto' && calendar !== undefined) {
+    if (!/^[1-9]\d*$/u.test(environment.PACKAGE_BUILD_SEQUENCE ?? '')) {
+      throw new Error('Calendar CI builds require PACKAGE_BUILD_SEQUENCE: a unique daily sequence for this attempt, or an explicit manual YYYY.MM.DD.N version')
+    }
+    const parts = new Intl.DateTimeFormat('en', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now)
+    const day = ['year', 'month', 'day'].map(type => parts.find(part => part.type === type).value).join('')
+    candidate = calendarBuildVersion(day, Number(environment.PACKAGE_BUILD_SEQUENCE))
+  } else if (requested === 'auto') {
     for (const name of ['GITHUB_RUN_NUMBER', 'GITHUB_RUN_ATTEMPT']) {
       if (!/^[1-9]\d*$/u.test(environment[name] ?? '')) throw new Error(`${name} must be a positive integer`)
     }

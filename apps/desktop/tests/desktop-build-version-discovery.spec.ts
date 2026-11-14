@@ -44,9 +44,11 @@ describe('desktop build version discovery', () => {
     await expect(suggestDesktopBuildVersion({ productVersion: STABLE, date: DATE, artifactsRoot }))
       .resolves.toBe(`${STABLE}-test.${DATE}.9`)
   })
-  it('formats the date segment in the build host time zone', () => {
+  it('formats the build day consistently in Asia/Shanghai', () => {
     expect(desktopBuildDateSegment(new Date(2026, 8, 21))).toBe('20260921')
     expect(desktopBuildDateSegment(new Date(2026, 0, 5))).toBe('20260105')
+    expect(desktopBuildDateSegment(new Date('2026-11-13T16:00:00Z'))).toBe('20261114')
+    expect(desktopBuildDateSegment(new Date('2026-11-13T15:59:59Z'))).toBe('20261113')
   })
 
   it('starts at one when nothing is taken', async () => {
@@ -109,4 +111,29 @@ describe('desktop build version discovery', () => {
     await expect(suggestDesktopBuildVersion({ productVersion: PRERELEASE, date: DATE, artifactsRoot }))
       .resolves.toBe(`${PRERELEASE}.${DATE}.3`)
   })
+})
+
+it('numbers calendar builds from public artifact names across formats and keeps legacy artifacts separate', async () => {
+  const artifactsRoot = await artifactsWith([
+    'deepseek-harness-uncensored-2026.11.14.9-win-x64-unsigned.exe',
+    'deepseek-harness-uncensored-2026.11.14.10-linux-x64-unsigned.tar.gz',
+    'deepseek-harness-uncensored-0.1.0-test.20261114.88-win-x64-unsigned.exe',
+  ])
+  await expect(suggestDesktopBuildVersion({ productVersion: '2026.1114.1', date: '20261114', artifactsRoot }))
+    .resolves.toBe('2026.1114.11')
+  await expect(suggestDesktopBuildVersion({ productVersion: '2026.1114.1', date: '20261115', artifactsRoot }))
+    .resolves.toBe('2026.1115.1')
+})
+
+it('continues after retained deliveries when disposable build output was cleaned', async () => {
+  const artifactsRoot = await artifactsWith([])
+  const deliveredArtifactsRoot = await artifactsWith(['DSHU-2026.11.14.7-core-0.2.2-rc.3-REA-6.9.0-win-x64-d98db9f.exe'])
+  await expect(suggestDesktopBuildVersion({ productVersion: '2026.1114.1', date: '20261114', artifactsRoot, deliveredArtifactsRoot }))
+    .resolves.toBe('2026.1114.8')
+})
+
+it('respects the checkout calendar floor and ignores malformed calendar artifact revisions', async () => {
+  const artifactsRoot = await artifactsWith(['deepseek-harness-uncensored-2026.1114.99999-win-x64-unsigned.exe'])
+  await expect(suggestDesktopBuildVersion({ productVersion: '2026.1114.7', date: '20261114', artifactsRoot }))
+    .resolves.toBe('2026.1114.7')
 })

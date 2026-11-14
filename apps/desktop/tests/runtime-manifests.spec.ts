@@ -25,3 +25,17 @@ it('seals dependency metadata that remains unchanged by archive preparation', as
     await verifyDesktopRuntime(root, fixture.release.version)
   } finally { rmSync(root, { recursive: true, force: true }) }
 })
+
+it('stamps the CLI product build without changing its bundled engine version', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'runtime-calver-'))
+  try {
+    const directory = join(root, 'node_modules/@deepseek-ai/dsh')
+    mkdirSync(directory, { recursive: true })
+    const path = join(directory, 'package.json')
+    writeFileSync(path, JSON.stringify({ name: '@deepseek-ai/dsh', version: '0.2.2-rc.3', dshProductVersion: '0.1.0' }))
+    await prepareRuntimeManifests(root, '2026.1114.2')
+    expect(JSON.parse(readFileSync(path, 'utf8'))).toMatchObject({ version: '0.2.2-rc.3', dshProductVersion: '2026.1114.2' })
+    writeFileSync(path, JSON.stringify({ name: 'unexpected' }))
+    await expect(prepareRuntimeManifests(root, '2026.1114.3')).rejects.toThrow(/private CLI manifest/)
+  } finally { rmSync(root, { recursive: true, force: true }) }
+})

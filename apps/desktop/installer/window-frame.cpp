@@ -77,6 +77,29 @@ bool ValidVersionIdentifiers(std::wstring_view version, bool core) {
     return !core || count == 3;
 }
 
+// Calendar display versions map to the same ordered numeric fields used by the updater.
+bool NormalizeInstallerCalendar(std::wstring_view version, std::wstring& normalized) {
+    if (std::count(version.begin(), version.end(), L'.') != 3 || version.find(L'-') != std::wstring_view::npos) {
+        normalized.assign(version);
+        return true;
+    }
+    unsigned fields[4] = {};
+    for (unsigned index = 0; index < 4; ++index) {
+        const auto part = TakeVersionIdentifier(version);
+        if (part.empty() || part.size() > 5 || !std::all_of(part.begin(), part.end(), VersionDigit)) return false;
+        if ((index == 0 && part.size() != 4) || ((index == 1 || index == 2) && part.size() != 2)
+            || (index == 3 && part.front() == L'0')) return false;
+        for (const auto digit : part) fields[index] = fields[index] * 10 + static_cast<unsigned>(digit - L'0');
+    }
+    const unsigned year = fields[0], month = fields[1], day = fields[2], sequence = fields[3];
+    if (year < 2000 || year > 9999 || month < 1 || month > 12 || sequence == 0 || sequence > 65535) return false;
+    const unsigned days[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    const bool leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    if (day < 1 || day > days[month - 1] + (month == 2 && leap ? 1 : 0)) return false;
+    normalized = std::to_wstring(year) + L"." + std::to_wstring(month * 100 + day) + L"." + std::to_wstring(sequence);
+    return true;
+}
+
 bool ReadInstallerVersion(std::wstring_view version, std::wstring_view& core, std::wstring_view& prerelease) {
     const auto separator = version.find(L'-');
     core = version.substr(0, separator);
@@ -101,13 +124,15 @@ int CompareVersionIdentifiers(std::wstring_view left, std::wstring_view right) {
 }
 }
 
-// Desktop build versions use SemVer precedence and exclude build metadata.
+// Calendar display versions normalize before SemVer comparison; build metadata is excluded.
 // Returns 0 for an equal or newer candidate, 1 for a downgrade, and -1 for an invalid version.
 extern "C" __declspec(dllexport) int __cdecl InstallerCheckVersion(LPCWSTR installed, LPCWSTR candidate) {
     if (!installed || !candidate) return -1;
+    std::wstring normalizedInstalled, normalizedCandidate;
+    if (!NormalizeInstallerCalendar(installed, normalizedInstalled) || !NormalizeInstallerCalendar(candidate, normalizedCandidate)) return -1;
     std::wstring_view installedCore, installedPrerelease, candidateCore, candidatePrerelease;
-    if (!ReadInstallerVersion(installed, installedCore, installedPrerelease) ||
-        !ReadInstallerVersion(candidate, candidateCore, candidatePrerelease)) return -1;
+    if (!ReadInstallerVersion(normalizedInstalled, installedCore, installedPrerelease) ||
+        !ReadInstallerVersion(normalizedCandidate, candidateCore, candidatePrerelease)) return -1;
     const int core = CompareVersionIdentifiers(installedCore, candidateCore);
     if (core != 0) return core > 0 ? 1 : 0;
     if (installedPrerelease.empty() != candidatePrerelease.empty()) return installedPrerelease.empty() ? 1 : 0;

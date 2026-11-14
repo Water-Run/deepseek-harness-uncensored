@@ -8,9 +8,15 @@
     "src"
   ],
   "references": [
-    { "path": "../../util/brand" },
-    { "path": "../resources" },
-    { "path": "../../llm/token-meter" },
+    {
+      "path": "../../util/brand"
+    },
+    {
+      "path": "../resources"
+    },
+    {
+      "path": "../../llm/token-meter"
+    },
     {
       "path": "../../../vendor/cordis"
     },
@@ -70,6 +76,9 @@
     },
     {
       "path": "../../guard/spend-limit"
+    },
+    {
+      "path": "../../util/product-version"
     }
   ]
 }

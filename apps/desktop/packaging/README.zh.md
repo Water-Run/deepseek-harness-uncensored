@@ -39,24 +39,21 @@ description: "在本地生成 DSHU Desktop 安装包，选择部署与签名模�
 
 ## 发布版本
 
-使用 `apps/desktop/package.json` 中独立的 DSHU 产品版本；根包版本标识 DSH 内核，不决定安装器版本。已有授权范围内的本地打包无需重复确认版本。公开发布需要对应的发布授权，并核对 GitHub 已有标签与资产中的版本。
+DSHU 使用 `YYYY.MM.DD.N` 日期版本，例如 `2026.11.14.1`，最后一项为当天构建序号。DSH 内核和内置 REA 保留各自的上游版本。在既有授权范围内打包无需重复确认；公开发行仍需单独的发布授权。
 
-不传 `--build-version` 时保留 DSHU 产品版本。编号测试包保留预发布产品版本并追加 `.YYYYMMDD.index`；稳定产品版本追加 `-test.YYYYMMDD.index`。不会改写已跟踪的清单。
+包声明和 Electron 更新元数据将同一版本表示为 `YYYY.MMDD.N`，例如 `2026.1114.1`，使现有 SemVer 更新引擎可以按数字排序。关于页、CLI、安装包文件名和 Windows 卸载登记展示四段日期。`apps/desktop/package.json` 中的独立产品版本是当前源码允许的最早日期构建。
 
-| DSHU 产品版本 | 无编号 Desktop | 编号测试包示例 |
-|---|---|---|
-| `0.1.0` | `0.1.0` | `0.1.0-test.20261103.1` |
-| `0.2.0-alpha.1` | `0.2.0-alpha.1` | `0.2.0-alpha.1.20261103.1` |
-
-`--build-version auto` 使用构建机本地日期，从本目标的 DSHU 本地产物（包含保留的 run 目录）取得下一个序号，忽略官方 DSH 文件名且不访问远端存储。保留的 CI 版本格式化器使用 UTC 日期、工作流运行编号和尝试次数；当前仓库没有工作流调用它。两种方式都不预留公开版本。
+省略 `--build-version` 或传入 `auto` 时，按 Asia/Shanghai 日期，从本目标的本地产物及 `%USERPROFILE%/DSHU-Deliveries/YYYYMMDD`（含保留的 run 和 closeout 目录）取得下一个序号。清理构建缓存时保留交付记录，编号即可接续。明确传入 `--build-version 2026.11.14.2` 可为 Windows/Linux 矩阵指定同一构建。旧语义版本编号仍用于读取此前版本。
 
 ```sh
 pnpm --dir apps/desktop run package:win:x64:unsigned --build-version auto
 ```
 
+保留的 CI 格式化器支持手动日期版本；使用 `build-number` 模式时必须提供 `PACKAGE_BUILD_SEQUENCE`。CI 调用方应为每次尝试分配不同的当日序号，不会把工作流运行编号默认为当天计数。当前仓库没有工作流调用该格式化器；本地编号不预留 GitHub 发行标签或资产。
+
 打包不会上传或创建发行标签。旧云发布入口在读取配置或凭据前返回退出码 1，详见[迁移说明](../publishing/README.zh.md)。经核对的产物另行通过本仓库 GitHub Releases 发布；每份产物记录 `dshBuildCommit` 与 `dshBuildDirty`。
 
-DSHU 签名包使用 GitHub 的 `latest` 发行渠道；未签名检查包不包含自动安装更新源。`-test.<date>.<sequence>` 版本低于对应稳定基准，不能自动升级已安装的更高版本。自动降级保持关闭，自动分发修复版需提升产品版本。见[发行自动化状态](../publishing/ci/README.zh.md)。
+DSHU 签名包使用 GitHub 的 `latest` 发行渠道；未签名检查包不包含自动安装更新源。渠道元数据保留内部版本，并引用公开日期格式的安装包路径。日期版本高于此前 `0.1.0` 系列，自动降级仍被禁止。见[发行自动化状态](../publishing/ci/README.zh.md)。
 
 <a id="configuration-and-local-builds"></a>
 
@@ -64,7 +61,7 @@ DSHU 签名包使用 GitHub 的 `latest` 发行渠道；未签名检查包不包
 
 DSHU 安装包始终保留 HARNESS / UNCENSORED 品牌，不随签名状态或构建渠道改变。应用和安装器名称均为 DeepSeek Harness Uncensored。未签名包仍未签名，品牌不代表官方 DSH 发行或已验证签名。
 
-本地 Windows 命令通过 `DSH_PACKAGING_CONFIG_DIR` 指定机器配置绝对目录，通过 `DSH_PACKAGING_PRESET` 选择 `test` 或 `production`。加载器读取 `presets/<preset>.env`；签名命令另读 `secrets/windows-signing.env`。相对证书和 SignTool 路径以声明它们的文件所在目录为基准。公开 preset 拒绝凭据，签名文件不能覆盖公开配置。配置缺失立即失败，不回退到 `.env.windows`；不选择 preset 的命令保留原 dotenv 行为。未签名和仅准备 preset 不读取签名文件。缓存维护也只读取公开 preset 配置。DSHU 签名包使用本仓库的 GitHub 更新源。本地 preset 命令使用 `--build-version auto` 时仅按本地产物编号；保留的 CI 格式化器使用运行编号和重试次数。
+本地 Windows 命令通过 `DSH_PACKAGING_CONFIG_DIR` 指定机器配置绝对目录，通过 `DSH_PACKAGING_PRESET` 选择 `test` 或 `production`。加载器读取 `presets/<preset>.env`；签名命令另读 `secrets/windows-signing.env`。相对证书和 SignTool 路径以声明它们的文件所在目录为基准。公开 preset 拒绝凭据，签名文件不能覆盖公开配置。配置缺失立即失败，不回退到 `.env.windows`；不选择 preset 的命令保留原 dotenv 行为。未签名和仅准备 preset 不读取签名文件。缓存维护也只读取公开 preset 配置。DSHU 签名包使用本仓库的 GitHub 更新源。本地 preset 命令使用 `--build-version auto` 时仅按本地产物编号；保留的日期 CI 格式化器要求分配当日序号。
 
 
 不选择机器 preset 时，打包以及手动 macOS 签名检查（本地 macOS 未签名构建除外）使用 `apps/desktop/.env.windows` 或 `.env.macos`，由目标平台选择。复制对应的 [Windows 模板](../.env.windows.example) 或 [macOS 模板](../.env.macos.example)，填写本机配置；Git 忽略这两个本地文件，安装产物也不包含它们。发布字段只从选定的配置文件读取，不回退到系统或 shell 中的同名变量；`PATH`、代理和构建工具环境仍保留。发布版本是命令参数而非发布字段，上传从打包写下的完成记录中读取它。文件使用 UTF-8，支持 BOM；相对证书、SignTool、Apple API Key 和钥匙串路径以 `apps/desktop` 为基准，变量值不做 shell 展开，包含 `#` 或空格的密码需要引号。Windows CI 读取相同的机器 preset。

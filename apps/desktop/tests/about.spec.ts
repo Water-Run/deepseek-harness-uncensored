@@ -24,3 +24,10 @@ it('keeps author and REA source information available before the product rendere
 it('identifies missing build facts instead of presenting invented version data', () => {
   expect(desktopAboutDetails({}, '0.2.1', zh)).toContain('未记录')
 })
+
+it('shows the sealed calendar build instead of the source product baseline', () => {
+  const result = desktopAboutDetails({ dshDisplayVersion: '2026.11.14.2', dshUncensored: { version: '2026.1114.1', upstreamVersion: '0.2.2-rc.3' } }, '2026.1114.2', zh)
+  expect(result).toContain('Uncensored 2026.11.14.2')
+  expect(result).not.toContain('2026.1114.1')
+  expect(result).toContain('DeepSeek Harness 0.2.2-rc.3')
+})

@@ -57,8 +57,8 @@ describe('packaged runtime verification', () => {
       await import('node:fs/promises').then(async fs => fs.readFile(new URL('../package.json', import.meta.url), 'utf8')),
     ) as { version: string }).version
     const { createElectronBuilderConfig } = await import('../scripts/electron-builder-config.mjs')
-    const { desktopBuildVersionPrefix } = await import('../scripts/desktop-build-version.mjs')
-    const buildVersion = `${desktopBuildVersionPrefix(productVersion)}20260921.1`
+    const { inc } = await import('semver')
+    const buildVersion = inc(productVersion, 'patch')!
     verifyDesktopRuntime.mockClear()
     const config = createElectronBuilderConfig({ ...ENVIRONMENT, DSH_DESKTOP_BUILD_VERSION: buildVersion }, 'win32', 'x64')
     expect(config.extraMetadata).toMatchObject({ version: buildVersion })

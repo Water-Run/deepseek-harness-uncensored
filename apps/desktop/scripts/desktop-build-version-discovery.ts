@@ -3,29 +3,37 @@
 import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { parse } from 'semver'
+import { calendarBuildVersion, displayProductVersion, parseCalendarVersion, runtimeProductVersion } from '@deepseek-ai/dsh-product-version/bootstrap'
 import { desktopBuildVersionPrefix, validateDesktopBuildVersion } from './desktop-build-version.mjs'
 
 /** Artifact name electron-builder writes for one build, on either platform; unsigned and unnotarized builds add a suffix. */
 const ARTIFACT =
-  /(?:^|\/)deepseek-harness-uncensored-(?<version>.+)-(?:mac|win)-(?:arm64|x64)(?:-unsigned|-unnotarized)?\.(?:exe|dmg|zip)$/u
+  /^deepseek-harness-uncensored-(?<version>.+)-(?:mac|win|linux)-(?:arm64|x64)(?:-unsigned|-unnotarized)?\.(?:exe|dmg|zip|deb|tar\.gz)$/u
+
+const DELIVERY_ARTIFACT =
+  /^DSHU-(?<version>\d{4}\.\d{2}\.\d{2}\.[1-9]\d*)-core-.+-(?:win|linux|mac)-(?:arm64|x64)-[a-f0-9]+\.(?:exe|dmg|zip|deb|tar\.gz)$/u
 
 /** Inputs that decide which versions are already taken. */
 export interface DesktopBuildVersionSuggestionOptions {
   readonly productVersion: string
-  /** Date segment to number within; defaults to today where the build runs. */
+  /** Date segment to number within; defaults to today in Asia/Shanghai. */
   readonly date?: string
   /** Directory electron-builder writes installers into for this build. */
   readonly artifactsRoot: string
+  /** Retained deliveries for this day, outside disposable build caches. */
+  readonly deliveredArtifactsRoot?: string
 }
 
 /**
  * Format a date as the convention's segment.
  * @param date - Date to format.
- * @returns The date as `YYYYMMDD` in the build host's own time zone.
+ * @returns The date as `YYYYMMDD` in Asia/Shanghai.
  */
 export function desktopBuildDateSegment(date: Date = new Date()): string {
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  return `${String(date.getFullYear())}${month}${String(date.getDate()).padStart(2, '0')}`
+  const parts = new Intl.DateTimeFormat('en', { timeZone: 'Asia/Shanghai',
+    year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date)
+  const field = (type: Intl.DateTimeFormatPartTypes) => parts.find(part => part.type === type)!.value
+  return `${field('year')}${field('month')}${field('day')}`
 }
 
 /**
@@ -55,8 +63,10 @@ async function localVersions(artifactsRoot: string): Promise<string[]> {
   for (const run of runs) {
     if (run.isDirectory()) entries.push(...await readdir(join(artifactsRoot, 'runs', run.name)))
   }
-  return entries.map(entry => ARTIFACT.exec(entry)?.groups?.version)
-    .filter((version): version is string => version !== undefined && parse(version) !== null)
+  entries.push(...await readdir(join(artifactsRoot, 'closeout')).catch(emptyMissingDirectory))
+  return entries.map(entry => ARTIFACT.exec(entry)?.groups?.version ?? DELIVERY_ARTIFACT.exec(entry)?.groups?.version)
+    .filter((version): version is string => version !== undefined)
+    .map(runtimeProductVersion).filter(version => parse(version) !== null)
 }
 
 function emptyMissingDirectory(error: unknown): never[] {
@@ -70,11 +80,20 @@ function emptyMissingDirectory(error: unknown): never[] {
  * @returns A validated build version whose index is free.
  */
 export async function suggestDesktopBuildVersion(options: DesktopBuildVersionSuggestionOptions): Promise<string> {
-  const prefix = `${desktopBuildVersionPrefix(options.productVersion)}${options.date ?? desktopBuildDateSegment()}.`
+  const day = options.date ?? desktopBuildDateSegment()
+  const prefix = parseCalendarVersion(options.productVersion) === undefined
+    ? `${desktopBuildVersionPrefix(options.productVersion)}${day}.`
+    : calendarBuildVersion(day, 1).replace(/1$/u, '')
   const taken = await localVersions(options.artifactsRoot)
-  const used = sequenceNumbers(taken, prefix)
-  const next = used.length === 0 ? 1 : Math.max(...used) + 1
+  if (options.deliveredArtifactsRoot !== undefined) taken.push(...await localVersions(options.deliveredArtifactsRoot))
+  const calendar = parseCalendarVersion(options.productVersion)
+  const candidates = calendar === undefined ? taken : taken.filter(version => parseCalendarVersion(version) !== undefined)
+  const used = sequenceNumbers(candidates, prefix)
+  const minimum = calendar !== undefined && prefix === desktopBuildVersionPrefix(options.productVersion) ? calendar.sequence : 1
+  const next = Math.max(minimum, used.length === 0 ? 1 : Math.max(...used) + 1)
   const suggestion = validateDesktopBuildVersion(`${prefix}${String(next)}`, options.productVersion)
-  process.stdout.write(`desktop package: numbering ${suggestion} after ${String(used.length)} local DSHU artifact${used.length === 1 ? '' : 's'} for ${prefix}*\n`)
+  const display = displayProductVersion(suggestion)
+  const displayPrefix = calendar === undefined ? prefix : display.slice(0, display.lastIndexOf('.') + 1)
+  process.stdout.write(`desktop package: numbering ${display} after ${String(used.length)} local DSHU artifact${used.length === 1 ? '' : 's'} for ${displayPrefix}*\n`)
   return suggestion
 }

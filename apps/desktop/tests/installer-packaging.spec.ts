@@ -117,7 +117,11 @@ describe('installer preparation preserves application dependencies', () => {
       DSH_DESKTOP_TARGET_ARCH: 'x64',
       DSH_DESKTOP_UNSIGNED: '1',
     }, 'win32', 'x64')
-    expect(config.artifactName).toBe('deepseek-harness-uncensored-${version}-${os}-${arch}-unsigned.${ext}')
+    expect(config.artifactName).toMatch(
+      /^deepseek-harness-uncensored-\d{4}\.\d{2}\.\d{2}\.[1-9]\d*-\$\{os\}-\$\{arch\}-unsigned\.\$\{ext\}$/u,
+    )
+    expect(config.buildVersion).toBe(config.extraMetadata?.dshDisplayVersion)
+    expect(config.extraMetadata.shortVersionWindows).toBe(config.buildVersion)
     expect(config.extraMetadata.name).toBe('deepseek-harness-uncensored')
     expect(config.productName).toBe('DeepSeek Harness Uncensored')
   })

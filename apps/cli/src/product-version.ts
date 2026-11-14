@@ -1,4 +1,5 @@
 /** Product version is independent of the embedded DSH plugin/runtime version. */
+import { displayProductVersion } from '@deepseek-ai/dsh-product-version'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
@@ -9,5 +10,5 @@ export function cliProductVersion(): string {
     || typeof metadata.dshProductVersion !== 'string' || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(metadata.dshProductVersion)) {
     throw new Error('dsh-uncensored: package.json must declare dshProductVersion')
   }
-  return metadata.dshProductVersion
+  return displayProductVersion(metadata.dshProductVersion)
 }

@@ -560,6 +560,7 @@
       "@deepseek-ai/dsh-plugin-market": ["./packages/boot/plugin-market/src"],
       "@deepseek-ai/dsh-plugin-market-index": ["./packages/util/plugin-market-index/src"],
       "@deepseek-ai/dsh-plugin-package-inventory-deepseek": ["./packages/llm/plugin-package-inventory-deepseek/src"],
+      "@deepseek-ai/dsh-product-version": ["./packages/util/product-version/src"],
       "@deepseek-ai/dsh-ptc-runtime": ["./packages/ptc-runtime/ptc-runtime/src"],
       "@deepseek-ai/dsh-ptc-runtime-node": ["./packages/ptc-runtime/ptc-runtime-node/src"],
       "@deepseek-ai/dsh-pwsh-sandbox": ["./packages/shell/pwsh-sandbox/src"],

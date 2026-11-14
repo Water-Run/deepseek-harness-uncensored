@@ -1,29 +1,11 @@
 /**
- * Resolve the version embedded in one build, which is not always the version the
- * repository declares.
- *
- * Desktop CI version mode `build-number` uses UTC date, workflow run number and attempt as
- * `.YYYYMMDD.run.attempt`; these identify unpublished builds, not release sequences.
- *
- * A production release uses the independent Desktop product version; the DSH
- * engine version stays separate. A test build uses a version that appends a date and a
- * sequence number, so one test feed can carry several builds of a single
- * product version: `0.1.6-alpha.1.20260916.1` from a prerelease base and
- * `0.1.6-test.20260916.1` from a stable one, as the release versions table in
- * `apps/desktop/packaging/README.md#release-versions` gives them. Passing that version here keeps it out
- * of the manifests, so the tracked version stays the product's while the build
- * version reaches electron-builder, the update feed, and the upload validation
- * as one input.
- *
- * `electron-updater` compares feed versions with `semver.gt` against the
- * installed `app.getVersion()`, so validation uses the same library. Sequence
- * numbers order builds within a feed under either form. The forms differ only
- * against the base itself: builds extending a prerelease outrank it, while
- * `0.1.6-test.1` ranks below `0.1.6`, which is why the stable form belongs to a
- * test feed that never serves the production release.
+ * Resolve independent product build identities. Calendar builds use YYYY.MMDD.N
+ * in package manifests and update feeds, with YYYY.MM.DD.N for people.
+ * Legacy prerelease build identifiers remain readable for existing deliveries.
  */
 
 import { parse } from 'semver'
+import { parseCalendarVersion, runtimeProductVersion } from '@deepseek-ai/dsh-product-version/bootstrap'
 
 /** Environment variable that carries the build version through one packaging and upload run. */
 export const DESKTOP_BUILD_VERSION_ENV = 'DSH_DESKTOP_BUILD_VERSION'
@@ -63,6 +45,14 @@ function requiredFields(product) {
  * @returns {string} The version as semver normalizes it, which is what the artifacts will carry.
  */
 export function validateDesktopBuildVersion(buildVersion, productVersion) {
+  const productCalendar = parseCalendarVersion(productVersion)
+  if (productCalendar !== undefined) {
+    const buildCalendar = parseCalendarVersion(buildVersion)
+    if (buildCalendar === undefined || parseVersion(buildCalendar.runtime, 'build version').compare(productCalendar.runtime) < 0) {
+      throw new Error(`desktop build version: ${buildVersion} must be a calendar build at or after ${productCalendar.display}`)
+    }
+    return buildCalendar.runtime
+  }
   const build = parseVersion(buildVersion, 'build version')
   const product = parseVersion(productVersion, 'product version')
   if (build.version === product.version) return build.version
@@ -88,7 +78,7 @@ export function validateDesktopBuildVersion(buildVersion, productVersion) {
  */
 export function resolveDesktopBuildVersion(env, productVersion) {
   const buildVersion = env[DESKTOP_BUILD_VERSION_ENV]?.trim()
-  if (buildVersion === undefined || buildVersion === '') return productVersion
+  if (buildVersion === undefined || buildVersion === '') return runtimeProductVersion(productVersion)
   return validateDesktopBuildVersion(buildVersion, productVersion)
 }
 
@@ -98,6 +88,8 @@ export function resolveDesktopBuildVersion(env, productVersion) {
  * @returns {string} The prefix shared by every build version of that product version.
  */
 export function desktopBuildVersionPrefix(productVersion) {
+  const calendar = parseCalendarVersion(productVersion)
+  if (calendar !== undefined) return `${calendar.year}.${calendar.month * 100 + calendar.day}.`
   const product = parseVersion(productVersion, 'product version')
   const [release] = product.version.split('-')
   return `${release}-${requiredFields(product).join('.')}.`

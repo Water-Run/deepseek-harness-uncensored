@@ -1,5 +1,5 @@
 /** Shell-owned modal policy UI; only explicit actions authorize downloads or browser navigation. */
-
+import { displayProductVersion } from '@deepseek-ai/dsh-product-version'
 import { app, type BrowserWindow, clipboard, dialog, ipcMain, shell, type IpcMainInvokeEvent } from 'electron'
 import type { DesktopLocale } from './locale.ts'
 import { assertDesktopSender, type DesktopUpdateState } from './ipc.ts'
@@ -13,6 +13,8 @@ export type MandatoryUpdateAction = 'refresh' | 'download' | 'install' | 'later'
 
 /** Combined view rendered as text by the shell-owned page. */
 export interface MandatoryUpdateView {
+  /** Human-readable product version; action messages retain the runtime identity. */
+  readonly displayVersion?: string
   readonly locale: DesktopLocale
   readonly policy: DesktopPolicyState
   readonly update: DesktopUpdateState
@@ -278,7 +280,7 @@ export class DesktopMandatoryUpdateWindow {
       const actions: readonly ('page' | 'quit')[] = destination === undefined ? ['quit'] : ['page', 'quit']
       const labels = { page: messages.mandatoryViewDownload, quit: messages.quit }
       const detail = [policy.detail ?? messages.mandatoryDetail,
-        ...('version' in update ? [messages.mandatoryVersion.replace('{version}', update.version)] : []),
+        ...('version' in update ? [messages.mandatoryVersion.replace('{version}', displayProductVersion(update.version))] : []),
         ...(this.navigation?.page === 'failed' ? [messages.mandatoryViewPageFailed] : [])].join('\n\n')
       void dialog.showMessageBox(parent, { type: 'error', title: messages.mandatoryTitle,
         message: policy.title ?? messages.mandatoryTitle, detail,
@@ -346,7 +348,9 @@ export class DesktopMandatoryUpdateWindow {
       ? { ...this.options.locale, messages: { ...this.options.locale.messages,
         mandatoryReadyDetail: this.options.locale.messages.updateDownloadedDetailWindows } }
       : this.options.locale
-    return { locale, policy: this.options.policy(), update: this.options.update(),
+    const update = this.options.update()
+    return { locale, policy: this.options.policy(), update,
+      ...(update.version === undefined ? {} : { displayVersion: displayProductVersion(update.version) }),
       deferred: this.deferred,
       ...(this.confirmation === undefined ? {}
         : { confirmation: { version: this.confirmation.version, active: this.confirmation.active, revision: this.confirmation.revision } }),

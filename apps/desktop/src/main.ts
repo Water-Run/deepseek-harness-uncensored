@@ -1,5 +1,5 @@
 /** Electron shell: desktop project ownership, custom protocol, windows, and lifecycle. */
-
+import { displayProductVersion } from '@deepseek-ai/dsh-product-version'
 import { installFileActions } from './file-actions.ts'
 import { configurationFailure, channelSaveFailure, configurationMessage } from './update-configuration.ts'
 import type { DesktopChannelState, DesktopChannelChangeResult } from '@deepseek-ai/dsh-client-ui-settings-general/types'
@@ -1113,7 +1113,7 @@ async function main(): Promise<void> {
         if (state.phase === 'idle') {
           await ordinaryMessageBox({ type: 'info', title: locale.messages.updateCheckTitle,
             message: locale.messages.updateCurrent,
-            detail: formatDesktopMessage(locale.messages.updateCurrentDetail, { version: app.getVersion() }) })
+            detail: formatDesktopMessage(locale.messages.updateCurrentDetail, { version: displayProductVersion(app.getVersion()) }) })
           return
         }
         if (state.phase === 'ready' || (state.phase === 'error' && state.failedOperation === 'install')) {
@@ -1213,7 +1213,7 @@ async function main(): Promise<void> {
     : join(process.resourcesPath, 'icon.png')
   app.setAboutPanelOptions({
     applicationName: 'DeepSeek Harness Uncensored',
-    applicationVersion: app.getVersion(),
+    applicationVersion: displayProductVersion(app.getVersion()),
     // The release has no separate build number; omit Electron's bundle version.
     version: '',
     copyright: '',

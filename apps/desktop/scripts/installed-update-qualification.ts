@@ -1,4 +1,5 @@
 /** Local-only material allocation and journal inspection for operator-driven installed updates. */
+import { parseCalendarVersion, runtimeProductVersion } from '@deepseek-ai/dsh-product-version/bootstrap'
 import { createHash, randomBytes } from 'node:crypto'
 import { mkdir, mkdtemp, readFile, readdir, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
@@ -41,15 +42,17 @@ function qualificationDestination(id: string): { releaseTag: string; feedBaseUrl
 export async function createInstalledUpdateRun(
   parent: string, versions: readonly [string, string], source: InstalledUpdateSource,
 ): Promise<InstalledUpdateRun> {
-  validateVersions(versions)
-  if (valid(source.version) === null || !/^[a-f0-9]{40,64}$/u.test(source.commit)) {
+  const resolvedVersions = [runtimeProductVersion(versions[0]), runtimeProductVersion(versions[1])] as const
+  const resolvedSource = { ...source, version: runtimeProductVersion(source.version) }
+  validateVersions(resolvedVersions)
+  if (valid(resolvedSource.version) === null || !/^[a-f0-9]{40,64}$/u.test(source.commit)) {
     throw new Error('installed update: valid source version and Git commit are required')
   }
   await mkdir(parent, { recursive: true })
   const root = await mkdtemp(join(resolve(parent), 'installed-update-'))
   const id = randomBytes(12).toString('hex')
   const run: InstalledUpdateRun = {
-    schemaVersion: 2, id, root, createdAt: new Date().toISOString(), source, versions,
+    schemaVersion: 2, id, root, createdAt: new Date().toISOString(), source: resolvedSource, versions: resolvedVersions,
     appId: `com.deepseek.dsh.qualification.q${id}`, productName: `DSH Update Test ${id}`,
     environment: 'test', ...qualificationDestination(id),
   }
@@ -59,7 +62,7 @@ export async function createInstalledUpdateRun(
 
 function validateVersions(versions: readonly [string, string]): void {
   const pattern = /^\d+\.\d+\.\d+-(?:nightly\.[0-9.]+|[0-9A-Za-z.-]+\.\d{8}\.[1-9]\d*)$/u
-  if (versions.some(version => valid(version) !== version || !pattern.test(version))
+  if (versions.some(version => valid(version) !== version || (!pattern.test(version) && parseCalendarVersion(version) === undefined))
     || !gt(versions[1], versions[0])) {
     throw new Error('installed update: two increasing dated test versions are required')
   }

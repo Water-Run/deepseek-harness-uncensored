@@ -1,3 +1,4 @@
+import { displayProductVersion, parseCalendarVersion } from '@deepseek-ai/dsh-product-version/bootstrap'
 import { readInstallerLocales, renderInstallerStrings } from './installer-locales.mjs'
 import { officePackageDirectories } from '../../../scripts/libreoffice-packages.mjs'
 import { runtimePackageDirectories } from '../../../scripts/runtime-package-closure.mjs'
@@ -107,15 +108,20 @@ export function createElectronBuilderConfig(
   // electron-builder merges extraMetadata into the packaged manifest, so a build version here reaches
   // the artifact names, the update feed, and the installed app.getVersion() the updater compares against.
   const productVersion = JSON.parse(readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8')).version
-  const buildVersion = resolveDesktopBuildVersion(env, productVersion)
+  const buildVersion = preparedRuntimeVersion ?? resolveDesktopBuildVersion(env, productVersion)
+  const displayVersion = displayProductVersion(buildVersion)
+  const calendarVersion = parseCalendarVersion(buildVersion)
   const packaged = resolveDesktopBuildCommit(env)
   return {
     appId,
     protocols: [{ name: 'DeepSeek Harness Uncensored', schemes: ['dshu'] }],
+    ...(calendarVersion === undefined ? {} : { buildVersion: displayVersion }),
     extraMetadata: {
       name: 'deepseek-harness-uncensored',
       dshUncensored: JSON.parse(readFileSync(fileURLToPath(new URL('../../../product.json', import.meta.url)), 'utf8')),
       dshDesktopAppId: appId,
+      dshDisplayVersion: displayVersion,
+      ...(calendarVersion === undefined ? {} : { shortVersionWindows: displayVersion }),
       dshDesktopUpdateChannel: update?.channel ?? 'nightly',
       ...buildVersion === productVersion ? {} : { version: buildVersion },
       ...packaged === undefined ? {} : { dshBuildCommit: packaged.commit, dshBuildDirty: packaged.dirty, dshBuildDate: packaged.date },
@@ -124,7 +130,7 @@ export function createElectronBuilderConfig(
     // The default copyright uses author.name; this line names the product instead.
     copyright: `Copyright © ${new Date().getFullYear()} \${productName}`,
     // Unsigned builds carry their own suffix so a shared file can never pass for a release artifact.
-    artifactName: `deepseek-harness-uncensored-\${version}-\${os}-\${arch}${output.suffix}.\${ext}`,
+    artifactName: `deepseek-harness-uncensored-${calendarVersion === undefined ? '${version}' : displayVersion}-\${os}-\${arch}${output.suffix}.\${ext}`,
     directories: { output: output.directory },
     asar: true,
     electronDist: buildPaths.electron,
@@ -137,7 +143,7 @@ export function createElectronBuilderConfig(
         '-OutputDirectory', join(buildPaths.root, 'installer-ui')], {
         env: scrubWindowsSigningEnvironment(env), windowsHide: true,
       })
-      await writeFile(join(buildPaths.root, 'installer-ui', 'strings.nsh'), renderInstallerStrings(readInstallerLocales()), 'utf8')
+      await writeFile(join(buildPaths.root, 'installer-ui', 'strings.nsh'), `!define DSHU_DISPLAY_VERSION \"${displayVersion}\"\n${renderInstallerStrings(readInstallerLocales())}`, 'utf8')
       if (windowsSigner !== undefined) {
         await windowsSigner({ path: join(buildPaths.root, 'installer-ui', 'window-frame.dll'), hash: 'sha256', isNest: false })
       }

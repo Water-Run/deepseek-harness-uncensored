@@ -2,6 +2,7 @@ import type { AfterPackContext, BeforePackContext } from 'app-builder-lib'
 
 /** Electron-builder fields asserted by the Desktop release tests. */
 export interface DesktopElectronBuilderConfig {
+  readonly buildVersion?: string
   readonly productName: string
   readonly appId: string
   readonly copyright: string
@@ -15,7 +16,7 @@ export interface DesktopElectronBuilderConfig {
     { readonly from: string, readonly to: 'dsh', readonly filter: readonly ['**/*'] },
     { readonly from: string, readonly to: 'dsh/node_modules', readonly filter: readonly ['**/*'] },
   ]
-  readonly extraMetadata: { readonly name: 'deepseek-harness-uncensored'; readonly dshDesktopAppId: string }
+  readonly extraMetadata: { readonly name: 'deepseek-harness-uncensored'; readonly dshDesktopAppId: string; readonly dshDisplayVersion: string; readonly shortVersionWindows?: string }
   readonly asarUnpack: readonly string[]
   readonly extraResources: readonly [
     { readonly from: string, readonly to: 'runtime' },

@@ -1,5 +1,5 @@
 /** Build the ZIP and DMG from separate signed application copies with overlapping notarization. */
-
+import { displayProductVersion } from '@deepseek-ai/dsh-product-version/bootstrap'
 import { execFile } from 'node:child_process'
 import { mkdtemp, rename, rm, stat } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
@@ -110,7 +110,7 @@ export async function packageMacOSArtifacts(
     await verifyMacOSAppUpdateConfig(dmgApp, update)
     apple.verifySignature(zipApp, expected)
     apple.verifySignature(dmgApp, expected)
-    const base = `deepseek-harness-uncensored-${version}-mac-${arch}`
+    const base = `deepseek-harness-uncensored-${displayProductVersion(version)}-mac-${arch}`
     const artifacts = [
       [dmgOutput, `${base}.dmg`],
       [zipOutput, `${base}.zip`],

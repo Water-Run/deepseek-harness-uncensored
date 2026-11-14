@@ -1,3 +1,4 @@
+import { inc } from 'semver'
 import { readFileSync } from 'node:fs'
 import { expect, it } from 'vitest'
 import { desktopCiVersion } from '../scripts/desktop-ci-version.mjs'
@@ -22,9 +23,9 @@ it.each(['nightly', 'stable'] as const)('resolves every CI version mode independ
   }
 })
 
-it.each(['arm64', 'x64'] as const)('embeds stable in a prerelease macOS %s package and provider', (arch) => {
+it.each(['arm64', 'x64'] as const)('uses the fork feed for a calendar revision on macOS %s', (arch) => {
   const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }
-  const version = `${desktopBuildVersionPrefix(manifest.version)}20261103.1`
+  const version = inc(manifest.version, 'patch')!
   const config = createElectronBuilderConfig({
     DSH_DESKTOP_APP_ID: 'com.example.channel-test',
     DSH_DESKTOP_AUTO_UPDATE_ENV: 'production',
@@ -35,13 +36,13 @@ it.each(['arm64', 'x64'] as const)('embeds stable in a prerelease macOS %s packa
     DSH_DESKTOP_MACOS_TEAM_ID: 'TEAMID1234',
     APPLE_KEYCHAIN_PROFILE: 'channel-test',
   }, 'darwin', arch)
-  expect(config.extraMetadata).toMatchObject({ version, dshDesktopUpdateChannel: 'stable' })
-  expect(config.publish).toEqual([{ provider: 'generic', url: `https://download.deepseek.com/dsh-desk/feeds/mac-${arch}/`, channel: 'stable' }])
+  expect(config.extraMetadata).toMatchObject({ version, dshDesktopUpdateChannel: 'latest' })
+  expect(config.publish).toEqual([{ provider: 'generic', url: 'https://github.com/Water-Run/deepseek-harness-uncensored/releases/latest/download/', channel: 'latest' }])
 })
 
-it('accepts a stable prerelease in an unsigned Windows x64 configuration', () => {
+it('accepts a calendar revision in an unsigned Windows x64 configuration', () => {
   const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }
-  const version = `${desktopBuildVersionPrefix(manifest.version)}20261103.1`
+  const version = inc(manifest.version, 'patch')!
   const config = createElectronBuilderConfig({
     DSH_DESKTOP_APP_ID: 'com.example.channel-test',
     DSH_DESKTOP_AUTO_UPDATE_ENV: 'production',
@@ -52,4 +53,14 @@ it('accepts a stable prerelease in an unsigned Windows x64 configuration', () =>
   }, 'win32', 'x64')
   expect(config.extraMetadata).toMatchObject({ version })
   expect(config.publish).toBeNull()
+})
+
+it('requires an assigned daily sequence for calendar CI retries and supports public manual versions', () => {
+  const date = new Date('2026-11-14T02:00:00Z')
+  expect(() => desktopCiVersion({ PACKAGE_VERSION_MODE: 'build-number', GITHUB_RUN_NUMBER: '7', GITHUB_RUN_ATTEMPT: '2' }, '2026.1114.1', date))
+    .toThrow(/PACKAGE_BUILD_SEQUENCE/)
+  expect(desktopCiVersion({ PACKAGE_VERSION_MODE: 'build-number', PACKAGE_BUILD_SEQUENCE: '10' }, '2026.1114.1', date))
+    .toBe('2026.1114.10')
+  expect(desktopCiVersion({ PACKAGE_VERSION_MODE: 'manual', PACKAGE_BUILD_VERSION: '2026.11.14.11' }, '2026.1114.1', date))
+    .toBe('2026.1114.11')
 })

@@ -17,8 +17,8 @@
 .build dd, .metadata dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .version { font-size: 28px; line-height: 1; font-weight: 500; letter-spacing: -0.5px; }
 .github { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; }
-.update { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: auto; padding-top: 16px; border-top: 1px solid color-mix(in srgb, var(--dsw-alias-brand-panel-label) 15%, transparent); width: 100%; font-size: 12px; }
-.update button { color: var(--dsw-alias-brand-panel-label); border-color: color-mix(in srgb, var(--dsw-alias-brand-panel-label) 24%, transparent); background: color-mix(in srgb, var(--dsw-alias-brand-panel-label) 6%, transparent); }
+.update { --dsw-alias-border-main: color-mix(in srgb, var(--dsw-alias-brand-panel-label) 24%, transparent); display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: auto; padding-top: 16px; border-top: 1px solid color-mix(in srgb, var(--dsw-alias-brand-panel-label) 15%, transparent); width: 100%; font-size: 12px; }
+.update button { color: var(--dsw-alias-brand-panel-label); border-color: transparent; background: color-mix(in srgb, var(--dsw-alias-brand-panel-label) 6%, transparent); }
 .status { display: flex; align-items: flex-start; gap: 8px; width: 100%; margin: 0; color: color-mix(in srgb, var(--dsw-alias-brand-panel-label) 80%, transparent); font-size: 12px; line-height: 1.5; }
 .statusDot { flex: none; width: 6px; height: 6px; margin-top: 6px; border-radius: 50%; corner-shape: round; background: currentColor; }
 .status[data-phase='available'] .statusDot, .status[data-phase='latest'] .statusDot { color: var(--dsw-alias-state-success-primary); box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 16%, transparent); }
