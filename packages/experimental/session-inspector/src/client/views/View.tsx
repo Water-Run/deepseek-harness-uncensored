@@ -1,6 +1,7 @@
 /** One Sidebar Inspector with locally selected Chat and Session-log presentations. */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Select } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type { InspectorInjected } from './InspectorTable.tsx'
@@ -74,14 +75,14 @@ export function SessionInspectorView(props: SessionInspectorProps) {
     if (stopPicking === undefined) { setPicking(false); setPickFailed(true) }
     return stopPicking
   }, [picking, mode, props.pickChat, props.pickRow, revealer])
-  const selector = <span className={css.modeControls}><select className={css.modeSelector} aria-label={props.t('view.presentation')} value={mode}
-    onChange={(event) => {
+  const selector = <span className={css.modeControls}><Select<InspectorPresentation> className={css.modeSelector} label={props.t('view.presentation')} value={mode}
+    onChange={(value) => {
       setPicking(false); setPickFailed(false); setPickedRow(undefined)
-      setMode(event.currentTarget.value === 'chat-node' ? 'chat-node' : 'session-log')
-    }}>
-    <option value="session-log">{props.t('view.sessionLog')}</option>
-    <option value="chat-node">{props.t('view.chatNode')}</option>
-  </select><button ref={pickButton} type="button" className={css.pickButton}
+      setMode(value)
+    }} options={[
+      { value: 'session-log', label: props.t('view.sessionLog') },
+      { value: 'chat-node', label: props.t('view.chatNode') },
+    ]} /><button ref={pickButton} type="button" className={css.pickButton}
     aria-pressed={picking} aria-label={props.t('picker.pick')} title={props.t(picking ? 'picker.cancel' : 'picker.pick')}
     onClick={() => { setPickFailed(false); setPicking(value => !value) }}>
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true">

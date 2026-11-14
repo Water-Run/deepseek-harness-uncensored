@@ -28,7 +28,6 @@
 .stepProgress small { font-size: 11px; color: var(--dsw-alias-label-tertiary); overflow-wrap: anywhere; }
 .preferences { display: grid; gap: 12px; font-size: 13px; margin: 18px 0; }
 .deviceRow, .preferences label, .sourceChoice label { display: grid; grid-template-columns: 100px minmax(120px, 280px); align-items: center; gap: 12px; }
-.preferences select, .sourceChoice select { border: 0.5px solid var(--dsw-alias-border-l1); border-radius: 6px; padding: 6px 10px; background: transparent; color: inherit; font: inherit; }
 .sourceChoice { display: grid; gap: 6px; }
 .preferences p { margin: 0; }
 .settingsCard { list-style: none; padding: 16px; border: 0.5px solid var(--dsw-alias-border-l1); border-radius: 10px; }
@@ -41,9 +40,10 @@
 .setupEstimate small { color: var(--dsw-alias-label-tertiary); font-size: 12px; }
 
 .deviceField { position: relative; display: block; min-width: 0; }
-.deviceField select { width: 100%; }
-.deviceField select.deviceSelectMeter { padding-right: 72px; }
-.deviceMeter { position: absolute; top: 50%; right: 24px; display: inline-flex; transform: translateY(-50%); pointer-events: none; }
+.deviceField > span:first-child { display: flex; min-width: 0; width: 100%; }
+.deviceField button[aria-haspopup='menu'] { width: 100%; }
+.deviceSelectMeter > span { padding-right: 52px; }
+.deviceMeter { position: absolute; top: 50%; right: 34px; display: inline-flex; transform: translateY(-50%); pointer-events: none; }
 .deviceError { grid-column: 2; min-width: 0; color: var(--dsw-alias-state-error-primary); overflow-wrap: anywhere; font-size: 12px; }
 .inputLevel { display: inline-flex; align-items: center; gap: 3px; flex: none; }
 .inputLevel > span { width: 3px; height: 12px; border-radius: 1px; background: var(--dsw-alias-border-l1); }

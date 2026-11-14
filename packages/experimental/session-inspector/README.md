@@ -24,6 +24,8 @@ Inspect raw Session logs and Chat structures through the optional [Developer too
 <a id="use-this-package"></a>
 ## Use this package
 
+The presentation selector uses the application choice menu. Keyboard selection switches the table; Escape closes the menu without changing the presentation.
+
 The Developer tools bundle mounts this plugin as `session-inspector`. It registers the `session-inspector-log` Sidebar page for the Sidebar's current Session, without a Conversation View or header label. The selector initially shows Raw log, with the current row count alongside it. Changing presentation resets local selection, type filtering, and scroll state. This plugin requires no debugging argument, accepts no configuration, and changes no Session data.
 
 Click the filter icon in the Type header to enter a type fragment. CSS anchors keep the editor attached to its header button within layout-viewport size limits, and opening focuses the input. Browser zoom and panning move the editor with the page; it may extend beyond the visual viewport, including while the keyboard is open. Suggestions update asynchronously from all loaded records. Enter or **Apply filter** confirms the fragment; clicking a suggestion or selecting it with arrow keys and Enter confirms that type. Matching ignores case and uses containment: `delta` and `*delta*` both match reasoning and tool-call deltas. Editing alone does not change the table. Escape, Cancel, or clicking outside discards the draft; clearing and confirming restores all types.

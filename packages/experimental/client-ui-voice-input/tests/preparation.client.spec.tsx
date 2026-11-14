@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /** Collapsed progress summaries and Host-owned steps survive view remounts. */
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
@@ -13,6 +13,11 @@ import { Recording } from '../src/client/audio.ts'
 import { zh, en, ja, es, fr, de, ru, pt } from '../src/client/locales.ts'
 
 afterEach(() => { cleanup(); vi.useRealTimers() })
+function choose(label: string, name: string): void {
+  const trigger = screen.getByRole('button', { name: label })
+  if (trigger.getAttribute('aria-expanded') !== 'true') fireEvent.click(trigger)
+  fireEvent.click(screen.getByRole('menuitem', { name }))
+}
 const id = 'local' as SpeechProviderId, t = makeTranslate(zh, commonZh)
 const steps: SpeechPreparationStep[] = [
   { kind: 'check', status: 'complete' }, { kind: 'model', status: 'complete' },
@@ -122,20 +127,21 @@ it('persists settings and reports disconnection in the detail card', async () =>
     selectMicrophone: vi.fn(), createRecording: () => new Recording(() => {}),
     prepare: vi.fn(async () => {}), cancelPreparation: vi.fn(async () => {}) }
   const view = render(<VoicePreparation {...props} />)
-  fireEvent.change(screen.getByLabelText(zh.provider), { target: { value: 'cloud' } })
+  choose(zh.provider, 'Cloud')
   await waitFor(() => { expect(configure).toHaveBeenCalledWith({ providerId: 'cloud' }) })
   const current = store.getSnapshot()
   act(() => { store.set({ ...current, catalog: { ...current.catalog!, selection: { providerId: 'cloud' as SpeechProviderId, language: 'en' } } }) })
   expect(screen.getByText(zh.cloud)).toBeTruthy()
-  expect(within(screen.getByLabelText(zh.language)).getAllByRole<HTMLOptionElement>('option').map(item => item.value))
-    .toEqual(['auto', 'en', 'zh', 'ja', 'fr', 'it'])
-  expect(within(screen.getByLabelText(zh.language)).getByRole('option', { name: zh.fr })).toBeTruthy()
-  expect(within(screen.getByLabelText(zh.language)).getByRole('option', { name: 'it' })).toBeTruthy()
+  fireEvent.click(screen.getByLabelText(zh.language))
+  expect(screen.getAllByRole('menuitem').map(item => item.textContent))
+    .toEqual([zh.auto, zh.en, zh.zh, zh.ja, zh.fr, 'it'])
+  expect(screen.getByRole('menuitem', { name: zh.fr })).toBeTruthy()
+  expect(screen.getByRole('menuitem', { name: 'it' })).toBeTruthy()
   configure.mockRejectedValueOnce(new Error('settings are read-only'))
-  fireEvent.change(screen.getByLabelText(zh.language), { target: { value: 'zh' } })
+  choose(zh.language, zh.zh)
   await screen.findByText('语音识别失败：settings are read-only')
   configure.mockRejectedValueOnce('settings are locked')
-  fireEvent.change(screen.getByLabelText(zh.language), { target: { value: 'ja' } })
+  choose(zh.language, zh.ja)
   await screen.findByText('语音识别失败：settings are locked')
   act(() => { store.set({ catalog: null, connected: false, error: 'disconnected' }) })
   view.rerender(<VoicePreparation {...props} />)
@@ -165,20 +171,21 @@ it('offers Host sources, submits a manual choice, and retains it for retry', asy
   const b = fixture({ phase: 'unprepared' })
   const provider = { ...b.props.provider, downloadSources: ['https://huggingface.co', 'https://hf-mirror.com'] }
   b.rerender(<PreparationCard {...b.props} provider={provider} />)
-  const picker = screen.getByLabelText<HTMLSelectElement>(zh.sourceChoice)
+  const picker = screen.getByLabelText<HTMLButtonElement>(zh.sourceChoice)
   expect(picker.value).toBe('')
-  expect(within(picker).getAllByRole('option').map(option => option.textContent)).toEqual([zh.sourceAuto, zh.sourceHuggingFace, zh.sourceMirror])
+  fireEvent.click(picker)
+  expect(screen.getAllByRole('menuitem').map(option => option.textContent)).toEqual([zh.sourceAuto, zh.sourceHuggingFace, zh.sourceMirror])
   expect(screen.getByText(zh.sourceAutoHelp)).toBeTruthy()
-  fireEvent.change(picker, { target: { value: 'https://hf-mirror.com' } })
+  choose(zh.sourceChoice, zh.sourceMirror)
   expect(screen.getByText(zh.sourceManualHelp)).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: zh.prepare }))
   await waitFor(() => { expect(b.prepare).toHaveBeenCalledWith(id, { downloadSource: 'https://hf-mirror.com' }) })
   b.rerender(<PreparationCard {...b.props} provider={{ ...provider, preparation: { phase: 'failed', message: 'offline' } }} />)
-  expect(screen.getByLabelText<HTMLSelectElement>(zh.sourceChoice).value).toBe('https://hf-mirror.com')
-  fireEvent.change(picker, { target: { value: 'https://huggingface.co' } })
+  expect(screen.getByLabelText<HTMLButtonElement>(zh.sourceChoice).value).toBe('https://hf-mirror.com')
+  choose(zh.sourceChoice, zh.sourceHuggingFace)
   fireEvent.click(screen.getByRole('button', { name: zh.retryPrepare }))
   await waitFor(() => { expect(b.prepare).toHaveBeenLastCalledWith(id, { downloadSource: 'https://huggingface.co' }) })
-  fireEvent.change(picker, { target: { value: '' } })
+  choose(zh.sourceChoice, zh.sourceAuto)
   fireEvent.click(screen.getByRole('button', { name: zh.retryPrepare }))
   await waitFor(() => { expect(b.prepare).toHaveBeenLastCalledWith(id) })
 })
@@ -186,12 +193,14 @@ it('offers Host sources, submits a manual choice, and retains it for retry', asy
 it('respects a fixed private source and removes a choice that the Host withdraws', async () => {
   const b = fixture({ phase: 'unprepared' })
   b.rerender(<PreparationCard {...b.props} provider={{ ...b.props.provider, downloadSources: ['https://huggingface.co', 'https://hf-mirror.com'] }} />)
-  fireEvent.change(screen.getByLabelText(zh.sourceChoice), { target: { value: 'https://hf-mirror.com' } })
+  choose(zh.sourceChoice, zh.sourceMirror)
   b.rerender(<PreparationCard {...b.props} provider={{ ...b.props.provider, downloadSources: ['https://private.example'] }} />)
-  const picker = screen.getByLabelText<HTMLSelectElement>(zh.sourceChoice)
+  const picker = screen.getByLabelText<HTMLButtonElement>(zh.sourceChoice)
   expect(picker.value).toBe('https://private.example')
   expect(picker.disabled).toBe(true)
-  expect(within(picker).getAllByRole('option')).toHaveLength(1)
+  expect(picker.textContent).toBe('https://private.example')
+  fireEvent.click(picker)
+  expect(screen.queryByRole('menu')).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: zh.prepare }))
   await waitFor(() => { expect(b.prepare).toHaveBeenCalledWith(id, { downloadSource: 'https://private.example' }) })
   b.rerender(<PreparationCard {...b.props} provider={{ ...b.props.provider, downloadSources: [] }} />)
@@ -205,11 +214,11 @@ it('locks source changes while a preparation request is pending and hides them d
   b.rerender(<PreparationCard {...b.props} provider={provider} />)
   fireEvent.click(screen.getByRole('button', { name: zh.prepare }))
   try {
-    expect(screen.getByLabelText<HTMLSelectElement>(zh.sourceChoice).disabled).toBe(true)
+    expect(screen.getByLabelText<HTMLButtonElement>(zh.sourceChoice).disabled).toBe(true)
     expect(screen.getByRole<HTMLButtonElement>('button', { name: zh.prepare }).disabled).toBe(true)
   } finally { await act(async () => { pending.resolve(undefined); await pending.promise }) }
   b.rerender(<PreparationCard {...b.props} provider={provider} connected={false} />)
-  expect(screen.getByLabelText<HTMLSelectElement>(zh.sourceChoice).disabled).toBe(true)
+  expect(screen.getByLabelText<HTMLButtonElement>(zh.sourceChoice).disabled).toBe(true)
   b.rerender(<PreparationCard {...b.props} provider={{ ...provider, preparation: { phase: 'downloading', resource: 'model.onnx', completedBytes: 0 } }} />)
   expect(screen.queryByLabelText(zh.sourceChoice)).toBeNull()
 })

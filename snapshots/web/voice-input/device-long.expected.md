@@ -1,6 +1,3 @@
 - text: Input device
-- combobox "Input device":
-  - option "System default (Fake Default Audio Input)"
-  - option "USB studio microphone — conference room recording input" [selected]
-  - option "Fake Audio Input 2"
+- button "Input device": USB studio microphone — conference room recording input
 - img "Microphone input level"

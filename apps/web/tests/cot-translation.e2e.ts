@@ -12,7 +12,7 @@ import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
   launchWebScaffold, readPersistedEvents, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { configureConversationReplay,
+import { openPluginManager, configureConversationReplay,
   connectFreshWorkspaceZh, expandOwningTurnProcess, PLUGIN_TOGGLE_SETTLE_MS, saveFailureShot, ZH_BROWSER_LOCALE,
 } from './support.ts'
 
@@ -194,7 +194,7 @@ it.skipIf(MODE === 'record')('persists Bing reasoning translation across reopen 
   const recordedModelHistory = session.deriveMessages(), recordedRequestHeader = session.requestHeader()
 
   await settings.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
-  await settings.getByRole('button', { name: '插件', exact: true }).click()
+  await openPluginManager(settings, 'zh')
   const panel = settings.locator('[data-plugin-panel]')
   await panel.getByRole('button', { name: '更多', exact: true }).click()
   const card = panel.locator(`[data-plugin-package="${BUNDLE_NAME}"]`)
@@ -207,7 +207,21 @@ it.skipIf(MODE === 'record')('persists Bing reasoning translation across reopen 
   const provider = panel.getByLabel('翻译服务', { exact: true })
   const target = panel.getByLabel('目标语言', { exact: true })
   await provider.waitFor()
-  expect(await provider.inputValue()).toBe('bing')
+  expect(await provider.getAttribute('value')).toBe('bing')
+  await settings.emulateMedia({ reducedMotion: 'reduce' })
+  for (const preference of ['light', 'dark'] as const) {
+    await scaffold.ctx.settings.update('ui-theme', { preference })
+    await expect.poll(() => settings.locator('body').getAttribute('data-ds-dark-theme')).toBe(preference === 'dark' ? '' : null)
+    await settings.setViewportSize({ width: 390, height: 900 })
+    await provider.focus()
+    await settings.keyboard.press('ArrowDown')
+    await settings.getByRole('menu').waitFor()
+    await saveFailureShot(settings, `screenshots/translation-${preference}-390`)
+    await settings.keyboard.press('Escape')
+    await expect.poll(() => provider.evaluate(node => node === document.activeElement)).toBe(true)
+  }
+  await settings.setViewportSize({ width: 1280, height: 1000 })
+
   expect(await target.inputValue()).toBe('auto')
   await panel.getByText('展开的思考内容会发送给所选翻译服务，可能包含私有代码或对话细节。', { exact: true }).waitFor()
   await panel.getByText(`v${bundleVersion}`, { exact: true }).waitFor()
@@ -290,7 +304,8 @@ it.skipIf(MODE === 'record')('persists Bing reasoning translation across reopen 
   expect(calls).toHaveLength(1)
   expect(await readPersistedEvents(scaffold, sessionId)).toEqual(savedBing)
 
-  await provider.selectOption('google')
+  await provider.click()
+  await settings.getByRole('menuitem', { name: 'Google', exact: true }).click()
   await target.fill('zh')
   expect(calls).toHaveLength(1)
   const save = panel.getByRole('button', { name: '保存', exact: true })

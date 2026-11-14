@@ -25,6 +25,8 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
+版本选择使用应用统一菜单。选择保留的包版本会保持父面板展开，不自动运行；仍需明确点击运行或更新。
+
 将本包与 Host 和 Client runner 组合，可渲染历史工具卡片，并在面板中操作程序注册的定义。新建 agent 插件使用 Plugin Manager；本包不提供模型变更工具。
 
 ### 面板显示什么

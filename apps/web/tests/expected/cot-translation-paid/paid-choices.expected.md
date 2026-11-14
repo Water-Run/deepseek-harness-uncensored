@@ -14,10 +14,7 @@
 - paragraph: 每个未缓存片段都会通过所选账号或官方 API 凭据单独发送一次付费的 DeepSeek Flash 请求；重新展开会复用已保存的译文，更改服务、语言、原文或请求设置可能发送新的付费请求
 - text: 翻译服务 已覆盖
 - button "恢复默认"
-- combobox "翻译服务":
-  - option "Bing"
-  - option "Google"
-  - option "DeepSeek Flash · 账号（付费）" [selected]
+- button "翻译服务": DeepSeek Flash · 账号（付费）
 - text: 目标语言 已覆盖
 - button "恢复默认"
 - textbox "目标语言":

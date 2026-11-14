@@ -2,7 +2,7 @@
 import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import { useEffect, useId } from 'react'
 import type { TranslationProvider } from '@deepseek-ai/dsh-experimental-translator/types'
-import { Button, SettingsForm, SettingsValueField, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Select, SettingsForm, SettingsValueField, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { NS, formLabels } from './locales.ts'
 import type { TranslationFormInjected } from './preferences-form.ts'
@@ -50,15 +50,15 @@ export function TranslationSettings(props: TranslationSettingsProps) {
         {state.provider.overridden && <><Tag tone="neutral">{t('overridden')}</Tag>
           <Button size="sm" disabled={disabled} onClick={() => { props.resetField('provider') }}>{t('reset')}</Button></>}
       </div>
-      <select id={providerId} value={state.provider.text} disabled={disabled} aria-invalid={state.provider.invalid || undefined}
-        onChange={(event) => { props.edit('provider', event.target.value) }}>
-        {missingProvider && <option value={state.provider.text} disabled>{t('providerUnavailableOption', {
-          provider: providerLabel(state.provider.text, t),
-        })}</option>}
-        {availableProviders.map(provider => <option key={provider} value={provider}>{providerLabel(provider, t)}</option>)}
-      </select>
-      {state.provider.invalid && <p role="status">{t('invalidProvider')}</p>}
-      {missingProvider && !state.provider.invalid && <p role="status" className={css.notice}>{t('providerUnavailable')}</p>}
+      <Select id={providerId} label={t('provider')} value={state.provider.text} disabled={disabled} invalid={state.provider.invalid}
+        descriptionId={state.provider.invalid || missingProvider ? `${providerId}-status` : undefined}
+        onChange={(value) => { props.edit('provider', value) }} options={[
+          ...missingProvider ? [{ value: state.provider.text, disabled: true,
+            label: t('providerUnavailableOption', { provider: providerLabel(state.provider.text, t) }) }] : [],
+          ...availableProviders.map(provider => ({ value: provider, label: providerLabel(provider, t) })),
+        ]} />
+      {state.provider.invalid && <p id={`${providerId}-status`} role="status">{t('invalidProvider')}</p>}
+      {missingProvider && !state.provider.invalid && <p id={`${providerId}-status`} role="status" className={css.notice}>{t('providerUnavailable')}</p>}
     </div>
     <SettingsValueField id={languageId} label={t('targetLanguage')} hint={t('targetLanguageHint')}
       {...state.targetLanguage} overriddenLabel={t('overridden')} resetLabel={t('reset')} invalidLabel={t('invalidLanguage')}

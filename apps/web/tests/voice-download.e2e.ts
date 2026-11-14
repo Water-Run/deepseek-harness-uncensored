@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { chromium, type Browser } from 'playwright'
 import { expect, it, onTestFinished } from 'vitest'
 import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold } from './scaffold.ts'
-import { newEnglishPage } from './support.ts'
+import { newEnglishPage, openPluginManager, saveFailureShot } from './support.ts'
 
 const bundle = fileURLToPath(new URL('../../../packages/experimental/voice-input-bundle', import.meta.url))
 const expected = fileURLToPath(new URL('./expected/voice-download.expected.md', import.meta.url))
@@ -44,7 +44,7 @@ it('shows the failed asset, actual download source and recovery advice, then ret
   resources.browser = browser
   const page = await newEnglishPage(browser), tripwire = watchConsole(page)
   await page.goto(scaffold.authenticatedUrl)
-  await page.getByRole('button', { name: 'Plugins', exact: true }).click()
+  await openPluginManager(page, 'en')
   await page.locator('[data-plugin-package="@deepseek-ai/dsh-experimental-voice-input-bundle"]').getByRole('button').click()
   await page.getByRole('button', { name: 'Download and prepare', exact: true }).click()
   const alert = page.getByRole('alert').filter({ hasText: 'Download source' })
@@ -104,11 +104,38 @@ it.each([{ winner: 0, manual: false }, { winner: 1, manual: false }, { winner: 0
     const browser = await chromium.launch(); resources.browser = browser
     const page = await newEnglishPage(browser), tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl)
-    await page.getByRole('button', { name: 'Plugins', exact: true }).click()
+    await openPluginManager(page, 'en')
     await page.locator('[data-plugin-package="@deepseek-ai/dsh-experimental-voice-input-bundle"]').getByRole('button').click()
     const picker = page.getByLabel('Model download source', { exact: true })
     await picker.waitFor()
-    if (manual) await picker.selectOption(origins[winner]!)
+    if (manual && winner === 0) {
+      await page.emulateMedia({ reducedMotion: 'reduce' })
+      for (const preference of ['light', 'dark'] as const) {
+        await scaffold.ctx.settings.update('ui-theme', { preference })
+        await expect.poll(() => page.locator('body').getAttribute('data-ds-dark-theme')).toBe(preference === 'dark' ? '' : null)
+        await page.setViewportSize({ width: 390, height: 900 })
+        for (const label of ['Model download source', 'Recognition service', 'Recognition language']) {
+          const trigger = page.getByRole('button', { name: label, exact: true })
+          await trigger.scrollIntoViewIfNeeded()
+          await trigger.focus()
+          await page.keyboard.press('ArrowDown')
+          const menu = page.getByRole('menu')
+          await menu.waitFor()
+          await expect.poll(() => menu.evaluate((node) => {
+            const r = node.getBoundingClientRect()
+            return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight
+          })).toBe(true)
+          await saveFailureShot(page, `screenshots/voice-${label.replaceAll(' ', '-')}-${preference}`)
+          await page.keyboard.press('Escape')
+          await expect.poll(() => trigger.evaluate(node => node === document.activeElement)).toBe(true)
+        }
+      }
+      await page.setViewportSize({ width: 1280, height: 1000 })
+    }
+    if (manual) {
+      await picker.click()
+      await page.getByRole('menuitem', { name: origins[winner]!, exact: true }).click()
+    }
     await page.getByRole('button', { name: 'Download and prepare', exact: true }).click()
     const alert = page.getByRole('alert').filter({ hasText: 'Download source' })
     await alert.waitFor()
@@ -116,7 +143,7 @@ it.each([{ winner: 0, manual: false }, { winner: 1, manual: false }, { winner: 0
     expect(requestedPaths).toHaveLength(manual ? 1 : 4)
     expect(requestedPaths.every(path => path === '/csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/resolve/2365baeacb507f821a0c8120fcee3d484dba7a07/model.int8.onnx')).toBe(true)
     const failedOrigin = origins[manual ? winner : 1 - winner]!
-    expect(await picker.inputValue()).toBe(manual ? origins[winner] : '')
+    expect(await picker.getAttribute('value')).toBe(manual ? origins[winner] : '')
     expect(await alert.textContent()).toContain(manual ? 'HTTP 503' : 'HTTP 502')
     expect(await alert.textContent()).toContain(`Download source: ${failedOrigin}`)
     await compareOrRefreshGolden(manual ? expected : fileURLToPath(new URL('./expected/voice-download-fallback.expected.md', import.meta.url)),

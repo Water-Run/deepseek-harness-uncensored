@@ -25,6 +25,8 @@ Read expanded model reasoning in another language and switch back to its origina
 <a id="use-this-package"></a>
 ## Use this package
 
+The translation service uses the application choice menu with keyboard navigation. An unavailable saved provider remains visible and disabled; selecting another provider stages the change until Save.
+
 Enable the [reasoning translation bundle](../cot-translation-bundle/README.md) in Plugins, then open a reasoning disclosure. The feature is absent until the bundle is enabled. Its bundle details provide staged Translation service and Target language controls; Save applies both preferences. Bing is the default provider, and `auto` targets the active UI language. An explicit language code such as `zh`, `en`, or `ja` overrides that choice.
 
 View original and View translation share one always-visible action in the plugin's toolbar above the translated body. The plugin owns this action and its state; the Think title only controls the disclosure. Both views reuse the same compact Markdown renderer and typography, without changing the reasoning preview or making another request. Completed paragraphs and request-sized prefixes of long streaming paragraphs translate asynchronously; the unfinished tail stays original. A failure retains the original body and provides Retry; View translation remains disabled until the retry starts. Closing the disclosure or disabling the bundle cancels its requests.

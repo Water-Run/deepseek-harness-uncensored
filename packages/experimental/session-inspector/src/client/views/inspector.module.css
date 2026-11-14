@@ -22,7 +22,7 @@
 }
 
 .toolbar span:first-child { flex: 1; }
-.toolbar button, .record, .preview, .disclosure {
+.toolbar button:not([aria-haspopup='menu']), .record, .preview, .disclosure {
   border: none;
   background: transparent;
   color: inherit;
@@ -102,7 +102,7 @@
   .detailsResize:hover { background: var(--dsw-alias-state-business-primary); }
 }
 .details pre { flex: 1; min-height: 0; margin: 0; padding: 8px; font-size: inherit; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
-.modeSelector { border: none; background: var(--dsw-alias-bg-module-platform); color: inherit; font: inherit; padding: 2px 4px; }
+.modeSelector { width: auto; max-width: 180px; }
 .modeControls { display: inline-flex; align-items: center; gap: 6px; vertical-align: middle; }
 .pickButton { display: inline-flex; align-items: center; justify-content: center; border-radius: 4px; padding: 3px; }
 .pickButton[aria-pressed='true'] { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-state-business-primary); }

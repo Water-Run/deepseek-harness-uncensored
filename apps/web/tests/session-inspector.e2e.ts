@@ -9,7 +9,7 @@ import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts, launchWebScaffold,
   seedSession, selectedSessionFixture, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage } from './support.ts'
+import { connectFreshWorkspace, newConversationReplayPage, saveFailureShot } from './support.ts'
 
 const directory = fileURLToPath(new URL('../../../snapshots/web/session-inspector', import.meta.url))
 const fixture = fileURLToPath(new URL('../../../snapshots/web/fresh-round-trip/session.v4.jsonl', import.meta.url))
@@ -33,7 +33,7 @@ it.skipIf(webSnapshotMode() === 'record').each([
   resources.scaffold = scaffold
   const browser = await engine.launch()
   resources.browser = browser
-  const page = await newEnglishPage(browser)
+  const page = await newConversationReplayPage(browser)
   await page.setViewportSize({ width: 1680, height: 1000 })
   const tripwire = watchConsole(page)
   await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
@@ -46,8 +46,22 @@ it.skipIf(webSnapshotMode() === 'record').each([
   await page.getByText('DONE', { exact: true }).waitFor()
   await page.getByRole('button', { name: 'Open right sidebar', exact: true }).click()
   await page.locator('[data-sidebar-right-guide-entry="session-inspector-log"]').click()
-  const mode = page.getByRole('combobox', { name: 'Presentation', exact: true })
-  expect(await mode.inputValue()).toBe('session-log')
+  const mode = page.getByRole('button', { name: 'Presentation', exact: true })
+  expect(await mode.getAttribute('value')).toBe('session-log')
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  for (const preference of ['light', 'dark'] as const) {
+    await scaffold.ctx.settings.update('ui-theme', { preference })
+    await expect.poll(() => page.locator('body').getAttribute('data-ds-dark-theme')).toBe(preference === 'dark' ? '' : null)
+    await page.setViewportSize({ width: 390, height: 1000 })
+    await mode.focus()
+    await page.keyboard.press('ArrowDown')
+    await page.getByRole('menu').waitFor()
+    await saveFailureShot(page, `screenshots/inspector-${preference}-390`)
+    await page.keyboard.press('Escape')
+    await expect.poll(() => mode.evaluate(node => node === document.activeElement)).toBe(true)
+  }
+  await page.setViewportSize({ width: 1680, height: 1000 })
+
   const raw = page.getByRole('table', { name: 'Raw log', exact: true })
   await raw.getByRole('button', { name: 'Filter types', exact: true }).click()
   const filter = page.getByRole('dialog', { name: 'Filter types', exact: true })
@@ -79,7 +93,8 @@ it.skipIf(webSnapshotMode() === 'record').each([
     .map(value => [value, '{{time}}'] as const)
   await compareOrRefreshGolden(join(directory, 'log.expected.md'),
     await captureStableAria(page, 'section[aria-label="Raw log"] table', scaffold.workspaceCwd, { replacements }), webSnapshotMode())
-  await mode.selectOption('chat-node')
+  await mode.click()
+  await page.getByRole('menuitem', { name: 'Chat group', exact: true }).click()
   const groups = page.getByRole('table', { name: 'Chat group', exact: true })
   expect(await groups.getByRole('columnheader', { name: 'Time (UTC)' }).count()).toBe(0)
   await groups.getByRole('button', { name: 'assistant-step', exact: true }).first().click()
@@ -110,7 +125,7 @@ it.skipIf(webSnapshotMode() === 'record')('highlights nearby Chat content when t
   await seedSession(scaffold, await readFile(await selectedSessionFixture(fixture), 'utf8'), 'inspector-navigation')
   const browser = await chromium.launch()
   resources.browser = browser
-  const page = await newEnglishPage(browser)
+  const page = await newConversationReplayPage(browser)
   const tripwire = watchConsole(page)
   await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
   await page.getByRole('treeitem').first().click()

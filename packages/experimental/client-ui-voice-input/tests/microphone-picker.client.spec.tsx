@@ -40,8 +40,16 @@ function fixture() {
   const view = render(<MicrophonePicker {...props} />)
   return { ...audio, ...view, media, enumerateDevices, recordings, props, selection }
 }
-function selector(): HTMLSelectElement {
-  return screen.getByRole<HTMLSelectElement>('combobox', { name: zh.inputDevice })
+function selector(): HTMLButtonElement {
+  return screen.getByRole<HTMLButtonElement>('button', { name: zh.inputDevice })
+}
+
+function openChoices(): void {
+  if (selector().getAttribute('aria-expanded') !== 'true') fireEvent.click(selector())
+}
+function choose(name: string | RegExp): void {
+  openChoices()
+  fireEvent.click(screen.getByRole('menuitem', { name }))
 }
 
 async function waitForPreview(): Promise<void> {
@@ -52,15 +60,16 @@ it('captures while the page is active, keeps the meter through field blur, and r
   const b = fixture()
   try {
     await waitForPreview()
-    expect(screen.queryByRole('option', { name: 'Speakers' })).toBeNull()
+    openChoices()
+    expect(screen.queryByRole('menuitem', { name: 'Speakers' })).toBeNull()
     expect(screen.getByRole('img', { name: zh.inputLevel })).toBeTruthy()
-    fireEvent.change(selector(), { target: { value: 'usb' } })
+    choose(/^USB microphone/)
     await waitFor(() => { expect(b.getUserMedia).toHaveBeenLastCalledWith({ audio: {
       echoCancellation: true, noiseSuppression: true, deviceId: { exact: 'usb' },
     }, video: false }) })
     expect(b.trackStop).toHaveBeenCalledOnce()
     await screen.findByRole('img', { name: zh.inputLevel })
-    expect(selector().selectedOptions[0]?.textContent).toBe('USB microphone')
+    expect(selector().textContent).toBe('USB microphone')
     expect(document.querySelectorAll('[data-active="true"]').length).toBeGreaterThan(0)
     const stops = b.trackStop.mock.calls.length
     fireEvent.blur(selector())
@@ -92,7 +101,7 @@ it('keeps device choices available after permission denial', async () => {
   b.getUserMedia.mockRejectedValueOnce(new DOMException('denied', 'NotAllowedError'))
   try {
     await screen.findByText(zh.permission)
-    fireEvent.change(selector(), { target: { value: 'usb' } })
+    choose(/^USB microphone/)
     await screen.findByRole('img', { name: zh.inputLevel })
     expect(screen.queryByText(zh.permission)).toBeNull()
   } finally { b.unmount(); await Promise.all(b.recordings.map(recording => recording.dispose())) }
@@ -132,7 +141,8 @@ it.each([new Error('device busy'), 'device busy'])('shows capture failures witho
   b.enumerateDevices.mockResolvedValue([{ kind: 'audioinput', deviceId: 'unnamed', label: '' }])
   try {
     await act(async () => { b.media.dispatchEvent(new Event('devicechange')) })
-    await screen.findByRole('option', { name: '麦克风 1' })
+    openChoices()
+    await screen.findByRole('menuitem', { name: '麦克风 1' })
     await screen.findByText('语音识别失败：device busy')
   } finally { b.unmount(); await Promise.all(b.recordings.map(recording => recording.dispose())) }
 })
@@ -163,7 +173,7 @@ it('ignores device enumeration that settles after the page closes', async () => 
     const acquisitions = b.getUserMedia.mock.calls.length
     b.unmount()
     await act(async () => { result.resolve([{ kind: 'audioinput', deviceId: 'late', label: 'Late microphone' }]) })
-    expect(screen.queryByRole('option', { name: 'Late microphone' })).toBeNull()
+    expect(screen.queryByRole('menuitem', { name: 'Late microphone' })).toBeNull()
     expect(b.getUserMedia).toHaveBeenCalledTimes(acquisitions)
   } finally { b.unmount(); await Promise.all(b.recordings.map(recording => recording.dispose())) }
 })
@@ -211,7 +221,7 @@ it('ignores enumeration failure and a queued interruption after unmount', async 
 
 async function selectUsb(b: ReturnType<typeof fixture>): Promise<void> {
   await waitForPreview()
-  fireEvent.change(selector(), { target: { value: 'usb' } })
+  choose(/^USB microphone/)
   await screen.findByRole('img', { name: zh.inputLevel })
   await act(async () => {})
   expect(b.selection.getSnapshot().id).toBe('usb')
@@ -224,13 +234,15 @@ it('inserts and removes unused devices without restarting the selected microphon
     const existing = await b.enumerateDevices(), acquisitions = b.getUserMedia.mock.calls.length, stops = b.trackStop.mock.calls.length
     b.enumerateDevices.mockResolvedValue([...existing, { kind: 'audioinput', deviceId: 'new', label: 'New microphone' }])
     await act(async () => { b.media.dispatchEvent(new Event('devicechange')) })
-    expect(screen.getByRole('option', { name: 'New microphone' })).toBeTruthy()
+    openChoices()
+    expect(screen.getByRole('menuitem', { name: 'New microphone' })).toBeTruthy()
     b.enumerateDevices.mockResolvedValue(existing.filter(device => device.deviceId !== 'internal'))
     await act(async () => { b.media.dispatchEvent(new Event('devicechange')) })
-    expect(screen.queryByRole('option', { name: 'Built-in microphone' })).toBeNull()
+    openChoices()
+    expect(screen.queryByRole('menuitem', { name: 'Built-in microphone' })).toBeNull()
     expect(b.getUserMedia).toHaveBeenCalledTimes(acquisitions)
     expect(b.trackStop).toHaveBeenCalledTimes(stops)
-    expect(selector().selectedOptions[0]?.textContent).toBe('USB microphone')
+    expect(selector().textContent).toBe('USB microphone')
     expect(screen.getByRole('img', { name: zh.inputLevel })).toBeTruthy()
   } finally { b.unmount(); await Promise.all(b.recordings.map(recording => recording.dispose())) }
 })
@@ -240,20 +252,23 @@ it.each(['track-first', 'devices-first'])('retains the disconnected selection an
   try {
     await selectUsb(b)
     const existing = await b.enumerateDevices(), acquisitions = b.getUserMedia.mock.calls.length, stops = b.trackStop.mock.calls.length
-    const index = screen.getAllByRole('option').findIndex(item => item.textContent?.includes('USB microphone'))
+    openChoices()
+    const index = screen.getAllByRole('menuitem').findIndex(item => item.textContent?.includes('USB microphone'))
     b.enumerateDevices.mockResolvedValue(existing.filter(device => device.deviceId !== 'usb'))
     await act(async () => {
       if (order === 'track-first') b.track.dispatchEvent(new Event('ended'))
       b.media.dispatchEvent(new Event('devicechange'))
     })
     if (order === 'devices-first') await act(async () => { b.track.dispatchEvent(new Event('ended')) })
-    const unavailable = screen.getByRole<HTMLOptionElement>('option', { name: `USB microphone — ${zh.deviceUnavailable}` })
+    openChoices()
+    const unavailable = screen.getByRole<HTMLButtonElement>('menuitem', { name: `USB microphone — ${zh.deviceUnavailable}` })
     expect(unavailable.disabled).toBe(true)
-    expect(screen.getAllByRole('option')[index]).toBe(unavailable)
+    openChoices()
+    expect(screen.getAllByRole('menuitem')[index]).toBe(unavailable)
     expect(screen.queryByRole('img', { name: zh.inputLevel })).toBeNull()
     expect(b.trackStop).toHaveBeenCalledTimes(stops + 1)
     expect(b.selection.getSnapshot()).toEqual({ id: 'usb', label: 'USB microphone' })
-    fireEvent.change(selector(), { target: { value: 'usb' } })
+    choose(/^USB microphone/)
     expect(b.getUserMedia).toHaveBeenCalledTimes(acquisitions)
     b.enumerateDevices.mockResolvedValue(existing)
     await act(async () => { b.media.dispatchEvent(new Event('devicechange')) })
@@ -272,10 +287,10 @@ it('keeps preview active across blur and reacquires it after reconnect', async (
     expect(screen.getByRole('img', { name: zh.inputLevel })).toBeTruthy()
     b.enumerateDevices.mockResolvedValue(existing.filter(device => device.deviceId !== 'usb'))
     await act(async () => { b.media.dispatchEvent(new Event('devicechange')) })
-    expect(selector().selectedOptions[0]?.textContent).toContain(zh.deviceUnavailable)
+    expect(selector().textContent).toContain(zh.deviceUnavailable)
     b.enumerateDevices.mockResolvedValue(existing)
     await act(async () => { b.media.dispatchEvent(new Event('devicechange')) })
-    expect(selector().selectedOptions[0]?.textContent).toBe('USB microphone')
+    expect(selector().textContent).toBe('USB microphone')
     await screen.findByRole('img', { name: zh.inputLevel })
     expect(b.getUserMedia).toHaveBeenCalledTimes(acquisitions + 1)
   } finally { b.unmount(); await Promise.all(b.recordings.map(recording => recording.dispose())) }
@@ -288,13 +303,15 @@ it('forgets the missing row when another microphone is selected and does not swi
     const existing = await b.enumerateDevices()
     b.enumerateDevices.mockResolvedValue(existing.filter(device => device.deviceId !== 'usb'))
     await act(async () => { b.media.dispatchEvent(new Event('devicechange')) })
-    fireEvent.change(selector(), { target: { value: 'internal' } })
+    choose('Built-in microphone')
     await screen.findByRole('img', { name: zh.inputLevel })
-    expect(screen.queryByRole('option', { name: /USB microphone/ })).toBeNull()
+    openChoices()
+    expect(screen.queryByRole('menuitem', { name: /USB microphone/ })).toBeNull()
     const acquisitions = b.getUserMedia.mock.calls.length
     b.enumerateDevices.mockResolvedValue(existing)
     await act(async () => { b.media.dispatchEvent(new Event('devicechange')) })
-    expect(screen.getByRole('option', { name: 'USB microphone' })).toBeTruthy()
+    openChoices()
+    expect(screen.getByRole('menuitem', { name: 'USB microphone' })).toBeTruthy()
     expect(b.selection.getSnapshot().id).toBe('internal')
     expect(b.getUserMedia).toHaveBeenCalledTimes(acquisitions)
   } finally { b.unmount(); await Promise.all(b.recordings.map(recording => recording.dispose())) }
@@ -310,7 +327,8 @@ it.each(['resolve', 'reject'])('ignores an older enumeration after a newer hot-p
     b.enumerateDevices.mockResolvedValue(existing.filter(device => device.deviceId !== 'usb'))
     await act(async () => { b.media.dispatchEvent(new Event('devicechange')) })
     await act(async () => { if (settle === 'resolve') pending.resolve(existing); else pending.reject(new Error('Stale failure')) })
-    expect(screen.getByRole('option', { name: `USB microphone — ${zh.deviceUnavailable}` })).toBeTruthy()
+    openChoices()
+    expect(screen.getByRole('menuitem', { name: `USB microphone — ${zh.deviceUnavailable}` })).toBeTruthy()
     expect(screen.queryByRole('img', { name: zh.inputLevel })).toBeNull()
     expect(screen.queryByText('语音识别失败：Stale failure')).toBeNull()
   } finally { pending.resolve([]); b.unmount(); await Promise.all(b.recordings.map(recording => recording.dispose())) }
@@ -322,7 +340,7 @@ it('releases a late grant after unplugging the requested device and allows a fre
     await waitForPreview()
     const existing = await b.enumerateDevices()
     b.getUserMedia.mockReturnValueOnce(grant.promise)
-    fireEvent.change(selector(), { target: { value: 'usb' } })
+    choose(/^USB microphone/)
     await waitFor(() => { expect(b.getUserMedia).toHaveBeenCalledTimes(2) })
     b.enumerateDevices.mockResolvedValue(existing.filter(device => device.deviceId !== 'usb'))
     await act(async () => { b.media.dispatchEvent(new Event('devicechange')) })
@@ -354,7 +372,8 @@ it('recovers system-default preview after its track ends and shows unavailable w
     expect(b.getUserMedia.mock.calls.at(-1)?.[0].audio).not.toHaveProperty('deviceId')
     b.enumerateDevices.mockResolvedValue([])
     await act(async () => { b.media.dispatchEvent(new Event('devicechange')) })
-    const unavailable = screen.getByRole<HTMLOptionElement>('option', { name: `系统默认（Fixture microphone） — ${zh.deviceUnavailable}` })
+    openChoices()
+    const unavailable = screen.getByRole<HTMLButtonElement>('menuitem', { name: `系统默认（Fixture microphone） — ${zh.deviceUnavailable}` })
     expect(unavailable.disabled).toBe(true)
     expect(screen.queryByRole('img', { name: zh.inputLevel })).toBeNull()
   } finally { b.unmount(); await Promise.all(b.recordings.map(recording => recording.dispose())) }
@@ -366,7 +385,7 @@ it('updates locale text without re-enumerating or restarting the active micropho
     await waitForPreview()
     const acquisitions = b.getUserMedia.mock.calls.length, enumerations = b.enumerateDevices.mock.calls.length
     b.rerender(<MicrophonePicker {...b.props} t={makeTranslate(en, commonEn)} />)
-    expect(screen.getByRole<HTMLSelectElement>('combobox', { name: en.inputDevice }).selectedOptions[0]?.textContent)
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: en.inputDevice }).textContent)
       .toBe('System default (Fixture microphone)')
     expect(b.getUserMedia).toHaveBeenCalledTimes(acquisitions)
     expect(b.enumerateDevices).toHaveBeenCalledTimes(enumerations)
@@ -380,13 +399,14 @@ it('persists raw unnamed labels and translates a retained permission failure', a
   b.getUserMedia.mockRejectedValue(new DOMException('denied', 'NotAllowedError'))
   try {
     await act(async () => { b.media.dispatchEvent(new Event('devicechange')) })
-    await screen.findByRole('option', { name: '麦克风 1' })
-    fireEvent.change(selector(), { target: { value: 'unnamed' } })
+    openChoices()
+    await screen.findByRole('menuitem', { name: '麦克风 1' })
+    choose('麦克风 1')
     await screen.findByText(zh.permission)
     expect(b.selection.getSnapshot()).toEqual({ id: 'unnamed', label: '' })
     const acquisitions = b.getUserMedia.mock.calls.length
     b.rerender(<MicrophonePicker {...b.props} t={makeTranslate(en, commonEn)} />)
-    expect(screen.getByRole<HTMLSelectElement>('combobox', { name: en.inputDevice }).selectedOptions[0]?.textContent).toBe('Microphone 1')
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: en.inputDevice }).textContent).toBe('Microphone 1')
     expect(screen.getByText(en.permission)).toBeTruthy()
     expect(b.getUserMedia).toHaveBeenCalledTimes(acquisitions)
   } finally { b.unmount(); await Promise.all(b.recordings.map(recording => recording.dispose())) }
@@ -396,8 +416,8 @@ it('shows a localized name while a restored unnamed selection awaits enumeration
   localStorage.setItem('dsh.voice-input.microphone', JSON.stringify({ id: 'usb', label: '' }))
   const b = fixture()
   try {
-    expect(selector().selectedOptions[0]?.textContent).toBe(zh.unnamedSelectedMicrophone)
-    await waitFor(() => { expect(selector().selectedOptions[0]?.textContent).toBe('USB microphone') })
+    expect(selector().textContent).toBe(zh.unnamedSelectedMicrophone)
+    await waitFor(() => { expect(selector().textContent).toBe('USB microphone') })
     await waitFor(() => { expect(b.getUserMedia).toHaveBeenCalledOnce() })
   } finally { b.unmount(); await Promise.all(b.recordings.map(recording => recording.dispose())) }
 })
@@ -409,11 +429,11 @@ it('shows refreshed names in the field and retains them on disconnect', async ()
     const acquisitions = b.getUserMedia.mock.calls.length
     b.enumerateDevices.mockResolvedValue([{ kind: 'audioinput', deviceId: 'usb', label: 'Renamed microphone' }])
     await act(async () => { b.media.dispatchEvent(new Event('devicechange')) })
-    expect(selector().selectedOptions[0]?.textContent).toBe('Renamed microphone')
+    expect(selector().textContent).toBe('Renamed microphone')
     expect(b.getUserMedia).toHaveBeenCalledTimes(acquisitions)
     b.enumerateDevices.mockResolvedValue([])
     await act(async () => { b.media.dispatchEvent(new Event('devicechange')) })
-    expect(selector().selectedOptions[0]?.textContent).toBe(`Renamed microphone — ${zh.deviceUnavailable}`)
+    expect(selector().textContent).toBe(`Renamed microphone — ${zh.deviceUnavailable}`)
   } finally { b.unmount(); await Promise.all(b.recordings.map(recording => recording.dispose())) }
 })
 
@@ -427,13 +447,15 @@ it('keeps the active system device name and the communications choice', async ()
   b.enumerateDevices.mockResolvedValue(inputs)
   try {
     await act(async () => { b.media.dispatchEvent(new Event('devicechange')) })
-    expect(selector().selectedOptions[0]?.textContent).toBe('系统默认（Fixture microphone）')
+    expect(selector().textContent).toBe('系统默认（Fixture microphone）')
     await waitForPreview()
-    await screen.findByRole('option', { name: 'Communications headset' })
-    fireEvent.change(selector(), { target: { value: 'communications' } })
+    openChoices()
+    await screen.findByRole('menuitem', { name: 'Communications headset' })
+    choose('Communications headset')
     await screen.findByRole('img', { name: zh.inputLevel })
     expect(b.getUserMedia.mock.calls.at(-1)?.[0].audio).toMatchObject({ deviceId: { exact: 'communications' } })
-    expect(screen.queryByRole('option', { name: 'Default alias' })).toBeNull()
+    openChoices()
+    expect(screen.queryByRole('menuitem', { name: 'Default alias' })).toBeNull()
   } finally { b.unmount(); await Promise.all(b.recordings.map(recording => recording.dispose())) }
 })
 
@@ -448,7 +470,7 @@ it('uses the acquired device group to show its physical name without the browser
   b.enumerateDevices.mockResolvedValue(devices)
   try {
     await act(async () => { b.media.dispatchEvent(new Event('devicechange')) })
-    expect(selector().selectedOptions[0]?.textContent).toBe('系统默认（Active microphone）')
+    expect(selector().textContent).toBe('系统默认（Active microphone）')
     expect(b.getUserMedia).toHaveBeenCalledOnce()
   } finally { b.unmount(); await Promise.all(b.recordings.map(recording => recording.dispose())) }
 })
@@ -457,9 +479,9 @@ it('does not restore a previous default device name and persists only the system
   localStorage.setItem('dsh.voice-input.microphone', JSON.stringify({ id: '', label: 'Previous default microphone' }))
   const b = fixture()
   try {
-    expect(selector().selectedOptions[0]?.textContent).toBe(zh.systemMicrophone)
+    expect(selector().textContent).toBe(zh.systemMicrophone)
     await waitForPreview()
-    fireEvent.change(selector(), { target: { value: '' } })
+    choose(/^系统默认/)
     expect(b.selection.getSnapshot()).toEqual({ id: '', label: '' })
     expect(b.getUserMedia).toHaveBeenCalledOnce()
   } finally { b.unmount(); await Promise.all(b.recordings.map(recording => recording.dispose())) }

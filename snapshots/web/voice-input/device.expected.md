@@ -1,6 +1,3 @@
 - text: Input device
-- combobox "Input device":
-  - option "System default (Fake Default Audio Input)"
-  - option "Fake Audio Input 1" [selected]
-  - option "Fake Audio Input 2"
+- button "Input device": Fake Audio Input 1
 - img "Microphone input level"

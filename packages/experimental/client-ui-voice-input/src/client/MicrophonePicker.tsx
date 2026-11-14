@@ -1,5 +1,6 @@
 /** Device selection owns microphone previews while its page is active. */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
+import { Select } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { VoiceInputInjected } from './VoiceInput.tsx'
 import { RecordingError, type Recording } from './audio.ts'
@@ -33,6 +34,7 @@ function InputLevel({ recording, label }: { recording: Recording; label: string 
 export function MicrophonePicker({ useMicrophoneDevice, selectMicrophone, createRecording, t }:
   Pick<InjectFace<VoiceInputInjected>, 'useMicrophoneDevice' | 'selectMicrophone' | 'createRecording'> & PropsLocale<typeof NS>) {
   const selected = useMicrophoneDevice(value => value)
+  const deviceId = useId()
   const [devices, setDevices] = useState<DeviceChoice[]>([
     { id: selected.id, label: selected.id === '' ? '' : selected.label },
   ])
@@ -122,19 +124,17 @@ export function MicrophonePicker({ useMicrophoneDevice, selectMicrophone, create
       || (index > 0 ? t('unnamedMicrophone', { number: String(index) }) : t('unnamedSelectedMicrophone'))
   }
   return <div className={css.deviceRow} data-voice-input-device>
-    <label htmlFor="voice-input-device">{t('inputDevice')}</label>
+    <label htmlFor={deviceId}>{t('inputDevice')}</label>
     <span className={css.deviceField}>
-      <select id="voice-input-device" value={selected.id} className={preview ? css.deviceSelectMeter : undefined}
-        onChange={(event) => {
-          const device = choices.find(item => item.id === event.target.value) as DeviceChoice
+      <Select id={deviceId} label={t('inputDevice')} value={selected.id} className={preview ? css.deviceSelectMeter : undefined}
+        descriptionId={error ? `${deviceId}-error` : undefined}
+        onChange={(value) => {
+          const device = choices.find(item => item.id === value) as DeviceChoice
           selectMicrophone({ id: device.id, label: device.id === '' ? '' : device.label })
-        }}>
-        {choices.map((device, index) => <option key={device.id} value={device.id} disabled={device.unavailable}>
-          {deviceName(device, index)}{device.unavailable ? ` — ${t('deviceUnavailable')}` : ''}
-        </option>)}
-      </select>
+        }} options={choices.map((device, index) => ({ value: device.id, disabled: device.unavailable === true,
+          label: `${deviceName(device, index)}${device.unavailable ? ` — ${t('deviceUnavailable')}` : ''}` }))} />
       {preview && !missing && <span className={css.deviceMeter}><InputLevel recording={preview} label={t('inputLevel')} /></span>}
     </span>
-    {error && <span className={css.deviceError} role="alert">{failureText(error.failure, t)}</span>}
+    {error && <span id={`${deviceId}-error`} className={css.deviceError} role="alert">{failureText(error.failure, t)}</span>}
   </div>
 }

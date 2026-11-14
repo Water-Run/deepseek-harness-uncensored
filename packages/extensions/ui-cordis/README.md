@@ -25,6 +25,8 @@ English | [中文](README.zh.md)
 <a id="use-this-package"></a>
 ## Use this package
 
+Version choices use the application menu. Selecting a retained package keeps the parent panel open and does not run it; Run or Update remains an explicit action.
+
 Compose this package with the Host and Client runners to render historical tool cards and operate programmatically registered definitions in the panel. New agent-authored plugins use Plugin Manager; this package exposes no model mutation tools.
 
 ### What the panel shows

@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import {
   IconCheckOutlineRegular, IconCloseOutlineRegular, IconCordisPluginOutlineRegular, IconPlayOutlineRegular,
-  IconStopFillRegular, IconTrashOutlineRegular, StateDot, Tooltip, useDismissOnOutsidePointer,
+  IconStopFillRegular, IconTrashOutlineRegular, Select, StateDot, Tooltip, useDismissOnOutsidePointer,
   type StateDotState,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
@@ -267,20 +267,19 @@ export function CordisPanel({
         {listed !== undefined && listed.packages.length > 1 && selectedPackageId !== undefined && (
           <label className={css.versionPicker}>
             <span>{t('panel.version')}</span>
-            <select
+            <Select<CordisDynamicPackageId>
+              label={t('panel.version')}
+              className={css.versionSelect}
               value={selectedPackageId}
               disabled={busy}
-              onChange={(event) => {
+              onChange={(packageId) => {
                 setSelected(currentSelected => ({
                   ...currentSelected,
-                  [pluginId]: event.target.value as CordisDynamicPackageId,
+                  [pluginId]: packageId,
                 }))
               }}
-            >
-              {listed.packages.map(pkg => (
-                <option key={pkg.packageId} value={pkg.packageId}>{`${pkg.name} · ${pkg.packageId}`}</option>
-              ))}
-            </select>
+              options={listed.packages.map(pkg => ({ value: pkg.packageId, label: `${pkg.name} · ${pkg.packageId}` }))}
+            />
           </label>
         )}
         <div className={css.rowDetail}>
@@ -455,7 +454,11 @@ export function CordisPanel({
   }
 
   return (
-    <div ref={rootRef} className={wide ? css.layer : `${css.layer} ${css.rail}`}>
+    <div ref={rootRef} className={wide ? css.layer : `${css.layer} ${css.rail}`}
+      onPointerDown={(event) => {
+        // Portaled child menus belong to this panel despite being outside its DOM root.
+        if (event.target instanceof Node && !event.currentTarget.contains(event.target)) event.stopPropagation()
+      }}>
       {open && anchor !== undefined && (
         <section className={css.panel} style={anchor} data-cordis-panel aria-label={t('panel.title')}>
           <header className={css.header}>

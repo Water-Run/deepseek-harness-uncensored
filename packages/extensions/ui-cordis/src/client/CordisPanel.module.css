@@ -235,17 +235,12 @@
   line-height: 18px;
 }
 
-.versionPicker select {
+.versionSelect {
   min-width: 0;
   flex: 1;
-  height: 26px;
-  padding: 0 8px;
-  border: 0.5px solid var(--dsw-alias-border-l3);
-  border-radius: 7px;
-  background: transparent;
-  color: var(--dsw-alias-label-secondary);
-  font: inherit;
 }
+
+.versionPicker > span:last-child { flex: 1; min-width: 0; }
 
 .rowPurpose {
   flex: 1;
