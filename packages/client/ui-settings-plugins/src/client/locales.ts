@@ -23,54 +23,54 @@ export const zh: Record<PluginsSettingsLocaleKey, string> = {
 
 /** Japanese copy, checked against the English keys. */
 export const ja = {
-  'nav': '組み込みプラグイン',
-  'title': '組み込みプラグイン',
-  'intro': 'このデプロイメントに含まれるプラグインを確認します。',
+  'nav': 'プラグイン',
+  'title': 'プラグイン',
+  'intro': 'プラグインをインストール、有効化、設定します。',
   'tabs': 'プラグインビュー',
   'empty': 'このデプロイメントにはプラグインビューがありません。',
 } satisfies Record<keyof typeof en, string>
 
 /** Spanish dictionary, checked against the English keys. */
 export const es = {
-  nav: 'Complementos integrados',
-  title: 'Complementos integrados',
-  intro: 'Inspeccione los complementos que incluye esta implementación.',
+  nav: 'Complementos',
+  title: 'Complementos',
+  intro: 'Instale, active y configure complementos.',
   tabs: 'Vistas de complementos',
   empty: 'Esta implementación no expone vistas de complementos.',
 } satisfies Record<keyof typeof en, string>
 
 /** French dictionary, checked against the English keys. */
 export const fr = {
-  nav: 'Plugins intégrés',
-  title: 'Plugins intégrés',
-  intro: 'Inspectez les plugins fournis par ce déploiement.',
+  nav: 'Plugins',
+  title: 'Plugins',
+  intro: 'Installez, activez et configurez des plugins.',
   tabs: 'Vues des plugins',
   empty: "Ce déploiement n'expose aucune vue de plugin.",
 } satisfies Record<keyof typeof en, string>
 
 /** German dictionary, checked against the English keys. */
 export const de = {
-  nav: 'Integrierte Plugins',
-  title: 'Integrierte Plugins',
-  intro: 'Überprüfen Sie die Plugins, die mit dieser Bereitstellung geliefert werden.',
+  nav: 'Plugins',
+  title: 'Plugins',
+  intro: 'Plugins installieren, aktivieren und konfigurieren.',
   tabs: 'Plugin-Ansichten',
   empty: 'Diese Bereitstellung stellt keine Plugin-Ansichten bereit.',
 } satisfies Record<keyof typeof en, string>
 
 /** Russian dictionary, checked against the English keys. */
 export const ru = {
-  nav: 'Встроенные плагины',
-  title: 'Встроенные плагины',
-  intro: 'Проверьте плагины, поставляемые в этом развертывании.',
+  nav: 'Плагины',
+  title: 'Плагины',
+  intro: 'Устанавливайте, включайте и настраивайте плагины.',
   tabs: 'Просмотры плагинов',
   empty: 'Это развертывание не предоставляет никаких представлений плагинов.',
 } satisfies Record<keyof typeof en, string>
 
 /** Portuguese dictionary, checked against the English keys. */
 export const pt = {
-  nav: 'Plug-ins integrados',
-  title: 'Plug-ins integrados',
-  intro: 'Inspecione os plug-ins fornecidos por esta implantação.',
+  nav: 'Plug-ins',
+  title: 'Plug-ins',
+  intro: 'Instale, ative e configure plug-ins.',
   tabs: 'Visualizações de plug-in',
   empty: 'Esta implantação não expõe visualizações de plug-ins.',
 } satisfies Record<keyof typeof en, string>

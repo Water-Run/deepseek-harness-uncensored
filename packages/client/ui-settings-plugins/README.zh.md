@@ -29,6 +29,8 @@ kind: "package-reference"
 
 要贡献一个标签页，带 `id`、`order` 和本地化的 `label` 注册进 `settings.plugins.tab`；分区按序渲染条目，标签页在首次被选中时挂载。功能文案留在注册方自己的字典里。
 
+该分组包含安装、启用和配置功能。默认提供中英文标签；可选语言包可选用已有的日语、西班牙语、法语、德语、俄语和葡萄牙语字典。
+
 -----
 
 <a id="understand-the-implementation"></a>

@@ -29,6 +29,8 @@ Open **Settings → Plugins** to configure plugins and inspect the Host inventor
 
 To contribute a tab, register into `settings.plugins.tab` with an `id`, an `order`, and a localized `label`; the section renders the entries in order and mounts a tab on its first selection. Feature copy stays in the registering plugin's dictionary.
 
+The group includes installation, activation and configuration. Its Chinese and English labels are available by default; optional language packs can select the included Japanese, Spanish, French, German, Russian and Portuguese dictionaries.
+
 -----
 
 <a id="understand-the-implementation"></a>
