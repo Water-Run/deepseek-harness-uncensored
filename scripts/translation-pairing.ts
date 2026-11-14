@@ -31,6 +31,7 @@ export interface GeneratedRegion {
   begin: number
   /** Zero-based line index of the END marker. */
   end: number
+  /** Marker-delimited text with LF line endings. */
   text: string
 }
 
@@ -39,13 +40,13 @@ export interface GeneratedRegion {
  * its whole line, must be a complete well-formed marker, and the closing slug
  * must match the opener.
  *
- * @param content - Full Markdown document text.
+ * @param content - Full Markdown document text with LF or CRLF line endings.
  * @returns The regions in document order.
  * @throws Error on an unopened END, unclosed BEGIN, nested BEGIN, malformed
  *   marker line, or a closing slug that does not match its opener.
  */
 export function generatedRegions(content: string): GeneratedRegion[] {
-  const lines = content.split('\n')
+  const lines = content.split(/\r?\n/)
   const regions: GeneratedRegion[] = []
   let open: { slug: string; begin: number } | null = null
   for (const [index, line] of lines.entries()) {

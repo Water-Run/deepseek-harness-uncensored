@@ -185,14 +185,14 @@ function sectionHash(blocks: string[]): string {
  * except fenced code blocks and generated regions, which the pairing gate
  * requires to be identical on both sides. A section with no remaining blocks
  * has no entry. Keys are the English heading-slug paths, with `~2`, `~3`, …
- * suffixes on repeats.
+ * suffixes on repeats. CRLF input is converted to LF before parsing and hashing.
  *
  * @param paths - Pair paths used to resolve each side's relative links.
  * @param en - English document text.
  * @param zh - Chinese document text.
  * @param context - Link-resolution inputs for both sides.
- * @param trees - Optional GFM parses of the exact English and Chinese inputs; changed normalized text
- *   is parsed again only when {@link normalizedTopLevelBlocks} cannot place its nodes.
+ * @param trees - Optional GFM parses of the exact English and Chinese inputs. CRLF normalization
+ *   reparses the affected side; link edits reuse nodes when {@link normalizedTopLevelBlocks} can place them.
  * @returns Entries in document order.
  * @throws Error when the two sides have different heading counts or malformed generated regions.
  */
@@ -203,10 +203,14 @@ export function computeTranslationPairingRecord(
   context: TranslationPairingRecordContext,
   trees?: { readonly en: Nodes; readonly zh: Nodes },
 ): TranslationPairingRecord {
-  const normalizedEn = normalizeTranslationMarkdownLinkEdits(en, { ...context, sourcePath: paths.source }, [], trees?.en)
-  const normalizedZh = normalizeTranslationMarkdownLinkEdits(zh, { ...context, sourcePath: paths.zh }, [], trees?.zh)
-  const enSections = sideSections(en, normalizedEn, trees?.en)
-  const zhSections = sideSections(zh, normalizedZh, trees?.zh)
+  const enText = en.replaceAll('\r\n', '\n')
+  const zhText = zh.replaceAll('\r\n', '\n')
+  const enTree = enText === en ? trees?.en : parseTranslationMarkdown(enText)
+  const zhTree = zhText === zh ? trees?.zh : parseTranslationMarkdown(zhText)
+  const normalizedEn = normalizeTranslationMarkdownLinkEdits(enText, { ...context, sourcePath: paths.source }, [], enTree)
+  const normalizedZh = normalizeTranslationMarkdownLinkEdits(zhText, { ...context, sourcePath: paths.zh }, [], zhTree)
+  const enSections = sideSections(enText, normalizedEn, enTree)
+  const zhSections = sideSections(zhText, normalizedZh, zhTree)
   if (enSections.length !== zhSections.length) {
     throw new Error(`${paths.source} has ${enSections.length - 1} heading(s) but ${paths.zh} has ${zhSections.length - 1}`)
   }
@@ -235,12 +239,12 @@ export function computeTranslationPairingRecord(
 /**
  * Parse a consistency record.
  *
- * @param content - Complete sidecar text.
+ * @param content - Complete sidecar text with LF or CRLF line endings.
  * @returns Entries in file order, or `undefined` for malformed or duplicate entries.
  */
 export function parseTranslationPairingRecord(content: string): TranslationPairingRecord | undefined {
   const record = new Map<string, TranslationSectionHashes>()
-  const lines = content.split('\n').filter(line => line !== '' && !line.startsWith('#'))
+  const lines = content.split(/\r?\n/).filter(line => line !== '' && !line.startsWith('#'))
   for (let index = 0; index < lines.length; index += 3) {
     const key = KEY_LINE.exec(lines[index] ?? '')?.[1]
     const en = HASH_LINE.exec(lines[index + 1] ?? '')

@@ -231,7 +231,8 @@ for (const source of [...pairAnchors].sort()) {
   if (sourceContent === undefined || zhContent === undefined || metaContent === undefined) {
     throw new Error(`${source}: complete pair became unreadable`)
   }
-  const record = parseTranslationPairingRecord(metaContent.toString('utf8'))
+  const recordText = metaContent.toString('utf8').replaceAll('\r\n', '\n')
+  const record = parseTranslationPairingRecord(recordText)
   if (record === undefined) {
     errors.push(`${meta}: malformed consistency record (expected \`/<section path>:\` entries, each followed by \`  en: <16-hex>\` and \`  zh: <16-hex>\`)`)
     state.set(source, 'out-of-sync')
@@ -255,7 +256,7 @@ for (const source of [...pairAnchors].sort()) {
   const recordErrors = translationPairingRecordDiff(record, current).map(message => (
     `${meta}: out of sync — ${message} (bring the other side along, then re-record with --write)`
   ))
-  if (recordErrors.length === 0 && renderTranslationPairingRecord(paths, current) !== metaContent.toString('utf8')) {
+  if (recordErrors.length === 0 && renderTranslationPairingRecord(paths, current) !== recordText) {
     recordErrors.push(`${meta}: not in canonical form (re-record with --write)`)
   }
   if (recordErrors.length > 0) {

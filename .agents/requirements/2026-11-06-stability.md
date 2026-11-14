@@ -4,6 +4,8 @@
 
 ## 已完成
 
+- [x] **Windows 双语记录与生成区块（2026-11-14）**。记录读取、正文分节哈希、生成区块标记与规范格式比较支持 CRLF；计算及生成结果仍使用 LF。有效正文改动、坏哈希、重复章节和损坏标记仍被拒绝。新增回归先复现失败，相关三文件共 97 项通过；Windows 实际检出的全库 1,164 组双语配对通过，未批量重写已有记录。证据为 `%USERPROFILE%/DSHU-Deliveries/20261114/pairing-*-before.log`、`isolation-pairing-tests.log` 和 `pairing-crlf-corpus-complete.log`。
+
 - [x] **pnpm 11 验证配置隔离（2026-11-14）**。修正独立 pnpm 与完整 Host 冒烟检查中不再生效的存储配置变量，保留认证专用的 `npm_config_userconfig`。新增真实配置读回及私有存储断言；修复前 `store-dir` 返回 `undefined`，修复后两个独立 Electron Node 进程并行通过离线安装与脚本执行，保留原 45 秒上限。证据为 `%USERPROFILE%/DSHU-Deliveries/20261114/pnpm-before-fix.json` 和 `pnpm-after-fix.json`。首次打包退出等待超时的完整根因仍未确认，不因配置修正而删除失败记录。
 
 - [x] **SDK 回放路径别名（2026-11-11）**。与 headless 夹具一致登记临时目录的 JSON 转义及斜杠拼写。Windows 审批与最小图片压缩的持久日志比较已通过，完整场景后续仍受 Bash/PowerShell 工具预期差异阻塞，不计为通过。归一化与回放支撑测试 241 项通过、1 项跳过；Linux 当前源码构建与聚合检查通过，SDK/ACP 回放 53 项通过、2 项桌面场景未执行。714 份已提交 JSONL 与 Git 对象字节一致，包含 Session 及协议预期。证据见 [HANDOFF](../HANDOFF.md#sdk-回放的-windows-路径别名2026-11-11)。

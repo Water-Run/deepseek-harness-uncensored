@@ -333,6 +333,43 @@ describe('translation pairing records', () => {
     expect(parseTranslationPairingRecord('foo.md: 3f786850e387550fdab836ed7e6dc881de23001b\n')).toBeUndefined()
   })
 
+  it.each(['LF', 'CRLF', 'mixed'] as const)('reads %s line endings without changing section hashes', (ending) => {
+    const computed = record(en, zh)
+    let newline = 0
+    const text = renderTranslationPairingRecord(paths, computed).replaceAll('\n', () => {
+      const crlf = ending === 'CRLF' || ending === 'mixed' && newline % 2 === 0
+      newline++
+      return crlf ? '\r\n' : '\n'
+    })
+    expect(parseTranslationPairingRecord(text)).toEqual(computed)
+  })
+
+  it('rejects malformed hashes and duplicate sections with CRLF line endings', () => {
+    const valid = `/a:\r\n  en: ${'1'.repeat(16)}\r\n  zh: ${'2'.repeat(16)}\r\n`
+    expect(parseTranslationPairingRecord(valid.replace('1', '\r'))).toBeUndefined()
+    expect(parseTranslationPairingRecord(valid.repeat(2))).toBeUndefined()
+  })
+
+  it.each([[true, true], [true, false], [false, true]])(
+    'keeps canonical section hashes with CRLF documents (en: %s, zh: %s)', (enCrlf, zhCrlf) => {
+      const english = `---\nkind: package-reference\n---\n${en}`
+      const chinese = `---\nkind: package-reference\n---\n${zh}`
+      const authoredEn = enCrlf ? english.replaceAll('\n', '\r\n') : english
+      const authoredZh = zhCrlf ? chinese.replaceAll('\n', '\r\n') : chinese
+      const expected = record(english, chinese)
+      expect(record(authoredEn, authoredZh)).toEqual(expected)
+      expect(computeTranslationPairingRecord(paths, authoredEn, authoredZh, context, {
+        en: parseTranslationMarkdown(authoredEn), zh: parseTranslationMarkdown(authoredZh),
+      })).toEqual(expected)
+    },
+  )
+
+  it('detects translated content edits in CRLF documents', () => {
+    const changed = en.replace('Intro.', 'Changed.').replaceAll('\n', '\r\n')
+    expect(translationPairingRecordDiff(record(en, zh), record(changed, zh.replaceAll('\n', '\r\n'))))
+      .toEqual(['section /guide changed since confirmation (en)'])
+  })
+
   it('names changed, unconfirmed, and removed sections', () => {
     const confirmed = record(en, zh)
     expect(translationPairingRecordDiff(confirmed, confirmed)).toEqual([])
@@ -600,6 +637,16 @@ describe('generated regions', () => {
       { slug: 'cordis-surface', begin: 4, end: 6, text: `${BEGIN}\ninjected\n${END}` },
     ])
     expect(generatedRegions('# T\n\nprose\n')).toEqual([])
+  })
+
+  it('reads CRLF region markers and keeps malformed markers invalid', () => {
+    const doc = `before\r\n${BEGIN}\r\ninjected\r\n${END}\r\nafter\r\n`
+    expect(generatedRegions(doc)).toEqual([
+      { slug: 'cordis-surface', begin: 1, end: 3, text: `${BEGIN}\ninjected\n${END}` },
+    ])
+    expect(spliceGeneratedRegion(doc, renderGeneratedRegion('cordis-surface', 'new')))
+      .toBe(`before\r\n${renderGeneratedRegion('cordis-surface', 'new')}\nafter\r\n`)
+    expect(() => generatedRegions(doc.replace(BEGIN, `${BEGIN} trailing`))).toThrow('malformed')
   })
 
   it('replaces exactly one region with the same slug', () => {
