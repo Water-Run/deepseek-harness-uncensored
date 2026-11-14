@@ -43,3 +43,11 @@ it('closes when disabled and stays closed when re-enabled', () => {
   view.rerender(<Select {...props} />)
   expect(screen.queryByRole('menu')).toBeNull()
 })
+
+it('exposes the selected option with validation help and removes resolved help', () => {
+  const props = { label: 'Location', value: 'auto', options, onChange: vi.fn() }
+  const view = render(<><Select {...props} invalid descriptionId="problem" /><p id="problem">Retry failed</p></>)
+  expect(screen.getByRole('button', { name: 'Location', description: 'Automatic Retry failed' }).getAttribute('aria-invalid')).toBe('true')
+  view.rerender(<Select {...props} />)
+  expect(screen.getByRole('button', { name: 'Location', description: 'Automatic' }).hasAttribute('aria-invalid')).toBe(false)
+})

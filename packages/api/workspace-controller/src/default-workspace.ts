@@ -8,7 +8,7 @@
 
 /**
  * Leaf directory name of the first-use Workspace under
- * `<Documents>/deepseek-harness`. Language-neutral, so one installation keeps
+ * `<Documents>/deepseek-harness-uncensored`. Language-neutral, so one installation keeps
  * one on-disk path across language switches. The registry derives the initial
  * title from this same segment, which is the title
  * {@link workspaceDisplayTitle} recognizes as automatic.

@@ -120,17 +120,20 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
     expect(await modes.getByRole('tab', { name: '第三方模型提供商' }).getAttribute('aria-selected')).toBe('true')
     const pick = dialog.getByLabel('提供商', { exact: true })
     await pick.waitFor({ timeout: 10_000 })
-    await expect.poll(async () => pick.locator('option').count(), { timeout: 10_000 }).toBeGreaterThan(30)
-    const options = await pick.locator('option').allTextContents()
+    await pick.click()
+    const choices = page.getByRole('menu').getByRole('menuitem')
+    await expect.poll(() => choices.count(), { timeout: 10_000 }).toBeGreaterThan(30)
+    const options = await choices.allTextContents()
     expect(options).toContain('anthropic')
     expect(options).toContain('minimax-cn')
-    await pick.selectOption('openai-codex')
+    await page.getByRole('menuitem', { name: 'openai-codex', exact: true }).click()
     await expect.poll(async () => dialog.getByRole('textbox', { name: 'API 密钥', exact: true }).count(), { timeout: 10_000 }).toBe(0)
     expect(await dialog.getByRole('button', { name: '认证说明', exact: true }).count()).toBe(0)
     expect(await dialog.textContent()).not.toMatch(/oauth/i)
     const nativeSnapshot = await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(NATIVE_KEYLESS_EXPECTED, nativeSnapshot, MODE)
-    await pick.selectOption('minimax-cn')
+    await pick.click()
+    await page.getByRole('menuitem', { name: 'minimax-cn', exact: true }).click()
     await dialog.getByRole('textbox', { name: 'API 密钥', exact: true }).waitFor({ timeout: 10_000 })
     const snapshot = await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(EMPTY_EXPECTED, snapshot, MODE)
@@ -228,7 +231,8 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
     const url = dialog.getByLabel('API 地址')
     await url.waitFor({ timeout: 10_000 })
     await url.fill('https://gateway.minimax.example/v1')
-    await dialog.getByRole('combobox', { name: '重试策略', exact: true }).selectOption('normal')
+    await dialog.getByRole('button', { name: '重试策略', exact: true }).click()
+    await page.getByRole('menuitem', { name: '仅临时错误', exact: true }).click()
     await dialog.getByLabel('最大重试次数', { exact: true }).fill('3')
     await dialog.getByRole('button', { name: '保存', exact: true }).click()
     // The editor closes back to the row; the fold's write merged into the
@@ -243,6 +247,52 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
     await compareOrRefreshGolden(CONFIGURED_EXPECTED, snapshot, MODE)
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)
+
+  it('keeps retry choices themed, visible and keyboard accessible in compact settings', async () => {
+    const previous = scaffold.ctx.settings.describe().find(row => row.ns === 'ui-theme')?.value
+    if (typeof previous !== 'object' || previous === null || !('preference' in previous)) throw new Error('Theme preference is unavailable')
+    const originalViewport = page.viewportSize()
+    const dialog = page.getByRole('dialog', { name: '设置', exact: true })
+    const colors: string[] = []
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    try {
+      await dialog.getByRole('button', { name: '编辑 minimax-cn', exact: true }).click()
+      await dialog.getByText('自定义设置', { exact: true }).click()
+      const retry = dialog.getByRole('button', { name: '重试策略', exact: true })
+      for (const preference of ['light', 'dark'] as const) {
+        await scaffold.ctx.settings.update('ui-theme', { preference })
+        await expect.poll(() => page.locator('body').getAttribute('data-ds-dark-theme')).toBe(preference === 'dark' ? '' : null)
+        for (const width of [1280, 390]) {
+          await page.setViewportSize({ width, height: 900 })
+          await retry.focus()
+          await page.keyboard.press('ArrowDown')
+          const menu = page.getByRole('menu').filter({ has: page.getByRole('menuitem', { name: '所有错误', exact: true }) })
+          await menu.waitFor()
+          await expect.poll(() => menu.evaluate((node) => {
+            const rect = node.getBoundingClientRect()
+            return rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight
+          })).toBe(true)
+          if (width === 390) colors.push(await menu.evaluate(node => getComputedStyle(node.firstElementChild!).backgroundColor))
+          await saveFailureShot(page, `screenshots/retry-policy-${preference}-${width}`)
+          await page.keyboard.press('Escape')
+          await expect.poll(() => retry.evaluate(node => node === document.activeElement)).toBe(true)
+          expect(await retry.getAttribute('value')).toBe('normal')
+        }
+      }
+      expect(colors[0]).not.toBe(colors[1])
+    } catch (error) {
+      await saveFailureShot(page, 'web-e2e-retry-menu-failed')
+      throw error
+    } finally {
+      if (await page.getByRole('menu').count() > 0) await page.keyboard.press('Escape')
+      if (await dialog.getByRole('button', { name: '取消', exact: true }).isVisible()) {
+        await dialog.getByRole('button', { name: '取消', exact: true }).click()
+      }
+      await scaffold.ctx.settings.update('ui-theme', { preference: previous.preference })
+      await page.emulateMedia({ reducedMotion: 'no-preference' })
+      if (originalViewport !== null) await page.setViewportSize(originalViewport)
+    }
+  })
 
   it('filters the discovered model catalog and deselects only visible candidates', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-models-picker'))
@@ -354,21 +404,22 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
     // than sending the user to cordis.patch.yml for what only this route names.
     const protocol = dialog.getByLabel('API 协议')
     await protocol.waitFor({ timeout: 10_000 })
-    expect(await protocol.inputValue()).toBe('openai-completions')
+    expect(await protocol.getAttribute('value')).toBe('openai-completions')
     const name = dialog.getByLabel('显示名称', { exact: true })
     expect(await name.inputValue()).toBe('Acme Gateway')
     await dialog.getByRole('button', { name: '模型选项 1' }).click()
     expect(await dialog.getByRole('group', { name: '输入类型 1' }).getByRole('checkbox', { name: '图片' }).isChecked()).toBe(true)
     // The stored levels come back as rows beside the values they send.
     const reasoning = dialog.getByRole('group', { name: '推理等级 1' })
-    expect(await reasoning.getByRole('combobox').evaluateAll(selects => selects.map(select => (select as HTMLSelectElement).value)))
+    expect(await reasoning.getByRole('button', { name: /^档位 [0-9]+$/u }).evaluateAll(buttons => buttons.map(button => button.getAttribute('value'))))
       .toEqual(['off', 'low', 'high'])
     expect(await reasoning.getByLabel('high API 参数值').inputValue()).toBe('high')
     await assertModelInputLayout(page, dialog)
     const snapshot = await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(DECLARED_EDIT_EXPECTED, snapshot, MODE)
 
-    await protocol.selectOption('anthropic-messages')
+    await protocol.click()
+    await page.getByRole('menuitem', { name: 'Anthropic Messages', exact: true }).click()
     await name.fill('Acme 网关')
     await dialog.getByRole('group', { name: '输入类型 1' }).getByRole('checkbox', { name: '图片' }).uncheck()
     // A gateway with its own spelling for the top level.

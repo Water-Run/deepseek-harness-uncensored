@@ -1,12 +1,17 @@
 - dialog "设置":
   - text: 设置
   - navigation:
-    - button "通用设置"
+    - button "通用"
     - button "模型"
-    - button "内置插件"
-    - button "Agent 预设"
+    - button "额度"
+    - button "模式"
+    - button "插件"
   - button "打开配置文件"
   - button "关闭"
+  - region "账号":
+    - text: 当前未登录 DeepSeek 账号
+    - status: 登录 DeepSeek 账号获取专属 API Key
+    - button "登录"
   - heading "模型" [level=2]
   - paragraph: 填入各提供商的 API 密钥即可使用其模型。
   - list:
@@ -32,17 +37,10 @@
           - /placeholder: https://gateway.acme.example/v1
           - text: https://gateway.acme.example/v1
         - text: API 协议
-        - combobox "API 协议":
-          - option "OpenAI Chat Completions"
-          - option "OpenAI Responses"
-          - option "Anthropic Messages" [selected]
-          - option "Gemini API"
+        - button "API 协议": Anthropic Messages
         - group "重试策略":
           - text: 重试策略
-          - combobox "重试策略":
-            - option "默认（仅临时错误）" [selected]
-            - option "仅临时错误"
-            - option "所有错误"
+          - button "重试策略": 默认（仅临时错误）
         - region "模型目录":
           - text: 模型目录 已自定义模型目录
           - button "恢复默认模型"
@@ -71,31 +69,16 @@
             - text: 推理等级
             - button "推理等级说明": "?"
             - switch "推理等级 1" [checked]
-            - combobox "档位 1":
-              - option "off" [selected]
-              - option "minimal"
-              - option "medium"
-              - option "xhigh"
-              - option "max"
+            - button "档位 1": "off"
             - textbox "off API 参数值" [disabled]:
               - /placeholder: 关闭思考
             - button "删除档位 off"
-            - combobox "档位 2":
-              - option "minimal"
-              - option "low" [selected]
-              - option "medium"
-              - option "xhigh"
-              - option "max"
+            - button "档位 2": low
             - textbox "low API 参数值":
               - /placeholder: low
               - text: low
             - button "删除档位 low"
-            - combobox "档位 3":
-              - option "minimal"
-              - option "medium"
-              - option "high" [selected]
-              - option "xhigh"
-              - option "max"
+            - button "档位 3": high
             - textbox "high API 参数值":
               - /placeholder: high
               - text: deep

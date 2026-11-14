@@ -29,7 +29,7 @@ StatPopover uses shared positioning, menu material and focus ownership for click
 
 `Input` uses the theme error border when its native input has `aria-invalid="true"`. The owning form supplies the localized explanation and its accessible association.
 
-`Select` takes a localized label, a controlled value, and value/label options. It uses `Menu` for themed popup rendering, viewport bounds, scrolling, keyboard navigation, disabled rows, Escape and focus restoration; it never opens a native select popup.
+`Select` takes a localized label, a controlled value, and value/label options. It uses `Menu` for themed popup rendering, viewport bounds, scrolling, keyboard navigation, disabled rows, Escape and focus restoration; it never opens a native select popup. Optional `descriptionId` associates validation or help text after the current selection without replacing its accessible description.
 
 Portalled menus refresh their native anchor binding when reopened after scroll or viewport changes. CSS owns their coordinates and width without viewport listeners or JavaScript coordinate snapshots.
 

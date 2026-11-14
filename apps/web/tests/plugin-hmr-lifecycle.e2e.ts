@@ -10,7 +10,7 @@ import { chromium, type Browser, type Locator, type Page } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { ChangeResult } from '@deepseek-ai/dsh-plugin-manager'
 import { launchWebScaffold, watchConsole, type WebScaffold } from './scaffold.ts'
-import { PLUGIN_TOGGLE_SETTLE_MS, ZH_BROWSER_LOCALE } from './support.ts'
+import { PLUGIN_TOGGLE_SETTLE_MS, ZH_BROWSER_LOCALE, openPluginManager } from './support.ts'
 
 const NAME = 'e2e-hmr-addon'
 
@@ -75,16 +75,11 @@ export function apply(ctx) {
   }
 
   async function openPanel(): Promise<Locator> {
-    if (await page.getByRole('dialog', { name: '设置' }).count() > 0) await page.keyboard.press('Escape')
-    const panel = page.locator('[data-plugin-panel]')
-    const list = panel.getByRole('heading', { name: '插件', exact: true })
-    // The sidebar entry toggles the page, so it is pressed only while the page is closed.
-    if (await panel.count() === 0) {
-      await page.getByRole('navigation', { name: '全局面板' }).getByRole('button', { name: '插件', exact: true }).click()
-    } else if (!await list.isVisible()) {
-      await panel.getByRole('button', { name: '返回插件', exact: true }).click()
+    const panel = await openPluginManager(page, 'zh')
+    while (await panel.getByRole('button', { name: /^返回/ }).count() > 0) {
+      await panel.getByRole('button', { name: /^返回/ }).first().click()
     }
-    await list.waitFor({ timeout: 10_000 })
+    await panel.getByRole('heading', { name: '内置插件配置', exact: true }).waitFor()
     return panel
   }
 
@@ -92,7 +87,7 @@ export function apply(ctx) {
   async function installThroughPage(spec: string): Promise<Locator> {
     const panel = await openPanel()
     await panel.getByRole('button', { name: '添加插件', exact: true }).click()
-    const dialog = page.getByRole('dialog')
+    const dialog = page.getByRole('dialog', { name: /^(?!设置$)/u })
     await dialog.getByRole('textbox', { name: '包名或地址' }).fill(spec)
     await dialog.getByRole('button', { name: '安装', exact: true }).click()
     await dialog.getByRole('button', { name: '立即启用', exact: true }).click({ timeout: 30_000 })
@@ -105,7 +100,7 @@ export function apply(ctx) {
     await panel.getByRole('button', { name: `卸载 ${NAME}`, exact: true }).click()
     await page.getByRole('dialog', { name: `卸载「${NAME}」？` }).getByRole('button', { name: '卸载', exact: true }).click()
     // The page leaves the removed package's details for the list.
-    await panel.getByRole('heading', { name: '插件', exact: true }).waitFor({ timeout: 30_000 })
+    await panel.getByRole('heading', { name: '内置插件配置', exact: true }).waitFor({ timeout: 30_000 })
     await expect.poll(() => panel.locator(`[data-plugin-package="${NAME}"]`).count(), { timeout: 30_000 }).toBe(0)
   }
 
@@ -237,10 +232,10 @@ describe('web e2e: plugin installation without HMR', () => {
       await page.goto(scaffold.authenticatedUrl)
       await page.waitForSelector('[class*="frame"]')
       if (await page.getByRole('dialog', { name: '设置' }).count() > 0) await page.keyboard.press('Escape')
-      await page.getByRole('navigation', { name: '全局面板' }).getByRole('button', { name: '插件', exact: true }).click()
+      await openPluginManager(page, 'zh')
       const panel = page.locator('[data-plugin-panel]')
       await panel.getByRole('button', { name: '添加插件', exact: true }).click()
-      const dialog = page.getByRole('dialog')
+      const dialog = page.getByRole('dialog', { name: /^(?!设置$)/u })
       await dialog.getByRole('textbox', { name: '包名或地址' }).fill(`file:${dir}`)
       await dialog.getByRole('button', { name: '安装', exact: true }).click()
       await dialog.getByText('已安装，请重启 DSH 加载它。这个 profile 只在启动时应用更改。', { exact: true }).waitFor({ timeout: 30_000 })

@@ -52,7 +52,7 @@ describe.skipIf(MODE === 'record')('web e2e: default Workspace', () => {
         const sessionId = await settled
         const workspace = scaffold.ctx.workspaceRegistry.list()[0]!
         expect(workspace.title).toBe('default-workspace')
-        expect(workspace.path).toBe(join(scaffold.workspaceCwd, 'Documents', 'deepseek-harness', 'default-workspace'))
+        expect(workspace.path).toBe(join(scaffold.workspaceCwd, 'Documents', 'deepseek-harness-uncensored', 'default-workspace'))
         expect((await stat(workspace.path)).isDirectory()).toBe(true)
         expect(workspace.sessionIds).toContain(sessionId)
         expect(scaffold.ctx.sessions.get(sessionId)?.header.cwd).toBe(workspace.path)
@@ -97,7 +97,7 @@ describe.skipIf(MODE === 'record')('web e2e: default Workspace', () => {
   it('reports a startup directory conflict and opens the composed folder picker for recovery', async () => {
     const scaffold = await launchWebScaffold({ firstUse: true })
     onTestFinished(() => scaffold.close())
-    const parent = join(scaffold.workspaceCwd, 'Documents', 'deepseek-harness')
+    const parent = join(scaffold.workspaceCwd, 'Documents', 'deepseek-harness-uncensored')
     await mkdir(parent, { recursive: true })
     // A Chinese reader gets the same fixed directory name, so the same occupant conflicts.
     await writeFile(join(parent, 'default-workspace'), 'occupied')
@@ -118,6 +118,7 @@ describe.skipIf(MODE === 'record')('web e2e: default Workspace', () => {
         expect(await page.getByRole('dialog').count()).toBe(0)
         expect(await input.count()).toBe(0)
         await page.getByRole('button', { name: '选择工作区', exact: true }).click()
+        await page.getByRole('menuitem', { name: /^添加工作区/u }).click()
         const picker = page.getByRole('dialog', { name: '选择工作区目录' })
         await picker.waitFor()
         await picker.getByRole('button', { name: '编辑路径', exact: true }).click()

@@ -86,14 +86,15 @@ describe.skipIf(MODE === 'record')('web e2e: trusted remote host preferences', (
 
     await page.emulateMedia({ colorScheme: 'light' })
     await dialog.getByRole('button', { name: '添加模型提供商', exact: true }).click()
-    await dialog.getByLabel('提供商', { exact: true }).selectOption('minimax-cn')
+    await dialog.getByLabel('提供商', { exact: true }).click()
+    await page.getByRole('menuitem', { name: 'minimax-cn', exact: true }).click()
     await dialog.getByRole('button', { name: '保存', exact: true }).click()
     await dialog.getByText('已保存 minimax-cn。', { exact: true }).waitFor({ timeout: 15_000 })
     await expect.poll(() => readFile(settingsPath, 'utf8'), { timeout: 10_000 })
       .toContain('minimax-cn: {}')
 
-    await dialog.getByRole('button', { name: '通用设置', exact: true }).click()
-    await dialog.getByRole('button', { name: '深色', exact: true }).click()
+    await dialog.getByRole('button', { name: '通用', exact: true }).click()
+    await dialog.locator('[data-theme-card="dark"]').click()
     await expect.poll(() => page.locator('body').getAttribute('data-ds-dark-theme')).toBe('')
     await expect.poll(() => readFile(settingsPath, 'utf8'), { timeout: 10_000 })
       .toContain('preference: dark')

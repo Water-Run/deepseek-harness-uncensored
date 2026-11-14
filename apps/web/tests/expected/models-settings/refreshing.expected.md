@@ -1,12 +1,17 @@
 - dialog "设置":
   - text: 设置
   - navigation:
-    - button "通用设置"
+    - button "通用"
     - button "模型"
-    - button "内置插件"
-    - button "Agent 预设"
+    - button "额度"
+    - button "模式"
+    - button "插件"
   - button "打开配置文件"
   - button "关闭"
+  - region "账号":
+    - text: 当前未登录 DeepSeek 账号
+    - status: 登录 DeepSeek 账号获取专属 API Key
+    - button "登录"
   - heading "模型" [level=2]
   - paragraph: 填入各提供商的 API 密钥即可使用其模型。
   - list:

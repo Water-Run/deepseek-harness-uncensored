@@ -821,7 +821,8 @@
 
 /* Enum pickers hold a handful of short options; a field-width dropdown reads
    as a text field the user is expected to fill. */
-select.input {
+select.input,
+.choiceInput {
   max-width: 240px;
   cursor: pointer;
 }

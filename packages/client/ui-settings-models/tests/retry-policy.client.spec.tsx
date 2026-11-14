@@ -73,7 +73,18 @@ function setup(namespace: SettingsNamespaceView, settingsPath: string[] = []) {
   return { writeSettings, onClose }
 }
 
-const mode = () => screen.getByRole<HTMLSelectElement>('combobox', { name: en.retryPolicy })
+const mode = () => screen.getByRole<HTMLButtonElement>('button', { name: en.retryPolicy })
+function chooseMode(value: string): void {
+  fireEvent.click(mode())
+  const label = value === '' ? /^Default \(/u : value === 'normal' ? en.retryModeNormal : value === 'always' ? en.retryModeAlways : value
+  fireEvent.click(screen.getByRole('menuitem', { name: label }))
+}
+function modeChoices(): HTMLElement[] {
+  fireEvent.click(mode())
+  const choices = screen.getAllByRole('menuitem')
+  fireEvent.keyDown(choices[0]!, { key: 'Escape' })
+  return choices
+}
 const input = (label: string) => screen.getByLabelText<HTMLInputElement>(label)
 const CODE_LABELS: Record<string, string> = {
   EMPTY_RESPONSE: en.retryCodeEmptyResponse,
@@ -92,10 +103,10 @@ describe('retry policy fields', () => {
   it('inherits by default and writes an explicitly chosen normal policy', async () => {
     const { writeSettings, onClose } = setup(deepSeekNamespace())
     expect(mode().value).toBe('')
-    expect(mode().selectedOptions[0]?.textContent).toBe(`Default (${en.retryModeNormal})`)
+    expect(mode().textContent).toBe(`Default (${en.retryModeNormal})`)
     expect(screen.queryByLabelText(en.retryMaxRetries)).toBeNull()
 
-    fireEvent.change(mode(), { target: { value: 'normal' } })
+    chooseMode('normal')
     expect(input(en.retryMaxRetries).placeholder).toBe('5')
     expect(['EMPTY_RESPONSE', 'RATE_LIMIT', 'SERVER', 'TIMEOUT', 'TRANSPORT'].every(code => code_(code).checked)).toBe(true)
     expect(code_('STREAM_CLOSED').checked).toBe(false)
@@ -130,7 +141,7 @@ describe('retry policy fields', () => {
     [en.retryJitter, '2', en.retryValueMax.replace('{max}', '1')],
   ])('refuses %s = %s', (label, value, message) => {
     setup(deepSeekNamespace())
-    fireEvent.change(mode(), { target: { value: 'normal' } })
+    chooseMode('normal')
     fireEvent.change(input(label), { target: { value } })
     expect(screen.getByText(message)).toBeTruthy()
     expect(input(label).getAttribute('aria-invalid')).toBe('true')
@@ -146,7 +157,7 @@ describe('retry policy fields', () => {
   it('explains a refused stored policy beside the fields, or outside the fold while it is closed', async () => {
     setup(deepSeekNamespace({ user: { retryPolicy: { mode: 'sometimes' } } }))
     expect(apply().disabled).toBe(true)
-    expect(mode().getAttribute('aria-describedby')).toBe('route-retry-failure')
+    expect(mode().getAttribute('aria-describedby')?.split(' ')).toContain('route-retry-failure')
     expect(document.getElementById('route-retry-failure')?.closest('details')).toBeNull()
     fireEvent.click(screen.getByText(en.customized))
     await waitFor(() => { expect(document.getElementById('route-retry-failure')?.closest('details')).not.toBeNull() })
@@ -169,7 +180,7 @@ describe('retry policy fields', () => {
 
   it('removes a stored policy without a mode when Default is chosen', async () => {
     const { writeSettings } = setup(deepSeekNamespace({ user: { retryPolicy: { backoff: { maxDelayMs: 2_000 } } } }))
-    fireEvent.change(mode(), { target: { value: '' } })
+    chooseMode('')
     fireEvent.click(apply())
     await waitFor(() => { expect(writeSettings).toHaveBeenCalled() })
     expect(writeSettings.mock.calls[0]?.[1]).toEqual([{ op: 'unset', path: ['retryPolicy'] }])
@@ -241,11 +252,11 @@ describe('retry policy fields', () => {
 
   it('drops an uncorrectable retry count when switching to always', async () => {
     const { writeSettings } = setup(deepSeekNamespace())
-    fireEvent.change(mode(), { target: { value: 'normal' } })
+    chooseMode('normal')
     fireEvent.change(input(en.retryMaxRetries), { target: { value: 'many' } })
     fireEvent.change(input(en.retryJitter), { target: { value: '  ' } })
     expect(input(en.retryJitter).value).toBe('')
-    fireEvent.change(mode(), { target: { value: 'always' } })
+    chooseMode('always')
     expect(apply().disabled).toBe(false)
     fireEvent.click(apply())
     await waitFor(() => { expect(writeSettings).toHaveBeenCalled() })
@@ -260,13 +271,13 @@ describe('retry policy fields', () => {
     expect(mode().value).toBe('normal')
     expect(input(en.retryMaxRetries).value).toBe('1')
     expect(input(en.retryMaxDelay).placeholder).toBe('2000')
-    expect(screen.getByRole('option', { name: `Default (${en.retryModeAlways})` })).toBeTruthy()
+    expect(modeChoices().map(choice => choice.textContent)).toContain(`Default (${en.retryModeAlways})`)
 
-    fireEvent.change(mode(), { target: { value: 'always' } })
+    chooseMode('always')
     expect(screen.getByText(en.retryAlwaysHint)).toBeTruthy()
     expect(screen.queryByLabelText(en.retryMaxRetries)).toBeNull()
 
-    fireEvent.change(mode(), { target: { value: '' } })
+    chooseMode('')
     expect(screen.queryByLabelText(en.retryMaxDelay)).toBeNull()
     fireEvent.click(apply())
     await waitFor(() => { expect(writeSettings).toHaveBeenCalled() })
@@ -275,7 +286,7 @@ describe('retry policy fields', () => {
 
   it('writes a pi-ai route policy under its profile path', async () => {
     const { writeSettings } = setup(piAiNamespace(), ['providers', 'openai'])
-    fireEvent.change(mode(), { target: { value: 'always' } })
+    chooseMode('always')
     fireEvent.change(input(en.retryInitialDelay), { target: { value: '250' } })
     fireEvent.change(input(en.retryInitialDelay), { target: { value: '' } })
     fireEvent.click(apply())
@@ -298,9 +309,9 @@ describe('retry policy fields', () => {
       Schema.object({ mode: Schema.const('always').required() }),
     ])
     const { writeSettings } = setup({ ...namespace, schema: json(Schema.object({ retryPolicy: policy })) })
-    expect(mode().selectedOptions[0]?.textContent).toBe('Default (patient)')
-    expect(screen.getByRole('option', { name: en.retryModeAlways })).toBeTruthy()
-    fireEvent.change(mode(), { target: { value: 'patient' } })
+    expect(mode().textContent).toBe('Default (patient)')
+    expect(modeChoices().map(choice => choice.textContent)).toContain(en.retryModeAlways)
+    chooseMode('patient')
     expect(input('attempts').inputMode).toBe('numeric')
     expect(input(en.retryMaxDelay).inputMode).toBe('decimal')
     expect(input(en.retryMaxDelay).placeholder).toBe('')
@@ -322,7 +333,7 @@ describe('retry policy fields', () => {
 
   it('adds a custom code, ignores blanks and duplicates, keeps it after unchecking, and saves it', async () => {
     const { writeSettings, onClose } = setup(deepSeekNamespace())
-    fireEvent.change(mode(), { target: { value: 'normal' } })
+    chooseMode('normal')
     expect(code_('STREAM_CLOSED').checked).toBe(false)
     expect(addCode().disabled).toBe(true)
     fireEvent.change(customCode(), { target: { value: '   ' } })
@@ -367,15 +378,15 @@ describe('retry policy fields', () => {
     const namespace = deepSeekNamespace()
     const policy = Schema.union([Schema.object({ backoff: Schema.object({}) }), Schema.const(false)])
     setup({ ...namespace, schema: json(Schema.object({ retryPolicy: policy })) })
-    expect(mode().options).toHaveLength(1)
+    expect(modeChoices()).toHaveLength(1)
     cleanup()
     setup({ ...namespace, schema: json(Schema.object({ retryPolicy: Schema.object({ mode: Schema.string() }) })) })
-    expect(mode().options).toHaveLength(1)
+    expect(modeChoices()).toHaveLength(1)
   })
 
   it('lists no inherited codes when the inherited value is not a list', () => {
     setup(deepSeekNamespace({ base: { retryPolicy: { mode: 'normal', retryableCodes: 'SERVER' } } }))
-    fireEvent.change(mode(), { target: { value: 'normal' } })
+    chooseMode('normal')
     expect(code_('SERVER').checked).toBe(false)
   })
 
@@ -390,7 +401,7 @@ describe('retry policy fields', () => {
       user: { retryPolicy: { mode: 'normal', maxRetries: 2, backoff: { maxDelayMs: 2_000 } } },
     }))
     expect(input(en.retryMaxDelay).value).toBe('2000')
-    fireEvent.change(mode(), { target: { value: 'always' } })
+    chooseMode('always')
     fireEvent.click(apply())
     await waitFor(() => { expect(writeSettings).toHaveBeenCalled() })
     expect(writeSettings.mock.calls[0]?.[1]).toEqual([

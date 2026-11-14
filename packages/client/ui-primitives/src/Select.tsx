@@ -10,7 +10,7 @@ import css from './Select.module.css'
  * @param props - Selected value, options, accessible label and change callback.
  * @returns A button and a viewport-bounded menu; selection restores button focus.
  */
-export function Select<Value extends string>({ value, options, onChange, label, id, disabled = false, invalid, className }: {
+export function Select<Value extends string>({ value, options, onChange, label, id, disabled = false, invalid, descriptionId, className }: {
   value: Value
   options: readonly { value: Value; label: string; disabled?: boolean }[]
   onChange: (value: Value) => void
@@ -18,6 +18,8 @@ export function Select<Value extends string>({ value, options, onChange, label, 
   id?: string
   disabled?: boolean
   invalid?: boolean
+  /** Additional help or validation text read after the selected option. */
+  descriptionId?: string | undefined
   className?: string | undefined
 }) {
   const [open, setOpen] = useState(false)
@@ -36,7 +38,7 @@ export function Select<Value extends string>({ value, options, onChange, label, 
       onChange(option.value)
     }}
     anchor={<button ref={trigger} id={id} type="button" value={value} aria-label={label} aria-invalid={invalid}
-      aria-haspopup="menu" aria-expanded={open && !disabled} aria-describedby={selectedLabelId} disabled={disabled}
+      aria-haspopup="menu" aria-expanded={open && !disabled} aria-describedby={descriptionId === undefined ? selectedLabelId : `${selectedLabelId} ${descriptionId}`} disabled={disabled}
       onKeyDown={(event) => {
         if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
         event.preventDefault()
