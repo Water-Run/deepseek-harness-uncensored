@@ -266,6 +266,7 @@ function mount(
     if (key === 'conversation.session') {
       return (
         <ConversationSession
+          draftWorkspacePath={undefined}
           sessionId={SID}
           SessionProvider={({ children }) => children}
           useSession={useSession}

@@ -442,6 +442,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
             },
           },
         },
+        draftWorkspacePath: ctx.sessions.list.getSnapshot().byId[sessionId]?.cwd,
         bindDraftPersistence: write => inputHub.shell(sessionId).bindDraftPersistence(write),
         openView,
       }

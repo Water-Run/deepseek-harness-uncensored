@@ -435,6 +435,7 @@ function mount(fixture: Awaited<ReturnType<typeof bench>>) {
         t={tConversation}
       />
       <ConversationSession
+        draftWorkspacePath={undefined}
         {...standardProps}
         SessionProvider={({ children }) => children}
         useStore={bindSnapshotSelector(conversation)}

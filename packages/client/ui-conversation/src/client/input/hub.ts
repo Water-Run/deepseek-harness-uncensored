@@ -185,7 +185,8 @@ export class InputHub implements SessionInputResolver {
     // where leaving and re-entering the new-conversation slot keeps its text.
     const own = readConversationDraft(binding.sessionId)
     const empty = own.text === '' && own.references.length === 0
-    const carried = empty && session.getSnapshot().blank ? readNewConversationDraft() : undefined
+    const workspacePath = this.sessions().list.getSnapshot().byId[binding.sessionId]?.cwd
+    const carried = empty && session.getSnapshot().blank ? readNewConversationDraft(workspacePath) : undefined
     shell.setDraft(carried ?? own)
     return shell
   }

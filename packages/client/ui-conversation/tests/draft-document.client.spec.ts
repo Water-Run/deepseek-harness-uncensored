@@ -173,25 +173,28 @@ describe('draft document values', () => {
   })
 
   it('keeps and clears the carried new-conversation draft', () => {
-    const key = 'dsh.conversation.new'
+    const workspacePath = '/draft-document-origin'
+    const key = `dsh.conversation.new:${JSON.stringify(workspacePath)}`
     const previous = localStorage.getItem(key)
     onTestFinished(() => {
       if (previous === null) localStorage.removeItem(key)
       else localStorage.setItem(key, previous)
     })
     localStorage.removeItem(key)
-    expect(readNewConversationDraft()).toBeUndefined()
+    expect(readNewConversationDraft(workspacePath)).toBeUndefined()
 
     const draft = documentOf('unsent ', file)
-    writeNewConversationDraft(draft)
-    expect(readNewConversationDraft()).toEqual(draft)
+    writeNewConversationDraft(workspacePath, draft)
+    expect(readNewConversationDraft(workspacePath)).toEqual(draft)
+    expect(readNewConversationDraft('/draft-document-other')).toBeUndefined()
+    expect(readNewConversationDraft(undefined)).toBeUndefined()
 
     // Malformed storage is ignored rather than crashing the next new conversation.
     localStorage.setItem(key, '{not json')
-    expect(readNewConversationDraft()).toBeUndefined()
+    expect(readNewConversationDraft(workspacePath)).toBeUndefined()
 
-    writeNewConversationDraft(draft)
-    writeNewConversationDraft({ text: '', references: [] })
+    writeNewConversationDraft(workspacePath, draft)
+    writeNewConversationDraft(workspacePath, { text: '', references: [] })
     expect(localStorage.getItem(key)).toBeNull()
   })
 

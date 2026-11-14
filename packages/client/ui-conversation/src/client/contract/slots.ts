@@ -483,6 +483,8 @@ export interface ConversationInjected {
 
 /** Business callbacks injected into the strict Session body. */
 export interface ConversationSessionInjected {
+  /** Directory isolating the new-conversation draft; undefined for unbound conversations. */
+  readonly draftWorkspacePath: string | undefined
   /** Package-owned View roster source bound only for the Conversation body. */
   readonly hooks: {
     readonly conversationViews: ObservableSnapshot<readonly ViewTab[]>

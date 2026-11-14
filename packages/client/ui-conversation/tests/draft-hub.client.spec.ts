@@ -25,7 +25,7 @@ const saved: DraftSnapshot = {
   }],
 }
 
-async function storedSession(draft: unknown, blank = false) {
+async function storedSession(draft: unknown, blank = false, workspacePath?: string) {
   const id = SessionId(`draft-hub-${randomUUID()}`)
   const key = `dsh.conversation.${id}`
   const previous = localStorage.getItem(key)
@@ -44,7 +44,8 @@ async function storedSession(draft: unknown, blank = false) {
   ctx.provide('sessions', sessions)
   await sessions.add({
     id,
-    ...blank ? { snapshot: { blank: true }, summary: { blank: true } } : {},
+    ...blank ? { snapshot: { blank: true } } : {},
+    summary: { ...blank ? { blank: true } : {}, ...workspacePath === undefined ? {} : { cwd: workspacePath } },
   })
   const reference = sessions.retain(id)
   onTestFinished(() => { reference.release() })
@@ -312,7 +313,7 @@ it('unsubscribes the lexicon and refuses the old binding after Session disposal'
   expect(() => b.hub.requestDraftInitialization(b.binding, { prompt: 'late edit' })).toThrow('retained Session binding')
 })
 
-it('restores the unsent new-conversation draft into a fresh blank Session only', async () => {
+it('restores each Session draft without borrowing an unrelated legacy blank draft', async () => {
   const slot = 'dsh.conversation.new'
   const previous = localStorage.getItem(slot)
   onTestFinished(() => {
@@ -321,15 +322,39 @@ it('restores the unsent new-conversation draft into a fresh blank Session only',
   })
   localStorage.setItem(slot, JSON.stringify(saved))
 
-  // The new-conversation slot is a fresh blank Session: it adopts the carried
-  // text instead of starting empty, while an ordinary conversation keeps its
-  // own saved draft.
   const blank = await storedSession(undefined, true)
-  expect(blank.hub.shellFor(blank.binding).draftSnapshot).toEqual(saved)
+  expect(blank.hub.shellFor(blank.binding).draftSnapshot).toEqual({ text: '', references: [] })
 
   const ordinary = await storedSession(undefined)
   expect(ordinary.hub.shellFor(ordinary.binding).draftSnapshot).toEqual({ text: '', references: [] })
-  // A blank Session with its own stored text keeps that instead of the slot.
+  const empty = await storedSession('', true)
+  expect(empty.hub.shellFor(empty.binding).draftSnapshot).toEqual({ text: '', references: [] })
+
   const own = await storedSession('/own text', true)
+  expect(own.hub.shellFor(own.binding).draftSnapshot).toEqual({ text: '/own text', references: [] })
+  expect(localStorage.getItem(slot)).toBe(JSON.stringify(saved))
+})
+
+it('carries unsent blank drafts only within their Workspace or unbound slot', async () => {
+  const path = '/draft-hub-origin'
+  const values = [
+    [`dsh.conversation.new:${JSON.stringify(path)}`, saved],
+    ['dsh.conversation.new:null', { text: 'Unbound draft', references: [] }],
+  ] as const
+  for (const [key, draft] of values) {
+    const previous = localStorage.getItem(key)
+    onTestFinished(() => {
+      if (previous === null) localStorage.removeItem(key)
+      else localStorage.setItem(key, previous)
+    })
+    localStorage.setItem(key, JSON.stringify(draft))
+  }
+  const source = await storedSession(undefined, true, path)
+  expect(source.hub.shellFor(source.binding).draftSnapshot).toEqual(saved)
+  const other = await storedSession(undefined, true, '/draft-hub-other')
+  expect(other.hub.shellFor(other.binding).draftSnapshot).toEqual({ text: '', references: [] })
+  const unbound = await storedSession(undefined, true)
+  expect(unbound.hub.shellFor(unbound.binding).draftSnapshot).toEqual({ text: 'Unbound draft', references: [] })
+  const own = await storedSession('/own text', true, path)
   expect(own.hub.shellFor(own.binding).draftSnapshot).toEqual({ text: '/own text', references: [] })
 })

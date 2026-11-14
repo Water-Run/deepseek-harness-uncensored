@@ -6,8 +6,8 @@ import type { DraftInput, DraftQuote, DraftReference, DraftSnapshot, Occurrence 
 
 /* The new-conversation slot outlives the Session that typed it: a blank
    Session is hidden from the list once it stops being current, so its own
-   per-Session draft would become unreachable. This browser-local copy follows
-   the slot instead, and is cleared once the prompt is sent or the text is. */
+   per-Session draft would become unreachable. Each Workspace keeps its own browser-local slot,
+   cleared once its prompt is sent or the text is. */
 const NEW_CONVERSATION_DRAFT_KEY = 'dsh.conversation.new'
 
 const referenceSchema = z.object({
@@ -101,13 +101,14 @@ export function parseStoredDraft(value: unknown): DraftSnapshot | undefined {
 }
 
 /**
- * Read the unsent draft of the new-conversation slot.
+ * Read the unsent draft of this Workspace's new-conversation slot.
+ * @param workspacePath - Workspace directory, or undefined for unbound conversations.
  * @returns the saved draft, or undefined when nothing usable is stored.
  */
-export function readNewConversationDraft(): DraftSnapshot | undefined {
+export function readNewConversationDraft(workspacePath: string | undefined): DraftSnapshot | undefined {
   if (typeof localStorage === 'undefined') return undefined
   try {
-    const raw = localStorage.getItem(NEW_CONVERSATION_DRAFT_KEY)
+    const raw = localStorage.getItem(`${NEW_CONVERSATION_DRAFT_KEY}:${JSON.stringify(workspacePath ?? null)}`)
     if (raw === null) return undefined
     return parseStoredDraft(JSON.parse(raw))
   } catch (_error: unknown) {
@@ -119,13 +120,15 @@ export function readNewConversationDraft(): DraftSnapshot | undefined {
 /**
  * Remember the new-conversation slot's draft, or clear it for an empty one
  * (sent, deleted by hand, or handed to a started conversation).
+ * @param workspacePath - Workspace directory, or undefined for unbound conversations.
  * @param draft - semantic draft currently held by a blank Session.
  */
-export function writeNewConversationDraft(draft: DraftSnapshot): void {
+export function writeNewConversationDraft(workspacePath: string | undefined, draft: DraftSnapshot): void {
+  const key = `${NEW_CONVERSATION_DRAFT_KEY}:${JSON.stringify(workspacePath ?? null)}`
   if (typeof localStorage === 'undefined') return
   try {
-    if (draft.text === '' && draft.references.length === 0) localStorage.removeItem(NEW_CONVERSATION_DRAFT_KEY)
-    else localStorage.setItem(NEW_CONVERSATION_DRAFT_KEY, JSON.stringify(draft))
+    if (draft.text === '' && draft.references.length === 0) localStorage.removeItem(key)
+    else localStorage.setItem(key, JSON.stringify(draft))
   } catch (_error: unknown) {
     // Unavailable browser storage keeps the draft in the mounted editor only.
   }

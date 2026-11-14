@@ -11,14 +11,14 @@ const EMPTY_DRAFT = { text: '', references: [] } as const
 /**
  * Renders the active Session view inside the resident scrollport and keeps
  * the input draft persisted while blank Hero chrome is visible. A blank
- * Session also mirrors its draft into the new-conversation slot, so switching
+ * Session also mirrors its draft into its Workspace's new-conversation slot, so switching
  * to another conversation and starting a new one brings the unsent text back.
  * @param props - Strict Session input/store, view ledger, and render shares.
  * @returns the active view area, or null while the Session remains blank.
  */
 export function DefaultConversationViews({
   view, compact, fromSeq, useSession, useConversation, useConversationViews, inputActions, useStore, actions,
-  renderSlot, bindDraftPersistence, openView, useInspectCall,
+  renderSlot, bindDraftPersistence, draftWorkspacePath, openView, useInspectCall,
 }: ConversationSessionSlotProps) {
   const tabs = useConversationViews(value => value)
   const inspectCall = useInspectCall(value => value)
@@ -38,20 +38,20 @@ export function DefaultConversationViews({
       actions.setDraft(draft)
       if (!blank.current) return
       mirrored.current = true
-      writeNewConversationDraft(draft)
+      writeNewConversationDraft(draftWorkspacePath, draft)
     })
     inputActions.persistDraft()
     return () => { unbindDraftPersistence() }
     // The Session input owns content before this persistence writer is attached.
-  }, [inputActions])
+  }, [inputActions, draftWorkspacePath])
 
   useEffect(() => {
     // The slot was spent: its first prompt started a conversation, so the
     // carried draft must not greet the next new conversation.
     if (session.blank || !mirrored.current) return
     mirrored.current = false
-    writeNewConversationDraft(EMPTY_DRAFT)
-  }, [session.blank])
+    writeNewConversationDraft(draftWorkspacePath, EMPTY_DRAFT)
+  }, [session.blank, draftWorkspacePath])
 
   if (session.blank && conversationPhase(session, conversation) === 'blank') return null
   const viewId = view ?? active?.id
