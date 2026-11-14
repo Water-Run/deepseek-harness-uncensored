@@ -47,8 +47,9 @@ export async function smokeDesktopRuntime(
     DSH_HOME: home, HOME: home, USERPROFILE: home,
     XDG_CONFIG_HOME: home, XDG_CACHE_HOME: home, XDG_STATE_HOME: home,
     APPDATA: home, LOCALAPPDATA: home,
-    npm_config_userconfig: join(home, 'npmrc'), npm_config_globalconfig: join(home, 'npmrc'),
-    npm_config_store_dir: join(home, 'store'), npm_config_enable_global_virtual_store: 'false',
+    npm_config_userconfig: join(home, 'npmrc'),
+    pnpm_config_store_dir: join(home, 'store'), pnpm_config_enable_global_virtual_store: 'false',
+    pnpm_config_update_notifier: 'false',
   }
   const host = new DesktopHostProcess(node, root, profile, undefined, hostEnvironment,
     undefined, join(resourcesRuntime, 'primary-runtime'),

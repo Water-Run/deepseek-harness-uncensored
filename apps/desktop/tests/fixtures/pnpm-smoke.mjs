@@ -50,12 +50,20 @@ console.log('desktop-node-script-ok')
         PATH: `${join(resourcesRuntime, 'bin')}${delimiter}${systemBin}`,
         HOME: scratch, USERPROFILE: scratch, TMP: scratch, TEMP: scratch, TMPDIR: scratch,
         XDG_CONFIG_HOME: scratch, XDG_CACHE_HOME: scratch, XDG_STATE_HOME: scratch,
-        npm_config_userconfig: join(scratch, 'npmrc'), npm_config_globalconfig: join(scratch, 'npmrc'),
-        npm_config_store_dir: join(scratch, 'store'), npm_config_enable_global_virtual_store: 'false',
-        npm_config_update_notifier: 'false' },
+        npm_config_userconfig: join(scratch, 'npmrc'),
+        pnpm_config_store_dir: join(scratch, 'store'), pnpm_config_enable_global_virtual_store: 'false',
+        pnpm_config_update_notifier: 'false' },
     })
     assert.equal(run(['--version']).trim(), versions.pnpm)
+    for (const [setting, expected] of [
+      ['store-dir', join(scratch, 'store')],
+      ['enable-global-virtual-store', 'false'],
+      ['update-notifier', 'false'],
+    ]) {
+      assert.equal(run(['config', 'get', setting]).trim(), expected, `Packaged pnpm must apply ${setting}`)
+    }
     run(['install', '--offline', '--ignore-scripts'])
+    assert.ok(existsSync(join(scratch, 'store')), 'Offline installation must use its private store')
     assert.match(run(['run', 'check']), /desktop-node-script-ok/u)
   } finally {
     await rm(scratch, { recursive: true, force: true, maxRetries: 20, retryDelay: 50 })
