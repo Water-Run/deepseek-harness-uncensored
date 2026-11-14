@@ -31,6 +31,8 @@ For a Security case note, **Save to memory** opens the shared editor with the no
 
 Mount the package in the browser roster beside `@deepseek-ai/dsh-api-mode-dossiers`. It requires the mode section's slot declaration (owned by `@deepseek-ai/dsh-client-ui-agent-preset`), the Workspace UI service for the workspace picker, and the Remote namespace.
 
+The workspace bar shows the loaded directory path. Before a workspace is selected, it shows one selection hint and keeps workspace-dependent actions disabled.
+
 | Panel | Mode | Content |
 |---|---|---|
 | `SecurityMaterials` | `security` | Case list, a new-case dialog, the open ledger with objective, targets, evidence, findings and notes, and the rendered report |

@@ -1,43 +1,100 @@
 - dialog "设置":
   - text: 设置
   - navigation:
-    - button "通用设置"
+    - button "通用"
     - button "模型"
-    - button "内置插件"
-    - button "Agent 预设"
+    - button "额度"
+    - button "模式"
+    - button "插件"
   - button "打开配置文件"
   - button "关闭"
-  - heading "Agent 预设" [level=2]
-  - paragraph: 选择 Agent 的工具和工作方式。日常任务用「标准模式」，扩展 DSH 的能力用「创造模式」。
-  - heading "内置" [level=3]
+  - heading "模式" [level=2]
+  - paragraph: 选择当前对话使用的模式。各模式自己的配置在下方，与这个选择无关。
+  - heading "当前模式" [level=3]
   - list:
     - listitem:
-      - 'button "新任务默认: 标准模式" [disabled] [pressed]':
-        - text: 标准模式 新任务默认
-        - code: standard
-        - text: 处理代码、文件和资料，适合大多数任务。Agent 会按需使用检索、编辑和终端等工具。
-      - 'button "模式说明: 标准模式"': 模式说明
-      - 'button "查看配置: 标准模式"': 查看配置
+      - 'button "当前选择: 缺省" [disabled] [pressed]': 缺省 新任务默认 开发与日常任务：读写文件、执行命令、检索资料，并拆分任务协作。
+      - 'button "模式说明: 缺省"': 模式说明
+      - 'button "查看配置: 缺省"'
     - listitem:
-      - 'button "设为新任务默认: PTC 模式"':
-        - text: PTC 模式 内置
-        - code: ptc
-        - text: 包含标准模式的所有能力，更适合批量调用工具，并对结果进行筛选、整理、去重、统计或汇总的任务。
-      - 'button "模式说明: PTC 模式"': 模式说明
-      - 'button "查看配置: PTC 模式"': 查看配置
+      - 'button "选择模式: 网安"': 网安 内置 安全分析与测试：检查代码和配置、复现问题、验证修复，并保留可复核的操作与结果。
+      - button "配置"
+      - 'button "模式说明: 网安"': 模式说明
+      - 'button "查看配置: 网安"'
     - listitem:
-      - 'button "设为新任务默认: 极简模式"':
-        - text: 极简模式 内置
-        - code: minimal
-        - text: Agent 使用终端和图片读取工具，并支持上下文压缩，适合测试和对比其基础表现。
-      - 'button "模式说明: 极简模式"': 模式说明
-      - 'button "查看配置: 极简模式"': 查看配置
+      - 'button "选择模式: 逆向"': 逆向 内置 分析程序、二进制与协议，追踪调用和运行行为，用证据还原实现。
+      - button "配置"
+      - 'button "模式说明: 逆向"': 模式说明
+      - 'button "查看配置: 逆向"'
     - listitem:
-      - 'button "设为新任务默认: 创造模式"':
-        - text: 创造模式 内置
-        - code: cordis
-        - text: 用对话定制 DSH：让 Agent 编写插件，添加新功能或界面；也能组合工具和提示词，创建自己的模式。
-      - 'button "模式说明: 创造模式"': 模式说明
-      - 'button "查看配置: 创造模式"': 查看配置
-  - heading "自定义" [level=3]
-  - button "让 Agent 帮我创建预设模式"
+      - 'button "选择模式: 写作"': 写作 内置 小说、剧本与长文创作：整理资料、续写和润色，保持人物、视角与情节一致。
+      - button "配置"
+      - 'button "模式说明: 写作"': 模式说明
+      - 'button "查看配置: 写作"'
+  - text: 允许已有会话切换模式
+  - paragraph: 默认关闭，重启后自动关闭。新对话始终可以选择模式，已有对话仅在空闲时允许切换。
+  - switch "允许已有会话切换模式"
+  - heading "模式配置" [level=3]
+  - paragraph: 在这里配置某个模式的资料与选项，不会切换当前对话的模式。
+  - button "可配置的模式": 网安
+  - region "网安":
+    - button "管理此模式的记忆"
+    - text: 工作区 尚未选择工作区
+    - button "选择工作区…"
+    - button "重新读取" [disabled]
+    - paragraph: 模式资料保存在工作区里。选择工作区后，这里会显示它已有的案件与写作资料。
+    - heading "网安资料" [level=3]
+    - paragraph: 案件、目标、证据、发现与备注写入 .security/<slug>/case.json，与 casefile.mjs 使用同一格式。
+    - paragraph: 这里的目标只是案件资料。本版本尚未执行境内域名与生产环境保护，记录目标不会阻止任何操作。
+    - button "新建案件" [disabled]
+    - paragraph: 这个工作区还没有网安案件。
+    - region "网安独立代理":
+      - heading "网安独立代理" [level=3]
+      - paragraph: 网安对话的目标访问可以统一经这个上游代理发出。其他模式、模型请求、登录、余额和更新检查都不会走它。
+      - text: 让网安流量经过这个代理
+      - paragraph: 默认关闭。只影响网安模式，应用其他部分保持原有网络路径。
+      - switch "让网安流量经过这个代理"
+      - status: 已关闭 尚未检查
+      - text: 协议
+      - button "协议": HTTP
+      - text: 代理地址
+      - textbox "代理地址":
+        - /placeholder: proxy.example.com 或 127.0.0.1
+      - text: 端口
+      - textbox "端口": "8080"
+      - text: 代理身份验证
+      - paragraph: 密码保存在凭据系统中，不写入普通设置、流量记录或错误文案。
+      - switch "代理身份验证"
+      - button "保存并验证" [disabled]
+      - button "测试连接" [disabled]
+      - text: 网安模式未开启此代理时提醒
+      - paragraph: 默认关闭。开启后，独立代理关闭时会在网安对话顶部持续提示。
+      - switch "网安模式未开启此代理时提醒"
+      - heading "覆盖范围" [level=4]
+      - list:
+        - listitem: 网页抓取 完整捕获
+        - listitem: 命令与持久终端 已转发，HTTPS 正文保持加密
+        - listitem: 桌面侧栏与新启动浏览器 已转发，HTTPS 正文保持加密
+        - listitem: MCP 工具与资源 已转发，HTTPS 正文保持加密
+        - listitem: 外部委派 已转发，HTTPS 正文保持加密
+        - listitem: 应用模型与控制请求 不经过代理
+      - paragraph: 支持桌面浏览器侧栏，以及 Playwright MCP、Chrome DevTools MCP 和 Stagehand 的 launch 模式。桌面标签在代理或模式变化后重新连接；Web 内嵌页面及外部浏览器附加连接不在范围内，实验浏览器需重建会话。
+      - paragraph: Streamable HTTP 调用经独立代理，stdio 服务接收代理环境变量。启动发现使用应用路由。
+      - paragraph: 支持此功能的 ACP、Codex、Claude Code 和 DSH SDK 插件将父会话代理设置传给新进程，实际路由取决于子进程是否遵守。
+      - heading "已捕获流量" [level=4]
+      - text: 保留 0 / 0 条，正文共 0B。
+      - button "刷新"
+      - button "暂停采集"
+      - button "清理记录"
+      - textbox "按方法、目标或工具筛选"
+      - button "全部"
+      - paragraph: 还没有捕获到流量。
+    - region "目标保护":
+      - heading "目标保护" [level=3]
+      - paragraph: 为受控工具和网络入口配置生产保护与测试例外。
+      - button "刷新"
+      - status: 无法确认操作结果，请刷新查看已保存的版本
+    - region "准入审计":
+      - heading "准入审计" [level=3]
+      - paragraph: 查看最近最多 100 条执行前判定，任务结果可在对应对话中查看。
+      - button "查看审计记录"

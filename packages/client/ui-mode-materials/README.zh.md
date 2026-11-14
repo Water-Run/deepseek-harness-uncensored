@@ -31,6 +31,8 @@ kind: "package-reference"
 
 把本包挂在浏览器清单中 `@deepseek-ai/dsh-api-mode-dossiers` 旁边。它依赖模式分组的槽位声明（由 `@deepseek-ai/dsh-client-ui-agent-preset` 拥有）、用于选择工作区的 Workspace 界面服务，以及 Remote 命名空间。
 
+工作区栏显示已加载的目录路径。尚未选择工作区时，只显示一次选择提示，并禁用依赖工作区的操作。
+
 | 面板 | 模式 | 内容 |
 |---|---|---|
 | `SecurityMaterials` | `security` | 案件列表、新建案件对话框、打开后的目标/证据/发现/备注与目标说明，以及渲染出的报告 |

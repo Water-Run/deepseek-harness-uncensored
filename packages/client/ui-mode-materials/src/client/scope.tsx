@@ -68,10 +68,10 @@ export function ScopeBar({ state, items, scope, t, load, pickDirectory, createWo
         {t('reload')}
       </Button>
     </div>
-    <p className={css.scopePath} title={state.inventory?.workspace?.path}>
-      {state.inventory?.workspace?.path ?? t('scope.noneHint')}
-    </p>
-    {state.workspaceId === undefined && items.length === 0
+    {state.inventory?.workspace?.path === undefined ? null : <p className={css.scopePath} title={state.inventory.workspace.path}>
+      {state.inventory.workspace.path}
+    </p>}
+    {state.workspaceId === undefined
       ? <p className={css.hint}>{t('scope.noneHint')}</p>
       : <p className={css.hint}>{t('scope.range')}</p>}
     {failure === undefined
