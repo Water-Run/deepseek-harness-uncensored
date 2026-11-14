@@ -11,6 +11,8 @@
     { "path": "../../computer-use/computer-use" },
     { "path": "../../core/tools" },
     { "path": "../../core/system-prompt" },
-    { "path": "../../mcp/mcp-client" }
+    { "path": "../../mcp/mcp-client" },
+    { "path": "../../llm/llm" },
+    { "path": "../../guard/target-protection" }
   ]
 }
