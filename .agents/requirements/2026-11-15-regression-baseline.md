@@ -109,7 +109,7 @@ Windows 桌面最初复现渠道、打包夹具及欢迎页问题。修正后完
 
 原生复验使用当前源码构建的桌面壳和客户端，并复用已核对的第 5 版 Electron 与主运行时；这是源码验证，不是新安装包。隔离 HOME 配置 XDG 文档目录，使用测试凭据，不发模型请求。X11 和 Wayland 中主界面与重载均显示默认工作区，磁盘目录实际存在，未观察到控制台错误或 HTTP 失败，renderer 保留 seccomp 与 NoNewPrivs。较早的工作区创建提示由隔离 HOME 未配置 Documents 引起，没有给产品增加猜测路径的回退。首次源码启动因开发 Electron 缓存缺失退出，后续使用已有、已验证的 Electron 分发物，未删除依赖或改变沙箱。
 
-证据位于同日交付目录：`native-404-detail.json`、`native-optional-settings-negative.log`、`native-optional-boot-negative.log`、`native-optional-settings-unit.log`、`native-optional-boot-positive.log`、`source-native-startup.json`、`source-native-wayland.json` 及 `source-native*-main.png`。源码回执记录测试前 HEAD、脏状态、控制器摘要与基线运行时提交；首份未区分源码和基线的元信息另行保留。此修复待后续打包，系统安装版仍为 `2026.11.15.5`。
+证据位于同日交付目录：`native-404-detail.json`、`native-optional-settings-negative.log`、`native-optional-boot-negative.log`、`native-optional-settings-unit.log`、`native-optional-boot-positive.log`、`source-native-startup.json`、`source-native-wayland.json` 及 `source-native*-main.png`。源码回执记录测试前 HEAD、脏状态、控制器摘要与基线运行时提交；首份未区分源码和基线的元信息另行保留。此修复已随 `2026.11.15.6` 打包，Windows 实装和 Linux 实际归档复验通过。
 
 ## 权限、自动审查与默认装配
 
@@ -123,7 +123,7 @@ Windows 桌面最初复现渠道、打包夹具及欢迎页问题。修正后完
 
 布局夹具显式选择标准工作步骤与完成后收起，以保留折叠间距验证。标题栏避让和窄屏抽屉测试使用 Settings 内的插件入口；打开设置保留后面的导航状态，实际页面导航仍关闭抽屉。插件滚动验收改为当前 Settings 的滚动容器，覆盖可选市场、390/600/1280px、滚动往返、末尾卡片、滚动条占位及保留控件；移除已无产品入口的独立插件页几何预期。
 
-本批 32 个场景均取得通过记录，但最后一次整组只读回放为 31 项通过、1 项原生拖拽超时；该项独立诊断又出现一次排序不变，添加事件记录后通过，根因未确认。按钮的两项独立视觉复验及插件夹具清单检查通过；检查了会话、工作区操作按钮截图。两批累计新增 50 个有通过记录的场景，九批合计 301 个，处理了原基线中另外 16 个失败条目（其中 3 项迁移到当前设置内滚动布局），并单独保留新发现的拖拽异常。Windows/Linux 产物构建、最终聚合类型检查通过；全仓 lint 报告的新夹具三条格式问题修正后，全部出站 TypeScript 定向 lint 通过。记录见 `cohort-l-*`、`cohort-kl-*`，拖拽记录为 `cohort-l-readonly`、`cohort-l-drag-diagnostic` 和 `cohort-l-drag-events`。改动待后续打包，系统安装版仍为 `2026.11.15.5`；完整 Web 与已记录的 OpenAI 编辑入口间歇超时仍待跟踪。
+本批 32 个场景均取得通过记录，但最后一次整组只读回放为 31 项通过、1 项原生拖拽超时；该项独立诊断又出现一次排序不变，添加事件记录后通过，根因未确认。按钮的两项独立视觉复验及插件夹具清单检查通过；检查了会话、工作区操作按钮截图。两批累计新增 50 个有通过记录的场景，九批合计 301 个，处理了原基线中另外 16 个失败条目（其中 3 项迁移到当前设置内滚动布局），并单独保留新发现的拖拽异常。Windows/Linux 产物构建、最终聚合类型检查通过；全仓 lint 报告的新夹具三条格式问题修正后，全部出站 TypeScript 定向 lint 通过。记录见 `cohort-l-*`、`cohort-kl-*`，拖拽记录为 `cohort-l-readonly`、`cohort-l-drag-diagnostic` 和 `cohort-l-drag-events`。改动已随 `2026.11.15.6` 交付；完整 Web 与已记录的 OpenAI 编辑入口间歇超时仍待跟踪。
 
 ## 拖拽坐标采样与行入场动画
 

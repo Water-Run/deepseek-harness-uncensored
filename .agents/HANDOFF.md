@@ -6,52 +6,51 @@
 
 | 项目 | 当前状态 |
 | --- | --- |
-| 产品版本 | `2026.11.15.5`，内部版本 `2026.1115.5` |
+| 产品版本 | `2026.11.15.6`，内部版本 `2026.1115.6` |
 | Windows x64 | 已保留数据安装；关于、CLI、文件资源、卸载登记和主载荷版本一致 |
-| Linux x64 | deb/tar.gz、CLI/API、隔离 X11/Wayland 欢迎页与渲染沙箱通过 |
-| 构建源码 | `922ccfe9b6caa0b8160b141ae203f620f2b34d7c`；后续交付文档不改变程序字节 |
+| Linux x64 | deb/tar.gz、CLI/API、隔离 X11/Wayland 主界面、重载与渲染沙箱通过 |
+| 构建源码 | `4373ba0f8d21f6c2f11604fa27ca836006b90ea8`；后续源码改动不改变这份安装包 |
 | DSH 内核 | `0.2.2-rc.3`，`38a6a5c965aa99ab525161efb7cc5cf1fe62fced` |
 | REA | `6.9.0`，`d74549e495c58eb4a560279fd9f05508401ea0a0`，255 项目录 |
 | 发行状态 | 未签名检查包；正式签名、在线升级、完整许可和平台验收未完成 |
 
-Windows 安装包及回执位于 `%USERPROFILE%/DSHU-Deliveries/20261115`，Linux 归档位于 `D:/DSHU-Deliveries/20261115`。文件名含版本、内核、REA、平台和源码短提交；日期按 Asia/Shanghai 编号，见[打包指南](../apps/desktop/packaging/README.zh.md)。
+Windows 安装包及回执位于 `%USERPROFILE%/DSHU-Deliveries/20261115`，Linux 归档位于 `D:/DSHU-Deliveries/20261115`。文件名包含版本、内核、REA、平台和源码短提交；日期按 Asia/Shanghai 编号，见[打包指南](../apps/desktop/packaging/README.zh.md)。
 
 | 产物 | SHA-256 |
 | --- | --- |
-| Windows x64 EXE | `0f25c8f91bd52304700b712405313f313a07b4479cbfa758a2100585ad3d35ce` |
-| Linux x64 tar.gz | `bc7891cfc8d9c79e8bae82aeb1b46008ec93c49ddab47f0c0280240eaa69f88c` |
-| Linux x64 deb | `5c3d7ee66f87d8d645e9a54fe4a59c05252fbbc5af3ca070955b1b6c52f2440f` |
+| Windows x64 EXE | `26348f06797ed8b089a74c40239664c2bcc88206bd3d681474f91857c50d102a` |
+| Linux x64 tar.gz | `bd30addd23a91d29b7ff471893701d4bf8ebb082840280445f10a7a5f606d1c3` |
+| Linux x64 deb | `b951219f0527ea6260c87c5b18644dc7b72107ffbda529bea265a28720af823d` |
 
 ## 本版修复与验证
 
-- 新增插件市场窄屏边界、充值返回后余额刷新和赠金通知跳转额度页修复。
-- Web 七批累计 251 个场景取得通过记录，覆盖原基线中 106 个失败所属场景；完整 Web 尚未重跑。账号与余额相关单测 94 项通过，刷新监听的负对照按预期失败。[回归记录](requirements/2026-11-15-regression-baseline.md)
+- 修复启动时过早读取可选目标设置导致的 404，以及侧栏菜单按钮缺失样式造成的尺寸与对齐问题。
+- 九批 Web 累计 301 个场景取得通过记录。拖拽排序不变已定位为测试在行入场动画中采样坐标，实际拖回自身；等待真实动画后，18 项原文件只读回归通过。较早 180 秒超时是否同源仍待核实。[回归记录](requirements/2026-11-15-regression-baseline.md)
 - 两平台实际归档通过四模式、新会话、命令、旁问重开/清理和主旁删除；REA JavaScript、Office 文档往返与 CLI 离线插件安装卸载通过，未调用付费模型。
-- Windows 安装前后 7,318 个用户文件及官方 DSH 两份关键程序文件摘要一致；已查看安装版关于页。
-- Linux 两种归档的可执行文件/ASAR 摘要一致；私有 X11/Wayland 欢迎页可见，renderer 保留 seccomp 与 NoNewPrivs。两环境各有一条资源 404；Wayland 隐藏加载窗口的诊断截图超时，可见欢迎页截图成功并已核对。
+- Windows 安装前后 7,318 个用户文件及官方 DSH 两份关键文件摘要一致，安装版关于页已查看。
+- Linux deb/tar.gz 的可执行文件与 ASAR 摘要一致。私有 X11/Wayland 中实际归档的主界面和重载均通过，无控制台错误或 HTTP 失败，renderer 保留 seccomp 与 NoNewPrivs，默认工作区目录已验证。
+- 内置 Frida 的 Windows 附加/恢复和 Linux 启动目标验收已落盘；范围与未验项目见[稳定性记录](requirements/2026-11-06-stability.md#frida-本地目标验收2026-11-15)。
 
-本次 Windows 与 Linux 监督打包均成功，使用原有检查和超时。较早版本的失败与恢复过程继续保留在[交付记录](requirements/2026-11-15-delivery.md)。
+## 新增模式文档
 
-## 源码新增进展
-
-侧栏会话/工作区“更多”按钮改用已有的 24px 点击样式，修复缺失 CSS 类造成的 32px 错位；相关单元 101 项通过。权限、自动审查与默认装配一组 18 项只读通过；布局一组 32 项均有通过记录，最后整组为 31 项通过、1 项原生拖拽超时。排序不变已定位为测试在行入场动画中采样坐标，实际拖回自身；等待真实动画后，18 项原文件只读回归通过。较早 180 秒超时是否同源仍待核实。累计九批 301 个场景有通过记录；侧栏修复与启动 404 修复均尚未进入安装版 `.5`。[回归记录](requirements/2026-11-15-regression-baseline.md)
+用户追加要求恢复对应模式配色并丰富说明。源码已补全四种模式的中英文能力、工具、上下文与使用示例，采用各自颜色的页头和章节强调；深色标题对比度至少 4.5:1。77 项单元测试和 8 组浏览器布局用例通过，已查看实际截图。此项尚未包含在 `.6`，下一检查版继续交付。[记录](requirements/2026-11-15-mode-guides.md)
 
 ## 继续验收
 
-Frida 17.23.2 的真实执行已通过 DSHU 工具消费端验证：Windows 的附加、函数拦截、脚本卸载、会话关闭、重置与释放均检查目标行为；Linux 的暂停启动、注入、恢复与退出通过。Windows 两个独立测试进程同时运行均通过；不发模型请求，未操作用户进程。商业引擎和远程设备仍待验收，完整范围见[稳定性记录](requirements/2026-11-06-stability.md#frida-本地目标验收2026-11-15)。
-
-OpenAI 编辑入口和原生工作区拖拽均有间歇异常；保留失败、独立复验及事件记录，不以随后通过代替根因修复。启动 404 已定位为可选目标设置的过早读取并在源码修复，X11/Wayland 原生源码主界面与重载通过，待打包。继续处理剩余 Web 失败、原生门户、实体桌面、自动回退/重启、正式更新与外部引擎、可选目标保护联动。许可证仍为 Windows 919 包中 7 项、Linux 921 包中 9 项待审。
+OpenAI 编辑入口和原生工作区拖拽曾有间歇超时；保留失败、独立复验及事件记录，不以随后通过代替根因修复。继续处理剩余 Web 失败、原生门户、实体桌面、自动回退/重启、正式更新与外部引擎、可选目标保护联动。许可证仍为 Windows 919 包中 7 项、Linux 921 包中 9 项待审。
 
 原生 Cua Driver 保护入口的源码准入、撤销、审计和关闭等待已验证；当前运行时清单不包含该实验包，不能把源码通过当作产品集成完成。[执行层](requirements/2026-11-02-native-execution.md)
 
 ## 恢复入口
 
-- 上一版 `.4` 程序：`D:/DSHU-Backups/20261115T061538Z-20261115-4-installed-program`，16,417 文件已校验。
-- 安装前数据：`D:/DSHU-Backups/20261115T063309Z-before-20261115-5-data`，7,318 文件已校验，限当前用户、SYSTEM 和管理员访问。自动回退仍未验收。
-- 当前证据：`current-windows-manifest.json`、`current-linux-manifest.json`、`installed-update-result.json`、`installed-runtime-result.json`、`installed-cli-version.json`、`linux-*-startup.json` 和 `delivery-index.json`。
-- `.4` 回执保留在 `accepted-2026.11.15.4`；更早安装包、备份和失败记录继续保留。
+- 上一版 `.5` 程序：`D:/DSHU-Backups/20261115T091042Z-20261115-5-installed-program/program`，16,417 文件已校验；其父目录保留清单。
+- 安装前数据：`D:/DSHU-Backups/20261115T093733Z-before-20261115-6-data`，7,318 文件已校验，限当前用户、SYSTEM 和管理员访问。自动回退仍未验收。
+- 当前回执：`current-windows-manifest.json`、`current-linux-manifest.json`、`installed-update-result.json`、`installed-runtime-result.json`、`installed-cli-version.json`、`linux-native-x11-6-startup.json`、`linux-native-wayland-6.json` 和 `delivery-index.json`。
+- `.5` 回执保留在 `accepted-2026.11.15.5`，更早安装包、备份和失败记录继续保留。
 
 ## 清理与工作约束
+
+第 6 版重复目录 `apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/runs/2026-11-15T09-12-09.714Z-r9RSGc/win-unpacked` 已核验 16,411 文件、1,590,690,261 字节，无链接或进程引用，恢复安装器及实装检查通过。删除被自动审批以 `blocked by policy` 拒绝，约 1.48 GiB 仍保留，没有重试。记录为 `windows-unpacked-6-cleanup-rejected.json`。
 
 第 5 版重复构建目录 `apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/runs/2026-11-15T06-15-31.325Z-BsBDM7/win-unpacked` 已核验：16,411 文件、1,590,687,914 字节，无链接、无进程引用；恢复安装器和实装检查通过。删除被自动审批以 `blocked by policy` 拒绝，约 1.48 GiB 仍保留，没有重试；回执为 `windows-unpacked-5-cleanup-rejected.json`。此前被拒绝的路径同样保留，不换方式重试。
 
