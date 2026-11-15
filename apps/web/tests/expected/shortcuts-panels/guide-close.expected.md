@@ -7,4 +7,5 @@
 - button "New terminal Run commands in the Session workspace"
 - button "Choose shell"
 - button "Browser Browse web pages"
+- button "Side question Ask in the right panel with the current context; reopen to continue"
 - button "More tools"

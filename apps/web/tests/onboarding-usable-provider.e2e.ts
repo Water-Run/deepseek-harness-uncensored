@@ -66,7 +66,8 @@ describe.skipIf(MODE === 'record')('web e2e: another usable provider ends first-
     await add.click()
     const pick = settings.getByLabel('提供商', { exact: true })
     await pick.waitFor({ timeout: 10_000 })
-    await pick.selectOption('minimax-cn')
+    await pick.click()
+    await page.getByRole('menuitem', { name: 'minimax-cn', exact: true }).click()
     await expect.poll(
       async () => settings.getByRole('textbox', { name: 'API 密钥', exact: true }).count(),
       { timeout: 10_000 },

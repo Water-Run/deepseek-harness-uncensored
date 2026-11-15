@@ -11,7 +11,7 @@ import {
   captureStableAria, compareOrRefreshGolden, launchWebScaffold, readPersistedEvents,
   seedSession, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { connectFreshWorkspace } from './support.ts'
+import { configureConversationReplay, connectFreshWorkspace } from './support.ts'
 
 const root = fileURLToPath(new URL('./expected/shortcuts-workspace', import.meta.url))
 const seed = fileURLToPath(new URL('../../../snapshots/web/seeded-history/session.v3.jsonl', import.meta.url))
@@ -34,7 +34,7 @@ describe.skipIf(mode === 'record')('web e2e: workspace shortcuts', () => {
       Object.defineProperty(navigator, 'platform', { value: 'MacIntel' })
       localStorage.setItem('dsh.open-in-app.choice', JSON.stringify('vscode'))
     })
-    page = await context.newPage()
+    page = await configureConversationReplay(await context.newPage())
     // OS application discovery and launch are the external boundary; the command and HTTP carrier stay real.
     await page.route('**/open-in-app/apps', route => route.fulfill({ json: { apps: ['finder', 'vscode'] } }))
     await page.route('**/open-in-app/open', async (route) => {
@@ -217,7 +217,7 @@ it.skipIf(mode === 'record')('explains a first-turn fork refusal and retries fro
     browser = await chromium.launch()
     const context = await browser.newContext({ locale: 'en-US', viewport: { width: 1440, height: 1000 } })
     await context.addInitScript(() => { Object.defineProperty(navigator, 'platform', { value: 'MacIntel' }) })
-    const page = await context.newPage()
+    const page = await configureConversationReplay(await context.newPage())
     const tripwire = watchConsole(page)
     const forkWarnings: string[] = []
     page.on('console', (message) => { if (message.text().startsWith('session fork rejected:')) forkWarnings.push(message.text()) })
@@ -289,7 +289,7 @@ it.skipIf(mode === 'record').each([
     browser = await chromium.launch()
     const context = await browser.newContext({ locale: 'en-US', viewport: { width: 1440, height: 1000 } })
     await context.addInitScript((value) => { Object.defineProperty(navigator, 'platform', { value }) }, platform)
-    const page = await context.newPage()
+    const page = await configureConversationReplay(await context.newPage())
     const console = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     const group = page.getByRole('treeitem').first()
@@ -381,7 +381,9 @@ it.skipIf(mode === 'record').each([
       await page.keyboard.press(`${primary}+Alt+N`)
     }
     await page.getByText('DONE', { exact: true }).waitFor({ state: 'hidden' })
-    await expect.poll(() => page.getByRole('treeitem', { selected: true }).count()).toBe(0)
+    const selected = page.getByRole('treeitem', { selected: true })
+    await expect.poll(() => selected.textContent()).toContain('New Session')
+    expect(await selected.getAttribute('data-row-key')).not.toBe('session:shortcut-defaults-source')
     await page.locator('[data-composer-input]').first().waitFor()
     await page.keyboard.press(`${primary}+Alt+G`)
     expect(await rename.count()).toBe(0)

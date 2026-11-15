@@ -292,11 +292,11 @@ describe.skipIf(MODE === 'record')('web e2e: App-only desktop onboarding', () =>
     expect(await page.locator('[data-desktop-onboarding]').evaluate(element => getComputedStyle(element).filter)).toBe('none')
     expect(await page.getByRole('dialog').evaluate(element => getComputedStyle(element.previousElementSibling!).backdropFilter)).toBe('none')
     await page.getByRole('button', { name: '前往充值', exact: true }).click()
-    await page.getByRole('button', { name: '返回 DeepSeek Harness', exact: true }).waitFor()
+    await page.getByRole('button', { name: '返回 DeepSeek Harness Uncensored', exact: true }).waitFor()
     expect((scaffold.ctx.settings.describe().find(row => row.ns === NS)?.value as { step: string }).step).toBe('credit')
     balanceFailure = true
     const readsBefore = balanceReads
-    await page.getByRole('button', { name: '返回 DeepSeek Harness', exact: true }).click()
+    await page.getByRole('button', { name: '返回 DeepSeek Harness Uncensored', exact: true }).click()
     await page.getByRole('heading', { name: '准备可用额度', exact: true }).waitFor()
     await expect.poll(() => balanceReads).toBeGreaterThan(readsBefore)
     await expect.poll(() => page.getByRole('button', { name: '下一步', exact: true }).isEnabled()).toBe(true)
@@ -500,8 +500,8 @@ describe.skipIf(MODE === 'record')('web e2e: App-only desktop onboarding', () =>
     expect(await response.json()).toMatchObject({ result: { ok: true } })
     expect((scaffold.ctx.settings.describe().find(row => row.ns === NS)?.value as { step: string }).step).toBe('done')
     expect(await page.locator('[data-desktop-onboarding]').count()).toBe(0)
-    expect(scaffold.ctx.settings.describe().find(row => row.ns === NS)?.value).toMatchObject({ completion: 'api-key', process: 'standard', usage: 'detailed', developerTools: true })
-    expect(scaffold.ctx.settings.describe().find(row => row.ns === 'ui-chat')?.value).toMatchObject({ transcriptView: 'standard', performanceUsage: 'detailed' })
+    expect(scaffold.ctx.settings.describe().find(row => row.ns === NS)?.value).toMatchObject({ completion: 'api-key', process: 'verbose', usage: 'detailed', developerTools: true })
+    expect(scaffold.ctx.settings.describe().find(row => row.ns === 'ui-chat')?.value).toMatchObject({ transcriptView: 'verbose', performanceUsage: 'detailed' })
     expect(scaffold.ctx.settings.describe().find(row => row.ns === 'ui-settings')?.value).toMatchObject({ enabled: true })
     await scaffold.ctx.credentials.modifyRecord(credentialKey('deepseek-account-platform', 'default'), async () => ({
       kind: 'grant', payload: { version: 1, issuer: origin, token: 'onboarding-fixture-token' },

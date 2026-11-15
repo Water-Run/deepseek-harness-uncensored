@@ -22,7 +22,7 @@ import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
   launchWebScaffold, recordFixture, seedSession, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { expandOwningTurnProcess, newEnglishPage, saveFailureShot } from './support.ts'
+import { expandOwningTurnProcess, newConversationReplayPage, saveFailureShot } from './support.ts'
 import { expectWrappedTerminalCommand } from './terminal-command-browser.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/navigation-panes', import.meta.url))
@@ -98,7 +98,10 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
   let slotErrors: string[] = []
 
   beforeAll(async () => {
-    scaffold = await launchWebScaffold({})
+    scaffold = await launchWebScaffold({
+      profile: { packages: [{ dir: fileURLToPath(new URL('./fixtures/plugins/fixture-language-pack', import.meta.url)), enabled: true }] },
+    })
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'system' })
     // The workspace-aware flow runs sessions in <workspaceCwd>/workspace;
     // the read targets must live in that session cwd (pre-creation is safe
     // because the picker adopts an existing directory by path).
@@ -117,7 +120,7 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
   }, 120_000)
 
   beforeEach(async () => {
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     tripwire = watchConsole(page)
     slotErrors = []
     page.on('console', (message) => {
@@ -415,7 +418,7 @@ describe('web e2e: navigation & panes over a rich seeded session', () => {
     expect(content).toContain('FIRST_DONE')
     await dialog.getByText('Close', { exact: true }).click()
 
-    const observer = await newEnglishPage(browser)
+    const observer = await newConversationReplayPage(browser)
     const observerTripwire = watchConsole(observer)
     const observerSlotErrors: string[] = []
     let observerDownloads = 0

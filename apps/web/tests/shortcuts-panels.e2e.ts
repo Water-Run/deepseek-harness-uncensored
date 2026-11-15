@@ -6,7 +6,7 @@ import { chromium, type Browser, type Page } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
 import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold } from './scaffold.ts'
-import { connectFreshWorkspace } from './support.ts'
+import { configureConversationReplay, connectFreshWorkspace } from './support.ts'
 
 const expected = fileURLToPath(new URL('./expected/shortcuts-panels', import.meta.url))
 const mode = webSnapshotMode()
@@ -58,7 +58,7 @@ describe.skipIf(process.platform === 'win32')('Web sidebar shortcuts', () => {
     try {
       // Device-label/DOM branch evidence only; physical Windows input has its own acceptance checklist.
       await context.addInitScript((value) => { Object.defineProperty(navigator, 'platform', { value }) }, platform)
-      const page = await context.newPage()
+      const page = await configureConversationReplay(await context.newPage())
       const tripwire = watchConsole(page)
       await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
       await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })

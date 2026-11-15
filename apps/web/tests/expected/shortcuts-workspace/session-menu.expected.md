@@ -5,5 +5,6 @@
   - separator
   - menuitem "Copy Session ID"
   - menuitem "Open in"
+  - menuitem "Delete conversation"
   - separator
   - menuitem "Archive session"
