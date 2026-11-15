@@ -1,6 +1,6 @@
 # 17.06 稳定性检查
 
-状态：进行中。系统安装版 `0.1.0-test.20261113.5` 基于源码 `d8cabbd3644`；下列 2026-11-11 项目保留其原始验证范围，当前内核交付见 [HANDOFF](../HANDOFF.md)。全部原始需求保留。
+状态：进行中。当前安装版、构建源码及恢复入口见 [HANDOFF](../HANDOFF.md)。下列日期化记录保留各自验证范围；全部原始需求保留。
 
 ## 已完成
 
@@ -67,3 +67,13 @@
 - [x] **Keyed Slot 分派键（2026-11-11）**。`renderSlot` 要求 keyed 子 Slot 显式传入 `entryKey`，包括使用 `hookContext` 的子 Slot。三个缺键负例由编译检查覆盖。合法键未注册时仍使用 fallback，相关渲染器测试通过。[迁移指南](../../docs/upgrade-guide/v0.2.2-rc.1/keyed-slot-entry-key/guide.zh.md)
 - [x] **动态 Slot 参数（2026-11-11）**。独立变化的 Slot 名称和分派键需满足所有可能目标的参数约束。编译负例覆盖普通 owner props、按键的 owner props、不适用的分派键、不匹配的 `hookContext` 以及 chain selector 的输入。单个目标允许其自身声明的联合参数类型，同一对象决定的键与参数可作为元组传入。
 - [ ] **其他验收**。原生系统关机、历史回放、跨平台、原始截图和完整编号终验待验收。
+
+## Frida 本地目标验收（2026-11-15）
+
+DSHU 的实际 REA 工具消费端调用 Windows 已安装版及 Linux tar.gz 内的 Node 24.22.1、REA 6.9.0、Frida 17.23.2。目标为仓库内 C 夹具的私有编译副本，没有附加用户进程、修改 ptrace 策略或调用付费模型。
+
+- Windows 两项通过：附加自建进程，将函数返回值从 42 改为 99；卸载脚本、关闭会话、重置 REA 和释放 Agent 后均恢复为 42，并验证工具移除与目标退出。暂停启动路径先注入再恢复；关闭尚未恢复的目标后，目标正常执行原函数并退出。
+- Windows 两个独立测试进程同时执行，两组各两项通过；临时目录和目标进程各自持有，重试禁用。
+- Linux 一项通过、一项明确跳过：暂停启动、注入、恢复、关闭与退出通过；同级进程附加不在本次 Linux 范围。初次使用导出查询时找不到已由 `nm -D` 确认的 ELF 函数；夹具改用暂停进程的符号表解析后通过，保留原失败记录。
+
+证据位于 `%USERPROFILE%/DSHU-Deliveries/20261115`：`frida-windows-e2e.log`、`frida-windows-concurrent-{1,2}.log`、`frida-linux-final.log`、`frida-linux-export-before.log` 和 `frida-owned-probe.json`。维护入口为 `packages/mcp/rea/tests/frida.e2e.ts`，配置与编译条件见[包说明](../../packages/mcp/rea/README.zh.md#验证)。本次验证不代表远程设备、Linux 附加已有进程、商业引擎或许可证审计完成。

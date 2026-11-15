@@ -17,7 +17,7 @@ kind: "package-reference"
 
 全部偏好由 Loader 设置系统管理。`startupTimeoutMs` 默认 60000，`toolTimeoutMs` 默认 180000，`catalogPageSize` 默认 20。保存配置变更会关闭现有进程；对话需要重置连接并重新打开样本。
 
-已验证 REA 6.9.0、Node 24.22.1、Ghidra 12.1.4 和 Java 27。其他引擎版本仍须通过上游版本校验。REA 6.9.0 固定到 [d74549e495c5](https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0)，可选分析引擎按各自许可另行配置。
+已验证 REA 6.9.0、Node 24.22.1、Ghidra 12.1.4、Java 27 和内置 Frida 17.23.2 绑定。其他引擎版本仍须通过上游版本校验。REA 6.9.0 固定到 [d74549e495c5](https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0)，可选分析引擎按各自许可另行配置。
 
 ## 对话归属
 
@@ -37,11 +37,13 @@ kind: "package-reference"
 
 ## 已知限制与后续工作
 
-外部引擎在本机运行，需要完全权限。桥接不提供沙盒、远程执行环境或独立流量代理。桌面版内置 REA、兼容的 Node 和 npm 依赖（含 Frida 绑定）。Ghidra、Java、IDA 和 Hopper 仍为可选外部引擎。这里接入 REA 工具目录，尚未适配 MCP 资源、提示词模板或要求任务扩展的工具。本次验收未运行 Frida 和商业引擎。
+外部引擎在本机运行，需要完全权限。桥接不提供沙盒、远程执行环境或独立流量代理。桌面版内置 REA、兼容的 Node 和 npm 依赖（含 Frida 绑定）。Ghidra、Java、IDA 和 Hopper 仍为可选外部引擎。这里接入 REA 工具目录，尚未适配 MCP 资源、提示词模板或要求任务扩展的工具。Frida 已验收自建 Windows 本地目标和 Linux 启动目标；Linux 附加已有进程、远程设备及商业引擎仍未验证。
 
 ## 验证
 
 `tests/rea.spec.ts` 使用自有本地进程检查隔离、参数验证、取消、重置及实时权限变更。`tests/rea.e2e.ts` 使用兼容的 `DSH_REA_TEST_NODE`，默认验证内置 npm 包，`DSH_REA_TEST_CLI` 为可选覆盖项；可选原生分析还需指定 `DSH_REA_TEST_GHIDRA`、`DSH_REA_TEST_JAVA_HOME` 和自有样本 `DSH_REA_TEST_BINARY`。测试关闭进程，并只清理自身临时目录。
+
+`tests/frida.e2e.ts` 使用相同的 Node、CLI 变量，并要求 `DSH_REA_TEST_FRIDA_TARGET` 指向 `tests/fixtures/frida-target.c` 的编译副本。编译时关闭优化并保留函数导出（Windows 使用 `cl /Od`，Linux 使用 `cc -O0 -rdynamic`）。测试将二进制复制到私有目录，只对自身创建的进程插桩，检查返回值变化、脚本卸载、连接重置、释放、暂停启动及目标退出；Linux 跳过同级进程附加用例，不修改 ptrace 策略。运行 `pnpm exec vitest run --config vitest.e2e.config.ts packages/mcp/rea/tests/frida.e2e.ts --retry 0`，不调用模型。
 
 ## 参考
 

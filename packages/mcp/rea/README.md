@@ -17,7 +17,7 @@ Open Settings → Mode → Reverse configuration. The bundled REA works without 
 
 All preferences are Loader-managed settings. `startupTimeoutMs` defaults to 60000, `toolTimeoutMs` to 180000, and `catalogPageSize` to 20. Saving changed preferences closes existing processes. A conversation must reset its connection and reopen its sample after that change.
 
-REA 6.9.0 was tested with Node 24.22.1, Ghidra 12.1.4 and Java 27. Other engine versions remain subject to upstream version checks. REA 6.9.0 is pinned to [d74549e495c5](https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0). Optional analysis engines remain separately configured under their own licenses.
+REA 6.9.0 was tested with Node 24.22.1, Ghidra 12.1.4, Java 27 and the bundled Frida 17.23.2 binding. Other engine versions remain subject to upstream version checks. REA 6.9.0 is pinned to [d74549e495c5](https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0). Optional analysis engines remain separately configured under their own licenses.
 
 ## Conversation ownership
 
@@ -37,11 +37,13 @@ The tool prefix changes when selected tools are added or reset. Stable selection
 
 ## Known Limitations and Deferred Work
 
-External engines execute on the local host and require full access. The bridge does not provide a sandbox, remote execution environment, or independent traffic proxy. Desktop bundles REA, its compatible Node runtime and npm dependencies, including Frida's binding. Ghidra, Java, IDA and Hopper remain optional external engines. REA's tool catalog is exposed; MCP resources, prompt templates and task-required tools are not adapted here. Frida and commercial engines were not exercised in the current acceptance run.
+External engines execute on the local host and require full access. The bridge does not provide a sandbox, remote execution environment, or independent traffic proxy. Desktop bundles REA, its compatible Node runtime and npm dependencies, including Frida's binding. Ghidra, Java, IDA and Hopper remain optional external engines. REA's tool catalog is exposed; MCP resources, prompt templates and task-required tools are not adapted here. Frida acceptance covers owned local Windows targets and Linux spawn targets. Linux attachment to existing processes, remote devices and commercial engines remain unverified.
 
 ## Verification
 
 `tests/rea.spec.ts` checks isolation, argument validation, cancellation, reset and live permission changes using owned local processes. `tests/rea.e2e.ts` uses a compatible `DSH_REA_TEST_NODE` and defaults to the bundled npm package; `DSH_REA_TEST_CLI` is an optional override; the optional native path additionally requires `DSH_REA_TEST_GHIDRA`, `DSH_REA_TEST_JAVA_HOME` and an owned `DSH_REA_TEST_BINARY`. Tests close processes and remove only their temporary directories.
+
+`tests/frida.e2e.ts` uses the same Node and CLI variables plus `DSH_REA_TEST_FRIDA_TARGET`, pointing to a compiled copy of `tests/fixtures/frida-target.c`. Compile without optimization and retain the function export (`cl /Od` on Windows; `cc -O0 -rdynamic` on Linux). The test copies the binary into a private directory and instruments only processes it creates. It checks changed return values, script unloading, connection reset, disposal, paused spawn and target exit; Linux skips the sibling-process attach case without changing ptrace policy. Run `pnpm exec vitest run --config vitest.e2e.config.ts packages/mcp/rea/tests/frida.e2e.ts --retry 0`. No model calls are made.
 
 ## References
 
