@@ -1051,6 +1051,9 @@ importers:
       '@deepseek-ai/dsh-llm-mock-server':
         specifier: workspace:*
         version: link:../../packages/test-support/llm-mock-server
+      '@deepseek-ai/dsh-product-version':
+        specifier: workspace:*
+        version: link:../../packages/util/product-version
       '@deepseek-ai/dsh-pwsh-local':
         specifier: workspace:*
         version: link:../../packages/shell/pwsh-local

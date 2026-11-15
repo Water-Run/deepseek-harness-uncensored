@@ -2,4 +2,5 @@ Pin session
 Rename
 Fork session
 Copy Session ID
+Delete conversation
 Archive session

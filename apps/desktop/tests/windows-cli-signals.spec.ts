@@ -10,9 +10,12 @@ import { pathToFileURL } from 'node:url'
 import { promisify } from 'node:util'
 import ts from 'typescript'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { COVERAGE_TEST_TIMEOUT_ENV, coverageTestTimeoutOptions } from '../../../scripts/coverage-partitions.ts'
 
 const execute = promisify(execFile)
 const require = createRequire(import.meta.url)
+// Toolchain discovery/compilation and the probe's two 15-second waits need a native subprocess budget.
+const timeout = Math.max(60_000, coverageTestTimeoutOptions(process.env[COVERAGE_TEST_TIMEOUT_ENV]).testTimeout ?? 0)
 let root: string | undefined
 let probe: string
 let electron: string
@@ -26,7 +29,7 @@ describe.skipIf(process.platform !== 'win32')('Windows Electron console signals'
     if (programFiles === undefined || process.env.ComSpec === undefined) throw new Error('Windows compiler environment is unavailable')
     const vswhere = join(programFiles, 'Microsoft Visual Studio', 'Installer', 'vswhere.exe')
     const vs = (await execute(vswhere, ['-latest', '-prerelease', '-products', '*', '-requires',
-      'Microsoft.VisualStudio.Component.VC.Tools.x86.x64', '-property', 'installationPath'], { windowsHide: true })).stdout.trim()
+      'Microsoft.VisualStudio.Component.VC.Tools.x86.x64', '-property', 'installationPath'], { windowsHide: true, timeout: 10_000 })).stdout.trim()
     if (!vs) throw new Error('Visual Studio C++ Build Tools are unavailable')
     const quote = (value: string) => '"' + value.replaceAll('%', '%%') + '"'
     probe = join(root, 'console-probe.exe')
@@ -36,7 +39,7 @@ describe.skipIf(process.platform !== 'win32')('Windows Electron console signals'
       'cl /nologo /std:c++17 /EHsc /MT /W4 /WX ' + quote(join(import.meta.dirname, 'fixtures/cli-console-probe.cpp'))
         + ' /Fo' + quote(join(root, 'console.obj')) + ' /Fe' + quote(probe), '',
     ].join('\r\n'))
-    await execute(process.env.ComSpec, ['/d', '/v:off', '/c', compile], { windowsHide: true })
+    await execute(process.env.ComSpec, ['/d', '/v:off', '/c', compile], { windowsHide: true, timeout: timeout - 15_000 })
     // Only TypeScript is erased; the child has no source-loader hook that could change signal handling.
     const source = await readFile(new URL('../../desktop-host/src/windows-cli-signals.ts', import.meta.url), 'utf8')
     const code = ts.transpileModule(source, {
@@ -57,13 +60,13 @@ describe.skipIf(process.platform !== 'win32')('Windows Electron console signals'
       "writeFileSync(ready, 'ready')",
       'setInterval(() => {}, 1000)', '',
     ].join('\n'))
-  })
+  }, timeout)
 
   afterAll(async () => {
     if (root === undefined) return
     await chmod(root, 0o700)
     await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 })
-  })
+  }, timeout)
 
   it.each([['SIGINT', '0'], ['SIGBREAK', '1']] as const)('delivers %s before process exit', async (signal, event) => {
     if (root === undefined) throw new Error('Console fixture is not prepared')
@@ -71,10 +74,10 @@ describe.skipIf(process.platform !== 'win32')('Windows Electron console signals'
     const ready = join(root, signal + '.ready')
     const report = join(root, signal + '.report')
     let failure: unknown
-    try { await execute(probe, [electron, entry, marker, ready, report, event], { windowsHide: true }) }
+    try { await execute(probe, [electron, entry, marker, ready, report, event], { windowsHide: true, timeout: timeout - 10_000 }) }
     catch (error) { failure = error }
     const observed = existsSync(report) ? await readFile(report, 'utf8') : 'Console probe exited before reporting.'
     expect(failure, observed).toBeUndefined()
     expect(await readFile(marker, 'utf8')).toBe(signal)
-  })
+  }, timeout)
 })

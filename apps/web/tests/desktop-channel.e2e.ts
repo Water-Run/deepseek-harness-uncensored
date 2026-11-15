@@ -22,7 +22,7 @@ it('persists a Desktop channel from Settings and keeps external edits startup-on
       let detailOpens = 0
       await page.exposeFunction('openUpdateDetails', () => { detailOpens++ })
       await page.exposeFunction('readChannel', () => state)
-      await page.exposeFunction('setChannel', async (channel: 'nightly' | 'stable'): Promise<DesktopChannelChangeResult> => {
+      await page.exposeFunction('setChannel', async (channel: 'nightly' | 'latest'): Promise<DesktopChannelChangeResult> => {
         try {
           await settings.save(channel)
           state = { ...state, channel, error: undefined }
@@ -33,11 +33,11 @@ it('persists a Desktop channel from Settings and keeps external edits startup-on
         const bridge = globalThis as typeof globalThis & {
           readChannel(): Promise<DesktopChannelState>
           openUpdateDetails(): Promise<void>
-          setChannel(channel: 'nightly' | 'stable'): Promise<DesktopChannelChangeResult>
+          setChannel(channel: 'nightly' | 'latest'): Promise<DesktopChannelChangeResult>
         }
         Object.assign(globalThis, { dshDesktop: { protocolVersion: 1, updates: {
           status: async () => ({ phase: 'idle' }), open: () => bridge.openUpdateDetails(), subscribe: () => () => {},
-          channels: { get: () => bridge.readChannel(), set: (channel: 'nightly' | 'stable') => bridge.setChannel(channel),
+          channels: { get: () => bridge.readChannel(), set: (channel: 'nightly' | 'latest') => bridge.setChannel(channel),
             subscribe: () => () => {} },
         } } })
       })
@@ -49,7 +49,7 @@ it('persists a Desktop channel from Settings and keeps external edits startup-on
       await page.getByRole('menuitem', { name: 'Stable', exact: true }).click()
       await row.getByText('Stable', { exact: true }).waitFor()
       await page.getByText('Update channel changed', { exact: true }).waitFor()
-      expect(JSON.parse(await readFile(settings.path, 'utf8'))).toMatchObject({ updates: { channel: 'stable' } })
+      expect(JSON.parse(await readFile(settings.path, 'utf8'))).toMatchObject({ updates: { channel: 'latest' } })
       await compareOrRefreshGolden(fileURLToPath(new URL('./expected/desktop-channel/stable.expected.md', import.meta.url)),
         await captureStableAria(page, '[role="group"][aria-label="Update channel"]', scaffold.workspaceCwd), webSnapshotMode())
       await writeFile(settings.path, JSON.stringify({ updates: { channel: 'nightly' } }))

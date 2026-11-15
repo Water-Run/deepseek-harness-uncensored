@@ -1,10 +1,12 @@
-import { mkdir, mkdtemp, rm, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, unlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { verifyElectronNotices } from '../scripts/verify-runtime-archive.ts'
 import { runtimeFixture } from './runtime-fixture.ts'
 import { verifyDesktopRuntime as verifyRuntimeFiles, writeDesktopRuntime } from '../src/runtime-tree.ts'
+import { createElectronBuilderConfig } from '../scripts/electron-builder-config.mjs'
+import { inc } from 'semver'
 
 const { verifyDesktopRuntime } = vi.hoisted(() => ({
   verifyDesktopRuntime: vi.fn<(root: string, expected: string) => Promise<void>>(async () => undefined),
@@ -35,7 +37,6 @@ const CONTEXT = { appOutDir: 'out', packager: { getResourcesDir: () => 'out/reso
  */
 async function requiredRuntimeVersion(preparedRuntime?: string, preparedRuntimeVersion?: string): Promise<unknown> {
   verifyDesktopRuntime.mockClear()
-  const { createElectronBuilderConfig } = await import('../scripts/electron-builder-config.mjs')
   const config = createElectronBuilderConfig(ENVIRONMENT, 'win32', 'x64', preparedRuntime, preparedRuntimeVersion)
   await config.afterPack(CONTEXT as never)
   return verifyDesktopRuntime.mock.calls[0]?.[1]
@@ -44,7 +45,7 @@ async function requiredRuntimeVersion(preparedRuntime?: string, preparedRuntimeV
 describe('packaged runtime verification', () => {
   it('requires the product version when the target tree supplies the runtime', async () => {
     const productVersion = (JSON.parse(
-      await import('node:fs/promises').then(async fs => fs.readFile(new URL('../package.json', import.meta.url), 'utf8')),
+      await readFile(new URL('../package.json', import.meta.url), 'utf8'),
     ) as { version: string }).version
     expect(await requiredRuntimeVersion()).toBe(productVersion)
   })
@@ -56,10 +57,8 @@ describe('packaged runtime verification', () => {
 
   it('requires the runtime and application to carry the same selected build version', async () => {
     const productVersion = (JSON.parse(
-      await import('node:fs/promises').then(async fs => fs.readFile(new URL('../package.json', import.meta.url), 'utf8')),
+      await readFile(new URL('../package.json', import.meta.url), 'utf8'),
     ) as { version: string }).version
-    const { createElectronBuilderConfig } = await import('../scripts/electron-builder-config.mjs')
-    const { inc } = await import('semver')
     const buildVersion = inc(productVersion, 'patch')!
     verifyDesktopRuntime.mockClear()
     const config = createElectronBuilderConfig({ ...ENVIRONMENT, DSH_DESKTOP_BUILD_VERSION: buildVersion }, 'win32', 'x64')
@@ -71,12 +70,9 @@ describe('packaged runtime verification', () => {
   it('rejects a base-version runtime when packaging a newer build', async () => {
     const root = await mkdtemp(join(tmpdir(), 'stale-desktop-runtime-'))
     onTestFinished(() => rm(root, { recursive: true, force: true }))
-    const { readFile } = await import('node:fs/promises')
     const productVersion = (JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version
     const fixture = runtimeFixture(root, productVersion)
     writeDesktopRuntime(root, fixture.release, fixture.sharedPackages.map(item => item.name), { platform: 'win32', arch: 'x64' })
-    const { inc } = await import('semver')
-    const { createElectronBuilderConfig } = await import('../scripts/electron-builder-config.mjs')
     verifyDesktopRuntime.mockImplementationOnce(async (path, version) => { await verifyRuntimeFiles(path, version, { platform: 'win32', arch: 'x64' }) })
     const config = createElectronBuilderConfig({ ...ENVIRONMENT, DSH_DESKTOP_BUILD_VERSION: inc(productVersion, 'patch')! }, 'win32', 'x64', root)
     await expect(config.afterPack(CONTEXT as never)).rejects.toThrow('is not the expected')

@@ -3,7 +3,8 @@
     - button "Ask a research subagent to"
     - text: /
     - 'button "Switch subagent: event-sourcing researcher"': event-sourcing researcher
-  - text: Standard mode
+  - 'button "Conversation mode: Default" [disabled]': Default
+  - button "Side question"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -26,6 +27,8 @@
     - button "Steer queued message"
 - textbox "Cmd/Ctrl+Enter steers all queued messages"
 - button "Add files or run commands"
-- 'button "Access mode, current: Custom"': Custom
+- 'button "Access mode, current: Full access"': Full access
 - button "Stop generating"
 - button "Send message" [disabled]
+- 'button "Conversation cost: ￥0.00"': ￥0.00
+- 'button "Spending limits: Off"': "Off"

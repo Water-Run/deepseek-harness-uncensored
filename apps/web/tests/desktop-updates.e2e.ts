@@ -127,6 +127,20 @@ describe('web e2e: Desktop update workspace chrome', () => {
           await page.screenshot({ path: join(evidence, 'ready.png') })
           await ready.click()
           await expect.poll(opens).toBe(4)
+          await publish({ phase: 'idle', configurationError: 'channel' })
+          const configuration = page.getByRole('button', {
+            name: locale === 'zh-CN' ? '配置不可用' : 'Configuration unavailable', exact: true,
+          })
+          await page.mouse.move(400, 200)
+          await configuration.hover()
+          const configurationTooltip = page.getByRole('tooltip', {
+            name: locale === 'zh-CN'
+              ? '更新已暂停：channel 只能是 nightly 或 latest'
+              : 'Updates paused: channel must be nightly or latest', exact: true,
+          })
+          await expect.poll(() => configurationTooltip.evaluateAll(elements =>
+            elements.map(element => getComputedStyle(element).opacity))).toEqual(['1'])
+          await page.screenshot({ path: join(evidence, 'configuration-channel.png') })
           expect(tripwire.pageErrors).toEqual([])
           expect(tripwire.warnings).toEqual([])
           expect(await page.evaluate(() => (window as FixtureWindow).updateFixture.listeners.size)).toBe(1)

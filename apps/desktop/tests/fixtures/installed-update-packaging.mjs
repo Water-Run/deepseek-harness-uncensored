@@ -2,6 +2,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
+import { buildBlockMap } from 'app-builder-lib/out/targets/blockmap/blockmap.js'
 
 const [manifest, version] = process.argv.slice(2)
 const run = JSON.parse(await readFile(manifest, 'utf8'))
@@ -13,7 +14,7 @@ else {
   const filename = `dshu-qualification-${version}-win-x64.exe`
   const bytes = Buffer.from('inert test bytes, not an installer')
   await writeFile(join(directory, filename), bytes)
-  await writeFile(join(directory, `${filename}.blockmap`), 'inert test map')
+  await buildBlockMap(join(directory, filename), 'gzip', join(directory, `${filename}.blockmap`))
   await writeFile(join(directory, 'nightly.yml'), JSON.stringify({ version, files: [{ url: filename,
     size: bytes.length, sha512: createHash('sha512').update(bytes).digest('base64') }] }))
 }

@@ -68,6 +68,7 @@ it('keeps the source resolution when a registry offers a newer matching release'
       packages: { [`${library}@1.0.0`]: { resolution: { integrity: hash(original), tarball: `${registry}1.0.0.tgz` } } },
       snapshots: { [`${library}@1.0.0`]: {} },
     }))
+    await writeFile(join(source, 'pnpm-workspace.yaml'), yaml.dump({ packages: ['.'] }))
     const sourceBytes = await readFile(join(source, 'pnpm-lock.yaml'))
     const [command, ...prefix] = pnpmCommand()
     const install = async (project: string, args: string[]): Promise<void> => {

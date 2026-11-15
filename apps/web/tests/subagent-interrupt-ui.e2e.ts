@@ -25,7 +25,7 @@ import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
   launchWebScaffold, readPersistedEvents, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { connectFreshWorkspace, newConversationReplayPage, saveFailureShot } from './support.ts'
+import { connectFreshWorkspace, newConversationReplayPage, openSettings, saveFailureShot } from './support.ts'
 
 const BASE_FIXTURE = fileURLToPath(new URL('../../../snapshots/web/live-interactions/session.v3.jsonl', import.meta.url))
 
@@ -142,6 +142,12 @@ describe.skipIf(MODE === 'record')('web e2e: composer interrupt for a running co
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
+    await openSettings(page, 'en')
+    const settings = page.getByRole('dialog', { name: 'Settings', exact: true })
+    await settings.getByRole('button', { name: 'Steer', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Queue', exact: true }).click()
+    await settings.getByRole('button', { name: 'Queue', exact: true }).waitFor()
+    await settings.getByRole('button', { name: 'Close', exact: true }).last().click()
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
 
     const root = scaffold.ctx.agents.list().filter(agent => agent.session.header.origin !== 'subagent')[0]
@@ -219,13 +225,14 @@ describe.skipIf(MODE === 'record')('web e2e: composer interrupt for a running co
       const stop = page.getByRole('button', { name: 'Stop generating' })
       expect(await stop.count()).toBe(1)
       expect(await stop.isEnabled()).toBe(true)
-      const promptResponse = page.waitForResponse(response =>
-        new URL(response.url()).pathname === '/api/subagents/prompt')
       await input.fill(REARM)
       const send = page.getByRole('button', { name: 'Queue message' })
       expect(await send.isEnabled()).toBe(true)
-      await send.click()
-      expect(((await (await promptResponse).json()) as { result: { ok: boolean } }).result).toMatchObject({ ok: true })
+      const [promptResponse] = await Promise.all([
+        page.waitForResponse(response => new URL(response.url()).pathname === '/api/subagents/prompt'),
+        send.click(),
+      ])
+      expect(((await promptResponse.json()) as { result: { ok: boolean } }).result).toMatchObject({ ok: true })
       await page.getByRole('button', { name: 'Edit queued message' }).waitFor({ timeout: 15_000 })
       expect(await page.getByRole('button', { name: 'Remove queued message' }).count()).toBe(1)
       expect(await page.getByRole('button', { name: 'Steer queued message' }).count()).toBe(1)
@@ -236,10 +243,11 @@ describe.skipIf(MODE === 'record')('web e2e: composer interrupt for a running co
       )
 
       const aborted = waitForAbortedTurn(scaffold, childId)
-      const interruptResponse = page.waitForResponse(response =>
-        new URL(response.url()).pathname === '/api/subagents/interruptByUser')
-      await stop.click()
-      expect(((await (await interruptResponse).json()) as {
+      const [interruptResponse] = await Promise.all([
+        page.waitForResponse(response => new URL(response.url()).pathname === '/api/subagents/interruptByUser'),
+        stop.click(),
+      ])
+      expect(((await interruptResponse.json()) as {
         result: { ok: boolean; value?: { accepted: boolean } }
       }).result).toMatchObject({ ok: true, value: { accepted: true } })
       expect(apiCalls.filter(path => path === '/api/session/cancel')).toEqual([])
@@ -282,12 +290,13 @@ describe.skipIf(MODE === 'record')('web e2e: composer interrupt for a running co
 
     // Queue a follow-up through Send while independent Stop remains available.
     // The running child's Send names its delivery like an ordinary session:
-    // the default busy-state preference is Queue.
-    const promptResponse = page.waitForResponse(response =>
-      new URL(response.url()).pathname === '/api/subagents/prompt')
+    // this scenario explicitly selects Queue for busy input.
     await input.fill(FOLLOWUP)
-    await page.getByRole('button', { name: 'Queue message' }).click()
-    expect(((await (await promptResponse).json()) as { result: { ok: boolean } }).result)
+    const [promptResponse] = await Promise.all([
+      page.waitForResponse(response => new URL(response.url()).pathname === '/api/subagents/prompt'),
+      page.getByRole('button', { name: 'Queue message' }).click(),
+    ])
+    expect(((await promptResponse.json()) as { result: { ok: boolean } }).result)
       .toMatchObject({ ok: true })
 
     await page.getByRole('button', { name: '2 queued messages' }).click()
@@ -295,10 +304,11 @@ describe.skipIf(MODE === 'record')('web e2e: composer interrupt for a running co
     await followupRow.getByRole('button', { name: 'Edit queued message' }).click()
     const editor = page.getByRole('textbox', { name: 'Edit queued message' })
     await editor.fill(EDITED_FOLLOWUP)
-    const updateResponse = page.waitForResponse(response =>
-      new URL(response.url()).pathname === '/api/session/updateQueue')
-    await page.getByRole('button', { name: 'Save queued message' }).click()
-    expect(((await (await updateResponse).json()) as { result: { ok: boolean } }).result)
+    const [updateResponse] = await Promise.all([
+      page.waitForResponse(response => new URL(response.url()).pathname === '/api/session/updateQueue'),
+      page.getByRole('button', { name: 'Save queued message' }).click(),
+    ])
+    expect(((await updateResponse.json()) as { result: { ok: boolean } }).result)
       .toMatchObject({ ok: true })
     await page.getByText(EDITED_FOLLOWUP, { exact: true }).waitFor()
     expect(apiCalls.filter(path => path === '/api/subagents/updateQueue')).toEqual([])
@@ -314,10 +324,11 @@ describe.skipIf(MODE === 'record')('web e2e: composer interrupt for a running co
       }))
     }, imageBytes)
     await page.getByRole('img', { name: 'child-followup.png', exact: true }).waitFor()
-    const imageResponse = page.waitForResponse(response =>
-      new URL(response.url()).pathname === '/api/subagents/prompt')
-    await page.getByRole('button', { name: 'Queue message' }).click()
-    expect(((await (await imageResponse).json()) as { result: { ok: boolean } }).result).toMatchObject({ ok: true })
+    const [imageResponse] = await Promise.all([
+      page.waitForResponse(response => new URL(response.url()).pathname === '/api/subagents/prompt'),
+      page.getByRole('button', { name: 'Queue message' }).click(),
+    ])
+    expect(((await imageResponse.json()) as { result: { ok: boolean } }).result).toMatchObject({ ok: true })
     const thumbnail = page.locator('[data-queue-dock]').getByRole('img', { name: 'Queued message image' })
     await thumbnail.waitFor()
     await expect.poll(() => thumbnail.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true)
@@ -330,10 +341,11 @@ describe.skipIf(MODE === 'record')('web e2e: composer interrupt for a running co
     const aborted = waitForAbortedTurn(scaffold, childId)
     const stop = page.getByRole('button', { name: 'Stop generating' })
     expect(await stop.count()).toBe(1)
-    const interruptResponse = page.waitForResponse(response =>
-      new URL(response.url()).pathname === '/api/subagents/interruptByUser')
-    await stop.click()
-    expect(((await (await interruptResponse).json()) as {
+    const [interruptResponse] = await Promise.all([
+      page.waitForResponse(response => new URL(response.url()).pathname === '/api/subagents/interruptByUser'),
+      stop.click(),
+    ])
+    expect(((await interruptResponse.json()) as {
       result: { ok: boolean; value?: { accepted: boolean } }
     }).result).toMatchObject({ ok: true, value: { accepted: true } })
     // The addressed child stops through its own RPC, never the generic one.
