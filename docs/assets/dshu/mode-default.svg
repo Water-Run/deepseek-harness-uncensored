@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="92" viewBox="0 0 520 92" role="img" aria-labelledby="title">
+  <title id="title">缺省 · Default</title>
+  <rect width="520" height="92" rx="16" fill="#12233f"/>
+  <rect width="5" height="56" x="0" y="18" rx="2.5" fill="#77a7ff"/>
+  <g fill="none" stroke="#77a7ff" stroke-width="2.4" stroke-linecap="round"><path d="M42 28 35 64m23-36-7 36M30 40h34M27 53h34"/></g>
+  <text x="86" y="47" fill="#f4f7fd" font-family="Segoe UI,Microsoft YaHei,sans-serif" font-size="25" font-weight="600">缺省</text>
+  <text x="86" y="71" fill="#abc3e7" font-family="Segoe UI,sans-serif" font-size="14">Default · Develop &amp; explore</text>
+</svg>

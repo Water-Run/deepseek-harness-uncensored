@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="92" viewBox="0 0 520 92" role="img" aria-labelledby="title">
+  <title id="title">逆向 · Reverse</title>
+  <rect width="520" height="92" rx="16" fill="#152e28"/>
+  <rect width="5" height="56" x="0" y="18" rx="2.5" fill="#80c8ac"/>
+  <g fill="none" stroke="#80c8ac" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m36 34-13 12 13 12m20-24 13 12-13 12M50 27l-9 38"/></g>
+  <text x="86" y="47" fill="#f1fbf6" font-family="Segoe UI,Microsoft YaHei,sans-serif" font-size="25" font-weight="600">逆向</text>
+  <text x="86" y="71" fill="#a9cfc0" font-family="Segoe UI,sans-serif" font-size="14">Reverse · Trace &amp; understand</text>
+</svg>

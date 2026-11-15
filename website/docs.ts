@@ -131,6 +131,14 @@ const homeAndGuide = pairedPages([
     order: 2,
   },
   {
+    source: 'docs/user/guide/dshu.md',
+    route: 'guide/dshu.md',
+    label: { root: 'DSHU 使用手册', en: 'DSHU user guide' },
+    sidebar: { root: 'zh-guide', en: 'en-guide' },
+    section: { root: '入门', en: 'Guide' },
+    order: 2.5,
+  },
+  {
     source: 'docs/user/guide/network-proxy.md',
     route: 'guide/network-proxy.md',
     label: { root: '网络代理', en: 'Network proxy' },

@@ -2,7 +2,7 @@
 
 English | [中文](index.zh.md)
 
-Start the Web UI through the [root README](../../../README.md#安装与开发); the command prints its URL. This guide begins after that server is running. The `dsh` process uses its invoking directory as the default filesystem location, but a fresh Web UI has no selected workspace until you add one.
+Start the Web UI through the [root README](../../../README.md#安装与开发); the command prints its URL. This guide begins after that server is running. For the fork's modes, side conversations, spending controls, and defaults, use the [DSHU user guide](dshu.md). A fresh Web UI has no selected project; you can add one or choose to work without a workspace.
 
 ## Configure a model
 
@@ -12,7 +12,7 @@ The [model configuration guide](./providers.md) covers other providers and custo
 
 ## Choose a workspace
 
-Click **Choose workspace**, add the project directory where you started `dsh`, and select it. The session composer remains unavailable until a workspace is selected.
+Click **Choose workspace**, add the intended project directory, and select it. For general questions, choose **Work without a workspace**; a project directory is not required to send a message.
 
 ## Run a task
 
@@ -24,6 +24,7 @@ The agent can read and edit workspace files, run commands, delegate work, and ma
 
 ## Continue
 
+- [DSHU user guide](./dshu.md)
 - [Configure models](./providers.md)
 - [Use the Python SDK](./python-sdk.md)
 - [Publish the Web UI behind a reverse proxy](./public-deployments.md)
