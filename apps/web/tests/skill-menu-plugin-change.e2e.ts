@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 import { chromium, type Browser, type Locator, type Page } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import { launchWebScaffold, watchConsole, type WebScaffold } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage, PLUGIN_TOGGLE_SETTLE_MS, saveFailureShot, writeComposerDraft } from './support.ts'
+import { connectFreshWorkspace, newConversationReplayPage, openPluginManager, PLUGIN_TOGGLE_SETTLE_MS, saveFailureShot, writeComposerDraft } from './support.ts'
 
 const BUNDLE_DIR = fileURLToPath(new URL('../../../packages/experimental/badge-skill-bundle', import.meta.url))
 const BUNDLE = '@deepseek-ai/dsh-experimental-badge-skill-bundle'
@@ -38,15 +38,14 @@ describe('web e2e: the slash menu follows plugin switches', () => {
       '',
     ].join('\n'))
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
-    plugins = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
+    plugins = await newConversationReplayPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
     await plugins.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
-    await plugins.getByRole('navigation', { name: 'Global panels' }).getByRole('button', { name: 'Plugins', exact: true }).click()
-    const panel = plugins.locator('[data-plugin-panel]')
+    const panel = await openPluginManager(plugins, 'en')
     await panel.getByRole('button', { name: 'More', exact: true }).click()
     toggle = panel.locator(`[data-plugin-package="${BUNDLE}"]`).getByRole('switch')
     await toggle.waitFor({ timeout: 10_000 })

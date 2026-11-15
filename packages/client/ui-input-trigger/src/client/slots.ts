@@ -6,6 +6,8 @@ import type { MenuState } from '../core/contract.ts'
 
 /** Injected business face of the MenuView overlay entry (copy rides the standard locale seat, not this face). */
 export interface MenuViewInjected {
+  /** Activate this controller's catalogs when its composer overlay mounts. */
+  activate: () => void
   /** The service's menu state store (read-only here; MenuView subscribes). */
   menu: SnapshotStore<MenuState>
   /** Crumbs published per source for the open menu; sources without a header never appear. */

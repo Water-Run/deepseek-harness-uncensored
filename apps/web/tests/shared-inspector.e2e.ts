@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { chromium, type Browser } from 'playwright'
 import { expect, it, onTestFinished } from 'vitest'
 import { compareOrRefreshGolden, launchWebScaffold, seedSession, selectedSessionFixture, watchConsole, webSnapshotMode, type WebScaffold } from './scaffold.ts'
-import { experimentalBundleDescription } from './support.ts'
+import { experimentalBundleDescription, openPluginManager } from './support.ts'
 
 const bundle = fileURLToPath(new URL('../../../packages/experimental/inspector-profile', import.meta.url))
 const fixture = fileURLToPath(new URL('../../../snapshots/web/fresh-round-trip/session.v4.jsonl', import.meta.url))
@@ -118,8 +118,7 @@ it.each([
   resources.browser = browser
   const page = await browser.newPage({ locale: copy.locale })
   await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
-  await page.getByRole('button', { name: copy.plugins, exact: true }).click()
-  const panel = page.locator('[data-plugin-panel]')
+  const panel = await openPluginManager(page, copy.file === 'zh' ? 'zh' : 'en')
   const card = panel.locator('[data-plugin-package="@deepseek-ai/dsh-experimental-inspector-profile"]')
   await card.getByText(copy.description, { exact: true }).waitFor()
   const snapshot = [
@@ -136,6 +135,8 @@ it.each([
     snapshot.push(`- component: ${await row.getByText(title, { exact: true }).innerText()}`,
       `  description: ${await row.getByText(description, { exact: true }).innerText()}`)
   }
+  await page.getByRole('dialog', { name: copy.file === 'zh' ? '设置' : 'Settings', exact: true })
+    .getByRole('button', { name: copy.file === 'zh' ? '关闭' : 'Close', exact: true }).click()
   const workspace = page.getByRole('treeitem').first()
   if (await workspace.getAttribute('aria-expanded') === 'false') await workspace.click()
   await page.locator('[data-row-key="session:inspector-copy"]').click()
@@ -331,10 +332,10 @@ it('opens bottom DevTools and retains its document and selected panel across Ses
   await page.keyboard.press('ControlOrMeta+Shift+Period')
   await iframe.waitFor({ state: 'visible' })
   expect(await unchanged()).toEqual(identity)
-  await page.getByRole('navigation', { name: 'Global panels' }).getByRole('button', { name: 'Plugins', exact: true }).click()
-  await page.locator('[data-plugin-panel]').waitFor()
+  await openPluginManager(page, 'en')
   expect(await iframe.isVisible()).toBe(true)
   expect(await unchanged()).toEqual(identity)
+  await page.getByRole('dialog', { name: 'Settings', exact: true }).getByRole('button', { name: 'Close', exact: true }).click()
   await page.locator('[data-inspector-panel]').getByRole('button', { name: 'Collapse', exact: true }).click()
   await iframe.waitFor({ state: 'hidden' })
   expect(await unchanged()).toEqual(identity)

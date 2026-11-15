@@ -100,19 +100,30 @@ export class InputTriggerController {
   private drilled = false
   private fetch: AbortController | null = null
   private disposed = false
+  private active = false
   /** Per-source lexicon unsubscribers (sources without the hook never enter). */
   private readonly lexiconOffs = new Map<InputTriggerSource, () => void>()
 
   constructor(private readonly deps: InputTriggerControllerDeps) {
-    // Scope-birth prewarm: sessions are always agent-backed, so the one-time
-    // roster warm here replaces the projection-transition watch — there are
-    // no capability steps to react to.
     const projection = this.project()
     for (const src of deps.roster.all()) {
-      src.warm?.(projection)
       this.watchLexicon(src, projection)
     }
     this.refreshLexicon()
+  }
+
+  /** Start catalog prewarming once the composer view is mounted; construction remains fetch-free. */
+  activate(): void {
+    if (this.active || this.disposed) return
+    this.active = true
+    const projection = this.project()
+    for (const source of this.deps.roster.all()) {
+      try {
+        source.warm?.(projection)
+      } catch (error) {
+        console.error(`[ui-input-trigger] source "${source.trigger}${source.name}" prewarm failed:`, error)
+      }
+    }
   }
 
   /**
@@ -433,15 +444,12 @@ export class InputTriggerController {
   }
 
   /**
-   * Admit a source registered after this controller's birth (root registry
-   * change notification): warm it and fold its roll into the live lexicon —
-   * the constructor-time prewarm covers only the roster present at scope
-   * birth.
+   * Admit a new source to the lexicon and prewarm it if the composer is active.
    * @param source - the newly registered source.
    */
   sourceAdded(source: InputTriggerSource): void {
     const projection = this.project()
-    source.warm?.(projection)
+    if (this.active) source.warm?.(projection)
     this.watchLexicon(source, projection)
     this.refreshLexicon()
   }

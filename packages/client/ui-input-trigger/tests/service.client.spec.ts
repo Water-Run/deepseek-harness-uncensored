@@ -69,7 +69,7 @@ const claimOf = (token: string): CommandClaim =>
 const tick = () => Promise.resolve()
 
 /** Direct controller bench: real scope tag + live roster array. */
-function controllerBench(sources: InputTriggerSource[] = [], key = 'a') {
+function controllerBench(sources: InputTriggerSource[] = [], key = 'a', active = true) {
   const root = new Context()
   const scope = createScope(root, sid(key))
   const roster: SourceRoster = {
@@ -77,6 +77,7 @@ function controllerBench(sources: InputTriggerSource[] = [], key = 'a') {
     all: () => sources,
   }
   const controller = new InputTriggerController({ actx: scope.ctx, sessionId: sid(key), roster })
+  if (active) controller.activate()
   return { root, actx: scope.ctx, controller, sources }
 }
 
@@ -140,6 +141,8 @@ describe('registerSource', () => {
     const { inputTriggers, mint } = await serviceBench()
     const ca = inputTriggers.sessionOf(mint('a').actx)
     const cb = inputTriggers.sessionOf(mint('b').actx)
+    ca.activate()
+    cb.activate()
     const late = deferredSource('/', 'late', { lexicon: () => ['fresh'] })
     inputTriggers.registerSource(late.source)
     expect(late.warm).toHaveBeenNthCalledWith(1, { sessionId: sid('a') })
@@ -186,14 +189,14 @@ describe('sessionOf', () => {
     expect(() => inputTriggers.sessionOf(root)).toThrow(/requires a retained Session scope/)
   })
 
-  it('warms the roster once at controller birth with the session projection', async () => {
+  it('warms the roster once on activation with the session projection', async () => {
     const { inputTriggers, mint } = await serviceBench()
     const cmd = deferredSource('/', 'command')
     const sub = deferredSource('@', 'subagent')
     inputTriggers.registerSource(cmd.source)
     inputTriggers.registerSource(sub.source)
     const a = mint('a')
-    inputTriggers.sessionOf(a.actx)
+    inputTriggers.sessionOf(a.actx).activate()
     expect(cmd.warm).toHaveBeenCalledExactlyOnceWith({ sessionId: sid('a') })
     expect(sub.warm).toHaveBeenCalledExactlyOnceWith({ sessionId: sid('a') })
     // Re-resolution of the resident controller never re-warms.
@@ -480,8 +483,48 @@ describe('programmatic source launcher', () => {
   })
 })
 
-describe('scope-birth warm', () => {
-  it('construction warms every source once with the session projection', () => {
+describe('composer activation', () => {
+  it('reports a failed prewarm without preventing other sources from activating', () => {
+    const failure = new Error('catalog unavailable')
+    const source = deferredSource('/', 'broken')
+    source.warm.mockImplementation(() => { throw failure })
+    const healthy = deferredSource('/', 'healthy')
+    const report = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      const { controller } = controllerBench([source.source, healthy.source], 'a', false)
+      controller.activate()
+      expect(report).toHaveBeenCalledWith('[ui-input-trigger] source "/broken" prewarm failed:', failure)
+      expect(healthy.warm).toHaveBeenCalledExactlyOnceWith({ sessionId: sid('a') })
+    } finally { report.mockRestore() }
+  })
+
+  it('does not fetch while resolving a controller and activates its current sources only once', () => {
+    const source = deferredSource('/', 'command')
+    const late = deferredSource('@', 'late')
+    const { controller, sources } = controllerBench([source.source], 'a', false)
+    expect(source.warm).not.toHaveBeenCalled()
+    sources.push(late.source)
+    controller.sourceAdded(late.source)
+    expect(late.warm).not.toHaveBeenCalled()
+    controller.activate()
+    controller.activate()
+    expect(source.warm).toHaveBeenCalledExactlyOnceWith({ sessionId: sid('a') })
+    expect(late.warm).toHaveBeenCalledExactlyOnceWith({ sessionId: sid('a') })
+  })
+
+  it('does not activate a disposed controller or prewarm sources removed before mounting', () => {
+    const source = deferredSource('/', 'command')
+    const disposed = controllerBench([source.source], 'a', false).controller
+    disposed.dispose()
+    disposed.activate()
+    const { controller, sources } = controllerBench([source.source], 'b', false)
+    sources.pop()
+    controller.sourceRemoved(source.source)
+    controller.activate()
+    expect(source.warm).not.toHaveBeenCalled()
+  })
+
+  it('activation warms every source once with the session projection', () => {
     const cmd = deferredSource('/', 'command')
     const sub = deferredSource('@', 'subagent')
     controllerBench([cmd.source, sub.source])

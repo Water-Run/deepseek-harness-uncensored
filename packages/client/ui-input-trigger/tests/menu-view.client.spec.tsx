@@ -62,12 +62,14 @@ const t = makeTranslate(zh, commonZh)
 function mount(state: MenuState, crumbs: ReadonlyMap<string, readonly InputTriggerCrumb[]> = new Map()) {
   const menu = createSnapshotStore<MenuState>(state)
   const headers = createSnapshotStore<ReadonlyMap<string, readonly InputTriggerCrumb[]>>(crumbs)
+  const activate = vi.fn()
   const onPick = vi.fn()
   const onCrumb = vi.fn()
   const onHover = vi.fn()
   const onDismiss = vi.fn()
   const view = render(
     <MenuView
+      activate={activate}
       menu={menu}
       headers={headers}
       onPick={onPick}
@@ -77,7 +79,7 @@ function mount(state: MenuState, crumbs: ReadonlyMap<string, readonly InputTrigg
       t={t}
     />,
   )
-  return { menu, headers, onPick, onCrumb, onHover, onDismiss, view }
+  return { activate, menu, headers, onPick, onCrumb, onHover, onDismiss, view }
 }
 
 /** The bounded menu shell: it owns the height clamp, the listbox scrolls inside it. */
@@ -95,12 +97,14 @@ function titles(container: HTMLElement): string[] {
 
 describe('MenuView', () => {
   it('renders null while closed and appears when the store opens', () => {
-    const { menu, view } = mount(CLOSED)
+    const { activate, menu, view } = mount(CLOSED)
+    expect(activate).toHaveBeenCalledOnce()
     expect(view.container.childElementCount).toBe(0)
     act(() => { menu.set(openState()) })
     expect(screen.queryByRole('listbox')).not.toBeNull()
     act(() => { menu.set(CLOSED) })
     expect(view.container.childElementCount).toBe(0)
+    expect(activate).toHaveBeenCalledOnce()
   })
 
   it('renders ready groups as option rows and pending groups as two skeleton rows', () => {
@@ -290,6 +294,7 @@ describe('MenuView', () => {
     render(
       <div data-composer-card="">
         <MenuView
+          activate={vi.fn()}
           menu={menu}
           headers={createSnapshotStore<ReadonlyMap<string, readonly InputTriggerCrumb[]>>(new Map())}
           onPick={vi.fn()}

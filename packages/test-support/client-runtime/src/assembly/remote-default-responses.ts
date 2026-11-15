@@ -1,14 +1,14 @@
 /**
- * Default responses for every Remote endpoint the web assembly calls while
- * booting and rendering with no sessions, no workspaces, and default settings.
- * The comment above each row names the plugin that calls it; endpoints boot
- * never touches stay absent so a new call fails loud. `$events` is built into
- * `RemoteMock`.
+ * Default Remote responses for client boot and empty conversation accounting.
+ * Each row names its consumer. Feature actions need explicit scenario responses;
+ * unscripted actions fail loudly. `$events` is built into `RemoteMock`.
  * @module @deepseek-ai/dsh-client-test-runtime/src/assembly/remote-default-responses
  */
 import { ok, openStream, type RemoteTable } from '@deepseek-ai/dsh-remote-mock'
 
-/** Default responses of the boot-time Remote endpoints; a spec loads it first and layers its own table on top. */
+const spendLimits = { '15m': 5, '1h': 15, '5h': 50, '1d': 100, '7d': 500, '30d': 2000 }
+
+/** Default read-only Remote responses; a spec loads them first and layers its own scenario on top. */
 export const remoteDefaultResponses: RemoteTable = {
   unary: {
     // api-session-controller `sessions.handleConnected()` on `connection/reset`.
@@ -36,6 +36,29 @@ export const remoteDefaultResponses: RemoteTable = {
       required: false, preset: 'security', acknowledged: true,
       protection: { state: 'unavailable', revision: 0, capabilities: [] },
     }),
+    // ui-agent-preset and the security proxy panel share the disabled upstream state.
+    'securityProxy/get': ok({
+      settings: {
+        enabled: false, protocol: 'http', host: '', port: 8080, authEnabled: false, username: '', hasPassword: false,
+        warnWhenDisabled: false, capturePaused: false, maxFlows: 500, maxBodyBytes: 65_536, retentionMinutes: 1440,
+      },
+      status: 'off', failure: null, detail: null, checkedAt: null, latencyMs: null, listeners: 0, coverage: [],
+      capture: { paused: false, total: 0, retained: 0, bytes: 0 },
+    }),
+    'securityProxy/list': ok({ flows: [], capture: { paused: false, total: 0, retained: 0, bytes: 0 } }),
+    // ui-settings-account and the conversation footer read independent, disabled limits.
+    'spending/get': ok({
+      preferences: {
+        enabledPeriods: [], autoResume: false, limits: spendLimits,
+      },
+      windows: Object.entries(spendLimits).map(([period, limit]) => ({
+        period, enabled: false, limit, spent: 0, reserved: 0, uncertain: 0, remaining: limit,
+      })),
+      paused: false, pending: 0, waiting: 0, pausedSessions: [], nextExpiry: null, updatedAt: 0,
+    }),
+    'spending/sessionUsage': ok({ total: 0, requests: 0, unpricedRequests: 0, points: [] }),
+    // ui-agent-preset reads owner target preferences without enabling protection.
+    'targetProtectionSettings/get': ok({ revision: 0, preferences: { mainlandEnabled: false, rules: [] } }),
     // cordis-client-runner `ClientCordisInspectRegistry.sync` at apply and on `connection/reset`.
     'dynamicCordisRunner/syncInspectManifest': ok(null),
     // ui-cordis inventory at apply and on `connection/reset`.

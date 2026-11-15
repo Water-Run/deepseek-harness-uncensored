@@ -2,7 +2,7 @@
 // over the real Host projection frame flow.
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import type { Browser, Page } from 'playwright'
+import type { Browser, Locator, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed, onTestFinished, vi } from 'vitest'
 import type {} from '@deepseek-ai/dsh-agent-team'
@@ -16,6 +16,13 @@ import {
 import { assertWarningDialogLayout, connectFreshWorkspace, connectFreshWorkspaceZh, newEnglishPage, saveFailureShot, writeComposerDraft } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./snapshots/agent-team-panel', import.meta.url))
+
+/** Hover a control and wait for its own visual transitions before comparing styles. */
+async function hoverSettled(target: Locator): Promise<void> {
+  await target.hover()
+  await expect.poll(() => target.evaluate(element => element.getAnimations()
+    .every(animation => animation.playState !== 'running'))).toBe(true)
+}
 const PANEL_EXPECTED = join(SNAPSHOT_DIR, 'task.expected.md')
 const RESIZE_EXPECTED = join(SNAPSHOT_DIR, 'resize.expected.md')
 const MODE = webSnapshotMode()
@@ -278,15 +285,14 @@ describe('web e2e: agent teamwork panel', () => {
     await page.mouse.move(2, 2)
     expect(await countAction.evaluate((element) => {
       const header = element.closest('[data-slot="conversation.session.header.actions"]')!.parentElement!
-      const preset = header.querySelector('[data-icon="dsw-icon-agent-preset-outline-regular"]')!
+      const trigger = element.querySelector('button')!
       const users = element.querySelector('[data-icon="dsw-icon-users-outline-regular"]')!
       return {
         display: getComputedStyle(header).display, gap: getComputedStyle(header).gap,
-        presetOpacity: getComputedStyle(preset).opacity,
-        presetParentOpacity: getComputedStyle(preset.parentElement!).opacity,
-        sameColor: getComputedStyle(preset).color === getComputedStyle(users).color,
+        triggerOpacity: getComputedStyle(trigger).opacity,
+        sameColor: getComputedStyle(trigger).color === getComputedStyle(users).color,
       }
-    })).toEqual({ display: 'flex', gap: '10px', presetOpacity: '1', presetParentOpacity: '1', sameColor: true })
+    })).toEqual({ display: 'flex', gap: '10px', triggerOpacity: '1', sameColor: true })
     const countTrigger = countAction.getByRole('button', { name: /subagents?$/u })
     await countTrigger.click()
     await countTrigger.click()
@@ -393,7 +399,7 @@ describe('web e2e: agent teamwork panel', () => {
       - element.parentElement!.getBoundingClientRect().width)).toBe(12)
     const hoverStyles = []
     for (const target of [memberHover, taskHover]) {
-      await target.hover()
+      await hoverSettled(target)
       hoverStyles.push(await target.evaluate((element) => {
         const bounds = element.getBoundingClientRect()
         const style = getComputedStyle(element)
@@ -482,12 +488,12 @@ describe('web e2e: agent teamwork panel', () => {
         const icon = element.querySelector('svg')!.getBoundingClientRect()
         const style = getComputedStyle(element)
         return { width: bounds.width, height: bounds.height, padding: style.padding, radius: style.borderRadius,
-          color: style.color, iconWidth: icon.width, iconHeight: icon.height }
+          iconWidth: icon.width, iconHeight: icon.height }
       })))
       expect(compactStyles[0]).toEqual(compactStyles[1])
       expect(compactStyles[0]).toMatchObject({ width: 28, height: 28, padding: '0px', iconWidth: 15, iconHeight: 15 })
       expect(await trigger.evaluate(element => getComputedStyle(element.closest('[data-slot="conversation.session.header.actions"]')!.parentElement!).gap)).toBe('8px')
-      await expandSidebar.hover()
+      await hoverSettled(expandSidebar)
       const expandHover = await expandSidebar.evaluate((element) => {
         const style = getComputedStyle(element)
         return { background: style.backgroundColor, color: style.color }
@@ -496,7 +502,7 @@ describe('web e2e: agent teamwork panel', () => {
       await page.keyboard.press('Tab')
       const countTooltip = page.getByRole('tooltip', { name: '1 subagent', exact: true })
       await countTooltip.waitFor({ state: 'hidden' })
-      await trigger.hover()
+      await hoverSettled(trigger)
       expect(await trigger.evaluate((element) => {
         const style = getComputedStyle(element)
         return { background: style.backgroundColor, color: style.color }

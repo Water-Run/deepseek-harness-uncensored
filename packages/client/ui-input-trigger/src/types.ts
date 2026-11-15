@@ -207,9 +207,8 @@ export interface InputTriggerSource {
    */
   matchClaim?(session: ClientSessionContext, token: string, signal: AbortSignal): Promise<CommandClaim | undefined>
   /**
-   * Scope-birth prewarm hook (fire-and-forget): the per-session controller
-   * calls it once when the session scope comes alive so sources can fetch
-   * their backing data before the first interaction.
+   * Composer-activation prewarm hook (fire-and-forget): the per-session controller
+   * calls it when its first composer view mounts, before the first interaction.
    */
   warm?(session: ClientSessionContext): void
   /**

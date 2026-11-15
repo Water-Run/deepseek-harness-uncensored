@@ -88,7 +88,7 @@ export class CommandDirectory {
   }
 
   /**
-   * Fire-and-forget prewarm of one session (the command source's scope-birth
+   * Fire-and-forget prewarm of one session (the command source's composer-activation
    * warm hook lands here).
    * @param sessionId - session key.
    */

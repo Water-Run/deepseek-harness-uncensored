@@ -74,6 +74,7 @@ export function apply(ctx: ClientContext): void {
         if (actx === undefined) throw new Error(`ui-input-trigger: session "${String(sessionId)}" resolved no scope`)
         const controller = inputTriggers.sessionOf(actx)
         return {
+          activate: () => { controller.activate() },
           menu: controller.menu,
           headers: controller.headers,
           onPick: (source, index, action) => { controller.pick(source, index, action) },
