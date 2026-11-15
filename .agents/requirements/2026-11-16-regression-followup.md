@@ -82,3 +82,9 @@ Windows 运行时与许可声明检查共 46 文件、728 项单测通过。产�
 原始 `preview-boot.e2e.ts` 的完整浏览器用例以只读快照模式通过，覆盖空环境和示例镜像、真实额度 API 的开关与重置、设置与凭据、会话工具、历史分页、延迟资源、可选插件和 Inspector，并断言没有额外请求 SQLite Worker 或 WASM 文件。用例显式选择紧凑工作步骤以验证折叠，产品默认仍为完全展开；插件管理通过实际设置页进入并用 Escape 关闭。没有删除功能断言、跳过组件或过滤 SQLite 错误。
 
 日志位于 `20261116/worker-runtime-unit-final.log`、`worker-sqlite-integration.log`、`worker-sqlite-build-final.log`、`worker-sqlite-preview-final.log` 和 `worker-sqlite-jsdoc-final.log`。保留此前构建及预览失败；当前完整 Web 基线仍为批次 V 所述，不能用本次单文件通过替代新的整轮结果。
+
+## 公开接口说明复核
+
+日期版本辅助函数和 MCP 关闭状态原有的 11 条 JSDoc 违规已补齐描述及独立的参数/返回段，未修改运行语句。全仓 `verify-export-jsdoc` 现通过，日志为 `20261116/export-jsdoc-complete.log`。
+
+新的 Linux 整轮 `web-baseline-6` 使用 `65eafb6a42` 运行代码，只读快照、4 个 Worker。该提交已通过 8 项产物、2 项聚合检查及 3 个前置文件共 10 项测试，主批次尚在运行。更新前的 11 份验证候选已保存并校验 tar、patch 和摘要，保留对应 stash；最终结果另行记录，不覆盖原基线。

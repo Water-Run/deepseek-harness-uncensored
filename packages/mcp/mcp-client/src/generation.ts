@@ -100,10 +100,16 @@ export class McpGeneration {
     return this.closing ??= this.finish()
   }
 
-  /** @returns Actual transport and owned-work settlement, including after a cleanup deadline expires. */
+  /**
+   * Wait for the transport and owned work to settle independently of the caller deadline.
+   * @returns Actual settlement, including after a cleanup deadline expires.
+   */
   whenClosed(): Promise<void> { return this.quiescent.promise }
 
-  /** @returns Actual closure and cleanup evidence, independent of an expired caller deadline. */
+  /**
+   * Read the observed transport closure and cleanup state without waiting.
+   * @returns Actual closure and cleanup evidence, independent of an expired caller deadline.
+   */
   closure(): McpCloseResult { return this.observedClosure }
 
   private async finish(): Promise<McpCloseResult> {

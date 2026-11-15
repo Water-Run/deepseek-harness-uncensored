@@ -38,13 +38,17 @@ Windows 安装包和回执位于 `%USERPROFILE%/DSHU-Deliveries/20261116`；Linu
 
 仓库文档另恢复 README 的四模式蓝、红、绿、金色页头，新增[中英文使用手册](../docs/user/guide/dshu.zh.md)与离线文档索引。手册补齐首次任务、上下文、额度、记忆、工具、默认值和排错，并纠正 Web 入门页“必须选择工作区才能发消息”的过期说明。这些文档更新未改变当前安装包。
 
+Worker 的真实 SQLite 接入与完整浏览器预览已通过；保持初始化/存储失败时的额度拒绝，不将单 Worker 账本解释为跨 Worker 或浏览器重启持久化。[批次 W](requirements/2026-11-16-regression-followup.md#批次-wworker-sqlite-与完整预览源码未打包)
+
+日期版本辅助函数和 MCP 关闭状态的 11 条 JSDoc 违规已清理；仅调整接口说明，`export-jsdoc-complete.log` 显示全仓无违规，不改变运行行为。
+
 下一步处理：
 
-1. Worker 的真实 SQLite 接入与完整浏览器预览已通过；保持初始化/存储失败时的额度拒绝，不将单 Worker 账本解释为跨 Worker 或浏览器重启持久化。[批次 W](requirements/2026-11-16-regression-followup.md#批次-wworker-sqlite-与完整预览源码未打包)
-2. 重跑同一提交的完整 Web，保留本轮基线，不将定向通过代替整轮通过。
-3. 两个额外 Windows POSIX 日志比较含原生 ACL 技能和部分文件沙箱披露差异；行为断言通过，完整比较未通过，不能删除平台披露凑通过。
-4. 继续 TODO 的平台、发行、许可及默认关闭的进阶保护验收。本轮不开发未来三个平台/安装器计划。
-5. 清理本次发现的全仓 11 条既有 JSDoc 违规；Worker 新增接口已复核无违规，不把局部结果替代全仓检查。
+1. 完成正在运行的同一提交完整 Web，保留原基线，不将定向通过代替整轮通过。
+2. 两个额外 Windows POSIX 日志比较含原生 ACL 技能和部分文件沙箱披露差异；行为断言通过，完整比较未通过，不能删除平台披露凑通过。
+3. 继续 TODO 的平台、发行、许可及默认关闭的进阶保护验收。本轮不开发未来三个平台/安装器计划。
+
+新的 Linux 整轮 `20261116/web-baseline-6` 使用源码 `65eafb6a427f41c379a9e7c4b6c62c634a12ea72`。8 项产物和 2 项聚合检查已通过，3 个前置文件共 10 项通过，主批次以 4 个 Worker 运行中。工具进程句柄为 `20412`，Linux 包装脚本 PID 为 `434`；继续前核对实际进程或该句柄，不仅凭状态文件重启。原完整基线与失败证据继续保留。
 
 此前 `web-baseline-4` 的 1,073 通过、12 失败及各批定向结果继续保留，不能用本轮或后续通过覆盖旧失败。[历史回归](requirements/2026-11-15-regression-baseline.md)
 
@@ -52,7 +56,7 @@ Windows 安装包和回执位于 `%USERPROFILE%/DSHU-Deliveries/20261116`；Linu
 
 - Windows Worker 的 11 份候选文件已从 stash 恢复并逐文件核对原始字节。备份位于 `20261116/worker-preview-before-20261116-1.{zip,json,patch}`，stash `a9921e56af9277a9e3917031a7052dc298ba8c29` 继续保留。不要 reset 或覆盖；它们未包含在本检查包中。
 - SQLite 官方 WASM `3.54.1-build1` 已接入 Worker VFS 与生命周期。运行时及许可声明 46 文件 728 项单测、真实账本集成、10 项构建和完整浏览器预览通过；尚未进入安装包。早期内存库探测继续保留在 `20261116/worker-sqlite-probe/`，本轮依据与失败记录见[批次 W](requirements/2026-11-16-regression-followup.md#批次-wworker-sqlite-与完整预览源码未打包)。
-- Ubuntu 已迁移到 `D:/WSL/Ubuntu`，可正常使用。私有检出 `/home/linzh/.cache/dshu-verification/linux-rc2-20261113.iLMw1C/source` 当前为 `f8c87121c7`；迁移前的 8 份候选保存在 `20261115/web-baseline-5/` 的 tar、patch、摘要及 `stash-commit.txt`，不要重新覆盖已提交修正。完整 WSL 备份在 `D:/Codex-disk-relief/ubuntu-pre-migration-2026-11-15/ubuntu-backup.tar`。
+- Ubuntu 已迁移到 `D:/WSL/Ubuntu`，可正常使用。私有检出 `/home/linzh/.cache/dshu-verification/linux-rc2-20261113.iLMw1C/source` 当前为 `65eafb6a42`。本次更新前的 11 份文件已逐字节核对 tar 和摘要，保存在 `20261116/web-baseline-6/` 的 `private-candidate-*`，另保留 stash `faee5b828ba8a877026376f96e41777df8fbe5ac`。迁移前的 8 份候选仍在 `20261115/web-baseline-5/`，不要重新覆盖已提交修正。完整 WSL 备份在 `D:/Codex-disk-relief/ubuntu-pre-migration-2026-11-15/ubuntu-backup.tar`。
 - 当前安装前数据：`D:/DSHU-Backups/20261115T172839Z-before-20261116-1-data`，7,318 文件已校验，权限限当前用户、SYSTEM 和管理员。
 - 上一版恢复安装器：`20261115/DSHU-2026.11.15.9-core-0.2.2-rc.3-REA-6.9.0-win-x64-857695d.exe`，SHA-256 `a7d9f233180d022c33199931e8a276f4e09fcae15fc84658f7f7f604c6b15011`，安装前再次核对。`.8` 程序备份及更早回执保留，自动回退尚未验收。
 - 当前回执：`current-windows-manifest.json`、`current-linux-manifest.json`、`installed-update-result.json`、`installed-runtime-result.json`、`installed-cli-version.json`、`linux-native-x11-16-1-startup.json`、`linux-native-wayland-16-1.json`。均在 `20261116` 交付目录。
