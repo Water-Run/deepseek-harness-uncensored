@@ -1,6 +1,6 @@
 /** Recorded main conversation with independent audited native Flash translation from the real Web GUI. */
 import { once } from 'node:events'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -183,13 +183,70 @@ it.skipIf(MODE === 'record')('reuses saved native Account Flash translations acr
   await toggle.click()
   await expect.poll(() => toggle.getAttribute('aria-checked'), { timeout: PLUGIN_TOGGLE_SETTLE_MS }).toBe('true')
   await card.getByRole('button').first().click()
+  const preview = panel.locator('[data-detail-document]').getByRole('img', { name: '展开的思考行从英文翻译成中文，并显示“查看原文”按钮', exact: true })
+  await preview.evaluate(async (element) => {
+    if (!(element instanceof HTMLImageElement)) throw new Error('Expected the plugin preview image')
+    await element.decode()
+  })
   const provider = panel.getByLabel('翻译服务', { exact: true })
   await provider.waitFor(); expect(await provider.getAttribute('value')).toBe('bing')
   await provider.click()
   await settings.getByRole('menuitem', { name: 'DeepSeek Flash · 账号（付费）', exact: true }).waitFor({ state: 'attached' })
   expect(await settings.getByRole('menuitem', { name: /官方 API（付费）/ }).count()).toBe(0)
   expect(calls).toEqual([])
-  await settings.getByRole('menuitem', { name: 'DeepSeek Flash · 账号（付费）', exact: true }).click()
+  const selectProvider = async (label: string): Promise<void> => {
+    try {
+      await settings.getByRole('menuitem', { name: label, exact: true }).click()
+    } catch (error) {
+      const layers = await settings.getByRole('menuitem', { name: label, exact: true }).evaluate((target) => {
+        const describe = (element: Element) => {
+          const style = getComputedStyle(element)
+          return { tag: element.tagName, className: element.getAttribute('class'), role: element.getAttribute('role'),
+            position: style.position, zIndex: style.zIndex, pointerEvents: style.pointerEvents, display: style.display,
+            clipPath: style.clipPath, opacity: style.opacity, visibility: style.visibility, transform: style.transform,
+            bounds: { x: element.getBoundingClientRect().x, y: element.getBoundingClientRect().y,
+              width: element.getBoundingClientRect().width, height: element.getBoundingClientRect().height },
+            inert: element.hasAttribute('inert'), ariaHidden: element.getAttribute('aria-hidden'),
+            interactivity: style.getPropertyValue('interactivity') }
+        }
+        const bounds = target.getBoundingClientRect()
+        const hit = document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2)
+        const ancestors = []
+        for (let element: Element | null = target; element !== null; element = element.parentElement) ancestors.push(describe(element))
+        const hitAncestors = []
+        for (let element = hit; element !== null; element = element.parentElement) hitAncestors.push(describe(element))
+        return { visibility: document.visibilityState, focused: document.hasFocus(),
+          target: describe(target), hit: hit === null ? null : describe(hit), ancestors, hitAncestors,
+          overlays: [...document.querySelectorAll('[role="dialog"], [role="menu"]')].map(describe),
+          stylesheets: [...document.styleSheets].map(sheet => sheet.href === null ? 'inline' : new URL(sheet.href).pathname) }
+      })
+      const evidence = fileURLToPath(new URL('../../../.artifacts/screenshots/', import.meta.url))
+      await mkdir(evidence, { recursive: true })
+      await writeFile(join(evidence, `cot-menu-layers-${process.pid}.json`), `${JSON.stringify(layers, null, 2)}\n`)
+      await saveFailureShot(settings, `cot-menu-layer-failure-${process.pid}`)
+      throw error
+    }
+  }
+  await selectProvider('DeepSeek Flash · 账号（付费）')
+  for (const label of ['Bing', 'DeepSeek Flash · 账号（付费）', 'Bing', 'DeepSeek Flash · 账号（付费）']) {
+    await provider.click()
+    await selectProvider(label)
+  }
+  await provider.click()
+  await settings.getByRole('menuitem', { name: 'Bing', exact: true }).waitFor()
+  await provider.evaluate((element) => {
+    for (let parent = element.parentElement; parent !== null; parent = parent.parentElement) {
+      if (getComputedStyle(parent).overflowY === 'auto' && parent.scrollHeight > parent.clientHeight) {
+        parent.scrollTop = 0
+        return
+      }
+    }
+    throw new Error('Expected the scrollable plugin settings column')
+  })
+  await expect.poll(() => settings.locator('[role="menu"]').count()).toBe(0)
+  await saveFailureShot(settings, `cot-menu-clipped-${process.pid}`)
+  await provider.click()
+  await selectProvider('DeepSeek Flash · 账号（付费）')
   await panel.getByText(COST, { exact: true }).waitFor()
   expect(calls).toEqual([])
   const save = panel.getByRole('button', { name: '保存', exact: true })
@@ -197,8 +254,6 @@ it.skipIf(MODE === 'record')('reuses saved native Account Flash translations acr
   expect(calls).toEqual([])
   await panel.getByText(`v${bundleVersion}`, { exact: true }).waitFor()
   await panel.getByText(bundleVersion, { exact: true }).waitFor()
-  // The bundle's detail document is shown between its components and its source.
-  await panel.locator('[data-detail-document]').getByRole('img', { name: '展开的思考行从英文翻译成中文，并显示“查看原文”按钮', exact: true }).waitFor()
   await compareOrRefreshGolden(join(EXPECTED, 'paid-choices.expected.md'),
     await captureStableAria(settings, '[data-plugin-panel]', scaffold.workspaceCwd, {
       replacements: [[BUNDLE, '{{bundle}}'], [bundleVersion, '{{version}}']],

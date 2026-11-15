@@ -213,8 +213,12 @@ describe.skipIf(MODE === 'record')('web e2e: details panel follows the current S
     await expect.poll(() => columns(page)).toEqual([280, blankViewport.width - 280, 0])
     await page.locator('[data-sidebar-right-expand]').click()
     await blankColumn.locator('[data-dockkit-add-tab]').click()
-    await blankColumn.locator('[data-sidebar-right-guide-entry="terminal"]')
-      .getByRole('button', { name: /^New terminal/u }).click()
+    const [terminalCreated] = await Promise.all([
+      page.waitForResponse('**/api/terminal/create'),
+      blankColumn.locator('[data-sidebar-right-guide-entry="terminal"]')
+        .getByRole('button', { name: /^New terminal/u }).click(),
+    ])
+    expect(await terminalCreated.json()).toMatchObject({ result: { ok: true } })
     const agent = scaffold.ctx.agents.list().find(agent => agent.session.header.cwd === workspace)
     if (agent === undefined) throw new Error('Blank Session has no workspace Agent')
     await expect.poll(() => scaffold.ctx.terminalController.list(agent.id).map(terminal => terminal.state)).toEqual(['running'])

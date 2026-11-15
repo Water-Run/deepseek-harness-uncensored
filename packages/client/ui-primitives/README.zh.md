@@ -31,6 +31,8 @@ StatPopover 为点击展开的统计信息复用定位、菜单材质与焦点�
 
 `Select` 接收本地化标签、受控值及 value/label 选项。它通过 `Menu` 统一弹层主题、视口边界、滚动、键盘导航、禁用项、Escape 与焦点恢复，不弹出原生 select 菜单。 可选 `descriptionId` 将校验或帮助文本附加到当前选项之后的无障碍描述，不覆盖已选内容。
 
+提供 IntersectionObserver 的平台上，滚动或内容重排将锚点完全裁出可见区域时，锚定的浮层菜单会调用 `onClose`。按指针坐标定位的上下文菜单仍随其坐标定位。关闭或卸载会释放观察器并忽略排队通知。
+
 传送到 body 的菜单在滚动或视口变化后重新打开时刷新原生锚点绑定。坐标和宽度仍由 CSS 决定，不添加视口监听或 JavaScript 坐标快照。
 
 `Toast` 在浅色和深色模式下均使用主题的系统提示背景与文字颜色。`Menu` 数据条目与 `MenuItemButton` 组件条目接收功能 owner 提供的有效快捷键，并在末端以无背景的浅灰色文字对齐显示，子菜单也采用同一呈现。主指针为粗指针（`pointer: coarse`）且未使用[键盘导航](#input-modality)时，菜单隐藏这些提示。键盘导航会显示提示，直到下一次指针按下；快捷键绑定始终生效。`ShortcutKeys` 默认以无方块的按键文字显示菜单和行内提示。`tooltip` 变体在深色气泡上使用稍浅的键帽，以加号连接的组合则共用一个填充色块。`Tooltip.shortcutKeys` 将键帽与可选的本地化操作文本垂直居中排列，标签为空时只显示按键。可选的 `className` 供调用方设置交互状态样式。`Modal` 使用框架共享的浮层起点，视口边距至少为 24px。其遮罩不绘制 Windows 顶栏区域，覆盖整个视口的模态层仍阻挡背景点击。`Modal` 与设置外壳通过 `useModalLayer` 共用顶层 Esc 和 Tab 处理，关闭时恢复先前焦点。`closeTopModal(document)` 请求前台弹窗当前的关闭操作；上层菜单或未注册的对话框会阻止关闭其后方弹窗。组件通过 `isBehindModal` 避免将焦点移到嵌套弹窗后方。菜单先消费自己的 Esc，再由模态层处理关闭。 `observeComposition` 为局部弹层和录键处理提供相同的 composition-end 与旧版 IME 保护；调用方随交互生命周期释放其 document 监听。

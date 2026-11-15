@@ -1,5 +1,5 @@
 /** Context gestures against built plugins, seeded Sessions, and original files. */
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium, type Browser, type Locator, type Page } from 'playwright'
@@ -201,7 +201,8 @@ describe.each(['MacIntel', 'Win32', 'Linux x86_64'])('web context menus on %s', 
     expect(await menuLabels(menu)).toEqual(['Show in folder', 'Copy folder path'])
     expect(await folder.getAttribute('aria-expanded')).toBe('false')
     await menu.getByRole('menuitem', { name: 'Copy folder path', exact: true }).click()
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(join(scaffold.workspaceCwd, 'folder'))
+    const copied = await page.evaluate(() => navigator.clipboard.readText())
+    expect(await realpath(copied)).toBe(await realpath(join(scaffold.workspaceCwd, 'folder')))
     await page.getByText('Copied', { exact: true }).waitFor()
     await expect(names.join('\n') + '\n').toMatchFileSnapshot(join(import.meta.dirname, 'expected/context-menus/workspace.txt'))
   })

@@ -131,6 +131,7 @@ export function MenuItemButton({ onSelect, ...props }: MenuItemButtonProps) {
  * with CSS anchor positioning; it follows browser zoom and may exceed the
  * visual viewport. Use when an ancestor's overflow clipping would crop the
  * in-place list; default false keeps the pure-CSS in-place behavior.
+ * Element anchors clipped out of their scroll container dismiss through onClose when intersection observation is available.
  * @param props.closeOnPointerLeave - close the list once the pointer has left
  * both trigger and list for the pointer grace (default false keeps it open
  * until outside click/Escape/selection). The grace makes the 4px trigger->list
@@ -320,9 +321,17 @@ export function Menu({ open, anchor, items = [], children, submenuBackLabel, sel
     observer.observe(element.ownerDocument.documentElement, {
       subtree: true, childList: true, attributes: true, attributeFilter: ['inert', 'hidden'],
     })
+    // CSS can stop painting an anchored popup after reflow clips its trigger without hiding its DOM.
+    const intersection = typeof IntersectionObserver === 'undefined' || anchorPoint !== undefined
+      ? undefined : new IntersectionObserver((entries) => {
+        if (dismissed || !entries.some(entry => entry.target === currentAnchor() && !entry.isIntersecting)) return
+        dismissed = true
+        close.current()
+      })
+    intersection?.observe(element)
     check()
-    return () => { observer.disconnect() }
-  }, [open, portal, exiting, anchorRef, externalAnchor, returnFocus])
+    return () => { dismissed = true; observer.disconnect(); intersection?.disconnect() }
+  }, [open, portal, exiting, anchorRef, externalAnchor, returnFocus, anchorPoint])
   const { arm: armClose, cancel: cancelClose } = usePointerGrace(onClose)
 
   // Opening remembers where the keyboard was, so closing can hand it back to

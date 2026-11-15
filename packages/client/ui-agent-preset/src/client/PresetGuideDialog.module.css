@@ -20,6 +20,7 @@
 }
 
 .guideHeader {
+  --dsw-focus-ring-color: var(--dsw-mode-label-ink);
   flex: none;
   padding: 24px;
   color: var(--dsw-mode-label-ink);
@@ -74,8 +75,6 @@
     background: color-mix(in srgb, var(--dsw-mode-label-ink) 22%, transparent);
   }
 }
-
-.guideHeader .guideClose:focus-visible { outline-color: var(--dsw-mode-label-ink); }
 
 .guideTabs {
   flex: none;

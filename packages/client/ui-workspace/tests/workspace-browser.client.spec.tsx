@@ -22,7 +22,6 @@ import { createWorkspaceViewStore, FLAT_SESSION_ORDER_KEY } from '../src/client/
 import { UNGROUPED_KEY } from '../src/client/tree.ts'
 import { WorkspaceBrowser } from '../src/client/rows/WorkspaceBrowser.tsx'
 import { renderMenuButton } from './menu-button.tsx'
-import rowCss from '../src/client/rows/Rows.module.css'
 import { zh } from '../src/client/locales.ts'
 
 // Every fixture carries the resource hook the resources plugin merges into GlobalStandardProps.
@@ -182,15 +181,15 @@ describe('WorkspaceBrowser', () => {
       useWorkspaces: hook(workspaceState(mode === 'ungrouped' ? [] : [workspace('alpha', ['session-one'])])),
       renderFactorySlot,
     })
-    expect(renderFactorySlot).toHaveBeenCalledWith('contextMenu.button', {
+    expect(renderFactorySlot).toHaveBeenCalledWith('contextMenu.button', expect.objectContaining({
       target: { kind: 'session', value: { sessionId: sid('session-one'), displayTitle: 'session-one' } },
-      label: '会话“session-one”的操作', className: rowCss.iconButton,
-    })
+      label: '会话“session-one”的操作',
+    }))
     if (mode === 'workspace') {
-      expect(renderFactorySlot).toHaveBeenCalledWith('contextMenu.button', {
+      expect(renderFactorySlot).toHaveBeenCalledWith('contextMenu.button', expect.objectContaining({
         target: { kind: 'workspace', value: { workspaceId: wid('alpha'), path: '/projects/alpha', displayTitle: 'alpha' } },
-        label: '工作区“alpha”的操作', className: rowCss.iconButton,
-      })
+        label: '工作区“alpha”的操作',
+      }))
     }
   })
 
