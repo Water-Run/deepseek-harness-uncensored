@@ -52,7 +52,7 @@ describe('Worker strict assertions', () => {
     expect(assert.ok).toBe(ok)
   })
 
-  it.each(['node:assert/strict', 'assert/strict'])('resolves and executes a lowered default import from %s', (specifier) => {
+  it.each(['node:assert/strict', 'assert/strict', 'node:assert', 'assert'])('resolves and executes a lowered default import from %s', (specifier) => {
     const vfs = new MemoryVfs()
     vfs.seedDirectory('/dsh')
     const loader = new WorkerModuleLoader({ vfs, root: '/dsh', staticModules: createNodeBuiltins() })
@@ -74,5 +74,18 @@ describe('Worker strict assertions', () => {
     const probe = require('./probe.js') as { same: boolean; reject: () => void }
     expect(probe.same).toBe(true)
     expect(probe.reject).toThrow(expect.objectContaining({ code: 'ERR_ASSERTION', message: 'HMR pending module is missing' }))
+  })
+
+  it.each(['assert', 'node:assert'])('returns the callable assertion for CommonJS require(%s)', (specifier) => {
+    const vfs = new MemoryVfs()
+    vfs.seedDirectory('/dsh')
+    const loader = new WorkerModuleLoader({ vfs, root: '/dsh', staticModules: createNodeBuiltins() })
+    const require = loader.createRequire('/dsh/')
+    const assertion: typeof assert = require(specifier) as typeof assert
+    expect(assertion).toBe(assert)
+    expect(assertion.ok).toBe(assert)
+    expect(() => { assertion(false, 'invalid client state') }).toThrow(expect.objectContaining({
+      code: 'ERR_ASSERTION', message: 'invalid client state',
+    }))
   })
 })

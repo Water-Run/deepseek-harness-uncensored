@@ -4,10 +4,9 @@
  *
  * Every platform object arrives through options — the `node:*` proxy table, the
  * request listener the app's fake `node:http` captured, the image bytes — so this
- * package never reaches back into the application that composes it. **Platform
- * readiness before the call is the caller's responsibility**: anything the
- * proxies need initialized (the zstd WebAssembly module, for one) must be ready
- * before {@link startWorkerHost} runs.
+ * package never reaches back into the application that composes it. Async
+ * engines supplied by `initializePlatform` become ready before Node globals
+ * or image activation; initialization failure rejects boot and queued requests.
  *
  * Construction is split in two on purpose. {@link createWorkerHost} is
  * synchronous so the worker can accept messages and queue requests that arrive
@@ -77,6 +76,8 @@ export interface HostContext {
 
 /** Construction inputs for {@link createWorkerHost}. */
 export interface WorkerHostOptions {
+  /** Prepare platform engines before Node globals or profile activation; rejection fails the tunnel. */
+  readonly initializePlatform?: () => Promise<void>
   /**
    * Modules served from the worker bundle rather than the image: the `node:*`
    * proxies, the not-implemented stubs for excluded npm packages, and anything else whose
@@ -185,6 +186,7 @@ export function createWorkerHost(options: WorkerHostOptions): WorkerHost {
 
   const start = async (): Promise<void> => {
     try {
+      await options.initializePlatform?.()
       const home = join(root, IMAGE_HOME_DIRECTORY)
       const processShim = installProcessGlobal({ cwd: root, env: { DSH_HOME: home, HOME: home, ...options.env } })
 

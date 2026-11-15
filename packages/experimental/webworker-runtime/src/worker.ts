@@ -24,6 +24,8 @@ import { installProcessGlobal } from './node/globals/process.ts'
 import { installCryptoGlobals } from './node/globals/crypto.ts'
 import { isShellStartFrame } from './shell/process/protocol.ts'
 import { runShellProcess } from './shell/process/host.ts'
+import sqliteBinary from '@sqlite.org/sqlite-wasm/sqlite3.wasm'
+import { initializeSqlite } from './node/sqlite-engine.ts'
 
 // Before the timer globals, so the wrappers close over the patched platform.
 installAsyncContextHooks()
@@ -56,6 +58,7 @@ self.addEventListener('message', (event: MessageEvent) => {
       throw new Error('webworker: init frame needs an array of string overlay urls')
     }
     const created = createWorkerHost({
+      initializePlatform: () => initializeSqlite(sqliteBinary),
       staticModules: createNodeBuiltins(),
       staticModulePrefixes: REPLACED_PREFIXES,
       requestListener: whenRequestListener,

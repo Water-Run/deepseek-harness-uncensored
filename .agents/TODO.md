@@ -8,6 +8,8 @@
 
 后续源码已修复菜单锚点裁切后的残留打开状态，并补齐目录排序、终端就绪与 PTC 组合；Linux 42 项只读回归、Windows 25 项菜单/翻译检查通过。完整 GUI 的 4 项既有失败已修正、172 项定向复验通过；尚未进入当前安装包。[批次 V](requirements/2026-11-16-regression-followup.md#批次-v菜单裁切与回放稳定性源码未打包)
 
+Worker 现已接入真实 SQLite、VFS 提交和启动失败处理；728 项运行时/许可单测、账本集成、10 项构建和完整预览浏览器用例通过。原 5 个 Web 失败文件均有后续定向通过，下一步重跑相同提交的完整 Web；当前安装包仍未包含这些源码改动。[批次 W](requirements/2026-11-16-regression-followup.md#批次-wworker-sqlite-与完整预览源码未打包)
+
 下列百分比是实现与验收的综合估算；原始编号见[完整需求清单](requirements/development-checklist.md)。Goal 保持活动，实际剩余额度达到 1% 时按用户规则收尾。macOS、Android 和全新安装器只保留未来计划。
 
 ## 已完成（34 项）
@@ -51,7 +53,7 @@
 
 ## 进行中（11 项）
 
-- [ ] **DSH rc.3 适配 — 约 97%**（02.10）：当前完整 Web 共 1,082 项通过、3 项测试失败、34 跳过，另有 2 个准备/收尾失败文件。继续处理 Worker、终端创建、翻译菜单、模型目录顺序和旧 PTC 夹具；历史偶发问题保留。[回归记录](requirements/2026-11-16-regression-followup.md)
+- [ ] **DSH rc.3 适配 — 约 97%**（02.10）：原完整 Web 共 1,082 项通过、3 项测试失败、34 跳过，另有 2 个准备/收尾失败文件。Worker、终端、翻译菜单、目录顺序和旧 PTC 现均有定向通过；待同一提交整轮复验，历史失败与偶发问题保留。[回归记录](requirements/2026-11-16-regression-followup.md)
 - [ ] **Linux x64 Desktop — 约 98%**（02.09、17.07）：归档与运行检查通过；实际归档中的启动 404 修复、X11/Wayland 主界面和重载已复验。剩原生门户、实体桌面及发行验收。[计划](requirements/desktop-installer-plan.md)
 - [ ] **真实目标保护 — 约 80%**（09.01–09.11、05.06、10.05）：默认关闭；已补原生 Cua Driver 可选准入、撤销与审计，30 项回归通过，尚未进入安装包。剩余入站管理、冷重启、部署、其他协议和远端映射验收。[执行层](requirements/2026-11-02-native-execution.md) · [入站](requirements/2026-11-03-native-ingress.md)
 - [ ] **网安特化与独立代理 — 约 95%**（10.01–10.08）：剩余正式插件来源/升级、现有桌面和进阶保护联动验收。[记录](requirements/2026-11-03-browser-proxy.md)

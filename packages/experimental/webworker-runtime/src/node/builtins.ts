@@ -46,7 +46,7 @@ import * as nodeUtilTypes from './builtin_modules/implemented/util/types.ts'
 import * as nodeZlib from './builtin_modules/implemented/zlib.ts'
 import * as nodeChildProcess from './builtin_modules/implemented/child_process.ts'
 import * as nodeNet from './builtin_modules/mock/net.ts'
-import * as nodeSqlite from './builtin_modules/mock/sqlite.ts'
+import * as nodeSqlite from './builtin_modules/implemented/sqlite.ts'
 import * as nodeVm from './builtin_modules/mock/vm.ts'
 import * as nodeRepl from './builtin_modules/mock/repl.ts'
 import * as nodeWorkerThreads from './builtin_modules/mock/worker_threads.ts'
@@ -62,11 +62,13 @@ import * as piCodingAgent from './external_packages/pi-coding-agent.ts'
 import * as ripgrep from './external_packages/ripgrep.ts'
 import * as sharp from './external_packages/sharp.ts'
 import * as ws from './external_packages/ws.ts'
+import * as undici from './external_packages/undici.ts'
 import { REPLACED_EXTERNAL_PACKAGES } from './external_packages/replaced-externals.ts'
 import type { StaticModuleFactory } from '../module-system/module-loader.ts'
 
 /** Builtin modules, keyed with and without the `node:` prefix. */
 const BUILTINS: Record<string, StaticModuleFactory> = {
+  assert: () => nodeAssertStrict.default,
   'assert/strict': () => nodeAssertStrict,
   async_hooks: () => nodeAsyncHooks,
   buffer: () => nodeBuffer,
@@ -110,6 +112,7 @@ const EXTERNALS: Record<string, StaticModuleFactory> = {
   'got': () => got,
   'node-addon-require-builtin': () => nodeAddonRequireBuiltin,
   'ws': () => ws,
+  'undici': () => undici,
   '@vscode/ripgrep': () => ripgrep,
   '@earendil-works/pi-ai': () => piAi,
   '@earendil-works/pi-coding-agent': () => piCodingAgent,

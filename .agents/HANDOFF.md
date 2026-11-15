@@ -1,6 +1,6 @@
 # DSHU 开发交接
 
-**Goal「实现DSHU」保持活动。** 当前 34 项完成、11 项进行中，另有 3 项未来计划。实际剩余额度达到 1% 时按用户规则收尾；最近实查剩余 14%。Windows x64 优先，Linux x64 同步；macOS、Android＋Fedora PRoot、全新安装器本轮不开发。
+**Goal「实现DSHU」保持活动。** 当前 34 项完成、11 项进行中，另有 3 项未来计划。实际剩余额度达到 1% 时按用户规则收尾；最近实查剩余 13%。Windows x64 优先，Linux x64 同步；macOS、Android＋Fedora PRoot、全新安装器本轮不开发。
 
 ## 当前交付
 
@@ -40,17 +40,18 @@ Windows 安装包和回执位于 `%USERPROFILE%/DSHU-Deliveries/20261116`；Linu
 
 下一步处理：
 
-1. 完成 Worker 的真实 SQLite 接入及完整预览。导入与 Fetch 候选仍未提交；保持额度守卫拒绝付费请求。
-2. 适时重跑同一提交的完整 Web，保留本轮基线，不将定向通过代替整轮通过。
+1. Worker 的真实 SQLite 接入与完整浏览器预览已通过；保持初始化/存储失败时的额度拒绝，不将单 Worker 账本解释为跨 Worker 或浏览器重启持久化。[批次 W](requirements/2026-11-16-regression-followup.md#批次-wworker-sqlite-与完整预览源码未打包)
+2. 重跑同一提交的完整 Web，保留本轮基线，不将定向通过代替整轮通过。
 3. 两个额外 Windows POSIX 日志比较含原生 ACL 技能和部分文件沙箱披露差异；行为断言通过，完整比较未通过，不能删除平台披露凑通过。
 4. 继续 TODO 的平台、发行、许可及默认关闭的进阶保护验收。本轮不开发未来三个平台/安装器计划。
+5. 清理本次发现的全仓 11 条既有 JSDoc 违规；Worker 新增接口已复核无违规，不把局部结果替代全仓检查。
 
 此前 `web-baseline-4` 的 1,073 通过、12 失败及各批定向结果继续保留，不能用本轮或后续通过覆盖旧失败。[历史回归](requirements/2026-11-15-regression-baseline.md)
 
 ## 工作树与恢复入口
 
 - Windows Worker 的 11 份候选文件已从 stash 恢复并逐文件核对原始字节。备份位于 `20261116/worker-preview-before-20261116-1.{zip,json,patch}`，stash `a9921e56af9277a9e3917031a7052dc298ba8c29` 继续保留。不要 reset 或覆盖；它们未包含在本检查包中。
-- SQLite 官方 WASM `3.54.1-build1` 已在隔离探测中验证真实事务、回滚、FTS5、精确 int64 和现有 SpendLedger 的预留/结算/拒绝/逐项重置/过期。证据在 `20261116/worker-sqlite-probe/`。仅验证内存库，未接入浏览器 VFS、生命周期或产品，不能标为完成。
+- SQLite 官方 WASM `3.54.1-build1` 已接入 Worker VFS 与生命周期。运行时及许可声明 46 文件 728 项单测、真实账本集成、10 项构建和完整浏览器预览通过；尚未进入安装包。早期内存库探测继续保留在 `20261116/worker-sqlite-probe/`，本轮依据与失败记录见[批次 W](requirements/2026-11-16-regression-followup.md#批次-wworker-sqlite-与完整预览源码未打包)。
 - Ubuntu 已迁移到 `D:/WSL/Ubuntu`，可正常使用。私有检出 `/home/linzh/.cache/dshu-verification/linux-rc2-20261113.iLMw1C/source` 当前为 `f8c87121c7`；迁移前的 8 份候选保存在 `20261115/web-baseline-5/` 的 tar、patch、摘要及 `stash-commit.txt`，不要重新覆盖已提交修正。完整 WSL 备份在 `D:/Codex-disk-relief/ubuntu-pre-migration-2026-11-15/ubuntu-backup.tar`。
 - 当前安装前数据：`D:/DSHU-Backups/20261115T172839Z-before-20261116-1-data`，7,318 文件已校验，权限限当前用户、SYSTEM 和管理员。
 - 上一版恢复安装器：`20261115/DSHU-2026.11.15.9-core-0.2.2-rc.3-REA-6.9.0-win-x64-857695d.exe`，SHA-256 `a7d9f233180d022c33199931e8a276f4e09fcae15fc84658f7f7f604c6b15011`，安装前再次核对。`.8` 程序备份及更早回执保留，自动回退尚未验收。

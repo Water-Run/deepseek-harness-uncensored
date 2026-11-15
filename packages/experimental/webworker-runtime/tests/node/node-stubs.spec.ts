@@ -74,7 +74,6 @@ const CALLED: [string, Record<string, unknown>, readonly string[]][] = [
 
 /** Classes that refuse when constructed. */
 const CONSTRUCTED: [string, Record<string, unknown>, readonly string[]][] = [
-  ['node:sqlite', sqlite, ['DatabaseSync', 'StatementSync']],
   ['node:vm', vm, ['Script']],
   ['node:worker_threads', workerThreads, ['Worker']],
   ['node:perf_hooks', perfHooks, ['PerformanceObserver']],

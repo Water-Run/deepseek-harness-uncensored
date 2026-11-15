@@ -48,7 +48,7 @@ import {
   buildVfsExampleFiles,
 } from '../../../packages/experimental/webworker-runtime/tests/vfs-example-fixture.ts'
 import { captureStableAria, compareOrRefreshGolden, webSnapshotMode } from './scaffold.ts'
-import { expandOwningTurnProcess, newEnglishPage, REPO_ROOT, saveFailureShot } from './support.ts'
+import { expandOwningTurnProcess, newEnglishPage, openPluginManager, REPO_ROOT, saveFailureShot } from './support.ts'
 
 const DIST_ROOT = fileURLToPath(new URL('../dist', import.meta.url))
 
@@ -219,7 +219,7 @@ async function respond(
   served: string[],
 ): Promise<void> {
   const path = new URL(request.url ?? '/', 'http://127.0.0.1').pathname
-  const relative = normalize(decodeURIComponent(path)).replace(/^\/+/, '')
+  const relative = normalize(decodeURIComponent(path)).replaceAll('\\', '/').replace(/^\/+/, '')
   served.push(relative)
   try {
     const body = await readFile(overrides.get(relative) ?? join(DIST_ROOT, relative))
@@ -291,6 +291,7 @@ it('boots the packed worker deployment to an interactive page', async () => {
       try {
         await bootEmptyPreview(site.origin, browser)
         await bootPreview(site, assets.manifest, browser)
+        expect(site.served.filter(path => /sqlite3(?:-[^/]*)?\.(?:wasm|mjs|js)$/u.test(path))).toEqual([])
       } finally {
         await browser.close()
       }
@@ -428,6 +429,18 @@ async function bootPreview(site: Site, manifest: ImageManifest, browser: Browser
       const reset = await remote<Setting>('settings/mutate', {
         ns: 'bash-sandbox', ops: [{ op: 'unset', path: ['timeoutMs'] }], expectedRevision: saved.revision,
       })
+      interface Spending {
+        preferences: { enabledPeriods: string[]; limits: Record<string, number>; autoResume: boolean }
+        pending: number
+      }
+      const initialSpending = await remote<Spending>('spending/get', {})
+      const enabledSpending = await remote<Spending>('spending/configureWindow', {
+        update: { period: '5h', enabled: true, limit: 45 },
+      })
+      const resetSpending = await remote<Spending>('spending/reset', { period: '5h' })
+      const restoredSpending = await remote<Spending>('spending/configure', { preferences: initialSpending.preferences })
+      // Folding is exercised with an explicit preference; DSHU's default is fully expanded.
+      await remote('settings/update', { ns: 'ui-chat', patch: { transcriptView: 'compact' } })
       await remote('settings/update', { ns: 'ui-theme', patch: { fontSize: 17 } })
       await remote('credentials/set', { ref: 'PREVIEW_TEST_SECRET', value: 'worker-only' })
       const credentials = await remote<Record<string, { configured: boolean }>>(
@@ -448,6 +461,10 @@ async function bootPreview(site: Site, manifest: ImageManifest, browser: Browser
         renameAdvanced: secondRename.seq > firstRename.seq,
         skillCount: skills.skills.length,
         credentialConfigured: credentials.PREVIEW_TEST_SECRET?.configured,
+        initialSpending: initialSpending.preferences.enabledPeriods,
+        enabledSpending: enabledSpending.preferences,
+        resetSpendingPending: resetSpending.pending,
+        restoredSpending: restoredSpending.preferences,
       }
     }, {
       seededSessionId: VFS_EXAMPLE_SESSION_IDS.main,
@@ -467,6 +484,12 @@ async function bootPreview(site: Site, manifest: ImageManifest, browser: Browser
     expect(exercised.renameAdvanced).toBe(true)
     expect(exercised.skillCount).toBeGreaterThan(0)
     expect(exercised.credentialConfigured).toBe(true)
+    expect(exercised.initialSpending).toEqual([])
+    expect(exercised.enabledSpending.enabledPeriods).toEqual(['5h'])
+    expect(exercised.enabledSpending.limits['5h']).toBe(45)
+    expect(exercised.resetSpendingPending).toBe(0)
+    expect(exercised.restoredSpending.enabledPeriods).toEqual([])
+    expect(exercised.restoredSpending.limits['5h']).toBe(50)
 
     const sessions = page.getByRole('tree', { name: 'Sessions' })
     const showcase = sessions.getByRole('treeitem').filter({ hasText: SHOWCASE_TITLE })
@@ -616,8 +639,7 @@ async function requestLazyChunk(page: Page, site: Site, manifest: ImageManifest)
  * @param page - Booted preview page.
  */
 async function toggleOptionalBundles(page: Page): Promise<void> {
-  await page.getByRole('navigation', { name: 'Global panels' }).getByRole('button', { name: 'Plugins', exact: true }).click()
-  const panel = page.locator('[data-plugin-panel]')
+  const panel = await openPluginManager(page, 'en')
   const cards = panel.locator('[data-plugin-group="extensions"] [data-plugin-package]')
   await cards.first().waitFor({ timeout: 30_000 })
   const listed = await cards.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-plugin-package')))
@@ -746,6 +768,8 @@ async function toggleOptionalBundles(page: Page): Promise<void> {
       { moduleName: INSPECTOR_MODULE, enabled: true, fiberPhase: 'active' },
       { moduleName: SESSION_INSPECTOR_MODULE, enabled: true, fiberPhase: 'active' },
     ])
+  await page.keyboard.press('Escape')
+  await panel.waitFor({ state: 'hidden' })
 }
 
 /**

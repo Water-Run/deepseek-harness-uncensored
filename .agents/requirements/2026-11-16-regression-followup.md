@@ -68,3 +68,17 @@ Linux 六文件只读复验为 42 通过、1 条件跳过，包含 Chromium/WebK
 额外 Windows 创建页面与 PTC 运行的 27 项行为断言通过，但两个 POSIX 持久化预期仍在收尾报告平台差异：Windows 原生 ACL 诊断技能，以及文件沙箱部分执行披露。原日志、差异及失败结果保留，没有关闭比较或过滤这些信息。Linux 的严格持久化回放保持通过。
 
 证据位于 `20261116` 的 `catalog-order-*`、`menu-clipping-*`、`cot-anchor-clipping-negative`、`cohort-v-*`、`terminal-ptc-readonly` 和 `ptc-explicit-composition`。当前实装仍为 `2026.11.16.1`，本节源码修改尚未进入安装包。
+
+## 批次 W：Worker SQLite 与完整预览（源码，未打包）
+
+Worker 的 `node:sqlite` 使用固定的官方 WASM `3.54.1-build1`，事务、约束、FTS5、绑定和 int64 均交由真实 SQLite 执行。提交后将完整数据库字节写入当前 VFS；同一文件的活跃连接共享引擎文件。只读查询不重写文件，外部改写或发布失败后相关句柄全部拒绝继续 SQL。这里是单个 Worker 的内存文件系统，不保证跨 Worker 共享账本或浏览器重启后的持久保存。
+
+初始化在 Node 全局与镜像激活前完成，实际损坏 WASM 会让启动失败并向排队请求返回 503。WASM 内嵌在 Worker 束中，构建仅保留依赖的引擎段，省去未使用的 Worker 客户端；停用可选浏览器 VFS，不另取兄弟 Worker 或 WASM。依赖布局变动会使构建失败，原有许可头保留，并补充封装、SQLite 与 Emscripten 许可原文及摘要。
+
+未实现的原生扩展、SQL JavaScript 函数/聚合、changeset 和备份继续明确拒绝；SQLite 授权拒绝附加文件和 `VACUUM INTO`。没有伪造 Node authorizer API，可选保护仍拒绝不支持的执行器操作。浏览器 Fetch 替代原生 Undici，自定义代理、分发器与连接池在发起传输前拒绝，不回退为直连；补齐裸 `assert/strict` 导入和 CommonJS 可调用导出。
+
+Windows 运行时与许可声明检查共 46 文件、728 项单测通过。产品 SpendLedger 不改业务逻辑，在真实 SQLite 与 Worker 文件适配器上通过默认全关、文件预留/结算、超限拒绝、逐项重置、在途保留、未知费用、窗口到期、重开与损坏拒绝。全量构建 10 项通过，包括 Host/Client 聚合；本包 JSDoc 无违规，全仓另有 11 条既有违规，未算作本次通过。实验 Worker 处于既有覆盖率豁免范围，不宣称覆盖率 100%。
+
+原始 `preview-boot.e2e.ts` 的完整浏览器用例以只读快照模式通过，覆盖空环境和示例镜像、真实额度 API 的开关与重置、设置与凭据、会话工具、历史分页、延迟资源、可选插件和 Inspector，并断言没有额外请求 SQLite Worker 或 WASM 文件。用例显式选择紧凑工作步骤以验证折叠，产品默认仍为完全展开；插件管理通过实际设置页进入并用 Escape 关闭。没有删除功能断言、跳过组件或过滤 SQLite 错误。
+
+日志位于 `20261116/worker-runtime-unit-final.log`、`worker-sqlite-integration.log`、`worker-sqlite-build-final.log`、`worker-sqlite-preview-final.log` 和 `worker-sqlite-jsdoc-final.log`。保留此前构建及预览失败；当前完整 Web 基线仍为批次 V 所述，不能用本次单文件通过替代新的整轮结果。

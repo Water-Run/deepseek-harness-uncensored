@@ -184,5 +184,23 @@
     "file": "undici-types-5.26.5-MIT.txt",
     "source": "https://raw.githubusercontent.com/nodejs/undici/9197790ae0d015b40b75fd0c5cdb7420704b5272/LICENSE",
     "sha256": "a6db8096b2707bc0102d256917d4d33f298ba36d8c3f25de067a2b5bb379db27"
+  },
+  {
+    "packages": ["@sqlite.org/sqlite-wasm@3.54.1-build1"],
+    "file": "sqlite-wasm-3.54.1-build1-Apache-2.0.txt",
+    "source": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "packages": ["@sqlite.org/sqlite-wasm@3.54.1-build1"],
+    "file": "sqlite-wasm-3.54.1-build1-Upstream-NOTICE.txt",
+    "source": "https://registry.npmjs.org/@sqlite.org/sqlite-wasm/-/sqlite-wasm-3.54.1-build1.tgz",
+    "sha256": "5cd1320b663c1b10e635f19c8c397488d5b48b85460177b575ac5d1b4d7ce88a"
+  },
+  {
+    "packages": ["@sqlite.org/sqlite-wasm@3.54.1-build1"],
+    "file": "sqlite-wasm-3.54.1-build1-Emscripten-LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/emscripten-core/emscripten/5.0.5/LICENSE",
+    "sha256": "2fd38dc06e484cdd7a3f1e2f6577f5d53062052a2fd85131b56b89fbd673731c"
   }
 ]

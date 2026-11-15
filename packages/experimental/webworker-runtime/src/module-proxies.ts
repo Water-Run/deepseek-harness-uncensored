@@ -21,6 +21,7 @@
  * unmodified while its flock subpath is replaced.
  */
 export const MODULE_PROXIES: Record<string, string> = {
+  'undici': './node/external_packages/undici.ts',
   // VFS-backed real implementations.
   'node:fs': './node/builtin_modules/implemented/fs.ts',
   'fs': './node/builtin_modules/implemented/fs.ts',
@@ -44,6 +45,8 @@ export const MODULE_PROXIES: Record<string, string> = {
   // Sync-stack AsyncLocalStorage semantics.
   'node:async_hooks': './node/builtin_modules/implemented/async_hooks.ts',
   // Real implementations over browser primitives.
+  'node:assert': './node/builtin_modules/implemented/assert/strict.ts',
+  'assert': './node/builtin_modules/implemented/assert/strict.ts',
   'node:assert/strict': './node/builtin_modules/implemented/assert/strict.ts',
   'assert/strict': './node/builtin_modules/implemented/assert/strict.ts',
   'node:util': './node/builtin_modules/implemented/util.ts',
@@ -70,7 +73,7 @@ export const MODULE_PROXIES: Record<string, string> = {
   'node:vm': './node/builtin_modules/mock/vm.ts',
   'node:repl': './node/builtin_modules/mock/repl.ts',
   'node:worker_threads': './node/builtin_modules/mock/worker_threads.ts',
-  'node:sqlite': './node/builtin_modules/mock/sqlite.ts',
+  'node:sqlite': './node/builtin_modules/implemented/sqlite.ts',
   // External npm replacements, named after the package each stands in for.
   '@deepseek-ai/libreoffice-kit': './node/external_packages/libreoffice-kit.ts',
   '@deepseek-ai/node-addon-system/flock': './node/external_packages/node-addon-system-flock.ts',

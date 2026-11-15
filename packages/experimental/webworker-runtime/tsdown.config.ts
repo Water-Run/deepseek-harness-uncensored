@@ -2,6 +2,7 @@ import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'tsdown'
+import { sqliteCore } from './src/module-system/sqlite-core.ts'
 import { MODULE_PROXIES, MODULE_PROXY_PREFIXES } from './src/module-proxies.ts'
 
 const here = (relative: string): string => fileURLToPath(new URL(relative, import.meta.url))
@@ -49,6 +50,14 @@ const moduleProxyPlugin = {
   },
 }
 
+/** The app owns the Worker; upstream's unused Worker-client bootstrap needs a separate sibling script. */
+const sqliteCorePlugin = {
+  name: 'dsh-sqlite-engine-only',
+  transform(source: string, id: string): string | null {
+    return id.replaceAll('\\', '/').endsWith('/@sqlite.org/sqlite-wasm/dist/index.mjs') ? sqliteCore(source) : null
+  },
+}
+
 /**
  * Three artifacts from one pipeline: the runtime library the worker bundle is
  * built from (neutral), the worker bundle itself (browser, single file), and
@@ -77,7 +86,8 @@ export default defineConfig([{
   dts: false,
   clean: false,
   noExternal: [/.*/],
-  plugins: [moduleProxyPlugin, shellParserOnlyPlugin],
+  loader: { '.wasm': 'binary' },
+  plugins: [moduleProxyPlugin, shellParserOnlyPlugin, sqliteCorePlugin],
   outputOptions: { inlineDynamicImports: true },
 }, {
   // Page half: an ordinary browser ES module the deployment's page imports. It

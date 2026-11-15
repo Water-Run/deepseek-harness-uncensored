@@ -55,8 +55,12 @@ kind: "package-library"
 <a id="known-limitations-and-deferred-work"></a>
 
 - **worker 组合写明文会话日志**（镜像 home patch 中的 `compression: 'none'`；ConfigEditor 会拒绝修改这一行的配置）：不带 Zstandard 编解码器，导出日志是 `.jsonl`，不会是 `.jsonl.zstd`。
-- **`node:dns/promises`、`node:vm`、`node:repl`、`node:net`、`node:sqlite`、`node:worker_threads` 是结构化 stub**：镜像打包可以解析这些导入；每个已暴露的调用都在 console 报告拒绝，并抛出带 Node `ERR_FEATURE_UNAVAILABLE_ON_PLATFORM` 错误码的错误。需要原生 DNS、真进程、Node REPL 或真 realm 隔离的行在此无法运行。
-- **`node:assert/strict` 仅支持真值断言**：对于假值，可调用的默认导出和 `ok` 使用传入的消息或通用文本抛出 `ERR_ASSERTION`，或原样抛出传入的 Error。其他断言 API 未提供。
+- **`node:dns/promises`、`node:vm`、`node:repl`、`node:net`、`node:worker_threads` 是结构化 stub**：镜像打包可以解析这些导入；每个已暴露的调用都在 console 报告拒绝，并抛出带 Node `ERR_FEATURE_UNAVAILABLE_ON_PLATFORM` 错误码的错误。需要原生 DNS、真进程、Node REPL 或真 realm 隔离的行在此无法运行。
+- **`node:assert` 和 `node:assert/strict` 仅支持真值断言**：不带前缀的名称也可解析，CommonJS `require('node:assert')` 返回可调用的断言。对于假值，可调用的默认导出和 `ok` 使用传入的消息或通用文本抛出 `ERR_ASSERTION`，或原样抛出传入的 Error。其他断言 API 未提供。
+- **Undici 使用浏览器 Fetch，不提供原生分发器**：`fetch`、`Headers`、`Request` 和 `Response` 使用浏览器的传输与类型。自定义分发器、`Agent`、`Pool`、`ProxyAgent`、`Dispatcher1Wrapper` 和全局分发器访问均抛出 `ERR_FEATURE_UNAVAILABLE_ON_PLATFORM`，要求代理的请求不会回退为直连。
+- **SQLite 使用真实 WASM 引擎读写虚拟文件**：事务、约束、FTS5、参数绑定、精确 int64 读取与提交后的数据库字节均由 SQLite 执行。打开的连接共享同一挂载文件，只读句柄不重写文件；外部修改或发布失败后，相关句柄全部阻止继续 SQL。产品额度账本不改业务逻辑即可使用这些适配器，损坏时拒绝打开而不重置总额。这里仍是单个 Worker 的内存文件系统，不保证跨 Worker 共享额度或浏览器重启后的持久保存。
+- **SQLite 在 Worker 启动时初始化**：`initializePlatform` 在 Node 全局和镜像激活前准备引擎，失败向排队请求返回 503。束内嵌 WASM 字节并[仅保留上游引擎](src/module-system/sqlite-core.ts)，不包含未使用的 Worker 客户端启动段，并停用可选浏览器 VFS，因此 SQLite 不另取兄弟 Worker 或 WASM 文件。依赖布局变化会使构建失败并要求复核。[补充声明](../../../LICENSES/npm/sources.json)保留封装、SQLite 与 Emscripten 的许可。
+- **SQLite 兼容范围有限**：文件名使用 POSIX VFS。原生扩展、JavaScript 函数与聚合注册、changeset 和备份辅助明确拒绝。SQLite 授权拒绝附加文件和 `VACUUM INTO`；未暴露 Node authorizer API，可选执行保护仍须拒绝依赖此 API 的不支持操作。完整浏览器预览验收独立于 SQL 适配器检查。
 - **原生 TLS 监听器需要 Node Host**：worker 的 `node:https.createServer` 会拒绝激活，不会替换成明文。预览内部的 HTTP 隧道不绑定套接字；面向浏览器的 HTTPS 由部署服务器提供。
 - **桌面产品埋点不可用**：`got.post` 明确报告 worker host 不支持该调用。浏览器镜像不包含 Got 及其 Node HTTP 依赖；预览组合不启用桌面上报。
 - **宿主包管理命令不可用**：`execa` 明确报告 worker host 不支持该调用；预览无法运行 pnpm、安装插件或安装原生依赖。
