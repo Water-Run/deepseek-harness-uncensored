@@ -326,6 +326,8 @@ describe('web e2e: clickable links gallery', () => {
 
   beforeAll(async () => {
     scaffold = await launchWebScaffold({ extraOverlayPath: OVERLAY })
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'system' })
+    await scaffold.ctx.settings.update('ui-chat', { transcriptView: 'standard', collapseTiming: 'completion' })
     imageUrl = new URL('/favicon.svg', scaffold.baseUrl).toString()
     await seedSession(scaffold, galleryFixture(imageUrl), SEED_ID, undefined, { createdAt: GALLERY_TIME })
     browser = await chromium.launch()

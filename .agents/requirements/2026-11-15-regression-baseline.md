@@ -149,4 +149,12 @@ Windows 桌面最初复现渠道、打包夹具及欢迎页问题。修正后完
 
 输入插件导航改验 Settings 内的入口。引用与富文本夹具显式使用标准工作步骤与完成后收起；快捷键色彩夹具显式跟随模拟系统主题，几何和错误边框等待实际过渡结束。新会话快捷键验证选中新的空白会话，归档仍验证取消选择，原始会话通过稳定 ID 重新打开。产品默认值未修改。
 
-7 个 Web 文件、30 项只读场景通过；凭据与模态相关 6 文件、76 项单测通过，另有 42 项模式帮助与焦点单测通过。Windows/Linux 产物构建及随后聚合检查、全仓 lint 与文档检查通过。四份 UI 预期仅同步已有旁问入口、费用/限额信息、默认工作步骤和当前文案，Session JSONL 未改。证据为同日交付目录的 `cohort-n-*`、`modal-reopen-negative/positive.log`、`secret-reset-negative.log`、`secret-layout-*` 和 `secret-fonts.log`。实际截图包括 `modal-reopen-windows.png`、`modal-reopen-macos.png` 和 `secret-mask-*.png`。这些源码修复尚未进入已安装的 `.7`。
+7 个 Web 文件、30 项只读场景通过；凭据与模态相关 6 文件、76 项单测通过，另有 42 项模式帮助与焦点单测通过。Windows/Linux 产物构建及随后聚合检查、全仓 lint 与文档检查通过。四份 UI 预期仅同步已有旁问入口、费用/限额信息、默认工作步骤和当前文案，Session JSONL 未改。证据为同日交付目录的 `cohort-n-*`、`modal-reopen-negative/positive.log`、`secret-reset-negative.log`、`secret-layout-*` 和 `secret-fonts.log`。实际截图包括 `modal-reopen-windows.png`、`modal-reopen-macos.png` 和 `secret-mask-*.png`。这些修复已进入 `.8` 并保留数据安装；实际安装版验证了重开弹窗的前台命中、键盘焦点与保留节点。
+
+## Markdown、公式与链接回归
+
+链接画廊和次级思考正文夹具显式使用标准工作步骤及完成后收起，保留折叠链接和组内固定标题的检查。画廊的主题选择明确跟随模拟系统主题，以验证浅深两种状态。公式统计检查使用当前无障碍名称，仍要求真实公式、字体加载与 TeX 复制结果。
+
+8 文件、13 项只读场景通过，覆盖链接与交付物、文件行号预览和去重、允许/拒绝的图片、中文相邻加粗、行内代码 URL、公式以及流式代码高亮。七份 UI 预期仅同步已有模式/旁问入口、权限和费用统计；其中一条 Windows 路径按钮在借用的 `session.v3.jsonl` 中没有对应输入，因此移除陈旧预期。相对/绝对文件定位、缺失文件失败和目录变化后的预览断言均保留，Session JSONL 未改。没有新增界面行为或调用模型。
+
+候选变更先在私有检出中验证和还原，Windows `.8` 打包源码保持其记录的提交。相关记录为 `cohort-o-before`、`cohort-o-refresh`、`cohort-o-gallery`、`cohort-o-readonly`、`cohort-o-check` 和 `cohort-o-lint`；原失败记录保留。

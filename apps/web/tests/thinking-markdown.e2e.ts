@@ -112,6 +112,7 @@ describe('web e2e: secondary Thinking Markdown', () => {
 
   beforeAll(async () => {
     scaffold = await launchWebScaffold({})
+    await scaffold.ctx.settings.update('ui-chat', { transcriptView: 'standard', collapseTiming: 'completion' })
     await seedSession(scaffold, thinkingFixture(), SEED_ID)
     browser = await chromium.launch({ ignoreDefaultArgs: ['--hide-scrollbars'] })
     page = await newEnglishPage(browser)

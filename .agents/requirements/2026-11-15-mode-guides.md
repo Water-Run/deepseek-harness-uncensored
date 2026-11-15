@@ -1,6 +1,6 @@
 # 模式说明与使用文档
 
-状态：已随 `2026.11.15.7` 交付并安装；Windows 安装版与 Linux 归档均完成验证。
+状态：已随 `2026.11.15.7` 交付并安装；当前 `.8` 安装版再次逐一核对四模式指南。Windows 安装版与 Linux 归档均完成验证。
 
 用户要求恢复模式文档原有的彩色风格，使用对应模式配色，并补全过于简略的介绍。
 
@@ -14,3 +14,5 @@
 验证记录位于 `%USERPROFILE%/DSHU-Deliveries/20261115` 的 `mode-guide-*`、`mode-guides-matrix.*`。截图位于仓库 `.artifacts/screenshots/mode-guides/density/`。产物构建、Host/Client 聚合检查、全仓 lint、双语配对和文档检查通过；未调用模型或使用 Computer Use。
 
 安装版另逐一打开四份英文指南，核对模式色、四个说明章节、三组示例和关闭后焦点恢复；逆向说明确认内置 REA 文案。首轮验收脚本把英文“Reverse engineering”写成“Reverse”，更正选择器后复验通过，原失败日志和截图保留在 `installed-runtime-7-selector-failure.*`。
+
+README 同步补充首次使用路径、主线与旁问的关系、余额和费用口径及四种模式的任务示例；进阶保护放入折叠区，默认关闭与尚未覆盖的执行路径继续明确。

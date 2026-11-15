@@ -129,7 +129,7 @@ describe('web e2e: settled Markdown math rendering', () => {
     expect(fonts).toHaveLength(20)
     expect(fonts.every(status => status === 'loaded')).toBe(true)
     await expect.poll(
-      () => page.getByText('1 turns 1 steps', { exact: false }).count(),
+      () => page.getByRole('button', { name: /^Turns: 1 · Steps: 1(?: ·|$)/ }).count(),
       { timeout: 10_000 },
     ).toBe(1)
 

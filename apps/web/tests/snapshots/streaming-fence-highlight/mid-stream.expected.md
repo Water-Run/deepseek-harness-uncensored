@@ -1,6 +1,7 @@
 - banner:
   - navigation "Session hierarchy": Stream one TypeScript fence for
-  - text: Standard mode
+  - 'button "Conversation mode: Default" [disabled]': Default
+  - button "Side question"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -20,9 +21,11 @@
 - text: Deep diving for {{duration}} ···
 - textbox "Message or run a task, / commands, @ files or sessions"
 - button "Add files or run commands"
-- 'button "Access mode, current: Workspace Write"': Workspace Write
+- 'button "Access mode, current: Full access"': Full access
 - button "Select model, current streaming-fence-highlight-test/streaming-fence": streaming-fence-highlight-test/streaming-fence
 - button "Stop generating"
+- 'button "Conversation cost: ￥0.00"': ￥0.00
+- 'button "Spending limits: Off"': "Off"
 
 ---
 
