@@ -26,7 +26,7 @@ export function registerCreationSkill(ctx: Context): void {
       return {
         ...summary,
         content: instructions + '\n## Existing capabilities to check against this page plan\n\n'
-          + JSON.stringify(bundles.filter(bundle => bundle.official).map(bundle => ({
+          + JSON.stringify(bundles.filter(bundle => bundle.official).sort((left, right) => left.name.localeCompare(right.name, 'en')).map(bundle => ({
             name: bundle.name, title: bundle.meta?.title ?? bundle.name,
             description: bundle.meta?.description ?? bundle.description ?? '', enabled: bundle.enabled,
           }))),

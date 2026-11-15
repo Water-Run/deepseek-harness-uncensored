@@ -84,7 +84,7 @@ To propose, call \`propose_action\` once, in the same turn as loading this skill
 
 ## Existing capabilities to check against this page plan
 
-[{"name":"enabled","title":"Existing view","description":"Inspect current work","enabled":true},{"name":"disabled","title":"disabled","description":"Optional view","enabled":false},{"name":"empty","title":"empty","description":"","enabled":true},{"name":"localized","title":{"en":"Counter","zh":"计数器"},"description":{"en":"Count tasks","zh":"统计任务"},"enabled":true}]",
+[{"name":"disabled","title":"disabled","description":"Optional view","enabled":false},{"name":"empty","title":"empty","description":"","enabled":true},{"name":"enabled","title":"Existing view","description":"Inspect current work","enabled":true},{"name":"localized","title":{"en":"Counter","zh":"计数器"},"description":{"en":"Count tasks","zh":"统计任务"},"enabled":true}]",
   "name": "personalized-pages",
   "provider": "dsh-personalized-pages",
 }

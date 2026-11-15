@@ -3,6 +3,9 @@ scenario: optional-string-editor
 profile: web
 composition: web-ptc-string-editor
 recording: authored
+sessionFormat:
+  version: 4
+  coverage: [behavior-update]
 header:
   class: web-ptc-string-editor
   pin: true

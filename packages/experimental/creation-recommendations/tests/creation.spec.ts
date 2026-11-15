@@ -16,6 +16,20 @@ function settled(phase: string, data: object) {
 }
 
 describe('interface creation', () => {
+  it('keeps the model-visible official catalog stable across discovery orders', async () => {
+    const f = await fixture()
+    const later = { ...installedBundle('zeta'), official: true }
+    const earlier = { ...installedBundle('alpha'), official: true, enabled: false }
+    const custom = installedBundle('custom')
+    f.bundles.push(later, custom, earlier)
+    const first = await f.ctx.skills.get('personalized-pages')
+    f.manager.listBundles.mockResolvedValueOnce([earlier, later, custom])
+    const second = await f.ctx.skills.get('personalized-pages')
+    expect(first?.content).toBe(second?.content)
+    expect(first?.content).not.toContain('"name":"custom"')
+    expect(f.bundles).toEqual([later, custom, earlier])
+  })
+
   it('loads page planning with a live duplicate-check catalog and withdraws the skill and card kind on unload', async () => {
     const f = await fixture()
     f.bundles.push(

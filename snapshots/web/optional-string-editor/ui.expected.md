@@ -1,8 +1,7 @@
 - text: Use the optional string editor from the generated tools SDK in one run_code program to create edited.txt in the working directory containing exactly PTC_EDITOR_OK followed by a newline. Print the editor result, then reply DONE. {{clock}}
 - button "Copy"
 - status: Completed
-- button "Completed in {{duration}}" [expanded]
-- button "Ran code and called tools" [expanded]
+- button "Completed in {{duration}}" [disabled] [expanded]
 - button "Context injection runtime-context"
 - button "Context injection skill-catalog"
 - button "Context injection time-context"

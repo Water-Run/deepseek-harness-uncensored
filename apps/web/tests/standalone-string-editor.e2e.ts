@@ -27,19 +27,25 @@ describe('web snapshot: standalone string editor through PTC', () => {
       extraOverlayPath: [
         fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)),
         fileURLToPath(new URL('./standalone-string-editor.overlay.yml', import.meta.url)),
+        fileURLToPath(new URL('./fixtures/legacy-minimal-permissions.overlay.yml', import.meta.url)),
       ],
       profile: { packages: [] },
       compareReplaySession: true,
       ...(MODE === 'record' ? {} : { replayFixture: FIXTURE }),
     })
     expect(scaffold.ctx.tools.schemas().some(tool => tool.name === 'str_replace_editor')).toBe(true)
+    // Expose the retained PTC declaration only in this fixture's roster.
+    const ptc = [...scaffold.ctx.loader.entries()].find(entry => entry.options.id === 'preset-ptc')
+    const config: unknown = ptc?.options.config
+    if (ptc === undefined || typeof config !== 'object' || config === null) throw new Error('Historical PTC declaration is absent')
+    await ptc.update({ config: { ...config, name: 'PTC mode', hidden: false } })
     browser = await chromium.launch()
     page = await newConversationReplayPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
-    await page.getByRole('button', { name: 'Standard mode', exact: true }).click()
+    await page.getByRole('button', { name: 'Default', exact: true }).click()
     await page.getByRole('menuitem', { name: /^PTC mode/ }).click()
     await page.getByRole('button', { name: 'PTC mode', exact: true }).waitFor({ state: 'visible' })
   })
@@ -73,8 +79,8 @@ describe('web snapshot: standalone string editor through PTC', () => {
     expect(await readFile(join(cwd, 'edited.txt'), 'utf8')).toBe('PTC_EDITOR_OK\n')
     await assertFinalWorkspaceSnapshot(DIR, cwd)
     await expect.poll(() => page.getByText('DONE', { exact: true }).count()).toBeGreaterThanOrEqual(1)
-    if (MODE === 'record') await recordFixture(scaffold, sessionId, FIXTURE)
-    else await compareOrRefreshGolden(join(DIR, 'ui.expected.md'),
+    if (MODE === 'record' || MODE === 'refresh') await recordFixture(scaffold, sessionId, FIXTURE)
+    if (MODE !== 'record') await compareOrRefreshGolden(join(DIR, 'ui.expected.md'),
       await captureExpandedTurnProcessAria(page, '[data-chat-flow]', scaffold.workspaceCwd), MODE)
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
