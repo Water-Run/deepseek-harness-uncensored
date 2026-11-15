@@ -2,6 +2,7 @@
 
 - banner:
   - navigation "Session hierarchy": {{workspace}}
+  - button "Side question"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -11,8 +12,7 @@
 - text: Clean up the stale build log. {{clock}}
 - button "Copy"
 - status: Completed
-- button "Completed in {{duration}}" [expanded]
-- button "Called tools" [expanded]
+- button "Completed in {{duration}}" [disabled] [expanded]
 - text: Failed
 - 'button "Tool call Error: the user rejected tool \"mystery\""'
 - text: Failed
@@ -22,12 +22,15 @@
 - 'button "Access mode, current: Auto review"': Auto review
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message" [disabled]
-- button "1 turns 2 steps"
+- 'button "Turns: 1 · Steps: 2"'
+- 'button "Conversation cost: ￥0.00"': ￥0.00
+- 'button "Spending limits: Off"': "Off"
 
 ## Expanded
 
 - banner:
   - navigation "Session hierarchy": {{workspace}}
+  - button "Side question"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -37,8 +40,7 @@
 - text: Clean up the stale build log. {{clock}}
 - button "Copy"
 - status: Completed
-- button "Completed in {{duration}}" [expanded]
-- button "Called tools" [expanded]
+- button "Completed in {{duration}}" [disabled] [expanded]
 - text: Failed
 - 'button "Tool call Error: the user rejected tool \"mystery\"" [expanded]'
 - text: "IN { \"target\": \"old-build.log\" } OUT Error: the user rejected tool \"mystery\""
@@ -52,4 +54,6 @@
 - 'button "Access mode, current: Auto review"': Auto review
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message" [disabled]
-- button "1 turns 2 steps"
+- 'button "Turns: 1 · Steps: 2"'
+- 'button "Conversation cost: ￥0.00"': ￥0.00
+- 'button "Spending limits: Off"': "Off"

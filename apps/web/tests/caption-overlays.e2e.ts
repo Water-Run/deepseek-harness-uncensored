@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it } from 'vitest'
 import { launchWebScaffold, watchConsole } from './scaffold.ts'
-import { openSettings, ZH_BROWSER_LOCALE } from './support.ts'
+import { openPluginManager, openSettings, ZH_BROWSER_LOCALE } from './support.ts'
 
 it('keeps settings and expanded plugin dialogs clear of the Windows caption across fullscreen transitions', async () => {
   const scaffold = await launchWebScaffold({
@@ -23,14 +23,10 @@ it('keeps settings and expanded plugin dialogs clear of the Windows caption acro
       })
       await page.setViewportSize({ width: 521, height: 600 })
       await page.locator('[data-sidebar-drawer]').waitFor({ state: 'detached' })
-      const reopenSidebar = page.locator('[data-shell-leading]').getByRole('button', { name: '打开侧边栏', exact: true })
       await openSettings(page, 'zh')
       const settings = page.getByRole('dialog', { name: '设置', exact: true })
       const settingsMask = settings.locator('..').locator(':scope > [aria-hidden="true"]')
-      const permissionText = settings.getByText('权限', { exact: true }).locator('..')
-      expect(await permissionText.evaluate(el => getComputedStyle(el).paddingRight)).toBe('48px')
-      const cubes = settings.getByRole('button', { name: /浅色|深色|跟随系统/ })
-      expect(await cubes.first().evaluate(el => getComputedStyle(el).flexBasis)).toBe('180px')
+      const permission = settings.getByRole('button', { name: '完全权限', exact: true })
       for (const fullscreen of [false, true, false]) {
         await page.evaluate(value => document.documentElement.toggleAttribute('data-fullscreen', value), fullscreen)
         const margin = fullscreen ? 24 : 60
@@ -42,7 +38,7 @@ it('keeps settings and expanded plugin dialogs clear of the Windows caption acro
       expect(await page.evaluate(() => document.elementFromPoint(300, 20)?.getAttribute('role'))).toBe('presentation')
       await page.mouse.click(300, 20)
       expect(await settings.isVisible()).toBe(true)
-      await settings.getByRole('button', { name: '工作区内修改', exact: true }).click()
+      await permission.click()
       const menu = page.getByRole('menu')
       await menu.waitFor()
       const menuRect = await menu.boundingBox()
@@ -52,8 +48,7 @@ it('keeps settings and expanded plugin dialogs clear of the Windows caption acro
       await menu.waitFor({ state: 'hidden' })
       expect(await settings.isVisible()).toBe(true)
       await settings.getByRole('button', { name: '关闭', exact: true }).click()
-      if (await page.locator('[data-sidebar-drawer][data-sidebar-collapsed]').count() > 0) await reopenSidebar.click()
-      await page.getByRole('navigation', { name: '全局面板' }).getByRole('button', { name: '插件', exact: true }).click()
+      await openPluginManager(page, 'zh')
       await page.locator('[data-plugin-panel]').getByRole('button', { name: '添加插件', exact: true }).click()
       const plugin = page.getByRole('dialog', { name: '添加插件', exact: true })
       await plugin.getByRole('button', { name: '插件安装引导和示例', exact: true }).click()
@@ -82,6 +77,7 @@ it('keeps settings and expanded plugin dialogs clear of the Windows caption acro
       expect(await plugin.isVisible()).toBe(true)
       await page.keyboard.press('Escape')
       await plugin.waitFor({ state: 'hidden' })
+      await settings.getByRole('button', { name: '关闭', exact: true }).click()
       for (const platform of ['darwin', 'browser']) {
         await page.evaluate((value) => {
           document.documentElement.removeAttribute('data-windows-titlebar')
@@ -95,8 +91,12 @@ it('keeps settings and expanded plugin dialogs clear of the Windows caption acro
         await openSettings(page, 'zh')
         await expect.poll(async () => (await settings.boundingBox())?.y).toBe(platform === 'darwin' ? 68 : 0)
         expect((await settingsMask.boundingBox())?.y).toBe(0)
-        expect(await permissionText.evaluate(el => getComputedStyle(el).paddingRight)).toBe(platform === 'darwin' ? '48px' : '16px')
-        expect(await cubes.first().evaluate(el => getComputedStyle(el).flexBasis)).toBe(platform === 'darwin' ? '180px' : '0px')
+        await settings.getByRole('button', { name: '通用', exact: true }).click()
+        await permission.scrollIntoViewIfNeeded()
+        const bounds = (await settings.boundingBox())!
+        const control = (await permission.boundingBox())!
+        expect(control.x).toBeGreaterThanOrEqual(bounds.x)
+        expect(control.x + control.width).toBeLessThanOrEqual(bounds.x + bounds.width)
         await page.keyboard.press('Escape')
         await settings.waitFor({ state: 'hidden' })
       }

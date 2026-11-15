@@ -350,7 +350,7 @@ function ProjectRow({
           renderFactorySlot('contextMenu.button', {
             target: { kind: 'workspace', value: { ...workspaceMenuTarget, displayTitle: label } },
             label: t('actions.workspace.aria', { name: label }),
-            className: css.iconButton,
+            className: actionCss.iconButton,
           })
         )}
         {create !== undefined && (
@@ -785,7 +785,7 @@ export function SessionNodeItem({
           {renderFactorySlot('contextMenu.button', {
             target: { kind: 'session', value: { sessionId: node.id, displayTitle: row.title } },
             label: t('actions.session.aria', { name: title }),
-            className: css.iconButton,
+            className: actionCss.iconButton,
           })}
           <span className={css.rowQuickActions}>
             {renderSlot('sidebar.workspaces.session.row.action', { sessionId: node.id, displayTitle: row.title })}

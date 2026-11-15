@@ -71,7 +71,7 @@ Collapsed search is one header action beside the view and add actions: activatin
 
 ### Managing sessions
 
-Session row actions appear on hover for devices that support hovering. Without hover, non-blank Sessions keep More visible alongside trailing status icons and pending-interaction labels; update times have no display entry. Pinned rows show Unpin before More with the same spacing as Workspace actions; rows without unpin permission retain the static pin marker. Pin and archive remain available in More. Workspace row actions appear only while expanded. An open row menu keeps its action strip visible on either device type.
+Session and Workspace menu triggers share the quick actions’ 24px hit target and 16px layout width, with aligned centers and no overlapping targets. Session row actions appear on hover for devices that support hovering. Without hover, non-blank Sessions keep More visible alongside trailing status icons and pending-interaction labels; update times have no display entry. Pinned rows show Unpin before More with the same spacing as Workspace actions; rows without unpin permission retain the static pin marker. Pin and archive remain available in More. Workspace row actions appear only while expanded. An open row menu keeps its action strip visible on either device type.
 
 The Copy Session ID item is in the identification group of a Session row's "..." menu. It closes the menu and copies the complete ID directly, without opening a dialog. Clipboard success or failure appears in the global toast; a failed copy can be retried from the menu. Copying does not retain the Session, load its history, or call the Host.
 

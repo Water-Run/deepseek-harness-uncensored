@@ -16,6 +16,7 @@ import {
 } from '../src/client/rows/Rows.tsx'
 import type { GroupNode, SearchResultNode, SessionNode } from '../src/client/tree.ts'
 import { en, zh } from '../src/client/locales.ts'
+import actionCss from '../src/client/RowActionButton.module.css'
 import rowCss from '../src/client/rows/Rows.module.css'
 import { renderMenuButton } from './menu-button.tsx'
 
@@ -686,7 +687,7 @@ describe('workspace browser rows', () => {
     fireEvent.contextMenu(screen.getByRole('treeitem'), { clientX: 36, clientY: 48 })
     expect(openMenu).toHaveBeenLastCalledWith(target, { x: 36, y: 48 })
     expect(renderFactorySlot).toHaveBeenLastCalledWith('contextMenu.button', {
-      target, label: '工作区“Project”的操作', className: rowCss.iconButton,
+      target, label: '工作区“Project”的操作', className: actionCss.iconButton,
     })
     expect(onToggle).not.toHaveBeenCalled()
     view.rerender(<ProjectRowItem group={group} onToggle={onToggle} onCreate={vi.fn()} t={t}
@@ -997,7 +998,7 @@ describe('workspace browser rows', () => {
     fireEvent.contextMenu(screen.getByRole('treeitem'), { clientX: 31, clientY: 47 })
     expect(openMenu).toHaveBeenLastCalledWith(target, { x: 31, y: 47 })
     expect(renderFactorySlot).toHaveBeenLastCalledWith('contextMenu.button', {
-      target, label: '会话“One”的操作', className: rowCss.iconButton,
+      target, label: '会话“One”的操作', className: actionCss.iconButton,
     })
     expect(onOpen).not.toHaveBeenCalled()
     cleanup()

@@ -16,5 +16,5 @@ export async function captureAutoReviewState(page: Page, name: string): Promise<
   const directory = process.env.DSH_AUTO_REVIEW_SCREENSHOT_DIR
   if (directory === undefined) return
   await mkdir(directory, { recursive: true })
-  await page.screenshot({ path: join(directory, `${name}.png`), fullPage: true })
+  await page.screenshot({ path: join(directory, `${name}.png`), fullPage: true, animations: 'disabled' })
 }

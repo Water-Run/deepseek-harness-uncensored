@@ -5,6 +5,7 @@ import type { Locator } from 'playwright'
 import { chromium } from 'playwright'
 import { expect, it } from 'vitest'
 import { compareOrRefreshGolden, launchWebScaffold, seedSession, watchConsole, webSnapshotMode } from './scaffold.ts'
+import { openPluginManager } from './support.ts'
 
 /** A returning rail uses its compact layout without wide-content or icon-entry animations. */
 async function assertCompactRail(sidebar: Locator): Promise<void> {
@@ -336,18 +337,21 @@ it('overlays the conversation and closes after navigation without losing its sid
       await menu.getByRole('menuitem', { name: 'Unpin session', exact: true }).tap()
       await menu.waitFor({ state: 'hidden' })
       await expect.poll(() => selectedRow.getByLabel('Pinned', { exact: true }).count()).toBe(0)
-      await drawer.getByRole('button', { name: 'Plugins', exact: true }).tap()
-      await drawer.waitFor({ state: 'hidden' })
+      await openPluginManager(page, 'en')
+      expect(await page.getByRole('dialog', { name: 'Settings', exact: true }).isVisible()).toBe(true)
       const pluginPanel = page.locator('[data-plugin-panel]')
       await pluginPanel.waitFor()
       for (const width of [390, 767, 768]) {
         await page.setViewportSize({ width, height: 844 })
-        expect(await pluginPanel.evaluate(el => Number.parseFloat(getComputedStyle(el).paddingLeft)))
-          .toBeCloseTo(width < 768 ? 20 : width * 0.04, 1)
+        expect(await pluginPanel.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true)
+        const bounds = (await pluginPanel.boundingBox())!
+        expect(bounds.x).toBeGreaterThanOrEqual(0)
+        expect(bounds.x + bounds.width).toBeLessThanOrEqual(width)
       }
+      await page.getByRole('dialog', { name: 'Settings', exact: true }).getByRole('button', { name: 'Close', exact: true }).click()
       await page.setViewportSize({ width: 390, height: 844 })
       await frame.waitFor()
-      await opener.click()
+      if (!await drawer.isVisible()) await opener.click()
       await drawer.getByRole('button', { name: 'Automation tasks', exact: true }).tap()
       await drawer.waitFor({ state: 'hidden' })
       const tasksContent = page.getByTestId('task-manager-page').locator('[class*="pageContent"]')

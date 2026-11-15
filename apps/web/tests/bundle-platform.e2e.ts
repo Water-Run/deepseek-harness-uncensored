@@ -7,7 +7,7 @@ import { chromium, type Browser } from 'playwright'
 import type {} from '@deepseek-ai/dsh-ptc-runtime'
 import { expect, it, onTestFinished } from 'vitest'
 import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, webSnapshotMode, type WebScaffold } from './scaffold.ts'
-import { connectFreshWorkspaceZh, ZH_BROWSER_LOCALE } from './support.ts'
+import { connectFreshWorkspaceZh, openPluginManager, ZH_BROWSER_LOCALE } from './support.ts'
 
 it('disables unsupported bundles, shows the Host restriction, and refuses direct activation without changing PTC', async () => {
   const root = await mkdtemp(join(tmpdir(), 'bundle-platform-web-'))
@@ -27,7 +27,7 @@ it('disables unsupported bundles, shows the Host restriction, and refuses direct
   const page = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE })
   await page.goto(scaffold.authenticatedUrl)
   await connectFreshWorkspaceZh(page, scaffold.workspaceCwd)
-  await page.getByRole('navigation', { name: '全局面板' }).getByRole('button', { name: '插件', exact: true }).click()
+  await openPluginManager(page, 'zh')
   const reason = '此插件不支持运行 DSH 的主机操作系统'
   const card = page.locator(`[data-plugin-package="${name}"]`)
   await card.getByText(reason, { exact: true }).waitFor()

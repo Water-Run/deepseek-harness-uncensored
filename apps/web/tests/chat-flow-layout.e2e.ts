@@ -11,6 +11,7 @@ it.each(['turn-tail-actions', 'goal-multi-turn-actions', 'present'] as const)(
   'preserves process and answer spacing in cold %s history', async (scenario) => {
     const scaffold = await launchWebScaffold({})
     onTestFinished(() => scaffold.close())
+    await scaffold.ctx.settings.update('ui-chat', { transcriptView: 'standard', collapseTiming: 'completion' })
     if (scenario === 'present') {
       await writeFile(join(scaffold.workspaceCwd, 'report.txt'), 'DELIVERED_REPORT\n')
       await writeFile(join(scaffold.workspaceCwd, '说明.txt'), 'DELIVERED_NOTE\n')

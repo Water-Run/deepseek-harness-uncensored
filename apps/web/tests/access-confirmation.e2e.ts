@@ -34,6 +34,7 @@ describe('web e2e: experimental Auto and Full access confirmation', () => {
 
   beforeAll(async () => {
     scaffold = await launchWebScaffold(AUTO_REVIEW_FIXTURE)
+    await scaffold.ctx.settings.update('permission', { defaultPreset: 'workspace-write' })
     // CI uses Playwright's pinned browser. A developer may point this one
     // scenario at an installed Chromium when the matching browser download
     // is temporarily unavailable.

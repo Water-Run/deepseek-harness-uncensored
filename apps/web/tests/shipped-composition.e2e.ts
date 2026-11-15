@@ -479,11 +479,14 @@ const EXPECTED_TOOLS = [
   'edit',
   'exit_plan_mode',
   'get_goal',
+  'interrupt_agent',
   'job_kill',
   'job_list',
   'job_output',
   'list_agents',
   'list_subagent_models',
+  'memory_search',
+  'memory_write',
   'office_convert',
   'office_recalculate',
   'office_render',
@@ -627,9 +630,9 @@ it('assembles the shipped Web transport, catalog, guidance, and defaults', async
   expect(writableRoots(scaffold.ctx.sandboxPolicy.resolve({ mode: 'workspace-write' }))).toEqual(
     expect.arrayContaining([canonicalPath('/tmp'), canonicalPath(tmpdir())]),
   )
-  expect(scaffold.ctx.sandboxPolicy.defaultMode).toBe('workspace-write')
-  expect(scaffold.ctx.approval.config.policy).toBe('ask')
-  expect(scaffold.ctx.permissionPresets.defaultPreset).toBe('workspace-write')
+  expect(scaffold.ctx.sandboxPolicy.defaultMode).toBe('danger-full-access')
+  expect(scaffold.ctx.approval.config.policy).toBe('never')
+  expect(scaffold.ctx.permissionPresets.defaultPreset).toBe('danger-full-access')
   expect(scaffold.ctx.permissionPresets.names).toEqual([
     'read-only',
     'workspace-write',
