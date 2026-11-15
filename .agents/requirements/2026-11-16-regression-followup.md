@@ -1,6 +1,6 @@
 # 完整回归后续核验
 
-当前安装版仍为 `2026.11.15.9`。本页记录[完整基线](2026-11-15-regression-baseline.md#新基线)之后的定向核验，不替换该基线的 1,073 通过、12 失败和 34 条件跳过。
+当前安装版为 `2026.11.16.1`。本页保留[基线 4](2026-11-15-regression-baseline.md#新基线)之后的定向核验及新基线 5；基线 4 的 1,073 通过、12 失败和 34 跳过保持原记录。
 
 ## 主题、首页与设置入口
 
@@ -23,7 +23,7 @@ Worker 预览仍未通过完整验收。当前候选补齐裸 `node:assert` 的�
 
 ## Ubuntu 迁移窗口
 
-用户在 C 盘迁移对话明确授权“和他沟通，进行迁移”。本对话已确认 Ubuntu 测试结束并回复“Ubuntu 可以暂停迁移”；收到迁移完成通知前不启动该发行版。Goal 保持活动，当前仅进行 Windows 工作，不更改 WSL 配置或操作 Docker。
+用户在 C 盘迁移对话明确授权“和他沟通，进行迁移”。本对话确认 Ubuntu 测试结束并回复“Ubuntu 可以暂停迁移”；迁移窗口内没有启动该发行版，仅进行 Windows 工作，未更改 WSL 配置或操作 Docker。随后已收到完成通知并恢复核验。
 
 私有检出 `/home/linzh/.cache/dshu-verification/linux-rc2-20261113.iLMw1C/source` 保留候选测试与界面预期。本批迁移前的 Linux 运行是 48 通过、2 失败的候选刷新，不能称为整批最终只读通过。交接回执为 `ubuntu-migration-handoff.json`。
 
@@ -34,3 +34,19 @@ Worker 预览仍未通过完整验收。当前候选补齐裸 `node:assert` 的�
 迁移后已核对并保存三份候选及原始预期，逐文件摘要位于 `minimal-candidate-after-migration/manifest.json`。差异仅为顶部旧模式标识由 `minimal` 显示为本地化的 `Minimal mode`，与已有产品修复一致；未修改 Session JSONL、命令、提示词或工具输出。三份界面预期已按审阅结果同步到主仓库。
 
 在私有 Linux 检出以 `DSH_SNAPSHOT=replay` 执行原始 `minimal-preset.snapshot.ts`，13 项全部通过，包含命令、手动压缩、图片与持久化重开。日志和 JSON 为 `minimal-after-migration.*`。此项定向通过不改写原完整基线的失败数字；Worker 预览的 SQLite 缺口仍保留。
+
+## 新完整基线：web-baseline-5
+
+源码 `f8c87121c7184df3835225d71e6afd1619f54c08` 在干净私有检出重新完成产物与聚合构建，先顺序运行 HMR、动态客户端和 SVG 三组，再以 4 个 Worker 运行其余 Web 文件。前置 10 项通过；主批次 1,072 项通过、3 项测试失败、34 项跳过，另外创建页面与旧字符串编辑器的准备或收尾报错，共 5 个失败文件。最终工作树干净，日志、JSON、逐文件失败与摘要位于 `20261115/web-baseline-5/`。
+
+- `cot-translation-paid`：选择账号翻译服务时，菜单项被模态遮罩拦截，30 秒点击失败；须诊断真实叠放，不能强制点击。
+- `details-session-lifecycle`：创建终端后的 Host 列表仍为空，断言预期为 running；失败截图保留 Starting 状态，须核对创建响应、归属及就绪。
+- `creation-recommendations`：UI 场景完成，持久化回放收尾发现技能目录数组顺序不同。已解析两侧目录并按名称逐项比较，内容与字段相同，仅顺序不同；所属模型可见输出需要稳定排序，原 Session 输入保留。
+- `standalone-string-editor`：准备阶段仍查找 `Standard mode` 和隐藏的 PTC 选择项，随后产生未绑定回放的收尾错误；需显式组合测试入口，不能把 PTC 加回产品默认列表。
+- `preview-boot`：已提交源码仍缺原生模块替代链。候选导入修正继续保留，下一处 SQLite 缺口仍未完成。
+
+此基线取代当前进度入口，不删除 `web-baseline-4` 或之前的失败证据。已完成的 Minimal、Inspector、主题、动效及窗口入口在本轮继续通过；不能据此将全部 Web 标为绿色。
+
+## 真实 SQLite 可行性探测
+
+隔离目录 `20261116/worker-sqlite-probe` 保存通过 npm SHA-512 验证的官方 WASM `3.54.1-build1`。实际引擎验证了 STRICT 表、事务提交/回滚、FTS5、重开和精确 int64；使用仅服务于探测的模块替代驱动当前源码 SpendLedger，内存库中的默认关闭、预留/结算、到限额拒绝、逐项重置、未知费用、滚动过期和全部关闭通过。它没有接入浏览器 VFS 或产品，也不能替代跨句柄、文件持久化、关闭及完整预览验收。
