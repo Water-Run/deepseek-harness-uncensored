@@ -79,6 +79,7 @@ export class TargetSettingsController {
    */
   readonly save = (update: TargetProtectionSettingsUpdate): Promise<boolean> => {
     if (this.busy()) return Promise.resolve(false)
+    this.requested = true
     this.patch({ loading: false, saving: true, failure: null, saved: false, countryChecked: false })
     return this.run(() => this.remote.configure(update), 'rules')
   }
@@ -86,16 +87,18 @@ export class TargetSettingsController {
   /** Check for a newer database independently of the local rule draft. */
   readonly updateCountry = (): void => {
     if (this.busy()) return
+    this.requested = true
     this.patch({ loading: false, updatingCountry: true, failure: null, saved: false, countryChecked: false })
     void this.run(() => this.remote.updateCountry(), 'country')
   }
 
-  /** Drop data from the departed connection and read the current Host. */
+  /** Drop the departed connection's data and refresh settings that were previously used. */
   reset(): void {
     if (this.disposed) return
+    this.epoch++
     this.refreshPending = false
     this.state.set({ ...initial, generation: this.state.getSnapshot().generation + 1 })
-    this.load()
+    if (this.requested) this.load()
   }
 
   /** Ignore all replies from operations belonging to this controller. */

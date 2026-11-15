@@ -100,3 +100,13 @@ Windows 桌面最初复现渠道、打包夹具及欢迎页问题。修正后完
 账号组件、共享操作、余额控制器和返回刷新单测合计 94 项通过。7 份非 Session 预期只更新设置分组、默认权限、通知入口和请求观测；历史 Session JSONL 未改。证据位于同日交付目录的 `cohort-j-*` 文件：整组 `readonly`、提供商 `provider-final`、充值 `bonus-final`、单测 `balance-unit-final` 与 `account-unit`、负对照 `balance-negative`。这两处产品修复已随 `2026.11.15.5` 交付。
 
 最终 Windows/Linux `build:artifacts` 与 `build:check`、文档和双语记录检查通过。全仓 lint 仅报告事件适配回调没有 await；改为显式返回已结算 Promise 后，全部出站 TypeScript 文件 lint 通过。当前图片 `cohort-j-topup-refreshed.png` 已核对金额动画终点与钱包明细一致；失败日志、独立复验与页面诊断均保留。
+
+## 原生启动的可选设置请求
+
+检查版 `2026.11.15.5` 的原生启动诊断捕获到 `dsh-app://app/api/targetProtectionSettings/get` 返回 404。客户端在连接重置时无条件读取尚未打开的可选目标保护设置；默认 profile 未加载该后端。控制器现只在显式使用过设置后随连接刷新，并在重置时使旧请求失效。手动加载、保存、国家数据更新以及缺少后端时的提示继续保留，保护默认值不变。
+
+新增单测在改前捕获两次多余读取；新增构建客户端测试在旧构建上捕获启动请求，修复后冷启动及真实传输断开重连均不请求未打开的面板。相关 28 项单测、3 项构建客户端场景通过；已有保存迟到回复、草稿冲突及后端撤销检查继续通过。Windows/Linux 构建与聚合检查、全仓 lint 通过。
+
+原生复验使用当前源码构建的桌面壳和客户端，并复用已核对的第 5 版 Electron 与主运行时；这是源码验证，不是新安装包。隔离 HOME 配置 XDG 文档目录，使用测试凭据，不发模型请求。X11 和 Wayland 中主界面与重载均显示默认工作区，磁盘目录实际存在，未观察到控制台错误或 HTTP 失败，renderer 保留 seccomp 与 NoNewPrivs。较早的工作区创建提示由隔离 HOME 未配置 Documents 引起，没有给产品增加猜测路径的回退。首次源码启动因开发 Electron 缓存缺失退出，后续使用已有、已验证的 Electron 分发物，未删除依赖或改变沙箱。
+
+证据位于同日交付目录：`native-404-detail.json`、`native-optional-settings-negative.log`、`native-optional-boot-negative.log`、`native-optional-settings-unit.log`、`native-optional-boot-positive.log`、`source-native-startup.json`、`source-native-wayland.json` 及 `source-native*-main.png`。源码回执记录测试前 HEAD、脏状态、控制器摘要与基线运行时提交；首份未区分源码和基线的元信息另行保留。此修复待后续打包，系统安装版仍为 `2026.11.15.5`。

@@ -56,6 +56,17 @@ function clientBuildValue(name: string): string | undefined {
   return value
 }
 
+it('keeps unopened target settings dormant through a real transport reconnect', async () => {
+  const remote = mountAssembledApp()
+  await screen.findByRole('tree', { name: 'Sessions' }, { timeout: 10_000 })
+  expect(remote.mock.log.calls('targetProtectionSettings/get')).toEqual([])
+  const lists = remote.mock.log.calls('session/list').length
+  remote.mock.streams.end('$events')
+  await remote.mock.streams.opened('$events', 2)
+  await waitFor(() => { expect(remote.mock.log.calls('session/list').length).toBeGreaterThan(lists) })
+  expect(remote.mock.log.calls('targetProtectionSettings/get')).toEqual([])
+})
+
 it('boots the built plugin graph and renders a fixture session end to end', async () => {
   const errors = vi.spyOn(console, 'error')
   onTestFinished(() => { errors.mockRestore() })

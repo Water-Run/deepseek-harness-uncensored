@@ -27,6 +27,26 @@ function mount(remote: Pick<TargetSettingsRemote, 'get' | 'configure'> & Partial
   return { controller, ...screenHandle }
 }
 
+it('keeps optional settings unread across reconnects until the panel is opened', async () => {
+  const get = vi.fn<TargetSettingsRemote['get']>(async () => ({ ok: true, value: snapshot() }))
+  const controller = new TargetSettingsController({ get, configure: vi.fn(), updateCountry: vi.fn() })
+  try {
+    controller.reset()
+    controller.reset()
+    controller.refresh()
+    expect(get).not.toHaveBeenCalled()
+    expect(controller.state.getSnapshot()).toMatchObject({ generation: 2, value: null })
+    controller.load()
+    await waitFor(() => { expect(controller.state.getSnapshot().value).toEqual(snapshot()) })
+    expect(get).toHaveBeenCalledOnce()
+    controller.reset()
+    await waitFor(() => { expect(controller.state.getSnapshot().value).toEqual(snapshot()) })
+    expect(get).toHaveBeenCalledTimes(2)
+  } finally { controller.dispose() }
+  controller.reset()
+  expect(get).toHaveBeenCalledTimes(2)
+})
+
 it('shows how to enable the optional protection profile when its endpoint is absent', async () => {
   const configure = vi.fn<TargetSettingsRemote['configure']>()
   mount({
