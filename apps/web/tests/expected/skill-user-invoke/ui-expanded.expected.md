@@ -1,6 +1,7 @@
 - banner:
   - navigation "Session hierarchy": /user-invoke-demo @"meeting notes-this-i
-  - text: Standard mode
+  - 'button "Conversation mode: Default" [disabled]': Default
+  - button "Side question"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -26,9 +27,11 @@
 - text: {{clock}}
 - textbox "Message or run a task, / commands, @ files or sessions"
 - button "Add files or run commands"
-- 'button "Access mode, current: Workspace Write"': Workspace Write
+- 'button "Access mode, current: Full access"': Full access
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message" [disabled]
-- button "1 turns 1 steps · {{throughput}} tok/s": 1 turns 1 steps{{throughput}} tok/s
+- 'button "Turns: 1 · Steps: 1 · {{throughput}} tok/s"': "Turns: 1 · Steps: {{throughput}} tok/s"
 - button "272 tok · Cache hit 0%": 272 tokCache hit 0%
+- 'button "Conversation cost: ￥0.000640"': ￥0.000640
+- 'button "Spending limits: Off"': "Off"
 - button "0% of context used": 0%

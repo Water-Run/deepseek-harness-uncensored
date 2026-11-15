@@ -176,3 +176,19 @@ Windows 桌面最初复现渠道、打包夹具及欢迎页问题。修正后完
 4 文件、4 项只读验收通过。记录为 `cohort-q-before`、`cohort-q-current`、`cohort-q-creator-missing-oracle`、`cohort-q-creator-refresh`、`cohort-q-readonly` 和 `creator-input-hash.txt`。未改产品默认配置或调用付费模型；当前安装包仍为 `.8`。
 
 Windows 另以 PowerShell 复验旧 Minimal 的持久状态、工作目录和图片读取，1 项通过。首轮验证进程把 base URL 环境变量设为空字符串，触发可选账户插件的 URL 错误；移除该进程变量后复验无此错误。记录为 `cohort-q-windows-legacy` 和 `cohort-q-windows-legacy-clean`。最终 Host/Client 聚合检查及快照语料的 3 项归属、格式检查通过；文档检查通过。
+
+## 工具详情、技能入口与原生子代理
+
+工具详情原预期包含 50 个工具结果，v3 输入实际只有 45 个。新增 v4 记录，经真实格式转换后补入创建、查看、暂停、分页列表和删除五个当前自动化任务结果；旧 v3 摘要保持不变。50 个结果均展开并核对专用渲染器，保留 360px 布局、列表滚动、文字与 Inspect 按钮避让检查。当前任务的 RRULE 显示“自定义”，历史 daily 结果继续按原规则显示。
+
+语音插件通过 Settings 内入口启用，分别验证稍后准备、进入准备页和统一下拉框的自动/镜像选择，不下载模型。技能加载、用户显式技能调用及中断对话夹具使用标准工作步骤，保留原始技能正文、参数、引用预览和停止状态断言。菜单预期补入现有删除入口；WebKit 定位与原生菜单材质、模糊负对照继续通过。
+
+原生 Claude Code 子代理夹具通过创建 API 为当前空白会话恢复 PTC，确认四模式选择列表保持不变。旧回放程序读取已更名的 `subagentId`，实际应读取 `name`；只在回放补丁中调整该字段，原 v4 输入保持摘要。真实 SDK/CLI 经本地模拟模型接口完成启动、生成工具调用、异步结束通知和父会话继续，工作区最终内容仍按原预期核对。当前完整日志使用独立 writer 预期；历史通知缺少 `stopReason` 时单独核验通用标题，不推断成功。
+
+Windows 运行时包含额外的 ACL 诊断技能，完整请求与 POSIX 记录不同。Windows 采用独立场景和完整日志、提示词与工具清单预期，不过滤实际消息或关闭比较；原输入与 POSIX 的历史副本摘要相同。`fixture-model` 是受控接口的测试模型名，SDK 的未识别模型提示不代表调用真实服务。
+
+7 文件、16 项 Linux 只读回归全部通过；Windows 原生子代理 3 项只读回归通过。另复核的上下文菜单 24 项通过，保留在 `cohort-r-before`，未因提交再跑。证据为 `cohort-r-refresh`、`cohort-r-readonly`、`cohort-r-native*`、`cohort-r-windows-*`；初始化、旧字段、平台预期差异的失败记录均保留。首次工具记录生成被 v4 解码器拒绝了旧的 user-role 工具结果，改用当前 tool-role 后验证通过；没有写入失败产物。
+
+中断对话场景已被 Client 项目排除，却遗漏在 Host 检查入口。补入 `tsconfig.host.json`，保留 Host/Client 分离；故意加入类型错误的负对照验证 Host 编译器会拒绝该文件。原生场景调用的多余实参和 import 行长度也已修正。各项检查结果见 `cohort-r-check*`、`cohort-r-type-negative`、`cohort-r-corpus*` 和 `cohort-r-*lint*`。产品代码及已安装的 `.8` 未改变。
+
+最终 Host/Client 聚合检查、全部出站 TypeScript 定向 lint、快照语料 3 项和文档检查通过。全仓 lint 首轮报告的 import 行长度与编译归属问题均已修正；语料检查发现的回放补丁声明也已补齐。最终记录为 `cohort-r-check-owned`、`cohort-r-lint-owned`、`cohort-r-corpus-declared`、`cohort-r-docs` 和 `cohort-r-doc-sync`。

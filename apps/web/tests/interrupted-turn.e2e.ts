@@ -35,6 +35,7 @@ describe.skipIf(MODE === 'record')('web e2e: turn interrupted by a DSH stop', ()
     expect(recorded.trimEnd().endsWith(COMPLETED_END)).toBe(true)
     const fixture = `${recorded.trimEnd().slice(0, -COMPLETED_END.length)}${INTERRUPTED_END}\n`
     scaffold = await launchWebScaffold({})
+    await scaffold.ctx.settings.update('ui-chat', { transcriptView: 'standard', collapseTiming: 'completion' })
     await seedSession(scaffold, fixture, SEED_ID, undefined, { createdAt: WEB_FIXTURE_TIME })
     browser = await chromium.launch()
     page = await newEnglishPage(browser)

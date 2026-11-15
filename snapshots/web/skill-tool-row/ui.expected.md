@@ -1,5 +1,6 @@
 - banner:
   - navigation "Session hierarchy": Load the editing-cordis-compositions ski
+  - button "Side question"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -29,5 +30,7 @@
 - 'button "Access mode, current: Full access"': Full access
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message" [disabled]
-- button "1 turns 2 steps"
+- 'button "Turns: 1 · Steps: 2"'
 - button "310 tok · Cache hit 0%": 310 tokCache hit 0%
+- 'button "Conversation cost: ￥0.000800"': ￥0.000800
+- 'button "Spending limits: Off"': "Off"

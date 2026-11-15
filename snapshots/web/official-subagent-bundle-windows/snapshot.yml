@@ -1,0 +1,16 @@
+version: 1
+scenario: official-subagent-bundle-windows
+profile: web
+composition: web-ptc-official-subagent-windows
+recording: authored
+replay:
+  override: true
+header:
+  class: web-ptc-official-subagent-windows
+  pin: true
+workspace:
+  final: true
+sessionFormat:
+  version: 4
+  coverage:
+    - behavior-update

@@ -11,9 +11,6 @@
   - text: First use downloads the local recognition models.
   - status
 - text: Model download source
-- combobox "Model download source":
-  - option "Automatic (recommended)"
-  - option "Hugging Face"
-  - option "HF-Mirror (China mirror)" [selected]
+- button "Model download source": HF-Mirror (China mirror)
 - text: Download only from the selected source. Verified downloaded files are reused.
 - button "Download and prepare"

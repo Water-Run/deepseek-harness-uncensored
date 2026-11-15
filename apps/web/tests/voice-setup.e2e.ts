@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { chromium, type Browser } from 'playwright'
 import { expect, it, onTestFinished } from 'vitest'
 import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold } from './scaffold.ts'
-import { newEnglishPage } from './support.ts'
+import { newEnglishPage, openPluginManager } from './support.ts'
 
 const bundle = fileURLToPath(new URL('../../../packages/experimental/voice-input-bundle', import.meta.url))
 const expected = fileURLToPath(new URL('./expected/voice-setup.expected.md', import.meta.url))
@@ -19,7 +19,7 @@ it('guides a newly enabled voice plugin to installation and lets the user postpo
   resources.browser = browser
   const page = await newEnglishPage(browser), tripwire = watchConsole(page)
   await page.goto(scaffold.authenticatedUrl)
-  await page.getByRole('button', { name: 'Plugins', exact: true }).click()
+  await openPluginManager(page, 'en')
   const toggle = page.getByRole('switch', { name: 'Enable Voice input', exact: true })
   await toggle.waitFor()
   expect(await toggle.getAttribute('aria-checked')).toBe('false')
@@ -27,7 +27,8 @@ it('guides a newly enabled voice plugin to installation and lets the user postpo
   expect(await dialog.count()).toBe(0)
   await toggle.click()
   await dialog.waitFor()
-  await compareOrRefreshGolden(expected, await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd), webSnapshotMode())
+  await compareOrRefreshGolden(expected, await captureStableAria(page,
+    '[role="dialog"][aria-label="Set up voice input before recording"]', scaffold.workspaceCwd), webSnapshotMode())
   await dialog.getByRole('button', { name: 'Later', exact: true }).click()
   await dialog.waitFor({ state: 'hidden' })
   expect(await toggle.getAttribute('aria-checked')).toBe('true')
@@ -40,12 +41,16 @@ it('guides a newly enabled voice plugin to installation and lets the user postpo
   expect(await dialog.count()).toBe(0)
   expect(await page.getByText('Local models will be downloaded to the machine running DSH. No Python or compiler is required.', { exact: true }).count()).toBe(1)
   expect(await page.getByText('Audio is recognized on the machine running DSH. If models need downloading, that machine must be able to reach the selected source and its file services. Configure a proxy on that machine if needed.', { exact: true }).count()).toBe(1)
-  const source = page.getByLabel('Model download source', { exact: true })
-  expect(await source.inputValue()).toBe('')
-  expect(await source.getByRole('option').allTextContents()).toEqual(['Automatic (recommended)', 'Hugging Face', 'HF-Mirror (China mirror)'])
+  const source = page.getByRole('button', { name: 'Model download source', exact: true })
+  expect(await source.getAttribute('value')).toBe('')
+  await source.click()
+  expect(await page.getByRole('menu').getByRole('menuitem').allTextContents()).toEqual(['Automatic (recommended)', 'Hugging Face', 'HF-Mirror (China mirror)'])
+  await page.keyboard.press('Escape')
   await compareOrRefreshGolden(fileURLToPath(new URL('./expected/voice-source-auto.expected.md', import.meta.url)),
     await captureStableAria(page, '[data-speech-provider]', scaffold.workspaceCwd), webSnapshotMode())
-  await source.selectOption('https://hf-mirror.com')
+  await source.click()
+  await page.getByRole('menuitem', { name: 'HF-Mirror (China mirror)', exact: true }).click()
+  await expect.poll(() => source.getAttribute('value')).toBe('https://hf-mirror.com')
   await compareOrRefreshGolden(fileURLToPath(new URL('./expected/voice-source-manual.expected.md', import.meta.url)),
     await captureStableAria(page, '[data-speech-provider]', scaffold.workspaceCwd), webSnapshotMode())
   expect(tripwire.pageErrors).toEqual([])

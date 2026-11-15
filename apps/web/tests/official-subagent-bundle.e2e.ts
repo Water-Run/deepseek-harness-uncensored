@@ -13,11 +13,13 @@ import type {} from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-subagent'
 import {
   assertFinalWorkspaceSnapshot, assertFixtureInventory, captureExpandedTurnProcessAria, compareOrRefreshGolden,
-  fixtureUserPrompts, launchWebScaffold, seedSession, selectedSessionFixture, watchConsole, webSnapshotMode, type WebScaffold,
+  fixtureUserPrompts, launchWebScaffold, parseSeedFixture, seedSession, selectedSessionFixture,
+  watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { connectFreshWorkspace, newConversationReplayPage, saveFailureShot } from './support.ts'
 
-const DIR = fileURLToPath(new URL('../../../snapshots/web/official-subagent-bundle', import.meta.url))
+const SCENARIO = process.platform === 'win32' ? 'official-subagent-bundle-windows' : 'official-subagent-bundle'
+const DIR = fileURLToPath(new URL(`../../../snapshots/web/${SCENARIO}`, import.meta.url))
 const FIXTURE = join(DIR, 'session.v4.jsonl')
 const PACKAGE = fileURLToPath(new URL('../../../packages/subagent/subagent-claude-code', import.meta.url))
 const BUNDLE = '@deepseek-ai/dsh-subagent-claude-code'
@@ -98,6 +100,7 @@ describe.skipIf(MODE === 'record')('web snapshot: Official native subagent bundl
       developerTools: true, profile: { packages: [{ dir: PACKAGE }] },
       extraOverlayPath: [fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)), overlay],
       replayFixture: FIXTURE, compareReplaySession: true,
+      replayOverride: join(DIR, 'replay.override.json'),
     })
     expect((await scaffold.ctx.pluginManager.listBundles()).find(bundle => bundle.name === BUNDLE))
       .toMatchObject({ official: true, availability: 'profile', enabled: false })
@@ -111,9 +114,16 @@ describe.skipIf(MODE === 'record')('web snapshot: Official native subagent bundl
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
     await connectFreshWorkspace(page, scaffold.workspaceCwd)
-    await page.getByRole('button', { name: 'Standard mode', exact: true }).click()
-    await page.getByRole('menuitem', { name: /^PTC mode/ }).click()
-    await page.getByRole('button', { name: 'PTC mode', exact: true }).waitFor({ state: 'visible' })
+    const blank = scaffold.ctx.agents.list().find(agent => agent.session.header.origin !== 'subagent')
+    if (blank === undefined) throw new Error('Connecting the workspace did not create a Session')
+    const cwd = blank.session.header.cwd
+    if (cwd === undefined) throw new Error('The connected Session has no working directory')
+    const selected = await scaffold.ctx.sessionController.create({
+      sessionId: blank.id, cwd, agentPreset: 'ptc',
+    })
+    expect(selected).toEqual({ sessionId: blank.id, agentPreset: 'ptc' })
+    expect((await scaffold.ctx.agentPresets.remoteExportList()).presets.map(preset => preset.id))
+      .toEqual(['standard', 'security', 'reverse', 'writing'])
   })
 
   afterAll(async () => {
@@ -179,16 +189,19 @@ describe.skipIf(MODE === 'record')('web snapshot: Official native subagent bundl
 
   it.skipIf(MODE !== 'replay')('keeps the owned fixture artifacts closed', async () => {
     await assertFixtureInventory(DIR, [
-      'session.v4.jsonl', 'system-prompt.expected.md', 'tool-schemas.expected.json', 'ui.expected.md', 'workspace.expected',
+      'session.v4.jsonl', 'writer.expected.jsonl', 'replay.override.json', 'system-prompt.expected.md', 'tool-schemas.expected.json', 'ui.expected.md', 'ui-historical.expected.md', 'workspace.expected',
     ])
   })
 })
 
-it.skipIf(MODE === 'record')('renders recorded official notice titles after reopening the Session', async () => {
+it.skipIf(MODE === 'record')('keeps historical notices without a recorded outcome generic after reopening the Session', async () => {
   const scaffold = await launchWebScaffold({ developerTools: true })
   let browser: Browser | undefined
   try {
     const fixture = await readFile(await selectedSessionFixture(FIXTURE), 'utf8')
+    const notice = parseSeedFixture(fixture).events.find(event => event.type === 'user/message' && event.data.source.kind === 'subagent-settled')
+    expect(notice).toMatchObject({ type: 'user/message', data: { source: { kind: 'subagent-settled' } } })
+    expect(notice).not.toHaveProperty('data.source.stopReason')
     await seedSession(scaffold, fixture, 'official-subagent-recorded-ui')
     browser = await chromium.launch()
     const page = await newConversationReplayPage(browser)
@@ -202,8 +215,8 @@ it.skipIf(MODE === 'record')('renders recorded official notice titles after reop
     await session.waitFor()
     await session.click()
     const heading = page.locator('[data-turn-trigger] > button > span').nth(1)
-    await expect.poll(() => heading.textContent()).toBe('Subagent run completed')
-    await compareOrRefreshGolden(join(DIR, 'ui.expected.md'),
+    await expect.poll(() => heading.textContent()).toBe('Subtask status updated')
+    await compareOrRefreshGolden(join(DIR, 'ui-historical.expected.md'),
       await captureExpandedTurnProcessAria(page, '[data-chat-flow]', scaffold.workspaceCwd), MODE)
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])

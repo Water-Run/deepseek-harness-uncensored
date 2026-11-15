@@ -6,7 +6,7 @@ import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
-  launchWebScaffold, seedSession, watchConsole, webSnapshotMode, type WebScaffold,
+  launchWebScaffold, seedSession, selectedSessionFixture, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
 import { expandOwningTurnProcess, newEnglishPage, saveFailureShot, scrollIntoView } from './support.ts'
 
@@ -24,7 +24,7 @@ describe.skipIf(MODE === 'record')('web e2e: compact Tool details', () => {
   let tripwire: ReturnType<typeof watchConsole>
 
   beforeAll(async () => {
-    const fixture = await readFile(FIXTURE, 'utf8')
+    const fixture = await readFile(await selectedSessionFixture(FIXTURE), 'utf8')
     expect(fixtureUserPrompts(fixture)).toEqual([PROMPT])
     scaffold = await launchWebScaffold({})
     await seedSession(scaffold, fixture, SEED_ID)
@@ -119,7 +119,7 @@ describe.skipIf(MODE === 'record')('web e2e: compact Tool details', () => {
   }, 60_000)
 
   it('keeps the snapshot inventory closed', async () => {
-    await assertFixtureInventory(SNAPSHOT_DIR, ['session.v3.jsonl', 'ui.expected.md'])
+    await assertFixtureInventory(SNAPSHOT_DIR, ['session.v3.jsonl', 'session.v4.jsonl', 'ui.expected.md'])
   })
 
 })

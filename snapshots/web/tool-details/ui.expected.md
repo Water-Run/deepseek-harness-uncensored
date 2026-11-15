@@ -82,7 +82,7 @@
     - term: Scheduled for
     - definition: Sep 11, 2099, {{clock}} GMT+8
     - term: Repeat
-    - definition: Every day at {{clock}} (Asia/Shanghai)
+    - definition: Custom
     - term: Status
     - definition: Enabled
   - listitem:

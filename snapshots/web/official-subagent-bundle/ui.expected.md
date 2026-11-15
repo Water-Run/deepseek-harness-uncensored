@@ -1,8 +1,7 @@
 - text: Delegate a self-contained task to the official Claude Code subagent through its generated tools SDK in one run_code program. Ask it to reply with OFFICIAL_SUBAGENT_OK exactly, print its child ID, and wait for its completion notice before replying DONE. {{clock}}
 - button "Copy"
 - status: Completed
-- button "Completed in {{duration}}" [expanded]
-- button "Ran code and coordinated subagents" [expanded]
+- button "Completed in {{duration}}" [disabled] [expanded]
 - button "Context injection runtime-context"
 - button "Context injection skill-catalog"
 - button "Context injection time-context"

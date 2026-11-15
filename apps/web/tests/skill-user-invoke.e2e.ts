@@ -78,6 +78,7 @@ describe.skipIf(MODE === 'record')('web e2e: user-explicit skill invocation thro
       // deterministically; instant playback races it in and out of the golden.
       paceMs: 10,
     })
+    await scaffold.ctx.settings.update('ui-chat', { transcriptView: 'standard', collapseTiming: 'completion' })
     await seedUserOnlySkill(scaffold.workspaceCwd)
     await writeFile(join(scaffold.workspaceCwd, 'workspace', FILE_NAME), '# Meeting notes\n\nSent reference preview.\n')
     browser = await chromium.launch()
