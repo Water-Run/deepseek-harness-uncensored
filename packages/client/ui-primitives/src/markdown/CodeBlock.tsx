@@ -226,13 +226,15 @@ export function CodeBlock({
   // shiki's own docs.
   const body = diffRows !== undefined
     ? (
-      <pre className={css.plain}><code>{diffRows.rows.map((row, index) => renderDiffRow(row, index, diffTokens?.get(index)))}</code></pre>
+      <pre className={css.plain} tabIndex={0}>
+        <code>{diffRows.rows.map((row, index) => renderDiffRow(row, index, diffTokens?.get(index)))}</code>
+      </pre>
     )
     : streamedBody !== undefined
       ? streamedBody
       : html === undefined
         ? (
-          <pre className={css.plain}><code>{sourceLines === undefined ? trimmed : sourceLines.map((line, index) => (
+          <pre className={css.plain} tabIndex={0}><code>{sourceLines === undefined ? trimmed : sourceLines.map((line, index) => (
             <Fragment key={index}>{index > 0 && '\n'}<span className="line">{line}</span></Fragment>
           ))}</code></pre>
         )

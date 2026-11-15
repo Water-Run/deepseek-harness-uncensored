@@ -93,6 +93,14 @@ describe('highlightToHtml', () => {
 })
 
 describe('CodeBlock', () => {
+  it.each([undefined, 'unregistered', 'diff'])('keeps the %s code surface keyboard-focusable without highlighting', (lang) => {
+    const view = render(<CodeBlock code={'-removed\n+added'} lang={lang} />)
+    const pre = view.container.querySelector('pre')!
+    expect(pre.tabIndex).toBe(0)
+    pre.focus()
+    expect(document.activeElement).toBe(pre)
+  })
+
   it('reports the stable source-content wrapper to its owner', () => {
     const contentRef = vi.fn<(node: HTMLDivElement | null) => void>()
     const view = render(<CodeBlock code="plain text" contentRef={contentRef} />)

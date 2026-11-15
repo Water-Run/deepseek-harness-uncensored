@@ -93,6 +93,7 @@ export async function expectWrappedCommandText(
   expect(wrapped).toBe(true)
   expect(await scrollport.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
   const originalScrollTop = await scrollport.evaluate(element => element.scrollTop)
+  await page.waitForFunction(() => !document.documentElement.hasAttribute('data-dsh-theme-reveal'))
   const geometry = () => command.evaluate((element) => {
     const text = element.firstChild
     if (!(text instanceof Text) || text.length === 0) throw new Error('Command has no text node')

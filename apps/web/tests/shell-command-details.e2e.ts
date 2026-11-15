@@ -7,7 +7,7 @@ import {
   captureStableAria, compareOrRefreshGolden, launchWebScaffold,
   seedSession, watchConsole, webSnapshotMode,
 } from './scaffold.ts'
-import { expandOwningTurnProcess, newEnglishPage } from './support.ts'
+import { expandOwningTurnProcess, newConversationReplayPage } from './support.ts'
 import { expectFirstLineTerminalState, expectWrappedCommandText } from './terminal-command-browser.ts'
 
 const COMMAND = 'node ./scripts/start-worker.mjs --workspace=/tmp/diagnostics/long-workspace-name-for-background-command-details --log-level=debug --trace-tag=background-shell-full-command-selection --include=worker,lifecycle,transport,subscriptions --output=/tmp/diagnostics/background-worker.log'
@@ -68,10 +68,11 @@ it.each([
 ])('expands $name to wrapped commands with only foreground output', async ({ name, args, output }) => {
   const scaffold = await launchWebScaffold({})
   try {
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'system' })
     await seedSession(scaffold, shellFixture(args, output), 'shell-command-details-browser')
     const browser = await chromium.launch()
     try {
-      const page = await newEnglishPage(browser)
+      const page = await newConversationReplayPage(browser)
       const tripwire = watchConsole(page)
       await page.goto(scaffold.authenticatedUrl)
       await page.locator('[class*="frame"]').waitFor()
@@ -150,10 +151,11 @@ it.each([
 ] as const)('keeps the $name command mounted through settlement (background=$background)', async ({ name, background }) => {
   const scaffold = await launchWebScaffold({})
   try {
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'system' })
     const id = await seedSession(scaffold, shellFixture(ARGS, OUTPUT), 'shell-status-dot-browser')
     const browser = await chromium.launch()
     try {
-      const page = await newEnglishPage(browser)
+      const page = await newConversationReplayPage(browser)
       const tripwire = watchConsole(page)
       await page.goto(scaffold.authenticatedUrl)
       await page.getByRole('treeitem').first().click()

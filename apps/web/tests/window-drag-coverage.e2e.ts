@@ -27,7 +27,7 @@ import {
 } from '@deepseek-ai/dsh-client-web/src/window-drag/regions.ts'
 import { launchWebScaffold, watchConsole, type WebScaffold } from './scaffold.ts'
 import {
-  collectWindowSurface, connectFreshWorkspace, expandOwningTurnProcess, newEnglishPage, saveFailureShot,
+  collectWindowSurface, connectFreshWorkspace, expandOwningTurnProcess, newConversationReplayPage, openPluginManager, saveFailureShot,
   type CollectedWindowSurface,
 } from './support.ts'
 
@@ -190,7 +190,7 @@ describe('web e2e: macOS window drag coverage', () => {
   async function desktopPage(
     platform: 'darwin' | 'win32' = 'darwin', host: WebScaffold = scaffold,
   ): Promise<{ page: Page; tripwire: ReturnType<typeof watchConsole> }> {
-    const page = await newEnglishPage(browser)
+    const page = await newConversationReplayPage(browser)
     await page.addInitScript(({ value, snapshot }) => {
       // The Desktop platform marker requires the preload's keyboard and preference capabilities.
       Object.assign(window, { dshDesktop: { protocolVersion: 1,
@@ -504,94 +504,46 @@ describe('web e2e: macOS window drag coverage', () => {
     }
   })
 
-  it.each(['darwin', 'win32'] as const)('%s keeps compact Plugins controls below native chrome in both sidebar states', async (platform) => {
+  /** Verify the embedded manager's visible controls reach the page instead of native window dragging. */
+  async function checkPluginControls(page: Page): Promise<void> {
+    const dialog = page.getByRole('dialog', { name: 'Settings', exact: true })
+    const toolbar = dialog.locator('[data-plugin-toolbar]')
+    await toolbar.scrollIntoViewIfNeeded()
+    await settled(page)
+    const bounds = (await dialog.boundingBox())!
+    expect(bounds.y).toBeGreaterThanOrEqual(0)
+    expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+    const surface = await collectedSurface(page, INTERACTIVE_SELECTOR)
+    for (const name of ['Refresh', 'Add plugin', 'Choose how to add a plugin']) {
+      const button = toolbar.getByRole('button', { name, exact: true })
+      const box = (await button.boundingBox())!
+      expect(box.x).toBeGreaterThanOrEqual(bounds.x)
+      expect(box.x + box.width).toBeLessThanOrEqual(bounds.x + bounds.width)
+      expect(box.y).toBeGreaterThanOrEqual(bounds.y)
+      expect(box.y + box.height).toBeLessThanOrEqual(bounds.y + bounds.height)
+      expect(await button.evaluate((element) => {
+        const rect = element.getBoundingClientRect()
+        return element.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2))
+      })).toBe(true)
+      expect(isDraggableAt(surface.regions, box.x + box.width / 2, box.y + box.height / 2)).toBe(false)
+    }
+    expect(swallowedBoxes(surface)).toEqual([])
+  }
+
+  it.each(['darwin', 'win32'] as const)('%s keeps embedded Plugins controls reachable in both sidebar states', async (platform) => {
     const { page, tripwire } = await desktopPage(platform)
     try {
-      await page.setViewportSize({ width: 1280, height: 480 })
-      await page.getByRole('button', { name: 'Plugins', exact: true }).click()
-      await page.locator('[data-plugin-package]').first().waitFor()
-      const bar = page.locator('[data-plugin-bar]')
-      const body = page.locator('[data-plugin-body]')
-      const toolbarGeometry = () => bar.evaluate((element) => {
-        const header = element.querySelector('header')!
-        const bounds = element.getBoundingClientRect()
-        const buttons = Array.from(element.querySelectorAll('button'))
-          .filter(button => button.textContent?.trim() === 'Refresh' || button.textContent?.trim() === 'Add plugin')
-        return {
-          top: bounds.top,
-          headingTop: header.querySelector('h1')!.getBoundingClientRect().top - header.getBoundingClientRect().top,
-          buttons: buttons.map((button) => { const rect = button.getBoundingClientRect(); return { x: rect.x, y: rect.y } }),
-        }
-      })
+      await page.setViewportSize({ width: 1280, height: 720 })
       for (const collapsed of [false, true]) {
-        if (collapsed) {
-          await page.getByRole('button', { name: 'Collapse sidebar', exact: true }).click()
+        if (collapsed) await page.getByRole('button', { name: 'Collapse sidebar', exact: true }).click()
+        await openPluginManager(page, 'en')
+        await page.locator('[data-plugin-package]').first().waitFor()
+        const body = page.locator('[data-plugin-body]')
+        for (const scrollTop of [0, 500]) {
+          await body.evaluate((element, top) => { element.scrollTop = top }, scrollTop)
+          await checkPluginControls(page)
         }
-        await settled(page)
-        await body.evaluate((element) => { element.scrollTop = 0 })
-        await page.waitForFunction(() => !document.querySelector('[data-plugin-bar]')?.hasAttribute('data-compact'))
-        const before = await toolbarGeometry()
-        const footprint = (await bar.boundingBox())!.height
-        expect(before.top).toBe(platform === 'darwin' ? 0 : 40)
-        expect(before.headingTop).toBe(platform === 'darwin' ? 76 : 28)
-        expect(before.buttons).toHaveLength(2)
-        await body.evaluate((element) => { element.scrollTop = 120 })
-        await page.waitForFunction(() => document.querySelector('[data-plugin-bar]')?.hasAttribute('data-compact'))
-        const after = await toolbarGeometry()
-        // macOS only needs the top strip cleared while the sidebar is collapsed; with it open the
-        // native controls live in the sidebar, so the compact bar keeps its own 16px spacing.
-        const compactTop = platform === 'darwin' && collapsed ? 56 : 16
-        expect(await bar.evaluate(element => Number.parseFloat(getComputedStyle(element, '::before').height))).toBe(compactTop + 48)
-        expect(after.buttons).toEqual(before.buttons.map(button => ({ ...button, y: button.y - (before.headingTop - compactTop) })))
-        expect(after.buttons.every(button => button.y >= (platform === 'darwin' ? compactTop : 16))).toBe(true)
-        expect(await body.evaluate(element => element.getBoundingClientRect().top))
-          .toBe(await bar.evaluate(element => element.getBoundingClientRect().top))
-        expect((await bar.boundingBox())!.height, 'the compact header preserves its list footprint').toBe(footprint)
-        expect(await bar.locator('header').evaluate(element => element.getBoundingClientRect().height))
-          .toBe(await bar.evaluate(element => Number.parseFloat(getComputedStyle(element, '::before').height)))
-        if (platform === 'darwin' && !collapsed) {
-          // A visible card can occupy the bar's reserved footprint below its smaller painted header.
-          const card = await page.locator('[data-plugin-group] button').evaluateAll((buttons) => {
-            const bar = document.querySelector('[data-plugin-bar]')
-            if (bar === null) throw new Error('The plugin drag fixture has no header bar')
-            const bounds = bar.getBoundingClientRect()
-            const paintBottom = bounds.y + Number.parseFloat(getComputedStyle(bar, '::before').height)
-            for (const button of buttons) {
-              const box = button.getBoundingClientRect()
-              const x = box.x + box.width / 2
-              const y = box.y + box.height / 2
-              if (y <= paintBottom || y >= bounds.bottom || !button.contains(document.elementFromPoint(x, y))) continue
-              return { x, y, region: getComputedStyle(button).getPropertyValue('app-region') }
-            }
-            return null
-          })
-          expect(card, 'a real card is hittable inside the header bar footprint').not.toBeNull()
-          if (card === null) throw new Error('No card overlapped the plugin header bar footprint')
-          expect(card.region, 'ordinary plugin cards declare no native region').toBe('none')
-          expect(isDraggableAt(await collectedRegions(page, INTERACTIVE_SELECTOR), card.x, card.y),
-            'a clipped header does not swallow a card inside its reserved footprint').toBe(false)
-          const header = bar.locator('header')
-          const previousStyle = await header.getAttribute('style')
-          try {
-            // A smaller visible clip does not reduce the owner's native region box.
-            await header.evaluate((element) => {
-              const style = (element as HTMLElement).style
-              style.height = 'var(--plugin-header-rest-height)'
-              style.clipPath = 'inset(0 0 calc(var(--plugin-header-rest-height) - var(--plugin-header-paint-height)) 0)'
-            })
-            expect(await page.evaluate(({ x, y }) => Boolean(document.elementFromPoint(x, y)?.closest('[data-plugin-group]')), card))
-              .toBe(true)
-            const oversized = await collectedSurface(page, INTERACTIVE_SELECTOR)
-            expect(isDraggableAt(oversized.regions, card.x, card.y), 'oversized header geometry swallows the still-hittable card').toBe(true)
-            expect(swallowedBoxes(oversized), 'the control check detects the oversized owner').not.toEqual([])
-          } finally {
-            await header.evaluate((element, style) => {
-              if (style === null) element.removeAttribute('style')
-              else element.setAttribute('style', style)
-            }, previousStyle)
-          }
-        }
-        if (platform === 'darwin') expect(swallowedBoxes(await collectedSurface(page, INTERACTIVE_SELECTOR))).toEqual([])
+        await page.getByRole('dialog', { name: 'Settings', exact: true }).getByRole('button', { name: 'Close', exact: true }).click()
       }
       expect(tripwire.pageErrors).toEqual([])
     } finally { await page.close() }
@@ -599,39 +551,22 @@ describe('web e2e: macOS window drag coverage', () => {
 
   it.each([
     ['darwin', false], ['darwin', true], ['win32', false], ['win32', true],
-  ] as const)('%s scopes compact spacing with tabs=%s to the collapsed macOS header at every width', async (platform, hasTabs) => {
-    const host = hasTabs ? await launchWebScaffold({
+  ] as const)('%s keeps embedded Plugins controls with market=%s reachable across widths', async (platform, market) => {
+    const host = market ? await launchWebScaffold({
       profile: { packages: [], bundles: ['@deepseek-ai/dsh-experimental-plugin-market-bundle'] },
     }) : scaffold
     try {
       const { page, tripwire } = await desktopPage(platform, host)
       try {
-        await page.setViewportSize({ width: 1280, height: 480 })
-        await page.getByRole('button', { name: 'Plugins', exact: true }).click()
+        await openPluginManager(page, 'en')
         await page.locator('[data-plugin-package]').first().waitFor()
-        const bar = page.locator('[data-plugin-bar]')
-        const body = page.locator('[data-plugin-body]')
-        const control = bar.locator(hasTabs ? '[role="tablist"]' : '[data-plugin-toolbar]')
-        const top = async () => (await control.boundingBox())!.y - (await bar.boundingBox())!.y
-        await page.getByRole('button', { name: 'Collapse sidebar', exact: true }).click()
-        for (const width of [1280, 801, 520, 1280]) {
-          await page.setViewportSize({ width, height: 480 })
-          await settled(page)
-          await body.evaluate((element) => { element.scrollTop = 0 })
-          await page.waitForFunction(() => !document.querySelector('[data-plugin-bar]')?.hasAttribute('data-compact'))
-          expect(await bar.locator('h1').evaluate(element => element.getBoundingClientRect().top)
-            - (await bar.boundingBox())!.y).toBe(platform === 'darwin' ? 76 : 28)
-          await body.evaluate((element) => { element.scrollTop = 500 })
-          await page.waitForFunction(() => document.querySelector('[data-plugin-bar]')?.hasAttribute('data-compact'))
-          const inset = platform === 'darwin' ? 56 : 16
-          expect(await top()).toBe(inset)
-          expect(await bar.evaluate(element => Number.parseFloat(getComputedStyle(element, '::before').height)))
-            .toBe(inset + (hasTabs ? 34 : 32) + 16)
+        for (const width of [1280, 801, 520, 390, 1280]) {
+          await page.setViewportSize({ width, height: 720 })
+          await checkPluginControls(page)
         }
-        await page.getByRole('button', { name: 'Open sidebar', exact: true }).last().click()
-        await settled(page)
-        await body.evaluate((element) => { element.scrollTop = 500 })
-        await expect.poll(top).toBe(16)
+        const add = page.getByRole('button', { name: 'Add plugin', exact: true })
+        await add.click()
+        await page.getByRole('dialog', { name: 'Add plugin', exact: true }).waitFor()
         expect(tripwire.pageErrors).toEqual([])
       } finally { await page.close() }
     } finally { if (host !== scaffold) await host.close() }
@@ -871,10 +806,10 @@ describe('web e2e: macOS window drag coverage', () => {
     } finally { await page.close() }
   })
 
-  it('keeps an entry page’s chrome row draggable', async () => {
+  it('keeps the embedded plugin header out of the drag surface', async () => {
     const { page, tripwire } = await desktopPage()
     try {
-      await page.getByRole('button', { name: 'Plugins', exact: true }).click()
+      await openPluginManager(page, 'en')
       const head = page.locator('[class*="pageHead"]').first()
       await head.waitFor({ timeout: 15_000 })
       await settled(page)
@@ -885,19 +820,10 @@ describe('web e2e: macOS window drag coverage', () => {
 
       const surface = await collectedSurface(page, INTERACTIVE_SELECTOR)
       const { regions } = surface
-      // The row starts at the window's top edge: a page inset above it would be a strip
-      // no drag region covers, which is the dead band at the very top of this page.
-      expect(rect.y, 'the page head starts at the window’s top edge').toBeLessThanOrEqual(0.5)
-      // The page head owns its run, clearance included: that is the entry page's
-      // window strip, with no frame band behind it.
-      expect(
-        isDraggableAt(regions, rect.x + 40, rect.y + 8),
-        'the plugin manager page head',
-      ).toBe(true)
-      expect(
-        isDraggableAt(regions, rect.x + 40, rect.y + rect.height + 40),
-        'the page body below the head',
-      ).toBe(false)
+      const dialog = (await page.getByRole('dialog', { name: 'Settings', exact: true }).boundingBox())!
+      expect(rect.y).toBeGreaterThan(dialog.y)
+      expect(isDraggableAt(regions, rect.x + 40, rect.y + 8), 'embedded plugin header').toBe(false)
+      expect(isDraggableAt(regions, rect.x + 40, rect.y + rect.height + 40), 'plugin content').toBe(false)
 
       expect(swallowedBoxes(surface), 'interactive boxes inside the drag surface').toEqual([])
       expect(tripwire.pageErrors).toEqual([])
@@ -909,10 +835,10 @@ describe('web e2e: macOS window drag coverage', () => {
     }
   }, 120_000)
 
-  it('keeps a detail page’s head row draggable and its body out of the drag surface', async () => {
+  it('keeps the embedded plugin detail header and body out of the drag surface', async () => {
     const { page, tripwire } = await desktopPage()
     try {
-      await page.getByRole('button', { name: 'Plugins', exact: true }).click()
+      await openPluginManager(page, 'en')
       const cards = page.locator('[data-plugin-package], [data-plugin-item]')
       await cards.first().waitFor({ timeout: 30_000 })
       await settled(page)
@@ -939,14 +865,10 @@ describe('web e2e: macOS window drag coverage', () => {
       const surface = await collectedSurface(page, INTERACTIVE_SELECTOR)
       const { regions } = surface
 
-      // The head's top inset is the window clearance above the crumb: blank, so
-      // it drags like the entry page's head. The row also starts at the window's top
-      // edge, or the strip above it belongs to no drag region.
-      expect(headRect.y, 'the detail head row starts at the window’s top edge').toBeLessThanOrEqual(0.5)
-      expect(
-        isDraggableAt(regions, headRect.x + headRect.width / 2, headRect.y + 4),
-        'the detail head row’s top inset',
-      ).toBe(true)
+      const dialog = (await page.getByRole('dialog', { name: 'Settings', exact: true }).boundingBox())!
+      expect(headRect.y).toBeGreaterThan(dialog.y)
+      expect(isDraggableAt(regions, headRect.x + headRect.width / 2, headRect.y + 4),
+        'embedded detail header').toBe(false)
 
       // Below the head, a point that no control covers is content: pressing the
       // description, a label, or a gap in the form must reach the page.

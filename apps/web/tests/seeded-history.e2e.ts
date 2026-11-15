@@ -245,6 +245,7 @@ describe('web e2e: seeded history renders through cold resume', () => {
       ],
       openInAppEnvironment: createLaunchEnvironmentSnapshot([{ source: 'process', values: { SSH_CONNECTION: '10.0.0.2 55000 10.0.0.9 22' } }]),
     })
+    await scaffold.ctx.settings.update('ui-chat', { transcriptView: 'standard', collapseTiming: 'completion' })
     // Application registrations belong to the host desktop, not to the recorded Session.
     const controller = scaffold.ctx.get('sessionController')
     if (controller === undefined) throw new Error('seeded-history requires Session Controller')
@@ -383,11 +384,12 @@ describe('web e2e: seeded history renders through cold resume', () => {
     const process = page.locator('[data-turn-process="1"]')
     await process.waitFor({ state: 'visible', timeout: 10_000 })
     expect(await process.getAttribute('aria-expanded')).toBe('false')
-    const processBottom = await process.evaluate(element => element.getBoundingClientRect().bottom)
-    const answerTop = await page.getByText('DONE', { exact: true }).evaluate(element =>
-      element.getBoundingClientRect().top)
-    // Hidden process rows separate the folded control from the answer, so it keeps the 12px reply gap.
-    expect(answerTop).toBe(processBottom + 12)
+    // The folded control keeps the reply gap after its collapse transition settles.
+    await expect.poll(async () => {
+      const processBottom = await process.evaluate(element => element.getBoundingClientRect().bottom)
+      const answerTop = await page.getByText('DONE', { exact: true }).evaluate(element => element.getBoundingClientRect().top)
+      return answerTop - processBottom
+    }).toBe(12)
     expect(await page.getByText('Context compacted', { exact: true }).count()).toBe(0)
     // Tool cards render from logged tool/call + tool/result alone (views are
     // host-recomputed per page; the generic card is the documented default).
@@ -757,9 +759,9 @@ describe('web e2e: seeded history renders through cold resume', () => {
 
   it.skipIf(MODE === 'record')('an Access-chip switch persists its command without adding a Chat row', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-seeded-command-row'))
-    await page.getByRole('button', { name: 'Access mode, current: Workspace Write' }).click()
-    await page.getByRole('menuitem', { name: 'Read Only' }).click()
-    const access = page.getByRole('button', { name: 'Access mode, current: Read Only' })
+    await page.getByRole('button', { name: 'Access mode, current: Full access' }).click()
+    await page.getByRole('menuitem', { name: 'Read only' }).click()
+    const access = page.getByRole('button', { name: 'Access mode, current: Read only' })
     await expect.poll(() => access.isEnabled(), { timeout: 10_000 }).toBe(true)
     const row = page.locator('[data-variant="others"]').filter({ hasText: 'preset read-only' })
     expect(await row.count()).toBe(0)
