@@ -29,7 +29,7 @@ export function RuleWeekdayRow({ weekdays, disabled, t, rowId, onToggle }: {
   rowId: (name: string) => string
   onToggle: (weekday: Weekday) => void
 }): ReactNode {
-  return <div className={css.ruleRow}>
+  return <div className={clsx(css.ruleRow, css.ruleWeekdayRow)}>
     <span className={css.ruleLabel} id={rowId('weekday')}>{t('rule.weekday')}</span>
     <div className={clsx(css.ruleWeekdays, css.ruleControl)} role="group" aria-labelledby={rowId('weekday')}>
       {WEEKDAYS.map((weekday) => {

@@ -1,0 +1,134 @@
+{
+  "patches": [],
+  "children": [
+    {
+      "child": 1,
+      "patches": [
+        {
+          "at": 0,
+          "entry": {
+            "kind": "chunks",
+            "chunks": [
+              {
+                "type": "block-start",
+                "index": 0,
+                "blockType": "tool-call"
+              },
+              {
+                "type": "tool-call-delta",
+                "index": 0,
+                "id": "call_schedule_create",
+                "name": "schedule_create",
+                "argumentsDelta": "{\"title\":\"Child reminder\",\"prompt\":\"Check this\",\"rrule\":\"DTSTART:20990914T010000Z\\nRRULE:FREQ=DAILY\",\"target\":\"this_session\"}"
+              },
+              {
+                "type": "block-end",
+                "index": 0,
+                "block": {
+                  "type": "tool-call",
+                  "id": "call_schedule_create",
+                  "name": "schedule_create",
+                  "arguments": "{\"title\":\"Child reminder\",\"prompt\":\"Check this\",\"rrule\":\"DTSTART:20990914T010000Z\\nRRULE:FREQ=DAILY\",\"target\":\"this_session\"}"
+                }
+              },
+              {
+                "type": "block-start",
+                "index": 1,
+                "blockType": "tool-call"
+              },
+              {
+                "type": "tool-call-delta",
+                "index": 1,
+                "id": "call_schedule_list",
+                "name": "schedule_list",
+                "argumentsDelta": "{}"
+              },
+              {
+                "type": "block-end",
+                "index": 1,
+                "block": {
+                  "type": "tool-call",
+                  "id": "call_schedule_list",
+                  "name": "schedule_list",
+                  "arguments": "{}"
+                }
+              },
+              {
+                "type": "block-start",
+                "index": 2,
+                "blockType": "tool-call"
+              },
+              {
+                "type": "tool-call-delta",
+                "index": 2,
+                "id": "child-schedule-view",
+                "name": "schedule_view",
+                "argumentsDelta": "{\"id\":\"missing-reminder\"}"
+              },
+              {
+                "type": "block-end",
+                "index": 2,
+                "block": {
+                  "type": "tool-call",
+                  "id": "child-schedule-view",
+                  "name": "schedule_view",
+                  "arguments": "{\"id\":\"missing-reminder\"}"
+                }
+              },
+              {
+                "type": "block-start",
+                "index": 3,
+                "blockType": "tool-call"
+              },
+              {
+                "type": "tool-call-delta",
+                "index": 3,
+                "id": "call_schedule_update",
+                "name": "schedule_edit",
+                "argumentsDelta": "{\"id\":\"missing-reminder\",\"action\":\"update\",\"title\":\"Updated\"}"
+              },
+              {
+                "type": "block-end",
+                "index": 3,
+                "block": {
+                  "type": "tool-call",
+                  "id": "call_schedule_update",
+                  "name": "schedule_edit",
+                  "arguments": "{\"id\":\"missing-reminder\",\"action\":\"update\",\"title\":\"Updated\"}"
+                }
+              },
+              {
+                "type": "block-start",
+                "index": 4,
+                "blockType": "tool-call"
+              },
+              {
+                "type": "tool-call-delta",
+                "index": 4,
+                "id": "call_schedule_delete",
+                "name": "schedule_edit",
+                "argumentsDelta": "{\"id\":\"missing-reminder\",\"action\":\"delete\"}"
+              },
+              {
+                "type": "block-end",
+                "index": 4,
+                "block": {
+                  "type": "tool-call",
+                  "id": "call_schedule_delete",
+                  "name": "schedule_edit",
+                  "arguments": "{\"id\":\"missing-reminder\",\"action\":\"delete\"}"
+                }
+              },
+              {
+                "type": "finish",
+                "reason": {
+                  "kind": "tool-calls"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

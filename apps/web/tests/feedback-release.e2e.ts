@@ -22,6 +22,8 @@ const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/feedback-rele
 const FIXTURE = fileURLToPath(new URL('../../../snapshots/web/feedback-command/session.v3.jsonl', import.meta.url))
 const ACK_EXPECTED = join(SNAPSHOT_DIR, 'ack.expected.md')
 const ACK_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, 'ack-expanded.expected.md')
+const MOCK_ACK_EXPECTED = join(SNAPSHOT_DIR, 'ack-mock.expected.md')
+const MOCK_ACK_EXPANDED_EXPECTED = join(SNAPSHOT_DIR, 'ack-expanded-mock.expected.md')
 const RELEASE_EXPECTED = join(SNAPSHOT_DIR, 'feedback-release.expected.json')
 const MODE = webSnapshotMode()
 
@@ -127,6 +129,7 @@ describe.each(MODE === 'record' ? ['deepseek-official'] : ['deepseek-official', 
       compareReplaySession: false,
       ...(MODE === 'record' ? {} : { replayFixture: FIXTURE, paceMs: 5 }),
     })
+    await scaffold.ctx.settings.update('ui-chat', { transcriptView: 'standard', collapseTiming: 'completion' })
     browser = await chromium.launch()
     page = await newConversationReplayPage(browser)
     tripwire = watchConsole(page)
@@ -192,13 +195,13 @@ describe.each(MODE === 'record' ? ['deepseek-official'] : ['deepseek-official', 
     await expectFeedbackRelease('feedback/record', 1)
 
     const snapshot = await captureStableAria(page, '[class*="centerCol"]', scaffold.workspaceCwd)
-    await compareOrRefreshGolden(ACK_EXPECTED, snapshot, MODE)
+    await compareOrRefreshGolden(official ? ACK_EXPECTED : MOCK_ACK_EXPECTED, snapshot, MODE)
     const expanded = await captureExpandedTurnProcessAria(
       page,
       '[class*="centerCol"]',
       scaffold.workspaceCwd,
     )
-    await compareOrRefreshGolden(ACK_EXPANDED_EXPECTED, expanded, MODE)
+    await compareOrRefreshGolden(official ? ACK_EXPANDED_EXPECTED : MOCK_ACK_EXPANDED_EXPECTED, expanded, MODE)
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
   }, 60_000)
@@ -315,6 +318,8 @@ describe.each(MODE === 'record' ? ['deepseek-official'] : ['deepseek-official', 
   })
 
   it.skipIf(MODE === 'record')('keeps the fixture inventory closed', async () => {
-    await assertFixtureInventory(SNAPSHOT_DIR, ['ack.expected.md', 'ack-expanded.expected.md', 'feedback-release.expected.json'])
+    await assertFixtureInventory(SNAPSHOT_DIR, [
+      'ack.expected.md', 'ack-expanded.expected.md', 'ack-mock.expected.md', 'ack-expanded-mock.expected.md', 'feedback-release.expected.json',
+    ])
   })
 })

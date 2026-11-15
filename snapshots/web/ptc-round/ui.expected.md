@@ -1,6 +1,6 @@
 - banner:
   - navigation "Session hierarchy": "Using ONE run_code program: run"
-  - 'button "Conversation mode: ptc" [disabled]': ptc
+  - 'button "Conversation mode: PTC mode" [disabled]': PTC mode
   - button "Side question"
   - button "More actions"
   - button "Open right sidebar"
@@ -11,7 +11,8 @@
 - text: "Using ONE run_code program: run bash `echo CODE_ROUND_OK`, then read the file missing.txt catching its error in the program. Return an object with both outcomes. Then reply DONE and stop. {{clock}}"
 - button "Copy"
 - status: Completed
-- button "Completed in {{duration}}" [disabled] [expanded]
+- button "Completed in {{duration}}" [expanded]
+- button "Ran code, ran commands, read files" [expanded]
 - button "Context injection runtime-context"
 - button "Context injection skill-catalog"
 - button "Context injection time-context"

@@ -10,7 +10,8 @@
 
 - banner:
   - navigation "Session hierarchy": Review deepseek-ai/deepseek-harness#314
-  - text: Standard mode
+  - 'button "Conversation mode: Default" [disabled]': Default
+  - button "Side question"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -37,4 +38,6 @@
 - 'button "Access mode, current: Read Only"': Read Only
 - button "Select model, current github-webhook-review-test/reply": github-webhook-review-test/reply
 - button "Send message" [disabled]
-- button "1 turns 1 steps"
+- 'button "Turns: 1 · Steps: 1"'
+- 'button "Conversation cost: ￥0.00"': ￥0.00
+- 'button "Spending limits: Off"': "Off"

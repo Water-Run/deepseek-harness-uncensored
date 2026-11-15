@@ -981,7 +981,7 @@ describe.skipIf(MODE === 'record')('web e2e: active Schedule catalog', () => {
       if (row === undefined) throw new Error(`missing shipped preset row ${id}`)
       return (row.config as { plugins: Array<{ id?: string; name?: string; disabled?: boolean }> }).plugins
     }
-    for (const id of ['preset-standard', 'preset-ptc', 'preset-cordis']) {
+    for (const id of ['preset-standard', 'preset-security', 'preset-reverse', 'preset-ptc']) {
       const plugins = presetPlugins(id)
       expect(plugins.filter(row => row.id === 'time-context'
         && row.name === '@deepseek-ai/dsh-time-context')).toHaveLength(1)
@@ -995,6 +995,9 @@ describe.skipIf(MODE === 'record')('web e2e: active Schedule catalog', () => {
     }
     expect(presetPlugins('preset-minimal').some(row => row.name === '@deepseek-ai/dsh-time-context'
       || row.name === '@deepseek-ai/dsh-tool-schedule')).toBe(false)
+    expect(presetPlugins('preset-writing').filter(row => row.name === '@deepseek-ai/dsh-time-context')).toHaveLength(1)
+    expect(presetPlugins('preset-writing').some(row => row.name === '@deepseek-ai/dsh-tool-schedule')).toBe(false)
+    expect(shipped.some(entry => entry.id === 'preset-cordis')).toBe(false)
 
     await page.getByRole('button', { name: 'Automation tasks', exact: true }).click()
     const manager = page.getByTestId('task-manager-page')

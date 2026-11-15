@@ -50,6 +50,7 @@ describe.skipIf(webSnapshotMode() === 'record')('web e2e: PTC answered question'
       agentPresets: { default: 'ptc' },
       replayFixture: join(directory, 'override-only.jsonl'), replayOverride,
     })
+    await scaffold.ctx.settings.update('ui-chat', { transcriptView: 'standard', collapseTiming: 'completion' })
     scaffold.ctx.on('session/event', (_session, event: SessionEvent) => { events.push(event) })
     browser = await chromium.launch()
     page = await newConversationReplayPage(browser)

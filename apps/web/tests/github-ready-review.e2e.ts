@@ -104,6 +104,7 @@ describe.skipIf(MODE === 'record')('web e2e: GitHub ready-for-review', () => {
       'GitHub webhook review adapter',
     )
     await scaffold.ctx.agentDefaultModel.saveSelection({ provider: PROVIDER, model: MODEL })
+    await scaffold.ctx.settings.update('ui-chat', { transcriptView: 'standard', collapseTiming: 'completion' })
 
     browser = await chromium.launch()
     page = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: 'en-US' })

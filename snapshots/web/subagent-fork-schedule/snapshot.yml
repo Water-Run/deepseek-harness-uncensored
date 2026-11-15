@@ -3,5 +3,11 @@ scenario: subagent-fork-schedule
 profile: web
 composition: web-default
 recording: authored
+replay:
+  override: true
 header:
   class: web-default
+sessionFormat:
+  version: 4
+  coverage:
+    - behavior-update

@@ -310,7 +310,7 @@ export const frequencyFr = {
   'frequency.weekday.4': 'jeu.',
   'frequency.weekday.5': 'vendredi',
   'frequency.weekday.6': 'Samedi',
-  'frequency.weekday.7': 'Soleil',
+  'frequency.weekday.7': 'dim.',
   'unit.day.one': 'jour',
   'unit.day.other': 'jours',
   'unit.hour.one': 'heure',

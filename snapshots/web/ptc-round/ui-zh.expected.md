@@ -1,6 +1,6 @@
 - banner:
   - navigation "会话层级": "Using ONE run_code program: run"
-  - button "会话模式：ptc" [disabled]: ptc
+  - button "会话模式：PTC 模式" [disabled]: PTC 模式
   - button "旁问"
   - button "更多操作"
   - button "打开右侧边栏"
@@ -11,7 +11,8 @@
 - text: "Using ONE run_code program: run bash `echo CODE_ROUND_OK`, then read the file missing.txt catching its error in the program. Return an object with both outcomes. Then reply DONE and stop. {{clock}}"
 - button "复制"
 - status: 已完成
-- button "已完成，用时 {{duration}}" [disabled] [expanded]
+- button "已完成，用时 {{duration}}" [expanded]
+- button "运行了代码，执行了命令，已读取文件" [expanded]
 - button "上下文注入 runtime-context"
 - button "上下文注入 skill-catalog"
 - button "上下文注入 time-context"

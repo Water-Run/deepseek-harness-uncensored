@@ -1,6 +1,7 @@
 // UI-only phone geometry for the Automation tasks page: no text field it owns
 // sits under the 16px touch step, so the page never reads wider than the screen
 // — iOS Safari zooms the visual viewport for a focused field below it.
+import { fileURLToPath } from 'node:url'
 import type { Browser, Locator, Page } from 'playwright'
 import { chromium } from 'playwright'
 import { expect, it } from 'vitest'
@@ -223,7 +224,9 @@ it.each([
     instruction: "Instruction de tâche d'automatisation", create: 'Créer',
     repeat: /^Répéter /, frequencies: ['Tous les mois', 'Hebdomadaire', 'Une fois'] },
 ] as const)('keeps both editor modes inside a narrow pane with the sidebar open ($locale)', async (copy) => {
-  const scaffold = await launchWebScaffold()
+  const scaffold = await launchWebScaffold({ profile: { packages: [{
+    dir: fileURLToPath(new URL('./fixtures/plugins/fixture-language-pack', import.meta.url)), enabled: true,
+  }] } })
   let browser: Browser | undefined
   try {
     browser = await chromium.launch()

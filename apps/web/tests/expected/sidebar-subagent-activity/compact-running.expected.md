@@ -2,6 +2,7 @@
   - navigation "Session hierarchy": Delegate a background job.
   - button "1 subagent"
   - button "1 background job"
+  - button "Side question"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
