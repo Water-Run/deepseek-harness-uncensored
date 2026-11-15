@@ -416,6 +416,10 @@ describe('web e2e: sidebar search alignment and row action targets', () => {
       try {
         const rows = page.locator('[role="tree"][aria-label="Sessions"] [data-row-key^="workspace:"]')
         await expect.poll(() => rows.count()).toBe(2)
+        await rows.evaluateAll(async (elements) => {
+          await Promise.all(elements.flatMap(element => element.getAnimations())
+            .map(animation => animation.finished.then(() => undefined, () => undefined)))
+        })
         const before = await rows.evaluateAll(elements => elements.map(element => element.getAttribute('data-row-key')))
         await rows.last().hover()
         const source = await rows.last().boundingBox()
