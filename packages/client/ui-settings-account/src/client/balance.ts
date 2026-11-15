@@ -33,6 +33,10 @@ export function registerBalance(ctx: Context, account: HostObservable<AccountSna
         })
       }, 'account: balance identity')
       yield scope.effect(() => scope.remote.$on('credentials/reference-updated', controller.invalidate), 'account: balance credential changes')
+      yield scope.on('account-ui/refresh', () => {
+        controller.refresh()
+        return Promise.resolve()
+      })
       const injected = (): BalanceInjected => ({ hooks: { balance: controller.state, balancePreferences: form },
         refresh: controller.refresh, save: controller.save, dismissToast: controller.dismissToast })
       yield scope.slots.inject('sidebar.footer.budget', () => scope.slots.register({ name: 'sidebar.footer.budget', id: 'balance', order: 10,

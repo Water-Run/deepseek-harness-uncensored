@@ -10,27 +10,28 @@ open.held cards=0 acks=1 gets=1
 open.shown notice=赠金已到账 / 已赠送您 8.00 元 DSH 体验赠金。
 open.shown ack orders=notice-first,notice-later
 open.shown painted-under-settings=true cards=1 acks=2
+open.balance-refresh summaries=1 notices=0
 open.get locale=zh_CN query= served=true gets=1
 open.balance bonus-row=true amount=true dated=false
 open.cards-while-open=1 acks=2
 open.usage-link={{origin}}/usage
 open.closed settings cards=1 acks=2
 open.dismissed cards=0 acks=2
-reopen.open gets=1 summaries=1 cards=0 acks=2
+reopen.open gets=1 summaries=2 cards=0 acks=2
 reopen.section-switch gets=0 summaries=0 amount=true cards=0 acks=2
 reopen.closed cards=0 acks=2
-topup.open gets=1 summaries=1
+topup.open gets=1 summaries=2
 topup.returned bridge=open:top-up,close cards=0
 topup.notice=赠金已到账 / 已赠送您 11.00 元 DSH 体验赠金。
-topup.refresh gets=2 summaries=2 acks=1 recharge=true bonus=true
+topup.refresh gets=2 summaries=4 acks=1 recharge=true bonus=true
 topup.closed cards=1 acks=1
 event-failed.notice=赠金已到账 / 已赠送您 6.00 元 DSH 体验赠金。
 event-failed.attempts=1 body-kept=true cards=1
 repeat.first=赠金已到账 / 已赠送您 7.00 元 DSH 体验赠金。
 repeat.reload=赠金已到账 / 已赠送您 7.00 元 DSH 体验赠金。
 repeat.shown added-storage-keys=0 reload-added=0 acks=2 cards=1
-failed.links count=2 hrefs={{origin}}/usage,{{origin}}/usage
-failed.reached usages=2 gets=1 summaries=1
+failed.links count=1 hrefs={{origin}}/usage
+failed.reached usages=1 gets=1 summaries=2
 en.notice=Bonus credited / You received a CNY 9.00 DSH trial credit.
 en.get locale=en_US query=
 web.notice=赠金已到账 / 已赠送您 4.00 元 DSH 体验赠金。 acks=1
@@ -44,7 +45,7 @@ stack.promoted cards=2 acks=stack-first,stack-second width=260 same-node=true
 stack.dismissed cards=0 acks=stack-first,stack-second,stack-third
 refresh.retained cards=3 acks=refresh-first same-node=true
 refresh.localized locale=en_US content-reads=3 list-reads=0 acks=1 same-node=true
-refresh.business-action event=cta_clicked cards=3 account-open=true
+refresh.business-action event=cta_clicked cards=3 budget-open=true
 refresh.drawer width=390 notice-above-sidebar=true
 refresh.action event=dismissed got-it=true
 refresh.promoted cards=2 acks=refresh-first,refresh-second

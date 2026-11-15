@@ -15,3 +15,8 @@
 - id: ui-account-notifications
   config:
     notificationPollIntervalMs: 7200000
+
+# Keep periodic balance sampling outside the notification interaction sequence.
+- id: balance
+  config:
+    refreshSeconds: 3600

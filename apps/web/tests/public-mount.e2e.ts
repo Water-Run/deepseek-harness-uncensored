@@ -11,6 +11,7 @@ import { ZH_BROWSER_LOCALE } from './support.ts'
 
 const MODE = webSnapshotMode()
 const MOUNT = '/tools/dsh/'
+const RELEASE_INDEX = 'https://api.github.com/repos/Water-Run/deepseek-harness-uncensored/releases?per_page=100'
 
 describe.skipIf(MODE === 'record')('web e2e: public mount through a prefix-stripping proxy', () => {
   let scaffold: WebScaffold
@@ -31,6 +32,7 @@ describe.skipIf(MODE === 'record')('web e2e: public mount through a prefix-strip
       locale: ZH_BROWSER_LOCALE,
     })
     tripwire = watchConsole(page)
+    await page.route(RELEASE_INDEX, route => route.fulfill({ json: [] }))
     page.on('request', (request) => { requestUrls.push(request.url()) })
     page.on('websocket', (socket) => {
       if (new URL(socket.url()).pathname !== `${MOUNT}api/remote.mux`) return
@@ -46,18 +48,17 @@ describe.skipIf(MODE === 'record')('web e2e: public mount through a prefix-strip
     await scaffold?.close()
   })
 
-  /** Requests outside the mount: the proxy strips no prefix from them, so nothing answers. */
-  const offMountRequests = (): string[] => requestUrls.filter(url => !url.startsWith(scaffold.baseUrl))
+  /** Application resources stay under the mount; the fixed release index is the sole external fixture. */
+  const offMountRequests = (): string[] => requestUrls.filter(url => !url.startsWith(scaffold.baseUrl) && url !== RELEASE_INDEX)
 
   it('loads the shell, its plugin bundles, and the Gateway WebSocket under the mount', async () => {
     const welcome = page.getByRole('dialog', { name: WELCOME_NOTICE_COPY.zh.title })
     await welcome.waitFor({ timeout: 15_000 })
     expect(new URL(page.url()).pathname).toBe(MOUNT)
 
-    // Every resource the page requested — bundles, manifest, icon, and whatever
-    // a later change adds — stayed under the mount; the bundle check keeps the
-    // empty off-mount list from passing vacuously.
+    // The plugin check prevents an empty request list from satisfying the mount assertion.
     expect(requestUrls.some(url => new URL(url).pathname.startsWith(`${MOUNT}plugins/`))).toBe(true)
+    expect(requestUrls.filter(url => url === RELEASE_INDEX)).toEqual([RELEASE_INDEX])
     expect(offMountRequests()).toEqual([])
 
     // The browser resolves manifest members against the manifest URL and the

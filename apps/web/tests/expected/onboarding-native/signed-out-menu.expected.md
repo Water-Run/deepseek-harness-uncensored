@@ -1,4 +1,6 @@
 - menu:
   - menuitem "设置"
-  - menuitem "意见反馈"
+  - menuitem "提交 Issue"
+  - menuitem "GitHub 仓库"
+  - menuitem "关于"
   - menuitem "登录"

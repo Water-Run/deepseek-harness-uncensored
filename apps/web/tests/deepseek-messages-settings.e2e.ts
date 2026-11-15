@@ -81,7 +81,11 @@ it.skipIf(webSnapshotMode() === 'record').each(['deepseek-official', 'google', '
       const dialog = page.getByRole('dialog', { name: '设置' })
       await dialog.getByRole('button', { name: '模型', exact: true }).click()
       const edit = dialog.getByRole('button', { name: `编辑 ${messages ? 'DeepSeek (deepseek-official)' : provider}`, exact: true })
-      await edit.click()
+      try { await edit.click() }
+      catch (error) {
+        await saveFailureShot(page, `provider-environment-${provider}`)
+        throw new Error(`Provider editor ${provider}:\n${await dialog.ariaSnapshot()}`, { cause: error })
+      }
       const key = dialog.getByLabel('API 密钥', { exact: true })
       await key.press('Delete')
       expect(await key.getAttribute('placeholder')).toBe(`留空使用环境认证（${envRef}）`)

@@ -3,6 +3,7 @@
 import { afterEach, beforeEach, expect, onTestFinished, vi } from 'vitest'
 import { ok } from '@deepseek-ai/dsh-remote-mock'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
+import schema from '@deepseek-ai/schemastery'
 import { createClientTest, type TestClient, webApp } from '@deepseek-ai/dsh-client-test-runtime/src/assembly/index.ts'
 import type {
   AccountDetails, AccountUserId, AccountView, SignInAttemptId,
@@ -85,6 +86,30 @@ withoutBudgetAccess('does not poll or display the owner budget when budget acces
   expect(c.ctx.slots.entries('conversation.composer.dock').some(entry => entry.options.id === 'spending')).toBe(false)
   expect(c.mock.remote.balance.get).not.toHaveBeenCalled()
   expect(c.mock.remote.spending.get).not.toHaveBeenCalled()
+  await c.ctx.parallel('account-ui/refresh')
+  expect(c.mock.remote.balance.get).not.toHaveBeenCalled()
+}, 60_000)
+
+it('refreshes balance observations with account refreshes and removes the listener on unload', async ({ start, remote }) => {
+  remote.settings.describe.mockResolvedValue(ok({ writable: true, hasDocument: true, namespaces: [{
+    ns: 'balance', schema: JSON.parse(JSON.stringify(schema.object({
+      enabled: schema.boolean(), source: schema.string(), refreshSeconds: schema.number(),
+    }).toJSON())) as JsonValue,
+    value: { enabled: true, source: 'api', refreshSeconds: 3600 },
+    autoGenerate: false, applies: 'live', secrets: [], revision: 0,
+  }] }))
+  remote.balance.get.mockResolvedValue(ok({ status: 'empty', source: 'api', account: null, samples: [], sampleCount: 0 }))
+  const c = await start()
+  await vi.waitFor(() => { expect(remote.balance.get).toHaveBeenCalled() })
+  await c.flush()
+  const before = c.mock.remote.balance.get.mock.calls.length
+  await operations(c).refreshAccount()
+  await vi.waitFor(() => { expect(c.mock.remote.balance.get.mock.calls.length).toBeGreaterThan(before) })
+  await c.unload(SELF)
+  const unloaded = c.mock.remote.balance.get.mock.calls.length
+  await c.ctx.parallel('account-ui/refresh')
+  await c.flush()
+  expect(c.mock.remote.balance.get).toHaveBeenCalledTimes(unloaded)
 }, 60_000)
 
 it('claims account balance notices from the frame-wide quota chain and declines generic quota', async ({ start }) => {

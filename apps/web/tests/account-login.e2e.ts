@@ -112,6 +112,7 @@ describe.skipIf(MODE === 'record')('web e2e: DeepSeek account sign-in in a plain
     const overlay = join(root, 'account-login.overlay.yml')
     await writeFile(overlay, (await readFile(OVERLAY_TEMPLATE, 'utf8')).replaceAll('{{origin}}', platform.origin))
     scaffold = await launchWebScaffold({ extraOverlayPath: overlay })
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'system' })
     browser = await chromium.launch()
   })
 
@@ -164,6 +165,7 @@ describe.skipIf(MODE === 'record')('web e2e: DeepSeek account sign-in in a plain
     await menu.click()
     expectedLists++
     await page.getByRole('menuitem', { name: 'Settings', exact: true }).click()
+    await page.getByRole('dialog', { name: 'Settings', exact: true }).getByRole('button', { name: 'Models', exact: true }).click()
     const settings = page.getByRole('dialog', { name: 'Settings', exact: true })
     const account = settings.getByRole('region', { name: 'Account', exact: true })
     await expect.poll(platform.avatarRequests).toBe(2)
@@ -176,6 +178,7 @@ describe.skipIf(MODE === 'record')('web e2e: DeepSeek account sign-in in a plain
     await menu.click()
     expectedLists++
     await page.getByRole('menuitem', { name: 'Settings', exact: true }).click()
+    await page.getByRole('dialog', { name: 'Settings', exact: true }).getByRole('button', { name: 'Models', exact: true }).click()
     await expect.poll(() => menu.locator('img').count()).toBe(1)
     await expect.poll(() => account.locator('img').count()).toBe(1)
     for (const image of [menu.locator('img'), account.locator('img')]) {
@@ -189,6 +192,7 @@ describe.skipIf(MODE === 'record')('web e2e: DeepSeek account sign-in in a plain
     await menu.click()
     expectedLists++
     await page.getByRole('menuitem', { name: 'Settings', exact: true }).click()
+    await page.getByRole('dialog', { name: 'Settings', exact: true }).getByRole('button', { name: 'Models', exact: true }).click()
     await account.waitFor()
     expect(await menu.locator('img').count()).toBe(1)
     expect(await account.locator('img').count()).toBe(1)
@@ -205,6 +209,7 @@ describe.skipIf(MODE === 'record')('web e2e: DeepSeek account sign-in in a plain
     await menu.click()
     expectedLists++
     await page.getByRole('menuitem', { name: 'Settings', exact: true }).click()
+    await page.getByRole('dialog', { name: 'Settings', exact: true }).getByRole('button', { name: 'Models', exact: true }).click()
     await expect.poll(() => menu.locator('img').count()).toBe(1)
     await expect.poll(() => account.locator('img').count()).toBe(1)
     await capture('Settings entry after rendered failure')

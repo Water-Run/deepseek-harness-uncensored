@@ -302,6 +302,7 @@ describe.skipIf(MODE === 'record')('web e2e: bonus notice', () => {
     const overlay = join(root, 'bonus-notice.overlay.yml')
     await writeFile(overlay, (await readFile(OVERLAY_TEMPLATE, 'utf8')).replaceAll('{{origin}}', platform.origin))
     scaffold = await launchWebScaffold({ harnessHome: home, extraOverlayPath: overlay })
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'system' })
     // Resolve the signed-in identity before opening the renderer. First profile discovery
     // emits another account frame, which would supersede the held startup bonus read.
     expect(await scaffold.ctx.deepseekAccount.getProfile({
@@ -380,6 +381,7 @@ describe.skipIf(MODE === 'record')('web e2e: bonus notice', () => {
     // racing a fast local response.
     platform.holdNextGet()
     await openSettings(page, 'zh')
+    await page.getByRole('dialog', { name: '设置', exact: true }).getByRole('button', { name: '额度', exact: true }).click()
     const settings = page.getByRole('dialog', { name: '设置', exact: true })
     await settings.waitFor()
     await expect.poll(() => platform.gets.length, { timeout: 30_000 }).toBe(getsBefore + 1)
@@ -405,6 +407,14 @@ describe.skipIf(MODE === 'record')('web e2e: bonus notice', () => {
     await expect.poll(async () => (await settings.textContent()) ?? '', { timeout: 30_000 }).toContain('¥13.00')
     // Still one read after the refresh settled.
     expect(platform.gets.length).toBe(getsBefore + 1)
+
+    const balanceRefresh = settings.getByRole('button', { name: '刷新', exact: true })
+    const sampleReads = platform.summaries.length
+    await balanceRefresh.click()
+    await expect.poll(() => platform.summaries.length).toBe(sampleReads + 1)
+    await expect.poll(() => balanceRefresh.isEnabled()).toBe(true)
+    expect(platform.gets.length).toBe(getsBefore + 1)
+    observations.push('open.balance-refresh summaries=1 notices=0')
 
     const openGet = platform.served.at(-1)!
     const panel = (await settings.textContent()) ?? ''
@@ -441,10 +451,11 @@ describe.skipIf(MODE === 'record')('web e2e: bonus notice', () => {
     const reopenGetsBefore = platform.gets.length
     const reopenSummariesBefore = platform.summaries.length
     await openSettings(page, 'zh')
+    await page.getByRole('dialog', { name: '设置', exact: true }).getByRole('button', { name: '额度', exact: true }).click()
     const reopened = page.getByRole('dialog', { name: '设置', exact: true })
     await reopened.waitFor()
     await expect.poll(() => platform.gets.length, { timeout: 30_000 }).toBe(reopenGetsBefore + 1)
-    await expect.poll(() => platform.summaries.length, { timeout: 30_000 }).toBe(reopenSummariesBefore + 1)
+    await expect.poll(() => platform.summaries.length, { timeout: 30_000 }).toBe(reopenSummariesBefore + 2)
     observations.push(`reopen.open gets=${String(platform.gets.length - reopenGetsBefore)} summaries=${String(platform.summaries.length - reopenSummariesBefore)} cards=${String(await noticeCards(page).count())} acks=${String(platform.acks.length)}`)
     expect(await noticeCards(page).count()).toBe(0)
     expect(platform.acks).toHaveLength(2)
@@ -456,8 +467,8 @@ describe.skipIf(MODE === 'record')('web e2e: bonus notice', () => {
     const nav = reopened.locator('nav')
     await nav.getByRole('button', { name: '模型', exact: true }).click()
     await expect.poll(async () => nav.getByRole('button', { name: '模型', exact: true }).getAttribute('aria-current'), { timeout: 30_000 }).toBe('true')
-    await nav.getByRole('button', { name: '账号与余额', exact: true }).click()
-    await expect.poll(async () => nav.getByRole('button', { name: '账号与余额', exact: true }).getAttribute('aria-current'), { timeout: 30_000 }).toBe('true')
+    await nav.getByRole('button', { name: '额度', exact: true }).click()
+    await expect.poll(async () => nav.getByRole('button', { name: '额度', exact: true }).getAttribute('aria-current'), { timeout: 30_000 }).toBe('true')
     platform.releaseGet()
     const sectionPanel = (await reopened.textContent()) ?? ''
     observations.push(`reopen.section-switch gets=${String(platform.gets.length - sectionGetsBefore)} summaries=${String(platform.summaries.length - sectionSummariesBefore)} amount=${String(sectionPanel.includes('¥13.00'))} cards=${String(await noticeCards(page).count())} acks=${String(platform.acks.length)}`)
@@ -477,18 +488,19 @@ describe.skipIf(MODE === 'record')('web e2e: bonus notice', () => {
     const topUpGetsBefore = platform.gets.length
     const topUpSummariesBefore = platform.summaries.length
     await openSettings(page, 'zh')
+    await page.getByRole('dialog', { name: '设置', exact: true }).getByRole('button', { name: '额度', exact: true }).click()
     const topUpSettings = page.getByRole('dialog', { name: '设置', exact: true })
     await topUpSettings.waitFor()
     await expect.poll(() => platform.gets.length, { timeout: 30_000 }).toBe(topUpGetsBefore + 1)
-    await expect.poll(() => platform.summaries.length, { timeout: 30_000 }).toBe(topUpSummariesBefore + 1)
+    await expect.poll(() => platform.summaries.length, { timeout: 30_000 }).toBe(topUpSummariesBefore + 2)
     observations.push(`topup.open gets=${String(platform.gets.length - topUpGetsBefore)} summaries=${String(platform.summaries.length - topUpSummariesBefore)}`)
     const callsBefore = (await platformCalls(page)).length
     await topUpSettings.getByRole('link', { name: '充值', exact: true }).click()
-    const topUpOverlay = page.getByRole('dialog', { name: '返回 DeepSeek Harness', exact: true })
+    const topUpOverlay = page.getByRole('dialog', { name: '返回 DeepSeek Harness Uncensored', exact: true })
     await topUpOverlay.waitFor()
     // Opening the native view reads nothing by itself.
     expect(platform.gets.length).toBe(topUpGetsBefore + 1)
-    expect(platform.summaries.length).toBe(topUpSummariesBefore + 1)
+    expect(platform.summaries.length).toBe(topUpSummariesBefore + 2)
     // The user pays while the view is open; Platform reports both balances in scientific
     // notation, so the refresh must render plain currency.
     platform.setNormalBalance('0E-16')
@@ -496,7 +508,7 @@ describe.skipIf(MODE === 'record')('web e2e: bonus notice', () => {
     platform.grant(ORDER_TOPUP, '11.00')
     // Holding the notice read proves the return does not wait for the refresh it starts.
     platform.holdNextGet()
-    await topUpOverlay.getByRole('button', { name: '返回 DeepSeek Harness', exact: true }).click()
+    await topUpOverlay.getByRole('button', { name: '返回 DeepSeek Harness Uncensored', exact: true }).click()
     await topUpOverlay.waitFor({ state: 'detached', timeout: 30_000 })
     const topUpCalls = (await platformCalls(page)).slice(callsBefore).join(',')
     observations.push(`topup.returned bridge=${topUpCalls} cards=${String(await noticeCards(page).count())}`)
@@ -507,7 +519,9 @@ describe.skipIf(MODE === 'record')('web e2e: bonus notice', () => {
     const topUpAttempts = (): AckRecord[] => platform.acks.filter(item => item.orderId === ORDER_TOPUP)
     await expect.poll(() => topUpAttempts().length, { timeout: 30_000 }).toBe(1)
     await expect.poll(() => platform.gets.length, { timeout: 30_000 }).toBe(topUpGetsBefore + 2)
-    await expect.poll(() => platform.summaries.length, { timeout: 30_000 }).toBe(topUpSummariesBefore + 2)
+    await expect.poll(() => platform.summaries.length, { timeout: 30_000 }).toBe(topUpSummariesBefore + 4)
+    await expect.poll(() => topUpSettings.textContent(), { timeout: 30_000 }).toContain('¥24.00')
+    await expect.poll(() => topUpSettings.getByText('当前总额', { exact: true }).locator('..').locator('strong').textContent()).toBe('¥24.00')
     const topUpPanel = (await topUpSettings.textContent()) ?? ''
     const topUpAmounts = { recharge: topUpPanel.includes('¥0.00'), bonus: topUpPanel.includes('¥24.00') }
     observations.push(`topup.refresh gets=${String(platform.gets.length - topUpGetsBefore)} summaries=${String(platform.summaries.length - topUpSummariesBefore)} acks=${String(topUpAttempts().length)} recharge=${String(topUpAmounts.recharge)} bonus=${String(topUpAmounts.bonus)}`)
@@ -527,6 +541,7 @@ describe.skipIf(MODE === 'record')('web e2e: bonus notice', () => {
     platform.grant(ORDER_FAILED_EVENT, '6.00')
     platform.failNextAcks(ORDER_FAILED_EVENT, 1)
     await openSettings(page, 'zh')
+    await page.getByRole('dialog', { name: '设置', exact: true }).getByRole('button', { name: '额度', exact: true }).click()
     const failedEventDialog = page.getByRole('dialog', { name: '设置', exact: true })
     await failedEventDialog.waitFor()
     observations.push(`event-failed.notice=${await shownNotice(page, zhFailedEvent)}`)
@@ -553,6 +568,7 @@ describe.skipIf(MODE === 'record')('web e2e: bonus notice', () => {
     platform.grant(ORDER_REPEAT, '7.00')
     const repeatAttempts = (): AckRecord[] => platform.acks.filter(item => item.orderId === ORDER_REPEAT)
     await openSettings(page, 'zh')
+    await page.getByRole('dialog', { name: '设置', exact: true }).getByRole('button', { name: '额度', exact: true }).click()
     const repeatDialog = page.getByRole('dialog', { name: '设置', exact: true })
     await repeatDialog.waitFor()
     observations.push(`repeat.first=${await shownNotice(page, zhRepeat)}`)
@@ -583,28 +599,28 @@ describe.skipIf(MODE === 'record')('web e2e: bonus notice', () => {
     const failedSummariesBefore = platform.summaries.length
     const failedUsagesBefore = (await platformCalls(page)).filter(call => call === 'open:usage').length
     await openSettings(page, 'zh')
+    await page.getByRole('dialog', { name: '设置', exact: true }).getByRole('button', { name: '额度', exact: true }).click()
     const failedSettings = page.getByRole('dialog', { name: '设置', exact: true })
     await failedSettings.waitFor()
-    const failedLinks = failedSettings.getByRole('link', { name: '前往开放平台查看', exact: true })
-    await expect.poll(() => failedLinks.count(), { timeout: 30_000 }).toBe(2)
-    await expect.poll(() => platform.summaries.length, { timeout: 30_000 }).toBe(failedSummariesBefore + 1)
+    await failedSettings.getByRole('alert').filter({ hasText: '余额刷新失败' }).waitFor()
+    const failedLinks = failedSettings.getByRole('link', { name: '查询用量', exact: true })
+    await expect.poll(() => failedLinks.count(), { timeout: 30_000 }).toBe(1)
+    await expect.poll(() => platform.summaries.length, { timeout: 30_000 }).toBe(failedSummariesBefore + 2)
     const failedHrefs = (await failedLinks.evaluateAll(nodes => nodes.map(node => node.getAttribute('href'))))
       .map(href => String(href).replace(platform.origin, '{{origin}}'))
     observations.push(`failed.links count=${String(await failedLinks.count())} hrefs=${failedHrefs.join(',')}`)
-    expect(failedHrefs).toEqual(['{{origin}}/usage', '{{origin}}/usage'])
+    expect(failedHrefs).toEqual(['{{origin}}/usage'])
     // Returning from usage refreshes nothing, because only a payment changes the account.
-    for (const index of [0, 1]) {
-      await failedLinks.nth(index).click()
-      const usageOverlay = page.getByRole('dialog', { name: '返回 DeepSeek Harness', exact: true })
-      await usageOverlay.waitFor()
-      await usageOverlay.getByRole('button', { name: '返回 DeepSeek Harness', exact: true }).click()
-      await usageOverlay.waitFor({ state: 'detached', timeout: 30_000 })
-    }
+    await failedLinks.click()
+    const usageOverlay = page.getByRole('dialog', { name: '返回 DeepSeek Harness Uncensored', exact: true })
+    await usageOverlay.waitFor()
+    await usageOverlay.getByRole('button', { name: '返回 DeepSeek Harness Uncensored', exact: true }).click()
+    await usageOverlay.waitFor({ state: 'detached', timeout: 30_000 })
     const failedUsages = (await platformCalls(page)).filter(call => call === 'open:usage').length - failedUsagesBefore
     observations.push(`failed.reached usages=${String(failedUsages)} gets=${String(platform.gets.length - failedGetsBefore)} summaries=${String(platform.summaries.length - failedSummariesBefore)}`)
-    expect(failedUsages).toBe(2)
+    expect(failedUsages).toBe(1)
     expect(platform.gets.length).toBe(failedGetsBefore + 1)
-    expect(platform.summaries.length).toBe(failedSummariesBefore + 1)
+    expect(platform.summaries.length).toBe(failedSummariesBefore + 2)
     platform.setFailSummary(false)
     await page.keyboard.press('Escape')
     await failedSettings.waitFor({ state: 'detached', timeout: 30_000 })
@@ -766,7 +782,7 @@ describe.skipIf(MODE === 'record')('web e2e: bonus notice', () => {
     observations.push('refresh.retained cards=3 acks=refresh-first same-node=true')
     const localeReads = platform.gets.length
     const localeContents = platform.contentReads.length
-    await refreshPage.getByRole('dialog', { name: '设置', exact: true }).getByRole('button', { name: '通用设置', exact: true }).click()
+    await refreshPage.getByRole('dialog', { name: '设置', exact: true }).getByRole('button', { name: '通用', exact: true }).click()
     await refreshPage.getByRole('button', { name: '中文', exact: true }).click()
     await refreshPage.getByRole('menuitem', { name: 'English', exact: true }).click()
     await refreshPage.getByRole('dialog', { name: 'Settings', exact: true }).waitFor()
@@ -788,8 +804,8 @@ describe.skipIf(MODE === 'record')('web e2e: bonus notice', () => {
     expect(await refreshCards.count()).toBe(3)
     const accountSettings = refreshPage.getByRole('dialog', { name: 'Settings', exact: true })
     await accountSettings.waitFor()
-    expect(await accountSettings.getByRole('button', { name: 'Account', exact: true }).getAttribute('aria-current')).toBe('true')
-    observations.push('refresh.business-action event=cta_clicked cards=3 account-open=true')
+    expect(await accountSettings.getByRole('button', { name: 'Budget', exact: true }).getAttribute('aria-current')).toBe('true')
+    observations.push('refresh.business-action event=cta_clicked cards=3 budget-open=true')
     await refreshPage.keyboard.press('Escape')
     await accountSettings.waitFor({ state: 'detached' })
     await refreshPage.setViewportSize({ width: 390, height: 844 })

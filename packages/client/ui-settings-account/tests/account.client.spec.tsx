@@ -750,7 +750,7 @@ it.each(['desktopOnboardingVisible', 'onboarding'] as const)('hides the notifica
   view.rerender(await accountMenu(operations, () => snapshot, false, renderSlot, openSettings))
   expect(active).toBe(true)
   openAccount?.()
-  expect(openSettings).toHaveBeenCalledExactlyOnceWith('account')
+  expect(openSettings).toHaveBeenCalledExactlyOnceWith('budget')
 })
 
 it('keeps notification DOM inside the launcher while the collapsed rail hides it', async () => {

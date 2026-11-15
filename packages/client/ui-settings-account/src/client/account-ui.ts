@@ -24,7 +24,7 @@ export interface AccountUi {
 export interface AccountNotificationsOwnerProps {
   /** Whether the account menu can display notifications outside onboarding. */
   active: boolean
-  /** Open the account section in the existing settings shell. */
+  /** Open account balance controls in the existing settings shell. */
   openAccount: () => void
 }
 
