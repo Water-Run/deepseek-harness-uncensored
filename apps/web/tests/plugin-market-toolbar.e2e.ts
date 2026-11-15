@@ -7,22 +7,20 @@ import { chromium, type Locator } from 'playwright'
 import { expect, it } from 'vitest'
 import type {} from '@deepseek-ai/dsh-plugin-market'
 import { compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode } from './scaffold.ts'
-import { ZH_BROWSER_LOCALE } from './support.ts'
+import { openPluginManager, saveFailureShot, ZH_BROWSER_LOCALE } from './support.ts'
 
 const EXPECTED = fileURLToPath(new URL('./expected/plugin-market/toolbar-responsive.expected.md', import.meta.url))
 const INDEX = new URL('./fixtures/plugin-market/toolbar.index.json', import.meta.url)
 
-/** Read live control geometry, including the index button's intentional left outset. */
+/** Read live control geometry inside the embedded Settings panel. */
 async function measure(toolbar: Locator) {
   return toolbar.evaluate((element) => {
     const bounds = element.getBoundingClientRect()
     const panel = element.closest('[data-plugin-panel]')!.getBoundingClientRect()
     const controls = Array.from(element.querySelectorAll('button, input'))
     const rects = controls.map(control => control.getBoundingClientRect())
-    const contained = rects.every((rect, index) => {
-      // The index button uses an 8px left outset to align its text with the page content.
-      const left = index === 0 ? bounds.left - 8 : bounds.left
-      return rect.left >= left - 1 && rect.right <= bounds.right + 1
+    const contained = rects.every((rect) => {
+      return rect.left >= bounds.left - 1 && rect.right <= bounds.right + 1
         && rect.left >= panel.left && rect.right <= panel.right
         && rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight
     })
@@ -35,6 +33,8 @@ async function measure(toolbar: Locator) {
       rect.right <= other.left || other.right <= rect.left || rect.bottom <= other.top || other.bottom <= rect.top))
     const centers = rects.map(rect => rect.top + rect.height / 2)
     return {
+      bounds: { left: bounds.left, right: bounds.right, panelLeft: panel.left, panelRight: panel.right },
+      rectangles: rects.map(rect => ({ left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom })),
       controls: controls.length,
       contained,
       reachable,
@@ -53,7 +53,7 @@ function validLayout(layout: Awaited<ReturnType<typeof measure>>): boolean {
     && !layout.overflow && !layout.pageOverflow && layout.focused
 }
 
-it('keeps Discover controls reachable when the toolbar wraps and retains search focus across widths', async () => {
+it.each(['light', 'dark'] as const)('keeps Discover controls reachable in %s theme and retains search focus across widths', async (colorScheme) => {
   const body = await readFile(INDEX)
   const source = createServer((request, response) => {
     if (request.url !== '/index.json') {
@@ -72,16 +72,17 @@ it('keeps Discover controls reachable when the toolbar wraps and retains search 
       profile: { packages: [], bundles: ['@deepseek-ai/dsh-experimental-plugin-market-bundle'] },
     })
     try {
+      await scaffold.ctx.settings.update('ui-theme', { preference: 'system' })
       await scaffold.ctx.pluginMarket.setIndexes([`http://127.0.0.1:${address.port}/index.json`])
       const browser = await chromium.launch()
       try {
-        const page = await browser.newPage({ viewport: { width: 1280, height: 844 }, locale: ZH_BROWSER_LOCALE, reducedMotion: 'reduce' })
+        const page = await browser.newPage({ viewport: { width: 1280, height: 844 }, locale: ZH_BROWSER_LOCALE, reducedMotion: 'reduce', colorScheme })
         const consoleWatch = watchConsole(page)
         await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
-        await page.getByRole('button', { name: '插件', exact: true }).click()
+        await openPluginManager(page, 'zh')
         await page.getByRole('tab', { name: '发现', exact: true }).click()
         await page.locator('[data-market-entry="dsh-toolbar-layout-fixture"]').waitFor()
-        await page.getByRole('button', { name: '收起侧边栏', exact: true }).click()
+        await expect.poll(() => page.locator('body').getAttribute('data-ds-dark-theme')).toBe(colorScheme === 'dark' ? '' : null)
         await page.evaluate(() => document.fonts.ready)
         const toolbar = page.locator('[data-discover-toolbar]')
         const search = toolbar.getByRole('searchbox', { name: '搜索插件' })
@@ -91,9 +92,17 @@ it('keeps Discover controls reachable when the toolbar wraps and retains search 
           await page.setViewportSize({ width, height: 844 })
           await expect.poll(async () => {
             const layout = await measure(toolbar)
-            return validLayout(layout) && layout.singleLine === (width >= 768) ? true : layout
-          }, { message: `Discover toolbar at ${width}px` }).toBe(true)
-          facts.push(`- ${width}px: ${width >= 768 ? 'single row' : 'wrapped rows'}; index, search, labels, sort, and refresh are contained, reachable, and separate; no horizontal overflow; search focus retained.`)
+            return validLayout(layout) && layout.singleLine === (width >= 1024) ? true : layout
+          }, { message: `Discover toolbar at ${width}px` }).toBe(true).catch(async (error: unknown) => {
+            await saveFailureShot(page, `plugin-market-toolbar-${colorScheme}-${width}`)
+            throw error
+          })
+          expect(await page.locator('[data-market-entry]').evaluateAll(entries => entries.every((entry) => {
+            const bounds = entry.getBoundingClientRect()
+            const panel = entry.closest('[data-plugin-panel]')!.getBoundingClientRect()
+            return bounds.left >= panel.left && bounds.right <= panel.right
+          }))).toBe(true)
+          facts.push(`- ${width}px: ${width >= 1024 ? 'single row' : 'wrapped rows'}; index, search, labels, sort, and refresh are contained, reachable, and separate; no horizontal overflow; search focus retained.`)
         }
         await page.setViewportSize({ width: 390, height: 844 })
         await expect.poll(async () => validLayout(await measure(toolbar))).toBe(true)

@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it } from 'vitest'
 import { launchWebScaffold, captureStableAria, compareOrRefreshGolden, webSnapshotMode, watchConsole, type WebScaffold } from './scaffold.ts'
-import { ZH_BROWSER_LOCALE } from './support.ts'
+import { openPluginManager, ZH_BROWSER_LOCALE } from './support.ts'
 
 it('reports a failed install whose pnpm printed nothing with its command line, output, and log file', async () => {
   const scratch = await mkdtemp(join(tmpdir(), 'dsh-install-silent-'))
@@ -29,9 +29,9 @@ it('reports a failed install whose pnpm printed nothing with its command line, o
       await page.goto(scaffold.authenticatedUrl)
       await page.waitForSelector('[class*="frame"]')
       if (await page.getByRole('dialog', { name: '设置' }).count() > 0) await page.keyboard.press('Escape')
-      await page.getByRole('navigation', { name: '全局面板' }).getByRole('button', { name: '插件', exact: true }).click()
+      await openPluginManager(page, 'zh')
       await page.getByRole('button', { name: '添加插件', exact: true }).click()
-      const dialog = page.getByRole('dialog')
+      const dialog = page.locator('[role="dialog"]:not([data-shortcut-modal="settings"])')
       await dialog.getByRole('textbox').fill('silent-package')
       await dialog.getByRole('button', { name: '安装', exact: true }).click()
       const failure = page.getByRole('dialog', { name: '插件安装失败', exact: true })
@@ -43,7 +43,7 @@ it('reports a failed install whose pnpm printed nothing with its command line, o
       await failure.getByText(/Command failed with exit code 1:/).waitFor()
       expect(await failure.getByText(/^完整日志：.*pnpm\.log$/).count()).toBe(1)
       expect(await readFile(join(profile, 'package.json'), 'utf8')).not.toContain('silent-package')
-      const snapshot = (await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd))
+      const snapshot = (await captureStableAria(page, '[role="dialog"]:not([data-shortcut-modal="settings"])', scaffold.workspaceCwd))
         .split(process.execPath).join('{{node}}')
         .split(scaffold.harnessHome).join('{{harnessHome}}')
         .replace(/operation-[A-Za-z0-9]+/g, 'operation-{{suffix}}')

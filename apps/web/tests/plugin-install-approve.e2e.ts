@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it } from 'vitest'
 import { launchWebScaffold, captureStableAria, compareOrRefreshGolden, webSnapshotMode, watchConsole, type WebScaffold } from './scaffold.ts'
-import { ZH_BROWSER_LOCALE } from './support.ts'
+import { openPluginManager, ZH_BROWSER_LOCALE } from './support.ts'
 
 it('offers approval for blocked install scripts and installs once they are allowed', async () => {
   const scratch = await mkdtemp(join(tmpdir(), 'dsh-install-approve-'))
@@ -47,10 +47,10 @@ it('offers approval for blocked install scripts and installs once they are allow
       await page.goto(scaffold.authenticatedUrl)
       await page.waitForSelector('[class*="frame"]')
       if (await page.getByRole('dialog', { name: '设置' }).count() > 0) await page.keyboard.press('Escape')
-      await page.getByRole('navigation', { name: '全局面板' }).getByRole('button', { name: '插件', exact: true }).click()
+      await openPluginManager(page, 'zh')
       const panel = page.locator('[data-plugin-panel]')
       await panel.getByRole('button', { name: '添加插件', exact: true }).click()
-      const dialog = page.getByRole('dialog')
+      const dialog = page.locator('[role="dialog"]:not([data-shortcut-modal="settings"])')
       await dialog.getByRole('textbox').fill('native-package')
       await dialog.getByRole('button', { name: '安装', exact: true }).click()
       // pnpm's refusal becomes the approval block, naming the package whose script waits; plain retry is not offered.
@@ -59,7 +59,7 @@ it('offers approval for blocked install scripts and installs once they are allow
       await expect.poll(() => approval.getByText('native-package', { exact: true }).count()).toBe(1)
       expect(await dialog.getByRole('button', { name: '重试', exact: true }).count()).toBe(0)
       expect(await readFile(policyPath, 'utf8')).toContain('native-package: set this to true or false')
-      const snapshot = (await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd))
+      const snapshot = (await captureStableAria(page, '[role="dialog"]:not([data-shortcut-modal="settings"])', scaffold.workspaceCwd))
         .split(process.execPath).join('{{node}}')
         .split(scaffold.harnessHome).join('{{harnessHome}}')
       await compareOrRefreshGolden(fileURLToPath(new URL('./expected/plugin-install-approve/blocked.expected.md', import.meta.url)), snapshot, webSnapshotMode())

@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it, onTestFinished } from 'vitest'
 import { launchWebScaffold, captureStableAria, compareOrRefreshGolden, webSnapshotMode, watchConsole, type WebScaffold } from './scaffold.ts'
-import { ZH_BROWSER_LOCALE } from './support.ts'
+import { openPluginManager, ZH_BROWSER_LOCALE } from './support.ts'
 import { expectSelectableTerminalCommand } from './terminal-command-browser.ts'
 
 const MIRROR = 'https://registry.npmmirror.com/'
@@ -26,6 +26,7 @@ it.each(['https://registry.npmjs.org/', MIRROR])('selects the fastest responding
   let scaffold: WebScaffold | undefined
   try {
     scaffold = await launchWebScaffold({ profile: { packages: [] }, extraOverlayPath: overlay })
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'system' })
     const browser = await chromium.launch()
     try {
       const profile = join(scaffold.harnessHome, 'profiles', 'scaffold')
@@ -65,10 +66,10 @@ it.each(['https://registry.npmjs.org/', MIRROR])('selects the fastest responding
       await page.goto(scaffold.authenticatedUrl)
       await page.waitForSelector('[class*="frame"]')
       if (await page.getByRole('dialog', { name: '设置' }).count() > 0) await page.keyboard.press('Escape')
-      await page.getByRole('navigation', { name: '全局面板' }).getByRole('button', { name: '插件', exact: true }).click()
+      await openPluginManager(page, 'zh')
       const panel = page.locator('[data-plugin-panel]')
       await panel.getByRole('button', { name: '添加插件', exact: true }).click()
-      const dialog = page.getByRole('dialog')
+      const dialog = page.locator('[role="dialog"]:not([data-shortcut-modal="settings"])')
       // Folded, the registry control names pnpm's own registry; unfolded, its options float from it and offer the configured
       // mirror and a typed address.
       const registryToggle = dialog.getByRole('button', { name: winner === MIRROR ? '安装源 中国大陆镜像源' : '安装源 npm 官方源', exact: true })
@@ -121,7 +122,7 @@ it.each(['https://registry.npmjs.org/', MIRROR])('selects the fastest responding
       await expectSelectableTerminalCommand(page, dialog.locator('[data-terminal]').first(),
         `pnpm add mirrored-package --registry=${MIRROR}`, 380, '命令第 1 行')
       expect(JSON.parse(await readFile(manifestPath, 'utf8'))).toMatchObject({ dependencies: { 'mirrored-package': '2.0.0' } })
-      const installed = (await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd))
+      const installed = (await captureStableAria(page, '[role="dialog"]:not([data-shortcut-modal="settings"])', scaffold.workspaceCwd))
         .split(process.execPath).join('{{node}}')
         .split(scaffold.harnessHome).join('{{harnessHome}}')
         .replace(/operation-[A-Za-z0-9]+/g, 'operation-{{suffix}}')
@@ -129,7 +130,7 @@ it.each(['https://registry.npmjs.org/', MIRROR])('selects the fastest responding
       // The dialog opened again starts from the registry picked for the last install.
       await dialog.getByRole('button', { name: '立即启用', exact: true }).click()
       await panel.getByRole('button', { name: '添加插件', exact: true }).click()
-      await page.getByRole('dialog').getByRole('button', { name: '安装源 中国大陆镜像源', exact: true }).waitFor()
+      await page.locator('[role="dialog"]:not([data-shortcut-modal="settings"])').getByRole('button', { name: '安装源 中国大陆镜像源', exact: true }).waitFor()
       expect(tripwire.pageErrors).toEqual([])
     } finally { await browser.close() }
   } finally {

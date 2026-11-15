@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { chromium, type Locator, type Page, type Route } from 'playwright'
 import { expect, it } from 'vitest'
 import { launchWebScaffold, captureStableAria, compareOrRefreshGolden, webSnapshotMode, watchConsole, type WebScaffold } from './scaffold.ts'
-import { ZH_BROWSER_LOCALE } from './support.ts'
+import { openPluginManager, ZH_BROWSER_LOCALE } from './support.ts'
 
 async function invalidInputStyles(page: Page, input: Locator) {
   const styles = []
@@ -17,6 +17,7 @@ async function invalidInputStyles(page: Page, input: Locator) {
       await expect.poll(() => page.locator('body').getAttribute('data-ds-dark-theme')).toBe(colorScheme === 'dark' ? '' : null)
       await input.focus()
       await expect.poll(() => input.evaluate(element => document.activeElement === element)).toBe(true)
+      await input.evaluate(async (element) => { await Promise.all(element.getAnimations().map(animation => animation.finished)) })
       expect(await input.getAttribute('aria-invalid')).toBe('true')
       const { focused, focusRingColor, errorBorderColor } = await input.evaluate((element) => {
         const style = getComputedStyle(element)
@@ -44,6 +45,7 @@ async function invalidInputStyles(page: Page, input: Locator) {
       expect(focusRingColor).not.toBe(errorBorderColor)
       await input.evaluate((element) => { (element as HTMLInputElement).blur() })
       await expect.poll(() => input.evaluate(element => document.activeElement === element)).toBe(false)
+      await input.evaluate(async (element) => { await Promise.all(element.getAnimations().map(animation => animation.finished)) })
       const blurred = await input.evaluate((element) => {
         const style = getComputedStyle(element)
         return { outline: style.outlineStyle, boxShadow: style.boxShadow, borderColor: style.borderColor }
@@ -64,6 +66,7 @@ it('cancels installation, retries and highlights the enabled plugin at 40% alpha
   let scaffold: WebScaffold | undefined
   try {
     scaffold = await launchWebScaffold({ profile: { packages: [] }, extraOverlayPath: overlay })
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'system' })
     const browser = await chromium.launch()
     const delivery = Promise.withResolvers<undefined>()
     const cancellationReply = Promise.withResolvers<undefined>()
@@ -109,11 +112,11 @@ it('cancels installation, retries and highlights the enabled plugin at 40% alpha
       await page.goto(scaffold.authenticatedUrl)
       await page.waitForSelector('[class*="frame"]')
       if (await page.getByRole('dialog', { name: '设置' }).count() > 0) await page.keyboard.press('Escape')
-      await page.getByRole('navigation', { name: '全局面板' }).getByRole('button', { name: '插件', exact: true }).click()
+      await openPluginManager(page, 'zh')
       const panel = page.locator('[data-plugin-panel]')
       await panel.getByRole('button', { name: '添加插件', exact: true }).click()
-      // The dialog is named after its current screen, so it is found by role alone.
-      const dialog = page.getByRole('dialog')
+      // The install dialog changes its title and stays above Settings throughout the operation.
+      const dialog = page.locator('[role="dialog"]:not([data-shortcut-modal="settings"])')
       await dialog.getByRole('textbox').fill('slow-package')
       await dialog.getByRole('button', { name: /^安装源/ }).click()
       const registryMenu = page.locator('[data-install-registry]')
@@ -141,7 +144,7 @@ it('cancels installation, retries and highlights the enabled plugin at 40% alpha
       await dialog.getByRole('button', { name: '安装', exact: true }).click()
       await dialog.getByText('正在准备安装…', { exact: true }).waitFor()
       await compareOrRefreshGolden(fileURLToPath(new URL('./expected/plugin-install-cancel/preparing.expected.md', import.meta.url)),
-        await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd), webSnapshotMode())
+        await captureStableAria(page, '[role="dialog"]:not([data-shortcut-modal="settings"])', scaffold.workspaceCwd), webSnapshotMode())
       await dialog.getByRole('button', { name: '取消安装并关闭', exact: true }).click()
       await dialog.waitFor({ state: 'hidden' })
       await cancellationArrived.promise
@@ -154,8 +157,8 @@ it('cancels installation, retries and highlights the enabled plugin at 40% alpha
       await panel.getByRole('button', { name: '查看安装任务', exact: true }).click()
       await dialog.getByText('安装状态尚未确认', { exact: true }).waitFor()
       await compareOrRefreshGolden(fileURLToPath(new URL('./expected/plugin-install-cancel/unconfirmed.expected.md', import.meta.url)),
-        await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd), webSnapshotMode())
-      await page.locator('[role="presentation"] > [aria-hidden="true"]').click({ position: { x: 5, y: 5 } })
+        await captureStableAria(page, '[role="dialog"]:not([data-shortcut-modal="settings"])', scaffold.workspaceCwd), webSnapshotMode())
+      await page.locator('[role="presentation"]:has([role="dialog"]:not([data-shortcut-modal="settings"])) > [aria-hidden="true"]').click({ position: { x: 5, y: 5 } })
       await dialog.waitFor({ state: 'hidden' })
       delivery.resolve(undefined)
       await page.getByText('已取消安装，插件未启用，下载的文件可能保留', { exact: true }).waitFor()
@@ -192,7 +195,7 @@ it('cancels installation, retries and highlights the enabled plugin at 40% alpha
       expect(await dialog.getByRole('textbox').inputValue()).toBe('slow-package')
       await activeReplySettled.promise
       installBundleRoute = route => route.continue()
-      const snapshot = (await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd))
+      const snapshot = (await captureStableAria(page, '[role="dialog"]:not([data-shortcut-modal="settings"])', scaffold.workspaceCwd))
         .split(process.execPath).join('{{node}}')
         .split(scaffold.harnessHome).join('{{harnessHome}}')
       await compareOrRefreshGolden(fileURLToPath(new URL('./expected/plugin-install-cancel/cancelled.expected.md', import.meta.url)), snapshot, webSnapshotMode())
@@ -269,7 +272,7 @@ it('cancels installation, retries and highlights the enabled plugin at 40% alpha
       await dialog.getByRole('button', { name: '安装', exact: true }).click()
       await dialog.getByText('未能获取安装结果', { exact: true }).waitFor()
       await compareOrRefreshGolden(fileURLToPath(new URL('./expected/plugin-install-cancel/unknown.expected.md', import.meta.url)),
-        await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd), webSnapshotMode())
+        await captureStableAria(page, '[role="dialog"]:not([data-shortcut-modal="settings"])', scaffold.workspaceCwd), webSnapshotMode())
       expect(JSON.parse(await readFile(manifestPath, 'utf8'))).toMatchObject({ dependencies: { 'recovered-package': '1.0.0' } })
       await dialog.getByRole('button', { name: '返回编辑', exact: true }).click()
       await dialog.getByRole('textbox').fill('another-package')

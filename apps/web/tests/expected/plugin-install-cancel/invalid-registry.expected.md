@@ -12,7 +12,7 @@
       "colorScheme": "light",
       "focused": {
         "outline": "none",
-        "boxShadow": "rgb(65, 118, 230) 0px 0px 0px 0.5px inset",
+        "boxShadow": "rgb(37, 99, 235) 0px 0px 0px 0.5px inset",
         "borderColor": "rgb(236, 19, 19)"
       },
       "blurred": {
@@ -25,7 +25,7 @@
       "colorScheme": "dark",
       "focused": {
         "outline": "none",
-        "boxShadow": "rgb(122, 170, 255) 0px 0px 0px 0.5px inset",
+        "boxShadow": "rgb(110, 162, 255) 0px 0px 0px 0.5px inset",
         "borderColor": "rgb(242, 90, 90)"
       },
       "blurred": {
@@ -40,7 +40,7 @@
       "colorScheme": "light",
       "focused": {
         "outline": "none",
-        "boxShadow": "rgb(65, 118, 230) 0px 0px 0px 0.5px inset",
+        "boxShadow": "rgb(37, 99, 235) 0px 0px 0px 0.5px inset",
         "borderColor": "rgb(236, 19, 19)"
       },
       "blurred": {
@@ -53,7 +53,7 @@
       "colorScheme": "dark",
       "focused": {
         "outline": "none",
-        "boxShadow": "rgb(122, 170, 255) 0px 0px 0px 0.5px inset",
+        "boxShadow": "rgb(110, 162, 255) 0px 0px 0px 0.5px inset",
         "borderColor": "rgb(242, 90, 90)"
       },
       "blurred": {
