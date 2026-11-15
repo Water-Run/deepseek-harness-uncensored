@@ -1,12 +1,12 @@
 <div align="center">
   <img src="apps/desktop/resources/icon.svg" width="112" alt="DSHU 黑底白鲸标志">
   <h1>DeepSeek Harness Uncensored: 更自由的探索未至之境</h1>
-  <p><b>DSHU 2026.11.15.8</b> · 开发源码基于 DeepSeek Harness 0.2.2-rc.3 · WaterRun</p>
+  <p><b>DSHU 2026.11.15.9</b> · 开发源码基于 DeepSeek Harness 0.2.2-rc.3 · WaterRun</p>
 </div>
 
 DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH 与 DSHU 可同时安装，分别使用自己的程序目录、配置、会话和更新渠道。
 
-当前检查版 **2026.11.15.8** 基于 **DSH 0.2.2-rc.3**，内置 **REA 6.9.0**。本版包含四模式彩色说明与使用示例，并修复弹窗快速重开的前台顺序、凭据显示切换时的位移与遮挡状态。Windows 已保留数据安装，关于页、CLI、文件及登记版本一致；Linux 的 deb 与便携归档已完成版本、API 和隔离 X11/Wayland 启动检查。正式发行及完整平台验收仍在推进，详见[开发进度](.agents/TODO.md)。
+当前检查版 **2026.11.15.9** 基于 **DSH 0.2.2-rc.3**，内置 **REA 6.9.0**。本版修复自动化任务星期选项在窄面板的横向溢出，保留四模式彩色说明及弹窗、凭据修复。Windows 已保留数据安装，关于页、CLI、文件及登记版本一致；Linux 的 deb 与便携归档已完成版本、API 和隔离 X11/Wayland 启动检查。正式发行及完整平台验收仍在推进，详见[开发进度](.agents/TODO.md)。
 
 版本采用 `YYYY.MM.DD.N`，最后一项为当天构建序号。关于页、CLI、安装包和 Windows 登记使用相同日期版本；DSH 内核与 REA 的来源独立记录。打包与更新规则见[打包指南](apps/desktop/packaging/README.zh.md)。
 
@@ -66,7 +66,7 @@ DSHU 内置破甲提示词、四种模式和独立的桌面应用。官方 DSH �
 
 ## 安装与开发
 
-- **桌面**　Windows x64 与 Linux x64 的当前检查版均为 `2026.11.15.8`。Windows 已完成保留数据更新；Linux 已检查 deb、tar.gz、隔离 API、X11/Wayland 主界面、重载及渲染沙箱。原生门户、Debian/Fedora 和实体桌面仍待验收。macOS arm64、Android＋PRoot Fedora 和全新安装器仅保留未来计划。签名与正式在线升级尚未验收，未来发行使用本仓库的 [GitHub Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases)。
+- **桌面**　Windows x64 与 Linux x64 的当前检查版均为 `2026.11.15.9`。Windows 已完成保留数据更新；Linux 已检查 deb、tar.gz、隔离 API、X11/Wayland 主界面、重载及渲染沙箱。原生门户、Debian/Fedora 和实体桌面仍待验收。macOS arm64、Android＋PRoot Fedora 和全新安装器仅保留未来计划。签名与正式在线升级尚未验收，未来发行使用本仓库的 [GitHub Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases)。
 - **源码**　使用 Node.js 24.22.1、Git 与 Corepack。依次运行 `corepack pnpm install`、`corepack pnpm run build`、`corepack pnpm dsh web`。CLI 安装见[安装脚本](scripts/install-uncensored.ps1)。
 - **独立标识**　默认数据目录为 `~/.dsh-uncensored`，可用 `DSH_UNCENSORED_HOME` 修改。CLI 为 `dsh-uncensored`，深链为 `dshu://open`。关于页列出作者、DSHU 与 DSH 版本、构建时间、源码提交及依赖来源。
 
@@ -86,11 +86,11 @@ DSHU 采用 [GPL-3.0-or-later](LICENSE)。上游和第三方组件保留各自�
 
 **DeepSeek Harness Uncensored · Explore the Unknown More Freely**
 
-DSHU 2026.11.15.8 is an independent desktop fork based on DeepSeek Harness 0.2.2-rc.3. It can coexist with the official app and uses a separate profile and update channel. It includes built-in armor prompts, four modes, and Chinese and English UI.
+DSHU 2026.11.15.9 is an independent desktop fork based on DeepSeek Harness 0.2.2-rc.3. It can coexist with the official app and uses a separate profile and update channel. It includes built-in armor prompts, four modes, and Chinese and English UI.
 
 - **General** · Use `/side` for a persistent side conversation with image attachments and `/clear`, or `/btw question` for a quick one-off answer. Locally sampled balance history, spending limits, scoped memory, and Tab suggestions are available in Settings. Limits default to off; input prediction defaults to on and sends requests to the selected model, which may incur charges.
 - **Kernel intake** · The inspection builds use DSH 0.2.2-rc.3 and bundled REA 6.9.0. Actual runtime checks cover four modes, side-context clearing, session deletion and command execution. Package checks also cover Office conversion, rendering, recalculation and REA analysis.
 - **Modes** · Default covers daily development. Security adds case notes, reports, and an independent proxy with traffic inspection. Reverse integrates REA for analysis. Writing uses selected style references and story materials.
-- **Delivery** · Windows x64 inspection build `2026.11.15.8` is installed with user data preserved. It includes expanded mode-colored guides and fixes modal reopening order, credential reveal layout and reused reveal state. Its About page, CLI, native resource versions and uninstall registration agree. The same-source Linux deb and tar.gz pass archive, CLI, API and isolated X11/Wayland main-window and reload checks with renderer sandboxing. Portal, Debian/Fedora and physical desktop qualification remain pending. macOS arm64, Android with Fedora under PRoot and a new installer remain future plans. See [development status](.agents/TODO.md) and [Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases).
+- **Delivery** · Windows x64 inspection build `2026.11.15.9` is installed with user data preserved. It fixes weekday controls overflowing narrow task panes and retains expanded mode-colored guides, modal reopening and credential display fixes. Its About page, CLI, native resource versions and uninstall registration agree. The same-source Linux deb and tar.gz pass archive, CLI, API and isolated X11/Wayland main-window and reload checks with renderer sandboxing. Portal, Debian/Fedora and physical desktop qualification remain pending. macOS arm64, Android with Fedora under PRoot and a new installer remain future plans. See [development status](.agents/TODO.md) and [Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases).
 
 </details>

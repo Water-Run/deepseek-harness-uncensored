@@ -30,6 +30,10 @@ it.each([
   })
   await page.route('**/*', (route) => {
     const url = new URL(route.request().url())
+    if (url.origin === 'https://api.github.com'
+      && url.pathname === '/repos/Water-Run/deepseek-harness-uncensored/releases') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+    }
     if ((url.protocol === 'http:' || url.protocol === 'https:') && url.origin !== login.origin) {
       remote.push(url.href)
       return route.abort()

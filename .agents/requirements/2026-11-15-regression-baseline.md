@@ -4,6 +4,20 @@
 
 ## 新基线
 
+当前完整 Web 基线从 `857695d9f3` 运行，前置 HMR、动态客户端及 SVG 三组共 10 项通过，随后 4 worker 主批次为 1,063 项通过、12 项失败、34 项条件跳过，合计 1,073 项通过。运行结束工作树干净，未调用付费模型。12 项失败分别属于 10 个文件；下表保持该次完整运行的结果，后续定向验证另行记录。
+
+| 剩余范围 | 失败数 | 当前证据 |
+| --- | --- | --- |
+| 旧 Minimal 会话的命令、压缩和图片展示 | 3 | 行为断言已执行，界面预期不一致，待核对 |
+| Inspector 前缀部署与运行中启用 | 3 | 自动更新请求与旧导航入口已修正，Windows 定向 3 项通过，完整基线结果保留 |
+| WebWorker 预览启动 | 1 | 原生代理与 MCP/REA 依赖链缺少 `node:assert`，不能把未激活插件当作完整启动 |
+| 模拟 macOS 收起侧栏后的设置入口 | 1 | 账号按钮仍被判断为可见，点击由主面板遮挡，待定位 |
+| 首次配置步骤按钮颜色 | 1 | 读到中间过渡颜色，待核验状态与取样时机 |
+| 首页鲸鱼的画布动效 | 1 | 光点可见断言失败，待核验动效与像素采样 |
+| WebKit 侧栏滚动条 | 2 | 浅深色与几何预期失败，待核对实际主题 |
+
+完整记录为 `web-baseline-4/main.json`、`main.log`、`failures.json`、`summary.json` 和三个前置场景回执。早期基线保留于 `web-baseline-3`；不把后续定向通过直接相减成新的完整套件结果。
+
 Web 从 `636cd5f55a` 运行，使用已有构建、只读回放和空模型凭据。先串行运行 HMR、动态客户端与 SVG 流式场景，再以 4 个 worker 运行其余文件。串行 10 项通过，主池 879 项通过、182 项失败、37 项跳过，另有 1 项未处理拒绝；合计 889 项通过。工作树保持干净。
 
 Windows 桌面最初复现渠道、打包夹具及欢迎页问题。修正后完整 `apps/desktop` 测试为 172 文件通过、4 文件按条件跳过，2,075 项通过、64 项跳过，无失败。平台条件和未启用的实际集成用例没有算作通过。
@@ -203,4 +217,10 @@ Windows 运行时包含额外的 ACL 诊断技能，完整请求与 POSIX 记录
 
 反馈验证仍使用本机收集器，核对反馈授权截点、后续消息不上传及不串入其他会话。官方模型与未配置价格的模拟模型分别保存费用预期，避免后者的零估算覆盖前者的实际估算；没有抹掉费用字段。PTC 问答、历史展开、中英文工具正文及 webhook 创建会话也保持真实入口验证，未向外部服务发送反馈或调用付费模型。
 
-8 文件共 39 项取得只读通过记录：整组 `cohort-s-readonly` 为 38 通过、1 项共享费用预期失败；拆分后 `cohort-s-feedback-readonly` 的 12 项全部通过。最终按最小内容宽度保留可并排的星期行，仅在无法容纳时换行；两平台 4 项布局场景及日期格式单测 99 项通过，两平台产物构建和最终 Host/Client 检查通过。证据还包括 `cohort-s-phone-diagnostic`、`cohort-s-weekday-negative-final`、`cohort-s-phone-compact`、`cohort-s-windows-layout-compact`、`cohort-s-fork-*` 和 `schedule-weekdays-compact-*.png`。全仓 lint、快照语料 3 项、文档与双语配对检查通过；检查命令曾误用不支持的 `--only`，改用已支持的路径参数后通过。布局修复尚未进入当前安装的 `.8`，将随下一检查包交付。
+8 文件共 39 项取得只读通过记录：整组 `cohort-s-readonly` 为 38 通过、1 项共享费用预期失败；拆分后 `cohort-s-feedback-readonly` 的 12 项全部通过。最终按最小内容宽度保留可并排的星期行，仅在无法容纳时换行；两平台 4 项布局场景及日期格式单测 99 项通过，两平台产物构建和最终 Host/Client 检查通过。证据还包括 `cohort-s-phone-diagnostic`、`cohort-s-weekday-negative-final`、`cohort-s-phone-compact`、`cohort-s-windows-layout-compact`、`cohort-s-fork-*` 和 `schedule-weekdays-compact-*.png`。全仓 lint、快照语料 3 项、文档与双语配对检查通过；检查命令曾误用不支持的 `--only`，改用已支持的路径参数后通过。布局修复已随 `.9` 交付；Windows 安装版任务页的 1280/800px 检查通过。
+
+## Inspector 前缀与迟启用
+
+DevTools 前缀部署的两个场景只模拟应用已知的 GitHub Releases 请求；DevTools 自身仍禁止其他源的资源，保留完整英文资源、格式化 Worker 和堆快照表格检查。运行中启用 Inspector 改用 Settings 内的插件入口，启用后关闭设置再测试底部面板快捷键，继续验证当前文档标记、200 bootstrap 和无页面错误。
+
+Windows 两文件的 3 项定向检查取得通过。首次迟启用缺少完整 Chromium，工具链入口又下载了另一 Playwright 版本的浏览器；通过 `apps/web` 的实际解析路径安装对应版本后，该项通过。两次环境失败及下载日志保留，未改成 headless shell 或增加测试重试。类型和定向 lint 通过；证据为 `cohort-t-windows-inspector`、`cohort-t-windows-late*`、`cohort-t-install*`、`cohort-t-check` 与 `cohort-t-lint`。这些是测试修正，不改变 `.9` 的已打包源码。
