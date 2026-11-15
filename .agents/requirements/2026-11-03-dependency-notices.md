@@ -147,6 +147,14 @@ Linux `.3` 实包原清单为 861 个 npm 包和 12 项待核查。`@deepseek-ai
 
 其他平台、Electron 外壳、独立 Node/Python 分发及源码提供义务另行核对；早期 759 项清点不能覆盖这些范围。新清单与补充文件已进入源码构建路径，当前安装状态以本页开头的实包记录为准。
 
+## clean-git-ref 发布归属复核
+
+`clean-git-ref@2.0.1` 的 npm 归档已按发布的 SHA-512 完整性值复核，共三个文件。npm 固定提交 `bf3c8afc8032bcdc6a53634c18b601dc6df478fb` 的完整 Git 树没有独立 LICENSE 或 NOTICE；发布归档中没有额外版权头，包中声明 Apache-2.0，作者为 Eli White。所声明的 Apache 正文已在补充声明中分发。
+
+当前 Windows 安装版实际 ASAR 中的 `lib/index.js` 和 README 与发布归档逐字节一致；package.json 只有 `scripts` 被准备流程移除，名称、版本、作者、许可、仓库与主页字段均保留。由此完成原待办的发布归属与整合分发核对，源码清点器不再将该精确版本标为材料缺口。其他版本不沿用此结论，错误版本与摘要变动继续拒绝。当前安装包保存的原清单仍有 7 项，下一包或独立投影复算后再记录新数量；此项不替代总体许可兼容性审查。
+
+证据在 `20261116/notice-review/` 的 npm 归档、`clean-git-ref-2.0.1-inventory.json`、`clean-git-ref-installed.json` 与 `read-installed-clean-git.mjs`。原始登记为 `20261116/clean-git-ref-2.0.1-registry.json`。[发布归档](https://registry.npmjs.org/clean-git-ref/-/clean-git-ref-2.0.1.tgz) · [固定提交](https://github.com/elicwhite/clean-git-ref/tree/bf3c8afc8032bcdc6a53634c18b601dc6df478fb)
+
 Fontkit 的 [PR 300](https://github.com/foliojs/fontkit/pull/300) 于 2026-11-02 合并，提交为 `d65a577ea30bfce9ce84dc8045860b2abbc1968b`；它与 npm 发布提交之间有 62 个提交，包含运行时代码变化，尚未按后来的文本替旧版本作结论。Frida 总仓库 `17.23.2` 标签对应 `9adf8ed33ab6f1122b17399ee96dcbe101b941c9`，其中 Node 子模块恰为 npm 声明的 `11d56293686c5494f538247ccf89f08ab57912ef`；这一关系不代表所有预编译组件声明已核查完毕。
 
 ## 证据与恢复

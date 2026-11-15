@@ -59,20 +59,25 @@ it('inventories scoped and nested packages without treating internal package mar
 it('requires exact aggregate versions and keeps documented upstream notice gaps visible', async () => {
   const root = fixture()
   add(root, 'rea-agents', 'rea-agents', '6.8.0', { LICENSE: 'REA notice',
-    'licenses/npm-runtime-notices.txt': '===== covered@1.0.0 =====\ntext\n===== clean-git-ref@2.0.1 =====\nupstream gap' })
+    'licenses/npm-runtime-notices.txt': [
+      '===== covered@1.0.0 =====', 'text', '===== clean-git-ref@2.0.1 =====', 'notice',
+      '===== minimisted@2.0.1 =====', 'upstream gap',
+    ].join('\n') })
   add(root, 'covered', 'covered')
   add(root, 'other/node_modules/covered', 'covered', '1.0.1')
   add(root, 'clean-git-ref', 'clean-git-ref', '2.0.1')
+  add(root, 'minimisted', 'minimisted', '2.0.1')
   const packages = await prepareRuntimeNotices(root)
   expect(packages.find(pkg => pkg.name === 'covered' && pkg.version === '1.0.0')).toMatchObject({ reviewRequired: false })
   expect(packages.find(pkg => pkg.version === '1.0.1')).toMatchObject({ reviewRequired: true, notices: [] })
-  expect(packages.find(pkg => pkg.name === 'clean-git-ref')).toMatchObject({ reviewRequired: true, notices: [
+  expect(packages.find(pkg => pkg.name === 'clean-git-ref')).toMatchObject({ reviewRequired: false, notices: [
     {
       path: 'licenses/clean-git-ref-2.0.1-Apache-2.0.txt',
       sha256: 'cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30',
     },
     expect.objectContaining({ path: 'node_modules/rea-agents/licenses/npm-runtime-notices.txt' }),
   ] })
+  expect(packages.find(pkg => pkg.name === 'minimisted')).toMatchObject({ reviewRequired: true })
 })
 
 it.each([
@@ -145,13 +150,15 @@ it('copies every pinned supplement unchanged and leaves other versions for revie
     }
   }
   add(root, 'next/node_modules/@cfworker/json-schema', '@cfworker/json-schema', '99.0.0')
+  add(root, 'next/node_modules/clean-git-ref', 'clean-git-ref', '99.0.0')
   add(root, 'next/node_modules/tr46', 'tr46', '0.0.4')
   const packages = await prepareRuntimeNotices(root)
   expect(packages.filter(pkg => pkg.reviewRequired).map(pkg => `${pkg.name}@${pkg.version}`).sort()).toEqual([
-    '@cfworker/json-schema@99.0.0', '@img/sharp-libvips-linux-x64@1.3.4', 'brotli@1.3.3', 'clean-git-ref@2.0.1',
+    '@cfworker/json-schema@99.0.0', '@img/sharp-libvips-linux-x64@1.3.4', 'brotli@1.3.3', 'clean-git-ref@99.0.0',
     'fontkit@2.0.4', 'frida@17.23.2', 'sherpa-onnx-linux-x64@1.13.8', 'tr46@0.0.4',
   ])
   expect(packages.find(pkg => pkg.name === 'brotli')?.notices).toHaveLength(4)
+  expect(packages.find(pkg => pkg.name === 'clean-git-ref' && pkg.version === '2.0.1')?.reviewRequired).toBe(false)
   for (const source of sources) {
     expect(createHash('sha256').update(readFileSync(join(root, 'licenses', source.file))).digest('hex')).toBe(source.sha256)
     for (const identity of source.packages) {
