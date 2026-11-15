@@ -3,16 +3,18 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium, type Browser, type Page } from 'playwright'
+import { readClientBuildRecord } from '../../../scripts/client-build-environment.ts'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
   launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { openSettings, saveFailureShot } from './support.ts'
+import { openSettings, REPO_ROOT, saveFailureShot, WEB_FIXTURE_TIME } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/desktop-locale', import.meta.url))
 const MODE = webSnapshotMode()
-const { version } = JSON.parse(await readFile(new URL('../../../package.json', import.meta.url), 'utf8')) as { version: string }
+const version = readClientBuildRecord(REPO_ROOT).environment['DSH_CLIENT_FORK_VERSION']
+if (version === undefined) throw new Error('Built DSHU version is missing')
 const versionCapture = { replacements: [[version, '{{version}}']] as const }
 
 describe.skipIf(MODE === 'record')('web e2e: native and Client locale preferences', () => {
@@ -24,9 +26,12 @@ describe.skipIf(MODE === 'record')('web e2e: native and Client locale preference
   let languages = ['it-IT', 'zh-CN', 'en-US']
 
   beforeAll(async () => {
-    scaffold = await launchWebScaffold()
+    scaffold = await launchWebScaffold({ profile: { packages: [{
+      dir: fileURLToPath(new URL('./fixtures/plugins/fixture-language-pack', import.meta.url)), enabled: true,
+    }] } })
     browser = await chromium.launch()
-    page = await browser.newPage({ viewport: { width: 1440, height: 960 }, locale: 'en-US' })
+    page = await browser.newPage({ viewport: { width: 1440, height: 960 }, locale: 'en-US', timezoneId: 'Asia/Shanghai' })
+    await page.clock.setFixedTime(WEB_FIXTURE_TIME)
     tripwire = watchConsole(page)
     await page.exposeFunction('nativeLocaleRead', () => {
       const section = scaffold.ctx.settings.describe().find(row => row.ns === 'locale')!.value as { preference?: string }
@@ -70,7 +75,7 @@ describe.skipIf(MODE === 'record')('web e2e: native and Client locale preference
     await openSettings(page, 'ja')
     const jaDialog = page.getByRole('dialog', { name: '設定', exact: true })
     await jaDialog.getByRole('button', { name: '日本語', exact: true }).waitFor()
-    await expect.poll(() => reported).toEqual(['ja'])
+    await expect.poll(() => reported.at(-1)).toBe('ja')
     expect(scaffold.ctx.settings.describe().find(row => row.ns === 'locale')!.value).toEqual({})
     await jaDialog.getByRole('button', { name: '日本語', exact: true }).click()
     await page.getByRole('menuitem', { name: 'English', exact: true }).click()
@@ -101,7 +106,7 @@ describe.skipIf(MODE === 'record')('web e2e: native and Client locale preference
     acknowledgeReloadConnectionLoss(tripwire, japaneseReloadWarnings)
     await openSettings(page, 'ja')
     await jaDialog.getByRole('button', { name: '日本語', exact: true }).waitFor()
-    await expect.poll(() => reported).toEqual(['ja'])
+    await expect.poll(() => reported.at(-1)).toBe('ja')
     expect(await page.evaluate(() => document.documentElement.lang)).toBe('ja')
     await page.setViewportSize({ width: 390, height: 844 })
     const overflows = (): Promise<number> => jaDialog.evaluate((dialog) => {

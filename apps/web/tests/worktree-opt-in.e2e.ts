@@ -12,7 +12,7 @@ import type {} from '@deepseek-ai/dsh-experimental-client-ui-forge'
 import { chromium } from 'playwright'
 import { expect, it, onTestFailed, onTestFinished } from 'vitest'
 import { launchWebScaffold, watchConsole } from './scaffold.ts'
-import { connectFreshWorkspace, newEnglishPage, PLUGIN_TOGGLE_SETTLE_MS, saveFailureShot } from './support.ts'
+import { connectFreshWorkspace, newEnglishPage, openPluginManager, PLUGIN_TOGGLE_SETTLE_MS, saveFailureShot } from './support.ts'
 
 const BUNDLE = '@deepseek-ai/dsh-experimental-forge-bundle'
 const STANDALONE = '@deepseek-ai/dsh-experimental-tool-worktree'
@@ -65,9 +65,7 @@ it('persists the unified review and worktree switch and retains checkouts after 
     return manifest.dsh.profile.bundles
   }
   const openPlugins = async () => {
-    await page.getByRole('navigation', { name: 'Global panels' }).getByRole('button', { name: 'Plugins', exact: true }).click()
-    const panel = page.locator('[data-plugin-panel]')
-    await panel.getByRole('heading', { name: 'Plugins', exact: true }).waitFor()
+    const panel = await openPluginManager(page, 'en')
     await panel.getByRole('button', { name: 'More', exact: true }).click()
     return panel
   }

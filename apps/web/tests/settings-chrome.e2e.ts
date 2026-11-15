@@ -15,12 +15,12 @@ import { chromium } from 'playwright'
 import { afterAll, afterEach, beforeAll, describe, expect, it, onTestFailed, onTestFinished } from 'vitest'
 import { basename, join } from 'node:path'
 import { SessionId } from '@deepseek-ai/dsh-session'
-import { displayProductVersion } from '@deepseek-ai/dsh-product-version'
+import { readClientBuildRecord } from '../../../scripts/client-build-environment.ts'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
   launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { openSettings, ZH_BROWSER_LOCALE, saveFailureShot } from './support.ts'
+import { openSettings, REPO_ROOT, ZH_BROWSER_LOCALE, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/settings-chrome', import.meta.url))
 const DIALOG_EXPECTED = join(SNAPSHOT_DIR, 'dialog.expected.md')
@@ -32,8 +32,8 @@ const PLUGIN_ROW_SELECTOR = '[data-plugin-scope="preset"] [data-plugin-entry="to
 const MODE = webSnapshotMode()
 const SCREENSHOTS = 'screenshots/collapse-timing-settings'
 const SCREENSHOT_DIR = fileURLToPath(new URL(`../../../.artifacts/${SCREENSHOTS}`, import.meta.url))
-const product = JSON.parse(await readFile(new URL('../../../product.json', import.meta.url), 'utf8')) as { version: string }
-const version = displayProductVersion(product.version)
+const version = readClientBuildRecord(REPO_ROOT).environment['DSH_CLIENT_FORK_VERSION']
+if (version === undefined) throw new Error('Built DSHU version is missing')
 const versionCapture = { replacements: [[version, '{{version}}']] as const }
 
 async function saveSettingsFailureShot(page: Page, name: string): Promise<void> {

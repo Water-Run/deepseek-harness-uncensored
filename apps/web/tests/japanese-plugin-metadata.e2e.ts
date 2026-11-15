@@ -3,14 +3,16 @@ import { fileURLToPath } from 'node:url'
 import { chromium, type Browser } from 'playwright'
 import { expect, it, onTestFailed, onTestFinished } from 'vitest'
 import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode, type WebScaffold } from './scaffold.ts'
-import { experimentalBundleDescription, saveFailureShot } from './support.ts'
+import { experimentalBundleDescription, openSettings, saveFailureShot } from './support.ts'
 
 it('displays Japanese plugin titles and descriptions from package metadata', async () => {
   const resources: { scaffold?: WebScaffold; browser?: Browser } = {}
   onTestFinished(async () => {
     try { await resources.browser?.close() } finally { await resources.scaffold?.close() }
   })
-  const scaffold = await launchWebScaffold()
+  const scaffold = await launchWebScaffold({ profile: { packages: [{
+    dir: fileURLToPath(new URL('./fixtures/plugins/fixture-language-pack', import.meta.url)), enabled: true,
+  }] } })
   resources.scaffold = scaffold
   const browser = await chromium.launch()
   resources.browser = browser
@@ -18,7 +20,10 @@ it('displays Japanese plugin titles and descriptions from package metadata', asy
   const tripwire = watchConsole(page)
   onTestFailed(() => saveFailureShot(page, 'japanese-plugin-metadata'))
   await page.goto(scaffold.authenticatedUrl)
-  await page.getByRole('button', { name: 'プラグイン', exact: true }).click()
+  await openSettings(page, 'ja')
+  const settings = page.getByRole('dialog', { name: '設定', exact: true })
+  await settings.getByRole('button', { name: 'プラグイン', exact: true }).click()
+  await settings.getByRole('tab', { name: 'プラグイン', exact: true }).click()
   const panel = page.locator('[data-plugin-panel]')
   const title = panel.getByRole('button', { name: '自動認可レビューを表示', exact: true })
   await title.waitFor()
