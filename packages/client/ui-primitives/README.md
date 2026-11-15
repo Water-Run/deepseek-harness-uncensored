@@ -147,7 +147,7 @@ The atoms cannot read the application locale, so every piece of user-facing copy
 -----
 
 <a id="understand-the-implementation"></a>
-Preference rows wrap controls below the label when space is limited. Buttons, inputs and choice triggers share short state transitions; menu arrows follow the open state. Menu and Modal release keyboard ownership immediately on close while retaining inert, hidden paint for 120 ms; reopening cancels removal. Reduced motion removes the exit delay. Owners that unmount the entire component bypass its retained exit.
+Preference rows wrap controls below the label when space is limited. Buttons, inputs and choice triggers share short state transitions; menu arrows follow the open state. Menu and Modal release keyboard ownership immediately on close while retaining inert, hidden paint for 120 ms; reopening cancels removal. A reopened Modal regains the foreground document order before acquiring keyboard focus, even if another dialog opened during its exit. Reduced motion removes the exit delay. Owners that unmount the entire component bypass its retained exit.
 
 ## Understand the implementation
 

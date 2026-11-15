@@ -300,6 +300,7 @@ describe.skipIf(MODE === 'record')('web e2e: rich-text quotes', () => {
       replayFixture: join(replayDir, 'override-only.jsonl'),
       replayOverride,
     })
+    await scaffold.ctx.settings.update('ui-chat', { transcriptView: 'standard', collapseTiming: 'completion' })
     const skillDir = join(scaffold.workspaceCwd, '.agents', 'skills', 'quoted-demo')
     await mkdir(skillDir, { recursive: true })
     await writeFile(join(skillDir, 'SKILL.md'), [

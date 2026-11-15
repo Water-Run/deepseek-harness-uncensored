@@ -14,6 +14,7 @@ describe('web e2e: shortcut reference', () => {
   let browser: Browser
   beforeAll(async () => {
     scaffold = await launchWebScaffold({ developerTools: false })
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'system' })
     browser = await chromium.launch()
   }, 120_000)
   afterAll(async () => { await browser?.close(); await scaffold?.close() })
@@ -45,7 +46,7 @@ describe('web e2e: shortcut reference', () => {
       expect(await dialog.locator('footer').count()).toBe(1)
       const resetAll = dialog.getByRole('button', { name: locale === 'zh-CN' ? '恢复全部默认' : 'Restore all defaults', exact: true })
       expect(await resetAll.isDisabled()).toBe(true)
-      expect(await dialog.boundingBox()).toMatchObject({ width: 480, height: 600 })
+      await expect.poll(() => dialog.boundingBox()).toMatchObject({ width: 480, height: 600 })
       expect(await dialog.getByRole('search').boundingBox()).toMatchObject({ width: 440, height: 36 })
       const rows = dialog.getByRole('listitem')
       const stopRow = dialog.getByRole('region', { name: locale === 'zh-CN' ? '消息输入' : 'Message input', exact: true })
@@ -135,7 +136,7 @@ describe('web e2e: shortcut reference', () => {
       })))
         .toEqual({ background: 'rgb(53, 54, 56)', color: 'rgb(255, 255, 255)' })
       expect(await errorToast.evaluate(element => element.closest('[role="dialog"]') === null)).toBe(true)
-      expect(await recorder.evaluate(element => ({
+      await expect.poll(() => recorder.evaluate(element => ({
         color: getComputedStyle(element).borderColor, width: getComputedStyle(element).borderWidth,
       })))
         .toEqual({ color: 'rgb(236, 19, 19)', width: '1px' })

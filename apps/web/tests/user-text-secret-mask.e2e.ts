@@ -1,5 +1,5 @@
 /** A cold-seeded user message that carries a credential draws it masked behind its reveal control. */
-import { readFile } from 'node:fs/promises'
+import { mkdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium, type Browser, type Page } from 'playwright'
@@ -44,9 +44,14 @@ describe('web e2e: credential mask in user text', () => {
     await scaffold?.close()
   })
 
-  it('masks the credential in the bubble and reveals it from its own control', async () => {
+  it.each([[1680, 'light'], [390, 'light'], [390, 'dark']] as const)('masks and reveals without reflow at %s px in %s', async (width, theme) => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-user-text-secret-mask'))
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await scaffold.ctx.settings.update('ui-theme', { preference: theme })
+    await expect.poll(() => page.locator('body').getAttribute('data-ds-dark-theme')).toBe(theme === 'dark' ? '' : null)
+    await page.setViewportSize({ width, height: 1000 })
     const text = page.locator('[class*="bubble"]', { has: page.locator('[data-secret]') })
+    await text.hover()
     await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'bubble.expected.md'), await text.ariaSnapshot(), MODE)
     expect(await text.textContent()).not.toContain(KEY)
     const run = page.locator('[data-secret]')
@@ -59,14 +64,23 @@ describe('web e2e: credential mask in user text', () => {
       const [value, control] = [...box.children]
       return { mask: middle(value!.lastElementChild!), control: middle(control!) }
     })
-    expect(Math.abs(centers.control - centers.mask)).toBeLessThanOrEqual(1)
+    if (width === 1680) expect(Math.abs(centers.control - centers.mask)).toBeLessThanOrEqual(1)
     const masked = { run: await run.boundingBox(), bubble: await text.boundingBox() }
     await page.getByRole('button', { name: 'Show secret', exact: true }).click()
     await expect.poll(() => text.textContent()).toBe(PROMPT)
-    // The monospace run keeps one mask character per original character, so revealing does not move the line.
-    expect({ run: await run.boundingBox(), bubble: await text.boundingBox() }).toEqual(masked)
+    const revealed = { run: (await run.boundingBox())!, bubble: (await text.boundingBox())! }
+    // Separate prefix/mask spans can round glyph advances by one Chromium layout unit.
+    for (const name of ['run', 'bubble'] as const) for (const axis of ['x', 'y', 'width', 'height'] as const) {
+      expect(Math.abs(revealed[name][axis] - masked[name]![axis])).toBeLessThanOrEqual(1 / 32)
+    }
+    expect(revealed.bubble.x).toBeGreaterThanOrEqual(0)
+    expect(revealed.bubble.x + revealed.bubble.width).toBeLessThanOrEqual(width)
+    expect(await text.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
     await page.getByRole('button', { name: 'Hide secret', exact: true }).click()
     await expect.poll(() => text.textContent()).not.toContain(KEY)
+    const screenshots = fileURLToPath(new URL('../../../.artifacts/screenshots/secret-mask', import.meta.url))
+    await mkdir(screenshots, { recursive: true })
+    await page.screenshot({ path: join(screenshots, `${width}-${theme}.png`), animations: 'disabled' })
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
     await assertFixtureInventory(SNAPSHOT_DIR, ['bubble.expected.md'])

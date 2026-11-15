@@ -145,6 +145,7 @@ describe.skipIf(MODE === 'record')('web e2e: file and session references through
 
   beforeAll(async () => {
     scaffold = await launchWebScaffold({})
+    await scaffold.ctx.settings.update('ui-chat', { transcriptView: 'standard', collapseTiming: 'completion' })
     const targetCreatedAt = WEB_FIXTURE_TIME - 60_000
     await seedSession(scaffold, sourceSessionFixture(), SOURCE_SESSION_ID, undefined, { createdAt: targetCreatedAt - 1 })
     await seedSession(scaffold, targetSessionFixture(), TARGET_SESSION_ID, undefined, { createdAt: targetCreatedAt })

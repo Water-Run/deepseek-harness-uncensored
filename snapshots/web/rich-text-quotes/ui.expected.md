@@ -1,5 +1,6 @@
 - banner:
   - navigation "Session hierarchy": Quote history
+  - button "Side question"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -125,10 +126,12 @@
     - button "Remove quote"
     - text: Settled reasoning source
 - button "Add files or run commands"
-- 'button "Access mode, current: Workspace Write"': Workspace Write
+- 'button "Access mode, current: Full access"': Full access
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message"
-- button "1 turns 1 steps"
+- 'button "Turns: 1 · Steps: 1"'
+- 'button "Conversation cost: ￥0.00"': ￥0.00
+- 'button "Spending limits: Off"': "Off"
 
 ## Literal quote body
 

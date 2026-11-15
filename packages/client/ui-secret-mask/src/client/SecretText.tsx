@@ -46,9 +46,10 @@ type SecretTextProps = UserTextNodeProps<'secret'> & PropsLocale<typeof NS>
  * @returns an inline masked run with an optional reveal control.
  */
 export function SecretText({ node, raw, interactive, t }: SecretTextProps) {
-  // Holding the revealed value instead of a flag re-masks a different credential that reuses this element.
-  const [revealedRaw, setRevealedRaw] = useState<string | undefined>()
-  const revealed = interactive && revealedRaw === raw
+  // Disclosure belongs to the current value, including when an earlier value returns.
+  const [visibility, setVisibility] = useState({ raw, revealed: false })
+  if (visibility.raw !== raw) setVisibility({ raw, revealed: false })
+  const revealed = interactive && visibility.raw === raw && visibility.revealed
   return (
     <span className={css.secret} data-secret="">
       <span className={css.value}>{revealed ? raw : <MaskedText masked={node.data.masked} />}</span>
@@ -58,7 +59,7 @@ export function SecretText({ node, raw, interactive, t }: SecretTextProps) {
           className={css.toggle}
           aria-pressed={revealed}
           aria-label={t(revealed ? 'secret.hide' : 'secret.reveal')}
-          onClick={() => { setRevealedRaw(revealed ? undefined : raw) }}
+          onClick={() => { setVisibility({ raw, revealed: !revealed }) }}
         >
           <EyeGlyph path={revealed ? EYE_OFF_PATH : EYE_PATH} />
         </button>

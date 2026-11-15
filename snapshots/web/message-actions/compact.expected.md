@@ -1,1 +1,3 @@
 - text: {{throughput}} tok/s Cache hit 98%
+- 'button "Conversation cost: ￥0.001380"': ￥0.001380
+- 'button "Spending limits: Off"': "Off"

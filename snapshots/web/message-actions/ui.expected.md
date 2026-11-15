@@ -1,5 +1,6 @@
 - banner:
   - navigation "Session hierarchy": Use the read tool twice
+  - button "Side question"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -15,9 +16,14 @@
 - tooltip "Copy"
 - status: Stopped
 - button "Stopped" [disabled] [expanded]
-- button "Analysis completed"
+- button "Think The user wants me to read a.txt and b.txt, then reply with \"DONE\". Let me do both reads in parallel."
 - paragraph: I will read both files before answering.
-- button "Read files"
+- button "Read a.txt":
+  - text: Read
+  - button "a.txt"
+- button "Read b.txt":
+  - text: Read
+  - button "b.txt"
 - button "Copy"
 - button "Good response"
 - button "Bad response"
@@ -43,8 +49,10 @@
 - text: {{clock}}
 - textbox "Message or run a task, / commands, @ files or sessions"
 - button "Add files or run commands"
-- 'button "Access mode, current: Workspace Write"': Workspace Write
+- 'button "Access mode, current: Full access"': Full access
 - button "Select model, current DeepSeek-V4-Flash": DeepSeek-V4-Flash
 - button "Send message" [disabled]
-- button "3 turns 4 steps · {{throughput}} tok/s": 3 turns 4 steps{{throughput}} tok/s
+- 'button "Turns: 3 · Steps: 4 · {{throughput}} tok/s"': "Turns: 3 · Steps: {{throughput}} tok/s"
 - button "7.9K tok · Cache hit 98%": 7.9K tokCache hit 98%
+- 'button "Conversation cost: ￥0.001380"': ￥0.001380
+- 'button "Spending limits: Off"': "Off"

@@ -55,5 +55,8 @@ describe('SecretText', () => {
     view.rerender(<SecretText {...props(OTHER, true, en)} />)
     expect(view.container.querySelector('[data-secret]')!.textContent).toBe(masked(OTHER))
     expect(view.getByRole('button', { name: 'Show secret' }).getAttribute('aria-pressed')).toBe('false')
+    view.rerender(<SecretText {...props(KEY, true, en)} />)
+    expect(view.container.querySelector('[data-secret]')!.textContent).toBe(masked(KEY))
+    expect(view.getByRole('button', { name: 'Show secret' }).getAttribute('aria-pressed')).toBe('false')
   })
 })

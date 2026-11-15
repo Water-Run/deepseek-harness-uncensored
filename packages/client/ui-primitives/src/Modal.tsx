@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import type { KeyboardEventHandler, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import clsx from 'clsx'
@@ -29,6 +29,7 @@ type ModalProps = ModalBaseProps & (
 
 /**
  * Render a centered, body-portaled modal over a blurred page mask.
+ * Reopening retained exit paint restores foreground order before focus ownership.
  * @param props.open - whether the dialog is showing.
  * @param props.onClose - application close command, Escape, or mask click; while a menu is open inside the
  * dialog, Escape belongs to that menu first.
@@ -53,13 +54,21 @@ export function Modal({
   onKeyDownCapture, headless = false, backdropBlur = true, shortcutModal, tone,
 }: ModalProps) {
   const dialog = useRef<HTMLDivElement>(null)
+  const root = useRef<HTMLDivElement>(null)
   const present = useOverlayPresence(open)
+  useLayoutEffect(() => {
+    const element = root.current
+    // Reopened exit paint must regain DOM order before keyboard ownership and focus.
+    if (open && element !== null && element.parentElement?.lastElementChild !== element) {
+      element.parentElement?.append(element)
+    }
+  }, [open])
   useModalLayer(dialog, open, onClose)
 
   if (!present) return null
 
   return createPortal((
-    <div className={css.root} role="presentation" {...(open ? {} : { inert: '' })} aria-hidden={!open || undefined} data-exiting={!open || undefined} onKeyDownCapture={onKeyDownCapture}>
+    <div ref={root} className={css.root} role="presentation" {...(open ? {} : { inert: '' })} aria-hidden={!open || undefined} data-exiting={!open || undefined} onKeyDownCapture={onKeyDownCapture}>
       <div className={css.mask} style={backdropBlur ? undefined : { backdropFilter: 'none' }} aria-hidden="true" onClick={onClose} />
       <div
         ref={dialog}
