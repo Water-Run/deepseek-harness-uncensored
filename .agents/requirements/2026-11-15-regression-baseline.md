@@ -1,6 +1,6 @@
 # 完整回归基线与桌面、会话修正
 
-状态：前四批已验证修复已进入 `2026.11.15.4` 检查包，Windows 已保留数据安装；第五批插件安装与市场布局修复已验证，等待后续打包。完整 Goal 继续进行。
+状态：前七批的修复与验收更新已进入 `2026.11.15.5`，Windows 已保留数据安装。OpenAI 编辑入口的单次间歇超时仍待定位；完整 Goal 继续进行。
 
 ## 新基线
 
@@ -71,7 +71,7 @@ Windows 桌面最初复现渠道、打包夹具及欢迎页问题。修正后完
 
 本批 6 个文件的 10 个场景通过只读回放，覆盖基线中另外 9 个失败所属场景；五批合计 177 项通过，覆盖 84 个原失败所属场景。只更新 6 份非 Session 预期中的品牌名称、主题颜色或布局描述，历史 Session JSONL 未变。完整 Web 尚未重跑，不能据此推定其余场景通过。
 
-证据位于同日交付目录：`cohort-h-readonly.json` 保留最终批运行的 7 通过及 1 项旧颜色预期失败，后者经审阅预期后由 `cohort-h-cancel-readonly.log` 单独只读通过；市场两主题见 `cohort-h-toolbar.log`。`plugin-market-toolbar-before-390.png` 和 `plugin-market-toolbar-{light,dark}-{390,430,768,1280}.png` 保留实际页面，原选择器失败记录也保留。本节代码尚未进入已安装的 `2026.11.15.4`。
+证据位于同日交付目录：`cohort-h-readonly.json` 保留最终批运行的 7 通过及 1 项旧颜色预期失败，后者经审阅预期后由 `cohort-h-cancel-readonly.log` 单独只读通过；市场两主题见 `cohort-h-toolbar.log`。`plugin-market-toolbar-before-390.png` 和 `plugin-market-toolbar-{light,dark}-{390,430,768,1280}.png` 保留实际页面，原选择器失败记录也保留。本节修复已随 `2026.11.15.5` 交付。
 
 两平台 `build:artifacts` 和最新 `build:check` 通过，文档检查通过。全仓 lint 仅发现新增测试的两处箭头参数括号格式问题；修正后该文件 lint 通过。记录为 `cohort-h-{windows,linux}-{build,check}.log`、`cohort-h-lint.log`、`cohort-h-lint-corrected.log`、`cohort-h-doc-sync.log` 和 `cohort-h-docs.log`。
 
@@ -83,7 +83,7 @@ Windows 桌面最初复现渠道、打包夹具及欢迎页问题。修正后完
 
 右侧栏保留展开/全屏/容量收起、拖拽/分栏/浮窗、会话间隔离、重载恢复、中键与右键菜单，以及中英文向导验收；向导同时核对新增旁问入口。悬停和键盘焦点检查等实际过渡完成后读最终样式，仍要求鼠标操作没有键盘焦点环、键盘导航保留可见焦点，原有负对照不变。隔离测试页不触发未录制的输入预测。
 
-本批只更新验收代码和一份 ARIA 预期；预期包含旁问、完整权限、当前统计标签及费用/限额入口，没有修改历史 Session 数据或产品默认值。证据为同日交付目录中的 `cohort-i-{baseline,readonly,final,sidebar-final}.{json,log}`。新增验收不改变已安装的 `2026.11.15.4` 程序。
+本批只更新验收代码和一份 ARIA 预期；预期包含旁问、完整权限、当前统计标签及费用/限额入口，没有修改历史 Session 数据或产品默认值。证据为同日交付目录中的 `cohort-i-{baseline,readonly,final,sidebar-final}.{json,log}`。本节验证的功能已包含于 `2026.11.15.5`。
 
 本批 6 文件的 43 个场景均已分批只读通过，覆盖基线中另外 11 个失败所属场景；六批合计 220 项通过，覆盖 95 个原失败所属场景。最终过滤运行中的 11 项未选用例有此前独立通过记录，没有把跳过当作通过。完整 Web 尚未重跑。全仓 lint 通过；两平台聚合类型检查和文档检查记录随本批保留。
 
@@ -97,6 +97,6 @@ Windows 桌面最初复现渠道、打包夹具及欢迎页问题。修正后完
 
 本批 6 个文件、31 个场景取得只读通过记录，覆盖基线中另外 11 个失败所属场景；七批合计 251 项，覆盖 106 个原失败所属场景。一次整组回放中的 OpenAI 编辑入口超时尚未证实根因：当次 30 项通过，随后单项及提供商整组 10 项通过；保留失败，并增加失败页面证据，不把它称为已根治。完整 Web 仍待重跑。
 
-账号组件、共享操作、余额控制器和返回刷新单测合计 94 项通过。7 份非 Session 预期只更新设置分组、默认权限、通知入口和请求观测；历史 Session JSONL 未改。证据位于同日交付目录的 `cohort-j-*` 文件：整组 `readonly`、提供商 `provider-final`、充值 `bonus-final`、单测 `balance-unit-final` 与 `account-unit`、负对照 `balance-negative`。这两处产品修复尚未进入已安装的 `2026.11.15.4`。
+账号组件、共享操作、余额控制器和返回刷新单测合计 94 项通过。7 份非 Session 预期只更新设置分组、默认权限、通知入口和请求观测；历史 Session JSONL 未改。证据位于同日交付目录的 `cohort-j-*` 文件：整组 `readonly`、提供商 `provider-final`、充值 `bonus-final`、单测 `balance-unit-final` 与 `account-unit`、负对照 `balance-negative`。这两处产品修复已随 `2026.11.15.5` 交付。
 
 最终 Windows/Linux `build:artifacts` 与 `build:check`、文档和双语记录检查通过。全仓 lint 仅报告事件适配回调没有 await；改为显式返回已结算 Promise 后，全部出站 TypeScript 文件 lint 通过。当前图片 `cohort-j-topup-refreshed.png` 已核对金额动画终点与钱包明细一致；失败日志、独立复验与页面诊断均保留。
