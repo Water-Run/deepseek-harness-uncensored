@@ -34,6 +34,7 @@ async function paint(target: Locator) {
 }
 
 async function expectSilent(target: Locator): Promise<void> {
+  await target.evaluate(async (element) => { await Promise.all(element.getAnimations().map(animation => animation.finished)) })
   const state = await paint(target)
   expect(state.active).toBe(true)
   expect(state.modality).toBe('pointer')
@@ -94,6 +95,7 @@ async function ringCutBy(target: Locator): Promise<string[]> {
 
 it.each(['light', 'dark'] as const)('assembled app (%s): pointer keys stay silent; navigation and menu activation retain feedback', async (theme) => {
   const scaffold = await launchWebScaffold()
+  await scaffold.ctx.settings.update('ui-theme', { preference: 'system' })
   onTestFinished(() => scaffold.close())
   const browser = await chromium.launch({ headless: true })
   onTestFinished(() => browser.close())
@@ -104,7 +106,7 @@ it.each(['light', 'dark'] as const)('assembled app (%s): pointer keys stay silen
   await connectFreshWorkspace(page, scaffold.workspaceCwd)
   await expect.poll(() => page.locator('body').getAttribute('data-ds-dark-theme')).toBe(theme === 'dark' ? '' : null)
   const trigger = page.getByRole('button', { name: /^Access mode, current:/ })
-  expect((await paint(trigger)).focusColor).toBe(theme === 'dark' ? 'rgb(122, 170, 255)' : 'rgb(65, 118, 230)')
+  expect((await paint(trigger)).focusColor).toBe(theme === 'dark' ? 'rgb(110, 162, 255)' : 'rgb(37, 99, 235)')
 
   await trigger.click()
   await page.getByRole('menu').waitFor()
@@ -137,6 +139,7 @@ it.each(['light', 'dark'] as const)('assembled app (%s): pointer keys stay silen
     for (const [navigation, index] of [['End', -1], ['Home', 0]] as const) {
       await page.keyboard.press(navigation)
       const row = menu.getByRole('menuitem').nth(index)
+      await row.evaluate(async (element) => { await Promise.all(element.getAnimations().map(animation => animation.finished)) })
       const state = await paint(row)
       expect(state.active).toBe(true)
       expect(state.focusVisible).toBe(true)
@@ -154,6 +157,7 @@ it.each(['light', 'dark'] as const)('assembled app (%s): pointer keys stay silen
 
 it.each(['light', 'dark'] as const)('assembled app (%s): the sidebar toggle keeps its whole ring in the expanded and rail layouts', async (theme) => {
   const scaffold = await launchWebScaffold()
+  await scaffold.ctx.settings.update('ui-theme', { preference: 'system' })
   onTestFinished(() => scaffold.close())
   const browser = await chromium.launch({ headless: true })
   onTestFinished(() => browser.close())

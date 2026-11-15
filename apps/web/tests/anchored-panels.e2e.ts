@@ -13,7 +13,7 @@ const PANELS = [
   { file: 'client/ui-subagent/src/client/SubagentHeaderLineage.module.css', classes: 'menu', align: 'start' },
   { file: 'client/ui-approval/src/client/ApprovalPanel.module.css', classes: 'warningPopover', align: 'end' },
   { file: 'client/ui-jobs/src/client/JobListAction.module.css', classes: 'menu', align: 'start' },
-  { file: 'client/ui-conversation/src/client/skeleton/ContextMeter.module.css', classes: 'panel', align: 'start' },
+  { file: 'client/ui-conversation/src/client/input/ContextMeter.module.css', classes: 'panel', align: 'start' },
   { file: 'client/ui-chat/src/client/chat/stat-dialog.module.css', classes: 'panel', align: 'start' },
   { file: 'client/ui-sidebar-documentpreview/src/client/office/FontNotice.module.css', classes: 'panel', align: 'start' },
   { file: 'client/ui-plugin-manager/src/client/PluginManagerPage.module.css', classes: 'registry', align: 'end' },

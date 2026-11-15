@@ -6,7 +6,7 @@ import { createSystemMessage } from '@deepseek-ai/dsh-llm'
 import { SESSION_FORMAT_VERSION } from '@deepseek-ai/dsh-session'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import { launchWebScaffold, seedSession, watchConsole, webSnapshotMode, type WebScaffold } from './scaffold.ts'
-import { newEnglishPage, saveFailureShot } from './support.ts'
+import { newConversationReplayPage, saveFailureShot } from './support.ts'
 
 const SEED_ID = 'stats-truncated-tooltip-web-e2e'
 const USAGE_READING = '5.8M tok · Cache hit 98%'
@@ -70,7 +70,7 @@ describe('web e2e: truncated composer statistics', () => {
     scaffold = await launchWebScaffold({})
     await seedSession(scaffold, buildSeed(), SEED_ID)
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
@@ -93,6 +93,7 @@ describe('web e2e: truncated composer statistics', () => {
     expect(await cut()).toBe(false)
 
     await page.setViewportSize({ width: 334, height: 900 })
+    await scaffold.ctx.settings.update('ui-theme', { fontSize: 22, textFontFamily: 'monospace' })
     await expect.poll(cut).toBe(true)
     await usagePill.hover()
     await expect.poll(() => tooltip.textContent()).toBe(USAGE_READING)

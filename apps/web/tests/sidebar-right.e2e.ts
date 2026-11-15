@@ -26,7 +26,7 @@ import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import { createMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
 import { acknowledgeReloadConnectionLoss, launchWebScaffold, watchConsole, type WebScaffold } from './scaffold.ts'
 import {
-  connectFreshWorkspace, newEnglishPage, saveFailureShot, ZH_BROWSER_LOCALE,
+  configureConversationReplay, connectFreshWorkspace, newConversationReplayPage, saveFailureShot, ZH_BROWSER_LOCALE,
 } from './support.ts'
 
 /** The produced file the seeded turn writes, and what the preview should show. */
@@ -263,7 +263,7 @@ describe('web e2e: shipped right Sidebar', () => {
   beforeAll(async () => {
     scaffold = await launchWebScaffold()
     browser = await chromium.launch()
-    page = await newEnglishPage(browser)
+    page = await newConversationReplayPage(browser)
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
@@ -414,6 +414,7 @@ describe('web e2e: shipped right Sidebar', () => {
       let hoverFill: string | undefined
       for (const action of [more, expand]) {
         await action.hover()
+        await action.evaluate(async (element) => { await Promise.all(element.getAnimations().map(animation => animation.finished)) })
         const appearance = await action.evaluate((node) => {
           const style = getComputedStyle(node)
           const box = node.getBoundingClientRect()
@@ -475,7 +476,8 @@ describe('web e2e: shipped right Sidebar', () => {
 
       await expect.poll(async () => await tabTitles(column)).toEqual(['Start'])
       await expectTitleAlignment(column.locator('[data-dockkit-tab-title]'))
-      await expect.poll(async () => await column.locator('[data-sidebar-right-guide-entry]').count()).toBe(2)
+      await expect.poll(async () => await column.locator('[data-sidebar-right-guide-entry]').count()).toBe(3)
+      expect(await column.locator('[data-sidebar-right-guide-entry="aside"]').count()).toBe(1)
       expect(await column.locator('[data-sidebar-right-guide-entry="browser"]').count()).toBe(0)
       await column.locator('[data-sidebar-right-guide-entry="files"]').click()
 
@@ -961,7 +963,7 @@ describe('web e2e: shipped right Sidebar', () => {
     // `duplicateTab` is a store/kit intent only, which service.client.spec.ts covers.
 
     it('keeps each session\'s surface to itself across switching and page reload', async () => {
-      const fx = await newEnglishPage(browser)
+      const fx = await newConversationReplayPage(browser)
       const fxTripwire = watchConsole(fx)
       onTestFailed(() => saveFailureShot(fx, 'web-e2e-sidebar-right-sessions'))
       try {
@@ -1383,6 +1385,7 @@ describe('web e2e: shipped right Sidebar', () => {
     // depends on a sibling block's setup passes only in the right order.
     it('renders the shipped Chinese copy on a Chinese page', async () => {
       const zhPage = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE })
+      await configureConversationReplay(zhPage)
       await zhPage.addInitScript(() => { Object.defineProperty(navigator, 'platform', { configurable: true, value: 'MacIntel' }) })
       const zhTripwire = watchConsole(zhPage)
       onTestFailed(() => saveFailureShot(zhPage, 'web-e2e-sidebar-right-zh'))
@@ -1421,6 +1424,7 @@ describe('web e2e: shipped right Sidebar', () => {
         for (const [index, action] of terminalButtons.entries()) {
           expect(await action.evaluate(node => getComputedStyle(node).borderRadius)).toBe(index === 0 ? '0px' : '4px')
           await action.hover()
+          await action.evaluate(async (element) => { await Promise.all(element.getAnimations().map(animation => animation.finished)) })
           expect(await action.evaluate(node => getComputedStyle(node).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)')
         }
         await terminalActions.first().hover()
