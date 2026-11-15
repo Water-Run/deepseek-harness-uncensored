@@ -27,7 +27,7 @@ Worker 预览仍未通过完整验收。当前候选补齐裸 `node:assert` 的�
 
 私有检出 `/home/linzh/.cache/dshu-verification/linux-rc2-20261113.iLMw1C/source` 保留候选测试与界面预期。本批迁移前的 Linux 运行是 48 通过、2 失败的候选刷新，不能称为整批最终只读通过。交接回执为 `ubuntu-migration-handoff.json`。
 
-迁移对话随后通知已完成：Ubuntu 注册于 `D:/WSL/Ubuntu`，已确认私有检出可访问且有 8 条未提交状态，可以恢复使用。完整导出备份位于 `D:/Codex-disk-relief/ubuntu-pre-migration-2026-11-15/ubuntu-backup.tar`。继续前仍需保留、核对这些候选文件；本记录尚未将待验场景改为完成。
+迁移对话随后通知已完成：Ubuntu 注册于 `D:/WSL/Ubuntu`，已确认私有检出可访问且有 8 条未提交状态，可以恢复使用。完整导出备份位于 `D:/Codex-disk-relief/ubuntu-pre-migration-2026-11-15/ubuntu-backup.tar`。迁移完成本身不代表待验场景已通过；恢复后的核验见下节。
 
 ## 旧 Minimal 界面预期
 

@@ -215,6 +215,9 @@ it('keeps a broken card focusable for diagnostics and refuses to select it', () 
 })
 it.each([
   ['standard', en.presetStandardName, 'How it works', 'Fix a bug'],
+  ['security', en.presetSecurityName, 'What this mode adds', 'Review an application'],
+  ['reverse', en.presetReverseName, 'Analysis workflow', 'Analyze a program'],
+  ['writing', en.presetWritingName, 'Writing workflow', 'Continue a scene'],
   ['ptc', en.presetPtcName, 'How tools are called', 'Check a set of configuration files'],
   ['minimal', en.presetMinimalName, 'What is included', 'Compare performance on a small bug fix'],
   ['cordis', en.presetCordisName, 'What you can create', 'Add a UI'],

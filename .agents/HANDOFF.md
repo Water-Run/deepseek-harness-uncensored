@@ -2,7 +2,7 @@
 
 **Goal「实现DSHU」保持活动。** 当前 34 项完成、11 项进行中，见 [TODO](TODO.md)。实际剩余额度达到 1% 时按用户规则收尾暂停。macOS、Android＋Fedora PRoot、全新安装器仍只规划。
 
-**Ubuntu 迁移已完成：** 迁移对话通知发行版已位于 `D:/WSL/Ubuntu`，可以恢复使用；完整导出备份位于 `D:/Codex-disk-relief/ubuntu-pre-migration-2026-11-15/ubuntu-backup.tar`。先核对私有检出的 8 条未提交状态并保留候选预期，再继续 Linux 核验。[后续记录](requirements/2026-11-16-regression-followup.md)
+**Ubuntu 迁移已完成：** 发行版位于 `D:/WSL/Ubuntu`，完整导出备份位于 `D:/Codex-disk-relief/ubuntu-pre-migration-2026-11-15/ubuntu-backup.tar`。已核对私有检出的 8 条改动，保存并审阅三份候选预期，恢复后的 Minimal 13 项只读回放通过。[后续记录](requirements/2026-11-16-regression-followup.md)
 
 **当前工作树：** Worker 预览候选尚未完成真实 SQLite 接入，保留为未提交改动；完整文件与摘要另存于 `%USERPROFILE%/DSHU-Deliveries/20261115/worker-preview-candidate`。不要 reset 或覆盖。已通过的主题与入口测试修正单独提交，安装包仍为 `.9`。
 
@@ -38,6 +38,8 @@ Windows 安装包及回执位于 `%USERPROFILE%/DSHU-Deliveries/20261115`，Linu
 ## 已交付模式文档
 
 用户追加要求恢复对应模式配色并丰富说明。源码已补全四种模式的中英文能力、工具、上下文与使用示例，采用各自颜色的页头和章节强调；深色标题对比度至少 4.5:1。77 项单元测试和 Windows/Linux 各 8 组浏览器布局用例通过，已查看实际截图。此项已包含在 `.7`，安装版四模式的配色、说明、三组示例及焦点恢复均已复验。[记录](requirements/2026-11-15-mode-guides.md)
+
+2026-11-16 源码继续扩充指南：四模式中英文各七节，每种三组示例补入准备材料与交付检查；README 增加指南入口与常见问题。Windows 337 项模式单测、8 组原始浏览器布局场景、产物与聚合检查、配对及文档、lint 通过，实际截图已检查；本次扩充尚未打包安装，实装仍为 `.9`。[记录](requirements/2026-11-15-mode-guides.md#2026-11-16扩充指南内容)
 
 ## 本轮回归补齐
 
