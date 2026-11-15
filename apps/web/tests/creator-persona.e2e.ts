@@ -1,4 +1,4 @@
-/** Creator mode adds its DSH customization intent to the actual model prompt. */
+/** An explicitly installed Creator composition contributes its persona to the logged model request. */
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
@@ -13,7 +13,13 @@ const CUSTOMIZATION_INTENT = 'You help the user customize DeepSeek Harness itsel
 it('sends the Creator customization intent without taking actions for an ordinary request', async () => {
   const scaffold = await launchWebScaffold({
     replayFixture: FIXTURE, compareReplaySession: true, paceMs: 10,
-    agentPresets: { default: 'cordis' },
+    agentPresets: { default: 'cordis', definitions: [{
+      id: 'cordis', name: 'Creator mode', plugins: [
+        { name: '@deepseek-ai/dsh-persona', config: { prefix: `You are a coding agent powered by the {{model}} model. ${CUSTOMIZATION_INTENT}` } },
+        { name: '@deepseek-ai/dsh-tool-cordis' },
+        { name: '@deepseek-ai/dsh-plugin-manager/tools' },
+      ],
+    }] },
   })
   try {
     const browser = await chromium.launch()

@@ -227,6 +227,11 @@ describe.skipIf(MODE === 'record')('web e2e: background job list', () => {
       await expect.poll(() => count.evaluate(element => getComputedStyle(element).display)).toBe('none')
       expect(await original.evaluate(element => element.isConnected && element === document.activeElement)).toBe(true)
       const expandSidebar = page.locator('[data-sidebar-right-expand]')
+      for (const control of [trigger, expandSidebar]) {
+        await control.evaluate(async (element) => {
+          await Promise.all(element.getAnimations().map(animation => animation.finished))
+        })
+      }
       const compactStyles = await Promise.all([trigger, expandSidebar].map(control => control.evaluate((element) => {
         const style = getComputedStyle(element)
         const bounds = element.getBoundingClientRect()
@@ -238,6 +243,9 @@ describe.skipIf(MODE === 'record')('web e2e: background job list', () => {
       expect(compactStyles[0]).toMatchObject({ width: 28, height: 28, padding: '0px', iconWidth: 15, iconHeight: 15 })
       expect(await trigger.evaluate(element => getComputedStyle(element.closest('[data-slot="conversation.session.header.actions"]')!.parentElement!).gap)).toBe('8px')
       await expandSidebar.hover()
+      await expandSidebar.evaluate(async (element) => {
+        await Promise.all(element.getAnimations().map(animation => animation.finished))
+      })
       const expandHover = await expandSidebar.evaluate((element) => {
         const style = getComputedStyle(element)
         return { background: style.backgroundColor, color: style.color }
@@ -247,6 +255,9 @@ describe.skipIf(MODE === 'record')('web e2e: background job list', () => {
         return element.contains(document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2))
       })).toBe(true)
       await trigger.hover()
+      await trigger.evaluate(async (element) => {
+        await Promise.all(element.getAnimations().map(animation => animation.finished))
+      })
       expect(await trigger.evaluate((element) => {
         const style = getComputedStyle(element)
         return { background: style.backgroundColor, color: style.color }

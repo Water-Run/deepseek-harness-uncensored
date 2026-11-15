@@ -4,7 +4,8 @@
     - text: /
     - 'button "Switch subagent: event-sourcing researcher"': event-sourcing researcher
     - button "1 subagent"
-  - text: Standard mode
+  - 'button "Conversation mode: Default" [disabled]': Default
+  - button "Side question"
   - button "More actions"
   - button "Open right sidebar"
   - tablist:
@@ -35,8 +36,10 @@
 - text: {{clock}}
 - textbox "Message or run a task, / commands, @ files or sessions"
 - button "Add files or run commands"
-- 'button "Access mode, current: Custom"': Custom
+- 'button "Access mode, current: Full access"': Full access
 - button "Send message" [disabled]
-- button "2 turns 2 steps · {{throughput}} tok/s": 2 turns 2 steps{{throughput}} tok/s
+- 'button "Turns: 2 · Steps: 2 · {{throughput}} tok/s"': "Turns: 2 · Steps: {{throughput}} tok/s"
 - button "15.7K tok · Cache hit 99%": 15.7K tokCache hit 99%
+- 'button "Conversation cost: ￥0.002320"': ￥0.002320
+- 'button "Spending limits: Off"': "Off"
 - button "6% of context used": 6%

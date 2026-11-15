@@ -48,7 +48,11 @@ describe('default navigation entry customization', () => {
       expect(await tasks.getAttribute('aria-current')).toBe('page')
       await menu.getByRole('menuitem', { name: 'Browse other plugins', exact: true }).click()
       await menu.waitFor({ state: 'detached' })
-      expect(await nav.getByRole('button', { name: 'Plugins', exact: true }).getAttribute('aria-current')).toBe('page')
+      const settings = page.getByRole('dialog', { name: 'Settings', exact: true })
+      await settings.getByRole('heading', { name: 'Plugins', exact: true }).waitFor()
+      expect(await tasks.getAttribute('aria-current')).toBe('page')
+      expect(await nav.getByRole('button', { name: 'Plugins', exact: true }).count()).toBe(0)
+      await settings.getByRole('button', { name: 'Close', exact: true }).last().click()
       await tasks.click()
       await page.getByRole('heading', { name: 'Automation tasks', exact: true }).waitFor()
     }

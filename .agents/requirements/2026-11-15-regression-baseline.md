@@ -1,6 +1,6 @@
 # 完整回归基线与桌面、会话修正
 
-状态：前七批的修复与验收更新已进入 `2026.11.15.5`，Windows 已保留数据安装。OpenAI 编辑入口的单次间歇超时仍待定位；完整 Goal 继续进行。
+状态：当前已安装检查版为 `2026.11.15.8`，交付范围见[交付记录](2026-11-15-delivery.md)。后续回归继续对照当前源码核验；OpenAI 编辑入口的单次间歇超时仍待定位，完整 Goal 保持进行中。
 
 ## 新基线
 
@@ -158,3 +158,21 @@ Windows 桌面最初复现渠道、打包夹具及欢迎页问题。修正后完
 8 文件、13 项只读场景通过，覆盖链接与交付物、文件行号预览和去重、允许/拒绝的图片、中文相邻加粗、行内代码 URL、公式以及流式代码高亮。七份 UI 预期仅同步已有模式/旁问入口、权限和费用统计；其中一条 Windows 路径按钮在借用的 `session.v3.jsonl` 中没有对应输入，因此移除陈旧预期。相对/绝对文件定位、缺失文件失败和目录变化后的预览断言均保留，Session JSONL 未改。没有新增界面行为或调用模型。
 
 候选变更先在私有检出中验证和还原，Windows `.8` 打包源码保持其记录的提交。相关记录为 `cohort-o-before`、`cohort-o-refresh`、`cohort-o-gallery`、`cohort-o-readonly`、`cohort-o-check` 和 `cohort-o-lint`；原失败记录保留。
+
+## 长历史、后台任务与子对话
+
+轨迹流式测试的记录显示，默认输入预测先消耗了唯一的回放响应，正文请求因此以 `llm-replay: script exhausted` 结束。该场景现使用已有的无预测回放页，保留分页前插的选中行身份、滚动位置、DOM 数量上限及流式滚动次数断言；产品的预测默认值不变。
+
+后台任务按钮在宽度变化和悬停后等待自身 Web Animations 完成再比较颜色，不使用固定睡眠掩盖差异。工作流色彩检查显式跟随模拟系统主题；取消 Bash、分叉、子对话与工作流场景明确选择标准工作步骤和完成后收起，以继续检验折叠行为。六份 UI 预期仅同步模式/旁问入口、权限、统计标签及费用/限额信息，Session 输入未改。
+
+8 文件、35 项只读回归通过，涵盖后台任务二次确认停止、离线父级下的子对话操作、FIFO 中断与续跑、分叉中断闭合、工作流历史恢复和 `/goal` 无模型轮次的持久显示。证据为 `cohort-p-before`、`cohort-p-diagnostic`、`cohort-p-trajectory-diagnostic.json`、`cohort-p-readonly`、`cohort-p-check` 与 `cohort-p-lint`。本批只调整验收夹具和预期。
+
+## 模式配置与导航兼容
+
+代码视图开关的回归按四种 DSHU 内置模式和显式安装的自定义模式验收，覆盖偏好落盘、重载、开关往返以及保留当前模式和默认模式。PTC、Minimal 和 Creator 不会因开启代码视图而进入默认选择列表。插件浏览入口改验 Settings 内的页面，并确认关闭设置后自动化任务仍是当前主面板。
+
+旧 Minimal 组合继续实际执行持久终端命令及图片读取；工具集合预期补入当前共享任务的四个工具。Creator 场景显式安装与现有插件创建入口一致的可选组合，核对角色说明仅进入模型请求一次、普通问题不执行工具及完整持久化结果。原 `session.v4.jsonl` 摘要不变；以 `behavior-update` 声明独立 `writer.expected.jsonl`，并同步该可选组合的提示词与工具清单。首次刷新缺少输出文件的诊断已保留，补齐独立输出后只读回放通过。
+
+4 文件、4 项只读验收通过。记录为 `cohort-q-before`、`cohort-q-current`、`cohort-q-creator-missing-oracle`、`cohort-q-creator-refresh`、`cohort-q-readonly` 和 `creator-input-hash.txt`。未改产品默认配置或调用付费模型；当前安装包仍为 `.8`。
+
+Windows 另以 PowerShell 复验旧 Minimal 的持久状态、工作目录和图片读取，1 项通过。首轮验证进程把 base URL 环境变量设为空字符串，触发可选账户插件的 URL 错误；移除该进程变量后复验无此错误。记录为 `cohort-q-windows-legacy` 和 `cohort-q-windows-legacy-clean`。最终 Host/Client 聚合检查及快照语料的 3 项归属、格式检查通过；文档检查通过。

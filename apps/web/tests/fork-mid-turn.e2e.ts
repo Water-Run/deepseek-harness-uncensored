@@ -74,6 +74,7 @@ describe('web e2e: exact-boundary fork seeds branch closers and continues', () =
       // Use paced chunks for the child continuation's live-stream assertions.
       paceMs: 5,
     })
+    await scaffold.ctx.settings.update('ui-chat', { transcriptView: 'standard', collapseTiming: 'completion' })
     const fixture = await readFile(await selectedSessionFixture(SEED), 'utf8')
     const firstCall = parseSeedFixture(fixture).events.find(event => event.type === 'tool/call')
     if (firstCall === undefined) throw new Error('fork-mid-turn seed lacks a tool/call')

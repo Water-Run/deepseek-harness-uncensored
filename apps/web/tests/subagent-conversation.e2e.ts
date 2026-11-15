@@ -129,6 +129,7 @@ describe('web e2e: persisted subagent conversation and human continuation', () =
       replayChildFixtures: [childFixturePath],
       paceMs: 25,
     })
+    await scaffold.ctx.settings.update('ui-chat', { transcriptView: 'standard', collapseTiming: 'completion' })
     browser = await chromium.launch()
     await mkdir(fileURLToPath(new URL('../../../.artifacts/screenshots/non-migrating-session-reads', import.meta.url)), { recursive: true })
     page = await newConversationReplayPage(browser)

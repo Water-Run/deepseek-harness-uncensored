@@ -19,7 +19,9 @@ it('restores the Minimal tool set with native persistent shell state and durable
     })
     try {
       const shell = process.platform === 'win32' ? 'pwsh' : 'bash'
-      expect(scaffold.ctx.tools.schemas(handle.agent).map(tool => tool.name).sort()).toEqual([shell, 'read_image', 'working_directory'].sort())
+      expect(scaffold.ctx.tools.schemas(handle.agent).map(tool => tool.name).sort()).toEqual([
+        shell, 'read_image', 'working_directory', 'team_task_create', 'team_task_get', 'team_task_list', 'team_task_update',
+      ].sort())
       const stateDir = join(scaffold.workspaceCwd, 'persistent-state')
       await mkdir(stateDir)
       const command = process.platform === 'win32'

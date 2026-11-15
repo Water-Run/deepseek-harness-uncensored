@@ -56,6 +56,8 @@ describe.skipIf(MODE === 'record')('web e2e: durable workflow run in Chat', () =
       replayChildFixtures: [CHILD_FIXTURE],
       compareReplaySession: false,
     })
+    await scaffold.ctx.settings.update('ui-chat', { transcriptView: 'standard', collapseTiming: 'completion' })
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'system' })
     // Keep the live child available throughout disclosure, layout, and navigation checks.
     scaffold.ctx.on('llm/stream', async function* (options, next) {
       const session = options.sessionId === undefined ? undefined : scaffold.ctx.sessions.get(options.sessionId)
@@ -64,6 +66,7 @@ describe.skipIf(MODE === 'record')('web e2e: durable workflow run in Chat', () =
     }, { prepend: true })
     browser = await chromium.launch()
     page = await newConversationReplayPage(browser)
+    await page.emulateMedia({ colorScheme: 'light' })
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
@@ -120,7 +123,9 @@ describe.skipIf(MODE === 'record')('web e2e: durable workflow run in Chat', () =
     expect(await phaseDisclosure.getAttribute('aria-expanded')).toBe('true')
     const lightColor = await member.locator('[data-member-label]').evaluate(element => getComputedStyle(element).color)
     await page.setViewportSize({ width: 560, height: 800 })
-    await page.evaluate(() => { document.body.setAttribute('data-ds-dark-theme', '') })
+    await page.emulateMedia({ colorScheme: 'dark' })
+    await expect.poll(() => member.locator('[data-member-label]').evaluate(element => getComputedStyle(element).color))
+      .not.toBe(lightColor)
     // Exercise keyboard focus after the responsive layout has changed.
     await phaseDisclosure.focus()
     await phaseDisclosure.press('Tab')
@@ -167,8 +172,8 @@ describe.skipIf(MODE === 'record')('web e2e: durable workflow run in Chat', () =
     expect(darkNarrow.phaseTitleRight).toBeLessThanOrEqual(darkNarrow.phaseStatusLeft)
     await page.locator('[data-workflow-run]').evaluate((element) => {
       (element as HTMLElement).style.removeProperty('width')
-      document.body.removeAttribute('data-ds-dark-theme')
     })
+    await page.emulateMedia({ colorScheme: 'light' })
     await page.setViewportSize({ width: 1280, height: 800 })
 
     await member.click()
