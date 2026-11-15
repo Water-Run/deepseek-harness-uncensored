@@ -211,7 +211,12 @@ describe('web e2e: macOS window drag coverage', () => {
     }, { value: platform, snapshot: initialShortcutConfig() })
     const tripwire = watchConsole(page)
     await page.goto(host.authenticatedUrl, { waitUntil: 'load' })
-    await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
+    try {
+      await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
+    } catch (error) {
+      await saveFailureShot(page, 'window-drag-desktop-boot')
+      throw new Error(`Desktop fixture did not mount: ${JSON.stringify({ pageErrors: tripwire.pageErrors, warnings: tripwire.warnings })}`, { cause: error })
+    }
     return { page, tripwire }
   }
 
@@ -530,7 +535,7 @@ describe('web e2e: macOS window drag coverage', () => {
     expect(swallowedBoxes(surface)).toEqual([])
   }
 
-  it.each(['darwin', 'win32'] as const)('%s keeps embedded Plugins controls reachable in both sidebar states', async (platform) => {
+  it.each(['darwin', 'win32'] as const)('%s opens embedded Plugins from either sidebar state and keeps its controls reachable', async (platform) => {
     const { page, tripwire } = await desktopPage(platform)
     try {
       await page.setViewportSize({ width: 1280, height: 720 })

@@ -87,6 +87,7 @@ describe.skipIf(MODE === 'record')('web e2e: App-only desktop onboarding', () =>
     const overlay = join(root, 'account.patch.yml')
     await writeFile(overlay, `- id: deepseek-account\n  config:\n    platformOrigin: ${origin}\n    harnessOrigin: ${origin}\n    allowLoopbackHttp: true\n`)
     scaffold = await launchWebScaffold({ deepSeekMissingCredential: true, extraOverlayPath: overlay })
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'light' })
     await scaffold.ctx.credentials.modifyRecord(credentialKey('deepseek-account-platform', 'default'), async () => ({
       kind: 'grant', payload: { version: 1, issuer: origin, token: 'onboarding-fixture-token' },
     }))

@@ -487,8 +487,10 @@ export async function openSettings(page: Page, locale: 'en' | 'zh' | 'ja'): Prom
   })
   await trigger.waitFor({ state: 'attached' })
   await revealNavigationDrawer(page, locale)
-  if (!await trigger.isVisible()) {
-    await page.getByRole('button', { name: { en: 'Open sidebar', zh: '打开侧边栏', ja: 'サイドバーを開く' }[locale], exact: true }).click()
+  if (await page.locator('[data-sidebar-collapsed]').count() > 0 || !await trigger.isVisible()) {
+    const opener = page.locator('button[data-sidebar-opener]')
+    if (await opener.isVisible()) await opener.click()
+    else await page.getByRole('button', { name: { en: 'Open sidebar', zh: '打开侧边栏', ja: 'サイドバーを開く' }[locale], exact: true }).click()
   }
   await trigger.click()
   await page.getByRole('menuitem', { name: labels[locale][1], exact: true }).click()

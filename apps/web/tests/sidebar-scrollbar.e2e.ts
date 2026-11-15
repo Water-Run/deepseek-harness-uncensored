@@ -337,6 +337,7 @@ describe('web e2e: sidebar session list scrollbar (reserved gutter / themed thum
 
   beforeAll(async () => {
     scaffold = await launchWebScaffold({})
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'light' })
     const fixture = await readFile(SEED, 'utf8')
     for (let index = 0; index < SEED_COUNT; index += 1) {
       await seedSession(scaffold, fixture, `sidebar-scrollbar-web-e2e-${String(index).padStart(2, '0')}`)
@@ -534,15 +535,14 @@ describe('web e2e: sidebar session list scrollbar (reserved gutter / themed thum
     expect(light.hoverRules).toEqual(['var(--dsh-scrollbar-thumb-hover)'])
     expect(light.token).toMatch(/^rgba?\(/)
     expect(light.hoverToken).not.toBe(light.token)
-    // The dark palette declares different scrollbar tokens; driving the body
-    // attribute pins the cascade the way lifecycle-chrome does (the Settings
-    // gesture that sets it is owned there).
-    await page.evaluate(() => { document.body.setAttribute('data-ds-dark-theme', '') })
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'dark' })
+    await expect.poll(() => page.locator('body').getAttribute('data-ds-dark-theme')).toBe('')
     const dark = await measureList(page)
     expect(dark.token).not.toBe(light.token)
     expect(dark.hoverToken).not.toBe(dark.token)
     expect(dark.hoverToken).not.toBe(light.hoverToken)
-    await page.evaluate(() => { document.body.removeAttribute('data-ds-dark-theme') })
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'light' })
+    await expect.poll(() => page.locator('body').getAttribute('data-ds-dark-theme')).toBeNull()
     const restored = await measureList(page)
     expect(restored.token).toBe(light.token)
     expect(restored.hoverToken).toBe(light.hoverToken)
@@ -552,9 +552,11 @@ describe('web e2e: sidebar session list scrollbar (reserved gutter / themed thum
   it('matches the committed scrollbar geometry golden in both palettes', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-sidebar-scrollbar-golden'))
     const light = await measurePalette(page)
-    await page.evaluate(() => { document.body.setAttribute('data-ds-dark-theme', '') })
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'dark' })
+    await expect.poll(() => page.locator('body').getAttribute('data-ds-dark-theme')).toBe('')
     const dark = await measurePalette(page)
-    await page.evaluate(() => { document.body.removeAttribute('data-ds-dark-theme') })
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'light' })
+    await expect.poll(() => page.locator('body').getAttribute('data-ds-dark-theme')).toBeNull()
     await compareOrRefreshGolden(GEOMETRY_EXPECTED, renderGeometry(light, dark), MODE)
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)

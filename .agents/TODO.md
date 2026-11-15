@@ -6,6 +6,8 @@
 
 下列百分比是实现与验收的综合估算；原始编号见[完整需求清单](requirements/development-checklist.md)。Goal 保持活动，继续剩余工作；达到实际剩余额度 1% 时再按规则收尾。
 
+完整回归后，主题/动效及设置入口的定向核验已补齐：Windows 窗口拖拽 18 项、首页 5 项、首次配置 4 项通过，滚动条 10 项取得通过记录。Ubuntu 迁移后已审阅旧 Minimal 的三份模式名称预期，Linux 13 项只读回放通过；Worker 预览的真实 SQLite 接入未完成。[后续记录](requirements/2026-11-16-regression-followup.md)
+
 最新补齐长历史与流式输出、后台任务、子对话与工作流，以及四模式配置和插件导航的回归验收。两批 39 项通过，原始 Session 输入保留；安装版仍为 `.8`。[记录](requirements/2026-11-15-regression-baseline.md#长历史后台任务与子对话)
 
 工具详情已补齐 50 个结果的输入与渲染验收；技能、语音准备和原生子代理又通过 16 项 Linux、3 项 Windows 回归。子代理使用真实 SDK/CLI 与受控本地模型接口，保留完整平台日志比较。[记录](requirements/2026-11-15-regression-baseline.md#工具详情技能入口与原生子代理)

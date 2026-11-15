@@ -1,6 +1,6 @@
 - banner:
   - navigation "Session hierarchy": Use read_image to inspect red.png.
-  - 'button "Conversation mode: minimal" [disabled]': minimal
+  - 'button "Conversation mode: Minimal mode" [disabled]': Minimal mode
   - button "Side question"
   - button "More actions"
   - button "Open right sidebar"

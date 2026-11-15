@@ -2,6 +2,10 @@
 
 **Goal「实现DSHU」保持活动。** 当前 34 项完成、11 项进行中，见 [TODO](TODO.md)。实际剩余额度达到 1% 时按用户规则收尾暂停。macOS、Android＋Fedora PRoot、全新安装器仍只规划。
 
+**Ubuntu 迁移已完成：** 迁移对话通知发行版已位于 `D:/WSL/Ubuntu`，可以恢复使用；完整导出备份位于 `D:/Codex-disk-relief/ubuntu-pre-migration-2026-11-15/ubuntu-backup.tar`。先核对私有检出的 8 条未提交状态并保留候选预期，再继续 Linux 核验。[后续记录](requirements/2026-11-16-regression-followup.md)
+
+**当前工作树：** Worker 预览候选尚未完成真实 SQLite 接入，保留为未提交改动；完整文件与摘要另存于 `%USERPROFILE%/DSHU-Deliveries/20261115/worker-preview-candidate`。不要 reset 或覆盖。已通过的主题与入口测试修正单独提交，安装包仍为 `.9`。
+
 ## 当前交付
 
 | 项目 | 当前状态 |
@@ -46,6 +50,8 @@ Windows 安装包及回执位于 `%USERPROFILE%/DSHU-Deliveries/20261115`，Linu
 8 个 Markdown/公式/链接文件的 13 项只读回归通过，核对了过期预期与当前输入；原始 Session JSONL 保持不变。记录见 `cohort-o-*`。README 补全首次使用、主线与旁问、费用口径和四模式任务示例，进阶保护说明保留在折叠区。
 
 ## 继续验收
+
+新一批 Windows 定向核验：窗口拖拽整文件 18 项、首页 5 项、首次配置 4 项通过；滚动条 10 项取得通过记录。Ubuntu 迁移后已保存并审阅旧 Minimal 的 3 份界面预期，Linux 13 项原场景只读回放通过；Worker 预览仍受 SQLite 缺口阻塞，完整基线未重新标绿。[记录](requirements/2026-11-16-regression-followup.md)
 
 新完整 Web 运行 `web-baseline-4` 已结束：3 组前置 10 项通过；主批次 1,063 项通过、12 失败、34 条件跳过，工作树干净。失败清单与源码 `857695d9f3` 固定在[新基线](requirements/2026-11-15-regression-baseline.md#新基线)；后续定向结果不替换这次完整运行。OpenAI 提供商配置场景本轮通过，其旧偶发超时仍保留。
 

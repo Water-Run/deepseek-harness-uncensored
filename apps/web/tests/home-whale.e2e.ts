@@ -177,12 +177,14 @@ describe('official home whale in the default web profile', () => {
     }
     await settings.update('ui-theme', { preference: 'light' })
     await expect.poll(() => page.locator('body').getAttribute('data-ds-dark-theme')).toBeNull()
+    await page.waitForFunction(() => !document.documentElement.hasAttribute('data-dsh-theme-reveal'))
     const lightInk = await canvas.evaluate(node => getComputedStyle(node).color)
     await clickHome()
     await expect.poll(visibleDots).toBe(true)
     try {
       await settings.update('ui-theme', { preference: 'dark' })
       await expect.poll(() => page.locator('body').getAttribute('data-ds-dark-theme')).toBe('')
+      await page.waitForFunction(() => !document.documentElement.hasAttribute('data-dsh-theme-reveal'))
       await expect.poll(() => canvas.evaluate(node => getComputedStyle(node).color)).not.toBe(lightInk)
       // A click during playback is ignored and a fading breach can already read as blank, so keep clicking until a
       // breach is visible after the theme switch.

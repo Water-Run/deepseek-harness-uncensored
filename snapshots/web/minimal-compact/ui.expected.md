@@ -1,6 +1,6 @@
 - banner:
   - navigation "Session hierarchy": "Remember the project requirements: imple"
-  - 'button "Conversation mode: minimal" [disabled]': minimal
+  - 'button "Conversation mode: Minimal mode" [disabled]': Minimal mode
   - button "Side question"
   - button "More actions"
   - button "Open right sidebar"
