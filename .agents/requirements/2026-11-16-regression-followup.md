@@ -87,4 +87,6 @@ Windows 运行时与许可声明检查共 46 文件、728 项单测通过。产�
 
 日期版本辅助函数和 MCP 关闭状态原有的 11 条 JSDoc 违规已补齐描述及独立的参数/返回段，未修改运行语句。全仓 `verify-export-jsdoc` 现通过，日志为 `20261116/export-jsdoc-complete.log`。
 
-新的 Linux 整轮 `web-baseline-6` 使用 `65eafb6a42` 运行代码，只读快照、4 个 Worker。该提交已通过 8 项产物、2 项聚合检查及 3 个前置文件共 10 项测试，主批次尚在运行。更新前的 11 份验证候选已保存并校验 tar、patch 和摘要，保留对应 stash；最终结果另行记录，不覆盖原基线。
+Linux 整轮 `web-baseline-6` 使用 `65eafb6a42` 运行代码，只读快照、4 个 Worker。8 项产物、2 项聚合检查及 3 个前置文件共 10 项通过。主批次为 243 个文件通过、5 个文件跳过，1 个文件收尾失败；共 1,077 项通过、32 跳过，没有普通测试断言失败，整体仍退出 1。最终工作树干净。更新前的 11 份验证候选保留 tar、patch、摘要与 stash，不覆盖原基线。
+
+唯一收尾失败来自旧 PTC 的 system-prompt pin：当前组合包含此前已实现的破甲提示词和 `read_side_context` SDK，而可读预期仍是上游基础提示词。该 sidecar 已从本轮备份中取出、核对原始摘要并检查差异，Linux 原始用例只读复验 2 项通过。只更新当前组合的可读提示词预期；所有 `session.*.jsonl` 原始输入逐字节不变，writer、工具 schema、工作区与 UI 预期均未修改。证据为 `ptc-header-replay.{json,log}`、`ptc-retained-inputs.json`、`ptc-root-inputs-unchanged.json`。随后再做最终整轮，不把这次定向通过写成原整轮全绿。
