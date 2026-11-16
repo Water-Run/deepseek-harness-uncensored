@@ -133,12 +133,14 @@ Linux `.3` 实包原清单为 861 个 npm 包和 12 项待核查。`@deepseek-ai
 - [x] 原文随 `LICENSES` 资源分发，并在准备树中按实际依赖复制到 `dsh/licenses`；没有更改第三方代码或声明其重新授权。
 - [x] 六项新增测试覆盖嵌套/作用域包、内部 package.json 排除、精确版本、README 授权文字、未解决项、摘要拒绝和 I/O 错误。
 
-## 最新检查包仍需核查的 7 项
+## 最新检查包的材料核查
+
+`2026.11.16.2` 的实际清单为 Windows 919 包中 6 项、Linux 921 包中 8 项待核查。clean-git-ref 的归属与实装复核已完成，其他条目继续保留，不将清点通过解释成许可兼容性结论。
 
 | 包与版本 | 剩余核查 |
 | --- | --- |
 | brotli 1.3.3 | 已补 Google 解码器、固定子模块和 Emscripten 运行时声明，包装代码原始署名、精确编译器版本及链接组件清单待核对 |
-| clean-git-ref 2.0.1 | 已补所声明的 Apache 2.0 正文，上游专属署名和整合发行核对仍待完成 |
+| clean-git-ref 2.0.1 | 发布归属与实装内容复核完成；`.16.2` 已移除该精确版本的材料缺口标记，原包记录保留 |
 | dfa 1.2.0 | npm 包及固定源提交没有独立许可原文 |
 | fontkit 2.0.4 | 已补八张 Mac 编码表的归属声明。该版本的完整许可原文与 Apple 数据分发条款仍待核对 |
 | frida 17.23.2 | 版本及源码链已核对，Node 绑定和预构建组件的完整署名仍待核查 |
@@ -151,7 +153,7 @@ Linux `.3` 实包原清单为 861 个 npm 包和 12 项待核查。`@deepseek-ai
 
 `clean-git-ref@2.0.1` 的 npm 归档已按发布的 SHA-512 完整性值复核，共三个文件。npm 固定提交 `bf3c8afc8032bcdc6a53634c18b601dc6df478fb` 的完整 Git 树没有独立 LICENSE 或 NOTICE；发布归档中没有额外版权头，包中声明 Apache-2.0，作者为 Eli White。所声明的 Apache 正文已在补充声明中分发。
 
-当前 Windows 安装版实际 ASAR 中的 `lib/index.js` 和 README 与发布归档逐字节一致；package.json 只有 `scripts` 被准备流程移除，名称、版本、作者、许可、仓库与主页字段均保留。由此完成原待办的发布归属与整合分发核对，源码清点器不再将该精确版本标为材料缺口。其他版本不沿用此结论，错误版本与摘要变动继续拒绝。当前安装包保存的原清单仍有 7 项，下一包或独立投影复算后再记录新数量；此项不替代总体许可兼容性审查。
+Windows `.16.1` 实际 ASAR 中的 `lib/index.js` 和 README 与发布归档逐字节一致；package.json 只有 `scripts` 被准备流程移除，名称、版本、作者、许可、仓库与主页字段均保留。由此完成原待办的发布归属与整合分发核对，清点器不再将该精确版本标为材料缺口。其他版本不沿用此结论，错误版本与摘要变动继续拒绝。`.16.2` 实际清单已复算为 Windows 6 项、Linux 8 项待核查，原包记录仍保留；此项不替代总体许可兼容性审查。
 
 证据在 `20261116/notice-review/` 的 npm 归档、`clean-git-ref-2.0.1-inventory.json`、`clean-git-ref-installed.json` 与 `read-installed-clean-git.mjs`。原始登记为 `20261116/clean-git-ref-2.0.1-registry.json`。[发布归档](https://registry.npmjs.org/clean-git-ref/-/clean-git-ref-2.0.1.tgz) · [固定提交](https://github.com/elicwhite/clean-git-ref/tree/bf3c8afc8032bcdc6a53634c18b601dc6df478fb)
 

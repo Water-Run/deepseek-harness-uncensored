@@ -1,13 +1,13 @@
 # DSHU 开发交接
 
-**Goal「实现DSHU」保持活动。** 当前 34 项完成、11 项进行中，另有 3 项未来计划。实际剩余额度达到 1% 时按用户规则收尾；最近实查剩余 13%。Windows x64 优先，Linux x64 同步；macOS、Android＋Fedora PRoot、全新安装器本轮不开发。
+**Goal「实现DSHU」保持活动。** 当前 35 项完成、10 项进行中，另有 3 项未来计划。实际剩余额度达到 1% 时按用户规则收尾；最近实查剩余 12%。Windows x64 优先，Linux x64 同步；macOS、Android＋Fedora PRoot、全新安装器本轮不开发。
 
 ## 当前交付
 
 | 项目 | 已核对状态 |
 | --- | --- |
-| 产品版本 | `2026.11.16.1`；内部版本 `2026.1116.1` |
-| 构建源码 | `f8c87121c7184df3835225d71e6afd1619f54c08`，干净工作树；后续文档提交不改变这份产物 |
+| 产品版本 | `2026.11.16.2`；内部版本 `2026.1116.2` |
+| 构建源码 | `668ec5146dfbfdcf03becae372156b78d71c509a`，干净工作树；后续文档提交不改变这份产物 |
 | DSH 内核 | `0.2.2-rc.3`，`38a6a5c965aa99ab525161efb7cc5cf1fe62fced` |
 | REA | `6.9.0`，`d74549e495c58eb4a560279fd9f05508401ea0a0`，255 项目录 |
 | Windows x64 | 已保留数据安装并启动，关于、CLI、文件资源与卸载登记一致 |
@@ -18,25 +18,27 @@ Windows 安装包和回执位于 `%USERPROFILE%/DSHU-Deliveries/20261116`；Linu
 
 | 产物 | SHA-256 |
 | --- | --- |
-| Windows x64 EXE | `e3cb128381364e4ea78dc2ceae66c5ebb292bb361b32138f357657eb4845b6a2` |
-| Linux x64 tar.gz | `6f1dac6abd24d91f20ea5f6aadb623a89b36f0ceac378c5b5046a61c3b2a331e` |
-| Linux x64 deb | `b2c16511cf448d44109f64896ff77ddfb468c0497d8dc601e23749098f35755e` |
+| Windows x64 EXE | `329fcf84bc14dae179fb17cec1e3a83ef4cad3ba21d4ee8a02b9820b58ab973b` |
+| Linux x64 tar.gz | `02c5909ca9ac9bacfc8787d67367e3306325adc991c6a5a87aa6ad8169f6adfa` |
+| Linux x64 deb | `6c5d68a0aaef255a1851d6ed8fbfe6995da4d3b1ba81b2944735408b800c6b4e` |
 
 ## 本轮验收
 
 - 四模式中英文指南各七节、每种三组任务示例，保留模式色并补入准备材料与交付检查。Windows 实装逐一核对七节、三组示例与焦点恢复；337 项模式单测、8 组浏览器布局组合通过，实际截图已检查。[指南](requirements/2026-11-15-mode-guides.md)
-- Windows 安装前后 7,318 个用户文件及官方 DSH 两份关键文件摘要一致；CLI、四模式、新会话、受控命令、旁问重开/清理及主旁删除通过。重开弹窗同时位于视觉和焦点前台，且复用了同一 DOM 节点；星期控件在 1280/800px 无横向溢出。
+- Windows 安装前后 7,323 个用户文件及官方 DSH 两份关键文件摘要一致；CLI、四模式、新会话、受控命令、旁问重开/清理及主旁删除通过。重开弹窗同时位于视觉和焦点前台，且复用了同一 DOM 节点；星期控件在 1280/800px 无横向溢出。新版已启动供用户检查。
 - 两平台实际产物通过 REA 255 项目录与 JavaScript 分析、Office 文档往返、PDF/图像转换与重算、CLI 离线插件安装卸载和长路径终端检查。未调用付费模型。
-- Linux deb/tar.gz 的 ASAR 与可执行文件摘要一致；实际归档在隔离 X11/Wayland 中通过主界面、默认工作区和重载，renderer 保留 seccomp 与 NoNewPrivs，未使用 `--no-sandbox`。本轮原生探测的控制台和失败响应列表为空；这不代替原生门户、实体桌面或正式更新验收。旧版的 GitHub 403 记录仍保留。
-- npm 声明仍有 Windows 919 包中 7 项、Linux 921 包中 9 项待核查；补充原文与摘要已在实包中核对。不能将可运行解释成许可审查完成。
+- Linux deb/tar.gz 的 ASAR 与可执行文件摘要一致；实际归档在隔离 X11/Wayland 中通过主界面、默认工作区和重载，renderer 保留 seccomp 与 NoNewPrivs，未使用 `--no-sandbox`。两份原生探测均记录 GitHub 发行 API 403，不能称为控制台或网络全绿；门户、实体桌面和正式更新验收继续保留。
+- npm 声明仍有 Windows 919 包中 6 项、Linux 921 包中 8 项待核查；clean-git-ref 的归属与实装复核已进入本包，补充原文及摘要按实包核对。不能将可运行解释成许可审查完成。
+
+旧版退出时 Restart Manager 返回 351，安装尚未开始。随后仅终止已核验的界面主进程，Host 按既有 IPC 断连流程收尾并以 0 退出，确认所有 DSHU 进程结束后再备份与安装；没有直接结束 Host 或重启系统。失败和实际退出回执分别保留在候选目录的 `stopped-before-update-rm-failed.json`、`interface-disconnect-result.json`。
 
 ## 当前完整 Web 基线
 
-`web-baseline-5` 以 `f8c87121c7` 干净源码重新构建后运行：3 组前置共 10 项通过；主批次 1,072 通过、3 项测试失败、34 跳过，另有 2 个准备/收尾失败文件，共 5 个失败文件；最终工作树干净。[后续记录](requirements/2026-11-16-regression-followup.md)
+`web-baseline-7` 以交付源码 `668ec5146d` 干净构建后运行：3 组前置 10 项、主批次 1,077 项通过，32 项条件跳过，无失败文件，退出 0，最终工作树干净。全部 JSON 和原始日志位于 `20261116/web-baseline-7/`。[后续记录](requirements/2026-11-16-regression-followup.md)
 
-后续源码已补齐菜单锚点裁切后的关闭和生命周期、目录稳定排序、终端创建就绪及 PTC 显式测试组合。Linux 六文件 42 项只读回归、Windows 25 项菜单/翻译检查通过；完整 GUI 的 4 个既有失败已修正，并以 172 项定向检查复验。当前安装版不包含这些源码修改。[批次 V](requirements/2026-11-16-regression-followup.md#批次-v菜单裁切与回放稳定性源码未打包)
+菜单锚点裁切、目录稳定排序、终端创建就绪和 PTC 显式测试组合已随本包交付。Linux 六文件 42 项、Windows 25 项定向检查及 GUI 的 172 项修复复验继续保留，原完整 GUI 的四个失败不被删去。[批次 V](requirements/2026-11-16-regression-followup.md#批次-v菜单裁切与回放稳定性源码未打包)
 
-仓库文档另恢复 README 的四模式蓝、红、绿、金色页头，新增[中英文使用手册](../docs/user/guide/dshu.zh.md)与离线文档索引。手册补齐首次任务、上下文、额度、记忆、工具、默认值和排错，并纠正 Web 入门页“必须选择工作区才能发消息”的过期说明。这些文档更新未改变当前安装包。
+README 恢复四模式配色，新增[中英文使用手册](../docs/user/guide/dshu.zh.md)及离线索引，涵盖首次任务、上下文、费用、记忆、工具、默认值和排错；Web 入门页已纠正必须选择工作区才能发送消息的过期说明，相关文件已包含于交付源码。
 
 Worker 的真实 SQLite 接入与完整浏览器预览已通过；保持初始化/存储失败时的额度拒绝，不将单 Worker 账本解释为跨 Worker 或浏览器重启持久化。[批次 W](requirements/2026-11-16-regression-followup.md#批次-wworker-sqlite-与完整预览源码未打包)
 
@@ -44,32 +46,34 @@ Worker 的真实 SQLite 接入与完整浏览器预览已通过；保持初始�
 
 下一步处理：
 
-1. 完成正在运行的同一提交完整 Web，保留原基线，不将定向通过代替整轮通过。
+1. 核对原生探测的 GitHub 403 与重试状态。随后同机 Windows urllib 请求返回 200、59 次剩余额度和空发行列表；不能据此确定原生探测当时的失败原因。
 2. 两个额外 Windows POSIX 日志比较含原生 ACL 技能和部分文件沙箱披露差异；行为断言通过，完整比较未通过，不能删除平台披露凑通过。
-3. 继续 TODO 的平台、发行、许可及默认关闭的进阶保护验收。本轮不开发未来三个平台/安装器计划。
+3. 继续 TODO 的 10 项平台、发行、许可及默认关闭的进阶保护验收。本轮不开发未来三个平台/安装器计划。
 
-Linux 整轮 `20261116/web-baseline-6` 已结束，源码为 `65eafb6a427f41c379a9e7c4b6c62c634a12ea72`。8 项产物、2 项聚合和前置 10 项通过；主批次 1,077 项通过、32 跳过，因旧 PTC 提示词预期的收尾校验失败而退出 1，最终工作树干净。句柄 `20412` 与脚本 PID `434` 已终止，不再轮询或据此重启。原始 Session 与 writer 不改动，仅补齐当前组合的提示词 sidecar，随后该文件 2 项只读重放通过；等待最终整轮复验。
+旧 `web-baseline-6` 的 PTC 提示词收尾失败保留原记录；仅补齐当前组合的可读 sidecar，所有原始 Session、writer、工具 schema、工作区和 UI 预期不变。修复后的两项只读重放、三项语料检查及最终整轮均已通过。先前句柄 `20412`、`45006` 及两平台打包、验包、安装验证作业均已终止，不据旧状态文件重启。
 
 此前 `web-baseline-4` 的 1,073 通过、12 失败及各批定向结果继续保留，不能用本轮或后续通过覆盖旧失败。[历史回归](requirements/2026-11-15-regression-baseline.md)
 
 ## 工作树与恢复入口
 
-- Windows Worker 的 11 份候选文件已从 stash 恢复并逐文件核对原始字节。备份位于 `20261116/worker-preview-before-20261116-1.{zip,json,patch}`，stash `a9921e56af9277a9e3917031a7052dc298ba8c29` 继续保留。不要 reset 或覆盖；它们未包含在本检查包中。
-- SQLite 官方 WASM `3.54.1-build1` 已接入 Worker VFS 与生命周期。运行时及许可声明 46 文件 728 项单测、真实账本集成、10 项构建和完整浏览器预览通过；尚未进入安装包。早期内存库探测继续保留在 `20261116/worker-sqlite-probe/`，本轮依据与失败记录见[批次 W](requirements/2026-11-16-regression-followup.md#批次-wworker-sqlite-与完整预览源码未打包)。
-- Ubuntu 已迁移到 `D:/WSL/Ubuntu`，可正常使用。私有检出 `/home/linzh/.cache/dshu-verification/linux-rc2-20261113.iLMw1C/source` 当前为 `65eafb6a42`。本次更新前的 11 份文件已逐字节核对 tar 和摘要，保存在 `20261116/web-baseline-6/` 的 `private-candidate-*`，另保留 stash `faee5b828ba8a877026376f96e41777df8fbe5ac`。迁移前的 8 份候选仍在 `20261115/web-baseline-5/`，不要重新覆盖已提交修正。完整 WSL 备份在 `D:/Codex-disk-relief/ubuntu-pre-migration-2026-11-15/ubuntu-backup.tar`。
-- 当前安装前数据：`D:/DSHU-Backups/20261115T172839Z-before-20261116-1-data`，7,318 文件已校验，权限限当前用户、SYSTEM 和管理员。
-- 上一版恢复安装器：`20261115/DSHU-2026.11.15.9-core-0.2.2-rc.3-REA-6.9.0-win-x64-857695d.exe`，SHA-256 `a7d9f233180d022c33199931e8a276f4e09fcae15fc84658f7f7f604c6b15011`，安装前再次核对。`.8` 程序备份及更早回执保留，自动回退尚未验收。
-- 当前回执：`current-windows-manifest.json`、`current-linux-manifest.json`、`installed-update-result.json`、`installed-runtime-result.json`、`installed-cli-version.json`、`linux-native-x11-16-1-startup.json`、`linux-native-wayland-16-1.json`。均在 `20261116` 交付目录。
+- Windows Worker 的原始候选备份位于 `20261116/worker-preview-before-20261116-1.{zip,json,patch}`，stash `a9921e56af9277a9e3917031a7052dc298ba8c29` 保留用于对照。候选已合并并随 `.16.2` 交付，不以旧备份覆盖当前源码。
+- SQLite 官方 WASM `3.54.1-build1` 已接入 Worker VFS 与生命周期并随本包交付。运行时及许可声明 46 文件 728 项单测、真实账本集成、10 项构建及完整预览通过；早期探测与失败仍在 `20261116/worker-sqlite-probe/` 和[批次 W](requirements/2026-11-16-regression-followup.md#批次-wworker-sqlite-与完整预览源码未打包)。
+- Ubuntu 位于 `D:/WSL/Ubuntu`，私有检出 `/home/linzh/.cache/dshu-verification/linux-rc2-20261113.iLMw1C/source` 当前为 `668ec5146d`。更新前 11 份文件的 tar、patch、摘要在 `20261116/web-baseline-6/`，stash `faee5b828ba8a877026376f96e41777df8fbe5ac` 保留；已复验提示词的独立备份及 stash 记录在 `web-baseline-7/`。迁移前八份候选与完整 WSL 备份继续保留，不覆盖已提交修正。
+- 当前安装前数据：`D:/DSHU-Backups/20261115T231734Z-before-20261116-2-data`，7,323 文件已校验，权限限当前用户、SYSTEM 和管理员。
+- 上一版恢复安装器：`20261116/DSHU-2026.11.16.1-core-0.2.2-rc.3-REA-6.9.0-win-x64-f8c8712.exe`，SHA-256 `e3cb128381364e4ea78dc2ceae66c5ebb292bb361b32138f357657eb4845b6a2`，恢复前核对摘要。原 `.16.1` 回执在 `accepted-2026.11.16.1/`，更早备份保留，自动回退未验收。
+- 当前回执：根目录的 `current-windows-manifest.json`、`current-linux-manifest.json`、`installed-update-result.json`、`installed-runtime-result.json`、`installed-cli-version.json`；候选目录的 `candidate-2026.11.16.2/linux-native-x11-16-2-startup.json`、`linux-native-wayland-16-2.json`。均在 `20261116` 交付目录。
 
 ## 后续范围与工具链
 
-继续 [TODO](TODO.md) 的 11 项：完整 Web、门户/实体平台、远端与商业引擎、默认关闭的进阶保护及审计、自动回退、重启、正式更新与依赖审查。保护按域名/主机规则、服务器/数据库、审计联动的顺序推进；原生 Cua Driver 保护目前只通过源码验收，未进入当前产品组合。[执行层](requirements/2026-11-02-native-execution.md)
+继续 [TODO](TODO.md) 的 10 项：门户/实体平台、远端与商业引擎、默认关闭的进阶保护及审计、自动回退、重启、正式更新、仓库整理与依赖审查。保护按域名/主机规则、服务器/数据库、审计联动的顺序推进；原生 Cua Driver 保护目前只通过源码验收，未进入当前产品组合。[执行层](requirements/2026-11-02-native-execution.md)
 
 当前机器默认 MSVC `14.51.36231` 缺少对应 Spectre 库，预检会拒绝；已实查 `14.52.36629` 组件齐全，以 `VCToolsVersion=14.52.36629`、`MSVCPreviewEnabled=true` 通过完整打包。没有绕过 Spectre 检查，也没有安装或移除系统工具。保留失败与成功的 preflight 日志，后续先核对实时工具集。
 
 保持 main、中文提交并正常推送，不使用 Computer Use。进阶保护与全部限额默认关闭，输入预测默认开启，余额默认 15 秒且最小 3 秒，旁问关闭清理默认关闭，`/clear` 只在旁问中可用。
 
 ## 清理与工作约束
+
+`.16.2` 重复解包目录 `apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/runs/2026-11-15T22-30-02.352Z-xXBc25/win-unpacked` 已核对 16,414 文件、1,590,804,858 字节，无链接和进程引用，恢复安装器及实装关键文件摘要一致。删除命令在创建进程前被自动审批以 `blocked by policy` 拒绝，约 1.48 GiB 仍保留，没有换方式重试。证据为 `windows-16-2-unpacked-cleanup-{audit,rejected}.json`；不要再删除此目录或包含它的父目录。
 
 本轮 `2026.11.16.1` 的重复目录 `apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/runs/2026-11-15T16-57-51.186Z-97sD6H/win-unpacked` 已核对 16,411 文件、1,590,740,486 字节，无链接和进程引用，安装器及实装验证通过。删除被自动审批以 `blocked by policy` 拒绝，约 1.48 GiB 保留，未换方式重试。记录在 `20261116/windows-unpacked-cleanup-{audit,rejected}.json`。不要再尝试此目录或包含它的父目录。
 

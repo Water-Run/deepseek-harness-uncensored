@@ -7,7 +7,7 @@
 
 DSHU 是面向开发、网安、逆向与写作的智能体工作台。它在 DeepSeek Harness 上集成破甲提示词、四种模式、旁问、额度控制和跨对话记忆，使用你选择的模型完成任务。官方 DSH 与 DSHU 可同时安装，分别使用自己的程序目录、配置、会话和更新渠道。
 
-当前检查版 **2026.11.16.1** 基于 **DSH 0.2.2-rc.3**，内置 **REA 6.9.0**。Windows 已保留数据安装，Linux deb 与便携归档已完成版本、API 和隔离 X11/Wayland 启动检查。源码后续修复与正式发行验收继续推进；安装版包含什么、哪些仍未完成，见[开发进度](.agents/TODO.md)与[交付记录](.agents/HANDOFF.md)。
+当前检查版 **2026.11.16.2** 基于 **DSH 0.2.2-rc.3**，内置 **REA 6.9.0**。Windows 已保留数据安装，Linux deb 与便携归档通过版本、API 和隔离 X11/Wayland 检查。同一源码的完整 Web 回归 **1,087 项通过、32 项条件跳过、无失败文件**；正式发行及完整平台验收继续推进，见[开发进度](.agents/TODO.md)与[交付记录](.agents/HANDOFF.md)。
 
 版本采用 `YYYY.MM.DD.N`，最后一项为当天构建序号。关于页、CLI、安装包和 Windows 登记使用相同日期版本；DSH 内核与 REA 的来源独立记录。打包与更新规则见[打包指南](apps/desktop/packaging/README.zh.md)。
 
@@ -89,7 +89,7 @@ DSHU 是面向开发、网安、逆向与写作的智能体工作台。它在 De
 
 ## 安装与开发
 
-- **桌面**　Windows x64 与 Linux x64 的当前检查版均为 `2026.11.16.1`。Windows 已完成保留数据更新；Linux 已检查 deb、tar.gz、隔离 API、X11/Wayland 主界面、重载及渲染沙箱。原生门户、Debian/Fedora 和实体桌面仍待验收。macOS arm64、Android＋PRoot Fedora 和全新安装器仅保留未来计划。签名与正式在线升级尚未验收，未来发行使用本仓库的 [GitHub Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases)。
+- **桌面**　Windows x64 与 Linux x64 的当前检查版均为 `2026.11.16.2`。Windows 已保留数据更新；Linux 已检查 deb、tar.gz、隔离 API、X11/Wayland 主界面、重载及渲染沙箱。原生门户、Debian/Fedora 和实体桌面仍待验收；原生探测出现过 GitHub 发行 API 403，更新链路单独跟进。macOS arm64、Android＋PRoot Fedora 和全新安装器仅保留未来计划。签名与正式在线升级尚未验收，未来发行使用本仓库的 [GitHub Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases)。
 - **源码**　使用 Node.js 24.22.1、Git 与 Corepack。依次运行 `corepack pnpm install`、`corepack pnpm run build`、`corepack pnpm dsh web`。CLI 安装见[安装脚本](scripts/install-uncensored.ps1)。
 - **独立标识**　默认数据目录为 `~/.dsh-uncensored`，可用 `DSH_UNCENSORED_HOME` 修改。CLI 为 `dsh-uncensored`，深链为 `dshu://open`。关于页列出作者、DSHU 与 DSH 版本、构建时间、源码提交及依赖来源。
 

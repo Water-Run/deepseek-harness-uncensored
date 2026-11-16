@@ -90,3 +90,9 @@ Windows 运行时与许可声明检查共 46 文件、728 项单测通过。产�
 Linux 整轮 `web-baseline-6` 使用 `65eafb6a42` 运行代码，只读快照、4 个 Worker。8 项产物、2 项聚合检查及 3 个前置文件共 10 项通过。主批次为 243 个文件通过、5 个文件跳过，1 个文件收尾失败；共 1,077 项通过、32 跳过，没有普通测试断言失败，整体仍退出 1。最终工作树干净。更新前的 11 份验证候选保留 tar、patch、摘要与 stash，不覆盖原基线。
 
 唯一收尾失败来自旧 PTC 的 system-prompt pin：当前组合包含此前已实现的破甲提示词和 `read_side_context` SDK，而可读预期仍是上游基础提示词。该 sidecar 已从本轮备份中取出、核对原始摘要并检查差异，Linux 原始用例只读复验 2 项通过。只更新当前组合的可读提示词预期；所有 `session.*.jsonl` 原始输入逐字节不变，writer、工具 schema、工作区与 UI 预期均未修改。证据为 `ptc-header-replay.{json,log}`、`ptc-retained-inputs.json`、`ptc-root-inputs-unchanged.json`。随后再做最终整轮，不把这次定向通过写成原整轮全绿。
+
+## 最终整轮与实包复验
+
+`web-baseline-7` 使用干净源码 `668ec5146dfbfdcf03becae372156b78d71c509a`：8 项产物、2 项聚合检查通过；HMR、客户端插件和 SVG 三个前置文件共 10 项通过。主批次 1,077 项通过、32 项条件跳过，无失败文件，整体退出 0，最终工作树干净。四份 JSON、原始日志和最终状态保存在 `20261116/web-baseline-7/`，先前各轮失败没有覆盖或删除。
+
+该源码已生成 Windows/Linux `2026.11.16.2` 实际产物。Windows 保留数据更新与安装后检查、Linux 归档/API 和隔离 X11/Wayland 检查通过；原生探测仍记录发行 API 403，更新验收单列。[交付记录](2026-11-16-delivery.md)
