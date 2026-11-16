@@ -2,11 +2,11 @@
 
 状态：进行中，不代表整合发行的许可核对已完成。用户的 GPL 许可偏好、上游 Credit 和各组件原有许可保持不变。
 
-当前 `2026.11.16.4` Windows 检查版包含 919 个 npm 包、21 份补充声明、6 项待核查；Linux 包含 921 个包、26 份补充声明、8 项待核查。本次直接读取 Windows 已安装 ASAR 和已验收 Linux tar.gz 的 ASAR，核对产品版本和唯一 npm 声明清单；两种 Linux 归档的 ASAR 摘要相同，见[本版交付记录](2026-11-16.4-delivery.md)。适用补充原文、Electron、安装器及 Office 声明的摘要核对保留。旧版本数量在下文保留为历史。
+当前 `2026.11.17.1` Windows 检查版包含 919 个 npm 包、21 份补充声明、6 项待核查；Linux 包含 921 个包、26 份补充声明、8 项待核查。本次直接读取 Windows 已安装 ASAR 和已验收 Linux tar.gz 的 ASAR，核对产品版本、构建源码和唯一 npm 声明清单；两种 Linux 归档的 ASAR 摘要相同，见[本版交付记录](2026-11-17.1-delivery.md)。适用补充原文、Electron、安装器及 Office 声明的摘要核对保留。旧版本数量在下文保留为历史。
 
 Windows 的六项为 `brotli@1.3.3`、`dfa@1.2.0`、`fontkit@2.0.4`、`frida@17.23.2`、`proxy-agent-negotiate@1.1.0`、`minimisted@2.0.1`。Linux 另有 `@img/sharp-libvips-linux-x64@1.3.4` 和 `sherpa-onnx-linux-x64@1.13.8`。`clean-git-ref@2.0.1` 的材料缺口已核查，不再列入当前待核查项。不能以程序可运行或清点通过推定总体许可兼容性结论。
 
-当前实包清点证据为 `%USERPROFILE%/DSHU-Deliveries/20261116/notice-review/current-16-4-inventory.json`，读取入口为同目录的 `read-current-inventory-16-4.mjs`。仅提取清单，不修改安装、第三方记录或审查标记；前版清点原样保留。
+当前实包清点证据为 `%USERPROFILE%/DSHU-Deliveries/20261117/notice-review/current-17-1-inventory.json`，读取入口为交付目录的 `read-current-notices.mjs`。仅提取清单，不修改安装、第三方记录或审查标记；前版清点原样保留。
 
 ## Office 0.2.3 声明清点（2026-11-13）
 
