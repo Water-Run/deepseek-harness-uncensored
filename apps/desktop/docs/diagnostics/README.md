@@ -37,6 +37,8 @@ Before the first fatal dialog opens, Electron writes a crash report to the platf
 
 The file `crash-<UTC time>-<source>.log` records the source (`host` for a Host exit, `web-boot` for a renderer boot failure, `renderer` for a renderer or document failure, `main` for a shell error), whether the backend had reached ready, application and runtime versions, the error with its enumerable properties and cause chain (cut at 256 KiB), the Host’s own error and explicitly selected startup metadata (at most 64 Ki characters, including a truncation notice; startup errors reserve space for metadata by limiting the original error and startup-entry details to 8 Ki characters each, with explicit truncation notices) when the Host reported a startup failure over IPC before exiting, and the primary window’s recent error-level console output (at most 64 KiB).
 
+When a native Host exit is the first reported failure, `hostExit` records its PID, raw `exitCode`, unsigned 32-bit `exitCodeHex`, termination `signal`, and whether shutdown was requested and acknowledged. Signal-only exits have null code fields; a null signal means Node reported no signal. These observations do not identify who terminated the process or why. Earlier Host-reported failures retain their original diagnostics.
+
 A Host exit report therefore contains the retained stderr tail, which may include plugin output. A fatal failure during shutdown writes a report without opening a dialog. Files are owner-only where the platform supports it; startup keeps the ten newest reports and removes older ones without touching other files in the directory.
 
 <a id="operation-records"></a>

@@ -126,7 +126,46 @@ process.send({ type: 'ready', url: 'http://127.0.0.1:3080/' }, () => { ${trigger
     expect(report).toContain('phase: running')
     expect(report).toContain("hostRunId: 'c254ab28-97c9-4382-95e6-2db9c66f98c8'")
     if (kind === 'exception') expect(report).toContain('qualification-runtime-cause')
-    if (kind === 'exit') expect(report).toContain('7')
+    if (kind === 'exit') {
+      expect(failure).toHaveProperty('hostExit.pid', expect.any(Number))
+      expect(failure).toMatchObject({ hostExit: {
+        exitCode: 7, exitCodeHex: '0x00000007', signal: null,
+        shutdownRequested: false, shutdownAcknowledged: false,
+      } })
+      expect(report).toContain("exitCodeHex: '0x00000007'")
+    }
+  })
+
+  it.skipIf(process.platform === 'win32')('retains the actual POSIX termination signal in a native exit report', async () => {
+    const failed = Promise.withResolvers<Error>()
+    const runtime = projectWithHost(`
+process.send({ type: 'ready', url: 'http://127.0.0.1:3080/' }, () => process.kill(process.pid, 'SIGTERM'))
+`)
+    const host = hostProcess(runtime, runtime, failed.resolve)
+    await host.start()
+    const failure = await failed.promise
+    await host.stop()
+    expect(failure).toHaveProperty('hostExit.pid', expect.any(Number))
+    expect(failure).toMatchObject({ hostExit: {
+      exitCode: null, exitCodeHex: null, signal: 'SIGTERM',
+      shutdownRequested: false, shutdownAcknowledged: false,
+    } })
+  })
+
+  it.skipIf(process.platform !== 'win32')('retains the full Windows exit status without attributing its cause', async () => {
+    const failed = Promise.withResolvers<Error>()
+    const runtime = projectWithHost(`
+process.send({ type: 'ready', url: 'http://127.0.0.1:3080/' }, () => process.exit(0x40010004))
+`)
+    const host = hostProcess(runtime, runtime, failed.resolve)
+    await host.start()
+    const failure = await failed.promise
+    await host.stop()
+    expect(failure).toHaveProperty('hostExit.pid', expect.any(Number))
+    expect(failure).toMatchObject({ hostExit: {
+      exitCode: 1073807364, exitCodeHex: '0x40010004', signal: null,
+      shutdownRequested: false, shutdownAcknowledged: false,
+    } })
   })
 
   it('persists validated operation IPC across Host lifetimes and isolates a failing diagnostic sink', async () => {
@@ -282,7 +321,7 @@ ${HTTP_HOST}`)
     const { url } = await host.start()
     await fetch(new URL('/crash', url))
     await expect.poll(() => failure.mock.calls.length).toBe(1)
-    expect(failure).toHaveBeenCalledWith(new Error('dsh desktop host exited with 7: plugin crashed'))
+    expect(failure).toHaveBeenCalledWith(expect.objectContaining({ message: 'dsh desktop host exited with 7: plugin crashed' }))
   })
 
   it('retains only recent diagnostics from a noisy child', async () => {

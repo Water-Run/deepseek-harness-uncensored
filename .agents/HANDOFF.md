@@ -24,6 +24,8 @@ Windows 安装包和回执位于 `%USERPROFILE%/DSHU-Deliveries/20261116`；Linu
 
 ## 本轮验收
 
+- Host 原生退出新增 PID、原始/十六进制状态、信号及关闭状态的诊断。Windows/Linux 定向回归通过，受控实际进程验证了 `0x40010004` 与 SIGTERM；原先用户配置的异常原因仍未知。该改动等待下一版检查包。[记录](requirements/2026-11-06-stability.md#host-原生退出事实2026-11-16)
+
 - Frida 在 Windows 已安装版及 Linux `.16.2` 实际归档中通过附加、注入、卸载、关闭、重置及释放验收。Linux 目标显式允许测试父进程及其后代调试，系统 ptrace 设置未改；两组独立进程并发通过，未授予许可的负对照因真实权限拒绝失败。其他目标与引擎继续按原清单验收。[记录](requirements/2026-11-06-stability.md#linux-frida-附加与回收2026-11-16)
 
 - 交付包之后另补 `experimental-inspector/protected` 源码：保护组合在 Worker 创建前拒绝任意 Host 调试，规则全关时也明确报告不可用；只读 Session Inspector 保留。真实 CDP 测试证实关闭 Worker 后 Host 回调仍执行，因此未采用撤销原型。源码、完整构建与实际组件解包入口验收通过，安装中的 `.16.2` 不包含新入口。[记录](requirements/2026-11-02-native-execution.md#inspector-调试准入2026-11-16源码)
@@ -51,6 +53,8 @@ Worker 的真实 SQLite 接入与完整浏览器预览已通过；保持初始�
 日期版本辅助函数和 MCP 关闭状态的 11 条 JSDoc 违规已清理；仅调整接口说明，`export-jsdoc-complete.log` 显示全仓无违规，不改变运行行为。
 
 下一步处理：
+
+本次完成退出诊断源码节点后，准备同版本矩阵 `2026.11.16.3` 的未签名检查包并核对安装；构建状态放在交付目录 `package-16-3-status.json`，构建时不得改工作树。当前实际交付和安装仍为表中的 `.16.2`。
 
 1. 继续观察真实用户配置的 Host 退出。GitHub 403 补充原生探测已返回 200、49 次剩余额度和空发行列表，失败响应为零；原失败时段未捕获正文，原因仍不作确定归因。新增原生回执保存在 `candidate-2026.11.16.2/linux-native-wayland-16-2-diagnostic.json`，不覆盖原 403 证据。
 2. 两个额外 Windows POSIX 日志比较含原生 ACL 技能和部分文件沙箱披露差异；行为断言通过，完整比较未通过，不能删除平台披露凑通过。
