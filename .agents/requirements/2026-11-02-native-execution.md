@@ -10,7 +10,7 @@
 
 最终六文件 18 项回归通过，包含准入、普通 Inspector、关闭顺序、Worker 生命周期和上述真实 Host 效果。五类准入负对照均按预期失败，源码已恢复；不可用诊断有所属测试内的无密钥快照。没有打开交互式调试器或访问用户桌面；日志位于 `%USERPROFILE%/DSHU-Deliveries/20261116/` 的 `protected-inspector-current-acceptance.log`、`protected-inspector-refusal-negative.log` 和 `inspector-host-effect-after-disconnect.log`。
 
-8 项产物与随后 2 项聚合检查通过；依赖声明、398 个包的 NodeNext 声明入口、导出 JSDoc、改动文件 lint、README 与两组双语配对检查通过。实际 npm 包初次漏掉多入口构建生成的共享文件，清单已修正；最终解包后直接导入，在境内、生产完全保护、只读审计和全部关闭四种配置下均于依赖 Web 服务前拒绝。回执为 `protected-inspector-refusal-package-result.json` 和 `protected-inspector-refusal-packed-smoke.log`。这些是源码与组件验收，尚未进入 `2026.11.16.2` 安装包，也不代表独立部署、协议、入站及全部管理面已完成。
+8 项产物与随后 2 项聚合检查通过；依赖声明、398 个包的 NodeNext 声明入口、导出 JSDoc、改动文件 lint、README 与两组双语配对检查通过。实际 npm 包初次漏掉多入口构建生成的共享文件，清单已修正；最终解包后直接导入，在境内、生产完全保护、只读审计和全部关闭四种配置下均于依赖 Web 服务前拒绝。回执为 `protected-inspector-refusal-package-result.json` 和 `protected-inspector-refusal-packed-smoke.log`。随后 `.16.3` 实际安装包确认包含此入口，完整 Worker 预览严格回放通过；默认不启用。独立部署、协议、入站及全部管理面仍未完成。
 
 ## 原生 Cua Driver 准入（2026-11-15）
 
