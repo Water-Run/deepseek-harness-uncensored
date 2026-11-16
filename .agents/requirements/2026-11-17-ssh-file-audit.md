@@ -22,6 +22,8 @@
 
 材料在 `%USERPROFILE%/DSHU-Deliveries/20261117/`，统一前缀 `ssh-file-audit-`。`linux-final.log` 为扩大回归，`concurrent-{1,2}.log` 为并发，`snapshot-final.log` 为最终 Session 重放，`storage.log` 为 SQLite 故障检查，`built-smoke.log` 为实际模块检查。首次 lint 的测试类型与未绑定方法问题已修复，失败日志保留；没有降低门槛。
 
+打包前补验清理失败：helper 拒绝关闭未交付游标时，仍报告 `TargetAuditError/TARGET_AUDIT_UNCONFIRMED`，同时保留原审计错误及清理错误，不谎报游标已释放。完整 helper 关闭后再核对资源清空。该组 Windows/Linux 各 3 项通过，其后两项聚合编译通过；材料前缀为 `ssh-audit-cleanup-recovery-`。本次仅补充验收，运行时代码不变。
+
 ## 保留的缺口
 
 文件记录关联的是请求身份，不证明 helper 按 inode、挂载或别名实际匹配的中央资源 UUID；其 `ruleIds` 保持为空，不将已安装的全部资源伪报为命中。此类证明及中央资源联动、远端数据库映射、独立 Worker、入站、其他协议和实体部署继续按 [TODO](../TODO.md) 推进。既有两处冻结指南链接仍待用户确认例外，没有修改冻结文件或其双语记录。
