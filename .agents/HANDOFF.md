@@ -32,6 +32,8 @@ Windows 安装包和回执位于 `%USERPROFILE%/DSHU-Deliveries/20261116`；Linu
 
 旧版退出时 Restart Manager 返回 351，安装尚未开始。随后仅终止已核验的界面主进程，Host 按既有 IPC 断连流程收尾并以 0 退出，确认所有 DSHU 进程结束后再备份与安装；没有直接结束 Host 或重启系统。失败和实际退出回执分别保留在候选目录的 `stopped-before-update-rm-failed.json`、`interface-disconnect-result.json`。
 
+真实用户配置在北京时间 7:40 另有一次 Host 异常退出，码为 `1073807364`（`0x40010004`），界面写出了 host 崩溃记录；用户记不清是否曾主动结束进程，原因未定，不能据退出码认定具体终止方。随后受控重启的 Host 通过 IPC 断连以 0 收尾，再经 Explorer 启动的界面 PID `100748`、Host PID `128708` 已观察 9 分钟仍存活，未新增崩溃记录，不将短时未复现写成修复完成。继续前重新核对这些 PID 的实际身份；不得据旧 PID 结束进程。证据为 `user-app-explorer-launch.json`、`user-app-explorer-job-inspection.json` 和用户日志 `crash-2026-11-15T23-40-53-971Z-host.log`。
+
 ## 当前完整 Web 基线
 
 `web-baseline-7` 以交付源码 `668ec5146d` 干净构建后运行：3 组前置 10 项、主批次 1,077 项通过，32 项条件跳过，无失败文件，退出 0，最终工作树干净。全部 JSON 和原始日志位于 `20261116/web-baseline-7/`。[后续记录](requirements/2026-11-16-regression-followup.md)
@@ -46,7 +48,7 @@ Worker 的真实 SQLite 接入与完整浏览器预览已通过；保持初始�
 
 下一步处理：
 
-1. 核对原生探测的 GitHub 403 与重试状态。随后同机 Windows urllib 请求返回 200、59 次剩余额度和空发行列表；不能据此确定原生探测当时的失败原因。
+1. 继续观察真实用户配置的 Host 退出。GitHub 403 补充原生探测已返回 200、49 次剩余额度和空发行列表，失败响应为零；原失败时段未捕获正文，原因仍不作确定归因。新增原生回执保存在 `candidate-2026.11.16.2/linux-native-wayland-16-2-diagnostic.json`，不覆盖原 403 证据。
 2. 两个额外 Windows POSIX 日志比较含原生 ACL 技能和部分文件沙箱披露差异；行为断言通过，完整比较未通过，不能删除平台披露凑通过。
 3. 继续 TODO 的 10 项平台、发行、许可及默认关闭的进阶保护验收。本轮不开发未来三个平台/安装器计划。
 
