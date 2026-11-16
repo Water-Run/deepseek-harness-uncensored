@@ -22,7 +22,7 @@ Windows 产物位于 `%USERPROFILE%/DSHU-Deliveries/20261116`，Linux 归档位�
 - 新包的实际 REA/JavaScript、Office 文档往返和转换、长路径终端及离线插件安装/卸载通过。两平台 `.16.3` 中的 Frida 附加、插桩、卸载、重置、释放、暂停启动和退出各两项通过，只操作自建目标。[Frida](requirements/2026-11-06-stability.md#linux-frida-附加与回收2026-11-16)
 - Windows 更新前后 7,338 份原有数据文件摘要一致，官方 DSH 两份关键文件不变。安装后四模式、旁问重开/清理、主旁删除、命令及关于页通过；Edge 158 的隔离 Web 检查覆盖指南和 1280/800px 星期布局，截图已查看。原测试浏览器缺失的失败保留，没有减少断言。
 - Linux 两种归档的 ASAR 与可执行文件摘要相同；实际归档在私有 X11/Wayland 中通过主界面、默认工作区与重载。renderer 保留 seccomp、NoNewPrivs，没有 `--no-sandbox`。这不替代门户、实体桌面或正式更新验收。
-- Inspector 保护入口已实际随包分发，在显式保护组合中拒绝任意 Host 调试；默认不选择该入口。Cua Driver 的保护入口仍未随本包分发。新增共享 JS chunk 的实际打包与解包导入已验证，完整 Worker 预览在严格只读回放下通过。[执行保护](requirements/2026-11-02-native-execution.md#inspector-调试准入2026-11-16源码)
+- Inspector 保护入口已实际随包分发，在显式保护组合中拒绝任意 Host 调试；默认不选择该入口。Cua Driver 独立可选归档已通过 Windows/Linux 各四项准入和普通入口负对照，全程未加载原生 SDK；当前桌面安装包仍不分发该提供方。新增共享 JS chunk 的实际打包与解包导入已验证，完整 Worker 预览在严格只读回放下通过。[执行保护](requirements/2026-11-02-native-execution.md)
 - 依赖材料仍为 Windows 919 包中 6 项、Linux 921 包中 8 项待核查；不能将可运行或清点通过解释为许可兼容性结论。[审计](requirements/2026-11-03-dependency-notices.md)
 
 本次按路径、摘要与进程身份核验后，只结束旧界面主进程，Host 依 IPC 断连清理并以 0 退出，随后确认安装目录下进程全部结束再备份。没有直接结束 Host，也没有进行系统重启；这不等于完整正常退出或关机验收。
