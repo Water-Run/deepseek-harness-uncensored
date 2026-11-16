@@ -230,7 +230,7 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   // Node profile configuration and process bootstraps have separate bundles.
   '@deepseek-ai/dsh-ptc-runtime-node': ['lib/configuration.js', 'lib/process.js', 'lib/persistent-process.js'],
   // The Inspector owns a Worker and a mirrored frontend outside package export paths.
-  '@deepseek-ai/dsh-experimental-inspector': ['lib/client.*.js', 'lib/worker.js', 'lib/devtools/**'],
+  '@deepseek-ai/dsh-experimental-inspector': ['lib/protected.js', 'lib/types-*.js', 'lib/client.*.js', 'lib/worker.js', 'lib/devtools/**'],
   // Creator's composition guidance travels with the declaration package.
   '@deepseek-ai/dsh-agent-preset': ['skills'],
   // Personalized pages ship the location guidance used by their Creator.
@@ -261,6 +261,7 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   // between that helper and the connection owner.
   '@deepseek-ai/dsh-ssh': [
     'lib/direct.js',
+    'lib/execution.js',
     'lib/helper.js', 'lib/protocol.js', 'lib/schemas.js',
     'lib/protocol-*.js', 'lib/schemas-*.js', 'lib/stream-security-*.js',
   ],

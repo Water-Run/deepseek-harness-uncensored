@@ -59,6 +59,9 @@ declare module '@deepseek-ai/cordis' {
 export interface SshService extends Pick<SshConnection, 'ptcLaunch' | 'request' | 'connectStream' | 'dispose'> {
   /** Verified helper coordinates; activation failures reject this promise. */
   readonly ready: Promise<Hello>
+  /** Bind operations to the current execution owner. Omission denotes a fixed deployment connection.
+   * @returns One connection retained by the resource consumer, including its later cleanup. */
+  captureExecution?(): SshService
 }
 
 /** One non-reconnecting SSH session; loss invalidates all active operations. */

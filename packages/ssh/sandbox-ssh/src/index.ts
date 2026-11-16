@@ -1,7 +1,7 @@
 /** Remote argv wrapper that selects and applies the sandbox on the SSH host. */
 import { SandboxProvider, SandboxUnavailableError } from '@deepseek-ai/dsh-sandbox'
 import type { ConfinedArgv, SandboxPolicy } from '@deepseek-ai/dsh-sandbox'
-import type {} from '@deepseek-ai/dsh-ssh'
+import { resolveSshExecution } from '@deepseek-ai/dsh-ssh/execution'
 import { z } from 'zod'
 
 const factsSchema = z.object({ argv: z.array(z.string()).min(1), enforcement: z.enum(['full', 'partial']), denialSignatures: z.array(z.string()), runnerFailureRules: z.array(z.object({ allowedExitCodes: z.array(z.number().int()).optional(), fatalSignatures: z.array(z.string()), informationalLines: z.array(z.string()).optional() }).strict()) }).strict()
@@ -13,7 +13,7 @@ export class SshSandboxProvider extends SandboxProvider {
   override async confine(argv: readonly string[], policy: SandboxPolicy, signal?: AbortSignal): Promise<ConfinedArgv> {
     signal?.throwIfAborted()
     try {
-      const confined = await this.ctx.ssh.request('sandbox', { argv, policy }, factsSchema, signal)
+      const confined = await resolveSshExecution(this.ctx.ssh).request('sandbox', { argv, policy }, factsSchema, signal)
       signal?.throwIfAborted()
       return {
         ...confined,

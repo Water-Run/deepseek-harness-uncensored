@@ -635,6 +635,17 @@ it('requires the local speech worker and locked runtime in the published payload
   }
 })
 
+it('requires the SSH execution selector bundle and rejects a broad runtime glob', () => {
+  const dir = 'packages/ssh/ssh'
+  const manifest = JSON.parse(readFileSync(new URL(`../${dir}/package.json`, import.meta.url), 'utf8')) as WorkspaceManifest['manifest']
+  expect(checkWorkspaceManifest({ dir, manifest })).toEqual([])
+  const files = manifest.files!.filter(file => file !== 'lib/execution.js')
+  expect(checkWorkspaceManifest({ dir, manifest: { ...manifest, files } }))
+    .toEqual([expect.stringContaining('package.json files must be')])
+  expect(checkWorkspaceManifest({ dir, manifest: { ...manifest, files: [...files, 'lib/*.js'] } }))
+    .toEqual([expect.stringContaining('package.json files must be')])
+})
+
 it('requires Node profile configuration and both execution bootstraps in the published payload', () => {
   const dir = 'packages/ptc-runtime/ptc-runtime-node'
   const manifest = JSON.parse(readFileSync(new URL(`../${dir}/package.json`, import.meta.url), 'utf8')) as WorkspaceManifest['manifest']
@@ -650,7 +661,7 @@ it('requires the Inspector Worker, Client chunks, and mirrored DevTools resource
   const dir = 'packages/experimental/inspector'
   const manifest = JSON.parse(readFileSync(new URL(`../${dir}/package.json`, import.meta.url), 'utf8')) as WorkspaceManifest['manifest']
   expect(checkWorkspaceManifest({ dir, manifest })).toEqual([])
-  for (const omitted of ['lib/client.*.js', 'lib/worker.js', 'lib/devtools/**']) {
+  for (const omitted of ['lib/protected.js', 'lib/types-*.js', 'lib/client.*.js', 'lib/worker.js', 'lib/devtools/**']) {
     expect(checkWorkspaceManifest({ dir, manifest: { ...manifest, files: manifest.files!.filter(file => file !== omitted) } }))
       .toEqual([expect.stringContaining('package.json files must be')])
   }

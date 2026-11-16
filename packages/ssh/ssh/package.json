@@ -21,6 +21,10 @@
     "./src/*": "./src/*",
     "./locale/*.json": "./locale/*.json",
     "./package.json": "./package.json",
+    "./execution": {
+      "types": "./lib/types/execution.d.ts",
+      "default": "./lib/execution.js"
+    },
     "./direct": {
       "types": "./lib/types/direct.d.ts",
       "default": "./lib/direct.js"
@@ -42,6 +46,7 @@
     "locale/*.json",
     "lib/index.js",
     "lib/direct.js",
+    "lib/execution.js",
     "lib/helper.js",
     "lib/protocol.js",
     "lib/schemas.js",

@@ -72,6 +72,8 @@ At least one authentication reference is required. Credentials are resolved for 
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
+`resolveSshExecution(service)` selects the current execution's connection before resource allocation. Fixed providers omit `captureExecution` and remain unchanged. A selecting provider returns a bound `SshService`; files, processes and terminals retain that service through later reads, control requests and cleanup. A selector failure never falls back to the deployment connection. The optional [session SSH provider](../../guard/target-protection/README.md#session-ssh-connections) supplies exact Agent ownership and Security-mode proxy selection.
+
 The helper dispatches `fs.patch`, `fs.delete`, and `fs.move` through its sandboxed filesystem provider; strict schemas validate hunks, source/destination guards, and complete or partial move outcomes. Hunk payloads share the connection frame limit.
 
 <details>

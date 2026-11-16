@@ -44,6 +44,10 @@
       "types": "./lib/types/ssh.d.ts",
       "default": "./lib/types/ssh.js"
     },
+    "./ssh-sessions": {
+      "types": "./lib/types/ssh-sessions.d.ts",
+      "default": "./lib/types/ssh-sessions.js"
+    },
     "./rea": {
       "types": "./lib/types/rea.d.ts",
       "default": "./lib/types/rea.js"

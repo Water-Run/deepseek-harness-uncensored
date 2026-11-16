@@ -1,0 +1,4 @@
+- id: session-ssh
+  name: cordis:session-ssh
+  inject: [sshSessionFixture]
+  config: !!js ctx.sshSessionFixture

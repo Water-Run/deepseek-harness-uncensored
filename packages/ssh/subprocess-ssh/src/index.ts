@@ -6,6 +6,7 @@ import { SubprocessRuntime, SubprocessExecutableNotFoundError } from '@deepseek-
 import type { SubprocessCollectedOutputs, SubprocessHandle, SubprocessOutcome, SubprocessOutputMode, SubprocessSpawnSpec, SubprocessTerminalHandle, SubprocessTerminalEnvironment, SubprocessTerminalSignal, SubprocessTerminalSpawnSpec } from '@deepseek-ai/dsh-subprocess'
 import { OutputCollector } from '@deepseek-ai/dsh-subprocess-local/output'
 import type { SshService } from '@deepseek-ai/dsh-ssh'
+import { resolveSshExecution } from '@deepseek-ai/dsh-ssh/execution'
 import { doneSchema, foregroundSchema, terminalActivitySchema, outputSnapshotFrameLimit, outputSnapshotSchema, preparedSchema, remotePath, streamEndpointSchema } from '@deepseek-ai/dsh-ssh/schemas'
 import type { SshProcessId } from '@deepseek-ai/dsh-ssh/schemas'
 import { SshRpcPeer, RemoteOperationError } from '@deepseek-ai/dsh-ssh/protocol'
@@ -254,7 +255,7 @@ export class SshSubprocessRuntime extends SubprocessRuntime {
 
   override async resolveExecutable(command: string, env?: Readonly<Record<string, string>>, signal?: AbortSignal): Promise<string> {
     try {
-      return await this.ctx.ssh.request('executable', { command, env }, remotePath, signal)
+      return await resolveSshExecution(this.ctx.ssh).request('executable', { command, env }, remotePath, signal)
     } catch (error) {
       if (error instanceof RemoteOperationError && error.code === 'SUBPROCESS_EXECUTABLE_NOT_FOUND') {
         throw new SubprocessExecutableNotFoundError(error.message, { cause: error })
@@ -264,7 +265,7 @@ export class SshSubprocessRuntime extends SubprocessRuntime {
   }
 
   override terminalEnvironment(signal?: AbortSignal): Promise<SubprocessTerminalEnvironment> {
-    return this.ctx.ssh.request('terminal.environment', {}, z.object({
+    return resolveSshExecution(this.ctx.ssh).request('terminal.environment', {}, z.object({
       platform: z.enum(['posix', 'windows']), defaultShell: z.string().optional(),
     }).strict().transform(value => ({ platform: value.platform,
       ...(value.defaultShell === undefined ? {} : { defaultShell: value.defaultShell }),
@@ -274,7 +275,7 @@ export class SshSubprocessRuntime extends SubprocessRuntime {
   override spawn(spec: SubprocessSpawnSpec): SubprocessHandle {
     this.lifetime.signal.throwIfAborted()
     spec.signal?.throwIfAborted()
-    const handle = new RemoteProcess(this.ctx.ssh, spec)
+    const handle = new RemoteProcess(resolveSshExecution(this.ctx.ssh), spec)
     this.live.add(handle)
     void handle.done.then(() => handle.waitForExit()).then(() => handle.streamsClosed)
       .then(() => { this.live.delete(handle) }).catch(() => {})
@@ -291,7 +292,7 @@ export class SshSubprocessRuntime extends SubprocessRuntime {
   }
 
   private async createTerminal(spec: SubprocessTerminalSpawnSpec, signal: AbortSignal): Promise<SubprocessTerminalHandle> {
-    const ssh = this.ctx.ssh
+    const ssh = resolveSshExecution(this.ctx.ssh)
     const prepared = await ssh.request('process.prepare', {
       argv: spec.argv, cwd: spec.cwd, env: environment(spec.env), graceMs: spec.graceMs,
       terminal: { rows: spec.rows, cols: spec.cols, terminalType: spec.terminalType, shellActivity: spec.shellActivity },

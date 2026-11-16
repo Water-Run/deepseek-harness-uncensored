@@ -34,6 +34,8 @@ kind: "package-reference"
 <a id="understand-the-implementation"></a>
 ## 理解实现
 
+每次隔离请求在分派前选择调用者所属执行的 SSH 连接。固定部署连接保持原有行为；会话选择器拒绝准入后不能回退。
+
 <details>
 <summary>实现细节 — 点击展开</summary>
 

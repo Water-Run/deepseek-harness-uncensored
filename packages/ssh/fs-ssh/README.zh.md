@@ -38,6 +38,8 @@ kind: "package-reference"
 <a id="understand-the-implementation"></a>
 ## 理解实现
 
+每次文件操作都会选择所属执行的 SSH 连接。文本流在每次拉取和提前关闭时保持使用分配它的连接，即使后续调用者已是另一会话。路由变化不会把已有流转移到新 helper。
+
 <details>
 <summary>实现细节 — 点击展开</summary>
 

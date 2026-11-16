@@ -40,6 +40,8 @@ Terminal shell facts and executable verification come from the remote helper. Lo
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
+Process and terminal allocation capture one execution-specific SSH connection. Subsequent start, output, write, resize, signal and termination requests use that connection through cleanup. Executable and terminal-environment lookup resolve the caller's current connection independently. A retired connection reports failure; resource operations are never replayed on another helper.
+
 <details>
 <summary>Implementation internals — click to expand</summary>
 

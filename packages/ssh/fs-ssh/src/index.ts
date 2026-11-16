@@ -6,7 +6,8 @@ import type { FsDeleteOutcome, FsMoveOutcome, FsDirEntry, FsEditOutcome, FsEditR
 import { HarnessError } from '@deepseek-ai/dsh-llm'
 import type { SandboxExecutionPolicy, SandboxMode } from '@deepseek-ai/dsh-sandbox'
 import type {} from '@deepseek-ai/dsh-sandbox-policy'
-import type {} from '@deepseek-ai/dsh-ssh'
+import type { SshService } from '@deepseek-ai/dsh-ssh'
+import { resolveSshExecution } from '@deepseek-ai/dsh-ssh/execution'
 import { RemoteOperationError } from '@deepseek-ai/dsh-ssh/protocol'
 import { deleteResultSchema, moveResultSchema, editResultSchema, entriesSchema, infoSchema, pathInfoSchema, targetSchema, textStreamIdSchema, writeResultSchema } from '@deepseek-ai/dsh-ssh/schemas'
 import { z } from 'zod'
@@ -47,8 +48,10 @@ export class SshFileSystem extends FileSystem {
   }
 
   override async streamText(target: FsTarget, signal?: AbortSignal): Promise<AsyncIterable<string>> {
-    const id = await this.call('fs.stream', { target }, textStreamIdSchema, signal)
-    const call = this.call.bind(this)
+    const ssh = resolveSshExecution(this.ctx.ssh)
+    const call = <T>(method: string, params: unknown, schema: z.ZodType<T>, signal?: AbortSignal) =>
+      this.callOn(ssh, method, params, schema, signal)
+    const id = await call('fs.stream', { target }, textStreamIdSchema, signal)
     return (async function* () {
       let ended = false
       try {
@@ -130,7 +133,11 @@ export class SshFileSystem extends FileSystem {
   }
 
   private async call<T>(method: string, params: unknown, schema: z.ZodType<T>, signal?: AbortSignal): Promise<T> {
-    try { return await this.ctx.ssh.request(method, params, schema, signal) } catch (error) {
+    return this.callOn(resolveSshExecution(this.ctx.ssh), method, params, schema, signal)
+  }
+
+  private async callOn<T>(ssh: SshService, method: string, params: unknown, schema: z.ZodType<T>, signal?: AbortSignal): Promise<T> {
+    try { return await ssh.request(method, params, schema, signal) } catch (error) {
       if (error instanceof RemoteOperationError && error.code !== undefined && errorCodes.has(error.code)) {
         throw new FsError(error.message, error.code as FsErrorCode, { cause: error })
       }

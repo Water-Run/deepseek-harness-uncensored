@@ -41,7 +41,12 @@
   "files": [
     "icon.svg",
     "locale/*.json",
-    "lib/*.js",
+    "lib/index.js",
+    "lib/client.js",
+    "lib/protected.js",
+    "lib/types-*.js",
+    "lib/client.*.js",
+    "lib/worker.js",
     "lib/devtools/**",
     "lib/types/**/*.d.ts",
     "lib/types/**/*.d.ts.map",

@@ -40,6 +40,8 @@ kind: "package-reference"
 <a id="understand-the-implementation"></a>
 ## 理解实现
 
+进程和终端分配会捕获所属执行的 SSH 连接。后续启动、输出、写入、调整尺寸、信号及终止请求始终使用该连接，直到清理完成。可执行文件及终端环境查询各自选择调用者当前的连接。已撤下的连接报告失败，不会在另一 helper 上重放资源操作。
+
 <details>
 <summary>实现细节 — 点击展开</summary>
 

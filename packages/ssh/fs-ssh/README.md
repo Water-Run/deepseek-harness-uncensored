@@ -38,6 +38,8 @@ Reads preserve the shared filesystem error codes. All five mutations send the re
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
+Each file operation resolves its execution's SSH connection. A text stream keeps the allocating connection for every pull and early close, even when another conversation later becomes the caller. Changing a route never transfers an existing stream to a new helper.
+
 <details>
 <summary>Implementation internals — click to expand</summary>
 

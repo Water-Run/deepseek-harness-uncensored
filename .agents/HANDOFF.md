@@ -1,6 +1,6 @@
 # DSHU 开发交接
 
-**Goal「实现DSHU」保持活动。** 当前 35 项完成、10 项进行中，另有 3 项未来计划。账号周期已重置，最近成功实查剩余 99%；确认达到 1% 时仍按用户规则收尾并暂停。Windows x64 优先，Linux x64 同步；macOS ARM、Android＋Fedora PRoot、全新安装器本轮不开发。
+**Goal「实现DSHU」保持活动。** 当前 35 项完成、10 项进行中，另有 3 项未来计划。账号周期已重置，最近成功实查剩余 98%；确认达到 1% 时仍按用户规则收尾并暂停。Windows x64 优先，Linux x64 同步；macOS ARM、Android＋Fedora PRoot、全新安装器本轮不开发。
 
 ## 当前交付
 
@@ -26,6 +26,10 @@ Windows 产物位于 `%USERPROFILE%/DSHU-Deliveries/20261116`，Linux 归档位�
 - 直接重读 `.16.4` 实包：Windows 919 包中 6 项、Linux 921 包中 8 项待核查，补充声明分别 21/26 份。这不代替许可兼容性审查。[审计](requirements/2026-11-03-dependency-notices.md)
 
 ## 回归范围
+
+后续源码补齐可选 `target-protection/ssh-sessions`：确切 Agent 的独立连接、网安代理选择、关闭确认和资源连接捕获。YAML/Loader、普通 Node 构建入口及元数据快照已验证，Windows 并发各 67 项、Linux 190 项通过；首次 hygiene 的四项失败修复后已由原校验器复核，NodeNext 398 个 API 与 389 包 publint 通过。实包仍为 `.16.4`，尚不含这些源码。远端命令外连、身份/挂载映射等范围继续保留。[记录](requirements/2026-11-17-ssh-session-routing.md)
+
+全仓文档仍有 30 处既有断链及两处预算超额，没有按定向通过报告为全仓通过。后续源码包含的清单和 slot catalog 整理不改变界面布局；索引更新行号及一条既有接口说明。[检查整理](requirements/2026-11-17-ssh-session-routing.md#检查整理)
 
 受保护 SSH 后续源码增加关闭确认与规则修订保留：变更规则前等待远端 I/O、进程和清理确认；未知关闭结果保留规则并禁用新执行。Windows 两个独立进程各 52 项、Linux 175 项通过，实际 helper 文件 I/O 负对照按预期失败。新直连客户端需先升级 helper，旧客户端仍兼容新 helper；`.16.4` 尚未包含此源码修复。[记录](requirements/2026-11-17-ssh-shutdown.md)
 

@@ -34,6 +34,8 @@ Pass a complete `read-only` or `workspace-write` policy. The workspace is interp
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
+Each confinement request resolves the caller's execution-specific SSH connection before dispatch. Fixed deployment connections retain their existing behavior; a session selector cannot fall back after refusing admission.
+
 <details>
 <summary>Implementation internals — click to expand</summary>
 
