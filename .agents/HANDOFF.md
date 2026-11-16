@@ -1,6 +1,6 @@
 # DSHU 开发交接
 
-**Goal「实现DSHU」保持活动。** 当前 35 项完成、10 项进行中，另有 3 项未来计划。实际剩余额度达到 1% 时按用户规则收尾；最近实查剩余 12%。Windows x64 优先，Linux x64 同步；macOS、Android＋Fedora PRoot、全新安装器本轮不开发。
+**Goal「实现DSHU」保持活动。** 当前 35 项完成、10 项进行中，另有 3 项未来计划。实际剩余额度达到 1% 时按用户规则收尾；最近实查剩余 9%。Windows x64 优先，Linux x64 同步；macOS、Android＋Fedora PRoot、全新安装器本轮不开发。
 
 ## 当前交付
 
@@ -23,6 +23,8 @@ Windows 安装包和回执位于 `%USERPROFILE%/DSHU-Deliveries/20261116`；Linu
 | Linux x64 deb | `6c5d68a0aaef255a1851d6ed8fbfe6995da4d3b1ba81b2944735408b800c6b4e` |
 
 ## 本轮验收
+
+- 交付包之后另补 `experimental-inspector/protected` 源码：保护组合在 Worker 创建前拒绝任意 Host 调试，规则全关时也明确报告不可用；只读 Session Inspector 保留。真实 CDP 测试证实关闭 Worker 后 Host 回调仍执行，因此未采用撤销原型。源码、完整构建与实际组件解包入口验收通过，安装中的 `.16.2` 不包含新入口。[记录](requirements/2026-11-02-native-execution.md#inspector-调试准入2026-11-16源码)
 
 - 四模式中英文指南各七节、每种三组任务示例，保留模式色并补入准备材料与交付检查。Windows 实装逐一核对七节、三组示例与焦点恢复；337 项模式单测、8 组浏览器布局组合通过，实际截图已检查。[指南](requirements/2026-11-15-mode-guides.md)
 - Windows 安装前后 7,323 个用户文件及官方 DSH 两份关键文件摘要一致；CLI、四模式、新会话、受控命令、旁问重开/清理及主旁删除通过。重开弹窗同时位于视觉和焦点前台，且复用了同一 DOM 节点；星期控件在 1280/800px 无横向溢出。新版已启动供用户检查。
@@ -74,6 +76,8 @@ Worker 的真实 SQLite 接入与完整浏览器预览已通过；保持初始�
 保持 main、中文提交并正常推送，不使用 Computer Use。进阶保护与全部限额默认关闭，输入预测默认开启，余额默认 15 秒且最小 3 秒，旁问关闭清理默认关闭，`/clear` 只在旁问中可用。
 
 ## 清理与工作约束
+
+本轮组件解包验证缓存 `D:/Coding/deepseek-harness-uncensored/packages/experimental/inspector/.dsh-build/packed-check-lcvhwfnm.tcu` 的删除被自动审批以 `blocked by policy` 拒绝，约 63 MiB、2,837 文件仍保留。不得重试、换删除方式或删除包含它的父目录；回执为 `20261116/protected-inspector-packed-cleanup-rejected.json`。已验证组件归档另存 `protected-inspector-checked.tgz`；独立且无引用的原型 JS chunk 已成功清理，不能据此声称上述解包目录已删除。
 
 `.16.2` 重复解包目录 `apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/runs/2026-11-15T22-30-02.352Z-xXBc25/win-unpacked` 已核对 16,414 文件、1,590,804,858 字节，无链接和进程引用，恢复安装器及实装关键文件摘要一致。删除命令在创建进程前被自动审批以 `blocked by policy` 拒绝，约 1.48 GiB 仍保留，没有换方式重试。证据为 `windows-16-2-unpacked-cleanup-{audit,rejected}.json`；不要再删除此目录或包含它的父目录。
 

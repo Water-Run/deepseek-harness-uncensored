@@ -29,6 +29,7 @@
     "src/host/inspection/realm.ts",
     "src/host/plugin.ts",
     "src/index.ts",
+    "src/protected.ts",
     "src/shared/bridge/buffer.ts",
     "src/shared/bridge/codec.ts",
     "src/shared/bridge/control-codec.ts",
@@ -154,6 +155,12 @@
     },
     {
       "path": "../../util/crypto"
+    },
+    {
+      "path": "../../util/error"
+    },
+    {
+      "path": "../../guard/target-protection"
     }
   ]
 }

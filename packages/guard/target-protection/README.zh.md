@@ -112,6 +112,8 @@ SSH 文件系统效果不会因为端口不同而被视为与其他资源无关�
 
 可选的[原生 Cua Driver 保护入口](../../experimental/computer-use-cua-driver-native/README.zh.md#target-protected-composition)在导入 SDK 和每次调用前拒绝无约束桌面执行。策略撤销会撤下工具，等待原生清理后才释放目标资源。这是执行准入，不是桌面隔离。
 
+可选的 [Inspector 保护入口](../../experimental/inspector/README.zh.md#security)检查策略，在创建 Worker 前拒绝任意 Host 调试，即使全部目标规则已关闭。断开调试器不能撤销 Host 回调或其外部效果。普通 Inspector 组合不受这些检查限制；保护组合使用只读会话数据诊断。
+
 对每个受控服务器装配 `./mcp` 替换 `mcp-client`，沿用其设置及 `tools` 服务。目标或所有者文件保护存在且无法约束服务器效果时，在连接前拒绝 stdio 和 HTTP MCP。每次重连、发现、工具调用和资源请求均复查执行策略，MCP 只读声明不构成安全效果证明。撤销会关闭 SDK 持有的进程和传输，取消请求并停止重连。无法确认关闭时保留可见错误，规则所有者保持到关闭回执到达。此适配器提供准入与撤销，不是原生引擎沙盒或 HTTP MCP 目标适配器。
 
 装配 `./sqlite`，以 `databases: [{ name, path }]` 绑定已有本地 SQLite 文件。它要求原生 `DatabaseSync.setAuthorizer`，不支持的运行时会激活失败。可选 `./sqlite-agent` 使用 `tools` 和 `sandboxPolicy` 提供 `database_query`，低于完全权限时强制只读。SQL 选择配置名称，不能另选路径。完全保护在分配 helper 前拒绝，审计使用原生只读连接。测试批次支持参数绑定、内置函数和全文检索，并原子提交。附件库、扩展、日志修改及自行控制事务由引擎授权回调拒绝。

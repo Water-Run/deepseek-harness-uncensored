@@ -146,6 +146,10 @@ Client 选择只限制一条 DevTools 连接的 realm session、DOM 投影和诊
 
 CDP target 通过 `Runtime.evaluate` 提供 Host 和已连接 Client realm 中的任意代码执行能力，Host Debugger 操作还会提供额外控制，完整 fetch 采集也包含敏感信息。因此 Worker 只接受 `127.0.0.1` 监听地址。Client ingest 还要求 Host 注入的随机 WebSocket subprotocol token；除非配置明确允许，否则拒绝非 loopback origin。CDP socket 本身不携带 token，loopback 监听是它唯一的访问控制。
 
+显式组合目标保护时，将此插件的包名替换为 `@deepseek-ai/dsh-experimental-inspector/protected`，并提供[目标保护](../../guard/target-protection/README.zh.md)服务。该入口在创建 Worker 前拒绝 Host 调试。策略拒绝保留目标保护错误码；规则允许无约束执行时，入口报告 `INSPECTOR_PROTECTED_EXECUTION_UNAVAILABLE`。即使全部目标规则关闭，它仍不可用：断开调试器不能取消任意 Host 回调或其外部效果。
+
+保护组合请使用只读会话数据诊断，任意调试应在独立且未启用保护的开发 Host 中进行。保护入口不会申请调试资源或执行租约。这项准入检查不限制普通 Inspector 入口、可信 Host 插件或主动替换组合的所有者。默认 profile 不选择此入口。
+
 <a id="model-experience"></a>
 ## 模型体验
 

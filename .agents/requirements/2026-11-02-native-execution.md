@@ -2,6 +2,16 @@
 
 属于目标保护 P2（09.04–09.08），不缩小原始测试目标完整执行、数据库及 P3 联动范围。当前仍为后台开发，默认产品没有加载完整保护或新的原生命令提供方。
 
+## Inspector 调试准入（2026-11-16，源码）
+
+新增 `experimental-inspector/protected` 可选入口，强制依赖目标保护服务，在 Worker 创建前检查并拒绝任意 Host 调试。策略拒绝保留原错误码，规则全关时仍返回 `INSPECTOR_PROTECTED_EXECUTION_UNAVAILABLE`。保护组合使用只读 Session Inspector；普通 Inspector 和默认 profile 不改为此入口。
+
+真实 Worker/CDP 测试先让 Host 求值注册一个受控 Promise 回调，再关闭调试连接及 Worker，最后释放 Promise；Host 回调仍会执行。这证明仅关闭 Worker 不足以撤销任意 Host 效果，因此没有采用启动后再撤销的原型，也没有引入调试租约或复杂关闭状态。原型源码及补丁保留在外部交付目录的 `inspector-worker-revocation-prototype/`，其中 24 项通过不能视为最终保护验收。
+
+最终六文件 18 项回归通过，包含准入、普通 Inspector、关闭顺序、Worker 生命周期和上述真实 Host 效果。五类准入负对照均按预期失败，源码已恢复；不可用诊断有所属测试内的无密钥快照。没有打开交互式调试器或访问用户桌面；日志位于 `%USERPROFILE%/DSHU-Deliveries/20261116/` 的 `protected-inspector-current-acceptance.log`、`protected-inspector-refusal-negative.log` 和 `inspector-host-effect-after-disconnect.log`。
+
+8 项产物与随后 2 项聚合检查通过；依赖声明、398 个包的 NodeNext 声明入口、导出 JSDoc、改动文件 lint、README 与两组双语配对检查通过。实际 npm 包初次漏掉多入口构建生成的共享文件，清单已修正；最终解包后直接导入，在境内、生产完全保护、只读审计和全部关闭四种配置下均于依赖 Web 服务前拒绝。回执为 `protected-inspector-refusal-package-result.json` 和 `protected-inspector-refusal-packed-smoke.log`。这些是源码与组件验收，尚未进入 `2026.11.16.2` 安装包，也不代表独立部署、协议、入站及全部管理面已完成。
+
 ## 原生 Cua Driver 准入（2026-11-15）
 
 新增 `computer-use-cua-driver-native/protected` 可选入口，强制依赖目标保护服务，在导入 SDK、目录发现完成和每次调用前校验。生产完全保护、只读审计、境内保护或持久化所有者资源会拒绝无约束执行。策略变更撤下工具并取消在途调用，卸载等待调用与 SDK 关闭；失败时保留名额和租约，不自动退回普通提供方。直接持有的工具定义也不能绕过准入，其原生调用纳入关闭等待。

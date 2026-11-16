@@ -146,6 +146,10 @@ Client selection limits one DevTools connection's realm sessions, DOM projection
 
 The CDP target grants arbitrary code execution in both Host and connected Client realms through `Runtime.evaluate`; Host Debugger operations provide additional control. Full fetch capture includes secrets. The Worker therefore accepts only a `127.0.0.1` bind address. Client ingest additionally requires a random WebSocket subprotocol token injected by the Host and rejects non-loopback origins unless explicitly configured. The CDP socket itself has no token; loopback binding is its only access control.
 
+For an explicitly target-protected composition, replace this plugin's package name with `@deepseek-ai/dsh-experimental-inspector/protected` and supply [target protection](../../guard/target-protection/README.md). This entry refuses Host debugging before creating a Worker. Policy refusals retain their target error code; when rules allow unconfined execution, the entry reports `INSPECTOR_PROTECTED_EXECUTION_UNAVAILABLE`. It remains unavailable with every target rule disabled: disconnecting a debugger does not cancel arbitrary Host callbacks or their external effects.
+
+Use read-only Session Inspector in a protected composition. Arbitrary debugging belongs in a separate, unprotected development Host. The protected entry acquires no debugger resources or execution leases. This admission check does not restrict the ordinary Inspector entry, trusted Host plugins or an owner who replaces the composition. Default profiles do not select this entry.
+
 <a id="model-experience"></a>
 ## Model Experience
 

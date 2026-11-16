@@ -25,7 +25,11 @@
     },
     "./locale/*.json": "./locale/*.json",
     "./src/*": "./src/*",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./protected": {
+      "types": "./lib/types/protected.d.ts",
+      "default": "./lib/protected.js"
+    }
   },
   "dsh": {
     "client": {
@@ -37,10 +41,7 @@
   "files": [
     "icon.svg",
     "locale/*.json",
-    "lib/index.js",
-    "lib/client.js",
-    "lib/client.*.js",
-    "lib/worker.js",
+    "lib/*.js",
     "lib/devtools/**",
     "lib/types/**/*.d.ts",
     "lib/types/**/*.d.ts.map",
@@ -57,7 +58,8 @@
     "ws": "^8.21.3"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "workspace:~"
+    "@deepseek-ai/cordis": "workspace:~",
+    "@deepseek-ai/dsh-error": "workspace:*"
   },
   "devDependencies": {
     "chrome-devtools-frontend": "1.0.1638082",
@@ -82,6 +84,8 @@
     "playwright": "^1.49.0",
     "tsx": "^4.23.13",
     "@deepseek-ai/dsh-brand": "workspace:*",
-    "@deepseek-ai/dsh-client-modules": "workspace:*"
+    "@deepseek-ai/dsh-client-modules": "workspace:*",
+    "@deepseek-ai/dsh-target-protection": "workspace:*",
+    "@deepseek-ai/dsh-error": "workspace:*"
   }
 }

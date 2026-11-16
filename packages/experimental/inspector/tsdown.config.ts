@@ -22,7 +22,7 @@ const worker: UserConfig = {
 /** Build the Host plugin and Worker during the Host pass, and the dynamic Client plugin during the Client pass. */
 export default clientBundle(
   import.meta.dirname,
-  ['lib/types/index.js'],
+  ['lib/types/index.js', 'lib/types/protected.js'],
   {
     hostPhase: true,
     companions: [worker],
