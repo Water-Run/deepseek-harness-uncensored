@@ -14,12 +14,13 @@ import type { HttpFetchDestination, PublicAddress, ResolvedSocketAddress } from 
 import { canonicalTargetHost, TargetRules, expandTargetRules, parseTargetPreferences } from './rules.ts'
 import { TargetStore } from './store.ts'
 import { TargetProtectionError } from './errors.ts'
+import { HarnessError } from '@deepseek-ai/dsh-llm'
 import type {} from './country-provider.ts'
 import { resolveTargetDns, systemHostsFile, type TargetDnsResolution } from './dns-resolution.ts'
 import { parseDnsServer } from './dns-transport.ts'
 import { canonicalLocalPath, resolveLocalPathIdentity, localPathContains, localIdentityPaths } from './file-identity.ts'
 import { decideLocalTarget, type LocalTargetOperation } from './file-rules.ts'
-import type { NetworkTarget, TargetDecision, TargetEffect, TargetPreferences, TargetSnapshot, TargetSshCoverage } from './types.ts'
+import type { NetworkTarget, TargetDecision, TargetEffect, TargetPreferences, TargetSnapshot, TargetSshCoverage, TargetRuleId } from './types.ts'
 import type { NativeFileConstraints } from './native-file-policy.ts'
 import { TargetAuditStore, type AuditSubject, type TargetAuditHistory, type TargetAuditRecord } from './audit.ts'
 
@@ -69,6 +70,33 @@ export interface TargetHttpResolution extends Omit<TargetDnsResolution, 'address
 /** Connection-owner DNS evidence, including private addresses and discovered translation aliases. */
 export interface TargetConnectionResolution extends Omit<TargetDnsResolution, 'addresses'> {
   addresses: readonly ResolvedSocketAddress[]
+}
+
+/** Fixed SSH destination and the rule revision installed by its trusted file executor. */
+export interface RemoteFilesystemBinding {
+  /** Revision retained until the verified helper and its I/O close. */
+  readonly revision: number
+  /** Active production path resources represented by the remote helper's rules. */
+  readonly ruleIds: readonly TargetRuleId[]
+  /** Original configured SSH hostname. */
+  readonly hostname: string
+  /** Actual SSH service port. */
+  readonly port: number
+  /** Exact DNS and literal-peer evidence selected for this connection. */
+  readonly resolution: TargetConnectionResolution
+  /** Owning SSH lifetime; withdrawal invalidates this binding. */
+  readonly signal: AbortSignal
+}
+
+/** Host-only admission for one helper; activating requires its acknowledged rule installation. */
+export interface RemoteFilesystemPolicy {
+  /** Mark the authenticated helper's requested path rules as installed. */
+  activate(): void
+  /** @param signal - Fixed-helper startup cancellation. @returns Current destination admission before model operations exist. */
+  checkHelper(signal: AbortSignal): Promise<TargetDecision>
+  /** @param effect - Effect guaranteed by the structured file operation. @param signal - Operation cancellation.
+   * @returns Admission only after helper acknowledgement and while the retained revision is current. */
+  checkFile(effect: 'observe' | 'mutate', signal: AbortSignal): Promise<TargetDecision>
 }
 
 /** File identity and policy revision selected for the executing local provider. */
@@ -662,12 +690,59 @@ export default class TargetProtection extends Service {
     hostname: string, port: number | undefined, resolution: TargetConnectionResolution | undefined,
     scope: 'endpoint' | 'filesystem', effect: TargetEffect, signal: AbortSignal, database?: string, foldDatabaseCase: boolean = false,
   ): Promise<TargetDecision> {
+    return this.auditConnection(hostname, port, resolution, scope, effect, signal, database, foldDatabaseCase)
+  }
+
+  /**
+   * Bind central path resources to one verified SSH executor without changing ordinary connection admission.
+   * @param binding - Destination and mapped resource IDs selected by the owner; retain its revision before calling.
+   * @returns A prepared policy. Call activate only after the digest-verified helper acknowledges its exact path rules.
+   * @throws When a resource is not an active production path, the revision changed or an owner is unavailable.
+   */
+  bindRemoteFilesystem(binding: RemoteFilesystemBinding): RemoteFilesystemPolicy {
+    const snapshot = this.currentSnapshot()
+    const required = new Set(expandTargetRules(snapshot.preferences)
+      .filter(rule => rule.enabled && rule.environment === 'production' && rule.match === 'path').map(rule => rule.id))
+    const ids = new Set(binding.ruleIds)
+    const invalid = (): HarnessError => new HarnessError(
+      'Remote filesystem identity is unavailable. Verify its rule IDs, SSH destination and installed helper rules.', 'TARGET_IDENTITY_UNVERIFIED')
+    if (snapshot.revision !== binding.revision || binding.resolution.hostname !== canonicalTargetHost(binding.hostname)
+      || binding.resolution.addresses.length === 0 || [...ids].some(id => !required.has(id))) throw invalid()
+    const revision = binding.revision, hostname = binding.hostname, port = binding.port, lifetime = binding.signal
+    const resolution = { ...binding.resolution, names: [...binding.resolution.names],
+      addresses: binding.resolution.addresses.map(address => ({ ...address })) }
+    const alive = (): void => {
+      lifetime.throwIfAborted()
+      if (this.currentSnapshot().revision !== revision) throw invalid()
+    }
+    alive()
+    let active = false
+    const check = async (effect: TargetEffect, signal: AbortSignal): Promise<TargetDecision> => {
+      alive()
+      return this.auditConnection(hostname, port, resolution, 'filesystem', effect, AbortSignal.any([signal, lifetime]),
+        undefined, false, { revision, ids })
+    }
+    return {
+      activate: () => { alive(); active = true },
+      checkHelper: signal => check('observe', signal),
+      checkFile: (effect, signal) => {
+        if (!active) return Promise.reject(invalid())
+        return check(effect, signal)
+      },
+    }
+  }
+
+  private auditConnection(
+    hostname: string, port: number | undefined, resolution: TargetConnectionResolution | undefined,
+    scope: 'endpoint' | 'filesystem', effect: TargetEffect, signal: AbortSignal, database?: string, foldDatabaseCase = false,
+    remoteFiles?: { readonly revision: number; readonly ids: ReadonlySet<TargetRuleId> },
+  ): Promise<TargetDecision> {
     this.lifetime.signal.throwIfAborted()
     const subject: AuditSubject = { operation: 'connection', effect, phase: resolution === undefined ? 'preflight' : 'execution',
       identity: ['network', hostname, port, database],
       ...resolution === undefined ? {} : { peers: resolution.addresses.map(address => address.address) } }
     const operation = this.audited(subject, signal, () => this.connectionDecision(hostname, port, resolution, scope, effect,
-      signal, database, foldDatabaseCase)).then(result => result.decision)
+      signal, database, foldDatabaseCase, remoteFiles)).then(result => result.decision)
     this.checking.add(operation)
     return operation.finally(() => { this.checking.delete(operation) })
   }
@@ -675,6 +750,7 @@ export default class TargetProtection extends Service {
   private async connectionDecision(
     hostname: string, port: number | undefined, resolution: TargetConnectionResolution | undefined,
     scope: 'endpoint' | 'filesystem', effect: TargetEffect, signal: AbortSignal, database: string | undefined, foldDatabaseCase: boolean,
+    remoteFiles?: { readonly revision: number; readonly ids: ReadonlySet<TargetRuleId> },
   ): Promise<VersionedDecision> {
     const name = canonicalTargetHost(hostname)
     if (resolution !== undefined && resolution.hostname !== name) {
@@ -688,7 +764,7 @@ export default class TargetProtection extends Service {
       addresses: resolution === undefined ? null : resolution.addresses.flatMap(address =>
         address.translatedIpv4 === undefined ? [address.address] : [address.address, address.translatedIpv4]),
     }
-    return await this.decideNetwork(target, effect, resolution === undefined, signal)
+    return await this.decideNetwork(target, effect, resolution === undefined, signal, remoteFiles)
   }
 
   private dnsOptions() {
@@ -735,6 +811,7 @@ export default class TargetProtection extends Service {
 
   private async decideNetwork(
     target: NetworkTarget, effect: TargetEffect, beforeResolution: boolean, signal: AbortSignal,
+    remoteFiles?: { readonly revision: number; readonly ids: ReadonlySet<TargetRuleId> },
   ): Promise<VersionedDecision> {
     using timeout = deadline(AbortSignal.any([signal, this.executionSignal()]), this.config.checkTimeoutMs, 'TARGET_CHECK_TIMEOUT')
     const store = await this.ready
@@ -742,9 +819,12 @@ export default class TargetProtection extends Service {
       timeout.signal.throwIfAborted()
       const snapshot = store.snapshot()
       const checked = (decision: TargetDecision): VersionedDecision => ({ revision: snapshot.revision, decision })
+      if (remoteFiles !== undefined && snapshot.revision !== remoteFiles.revision) {
+        return checked({ allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED', ruleIds: [] })
+      }
       if (target.spansServicePorts) {
         const unresolved = expandTargetRules(snapshot.preferences).filter(rule =>
-          rule.enabled && rule.environment === 'production' && rule.match === 'path')
+          rule.enabled && rule.environment === 'production' && rule.match === 'path' && !remoteFiles?.ids.has(rule.id))
         if (unresolved.length > 0) {
           return checked({ allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED', ruleIds: unresolved.map(rule => rule.id) })
         }

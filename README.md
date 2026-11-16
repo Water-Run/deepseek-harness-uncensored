@@ -7,7 +7,7 @@
 
 DSHU 是面向开发、网安、逆向与写作的智能体工作台。它在 DeepSeek Harness 上集成破甲提示词、四种模式、旁问、额度控制和跨对话记忆，使用你选择的模型完成任务。官方 DSH 与 DSHU 可同时安装，分别使用自己的程序目录、配置、会话和更新渠道。
 
-当前检查版 **2026.11.17.1** 基于 **DSH 0.2.2-rc.3**，内置 **REA 6.9.0**。Windows 已保留数据更新并启动，Linux deb 与便携归档通过版本、API 和隔离 X11/Wayland 检查。本版补齐可选 SSH 会话连接、独立代理路由及关闭确认；包内入口与两平台 Frida 自建目标已复验。远端网络执行保护、资源映射和正式发行仍在推进；完整 Web 基线与本轮定向结果分别记录，见[开发进度](.agents/TODO.md)与[交付记录](.agents/requirements/2026-11-17.1-delivery.md)。
+当前检查版 **2026.11.17.1** 基于 **DSH 0.2.2-rc.3**，内置 **REA 6.9.0**。Windows 已保留数据更新并启动，Linux deb 与便携归档通过版本、API 和隔离 X11/Wayland 检查。本版补齐可选 SSH 会话连接、独立代理路由及关闭确认；包内入口与两平台 Frida 自建目标已复验。后续源码已接入[中央资源与远端文件映射](.agents/requirements/2026-11-17-ssh-file-mapping.md)，尚未进入安装包；远端网络执行保护、数据库映射和正式发行仍在推进；完整 Web 基线与本轮定向结果分别记录，见[开发进度](.agents/TODO.md)与[交付记录](.agents/requirements/2026-11-17.1-delivery.md)。
 
 版本采用 `YYYY.MM.DD.N`，最后一项为当天构建序号。关于页、CLI、安装包和 Windows 登记使用相同日期版本；DSH 内核与 REA 的来源独立记录。打包与更新规则见[打包指南](apps/desktop/packaging/README.zh.md)。
 

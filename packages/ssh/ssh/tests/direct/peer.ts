@@ -29,6 +29,7 @@ export async function createSshFixture(options: {
   forwardStream?: () => Duplex
   close?: () => Promise<unknown>
   legacyHello?: boolean
+  serve?: (channel: Duplex, root: string, signal: AbortSignal) => Promise<void>
   handle?: (method: string, params: unknown, signal: AbortSignal, root: string) => Promise<unknown>
 } = {}) {
   const key = generateKeyPairSync('ec', { namedCurve: 'prime256v1',
@@ -40,6 +41,7 @@ export async function createSshFixture(options: {
   const ctx = new Context(), connections = new Set<Connection>(), peers = new Set<SshRpcPeer>()
   const requests: string[] = [], commands: string[] = []
   const pending = new Set<Promise<unknown>>()
+  const helpers = new Set<AbortController>()
   const forwards = new Map<Duplex, Promise<void>>()
   const sockets = new Set<Socket>()
   const execEntered = Promise.withResolvers<boolean>(), streamEntered = Promise.withResolvers<boolean>()
@@ -61,6 +63,15 @@ export async function createSshFixture(options: {
         commands.push(info.command); execEntered.resolve(true)
         if (options.holdExec) return
         const channel: ServerChannel = accept()
+        if (options.serve !== undefined) {
+          const controller = new AbortController()
+          helpers.add(controller)
+          const serving = options.serve(channel, root, controller.signal)
+          pending.add(serving)
+          void serving.finally(() => { pending.delete(serving); helpers.delete(controller) })
+            .catch((_error: unknown) => { channel.destroy() }) // Fatal helper failure closes its authenticated channel.
+          return
+        }
         if (options.exitBeforeHello !== undefined) {
           channel.exit(options.exitBeforeHello); channel.end(); return
         }
@@ -117,6 +128,7 @@ export async function createSshFixture(options: {
     try { await ctx.fiber.dispose() }
     finally {
       for (const peer of peers) peer.close()
+      for (const controller of helpers) controller.abort(new Error('Owned SSH fixture is closing'))
       await Promise.allSettled([...pending])
       for (const stream of forwards.keys()) stream.destroy()
       await Promise.allSettled([...forwards.values()])

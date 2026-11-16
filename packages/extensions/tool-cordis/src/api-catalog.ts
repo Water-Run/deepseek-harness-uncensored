@@ -4508,6 +4508,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Verified helper coordinates; activation failures reject this promise.',
         parameters: [],
       },
+      {
+        signature: 'captureExecution?(): SshService',
+        description: 'Bind operations to the current execution owner. Omission denotes a fixed deployment connection.',
+        parameters: [],
+        returns: 'One connection retained by the resource consumer, including its later cleanup.',
+      },
     ],
   },
   {
@@ -4927,6 +4933,13 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Check a pinned connection or an operation on its authenticated peer.',
         parameters: [{ name: 'hostname', description: 'Original configured host.' }, { name: 'port', description: 'Known service port; omission requires decisions without a verified port scope.' }, { name: 'resolution', description: 'Actual pinned address evidence; omission performs only pre-resolution checks.' }, { name: 'scope', description: 'Whether effects stay on one port or may access the peer filesystem.' }, { name: 'effect', description: 'Effect guaranteed by the protocol executor, not supplied by the model.' }, { name: 'signal', description: 'Operation cancellation and deadline.' }, { name: 'database', description: 'Executor-selected protocol database, verified before application queries; omission leaves database scope unknown.' }, { name: 'foldDatabaseCase', description: 'Treat database names that differ only in case as possible aliases.' }],
         returns: 'A current rule decision; unavailable identity and registry failures never authorize fallback.',
+      },
+      {
+        signature: 'bindRemoteFilesystem(binding: RemoteFilesystemBinding): RemoteFilesystemPolicy',
+        description: 'Bind central path resources to one verified SSH executor without changing ordinary connection admission.',
+        parameters: [{ name: 'binding', description: 'Destination and mapped resource IDs selected by the owner; retain its revision before calling.' }],
+        returns: 'A prepared policy. Call activate only after the digest-verified helper acknowledges its exact path rules.',
+        throws: ['When a resource is not an active production path, the revision changed or an owner is unavailable.'],
       },
     ],
   },
@@ -9828,6 +9841,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface RemoteEventHostInfo {\n    readonly home: string;\n}',
   },
   {
+    name: 'RemoteFilesystemBinding',
+    declaration: 'export interface RemoteFilesystemBinding {\n    readonly revision: number;\n    readonly ruleIds: readonly TargetRuleId[];\n    readonly hostname: string;\n    readonly port: number;\n    readonly resolution: TargetConnectionResolution;\n    readonly signal: AbortSignal;\n}',
+  },
+  {
+    name: 'RemoteFilesystemPolicy',
+    declaration: 'export interface RemoteFilesystemPolicy {\n    activate(): void;\n    checkHelper(signal: AbortSignal): Promise<TargetDecision>;\n    checkFile(effect: \'observe\' | \'mutate\', signal: AbortSignal): Promise<TargetDecision>;\n}',
+  },
+  {
     name: 'RemoteStream',
     declaration: 'export type RemoteStream<Out, In = never> = AsyncIterable<Out> & {\n    readonly [STREAM_UPLINK]?: In;\n};',
   },
@@ -11270,6 +11291,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SqliteResult',
     declaration: 'export type SqliteResult = z.infer<typeof resultsSchema>;',
+  },
+  {
+    name: 'SshConnection',
+    declaration: 'export class SshConnection extends Service {\n    static Config: schema<Config>;\n    readonly ready: Promise<Hello>;\n    constructor(ctx: Context, config: Config);\n    async [Service.init](): Promise<void>;\n    get ptcLaunch(): {\n        kind: \'embedded\';\n        executable: string;\n    } | {\n        kind: \'node-script\';\n        executable: string;\n        bootstrapPath: string;\n    };\n    async request<T>(method: string, params: unknown, result: z.ZodType<T>, signal?: AbortSignal, wait: boolean = false): Promise<T>;\n    async connectStream(endpoint: SshStreamEndpoint, signal?: AbortSignal): Promise<Socket>;\n    dispose(): Promise<void>;\n}',
+  },
+  {
+    name: 'SshService',
+    declaration: 'export interface SshService extends Pick<SshConnection, \'ptcLaunch\' | \'request\' | \'connectStream\' | \'dispose\'> {\n    readonly ready: Promise<Hello>;\n    captureExecution?(): SshService;\n}',
+  },
+  {
+    name: 'SshStreamEndpoint',
+    declaration: 'export type SshStreamEndpoint = z.infer<typeof streamEndpointSchema>;',
   },
   {
     name: 'StagedAttachment',

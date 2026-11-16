@@ -14,14 +14,18 @@ import { isIP, type Socket } from 'node:net'
 import { domainToASCII } from 'node:url'
 import { z } from 'zod'
 import type TargetProtection from './index.ts'
-import type { TargetConnectionResolution } from './index.ts'
-import type { TargetDecision, TargetEffect } from './types.ts'
+import type { TargetConnectionResolution, RemoteFilesystemPolicy } from './index.ts'
+import type { TargetDecision } from './types.ts'
 import { TARGET_REFUSAL_REASONS } from './network-decision.ts'
+import { resolveSshFileMappings, sshFileMappings, type SshFileMapping } from './ssh-file-mapping.ts'
+import type { TargetRuleId } from './types.ts'
 
 /** Owner-selected SSH route, independent of ambient proxy variables and model arguments. */
 export interface Config extends DirectConfig {
   /** Production paths interpreted by the verified remote Linux helper. */
   protectedPaths?: z.input<typeof remoteFileProtectionSchema>
+  /** Bind central production path resources to roots in this authenticated helper. */
+  pathMappings?: SshFileMapping[]
   /** Omit for direct TCP. The configured proxy must be trusted to honor the literal CONNECT destination. */
   proxy?: {
     /** Transport to the proxy; HTTPS keeps the system certificate verification. */
@@ -46,11 +50,11 @@ const proxyValidation = z.object({
   passwordRef: z.string().refine(isCredentialRefName, 'Use a stored credential reference.').transform(credentialRef).optional(),
 }).strict().refine(value => (value.username !== '') === (value.passwordRef !== undefined), 'Proxy username and password reference must be paired')
 
-const EFFECTS: Readonly<Record<string, TargetEffect | undefined>> = Object.freeze({
+const EFFECTS: Readonly<Record<string, 'observe' | 'mutate' | undefined>> = Object.freeze({
   'helper.start': 'observe', 'fs.resolve': 'observe', 'fs.stat': 'observe', 'fs.lstat': 'observe',
   'fs.list': 'observe', 'fs.readText': 'observe', 'fs.stream': 'observe', 'fs.next': 'observe',
   'fs.readBytes': 'observe', 'fs.readRange': 'observe', 'fs.write': 'mutate', 'fs.edit': 'mutate',
-  'fs.remove': 'mutate', 'fs.rename': 'mutate',
+  'fs.remove': 'mutate', 'fs.rename': 'mutate', 'fs.patch': 'mutate', 'fs.delete': 'mutate', 'fs.move': 'mutate',
 })
 const CLEANUP = Object.freeze(['close', 'heartbeat', 'fs.streamClose', 'process.terminate'])
 
@@ -70,6 +74,7 @@ export default class ProtectedSshConnection extends DirectSshConnection {
     protectedPaths: schema.array(schema.object({
       path: schema.string().required(), protection: schema.union(['full', 'audit']).required(),
     })).default([]),
+    pathMappings: schema.array(schema.object({ ruleId: schema.string().required(), remotePath: schema.string().required() })).default([]),
     proxy: schema.union([schema.const(undefined), schema.object({
       protocol: schema.union(['http', 'https']).required(), host: schema.string().required(),
       port: schema.natural().required(), username: schema.string(), passwordRef: schema.string(),
@@ -79,17 +84,24 @@ export default class ProtectedSshConnection extends DirectSshConnection {
   private readonly proxy: z.infer<typeof proxyValidation> | undefined
   private readonly proxyCredentials: CredentialProvider
   private readonly protectedPaths: z.output<typeof remoteFileProtectionSchema>
+  private readonly pathMappings: z.output<typeof sshFileMappings>
+  private remotePaths: z.output<typeof remoteFileProtectionSchema>
+  private mappedRuleIds: TargetRuleId[] = []
+  private ruleRevision: number | undefined
+  private filePolicy: RemoteFilesystemPolicy | undefined
   private peer: TargetConnectionResolution | undefined
   private withdrawCoverage: (() => void) | undefined
 
   /** @param ctx - Owner providing credentials and target rules. @param config - Explicit endpoint and trusted helper. */
   constructor(ctx: Context, config: Config) {
-    const { proxy, protectedPaths = [], ...direct } = config
+    const { proxy, protectedPaths = [], pathMappings = [], ...direct } = config
     super(ctx, direct)
     this.protection = ctx.targetProtection
     this.proxy = proxy === undefined ? undefined : proxyValidation.parse(proxy)
     this.proxyCredentials = ctx.credentials
     this.protectedPaths = remoteFileProtectionSchema.parse(protectedPaths)
+    this.pathMappings = sshFileMappings.parse(pathMappings)
+    this.remotePaths = this.protectedPaths
   }
 
   /** Publish coverage after peer and helper verification have completed. */
@@ -98,7 +110,7 @@ export default class ProtectedSshConnection extends DirectSshConnection {
     const signal = this.executionSignal()
     signal.throwIfAborted()
     this.ctx.effect(() => {
-      const withdraw = this.protection.registerSshCoverage(this.protectedPaths.length > 0)
+      const withdraw = this.protection.registerSshCoverage(this.remotePaths.length > 0)
       this.withdrawCoverage = withdraw
       const aborted = addAbortListener(signal, withdraw)
       return () => { aborted[Symbol.dispose](); withdraw() }
@@ -115,8 +127,11 @@ export default class ProtectedSshConnection extends DirectSshConnection {
   }
 
   protected override async configureHelper(peer: SshRpcPeer, signal: AbortSignal): Promise<void> {
-    if (this.protectedPaths.length === 0) return
-    try { await peer.request('fs.protection', this.protectedPaths, z.null(), signal) }
+    if (this.remotePaths.length === 0) return
+    try {
+      await peer.request('fs.protection', this.remotePaths, z.null(), signal)
+      this.filePolicy?.activate()
+    }
     catch (error) {
       signal.throwIfAborted()
       throw new HarnessError('SSH helper could not verify remote file protection. Check the helper version and paths.',
@@ -126,7 +141,13 @@ export default class ProtectedSshConnection extends DirectSshConnection {
 
   protected override async retainExecution(): Promise<() => void> {
     const snapshot = await this.protection.snapshot()
-    return this.protection.retainNativeExecution(snapshot.revision, () => this.dispose())
+    const mapped = resolveSshFileMappings(snapshot, this.pathMappings)
+    const paths = remoteFileProtectionSchema.parse([...this.protectedPaths, ...mapped.rules])
+    const release = this.protection.retainNativeExecution(snapshot.revision, () => this.dispose())
+    this.remotePaths = paths
+    this.mappedRuleIds = mapped.ids
+    this.ruleRevision = snapshot.revision
+    return release
   }
 
   protected override async connectPeer(peer: SshPeer, signal: AbortSignal): Promise<Socket> {
@@ -153,6 +174,11 @@ export default class ProtectedSshConnection extends DirectSshConnection {
     if (address === undefined) throw new HarnessError('SSH target has no verified address.', 'TARGET_IDENTITY_UNVERIFIED')
     // One peer is pinned for this connection; failures do not silently try another address or route.
     this.peer = { ...resolved, addresses: [address] }
+    if (this.mappedRuleIds.length > 0) {
+      if (this.ruleRevision === undefined) throw new HarnessError('SSH file rules have no retained revision.', 'TARGET_IDENTITY_UNVERIFIED')
+      this.filePolicy = this.protection.bindRemoteFilesystem({ revision: this.ruleRevision, ruleIds: this.mappedRuleIds,
+        hostname: this.config.hostname, port: this.config.port, resolution: this.peer, signal: this.executionSignal() })
+    }
     return { address: address.address, family: address.family, revalidate: async (signal) => {
       admitted(await this.protection.checkConnection(this.config.hostname, this.config.port, this.peer, 'endpoint', 'observe', signal))
     } }
@@ -163,15 +189,21 @@ export default class ProtectedSshConnection extends DirectSshConnection {
     if (CLEANUP.includes(method)) return
     this.protection.executionSignal().throwIfAborted()
     const effect = EFFECTS[method]
-    if (method === 'fs.protection' || (this.protectedPaths.length > 0 && effect === undefined)) {
+    if (method === 'fs.protection' || (this.remotePaths.length > 0 && effect === undefined)) {
       throw new HarnessError('This SSH operation cannot be confined to the protected remote filesystem.', 'TARGET_EXECUTION_UNCONFINED')
     }
     if (effect === undefined) {
       // Remote arbitrary code has no target-bounded executor yet; an endpoint label cannot constrain its later effects.
       admitted(this.protection.checkUnconfined())
     }
-    admitted(await this.protection.checkConnection(this.config.hostname, this.config.port, this.peer,
-      'filesystem', effect ?? 'unconfined', signal))
+    if (this.filePolicy === undefined) {
+      admitted(await this.protection.checkConnection(this.config.hostname, this.config.port, this.peer, 'filesystem', effect ?? 'unconfined', signal))
+    } else if (method === 'helper.start') {
+      admitted(await this.filePolicy.checkHelper(signal))
+    } else {
+      if (effect === undefined) throw new HarnessError('This SSH operation has no bounded file effect.', 'TARGET_EXECUTION_UNCONFINED')
+      admitted(await this.filePolicy.checkFile(effect, signal))
+    }
     signal.throwIfAborted()
   }
 
@@ -200,7 +232,7 @@ export default class ProtectedSshConnection extends DirectSshConnection {
       const display = await this.resolved(input.displayPath, root, signal)
       if (display.targetKey !== target.targetKey) throw new HarnessError('SSH file identity changed; resolve it again.', 'TARGET_IDENTITY_UNVERIFIED')
     }
-    return this.protectedPaths.length > 0 ? { ...target, displayPath: input.displayPath } : target
+    return this.remotePaths.length > 0 ? { ...target, displayPath: input.displayPath } : target
   }
 
   override async request<T>(method: string, params: unknown, result: z.ZodType<T>, signal?: AbortSignal, wait = false): Promise<T> {
@@ -214,7 +246,7 @@ export default class ProtectedSshConnection extends DirectSshConnection {
       const path = this.path(input.path, root, input.cwd ?? root)
       if (method === 'fs.lstat') await this.resolved(path, root, bounded)
       prepared = { path, cwd: root }
-    } else if (method === 'fs.rename') {
+    } else if (method === 'fs.rename' || method === 'fs.move') {
       const input = z.looseObject({ source: targetSchema, destination: targetSchema, policy: policySchema }).parse(params)
       const source = await this.stableTarget(input.source, root, bounded)
       const destination = await this.stableTarget(input.destination, root, bounded)

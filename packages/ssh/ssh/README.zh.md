@@ -74,7 +74,7 @@ POSIX 客户端可使用 OpenSSH 提供方；Windows、Linux 和 macOS 客户端
 
 `resolveSshExecution(service)` 在分配资源前选择当前执行的连接。固定提供方省略 `captureExecution`，行为不变。选择型提供方返回绑定的 `SshService`；文件、进程和终端在后续读取、控制请求及清理中始终持有该服务。选择失败绝不回退到部署连接。可选的[会话 SSH 提供方](../../guard/target-protection/README.zh.md#session-ssh-connections)提供确切的 Agent 归属和网安模式代理选择。
 
-辅助进程通过其沙箱文件系统提供方分派 `fs.patch`、`fs.delete` 和 `fs.move`；严格 schema 校验 hunk、源/目标防护，以及完整或部分的移动结果。hunk 负载使用连接帧上限。
+辅助进程通过其沙箱文件系统提供方分派 `fs.patch`、`fs.delete` 和 `fs.move`；严格 schema 校验 hunk、源/目标防护，以及完整或部分的移动结果。hunk 负载使用连接帧上限。每个 helper 最多接受 128 条文件保护规则，包括静态路径和中央资源映射。
 
 <details>
 <summary>实现细节 — 点击展开</summary>

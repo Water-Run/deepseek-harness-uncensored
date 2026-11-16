@@ -1,6 +1,6 @@
 # DSHU 开发交接
 
-**Goal「实现DSHU」保持活动。** 当前 35 项完成、10 项进行中，另有 3 项未来计划。最近成功实查剩余 98%；确认达到 1% 时按用户规则收尾并暂停。Windows x64 优先、Linux x64 同步；macOS ARM、Android＋Fedora PRoot及全新安装器本轮不开发。
+**Goal「实现DSHU」保持活动。** 当前 35 项完成、10 项进行中，另有 3 项未来计划。最近成功实查剩余 97%；确认达到 1% 时按用户规则收尾并暂停。Windows x64 优先、Linux x64 同步；macOS ARM、Android＋Fedora PRoot及全新安装器本轮不开发。
 
 ## 当前交付
 
@@ -27,7 +27,13 @@ Windows 产物位于 `%USERPROFILE%/DSHU-Deliveries/20261117`，Linux 文件位�
 
 完整 Web 基线仍为 `668ec5146d` 的 1,087 项通过、32 项条件跳过，本版没有重跑整轮。[基线](requirements/2026-11-16-regression-followup.md)
 
-全仓文档已修复 28 处断链和两处篇幅超额；剩余两处冻结指南链接已准备 URL 修复补丁，待用户确认例外。没有放宽校验器或修改冻结文件。[记录](requirements/2026-11-17-documentation-repair.md)slot catalog 从已有声明重生成，只更新行号及一条说明。旧 7:40 Host 退出和历史 403 的原因仍未知；新增取证与重跑不等于根因修复。[稳定性](requirements/2026-11-06-stability.md) · [更新检查](requirements/2026-11-16-release-check.md)
+全仓文档已修复 28 处断链和两处篇幅超额；剩余两处冻结指南链接已准备 URL 修复补丁，待用户确认例外。没有放宽校验器或修改冻结文件。[记录](requirements/2026-11-17-documentation-repair.md)
+
+slot catalog 从已有声明重生成，只更新行号及一条说明。旧 7:40 Host 退出和历史 403 的原因仍未知；新增取证与重跑不等于根因修复。[稳定性](requirements/2026-11-06-stability.md) · [更新检查](requirements/2026-11-16-release-check.md)
+
+## 后续源码
+
+中央资源路径映射已接入实际 SSH helper；Windows 74 项、Linux 327 项及两个独立进程并发各 80 项通过。新增映射模块覆盖率 100%，负对照确认缺少 helper 规则时会检出错误放行；Linux Session 重放通过。已安装 `.17.1` 尚不含此改动，后续构建须以新源码单独验收。远端网络、数据库身份与完整审计仍待完成。[记录](requirements/2026-11-17-ssh-file-mapping.md)
 
 ## 恢复与工作区
 
@@ -39,7 +45,7 @@ Windows 产物位于 `%USERPROFILE%/DSHU-Deliveries/20261117`，Linux 文件位�
 
 ## 后续顺序与约束
 
-继续 [TODO](TODO.md) 的 10 项。保留域名/主机规则、服务器/数据库、审计联动完整范围，按真实执行后端到联动推进。SSH 的 Agent 连接路由已交付，但不代表远端命令外连、身份/挂载映射、入站、其他协议、部署和完整保护已完成。正式签名升级、回退、系统重启及实体平台验收仍保留。
+继续 [TODO](TODO.md) 的 10 项。保留域名/主机规则、服务器/数据库、审计联动完整范围，按真实执行后端到联动推进。SSH 的 Agent 连接路由已交付，但不代表远端命令外连、数据库及独立网络挂载身份、入站、其他协议、部署和完整保护已完成。正式签名升级、回退、系统重启及实体平台验收仍保留。
 
 保持 main、中文提交和正常 Git hooks，不使用 Computer Use，不发布公开 Release、不签名、不重启系统。进阶保护和全部限额默认关闭；输入预测默认开启，余额默认 15 秒/最小 3 秒；关闭旁问自动清理默认关闭，`/clear` 仅用于旁问。
 

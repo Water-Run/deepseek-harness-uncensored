@@ -3,6 +3,7 @@ scenario: ssh-target-protection
 profile: headless
 composition: default
 recording: authored
+platform: posix
 header:
   class: ssh-protection
   pin: true

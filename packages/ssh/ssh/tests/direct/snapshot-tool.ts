@@ -52,10 +52,12 @@ async function probe(mode: 'full' | 'audit' | 'test', signal: AbortSignal): Prom
     const file = join(root, 'contents.txt'); await writeFile(file, 'preserve')
     await ctx.plugin(TargetProtection, { path: join(root, 'targets.sqlite'), auditPath: join(root, 'audit.sqlite'), hostsFile: '' })
     const current = await ctx.targetProtection.snapshot()
+    const mappedId = brandString<TargetRuleId>(randomUUID())
     await ctx.targetProtection.configure({ mainlandEnabled: false, rules: [{
       id: brandString<TargetRuleId>(randomUUID()), name: 'owned snapshot target', kind: 'server', match: 'host',
       address: '127.0.0.1', enabled: true, environment: mode === 'test' ? 'test' : 'production', protection: mode === 'audit' ? 'audit' : 'full',
-    }] }, current.revision)
+    }, ...mode === 'test' ? [{ id: mappedId, name: 'central protected file', kind: 'server' as const, match: 'path' as const,
+      address: join(root, 'central-protected.txt'), enabled: true, environment: 'production' as const, protection: 'full' as const }] : []] }, current.revision)
     if (mode === 'full') {
       await assert.rejects(Promise.resolve(ctx.plugin(ProtectedSsh, config)), { code: 'TARGET_FULLY_PROTECTED' })
       assert.equal(fixture.connected(), 0)
@@ -66,7 +68,7 @@ async function probe(mode: 'full' | 'audit' | 'test', signal: AbortSignal): Prom
       return 'blocked before TCP'
     }
     await ctx.plugin(ProtectedSsh, {
-      ...config, ...mode === 'test' ? { protectedPaths: [{ path: protectedPath, protection: 'full' }] } : {},
+      ...config, ...mode === 'test' ? { pathMappings: [{ ruleId: mappedId, remotePath: protectedPath }] } : {},
     })
     if (mode === 'test') {
       assert.equal(configured, true)
