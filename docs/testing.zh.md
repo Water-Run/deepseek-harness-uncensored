@@ -8,8 +8,8 @@ DSHU 在[交付清单](../.agents/TODO.md)中记录本地结果和待完成的�
 
 ## 层级
 
-- **单元测试**（`pnpm run test`）：vitest 运行包和示例各自的 `tests/**` 目录下的测试，以及匹配 `scripts/**/*.spec.ts` 的仓库脚本测试；测试文件与其所覆盖的代码区域放在一起。每个注册表都有一个 HMR（热模块替换）安全测试（对向该注册表贡献内容的 fiber 执行 dispose（资源释放），并断言清理完成）。优先覆盖边界情况、错误路径、事件顺序、并发竞态，以及针对约定回归的永久测试（见 `packages/core/agent-loop/tests/contract-regressions.spec.ts`）。
-- **覆盖率门禁**（`pnpm run test:coverage`）：门禁级运行，对 `packages/*/*/src` 按文件 100% 覆盖。未覆盖的行往往是门禁正确标记出的死代码（应删除），而非需要补写的测试。行覆盖率是必要条件，但永远不是充分条件：它证明行被执行过，不证明功能按交付预期工作。`packages/shell/pwsh-local/src` 的按文件 100% 覆盖需要真实的 `pwsh`：缺少它时其执行器套件会自动跳过，`vitest.config.ts` 会豁免该文件以使无 pwsh 的主机保持绿色，而 CI runner 自带 pwsh，仍按完整标准执行门禁。
+- **单元测试**（`pnpm run test`）：Vitest 运行包/示例的 `tests/**` 及仓库的 `scripts/**/*.spec.ts`，与所属代码放在一起。每个注册表都需要 HMR（热模块替换）安全测试：释放贡献内容的 fiber，并断言清理。优先覆盖边界情况、失败、事件顺序、并发竞态和永久的约定回归测试（见 `packages/core/agent-loop/tests/contract-regressions.spec.ts`）。
+- **覆盖率门禁**（`pnpm run test:coverage`）：`packages/*/*/src` 按文件 100% 覆盖。未覆盖的行往往表示应删除的死代码，而非缺少测试。行覆盖率是必要条件，但不证明交付行为正确。`packages/shell/pwsh-local/src` 的执行器套件要求真实 `pwsh`：缺少时自动跳过，`vitest.config.ts` 豁免该文件；CI 提供 pwsh 并执行 100% 标准。
 - **真实 API e2e**（`pnpm run test:e2e`）：带密钥测试调用真实提供方 API，包括 DeepSeek 模型以及各提供方特有的冒烟测试；这些测试各自由自己的密钥控制，缺少密钥时套件会自动跳过，使 keyless CI 保持绿色（[真实 API e2e Agent Note](../.agents/notes/implemented/testing/2026-06-19-real-api-e2e-ci.zh.md)）。
 - **所属位置的预期输出**（`pnpm run test:expected`）：无录制会话往返的无密钥组装 CLI/进程预期。驱动使用 `*.expected.e2e.ts`，并与 `tests/expected/` 同属一处；CI 针对构建产物运行。包/脚本预期使用 `test`，浏览器预期使用 `test:web`。
 - **性能基准**（`pnpm run test:bench`；必需的 Linux PR gate `node 24 / benchmarks`）：`benchmarks/` 按用户路径组织门禁。它先构建 library 和 worker；被计时代码在纯 Node 下运行，不使用 TSX。合成输入执行耗时、堆和缩放预算；包内 `.perf.ts` 保留为诊断（[规则](../.agents/notes/implemented/testing/2026-09-04-session-open-performance-gate.zh.md)）。
@@ -54,4 +54,4 @@ e2e 断言应重新运行命令或从外部重新读取文件；对 agent 自身
 
 ## 何时需要快照测试
 
-每项非平凡的模型可见、协议可见或人类可见变更，都在同一 PR 中添加或更新无密钥录制会话场景；包级、e2e、仅 mock 和 PR 理由证据不能取代组装后的 transcript。Headless、SDK、ACP 和 Web 录制分别位于 `snapshots/session/`、`snapshots/sdk/`、`snapshots/acp/` 和 `snapshots/web/`；Web 渲染可以显式借用另一个场景的规范会话。不由录制会话驱动的预期输出保留在所属应用、包或脚本的 `tests/expected/` 下，并且不使用 `*.snapshot.ts` 后缀。[`dsh-session-snapshot`](../packages/test-support/session-snapshot/README.zh.md) 拥有共享存储规则和 profile 适配器。Agent loop、会话生命周期和 `SessionEventMap` 变更应更新两个 SDK 投影：`snapshots/sdk/` 拥有 TypeScript，[Python 运行时 CI](../.github/workflows/ci-master.yml) 拥有 `scripts/snapshots/python-sdk-single-exe/`。新增 capability seam、生命周期或 transcript 变体应在计划阶段列出每个必需层级。
+每项非平凡的模型可见、协议可见或人类可见变更，都在同一 PR 中添加或更新无密钥录制会话场景；包级、e2e、仅 mock 和 PR 理由证据不能取代组装后的 transcript。Headless、SDK、ACP 和 Web 录制分别位于 `snapshots/session/`、`snapshots/sdk/`、`snapshots/acp/` 和 `snapshots/web/`；Web 渲染可以显式借用另一个场景的规范会话。不由录制会话驱动的预期输出保留在所属应用、包或脚本的 `tests/expected/` 下，并且不使用 `*.snapshot.ts` 后缀。[`dsh-session-snapshot`](../packages/test-support/session-snapshot/README.zh.md) 拥有共享存储规则和 profile 适配器。Agent loop、会话生命周期和 `SessionEventMap` 变更应更新两个 SDK 投影：`snapshots/sdk/` 拥有 TypeScript，[Python 运行时 CI](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.3/.github/workflows/ci-master.yml) 拥有 `scripts/snapshots/python-sdk-single-exe/`。新增 capability seam、生命周期或 transcript 变体应在计划阶段列出每个必需层级。

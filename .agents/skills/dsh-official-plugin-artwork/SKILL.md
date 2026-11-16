@@ -11,7 +11,7 @@ When reviewing the containing page, use the [UI review baseline](../../../docs/u
 
 ## Optional feature previews
 
-Before drawing a larger image for the top of an official bundle's detail document, read and follow [adding a plugin feature preview](../../../docs/cookbook/adding-a-plugin-preview.md). It owns optionality, image count, design canvas, position, language variants, file location, and acceptance. The guide also owns the embedded-raster exception for SVG previews; small icons remain geometry-only. The icon dimensions in plugin artwork do not apply to previews. Inspect the real feature and preserve its produced assets.
+Before drawing a larger image for the top of an official bundle's detail document, read and follow [adding a plugin feature preview](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.3/docs/cookbook/adding-a-plugin-preview.md). It owns optionality, image count, design canvas, position, language variants, file location, and acceptance. The guide also owns the embedded-raster exception for SVG previews; small icons remain geometry-only. The icon dimensions in plugin artwork do not apply to previews. Inspect the real feature and preserve its produced assets.
 
 ## Official references and owners
 

@@ -88,7 +88,7 @@ Do not apply a universal word limit to exhaustive references. Measure entry-path
 
 ## Audit the corpus
 
-Read, do not re-summarize, the owning contracts: [docs/AGENTS.md](../../../docs/AGENTS.md) for hierarchy, tutorial/reference forms, taxonomy, budgets, and the slop checklist; [.agents/notes/README.md](../../notes/README.md) for Agent Note lifecycle; [docs/i18n/README.md](../../../docs/i18n/README.md) for the bilingual pairing rules; and [root AGENTS.md](../../../AGENTS.md) for standing orders. Exclude `.agents/notes/archived/` from audits and edits — archived notes are frozen history.
+Read, do not re-summarize, the owning contracts: [docs/AGENTS.md](../../../docs/AGENTS.md) for hierarchy, tutorial/reference forms, taxonomy, budgets, and the slop checklist; [.agents/notes/README.md](../../notes/README.md) for Agent Note lifecycle; [docs/i18n/README.md](https://github.com/deepseek-ai/deepseek-harness/blob/dsh-v0.2.2-rc.3/docs/i18n/README.md) for the bilingual pairing rules; and [root AGENTS.md](../../../AGENTS.md) for standing orders. Exclude `.agents/notes/archived/` from audits and edits — archived notes are frozen history.
 
 Apply the standard's authoring order to every human-facing document in scope (not to Agent Notes): locate the document and state its own subject; set the permitted detail level and move deeper explanations to owning descendants with links; classify tutorial or reference from intended use, not path; for a tutorial, order concepts by prerequisite and difficulty; split substantial mixed forms. Then check placement constraints: paired docs cost a counterpart update and a `--write` re-record on every edit; generated catalogs are never hand-edited; a move is atomic with every inbound link repaired in the same change.
 
@@ -100,7 +100,7 @@ After the structural pass, hunt the slop checklist with the cheapest probes firs
 
 ## Website publication
 
-The website is a tested projection, never a second copy: [website/docs.ts](../../../website/docs.ts) is the explicit public allowlist mapping canonical `docs/` sources into route trees, [scripts/project-doc-site.ts](../../../scripts/project-doc-site.ts) rewrites them into the disposable `website/.generated/` tree, and VitePress builds that tree. Repository Markdown stays the only editable content source; translations stay sibling pairs (`foo.md`, `foo.zh.md`, `foo.i18n.yaml`), never locale directories. Edit an already published page in its canonical source only; add one manifest entry for a new page; update source, manifest entry, and inbound links atomically for a move or removal; never edit `website/.generated/`, `website/.cache/`, or `website/.dist/`. Set every `DocsPage` field deliberately and honor the projector's link rules; see [references/website-sync.md](references/website-sync.md) for the fields, sidebar collections, and preview commands. Synchronizing content into the build does not publish it: deployment stays a separate, explicitly requested step.
+DSHU selects offline pages through [website/docs.ts](../../../website/docs.ts) and stages them with [scripts/stage-dsh-docs.ts](../../../scripts/stage-dsh-docs.ts). Edit canonical Markdown and bilingual siblings; update selection and inbound links atomically when a maintained page moves. Do not edit the staged copy or run removed VitePress and deployment commands. [Offline projection](references/website-sync.md) owns the executed staging workflow and links the pinned upstream website reference. Staging is not publication or installation.
 
 ## Detailed references
 
@@ -110,7 +110,7 @@ Load only the reference needed for the task. Each reference links directly from 
 - [Page structure and hierarchy](references/structure-hierarchy.md): mandatory section order, section summaries, user-to-developer progression, docs tree placement, small rule files, Further Exploration, and Dev Note ownership.
 - [Page style](references/style.md): short Summary, `-----` section separators, foldable content sections, and emphasis discipline.
 - [Review criteria](references/review.md): newcomer test, evidence checks, package README review, the reference example, and verification commands.
-- [Website publication](references/website-sync.md): manifest fields, projector link rules, preview and validation, and deployment separation.
+- [Offline documentation projection](references/website-sync.md): selection, staging, validation and the upstream website reference.
 
 The templates in [`templates/`](templates/) provide one working skeleton per `kind`; open the one your document's kind names before writing.
 

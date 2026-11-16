@@ -27,7 +27,7 @@ Windows 产物位于 `%USERPROFILE%/DSHU-Deliveries/20261117`，Linux 文件位�
 
 完整 Web 基线仍为 `668ec5146d` 的 1,087 项通过、32 项条件跳过，本版没有重跑整轮。[基线](requirements/2026-11-16-regression-followup.md)
 
-全仓文档仍有 30 处既有断链及两处预算超额，本轮修改文档的定向链接检查通过。slot catalog 从已有声明重生成，只更新行号及一条说明。旧 7:40 Host 退出和历史 403 的原因仍未知；新增取证与重跑不等于根因修复。[稳定性](requirements/2026-11-06-stability.md) · [更新检查](requirements/2026-11-16-release-check.md)
+全仓文档已修复 28 处断链和两处篇幅超额；剩余两处冻结指南链接已准备 URL 修复补丁，待用户确认例外。没有放宽校验器或修改冻结文件。[记录](requirements/2026-11-17-documentation-repair.md)slot catalog 从已有声明重生成，只更新行号及一条说明。旧 7:40 Host 退出和历史 403 的原因仍未知；新增取证与重跑不等于根因修复。[稳定性](requirements/2026-11-06-stability.md) · [更新检查](requirements/2026-11-16-release-check.md)
 
 ## 恢复与工作区
 
