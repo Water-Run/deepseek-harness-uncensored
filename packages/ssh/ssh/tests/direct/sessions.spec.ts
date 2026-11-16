@@ -80,6 +80,9 @@ it('keeps concurrent Security sessions separate and preserves the captured owner
   await h.ctx.agents.withInitiator(h.second.agent, () => h.read(first))
   const history = h.ctx.targetProtection.auditHistory().entries
   expect(history[0]?.source?.sessionId).toBe(h.first.agent.id)
+  expect(history[0]).toMatchObject({ operation: 'file', effect: 'observe', decision: 'allow' })
+  expect(h.first.agent.session.snapshotEvents().filter(event => event.type === 'target/admission'
+    && event.data.operation === 'file').length).toBeGreaterThan(0)
   const flows = await h.ctx.securityProxy.list({ text: 'ssh' })
   expect(flows.flows.map(flow => flow.sessionId).sort()).toEqual(['ssh-first', 'ssh-second'])
   expect(flows.flows.every(flow => flow.kind === 'tunnel' && flow.note === 'tunnel-metadata-only')).toBe(true)

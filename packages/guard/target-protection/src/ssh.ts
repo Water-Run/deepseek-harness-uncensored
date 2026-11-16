@@ -7,6 +7,7 @@ import { credentialRef, isCredentialRefName } from '@deepseek-ai/dsh-credentials
 import type CredentialProvider from '@deepseek-ai/dsh-credentials'
 import { connectThrough } from '@deepseek-ai/dsh-security-proxy-local'
 import { targetSchema, policySchema, entriesSchema, remoteFileProtectionSchema } from '@deepseek-ai/dsh-ssh/schemas'
+import { textStreamIdSchema, type SshTextStreamId } from '@deepseek-ai/dsh-ssh/schemas'
 import { RemoteOperationError, type SshRpcPeer } from '@deepseek-ai/dsh-ssh/protocol'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
 import { posix } from 'node:path'
@@ -19,6 +20,7 @@ import type { TargetDecision } from './types.ts'
 import { TARGET_REFUSAL_REASONS } from './network-decision.ts'
 import { resolveSshFileMappings, sshFileMappings, type SshFileMapping } from './ssh-file-mapping.ts'
 import type { TargetRuleId } from './types.ts'
+import { TargetAuditError } from './errors.ts'
 
 /** Owner-selected SSH route, independent of ambient proxy variables and model arguments. */
 export interface Config extends DirectConfig {
@@ -91,6 +93,7 @@ export default class ProtectedSshConnection extends DirectSshConnection {
   private filePolicy: RemoteFilesystemPolicy | undefined
   private peer: TargetConnectionResolution | undefined
   private withdrawCoverage: (() => void) | undefined
+  private readonly fileStreams = new Map<SshTextStreamId, readonly string[]>()
 
   /** @param ctx - Owner providing credentials and target rules. @param config - Explicit endpoint and trusted helper. */
   constructor(ctx: Context, config: Config) {
@@ -123,7 +126,7 @@ export default class ProtectedSshConnection extends DirectSshConnection {
    */
   override dispose(): Promise<void> {
     this.withdrawCoverage?.()
-    return super.dispose()
+    return super.dispose().finally(() => { this.fileStreams.clear() })
   }
 
   protected override async configureHelper(peer: SshRpcPeer, signal: AbortSignal): Promise<void> {
@@ -235,7 +238,69 @@ export default class ProtectedSshConnection extends DirectSshConnection {
     return this.remotePaths.length > 0 ? { ...target, displayPath: input.displayPath } : target
   }
 
+  private filePaths(method: string, params: unknown, root: string): readonly string[] {
+    if (method === 'fs.next') {
+      const { id } = z.object({ id: textStreamIdSchema }).strict().parse(params)
+      return this.fileStreams.get(id) ?? [`stream:${id}`]
+    }
+    if (method === 'fs.resolve' || method === 'fs.lstat') {
+      const input = z.object({ path: z.string(), cwd: z.string().optional() }).strict().parse(params)
+      return [posix.resolve(input.cwd ?? root, input.path)]
+    }
+    const input = method === 'fs.rename' || method === 'fs.move'
+      ? z.looseObject({ source: targetSchema, destination: targetSchema }).parse(params)
+      : { source: z.looseObject({ target: targetSchema }).parse(params).target, destination: undefined }
+    return [...new Set([input.source, ...input.destination === undefined ? [] : [input.destination]]
+      .flatMap(target => [target.targetKey, posix.resolve(root, target.displayPath)]))]
+  }
+
   override async request<T>(method: string, params: unknown, result: z.ZodType<T>, signal?: AbortSignal, wait = false): Promise<T> {
+    if (method === 'fs.streamClose') {
+      const { id } = z.object({ id: textStreamIdSchema }).strict().parse(params)
+      try { return await this.executeRequest(method, params, result, signal, wait) }
+      finally { this.fileStreams.delete(id) }
+    }
+    const effect = EFFECTS[method]
+    if (!method.startsWith('fs.') || effect === undefined) return this.executeRequest(method, params, result, signal, wait)
+    const remote = await this.ready, paths = this.filePaths(method, params, remote.workspace)
+    const bounded = AbortSignal.any([this.executionSignal(), ...signal === undefined ? [] : [signal]])
+    let unpublishedStream: SshTextStreamId | undefined
+    try { return await this.protection.auditRemoteFile(
+      ['ssh', this.config.hostname, this.config.port, this.config.hostKeySha256, ...paths], effect, bounded,
+      async (requestSignal) => {
+        let value: T
+        try { value = await this.executeRequest(method, params, result, requestSignal, wait) }
+        catch (error) {
+          if (method === 'fs.next') this.fileStreams.delete(z.object({ id: textStreamIdSchema }).parse(params).id)
+          throw error
+        }
+        if (method === 'fs.stream') {
+          unpublishedStream = textStreamIdSchema.parse(value)
+          this.fileStreams.set(unpublishedStream, paths)
+        }
+        if (method === 'fs.next') {
+          const { id } = z.object({ id: textStreamIdSchema }).parse(params)
+          if (z.object({ done: z.boolean() }).parse(value).done) this.fileStreams.delete(id)
+          else unpublishedStream = id
+        }
+        return value
+      }) }
+    catch (error) {
+      if (unpublishedStream !== undefined) {
+        const stream = unpublishedStream
+        try { await this.executeRequest('fs.streamClose', { id: stream }, z.null()) }
+        catch (cleanup) {
+          throw new TargetAuditError('TARGET_AUDIT_UNCONFIRMED',
+            'The remote stream result was not acknowledged and its cleanup is unconfirmed. Verify the helper before retrying.',
+            { cause: new AggregateError([error, cleanup]) })
+        }
+        finally { this.fileStreams.delete(stream) }
+      }
+      throw error
+    }
+  }
+
+  private async executeRequest<T>(method: string, params: unknown, result: z.ZodType<T>, signal?: AbortSignal, wait = false): Promise<T> {
     const remote = await this.ready
     const bounded = AbortSignal.any([this.executionSignal(), ...signal === undefined ? [] : [signal]])
     await this.authorizeRequest(method, params, bounded)

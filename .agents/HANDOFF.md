@@ -1,6 +1,6 @@
 # DSHU 开发交接
 
-**Goal「实现DSHU」保持活动。** 当前 35 项完成、10 项进行中，另有 3 项未来计划。最近成功实查剩余 97%；确认达到 1% 时按用户规则收尾并暂停。Windows x64 优先、Linux x64 同步；macOS ARM、Android＋Fedora PRoot及全新安装器本轮不开发。
+**Goal「实现DSHU」保持活动。** 当前 35 项完成、10 项进行中，另有 3 项未来计划。最近成功实查剩余 96%；确认达到 1% 时按用户规则收尾并暂停。Windows x64 优先、Linux x64 同步；macOS ARM、Android＋Fedora PRoot及全新安装器本轮不开发。
 
 ## 当前交付
 
@@ -33,7 +33,7 @@ slot catalog 从已有声明重生成，只更新行号及一条说明。旧 7:4
 
 ## 后续源码
 
-中央资源路径映射已接入实际 SSH helper；Windows 74 项、Linux 327 项及两个独立进程并发各 80 项通过。新增映射模块覆盖率 100%，负对照确认缺少 helper 规则时会检出错误放行；Linux Session 重放通过。已安装 `.17.1` 尚不含此改动，后续构建须以新源码单独验收。远端网络、数据库身份与完整审计仍待完成。[记录](requirements/2026-11-17-ssh-file-mapping.md)
+中央资源路径映射已接入实际 SSH helper，随后补齐文件请求结果、拒绝及会话审计。最新 Windows 85 项、Linux 338 项，两个独立进程并发各 80 项通过；SQLite 故障、游标清理负对照和包含真实故障的 Session 重放通过。已安装 `.17.1` 尚不含后续源码。helper 匹配资源的证明、远端网络、数据库身份与完整审计仍待完成。[映射](requirements/2026-11-17-ssh-file-mapping.md) · [审计](requirements/2026-11-17-ssh-file-audit.md)
 
 ## 恢复与工作区
 

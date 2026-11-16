@@ -7,6 +7,7 @@ import ProtectedSsh from '@deepseek-ai/dsh-target-protection/ssh'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join, posix } from 'node:path'
 import { randomUUID } from 'node:crypto'
+import { DatabaseSync } from 'node:sqlite'
 import assert from 'node:assert/strict'
 import { z } from 'zod'
 import { createSshFixture } from './peer.ts'
@@ -18,6 +19,7 @@ export const inject = ['tools']
 async function probe(mode: 'full' | 'audit' | 'test', signal: AbortSignal): Promise<string> {
   const protectedPath = '/fixture/workspace/protected.txt'
   let configured = false
+  let auditBlocker: DatabaseSync | undefined, auditLocked = false
   const fixture = await createSshFixture({ handle: async (method, params, signal, root) => {
     signal.throwIfAborted()
     if (method === 'fs.protection') {
@@ -38,6 +40,7 @@ async function probe(mode: 'full' | 'audit' | 'test', signal: AbortSignal): Prom
     if (method === 'fs.write') {
       const input = z.object({ content: z.string() }).parse(params)
       await writeFile(path, input.content)
+      if (auditBlocker !== undefined) { auditBlocker.exec('BEGIN IMMEDIATE'); auditLocked = true }
       return { operation: 'update', version: 'fixture-v2', before: null, after: input.content }
     }
     throw new Error('Unexpected SSH fixture request')
@@ -50,7 +53,7 @@ async function probe(mode: 'full' | 'audit' | 'test', signal: AbortSignal): Prom
     signal.throwIfAborted()
     const { ctx, root, config } = fixture
     const file = join(root, 'contents.txt'); await writeFile(file, 'preserve')
-    await ctx.plugin(TargetProtection, { path: join(root, 'targets.sqlite'), auditPath: join(root, 'audit.sqlite'), hostsFile: '' })
+    await ctx.plugin(TargetProtection, { path: join(root, 'targets.sqlite'), auditPath: join(root, 'audit.sqlite'), hostsFile: '', busyTimeoutMs: 20 })
     const current = await ctx.targetProtection.snapshot()
     const mappedId = brandString<TargetRuleId>(randomUUID())
     await ctx.targetProtection.configure({ mainlandEnabled: false, rules: [{
@@ -76,16 +79,31 @@ async function probe(mode: 'full' | 'audit' | 'test', signal: AbortSignal): Prom
     }
     const target = { displayPath: '/fixture/workspace/contents.txt', targetKey: '/fixture/workspace/contents.txt' }
     assert.equal(await ctx.ssh.request('fs.readText', { target }, z.string(), signal), 'preserve')
-    const write = () => ctx.ssh.request('fs.write', { target, content: 'changed', policy: {
+    const write = (content = 'changed') => ctx.ssh.request('fs.write', { target, content, policy: {
       mode: 'danger-full-access', workspaceRoot: '/',
     } }, z.unknown(), signal)
     if (mode === 'audit') {
       await assert.rejects(write, { code: 'TARGET_READ_ONLY' })
       assert.equal(await readFile(file, 'utf8'), 'preserve')
+      const refused = ctx.targetProtection.auditHistory().entries.find(entry => entry.operation === 'file' && entry.effect === 'mutate')
+      assert.equal(refused?.decision, 'deny')
+      assert.equal(refused?.code, 'TARGET_READ_ONLY')
+      assert.match(refused?.fingerprint ?? '', /^[a-f0-9]{64}$/u)
       return 'read succeeded; write blocked'
     }
     await write()
     assert.equal(await readFile(file, 'utf8'), 'changed')
+    const blocker = new DatabaseSync(join(root, 'audit.sqlite'))
+    try {
+      auditBlocker = blocker
+      await assert.rejects(write('unacknowledged effect'), { code: 'TARGET_AUDIT_UNCONFIRMED' })
+      assert.equal(await readFile(file, 'utf8'), 'unacknowledged effect')
+      assert.equal(ctx.targetProtection.auditHistory().state, 'unavailable')
+    } finally {
+      auditBlocker = undefined
+      try { if (auditLocked) blocker.exec('ROLLBACK') }
+      finally { blocker.close() }
+    }
     return 'write succeeded'
   } finally { signal.removeEventListener('abort', cancelled); await fixture.close() }
 }

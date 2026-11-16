@@ -13,19 +13,20 @@ import { resolvePublicAddresses, resolveConnectionAddresses } from '@deepseek-ai
 import type { HttpFetchDestination, PublicAddress, ResolvedSocketAddress } from '@deepseek-ai/dsh-web-fetch-http'
 import { canonicalTargetHost, TargetRules, expandTargetRules, parseTargetPreferences } from './rules.ts'
 import { TargetStore } from './store.ts'
-import { TargetProtectionError } from './errors.ts'
+import { TargetProtectionError, TargetAuditError } from './errors.ts'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
 import type {} from './country-provider.ts'
 import { resolveTargetDns, systemHostsFile, type TargetDnsResolution } from './dns-resolution.ts'
 import { parseDnsServer } from './dns-transport.ts'
 import { canonicalLocalPath, resolveLocalPathIdentity, localPathContains, localIdentityPaths } from './file-identity.ts'
 import { decideLocalTarget, type LocalTargetOperation } from './file-rules.ts'
-import type { NetworkTarget, TargetDecision, TargetEffect, TargetPreferences, TargetSnapshot, TargetSshCoverage, TargetRuleId } from './types.ts'
+import type { NetworkTarget, TargetDecision, TargetDenialCode, TargetEffect, TargetPreferences, TargetSnapshot, TargetSshCoverage, TargetRuleId } from './types.ts'
+import { TARGET_REFUSAL_REASONS } from './network-decision.ts'
 import type { NativeFileConstraints } from './native-file-policy.ts'
 import { TargetAuditStore, type AuditSubject, type TargetAuditHistory, type TargetAuditRecord } from './audit.ts'
 
 export type * from './types.ts'
-export { TargetProtectionError } from './errors.ts'
+export { TargetProtectionError, TargetAuditError } from './errors.ts'
 export { canonicalTargetHost, parseTargetPreferences, TargetRules, expandTargetRules } from './rules.ts'
 export { TargetStore } from './store.ts'
 
@@ -102,6 +103,10 @@ export interface RemoteFilesystemPolicy {
 /** File identity and policy revision selected for the executing local provider. */
 export interface LocalFileAdmission { path: string; revision: number; decision: TargetDecision }
 type VersionedDecision = { revision: number | null; decision: TargetDecision }
+
+function isTargetDenial(error: unknown): error is HarnessError & { code: TargetDenialCode } {
+  return error instanceof HarnessError && Object.hasOwn(TARGET_REFUSAL_REASONS, error.code)
+}
 
 /** Session attribution captured by a trusted local request or listener owner. */
 export interface TargetAuditExecution extends ProxyExecutionScope {}
@@ -359,6 +364,51 @@ export default class TargetProtection extends Service {
     if (this.audit === undefined) return { state: 'off', entries: [] }
     try { return { state: this.auditFailed ? 'unavailable' : 'ready', entries: this.audit.recent() } }
     catch (_error) { return { state: 'unavailable', entries: [] } }
+  }
+
+  /**
+   * Record a guarded remote file request after its validated result or refusal, retaining its exact audit owner through cleanup.
+   * Connection admission must still succeed and persist before the executor performs I/O. File records do not attest matched rule IDs.
+   * @param identity - Executor-selected SSH destination and requested file identities; only their keyed fingerprint is stored.
+   * @param effect - Effect selected by the structured protocol method.
+   * @param signal - Request cancellation.
+   * @param execute - Existing guarded executor, including result validation; it must observe the supplied lifetime.
+   * @returns The validated result; executor failures retain their original identity and never imply rollback.
+   * @throws TARGET_AUDIT_UNCONFIRMED if the executor returned but its final audit acknowledgement failed; verify files before retrying.
+   */
+  auditRemoteFile<T>(identity: readonly (string | number | undefined)[], effect: 'observe' | 'mutate', signal: AbortSignal,
+    execute: (signal: AbortSignal) => Promise<T>): Promise<T> {
+    this.lifetime.signal.throwIfAborted()
+    signal.throwIfAborted()
+    if (this.audit === undefined) return execute(signal)
+    const sessionId = this.currentAuditSessionId()
+    return this.bindAuditSession(sessionId ?? undefined)(async (lifetime) => {
+      const bounded = AbortSignal.any([signal, lifetime])
+      bounded.throwIfAborted()
+      if (this.auditFailed) throw new TargetAuditError('TARGET_AUDIT_UNAVAILABLE', 'Target audit is unavailable. The file request was not started.')
+      const session = this.auditSession(), revision = this.currentSnapshot().revision
+      const subject: AuditSubject = { operation: 'file', effect, phase: 'execution', identity: [...identity] }
+      let value: T
+      try { value = await execute(bounded) }
+      catch (error) {
+        if (isTargetDenial(error)) this.recordAudit(subject, { revision, decision: 'deny', code: error.code }, [], session)
+        else this.recordFailure(subject, error, bounded, session)
+        throw error
+      }
+      try {
+        if (bounded.aborted) {
+          this.recordFailure(subject, bounded.reason, bounded, session)
+          throw bounded.reason
+        }
+        this.recordDecision(subject, { revision, decision: { allowed: true, ruleIds: [] } }, session)
+      }
+      catch (error) {
+        throw new TargetAuditError('TARGET_AUDIT_UNCONFIRMED',
+          'The remote file request finished, but its audit acknowledgement is unavailable. Verify the remote files before retrying; do not assume rollback.',
+          { cause: error })
+      }
+      return value
+    })
   }
 
   /**
