@@ -2,9 +2,11 @@
 
 状态：进行中，不代表整合发行的许可核对已完成。用户的 GPL 许可偏好、上游 Credit 和各组件原有许可保持不变。
 
-当前 `2026.11.16.1` Windows 检查版包含 919 个 npm 包、21 份补充声明、7 项待核查；Linux 两种归档包含 921 个包、26 份补充声明、9 项待核查。实际安装包中的适用补充原文、Electron 和安装器声明已按固定摘要核对，Office 的 Windows 五份和 Linux WASM 三份声明也已核对。旧版本数量在下文保留为历史，当前证据见 [HANDOFF](../HANDOFF.md)。
+当前 `2026.11.16.3` Windows 检查版包含 919 个 npm 包、21 份补充声明、6 项待核查；Linux 包含 921 个包、26 份补充声明、8 项待核查。本次直接读取 Windows 已安装 ASAR 和已验收 Linux tar.gz 的 ASAR，核对产品版本和唯一 npm 声明清单；两种 Linux 归档的 ASAR 摘要相同，见[本版交付记录](2026-11-16.3-delivery.md)。适用补充原文、Electron、安装器及 Office 声明的摘要核对保留。旧版本数量在下文保留为历史。
 
-当前 7 项分别为 `brotli@1.3.3`、`dfa@1.2.0`、`fontkit@2.0.4`、`frida@17.23.2`、`proxy-agent-negotiate@1.1.0`、`clean-git-ref@2.0.1`、`minimisted@2.0.1`。自动清点的待核查标志继续保留，不能以安装器已能运行推定许可证义务已完成。下文各版本和数量属于其注明日期的验证。
+Windows 的六项为 `brotli@1.3.3`、`dfa@1.2.0`、`fontkit@2.0.4`、`frida@17.23.2`、`proxy-agent-negotiate@1.1.0`、`minimisted@2.0.1`。Linux 另有 `@img/sharp-libvips-linux-x64@1.3.4` 和 `sherpa-onnx-linux-x64@1.13.8`。`clean-git-ref@2.0.1` 的材料缺口已核查，不再列入当前待核查项。不能以程序可运行或清点通过推定总体许可兼容性结论。
+
+当前实包清点证据为 `%USERPROFILE%/DSHU-Deliveries/20261116/notice-review/current-16-3-inventory.json`，读取入口为同目录的 `read-current-inventory.mjs`。仅提取清单，不修改安装、第三方记录或审查标记。
 
 ## Office 0.2.3 声明清点（2026-11-13）
 
@@ -135,17 +137,18 @@ Linux `.3` 实包原清单为 861 个 npm 包和 12 项待核查。`@deepseek-ai
 
 ## 最新检查包的材料核查
 
-`2026.11.16.2` 的实际清单为 Windows 919 包中 6 项、Linux 921 包中 8 项待核查。clean-git-ref 的归属与实装复核已完成，其他条目继续保留，不将清点通过解释成许可兼容性结论。
+当前数量与版本以本页开头的实包清点为准。下表列出仍需处理的材料及发行核查；clean-git-ref 已完成项见[发布归属复核](#clean-git-ref-发布归属复核)。
 
-| 包与版本 | 剩余核查 |
-| --- | --- |
-| brotli 1.3.3 | 已补 Google 解码器、固定子模块和 Emscripten 运行时声明，包装代码原始署名、精确编译器版本及链接组件清单待核对 |
-| clean-git-ref 2.0.1 | 发布归属与实装内容复核完成；`.16.2` 已移除该精确版本的材料缺口标记，原包记录保留 |
-| dfa 1.2.0 | npm 包及固定源提交没有独立许可原文 |
-| fontkit 2.0.4 | 已补八张 Mac 编码表的归属声明。该版本的完整许可原文与 Apple 数据分发条款仍待核对 |
-| frida 17.23.2 | 版本及源码链已核对，Node 绑定和预构建组件的完整署名仍待核查 |
-| minimisted 2.0.1 | REA 明确记录的上游原文/署名缺项，保留待核查 |
-| proxy-agent-negotiate 1.1.0 | 发布包与对应 tag 没有本包许可文件；相邻代理包文件不能未经核准直接替用 |
+| 包与版本 | 平台 | 剩余核查 |
+| --- | --- | --- |
+| brotli 1.3.3 | Windows/Linux | 已补 Google 解码器、固定子模块和 Emscripten 运行时声明，包装代码原始署名、精确编译器版本及链接组件清单待核对 |
+| dfa 1.2.0 | Windows/Linux | npm 包及固定源提交没有独立许可原文 |
+| fontkit 2.0.4 | Windows/Linux | 已补八张 Mac 编码表的归属声明。该版本的完整许可原文与 Apple 数据分发条款仍待核对 |
+| frida 17.23.2 | Windows/Linux | 版本及源码链已核对，Node 绑定和预构建组件的完整署名仍待核查 |
+| minimisted 2.0.1 | Windows/Linux | REA 明确记录的上游原文/署名缺项，保留待核查 |
+| proxy-agent-negotiate 1.1.0 | Windows/Linux | 发布包与对应 tag 没有本包许可文件；相邻代理包文件不能未经核准直接替用 |
+| @img/sharp-libvips-linux-x64 1.3.4 | Linux | 已补 Sharp 第三方清单及匹配的 libvips 原文；内嵌库署名与发行要求仍待复核 |
+| sherpa-onnx-linux-x64 1.13.8 | Linux | 已补 Sherpa-ONNX 及匹配的 ONNX Runtime 原文；内嵌库署名与发行要求仍待复核 |
 
 其他平台、Electron 外壳、独立 Node/Python 分发及源码提供义务另行核对；早期 759 项清点不能覆盖这些范围。新清单与补充文件已进入源码构建路径，当前安装状态以本页开头的实包记录为准。
 
