@@ -124,11 +124,10 @@ export default class ProtectedSshConnection extends DirectSshConnection {
     }
   }
 
-  protected override executionSignal(): AbortSignal {
-    return AbortSignal.any([super.executionSignal(), this.protection.executionSignal()])
+  protected override async retainExecution(): Promise<() => void> {
+    const snapshot = await this.protection.snapshot()
+    return this.protection.retainNativeExecution(snapshot.revision, () => this.dispose())
   }
-
-  protected override retainExecution(): () => void { return this.protection.retainExecution() }
 
   protected override async connectPeer(peer: SshPeer, signal: AbortSignal): Promise<Socket> {
     if (this.proxy === undefined) return super.connectPeer(peer, signal)
@@ -162,6 +161,7 @@ export default class ProtectedSshConnection extends DirectSshConnection {
   protected override async authorizeRequest(method: string, _params: unknown, signal: AbortSignal): Promise<void> {
     signal.throwIfAborted()
     if (CLEANUP.includes(method)) return
+    this.protection.executionSignal().throwIfAborted()
     const effect = EFFECTS[method]
     if (method === 'fs.protection' || (this.protectedPaths.length > 0 && effect === undefined)) {
       throw new HarnessError('This SSH operation cannot be confined to the protected remote filesystem.', 'TARGET_EXECUTION_UNCONFINED')

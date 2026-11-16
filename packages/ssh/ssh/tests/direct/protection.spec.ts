@@ -16,8 +16,8 @@ const remoteRoot = '/fixture/workspace'
 const fileTarget = { displayPath: `${remoteRoot}/data.txt`, targetKey: `${remoteRoot}/data.txt` }
 const policy = { mode: 'danger-full-access', workspaceRoot: '/' }
 
-async function setup(acceptRemoteProtection = false) {
-  const h = await harness({ handle: async (method, params, signal, root) => {
+async function setup(acceptRemoteProtection = false, close?: () => Promise<unknown>) {
+  const h = await harness({ ...close === undefined ? {} : { close }, handle: async (method, params, signal, root) => {
     signal.throwIfAborted()
     if (method === 'fs.protection') {
       if (!acceptRemoteProtection) throw new Error('Fixture helper does not support remote path protection')
@@ -62,6 +62,27 @@ it('requires the verified helper to accept configured production paths before pu
   expect(fixture.requests).toContain('fs.protection')
   expect(fixture.ctx.get('ssh')).toBeUndefined()
   expect(fixture.ctx.targetProtection.sshCoverage()).toEqual({ connections: 0, pathProtectedConnections: 0 })
+})
+
+it('confirms SSH shutdown before committing a new protected rule revision', async () => {
+  const finished = Promise.withResolvers<undefined>()
+  const h = await setup(false, () => finished.promise)
+  const fiber = await h.ctx.plugin(ProtectedSsh, h.config)
+  const before = await h.ctx.targetProtection.snapshot()
+  const changing = h.ctx.targetProtection.configure({ mainlandEnabled: false, rules: [h.rule({ address: 'new.example' })] }, before.revision)
+  void changing.catch(() => {})
+  try {
+    await expect.poll(() => h.requests.includes('close')).toBe(true)
+    expect((await h.ctx.targetProtection.snapshot()).revision).toBe(before.revision)
+    finished.resolve(undefined)
+    await changing
+    expect((await h.ctx.targetProtection.snapshot()).revision).toBe(before.revision + 1)
+    expect(h.ctx.targetProtection.sshCoverage()).toEqual({ connections: 0, pathProtectedConnections: 0 })
+  } finally {
+    finished.resolve(undefined)
+    await fiber.dispose()
+    await changing.catch(() => {})
+  }
 })
 
 it('blocks attempts to replace remote path protection or execute an arbitrary remote process', async () => {
@@ -109,16 +130,32 @@ it('withdraws SSH coverage when the peer disconnects', async () => {
   const changed = vi.fn()
   h.ctx.on('target-protection/status-changed', changed)
   const before = h.ctx.securityProtection.read()
-  await h.ctx.plugin(ProtectedSsh, h.config)
+  const leases = vi.spyOn(h.ctx.targetProtection, 'retainNativeExecution')
+  const fiber = await h.ctx.plugin(ProtectedSsh, h.config)
   expect(h.ctx.targetProtection.sshCoverage().connections).toBe(1)
   const connected = h.ctx.securityProtection.read()
   expect(connected.revision).toBeGreaterThan(before.revision)
   changed.mockClear()
-  await h.disconnect()
-  await expect.poll(() => h.ctx.targetProtection.sshCoverage().connections).toBe(0)
-  expect(changed).toHaveBeenCalled()
-  expect(h.ctx.securityProtection.read().revision).toBeGreaterThan(connected.revision)
-  await expect(h.ctx.ssh.request('fs.readText', { target: fileTarget }, z.string())).rejects.toBeDefined()
+  try {
+    await h.disconnect()
+    await expect.poll(() => h.ctx.targetProtection.sshCoverage().connections).toBe(0)
+    expect(changed).toHaveBeenCalled()
+    expect(h.ctx.securityProtection.read().revision).toBeGreaterThan(connected.revision)
+    await expect(h.ctx.ssh.request('fs.readText', { target: fileTarget }, z.string())).rejects.toBeDefined()
+    const snapshot = await h.ctx.targetProtection.snapshot()
+    await expect(h.configure([h.rule()])).rejects.toMatchObject({ code: 'SSH_REMOTE_CLEANUP_UNCONFIRMED' })
+    expect((await h.ctx.targetProtection.snapshot()).revision).toBe(snapshot.revision)
+    let failure: unknown
+    try { h.ctx.targetProtection.retainNativeExecution(snapshot.revision, async () => {}) }
+    catch (error) { failure = error }
+    expect(failure).toMatchObject({ name: 'TargetProtectionError', code: 'unavailable' })
+  } finally {
+    // The fixture executes no remote processes and its owned peer sockets have already closed.
+    // Release the observed real leases before disposing its isolated rule store.
+    for (const result of leases.mock.results) if (result.type === 'return') result.value()
+    leases.mockRestore()
+    await fiber.dispose().catch(() => {})
+  }
 })
 
 it('allows structured audit reads but refuses direct mutation and arbitrary process calls', async () => {

@@ -73,9 +73,13 @@ export async function runSshHelper(transport: HelperTransport): Promise<void> {
   let lease: NodeJS.Timeout | undefined
   let leaseMs = 30_000
   let initialized = false
+  let closeConfirmation = false
   let workspace = process.cwd()
   let cleanup: Promise<void> | undefined
+  let closing = false
+  const active = new Set<Promise<unknown>>()
   const close = (): Promise<void> => {
+    closing = true
     cleanup ??= (async () => {
       if (lease !== undefined) clearTimeout(lease)
       lifetime.abort(new Error('SSH helper is closing'))
@@ -84,6 +88,7 @@ export async function runSshHelper(transport: HelperTransport): Promise<void> {
       iterators.clear()
       try { await processes.close() }
       finally {
+        while (active.size > 0) await Promise.allSettled([...active])
         try { await runtime.close() }
         finally { await rm(root, { recursive: true, force: true }) }
       }
@@ -106,17 +111,19 @@ export async function runSshHelper(transport: HelperTransport): Promise<void> {
     }
   }
   const asTarget = (raw: unknown): FsTarget => targetSchema.parse(raw) as FsTarget
-  const peer = new SshRpcPeer(transport.input, transport.output, MAX_FRAME_BYTES, 128, async (method, raw, requestSignal) => {
+  const dispatch = async (method: string, raw: unknown, requestSignal: AbortSignal): Promise<unknown> => {
     const signal = AbortSignal.any([requestSignal, lifetime.signal])
     if (method === 'hello') {
       if (initialized) throw new Error('SSH helper handshake already completed')
       const input = z.object({
         protocol: z.literal(SSH_PROTOCOL_VERSION), workspace: remotePath, leaseMs: z.number().int().min(3000).max(600_000),
+        closeConfirmation: z.literal(true).optional(),
         bootstrapPath: remotePath.optional(),
       }).strict().parse(raw)
       if (transport.kind === 'executable' && input.bootstrapPath !== undefined) throw new Error('Executable SSH helper uses its embedded PTC bootstrap')
       workspace = ctx.fs.processPath(await ctx.fs.resolve(input.workspace, { signal }))
       leaseMs = input.leaseMs
+      closeConfirmation = input.closeConfirmation === true
       initialized = true
       touchLease()
       return {
@@ -125,9 +132,9 @@ export async function runSshHelper(transport: HelperTransport): Promise<void> {
         ...(input.bootstrapPath === undefined ? {} : { bootstrapHash: createHash('sha256').update(readFileSync(input.bootstrapPath)).digest('hex') }),
       }
     }
-    if (!initialized || cleanup !== undefined) throw new Error('SSH helper is not accepting operations')
+    if (!initialized || closing) throw new Error('SSH helper is not accepting operations')
     if (method === 'heartbeat') { object.parse(raw); touchLease(); return null }
-    if (method === 'close') { object.parse(raw); await close(); return null }
+    if (method === 'close') { object.parse(raw); await close(); return closeConfirmation ? { quiescent: true } : null }
     if (method === 'fs.protection') {
       await protection.configure(workspace, remoteFileProtectionSchema.parse(raw), signal)
       return null
@@ -314,6 +321,14 @@ export async function runSshHelper(transport: HelperTransport): Promise<void> {
       }, signal, await policy(input.policy, signal))
     }
     throw new Error(`Unknown SSH helper operation: ${method}`)
+  }
+  const peer = new SshRpcPeer(transport.input, transport.output, MAX_FRAME_BYTES, 128, (method, raw, signal) => {
+    const operation = dispatch(method, raw, signal)
+    if (method !== 'close') {
+      active.add(operation)
+      void operation.then(() => { active.delete(operation) }, () => { active.delete(operation) })
+    }
+    return operation
   })
   const closed = Promise.withResolvers<undefined>()
   peer.once('closed', () => {

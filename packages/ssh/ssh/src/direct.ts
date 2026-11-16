@@ -139,7 +139,9 @@ export class DirectSshConnection extends Service implements SshService {
   async [Service.init](): Promise<void> {
     try {
       this.assertOpen()
-      this.releaseOwner = this.retainExecution()
+      const release = await this.retainExecution()
+      try { this.assertOpen() } catch (error) { release(); throw error }
+      this.releaseOwner = release
       const signal = this.executionSignal()
       const revoked = (): void => { this.fail(new HarnessError('SSH execution permission was withdrawn.', 'SSH_UNAVAILABLE')) }
       signal.addEventListener('abort', revoked, { once: true })
@@ -158,10 +160,11 @@ export class DirectSshConnection extends Service implements SshService {
     }
   }
 
-  /** @returns The current executor lifetime; protected adapters add policy revocation. */
+  /** @returns The connection lifetime used for startup and local I/O. */
   protected executionSignal(): AbortSignal { return this.lifetime.signal }
-  /** @returns A dependency lease held until all native SSH activity has settled. */
-  protected retainExecution(): () => void { return () => {} }
+  /** @returns A release function after retention is established. A lease arriving after withdrawal
+   * is released without opening a transport; activated helpers require confirmed shutdown. */
+  protected retainExecution(): (() => void) | Promise<() => void> { return () => {} }
 
   /** @param signal - Activation cancellation. @returns One literal peer with a final policy recheck. */
   protected async resolvePeer(signal: AbortSignal): Promise<SshPeer> {
@@ -302,7 +305,7 @@ export class DirectSshConnection extends Service implements SshService {
       this.rpc = rpc
       rpc.once('closed', (error) => { this.fail(error) })
       const launch = this.config.launch
-      const remote = await rpc.request('hello', { protocol: SSH_PROTOCOL_VERSION, workspace: this.config.workspace, leaseMs: this.config.leaseMs,
+      const remote = await rpc.request('hello', { protocol: SSH_PROTOCOL_VERSION, workspace: this.config.workspace, leaseMs: this.config.leaseMs, closeConfirmation: true,
         ...launch.kind === 'node-script' && launch.bootstrapPath !== undefined ? { bootstrapPath: launch.bootstrapPath } : {},
       }, helloSchema, timeout.signal)
       if (remote.hash !== this.config.helperHash || remote.kind !== launch.kind
@@ -429,26 +432,35 @@ export class DirectSshConnection extends Service implements SshService {
     } finally { timeout.signal.removeEventListener('abort', aborted) }
   }
 
-  /** Stop admission, request remote cleanup, then settle native streams before releasing dependencies. */
+  /** Stop admission and join local I/O. Activated helpers must acknowledge quiescence before
+   * dependencies release; otherwise reject with SSH_REMOTE_CLEANUP_UNCONFIRMED and retain them. */
   dispose(): Promise<void> { return this.disposal ??= this.close() }
 
   private async close(): Promise<void> {
     this.closing = true
     this.detachPolicy?.()
     if (this.heartbeat !== undefined) clearInterval(this.heartbeat)
+    let confirmed = this.remote === undefined
+    let failure: unknown = this.failure
     try {
       if (this.remote !== undefined && this.failure === undefined && this.rpc !== undefined) {
         using timeout = deadline(undefined, this.config.requestTimeoutMs, 'SSH_CLOSE_TIMEOUT')
-        await this.rpc.request('close', {}, z.null(), timeout.signal)
+        await this.rpc.request('close', {}, z.object({ quiescent: z.literal(true) }).strict(), timeout.signal)
+        confirmed = true
       }
+    } catch (error) {
+      failure = error
     } finally {
       const reason = this.failure ?? new HarnessError('SSH connection is closed.', 'SSH_UNAVAILABLE')
       this.lifetime.abort(reason); this.readyState.reject(reason); this.rpc?.close(reason); this.client?.destroy()
       this.closeStreams()
       while (this.operations.size > 0) await Promise.allSettled([...this.operations])
       await Promise.allSettled([...this.streams.values()].map(record => record.closed))
-      this.releaseOwner?.(); this.releaseOwner = undefined
     }
+    if (!confirmed) throw new HarnessError(
+      'SSH shutdown was not acknowledged. Remote effects may still be running; verify them before reloading protected execution.',
+      'SSH_REMOTE_CLEANUP_UNCONFIRMED', { cause: failure })
+    this.releaseOwner?.(); this.releaseOwner = undefined
   }
 }
 

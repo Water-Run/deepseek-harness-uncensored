@@ -6,7 +6,7 @@ import { brandString } from '@deepseek-ai/dsh-brand'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import TargetProtection, { type TargetRule, type TargetRuleId } from '@deepseek-ai/dsh-target-protection'
 import ProtectedSsh from '@deepseek-ai/dsh-target-protection/ssh'
-import { expect, it, vi } from 'vitest'
+import { expect, it, onTestFinished, vi } from 'vitest'
 import { z } from 'zod'
 import { targetSchema } from '../../src/schemas.ts'
 import { harness } from './fixture.ts'
@@ -22,6 +22,7 @@ async function setup(options: Parameters<typeof proxyFixture>[0] = {}) {
     throw new Error('Unexpected remote mutation')
   } })
   const proxy = await proxyFixture(options)
+  onTestFinished(() => h.close())
   const hosts = join(h.root, 'hosts')
   await writeFile(hosts, '127.0.0.1 ssh.fixture.test\n')
   const protection = await h.ctx.plugin(TargetProtection, { path: join(h.root, 'rules.sqlite'), hostsFile: hosts })
@@ -135,11 +136,15 @@ it('rechecks rules after asynchronous proxy credential resolution', async () => 
   const pending = Promise.resolve(h.ctx.plugin(ProtectedSsh, { ...h.config,
     proxy: { ...h.config.proxy, username: 'fixture', passwordRef: reference } }))
   const rejection = expect(pending).rejects.toBeDefined()
+  let configuring: Promise<void> | undefined
   try {
     await entered.promise
-    await h.configure([h.rule({ protection: 'full' })])
+    const before = await h.ctx.targetProtection.snapshot()
+    configuring = h.configure([h.rule({ protection: 'full' })])
+    await vi.waitFor(() => { expect(() => { h.ctx.targetProtection.executionSignal().throwIfAborted() }).toThrow() })
+    expect((await h.ctx.targetProtection.snapshot()).revision).toBe(before.revision)
   } finally { release.resolve(true); spy.mockRestore() }
-  await rejection
+  await Promise.all([rejection, configuring])
   expect(h.proxy.connections()).toBe(0)
   expect(h.connected()).toBe(0)
 })

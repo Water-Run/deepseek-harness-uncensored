@@ -27,6 +27,8 @@ export async function createSshFixture(options: {
   holdStream?: boolean
   exitBeforeHello?: number
   forwardStream?: () => Duplex
+  close?: () => Promise<unknown>
+  legacyHello?: boolean
   handle?: (method: string, params: unknown, signal: AbortSignal, root: string) => Promise<unknown>
 } = {}) {
   const key = generateKeyPairSync('ec', { namedCurve: 'prime256v1',
@@ -62,11 +64,20 @@ export async function createSshFixture(options: {
         if (options.exitBeforeHello !== undefined) {
           channel.exit(options.exitBeforeHello); channel.end(); return
         }
+        let closeConfirmation = false
         const peer = new SshRpcPeer(channel, channel, 65536, 16, async (method, params, signal) => {
           requests.push(method)
-          if (method === 'hello') return { ...hello, ...options.hello }
+          if (method === 'hello') {
+            closeConfirmation = typeof params === 'object' && params !== null && 'closeConfirmation' in params && params.closeConfirmation === true
+            if (options.legacyHello && closeConfirmation) throw new Error('Legacy helper rejects the unknown handshake field')
+            return { ...hello, ...options.hello }
+          }
           if (method === 'echo') return params
-          if (method === 'heartbeat' || method === 'close') return null
+          if (method === 'heartbeat') return null
+          if (method === 'close') {
+            const result = await options.close?.()
+            return result === undefined ? closeConfirmation ? { quiescent: true } : null : result
+          }
           if (options.handle !== undefined) {
             const operation = options.handle(method, params, signal, root)
             pending.add(operation)

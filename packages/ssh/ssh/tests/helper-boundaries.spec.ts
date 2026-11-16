@@ -18,6 +18,39 @@ const entryPath = fileURLToPath(new URL('../src/helper-entry.ts', import.meta.ur
 const nextSchema = z.object({ done: z.boolean(), value: z.string() })
 
 describe.skipIf(process.platform === 'win32')('SSH helper wire and lifecycle bounds', () => {
+  it('acknowledges confirmed close only after accepted filesystem I/O settles', async () => {
+    const h = await createHelperHarness(true, 30_000, 'node-script', true)
+    const resumed = Promise.withResolvers<Uint8Array>()
+    let entered = false, aborted = false, acknowledged = false
+    const read = vi.spyOn(LocalFileSystem.prototype, 'readByteRange').mockImplementation(async (_target, _range, signal) => {
+      entered = true
+      signal?.addEventListener('abort', () => { aborted = true }, { once: true })
+      return resumed.promise
+    })
+    let reading: Promise<unknown> | undefined, closing: Promise<unknown> | undefined
+    try {
+      const path = join(h.root, 'owned.bin')
+      await writeFile(path, 'owned')
+      const target = await h.client.request('fs.resolve', { path }, targetSchema)
+      reading = h.client.request('fs.readRange', { target, offset: 0, length: 5 }, z.base64()).catch((error: unknown) => error)
+      await expect.poll(() => entered).toBe(true)
+      closing = h.client.request('close', {}, z.object({ quiescent: z.literal(true) }).strict())
+        .then((value) => { acknowledged = true; return value })
+      void closing.catch(() => {})
+      await expect.poll(() => aborted).toBe(true)
+      await new Promise(resolve => setImmediate(resolve))
+      expect(acknowledged).toBe(false)
+      resumed.resolve(Buffer.from('owned'))
+      await reading
+      expect(await closing).toEqual({ quiescent: true })
+    } finally {
+      resumed.resolve(Buffer.from('owned'))
+      await Promise.allSettled([reading, closing])
+      read.mockRestore()
+      await h.close()
+    }
+  })
+
   it('rejects unsupported hosts and cancellation before service startup', async () => {
     const input = new PassThrough()
     const output = new PassThrough()

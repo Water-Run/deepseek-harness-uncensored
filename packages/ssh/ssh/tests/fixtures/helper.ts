@@ -10,7 +10,7 @@ import { SshRpcPeer } from '../../src/protocol.ts'
 import { helloSchema, type SshStreamEndpoint } from '../../src/schemas.ts'
 import { authenticateStream } from '../../src/stream-security.ts'
 
-export async function createHelperHarness(handshake = true, leaseMs = 30_000, kind: 'node-script' | 'executable' = 'node-script') {
+export async function createHelperHarness(handshake = true, leaseMs = 30_000, kind: 'node-script' | 'executable' = 'node-script', closeConfirmation = false) {
   const root = await realpath(await mkdtemp('/tmp/dsh-ssh-rpc-'))
   const input = new PassThrough()
   const output = new PassThrough()
@@ -19,7 +19,7 @@ export async function createHelperHarness(handshake = true, leaseMs = 30_000, ki
   void serving.catch(() => {})
   const client = new SshRpcPeer(output, input, 64 * 1024 * 1024, 128)
   const sockets = new Set<Socket>()
-  const hello = () => client.request('hello', { protocol: 3, workspace: root, leaseMs }, helloSchema)
+  const hello = () => client.request('hello', { protocol: 3, workspace: root, leaseMs, ...closeConfirmation ? { closeConfirmation: true } : {} }, helloSchema)
   let closing: Promise<void> | undefined
   const close = () => {
     closing ??= (async () => {

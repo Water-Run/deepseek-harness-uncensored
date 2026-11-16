@@ -1,6 +1,6 @@
 # DSHU 开发交接
 
-**Goal「实现DSHU」保持活动。** 当前 35 项完成、10 项进行中，另有 3 项未来计划。账号周期已重置，最近成功实查剩余 100%；确认达到 1% 时仍按用户规则收尾并暂停。Windows x64 优先，Linux x64 同步；macOS ARM、Android＋Fedora PRoot、全新安装器本轮不开发。
+**Goal「实现DSHU」保持活动。** 当前 35 项完成、10 项进行中，另有 3 项未来计划。账号周期已重置，最近成功实查剩余 99%；确认达到 1% 时仍按用户规则收尾并暂停。Windows x64 优先，Linux x64 同步；macOS ARM、Android＋Fedora PRoot、全新安装器本轮不开发。
 
 ## 当前交付
 
@@ -26,6 +26,8 @@ Windows 产物位于 `%USERPROFILE%/DSHU-Deliveries/20261116`，Linux 归档位�
 - 直接重读 `.16.4` 实包：Windows 919 包中 6 项、Linux 921 包中 8 项待核查，补充声明分别 21/26 份。这不代替许可兼容性审查。[审计](requirements/2026-11-03-dependency-notices.md)
 
 ## 回归范围
+
+受保护 SSH 后续源码增加关闭确认与规则修订保留：变更规则前等待远端 I/O、进程和清理确认；未知关闭结果保留规则并禁用新执行。Windows 两个独立进程各 52 项、Linux 175 项通过，实际 helper 文件 I/O 负对照按预期失败。新直连客户端需先升级 helper，旧客户端仍兼容新 helper；`.16.4` 尚未包含此源码修复。[记录](requirements/2026-11-17-ssh-shutdown.md)
 
 后续源码修复了 OpenSSH 转发接受后、数据套接字创建前取消时漏清理的问题。修复前两项失败，修复后 43 项及两组并发各 43 项通过，入口文件四项覆盖率均为 100%。这是使用替身的协议/生命周期回归，没有连接真实服务器；尚未进入 `.16.4`，也不代表会话路由或远端映射完成。[记录](requirements/2026-11-16-ssh-cancellation.md)
 

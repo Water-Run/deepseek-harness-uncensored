@@ -76,12 +76,71 @@ it('authenticates a pinned server and serves existing consumers without invoking
   await expect(stale.request('echo', {}, z.object({}))).rejects.toMatchObject({ code: 'SSH_UNAVAILABLE' })
 })
 
+it('retains execution ownership when an activated helper refuses to confirm shutdown', async () => {
+  const release = vi.fn()
+  class Retained extends Direct {
+    protected override retainExecution(): () => void { return release }
+  }
+  const h = await harness({ close: async () => { throw new Error('owned helper close failed') } })
+  const fiber = await h.ctx.plugin(Retained, h.config)
+  const service = h.ctx.ssh
+  try {
+    await expect(service.dispose()).rejects.toMatchObject({ code: 'SSH_REMOTE_CLEANUP_UNCONFIRMED' })
+    expect(release).not.toHaveBeenCalled()
+    await expect(service.request('echo', 'not admitted', z.string())).rejects.toMatchObject({ code: 'SSH_UNAVAILABLE' })
+  } finally { await fiber.dispose().catch(() => {}) }
+})
+
+it('releases ownership acquired after provider withdrawal without opening a transport', async () => {
+  const h = await harness()
+  const retained = Promise.withResolvers<() => void>()
+  const release = vi.fn()
+  let entered = false
+  class Delayed extends Direct {
+    protected override retainExecution(): Promise<() => void> { entered = true; return retained.promise }
+  }
+  const fiber = h.ctx.plugin(Delayed, h.config)
+  try {
+    await expect.poll(() => entered).toBe(true)
+    const closing = fiber.dispose()
+    retained.resolve(release)
+    await closing
+    await fiber.await()
+    expect(release).toHaveBeenCalledTimes(1)
+    expect(h.connected()).toBe(0)
+    expect(h.commands).toEqual([])
+  } finally {
+    retained.resolve(release)
+    await fiber.dispose()
+  }
+})
+
+it.each([null, { quiescent: false }, { quiescent: true, unexpected: true }])('retains ownership after an invalid shutdown acknowledgement: %j', async (reply) => {
+  const release = vi.fn()
+  class Retained extends Direct {
+    protected override retainExecution(): () => void { return release }
+  }
+  const h = await harness({ close: () => Promise.resolve(reply) })
+  const fiber = await h.ctx.plugin(Retained, h.config)
+  try {
+    await expect(h.ctx.ssh.dispose()).rejects.toMatchObject({ code: 'SSH_REMOTE_CLEANUP_UNCONFIRMED' })
+    expect(release).not.toHaveBeenCalled()
+  } finally { await fiber.dispose().catch(() => {}) }
+})
+
 it('rejects an unpinned host key before authentication or helper execution', async () => {
   const h = await harness()
   await expect(h.ctx.plugin(Direct, { ...h.config, hostKeySha256: '0'.repeat(64) })).rejects.toBeDefined()
   expect(h.connected()).toBe(1)
   expect(h.commands).toEqual([])
   expect(h.requests).toEqual([])
+})
+
+it('rejects a helper without negotiated quiescent shutdown before publishing readiness', async () => {
+  const h = await harness({ legacyHello: true })
+  await expect(h.ctx.plugin(Direct, h.config)).rejects.toBeDefined()
+  expect(h.ctx.get('ssh')).toBeUndefined()
+  expect(h.requests).toEqual(['hello'])
 })
 
 it('accepts a standard OpenSSH SHA256 fingerprint without automatic key trust', async () => {
