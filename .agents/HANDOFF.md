@@ -1,6 +1,6 @@
 # DSHU 开发交接
 
-**Goal「实现DSHU」保持活动。** 当前 35 项完成、10 项进行中，另有 3 项未来计划。最近成功实查账号本周期剩余 2%；确认达到 1% 时按用户规则收尾并暂停。Windows x64 优先，Linux x64 同步；macOS ARM、Android＋Fedora PRoot、全新安装器本轮不开发。
+**Goal「实现DSHU」保持活动。** 当前 35 项完成、10 项进行中，另有 3 项未来计划。账号周期已重置，最近成功实查剩余 100%；确认达到 1% 时仍按用户规则收尾并暂停。Windows x64 优先，Linux x64 同步；macOS ARM、Android＋Fedora PRoot、全新安装器本轮不开发。
 
 ## 当前交付
 
@@ -27,6 +27,8 @@ Windows 产物位于 `%USERPROFILE%/DSHU-Deliveries/20261116`，Linux 归档位�
 
 ## 回归范围
 
+后续源码修复了 OpenSSH 转发接受后、数据套接字创建前取消时漏清理的问题。修复前两项失败，修复后 43 项及两组并发各 43 项通过，入口文件四项覆盖率均为 100%。这是使用替身的协议/生命周期回归，没有连接真实服务器；尚未进入 `.16.4`，也不代表会话路由或远端映射完成。[记录](requirements/2026-11-16-ssh-cancellation.md)
+
 完整 Web 基线 `web-baseline-7` 仍对应 `668ec5146d`，共 1,087 项通过、32 项条件跳过。本轮使用所属回归、完整构建和两平台实际产物复核，未重跑整轮。[基线](requirements/2026-11-16-regression-followup.md)
 
 更新工作区运行器的十项单组和两组并发验收已经通过；编译测试遗漏版本导致的私有窗口报错已修复，缺少完整结果的零退出不再算成功。原有退出确认超时和一次 Host 就绪超时记录保留，不据重跑推断旧失败原因。签名已安装升级仍未完成。[稳定性](requirements/2026-11-06-stability.md#更新工作区运行器2026-11-16)
@@ -40,7 +42,7 @@ Host 的首次意外退出报告保留 PID、原始/十六进制状态、信号�
 - `package-16-4-status.json` 记录作业句柄，当前构建、验包、安装与运行检查均已终止。应用交互进程预期保持运行，不据旧句柄重启测试。
 - 新版界面 `78868`、Host `141336` 启动于北京时间 21:35。PID 只是观测，任何操作前必须重新核对路径、创建时间及父子关系。
 - Windows 原 Worker 候选备份及 stash `a9921e56af9277a9e3917031a7052dc298ba8c29` 保留。原型已被最终实现替代，不用旧备份覆盖当前代码。
-- Ubuntu 位于 `D:/WSL/Ubuntu`，私有检出 `/home/linzh/.cache/dshu-verification/linux-rc2-20261113.iLMw1C/source` 为 `089dbb9b49`。原候选备份和 stash `faee5b828ba8a877026376f96e41777df8fbe5ac` 保留。历史 WSL 备份不删除。
+- Ubuntu 位于 `D:/WSL/Ubuntu`，私有检出为 `/home/linzh/.cache/dshu-verification/linux-rc2-20261113.iLMw1C/source`；SSH 后续验证的提交与工作树状态见交付目录中的 `ssh-cancel-checkpoint.json`。原候选备份和 stash `faee5b828ba8a877026376f96e41777df8fbe5ac` 保留。历史 WSL 备份不删除。
 
 ## 后续顺序与约束
 

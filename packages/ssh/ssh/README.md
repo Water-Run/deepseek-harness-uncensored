@@ -83,6 +83,8 @@ Each stream reservation has a random 256-bit TLS pre-shared key carried only by 
 
 Connection disposal joins forwarding and cancellation subprocesses and partially established streams before removing local resources. Transport loss rejects pending operations and invalidates the connection. The helper starts managed cleanup on SSH EOF, termination signals or heartbeat expiry. A disconnected client cannot confirm the remote outcome; operations are never reconnected or replayed automatically.
 
+If cancellation is detected after a forwarding reservation is accepted but before a data socket is opened, allocation waits for forwarding cancellation and local path cleanup before rejecting. Successful cleanup preserves the caller's original reason, including non-Error values.
+
 If a required service is withdrawn during direct SSH startup, the connection cancels its pending transport before the dependency can finish unloading. Once the helper is ready, service withdrawal requests remote cleanup before closing the transport and releasing dependencies.
 
 Failed startup and process results release their reservations after native quiescence; the bounded completion cache preserves the original rejection for later result reads. Helper shutdown also joins endpoint and directory cleanup already in progress.

@@ -153,7 +153,8 @@ export class SshConnection extends Service {
    * Forward one authenticated stream through an independent SSH channel.
    * @param endpoint - private coordinates issued by this connection's helper.
    * @param signal - cancellation of allocation and the resulting socket.
-   * @returns a paused socket; attach a consumer before resuming it.
+   * @returns a paused socket; attach a consumer before resuming it. Cancellation detected before
+   * data-socket creation waits for forwarding cleanup and preserves the reason when cleanup succeeds.
    */
   async connectStream(endpoint: SshStreamEndpoint, signal?: AbortSignal): Promise<Socket> {
     return this.track(this.establishStream(endpoint, signal))
@@ -175,8 +176,8 @@ export class SshConnection extends Service {
     }
     try {
       await this.controlCommand(['-O', 'forward', '-o', 'ExitOnForwardFailure=yes', '-L', forward], signal)
+      signal.throwIfAborted()
     } catch (error) { await cancelForward(); throw error }
-    signal.throwIfAborted()
     const socket = createConnection({ path: local, allowHalfOpen: true })
     this.sockets.add(socket)
     socket.once('close', () => {

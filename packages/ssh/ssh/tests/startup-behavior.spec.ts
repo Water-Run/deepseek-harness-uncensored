@@ -68,6 +68,8 @@ function setup(options: {
   forwardFailure?: Error
   heartbeatFailure?: Error
   directoryFailure?: Error
+  forwardClosed?: () => void
+  holdCancel?: boolean
 } = {}) {
   const ctx = new Context()
   const child = new Child()
@@ -77,6 +79,7 @@ function setup(options: {
   const helloEntered = Promise.withResolvers<undefined>()
   const requestEntered = Promise.withResolvers<AbortSignal>()
   const released = Promise.withResolvers<null>()
+  const cancelled = Promise.withResolvers<undefined>()
   const calls: { method: string; params: unknown }[] = []
   const helper = new SshRpcPeer(child.stdin, child.stdout, 4096, 8, async (method, params, signal) => {
     calls.push({ method, params })
@@ -97,7 +100,10 @@ function setup(options: {
   transport.spawn.mockReturnValue(child)
   transport.exec.mockImplementation((_file: string, args: string[], _options: unknown, callback: (error: Error | null) => void) => {
     const command = new Child()
-    queueMicrotask(() => { callback(args.includes('forward') ? options.forwardFailure ?? null : null); command.kill() })
+    if (args.includes('forward')) command.once('close', () => { options.forwardClosed?.() })
+    const complete = (): void => { callback(args.includes('forward') ? options.forwardFailure ?? null : null); command.kill() }
+    if (args.includes('cancel') && options.holdCancel) void cancelled.promise.then(complete)
+    else queueMicrotask(complete)
     return command
   })
   transport.connect.mockImplementation(() => {
@@ -116,6 +122,7 @@ function setup(options: {
   onTestFinished(async () => {
     releaseHello.resolve(undefined)
     released.resolve(null)
+    cancelled.resolve(undefined)
     raw.releaseDestroy()
     secure.releaseDestroy()
     try { await service?.dispose() }
@@ -128,7 +135,8 @@ function setup(options: {
   })
   service = new SshConnection(ctx, { ...config, ...options.config })
   return { service, child, helper, raw, secure, calls, requestEntered: requestEntered.promise,
-    helloEntered: helloEntered.promise, releaseHello: () => { releaseHello.resolve(undefined) }, release: () => { released.resolve(null) } }
+    helloEntered: helloEntered.promise, releaseHello: () => { releaseHello.resolve(undefined) }, release: () => { released.resolve(null) },
+    releaseCancel: () => { cancelled.resolve(undefined) } }
 }
 
 describe.skipIf(process.platform === 'win32')('SSH connection startup', () => {
@@ -255,6 +263,23 @@ describe.skipIf(process.platform === 'win32')('SSH connection startup', () => {
     await expect(test.service.connectStream({ path: '/tmp/remote-helper/control', capability: 'b'.repeat(64) })).rejects.toBe(failure)
     expect(transport.exec.mock.calls[1]?.[1]).toContain('cancel')
     expect(transport.connect).not.toHaveBeenCalled()
+  })
+
+  it.each([new Error('forward allocation cancelled'), 'caller stopped'])('awaits forwarding cleanup when cancellation arrives after its control process closes: %s', async (reason) => {
+    const controller = new AbortController()
+    const test = setup({ forwardClosed: () => { controller.abort(reason) }, holdCancel: true })
+    await test.service.ready
+    let settled = false
+    const pending = test.service.connectStream({ path: '/tmp/remote-helper/control', capability: 'b'.repeat(64) }, controller.signal)
+      .finally(() => { settled = true })
+    const rejected = expect(pending).rejects.toBe(reason)
+    await expect.poll(() => transport.exec.mock.calls.length).toBe(2)
+    expect(transport.exec.mock.calls[1]?.[1]).toContain('cancel')
+    expect(settled).toBe(false)
+    expect(transport.connect).not.toHaveBeenCalled()
+    test.releaseCancel()
+    await rejected
+    expect(transport.remove).toHaveBeenCalledWith('/virtual/ssh-startup/s0', { force: true })
   })
 
   it('keeps caller cancellation attached while a forwarded socket is connecting', async () => {
