@@ -16,6 +16,18 @@ import { desktopUpdateReadyConfirmation, resolveDesktopLocale } from '../../lib/
 
 const root = process.env.DSH_WORKSPACE_UPDATE_ROOT
 assert.ok(root)
+const windowLifecycle = []
+const documentLoads = new WeakMap()
+app.on('browser-window-created', (_event, window) => {
+  documentLoads.set(window, 0)
+  window.webContents.on('did-finish-load', () => {
+    documentLoads.set(window, documentLoads.get(window) + 1)
+  })
+  for (const event of ['show', 'hide', 'close', 'closed']) window.on(event, () => {
+    windowLifecycle.push({ event, id: window.id, url: window.isDestroyed() ? null : window.webContents.getURL(),
+      visible: window.isDestroyed() ? null : window.isVisible(), time: Date.now() })
+  })
+})
 const interactive = process.argv.includes('--interactive')
 const application = join(root, 'app')
 app.setAppPath(application)
@@ -23,7 +35,7 @@ app.setPath('userData', join(root, 'electron'))
 const entry = pathToFileURL(join(application, 'lib/main.js')).href
 const adapters = new URL('./workspace-update-adapters.mjs', import.meta.url).href
 const hooks = registerHooks({ resolve(specifier, context, next) {
-  if (context.parentURL === entry && ['./update-coordinator.js', './host-process.js', './update-error.js'].includes(specifier)) {
+  if (context.parentURL === entry && ['./update-coordinator.js', './host-process.js', './update-error.js', './fatal-recovery.js', './backend-controller.js'].includes(specifier)) {
     return { url: adapters, shortCircuit: true }
   }
   return next(specifier, context)
@@ -91,9 +103,18 @@ async function observed(window, subject, operation) {
 
 async function documentReady(window, expression) {
   return observed(window, `document: ${expression}`, () => window.webContents.executeJavaScript(`new Promise((resolve, reject) => {
-    const test = () => { if (${expression}) { observer.disconnect(); clearTimeout(timer); resolve(true); } };
+    let frame = 0;
+    let settled = false;
+    const cleanup = () => { settled = true; observer.disconnect(); cancelAnimationFrame(frame); clearTimeout(timer); };
+    const test = () => {
+      if (settled) return;
+      try {
+        if (${expression}) { cleanup(); resolve(true); return; }
+        if (!frame) frame = requestAnimationFrame(() => { frame = 0; test(); });
+      } catch (error) { cleanup(); reject(error); }
+    };
     const observer = new MutationObserver(test);
-    const timer = setTimeout(() => { observer.disconnect(); reject(new Error(${JSON.stringify(`Document condition timed out: ${expression}`)})); }, 20000);
+    const timer = setTimeout(() => { cleanup(); reject(new Error(${JSON.stringify(`Document condition timed out: ${expression}`)})); }, 20000);
     observer.observe(document, { childList: true, subtree: true, attributes: true }); test();
   })`))
 }
@@ -130,15 +151,23 @@ async function control(action) {
 async function screenshot(window, name) {
   await observed(window, `screenshot layout: ${name}`, () => window.webContents.executeJavaScript(`(async () => {
     await new Promise(resolve => requestAnimationFrame(resolve));
-    const finite = document.getAnimations().filter(animation => animation.effect
-      && Number.isFinite(animation.effect.getComputedTiming().endTime));
-    await Promise.all(finite.map(animation => animation.finished));
+    for (;;) {
+      const finite = document.getAnimations().filter(animation => animation.effect
+        && (animation.pending || animation.playState === 'running')
+        && Number.isFinite(animation.effect.getComputedTiming().endTime));
+      if (finite.length === 0) return;
+      await Promise.all(finite.map(animation => animation.finished.catch(error => {
+        if (error?.name !== 'AbortError') throw error;
+      })));
+    }
   })()`))
   await writeFile(join(root, name), (await observed(window, `capture: ${name}`, () => window.webContents.capturePage())).toPNG())
 }
 async function waitFor(check, subject) {
   const deadline = Date.now() + 20_000
-  while (!await check()) {
+  for (;;) {
+    if (fixture.fatalFailure !== undefined) throw fixture.fatalFailure.error
+    if (await check()) return
     if (Date.now() >= deadline) throw new Error(`Timed out waiting for ${subject}`)
     await new Promise(resolve => setTimeout(resolve, 50))
   }
@@ -162,10 +191,14 @@ async function press(window, expression) {
   await window.webContents.sendInputEvent({ type: 'mouseUp', button: 'left', clickCount: 1, ...point })
 }
 async function clickText(window, label) {
-  const title = await window.webContents.executeJavaScript("document.getElementById('title').textContent")
+  const readTitle = () => observed(window, 'dialog title', () => window.webContents.executeJavaScript("document.getElementById('title').textContent"))
+  const title = await readTitle()
   await press(window, `[...document.querySelectorAll('button')].find(button => button.textContent.trim() === ${JSON.stringify(label)})`)
-  await waitFor(async () => window.isDestroyed()
-    || await window.webContents.executeJavaScript("document.getElementById('title').textContent") !== title, `dialog response: ${label}`)
+  await waitFor(async () => {
+    if (window.isDestroyed()) return true
+    try { return await readTitle() !== title }
+    catch (error) { if (window.isDestroyed()) return true; throw error }
+  }, `dialog response: ${label}`)
 }
 const dialogDrivers = new WeakMap()
 async function dialogWith(message) {
@@ -175,9 +208,12 @@ async function dialogWith(message) {
       if (contents.getURL() !== 'dsh-app://shell/update-dialog.html') continue
       let window = dialogDrivers.get(contents)
       if (!window) {
-        const owner = BrowserWindow.fromWebContents(contents)
+        const owner = BrowserWindow.fromWebContents(contents) ?? BrowserWindow.getAllWindows().find(parent =>
+          parent.contentView.children.some(view => 'webContents' in view && view.webContents === contents))
+        assert.ok(owner, 'Update document must belong to a native window')
         window = { webContents: contents, isDestroyed: () => contents.isDestroyed(),
-          isVisible: () => owner?.isVisible() ?? false, isFocused: () => contents.isFocused(), isEnabled: () => owner?.isEnabled() ?? true }
+          focus: () => { owner.focus(); contents.focus() }, isVisible: () => owner.isVisible(),
+          isFocused: () => contents.isFocused(), isEnabled: () => owner.isEnabled() }
         dialogDrivers.set(contents, window)
       }
       try {
@@ -191,34 +227,45 @@ async function dialogWith(message) {
 }
 async function qualify() {
   let mainWindow
+  const checked = operation => Promise.race([operation, fixture.failed.promise.then(({ error }) => { throw error })])
   try {
-    await import(entry)
+    await checked(import(entry))
     console.log('workspace qualification: compiled main module loaded')
-    await fixture.ready.promise
+    await checked(fixture.ready.promise)
     console.log('workspace qualification: Host process ready')
     mainWindow = await windowAt('dsh-app://app/')
     await documentReady(mainWindow, `document.querySelector('[class*="frame"]') && window.dshDesktop?.updates`)
-    assert.equal(mainWindow.isVisible(), true, 'Workspace qualification requires a visible application window')
+    let welcome
+    await waitFor(() => {
+      welcome = BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/renderer/welcome.html'))
+      return mainWindow.isVisible() || welcome?.isVisible()
+    }, 'workspace or native welcome becomes visible')
+    if (!mainWindow.isVisible()) {
+      await documentReady(welcome, `!!window.dshWelcome && !!document.getElementById('api-key')`)
+      await press(welcome, `document.getElementById('api-key')`)
+      await documentReady(welcome, `!document.getElementById('key-actions').hidden`)
+      await press(welcome, `document.getElementById('skip-key')`)
+    }
+    await waitFor(() => mainWindow.isVisible(), 'workspace application window becomes visible')
     console.log('workspace qualification: workspace document ready')
-    const acknowledgeNotice = `[...document.querySelectorAll('button')].find(button => button.textContent.trim() === '继续')`
-    await press(mainWindow, acknowledgeNotice)
-    await waitFor(async () => !await mainWindow.webContents.executeJavaScript(`!!(${acknowledgeNotice})`), 'first-run notice dismissal')
-    console.log('workspace qualification: first-run notice dismissed')
     await waitFor(async () => !await fixture.host.updateTasks('inspect'), 'workspace startup API requests to settle')
     console.log('workspace qualification: startup API requests settled')
     const messages = resolveDesktopLocale(app.getLocale()).messages
+    const retryButton = `[...document.querySelectorAll('button')].find(button => button.getAttribute('aria-label') === ${JSON.stringify(messages.updateRetry)})`
     await screenshot(mainWindow, 'workspace.png')
     let menu
     if (process.platform === 'win32') {
       const popup = Menu.prototype.popup
       try {
         Menu.prototype.popup = function (options) { menu = this.items; options.callback?.() }
-        await mainWindow.webContents.executeJavaScript("document.querySelector('[data-windows-menu]').shadowRoot.querySelector('button').click()")
+        await observed(mainWindow, 'Windows application menu', () => mainWindow.webContents.executeJavaScript(
+          "document.querySelector('[data-windows-menu]').shadowRoot.querySelector('button').click()"))
         await waitFor(() => menu !== undefined, 'Windows application menu')
       } finally { Menu.prototype.popup = popup }
     } else menu = Menu.getApplicationMenu().items[0].submenu.items
     const checkMenu = menu.find(item => item.label === messages.checkUpdatesMenu)
     assert.ok(checkMenu)
+    console.log('workspace qualification: native update menu ready')
     if (interactive) {
       const { runInteractiveUpdates } = await import('./workspace-updates-interactive.mjs')
       await runInteractiveUpdates({ mainWindow, server, fixture, checkMenu, control, root })
@@ -228,7 +275,7 @@ async function qualify() {
 
     server.select('hold-check', '0.1.5-rc.1')
     checkMenu.click()
-    await server.arrived()
+    await observed(mainWindow, 'local update feed request', () => server.arrived())
     const checking = await dialogWith(messages.updateChecking)
     await screenshot(checking, 'checking.png')
     server.release()
@@ -247,22 +294,25 @@ async function qualify() {
     await waitFor(() => fixture.coordinator.state.phase === 'error', 'checksum failure')
     const downloadError = await dialogWith(messages.updateDownloadFailed)
     assert.equal(await downloadError.webContents.executeJavaScript("document.getElementById('technical-details').open"), false)
-    assert.equal(await downloadError.webContents.executeJavaScript("document.getElementById('technical-details-content').textContent"), fixture.coordinator.state.message)
+    assert.equal(await downloadError.webContents.executeJavaScript("document.getElementById('technical-details-content').textContent"),
+      fixture.coordinator.state.technicalDetails ?? fixture.coordinator.state.message)
     await screenshot(downloadError, 'download-error.png')
     await clickText(downloadError, messages.updateAcknowledge)
-    await documentReady(mainWindow, `document.querySelector('button[data-error="true"]')`)
+    await documentReady(mainWindow, retryButton)
     await screenshot(mainWindow, 'retry.png')
     await press(mainWindow, `document.querySelector('button[aria-label="收起侧边栏"]')`)
-    await documentReady(mainWindow, `document.querySelector('button[aria-label="打开侧边栏"] [role="img"][data-error="true"]')`)
+    await documentReady(mainWindow, `[...document.querySelectorAll('button[aria-label="打开侧边栏"] [role="img"]')].some(icon => icon.getAttribute('aria-label') === ${JSON.stringify(messages.updateRetry)})`)
     await screenshot(mainWindow, 'collapsed-error.png')
     await press(mainWindow, `document.querySelector('button[aria-label="打开侧边栏"]')`)
-    await documentReady(mainWindow, `document.querySelector('button[data-error="true"]')`)
+    await documentReady(mainWindow, retryButton)
     cases.push('download-integrity-error-and-persistent-retry')
 
     server.select('hold-download', '0.1.6-nightly.1')
-    await press(mainWindow, `document.querySelector('button[data-error="true"]')`)
+    await press(mainWindow, retryButton)
     await server.arrived()
-    await documentReady(mainWindow, `document.querySelector('button[aria-disabled="true"]')`)
+    await waitFor(() => fixture.coordinator.state.phase === 'downloading', 'sidebar retry starts downloading')
+    await documentReady(mainWindow, `[...document.querySelectorAll('button')].some(button =>
+      /%/.test(button.getAttribute('aria-label') ?? '') && button.getAttribute('aria-disabled') === 'false')`)
     assert.equal(webContents.getAllWebContents().some(contents => contents.getURL() === 'dsh-app://shell/update-dialog.html'), false)
     await screenshot(mainWindow, 'downloading.png')
     server.release()
@@ -283,7 +333,7 @@ async function qualify() {
     await clickText(changed, messages.updateAcknowledge)
     cases.push('new-task-during-idle-confirmation-refuses-install-and-preserves-work')
 
-    await press(mainWindow, `document.querySelector('button[data-error="true"]')`)
+    await press(mainWindow, retryButton)
     const warning = await dialogWith(messages.updateActiveTasks)
     await screenshot(warning, 'active-task-warning.png')
     await clickText(warning, messages.updateLater)
@@ -336,8 +386,9 @@ async function qualify() {
     await press(mainWindow, `[...document.querySelectorAll('button')].find(button => button.textContent.trim() === ${JSON.stringify(messages.installAndRestart)})`)
     const stop = await dialogWith(messages.updateActiveTasks)
     const stoppedHost = fixture.host
+    const stoppedDocument = documentLoads.get(mainWindow)
     await control('hold-shutdown')
-    await clickText(stop, messages.updateStopTasks)
+    await press(stop, `[...document.querySelectorAll('button')].find(button => button.textContent.trim() === ${JSON.stringify(messages.updateStopTasks)})`)
     await documentReady(mainWindow, `[...document.querySelectorAll('button')].some(button => button.textContent.trim() === ${JSON.stringify(messages.updateInstalling)})`)
     assert.equal(await mainWindow.webContents.executeJavaScript("document.body.innerText.includes('重新连接中')"), false)
     await screenshot(mainWindow, 'installing-before-host-exit.png')
@@ -350,8 +401,10 @@ async function qualify() {
     cases.push('actual-host-teardown-timeout-refuses-installer')
     await clickText(failedStop, messages.updateAcknowledge)
     await waitFor(() => fixture.host !== stoppedHost && fixture.readyHosts.has(fixture.host), 'replacement Host after non-graceful shutdown')
+    await waitFor(() => documentLoads.get(mainWindow) > stoppedDocument && !mainWindow.webContents.isLoadingMainFrame(),
+      'workspace document reload after replacement Host')
     await waitFor(async () => !await fixture.host.updateTasks('inspect'), 'replacement Host ready without active work')
-    await press(mainWindow, `document.querySelector('button[data-error="true"]')`)
+    await press(mainWindow, retryButton)
     const retryInstall = await dialogWith(confirmation.message)
     assert.equal(fixture.installations.length, 0)
     await screenshot(retryInstall, 'recovered-install-confirmation.png')
@@ -369,12 +422,15 @@ async function qualify() {
     await documentReady(forcedRecovery, `document.getElementById('update')?.textContent === ${JSON.stringify(messages.installAndRestart)}`)
     assert.equal(webContents.getAllWebContents().some(contents => contents.getURL() === 'dsh-app://shell/update-dialog.html'), false)
     const forcedHost = fixture.host
+    const forcedDocument = documentLoads.get(mainWindow)
     await control('hold-shutdown')
     await press(forcedRecovery, `document.getElementById('update')`)
     await waitFor(() => fixture.coordinator.state.phase === 'error', 'mandatory Host stop rejection')
     await documentReady(forcedRecovery, `document.getElementById('error')?.textContent === ${JSON.stringify(messages.updateStopFailed)}`)
     await screenshot(forcedRecovery, 'mandatory-stop-failure.png')
     await waitFor(() => fixture.host !== forcedHost && fixture.readyHosts.has(fixture.host), 'mandatory replacement Host readiness')
+    await waitFor(() => documentLoads.get(mainWindow) > forcedDocument && !mainWindow.webContents.isLoadingMainFrame(),
+      'mandatory workspace document reload after replacement Host')
     if (process.platform === 'win32') {
       await waitFor(() => forcedRecovery.isDestroyed(), 'recovery reload replaces the embedded document')
       forcedRecovery = await mandatoryFrameDriver(mainWindow)
@@ -394,12 +450,17 @@ async function qualify() {
     checkMenu.click()
     await waitFor(() => forcedRecovery.isDestroyed(), 'mandatory recovery policy clearance')
     cases.push('mandatory-stop-recovery-preserves-block-and-requires-fresh-install-confirmation')
+    await control('clear')
+    await waitFor(async () => !await fixture.host.updateTasks('inspect'), 'owned test tasks cleared before application quit')
     await writeFile(join(root, 'result.json'), JSON.stringify({ realElectron: true, realHostProcess: true,
       realPreload: true, compiledMainEntry: true, installerExecuted: false, cases,
-      menu: menu.map(item => item.label), phases: fixture.states.map(state => state.phase) }, null, 2) + '\n')
+      menu: menu.map(item => item.label), phases: fixture.states.map(state => state.phase),
+      backendStates: fixture.backendStates, hostStarts: fixture.hostStarts }, null, 2) + '\n')
   } catch (error) {
     await writeFile(join(root, 'failure.txt'), String(error.stack ?? error))
-    await writeFile(join(root, 'failure-update-state.json'), JSON.stringify(fixture.coordinator?.state, null, 2))
+    await writeFile(join(root, 'failure-window-lifecycle.json'), JSON.stringify(windowLifecycle, null, 2))
+    await writeFile(join(root, 'failure-update-state.json'), JSON.stringify(fixture.coordinator?.state ?? null, null, 2))
+    await writeFile(join(root, 'failure-backend-state.json'), JSON.stringify({ states: fixture.backendStates, starts: fixture.hostStarts }, null, 2))
     await writeFile(join(root, 'task-queries.json'), JSON.stringify(fixture.taskQueries, null, 2))
     try { await writeFile(join(root, 'failure-host-state.json'), JSON.stringify(await control('status'), null, 2)) }
     catch (diagnosticError) { await writeFile(join(root, 'failure-host-state.txt'), String(diagnosticError)) }
@@ -419,7 +480,7 @@ async function qualify() {
       try {
         await writeFile(join(root, 'failure-buttons.json'), JSON.stringify(await observed(mainWindow, 'failure buttons', () =>
           mainWindow.webContents.executeJavaScript(
-            `[...document.querySelectorAll('button')].map(button => ({ text: button.textContent, aria: button.getAttribute('aria-label') }))`)), null, 2))
+            `[...document.querySelectorAll('button')].map(button => ({ text: button.textContent, aria: button.getAttribute('aria-label'), disabled: button.disabled, ariaDisabled: button.getAttribute('aria-disabled'), rects: button.getClientRects().length }))`)), null, 2))
         await screenshot(mainWindow, 'failure-workspace.png')
       } catch (diagnosticError) {
         await writeFile(join(root, 'failure-artifact-error.txt'), String(diagnosticError.stack ?? diagnosticError))

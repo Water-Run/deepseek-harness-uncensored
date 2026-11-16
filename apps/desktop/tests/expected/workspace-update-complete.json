@@ -1,0 +1,19 @@
+{
+  "realElectron": true,
+  "realHostProcess": true,
+  "realPreload": true,
+  "compiledMainEntry": true,
+  "installerExecuted": false,
+  "cases": [
+    "real-workspace-preload-and-host",
+    "native-menu-checking-and-current-without-download",
+    "download-integrity-error-and-persistent-retry",
+    "sidebar-retry-direct-download-and-separate-install-dialog",
+    "new-task-during-idle-confirmation-refuses-install-and-preserves-work",
+    "task-warning-deferral-preserves-work-and-ready-package",
+    "mandatory-main-entry-block-retains-real-work-through-failure-and-clearance",
+    "actual-host-teardown-timeout-refuses-installer",
+    "non-graceful-stop-restores-host-and-requires-fresh-install-confirmation",
+    "mandatory-stop-recovery-preserves-block-and-requires-fresh-install-confirmation"
+  ]
+}

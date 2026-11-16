@@ -68,6 +68,16 @@
 - [x] **动态 Slot 参数（2026-11-11）**。独立变化的 Slot 名称和分派键需满足所有可能目标的参数约束。编译负例覆盖普通 owner props、按键的 owner props、不适用的分派键、不匹配的 `hookContext` 以及 chain selector 的输入。单个目标允许其自身声明的联合参数类型，同一对象决定的键与参数可作为元组传入。
 - [ ] **其他验收**。原生系统关机、历史回放、跨平台、原始截图和完整编号终验待验收。
 
+## 更新工作区运行器（2026-11-16）
+
+私有 Electron 测试应用使用开发项目依赖投影、当前客户端版本和完整欢迎页资源，通过原生跳过操作进入工作区，不提供模型密钥。截图中的 `desktop account: this application build carries no DSH_CLIENT_VERSION` 来自此前遗漏版本的测试配置；已安装 `.16.3` 不使用这个配置。意外致命错误转为测试失败，不打开人工恢复弹窗。
+
+运行器同时要求进程正常以 0 退出，以及结果报告包含十个不同且完整的场景。缺少报告、部分报告、重复场景、范围不符和手动报告冒充自动验收均被拒绝，九项所属回归通过。更新失败后，测试分别等待替代 Host 就绪和页面完成重载，避免把导航中被销毁页面的 Promise 当作当前页面的交互。自建任务在退出前清理，避免停在退出确认。
+
+本节点真实 Electron 单组十项更新场景和正常退出通过，目录为 `.desktop-build/qualification/electron-workspace-updates-M8ieDF`。随后两个独立进程并发，各十项通过，目录分别为 `electron-workspace-updates-hn0lfQ`、`electron-workspace-updates-O7kl16`。覆盖普通和强更的下载失败、任务确认、停止拒绝、替代 Host 恢复和再次确认安装；所有安装调用均被拦截，没有执行安装器。并发两组的首次 Host 启动约 13.6–13.7 秒，恢复启动约 9.0–9.8 秒，结束后未发现对应测试进程。一份更早报告虽有十项断言，但进程因退出确认超时而被终止，保留为失败，不算通过。另一次替代 Host 等待超过 20 秒的失败也保留，不能据后续通过认定其原因已查清。成功报告附带 Host 启动时间和后端状态；失败材料记录相同事实，不推断程序崩溃原因。
+
+日志位于 `%USERPROFILE%/DSHU-Deliveries/20261116/`，前缀 `workspace-update-recovery-`，其中 `observed-hosts.log` 为首次完整通过，`concurrent-{1,2}.log` 为并发通过。`workspace-update-result-unit-final.log` 九项通过，`workspace-update-recovery-build-check-final.log` 两项聚合编译通过，改动文件 lint、翻译配对和本仓 `doc-sync` 通过；本仓 `doc-sync` 只检查 README 链接和长度，不据此声称所有上游文档门禁通过。此节点未修改产品源码、重新构建安装器或完成签名安装升级验收。
+
 ## Host 原生退出事实（2026-11-16）
 
 Host 意外退出首次触发故障时，报告附带 `hostExit`：实际 PID、原始退出码、无符号 32 位十六进制、信号和关闭请求/确认状态。原有错误文本、stderr 上限、首个故障及恢复行为保持原契约，不推断终止方或原因，也不改写此前的崩溃记录。
