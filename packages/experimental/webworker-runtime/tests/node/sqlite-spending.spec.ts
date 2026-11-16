@@ -9,7 +9,10 @@ vi.mock('node:sqlite', async () => await import('../../src/node/builtin_modules/
 vi.mock('node:fs/promises', async () => await import('../../src/node/builtin_modules/implemented/fs/promises.ts'))
 vi.mock('node:path', async () => {
   const native = await vi.importActual<typeof import('node:path')>('node:path')
-  return { ...native, resolve: native.posix.resolve, dirname: native.posix.dirname }
+  return { ...native,
+    resolve: (...paths: string[]) => native.posix.resolve(...paths),
+    dirname: (path: string) => native.posix.dirname(path),
+  }
 })
 
 const ledgers: SpendLedger[] = []
