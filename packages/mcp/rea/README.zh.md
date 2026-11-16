@@ -37,13 +37,13 @@ kind: "package-reference"
 
 ## 已知限制与后续工作
 
-外部引擎在本机运行，需要完全权限。桥接不提供沙盒、远程执行环境或独立流量代理。桌面版内置 REA、兼容的 Node 和 npm 依赖（含 Frida 绑定）。Ghidra、Java、IDA 和 Hopper 仍为可选外部引擎。这里接入 REA 工具目录，尚未适配 MCP 资源、提示词模板或要求任务扩展的工具。Frida 已验收自建 Windows 本地目标和 Linux 启动目标；Linux 附加已有进程、远程设备及商业引擎仍未验证。
+外部引擎在本机运行，需要完全权限。桥接不提供沙盒、远程执行环境或独立流量代理。桌面版内置 REA、兼容的 Node 和 npm 依赖（含 Frida 绑定）。Ghidra、Java、IDA 和 Hopper 仍为可选外部引擎。这里接入 REA 工具目录，尚未适配 MCP 资源、提示词模板或要求任务扩展的工具。Frida 已验收自建 Windows 本地目标，以及 Linux 附加和启动目标。Linux 附加目标显式允许测试父进程及其后代调试。任意已有进程的附加、远程设备和商业引擎仍未验证，操作系统调试权限仍然适用。
 
 ## 验证
 
 `tests/rea.spec.ts` 使用自有本地进程检查隔离、参数验证、取消、重置及实时权限变更。`tests/rea.e2e.ts` 使用兼容的 `DSH_REA_TEST_NODE`，默认验证内置 npm 包，`DSH_REA_TEST_CLI` 为可选覆盖项；可选原生分析还需指定 `DSH_REA_TEST_GHIDRA`、`DSH_REA_TEST_JAVA_HOME` 和自有样本 `DSH_REA_TEST_BINARY`。测试关闭进程，并只清理自身临时目录。
 
-`tests/frida.e2e.ts` 使用相同的 Node、CLI 变量，并要求 `DSH_REA_TEST_FRIDA_TARGET` 指向 `tests/fixtures/frida-target.c` 的编译副本。编译时关闭优化并保留函数导出（Windows 使用 `cl /Od`，Linux 使用 `cc -O0 -rdynamic`）。测试将二进制复制到私有目录，只对自身创建的进程插桩，检查返回值变化、脚本卸载、连接重置、释放、暂停启动及目标退出；Linux 跳过同级进程附加用例，不修改 ptrace 策略。运行 `pnpm exec vitest run --config vitest.e2e.config.ts packages/mcp/rea/tests/frida.e2e.ts --retry 0`，不调用模型。
+`tests/frida.e2e.ts` 使用相同的 Node、CLI 变量，并要求 `DSH_REA_TEST_FRIDA_TARGET` 指向 `tests/fixtures/frida-target.c` 的编译副本。编译时关闭优化并保留函数导出（Windows 使用 `cl /Od`，Linux 使用 `cc -O0 -rdynamic`）。测试将二进制复制到私有目录，只对自身创建的进程插桩，检查返回值变化、脚本卸载、连接重置、释放、暂停启动及目标退出。Linux 附加使用夹具显式提供的 `--allow-parent-debugger`：[Yama 的 `PR_SET_PTRACER`](https://docs.kernel.org/admin-guide/LSM/Yama.html)只允许测试父进程及其后代调试，不修改系统 `ptrace_scope`。运行 `pnpm exec vitest run --config vitest.e2e.config.ts packages/mcp/rea/tests/frida.e2e.ts --retry 0`，不调用模型。
 
 ## 参考
 

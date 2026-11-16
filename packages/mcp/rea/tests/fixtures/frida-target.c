@@ -2,6 +2,11 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef __linux__
+#include <sys/prctl.h>
+#include <unistd.h>
+#endif
+
 #ifdef _WIN32
 #define EXPORTED __declspec(dllexport) __declspec(noinline)
 #else
@@ -16,6 +21,21 @@ EXPORTED int dshu_frida_value(void) {
 
 int main(int argc, char **argv) {
   char command[64];
+#ifdef __linux__
+  if (argc == 2 && strcmp(argv[1], "--allow-parent-debugger") == 0) {
+    const pid_t parent = getppid();
+    if (parent <= 1) {
+      fputs("Owned debugger parent is unavailable\n", stderr);
+      return 4;
+    }
+    /* Yama permits this parent and its descendants, including the owned REA process. */
+    if (prctl(PR_SET_PTRACER, (unsigned long)parent, 0UL, 0UL, 0UL) != 0) {
+      perror("PR_SET_PTRACER");
+      return 4;
+    }
+    printf("DSHU_FRIDA_PARENT_DEBUGGER %ld\n", (long)parent);
+  }
+#endif
   if (argc == 3 && strcmp(argv[1], "--marker") == 0) {
     FILE *output = fopen(argv[2], "wb");
     if (output == NULL) return 2;

@@ -1,6 +1,5 @@
 /** Real Frida tools operate only on a caller-built copy of fixtures/frida-target.c. @module */
-import { spawn } from 'node:child_process'
-import { once } from 'node:events'
+import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { copyFile, mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -76,18 +75,30 @@ async function harness() {
   } catch (error) { await dispose(); throw error }
 }
 
-it.skipIf(!enabled || process.platform !== 'win32')('restores an owned Windows function after script unload, session close and REA reset', { timeout: 180_000, retry: 0 }, async () => {
+it.skipIf(!enabled || (process.platform !== 'win32' && process.platform !== 'linux'))('restores an owned local function after script unload, session close and REA reset', { timeout: 180_000, retry: 0 }, async () => {
   const h = await harness()
-  const child = spawn(h.binary, [], { cwd: h.cwd, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] })
-  const exited = once(child, 'close')
-  void exited.catch(() => {})
+  let child: ChildProcessWithoutNullStreams
+  try {
+    child = spawn(h.binary, process.platform === 'linux' ? ['--allow-parent-debugger'] : [], {
+      cwd: h.cwd, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'],
+    })
+  } catch (error) {
+    try { await h.dispose() }
+    catch (cleanupError) { throw new AggregateError([error, cleanupError], 'Owned target startup and cleanup failed') }
+    throw error
+  }
+  const exited = new Promise<[number | null, NodeJS.Signals | null]>((resolve) => {
+    child.once('close', (code, signal) => { resolve([code, signal]) })
+  })
+  let spawnError: Error | undefined
+  child.on('error', (error) => { spawnError = error })
   let stderr = ''
   child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString() })
   const lines = createInterface({ input: child.stdout })
   const iterator = lines[Symbol.asyncIterator]()
   const next = async () => {
-    const line = await deadline(Promise.race([iterator.next(), exited.then(() => { throw new Error(`Owned target exited: ${stderr}`) })]))
-    if (line.done) throw new Error(`Owned target closed stdout: ${stderr}`)
+    const line = await deadline(Promise.race([iterator.next(), exited.then(() => { throw new Error(`Owned target exited: ${spawnError?.message ?? stderr}`) })]))
+    if (line.done) throw new Error(`Owned target closed stdout: ${spawnError?.message ?? stderr}`)
     return line.value
   }
   const read = async () => { const pending = next(); child.stdin.write('read\n'); return await pending }
@@ -105,6 +116,7 @@ it.skipIf(!enabled || process.platform !== 'win32')('restores an owned Windows f
     return loaded['script_id']!
   }
   try {
+    if (process.platform === 'linux') expect(await next()).toBe(`DSHU_FRIDA_PARENT_DEBUGGER ${String(process.pid)}`)
     expect(await next()).toBe('DSHU_FRIDA_TARGET_V1')
     expect(await read()).toBe('42')
     const session = await attach()
@@ -128,10 +140,13 @@ it.skipIf(!enabled || process.platform !== 'win32')('restores an owned Windows f
   } finally {
     try { await h.ctx.fiber.dispose() }
     finally {
-      if (child.exitCode === null && child.signalCode === null) child.kill()
-      await exited
-      lines.close()
-      await h.dispose()
+      try {
+        if (child.exitCode === null && child.signalCode === null) child.kill()
+        await exited
+      } finally {
+        lines.close()
+        await h.dispose()
+      }
     }
   }
 })

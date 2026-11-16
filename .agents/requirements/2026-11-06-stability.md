@@ -77,3 +77,13 @@ DSHU 的实际 REA 工具消费端调用 Windows 已安装版及 Linux tar.gz �
 - Linux 一项通过、一项明确跳过：暂停启动、注入、恢复、关闭与退出通过；同级进程附加不在本次 Linux 范围。初次使用导出查询时找不到已由 `nm -D` 确认的 ELF 函数；夹具改用暂停进程的符号表解析后通过，保留原失败记录。
 
 证据位于 `%USERPROFILE%/DSHU-Deliveries/20261115`：`frida-windows-e2e.log`、`frida-windows-concurrent-{1,2}.log`、`frida-linux-final.log`、`frida-linux-export-before.log` 和 `frida-owned-probe.json`。维护入口为 `packages/mcp/rea/tests/frida.e2e.ts`，配置与编译条件见[包说明](../../packages/mcp/rea/README.zh.md#验证)。本次验证不代表远程设备、Linux 附加已有进程、商业引擎或许可证审计完成。
+
+## Linux Frida 附加与回收（2026-11-16）
+
+Windows 已安装版和 Linux `.16.2` 实际归档内的 Node、REA 及 Frida 运行时通过同一工具消费端。两平台各两项完整流程通过：附加本轮编译的目标、注入返回值 99、卸载/关闭/重置/释放后恢复 42，以及暂停启动和目标退出。REA 源码目录与交付基线 `668ec5146d` 的 Git 树摘要相同，不将测试变更描述为引擎代码修复。
+
+Linux 夹具只在显式传入 `--allow-parent-debugger` 时调用 `PR_SET_PTRACER`，允许测试父进程及其后代（含 REA）调试，并回报实际父 PID。运行前后系统 `ptrace_scope` 均为 1。去掉此调用的独立负对照保留同一就绪消息，实际 `start_frida_session` 因 `/proc/<pid>/mem: Permission denied` 失败；未修改系统策略、提权或附加用户进程。[内核语义](https://docs.kernel.org/admin-guide/LSM/Yama.html)
+
+Linux 两个独立测试进程同时运行，每组两项通过，重试为零；各自使用私有目标和目录。启动错误与进程真正关闭分别观察，清理在关闭后释放目录。Windows 无效可执行文件进一步复现了同步启动失败时的夹具收尾缺口：修复前遗留 1 个测试目录，修复后为 0，原始启动错误仍保留；这不是产品引擎代码修复。验证时备份并临时覆盖私有 Linux 检出的两个测试文件，结束后恢复，工作树干净。任意已有进程、远程设备、商业引擎及整体许可审查仍未验收。
+
+最新证据位于 `%USERPROFILE%/DSHU-Deliveries/20261116/`：`frida-windows-attach-complete.log`、`frida-windows-attach-inputs.json`、`frida-owned-spawn-failure-result.json`，以及 `frida-attach-complete/` 下的两份并发日志、负对照、源码/二进制摘要和 ptrace 前后读数。聚合编译两项与改动文件 lint 通过，日志为 `frida-attach-build-check-complete.log` 和 `frida-attach-lint-complete.log`。早期独立通过及负对照保留在 `frida-linux-attach-*` 与 `frida-attach-final/`。这是现有 `.16.2` 引擎的新增验收，未重新打包安装器。

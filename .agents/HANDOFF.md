@@ -1,6 +1,6 @@
 # DSHU 开发交接
 
-**Goal「实现DSHU」保持活动。** 当前 35 项完成、10 项进行中，另有 3 项未来计划。实际剩余额度达到 1% 时按用户规则收尾；最近实查剩余 9%。Windows x64 优先，Linux x64 同步；macOS、Android＋Fedora PRoot、全新安装器本轮不开发。
+**Goal「实现DSHU」保持活动。** 当前 35 项完成、10 项进行中，另有 3 项未来计划。实际剩余额度达到 1% 时按用户规则收尾；最近实查剩余 8%。Windows x64 优先，Linux x64 同步；macOS、Android＋Fedora PRoot、全新安装器本轮不开发。
 
 ## 当前交付
 
@@ -23,6 +23,8 @@ Windows 安装包和回执位于 `%USERPROFILE%/DSHU-Deliveries/20261116`；Linu
 | Linux x64 deb | `6c5d68a0aaef255a1851d6ed8fbfe6995da4d3b1ba81b2944735408b800c6b4e` |
 
 ## 本轮验收
+
+- Frida 在 Windows 已安装版及 Linux `.16.2` 实际归档中通过附加、注入、卸载、关闭、重置及释放验收。Linux 目标显式允许测试父进程及其后代调试，系统 ptrace 设置未改；两组独立进程并发通过，未授予许可的负对照因真实权限拒绝失败。其他目标与引擎继续按原清单验收。[记录](requirements/2026-11-06-stability.md#linux-frida-附加与回收2026-11-16)
 
 - 交付包之后另补 `experimental-inspector/protected` 源码：保护组合在 Worker 创建前拒绝任意 Host 调试，规则全关时也明确报告不可用；只读 Session Inspector 保留。真实 CDP 测试证实关闭 Worker 后 Host 回调仍执行，因此未采用撤销原型。源码、完整构建与实际组件解包入口验收通过，安装中的 `.16.2` 不包含新入口。[记录](requirements/2026-11-02-native-execution.md#inspector-调试准入2026-11-16源码)
 
