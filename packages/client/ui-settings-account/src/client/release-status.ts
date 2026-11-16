@@ -22,6 +22,8 @@ export interface ReleaseNotice {
   readonly version?: string
   readonly url?: string
   readonly message?: string
+  /** Epoch milliseconds before which the client must not repeat a rate-limited check. */
+  readonly retryAt?: number
 }
 
 const FORK_RELEASE_HOST = 'api.github.com'
@@ -29,6 +31,23 @@ const FORK_RELEASE_PATH = '/repos/Water-Run/deepseek-harness-uncensored/releases
 
 /** Releases API for this repository. No other host is an update source. */
 export const FORK_RELEASES_URL = `https://${FORK_RELEASE_HOST}${FORK_RELEASE_PATH}?per_page=100`
+
+function releaseFailure(response: Response): ReleaseNotice {
+  if (response.status !== 403 && response.status !== 429) return { phase: 'failed', message: `http-${response.status}` }
+  const now = Date.now()
+  const seconds = (value: string | null): number | undefined => value !== null && /^\d+$/u.test(value)
+    && Number.isFinite(Number(value)) ? Number(value) : undefined
+  const retryAfter = seconds(response.headers.get('retry-after'))
+  const exhausted = response.headers.get('x-ratelimit-remaining') === '0'
+  if (response.status !== 429 && !exhausted && retryAfter === undefined) return { phase: 'failed', message: 'http-403' }
+  const reset = exhausted ? seconds(response.headers.get('x-ratelimit-reset')) : undefined
+  const deadlines = [retryAfter === undefined ? undefined : now + retryAfter * 1000,
+    reset === undefined ? undefined : reset * 1000]
+    .filter((value): value is number => value !== undefined && value >= now && value <= 8.64e15)
+  // GitHub requires at least one minute before retrying a rate limit without a usable deadline.
+  // https://docs.github.com/en/rest/using-the-rest-api/troubleshooting-the-rest-api#rate-limit-errors
+  return { phase: 'failed', message: 'rate-limited', retryAt: deadlines.length === 0 ? now + 60_000 : Math.max(...deadlines) }
+}
 
 /**
  * Reject official and object-storage hosts before any update request is sent.
@@ -111,7 +130,7 @@ export async function loadForkRelease(
       if (visited.has(page)) return { phase: 'failed', message: 'repeated-release-page' }
       visited.add(page)
       const response: Response = await fetchImpl(page, { headers: { accept: 'application/vnd.github+json' }, signal, redirect: 'error' })
-      if (!response.ok) return { phase: 'failed', message: `http-${response.status}` }
+      if (!response.ok) return releaseFailure(response)
       const body: unknown = await response.json()
       signal.throwIfAborted()
       if (!Array.isArray(body)) return { phase: 'failed', message: 'invalid-body' }

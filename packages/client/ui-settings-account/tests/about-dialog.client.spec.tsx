@@ -1,11 +1,45 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { AboutDialog } from '../src/client/AboutDialog.tsx'
 import { en, zh } from '../src/client/locales.ts'
 
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.unstubAllEnvs() })
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs() })
+
+it.each([en, zh])('retains a rate limit across closing and reopens manual checking after its deadline', async (locale) => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date('2026-11-16T10:00:00Z'))
+  vi.stubEnv('DSH_CLIENT_FORK_VERSION', '2026.11.16.3')
+  const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(new Response(null, { status: 429, headers: { 'retry-after': '60' } }))
+    .mockResolvedValueOnce(Response.json([]))
+  vi.stubGlobal('fetch', fetcher)
+  const props = { t: makeTranslate(locale), close: vi.fn() }
+  let view: ReturnType<typeof render>
+  await act(async () => { view = render(<AboutDialog {...props} />) })
+  const button = screen.getByRole<HTMLButtonElement>('button', { name: locale.aboutCheck })
+  expect(button.disabled).toBe(true)
+  expect(screen.getByRole('status').textContent).toContain(locale.aboutRateLimitedUntil.split('{time}')[0])
+  fireEvent.click(button)
+  expect(fetcher).toHaveBeenCalledTimes(1)
+  await act(async () => { view.rerender(<AboutDialog {...props} open={false} />) })
+  await act(async () => { view.rerender(<AboutDialog {...props} open />) })
+  expect(fetcher).toHaveBeenCalledTimes(1)
+  await act(async () => { await vi.advanceTimersByTimeAsync(60_000) })
+  expect(screen.getByRole<HTMLButtonElement>('button', { name: locale.aboutCheck }).disabled).toBe(false)
+  expect(fetcher).toHaveBeenCalledTimes(1)
+  await act(async () => { fireEvent.click(screen.getByRole('button', { name: locale.aboutCheck })) })
+  expect(fetcher).toHaveBeenCalledTimes(2)
+  expect(screen.getByText(locale.aboutNoRelease)).toBeTruthy()
+})
+
+it.each([en, zh])('distinguishes a forbidden check from a proven rate limit', async (locale) => {
+  vi.stubEnv('DSH_CLIENT_FORK_VERSION', '2026.11.16.3')
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(null, { status: 403 })))
+  render(<AboutDialog t={makeTranslate(locale)} close={vi.fn()} />)
+  expect(await screen.findByText(locale.aboutForbidden)).toBeTruthy()
+  expect(screen.getByRole<HTMLButtonElement>('button', { name: locale.aboutCheck }).disabled).toBe(false)
+})
 
 it('checks releases only while open and cancels each dismissed request', async () => {
   vi.stubEnv('DSH_CLIENT_FORK_VERSION', '0.1.0')

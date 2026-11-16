@@ -24,6 +24,7 @@
   // cannot see both sides of the cordis Context merges).
   "exclude": [
     "tests/product-calendar-version.e2e.ts",
+    "tests/release-rate-limit.e2e.ts",
     "tests/balance-history-layout.e2e.ts",
     "tests/mode-guides.e2e.ts",
     "tests/uncensored-recovery.e2e.ts",

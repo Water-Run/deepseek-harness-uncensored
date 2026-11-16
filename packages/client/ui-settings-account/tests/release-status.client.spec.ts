@@ -29,6 +29,54 @@ it('keeps a failed or offline check from looking current', async () => {
   expect(offline.phase).toBe('offline')
 })
 
+it.each([403, 429])('retains the primary rate limit deadline for HTTP %i', async (status) => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date('2026-11-16T10:00:00Z'))
+  const retryAt = Date.now() + 3600_000
+  expect(await loadForkRelease(async () => new Response(null, { status, headers: {
+    'x-ratelimit-remaining': '0', 'x-ratelimit-reset': String(retryAt / 1000),
+  } }), '2026.11.16.3', { timeoutMs: 1000 })).toEqual({ phase: 'failed', message: 'rate-limited', retryAt })
+})
+
+it('honors the later deadline when primary and secondary rate limits overlap', async () => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date('2026-11-16T10:00:00Z'))
+  const retryAt = Date.now() + 3600_000
+  expect(await loadForkRelease(async () => new Response(null, { status: 403, headers: {
+    'retry-after': '90', 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': String(retryAt / 1000),
+  } }), '2026.11.16.3', { timeoutMs: 1000 })).toMatchObject({ message: 'rate-limited', retryAt })
+})
+
+it('recognizes a secondary rate limit without an exhausted primary allowance', async () => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date('2026-11-16T10:00:00Z'))
+  expect(await loadForkRelease(async () => new Response(null, { status: 403, headers: {
+    'retry-after': '90', 'x-ratelimit-remaining': '57',
+  } }), '2026.11.16.3', { timeoutMs: 1000 })).toEqual({ phase: 'failed', message: 'rate-limited', retryAt: Date.now() + 90_000 })
+})
+
+it.each(['-1', '1.5', 'Infinity', 'invalid', '8640000000001'])('uses GitHub fallback waiting for an unusable retry deadline: %s', async (value) => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date('2026-11-16T10:00:00Z'))
+  expect(await loadForkRelease(async () => new Response(null, { status: 429, headers: {
+    'retry-after': value, 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': value,
+  } }), '2026.11.16.3', { timeoutMs: 1000 })).toEqual({ phase: 'failed', message: 'rate-limited', retryAt: Date.now() + 60_000 })
+})
+
+it('does not infer a rate limit from a bare forbidden response', async () => {
+  expect(await loadForkRelease(async () => new Response(null, { status: 403 }), '2026.11.16.3', { timeoutMs: 1000 }))
+    .toEqual({ phase: 'failed', message: 'http-403' })
+})
+
+it('never retries a rate-limited request automatically', async () => {
+  vi.useFakeTimers()
+  const fetcher = vi.fn<typeof fetch>(async () => new Response(null, { status: 429 }))
+  const result = await loadForkRelease(fetcher, '2026.11.16.3', { timeoutMs: 1000 })
+  expect(result).toMatchObject({ phase: 'failed', message: 'rate-limited' })
+  await vi.advanceTimersByTimeAsync(120_000)
+  expect(fetcher).toHaveBeenCalledTimes(1)
+})
+
 it.each([
   'http://api.github.com/repos/Water-Run/deepseek-harness-uncensored/releases',
   'https://api.github.com/repos/Water-Run/deepseek-harness-uncensored/releases-other',

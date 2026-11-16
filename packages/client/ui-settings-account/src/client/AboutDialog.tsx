@@ -1,5 +1,5 @@
 /** Build identity and this fork's GitHub release status. */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button, FishLogo, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { AccountMenuProps } from './AccountMenu.tsx'
 import { GitHubIcon } from './GitHubIcon.tsx'
@@ -29,7 +29,9 @@ function statusText(notice: ReleaseNotice, t: AccountMenuProps['t']): string {
     case 'available': return t(notice.severity === 'major' ? 'aboutMajor' : notice.severity === 'minor' ? 'aboutMinor' : 'aboutPatch')
     case 'unpublished': return t('aboutNoRelease')
     case 'offline': return t('aboutOffline')
-    case 'failed': return t('aboutFailed')
+    case 'failed': return notice.message === 'rate-limited'
+      ? notice.retryAt === undefined ? t('aboutRateLimited') : t('aboutRateLimitedUntil', { time: new Date(notice.retryAt).toLocaleString() })
+      : t(notice.message === 'http-403' ? 'aboutForbidden' : 'aboutFailed')
     default: {
       const unreachable: never = notice.phase
       return unreachable
@@ -49,15 +51,27 @@ export function AboutDialog({ t, close, open = true }: { t: AccountMenuProps['t'
   const reaCommit = process.env.DSH_CLIENT_REA_COMMIT
   const [notice, setNotice] = useState<ReleaseNotice>({ phase: 'checking' })
   const [check, setCheck] = useState(0)
+  const [now, setNow] = useState(Date.now)
+  const retryDeadline = useRef(0)
   useEffect(() => {
-    if (!open) return
+    if (!open || retryDeadline.current > Date.now()) return
     const controller = new AbortController()
     setNotice({ phase: 'checking' })
     void loadForkRelease(fetch, version ?? '', { signal: controller.signal, timeoutMs: publicContactConfig().releaseCheckTimeoutMs }).then((next) => {
-      if (!controller.signal.aborted) setNotice(next)
+      if (!controller.signal.aborted) {
+        retryDeadline.current = next.retryAt ?? 0
+        setNotice(next)
+        setNow(Date.now())
+      }
     })
     return () => { controller.abort() }
   }, [version, check, open])
+  useEffect(() => {
+    if (!open || notice.retryAt === undefined || notice.retryAt <= now) return
+    // Browser timers use a signed 32-bit delay; a distant server deadline must not overflow it.
+    const timer = setTimeout(() => { setNow(Date.now()) }, Math.max(0, Math.min(notice.retryAt - Date.now(), 2 ** 31 - 1)))
+    return () => { clearTimeout(timer) }
+  }, [open, notice.retryAt, now])
   return <Modal open={open} onClose={close} closeLabel={t('close')} title={t('about')} className={css.dialog ?? ''} contentClassName={css.scrollContent ?? ''}>
     <div className={css.content}>
       <section className={css.identity} aria-label={t('aboutIdentity')}>
@@ -73,7 +87,7 @@ export function AboutDialog({ t, close, open = true }: { t: AccountMenuProps['t'
         <a className={css.github} href={REPOSITORY} target="_blank" rel="noreferrer"><GitHubIcon />{t('repository')}</a>
         <div className={css.update}>
           <p className={css.status} data-phase={notice.phase} role="status"><span className={css.statusDot} aria-hidden="true" />{statusText(notice, t)}{notice.phase === 'available' && notice.version !== undefined ? ` · ${notice.version}` : ''}</p>
-          <Button size="sm" variant="outline" disabled={notice.phase === 'checking'} onClick={() => { setCheck(value => value + 1) }}>{t('aboutCheck')}</Button>
+          <Button size="sm" variant="outline" disabled={notice.phase === 'checking' || (notice.retryAt !== undefined && notice.retryAt > now)} onClick={() => { setCheck(value => value + 1) }}>{t('aboutCheck')}</Button>
           {notice.url !== undefined && <a href={notice.url} target="_blank" rel="noreferrer">{t('aboutReadRelease')}</a>}
         </div>
       </section>
