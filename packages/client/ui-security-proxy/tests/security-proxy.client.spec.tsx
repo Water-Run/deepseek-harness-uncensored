@@ -7,6 +7,7 @@ import type {} from '../src/client/index.ts'
 import type {
   SecurityProxyFlowDetail,
   SecurityProxyFlowSummary,
+  SecurityProxyFlowsResult,
   SecurityProxySettings,
   SecurityProxyState,
 } from '@deepseek-ai/dsh-security-proxy/types'
@@ -79,6 +80,165 @@ const DETAIL: SecurityProxyFlowDetail = {
   bodyTruncated: false,
   contentType: 'text/plain',
 }
+
+function proxyPort(overrides: Partial<SecurityProxyPort> = {}): SecurityProxyPort {
+  return {
+    get: async () => STATE,
+    configure: async () => STATE,
+    setPassword: async () => STATE,
+    test: async () => ({ ok: true, durationMs: 1, failure: null, detail: null, state: STATE }),
+    list: async () => ({ flows: [FLOW], capture: STATE.capture }),
+    detail: async () => DETAIL,
+    clear: async () => ({ ...STATE.capture, retained: 0, bytes: 0 }),
+    pause: async () => STATE,
+    ...overrides,
+  }
+}
+
+/** Observe state after all callbacks for the resolved Remote promise have run. */
+async function remoteTurn(): Promise<void> {
+  await new Promise<void>((resolve) => { setTimeout(resolve, 0) })
+}
+
+describe('traffic request ownership', () => {
+  it('loads settings while retaining a newer filtered list and its counters', async () => {
+    const old = Promise.withResolvers<SecurityProxyFlowsResult>()
+    const capture = { ...STATE.capture, total: 9, retained: 4, bytes: 512 }
+    const selected = { ...FLOW, id: 'filtered' }
+    const controller = new SecurityProxyController(proxyPort({ list: vi.fn<SecurityProxyPort['list']>()
+      .mockReturnValueOnce(old.promise).mockResolvedValue({ flows: [selected], capture }) }))
+    try {
+      controller.load()
+      controller.setFilter({ text: 'filtered' }); await remoteTurn()
+      old.resolve({ flows: [FLOW], capture: STATE.capture }); await remoteTurn()
+      expect(controller.state.getSnapshot()).toMatchObject({ loading: false, flows: [selected], flowsFailed: false })
+      expect(controller.state.getSnapshot().state).toMatchObject({ settings: SETTINGS, capture })
+    } finally { old.resolve({ flows: [], capture: STATE.capture }); await controller.dispose() }
+  })
+
+  it('keeps available settings when reading the traffic list fails', async () => {
+    const controller = new SecurityProxyController(proxyPort({ list: async () => { throw new Error('list unavailable') } }))
+    try {
+      controller.load(); await remoteTurn()
+      expect(controller.state.getSnapshot()).toMatchObject({ state: STATE, loading: false, failed: false, flowsFailed: true })
+    } finally { await controller.dispose() }
+  })
+  it('keeps the selected filter when an older refresh returns', async () => {
+    const old = Promise.withResolvers<SecurityProxyFlowsResult>()
+    const selected = { ...FLOW, id: 'selected', target: 'http://selected.test/' }
+    const controller = new SecurityProxyController(proxyPort({
+      list: vi.fn<SecurityProxyPort['list']>().mockResolvedValueOnce({ flows: [FLOW], capture: STATE.capture })
+        .mockReturnValueOnce(old.promise).mockResolvedValue({ flows: [selected], capture: STATE.capture }),
+    }))
+    try {
+      controller.load(); await remoteTurn()
+      controller.refreshFlows()
+      controller.setFilter({ text: 'selected' }); await remoteTurn()
+      old.resolve({ flows: [FLOW], capture: STATE.capture }); await remoteTurn()
+      expect(controller.state.getSnapshot()).toMatchObject({ filter: { text: 'selected' }, flows: [selected], flowsFailed: false })
+    } finally { old.resolve({ flows: [], capture: STATE.capture }); await controller.dispose() }
+  })
+
+  it('ignores a failed previous filter after the current filter succeeds', async () => {
+    const old = Promise.withResolvers<SecurityProxyFlowsResult>()
+    const controller = new SecurityProxyController(proxyPort({
+      list: vi.fn<SecurityProxyPort['list']>().mockResolvedValueOnce({ flows: [FLOW], capture: STATE.capture })
+        .mockReturnValueOnce(old.promise).mockResolvedValue({ flows: [FLOW], capture: STATE.capture }),
+    }))
+    try {
+      controller.load(); await remoteTurn()
+      controller.setFilter({ text: 'old' })
+      controller.setFilter({ text: 'current' }); await remoteTurn()
+      old.reject(new Error('old request failed')); await remoteTurn()
+      expect(controller.state.getSnapshot()).toMatchObject({ filter: { text: 'current' }, flows: [FLOW], flowsFailed: false, flowsLoading: false })
+    } finally { old.resolve({ flows: [], capture: STATE.capture }); await controller.dispose() }
+  })
+
+  it('keeps the latest detail and does not reopen a closed detail', async () => {
+    const old = Promise.withResolvers<SecurityProxyFlowDetail | null>()
+    const closing = Promise.withResolvers<SecurityProxyFlowDetail | null>()
+    const selected = { ...DETAIL, id: 'selected' }
+    const controller = new SecurityProxyController(proxyPort({ detail: vi.fn<SecurityProxyPort['detail']>()
+      .mockReturnValueOnce(old.promise).mockResolvedValueOnce(selected).mockReturnValueOnce(closing.promise) }))
+    try {
+      const first = controller.openFlow('old')
+      await controller.openFlow('selected')
+      old.resolve(DETAIL); await first
+      expect(controller.state.getSnapshot().detail).toEqual(selected)
+      const pending = controller.openFlow('closing')
+      controller.closeFlow()
+      closing.resolve(DETAIL); await pending
+      expect(controller.state.getSnapshot()).toMatchObject({ detail: null, detailFailed: false })
+    } finally { old.resolve(null); closing.resolve(null); await controller.dispose() }
+  })
+
+  it('does not restore rows, details or capture counters after clearing', async () => {
+    const list = Promise.withResolvers<SecurityProxyFlowsResult>()
+    const detail = Promise.withResolvers<SecurityProxyFlowDetail | null>()
+    const controller = new SecurityProxyController(proxyPort({
+      list: vi.fn<SecurityProxyPort['list']>().mockResolvedValueOnce({ flows: [FLOW], capture: STATE.capture }).mockReturnValueOnce(list.promise),
+      detail: () => detail.promise,
+    }))
+    try {
+      controller.load(); await remoteTurn()
+      controller.load()
+      const pending = controller.openFlow(FLOW.id)
+      await controller.clear()
+      list.resolve({ flows: [FLOW], capture: STATE.capture }); detail.resolve(DETAIL)
+      await pending; await remoteTurn()
+      expect(controller.state.getSnapshot()).toMatchObject({ flows: [], detail: null, flowsLoading: false, detailFailed: false })
+      expect(controller.state.getSnapshot().state?.capture.retained).toBe(0)
+    } finally { list.resolve({ flows: [], capture: STATE.capture }); detail.resolve(null); await controller.dispose() }
+  })
+
+  it('preserves cleared capture counters when an earlier settings write completes', async () => {
+    const save = Promise.withResolvers<SecurityProxyState>()
+    const controller = new SecurityProxyController(proxyPort({ configure: () => save.promise,
+      list: vi.fn<SecurityProxyPort['list']>().mockResolvedValueOnce({ flows: [FLOW], capture: STATE.capture })
+        .mockResolvedValue({ flows: [], capture: { ...STATE.capture, retained: 0, bytes: 0 } }),
+    }))
+    try {
+      controller.load(); await remoteTurn()
+      const pending = controller.configure({ enabled: false }); await remoteTurn()
+      await controller.clear()
+      save.resolve({ ...STATE, settings: { ...SETTINGS, enabled: false } })
+      expect(await pending).toBe(true); await remoteTurn()
+      expect(controller.state.getSnapshot().state).toMatchObject({ settings: { enabled: false }, capture: { retained: 0, bytes: 0 } })
+    } finally { save.resolve(STATE); await controller.dispose() }
+  })
+
+  it('refreshes capture counters with the accepted traffic list', async () => {
+    const capture = { ...STATE.capture, total: 8, retained: 7, bytes: 512 }
+    const controller = new SecurityProxyController(proxyPort({ list: vi.fn<SecurityProxyPort['list']>()
+      .mockResolvedValueOnce({ flows: [FLOW], capture: STATE.capture }).mockResolvedValue({ flows: [FLOW], capture }) }))
+    try {
+      controller.load(); await remoteTurn()
+      controller.refreshFlows(); await remoteTurn()
+      expect(controller.state.getSnapshot().state?.capture).toEqual(capture)
+    } finally { await controller.dispose() }
+  })
+
+  it('retains displayed records and details when clearing fails', async () => {
+    const controller = new SecurityProxyController(proxyPort({ clear: async () => { throw new Error('clear refused') } }))
+    try {
+      controller.load(); await remoteTurn()
+      await controller.openFlow(FLOW.id)
+      await controller.clear()
+      expect(controller.state.getSnapshot()).toMatchObject({ flows: [FLOW], detail: DETAIL, flowsFailed: true })
+    } finally { await controller.dispose() }
+  })
+
+  it('does not publish an error from a detail request that was closed', async () => {
+    const pending = Promise.withResolvers<SecurityProxyFlowDetail | null>()
+    const controller = new SecurityProxyController(proxyPort({ detail: () => pending.promise }))
+    try {
+      const opened = controller.openFlow(FLOW.id)
+      controller.closeFlow()
+      pending.reject(new Error('old detail unavailable')); await opened
+      expect(controller.state.getSnapshot()).toMatchObject({ detail: null, detailFailed: false })
+    } finally { pending.resolve(null); await controller.dispose() }
+  })
+})
 
 describe('controller', () => {
   it('reads settings and flows on load, then publishes a successful save', async () => {

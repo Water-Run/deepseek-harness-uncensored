@@ -12,9 +12,13 @@
 
 [公开预发布 17.5](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5) 保持不变，本次没有创建 Release、修改公开资产或上传文件。源码已推送；没有远端 CI 运行，不能记作 CI 通过。
 
+## 尚未打包的源码
+
+网安流量面板已修复旧刷新覆盖新筛选、关闭详情后被旧回复重新打开、清理后旧数据和计数恢复等请求竞态。21 项定向测试、最新完整构建和定向 lint 通过；TSX、CSS、文案及模型日志未改。当前安装仍为 17.8，不含此修复，后续批次再打包。[修复与验证](requirements/2026-11-18-proxy-traffic-requests.md)
+
 ## Linux 测试与 WSL 状态
 
-后续 Linux 测试转到用户指定的 Fedora 45 x86_64 实体设备，通过既有 Windows SSH 跳板的 `fedora` 别名访问。连接和部署信息在 `%USERPROFILE%/DSHU-Deliveries/20261118/linux-test-connection.json`；CLI、版本身份和 SDK 导入已经通过，图形界面与门户尚未验收。[设备与回收记录](requirements/2026-11-18-linux-test-host.md)
+后续 Linux 测试转到用户指定的 Fedora 45 x86_64 实体设备，通过既有 Windows SSH 跳板的 `fedora` 别名访问。连接和部署信息在 `%USERPROFILE%/DSHU-Deliveries/20261118/linux-test-connection.json`；CLI、版本身份和 SDK 导入已经通过，图形界面与门户尚未验收。随后 `fedora` 的本地转发在 2223 端口握手超时，后台桌面脚本尚未启动，不以预检成功代替桌面通过。[设备与回收记录](requirements/2026-11-18-linux-test-host.md)
 
 本机 WSL 的 DSHU 专用缓存已经归档并清理，文件系统净增加约 153.2 GiB 空闲。三个工作区及 32 条 stash 已验证可恢复，备份在 `%USERPROFILE%/DSHU-Backups/20261118-wsl-retirement/`，恢复时须同时保留归档和 `borrowed-objects/`。旧 `/home/linzh/.cache/dshu-verification` 路径已移除，不再启动本机 WSL 或调用旧 Linux 构建脚本。
 

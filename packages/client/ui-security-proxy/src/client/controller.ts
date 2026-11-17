@@ -53,7 +53,8 @@ export interface SecurityProxyPort {
 /**
  * Owns the section's reads and writes. Writes are serialized: a second write
  * while one is in flight is refused, so a slow password save cannot race a
- * settings save. Reads never publish over a newer completed write.
+ * settings save. Settings, lists and details have independent read generations;
+ * clearing capture invalidates outstanding rows, details and pre-clear counters.
  */
 export class SecurityProxyController {
   /** Shared observations; the component renders from this store. */
@@ -74,6 +75,10 @@ export class SecurityProxyController {
 
   private closed = false
   private revision = 0
+  private flowsRevision = 0
+  private detailRevision = 0
+  private captureRevision = 0
+  private latestCapture: SecurityProxyCaptureStats | undefined
   private sequence = 0
   private write: Promise<void> | undefined
 
@@ -85,19 +90,21 @@ export class SecurityProxyController {
     if (this.closed) return
     this.revision += 1
     const revision = this.revision
-    this.patch({ loading: true, failed: false })
-    void this.read(revision)
+    const flowsRevision = ++this.flowsRevision
+    this.patch({ loading: true, failed: false, flowsLoading: true, flowsFailed: false })
+    void this.read(revision, flowsRevision, this.captureRevision)
   }
 
   /** Re-read the flow list without touching the settings form. */
   readonly refreshFlows = (): void => {
     if (this.closed) return
+    const revision = ++this.flowsRevision
     const filter = this.state.getSnapshot().filter
     this.patch({ flowsLoading: true, flowsFailed: false })
     void this.readFlows(filter).then((flows) => {
-      if (!this.closed) this.patch({ flows, flowsLoading: false })
+      if (!this.closed && revision === this.flowsRevision) this.acceptFlows(flows)
     }, () => {
-      if (!this.closed) this.patch({ flowsLoading: false, flowsFailed: true })
+      if (!this.closed && revision === this.flowsRevision) this.patch({ flowsLoading: false, flowsFailed: true })
     })
   }
 
@@ -107,10 +114,11 @@ export class SecurityProxyController {
    * @returns whether the write committed.
    */
   readonly configure = (patch: SecurityProxySettingsPatch): Promise<boolean> => this.run(async () => {
+    const captureRevision = this.captureRevision
     const state = await this.port.configure(patch)
     this.revision += 1
-    const flows = await this.readFlows(this.state.getSnapshot().filter).catch(() => this.state.getSnapshot().flows)
-    this.patch({ state, flows, loading: false, failed: false })
+    this.acceptState(state, captureRevision)
+    this.refreshFlows()
     return 'saved'
   }, 'saved')
 
@@ -120,9 +128,10 @@ export class SecurityProxyController {
    * @returns whether the write committed.
    */
   readonly setPassword = (password: string | null): Promise<boolean> => this.run(async () => {
+    const captureRevision = this.captureRevision
     const state = await this.port.setPassword(password)
     this.revision += 1
-    this.patch({ state, loading: false, failed: false })
+    this.acceptState(state, captureRevision)
     return 'passwordSaved'
   }, 'passwordSaved')
 
@@ -132,11 +141,12 @@ export class SecurityProxyController {
    */
   readonly test = async (): Promise<boolean> => {
     if (this.closed || this.state.getSnapshot().testing) return false
+    const captureRevision = this.captureRevision
     this.patch({ testing: true })
     try {
       const result = await this.port.test()
       this.revision += 1
-      this.patch({ state: result.state, loading: false, failed: false })
+      this.acceptState(result.state, captureRevision)
       return result.ok
     } catch {
       this.patch({ failed: true })
@@ -148,21 +158,30 @@ export class SecurityProxyController {
 
   /** Pause or resume capture without restarting the proxy. */
   readonly setPaused = (paused: boolean): Promise<boolean> => this.run(async () => {
+    const captureRevision = this.captureRevision
     const state = await this.port.pause(paused)
     this.revision += 1
-    this.patch({ state })
+    this.acceptState(state, captureRevision)
     return 'saved'
   }, 'saved')
 
   /** Drop every retained flow. */
   readonly clear = async (): Promise<void> => {
+    if (!this.isActive()) return
     try {
       const capture = await this.port.clear()
       if (this.closed) return
+      this.flowsRevision += 1
+      this.detailRevision += 1
+      this.captureRevision += 1
+      this.latestCapture = capture
       const current = this.state.getSnapshot().state
       this.patch({
         flows: [],
+        flowsLoading: false,
+        flowsFailed: false,
         detail: null,
+        detailFailed: false,
         state: current === null ? null : { ...current, capture },
       })
     } catch {
@@ -175,34 +194,33 @@ export class SecurityProxyController {
    * @param id - flow identity from the list.
    */
   readonly openFlow = async (id: string): Promise<void> => {
+    if (!this.isActive()) return
+    const revision = ++this.detailRevision
     this.patch({ detail: null, detailFailed: false })
     try {
       const detail = await this.port.detail(id)
-      if (this.closed) return
+      if (this.closed || revision !== this.detailRevision) return
       this.patch({ detail, detailFailed: detail === null })
     } catch {
-      if (!this.closed) this.patch({ detailFailed: true })
+      if (!this.closed && revision === this.detailRevision) this.patch({ detailFailed: true })
     }
   }
 
   /** Close the detail view. */
-  readonly closeFlow = (): void => { this.patch({ detail: null, detailFailed: false }) }
+  readonly closeFlow = (): void => {
+    this.detailRevision += 1
+    this.patch({ detail: null, detailFailed: false })
+  }
 
   /**
    * Change the list filter and re-read.
    * @param patch - text and/or kind.
    */
   readonly setFilter = (patch: Partial<SecurityProxyFilter>): void => {
+    if (this.closed) return
     const filter = { ...this.state.getSnapshot().filter, ...patch }
     this.patch({ filter })
-    this.revision += 1
-    const revision = this.revision
-    this.patch({ flowsLoading: true, flowsFailed: false })
-    void this.readFlows(filter).then((flows) => {
-      if (!this.closed && revision === this.revision) this.patch({ flows, flowsLoading: false })
-    }, () => {
-      if (!this.closed) this.patch({ flowsLoading: false, flowsFailed: true })
-    })
+    this.refreshFlows()
   }
 
   /**
@@ -244,26 +262,45 @@ export class SecurityProxyController {
   }
 
   /** Read settings and flows for one generation. */
-  private async read(revision: number): Promise<void> {
-    try {
-      const [state, result] = await Promise.all([this.port.get(), this.port.list(this.query())])
-      if (this.closed || revision !== this.revision) return
-      this.patch({ state, flows: result.flows, loading: false, failed: false })
-    } catch {
-      if (this.closed || revision !== this.revision) return
-      this.patch({ loading: false, failed: true })
+  private async read(revision: number, flowsRevision: number, captureRevision: number): Promise<void> {
+    const [state, flows] = await Promise.allSettled([
+      Promise.resolve().then(() => this.port.get()), this.readFlows(this.state.getSnapshot().filter),
+    ])
+    if (this.closed) return
+    if (revision === this.revision) {
+      if (state.status === 'fulfilled') this.acceptState(state.value, captureRevision, flowsRevision !== this.flowsRevision)
+      else this.patch({ loading: false, failed: true })
+    }
+    if (flowsRevision === this.flowsRevision) {
+      if (flows.status === 'fulfilled') this.acceptFlows(flows.value)
+      else this.patch({ flowsLoading: false, flowsFailed: true })
     }
   }
 
   /** Read the list for one filter. */
-  private async readFlows(filter: SecurityProxyFilter): Promise<readonly SecurityProxyFlowSummary[]> {
-    const result = await this.port.list(queryOf(filter))
-    return result.flows
+  private async readFlows(filter: SecurityProxyFilter): Promise<SecurityProxyFlowsResult> {
+    return await this.port.list(queryOf(filter))
   }
 
-  /** The current filter as a Remote query. */
-  private query(): SecurityProxyFlowQuery {
-    return queryOf(this.state.getSnapshot().filter)
+  /** Adopt confirmed settings without replacing a newer capture snapshot. */
+  private acceptState(state: SecurityProxyState, captureRevision: number, keepCapture = false): void {
+    const capture = (captureRevision !== this.captureRevision || keepCapture) && this.latestCapture !== undefined
+      ? { ...this.latestCapture, paused: state.capture.paused } : state.capture
+    this.latestCapture = capture
+    this.patch({ state: { ...state, capture }, loading: false, failed: false })
+  }
+
+  /** Publish a current list together with the capture counters from that response. */
+  private acceptFlows(result: SecurityProxyFlowsResult): void {
+    this.latestCapture = result.capture
+    const current = this.state.getSnapshot().state
+    this.patch({ flows: result.flows, flowsLoading: false, flowsFailed: false,
+      state: current === null ? null : { ...current, capture: result.capture } })
+  }
+
+  /** Whether the controller still accepts requests. */
+  private isActive(): boolean {
+    return !this.closed
   }
 
   /** Publish one partial state change. */

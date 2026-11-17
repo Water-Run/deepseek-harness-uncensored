@@ -51,7 +51,9 @@ The external delegate row covers proxy-aware child processes launched by ACP, Co
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-`controller.ts` owns the section's reads and writes: one serialized write slot, a generation counter so a slow read never publishes over a committed write, and a filter translated into the Remote query. `SecurityProxySection.tsx` renders from that store through the injected `hooks` compartment; local component state holds only the unsaved draft and the password field.
+`controller.ts` owns the section's reads and writes. Settings reads, filtered lists and details have independent generations; only the current request publishes data or errors. Closing a detail or clearing capture invalidates its pending replies. A successful clear also preserves the cleared counters when an earlier settings reply arrives, and an accepted list refreshes the displayed capture counters. Settings writes use one serialized slot. `SecurityProxySection.tsx` renders from that store through the injected `hooks` compartment; local component state holds only the unsaved draft and the password field.
+
+A failed list read retains available settings and records; a failed clear retains the displayed records and detail. Saving settings confirms that write independently of the following traffic refresh.
 
 The viewer shows the captured request and response headers (already redacted on the Host), bounded bodies, the tunnel note for CONNECT-only rows, and an explicit truncation marker. Tunnel rows never pretend to carry a body. Settings feedback uses the shared toast primitive. The reminder uses `conversation.mode.notice`, reads the current conversation mode and shares the settings controller; enabling the proxy or disabling reminders hides it.
 
