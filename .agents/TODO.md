@@ -2,6 +2,8 @@
 
 **本地检查包 2026.11.17.8 已保留数据安装，未发布 Release。** 构建源码 `a45e8f67f9`，包含共享 SDK client 和 Desktop Host 依赖解析修复。四个正式 npm 提供方在实际 Windows 包中完成注册，Linux 归档及 API 验收通过。公开预发布仍为 17.5；后续发布须用户明确许可，完整 Goal 保持活动。[本地交付与恢复](requirements/2026-11-17.8-delivery.md)
 
+Windows [18.1 内部检查包](requirements/2026-11-18.1-delivery.md)已生成并通过载荷与非空导出验证，尚未安装。当前源码继续[适配上游 rc.4](requirements/2026-11-18-dsh-rc4.md)，完成后再更新系统；原有 36/9/3 范围保持不变。
+
 | 验收记录 | 范围 |
 | --- | --- |
 | [当前交付](requirements/2026-11-17.8-delivery.md) | 正式插件安装、回装、不兼容恢复，双平台包及 Windows 数据保全。 |

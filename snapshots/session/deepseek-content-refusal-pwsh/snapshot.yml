@@ -1,0 +1,9 @@
+version: 1
+scenario: deepseek-content-refusal-pwsh
+profile: headless
+composition: pwsh
+recording: authored
+header:
+  class: refusal-pwsh
+  pin: true
+platform: pwsh
