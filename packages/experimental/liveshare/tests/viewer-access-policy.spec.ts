@@ -168,7 +168,7 @@ const deny = (reason: string) => ({ kind: 'deny', reason })
 it.each(['all', 'none', 'custom'] as const)('refuses owner controls under %s plugin access even when selected', async (viewerPluginAccess) => {
   const f = await fixture({ mode: 'write', viewerPluginAccess })
   const actions: RemoteAccessEndpoint[] = [
-    'balance/get', 'spending/reset', 'memory/list', 'securityProxy/detail',
+    'balance/get', 'spending/reset', 'memory/list', 'securityProxy/detail', 'securityProxy/exportCapture',
     'session/delete', 'session/aside', 'session/resetAside', 'session/predict', 'modeDossiers/readStory',
     'agentPresets/confirmSecurityEntry', 'account/watch',
   ]

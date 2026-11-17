@@ -124,6 +124,7 @@ export const VIEWER_ENDPOINT_CLASSES = {
   'securityProxy/clear': 'owner-only',
   'securityProxy/configure': 'owner-only',
   'securityProxy/detail': 'owner-only',
+  'securityProxy/exportCapture': 'owner-only',
   'securityProxy/get': 'owner-only',
   'securityProxy/list': 'owner-only',
   'securityProxy/pause': 'owner-only',

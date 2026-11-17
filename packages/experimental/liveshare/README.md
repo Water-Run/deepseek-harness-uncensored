@@ -25,7 +25,7 @@ Share a Session with colleagues through the normal DSH browser interface. The ow
 <a id="use-this-package"></a>
 ## Use this package
 
-DSHU account balances, spending limits, cross-conversation memory, mode assets, proxy traffic, side-conversation creation, input prediction and permanent deletion remain owner-only. A plugin declaration and a share selection cannot override that classification; the access policy excludes these endpoints from viewer grants and refuses their calls.
+DSHU account balances, spending limits, cross-conversation memory, mode assets, proxy traffic and JSON exports, side-conversation creation, input prediction and permanent deletion remain owner-only. A plugin declaration and a share selection cannot override that classification; the access policy excludes these endpoints from viewer grants and refuses their calls.
 
 ### Profile and build requirements
 
