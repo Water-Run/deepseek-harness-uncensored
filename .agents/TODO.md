@@ -1,16 +1,16 @@
 # 开发项目进度
 
-**本地检查包 2026.11.17.6 已安装，未发布 Release。** 构建源码 `5c61ab1035`，包含 SSH 匹配资源 UUID 与原生数据库关联；两平台实包、Windows 数据保全及普通用户启动检查通过。公开预发布仍为 17.5，后续发布须用户明确许可，完整 Goal 保持活动。[本地交付与恢复](requirements/2026-11-17.6-delivery.md) · [公开预发布](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5)
+**本地检查包 2026.11.17.8 已保留数据安装，未发布 Release。** 构建源码 `a45e8f67f9`，包含共享 SDK client 和 Desktop Host 依赖解析修复。四个正式 npm 提供方在实际 Windows 包中完成注册，Linux 归档及 API 验收通过。公开预发布仍为 17.5；后续发布须用户明确许可，完整 Goal 保持活动。[本地交付与恢复](requirements/2026-11-17.8-delivery.md)
 
-**回归范围：** 完整 Web 基线 `668ec5146d` 为前置 10 项、主批次 1,077 项通过，32 项条件跳过；后续提交以定向回归、完整 Worker 预览和两平台实际产物复核，原始 Session 不变。[基线](requirements/2026-11-16-regression-followup.md) · [本版](requirements/2026-11-17.1-delivery.md)
+| 验收记录 | 范围 |
+| --- | --- |
+| [当前交付](requirements/2026-11-17.8-delivery.md) | 正式插件安装、回装、不兼容恢复，双平台包及 Windows 数据保全。 |
+| [Web 基线](requirements/2026-11-16-regression-followup.md) | `668ec5146d` 的 1,087 项通过、32 项条件跳过；后续使用定向回归和实际产物检查。 |
+| [SSH 与数据库关联](requirements/2026-11-17.6-delivery.md) | 资源 UUID、协议 4、PostgreSQL/MySQL 中央关联及未知路径拒绝已交付。 |
+| [实际数据库](requirements/2026-11-17-native-database-engines.md) | Linux 17.6 的 PostgreSQL/MySQL 共 14 场景通过，保留数据回读、存储重开及正常退出证据。 |
+| [更新运行器](requirements/2026-11-06-stability.md#更新工作区运行器2026-11-16) | Electron 单组及并发进程通过；签名实装升级仍保留未验收状态。 |
 
-**本版交付：** SSH 取消清理、关闭确认、会话连接和独立代理的可选入口已随包；Windows 并发各 67 项、Linux 190 项源码回归及实际包内模块导入通过。两平台实包 Frida 各两项、四模式、旁问与删除复验通过。正式升级、平台与进阶保护继续按下列项目推进。
-
-**17.3 新增交付：** 中央资源 UUID 与远端路径已接入真实 SSH helper，保护等级随中央规则生效；文件补丁、删除和双向移动已验证。随后补齐文件请求结果、拒绝、会话审计及未交付流的清理。两项已进入实际安装包；匹配资源证明和完整保护的待验收范围保持下表状态。[映射](requirements/2026-11-17-ssh-file-mapping.md) · [审计](requirements/2026-11-17-ssh-file-audit.md)
-
-**更新验收跟进：** 私有测试应用已补齐客户端版本和欢迎页，完整报告校验的九项回归通过；真实 Electron 单组十项及两个独立进程并发各十项通过，均正常退出。这不代表签名已安装升级完成。[记录](requirements/2026-11-06-stability.md#更新工作区运行器2026-11-16)
-
-下列百分比是实现与验收的综合估算；原始编号见[完整需求清单](requirements/development-checklist.md)。17.4 发布后曾按要求暂停；用户现已恢复 Goal，本页持续保留原始范围。macOS、Android 和全新安装器只保留未来计划。
+下列百分比是实现与验收的综合估算；原始编号见[完整需求清单](requirements/development-checklist.md)。macOS、Android 和全新安装器保留为未来计划。
 
 ## 已完成（36 项）
 
@@ -58,12 +58,12 @@
 
 - [ ] **Linux x64 Desktop — 约 98%**（02.09、17.07）：归档与运行检查通过；实际归档中的启动 404 修复、X11/Wayland 主界面和重载已复验。剩原生门户、实体桌面及发行验收。[计划](requirements/desktop-installer-plan.md)
 - [ ] **真实目标保护 — 约 80%**（09.01–09.11、05.06、10.05）：默认关闭；Inspector 可选入口已随包，Cua Driver 独立归档准入已验收，桌面包仍不分发该提供方。SSH 映射、PostgreSQL/MySQL 中央关联及未知路径拒绝已进入本地 17.6。剩余入站、冷重启、部署、其他协议、远端物理身份与实体服务器验收。[数据库关联](requirements/2026-11-17-database-resource-bindings.md) · [执行层](requirements/2026-11-02-native-execution.md)
-- [ ] **网安特化与独立代理 — 约 95%**（10.01–10.08）：剩余正式插件来源/升级、现有桌面和进阶保护联动验收。[记录](requirements/2026-11-03-browser-proxy.md)
+- [ ] **网安特化与独立代理 — 约 95%**（10.01–10.08）：正式 npm 四包的安装及注册、Codex 移除回装和不兼容恢复已验收；剩更高兼容版本升级、现有桌面和进阶保护联动验收。[记录](requirements/2026-11-03-browser-proxy.md)
 - [ ] **官方版并存与桌面交付 — 约 95%**（02.02、02.04、02.06、02.09、02.12、17.07）：保留数据更新已通过；剩余自动回退、系统重启、签名及正式在线升级。[记录](HANDOFF.md)
 - [ ] **构建产物清理 — 约 95%**（17.09）：本轮维护私有包缓存，移除 49,184 文件、784 包，D 盘净空闲增加约 1.27 GiB；`.17.1` 失败解包副本约 1.90 GiB 及此前拒绝目录仍被自动审批阻止删除，保留且不重试。[路径与记录](HANDOFF.md#清理与工作约束)
 - [ ] **稳定性与完整需求总验收 — 约 85%**（00.08、05.08、05.10、17.01、17.03–17.08）：完整 Web、桌面单元及 Windows 数据保全已验收；Frida 关闭修复保留两平台实包证据，SSH 清理与审计已交付。Linux 17.6 又完成 PostgreSQL 16.15/MySQL 8.0.46 共 14 项真实引擎场景，含数据独立回读及存储重开。剩余原生/关机、任意已有进程、远程设备及商业引擎等场景。[稳定性](requirements/2026-11-06-stability.md) · [真实数据库](requirements/2026-11-17-native-database-engines.md) · [SSH 关闭](requirements/2026-11-17-ssh-shutdown.md)
 - [ ] **更新下载与发布路径 — 约 90%**（15.06）：日期版排序、原生比较和直接安装已通过；`.16.4` 已交付限流与普通 403 的区分、冷却及显式重试，两平台双语 Web 和实际安装资源检查通过。旧 403 原因仍未知；三份公开资产及校验文件已上传并核对摘要；签名和自动更新器全链验收仍未完成。[记录](requirements/2026-11-16-release-check.md)
-- [ ] **依赖许可证审计 — 约 85%**（16.07）：17.5 实包重新清点，Windows 919 包中 6 项、Linux 921 包中 8 项仍待核查；clean-git-ref 的发布归属和实装核对已完成，保留补充原文与摘要。[明细](requirements/2026-11-03-dependency-notices.md)
+- [ ] **依赖许可证审计 — 约 85%**（16.07）：17.8 实包重新清点，Windows 920 包中 6 项、Linux 922 包中 8 项仍待核查；clean-git-ref 的发布归属和实装核对已完成，保留补充原文与摘要。[明细](requirements/2026-11-03-dependency-notices.md)
 - [ ] **保护审计与各功能联动 — 约 85%**（05.06、09.09–09.11、10.05）：默认关闭；普通调试入口不隐式受保护。SSH 匹配 UUID 和原生 PostgreSQL/MySQL 资源关联已随本地 17.6 交付，双平台回归、Session 重放及实包检查通过。剩余独立 Worker 部署、数据库物理身份、入站、其他协议和最终装配。[文件回执](requirements/2026-11-17-ssh-resource-receipts.md) · [数据库关联](requirements/2026-11-17-database-resource-bindings.md)
 
 ## 待实现（未来计划，本轮不开发）

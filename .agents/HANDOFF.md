@@ -1,31 +1,31 @@
 # DSHU 开发交接
 
-**本地 2026.11.17.6 已保留数据安装并启动，没有发布 Release，Goal 保持活动。** 公开预发布仍为 17.5。当前 36 项完成、9 项进行中及 3 项未来计划，完整范围见 [TODO](TODO.md)。用户要求继续实现并减少过度测试；发布须逐次取得明确许可。
+**本地 2026.11.17.8 已保留数据安装并启动，没有发布 Release，Goal 保持活动。** 当前 36 项完成、9 项进行中及 3 项未来计划，完整范围见 [TODO](TODO.md)。继续实现既有范围，减少重复测试；发布须逐次取得明确许可。
 
 ## 当前交付
 
-本地 17.6 构建源码 `5c61ab10355999bc7fcde463e0e72d2fbc271f54`，显示/内部版本 `2026.11.17.6` / `2026.1117.6`，提供 Windows exe、Linux deb/tar.gz，未签名。两平台实际模块、Windows 安装及启动已核验。[本地交付](requirements/2026-11-17.6-delivery.md)
+构建源码 `a45e8f67f99decc961c540cfea02d938a21992c8`，显示/内部版本 `2026.11.17.8` / `2026.1117.8`，提供 Windows exe、Linux deb/tar.gz，未签名。构建于 11 月 17 日启动，北京时间 11 月 18 日安装验收。[当前交付、摘要及恢复](requirements/2026-11-17.8-delivery.md)
 
-[17.5 Release](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5) 是现有公开预发布，ID `448298712`，源码 `7a5d82454a`。本次没有修改它、创建新 Release 或上传资产。
+修复 Desktop 共享 SDK client 缺失，以及 Host 使用 CLI 依赖图导致外部提供方无法导入它的问题。四个正式 npm 提供方在实际 Windows 包中注册，四模式就绪、无加载警告。Codex 移除、回装及不兼容 tarball 的文件和模块恢复通过；更高兼容版本的成功升级仍待验收。
 
-Windows 无脚本暂停 Frida 会话在关闭前复用现有流程完成空脚本初始化，再卸载、恢复和分离。保留 REA 6.9.0 与 Frida 17.23.2，两平台真实包各两项通过，包含连续三个无脚本暂停目标，目录清理成功。管理器 SHA-256 `7d6fa8fca95b7168cdbc629d7a717d597845de3ce4e42793076471ff7d0666ea`。[修复说明](requirements/2026-11-17-frida-prime-close.md)
+17.7 候选没有安装，失败材料和安装器保留，Linux 归档在 `D:/DSHU-Deliveries/20261117/rejected-2026.11.17.7/`。后续检查从外部插件导入 SDK client，避免只验证包内文件存在。Windows 17.8 实际安装后完成全量 ASAR 清单核对，没有另建完整 NSIS 解包副本。
 
-17.25.1/17.26.4 原生绑定候选没有采用，目录清理失败证据保留。不要重新升级候选或把其结果当作成功。[对照记录](requirements/2026-11-17-frida-version-qualification.md)
-
-余额精度及 Frida 修复沿用既有有效证据。17.6 实装 API、四模式、旁问、删除和受控命令通过，Linux 归档/API 通过；新模块均在实际包内核验，没有重复整轮界面或 Frida 目标回归。完整进阶保护、实体平台、签名自动升级及许可材料继续保留未验收状态。
+[公开预发布 17.5](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5) 保持不变，本次没有创建 Release、修改公开资产或上传文件。源码已推送；没有远端 CI 运行，不能记作 CI 通过。
 
 ## 恢复与运行
 
-- 备份 `D:/DSHU-Backups/20261117T125315Z-before-20261117-6-data`：7,362 文件、0 链接，安装后摘要一致；官方 DSH 两个关键文件未变。恢复前另存当前数据。
-- 回退包为 17.5，摘要 `0d1c59e1b12c5f3cec812d493fd54a31f7ecc51851a6db2d14973cc440bb9fb7`。本版材料为 `%USERPROFILE%/DSHU-Deliveries/20261117/candidate-2026.11.17.6`；Linux 文件在 `D:/DSHU-Deliveries/20261117`。
-- 常规启动主 PID `19064`，直接验证用户令牌未提权，观察期间五个进程响应且无新增崩溃。操作前重新核对进程。旧主进程明确终止，不能记作正常退出验收；不要求新进程的父进程仍然存活。
-- 主要回执：`installed-update-result.json`、`installed-runtime-result.json`、`normal-launch-17-6-result.json`、`current-development-checkpoint.json`。历史源码、失败记录、stash 和备份保留。
+- 备份 `D:/DSHU-Backups/20261117T161831Z-before-20261117-8-data`：7,366 文件、零链接；安装后摘要一致，官方 DSH 两个关键文件未变。恢复前另存当前数据。
+- 17.6 恢复包摘要 `17033bf92cae789607475d3e6e641528ee871cd20982188b5eb393c162ffceb1`。恢复记录为交付目录的 `accepted-2026.11.17.6/current-windows-manifest.json`。
+- 常规启动主 PID `154848`，令牌直接验证未提权，用户为 `WATERRUN\linzh`；观察期间响应且无新增崩溃。操作前重新核对进程。旧主进程明确终止，不记作正常退出或系统重启验收。
+- 本版材料为 `%USERPROFILE%/DSHU-Deliveries/20261117/candidate-2026.11.17.8/`，重点为两平台 manifest、`installed-update-result.json`、`installed-payload-result.json`、`normal-launch-result.json` 和 `official-plugins/acceptance.json`。历史失败、源码和 stash 保留。
 
-## 本版增强与后续范围
+## 仍有效的执行验收
 
-[SSH 资源匹配回执](requirements/2026-11-17-ssh-resource-receipts.md)已随本地 17.6 交付。客户端和 helper 使用协议 4，需配套部署并更新固定摘要；原始 Session 录制和持久化字段未改动。
+[SSH 资源匹配回执](requirements/2026-11-17-ssh-resource-receipts.md)和[数据库资源关联](requirements/2026-11-17-database-resource-bindings.md)已随本地 17.6 交付并保留在本包。SSH 客户端/helper 使用协议 4，需配套部署和更新固定摘要；持久化字段及原始 Session 录制未改变。
 
-[PostgreSQL/MySQL 资源关联](requirements/2026-11-17-database-resource-bindings.md)已随本地 17.6 交付。后续 [PostgreSQL 16.15 与 MySQL 8.0.46 实际引擎](requirements/2026-11-17-native-database-engines.md)共 14 场景通过，验证数据回读、超限保护、服务器策略和存储重开，两引擎均正常退出、连接清空。没有启动 Docker、注册系统数据库服务或修改产品代码。物理数据文件身份及完整平台验收继续保留。
+[PostgreSQL 16.15 与 MySQL 8.0.46](requirements/2026-11-17-native-database-engines.md)共 14 个实际引擎场景通过，含独立数据回读、存储重开及正常退出。远端物理身份、其他协议与实体平台仍按 TODO 保留范围，不重复这轮引擎验收。
+
+[Frida 关闭修复](requirements/2026-11-17-frida-prime-close.md)保留 REA 6.9.0、Frida 17.23.2，两平台自有目标证据继续有效。管理器摘要 `7d6fa8fca95b7168cdbc629d7a717d597845de3ce4e42793076471ff7d0666ea` 已在本包核对；17.25.1/17.26.4 未采用，不把失败候选当作成功。
 
 ## 工作约束
 
@@ -36,6 +36,8 @@ Windows 无脚本暂停 Frida 会话在关闭前复用现有流程完成空脚�
 Windows 构建使用 `VCToolsVersion=14.52.36629`、`MSVCPreviewEnabled=true`。私有 `.env.windows` 使用 npm 官方 registry；代理下载失败后，仅在本次进程中清除代理变量直连成功。供应链检查未放宽。首次 pnpm 烟测超时后，同一运行时独立检查通过；后续成功 run 见交付记录。
 
 ## 清理与工作约束
+
+新增拒绝路径 `D:/Coding/deepseek-harness-uncensored/apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/runs/2026-11-17T15-19-43.361Z-nSHqhO/win-unpacked`：16,414 文件、1,591,144,393 字节，零链接、零活动引用，失败候选安装器已另存并核对摘要。递归删除在创建进程前被自动审批以 `blocked by policy` 拒绝，约 1.48 GiB 保留，不重试、换方法或删除父目录。记录为 `20261117/rejected-17-7-cleanup-{audit,rejected}.json`。
 
 本轮新路径 `D:/DSHU-Delivery-Work/20261117/installer-check-O4n6lL`：16,425 文件、2,035,344,333 字节，无链接或活动引用，实际安装及保留安装器摘要已核对。递归删除被自动审批以 `blocked by policy` 拒绝，约 1.90 GiB 保留；不得重试、改名、换方法或删除父目录。回执为 `20261117/windows-17-6-extraction-cleanup-{audit,rejected}.json`。
 
