@@ -1,0 +1,44 @@
+diff --git a/dist/frida/FridaInstrumentationManager.js b/dist/frida/FridaInstrumentationManager.js
+--- a/dist/frida/FridaInstrumentationManager.js
++++ b/dist/frida/FridaInstrumentationManager.js
+@@ -532,6 +532,20 @@
+             if (failure !== undefined)
+                 scriptFailures.set(entry.id, failure);
+         }
++        let pausedResumeAttempted = false;
++        const resumePausedSpawn = async () => {
++            try {
++                await managed.device.resume(managed.pid);
++                managed.targetResumeObserved = true;
++                managed.resumeAfterDetachPending = false;
++                targetResumeObserved = true;
++            }
++            catch (cause) {
++                managed.resumeAfterDetachPending = true;
++                cleanupFailures.push(`Unable to resume spawned target: ${sanitizeError(cause, managed.remote)}`);
++            }
++        };
++        if (shouldResumePausedSpawn && managed.scripts.size === 0) { pausedResumeAttempted = true; await resumePausedSpawn(); }
+         try {
+             if (!managed.session.isDetached())
+                 await managed.session.detach();
+@@ -552,18 +566,7 @@
+                     scriptFailures.set(entry.id, failure);
+             }
+         }
+-        if (shouldResumePausedSpawn && managed.scripts.size === 0) {
+-            try {
+-                await managed.device.resume(managed.pid);
+-                managed.targetResumeObserved = true;
+-                managed.resumeAfterDetachPending = false;
+-                targetResumeObserved = true;
+-            }
+-            catch (cause) {
+-                managed.resumeAfterDetachPending = true;
+-                cleanupFailures.push(`Unable to resume spawned target: ${sanitizeError(cause, managed.remote)}`);
+-            }
+-        }
++        if (shouldResumePausedSpawn && !pausedResumeAttempted && managed.scripts.size === 0) await resumePausedSpawn();
+         const failures = [...scriptFailures.values(), ...cleanupFailures];
+         if (managed.remote !== undefined &&
+             (managed.remoteReferenceHeld || managed.remoteRemovalPending) &&

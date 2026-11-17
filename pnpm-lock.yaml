@@ -24,6 +24,7 @@ patchedDependencies:
   mdast-util-gfm-autolink-literal@2.0.1: 7fa6fc7927128a45c3f148d31faf388806895e2de39c14a144200edbc1e7aaa0
   micromark-extension-gfm-autolink-literal@2.1.0: 906ae7c0cd1f69e7ee308a41bc0542e0085276ac7517e56e96f0ccaf5a89327d
   node-pty@1.2.0-beta.15: 8ca339955248c8df2012b298a0fab289a99e2cba3ace1c99b6d12481d7bb8d32
+  rea-agents@6.9.0: d47dae5f85e822d77a6ace21dfc48633b40de83c5dd3ac51bfc5827ea68ab3dd
 
 importers:
 
@@ -14918,7 +14919,7 @@ importers:
         version: 2.2.0
       rea-agents:
         specifier: 6.9.0
-        version: 6.9.0
+        version: 6.9.0(patch_hash=d47dae5f85e822d77a6ace21dfc48633b40de83c5dd3ac51bfc5827ea68ab3dd)
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:~
@@ -33997,7 +33998,7 @@ snapshots:
 
   re2js@2.9.0: {}
 
-  rea-agents@6.9.0:
+  rea-agents@6.9.0(patch_hash=d47dae5f85e822d77a6ace21dfc48633b40de83c5dd3ac51bfc5827ea68ab3dd):
     optionalDependencies:
       frida: 17.23.2
 

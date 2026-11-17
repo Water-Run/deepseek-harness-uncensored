@@ -39,6 +39,8 @@ kind: "package-reference"
 
 外部引擎在本机运行，需要完全权限。桥接不提供沙盒、远程执行环境或独立流量代理。桌面版内置 REA、兼容的 Node 和 npm 依赖（含 Frida 绑定）。Ghidra、Java、IDA 和 Hopper 仍为可选外部引擎。这里接入 REA 工具目录，尚未适配 MCP 资源、提示词模板或要求任务扩展的工具。Frida 已验收自建 Windows 本地目标，以及 Linux 附加和启动目标。Linux 附加目标显式允许测试父进程及其后代调试。任意已有进程的附加、远程设备和商业引擎仍未验证，操作系统调试权限仍然适用。
 
+DSHU 在源码与桌面安装中统一应用固定的 [REA 6.9.0 生命周期补丁](../../../patches/rea-agents@6.9.0.patch)。关闭自己启动且仍暂停的目标时，先卸载脚本、恢复目标，再分离会话，避免已观测到的 Linux 原生退出等待。清理失败仍明确报告，不终止附加的已有进程。上游版本及许可与本地补丁分别标识。
+
 ## 验证
 
 `tests/rea.spec.ts` 使用自有本地进程检查隔离、参数验证、取消、重置及实时权限变更。`tests/rea.e2e.ts` 使用兼容的 `DSH_REA_TEST_NODE`，默认验证内置 npm 包，`DSH_REA_TEST_CLI` 为可选覆盖项；可选原生分析还需指定 `DSH_REA_TEST_GHIDRA`、`DSH_REA_TEST_JAVA_HOME` 和自有样本 `DSH_REA_TEST_BINARY`。测试关闭进程，并只清理自身临时目录。
