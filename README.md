@@ -89,7 +89,7 @@ DSHU 是面向开发、网安、逆向与写作的智能体工作台。它在 De
 
 ## 安装与开发
 
-- **桌面**　Windows x64 与 Linux x64 的当前检查版均为 `2026.11.17.1`。Windows 已保留数据更新；Linux 已检查 deb、tar.gz、隔离 API、X11/Wayland 主界面、重载及渲染沙箱。原生门户、Debian/Fedora 和实体桌面仍待验收；历史发行 API 403 记录保留，正式更新链路单独跟进。macOS arm64、Android＋PRoot Fedora 和全新安装器仅保留未来计划。签名与正式在线升级尚未验收，未来发行使用本仓库的 [GitHub Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases)。
+- **桌面**　Windows x64 与 Linux x64 的当前公开预发布均为 `2026.11.17.5`，提供 exe、deb、tar.gz 和 SHA256SUMS.txt。Windows 已保留数据更新；Linux 已检查实际归档及隔离 API，并保留 X11/Wayland 主界面、重载和渲染沙箱的验收记录。原生门户、Debian/Fedora 和实体桌面仍待验收。签名与正式在线升级单独跟进，当前通过本仓库 [GitHub Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5) 手动下载安装。macOS arm64、Android＋PRoot Fedora 和全新安装器仅保留未来计划。
 - **源码**　使用 Node.js 24.22.1、Git 与 Corepack。依次运行 `corepack pnpm install`、`corepack pnpm run build`、`corepack pnpm dsh web`。CLI 安装见[安装脚本](scripts/install-uncensored.ps1)。
 - **独立标识**　默认数据目录为 `~/.dsh-uncensored`，可用 `DSH_UNCENSORED_HOME` 修改。CLI 为 `dsh-uncensored`，深链为 `dshu://open`。关于页列出作者、DSHU 与 DSH 版本、构建时间、源码提交及依赖来源。
 
