@@ -157,6 +157,13 @@ async function checkBrowserProviders() {
   for (const file of files) assert.ok(statSync(join(extension, file)).isFile(), `Missing physical Stagehand resource: ${file}`)
 }
 
+/** Load the shared SDK peer required by independently installed official providers. */
+async function checkSdkClient() {
+  const sdk = await import(pathToFileURL(requireRuntime.resolve('@deepseek-ai/dsh-sdk-client')).href)
+  assert.equal(typeof sdk.DeepSeekHarness, 'function')
+  assert.equal(typeof sdk.HarnessClient, 'function')
+}
+
 try {
   const builtin = requireRuntime('node-addon-require-builtin')
   assert.equal(typeof builtin.requireBuiltin('internal/modules/esm/loader').getOrInitializeCascadedLoader, 'function')
@@ -168,6 +175,8 @@ try {
   await checkSharp()
   console.error('runtime payload: html')
   checkHtml()
+  console.error('runtime payload: SDK client')
+  await checkSdkClient()
   console.error('runtime payload: browser providers')
   await checkBrowserProviders()
   console.error('runtime payload: pty')
@@ -183,5 +192,5 @@ try {
 // Natural event-loop drain includes node-pty's worker and console-list helper teardown.
 process.once('beforeExit', () => {
   console.log(JSON.stringify({ node: process.versions.node, platform: process.platform, arch: process.arch,
-    koffi: true, sharp: true, html: true, pty: true, pnpm: true, grep: true, glob: true, browserProviders: true }))
+    koffi: true, sharp: true, html: true, pty: true, pnpm: true, grep: true, glob: true, browserProviders: true, sdkClient: true }))
 })

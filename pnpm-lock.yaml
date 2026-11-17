@@ -908,6 +908,9 @@ importers:
       '@deepseek-ai/dsh-schedule':
         specifier: workspace:*
         version: link:../../packages/schedule/schedule
+      '@deepseek-ai/dsh-sdk-client':
+        specifier: workspace:*
+        version: link:../../packages/sdk/client
       '@deepseek-ai/dsh-workspace':
         specifier: workspace:*
         version: link:../../packages/workspace/workspace
