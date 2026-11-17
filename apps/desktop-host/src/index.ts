@@ -27,7 +27,7 @@ async function main(): Promise<void> {
   const primaryRuntime = process.argv[4] || join(runtimeDir, '..', 'runtime', 'primary-runtime')
   process.env.DSH_PRIMARY_RUNTIME = primaryRuntime
   process.env.DSH_REA_NODE_PATH = join(primaryRuntime, 'dependencies', 'node', 'bin', process.platform === 'win32' ? 'node.exe' : 'node')
-  const installAnchor = join(runtimeDir, 'node_modules', '@deepseek-ai', 'dsh', 'package.json')
+  const installAnchor = join(runtimeDir, 'node_modules', '@deepseek-ai', 'dsh-desktop-host', 'package.json')
   const profile = loadProfileDirectory('dsh', projectDir, installAnchor)
   reportSkippedBundles('dsh', profile)
   const application = runProfile({

@@ -116,10 +116,12 @@ export function apply(ctx) {
     }))
     writeFileSync(join(plugin, 'index.js'), `
 import { Context } from '@deepseek-ai/cordis'
+import { DeepSeekHarness } from '@deepseek-ai/dsh-sdk-client'
 import { inspect } from 'node:util'
 import { readFile } from 'node:fs/promises'
 export function apply(ctx) {
   if (!(ctx instanceof Context)) throw new Error('desktop runtime: external plugin loaded another Cordis instance')
+  if (typeof DeepSeekHarness !== 'function') throw new Error('desktop runtime: external plugin cannot load the shared SDK client')
   ctx.effect(() => ctx.webServer.register({ kind: 'exact', path: '/desktop-smoke',
     handler(_request, response) { response.end('plugin route ready') } }))
   ctx.effect(() => ctx.webServer.register({ kind: 'exact', path: '/desktop-smoke-presets',
