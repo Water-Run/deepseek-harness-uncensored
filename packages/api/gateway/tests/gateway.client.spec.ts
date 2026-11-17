@@ -1426,6 +1426,18 @@ describe('Client Typert API', () => {
     expect(outcome.error).toMatchObject(rpcError)
   })
 
+  it('reports a missing HTTP RPC route as an unavailable Remote definition', async () => {
+    const { ctx, client } = await benchFiber(vi.fn<ConnectionHandle['rpc']['call']>().mockResolvedValue({ ok: false, error: {
+      code: 'connection/endpoint-unavailable', message: 'missing route', details: { channel: '/api', endpoint: 'probe/create' },
+    } }))
+    try {
+      await ctx.remote.$mount({ package: '@fixture/probe', descriptors: [directDescriptor()] })
+      await expect(ctx.remote.probe.create('agent-1', { objective: 'ship' })).resolves.toMatchObject({
+        ok: false, error: { code: 'gateway/definition-unavailable', details: { endpoint: 'probe/create' } },
+      })
+    } finally { await client.dispose() }
+  })
+
   it('folds a transport throw into the error branch', async () => {
     const ctx = await bench(vi.fn<ConnectionHandle['rpc']['call']>()
       .mockRejectedValue(new Error('carrier offline')))

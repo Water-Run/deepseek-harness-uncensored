@@ -553,6 +553,11 @@ describe('connection client apply', () => {
         expect.objectContaining({ signal: abort.signal }),
       )
 
+      globalThis.fetch = vi.fn().mockResolvedValue(new Response('<h1>Not found</h1>', { status: 404 }))
+      await expect(handle.rpc.call('/api', 'optional/get', {})).resolves.toMatchObject({
+        ok: false, error: { code: 'connection/endpoint-unavailable', details: { channel: '/api', endpoint: 'optional/get' } },
+      })
+
       ;(globalThis as Win).location = { hostname: 'localhost', origin: 'null' }
       globalThis.fetch = vi.fn().mockResolvedValue(Response.json({
         type: 'server-response',

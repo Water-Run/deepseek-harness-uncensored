@@ -91,4 +91,6 @@ None; this package neither assembles nor sends a provider request.
 
 None.
 
+An HTTP 404 from a unary RPC route becomes the structured `connection/endpoint-unavailable` failure after its body is released. Authentication and other HTTP failures retain transport-failure handling. A missing endpoint is not a successful invocation.
+
 </details>

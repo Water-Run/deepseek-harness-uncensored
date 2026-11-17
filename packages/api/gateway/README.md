@@ -106,6 +106,8 @@ No direct effect; invoked business Services own any model-visible result.
 
 None.
 
+When Connection reports `connection/endpoint-unavailable`, the Client returns `gateway/definition-unavailable` for that Remote endpoint. Optional settings can report an absent service without treating the read as an uncertain write; other carrier and Host failures keep their existing handling.
+
 </details>
 
 The ./stream-protocol export supplies the shared Remote stream framing and parser to native Desktop callers. These callers use the same authenticated WebSocket endpoint as the browser client.

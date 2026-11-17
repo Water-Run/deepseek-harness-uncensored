@@ -55,6 +55,12 @@ export function createWebConnectionRpc(doFetch?: RpcFetch, openStream?: RpcStrea
           ...signal === undefined ? {} : { signal },
         },
       )
+      if (response.status === 404) {
+        await response.body?.cancel()
+        signal?.throwIfAborted()
+        return { ok: false, error: { code: 'connection/endpoint-unavailable',
+          message: `connection: RPC endpoint ${channel}/${endpoint} is unavailable`, details: { channel, endpoint } } }
+      }
       if (!response.ok) {
         throw new Error(`transport failure for ${channel}/${endpoint}: HTTP ${response.status}`)
       }

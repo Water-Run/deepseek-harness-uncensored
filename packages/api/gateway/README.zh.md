@@ -106,6 +106,8 @@ Client waterfall 的 Context 解析保持同步。解析器可以返回借用的
 
 无。
 
+Connection 报告 `connection/endpoint-unavailable` 时，Client 为对应 Remote 端点返回 `gateway/definition-unavailable`。可选设置可以明确报告服务未挂载，不把读取失败描述成写入结果不确定；其他载体和 Host 失败保持原有处理。
+
 </details>
 
 ./stream-protocol 导出为原生桌面调用方提供共享的 Remote 流帧格式和解析器。它们与浏览器客户端使用同一个经过认证的 WebSocket 端点。

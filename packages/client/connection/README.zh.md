@@ -91,4 +91,6 @@ HTTPS cookie 名称与签名 audience 包含 `https:` scheme，因此即使 host
 
 无。
 
+一元 RPC 路由返回 HTTP 404 时，Client 释放响应体并返回结构化的 `connection/endpoint-unavailable` 失败。认证及其他 HTTP 失败继续按传输失败处理；端点缺失不代表调用成功。
+
 </details>

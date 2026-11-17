@@ -458,7 +458,9 @@ class ClientRemoteService extends Service implements ClientRemote {
       const result = await connection.rpc.call('/api', endpoint, { args: prepared.args }, prepared.signal)
       if (!mountActive(token)) return withdrawn(endpoint)
       prepared.signal.throwIfAborted()
-      if (!result.ok) return { ok: false, error: rebuiltFailure(result.error) }
+      if (!result.ok) return { ok: false, error: result.error.code === 'connection/endpoint-unavailable'
+        ? new RemoteError('gateway/definition-unavailable', `client api: Remote endpoint "${endpoint}" is unavailable`, { endpoint })
+        : rebuiltFailure(result.error) }
       const value = descriptor.result.mode === 'strict' && descriptor.result.decode !== undefined
         ? descriptor.result.decode(result.value)
         : result.value
