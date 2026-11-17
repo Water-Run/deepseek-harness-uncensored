@@ -56,6 +56,23 @@ function event(inventory: PersistenceSchemaInventory, name = 'test/record'): str
 }
 
 describe('persistent source type extraction', () => {
+  it('accepts JavaScript roots admitted by a referenced Host project', () => {
+    const root = fixture('export interface Payload { value: string }')
+    const configPath = join(root, 'tsconfig.host.json')
+    const config = JSON.parse(readFileSync(configPath, 'utf8')) as {
+      compilerOptions: object
+      include: string[]
+      references?: { path: string }[]
+    }
+    config.references = [{ path: './packages/util/bootstrap' }]
+    put(root, 'tsconfig.host.json', JSON.stringify(config))
+    put(root, 'packages/util/bootstrap/tsconfig.json', JSON.stringify({
+      compilerOptions: { allowJs: true }, include: ['src'],
+    }))
+    put(root, 'packages/util/bootstrap/src/calendar.mjs', 'export const version = "2026.11.18.1"\n')
+    expect(extractPersistenceSchema(root).roots.some(item => item.event === 'test/record')).toBe(true)
+  })
+
   it('keeps authored names and anonymous declaration locations without synthesized traversal names', () => {
     const root = fixture('interface Section { text: string }\nexport interface Payload { inserted: { source: { kind: "hooks-codex"; sections: Section[] } }[] }')
     const inventory = extractPersistenceSchema(root)

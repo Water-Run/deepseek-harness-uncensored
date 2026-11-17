@@ -84,6 +84,8 @@ export function extractPersistenceSchema(root: string): PersistenceSchemaInvento
     ...hostSourceFiles(root, configPath),
     ...events.map(event => resolve(root, event.source.slice(0, event.source.lastIndexOf(':')))),
   ])]
+  // Referenced Host projects may explicitly admit JavaScript source roots.
+  options.allowJs ||= files.some(file => /\.[cm]?js$/u.test(file))
   const program = ts.createProgram({ rootNames: [filename, ...files], options, host })
   const rootSource = program.getSourceFile(filename)
   if (rootSource === undefined) throw new PersistenceSchemaError('persistence schema: compiler omitted the requested roots')
