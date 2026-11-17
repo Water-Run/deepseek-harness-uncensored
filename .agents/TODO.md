@@ -1,6 +1,6 @@
 # 开发项目进度
 
-**已公开预发布并安装 2026.11.17.5。** 构建源码 `7a5d82454a`，Windows/Linux 实包 Frida 验收通过，含每平台连续三个无脚本暂停目标。数据保全和启动检查通过，完整 Goal 保持活动。[发布](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5) · [交付与恢复](requirements/2026-11-17.5-delivery.md)
+**本地检查包 2026.11.17.6 已安装，未发布 Release。** 构建源码 `5c61ab1035`，包含 SSH 匹配资源 UUID 与原生数据库关联；两平台实包、Windows 数据保全及普通用户启动检查通过。公开预发布仍为 17.5，后续发布须用户明确许可，完整 Goal 保持活动。[本地交付与恢复](requirements/2026-11-17.6-delivery.md) · [公开预发布](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5)
 
 **回归范围：** 完整 Web 基线 `668ec5146d` 为前置 10 项、主批次 1,077 项通过，32 项条件跳过；后续提交以定向回归、完整 Worker 预览和两平台实际产物复核，原始 Session 不变。[基线](requirements/2026-11-16-regression-followup.md) · [本版](requirements/2026-11-17.1-delivery.md)
 
@@ -57,14 +57,14 @@
 ## 进行中（9 项）
 
 - [ ] **Linux x64 Desktop — 约 98%**（02.09、17.07）：归档与运行检查通过；实际归档中的启动 404 修复、X11/Wayland 主界面和重载已复验。剩原生门户、实体桌面及发行验收。[计划](requirements/desktop-installer-plan.md)
-- [ ] **真实目标保护 — 约 80%**（09.01–09.11、05.06、10.05）：默认关闭；Inspector 可选入口已随包，Cua Driver 独立归档准入已验收，桌面包仍不分发该提供方。SSH 映射已交付；PostgreSQL/MySQL 的中央资源关联及未知路径拒绝已完成后续源码和定向验证，尚未打包。剩余入站、冷重启、部署、其他协议、远端物理身份与实体服务器验收。[数据库关联](requirements/2026-11-17-database-resource-bindings.md) · [执行层](requirements/2026-11-02-native-execution.md)
+- [ ] **真实目标保护 — 约 80%**（09.01–09.11、05.06、10.05）：默认关闭；Inspector 可选入口已随包，Cua Driver 独立归档准入已验收，桌面包仍不分发该提供方。SSH 映射、PostgreSQL/MySQL 中央关联及未知路径拒绝已进入本地 17.6。剩余入站、冷重启、部署、其他协议、远端物理身份与实体服务器验收。[数据库关联](requirements/2026-11-17-database-resource-bindings.md) · [执行层](requirements/2026-11-02-native-execution.md)
 - [ ] **网安特化与独立代理 — 约 95%**（10.01–10.08）：剩余正式插件来源/升级、现有桌面和进阶保护联动验收。[记录](requirements/2026-11-03-browser-proxy.md)
 - [ ] **官方版并存与桌面交付 — 约 95%**（02.02、02.04、02.06、02.09、02.12、17.07）：保留数据更新已通过；剩余自动回退、系统重启、签名及正式在线升级。[记录](HANDOFF.md)
 - [ ] **构建产物清理 — 约 95%**（17.09）：本轮维护私有包缓存，移除 49,184 文件、784 包，D 盘净空闲增加约 1.27 GiB；`.17.1` 失败解包副本约 1.90 GiB 及此前拒绝目录仍被自动审批阻止删除，保留且不重试。[路径与记录](HANDOFF.md#清理与工作约束)
 - [ ] **稳定性与完整需求总验收 — 约 85%**（00.08、05.08、05.10、17.01、17.03–17.08）：完整 Web 与桌面单元回归、Windows 保留数据实装已验收；Frida Linux 最终实包通过，Windows 无脚本暂停目标关闭已随 17.5 分发，双平台实包用例通过；未通过的 Frida 原生库候选未采用；SSH 清理与审计已随 17.3 分发。剩余原生/关机、任意已有进程、远程设备及商业引擎等场景。[稳定性](requirements/2026-11-06-stability.md) · [SSH 取消](requirements/2026-11-16-ssh-cancellation.md) · [SSH 关闭确认](requirements/2026-11-17-ssh-shutdown.md) · [会话路由](requirements/2026-11-17-ssh-session-routing.md)
 - [ ] **更新下载与发布路径 — 约 90%**（15.06）：日期版排序、原生比较和直接安装已通过；`.16.4` 已交付限流与普通 403 的区分、冷却及显式重试，两平台双语 Web 和实际安装资源检查通过。旧 403 原因仍未知；三份公开资产及校验文件已上传并核对摘要；签名和自动更新器全链验收仍未完成。[记录](requirements/2026-11-16-release-check.md)
 - [ ] **依赖许可证审计 — 约 85%**（16.07）：17.5 实包重新清点，Windows 919 包中 6 项、Linux 921 包中 8 项仍待核查；clean-git-ref 的发布归属和实装核对已完成，保留补充原文与摘要。[明细](requirements/2026-11-03-dependency-notices.md)
-- [ ] **保护审计与各功能联动 — 约 85%**（05.06、09.09–09.11、10.05）：默认关闭；普通调试入口不隐式受保护。文件映射与请求审计已交付；后续 SSH 匹配 UUID 和原生 PostgreSQL/MySQL 资源关联已完成源码、双平台回归及 Session 重放，尚未打包。剩余独立 Worker 部署、数据库物理身份、入站、其他协议和最终装配。[文件回执](requirements/2026-11-17-ssh-resource-receipts.md) · [数据库关联](requirements/2026-11-17-database-resource-bindings.md)
+- [ ] **保护审计与各功能联动 — 约 85%**（05.06、09.09–09.11、10.05）：默认关闭；普通调试入口不隐式受保护。SSH 匹配 UUID 和原生 PostgreSQL/MySQL 资源关联已随本地 17.6 交付，双平台回归、Session 重放及实包检查通过。剩余独立 Worker 部署、数据库物理身份、入站、其他协议和最终装配。[文件回执](requirements/2026-11-17-ssh-resource-receipts.md) · [数据库关联](requirements/2026-11-17-database-resource-bindings.md)
 
 ## 待实现（未来计划，本轮不开发）
 

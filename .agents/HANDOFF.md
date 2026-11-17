@@ -1,29 +1,31 @@
 # DSHU 开发交接
 
-**2026.11.17.5 已公开预发布、保留数据安装并启动，Goal 保持活动。** 当前 36 项完成、9 项进行中及 3 项未来计划，完整范围见 [TODO](TODO.md)。用户要求继续推进到可发布、减少过度测试；不要反复运行无信息增量的验证。
+**本地 2026.11.17.6 已保留数据安装并启动，没有发布 Release，Goal 保持活动。** 公开预发布仍为 17.5。当前 36 项完成、9 项进行中及 3 项未来计划，完整范围见 [TODO](TODO.md)。用户要求继续实现并减少过度测试；发布须逐次取得明确许可。
 
 ## 当前交付
 
-[17.5 Release](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5)，ID `448298712`。未签名手动安装，提供 Windows exe、Linux deb/tar.gz 和 SHA256SUMS.txt，远端摘要与本地一致。构建源码 `7a5d82454ad380b65f9abc18a2e126de2ba40c74`，显示/内部版本 `2026.11.17.5` / `2026.1117.5`。[交付记录](requirements/2026-11-17.5-delivery.md)
+本地 17.6 构建源码 `5c61ab10355999bc7fcde463e0e72d2fbc271f54`，显示/内部版本 `2026.11.17.6` / `2026.1117.6`，提供 Windows exe、Linux deb/tar.gz，未签名。两平台实际模块、Windows 安装及启动已核验。[本地交付](requirements/2026-11-17.6-delivery.md)
+
+[17.5 Release](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5) 是现有公开预发布，ID `448298712`，源码 `7a5d82454a`。本次没有修改它、创建新 Release 或上传资产。
 
 Windows 无脚本暂停 Frida 会话在关闭前复用现有流程完成空脚本初始化，再卸载、恢复和分离。保留 REA 6.9.0 与 Frida 17.23.2，两平台真实包各两项通过，包含连续三个无脚本暂停目标，目录清理成功。管理器 SHA-256 `7d6fa8fca95b7168cdbc629d7a717d597845de3ce4e42793076471ff7d0666ea`。[修复说明](requirements/2026-11-17-frida-prime-close.md)
 
 17.25.1/17.26.4 原生绑定候选没有采用，目录清理失败证据保留。不要重新升级候选或把其结果当作成功。[对照记录](requirements/2026-11-17-frida-version-qualification.md)
 
-余额历史精度修复已在 17.4 实装验证，17.5 保留该代码；没有重复整轮界面回归。当前 Windows 实装 API、四模式、旁问、删除与受控命令通过，Linux 归档/API 通过。完整进阶保护、实体平台、签名自动升级及许可证材料仍保留未验收状态，不宣称整体完成。
+余额精度及 Frida 修复沿用既有有效证据。17.6 实装 API、四模式、旁问、删除和受控命令通过，Linux 归档/API 通过；新模块均在实际包内核验，没有重复整轮界面或 Frida 目标回归。完整进阶保护、实体平台、签名自动升级及许可材料继续保留未验收状态。
 
 ## 恢复与运行
 
-- 备份 `D:/DSHU-Backups/20261117T082113Z-before-20261117-5-data`：7,358 文件、0 链接，安装后摘要一致；官方 DSH 两个关键文件未变。恢复前另存当前数据。
-- 回退包为 17.4，摘要 `a24505178b3fc26e1f871a4c5fba1c166bcfa7131b7e9f6aeb5435b9321c72dc`。本版材料为 `%USERPROFILE%/DSHU-Deliveries/20261117/candidate-2026.11.17.5`；Linux 文件在 `D:/DSHU-Deliveries/20261117`。
-- 正常用户程序于北京时间 16:30 启动，主 PID `163172`，观察期间响应且没有新增崩溃。操作前重新验证进程路径和启动身份。旧主进程明确终止，不能记作正常退出验收。
-- 主要回执：`release-17-5-published.json`、`installed-update-result.json`、`normal-launch-17-5-result.json`、`current-development-checkpoint.json`。历史源码、失败记录、stash 和备份保留。
+- 备份 `D:/DSHU-Backups/20261117T125315Z-before-20261117-6-data`：7,362 文件、0 链接，安装后摘要一致；官方 DSH 两个关键文件未变。恢复前另存当前数据。
+- 回退包为 17.5，摘要 `0d1c59e1b12c5f3cec812d493fd54a31f7ecc51851a6db2d14973cc440bb9fb7`。本版材料为 `%USERPROFILE%/DSHU-Deliveries/20261117/candidate-2026.11.17.6`；Linux 文件在 `D:/DSHU-Deliveries/20261117`。
+- 常规启动主 PID `19064`，直接验证用户令牌未提权，观察期间五个进程响应且无新增崩溃。操作前重新核对进程。旧主进程明确终止，不能记作正常退出验收；不要求新进程的父进程仍然存活。
+- 主要回执：`installed-update-result.json`、`installed-runtime-result.json`、`normal-launch-17-6-result.json`、`current-development-checkpoint.json`。历史源码、失败记录、stash 和备份保留。
 
-## 后续源码
+## 本版增强与后续范围
 
-17.5 之后的[SSH 资源匹配回执](requirements/2026-11-17-ssh-resource-receipts.md)已完成源码与定向验证，尚未生成新安装包。客户端和 helper 使用协议 4，需配套部署并更新固定摘要；现有 17.5 安装仍保持原样。原始 Session 录制和持久化字段未改动。
+[SSH 资源匹配回执](requirements/2026-11-17-ssh-resource-receipts.md)已随本地 17.6 交付。客户端和 helper 使用协议 4，需配套部署并更新固定摘要；原始 Session 录制和持久化字段未改动。
 
-[PostgreSQL/MySQL 资源关联](requirements/2026-11-17-database-resource-bindings.md)已接入原生执行器。`resourceIds` 默认空列表；服务器和数据库 UUID 分别提供端点与单库策略。未知生产路径不能通过未关联绑定绕过，所需配置与兼容变化已写迁移指南。本项同样尚未打包；实际数据库引擎、物理数据文件身份及完整平台验收保留。
+[PostgreSQL/MySQL 资源关联](requirements/2026-11-17-database-resource-bindings.md)已随本地 17.6 交付，配置与兼容变化在包内迁移指南中。`resourceIds` 默认空列表；未知生产路径不能通过未关联绑定绕过。实际数据库引擎、物理数据文件身份及完整平台验收继续保留。
 
 ## 工作约束
 
@@ -34,6 +36,8 @@ Windows 无脚本暂停 Frida 会话在关闭前复用现有流程完成空脚�
 Windows 构建使用 `VCToolsVersion=14.52.36629`、`MSVCPreviewEnabled=true`。私有 `.env.windows` 使用 npm 官方 registry；代理下载失败后，仅在本次进程中清除代理变量直连成功。供应链检查未放宽。首次 pnpm 烟测超时后，同一运行时独立检查通过；后续成功 run 见交付记录。
 
 ## 清理与工作约束
+
+本轮新路径 `D:/DSHU-Delivery-Work/20261117/installer-check-O4n6lL`：16,425 文件、2,035,344,333 字节，无链接或活动引用，实际安装及保留安装器摘要已核对。递归删除被自动审批以 `blocked by policy` 拒绝，约 1.90 GiB 保留；不得重试、改名、换方法或删除父目录。回执为 `20261117/windows-17-6-extraction-cleanup-{audit,rejected}.json`。
 
 新增保留路径 `C:/Users/linzh/AppData/Local/Temp/desktop-native-smoke-Cih1l3`：删除被自动审批以 `blocked by policy` 拒绝，不重试、不替换方法或删除父目录。回执 `20261117/native-smoke-cache-cleanup-rejected.json`。该失败缓存不属于发布资产。
 
