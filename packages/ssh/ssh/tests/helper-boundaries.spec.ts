@@ -12,7 +12,7 @@ import { createHelperHarness } from './fixtures/helper.ts'
 import { runSshHelper } from '../src/helper.ts'
 import { RemoteProcesses } from '../src/helper-processes.ts'
 import { helloSchema, preparedSchema, targetSchema, writeResultSchema } from '../src/schemas.ts'
-import { SSH_MAX_TEXT_STREAMS } from '../src/protocol.ts'
+import { SSH_MAX_TEXT_STREAMS, SSH_PROTOCOL_VERSION } from '../src/protocol.ts'
 
 const entryPath = fileURLToPath(new URL('../src/helper-entry.ts', import.meta.url))
 const nextSchema = z.object({ done: z.boolean(), value: z.string() })
@@ -83,12 +83,12 @@ describe.skipIf(process.platform === 'win32')('SSH helper wire and lifecycle bou
     try {
       for (const params of [
         { protocol: 2, workspace: test.root, leaseMs: 3000 },
-        { protocol: 3, workspace: 'relative', leaseMs: 3000 },
-        { protocol: 3, workspace: test.root, leaseMs: 2999 },
+        { protocol: SSH_PROTOCOL_VERSION, workspace: 'relative', leaseMs: 3000 },
+        { protocol: SSH_PROTOCOL_VERSION, workspace: test.root, leaseMs: 2999 },
       ]) await expect(test.client.request('hello', params, helloSchema)).rejects.toThrow()
       const bootstrapPath = `${test.root}/bootstrap.js`
       await writeFile(bootstrapPath, 'export const identity = "test"\n')
-      const facts = await test.client.request('hello', { protocol: 3, workspace: test.root, leaseMs: 3000, bootstrapPath }, helloSchema)
+      const facts = await test.client.request('hello', { protocol: SSH_PROTOCOL_VERSION, workspace: test.root, leaseMs: 3000, bootstrapPath }, helloSchema)
       expect(facts.bootstrapHash).toBe(createHash('sha256').update(await readFile(bootstrapPath)).digest('hex'))
     } finally { await test.close() }
   })
@@ -96,7 +96,7 @@ describe.skipIf(process.platform === 'win32')('SSH helper wire and lifecycle bou
   it('refuses an external bootstrap for an executable helper', async () => {
     const test = await createHelperHarness(false, 30_000, 'executable')
     try {
-      await expect(test.client.request('hello', { protocol: 3, workspace: test.root, leaseMs: 3000, bootstrapPath: '/external/process.js' }, helloSchema))
+      await expect(test.client.request('hello', { protocol: SSH_PROTOCOL_VERSION, workspace: test.root, leaseMs: 3000, bootstrapPath: '/external/process.js' }, helloSchema))
         .rejects.toThrow('embedded PTC bootstrap')
       expect((await test.hello()).kind).toBe('executable')
     } finally { await test.close() }

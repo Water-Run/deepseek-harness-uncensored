@@ -377,21 +377,24 @@ export class DirectSshConnection extends Service implements SshService {
    * @param result - Expected response parser.
    * @param signal - Caller cancellation; omission still observes connection disposal.
    * @param wait - Allows process observation beyond the administrative timeout.
+   * @param reportFileRules - Receives validated helper rule indexes for this request before its result is exposed.
    * @returns The validated response.
    */
-  async request<T>(method: string, params: unknown, result: z.ZodType<T>, signal?: AbortSignal, wait = false): Promise<T> {
-    return this.track(this.requestOnce(method, params, result, signal, wait))
+  async request<T>(method: string, params: unknown, result: z.ZodType<T>, signal?: AbortSignal, wait = false,
+    reportFileRules?: (indexes: readonly number[]) => void): Promise<T> {
+    return this.track(this.requestOnce(method, params, result, signal, wait, reportFileRules))
   }
 
   private async requestOnce<T>(
     method: string, params: unknown, result: z.ZodType<T>, signal: AbortSignal | undefined, wait: boolean,
+    reportFileRules?: (indexes: readonly number[]) => void,
   ): Promise<T> {
     this.assertOpen(); await this.ready; this.assertOpen()
     const combined = AbortSignal.any([this.executionSignal(), ...signal === undefined ? [] : [signal]])
     using timeout = deadline(combined, wait ? 0 : this.config.requestTimeoutMs, 'SSH_REQUEST_TIMEOUT')
     await this.authorizeRequest(method, params, timeout.signal)
     timeout.signal.throwIfAborted(); this.assertOpen()
-    return await (this.rpc as SshRpcPeer).request(method, params, result, timeout.signal)
+    return await (this.rpc as SshRpcPeer).request(method, params, result, timeout.signal, reportFileRules)
   }
 
   /**

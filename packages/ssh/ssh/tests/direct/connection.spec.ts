@@ -169,8 +169,8 @@ it('rejects a mismatched helper identity before publishing readiness', async () 
   expect(h.requests).toEqual(['hello'])
 })
 
-it('refuses a previous helper protocol before accepting operations', async () => {
-  const h = await harness({ hello: { protocol: 2 } })
+it.each([2, 3])('refuses previous helper protocol %s before accepting operations', async (protocol) => {
+  const h = await harness({ hello: { protocol } })
   await expect(h.ctx.plugin(Direct, h.config)).rejects.toMatchObject({ code: 'SSH_CONNECTION_FAILED' })
   expect(h.requests).toEqual(['hello'])
 })

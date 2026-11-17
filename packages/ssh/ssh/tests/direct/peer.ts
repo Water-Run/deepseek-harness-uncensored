@@ -30,7 +30,9 @@ export async function createSshFixture(options: {
   close?: () => Promise<unknown>
   legacyHello?: boolean
   serve?: (channel: Duplex, root: string, signal: AbortSignal) => Promise<void>
-  handle?: (method: string, params: unknown, signal: AbortSignal, root: string) => Promise<unknown>
+  handle?: (
+    method: string, params: unknown, signal: AbortSignal, root: string, reportFileRules: (indexes: readonly number[]) => void,
+  ) => Promise<unknown>
 } = {}) {
   const key = generateKeyPairSync('ec', { namedCurve: 'prime256v1',
     privateKeyEncoding: { type: 'sec1', format: 'pem' }, publicKeyEncoding: { type: 'spki', format: 'pem' } }).privateKey
@@ -76,7 +78,7 @@ export async function createSshFixture(options: {
           channel.exit(options.exitBeforeHello); channel.end(); return
         }
         let closeConfirmation = false
-        const peer = new SshRpcPeer(channel, channel, 65536, 16, async (method, params, signal) => {
+        const peer = new SshRpcPeer(channel, channel, 65536, 16, async (method, params, signal, reportFileRules) => {
           requests.push(method)
           if (method === 'hello') {
             closeConfirmation = typeof params === 'object' && params !== null && 'closeConfirmation' in params && params.closeConfirmation === true
@@ -90,7 +92,7 @@ export async function createSshFixture(options: {
             return result === undefined ? closeConfirmation ? { quiescent: true } : null : result
           }
           if (options.handle !== undefined) {
-            const operation = options.handle(method, params, signal, root)
+            const operation = options.handle(method, params, signal, root, reportFileRules)
             pending.add(operation)
             try { return await operation } finally { pending.delete(operation) }
           }

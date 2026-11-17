@@ -20,7 +20,7 @@ async function probe(mode: 'full' | 'audit' | 'test', signal: AbortSignal): Prom
   const protectedPath = '/fixture/workspace/protected.txt'
   let configured = false
   let auditBlocker: DatabaseSync | undefined, auditLocked = false
-  const fixture = await createSshFixture({ handle: async (method, params, signal, root) => {
+  const fixture = await createSshFixture({ handle: async (method, params, signal, root, reportFileRules) => {
     signal.throwIfAborted()
     if (method === 'fs.protection') {
       assert.deepEqual(params, [{ path: protectedPath, protection: 'full' }])
@@ -31,6 +31,7 @@ async function probe(mode: 'full' | 'audit' | 'test', signal: AbortSignal): Prom
       const input = z.object({ path: z.string(), cwd: z.string() }).parse(params)
       const path = posix.resolve(input.cwd, input.path)
       if (configured && path === protectedPath) {
+        reportFileRules([0])
         throw new RemoteOperationError('This remote file is fully protected.', 'TARGET_FULLY_PROTECTED')
       }
       return { displayPath: path, targetKey: path }
@@ -76,6 +77,9 @@ async function probe(mode: 'full' | 'audit' | 'test', signal: AbortSignal): Prom
     if (mode === 'test') {
       assert.equal(configured, true)
       await assert.rejects(ctx.ssh.request('fs.resolve', { path: protectedPath }, z.unknown(), signal), { code: 'TARGET_FULLY_PROTECTED' })
+      const refused = ctx.targetProtection.auditHistory().entries.find(entry => entry.operation === 'file')
+      assert.deepEqual(refused?.ruleIds, [mappedId])
+      assert.equal(refused?.matchedRules, 1)
     }
     const target = { displayPath: '/fixture/workspace/contents.txt', targetKey: '/fixture/workspace/contents.txt' }
     assert.equal(await ctx.ssh.request('fs.readText', { target }, z.string(), signal), 'preserve')

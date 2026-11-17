@@ -49,6 +49,8 @@ POSIX 客户端可使用 OpenSSH 提供方；Windows、Linux 和 macOS 客户端
 
 将验证后的 `ctx.ssh.ptcLaunch` 作为 [`NodePtcRuntime`](../../ptc-runtime/ptc-runtime-node/README.zh.md) 的 `launch` 配置。可执行文件部署包含 worker；脚本部署使用 PTC 时需要两个引导字段，仅使用文件系统和 Bash 时可以省略。脚本引导未配置时，getter 会拒绝访问。客户端在就绪前拒绝不匹配的协议版本、运行形式和 helper 摘要。
 
+客户端与 helper 使用协议 4，将文件规则回执关联到具体请求。升级客户端前，须先部署配套 helper 并更新固定摘要；旧协议对端会拒绝握手。保护默认值及 Session 记录字段保持不变。参见 [SSH 审计迁移](../../../docs/upgrade-guide/v0.2.2-rc.3/ssh-file-audit/guide.zh.md)。
+
 <a id="direct-connection"></a>
 ### 显式直连
 

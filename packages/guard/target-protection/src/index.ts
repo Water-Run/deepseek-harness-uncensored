@@ -338,13 +338,14 @@ export default class TargetProtection extends Service {
 
   private recordFailure(
     subject: AuditSubject, error: unknown, signal: AbortSignal | undefined, session: Session | undefined, resolving = false,
+    ruleIds: readonly TargetRuleId[] = [],
   ): void {
     const timedOut = error instanceof TimeoutReason || (error instanceof Error && error.name === 'TimeoutError')
     const cancelled = !timedOut && (signal?.aborted === true || (error instanceof Error && error.name === 'AbortError'))
     const conflict = error instanceof TargetProtectionError && error.code === 'conflict'
     const code = timedOut ? 'TARGET_CHECK_TIMEOUT' : cancelled ? 'TARGET_CHECK_CANCELLED' : conflict ? 'TARGET_SETTINGS_CHANGED'
       : resolving ? 'TARGET_RESOLUTION_FAILED' : 'TARGET_CHECK_FAILED'
-    this.recordAudit(subject, { revision: null, decision: cancelled ? 'cancelled' : 'error', code }, [], session)
+    this.recordAudit(subject, { revision: null, decision: cancelled ? 'cancelled' : 'error', code }, ruleIds, session)
   }
 
   private async audited<T extends VersionedDecision>(subject: AuditSubject, signal: AbortSignal, check: () => Promise<T>): Promise<T> {
@@ -368,19 +369,19 @@ export default class TargetProtection extends Service {
 
   /**
    * Record a guarded remote file request after its validated result or refusal, retaining its exact audit owner through cleanup.
-   * Connection admission must still succeed and persist before the executor performs I/O. File records do not attest matched rule IDs.
+   * Connection admission must still succeed and persist before I/O; resource IDs must come from verified helper matches.
    * @param identity - Executor-selected SSH destination and requested file identities; only their keyed fingerprint is stored.
    * @param effect - Effect selected by the structured protocol method.
    * @param signal - Request cancellation.
-   * @param execute - Existing guarded executor, including result validation; it must observe the supplied lifetime.
+   * @param execute - Guarded executor observing the supplied lifetime and reporting resources matched by its verified helper.
    * @returns The validated result; executor failures retain their original identity and never imply rollback.
    * @throws TARGET_AUDIT_UNCONFIRMED if the executor returned but its final audit acknowledgement failed; verify files before retrying.
    */
   auditRemoteFile<T>(identity: readonly (string | number | undefined)[], effect: 'observe' | 'mutate', signal: AbortSignal,
-    execute: (signal: AbortSignal) => Promise<T>): Promise<T> {
+    execute: (signal: AbortSignal, reportMatches: (ids: readonly TargetRuleId[]) => void) => Promise<T>): Promise<T> {
     this.lifetime.signal.throwIfAborted()
     signal.throwIfAborted()
-    if (this.audit === undefined) return execute(signal)
+    if (this.audit === undefined) return execute(signal, () => {})
     const sessionId = this.currentAuditSessionId()
     return this.bindAuditSession(sessionId ?? undefined)(async (lifetime) => {
       const bounded = AbortSignal.any([signal, lifetime])
@@ -388,19 +389,20 @@ export default class TargetProtection extends Service {
       if (this.auditFailed) throw new TargetAuditError('TARGET_AUDIT_UNAVAILABLE', 'Target audit is unavailable. The file request was not started.')
       const session = this.auditSession(), revision = this.currentSnapshot().revision
       const subject: AuditSubject = { operation: 'file', effect, phase: 'execution', identity: [...identity] }
+      const matches = new Set<TargetRuleId>()
       let value: T
-      try { value = await execute(bounded) }
+      try { value = await execute(bounded, (ids) => { for (const id of ids) matches.add(id) }) }
       catch (error) {
-        if (isTargetDenial(error)) this.recordAudit(subject, { revision, decision: 'deny', code: error.code }, [], session)
-        else this.recordFailure(subject, error, bounded, session)
+        if (isTargetDenial(error)) this.recordAudit(subject, { revision, decision: 'deny', code: error.code }, [...matches], session)
+        else this.recordFailure(subject, error, bounded, session, false, [...matches])
         throw error
       }
       try {
         if (bounded.aborted) {
-          this.recordFailure(subject, bounded.reason, bounded, session)
+          this.recordFailure(subject, bounded.reason, bounded, session, false, [...matches])
           throw bounded.reason
         }
-        this.recordDecision(subject, { revision, decision: { allowed: true, ruleIds: [] } }, session)
+        this.recordDecision(subject, { revision, decision: { allowed: true, ruleIds: [...matches] } }, session)
       }
       catch (error) {
         throw new TargetAuditError('TARGET_AUDIT_UNCONFIRMED',

@@ -1,5 +1,6 @@
 /** Remote request outcomes retain their audit owner without claiming a rollback. @module */
 import { Context } from '@deepseek-ai/cordis'
+import { brandString } from '@deepseek-ai/dsh-brand'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
 import Sessions, { SessionId } from '@deepseek-ai/dsh-session'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
@@ -9,8 +10,11 @@ import { DatabaseSync } from 'node:sqlite'
 import { expect, it, onTestFinished, vi } from 'vitest'
 import Protection from '../src/index.ts'
 import { TargetAuditStore } from '../src/audit.ts'
+import type { TargetRuleId } from '../src/types.ts'
 
 const signal = new AbortController().signal
+const firstRule = brandString<TargetRuleId>('00000000-0000-4000-8000-000000000001')
+const secondRule = brandString<TargetRuleId>('00000000-0000-4000-8000-000000000002')
 
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), 'dshu-remote-audit-')), ctx = new Context()
@@ -31,20 +35,22 @@ it('records real refusals and returned results with stable redacted identity and
   const entered = Promise.withResolvers<undefined>(), release = Promise.withResolvers<undefined>()
   onTestFinished(() => { release.resolve(undefined) })
   const refusal = new HarnessError('Read-only resource', 'TARGET_READ_ONLY')
-  const denied = h.protection.bindAuditSession(first.id)(() => h.protection.auditRemoteFile(identity, 'mutate', signal, async () => {
-    entered.resolve(undefined); await release.promise; throw refusal
+  const denied = h.protection.bindAuditSession(first.id)(() => h.protection.auditRemoteFile(identity, 'mutate', signal, async (_bounded, report) => {
+    entered.resolve(undefined); await release.promise; report([firstRule, firstRule]); throw refusal
   }))
   const rejected = expect(denied).rejects.toBe(refusal)
   await entered.promise
-  await h.protection.bindAuditSession(second.id)(() => h.protection.auditRemoteFile(identity, 'observe', signal, async () => 'private contents'))
+  await h.protection.bindAuditSession(second.id)(() => h.protection.auditRemoteFile(identity, 'observe', signal, async (_bounded, report) => {
+    report([secondRule]); return 'private contents'
+  }))
   identity[3] = '/different/file.txt'
   release.resolve(undefined)
   await rejected
   const entries = h.protection.auditHistory().entries
   expect(entries).toHaveLength(2)
   expect(entries[0]).toMatchObject({ operation: 'file', effect: 'mutate', decision: 'deny', code: 'TARGET_READ_ONLY',
-    ruleIds: [], source: { sessionId: first.id } })
-  expect(entries[1]).toMatchObject({ effect: 'observe', decision: 'allow', source: { sessionId: second.id } })
+    ruleIds: [firstRule], matchedRules: 1, source: { sessionId: first.id } })
+  expect(entries[1]).toMatchObject({ effect: 'observe', decision: 'allow', ruleIds: [secondRule], source: { sessionId: second.id } })
   expect(entries[0]?.fingerprint).toBe(entries[1]?.fingerprint)
   expect(JSON.stringify(entries)).not.toMatch(/private-host|file\.txt|private contents/u)
   expect(first.snapshotEvents().filter(event => event.type === 'target/admission')).toHaveLength(1)

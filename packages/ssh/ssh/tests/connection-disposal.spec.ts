@@ -3,7 +3,7 @@ import { Duplex, PassThrough } from 'node:stream'
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { z } from 'zod'
-import { SshRpcPeer } from '../src/protocol.ts'
+import { SshRpcPeer, SSH_PROTOCOL_VERSION } from '../src/protocol.ts'
 import { SshConnection } from '../src/index.ts'
 
 const transport = vi.hoisted(() => ({ spawn: vi.fn(), execFile: vi.fn(), connect: vi.fn(), tlsConnect: vi.fn() }))
@@ -68,7 +68,7 @@ async function setup(phase: 'connect' | 'authenticate', pauseControl?: 'forward'
     if (method === 'heartbeat') { heartbeatCalls++; return holdHeartbeat ? heartbeat.promise : null }
     if (method === 'ordinary') { ordinaryEntered.resolve(undefined); return ordinary.promise }
     if (method !== 'hello') throw new Error(`unexpected helper operation: ${method}`)
-    return { protocol: 3, hash: 'a'.repeat(64), platform: 'linux', nodeVersion: 'v24.19.0', kind: 'node-script', executable: '/usr/bin/node', root: '/tmp/remote-helper', workspace: '/workspace' }
+    return { protocol: SSH_PROTOCOL_VERSION, hash: 'a'.repeat(64), platform: 'linux', nodeVersion: 'v24.19.0', kind: 'node-script', executable: '/usr/bin/node', root: '/tmp/remote-helper', workspace: '/workspace' }
   })
   const rawSocket = new PendingSocket()
   const secureSocket = new PendingSocket()

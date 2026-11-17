@@ -1,14 +1,15 @@
 /** Linux helper enforcement of central production resources over authenticated SSH. @module */
 import { createHash, randomUUID } from 'node:crypto'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { link, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import TargetProtection, { type TargetRuleId } from '@deepseek-ai/dsh-target-protection'
 import ProtectedSsh from '@deepseek-ai/dsh-target-protection/ssh'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import { runSshHelper } from '../../src/helper.ts'
+import { RemoteFileProtection } from '../../src/remote-file-policy.ts'
 import { deleteResultSchema, editResultSchema, moveResultSchema, targetSchema, writeResultSchema } from '../../src/schemas.ts'
 import { harness } from './fixture.ts'
 
@@ -39,6 +40,57 @@ async function setup(level: 'full' | 'audit') {
 
 // The enforcing helper depends on Linux mountinfo; the client and central-policy cases run on both desktop hosts.
 describe.skipIf(process.platform !== 'linux')('central remote file mapping', () => {
+  it('retains central matches when an earlier static rule also refuses the file', async () => {
+    const h = await setup('audit')
+    await h.ctx.plugin(ProtectedSsh, { ...h.config, protectedPaths: [{ path: h.production, protection: 'full' }] })
+    await expect(h.ctx.ssh.request('fs.resolve', { path: h.file }, targetSchema)).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+    const record = h.ctx.targetProtection.auditHistory().entries.find(entry => entry.operation === 'file')
+    expect(record).toMatchObject({ decision: 'deny', ruleIds: [h.id], matchedRules: 1 })
+  })
+
+  it('attributes inode aliases and separates concurrent resource receipts after static rules', async () => {
+    const h = await setup('audit'), secondId = brandString<TargetRuleId>(randomUUID())
+    const before = await h.ctx.targetProtection.snapshot()
+    await h.ctx.targetProtection.configure({ ...before.preferences, rules: [...before.preferences.rules,
+      { id: secondId, name: 'second resource', enabled: true, kind: 'server', match: 'path', address: join(h.root, 'second-owner-path'),
+        environment: 'production', protection: 'audit' },
+    ] }, before.revision)
+    const alias = join(h.testing, 'alias.txt')
+    await link(h.file, alias)
+    const release = Promise.withResolvers<undefined>(), entered = new Set<string>()
+    // oxlint-disable-next-line typescript/unbound-method -- the spy supplies the actual request's policy instance through call().
+    const original = RemoteFileProtection.prototype.check
+    vi.spyOn(RemoteFileProtection.prototype, 'check').mockImplementation(async function (this: RemoteFileProtection, targets, operation, signal) {
+      const path = targets[0]?.targetKey
+      if (operation === 'observe' && (path === alias || path === h.safe) && !entered.has(path)) {
+        entered.add(path)
+        if (entered.size === 2) release.resolve(undefined)
+        await release.promise
+      }
+      return original.call(this, targets, operation, signal)
+    })
+    try {
+      await h.ctx.plugin(ProtectedSsh, { ...h.config, protectedPaths: [{ path: h.testing, protection: 'audit' }], pathMappings: [
+        { ruleId: h.id, remotePath: h.file }, { ruleId: secondId, remotePath: h.safe },
+      ] })
+      const values = await Promise.all([alias, h.safe].map(path =>
+        h.ctx.ssh.request('fs.readText', { target: { targetKey: path, displayPath: path } }, z.string())))
+      expect(values).toEqual(['preserve\n', 'safe\n'])
+      const entries = h.ctx.targetProtection.auditHistory().entries.filter(entry => entry.operation === 'file')
+      expect(entries).toHaveLength(2)
+      expect(entries).toEqual(expect.arrayContaining([
+        expect.objectContaining({ decision: 'allow', ruleIds: [h.id], matchedRules: 1 }),
+        expect.objectContaining({ decision: 'allow', ruleIds: [secondId], matchedRules: 1 }),
+      ]))
+      expect(entered.size).toBe(2)
+      expect(JSON.stringify(entries)).not.toContain(h.file)
+    } finally {
+      release.resolve(undefined)
+      try { await h.close() }
+      finally { vi.restoreAllMocks() }
+    }
+  })
+
   it('refuses unresolved central paths and invalid resource IDs before executing the helper', async () => {
     const h = await setup('audit')
     await expect(h.ctx.plugin(ProtectedSsh, { ...h.config, pathMappings: [] }))
@@ -65,13 +117,13 @@ describe.skipIf(process.platform !== 'linux')('central remote file mapping', () 
     await expect(ssh.request('fs.write', { target, content: 'bad', policy }, writeResultSchema))
       .rejects.toMatchObject({ code: level === 'full' ? 'TARGET_FULLY_PROTECTED' : 'TARGET_READ_ONLY' })
     const refused = h.ctx.targetProtection.auditHistory().entries.find(entry => entry.operation === 'file' && entry.effect === 'mutate')
-    expect(refused).toMatchObject({ decision: 'deny', code: level === 'full' ? 'TARGET_FULLY_PROTECTED' : 'TARGET_READ_ONLY', ruleIds: [] })
+    expect(refused).toMatchObject({ decision: 'deny', code: level === 'full' ? 'TARGET_FULLY_PROTECTED' : 'TARGET_READ_ONLY', ruleIds: [h.id], matchedRules: 1 })
     expect(await readFile(h.file, 'utf8')).toBe('preserve\n')
     const safe = await ssh.request('fs.resolve', { path: h.safe }, targetSchema)
     expect(await ssh.request('fs.write', { target: safe, content: 'changed\n', policy }, writeResultSchema)).toMatchObject({ after: 'changed\n' })
     expect(await readFile(h.safe, 'utf8')).toBe('changed\n')
     const accepted = h.ctx.targetProtection.auditHistory().entries.find(entry => entry.operation === 'file' && entry.effect === 'mutate')
-    expect(accepted).toMatchObject({ decision: 'allow', code: null })
+    expect(accepted).toMatchObject({ decision: 'allow', code: null, ruleIds: [], matchedRules: 0 })
     expect(accepted?.fingerprint).not.toBe(refused?.fingerprint)
     expect(JSON.stringify(h.ctx.targetProtection.auditHistory())).not.toContain(h.file)
     expect(h.ctx.targetProtection.sshCoverage()).toEqual({ connections: 1, pathProtectedConnections: 1 })

@@ -1,6 +1,7 @@
 /** Resolve SSH file rules in the authenticated Linux helper's mount namespace. @module */
 import { lstat, readFile, realpath, stat } from 'node:fs/promises'
 import { posix } from 'node:path'
+import { AsyncLocalStorage } from 'node:async_hooks'
 import type { FsTarget } from '@deepseek-ai/dsh-fs'
 import type { z } from 'zod'
 import { RemoteOperationError } from './protocol.ts'
@@ -97,6 +98,20 @@ async function identify(path: string, prospective: boolean, signal?: AbortSignal
 /** Mount and file identity checks for one authenticated helper. */
 export class RemoteFileProtection {
   private configured: { workspace: string; rules: Rules } | undefined
+  private readonly matches = new AsyncLocalStorage<(indexes: readonly number[]) => void>()
+
+  /**
+   * Attribute actual matches to one RPC, including its awaited filesystem authorization callbacks.
+   * @param report - Request-owned collector; rule indexes refer to the installed policy order.
+   * @param execute - The helper operation; concurrent requests keep separate collectors.
+   * @returns The operation's unchanged result or failure.
+   */
+  withMatches<T>(report: (indexes: readonly number[]) => void, execute: () => Promise<T>): Promise<T> {
+    return this.matches.run(report, execute)
+  }
+
+  /** Release request tracking after all helper operations have settled. */
+  close(): void { this.matches.disable() }
 
   /** Whether this helper has installed production file rules. */
   get active(): boolean { return this.configured !== undefined }
@@ -138,19 +153,22 @@ export class RemoteFileProtection {
       const candidate = await identify(key, true, signal)
       const display = requested === key ? candidate : await identify(requested, true, signal)
       if (candidate.path !== key || display.path !== key) throw unverified()
-      for (const { path, protection, identity } of rules) {
+      let fullyProtected = false
+      for (const [index, { path, protection, identity }] of rules.entries()) {
         const declared = posix.resolve(path)
         const sameFile = candidate.info !== undefined && candidate.info.ino !== 0n
           && candidate.info.dev === identity.info?.dev && candidate.info.ino === identity.info.ino
         const matches = sameFile || mountPathMatches(identity.path, key, mounts, includeDescendants)
           || within(declared, requested) || (includeDescendants && within(requested, declared))
         if (matches) {
-          if (protection === 'full') throw new RemoteOperationError('This remote file is fully protected.', 'TARGET_FULLY_PROTECTED')
+          this.matches.getStore()?.([index])
+          fullyProtected ||= protection === 'full'
           readOnly ||= operation === 'mutate'
         } else if (candidate.info?.isFile() && candidate.info.nlink > 1n && identity.info?.isDirectory()) {
           unresolved = true
         }
       }
+      if (fullyProtected) throw new RemoteOperationError('This remote file is fully protected.', 'TARGET_FULLY_PROTECTED')
     }
     if (readOnly) throw new RemoteOperationError('This remote file only allows read-only audit.', 'TARGET_READ_ONLY')
     if (unresolved || await readFile('/proc/self/mountinfo', 'utf8').catch(() => { throw unverified() }) !== mountInfo) throw unverified()

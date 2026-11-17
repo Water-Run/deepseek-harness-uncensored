@@ -112,7 +112,7 @@ SSH 文件系统效果不会因为端口不同而被视为与其他资源无关�
 
 每条受保护 SSH 连接在启动前保留准入时的规则修订。所有者修改规则时先停止新请求，等待 helper 确认关闭后才提交；已接受的文件 I/O 在保留的规则下完成。关闭未经确认时保留原修订、拒绝变更并禁用新的原生执行。重新加载 Host 前先核实并停止远端任务；TCP 断连不代表完成。参见 [SSH 关闭迁移](../../../docs/upgrade-guide/v0.2.2-rc.3/ssh-close-confirmation/guide.zh.md)。
 
-配置 `auditPath` 后，受保护 SSH 将每次文件请求的已校验结果或拒绝记录到发起会话。带密钥身份包含经认证端点及请求路径；流式请求保留打开时的文件身份。记录不含路径明文或内容，也不推断 helper 匹配的资源 UUID。连接准入仍在 I/O 前记录。执行后的最终审计失败会抛出 `TARGET_AUDIT_UNCONFIRMED`，重试前须核验远端状态。后续文件请求会停止，未交付的流游标会关闭。参见[审计恢复](../../../docs/upgrade-guide/v0.2.2-rc.3/ssh-file-audit/guide.zh.md)。
+配置 `auditPath` 后，受保护 SSH 将每次文件请求的已校验结果或拒绝记录到发起会话。带密钥身份包含经认证端点及请求路径；流式请求保留打开时的文件身份。经核验的 helper 回报实际路径、inode 和挂载匹配，客户端再关联到连接保留修订中的中央资源 UUID；静态路径规则没有中央 UUID。并发请求分别保留匹配结果，传输中断时不推断回执。记录不含路径明文或内容。连接准入仍在 I/O 前记录。执行后的最终审计失败会抛出 `TARGET_AUDIT_UNCONFIRMED`，重试前须核验远端状态。helper 回报未知规则时也以此错误关闭连接。后续文件请求会停止，未交付的流游标会关闭。客户端和 helper 须使用协议 4。参见[审计恢复](../../../docs/upgrade-guide/v0.2.2-rc.3/ssh-file-audit/guide.zh.md)。
 
 <a id="session-ssh-connections"></a>
 需要按会话路由时，装配 `./ssh-sessions` 替换 `./ssh`，沿用相同端点、凭据和可信 helper。它额外要求 `agents`、`sessions` 和 `securityProxy`。`maxSessions` 默认 16，限制仍在保留的 Agent 连接数量；关闭未经确认时仍占用容量。无 Agent 的 Host 元数据操作使用单独初始化的部署连接，不继承触发提供方加载的 Agent。

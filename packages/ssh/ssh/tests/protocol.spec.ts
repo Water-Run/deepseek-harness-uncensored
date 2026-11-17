@@ -1,10 +1,45 @@
 import { PassThrough } from 'node:stream'
 import { once } from 'node:events'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import { SshRpcPeer, RemoteOperationError } from '../src/protocol.ts'
 
 describe('SSH helper protocol', () => {
+  it('keeps rule receipts attached to their own concurrent result or refusal', async () => {
+    const inbound = new PassThrough(), outbound = new PassThrough()
+    const entered = Promise.withResolvers<undefined>(), release = Promise.withResolvers<undefined>()
+    const slow: number[][] = [], refused: number[][] = [], plain: number[][] = []
+    const server = new SshRpcPeer(outbound, inbound, 4096, 8, async (method, _raw, _signal, report) => {
+      if (method === 'slow') { report([0]); entered.resolve(undefined); await release.promise; report([1, 0]); return 'completed' }
+      if (method === 'refuse') { report([2]); throw new RemoteOperationError('Read-only file', 'TARGET_READ_ONLY') }
+      return 'plain'
+    })
+    const client = new SshRpcPeer(inbound, outbound, 4096, 8)
+    const pending = client.request('slow', {}, z.string(), undefined, (indexes) => { slow.push([...indexes]) })
+    const settled = Promise.allSettled([pending])
+    try {
+      await entered.promise
+      await expect(client.request('refuse', {}, z.string(), undefined, (indexes) => { refused.push([...indexes]) }))
+        .rejects.toMatchObject({ code: 'TARGET_READ_ONLY', fileRules: [2] })
+      await expect(client.request('plain', {}, z.string(), undefined, (indexes) => { plain.push([...indexes]) })).resolves.toBe('plain')
+      release.resolve(undefined)
+      await expect(pending).resolves.toBe('completed')
+      expect(slow).toEqual([[0, 1]])
+      expect(refused).toEqual([[2]])
+      expect(plain).toEqual([[]])
+    } finally { release.resolve(undefined); client.close(); server.close(); await settled }
+  })
+
+  it.each([-1, 128, 0.5])('rejects an invalid remote rule index %s before exposing a receipt', async (index) => {
+    const inbound = new PassThrough(), outbound = new PassThrough()
+    const server = new SshRpcPeer(outbound, inbound, 4096, 8, async (_method, _raw, _signal, report) => { report([index]); return null })
+    const client = new SshRpcPeer(inbound, outbound, 4096, 8), report = vi.fn()
+    try {
+      await expect(client.request('read', {}, z.null(), undefined, report)).rejects.toBeInstanceOf(z.ZodError)
+      expect(report).not.toHaveBeenCalled()
+    } finally { client.close(); server.close() }
+  })
+
   it('validates responses and retains typed operation errors', async () => {
     const inbound = new PassThrough()
     const outbound = new PassThrough()

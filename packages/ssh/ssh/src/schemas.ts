@@ -2,7 +2,8 @@
 import { z } from 'zod'
 import { FS_ERROR_CODES } from '@deepseek-ai/dsh-fs'
 import type { Branded } from '@deepseek-ai/dsh-brand'
-import { SSH_PROTOCOL_VERSION } from './protocol.ts'
+import { SSH_PROTOCOL_VERSION, SSH_REMOTE_FILE_RULE_LIMIT } from './protocol.ts'
+export { SSH_REMOTE_FILE_RULE_LIMIT } from './protocol.ts'
 
 /** Identity of one prepared or running process in its owning SSH helper. */
 export type SshProcessId = Branded<'SshProcessId'>
@@ -15,8 +16,6 @@ export const textStreamIdSchema = z.uuid().transform((value): SshTextStreamId =>
 
 /** A remote POSIX absolute path; spelling is preserved until remote canonicalization. */
 export const remotePath = z.string().min(1).refine(value => value.startsWith('/') && !value.includes('\0'), 'expected an absolute POSIX path')
-/** Maximum path rules installed in one private helper policy. */
-export const SSH_REMOTE_FILE_RULE_LIMIT = 128
 /** Owner-configured production paths bound to one authenticated SSH helper. */
 export const remoteFileProtectionSchema = z.array(z.object({ path: remotePath, protection: z.enum(['full', 'audit']) }).strict()).max(SSH_REMOTE_FILE_RULE_LIMIT)
 /** Filesystem identity returned by the remote filesystem provider. */

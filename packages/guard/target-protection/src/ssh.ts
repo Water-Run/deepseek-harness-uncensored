@@ -89,6 +89,7 @@ export default class ProtectedSshConnection extends DirectSshConnection {
   private readonly pathMappings: z.output<typeof sshFileMappings>
   private remotePaths: z.output<typeof remoteFileProtectionSchema>
   private mappedRuleIds: TargetRuleId[] = []
+  private remoteRuleIds: (TargetRuleId | undefined)[] = []
   private ruleRevision: number | undefined
   private filePolicy: RemoteFilesystemPolicy | undefined
   private peer: TargetConnectionResolution | undefined
@@ -149,6 +150,7 @@ export default class ProtectedSshConnection extends DirectSshConnection {
     const release = this.protection.retainNativeExecution(snapshot.revision, () => this.dispose())
     this.remotePaths = paths
     this.mappedRuleIds = mapped.ids
+    this.remoteRuleIds = [...this.protectedPaths.map(() => undefined), ...mapped.resources]
     this.ruleRevision = snapshot.revision
     return release
   }
@@ -219,20 +221,21 @@ export default class ProtectedSshConnection extends DirectSshConnection {
     return absolute
   }
 
-  private async resolved(path: string, root: string, signal?: AbortSignal) {
+  private async resolved(path: string, root: string, signal?: AbortSignal, reportMatches?: (ids: readonly TargetRuleId[]) => void) {
     const absolute = this.path(path, root)
-    const target = await this.requestHelper('fs.resolve', { path: absolute, cwd: root }, targetSchema, signal)
+    const target = await this.requestHelper('fs.resolve', { path: absolute, cwd: root }, targetSchema, signal, false, reportMatches)
     if (!within(root, target.targetKey)) throw new HarnessError('SSH file link leaves the configured workspace.', 'TARGET_EXECUTION_UNCONFINED')
     return target
   }
 
-  private async stableTarget(input: z.infer<typeof targetSchema>, root: string, signal: AbortSignal) {
-    const target = await this.resolved(input.targetKey, root, signal)
+  private async stableTarget(input: z.infer<typeof targetSchema>, root: string, signal: AbortSignal,
+    reportMatches?: (ids: readonly TargetRuleId[]) => void) {
+    const target = await this.resolved(input.targetKey, root, signal, reportMatches)
     if (target.targetKey !== posix.normalize(input.targetKey)) {
       throw new HarnessError('SSH file identity changed; resolve it again.', 'TARGET_IDENTITY_UNVERIFIED')
     }
     if (input.displayPath !== input.targetKey) {
-      const display = await this.resolved(input.displayPath, root, signal)
+      const display = await this.resolved(input.displayPath, root, signal, reportMatches)
       if (display.targetKey !== target.targetKey) throw new HarnessError('SSH file identity changed; resolve it again.', 'TARGET_IDENTITY_UNVERIFIED')
     }
     return this.remotePaths.length > 0 ? { ...target, displayPath: input.displayPath } : target
@@ -267,9 +270,9 @@ export default class ProtectedSshConnection extends DirectSshConnection {
     let unpublishedStream: SshTextStreamId | undefined
     try { return await this.protection.auditRemoteFile(
       ['ssh', this.config.hostname, this.config.port, this.config.hostKeySha256, ...paths], effect, bounded,
-      async (requestSignal) => {
+      async (requestSignal, reportMatches) => {
         let value: T
-        try { value = await this.executeRequest(method, params, result, requestSignal, wait) }
+        try { value = await this.executeRequest(method, params, result, requestSignal, wait, reportMatches) }
         catch (error) {
           if (method === 'fs.next') this.fileStreams.delete(z.object({ id: textStreamIdSchema }).parse(params).id)
           throw error
@@ -300,7 +303,8 @@ export default class ProtectedSshConnection extends DirectSshConnection {
     }
   }
 
-  private async executeRequest<T>(method: string, params: unknown, result: z.ZodType<T>, signal?: AbortSignal, wait = false): Promise<T> {
+  private async executeRequest<T>(method: string, params: unknown, result: z.ZodType<T>, signal?: AbortSignal, wait = false,
+    reportMatches?: (ids: readonly TargetRuleId[]) => void): Promise<T> {
     const remote = await this.ready
     const bounded = AbortSignal.any([this.executionSignal(), ...signal === undefined ? [] : [signal]])
     await this.authorizeRequest(method, params, bounded)
@@ -309,24 +313,24 @@ export default class ProtectedSshConnection extends DirectSshConnection {
     if (method === 'fs.resolve' || method === 'fs.lstat') {
       const input = z.object({ path: z.string(), cwd: z.string().optional() }).strict().parse(params)
       const path = this.path(input.path, root, input.cwd ?? root)
-      if (method === 'fs.lstat') await this.resolved(path, root, bounded)
+      if (method === 'fs.lstat') await this.resolved(path, root, bounded, reportMatches)
       prepared = { path, cwd: root }
     } else if (method === 'fs.rename' || method === 'fs.move') {
       const input = z.looseObject({ source: targetSchema, destination: targetSchema, policy: policySchema }).parse(params)
-      const source = await this.stableTarget(input.source, root, bounded)
-      const destination = await this.stableTarget(input.destination, root, bounded)
+      const source = await this.stableTarget(input.source, root, bounded, reportMatches)
+      const destination = await this.stableTarget(input.destination, root, bounded, reportMatches)
       prepared = { ...input, source, destination, policy: { ...input.policy, workspaceRoot: root,
         mode: input.policy.mode === 'read-only' ? 'read-only' : 'workspace-write' } }
     } else if (Object.hasOwn(EFFECTS, method) && method !== 'helper.start' && method !== 'fs.next') {
       const input = z.looseObject({ target: targetSchema }).parse(params)
-      const target = await this.stableTarget(input.target, root, bounded)
+      const target = await this.stableTarget(input.target, root, bounded, reportMatches)
       prepared = { ...input, target }
       if (EFFECTS[method] === 'mutate') {
         const policy = policySchema.parse(input.policy)
         prepared = { ...input, target, policy: { ...policy, workspaceRoot: root, mode: policy.mode === 'read-only' ? 'read-only' : 'workspace-write' } }
       }
     }
-    const value = await this.requestHelper(method, prepared, result, bounded, wait)
+    const value = await this.requestHelper(method, prepared, result, bounded, wait, reportMatches)
     bounded.throwIfAborted()
     if (method === 'fs.resolve') {
       const target = targetSchema.parse(value)
@@ -338,8 +342,22 @@ export default class ProtectedSshConnection extends DirectSshConnection {
     return value
   }
 
-  private async requestHelper<T>(method: string, params: unknown, result: z.ZodType<T>, signal?: AbortSignal, wait = false): Promise<T> {
-    try { return await super.request(method, params, result, signal, wait) }
+  private async requestHelper<T>(method: string, params: unknown, result: z.ZodType<T>, signal?: AbortSignal, wait = false,
+    reportMatches?: (ids: readonly TargetRuleId[]) => void): Promise<T> {
+    const report = reportMatches === undefined ? undefined : (indexes: readonly number[]): void => {
+      const ids: TargetRuleId[] = []
+      for (const index of indexes) {
+        if (index >= this.remotePaths.length) {
+          void this.dispose().catch((error: unknown) => { this.ctx.logger.warn('SSH helper closure after an invalid file receipt is unconfirmed.', error) })
+          throw new TargetAuditError('TARGET_AUDIT_UNCONFIRMED',
+            'The SSH helper returned an unknown file rule. The connection is closing; verify remote files before retrying.')
+        }
+        const id = this.remoteRuleIds[index]
+        if (id !== undefined) ids.push(id)
+      }
+      reportMatches(ids)
+    }
+    try { return await super.request(method, params, result, signal, wait, report) }
     catch (error) {
       if (error instanceof RemoteOperationError && error.code !== undefined && Object.hasOwn(TARGET_REFUSAL_REASONS, error.code)) {
         throw new HarnessError(error.message, error.code, { cause: error })

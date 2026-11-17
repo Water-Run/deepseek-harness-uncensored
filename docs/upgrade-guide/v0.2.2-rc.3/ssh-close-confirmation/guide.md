@@ -9,7 +9,7 @@ English | [中文](guide.zh.md)
 
 ## Change
 
-`@deepseek-ai/dsh-ssh/direct` and `@deepseek-ai/dsh-target-protection/ssh` require `closeConfirmation: true` in their helper handshake. The matching helper acknowledges close with `{ quiescent: true }` only after accepted filesystem I/O, processes and cleanup settle. New clients reject older helpers before publishing readiness. The new helper still accepts existing clients that omit this field and returns their original `null` close response. The default OpenSSH client does not require this negotiation.
+`@deepseek-ai/dsh-ssh/direct` and `@deepseek-ai/dsh-target-protection/ssh` require `closeConfirmation: true` in their helper handshake. The matching helper acknowledges close with `{ quiescent: true }` only after accepted filesystem I/O, processes and cleanup settle. New clients reject older helpers before publishing readiness. A client using the matching protocol version may omit this field and receives `null` on close. The default OpenSSH client does not require this negotiation.
 
 An activated direct connection whose shutdown is unconfirmed rejects disposal with `SSH_REMOTE_CLEANUP_UNCONFIRMED` and retains execution dependencies. Protected connections retain their rule revision: owner settings changes await confirmed shutdown before committing, and a failed shutdown disables new native execution. A TCP disconnect never confirms remote termination. No operation is automatically reconnected or replayed.
 

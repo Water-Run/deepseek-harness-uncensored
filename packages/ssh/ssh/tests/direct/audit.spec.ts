@@ -30,7 +30,7 @@ it.each([
   if (failedMethod === 'fs.next') await h.ctx.ssh.request('fs.stream', { target }, z.string())
   const primary = new HarnessError('Owned final file audit failure', 'TARGET_AUDIT_UNCONFIRMED')
   vi.spyOn(h.ctx.targetProtection, 'auditRemoteFile').mockImplementation(async (_identity, _effect, bounded, execute) => {
-    await execute(bounded)
+    await execute(bounded, () => {})
     throw primary
   })
   const request = failedMethod === 'fs.stream'

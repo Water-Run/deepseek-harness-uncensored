@@ -49,6 +49,8 @@ Install an [SSH helper executable archive](../ssh-helper-runtime/README.md), or 
 
 Pass the verified `ctx.ssh.ptcLaunch` as the `launch` configuration of [`NodePtcRuntime`](../../ptc-runtime/ptc-runtime-node/README.md). Executable deployments include their worker. Script deployments require both bootstrap fields for PTC; filesystem and Bash use may omit them. The getter refuses an unconfigured script bootstrap. The client rejects mismatched protocol versions, runtime kinds and helper digests before readiness.
 
+Client and helper use protocol 4 for request-bound file rule receipts. Deploy the matching helper and update its pinned digest before upgrading clients; older protocol peers refuse the handshake. Protection defaults and Session record fields are unchanged. See [SSH audit migration](../../../docs/upgrade-guide/v0.2.2-rc.3/ssh-file-audit/guide.md).
+
 <a id="direct-connection"></a>
 ### Explicit direct connections
 

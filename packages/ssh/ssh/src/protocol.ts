@@ -7,12 +7,14 @@ import { z } from 'zod'
 import type { Branded } from '@deepseek-ai/dsh-brand'
 
 /** Wire version shared by the client package, the installed helper and its embedded PTC worker. */
-export const SSH_PROTOCOL_VERSION = 3
+export const SSH_PROTOCOL_VERSION = 4
 
 /** Maximum prepared or running process handles owned by one helper. */
 export const SSH_MAX_PROCESS_HANDLES = 128
 /** Maximum open text iterators owned by one helper. */
 export const SSH_MAX_TEXT_STREAMS = 128
+/** Maximum path rules installed in one private helper policy. */
+export const SSH_REMOTE_FILE_RULE_LIMIT = 128
 
 const managementLimits = {
   heartbeat: 1,
@@ -31,16 +33,20 @@ function requestClass(method: string): RequestClass {
 }
 
 const errorSchema = z.object({ name: z.string(), message: z.string(), code: z.string().optional() }).strict()
+const fileRulesSchema = z.array(z.number().int().min(0).max(SSH_REMOTE_FILE_RULE_LIMIT - 1)).max(SSH_REMOTE_FILE_RULE_LIMIT)
 type SshRpcRequestId = Branded<'SshRpcRequestId'>
 const requestIdSchema = z.string().transform((value): SshRpcRequestId => value as SshRpcRequestId)
 const frameSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('request'), id: requestIdSchema, method: z.string(), params: z.unknown() }).strict(),
-  z.object({ type: z.literal('result'), id: requestIdSchema, value: z.unknown() }).strict(),
-  z.object({ type: z.literal('error'), id: requestIdSchema, error: errorSchema }).strict(),
+  z.object({ type: z.literal('result'), id: requestIdSchema, value: z.unknown(), fileRules: fileRulesSchema.optional() }).strict(),
+  z.object({ type: z.literal('error'), id: requestIdSchema, error: errorSchema, fileRules: fileRulesSchema.optional() }).strict(),
   z.object({ type: z.literal('cancel'), id: requestIdSchema }).strict(),
 ])
 type Frame = z.infer<typeof frameSchema>
-type RequestHandler = (method: string, params: unknown, signal: AbortSignal) => Promise<unknown>
+type RequestHandler = (
+  method: string, params: unknown, signal: AbortSignal, reportFileRules: (indexes: readonly number[]) => void,
+) => Promise<unknown>
+interface Response { value: unknown; fileRules: readonly number[] }
 
 function operationError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error))
@@ -48,7 +54,8 @@ function operationError(error: unknown): Error {
 
 /** A remote error retains its typed filesystem or sandbox code. */
 export class RemoteOperationError extends Error {
-  constructor(message: string, readonly code?: string) {
+  /** @param message - Remote diagnostic. @param code - Remote failure code. @param fileRules - Verified frame's matched rule indexes. */
+  constructor(message: string, readonly code?: string, readonly fileRules: readonly number[] = []) {
     super(message)
     this.name = 'RemoteOperationError'
   }
@@ -57,7 +64,7 @@ export class RemoteOperationError extends Error {
 /** The peer owns pending calls and rejects ambiguous operations on connection loss; it never replays requests. */
 export class SshRpcPeer extends EventEmitter {
   private readonly pending = new Map<SshRpcRequestId, {
-    resolve(value: unknown): void
+    resolve(value: Response): void
     reject(error: Error): void
     requestClass: RequestClass
   }>()
@@ -86,15 +93,17 @@ export class SshRpcPeer extends EventEmitter {
    * @param params - JSON request fields.
    * @param schema - validation for the remote response.
    * @param signal - cancellation without rollback of remote effects.
+   * @param reportFileRules - Receives the validated matched rule indexes on success or remote refusal, before result validation.
    * @returns the validated response or a transport/remote-operation rejection.
    */
-  async request<T>(method: string, params: unknown, schema: z.ZodType<T>, signal?: AbortSignal): Promise<T> {
+  async request<T>(method: string, params: unknown, schema: z.ZodType<T>, signal?: AbortSignal,
+    reportFileRules?: (indexes: readonly number[]) => void): Promise<T> {
     signal?.throwIfAborted()
     if (this.failure !== undefined) throw this.failure
     const kind = requestClass(method)
     if (this.atCapacity(kind, this.pending.values())) throw new Error('SSH helper pending request limit reached')
     const id = randomUUID() as SshRpcRequestId
-    const result = Promise.withResolvers<unknown>()
+    const result = Promise.withResolvers<Response>()
     void result.promise.catch(() => {})
     this.pending.set(id, { ...result, requestClass: kind })
     const abort = (): void => {
@@ -109,7 +118,14 @@ export class SshRpcPeer extends EventEmitter {
         this.pending.delete(id)
         result.reject(operationError(error))
       })
-      return schema.parse(await result.promise)
+      let response: Response
+      try { response = await result.promise }
+      catch (error) {
+        if (error instanceof RemoteOperationError) reportFileRules?.(error.fileRules)
+        throw error
+      }
+      reportFileRules?.(response.fileRules)
+      return schema.parse(response.value)
     } finally {
       signal?.removeEventListener('abort', abort)
     }
@@ -200,8 +216,8 @@ export class SshRpcPeer extends EventEmitter {
       const pending = this.pending.get(frame.id)
       if (pending === undefined) return // A cancelled request can still complete remotely.
       this.pending.delete(frame.id)
-      if (frame.type === 'result') pending.resolve(frame.value)
-      else pending.reject(new RemoteOperationError(frame.error.message, frame.error.code))
+      if (frame.type === 'result') pending.resolve({ value: frame.value, fileRules: frame.fileRules ?? [] })
+      else pending.reject(new RemoteOperationError(frame.error.message, frame.error.code, frame.fileRules))
       return
     }
     if (frame.type === 'cancel') {
@@ -214,14 +230,17 @@ export class SshRpcPeer extends EventEmitter {
     }
     const controller = new AbortController()
     this.active.set(frame.id, { controller, requestClass: kind })
-    void this.handler(frame.method, frame.params, controller.signal).then(
-      value => this.send({ type: 'result', id: frame.id, value: value ?? null }),
+    const fileRules = new Set<number>()
+    const receipt = (): { fileRules?: number[] } => fileRules.size === 0 ? {} : { fileRules: [...fileRules] }
+    const report = (indexes: readonly number[]): void => { for (const index of indexes) fileRules.add(index) }
+    void this.handler(frame.method, frame.params, controller.signal, report).then(
+      value => this.send({ type: 'result', id: frame.id, value: value ?? null, ...receipt() }),
       (error: unknown) => {
         const detail = operationError(error)
         const code = 'code' in detail && typeof detail.code === 'string' ? detail.code : undefined
         return this.send({ type: 'error', id: frame.id, error: {
           name: detail.name, message: detail.message, ...(code === undefined ? {} : { code }),
-        } })
+        }, ...receipt() })
       },
     ).catch((error: unknown) => { this.close(operationError(error)) })
       .finally(() => { this.active.delete(frame.id) })

@@ -22,11 +22,12 @@ export const sshFileMappings = z.array(z.object({
  * Derive remote levels from central rules rather than a separately supplied protection value.
  * @param snapshot - Rule revision retained by the connection owner.
  * @param mappings - Parsed explicit resource associations.
- * @returns Active remote path rules and the exact production resource IDs they represent.
+ * @returns Active path rules, their resource IDs in the same order, and the distinct represented resources.
  * @throws When a reference is missing or has no path selector; disabled and test resources contribute no restriction.
  */
 export function resolveSshFileMappings(snapshot: TargetSnapshot, mappings: z.output<typeof sshFileMappings>) {
   const rules: { path: string; protection: 'full' | 'audit' }[] = []
+  const resources: TargetRuleId[] = []
   const ids = new Set<TargetRuleId>()
   for (const mapping of mappings) {
     const rule = snapshot.preferences.rules.find(rule => rule.id === mapping.ruleId)
@@ -36,6 +37,7 @@ export function resolveSshFileMappings(snapshot: TargetSnapshot, mappings: z.out
     if (!rule.enabled || rule.environment !== 'production') continue
     ids.add(rule.id)
     rules.push({ path: mapping.remotePath, protection: rule.protection })
+    resources.push(rule.id)
   }
-  return { rules, ids: [...ids] }
+  return { rules, resources, ids: [...ids] }
 }

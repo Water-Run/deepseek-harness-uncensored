@@ -4849,9 +4849,9 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'The audit state and up to 100 newest accepted records.',
       },
       {
-        signature: 'auditRemoteFile<T>(identity: readonly (string | number | undefined)[], effect: \'observe\' | \'mutate\', signal: AbortSignal, execute: (signal: AbortSignal) => Promise<T>): Promise<T>',
-        description: 'Record a guarded remote file request after its validated result or refusal, retaining its exact audit owner through cleanup. Connection admission must still succeed and persist before the executor performs I/O. File records do not attest matched rule IDs.',
-        parameters: [{ name: 'identity', description: 'Executor-selected SSH destination and requested file identities; only their keyed fingerprint is stored.' }, { name: 'effect', description: 'Effect selected by the structured protocol method.' }, { name: 'signal', description: 'Request cancellation.' }, { name: 'execute', description: 'Existing guarded executor, including result validation; it must observe the supplied lifetime.' }],
+        signature: 'auditRemoteFile<T>(identity: readonly (string | number | undefined)[], effect: \'observe\' | \'mutate\', signal: AbortSignal, execute: (signal: AbortSignal, reportMatches: (ids: readonly TargetRuleId[]) => void) => Promise<T>): Promise<T>',
+        description: 'Record a guarded remote file request after its validated result or refusal, retaining its exact audit owner through cleanup. Connection admission must still succeed and persist before I/O; resource IDs must come from verified helper matches.',
+        parameters: [{ name: 'identity', description: 'Executor-selected SSH destination and requested file identities; only their keyed fingerprint is stored.' }, { name: 'effect', description: 'Effect selected by the structured protocol method.' }, { name: 'signal', description: 'Request cancellation.' }, { name: 'execute', description: 'Guarded executor observing the supplied lifetime and reporting resources matched by its verified helper.' }],
         returns: 'The validated result; executor failures retain their original identity and never imply rollback.',
         throws: ['TARGET_AUDIT_UNCONFIRMED if the executor returned but its final audit acknowledgement failed; verify files before retrying.'],
       },

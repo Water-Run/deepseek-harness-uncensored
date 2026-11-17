@@ -90,7 +90,7 @@ export async function runSshHelper(transport: HelperTransport): Promise<void> {
       finally {
         while (active.size > 0) await Promise.allSettled([...active])
         try { await runtime.close() }
-        finally { await rm(root, { recursive: true, force: true }) }
+        finally { protection.close(); await rm(root, { recursive: true, force: true }) }
       }
     })()
     return cleanup
@@ -322,8 +322,8 @@ export async function runSshHelper(transport: HelperTransport): Promise<void> {
     }
     throw new Error(`Unknown SSH helper operation: ${method}`)
   }
-  const peer = new SshRpcPeer(transport.input, transport.output, MAX_FRAME_BYTES, 128, (method, raw, signal) => {
-    const operation = dispatch(method, raw, signal)
+  const peer = new SshRpcPeer(transport.input, transport.output, MAX_FRAME_BYTES, 128, (method, raw, signal, reportFileRules) => {
+    const operation = protection.withMatches(reportFileRules, () => dispatch(method, raw, signal))
     if (method !== 'close') {
       active.add(operation)
       void operation.then(() => { active.delete(operation) }, () => { active.delete(operation) })

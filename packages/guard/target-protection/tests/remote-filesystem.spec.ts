@@ -90,16 +90,19 @@ it.each(['full', 'audit'] as const)('keeps central %s host restrictions after ma
 it('derives protection from central path aliases and rejects missing references', async () => {
   const h = await setup()
   const mappings = sshFileMappings.parse([{ ruleId: id, remotePath: '/remote/production' }])
-  expect(resolveSshFileMappings(h.snapshot, mappings)).toEqual({ ids: [id], rules: [{ path: '/remote/production', protection: 'full' }] })
+  expect(resolveSshFileMappings(h.snapshot, mappings)).toEqual({ ids: [id], resources: [id], rules: [{ path: '/remote/production', protection: 'full' }] })
+  const repeated = resolveSshFileMappings(h.snapshot, [...mappings, ...mappings])
+  expect(repeated.ids).toEqual([id])
+  expect(repeated.resources).toEqual([id, id])
   const aliased = { ...h.snapshot, preferences: { ...h.snapshot.preferences, rules: [
     { ...h.snapshot.preferences.rules[0]!, match: 'host' as const, address: 'production.example',
       aliases: [{ match: 'path' as const, address: '/owner/production' }] },
   ] } }
   expect(resolveSshFileMappings(aliased, mappings).ids).toEqual([id])
   expect(resolveSshFileMappings({ ...h.snapshot, preferences: { ...h.snapshot.preferences,
-    rules: [{ ...h.snapshot.preferences.rules[0]!, enabled: false }] } }, mappings)).toEqual({ ids: [], rules: [] })
+    rules: [{ ...h.snapshot.preferences.rules[0]!, enabled: false }] } }, mappings)).toEqual({ ids: [], resources: [], rules: [] })
   expect(resolveSshFileMappings({ ...h.snapshot, preferences: { ...h.snapshot.preferences,
-    rules: [{ ...h.snapshot.preferences.rules[0]!, environment: 'test' }] } }, mappings)).toEqual({ ids: [], rules: [] })
+    rules: [{ ...h.snapshot.preferences.rules[0]!, environment: 'test' }] } }, mappings)).toEqual({ ids: [], resources: [], rules: [] })
   expect(() => resolveSshFileMappings({ ...h.snapshot, preferences: { ...h.snapshot.preferences, rules: [
     { ...h.snapshot.preferences.rules[0]!, match: 'host', address: 'production.example' },
   ] } }, mappings)).toThrow(expect.objectContaining({ code: 'TARGET_IDENTITY_UNVERIFIED' }))

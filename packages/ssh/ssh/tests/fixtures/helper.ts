@@ -6,7 +6,7 @@ import { mkdtemp, realpath, rm } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { runSshHelper } from '../../src/helper.ts'
-import { SshRpcPeer } from '../../src/protocol.ts'
+import { SshRpcPeer, SSH_PROTOCOL_VERSION } from '../../src/protocol.ts'
 import { helloSchema, type SshStreamEndpoint } from '../../src/schemas.ts'
 import { authenticateStream } from '../../src/stream-security.ts'
 
@@ -19,7 +19,7 @@ export async function createHelperHarness(handshake = true, leaseMs = 30_000, ki
   void serving.catch(() => {})
   const client = new SshRpcPeer(output, input, 64 * 1024 * 1024, 128)
   const sockets = new Set<Socket>()
-  const hello = () => client.request('hello', { protocol: 3, workspace: root, leaseMs, ...closeConfirmation ? { closeConfirmation: true } : {} }, helloSchema)
+  const hello = () => client.request('hello', { protocol: SSH_PROTOCOL_VERSION, workspace: root, leaseMs, ...closeConfirmation ? { closeConfirmation: true } : {} }, helloSchema)
   let closing: Promise<void> | undefined
   const close = () => {
     closing ??= (async () => {

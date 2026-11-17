@@ -3,14 +3,14 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.2-rc.3/ssh-file-audit/guide.md
 /:
-  en: e23f72f361b8068a
-  zh: f84fe4ace9ac43f1
+  en: 4f0ea3b2ce3040ba
+  zh: 7b71d6aee037f8b1
 /handle-unconfirmed-ssh-file-audits:
   en: 61c5d0ae54150037
   zh: 59db23aae0834a43
 /handle-unconfirmed-ssh-file-audits/change:
-  en: e09507e388ef83e8
-  zh: 9be6df87ab276681
+  en: 7036e671f5d2bf14
+  zh: 8016a1637ab5a65e
 /handle-unconfirmed-ssh-file-audits/migration:
-  en: cdb85297ef7e5386
-  zh: 8ede47760ebddcf5
+  en: d400b110ed47f330
+  zh: 1f2153ec84385521

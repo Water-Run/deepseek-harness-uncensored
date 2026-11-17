@@ -4,7 +4,7 @@ import { Duplex, PassThrough } from 'node:stream'
 import { Context, Service } from '@deepseek-ai/cordis'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { z } from 'zod'
-import { SshRpcPeer } from '../src/protocol.ts'
+import { SshRpcPeer, SSH_PROTOCOL_VERSION } from '../src/protocol.ts'
 import { SshConnection } from '../src/index.ts'
 import type { Config } from '../src/index.ts'
 
@@ -56,7 +56,7 @@ const config: Config = {
   requestTimeoutMs: 1000, maxFrameBytes: 4096, maxPending: 8, leaseMs: 30_000,
 }
 const hello = {
-  protocol: 3, hash: 'a'.repeat(64), platform: 'linux', nodeVersion: 'v24.19.0',
+  protocol: SSH_PROTOCOL_VERSION, hash: 'a'.repeat(64), platform: 'linux', nodeVersion: 'v24.19.0',
   kind: 'node-script', executable: '/canonical/node', root: '/tmp/remote-helper', workspace: '/canonical/workspace',
 }
 
@@ -168,7 +168,7 @@ describe.skipIf(process.platform === 'win32')('SSH connection startup', () => {
     expect(argv).toContain('StrictHostKeyChecking=yes')
     expect(argv).toContain('ForwardAgent=no')
     expect(argv.at(-1)).toBe("'/remote/node' '--disable-sigusr1' '/remote/helper'\\''s file.js'")
-    expect(test.calls[0]?.params).toEqual({ protocol: 3, workspace: '/remote/workspace', leaseMs: 30_000, bootstrapPath: '/remote/process.js' })
+    expect(test.calls[0]?.params).toEqual({ protocol: SSH_PROTOCOL_VERSION, workspace: '/remote/workspace', leaseMs: 30_000, bootstrapPath: '/remote/process.js' })
   })
 
   it('permits filesystem-only deployments and refuses an unconfigured PTC bootstrap getter', async () => {
@@ -187,7 +187,7 @@ describe.skipIf(process.platform === 'win32')('SSH connection startup', () => {
     expect(test.service.ptcLaunch).toEqual({ kind: 'embedded', executable: '/canonical/dsh-ssh-helper' })
     const argv = transport.spawn.mock.calls[0]?.[1] as string[]
     expect(argv.at(-1)).toBe("NODE_OPTIONS='--disable-sigusr1' '/remote/helper with spaces'")
-    expect(test.calls[0]?.params).toEqual({ protocol: 3, workspace: '/remote/workspace', leaseMs: 30_000 })
+    expect(test.calls[0]?.params).toEqual({ protocol: SSH_PROTOCOL_VERSION, workspace: '/remote/workspace', leaseMs: 30_000 })
   })
 
   it.each([
