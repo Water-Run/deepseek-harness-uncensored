@@ -13,6 +13,7 @@ import type TargetProtection from './index.ts'
 import type { TargetConnectionResolution } from './index.ts'
 import { canonicalTargetHost, expandTargetRules, hasExactTestServer } from './rules.ts'
 import type { TargetSnapshot } from './types.ts'
+import { databaseResourceId, projectDatabaseResources, type DatabaseResourceBinding } from './database-resources.ts'
 import { TARGET_REFUSAL_REASONS } from './network-decision.ts'
 import { postgresWrite, postgresWriteInput, postgresWriteTables, type PostgresWriteResult } from './postgres-write.ts'
 
@@ -25,6 +26,8 @@ export interface PostgresBinding {
   username: string
   passwordRef: string
   caPem?: string
+  /** Optional central server or database UUIDs associated with this configured endpoint. */
+  resourceIds?: string[]
   /** Enable one-statement SQL for an owner-isolated test server and database. */
   testSql?: boolean
   /** Opt in to structured writes on these test tables without marking the entire server as test. */
@@ -71,7 +74,8 @@ const configSchema = z.object({
   databases: z.array(z.object({ name: z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/u), hostname: z.string().min(1),
     port: z.number().int().min(1).max(65535).default(5432), database: z.string().min(1).max(128).refine(value => !value.includes('\0')),
     username: z.string().min(1).max(128).refine(value => !value.includes('\0')), passwordRef: z.string(), caPem: z.string().max(131072).optional(),
-    testSql: z.boolean().default(false), sharedTestTables: postgresWriteTables.default([]),
+    resourceIds: z.array(databaseResourceId).default([]), testSql: z.boolean().default(false),
+    sharedTestTables: postgresWriteTables.default([]),
   }).strict()).min(1),
   timeoutMs: z.number().int().min(1).max(300000).default(30000), maxRows: z.number().int().min(1).max(10000).default(1000),
   maxResultBytes: z.number().int().min(256).max(16777216).default(1048576), maxPending: z.number().int().min(1).max(64).default(4),
@@ -84,7 +88,8 @@ export default class PostgresAuditService extends Service {
   static Config: schema<Config> = schema.object({
     databases: schema.array(schema.object({ name: schema.string().required(), hostname: schema.string().required(),
       port: schema.natural().default(5432), database: schema.string().required(), username: schema.string().required(),
-      passwordRef: schema.string().required(), caPem: schema.string(), testSql: schema.boolean().default(false),
+      passwordRef: schema.string().required(), caPem: schema.string(), resourceIds: schema.array(schema.string()).default([]),
+      testSql: schema.boolean().default(false),
       sharedTestTables: schema.array(schema.object({ schema: schema.string().required(), table: schema.string().required() })).default([]),
     })).required(),
     timeoutMs: schema.natural().default(30000), maxRows: schema.natural().default(1000),
@@ -96,6 +101,7 @@ export default class PostgresAuditService extends Service {
   private readonly credentials: CredentialProvider
   private readonly lifetime = new AbortController()
   private readonly pending = new Set<Promise<unknown>>()
+  private readonly databaseResources: readonly DatabaseResourceBinding[]
 
   /** @param ctx - Mandatory rule and credential providers. @param config - Explicit endpoint bindings and limits. */
   constructor(ctx: Context, config: Config) {
@@ -109,10 +115,18 @@ export default class PostgresAuditService extends Service {
       createSecureContext(binding.caPem === undefined ? {} : { ca: binding.caPem })
     }
     this.protection = ctx.targetProtection; this.credentials = ctx.credentials
+    this.databaseResources = this.config.databases.flatMap(binding => binding.resourceIds.map(ruleId => ({
+      ruleId, hostname: binding.hostname, port: binding.port, database: binding.database,
+    })))
     ctx.effect(() => async () => {
       this.lifetime.abort(new HarnessError('PostgreSQL provider is closing.', 'POSTGRES_UNAVAILABLE'))
       await Promise.allSettled(this.pending)
     }, 'target-postgres.lifetime')
+  }
+
+  /** Validate configured resource references before publishing the provider. */
+  async [Service.init](): Promise<void> {
+    if (this.databaseResources.length > 0) projectDatabaseResources(await this.protection.snapshot(), this.databaseResources)
   }
 
   /**
@@ -218,10 +232,11 @@ export default class PostgresAuditService extends Service {
     const commit = { dispatched: false, acknowledged: false }
     const admitted = async (): Promise<void> => {
       const decision = await this.protection.checkConnection(binding.hostname, binding.port, resolution,
-        'endpoint', write ? 'mutate' : 'observe', timeout.signal, binding.database)
+        'database', write ? 'mutate' : 'observe', timeout.signal, binding.database, false, this.databaseResources)
       if (!decision.allowed) throw new HarnessError(TARGET_REFUSAL_REASONS[decision.code], decision.code)
       if (dedicated) {
-        const instance = await this.protection.checkConnection(binding.hostname, binding.port, resolution, 'endpoint', 'mutate', timeout.signal)
+        const instance = await this.protection.checkConnection(binding.hostname, binding.port, resolution,
+          'database', 'mutate', timeout.signal, undefined, false, this.databaseResources)
         if (!instance.allowed) throw new HarnessError(TARGET_REFUSAL_REASONS[instance.code], instance.code)
       }
       timeout.signal.throwIfAborted()
@@ -230,7 +245,7 @@ export default class PostgresAuditService extends Service {
     try {
       await admitted()
       if (write) {
-        snapshot = await this.protection.snapshot()
+        snapshot = projectDatabaseResources(await this.protection.snapshot(), this.databaseResources)
         const exactDatabase = expandTargetRules(snapshot.preferences).some(rule => rule.enabled && rule.kind === 'database'
           && rule.environment === 'test' && rule.match === 'host' && rule.address === binding.hostname
           && rule.port === binding.port && rule.database === binding.database)

@@ -137,7 +137,9 @@ SSH 文件系统效果不会因为端口不同而被视为与其他资源无关�
 
 SQLite 同时检查配置路径和真实路径旁的日志。主库必须只有一个硬链接，启动及提交前均检查；多个名称可能对应不同日志（[SQLite 说明](https://sqlite.org/howtocorrupt.html#_multiple_links_to_the_same_file)）。迁移硬链接绑定时，先停止客户端，用 SQLite 一致性备份生成唯一文件，再更新 `databases[].path` 及路径规则。不要改名活动数据库或丢弃恢复日志。已提交后清理失败报告 `SQLITE_COMMITTED_CLEANUP_FAILED`，不得重放；`SQLITE_CLEANUP_FAILED` 表示尚未发出提交许可。
 
-装配 `./postgres`，并提供 `targetProtection` 与 `credentials`，可执行固定的 PostgreSQL 目录审计。通过 `databases: [{ name, hostname, port, database, username, passwordRef, caPem? }]` 绑定端点，端口默认 5432。每次操作解析凭据引用，强制校验证书及原始主机名；私有 CA 可提供 PEM。仅支持原生 PostgreSQL 直连，不支持重新映射数据库的连接池或代理。网络规则不能自动发现服务器数据文件和别名，需另行绑定。
+装配 `./postgres`，并提供 `targetProtection` 与 `credentials`，可执行固定的 PostgreSQL 目录审计。通过 `databases: [{ name, hostname, port, database, username, passwordRef, caPem?, resourceIds? }]` 绑定端点，端口默认 5432。每次操作解析凭据引用，强制校验证书及原始主机名；私有 CA 可提供 PEM。仅支持原生 PostgreSQL 直连，不支持重新映射数据库的连接池或代理。网络规则不能自动发现服务器数据文件和别名。
+
+PostgreSQL 和 MySQL 均可通过可选的 `databases[].resourceIds`，将一个绑定关联到多个中央服务器及数据库 UUID。数据库资源限定到所配置的库；服务器资源覆盖该端点的所有库。`DatabaseResourceBinding` 添加准入别名，不替换已存选择器或修订；凭据、TLS 和协议身份仍须核验。缺失或域名资源引用会拒绝激活，删除被引用资源后停止后续操作。有仅含路径选择器且未关联端点的生产资源时，原生数据库请求会拒绝，包括来自其他未关联绑定的请求；须补齐关联或明确网络别名。生产保护优先于测试例外，测试 SQL 和表写入仍须单独开启并通过权限检查。默认关联列表为空，停用资源保持停用；此关联不证明物理数据文件身份。自定义原生数据库执行器须在 `checkConnection` 中使用 `database` 范围。参见[迁移说明](../../../docs/upgrade-guide/v0.2.2-rc.3/database-resource-bindings/guide.zh.md)。
 
 可选 `./postgres-agent` 注册 `database_inspect`，接收配置名称。结果包含核验后的数据库、账号和版本、表名、表种类、行级安全状态及选定安全设置。完全保护在 TCP 和认证前拒绝。审计在只读事务中使用固定的 `pg_catalog` 查询，先核验身份再读目录。PostgreSQL [READ ONLY 不禁止所有磁盘写入](https://www.postgresql.org/docs/current/sql-set-transaction.html)。
 
@@ -217,7 +219,7 @@ Windows 源码和编译链已验证测试访问成功、生产零连接，以及
 <a id="known-limitations-and-deferred-work"></a>
 ## 已知限制与后续工作
 
-仅覆盖明确装配的受控提供方。结构化文件删除和改名支持本地文件及匹配的 SSH helper。其他数据库协议、远端数据库资源映射、受限命令的默认装配以及浏览器/MCP/REA 原生执行仍未完成。部署方必须确保远端运行时可信，且位于 Agent 可写工作区之外。受控网安代理仅接受明确标记的测试 IP 不透明隧道。这类隧道记录元数据，无法验证应用名称或数据库身份。SSH 负载捕获仍需独立实现。普通匿名抓取仍拒绝私有网络。DNS 证据不能枚举共享某个 IP 的所有主机名，国家数据或 CONNECT 也不能证明实际转发位置。已绑定网安代理以外的审计归属仍未完成。
+仅覆盖明确装配的受控提供方。结构化文件删除和改名支持本地文件及匹配的 SSH helper。其他数据库协议、远端物理数据文件身份核验、受限命令的默认装配以及浏览器/MCP/REA 原生执行仍未完成。部署方必须确保远端运行时可信，且位于 Agent 可写工作区之外。受控网安代理仅接受明确标记的测试 IP 不透明隧道。这类隧道记录元数据，无法验证应用名称或数据库身份。SSH 负载捕获仍需独立实现。普通匿名抓取仍拒绝私有网络。DNS 证据不能枚举共享某个 IP 的所有主机名，国家数据或 CONNECT 也不能证明实际转发位置。已绑定网安代理以外的审计归属仍未完成。
 
 <a id="dev-note"></a>
 ## 开发备注

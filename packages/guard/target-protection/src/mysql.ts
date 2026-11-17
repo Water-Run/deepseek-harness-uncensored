@@ -14,6 +14,7 @@ import type TargetProtection from './index.ts'
 import type { TargetConnectionResolution } from './index.ts'
 import { TARGET_REFUSAL_REASONS } from './network-decision.ts'
 import { canonicalTargetHost, expandTargetRules, hasExactTestServer } from './rules.ts'
+import { databaseResourceId, projectDatabaseResources, type DatabaseResourceBinding } from './database-resources.ts'
 import { checkMysqlWriteGrants, mysqlWriteIdentifier, mysqlWriteInput, mysqlWriteStatement } from './mysql-write.ts'
 import type { MysqlParameter } from './mysql-write.ts'
 
@@ -30,6 +31,8 @@ export interface MysqlBinding {
   /** A DNS name in the certificate, required when hostname is a literal IP. */
   tlsServerName?: string
   caPem?: string
+  /** Optional central server or database UUIDs associated with this configured endpoint. */
+  resourceIds?: string[]
   /** Explicit tables allowed for test writes. Defaults to empty. */
   testTables?: string[]
   /** Require instance-wide foreign-key inspection instead of a dedicated test-server rule. */
@@ -75,6 +78,7 @@ const configSchema = z.object({
     database: z.string().min(1).max(64).refine(value => !value.includes('\0')),
     username: accountPart(32), accountHost: accountPart(255), passwordRef: z.string(),
     tlsServerName: z.string().min(1).optional(), caPem: z.string().max(131072).optional(),
+    resourceIds: z.array(databaseResourceId).default([]),
     testTables: z.array(mysqlWriteIdentifier).max(16).default([]), sharedTestWrites: z.boolean().default(false),
   }).strict()).min(1),
   timeoutMs: z.number().int().min(1).max(300000).default(30000),
@@ -95,6 +99,7 @@ export default class MysqlAuditService extends Service {
       name: schema.string().required(), hostname: schema.string().required(), port: schema.natural().default(3306),
       database: schema.string().required(), username: schema.string().required(), accountHost: schema.string().required(),
       passwordRef: schema.string().required(), tlsServerName: schema.string(), caPem: schema.string(),
+      resourceIds: schema.array(schema.string()).default([]),
       testTables: schema.array(schema.string()).default([]), sharedTestWrites: schema.boolean().default(false),
     })).required(),
     timeoutMs: schema.natural().default(30000), maxRows: schema.natural().default(1000),
@@ -105,6 +110,7 @@ export default class MysqlAuditService extends Service {
   private readonly credentials: CredentialProvider
   private readonly lifetime = new AbortController()
   private readonly pending = new Set<Promise<unknown>>()
+  private readonly databaseResources: readonly DatabaseResourceBinding[]
 
   /** @param ctx - Rule and credential providers. @param config - Explicit endpoints and resource limits. */
   constructor(ctx: Context, config: Config) {
@@ -133,10 +139,18 @@ export default class MysqlAuditService extends Service {
     }
     this.protection = ctx.targetProtection
     this.credentials = ctx.credentials
+    this.databaseResources = this.config.databases.flatMap(binding => binding.resourceIds.map(ruleId => ({
+      ruleId, hostname: binding.hostname, port: binding.port, database: binding.database,
+    })))
     ctx.effect(() => async () => {
       this.lifetime.abort(new HarnessError('MySQL provider is closing.', 'MYSQL_UNAVAILABLE'))
       await Promise.allSettled(this.pending)
     }, 'target-mysql.lifetime')
+  }
+
+  /** Validate configured resource references before publishing the provider. */
+  async [Service.init](): Promise<void> {
+    if (this.databaseResources.length > 0) projectDatabaseResources(await this.protection.snapshot(), this.databaseResources)
   }
 
   /**
@@ -243,10 +257,11 @@ export default class MysqlAuditService extends Service {
     const commit = { dispatched: false, acknowledged: false }
     const admitted = async (hostname = binding.hostname): Promise<void> => {
       const decision = await this.protection.checkConnection(hostname, binding.port, resolution,
-        'endpoint', writing ? 'mutate' : 'observe', timeout.signal, binding.database, true)
+        'database', writing ? 'mutate' : 'observe', timeout.signal, binding.database, true, this.databaseResources)
       if (!decision.allowed) throw new HarnessError(TARGET_REFUSAL_REASONS[decision.code], decision.code)
       if (dedicatedWrite) {
-        const instance = await this.protection.checkConnection(hostname, binding.port, resolution, 'endpoint', 'mutate', timeout.signal)
+        const instance = await this.protection.checkConnection(hostname, binding.port, resolution,
+          'database', 'mutate', timeout.signal, undefined, true, this.databaseResources)
         if (!instance.allowed) throw new HarnessError(TARGET_REFUSAL_REASONS[instance.code], instance.code)
       }
       timeout.signal.throwIfAborted()
@@ -254,7 +269,7 @@ export default class MysqlAuditService extends Service {
     try {
       await admitted()
       if (tlsName !== binding.hostname) await admitted(tlsName)
-      const snapshot = writing ? await this.protection.snapshot() : undefined
+      const snapshot = writing ? projectDatabaseResources(await this.protection.snapshot(), this.databaseResources) : undefined
       if (snapshot !== undefined) {
         const database = expandTargetRules(snapshot.preferences).some(rule => rule.enabled && rule.kind === 'database'
           && rule.environment === 'test' && rule.match === 'host' && rule.address === binding.hostname

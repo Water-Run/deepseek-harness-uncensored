@@ -4936,10 +4936,11 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'Names and literal addresses that the connection consumer must authorize and pin.',
       },
       {
-        signature: 'checkConnection( hostname: string, port: number | undefined, resolution: TargetConnectionResolution | undefined, scope: \'endpoint\' | \'filesystem\', effect: TargetEffect, signal: AbortSignal, database?: string, foldDatabaseCase: boolean = false, ): Promise<TargetDecision>',
+        signature: 'checkConnection( hostname: string, port: number | undefined, resolution: TargetConnectionResolution | undefined, scope: \'endpoint\' | \'filesystem\' | \'database\', effect: TargetEffect, signal: AbortSignal, database?: string, foldDatabaseCase: boolean = false, databaseResources?: readonly DatabaseResourceBinding[], ): Promise<TargetDecision>',
         description: 'Check a pinned connection or an operation on its authenticated peer.',
-        parameters: [{ name: 'hostname', description: 'Original configured host.' }, { name: 'port', description: 'Known service port; omission requires decisions without a verified port scope.' }, { name: 'resolution', description: 'Actual pinned address evidence; omission performs only pre-resolution checks.' }, { name: 'scope', description: 'Whether effects stay on one port or may access the peer filesystem.' }, { name: 'effect', description: 'Effect guaranteed by the protocol executor, not supplied by the model.' }, { name: 'signal', description: 'Operation cancellation and deadline.' }, { name: 'database', description: 'Executor-selected protocol database, verified before application queries; omission leaves database scope unknown.' }, { name: 'foldDatabaseCase', description: 'Treat database names that differ only in case as possible aliases.' }],
+        parameters: [{ name: 'hostname', description: 'Original configured host.' }, { name: 'port', description: 'Known service port; omission requires decisions without a verified port scope.' }, { name: 'resolution', description: 'Actual pinned address evidence; omission performs only pre-resolution checks.' }, { name: 'scope', description: 'Whether effects stay on one port, use a native database protocol, or may access the peer filesystem.' }, { name: 'effect', description: 'Effect guaranteed by the protocol executor, not supplied by the model.' }, { name: 'signal', description: 'Operation cancellation and deadline.' }, { name: 'database', description: 'Executor-selected protocol database, verified before application queries; omission leaves database scope unknown.' }, { name: 'foldDatabaseCase', description: 'Treat database names that differ only in case as possible aliases.' }, { name: 'databaseResources', description: 'Associations for database scope; path-only production resources without a known endpoint remain unverified.' }],
         returns: 'A current rule decision; unavailable identity and registry failures never authorize fallback.',
+        throws: ['TARGET_IDENTITY_UNVERIFIED when an associated resource is missing or is a domain resource.'],
       },
       {
         signature: 'bindRemoteFilesystem(binding: RemoteFilesystemBinding): RemoteFilesystemPolicy',
@@ -7662,6 +7663,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'DailyScheduleRecord',
     declaration: 'export interface DailyScheduleRecord {\n    readonly id: ScheduleId;\n    readonly kind: \'daily\';\n    readonly title: string;\n    readonly prompt: string;\n    readonly time: string;\n    readonly timeZone: string;\n    readonly scheduledAt: string;\n}',
+  },
+  {
+    name: 'DatabaseResourceBinding',
+    declaration: 'export interface DatabaseResourceBinding {\n    readonly ruleId: TargetRuleId;\n    readonly hostname: string;\n    readonly port: number;\n    readonly database: string;\n}',
   },
   {
     name: 'DeepSeekLlmApiExtensionMap',

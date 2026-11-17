@@ -56,7 +56,7 @@ async function fixture(holdHandshake = false) {
     const { database: _database, ...fields } = rule(address)
     return { ...fields, kind: 'server' as const }
   }
-  return { ctx, owner, binding, rule, serverRule, accepted: accepted.promise, closed: closed.promise, connections: () => connections }
+  return { root, ctx, owner, binding, rule, serverRule, accepted: accepted.promise, closed: closed.promise, connections: () => connections }
 }
 
 it.each(['127.0.0.1', 'mysql.fixture.test'])('rejects the protected %s identity before TCP', async (address) => {
@@ -65,6 +65,65 @@ it.each(['127.0.0.1', 'mysql.fixture.test'])('rejects the protected %s identity 
   await ctx.plugin(MysqlAudit, { databases: [binding] })
   await expect(ctx.mysqlAudit.inspect('owned', AbortSignal.timeout(5_000))).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
   expect(connections()).toBe(0)
+})
+
+it('enforces mapped MySQL production resources before opening either audit or mutation connections', async () => {
+  const h = await fixture()
+  const resource = { id: brandString<TargetRuleId>(randomUUID()), name: 'central MySQL database', enabled: true,
+    kind: 'database' as const, match: 'path' as const, address: join(h.root, 'central-database.sqlite'),
+    environment: 'production' as const, protection: 'full' as const }
+  await h.ctx.targetProtection.configure({ mainlandEnabled: false, rules: [resource] }, 1)
+  await h.ctx.plugin(MysqlAudit, { databases: [{ ...h.binding, resourceIds: [resource.id], testTables: ['items'] }] })
+  const signal = AbortSignal.timeout(5_000)
+  await expect(h.ctx.mysqlAudit.inspect('owned', signal)).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+  await expect(h.ctx.mysqlAudit.writeTest('owned', { operation: 'delete', table: 'items', where: { id: 1 } }, signal))
+    .rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+  expect(h.connections()).toBe(0)
+})
+
+it('rejects an unknown MySQL resource reference at activation', async () => {
+  const h = await fixture()
+  await expect(h.ctx.plugin(MysqlAudit, { databases: [{ ...h.binding, resourceIds: [randomUUID()] }] }))
+    .rejects.toMatchObject({ code: 'TARGET_IDENTITY_UNVERIFIED' })
+  expect(h.ctx.get('mysqlAudit')).toBeUndefined()
+  expect(h.connections()).toBe(0)
+})
+
+it('does not bypass an unresolved production path through a binding without resource associations', async () => {
+  const h = await fixture()
+  const resource = { id: brandString<TargetRuleId>(randomUUID()), name: 'unresolved production database', enabled: true,
+    kind: 'database' as const, match: 'path' as const, address: join(h.root, 'central-database.sqlite'),
+    environment: 'production' as const, protection: 'full' as const }
+  await h.ctx.targetProtection.configure({ mainlandEnabled: false, rules: [resource,
+    { ...h.rule(h.binding.hostname), environment: 'test' }, { ...h.serverRule(h.binding.hostname), environment: 'test' },
+  ] }, 1)
+  await h.ctx.plugin(MysqlAudit, { databases: [{ ...h.binding, testTables: ['items'] }] })
+  const signal = AbortSignal.timeout(5_000)
+  await expect(h.ctx.mysqlAudit.inspect('owned', signal)).rejects.toMatchObject({ code: 'TARGET_IDENTITY_UNVERIFIED' })
+  await expect(h.ctx.mysqlAudit.writeTest('owned', { operation: 'delete', table: 'items', where: { id: 1 } }, signal))
+    .rejects.toMatchObject({ code: 'TARGET_IDENTITY_UNVERIFIED' })
+  expect(h.connections()).toBe(0)
+})
+
+it('admits an explicitly mapped MySQL test resource and cancels its owned handshake without database effects', async () => {
+  const h = await fixture(true), id = brandString<TargetRuleId>(randomUUID())
+  await h.ctx.credentials.set(credentialRef(h.binding.passwordRef), 'owned fixture password')
+  await h.ctx.targetProtection.configure({ mainlandEnabled: false, rules: [
+    { id, name: 'central test database', enabled: true, kind: 'database', match: 'path', address: join(h.root, 'test-database.sqlite'),
+      environment: 'test', protection: 'full' },
+    { ...h.serverRule(h.binding.hostname), environment: 'test' },
+  ] }, 1)
+  await h.ctx.plugin(MysqlAudit, { databases: [{ ...h.binding, resourceIds: [id], testTables: ['items'] }] })
+  const controller = new AbortController()
+  const request = h.ctx.mysqlAudit.writeTest('owned', { operation: 'delete', table: 'items', where: { id: 1 } }, controller.signal)
+  const rejected = expect(request).rejects.toMatchObject({ code: 'MYSQL_CANCELLED' })
+  try {
+    await Promise.race([h.accepted, rejected.then(() => { throw new Error('Missing mapped test handshake') })])
+    controller.abort()
+    await rejected
+    await h.closed
+    expect(h.connections()).toBe(1)
+  } finally { controller.abort() }
 })
 
 it('refuses missing credentials and withdraws when the rule owner is disposed', async () => {

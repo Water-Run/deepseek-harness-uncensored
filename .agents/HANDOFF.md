@@ -19,9 +19,13 @@ Windows 无脚本暂停 Frida 会话在关闭前复用现有流程完成空脚�
 - 正常用户程序于北京时间 16:30 启动，主 PID `163172`，观察期间响应且没有新增崩溃。操作前重新验证进程路径和启动身份。旧主进程明确终止，不能记作正常退出验收。
 - 主要回执：`release-17-5-published.json`、`installed-update-result.json`、`normal-launch-17-5-result.json`、`current-development-checkpoint.json`。历史源码、失败记录、stash 和备份保留。
 
-## 工作约束
+## 后续源码
 
 17.5 之后的[SSH 资源匹配回执](requirements/2026-11-17-ssh-resource-receipts.md)已完成源码与定向验证，尚未生成新安装包。客户端和 helper 使用协议 4，需配套部署并更新固定摘要；现有 17.5 安装仍保持原样。原始 Session 录制和持久化字段未改动。
+
+[PostgreSQL/MySQL 资源关联](requirements/2026-11-17-database-resource-bindings.md)已接入原生执行器。`resourceIds` 默认空列表；服务器和数据库 UUID 分别提供端点与单库策略。未知生产路径不能通过未关联绑定绕过，所需配置与兼容变化已写迁移指南。本项同样尚未打包；实际数据库引擎、物理数据文件身份及完整平台验收保留。
+
+## 工作约束
 
 保持 main、中文提交及正常 hooks，不使用 Computer Use。用户已明确要求：创建 GitHub Release、上传发布资产及公开发布须逐次取得许可；继续开发、本地打包及代码推送不视为发布许可。已公开的 17.5 保留，不擅自修改。安装和重启 DSHU 的既有授权保留；没有授权签名或重启系统。Goal 继续活动，不沿用此前已经履行的暂停指令。
 

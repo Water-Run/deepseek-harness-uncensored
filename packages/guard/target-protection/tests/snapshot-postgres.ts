@@ -44,18 +44,19 @@ export async function apply(ctx: Context, config: { mysqlWrite?: boolean; postgr
   }, 'postgres-snapshot.listener')
   const address = server.address()
   assert.ok(address !== null && typeof address !== 'string')
+  const resourceId = brandString<TargetRuleId>('74444444-4444-4444-8444-444444444444')
   await ctx.plugin(Protection, { path: ':memory:', hostsFile: '' })
   await ctx.inject(['targetProtection'], async (owner) => {
     await owner.targetProtection.configure({ mainlandEnabled: false, rules: [{
-      id: brandString<TargetRuleId>('74444444-4444-4444-8444-444444444444'),
+      id: resourceId,
       name: 'owned production fixture', enabled: true, kind: 'database', environment: 'production',
-      protection: 'full', match: 'host', address: '127.0.0.1', port: address.port, database: config.mysqlWrite ? 'FIXTURE' : 'fixture',
+      protection: 'full', match: 'path', address: join(root, 'central-database.sqlite'),
     }] }, 1)
   })
   if (config.mysqlWrite) {
     const mysql = await ctx.plugin(MysqlAudit, { databases: [{ name: 'owned', hostname: '127.0.0.1', port: address.port,
       tlsServerName: 'mysql.fixture.test', database: 'fixture', username: 'fixture', accountHost: '%',
-      passwordRef: 'MISSING_MYSQL_FIXTURE_PASSWORD', testTables: ['items'], sharedTestWrites: true }] })
+      passwordRef: 'MISSING_MYSQL_FIXTURE_PASSWORD', resourceIds: [resourceId], testTables: ['items'], sharedTestWrites: true }] })
     closeExecutor = () => mysql.dispose()
     await ctx.plugin(MysqlAgent)
     await ctx.inject(['mysqlAudit'], (active) => {
@@ -72,11 +73,11 @@ export async function apply(ctx: Context, config: { mysqlWrite?: boolean; postgr
     return
   }
   const executor = await ctx.plugin(PostgresAudit, { databases: [{ name: 'owned', hostname: '127.0.0.1', port: address.port,
-    database: 'fixture', username: 'fixture', passwordRef: 'MISSING_POSTGRES_FIXTURE_PASSWORD',
+    database: 'fixture', username: 'fixture', passwordRef: 'MISSING_POSTGRES_FIXTURE_PASSWORD', resourceIds: [resourceId],
     sharedTestTables: config.postgresSharedWrite ? [{ schema: 'public', table: 'items' }] : [] }] })
   const mysql = await ctx.plugin(MysqlAudit, { databases: [{ name: 'owned', hostname: '127.0.0.1',
     tlsServerName: 'mysql.fixture.test', port: address.port, database: 'fixture', username: 'fixture', accountHost: '%',
-    passwordRef: 'MISSING_MYSQL_FIXTURE_PASSWORD' }] })
+    passwordRef: 'MISSING_MYSQL_FIXTURE_PASSWORD', resourceIds: [resourceId] }] })
   closeExecutor = async () => { await mysql.dispose(); await executor.dispose() }
   await ctx.plugin(PostgresAgent)
   await ctx.inject(['postgresAudit', 'mysqlAudit'], (active) => {

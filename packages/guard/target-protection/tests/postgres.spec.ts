@@ -41,6 +41,7 @@ interface FixtureOptions {
   testRules?: boolean
   elevatedRole?: boolean
   loseCommit?: boolean
+  resourceMapping?: boolean
 }
 async function harness(options: FixtureOptions = {}) {
   const { full = false, hold = true, matchingCert = true, hostname = '127.0.0.1' } = options
@@ -157,18 +158,22 @@ async function harness(options: FixtureOptions = {}) {
   await ctx.credentials.set(ref, 'owned fixture password')
   const hostsFile = join(root, 'hosts')
   await writeFile(hostsFile, '127.0.0.1 postgres.test protected-alias.test\n')
-  const owner = await ctx.plugin(Protection, { path: ':memory:', hostsFile })
+  const owner = await ctx.plugin(Protection, { path: ':memory:', hostsFile,
+    ...options.resourceMapping ? { auditPath: join(root, 'audit.sqlite') } : {} })
   const rule: TargetRule = { id: brandString<TargetRuleId>(randomUUID()), name: 'owned fixture database', enabled: true,
-    kind: 'database', match: 'host', address: '127.0.0.1', port: address.port, database: 'fixture', environment: 'production',
+    kind: 'database', ...options.resourceMapping ? { match: 'path', address: join(root, 'central-database.sqlite') }
+      : { match: 'host', address: '127.0.0.1', port: address.port, database: 'fixture' }, environment: 'production',
     protection: full ? 'full' : 'audit' }
   const testRules: TargetRule[] = [
     { ...rule, environment: 'test' },
-    { id: brandString<TargetRuleId>(randomUUID()), name: 'dedicated test instance', enabled: true, kind: 'server', match: 'host',
-      address: rule.address, port: address.port, environment: 'test', protection: 'full' },
+    { id: brandString<TargetRuleId>(randomUUID()), name: 'dedicated test instance', enabled: true, kind: 'server',
+      ...options.resourceMapping ? { match: 'path', address: join(root, 'central-server') }
+        : { match: 'host', address: '127.0.0.1', port: address.port }, environment: 'test', protection: 'full' },
   ]
   await ctx.targetProtection.configure({ mainlandEnabled: false, rules: options.testRules ? testRules : [rule] }, 1)
   const config = { databases: [{ name: 'owned', hostname, port: address.port, database: 'fixture', username: 'fixture',
     passwordRef: ref, caPem: material.cert, testSql: options.testSql ?? false,
+    ...options.resourceMapping ? { resourceIds: [rule.id, ...options.testRules ? [testRules[1]!.id] : []] } : {},
     sharedTestTables: options.sharedWrite ? [{ schema: 'public', table: 'items' }] : [] }], timeoutMs: options.timeoutMs ?? 10000,
   ...options.maxResultBytes === undefined ? {} : { maxResultBytes: options.maxResultBytes },
   ...options.maxRows === undefined ? {} : { maxRows: options.maxRows },
@@ -181,6 +186,52 @@ async function harness(options: FixtureOptions = {}) {
 const writeSql = 'INSERT INTO owned_table VALUES ($1) RETURNING value'
 const writableFixture = { testSql: true, testRules: true, hold: false, identity: ['fixture', 'fixture', '18.4', 'off'] }
 const sharedInput = { schema: 'public', mutation: { operation: 'delete', table: 'items', where: { id: 1 } } }
+
+it('enforces a mapped full database resource before TCP for audits and both write paths', async () => {
+  const h = await harness({ resourceMapping: true, full: true, testSql: true, sharedWrite: true })
+  const signal = AbortSignal.timeout(10_000)
+  await expect(h.ctx.postgresAudit.inspect('owned', signal)).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+  await expect(h.ctx.postgresAudit.executeTestSql('owned', writeSql, [1], signal)).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+  await expect(h.ctx.postgresAudit.writeSharedTest('owned', sharedInput, signal)).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+  expect(h.connections()).toBe(0)
+  expect(h.queries()).toBe(0)
+})
+
+it('permits a mapped read-only TLS audit and refuses a mutation using the same central resource', async () => {
+  const h = await harness({ resourceMapping: true, hostname: 'postgres.test', hold: false, sharedWrite: true, identity: ['fixture', 'fixture', '18.4', 'on'] })
+  const signal = AbortSignal.timeout(10_000)
+  expect(await h.ctx.postgresAudit.inspect('owned', signal)).toMatchObject({ database: 'fixture', username: 'fixture' })
+  const current = await h.ctx.targetProtection.snapshot()
+  await h.ctx.targetProtection.configure({ ...current.preferences, rules: [...current.preferences.rules,
+    { ...h.rule, id: brandString<TargetRuleId>(randomUUID()), match: 'host', address: h.config.databases[0]!.hostname,
+      port: h.config.databases[0]!.port, database: 'fixture', environment: 'test' },
+  ] }, current.revision)
+  await expect(h.ctx.postgresAudit.writeSharedTest('owned', sharedInput, signal)).rejects.toMatchObject({ code: 'TARGET_READ_ONLY' })
+  expect(h.connections()).toBe(1)
+  expect(h.commits()).toBe(0)
+  expect(h.ctx.targetProtection.auditHistory().entries).toEqual(expect.arrayContaining([
+    expect.objectContaining({ operation: 'connection', decision: 'allow', ruleIds: [h.rule.id] }),
+    expect.objectContaining({ operation: 'connection', decision: 'deny', code: 'TARGET_READ_ONLY', ruleIds: [h.rule.id] }),
+  ]))
+})
+
+it('uses an explicitly mapped test resource without bypassing database identity or commit acknowledgement', async () => {
+  const h = await harness({ ...writableFixture, resourceMapping: true })
+  expect(await h.ctx.postgresAudit.executeTestSql('owned', writeSql, [1], AbortSignal.timeout(10_000)))
+    .toMatchObject({ command: 'INSERT', rowCount: 1 })
+  expect(h.commits()).toBe(1)
+  expect(h.parsed).toContain(writeSql)
+})
+
+it('rejects a missing mapped resource during provider activation without opening TCP', async () => {
+  const h = await harness({ resourceMapping: true })
+  await h.executor.dispose()
+  await expect(h.ctx.plugin(PostgresAuditService, { ...h.config,
+    databases: h.config.databases.map(binding => ({ ...binding, resourceIds: [randomUUID()] })),
+  })).rejects.toMatchObject({ code: 'TARGET_IDENTITY_UNVERIFIED' })
+  expect(h.ctx.get('postgresAudit')).toBeUndefined()
+  expect(h.connections()).toBe(0)
+})
 
 it('rejects malformed, unlisted and incompletely marked shared test writes before TCP', async () => {
   const h = await harness({ sharedWrite: true, testRules: true })

@@ -21,11 +21,13 @@ import { parseDnsServer } from './dns-transport.ts'
 import { canonicalLocalPath, resolveLocalPathIdentity, localPathContains, localIdentityPaths } from './file-identity.ts'
 import { decideLocalTarget, type LocalTargetOperation } from './file-rules.ts'
 import type { NetworkTarget, TargetDecision, TargetDenialCode, TargetEffect, TargetPreferences, TargetSnapshot, TargetSshCoverage, TargetRuleId } from './types.ts'
+import { projectDatabaseResources, type DatabaseResourceBinding } from './database-resources.ts'
 import { TARGET_REFUSAL_REASONS } from './network-decision.ts'
 import type { NativeFileConstraints } from './native-file-policy.ts'
 import { TargetAuditStore, type AuditSubject, type TargetAuditHistory, type TargetAuditRecord } from './audit.ts'
 
 export type * from './types.ts'
+export type { DatabaseResourceBinding } from './database-resources.ts'
 export { TargetProtectionError, TargetAuditError } from './errors.ts'
 export { canonicalTargetHost, parseTargetPreferences, TargetRules, expandTargetRules } from './rules.ts'
 export { TargetStore } from './store.ts'
@@ -62,6 +64,11 @@ export interface Config {
   readOnlyPaths?: string[]
 }
 type ResolvedConfig = Required<Config>
+
+interface ConnectionResources {
+  readonly files?: { readonly revision: number; readonly ids: ReadonlySet<TargetRuleId> }
+  readonly databases?: readonly DatabaseResourceBinding[]
+}
 
 /** Name evidence and policy-validated addresses from the same resolution. */
 export interface TargetHttpResolution extends Omit<TargetDnsResolution, 'addresses'> {
@@ -731,18 +738,25 @@ export default class TargetProtection extends Service {
    * @param hostname - Original configured host.
    * @param port - Known service port; omission requires decisions without a verified port scope.
    * @param resolution - Actual pinned address evidence; omission performs only pre-resolution checks.
-   * @param scope - Whether effects stay on one port or may access the peer filesystem.
+   * @param scope - Whether effects stay on one port, use a native database protocol, or may access the peer filesystem.
    * @param effect - Effect guaranteed by the protocol executor, not supplied by the model.
    * @param signal - Operation cancellation and deadline.
    * @param database - Executor-selected protocol database, verified before application queries; omission leaves database scope unknown.
    * @param foldDatabaseCase - Treat database names that differ only in case as possible aliases.
+   * @param databaseResources - Associations for database scope; path-only production resources without a known endpoint remain unverified.
    * @returns A current rule decision; unavailable identity and registry failures never authorize fallback.
+   * @throws TARGET_IDENTITY_UNVERIFIED when an associated resource is missing or is a domain resource.
    */
   checkConnection(
     hostname: string, port: number | undefined, resolution: TargetConnectionResolution | undefined,
-    scope: 'endpoint' | 'filesystem', effect: TargetEffect, signal: AbortSignal, database?: string, foldDatabaseCase: boolean = false,
+    scope: 'endpoint' | 'filesystem' | 'database', effect: TargetEffect, signal: AbortSignal, database?: string, foldDatabaseCase: boolean = false,
+    databaseResources?: readonly DatabaseResourceBinding[],
   ): Promise<TargetDecision> {
-    return this.auditConnection(hostname, port, resolution, scope, effect, signal, database, foldDatabaseCase)
+    if (scope !== 'database' && databaseResources !== undefined) {
+      throw new TargetProtectionError('invalid', 'Database resource associations require database scope.')
+    }
+    return this.auditConnection(hostname, port, resolution, scope, effect, signal, database, foldDatabaseCase,
+      scope === 'database' ? { databases: databaseResources ?? [] } : undefined)
   }
 
   /**
@@ -772,7 +786,7 @@ export default class TargetProtection extends Service {
     const check = async (effect: TargetEffect, signal: AbortSignal): Promise<TargetDecision> => {
       alive()
       return this.auditConnection(hostname, port, resolution, 'filesystem', effect, AbortSignal.any([signal, lifetime]),
-        undefined, false, { revision, ids })
+        undefined, false, { files: { revision, ids } })
     }
     return {
       activate: () => { alive(); active = true },
@@ -786,23 +800,23 @@ export default class TargetProtection extends Service {
 
   private auditConnection(
     hostname: string, port: number | undefined, resolution: TargetConnectionResolution | undefined,
-    scope: 'endpoint' | 'filesystem', effect: TargetEffect, signal: AbortSignal, database?: string, foldDatabaseCase = false,
-    remoteFiles?: { readonly revision: number; readonly ids: ReadonlySet<TargetRuleId> },
+    scope: 'endpoint' | 'filesystem' | 'database', effect: TargetEffect, signal: AbortSignal, database?: string, foldDatabaseCase = false,
+    resources?: ConnectionResources,
   ): Promise<TargetDecision> {
     this.lifetime.signal.throwIfAborted()
     const subject: AuditSubject = { operation: 'connection', effect, phase: resolution === undefined ? 'preflight' : 'execution',
       identity: ['network', hostname, port, database],
       ...resolution === undefined ? {} : { peers: resolution.addresses.map(address => address.address) } }
     const operation = this.audited(subject, signal, () => this.connectionDecision(hostname, port, resolution, scope, effect,
-      signal, database, foldDatabaseCase, remoteFiles)).then(result => result.decision)
+      signal, database, foldDatabaseCase, resources)).then(result => result.decision)
     this.checking.add(operation)
     return operation.finally(() => { this.checking.delete(operation) })
   }
 
   private async connectionDecision(
     hostname: string, port: number | undefined, resolution: TargetConnectionResolution | undefined,
-    scope: 'endpoint' | 'filesystem', effect: TargetEffect, signal: AbortSignal, database: string | undefined, foldDatabaseCase: boolean,
-    remoteFiles?: { readonly revision: number; readonly ids: ReadonlySet<TargetRuleId> },
+    scope: 'endpoint' | 'filesystem' | 'database', effect: TargetEffect, signal: AbortSignal, database: string | undefined, foldDatabaseCase: boolean,
+    resources?: ConnectionResources,
   ): Promise<VersionedDecision> {
     const name = canonicalTargetHost(hostname)
     if (resolution !== undefined && resolution.hostname !== name) {
@@ -816,7 +830,7 @@ export default class TargetProtection extends Service {
       addresses: resolution === undefined ? null : resolution.addresses.flatMap(address =>
         address.translatedIpv4 === undefined ? [address.address] : [address.address, address.translatedIpv4]),
     }
-    return await this.decideNetwork(target, effect, resolution === undefined, signal, remoteFiles)
+    return await this.decideNetwork(target, effect, resolution === undefined, signal, resources)
   }
 
   private dnsOptions() {
@@ -863,20 +877,28 @@ export default class TargetProtection extends Service {
 
   private async decideNetwork(
     target: NetworkTarget, effect: TargetEffect, beforeResolution: boolean, signal: AbortSignal,
-    remoteFiles?: { readonly revision: number; readonly ids: ReadonlySet<TargetRuleId> },
+    resources?: ConnectionResources,
   ): Promise<VersionedDecision> {
     using timeout = deadline(AbortSignal.any([signal, this.executionSignal()]), this.config.checkTimeoutMs, 'TARGET_CHECK_TIMEOUT')
     const store = await this.ready
     for (let attempt = 0; attempt < this.config.maxRechecks; attempt++) {
       timeout.signal.throwIfAborted()
-      const snapshot = store.snapshot()
+      const stored = store.snapshot()
+      const snapshot = resources?.databases === undefined ? stored : projectDatabaseResources(stored, resources.databases)
       const checked = (decision: TargetDecision): VersionedDecision => ({ revision: snapshot.revision, decision })
-      if (remoteFiles !== undefined && snapshot.revision !== remoteFiles.revision) {
+      if (resources?.databases !== undefined) {
+        const unresolved = snapshot.preferences.rules.filter(rule => rule.enabled && rule.environment === 'production'
+          && rule.match === 'path' && (rule.aliases ?? []).every(alias => alias.match === 'path'))
+        if (unresolved.length > 0) {
+          return checked({ allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED', ruleIds: unresolved.map(rule => rule.id) })
+        }
+      }
+      if (resources?.files !== undefined && snapshot.revision !== resources.files.revision) {
         return checked({ allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED', ruleIds: [] })
       }
       if (target.spansServicePorts) {
         const unresolved = expandTargetRules(snapshot.preferences).filter(rule =>
-          rule.enabled && rule.environment === 'production' && rule.match === 'path' && !remoteFiles?.ids.has(rule.id))
+          rule.enabled && rule.environment === 'production' && rule.match === 'path' && !resources?.files?.ids.has(rule.id))
         if (unresolved.length > 0) {
           return checked({ allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED', ruleIds: unresolved.map(rule => rule.id) })
         }
