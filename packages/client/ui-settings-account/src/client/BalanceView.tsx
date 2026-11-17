@@ -10,7 +10,7 @@ import type { BalancePreferences, BalanceSnapshot, BalanceWallet } from '@deepse
 import type { BalanceController, BalanceViewState } from './balance-controller.ts'
 import { BalanceHistory } from './BalanceHistory.tsx'
 import { balancePeriod, balancePeriodEnd } from './balance-hours.ts'
-import { formatBalance } from './formatBalance.ts'
+import { formatBalance, formatBalanceDetail } from './formatBalance.ts'
 import { RollingAmount } from './RollingAmount.tsx'
 import css from './BalanceView.module.css'
 
@@ -71,7 +71,7 @@ function BalanceDetails({ data, refreshing = false, t }: { data: BalanceSnapshot
   }
   const samples = data.samples.flatMap((sample) => {
     const entry = sample.wallets.find(value => value.currency === currency)
-    return entry === undefined ? [] : [{ time: sample.time, value: total(entry).toNumber() }]
+    return entry === undefined ? [] : [{ time: sample.time, value: total(entry).toNumber(), exactValue: total(entry).toString() }]
   })
   const first = data.samples.find(sample => sample.wallets.some(entry => entry.currency === currency))
     ?.wallets.find(entry => entry.currency === currency)
@@ -92,7 +92,7 @@ function BalanceDetails({ data, refreshing = false, t }: { data: BalanceSnapshot
       help={t('balance.historyHelp')} compressionHint={t('balance.compressionHint')} stepIncreases />
     {samples.length === 1 && <p className={css.hint}>{t('balance.single')}</p>}
     <dl className={css.stats}>
-      <div><dt>{t('balance.change')}</dt><dd>{amount(total(wallet).minus(first === undefined ? total(wallet) : total(first)).toString(), currency)}</dd></div>
+      <div><dt>{t('balance.change')}</dt><dd>{formatBalanceDetail(total(wallet).minus(first === undefined ? total(wallet) : total(first)).toString(), currency === 'CNY' ? '¥' : '$')}</dd></div>
       <div><dt>{t('balance.samples')}</dt><dd>{data.sampleCount}</dd></div>
       <div><dt>{t('balance.updated')}</dt><dd>{new Date(latest.time).toLocaleString()}</dd></div>
     </dl>

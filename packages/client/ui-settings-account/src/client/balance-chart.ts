@@ -4,6 +4,8 @@
 export interface BalanceChartSample {
   readonly time: number
   readonly value: number
+  /** Original decimal amount retained for inspection; geometry uses value. */
+  readonly exactValue?: string
 }
 
 /** Drawable curve and original sample positions on its displayed time axis. */

@@ -19,3 +19,15 @@ function addCommas(value: string): string {
   const [integer, fraction] = value.split('.')
   return `${Number(integer).toLocaleString()}.${fraction}`
 }
+
+/**
+ * Preserve the sampled decimal amount for history inspection, with at least two decimal places.
+ * @param amount - Original decimal observation or exact interval change.
+ * @param symbol - Currency symbol.
+ * @returns Grouped currency text without discarding sub-cent changes.
+ */
+export function formatBalanceDetail(amount: string, symbol: '¥' | '$'): string {
+  const value = new Big(amount)
+  const [integer, fraction = ''] = value.abs().toFixed().split('.')
+  return `${value.lt(0) ? '-' : ''}${symbol}${Number(integer).toLocaleString()}.${fraction.padEnd(2, '0')}`
+}

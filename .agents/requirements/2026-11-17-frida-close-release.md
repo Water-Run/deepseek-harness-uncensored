@@ -13,3 +13,7 @@
 另按用户明确例外授权，仅修复冻结 `v0.2.2-rc.1` 指南中两处 URL 并重算配对记录；迁移文字不变。全仓 2,356 份文档的相对链接及锚点通过。
 
 材料位于 `%USERPROFILE%/DSHU-Deliveries/20261117/`：`linux-17-2-frida.log` 为原失败，`frida-ordering-runtime-{windows,linux}.log` 为两平台对照，`frida-patch-staging-accepted.log` 为暂存检查，`frida-17-2-owned-target-cleanup.json` 为精确清理回执。最终发布使用包含修复的更高日期序号，并重新检查实际包与安装结果。
+
+## 最终实包复核
+
+Linux 17.3 实包两个用例通过，Windows 实装附加用例通过、暂停启动目标的最终退出仍失败，目标已写入标记但仍存活。前面的隔离对照不能证明完全消除该问题，17.3 发布说明已保留此限制；按确切路径、摘要和保留句柄清理了失败自建目标。没有修改退出断言或重跑为绿色。完整结果见[交付记录](2026-11-17.3-delivery.md)。

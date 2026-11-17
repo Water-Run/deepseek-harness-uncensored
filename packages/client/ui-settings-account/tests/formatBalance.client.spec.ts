@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { formatBalance } from '../src/client/formatBalance.ts'
+import { formatBalance, formatBalanceDetail } from '../src/client/formatBalance.ts'
 
 it.each([
   ['0.000000', '¥0.00'], ['12.34000000', '¥12.34'], ['1234.56999', '¥1,234.56'],
@@ -10,3 +10,6 @@ it.each([
 ])('formats %s using Platform currency rules', (amount, expected) => {
   expect(formatBalance(amount, '¥')).toBe(expected)
 })
+
+it.each([['63.88541800', '¥63.885418'], ['-0.005871', '-¥0.005871'], ['0E-16', '¥0.00'], ['1E-8', '¥0.00000001']])(
+  'preserves the exact inspected amount %s', (amount, expected) => { expect(formatBalanceDetail(amount, '¥')).toBe(expected) })

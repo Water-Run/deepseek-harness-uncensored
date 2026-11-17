@@ -6,6 +6,21 @@ import { balanceChart, nearestBalanceSample } from '../src/client/balance-chart.
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 
+it('reveals distinct sub-cent balances while moving across the original observations', () => {
+  const values = ['63.889919', '63.885418', '63.880017']
+  render(<BalanceHistory samples={values.map((exactValue, index) => ({ time: index * 1000, value: Number(exactValue), exactValue }))}
+    symbol="¥" label="History" help="Inspect samples" />)
+  const slider = screen.getByRole('slider', { name: 'History' })
+  Object.defineProperty(slider, 'getBoundingClientRect', { value: () => new DOMRect(0, 0, 264, 110) })
+  for (const [index, clientX] of [6, 132, 258].entries()) {
+    fireEvent(slider, new MouseEvent('pointermove', { bubbles: true, clientX, clientY: 55 }))
+    expect(screen.getByRole('status').textContent).toContain(`¥${values[index]}`)
+    expect(slider.getAttribute('aria-valuenow')).toBe(String(index))
+  }
+  expect(screen.getByText('¥63.8899')).toBeTruthy()
+  expect(screen.getByText('¥63.88')).toBeTruthy()
+})
+
 it('inspects original samples by keyboard and clears the tooltip after losing focus', () => {
   const samples = Array.from({ length: 500 }, (_, index) => ({ time: index * 1000, value: 500 - index }))
   render(<BalanceHistory samples={samples} symbol="¥" label="History" help="Inspect samples" />)

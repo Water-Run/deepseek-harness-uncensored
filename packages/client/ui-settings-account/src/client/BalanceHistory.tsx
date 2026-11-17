@@ -3,7 +3,7 @@ import { useId, useMemo, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
 import { Big } from 'big.js'
 import { balanceChart, nearestBalanceSample, type BalanceChartSample } from './balance-chart.ts'
-import { formatBalance } from './formatBalance.ts'
+import { formatBalanceDetail } from './formatBalance.ts'
 import css from './BalanceView.module.css'
 
 function besidePointer(pointer: number, span: number, size: number): number {
@@ -38,9 +38,11 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
   const geometry = useMemo(() => balanceChart(samples, { stepIncreases, compressFlat }), [samples, stepIncreases, compressFlat])
   const first = samples[0], last = samples.at(-1), range = geometry.range
   if (first === undefined || last === undefined || range === undefined) return null
-  const format = formatValue ?? ((value: number): string => formatBalance(new Big(value).toString(), symbol))
+  const axisDigits = range.low === range.high ? 2 : Math.max(2, Math.min(8, 1 - Math.floor(Math.log10(range.high - range.low))))
+  const format = formatValue ?? ((value: number): string => formatBalanceDetail(new Big(value).toFixed(axisDigits), symbol))
   const selected = Math.min(samples.length - 1, Math.max(0, hover?.index ?? cursor ?? samples.length - 1))
   const sample = samples[selected] ?? last
+  const sampleAmount = formatValue?.(sample.value) ?? formatBalanceDetail(sample.exactValue ?? new Big(sample.value).toString(), symbol)
   const active = hover !== null || focused
   const ratio = geometry.positions[selected] ?? 0
   const x = 52 + ratio * 252
@@ -95,7 +97,7 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
       </div>
       <div className={css.plotControl} role="slider" tabIndex={0} aria-label={label} aria-describedby={compressed ? `${id} ${id}-compressed` : id}
         aria-valuemin={0} aria-valuemax={samples.length - 1} aria-valuenow={selected}
-        aria-valuetext={`${new Date(sample.time).toLocaleString()} · ${format(sample.value)}`}
+        aria-valuetext={`${new Date(sample.time).toLocaleString()} · ${sampleAmount}`}
         onPointerMove={inspect} onPointerDown={inspect} onPointerLeave={() => { setHover(null) }} onPointerCancel={() => { setHover(null) }}
         onFocus={() => { setFocused(true) }} onBlur={() => { setFocused(false); setHover(null) }}
         onKeyDown={(event) => {
@@ -116,7 +118,7 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
         {(active || geometry.kind === 'single') && <span className={css.samplePoint} style={{ left: `${(x - 46) / 264 * 100}%`, top: `${y / 110 * 100}%` }} />}
         {active && <div className={css.sampleTip} data-follow-pointer={hover !== null} ref={placeTip} role="status">
           <time dateTime={new Date(sample.time).toISOString()}>{new Date(sample.time).toLocaleString()}</time>
-          <strong>{format(sample.value)}</strong>
+          <strong>{sampleAmount}</strong>
         </div>}
       </div>
     </div>

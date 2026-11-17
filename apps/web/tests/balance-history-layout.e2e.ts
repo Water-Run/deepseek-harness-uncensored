@@ -8,6 +8,45 @@ import type {} from '@deepseek-ai/dsh-balance'
 import { launchWebScaffold } from './scaffold.ts'
 import { openSettings, ZH_BROWSER_LOCALE } from './support.ts'
 
+it('distinguishes sub-cent observations under the pointer in both palettes', async () => {
+  const scaffold = await launchWebScaffold({ developerTools: false,
+    extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
+  onTestFinished(() => scaffold.close())
+  await scaffold.ctx.settings.mutate('ui-settings-account', [
+    { op: 'set', path: ['step'], value: 'done' }, { op: 'set', path: ['completion'], value: 'completed' },
+  ])
+  const amounts = ['63.889919', '63.885418', '63.880017']
+  const balance = vi.spyOn(scaffold.ctx.uncensoredBalance, 'get').mockResolvedValue({ status: 'ready', source: 'api',
+    account: 'api-key', sampleCount: 3, samples: amounts.map((toppedUp, index) => ({ time: Date.UTC(2026, 10, 17, 1, index),
+      wallets: [{ currency: 'CNY', toppedUp, granted: '0' }] })) })
+  onTestFinished(() => { balance.mockRestore() })
+  const browser = await chromium.launch(process.platform === 'win32' ? { channel: 'msedge' } : {})
+  onTestFinished(() => browser.close())
+  const page = await browser.newPage({ viewport: { width: 1000, height: 800 }, locale: ZH_BROWSER_LOCALE,
+    timezoneId: 'Asia/Shanghai', reducedMotion: 'reduce' })
+  await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
+  await openSettings(page, 'zh')
+  const dialog = page.getByRole('dialog', { name: '设置', exact: true })
+  await dialog.getByRole('navigation').getByRole('button', { name: '额度', exact: true }).click()
+  const plot = dialog.getByRole('slider')
+  await plot.waitFor()
+  const screenshots = fileURLToPath(new URL('../../../.artifacts/screenshots/balance-precision', import.meta.url))
+  await mkdir(screenshots, { recursive: true })
+  for (const preference of ['light', 'dark'] as const) {
+    await scaffold.ctx.settings.update('ui-theme', { preference })
+    const rect = await plot.boundingBox()
+    if (rect === null) throw new Error('Balance plot is missing')
+    for (const [index, ratio] of [6 / 264, .5, 258 / 264].entries()) {
+      await page.mouse.move(rect.x + rect.width * ratio, rect.y + rect.height / 2)
+      await expect.poll(() => plot.getByRole('status').innerText()).toContain(`¥${amounts[index]}`)
+      expect(await plot.getAttribute('aria-valuenow')).toBe(String(index))
+    }
+    expect(await dialog.getByText('-¥0.009902', { exact: true }).count()).toBe(1)
+    expect(await dialog.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+    await dialog.screenshot({ path: join(screenshots, `${preference}.png`) })
+  }
+})
+
 describe.each([{ name: 'Chromium', engine: chromium }, { name: 'WebKit', engine: webkit }])('balance history layout ($name)', ({ name, engine }) => {
   it('refits a retained sample bubble after a plot resize in both palettes and font sizes', async () => {
     const scaffold = await launchWebScaffold({ developerTools: false,
