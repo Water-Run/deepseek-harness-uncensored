@@ -20,7 +20,7 @@
 - 所属目录生成器 10 项、2 项文档测试、两组双语配对及 2,358 份文档的链接检查通过。
 - 故障对照将派生策略中的完全保护错误降为审计，服务器保护用例检出错误允许；源码随后逐字节恢复并核对 SHA-256。首个对照被既有选择器校验提前拒绝，未将其作为越权检测证据。
 
-测试使用独立临时目录、随机回环监听器及自有凭据。PostgreSQL 受控端点的确认不等于真实数据库引擎落盘或生产服务器验收；MySQL 测试握手不代表完成认证及真实写入。没有连接用户或生产数据库。
+首批检查使用受控协议端点，不能据此推定数据库引擎落盘。后续已由 Linux 17.6 实包完成 PostgreSQL 16.15 和 MySQL 8.0.46 的实际引擎验证：增删改独立回读、超限保护、服务器审计及存储重开均通过，见[实际引擎记录](2026-11-17-native-database-engines.md)。这些是自建实例，没有连接用户或生产数据库；实体服务器和通用物理身份仍未验收。
 
 材料在 `%USERPROFILE%/DSHU-Deliveries/20261117/`，前缀 `database-resources-`，主要为 `native-scope.log`、`linux-final.log`、`snapshots-final.log`、`build.log`、`built-smoke.log`、`declarations.log`、`contracts.log`、`lint-corrected.log`、`negative-policy.log` 与 `negative-policy-restored.json`。
 

@@ -25,7 +25,7 @@ Windows 无脚本暂停 Frida 会话在关闭前复用现有流程完成空脚�
 
 [SSH 资源匹配回执](requirements/2026-11-17-ssh-resource-receipts.md)已随本地 17.6 交付。客户端和 helper 使用协议 4，需配套部署并更新固定摘要；原始 Session 录制和持久化字段未改动。
 
-[PostgreSQL/MySQL 资源关联](requirements/2026-11-17-database-resource-bindings.md)已随本地 17.6 交付，配置与兼容变化在包内迁移指南中。`resourceIds` 默认空列表；未知生产路径不能通过未关联绑定绕过。实际数据库引擎、物理数据文件身份及完整平台验收继续保留。
+[PostgreSQL/MySQL 资源关联](requirements/2026-11-17-database-resource-bindings.md)已随本地 17.6 交付。后续 [PostgreSQL 16.15 与 MySQL 8.0.46 实际引擎](requirements/2026-11-17-native-database-engines.md)共 14 场景通过，验证数据回读、超限保护、服务器策略和存储重开，两引擎均正常退出、连接清空。没有启动 Docker、注册系统数据库服务或修改产品代码。物理数据文件身份及完整平台验收继续保留。
 
 ## 工作约束
 
