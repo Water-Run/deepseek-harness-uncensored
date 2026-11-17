@@ -1,48 +1,31 @@
 # DSHU 开发交接
 
-**2026.11.17.4 已公开预发布、保留数据安装并启动。** 用户在 17.4 发布暂停后已恢复 Goal，要求继续推进到可发布；完整目标不标为完成，现有 36 项完成、9 项进行中及 3 项未来计划保留在 [TODO](TODO.md)。用户要求停止过度测试，继续时只补必要功能与有实际依据的检查。
-
-## 当前推进
-
-Windows 未初始化暂停目标关闭已有更小的源码修正，保留 Frida 17.23.2；Windows/Linux 各两项通过，包含各自连续三个无脚本暂停目标，16 项补丁暂存检查通过。尚未改动安装版，下一版核对管理器 SHA-256 `7d6fa8fca95b7168cdbc629d7a717d597845de3ce4e42793076471ff7d0666ea` 并完成实际包复核。[修复记录](requirements/2026-11-17-frida-prime-close.md)
-
-文档与仓库整理已按 17.4 结项；默认/唯一分支 main、开放 PR 零、两个预发布与资产来源一致，安全扫描与自动更新设置已读取确认，没有改设置。[记录](requirements/2026-11-17-repository-release-check.md)
-
-Frida 17.25.1 与 17.26.4 的暂停目标用例通过，但附加场景的私有目录清理仍失败；未升级锁文件或安装版。已保留原始错误与清理错误，诊断不再以覆盖的异常作结论。继续定位占用或取得对应修复，并推进独立发布项目；避免重复无信息增量的测试。[版本对照](requirements/2026-11-17-frida-version-qualification.md)
-
-## 最新更新
-
-余额历史精度修复已随 **2026.11.17.4** 公开预发布、安装并正常启动；以下 17.3 材料保留为前置版本证据。当前源码 `be3bce8fc74556fc70b1b36dd2cf22e6bb88ffd3`，当前显示/内部版本为 `2026.11.17.4` / `2026.1117.4`。[17.4 发布](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.4) · [交付](requirements/2026-11-17.4-delivery.md)
-
-当前备份为 `D:/DSHU-Backups/20261117T041647Z-before-20261117-4-data`，7,354 文件、0 链接，安装后摘要一致；回退包为已保留的 17.3。主 PID `152932`、Host `125904` 于北京时间 12:25 启动，观察期无新崩溃。操作前重新验证身份。17.4 实装三个悬浮位置的金额与区间差值通过；测试夹具只注入私有浏览器响应，没有改用户数据。
-
-三份发布资产与 SHA256SUMS.txt 已核对远端摘要。当前材料在 `candidate-2026.11.17.4`，发布回执 `release-17-4-publish-retry.json`；用户要求在本次发布收尾后暂停 Goal。17.3 已知限制保持记录，不将完整目标标为完成。
+**2026.11.17.5 已公开预发布、保留数据安装并启动，Goal 保持活动。** 当前 36 项完成、9 项进行中及 3 项未来计划，完整范围见 [TODO](TODO.md)。用户要求继续推进到可发布、减少过度测试；不要反复运行无信息增量的验证。
 
 ## 当前交付
 
-[GitHub Release](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.3) 已发布，ID `448021189`，标签 `v2026.11.17.3`；未签名公开预发布，提供 Windows x64 exe、Linux x64 deb/tar.gz 和 SHA256SUMS.txt，所有远端摘要与本地一致。[交付记录](requirements/2026-11-17.3-delivery.md)
+[17.5 Release](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5)，ID `448298712`。未签名手动安装，提供 Windows exe、Linux deb/tar.gz 和 SHA256SUMS.txt，远端摘要与本地一致。构建源码 `7a5d82454ad380b65f9abc18a2e126de2ba40c74`，显示/内部版本 `2026.11.17.5` / `2026.1117.5`。[交付记录](requirements/2026-11-17.5-delivery.md)
 
-构建源码 `e31577def4e7e0eff5441d27a1f4ea04a6336046`，显示/内部版本 `2026.11.17.3` / `2026.1117.3`，DSH `0.2.2-rc.3`，REA `6.9.0` 加固定关闭顺序补丁。运行时、四模式、旁问、删除、命令和主要界面通过实装检查；Linux 归档与 Wayland 通过。本轮没有重跑完整 Web 基线。
+Windows 无脚本暂停 Frida 会话在关闭前复用现有流程完成空脚本初始化，再卸载、恢复和分离。保留 REA 6.9.0 与 Frida 17.23.2，两平台真实包各两项通过，包含连续三个无脚本暂停目标，目录清理成功。管理器 SHA-256 `7d6fa8fca95b7168cdbc629d7a717d597845de3ce4e42793076471ff7d0666ea`。[修复说明](requirements/2026-11-17-frida-prime-close.md)
 
-中央文件映射、请求审计和未交付流清理已随包。Windows Frida 附加/卸载/重置通过，但暂停启动目标关闭后仍偶发存活；Linux 本批两个用例通过。不要把之前的隔离对照当作缺陷已完全修复，发布说明已记录限制。失败自建进程已按确切身份清理。[Frida 记录](requirements/2026-11-17-frida-close-release.md)
+17.25.1/17.26.4 原生绑定候选没有采用，目录清理失败证据保留。不要重新升级候选或把其结果当作成功。[对照记录](requirements/2026-11-17-frida-version-qualification.md)
 
-用户已批准两个冻结指南链接例外；仅 URL 及配对记录改变，迁移步骤不变，全仓 2,356 份文档链接通过。Windows 919 包中 6 项、Linux 921 包中 8 项许可材料仍待核查，完整进阶保护、实体平台、签名自动升级等未验收项继续保持事实状态。
+余额历史精度修复已在 17.4 实装验证，17.5 保留该代码；没有重复整轮界面回归。当前 Windows 实装 API、四模式、旁问、删除与受控命令通过，Linux 归档/API 通过。完整进阶保护、实体平台、签名自动升级及许可证材料仍保留未验收状态，不宣称整体完成。
 
-## 恢复与运行状态
+## 恢复与运行
 
-- 备份 `D:/DSHU-Backups/20261117T032827Z-before-20261117-3-data`，7,350 文件、0 链接，安装后逐项摘要一致；官方 DSH 两个关键文件未变。恢复前另存当前数据。
-- 回退安装器保留为 `2026.11.17.1`，SHA-256 `6adf3f7d2ccc7f6c62b1e85fdb1c0fe0e0de04f4791ee39fef19931dbd5437cf`。
-- 正常用户 DSHU 于北京时间 11:36 启动，主 PID `138520`、Host PID `147976`，窗口响应、观察期无新崩溃。后续操作前重新验证进程路径和启动时间；旧主进程终止不是正常退出验收。
-- 交付材料为 `%USERPROFILE%/DSHU-Deliveries/20261117/candidate-2026.11.17.3`；公开回执 `release-17-3-published.json`，安装回执 `installed-update-result.json`，当前状态 `current-development-checkpoint.json`。Linux 包在 `D:/DSHU-Deliveries/20261117`。
-- Windows、Ubuntu 私有检出均保留历史 stash；Ubuntu 源码已同步到本版构建提交。先前备份与恢复安装器不删除。
+- 备份 `D:/DSHU-Backups/20261117T082113Z-before-20261117-5-data`：7,358 文件、0 链接，安装后摘要一致；官方 DSH 两个关键文件未变。恢复前另存当前数据。
+- 回退包为 17.4，摘要 `a24505178b3fc26e1f871a4c5fba1c166bcfa7131b7e9f6aeb5435b9321c72dc`。本版材料为 `%USERPROFILE%/DSHU-Deliveries/20261117/candidate-2026.11.17.5`；Linux 文件在 `D:/DSHU-Deliveries/20261117`。
+- 正常用户程序于北京时间 16:30 启动，主 PID `163172`，观察期间响应且没有新增崩溃。操作前重新验证进程路径和启动身份。旧主进程明确终止，不能记作正常退出验收。
+- 主要回执：`release-17-5-published.json`、`installed-update-result.json`、`normal-launch-17-5-result.json`、`current-development-checkpoint.json`。历史源码、失败记录、stash 和备份保留。
 
 ## 工作约束
 
-保持 main、中文提交和正常 hooks，不使用 Computer Use；用户已授权本次公开发布和安装，未授权签名或系统重启。用户已恢复开发，当前保持 Goal 活动。macOS ARM、Android＋Fedora PRoot及新安装器仍属于用户明确的未来计划。
+保持 main、中文提交及正常 hooks，不使用 Computer Use。用户已授权本次发布、安装和重启 DSHU；没有授权签名或重启系统。恢复后 Goal 继续活动，不沿用此前已经履行的暂停指令。
 
-默认高级保护与全部限额关闭，输入预测开启，余额 15 秒/最小 3 秒，关闭旁问自动清理关闭，`/clear` 只在旁问可用。原保护范围与编号不删除、不转为已完成。
+高级保护和所有限额默认关闭，输入预测开启，余额默认 15 秒/最小 3 秒，关闭旁问自动清理关闭，`/clear` 仅旁问可用。macOS ARM、Android＋Fedora PRoot 和全新安装器本轮不开发。
 
-本机 Windows 构建使用 `VCToolsVersion=14.52.36629`、`MSVCPreviewEnabled=true`。镜像/代理故障后，私有 `apps/desktop/.env.windows` 的 registry 改为 `https://registry.npmjs.org`，只改这一行；GitHub REST 上传在进程内清除代理后成功。未修改系统代理或供应链校验。最终构建 run 见交付记录。
+Windows 构建使用 `VCToolsVersion=14.52.36629`、`MSVCPreviewEnabled=true`。私有 `.env.windows` 使用 npm 官方 registry；代理下载失败后，仅在本次进程中清除代理变量直连成功。供应链检查未放宽。首次 pnpm 烟测超时后，同一运行时独立检查通过；后续成功 run 见交付记录。
 
 ## 清理与工作约束
 

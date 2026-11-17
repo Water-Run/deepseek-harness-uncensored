@@ -1,6 +1,6 @@
 # 开发项目进度
 
-**已公开预发布并安装 2026.11.17.4。** 基于 DSH 0.2.2-rc.3、REA 6.9.0，构建源码 `be3bce8fc7`。余额历史精度修复已实装验证。用户已恢复 Goal 并要求继续推进到可发布，完整清单及未验收项保留。[发布](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.4) · [交付与恢复](requirements/2026-11-17.4-delivery.md)
+**已公开预发布并安装 2026.11.17.5。** 构建源码 `7a5d82454a`，Windows/Linux 实包 Frida 验收通过，含每平台连续三个无脚本暂停目标。数据保全和启动检查通过，完整 Goal 保持活动。[发布](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5) · [交付与恢复](requirements/2026-11-17.5-delivery.md)
 
 **回归范围：** 完整 Web 基线 `668ec5146d` 为前置 10 项、主批次 1,077 项通过，32 项条件跳过；后续提交以定向回归、完整 Worker 预览和两平台实际产物复核，原始 Session 不变。[基线](requirements/2026-11-16-regression-followup.md) · [本版](requirements/2026-11-17.1-delivery.md)
 
@@ -61,7 +61,7 @@
 - [ ] **网安特化与独立代理 — 约 95%**（10.01–10.08）：剩余正式插件来源/升级、现有桌面和进阶保护联动验收。[记录](requirements/2026-11-03-browser-proxy.md)
 - [ ] **官方版并存与桌面交付 — 约 95%**（02.02、02.04、02.06、02.09、02.12、17.07）：保留数据更新已通过；剩余自动回退、系统重启、签名及正式在线升级。[记录](HANDOFF.md)
 - [ ] **构建产物清理 — 约 95%**（17.09）：本轮维护私有包缓存，移除 49,184 文件、784 包，D 盘净空闲增加约 1.27 GiB；`.17.1` 失败解包副本约 1.90 GiB 及此前拒绝目录仍被自动审批阻止删除，保留且不重试。[路径与记录](HANDOFF.md#清理与工作约束)
-- [ ] **稳定性与完整需求总验收 — 约 85%**（00.08、05.08、05.10、17.01、17.03–17.08）：完整 Web 与桌面单元回归、Windows 保留数据实装已验收；Frida Linux 最终实包通过，Windows 无脚本暂停目标关闭已补齐源码修正，双平台定向用例通过，待实包复核；新 Frida 候选未采用；SSH 清理与审计已随 17.3 分发。剩余原生/关机、任意已有进程、远程设备及商业引擎等场景。[稳定性](requirements/2026-11-06-stability.md) · [SSH 取消](requirements/2026-11-16-ssh-cancellation.md) · [SSH 关闭确认](requirements/2026-11-17-ssh-shutdown.md) · [会话路由](requirements/2026-11-17-ssh-session-routing.md)
+- [ ] **稳定性与完整需求总验收 — 约 85%**（00.08、05.08、05.10、17.01、17.03–17.08）：完整 Web 与桌面单元回归、Windows 保留数据实装已验收；Frida Linux 最终实包通过，Windows 无脚本暂停目标关闭已随 17.5 分发，双平台实包用例通过；未通过的 Frida 原生库候选未采用；SSH 清理与审计已随 17.3 分发。剩余原生/关机、任意已有进程、远程设备及商业引擎等场景。[稳定性](requirements/2026-11-06-stability.md) · [SSH 取消](requirements/2026-11-16-ssh-cancellation.md) · [SSH 关闭确认](requirements/2026-11-17-ssh-shutdown.md) · [会话路由](requirements/2026-11-17-ssh-session-routing.md)
 - [ ] **更新下载与发布路径 — 约 90%**（15.06）：日期版排序、原生比较和直接安装已通过；`.16.4` 已交付限流与普通 403 的区分、冷却及显式重试，两平台双语 Web 和实际安装资源检查通过。旧 403 原因仍未知；三份公开资产及校验文件已上传并核对摘要；签名和自动更新器全链验收仍未完成。[记录](requirements/2026-11-16-release-check.md)
 - [ ] **依赖许可证审计 — 约 85%**（16.07）：实包 Windows 919 包中 6 项、Linux 921 包中 8 项仍待核查；clean-git-ref 的发布归属和实装核对已完成，保留补充原文与摘要。[明细](requirements/2026-11-03-dependency-notices.md)
 - [ ] **保护审计与各功能联动 — 约 85%**（05.06、09.09–09.11、10.05）：默认关闭的进阶功能；Inspector 可选入口已随包，普通调试入口不隐式受保护。SSH 按会话连接和独立代理已完成可选入口源码、双平台定向回归及 `.17.1` 包内导入；中央文件映射、文件请求结果与会话审计已补齐源码；剩余 helper 匹配资源的证明、独立 Worker 部署、数据库映射、入站、其他协议和最终装配。[记录](requirements/2026-11-02-native-execution.md)
