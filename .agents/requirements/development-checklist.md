@@ -287,14 +287,14 @@
 - [x] **16.05** 已保留 DeepSeek Harness、YuJunZhiXue/小杨、JeffKeeping、Water-Run 及 GitHub 图标等 Credit；保留上游 MIT 与相关许可文件。
 - [x] **16.06** 根整合发行使用 GPL-3.0-or-later。已集成 armor 文本对照 MIT 历史提交；fork 参考节点与可复用内容的授权节点分开记录。
 - [ ] **16.07〔进行中〕** npm 声明清单和独立 Node/Python/pnpm 清单已进入构建。Windows 实装及独立重建核对 14 个 Python 包、88 份声明，Windows npm 有七项待核查。Linux 已匹配实包的 libvips、Sherpa-ONNX 和 ONNX Runtime，补充原文后仍有九项待核查。Windows、Linux 实包已核对 Electron 原文，Windows 已核对 7-Zip 原文及五个 NSIS 插件的二进制归属。NSIS 工具集原文已接入打包。内嵌组件、个别插件的源码许可、其他平台及整合发行义务仍待完成。purge 使用已固定的 MIT 历史内容，后续分支不能按 fork 来源直接纳入。详见[许可审计](2026-11-03-dependency-notices.md)。
-- [ ] **16.08〔持续验收〕** README 与模式说明、提示词、真实工具列表保持一致；不能宣传所有保护、代理、记忆、逆向后端或更新流程已经完成。
+- [x] **16.08〔17.4 已核对〕** README、模式说明、版本与实际工具范围保持一致，公开列出保护、逆向和签名升级限制；后续版本继续同步，当前不宣传完整 Goal 已完成。见[发行核对](2026-11-17-repository-release-check.md)。
 
 <a id="group-17"></a>
 
 ## 17. 全面审查、原始遗漏与最终验收
 
 - [ ] **17.01〔部分完成〕** 对照原始需求逐项审查 DeepSeek 的修改：前端、后端、状态持久化、SDK、工具组合、错误处理、卸载/重启和恢复路径；保留具体缺陷与验证证据。
-- [ ] **17.02〔结构已验收，发行待核对〕** 远端仅有 `main`，开放 PR 为零，当前树无受版本管理的 Actions 工作流，独立根提交核对见 `.dsh-build/repository-scope-audit-20261110.json`。2026-11-11 复查时 GitHub 仍列出动态 Dependabot 工作流，仓库的漏洞提醒与自动安全更新均关闭，正式 Releases 列表为空。发行时确认安全更新设置与最终状态。
+- [x] **17.02〔17.4 已核对〕** 远端唯一分支 main、开放 PR 零，无受版本管理的 Actions 文件；动态 Dependabot 工作流仍存在。漏洞提醒与自动安全更新关闭，秘密扫描及 push protection 开启。17.3/17.4 已公开预发布，各四份资产，来源与交付记录一致。本次不改变设置。见[发行核对](2026-11-17-repository-release-check.md)。
 - [ ] **17.03〔部分完成〕** 真实整合启动复现的 `syncInspectManifest` 错误来自记忆 Remote 的 `remove` 与框架保留方法冲突，接口装配撤回后触发下游失败；已改为 `deleteRecord`，并补齐模式资料的 Remote 注册。真实 Gateway 装配测试与匹配构建后启动通过。其余 HMR/Session 释放竞态仍需单独复现，不能把刷新当修复。
 - [x] **17.04** Ubuntu x64 已通过四项 Bash 回放和 16 项历史模式/界面场景，覆盖持久 Shell、图片、手动压缩和旧 PTC 恢复。五份原始 Session 哈希一致，UI 预期补齐当前费用和旁问入口。完整浏览器与跨平台发行验收仍归 17.01、17.07。
 - [ ] **17.05〔待完成〕** 补新能力的 keyless recorded-session 场景、真实模型演示及 TS/Python SDK 必要输出；测试覆盖真正的执行和拒绝路径。

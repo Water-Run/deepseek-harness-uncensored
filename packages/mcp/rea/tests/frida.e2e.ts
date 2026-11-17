@@ -72,7 +72,11 @@ async function harness() {
     }
     await call('rea_tools', { names: toolNames })
     return { ctx, cwd, binary, agent, call, dispose }
-  } catch (error) { await dispose(); throw error }
+  } catch (error) {
+    try { await dispose() }
+    catch (cleanupError) { throw new AggregateError([error, cleanupError], 'REA fixture initialization and cleanup failed') }
+    throw error
+  }
 }
 
 it.skipIf(!enabled || (process.platform !== 'win32' && process.platform !== 'linux'))('restores an owned local function after script unload, session close and REA reset', { timeout: 180_000, retry: 0 }, async () => {
@@ -115,6 +119,7 @@ it.skipIf(!enabled || (process.platform !== 'win32' && process.platform !== 'lin
     expect(await read()).toBe('99')
     return loaded['script_id']!
   }
+  let primaryError: unknown
   try {
     if (process.platform === 'linux') expect(await next()).toBe(`DSHU_FRIDA_PARENT_DEBUGGER ${String(process.pid)}`)
     expect(await next()).toBe('DSHU_FRIDA_TARGET_V1')
@@ -137,6 +142,9 @@ it.skipIf(!enabled || (process.platform !== 'win32' && process.platform !== 'lin
     expect(await read()).toBe('42')
     child.stdin.end('stop\n')
     expect(await deadline(exited)).toEqual([0, null])
+  } catch (error) {
+    primaryError = error
+    throw error
   } finally {
     try { await h.ctx.fiber.dispose() }
     finally {
@@ -145,7 +153,11 @@ it.skipIf(!enabled || (process.platform !== 'win32' && process.platform !== 'lin
         await exited
       } finally {
         lines.close()
-        await h.dispose()
+        try { await h.dispose() }
+        catch (error) {
+          if (primaryError !== undefined) throw new AggregateError([primaryError, error], 'Frida acceptance and fixture cleanup failed')
+          throw error
+        }
       }
     }
   }
