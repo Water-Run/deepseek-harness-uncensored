@@ -10,6 +10,14 @@ Windows 的六项为 `brotli@1.3.3`、`dfa@1.2.0`、`fontkit@2.0.4`、`frida@17.
 
 公开 17.5 的实包清点证据为 `%USERPROFILE%/DSHU-Deliveries/20261117/notice-review/current-17-5-inventory.json`，读取入口为交付目录的 `read-current-17-5-notices.mjs`。两平台产品版本均为 `2026.1117.5`，构建源码均为 `7a5d82454ad380b65f9abc18a2e126de2ba40c74`。仅提取清单，不修改安装、第三方记录或审查标记；前版清点原样保留。
 
+## 固定版本材料复核（2026-11-18）
+
+`dfa@1.2.0`、`minimisted@2.0.1` 和 `proxy-agent-negotiate@1.1.0` 的 npm 归档分别按发布元数据的 SHA-512 完整性值复核，共含 6、7、5 个文件。前两者的 README 仅标注 MIT，后者没有许可正文或版权头；清单中的审查标记保持不变。元数据中的固定提交分别为 `3f5e603e5082caedabefefdf53e8a6ca3111e966` 和 `95fdfb8d6efb9546c1117854fe3a58105f6332ce`；不推定作者字段等同于完整版权声明。[dfa 发布记录](https://registry.npmjs.org/dfa/1.2.0) · [minimisted 发布记录](https://registry.npmjs.org/minimisted/2.0.1)
+
+`proxy-agent-negotiate@1.1.0` 没有 `gitHead` 字段，其 [npm 公开构建声明](https://registry.npmjs.org/-/npm/v1/attestations/proxy-agent-negotiate@1.1.0)指向 `TooTallNate/proxy-agents` 的 `.github/workflows/release.yml`、提交 `b7e5f7ccce1a3ac5b339cc4c587974e8989cbc16`。该固定 Git 树的根目录及 `packages/negotiate` 仍没有许可文件；相邻包的文本继续保留为待核准材料。本轮读取声明字段，没有把它当作完整签名验证或许可授权文件。[固定源码](https://github.com/TooTallNate/proxy-agents/tree/b7e5f7ccce1a3ac5b339cc4c587974e8989cbc16/packages/negotiate)
+
+本轮查询时，minimisted 与 proxy-agent-negotiate 的最新版本仍为 2.0.1 和 1.1.0，没有采用新的运行时版本。归档、发布元数据、逐文件摘要及检查结果在 `%USERPROFILE%/DSHU-Deliveries/20261118/license-review/`；本地 17.8 的待核查数仍为 Windows 6 项、Linux 8 项。
+
 ## Office 0.2.3 声明清点（2026-11-13）
 
 实际 Windows 载荷中的五份原生引擎声明，以及 Linux 工作区中的三份 WASM 引擎声明，均与各自 0.2.3 `prebuilds.json` 的固定摘要一致。清点器现按确切版本记录这些嵌套文件，保留 0.1.5 记录；缺失或空白的原文仍标记待核查。声明路径和摘要回执为当前交付目录中的 `office-023-notice-verification.json` 和 `office-wasm-023-notice-verification.json`。
