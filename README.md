@@ -7,7 +7,7 @@
 
 DSHU 是面向开发、网安、逆向与写作的智能体工作台。它在 DeepSeek Harness 上集成破甲提示词、四种模式、旁问、额度控制和跨对话记忆，使用你选择的模型完成任务。官方 DSH 与 DSHU 可同时安装，分别使用自己的程序目录、配置、会话和更新渠道。
 
-当前公开预发布 **2026.11.17.3** 基于 **DSH 0.2.2-rc.3**，内置 **REA 6.9.0**。[下载 Windows / Linux](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.3)。Windows 已保留数据安装并启动；本版包含远端文件映射、会话审计和流清理。包未签名，Windows Frida 暂停目标关闭仍有已知退出限制，完整实现与验收状态见[开发清单](.agents/TODO.md)和[交付记录](.agents/requirements/2026-11-17.3-delivery.md)。
+当前公开预发布 **2026.11.17.4** 基于 **DSH 0.2.2-rc.3**，内置 **REA 6.9.0**。[下载 Windows / Linux](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.4)。Windows 已保留数据安装并启动；本版修复余额历史小额变化被两位小数隐藏的问题，并包含远端文件映射、审计和流清理。包未签名，已知限制与完整验收状态见[开发清单](.agents/TODO.md)和[交付记录](.agents/requirements/2026-11-17.4-delivery.md)。
 
 版本采用 `YYYY.MM.DD.N`，最后一项为当天构建序号。关于页、CLI、安装包和 Windows 登记使用相同日期版本；DSH 内核与 REA 的来源独立记录。打包与更新规则见[打包指南](apps/desktop/packaging/README.zh.md)。
 

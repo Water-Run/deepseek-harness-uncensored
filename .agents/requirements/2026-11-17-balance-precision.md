@@ -6,4 +6,4 @@
 
 26 项相关单元/组件用例通过，新增一个真实浏览器场景在浅色、深色下移动指针，验证 63.889919、63.885418、63.880017 三个金额及 -¥0.009902 区间变化。截图已检查，原布局无横向溢出。只运行相关验证，未重复全仓回归。
 
-17.3 已公开发布并安装，该显示修复进入后续 17.4 交付。证据位于 `%USERPROFILE%/DSHU-Deliveries/20261117/balance-precision-*`，实际截图在 `.artifacts/screenshots/balance-precision/`。
+该修复已随 [17.4](2026-11-17.4-delivery.md) 公开预发布、安装并完成实装精度验证。证据位于 `%USERPROFILE%/DSHU-Deliveries/20261117/balance-precision-*`，实际截图在 `.artifacts/screenshots/balance-precision/`。

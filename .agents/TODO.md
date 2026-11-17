@@ -1,6 +1,6 @@
 # 开发项目进度
 
-**已公开预发布并安装 2026.11.17.3。** 基于 DSH 0.2.2-rc.3、REA 6.9.0，构建源码 `e31577def4`。用户要求发布后暂停 Goal，保留完整清单且不将未验收项标为完成。[发布](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.3) · [交付与恢复](requirements/2026-11-17.3-delivery.md)
+**已公开预发布并安装 2026.11.17.4。** 基于 DSH 0.2.2-rc.3、REA 6.9.0，构建源码 `be3bce8fc7`。余额历史精度修复已实装验证。用户要求发布收尾后暂停 Goal，完整清单及未验收项保留。[发布](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.4) · [交付与恢复](requirements/2026-11-17.4-delivery.md)
 
 **回归范围：** 完整 Web 基线 `668ec5146d` 为前置 10 项、主批次 1,077 项通过，32 项条件跳过；后续提交以定向回归、完整 Worker 预览和两平台实际产物复核，原始 Session 不变。[基线](requirements/2026-11-16-regression-followup.md) · [本版](requirements/2026-11-17.1-delivery.md)
 
