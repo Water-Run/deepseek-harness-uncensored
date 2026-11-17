@@ -176,8 +176,8 @@ it.skipIf(!enabled)('instruments an owned paused target before resuming it and r
     }, { timeout: 10_000 }).toBe(true)
   }
   try {
-    for (const instrumented of [true, false]) {
-      const marker = join(h.cwd, instrumented ? 'hooked.txt' : 'closed.txt')
+    for (const [index, instrumented] of [true, false, false, false].entries()) {
+      const marker = join(h.cwd, `${instrumented ? 'hooked' : 'closed'}-${String(index)}.txt`)
       const started = await h.call('mcp__rea__start_frida_session', { mode: 'spawn', device_id: 'local', program: h.binary, argv: ['--marker', marker] })
       expect(started).toMatchObject({ mode: 'spawn', state: 'paused' })
       const pid = started['pid']

@@ -1,7 +1,19 @@
 diff --git a/dist/frida/FridaInstrumentationManager.js b/dist/frida/FridaInstrumentationManager.js
 --- a/dist/frida/FridaInstrumentationManager.js
 +++ b/dist/frida/FridaInstrumentationManager.js
-@@ -532,6 +532,20 @@
+@@ -518,6 +518,11 @@
+         const managed = this.#sessions.get(sessionId);
+         if (managed === undefined)
+             return err(unknownFridaSession("close_frida_session", sessionId));
++        if (process.platform === "win32" && managed.device.type === "local" && managed.mode === "spawn" &&
++            !managed.cleanupStarted && !managed.targetResumeObserved && !managed.session.isDetached() && managed.scripts.size === 0) {
++            const initialized = await this.#loadScript(sessionId, { sourceKind: "inline", source: "void 0;" });
++            if (!initialized.ok) return initialized;
++        }
+         managed.cleanupStarted = true;
+         const scriptFailures = new Map();
+         const cleanupFailures = [];
+@@ -532,6 +537,20 @@
              if (failure !== undefined)
                  scriptFailures.set(entry.id, failure);
          }
@@ -22,7 +34,7 @@ diff --git a/dist/frida/FridaInstrumentationManager.js b/dist/frida/FridaInstrum
          try {
              if (!managed.session.isDetached())
                  await managed.session.detach();
-@@ -552,18 +566,7 @@
+@@ -552,18 +571,7 @@
                      scriptFailures.set(entry.id, failure);
              }
          }
