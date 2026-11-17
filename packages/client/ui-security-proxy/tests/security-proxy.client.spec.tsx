@@ -101,6 +101,27 @@ async function remoteTurn(): Promise<void> {
 }
 
 describe('traffic request ownership', () => {
+  it('does not start deferred settings access after the controller is retired', async () => {
+    let retired = false
+    let accessedAfterRetirement = false
+    const controller = new SecurityProxyController(proxyPort({ get: async () => {
+      accessedAfterRetirement ||= retired
+      return STATE
+    } }))
+    controller.load()
+    retired = true
+    await controller.dispose()
+    await remoteTurn()
+    expect(accessedAfterRetirement).toBe(false)
+  })
+
+  it('reports a synchronous settings-port failure through the read state', async () => {
+    const controller = new SecurityProxyController(proxyPort({ get: () => { throw new Error('retired port') } }))
+    try {
+      controller.load(); await remoteTurn()
+      expect(controller.state.getSnapshot()).toMatchObject({ loading: false, failed: true })
+    } finally { await controller.dispose() }
+  })
   it('loads settings while retaining a newer filtered list and its counters', async () => {
     const old = Promise.withResolvers<SecurityProxyFlowsResult>()
     const capture = { ...STATE.capture, total: 9, retained: 4, bytes: 512 }

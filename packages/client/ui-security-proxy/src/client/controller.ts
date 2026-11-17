@@ -264,7 +264,7 @@ export class SecurityProxyController {
   /** Read settings and flows for one generation. */
   private async read(revision: number, flowsRevision: number, captureRevision: number): Promise<void> {
     const [state, flows] = await Promise.allSettled([
-      Promise.resolve().then(() => this.port.get()), this.readFlows(this.state.getSnapshot().filter),
+      this.readState(), this.readFlows(this.state.getSnapshot().filter),
     ])
     if (this.closed) return
     if (revision === this.revision) {
@@ -275,6 +275,11 @@ export class SecurityProxyController {
       if (flows.status === 'fulfilled') this.acceptFlows(flows.value)
       else this.patch({ flowsLoading: false, flowsFailed: true })
     }
+  }
+
+  /** Start the settings request in the current controller lifetime. */
+  private async readState(): Promise<SecurityProxyState> {
+    return await this.port.get()
   }
 
   /** Read the list for one filter. */
