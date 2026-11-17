@@ -21,6 +21,8 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WebFetchResult } from '@deepseek-ai/dsh-web'
 import type {
   SecurityProxyCaptureStats,
+  SecurityProxyCaptureExport,
+  SecurityProxyExportQuery,
   SecurityProxyFlowDetail,
   SecurityProxyFlowQuery,
   SecurityProxyFlowsResult,
@@ -200,6 +202,13 @@ export abstract class SecurityProxyRuntime extends Service {
    * @returns the detail, or null when pruned or unknown.
    */
   abstract detail(id: string): Promise<SecurityProxyFlowDetail | null>
+
+  /**
+   * Export all retained records matching the filters as one redacted JSON snapshot.
+   * @param query - Session, kind and text filters; list pagination does not apply.
+   * @returns Complete snapshot; exceeding the deployment byte budget rejects without a partial export.
+   */
+  abstract exportCapture(query: SecurityProxyExportQuery): Promise<SecurityProxyCaptureExport>
 
   /**
    * Drop every retained flow.

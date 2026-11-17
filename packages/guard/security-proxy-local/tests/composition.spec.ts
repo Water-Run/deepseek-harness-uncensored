@@ -59,7 +59,7 @@ afterEach(async () => {
 })
 
 /** Boot the composition through the real Loader with literal temp paths. */
-async function boot(): Promise<Context> {
+async function boot(maxExportBytes = 134_217_728): Promise<Context> {
   const configPath = join(root ?? tmpdir(), 'cordis.yml')
   const settings = join(root ?? tmpdir(), 'security-proxy.json')
   const credentialsPath = join(root ?? tmpdir(), 'credentials.yaml')
@@ -77,6 +77,7 @@ async function boot(): Promise<Context> {
     `    testPort: ${String(echo?.port ?? 9)}`,
     '    connectTimeoutMs: 2000',
     '    requestTimeoutMs: 5000',
+    `    maxExportBytes: ${String(maxExportBytes)}`,
     '',
   ].join('\n'), 'utf8')
   const instance = new Context()
@@ -91,6 +92,18 @@ async function boot(): Promise<Context> {
 }
 
 describe('security proxy composition', () => {
+  it('refuses an oversized owner export with a typed budget error', async () => {
+    const instance = await boot(1_024)
+    if (upstream === undefined || target === undefined) throw new Error('fixtures missing')
+    await instance.securityProxy.configure({ enabled: true, host: '127.0.0.1', port: upstream.port })
+    await instance.securityProxy.fetchTarget(subject('large-capture'), `${target.url}?padding=${'a'.repeat(1_600)}`,
+      new AbortController().signal)
+    await expect(instance.securityProxy.exportCapture({})).rejects.toMatchObject({
+      code: 'security-proxy/export-too-large', details: { maxBytes: 1_024 },
+    })
+    expect(await instance.securityProxy.exportCapture({ text: 'not-retained' })).toMatchObject({ flows: [], filtered: true })
+  })
+
   it('boots through the Loader with the credential provider and defaults off', async () => {
     const instance = await boot()
     const state = await instance.securityProxy.get()
@@ -123,6 +136,10 @@ describe('security proxy composition', () => {
     const flow = (await instance.securityProxy.list({})).flows[0]
     if (flow === undefined) throw new Error('expected a captured exchange')
     expect(await instance.securityProxy.detail(flow.id)).toMatchObject({ responseBody: 'target body' })
+    expect(await instance.securityProxy.exportCapture({ sessionId: 'owner-capture' })).toMatchObject({
+      format: 'dshu-security-proxy-capture', version: 1, filtered: true,
+      flows: [{ id: flow.id, responseBody: 'target body' }],
+    })
     const invocation: RemoteInvocation = {
       request: { namespace: 'securityProxy', method: 'configure', args: {} },
       service: 'securityProxy',
@@ -148,6 +165,7 @@ describe('security proxy composition', () => {
     await expect(viewer.browserTrust(subject('viewer-browser'), 'http://127.0.0.1:49152')).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
     await expect(viewer.list({ sessionId: 'owner-capture' })).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
     await expect(viewer.detail(flow.id)).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
+    await expect(viewer.exportCapture({})).rejects.toMatchObject({ code: 'security-proxy/owner-required' })
     expect((await instance.securityProxy.get()).settings.enabled).toBe(true)
   })
 

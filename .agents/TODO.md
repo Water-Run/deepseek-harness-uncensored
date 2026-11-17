@@ -58,7 +58,7 @@
 
 - [ ] **Linux x64 Desktop — 约 98%**（02.09、17.07）：归档与运行检查通过；实际归档中的启动 404 修复、X11/Wayland 主界面和重载已复验。用户指定的 Fedora 45 实体机已通过 CLI、版本身份和 SDK 导入检查；后续 Linux 测试转该机。剩原生门户、实体桌面交互及发行验收。[计划](requirements/desktop-installer-plan.md)
 - [ ] **真实目标保护 — 约 80%**（09.01–09.11、05.06、10.05）：默认关闭；Inspector 可选入口已随包，Cua Driver 独立归档准入已验收，桌面包仍不分发该提供方。SSH 映射、PostgreSQL/MySQL 中央关联及未知路径拒绝已进入本地 17.6。剩余入站、冷重启、部署、其他协议、远端物理身份与实体服务器验收。[数据库关联](requirements/2026-11-17-database-resource-bindings.md) · [执行层](requirements/2026-11-02-native-execution.md)
-- [ ] **网安特化与独立代理 — 约 95%**（10.01–10.08）：正式 npm 四包的安装及注册、Codex 移除回装和不兼容恢复已验收；流量筛选、详情及清理的请求竞态已源码修复，尚未打包；剩更高兼容版本升级、现有桌面和进阶保护联动验收。[记录](requirements/2026-11-03-browser-proxy.md)
+- [ ] **网安特化与独立代理 — 约 95%**（10.01–10.08）：正式 npm 四包的安装及注册、Codex 移除回装和不兼容恢复已验收；流量筛选、详情、清理和连接重置竞态已修复，完整脱敏 JSON 导出已通过定向及实际 Web 下载验证，尚未打包；剩更高兼容版本升级、现有桌面和进阶保护联动验收。[流量查看与导出](requirements/2026-11-18-proxy-traffic-requests.md) · [原始记录](requirements/2026-11-03-browser-proxy.md)
 - [ ] **官方版并存与桌面交付 — 约 95%**（02.02、02.04、02.06、02.09、02.12、17.07）：保留数据更新已通过；剩余自动回退、系统重启、签名及正式在线升级。[记录](HANDOFF.md)
 - [ ] **构建产物清理 — 约 95%**（17.09）：WSL 专用缓存已归档并清理，三个工作区及 32 条 stash 已验证可恢复，Linux 文件系统净空闲增加约 153.2 GiB。Codex 自动重连和磁盘压缩 UAC 仍待用户处理，尚未把全部空闲返还 D 盘。此前自动审批拒绝的 Windows 目录保留且不重试。[设备与回收](requirements/2026-11-18-linux-test-host.md) · [约束](HANDOFF.md#清理与工作约束)
 - [ ] **稳定性与完整需求总验收 — 约 85%**（00.08、05.08、05.10、17.01、17.03–17.08）：完整 Web、桌面单元及 Windows 数据保全已验收；Frida 关闭修复保留两平台实包证据，SSH 清理与审计已交付。Linux 17.6 又完成 PostgreSQL 16.15/MySQL 8.0.46 共 14 项真实引擎场景，含数据独立回读及存储重开。剩余原生/关机、任意已有进程、远程设备及商业引擎等场景。[稳定性](requirements/2026-11-06-stability.md) · [真实数据库](requirements/2026-11-17-native-database-engines.md) · [SSH 关闭](requirements/2026-11-17-ssh-shutdown.md)

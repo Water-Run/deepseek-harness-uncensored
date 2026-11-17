@@ -24,6 +24,8 @@ import {
 } from '@deepseek-ai/dsh-web-fetch-http'
 import type {
   SecurityProxyCoverage,
+  SecurityProxyCaptureExport,
+  SecurityProxyExportQuery,
   SecurityProxyFailure,
   SecurityProxyFlowDetail,
   SecurityProxyFlowQuery,
@@ -101,6 +103,8 @@ export interface EngineOptions {
   readonly maxBodyChars: number
   /** Response byte cap for the controlled Client. */
   readonly maxResponseBytes: number
+  /** UTF-8 JSON byte budget for one complete capture export. */
+  readonly maxExportBytes: number
   /** `User-Agent` the controlled Client sends. */
   readonly userAgent: string
   /** Called once per session when a covered call runs with the proxy off. */
@@ -568,6 +572,25 @@ export class SecurityProxyEngine {
    */
   detail(id: string): SecurityProxyFlowDetail | null {
     return this.options.capture.detail(id) ?? null
+  }
+
+  /**
+   * Build a complete stored snapshot within the configured export byte budget.
+   * @param query - Filters without list pagination.
+   * @returns Snapshot or an explicit budget refusal; no partial data is returned.
+   */
+  exportCapture(query: SecurityProxyExportQuery):
+    { readonly kind: 'ready'; readonly data: SecurityProxyCaptureExport }
+    | { readonly kind: 'too-large'; readonly maxBytes: number } {
+    this.assertOpen()
+    const data = this.options.capture.snapshot(query, this.options.store.value.capturePaused)
+    let bytes = Buffer.byteLength(JSON.stringify({ ...data, flows: [] }), 'utf8') + 1
+    for (const [index, flow] of data.flows.entries()) {
+      bytes += Buffer.byteLength(JSON.stringify(flow), 'utf8') + (index === 0 ? 0 : 1)
+      if (bytes > this.options.maxExportBytes) return { kind: 'too-large', maxBytes: this.options.maxExportBytes }
+    }
+    return bytes > this.options.maxExportBytes
+      ? { kind: 'too-large', maxBytes: this.options.maxExportBytes } : { kind: 'ready', data }
   }
 
   /** Drop every retained flow. */

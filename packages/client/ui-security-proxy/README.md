@@ -57,6 +57,8 @@ A failed list read retains available settings and records; a failed clear retain
 
 The viewer shows the captured request and response headers (already redacted on the Host), bounded bodies, the tunnel note for CONNECT-only rows, and an explicit truncation marker. Tunnel rows never pretend to carry a body. Settings feedback uses the shared toast primitive. The reminder uses `conversation.mode.notice`, reads the current conversation mode and shares the settings controller; enabling the proxy or disabling reminders hides it.
 
+Export JSON saves every retained record matching the active filter through the shared file-action service; the on-screen list limit does not apply. The provider enforces the [export byte budget](../../guard/security-proxy-local/README.md#use-this-package). Read or save failures keep the records visible and allow retry. Switching Hosts clears settings, records, filters, passwords and unsaved proxy drafts; departed replies cannot publish or start a download. Shutdown joins accepted file saves before releasing the file-action service.
+
 All copy lives in the typed locale dictionary (`en`/`zh`); no UI string is hardcoded in the components.
 
 </details>
@@ -85,7 +87,7 @@ No effect.
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **No export** — the viewer offers filtering, detail, pause, and clear; exporting a flow list is not implemented, so no export can bypass redaction.
+- **Export scope** — JSON contains matching records still retained by the Host, including stored headers, bounded bodies and tunnel metadata. It does not recover expired records or import into another Host.
 - **Memory-only records** — a restart clears the list with the Host's capture store.
 - **Seat dependency** — the area registers into `settings.mode.materials`, the seat the mode settings page renders; it paints only while the selected mode is `security`.
 - **Reminder display** — the persistent banner needs a connected GUI; it does not alter command-line execution or proxy routing.

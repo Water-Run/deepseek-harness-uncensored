@@ -49,6 +49,8 @@ export interface Config {
   maxBodyChars?: number
   /** Response byte cap for the controlled Client. */
   maxResponseBytes?: number
+  /** Maximum UTF-8 JSON bytes in one complete capture export. */
+  maxExportBytes?: number
   /** `User-Agent` the controlled Client sends. */
   userAgent?: string
 }
@@ -63,6 +65,7 @@ export const Config = schema.object({
   maxRedirects: schema.number().step(1).min(0).max(20).default(5),
   maxBodyChars: schema.number().step(1).min(1_000).max(1_000_000).default(100_000),
   maxResponseBytes: schema.number().step(1).min(1_024).max(50_000_000).default(5_000_000),
+  maxExportBytes: schema.number().step(1).min(1_024).max(536_870_912).default(134_217_728),
   userAgent: schema.string().default('deepseek-harness/0.0.1 (+https://github.com/deepseek-ai)'),
 })
 
@@ -120,6 +123,7 @@ export async function mountSecurityProxy(
     maxRedirects: resolved.maxRedirects,
     maxBodyChars: resolved.maxBodyChars,
     maxResponseBytes: resolved.maxResponseBytes,
+    maxExportBytes: resolved.maxExportBytes,
     userAgent: resolved.userAgent,
     warnDisabled: (sessionId: SessionId): void => { ctx.emit('security-proxy/warning', sessionId) },
     log: (message: string): void => { ctx.logger.warn(message) },

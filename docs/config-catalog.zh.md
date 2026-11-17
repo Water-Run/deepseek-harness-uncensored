@@ -2445,7 +2445,7 @@ export type PiAiThinkingTokenBudgetField = NonNullable<OpenAICompletionsCompat['
 
 - `inject`: `llm`
 - `refs`: [`LlmModelBadge`](../packages/llm/llm/src/index.ts) · [`ModelModality`](../packages/llm/llm/src/index.ts) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts) · [`SystemPromptUpdate`](../packages/llm/llm/src/index.ts) · [`ToolUpdate`](../packages/llm/llm/src/index.ts)
-- `source`: [`packages/test-support/llm-replay/src/index.ts:1115`](../packages/test-support/llm-replay/src/index.ts)
+- `source`: [`packages/test-support/llm-replay/src/index.ts:1161`](../packages/test-support/llm-replay/src/index.ts)
 
 ```ts config-catalog
 /** Plugin config: the {@link ReplayConfig} inputs, each defaulting to its `DSH_SNAPSHOT_*` env var in `apply`. */
@@ -3364,6 +3364,8 @@ export interface Config {
   maxBodyChars?: number
   /** Response byte cap for the controlled Client. */
   maxResponseBytes?: number
+  /** Maximum UTF-8 JSON bytes in one complete capture export. */
+  maxExportBytes?: number
   /** `User-Agent` the controlled Client sends. */
   userAgent?: string
 }
@@ -4266,7 +4268,7 @@ export interface Config {
 
 ## `@deepseek-ai/dsh-target-protection`
 
-- `source`: [`packages/guard/target-protection/src/index.ts:32`](../packages/guard/target-protection/src/index.ts)
+- `source`: [`packages/guard/target-protection/src/index.ts:36`](../packages/guard/target-protection/src/index.ts)
 
 ```ts config-catalog
 /** Deployment-owned store and bounded resolution. */
@@ -5628,6 +5630,7 @@ export interface Config {
 | `@deepseek-ai/dsh-personalized-recommendations` | — | [`packages/experimental/personalized-recommendations/src/index.ts`](../packages/experimental/personalized-recommendations/src/index.ts) |
 | `@deepseek-ai/dsh-plugin-detail` | — | [`packages/util/plugin-detail/src/index.ts`](../packages/util/plugin-detail/src/index.ts) |
 | `@deepseek-ai/dsh-plugin-market-index` | — | [`packages/util/plugin-market-index/src/index.ts`](../packages/util/plugin-market-index/src/index.ts) |
+| `@deepseek-ai/dsh-product-version` | — | [`packages/util/product-version/src/index.ts`](../packages/util/product-version/src/index.ts) |
 | `@deepseek-ai/dsh-remote-mock` | — | [`packages/test-support/remote-mock/src/index.ts`](../packages/test-support/remote-mock/src/index.ts) |
 | `@deepseek-ai/dsh-sandbox-windows-acl` | — | [`packages/sandbox/sandbox-windows-acl/src/index.ts`](../packages/sandbox/sandbox-windows-acl/src/index.ts) |
 | `@deepseek-ai/dsh-scope` | — | [`packages/core/scope/src/index.ts`](../packages/core/scope/src/index.ts) |

@@ -67,6 +67,7 @@ async function build(patch: Partial<EngineOptions> = {}): Promise<Harness> {
     maxRedirects: 3,
     maxBodyChars: 10_000,
     maxResponseBytes: 1_000_000,
+    maxExportBytes: 134_217_728,
     userAgent: 'dshu-test',
     warnDisabled: (id) => { warnings.push(id) },
     ...patch,
@@ -119,6 +120,21 @@ function tunnelThrough(port: number, authority: string): Promise<string> {
 }
 
 describe('covered retrieval', () => {
+  it.each([0, -1])('applies the export byte budget including UTF-8 and the final newline (%s)', async (margin) => {
+    const capture = new CaptureStore(() => ({ maxFlows: 50, maxBodyBytes: 4_096, retentionMs: 600_000 }), () => 1_000)
+    capture.append({ at: 1_000, kind: 'http', origin: 'client', sessionId: 'sess-a', tool: 'web_fetch', method: 'GET',
+      target: 'http://target.test/', status: 200, durationMs: 1, requestBytes: 0, responseBytes: 1_536,
+      requestHeaders: [], responseHeaders: [], requestBody: null, responseBody: '安全'.repeat(256),
+      contentType: 'text/plain', outcome: 'complete', note: null })
+    const expected = capture.snapshot({}, false)
+    const maxExportBytes = Buffer.byteLength(JSON.stringify(expected) + '\n', 'utf8') + margin
+    const h = await build({ capture, maxExportBytes })
+    expect(h.engine.exportCapture({})).toEqual(margin === 0 ? { kind: 'ready', data: expected } : { kind: 'too-large', maxBytes: maxExportBytes })
+    const empty = h.engine.exportCapture({ text: 'not-retained-secret' })
+    expect(empty).toMatchObject({ kind: 'ready', data: { filtered: true, flows: [] } })
+    expect(JSON.stringify(empty)).not.toContain('not-retained-secret')
+  })
+
   it('retains tool attribution across concurrent commands and persistent terminals', async () => {
     const h = await build({ presetOf: () => 'security' })
     const terminal = await h.engine.environment(subject('sess-a'), 'terminal_open')
@@ -201,6 +217,7 @@ describe('covered retrieval', () => {
       maxRedirects: 2,
       maxBodyChars: 1_000,
       maxResponseBytes: 10_000,
+      maxExportBytes: 134_217_728,
       userAgent: 'dshu-test',
     })
     await upstream.close()

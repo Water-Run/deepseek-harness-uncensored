@@ -22,6 +22,7 @@ export interface SecurityProxyInjected {
   test: () => Promise<boolean>
   pause: (paused: boolean) => Promise<boolean>
   clear: () => Promise<void>
+  exportCapture: () => Promise<void>
   openFlow: (id: string) => Promise<void>
   closeFlow: () => void
   setFilter: (patch: Partial<SecurityProxyFilter>) => void
@@ -66,7 +67,7 @@ function sizeText(summary: SecurityProxyFlowSummary): string {
 /** Render the security-proxy settings area inside Settings → Modes. */
 export function SecurityProxySection(props: SecurityProxySectionProps) {
   const {
-    modeId, useSecurityProxy, load, refreshFlows, configure, setPassword, test, pause, clear,
+    modeId, useSecurityProxy, load, refreshFlows, configure, setPassword, test, pause, clear, exportCapture,
     openFlow, closeFlow, setFilter, dismissFeedback, t,
   } = props
   const view = useSecurityProxy(value => value)
@@ -75,6 +76,12 @@ export function SecurityProxySection(props: SecurityProxySectionProps) {
   const [draft, setDraft] = useState<{ protocol?: 'http' | 'https'; host?: string; port?: string; username?: string }>({})
   const [password, setPasswordDraft] = useState('')
   const [confirmClear, setConfirmClear] = useState(false)
+
+  useEffect(() => {
+    setDraft({})
+    setPasswordDraft('')
+    setConfirmClear(false)
+  }, [view.connectionRevision])
 
   useEffect(() => { if (modeId === 'security') load() }, [load, modeId])
 
@@ -227,7 +234,12 @@ export function SecurityProxySection(props: SecurityProxySectionProps) {
           {settings?.capturePaused === true ? t('securityProxy.capture.resume') : t('securityProxy.capture.pause')}
         </Button>
         <Button size="sm" variant="outline" onClick={() => { setConfirmClear(true) }}>{t('securityProxy.capture.clear')}</Button>
+        <Button size="sm" variant="outline" disabled={view.exporting || state === null} aria-busy={view.exporting}
+          onClick={() => { void exportCapture() }}>
+          {t(view.exporting ? 'securityProxy.capture.exporting' : 'securityProxy.capture.export')}
+        </Button>
       </div>
+      {view.exportFailed && <p role="alert" className={css.error}>{t('securityProxy.capture.exportFailed')}</p>}
       {settings?.capturePaused === true && <p className={css.hint}>{t('securityProxy.capture.paused')}</p>}
       <div className={css.filters}>
         <Input value={view.filter.text} placeholder={t('securityProxy.capture.filter')}

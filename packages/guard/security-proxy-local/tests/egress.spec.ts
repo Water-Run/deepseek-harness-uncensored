@@ -43,7 +43,8 @@ async function fixture(patch: Partial<EngineOptions> = {}) {
     store, capture, vault: { present: async () => true, resolve: async () => 'upstream-private', save: async () => {} },
     presetOf: value => value.session.id === 'standard' ? 'standard' : 'security', sessionIdOf: value => value.session.id,
     testTarget: { host: '127.0.0.1', port: 1 }, connectTimeoutMs: 1000, requestTimeoutMs: 1000,
-    maxRedirects: 1, maxBodyChars: 4096, maxResponseBytes: 4096, userAgent: 'egress-fixture', now: () => 1000,
+    maxRedirects: 1, maxBodyChars: 4096, maxResponseBytes: 4096, maxExportBytes: 134_217_728,
+    userAgent: 'egress-fixture', now: () => 1000,
     ...patch,
   })
   owned.engine = engine

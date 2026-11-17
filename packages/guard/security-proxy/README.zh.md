@@ -55,6 +55,8 @@ const result = route === undefined
 
 本包同时声明 `security-proxy/warning` Host 事件、Remote 失败码 `security-proxy/owner-required`，以及本接缝读取的 `agent-preset/selected` 会话事件。该事件由预设包所有；预设包没有发布 session 子路径，因此在这里声明让编译器认识这套词汇。
 
+仅应用所有者可调用 `exportCapture`，按会话、类型和文本筛选，不分页，返回带版本的留存脱敏详情快照。`security-proxy/export-too-large` 报告提供方字节上限，不返回部分结果。快照是外部文件格式，不是 Session 数据或设置导入。
+
 </details>
 
 -----

@@ -55,6 +55,8 @@ The entry point is an abstract `Service` for route selection, child/browser envi
 
 The package also declares the `security-proxy/warning` Host event, the Remote failure code `security-proxy/owner-required`, and the `agent-preset/selected` session event this seam reads. The preset package owns that event; this declaration points the compiler at the vocabulary because the preset package publishes no session subpath.
 
+The owner-only `exportCapture` method accepts session, kind and text filters without pagination and returns a versioned snapshot of retained redacted details. `security-proxy/export-too-large` reports the provider's byte budget without returning a partial export. The snapshot is an external file format, not Session data or a settings import.
+
 </details>
 
 -----

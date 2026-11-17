@@ -152,6 +152,32 @@ describe('capture store', () => {
     expect(store.stats(true)).toEqual({ paused: true, total: 1, retained: 0, bytes: 0 })
   })
 
+  it('exports all matching retained details beyond the list ceiling', () => {
+    const store = new CaptureStore(() => limits({ maxFlows: 650 }), () => 1_000)
+    for (let index = 0; index < 600; index += 1) store.append(exchange({ at: 1_000, target: `http://target.test/${index}` }))
+    expect(store.list({ limit: 5_000 })).toHaveLength(500)
+    const data = store.snapshot({}, true)
+    expect(data).toMatchObject({ format: 'dshu-security-proxy-capture', version: 1, exportedAt: 1_000,
+      filtered: false, capture: { paused: true, total: 600, retained: 600 } })
+    expect(data.flows).toHaveLength(600)
+    expect(data.flows[0]).toMatchObject({ target: 'http://target.test/599', responseBody: 'hello' })
+  })
+
+  it('exports stored redaction, truncation and opaque tunnel metadata', () => {
+    const store = new CaptureStore(() => limits({ maxBodyBytes: 32 }), () => 1_000)
+    store.append(exchange({ at: 1_000, target: 'https://user:password@target.test/?token=secret',
+      requestHeaders: [['Authorization', 'Bearer hidden']], responseBody: 'x'.repeat(64) }))
+    store.append(exchange({ at: 1_000, kind: 'tunnel', origin: 'proxy', target: 'other.test:443', method: 'CONNECT',
+      requestBody: null, responseBody: null, status: null, note: 'tunnel-metadata-only' }))
+    const data = store.snapshot({ sessionId: 'session-a' }, false)
+    expect(data.filtered).toBe(true)
+    expect(data.flows[0]).toMatchObject({ kind: 'tunnel', responseBody: null, note: 'tunnel-metadata-only' })
+    expect(data.flows[1]).toMatchObject({ bodyTruncated: true, responseBody: 'x'.repeat(32),
+      requestHeaders: [{ name: 'Authorization', value: '[redacted]' }] })
+    expect(JSON.stringify(data)).not.toMatch(/secret|password|hidden/)
+    expect(store.snapshot({ text: 'CONNECT', kind: 'tunnel' }, false).flows).toHaveLength(1)
+  })
+
   it('returns no detail for an unknown identity', () => {
     const store = new CaptureStore(() => limits())
     expect(store.detail('missing')).toBeUndefined()

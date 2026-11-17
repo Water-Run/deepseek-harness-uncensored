@@ -8,6 +8,7 @@
     "src"
   ],
   "references": [
+    { "path": "../ui-file-actions" },
     { "path": "../../guard/target-protection" },
     { "path": "../../util/crypto" },
     { "path": "../ui-agent-preset" },

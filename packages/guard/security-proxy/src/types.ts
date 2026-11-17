@@ -177,6 +177,21 @@ export interface SecurityProxyFlowQuery {
   readonly limit?: number
 }
 
+/** Filters for exporting every matching retained record, without the list row cap. */
+export type SecurityProxyExportQuery = Pick<SecurityProxyFlowQuery, 'sessionId' | 'kind' | 'text'>
+
+/** Versioned JSON download containing only stored, redacted capture values. */
+export interface SecurityProxyCaptureExport {
+  readonly format: 'dshu-security-proxy-capture'
+  readonly version: 1
+  /** Snapshot time in epoch milliseconds. */
+  readonly exportedAt: number
+  /** Whether session, kind or text filters limited the records; filter text is not included. */
+  readonly filtered: boolean
+  readonly capture: SecurityProxyCaptureStats
+  readonly flows: readonly SecurityProxyFlowDetail[]
+}
+
 /** Counters returned after a mutation of the capture store. */
 export interface SecurityProxyFlowsResult {
   readonly flows: readonly SecurityProxyFlowSummary[]
@@ -185,6 +200,8 @@ export interface SecurityProxyFlowsResult {
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface RemoteErrorDetailsMap {
+    /** The complete export exceeds the deployment's UTF-8 JSON byte budget. */
+    'security-proxy/export-too-large': { readonly maxBytes: number }
     /** The caller is not the application owner. */
     'security-proxy/owner-required': { readonly action: string }
     /** The issued browser endpoint has been withdrawn or belongs to another conversation. */

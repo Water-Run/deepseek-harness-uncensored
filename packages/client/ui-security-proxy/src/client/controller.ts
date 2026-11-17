@@ -2,6 +2,8 @@
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type {
   SecurityProxyCaptureStats,
+  SecurityProxyCaptureExport,
+  SecurityProxyExportQuery,
   SecurityProxyFlowDetail,
   SecurityProxyFlowKind,
   SecurityProxyFlowQuery,
@@ -23,6 +25,8 @@ export interface SecurityProxyFilter {
 
 /** Everything the surface renders, retained across Settings reopenings. */
 export interface SecurityProxyViewState {
+  /** Changes when the connection resets; forms must retire the previous Host's drafts. */
+  connectionRevision: number
   /** Host settings and status; absent until the first read completes. */
   state: SecurityProxyState | null
   loading: boolean
@@ -36,6 +40,8 @@ export interface SecurityProxyViewState {
   detailFailed: boolean
   filter: SecurityProxyFilter
   feedback: { id: number; code: SecurityProxyFeedback; success: boolean } | null
+  exporting: boolean
+  exportFailed: boolean
 }
 
 /** Remote operations this surface needs; a test drives a stub port directly. */
@@ -46,6 +52,7 @@ export interface SecurityProxyPort {
   test(): Promise<SecurityProxyTestResult>
   list(query: SecurityProxyFlowQuery): Promise<SecurityProxyFlowsResult>
   detail(id: string): Promise<SecurityProxyFlowDetail | null>
+  exportCapture(query: SecurityProxyExportQuery): Promise<SecurityProxyCaptureExport>
   clear(): Promise<SecurityProxyCaptureStats>
   pause(paused: boolean): Promise<SecurityProxyState>
 }
@@ -58,20 +65,7 @@ export interface SecurityProxyPort {
  */
 export class SecurityProxyController {
   /** Shared observations; the component renders from this store. */
-  readonly state = createSnapshotStore<SecurityProxyViewState>({
-    state: null,
-    loading: true,
-    failed: false,
-    saving: false,
-    testing: false,
-    flows: [],
-    flowsLoading: false,
-    flowsFailed: false,
-    detail: null,
-    detailFailed: false,
-    filter: { text: '', kind: 'all' },
-    feedback: null,
-  })
+  readonly state = createSnapshotStore<SecurityProxyViewState>(initialState(0))
 
   private closed = false
   private revision = 0
@@ -81,9 +75,24 @@ export class SecurityProxyController {
   private latestCapture: SecurityProxyCaptureStats | undefined
   private sequence = 0
   private write: Promise<void> | undefined
+  private readonly writes = new Set<Promise<void>>()
+  private readonly exports = new Set<Promise<void>>()
 
   /** @param port - Remote operations for this Host. */
   constructor(private readonly port: SecurityProxyPort) {}
+
+  /** Retire the departed connection's data, drafts and pending replies, then read the current Host. */
+  readonly reset = (): void => {
+    if (this.closed) return
+    this.revision += 1
+    this.flowsRevision += 1
+    this.detailRevision += 1
+    this.captureRevision += 1
+    this.latestCapture = undefined
+    this.write = undefined
+    this.state.set(initialState(this.state.getSnapshot().connectionRevision + 1))
+    this.load()
+  }
 
   /** Read settings and the current list; safe to call repeatedly. */
   readonly load = (): void => {
@@ -113,9 +122,10 @@ export class SecurityProxyController {
    * @param patch - fields the owner changed.
    * @returns whether the write committed.
    */
-  readonly configure = (patch: SecurityProxySettingsPatch): Promise<boolean> => this.run(async () => {
+  readonly configure = (patch: SecurityProxySettingsPatch): Promise<boolean> => this.run(async (connection) => {
     const captureRevision = this.captureRevision
     const state = await this.port.configure(patch)
+    if (!this.isCurrent(connection)) return 'saved'
     this.revision += 1
     this.acceptState(state, captureRevision)
     this.refreshFlows()
@@ -127,9 +137,10 @@ export class SecurityProxyController {
    * @param password - new secret, or null to remove it.
    * @returns whether the write committed.
    */
-  readonly setPassword = (password: string | null): Promise<boolean> => this.run(async () => {
+  readonly setPassword = (password: string | null): Promise<boolean> => this.run(async (connection) => {
     const captureRevision = this.captureRevision
     const state = await this.port.setPassword(password)
+    if (!this.isCurrent(connection)) return 'passwordSaved'
     this.revision += 1
     this.acceptState(state, captureRevision)
     return 'passwordSaved'
@@ -142,24 +153,27 @@ export class SecurityProxyController {
   readonly test = async (): Promise<boolean> => {
     if (this.closed || this.state.getSnapshot().testing) return false
     const captureRevision = this.captureRevision
+    const connection = this.state.getSnapshot().connectionRevision
     this.patch({ testing: true })
     try {
       const result = await this.port.test()
+      if (!this.isCurrent(connection)) return false
       this.revision += 1
       this.acceptState(result.state, captureRevision)
       return result.ok
     } catch {
-      this.patch({ failed: true })
+      if (this.isCurrent(connection)) this.patch({ failed: true })
       return false
     } finally {
-      this.patch({ testing: false })
+      if (this.isCurrent(connection)) this.patch({ testing: false })
     }
   }
 
   /** Pause or resume capture without restarting the proxy. */
-  readonly setPaused = (paused: boolean): Promise<boolean> => this.run(async () => {
+  readonly setPaused = (paused: boolean): Promise<boolean> => this.run(async (connection) => {
     const captureRevision = this.captureRevision
     const state = await this.port.pause(paused)
+    if (!this.isCurrent(connection)) return 'saved'
     this.revision += 1
     this.acceptState(state, captureRevision)
     return 'saved'
@@ -168,9 +182,10 @@ export class SecurityProxyController {
   /** Drop every retained flow. */
   readonly clear = async (): Promise<void> => {
     if (!this.isActive()) return
+    const connection = this.state.getSnapshot().connectionRevision
     try {
       const capture = await this.port.clear()
-      if (this.closed) return
+      if (!this.isCurrent(connection)) return
       this.flowsRevision += 1
       this.detailRevision += 1
       this.captureRevision += 1
@@ -182,10 +197,38 @@ export class SecurityProxyController {
         flowsFailed: false,
         detail: null,
         detailFailed: false,
+        exportFailed: false,
         state: current === null ? null : { ...current, capture },
       })
     } catch {
-      this.patch({ flowsFailed: true })
+      if (this.isCurrent(connection)) this.patch({ flowsFailed: true })
+    }
+  }
+
+  /**
+   * Export the active filter and deliver the accepted snapshot to the file-save owner.
+   * @param save - Saves the document after checking connection and clear ownership.
+   */
+  readonly exportCapture = async (save: (data: SecurityProxyCaptureExport) => Promise<void>): Promise<void> => {
+    if (this.closed || this.state.getSnapshot().exporting) return
+    const done = Promise.withResolvers<void>()
+    this.exports.add(done.promise)
+    const { connectionRevision: connection, filter } = this.state.getSnapshot()
+    const captureRevision = this.captureRevision
+    try {
+      this.patch({ exporting: true, exportFailed: false })
+      const data = await this.port.exportCapture({
+        ...filter.text === '' ? {} : { text: filter.text },
+        ...filter.kind === 'all' ? {} : { kind: filter.kind },
+      })
+      if (!this.isCurrent(connection) || captureRevision !== this.captureRevision) return
+      await save(data)
+    } catch {
+      if (this.isCurrent(connection) && captureRevision === this.captureRevision) this.patch({ exportFailed: true })
+    } finally {
+      if (this.isCurrent(connection)) this.patch({ exporting: false })
+      done.resolve()
+      this.exports.delete(done.promise)
     }
   }
 
@@ -231,34 +274,43 @@ export class SecurityProxyController {
     if (this.state.getSnapshot().feedback?.id === id) this.patch({ feedback: null })
   }
 
-  /** Stop publishing and wait for the in-flight write. */
+  /** Stop publishing and join pending settings writes and export saves. */
   async dispose(): Promise<void> {
     this.closed = true
-    await this.write
+    await Promise.allSettled([...this.writes, ...this.exports])
   }
 
   /** Serialize one write and publish its feedback. */
-  private async run(operation: () => Promise<SecurityProxyFeedback>, successCode: SecurityProxyFeedback): Promise<boolean> {
+  private async run(
+    operation: (connection: number) => Promise<SecurityProxyFeedback>, successCode: SecurityProxyFeedback,
+  ): Promise<boolean> {
     if (this.closed || this.write !== undefined) return false
+    const connection = this.state.getSnapshot().connectionRevision
     this.patch({ saving: true })
-    this.write = Promise.resolve().then(operation).then((code) => {
-      if (!this.closed) {
+    let success = false
+    const task = operation(connection).then((code) => {
+      if (this.isCurrent(connection)) {
+        success = code === successCode
         this.patch({
           saving: false,
-          feedback: { id: ++this.sequence, code, success: code === successCode },
+          feedback: { id: ++this.sequence, code, success },
         })
       }
     }, () => {
-      if (!this.closed) {
+      if (this.isCurrent(connection)) {
         this.patch({
           saving: false,
           feedback: { id: ++this.sequence, code: successCode === 'saved' ? 'saveFailed' : 'passwordFailed', success: false },
         })
       }
+    }).finally(() => {
+      this.writes.delete(task)
+      if (this.write === task) this.write = undefined
     })
-    await this.write
-    this.write = undefined
-    return this.state.getSnapshot().feedback?.success === true
+    this.writes.add(task)
+    this.write = task
+    await task
+    return success
   }
 
   /** Read settings and flows for one generation. */
@@ -308,11 +360,23 @@ export class SecurityProxyController {
     return !this.closed
   }
 
+  /** Whether a response still belongs to the live connection. */
+  private isCurrent(connection: number): boolean {
+    return !this.closed && connection === this.state.getSnapshot().connectionRevision
+  }
+
   /** Publish one partial state change. */
   private patch(patch: Partial<SecurityProxyViewState>): void {
     if (this.closed) return
     this.state.set({ ...this.state.getSnapshot(), ...patch })
   }
+}
+
+/** Empty observations for one connection; settings and capture are read from that Host. */
+function initialState(connectionRevision: number): SecurityProxyViewState {
+  return { connectionRevision, state: null, loading: true, failed: false, saving: false, testing: false,
+    flows: [], flowsLoading: false, flowsFailed: false, detail: null, detailFailed: false,
+    filter: { text: '', kind: 'all' }, feedback: null, exporting: false, exportFailed: false }
 }
 
 /** Translate the UI filter into the Remote query. */

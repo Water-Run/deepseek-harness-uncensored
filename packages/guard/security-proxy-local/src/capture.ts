@@ -12,6 +12,8 @@
 import { randomUUID } from 'node:crypto'
 import type {
   SecurityProxyFlowDetail,
+  SecurityProxyCaptureExport,
+  SecurityProxyExportQuery,
   SecurityProxyFlowKind,
   SecurityProxyFlowOrigin,
   SecurityProxyFlowQuery,
@@ -285,15 +287,27 @@ export class CaptureStore {
     this.prune(this.limits())
     const flow = this.entries.find(entry => entry.id === id)
     if (flow === undefined) return undefined
-    return {
-      ...summaryOf(flow),
-      requestHeaders: flow.requestHeaders,
-      responseHeaders: flow.responseHeaders,
-      requestBody: flow.requestBody,
-      responseBody: flow.responseBody,
-      bodyTruncated: flow.bodyTruncated,
-      contentType: flow.contentType,
-    }
+    return detailOf(flow)
+  }
+
+  /**
+   * Snapshot every matching retained record and its capture counters in one turn.
+   * @param query - Filters over stored, redacted targets.
+   * @param paused - Current capture setting.
+   * @returns Versioned download data, newest first, without list pagination.
+   */
+  snapshot(query: SecurityProxyExportQuery, paused: boolean): SecurityProxyCaptureExport {
+    const exportedAt = this.now()
+    this.prune(this.limits(), exportedAt)
+    const text = query.text?.trim().toLowerCase() ?? ''
+    const flows = this.entries.filter(flow =>
+      (query.sessionId === undefined || flow.sessionId === query.sessionId)
+      && (query.kind === undefined || flow.kind === query.kind)
+      && (text === '' || `${flow.method} ${flow.target} ${flow.tool}`.toLowerCase().includes(text)))
+      .toReversed().map(detailOf)
+    return { format: 'dshu-security-proxy-capture', version: 1, exportedAt,
+      filtered: query.sessionId !== undefined || query.kind !== undefined || text !== '',
+      capture: { paused, total: this.total, retained: this.entries.length, bytes: this.retainedBytes }, flows }
   }
 
   /** Drop every retained flow. */
@@ -313,8 +327,8 @@ export class CaptureStore {
   }
 
   /** Drop entries older than the retention window, oldest first. */
-  private prune(limits: CaptureLimits): void {
-    const cutoff = this.now() - limits.retentionMs
+  private prune(limits: CaptureLimits, now = this.now()): void {
+    const cutoff = now - limits.retentionMs
     while (this.entries.length > 0 && (this.entries[0]?.at ?? 0) < cutoff) this.dropOldest()
   }
 
@@ -323,6 +337,12 @@ export class CaptureStore {
     const dropped = this.entries.shift()
     if (dropped !== undefined) this.retainedBytes -= flowBytes(dropped)
   }
+}
+
+/** Project a stored exchange without reintroducing raw transport values. */
+function detailOf(flow: CapturedExchange): SecurityProxyFlowDetail {
+  return { ...summaryOf(flow), requestHeaders: flow.requestHeaders, responseHeaders: flow.responseHeaders,
+    requestBody: flow.requestBody, responseBody: flow.responseBody, bodyTruncated: flow.bodyTruncated, contentType: flow.contentType }
 }
 
 /** Captured body bytes one flow contributes to the memory total. */

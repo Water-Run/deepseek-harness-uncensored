@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { allowAllAccess, bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type {} from '../src/client/index.ts'
 import type {
+  SecurityProxyCaptureExport,
   SecurityProxyFlowDetail,
   SecurityProxyFlowSummary,
   SecurityProxyFlowsResult,
@@ -81,6 +82,9 @@ const DETAIL: SecurityProxyFlowDetail = {
   contentType: 'text/plain',
 }
 
+const EXPORT: SecurityProxyCaptureExport = { format: 'dshu-security-proxy-capture', version: 1, exportedAt: 1_000,
+  filtered: false, capture: STATE.capture, flows: [DETAIL] }
+
 function proxyPort(overrides: Partial<SecurityProxyPort> = {}): SecurityProxyPort {
   return {
     get: async () => STATE,
@@ -89,6 +93,7 @@ function proxyPort(overrides: Partial<SecurityProxyPort> = {}): SecurityProxyPor
     test: async () => ({ ok: true, durationMs: 1, failure: null, detail: null, state: STATE }),
     list: async () => ({ flows: [FLOW], capture: STATE.capture }),
     detail: async () => DETAIL,
+    exportCapture: async () => EXPORT,
     clear: async () => ({ ...STATE.capture, retained: 0, bytes: 0 }),
     pause: async () => STATE,
     ...overrides,
@@ -262,6 +267,113 @@ describe('traffic request ownership', () => {
 })
 
 describe('controller', () => {
+  it('retires settings, list and detail replies from the previous connection', async () => {
+    const settings = Promise.withResolvers<SecurityProxyState>()
+    const list = Promise.withResolvers<SecurityProxyFlowsResult>()
+    const detail = Promise.withResolvers<SecurityProxyFlowDetail | null>()
+    const next = { ...STATE, settings: { ...SETTINGS, host: 'new-host' } }
+    const controller = new SecurityProxyController(proxyPort({
+      get: vi.fn<SecurityProxyPort['get']>().mockReturnValueOnce(settings.promise).mockResolvedValue(next),
+      list: vi.fn<SecurityProxyPort['list']>().mockReturnValueOnce(list.promise).mockResolvedValue({ flows: [], capture: next.capture }),
+      detail: () => detail.promise,
+    }))
+    try {
+      controller.load()
+      controller.setFilter({ text: 'old-filter' })
+      const pending = controller.openFlow(FLOW.id)
+      controller.reset(); await remoteTurn()
+      settings.resolve(STATE); list.resolve({ flows: [FLOW], capture: STATE.capture }); detail.resolve(DETAIL)
+      await pending; await remoteTurn()
+      expect(controller.state.getSnapshot()).toMatchObject({ connectionRevision: 1, state: next,
+        filter: { text: '', kind: 'all' }, flows: [], detail: null, feedback: null })
+    } finally {
+      settings.resolve(STATE); list.resolve({ flows: [], capture: STATE.capture }); detail.resolve(null)
+      await controller.dispose()
+    }
+  })
+
+  it('starts writes in the clicked connection and ignores retired write acknowledgements', async () => {
+    const old = Promise.withResolvers<SecurityProxyState>()
+    const current = Promise.withResolvers<SecurityProxyState>()
+    const configure = vi.fn<SecurityProxyPort['configure']>().mockReturnValueOnce(old.promise).mockReturnValueOnce(current.promise)
+    const controller = new SecurityProxyController(proxyPort({ configure }))
+    try {
+      const first = controller.configure({ host: 'old-host' })
+      expect(configure).toHaveBeenCalledWith({ host: 'old-host' })
+      controller.reset(); await remoteTurn()
+      const second = controller.configure({ host: 'new-host' })
+      old.resolve({ ...STATE, settings: { ...SETTINGS, host: 'old-host' } })
+      expect(await first).toBe(false)
+      expect(controller.state.getSnapshot()).toMatchObject({ saving: true, feedback: null })
+      expect(await controller.configure({ port: 8080 })).toBe(false)
+      current.resolve({ ...STATE, settings: { ...SETTINGS, host: 'new-host' } })
+      expect(await second).toBe(true)
+      expect(controller.state.getSnapshot()).toMatchObject({ saving: false, state: { settings: { host: 'new-host' } } })
+    } finally { old.resolve(STATE); current.resolve(STATE); await controller.dispose() }
+  })
+
+  it('exports the matching snapshot without the on-screen list limit', async () => {
+    const pending = Promise.withResolvers<SecurityProxyCaptureExport>()
+    const exportCapture = vi.fn<SecurityProxyPort['exportCapture']>(() => pending.promise)
+    const save = vi.fn(async (_data: SecurityProxyCaptureExport) => undefined)
+    const controller = new SecurityProxyController(proxyPort({ exportCapture }))
+    try {
+      controller.setFilter({ text: 'target', kind: 'http' })
+      const task = controller.exportCapture(save)
+      await controller.exportCapture(save)
+      expect(controller.state.getSnapshot().exporting).toBe(true)
+      expect(exportCapture).toHaveBeenCalledExactlyOnceWith({ text: 'target', kind: 'http' })
+      pending.resolve(EXPORT); await task
+      expect(save).toHaveBeenCalledExactlyOnceWith(EXPORT)
+      expect(controller.state.getSnapshot()).toMatchObject({ exporting: false, exportFailed: false })
+    } finally { pending.resolve(EXPORT); await controller.dispose() }
+  })
+
+  it.each(['clear', 'reset', 'dispose'] as const)('does not save a pending export after %s', async (operation) => {
+    const pending = Promise.withResolvers<SecurityProxyCaptureExport>()
+    const save = vi.fn(async (_data: SecurityProxyCaptureExport) => undefined)
+    const controller = new SecurityProxyController(proxyPort({ exportCapture: () => pending.promise }))
+    const task = controller.exportCapture(save)
+    let disposed: Promise<void> | undefined
+    try {
+      if (operation === 'dispose') disposed = controller.dispose()
+      else if (operation === 'clear') await controller.clear()
+      else controller.reset()
+      pending.resolve(EXPORT); await task
+      expect(save).not.toHaveBeenCalled()
+    } finally { pending.resolve(EXPORT); await disposed; await controller.dispose() }
+  })
+
+  it('retains file-save dependencies until an accepted export finishes', async () => {
+    const saved = Promise.withResolvers<undefined>()
+    const controller = new SecurityProxyController(proxyPort())
+    const save = vi.fn(() => saved.promise)
+    const task = controller.exportCapture(save)
+    await remoteTurn()
+    expect(save).toHaveBeenCalledOnce()
+    let disposed = false
+    const closing = controller.dispose().then(() => { disposed = true })
+    await remoteTurn()
+    expect(disposed).toBe(false)
+    saved.resolve(undefined); await task; await closing
+    expect(disposed).toBe(true)
+  })
+
+  it.each(['read', 'save'] as const)('reports an export %s failure and allows retry', async (step) => {
+    const exportCapture = vi.fn<SecurityProxyPort['exportCapture']>()
+    if (step === 'read') exportCapture.mockRejectedValueOnce(new Error('export refused'))
+    exportCapture.mockResolvedValue(EXPORT)
+    const save = vi.fn(async (_data: SecurityProxyCaptureExport) => undefined)
+    if (step === 'save') save.mockRejectedValueOnce(new Error('disk unavailable'))
+    const controller = new SecurityProxyController(proxyPort({ exportCapture }))
+    try {
+      await controller.exportCapture(save)
+      expect(controller.state.getSnapshot()).toMatchObject({ exporting: false, exportFailed: true })
+      await controller.exportCapture(save)
+      expect(controller.state.getSnapshot()).toMatchObject({ exporting: false, exportFailed: false })
+    } finally { await controller.dispose() }
+  })
+
   it('reads settings and flows on load, then publishes a successful save', async () => {
     const configure = vi.fn(async () => ({ ...STATE, settings: { ...SETTINGS, enabled: false } }))
     const port: SecurityProxyPort = {
@@ -271,6 +383,7 @@ describe('controller', () => {
       test: vi.fn(async () => ({ ok: true, durationMs: 5, failure: null, detail: null, state: STATE })),
       list: vi.fn(async () => ({ flows: [FLOW], capture: STATE.capture })),
       detail: vi.fn(async () => DETAIL),
+      exportCapture: async () => EXPORT,
       clear: vi.fn(async () => ({ paused: false, total: 2, retained: 0, bytes: 0 })),
       pause: vi.fn(async () => ({ ...STATE, settings: { ...SETTINGS, capturePaused: true } })),
     }
@@ -295,6 +408,7 @@ describe('controller', () => {
       test: async () => ({ ok: false, durationMs: 1, failure: 'auth', detail: 'HTTP 407', state: STATE }),
       list: async () => ({ flows: [FLOW], capture: STATE.capture }),
       detail: async () => DETAIL,
+      exportCapture: async () => EXPORT,
       clear: async () => STATE.capture,
       pause: async () => STATE,
     }
@@ -318,6 +432,7 @@ describe('controller', () => {
       test: async () => ({ ok: true, durationMs: 1, failure: null, detail: null, state: STATE }),
       list: async () => ({ flows: [FLOW], capture: STATE.capture }),
       detail: async () => DETAIL,
+      exportCapture: async () => EXPORT,
       clear: async () => ({ paused: false, total: 2, retained: 0, bytes: 0 }),
       pause: async () => ({ ...STATE, settings: { ...SETTINGS, capturePaused: true } }),
     }
@@ -345,6 +460,7 @@ describe('controller', () => {
       test: async () => ({ ok: false, durationMs: 1, failure: 'unknown', detail: null, state: STATE }),
       list: async () => ({ flows: [], capture: STATE.capture }),
       detail: async () => null,
+      exportCapture: async () => EXPORT,
       clear: async () => STATE.capture,
       pause: async () => STATE,
     }
@@ -372,6 +488,7 @@ function renderSection(state: SecurityProxyViewState, modeId = 'security') {
     test: vi.fn(async () => true),
     pause: vi.fn(async () => true),
     clear: vi.fn(async () => undefined),
+    exportCapture: vi.fn(async () => undefined),
     openFlow: vi.fn(async () => undefined),
     closeFlow: vi.fn(),
     setFilter: vi.fn(),
@@ -387,10 +504,13 @@ function renderSection(state: SecurityProxyViewState, modeId = 'security') {
     t,
   }
   render(<SecurityProxySection {...props} />)
-  return actions
+  return { ...actions, store }
 }
 
 const READY: SecurityProxyViewState = {
+  connectionRevision: 0,
+  exporting: false,
+  exportFailed: false,
   state: STATE,
   loading: false,
   failed: false,
@@ -406,6 +526,28 @@ const READY: SecurityProxyViewState = {
 }
 
 describe('settings surface', () => {
+  it('drops address and password drafts and clear confirmation when the Host changes', () => {
+    const state = { ...READY, state: { ...STATE, settings: { ...SETTINGS, authEnabled: true } } }
+    const { store } = renderSection(state)
+    fireEvent.change(screen.getByRole('textbox', { name: en['securityProxy.host'] }), { target: { value: 'old-draft' } })
+    fireEvent.change(screen.getByPlaceholderText(en['securityProxy.passwordPlaceholder']), { target: { value: 'old-password' } })
+    fireEvent.click(screen.getByRole('button', { name: en['securityProxy.capture.clear'] }))
+    expect(screen.getByText(en['securityProxy.capture.clearConfirm'])).toBeTruthy()
+    act(() => { store.set({ ...state, connectionRevision: 1, state: { ...state.state, settings: { ...state.state.settings, host: 'new-host' } } }) })
+    expect(screen.getByRole('textbox', { name: en['securityProxy.host'] }).getAttribute('value')).toBe('new-host')
+    expect(screen.getByPlaceholderText(en['securityProxy.passwordPlaceholder']).getAttribute('value')).toBe('')
+    expect(screen.queryByText(en['securityProxy.capture.clearConfirm'])).toBeNull()
+  })
+
+  it('offers export and shows its busy and failure states', () => {
+    const actions = renderSection(READY)
+    fireEvent.click(screen.getByRole('button', { name: en['securityProxy.capture.export'] }))
+    expect(actions.exportCapture).toHaveBeenCalledOnce()
+    cleanup()
+    renderSection({ ...READY, exporting: true, exportFailed: true })
+    expect(screen.getByRole('button', { name: en['securityProxy.capture.exporting'] }).hasAttribute('disabled')).toBe(true)
+    expect(screen.getByRole('alert').textContent).toContain(en['securityProxy.capture.exportFailed'])
+  })
   it('renders nothing while another mode is selected', () => {
     renderSection(READY, 'reverse')
     expect(screen.queryByText(en['securityProxy.title'])).toBeNull()
@@ -480,4 +622,4 @@ describe('proxy-off reminder', () => {
 // The controller's port types are exercised through the store; keep the helper
 // type imported so the spec fails if the Remote surface loses a method.
 export type PortCheck = keyof SecurityProxyPort
-export const PORT_METHODS: readonly PortCheck[] = ['get', 'configure', 'setPassword', 'test', 'list', 'detail', 'clear', 'pause']
+export const PORT_METHODS: readonly PortCheck[] = ['get', 'configure', 'setPassword', 'test', 'list', 'detail', 'exportCapture', 'clear', 'pause']

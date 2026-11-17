@@ -14,7 +14,7 @@
 
 ## 尚未打包的源码
 
-网安流量面板已修复旧刷新覆盖新筛选、关闭详情后被旧回复重新打开、清理后旧数据和计数恢复等请求竞态。23 项定向测试、最新完整构建和定向 lint 通过；TSX、CSS、文案及模型日志未改。当前安装仍为 17.8，不含此修复，后续批次再打包。[修复与验证](requirements/2026-11-18-proxy-traffic-requests.md)
+网安流量面板已补齐当前筛选的完整脱敏 JSON 导出，修复筛选、详情、清理及连接重置竞态。85 项相关定向用例、实际 Web 下载及浅深主题/窄屏检查通过；安装仍为 17.8，尚不含这些源码改动，后续批次打包。[行为与验证](requirements/2026-11-18-proxy-traffic-requests.md)
 
 ## Linux 测试与 WSL 状态
 
@@ -48,6 +48,8 @@ Codex 的自动连接会在关闭后重新唤起 Ubuntu，需用户在连接设�
 Windows 构建使用 `VCToolsVersion=14.52.36629`、`MSVCPreviewEnabled=true`。私有 `.env.windows` 使用 npm 官方 registry；代理下载失败后，仅在本次进程中清除代理变量直连成功。供应链检查未放宽。首次 pnpm 烟测超时后，同一运行时独立检查通过；后续成功 run 见交付记录。
 
 ## 清理与工作约束
+
+11 月 18 日失败的 Client 编译误写了 `packages/client/ui-file-actions/src/` 下 20 个未跟踪 `.js`、`.d.ts` 及映射文件；项目引用已修复。删除这些派生文件被自动审批以 `blocked by policy` 拒绝，文件保留且不得换方法重试或删除父目录。清单见本机 `20261118/proxy-export-compiler-residue-rejected.json`，不纳入提交。
 
 新增拒绝路径 `D:/Coding/deepseek-harness-uncensored/apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/runs/2026-11-17T15-19-43.361Z-nSHqhO/win-unpacked`：16,414 文件、1,591,144,393 字节，零链接、零活动引用，失败候选安装器已另存并核对摘要。递归删除在创建进程前被自动审批以 `blocked by policy` 拒绝，约 1.48 GiB 保留，不重试、换方法或删除父目录。记录为 `20261117/rejected-17-7-cleanup-{audit,rejected}.json`。
 

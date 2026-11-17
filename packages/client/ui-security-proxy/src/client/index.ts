@@ -9,6 +9,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-agent-preset/client'
+import type {} from '@deepseek-ai/dsh-client-ui-file-actions/client'
 import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
 import { SecurityProxyController, type SecurityProxyPort } from './controller.ts'
 import { SecurityProxySection } from './SecurityProxySection.tsx'
@@ -64,7 +65,7 @@ export function apply(ctx: Context): void {
     }, TargetAuditSection))
   })
 
-  ctx.inject(['remote.securityProxy'], (scope) => {
+  ctx.inject(['remote.securityProxy', 'fileActions'], (scope) => {
     const port: SecurityProxyPort = {
       get: () => unwrap(scope.remote.securityProxy.get()),
       configure: patch => unwrap(scope.remote.securityProxy.configure(patch)),
@@ -72,10 +73,12 @@ export function apply(ctx: Context): void {
       test: () => unwrap(scope.remote.securityProxy.test()),
       list: query => unwrap(scope.remote.securityProxy.list(query)),
       detail: id => unwrap(scope.remote.securityProxy.detail(id)),
+      exportCapture: query => unwrap(scope.remote.securityProxy.exportCapture(query)),
       clear: () => unwrap(scope.remote.securityProxy.clear()),
       pause: paused => unwrap(scope.remote.securityProxy.pause(paused)),
     }
     const controller = new SecurityProxyController(port)
+    scope.on('connection/reset', () => { controller.reset() })
     scope.effect(() => () => controller.dispose(), 'security-proxy: settings requests')
     controller.load()
     const sectionInject = (): SecurityProxyInjected => ({
@@ -87,6 +90,14 @@ export function apply(ctx: Context): void {
       test: controller.test,
       pause: controller.setPaused,
       clear: controller.clear,
+      exportCapture: () => controller.exportCapture(async (data) => {
+        const mediaType = 'application/json;charset=utf-8'
+        const blob = new Blob([JSON.stringify(data) + '\n'], { type: mediaType })
+        await scope.fileActions.save({ url: 'dshu-security-proxy:capture-export', mediaType,
+          name: `dshu-traffic-${new Date(data.exportedAt).toISOString().replace(/[:.]/gu, '-')}.json`,
+          read: (signal) => { signal.throwIfAborted(); return Promise.resolve(blob) },
+        }, 'download')
+      }),
       openFlow: controller.openFlow,
       closeFlow: controller.closeFlow,
       setFilter: controller.setFilter,

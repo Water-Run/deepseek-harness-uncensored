@@ -11,6 +11,8 @@ import type { Context } from '@deepseek-ai/cordis'
 import { principalOf, Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type {
   SecurityProxyCaptureStats,
+  SecurityProxyCaptureExport,
+  SecurityProxyExportQuery,
   SecurityProxyFlowDetail,
   SecurityProxyFlowQuery,
   SecurityProxyFlowsResult,
@@ -181,6 +183,22 @@ export class SecurityProxyService extends TypertRemoteService {
   async detail(id: string): Promise<SecurityProxyFlowDetail | null> {
     this.assertOwner('securityProxy/detail')
     return Promise.resolve(this.engine.detail(id))
+  }
+
+  /**
+   * Export all matching stored records for the application owner.
+   * @param query - Session, kind and text filters without pagination.
+   * @returns Complete redacted snapshot; oversized exports fail without returning records.
+   */
+  @Remote
+  async exportCapture(query: SecurityProxyExportQuery): Promise<SecurityProxyCaptureExport> {
+    this.assertOwner('securityProxy/exportCapture')
+    const result = this.engine.exportCapture(query)
+    if (result.kind === 'too-large') {
+      throw new RemoteError('security-proxy/export-too-large', 'The capture export exceeds the configured byte budget.',
+        { maxBytes: result.maxBytes })
+    }
+    return Promise.resolve(result.data)
   }
 
   /**
