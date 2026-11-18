@@ -4,7 +4,7 @@ import type { AccountView } from '@deepseek-ai/dsh-deepseek-account/types'
 import { WINDOWS_TITLEBAR_HEIGHT } from '../src/windows-layout.ts'
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import type { IpcMainInvokeEvent } from 'electron'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import type { MenuItemConstructorOptions, MessageBoxOptions } from 'electron'
@@ -3106,7 +3106,19 @@ describe('desktop main startup', () => {
     expect(signal?.aborted).toBe(true)
   })
 
+  it('rejects the official home before Desktop prepares a profile', async () => {
+    vi.stubEnv('DSH_UNCENSORED_HOME', '~/.dsh')
+    await import('../src/main.ts')
+    await vi.waitFor(() => { expect(harness.app.exit).toHaveBeenCalledWith(1) })
+    expect(harness.dialog.showErrorBox).toHaveBeenCalledWith(en.startupFailed, en.harnessHomeInvalid)
+    expect(harness.applyRelease).not.toHaveBeenCalled()
+    expect(harness.hosts).toHaveLength(0)
+    expect(harness.windows).toHaveLength(0)
+  })
+
   it('prepares recovery offscreen and starts one Host before choosing the first visible window', async () => {
+    const relativeHome = 'desktop-test-relative-home'
+    vi.stubEnv('DSH_UNCENSORED_HOME', relativeHome)
     await import('../src/main.ts')
     await harness.preparing.promise
     expect(harness.windows).toHaveLength(1)
@@ -3132,6 +3144,8 @@ describe('desktop main startup', () => {
     })
     expect(harness.hosts[0]!.environment).not.toBe(process.env)
     expect(harness.hosts[0]!.environment?.DSH_CLIENT_VERSION).toBe('1.2.3')
+    expect(harness.hosts[0]!.environment?.DSH_UNCENSORED_HOME).toBe(resolve(relativeHome))
+    expect(harness.hosts[0]!.environment?.DSH_HOME).toBe(resolve(relativeHome))
     expect(harness.hosts[0]!.environment?.DSH_TEST_LOGIN_SHELL).toBe('login')
     expect(console.warn).toHaveBeenCalledWith('desktop login shell: /account/shell failed (timeout)')
     expect(harness.analytics).toHaveBeenCalledExactlyOnceWith({ eventName: 'desktop_app_launch', timestamp: Date.now(), attributes: {} })

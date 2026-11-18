@@ -7,7 +7,7 @@
 /* v8 ignore file -- built-bin acceptance exercises this self-executing dispatch. */
 
 import { loadLayeredEnv, StartupError } from '@deepseek-ai/dsh-app-boot'
-import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
+import { assertSeparateDshHome, resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { parseDshArgs } from './args.ts'
 import { reportStartupFailure } from './startup-diagnostics.ts'
 import type { RunProfileOptions } from './profile-boot.ts'
@@ -28,6 +28,16 @@ export async function runCli(options: RunCliOptions = {}): Promise<void> {
   const version = cliProductVersion()
   const { manageDesktopProfile, ...profileOptions } = options
   const invocation = parseDshArgs(process.argv.slice(2), version, manageDesktopProfile)
+  const harnessHome = resolveDshHome()
+  try {
+    await assertSeparateDshHome(harnessHome)
+  } catch (error) {
+    process.stderr.write(`dsh-uncensored: Could not use the selected data directory. Set DSH_UNCENSORED_HOME to a separate directory.\n${error instanceof Error ? error.message : String(error)}\n`)
+    process.exitCode = 1
+    return
+  }
+  process.env.DSH_UNCENSORED_HOME = harnessHome
+  process.env.DSH_HOME = harnessHome
 
   switch (invocation.mode) {
     case 'profile': {
@@ -43,7 +53,7 @@ export async function runCli(options: RunCliOptions = {}): Promise<void> {
         })
       } catch (error) {
         if (!(error instanceof StartupError)) throw error
-        await reportStartupFailure(error, { home: resolveDshHome(), version, profile: invocation.profile })
+        await reportStartupFailure(error, { home: harnessHome, version, profile: invocation.profile })
         process.exit(1)
       }
       break

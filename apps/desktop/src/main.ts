@@ -1,5 +1,6 @@
 /** Electron shell: desktop project ownership, custom protocol, windows, and lifecycle. */
 import { displayProductVersion } from '@deepseek-ai/dsh-product-version'
+import { assertSeparateDshHome, resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { installFileActions } from './file-actions.ts'
 import { configurationFailure, channelSaveFailure, configurationMessage } from './update-configuration.ts'
 import type { DesktopChannelState, DesktopChannelChangeResult } from '@deepseek-ai/dsh-client-ui-settings-general/types'
@@ -8,7 +9,6 @@ import { isDesktopUpdateChannel } from './settings-file.ts'
 import type { ProductEventMap, ProductEvent } from '@deepseek-ai/dsh-client-product-analytics/types'
 import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
 import { access, readFile, writeFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -86,14 +86,10 @@ let shuttingDown = false
 // official one instead of failing to create `%APPDATA%\@scope/name`.
 app.setName('DeepSeek Harness Uncensored')
 if (process.platform === 'linux') app.setDesktopName('deepseek-harness-uncensored.desktop')
-// A machine-wide DSH_HOME would otherwise hand this build the official
-// installation's home, and with it the same login, sessions, and settings.
-// DSH_UNCENSORED_HOME names this build's own home; setting DSH_HOME here runs
-// before this process and every host process it starts resolve any path.
-if (process.env.DSH_UNCENSORED_HOME === undefined || process.env.DSH_UNCENSORED_HOME === '') {
-  process.env.DSH_UNCENSORED_HOME = join(homedir(), '.dsh-uncensored')
-}
-process.env.DSH_HOME = process.env.DSH_UNCENSORED_HOME
+// The Host starts from the Desktop profile directory and needs the shell's absolute home.
+const harnessHome = resolveDshHome(undefined, { DSH_UNCENSORED_HOME: process.env.DSH_UNCENSORED_HOME })
+process.env.DSH_UNCENSORED_HOME = harnessHome
+process.env.DSH_HOME = harnessHome
 /**
  * Set by quit entries that must not ask: crash recovery exit and restart, and the
  * development restart command. The installer handoff has its own before-quit branch.
@@ -400,12 +396,21 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
 }
 
 async function main(): Promise<void> {
+  try {
+    await assertSeparateDshHome(harnessHome)
+  } catch (error) {
+    const messages = currentDesktopLocale().messages
+    console.error('dsh desktop: could not verify the data directory', error)
+    dialog.showErrorBox(messages.startupFailed, messages.harnessHomeInvalid)
+    app.exit(1)
+    return
+  }
   const desktopSettings = await readDesktopSettings(app.getPath('userData'))
   void pruneCrashReports(app.getPath('logs'))
   const journalDirectory = process.env.DSH_DESKTOP_UPDATE_JOURNAL_DIR
   const updateJournal = journalDirectory === undefined ? undefined : new DesktopUpdateJournal(journalDirectory, app.getVersion())
   const resources = runtimeResources()
-  const paths = resolveDesktopPaths()
+  const paths = resolveDesktopPaths(harnessHome)
   const development = !app.isPackaged
   const primaryRuntime = development
     ? developmentPrimaryRuntime()

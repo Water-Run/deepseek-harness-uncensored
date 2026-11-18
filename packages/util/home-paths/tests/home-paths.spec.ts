@@ -8,6 +8,7 @@ import {
   DEFAULT_DSH_HOME_DISPLAY,
   DSH_HOME_DIR_NAME,
   agentsHomeDisplay,
+  assertSeparateDshHome,
   canonicalizeWatchPath,
   defaultAgentsHome,
   defaultDshHome,
@@ -30,6 +31,28 @@ describe('dsh path helpers', () => {
       .toBe(join(homedir(), 'private-dshu'))
     expect(resolveDshHome(undefined, { DSH_HOME: '~/.dsh', DSH_UNCENSORED_HOME: '  ' })).toBe(defaultDshHome())
     expect(resolveDshHome('~/.dsh', { DSH_UNCENSORED_HOME: '~/private-dshu' })).toBe(join(homedir(), '.dsh'))
+  })
+
+  it('refuses enclosing homes, nested homes, and linked spellings of the official directory', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'dshu-home-isolation-'))
+    const official = join(root, '.dsh')
+    const alias = join(root, 'alias')
+    const dangling = join(root, 'dangling')
+    const linkType = process.platform === 'win32' ? 'junction' : 'dir'
+    try {
+      await mkdir(official)
+      await symlink(official, alias, linkType)
+      await symlink(join(root, 'missing-target'), dangling, linkType)
+      for (const selected of [root, official, alias, join(official, 'child'), join(alias, 'missing', 'child')]) {
+        await expect(assertSeparateDshHome(selected, official)).rejects.toThrow('overlaps the official DeepSeek Harness home')
+      }
+      await expect(assertSeparateDshHome(official, alias)).rejects.toThrow('overlaps the official DeepSeek Harness home')
+      await expect(assertSeparateDshHome(join(dangling, 'child'), official)).rejects.toMatchObject({ code: 'ENOENT' })
+      await expect(assertSeparateDshHome(join(root, '.dsh-uncensored', 'new'), official)).resolves.toBeUndefined()
+      await expect(assertSeparateDshHome(join(root, 'new'), join(root, 'uninitialized-official'))).resolves.toBeUndefined()
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
   })
   it('owns the shared default DSH home directory name', () => {
     expect(DSH_HOME_DIR_NAME).toBe('.dsh-uncensored')

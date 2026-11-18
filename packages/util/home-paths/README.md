@@ -40,6 +40,8 @@ An explicit configured path has the highest precedence, then `$DSH_UNCENSORED_HO
 
 `dshCachePath(...segments)` derives paths from the resolved home's `cache` directory. With no segments it returns the cache directory itself. Pass an initial options object, `dshCachePath({ dshHome: home }, ...segments)`, to use an explicit configured home with the same precedence and tilde expansion. It returns an absolute path without creating directories.
 
+The Desktop and CLI launchers call `assertSeparateDshHome` before preparing a profile or reading its configuration. The check rejects directory overlap with the official `~/.dsh` both by path and by resolved link target, including a missing subdirectory below an existing linked directory.
+
 ### Resolving the shared agents root
 
 ```ts

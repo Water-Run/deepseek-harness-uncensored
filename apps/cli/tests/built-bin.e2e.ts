@@ -358,6 +358,30 @@ describe.skipIf(!existsSync(dshBin))('dsh BUILT bin (node lib/bin.js, no tsx)', 
     }
   }, SPAWN_TIMEOUT_MS + 5_000)
 
+  it('rejects an official-home alias before dispatching a command', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'dshu-cli-home-isolation-'))
+    try {
+      const official = join(root, '.dsh')
+      const alias = join(root, '.dsh-uncensored')
+      mkdirSync(official)
+      symlinkSync(official, alias, process.platform === 'win32' ? 'junction' : 'dir')
+      const env = { ...(process.platform === 'win32' ? { USERPROFILE: root } : { HOME: root }),
+        DSH_UNCENSORED_HOME: alias, DSH_HOME: official }
+      const rejected = await runBuiltBin(['--profile', 'web', '--dump-config'], env, root)
+      expect(rejected.code).toBe(1)
+      expect(rejected.stdout).toBe('')
+      expect(rejected.stderr).toContain('overlaps the official DeepSeek Harness home')
+      const version = await runBuiltBin(['--version'], env, root)
+      expect(version.code).toBe(0)
+      expect(version.stdout).not.toBe('')
+      const separate = await runBuiltBin(['--profile', 'web', '--dump-config'], { ...env, DSH_UNCENSORED_HOME: 'separate-dshu' }, root)
+      expect(separate.code).toBe(0)
+      expect(separate.stdout).toContain('id: webserver')
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  }, SPAWN_TIMEOUT_MS * 3 + 5_000)
+
   it('requires a profile and rejects removed flags', async () => {
     const bare = await runBuiltBin()
     expect(bare.code).toBe(1)

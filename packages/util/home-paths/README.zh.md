@@ -40,6 +40,8 @@ const cache = dshCachePath('models')         // <home>/cache/models, default ~/.
 
 `dshCachePath(...segments)` 从解析出的主目录下的 `cache` 目录派生路径。不传路径段时返回缓存目录本身。传入首个选项对象 `dshCachePath({ dshHome: home }, ...segments)` 可使用显式配置的主目录，遵循相同的优先级与波浪号展开规则。它返回绝对路径，不会创建目录。
 
+桌面与命令行启动入口会在准备 profile 或读取其配置前调用 `assertSeparateDshHome`。它同时检查路径和链接解析结果，拒绝与官方 `~/.dsh` 重叠的目录，包括现有链接下尚未创建的子目录。
+
 ### 解析共享 agents 根目录
 
 ```ts

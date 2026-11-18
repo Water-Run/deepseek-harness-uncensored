@@ -4,9 +4,9 @@
  * @module @deepseek-ai/dsh-home-paths
  */
 
-import { opendir, realpath } from 'node:fs/promises'
+import { lstat, opendir, realpath } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { basename, dirname, join, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 
 /** Directory name for the default DeepSeek Harness home under the OS home. */
 export const DSH_HOME_DIR_NAME = '.dsh-uncensored'
@@ -40,6 +40,10 @@ export const AGENTS_HOME_ENV = 'DSH_AGENTS_HOME'
  * the existing ancestor of a missing suffix is not an enumerable directory.
  */
 export async function canonicalizeWatchPath(path: string): Promise<string> {
+  return canonicalizePath(path, false)
+}
+
+async function canonicalizePath(path: string, requireResolvableLinks: boolean): Promise<string> {
   let current = resolve(path)
   const missing: string[] = []
   while (true) {
@@ -54,6 +58,13 @@ export async function canonicalizeWatchPath(path: string): Promise<string> {
       return join(canonical, ...missing.reverse())
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+      if (requireResolvableLinks) {
+        const existing = await lstat(current).catch((statError: unknown) => {
+          if (!(statError instanceof Error) || !('code' in statError) || statError.code !== 'ENOENT') throw statError
+          return undefined
+        })
+        if (existing !== undefined) throw error
+      }
       const parent = dirname(current)
       /* v8 ignore next -- a filesystem root exists, so traversal resolves before this guard */
       if (parent === current) throw error
@@ -61,6 +72,26 @@ export async function canonicalizeWatchPath(path: string): Promise<string> {
       current = parent
     }
   }
+}
+
+/**
+ * Reject overlap with the official DeepSeek Harness home before a launcher writes data.
+ * @param home - resolved DSHU home selected for this launch.
+ * @param officialHome - official home to protect, defaulting to the OS home followed by `.dsh`.
+ * @throws if either directory contains the other, including through existing links, or an existing link cannot be resolved.
+ */
+export async function assertSeparateDshHome(home: string, officialHome = join(homedir(), '.dsh')): Promise<void> {
+  const overlaps = (first: string, second: string): boolean => containsPath(first, second) || containsPath(second, first)
+  if (!overlaps(resolve(home), resolve(officialHome))) {
+    const [selected, official] = await Promise.all([canonicalizePath(home, true), canonicalizePath(officialHome, true)])
+    if (!overlaps(selected, official)) return
+  }
+  throw new Error('DSHU data directory overlaps the official DeepSeek Harness home.')
+}
+
+function containsPath(directory: string, path: string): boolean {
+  const offset = relative(directory, path)
+  return !isAbsolute(offset) && offset !== '..' && !offset.startsWith(`..${sep}`)
 }
 
 /**
