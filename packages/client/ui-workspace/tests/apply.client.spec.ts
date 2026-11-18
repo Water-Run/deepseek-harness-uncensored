@@ -120,7 +120,11 @@ async function bench(access: 'fake' | 'static' = 'fake') {
     _options: unknown,
     operation: (reference: SessionReference) => unknown,
   ) => await operation(retain(target)))
-  const fork = vi.fn<ISessions['fork']>(async () => sid('forked'))
+  const fork = vi.fn<ISessions['fork']>(async ({ onCreated }) => {
+    const child = sid('forked')
+    onCreated?.(child)
+    return child
+  })
   const pinSession = vi.fn(async () => undefined)
   const unpinSession = vi.fn(async () => undefined)
   // The Host snapshots the injected hooks derive from and a pin's order write
@@ -646,7 +650,7 @@ describe('ui-workspace apply', () => {
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     const unarchiveSession = vi.spyOn(b.ctx.uiWorkspace, 'unarchiveSession').mockResolvedValue(undefined)
 
-    // Fork goes through the navigation service, which leaves the child unselected.
+    // The menu opens the child through the navigation service.
     const forkSession = vi.spyOn(b.ctx.uiWorkspace, 'forkSession')
     const fork = sessionMenuActions(b.ctx)
     using source = b.ctx.sessions.retain(sid('session'), { source: 'controllerOperation' })
@@ -658,8 +662,8 @@ describe('ui-workspace apply', () => {
     const { onCreated, ...payload } = request
     expect(payload).toEqual({ sessionId: 'session', increaseTitle: true, allowMigration: false })
     expect(onCreated).toBeTypeOf('function')
-    expect(b.retain).not.toHaveBeenCalled()
-    expect(b.selectPanel).not.toHaveBeenCalled()
+    expect(b.retain).toHaveBeenCalledExactlyOnceWith('forked', { source: 'mainView' })
+    expect(b.selectPanel).toHaveBeenCalledExactlyOnceWith(null)
 
     // The rename row raises the request the dialog entry reads; settling clears it.
     const rename = sessionMenuActions(b.ctx)
@@ -695,7 +699,7 @@ describe('ui-workspace apply', () => {
   })
 
   it.each(['absent', 'cold', 'loading', 'error', 'closed'] as const)(
-    'forks a %s source without opening it locally', async (state) => {
+    'forks a %s source and only opens the child locally', async (state) => {
       const b = await bench()
       onTestFinished(() => b.ctx.fiber.dispose())
       declare(b.slots, 'sidebar.workspaces', 'shell.overlay')
@@ -718,9 +722,9 @@ describe('ui-workspace apply', () => {
       const { onCreated, ...payload } = request
       expect(payload).toEqual({ sessionId: 'source', increaseTitle: true, allowMigration: false })
       expect(onCreated).toBeTypeOf('function')
-      expect(toast.hooks.toast.getSnapshot()).toMatchObject({ kind: 'forkCreated', sessionId: sid('forked') })
-      expect(b.retain).not.toHaveBeenCalled()
-      expect(b.selectPanel).not.toHaveBeenCalled()
+      expect(toast.hooks.toast.getSnapshot()).toBeNull()
+      expect(b.retain).toHaveBeenCalledExactlyOnceWith('forked', { source: 'mainView' })
+      expect(b.selectPanel).toHaveBeenCalledExactlyOnceWith(null)
     },
   )
 
@@ -783,7 +787,7 @@ describe('ui-workspace apply', () => {
     },
   )
 
-  it('forks opened read-only subagent history without selecting its child', async () => {
+  it('opens an ordinary branch of read-only subagent history', async () => {
     const b = await bench()
     onTestFinished(() => b.ctx.fiber.dispose())
     declare(b.slots, 'sidebar.workspaces', 'shell.overlay')
@@ -804,9 +808,9 @@ describe('ui-workspace apply', () => {
     const { onCreated, ...payload } = request
     expect(payload).toEqual({ sessionId: 'source', increaseTitle: true, allowMigration: false })
     expect(onCreated).toBeTypeOf('function')
-    expect(toast.hooks.toast.getSnapshot()).toMatchObject({ kind: 'forkCreated', sessionId: sid('forked') })
-    expect(b.retain).not.toHaveBeenCalled()
-    expect(b.selectPanel).not.toHaveBeenCalled()
+    expect(toast.hooks.toast.getSnapshot()).toBeNull()
+    expect(b.retain).toHaveBeenCalledExactlyOnceWith('forked', { source: 'mainView' })
+    expect(b.selectPanel).toHaveBeenCalledExactlyOnceWith(null)
   })
 
   it.each(['ordinary', 'other-remote', 'unwrapped-migration'] as const)('reports a fork failure and keeps selection after rejection (%s)', async (kind) => {

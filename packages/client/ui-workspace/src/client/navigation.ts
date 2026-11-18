@@ -60,16 +60,17 @@ export interface UiWorkspace {
     options?: Pick<StartSessionOptions, 'agentPreset'>,
   ): Promise<void>
   /**
-   * Fork a Session and report the outcome. A whole-session fork offers to open the child.
+   * Fork a Session and report the outcome. A fork requested with `open` selects the child
+   * when created, unless another navigation has superseded it.
    * @param sessionId - source Session.
    * @param onCreated - observer before the optional child-title update.
-   * @param options - exact boundary and permission to start source migration.
+   * @param options - exact boundary, migration permission, and whether to select the child.
    * @returns the created child, including when its optional inherited-title update fails.
    */
   forkSession(
     sessionId: SessionId,
     onCreated?: (childId: SessionId) => void,
-    options?: Pick<Parameters<ISessions['fork']>[0], 'allowMigration' | 'atSeq'>,
+    options?: Pick<Parameters<ISessions['fork']>[0], 'allowMigration' | 'atSeq'> & { open?: boolean },
   ): Promise<SessionId>
   /**
    * Resolve the Session for a new conversation in a Workspace: navigation names the first reusable
@@ -330,22 +331,32 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   async forkSession(
     sessionId: SessionId,
     onCreated?: (childId: SessionId) => void,
-    options?: Pick<Parameters<ISessions['fork']>[0], 'allowMigration' | 'atSeq'>,
+    options?: Parameters<UiWorkspace['forkSession']>[2],
   ): Promise<SessionId> {
+    const { open, ...request } = options ?? {}
+    const navigation = open === true ? AbortSignal.any([this.ctx.layout.beginNavigation(), this.lifetime.signal]) : undefined
     let created: SessionId | undefined
+    let opened = false
     try {
       created = await this.sessions.fork({
-        sessionId, increaseTitle: true, ...options,
-        onCreated: (childId) => { created = childId; onCreated?.(childId) },
+        sessionId, increaseTitle: true, ...request,
+        onCreated: (childId) => {
+          created = childId
+          if (navigation?.aborted === false) {
+            this.replaceMain(childId, navigation, 'reveal')
+            opened = true
+          }
+          onCreated?.(childId)
+        },
       })
     } catch (error) {
       if (created === undefined) {
-        if (!this.lifetime.signal.aborted) this.reportForkFailure(sessionId, error, options?.atSeq === undefined)
+        if (!this.lifetime.signal.aborted) this.reportForkFailure(sessionId, error, request.atSeq === undefined)
         throw error
       }
       console.warn('session fork created a child before post-creation work failed:', error)
     }
-    if (!this.lifetime.signal.aborted && options?.atSeq === undefined) this.notify({ kind: 'forkCreated', sessionId: created })
+    if (!opened && !this.lifetime.signal.aborted && request.atSeq === undefined) this.notify({ kind: 'forkCreated', sessionId: created })
     return created
   }
 

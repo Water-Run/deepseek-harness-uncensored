@@ -348,10 +348,10 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         throws: ['on failure; a refused creation is also shown through the Workspace notice unless a later navigation or disposal superseded the request.'],
       },
       {
-        signature: 'forkSession( sessionId: SessionId, onCreated?: (childId: SessionId) => void, options?: Pick<Parameters<ISessions[\'fork\']>[0], \'allowMigration\'>, ): Promise<SessionId>',
-        description: 'Fork a Session without changing the current selection.',
-        parameters: [{ name: 'sessionId', description: 'source Session.' }, { name: 'onCreated', description: 'observer before the optional child-title update.' }, { name: 'options', description: 'optional permission to start source migration; omission preserves the Host default.' }],
-        returns: 'the child SessionId after creation and inherited-title increment.',
+        signature: 'forkSession( sessionId: SessionId, onCreated?: (childId: SessionId) => void, options?: Pick<Parameters<ISessions[\'fork\']>[0], \'allowMigration\' | \'atSeq\'> & { open?: boolean }, ): Promise<SessionId>',
+        description: 'Fork a Session and report the outcome. A fork requested with `open` selects the child when created, unless another navigation has superseded it.',
+        parameters: [{ name: 'sessionId', description: 'source Session.' }, { name: 'onCreated', description: 'observer before the optional child-title update.' }, { name: 'options', description: 'exact boundary, migration permission, and whether to select the child.' }],
+        returns: 'the created child, including when its optional inherited-title update fails.',
       },
       {
         signature: 'connectWorkspace(workspaceId: WorkspaceId, options?: Pick<StartSessionOptions, \'agentPreset\'>): Promise<SessionId>',

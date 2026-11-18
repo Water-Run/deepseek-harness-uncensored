@@ -1,3 +1,1 @@
-- alert:
-  - text: Session branch created
-  - button "Open branch"
+- treeitem "Use the read tool twice now" [selected]

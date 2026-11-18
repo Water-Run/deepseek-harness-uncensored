@@ -95,8 +95,8 @@ export function installWorkspaceShortcuts(
     if (target === undefined) return { status: 'blocked', reason: t('shortcut.noSession') }
     if (target.blank) return { status: 'blocked', reason: t('shortcut.noCompletedTurn') }
     return { status: 'handled', run: () => {
-      // The main view owns history opening for this target.
-      void navigation.forkSession(target.id).catch((_error: unknown) => { /* Workspace has shown the failure. */ })
+      void navigation.forkSession(target.id, undefined, { open: true })
+        .catch((_error: unknown) => { /* Workspace has shown the failure. */ })
     } }
   })
   register('session.archive', () => t('menu.archiveSession'), ['archive session'], 'KeyA', ['primary', 'shift'], ['primary', 'alt'], () => {

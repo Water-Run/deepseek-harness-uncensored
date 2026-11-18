@@ -438,7 +438,7 @@ describe('web e2e: message IconActions and clocks on settled history', () => {
       () => page.locator('[role="treeitem"]').allTextContents(),
       { timeout: 10_000 },
     ).toEqual(expect.arrayContaining([expect.stringContaining('Use the read tool twice (2)')]))
-    expect(await sourceRow.textContent()).toContain('Use the read tool twice (1)')
+    expect(await sourceRow.textContent()).toContain('Use the read tool twice (2)')
     const tree = await captureStableAria(
       page,
       '[role="tree"][aria-label="Sessions"]',
@@ -462,17 +462,17 @@ describe('web e2e: message IconActions and clocks on settled history', () => {
     await row.locator('button[aria-label^="Session actions for "]').click()
     const existing = new Set(scaffold.ctx.agents.list().map(agent => agent.id))
     await page.getByRole('menuitem', { name: 'Fork session', exact: true }).click()
-    const notice = page.getByRole('alert').filter({ hasText: 'Session branch created' })
-    await notice.waitFor()
+    await expect.poll(() => scaffold.ctx.agents.list().filter(agent => !existing.has(agent.id)).length).toBe(1)
     const child = scaffold.ctx.agents.list().find(agent => !existing.has(agent.id))!
     expect(child.session.header.parentSession).toBeUndefined()
     expect(child.session.header.agentPreset).toBe('reverse')
     expect(scaffold.ctx.agentPresets.composedPreset(child.ctx)).toBe('reverse')
     expect(scaffold.ctx.agents.get(id)).toBeUndefined()
     expect(await row.getAttribute('aria-selected')).not.toBe('true')
-    await compareOrRefreshGolden(REVERSE_FORK_EXPECTED, await notice.ariaSnapshot(), MODE)
-    await notice.getByRole('button', { name: 'Open branch', exact: true }).click()
-    await expect.poll(() => page.locator(`[data-row-key="session:${child.id}"]`).getAttribute('aria-selected')).toBe('true')
+    const childRow = page.locator(`[data-row-key="session:${child.id}"]`)
+    await expect.poll(() => childRow.getAttribute('aria-selected')).toBe('true')
+    await expect.poll(() => childRow.textContent()).toContain('Use the read tool twice')
+    await compareOrRefreshGolden(REVERSE_FORK_EXPECTED, await childRow.ariaSnapshot(), MODE)
   })
 
   it.skipIf(MODE === 'record')('explains why a Reverse Session cannot fork while its first turn is in progress', async () => {

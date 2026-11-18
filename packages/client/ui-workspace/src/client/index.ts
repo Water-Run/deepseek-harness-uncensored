@@ -288,7 +288,7 @@ export function apply(ctx: Context): void {
     forkSession: (sessionId) => {
       void uiWorkspace.forkSession(sessionId, (childId) => {
         ctx.get('productAnalytics')?.track('branch_session_click', { session_id: childId, parent_session_id: sessionId, click_position: 'sidebar' })
-      }, { allowMigration: false }).catch((_error: unknown) => { /* Workspace has shown the failure. */ })
+      }, { allowMigration: false, open: true }).catch((_error: unknown) => { /* Workspace has shown the failure. */ })
     },
   })
   const sessionIdInjected = (): SessionIdInjected => ({

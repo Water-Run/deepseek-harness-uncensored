@@ -496,8 +496,12 @@ describe('UiWorkspaceService', () => {
       const b = bench({ workspaces: workspaceState([workspace('a')]) })
       const created = Promise.withResolvers<SessionId>()
       b.sessions.create.mockReturnValueOnce(created.promise)
-      b.sessions.fork.mockReturnValueOnce(created.promise)
-      const pending = kind === 'workspace' ? b.uiWorkspace.openWorkspace(wid('a')) : b.uiWorkspace.forkSession(sid('source'))
+      b.sessions.fork.mockImplementationOnce(async ({ onCreated }) => {
+        const id = await created.promise
+        onCreated?.(id)
+        return id
+      })
+      const pending = kind === 'workspace' ? b.uiWorkspace.openWorkspace(wid('a')) : b.uiWorkspace.forkSession(sid('source'), undefined, { open: true })
       await b.ctx.fiber.dispose()
       created.resolve(sid('late'))
       await pending
@@ -598,7 +602,7 @@ describe('UiWorkspaceService', () => {
     expect(b.selectPanel).not.toHaveBeenCalled()
   })
 
-  it('does not supersede a pending Workspace selection when a sidebar fork completes', async () => {
+  it('does not supersede a pending Workspace selection when a background fork completes', async () => {
     const b = bench({ workspaces: workspaceState([workspace('a')]) })
     const created = Promise.withResolvers<SessionId>()
     b.sessions.create.mockReturnValueOnce(created.promise)
@@ -607,6 +611,40 @@ describe('UiWorkspaceService', () => {
     created.resolve(sid('chosen'))
     await opening
     expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('chosen'), { source: 'mainView' })
+  })
+
+  it('opens the published branch before its title update settles', async () => {
+    const b = bench()
+    const child = sid('forked')
+    const renamed = Promise.withResolvers<SessionId>()
+    b.sessions.fork.mockImplementationOnce(async ({ onCreated }) => {
+      onCreated?.(child)
+      return renamed.promise
+    })
+
+    const pending = b.uiWorkspace.forkSession(sid('source'), undefined, { open: true })
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(child, { source: 'mainView' })
+    renamed.reject(new Error('title update failed'))
+    await expect(pending).resolves.toBe(child)
+    expect(b.notify).not.toHaveBeenCalled()
+  })
+
+  it('offers to open a branch when a later navigation supersedes its selection', async () => {
+    const b = bench()
+    const child = sid('forked')
+    const created = Promise.withResolvers<SessionId>()
+    b.sessions.fork.mockImplementationOnce(async ({ onCreated }) => {
+      const id = await created.promise
+      onCreated?.(id)
+      return id
+    })
+
+    const pending = b.uiWorkspace.forkSession(sid('source'), undefined, { open: true })
+    b.uiWorkspace.openSession(sid('chosen'))
+    created.resolve(child)
+    await expect(pending).resolves.toBe(child)
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('chosen'), { source: 'mainView' })
+    expect(b.notify).toHaveBeenCalledExactlyOnceWith({ kind: 'forkCreated', sessionId: child })
   })
 
   it('pins on the Host, then leads the Session in its group and flat saved orders; unpin leaves them', async () => {
