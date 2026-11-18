@@ -38,6 +38,12 @@ Windows 18.4 实装的 `frida_binding.node` 与 Frida 17.23.2 官方预构建逐
 
 本轮查询时，minimisted 与 proxy-agent-negotiate 的最新版本仍为 2.0.1 和 1.1.0，没有采用新的运行时版本。归档、发布元数据、逐文件摘要及检查结果在 `%USERPROFILE%/DSHU-Deliveries/20261118/license-review/`；本地 17.8 的待核查数仍为 Windows 6 项、Linux 8 项。
 
+### dfa 内嵌的 PEG.js 解析器
+
+`dfa@1.2.0` 的固定 Makefile 调用 PEG.js 生成解析器。npm 归档的编译器源码映射注明生成器为 PEG.js 0.10.0，七处解析器模板片段与该版本上游源码和分发的 `compile.js` 一致。归档通过锁文件 SHA-512 核验，`compile.js` 与 Windows 18.11 实装中的文件逐字一致。清单附入 PEG.js 0.10.0 的 MIT 许可和版权原文，dfa 本体署名仍待核查。[dfa 构建规则](https://github.com/devongovett/dfa/blob/3f5e603e5082caedabefefdf53e8a6ca3111e966/Makefile) · [PEG.js 模板](https://github.com/pegjs/pegjs/blob/671166bbe82150042b71d5756405c0ee067df961/lib/compiler/passes/generate-js.js) · [PEG.js 许可](https://github.com/pegjs/pegjs/blob/671166bbe82150042b71d5756405c0ee067df961/LICENSE)
+
+使用 Windows 18.11 的 920 项实装依赖复算，继 Frida 和 Fontkit 补充之后只增加 dfa 的一份声明，合计 26 份，仍有 6 项待核查。19 项清点器测试通过，实装 ASAR 摘要一致。新增原文待下次打包分发。回执位于 `%USERPROFILE%/DSHU-Deliveries/20261118/license-review/dfa-pegjs/dfa-pegjs-notice-projection.json`。
+
 ## Office 0.2.3 声明清点（2026-11-13）
 
 实际 Windows 载荷中的五份原生引擎声明，以及 Linux 工作区中的三份 WASM 引擎声明，均与各自 0.2.3 `prebuilds.json` 的固定摘要一致。清点器现按确切版本记录这些嵌套文件，保留 0.1.5 记录；缺失或空白的原文仍标记待核查。声明路径和摘要回执为当前交付目录中的 `office-023-notice-verification.json` 和 `office-wasm-023-notice-verification.json`。
@@ -188,7 +194,7 @@ Linux `.3` 实包原清单为 861 个 npm 包和 12 项待核查。`@deepseek-ai
 | 包与版本 | 平台 | 剩余核查 |
 | --- | --- | --- |
 | brotli 1.3.3 | Windows/Linux | 已补 Google 解码器、固定子模块和 Emscripten 运行时声明，包装代码原始署名、精确编译器版本及链接组件清单待核对 |
-| dfa 1.2.0 | Windows/Linux | npm 包及固定源提交没有独立许可原文 |
+| dfa 1.2.0 | Windows/Linux | 已补 PEG.js 0.10.0 解析器许可原文。dfa 本体署名仍待核对 |
 | fontkit 2.0.4 | Windows/Linux | 已补八张 Mac 编码表的归属声明和 Base64 解码器的 MIT 原文。Fontkit 本体原文与 Apple 数据分发条款仍待核对 |
 | frida 17.23.2 | Windows/Linux | 版本及源码链已核对，Node 绑定和预构建组件的完整署名仍待核查 |
 | minimisted 2.0.1 | Windows/Linux | REA 明确记录的上游原文/署名缺项，保留待核查 |

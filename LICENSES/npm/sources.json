@@ -30,6 +30,12 @@
     "sha256": "2fd38dc06e484cdd7a3f1e2f6577f5d53062052a2fd85131b56b89fbd673731c"
   },
   {
+    "packages": ["dfa@1.2.0"],
+    "file": "dfa-1.2.0-PEGjs-0.10.0-MIT.txt",
+    "source": "https://raw.githubusercontent.com/pegjs/pegjs/671166bbe82150042b71d5756405c0ee067df961/LICENSE",
+    "sha256": "e56890ff38a31e1adc0617f57c23056289dd27a9ff6263eaf6137dacd1253d9d"
+  },
+  {
     "packages": ["fontkit@2.0.4"],
     "file": "fontkit-2.0.4-Apple-mappings-NOTICE.txt",
     "source": "https://www.unicode.org/Public/MAPPINGS/VENDORS/APPLE/",

@@ -24,6 +24,7 @@ const REA_AGGREGATE = 'node_modules/rea-agents/licenses/npm-runtime-notices.txt'
 const UPSTREAM_GAPS = new Set([
   '@img/sharp-libvips-linux-x64@1.3.4',
   'brotli@1.3.3',
+  'dfa@1.2.0',
   'fontkit@2.0.4',
   'frida@17.23.2',
   'minimisted@2.0.1',
