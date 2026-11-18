@@ -160,9 +160,11 @@ export class DesktopUpdateCoordinator {
     if (this.configurationError !== undefined || this.switching > 0
       || this.downloadOperation !== undefined || this.installOperation !== undefined || this.downloaded) return this.current
     if (!manual && this.current.phase === 'error' && this.current.failedOperation === 'download') return this.current
+    const generation = this.generation
     this.checkOperation ??= Promise.resolve().then(() => this.doCheck())
       .finally(() => { this.checkOperation = undefined })
     const result = await this.checkOperation
+    if (generation !== this.generation || this.disposed) return this.current
     if (manual && result.phase === 'error') this.setState(result)
     return result
   }
@@ -274,9 +276,9 @@ export class DesktopUpdateCoordinator {
     try {
       this.assertLive()
       if (!this.enabled()) throw new Error('desktop update: this application has no packaged update source')
-      const source = forkUpdateSource(await this.readSource())
-      this.assertLive()
-      this.updater.setFeedURL(source)
+      const configuration = await this.readSource()
+      if (generation !== this.generation || this.disposed) return this.current
+      this.updater.setFeedURL(forkUpdateSource(configuration))
       const result = await this.updater.checkForUpdates()
       if (generation !== this.generation || this.disposed) return this.current
       if (result === null) throw new Error('desktop update: no check result was returned')

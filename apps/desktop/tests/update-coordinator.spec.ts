@@ -71,6 +71,9 @@ function fixture(
   const quitAndInstall = vi.fn()
   const beforeRestart = vi.fn(async () => true)
   const downloadResult = vi.fn()
+  const readSource = vi.fn(async () => feedUrl === undefined
+    ? { provider: 'github', owner: 'Water-Run', repo: 'deepseek-harness-uncensored' }
+    : { provider: 'generic', url: feedUrl })
   const states: DesktopUpdateState[] = []
   Object.assign(events, {
     checkForUpdates, downloadUpdate, quitAndInstall, setFeedURL: vi.fn(), getFeedURL: () => 'Deprecated. Do not use it.',
@@ -78,11 +81,12 @@ function fixture(
   const updater = events as AppUpdater
   const coordinator = new DesktopUpdateCoordinator(
     (state) => { states.push(state); return state },
-    beforeRestart, updater, () => true, () => version, downloadResult, channel, discard,
-    async () => feedUrl === undefined ? { provider: 'github', owner: 'Water-Run', repo: 'deepseek-harness-uncensored' } : { provider: 'generic', url: feedUrl },
+    beforeRestart, updater, () => true, () => version, downloadResult, channel, discard, readSource,
   )
   coordinators.push(coordinator)
-  return { coordinator, updater, events, states, checkForUpdates, downloadUpdate, quitAndInstall, beforeRestart, downloadResult }
+  return {
+    coordinator, updater, events, states, checkForUpdates, downloadUpdate, quitAndInstall, beforeRestart, downloadResult, readSource,
+  }
 }
 
 describe('desktop update coordinator', () => {
@@ -347,6 +351,31 @@ it('discards a check result that belongs to the previous channel', async () => {
   await Promise.all([checking, switching])
   expect(f.states.some(state => state.version === '9.0.0-alpha.1')).toBe(false)
   expect(f.coordinator.state).toMatchObject({ phase: 'available', version: '1.2.0' })
+})
+
+it('retires a pending configuration read without another request or error from the old channel', async () => {
+  const f = fixture()
+  f.checkForUpdates.mockRejectedValueOnce(new Error('old channel unavailable'))
+  await f.coordinator.check(true)
+  const revision = f.coordinator.revision
+  const reading = Promise.withResolvers<undefined>()
+  const configuration = Promise.withResolvers<Awaited<ReturnType<typeof f.readSource>>>()
+  f.readSource.mockImplementationOnce(() => { reading.resolve(undefined); return configuration.promise })
+  const checking = f.coordinator.check(true)
+  await reading.promise
+
+  const switching = f.coordinator.switchChannel('latest', async () => {})
+  f.checkForUpdates.mockResolvedValueOnce({ isUpdateAvailable: true, updateInfo: { version: '1.2.0' } })
+  try {
+    await vi.waitFor(() => expect(f.coordinator.revision).toBe(revision + 1))
+  } finally {
+    configuration.resolve({ provider: 'github', owner: 'Water-Run', repo: 'deepseek-harness-uncensored' })
+    await Promise.all([checking, switching])
+  }
+
+  expect(f.checkForUpdates).toHaveBeenCalledTimes(2)
+  expect(f.states.filter(state => state.phase === 'error')).toHaveLength(1)
+  expect(f.coordinator.state).toEqual({ phase: 'available', version: '1.2.0' })
 })
 
 it('does not check or install while startup channel configuration is invalid', async () => {
