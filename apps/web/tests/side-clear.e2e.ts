@@ -1,7 +1,7 @@
 /** Actual Web commands, context replacement, preference persistence and reconnect. */
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
-import { chromium } from 'playwright'
+import { chromium, type Route } from 'playwright'
 import { expect, it } from 'vitest'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { MockAdapter, textResponse } from '../../../packages/core/agent-loop/tests/mock-adapter.ts'
@@ -113,8 +113,22 @@ it('sends side images and clears only the side context', async () => {
       await expect.poll(() => toggle.getAttribute('aria-checked')).toBe('true')
       await page.keyboard.press('Escape')
       await settings.waitFor({ state: 'hidden' })
-      await closeSide()
-      await expect.poll(async () => (await api.aside({ sessionId, kind: 'side' })).sessionId).toMatch(/-2$/u)
+      const routePattern = '**/api/session/aside'
+      let opening: Route | undefined
+      const delay = async (route: Route): Promise<void> => {
+        if (opening === undefined) opening = route
+        else await route.continue()
+      }
+      await page.route(routePattern, delay)
+      try {
+        await page.reload()
+        await expect.poll(() => opening !== undefined, { timeout: 5_000 }).toBe(true)
+        await closeSide()
+      } finally {
+        try { await opening?.continue() }
+        finally { await page.unroute(routePattern, delay) }
+      }
+      await expect.poll(async () => (await api.aside({ sessionId, kind: 'side' })).sessionId, { timeout: 5_000 }).toMatch(/-2$/u)
       await mainInput.fill('/side')
       await mainInput.press('Enter')
       await sideInput.waitFor()

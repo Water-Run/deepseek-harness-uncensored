@@ -82,6 +82,7 @@ export function registerAsides(ctx: Context): void {
     const parents = new Map<SessionId, SessionId>()
     const sides = new Set<SessionId>()
     const lastSide = new Map<SessionId, SessionId>()
+    const openingSides = new Map<SessionId, Promise<SessionForkValue>>()
     const resets = new Map<SessionId, Promise<SubmitOutcome>>()
     const changes = new Map<SessionId, Set<() => void>>()
     let closed = false
@@ -97,12 +98,20 @@ export function registerAsides(ctx: Context): void {
     const requestChild = async (parent: SessionId, kind: 'side' | 'btw'): Promise<SessionForkValue> => {
       for (let reset = resets.get(parent); reset !== undefined; reset = resets.get(parent)) await reset
       if (isClosed()) throw new Error(t('aside.failed'))
-      const result = await scope.remote.session.aside({ sessionId: parent, kind })
-      if (!result.ok) throw result.error
-      if (kind === 'side') adoptSide(parent, result.value.sessionId)
-      else parents.set(result.value.sessionId, parent)
-      await scope.sessions.refresh()
-      return result.value
+      const opening = scope.remote.session.aside({ sessionId: parent, kind }).then((result) => {
+        if (!result.ok) throw result.error
+        if (kind === 'side') adoptSide(parent, result.value.sessionId)
+        else parents.set(result.value.sessionId, parent)
+        return result.value
+      })
+      if (kind === 'side') openingSides.set(parent, opening)
+      try {
+        const child = await opening
+        await scope.sessions.refresh()
+        return child
+      } finally {
+        if (openingSides.get(parent) === opening) openingSides.delete(parent)
+      }
     }
     const create = (parent: SessionId, kind: 'side' | 'btw'): Promise<SessionForkValue> => {
       const pending = requestChild(parent, kind)
@@ -117,12 +126,13 @@ export function registerAsides(ctx: Context): void {
       if (actx !== undefined && conversation !== undefined) conversation.input.for(actx).notify('error', text)
     }
     scope.effect(() => scope.remote.$on('api-session/side-reset', notifySide), 'conversation: side context changes')
-    const resetSide = (child: SessionId, cause: 'manual' | 'close'): Promise<SubmitOutcome> => {
-      const parent = parents.get(child)
-      if (parent === undefined || !sides.has(child) || isClosed()) return Promise.resolve({ kind: 'error', text: t('aside.clearFailed') })
+    const resetSide = (
+      parent: SessionId, target: SessionId | Promise<SessionForkValue>, cause: 'manual' | 'close',
+    ): Promise<SubmitOutcome> => {
       const operation = (async (): Promise<SubmitOutcome> => {
         try {
           await resets.get(parent)
+          const child = typeof target === 'string' ? target : (await target).sessionId
           if (isClosed()) return { kind: 'error', text: t('aside.clearFailed') }
           const result = await scope.remote.session.resetAside({ sessionId: child, cause })
           if (!result.ok) return { kind: 'error', text: t('aside.clearFailed') }
@@ -151,9 +161,10 @@ export function registerAsides(ctx: Context): void {
       previousTabs = current
       if (closed) return
       for (const tab of removed) {
-        const parent = tab.sessionId, child = lastSide.get(parent)
+        const parent = tab.sessionId
+        const child = lastSide.get(parent) ?? openingSides.get(parent)
         if (child === undefined) continue
-        void resetSide(child, 'close').then((outcome) => {
+        void resetSide(parent, child, 'close').then((outcome) => {
           if (outcome.kind === 'error' && !closed) {
             reportResetFailure(parent, t('aside.autoClearFailed'))
           }
@@ -295,7 +306,9 @@ export function registerAsides(ctx: Context): void {
       label: () => t('aside.clear'), description: () => t('aside.clearDescription'), icon: AsideIcon,
       available: session => sides.has(session.sessionId),
       ui: { kind: 'action', run: (session) => {
-        void resetSide(session.sessionId, 'manual').then((outcome) => {
+        const parent = parents.get(session.sessionId)
+        if (parent === undefined || !sides.has(session.sessionId) || isClosed()) return
+        void resetSide(parent, session.sessionId, 'manual').then((outcome) => {
           if (outcome.kind === 'error' && !closed) reportResetFailure(session.sessionId, t('aside.clearFailed'))
         }).catch((error: unknown) => { scope.logger.warn(error) })
       } },
