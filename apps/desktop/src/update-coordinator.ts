@@ -202,7 +202,7 @@ export class DesktopUpdateCoordinator {
   }
 
   /**
-   * Install a prepared target after a separate user confirmation.
+   * Install a prepared target after a separate user confirmation. Repeated requests share an active handoff.
    * @param version - Exact version displayed in the confirmation, never a renderer-selected URL.
    * @param revision - Revision captured when the confirmation began; omitted uses the current target.
    * @returns Installation handoff or a recoverable preparation error.
@@ -212,6 +212,7 @@ export class DesktopUpdateCoordinator {
     if (revision !== this.generation) return this.current
     if (this.configurationError !== undefined || this.switching > 0) throw new Error('desktop update: channel selection is not ready')
     if (!this.downloaded || this.downloadOperation !== undefined || version !== this.candidate) throw new Error('desktop update: confirmed target is not ready')
+    if (this.release.kind === 'handed-off' && this.current.phase === 'installing') return this.current
     this.installOperation ??= Promise.resolve().then(async () => {
       this.setState({ phase: 'installing', version })
       try {

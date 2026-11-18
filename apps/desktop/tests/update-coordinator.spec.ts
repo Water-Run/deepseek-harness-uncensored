@@ -118,6 +118,19 @@ describe('desktop update coordinator', () => {
     expect(f.coordinator.state).toMatchObject({ phase: 'error', failedOperation: 'install', message: 'installer could not start' })
   })
 
+  it('returns the existing installation state after handoff without preparing the Host again', async () => {
+    const f = fixture()
+    const version = '1.1.0-rc.2'
+    await f.coordinator.check()
+    await f.coordinator.download(version)
+
+    const handedOff = await f.coordinator.install(version)
+    expect(handedOff).toEqual({ phase: 'installing', version })
+    await expect(f.coordinator.install(version)).resolves.toBe(handedOff)
+    expect(f.beforeRestart).toHaveBeenCalledOnce()
+    expect(f.quitAndInstall).toHaveBeenCalledOnce()
+  })
+
   it('waits for platform preparation after its downloaded event and rejects stale download approval', async () => {
     const f = fixture()
     const prepared = Promise.withResolvers<string[]>()

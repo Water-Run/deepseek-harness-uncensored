@@ -298,6 +298,8 @@ Use `pnpm --dir apps/desktop run test:installer --uninstall-only --silent-only` 
 
 ## Updates
 
+While the installer has control and the app is waiting to close, another request for the same version returns the current installation status. It reuses the same Host shutdown and installer handoff.
+
 On Windows, the downloaded-update confirmation explains that the application closes during installation, reopens automatically, and should not be launched again while updating. An installer restart carrying `--updated` raises and focuses the main window once when startup opens the workspace directly, without enabling always-on-top. Startup into the welcome page discards that request so a later login keeps its normal activation behavior. Ordinary launches and other platforms do not use this foregrounding step.
 
 On macOS, installation preparation waits for the product window to leave fullscreen before displaying the restart confirmation. Cancelling leaves the window in normal mode; destroying it during the native transition cancels installation before task teardown. If macOS does not report completion within five seconds, preparation fails without stopping the Host; the localized error asks the user to exit fullscreen and retry. Installation failure recovery uses the normal window.
