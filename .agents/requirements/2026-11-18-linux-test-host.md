@@ -14,6 +14,14 @@
 
 Windows 跳板上的嵌套 SSH 不使用管道传入 Python 程序；该方式会等待 stdin 关闭。脚本经 SCP 传输，再以 `ssh -n` 执行文件，已经通过。连接和命令前重新核对设备及路径。
 
+## 11 月 18 日重连预检
+
+转发曾恢复监听并进入 Fedora，重新核对的 17.8 ASAR 摘要仍与保留归档一致。系统 Node 为 22.23.1、pnpm 为 11.10.0，不能直接替代本仓所需工具；现有包内独立 Node 为 24.22.1，另有包内 pnpm，使用前再核对版本。此前结果的 24.21.0 指 Electron 内嵌 Node，两者不混记。
+
+`.cache` 挂载为 4 GiB tmpfs，剩余约 1.32 GiB；主目录位于 btrfs，有约 128 GiB 空闲。已准备 rc.4 构建脚本，使用磁盘目录 `.local/state/dshu-verification/`、独立缓存和较低进程优先级，不改系统包及全局工具。脚本上传时随后再次发生 SSH 握手超时，未完成上传，Linux 构建没有启动，不将本地脚本或监听端口视为已运行任务。
+
+预检与上传失败证据在同日交付目录的 `fedora-rc4-preflight.log`、`fedora-rc4-storage.log` 和 `fedora-rc4-build-launch.log`；恢复连接后先核对是否已有作业，再继续构建。不会启动本机 WSL。
+
 ## WSL 开发状态保全
 
 本机 `/home/linzh/.cache/dshu-verification` 的三个工作区、Git 元数据、reflog 和 32 条 stash 已归档。226,715 个文件或链接逐项核对通过，三个 Git 元数据副本经过实际恢复、stash 核对和连通性检查。共享对象独立保存；浅克隆信息和原始对象编码保留。

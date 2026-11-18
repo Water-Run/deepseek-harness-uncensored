@@ -1,6 +1,6 @@
 # 网安流量查看与导出
 
-状态：源码实现已完成定向验证，等待后续批次打包；本地安装仍为 2026.11.17.8。未创建或修改 Release。此项归入 `10.03`，其余原始需求保持不变。
+状态：实现已随 [Windows 18.2](2026-11-18.2-delivery.md)完成打包、实包运行和保留数据安装验证。未创建或修改 Release。此项归入 `10.03`，其余原始需求保持不变。
 
 ## 行为
 
@@ -21,4 +21,4 @@
 - 独立干净工作区的候选构建查出 LiveShare 漏接 `securityProxy/exportCapture` 权限分类；补为仅所有者，三种插件授权模式均拒绝查看者导出和权限授予，相关 45 项用例通过。原失败构建回执保留，不作为有效候选交付。
 - 本轮没有操作用户桌面或重跑整库测试，尚未完成新检查包实装后的全界面保存验收。Fedora 转发端口暂未恢复，Linux 原生验收继续保留待完成状态。
 
-本机证据位于 `%USERPROFILE%/DSHU-Deliveries/20261118/`，包括 `proxy-export-tests.log`、`proxy-export-final-tests.log`、`proxy-export-web-result.json`、主题截图和构建/校验日志。旧安装不能据此标为已包含源码改动。
+本机证据位于 `%USERPROFILE%/DSHU-Deliveries/20261118/`，包括 `proxy-export-tests.log`、`proxy-export-final-tests.log`、`proxy-export-web-result.json`、主题截图和构建/校验日志。Windows 18.2 已含本项；Linux 历史 17.8 不继承本项结论。

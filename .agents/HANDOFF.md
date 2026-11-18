@@ -1,24 +1,20 @@
 # DSHU 开发交接
 
-**本地 2026.11.17.8 已保留数据安装并启动，没有发布 Release，Goal 保持活动。** 当前 36 项完成、9 项进行中及 3 项未来计划，完整范围见 [TODO](TODO.md)。继续实现既有范围，减少重复测试；发布须逐次取得明确许可。
+**本地 2026.11.18.2 已保留数据安装并启动，没有发布 Release，Goal 保持活动。** 当前仍为 36 项完成、9 项进行中及 3 项未来计划，完整范围见 [TODO](TODO.md)。继续实现既有范围，减少重复测试；发布须逐次取得明确许可。
 
 ## 当前交付
 
-构建源码 `a45e8f67f99decc961c540cfea02d938a21992c8`，显示/内部版本 `2026.11.17.8` / `2026.1117.8`，提供 Windows exe、Linux deb/tar.gz，未签名。构建于 11 月 17 日启动，北京时间 11 月 18 日安装验收。[当前交付、摘要及恢复](requirements/2026-11-17.8-delivery.md)
+Windows 构建源码 `3f0f615b57840c9b5d47c6db670586a75e5d7137`，显示/内部版本 `2026.11.18.2` / `2026.1118.2`，内核 rc.4、REA 6.9.0，未签名。完整实装清单、CLI、Windows 登记、正常账户启动均通过；安装前后 7,370 数据文件及官方 DSH 两个关键文件一致。[当前交付、摘要及恢复](requirements/2026-11-18.2-delivery.md)
 
-修复 Desktop 共享 SDK client 缺失，以及 Host 使用 CLI 依赖图导致外部提供方无法导入它的问题。四个正式 npm 提供方在实际 Windows 包中注册，四模式就绪、无加载警告。Codex 移除、回装及不兼容 tarball 的文件和模块恢复通过；更高兼容版本的成功升级仍待验收。
+已交付流量 JSON 导出、连接切换及请求竞态修复、可选保护缺失提示。四个正式 npm 提供方完成 rc.3 → rc.4 升级及实际注册，四模式就绪，无 Host 加载警告。CLI 升级不运行依赖构建脚本，不调用模型账号，应用 ASAR 和升级前测试 patch 不变。
 
-17.7 候选没有安装，失败材料和安装器保留，Linux 归档在 `D:/DSHU-Deliveries/20261117/rejected-2026.11.17.7/`。后续检查从外部插件导入 SDK client，避免只验证包内文件存在。Windows 17.8 实际安装后完成全量 ASAR 清单核对，没有另建完整 NSIS 解包副本。
+18.1 rc.3 候选已验证但未安装；17.7 失败候选仍隔离保留。检查实际外部插件导入 SDK client 和注册情况，不能只以包内文件存在代替运行通过。[历史 18.1](requirements/2026-11-18.1-delivery.md) · [历史 17.8](requirements/2026-11-17.8-delivery.md)
 
-[公开预发布 17.5](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5) 保持不变，本次没有创建 Release、修改公开资产或上传文件。源码已推送；没有远端 CI 运行，不能记作 CI 通过。
+[公开预发布 17.5](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5) 保持不变。本次没有创建 Release、修改公开资产或上传文件。源码已经推送；远端没有 CI 运行记录，不能记作 CI 通过。
 
 ## 当前开发
 
-Windows 18.1 内部检查包（源码 `8732567e8e`、rc.3）已生成，实际载荷与非空流量导出通过，尚未安装。新增 LiveShare 分类漏项已修复，45 项用例和干净构建通过。上游 rc.4 于本地凌晨发布，源码正在适配；先完成内核同步，再生成新检查包并更新系统。[18.1 检查包](requirements/2026-11-18.1-delivery.md) · [rc.4 适配](requirements/2026-11-18-dsh-rc4.md)
-
-## 尚未安装的变更
-
-流量导出和连接隔离已进入 18.1 内部检查包，系统 17.8 尚不包含；rc.4 源码仍待新包和实装。可选保护服务缺失时的 HTTP 404 提示已源码修复，171 项相关测试和真实浅深主题/窄屏页面验证通过；等待与 rc.4 一并打包，见[可选运行时反馈](requirements/2026-11-18-optional-runtime-feedback.md)。
+当前代码已经进入 Windows 18.2，rc.4 的 Linux 新包及实体机图形/门户验收还未完成。其余保护执行、资源物理身份、关机/重启、发行与许可证事项继续按完整清单推进。内核和界面改动的边界及验证见 [rc.4 适配](requirements/2026-11-18-dsh-rc4.md)与[可选运行时反馈](requirements/2026-11-18-optional-runtime-feedback.md)。
 
 ## Linux 测试与 WSL 状态
 
@@ -30,10 +26,10 @@ Codex 的自动连接会在关闭后重新唤起 Ubuntu，需用户在连接设�
 
 ## 恢复与运行
 
-- 备份 `D:/DSHU-Backups/20261117T161831Z-before-20261117-8-data`：7,366 文件、零链接；安装后摘要一致，官方 DSH 两个关键文件未变。恢复前另存当前数据。
-- 17.6 恢复包摘要 `17033bf92cae789607475d3e6e641528ee871cd20982188b5eb393c162ffceb1`。恢复记录为交付目录的 `accepted-2026.11.17.6/current-windows-manifest.json`。
-- 常规启动主 PID `154848`，令牌直接验证未提权，用户为 `WATERRUN\linzh`；观察期间响应且无新增崩溃。操作前重新核对进程。旧主进程明确终止，不记作正常退出或系统重启验收。
-- 本版材料为 `%USERPROFILE%/DSHU-Deliveries/20261117/candidate-2026.11.17.8/`，重点为两平台 manifest、`installed-update-result.json`、`installed-payload-result.json`、`normal-launch-result.json` 和 `official-plugins/acceptance.json`。历史失败、源码和 stash 保留。
+- 本次备份 `C:/Users/linzh/DSHU-Backups/20261117T234021Z-before-20261118-2-data`：7,370 文件、零链接，安装后摘要一致。恢复前另存当前数据。
+- 17.8 恢复包 SHA-256 为 `e421f7e03a48b40b296f5971b3feb280c17a3044be33e131ed5cd2681af9a6df`；旧指针保存在 `20261117/accepted-2026.11.17.8/current-windows-manifest.json`。
+- 本次启动观察主 PID `137596`，用户 `WATERRUN\linzh`，令牌直接验证未提权，响应正常、无新增崩溃。后续操作前重新核对进程；旧 17.8 主进程明确终止，不记作正常退出或系统重启验收。
+- 当前证据为 `%USERPROFILE%/DSHU-Deliveries/20261118/candidate-2026.11.18.2/`；同日 `current-windows-manifest.json` 已指向实装版。Linux 历史归档仍为 17.8，不继承 Windows 的 rc.4 验收结论。
 
 ## 仍有效的执行验收
 
@@ -52,6 +48,8 @@ Codex 的自动连接会在关闭后重新唤起 Ubuntu，需用户在连接设�
 Windows 构建使用 `VCToolsVersion=14.52.36629`、`MSVCPreviewEnabled=true`。私有 `.env.windows` 使用 npm 官方 registry；代理下载失败后，仅在本次进程中清除代理变量直连成功。供应链检查未放宽。首次 pnpm 烟测超时后，同一运行时独立检查通过；后续成功 run 见交付记录。
 
 ## 清理与工作约束
+
+本轮已停用的独立打包工作区 `D:/DSHU-Delivery-Work/20261118/source-fc4c9ddf7b` 中，仅维护私有 `.desktop-build/pnpm-store`：移除 49,468 文件、1,125 包，D 盘净空闲增加约 1.28 GiB。回执为 `20261118/private-store-prune-result.json`。没有重试下列拒绝目标，也没有清理它们的父目录。
 
 11 月 18 日失败的 Client 编译误写了 `packages/client/ui-file-actions/src/` 下 20 个未跟踪 `.js`、`.d.ts` 及映射文件；项目引用已修复。删除这些派生文件被自动审批以 `blocked by policy` 拒绝，文件保留且不得换方法重试或删除父目录。清单见本机 `20261118/proxy-export-compiler-residue-rejected.json`，不纳入提交。
 
