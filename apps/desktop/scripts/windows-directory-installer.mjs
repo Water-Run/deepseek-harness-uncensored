@@ -1,4 +1,5 @@
-/** Adapt the pinned NSIS template to stage and rename complete application directories. */
+/** Adapt the pinned NSIS installer to DSHU directory replacement and Windows release metadata. */
+import { parseCalendarVersion } from '@deepseek-ai/dsh-product-version/bootstrap'
 import { createHash } from 'node:crypto'
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
@@ -93,6 +94,25 @@ export function installWindowsDirectoryInstaller() {
   const prototype = NsisTarget.prototype
   if (prototype[patched]) return
   prototype[patched] = true
+  const execute = prototype.executeMakensis
+  prototype.executeMakensis = function (defines, commands, ...args) {
+    const version = parseCalendarVersion(this.packager.appInfo.version)
+    if (version === undefined) return execute.call(this, defines, commands, ...args)
+    if (!Array.isArray(commands.VIAddVersionKey)) throw new Error('Desktop NSIS version resources changed')
+    const fields = new Set()
+    const versionKeys = commands.VIAddVersionKey.map((entry) => {
+      const match = /^(\/LANG=\d+ (ProductVersion|FileVersion)) "[^"]*"$/u.exec(entry)
+      if (match === null) return entry
+      fields.add(match[2])
+      return `${match[1]} "${version.display}"`
+    })
+    if (fields.size !== 2) throw new Error('Desktop NSIS version resources changed')
+    return execute.call(this, defines, {
+      ...commands,
+      VIProductVersion: version.display,
+      VIAddVersionKey: versionKeys,
+    }, ...args)
+  }
   const compute = prototype.computeFinalScript
   prototype.computeFinalScript = async function (source, ...args) {
     const directory = join(this.outDir, '.nsis-directory-installer')

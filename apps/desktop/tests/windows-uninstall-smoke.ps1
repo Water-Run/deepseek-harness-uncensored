@@ -99,14 +99,24 @@ function Invoke-SilentSetup([int]$ExpectedExitCode, [string]$Options = '') {
     } finally { $setup.Dispose() }
 }
 
+function Assert-VersionResource([string]$Path) {
+    $resource = [Diagnostics.FileVersionInfo]::GetVersionInfo($Path)
+    $product = [version]::new($resource.ProductMajorPart, $resource.ProductMinorPart, $resource.ProductBuildPart, $resource.ProductPrivatePart)
+    $file = [version]::new($resource.FileMajorPart, $resource.FileMinorPart, $resource.FileBuildPart, $resource.FilePrivatePart)
+    if ($resource.ProductVersion -cne $Version -or $resource.FileVersion -cne $Version -or
+        $product -ne [version]$Version -or $file -ne [version]$Version) {
+        throw "Unexpected Windows version resource at ${Path}. Product/file: $($resource.ProductVersion) / $($resource.FileVersion). Fixed product/file: $product / $file. Expected $Version."
+    }
+}
+
 function Assert-VersionGuard {
     $sentinel = Join-Path $installPath 'preserve-on-rejection.txt'
     [IO.File]::WriteAllText($sentinel, 'installed files')
     $cases = @(
-        @{ Name = 'release'; Installed = '0.1.0'; Options = '' },
-        @{ Name = 'newer prerelease'; Installed = '0.1.0-test.20261111.10'; Options = '--updated /currentuser' },
-        @{ Name = 'newer product'; Installed = '0.1.1-alpha.1'; Options = '' },
-        @{ Name = 'invalid version'; Installed = '0.1.0-test.01'; Options = '' },
+        @{ Name = 'later day'; Installed = '2026.11.19.1'; Options = '' },
+        @{ Name = 'later build in runtime format'; Installed = '2026.1118.10'; Options = '--updated /currentuser' },
+        @{ Name = 'later build in display format'; Installed = '2026.11.18.10'; Options = '' },
+        @{ Name = 'invalid version'; Installed = '2026.02.30.1'; Options = '' },
         @{ Name = 'missing version'; Installed = ''; Options = '' }
     )
     try {
@@ -169,6 +179,7 @@ function Assert-VersionGuard {
 }
 
 try {
+    Assert-VersionResource $Installer
     foreach ($mode in $expected.cases) {
         if ($SilentOnly -and $mode -eq 'interactive') { continue }
         Invoke-SilentSetup 0
@@ -202,6 +213,7 @@ try {
             Assert-VersionGuard
         }
         Copy-Item -LiteralPath (Join-Path $installPath ('Uninstall ' + $ProductName + '.exe')) -Destination $uninstaller -Force
+        Assert-VersionResource $uninstaller
         $uninstallCommand = $uninstaller
         $arguments = '_?=' + $installPath
         if ($mode -in @('silent', 'purge')) {

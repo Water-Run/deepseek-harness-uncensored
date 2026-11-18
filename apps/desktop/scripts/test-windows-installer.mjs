@@ -1,4 +1,5 @@
 /** Builds an isolated native payload through the production NSIS configuration and exercises its UI. */
+import { displayProductVersion } from '@deepseek-ai/dsh-product-version/bootstrap'
 import { readInstallerLocales, renderInstallerStrings } from './installer-locales.mjs'
 import { execFile } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
@@ -24,7 +25,8 @@ const id = guid.replaceAll('-', '')
 const productName = `Harness Installer Test ${id.slice(0, 8)}`
 // Scoped like the shipped package so Electron user data nests under a scope directory; the scope is unique per run.
 const packageName = `@harness-installer-test-${id.slice(0, 8)}/app-${id}`
-const version = '0.1.0-test.20261111.9'
+const version = '2026.1118.9'
+const displayVersion = displayProductVersion(version)
 const uninstallOnly = process.argv.includes('--uninstall-only')
 const silentOnly = process.argv.includes('--silent-only')
 if (silentOnly && !uninstallOnly) throw new Error('--silent-only requires --uninstall-only')
@@ -49,6 +51,7 @@ try {
   Object.assign(process.env, {
     DSH_DESKTOP_APP_ID: `com.deepseek.harness.installertest.n${id}`,
     DSH_DESKTOP_TARGET_PLATFORM: 'win32', DSH_DESKTOP_TARGET_ARCH: 'x64',
+    DSH_DESKTOP_BUILD_VERSION: version,
     DSH_DESKTOP_UNSIGNED: '1', CSC_IDENTITY_AUTO_DISCOVERY: 'false', ELECTRON_BUILDER_7Z_FILTER: 'BCJ',
     DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: signingEnvironment.DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN
       ?? 'https://test.example.com',
@@ -132,7 +135,7 @@ SectionEnd
     const languageOutput = join(output, language)
     await mkdir(languageOutput)
     const strings = join(languageOutput, 'strings.nsh')
-    await writeFile(strings, renderInstallerStrings([locale]), 'utf8')
+    await writeFile(strings, `!define DSHU_DISPLAY_VERSION "${displayVersion}"\n${renderInstallerStrings([locale])}`, 'utf8')
     const include = join(languageOutput, 'include.nsh')
     await writeFile(include, `!define INSTALLER_BUILD_DIR "${join(output, 'ui')}"\n!define INSTALLER_STRINGS_FILE "${strings}"\n!include "${join(appRoot, 'scripts', 'installer.nsh')}"\n`)
     await build({ projectDir: appRoot, prepackaged: payload, targets: Platform.WINDOWS.createTarget(['nsis'], Arch.x64), publish: 'never',
@@ -148,7 +151,7 @@ SectionEnd
       join(appRoot, 'tests', uninstallOnly ? 'windows-uninstall-smoke.ps1' : 'windows-installer-smoke.ps1'),
       '-Installer', join(languageOutput, 'installer-test.exe'),
       '-ProductName', productName, '-RegistryKey', guid, '-OutputDirectory', languageOutput,
-      '-Language', language, ...uninstallOnly ? ['-PackageName', packageName, '-Version', version, ...silentOnly ? ['-SilentOnly'] : []] : []], childOptions)
+      '-Language', language, ...uninstallOnly ? ['-PackageName', packageName, '-Version', displayVersion, ...silentOnly ? ['-SilentOnly'] : []] : []], childOptions)
     process.stdout.write(`${language}\n${result.stdout}`)
   }
   succeeded = true

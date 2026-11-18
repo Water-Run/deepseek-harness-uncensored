@@ -41,7 +41,7 @@ Set `DSH_DESKTOP_PACKAGE_CACHE_DIR` to an absolute build-cache directory for reu
 
 DSHU displays calendar versions as `YYYY.MM.DD.N`, for example `2026.11.14.1`. The final field is the daily build sequence. The DSH engine and bundled REA retain their own upstream versions. Packaging within existing authorization needs no extra confirmation; publishing a public release still requires separate authorization.
 
-The package manifests and Electron update feed encode the same identity as `YYYY.MMDD.N`, for example `2026.1114.1`. This preserves numeric ordering in existing SemVer update engines. About, CLI output, installer filenames and Windows registration display the four-field date. The independent product version in `apps/desktop/package.json` is the earliest accepted calendar build for the checkout.
+The package manifests and Electron update feed encode the same identity as `YYYY.MMDD.N`, for example `2026.1114.1`. This preserves numeric ordering in existing SemVer update engines. About, CLI output, installer filenames and Windows registration display the four-field date. The Windows installer and uninstaller use that date in both the version labels and the fixed numeric version resources. The independent product version in `apps/desktop/package.json` is the earliest accepted calendar build for the checkout.
 
 The CLI package, Desktop runtime descriptor and primary payload record the selected build version. Packaging rejects a runtime from the manifest baseline when the shell carries a later build, and its smoke checks execute the bundled CLI to verify the displayed version.
 
