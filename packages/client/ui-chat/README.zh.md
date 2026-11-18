@@ -14,6 +14,8 @@ kind: "package-reference"
 
 文件提及提供方同时接收当前查看的会话 ID 与收尾轮次的属主信息，因此继承历史中的链接可以指向 fork 自身。
 
+消息底部创建分支时，将已结束轮次的事件序号交给[工作区导航](../ui-workspace/README.zh.md#use-this-package)。
+
 ## 目录
 
 - [引用预览](#reference-previews)

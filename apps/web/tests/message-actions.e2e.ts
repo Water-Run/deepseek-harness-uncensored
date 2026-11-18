@@ -7,7 +7,7 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { zstdCompressSync } from 'node:zlib'
-import type { Browser, Page, Request as BrowserRequest } from 'playwright'
+import type { Browser, Page, Request as BrowserRequest, Route } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import { SESSION_FORMAT_VERSION, SessionId } from '@deepseek-ai/dsh-session'
@@ -565,6 +565,54 @@ describe('web e2e: message IconActions and clocks on settled history', () => {
       expect(scaffold.ctx.agents.list().filter(agent => !existing.has(agent.id) && agent.id !== id)).toEqual([])
     } finally {
       page.off('request', trackFork)
+    }
+  })
+
+  it.skipIf(MODE === 'record')('keeps a later Session selection while a message fork is pending', async () => {
+    const other = SessionId('message-actions-fork-navigation-target')
+    await seedSession(scaffold, completedTailFixture(await readFile(SEED, 'utf8')), other)
+    const warningStart = tripwire.warnings.length
+    await page.reload({ waitUntil: 'load' })
+    await openUngroupedRows()
+    const source = page.locator(`[data-row-key="session:${SEED_ID}"]`)
+    const destination = page.locator(`[data-row-key="session:${other}"]`)
+    const more = page.getByRole('button', { name: /^Show \d+ more sessions$/ })
+    await source.or(more).first().waitFor()
+    if (!await source.isVisible()) await more.click()
+    await source.click()
+    acknowledgeReloadConnectionLoss(tripwire, warningStart)
+
+    const routePattern = '**/api/session/fork'
+    let intercepted = false
+    const release = Promise.withResolvers<undefined>()
+    const delay = async (route: Route): Promise<void> => {
+      intercepted = true
+      await release.promise
+      await route.continue()
+    }
+    const existing = new Set(scaffold.ctx.agents.list().map(agent => agent.id))
+    existing.add(SessionId(SEED_ID))
+    existing.add(other)
+    await page.route(routePattern, delay)
+    try {
+      await page.locator('[data-turn-tail="2"]').getByRole('button', { name: 'Branch into a new conversation' }).click()
+      await expect.poll(() => intercepted, { timeout: 5_000 }).toBe(true)
+      await destination.click()
+      await expect.poll(() => destination.getAttribute('aria-selected')).toBe('true')
+      release.resolve(undefined)
+
+      const notice = page.getByRole('alert').filter({ hasText: 'Session branch created' })
+      const openBranch = notice.getByRole('button', { name: 'Open branch', exact: true })
+      await openBranch.waitFor({ timeout: 5_000 })
+      expect(await destination.getAttribute('aria-selected')).toBe('true')
+      const branch = scaffold.ctx.agents.list().find(agent => !existing.has(agent.id))
+      if (branch === undefined) throw new Error('the fork did not publish a child')
+      await openBranch.click()
+      const branchRow = page.locator(`[data-row-key="session:${branch.id}"]`)
+      await expect.poll(() => branchRow.getAttribute('aria-selected')).toBe('true')
+    } finally {
+      release.resolve(undefined)
+      await page.unroute(routePattern, delay)
     }
   })
 

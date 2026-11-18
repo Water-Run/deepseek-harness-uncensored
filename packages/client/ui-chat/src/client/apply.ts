@@ -306,8 +306,7 @@ export function apply(ctx: Context): void {
             const messageId = turn?.data.get('turn-tail')?.closing?.finalNode.messageId
             void ctx.uiWorkspace.forkSession(sessionId, (childId) => {
               ctx.get('productAnalytics')?.track('branch_session_click', { session_id: childId, parent_session_id: sessionId, ...messageId === undefined ? {} : { parent_message_id: messageId }, click_position: 'footer' })
-            }, { atSeq: seq })
-              .then((childId) => { ctx.uiWorkspace.openSession(childId) })
+            }, { atSeq: seq, open: true })
               .catch((_error: unknown) => { /* Workspace has shown the failure. */ })
           },
         }

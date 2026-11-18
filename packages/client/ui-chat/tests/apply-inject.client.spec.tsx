@@ -86,8 +86,11 @@ async function bench(initialSettings?: ChatSettings, withBrowserRegistry = true,
   )
   runtime.remote.provideNamespaces({ session: { openWorkspacePath } })
   const openSession = vi.fn<(id: SessionId) => void>()
-  const forkSession: UiWorkspace['forkSession'] = (sessionId, onCreated, options) => runtime.sessions.fork({
-    sessionId, increaseTitle: true, ...options, ...(onCreated === undefined ? {} : { onCreated }),
+  const forkSession = vi.fn<UiWorkspace['forkSession']>((sessionId, onCreated, options) => {
+    const { open: _open, ...request } = options ?? {}
+    return runtime.sessions.fork({
+      sessionId, increaseTitle: true, ...request, ...(onCreated === undefined ? {} : { onCreated }),
+    })
   })
   runtime.ctx.provide('uiWorkspace', {
     openWorkspace: vi.fn(async (_workspaceId: WorkspaceId, beforeOpen: (id: SessionId) => void) => {
@@ -144,7 +147,7 @@ async function bench(initialSettings?: ChatSettings, withBrowserRegistry = true,
       return preference as LinkOpeningRowInjected
     },
     runtime, chat, chatSettings, browserAvailable, connectionState,
-    layout, openWorkspacePath, sidebarRight, sidebarRightTabs, session, chatViewApi, chatFlowApi, rootReference, openSession,
+    layout, openWorkspacePath, sidebarRight, sidebarRightTabs, session, chatViewApi, chatFlowApi, rootReference, openSession, forkSession,
   }
 }
 
@@ -282,9 +285,8 @@ describe('Chat inject API', () => {
     expect(track).toHaveBeenLastCalledWith('branch_session_click', { session_id: ROOT, parent_session_id: ROOT, parent_message_id: 'reply', click_position: 'footer' })
     forkCreated.mockRestore()
     injected.forkAt(17)
-    await vi.waitFor(() => {
-      expect(b.openSession).toHaveBeenCalledWith(ROOT)
-    })
+    expect(b.forkSession).toHaveBeenLastCalledWith(ROOT, expect.any(Function), { atSeq: 17, open: true })
+    expect(b.openSession).not.toHaveBeenCalled()
     expect(b.runtime.sessions.calls).toContainEqual({
       method: 'fork', args: [{ sessionId: ROOT, atSeq: 17, increaseTitle: true, onCreated: expect.any(Function) as (childId: SessionId) => void }],
     })

@@ -61,7 +61,7 @@ export interface UiWorkspace {
   ): Promise<void>
   /**
    * Fork a Session and report the outcome. A fork requested with `open` selects the child
-   * when created, unless another navigation has superseded it.
+   * when created, or offers an Open branch action when a later navigation supersedes it.
    * @param sessionId - source Session.
    * @param onCreated - observer before the optional child-title update.
    * @param options - exact boundary, migration permission, and whether to select the child.
@@ -355,7 +355,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
       }
       console.warn('session fork created a child before post-creation work failed:', error)
     }
-    if (!fork.opened && !this.lifetime.signal.aborted && request.atSeq === undefined) {
+    if (!fork.opened && !this.lifetime.signal.aborted && (open === true || request.atSeq === undefined)) {
       this.notify({ kind: 'forkCreated', sessionId: fork.child })
     }
     return fork.child

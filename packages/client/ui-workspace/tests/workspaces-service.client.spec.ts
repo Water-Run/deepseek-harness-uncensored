@@ -629,7 +629,10 @@ describe('UiWorkspaceService', () => {
     expect(b.notify).not.toHaveBeenCalled()
   })
 
-  it('offers to open a branch when a later navigation supersedes its selection', async () => {
+  it.each([
+    { source: 'a Session', request: {} },
+    { source: 'a message', request: { atSeq: 17 } },
+  ])('offers to open a branch from $source when another navigation wins', async ({ request }) => {
     const b = bench()
     const child = sid('forked')
     const created = Promise.withResolvers<SessionId>()
@@ -639,7 +642,7 @@ describe('UiWorkspaceService', () => {
       return id
     })
 
-    const pending = b.uiWorkspace.forkSession(sid('source'), undefined, { open: true })
+    const pending = b.uiWorkspace.forkSession(sid('source'), undefined, { open: true, ...request })
     b.uiWorkspace.openSession(sid('chosen'))
     created.resolve(child)
     await expect(pending).resolves.toBe(child)

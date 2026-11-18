@@ -14,6 +14,8 @@ Use this package to render a browser chat from recorded Session conversations, i
 
 File-mention providers receive the viewed Session ID with the closing-turn owner, so links into inherited history can address the fork itself.
 
+The message footer passes the completed turn's event sequence to [Workspace navigation](../ui-workspace/README.md#use-this-package) when creating a branch.
+
 ## Table of Contents
 
 - [Reference previews](#reference-previews)
