@@ -7,14 +7,14 @@ const client = { version: '0.2.1-rc.2', locale: 'zh-CN', timezoneOffsetSeconds: 
 const engines: BalanceEngine[] = []
 afterEach(async () => { await Promise.all(engines.splice(0).map(engine => engine.close())) })
 
-function setup(seed: readonly BalanceSample[] = []) {
+function setup(seed: readonly BalanceSample[] = [], displayLimit = 3) {
   const rows = new Map<string, readonly BalanceSample[]>([['one', seed]])
   const identity: BalanceIdentity = { key: 'one', account: 'api-key', current: vi.fn(async () => true),
     query: vi.fn(async () => [{ currency: 'CNY' as const, toppedUp: '23.50', granted: '5' }]) }
   const identify = vi.fn(async () => identity)
   const write = vi.fn(async (key: string, value: readonly BalanceSample[]) => { rows.set(key, value) })
   const engine = new BalanceEngine({ identify, read: key => rows.get(key), write,
-    limit: 5, displayLimit: 3, timeoutMs: 1000, now: () => 100 })
+    limit: 5, displayLimit, timeoutMs: 1000, now: () => 100 })
   engines.push(engine)
   return { engine, rows, identity, identify, write }
 }
@@ -47,12 +47,23 @@ it('drops an in-flight sample after the credential generation changes', async ()
 })
 
 it('bounds retained history and transport samples while retaining the first and last observations', async () => {
-  const prior = Array.from({ length: 5 }, (_, time) => ({ time, wallets: [{ currency: 'CNY' as const, toppedUp: String(time), granted: '0' }] }))
+  const prior = Array.from({ length: 5 }, (_, time) => ({ time, wallets: [{ currency: 'CNY' as const, toppedUp: '30', granted: '0' }] }))
   const b = setup(prior)
   const result = await b.engine.read(client, 'api')
   expect(b.rows.get('one')).toHaveLength(5)
   expect(result.sampleCount).toBe(5)
   expect(result.samples.map(sample => sample.time)).toEqual([1, 3, 100])
+})
+
+it('keeps the most recent complete rise when the snapshot cannot fit every rise', async () => {
+  const amounts = ['63.889919', '63.889912', '63.889913', '63.889900', '63.889901', '63.889899']
+  const samples = amounts.map((toppedUp, time) => ({ time, wallets: [{ currency: 'USD' as const, toppedUp, granted: '0' }] }))
+  const b = setup(samples, 4)
+  const local = await b.engine.read(client, 'local')
+  expect(local.sampleCount).toBe(6)
+  expect(local.samples).toEqual([samples[0], samples[3], samples[4], samples[5]])
+  expect(b.rows.get('one')).toBe(samples)
+  expect(b.write).not.toHaveBeenCalled()
 })
 
 it('waits for an admitted query during disposal and prevents its late write', async () => {

@@ -10,6 +10,7 @@
 
 - [x] **余额采样滚动时保留选择（2026-11-19）**。鼠标和键盘选中同一条原始采样后，更新样本列表仍保留其时间和金额。选中点移出历史后改选时间最接近的保留点。14 项定向测试通过，Chromium 的小额精度与窄窗布局场景均通过。日志位于 `%USERPROFILE%/DSHU-Deliveries/20261119/balance-retained-selection-{web,narrow-web}.log`。[余额设置](../../packages/client/ui-settings-account/README.zh.md)
 - [x] **余额曲线保留短暂回升（2026-11-19）**。绘图降采样保留收到的每次回升前后两个原始点。240 点浏览器场景中，小额回升在对应采样时刻显示竖虚线，悬浮显示精确余额。14 项定向测试与深浅主题的浏览器场景通过。Host 单次历史传输上限仍适用。日志位于 `%USERPROFILE%/DSHU-Deliveries/20261119/balance-dense-increases-web.log`。[余额设置](../../packages/client/ui-settings-account/README.zh.md)
+- [x] **余额历史传输保留回升（2026-11-19）**。Host 保留历史首尾，按从近到远的顺序纳入放得下的回升采样对，其余位置均匀补点。浏览器夹具通过真实采样算法将 500 条原始记录缩减为 240 条，深浅主题下的回升虚线位置、悬浮时间和金额均与原始采样一致。22 项定向测试和浏览器场景通过。日志位于 `%USERPROFILE%/DSHU-Deliveries/20261119/balance-host-rise-sampling-web.log`。[余额服务](../../packages/credentials/balance/README.md)
 
 - [x] **旁问清理期间重新打开（2026-11-19）**。隔离客户端在 `/clear` 尚未应答时打开旁问，原实现会立即读取旧上下文。当前客户端等待同一主会话的手动及关闭清理，重开拿到新上下文。客户端及 Host 共 28 项测试通过，组装 Web 的旁问图片、清空、重开和自动清理场景通过。日志为 `%USERPROFILE%/DSHU-Deliveries/20261119/aside-reset-web.log`。[旁问命令](../../packages/client/ui-commands/README.zh.md)
 - [x] **旁问加载期间关闭（2026-11-19）**。组装 Web 延迟页面重载后的旁问打开请求，在响应前关闭标签。旧版漏掉自动清理。修复后，开启自动清理时等待旁问身份返回并清理，重开显示新上下文，主对话及其记录无变化。30 项定向测试和浏览器场景通过。日志为 `%USERPROFILE%/DSHU-Deliveries/20261119/side-clear-during-open-web.log`。[旁问命令](../../packages/client/ui-commands/README.zh.md)

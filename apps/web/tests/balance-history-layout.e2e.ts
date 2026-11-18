@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { chromium, webkit } from 'playwright'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import type {} from '@deepseek-ai/dsh-balance'
+import { BalanceEngine } from '../../../packages/credentials/balance/src/engine.ts'
 import { launchWebScaffold } from './scaffold.ts'
 import { openSettings, ZH_BROWSER_LOCALE } from './support.ts'
 
@@ -15,11 +16,17 @@ it('keeps sub-cent observations and a small rise visible in a dense history in b
   await scaffold.ctx.settings.mutate('ui-settings-account', [
     { op: 'set', path: ['step'], value: 'done' }, { op: 'set', path: ['completion'], value: 'completed' },
   ])
-  const amounts = Array.from({ length: 240 }, (_, index) =>
+  const amounts = Array.from({ length: 500 }, (_, index) =>
     ((63_889_919 - index * 20 + (index === 4 ? 40 : 0)) / 1_000_000).toFixed(6))
-  const balance = vi.spyOn(scaffold.ctx.uncensoredBalance, 'get').mockResolvedValue({ status: 'ready', source: 'api',
-    account: 'api-key', sampleCount: amounts.length, samples: amounts.map((toppedUp, index) => ({ time: Date.UTC(2026, 10, 17, 1, index),
-      wallets: [{ currency: 'CNY', toppedUp, granted: '0' }] })) })
+  const time = (index: number): number => Date.UTC(2026, 10, 17, 1, index)
+  const samples = amounts.map((toppedUp, index) => ({ time: time(index),
+    wallets: [{ currency: 'CNY' as const, toppedUp, granted: '0' }] }))
+  const engine = new BalanceEngine({
+    identify: async () => ({ key: 'balance-fixture', account: 'api-key', query: async () => null, current: async () => true }),
+    read: () => samples, write: async () => {}, limit: samples.length, displayLimit: 240, timeoutMs: 1000, now: Date.now,
+  })
+  onTestFinished(() => engine.close())
+  const balance = vi.spyOn(scaffold.ctx.uncensoredBalance, 'get').mockImplementation(client => engine.read(client, 'local'))
   onTestFinished(() => { balance.mockRestore() })
   const browser = await chromium.launch(process.platform === 'win32' ? { channel: 'msedge' } : {})
   onTestFinished(() => browser.close())
@@ -41,13 +48,14 @@ it('keeps sub-cent observations and a small rise visible in a dense history in b
     await scaffold.ctx.settings.update('ui-theme', { preference })
     const rect = await plot.boundingBox()
     if (rect === null) throw new Error('Balance plot is missing')
-    for (const index of [0, 4, 120, amounts.length - 1]) {
+    for (const index of [0, 4, amounts.length - 1]) {
       const ratio = (6 + index / (amounts.length - 1) * 252) / 264
       await page.mouse.move(rect.x + rect.width * ratio, rect.y + rect.height / 2)
       await expect.poll(() => plot.getByRole('status').innerText()).toContain(`¥${amounts[index]}`)
-      expect(await plot.getAttribute('aria-valuenow')).toBe(String(index))
+      expect(await plot.getByRole('status').locator('time').getAttribute('datetime')).toBe(new Date(time(index)).toISOString())
     }
-    expect(await dialog.getByText('-¥0.00478', { exact: true }).count()).toBe(1)
+    expect(await plot.getAttribute('aria-valuemax')).toBe('239')
+    expect(await dialog.getByText('-¥0.00998', { exact: true }).count()).toBe(1)
     expect(await dialog.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
     await dialog.screenshot({ path: join(screenshots, `${preference}.png`) })
   }

@@ -40,6 +40,40 @@ export const balanceSample = z.object({
  */
 export function balanceStorageKey(value: string): string { return createHash('sha256').update(value).digest('hex') }
 
+function atIndex<T>(items: readonly T[], index: number): T {
+  const item = items[index]
+  if (item === undefined) throw new RangeError(`Balance history index ${index} is out of range`)
+  return item
+}
+
+function increased(previous: BalanceSample, current: BalanceSample): boolean {
+  return current.wallets.some((wallet) => {
+    const prior = previous.wallets.find(entry => entry.currency === wallet.currency)
+    return prior !== undefined && Number(wallet.toppedUp) + Number(wallet.granted) > Number(prior.toppedUp) + Number(prior.granted)
+  })
+}
+
+function displaySamples(samples: readonly BalanceSample[], limit: number): readonly BalanceSample[] {
+  if (samples.length <= limit) return samples
+  const last = samples.length - 1
+  const selected = new Set([0, last])
+  for (let index = last; index > 0 && selected.size < limit; index -= 1) {
+    const needed = Number(!selected.has(index - 1)) + Number(!selected.has(index))
+    if (needed > limit - selected.size || !increased(atIndex(samples, index - 1), atIndex(samples, index))) continue
+    selected.add(index - 1)
+    selected.add(index)
+  }
+  const remaining = limit - selected.size
+  if (remaining > 0) {
+    const available = samples.map((_sample, index) => index).filter(index => !selected.has(index))
+    for (let index = 1; index <= remaining; index += 1) {
+      const offset = Math.round(index * (available.length + 1) / (remaining + 1)) - 1
+      selected.add(atIndex(available, offset))
+    }
+  }
+  return samples.filter((_sample, index) => selected.has(index))
+}
+
 /** Owns sampling, credential-change checks, and write settlement before disposal. */
 export class BalanceEngine {
   private readonly lifetime = new AbortController()
@@ -54,14 +88,11 @@ export class BalanceEngine {
    * @returns Credential-free state; failures never fabricate a zero balance.
    */
   read(client: AccountClientMetadata, source: 'local' | 'api'): Promise<BalanceSnapshot> {
-    const operation = this.tail.then(() => this.query(client, source)).then((result) => {
-      const count = result.samples.length
-      const limit = this.options.displayLimit
-      const indexes = new Set(Array.from({ length: limit }, (_, index) => Math.round(index * (count - 1) / (limit - 1))))
-      return { ...result, sampleCount: count,
-        samples: count <= limit ? result.samples : result.samples.filter((_sample, index) => indexes.has(index)),
-      }
-    })
+    const operation = this.tail.then(() => this.query(client, source)).then(result => ({
+      ...result,
+      sampleCount: result.samples.length,
+      samples: displaySamples(result.samples, this.options.displayLimit),
+    }))
     this.tail = operation.then(() => undefined, () => undefined)
     return operation
   }
