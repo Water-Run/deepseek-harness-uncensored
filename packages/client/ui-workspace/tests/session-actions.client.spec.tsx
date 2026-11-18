@@ -460,7 +460,7 @@ describe('RowActionToast', () => {
     const dismissToast = vi.fn(() => { toast.set(null) })
     const undoArchive = vi.fn()
     const showArchived = vi.fn()
-    const openForkSource = vi.fn()
+    const openForkSession = vi.fn()
     const runtime = await SlotTestRuntime.create()
     onTestFinished(() => runtime.dispose())
     const locale = new LocaleRuntime(runtime.ctx)
@@ -477,7 +477,7 @@ describe('RowActionToast', () => {
         subscribe: listener => view.subscribe(listener),
       }),
     }, {
-      undoArchive, showArchived, openForkSource,
+      undoArchive, showArchived, openForkSession,
     })
     runtime.slots.register({
       name: 'shell.overlay', id: 'workspace.row-toast',
@@ -489,8 +489,18 @@ describe('RowActionToast', () => {
     const notify = (notice: RowToast): void => {
       act(() => { toast.set({ ...notice, seq: ++seq }) })
     }
-    return { dismissToast, undoArchive, showArchived, openForkSource, notify, locale, view }
+    return { dismissToast, undoArchive, showArchived, openForkSession, notify, locale, view }
   }
+
+  it('offers to open the new branch after a whole-session fork', async () => {
+    const { notify, dismissToast, openForkSession } = await toastSurface(undefined, tEn)
+    notify({ kind: 'forkCreated', sessionId: sid('child') })
+    expect(screen.getByRole('alert').textContent).toContain('Session branch created')
+    expect(openForkSession).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Open branch' }))
+    expect(openForkSession).toHaveBeenCalledExactlyOnceWith(sid('child'))
+    expect(dismissToast).toHaveBeenCalledOnce()
+  })
 
   it('updates locale and archive actions without restarting the same notice', async () => {
     const { notify, locale, view, dismissToast } = await toastSurface()
@@ -522,18 +532,18 @@ describe('RowActionToast', () => {
     ['zh', t, '请先打开原会话完成迁移，再创建分支', '打开原会话'],
     ['en', tEn, 'Open the original session to complete migration before creating a branch.', 'Open original session'],
   ] as const)('keeps the %s fork notice after menu unmount and opens only on its action', async (_locale, translate, message, action) => {
-    const { dismissToast, openForkSource, notify } = await toastSurface(undefined, translate)
+    const { dismissToast, openForkSession, notify } = await toastSurface(undefined, translate)
     const forkSession = vi.fn((sessionId: SessionId) => { notify({ kind: 'forkRequiresOpen', sessionId }) })
     forkSession(ROW.sessionId)
 
     expect(screen.queryByRole('menuitem')).toBeNull()
     expect(screen.getByRole('alert').textContent).toContain(message)
-    expect(openForkSource).not.toHaveBeenCalled()
+    expect(openForkSession).not.toHaveBeenCalled()
     expect(forkSession).toHaveBeenCalledOnce()
     fireEvent.click(screen.getByRole('button', { name: action }))
     expect(dismissToast).toHaveBeenCalledOnce()
-    expect(openForkSource).toHaveBeenCalledExactlyOnceWith(sid('one'))
-    expect(callOrder(dismissToast)).toBeLessThan(callOrder(openForkSource))
+    expect(openForkSession).toHaveBeenCalledExactlyOnceWith(sid('one'))
+    expect(callOrder(dismissToast)).toBeLessThan(callOrder(openForkSession))
     expect(forkSession).toHaveBeenCalledOnce()
     expect(screen.queryByRole('alert')).toBeNull()
   })
@@ -552,14 +562,14 @@ describe('RowActionToast', () => {
     try {
       notify({ kind: 'archived', sessionId: sid('one') })
       act(() => { vi.advanceTimersByTime(1000) })
-      notify({ kind: 'shortcutForkFailed', reason: 'unavailable' })
+      notify({ kind: 'forkFailed', reason: 'unavailable' })
       const first = screen.getByRole('alert')
       expect(first.textContent).toBe(translate('shortcut.noCompletedTurn'))
       expect(first.querySelector('svg')).toBeNull()
       expect(first.querySelector('button')).toBeNull()
       act(() => { vi.advanceTimersByTime(3000) })
       expect(screen.getByRole('alert')).toBe(first)
-      notify({ kind: 'shortcutForkFailed', reason: 'failed' })
+      notify({ kind: 'forkFailed', reason: 'failed' })
       const retry = screen.getByRole('alert')
       expect(retry).not.toBe(first)
       expect(retry.textContent).toBe(translate('shortcut.forkFailed'))
@@ -571,7 +581,7 @@ describe('RowActionToast', () => {
       expect(dismissToast).toHaveBeenCalledOnce()
       expect(screen.queryByRole('alert')).toBeNull()
 
-      notify({ kind: 'shortcutForkFailed', reason: 'failed' })
+      notify({ kind: 'forkFailed', reason: 'failed' })
       act(() => { vi.advanceTimersByTime(1000) })
       notify({ kind: 'sessionIdCopied' })
       const latest = screen.getByRole('alert')

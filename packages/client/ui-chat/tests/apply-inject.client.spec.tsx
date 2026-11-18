@@ -22,6 +22,7 @@ import {
 } from '@deepseek-ai/dsh-client-ui-chat/client'
 import { SessionSeq, type SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
+import type { UiWorkspace } from '@deepseek-ai/dsh-client-ui-workspace/client'
 import { createChatStore } from '../src/client/stores.ts'
 import { CHAT_SETTINGS_NAMESPACE, type ChatSettings } from '../src/chat-settings.ts'
 import type { LinkOpeningRowInjected } from '../src/client/settings/LinkOpeningRow.tsx'
@@ -85,12 +86,16 @@ async function bench(initialSettings?: ChatSettings, withBrowserRegistry = true,
   )
   runtime.remote.provideNamespaces({ session: { openWorkspacePath } })
   const openSession = vi.fn<(id: SessionId) => void>()
+  const forkSession: UiWorkspace['forkSession'] = (sessionId, onCreated, options) => runtime.sessions.fork({
+    sessionId, increaseTitle: true, ...options, ...(onCreated === undefined ? {} : { onCreated }),
+  })
   runtime.ctx.provide('uiWorkspace', {
     openWorkspace: vi.fn(async (_workspaceId: WorkspaceId, beforeOpen: (id: SessionId) => void) => {
       beforeOpen(ROOT)
       openSession(ROOT)
     }),
     openSession,
+    forkSession,
   } as never)
   const session = sessionFakeFor()
   await runtime.sessions.add({

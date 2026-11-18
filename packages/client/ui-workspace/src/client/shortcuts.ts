@@ -1,6 +1,5 @@
 /** Workspace command registration and browser-owned opening requests. */
 import type { Context } from '@deepseek-ai/cordis'
-import type { SessionForkError } from '@deepseek-ai/dsh-api-session-controller/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { ShortcutCommand, ShortcutCommandId } from '@deepseek-ai/dsh-client-shortcuts/client'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
@@ -53,14 +52,12 @@ export function createWorkspaceShortcutControls(): WorkspaceShortcutControls {
  * @param navigation - session creation and forking from the pointer controls' navigation service.
  * @param controls - browser-owned opening requests.
  * @param archiveSession - shared archive action, including running-work confirmation and notices.
- * @param reportForkFailure - publish a classified failure through the frame-wide notice channel.
  */
 export function installWorkspaceShortcuts(
   ctx: Context,
   navigation: Pick<UiWorkspace, 'startSession' | 'forkSession'>,
   controls: ReturnType<typeof createWorkspaceShortcutControls>,
   archiveSession: (sessionId: SessionId) => void,
-  reportForkFailure: (reason: 'unavailable' | 'failed') => void,
 ): void {
   const t = ctx.locale.bind('workspace')
   const current = () => Object.values(ctx.sessions.list.getSnapshot().byId)
@@ -99,13 +96,7 @@ export function installWorkspaceShortcuts(
     if (target.blank) return { status: 'blocked', reason: t('shortcut.noCompletedTurn') }
     return { status: 'handled', run: () => {
       // The main view owns history opening for this target.
-      void navigation.forkSession(target.id).catch((error: unknown) => {
-        // Client plugin bundles do not share error-class identity.
-        const unavailable = error instanceof Error && error.name === 'SessionForkError'
-          && (error as SessionForkError).rpcError.code === 'session/fork-unavailable'
-        reportForkFailure(unavailable ? 'unavailable' : 'failed')
-        if (!unavailable) console.warn('session fork rejected:', error)
-      })
+      void navigation.forkSession(target.id).catch((_error: unknown) => { /* Workspace has shown the failure. */ })
     } }
   })
   register('session.archive', () => t('menu.archiveSession'), ['archive session'], 'KeyA', ['primary', 'shift'], ['primary', 'alt'], () => {

@@ -552,13 +552,30 @@ describe('UiWorkspaceService', () => {
     b.sessions.retain.mockClear()
     b.selectPanel.mockClear()
     await b.uiWorkspace.forkSession(sid('source'))
-    expect(b.sessions.fork).toHaveBeenCalledWith({ sessionId: sid('source'), increaseTitle: true })
+    expect(b.sessions.fork).toHaveBeenCalledWith({
+      sessionId: sid('source'), increaseTitle: true, onCreated: expect.any(Function) as (childId: SessionId) => void,
+    })
+    expect(b.notify).toHaveBeenLastCalledWith({ kind: 'forkCreated', sessionId: sid('forked') })
     expect(b.sessions.retain).not.toHaveBeenCalled()
     b.sessions.fork.mockRejectedValueOnce(new Error('fork failed'))
     await expect(b.uiWorkspace.forkSession(sid('source'))).rejects.toThrow('fork failed')
+    expect(b.notify).toHaveBeenLastCalledWith({ kind: 'forkFailed', reason: 'failed' })
     expect(b.sessions.retain).not.toHaveBeenCalled()
     expect(b.selectPanel).not.toHaveBeenCalled()
     expect(b.sessions.retained[0]!.release).not.toHaveBeenCalled()
+  })
+
+  it('reports the existing branch when the inherited title update fails', async () => {
+    const b = bench()
+    const child = sid('forked')
+    b.sessions.fork.mockImplementationOnce(async ({ onCreated }) => {
+      onCreated?.(child)
+      throw new Error('title update failed')
+    })
+
+    await expect(b.uiWorkspace.forkSession(sid('source'))).resolves.toBe(child)
+    expect(b.notify).toHaveBeenCalledExactlyOnceWith({ kind: 'forkCreated', sessionId: child })
+    expect(b.sessions.fork).toHaveBeenCalledOnce()
   })
 
   it.each([undefined, false, true])('forwards migration permission %s without retaining or selecting a Session', async (allowMigration) => {
@@ -573,7 +590,7 @@ describe('UiWorkspaceService', () => {
     await expect(b.uiWorkspace.forkSession(sid('source'), onCreated, options)).resolves.toBe(sid('forked'))
 
     expect(b.sessions.fork).toHaveBeenCalledExactlyOnceWith({
-      sessionId: sid('source'), increaseTitle: true, onCreated,
+      sessionId: sid('source'), increaseTitle: true, onCreated: expect.any(Function) as (childId: SessionId) => void,
       ...allowMigration === undefined ? {} : { allowMigration },
     })
     expect(onCreated).toHaveBeenCalledExactlyOnceWith(sid('forked'))

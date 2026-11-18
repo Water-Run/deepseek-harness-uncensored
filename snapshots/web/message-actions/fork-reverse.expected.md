@@ -1,0 +1,3 @@
+- alert:
+  - text: Session branch created
+  - button "Open branch"

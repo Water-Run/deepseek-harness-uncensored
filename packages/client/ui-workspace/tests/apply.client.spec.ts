@@ -347,7 +347,7 @@ describe('ui-workspace apply', () => {
     expect(rowToastEntry.store).toBeUndefined()
     expect(b.slots.entries('workspace.toast').map(row => row.options.key)).toEqual([
       'sessionIdCopied', 'sessionIdCopyFailed', 'pinFailed', 'unpinFailed', 'pinDragBlocked', 'archivedNotOpenable',
-      'defaultWorkspaceFailed', 'shortcutForkFailed', 'createFailed', 'forkRequiresOpen', 'archived', 'stoppedAndArchived',
+      'defaultWorkspaceFailed', 'forkFailed', 'forkCreated', 'createFailed', 'forkRequiresOpen', 'archived', 'stoppedAndArchived',
     ])
     for (const registration of b.slots.entries('workspace.toast')) {
       expect(registration.locale).toBe('workspace')
@@ -410,15 +410,17 @@ describe('ui-workspace apply', () => {
     ))
     invoke()
     await vi.waitFor(() => {
-      expect(toast.hooks.toast.getSnapshot()).toMatchObject({ kind: 'shortcutForkFailed', reason: 'unavailable' })
+      expect(toast.hooks.toast.getSnapshot()).toMatchObject({ kind: 'forkFailed', reason: 'unavailable' })
     })
-    expect(b.fork).toHaveBeenCalledExactlyOnceWith({ sessionId: sid('source'), increaseTitle: true })
+    expect(b.fork).toHaveBeenCalledExactlyOnceWith({
+      sessionId: sid('source'), increaseTitle: true, onCreated: expect.any(Function) as (childId: SessionId) => void,
+    })
     expect(warning).not.toHaveBeenCalled()
     const unavailable = toast.hooks.toast.getSnapshot()
     b.fork.mockRejectedValueOnce(new Error('connection closed'))
     invoke()
     await vi.waitFor(() => {
-      expect(toast.hooks.toast.getSnapshot()).toMatchObject({ kind: 'shortcutForkFailed', reason: 'failed' })
+      expect(toast.hooks.toast.getSnapshot()).toMatchObject({ kind: 'forkFailed', reason: 'failed' })
     })
     expect(toast.hooks.toast.getSnapshot()).not.toBe(unavailable)
     expect(warning).toHaveBeenCalledExactlyOnceWith('session fork rejected:', expect.any(Error))
@@ -716,7 +718,7 @@ describe('ui-workspace apply', () => {
       const { onCreated, ...payload } = request
       expect(payload).toEqual({ sessionId: 'source', increaseTitle: true, allowMigration: false })
       expect(onCreated).toBeTypeOf('function')
-      expect(toast.hooks.toast.getSnapshot()).toBeNull()
+      expect(toast.hooks.toast.getSnapshot()).toMatchObject({ kind: 'forkCreated', sessionId: sid('forked') })
       expect(b.retain).not.toHaveBeenCalled()
       expect(b.selectPanel).not.toHaveBeenCalled()
     },
@@ -802,12 +804,12 @@ describe('ui-workspace apply', () => {
     const { onCreated, ...payload } = request
     expect(payload).toEqual({ sessionId: 'source', increaseTitle: true, allowMigration: false })
     expect(onCreated).toBeTypeOf('function')
-    expect(toast.hooks.toast.getSnapshot()).toBeNull()
+    expect(toast.hooks.toast.getSnapshot()).toMatchObject({ kind: 'forkCreated', sessionId: sid('forked') })
     expect(b.retain).not.toHaveBeenCalled()
     expect(b.selectPanel).not.toHaveBeenCalled()
   })
 
-  it.each(['ordinary', 'other-remote', 'unwrapped-migration'] as const)('keeps a fork failure silent after rejection (%s)', async (kind) => {
+  it.each(['ordinary', 'other-remote', 'unwrapped-migration'] as const)('reports a fork failure and keeps selection after rejection (%s)', async (kind) => {
     const b = await bench()
     onTestFinished(() => b.ctx.fiber.dispose())
     declare(b.slots, 'sidebar.workspaces', 'shell.overlay')
@@ -832,7 +834,7 @@ describe('ui-workspace apply', () => {
     expect(forkSession).toHaveBeenCalledOnce()
     await expect(forkSession.mock.results[0]!.value).rejects.toBe(error)
 
-    expect(toast.hooks.toast.getSnapshot()).toBeNull()
+    expect(toast.hooks.toast.getSnapshot()).toMatchObject({ kind: 'forkFailed', reason: kind === 'other-remote' ? 'unavailable' : 'failed' })
     expect(b.fork).toHaveBeenCalledOnce()
     expect(b.retain).not.toHaveBeenCalled()
     expect(b.selectPanel).not.toHaveBeenCalled()

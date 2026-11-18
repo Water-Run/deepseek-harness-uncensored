@@ -21,7 +21,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-context-menu/client'
 import type {} from '@deepseek-ai/dsh-client-product-analytics/client'
 import type { Context } from '@deepseek-ai/cordis'
 import type { RemoteHostFacts } from '@deepseek-ai/dsh-api-remotes/client'
-import type { ISessions, SessionForkError } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
 import type {
   IWorkspaces, SessionActivity, WorkspaceArchiveError, WorkspaceId, WorkspaceSnapshot,
 } from '@deepseek-ai/dsh-api-workspace-controller/client'
@@ -275,8 +275,7 @@ export function apply(ctx: Context): void {
     },
     unarchiveSession,
   })
-  installWorkspaceShortcuts(ctx, uiWorkspace, shortcutControls, archiveInjected().archiveSession,
-    (reason) => { notify({ kind: 'shortcutForkFailed', reason }) })
+  installWorkspaceShortcuts(ctx, uiWorkspace, shortcutControls, archiveInjected().archiveSession)
   const archiveConfirmInjected = (): SessionArchiveConfirmInjected => ({
     hooks: { archiveRequest },
     settleSessionArchive: () => { archiveRequest.set(null) },
@@ -287,14 +286,9 @@ export function apply(ctx: Context): void {
   })
   const forkInjected = (): ForkSessionInjected => ({
     forkSession: (sessionId) => {
-      uiWorkspace.forkSession(sessionId, (childId) => {
+      void uiWorkspace.forkSession(sessionId, (childId) => {
         ctx.get('productAnalytics')?.track('branch_session_click', { session_id: childId, parent_session_id: sessionId, click_position: 'sidebar' })
-      }, { allowMigration: false }).catch((error: unknown) => {
-        if (error instanceof Error && error.name === 'SessionForkError'
-          && (error as SessionForkError).rpcError.code === 'session/migration-required') {
-          notify({ kind: 'forkRequiresOpen', sessionId })
-        }
-      })
+      }, { allowMigration: false }).catch((_error: unknown) => { /* Workspace has shown the failure. */ })
     },
   })
   const sessionIdInjected = (): SessionIdInjected => ({
@@ -312,7 +306,7 @@ export function apply(ctx: Context): void {
   const toastActions = {
     undoArchive: unarchiveSession,
     showArchived: () => { viewInstance.actions.setArchivedFilter('show') },
-    openForkSource: (sessionId: SessionId) => {
+    openForkSession: (sessionId: SessionId) => {
       if (workspaces.list.getSnapshot().archivedSessionIds.includes(sessionId)) {
         notify({ kind: 'archivedNotOpenable' })
         return

@@ -6,6 +6,7 @@ import type { ClientRemote, DirectoryListing, RemoteFailure } from '@deepseek-ai
 import type {
   ISessions,
   SessionCreateError,
+  SessionForkError,
   SessionBinding,
   SessionReference,
   SessionTarget,
@@ -59,16 +60,16 @@ export interface UiWorkspace {
     options?: Pick<StartSessionOptions, 'agentPreset'>,
   ): Promise<void>
   /**
-   * Fork a Session without changing the current selection.
+   * Fork a Session and report the outcome. A whole-session fork offers to open the child.
    * @param sessionId - source Session.
    * @param onCreated - observer before the optional child-title update.
-   * @param options - optional permission to start source migration; omission preserves the Host default.
-   * @returns the child SessionId after creation and inherited-title increment.
+   * @param options - exact boundary and permission to start source migration.
+   * @returns the created child, including when its optional inherited-title update fails.
    */
   forkSession(
     sessionId: SessionId,
     onCreated?: (childId: SessionId) => void,
-    options?: Pick<Parameters<ISessions['fork']>[0], 'allowMigration'>,
+    options?: Pick<Parameters<ISessions['fork']>[0], 'allowMigration' | 'atSeq'>,
   ): Promise<SessionId>
   /**
    * Resolve the Session for a new conversation in a Workspace: navigation names the first reusable
@@ -329,14 +330,34 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   async forkSession(
     sessionId: SessionId,
     onCreated?: (childId: SessionId) => void,
-    options?: Pick<Parameters<ISessions['fork']>[0], 'allowMigration'>,
+    options?: Pick<Parameters<ISessions['fork']>[0], 'allowMigration' | 'atSeq'>,
   ): Promise<SessionId> {
-    return this.sessions.fork({
-      sessionId,
-      increaseTitle: true,
-      ...onCreated === undefined ? {} : { onCreated },
-      ...options?.allowMigration === undefined ? {} : { allowMigration: options.allowMigration },
-    })
+    let created: SessionId | undefined
+    try {
+      created = await this.sessions.fork({
+        sessionId, increaseTitle: true, ...options,
+        onCreated: (childId) => { created = childId; onCreated?.(childId) },
+      })
+    } catch (error) {
+      if (created === undefined) {
+        if (!this.lifetime.signal.aborted) this.reportForkFailure(sessionId, error, options?.atSeq === undefined)
+        throw error
+      }
+      console.warn('session fork created a child before post-creation work failed:', error)
+    }
+    if (!this.lifetime.signal.aborted && options?.atSeq === undefined) this.notify({ kind: 'forkCreated', sessionId: created })
+    return created
+  }
+
+  private reportForkFailure(sessionId: SessionId, error: unknown, wholeSession: boolean): void {
+    // Client plugin bundles do not share error-class identity.
+    const code = error instanceof Error && error.name === 'SessionForkError' ? (error as SessionForkError).rpcError.code : undefined
+    if (code === 'session/migration-required') this.notify({ kind: 'forkRequiresOpen', sessionId })
+    else if (wholeSession && code === 'session/fork-unavailable') this.notify({ kind: 'forkFailed', reason: 'unavailable' })
+    else {
+      this.notify({ kind: 'forkFailed', reason: 'failed' })
+      console.warn('session fork rejected:', error)
+    }
   }
 
   startSession(workspaceId?: WorkspaceId | null, options?: StartSessionOptions): void {

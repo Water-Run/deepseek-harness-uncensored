@@ -11,6 +11,7 @@ import type { Browser, Page, Request as BrowserRequest } from 'playwright'
 import { chromium } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import { SESSION_FORMAT_VERSION, SessionId } from '@deepseek-ai/dsh-session'
+import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import {
   acknowledgeReloadConnectionLoss, assertFixtureInventory, captureStableAria, compareOrRefreshGolden, fixtureUserPrompts,
   launchWebScaffold, parseSeedFixture, realizeSeedFixture, renderSeedFixture, seedSession, watchConsole, webSnapshotMode, type WebScaffold,
@@ -24,6 +25,8 @@ const SEED = fileURLToPath(new URL('../../../snapshots/web/seeded-history/sessio
 const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')
 const FORK_EXPECTED = join(SNAPSHOT_DIR, 'fork.expected.md')
 const UNOPENED_FORK_EXPECTED = join(SNAPSHOT_DIR, 'fork-unopened.expected.md')
+const REVERSE_FORK_EXPECTED = join(SNAPSHOT_DIR, 'fork-reverse.expected.md')
+const NO_COMPLETED_FORK_EXPECTED = join(SNAPSHOT_DIR, 'fork-no-completed-turn.expected.md')
 const MODE = webSnapshotMode()
 const SEED_ID = 'message-actions-web-e2e'
 
@@ -193,8 +196,16 @@ describe('web e2e: message IconActions and clocks on settled history', () => {
   let tripwire: ReturnType<typeof watchConsole>
   let hostClock: ReturnType<typeof pinHostClock> | undefined
 
+  async function openUngroupedRows() {
+    const group = page.locator('[role="treeitem"][data-row-key^="workspace:"]', { hasText: 'Ungrouped' })
+    await group.waitFor({ timeout: 10_000 })
+    if (await group.getAttribute('aria-expanded') === 'false') await group.click()
+  }
+
   beforeAll(async () => {
-    scaffold = await launchWebScaffold()
+    scaffold = await launchWebScaffold({
+      extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)),
+    })
     await mkdir(fileURLToPath(new URL('../../../.artifacts/screenshots/non-migrating-session-reads', import.meta.url)), { recursive: true })
     const sessionCwd = join(scaffold.workspaceCwd, 'workspace')
     await mkdir(sessionCwd, { recursive: true })
@@ -210,7 +221,8 @@ describe('web e2e: message IconActions and clocks on settled history', () => {
     // 90 s keeps the earliest rows in the `1min` bucket and the later ones,
     // carried by their stream spans, inside `now` — what the fork golden records.
     await seedSession(scaffold, raw, SEED_ID, undefined, { createdAt: WEB_FIXTURE_TIME - 90_000 })
-    browser = await chromium.launch()
+    const executablePath = process.env.DSH_PLAYWRIGHT_EXECUTABLE_PATH
+    browser = await chromium.launch(executablePath === undefined ? {} : { executablePath })
     page = await newEnglishPage(browser)
     // Fork summaries use Host time; placeholders use browser time. Each pin
     // starts at the fixture date, so keep these calls adjacent: setup between
@@ -233,9 +245,7 @@ describe('web e2e: message IconActions and clocks on settled history', () => {
 
   it.skipIf(MODE === 'record')('enables branch only on the completed transcript tail', async () => {
     onTestFailed(() => saveFailureShot(page, 'screenshots/non-migrating-session-reads/web-e2e-message-actions'))
-    const groupRow = page.locator('[role="treeitem"]').first()
-    await groupRow.waitFor({ timeout: 15_000 })
-    await groupRow.click()
+    await openUngroupedRows()
     const sessionRow = page.locator('[role="treeitem"]').nth(1)
     await sessionRow.waitFor({ timeout: 10_000 })
     await sessionRow.click()
@@ -437,12 +447,13 @@ describe('web e2e: message IconActions and clocks on settled history', () => {
     await compareOrRefreshGolden(FORK_EXPECTED, tree, MODE)
   })
 
-  it.skipIf(MODE === 'record')('forks an unopened current-format Session from its sidebar row', async () => {
+  it.skipIf(MODE === 'record')('forks an unopened current-format Reverse Session from its sidebar row', async () => {
     onTestFailed(() => saveFailureShot(page, 'screenshots/non-migrating-session-reads/current-cold-fork'))
     const id = SessionId('message-actions-current-cold')
-    await seedSession(scaffold, completedTailFixture(await readFile(SEED, 'utf8')), id)
+    await seedSession(scaffold, completedTailFixture(await readFile(SEED, 'utf8')), id, 'reverse')
     const warningStart = tripwire.warnings.length
     await page.reload({ waitUntil: 'load' })
+    await openUngroupedRows()
     const row = page.locator(`[data-row-key="session:${id}"]`)
     await row.waitFor()
     acknowledgeReloadConnectionLoss(tripwire, warningStart)
@@ -451,10 +462,41 @@ describe('web e2e: message IconActions and clocks on settled history', () => {
     await row.locator('button[aria-label^="Session actions for "]').click()
     const existing = new Set(scaffold.ctx.agents.list().map(agent => agent.id))
     await page.getByRole('menuitem', { name: 'Fork session', exact: true }).click()
-    await expect.poll(() => scaffold.ctx.agents.list().some(agent => !existing.has(agent.id))).toBe(true)
-    expect(scaffold.ctx.agents.list().find(agent => !existing.has(agent.id))!.session.header.parentSession).toBeUndefined()
+    const notice = page.getByRole('alert').filter({ hasText: 'Session branch created' })
+    await notice.waitFor()
+    const child = scaffold.ctx.agents.list().find(agent => !existing.has(agent.id))!
+    expect(child.session.header.parentSession).toBeUndefined()
+    expect(child.session.header.agentPreset).toBe('reverse')
+    expect(scaffold.ctx.agentPresets.composedPreset(child.ctx)).toBe('reverse')
     expect(scaffold.ctx.agents.get(id)).toBeUndefined()
     expect(await row.getAttribute('aria-selected')).not.toBe('true')
+    await compareOrRefreshGolden(REVERSE_FORK_EXPECTED, await notice.ariaSnapshot(), MODE)
+    await notice.getByRole('button', { name: 'Open branch', exact: true }).click()
+    await expect.poll(() => page.locator(`[data-row-key="session:${child.id}"]`).getAttribute('aria-selected')).toBe('true')
+  })
+
+  it.skipIf(MODE === 'record')('explains why a Reverse Session cannot fork while its first turn is in progress', async () => {
+    const { sessionId: id } = await scaffold.ctx.sessionController.create({ cwd: scaffold.workspaceCwd, agentPreset: 'reverse' })
+    const source = scaffold.ctx.agents.get(id)!.session
+    source.append('turn/start', { turn: 1 })
+    source.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'The first turn is still in progress.' }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    await scaffold.ctx.sessions.flush(source)
+    const warningStart = tripwire.warnings.length
+    await page.reload({ waitUntil: 'load' })
+    await openUngroupedRows()
+    const row = page.locator(`[data-row-key="session:${id}"]`)
+    await row.waitFor()
+    acknowledgeReloadConnectionLoss(tripwire, warningStart)
+    await row.hover()
+    await row.locator('button[aria-label^="Session actions for "]').click()
+    const existing = scaffold.ctx.agents.list().map(agent => agent.id)
+    await page.getByRole('menuitem', { name: 'Fork session', exact: true }).click()
+    const notice = page.getByRole('alert').filter({ hasText: 'This session has no completed turn' })
+    await notice.waitFor({ timeout: 10_000 })
+    expect(scaffold.ctx.agents.list().map(agent => agent.id)).toEqual(existing)
+    await compareOrRefreshGolden(NO_COMPLETED_FORK_EXPECTED, await notice.ariaSnapshot(), MODE)
   })
 
   it.skipIf(MODE === 'record')('guides only a migration-required sidebar fork to opening its source', async () => {
@@ -477,8 +519,11 @@ describe('web e2e: message IconActions and clocks on settled history', () => {
 
     const warningStart = tripwire.warnings.length
     await page.reload({ waitUntil: 'load' })
-    await page.getByRole('button', { name: /^Show \d+ more sessions$/ }).click()
+    await openUngroupedRows()
     const row = page.locator(`[data-row-key="session:${id}"]`)
+    const more = page.getByRole('button', { name: /^Show \d+ more sessions$/ })
+    await row.or(more).first().waitFor()
+    if (!await row.isVisible()) await more.click()
     await row.waitFor()
     acknowledgeReloadConnectionLoss(tripwire, warningStart)
     const forkRequests: string[] = []
@@ -499,8 +544,7 @@ describe('web e2e: message IconActions and clocks on settled history', () => {
       expect(scaffold.ctx.agents.get(id)).toBeUndefined()
       expect(await readdir(directory)).toEqual(['session.v3.jsonl.zstd'])
       expect(await readFile(predecessor)).toEqual(source)
-      await compareOrRefreshGolden(UNOPENED_FORK_EXPECTED,
-        await captureStableAria(page, '[role="alert"]', scaffold.workspaceCwd), MODE)
+      await compareOrRefreshGolden(UNOPENED_FORK_EXPECTED, await notice.ariaSnapshot(), MODE)
       await notice.getByRole('button', { name: 'Open original session', exact: true }).click()
       await expect.poll(() => row.getAttribute('aria-selected')).toBe('true')
       await expect.poll(() => scaffold.ctx.agents.get(id)).toBeDefined()
@@ -517,6 +561,7 @@ describe('web e2e: message IconActions and clocks on settled history', () => {
   it.skipIf(MODE === 'record')('issued zero model calls and kept a closed inventory', async () => {
     expect(tripwire.pageErrors).toEqual([])
     expect(tripwire.warnings).toEqual([])
-    await assertFixtureInventory(SNAPSHOT_DIR, ['compact.expected.md', 'fork.expected.md', 'fork-unopened.expected.md', 'ui.expected.md'])
+    await assertFixtureInventory(SNAPSHOT_DIR, ['compact.expected.md', 'fork.expected.md', 'fork-unopened.expected.md',
+      'fork-reverse.expected.md', 'fork-no-completed-turn.expected.md', 'ui.expected.md'])
   })
 })

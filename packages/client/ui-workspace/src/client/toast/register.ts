@@ -13,7 +13,7 @@ import { ArchiveToastEntry, ToastEntry, WorkspaceToast } from './Toast.tsx'
 export function registerToasts(
   ctx: Context,
   viewStore: WorkspaceViewStoreHandle,
-  actions: Pick<RowToastActions, 'undoArchive' | 'showArchived' | 'openForkSource'>,
+  actions: Pick<RowToastActions, 'undoArchive' | 'showArchived' | 'openForkSession'>,
 ): void {
   const archiveFilterAction: ArchiveToastInjected['filterAction'] = (t, dismiss) => ({
     prefix: t('toast.archivedOr'), label: t('toast.archivedFilter'),
@@ -64,13 +64,22 @@ export function registerToasts(
       }),
     }, ToastEntry<PropsRuntime<'workspace.toast', 'defaultWorkspaceFailed'>>)
     yield ctx.slots.register({
-      name: 'workspace.toast', key: 'shortcutForkFailed', locale: 'workspace',
-      inject: (): ToastDisplayInjected<'shortcutForkFailed'> => ({
+      name: 'workspace.toast', key: 'forkFailed', locale: 'workspace',
+      inject: (): ToastDisplayInjected<'forkFailed'> => ({
         display: (notice, t) => ({
           text: t(notice.reason === 'unavailable' ? 'shortcut.noCompletedTurn' : 'shortcut.forkFailed'), tone: 'plain',
         }),
       }),
-    }, ToastEntry<PropsRuntime<'workspace.toast', 'shortcutForkFailed'>>)
+    }, ToastEntry<PropsRuntime<'workspace.toast', 'forkFailed'>>)
+    yield ctx.slots.register({
+      name: 'workspace.toast', key: 'forkCreated', locale: 'workspace',
+      inject: (): ToastDisplayInjected<'forkCreated'> => ({
+        display: (notice, t, dismiss) => ({
+          text: t('toast.forkCreated'), tone: 'success', holdMs: 6000,
+          actions: [{ label: t('toast.openForkChild'), onClick: () => { dismiss(); actions.openForkSession(notice.sessionId) } }],
+        }),
+      }),
+    }, ToastEntry<PropsRuntime<'workspace.toast', 'forkCreated'>>)
     yield ctx.slots.register({
       name: 'workspace.toast', key: 'createFailed', locale: 'workspace',
       inject: (): ToastDisplayInjected<'createFailed'> => ({
@@ -82,7 +91,7 @@ export function registerToasts(
       inject: (): ToastDisplayInjected<'forkRequiresOpen'> => ({
         display: (notice, t, dismiss) => ({
           text: t('toast.forkRequiresOpen'), tone: 'warning', holdMs: 6000,
-          actions: [{ label: t('toast.openForkSource'), onClick: () => { dismiss(); actions.openForkSource(notice.sessionId) } }],
+          actions: [{ label: t('toast.openForkSource'), onClick: () => { dismiss(); actions.openForkSession(notice.sessionId) } }],
         }),
       }),
     }, ToastEntry<PropsRuntime<'workspace.toast', 'forkRequiresOpen'>>)

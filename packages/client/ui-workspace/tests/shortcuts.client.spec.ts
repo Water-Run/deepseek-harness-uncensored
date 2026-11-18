@@ -3,9 +3,7 @@ import { Context } from '@deepseek-ai/cordis'
 import { afterEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
-import { RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import type { SessionListState, SessionSummary, SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
-import { SessionForkError } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ShortcutCommand, ShortcutGesture, ShortcutPlatform } from '@deepseek-ai/dsh-client-shortcuts/client'
 import type { PanelInfo, MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
@@ -54,16 +52,15 @@ async function bench(runtime: 'web' | 'desktop' = 'desktop', platform: ShortcutP
     startSession: vi.fn(), forkSession: vi.fn(async () => 'fork-child' as SessionId), archiveSession: vi.fn(async (_sessionId: SessionId) => {}),
   }
   const controls = createWorkspaceShortcutControls()
-  const reportForkFailure = vi.fn()
   const fiber = ctx.plugin((scoped) => {
     installWorkspaceShortcuts(scoped, navigation, controls,
-      (id) => { void navigation.archiveSession(id) }, reportForkFailure)
+      (id) => { void navigation.archiveSession(id) })
   })
   await fiber.await()
   const select = (id: string) => { list.set({ ...list.getSnapshot(), byId: {
     [sid('a')]: row('a', id === 'a'), [sid('b')]: row('b', id === 'b'),
   } }) }
-  return { ctx, fiber, registry, commands, navigation, controls, reportForkFailure, list, directory, select, history, loadOlder, panelInfo }
+  return { ctx, fiber, registry, commands, navigation, controls, list, directory, select, history, loadOlder, panelInfo }
 }
 
 afterEach(() => { vi.restoreAllMocks() })
@@ -195,21 +192,12 @@ describe('workspace shortcut ownership', () => {
 
   it('blocks absent or blank Sessions and permits retry while running after the Host refuses a fork', async () => {
     const b = await bench()
-    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    b.navigation.forkSession.mockRejectedValueOnce(new SessionForkError(
-      new RemoteError('session/fork-unavailable', 'no completed turn', { sessionId: sid('a') }), sid('a'),
-    ))
+    b.navigation.forkSession.mockRejectedValueOnce(new Error('connection closed'))
     const invoke = () => b.registry.dispatch(key('KeyF', { alt: true }), context, vi.fn())
     expect(invoke().status).toBe('handled')
-    await vi.waitFor(() => { expect(b.reportForkFailure).toHaveBeenCalledExactlyOnceWith('unavailable') })
-    expect(warning).not.toHaveBeenCalled()
-    b.navigation.forkSession.mockRejectedValueOnce(new Error('connection closed'))
-    expect(invoke().status).toBe('handled')
-    await vi.waitFor(() => { expect(b.reportForkFailure).toHaveBeenNthCalledWith(2, 'failed') })
-    expect(warning).toHaveBeenCalledOnce()
     b.list.set({ ...b.list.getSnapshot(), byId: { [sid('a')]: { ...row('a', true), running: true } } })
     expect(invoke().status).toBe('handled')
-    expect(b.navigation.forkSession).toHaveBeenCalledTimes(3)
+    expect(b.navigation.forkSession).toHaveBeenCalledTimes(2)
     b.list.set({ ...b.list.getSnapshot(), byId: { [sid('a')]: { ...row('a', true), blank: true } } })
     expect(invoke()).toMatchObject({ status: 'blocked', reason: en['shortcut.noCompletedTurn'] })
     b.list.set({ ...b.list.getSnapshot(), byId: {} })
