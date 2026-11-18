@@ -117,16 +117,27 @@ FunctionEnd
 !macroend
 !insertmacro InstallerValidatePathFunction ""
 
-; A new installation requires an empty directory; updates require the registered executable.
+; Return the installed directory in $1. Repair without the executable requires agreement between both registrations.
+Function InstallerRegisteredDirectory
+    ReadRegStr $1 HKCU "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+    ${If} $1 != ""
+    ${AndIfNot} ${FileExists} "$1\${APP_EXECUTABLE_FILENAME}"
+        ReadRegStr $2 HKCU "${UNINSTALL_REGISTRY_KEY}" "InstallLocation"
+        ${If} $2 != $1
+            StrCpy $1 ""
+        ${EndIf}
+    ${EndIf}
+FunctionEnd
+
+; Setup may replace files in the registered directory. A different destination must be empty.
 Function InstallerPreflight
     Call InstallerValidatePath
     ${If} $InstallerError != ""
         Return
     ${EndIf}
     StrCpy $INSTDIR $InstallerPath
-    ReadRegStr $0 HKCU "${INSTALL_REGISTRY_KEY}" "InstallLocation"
-    ${If} $0 != $INSTDIR
-    ${OrIfNot} ${FileExists} "$INSTDIR\${APP_EXECUTABLE_FILENAME}"
+    Call InstallerRegisteredDirectory
+    ${If} $1 != $INSTDIR
         FindFirst $0 $1 "$INSTDIR\*.*"
         ${DoWhile} $1 != ""
             ${If} $1 != "."

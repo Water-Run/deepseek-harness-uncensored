@@ -7,12 +7,13 @@ Fedora 实体机的 18.7 构建已完成依赖核验，打包预检因缺少 `mu
 | 验收记录 | 范围 |
 | --- | --- |
 | [当前交付](requirements/2026-11-18.11-delivery.md) | 更新渠道、重定向、差分索引、本地下载与实装回退入口。 |
-| [分叉和文件预览](requirements/2026-11-18.4-delivery.md) | 18.4 的分叉反馈、文件通知合并与实装记录。 |
+| [会话分叉](requirements/2026-11-18.6-delivery.md#会话分叉) | 分叉后自动打开子会话、继承逆向模式和失败反馈，已纳入 18.11。 |
+| [文件预览](requirements/2026-11-18.4-delivery.md) | 18.4 的文件通知合并与实装记录。 |
 | [保护监听](requirements/2026-11-18.3-delivery.md) | 18.3 候选包保护下的原生文件监听及规则撤销。 |
 | [Web 基线](requirements/2026-11-16-regression-followup.md) | `668ec5146d` 的 1,087 项通过、32 项条件跳过；后续使用定向回归和实际产物检查。 |
 | [SSH 与数据库关联](requirements/2026-11-17.6-delivery.md) | 资源 UUID、协议 4、PostgreSQL/MySQL 中央关联及未知路径拒绝已交付。 |
 | [实际数据库](requirements/2026-11-17-native-database-engines.md) | Linux 17.6 的 PostgreSQL/MySQL 共 14 场景通过，保留数据回读、存储重开及正常退出证据。 |
-| [更新交接与安装回退](requirements/2026-11-06-stability.md#windows-更新交接与目录回退2026-11-18) | Electron 更新交接去重、Windows 原生目录回退和新版启动时的配置恢复。 |
+| [更新交接与安装回退](requirements/2026-11-06-stability.md#windows-更新交接与目录回退2026-11-18) | 更新交接、目录回退和启动配置恢复已验收。主程序缺失时的同版修复通过隔离静默测试，待入包。 |
 
 状态以实际执行与验收记录为准；原始编号见[完整需求清单](requirements/development-checklist.md)。macOS、Android 和全新安装器保留为未来计划。
 

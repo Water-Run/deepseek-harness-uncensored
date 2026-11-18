@@ -122,12 +122,47 @@ function Assert-VersionGuard {
         }
         Set-ItemProperty -LiteralPath $entryKey -Name DisplayVersion -Value '0.1.0-test.20261111.8'
         Invoke-SilentSetup 0 '--updated /currentuser'
+
+        $program = Join-Path $installPath ($ProductName + '.exe')
+        $notice = Join-Path $installPath $nsisNoticeName
+        foreach ($path in @($program, $notice)) {
+            $item = Get-Item -LiteralPath $path -Force
+            if ($item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -or
+                [IO.Path]::GetDirectoryName($item.FullName) -cne $installPath) {
+                throw "Invalid repair fixture file: $path"
+            }
+        }
+        $expectedProgram = [Convert]::ToBase64String([IO.File]::ReadAllBytes($program))
+        Remove-Item -LiteralPath $program
+        [IO.File]::WriteAllText($notice, 'damaged fixture notice')
+        try {
+            Set-ItemProperty -LiteralPath $entryKey -Name DisplayVersion -Value ''
+            Invoke-SilentSetup 2
+            Set-ItemProperty -LiteralPath $entryKey -Name DisplayVersion -Value $Version
+            Set-ItemProperty -LiteralPath $entryKey -Name InstallLocation -Value (Join-Path $OutputDirectory 'Other registration')
+            Invoke-SilentSetup 2
+            Assert-SeededFile $program '' $false 'rejected repair'
+            Assert-SeededFile $notice 'damaged fixture notice' $true 'rejected repair'
+        } finally {
+            Set-ItemProperty -LiteralPath $entryKey -Name DisplayVersion -Value $Version
+            Set-ItemProperty -LiteralPath $entryKey -Name InstallLocation -Value $installPath
+        }
         Invoke-SilentSetup 0
         if ((Get-ItemPropertyValue -LiteralPath $entryKey -Name DisplayVersion) -cne $Version) {
             throw 'Accepted setup did not register the candidate version'
         }
-        Assert-SeededFile (Join-Path $homePath 'session.txt') 'keep session' $true 'accepted setup'
-        Write-Output 'passed: allowed upgrade and same-version repair'
+        if ([Convert]::ToBase64String([IO.File]::ReadAllBytes($program)) -cne $expectedProgram -or
+            [Convert]::ToBase64String([IO.File]::ReadAllBytes($notice)) -cne $expectedNsisNotice) {
+            throw 'Same-version repair did not restore the original payload'
+        }
+        Assert-SeededFile (Join-Path $homePath 'session.txt') 'keep session' $true 'same-version repair'
+        Assert-SeededFile (Join-Path $officialHomePath 'session.txt') 'keep official session' $true 'same-version repair'
+        Assert-SeededFile (Join-Path $productDataPath 'state.txt') 'product data' $true 'same-version repair'
+        Assert-SeededFile (Join-Path $userDataPath 'Local State') 'chromium profile' $true 'same-version repair'
+        Assert-SeededFile $partitionFile 'browser storage' $true 'same-version repair'
+        Assert-SeededFile (Join-Path $cachePath 'download.txt') 'update' $true 'same-version repair'
+        Assert-SeededFile (Join-Path $installPath 'launched.txt') '' $false 'same-version repair'
+        Write-Output 'passed: same-version repair restored missing executable and damaged notice with data preserved'
     } finally {
         Set-ItemProperty -LiteralPath $entryKey -Name DisplayVersion -Value $Version
     }

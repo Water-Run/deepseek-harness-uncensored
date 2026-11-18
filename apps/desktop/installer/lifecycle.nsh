@@ -3,9 +3,8 @@ Var InstallerProgressWindow
 Function InstallerRequireCurrentVersion
     ReadRegStr $0 HKCU "${UNINSTALL_REGISTRY_KEY}" "DisplayVersion"
     ${If} $0 == ""
-        ReadRegStr $1 HKCU "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+        Call InstallerRegisteredDirectory
         ${If} $1 == ""
-        ${OrIfNot} ${FileExists} "$1\${APP_EXECUTABLE_FILENAME}"
             Return
         ${EndIf}
     ${EndIf}
