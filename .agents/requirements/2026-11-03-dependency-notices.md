@@ -2,7 +2,7 @@
 
 状态：进行中，不代表整合发行的许可核对已完成。用户的 GPL 许可偏好、上游 Credit 和各组件原有许可保持不变。
 
-本地 [Windows 18.4](2026-11-18.4-delivery.md) 实装 ASAR 含 920 个 npm 包、21 份补充声明及 6 项待核查。已核对 ASAR 摘要、版本和构建提交。Linux 最近验收的 [17.8](2026-11-17.8-delivery.md) 含 922 个 npm 包、26 份补充声明及 8 项待核查。
+本地 [Windows 18.5](2026-11-18.5-delivery.md) 实装 ASAR 含 920 个 npm 包、22 份补充声明及 6 项待核查。已核对 ASAR 摘要、版本、构建提交和新增 Frida Core 原文。Linux 最近验收的 [17.8](2026-11-17.8-delivery.md) 含 922 个 npm 包、26 份补充声明及 8 项待核查。
 
 当前 `2026.11.17.5` Windows 公开预发布包含 919 个 npm 包、21 份补充声明、6 项待核查；Linux 包含 921 个包、26 份补充声明、8 项待核查。本次直接读取 Windows 已安装 ASAR 和已验收 Linux tar.gz 的 ASAR，核对产品版本、构建源码和唯一 npm 声明清单；两种 Linux 归档的 ASAR 摘要相同，见[本版交付记录](2026-11-17.5-delivery.md)。适用补充原文、Electron、安装器及 Office 声明的摘要核对保留。旧版本数量在下文保留为历史。
 
@@ -16,7 +16,7 @@ Windows 的六项为 `brotli@1.3.3`、`dfa@1.2.0`、`fontkit@2.0.4`、`frida@17.
 
 查到 Fontkit 3.0.0 改为依赖 dfa `^2.0.0`。dfa 2.0.0 的 npm 元数据仍标记 MIT，对应发布提交的完整 Git 树仍没有独立 LICENSE、COPYING 或 NOTICE 文件。现有 Office 依赖保持锁定，待核查标记保留。[Fontkit 3.0.0 发布记录](https://registry.npmjs.org/fontkit/3.0.0) · [dfa 2.0.0 固定源码](https://github.com/devongovett/dfa/tree/0205982a2a4fff76a43ca0b678460925b409e1e9)
 
-Windows 18.4 实装的 `frida_binding.node` 与 Frida 17.23.2 官方预构建逐字一致，归档摘要与发布记录一致。发布版固定 Frida Core 提交 `78028da11b850329cb4bfa665a6034bf49b78249`，源码构建清单已补入该提交的 COPYING 原文及 SHA-256。独立绑定和其他预构建组件的署名仍待核查。新原文随下次打包分发，当前安装包保持原有清单。证据位于 `20261118/license-review/frida-core-17.23.2-license-proof.json`。[官方预构建](https://github.com/frida/frida/releases/tag/17.23.2) · [固定原文](https://github.com/frida/frida-core/blob/78028da11b850329cb4bfa665a6034bf49b78249/COPYING)
+Windows 18.4 实装的 `frida_binding.node` 与 Frida 17.23.2 官方预构建逐字一致，归档摘要与发布记录一致。发布版固定 Frida Core 提交 `78028da11b850329cb4bfa665a6034bf49b78249`，源码构建清单已补入该提交的 COPYING 原文及 SHA-256。独立绑定和其他预构建组件的署名仍待核查。新原文已随 18.5 打包分发，18.4 安装包保留原有清单。证据位于 `20261118/license-review/frida-core-17.23.2-license-proof.json`。[官方预构建](https://github.com/frida/frida/releases/tag/17.23.2) · [固定原文](https://github.com/frida/frida-core/blob/78028da11b850329cb4bfa665a6034bf49b78249/COPYING)
 
 从实装 ASAR 提取的 920 项清单和声明文件已在独立目录复算。只有 Frida 记录增加一份原文，仍有 6 项待核查，实装 ASAR 摘要一致。18 项清点器测试通过。复算回执为同目录 `frida-core-17.23.2-notice-projection.json`。
 
