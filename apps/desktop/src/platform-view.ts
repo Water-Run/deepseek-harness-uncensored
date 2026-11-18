@@ -268,7 +268,7 @@ export class DesktopPlatformView {
 
   private cleanStorage(browserSession: Session, destroyed: Promise<void> = Promise.resolve()): Promise<{ error: unknown } | null> {
     const previous = this.storageCleanup.get(browserSession)
-    const cleanup = Promise.all([previous, destroyed]).then(async () => {
+    const cleanup: Promise<{ error: unknown } | null> = Promise.all([previous, destroyed]).then(async () => {
       await browserSession.closeAllConnections()
       const results = await Promise.allSettled([
         browserSession.clearStorageData(browserSession.isPersistent()
@@ -278,7 +278,10 @@ export class DesktopPlatformView {
       ])
       const failures = results.filter(result => result.status === 'rejected')
       if (failures.length > 0) throw new AggregateError(failures.map((result): unknown => result.reason), 'Platform storage cleanup failed')
-    }).then(() => null, (error: unknown) => ({ error }))
+    }).then(() => {
+      if (this.storageCleanup.get(browserSession) === cleanup) this.storageCleanup.delete(browserSession)
+      return null
+    }, (error: unknown) => ({ error }))
     this.storageCleanup.set(browserSession, cleanup)
     return cleanup
   }

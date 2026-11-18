@@ -80,6 +80,10 @@ Web 重启夹具使用 IPC 请求应用正常关闭并要求退出码为 0。夹
 
 实装证据位于 `%USERPROFILE%/DSHU-Deliveries/20261118/windows-coexist-hosts-hczx1c/result.json`，执行入口为同日目录的 `verify-windows-coexist-hosts.mjs`。本次验收使用两个 Node 模式的实装 Host。真实账户登录、Electron 浏览器资料和系统重启继续保留在桌面交付清单。
 
+用安装包里的实际应用名在 Electron 44.7.0 中验证了默认路径。`@deepseek-ai/dsh-desktop` 与 `DeepSeek Harness Uncensored` 在同一临时 `appData` 下分别获得独立的 `userData` 和 `sessionData`。回执为 `windows-electron-default-profile-roots.json`。双版浏览器存储试验和现有 Platform 持久化用例的 Electron 子进程在进入夹具前以 `0xFFFFFFFF` 退出，Cookie 和站点存储回读取证继续保留。
+
+Platform 在清理成功后释放对应跟踪记录。重开、退出和安装交接继续等待未完成的清理，失败记录保留供诊断。41 项 Platform 定向测试通过，包括临时分区关闭和清理记录释放。
+
 启动入口校验所选 DSHU 资料目录与官方默认的 `~/.dsh` 分开，覆盖父子目录、目录联接和缺失子目录。桌面将同一绝对路径用于壳与 Host。旧 CLI 接受指向模拟官方目录的联接。修复后的编译 CLI 拒绝该联接，仍可查询版本，并能读取独立目录的配置。资料路径和桌面启动 210 项测试通过，编译 CLI 定向用例与 10 项构建检查通过。[迁移说明](../../docs/upgrade-guide/v0.2.2-rc.4/isolated-launch-home/guide.zh.md)
 
 打包运行时夹具在模拟的系统用户目录下使用单独的 `.dsh-uncensored`。编译 CLI 已验证接受这个布局。18.5 首次打包的退出记录保留在 `windows-18-5-attempt-1-package.log`。

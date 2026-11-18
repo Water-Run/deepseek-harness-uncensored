@@ -452,6 +452,18 @@ it('uses disposable storage when no stable account ID is available', async () =>
   manager.close()
 })
 
+it('releases completed cleanup records for temporary Platform sessions', async () => {
+  const { manager, owner } = setup()
+  manager.setSession({ origin: 'https://platform.deepseek.com', userId: null, token: 'fixture-secret' })
+  try {
+    await manager.open(owner, 'usage', bounds)
+    const closing = manager.closeAndWait()
+    expect(manager['storageCleanup'].size).toBe(1)
+    await closing
+    expect(manager['storageCleanup'].size).toBe(0)
+  } finally { await manager.dispose() }
+})
+
 it('waits for authentication cleanup before reopening and ignores superseded opens', async () => {
   const { manager, owner } = setup()
   await manager.open(owner, 'usage', bounds)
