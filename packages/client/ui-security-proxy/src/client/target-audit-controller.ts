@@ -18,19 +18,42 @@ export class TargetAuditController {
   readonly state = createSnapshotStore<TargetAuditView>(initial)
   private epoch = 0
   private disposed = false
-  private used = false
+  private visible = false
+  private refreshPending = false
 
   /** @param read - The authenticated owner's audit endpoint. */
   constructor(private readonly read: () => Promise<RemoteResult<TargetAuditHistory>>) {}
 
-  /** Read the latest page while preserving an accepted page during refresh. */
+  /**
+   * Track whether the Security audit records are visible.
+   * @param visible Whether the audit panel is mounted and expanded.
+   */
+  readonly setVisible = (visible: boolean): void => {
+    if (this.disposed || this.visible === visible) return
+    this.visible = visible
+    if (visible) this.load()
+    else {
+      this.epoch++
+      this.refreshPending = false
+      this.patch({ loading: false })
+    }
+  }
+
+  /** Refresh an expanded audit after the Host invalidates its status. */
+  readonly refresh = (): void => {
+    if (this.disposed || !this.visible) return
+    if (this.state.getSnapshot().loading) { this.refreshPending = true; return }
+    this.load()
+  }
+
+  /** Read the latest visible page while preserving an accepted page during refresh. */
   readonly load = (): void => {
-    if (this.disposed) return
-    this.used = true
+    if (this.disposed || !this.visible) return
+    this.refreshPending = false
     const epoch = ++this.epoch
     this.patch({ loading: true, failure: null })
     void this.read().then((result) => {
-      if (epoch !== this.epoch) return
+      if (!this.canPublish(epoch)) return
       if (result.ok) { this.patch({ history: result.value, loading: false }); return }
       const code: string = result.error.code
       const unavailable = ['gateway/invocation-unavailable', 'gateway/method-unavailable', 'gateway/definition-unavailable',
@@ -39,20 +62,28 @@ export class TargetAuditController {
       const failure = unavailable ? 'notMounted' : denied ? 'denied' : 'failed'
       this.patch({ loading: false, failure, ...(failure === 'failed' ? {} : { history: null }) })
     }, (_error: unknown) => {
-      if (epoch === this.epoch) this.patch({ loading: false, failure: 'failed' })
+      if (this.canPublish(epoch)) this.patch({ loading: false, failure: 'failed' })
     })
   }
 
-  /** Drop the departed Host's records and refresh a page that was previously opened. */
+  /** Drop the departed Host's records and refresh only while the audit is visible. */
   reset(): void {
     if (this.disposed) return
     this.epoch++
+    this.refreshPending = false
     this.state.set(initial)
-    if (this.used) this.load()
+    if (this.visible) this.load()
   }
 
   /** Reject publication from any outstanding read. */
   dispose(): void { this.disposed = true; this.epoch++ }
+
+  private canPublish(epoch: number): boolean {
+    if (epoch !== this.epoch) return false
+    if (!this.refreshPending) return true
+    this.load()
+    return false
+  }
 
   private patch(value: Partial<TargetAuditView>): void { this.state.set({ ...this.state.getSnapshot(), ...value }) }
 }

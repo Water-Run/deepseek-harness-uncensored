@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { DatabaseSync } from 'node:sqlite'
 import { chromium } from 'playwright'
 import { expect, it, vi } from 'vitest'
 import { SessionId } from '@deepseek-ai/dsh-session'
@@ -193,6 +194,14 @@ it('saves a real production rule and fits the editor at the narrow settings widt
       if (recorded?.fingerprint == null) throw new Error('Missing persisted production refusal')
       await audit.getByText(recorded.fingerprint, { exact: true }).waitFor()
       await audit.getByText(initiator.agent.id, { exact: true }).waitFor()
+      const auditWriter = new DatabaseSync(join(scaffold.harnessHome, 'storages', 'target-audit.sqlite'))
+      try {
+        auditWriter.exec('BEGIN IMMEDIATE')
+        await expect(scaffold.ctx.targetProtection.checkLocalFile(join(scaffold.workspaceCwd, 'audit-refresh-fixture'),
+          'metadata', new AbortController().signal)).rejects.toMatchObject({ code: 'unavailable' })
+      } finally { auditWriter.close() }
+      await audit.getByText('Recording unavailable', { exact: true }).waitFor()
+      await audit.getByText(recorded.fingerprint, { exact: true }).waitFor()
       expect(await audit.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
     } finally { await browser.close() }
   } finally { await scaffold.close() }

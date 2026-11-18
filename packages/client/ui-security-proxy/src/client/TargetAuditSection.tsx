@@ -11,6 +11,7 @@ import css from './TargetAuditSection.module.css'
 interface TargetAuditInjected {
   hooks: { targetAudit: SnapshotStore<TargetAuditView> }
   load(): void
+  setVisible(visible: boolean): void
 }
 
 /** Props assembled by the mode configuration slot. */
@@ -59,16 +60,20 @@ function AuditEntry({ entry, t }: { entry: TargetAuditEntry; t: TargetAuditSecti
 
 /**
  * Expand recent audit checks without exposing raw targets or credentials.
- * @param props - Current mode, audit snapshot, refresh action and localized copy.
+ * @param props - Current mode, audit snapshot, visibility and refresh callbacks, and localized copy.
  * @returns The Security-mode audit panel, or null for other modes.
  */
-export function TargetAuditSection({ modeId, useTargetAudit, load, t }: TargetAuditSectionProps) {
+export function TargetAuditSection({ modeId, useTargetAudit, load, setVisible, t }: TargetAuditSectionProps) {
   const view = useTargetAudit(value => value)
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')
   const [decision, setDecision] = useState<'all' | TargetAuditEntry['decision']>('all')
   const [shown, setShown] = useState(10)
-  useEffect(() => { if (modeId === 'security' && open) load() }, [modeId, open, load])
+  useEffect(() => {
+    if (modeId !== 'security' || !open) return
+    setVisible(true)
+    return () => { setVisible(false) }
+  }, [modeId, open, setVisible])
   if (modeId !== 'security') return null
   const history = view.history
   const search = text.trim().toLowerCase()

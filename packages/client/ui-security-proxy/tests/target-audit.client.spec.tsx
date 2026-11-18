@@ -23,7 +23,7 @@ function mount(read: () => Promise<RemoteResult<TargetAuditHistory>>) {
   const controller = new TargetAuditController(read)
   const unused = (): never => { throw new Error('Unused audit hook') }
   render(<TargetAuditSection modeId="security" t={makeTranslate(en)} {...allowAllAccess}
-    useTargetAudit={bindSnapshotSelector(controller.state)} load={controller.load}
+    useTargetAudit={bindSnapshotSelector(controller.state)} load={controller.load} setVisible={controller.setVisible}
     usePanelInfo={unused} useSessions={unused} useSessionStatus={unused} useSessionRetainInfo={unused}
     useWorkspaces={unused} useResource={unused} useContextMenu={unused} />)
   return controller
@@ -60,6 +60,32 @@ it('retains the accepted records on a refresh failure and shows an unavailable w
   expect(screen.getByText(en['audit.reason.TARGET_FULLY_PROTECTED'])).toBeTruthy()
 })
 
+it('coalesces status changes while expanded and keeps collapsed reads dormant', async () => {
+  const stale = Promise.withResolvers<RemoteResult<TargetAuditHistory>>()
+  const late = Promise.withResolvers<RemoteResult<TargetAuditHistory>>()
+  const read = vi.fn<() => Promise<RemoteResult<TargetAuditHistory>>>()
+    .mockImplementationOnce(() => stale.promise)
+    .mockResolvedValueOnce({ ok: true, value: { ...history('2'), state: 'unavailable' } })
+    .mockImplementationOnce(() => late.promise)
+  const controller = mount(read)
+  act(controller.refresh)
+  expect(read).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: en['audit.open'] }))
+  act(() => { controller.refresh(); controller.refresh() })
+  expect(read).toHaveBeenCalledOnce()
+  await act(async () => { stale.resolve({ ok: true, value: history('1') }) })
+  expect(await screen.findByText(en['audit.unavailable'])).toBeTruthy()
+  expect(controller.state.getSnapshot().history?.entries[0]?.id).toBe('2')
+  expect(read).toHaveBeenCalledTimes(2)
+
+  act(controller.refresh)
+  fireEvent.click(screen.getByRole('button', { name: en['audit.close'] }))
+  act(() => { controller.refresh(); controller.reset() })
+  await act(async () => { late.resolve({ ok: true, value: history('3') }) })
+  expect(read).toHaveBeenCalledTimes(3)
+  expect(controller.state.getSnapshot()).toEqual({ history: null, loading: false, failure: null })
+})
+
 it('drops old-connection replies and clears records when access is withdrawn', async () => {
   const first = Promise.withResolvers<RemoteResult<TargetAuditHistory>>()
   const read = vi.fn<() => Promise<RemoteResult<TargetAuditHistory>>>()
@@ -67,7 +93,7 @@ it('drops old-connection replies and clears records when access is withdrawn', a
     .mockResolvedValueOnce({ ok: true, value: history('2') })
     .mockResolvedValueOnce({ ok: false, error: new RemoteError('target-protection/owner-required', 'owner required', {}) })
   const controller = new TargetAuditController(read)
-  controller.load()
+  controller.setVisible(true)
   controller.reset()
   await waitFor(() => { expect(controller.state.getSnapshot().history?.entries[0]?.id).toBe('2') })
   await act(async () => { first.resolve({ ok: true, value: history('1') }) })
