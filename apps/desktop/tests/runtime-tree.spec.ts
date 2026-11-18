@@ -3,7 +3,10 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, expect, it } from 'vitest'
 import { DESKTOP_HOST_PACKAGE, DESKTOP_HOST_RUNTIME_FILES } from '../src/core-package-set.ts'
-import { DESKTOP_RUNTIME_FILE, readDesktopRuntime, runtimePath, verifyDesktopRuntime, writeDesktopRuntime, writeDesktopRuntimeAsync } from '../src/runtime-tree.ts'
+import {
+  DESKTOP_RUNTIME_FILE, readDesktopRuntime, readDesktopRuntimeForStartup, runtimePath, verifyDesktopRuntime,
+  writeDesktopRuntime, writeDesktopRuntimeAsync,
+} from '../src/runtime-tree.ts'
 import { runtimeFixture } from './runtime-fixture.ts'
 
 const roots: string[] = []
@@ -69,13 +72,25 @@ it('reads file inventory records unchanged during startup', () => {
   writeFileSync(path, JSON.stringify(descriptor))
   expect(readDesktopRuntime(dsh).files).toEqual(descriptor.files)
 })
-it.each(['missing', 'directory'])('checks a %s Host entry only during build verification', async (operation) => {
+it.each(['missing', 'directory'])('rejects a %s Host entry at startup and during build verification', async (operation) => {
   const dsh = join(fixture(), 'dsh')
   const path = join(dsh, 'node_modules', DESKTOP_HOST_PACKAGE, DESKTOP_HOST_RUNTIME_FILES[0])
   rmSync(path)
   if (operation === 'directory') mkdirSync(path)
   expect(readDesktopRuntime(dsh).release.version).toBe('1.0.0')
+  expect(() => readDesktopRuntimeForStartup(dsh)).toThrow(/Host entry|index\.js/u)
   await expect(verifyDesktopRuntime(dsh, '1.0.0')).rejects.toThrow(/integrity/u)
+})
+
+it.each(DESKTOP_HOST_RUNTIME_FILES)('rejects same-size corruption in %s during startup', (entry) => {
+  const dsh = join(fixture(), 'dsh')
+  const original = readDesktopRuntime(dsh)
+  const path = join(dsh, 'node_modules', DESKTOP_HOST_PACKAGE, entry)
+  writeFileSync(path, 'export const ready = 1\n')
+  const sealed = writeDesktopRuntime(dsh, original.release, original.sharedPackages.map(file => file.name))
+  expect(readDesktopRuntimeForStartup(dsh)).toEqual(sealed)
+  writeFileSync(path, 'export const ready = 0\n')
+  expect(() => readDesktopRuntimeForStartup(dsh)).toThrow(/integrity check failed/u)
 })
 it('binds shared engine packages to the engine version instead of the product version', async () => {
   const root = mkdtempSync(join(tmpdir(), 'desktop-runtime-'))

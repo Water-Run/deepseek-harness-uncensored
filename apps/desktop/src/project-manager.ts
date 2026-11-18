@@ -77,7 +77,7 @@ export class DesktopProjectManager {
   }
 
   /**
-   * Check the bundled Host startup entry before preparing the external plugin profile.
+   * Verify the bundled Host entry files before preparing the external plugin profile.
    */
   async applyRelease(): Promise<void> {
     readDesktopRuntimeForStartup(this.runtime.dsh)

@@ -206,16 +206,29 @@ export function readDesktopRuntime(root: string): DesktopRuntimeDescriptor {
 }
 
 /**
- * Check the packaged descriptor and Host startup entry before touching the plugin profile.
+ * Verify the packaged Host entry points against their recorded bytes before preparing the plugin profile.
  * @param root - Current application's bundled runtime directory.
- * @returns Metadata for a runtime with a readable descriptor and a regular Host entry file.
+ * @returns Metadata for a runtime with a readable descriptor and intact Host entry files.
  */
 export function readDesktopRuntimeForStartup(root: string): DesktopRuntimeDescriptor {
   try {
     const descriptor = readDesktopRuntime(root)
-    const host = join(root, 'node_modules', DESKTOP_HOST_PACKAGE)
-    const entry = DESKTOP_HOST_RUNTIME_FILES[0]
-    if (!statSync(join(host, entry)).isFile()) throw new Error(`desktop runtime: invalid Host entry ${entry}`)
+    for (const entry of DESKTOP_HOST_RUNTIME_FILES) {
+      const path = `node_modules/${DESKTOP_HOST_PACKAGE}/${entry}`
+      const [expected, duplicate] = descriptor.files.filter(file => record(file) && file.path === path)
+      if (expected === undefined || duplicate !== undefined) {
+        throw new Error(`desktop runtime: expected one inventory record for Host entry ${entry}`)
+      }
+      const filename = runtimePath(root, path)
+      const stat = statSync(filename)
+      if (!stat.isFile() || stat.size !== expected.bytes) {
+        throw new Error(`desktop runtime: invalid size or file type for Host entry ${entry}`)
+      }
+      const body = readFileSync(filename)
+      if (body.byteLength !== expected.bytes || createHash('sha256').update(body).digest('hex') !== expected.sha256) {
+        throw new Error(`desktop runtime: integrity check failed for Host entry ${entry}`)
+      }
+    }
     return descriptor
   } catch (error) {
     throw new DesktopApplicationFilesError(error)

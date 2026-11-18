@@ -176,11 +176,12 @@ describe('desktop external plugin profile', () => {
     await expect(manager.applyRelease()).rejects.toMatchObject({ name: 'DesktopApplicationFilesError' })
   })
 
-  it.each(['missing', 'directory'])('leaves the user profile intact when a Host entry is %s', async (fault) => {
+  it.each(['missing', 'directory', 'corrupt'])('leaves the user profile intact when a Host entry is %s', async (fault) => {
     const { manager } = setup()
     const entry = join(manager.runtime.dsh, 'node_modules', DESKTOP_HOST_PACKAGE, DESKTOP_HOST_RUNTIME_FILES[0])
     unlinkSync(entry)
     if (fault === 'directory') mkdirSync(entry)
+    if (fault === 'corrupt') writeFileSync(entry, 'damaged entry')
     mkdirSync(manager.paths.profile, { recursive: true })
     const patchPath = join(manager.paths.profile, 'cordis.patch.yml')
     const patch = '# user profile\n[]\n'
