@@ -1,10 +1,10 @@
 # DSHU 开发交接
 
-**本地 2026.11.18.7 已保留数据安装并启动。** 当前仍为 36 项完成、9 项进行中及 3 项未来计划，完整范围见 [TODO](TODO.md)。继续实现既有范围，减少重复测试；发布须逐次取得明确许可。
+**本地 2026.11.18.8 已保留数据安装并启动。** 当前仍为 36 项完成、9 项进行中及 3 项未来计划，完整范围见 [TODO](TODO.md)。继续实现既有范围，减少重复测试；发布须逐次取得明确许可。
 
 ## 当前交付
 
-当前 Windows 构建源码 `92d348ae0173204ed13421b2d621795f726b0e85`，显示/内部版本 `2026.11.18.7` / `2026.1118.7`。本版包含 Platform 长资料路径缓存修复与 Frida LGPL 2.0 原文。实际安装、数据摘要、载荷清单及启动结果见[交付与恢复](requirements/2026-11-18.7-delivery.md)。
+当前 Windows 构建源码 `9b90518a5fd7a9df91f3a2af4653dd024e83523d`，显示/内部版本 `2026.11.18.8` / `2026.1118.8`。本版修复启动诊断长路径和受保护文本流提前关闭。实际安装、数据摘要、载荷清单及启动结果见[交付与恢复](requirements/2026-11-18.8-delivery.md)。
 
 已交付流量 JSON 导出、连接切换及请求竞态修复、可选保护缺失提示。四个正式 npm 提供方完成 rc.3 → rc.4 升级及实际注册，四模式就绪，无 Host 加载警告。CLI 升级不运行依赖构建脚本，不调用模型账号，应用 ASAR 和升级前测试 patch 不变。
 
@@ -18,7 +18,7 @@
 
 ## Linux 测试与 WSL 状态
 
-后续 Linux 测试转到用户指定的 Fedora 45 x86_64 实体设备，通过既有 Windows SSH 跳板的 `fedora` 别名访问。连接和部署信息在 `%USERPROFILE%/DSHU-Deliveries/20261118/linux-test-connection.json`；CLI、版本身份和 SDK 导入已经通过，图形界面与门户尚未验收。18.7 的依赖安装和 Frida 官方预构建核验已通过。打包预检因缺少 `musl-gcc` 退出。已校验私有工具链的源归档，转发恢复后继续设备端打包和原生桌面验收。[设备与回收记录](requirements/2026-11-18-linux-test-host.md)
+后续 Linux 测试转到用户指定的 Fedora 45 x86_64 实体设备，通过既有 Windows SSH 跳板的 `fedora` 别名访问。连接和部署信息在 `%USERPROFILE%/DSHU-Deliveries/20261118/linux-test-connection.json`；CLI、版本身份和 SDK 导入已经通过，图形界面与门户尚未验收。18.7 的依赖安装和 Frida 官方预构建核验已通过。打包预检因缺少 `musl-gcc` 退出。已校验私有工具链的源归档，按用户安排等设备晚上上线后继续打包和原生桌面验收。[设备与回收记录](requirements/2026-11-18-linux-test-host.md)
 
 本机 WSL 的 DSHU 专用缓存已经归档并清理，文件系统净增加约 153.2 GiB 空闲。三个工作区及 32 条 stash 已验证可恢复，备份在 `%USERPROFILE%/DSHU-Backups/20261118-wsl-retirement/`，恢复时须同时保留归档和 `borrowed-objects/`。旧 `/home/linzh/.cache/dshu-verification` 路径已移除，不再启动本机 WSL 或调用旧 Linux 构建脚本。
 
@@ -26,7 +26,7 @@ VHDX 最新回读已从约 203.9 GiB 降至 50.7 GiB，检查时未发现 WSL �
 
 ## 恢复与运行
 
-18.7 的安装器、数据备份、18.6 恢复入口和验证材料见[本地交付记录](requirements/2026-11-18.7-delivery.md#安装校验与恢复)。Linux 已验证归档仍为 17.8。
+18.8 的安装器、数据备份、18.7 恢复入口和验证材料见[本地交付记录](requirements/2026-11-18.8-delivery.md#安装校验与恢复)。Linux 已验证归档仍为 17.8。
 
 ## 仍有效的执行验收
 

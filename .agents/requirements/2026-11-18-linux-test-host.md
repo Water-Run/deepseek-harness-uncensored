@@ -34,7 +34,7 @@ Windows 跳板上的嵌套 SSH 不使用管道传入 Python 程序；该方式�
 
 Fedora 的作业私有缓存已回读 SHA-256，与官方预构建一致。续跑检查核对原作业进程树和 Frida 编译目录，结束已确认属于原作业的进程组。新进程 `3607110` 复用同一检出和缓存并完成依赖安装，实际 Frida 绑定摘要与官方版本一致。第一次尝试的状态与日志在 `first-dependency-attempt/`，本次回执为 `fedora-rc4-18-7-resumed-worker-supervised.log`。
 
-第二次尝试在打包预检因缺少 `musl-gcc` 退出，日志为 `fedora-rc4-18-7-preflight-failure-readback.log`。用于作业私有工具链的 musl 1.2.6 源归档已按发行版记录核对 SHA-512 并暂存到跳板。转发拒绝连接，设备端工具链和 Linux 18.7 安装包仍待交付。[musl 发布公告](https://www.openwall.com/lists/musl/2026/03/20/1) · [归档摘要](https://github.com/alpinelinux/aports/blob/master/main/musl/APKBUILD)
+第二次尝试在打包预检因缺少 `musl-gcc` 退出，日志为 `fedora-rc4-18-7-preflight-failure-readback.log`。用于作业私有工具链的 musl 1.2.6 源归档已按发行版记录核对 SHA-512 并暂存到跳板。转发拒绝连接，设备端工具链和 Linux 18.7 安装包仍待交付。用户安排等设备晚上上线后继续。[musl 发布公告](https://www.openwall.com/lists/musl/2026/03/20/1) · [归档摘要](https://github.com/alpinelinux/aports/blob/master/main/musl/APKBUILD)
 
 ## WSL 开发状态保全
 
