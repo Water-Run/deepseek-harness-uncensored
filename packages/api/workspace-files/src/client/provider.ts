@@ -56,7 +56,7 @@ export function createFileResourceProvider(
         return
       }
       const { sessionId, path } = resolved.value
-      // Queue changes delivered to this Client while stat is pending.
+      // Retain changes delivered to this Client while stat is pending.
       const notices = changes.follow(sessionId, path, signal)
       const stat = (): Promise<RemoteResult<WorkspaceFileStat>> => remote.workspaceFiles.stat(sessionId, path, signal)
       // Read through a call: a plain `signal.aborted` is narrowed to `false` by

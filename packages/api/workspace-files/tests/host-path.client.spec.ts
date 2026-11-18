@@ -224,7 +224,7 @@ describe('Host-resolved file paths', () => {
     expect(remote.stats).toHaveLength(3)
   })
 
-  it('binds a changed canonical path after disappearance before filtering writes received during that stat', async () => {
+  it.each(['retained', 'evicted'] as const)('refreshes a rebound canonical path with a %s notice', async (state) => {
     const { remote, changes, open } = harness()
     const { iterator } = open()
     const first = iterator.next()
@@ -237,6 +237,9 @@ describe('Host-resolved file paths', () => {
     const retry = await remote.waitForStat(1)
     await source.deliver({ kind: 'change', change: { absolutePath: '/host/old-target.txt', version: 'old-target-write' } })
     await source.deliver({ kind: 'change', change: { absolutePath: CANONICAL, version: 'write-v2' } })
+    if (state === 'evicted') {
+      await source.deliver({ kind: 'change', change: { absolutePath: '/other/file.txt', version: 'unrelated' } })
+    }
     retry.resolve({ ok: true, value: { absolutePath: CANONICAL, version: 'read-v1', bytes: 7 } })
     await expect(reloaded).resolves.toEqual({ done: false, value: { ok: true, value: { absolutePath: CANONICAL, version: 'read-v1', bytes: 7 } } })
     const queued = iterator.next()

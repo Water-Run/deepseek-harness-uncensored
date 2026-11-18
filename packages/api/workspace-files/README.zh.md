@@ -93,7 +93,7 @@ kind: "package-reference"
 
 `session/<sessionId>/<path>` 地址携带授权 Session，以及相对或绝对路径；前导斜杠保留，例如 `dsh-resource://file/session/s//etc/hosts`。Host 原样接收路径，负责解析与权限检查；Client 不需要 Session `cwd`。`absolute/<path>` 仍可解析，但没有授权 Session，以 `workspace-file/unknown-workspace` 失败，不借用当前或 Tab Session。不支持的地址以 `workspace-file/unsupported-address` 失败。语法由 [workspace-path](../../util/workspace-path/README.zh.md) 定义；Resource 泛型层只认地址和 `signal`。
 
-提供方等到 Host 的 `ready` 帧后才发首次 `stat`，读取期间将变更排队，随后将跟随者绑定到 `stat.absolutePath`。排队与实时变更都按该 Host 返回路径匹配。新版本或消失通知会重新 stat，同时更新路径、版本和字节大小；重复版本被忽略。stat 失败后仍跟随地址，后续目标变化可使其恢复。如果监听在 ready 前结束，包括 `watch-unsupported`，未取消的提供方仍执行一次 stat 并产出结果。帧是 `RemoteResult` 值，编程异常不被捕获。
+提供方等到 `ready` 后执行首次 `stat`，再绑定到 `stat.absolutePath`。每条订阅保留当前路径与一个可能替换路径的最新通知。路径未知时最多保留两个候选。重连会请求重新读取并覆盖待处理通知。若绑定到新路径，而该路径的通知可能已被淘汰，就再执行一次 `stat`。新版本或消失通知也会触发 `stat`，同时更新路径、版本和字节大小。重复版本会被忽略。`stat` 失败后仍跟随地址，后续目标变化可使其恢复。如果监听在 `ready` 前结束，包括 `watch-unsupported`，未取消的提供方仍执行一次 `stat` 并产出结果。帧是 `RemoteResult` 值，编程异常仍会向上抛出。
 
 每个 Session 加请求路径对应一条受监督的 `changes` 流，同一目标的消费方共享该流。跟随者按反斜杠归一为斜杠的绝对路径匹配。载体掉线由 Gateway 监督器重连，新 ready 帧触发重新 stat；Host 结束或终态失败的流会结束其跟随者，最后的元数据仍可读取，直到重新打开。最后一个跟随者离开时释放流，后继流等待该释放完成，插件拆除等待所有在途关闭。提供者声明 `ResourceProtocolMap.file`；文本预览声明其 Sidebar 行号导航参数。
 

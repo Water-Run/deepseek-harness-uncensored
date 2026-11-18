@@ -169,27 +169,29 @@ describe('ChangeFeed — delivery', () => {
     const { source } = await remote.ready(0)
     const otherWatch = await remote.ready(1)
     await source.deliver({ kind: 'change', change: { absolutePath: 'C:/w/a b.txt', version: 'v1' } })
-    await source.deliver({ kind: 'change', change: { absolutePath: 'C:\\w\\a b.txt', absent: true } })
     await expect(mine.it.next()).resolves.toEqual({ done: false, value: { kind: 'changed', version: 'v1' } })
-    await expect(mine.it.next()).resolves.toEqual({ done: false, value: { kind: 'absent' } })
     await expect(twin.it.next()).resolves.toEqual({ done: false, value: { kind: 'changed', version: 'v1' } })
+    await source.deliver({ kind: 'change', change: { absolutePath: 'C:\\w\\a b.txt', absent: true } })
+    await expect(mine.it.next()).resolves.toEqual({ done: false, value: { kind: 'absent' } })
     mine.controller.abort()
     await source.deliver({ kind: 'change', change: { absolutePath: 'C:/w/other.txt', version: 'wrong-target' } })
     await source.deliver({ kind: 'change', change: { absolutePath: 'C:/w/a b.txt', version: 'v2' } })
-    await expect(twin.it.next()).resolves.toEqual({ done: false, value: { kind: 'absent' } })
+    await source.deliver({ kind: 'change', change: { absolutePath: 'C:/w/third.txt', version: 'wrong-third' } })
     await expect(twin.it.next()).resolves.toEqual({ done: false, value: { kind: 'changed', version: 'v2' } })
     await otherWatch.source.deliver({ kind: 'change', change: { absolutePath: 'C:/w/other.txt', version: 'own-target' } })
     await expect(other.it.next()).resolves.toEqual({ done: false, value: { kind: 'changed', version: 'own-target' } })
   })
 
-  it('queues frames reported before the consumer starts pulling', async () => {
+  it('coalesces a burst to the newest notice before the consumer pulls', async () => {
     const { remote, follow } = harness()
     const mine = follow(S1, PATH)
     const { source } = await remote.ready(0)
-    await source.deliver({ kind: 'change', change: { absolutePath: PATH, version: 'v1' } })
-    await source.deliver({ kind: 'change', change: { absolutePath: PATH, version: 'v2' } })
-    await expect(mine.it.next()).resolves.toEqual({ done: false, value: { kind: 'changed', version: 'v1' } })
-    await expect(mine.it.next()).resolves.toEqual({ done: false, value: { kind: 'changed', version: 'v2' } })
+    for (let index = 1; index <= 128; index++) {
+      await source.deliver({ kind: 'change', change: { absolutePath: PATH, version: `v${index}` } })
+    }
+    await expect(mine.it.next()).resolves.toEqual({ done: false, value: { kind: 'changed', version: 'v128' } })
+    mine.controller.abort()
+    await expect(mine.it.next()).resolves.toEqual({ done: true, value: undefined })
   })
 
   it('keeps Sessions apart even when their target paths match', async () => {
@@ -204,19 +206,23 @@ describe('ChangeFeed — delivery', () => {
     await expect(one.it.next()).resolves.toEqual({ done: false, value: { kind: 'changed', version: 's1-version' } })
   })
 
-  it('emits refresh on a later ready for every follower of that target only', async () => {
+  it('supersedes queued notices on re-acknowledgement for every follower of that target only', async () => {
     const { remote, follow } = harness()
     const one = follow(S1, PATH)
     const twin = follow(S1, PATH)
     const other = follow(S1, '/w/b.txt')
     const { source } = await remote.ready(0)
     const otherWatch = await remote.ready(1)
+    await source.deliver({ kind: 'change', change: { absolutePath: PATH, version: 'before-reconnect' } })
     await source.deliver({ kind: 'ready' })
+    await source.deliver({ kind: 'change', change: { absolutePath: PATH, version: 'after-reconnect' } })
     await expect(one.it.next()).resolves.toEqual({ done: false, value: { kind: 'refresh' } })
     await expect(twin.it.next()).resolves.toEqual({ done: false, value: { kind: 'refresh' } })
     await otherWatch.source.deliver({ kind: 'change', change: { absolutePath: '/w/b.txt', version: 'v1' } })
     await expect(other.it.next()).resolves.toEqual({ done: false, value: { kind: 'changed', version: 'v1' } })
     expect(remote.calls).toEqual(['changes', 'changes', 'accept', 'accept', 'accept'])
+    one.controller.abort()
+    await expect(one.it.next()).resolves.toEqual({ done: true, value: undefined })
   })
 })
 

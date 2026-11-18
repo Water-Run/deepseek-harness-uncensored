@@ -4,6 +4,8 @@
 
 ## 已完成
 
+- [x] **文件预览通知合并（2026-11-18）**。客户端按已绑定路径和候选路径保留最新通知，重连刷新覆盖旧通知。等待 `stat` 时若新路径的通知曾被淘汰，重新读取该路径以避免漏掉变更。旧实现复现 128 次密集通知的积压和重连后的过期通知。修复后工作区文件包 254 项通过、3 项跳过，含路径重绑定及淘汰回退场景。源码待下次打包。日志位于 `%USERPROFILE%/DSHU-Deliveries/20261118/workspace-change-client-*.log`。
+
 - [x] **工作区文件变更合并（2026-11-18）**。Host 在事件入口按解析后的目标键过滤，每条订阅只保留一个待刷新标记。`ready` 后的首读覆盖解析前的变化，读取途中到达的新变化仍触发下一次刷新。256 次密集通知只发出一帧当前元数据，后续订阅与取消继续通过。两个回归用例在原实现上复现失败。工作区文件包 253 项通过、3 项跳过，锁文件供应链检查、迁移指南与文档链接通过。日志位于 `%USERPROFILE%/DSHU-Deliveries/20261118/workspace-change-burst-*.log`。待下次打包。[迁移指南](../../docs/upgrade-guide/v0.2.2-rc.4/workspace-file-change-coalescing/guide.zh.md)
 
 - [x] **Windows 双语记录与生成区块（2026-11-14）**。记录读取、正文分节哈希、生成区块标记与规范格式比较支持 CRLF；计算及生成结果仍使用 LF。有效正文改动、坏哈希、重复章节和损坏标记仍被拒绝。新增回归先复现失败，相关三文件共 97 项通过；Windows 实际检出的全库 1,164 组双语配对通过，未批量重写已有记录。证据为 `%USERPROFILE%/DSHU-Deliveries/20261114/pairing-*-before.log`、`isolation-pairing-tests.log` 和 `pairing-crlf-corpus-complete.log`。

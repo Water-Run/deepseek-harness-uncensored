@@ -11,6 +11,8 @@ English | [中文](guide.zh.md)
 
 `workspaceFiles.changes` previously queued observations separately, including observations collected before the target resolved. It now retains one pending refresh for the resolved target. A burst can produce one `change` frame with the current metadata. The subscription still sends `ready` after the native watcher starts.
 
+The built-in preview retains a bounded set of pending notices while reading metadata. Reconnection refreshes the current state. When a new canonical path binds and its notice may have been evicted, preview reads the metadata again.
+
 ## Migration
 
 1. After `workspaceFiles.changes` yields `ready`, call `workspaceFiles.stat` for the initial state. This covers changes that occurred before the watch target resolved. The built-in file preview already reads metadata this way.

@@ -4,10 +4,8 @@
  *
  * The Host reports invalidations from filesystem watches and instrumented writes.
  * The feed opens the target stream when the first follower
- * arrives, hands each frame to the followers of its path, and disposes the
- * stream when the last follower leaves. A follower buffers target changes
- * until `stat` supplies its Host absolute path, then filters queued and live
- * frames by that path, with `\\` normalized to `/`.
+ * arrives and disposes it when the last follower leaves. Followers coalesce
+ * notices and select the path returned by `stat`, with `\\` normalized to `/`.
  */
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { WorkspaceFileChange, WorkspaceFileWatchFrame } from '../types.ts'
@@ -23,13 +21,15 @@ function keyOf(path: string): string {
   return path.replace(/\\/g, '/')
 }
 
-/** Notices of one follower, delivered in order and pulled by its consumer. */
+/** A bounded set of pending notices for the current path and a possible replacement. */
 class Follower implements AsyncIterable<WorkspaceFileNotice> {
-  private readonly pending: Array<{ readonly key: string; readonly notice: WorkspaceFileNotice }> = []
+  private readonly pending = new Map<string, WorkspaceFileEdit>()
   private readonly started = Promise.withResolvers<boolean>()
   private wake: (() => void) | undefined
   private ended = false
   private hostKey: string | undefined
+  private needsRefresh = false
+  private pathWasEvicted = false
 
   /**
    * Resolves true after the Host acknowledges its subscription, or false if
@@ -47,7 +47,14 @@ class Follower implements AsyncIterable<WorkspaceFileNotice> {
    * @param absolutePath - the successful stat's absolute path.
    */
   bind(absolutePath: string): void {
-    this.hostKey = keyOf(absolutePath)
+    const key = keyOf(absolutePath)
+    if (key !== this.hostKey && this.pathWasEvicted && !this.pending.has(key)) {
+      this.needsRefresh = true
+    }
+    this.hostKey = key
+    this.pathWasEvicted = false
+    for (const path of this.pending.keys()) if (path !== key) this.pending.delete(path)
+    if (this.needsRefresh) this.wake?.()
   }
 
   /** The Host acknowledged an active subscription and resolved workspace root. */
@@ -56,16 +63,31 @@ class Follower implements AsyncIterable<WorkspaceFileNotice> {
   }
 
   /**
-   * Queue one notice.
+   * Keep the newest notice per retained path. A refresh supersedes pending notices.
    * @param notice - what the consumer receives next.
    * @param key - normalized Host path for the change.
    */
   push(notice: WorkspaceFileNotice, key: string): void {
-    this.pending.push({ key, notice })
+    if (this.ended || this.needsRefresh) return
+    if (notice.kind === 'refresh') {
+      this.needsRefresh = true
+      this.pending.clear()
+      this.pathWasEvicted = false
+    } else {
+      this.pending.set(key, notice)
+      if (this.pending.size > 2) {
+        for (const path of this.pending.keys()) {
+          if (path === this.hostKey || path === key) continue
+          this.pending.delete(path)
+          this.pathWasEvicted = true
+          break
+        }
+      }
+    }
     this.wake?.()
   }
 
-  /** Deliver what is queued, then finish. */
+  /** Deliver the pending refresh or matching notice, then finish. */
   end(): void {
     this.ended = true
     this.started.resolve(false)
@@ -81,9 +103,9 @@ class Follower implements AsyncIterable<WorkspaceFileNotice> {
   async *[Symbol.asyncIterator](): AsyncIterator<WorkspaceFileNotice> {
     try {
       while (true) {
-        const next = this.pending.shift()
+        const next = this.take()
         if (next !== undefined) {
-          if (next.notice.kind === 'refresh' || this.hostKey === undefined || next.key === this.hostKey) yield next.notice
+          yield next
           continue
         }
         if (this.ended) return
@@ -93,6 +115,15 @@ class Follower implements AsyncIterable<WorkspaceFileNotice> {
     } finally {
       this.dispose()
     }
+  }
+
+  private take(): WorkspaceFileNotice | undefined {
+    const refresh = this.needsRefresh || (this.hostKey === undefined && (this.pathWasEvicted || this.pending.size > 1))
+    const current = this.hostKey === undefined ? this.pending.values().next().value : this.pending.get(this.hostKey)
+    this.pending.clear()
+    this.needsRefresh = false
+    this.pathWasEvicted = false
+    return refresh ? { kind: 'refresh' } : current
   }
 }
 
@@ -235,15 +266,15 @@ export class ChangeFeed {
   /**
    * Follow one resource in one session before its Host path is known.
    *
-   * The follower is registered on call, not on first pull. Changes delivered
-   * to this Client are queued while stat is pending. The first follower starts
+   * The follower is registered on call. Pending changes coalesce while stat
+   * is in flight. The first follower starts
    * target's local `changes` call. The iterable ends
    * when `signal` aborts or when the target stream is gone; ending it early
    * (`break`, `return`) unregisters the follower as well, and the last follower
    * of a target disposes its stream. Await a true `ready` result before stat
    * so the Host subscription is active, then bind each stat's absolute path. Until binding,
-   * any target invalidation can trigger a retry; after binding, only matching queued
-   * and live changes pass.
+   * a change can trigger a retry. Once bound, deliver the latest matching notice or a refresh
+   * when the subscription restarts or a replacement path's notice may have been evicted.
    * @param sessionId - the Session providing the file's read authority.
    * @param path - requested file path; followers share a stream only for the same Session and path.
    * @param signal - ends the follow.
