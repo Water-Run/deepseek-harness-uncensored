@@ -92,6 +92,13 @@ export function balanceChart(
   if (samples.length === 0) return { kind: 'empty', points: '', positions: [] }
   const { positions, runs } = timeAxis(samples, compressFlat)
   const kept = new Set(downsample(samples, MAX_POINTS))
+  if (stepIncreases) {
+    for (let index = 1; index < samples.length; index += 1) {
+      if (atIndex(samples, index).value <= atIndex(samples, index - 1).value) continue
+      kept.add(index - 1)
+      kept.add(index)
+    }
+  }
   const compressedEnds = new Set<number>()
   for (const run of runs) {
     kept.add(run.start)

@@ -48,3 +48,12 @@ it('preserves brief balance peaks and troughs when reducing long histories', () 
   expect(points.some(point => point.endsWith(',12'))).toBe(true)
   expect(points.some(point => point.endsWith(',98'))).toBe(true)
 })
+
+it('draws a small rise at its actual time even between the bucket extrema', () => {
+  const samples = Array.from({ length: 500 }, (_, time) => ({ time, value: 500 - time + (time === 4 ? 2 : 0) }))
+  const chart = balanceChart(samples, { stepIncreases: true })
+  const x = 52 + 4 / 499 * 252
+  const y = (value: number): number => 98 - (value - 1) * 86 / 499
+  expect(chart.increases).toBe(`M${x},${y(497)} V${y(498)}`)
+  expect(chart.path).toContain(`H${x} M${x},${y(498)}`)
+})

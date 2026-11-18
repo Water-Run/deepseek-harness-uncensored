@@ -8,16 +8,17 @@ import type {} from '@deepseek-ai/dsh-balance'
 import { launchWebScaffold } from './scaffold.ts'
 import { openSettings, ZH_BROWSER_LOCALE } from './support.ts'
 
-it('distinguishes sub-cent observations under the pointer in both palettes', async () => {
+it('keeps sub-cent observations and a small rise visible in a dense history in both palettes', async () => {
   const scaffold = await launchWebScaffold({ developerTools: false,
     extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
   onTestFinished(() => scaffold.close())
   await scaffold.ctx.settings.mutate('ui-settings-account', [
     { op: 'set', path: ['step'], value: 'done' }, { op: 'set', path: ['completion'], value: 'completed' },
   ])
-  const amounts = ['63.889919', '63.885418', '63.880017']
+  const amounts = Array.from({ length: 240 }, (_, index) =>
+    ((63_889_919 - index * 20 + (index === 4 ? 40 : 0)) / 1_000_000).toFixed(6))
   const balance = vi.spyOn(scaffold.ctx.uncensoredBalance, 'get').mockResolvedValue({ status: 'ready', source: 'api',
-    account: 'api-key', sampleCount: 3, samples: amounts.map((toppedUp, index) => ({ time: Date.UTC(2026, 10, 17, 1, index),
+    account: 'api-key', sampleCount: amounts.length, samples: amounts.map((toppedUp, index) => ({ time: Date.UTC(2026, 10, 17, 1, index),
       wallets: [{ currency: 'CNY', toppedUp, granted: '0' }] })) })
   onTestFinished(() => { balance.mockRestore() })
   const browser = await chromium.launch(process.platform === 'win32' ? { channel: 'msedge' } : {})
@@ -30,18 +31,23 @@ it('distinguishes sub-cent observations under the pointer in both palettes', asy
   await dialog.getByRole('navigation').getByRole('button', { name: '额度', exact: true }).click()
   const plot = dialog.getByRole('slider')
   await plot.waitFor()
+  const rise = await plot.locator('path[class*="increase"]').getAttribute('d')
+  const jump = /^M([\d.]+),[\d.]+ V[\d.]+$/u.exec(rise ?? '')
+  expect(jump).not.toBeNull()
+  expect(Number(jump?.[1])).toBeCloseTo(52 + 4 / (amounts.length - 1) * 252)
   const screenshots = fileURLToPath(new URL('../../../.artifacts/screenshots/balance-precision', import.meta.url))
   await mkdir(screenshots, { recursive: true })
   for (const preference of ['light', 'dark'] as const) {
     await scaffold.ctx.settings.update('ui-theme', { preference })
     const rect = await plot.boundingBox()
     if (rect === null) throw new Error('Balance plot is missing')
-    for (const [index, ratio] of [6 / 264, .5, 258 / 264].entries()) {
+    for (const index of [0, 4, 120, amounts.length - 1]) {
+      const ratio = (6 + index / (amounts.length - 1) * 252) / 264
       await page.mouse.move(rect.x + rect.width * ratio, rect.y + rect.height / 2)
       await expect.poll(() => plot.getByRole('status').innerText()).toContain(`¥${amounts[index]}`)
       expect(await plot.getAttribute('aria-valuenow')).toBe(String(index))
     }
-    expect(await dialog.getByText('-¥0.009902', { exact: true }).count()).toBe(1)
+    expect(await dialog.getByText('-¥0.00478', { exact: true }).count()).toBe(1)
     expect(await dialog.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
     await dialog.screenshot({ path: join(screenshots, `${preference}.png`) })
   }
