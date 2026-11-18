@@ -15,7 +15,7 @@ LangString decompressionFailed ${LANG_ENGLISH} "Payload extraction failed"
 !macroend
 !ifdef SOURCE_DLL
   LoadLanguageFile "${NSISDIR}\Contrib\Language files\SimpChinese.nlf"
-  !include "..\..\installer\strings.nsh"
+  !include "${INSTALLER_STRINGS_FILE}"
   !define DSH_INSTALLER_LOG_DIR "${REPORT_DIR}"
   !include "..\..\scripts\installer.nsh"
 !else
@@ -64,6 +64,21 @@ Section
   !endif
   Call dshPromoteDirectories
   IfErrors failed
+  !ifdef LOCKED_PROMOTED
+    System::Call 'kernel32::CreateFileW(w "$dshFinalDirectory\asset.txt", i 0x80000000, i 1, p 0, i 3, i 0, p 0) p.r9'
+    ${If} $9 == -1
+      SetErrorLevel 3
+      Quit
+    ${EndIf}
+  !endif
+  !ifdef ABORT_PROMOTED
+    Call dshCleanupDirectories
+    !ifdef LOCKED_PROMOTED
+      System::Call 'kernel32::CloseHandle(p r9)'
+    !endif
+    SetErrorLevel 2
+    Quit
+  !endif
   !insertmacro dshFinishDirectories
   SetErrorLevel 0
   Quit

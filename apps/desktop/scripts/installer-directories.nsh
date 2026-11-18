@@ -151,13 +151,22 @@ FunctionEnd
 Function dshRollbackDirectories
   SetOutPath $PLUGINSDIR
   ${If} $dshNewMoved == "1"
-    RMDir /r "\\?\$dshFinalDirectory"
+    ; A locked file can prevent renaming the complete promoted directory.
+    StrCpy $dshDirectorySource $dshFinalDirectory
+    StrCpy $dshDirectoryDestination $dshNewDirectory
+    !insertmacro dshDirectoryOperation "$dshDirectorySource" "$dshDirectoryDestination" $dshRestoreError "demote"
+    ${If} $dshRestoreError != 0
+      StrCpy $dshDirectoryError $dshRestoreError
+      !insertmacro dshReportDirectoryFailure
+      Return
+    ${EndIf}
     StrCpy $dshNewMoved ""
   ${EndIf}
   ${If} $dshOldMoved == "1"
     !insertmacro dshDirectoryOperation "$dshOldDirectory" "$dshFinalDirectory" $dshRestoreError "restore"
     ${If} $dshRestoreError != 0
       ; Leave the complete backup in place if another process prevents restoration.
+      StrCpy $dshRecoveryStopped "1"
       DetailPrint $dshOldDirectory
       RMDir /r "\\?\$dshNewDirectory"
       Return

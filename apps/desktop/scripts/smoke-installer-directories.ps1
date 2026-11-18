@@ -8,7 +8,13 @@ param(
 $ErrorActionPreference = 'Stop'
 $Makensis = [System.IO.Path]::GetFullPath($Makensis)
 $SevenZip = [System.IO.Path]::GetFullPath($SevenZip)
-if ($FrameLibrary) { $FrameLibrary = [System.IO.Path]::GetFullPath($FrameLibrary) }
+if ($FrameLibrary) {
+  $FrameLibrary = [System.IO.Path]::GetFullPath($FrameLibrary)
+  $installerStrings = Join-Path (Split-Path $FrameLibrary -Parent) 'strings.nsh'
+  if (-not (Test-Path -LiteralPath $installerStrings -PathType Leaf)) {
+    throw 'The prepared installer strings must be beside window-frame.dll'
+  }
+}
 $scratch = [System.IO.Directory]::CreateTempSubdirectory('dsh-directory-smoke-').FullName
 $fixture = Join-Path $PSScriptRoot '../tests/fixtures/installer-directory-smoke.nsi'
 
@@ -21,6 +27,7 @@ try {
   $payload = Join-Path $scratch 'payload'
   New-Item -ItemType Directory -Path $payload | Out-Null
   [System.IO.File]::WriteAllText((Join-Path $payload 'asset.txt'), 'new asset')
+  [System.IO.File]::WriteAllText((Join-Path $payload 'new-only.txt'), 'new only')
   $deepPayload = Join-Path $payload (('nested-' * 20) + '\asset-' + ('x' * 60) + '.txt')
   [IO.Directory]::CreateDirectory((Split-Path $deepPayload -Parent)) | Out-Null
   [IO.File]::WriteAllText($deepPayload, 'long path asset')
@@ -29,7 +36,8 @@ try {
   $brokenArchive = Join-Path $scratch 'broken.7z'
   [System.IO.File]::WriteAllText($brokenArchive, 'invalid archive')
 
-  foreach ($mode in @('first', 'upgrade', 'transient-lock', 'locked', 'locked-stage', 'missing-stage', 'restore-conflict', 'broken', 'cancelled')) {
+  foreach ($mode in @('locked-promoted', 'abort-promoted', 'first', 'upgrade', 'transient-lock', 'locked', 'locked-stage',
+      'missing-stage', 'restore-conflict', 'broken', 'cancelled')) {
     $caseRoot = Join-Path $scratch $mode
     $target = Join-Path $caseRoot 'Application'
     New-Item -ItemType Directory -Path $caseRoot | Out-Null
@@ -45,11 +53,13 @@ try {
     $caseArchive = if ($mode -eq 'broken') { $brokenArchive } else { $archive }
     $reportDir = Join-Path $caseRoot 'installer-logs'
     $compileArgs = @('/V2', "/DOUTPUT_FILE=$probe", "/DPAYLOAD_FILE=$caseArchive", "/DTARGET_DIR=$target", "/DDSH_SEVENZIP_PATH=$SevenZip")
-    if ($FrameLibrary) { $compileArgs += @("/DSOURCE_DLL=$FrameLibrary", "/DREPORT_DIR=$reportDir") }
+    if ($FrameLibrary) { $compileArgs += @("/DSOURCE_DLL=$FrameLibrary", "/DREPORT_DIR=$reportDir", "/DINSTALLER_STRINGS_FILE=$installerStrings") }
     if ($mode -eq 'missing-stage') { $compileArgs += '/DMISSING_STAGE' }
     if ($mode -eq 'locked-stage') { $compileArgs += '/DLOCKED_STAGE' }
     if ($mode -eq 'restore-conflict') { $compileArgs += '/DRESTORE_CONFLICT' }
     if ($mode -eq 'cancelled') { $compileArgs += '/DCANCELLED' }
+    if ($mode -in @('abort-promoted', 'locked-promoted')) { $compileArgs += '/DABORT_PROMOTED' }
+    if ($mode -eq 'locked-promoted') { $compileArgs += '/DLOCKED_PROMOTED' }
     Invoke-Checked $Makensis ($compileArgs + $fixture)
     if ($null -ne $SignExecutable) { & $SignExecutable $probe }
     $handle = $null
@@ -97,6 +107,26 @@ try {
         if (-not $process.HasExited) { $process.Kill($true); $process.WaitForExit() }
         $process.Dispose()
       }
+    }
+    if ($mode -eq 'locked-promoted') {
+      $backups = @(Get-ChildItem -LiteralPath $caseRoot -Directory -Filter 'Application.old-*')
+      $newOnly = Join-Path $target 'new-only.txt'
+      if ($backups.Count -ne 1 -or [IO.File]::ReadAllText((Join-Path $backups[0].FullName 'obsolete.txt')) -ne 'old only' -or
+          [IO.File]::ReadAllText((Join-Path $target 'asset.txt')) -ne 'new asset' -or
+          -not (Test-Path -LiteralPath $newOnly) -or [IO.File]::ReadAllText($newOnly) -ne 'new only') {
+        throw 'Blocked rollback did not preserve both the previous and promoted payloads'
+      }
+      if ($FrameLibrary) {
+        $reports = @(Get-ChildItem -LiteralPath $reportDir -File)
+        if ($reports.Count -ne 1) { throw 'Blocked rollback did not save exactly one report' }
+        $report = Get-Content -LiteralPath $reports[0].FullName -Raw -Encoding UTF8
+        if ($report -notmatch 'demote: Windows error: (5|32|33)\b' -or
+            -not $report.Contains("Preserved backup: $($backups[0].FullName)")) {
+          throw 'Blocked rollback report does not identify the failed move and the preserved backup'
+        }
+      }
+      Write-Output "Directory replacement smoke passed: $mode"
+      continue
     }
     if ($mode -eq 'restore-conflict') {
       $backups = @(Get-ChildItem -LiteralPath $caseRoot -Directory -Filter 'Application.old-*')
