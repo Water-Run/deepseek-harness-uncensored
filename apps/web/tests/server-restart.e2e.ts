@@ -8,6 +8,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it, onTestFailed, onTestFinished } from 'vitest'
+import type { WorkspaceCreateValue } from '@deepseek-ai/dsh-api-workspace-controller/types'
 import { REPO_ROOT, newEnglishPage, saveFailureShot, writeComposerDraft } from './support.ts'
 
 class RestartableServer {
@@ -22,6 +23,7 @@ class RestartableServer {
     if (this.child !== undefined) throw new Error('Server is already running')
     this.output = ''
     const ready = Promise.withResolvers<string>()
+    const harnessHome = join(this.world, 'home')
     const child = spawn(process.execPath, [
       join(REPO_ROOT, 'apps/cli/lib/bin.js'), '--profile', 'web',
       '--patch', fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)),
@@ -31,7 +33,7 @@ class RestartableServer {
       cwd: this.world,
       env: {
         ...process.env, NODE_OPTIONS: '',
-        DSH_HOME: join(this.world, 'home'), DSH_AGENTS_HOME: join(this.world, 'agents'),
+        DSH_HOME: harnessHome, DSH_UNCENSORED_HOME: harnessHome, DSH_AGENTS_HOME: join(this.world, 'agents'),
         DSH_TELEMETRY_DISABLED: '1', DEEPSEEK_API_KEY: 'keyless-server-restart-fixture',
         DEEPSEEK_BASE_URL: this.modelUrl,
         DSH_WEB_RESTART_HOLD_STARTUP: holdStartup ? '1' : '0',
@@ -68,13 +70,15 @@ class RestartableServer {
     let forced = false
     const timer = setTimeout(() => { forced = true; child.kill('SIGKILL') }, 15_000)
     try {
-      if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM')
+      if (child.connected) child.send('shutdown-web-restart', (error) => {
+        if (error !== null && child.exitCode === null && child.signalCode === null) child.kill('SIGTERM')
+      })
       await this.closed
     } finally {
       clearTimeout(timer)
       this.child = undefined
     }
-    if (forced) throw new Error('Server did not stop after SIGTERM\n' + this.logs())
+    if (forced || child.exitCode !== 0) throw new Error('Server did not stop cleanly\n' + this.logs())
   }
 
   resumeStartup(): void {
@@ -140,7 +144,8 @@ it.each([false, true])('keeps the same revision, Session and page across a serve
   await rpc('workspace/create', { request: { path: workspacePath } })
   const scenarioId = randomUUID()
 
-  const browser = await chromium.launch({ headless: true })
+  const executablePath = process.env.DSH_PLAYWRIGHT_EXECUTABLE_PATH
+  const browser = await chromium.launch({ headless: true, ...executablePath === undefined ? {} : { executablePath } })
   onTestFinished(() => browser.close())
   const page = await newEnglishPage(browser)
   const errors: string[] = []
@@ -255,16 +260,20 @@ it('keeps a live blank Session blank across a graceful server restart', async ()
   })
 
   const before = await hostRpc(await server.start(0))
-  const { workspace } = await before<{ workspace: { id: string } }>('workspace/create', { request: { path: workspacePath } })
-  const { sessionId } = await before<{ sessionId: string }>('session/create', { request: { workspaceId: workspace.id } })
+  const workspaceRequest = { request: { path: workspacePath } }
+  const { workspace } = await before<WorkspaceCreateValue>('workspace/create', workspaceRequest)
+  const { sessionId } = await before<{ sessionId: string }>('session/create', { request: { workspaceId: workspace.workspaceId } })
   const listed = async (rpc: HostRpc) => (await rpc<{
     items: { sessionId: string; blank: boolean; agentAvailable: boolean }[]
   }>('session/list', { _request: {} })).items.find(item => item.sessionId === sessionId)
   expect(await listed(before)).toMatchObject({ blank: true, agentAvailable: true })
 
-  // SIGTERM unloads the Web layer, including the list projection, before its live Session detaches;
+  // Shutdown unloads the Web layer, including the list projection, before its live Session detaches;
   // stopping right after creation also precedes the throttled checkpoint of the Session's setup events.
   await server.stop()
   const after = await hostRpc(await server.start(0))
   expect(await listed(after)).toMatchObject({ blank: true, agentAvailable: false })
+  await expect(after<WorkspaceCreateValue>('workspace/create', workspaceRequest)).resolves.toMatchObject({
+    created: false, workspace: { workspaceId: workspace.workspaceId, sessionIds: [sessionId] },
+  })
 })
