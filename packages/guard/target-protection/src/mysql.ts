@@ -252,7 +252,8 @@ export default class MysqlAuditService extends Service {
     let socket: Socket | undefined, client: mysql.Connection | undefined, closed: Promise<undefined> | undefined
     let resolution: TargetConnectionResolution | undefined
     let abort: (() => void) | undefined
-    let releaseWrite: (() => void) | undefined
+    let releaseAdmission: (() => void) | undefined
+    let auditCompleted = false
     const finished = Promise.withResolvers<undefined>()
     const commit = { dispatched: false, acknowledged: false }
     const admitted = async (hostname = binding.hostname): Promise<void> => {
@@ -267,14 +268,15 @@ export default class MysqlAuditService extends Service {
       timeout.signal.throwIfAborted()
     }
     try {
+      const snapshot = await this.protection.snapshot()
       await admitted()
       if (tlsName !== binding.hostname) await admitted(tlsName)
-      const snapshot = writing ? projectDatabaseResources(await this.protection.snapshot(), this.databaseResources) : undefined
-      if (snapshot !== undefined) {
-        const database = expandTargetRules(snapshot.preferences).some(rule => rule.enabled && rule.kind === 'database'
+      if (writing) {
+        const { preferences } = projectDatabaseResources(snapshot, this.databaseResources)
+        const database = expandTargetRules(preferences).some(rule => rule.enabled && rule.kind === 'database'
           && rule.environment === 'test' && rule.match === 'host' && rule.address === binding.hostname
           && rule.port === binding.port && rule.database === binding.database)
-        if (!database || (dedicatedWrite && !hasExactTestServer(snapshot.preferences, binding.hostname, binding.port))) {
+        if (!database || (dedicatedWrite && !hasExactTestServer(preferences, binding.hostname, binding.port))) {
           const reason = dedicatedWrite ? 'MySQL test writes require an exact test-server and test-database rule.'
             : 'Shared MySQL writes require an exact test-database rule.'
           throw new HarnessError(reason, 'MYSQL_TEST_ONLY')
@@ -289,13 +291,11 @@ export default class MysqlAuditService extends Service {
         throw new HarnessError('MySQL credential reference is not configured.', 'MYSQL_CREDENTIAL_UNAVAILABLE')
       }
       await admitted()
-      if (snapshot !== undefined) {
-        releaseWrite = this.protection.retainNativeExecution(snapshot.revision, async () => {
-          revoked.abort()
-          socket?.destroy()
-          await finished.promise
-        })
-      }
+      releaseAdmission = this.protection.retainNativeExecution(snapshot.revision, async () => {
+        revoked.abort()
+        socket?.destroy()
+        await finished.promise
+      })
       const transport = new Socket()
       socket = transport
       closed = new Promise<undefined>((resolve) => { transport.once('close', () => { resolve(undefined) }) })
@@ -347,6 +347,7 @@ export default class MysqlAuditService extends Service {
         throw new HarnessError('MySQL exceeded its configured result limit.', 'MYSQL_OUTPUT_LIMIT')
       }
       await query(writing ? 'COMMIT' : 'ROLLBACK')
+      auditCompleted = !writing
       return result
     } catch (error) {
       if (commit.dispatched && !commit.acknowledged) {
@@ -361,9 +362,14 @@ export default class MysqlAuditService extends Service {
       try {
         try { client?.destroy() }
         finally { socket?.destroy(); await closed }
+        if (auditCompleted && timeout.signal.aborted) {
+          throw new HarnessError('MySQL operation was cancelled or timed out.', 'MYSQL_CANCELLED', {
+            cause: timeout.signal.reason,
+          })
+        }
       } finally {
-        try { releaseWrite?.(); release() }
-        finally { finished.resolve(undefined) }
+        try { releaseAdmission?.() }
+        finally { release(); finished.resolve(undefined) }
       }
     }
   }

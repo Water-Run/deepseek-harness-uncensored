@@ -24,6 +24,10 @@
 
 材料在 `%USERPROFILE%/DSHU-Deliveries/20261117/`，前缀 `database-resources-`，主要为 `native-scope.log`、`linux-final.log`、`snapshots-final.log`、`build.log`、`built-smoke.log`、`declarations.log`、`contracts.log`、`lint-corrected.log`、`negative-policy.log` 与 `negative-policy-restored.json`。
 
+## 只读审计的规则修订（2026-11-19）
+
+PostgreSQL 和 MySQL 的只读审计在连接前持有已核验的规则修订。规则服务保存新版本前会取消在途连接并等待清理，其他规则库连接在租约期间写入会收到忙状态。PostgreSQL TLS 夹具验证清理期间收到撤销时丢弃尚未交付的结果。MySQL 握手夹具验证保存后连接已关闭。69 项定向测试和 PostgreSQL 录制回放通过，证据为 `%USERPROFILE%/DSHU-Deliveries/20261118/database-audit-rule-retention-verified.log` 与 `database-audit-rule-retention-replay.log`。本轮使用隔离协议夹具，修复待下次打包。
+
 ## 后续
 
 原生绑定与实际远端物理数据文件的对应关系、更多协议、实体服务器、独立 Worker 和入站验收继续保留在 [TODO](../TODO.md)。本项没有改变 Session、SQLite 或 SDK 事件字段，也没有自动修改所有者的已有规则或配置。

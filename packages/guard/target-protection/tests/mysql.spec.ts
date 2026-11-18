@@ -11,6 +11,7 @@ import { randomUUID } from 'node:crypto'
 import { expect, it, onTestFinished } from 'vitest'
 import TargetProtection from '../src/index.ts'
 import MysqlAudit from '../src/mysql.ts'
+import { TargetStore } from '../src/store.ts'
 import { checkMysqlWriteGrants, mysqlWriteInput, mysqlWriteStatement } from '../src/mysql-write.ts'
 import type { TargetRuleId } from '../src/types.ts'
 
@@ -46,7 +47,8 @@ async function fixture(holdHandshake = false) {
   const endpoint = server.address()
   if (endpoint === null || typeof endpoint === 'string') throw new Error('Missing fixture listener')
   await ctx.plugin(Credentials, { path: join(root, 'credentials.yml'), dshHome: root, watch: false })
-  const owner = await ctx.plugin(TargetProtection, { path: ':memory:', hostsFile: '' })
+  const rulesPath = join(root, 'rules.sqlite')
+  const owner = await ctx.plugin(TargetProtection, { path: rulesPath, hostsFile: '' })
   const binding = { name: 'owned', hostname: '127.0.0.1', tlsServerName: 'mysql.fixture.test', port: endpoint.port,
     database: 'fixture', username: 'audit', accountHost: '%', passwordRef: 'DSHU_FIXTURE_MYSQL' }
   const rule = (address: string) => ({ id: brandString<TargetRuleId>(randomUUID()), name: 'owned production fixture', enabled: true,
@@ -56,7 +58,8 @@ async function fixture(holdHandshake = false) {
     const { database: _database, ...fields } = rule(address)
     return { ...fields, kind: 'server' as const }
   }
-  return { root, ctx, owner, binding, rule, serverRule, accepted: accepted.promise, closed: closed.promise, connections: () => connections }
+  return { root, ctx, owner, binding, rule, serverRule, rulesPath, accepted: accepted.promise, closed: closed.promise,
+    connections: () => connections }
 }
 
 it.each(['127.0.0.1', 'mysql.fixture.test'])('rejects the protected %s identity before TCP', async (address) => {
@@ -146,16 +149,26 @@ it('requires a certificate identity for an IP binding and preserves DNS binding 
     .rejects.toMatchObject({ code: 'MYSQL_TLS_NAME_REQUIRED' })
 })
 
-it('closes a pending MySQL handshake when the target becomes protected', async () => {
-  const { ctx, binding, rule, accepted, closed, connections } = await fixture(true)
+it('retains MySQL audit policy until a pending handshake closes', async () => {
+  const { ctx, binding, rule, rulesPath, accepted, closed, connections } = await fixture(true)
   await ctx.credentials.set(credentialRef(binding.passwordRef), 'owned fixture password')
   await ctx.plugin(MysqlAudit, { databases: [binding] })
-  const operation = ctx.mysqlAudit.inspect('owned', AbortSignal.timeout(5_000))
-  const rejection = expect(operation).rejects.toMatchObject({ code: 'MYSQL_CANCELLED' })
-  await Promise.race([accepted, rejection.then(() => { throw new Error('Missing handshake barrier') })])
-  await ctx.targetProtection.configure({ mainlandEnabled: false, rules: [rule(binding.hostname)] }, 1)
-  await rejection
-  await closed
+  const writer = await TargetStore.open(rulesPath, 0)
+  const before = writer.snapshot()
+  const abort = new AbortController()
+  const operation = ctx.mysqlAudit.inspect('owned', abort.signal).catch((error: unknown) => error)
+  try {
+    await Promise.race([accepted, operation.then(() => { throw new Error('Missing handshake barrier') })])
+    expect(() => writer.configure(before.preferences, before.revision)).toThrow(expect.objectContaining({ code: 'busy' }))
+    const saved = await ctx.targetProtection.configure({ mainlandEnabled: false, rules: [rule(binding.hostname)] }, before.revision)
+    await expect(operation).resolves.toMatchObject({ code: 'MYSQL_CANCELLED' })
+    await closed
+    expect(writer.snapshot().revision).toBe(saved.revision)
+  } finally {
+    abort.abort()
+    await operation
+    writer.close()
+  }
   await expect(ctx.mysqlAudit.inspect('owned', AbortSignal.timeout(5_000))).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
   expect(connections()).toBe(1)
 })

@@ -10,9 +10,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { generate } from 'selfsigned'
+import pg from 'pg'
 import { expect, it, onTestFinished, vi } from 'vitest'
 import Protection from '../src/index.ts'
 import PostgresAuditService from '../src/postgres.ts'
+import { TargetStore } from '../src/store.ts'
 import type { TargetRule, TargetRuleId } from '../src/types.ts'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import Tools from '@deepseek-ai/dsh-tools'
@@ -42,6 +44,7 @@ interface FixtureOptions {
   elevatedRole?: boolean
   loseCommit?: boolean
   resourceMapping?: boolean
+  persistentRules?: boolean
 }
 async function harness(options: FixtureOptions = {}) {
   const { full = false, hold = true, matchingCert = true, hostname = '127.0.0.1' } = options
@@ -158,7 +161,8 @@ async function harness(options: FixtureOptions = {}) {
   await ctx.credentials.set(ref, 'owned fixture password')
   const hostsFile = join(root, 'hosts')
   await writeFile(hostsFile, '127.0.0.1 postgres.test protected-alias.test\n')
-  const owner = await ctx.plugin(Protection, { path: ':memory:', hostsFile,
+  const rulesPath = options.persistentRules ? join(root, 'rules.sqlite') : ':memory:'
+  const owner = await ctx.plugin(Protection, { path: rulesPath, hostsFile,
     ...options.resourceMapping ? { auditPath: join(root, 'audit.sqlite') } : {} })
   const rule: TargetRule = { id: brandString<TargetRuleId>(randomUUID()), name: 'owned fixture database', enabled: true,
     kind: 'database', ...options.resourceMapping ? { match: 'path', address: join(root, 'central-database.sqlite') }
@@ -179,7 +183,7 @@ async function harness(options: FixtureOptions = {}) {
   ...options.maxRows === undefined ? {} : { maxRows: options.maxRows },
   ...options.maxPending === undefined ? {} : { maxPending: options.maxPending } }
   const executor = await ctx.plugin(PostgresAuditService, config)
-  return { ctx, owner, executor, rule, testRules, config, ref, query: query.promise, peerClosed: peerClosed.promise, parsed,
+  return { ctx, owner, executor, rule, testRules, config, ref, rulesPath, query: query.promise, peerClosed: peerClosed.promise, parsed,
     connections: () => connections, queries: () => queries, commits: () => commits }
 }
 
@@ -332,6 +336,53 @@ it('closes a TLS request and settles native sockets when cancelled', async () =>
   abort.abort(new Error('owned cancellation'))
   expect(await outcome).toMatchObject({ code: 'POSTGRES_CANCELLED' })
   await h.peerClosed
+})
+
+it('holds a PostgreSQL audit revision until cancellation closes its TLS connection', async () => {
+  const h = await harness({ persistentRules: true })
+  const writer = await TargetStore.open(h.rulesPath, 0)
+  const before = writer.snapshot()
+  const controller = new AbortController()
+  const operation = h.ctx.postgresAudit.inspect('owned', controller.signal).catch((error: unknown) => error)
+  try {
+    expect(await Promise.race([h.query, operation.then(() => { throw new Error('Missing audit query') })])).toBe('BEGIN READ ONLY')
+    expect(() => writer.configure(before.preferences, before.revision)).toThrow(expect.objectContaining({ code: 'busy' }))
+    const saved = await h.ctx.targetProtection.configure({ mainlandEnabled: false, rules: [{ ...h.rule, protection: 'full' }] }, before.revision)
+    await expect(operation).resolves.toMatchObject({ code: 'POSTGRES_CANCELLED' })
+    await h.peerClosed
+    expect(writer.snapshot().revision).toBe(saved.revision)
+  } finally {
+    controller.abort()
+    await operation
+    writer.close()
+  }
+})
+
+it('withholds a completed PostgreSQL audit when rules change during connection cleanup', async () => {
+  const h = await harness({ hold: false, identity: ['fixture', 'fixture', '18.4', 'on'] })
+  const closing = Promise.withResolvers<undefined>(), finishClose = Promise.withResolvers<undefined>()
+  const clientPrototype: { end(): Promise<void> } = pg.Client.prototype
+  const end = vi.spyOn(clientPrototype, 'end').mockImplementation(async () => {
+    closing.resolve(undefined)
+    await finishClose.promise
+  })
+  const signal = h.ctx.targetProtection.executionSignal()
+  const revoked = Promise.withResolvers<undefined>()
+  signal.addEventListener('abort', () => { revoked.resolve(undefined) }, { once: true })
+  const operation = h.ctx.postgresAudit.inspect('owned', new AbortController().signal).catch((error: unknown) => error)
+  let saving: ReturnType<typeof h.ctx.targetProtection.configure> | undefined
+  try {
+    await Promise.race([closing.promise, operation.then(() => { throw new Error('Missing audit cleanup') })])
+    saving = h.ctx.targetProtection.configure({ mainlandEnabled: false, rules: [{ ...h.rule, protection: 'full' }] }, 2)
+    await revoked.promise
+    finishClose.resolve(undefined)
+    await expect(operation).resolves.toMatchObject({ code: 'POSTGRES_CANCELLED' })
+    await expect(saving).resolves.toMatchObject({ revision: 3 })
+  } finally {
+    finishClose.resolve(undefined)
+    await Promise.allSettled([operation, saving])
+    end.mockRestore()
+  }
 })
 
 it('checks database identity before issuing any application catalogue query', async () => {

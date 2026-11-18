@@ -12,7 +12,6 @@ import { deadline } from '@deepseek-ai/dsh-timeout'
 import type TargetProtection from './index.ts'
 import type { TargetConnectionResolution } from './index.ts'
 import { canonicalTargetHost, expandTargetRules, hasExactTestServer } from './rules.ts'
-import type { TargetSnapshot } from './types.ts'
 import { databaseResourceId, projectDatabaseResources, type DatabaseResourceBinding } from './database-resources.ts'
 import { TARGET_REFUSAL_REASONS } from './network-decision.ts'
 import { postgresWrite, postgresWriteInput, postgresWriteTables, type PostgresWriteResult } from './postgres-write.ts'
@@ -226,8 +225,8 @@ export default class PostgresAuditService extends Service {
     const release = this.protection.retainExecution()
     let client: pg.Client | undefined, socket: Socket | undefined, closed: Promise<void> | undefined
     let resolution: TargetConnectionResolution | undefined
-    let snapshot: TargetSnapshot | undefined
-    let releaseTest: (() => void) | undefined
+    let releaseAdmission: (() => void) | undefined
+    let auditCompleted = false
     const finished = Promise.withResolvers<undefined>()
     const commit = { dispatched: false, acknowledged: false }
     const admitted = async (): Promise<void> => {
@@ -243,13 +242,14 @@ export default class PostgresAuditService extends Service {
     }
     let abort: (() => void) | undefined
     try {
+      const snapshot = await this.protection.snapshot()
       await admitted()
       if (write) {
-        snapshot = projectDatabaseResources(await this.protection.snapshot(), this.databaseResources)
-        const exactDatabase = expandTargetRules(snapshot.preferences).some(rule => rule.enabled && rule.kind === 'database'
+        const { preferences } = projectDatabaseResources(snapshot, this.databaseResources)
+        const exactDatabase = expandTargetRules(preferences).some(rule => rule.enabled && rule.kind === 'database'
           && rule.environment === 'test' && rule.match === 'host' && rule.address === binding.hostname
           && rule.port === binding.port && rule.database === binding.database)
-        if (!exactDatabase || (dedicated && !hasExactTestServer(snapshot.preferences, binding.hostname, binding.port))) {
+        if (!exactDatabase || (dedicated && !hasExactTestServer(preferences, binding.hostname, binding.port))) {
           const reason = dedicated ? 'Test SQL requires both a dedicated test-server rule and an exact test-database rule.'
             : 'Structured PostgreSQL writes require an exact test-database rule.'
           throw new HarnessError(reason, 'POSTGRES_TEST_ONLY')
@@ -262,12 +262,10 @@ export default class PostgresAuditService extends Service {
       const password = await this.credentials.resolve(credentialRef(binding.passwordRef))
       if (password === undefined || password.value === '') throw new HarnessError('PostgreSQL credential reference is not configured.', 'POSTGRES_CREDENTIAL_UNAVAILABLE')
       await admitted()
-      if (snapshot !== undefined) {
-        releaseTest = this.protection.retainNativeExecution(snapshot.revision, async () => {
-          socket?.destroy()
-          await finished.promise
-        })
-      }
+      releaseAdmission = this.protection.retainNativeExecution(snapshot.revision, async () => {
+        socket?.destroy()
+        await finished.promise
+      })
       socket = new Socket()
       const transport = socket
       closed = new Promise<void>((resolve) => { transport.once('close', () => { resolve() }) })
@@ -342,6 +340,7 @@ export default class PostgresAuditService extends Service {
         throw new HarnessError('PostgreSQL exceeded its configured result limit.', 'POSTGRES_OUTPUT_LIMIT')
       }
       if (write) await query('COMMIT')
+      else auditCompleted = true
       return result
     } catch (error) {
       if (commit.dispatched && !commit.acknowledged) {
@@ -358,8 +357,13 @@ export default class PostgresAuditService extends Service {
       try {
         if (closed !== undefined) await closed
         if (client !== undefined) await client.end()
+        if (auditCompleted && timeout.signal.aborted) {
+          throw new HarnessError('PostgreSQL was cancelled or timed out; the connection was closed.', 'POSTGRES_CANCELLED', {
+            cause: timeout.signal.reason,
+          })
+        }
       } finally {
-        try { releaseTest?.() }
+        try { releaseAdmission?.() }
         finally { release(); finished.resolve(undefined) }
       }
     }
