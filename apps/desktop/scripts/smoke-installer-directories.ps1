@@ -47,8 +47,10 @@ try {
   $emptyArchive = Join-Path $scratch 'empty-asar.7z'
   Invoke-Checked $SevenZip @('a', '-bd', '-t7z', $emptyArchive, "$incompletePayload/*")
 
-  foreach ($mode in @('locked-promoted', 'abort-promoted', 'first', 'upgrade', 'transient-lock', 'locked', 'locked-stage',
-      'missing-stage', 'restore-conflict', 'broken', 'incomplete-payload', 'empty-asar', 'cancelled')) {
+  $cases = @('locked-promoted', 'abort-promoted', 'first', 'upgrade', 'transient-lock', 'locked', 'locked-stage',
+      'missing-stage', 'restore-conflict', 'broken', 'incomplete-payload', 'empty-asar', 'cancelled')
+  if ($FrameLibrary) { $cases += 'registration-failed' }
+  foreach ($mode in $cases) {
     $caseRoot = Join-Path $scratch $mode
     $target = Join-Path $caseRoot 'Application'
     New-Item -ItemType Directory -Path $caseRoot | Out-Null
@@ -78,6 +80,10 @@ try {
     if ($mode -eq 'cancelled') { $compileArgs += '/DCANCELLED' }
     if ($mode -in @('abort-promoted', 'locked-promoted')) { $compileArgs += '/DABORT_PROMOTED' }
     if ($mode -eq 'locked-promoted') { $compileArgs += '/DLOCKED_PROMOTED' }
+    if ($mode -eq 'registration-failed') {
+      $registrationKey = 'Software\DSHU Installer Directory Smoke\' + [guid]::NewGuid().ToString('N')
+      $compileArgs += @('/DREGISTRATION_FAILED', "/DREGISTRATION_TEST_KEY=$registrationKey")
+    }
     Invoke-Checked $Makensis ($compileArgs + $fixture)
     if ($null -ne $SignExecutable) { & $SignExecutable $probe }
     $handle = $null
@@ -125,6 +131,23 @@ try {
         if (-not $process.HasExited) { $process.Kill($true); $process.WaitForExit() }
         $process.Dispose()
       }
+    }
+    if ($mode -eq 'registration-failed') {
+      $backups = @(Get-ChildItem -LiteralPath $caseRoot -Directory -Filter 'Application.old-*')
+      if ($backups.Count -ne 1 -or [IO.File]::ReadAllText((Join-Path $backups[0].FullName 'resources/app.asar')) -ne 'old runtime' -or
+          [IO.File]::ReadAllText((Join-Path $target 'resources/app.asar')) -ne 'new runtime') {
+        throw 'Failed registration did not preserve both payloads'
+      }
+      if (Test-Path -LiteralPath "HKCU:\$registrationKey") { throw 'Failed registration wrote a new entry' }
+      $reports = @(Get-ChildItem -LiteralPath $reportDir -File -Filter 'registration-failure-*.log')
+      if ($reports.Count -ne 1) { throw 'Failed registration did not save exactly one report' }
+      $report = Get-Content -LiteralPath $reports[0].FullName -Raw
+      if (-not $report.Contains('Incomplete installer registration: InstallLocation') -or
+          -not $report.Contains("Preserved backup: $($backups[0].FullName)")) {
+        throw 'Registration report does not identify the failing value and preserved backup'
+      }
+      Write-Output "Directory replacement smoke passed: $mode"
+      continue
     }
     if ($mode -eq 'locked-promoted') {
       $backups = @(Get-ChildItem -LiteralPath $caseRoot -Directory -Filter 'Application.old-*')

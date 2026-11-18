@@ -32,6 +32,12 @@ Windows 签名构建在同一步核对 `latest.yml` 的内部分发版本、唯�
 
 13 项原生目录事务场景及 20 项安装器定向检查通过。默认 MSVC 14.51.36231 缺少 Spectre 库。此次使用已安装的 `VCToolsVersion=14.52.36629` 与 `MSVCPreviewEnabled=true`，未签名打包预检通过。原生夹具回执为 `%USERPROFILE%/DSHU-Deliveries/20261119/installer-payload-guard/result.json`。实际新版安装包及签名在线升级仍待验收。
 
+### 静默安装与登记失败保护
+
+生产 NSIS 配置以独立测试应用运行，中英文各通过 16 项静默场景，包括拒绝较新版本、同版修复、卸载登记、快捷方式、资料清理及保留。安装器在核对安装路径与卸载命令，并写入所需版本信息后清理旧版备份。新增原生场景在目录提升后故意留下缺失的安装登记，验证退出码 2、新旧运行时文件完整保留，以及报告中的失败值和真实备份路径。
+
+14 项原生目录事务、32 项静默安装及卸载检查和 20 项定向测试通过。实装 18.11 的 ASAR 摘要一致。回执位于 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-silent-installer/result.json`。新版 DSHU 完整安装与签名在线升级仍待验收。[安装流程](../../apps/desktop/packaging/README.zh.md)
+
 ## 验收
 
 - 两个所属测试文件在 Windows/Linux 各 28 项通过，覆盖 403/429、主/次级期限、重叠期限、无效数值、普通拒绝、不会自动重试，以及中英文弹窗关闭/重开和到期后的显式重试。

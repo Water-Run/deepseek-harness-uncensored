@@ -246,25 +246,74 @@ ManifestDPIAware true
 !macroend
 
 !ifndef BUILD_UNINSTALLER
-  !macro customInstallerInvalidPayload
+  !macro InstallerWriteFailureLog Kind Details
     Push $0
     Push $1
+    Push $2
+    StrCpy $2 "${Details}"
     ClearErrors
     CreateDirectory "$dshDirectoryLogDirectory"
     System::Call 'ole32::CoCreateGuid(g .r0) i.r1'
     ${If} $1 == 0
       ClearErrors
-      FileOpen $1 "$dshDirectoryLogDirectory\payload-failure-$0.log" w
+      FileOpen $1 "$dshDirectoryLogDirectory\${Kind}-$0.log" w
       ${IfNot} ${Errors}
-        FileWriteUTF16LE /BOM $1 "Invalid staged application file ($dshDirectoryError): $dshDirectorySource$\r$\n"
+        FileWriteUTF16LE /BOM $1 "$2$\r$\n"
         FileClose $1
       ${EndIf}
     ${EndIf}
-    MessageBox MB_OK|MB_ICONSTOP "$(INSTALLER_FAILED)$\r$\n$\r$\n$dshDirectorySource" /SD IDOK
+    Pop $2
     Pop $1
     Pop $0
   !macroend
+  !macro customInstallerInvalidPayload
+    !insertmacro InstallerWriteFailureLog "payload-failure" "Invalid staged application file ($dshDirectoryError): $dshDirectorySource"
+    MessageBox MB_OK|MB_ICONSTOP "$(INSTALLER_FAILED)$\r$\n$\r$\n$dshDirectorySource" /SD IDOK
+  !macroend
   !include "${__FILEDIR__}\installer-directories.nsh"
+
+  ; The upstream template can clear its error flag while writing later metadata.
+  !macro InstallerVerifyRegistration
+    Push $1
+    Push $2
+    StrCpy $2 "InstallLocation"
+    ReadRegStr $1 SHELL_CONTEXT "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+    StrCmp $1 "$INSTDIR" 0 registration_failed
+    StrCpy $2 "UninstallString"
+    ReadRegStr $1 SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY}" "UninstallString"
+    StrCmp $1 '"$INSTDIR\${UNINSTALL_FILENAME}" /currentuser' 0 registration_failed
+    StrCpy $2 "QuietUninstallString"
+    ReadRegStr $1 SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY}" "QuietUninstallString"
+    StrCmp $1 '"$INSTDIR\${UNINSTALL_FILENAME}" /currentuser /S' 0 registration_failed
+
+    ; Standard uninstall-entry metadata for inventory tools.
+    ClearErrors
+    StrCpy $2 "Uninstall InstallLocation"
+    WriteRegStr SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY}" "InstallLocation" "$INSTDIR"
+    IfErrors registration_failed
+    StrCpy $2 "DisplayVersion"
+    WriteRegStr SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY}" "DisplayVersion" "${DSHU_DISPLAY_VERSION}"
+    IfErrors registration_failed
+    Goto registration_verified
+
+    registration_failed:
+    ; Registration may be partial. Keep the promoted payload and any old backup.
+    StrCpy $dshRecoveryStopped "1"
+    StrCpy $1 ""
+    ${If} $dshOldMoved == "1"
+      StrCpy $1 $dshOldDirectory
+    ${EndIf}
+    !insertmacro InstallerWriteFailureLog "registration-failure" "Incomplete installer registration: $2$\r$\nInstallation: $INSTDIR$\r$\nPreserved backup: $1"
+    MessageBox MB_OK|MB_ICONSTOP "$(INSTALLER_FAILED)$\r$\n$\r$\n$INSTDIR$\r$\n$1" /SD IDOK
+    Pop $2
+    Pop $1
+    SetErrorLevel 2
+    Quit
+
+    registration_verified:
+    Pop $2
+    Pop $1
+  !macroend
 !endif
 
 !macro customInstall
@@ -274,15 +323,13 @@ ManifestDPIAware true
     StrCpy $0 1
   ${EndIf}
   !insertmacro InstallerPublishStage 4
+  !insertmacro InstallerVerifyRegistration
   !insertmacro dshFinishDirectories
   ${If} $RestartStatusJob != ""
   ${AndIf} $RestartStatusJob != 0
     System::Call 'kernel32::CloseHandle(p $RestartStatusJob)'
     StrCpy $RestartStatusJob 0
   ${EndIf}
-  ; Standard uninstall-entry metadata read by inventory tools; the upstream template records it only under its private key.
-  WriteRegStr SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY}" InstallLocation "$INSTDIR"
-  WriteRegStr SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY}" DisplayVersion "${DSHU_DISPLAY_VERSION}"
   ${If} $0 == 1
     SetErrors
   ${Else}

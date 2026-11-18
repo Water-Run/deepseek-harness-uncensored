@@ -10,6 +10,11 @@ LangString decompressionFailed ${LANG_ENGLISH} "Payload extraction failed"
 !define DSH_STDUTILS_SOURCE "${__FILEDIR__}\..\..\..\..\LICENSES\installer\StdUtils-1.14-sources.tbz2"
 !define DSH_UAC_LICENSE "${__FILEDIR__}\..\..\..\..\LICENSES\installer\UAC-0.2.4c-LICENSE.txt"
 !define APP_EXECUTABLE_FILENAME "asset.txt"
+!ifdef REGISTRATION_FAILED
+  !define INSTALL_REGISTRY_KEY "${REGISTRATION_TEST_KEY}\Install"
+  !define UNINSTALL_REGISTRY_KEY "${REGISTRATION_TEST_KEY}\Uninstall"
+  !define UNINSTALL_FILENAME "Uninstall Fixture.exe"
+!endif
 
 !macro installApplicationFiles
   !insertmacro dshExtractPayload "${PAYLOAD_FILE}"
@@ -65,6 +70,9 @@ Section
   !endif
   Call dshPromoteDirectories
   IfErrors failed
+  !ifdef REGISTRATION_FAILED
+    !insertmacro customInstall
+  !endif
   !ifdef LOCKED_PROMOTED
     System::Call 'kernel32::CreateFileW(w "$dshFinalDirectory\asset.txt", i 0x80000000, i 1, p 0, i 3, i 0, p 0) p.r9'
     ${If} $9 == -1
