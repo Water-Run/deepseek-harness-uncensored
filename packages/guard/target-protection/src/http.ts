@@ -34,20 +34,33 @@ export function apply(ctx: Context, config: Config): void {
       const release = protection.retainExecution()
       const settled = Promise.withResolvers<boolean>()
       pending.add(settled.promise)
+      const hop: { resolution?: TargetHttpResolution; release?: () => void } = {}
       try {
         const policySignal = protection.executionSignal()
-        const combined = AbortSignal.any([policySignal, lifetime.signal, ...signal === undefined ? [] : [signal]])
-        let resolution: TargetHttpResolution | undefined
+        const revocation = new AbortController()
+        const combined = AbortSignal.any([policySignal, lifetime.signal, revocation.signal, ...signal === undefined ? [] : [signal]])
         const provider = new HttpFetchProvider(limits, async (hostname, requestSignal) => {
-          resolution = await protection.resolveHttpTarget(hostname, requestSignal)
-          return [...resolution.addresses]
+          hop.resolution = await protection.resolveHttpTarget(hostname, requestSignal)
+          return [...hop.resolution.addresses]
         }, async (destination, requestSignal) => {
-          if (destination.phase === 'before-resolution') resolution = undefined
           try {
+            if (destination.phase === 'before-resolution') {
+              // The provider closes the preceding response before starting another hop.
+              hop.release?.()
+              delete hop.release
+              delete hop.resolution
+            }
             await authorizeGuardedHttp(ctx, destination, requestSignal)
-            const decision = await protection.checkHttp(destination, requestSignal, resolution)
+            const revision = destination.phase === 'before-connect' ? (await protection.snapshot()).revision : undefined
+            const decision = await protection.checkHttp(destination, requestSignal, hop.resolution)
             requestSignal.throwIfAborted()
             assertNetworkAllowed(decision)
+            if (revision !== undefined) {
+              hop.release = protection.retainNativeExecution(revision, async () => {
+                revocation.abort()
+                await settled.promise
+              })
+            }
           } catch (error) {
             if (requestSignal.aborted) throw new Error('HTTP authorization cancelled.', { cause: requestSignal.reason })
             if (error instanceof WebError) throw error
@@ -62,7 +75,10 @@ export function apply(ctx: Context, config: Config): void {
           }
           throw error
         }
-      } finally { settled.resolve(true); pending.delete(settled.promise); release() }
+      } finally {
+        try { hop.release?.() }
+        finally { settled.resolve(true); pending.delete(settled.promise); release() }
+      }
     },
   })
   ctx.provide('targetProtectedHttp', true)

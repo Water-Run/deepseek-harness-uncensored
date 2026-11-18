@@ -16,6 +16,7 @@ import * as HttpFetch from '@deepseek-ai/dsh-web-fetch-http'
 import { afterEach, expect, it, vi } from 'vitest'
 import TargetProtection from '../src/index.ts'
 import * as ProtectedHttp from '../src/http.ts'
+import { TargetStore } from '../src/store.ts'
 import type { TargetRule, TargetRuleId } from '../src/types.ts'
 
 const contexts: Context[] = [], servers: Server[] = []
@@ -38,12 +39,14 @@ function rule(overrides: Partial<TargetRule> = {}): TargetRule {
     environment: 'production', protection: 'full', match: 'host', address: '127.0.0.1', ...overrides }
 }
 
-async function harness(holdResponse = false) {
+async function harness(holdResponse = false, redirect = false) {
   const root = await mkdtemp(join(tmpdir(), 'dshu-target-http-')); roots.push(root)
   let requests = 0, connections = 0
   const reached = Promise.withResolvers<boolean>(), closed = Promise.withResolvers<boolean>()
-  const server = createServer((_req, response) => {
-    requests++; response.writeHead(200, { 'content-type': 'text/plain' })
+  const server = createServer((request, response) => {
+    requests++
+    if (redirect && request.url === '/') { response.writeHead(302, { location: '/next' }).end(); return }
+    response.writeHead(200, { 'content-type': 'text/plain' })
     response.once('close', () => { closed.resolve(true) })
     if (holdResponse) { response.write('pending'); reached.resolve(true) }
     else response.end('fixture')
@@ -128,6 +131,47 @@ it('cancels and drains a live response when the required policy owner is withdra
   await h.closed
   expect(h.requests()).toBe(1)
   await expect(h.ctx.web.fetch({ url: h.url })).rejects.toMatchObject({ code: 'WEB_PROVIDER_UNAVAILABLE' })
+})
+
+it('holds the rule revision through the response and releases it before a settings save completes', async () => {
+  const h = await harness(true)
+  const initial = await h.configure([])
+  const writer = await TargetStore.open(h.path, 0)
+  const abort = new AbortController()
+  const operation = h.ctx.web.fetch({ url: h.url }, abort.signal).catch((error: unknown) => error)
+  try {
+    await h.reached
+    expect(() => writer.configure({ mainlandEnabled: false, rules: [] }, initial.revision))
+      .toThrow(expect.objectContaining({ code: 'busy' }))
+    const saved = await h.configure([rule()])
+    await expect(operation).resolves.toMatchObject({ code: 'TARGET_POLICY_CHANGED' })
+    await h.closed
+    const updated = writer.configure({ mainlandEnabled: false, rules: [] }, saved.revision)
+    expect(updated.revision).toBe(saved.revision + 1)
+    expect(h.requests()).toBe(1)
+  } finally {
+    abort.abort()
+    await operation
+    writer.close()
+  }
+})
+
+it('releases a completed hop and checks an externally updated policy before following the redirect', async () => {
+  const h = await harness(false, true)
+  const initial = await h.configure([])
+  const writer = await TargetStore.open(h.path, 0)
+  let resolutions = 0
+  h.ctx.on('web-fetch/authorize', (destination) => {
+    if (destination.phase === 'before-resolution' && ++resolutions === 2) {
+      writer.configure({ mainlandEnabled: false, rules: [rule()] }, initial.revision)
+    }
+    return undefined
+  })
+  try {
+    await expect(h.ctx.web.fetch({ url: h.url })).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+    expect(h.requests()).toBe(1)
+    expect(writer.snapshot().revision).toBe(initial.revision + 1)
+  } finally { writer.close() }
 })
 
 it('does not infer safe audit permission from the GET method', async () => {
