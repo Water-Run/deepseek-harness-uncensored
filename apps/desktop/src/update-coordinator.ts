@@ -12,8 +12,9 @@ import { DesktopUpdatePreparationError, downloadFailureDetails } from './update-
 import type { DesktopUpdateChannel } from './update-channel.ts'
 import { selectUpdateChannel } from './updates/electron-updater/channel.ts'
 import { discardDesktopUpdate } from './updates/electron-updater/discard.ts'
+import { verifyWindowsUpdateInstaller } from './updates/electron-updater/verify-installer.ts'
 
-const { autoUpdater } = electronUpdater
+const { autoUpdater, NsisUpdater } = electronUpdater
 
 /** Owns one updater target until its download and installation settle. */
 export class DesktopUpdateCoordinator {
@@ -58,6 +59,7 @@ export class DesktopUpdateCoordinator {
    * @param channel - Installed package channel; omitted test/local callers retain nightly.
    * @param discard - Clears settled library targets and platform resources before another channel is used.
    * @param readSource - Installed update configuration, read and validated before any network request.
+   * @param beginHandoff - Transfers quit ownership if the shell is still running.
    */
   constructor(
     private readonly publish: (state: DesktopUpdateState) => DesktopUpdateState,
@@ -69,6 +71,7 @@ export class DesktopUpdateCoordinator {
     private channel: DesktopUpdateChannel = 'nightly',
     private readonly discard: (updater: AppUpdater) => Promise<void> = discardDesktopUpdate,
     private readonly readSource: () => Promise<unknown> = readInstalledUpdateSource,
+    private readonly beginHandoff: () => boolean = () => true,
   ) {
     if (updater === autoUpdater) {
       // electron-updater omits this internal transport property from its public declarations.
@@ -159,7 +162,8 @@ export class DesktopUpdateCoordinator {
     this.assertLive()
     if (this.configurationError !== undefined || this.switching > 0
       || this.downloadOperation !== undefined || this.installOperation !== undefined || this.downloaded) return this.current
-    if (!manual && this.current.phase === 'error' && this.current.failedOperation === 'download') return this.current
+    if (!manual && this.current.phase === 'error' && (this.current.failedOperation === 'download'
+      || this.current.preparationFailure === 'installer-integrity')) return this.current
     const generation = this.generation
     this.checkOperation ??= Promise.resolve().then(() => this.doCheck())
       .finally(() => { this.checkOperation = undefined })
@@ -220,10 +224,16 @@ export class DesktopUpdateCoordinator {
       try {
         if (!await this.beforeRestart()) return this.setState({ phase: 'ready', version })
         this.assertLive()
+        if (this.updater instanceof NsisUpdater) await verifyWindowsUpdateInstaller(this.updater)
+        this.assertLive()
+        if (!this.beginHandoff()) return this.setState({ phase: 'ready', version })
         this.release = { kind: 'handed-off', version }
         this.updater.quitAndInstall(true, true)
         return this.current
       } catch (error) {
+        if (error instanceof DesktopUpdatePreparationError && error.kind === 'installer-integrity') {
+          this.release = { kind: 'checked', version }
+        }
         if (this.current.phase === 'error' && this.current.failedOperation === 'install') return this.current
         return this.setState(this.failure(error, 'install'))
       }

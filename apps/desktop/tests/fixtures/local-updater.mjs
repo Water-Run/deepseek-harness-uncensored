@@ -4,13 +4,13 @@ import { setTimeout as delay } from 'node:timers/promises'
 import assert from 'node:assert/strict'
 import { once } from 'node:events'
 import fs from 'node:fs'
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises'
 import { join, sep } from 'node:path'
 import { app, BrowserWindow, Notification, protocol, shell, clipboard } from 'electron'
 import { fileURLToPath } from 'node:url'
 import updaterModule from 'electron-updater'
 import { DesktopUpdateCoordinator } from '../../lib/types/update-coordinator.js'
-import { presentDesktopUpdate } from '../../lib/types/update-presentation.js'
+import { desktopUpdateErrorSummary, presentDesktopUpdate } from '../../lib/types/update-presentation.js'
 import { resolveDesktopLocale } from '../../lib/types/locale.js'
 import { createUpdateServer } from './update-server.mjs'
 import { fixtureUpdateFeed } from './update-feed-adapter.mjs'
@@ -71,6 +71,32 @@ async function main() {
   }
   async function scenario(name, run) { await run(); cases.push(name); console.log(`local updater: ${name}`) }
   try {
+    for (const [name, change] of [
+      ['modified', path => writeFile(path, Buffer.alloc(server.payload.length))],
+      ['missing', unlink],
+    ]) {
+      await scenario(`${name}-installer-refuses-handoff-and-redownloads`, async () => {
+        const f = await fixture()
+        const { version } = await f.coordinator.check(true)
+        assert.equal((await f.coordinator.download(version)).phase, 'ready')
+        f.restart(async () => { await change(f.updater.installerPath); return true })
+        const failure = await f.coordinator.install(version)
+        assert.equal(failure.failedOperation, 'install')
+        assert.equal(failure.preparationFailure, 'installer-integrity')
+        assert.match(desktopUpdateErrorSummary(failure, messages), /重新下载/u)
+        assert.equal(f.updater.installerPath, null)
+        assert.equal(f.installations.length, 0)
+        assert.equal(await f.coordinator.check(), failure)
+        await assert.rejects(f.coordinator.install(version), /not ready/u)
+        const before = server.requests.length
+        assert.equal((await f.coordinator.download(version)).phase, 'ready')
+        assert.equal(server.requests.length - before, 1)
+        assert.deepEqual(await readFile(f.updater.installerPath), server.payload)
+        f.restart(async () => true)
+        assert.equal((await f.coordinator.install(version)).phase, 'installing')
+        assert.deepEqual(f.installations, [[true, true]])
+      })
+    }
     await scenario('same-version-no-update', async () => {
       const f = await fixture()
       server.select('healthy', '1.0.0')

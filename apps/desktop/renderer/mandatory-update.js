@@ -15,14 +15,16 @@ function render(view) {
   const confirming = confirmation !== undefined
   const failed = update.phase === 'error'
   const configurationError = failed && update.failedOperation === 'configuration'
-  const ready = update.phase === 'ready' || (failed && update.failedOperation === 'install')
-  const downloadable = update.phase === 'available' || (failed && update.failedOperation === 'download')
+  const needsDownload = update.preparationFailure === 'installer-integrity'
+  const ready = update.phase === 'ready' || (failed && update.failedOperation === 'install' && !needsDownload)
+  const downloadable = update.phase === 'available' || (failed && (update.failedOperation === 'download' || needsDownload))
   const authenticationRequired = policy.error === 'authentication-required'
   const preparationMessages = {
     'stop-failed': messages.updateStopFailed,
     'tasks-changed': messages.updateTasksChanged,
     'tasks-unavailable': messages.updateTasksUnavailable,
     'fullscreen-timeout': messages.updateFullscreenTimeout,
+    'installer-integrity': messages.updateInstallerIntegrityFailed,
   }
   const fallback = failed || update.phase === 'idle' || view.error !== undefined
   let title = policy.title ?? messages.mandatoryTitle

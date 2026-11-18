@@ -16,6 +16,7 @@ export type DesktopUpdateFailureKind =
   | 'tasks-changed'
   | 'tasks-unavailable'
   | 'fullscreen-timeout'
+  | 'installer-integrity'
 
 /** Public semantic preload fields consumed by the settings row. */
 export interface DesktopUpdatePresentation {

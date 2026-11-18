@@ -38,6 +38,12 @@ Windows 签名构建在同一步核对 `latest.yml` 的内部分发版本、唯�
 
 14 项原生目录事务、32 项静默安装及卸载检查和 20 项定向测试通过。实装 18.11 的 ASAR 摘要一致。回执位于 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-silent-installer/result.json`。新版 DSHU 完整安装与签名在线升级仍待验收。[安装流程](../../apps/desktop/packaging/README.zh.md)
 
+### Windows 更新交接校验
+
+用户确认重启且 Host 停止后，Windows 在将退出控制权交给更新器前核对待执行安装器的 SHA-512。校验失败会恢复当前工作区，普通与强制更新均提供重新下载入口。重试前清除所选安装器的内存记录，磁盘缓存按更新源摘要重新核验。
+
+真实 Electron 44.7.0 本地更新夹具通过 19 个场景，新增在重启准备期间改写或删除安装文件的两项检查。两项均拒绝交接，显式重试发起新下载，并对恢复后的文件完成模拟交接。夹具没有执行安装器。结果位于 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-updater-handoff/result.json`。[更新流程](../../apps/desktop/README.zh.md#updates)
+
 ## 验收
 
 - 两个所属测试文件在 Windows/Linux 各 28 项通过，覆盖 403/429、主/次级期限、重叠期限、无效数值、普通拒绝、不会自动重试，以及中英文弹窗关闭/重开和到期后的显式重试。

@@ -41,6 +41,7 @@ export function desktopUpdateErrorSummary(state: DesktopUpdateState, messages: D
     'tasks-changed': messages.updateTasksChanged,
     'tasks-unavailable': messages.updateTasksUnavailable,
     'fullscreen-timeout': messages.updateFullscreenTimeout,
+    'installer-integrity': messages.updateInstallerIntegrityFailed,
   }
   return summaries[kind]
 }

@@ -801,7 +801,6 @@ async function main(): Promise<void> {
         await operationJournal?.drain(500)
         if (quitting) return false
         updateJournal?.action('install-confirmed')
-        shellInstallerOwnsQuit = true
       } catch (error) {
         operationReportsStopping = shuttingDown
         operationReportStop = undefined
@@ -815,6 +814,12 @@ async function main(): Promise<void> {
     undefined, undefined, undefined,
     (success, reason) => { void track('desktop_upgrade_download_result', { is_success: success, ...reason === undefined ? {} : { error_reason: reason } }) },
     updateChannel,
+    undefined, undefined,
+    () => {
+      if (quitting) return false
+      shellInstallerOwnsQuit = true
+      return true
+    },
   )
 
   if (initialChannel.kind === 'error') updates.suspendConfiguration(initialChannel.error.path)
@@ -1121,14 +1126,15 @@ async function main(): Promise<void> {
             detail: formatDesktopMessage(locale.messages.updateCurrentDetail, { version: displayProductVersion(app.getVersion()) }) })
           return
         }
-        if (state.phase === 'ready' || (state.phase === 'error' && state.failedOperation === 'install')) {
+        const needsDownload = state.preparationFailure === 'installer-integrity'
+        if (state.phase === 'ready' || (state.phase === 'error' && state.failedOperation === 'install' && !needsDownload)) {
           if (state.version !== undefined) {
             failedOperation = 'install'
             await showUpdateFailure(await updates.install(state.version, revision))
           }
           return
         }
-        if (state.phase !== 'available' && !(state.phase === 'error' && state.failedOperation === 'download')) return
+        if (state.phase !== 'available' && !(state.phase === 'error' && (state.failedOperation === 'download' || needsDownload))) return
         if (manual) {
           const result = await ordinaryMessageBox({ title: locale.messages.updateCheckTitle,
             message: formatDesktopMessage(locale.messages.updateAvailable, { version: state.version ?? '' }),
