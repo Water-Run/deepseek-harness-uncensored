@@ -1,14 +1,21 @@
-/** Verify the external blockmap for a final Windows installer. */
+/** Verify a final Windows installer against its blockmap and optional update feed. */
 import { createHash } from 'node:crypto'
 import { mkdtemp, readFile, rm, rmdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { basename, join, resolve } from 'node:path'
+import { parseArgs } from 'node:util'
 import { gunzipSync } from 'node:zlib'
 import { buildBlockMap } from 'app-builder-lib/out/targets/blockmap/blockmap.js'
+import { load } from 'js-yaml'
 
 interface FileDigest {
   readonly size: number
   readonly sha512: string
+}
+
+interface VerifiedWindowsInstaller {
+  readonly digest: FileDigest
+  readonly map: FileDigest
 }
 
 /**
@@ -19,7 +26,7 @@ interface FileDigest {
  */
 export async function verifyWindowsInstallerBlockmap(
   installer: string, blockmap = `${installer}.blockmap`,
-): Promise<{ digest: FileDigest; map: FileDigest }> {
+): Promise<VerifiedWindowsInstaller> {
   const scratch = await mkdtemp(join(tmpdir(), 'dshu-blockmap-'))
   const generated = join(scratch, 'installer.blockmap')
   try {
@@ -41,8 +48,53 @@ export async function verifyWindowsInstallerBlockmap(
   }
 }
 
+function feedRecord(value: unknown): Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error('desktop installer: invalid feed metadata')
+  return value as Record<string, unknown>
+}
+
+/**
+ * Bind a local Windows update feed and external blockmap to one final installer.
+ * @param installer - Exact expected installer path after any signing completes.
+ * @param feedPath - Update feed emitted by the builder.
+ * @param version - Runtime version selected by the packaging caller.
+ * @param blockmap - External blockmap, which defaults to the adjacent sidecar.
+ * @returns Installer and blockmap digests, plus the original UTF-8 feed and its digest.
+ */
+export async function verifyWindowsInstallerUpdate(
+  installer: string, feedPath: string, version: string, blockmap = `${installer}.blockmap`,
+): Promise<VerifiedWindowsInstaller & { readonly feed: { readonly contents: string; readonly sha512: string } }> {
+  const bytes = await readFile(feedPath)
+  const contents = bytes.toString('utf8')
+  if (!Buffer.from(contents).equals(bytes)) throw new Error('desktop installer: feed must use valid UTF-8')
+  const metadata = feedRecord(load(contents))
+  if (metadata.version !== version || !Array.isArray(metadata.files) || metadata.files.length !== 1 || 'packages' in metadata) {
+    throw new Error('desktop installer: feed must describe exactly the selected version and installer')
+  }
+  const info = feedRecord(metadata.files[0])
+  const filename = basename(installer)
+  if (info.url !== filename || (metadata.path !== undefined && metadata.path !== filename)) {
+    throw new Error('desktop installer: feed filename must identify the selected local Windows installer')
+  }
+  if (metadata.releaseDate !== undefined && (typeof metadata.releaseDate !== 'string'
+    || !Number.isFinite(Date.parse(metadata.releaseDate)))) throw new Error('desktop installer: invalid feed release date')
+  const verified = await verifyWindowsInstallerBlockmap(installer, blockmap)
+  if (info.size !== verified.digest.size || info.sha512 !== verified.digest.sha512
+    || (metadata.sha512 !== undefined && metadata.sha512 !== verified.digest.sha512)) {
+    throw new Error('desktop installer: installer size or SHA-512 differs from the generated feed')
+  }
+  return { ...verified, feed: { contents, sha512: createHash('sha512').update(bytes).digest('base64') } }
+}
+
 if (process.argv[1] !== undefined && import.meta.filename === resolve(process.argv[1])) {
-  const installer = process.argv[2]
-  if (installer === undefined || process.argv.length !== 3) throw new Error('desktop installer: expected one installer filename')
-  await verifyWindowsInstallerBlockmap(resolve(installer))
+  const { values, positionals } = parseArgs({ allowPositionals: true, options: {
+    feed: { type: 'string' }, version: { type: 'string' },
+  } })
+  const [installer] = positionals
+  if (installer === undefined || positionals.length !== 1) throw new Error('desktop installer: expected one installer filename')
+  if (values.feed === undefined && values.version === undefined) await verifyWindowsInstallerBlockmap(resolve(installer))
+  else {
+    if (values.feed === undefined || values.version === undefined) throw new Error('desktop installer: --feed and --version must be supplied together')
+    await verifyWindowsInstallerUpdate(resolve(installer), resolve(values.feed), values.version)
+  }
 }

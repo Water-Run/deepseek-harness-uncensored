@@ -225,13 +225,16 @@ it('initializes shared storage only after acquiring the preflight stage lock', a
   await packageTarget(parseDesktopPackageInvocation(['win-x64'], 'win32', 'x64'), environment, run)
 })
 
-it('stops Windows packaging before recording a release when the final blockmap fails verification', async () => {
+it('checks the signed feed against the final installer before recording a release', async () => {
   const stage = 'exec tsx scripts/verify-windows-installer-blockmap.ts'
   const { run, stages } = supervisor(stage)
   const invocation = parseDesktopPackageInvocation(['win-x64'], 'win32', 'x64')
   const settings = { ...environment, DSH_DESKTOP_BUILD_VERSION: '2026.11.18.10' }
   await expect(packageTarget(invocation, settings, run)).rejects.toThrow('stage refused')
   const verification = run.run.mock.calls.find(([name]) => name.startsWith(stage))!
+  expect(verification[2].at(-5)).toBe('--feed')
+  expect(verification[2].at(-4)).toMatch(/[\\/]latest\.yml$/u)
+  expect(verification[2].slice(-3, -1)).toEqual(['--version', '2026.1118.10'])
   expect(verification[2].at(-1)).toMatch(/[\\/]deepseek-harness-uncensored-2026\.11\.18\.10-win-x64\.exe$/u)
   expect(verification[3].env).not.toHaveProperty('DSH_DESKTOP_WINDOWS_TOKEN_PIN')
   expect(stages.at(-1)).toBe(verification[0])
@@ -244,6 +247,7 @@ it('checks the unsigned installer in the active supervised run output', async ()
   await packageTarget(invocation, { ...environment, DSH_DESKTOP_BUILD_VERSION: '2026.11.18.11',
     DSH_DESKTOP_PACKAGING_RUN_DIR: 'stale-record' }, run)
   const verification = run.run.mock.calls.find(([name]) => name.startsWith('exec tsx scripts/verify-windows-installer-blockmap.ts '))!
+  expect(verification[2]).not.toContain('--feed')
   expect(verification[2].at(-1)?.replaceAll('\\', '/'))
     .toMatch(/\/unsigned-artifacts\/runs\/fixture-record\/deepseek-harness-uncensored-2026\.11\.18\.11-win-x64-unsigned\.exe$/u)
   expect(writeFileSync).not.toHaveBeenCalled()

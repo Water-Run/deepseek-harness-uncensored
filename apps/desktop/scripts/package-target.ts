@@ -583,7 +583,11 @@ export async function packageTarget(
       const displayVersion = displayProductVersion(version)
       if (target.platform === 'win32') {
         const name = desktopArtifactFilename(displayVersion, 'win', target.arch, artifactSuffix, 'exe')
-        await execute(['exec', 'tsx', 'scripts/verify-windows-installer-blockmap.ts', join(artifactsRoot, name)], targetEnv)
+        const feedArguments = invocation.unsigned ? [] : [
+          '--feed', join(artifactsRoot, `${uncensoredUpdateConfig(target.platform, target.arch).channel}.yml`),
+          '--version', version,
+        ]
+        await execute(['exec', 'tsx', 'scripts/verify-windows-installer-blockmap.ts', ...feedArguments, join(artifactsRoot, name)], targetEnv)
       } else {
         const name = desktopArtifactFilename(displayVersion, 'linux', target.arch, artifactSuffix, 'tar.gz')
         // electron-builder expands the Debian architecture macro to amd64 for this x64 target.

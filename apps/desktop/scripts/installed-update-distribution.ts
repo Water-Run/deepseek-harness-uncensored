@@ -1,10 +1,8 @@
 /** Validate local qualification payload bytes and prepare separate binary and fixed-feed operations. */
-import { createHash } from 'node:crypto'
-import { readFile, stat } from 'node:fs/promises'
+import { stat } from 'node:fs/promises'
 import { join } from 'node:path'
-import { load } from 'js-yaml'
 import { readInstalledUpdateRun } from './installed-update-qualification.ts'
-import { verifyWindowsInstallerBlockmap } from './verify-windows-installer-blockmap.ts'
+import { verifyWindowsInstallerUpdate } from './verify-windows-installer-blockmap.ts'
 
 /** A local immutable object, with its final test-only destination and digest. */
 export interface InstalledUpdateBinary {
@@ -41,11 +39,6 @@ async function binaryPath(directory: string, name: string, base: string) {
   return { path, name, url: new URL(name, base).href, size: file.size }
 }
 
-function record(value: unknown): Record<string, unknown> {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error('installed update: invalid feed metadata')
-  return value as Record<string, unknown>
-}
-
 /**
  * Check the generated YAML and external blockmap against installer bytes.
  * @param manifest Original qualification run.json; test identity and destinations are revalidated.
@@ -57,30 +50,13 @@ export async function planInstalledUpdateDistribution(manifest: string, version:
   if (!run.versions.includes(version)) throw new Error('installed update: version is outside the qualification run')
   const directory = join(run.root, version, 'installer')
   const feedName = 'nightly.yml'
-  const bytes = await readFile(join(directory, feedName))
-  const contents = bytes.toString('utf8')
-  if (!Buffer.from(contents).equals(bytes)) throw new Error('installed update: feed must use valid UTF-8')
-  const metadata = record(load(contents))
-  if (metadata.version !== version || !Array.isArray(metadata.files) || metadata.files.length !== 1 || 'packages' in metadata) {
-    throw new Error('installed update: feed must describe exactly the selected version and installer')
-  }
-  const info = record(metadata.files[0])
   const filename = installedUpdateArtifactName(version)
-  if (info.url !== filename || (metadata.path !== undefined && metadata.path !== filename)) {
-    throw new Error('installed update: feed filename must identify the selected local Windows installer')
-  }
   const installer = await binaryPath(directory, filename, run.feedBaseUrl)
   const blockmap = await binaryPath(directory, `${filename}.blockmap`, run.feedBaseUrl)
-  const { digest, map } = await verifyWindowsInstallerBlockmap(installer.path, blockmap.path)
-  if (digest.size !== installer.size || info.size !== installer.size || info.sha512 !== digest.sha512
-    || (metadata.sha512 !== undefined && metadata.sha512 !== digest.sha512)) {
-    throw new Error('installed update: installer size or SHA-512 differs from the generated feed')
-  }
+  const { digest, map, feed } = await verifyWindowsInstallerUpdate(installer.path, join(directory, feedName), version, blockmap.path)
+  if (digest.size !== installer.size) throw new Error('installed update: installer size changed during verification')
   if (map.size !== blockmap.size) throw new Error('installed update: external blockmap size changed during verification')
-  if (metadata.releaseDate !== undefined && (typeof metadata.releaseDate !== 'string'
-    || !Number.isFinite(Date.parse(metadata.releaseDate)))) throw new Error('installed update: invalid feed release date')
   return { version, releaseTag: run.releaseTag, binaries: [{ ...installer, sha512: digest.sha512 }, { ...blockmap, ...map }],
-    feed: { name: feedName, url: new URL(feedName, run.feedBaseUrl).href, contents,
-      sha512: createHash('sha512').update(bytes).digest('base64') },
+    feed: { ...feed, name: feedName, url: new URL(feedName, run.feedBaseUrl).href },
     verified: 'file-integrity-only', publicationAuthorized: false }
 }

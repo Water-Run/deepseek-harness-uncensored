@@ -78,7 +78,7 @@ describe('qualification distribution file planning', () => {
     })
   })
 
-  it.each(['changed-bytes', 'missing-map', 'foreign-url', 'wrong-version', 'legacy-hash', 'invalid-utf8', 'web-package'])(
+  it.each(['changed-bytes', 'missing-map', 'missing-feed', 'foreign-url', 'wrong-version', 'feed-size', 'feed-hash', 'legacy-hash', 'invalid-utf8', 'web-package'])(
     'rejects %s before producing any distribution plan', async (failure) => {
       await fixture(async (manifest) => {
         const plan = await planInstalledUpdateDistribution(manifest, versions[0])
@@ -86,7 +86,7 @@ describe('qualification distribution file planning', () => {
         const metadataPath = join(installer, '..', 'nightly.yml')
         const metadata = JSON.parse(await readFile(metadataPath, 'utf8')) as {
           version: string
-          files: { url: string }[]
+          files: { url: string; size: number; sha512: string }[]
           sha512?: string
           packages?: object
         }
@@ -94,10 +94,13 @@ describe('qualification distribution file planning', () => {
         if (failure === 'missing-map') await rm(plan.binaries[1]!.path)
         if (failure === 'foreign-url') metadata.files[0]!.url = 'https://other.invalid/unrelated.exe'
         if (failure === 'wrong-version') metadata.version = versions[1]
+        if (failure === 'feed-size') metadata.files[0]!.size++
+        if (failure === 'feed-hash') metadata.files[0]!.sha512 = createHash('sha512').update('unrelated fixture').digest('base64')
         if (failure === 'legacy-hash') metadata.sha512 = 'wrong'
         if (failure === 'web-package') metadata.packages = { x64: { path: 'https://other.invalid/alternate.7z' } }
         const body = Buffer.from(JSON.stringify(metadata))
         await writeFile(metadataPath, failure === 'invalid-utf8' ? Buffer.concat([body, Buffer.from([10, 35, 255])]) : body)
+        if (failure === 'missing-feed') await rm(metadataPath)
         await expect(planInstalledUpdateDistribution(manifest, versions[0])).rejects.toThrow()
       })
     },
