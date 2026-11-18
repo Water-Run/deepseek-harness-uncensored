@@ -1,7 +1,7 @@
 first-open=visible
 first-got-it=hidden
+close-storage=cleared
 first-reopen=hidden
-reopen-cookies=cleared
 second-account=visible
 back-to-first=hidden
 signed-in-again=hidden

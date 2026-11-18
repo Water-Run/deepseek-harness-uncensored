@@ -1,6 +1,6 @@
 /** Real Electron fixture for account-scoped Platform storage across process restarts. */
 import { app, BrowserWindow } from 'electron'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const OBSERVE = `(() => {
   const button = document.querySelector('button')
@@ -42,18 +42,39 @@ async function dismissNotice(contents) {
   if (await observe(contents) !== 'hidden') throw new Error('notice stayed visible after dismissal')
 }
 
-async function run() {
-  const [viewModule, userData, origin, phase] = process.argv.slice(2)
-  if (viewModule === undefined || userData === undefined || origin === undefined || phase === undefined) {
-    throw new Error('expected <built-platform-view.js> <userDataDir> <origin> <first|restart>')
+/** Read partition storage before any subsequent Platform opening can clear it. */
+async function assertClosedStorage(browserSession, origin) {
+  const probe = new BrowserWindow({ show: false, webPreferences: { session: browserSession, sandbox: true } })
+  try {
+    await probe.loadURL(origin)
+    const stores = await probe.webContents.executeJavaScript(`(async () => ({
+      cookie: document.cookie,
+      cacheNames: await caches.keys(),
+      databaseNames: (await indexedDB.databases()).map(database => database.name),
+    }))()`)
+    if (stores.cookie !== '' || stores.cacheNames.length !== 0 || stores.databaseNames.length !== 0) {
+      throw new Error('authentication storage survived Platform close')
+    }
+    if (await observe(probe.webContents) !== 'hidden') throw new Error('Platform preference was removed on close')
+  } finally {
+    probe.destroy()
   }
+}
+
+/**
+ * Exercise the built Platform view in an isolated Electron profile.
+ * @param viewModule - Absolute path to the built Platform view.
+ * @param origin - Fixture loopback origin.
+ * @param phase - First run or restart of the same profile.
+ */
+export async function runPlatformStorage(viewModule, origin, phase) {
   if (phase !== 'first' && phase !== 'restart') throw new Error(`unknown phase ${phase}`)
   const base = new URL(origin).origin
-  app.setPath('userData', userData)
   await app.whenReady()
   const { DesktopPlatformView } = await import(pathToFileURL(viewModule).href)
   const owner = new BrowserWindow({ show: false, width: 900, height: 700 })
-  const manager = new DesktopPlatformView('', () => 'en_US', process.platform === 'win32' ? 'win32' : 'darwin', () => false)
+  const preload = fileURLToPath(new URL('./preload.cjs', import.meta.url))
+  const manager = new DesktopPlatformView(preload, () => 'en_US', process.platform === 'win32' ? 'win32' : 'darwin', () => false)
   const account = userId => ({ origin: base, token: 'fixture-secret', userId })
   const states = []
   const record = async name => {
@@ -70,24 +91,35 @@ async function run() {
   if (phase === 'first') {
     await dismissNotice(platformView(owner).webContents)
     await record('first-got-it')
-    await platformView(owner).webContents.executeJavaScript("document.cookie = 'fixture-auth=secret; SameSite=Lax'")
-    await platformView(owner).webContents.executeJavaScript("window.addEventListener('beforeunload', event => { event.preventDefault(); event.returnValue = false })")
-    await platformView(owner).webContents.executeJavaScript(`(async () => {
-      await (await caches.open('fixture-auth')).put('/secret', new Response('secret'))
-      await new Promise((resolve, reject) => {
-        const request = indexedDB.open('fixture-auth')
-        request.onsuccess = () => { request.result.close(); resolve() }
-        request.onerror = () => reject(request.error)
-      })
+    const contents = platformView(owner).webContents
+    const cookie = await contents.executeJavaScript("document.cookie = 'fixture-auth=secret; SameSite=Lax'; document.cookie")
+    if (cookie !== 'fixture-auth=secret') throw new Error('authentication cookie did not seed')
+    await contents.executeJavaScript("window.addEventListener('beforeunload', event => { event.preventDefault(); event.returnValue = false })")
+    const cache = await contents.executeJavaScript(`(async () => {
+      let stage = 'open'
+      try {
+        const store = await caches.open('fixture-auth')
+        const request = new URL('/secret', location.href)
+        stage = 'put'
+        await store.put(request, new Response(null, { status: 204, headers: { 'X-Fixture-Auth': 'secret' } }))
+        stage = 'read'
+        return { marker: (await store.match(request))?.headers.get('X-Fixture-Auth') }
+      } catch (error) {
+        return { error: stage + ': ' + error.name + ': ' + error.message }
+      }
     })()`)
-    manager.close()
+    if (cache?.marker !== 'secret') throw new Error(`authentication cache did not seed: ${JSON.stringify(cache)}`)
+    await contents.executeJavaScript(`new Promise((resolve, reject) => {
+      const request = indexedDB.open('fixture-auth')
+      request.onsuccess = () => { request.result.close(); resolve() }
+      request.onerror = () => reject(request.error)
+    })`)
+    const storage = contents.session
+    await manager.closeAndWait()
+    await assertClosedStorage(storage, base)
+    states.push('close-storage=cleared')
     await manager.open(owner, 'usage', bounds)
     await record('first-reopen')
-    const cookies = await platformView(owner).webContents.executeJavaScript('document.cookie')
-    if (cookies !== '') throw new Error('authentication cookies survived close')
-    states.push('reopen-cookies=cleared')
-    const stores = await platformView(owner).webContents.executeJavaScript('(async () => (await caches.keys()).length + (await indexedDB.databases()).length)()')
-    if (stores !== 0) throw new Error('nonpreference stores survived close')
     manager.setSession(account('second'))
     await manager.open(owner, 'usage', bounds)
     await record('second-account')
@@ -119,8 +151,3 @@ async function run() {
   owner.destroy()
   app.quit()
 }
-
-run().catch(error => {
-  console.error(`PLATFORM_STORAGE_ERROR ${error instanceof Error ? error.message : String(error)}`)
-  app.exit(1)
-})

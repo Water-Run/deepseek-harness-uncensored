@@ -1,14 +1,14 @@
 /**
- * Real Chromium storage survives native view and Electron process lifetimes.
+ * Real Electron checks for Platform storage cleanup and preference retention.
  * Built-artifact regression: run after `pnpm run build:lib:host`, which emits
  * apps/desktop/lib/types/platform-view.js; the fixture imports that artifact and resolves its
  * workspace dependencies from this checkout's node_modules.
  */
 import { createServer } from 'node:http'
-import { mkdtemp, mkdir, readFile, rm } from 'node:fs/promises'
+import { copyFile, mkdtemp, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { execa } from 'execa'
@@ -21,7 +21,9 @@ const hasDisplay = process.platform !== 'linux' || Boolean(process.env.DISPLAY |
 
 // Linux Electron needs a display server; the test runs under xvfb in headless environments.
 it.skipIf(!hasDisplay)('retains dismissed notices across view and process restarts without sharing accounts', { retry: 0 }, async () => {
-  const root = await mkdtemp(join(tmpdir(), 'dsh-platform-storage-'))
+  // Chromium's persistent cache appends a partition hash, an origin hash, and a cache UUID.
+  const temp = await realpath(tmpdir())
+  const root = await mkdtemp(join(temp, 'p'))
   const server = createServer((_request, response) => {
     response.setHeader('content-type', 'text/html')
     response.end(`<!doctype html><html><body><script>
@@ -44,22 +46,42 @@ it.skipIf(!hasDisplay)('retains dismissed notices across view and process restar
     if (address === null || typeof address === 'string') throw new Error('missing Platform fixture listener')
     const origin = `http://127.0.0.1:${String(address.port)}`
     if (!existsSync(builtView)) throw new Error(`missing built Platform view ${builtView}; run pnpm run build:lib:host`)
-    const userData = join(root, 'browser')
-    await mkdir(userData)
+    const userData = root
     const electron: unknown = require('electron')
     if (typeof electron !== 'string') throw new Error('Electron executable is unavailable')
-    const fixture = fileURLToPath(new URL('./fixtures/platform-storage-smoke.mjs', import.meta.url))
+    const fixture = join(root, 'fixture')
+    await mkdir(fixture)
+    await copyFile(new URL('./fixtures/platform-storage-smoke.mjs', import.meta.url), join(fixture, 'platform-storage-smoke.mjs'))
+    await writeFile(join(fixture, 'package.json'), JSON.stringify({ name: 'dsh-platform-storage-fixture', version: '1.0.0', main: 'main.cjs' }))
+    await writeFile(join(fixture, 'main.cjs'), `
+const { app } = require('electron')
+const { viewModule, userData, origin, phase } = require('./input.json')
+app.setPath('userData', userData)
+app.setPath('sessionData', userData)
+app.commandLine.appendSwitch('disable-background-networking')
+import('./platform-storage-smoke.mjs')
+  .then(({ runPlatformStorage }) => runPlatformStorage(viewModule, origin, phase))
+  .catch(error => {
+    console.error(error)
+    app.exit(1)
+  })
+`)
+    await writeFile(join(fixture, 'preload.cjs'), '')
+    const input = join(fixture, 'input.json')
     const observed: string[] = []
     for (const phase of ['first', 'restart']) {
-      const result = await execa(electron, [fixture, builtView, userData, origin, phase], {
+      // Keep the fixture URL out of Electron's Windows command-line handling.
+      await writeFile(input, JSON.stringify({ viewModule: builtView, userData, origin, phase }))
+      const result = await execa(electron, [fixture], {
         // The unbundled tsc artifact reads the client version from the environment; the packaged
         // build inlines the same value at bundle time.
-        env: { ELECTRON_RUN_AS_NODE: undefined, DSH_CLIENT_VERSION: '1.2.3' },
-        timeout: 45_000, forceKillAfterDelay: 5_000, reject: false,
+        env: { ELECTRON_RUN_AS_NODE: undefined, NODE_OPTIONS: undefined, DSH_CLIENT_VERSION: '1.2.3' },
+        cwd: fixture, timeout: 45_000, forceKillAfterDelay: 5_000, reject: false,
       })
-      expect(result.timedOut, result.stderr).toBe(false)
-      expect(result.signal, result.stderr).toBeUndefined()
-      expect(result.exitCode, result.stderr).toBe(0)
+      const diagnostics = `${phase}: ${result.stdout}\n${result.stderr}`
+      expect(result.timedOut, diagnostics).toBe(false)
+      expect(result.signal, diagnostics).toBeUndefined()
+      expect(result.exitCode, diagnostics).toBe(0)
       const line = result.stdout.split('\n').find(value => value.startsWith('PLATFORM_STORAGE_RESULT '))
       if (line === undefined) throw new Error(`Missing Electron result: ${result.stdout}\n${result.stderr}`)
       const states: unknown = JSON.parse(line.slice('PLATFORM_STORAGE_RESULT '.length))
@@ -74,6 +96,7 @@ it.skipIf(!hasDisplay)('retains dismissed notices across view and process restar
       server.close((error) => { if (error) reject(error); else resolve() })
       server.closeAllConnections()
     })
-    await rm(root, { recursive: true, force: true })
+    if (dirname(await realpath(root)) !== temp) throw new Error('Platform fixture escaped its temporary directory')
+    await rm(root, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
   }
 })

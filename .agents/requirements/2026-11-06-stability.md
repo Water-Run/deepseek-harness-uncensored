@@ -82,7 +82,9 @@ Web 重启夹具使用 IPC 请求应用正常关闭并要求退出码为 0。夹
 
 用安装包里的实际应用名在 Electron 44.7.0 中验证了默认路径。`@deepseek-ai/dsh-desktop` 与 `DeepSeek Harness Uncensored` 在同一临时 `appData` 下分别获得独立的 `userData` 和 `sessionData`。使用含 manifest 的临时应用目录重跑后，同一回环来源与同名持久分区的 Cookie 和 `localStorage` 通过并行写入及进程重启回读。清理官方版夹具后，DSHU 夹具仍读回自己的数据。回执为 `windows-electron-default-profile-roots.json` 与 `windows-electron-coexist-storage-result.json`。真实登录态保留待验收。
 
-Platform 端到端用例在临时应用目录和绝对 preload 路径下成功打开页面，并验证通知可关闭。测试随后在向该分区写入 Cache Storage 数据时超时。普通隐藏窗口的相同缓存 API 检查通过。Platform 缓存清理回读仍待验收，诊断改动保存在 `platform-storage-native-diagnostic.patch`，仓库用例保留原版。
+Platform 端到端用例用独立 Electron 应用目录、绝对 preload 路径和回环页面，启动后读取夹具配置。Windows Electron 在命令行接收页面 URL 时曾在载入夹具前退出。较深的临时资料路径能复现 Chromium 拒绝创建缓存索引目录。本机 Win32 长路径选项关闭，夹具使用短的独立目录完成真实缓存写入和回读。[Windows 路径限制](https://learn.microsoft.com/windows/win32/fileio/maximum-file-path-limitation)
+
+在 Electron 44.7.0 中，测试先写入并读回 Cache Storage 条目，同时创建 IndexedDB 数据库和 Cookie。关闭并等待清理后，同一分区的独立探测页确认三类存储均已清除，通知偏好仍保留。测试还覆盖重开、切换账号、退登重登、一次性分区和重启时清除残留 Cookie。运行日志为 `platform-storage-e2e-final.log`。较长资料路径下的缓存写入和真实账号登录仍待验收。
 
 Platform 在清理成功后释放对应跟踪记录。重开、退出和安装交接继续等待未完成的清理，失败记录保留供诊断。41 项 Platform 定向测试通过，包括临时分区关闭和清理记录释放。
 
