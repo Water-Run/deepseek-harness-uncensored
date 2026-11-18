@@ -149,6 +149,21 @@ it('stops full Linux packaging when the portable archive fails verification', as
   expect(writeFileSync).not.toHaveBeenCalled()
 })
 
+it('checks the Debian package before recording full Linux packaging success', async () => {
+  const stage = 'exec tsx scripts/verify-linux-debian-archive.ts'
+  const { run, stages } = supervisor(stage)
+  const invocation = parseDesktopPackageInvocation(['linux-x64', '--unsigned'], 'linux', 'x64')
+  await expect(packageTarget(invocation, { ...environment, DSH_DESKTOP_BUILD_VERSION: '2026.11.18.11' }, run))
+    .rejects.toThrow('stage refused')
+  const verification = run.run.mock.calls.find(([name]) => name.startsWith(stage))!
+  expect(verification[2].at(-2)?.replaceAll('\\', '/'))
+    .toMatch(/\/unsigned-artifacts\/runs\/fixture-record\/deepseek-harness-uncensored-2026\.11\.18\.11-linux-amd64-unsigned\.deb$/u)
+  expect(verification[2].at(-1)).toMatch(/linux-unpacked$/u)
+  expect(stages.at(-2)).toMatch(/^exec tsx scripts\/verify-linux-portable-archive\.ts/u)
+  expect(stages.at(-1)).toBe(verification[0])
+  expect(writeFileSync).not.toHaveBeenCalled()
+})
+
 it.each([undefined, '3'])('passes the package cache and selected compression to their subprocesses (%s)', async (level) => {
   const { run } = supervisor()
   const cache = resolve('fixture-package-cache')

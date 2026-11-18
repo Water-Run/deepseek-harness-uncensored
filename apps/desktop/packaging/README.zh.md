@@ -148,7 +148,7 @@ pnpm run package:desktop:linux:x64:unsigned --build-version auto
 
 命令在 `apps/desktop/.desktop-build/targets/linux-x64/unsigned-artifacts/runs/<run-id>/` 生成 deb 和 tar.gz。追加 `--dir` 时停在 `linux-unpacked`。可执行文件和桌面入口使用 `deepseek-harness-uncensored`；运行时、CLI 和资料身份与官方 DSH 分开。目录 smoke 检查打包运行时，不代表安装、桌面集成、升级和移除通过。
 
-Linux 完整打包在记录成功前用 `linux-unpacked` 核对最终 tar.gz。检查读取归档内的桌面程序、`resources/app.asar` 和 CLI 启动器，比对三者的 SHA-256，并核对两个启动文件的执行权限。
+Linux 完整打包在记录成功前用 `linux-unpacked` 核对最终 tar.gz 和 Debian 包。检查读取两个归档内的桌面程序、`resources/app.asar` 和 CLI 启动器，比对三者的 SHA-256，并核对两个启动文件的执行权限。Debian 包的 XZ 载荷由构建使用的 7-Zip 流式解压。
 
 便携启动时，将完整的 tar.gz 解压到有权限的目录，再进入解压后的应用目录运行 `./deepseek-harness-uncensored`。将 `resources/` 保留在可执行文件旁。启动后使用独立的 DSHU 配置和资料。
 

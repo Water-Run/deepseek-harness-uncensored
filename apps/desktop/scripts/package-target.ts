@@ -586,8 +586,11 @@ export async function packageTarget(
         await execute(['exec', 'tsx', 'scripts/verify-windows-installer-blockmap.ts', join(artifactsRoot, name)], targetEnv)
       } else {
         const name = desktopArtifactFilename(displayVersion, 'linux', target.arch, artifactSuffix, 'tar.gz')
-        await execute(['exec', 'tsx', 'scripts/verify-linux-portable-archive.ts', join(artifactsRoot, name), join(artifactsRoot, 'linux-unpacked')],
-          targetEnv)
+        // electron-builder expands the Debian architecture macro to amd64 for this x64 target.
+        const deb = desktopArtifactFilename(displayVersion, 'linux', 'amd64', artifactSuffix, 'deb')
+        const application = join(artifactsRoot, 'linux-unpacked')
+        await execute(['exec', 'tsx', 'scripts/verify-linux-portable-archive.ts', join(artifactsRoot, name), application], targetEnv)
+        await execute(['exec', 'tsx', 'scripts/verify-linux-debian-archive.ts', join(artifactsRoot, deb), application], targetEnv)
       }
     }
     await execute(['exec', 'tsx', 'scripts/smoke-packaged-runtime.ts',

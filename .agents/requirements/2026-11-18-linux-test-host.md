@@ -40,6 +40,8 @@ Fedora 的作业私有缓存已回读 SHA-256，与官方预构建一致。续�
 
 Linux 完整打包增加最终便携归档核验。54 项定向测试覆盖实际 tar.gz 读取、同大小字节变化、缺少执行权限及失败时停止打包。本机离线读取 17.8 便携包和 Debian 包，原始包摘要与随附校验值一致，三个关键文件的 SHA-256 逐项相同，便携包的两个启动文件有执行权限。回执为 `linux-17-8-portable-parity.json`。新校验步骤待 Fedora 完整打包验证。[便携包说明](../../apps/desktop/packaging/README.zh.md#linux-x64-检查包)
 
+完整打包同样从 Debian 包读取数据载荷，对照组装文件核对三个关键文件以及两个启动文件的执行权限。新读取器用构建缓存的 7-Zip 验证了 17.8 实包的 XZ 载荷，输出与便携包一致。核验按实际打包日志使用 Debian 文件名中的 `amd64`。56 项定向用例覆盖 Debian 成员边界和校验失败停止打包。回执为 `linux-17-8-debian-payload-verification.json`，两步校验仍待 Fedora 完整打包验收。[Debian 包格式](https://manpages.debian.org/bookworm/dpkg-dev/deb.5.en.html)
+
 ## WSL 开发状态保全
 
 本机 `/home/linzh/.cache/dshu-verification` 的三个工作区、Git 元数据、reflog 和 32 条 stash 已归档。226,715 个文件或链接逐项核对通过，三个 Git 元数据副本经过实际恢复、stash 核对和连通性检查。共享对象独立保存；浅克隆信息和原始对象编码保留。
