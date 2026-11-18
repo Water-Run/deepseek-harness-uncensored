@@ -71,9 +71,17 @@ describe('apply', () => {
     await sessions.add({ id: 'side-three' })
     let child = sid('side-one')
     let cleared = 0
+    const resetEntered = Promise.withResolvers<undefined>()
+    const releaseReset = Promise.withResolvers<undefined>()
     const aside = vi.fn(async () => ({ ok: true as const, value: { sessionId: child } }))
     const resetAside = vi.fn(async (request: { sessionId: SessionId; cause: string }) => {
-      if (request.cause === 'manual') child = sid(++cleared === 1 ? 'side-two' : 'side-three')
+      if (request.cause === 'manual') {
+        if (++cleared === 1) {
+          resetEntered.resolve(undefined)
+          await releaseReset.promise
+        }
+        child = sid(cleared === 1 ? 'side-two' : 'side-three')
+      }
       return { ok: true as const, value: { sessionId: child } }
     })
     const remote = { aside, resetAside }
@@ -88,6 +96,8 @@ describe('apply', () => {
     if (provider === undefined) throw new Error('Missing side provider')
     const abort = new AbortController()
     const stream = provider.open(asideAddress(sid('s1')), { signal: abort.signal })[Symbol.asyncIterator]()
+    const reopenAbort = new AbortController()
+    const reopened = provider.open(asideAddress(sid('s1')), { signal: reopenAbort.signal })[Symbol.asyncIterator]()
     try {
       expect((await stream.next()).value).toMatchObject({ ok: true, value: { reference: { sessionId: 'side-one' } } })
       const source = sources.get('/ command')!
@@ -96,6 +106,14 @@ describe('apply', () => {
       expect((await source.candidates({ sessionId: sid('side-one') }, request)).some(value => value.name === 'clear')).toBe(true)
       const match = await source.matchEnter!({ sessionId: sid('side-one') }, '/clear', new AbortController().signal, { attachments: 0 })
       expect(match).toBe('handled')
+      await resetEntered.promise
+      const opening = reopened.next()
+      await Promise.resolve()
+      expect(aside).toHaveBeenCalledTimes(1)
+      releaseReset.resolve(undefined)
+      expect((await opening).value).toMatchObject({ ok: true, value: { reference: { sessionId: 'side-two' } } })
+      reopenAbort.abort()
+      await reopened.return?.()
       expect((await stream.next()).value).toMatchObject({ ok: true, value: { reference: { sessionId: 'side-two' } } })
       aside.mockRejectedValueOnce(new Error('reconnect failed'))
       expect(await source.matchEnter!({ sessionId: sid('side-two') }, '/clear', new AbortController().signal, { attachments: 0 })).toBe('handled')
@@ -113,7 +131,13 @@ describe('apply', () => {
       await fiber.dispose()
       tabs.set([tab]); tabs.set([])
       expect(resetAside).toHaveBeenCalledTimes(3)
-    } finally { abort.abort(); await stream.return?.() }
+    } finally {
+      releaseReset.resolve(undefined)
+      reopenAbort.abort()
+      abort.abort()
+      await reopened.return?.()
+      await stream.return?.()
+    }
   })
 
   it('sends text or images to the independent child and opens without sending when empty', async () => {
