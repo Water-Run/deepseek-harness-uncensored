@@ -432,6 +432,29 @@ it('closes a text stream when its rule revision changes before a chunk is return
   } finally { other.close() }
 })
 
+it.each(['return', 'throw'] as const)('closes an admitted text stream on %s before the first read', async (operation) => {
+  const h = await harness(), path = join(h.workspace, 'unopened.txt')
+  await writeFile(path, 'fixture')
+  const next = vi.fn(async () => ({ done: false as const, value: 'fixture' }))
+  const close = vi.fn(async () => ({ done: true as const, value: undefined }))
+  vi.spyOn(LocalFileSystem.prototype, 'streamText').mockResolvedValueOnce({
+    [Symbol.asyncIterator]: () => ({ next, return: close }),
+  })
+
+  const stream = await h.fs.streamText(target(path))
+  const reader = stream[Symbol.asyncIterator]()
+  if (operation === 'return') {
+    await expect(reader.return?.()).resolves.toMatchObject({ done: true })
+  } else {
+    const failure = new Error('stop reading')
+    await expect(reader.throw?.(failure)).rejects.toBe(failure)
+  }
+  expect(next).not.toHaveBeenCalled()
+  expect(close).toHaveBeenCalledOnce()
+  await h.policy.dispose()
+  expect(close).toHaveBeenCalledOnce()
+})
+
 it('revokes an unopened stream and old provider references when policy or lifetime changes', async () => {
   const h = await harness(), path = join(h.workspace, 'stream.txt')
   await writeFile(path, 'retain'); await h.configure([])

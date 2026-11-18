@@ -158,13 +158,20 @@ export default class TargetFileSystem extends SandboxedFileSystem {
       this.streams.set(source, close)
       try { this.assertReadRevision(revision, bounded) }
       catch (error) { await close(); throw error }
-      return this.readStream(source, checked, revision, bounded, close)
+      const chunks = this.readStream(source, checked, revision, bounded, close)
+      // Returning or throwing before the first read skips the generator's finally block.
+      return {
+        [Symbol.asyncIterator]() { return this },
+        next: () => chunks.next(),
+        return: value => chunks.return(value).finally(close),
+        throw: error => chunks.throw(error).finally(close),
+      } satisfies AsyncIterableIterator<string, void, void>
     })
   }
 
   private async* readStream(
     source: AsyncIterator<string>, checked: FsTarget, revision: number, signal: AbortSignal, close: () => Promise<void>,
-  ): AsyncIterable<string> {
+  ): AsyncGenerator<string, void, void> {
     try {
       while (true) {
         this.assertReadRevision(revision, signal)
