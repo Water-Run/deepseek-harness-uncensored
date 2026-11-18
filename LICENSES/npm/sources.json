@@ -180,6 +180,36 @@
     "sha256": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2"
   },
   {
+    "packages": ["sherpa-onnx-linux-x64@1.13.8"],
+    "file": "sherpa-piper-phonemize-f3ff95a-MIT.txt",
+    "source": "https://raw.githubusercontent.com/csukuangfj/piper-phonemize/f3ff95afc03640bc1399e113e83361192a2fafb4/LICENSE.md",
+    "sha256": "13746d509d74e55ea2265fbef204bb7cdbf84a8315b0207e988326cb54387028"
+  },
+  {
+    "packages": ["sherpa-onnx-linux-x64@1.13.8"],
+    "file": "sherpa-piper-uni-algo-f3ff95a-LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/csukuangfj/piper-phonemize/f3ff95afc03640bc1399e113e83361192a2fafb4/licenses/uni-algo/LICENSE.md",
+    "sha256": "c55648b02873556d6ab2de14938998101fda3a0f293337542af9196435def318"
+  },
+  {
+    "packages": ["sherpa-onnx-linux-x64@1.13.8"],
+    "file": "sherpa-espeak-ng-ed530aa-COPYING.txt",
+    "source": "https://raw.githubusercontent.com/csukuangfj/espeak-ng/ed530aa113046142eb5115cf2fc9157854d0ffe1/COPYING",
+    "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+  },
+  {
+    "packages": ["sherpa-onnx-linux-x64@1.13.8"],
+    "file": "sherpa-kissfft-febd4ca-COPYING.txt",
+    "source": "https://raw.githubusercontent.com/mborgerding/kissfft/febd4caeed32e33ad8b2e0bb5ea77542c40f18ec/COPYING",
+    "sha256": "5a6a42c9495a3564ef0607288c85739caae12d9589c1399a0bd448830c87d5b2"
+  },
+  {
+    "packages": ["sherpa-onnx-linux-x64@1.13.8"],
+    "file": "sherpa-kissfft-febd4ca-BSD-3-Clause.txt",
+    "source": "https://raw.githubusercontent.com/mborgerding/kissfft/febd4caeed32e33ad8b2e0bb5ea77542c40f18ec/LICENSES/BSD-3-Clause",
+    "sha256": "4d6bcab46f27d6d0c878e8305d4bdcfe040d52bf6656b9771f04c9fb9902c0ed"
+  },
+  {
     "packages": ["standardwebhooks@1.1.1"],
     "file": "standardwebhooks-1.1.1-MIT.txt",
     "source": "https://raw.githubusercontent.com/standard-webhooks/standard-webhooks/b4d2c14fc5b4ccff3ff271e3b087dff812254c59/libraries/LICENSE",

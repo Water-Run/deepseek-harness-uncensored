@@ -58,6 +58,12 @@ libvips 补入 Sharp 构建的第三方清单、libvips 8.18.7 的源码许可�
 
 使用实包中的 861 个包清单及声明原文复算。补充声明记录由 19 份增至 24 份，仅两个 Linux 平台条目变化。清点器继续标记这两项，待核对内嵌库署名及对应发行义务。二进制摘要与复算回执位于 `.dsh-build/platform-native-notices-20261111/`。新增原文随下一次 Linux 打包进入载荷。
 
+### Sherpa-ONNX Linux 内嵌许可（2026-11-19）
+
+Linux 17.8 便携包的 SHA-256 与交付记录一致。包内 `libsherpa-onnx-c-api.so` 与运行时清单的摘要一致。ELF 符号确认 Piper phonemize、eSpeak NG、uni-algo 和 KissFFT 的实现随此文件分发。Sherpa-ONNX 1.13.8 的构建锁定 Piper 与 eSpeak 的提交。KissFFT 的提交由该构建锁定的 kaldi-native-fbank 1.22.3 指定。[Piper 构建输入](https://github.com/k2-fsa/sherpa-onnx/blob/11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf/cmake/piper-phonemize.cmake) · [eSpeak 构建输入](https://github.com/k2-fsa/sherpa-onnx/blob/11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf/cmake/espeak-ng-for-piper.cmake) · [KissFFT 构建输入](https://github.com/csukuangfj/kaldi-native-fbank/blob/v1.22.3/cmake/kissfft.cmake)
+
+五份许可文本按固定 Git blob 核对。KissFFT 的 COPYING 移除一处末尾空行，其余四份按原始字节封存。清单只把新增文件关联到 `sherpa-onnx-linux-x64@1.13.8`。使用 17.8 实包提取的目标包清单和 README 调用打包清点器，逐字保留原 3 份声明并新增 5 份，8 份文件的摘要全部匹配。19 项清点器测试通过。其他内嵌组件署名和对应源码提供范围仍待核查，待审标记保留。回执位于 `%USERPROFILE%/DSHU-Deliveries/20261119/sherpa-onnx-linux-x64-1.13.8/notice-projection-result.json`。[固定许可文本清单](../../LICENSES/npm/sources.json)
+
 ## Electron 与 Windows 安装器声明（2026-11-11）
 
 Windows `.6` 的 `StdUtils.dll` 与作者 1.14 发行归档和 NSIS Resources 3.4.1 中的 Unicode DLL 逐字一致。作者单独发布的源码归档解压后，与同一二进制归档内的源码 tar 一致，内含 LGPL 文本及作者说明。源码归档及 ANSI、Unicode DLL 摘要固定在 `LICENSES/installer/stdutils-1.14.json`。[StdUtils 1.14 发行](https://github.com/lordmulder/stdutils/releases/tag/1.14)
