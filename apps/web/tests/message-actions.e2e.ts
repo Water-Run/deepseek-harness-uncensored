@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 import { zstdCompressSync } from 'node:zlib'
 import type { Browser, Page, Request as BrowserRequest, Route } from 'playwright'
 import { chromium } from 'playwright'
-import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, onTestFailed, vi } from 'vitest'
 import { SESSION_FORMAT_VERSION, SessionId } from '@deepseek-ai/dsh-session'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import {
@@ -568,8 +568,8 @@ describe('web e2e: message IconActions and clocks on settled history', () => {
     }
   })
 
-  it.skipIf(MODE === 'record')('keeps a later Session selection while a message fork is pending', async () => {
-    const other = SessionId('message-actions-fork-navigation-target')
+  it.skipIf(MODE === 'record').each([false, true])('keeps a later Session selection while a message fork is pending (attachment failure: %s)', async (attachmentFailed) => {
+    const other = SessionId(`message-actions-fork-navigation-target-${String(attachmentFailed)}`)
     await seedSession(scaffold, completedTailFixture(await readFile(SEED, 'utf8')), other)
     const warningStart = tripwire.warnings.length
     await page.reload({ waitUntil: 'load' })
@@ -581,6 +581,10 @@ describe('web e2e: message IconActions and clocks on settled history', () => {
     if (!await source.isVisible()) await more.click()
     await source.click()
     acknowledgeReloadConnectionLoss(tripwire, warningStart)
+    const workspace = attachmentFailed ? await scaffold.ctx.workspaceRegistry.create(scaffold.workspaceCwd) : undefined
+    await workspace?.attachSession(SessionId(SEED_ID))
+    const attachment = workspace === undefined ? undefined : vi.spyOn(workspace, 'attachSession')
+      .mockRejectedValueOnce(new Error('fixture workspace association failed'))
 
     const routePattern = '**/api/session/fork'
     let intercepted = false
@@ -601,18 +605,22 @@ describe('web e2e: message IconActions and clocks on settled history', () => {
       await expect.poll(() => destination.getAttribute('aria-selected')).toBe('true')
       release.resolve(undefined)
 
-      const notice = page.getByRole('alert').filter({ hasText: 'Session branch created' })
+      const notice = page.getByRole('alert').filter({ hasText: attachmentFailed
+        ? 'Branch created. Workspace assignment failed.' : 'Session branch created' })
       const openBranch = notice.getByRole('button', { name: 'Open branch', exact: true })
       await openBranch.waitFor({ timeout: 5_000 })
       expect(await destination.getAttribute('aria-selected')).toBe('true')
       const branch = scaffold.ctx.agents.list().find(agent => !existing.has(agent.id))
       if (branch === undefined) throw new Error('the fork did not publish a child')
+      if (attachment !== undefined) expect(attachment).toHaveBeenCalledExactlyOnceWith(branch.id)
       await openBranch.click()
       const branchRow = page.locator(`[data-row-key="session:${branch.id}"]`)
       await expect.poll(() => branchRow.getAttribute('aria-selected')).toBe('true')
     } finally {
       release.resolve(undefined)
+      attachment?.mockRestore()
       await page.unroute(routePattern, delay)
+      await workspace?.detachSession(SessionId(SEED_ID))
     }
   })
 

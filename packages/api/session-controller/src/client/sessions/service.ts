@@ -17,7 +17,7 @@ import type {
 } from '../contract/sessions.ts'
 import type { SessionReferenceSource } from '../index.ts'
 import { createScope, scopeIdentityOf, scopeOf as scopeTagOf } from '../scope.ts'
-import { SessionManager } from './manager.ts'
+import { SessionManager, workspaceAttachSessionId } from './manager.ts'
 import type { SessionRemotes } from './remotes.ts'
 import type { SessionListPhase, SessionSearchResultItem, SessionProjectionSnapshot } from './manager.ts'
 import type { Session } from './session.ts'
@@ -475,7 +475,8 @@ export class ClientSessions implements ISessions {
    *   turn is balanced Host-side with synthetic closers, and omission selects
    *   the latest completed-turn prefix), and whether to increment an
    *   inherited durable title, skipping numbers Host-listed titles already use,
-   *   before resolving, plus permission to start source migration.
+   *   before resolving, plus permission to start source migration. The creation
+   *   callback receives a published child even when Workspace attachment fails.
    * @returns the child session id.
    * @throws {SessionForkError} with the source id.
    * @throws {Error} when a requested child-title rename fails after creation.
@@ -495,7 +496,14 @@ export class ClientSessions implements ISessions {
       ...(opts.atSeq === undefined ? {} : { atSeq: SessionSeq(opts.atSeq) }),
       ...(opts.allowMigration === undefined ? {} : { allowMigration: opts.allowMigration }),
     })
-    if (!result.ok) throw new SessionForkError(result.error, opts.sessionId)
+    if (!result.ok) {
+      const childId = workspaceAttachSessionId(result.error)
+      if (childId !== undefined) {
+        this.projectList()
+        opts.onCreated?.(childId)
+      }
+      throw new SessionForkError(result.error, opts.sessionId)
+    }
     this.projectList()
     const childId = result.value.sessionId
     opts.onCreated?.(childId)

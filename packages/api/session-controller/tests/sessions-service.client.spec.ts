@@ -976,6 +976,22 @@ describe('fork', () => {
     expect(b.mock.log.requests(FOLLOW)).toHaveLength(0)
   })
 
+  it('publishes the created fork to its caller when workspace attachment fails', async ({ bench }) => {
+    const b = bench()
+    const child = sid('created-child')
+    const error = new RemoteError('session/workspace-attach-failed', 'workspace association failed', {
+      sessionId: child, workspaceId: 'workspace-missing',
+    })
+    b.mock.remote.session.fork.mockResolvedValueOnce(err(error))
+    const onCreated = vi.fn<(childId: SessionId) => void>(() => {
+      expect(b.svc.list.getSnapshot().ids).toContain(child)
+    })
+    await expect(b.svc.fork({ sessionId: sid('source'), onCreated }))
+      .rejects.toMatchObject({ rpcError: error })
+    expect(onCreated).toHaveBeenCalledExactlyOnceWith(child)
+    expect(b.mock.remote.session.fork).toHaveBeenCalledOnce()
+  })
+
   it.for([
     ['Roadmap', 'Roadmap (1)'],
     ['Roadmap (1)', 'Roadmap (2)'],

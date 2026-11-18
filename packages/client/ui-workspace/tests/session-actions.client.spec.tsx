@@ -492,10 +492,11 @@ describe('RowActionToast', () => {
     return { dismissToast, undoArchive, showArchived, openForkSession, notify, locale, view }
   }
 
-  it('offers to open the new branch after a whole-session fork', async () => {
+  it.each([false, true])('offers to open an existing branch after a whole-session fork (attachment failure: %s)', async (workspaceAttachmentFailed) => {
     const { notify, dismissToast, openForkSession } = await toastSurface(undefined, tEn)
-    notify({ kind: 'forkCreated', sessionId: sid('child') })
-    expect(screen.getByRole('alert').textContent).toContain('Session branch created')
+    notify({ kind: 'forkCreated', sessionId: sid('child'), workspaceAttachmentFailed })
+    expect(screen.getByRole('alert').textContent).toContain(workspaceAttachmentFailed
+      ? 'Branch created. Workspace assignment failed.' : 'Session branch created')
     expect(openForkSession).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Open branch' }))
     expect(openForkSession).toHaveBeenCalledExactlyOnceWith(sid('child'))

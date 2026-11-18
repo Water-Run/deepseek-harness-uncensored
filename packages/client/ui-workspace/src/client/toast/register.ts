@@ -75,7 +75,8 @@ export function registerToasts(
       name: 'workspace.toast', key: 'forkCreated', locale: 'workspace',
       inject: (): ToastDisplayInjected<'forkCreated'> => ({
         display: (notice, t, dismiss) => ({
-          text: t('toast.forkCreated'), tone: 'success', holdMs: 6000,
+          text: t(notice.workspaceAttachmentFailed ? 'toast.forkWorkspaceAttachFailed' : 'toast.forkCreated'),
+          tone: notice.workspaceAttachmentFailed ? 'warning' : 'success', holdMs: 6000,
           actions: [{ label: t('toast.openForkChild'), onClick: () => { dismiss(); actions.openForkSession(notice.sessionId) } }],
         }),
       }),

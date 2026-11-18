@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import type {
   ISessions, SessionListState, SessionReference, SessionSummary,
 } from '@deepseek-ai/dsh-api-session-controller/client'
-import { SessionCreateError } from '@deepseek-ai/dsh-api-session-controller/client'
+import { SessionCreateError, SessionForkError } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
 import type {
   IWorkspaces, WorkspaceId, WorkspaceSnapshot, WorkspaceView,
@@ -627,6 +627,25 @@ describe('UiWorkspaceService', () => {
     renamed.reject(new Error('title update failed'))
     await expect(pending).resolves.toBe(child)
     expect(b.notify).not.toHaveBeenCalled()
+  })
+
+  it('keeps the newer navigation and offers the branch after its workspace attachment fails', async () => {
+    const b = bench()
+    const child = sid('created-child'), source = sid('source')
+    const published = Promise.withResolvers<SessionId>()
+    const error = new RemoteError('session/workspace-attach-failed', 'workspace association failed', {
+      sessionId: child, workspaceId: 'workspace-missing',
+    })
+    b.sessions.fork.mockImplementationOnce(async ({ onCreated }) => {
+      onCreated?.(await published.promise)
+      throw new SessionForkError(error, source)
+    })
+    const pending = b.uiWorkspace.forkSession(source, undefined, { open: true })
+    b.uiWorkspace.openSession(sid('chosen'))
+    published.resolve(child)
+    await expect(pending).resolves.toBe(child)
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('chosen'), { source: 'mainView' })
+    expect(b.notify).toHaveBeenCalledExactlyOnceWith({ kind: 'forkCreated', sessionId: child, workspaceAttachmentFailed: true })
   })
 
   it.each([

@@ -353,6 +353,12 @@ class UiWorkspaceService extends Service implements UiWorkspace {
         if (!this.lifetime.signal.aborted) this.reportForkFailure(sessionId, error, request.atSeq === undefined)
         throw error
       }
+      if (sessionForkErrorOf(error)?.rpcError.code === 'session/workspace-attach-failed') {
+        if (!this.lifetime.signal.aborted) {
+          this.notify({ kind: 'forkCreated', sessionId: fork.child, workspaceAttachmentFailed: true })
+        }
+        return fork.child
+      }
       console.warn('session fork created a child before post-creation work failed:', error)
     }
     if (!fork.opened && !this.lifetime.signal.aborted && (open === true || request.atSeq === undefined)) {
@@ -362,8 +368,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   }
 
   private reportForkFailure(sessionId: SessionId, error: unknown, wholeSession: boolean): void {
-    // Client plugin bundles do not share error-class identity.
-    const code = error instanceof Error && error.name === 'SessionForkError' ? (error as SessionForkError).rpcError.code : undefined
+    const code = sessionForkErrorOf(error)?.rpcError.code
     if (code === 'session/migration-required') this.notify({ kind: 'forkRequiresOpen', sessionId })
     else if (wholeSession && code === 'session/fork-unavailable') this.notify({ kind: 'forkFailed', reason: 'unavailable' })
     else {
@@ -609,6 +614,10 @@ class UiWorkspaceService extends Service implements UiWorkspace {
  */
 function sessionCreateErrorOf(error: unknown): SessionCreateError | undefined {
   return error instanceof Error && error.name === 'SessionCreateError' ? error as SessionCreateError : undefined
+}
+
+function sessionForkErrorOf(error: unknown): SessionForkError | undefined {
+  return error instanceof Error && error.name === 'SessionForkError' ? error as SessionForkError : undefined
 }
 
 /**

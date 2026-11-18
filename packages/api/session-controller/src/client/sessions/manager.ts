@@ -885,7 +885,11 @@ function applyMutation(summaries: readonly SessionSummary[], mutation: SessionLi
   }
 }
 
-/** Temporary source-plane bridge while the Host contract and client project build independently. */
-function workspaceAttachSessionId(error: RemoteFailure): SessionId | undefined {
+/**
+ * Identify a Session that the Host published before Workspace attachment failed.
+ * @param error - Host creation or fork failure.
+ * @returns The published Session identity when the failure contains one.
+ */
+export function workspaceAttachSessionId(error: RemoteFailure): SessionId | undefined {
   return error.code === 'session/workspace-attach-failed' ? error.details.sessionId : undefined
 }
