@@ -33,6 +33,21 @@ export const DEEPSEEK_PROVIDER_ID = 'deepseek-official'
  */
 export const DEEPSEEK_DEFAULT_BASE_URL = 'https://api.deepseek.com/anthropic/v1'
 
+/**
+ * Resolve the credential-free Messages request path from a configured base URL.
+ * @param baseURL - HTTP(S) endpoint prefix supplied by the deployment.
+ * @returns Canonical Messages URL, or undefined when the base cannot name a request path.
+ */
+export function messagesSearchEndpoint(baseURL: string): string | undefined {
+  const url = URL.parse(baseURL)
+  if (url === null || (url.protocol !== 'http:' && url.protocol !== 'https:')
+    || url.username || url.password || url.search || url.hash) return undefined
+  url.search = ''
+  url.hash = ''
+  url.pathname = `${url.pathname.replace(/\/+$/u, '')}/messages`
+  return url.href
+}
+
 /** Default Anthropic-format model name (aligned with the repo's DeepSeek model vocabulary). */
 export const DEEPSEEK_DEFAULT_MODEL = 'deepseek-v4-flash'
 
@@ -231,7 +246,7 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
   available(): boolean {
     const options = this.resolveOptions()
     return ((options.apiKey?.length ?? 0) > 0 || options.resolveApiKey !== undefined || options.resolveAccountToken !== undefined)
-      && URL.canParse(options.baseURL)
+      && messagesSearchEndpoint(options.baseURL) !== undefined
       && isPositiveInteger(options.maxTokens)
       && isPositiveInteger(options.maxUses)
   }
@@ -241,7 +256,11 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
     // settings write landing inside that await must not send the key resolved
     // from the old section to the endpoint named by the new one.
     const options = this.resolveOptions()
-    const endpoint = `${options.baseURL}/messages`
+    const endpoint = messagesSearchEndpoint(options.baseURL)
+    if (endpoint === undefined) {
+      throw new WebError('Set the Messages search Base URL to an HTTP(S) endpoint prefix without credentials, query or fragment.',
+        'WEB_PROVIDER_MISCONFIGURED')
+    }
     const auth = await this.authHeaders(options, endpoint, signal)
     throwIfSearchAborted(signal)
     const body: DeepSeekSearchLlmRequest['body'] = {

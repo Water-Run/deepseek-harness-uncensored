@@ -33,7 +33,7 @@ kind: "package-reference"
 
 ### 最小配置
 
-提供方优先从 `ctx.credentials` 读取 API 密钥，该服务未挂载时从进程环境读取。可用 `baseURL` 或 `DEEPSEEK_SEARCH_BASE_URL` 指定 Messages 搜索端点。两项均未设置时，使用自定义模型网关和默认搜索密钥引用的 DeepSeek API Key 对话会沿用模型网关及其密钥引用。其余搜索默认使用 `https://api.deepseek.com/anthropic/v1`。提供方在选定的基址后追加 `/messages`。
+提供方优先从 `ctx.credentials` 读取 API 密钥，该服务未挂载时从进程环境读取。可用 `baseURL` 或 `DEEPSEEK_SEARCH_BASE_URL` 指定 Messages 搜索端点。两项均未设置时，使用自定义模型网关和默认搜索密钥引用的 DeepSeek API Key 对话会沿用模型网关及其密钥引用。其余搜索默认使用 `https://api.deepseek.com/anthropic/v1`。就绪检查与实际请求共用同一套 HTTP(S) 基址校验，在路径末尾追加 `/messages`，并合并基址尾部的斜杠。
 
 ```yaml
 - name: '@deepseek-ai/dsh-web'
@@ -47,7 +47,7 @@ kind: "package-reference"
 |---|---|---|
 | `apiKey` | 未设置 | DeepSeek API 密钥字面值；优先使用 `apiKeyEnv`，避免密钥进入配置。非空字面值优先于 `apiKeyEnv`；账号 token 优先于两者 |
 | `apiKeyEnv` | `DEEPSEEK_API_KEY` | 每次搜索通过 `ctx.credentials` 解析的凭据引用；没有该服务时从进程环境解析。需要 API 密钥却解析不到时，搜索以 `WEB_PROVIDER_CREDENTIAL_MISSING` 失败 |
-| `baseURL` | 模型网关或官方 Messages 端点 | Anthropic 兼容端点基址。显式值优先于 `DEEPSEEK_SEARCH_BASE_URL`。无法解析时提供方不可用。 |
+| `baseURL` | 模型网关或官方 Messages 端点 | Anthropic 兼容的 HTTP(S) 基址，须省略凭据、查询串和片段。显式值优先于 `DEEPSEEK_SEARCH_BASE_URL`。基址无效时提供方不可用。 |
 | `model` | `deepseek-v4-flash` | Anthropic 格式模型名称 |
 | `apiVersion` | `2023-06-01` | `anthropic-version` 标头值 |
 | `maxTokens` | `4096` | Messages 请求生成 token 的正整数上限 |

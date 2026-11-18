@@ -33,7 +33,7 @@ Choose this backend when a deployment wants DeepSeek's native server-side web se
 
 ### Minimal configuration
 
-The provider reads the API key from `ctx.credentials` when available and from the process environment otherwise. Set `baseURL` or `DEEPSEEK_SEARCH_BASE_URL` to choose a Messages search endpoint. With neither set, a DeepSeek API-key conversation that uses a custom model origin and the default search key reference searches through that model gateway with its model key reference. Other searches default to `https://api.deepseek.com/anthropic/v1`. The provider appends `/messages` to the selected base.
+The provider reads the API key from `ctx.credentials` when available and from the process environment otherwise. Set `baseURL` or `DEEPSEEK_SEARCH_BASE_URL` to choose a Messages search endpoint. With neither set, a DeepSeek API-key conversation that uses a custom model origin and the default search key reference searches through that model gateway with its model key reference. Other searches default to `https://api.deepseek.com/anthropic/v1`. Readiness and requests use the same HTTP(S) base URL validation and append one `/messages` path segment, including when the base ends in a slash.
 
 ```yaml
 - name: '@deepseek-ai/dsh-web'
@@ -47,7 +47,7 @@ The provider reads the API key from `ctx.credentials` when available and from th
 |---|---|---|
 | `apiKey` | omitted | Literal DeepSeek API key; prefer `apiKeyEnv` so no secret enters configuration. A non-empty literal wins over `apiKeyEnv`; an account token wins over both |
 | `apiKeyEnv` | `DEEPSEEK_API_KEY` | Credential reference resolved for each search through `ctx.credentials`, or from the process environment when that service is absent. A search that needs an API key and finds none fails as `WEB_PROVIDER_CREDENTIAL_MISSING` |
-| `baseURL` | model gateway or official Messages endpoint | Anthropic-compatible endpoint base. An explicit value takes priority over `DEEPSEEK_SEARCH_BASE_URL`. An unparseable value makes the provider unavailable. |
+| `baseURL` | model gateway or official Messages endpoint | Anthropic-compatible HTTP(S) base URL without credentials, query or fragment. It takes priority over `DEEPSEEK_SEARCH_BASE_URL`. An invalid base makes the provider unavailable. |
 | `model` | `deepseek-v4-flash` | Anthropic-format model name |
 | `apiVersion` | `2023-06-01` | `anthropic-version` header value |
 | `maxTokens` | `4096` | Positive-integer upper bound on generated tokens for the Messages request |

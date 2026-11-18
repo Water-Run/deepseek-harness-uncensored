@@ -29,6 +29,7 @@ import {
   DEEPSEEK_DEFAULT_MAX_TOKENS,
   DEEPSEEK_DEFAULT_MAX_USES,
   DEEPSEEK_DEFAULT_MODEL,
+  messagesSearchEndpoint,
 } from './provider.ts'
 import type { DeepSeekSearchLlmRequest, DeepSeekSearchProviderOptions } from './provider.ts'
 import type { AnthropicResponse } from './types.ts'
@@ -191,10 +192,12 @@ function resolveOptions(
 async function searchConfigured(
   ctx: Context, options: SearchOptions, route: string | undefined,
 ): Promise<boolean> {
+  const endpoint = messagesSearchEndpoint(options.baseURL)
+  if (endpoint === undefined) return false
   const account = ctx.get('deepseekAccount')
   if (route === ACCOUNT_PROVIDER && account !== undefined) {
     let token: string | undefined
-    try { token = await account.resolveToken(`${options.baseURL}/messages`) }
+    try { token = await account.resolveToken(endpoint) }
     catch (_unreadableGrant) { return false /* The search fails on this read before it tries the API key. */ }
     if (token !== undefined && token.length > 0) return true
   }

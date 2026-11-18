@@ -216,6 +216,30 @@ describe('DeepSeekSearchProvider availability', () => {
 })
 
 describe('DeepSeekSearchProvider request mapping', () => {
+  it('appends Messages as one path segment after a trailing slash', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(searchResponse()))
+    vi.stubGlobal('fetch', fetchMock)
+    const resolveAccountToken = vi.fn(async () => 'fixture-account-token')
+    const provider = searchProvider({ ...options, baseURL: `${options.baseURL}//`, resolveAccountToken })
+    await provider.search({ query: 'fixture' })
+    const endpoint = `${options.baseURL}/messages`
+    expect(resolveAccountToken).toHaveBeenCalledExactlyOnceWith(endpoint)
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(endpoint, expect.objectContaining({ redirect: 'error' }))
+  })
+
+  it.each([
+    'file:///fixture', `${options.baseURL}?region=fixture`, `${options.baseURL}#fixture`, 'https://user@api.deepseek.test/',
+  ])('rejects a base URL unsuitable for Messages before reading credentials: %s', async (baseURL) => {
+    const fetchMock = vi.fn(async () => jsonResponse(searchResponse()))
+    const resolveApiKey = vi.fn(async () => 'fixture-key')
+    vi.stubGlobal('fetch', fetchMock)
+    const provider = searchProvider({ ...options, apiKey: '', baseURL, resolveApiKey })
+    expect(provider.available()).toBe(false)
+    await expect(provider.search({ query: 'fixture' })).rejects.toMatchObject({ code: 'WEB_PROVIDER_MISCONFIGURED' })
+    expect(resolveApiKey).not.toHaveBeenCalled()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it.each(['bad key', '非法密钥'])('rejects malformed referenced keys before a legacy request: %s', async (value) => {
     const ctx = new Context()
     const fetchMock = vi.fn()
