@@ -80,7 +80,9 @@ Web 重启夹具使用 IPC 请求应用正常关闭并要求退出码为 0。夹
 
 实装证据位于 `%USERPROFILE%/DSHU-Deliveries/20261118/windows-coexist-hosts-hczx1c/result.json`，执行入口为同日目录的 `verify-windows-coexist-hosts.mjs`。本次验收使用两个 Node 模式的实装 Host。真实账户登录、Electron 浏览器资料和系统重启继续保留在桌面交付清单。
 
-用安装包里的实际应用名在 Electron 44.7.0 中验证了默认路径。`@deepseek-ai/dsh-desktop` 与 `DeepSeek Harness Uncensored` 在同一临时 `appData` 下分别获得独立的 `userData` 和 `sessionData`。回执为 `windows-electron-default-profile-roots.json`。双版浏览器存储试验和现有 Platform 持久化用例的 Electron 子进程在进入夹具前以 `0xFFFFFFFF` 退出，Cookie 和站点存储回读取证继续保留。
+用安装包里的实际应用名在 Electron 44.7.0 中验证了默认路径。`@deepseek-ai/dsh-desktop` 与 `DeepSeek Harness Uncensored` 在同一临时 `appData` 下分别获得独立的 `userData` 和 `sessionData`。使用含 manifest 的临时应用目录重跑后，同一回环来源与同名持久分区的 Cookie 和 `localStorage` 通过并行写入及进程重启回读。清理官方版夹具后，DSHU 夹具仍读回自己的数据。回执为 `windows-electron-default-profile-roots.json` 与 `windows-electron-coexist-storage-result.json`。真实登录态保留待验收。
+
+Platform 端到端用例在临时应用目录和绝对 preload 路径下成功打开页面，并验证通知可关闭。测试随后在向该分区写入 Cache Storage 数据时超时。普通隐藏窗口的相同缓存 API 检查通过。Platform 缓存清理回读仍待验收，诊断改动保存在 `platform-storage-native-diagnostic.patch`，仓库用例保留原版。
 
 Platform 在清理成功后释放对应跟踪记录。重开、退出和安装交接继续等待未完成的清理，失败记录保留供诊断。41 项 Platform 定向测试通过，包括临时分区关闭和清理记录释放。
 

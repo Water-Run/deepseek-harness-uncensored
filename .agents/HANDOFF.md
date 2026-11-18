@@ -48,6 +48,8 @@ Windows 构建使用 `VCToolsVersion=14.52.36629`、`MSVCPreviewEnabled=true`。
 
 ## 清理与工作约束
 
+双版 Electron 存储夹具的临时目录 `dshu-electron-coexist-native-3kmre543.yxc` 的递归清理被自动审批以 `blocked by policy` 拒绝。目录与验收回执保留，拒绝记录为 `20261118/windows-electron-coexist-cleanup-rejected.json`。
+
 本轮已停用的独立打包工作区 `D:/DSHU-Delivery-Work/20261118/source-fc4c9ddf7b` 中，仅维护私有 `.desktop-build/pnpm-store`：移除 49,468 文件、1,125 包，D 盘净空闲增加约 1.28 GiB。回执为 `20261118/private-store-prune-result.json`。没有重试下列拒绝目标，也没有清理它们的父目录。
 
 11 月 18 日失败的 Client 编译误写了 `packages/client/ui-file-actions/src/` 下 20 个未跟踪的编译文件，项目引用已修复。原清理请求的自动审批拒绝记录保存在 `20261118/proxy-export-compiler-residue-rejected.json`。当前工作区已无这些派生文件。
