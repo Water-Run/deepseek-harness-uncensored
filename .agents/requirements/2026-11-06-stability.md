@@ -84,7 +84,11 @@ Web 重启夹具使用 IPC 请求应用正常关闭并要求退出码为 0。夹
 
 Platform 端到端用例用独立 Electron 应用目录、绝对 preload 路径和回环页面，启动后读取夹具配置。Windows Electron 接收完整启动参数组合时曾在载入夹具前退出，单独传入页面 URL 可以启动。较深的临时资料路径能复现 Chromium 拒绝创建缓存索引目录。本机 Win32 长路径选项关闭，夹具使用短的独立目录完成真实缓存写入和回读。[Windows 路径限制](https://learn.microsoft.com/windows/win32/fileio/maximum-file-path-limitation)
 
-在 Electron 44.7.0 中，测试先写入并读回 Cache Storage 条目，同时创建 IndexedDB 数据库和 Cookie。关闭并等待清理后，同一分区的独立探测页确认三类存储均已清除，通知偏好仍保留。测试还覆盖重开、切换账号、退登重登、一次性分区和重启时清除残留 Cookie。运行日志为 `platform-storage-e2e-final.log`。较长资料路径下的缓存写入和真实账号登录仍待验收。
+在 Electron 44.7.0 中，测试先写入并读回 Cache Storage 条目，同时创建 IndexedDB 数据库和 Cookie。关闭并等待清理后，同一分区的独立探测页确认三类存储均已清除，通知偏好仍保留。测试还覆盖重开、切换账号、退登重登、一次性分区和重启时清除残留 Cookie。短资料目录的运行日志为 `platform-storage-e2e-final.log`。
+
+后续以 58 字符和 84 字符的独立资料路径复现了旧分区 API 的缓存打开失败。58 字符与本机默认实装资料路径等长。扩展长度路径足以写入缓存，但无法读回同一个物理目录内原存的偏好和 Cookie。Windows 实现改用较短的目录联接，加载前验证联接解析到原账号目录，拒绝指向另一账号的联接。
+
+84 字符资料路径的编译产物原生回归已通过。旧版分区写入样本偏好和残留 Cookie，新进程打开后通过设备号和文件编号确认仍指向同一账号目录，保留偏好、清除残留 Cookie，并实际写入、读回和清理缓存。Windows 系统长路径设置保持原值。42 项 Platform 定向测试及 10 项构建门禁通过。回执为 `platform-native-cache-path-probe.json`、`platform-legacy-preference-probe.json`、`platform-cache-junction-probe.json` 与 `platform-storage-junction-e2e.log`。真实账号登录仍待验收。
 
 Platform 在清理成功后释放对应跟踪记录。重开、退出和安装交接继续等待未完成的清理，失败记录保留供诊断。41 项 Platform 定向测试通过，包括临时分区关闭和清理记录释放。
 

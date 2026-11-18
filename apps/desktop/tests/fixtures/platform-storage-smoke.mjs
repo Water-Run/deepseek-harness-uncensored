@@ -1,5 +1,8 @@
 /** Real Electron fixture for account-scoped Platform storage across process restarts. */
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, session } from 'electron'
+import { createHash } from 'node:crypto'
+import { stat } from 'node:fs/promises'
+import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const OBSERVE = `(() => {
@@ -8,6 +11,33 @@ const OBSERVE = `(() => {
 })()`
 
 const bounds = { x: 0, y: 0, width: 800, height: 600 }
+const legacyPreference = 'legacy-platform-preference'
+
+function firstAccountPartition(origin) {
+  const digest = createHash('sha256').update(JSON.stringify([origin, 'first'])).digest('hex')
+  return `dsh-platform-${digest}`
+}
+
+async function publish(states) {
+  const lines = `PLATFORM_STORAGE_RESULT ${JSON.stringify(states)}\n`
+  await new Promise((resolve, reject) => process.stdout.write(lines, error => error ? reject(error) : resolve()))
+}
+
+async function seedLegacyAccount(origin) {
+  const storage = session.fromPartition(`persist:${firstAccountPartition(origin)}`)
+  const window = new BrowserWindow({ show: false, webPreferences: { session: storage, sandbox: true } })
+  try {
+    await window.loadURL(origin)
+    await window.webContents.executeJavaScript(`localStorage.setItem(${JSON.stringify(legacyPreference)}, 'retained')`)
+    await storage.cookies.set({ url: origin, name: 'legacy-auth', value: 'secret', expirationDate: Date.now() / 1000 + 3600 })
+    storage.flushStorageData()
+    await storage.cookies.flushStore()
+    await publish([])
+  } finally {
+    window.destroy()
+  }
+  app.quit()
+}
 
 /**
  * Read the notice state from the embedded document.
@@ -65,12 +95,13 @@ async function assertClosedStorage(browserSession, origin) {
  * Exercise the built Platform view in an isolated Electron profile.
  * @param viewModule - Absolute path to the built Platform view.
  * @param origin - Fixture loopback origin.
- * @param phase - First run or restart of the same profile.
+ * @param phase - Legacy seed, first run, or restart of the same profile.
  */
 export async function runPlatformStorage(viewModule, origin, phase) {
-  if (phase !== 'first' && phase !== 'restart') throw new Error(`unknown phase ${phase}`)
+  if (phase !== 'legacy' && phase !== 'first' && phase !== 'restart') throw new Error(`unknown phase ${phase}`)
   const base = new URL(origin).origin
   await app.whenReady()
+  if (phase === 'legacy') return seedLegacyAccount(base)
   const { DesktopPlatformView } = await import(pathToFileURL(viewModule).href)
   const owner = new BrowserWindow({ show: false, width: 900, height: 700 })
   const preload = fileURLToPath(new URL('./preload.cjs', import.meta.url))
@@ -84,6 +115,16 @@ export async function runPlatformStorage(viewModule, origin, phase) {
   manager.setSession(account('first'))
   await manager.open(owner, 'usage', bounds)
   await record(phase === 'first' ? 'first-open' : 'restart-first-open')
+  if (process.platform === 'win32' && phase === 'first') {
+    const contents = platformView(owner).webContents
+    const oldPath = join(app.getPath('sessionData'), 'Partitions', firstAccountPartition(base))
+    const original = await stat(oldPath, { bigint: true })
+    const current = await stat(contents.session.storagePath, { bigint: true })
+    if (original.dev !== current.dev || original.ino !== current.ino) throw new Error('Platform browser profile moved')
+    const preference = await contents.executeJavaScript(`localStorage.getItem(${JSON.stringify(legacyPreference)})`)
+    if (preference !== 'retained') throw new Error('Platform legacy preference was lost')
+    if (await contents.executeJavaScript('document.cookie') !== '') throw new Error('Platform legacy authentication survived opening')
+  }
   if (phase === 'restart') {
     const cookies = await platformView(owner).webContents.executeJavaScript('document.cookie')
     if (cookies !== '') throw new Error('previous-process authentication survived startup')
@@ -146,8 +187,7 @@ export async function runPlatformStorage(viewModule, origin, phase) {
     await persistedSession.cookies.flushStore()
   }
 
-  const lines = `${states.map(state => `state ${state}`).join('\n')}\nPLATFORM_STORAGE_RESULT ${JSON.stringify(states)}\n`
-  await new Promise((resolve, reject) => process.stdout.write(lines, error => error ? reject(error) : resolve()))
+  await publish(states)
   owner.destroy()
   app.quit()
 }

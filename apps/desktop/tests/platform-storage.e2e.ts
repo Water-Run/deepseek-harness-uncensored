@@ -21,7 +21,6 @@ const hasDisplay = process.platform !== 'linux' || Boolean(process.env.DISPLAY |
 
 // Linux Electron needs a display server; the test runs under xvfb in headless environments.
 it.skipIf(!hasDisplay)('retains dismissed notices across view and process restarts without sharing accounts', { retry: 0 }, async () => {
-  // Chromium's persistent cache appends a partition hash, an origin hash, and a cache UUID.
   const temp = await realpath(tmpdir())
   const root = await mkdtemp(join(temp, 'p'))
   const server = createServer((_request, response) => {
@@ -46,7 +45,9 @@ it.skipIf(!hasDisplay)('retains dismissed notices across view and process restar
     if (address === null || typeof address === 'string') throw new Error('missing Platform fixture listener')
     const origin = `http://127.0.0.1:${String(address.port)}`
     if (!existsSync(builtView)) throw new Error(`missing built Platform view ${builtView}; run pnpm run build:lib:host`)
-    const userData = root
+    // A longer Windows profile reproduces the Chromium disk-cache failure with the old partition API.
+    const userData = process.platform === 'win32' ? join(root, 'p'.repeat(Math.max(1, 84 - root.length - 1))) : root
+    if (userData !== root) await mkdir(userData)
     const electron: unknown = require('electron')
     if (typeof electron !== 'string') throw new Error('Electron executable is unavailable')
     const fixture = join(root, 'fixture')
@@ -69,7 +70,8 @@ import('./platform-storage-smoke.mjs')
     await writeFile(join(fixture, 'preload.cjs'), '')
     const input = join(fixture, 'input.json')
     const observed: string[] = []
-    for (const phase of ['first', 'restart']) {
+    const phases = process.platform === 'win32' ? ['legacy', 'first', 'restart'] : ['first', 'restart']
+    for (const phase of phases) {
       // The full argument list can exit before Windows Electron loads the fixture app.
       await writeFile(input, JSON.stringify({ viewModule: builtView, userData, origin, phase }))
       const result = await execa(electron, [fixture], {

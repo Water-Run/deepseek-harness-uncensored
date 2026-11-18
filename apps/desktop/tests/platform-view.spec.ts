@@ -1,15 +1,19 @@
 import { EventEmitter } from 'node:events'
+import { mkdtempSync, readdirSync, readlinkSync, realpathSync, symlinkSync, unlinkSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { basename, dirname, join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type { AccountUserId } from '@deepseek-ai/dsh-deepseek-account/types'
+import { removeOwnedDirectory } from '../src/owned-directory.ts'
 import { DesktopPlatformView, platformBounds } from '../src/platform-view.ts'
 
 const state = vi.hoisted(() => ({
   views: [] as unknown[], sessions: [] as unknown[], openExternal: vi.fn(async () => {}),
+  storageRoot: '',
   loadFailure: undefined as Error | undefined, loadBarrier: undefined as Promise<void> | undefined,
 }))
-vi.mock('electron', () => ({
-  shell: { openExternal: state.openExternal },
-  session: { fromPartition: vi.fn((partition: string) => {
+vi.mock('electron', () => {
+  const browserSessionFor = (partition: string) => {
     const existing = state.sessions.find(value => (value as { partition: string }).partition === partition)
     if (existing !== undefined) return existing
     const value = {
@@ -22,26 +26,42 @@ vi.mock('electron', () => ({
     }
     state.sessions.push(value)
     return value
-  }) },
-  WebContentsView: class {
-    webContents = Object.assign(new EventEmitter(), {
-      mainFrame: { url: 'https://platform.deepseek.com/usage' },
-      session: undefined as object | undefined,
-      setWindowOpenHandler: vi.fn(),
-      loadURL: vi.fn(async (_url: string) => { await state.loadBarrier; if (state.loadFailure !== undefined) throw state.loadFailure }),
-      isDestroyed: () => false, close: vi.fn(() => { this.webContents.emit('destroyed') }), send: vi.fn(),
-    })
-    setVisible = vi.fn()
-    setBounds = vi.fn()
-    constructor(options: { webPreferences: { session: object } }) {
-      this.webContents.session = options.webPreferences.session
-      state.views.push(this)
-    }
-  },
-}))
+  }
+  return {
+    app: { getPath: () => state.storageRoot },
+    shell: { openExternal: state.openExternal },
+    session: {
+      fromPartition: vi.fn(browserSessionFor),
+      fromPath: vi.fn((path: string) => browserSessionFor(`persist:${basename(readlinkSync(path))}`)),
+    },
+    WebContentsView: class {
+      webContents = Object.assign(new EventEmitter(), {
+        mainFrame: { url: 'https://platform.deepseek.com/usage' },
+        session: undefined as object | undefined,
+        setWindowOpenHandler: vi.fn(),
+        loadURL: vi.fn(async (_url: string) => { await state.loadBarrier; if (state.loadFailure !== undefined) throw state.loadFailure }),
+        isDestroyed: () => false, close: vi.fn(() => { this.webContents.emit('destroyed') }), send: vi.fn(),
+      })
+      setVisible = vi.fn()
+      setBounds = vi.fn()
+      constructor(options: { webPreferences: { session: object } }) {
+        this.webContents.session = options.webPreferences.session
+        state.views.push(this)
+      }
+    },
+  }
+})
 
-beforeEach(() => { vi.stubEnv('DSH_CLIENT_VERSION', '1.2.3') })
+beforeEach(() => {
+  vi.stubEnv('DSH_CLIENT_VERSION', '1.2.3')
+  if (process.platform === 'win32') state.storageRoot = mkdtempSync(join(realpathSync(tmpdir()), 'p'))
+})
 afterEach(() => {
+  if (state.storageRoot !== '') {
+    expect(dirname(realpathSync(state.storageRoot))).toBe(realpathSync(tmpdir()))
+    removeOwnedDirectory(state.storageRoot)
+    state.storageRoot = ''
+  }
   state.views.length = 0; state.sessions.length = 0; state.loadFailure = undefined; state.loadBarrier = undefined
   vi.clearAllMocks(); vi.unstubAllEnvs()
 })
@@ -416,6 +436,22 @@ it('reuses persistent storage across closes, token replacement, and manager recr
   await restarted.open(owner, 'usage', bounds)
   expect(browserSession().partition).toBe(first.partition)
   restarted.close()
+})
+
+it.skipIf(process.platform !== 'win32')('rejects a browser directory link to a different account before opening', async () => {
+  const { manager, owner } = setup()
+  try {
+    await manager.open(owner, 'usage', bounds)
+    await manager.closeAndWait()
+    const links = join(state.storageRoot, 'Platform')
+    const link = join(links, readdirSync(links)[0]!)
+    unlinkSync(link)
+    const differentAccount = mkdtempSync(join(state.storageRoot, 'other-'))
+    symlinkSync(differentAccount, link, 'junction')
+
+    await expect(manager.open(owner, 'usage', bounds)).rejects.toThrow('different account directory')
+    expect(state.views).toHaveLength(1)
+  } finally { await manager.dispose() }
 })
 
 it('isolates accounts and issuers and restores the original account partition after sign-out', async () => {

@@ -1,7 +1,9 @@
 /** Isolated Platform documents owned by the desktop account lifetime. */
 import type { EventEmitter } from 'node:events'
 import { createHash, randomUUID } from 'node:crypto'
-import { WebContentsView, session, shell, type Session, type View, type WebFrameMain } from 'electron'
+import { lstatSync, mkdirSync, realpathSync, symlinkSync } from 'node:fs'
+import { join } from 'node:path'
+import { app, WebContentsView, session, shell, type Session, type View, type WebFrameMain } from 'electron'
 import type { PlatformSession } from '@deepseek-ai/dsh-deepseek-account'
 import { mergePlatformCookies, platformClientHeaders } from '@deepseek-ai/dsh-deepseek-account/client-metadata'
 import { desktopClientMetadata } from './client-metadata.ts'
@@ -37,6 +39,31 @@ type PlatformOwner = Pick<EventEmitter, 'on' | 'removeListener'> & {
 }
 
 type PlatformSender = { sender: object; senderFrame: Pick<WebFrameMain, 'url'> | null }
+
+/** Open the existing account directory and keep Chromium's cache paths short on Windows. */
+function browserSessionFor(account: PlatformSession): Session {
+  if (account.userId === null) return session.fromPartition(`dsh-platform-${randomUUID()}`)
+  const digest = createHash('sha256').update(JSON.stringify([account.origin, account.userId])).digest()
+  const partition = `dsh-platform-${digest.toString('hex')}`
+  if (process.platform !== 'win32') return session.fromPartition(`persist:${partition}`)
+  const root = app.getPath('sessionData')
+  const storage = join(root, 'Partitions', partition)
+  const links = join(root, 'Platform')
+  const directoryLink = join(links, digest.subarray(0, 24).toString('base64url'))
+  if (lstatSync(directoryLink, { throwIfNoEntry: false }) === undefined) {
+    mkdirSync(storage, { recursive: true })
+    mkdirSync(links, { recursive: true })
+    try {
+      symlinkSync(storage, directoryLink, 'junction')
+    } catch (error: unknown) {
+      if (lstatSync(directoryLink, { throwIfNoEntry: false }) === undefined) throw error
+    }
+  }
+  if (realpathSync.native(directoryLink) !== realpathSync.native(storage)) {
+    throw new Error('Platform browser directory link points to a different account directory')
+  }
+  return session.fromPath(directoryLink)
+}
 
 /** Native view and its credential snapshot are discarded together. */
 export class DesktopPlatformView {
@@ -88,6 +115,7 @@ export class DesktopPlatformView {
     const account = this.account
     if (account === null) throw new Error('Platform account unavailable')
     if (owner.isDestroyed()) return
+    const browserSession = browserSessionFor(account)
     const generation = this.generation
     this.owner = owner
     const closeOwnedView = () => { if (generation === this.generation) this.close() }
@@ -104,9 +132,6 @@ export class DesktopPlatformView {
       owner.webContents.removeListener('destroyed', closeOwnedView)
       owner.removeListener('closed', closeOwnedView)
     }
-    const partition = account.userId === null ? `dsh-platform-${randomUUID()}`
-      : `persist:dsh-platform-${createHash('sha256').update(JSON.stringify([account.origin, account.userId])).digest('hex')}`
-    const browserSession = session.fromPartition(partition)
     // Sanitize persisted authentication even after an unclean previous process exit.
     const failure = await this.cleanStorage(browserSession)
     if (generation !== this.generation) return
