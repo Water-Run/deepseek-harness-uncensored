@@ -921,14 +921,15 @@ describe('create', () => {
     const failure = await b.svc.create({
       workspaceId: 'ws' as never,
       sessionId: sid('published'),
-    }).catch((error: unknown) => error)
-    await Promise.resolve()
+    }).catch((error: unknown) => {
+      expect(b.svc.list.getSnapshot().byId[sid('published')]).toMatchObject({ id: 'published', blank: true })
+      return error
+    })
     expect(failure).toBeInstanceOf(SessionCreateError)
     expect(failure).toMatchObject({
       requestedSessionId: 'published',
       rpcError: { code: 'session/workspace-attach-failed' },
     })
-    expect(b.svc.list.getSnapshot().byId[sid('published')]).toMatchObject({ id: 'published', blank: true })
   })
 })
 

@@ -830,6 +830,24 @@ describe('UiWorkspaceService', () => {
     expect(b.notify).toHaveBeenCalledTimes(3)
   })
 
+  it.each([false, true])('offers a created Session after attachment fails (navigation replaced: %s)', async (switched) => {
+    const b = bench({ workspaces: workspaceState([workspace('a')]) })
+    const id = sid('created')
+    const completed = Promise.withResolvers<SessionId>()
+    const prepare = vi.fn()
+    b.sessions.create.mockReturnValueOnce(completed.promise)
+    const opening = b.uiWorkspace.openWorkspace(wid('a'), prepare)
+    if (switched) b.uiWorkspace.openSession(sid('other'))
+    completed.reject(new SessionCreateError(new RemoteError('session/workspace-attach-failed', 'workspace association failed', {
+      sessionId: id, workspaceId: 'a',
+    }), undefined))
+    await expect(opening).resolves.toBeUndefined()
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(switched ? sid('other') : id, { source: 'mainView' })
+    if (switched) expect(prepare).not.toHaveBeenCalled()
+    else expect(prepare).toHaveBeenCalledExactlyOnceWith(id)
+    expect(b.notify).toHaveBeenCalledExactlyOnceWith({ kind: 'createWorkspaceAttachFailed', sessionId: id })
+  })
+
   it('uses only an explicit Workspace or the recent-Workspace policy for new Sessions', async () => {
     const current = summary('current', { cwd: '/w/current-home', updatedAt: 1 })
     const recent = summary('recent', { cwd: '/w/recent-home', updatedAt: 2 })

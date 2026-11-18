@@ -4,7 +4,7 @@ import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { SpendLedger, DEFAULT_PREFERENCES } from '@deepseek-ai/dsh-spend-limit/src/ledger.ts'
 import { chromium } from 'playwright'
-import { expect, it, onTestFinished } from 'vitest'
+import { expect, it, onTestFinished, vi } from 'vitest'
 import { launchWebScaffold, selectedSessionFixture } from './scaffold.ts'
 import { newConversationReplayPage } from './support.ts'
 
@@ -64,6 +64,37 @@ it('offers an icon and a working ungrouped creation action', async () => {
     await page.getByText('Ungrouped', { exact: true }).hover()
     await page.getByRole('button', { name: 'New session in Ungrouped', exact: true }).click()
     await expect.poll(() => page.getByRole('button', { name: 'Choose workspace', exact: true }).textContent()).toBe('Work without a workspace')
+  } finally { await browser.close() }
+})
+
+it('opens the published new Session when Workspace attachment fails', async () => {
+  const scaffold = await launchWebScaffold({ firstUse: true,
+    extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
+  onTestFinished(() => scaffold.close())
+  const workspace = await scaffold.ctx.workspaceRegistry.create(scaffold.workspaceCwd)
+  await workspace.setTitle('Association fixture')
+  const browser = await chromium.launch()
+  try {
+    const page = await newConversationReplayPage(browser)
+    page.setDefaultTimeout(15000)
+    await page.goto(scaffold.authenticatedUrl)
+    await page.getByRole('tree', { name: 'Sessions' }).getByText('Association fixture', { exact: true }).hover()
+    const attachment = vi.spyOn(workspace, 'attachSession').mockRejectedValueOnce(new Error('fixture association failure'))
+    onTestFinished(() => { attachment.mockRestore() })
+    let creations = 0
+    page.on('request', (request) => { if (new URL(request.url()).pathname === '/api/session/create') creations += 1 })
+    await page.getByRole('button', { name: 'New session in Association fixture', exact: true }).click()
+    const notice = page.getByRole('alert').filter({ hasText: 'Session created. Workspace assignment failed.' })
+    await notice.waitFor()
+    const id = attachment.mock.calls[0]?.[0]
+    if (id === undefined) throw new Error('The Workspace attachment was not attempted')
+    expect(await scaffold.ctx.sessionPersistence.stat(id)).toBeDefined()
+    const row = page.locator(`[data-row-key="session:${id}"]`)
+    await expect.poll(() => row.getAttribute('aria-selected')).toBe('true')
+    await notice.getByRole('button', { name: 'Open session', exact: true }).click()
+    await expect.poll(() => row.getAttribute('aria-selected')).toBe('true')
+    expect(attachment).toHaveBeenCalledExactlyOnceWith(id)
+    expect(creations).toBe(1)
   } finally { await browser.close() }
 })
 

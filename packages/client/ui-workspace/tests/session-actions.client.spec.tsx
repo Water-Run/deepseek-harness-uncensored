@@ -503,6 +503,16 @@ describe('RowActionToast', () => {
     expect(dismissToast).toHaveBeenCalledOnce()
   })
 
+  it('opens the published Session from the workspace association warning', async () => {
+    const { notify, dismissToast, openForkSession } = await toastSurface(undefined, tEn)
+    const id = sid('created')
+    notify({ kind: 'createWorkspaceAttachFailed', sessionId: id })
+    expect(screen.getByRole('alert').textContent).toContain('Session created. Workspace assignment failed.')
+    fireEvent.click(screen.getByRole('button', { name: /^Open session$/u }))
+    expect(openForkSession).toHaveBeenCalledExactlyOnceWith(id)
+    expect(dismissToast).toHaveBeenCalledOnce()
+  })
+
   it('updates locale and archive actions without restarting the same notice', async () => {
     const { notify, locale, view, dismissToast } = await toastSurface()
     vi.useFakeTimers()

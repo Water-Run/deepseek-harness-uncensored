@@ -4,6 +4,8 @@
 
 ## 已完成
 
+- [x] **新建会话后的工作区关联错误（2026-11-19）**。Host 已发布会话后，工作区关联失败仍可取得原会话 ID。当前导航打开该会话并执行草稿准备；稍后的导航保留当前视图，提示提供「打开会话」。236 项定向测试通过。真实 Web 复现关联错误并核对可选中同一已持久化会话，打开提示中的会话时创建请求总数保持为 1。日志为 `%USERPROFILE%/DSHU-Deliveries/20261119/create-workspace-attachment-web-final.log`。[工作区说明](../../packages/client/ui-workspace/README.zh.md)
+
 - [x] **旧版限额暂停的手动恢复入口（2026-11-19）**。旧账本迁移出的暂停由 Host 返回手动恢复状态。自动恢复开启时，会话横幅仍显示「恢复」；单项重置保留确认要求，点击恢复后继续检查所有启用窗口。账本、横幅和会话恢复共 51 项测试通过。Web 的实际等待、390px 横幅与重置续跑用例通过，日志为 `%USERPROFILE%/DSHU-Deliveries/20261119/legacy-quota-resume-web.log`。[限额后端](../../packages/guard/spend-limit/README.md)
 
 - [x] **余额采样滚动时保留选择（2026-11-19）**。鼠标和键盘选中同一条原始采样后，更新样本列表仍保留其时间和金额。选中点移出历史后改选时间最接近的保留点。14 项定向测试通过，Chromium 的小额精度与窄窗布局场景均通过。日志位于 `%USERPROFILE%/DSHU-Deliveries/20261119/balance-retained-selection-{web,narrow-web}.log`。[余额设置](../../packages/client/ui-settings-account/README.zh.md)

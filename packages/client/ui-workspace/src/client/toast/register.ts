@@ -88,6 +88,15 @@ export function registerToasts(
       }),
     }, ToastEntry<PropsRuntime<'workspace.toast', 'createFailed'>>)
     yield ctx.slots.register({
+      name: 'workspace.toast', key: 'createWorkspaceAttachFailed', locale: 'workspace',
+      inject: (): ToastDisplayInjected<'createWorkspaceAttachFailed'> => ({
+        display: (notice, t, dismiss) => ({
+          text: t('toast.createWorkspaceAttachFailed'), tone: 'warning', holdMs: 6000,
+          actions: [{ label: t('toast.openCreatedSession'), onClick: () => { dismiss(); actions.openForkSession(notice.sessionId) } }],
+        }),
+      }),
+    }, ToastEntry<PropsRuntime<'workspace.toast', 'createWorkspaceAttachFailed'>>)
+    yield ctx.slots.register({
       name: 'workspace.toast', key: 'forkRequiresOpen', locale: 'workspace',
       inject: (): ToastDisplayInjected<'forkRequiresOpen'> => ({
         display: (notice, t, dismiss) => ({

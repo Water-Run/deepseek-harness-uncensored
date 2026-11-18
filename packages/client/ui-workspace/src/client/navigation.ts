@@ -319,10 +319,14 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     try {
       sessionId = workspaceId === null ? await this.sessions.create(reuse) : await this.connectBlank(workspaceId, reuse)
     } catch (error: unknown) {
-      // Reported here, not in connectWorkspace: startup restoration calls that
-      // directly and stays console-only.
-      if (!navigation.aborted) this.notify({ kind: 'createFailed', message: creationFailureMessage(error) })
-      throw error
+      const failure = sessionCreateErrorOf(error)?.rpcError
+      if (failure?.code !== 'session/workspace-attach-failed') {
+        // Startup restoration calls connectWorkspace directly and stays console-only.
+        if (!navigation.aborted) this.notify({ kind: 'createFailed', message: creationFailureMessage(error) })
+        throw error
+      }
+      sessionId = failure.details.sessionId
+      if (!this.lifetime.signal.aborted) this.notify({ kind: 'createWorkspaceAttachFailed', sessionId })
     }
     if (navigation.aborted) return
     this.replaceMain(sessionId, navigation, 'reveal', beforeOpen)

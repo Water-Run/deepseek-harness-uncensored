@@ -362,6 +362,7 @@ export type RowToast =
   | { kind: 'forkRequiresOpen'; sessionId: SessionId }
   | { kind: 'forkFailed'; reason: 'unavailable' | 'failed' }
   | { kind: 'forkCreated'; sessionId: SessionId; workspaceAttachmentFailed?: boolean }
+  | { kind: 'createWorkspaceAttachFailed'; sessionId: SessionId }
   /**
    * An explicit New Session request that failed. `message` is untranslated:
    * a Host refusal as `code: message` — the stable code stays in the copy so
@@ -500,7 +501,7 @@ export interface RowToastActions {
   undoArchive: (sessionId: SessionId) => void
   /** Switch the archived filter to "show" so the archived row is back in view. */
   showArchived: () => void
-  /** Open the fork source without retrying the fork. */
+  /** Open a Session named in the notice. */
   openForkSession: (sessionId: SessionId) => void
 }
 
