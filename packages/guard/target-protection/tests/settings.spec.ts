@@ -151,6 +151,12 @@ it('exposes owner-only, revisioned rules and tracks the actual guarded providers
       changed.mockClear()
       settingsChanged.mockClear()
       try {
+        const { lastInsertRowid } = writer.prepare('INSERT INTO admission(record) VALUES (?)').run('{invalid')
+        expect(() => owner.auditHistory()).toThrow(expect.objectContaining({ code: 'target-protection/unavailable' }))
+        expect(ctx.targetProtection.auditWriteState()).toBe('ready')
+        expect(ctx.securityProtection.read()).toEqual(beforeAuditFailure)
+        writer.prepare('DELETE FROM admission WHERE id = ?').run(lastInsertRowid)
+        expect(owner.auditHistory()).toEqual(history)
         writer.exec('BEGIN IMMEDIATE')
         await expect(ctx.targetProtection.checkLocalFile(target, 'metadata', caller.signal))
           .rejects.toMatchObject({ code: 'unavailable' })

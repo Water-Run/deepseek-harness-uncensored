@@ -48,16 +48,21 @@ it('loads on expansion and exposes the complete redacted record', async () => {
   expect(read).toHaveBeenCalledOnce()
 })
 
-it('retains the accepted records on a refresh failure and shows an unavailable writer', async () => {
+it('retains loaded records when a read fails and reports writer failure separately', async () => {
   const read = vi.fn<() => Promise<RemoteResult<TargetAuditHistory>>>()
+    .mockResolvedValueOnce({ ok: true, value: history() })
+    .mockResolvedValueOnce({ ok: false, error: new RemoteError('target-protection/unavailable', 'audit read failed', {}) })
     .mockResolvedValueOnce({ ok: true, value: { ...history(), state: 'unavailable' } })
-    .mockRejectedValueOnce(new Error('network disconnected'))
   mount(read)
   fireEvent.click(screen.getByRole('button', { name: en['audit.open'] }))
-  await screen.findByText(en['audit.unavailable'])
+  await screen.findByText(en['audit.reason.TARGET_FULLY_PROTECTED'])
   fireEvent.click(screen.getByRole('button', { name: en['audit.refresh'] }))
   await screen.findByText(en['audit.failure.failed'])
   expect(screen.getByText(en['audit.reason.TARGET_FULLY_PROTECTED'])).toBeTruthy()
+  expect(screen.queryByText(en['audit.unavailable'])).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: en['audit.refresh'] }))
+  await screen.findByText(en['audit.unavailable'])
+  expect(screen.queryByText(en['audit.failure.failed'])).toBeNull()
 })
 
 it('coalesces status changes while expanded and keeps collapsed reads dormant', async () => {

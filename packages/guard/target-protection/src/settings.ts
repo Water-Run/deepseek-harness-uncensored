@@ -194,11 +194,13 @@ export default class TargetProtectionSettings extends TypertRemoteService {
   /**
    * Read recent redacted protection decisions for the authenticated owner.
    * @returns The audit availability and latest decisions, newest first.
+   * @throws When the stored records cannot be read or validated.
    */
   @Remote
   auditHistory(): TargetAuditHistory {
     this.ownerSignal()
-    return this.ctx.targetProtection.auditHistory()
+    try { return this.ctx.targetProtection.auditHistory() }
+    catch (error) { throw ownerRuleError(error) }
   }
 
   private state(snapshot: TargetSnapshot): TargetProtectionSettingsState {

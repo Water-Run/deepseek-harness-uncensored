@@ -378,11 +378,14 @@ export default class TargetProtection extends Service {
   /**
    * Read the local protection admission log without exposing raw targets or the fingerprint key.
    * @returns The audit state and up to 100 newest accepted records.
+   * @throws When the stored records cannot be read or validated.
    */
   auditHistory(): TargetAuditHistory {
     if (this.audit === undefined) return { state: 'off', entries: [] }
     try { return { state: this.auditWriteState(), entries: this.audit.recent() } }
-    catch (_error) { return { state: 'unavailable', entries: [] } }
+    catch (error) {
+      throw new TargetProtectionError('unavailable', 'Recent target audit records could not be read.', { cause: error })
+    }
   }
 
   /**

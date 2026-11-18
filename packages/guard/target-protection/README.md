@@ -40,7 +40,7 @@ Set `auditPath` to enable the separate local admission log. The optional Web ove
 
 The audit records the protected HTTP, proxy HTTP, endpoint, local file and unconfined checks. Successful preflight checks are omitted. Execution admission and tool outcomes have separate records. If an enabled audit store fails to write, new allowed effects are refused. Security entry and owner settings refresh to unavailable, and the owner can still read retained audit records when the store allows reads. Restart after restoring the audit store.
 
-Open Settings → Modes → Security → Admission audit to inspect recent decisions. Read entries include a stable database-assigned ID.
+Open Settings → Modes → Security → Admission audit to inspect recent decisions. Read entries include a stable database-assigned ID. If a refresh cannot read or validate the stored entries, the panel reports the read failure and keeps any previously loaded records from that connection.
 
 When `agents` is mounted, audit checks capture the current process-local initiating Session before waiting. Its ID and recorded parent are stored with the decision, and `target/admission` is appended to that Session before returning admission. Concurrent main, side, by-the-way and subagent drivers keep their own records. These log-only events do not enter model history. Older entries and calls without a bound Session omit `source`; no conversation is inferred.
 
