@@ -70,7 +70,7 @@ import('./platform-storage-smoke.mjs')
     const input = join(fixture, 'input.json')
     const observed: string[] = []
     for (const phase of ['first', 'restart']) {
-      // Keep the fixture URL out of Electron's Windows command-line handling.
+      // The full argument list can exit before Windows Electron loads the fixture app.
       await writeFile(input, JSON.stringify({ viewModule: builtView, userData, origin, phase }))
       const result = await execa(electron, [fixture], {
         // The unbundled tsc artifact reads the client version from the environment; the packaged
