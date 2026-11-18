@@ -28,6 +28,8 @@ try {
   New-Item -ItemType Directory -Path $payload | Out-Null
   [System.IO.File]::WriteAllText((Join-Path $payload 'asset.txt'), 'new asset')
   [System.IO.File]::WriteAllText((Join-Path $payload 'new-only.txt'), 'new only')
+  [IO.Directory]::CreateDirectory((Join-Path $payload 'resources')) | Out-Null
+  [IO.File]::WriteAllText((Join-Path $payload 'resources/app.asar'), 'new runtime')
   $deepPayload = Join-Path $payload (('nested-' * 20) + '\asset-' + ('x' * 60) + '.txt')
   [IO.Directory]::CreateDirectory((Split-Path $deepPayload -Parent)) | Out-Null
   [IO.File]::WriteAllText($deepPayload, 'long path asset')
@@ -36,8 +38,17 @@ try {
   $brokenArchive = Join-Path $scratch 'broken.7z'
   [System.IO.File]::WriteAllText($brokenArchive, 'invalid archive')
 
+  $incompletePayload = Join-Path $scratch 'incomplete-payload-source'
+  [IO.Directory]::CreateDirectory((Join-Path $incompletePayload 'resources')) | Out-Null
+  [IO.File]::WriteAllText((Join-Path $incompletePayload 'asset.txt'), 'new asset')
+  $incompleteArchive = Join-Path $scratch 'incomplete.7z'
+  Invoke-Checked $SevenZip @('a', '-bd', '-t7z', $incompleteArchive, "$incompletePayload/*")
+  [IO.File]::WriteAllText((Join-Path $incompletePayload 'resources/app.asar'), '')
+  $emptyArchive = Join-Path $scratch 'empty-asar.7z'
+  Invoke-Checked $SevenZip @('a', '-bd', '-t7z', $emptyArchive, "$incompletePayload/*")
+
   foreach ($mode in @('locked-promoted', 'abort-promoted', 'first', 'upgrade', 'transient-lock', 'locked', 'locked-stage',
-      'missing-stage', 'restore-conflict', 'broken', 'cancelled')) {
+      'missing-stage', 'restore-conflict', 'broken', 'incomplete-payload', 'empty-asar', 'cancelled')) {
     $caseRoot = Join-Path $scratch $mode
     $target = Join-Path $caseRoot 'Application'
     New-Item -ItemType Directory -Path $caseRoot | Out-Null
@@ -45,12 +56,19 @@ try {
       New-Item -ItemType Directory -Path $target | Out-Null
       [System.IO.File]::WriteAllText((Join-Path $target 'asset.txt'), 'old asset')
       [System.IO.File]::WriteAllText((Join-Path $target 'obsolete.txt'), 'old only')
+      [IO.Directory]::CreateDirectory((Join-Path $target 'resources')) | Out-Null
+      [IO.File]::WriteAllText((Join-Path $target 'resources/app.asar'), 'old runtime')
       $oldDeep = Join-Path $target ([IO.Path]::GetRelativePath($payload, $deepPayload))
       [IO.Directory]::CreateDirectory((Split-Path $oldDeep -Parent)) | Out-Null
       [IO.File]::WriteAllText($oldDeep, 'old long path asset')
     }
     $probe = Join-Path $caseRoot 'probe.exe'
-    $caseArchive = if ($mode -eq 'broken') { $brokenArchive } else { $archive }
+    $caseArchive = switch ($mode) {
+      'broken' { $brokenArchive }
+      'incomplete-payload' { $incompleteArchive }
+      'empty-asar' { $emptyArchive }
+      default { $archive }
+    }
     $reportDir = Join-Path $caseRoot 'installer-logs'
     $compileArgs = @('/V2', "/DOUTPUT_FILE=$probe", "/DPAYLOAD_FILE=$caseArchive", "/DTARGET_DIR=$target", "/DDSH_SEVENZIP_PATH=$SevenZip")
     if ($FrameLibrary) { $compileArgs += @("/DSOURCE_DLL=$FrameLibrary", "/DREPORT_DIR=$reportDir", "/DINSTALLER_STRINGS_FILE=$installerStrings") }
@@ -154,6 +172,10 @@ try {
       throw "Directory smoke $mode changed the wrong version"
     }
     $expectObsolete = $mode -notin @('first', 'upgrade', 'transient-lock')
+    $expectedRuntime = if ($expectObsolete) { 'old runtime' } else { 'new runtime' }
+    if ([IO.File]::ReadAllText((Join-Path $target 'resources/app.asar')) -ne $expectedRuntime) {
+      throw "Directory smoke $mode changed the wrong runtime"
+    }
     if ((Test-Path -LiteralPath (Join-Path $target 'obsolete.txt')) -ne $expectObsolete) {
       throw "Directory smoke $mode did not preserve the expected old-only file state"
     }
@@ -170,9 +192,18 @@ try {
         foreach ($expected in @('Result: 7-Zip exit code 2 (fatal error)', "Archive: $caseArchive", 'Cannot open the file as [7z] archive')) {
           if (-not $report.Contains($expected)) { throw "Directory smoke $mode report lacks '$expected'" }
         }
+      } elseif ($mode -in @('incomplete-payload', 'empty-asar')) {
+        if ($reports.Count -ne 1 -or $reports[0].Name -notlike 'payload-failure-*.log') {
+          throw "Directory smoke $mode did not save exactly one payload failure report"
+        }
+        $report = Get-Content -LiteralPath $reports[0].FullName -Raw
+        $expectedError = if ($mode -eq 'empty-asar') { '13' } else { '[23]' }
+        if ($report -notmatch "Invalid staged application file \($expectedError\): .*\\resources\\app\.asar") {
+          throw "Directory smoke $mode did not report the invalid runtime file"
+        }
       } elseif ($mode -in @('locked', 'locked-stage', 'missing-stage')) {
         if ($reports.Count -ne 1 -or $reports[0].Name -notmatch '^directory-failure-20\d{6}-\d{6}\.log$') {
-          throw "Directory smoke $mode did not save exactly one directory report"
+          throw "Directory smoke $mode expected one directory report, found $($reports.Count): $($reports.Name -join ', ')"
         }
         $report = Get-Content -LiteralPath $reports[0].FullName -Raw -Encoding UTF8
         $expectedError = if ($mode -ne 'missing-stage') { '(5|32|33)' } else { '2' }

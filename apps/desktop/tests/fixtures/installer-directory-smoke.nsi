@@ -9,6 +9,7 @@ LangString decompressionFailed ${LANG_ENGLISH} "Payload extraction failed"
 !define DSH_NSIS_COPYING "${NSISDIR}\COPYING"
 !define DSH_STDUTILS_SOURCE "${__FILEDIR__}\..\..\..\..\LICENSES\installer\StdUtils-1.14-sources.tbz2"
 !define DSH_UAC_LICENSE "${__FILEDIR__}\..\..\..\..\LICENSES\installer\UAC-0.2.4c-LICENSE.txt"
+!define APP_EXECUTABLE_FILENAME "asset.txt"
 
 !macro installApplicationFiles
   !insertmacro dshExtractPayload "${PAYLOAD_FILE}"

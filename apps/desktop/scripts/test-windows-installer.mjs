@@ -35,6 +35,7 @@ await mkdir(outputRoot, { recursive: true })
 const output = await mkdtemp(join(outputRoot, 'run-'))
 const payload = join(output, 'payload')
 await mkdir(join(payload, 'resources'), { recursive: true })
+await writeFile(join(payload, 'resources', 'app.asar'), 'Installer smoke fixture runtime\n')
 const previousEnvironment = { ...process.env }
 const signingEnvironment = process.argv.includes('--signed') ? loadDesktopPackageEnvironment('win32') : {}
 const signingRun = process.argv.includes('--signed')

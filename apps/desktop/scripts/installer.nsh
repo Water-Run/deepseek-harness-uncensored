@@ -146,6 +146,16 @@ ManifestDPIAware true
   !define DSH_INSTALLER_LOG_DIR "$LOCALAPPDATA\${DSH_UPDATER_CACHE_NAME}\installer-logs"
 !endif
 
+; GetTime already pads the day, month, minute and second.
+!macro InstallerReportTimestamp
+  ${GetTime} "" "L" $0 $1 $2 $3 $4 $5 $6
+  StrLen $3 $4
+  ${If} $3 == 1
+    StrCpy $4 "0$4"
+  ${EndIf}
+  StrCpy $0 "$2$1$0-$4$5$6"
+!macroend
+
 !macro customInstallerExtractFailed Archive
   Push $0
   Push $1
@@ -154,9 +164,8 @@ ManifestDPIAware true
   Push $4
   Push $5
   Push $6
-  ; GetTime yields zero-padded day, month, year, weekday, hour, minute, second.
-  ${GetTime} "" "L" $0 $1 $2 $3 $4 $5 $6
-  StrCpy $0 "${DSH_INSTALLER_LOG_DIR}\extract-failure-$2$1$0-$4$5$6.log"
+  !insertmacro InstallerReportTimestamp
+  StrCpy $0 "${DSH_INSTALLER_LOG_DIR}\extract-failure-$0.log"
   StrCpy $1 1
   ${If} ${Silent}
     StrCpy $1 0
@@ -213,8 +222,8 @@ ManifestDPIAware true
   Push $4
   Push $5
   Push $6
-  ${GetTime} "" "L" $0 $1 $2 $3 $4 $5 $6
-  StrCpy $0 "$dshDirectoryLogDirectory\directory-failure-$2$1$0-$4$5$6.log"
+  !insertmacro InstallerReportTimestamp
+  StrCpy $0 "$dshDirectoryLogDirectory\directory-failure-$0.log"
   StrCpy $1 1
   ${If} ${Silent}
     StrCpy $1 0
@@ -237,6 +246,24 @@ ManifestDPIAware true
 !macroend
 
 !ifndef BUILD_UNINSTALLER
+  !macro customInstallerInvalidPayload
+    Push $0
+    Push $1
+    ClearErrors
+    CreateDirectory "$dshDirectoryLogDirectory"
+    System::Call 'ole32::CoCreateGuid(g .r0) i.r1'
+    ${If} $1 == 0
+      ClearErrors
+      FileOpen $1 "$dshDirectoryLogDirectory\payload-failure-$0.log" w
+      ${IfNot} ${Errors}
+        FileWriteUTF16LE /BOM $1 "Invalid staged application file ($dshDirectoryError): $dshDirectorySource$\r$\n"
+        FileClose $1
+      ${EndIf}
+    ${EndIf}
+    MessageBox MB_OK|MB_ICONSTOP "$(INSTALLER_FAILED)$\r$\n$\r$\n$dshDirectorySource" /SD IDOK
+    Pop $1
+    Pop $0
+  !macroend
   !include "${__FILEDIR__}\installer-directories.nsh"
 !endif
 

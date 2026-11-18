@@ -130,9 +130,60 @@ Var dshRecoveryStopped
   !ifdef UNINSTALLER_ICON
     File /oname=uninstallerIcon.ico "${UNINSTALLER_ICON}"
   !endif
+  Push "${APP_EXECUTABLE_FILENAME}"
+  Call dshCheckStagedFile
+  Push "resources\app.asar"
+  Call dshCheckStagedFile
   StrCpy $INSTDIR $dshFinalDirectory
   SetOutPath $PLUGINSDIR
 !macroend
+
+; A valid 7-Zip stream can omit required files. Reject it before stopping or moving the old app.
+Function dshCheckStagedFile
+  Exch $0
+  Push $1
+  Push $2
+  Push $3
+  Push $4
+  StrCpy $dshDirectorySource "$dshNewDirectory\$0"
+  ; WIN32_FILE_ATTRIBUTE_DATA contains nine DWORDs, with the two file-size words last.
+  System::Alloc 36
+  Pop $1
+  ${If} $1 == 0
+    StrCpy $dshDirectoryError 8
+  ${Else}
+    System::Call 'kernel32::GetFileAttributesExW(w "\\?\$dshDirectorySource", i 0, p r1) i.r2 ?e'
+    Pop $dshDirectoryError
+    ${If} $2 != 0
+      System::Call '*$1(i.r2, i, i, i, i, i, i, i.r3, i.r4)'
+      IntOp $2 $2 & 0x410 ; FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT
+      StrCpy $dshDirectoryError 0
+      ${If} $2 != 0
+        StrCpy $dshDirectoryError 13
+      ${ElseIf} $3 == 0
+      ${AndIf} $4 == 0
+        StrCpy $dshDirectoryError 13
+      ${EndIf}
+    ${ElseIf} $dshDirectoryError == 0
+      StrCpy $dshDirectoryError 13
+    ${EndIf}
+    System::Free $1
+  ${EndIf}
+  Pop $4
+  Pop $3
+  Pop $2
+  Pop $1
+  Pop $0
+  ${If} $dshDirectoryError != 0
+    DetailPrint "Invalid staged application file ($dshDirectoryError): $dshDirectorySource"
+    Call dshRollbackDirectories
+    !ifmacrodef customInstallerInvalidPayload
+      !insertmacro customInstallerInvalidPayload
+    !endif
+    SetErrorLevel 2
+    Quit
+  ${EndIf}
+FunctionEnd
 
 Function .onGUIEnd
   Call dshCleanupDirectories
