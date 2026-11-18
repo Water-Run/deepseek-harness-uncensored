@@ -4,6 +4,8 @@
 
 本地 [Windows 18.9](2026-11-18.9-delivery.md) 实装 ASAR 含 920 个 npm 包、23 份补充声明及 6 项待核查。Frida 17.23.2 的 GNU Library GPL v2 原文已按实装摘要核对。Linux 最近验收的 [17.8](2026-11-17.8-delivery.md) 含 922 个 npm 包、26 份补充声明及 8 项待核查。
 
+Windows 18.9 清单的 1,157 条声明引用对应 931 个文件。逐个读取实装 ASAR 后，所有文件的 SHA-256 与清单一致，回执为 `candidate-2026.11.18.9/installed-notice-digests.json`。打包源码直接写入已校验的补充文本字节，收录前校验缺失或摘要不符仍会中止准备。移动已校验源文件的隔离回归，以及原清点器共 19 项测试通过。源码修复进入下一次打包。
+
 当前 `2026.11.17.5` Windows 公开预发布包含 919 个 npm 包、21 份补充声明、6 项待核查；Linux 包含 921 个包、26 份补充声明、8 项待核查。本次直接读取 Windows 已安装 ASAR 和已验收 Linux tar.gz 的 ASAR，核对产品版本、构建源码和唯一 npm 声明清单；两种 Linux 归档的 ASAR 摘要相同，见[本版交付记录](2026-11-17.5-delivery.md)。适用补充原文、Electron、安装器及 Office 声明的摘要核对保留。旧版本数量在下文保留为历史。
 
 Windows 的六项为 `brotli@1.3.3`、`dfa@1.2.0`、`fontkit@2.0.4`、`frida@17.23.2`、`proxy-agent-negotiate@1.1.0`、`minimisted@2.0.1`。Linux 另有 `@img/sharp-libvips-linux-x64@1.3.4` 和 `sherpa-onnx-linux-x64@1.13.8`。`clean-git-ref@2.0.1` 的材料缺口已核查，不再列入当前待核查项。不能以程序可运行或清点通过推定总体许可兼容性结论。

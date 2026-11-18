@@ -1,6 +1,6 @@
 /** Inventory notice texts in the materialized npm tree, including version-pinned supplements. */
 import { createHash } from 'node:crypto'
-import { copyFile, mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { join, relative, sep } from 'node:path'
 import supplements from '../../../LICENSES/npm/sources.json' with { type: 'json' }
 
@@ -114,7 +114,7 @@ export async function prepareRuntimeNotices(root: string, sourceDirectory = SUPP
       if (sha256(bytes) !== supplement.sha256) throw new Error(`desktop notices: changed supplement ${supplement.file}`)
       const target = `licenses/${supplement.file}`
       await mkdir(join(root, 'licenses'), { recursive: true })
-      await copyFile(sourcePath, join(root, target))
+      await writeFile(join(root, target), bytes)
       notices.push({ path: target, sha256: supplement.sha256 })
     }
     packages.push({ name: manifest.name, version: manifest.version, path,

@@ -1,11 +1,14 @@
 /** Actual files keep notice coverage distinct from manifest license declarations. */
 import { createHash } from 'node:crypto'
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import * as fs from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { prepareRuntimeNotices } from '../scripts/runtime-notices.ts'
 import sources from '../../../LICENSES/npm/sources.json' with { type: 'json' }
+
+vi.mock('node:fs/promises', async original => ({ ...await original<typeof import('node:fs/promises')>() }))
 
 const roots: string[] = []
 const nativeOfficeNotices = {
@@ -176,6 +179,35 @@ it('rejects a changed supplement before publishing the inventory', async () => {
   add(root, '@cfworker/json-schema', '@cfworker/json-schema', '4.1.4')
   await expect(prepareRuntimeNotices(root, sourceDirectory)).rejects.toThrow('changed supplement')
   expect(() => readFileSync(join(root, 'third-party-runtime.json'))).toThrow()
+})
+
+it('writes the verified supplement even if its source is moved after the check', async () => {
+  const root = fixture()
+  const sourceDirectory = join(root, 'sources')
+  const file = 'clean-git-ref-2.0.1-Apache-2.0.txt'
+  const sourcePath = join(sourceDirectory, file)
+  const outputDirectory = join(root, 'licenses')
+  const verifiedBytes = readFileSync(join(import.meta.dirname, '../../../LICENSES/npm', file))
+  mkdirSync(sourceDirectory)
+  writeFileSync(sourcePath, verifiedBytes)
+  add(root, 'clean-git-ref', 'clean-git-ref', '2.0.1')
+
+  const createDirectory = fs.mkdir
+  const moveSource = vi.spyOn(fs, 'mkdir').mockImplementationOnce((path) => {
+    expect(path).toBe(outputDirectory)
+    renameSync(sourcePath, `${sourcePath}.moved`)
+    return createDirectory(outputDirectory, { recursive: true })
+  })
+  try {
+    const packages = await prepareRuntimeNotices(root, sourceDirectory)
+    expect(readFileSync(join(outputDirectory, file))).toEqual(verifiedBytes)
+    expect(packages[0]!.notices).toEqual([{
+      path: `licenses/${file}`,
+      sha256: createHash('sha256').update(verifiedBytes).digest('hex'),
+    }])
+  } finally {
+    moveSource.mockRestore()
+  }
 })
 
 it('does not publish an empty or invalid package inventory', async () => {
