@@ -22,6 +22,8 @@ Windows 跳板上的嵌套 SSH 不使用管道传入 Python 程序；该方式�
 
 预检与上传失败证据在同日交付目录的 `fedora-rc4-preflight.log`、`fedora-rc4-storage.log` 和 `fedora-rc4-build-launch.log`；恢复连接后先核对是否已有作业，再继续构建。不会启动本机 WSL。
 
+构建输入已更新至 Windows 18.4 对应源码 `1db33630ec`，准备文件为 `fedora-rc4-18-4-build.py`。两次只读探测返回 `x86_64`，状态查询遇到 SSH 握手超时，向 Fedora 传输脚本时连接关闭。脚本已暂存到 Windows 跳板。Fedora 构建尚无启动回执，重连后先检查 `~/.local/state/dshu-verification/linux-20261118-rc4-1db3363/status.json` 与对应 worker 进程。
+
 ## WSL 开发状态保全
 
 本机 `/home/linzh/.cache/dshu-verification` 的三个工作区、Git 元数据、reflog 和 32 条 stash 已归档。226,715 个文件或链接逐项核对通过，三个 Git 元数据副本经过实际恢复、stash 核对和连通性检查。共享对象独立保存；浅克隆信息和原始对象编码保留。

@@ -2,13 +2,19 @@
 
 状态：进行中，不代表整合发行的许可核对已完成。用户的 GPL 许可偏好、上游 Credit 和各组件原有许可保持不变。
 
-本地 `2026.11.17.8` 的 Windows 实包为 920 个 npm 包、21 份补充声明、6 项待核查；Linux 为 922 个包、26 份补充声明、8 项待核查。新增匹配内核的第一方 SDK client，待核查数量不变。两平台 ASAR 清单、适用补充原文和 Office 声明摘要已核对；Windows 安装后完整清单一致。[本地交付记录](2026-11-17.8-delivery.md)及其两平台 manifest 为本地版本依据。
+本地 [Windows 18.4](2026-11-18.4-delivery.md) 实装 ASAR 含 920 个 npm 包、21 份补充声明及 6 项待核查。已核对 ASAR 摘要、版本和构建提交。Linux 最近验收的 [17.8](2026-11-17.8-delivery.md) 含 922 个 npm 包、26 份补充声明及 8 项待核查。
 
 当前 `2026.11.17.5` Windows 公开预发布包含 919 个 npm 包、21 份补充声明、6 项待核查；Linux 包含 921 个包、26 份补充声明、8 项待核查。本次直接读取 Windows 已安装 ASAR 和已验收 Linux tar.gz 的 ASAR，核对产品版本、构建源码和唯一 npm 声明清单；两种 Linux 归档的 ASAR 摘要相同，见[本版交付记录](2026-11-17.5-delivery.md)。适用补充原文、Electron、安装器及 Office 声明的摘要核对保留。旧版本数量在下文保留为历史。
 
 Windows 的六项为 `brotli@1.3.3`、`dfa@1.2.0`、`fontkit@2.0.4`、`frida@17.23.2`、`proxy-agent-negotiate@1.1.0`、`minimisted@2.0.1`。Linux 另有 `@img/sharp-libvips-linux-x64@1.3.4` 和 `sherpa-onnx-linux-x64@1.13.8`。`clean-git-ref@2.0.1` 的材料缺口已核查，不再列入当前待核查项。不能以程序可运行或清点通过推定总体许可兼容性结论。
 
 公开 17.5 的实包清点证据为 `%USERPROFILE%/DSHU-Deliveries/20261117/notice-review/current-17-5-inventory.json`，读取入口为交付目录的 `read-current-17-5-notices.mjs`。两平台产品版本均为 `2026.1117.5`，构建源码均为 `7a5d82454ad380b65f9abc18a2e126de2ba40c74`。仅提取清单，不修改安装、第三方记录或审查标记；前版清点原样保留。
+
+## Windows 18.4 实装依赖路径
+
+实装中 LibreOffice Kit 0.2.3 引入 Fontkit 2.0.4，后者引入 Brotli 1.3.3 和 dfa 1.2.0。HTTP 与 HTTPS Proxy Agent 9.1.0 均引入 proxy-agent-negotiate 1.1.0。REA 6.9.0 引入 Frida 17.23.2，isomorphic-git 1.38.7 引入 minimisted 2.0.1。入口分别对应 Office、代理、REA 和 Git，后续替换须验证受影响的功能。实装清单与路径回执位于 `%USERPROFILE%/DSHU-Deliveries/20261118/candidate-2026.11.18.4/installed-notice-inventory.json`。
+
+查到 Fontkit 3.0.0 改为依赖 dfa `^2.0.0`。dfa 2.0.0 的 npm 元数据仍标记 MIT，对应发布提交的完整 Git 树仍没有独立 LICENSE、COPYING 或 NOTICE 文件。现有 Office 依赖保持锁定，待核查标记保留。[Fontkit 3.0.0 发布记录](https://registry.npmjs.org/fontkit/3.0.0) · [dfa 2.0.0 固定源码](https://github.com/devongovett/dfa/tree/0205982a2a4fff76a43ca0b678460925b409e1e9)
 
 ## 固定版本材料复核（2026-11-18）
 

@@ -1,10 +1,10 @@
 # DSHU 开发交接
 
-**本地 2026.11.18.3 已保留数据安装并启动，没有发布 Release，Goal 保持活动。** 当前仍为 36 项完成、9 项进行中及 3 项未来计划，完整范围见 [TODO](TODO.md)。继续实现既有范围，减少重复测试；发布须逐次取得明确许可。
+**本地 2026.11.18.4 已保留数据安装并启动。** 当前仍为 36 项完成、9 项进行中及 3 项未来计划，完整范围见 [TODO](TODO.md)。继续实现既有范围，减少重复测试；发布须逐次取得明确许可。
 
 ## 当前交付
 
-当前 Windows 构建源码 `906d9e2349b25504e264281eb40e7484c57595e0`，显示/内部版本 `2026.11.18.3` / `2026.1118.3`，内核 rc.4、REA 6.9.0。完整实装清单、保护监听、CLI、Windows 登记及普通账户启动均通过。安装前后 7,385 个数据文件及官方 DSH 两个关键文件一致。[交付与恢复](requirements/2026-11-18.3-delivery.md)
+当前 Windows 构建源码 `1db33630eca04e90f52e9077f3a25739ebb30aea`，显示/内部版本 `2026.11.18.4` / `2026.1118.4`。本版包含会话分叉反馈及工作区文件通知合并。实际安装、数据摘要、载荷清单、Windows 登记和启动结果见[交付与恢复](requirements/2026-11-18.4-delivery.md)。
 
 已交付流量 JSON 导出、连接切换及请求竞态修复、可选保护缺失提示。四个正式 npm 提供方完成 rc.3 → rc.4 升级及实际注册，四模式就绪，无 Host 加载警告。CLI 升级不运行依赖构建脚本，不调用模型账号，应用 ASAR 和升级前测试 patch 不变。
 
@@ -14,7 +14,7 @@
 
 ## 当前开发
 
-保护文件监听已经进入 Windows 18.3，rc.4 的 Linux 新包及实体机图形/门户验收还未完成。其余保护执行、资源物理身份、关机/重启、发行与许可证事项继续按完整清单推进。内核和界面改动的边界及验证见 [rc.4 适配](requirements/2026-11-18-dsh-rc4.md)与[可选运行时反馈](requirements/2026-11-18-optional-runtime-feedback.md)。
+保护文件监听的原生触发与规则撤销见 [Windows 18.3 实包记录](requirements/2026-11-18.3-delivery.md)。rc.4 的 Linux 新包及实体机图形和门户验收仍待进行。其余保护执行、资源物理身份、关机/重启、发行与许可证事项继续按完整清单推进。内核和界面改动的边界及验证见 [rc.4 适配](requirements/2026-11-18-dsh-rc4.md)与[可选运行时反馈](requirements/2026-11-18-optional-runtime-feedback.md)。
 
 ## Linux 测试与 WSL 状态
 
@@ -26,10 +26,7 @@ Codex 的自动连接会在关闭后重新唤起 Ubuntu，需用户在连接设�
 
 ## 恢复与运行
 
-- 18.3 安装备份 `C:/Users/linzh/DSHU-Backups/20261118T020238Z-before-20261118-3-data` 含 7,385 个通过前后摘要核对的数据文件。恢复前另存当前数据。
-- 18.2 恢复包 SHA-256 为 `3e976784d103b7dd66ea02f39c9848d5c2e07712d6e9dc14c0c0bba81c7b2508`，旧指针保存在 `20261118/accepted-2026.11.18.2/current-windows-manifest.json`。
-- 18.3 正常启动时主 PID 为 `15692`，未提权、响应正常且未生成新增崩溃报告。后续操作前重新核对进程状态。
-- 18.3 实装证据位于 `%USERPROFILE%/DSHU-Deliveries/20261118/candidate-2026.11.18.3/`。Linux 已验证历史归档仍为 17.8。
+18.4 的安装器、数据备份、18.3 恢复入口和验证材料见[本地交付记录](requirements/2026-11-18.4-delivery.md#安装校验与恢复)。Linux 已验证归档仍为 17.8。
 
 ## 仍有效的执行验收
 
@@ -53,7 +50,7 @@ Windows 构建使用 `VCToolsVersion=14.52.36629`、`MSVCPreviewEnabled=true`。
 
 本轮已停用的独立打包工作区 `D:/DSHU-Delivery-Work/20261118/source-fc4c9ddf7b` 中，仅维护私有 `.desktop-build/pnpm-store`：移除 49,468 文件、1,125 包，D 盘净空闲增加约 1.28 GiB。回执为 `20261118/private-store-prune-result.json`。没有重试下列拒绝目标，也没有清理它们的父目录。
 
-11 月 18 日失败的 Client 编译误写了 `packages/client/ui-file-actions/src/` 下 20 个未跟踪 `.js`、`.d.ts` 及映射文件；项目引用已修复。删除这些派生文件被自动审批以 `blocked by policy` 拒绝，文件保留且不得换方法重试或删除父目录。清单见本机 `20261118/proxy-export-compiler-residue-rejected.json`，不纳入提交。
+11 月 18 日失败的 Client 编译误写了 `packages/client/ui-file-actions/src/` 下 20 个未跟踪的编译文件，项目引用已修复。原清理请求的自动审批拒绝记录保存在 `20261118/proxy-export-compiler-residue-rejected.json`。当前工作区已无这些派生文件。
 
 新增拒绝路径 `D:/Coding/deepseek-harness-uncensored/apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/runs/2026-11-17T15-19-43.361Z-nSHqhO/win-unpacked`：16,414 文件、1,591,144,393 字节，零链接、零活动引用，失败候选安装器已另存并核对摘要。递归删除在创建进程前被自动审批以 `blocked by policy` 拒绝，约 1.48 GiB 保留，不重试、换方法或删除父目录。记录为 `20261117/rejected-17-7-cleanup-{audit,rejected}.json`。
 
