@@ -40,13 +40,15 @@ Windows 签名构建在同一步核对 `latest.yml` 的内部分发版本、唯�
 
 ### Windows 更新交接校验
 
-用户确认重启且 Host 停止后，Windows 在将退出控制权交给更新器前核对待执行安装器的 SHA-512。校验失败会恢复当前工作区，普通与强制更新均提供重新下载入口。重试前清除所选安装器的内存记录，磁盘缓存按更新源摘要重新核验。
+用户确认重启且 Host 停止后，Windows 在将退出控制权交给更新器前核对待执行安装器的 SHA-512。校验失败会恢复当前工作区，普通与强制更新均提供重新下载入口。
 
 真实 Electron 44.7.0 本地更新夹具通过 19 个场景，新增在重启准备期间改写或删除安装文件的两项检查。两项均拒绝交接，显式重试发起新下载，并对恢复后的文件完成模拟交接。夹具没有执行安装器。结果位于 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-updater-handoff/result.json`。[更新流程](../../apps/desktop/README.zh.md#updates)
 
 Windows 在构建更新提供方前检查已安装的 `app-update.yml`，要求 `publisherName` 含一份完整的 `CN`、`O` 和 `C`。缺失、空白、属性不全或多身份使检查直接失败。更新配置、更新协调器和打包签名配置共 64 项定向测试通过。此项验证覆盖配置准入，签名在线升级仍待实包验收。[签名配置](../../apps/desktop/windows-signing/README.zh.md#signing-configuration)
 
 Windows 更新下载使用系统 Authenticode 验证发布者，安装交接前对当前文件复核发布者和 SHA-512。真实 Electron 环回通过 7 项签名场景，包含可信缓存交接、缓存发布者不符和验签程序不可用；后两项均拒绝交接。验证使用现有微软签名文件及其公开证书和独立无签名数据，安装交接由夹具记录。19 项传输、54 项配置及协调器测试通过。签名场景证据在 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-publisher-verifier/result.json`。DSHU 发布证书签名的在线升级待实包验收。[签名配置](../../apps/desktop/windows-signing/README.zh.md#signing-configuration)
+
+显式重试先刷新更新清单。旧包返回 404、清单换版时，重试只请求清单，用户再次选择后才请求新版安装器。交接验签失败时撤销所选安装器的内存记录和自有缓存索引。缓存发布者不匹配和验签程序暂时不可用两条路径都在重试时重新请求清单和安装器。20 项传输、7 项签名场景和 74 项定向单测通过。夹具回执在 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-update-retry/`。
 
 ## 验收
 

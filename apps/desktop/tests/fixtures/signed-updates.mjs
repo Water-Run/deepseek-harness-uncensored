@@ -187,6 +187,13 @@ async function main() {
         assert.match(state.technicalDetails, failure)
         assert.equal(f.updater.installerPath, null)
         assert.equal(installed, handoffs)
+        assert.deepEqual(await readdir(pending), [cachedFile])
+        const retryStart = server.requests.length
+        const retry = await f.coordinator.download('1.0.1-nightly.1')
+        assert.deepEqual(server.requests.slice(retryStart).map(request => request.path), ['/nightly.yml', '/payload-1.0.1-nightly.1.exe'])
+        if (verifierUnavailable) assert.equal(retry.phase, 'ready')
+        else assert.equal(retry.failedOperation, 'download')
+        assert.equal(installed, handoffs)
       }
       report.cases.push(name)
     }

@@ -1,12 +1,13 @@
 /** Recheck the pending Windows installer before passing control to NSIS. */
 import { createHash } from 'node:crypto'
-import { open, stat } from 'node:fs/promises'
+import { open, realpath, rm, stat } from 'node:fs/promises'
+import { join, resolve } from 'node:path'
 import type { AppUpdater } from 'electron-updater'
 import { DesktopUpdatePreparationError } from '../../update-error.ts'
 
 /**
  * Verify the standalone installer's publisher and SHA-512 again before handoff, including cached downloads.
- * A failed verification retires the in-memory target so retry revalidates the disk cache.
+ * A failed verification retires the in-memory target and the owned pending cache index.
  * @param updater - Settled NSIS updater with automatic installation disabled.
  * @returns When the installer is readable and matches the checked feed digest.
  */
@@ -42,7 +43,24 @@ export async function verifyWindowsUpdateInstaller(updater: AppUpdater): Promise
     }
   } catch (error) {
     internal.downloadedUpdateHelper = null
+    let details = error instanceof Error ? error.message : undefined
+    if (pending != null) {
+      try {
+        const directory = pending.cacheDirForPendingUpdate
+        const canonical = await realpath(directory)
+        if (canonical.toLowerCase() !== resolve(directory).toLowerCase()) {
+          throw new Error('desktop update: pending cache directory is redirected')
+        }
+        // Leave the payload in place. Without the index, the updater downloads to a temporary file and replaces it.
+        await rm(join(canonical, 'update-info.json'), { force: true })
+      } catch (cleanupError) {
+        if (!(cleanupError instanceof Error && 'code' in cleanupError && cleanupError.code === 'ENOENT')) {
+          const reason = cleanupError instanceof Error ? cleanupError.message : String(cleanupError)
+          details = [details, `desktop update: could not retire the pending cache index: ${reason}`].filter(Boolean).join('\n')
+        }
+      }
+    }
     throw new DesktopUpdatePreparationError('installer-integrity', 'desktop update: downloaded installer verification failed',
-      error instanceof Error ? error.message : undefined)
+      details)
   }
 }

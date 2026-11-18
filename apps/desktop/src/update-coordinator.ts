@@ -192,11 +192,20 @@ export class DesktopUpdateCoordinator {
     const generation = this.generation
     this.downloadGeneration = generation
     this.downloadOperation ??= Promise.resolve().then(async () => {
-      await this.checkOperation
-      if (generation !== this.generation) return this.current
-      this.assertLive()
+      const check = await this.checkOperation
+      if (!this.isActiveGeneration(generation)) return this.current
+      if (check?.phase === 'error') return this.setState(check)
       if (this.candidate === undefined) throw new Error('desktop update: no checked update is available')
       if (version !== this.candidate) throw new Error('desktop update: download confirmation is stale')
+      if (this.current.phase === 'error' && (this.current.failedOperation === 'download'
+        || this.current.preparationFailure === 'installer-integrity')) {
+        this.setState({ phase: 'checking' })
+        const refreshed = await this.doCheck()
+        if (!this.isActiveGeneration(generation)) return this.current
+        if (refreshed.phase === 'error') return this.setState(refreshed)
+        // A retry authorizes the previously shown version only.
+        if (refreshed.phase !== 'available' || refreshed.version !== version) return refreshed
+      }
       this.setState({ phase: 'downloading', version, percent: 0 })
       try {
         await this.updater.downloadUpdate(this.cancellation)

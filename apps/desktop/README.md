@@ -302,7 +302,7 @@ Use `pnpm --dir apps/desktop run test:installer --uninstall-only --silent-only` 
 
 While the installer has control and the app is waiting to close, another request for the same version returns the current installation status. It reuses the same Host shutdown and installer handoff.
 
-Before Windows hands off to the installer, it rechecks the pending file against the update feed’s SHA-512 digest. If the file is missing, unreadable, or has changed, Desktop restores the current workspace and asks the user to download the update again. Retry checks the disk cache against the feed before reusing it.
+Before Windows hands off to the installer, Desktop rechecks the pending file's signature and SHA-512. If verification fails, Desktop restores the workspace, retires the cache entry, and asks the user to download again. Retrying a failed download refreshes the feed first. A different version requires a new download choice.
 
 On Windows, the downloaded-update confirmation explains that the application closes during installation, reopens automatically, and should not be launched again while updating. An installer restart carrying `--updated` raises and focuses the main window once when startup opens the workspace directly, without enabling always-on-top. Startup into the welcome page discards that request so a later login keeps its normal activation behavior. Ordinary launches and other platforms do not use this foregrounding step.
 

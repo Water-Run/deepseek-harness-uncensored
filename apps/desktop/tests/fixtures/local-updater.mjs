@@ -90,7 +90,7 @@ async function main() {
         await assert.rejects(f.coordinator.install(version), /not ready/u)
         const before = server.requests.length
         assert.equal((await f.coordinator.download(version)).phase, 'ready')
-        assert.equal(server.requests.length - before, 1)
+        assert.deepEqual(server.requests.slice(before), ['/nightly.yml', '/payload.exe'])
         assert.deepEqual(await readFile(f.updater.installerPath), server.payload)
         f.restart(async () => true)
         assert.equal((await f.coordinator.install(version)).phase, 'installing')
@@ -236,6 +236,19 @@ async function main() {
         assert.equal((await f.coordinator.download(available.version)).phase, 'ready')
       })
     }
+    await scenario('retry-discovers-a-new-version-and-requires-fresh-download-choice', async () => {
+      const f = await fixture('download-404')
+      const { version } = await f.coordinator.check(true)
+      assert.equal((await f.coordinator.download(version)).failedOperation, 'download')
+      const before = server.requests.length
+      const next = '1.0.1-nightly.2'
+      server.select('healthy', next)
+      assert.deepEqual(await f.coordinator.download(version), { phase: 'available', version: next })
+      assert.deepEqual(server.requests.slice(before), ['/nightly.yml'])
+      assert.equal(f.updater.installerPath, null)
+      assert.equal((await f.coordinator.download(next)).phase, 'ready')
+      assert.equal(f.installations.length, 0)
+    })
     await scenario('download-write-enospc-clears-partial-file-and-retries', async () => {
       const f = await fixture()
       const available = await f.coordinator.check()
