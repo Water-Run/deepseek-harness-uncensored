@@ -100,7 +100,7 @@ Platform 在清理成功后释放对应跟踪记录。重开、退出和安装�
 
 应用等待退出期间，再次请求安装同一版本会复用当前的安装状态。重复请求只执行一次 Host 停止准备和一次安装器交接。旧实现的回归用例失败，修复后更新协调器和目录安装模板共 50 项通过，Electron 44.7.0 回环共 15 场景通过。回环用例替换平台安装调用，不执行安装器。源码构建的 10 项检查通过，修复已随 [Windows 18.5](2026-11-18.5-delivery.md) 实装。
 
-Windows 原生 NSIS 隔离夹具通过 11 个目录替换场景。待安装目录缺失或被锁定时恢复旧目录，回退目标被占用时保留旧目录备份及占用方文件。新增用例覆盖切换新目录后的取消和文件占用。旧实现会删掉未锁的新文件，修复后先整体移回新目录，受阻时完整保留两版并写入故障报告。回归只操作临时目录，实装仍为 18.8。签名升级和应用启动后的恢复仍待验收。日志为 `windows-directory-rollback-before.log` 与 `windows-directory-rollback-after.log`。
+Windows 原生 NSIS 隔离夹具通过 11 个目录替换场景。待安装目录缺失或被锁定时恢复旧目录，回退目标被占用时保留旧目录备份及占用方文件。新增用例覆盖切换新目录后的取消和文件占用。旧实现会删掉未锁的新文件，修复后先整体移回新目录，受阻时完整保留两版并写入故障报告。回归只操作临时目录，修复已随 [Windows 18.9](2026-11-18.9-delivery.md) 实装。签名升级和应用启动后的恢复仍待验收。日志为 `windows-directory-rollback-before.log` 与 `windows-directory-rollback-after.log`。
 
 回执位于 `%USERPROFILE%/DSHU-Deliveries/20261118/` 的 `updater-handoff-loopback-final.log` 与 `windows-directory-rollback-18-4.log`。
 

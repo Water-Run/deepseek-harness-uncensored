@@ -51,3 +51,5 @@ Fedora 的作业私有缓存已回读 SHA-256，与官方预构建一致。续�
 压缩后的首次 Windows 回读显示 `D:/WSL/Ubuntu/ext4.vhdx` 为 54,409,560,064 字节，较 TRIM 后记录缩小约 153.3 GiB。检查时 D 盘空闲约 233.4 GiB，两次进程快照均未发现 `vmmemWSL`。早先的提权任务已退出，`compaction-launch-error.json` 记录未返回执行回执。磁盘变小的执行方和持续内存释放状态仍待核实。复查记录位于备份目录的 `windows-storage-observation-20261118.json`。
 
 北京时间 17:22 再次读取 Windows 进程与文件元数据，未发现 `vmmemWSL`、`wslhost` 或 `wslrelay`。VHDX 仍为 54,409,560,064 字节，最后写入时间为 09:39:59。此次快照记录在交付目录的 `windows-wsl-retirement-late-readback.json`。
+
+北京时间 18:36 的第三次回读显示 `WslService` 已停止，WSL 虚拟机和宿主进程均未出现，VHDX 仍为 54,409,560,064 字节。此次仅查询 Windows 服务、进程和文件元数据，回执为 `windows-wsl-retirement-stopped-readback.json`。已核对两个相隔 74 分钟的时点，Codex 的连接设置尚未操作。
