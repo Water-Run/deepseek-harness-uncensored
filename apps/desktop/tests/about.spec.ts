@@ -1,6 +1,18 @@
-import { expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { desktopAboutDetails } from '../src/about.ts'
-import { zh } from '../src/locale.ts'
+import { en, zh } from '../src/locale.ts'
+
+afterEach(() => { vi.unstubAllEnvs() })
+
+const installedUpstreamCommit = '3f321d32bfe382212a8ed8785c1d47a5a300aa23'
+const buildUpstreamCommit = '9c2670d3bce5275e0d1610272958121af87787bb'
+
+it.each([['DSH upstream commit', en], ['DSH 上游提交', zh]] as const)('%s prefers the commit sealed in the installed manifest', (label, messages) => {
+  vi.stubEnv('DSH_CLIENT_UPSTREAM_COMMIT', buildUpstreamCommit)
+  const installed = desktopAboutDetails({ dshUncensored: { upstreamCommit: installedUpstreamCommit } }, '2026.1118.11', messages)
+  expect(installed).toContain(`${label} ${installedUpstreamCommit}`)
+  expect(desktopAboutDetails({}, '2026.1118.11', messages)).toContain(`${label} ${buildUpstreamCommit}`)
+})
 
 it('shows fork version, upstream version, commit and time from the installed build', () => {
   const result = desktopAboutDetails({ dshUncensored: { version: '1.0.0', upstreamVersion: '0.2.1' }, dshBuildCommit: 'abcd123', dshBuildDate: '2026-10-23T08:00:00Z' }, '0.2.1', zh)

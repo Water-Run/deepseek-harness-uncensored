@@ -872,6 +872,8 @@ describe('desktop main startup', () => {
   })
 
   it('routes About to the ready product page and restores fallback after navigation', async () => {
+    const upstreamCommit = '9c2670d3bce5275e0d1610272958121af87787bb'
+    vi.stubEnv('DSH_CLIENT_UPSTREAM_COMMIT', upstreamCommit)
     await readyForUpdate()
     const window = harness.windows[0]!
     await window.shown.promise
@@ -890,7 +892,9 @@ describe('desktop main startup', () => {
     expect(harness.platformOverlay).toHaveBeenLastCalledWith(false)
     about()
     await vi.advanceTimersByTimeAsync(0)
-    expect(harness.dialog.showMessageBox).toHaveBeenCalled()
+    expect(harness.dialog.showMessageBox).toHaveBeenCalledWith(expect.objectContaining({
+      detail: expect.stringContaining(`DSH upstream commit ${upstreamCommit}`),
+    }))
   })
 
   it('rejects About state from another frame or malformed messages without changing native visibility', async () => {

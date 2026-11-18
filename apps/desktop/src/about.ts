@@ -6,7 +6,7 @@ import { formatDesktopMessage } from './locale.ts'
 /**
  * Format distribution and source identity without guessing missing metadata.
  * @param manifest - Parsed installed package metadata.
- * @param version - Installed DSH runtime version.
+ * @param version - Installed Desktop shell version.
  * @param messages - Active Desktop dictionary.
  * @returns Localized about-dialog details.
  */
@@ -20,7 +20,8 @@ export function desktopAboutDetails(manifest: unknown, version: string, messages
   return formatDesktopMessage(messages.aboutDetails, {
     fork: displayProductVersion(text(record.dshDisplayVersion ?? fork.version ?? process.env.DSH_CLIENT_FORK_VERSION ?? version)),
     upstream: text(fork.upstreamVersion ?? process.env.DSH_CLIENT_UPSTREAM_VERSION),
-    commit: text(record.dshBuildCommit ?? process.env.DSH_CLIENT_COMMIT_HASH),
+    upstreamCommit: text(fork.upstreamCommit ?? process.env.DSH_CLIENT_UPSTREAM_COMMIT),
+    commit: text(record.dshBuildCommit ?? process.env.DSH_CLIENT_SOURCE_COMMIT ?? process.env.DSH_CLIENT_COMMIT_HASH),
     date: text(record.dshBuildDate ?? process.env.DSH_CLIENT_COMMIT_DATE),
     purge: text(purge.commit ?? process.env.DSH_CLIENT_PURGE_COMMIT),
     purgeDate: text(purge.commitTime ?? process.env.DSH_CLIENT_PURGE_DATE),
