@@ -276,6 +276,38 @@ it('rejects deletion without authorization before stopping or altering the conve
   expect(await ctx.sessionPersistence.stat(sessionId)).toBeDefined()
 })
 
+it('preserves a cold conversation when deletion preparation overlaps controller shutdown', async () => {
+  const { ctx, cwd } = await setup()
+  const lifecycle = new ApiSessionAgentController(ctx, { sideContextBytes: 65536, btwContextBytes: 8192 })
+  const id = SessionId('delete-during-shutdown')
+  await lifecycle.createOwned({ sessionId: id, meta: { cwd }, agentOptions: { provider: 'mock', model: 'mock' } })
+  await lifecycle.disposeOwned(id)
+  expect(await ctx.sessionPersistence.stat(id)).toBeDefined()
+  const entered = Promise.withResolvers<undefined>(), release = Promise.withResolvers<undefined>()
+  const deletedIds = ctx.sessionPersistence.deletedSessionIds.bind(ctx.sessionPersistence)
+  const suspended = vi.spyOn(ctx.sessionPersistence, 'deletedSessionIds').mockImplementationOnce(async () => {
+    entered.resolve(undefined)
+    await release.promise
+    return deletedIds()
+  })
+  const deletion = new SessionDeletionController(ctx, lifecycle, { drainTimeoutMs: 30000, pollMs: 50 }, () => {})
+  const outcome = deletion.delete(id, () => true).then(result => ({ result }), (error: unknown) => ({ error }))
+  try {
+    await entered.promise
+    const closing = deletion.close()
+    release.resolve(undefined)
+    await closing
+    expect(await outcome).toMatchObject({ error: { code: 'gateway/internal' } })
+    expect(await ctx.sessionPersistence.stat(id)).toBeDefined()
+    expect(await deletedIds()).not.toContain(id)
+  } finally {
+    release.resolve(undefined)
+    await outcome
+    await deletion.close()
+    suspended.mockRestore()
+  }
+})
+
 it('preserves a live writer owned outside this API controller', async () => {
   const { ctx, api, cwd, harness, adapter } = await setup(['hang'])
   const foreign = await harness.create(SessionId('foreign-owner'), { provider: 'mock', model: 'mock' }, { cwd })

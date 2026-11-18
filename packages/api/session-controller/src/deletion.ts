@@ -43,14 +43,16 @@ export class SessionDeletionController {
    * @returns Removed identities after physical and derived cleanup complete.
    */
   async delete(root: SessionId, allows: (id: SessionId) => boolean): Promise<SessionDeleteValue> {
-    if (this.closed) return Promise.reject(new RemoteError('gateway/internal', 'Session deletion service is closing.', {}))
+    this.assertOpen()
     this.authorize([root], allows)
     const persistence = this.ctx.get('sessionPersistence')
     if (!persistence?.supportsDeletion) {
       throw new RemoteError('session/delete-unsupported', 'The configured session storage does not support deletion.', {})
     }
-    const { SessionAlreadyOwnedError } = await import('@deepseek-ai/dsh-session-persistence')
-    await this.recover()
+    const [{ SessionAlreadyOwnedError }] = await Promise.all([
+      import('@deepseek-ai/dsh-session-persistence'), this.recover(),
+    ])
+    this.assertOpen()
     if (this.pending.has(root)) return Promise.reject(new RemoteError('session/agent-busy', 'Session deletion is in progress.', { reason: 'deleting' }))
     const operation = this.agents.withDeletion(root, include =>
       persistence.withCatalogMutation(root, () => this.run(root, include, allows, persistence))).catch((error: unknown) => {
@@ -63,6 +65,10 @@ export class SessionDeletionController {
     const settle = (): void => { if (this.pending.get(root) === operation) this.pending.delete(root) }
     void operation.then(settle, settle)
     return operation
+  }
+
+  private assertOpen(): void {
+    if (this.closed) throw new RemoteError('gateway/internal', 'Session deletion service is closing.', {})
   }
 
   /**
@@ -212,6 +218,6 @@ export class SessionDeletionController {
     }
   }
 
-  /** Stop new deletions and drain every admitted operation before its services unload. */
+  /** Refuse new deletions and wait for committed recovery and admitted deletions to settle. */
   async close(): Promise<void> { this.closed = true; await Promise.allSettled([...this.pending.values(), this.recovery]) }
 }
