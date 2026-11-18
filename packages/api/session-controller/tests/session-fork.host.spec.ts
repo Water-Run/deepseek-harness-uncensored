@@ -477,6 +477,29 @@ describe('sessions.fork', () => {
     await ctx.fiber.dispose()
   })
 
+  it.each([0, 1])('omits a recovered interruption after %i completed turns', async (completed) => {
+    const ctx = await composed()
+    try {
+      const source = await liveAgent(ctx, 'session-interrupted-tail', completed, 'open')
+      source.append('turn/end', { turn: completed + 1, reason: { kind: 'interrupted' } })
+
+      const response = await (await remote(ctx)).fork({ sessionId: source.id })
+
+      if (completed === 0) {
+        expect(response).toMatchObject({ ok: false, error: { code: 'session/fork-unavailable' } })
+      } else {
+        if (!response.ok) throw response.error
+        const child = ctx.sessions.get(response.value.sessionId)
+        expect(child?.snapshotEvents().map(event => event.type)).toEqual([
+          'turn/start', 'user/message', 'turn/end', 'session/end-seed',
+        ])
+        expect(child?.snapshotEvents()[2]).toMatchObject({ data: { turn: 1, reason: { kind: 'completed' } } })
+      }
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  })
+
   it.each([false, true])('inherits standalone tail events with the next turn open: %s', async (openNextTurn) => {
     const ctx = await composed()
     try {

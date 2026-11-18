@@ -380,9 +380,12 @@ describe('web e2e: message IconActions and clocks on settled history', () => {
 
   it.skipIf(MODE === 'record')('forks through the settled-message and session-row actions', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-message-fork'))
+    await openUngroupedRows()
+    await page.locator(`[data-row-key="session:${SEED_ID}"]`).click()
     // The second answer is followed by another completed user turn in the source.
     const existing = new Set(scaffold.ctx.agents.list().map(agent => agent.id))
-    await page.getByRole('button', { name: 'Branch into a new conversation' }).nth(1).click()
+    existing.add(SessionId(SEED_ID))
+    await page.locator('[data-turn-tail="2"]').getByRole('button', { name: 'Branch into a new conversation' }).click()
     await expect.poll(
       () => scaffold.ctx.agents.list().find(agent => !existing.has(agent.id)),
       { timeout: 15_000 },
@@ -450,7 +453,12 @@ describe('web e2e: message IconActions and clocks on settled history', () => {
   it.skipIf(MODE === 'record')('forks an unopened current-format Reverse Session from its sidebar row', async () => {
     onTestFailed(() => saveFailureShot(page, 'screenshots/non-migrating-session-reads/current-cold-fork'))
     const id = SessionId('message-actions-current-cold')
-    await seedSession(scaffold, completedTailFixture(await readFile(SEED, 'utf8')), id, 'reverse')
+    const fixture = parseSeedFixture(completedTailFixture(await readFile(SEED, 'utf8')))
+    const last = fixture.events.at(-1)
+    if (last?.type !== 'turn/end') throw new Error('fork fixture requires a closed final turn')
+    const repaired = { ...last, data: { ...last.data, reason: { kind: 'interrupted' as const } } }
+    const history = renderSeedFixture(fixture.headerLine, [...fixture.events.slice(0, -1), repaired])
+    await seedSession(scaffold, history, id, 'reverse')
     const warningStart = tripwire.warnings.length
     await page.reload({ waitUntil: 'load' })
     await openUngroupedRows()
@@ -467,6 +475,8 @@ describe('web e2e: message IconActions and clocks on settled history', () => {
     expect(child.session.header.parentSession).toBeUndefined()
     expect(child.session.header.agentPreset).toBe('reverse')
     expect(scaffold.ctx.agentPresets.composedPreset(child.ctx)).toBe('reverse')
+    expect(child.session.snapshotEvents().some(event => event.type === 'user/message'
+      && event.data.content.some(part => part.type === 'text' && part.text === NEXT_PROMPT))).toBe(false)
     expect(scaffold.ctx.agents.get(id)).toBeUndefined()
     expect(await row.getAttribute('aria-selected')).not.toBe('true')
     const childRow = page.locator(`[data-row-key="session:${child.id}"]`)

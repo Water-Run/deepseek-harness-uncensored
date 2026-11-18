@@ -69,13 +69,13 @@ export function hasPromptContent(content: readonly PromptContentCandidate[]): bo
 }
 
 /**
- * Resolve the omitted-`atSeq` default to the latest completed-turn prefix,
- * including standalone events before the next turn begins.
+ * Resolve the latest settled-turn prefix, including standalone events before the next turn.
+ * An interruption recorded during recovery closes the log without advancing the usable prefix.
  * @param events - Ordered source events.
  * @returns Inclusive boundary, or undefined before any completed turn.
  */
 export function latestCompletedPrefixBoundary(events: readonly SessionEvent[]): SessionSeq | undefined {
-  const lastTurnEnd = events.findLast(event => event.type === 'turn/end')
+  const lastTurnEnd = events.findLast(event => event.type === 'turn/end' && event.data.reason.kind !== 'interrupted')
   if (lastTurnEnd === undefined) return undefined
   let boundary = lastTurnEnd.seq
   for (const next of events.slice(boundary + 1)) {

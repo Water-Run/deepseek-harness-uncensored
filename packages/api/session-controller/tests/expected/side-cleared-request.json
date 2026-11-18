@@ -22,7 +22,7 @@
     "content": [
       {
         "type": "text",
-        "text": "Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nMain conversation parent: completed background context. These messages describe the main conversation. The current request is separate.\n[5 user] MAIN_BACKGROUND_742\n[8 assistant] fixture reply\n[10 turn ended] {\"kind\":\"completed\"}"
+        "text": "<system-reminder>\nThe following information describes your current session:\n\nMain conversation parent: completed background context. These messages describe the main conversation. The current request is separate.\n[5 user] MAIN_BACKGROUND_742\n[8 assistant] fixture reply\n[10 turn ended] {\"kind\":\"completed\"}\n</system-reminder>"
       }
     ]
   }
