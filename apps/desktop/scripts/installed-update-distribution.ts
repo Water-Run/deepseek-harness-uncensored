@@ -1,12 +1,10 @@
 /** Validate local qualification payload bytes and prepare separate binary and fixed-feed operations. */
 import { createHash } from 'node:crypto'
-import { mkdtemp, readFile, rm, rmdir, stat } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { readFile, stat } from 'node:fs/promises'
 import { join } from 'node:path'
-import { gunzipSync } from 'node:zlib'
-import { buildBlockMap } from 'app-builder-lib/out/targets/blockmap/blockmap.js'
 import { load } from 'js-yaml'
 import { readInstalledUpdateRun } from './installed-update-qualification.ts'
+import { verifyWindowsInstallerBlockmap } from './verify-windows-installer-blockmap.ts'
 
 /** A local immutable object, with its final test-only destination and digest. */
 export interface InstalledUpdateBinary {
@@ -43,27 +41,6 @@ async function binaryPath(directory: string, name: string, base: string) {
   return { path, name, url: new URL(name, base).href, size: file.size }
 }
 
-async function inspectInstaller(installer: string, blockmap: string) {
-  const scratch = await mkdtemp(join(tmpdir(), 'dshu-blockmap-'))
-  const generated = join(scratch, 'installer.blockmap')
-  try {
-    const digest = await buildBlockMap(installer, 'gzip', generated)
-    const expected = gunzipSync(await readFile(generated))
-    const bytes = await readFile(blockmap)
-    let actual: Buffer
-    try {
-      actual = gunzipSync(bytes, { maxOutputLength: expected.length })
-    } catch (cause) {
-      throw new Error('installed update: invalid external blockmap', { cause })
-    }
-    if (!actual.equals(expected)) throw new Error('installed update: external blockmap differs from the installer')
-    return { digest, map: { size: bytes.length, sha512: createHash('sha512').update(bytes).digest('base64') } }
-  } finally {
-    await rm(generated, { force: true })
-    await rmdir(scratch)
-  }
-}
-
 function record(value: unknown): Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error('installed update: invalid feed metadata')
   return value as Record<string, unknown>
@@ -94,7 +71,7 @@ export async function planInstalledUpdateDistribution(manifest: string, version:
   }
   const installer = await binaryPath(directory, filename, run.feedBaseUrl)
   const blockmap = await binaryPath(directory, `${filename}.blockmap`, run.feedBaseUrl)
-  const { digest, map } = await inspectInstaller(installer.path, blockmap.path)
+  const { digest, map } = await verifyWindowsInstallerBlockmap(installer.path, blockmap.path)
   if (digest.size !== installer.size || info.size !== installer.size || info.sha512 !== digest.sha512
     || (metadata.sha512 !== undefined && metadata.sha512 !== digest.sha512)) {
     throw new Error('installed update: installer size or SHA-512 differs from the generated feed')

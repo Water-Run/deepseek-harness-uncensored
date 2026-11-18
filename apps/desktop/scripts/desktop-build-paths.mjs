@@ -131,3 +131,16 @@ export function desktopArtifactOutput(paths, mode) {
   if (mode.skipNotarization) return { directory: paths.unnotarizedArtifacts, suffix: '-unnotarized' }
   return { directory: paths.artifacts, suffix: '' }
 }
+
+/**
+ * Format a Desktop artifact filename or electron-builder template.
+ * @param {string} version Public build version or electron-builder version macro.
+ * @param {string} os Artifact OS or matching macro.
+ * @param {string} arch Architecture or matching macro.
+ * @param {string} suffix Marker from desktopArtifactOutput.
+ * @param {string} extension File extension or matching macro, without the leading dot.
+ * @returns Filename used in the build output.
+ */
+export function desktopArtifactFilename(version, os, arch, suffix, extension) {
+  return `deepseek-harness-uncensored-${version}-${os}-${arch}${suffix}.${extension}`
+}

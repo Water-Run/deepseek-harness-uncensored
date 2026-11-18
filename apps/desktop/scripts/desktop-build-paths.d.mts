@@ -86,3 +86,14 @@ export function desktopArtifactOutput(
   paths: Pick<DesktopTargetBuildPaths, 'artifacts' | 'unsignedArtifacts' | 'unnotarizedArtifacts'>,
   mode: { unsigned: boolean, skipNotarization: boolean },
 ): { directory: string, suffix: string }
+
+/**
+ * Format a Desktop artifact filename or electron-builder template.
+ * @param version - Public build version or electron-builder version macro.
+ * @param os - Artifact OS or matching macro.
+ * @param arch - Architecture or matching macro.
+ * @param suffix - Marker from desktopArtifactOutput.
+ * @param extension - File extension or matching macro, without the leading dot.
+ * @returns Filename used in the build output.
+ */
+export function desktopArtifactFilename(version: string, os: string, arch: string, suffix: string, extension: string): string

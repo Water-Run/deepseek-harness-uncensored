@@ -195,6 +195,19 @@ it('initializes shared storage only after acquiring the preflight stage lock', a
   await packageTarget(parseDesktopPackageInvocation(['win-x64'], 'win32', 'x64'), environment, run)
 })
 
+it('stops Windows packaging before recording a release when the final blockmap fails verification', async () => {
+  const stage = 'exec tsx scripts/verify-windows-installer-blockmap.ts'
+  const { run, stages } = supervisor(stage)
+  const invocation = parseDesktopPackageInvocation(['win-x64'], 'win32', 'x64')
+  const settings = { ...environment, DSH_DESKTOP_BUILD_VERSION: '2026.11.18.10' }
+  await expect(packageTarget(invocation, settings, run)).rejects.toThrow('stage refused')
+  const verification = run.run.mock.calls.find(([name]) => name.startsWith(stage))!
+  expect(verification[2].at(-1)).toMatch(/[\\/]deepseek-harness-uncensored-2026\.11\.18\.10-win-x64\.exe$/u)
+  expect(verification[3].env).not.toHaveProperty('DSH_DESKTOP_WINDOWS_TOKEN_PIN')
+  expect(stages.at(-1)).toBe(verification[0])
+  expect(writeFileSync).not.toHaveBeenCalled()
+})
+
 it.each(['preflight:windows-signing', 'run build:official', 'run sign:primary-runtime', 'run prepare:dsh --defer-runtime-smoke', 'run sign:primary-runtime --dsh',
   'exec tsx scripts/smoke-packaged-runtime.ts',
   'exec electron-builder --config electron-builder.config.mjs --win --x64 --publish never'])

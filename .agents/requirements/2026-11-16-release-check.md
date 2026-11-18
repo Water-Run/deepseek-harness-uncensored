@@ -16,6 +16,10 @@ GitHub HTTP 429、主额度耗尽的响应头或数字 `Retry-After` 会产生�
 
 清单检查和完整包下载跨请求保留重定向次数。Electron 44.7.0 的回环场景确认，两条路径均在第 11 次重定向时返回错误。完整包下载失败后没有可安装目标，恢复正常响应后可显式重试。清单回环仍出现上游的 `MaxListenersExceededWarning`，校验确认请求结束后该取消令牌的监听数回到零。17 个真实传输场景与 54 项定向单元测试通过，回环证据在 `apps/desktop/.desktop-build/qualification/local-updater-aj6Yvz/`。此修复进入下一次打包。
 
+## Windows 差分索引核验
+
+完整 Windows 打包在写入成功回执前核验最终安装器和外部 `.blockmap`。定向用例覆盖等长安装器的错配索引、损坏索引，以及校验失败后中止并保留发布回执为缺失状态。86 项打包与发布材料测试通过。用该校验器复算当前 18.10 未签名安装器的实际索引，内容一致，回执为 `candidate-2026.11.18.10/installer-blockmap-verification.json`。真实签名安装器和在线升级仍待验收。[打包说明](../../apps/desktop/packaging/README.zh.md)
+
 ## 验收
 
 - 两个所属测试文件在 Windows/Linux 各 28 项通过，覆盖 403/429、主/次级期限、重叠期限、无效数值、普通拒绝、不会自动重试，以及中英文弹窗关闭/重开和到期后的显式重试。

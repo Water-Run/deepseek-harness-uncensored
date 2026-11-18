@@ -25,7 +25,7 @@ import {
 import { resolveDesktopBuildCommit } from './desktop-build-commit.mjs'
 import { uncensoredUpdateConfig } from './uncensored-update.mjs'
 import { resolveDesktopBuildVersion } from './desktop-build-version.mjs'
-import { desktopArtifactOutput, desktopTargetBuildPaths, resolveDesktopBuildTarget } from './desktop-build-paths.mjs'
+import { desktopArtifactFilename, desktopArtifactOutput, desktopTargetBuildPaths, resolveDesktopBuildTarget } from './desktop-build-paths.mjs'
 import { installWindowsDirectoryInstaller } from './windows-directory-installer.mjs'
 import { preserveWindowsRuntimeSignature, signWindowsCode } from './windows-runtime-signature.mjs'
 import { prepareWindowsAsarUnpack, verifyWindowsAsarUnpack } from './windows-asar-unpack.mjs'
@@ -130,7 +130,7 @@ export function createElectronBuilderConfig(
     // The default copyright uses author.name; this line names the product instead.
     copyright: `Copyright © ${new Date().getFullYear()} \${productName}`,
     // Unsigned builds carry their own suffix so a shared file can never pass for a release artifact.
-    artifactName: `deepseek-harness-uncensored-${calendarVersion === undefined ? '${version}' : displayVersion}-\${os}-\${arch}${output.suffix}.\${ext}`,
+    artifactName: desktopArtifactFilename(calendarVersion === undefined ? '${version}' : displayVersion, '${os}', '${arch}', output.suffix, '${ext}'),
     directories: { output: output.directory },
     asar: true,
     electronDist: buildPaths.electron,

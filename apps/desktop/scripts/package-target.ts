@@ -9,7 +9,7 @@ import {
   desktopBuildRecordFilename,
 } from './desktop-auto-update-environment.mjs'
 import { uncensoredUpdateConfig } from './uncensored-update.mjs'
-import { desktopArtifactOutput, desktopTargetBuildPaths } from './desktop-build-paths.mjs'
+import { desktopArtifactFilename, desktopArtifactOutput, desktopTargetBuildPaths } from './desktop-build-paths.mjs'
 import { packageMacOSArtifacts, type DesktopPrepackagedArtifact } from './package-macos.ts'
 import { loadDesktopPackageEnvironment, localUnsignedPackageEnvironment, validateDesktopPackageEnvironment } from './desktop-package-environment.mjs'
 import { createPackagingRun, recordPackagingEvent } from './packaging-run.mjs'
@@ -444,7 +444,7 @@ export async function packageTarget(
     rmSync(releaseRecordPath, { force: true })
     rmSync(`${releaseRecordPath}.tmp`, { force: true })
   }
-  const artifactsRoot = desktopArtifactOutput(buildPaths, invocation).directory
+  const { directory: artifactsRoot, suffix: artifactSuffix } = desktopArtifactOutput(buildPaths, invocation)
   const buildEnv = withoutWindowsSigningEnvironment(withoutDesktopUploadCredentials(
     desktopElectronBuilderEnvironment(environment, invocation.unsigned)))
   const targetEnv: NodeJS.ProcessEnv = {
@@ -574,6 +574,11 @@ export async function packageTarget(
       }
     } else {
       await signedStage('artifacts', () => execute(desktopElectronBuilderArguments(target, invocation.directory), electronBuilderEnv))
+    }
+    if (target.platform === 'win32' && !invocation.directory) {
+      const version = resolveDesktopBuildVersion(environment, packageVersion(join(APP_ROOT, 'package.json'), 'desktop package'))
+      const name = desktopArtifactFilename(displayProductVersion(version), 'win', target.arch, artifactSuffix, 'exe')
+      await execute(['exec', 'tsx', 'scripts/verify-windows-installer-blockmap.ts', join(artifactsRoot, name)], targetEnv)
     }
     await execute(['exec', 'tsx', 'scripts/smoke-packaged-runtime.ts',
       ...(invocation.unsigned ? ['--unsigned'] : []), ...(invocation.skipNotarization ? ['--skip-notarization'] : [])], targetEnv)
