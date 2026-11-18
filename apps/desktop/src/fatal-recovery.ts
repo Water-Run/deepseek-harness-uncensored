@@ -26,6 +26,9 @@ export const CRASH_REPORT_WAIT_MS = 1_000
 /** The dialog's `detail` budget in characters, within which the native message box stays readable. */
 const DETAIL_BUDGET = 1200
 
+/** Leave space for the error tail and recovery instructions when a report is saved in a deep directory. */
+const REPORT_PATH_BUDGET = 400
+
 /** Tail lines of the error kept in the dialog; the report file holds the rest. */
 const DETAIL_TAIL_LINES = 8
 
@@ -44,7 +47,11 @@ function dialogDetail(error: string, messages: DesktopMessages, reportState: Rep
 function reportLine(messages: DesktopMessages, state: ReportState): string {
   if (state.kind === 'pending') return `\n${messages.reportPending}`
   if (state.kind === 'failed') return `\n${messages.reportUnavailable}`
-  return `\n${formatDesktopMessage(messages.reportWrittenTo, { path: state.path })}`
+  const path = state.path.replace(/[\n\r\u2028\u2029]/gu, ' ')
+  const shownPath = path.length <= REPORT_PATH_BUDGET
+    ? path
+    : `…${path.slice(-(REPORT_PATH_BUDGET - 1)).replace(/^[\uDC00-\uDFFF]/u, '')}`
+  return `\n${formatDesktopMessage(messages.reportWrittenTo, { path: shownPath })}`
 }
 
 /** Deduplicates fatal reports while keeping explicit recovery-operation failures actionable. */

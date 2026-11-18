@@ -185,6 +185,26 @@ it('keeps the report line inside the detail budget when the error is long', asyn
   await pending
 })
 
+it.each([
+  { error: 'Host failed\n' + '😀'.repeat(1000) + '\nfinal backend failure', reportButton: 3 },
+  { error: 'listen EADDRINUSE: address already in use 127.0.0.1:19387', reportButton: 2 },
+])('bounds an oversized report path and reveals the original file (button $reportButton)', async ({ error, reportButton }) => {
+  const filename = 'crash-2026-11-18-host.log'
+  const path = `C:\\Users\\${'😀folder\\'.repeat(200)}${filename}`
+  const { operations, stopped, recovery } = fixture('en', async () => path)
+  operations.show.mockResolvedValueOnce({ response: reportButton, checkboxChecked: false })
+    .mockResolvedValueOnce({ response: 0, checkboxChecked: false })
+  stopped.resolve(undefined)
+  await recovery.report(new Error(error), 'host')
+
+  const detail = operations.show.mock.calls[0]![0].detail!
+  expect(detail.length).toBeLessThanOrEqual(1200)
+  expect(detail.isWellFormed()).toBe(true)
+  expect(detail).toContain(filename)
+  expect(detail).toContain(reportButton === 3 ? 'final backend failure' : operations.messages().startupAddressInUse)
+  expect(operations.revealReport).toHaveBeenCalledExactlyOnceWith(path)
+})
+
 it('names the report file in the listener-conflict dialog too', async () => {
   const { operations, choice, stopped, recovery } = fixture('en', async () => REPORT_PATH)
   const pending = recovery.report(new Error('listen EADDRINUSE: address already in use 127.0.0.1:19387'), 'host')
