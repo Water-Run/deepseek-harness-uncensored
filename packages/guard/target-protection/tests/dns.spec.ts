@@ -126,6 +126,28 @@ it('rejects cyclic or conflicting aliases', async () => {
   await expect(resolveTargetDns('entry.test', conflict, AbortSignal.timeout(3000))).rejects.toThrow()
 })
 
+it('rejects an alias owner carrying address data for either family', async () => {
+  const options = await fixture(query => response(query, [
+    { type: 'CNAME', name: 'entry.test', data: 'resolved.test', ttl: 1 }, ...addresses(query),
+    ...(query.questions?.[0]?.type === 'A'
+      ? [{ type: 'AAAA' as const, name: 'entry.test', data: '2001:db8::20', ttl: 1 }] : []),
+  ]))
+  await expect(resolveTargetDns('entry.test', options, AbortSignal.timeout(3000))).rejects.toMatchObject({
+    code: 'unavailable', cause: { errors: [expect.objectContaining({ message: 'Conflicting DNS records for the same name.' })] },
+  })
+})
+
+it.each(['address', 'alias'] as const)('rejects inconsistent alias evidence across A and AAAA replies (%s)', async (kind) => {
+  const options = await fixture((query) => {
+    const ipv6 = query.questions?.[0]?.type === 'AAAA'
+    if (ipv6 && kind === 'address') return response(query, addresses(query, 'entry.test'))
+    const canonical = ipv6 ? 'alternate.test' : 'resolved.test'
+    return response(query, [{ type: 'CNAME', name: 'entry.test', data: canonical, ttl: 1 }, ...addresses(query, canonical)])
+  })
+  await expect(resolveTargetDns('entry.test', options, AbortSignal.timeout(3000)))
+    .rejects.toMatchObject({ code: 'unavailable', message: 'A and AAAA answers disagree about a DNS alias.' })
+})
+
 it('rejects mismatched questions and closes a cancelled unanswered exchange', async () => {
   const wrong = await fixture(query => ({ ...response(query), questions: [{ name: 'other.test', type: 'A', class: 'IN' }] }))
   await expect(resolveTargetDns('entry.test', wrong, AbortSignal.timeout(3000))).rejects.toThrow()

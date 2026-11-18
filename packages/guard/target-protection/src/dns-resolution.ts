@@ -117,9 +117,10 @@ async function family(host: string, type: 'A' | 'AAAA', options: TargetDnsOption
     for (;;) {
       const relevant = answers.filter(answer => canonicalDnsName(answer.name) === current)
       const aliases = relevant.filter((answer): answer is packet.StringAnswer => answer.type === 'CNAME')
-      const addressRecords = relevant.filter((answer): answer is packet.StringAnswer => answer.type === type)
-      if (aliases.length > 1 || (aliases.length > 0 && addressRecords.length > 0)) throw new Error('Conflicting DNS alias and address records.')
       const alias = aliases[0]
+      if (aliases.length > 1 || (alias !== undefined && relevant.some(answer => answer.type === 'A' || answer.type === 'AAAA'))) {
+        throw new TargetProtectionError('unavailable', 'Conflicting DNS records for the same name.')
+      }
       if (alias !== undefined) {
         if (seen.has(current) || names.length > options.maxCnameDepth) throw new Error('DNS alias chain is cyclic or too deep.')
         seen.add(current)
@@ -128,6 +129,7 @@ async function family(host: string, type: 'A' | 'AAAA', options: TargetDnsOption
         names.push(current); advanced = true
         continue
       }
+      const addressRecords = relevant.filter((answer): answer is packet.StringAnswer => answer.type === type)
       if (addressRecords.length > 0) {
         const expected = type === 'A' ? 4 : 6
         const addresses = addressRecords.map((record) => {
@@ -167,10 +169,22 @@ export async function resolveTargetDns(hostname: string, options: TargetDnsOptio
   signal.throwIfAborted()
   const failures: unknown[] = []
   const names = new Set([host]), addresses = new Map<string, { address: string; family: 4 | 6 }>()
+  // A record owner maps to its CNAME, or to null when it owns addresses directly.
+  const ownerRecords = new Map<string, string | null>()
   for (const result of results) {
     if (result.status === 'rejected') { failures.push(result.reason); continue }
-    for (const name of result.value.names) names.add(name)
-    for (const address of result.value.addresses) addresses.set(address.address, address)
+    const { names: chain, addresses: peers } = result.value
+    for (const [index, name] of chain.entries()) {
+      names.add(name)
+      const record = chain[index + 1] ?? (peers.length > 0 ? null : undefined)
+      if (record === undefined) continue
+      const existing = ownerRecords.get(name)
+      if (existing !== undefined && existing !== record) {
+        throw new TargetProtectionError('unavailable', 'A and AAAA answers disagree about a DNS alias.')
+      }
+      ownerRecords.set(name, record)
+    }
+    for (const address of peers) addresses.set(address.address, address)
   }
   if (failures.length > 0 || addresses.size === 0 || addresses.size > options.maxRecords || names.size > options.maxRecords) {
     throw new TargetProtectionError('unavailable', 'DNS did not provide a complete bounded destination identity.', { cause: new AggregateError(failures) })
