@@ -18,6 +18,8 @@ Frida Node 绑定的固定发布提交声明 `LGPL-2.0 WITH WxWindows-exception-
 
 以 Windows 18.6 实装的 920 个包复算，补充声明从 22 份增至 23 份，仅 Frida 记录增加一项，待核查仍为 6 项。实装 ASAR 摘要保持一致，其中的绑定二进制也与已核对的官方 Windows 预构建摘要一致。18 项清点器测试通过。复算回执位于 `%USERPROFILE%/DSHU-Deliveries/20261118/license-review/frida-lgpl-17.23.2-notice-projection.json`。
 
+Frida 17.23.2 的 npm 发布元数据、对应源码和 Windows 18.11 实装包均声明 `LGPL-2.0 WITH WxWindows-exception-3.1`。打包按此版本补入 SPDX 3.29.0 的例外原文，核对了 Git blob 和 SHA-256。用实装 920 个包复算，声明从 23 份增至 24 份，仅 Frida 记录变化，6 项待核查保留。实装 ASAR 摘要一致，19 项清点器测试通过。新文件随下次打包分发，回执为 `frida-wx-exception-17.23.2-notice-projection.json`。[npm 发布记录](https://registry.npmjs.org/frida/17.23.2) · [固定例外原文](https://raw.githubusercontent.com/spdx/license-list-data/31ba1a50e5397e00a304dbadc76531740e89ee48/text/WxWindows-exception-3.1.txt)
+
 ## Windows 18.4 实装依赖路径
 
 实装中 LibreOffice Kit 0.2.3 引入 Fontkit 2.0.4，后者引入 Brotli 1.3.3 和 dfa 1.2.0。HTTP 与 HTTPS Proxy Agent 9.1.0 均引入 proxy-agent-negotiate 1.1.0。REA 6.9.0 引入 Frida 17.23.2，isomorphic-git 1.38.7 引入 minimisted 2.0.1。入口分别对应 Office、代理、REA 和 Git，后续替换须验证受影响的功能。实装清单与路径回执位于 `%USERPROFILE%/DSHU-Deliveries/20261118/candidate-2026.11.18.4/installed-notice-inventory.json`。
