@@ -168,7 +168,7 @@ function writeRuntimeDescriptor(root: string, descriptor: DesktopRuntimeDescript
 }
 
 /**
- * Read packaged metadata and check shared package records.
+ * Read packaged metadata in the supported descriptor format and check shared package records.
  * @param root - Current application's runtime resources.
  * @returns Runtime metadata whose release compatibility is verified during packaging.
  */
@@ -178,6 +178,7 @@ export function readDesktopRuntime(root: string): DesktopRuntimeDescriptor {
     || !Array.isArray(value.sharedPackages) || !Array.isArray(value.files)) {
     throw new Error('desktop runtime: invalid descriptor')
   }
+  if (value.schemaVersion !== 1) throw new Error('desktop runtime: unsupported descriptor schema version')
   if (!record(value.release) || typeof value.release.version !== 'string' || typeof value.release.engineVersion !== 'string'
     || typeof value.release.nodeVersion !== 'string' || typeof value.release.pnpmVersion !== 'string') {
     throw new Error('desktop runtime: invalid release fields')
@@ -199,7 +200,7 @@ export function readDesktopRuntime(root: string): DesktopRuntimeDescriptor {
       throw new Error(`desktop runtime: missing or mismatched ${name}`)
     }
   }
-  return { schemaVersion: value.schemaVersion as 1, release, platform: value.platform as NodeJS.Platform,
+  return { schemaVersion: value.schemaVersion, release, platform: value.platform as NodeJS.Platform,
     arch: value.arch, sharedPackages, files }
 }
 
@@ -215,10 +216,8 @@ export async function verifyDesktopRuntime(
   root: string, expectedVersion: string, target: { platform: NodeJS.Platform; arch: string } = process,
 ): Promise<DesktopRuntimeDescriptor> {
   const descriptor = readDesktopRuntime(root)
-  // readDesktopRuntime preserves the disk schema value without validating release compatibility.
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (descriptor.schemaVersion !== 1 || descriptor.platform !== target.platform || descriptor.arch !== target.arch) {
-    throw new Error('desktop runtime: invalid descriptor or incompatible platform/architecture')
+  if (descriptor.platform !== target.platform || descriptor.arch !== target.arch) {
+    throw new Error('desktop runtime: incompatible platform/architecture')
   }
   const release = parseDesktopRelease(descriptor.release)
   if (release.version !== expectedVersion) throw new Error(`desktop runtime: bundled ${release.version} is not the expected ${expectedVersion}`)

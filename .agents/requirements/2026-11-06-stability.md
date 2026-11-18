@@ -104,6 +104,8 @@ Windows 原生 NSIS 隔离夹具通过 11 个目录替换场景。待安装目�
 
 回执位于 `%USERPROFILE%/DSHU-Deliveries/20261118/` 的 `updater-handoff-loopback-final.log` 与 `windows-directory-rollback-18-4.log`。
 
+桌面启动现在拒绝不受支持的运行时描述格式版本，并进入现有恢复流程。回归使用结构完整但格式版本不受支持的描述。修复前，启动准备继续写入插件资料。修复后，启动准备拒绝，已有补丁内容保持一致，临时锁已释放。相关修复进入下一次打包。[故障恢复说明](../../apps/desktop/docs/diagnostics/README.zh.md#recovery)
+
 ## 更新工作区运行器（2026-11-16）
 
 私有 Electron 测试应用使用开发项目依赖投影、当前客户端版本和完整欢迎页资源，通过原生跳过操作进入工作区，不提供模型密钥。截图中的 `desktop account: this application build carries no DSH_CLIENT_VERSION` 来自此前遗漏版本的测试配置；已安装 `.16.3` 不使用这个配置。意外致命错误转为测试失败，不打开人工恢复弹窗。

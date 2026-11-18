@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { resolveDesktopPaths } from '../src/paths.ts'
 import { DesktopProjectManager } from '../src/project-manager.ts'
+import { DESKTOP_RUNTIME_FILE, readDesktopRuntime } from '../src/runtime-tree.ts'
 import { readProfilePlugins } from '@deepseek-ai/dsh-app-boot'
 import { runtimeFixture } from './runtime-fixture.ts'
 
@@ -172,6 +173,20 @@ describe('desktop external plugin profile', () => {
     const { manager } = setup()
     writeFileSync(join(manager.runtime.dsh, 'desktop-runtime.json'), '{broken')
     await expect(manager.applyRelease()).rejects.toThrow()
+  })
+
+  it('rejects an unsupported runtime descriptor before initializing the profile', async () => {
+    const { manager } = setup()
+    const { dsh } = manager.runtime
+    const descriptor = readDesktopRuntime(dsh)
+    writeFileSync(join(dsh, DESKTOP_RUNTIME_FILE), JSON.stringify({ ...descriptor, schemaVersion: 2 }))
+    mkdirSync(manager.paths.profile, { recursive: true })
+    const patch = '# user profile\n[]\n'
+    writeFileSync(join(manager.paths.profile, 'cordis.patch.yml'), patch)
+
+    await expect(manager.applyRelease()).rejects.toThrow('unsupported descriptor schema version')
+    expect(readdirSync(manager.paths.profile)).toEqual(['cordis.patch.yml'])
+    expect(readFileSync(join(manager.paths.profile, 'cordis.patch.yml'), 'utf8')).toBe(patch)
   })
 
   it('preserves unknown files when initializing a profile', async () => {

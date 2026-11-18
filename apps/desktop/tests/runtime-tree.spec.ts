@@ -94,7 +94,6 @@ it('checks the bundled version only during build verification', async () => {
   await expect(verifyDesktopRuntime(dsh, '2.0.0')).rejects.toThrow(/bundled 1\.0\.0 is not the expected 2\.0\.0/u)
 })
 it.each([
-  { schemaVersion: 2 },
   { platform: 'other' },
   { arch: 'other' },
   { release: { schemaVersion: 1 } },
