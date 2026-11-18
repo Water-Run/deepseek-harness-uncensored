@@ -1,5 +1,8 @@
+import { mkdtemp, rmdir, unlink, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { expect, it } from 'vitest'
-import { forkUpdateSource } from '../src/update-source.ts'
+import { forkUpdateSource, readInstalledUpdateSource } from '../src/update-source.ts'
 
 it('accepts this fork and its packaged GitHub artifact feed', () => {
   expect(forkUpdateSource({ provider: 'github', owner: 'Water-Run', repo: 'deepseek-harness-uncensored' })).toMatchObject({ provider: 'github' })
@@ -26,4 +29,26 @@ it.each([
 it('rejects an overridden GitHub host and unknown provider', () => {
   expect(() => forkUpdateSource({ provider: 'github', owner: 'Water-Run', repo: 'deepseek-harness-uncensored', host: 'elsewhere.invalid' })).toThrow()
   expect(() => forkUpdateSource({ provider: 's3' })).toThrow()
+})
+
+it('requires a single complete publisher in installed Windows configuration', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'dshu-update-source-'))
+  const path = join(directory, 'app-update.yml')
+  const source = { provider: 'github', owner: 'Water-Run', repo: 'deepseek-harness-uncensored' }
+  const publisher = String.raw`CN=Fixture\20Publisher,O=Fixture\2c\20Inc.,C=CN`
+  await writeFile(path, JSON.stringify(source))
+  try {
+    await expect(readInstalledUpdateSource(directory, 'linux')).resolves.toEqual(source)
+    await expect(readInstalledUpdateSource(directory, 'win32')).rejects.toThrow(/installed Windows publisher/u)
+    for (const publisherName of [null, [], [''], 'CN=Fixture', [publisher, publisher], `${publisher},O=Other`]) {
+      await writeFile(path, JSON.stringify({ ...source, publisherName }))
+      await expect(readInstalledUpdateSource(directory, 'win32')).rejects.toThrow(/installed Windows publisher/u)
+    }
+    const signed = { ...source, publisherName: [publisher] }
+    await writeFile(path, JSON.stringify(signed))
+    await expect(readInstalledUpdateSource(directory, 'win32')).resolves.toEqual(signed)
+  } finally {
+    await unlink(path)
+    await rmdir(directory)
+  }
 })

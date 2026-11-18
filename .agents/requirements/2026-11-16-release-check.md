@@ -44,6 +44,8 @@ Windows 签名构建在同一步核对 `latest.yml` 的内部分发版本、唯�
 
 真实 Electron 44.7.0 本地更新夹具通过 19 个场景，新增在重启准备期间改写或删除安装文件的两项检查。两项均拒绝交接，显式重试发起新下载，并对恢复后的文件完成模拟交接。夹具没有执行安装器。结果位于 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-updater-handoff/result.json`。[更新流程](../../apps/desktop/README.zh.md#updates)
 
+Windows 在构建更新提供方前检查已安装的 `app-update.yml`，要求 `publisherName` 含一份完整的 `CN`、`O` 和 `C`。缺失、空白、属性不全或多身份使检查直接失败。更新配置、更新协调器和打包签名配置共 64 项定向测试通过。此项验证覆盖配置准入，签名在线升级仍待实包验收。[签名配置](../../apps/desktop/windows-signing/README.zh.md#signing-configuration)
+
 ## 验收
 
 - 两个所属测试文件在 Windows/Linux 各 28 项通过，覆盖 403/429、主/次级期限、重叠期限、无效数值、普通拒绝、不会自动重试，以及中英文弹窗关闭/重开和到期后的显式重试。

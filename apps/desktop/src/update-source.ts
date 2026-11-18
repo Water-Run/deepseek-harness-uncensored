@@ -8,12 +8,27 @@ export type ForkUpdateSource =
   | { provider: 'github'; owner: 'Water-Run'; repo: 'deepseek-harness-uncensored' }
   | { provider: 'generic'; url: string; useMultipleRangeRequest: false }
 
+// The Windows packager escapes literal separators and spaces in the certificate attributes.
+const PUBLISHER_ATTRIBUTE = String.raw`(?:[^\s\p{Cc}\\",;+]|\\[\da-fA-F]{2})+`
+const WINDOWS_PUBLISHER = new RegExp(`^CN=${PUBLISHER_ATTRIBUTE},O=${PUBLISHER_ATTRIBUTE},C=[A-Za-z]{2}$`, 'u')
+
 /**
- * Read the installed update provider configuration for validation.
+ * Read the installed update configuration and require the packaged Windows publisher identity.
+ * @param resourcesDirectory - Directory containing app-update.yml.
+ * @param platform - Platform of the installed package.
  * @returns Untrusted configuration; missing or malformed files reject.
  */
-export async function readInstalledUpdateSource(): Promise<unknown> {
-  return load(await readFile(join(process.resourcesPath, 'app-update.yml'), 'utf8'))
+export async function readInstalledUpdateSource(resourcesDirectory = process.resourcesPath, platform = process.platform): Promise<unknown> {
+  const configuration = load(await readFile(join(resourcesDirectory, 'app-update.yml'), 'utf8'))
+  if (platform === 'win32') {
+    const publisher = typeof configuration === 'object' && configuration !== null && 'publisherName' in configuration
+      ? configuration.publisherName : undefined
+    const name: unknown = Array.isArray(publisher) && publisher.length === 1 ? publisher[0] : publisher
+    if (typeof name !== 'string' || !WINDOWS_PUBLISHER.test(name)) {
+      throw new Error('desktop update: installed Windows publisher must specify one CN, O, and C')
+    }
+  }
+  return configuration
 }
 
 /**
