@@ -74,7 +74,7 @@ class ProtectedProxyEngine extends SecurityProxyEngine {
     signal.throwIfAborted()
   }
 
-  private async resolve(url: URL, signal: AbortSignal): Promise<readonly PublicAddress[]> {
+  private async resolve(url: URL, signal: AbortSignal): Promise<{ addresses: readonly PublicAddress[]; revision: number }> {
     const authority = { origin: url.origin, hostname: url.hostname, port: Number(url.port || (url.protocol === 'https:' ? 443 : 80)) }
     await this.authorize({ ...authority, phase: 'before-resolution', route: 'proxy' }, signal)
     const snapshot = await this.protection.snapshot()
@@ -86,7 +86,7 @@ class ProtectedProxyEngine extends SecurityProxyEngine {
     if (ownerTest && (await this.protection.snapshot()).revision !== snapshot.revision) {
       throw new WebError('The private target exception changed during resolution; no connection was opened.', 'TARGET_POLICY_CHANGED')
     }
-    return addresses
+    return { addresses, revision: snapshot.revision }
   }
 
   protected override async requestHttp(
@@ -104,17 +104,36 @@ class ProtectedProxyEngine extends SecurityProxyEngine {
       } else if (name.toLowerCase() !== 'proxy-authorization') headers[name] = value
     }
     headers.host = target.host
-    const addresses = await this.resolve(target, signal)
+    const { addresses, revision } = await this.resolve(target, signal)
     const proxy = new URL(proxyUrl(upstream))
     if (upstream.password !== undefined) { proxy.username = upstream.username; proxy.password = upstream.password }
-    const exchange = await requestPinnedViaProxy(proxy.toString(), target, addresses, headers, signal, {
-      method: request.method, ...request.body === undefined ? {} : { body: request.body },
+    signal.throwIfAborted()
+    const revocation = new AbortController()
+    const closed = Promise.withResolvers<undefined>()
+    const release = this.protection.retainNativeExecution(revision, () => {
+      revocation.abort()
+      return closed.promise
     })
+    const finish = (): void => {
+      try { release() } finally { closed.resolve(undefined) }
+    }
+    let exchange: PinnedResponse
+    try {
+      exchange = await requestPinnedViaProxy(proxy.toString(), target, addresses, headers, AbortSignal.any([signal, revocation.signal]), {
+        method: request.method, ...request.body === undefined ? {} : { body: request.body },
+      })
+    } catch (error) {
+      finish()
+      throw error
+    }
     return {
       response: exchange.response,
       async close() {
         try { await exchange.response.body?.cancel().catch(() => undefined) }
-        finally { await exchange.close() }
+        finally {
+          try { await exchange.close() }
+          finally { finish() }
+        }
       },
     }
   }
@@ -130,17 +149,23 @@ class ProtectedProxyEngine extends SecurityProxyEngine {
       throw new WebError('An opaque tunnel requires an exact test-server IP rule. Use the guarded HTTP client for hostnames.',
         'TARGET_EXECUTION_UNCONFINED')
     }
-    const addresses = await this.resolve(target, signal)
+    const { addresses } = await this.resolve(target, signal)
     const address = addresses.at(0)
     if (address === undefined || addresses.length !== 1 || canonicalTargetHost(address.address) !== literal) {
       throw new WebError('The opaque tunnel did not resolve to its authorized IP.', 'TARGET_IDENTITY_UNVERIFIED')
     }
+    return this.connectRetained(upstream, address.address, port, snapshot.revision, signal)
+  }
+
+  private async connectRetained(
+    upstream: Upstream, address: string, port: number, revision: number, signal: AbortSignal,
+  ): Promise<UpstreamTunnel> {
     signal.throwIfAborted()
     const revocation = new AbortController()
     const closed = Promise.withResolvers<undefined>()
     let tunnel: UpstreamTunnel | undefined
-    const release = this.protection.retainNativeExecution(snapshot.revision, () => {
-      revocation.abort(new WebError('The test-server tunnel was revoked.', 'TARGET_POLICY_CHANGED'))
+    const release = this.protection.retainNativeExecution(revision, () => {
+      revocation.abort(new WebError('The proxy connection was revoked.', 'TARGET_POLICY_CHANGED'))
       tunnel?.socket.destroy()
       return closed.promise
     })
@@ -151,7 +176,7 @@ class ProtectedProxyEngine extends SecurityProxyEngine {
     }
     const execution = AbortSignal.any([signal, revocation.signal])
     try {
-      tunnel = await connectThrough(upstream, address.address, port, this.options.connectTimeoutMs, execution)
+      tunnel = await connectThrough(upstream, address, port, this.options.connectTimeoutMs, execution)
       if (tunnel.socket.closed) finish()
       else tunnel.socket.once('close', finish)
       execution.throwIfAborted()
@@ -167,10 +192,10 @@ class ProtectedProxyEngine extends SecurityProxyEngine {
   protected override async probe(upstream: Upstream, signal: AbortSignal): Promise<number> {
     const started = performance.now()
     const target = guardedTunnelUrl(this.options.testTarget.host, this.options.testTarget.port)
-    const addresses = await this.resolve(target, signal)
+    const { addresses, revision } = await this.resolve(target, signal)
     const address = addresses.at(0)
     if (address === undefined) throw new WebError('The proxy check has no authorized destination.', 'TARGET_IDENTITY_UNVERIFIED')
-    const tunnel = await connectThrough(upstream, address.address, this.options.testTarget.port, this.options.connectTimeoutMs, signal)
+    const tunnel = await this.connectRetained(upstream, address.address, this.options.testTarget.port, revision, signal)
     if (!tunnel.socket.closed) {
       await new Promise<void>((resolve) => { tunnel.socket.once('close', () => { resolve() }); tunnel.socket.destroy() })
     }

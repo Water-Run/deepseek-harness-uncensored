@@ -434,17 +434,26 @@ it('rejects an empty destination and an opaque IPv6 authority without opening up
 
 it('checks each redirect against another connection’s committed rules', async () => {
   const h = await harness()
+  const store = await TargetStore.open(h.rulesPath, 0)
+  const initial = store.snapshot()
   let requests = 0
-  h.respond(async (_request, response) => {
+  let resolutions = 0
+  h.respond((_request, response) => {
     requests++
-    const store = await TargetStore.open(h.rulesPath, 1000)
-    try { store.configure({ mainlandEnabled: false, rules: [production()] }, store.snapshot().revision) }
-    finally { store.close() }
     response.writeHead(302, { location: '/after-change' }); response.end()
+    return Promise.resolve()
   })
-  await expect(h.fetch('redirect')).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
-  expect(requests).toBe(1)
-  expect(h.tunnels).toHaveLength(1)
+  h.ctx.on('web-fetch/authorize', (destination) => {
+    if (destination.phase === 'before-resolution' && ++resolutions === 2) {
+      store.configure({ mainlandEnabled: false, rules: [production()] }, initial.revision)
+    }
+    return undefined
+  })
+  try {
+    await expect(h.fetch('redirect')).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+    expect(requests).toBe(1)
+    expect(h.tunnels).toHaveLength(1)
+  } finally { store.close() }
 })
 
 it.each([false, true])('settles a probe whose socket closed before the consumer resumed (reset=%s)', async (reset) => {
@@ -539,6 +548,8 @@ it('closes a live literal tunnel when its test-server rule is revoked', async ()
 
 it('aborts a streaming target when policy changes and withdraws both guarded consumers', async () => {
   const h = await harness()
+  const writer = await TargetStore.open(h.rulesPath, 0)
+  const before = writer.snapshot()
   const reached = Promise.withResolvers<boolean>(), closed = Promise.withResolvers<boolean>()
   h.respond((_request, response) => {
     response.once('close', () => { closed.resolve(true) })
@@ -548,10 +559,15 @@ it('aborts a streaming target when policy changes and withdraws both guarded con
   })
   const request = h.fetch()
   const outcome = request.catch((error: unknown) => error)
-  await reached.promise
-  await h.configure([production()])
-  expect(await outcome).toBeInstanceOf(Error)
-  await closed.promise
+  try {
+    await reached.promise
+    expect(() => writer.configure({ mainlandEnabled: false, rules: [] }, before.revision))
+      .toThrow(expect.objectContaining({ code: 'busy' }))
+    await h.configure([production()])
+    expect(await outcome).toBeInstanceOf(Error)
+    await closed.promise
+    expect(writer.snapshot().revision).toBe(before.revision + 1)
+  } finally { writer.close() }
   const previous = h.ctx.securityProxy
   const entry = [...h.ctx.loader.entries()].find(entry => entry.options.id === 'protection')
   if (entry?.fiber === undefined) throw new Error('rule owner missing')
