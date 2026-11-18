@@ -26,8 +26,12 @@ const responseSchema = z.discriminatedUnion('phase', [
   z.object({ phase: z.literal('executing') }).strict(),
   z.object({ phase: z.literal('prepared'), results: resultsSchema }).strict(),
   z.object({ phase: z.literal('committed') }).strict(),
-  z.object({ phase: z.literal('failed'), code: z.enum(['SQLITE_RUNTIME_UNAVAILABLE', 'SQLITE_MULTIPLE_STATEMENTS', 'SQLITE_OUTPUT_LIMIT',
-    'SQLITE_QUERY_REFUSED', 'SQLITE_READ_ONLY', 'SQLITE_OPERATION_UNSUPPORTED', 'SQLITE_OUTCOME_UNKNOWN']), rolledBack: z.boolean() }).strict(),
+  z.object({
+    phase: z.literal('failed'),
+    code: z.enum(['SQLITE_RUNTIME_UNAVAILABLE', 'SQLITE_MULTIPLE_STATEMENTS', 'SQLITE_OUTPUT_LIMIT', 'SQLITE_QUERY_REFUSED',
+      'SQLITE_READ_ONLY', 'SQLITE_OPERATION_UNSUPPORTED', 'SQLITE_OUTCOME_UNKNOWN', 'TARGET_IDENTITY_UNVERIFIED']),
+    rolledBack: z.boolean(),
+  }).strict(),
 ])
 
 /** Explicit local database bindings and per-request limits. */
@@ -174,12 +178,15 @@ export default class SqliteDatabase extends Service {
           if (next.done) throw new HarnessError('SQLite helper ended without confirming its outcome; inspect the database before retrying.', 'SQLITE_OUTCOME_UNKNOWN')
           if (Buffer.byteLength(next.value) > this.config.maxResultBytes) throw new HarnessError('SQLite output exceeds its limit.', 'SQLITE_OUTPUT_LIMIT')
           const response = responseSchema.parse(JSON.parse(next.value))
+          if (response.phase === 'failed' && response.rolledBack && response.code === 'TARGET_IDENTITY_UNVERIFIED') {
+            throw new HarnessError('SQLite file identity changed before execution. Check the configured database before retrying.', response.code)
+          }
           if (response.phase === 'failed') throw new HarnessError(response.rolledBack
             ? 'SQLite statement was refused or failed; its transaction was rolled back. Check the SQL and protection settings.'
             : 'SQLite cleanup could not confirm rollback; inspect the database before retrying.', response.code)
           return response
         }
-        handle.stdin.write(JSON.stringify({ path: before.path, readOnly: request.readOnly || before.readOnly,
+        handle.stdin.write(JSON.stringify({ path: before.path, fileId: `${info.dev}:${info.ino}`, readOnly: request.readOnly || before.readOnly,
           statements: request.statements, maxRows: this.config.maxRows, maxBytes: this.config.maxResultBytes,
           heapBytes: this.config.heapBytes, busyMs: this.config.busyTimeoutMs }) + '\n')
         if ((await receive()).phase !== 'executing') throw new HarnessError('SQLite helper did not start execution.', 'SQLITE_HELPER_FAILED')

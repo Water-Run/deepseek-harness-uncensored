@@ -2,9 +2,11 @@
 import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import { Context } from '@deepseek-ai/cordis'
 import { DatabaseSync } from 'node:sqlite'
+import { execFileSync } from 'node:child_process'
 import { mkdtemp, readFile, rm, symlink, link } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { randomUUID } from 'node:crypto'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import { expect, it, onTestFinished, vi } from 'vitest'
@@ -67,6 +69,20 @@ it.skipIf(!supported)('refuses hard-linked database names whose journals cannot 
   const h = await harness()
   await link(h.path, join(h.root, 'second.sqlite'))
   await expect(h.query('SELECT * FROM data')).rejects.toMatchObject({ code: 'TARGET_IDENTITY_UNVERIFIED' })
+})
+
+it.skipIf(!supported)('rejects a mismatched database identity before the helper enters execution', async () => {
+  const h = await harness(), before = await readFile(h.path)
+  const worker = fileURLToPath(new URL('../assets/sqlite-worker.mjs', import.meta.url))
+  const output = execFileSync(process.execPath, [worker], {
+    cwd: h.root,
+    input: JSON.stringify({ path: h.path, fileId: '0:0', readOnly: true, statements: [{ sql: 'SELECT 1', parameters: [] }],
+      maxRows: 1, maxBytes: 1024, heapBytes: 1048576, busyMs: 0 }) + '\n',
+    encoding: 'utf8', timeout: 10_000, windowsHide: true,
+  })
+  const response: unknown = JSON.parse(output.trim())
+  expect(response).toEqual({ phase: 'failed', code: 'TARGET_IDENTITY_UNVERIFIED', rolledBack: true })
+  expect(await readFile(h.path)).toEqual(before)
 })
 
 it.skipIf(!supported)('rolls back a write when another database name is linked before commit', async () => {

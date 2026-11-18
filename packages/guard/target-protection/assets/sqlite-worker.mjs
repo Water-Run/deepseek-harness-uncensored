@@ -1,19 +1,34 @@
 /** Private, single-request SQLite executor. The owner alone authorizes transaction commit. */
 import { DatabaseSync, constants as C } from 'node:sqlite'
+import { lstatSync } from 'node:fs'
 import { createInterface } from 'node:readline'
 const lines = createInterface({ input: process.stdin })[Symbol.asyncIterator]()
 let db, committed = false, refusal
 const send = value => process.stdout.write(JSON.stringify(value) + '\n')
+
+function requireFileIdentity(path, expected) {
+  let info
+  try { info = lstatSync(path, { bigint: true }) }
+  catch (cause) {
+    throw Object.assign(new Error('SQLite file identity is unavailable.', { cause }), { code: 'TARGET_IDENTITY_UNVERIFIED' })
+  }
+  if (!info.isFile() || info.nlink !== 1n || info.ino === 0n || `${info.dev}:${info.ino}` !== expected) {
+    throw Object.assign(new Error('SQLite file does not match its admission.'), { code: 'TARGET_IDENTITY_UNVERIFIED' })
+  }
+}
+
 try {
   const first = await lines.next()
   if (first.done) throw new Error('missing request')
   const input = JSON.parse(first.value)
-  if (typeof input.path !== 'string' || typeof input.readOnly !== 'boolean' || !Array.isArray(input.statements)
+  if (typeof input.path !== 'string' || typeof input.fileId !== 'string' || typeof input.readOnly !== 'boolean' || !Array.isArray(input.statements)
     || !Number.isSafeInteger(input.maxRows) || input.maxRows < 1 || !Number.isSafeInteger(input.maxBytes) || input.maxBytes < 1
     || !Number.isSafeInteger(input.heapBytes) || input.heapBytes < 1048576
     || !Number.isSafeInteger(input.busyMs) || input.busyMs < 0) throw new Error('invalid request')
   if (typeof DatabaseSync.prototype.setAuthorizer !== 'function') throw Object.assign(new Error('unsupported runtime'), { code: 'SQLITE_RUNTIME_UNAVAILABLE' })
+  requireFileIdentity(input.path, input.fileId)
   db = new DatabaseSync(input.path, { readOnly: input.readOnly, allowExtension: false, enableDoubleQuotedStringLiterals: false, timeout: input.busyMs })
+  requireFileIdentity(input.path, input.fileId)
   db.exec(`PRAGMA trusted_schema=OFF; PRAGMA temp_store=MEMORY; PRAGMA hard_heap_limit=${input.heapBytes}`)
   let administrative = true
   const pure = new Set([C.SQLITE_SELECT, C.SQLITE_READ, C.SQLITE_RECURSIVE])
@@ -74,6 +89,6 @@ try {
     try { db.setAuthorizer(null); if (db.isTransaction) db.exec('ROLLBACK'); db.close(); rolledBack = !committed }
     catch (_cleanupError) { /* An unconfirmed native cleanup is reported as an unknown outcome below. */ }
   }
-  const allowed = new Set(['SQLITE_RUNTIME_UNAVAILABLE', 'SQLITE_MULTIPLE_STATEMENTS', 'SQLITE_OUTPUT_LIMIT'])
+  const allowed = new Set(['SQLITE_RUNTIME_UNAVAILABLE', 'SQLITE_MULTIPLE_STATEMENTS', 'SQLITE_OUTPUT_LIMIT', 'TARGET_IDENTITY_UNVERIFIED'])
   send({ phase: 'failed', code: rolledBack ? (refusal ?? (allowed.has(error.code) ? error.code : 'SQLITE_QUERY_REFUSED')) : 'SQLITE_OUTCOME_UNKNOWN', rolledBack })
 } finally { process.stdin.destroy() }
