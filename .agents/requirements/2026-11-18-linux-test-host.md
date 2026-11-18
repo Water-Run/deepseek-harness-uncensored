@@ -24,6 +24,12 @@ Windows 跳板上的嵌套 SSH 不使用管道传入 Python 程序；该方式�
 
 构建输入已更新至 Windows 18.4 对应源码 `1db33630ec`，准备文件为 `fedora-rc4-18-4-build.py`。两次只读探测返回 `x86_64`，状态查询遇到 SSH 握手超时，向 Fedora 传输脚本时连接关闭。脚本已暂存到 Windows 跳板。Fedora 构建尚无启动回执，重连后先检查 `~/.local/state/dshu-verification/linux-20261118-rc4-1db3363/status.json` 与对应 worker 进程。
 
+## Fedora 实体机 18.7 构建
+
+恢复连接后，已在用户指定设备启动源码 `92d348ae0173204ed13421b2d621795f726b0e85` 的 18.7 构建。作业目录为 `~/.local/state/dshu-verification/linux-20261118-rc4-92d348a/`，进程 PID 为 `3553433`。已确认实际进程进入依赖安装阶段，私有工具为 Node 24.22.1 和 pnpm 11.28.5。
+
+随后转发出现握手超时和拒绝连接，构建终态尚未回读。再连接时以同一进程和作业的 `status.json` 为准。源码、暂存、启动及读回证据位于本地交付目录的 `fedora-rc4-18-7-*.log`。已验证 Linux 归档仍为 17.8。
+
 ## WSL 开发状态保全
 
 本机 `/home/linzh/.cache/dshu-verification` 的三个工作区、Git 元数据、reflog 和 32 条 stash 已归档。226,715 个文件或链接逐项核对通过，三个 Git 元数据副本经过实际恢复、stash 核对和连通性检查。共享对象独立保存；浅克隆信息和原始对象编码保留。

@@ -2,7 +2,7 @@
 
 状态：进行中，不代表整合发行的许可核对已完成。用户的 GPL 许可偏好、上游 Credit 和各组件原有许可保持不变。
 
-本地 [Windows 18.6](2026-11-18.6-delivery.md) 实装 ASAR 含 920 个 npm 包、22 份补充声明及 6 项待核查。Linux 最近验收的 [17.8](2026-11-17.8-delivery.md) 含 922 个 npm 包、26 份补充声明及 8 项待核查。下次打包将为 Frida 17.23.2 补入 GNU Library GPL v2 原文。
+本地 [Windows 18.7](2026-11-18.7-delivery.md) 实装 ASAR 含 920 个 npm 包、23 份补充声明及 6 项待核查。Frida 17.23.2 的 GNU Library GPL v2 原文已按实装摘要核对。Linux 最近验收的 [17.8](2026-11-17.8-delivery.md) 含 922 个 npm 包、26 份补充声明及 8 项待核查。
 
 当前 `2026.11.17.5` Windows 公开预发布包含 919 个 npm 包、21 份补充声明、6 项待核查；Linux 包含 921 个包、26 份补充声明、8 项待核查。本次直接读取 Windows 已安装 ASAR 和已验收 Linux tar.gz 的 ASAR，核对产品版本、构建源码和唯一 npm 声明清单；两种 Linux 归档的 ASAR 摘要相同，见[本版交付记录](2026-11-17.5-delivery.md)。适用补充原文、Electron、安装器及 Office 声明的摘要核对保留。旧版本数量在下文保留为历史。
 

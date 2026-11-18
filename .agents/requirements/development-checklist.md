@@ -286,7 +286,7 @@
 - [x] **16.04〔已验收〕** 公开说明集中在 README，并在同一文件保留英文概要。README 链接和长度校验通过。工程文档修复 222 处失效引用，主检查与补扫覆盖 1,850 份文档。上游参考指向已核对的 `dsh-v0.2.2-rc.1`，本地发布与持久化操作指向各自的 DSHU 文档。
 - [x] **16.05** 已保留 DeepSeek Harness、YuJunZhiXue/小杨、JeffKeeping、Water-Run 及 GitHub 图标等 Credit；保留上游 MIT 与相关许可文件。
 - [x] **16.06** 根整合发行使用 GPL-3.0-or-later。已集成 armor 文本对照 MIT 历史提交；fork 参考节点与可复用内容的授权节点分开记录。
-- [ ] **16.07〔进行中〕** npm 与独立 Node/Python/pnpm 声明已进入构建。本地实包核对 Windows 18.6 的 920 个 npm 包、22 份补充声明和 6 项待核查，以及 Linux 17.8 的 922 个包、26 份补充声明和 8 项待核查；安装后完整 ASAR 清单一致。Electron、适用补充原文和 Office 声明摘要已核对。Frida 17.23.2 的 LGPL 2.0 原文已进入下次打包的清单，实包输入复算通过。内嵌组件、个别插件的源码许可及整合发行义务仍待完成。purge 使用已固定的 MIT 历史内容，后续分支不能按 fork 来源直接纳入。详见[许可审计](2026-11-03-dependency-notices.md)与[当前 Windows 交付](2026-11-18.6-delivery.md)。
+- [ ] **16.07〔进行中〕** npm 与独立 Node/Python/pnpm 声明已进入构建。本地实包核对 Windows 18.7 的 920 个 npm 包、23 份补充声明和 6 项待核查，以及 Linux 17.8 的 922 个包、26 份补充声明和 8 项待核查；安装后完整 ASAR 清单一致。Electron、适用补充原文和 Office 声明摘要已核对。Frida 17.23.2 的 LGPL 2.0 原文已从 Windows 实装载荷核对。内嵌组件、个别插件的源码许可及整合发行义务仍待完成。purge 使用已固定的 MIT 历史内容，后续分支不能按 fork 来源直接纳入。详见[许可审计](2026-11-03-dependency-notices.md)与[当前 Windows 交付](2026-11-18.7-delivery.md)。
 - [x] **16.08〔17.4 已核对〕** README、模式说明、版本与实际工具范围保持一致，公开列出保护、逆向和签名升级限制；后续版本继续同步，当前不宣传完整 Goal 已完成。见[发行核对](2026-11-17-repository-release-check.md)。
 
 <a id="group-17"></a>
