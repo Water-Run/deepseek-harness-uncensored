@@ -578,10 +578,17 @@ export async function packageTarget(
     } else {
       await signedStage('artifacts', () => execute(desktopElectronBuilderArguments(target, invocation.directory), electronBuilderEnv))
     }
-    if (target.platform === 'win32' && !invocation.directory) {
+    if (target.platform !== 'darwin' && !invocation.directory) {
       const version = resolveDesktopBuildVersion(environment, packageVersion(join(APP_ROOT, 'package.json'), 'desktop package'))
-      const name = desktopArtifactFilename(displayProductVersion(version), 'win', target.arch, artifactSuffix, 'exe')
-      await execute(['exec', 'tsx', 'scripts/verify-windows-installer-blockmap.ts', join(artifactsRoot, name)], targetEnv)
+      const displayVersion = displayProductVersion(version)
+      if (target.platform === 'win32') {
+        const name = desktopArtifactFilename(displayVersion, 'win', target.arch, artifactSuffix, 'exe')
+        await execute(['exec', 'tsx', 'scripts/verify-windows-installer-blockmap.ts', join(artifactsRoot, name)], targetEnv)
+      } else {
+        const name = desktopArtifactFilename(displayVersion, 'linux', target.arch, artifactSuffix, 'tar.gz')
+        await execute(['exec', 'tsx', 'scripts/verify-linux-portable-archive.ts', join(artifactsRoot, name), join(artifactsRoot, 'linux-unpacked')],
+          targetEnv)
+      }
     }
     await execute(['exec', 'tsx', 'scripts/smoke-packaged-runtime.ts',
       ...(invocation.unsigned ? ['--unsigned'] : []), ...(invocation.skipNotarization ? ['--skip-notarization'] : [])], targetEnv)

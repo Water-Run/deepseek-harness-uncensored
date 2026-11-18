@@ -38,6 +38,8 @@ Fedora 的作业私有缓存已回读 SHA-256，与官方预构建一致。续�
 
 源码的 Linux 打包预检对 `musl-gcc` 增加静态程序与共享对象链接检查，并使用构建所选的 `PATH`。Windows 定向夹具复现了旧预检在工具能报告版本、但缺少静态链接库时通过的情况。修复后返回链接诊断，成功用例核对两类产物与临时目录清理。Fedora 私有工具链和原生构建仍需在设备上验收。[打包预检说明](../../apps/desktop/packaging/README.zh.md)
 
+Linux 完整打包增加最终便携归档核验。54 项定向测试覆盖实际 tar.gz 读取、同大小字节变化、缺少执行权限及失败时停止打包。本机离线读取 17.8 便携包和 Debian 包，原始包摘要与随附校验值一致，三个关键文件的 SHA-256 逐项相同，便携包的两个启动文件有执行权限。回执为 `linux-17-8-portable-parity.json`。新校验步骤待 Fedora 完整打包验证。[便携包说明](../../apps/desktop/packaging/README.zh.md#linux-x64-检查包)
+
 ## WSL 开发状态保全
 
 本机 `/home/linzh/.cache/dshu-verification` 的三个工作区、Git 元数据、reflog 和 32 条 stash 已归档。226,715 个文件或链接逐项核对通过，三个 Git 元数据副本经过实际恢复、stash 核对和连通性检查。共享对象独立保存；浅克隆信息和原始对象编码保留。

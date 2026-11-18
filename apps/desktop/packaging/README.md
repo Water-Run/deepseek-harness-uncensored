@@ -148,6 +148,8 @@ pnpm run package:desktop:linux:x64:unsigned --build-version auto
 
 The command produces deb and tar.gz artifacts under `apps/desktop/.desktop-build/targets/linux-x64/unsigned-artifacts/runs/<run-id>/`. Add `--dir` to stop at `linux-unpacked`. The executable and desktop entry use `deepseek-harness-uncensored`; runtime, CLI and profile identities remain separate from official DSH. Directory smoke checks the packaged runtime, not installation, desktop integration, upgrades or removal.
 
+Full Linux packaging verifies the final tar.gz against `linux-unpacked` before recording success. It reads the Desktop executable, `resources/app.asar`, and the CLI launcher from the archive, compares their SHA-256 digests with the assembled files, and checks executable permissions for the two launch files.
+
 For a portable launch, extract the complete tar.gz into a directory you own and run `./deepseek-harness-uncensored` from the extracted application directory. Keep `resources/` beside the executable. The launch uses the separate DSHU profile.
 
 Install the deb through the distribution's package manager so it can resolve the desktop libraries. The deb declares ALSA and GBM, including the ALSA package names used before and after the time64 transition. Debian orders the package's `~test` suffix below its stable version. The Debian 12 qualification installed the older local deb with APT, upgraded it in place, and purged the newer package while preserving the test user's profile files.
