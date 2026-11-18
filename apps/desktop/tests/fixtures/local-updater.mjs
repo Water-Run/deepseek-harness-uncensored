@@ -62,10 +62,12 @@ async function main() {
     const installations = []
     const states = []
     let restart = async () => true
+    let handoff = () => true
     updater.quitAndInstall = (...args) => { installations.push(args) }
     const coordinator = new DesktopUpdateCoordinator(state => { states.push(state); return state },
-      () => restart(), updater, () => true, () => '1.0.0', undefined, 'nightly', undefined, readSource)
-    const result = { updater, coordinator, installations, states, directory, restart: handler => { restart = handler } }
+      () => restart(), updater, () => true, () => '1.0.0', undefined, 'nightly', undefined, readSource, () => handoff())
+    const result = { updater, coordinator, installations, states, directory,
+      restart: handler => { restart = handler }, handoff: handler => { handoff = handler } }
     fixtures.push(result)
     return result
   }
@@ -80,6 +82,7 @@ async function main() {
         const { version } = await f.coordinator.check(true)
         assert.equal((await f.coordinator.download(version)).phase, 'ready')
         f.restart(async () => { await change(f.updater.installerPath); return true })
+        f.handoff(() => { throw new Error('Handoff was requested before package verification') })
         const failure = await f.coordinator.install(version)
         assert.equal(failure.failedOperation, 'install')
         assert.equal(failure.preparationFailure, 'installer-integrity')
@@ -93,6 +96,7 @@ async function main() {
         assert.deepEqual(server.requests.slice(before), ['/nightly.yml', '/payload.exe'])
         assert.deepEqual(await readFile(f.updater.installerPath), server.payload)
         f.restart(async () => true)
+        f.handoff(() => true)
         assert.equal((await f.coordinator.install(version)).phase, 'installing')
         assert.deepEqual(f.installations, [[true, true]])
       })
@@ -257,6 +261,24 @@ async function main() {
       assert.equal(preparations, 1)
       assert.deepEqual(f.installations, [[true, true]])
       presentations.push(...f.states.map(state => ({ phase: state.phase, ...presentDesktopUpdate(state) })))
+    })
+    await scenario('installer-requires-shell-handoff-after-package-verification', async () => {
+      const f = await fixture()
+      const { version } = await f.coordinator.check()
+      assert.equal((await f.coordinator.download(version)).phase, 'ready')
+      let allowHandoff = false
+      const choices = []
+      f.handoff(() => {
+        assert.equal(f.installations.length, 0)
+        choices.push(allowHandoff)
+        return allowHandoff
+      })
+      assert.equal((await f.coordinator.install(version)).phase, 'ready')
+      assert.equal(f.installations.length, 0)
+      allowHandoff = true
+      assert.equal((await f.coordinator.install(version)).phase, 'installing')
+      assert.deepEqual(choices, [false, true])
+      assert.deepEqual(f.installations, [[true, true]])
     })
     for (const mode of ['download-404', 'corrupt', 'disconnect', 'download-stall']) {
       await scenario(`${mode}-explicit-retry`, async () => {
