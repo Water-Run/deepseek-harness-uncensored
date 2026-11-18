@@ -41,10 +41,10 @@ it('keeps a session pause banner visible with estimated recovery and a quick res
   expect(screen.queryByRole('status')).toBeNull()
 })
 
-it('shows pending reservations and read failures without inventing a recovery time', () => {
+it.each([false, true])('shows pending reservations independently of automatic resume (%s)', (autoResume) => {
   const { props, state } = fixture(['5h'], false)
   const data = state.getSnapshot().data!
-  state.set({ ...state.getSnapshot(), data: { ...data, preferences: { ...data.preferences, autoResume: true },
+  state.set({ ...state.getSnapshot(), data: { ...data, pending: 1, preferences: { ...data.preferences, autoResume },
     pausedSessions: [{ sessionId: SessionId('current'), state: 'waiting', resumeAt: null }] } })
   render(<SpendingBanner {...props} sessionId={SessionId('current')} />)
   expect(screen.getByRole('status').textContent).toContain(en['spending.bannerPending'])

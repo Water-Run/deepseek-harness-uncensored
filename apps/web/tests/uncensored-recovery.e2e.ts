@@ -98,19 +98,19 @@ it('opens the published new Session when Workspace attachment fails', async () =
   } finally { await browser.close() }
 })
 
-it('shows a real admission wait and continues after the banner reset', async () => {
+it.each(['settled expense', 'active reservation'] as const)('shows a real admission wait for %s and continues when budget returns', async (cause) => {
   const fixture = await selectedSessionFixture(fileURLToPath(new URL('../../../snapshots/web/feedback-command/session.v4.jsonl', import.meta.url)))
   const scaffold = await launchWebScaffold({ firstUse: true, replayFixture: fixture, compareReplaySession: false,
     extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
   onTestFinished(() => scaffold.close())
   const ledger = await SpendLedger.open(join(scaffold.harnessHome, 'storages', 'spending.sqlite'))
-  try {
-    ledger.configure({ ...DEFAULT_PREFERENCES, enabledPeriods: ['5h'], autoResume: true,
-      limits: { ...DEFAULT_PREFERENCES.limits, '5h': 5 } })
-    const reserved = ledger.reserve(5_000_000)
-    if (reserved.kind !== 'reserved') throw new Error('fixture charge was not admitted')
-    ledger.settle(reserved.id, 5_000_000)
-  } finally { ledger.close() }
+  onTestFinished(() => { ledger.close() })
+  const spent = cause === 'settled expense'
+  ledger.configure({ ...DEFAULT_PREFERENCES, enabledPeriods: ['5h'], autoResume: spent,
+    limits: { ...DEFAULT_PREFERENCES.limits, '5h': 5 } })
+  const reserved = ledger.reserve(5_000_000)
+  if (reserved.kind !== 'reserved') throw new Error('fixture charge was not admitted')
+  if (spent) ledger.settle(reserved.id, 5_000_000)
   const browser = await chromium.launch()
   try {
     const page = await newConversationReplayPage(browser)
@@ -121,13 +121,19 @@ it('shows a real admission wait and continues after the banner reset', async () 
     await input.press('Enter')
     const banner = page.getByRole('status').filter({ hasText: 'Conversation paused for budget' })
     await banner.waitFor()
-    expect(await banner.textContent()).toContain('Estimated automatic continuation:')
     expect(scaffold.ctx.sessions.list().some(session => session.snapshotEvents().some(event => event.type === 'assistant/message'))).toBe(false)
-    await page.setViewportSize({ width: 390, height: 844 })
-    await mkdir('.artifacts/screenshots/uncensored-recovery', { recursive: true })
-    await page.screenshot({ path: '.artifacts/screenshots/uncensored-recovery/budget-narrow.png' })
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-    await banner.getByRole('button', { name: 'Reset limits and continue', exact: true }).click()
+    if (spent) {
+      expect(await banner.textContent()).toContain('Estimated automatic continuation:')
+      await page.setViewportSize({ width: 390, height: 844 })
+      await mkdir('.artifacts/screenshots/uncensored-recovery', { recursive: true })
+      await page.screenshot({ path: '.artifacts/screenshots/uncensored-recovery/budget-narrow.png' })
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+      await banner.getByRole('button', { name: 'Reset limits and continue', exact: true }).click()
+    } else {
+      expect(await banner.textContent()).toContain('Waiting for in-flight requests to settle')
+      expect(await banner.getByRole('button', { name: 'Resume', exact: true }).count()).toBe(0)
+      ledger.settle(reserved.id, 0)
+    }
     await page.getByText('LIGHTHOUSE', { exact: true }).waitFor()
     await banner.waitFor({ state: 'detached' })
     expect((await scaffold.ctx.spendLimit.get()).pausedSessions).toEqual([])
