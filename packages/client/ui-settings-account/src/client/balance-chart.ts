@@ -169,3 +169,26 @@ export function nearestBalanceSample(positions: readonly number[], fraction: num
   const previous = positions[low - 1]
   return previous !== undefined && position - previous <= atIndex(positions, low) - position ? low - 1 : low
 }
+
+/**
+ * Keep an inspected observation across replacements of the chart history.
+ * @param samples - Current observations in ascending time order.
+ * @param observation - The previously selected time and amount.
+ * @returns Its current index or the closest retained time; zero if the observations are empty.
+ */
+export function retainedBalanceSample(samples: readonly BalanceChartSample[], observation: BalanceChartSample): number {
+  let low = 0, high = samples.length
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2)
+    if (atIndex(samples, middle).time < observation.time) low = middle + 1
+    else high = middle
+  }
+  for (let index = low; index < samples.length; index += 1) {
+    const candidate = atIndex(samples, index)
+    if (candidate.time !== observation.time) break
+    if (candidate.value === observation.value && candidate.exactValue === observation.exactValue) return index
+  }
+  const previous = samples[low - 1], next = samples[low]
+  if (next === undefined) return Math.max(0, low - 1)
+  return previous !== undefined && observation.time - previous.time <= next.time - observation.time ? low - 1 : low
+}

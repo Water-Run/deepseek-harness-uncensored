@@ -2,7 +2,7 @@
 import { useId, useMemo, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
 import { Big } from 'big.js'
-import { balanceChart, nearestBalanceSample, type BalanceChartSample } from './balance-chart.ts'
+import { balanceChart, nearestBalanceSample, retainedBalanceSample, type BalanceChartSample } from './balance-chart.ts'
 import { formatBalanceDetail } from './formatBalance.ts'
 import css from './BalanceView.module.css'
 
@@ -29,8 +29,8 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
   stepIncreases?: boolean
   compressionHint?: string
 }) {
-  const [hover, setHover] = useState<{ index: number; x: number; y: number } | null>(null)
-  const [cursor, setCursor] = useState<number | null>(null)
+  const [hover, setHover] = useState<{ sample: BalanceChartSample; x: number; y: number } | null>(null)
+  const [cursor, setCursor] = useState<BalanceChartSample | null>(null)
   const [focused, setFocused] = useState(false)
   const releaseTip = useRef<(() => void) | null>(null)
   const id = useId()
@@ -40,7 +40,8 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
   if (first === undefined || last === undefined || range === undefined) return null
   const axisDigits = range.low === range.high ? 2 : Math.max(2, Math.min(8, 1 - Math.floor(Math.log10(range.high - range.low))))
   const format = formatValue ?? ((value: number): string => formatBalanceDetail(new Big(value).toFixed(axisDigits), symbol))
-  const selected = Math.min(samples.length - 1, Math.max(0, hover?.index ?? cursor ?? samples.length - 1))
+  const inspected = hover?.sample ?? cursor
+  const selected = inspected === null ? samples.length - 1 : retainedBalanceSample(samples, inspected)
   const sample = samples[selected] ?? last
   const sampleAmount = formatValue?.(sample.value) ?? formatBalanceDetail(sample.exactValue ?? new Big(sample.value).toString(), symbol)
   const active = hover !== null || focused
@@ -52,8 +53,9 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
     const rect = event.currentTarget.getBoundingClientRect()
     const x = (event.clientX - rect.left) / Math.max(rect.width, 1)
     const index = nearestBalanceSample(geometry.positions, (x * 264 - 6) / 252)
-    setHover({ index, x: event.clientX, y: event.clientY })
-    if (event.pointerType !== 'mouse') setCursor(index)
+    const sample = samples[index] ?? last
+    setHover({ sample, x: event.clientX, y: event.clientY })
+    if (event.pointerType !== 'mouse') setCursor(sample)
   }
   const placeTip = (element: HTMLDivElement | null): void => {
     releaseTip.current?.()
@@ -105,7 +107,7 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
             : event.key === 'ArrowLeft' || event.key === 'ArrowDown' ? selected - 1
               : event.key === 'ArrowRight' || event.key === 'ArrowUp' ? selected + 1 : undefined
           if (next === undefined) return
-          event.preventDefault(); setHover(null); setCursor(Math.max(0, Math.min(samples.length - 1, next)))
+          event.preventDefault(); setHover(null); setCursor(samples[Math.max(0, Math.min(samples.length - 1, next))] ?? last)
         }}>
         <svg className={css.chart} viewBox="46 0 264 110" preserveAspectRatio="none" aria-hidden="true">
           <path d="M52 12H304 M52 55H304 M52 98H304" className={css.axis} />

@@ -4,6 +4,8 @@
 
 ## 已完成
 
+- [x] **余额采样滚动时保留选择（2026-11-19）**。鼠标和键盘选中同一条原始采样后，更新样本列表仍保留其时间和金额。选中点移出历史后改选时间最接近的保留点。14 项定向测试通过，Chromium 的小额精度与窄窗布局场景均通过。日志位于 `%USERPROFILE%/DSHU-Deliveries/20261119/balance-retained-selection-{web,narrow-web}.log`。[余额设置](../../packages/client/ui-settings-account/README.zh.md)
+
 - [x] **旁问清理期间重新打开（2026-11-19）**。隔离客户端在 `/clear` 尚未应答时打开旁问，原实现会立即读取旧上下文。当前客户端等待同一主会话的手动及关闭清理，重开拿到新上下文。客户端及 Host 共 28 项测试通过，组装 Web 的旁问图片、清空、重开和自动清理场景通过。日志为 `%USERPROFILE%/DSHU-Deliveries/20261119/aside-reset-web.log`。[旁问命令](../../packages/client/ui-commands/README.zh.md)
 
 - [x] **会话删除与关闭竞态（2026-11-19）**。用独立 JSONL 会话暂停删除恢复，期间启动控制器关闭。修复前释放恢复后会话实际被删除；修复后在进入删除前拒绝请求，持久记录仍存在且无删除标记。删除及额度恢复共 32 项定向测试通过。待新版实装。[会话控制器](../../packages/api/session-controller/README.zh.md)

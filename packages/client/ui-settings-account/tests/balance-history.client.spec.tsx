@@ -38,6 +38,31 @@ it('inspects original samples by keyboard and clears the tooltip after losing fo
   expect(screen.queryByRole('status')).toBeNull()
 })
 
+it.each(['pointer', 'keyboard'] as const)('keeps the selected %s observation as old samples roll out', (mode) => {
+  const samples = [{ time: 0, value: 9 }, { time: 1000, value: 8.0001, exactValue: '8.0001' }, { time: 2000, value: 7 }]
+  const chart = (observations: typeof samples) => <BalanceHistory samples={observations} symbol="¥" label="History" help="Inspect samples" />
+  const view = render(chart(samples))
+  const slider = screen.getByRole('slider', { name: 'History' })
+  if (mode === 'keyboard') {
+    fireEvent.focus(slider)
+    fireEvent.keyDown(slider, { key: 'ArrowLeft' })
+  } else {
+    Object.defineProperty(slider, 'getBoundingClientRect', { value: () => new DOMRect(0, 0, 264, 110) })
+    fireEvent(slider, new MouseEvent('pointermove', { bubbles: true, clientX: 132, clientY: 55 }))
+  }
+  const tip = screen.getByRole('status')
+  expect(tip.textContent).toContain('¥8.0001')
+  view.rerender(chart([...samples.slice(1).map(sample => ({ ...sample })), { time: 3000, value: 6 }]))
+  expect(tip.textContent).toContain('¥8.0001')
+  expect(tip.querySelector('time')?.dateTime).toBe(new Date(1000).toISOString())
+  expect(slider.getAttribute('aria-valuenow')).toBe('0')
+  view.rerender(chart([{ time: 1000, value: 8.0001, exactValue: '8.000100000000000001' }, ...samples.slice(1)]))
+  expect(tip.querySelector('strong')?.textContent).toBe('¥8.0001')
+  expect(slider.getAttribute('aria-valuenow')).toBe('1')
+  view.rerender(chart([{ time: 2000, value: 7 }, { time: 3000, value: 6 }, { time: 4000, value: 5 }]))
+  expect(tip.querySelector('time')?.dateTime).toBe(new Date(2000).toISOString())
+})
+
 it('chooses the nearest time, clamps pointer edges and handles coincident observations', () => {
   const samples = [{ time: 0, value: 1 }, { time: 90, value: 2 }, { time: 100, value: 3 }]
   const { positions } = balanceChart(samples)
