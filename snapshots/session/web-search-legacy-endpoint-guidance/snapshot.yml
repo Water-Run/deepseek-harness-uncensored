@@ -6,5 +6,5 @@ recording: live
 header:
   class: web-search-legacy-endpoint-guidance
   pin: true
-  systemPromptSource: text-turn
-  toolSchemasSource: text-turn
+  systemPromptSource: web-search-endpoint-guidance
+  toolSchemasSource: web-search-endpoint-guidance

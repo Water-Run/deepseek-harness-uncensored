@@ -1,0 +1,14 @@
+# Exercise Web providers with a platform-independent tool catalog.
+- id: uncensored-armor
+  disabled: true
+
+- id: tool-bash
+  disabled: true
+
+- id: tool-pwsh
+  disabled: true
+
+- id: system-prompt
+  config:
+    includeHarnessIdentity: false
+    personaPrefix: You are a concise assistant testing a Web provider.
