@@ -49,19 +49,26 @@ async function hosts(host: string, options: TargetDnsOptions, signal: AbortSigna
     if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT') return undefined
     throw error
   }
-  const names = new Set([host])
   const addresses = new Map<string, { address: string; family: 4 | 6 }>()
+  const namesByAddress = new Map<string, Set<string>>()
   for (const line of text.split(/\r?\n/u)) {
     const fields = line.split('#')[0]?.trim().split(/\s+/u) ?? []
     const ip = fields[0]
     if (ip === undefined || !isIP(ip)) continue
     const aliases = fields.slice(1).map(canonicalDnsName)
-    if (!aliases.includes(host)) continue
+    const selected = aliases.includes(host)
+    if (!selected && ip.includes('%')) continue
     const address = canonicalTargetHost(ip)
+    const names = namesByAddress.get(address) ?? new Set<string>()
     for (const alias of aliases) names.add(alias)
-    addresses.set(address, { address, family: isIP(address) === 4 ? 4 : 6 })
+    namesByAddress.set(address, names)
+    if (selected) addresses.set(address, { address, family: isIP(address) === 4 ? 4 : 6 })
   }
   if (addresses.size === 0) return undefined
+  const names = new Set([host])
+  for (const address of addresses.keys()) {
+    for (const name of namesByAddress.get(address) ?? []) names.add(name)
+  }
   if (addresses.size > options.maxRecords || names.size > options.maxRecords) throw new Error('Hosts entry exceeds the configured record limit.')
   return { hostname: host, names: [...names], addresses: [...addresses.values()], source: 'hosts' }
 }

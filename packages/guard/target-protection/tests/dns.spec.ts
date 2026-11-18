@@ -143,11 +143,19 @@ it('uses hosts-file aliases and IP literals without DNS traffic', async () => {
   const options = await fixture((query) => { queries++; return response(query) })
   const root = await mkdtemp(join(tmpdir(), 'dshu-hosts-')); roots.push(root)
   const hostsFile = join(root, 'hosts')
-  await writeFile(hostsFile, '192.0.2.10 local.test alias.test\n2001:db8::10 local.test\n')
+  await writeFile(hostsFile, [
+    '192.0.2.10 local.test alias.test',
+    '::ffff:192.0.2.10 same-address.test',
+    '2001:db8::10 local.test',
+    '192.0.2.20 alias.test unrelated.test',
+    'fe80::1%3 scoped.test',
+  ].join('\n'))
   const local = await resolveTargetDns('local.test', { ...options, hostsFile }, AbortSignal.timeout(3000))
   expect(local.source).toBe('hosts')
-  expect(local.names).toEqual(['local.test', 'alias.test'])
-  expect(local.addresses).toHaveLength(2)
+  expect(local.names).toEqual(['local.test', 'alias.test', 'same-address.test'])
+  expect(local.addresses.map(({ address }) => address)).toEqual(['192.0.2.10', '2001:db8::10'])
+  await expect(resolveTargetDns('local.test', { ...options, hostsFile, maxRecords: 2 }, AbortSignal.timeout(3000)))
+    .rejects.toThrow('Hosts entry exceeds the configured record limit')
   const literal = await resolveTargetDns('[::ffff:192.0.2.10]', options, AbortSignal.timeout(3000))
   expect(literal.addresses).toEqual([{ address: '192.0.2.10', family: 4 }])
   expect((await resolveTargetDns('service.localhost', options, AbortSignal.timeout(3000))).source).toBe('localhost')
