@@ -160,11 +160,15 @@ export default class TargetFileSystem extends SandboxedFileSystem {
       catch (error) { await close(); throw error }
       const chunks = this.readStream(source, checked, revision, bounded, close)
       // Returning or throwing before the first read skips the generator's finally block.
+      const finish = async (result: Promise<IteratorResult<string, void>>): Promise<IteratorResult<string, void>> => {
+        try { return await result }
+        finally { await close() }
+      }
       return {
         [Symbol.asyncIterator]() { return this },
         next: () => chunks.next(),
-        return: value => chunks.return(value).finally(close),
-        throw: error => chunks.throw(error).finally(close),
+        return: value => finish(chunks.return(value)),
+        throw: error => finish(chunks.throw(error)),
       } satisfies AsyncIterableIterator<string, void, void>
     })
   }

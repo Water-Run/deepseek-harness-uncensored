@@ -335,29 +335,30 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   ): Promise<SessionId> {
     const { open, ...request } = options ?? {}
     const navigation = open === true ? AbortSignal.any([this.ctx.layout.beginNavigation(), this.lifetime.signal]) : undefined
-    let created: SessionId | undefined
-    let opened = false
+    const fork: { child?: SessionId; opened: boolean } = { opened: false }
     try {
-      created = await this.sessions.fork({
+      fork.child = await this.sessions.fork({
         sessionId, increaseTitle: true, ...request,
         onCreated: (childId) => {
-          created = childId
+          fork.child = childId
           if (navigation?.aborted === false) {
             this.replaceMain(childId, navigation, 'reveal')
-            opened = true
+            fork.opened = true
           }
           onCreated?.(childId)
         },
       })
     } catch (error) {
-      if (created === undefined) {
+      if (fork.child === undefined) {
         if (!this.lifetime.signal.aborted) this.reportForkFailure(sessionId, error, request.atSeq === undefined)
         throw error
       }
       console.warn('session fork created a child before post-creation work failed:', error)
     }
-    if (!opened && !this.lifetime.signal.aborted && request.atSeq === undefined) this.notify({ kind: 'forkCreated', sessionId: created })
-    return created
+    if (!fork.opened && !this.lifetime.signal.aborted && request.atSeq === undefined) {
+      this.notify({ kind: 'forkCreated', sessionId: fork.child })
+    }
+    return fork.child
   }
 
   private reportForkFailure(sessionId: SessionId, error: unknown, wholeSession: boolean): void {

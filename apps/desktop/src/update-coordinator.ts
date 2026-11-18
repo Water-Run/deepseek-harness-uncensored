@@ -164,7 +164,7 @@ export class DesktopUpdateCoordinator {
     this.checkOperation ??= Promise.resolve().then(() => this.doCheck())
       .finally(() => { this.checkOperation = undefined })
     const result = await this.checkOperation
-    if (generation !== this.generation || this.disposed) return this.current
+    if (!this.isActiveGeneration(generation)) return this.current
     if (manual && result.phase === 'error') this.setState(result)
     return result
   }
@@ -189,12 +189,12 @@ export class DesktopUpdateCoordinator {
       this.setState({ phase: 'downloading', version, percent: 0 })
       try {
         await this.updater.downloadUpdate(this.cancellation)
-        if (generation !== this.generation || this.disposed) return this.current
+        if (!this.isActiveGeneration(generation)) return this.current
         if (!this.downloaded) throw new Error('desktop update: platform preparation did not report readiness')
         this.downloadResult?.(true)
         return this.setState({ phase: 'ready', version })
       } catch (error) {
-        if (generation !== this.generation || this.disposed) return this.current
+        if (!this.isActiveGeneration(generation)) return this.current
         this.release = { kind: 'checked', version }
         this.downloadResult?.(false, error instanceof DesktopUpdatePreparationError ? error.kind : 'download_failed')
         return this.setState(this.failure(error, 'download'))
@@ -249,6 +249,10 @@ export class DesktopUpdateCoordinator {
     if (this.disposed) throw new Error('desktop update: coordinator is disposed')
   }
 
+  private isActiveGeneration(generation: number): boolean {
+    return !this.disposed && generation === this.generation
+  }
+
   private setState(state: DesktopUpdateState): DesktopUpdateState {
     if (!this.disposed) {
       this.current = state
@@ -277,10 +281,10 @@ export class DesktopUpdateCoordinator {
       this.assertLive()
       if (!this.enabled()) throw new Error('desktop update: this application has no packaged update source')
       const configuration = await this.readSource()
-      if (generation !== this.generation || this.disposed) return this.current
+      if (!this.isActiveGeneration(generation)) return this.current
       this.updater.setFeedURL(forkUpdateSource(configuration))
       const result = await this.updater.checkForUpdates()
-      if (generation !== this.generation || this.disposed) return this.current
+      if (!this.isActiveGeneration(generation)) return this.current
       if (result === null) throw new Error('desktop update: no check result was returned')
       this.cancellation = result.cancellationToken
       const version = result.updateInfo.version
@@ -289,7 +293,7 @@ export class DesktopUpdateCoordinator {
         ? { kind: 'checked', version } : { kind: 'none' }
       return this.setState(this.candidate === undefined ? { phase: 'idle' } : { phase: 'available', version })
     } catch (error) {
-      if (generation !== this.generation || this.disposed) return this.current
+      if (!this.isActiveGeneration(generation)) return this.current
       return this.failure(error, 'check')
     }
   }

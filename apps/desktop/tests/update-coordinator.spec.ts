@@ -367,7 +367,7 @@ it('retires a pending configuration read without another request or error from t
   const switching = f.coordinator.switchChannel('latest', async () => {})
   f.checkForUpdates.mockResolvedValueOnce({ isUpdateAvailable: true, updateInfo: { version: '1.2.0' } })
   try {
-    await vi.waitFor(() => expect(f.coordinator.revision).toBe(revision + 1))
+    await vi.waitFor(() => { expect(f.coordinator.revision).toBe(revision + 1) })
   } finally {
     configuration.resolve({ provider: 'github', owner: 'Water-Run', repo: 'deepseek-harness-uncensored' })
     await Promise.all([checking, switching])

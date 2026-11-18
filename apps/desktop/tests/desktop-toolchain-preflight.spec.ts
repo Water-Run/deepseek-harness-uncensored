@@ -87,9 +87,10 @@ it('checks the Linux C and musl compilers before building native payloads', asyn
     if (file === 'musl-gcc') throw new Error('musl-gcc not found')
     return { stdout: file === 'tar' ? 'probe.txt' : 'compiler version', stderr: '' }
   })
-  expect(await probeDesktopToolchain('linux', { PATH: 'build-tools' })).toEqual([
-    { tool: 'musl-gcc', detail: expect.stringContaining('musl-gcc not found') },
-  ])
+  const failures = await probeDesktopToolchain('linux', { PATH: 'build-tools' })
+  expect(failures).toHaveLength(1)
+  expect(failures[0]?.tool).toBe('musl-gcc')
+  expect(failures[0]?.detail).toContain('musl-gcc not found')
   expect(execute.mock.calls.some(([file]) => file === 'cc')).toBe(true)
 })
 
@@ -98,9 +99,10 @@ it('rejects a musl compiler that reports a version but cannot link the static pr
     if (file === 'musl-gcc' && args.includes('-static')) throw new Error('cannot find the musl static library')
     return { stdout: file === 'tar' ? 'probe.txt' : 'compiler available', stderr: '' }
   })
-  await expect(probeDesktopToolchain('linux', { PATH: 'build-tools' })).resolves.toEqual([
-    { tool: 'musl-gcc', detail: expect.stringContaining('cannot find the musl static library') },
-  ])
+  const failures = await probeDesktopToolchain('linux', { PATH: 'build-tools' })
+  expect(failures).toHaveLength(1)
+  expect(failures[0]?.tool).toBe('musl-gcc')
+  expect(failures[0]?.detail).toContain('cannot find the musl static library')
 })
 
 it('links both Linux musl outputs using the selected PATH and cleans the probe directory', async () => {
