@@ -26,6 +26,8 @@ Mount the root service with an explicit `path` to a dedicated SQLite registry. M
 
 The [optional Web profile overlay](../../../apps/cli/config/examples/target-protection.yml) assembles the guarded providers. Run `pnpm dsh web --patch apps/cli/config/examples/target-protection.yml` from the source checkout. The registry starts with no rules and mainland protection off. This profile refuses unconfined local execution while it owns protected configuration files. Only the mounted adapters enforce target checks.
 
+The overlay disables the bundled Messages search and DeepSeek Search and Fetch APIs because their remote servers choose the final destinations. Use the guarded local `http` provider to open known URLs. The overlay applies this restriction from startup.
+
 Open Settings → Modes → Security → Target protection to view the current data source, edit rules and save them against their original revision.
 
 Owner settings also report local-file and process-provider coverage. Process modes distinguish admission checks from native gateway egress and native execution with networking disabled. Admission checks refuse unconfined code while target or owner-resource protection applies. Native status appears after provider initialization and leaves when the provider unloads. Older Hosts omit this optional execution status.

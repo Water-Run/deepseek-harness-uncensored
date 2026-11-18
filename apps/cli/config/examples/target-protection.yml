@@ -1,4 +1,12 @@
 # Opt-in composition for a Web profile. Rules start empty and mainland protection starts disabled.
+# Only the local provider can validate the address of each connection and redirect.
+- id: web-search-deepseek
+  disabled: true
+- id: web-deepseek-api
+  disabled: true
+- id: web
+  config:
+    fetchProvider: http
 - id: web-fetch-http
   disabled: true
 - id: security-proxy

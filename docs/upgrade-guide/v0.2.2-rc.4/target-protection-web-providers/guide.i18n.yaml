@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.2-rc.4/target-protection-web-providers/guide.md
+/:
+  en: ae2e3cc81d778300
+  zh: 78cab9294b5d85e6
+/target-protection-uses-locally-checked-fetches:
+  en: 45a143b4065913cf
+  zh: c2abbb4edd924cbb
+/target-protection-uses-locally-checked-fetches/change:
+  en: 011a50b99a9f1e6d
+  zh: 8cb9fc714859aea5
+/target-protection-uses-locally-checked-fetches/migration:
+  en: c37b108f5f31ad79
+  zh: 9fd3506dd47e1020
