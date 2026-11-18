@@ -6,6 +6,8 @@ import { expect, it, onTestFinished } from 'vitest'
 import { readPreparedDesktopRelease, readPreparedProductVersion } from '../scripts/prepare-runtime-release.ts'
 import { prepareRuntimeManifests } from '../scripts/prepare-runtime-manifests.ts'
 
+const upstream = { upstreamVersion: '0.2.2-rc.3', upstreamCommit: '38a6a5c965aa99ab525161efb7cc5cf1fe62fced' }
+
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), 'desktop-release-inputs-'))
   onTestFinished(() => rm(root, { recursive: true, force: true }))
@@ -13,6 +15,7 @@ async function fixture() {
   await mkdir(app, { recursive: true })
   await mkdir(runtime)
   await writeFile(join(root, 'package.json'), JSON.stringify({ version: '0.2.2-rc.3' }))
+  await writeFile(join(root, 'product.json'), JSON.stringify(upstream))
   await writeFile(join(app, 'package.json'), JSON.stringify({ version: '2026.1114.1' }))
   await writeFile(join(runtime, 'versions.json'), JSON.stringify({ node: '24.21.0', pnpm: '11.28.5' }))
   return { root, app, runtime }
@@ -39,4 +42,13 @@ it('keeps the source version outside packaging and rejects an older or malformed
   }
   await writeFile(join(app, 'package.json'), '{}')
   expect(() => readPreparedProductVersion(app, {})).toThrow('desktop package has no version')
+})
+
+it('rejects release preparation when the engine and displayed upstream identity diverge', async () => {
+  const { root, app, runtime } = await fixture()
+  const product = join(root, 'product.json')
+  await writeFile(product, JSON.stringify({ ...upstream, upstreamVersion: '0.2.2-rc.4' }))
+  expect(() => readPreparedDesktopRelease(app, runtime, {})).toThrow('upstreamVersion must match the root DSH package version')
+  await writeFile(product, JSON.stringify({ upstreamVersion: upstream.upstreamVersion }))
+  expect(() => readPreparedDesktopRelease(app, runtime, {})).toThrow('must identify the full upstream DSH commit')
 })

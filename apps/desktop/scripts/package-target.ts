@@ -27,6 +27,7 @@ import { desktopBuildDateSegment, suggestDesktopBuildVersion } from './desktop-b
 import { desktopBuildCommitEnvironment, readDesktopBuildCommit, resolveDesktopBuildCommit } from './desktop-build-commit.mjs'
 import { requireDesktopToolchain } from './desktop-toolchain-preflight.ts'
 import { withMacOSNotarizationProxy } from './macos-notarization-proxy.ts'
+import { readPreparedEngineVersion } from './prepare-runtime-release.ts'
 
 const APP_ROOT = resolve(import.meta.dirname, '..')
 const REPOSITORY_ROOT = resolve(APP_ROOT, '..', '..')
@@ -349,6 +350,7 @@ async function resolveRequestedBuildVersion(
 async function main(): Promise<void> {
   const invocation = parseDesktopPackageInvocation(process.argv.slice(2))
   const { target } = invocation
+  const engineVersion = readPreparedEngineVersion(APP_ROOT)
   if (invocation.skipNotarization) {
     process.stdout.write('desktop package: skipping notarization and stapling; internal debugging only, not qualified for distribution or update publishing\n')
   }
@@ -365,7 +367,7 @@ async function main(): Promise<void> {
   if (invocation.check) {
     validateDesktopPackageEnvironment(environment, target, invocation)
     await requireDesktopToolchain(target.platform, environment)
-    process.stdout.write(`desktop package: ${target.name} would build ${displayProductVersion(buildVersion)}; local configuration and toolchain valid, signing and notarization were not attempted\n`)
+    process.stdout.write(`desktop package: ${target.name} would build ${displayProductVersion(buildVersion)} with DSH ${engineVersion}; local configuration and toolchain valid, signing and notarization were not attempted\n`)
     return
   }
   process.stdout.write(`desktop package: ${target.name} publishes ${displayProductVersion(buildVersion)}${buildVersion === productVersion ? '' : ` for product version ${displayProductVersion(productVersion)}`}\n`)
@@ -375,7 +377,7 @@ async function main(): Promise<void> {
   const run = createPackagingRun(join(APP_ROOT, '.desktop-build', 'packaging-runs'), {
     target: target.name, unsigned: invocation.unsigned, skipNotarization: invocation.skipNotarization,
     directory: invocation.directory, prepareOnly: invocation.prepareOnly,
-    version: buildVersion, productVersion, node: process.version,
+    version: buildVersion, productVersion, engineVersion, node: process.version,
     commit: packaged.commit,
     dirty: packaged.dirty,
   }, { parallel: true, secrets })
