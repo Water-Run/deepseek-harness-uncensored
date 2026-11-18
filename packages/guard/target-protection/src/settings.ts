@@ -166,13 +166,17 @@ export default class TargetProtectionSettings extends TypertRemoteService {
   private readProtection(
     snapshot: TargetSnapshot | undefined, country = this.readCountry(), routes = this.routes(),
   ): SecurityProtectionStatus {
+    const audit = this.ctx.get('targetProtection')?.auditWriteState()
     const guarded = routes.webFetch && routes.independentProxy && snapshot !== undefined
+      && audit !== undefined && audit !== 'unavailable'
     const capabilities: SecurityProtectionCapability[] = []
     if (guarded && snapshot.preferences.rules.some(rule => rule.enabled)) capabilities.push('target-rules')
     const state = !guarded ? 'unavailable' : !snapshot.preferences.mainlandEnabled ? 'disabled'
       : country?.state === 'ready' ? 'enabled' : 'unavailable'
     if (state === 'enabled') capabilities.unshift('mainland-domains')
-    const identity = JSON.stringify([snapshot?.revision, country?.sha256, country?.state, routes, this.execution(), state, capabilities])
+    const identity = JSON.stringify([
+      snapshot?.revision, country?.sha256, country?.state, routes, this.execution(), audit, state, capabilities,
+    ])
     if (identity !== this.statusIdentity) { this.statusIdentity = identity; this.statusRevision++ }
     return { state, capabilities, revision: this.statusRevision }
   }

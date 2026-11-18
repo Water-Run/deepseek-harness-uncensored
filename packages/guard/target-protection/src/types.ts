@@ -9,7 +9,7 @@ declare module '@deepseek-ai/cordis' {
      */
     'target-protection/status-changed'(): void
     /**
-     * Notify owner settings when live execution coverage changes.
+     * Notify owner settings when execution coverage or audit write availability changes.
      * @mode emit
      */
     'target-protection/execution-changed'(): void

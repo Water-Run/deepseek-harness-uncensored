@@ -221,13 +221,14 @@ export default class TargetProtection extends Service {
   registerSshCoverage(pathRules: boolean): () => void {
     this.lifetime.signal.throwIfAborted()
     const connection = { pathRules }
-    const notify = (): void => {
-      try { this.auditOwner.ctx.emit('target-protection/execution-changed') }
-      catch (error) { this.auditOwner.ctx.logger.warn('An execution coverage observer failed.', error) }
-    }
     this.sshConnections.add(connection)
-    notify()
-    return () => { if (this.sshConnections.delete(connection)) notify() }
+    this.notifyExecutionChanged()
+    return () => { if (this.sshConnections.delete(connection)) this.notifyExecutionChanged() }
+  }
+
+  private notifyExecutionChanged(): void {
+    try { this.auditOwner.ctx.emit('target-protection/execution-changed') }
+    catch (error) { this.auditOwner.ctx.logger.warn('An execution status observer failed.', error) }
   }
 
   /**
@@ -257,6 +258,7 @@ export default class TargetProtection extends Service {
       catch (error) {
         this.auditFailed = true
         this.ctx.logger.warn('Target audit is unavailable; protected admission has stopped.', error)
+        this.notifyExecutionChanged()
       }
     }
     if (result.decision === 'allow') throw new TargetProtectionError('unavailable', 'Target audit is unavailable. The operation was stopped.')
@@ -365,12 +367,21 @@ export default class TargetProtection extends Service {
   }
 
   /**
+   * Read audit write availability without loading stored decisions.
+   * @returns Off for unconfigured auditing, or the current writer state.
+   */
+  auditWriteState(): TargetAuditHistory['state'] {
+    if (this.audit === undefined) return 'off'
+    return this.auditFailed ? 'unavailable' : 'ready'
+  }
+
+  /**
    * Read the local protection admission log without exposing raw targets or the fingerprint key.
    * @returns The audit state and up to 100 newest accepted records.
    */
   auditHistory(): TargetAuditHistory {
     if (this.audit === undefined) return { state: 'off', entries: [] }
-    try { return { state: this.auditFailed ? 'unavailable' : 'ready', entries: this.audit.recent() } }
+    try { return { state: this.auditWriteState(), entries: this.audit.recent() } }
     catch (_error) { return { state: 'unavailable', entries: [] } }
   }
 

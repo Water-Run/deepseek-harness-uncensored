@@ -27,6 +27,7 @@ import type { TargetRuleId } from '../src/types.ts'
 
 it('exposes owner-only, revisioned rules and tracks the actual guarded providers', async () => {
   const root = await mkdtemp(join(tmpdir(), 'dshu-target-settings-'))
+  const auditPath = join(root, 'audit.sqlite')
   const ctx = new Context(), caller = new AbortController()
   const server = createServer()
   let connected = 0
@@ -43,7 +44,7 @@ it('exposes owner-only, revisioned rules and tracks the actual guarded providers
     }
     await ctx.plugin(Credentials, { path: join(root, 'credentials.yaml'), dshHome: root, watch: false })
     await ctx.plugin(Web)
-    await ctx.plugin(Protection, { path: join(root, 'rules.sqlite'), hostsFile: '' })
+    await ctx.plugin(Protection, { path: join(root, 'rules.sqlite'), auditPath, hostsFile: '', busyTimeoutMs: 10 })
     await ctx.plugin(Settings)
     const changed = vi.fn()
     const settingsChanged = vi.fn()
@@ -52,7 +53,7 @@ it('exposes owner-only, revisioned rules and tracks the actual guarded providers
     const owner = ctx.extend({ invocation }).targetProtectionSettings
     const unmounted = owner.get()
     expect(unmounted).toMatchObject({ protection: { state: 'unavailable' }, routes: { webFetch: false, independentProxy: false } })
-    expect(owner.auditHistory()).toEqual({ state: 'off', entries: [] })
+    expect(owner.auditHistory()).toEqual({ state: 'ready', entries: [] })
     expect(() => ctx.targetProtectionSettings.auditHistory()).toThrow(expect.objectContaining({ code: 'target-protection/owner-required' }))
     expect(() => ctx.targetProtectionSettings.get()).toThrow(expect.objectContaining({ code: 'target-protection/owner-required' }))
     await expect(ctx.targetProtectionSettings.updateCountry()).rejects.toMatchObject({ code: 'target-protection/owner-required' })
@@ -141,6 +142,29 @@ it('exposes owner-only, revisioned rules and tracks the actual guarded providers
       } finally { registry.close() }
       now.mockReturnValue(Date.parse(BUNDLED_COUNTRY_SOURCE.buildTime) + 46 * 86_400_000)
       expect(owner.get().protection.state).toBe('unavailable')
+      now.mockReturnValue(Date.parse(BUNDLED_COUNTRY_SOURCE.buildTime) + 86_400_000)
+      const beforeAuditFailure = ctx.securityProtection.read()
+      expect(beforeAuditFailure.state).toBe('enabled')
+      const history = owner.auditHistory()
+      const writer = new DatabaseSync(auditPath)
+      const target = join(root, 'audit-fault.txt')
+      changed.mockClear()
+      settingsChanged.mockClear()
+      try {
+        writer.exec('BEGIN IMMEDIATE')
+        await expect(ctx.targetProtection.checkLocalFile(target, 'metadata', caller.signal))
+          .rejects.toMatchObject({ code: 'unavailable' })
+      } finally { writer.close() }
+      expect(changed).toHaveBeenCalledOnce()
+      expect(settingsChanged).toHaveBeenCalledOnce()
+      const auditUnavailable = ctx.securityProtection.read()
+      expect(auditUnavailable).toMatchObject({ state: 'unavailable', capabilities: [] })
+      expect(auditUnavailable.revision).toBeGreaterThan(beforeAuditFailure.revision)
+      expect(owner.get().protection).toEqual(auditUnavailable)
+      expect(owner.auditHistory()).toEqual({ ...history, state: 'unavailable' })
+      await expect(ctx.targetProtection.checkLocalFile(target, 'metadata', caller.signal))
+        .rejects.toMatchObject({ code: 'unavailable' })
+      expect(changed).toHaveBeenCalledOnce()
       await proxy.dispose()
       expect(owner.get()).toMatchObject({ protection: { capabilities: [] }, routes: { webFetch: true, independentProxy: false } })
       await expect(owner.configure({ ...update, expectedRevision: 2 })).rejects.toMatchObject({ code: 'target-protection/unavailable' })
