@@ -48,9 +48,21 @@ it('shows pending reservations and read failures without inventing a recovery ti
     pausedSessions: [{ sessionId: SessionId('current'), state: 'waiting', resumeAt: null }] } })
   render(<SpendingBanner {...props} sessionId={SessionId('current')} />)
   expect(screen.getByRole('status').textContent).toContain(en['spending.bannerPending'])
+  expect(screen.queryByRole('button', { name: en['spending.resume'] })).toBeNull()
   act(() => { state.set({ ...state.getSnapshot(), failed: true }) })
   expect(screen.getByRole('button', { name: en['spending.retry'] })).toBeTruthy()
   expect(screen.queryByRole('button', { name: en['spending.bannerReset'] })).toBeNull()
+})
+
+it('offers manual recovery for a legacy pause while automatic recovery is enabled', async () => {
+  const { props, state, resumeSpending } = fixture(['5h', '7d'], false)
+  const data = state.getSnapshot().data!
+  state.set({ ...state.getSnapshot(), data: { ...data, preferences: { ...data.preferences, autoResume: true },
+    pausedSessions: [{ sessionId: SessionId('current'), state: 'blocked', resumeAt: null, requiresManualResume: true }] } })
+  render(<SpendingBanner {...props} sessionId={SessionId('current')} />)
+  expect(screen.getByRole('status').textContent).toContain(en['spending.bannerManual'])
+  await act(async () => { fireEvent.click(screen.getByRole('button', { name: en['spending.resume'] })) })
+  expect(resumeSpending).toHaveBeenCalledOnce()
 })
 
 it('starts with only five-hour and weekly controls expanded and all windows off', async () => {

@@ -245,12 +245,17 @@ it('migrates legacy pauses without automatically executing an unclassified old r
   } finally { db.close() }
   const migrated = await setup(path)
   expect(migrated.snapshot().preferences.autoResume).toBe(true)
-  expect(migrated.snapshot().pausedSessions).toEqual([{ sessionId: 'legacy', state: 'blocked', resumeAt: null }])
+  expect(migrated.snapshot().pausedSessions).toEqual([
+    { sessionId: 'legacy', state: 'blocked', resumeAt: null, requiresManualResume: true },
+  ])
   expect(migrated.claimBlockedSessions()).toEqual([])
   migrated.configure(migrated.snapshot().preferences)
+  migrated.reset('5h')
+  expect(migrated.snapshot().pausedSessions[0]?.requiresManualResume).toBe(true)
   migrated.reset()
   expect(migrated.claimBlockedSessions()).toEqual([])
   migrated.resume()
+  expect(migrated.snapshot().pausedSessions[0]?.requiresManualResume).toBeUndefined()
   const claims = migrated.claimBlockedSessions()
   expect(claims).toHaveLength(1)
   expect(claims[0]?.sessionId).toBe('legacy')

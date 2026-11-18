@@ -148,12 +148,13 @@ export class SpendLedger {
     exclusions: ReadonlyMap<SpendPeriod, Set<string>>): SpendPausedSession[] {
     const rows = this.pauseRows()
     return rows.map((row) => {
-      if (row.state === 'waiting' && row.owner !== this.owner && !this.isAlive(row.pid)) {
+      let state = row.state
+      if (state === 'waiting' && row.owner !== this.owner && !this.isAlive(row.pid)) {
         this.db.prepare("UPDATE session_pauses SET state = 'blocked', updated_at = ? WHERE session_id = ?").run(time, row.session_id)
-        return { sessionId: brandString<SessionId>(row.session_id), state: 'blocked' as const,
-          resumeAt: this.resumeAt(row, time, settings, entries, exclusions) }
+        state = 'blocked'
       }
-      return { sessionId: brandString<SessionId>(row.session_id), state: row.state,
+      return { sessionId: brandString<SessionId>(row.session_id), state,
+        ...(row.manual_only !== 0 ? { requiresManualResume: true } : {}),
         resumeAt: this.resumeAt(row, time, settings, entries, exclusions) }
     }).sort((left, right) => left.sessionId < right.sessionId ? -1 : left.sessionId > right.sessionId ? 1 : 0)
   }

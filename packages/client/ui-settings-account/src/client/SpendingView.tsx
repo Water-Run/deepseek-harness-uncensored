@@ -135,7 +135,7 @@ export function SpendingBanner({ sessionId, useSpending, resetSpending, resumeSp
   const data = state.data
   const pause = data?.pausedSessions.find(row => row.sessionId === sessionId)
   if (pause === undefined || data === undefined) return null
-  const manual = data.paused || !data.preferences.autoResume
+  const manual = pause.requiresManualResume === true || data.paused || !data.preferences.autoResume
   const message = state.failed ? t('spending.failed') : manual ? t('spending.bannerManual')
     : pause.resumeAt == null ? t('spending.bannerPending')
       : pause.resumeAt <= data.updatedAt ? t('spending.bannerResuming')

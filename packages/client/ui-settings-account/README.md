@@ -21,7 +21,7 @@ The sidebar and Desktop application menu open the same root-owned About dialog. 
 
 Balance polling and spending controls exist only while the viewer has the corresponding Host access. Revocation stops their controllers and removes their surfaces; later access creates fresh state.
 
-A conversation waiting for the local spending limit shows a persistent banner above its composer, with estimated automatic continuation when known, manual recovery and a quick reset. Read failures retain the notice with a retry action.
+A conversation waiting for the local spending limit shows a persistent banner above its composer, with estimated automatic continuation when known, manual recovery and a quick reset. Legacy pauses that require confirmation offer Resume even when automatic continuation is enabled. Read failures retain the notice with a retry action.
 
 The Account settings section displays DeepSeek login state and offers browser sign-in and cancellation; the sidebar account menu provides Platform sign-out. Desktop users also receive a resumable introduction to account credit and presentation preferences.
 

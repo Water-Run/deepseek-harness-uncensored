@@ -41,6 +41,8 @@ export interface SpendWindow {
 export interface SpendPausedSession {
   sessionId: SessionId
   state: 'waiting' | 'blocked'
+  /** This pause needs an explicit resume even when automatic recovery is enabled. */
+  requiresManualResume?: boolean
   /** Estimated automatic admission time at current usage; null means manual recovery or unresolved reservations. Older Hosts omit it. */
   resumeAt?: number | null
 }
