@@ -58,11 +58,71 @@ it('full protection rejects direct file calls and leaves existing and prospectiv
     () => h.fs.readText(stale), () => h.fs.readBytes(stale, undefined, 100),
     () => h.fs.readByteRange(stale, { offset: 0, length: 3 }), () => h.fs.stat(stale),
     () => h.fs.lstat(path), () => h.fs.streamText(stale), () => h.fs.listDir(target(production)),
+    () => h.fs.watch(stale, vi.fn(), new AbortController().signal),
     () => h.fs.writeText(stale, 'overwrite'), () => h.fs.editText(stale, { oldString: 'preserve', newString: 'overwrite', replaceAll: false }),
     () => h.fs.writeText(target(join(production, 'missing', 'file.txt')), 'create'),
   ]) await expect(operation()).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
   expect(await readFile(path, 'utf8')).toBe('preserve')
   expect(await readdir(production)).toEqual(['database.txt'])
+})
+
+it.each(['policy', 'caller', 'host'] as const)('closes a native watch on %s cancellation during a notification check', async (reason) => {
+  const h = await harness()
+  const path = join(h.workspace, 'observed.txt')
+  await writeFile(path, 'before')
+  const source = await h.fs.resolve(path)
+  const changed = vi.fn<(error?: Error) => void>()
+  const caller = new AbortController()
+  const close = await h.fs.watch(source, changed, caller.signal)
+  const entered = Promise.withResolvers<AbortSignal>()
+  const resume = Promise.withResolvers<undefined>()
+  const owner = h.ctx.targetProtection
+  const check = owner.checkLocalFile.bind(owner)
+  vi.spyOn(owner, 'checkLocalFile').mockImplementation(async (file, operation, signal) => {
+    if (operation === 'watch') {
+      entered.resolve(signal)
+      await resume.promise
+    }
+    return await check(file, operation, signal)
+  })
+  let disposal: Promise<unknown> | undefined
+  try {
+    await writeFile(path, 'changed while the watcher was active')
+    const checking = await entered.promise
+    if (reason === 'policy') await h.configure([rule(path)])
+    else if (reason === 'caller') caller.abort()
+    else disposal = h.ctx.fiber.dispose()
+    await vi.waitFor(() => { expect(checking.aborted).toBe(true) })
+    const stopped = close()
+    expect(close()).toBe(stopped)
+    resume.resolve(undefined)
+    await stopped
+    if (reason === 'policy') {
+      expect(changed).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ code: 'TARGET_SETTINGS_CHANGED' }))
+    } else expect(changed).not.toHaveBeenCalled()
+  } finally {
+    resume.resolve(undefined)
+    caller.abort()
+    await close()
+    await disposal
+  }
+})
+
+it('rechecks a newly observed directory entry before delivering a change', async () => {
+  const h = await harness()
+  const directory = join(h.workspace, 'observed')
+  const protectedPath = join(h.workspace, 'protected.txt')
+  await mkdir(directory)
+  await writeFile(protectedPath, 'private fixture')
+  await h.configure([rule(protectedPath)])
+  const changed = vi.fn<(error?: Error) => void>()
+  const close = await h.fs.watch(await h.fs.resolve(directory), changed, new AbortController().signal)
+  try {
+    await link(protectedPath, join(directory, 'alias.txt'))
+    await vi.waitFor(() => {
+      expect(changed).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ code: 'TARGET_FULLY_PROTECTED' }))
+    }, { timeout: 10_000 })
+  } finally { await close() }
 })
 
 it('audit supports structured reads while a test exception cannot override production writes', async () => {

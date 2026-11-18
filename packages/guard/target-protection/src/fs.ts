@@ -20,6 +20,8 @@ export default class TargetFileSystem extends SandboxedFileSystem {
   private readonly lifetime = new AbortController()
   private readonly pending = new Set<Promise<unknown>>()
   private readonly streams = new Map<AsyncIterator<string>, () => Promise<void>>()
+  private readonly watches = new Set<() => Promise<void>>()
+  private watchFailure: Error | undefined
 
   /**
    * @param ctx - Composition requiring the sandbox and durable target owner.
@@ -30,11 +32,12 @@ export default class TargetFileSystem extends SandboxedFileSystem {
     this.protection = ctx.targetProtection
     ctx.effect(() => async () => {
       this.lifetime.abort()
-      const closed = await Promise.allSettled([...this.streams.values()].map(close => close()))
+      const closed = await Promise.allSettled([...this.streams.values(), ...this.watches].map(close => close()))
       await Promise.allSettled(this.pending)
       const failures: unknown[] = []
       for (const result of closed) if (result.status === 'rejected') failures.push(result.reason)
-      if (failures.length > 0) throw new AggregateError(failures, 'Guarded file streams could not be closed.')
+      if (this.watchFailure !== undefined) failures.push(this.watchFailure)
+      if (failures.length > 0) throw new AggregateError(failures, 'Guarded file resources could not be closed.')
     }, 'target-protected-fs.lifetime')
     ctx.provide('targetProtectedFiles', true)
   }
@@ -158,12 +161,107 @@ export default class TargetFileSystem extends SandboxedFileSystem {
     return entries
   }
 
+  /** Watch an admitted target and end the subscription when its policy changes. */
   override async watch(target: FsTarget, changed: (error?: Error) => void, signal: AbortSignal): Promise<() => Promise<void>> {
-    const bounded = this.signal(signal)
-    await this.admitted(target, 'watch', bounded)
-    // Existing watchers cannot yet revoke callbacks when protection rules change.
-    void changed
-    throw new HarnessError('File watching is unavailable under target protection.', 'TARGET_EXECUTION_UNCONFINED')
+    if (this.watchFailure !== undefined) throw this.watchFailure
+    const lifetime = new AbortController()
+    const bounded = this.signal(AbortSignal.any([signal, lifetime.signal]))
+    return this.run(async () => {
+      const checked = await this.admitted(target, 'watch', bounded)
+      const release = this.protection.retainExecution()
+      const native = Promise.withResolvers<(() => Promise<void>) | undefined>()
+      let initialized = false
+      let pending: { path: string; error?: Error } | undefined
+      let delivery: Promise<void> | undefined
+      let closing: Promise<void> | undefined
+
+      const close = (): Promise<void> => {
+        if (closing !== undefined) return closing
+        pending = undefined
+        bounded.removeEventListener('abort', aborted)
+        lifetime.abort()
+        closing = native.promise.then(async (stop) => {
+          try { await stop?.() }
+          catch (error) {
+            this.watchFailure ??= watchError(error)
+            this.ctx.logger.warn('Protected file watch could not close. Restart the Host before opening another watch.', error)
+            throw error
+          } finally {
+            try { await delivery }
+            finally { this.watches.delete(close); release() }
+          }
+        })
+        return closing
+      }
+      const retire = (): void => {
+        void close().catch((_error: unknown) => { /* close reports and retains the failure */ })
+      }
+      const notify = (error?: Error): void => {
+        try { if (error === undefined) changed(); else changed(error) }
+        catch (failure) {
+          this.ctx.logger.warn('Protected file watch callback failed.', failure)
+          retire()
+        }
+      }
+      const aborted = (): void => {
+        retire()
+        if (initialized && !signal.aborted && !this.lifetime.signal.aborted) {
+          notify(new HarnessError('Target rules changed. Reopen this file watch.', 'TARGET_SETTINGS_CHANGED'))
+        }
+      }
+      const recheck = async (): Promise<void> => {
+        const current = await this.admitted(target, 'watch', bounded)
+        if (current.targetKey !== checked.targetKey) {
+          throw new HarnessError('The watched path changed. Reopen this file watch.', 'TARGET_IDENTITY_UNVERIFIED')
+        }
+      }
+      const active = (): boolean => !bounded.aborted
+      const drain = async (): Promise<void> => {
+        while (active() && pending !== undefined) {
+          const event = pending
+          pending = undefined
+          try {
+            const revision = this.protection.currentSnapshot().revision
+            await recheck()
+            if (event.path !== checked.targetKey) {
+              await this.admitted({ displayPath: event.path, targetKey: FsTargetKey(event.path) }, 'metadata', bounded)
+            }
+            if (revision !== this.protection.currentSnapshot().revision) {
+              throw new HarnessError('Target rules changed. Reopen this file watch.', 'TARGET_SETTINGS_CHANGED')
+            }
+          } catch (error) {
+            if (active()) { notify(watchError(error)); retire() }
+            return
+          }
+          if (!active()) return
+          notify(event.error)
+          if (event.error !== undefined) { retire(); return }
+        }
+      }
+      const flush = (): void => {
+        if (!initialized || bounded.aborted || delivery !== undefined || pending === undefined) return
+        delivery = drain().finally(() => { delivery = undefined; flush() })
+      }
+      this.watches.add(close)
+      bounded.addEventListener('abort', aborted, { once: true })
+      try {
+        bounded.throwIfAborted()
+        native.resolve(await super.watchLocal(checked, (path, error) => {
+          if (bounded.aborted || pending?.error !== undefined) return
+          pending = error === undefined ? { path } : { path, error }
+          flush()
+        }, bounded, false))
+        await recheck()
+        bounded.throwIfAborted()
+        initialized = true
+        flush()
+        return close
+      } catch (error) {
+        native.resolve(undefined)
+        await close()
+        throw error
+      }
+    })
   }
 
   override async writeText(
@@ -217,4 +315,8 @@ export default class TargetFileSystem extends SandboxedFileSystem {
     const bounded = this.signal(signal)
     return this.run(() => super.renameFile(source, destination, expected, bounded, sandboxPolicy))
   }
+}
+
+function watchError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error))
 }

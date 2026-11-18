@@ -1,11 +1,15 @@
 /** Owner editing and actual persistence through the Web settings surface. @module */
 import { fileURLToPath } from 'node:url'
+import { randomUUID } from 'node:crypto'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { chromium } from 'playwright'
 import { expect, it, vi } from 'vitest'
 import { SessionId } from '@deepseek-ai/dsh-session'
+import { brandString } from '@deepseek-ai/dsh-brand'
+import { createWebConnectionRpc } from '@deepseek-ai/dsh-client-connection/src/client/rpc.ts'
+import type { TargetRuleId } from '@deepseek-ai/dsh-target-protection/types'
 import type {} from '@deepseek-ai/dsh-target-protection/settings'
 import { launchWebScaffold } from './scaffold.ts'
 import { newEnglishPage, openSettings } from './support.ts'
@@ -13,6 +17,35 @@ import { newEnglishPage, openSettings } from './support.ts'
 const patch = fileURLToPath(new URL('../../cli/config/examples/target-protection.yml', import.meta.url))
 const cliManifest = fileURLToPath(new URL('../../cli/package.json', import.meta.url))
 const picker = fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url))
+
+it('delivers guarded file changes and withdraws the watch on a new production rule', async () => {
+  const scaffold = await launchWebScaffold({ extraOverlayPath: [patch, picker], extraInstallAnchors: [cliManifest] })
+  const caller = new AbortController()
+  try {
+    const path = join(scaffold.workspaceCwd, 'watched.txt')
+    await writeFile(path, 'before')
+    const target = await scaffold.ctx.fs.resolve(path)
+    const changed = vi.fn<(error?: Error) => void>()
+    const close = await scaffold.ctx.fs.watch(target, changed, caller.signal)
+    try {
+      await writeFile(path, 'updated')
+      await vi.waitFor(() => { expect(changed).toHaveBeenCalledWith() }, { timeout: 10_000 })
+      const previous = await scaffold.ctx.targetProtection.snapshot()
+      const rpc = createWebConnectionRpc((path, init) => scaffold.hostFetch(String(path), init))
+      const configured = await rpc.call('/api', 'targetProtectionSettings/configure', { args: { update: {
+        expectedRevision: previous.revision,
+        preferences: { mainlandEnabled: false, rules: [{ id: brandString<TargetRuleId>(randomUUID()),
+          name: 'Owned file', address: path, match: 'path', enabled: true, kind: 'server', environment: 'production', protection: 'full' }] },
+      } } }, caller.signal)
+      expect(configured).toMatchObject({ ok: true, value: { snapshot: { revision: previous.revision + 1 } } })
+      expect(changed).toHaveBeenLastCalledWith(expect.objectContaining({ code: 'TARGET_SETTINGS_CHANGED' }))
+      await expect(scaffold.ctx.fs.watch(target, vi.fn(), caller.signal)).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+    } finally { await close() }
+  } finally {
+    caller.abort()
+    await scaffold.close()
+  }
+})
 
 it('shows configured database counts and unready SSH in expanded narrow coverage', async () => {
   const root = await mkdtemp(join(tmpdir(), 'dshu-database-settings-'))

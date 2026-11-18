@@ -75,19 +75,33 @@ const MAX_DIFF_BASIS_BYTES = Math.min(
  */
 export class LocalFileSystem extends FileSystem {
   override async watch(target: FsTarget, changed: (error?: Error) => void, signal: AbortSignal): Promise<() => Promise<void>> {
+    return this.watchLocal(target, (_entry, error) => { if (error === undefined) changed(); else changed(error) }, signal)
+  }
+
+  /**
+   * Observe a local path while retaining the event path for provider checks.
+   * @param target - Resolved watch target.
+   * @param changed - Receives the affected absolute path, or the root path and an error.
+   * @param signal - Cancels initialization.
+   * @param followSymlinks - Whether to listen through links within a watched directory.
+   * @returns Idempotent native watch release.
+   */
+  protected async watchLocal(
+    target: FsTarget, changed: (entry: string, error?: Error) => void, signal: AbortSignal, followSymlinks = true,
+  ): Promise<() => Promise<void>> {
     signal.throwIfAborted()
     const path = resolve(this.processPath(target))
     const directory = (await this.stat(target, signal))?.type === 'directory'
     signal.throwIfAborted()
     const root = directory ? path : dirname(path)
     const watcher = watch(root, {
-      ignoreInitial: true, depth: 0,
+      ignoreInitial: true, depth: 0, ...followSymlinks ? {} : { followSymlinks: false },
       ignored: entry => !directory && resolve(entry) !== root && resolve(entry) !== path,
     })
     watcher.on('all', (_event, entry) => {
-      if (directory || resolve(entry) === path) changed()
+      if (directory || resolve(entry) === path) changed(resolve(entry))
     })
-    watcher.on('error', (error) => { changed(error instanceof Error ? error : new Error(String(error))) })
+    watcher.on('error', (error) => { changed(path, error instanceof Error ? error : new Error(String(error))) })
     try {
       await once(watcher, 'ready', { signal })
       return () => watcher.close()
