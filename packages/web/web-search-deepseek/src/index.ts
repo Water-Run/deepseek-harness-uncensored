@@ -2,9 +2,9 @@
  * Register a DeepSeek-backed provider in `ctx.web`. It calls the Anthropic-compatible Messages API
  * with native `web_search_20250305`. A search initiated by a Session on the DeepSeek account route
  * authenticates with the account token when the account service allows the search endpoint;
- * every other search reuses `DEEPSEEK_API_KEY`. The provider does not reuse `DEEPSEEK_BASE_URL`;
- * auxiliary search has its own endpoint configuration. The provider reports itself not ready for a
- * model request whose search would have no credential.
+ * other searches use a configured API-key reference. A model credential is confined to the model
+ * origin. An API-key conversation without a separate search endpoint follows its configured gateway.
+ * The provider reports itself not ready for a model request whose search would have no usable credential.
  * @module @deepseek-ai/dsh-web-search-deepseek
  */
 import type { Volatile } from '@deepseek-ai/cordis'
@@ -19,8 +19,9 @@ import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
 import {
   deepSeekApiKeyConfigured, rejectDeepSeekAccountToken, resolveDeepSeekAccountToken, resolveDeepSeekApiKey,
 } from '@deepseek-ai/dsh-llm-deepseek'
+import { activeDeepSeekApiKeyOptions, resolveAdapterOptions } from '@deepseek-ai/dsh-llm-deepseek-api-key'
 import type {} from '@deepseek-ai/dsh-session'
-import type {} from '@deepseek-ai/dsh-web'
+import { WebError } from '@deepseek-ai/dsh-web'
 import {
   DeepSeekSearchProvider,
   DEEPSEEK_DEFAULT_API_VERSION,
@@ -95,20 +96,19 @@ export const Config = z.object({
   maxUses: z.number().step(1).min(1).default(DEEPSEEK_DEFAULT_MAX_USES).volatile(),
 })
 
-/**
- * Auxiliary-search endpoint, independent of the conversation adapter's
- * `$DEEPSEEK_BASE_URL` and selected protocol.
- */
+/** Explicit endpoint override for the auxiliary search. */
 const SEARCH_BASE_URL_ENV = 'DEEPSEEK_SEARCH_BASE_URL'
 
 /** Provider route id `dsh-llm-deepseek-account` registers; `request/context` events record it per Session. */
 const ACCOUNT_PROVIDER = 'deepseek-account'
+const API_KEY_PROVIDER = 'deepseek-official'
+const SEARCH_DEFAULT_ORIGIN = new URL(DEEPSEEK_DEFAULT_BASE_URL).origin
 
 /** Settings namespace carrying this provider's endpoint, model, and key reference. */
 export const WEB_SEARCH_DEEPSEEK_SETTINGS_NAMESPACE = 'web-search-deepseek'
 
 /** Options for one search, with the key reference the readiness check reads. */
-type SearchOptions = DeepSeekSearchProviderOptions & { readonly apiKeyEnv: CredentialRef }
+type SearchOptions = DeepSeekSearchProviderOptions & { readonly apiKeyEnv: CredentialRef; readonly keyError?: WebError }
 
 /**
  * Project one resolved section into the options the provider serves its next
@@ -116,30 +116,53 @@ type SearchOptions = DeepSeekSearchProviderOptions & { readonly apiKeyEnv: Crede
  * every value it reads is already fully defaulted.
  * @param ctx - plugin context supplying the credential and environment planes.
  * @param config - the currently authoritative section.
+ * @param route - model provider route for this search, when known.
  * @returns options for one search.
  */
 function resolveOptions(
-  ctx: Context, config: { [K in keyof Config]: ReturnType<Config[K]['get']> },
+  ctx: Context, config: { [K in keyof Config]: ReturnType<Config[K]['get']> }, route: string | undefined,
 ): SearchOptions {
-  const apiKeyEnv = credentialRef(config.apiKeyEnv)
+  const environment = launchEnvironmentOf(ctx)
+  const explicitBaseURL = config.baseURL ?? environment.get(SEARCH_BASE_URL_ENV)?.value
+  let baseURL = explicitBaseURL ?? DEEPSEEK_DEFAULT_BASE_URL
+  let apiKeyEnv = credentialRef(config.apiKeyEnv)
   const literalApiKey = config.apiKey !== undefined && config.apiKey.length > 0
     ? config.apiKey
     : undefined
+  let keyError: WebError | undefined
+  if (literalApiKey === undefined) {
+    try {
+      const model = activeDeepSeekApiKeyOptions(ctx) ?? (environment.get('DEEPSEEK_BASE_URL') === undefined
+        ? undefined : resolveAdapterOptions({}, environment))
+      if (model !== undefined) {
+        const modelOrigin = new URL(model.baseURL).origin
+        if (route === API_KEY_PROVIDER && explicitBaseURL === undefined && modelOrigin !== SEARCH_DEFAULT_ORIGIN
+          && config.apiKeyEnv === DEFAULT_API_KEY_ENV) {
+          baseURL = model.baseURL
+          apiKeyEnv = model.apiKeyEnv
+        }
+        if (apiKeyEnv === model.apiKeyEnv && URL.canParse(baseURL) && new URL(baseURL).origin !== modelOrigin) {
+          keyError = new WebError(
+            'The Messages search endpoint and the model API key belong to different origins. Set the search Base URL'
+            + ' to the model origin or configure a separate search API key reference.',
+            'WEB_PROVIDER_CREDENTIAL_ORIGIN_MISMATCH',
+          )
+        }
+      }
+    } catch (cause) {
+      keyError = new WebError('Correct the DeepSeek model endpoint before using a referenced key for Messages search.',
+        'WEB_PROVIDER_MISCONFIGURED', { cause })
+    }
+  }
   return {
     ...literalApiKey === undefined ? {} : { apiKey: literalApiKey },
-    resolveAccountToken: async (endpoint) => {
-      // The latest request context names the route that served the model
-      // request which called this search, as account sign-out reads it.
-      const provider = ctx.get('agents')?.currentInitiator()?.session.requestContext()?.provider
-      if (provider !== ACCOUNT_PROVIDER) return undefined
-      return await resolveDeepSeekAccountToken(ctx, endpoint)
-    },
+    resolveAccountToken: endpoint => route === ACCOUNT_PROVIDER
+      ? resolveDeepSeekAccountToken(ctx, endpoint) : Promise.resolve(undefined),
     rejectAccountToken: token => rejectDeepSeekAccountToken(ctx, token),
-    resolveApiKey: () => resolveDeepSeekApiKey(ctx, apiKeyEnv),
+    resolveApiKey: () => keyError === undefined ? resolveDeepSeekApiKey(ctx, apiKeyEnv) : Promise.reject(keyError),
+    ...keyError === undefined ? {} : { keyError },
     apiKeyEnv,
-    baseURL: config.baseURL
-      ?? launchEnvironmentOf(ctx).get(SEARCH_BASE_URL_ENV)?.value
-      ?? DEEPSEEK_DEFAULT_BASE_URL,
+    baseURL,
     model: config.model,
     apiVersion: config.apiVersion,
     maxTokens: config.maxTokens,
@@ -176,6 +199,7 @@ async function searchConfigured(
     if (token !== undefined && token.length > 0) return true
   }
   if (options.apiKey !== undefined) return true
+  if (options.keyError !== undefined) return false
   try { return await deepSeekApiKeyConfigured(ctx, options.apiKeyEnv) }
   catch (_unreadableStore) { return false /* A store that cannot be read supplies no key to the search either. */ }
 }
@@ -185,16 +209,16 @@ async function searchConfigured(
  * search for a model request on the given route would have a credential to send.
  */
 export function apply(ctx: Context, config: Config): void {
-  const options = () => resolveOptions(ctx, {
+  const options = (route: string | undefined) => resolveOptions(ctx, {
     apiKey: config.apiKey.get(), apiKeyEnv: config.apiKeyEnv.get(), baseURL: config.baseURL.get(), model: config.model.get(),
     apiVersion: config.apiVersion.get(), maxTokens: config.maxTokens.get(), maxUses: config.maxUses.get(),
-  })
-  const provider = new DeepSeekSearchProvider(options)
+  }, route)
+  const provider = new DeepSeekSearchProvider(() => options(ctx.get('agents')?.currentInitiator()?.session.requestContext()?.provider))
   ctx.web.registerSearchProvider({
     id: provider.id,
     description: provider.description,
     available: () => provider.available(),
-    ready: llmProvider => searchConfigured(ctx, options(), llmProvider),
+    ready: llmProvider => searchConfigured(ctx, options(llmProvider), llmProvider),
     search: (request, signal) => provider.search(request, signal),
   })
 }

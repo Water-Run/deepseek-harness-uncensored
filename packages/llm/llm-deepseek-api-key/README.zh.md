@@ -37,6 +37,8 @@ kind: "package-reference"
 
 端点和凭据引用来自同一次配置解析；进行中的请求保留该快照，后续配置更新仅影响后续请求。账号登录态不影响该路由使用的凭据。
 
+网页提供方可通过 `activeDeepSeekApiKeyOptions(ctx)` 读取当前路由的端点与凭据引用。此读取解析同一套实时设置，全程在本机完成。
+
 `models` 是该 provider 独立的可配置目录；默认值和协议能力来自共享传输包。当 `models` 等于内置目录、且 Messages 的 origin 是官方 API `https://api.deepseek.com` 时，路由改为提供官方 `GET https://api.deepseek.com/models` 列表。列表请求用 `x-api-key` 携带 API key，带上 harness 的 `User-Agent`，并拒绝重定向；没有 API key 时不发任何请求。其他端点，包括由 `baseURL` 或 `$DEEPSEEK_BASE_URL` 指定的端点，提供 `models`，不请求列表。目录判断不探测推理端点。
 
 第一次访问会等待列表，最长 `modelsTimeoutMs`。首次使用后，Host 每隔 `modelsMaxAgeMs`（默认十分钟）自动刷新，页面空闲时也会刷新。刷新过程中，后续访问直接返回缓存列表。获取失败或得到空列表时保留上一份列表及其角标；还没有加载到任何列表时，路由提供当前版本内置的目录（`deepseek-flash` 与 `deepseek-v4-pro`）。列表请求返回 HTTP 401 只让这一次加载失败。每次加载成功、连续失败中的第一次失败及其退回的目录、每个因声明无法读取或不可用而被隐藏的列表条目，以及每个被丢弃的角标，都会以 `[llm-deepseek-api-key]` 标签写到 stderr；stdout 保留给协议消息，且不记录任何密钥。 列表变化时发出 `llm/models-updated`，已打开的选择器会重新加载，无需刷新页面。省略角标元数据或将其设为 `null` 会清除旧角标，无需单独的清除操作。插件卸载会停止刷新并等待进行中的加载结束。

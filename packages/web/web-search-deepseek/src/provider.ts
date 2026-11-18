@@ -388,7 +388,8 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
  * @param resolve - the resolver; a synchronous throw is mapped like a rejection.
  * @param signal - abort signal for the surrounding search.
  * @returns the resolved credential, or undefined when the resolver supplied none.
- * @throws {@link WebError} `WEB_ABORTED` on cancellation, `WEB_PROVIDER_ERROR` when the resolver fails.
+ * @throws {@link WebError} `WEB_ABORTED` on cancellation, a structured WebError from the resolver,
+ *   or `WEB_PROVIDER_ERROR` for other resolver failures.
  */
 async function resolveCredential(
   resolve: () => Promise<string | undefined>, signal?: AbortSignal,
@@ -398,6 +399,7 @@ async function resolveCredential(
     return await abortable(resolve(), signal)
   } catch (error: unknown) {
     if (signal?.aborted === true || isAbortError(error)) throw searchAborted(signal, error)
+    if (error instanceof WebError) throw error
     throw new WebError(
       `DeepSeek search credential resolution failed: ${String(error)}`,
       'WEB_PROVIDER_ERROR',

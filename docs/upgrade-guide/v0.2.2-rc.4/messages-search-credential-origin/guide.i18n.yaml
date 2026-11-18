@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.2-rc.4/messages-search-credential-origin/guide.md
+/:
+  en: dfd36ff6fd101084
+  zh: b0472f285cae8b81
+/origin-checks-for-messages-search-credentials:
+  en: 686aeb3797510f09
+  zh: f9c741043d7dcd47
+/origin-checks-for-messages-search-credentials/change:
+  en: af2ad19facd4fa93
+  zh: 8042cba13c03c2fb
+/origin-checks-for-messages-search-credentials/migration:
+  en: 586467a9bf26650a
+  zh: a182450c5768b165

@@ -22,9 +22,9 @@ vi.mock('@deepseek-ai/dsh-llm-deepseek-api-key', async (importOriginal) => {
   const original = await importOriginal<typeof import('@deepseek-ai/dsh-llm-deepseek-api-key')>()
   return {
     ...original,
-    resolveAdapterOptions: (...args: Parameters<typeof original.resolveAdapterOptions>) => {
+    activeDeepSeekApiKeyOptions: (...args: Parameters<typeof original.activeDeepSeekApiKeyOptions>) => {
       if (resolverThrow.value !== undefined) throw resolverThrow.value
-      return original.resolveAdapterOptions(...args)
+      return original.activeDeepSeekApiKeyOptions(...args)
     },
   }
 })

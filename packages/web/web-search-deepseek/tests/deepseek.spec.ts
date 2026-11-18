@@ -20,6 +20,7 @@ import {
 import * as deepseekPlugin from '@deepseek-ai/dsh-web-search-deepseek'
 import { citationSnippets, mapAnthropicResponse } from '../src/provider.ts'
 import type { AnthropicResponse } from '@deepseek-ai/dsh-web-search-deepseek/src/types.ts'
+import { provideRoutes } from '../../web-deepseek-api/tests/routes.ts'
 
 /** Construct the provider over a fixed options value; production passes a live thunk. */
 import type { DeepSeekSearchProviderOptions } from '@deepseek-ai/dsh-web-search-deepseek'
@@ -843,6 +844,7 @@ describe('web-search-deepseek search readiness', () => {
     config?: Record<string, unknown>
     account?: Pick<DeepSeekAccount, 'resolveToken'>
     credentialsDir?: string
+    environment?: Record<string, string>
   }
 
   /**
@@ -868,6 +870,9 @@ describe('web-search-deepseek search readiness', () => {
   async function compose(setup: Setup = {}): Promise<Context> {
     const ctx = new Context()
     mounted.push(ctx)
+    if (setup.environment !== undefined) {
+      ctx.provide(DSH_LAUNCH_ENVIRONMENT_KEY, createLaunchEnvironmentSnapshot([{ source: 'process', values: setup.environment }]))
+    }
     await ctx.plugin(WebRuntime, { searchProvider: DEEPSEEK_PROVIDER_ID })
     if (setup.credentialsDir !== undefined) {
       await ctx.plugin(LocalCredentialProvider, { path: join(setup.credentialsDir, '.credentials.yaml'), watch: false })
@@ -953,6 +958,62 @@ describe('web-search-deepseek search readiness', () => {
     process.env.DEEPSEEK_API_KEY = 'env-key'
     const ctx = await compose()
     expect(await ctx.web.searchReady(undefined)).toBe(true)
+  })
+
+  it('uses the gateway endpoint and its model credential together for an unpinned Messages search', async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => jsonResponse(searchResponse()))
+    vi.stubGlobal('fetch', fetchMock)
+    const ctx = await compose({ environment: { GATEWAY_KEY: 'fixture-gateway-key' } })
+    provideRoutes(ctx, [{
+      provider: 'deepseek-official', config: { baseURL: 'https://gateway.test/anthropic/v1', apiKeyEnv: 'GATEWAY_KEY' },
+    }])
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(AgentRegistry)
+    const session = ctx.sessions.create(SessionId('web-search-gateway-key'))
+    session.append('turn/start', { turn: 1 })
+    session.append('request/context', { provider: 'deepseek-official', model: 'deepseek-v4-flash' })
+
+    expect(await ctx.web.searchReady('deepseek-official')).toBe(true)
+    await ctx.agents.withInitiator({ session } as Agent, () => ctx.web.search({ query: 'fixture' }))
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith('https://gateway.test/anthropic/v1/messages', expect.objectContaining({
+      redirect: 'error',
+      headers: expect.objectContaining({ 'x-api-key': 'fixture-gateway-key' }),
+    }))
+    expect(await ctx.web.searchReady('deepseek-account')).toBe(false)
+  })
+
+  it('rejects a reused credential before sending anything to another origin', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(searchResponse()))
+    vi.stubGlobal('fetch', fetchMock)
+    const ctx = await compose({
+      config: { baseURL: 'https://gateway.test:8443/anthropic/v1' },
+      environment: { DEEPSEEK_BASE_URL: 'https://gateway.test/anthropic/v1', DEEPSEEK_API_KEY: 'fixture-gateway-key' },
+    })
+
+    expect(await ctx.web.searchReady('deepseek-official')).toBe(false)
+    await expect(ctx.web.search({ query: 'fixture' })).rejects.toMatchObject({
+      name: 'WebError', code: 'WEB_PROVIDER_CREDENTIAL_ORIGIN_MISMATCH',
+    })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('uses a separate search key for an explicitly configured search origin', async () => {
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => jsonResponse(searchResponse()))
+    vi.stubGlobal('fetch', fetchMock)
+    const ctx = await compose({
+      config: { baseURL: 'https://search.test/anthropic/v1', apiKeyEnv: 'SEARCH_KEY' },
+      environment: {
+        DEEPSEEK_BASE_URL: 'https://gateway.test/anthropic/v1',
+        DEEPSEEK_API_KEY: 'fixture-gateway-key', SEARCH_KEY: 'fixture-search-key',
+      },
+    })
+
+    expect(await ctx.web.searchReady('deepseek-official')).toBe(true)
+    await ctx.web.search({ query: 'fixture' })
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith('https://search.test/anthropic/v1/messages', expect.objectContaining({
+      headers: expect.objectContaining({ 'x-api-key': 'fixture-search-key' }),
+    }))
   })
 
   it('is not ready when the credential store cannot be read', async () => {

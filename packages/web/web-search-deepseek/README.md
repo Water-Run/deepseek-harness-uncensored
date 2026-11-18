@@ -33,13 +33,13 @@ Choose this backend when a deployment wants DeepSeek's native server-side web se
 
 ### Minimal configuration
 
-Load the web service and the provider; the key resolves from `ctx.credentials` when that service is mounted, otherwise from the process environment. The auxiliary search call has its own endpoint setting and uses the Anthropic-compatible base `https://api.deepseek.com/anthropic/v1`, with `/messages` appended. It reads `$DEEPSEEK_SEARCH_BASE_URL`, independently of the conversation adapter’s `$DEEPSEEK_BASE_URL`; the `dsh` launcher accepts both variables from the launching environment or `$DSH_HOME/.env`, never from a project `.env` ([app-boot](../../boot/app-boot/README.md)).
+The provider reads the API key from `ctx.credentials` when available and from the process environment otherwise. Set `baseURL` or `DEEPSEEK_SEARCH_BASE_URL` to choose a Messages search endpoint. With neither set, a DeepSeek API-key conversation that uses a custom model origin and the default search key reference searches through that model gateway with its model key reference. Other searches default to `https://api.deepseek.com/anthropic/v1`. The provider appends `/messages` to the selected base.
 
 ```yaml
 - name: '@deepseek-ai/dsh-web'
 - name: '@deepseek-ai/dsh-web-search-deepseek'
   config:
-    apiKeyEnv: DEEPSEEK_API_KEY
+    apiKeyEnv: SEARCH_GATEWAY_KEY
     baseURL: https://gateway.internal/anthropic/v1
 ```
 
@@ -47,7 +47,7 @@ Load the web service and the provider; the key resolves from `ctx.credentials` w
 |---|---|---|
 | `apiKey` | omitted | Literal DeepSeek API key; prefer `apiKeyEnv` so no secret enters configuration. A non-empty literal wins over `apiKeyEnv`; an account token wins over both |
 | `apiKeyEnv` | `DEEPSEEK_API_KEY` | Credential reference resolved for each search through `ctx.credentials`, or from the process environment when that service is absent. A search that needs an API key and finds none fails as `WEB_PROVIDER_CREDENTIAL_MISSING` |
-| `baseURL` | `https://api.deepseek.com/anthropic/v1` | Anthropic-compatible endpoint base; `/messages` is appended. Falls back to `$DEEPSEEK_SEARCH_BASE_URL`; an unparseable value makes the provider unavailable |
+| `baseURL` | model gateway or official Messages endpoint | Anthropic-compatible endpoint base. An explicit value takes priority over `DEEPSEEK_SEARCH_BASE_URL`. An unparseable value makes the provider unavailable. |
 | `model` | `deepseek-v4-flash` | Anthropic-format model name |
 | `apiVersion` | `2023-06-01` | `anthropic-version` header value |
 | `maxTokens` | `4096` | Positive-integer upper bound on generated tokens for the Messages request |
@@ -60,7 +60,9 @@ The generated [configuration catalog](https://github.com/deepseek-ai/deepseek-ha
 
 A search authenticates with the DeepSeek account when the latest `request/context` event of the initiating Session names the `deepseek-account` provider route and `ctx.deepseekAccount` resolves a token for the search endpoint. The account service resolves one only while signed in and only for its deployment-configured inference origin, `https://api.deepseek.com` by default. That search sends only `x-dsh-auth-token`, even when an API key is configured. Every other search, including a call without an initiating Session and a search whose endpoint has another origin, sends the API key as both `x-api-key` and `Authorization: Bearer`. An HTTP 401 response to an account-authenticated search fails as `WEB_PROVIDER_ERROR` with sign-in guidance instead of endpoint guidance, and invalidates only the token that search sent: a newer sign-in is preserved, and a credential-removal failure or a cancelled error-body read does not skip invalidation or replace the reported failure. An API-key 401 and every HTTP 403 leave the account signed in.
 
-The provider's `ready()` answers whether the search a model request would make has a credential, on any model route: the request's route is `deepseek-account` and `ctx.deepseekAccount` resolves a token for the configured search endpoint, or a literal `apiKey` is set or `ctx.credentials.describe` reports the `apiKeyEnv` reference configured (without that service, the process environment must carry it). It checks them in the order a search resolves them, and a failed account-token or credential-store read answers false, because the search fails on that read instead of trying the next credential. While this provider is the selected search provider, [`dsh-tool-web`](../tool-web/README.md#search-readiness) withholds `web_search` and its prompt guidance from each request for which it answers false. Only presence is checked: a wrong key, or an endpoint that does not serve the native `web_search_20250305` server tool, counts as ready and fails each call. A call that still arrives resolves credentials when it runs.
+When search reuses the model's API key reference, the search and model endpoints must have the same origin. A mismatch stops the request before key resolution with `WEB_PROVIDER_CREDENTIAL_ORIGIN_MISMATCH`. Configure a separate search key reference for a different origin.
+
+The provider's `ready()` checks the same endpoint and credential selection as execution. It checks the account token when applicable, then the literal key or the selected credential reference. A failed credential read or an origin mismatch reports false. [`dsh-tool-web`](../tool-web/README.md#search-readiness) withholds `web_search` when the selected provider reports false. A wrong key or a server without the Messages search tool can still fail at execution.
 
 Referenced keys use the [shared DeepSeek credential helpers](../../llm/llm-deepseek/README.md#account-credentials), including the same whitespace normalization and format validation as model requests. A malformed referenced key fails before dispatch; readiness remains a presence-only check.
 

@@ -28,9 +28,7 @@ import {
 import {
   plainAccountOptions, resolveAccountOptions, type Config as AccountRouteConfig,
 } from '@deepseek-ai/dsh-llm-deepseek-account'
-import {
-  plainOptions as plainOfficialOptions, resolveAdapterOptions as resolveOfficialOptions, type Config as OfficialRouteConfig,
-} from '@deepseek-ai/dsh-llm-deepseek-api-key'
+import { activeDeepSeekApiKeyOptions } from '@deepseek-ai/dsh-llm-deepseek-api-key'
 import type { Session } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-web'
 import { DeepSeekFetchApiProvider } from './fetch.ts'
@@ -264,12 +262,12 @@ function ruleSources(ctx: Context, capability: Capability, rule: Rule): DeepSeek
  * @returns the source, or a misconfigured source when the route's resolver rejects its settings.
  */
 function officialSource(ctx: Context, capability: Capability): DeepSeekWebAuthSource {
-  const config = routeConfig(ctx, OFFICIAL_PROVIDER) as OfficialRouteConfig | undefined
-  if (config === undefined) return apiKeySource(ctx, DEEPSEEK_WEB_API_BASE_URL, DEEPSEEK_API_KEY)
-  let resolved: { baseURL: string; apiKeyEnv: CredentialRef }
-  try { resolved = resolveOfficialOptions(plainOfficialOptions(config), launchEnvironmentOf(ctx)) }
-  catch (error: unknown) { return misconfigured(capability, OFFICIAL_PROVIDER, error) }
-  return apiKeySource(ctx, toolsBase(resolved.baseURL), resolved.apiKeyEnv)
+  try {
+    const resolved = activeDeepSeekApiKeyOptions(ctx)
+    return resolved === undefined
+      ? apiKeySource(ctx, DEEPSEEK_WEB_API_BASE_URL, DEEPSEEK_API_KEY)
+      : apiKeySource(ctx, toolsBase(resolved.baseURL), resolved.apiKeyEnv)
+  } catch (error: unknown) { return misconfigured(capability, OFFICIAL_PROVIDER, error) }
 }
 
 /**
