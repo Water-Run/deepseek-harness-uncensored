@@ -22,7 +22,7 @@
 
 本机 WSL 的 DSHU 专用缓存已经归档并清理，文件系统净增加约 153.2 GiB 空闲。三个工作区及 32 条 stash 已验证可恢复，备份在 `%USERPROFILE%/DSHU-Backups/20261118-wsl-retirement/`，恢复时须同时保留归档和 `borrowed-objects/`。旧 `/home/linzh/.cache/dshu-verification` 路径已移除，不再启动本机 WSL 或调用旧 Linux 构建脚本。
 
-Codex 的自动连接会在关闭后重新唤起 Ubuntu，需用户在连接设置中停用该条连接。压缩 `D:/WSL/Ubuntu/ext4.vhdx` 的单次 UAC 请求尚待确认，执行会话句柄 `96010` 仍在等待；确认前不得重启该请求或把超时当作结束。准备脚本为备份目录的 `compact-vhd.ps1`，结果为 `vhd-compaction-result.json`。Windows 物理空间和持续内存回收尚未完成，以最新回执为准。
+VHDX 最新回读已从约 203.9 GiB 降至 50.7 GiB，检查时未发现 WSL 虚拟机进程。此前提权任务已退出且未返回压缩回执。持续内存释放仍需核实 Codex 的自动重连设置。详见 [Windows 磁盘与内存收尾](requirements/2026-11-18-linux-test-host.md#windows-磁盘与内存收尾)。
 
 ## 恢复与运行
 

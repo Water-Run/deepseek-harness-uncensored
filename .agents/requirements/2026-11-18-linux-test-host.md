@@ -36,6 +36,4 @@ Windows 跳板上的嵌套 SSH 不使用管道传入 Python 程序；该方式�
 
 已执行文件系统 TRIM 和 WSL 关闭，记录中 `vmmemWSL` 曾退出；随后 Codex 主进程的 WSL 连接重试在约 12 秒后重新唤起 Ubuntu。调用方 PID、父进程和观察结果见备份目录的 `wsl-stopped-observation.json`。后续应在 Codex 的连接设置中断开这条 Ubuntu 连接；不通过改写运行中的应用状态文件规避连接管理。
 
-虚拟磁盘 `D:/WSL/Ubuntu/ext4.vhdx` 仍约 203.9 GiB；Linux 文件系统的空闲增加不等同于 Windows D 盘已获得全部空间。非管理员 Hyper-V 查询明确返回权限不足，单次 UAC 提权请求已经发出，压缩尚待用户确认。仅压缩已停止且未附加的这一动态 VHDX，使用[官方 Optimize-VHD 命令](https://learn.microsoft.com/en-us/powershell/module/hyper-v/optimize-vhd)。操作脚本及结果入口为备份目录的 `compact-vhd.ps1` 和 `vhd-compaction-result.json`；不重复发起仍在等待的请求，不在磁盘仍被附加时执行压缩。
-
-在断开自动重连并完成压缩前，物理磁盘回收和持续内存释放保持未完成状态。此前被自动审批拒绝的 Windows 构建目录及迁移备份没有重试或删除。
+Windows 最新回读显示 `D:/WSL/Ubuntu/ext4.vhdx` 为 54,409,560,064 字节，较 TRIM 后记录缩小约 153.3 GiB。检查时 D 盘空闲约 233.4 GiB，两次进程快照均未发现 `vmmemWSL`。早先的提权任务已退出，`compaction-launch-error.json` 记录未返回执行回执。磁盘变小的执行方和持续内存释放状态仍待核实。复查记录位于备份目录的 `windows-storage-observation-20261118.json`。
