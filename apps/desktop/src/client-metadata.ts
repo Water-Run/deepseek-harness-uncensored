@@ -1,15 +1,16 @@
 /** Desktop client identity for one Platform account call. */
 import type { AccountClientMetadata } from '@deepseek-ai/dsh-deepseek-account/types'
+import { DesktopApplicationFilesError } from './startup-error.ts'
 
 /**
  * Read the client build version inlined by the Desktop build.
  * @returns the version embedded in this application build.
- * @throws Error when the build carries no client version, instead of reporting a guessed one.
+ * @throws DesktopApplicationFilesError when the build carries no client version.
  */
 export function desktopClientVersion(): string {
   const version = process.env.DSH_CLIENT_VERSION
   if (version === undefined || version === '') {
-    throw new Error('desktop account: this application build carries no DSH_CLIENT_VERSION')
+    throw new DesktopApplicationFilesError(new Error('desktop account: this application build carries no DSH_CLIENT_VERSION'))
   }
   return version
 }

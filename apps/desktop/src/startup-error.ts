@@ -2,7 +2,7 @@
 
 /** Installed Desktop resources must be repaired before Host startup can continue. */
 export class DesktopApplicationFilesError extends Error {
-  /** @param cause - Failure reading the built-in runtime descriptor or Host entry. */
+  /** @param cause - Failure reading or validating a built-in application resource. */
   constructor(cause: unknown) {
     super(`desktop runtime: application files could not be loaded\n${desktopErrorState(cause).message}`, { cause })
     this.name = 'DesktopApplicationFilesError'

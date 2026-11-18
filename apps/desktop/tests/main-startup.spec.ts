@@ -3180,6 +3180,20 @@ describe('desktop main startup', () => {
     expect(harness.hosts).toHaveLength(0)
   })
 
+  it('reports missing client build metadata before preparing the profile', async () => {
+    vi.stubEnv('DSH_CLIENT_VERSION', undefined)
+    harness.prepared.resolve()
+    await import('../src/main.ts')
+    await harness.dialogShown.promise
+    const options = harness.dialog.showMessageBox.mock.calls[0]![0] as MessageBoxOptions
+    expect(options.detail).toContain('DSH_CLIENT_VERSION')
+    expect(harness.applyRelease).not.toHaveBeenCalled()
+    expect(harness.windows).toHaveLength(0)
+    expect(harness.hosts).toHaveLength(0)
+    expect(options.buttons).toEqual([en.exitApplication, en.getDiagnosticReport])
+    expect(options.defaultId).toBe(0)
+  })
+
   it('keeps startup errors in the existing window without a retry handler', async () => {
     await import('../src/main.ts')
     await harness.preparing.promise
