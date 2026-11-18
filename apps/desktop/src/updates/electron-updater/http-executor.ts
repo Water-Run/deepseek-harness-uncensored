@@ -1,9 +1,12 @@
 /** Electron-native inactivity deadlines for updater checks, full downloads, and blockmap requests. */
 import { ElectronHttpExecutor } from 'electron-updater/out/electronHttpExecutor.js'
 import type { ClientRequest, IncomingMessage } from 'electron'
+import type { RequestOptions } from 'node:http'
 
 /** Retains electron-updater transport and proxy handling while bounding silent connections. */
 export class DesktopUpdateHttpExecutor extends ElectronHttpExecutor {
+  private readonly redirects = new WeakMap<RequestOptions, number>()
+
   /**
    * @param idleTimeoutMs - Maximum silence before headers or between response chunks, not a total download deadline.
    * @param proxyLogin - Existing updater login event forwarding.
@@ -13,6 +16,16 @@ export class DesktopUpdateHttpExecutor extends ElectronHttpExecutor {
     if (!Number.isSafeInteger(idleTimeoutMs) || idleTimeoutMs < 1000 || idleTimeoutMs > 2_147_483_647) {
       throw new Error('desktop update: HTTP idle timeout must be an integer from 1000 through 2147483647')
     }
+  }
+
+  protected override addRedirectHandlers(request: ClientRequest, options: RequestOptions, reject: (error: Error) => void,
+    redirectCount: number, handler: (options: RequestOptions) => void): void {
+    // The pinned updater recreates the request without advancing the argument for the new hop.
+    const nextCount = (this.redirects.get(options) ?? redirectCount) + 1
+    super.addRedirectHandlers(request, options, reject, nextCount, (redirected) => {
+      this.redirects.set(redirected, nextCount)
+      handler(redirected)
+    })
   }
 
   override addErrorAndTimeoutHandlers(request: ClientRequest, reject: (error: Error) => void): void {

@@ -100,6 +100,38 @@ async function main() {
       server.select('healthy')
       assert.equal((await f.coordinator.check(true)).phase, 'available')
     })
+    await scenario('excessive-download-redirects-stop-and-retry', async () => {
+      const f = await fixture('download-redirect-chain')
+      const available = await f.coordinator.check(true)
+      assert.equal(available.phase, 'available')
+      const before = server.requests.length
+      const failure = await f.coordinator.download(available.version)
+      assert.equal(failure.failedOperation, 'download')
+      assert.match(failure.message, /too many redirects/i)
+      assert.equal(server.requests.length - before, 11)
+      assert.equal(f.updater.installerPath, null)
+      server.select('healthy')
+      assert.equal((await f.coordinator.download(available.version)).phase, 'ready')
+    })
+    await scenario('excessive-feed-redirects-stop-and-retry', async () => {
+      const f = await fixture('feed-redirect-chain')
+      const executor = f.updater.httpExecutor
+      const execute = executor.doApiRequest
+      const tokens = new Set()
+      executor.doApiRequest = function (options, token, ...args) {
+        tokens.add(token)
+        return execute.call(this, options, token, ...args)
+      }
+      const before = server.requests.length
+      const failure = await f.coordinator.check(true).finally(() => { executor.doApiRequest = execute })
+      assert.equal(failure.failedOperation, 'check')
+      assert.match(failure.message, /too many redirects/i)
+      assert.equal(server.requests.length - before, 11)
+      assert.equal(tokens.size, 1)
+      for (const token of tokens) assert.equal(token.listenerCount('cancel'), 0)
+      server.select('healthy')
+      assert.equal((await f.coordinator.check(true)).phase, 'available')
+    })
     await scenario('concurrent-checks-use-one-request', async () => {
       const f = await fixture('hold-check')
       const before = server.requests.length

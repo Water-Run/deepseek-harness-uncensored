@@ -20,7 +20,8 @@ export async function createUpdateServer() {
   let arrived = Promise.withResolvers()
   let origin
   const server = createServer((request, response) => {
-    const path = new URL(request.url, origin).pathname
+    const url = new URL(request.url, origin)
+    const path = url.pathname
     requests.push(path)
     const selectedMode = mode
     const selectedGate = gate
@@ -35,6 +36,16 @@ export async function createUpdateServer() {
             desktop_app_link: 'https://downloads.example.com/desktop' },
         } : { code: 0, data: { biz_code: 0, biz_data: null } }))
         return
+      }
+      const redirectFixture = (path === '/nightly.yml' && selectedMode === 'feed-redirect-chain')
+        || (path === '/payload.exe' && selectedMode === 'download-redirect-chain')
+      if (redirectFixture) {
+        const hop = Number(url.searchParams.get('hop') ?? 0)
+        if (hop < 11) {
+          url.searchParams.set('hop', String(hop + 1))
+          response.writeHead(302, { Location: url.href }).end()
+          return
+        }
       }
       if (path === '/nightly.yml') {
         if (selectedMode === 'feed-stall') return

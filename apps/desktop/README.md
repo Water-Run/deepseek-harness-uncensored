@@ -389,7 +389,7 @@ Background mandatory-installation confirmation requests Windows taskbar attentio
 
 ### Local updater qualification
 
-Ordinary update HTTP requests have a per-connection inactivity deadline: no response headers or no further response bytes for `60000` ms fails the operation. `DSH_DESKTOP_UPDATE_HTTP_IDLE_TIMEOUT_MS` accepts an integer from `1000` through `2147483647` to adjust it; active downloads have no total-duration deadline. Failed downloads retain the retry indicator and require another user action.
+Ordinary update HTTP requests have a per-connection inactivity deadline: no response headers or no further response bytes for `60000` ms fails the operation. `DSH_DESKTOP_UPDATE_HTTP_IDLE_TIMEOUT_MS` accepts an integer from `1000` through `2147483647` to adjust it; active downloads have no total-duration deadline. Metadata checks and full-package downloads follow up to ten redirects per request chain. A longer chain reports a failure. Failed downloads retain the retry indicator and require another user action.
 
 On Windows with workspace dependencies installed, run this command from the repository root:
 
