@@ -162,6 +162,54 @@
     "sha256": "e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118"
   },
   {
+    "packages": ["@img/sharp-libvips-linux-x64@1.3.4"],
+    "file": "sharp-libvips-libpng-1.6.58-LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/pnggroup/libpng/3061454d980de7d53608f594194cfac722721d2a/LICENSE",
+    "sha256": "bdb0a645ea18c60507d0368379b1ac5474b92255fcc2d115e07486a7672ba526"
+  },
+  {
+    "packages": ["@img/sharp-libvips-linux-x64@1.3.4"],
+    "file": "sharp-libvips-libimagequant-2.4.1-COPYRIGHT.txt",
+    "source": "https://raw.githubusercontent.com/lovell/libimagequant/ce5fdeb1ccd9db288950faa21fd09c42c0a59bbb/COPYRIGHT",
+    "sha256": "7391bfbcde4404cefb9849553362c3ab436f929f5cc1abb57071ec045590ee99"
+  },
+  {
+    "packages": ["@img/sharp-libvips-linux-x64@1.3.4"],
+    "file": "sharp-libvips-mozjpeg-0826579-LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/mozilla/mozjpeg/08265790774cd0714832c9e675522acbe5581437/LICENSE.md",
+    "sha256": "96f5b328adbb78eeaaec6980d73fd558cb1e4d62560ed615646bc3cf5e532430"
+  },
+  {
+    "packages": ["@img/sharp-libvips-linux-x64@1.3.4"],
+    "file": "sharp-libvips-mozjpeg-0826579-README-IJG.txt",
+    "source": "https://raw.githubusercontent.com/mozilla/mozjpeg/08265790774cd0714832c9e675522acbe5581437/README.ijg",
+    "sha256": "f4a85f8677ca4e41b185c0a9f7c31a30ddb9ce43c561483ee92ef12db37c2a10"
+  },
+  {
+    "packages": ["@img/sharp-libvips-linux-x64@1.3.4"],
+    "file": "sharp-libvips-libaom-3.15.1-LICENSE.txt",
+    "source": "https://aomedia.googlesource.com/aom/+/44d0a57786f432d933ff64b653347c66f4d0fa1d/LICENSE",
+    "sha256": "60f3f7e003a4a7736aad7c008380fbfbcd3bf19544c589efebba824a2b9e145b"
+  },
+  {
+    "packages": ["@img/sharp-libvips-linux-x64@1.3.4"],
+    "file": "sharp-libvips-libaom-3.15.1-PATENTS.txt",
+    "source": "https://aomedia.googlesource.com/aom/+/44d0a57786f432d933ff64b653347c66f4d0fa1d/PATENTS",
+    "sha256": "eb1955a99d10bf2bbb37c375e7a61bdb560b76ab8590c1a45be6c2a20245146e"
+  },
+  {
+    "packages": ["@img/sharp-libvips-linux-x64@1.3.4"],
+    "file": "sharp-libvips-libwebp-1.6.0-COPYING.txt",
+    "source": "https://chromium.googlesource.com/webm/libwebp/+/4fa21912338357f89e4fd51cf2368325b59e9bd9/COPYING",
+    "sha256": "e293d1dddc9785200b1f58a4f5293543cf8566d9e0b8a3c02fad955035b19f42"
+  },
+  {
+    "packages": ["@img/sharp-libvips-linux-x64@1.3.4"],
+    "file": "sharp-libvips-libwebp-1.6.0-PATENTS.txt",
+    "source": "https://chromium.googlesource.com/webm/libwebp/+/4fa21912338357f89e4fd51cf2368325b59e9bd9/PATENTS",
+    "sha256": "cc3273e0694ea5896145e0677699b53471b03ea43021ddc50e7923fbb9f5023c"
+  },
+  {
     "packages": ["sherpa-onnx-node@1.13.8", "sherpa-onnx-linux-x64@1.13.8", "sherpa-onnx-win-x64@1.13.8"],
     "file": "sherpa-onnx-1.13.8-Apache-2.0.txt",
     "source": "https://raw.githubusercontent.com/csukuangfj/sherpa-onnx/11afbd009a7f8c08f4bcf2fc1b265d0df4670fbf/LICENSE",

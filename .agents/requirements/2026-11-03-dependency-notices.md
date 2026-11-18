@@ -64,6 +64,12 @@ Linux 17.8 便携包的 SHA-256 与交付记录一致。包内 `libsherpa-onnx-c
 
 五份许可文本按固定 Git blob 核对。KissFFT 的 COPYING 移除一处末尾空行，其余四份按原始字节封存。清单只把新增文件关联到 `sherpa-onnx-linux-x64@1.13.8`。使用 17.8 实包提取的目标包清单和 README 调用打包清点器，逐字保留原 3 份声明并新增 5 份，8 份文件的摘要全部匹配。19 项清点器测试通过。其他内嵌组件署名和对应源码提供范围仍待核查，待审标记保留。回执位于 `%USERPROFILE%/DSHU-Deliveries/20261119/sherpa-onnx-linux-x64-1.13.8/notice-projection-result.json`。[固定许可文本清单](../../LICENSES/npm/sources.json)
 
+### libvips Linux 图像编解码许可（2026-11-19）
+
+Linux 17.8 便携包的摘要与交付记录一致。提取的 `libvips-cpp.so.8.18.7`、`versions.json`、包清单和 README 与打包运行时清单中的摘要一致。实包版本表与 Sharp 1.3.4 构建锁定的 AOM 3.15.1、libwebp 1.6.0、libpng 1.6.58、libimagequant 2.4.1 和 MozJPEG `0826579` 一致。二进制的编译信息记录了 AV1 版本、WebP 和 PNG 支持及 imagequant，JPEG 入口保留 IJG 系的版权文字。[Sharp 固定版本表](https://github.com/lovell/sharp-libvips/blob/ebb95f8add54eee8bed840e3fb587e4cbec857d7/versions.properties) · [构建脚本](https://github.com/lovell/sharp-libvips/blob/ebb95f8add54eee8bed840e3fb587e4cbec857d7/build/posix.sh)
+
+清单为 `@img/sharp-libvips-linux-x64@1.3.4` 补入 8 份文本，含 AOM 和 WebP 的专利声明。原文均核对固定 Git blob。AOM 两份文本及 WebP 的 COPYING 各去除一个多余末尾空行。以 17.8 实包输入做单包复算，原 3 份声明保留，新增 8 份，合计 11 份的摘要均一致。19 项打包清点测试通过。其余内嵌库署名、对应源码范围和新包分发仍待核查。回执位于 `%USERPROFILE%/DSHU-Deliveries/20261119/sharp-libvips-linux-x64-1.3.4/notice-projection-result.json`。[固定许可文本清单](../../LICENSES/npm/sources.json)
+
 ## Electron 与 Windows 安装器声明（2026-11-11）
 
 Windows `.6` 的 `StdUtils.dll` 与作者 1.14 发行归档和 NSIS Resources 3.4.1 中的 Unicode DLL 逐字一致。作者单独发布的源码归档解压后，与同一二进制归档内的源码 tar 一致，内含 LGPL 文本及作者说明。源码归档及 ANSI、Unicode DLL 摘要固定在 `LICENSES/installer/stdutils-1.14.json`。[StdUtils 1.14 发行](https://github.com/lordmulder/stdutils/releases/tag/1.14)
