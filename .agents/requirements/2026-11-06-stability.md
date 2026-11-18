@@ -136,7 +136,7 @@ Windows 原生 NSIS 隔离夹具通过 11 个目录替换场景。待安装目�
 
 Host 启动入口缺失或被目录替代时，Desktop 在修改插件资料前中止，提示重新安装并提供退出和可用的诊断报告。运行时描述读取失败使用同一恢复入口。298 项定向测试、Desktop 构建与定向 lint 通过。新编译的桌面壳使用 Windows 18.11 的实际资源，在独立资料目录注入 Host 入口缺失，核对弹窗参数、报告、退出以及配置文件保留。验收拦截原生弹窗调用，实装 ASAR 摘要一致。复现和修复回执为 `startup-application-files-before.log`、`startup-application-files-final-tests.log` 和 `startup-application-files-native-final.log`。修复待下次打包。[恢复说明](../../apps/desktop/docs/diagnostics/README.zh.md#recovery)
 
-缺少 `DSH_CLIENT_VERSION` 时，在创建主窗口和准备插件资料前进入安装文件恢复。Windows 的隔离 Electron 44.7.0 场景验证只提供退出与诊断报告，用户补丁原样保留。扩展测试 226 项通过，两个安装交接退出用例在改前基线与当前源码均超时。证据位于 `%USERPROFILE%/DSHU-Deliveries/20261119/client-metadata-recovery/`。此修复待下次打包。[恢复说明](../../apps/desktop/docs/diagnostics/README.zh.md#recovery)
+缺少 `DSH_CLIENT_VERSION` 时，在创建主窗口和准备插件资料前进入安装文件恢复。Windows 的隔离 Electron 44.7.0 场景验证只提供退出与诊断报告，用户补丁原样保留。证据位于 `%USERPROFILE%/DSHU-Deliveries/20261119/client-metadata-recovery/`。验收中超时的两项安装交接测试已修复模拟交接并重新通过。启动修复待下次打包。[恢复说明](../../apps/desktop/docs/diagnostics/README.zh.md#recovery) · [交接校验](2026-11-16-release-check.md#windows-更新交接校验)
 
 Windows 同版修复可在主程序丢失时使用两处一致的安装登记确认目标，已安装版本仍须有效。隔离静默测试用两种语言恢复了缺失的程序和损坏的许可声明，核对恢复字节、版本与六类测试资料。版本缺失或登记路径冲突时均拒绝替换。旧逻辑的拒绝与修复后的通过分别记录在 `windows-same-version-repair-silent-final.log` 和 `windows-same-version-repair-verified.log`。修复进入下一次打包。[打包说明](../../apps/desktop/packaging/README.zh.md)
 

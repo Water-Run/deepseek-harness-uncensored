@@ -51,6 +51,7 @@ const harness = await vi.hoisted(async () => {
   const handlers = new Map<string, InvokeHandler>()
   let pluginsEnabled = false
   let prepareUpdate: (() => Promise<boolean>) | undefined
+  let beginUpdateHandoff: (() => boolean) | undefined
   let publishUpdate: ((state: DesktopUpdateState) => DesktopUpdateState) | undefined
   let preparing = deferred()
   let prepared = deferred()
@@ -249,6 +250,8 @@ const harness = await vi.hoisted(async () => {
     set updateState(value: DesktopUpdateState) { updateState = value },
     get prepareUpdate() { return prepareUpdate! },
     set prepareUpdate(value: () => Promise<boolean>) { prepareUpdate = value },
+    get beginUpdateHandoff() { return beginUpdateHandoff! },
+    set beginUpdateHandoff(value: () => boolean) { beginUpdateHandoff = value },
     get publishUpdate() { return publishUpdate! },
     set publishUpdate(value: (state: DesktopUpdateState) => DesktopUpdateState) { publishUpdate = value },
     dialog: { showOpenDialog: vi.fn(), showErrorBox: vi.fn(), showMessageBox: vi.fn() },
@@ -286,6 +289,7 @@ const harness = await vi.hoisted(async () => {
       pluginsEnabled = false
       closeWindowsOnQuit = false
       prepareUpdate = undefined
+      beginUpdateHandoff = undefined
       publishUpdate = undefined
       updateState = { phase: 'idle' }
       updateCheck.mockReset().mockImplementation(async () => updateState)
@@ -386,9 +390,11 @@ vi.mock('../src/update-coordinator.ts', () => ({ DesktopUpdateCoordinator: class
   revision = 0
   configurationFailure: 'startup' | 'cleanup' | undefined
   constructor(publish: (state: DesktopUpdateState) => DesktopUpdateState, beforeRestart: () => Promise<boolean>,
-    _updater: unknown, _enabled: unknown, _version: unknown, _downloadResult: unknown, channel: 'nightly' | 'latest') {
+    _updater: unknown, _enabled: unknown, _version: unknown, _downloadResult: unknown, channel: 'nightly' | 'latest',
+    _discard: unknown, _readSource: unknown, beginHandoff: () => boolean) {
     this.selectedChannel = channel
     harness.prepareUpdate = beforeRestart
+    harness.beginUpdateHandoff = beginHandoff
     harness.publishUpdate = publish
   }
   async switchChannel(channel: 'nightly' | 'latest', persist: () => Promise<void>) {
@@ -2647,37 +2653,46 @@ describe('desktop main startup', () => {
     await harness.policyBlocked.promise
     const inspected = Promise.withResolvers<{ activeTasks: boolean; scheduledTasks: boolean }>()
     const answered = Promise.withResolvers<Electron.MessageBoxReturnValue>()
+    const active = { activeTasks: true, scheduledTasks: true }
+    const answer = { response: 0, checkboxChecked: false }
+    const disposal = harness.deferPlatformDispose()
     host.inspectQuit.mockReturnValue(inspected.promise)
     harness.dialog.showMessageBox.mockReturnValue(answered.promise)
-    harness.app.quit()
-    await vi.advanceTimersByTimeAsync(0)
-    expect(host.inspectQuit).toHaveBeenCalledOnce()
-    if (pendingPhase === 'dialog') {
-      inspected.resolve({ activeTasks: true, scheduledTasks: true })
+    try {
+      harness.app.quit()
       await vi.advanceTimersByTimeAsync(0)
-      expect(harness.dialog.showMessageBox).toHaveBeenCalledOnce()
+      expect(host.inspectQuit).toHaveBeenCalledOnce()
+      if (pendingPhase === 'dialog') {
+        inspected.resolve(active)
+        await vi.advanceTimersByTimeAsync(0)
+        expect(harness.dialog.showMessageBox).toHaveBeenCalledOnce()
+      }
+      const modal = harness.windows[0]!
+      const preparing = harness.prepareUpdate()
+      await answerMandatory('install')
+      await host.stopping.promise
+      host.exited.resolve()
+      await expect(preparing).resolves.toBe(true)
+      expect(harness.beginUpdateHandoff()).toBe(true)
+      harness.closeWindowsOnQuit = true
+      harness.app.quit()
+      expect(modal.isDestroyed()).toBe(true)
+      await harness.quitCompleted.promise
+      expect(harness.app.quit).toHaveBeenCalledTimes(2)
+      // Platform cleanup starts without holding the installer's exit open.
+      expect(harness.platformDispose).toHaveBeenCalledOnce()
+      inspected.resolve(active)
+      answered.resolve(answer)
+      await vi.advanceTimersByTimeAsync(0)
+      expect(harness.dialog.showMessageBox).toHaveBeenCalledTimes(pendingPhase === 'dialog' ? 1 : 0)
+      expect(harness.platformDispose).toHaveBeenCalledOnce()
+      expect(harness.app.quit).toHaveBeenCalledTimes(2)
+    } finally {
+      inspected.resolve(active)
+      answered.resolve(answer)
+      host.exited.resolve()
+      disposal.resolve()
     }
-    const modal = harness.windows[0]!
-    const preparing = harness.prepareUpdate()
-    await answerMandatory('install')
-    await host.stopping.promise
-    host.exited.resolve()
-    await expect(preparing).resolves.toBe(true)
-    harness.closeWindowsOnQuit = true
-    const disposal = harness.deferPlatformDispose()
-    harness.app.quit()
-    await harness.quitCompleted.promise
-    expect(modal.isDestroyed()).toBe(true)
-    expect(harness.app.quit).toHaveBeenCalledTimes(2)
-    // The installer owns the exit, so Platform cleanup starts without holding the quit open.
-    expect(harness.platformDispose).toHaveBeenCalledOnce()
-    inspected.resolve({ activeTasks: true, scheduledTasks: true })
-    answered.resolve({ response: 0, checkboxChecked: false })
-    await vi.advanceTimersByTimeAsync(0)
-    expect(harness.dialog.showMessageBox).toHaveBeenCalledTimes(pendingPhase === 'dialog' ? 1 : 0)
-    expect(harness.platformDispose).toHaveBeenCalledOnce()
-    expect(harness.app.quit).toHaveBeenCalledTimes(2)
-    disposal.resolve()
   })
 
   it.each([false, true])('restores a cleanly stopped Host after installer failure and retains mandatory blocking: %s', async (mandatory) => {
