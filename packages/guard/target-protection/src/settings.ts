@@ -91,6 +91,12 @@ const statusServices = new Set([
   'sqliteDatabase', 'postgresAudit', 'mysqlAudit',
 ])
 
+function ownerRuleError(error: unknown): unknown {
+  return error instanceof TargetProtectionError
+    ? new RemoteError(`target-protection/${error.code}`, error.message, {})
+    : error
+}
+
 /** Connect durable rules and verified transport readiness to owner settings and Security entry. */
 export default class TargetProtectionSettings extends TypertRemoteService {
   static inject = ['targetProtection']
@@ -110,7 +116,7 @@ export default class TargetProtectionSettings extends TypertRemoteService {
     ctx.on('target-country/changed', changed)
     ctx.on('target-protection/execution-changed', changed)
     ctx.on('internal/service', (name) => { if (statusServices.has(name)) changed() })
-    ctx.provide('securityProtection', { read: () => this.readProtection() })
+    ctx.provide('securityProtection', { read: () => this.currentProtection() })
   }
 
   private ownerSignal(): AbortSignal {
@@ -148,8 +154,17 @@ export default class TargetProtectionSettings extends TypertRemoteService {
     }
   }
 
+  private currentProtection(): SecurityProtectionStatus {
+    let snapshot: TargetSnapshot | undefined
+    try { snapshot = this.ctx.get('targetProtection')?.currentSnapshot() }
+    catch (error) {
+      if (!(error instanceof TargetProtectionError)) throw error
+    }
+    return this.readProtection(snapshot)
+  }
+
   private readProtection(
-    snapshot = this.ctx.get('targetProtection')?.currentSnapshot(), country = this.readCountry(), routes = this.routes(),
+    snapshot: TargetSnapshot | undefined, country = this.readCountry(), routes = this.routes(),
   ): SecurityProtectionStatus {
     const guarded = routes.webFetch && routes.independentProxy && snapshot !== undefined
     const capabilities: SecurityProtectionCapability[] = []
@@ -169,7 +184,7 @@ export default class TargetProtectionSettings extends TypertRemoteService {
   @Remote
   get(): TargetProtectionSettingsState {
     this.ownerSignal()
-    return this.state(this.ctx.targetProtection.currentSnapshot())
+    return this.currentState()
   }
 
   /**
@@ -188,6 +203,11 @@ export default class TargetProtectionSettings extends TypertRemoteService {
       ...this.ctx.get('targetCountryData')?.canUpdate() === true ? { countryUpdateAvailable: true } : {} }
   }
 
+  private currentState(): TargetProtectionSettingsState {
+    try { return this.state(this.ctx.targetProtection.currentSnapshot()) }
+    catch (error) { throw ownerRuleError(error) }
+  }
+
   /**
    * Save one versioned rule edit for an authenticated owner.
    * @param update - Replacement settings and their expected revision.
@@ -201,10 +221,7 @@ export default class TargetProtectionSettings extends TypertRemoteService {
     try {
       const snapshot = await this.ctx.targetProtection.configure(update.preferences, update.expectedRevision, signal)
       return this.state(snapshot)
-    } catch (error) {
-      if (error instanceof TargetProtectionError) throw new RemoteError(`target-protection/${error.code}`, error.message, {})
-      throw error
-    }
+    } catch (error) { throw ownerRuleError(error) }
   }
 
   /**
@@ -225,6 +242,6 @@ export default class TargetProtectionSettings extends TypertRemoteService {
       }
       throw error
     }
-    return this.state(this.ctx.targetProtection.currentSnapshot())
+    return this.currentState()
   }
 }
