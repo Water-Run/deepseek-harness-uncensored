@@ -8,6 +8,7 @@ import { publicContactConfig } from './public-config.ts'
 import css from './AboutDialog.module.css'
 
 const REPOSITORY = 'https://github.com/Water-Run/deepseek-harness-uncensored'
+const UPSTREAM_REPOSITORY = 'https://github.com/deepseek-ai/deepseek-harness'
 
 function recorded(value: string | undefined, unknown: string): string {
   return value === undefined || value === '' ? unknown : value
@@ -45,7 +46,10 @@ function statusText(notice: ReleaseNotice, t: AccountMenuProps['t']): string {
  * @returns The about dialog.
  */
 export function AboutDialog({ t, close, open = true }: { t: AccountMenuProps['t']; close: () => void; open?: boolean }) {
-  const commit = process.env.DSH_CLIENT_COMMIT_HASH
+  const commit = process.env.DSH_CLIENT_SOURCE_COMMIT ?? process.env.DSH_CLIENT_COMMIT_HASH
+  const sourceRevision = commit !== undefined && /^[a-f0-9]{7,40}$/iu.test(commit) ? commit : 'main'
+  const upstreamCommit = process.env.DSH_CLIENT_UPSTREAM_COMMIT
+  const foundation = t('aboutBasedOn', { version: recorded(process.env.DSH_CLIENT_UPSTREAM_VERSION, t('unknownBuild')) })
   const version = process.env.DSH_CLIENT_FORK_VERSION
   const reaRepository = process.env.DSH_CLIENT_REA_REPOSITORY
   const reaCommit = process.env.DSH_CLIENT_REA_COMMIT
@@ -94,14 +98,16 @@ export function AboutDialog({ t, close, open = true }: { t: AccountMenuProps['t'
       <section className={css.details} aria-label={t('aboutSectionSource')}>
         <section className={css.group}>
           <h3><span className={css.sectionMark} aria-hidden="true" />{t('aboutFoundation')}</h3>
-          <p className={css.foundation}>{t('aboutBasedOn', { version: recorded(process.env.DSH_CLIENT_UPSTREAM_VERSION, t('unknownBuild')) })}</p>
-          <a href={`${REPOSITORY}/blob/main/LICENSE`} target="_blank" rel="noreferrer">{t('licenseName')}</a>
-          <a href={`${REPOSITORY}/blob/main/THIRD_PARTY_NOTICES.md`} target="_blank" rel="noreferrer">{t('aboutThirdParty')}</a>
+          <p className={css.foundation}>{upstreamCommit !== undefined && /^[a-f0-9]{40}$/u.test(upstreamCommit)
+            ? <a href={`${UPSTREAM_REPOSITORY}/commit/${upstreamCommit}`} target="_blank" rel="noreferrer">{foundation}</a>
+            : foundation}</p>
+          <a href={`${REPOSITORY}/blob/${sourceRevision}/LICENSE`} target="_blank" rel="noreferrer">{t('licenseName')}</a>
+          <a href={`${REPOSITORY}/blob/${sourceRevision}/THIRD_PARTY_NOTICES.md`} target="_blank" rel="noreferrer">{t('aboutThirdParty')}</a>
         </section>
         <section className={css.group}>
           <h3><span className={css.sectionMark} aria-hidden="true" />{t('aboutSectionSource')}</h3>
           <dl className={css.metadata}>
-            <dt>{t('buildCommit')}</dt><dd>{commit === undefined || commit === '' ? t('unknownBuild') : <a href={`${REPOSITORY}/commit/${commit}`} target="_blank" rel="noreferrer">{commit.slice(0, 12)}</a>}{process.env.DSH_CLIENT_GIT_DIRTY === 'true' && <span className={css.modified}>{t('modifiedBuild')}</span>}</dd>
+            <dt>{t('buildCommit')}</dt><dd>{sourceRevision === 'main' ? t('unknownBuild') : <a href={`${REPOSITORY}/commit/${sourceRevision}`} target="_blank" rel="noreferrer">{sourceRevision.slice(0, 12)}</a>}{process.env.DSH_CLIENT_GIT_DIRTY === 'true' && <span className={css.modified}>{t('modifiedBuild')}</span>}</dd>
             <dt>{t('commitDate')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_COMMIT_DATE, t('unknownBuild'), t)}</dd>
           </dl>
         </section>

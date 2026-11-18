@@ -67,7 +67,8 @@ it('checks releases only while open and cancels each dismissed request', async (
 
 it.each([en, zh])('shows the maintainer and separates product and foundation versions', async (locale) => {
   vi.stubEnv('DSH_CLIENT_FORK_VERSION', '0.1.0')
-  vi.stubEnv('DSH_CLIENT_UPSTREAM_VERSION', '0.2.1-rc.3')
+  vi.stubEnv('DSH_CLIENT_UPSTREAM_VERSION', '0.2.2-rc.5')
+  vi.stubEnv('DSH_CLIENT_UPSTREAM_COMMIT', '9c2670d3bce5275e0d1610272958121af87787bb')
   vi.stubEnv('DSH_CLIENT_COMMIT_HASH', 'abc1234')
   vi.stubEnv('DSH_CLIENT_BUILD_TIME', '2026-10-26T01:00:00.000Z')
   vi.stubEnv('DSH_CLIENT_REA_VERSION', '6.9.0')
@@ -77,7 +78,10 @@ it.each([en, zh])('shows the maintainer and separates product and foundation ver
   vi.stubGlobal('fetch', vi.fn(async () => Response.json([])))
   render(<AboutDialog t={makeTranslate(locale)} close={vi.fn()} />)
   expect(screen.getByRole('link', { name: 'WaterRun' }).getAttribute('href')).toBe('https://github.com/Water-Run')
-  expect(screen.getByText(locale.aboutBasedOn.replace('{version}', '0.2.1-rc.3'))).toBeTruthy()
+  expect(screen.getByRole('link', { name: locale.aboutBasedOn.replace('{version}', '0.2.2-rc.5') }).getAttribute('href'))
+    .toBe('https://github.com/deepseek-ai/deepseek-harness/commit/9c2670d3bce5275e0d1610272958121af87787bb')
+  expect(screen.getByRole('link', { name: locale.licenseName }).getAttribute('href')).toMatch(/\/blob\/abc1234\/LICENSE$/u)
+  expect(screen.getByRole('link', { name: locale.aboutThirdParty }).getAttribute('href')).toMatch(/\/blob\/abc1234\/THIRD_PARTY_NOTICES\.md$/u)
   expect(screen.getByText('0.1.0')).toBeTruthy()
   expect(screen.getByRole('link', { name: 'REA 6.9.0' }).getAttribute('href')).toBe('https://github.com/morluto/rea')
   expect(screen.getByRole('link', { name: 'd74549e495c5' }).getAttribute('href')).toBe('https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0')

@@ -33,7 +33,8 @@ const CLIENT_VERSION_VARIABLE = 'DSH_CLIENT_VERSION'
 export const CLIENT_BUILD_RECORD_PATH = '.dsh-build/client-build-environment.json'
 
 const CLIENT_BUILD_RECORD_FORMAT = 1
-const FORK_BUILD_KEYS = ['DSH_CLIENT_FORK_VERSION', 'DSH_CLIENT_UPSTREAM_VERSION', 'DSH_CLIENT_COMMIT_DATE',
+const FORK_BUILD_KEYS = ['DSH_CLIENT_FORK_VERSION', 'DSH_CLIENT_UPSTREAM_VERSION', 'DSH_CLIENT_UPSTREAM_COMMIT',
+  'DSH_CLIENT_SOURCE_COMMIT', 'DSH_CLIENT_COMMIT_DATE',
   'DSH_CLIENT_BUILD_TIME', 'DSH_CLIENT_PURGE_COMMIT', 'DSH_CLIENT_PURGE_DATE',
   'DSH_CLIENT_REA_VERSION', 'DSH_CLIENT_REA_COMMIT', 'DSH_CLIENT_REA_DATE', 'DSH_CLIENT_REA_REPOSITORY'] as const
 
@@ -44,6 +45,10 @@ function forkBuildEnvironment(root: string, environment: NodeJS.ProcessEnv): Cli
   const product: unknown = JSON.parse(readFileSync(path, 'utf8'))
   if (!isObject(product) || typeof product.version !== 'string' || typeof product.upstreamVersion !== 'string') {
     throw new Error('product.json must declare version and upstreamVersion')
+  }
+  const upstreamCommit = product.upstreamCommit
+  if (upstreamCommit !== undefined && (typeof upstreamCommit !== 'string' || !/^[a-f0-9]{40}$/u.test(upstreamCommit))) {
+    throw new Error('product.json upstreamCommit must be a full commit hash')
   }
   if (!isObject(product.purge) || typeof product.purge.commit !== 'string' || typeof product.purge.commitTime !== 'string') {
     throw new Error('product.json must record the incorporated purge commit and commitTime')
@@ -68,7 +73,8 @@ function forkBuildEnvironment(root: string, environment: NodeJS.ProcessEnv): Cli
   if (!isObject(desktop) || desktop.version !== product.version || !isObject(cli) || cli.dshProductVersion !== product.version) {
     throw new Error('Desktop and CLI product versions must match product.json; DSH runtime versions are independent')
   }
-  const date = spawnSync('git', ['show', '-s', '--format=%cI', repositoryCommitHash(root, environment)], {
+  const sourceCommit = repositoryCommit(root, environment)
+  const date = spawnSync('git', ['show', '-s', '--format=%cI', sourceCommit], {
     cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
   })
   const buildTime = environment.DSH_CLIENT_BUILD_TIME ?? new Date().toISOString()
@@ -80,6 +86,8 @@ function forkBuildEnvironment(root: string, environment: NodeJS.ProcessEnv): Cli
     ...rea,
     DSH_CLIENT_FORK_VERSION: displayProductVersion(environment.DSH_DESKTOP_BUILD_VERSION ?? product.version),
     DSH_CLIENT_UPSTREAM_VERSION: product.upstreamVersion,
+    ...(upstreamCommit === undefined ? {} : { DSH_CLIENT_UPSTREAM_COMMIT: upstreamCommit }),
+    ...(sourceCommit.length === 40 ? { DSH_CLIENT_SOURCE_COMMIT: sourceCommit } : {}),
     DSH_CLIENT_BUILD_TIME: buildTime,
     DSH_CLIENT_PURGE_COMMIT: product.purge.commit,
     DSH_CLIENT_PURGE_DATE: product.purge.commitTime,
@@ -98,13 +106,7 @@ const CLIENT_ARTIFACT_PATTERNS = [
 /** Public values embedded in one set of client artifacts. */
 export type ClientBuildEnvironment = Readonly<Record<string, string>>
 
-/**
- * Resolve the short source commit used by browser build metadata.
- * @param root - repository root used when no explicit value is supplied.
- * @param environment - environment that may already carry a commit value.
- * @returns lowercase 7-character Git commit prefix.
- */
-export function repositoryCommitHash(root: string, environment: NodeJS.ProcessEnv = process.env): string {
+function repositoryCommit(root: string, environment: NodeJS.ProcessEnv): string {
   const explicit = environment[CLIENT_COMMIT_HASH_VARIABLE]
   const value = explicit ?? execFileSync('git', ['rev-parse', 'HEAD'], {
     cwd: root,
@@ -114,7 +116,17 @@ export function repositoryCommitHash(root: string, environment: NodeJS.ProcessEn
   if (!/^[0-9a-f]{7,40}$/iu.test(value)) {
     throw new Error(`${CLIENT_COMMIT_HASH_VARIABLE} must be a Git commit hash; got ${JSON.stringify(value)}`)
   }
-  return value.slice(0, 7).toLowerCase()
+  return value.toLowerCase()
+}
+
+/**
+ * Resolve the short source commit used by browser build metadata.
+ * @param root - repository root used when no explicit value is supplied.
+ * @param environment - environment that may already carry a commit value.
+ * @returns lowercase 7-character Git commit prefix.
+ */
+export function repositoryCommitHash(root: string, environment: NodeJS.ProcessEnv = process.env): string {
+  return repositoryCommit(root, environment).slice(0, 7)
 }
 
 /**
@@ -176,6 +188,7 @@ export function repositoryClientBuildEnvironment(
 ): ClientBuildEnvironment {
   const inherited = { ...clientBuildEnvironment(environment) }
   delete inherited.DSH_CLIENT_COMMIT_HASH
+  delete inherited.DSH_CLIENT_SOURCE_COMMIT
   delete inherited.DSH_CLIENT_GIT_DIRTY
   delete inherited.DSH_CLIENT_VERSION
   const dirty = repositoryGitDirty(root)

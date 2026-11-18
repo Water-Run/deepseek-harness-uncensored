@@ -32,6 +32,7 @@
 .metadata dt { color: var(--dsw-alias-label-secondary); line-height: 1.5; }
 .modified { display: block; color: var(--dsw-alias-label-secondary); font-size: 12px; margin-top: 4px; }
 .content a { color: inherit; text-decoration: none; text-underline-offset: 3px; border-radius: var(--dsw-radius-xs); transition: color 160ms, background-color 160ms; }
+.foundation a { color: var(--dsw-alias-link); }
 .group > a { justify-self: start; color: var(--dsw-alias-label-secondary); font-size: 12px; }
 .content a:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 3px; }
 .identity a { color: var(--dsw-alias-brand-panel-label); }
