@@ -2,13 +2,19 @@
 
 状态：进行中，不代表整合发行的许可核对已完成。用户的 GPL 许可偏好、上游 Credit 和各组件原有许可保持不变。
 
-本地 [Windows 18.5](2026-11-18.5-delivery.md) 实装 ASAR 含 920 个 npm 包、22 份补充声明及 6 项待核查。已核对 ASAR 摘要、版本、构建提交和新增 Frida Core 原文。Linux 最近验收的 [17.8](2026-11-17.8-delivery.md) 含 922 个 npm 包、26 份补充声明及 8 项待核查。
+本地 [Windows 18.6](2026-11-18.6-delivery.md) 实装 ASAR 含 920 个 npm 包、22 份补充声明及 6 项待核查。Linux 最近验收的 [17.8](2026-11-17.8-delivery.md) 含 922 个 npm 包、26 份补充声明及 8 项待核查。下次打包将为 Frida 17.23.2 补入 GNU Library GPL v2 原文。
 
 当前 `2026.11.17.5` Windows 公开预发布包含 919 个 npm 包、21 份补充声明、6 项待核查；Linux 包含 921 个包、26 份补充声明、8 项待核查。本次直接读取 Windows 已安装 ASAR 和已验收 Linux tar.gz 的 ASAR，核对产品版本、构建源码和唯一 npm 声明清单；两种 Linux 归档的 ASAR 摘要相同，见[本版交付记录](2026-11-17.5-delivery.md)。适用补充原文、Electron、安装器及 Office 声明的摘要核对保留。旧版本数量在下文保留为历史。
 
 Windows 的六项为 `brotli@1.3.3`、`dfa@1.2.0`、`fontkit@2.0.4`、`frida@17.23.2`、`proxy-agent-negotiate@1.1.0`、`minimisted@2.0.1`。Linux 另有 `@img/sharp-libvips-linux-x64@1.3.4` 和 `sherpa-onnx-linux-x64@1.13.8`。`clean-git-ref@2.0.1` 的材料缺口已核查，不再列入当前待核查项。不能以程序可运行或清点通过推定总体许可兼容性结论。
 
 公开 17.5 的实包清点证据为 `%USERPROFILE%/DSHU-Deliveries/20261117/notice-review/current-17-5-inventory.json`，读取入口为交付目录的 `read-current-17-5-notices.mjs`。两平台产品版本均为 `2026.1117.5`，构建源码均为 `7a5d82454ad380b65f9abc18a2e126de2ba40c74`。仅提取清单，不修改安装、第三方记录或审查标记；前版清点原样保留。
+
+## Frida 17.23.2 许可原文
+
+Frida Node 绑定的固定发布提交声明 `LGPL-2.0 WITH WxWindows-exception-3.1`。打包清单按 `frida@17.23.2` 关联 GNU Library GPL v2 原文，字节与 REA 6.9.0 固定的 GNU 原文及 SHA-256 一致。已有 Frida Core 和 Gum 的 COPYING 同时随包保留。Node 绑定源码树缺少独立许可与版权文件，预构建组件的完整署名仍待核查。[绑定声明](https://github.com/frida/frida-node/blob/11d56293686c5494f538247ccf89f08ab57912ef/package.json#L90) · [GNU 原文](https://www.gnu.org/licenses/old-licenses/lgpl-2.0.txt) · [REA 摘要](https://github.com/morluto/rea/blob/d74549e495c58eb4a560279fd9f05508401ea0a0/licenses/upstream-sources.json#L67-L71)
+
+以 Windows 18.6 实装的 920 个包复算，补充声明从 22 份增至 23 份，仅 Frida 记录增加一项，待核查仍为 6 项。实装 ASAR 摘要保持一致，其中的绑定二进制也与已核对的官方 Windows 预构建摘要一致。18 项清点器测试通过。复算回执位于 `%USERPROFILE%/DSHU-Deliveries/20261118/license-review/frida-lgpl-17.23.2-notice-projection.json`。
 
 ## Windows 18.4 实装依赖路径
 
