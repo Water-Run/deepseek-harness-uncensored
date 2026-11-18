@@ -42,6 +42,12 @@ Linux 完整打包增加最终便携归档核验。54 项定向测试覆盖实�
 
 完整打包同样从 Debian 包读取数据载荷，对照组装文件核对三个关键文件以及两个启动文件的执行权限。新读取器用构建缓存的 7-Zip 验证了 17.8 实包的 XZ 载荷，输出与便携包一致。核验按实际打包日志使用 Debian 文件名中的 `amd64`。56 项定向用例覆盖 Debian 成员边界和校验失败停止打包。回执为 `linux-17-8-debian-payload-verification.json`，两步校验仍待 Fedora 完整打包验收。[Debian 包格式](https://manpages.debian.org/bookworm/dpkg-dev/deb.5.en.html)
 
+## Fedora 源码传输准备
+
+现有 Fedora 检出的已知源码为 `92d348ae0173204ed13421b2d621795f726b0e85`。本地增量包包含到 `ca419b5498dd28a709cb34d97f588078f9fd548c` 的 25 个提交，共 73,242 字节。以旧提交初始化的深度 1 仓库通过 `git bundle verify`、本地恢复和 `git fsck --connectivity-only`，恢复的提交和源码树与本机核对的远端版本一致。[Git 增量包说明](https://git-scm.com/docs/git-bundle)
+
+锁文件、工作区配置和包清单与旧检出一致，后续构建可复用已核对的依赖缓存。musl 1.2.6 源码归档再次通过 SHA-512 校验。bundle、SHA-256、恢复日志和回执位于 `%USERPROFILE%/DSHU-Deliveries/20261118/fedora-source-ca419b5/`。设备上线后先核对现有检出和作业，再开始工具链预检及原生打包。
+
 ## WSL 开发状态保全
 
 本机 `/home/linzh/.cache/dshu-verification` 的三个工作区、Git 元数据、reflog 和 32 条 stash 已归档。226,715 个文件或链接逐项核对通过，三个 Git 元数据副本经过实际恢复、stash 核对和连通性检查。共享对象独立保存；浅克隆信息和原始对象编码保留。
