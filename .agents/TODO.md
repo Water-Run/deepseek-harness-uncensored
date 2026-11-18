@@ -12,7 +12,7 @@ Fedora 实体机的 18.7 构建已完成依赖核验，打包预检因缺少 `mu
 | [Web 基线](requirements/2026-11-16-regression-followup.md) | `668ec5146d` 的 1,087 项通过、32 项条件跳过；后续使用定向回归和实际产物检查。 |
 | [SSH 与数据库关联](requirements/2026-11-17.6-delivery.md) | 资源 UUID、协议 4、PostgreSQL/MySQL 中央关联及未知路径拒绝已交付。 |
 | [实际数据库](requirements/2026-11-17-native-database-engines.md) | Linux 17.6 的 PostgreSQL/MySQL 共 14 场景通过，保留数据回读、存储重开及正常退出证据。 |
-| [更新交接与安装回退](requirements/2026-11-06-stability.md#windows-更新交接与目录回退2026-11-18) | Electron 更新交接去重，Windows 原生目录回退。签名升级与安装后启动失败的恢复仍待验收。 |
+| [更新交接与安装回退](requirements/2026-11-06-stability.md#windows-更新交接与目录回退2026-11-18) | Electron 更新交接去重、Windows 原生目录回退和新版启动时的配置恢复。 |
 
 状态以实际执行与验收记录为准；原始编号见[完整需求清单](requirements/development-checklist.md)。macOS、Android 和全新安装器保留为未来计划。
 
@@ -63,7 +63,7 @@ Fedora 实体机的 18.7 构建已完成依赖核验，打包预检因缺少 `mu
 - [ ] **Linux x64 Desktop**（02.09、17.07）：归档与运行检查通过；实际归档中的启动 404 修复、X11/Wayland 主界面和重载已复验。用户指定的 Fedora 45 实体机已通过 CLI、版本身份和 SDK 导入检查；后续 Linux 测试转该机。剩原生门户、实体桌面交互及发行验收。[计划](requirements/desktop-installer-plan.md)
 - [ ] **真实目标保护**（09.01–09.11、05.06、10.05）：默认关闭；Inspector 可选入口已随包，Cua Driver 独立归档准入已验收，桌面包仍不分发该提供方。SSH 映射、PostgreSQL/MySQL 中央关联及未知路径拒绝已进入本地 17.6。Windows 本地文件和 SQLite 规则与审计均已通过独立 Host 冷重启及真实读写核验。可选保护下的本地文件监听已随 Windows 18.3 实装，变更通知与规则撤销均经实包验证；远端执行及远端数据库重启、入站、部署、其他协议、物理身份与实体服务器验收继续保留。[本地冷重启](requirements/2026-11-18-protection-cold-restart.md) · [数据库关联](requirements/2026-11-17-database-resource-bindings.md) · [执行层](requirements/2026-11-02-native-execution.md)
 - [ ] **网安特化与独立代理**（10.01–10.08）：正式 npm 四包的安装及注册、Codex 移除回装和不兼容恢复已验收；流量筛选、详情、清理和连接重置竞态已修复，完整脱敏 JSON 导出已通过定向及实包下载验证并随 18.2 安装，正式插件更高版本升级通过；继续完成进阶保护及更广的桌面联动验收。[流量查看与导出](requirements/2026-11-18-proxy-traffic-requests.md) · [原始记录](requirements/2026-11-03-browser-proxy.md)
-- [ ] **官方版并存与桌面交付**（02.02、02.04、02.06、02.09、02.12、17.07）：保留数据更新、隔离目录替换回退和双实装 Host 并行数据隔离已通过。两版实际应用名下的 Cookie 和 `localStorage` 已用临时资料验证。Platform 关闭后的 Cookie、Cache Storage 和 IndexedDB 已在 Windows 原生 Electron 中回读清除。较长资料路径下的缓存写入和旧偏好保留已用编译产物验证。剩真实登录态、安装后启动失败的恢复、系统重启、签名及正式在线升级。[并存验收](requirements/2026-11-06-stability.md#windows-并存与重启2026-11-18) · [安装记录](HANDOFF.md)
+- [ ] **官方版并存与桌面交付**（02.02、02.04、02.06、02.09、02.12、17.07）：保留数据更新、安装目录回退和双实装 Host 数据隔离已通过。两版应用名下的 Cookie 和 `localStorage` 已用临时资料验证。Windows 原生 Electron 已回读 Platform 关闭时的 Cookie、Cache Storage 和 IndexedDB 清理。较长资料路径下的缓存写入与旧偏好保留已用编译产物验证。18.9 实装载荷通过配置损坏后的诊断、备份与重新启动。待测试真实登录态、应用文件损坏、系统重启、签名及正式在线升级。[并存验收](requirements/2026-11-06-stability.md#windows-并存与重启2026-11-18) · [启动恢复](requirements/2026-11-18.9-delivery.md#启动时的配置恢复)
 - [ ] **构建产物清理**（17.09）：WSL 专用缓存已归档并清理，三个工作区及 32 条 stash 已验证可恢复。Windows 回读确认 VHDX 缩小约 153.3 GiB，17:22 和 18:36 均无 WSL 虚拟机进程，后一次服务状态为已停止。此前自动审批拒绝的 Windows 历史目录保留。[设备与回收](requirements/2026-11-18-linux-test-host.md) · [约束](HANDOFF.md#清理与工作约束)
 - [ ] **稳定性与完整需求总验收**（00.08、05.08、05.10、17.01、17.03–17.08）：完整 Web、桌面单元及 Windows 数据保全已验收；Frida 关闭修复保留两平台实包证据，SSH 清理与审计已交付。工作区文件密集变更的 Host 与预览客户端合并已通过源码验证，并随 Windows 18.4 实装。Linux 17.6 又完成 PostgreSQL 16.15/MySQL 8.0.46 共 14 项真实引擎场景，含数据独立回读及存储重开。剩余原生/关机、任意已有进程、远程设备及商业引擎等场景。[稳定性](requirements/2026-11-06-stability.md) · [真实数据库](requirements/2026-11-17-native-database-engines.md) · [SSH 关闭](requirements/2026-11-17-ssh-shutdown.md)
 - [ ] **更新下载与发布路径**（15.06）：日期版排序、原生比较和直接安装已通过；`.16.4` 已交付限流与普通 403 的区分、冷却及显式重试，两平台双语 Web 和实际安装资源检查通过。旧 403 原因仍未知；三份公开资产及校验文件已上传并核对摘要；签名和自动更新器全链验收仍未完成。[记录](requirements/2026-11-16-release-check.md)

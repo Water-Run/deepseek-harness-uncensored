@@ -28,6 +28,8 @@ VHDX 实测从约 203.9 GiB 降至 50.7 GiB。北京时间 17:22 和 18:36 均�
 
 18.9 的安装器、数据备份和 18.8 恢复步骤见[本地交付记录](requirements/2026-11-18.9-delivery.md#安装包与恢复)。Linux 已验证归档为 17.8。
 
+Windows 配置恢复已用实装载荷和独立资料验证。证据与测试替代范围见[启动时的配置恢复](requirements/2026-11-18.9-delivery.md#启动时的配置恢复)。
+
 ## 仍有效的执行验收
 
 Windows 18.2 的本地文件保护冷重启通过：完全保护拒绝读写、审计只读、测试写入和清空规则后的新写入均由实际提供方执行并独立回读。规则修订 2 与 27 条审计在新 Host 保留。没有改用户配置，不代表系统重启或远端/数据库冷重启，见[记录](requirements/2026-11-18-protection-cold-restart.md)。
@@ -47,6 +49,8 @@ Windows 18.2 的本地文件保护冷重启通过：完全保护拒绝读写、�
 Windows 构建使用 `VCToolsVersion=14.52.36629`、`MSVCPreviewEnabled=true`。私有 `.env.windows` 使用 npm 官方 registry；代理下载失败后，仅在本次进程中清除代理变量直连成功。供应链检查未放宽。首次 pnpm 烟测超时后，同一运行时独立检查通过；后续成功 run 见交付记录。
 
 ## 清理与工作约束
+
+启动恢复夹具的三个临时目录 `dshu-startup-recovery-{GSgw7P,VPorkr,AgqWGI}` 总计约 20 MiB。自动审批以 `blocked by policy` 拒绝递归清理。进程已退出，证据已保存，目录保留。摘要 `windows-18-9-startup-recovery-result.json` 列出路径和大小。
 
 双版 Electron 存储夹具的临时目录 `dshu-electron-coexist-native-3kmre543.yxc` 的递归清理被自动审批以 `blocked by policy` 拒绝。目录与验收回执保留，拒绝记录为 `20261118/windows-electron-coexist-cleanup-rejected.json`。
 
