@@ -53,6 +53,23 @@ export default class TargetFileSystem extends SandboxedFileSystem {
     return pending.finally(() => { this.pending.delete(pending) })
   }
 
+  private readResult<T>(signal: AbortSignal, operation: () => Promise<T>): Promise<T> {
+    return this.run(async () => {
+      const { revision } = await this.protection.snapshot()
+      signal.throwIfAborted()
+      const value = await operation()
+      this.assertReadRevision(revision, signal)
+      return value
+    })
+  }
+
+  private assertReadRevision(revision: number, signal: AbortSignal): void {
+    signal.throwIfAborted()
+    if (this.protection.currentSnapshot().revision !== revision) {
+      throw new HarnessError('Target rules changed during the file read. Retry the request.', 'TARGET_SETTINGS_CHANGED')
+    }
+  }
+
   private async admitted(target: FsTarget, operation: LocalTargetOperation, signal: AbortSignal): Promise<FsTarget> {
     signal.throwIfAborted()
     if (target.displayPath !== this.processPath(target)) {
@@ -90,65 +107,71 @@ export default class TargetFileSystem extends SandboxedFileSystem {
 
   override async resolve(path: string, opts?: { cwd?: string; signal?: AbortSignal }): Promise<FsTarget> {
     const signal = this.signal(opts?.signal)
-    const target = await this.run(() => super.resolve(path, { ...opts, signal }))
-    return this.admitted(target, 'metadata', signal)
+    return this.readResult(signal, async () => this.admitted(await super.resolve(path, { ...opts, signal }), 'metadata', signal))
   }
 
   override async stat(target: FsTarget, signal?: AbortSignal): Promise<FsInfo | undefined> {
     const bounded = this.signal(signal)
-    return this.run(async () => super.stat(await this.admitted(target, 'metadata', bounded), bounded))
+    return this.readResult(bounded, async () => super.stat(await this.admitted(target, 'metadata', bounded), bounded))
   }
 
   override async lstat(path: string, opts?: { cwd?: string }, signal?: AbortSignal): Promise<FsPathInfo | undefined> {
     const bounded = this.signal(signal)
-    const target = await this.run(() => super.resolve(path, { ...opts, signal: bounded }))
-    await this.admitted(target, 'metadata', bounded)
-    return this.run(() => super.lstat(path, opts, bounded))
+    return this.readResult(bounded, async () => {
+      const target = await super.resolve(path, { ...opts, signal: bounded })
+      await this.admitted(target, 'metadata', bounded)
+      return super.lstat(path, opts, bounded)
+    })
   }
 
   override async readText(target: FsTarget, signal?: AbortSignal): Promise<string> {
     const bounded = this.signal(signal)
-    return this.run(async () => super.readText(await this.admitted(target, 'read', bounded), bounded))
+    return this.readResult(bounded, async () => super.readText(await this.admitted(target, 'read', bounded), bounded))
   }
 
   override async readBytes(target: FsTarget, signal: AbortSignal | undefined, maxBytes: number): Promise<Uint8Array> {
     const bounded = this.signal(signal)
-    return this.run(async () => super.readBytes(await this.admitted(target, 'read', bounded), bounded, maxBytes))
+    return this.readResult(bounded, async () => super.readBytes(await this.admitted(target, 'read', bounded), bounded, maxBytes))
   }
 
   override async readByteRange(target: FsTarget, range: { offset: number; length: number }, signal?: AbortSignal): Promise<Uint8Array> {
     const bounded = this.signal(signal)
-    return this.run(async () => super.readByteRange(await this.admitted(target, 'read', bounded), range, bounded))
+    return this.readResult(bounded, async () => super.readByteRange(await this.admitted(target, 'read', bounded), range, bounded))
   }
 
   override async streamText(target: FsTarget, signal?: AbortSignal): Promise<AsyncIterable<string>> {
     const bounded = this.signal(signal)
-    const checked = await this.admitted(target, 'read', bounded)
-    const release = this.protection.retainExecution()
-    let source: AsyncIterator<string>
-    try { source = (await super.streamText(checked, bounded))[Symbol.asyncIterator]() }
-    catch (error) { release(); throw error }
-    let closing: Promise<void> | undefined
-    const close = (): Promise<void> => {
-      closing ??= Promise.resolve().then(async () => { await source.return?.() })
-        .finally(() => { this.streams.delete(source); release() })
-      return closing
-    }
-    this.streams.set(source, close)
-    if (bounded.aborted) { await close(); bounded.throwIfAborted() }
-    return this.readStream(source, checked, bounded, close)
+    return this.run(async () => {
+      const { revision } = await this.protection.snapshot()
+      const checked = await this.admitted(target, 'read', bounded)
+      this.assertReadRevision(revision, bounded)
+      const release = this.protection.retainExecution()
+      let source: AsyncIterator<string>
+      try { source = (await super.streamText(checked, bounded))[Symbol.asyncIterator]() }
+      catch (error) { release(); throw error }
+      let closing: Promise<void> | undefined
+      const close = (): Promise<void> => {
+        closing ??= Promise.resolve().then(async () => { await source.return?.() })
+          .finally(() => { this.streams.delete(source); release() })
+        return closing
+      }
+      this.streams.set(source, close)
+      try { this.assertReadRevision(revision, bounded) }
+      catch (error) { await close(); throw error }
+      return this.readStream(source, checked, revision, bounded, close)
+    })
   }
 
   private async* readStream(
-    source: AsyncIterator<string>, checked: FsTarget, signal: AbortSignal, close: () => Promise<void>,
+    source: AsyncIterator<string>, checked: FsTarget, revision: number, signal: AbortSignal, close: () => Promise<void>,
   ): AsyncIterable<string> {
     try {
       while (true) {
-        signal.throwIfAborted()
+        this.assertReadRevision(revision, signal)
         const next = await this.run(() => Promise.resolve(source.next()))
-        signal.throwIfAborted()
+        if (!next.done) await this.admitted(checked, 'read', signal)
+        this.assertReadRevision(revision, signal)
         if (next.done) return
-        await this.admitted(checked, 'read', signal)
         yield next.value
       }
     } finally { await close() }
@@ -156,9 +179,11 @@ export default class TargetFileSystem extends SandboxedFileSystem {
 
   override async listDir(target: FsTarget, signal?: AbortSignal): Promise<FsDirEntry[]> {
     const bounded = this.signal(signal)
-    const entries = await this.run(async () => super.listDir(await this.admitted(target, 'list', bounded), bounded))
-    for (const entry of entries) await this.admitted(entry.target, 'metadata', bounded)
-    return entries
+    return this.readResult(bounded, async () => {
+      const entries = await super.listDir(await this.admitted(target, 'list', bounded), bounded)
+      for (const entry of entries) await this.admitted(entry.target, 'metadata', bounded)
+      return entries
+    })
   }
 
   /** Watch an admitted target and end the subscription when its policy changes. */

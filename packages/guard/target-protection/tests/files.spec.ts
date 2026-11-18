@@ -386,6 +386,52 @@ it('rechecks another connection’s rules at atomic publication and removes stag
   } finally { other.close() }
 })
 
+it('requires one rule revision for file and directory read results', async () => {
+  const h = await harness(), path = join(h.workspace, 'fixture.txt')
+  await writeFile(path, 'fixture')
+  const other = await TargetStore.open(h.store, 1000)
+  const update = () => {
+    const { revision } = other.snapshot()
+    other.configure({ mainlandEnabled: false, rules: [] }, revision)
+  }
+  try {
+    vi.spyOn(LocalFileSystem.prototype, 'readText').mockImplementationOnce(async () => {
+      update()
+      return 'fixture result'
+    })
+    await expect(h.fs.readText(target(path))).rejects.toMatchObject({ code: 'TARGET_SETTINGS_CHANGED' })
+    vi.spyOn(LocalFileSystem.prototype, 'listDir').mockImplementationOnce(async () => {
+      update()
+      return []
+    })
+    await expect(h.fs.listDir(target(h.workspace))).rejects.toMatchObject({ code: 'TARGET_SETTINGS_CHANGED' })
+    expect(await h.fs.readText(target(path))).toBe('fixture')
+  } finally { other.close() }
+})
+
+it('closes a text stream when its rule revision changes before a chunk is returned', async () => {
+  const h = await harness(), path = join(h.workspace, 'fixture.txt')
+  await writeFile(path, 'fixture')
+  const other = await TargetStore.open(h.store, 1000)
+  const close = vi.fn(async () => ({ done: true as const, value: undefined }))
+  const source = {
+    [Symbol.asyncIterator]: () => ({
+      next: async () => {
+        const { revision } = other.snapshot()
+        other.configure({ mainlandEnabled: false, rules: [] }, revision)
+        return { done: false as const, value: 'fixture chunk' }
+      },
+      return: close,
+    }),
+  }
+  vi.spyOn(LocalFileSystem.prototype, 'streamText').mockResolvedValueOnce(source)
+  try {
+    const stream = await h.fs.streamText(target(path))
+    await expect(stream[Symbol.asyncIterator]().next()).rejects.toMatchObject({ code: 'TARGET_SETTINGS_CHANGED' })
+    expect(close).toHaveBeenCalledOnce()
+  } finally { other.close() }
+})
+
 it('revokes an unopened stream and old provider references when policy or lifetime changes', async () => {
   const h = await harness(), path = join(h.workspace, 'stream.txt')
   await writeFile(path, 'retain'); await h.configure([])

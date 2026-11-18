@@ -1,7 +1,7 @@
 /** Owner editing and actual persistence through the Web settings surface. @module */
 import { fileURLToPath } from 'node:url'
 import { randomUUID } from 'node:crypto'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { chromium } from 'playwright'
@@ -22,9 +22,14 @@ it('delivers guarded file changes and withdraws the watch on a new production ru
   const scaffold = await launchWebScaffold({ extraOverlayPath: [patch, picker], extraInstallAnchors: [cliManifest] })
   const caller = new AbortController()
   try {
-    const path = join(scaffold.workspaceCwd, 'watched.txt')
+    const fixture = join(scaffold.workspaceCwd, 'guarded-files')
+    await mkdir(fixture)
+    const path = join(fixture, 'watched.txt')
     await writeFile(path, 'before')
     const target = await scaffold.ctx.fs.resolve(path)
+    const directory = await scaffold.ctx.fs.resolve(fixture)
+    await expect(scaffold.ctx.fs.readText(target)).resolves.toBe('before')
+    await expect(scaffold.ctx.fs.listDir(directory)).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ name: 'watched.txt' })]))
     const changed = vi.fn<(error?: Error) => void>()
     const close = await scaffold.ctx.fs.watch(target, changed, caller.signal)
     try {
@@ -40,6 +45,8 @@ it('delivers guarded file changes and withdraws the watch on a new production ru
       expect(configured).toMatchObject({ ok: true, value: { snapshot: { revision: previous.revision + 1 } } })
       expect(changed).toHaveBeenLastCalledWith(expect.objectContaining({ code: 'TARGET_SETTINGS_CHANGED' }))
       await expect(scaffold.ctx.fs.watch(target, vi.fn(), caller.signal)).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+      await expect(scaffold.ctx.fs.readText(target)).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
+      await expect(scaffold.ctx.fs.listDir(directory)).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
     } finally { await close() }
   } finally {
     caller.abort()
