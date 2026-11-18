@@ -65,7 +65,7 @@ import { DesktopPolicyTestAuth } from './policy-test-auth.ts'
 import { readDesktopSettings } from './settings.ts'
 import { readDesktopLocaleCache, writeDesktopLocaleCache } from './locale-cache.ts'
 import { DesktopUpdateDialog, type UpdateDialogOptions } from './update-dialog.ts'
-import { readDesktopRuntime } from './runtime-tree.ts'
+import { readDesktopRuntimeForStartup } from './runtime-tree.ts'
 import { DesktopBrowserGuests } from './browser-guests.ts'
 import { readBrowserProxyCertificate } from './browser-trust.ts'
 import { installDesktopShortcuts } from './keyboard.ts'
@@ -1637,7 +1637,7 @@ async function main(): Promise<void> {
     mandatoryPolicy = new DesktopMandatoryUpdatePolicy(policyConfig, {
       platform: process.platform as 'win32' | 'darwin' | 'linux', arch: process.arch as 'x64' | 'arm64',
       get channel() { return updates.selectedChannel },
-      bundledDshVersion: readDesktopRuntime(resources.dsh).release.engineVersion,
+      bundledDshVersion: readDesktopRuntimeForStartup(resources.dsh).release.engineVersion,
     }, (state) => {
       if (state.error !== 'authentication-required') policyAuthenticationQueued = false
       if (state.blocking) {

@@ -106,6 +106,8 @@ Windows 原生 NSIS 隔离夹具通过 11 个目录替换场景。待安装目�
 
 桌面启动拒绝不受支持的运行时描述格式版本，并进入现有恢复流程。回归使用结构完整但格式版本不受支持的描述。修复前，启动准备继续写入插件资料。修复后，启动准备拒绝，已有补丁内容保持一致，临时锁已释放。修复已随 [Windows 18.10](2026-11-18.10-delivery.md#本版验收) 实装。
 
+Host 启动入口缺失或被目录替代时，Desktop 在修改插件资料前中止，提示重新安装并提供退出和可用的诊断报告。运行时描述读取失败使用同一恢复入口。298 项定向测试、Desktop 构建与定向 lint 通过。新编译的桌面壳使用 Windows 18.11 的实际资源，在独立资料目录注入 Host 入口缺失，核对弹窗参数、报告、退出以及配置文件保留。验收拦截原生弹窗调用，实装 ASAR 摘要一致。复现和修复回执为 `startup-application-files-before.log`、`startup-application-files-final-tests.log` 和 `startup-application-files-native-final.log`。修复待下次打包。[恢复说明](../../apps/desktop/docs/diagnostics/README.zh.md#recovery)
+
 Windows 同版修复可在主程序丢失时使用两处一致的安装登记确认目标，已安装版本仍须有效。隔离静默测试用两种语言恢复了缺失的程序和损坏的许可声明，核对恢复字节、版本与六类测试资料。版本缺失或登记路径冲突时均拒绝替换。旧逻辑的拒绝与修复后的通过分别记录在 `windows-same-version-repair-silent-final.log` 和 `windows-same-version-repair-verified.log`。修复进入下一次打包。[打包说明](../../apps/desktop/packaging/README.zh.md)
 
 ## 更新工作区运行器（2026-11-16）

@@ -3,7 +3,7 @@
 import type { MessageBoxOptions, MessageBoxReturnValue } from 'electron'
 import type { CrashReportSource } from './crash-report.ts'
 import { formatDesktopMessage, type DesktopMessages } from './locale.ts'
-import { desktopErrorState } from './startup-error.ts'
+import { DesktopApplicationFilesError, desktopErrorState } from './startup-error.ts'
 
 interface RecoveryOperations {
   messages(): DesktopMessages
@@ -81,11 +81,14 @@ export class DesktopFatalRecovery {
     await this.waitForReport(report)
     let detail = desktopErrorState(error).message
     let message = messages.fatalSummary
+    const applicationFilesFailed = error instanceof DesktopApplicationFilesError
     for (;;) {
-      const addressInUse = /\blisten EADDRINUSE\b/u.test(detail)
-      const buttons = addressInUse
-        ? [messages.exitApplication, messages.restartApplication]
-        : [messages.exitApplication, messages.restartApplication, messages.disableThirdPartyPlugins]
+      const addressInUse = !applicationFilesFailed && /\blisten EADDRINUSE\b/u.test(detail)
+      const buttons = [messages.exitApplication]
+      if (!applicationFilesFailed) {
+        buttons.push(messages.restartApplication)
+        if (!addressInUse) buttons.push(messages.disableThirdPartyPlugins)
+      }
       const reportButton = this.reportState.kind === 'failed' ? undefined : buttons.length
       if (reportButton !== undefined) buttons.push(messages.getDiagnosticReport)
       const { response } = await this.operations.show({
@@ -96,7 +99,7 @@ export class DesktopFatalRecovery {
           ? `${messages.startupAddressInUse}${reportLine(messages, this.reportState)}`
           : dialogDetail(detail, messages, this.reportState),
         buttons,
-        defaultId: 1,
+        defaultId: applicationFilesFailed ? 0 : 1,
         cancelId: 0,
         noLink: true,
       })

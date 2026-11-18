@@ -3,6 +3,7 @@ import type { MessageBoxOptions } from 'electron'
 import { CRASH_REPORT_WAIT_MS, DesktopFatalRecovery } from '../src/fatal-recovery.ts'
 import type { CrashReportSource } from '../src/crash-report.ts'
 import { resolveDesktopLocale } from '../src/locale.ts'
+import { DesktopApplicationFilesError } from '../src/startup-error.ts'
 
 function fixture(
   locale = 'en',
@@ -31,6 +32,27 @@ async function shown(operations: { show: ReturnType<typeof vi.fn> }): Promise<vo
 const REPORT_PATH = 'C:\\Users\\someone\\AppData\\Roaming\\DeepSeek Harness\\logs\\crash-2026-09-22T10-30-00-000Z-host.log'
 
 afterEach(() => { vi.restoreAllMocks() })
+
+it.each(['en', 'zh-CN'])('offers exit and a saved report for damaged application files in %s', async (locale) => {
+  const { operations, stopped, recovery } = fixture(locale, async () => REPORT_PATH)
+  const cause = new Error('ENOENT: lib/index.js is missing')
+  const failure = new DesktopApplicationFilesError(cause)
+  operations.show.mockResolvedValueOnce({ response: 1, checkboxChecked: false })
+    .mockResolvedValueOnce({ response: 0, checkboxChecked: false })
+  stopped.resolve(undefined)
+  await recovery.report(failure, 'main')
+  expect(operations.writeReport).toHaveBeenCalledExactlyOnceWith(failure, 'main')
+  expect(failure.cause).toBe(cause)
+  const options = operations.show.mock.calls[0]![0]
+  expect(options.buttons).toEqual([operations.messages().exitApplication, operations.messages().getDiagnosticReport])
+  expect(options.defaultId).toBe(0)
+  expect(options.detail).toContain(operations.messages().startupReinstallAdvice)
+  expect(options.detail).toContain(cause.message)
+  expect(operations.revealReport).toHaveBeenCalledExactlyOnceWith(REPORT_PATH)
+  expect(operations.exit).toHaveBeenCalledOnce()
+  expect(operations.restart).not.toHaveBeenCalled()
+  expect(operations.disablePlugins).not.toHaveBeenCalled()
+})
 
 it.each(['en', 'zh-CN'])('offers exit and restart for a listener conflict without a saved report in %s', async (locale) => {
   const { operations, choice, stopped, recovery } = fixture(locale)

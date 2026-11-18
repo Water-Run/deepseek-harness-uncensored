@@ -1,5 +1,14 @@
 /** Serializable Desktop failure diagnostics. */
 
+/** Installed Desktop resources must be repaired before Host startup can continue. */
+export class DesktopApplicationFilesError extends Error {
+  /** @param cause - Failure reading the built-in runtime descriptor or Host entry. */
+  constructor(cause: unknown) {
+    super(`desktop runtime: application files could not be loaded\n${desktopErrorState(cause).message}`, { cause })
+    this.name = 'DesktopApplicationFilesError'
+  }
+}
+
 /**
  * Preserve nested diagnostics when sending failures to a renderer.
  * @param error - Startup or runtime failure.

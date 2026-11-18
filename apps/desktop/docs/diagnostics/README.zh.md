@@ -25,7 +25,7 @@ description: "排查 Desktop 故障或收集报告时阅读，了解恢复操作
 
 Host 设置可用前，恢复对话框使用本地缓存中最后确认的 Desktop 语言；缓存不存在或无效时回退到系统语言。
 
-Desktop 在准备插件资料和启动 Host 前检查安装包的运行时描述格式。如果报告显示描述格式版本不受支持，请使用经校验的同版或更新安装包重新安装 Desktop，并保留现有资料。
+Desktop 在准备插件资料和启动 Host 前检查安装包的运行时描述与 Host 启动入口。检查失败时，恢复弹窗提供退出和可用的诊断报告。退出后，请使用经校验的同版或更新安装包重新安装，并保留现有资料。
 
 恢复操作等待 Host 关闭后才修改插件启用状态。原生恢复操作在 profile 事务锁内调用共享 app-boot 恢复函数。它禁用第三方 bundle，并将 profile 的 `cordis.patch.yml` 重命名为 `cordis.patch.yml.bak-<timestamp>`（重名时追加序号），无需解析；下次启动创建空 patch。已安装包和已有备份保留。home 级 patch 不变。Electron 控制台记录备份路径（或原文件不存在）以及 home 级 patch 未修改。profile 数据无效、重命名失败或写入失败会作为恢复操作错误报告；已完成的修改保留，Desktop 不会假装恢复成功后重启。Desktop 不提供 profile 重置操作或应急 HTML 文档。
 

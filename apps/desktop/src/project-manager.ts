@@ -21,7 +21,7 @@ import {
 } from './core-package-set.ts'
 import type { DesktopPaths } from './paths.ts'
 import type { DesktopRelease } from './release.ts'
-import { readDesktopRuntime } from './runtime-tree.ts'
+import { readDesktopRuntimeForStartup } from './runtime-tree.ts'
 import { initProfile, removeLinkProjections, sanitizeProfile } from '@deepseek-ai/dsh-app-boot'
 import { PROFILE_TEMPLATES, type ProfileTemplate } from '@deepseek-ai/dsh-official-bundles'
 
@@ -77,12 +77,11 @@ export class DesktopProjectManager {
   }
 
   /**
-   * Load application metadata and prepare the external plugin profile without installing packages.
+   * Check the bundled Host startup entry before preparing the external plugin profile.
    */
   async applyRelease(): Promise<void> {
+    readDesktopRuntimeForStartup(this.runtime.dsh)
     await this.withLock(() => {
-      // Validation only: an unreadable or mismatched runtime descriptor stops preparation before the Host starts.
-      readDesktopRuntime(this.runtime.dsh)
       migrateProfileSettings(this.paths.profile)
       createPluginProfile(this.paths.profile)
       removeLinkProjections(this.paths.profile)

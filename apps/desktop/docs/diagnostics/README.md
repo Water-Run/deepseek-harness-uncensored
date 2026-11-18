@@ -25,7 +25,7 @@ Fatal main-window creation, main-document loading, preload, renderer, Web initia
 
 Recovery uses the last confirmed Desktop language from the local cache before Host settings are available; an absent or invalid cache falls back to system languages.
 
-Desktop checks the packaged runtime descriptor format before preparing the plugin profile or starting the Host. If the report says the descriptor schema version is unsupported, reinstall Desktop with a verified installer of the same version or newer. Keep the existing profile data during installation.
+Desktop checks the packaged runtime descriptor and its Host startup entry before preparing the plugin profile or starting the Host. If a check fails, recovery offers Exit and any available diagnostic report. Close Desktop, then use a verified installer of the same version or newer and keep the existing profile data.
 
 Recovery waits for Host shutdown before changing plugin activation. The native recovery action calls the shared app-boot recovery function under the profile transaction lock. It disables third-party bundles and renames the profile’s `cordis.patch.yml` to `cordis.patch.yml.bak-<timestamp>` (with an ordinal on collisions) without parsing it; the next startup creates an empty patch. Installed packages and earlier backups remain. The home-level patch is unchanged. The Electron console records the backup path (or its absence) and the unchanged home-level patch. Invalid profile data, rename failures, or write failures are reported as recovery-operation errors; completed changes remain, and Desktop does not restart as though recovery succeeded. Desktop has no profile-reset action or emergency HTML document.
 

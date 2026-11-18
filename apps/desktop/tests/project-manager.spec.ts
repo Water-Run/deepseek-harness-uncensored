@@ -1,8 +1,9 @@
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { resolveDesktopPaths } from '../src/paths.ts'
+import { DESKTOP_HOST_PACKAGE, DESKTOP_HOST_RUNTIME_FILES } from '../src/core-package-set.ts'
 import { DesktopProjectManager } from '../src/project-manager.ts'
 import { DESKTOP_RUNTIME_FILE, readDesktopRuntime } from '../src/runtime-tree.ts'
 import { readProfilePlugins } from '@deepseek-ai/dsh-app-boot'
@@ -172,7 +173,24 @@ describe('desktop external plugin profile', () => {
   it('reports damaged application metadata as a reinstall failure', async () => {
     const { manager } = setup()
     writeFileSync(join(manager.runtime.dsh, 'desktop-runtime.json'), '{broken')
-    await expect(manager.applyRelease()).rejects.toThrow()
+    await expect(manager.applyRelease()).rejects.toMatchObject({ name: 'DesktopApplicationFilesError' })
+  })
+
+  it.each(['missing', 'directory'])('leaves the user profile intact when a Host entry is %s', async (fault) => {
+    const { manager } = setup()
+    const entry = join(manager.runtime.dsh, 'node_modules', DESKTOP_HOST_PACKAGE, DESKTOP_HOST_RUNTIME_FILES[0])
+    unlinkSync(entry)
+    if (fault === 'directory') mkdirSync(entry)
+    mkdirSync(manager.paths.profile, { recursive: true })
+    const patchPath = join(manager.paths.profile, 'cordis.patch.yml')
+    const patch = '# user profile\n[]\n'
+    writeFileSync(patchPath, patch)
+
+    const launch = manager.applyRelease()
+    await expect(launch).rejects.toMatchObject({ name: 'DesktopApplicationFilesError' })
+    await expect(launch).rejects.toThrow(basename(entry))
+    expect(readdirSync(manager.paths.profile)).toEqual(['cordis.patch.yml'])
+    expect(readFileSync(patchPath, 'utf8')).toBe(patch)
   })
 
   it('rejects an unsupported runtime descriptor before initializing the profile', async () => {

@@ -1,12 +1,13 @@
 /** Relocatable, integrity-recorded production packages carried by one Desktop release. */
 
 import { createHash } from 'node:crypto'
-import { lstatSync, readdirSync, readFile, readFileSync, writeFileSync } from 'node:fs'
+import { lstatSync, readdirSync, readFile, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { isAbsolute, join, relative, sep } from 'node:path'
 import { promisify } from 'node:util'
 import { valid } from 'semver'
-import { DESKTOP_HOST_PACKAGE } from './core-package-set.ts'
+import { DESKTOP_HOST_PACKAGE, DESKTOP_HOST_RUNTIME_FILES } from './core-package-set.ts'
 import { parseDesktopRelease, type DesktopRelease } from './release.ts'
+import { DesktopApplicationFilesError } from './startup-error.ts'
 
 /** Descriptor at the root of the immutable Desktop resource tree. */
 export const DESKTOP_RUNTIME_FILE = 'desktop-runtime.json'
@@ -202,6 +203,23 @@ export function readDesktopRuntime(root: string): DesktopRuntimeDescriptor {
   }
   return { schemaVersion: value.schemaVersion, release, platform: value.platform as NodeJS.Platform,
     arch: value.arch, sharedPackages, files }
+}
+
+/**
+ * Check the packaged descriptor and Host startup entry before touching the plugin profile.
+ * @param root - Current application's bundled runtime directory.
+ * @returns Metadata for a runtime with a readable descriptor and a regular Host entry file.
+ */
+export function readDesktopRuntimeForStartup(root: string): DesktopRuntimeDescriptor {
+  try {
+    const descriptor = readDesktopRuntime(root)
+    const host = join(root, 'node_modules', DESKTOP_HOST_PACKAGE)
+    const entry = DESKTOP_HOST_RUNTIME_FILES[0]
+    if (!statSync(join(host, entry)).isFile()) throw new Error(`desktop runtime: invalid Host entry ${entry}`)
+    return descriptor
+  } catch (error) {
+    throw new DesktopApplicationFilesError(error)
+  }
 }
 
 /**
