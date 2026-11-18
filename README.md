@@ -2,14 +2,14 @@
   <img src="apps/desktop/resources/icon.svg" width="112" alt="DSHU 黑底白鲸标志">
   <h1>DeepSeek Harness Uncensored</h1>
   <p><b>更自由地，探索未至之境</b></p>
-  <p>WaterRun · Windows / Linux Desktop · 基于 DeepSeek Harness 0.2.2-rc.4</p>
+  <p>WaterRun · Windows / Linux Desktop · 基于 DeepSeek Harness 0.2.2-rc.5</p>
 </div>
 
 DSHU 是面向开发、网安、逆向与写作的智能体工作台。它在 DeepSeek Harness 上集成破甲提示词、四种模式、旁问、额度控制和跨对话记忆，使用你选择的模型完成任务。官方 DSH 与 DSHU 可同时安装，分别使用自己的程序目录、配置、会话和更新渠道。
 
 当前公开预发布 **2026.11.17.5** 基于 **DSH 0.2.2-rc.3**，内置 **REA 6.9.0**。[下载 Windows / Linux](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5)。Windows 已保留数据安装并启动；本版修复 Windows 无脚本暂停 Frida 会话关闭，保留余额精度、远端文件映射和审计增强。包未签名，完整验收状态见[开发清单](.agents/TODO.md)和[交付记录](.agents/requirements/2026-11-17.5-delivery.md)。
 
-源码内核已同步至 **DSH 0.2.2-rc.4**。Windows 本地检查版 **2026.11.18.11** 已保留资料更新。更新渠道切换和重定向处理已修复，18.10 到 18.11 的本地差分下载已通过完整包摘要核对。[本地交付、验证与恢复](.agents/requirements/2026-11-18.11-delivery.md)
+源码已同步至 **DSH 0.2.2-rc.5**，支持按会话模型自动选择搜索提供方，网关密钥需满足同源校验。Windows 本地检查版 **2026.11.18.11** 基于 rc.4，已通过保留资料更新和本地差分包摘要核对。[搜索迁移](docs/upgrade-guide/v0.2.2-rc.4/web-search-deepseek-model-default/guide.zh.md) · [本地交付与恢复](.agents/requirements/2026-11-18.11-delivery.md)
 
 版本采用 `YYYY.MM.DD.N`，最后一项为当天构建序号。关于页、CLI、安装包和 Windows 登记使用相同日期版本；DSH 内核与 REA 的来源独立记录。打包与更新规则见[打包指南](apps/desktop/packaging/README.zh.md)。
 
@@ -103,7 +103,7 @@ DSHU 是面向开发、网安、逆向与写作的智能体工作台。它在 De
 
 ## Credit
 
-- **DeepSeek** 提供原始 Harness 和鲸鱼轮廓。DSHU 使用黑底图标，开发源码基于 [DeepSeek Harness 0.2.2-rc.4](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.4) 并保留 [MIT 许可](LICENSES/deepseek-harness-MIT.txt)。
+- **DeepSeek** 提供原始 Harness 和鲸鱼轮廓。DSHU 使用黑底图标，保留上游的 MIT 许可。[DeepSeek Harness 0.2.2-rc.5](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.5) · [MIT 许可](LICENSES/deepseek-harness-MIT.txt)
 - **小杨（YuJunZhiXue）** 的 [dsh-purge](https://github.com/YuJunZhiXue/dsh-purge) 提供破甲文本。沿用 [MIT 历史版本 e1d8e590](https://github.com/Water-Run/dsh-purge/tree/e1d8e59087857fa86d0ef2bb9878800274b13a29) 与[原许可](LICENSES/dsh-purge-MIT.txt)。同时感谢 **JeffKeeping** 的 [dsh-purge-plus](https://github.com/JeffKeeping/dsh-purge-plus)。关于页记录 [Water-Run/dsh-purge fork 对照提交 19082c2b9788](https://github.com/Water-Run/dsh-purge/commit/19082c2b9788039fa7f8888c4a69086f43adc1ff) 及其时间。
 - **morluto** 维护 [REA](https://github.com/morluto/rea)。内置版本为 [6.9.0 · d74549e495c5](https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0)，保留 MIT 许可和第三方声明。
 - 可选保护使用 [DB-IP Lite](https://db-ip.com/db/download/ip-to-country-lite)（[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)）和 [QuickJS](https://bellard.org/quickjs/) / [quickjs-emscripten](https://github.com/justjake/quickjs-emscripten)（[MIT 声明](LICENSES/quickjs-wasm-MIT.txt)）。GitHub 标志来自 [Octicons](https://github.com/primer/octicons)，保留 [MIT 许可](packages/client/ui-settings-account/GITHUB-MARK-LICENSE.txt)。
