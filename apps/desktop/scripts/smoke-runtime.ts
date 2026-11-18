@@ -42,10 +42,12 @@ export async function smokeDesktopRuntime(
   root: string, node: string, runtime: DesktopRuntimeDescriptor, environment: NodeJS.ProcessEnv, resourcesRuntime: string,
 ): Promise<void> {
   const home = mkdtempSync(join(tmpdir(), 'dsh-desktop-smoke-'))
-  const profile = join(home, 'profiles', 'desktop')
+  const userDirectory = join(home, 'user')
+  const harnessHome = join(userDirectory, '.dsh-uncensored')
+  const profile = join(harnessHome, 'profiles', 'desktop')
   const hostEnvironment = {
     ...Object.fromEntries(Object.entries(environment).filter(([name]) => !/^(?:npm|pnpm|corepack)_/iu.test(name))),
-    DSH_HOME: home, HOME: home, USERPROFILE: home,
+    DSH_HOME: harnessHome, DSH_UNCENSORED_HOME: harnessHome, HOME: userDirectory, USERPROFILE: userDirectory,
     XDG_CONFIG_HOME: home, XDG_CACHE_HOME: home, XDG_STATE_HOME: home,
     APPDATA: home, LOCALAPPDATA: home,
     npm_config_userconfig: join(home, 'npmrc'),
