@@ -325,10 +325,16 @@ it('recovers derived cleanup after restart without restoring deleted conversatio
   const workspace = await ctx.workspaceRegistry.create(cwd)
   await workspace.attachSession(sessionId)
   await ctx.workspaceRegistry.pinSession(sessionId)
+  const deleted = vi.fn()
+  ctx.on('api-session/deleted', deleted)
   const cleanup = vi.spyOn(ctx.sessionQuery, 'forgetSessions').mockRejectedValueOnce(new Error('cleanup interrupted'))
-  await expect(api.delete({ sessionId })).rejects.toMatchObject({ code: 'session/delete-incomplete' })
+  await expect(api.delete({ sessionId })).rejects.toMatchObject({
+    code: 'session/delete-incomplete', details: { deletedSessionIds: [sessionId] },
+  })
   expect(cleanup).toHaveBeenCalledTimes(1)
   cleanup.mockRestore()
+  expect(await ctx.sessionPersistence.stat(sessionId)).toBeUndefined()
+  expect(deleted).toHaveBeenCalledExactlyOnceWith(sessionId)
   expect(ctx.workspaceRegistry.pinnedSessionIds).toContain(sessionId)
   await ctx.fiber.dispose()
   const restored = await setup(undefined, root)

@@ -2,7 +2,7 @@
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { chromium, type Route } from 'playwright'
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { MockAdapter, textResponse } from '../../../packages/core/agent-loop/tests/mock-adapter.ts'
 import { launchWebScaffold, watchConsole } from './scaffold.ts'
@@ -140,6 +140,25 @@ it('sends side images and clears only the side context', async () => {
       expect(main.session.snapshotEvents().slice(before.length).filter(event => event.type !== 'input/prediction')).toEqual([])
       expect(console.pageErrors).toEqual([])
       expect(console.warnings).toEqual([])
+
+      const currentSide = await api.aside({ sessionId, kind: 'side' })
+      const cleanup = vi.spyOn(scaffold.ctx.sessionQuery, 'forgetSessions').mockRejectedValueOnce(new Error('fixture cleanup interruption'))
+      try {
+        const row = page.locator(`[data-row-key="session:${sessionId}"]`)
+        await row.hover()
+        await row.getByRole('button', { name: 'Session actions for Side cleanup fixture' }).click()
+        await page.getByRole('menuitem', { name: 'Delete conversation', exact: true }).click()
+        const deletion = page.getByRole('dialog', { name: 'Delete conversation?' })
+        await deletion.getByRole('button', { name: 'Stop and delete', exact: true }).click()
+        await deletion.getByRole('alert').filter({ hasText: 'Some cleanup remains.' }).waitFor()
+        expect(await scaffold.ctx.sessionPersistence.stat(sessionId)).toBeUndefined()
+        expect(await scaffold.ctx.sessionPersistence.stat(currentSide.sessionId)).toBeUndefined()
+        await page.getByRole('tab').filter({ hasText: 'Side question' }).waitFor({ state: 'detached', timeout: 5_000 })
+        await deletion.getByRole('button', { name: 'Retry', exact: true }).click()
+        await deletion.waitFor({ state: 'hidden' })
+        await page.getByRole('alert').filter({ hasText: 'Conversation deleted' }).waitFor()
+        expect(workspace.sessionIds).not.toContain(sessionId)
+      } finally { cleanup.mockRestore() }
     } finally { await browser.close() }
   } finally { await scaffold.close() }
 })

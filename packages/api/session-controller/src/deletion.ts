@@ -208,13 +208,17 @@ export class SessionDeletionController {
 
   private async clean(ids: readonly SessionId[]): Promise<void> {
     if (ids.length === 0) return
-    await this.ctx.sessionQuery.forgetSessions(ids)
-    await this.ctx.get('sessionProjectionCache')?.forgetSessions(ids)
-    await this.ctx.workspaceRegistry.forgetSessions(ids)
-    const jobs = this.ctx.get('jobs')
-    for (const id of ids) {
-      for (const job of jobs?.list(id) ?? []) if (job.owner === id) jobs?.remove(job.id, id)
-      this.ctx.emit('api-session/deleted', id)
+    try {
+      await this.ctx.sessionQuery.forgetSessions(ids)
+      await this.ctx.get('sessionProjectionCache')?.forgetSessions(ids)
+      await this.ctx.workspaceRegistry.forgetSessions(ids)
+      const jobs = this.ctx.get('jobs')
+      for (const id of ids) {
+        for (const job of jobs?.list(id) ?? []) if (job.owner === id) jobs?.remove(job.id, id)
+      }
+    } finally {
+      // Catalog removal is durable even when derived cleanup needs a retry.
+      for (const id of ids) this.ctx.emit('api-session/deleted', id)
     }
   }
 

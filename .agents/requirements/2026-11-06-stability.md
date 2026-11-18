@@ -12,6 +12,7 @@
 
 - [x] **旁问清理期间重新打开（2026-11-19）**。隔离客户端在 `/clear` 尚未应答时打开旁问，原实现会立即读取旧上下文。当前客户端等待同一主会话的手动及关闭清理，重开拿到新上下文。客户端及 Host 共 28 项测试通过，组装 Web 的旁问图片、清空、重开和自动清理场景通过。日志为 `%USERPROFILE%/DSHU-Deliveries/20261119/aside-reset-web.log`。[旁问命令](../../packages/client/ui-commands/README.zh.md)
 - [x] **旁问加载期间关闭（2026-11-19）**。组装 Web 延迟页面重载后的旁问打开请求，在响应前关闭标签。旧版漏掉自动清理。修复后，开启自动清理时等待旁问身份返回并清理，重开显示新上下文，主对话及其记录无变化。30 项定向测试和浏览器场景通过。日志为 `%USERPROFILE%/DSHU-Deliveries/20261119/side-clear-during-open-web.log`。[旁问命令](../../packages/client/ui-commands/README.zh.md)
+- [x] **会话删除后清理可重试（2026-11-19）**。组装 Web 的删除请求完成主会话和旁问的持久删除后注入搜索清理故障。旧版遗留旁问标签，修复后关闭已删除的旁问，并保留清理重试。原地重试完成工作区引用清理。18 项定向测试和浏览器场景通过。日志为 `%USERPROFILE%/DSHU-Deliveries/20261119/partial-delete-browser.log`。[会话删除](../../packages/api/session-controller/README.zh.md)
 
 - [x] **会话删除与关闭竞态（2026-11-19）**。用独立 JSONL 会话暂停删除恢复，期间启动控制器关闭。修复前释放恢复后会话实际被删除；修复后在进入删除前拒绝请求，持久记录仍存在且无删除标记。删除及额度恢复共 32 项定向测试通过。待新版实装。[会话控制器](../../packages/api/session-controller/README.zh.md)
 
