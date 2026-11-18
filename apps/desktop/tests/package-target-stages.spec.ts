@@ -208,6 +208,17 @@ it('stops Windows packaging before recording a release when the final blockmap f
   expect(writeFileSync).not.toHaveBeenCalled()
 })
 
+it('checks the unsigned installer in the active supervised run output', async () => {
+  const { run } = supervisor()
+  const invocation = parseDesktopPackageInvocation(['win-x64', '--unsigned'], 'win32', 'x64')
+  await packageTarget(invocation, { ...environment, DSH_DESKTOP_BUILD_VERSION: '2026.11.18.11',
+    DSH_DESKTOP_PACKAGING_RUN_DIR: 'stale-record' }, run)
+  const verification = run.run.mock.calls.find(([name]) => name.startsWith('exec tsx scripts/verify-windows-installer-blockmap.ts '))!
+  expect(verification[2].at(-1)?.replaceAll('\\', '/'))
+    .toMatch(/\/unsigned-artifacts\/runs\/fixture-record\/deepseek-harness-uncensored-2026\.11\.18\.11-win-x64-unsigned\.exe$/u)
+  expect(writeFileSync).not.toHaveBeenCalled()
+})
+
 it.each(['preflight:windows-signing', 'run build:official', 'run sign:primary-runtime', 'run prepare:dsh --defer-runtime-smoke', 'run sign:primary-runtime --dsh',
   'exec tsx scripts/smoke-packaged-runtime.ts',
   'exec electron-builder --config electron-builder.config.mjs --win --x64 --publish never'])

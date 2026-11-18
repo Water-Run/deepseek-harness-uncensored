@@ -438,7 +438,10 @@ export async function packageTarget(
   const packConcurrency = mac?.packConcurrency ?? (target.platform === 'linux'
     ? resolveLinuxPackageSettings(environment).packConcurrency : resolveWindowsPackageSettings(environment).packConcurrency)
   const packArguments = ['--concurrency', String(packConcurrency)]
-  const buildPaths = desktopTargetBuildPaths(target.name, environment)
+  const buildPaths = desktopTargetBuildPaths(target.name, {
+    ...environment,
+    DSH_DESKTOP_PACKAGING_RUN_DIR: run?.directory ?? environment.DSH_DESKTOP_PACKAGING_RUN_DIR,
+  })
   const releaseRecordPath = join(buildPaths.artifacts, desktopBuildRecordFilename(target.name))
   if (!invocation.prepareOnly && !invocation.unsigned && !invocation.skipNotarization) {
     rmSync(releaseRecordPath, { force: true })
