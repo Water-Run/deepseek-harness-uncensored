@@ -50,6 +50,10 @@ Windows 构建使用 `VCToolsVersion=14.52.36629`、`MSVCPreviewEnabled=true`。
 
 ## 清理与工作约束
 
+18.11 首轮失败的安装器及 `.blockmap` 已清理，D 盘实测增加 441,376,768 字节，约 421 MiB。交付版 18.11 和回退版 18.10 的安装器、索引均通过 SHA-256 回读。失败日志、原件摘要和清理回执位于 `20261118/windows-18-11-attempt-1-*`。
+
+自动审批以 `blocked by policy` 拒绝递归清理失败批次的 `D:/DSHU-Delivery-Work/20261118/source-fc4c9ddf7b/apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/runs/2026-11-18T12-12-38.795Z-aNm4a0/win-unpacked`。目录内 16,416 个文件、1,590,480,253 字节保留。检查未发现联接或活动引用。拒绝回执为 `20261118/windows-18-11-attempt-1-runtime-cleanup-rejected.json`。保留该目录的拒绝记录，不重试或清理其父目录。
+
 启动恢复夹具的三个临时目录 `dshu-startup-recovery-{GSgw7P,VPorkr,AgqWGI}` 总计约 20 MiB。自动审批以 `blocked by policy` 拒绝递归清理。进程已退出，证据已保存，目录保留。摘要 `windows-18-9-startup-recovery-result.json` 列出路径和大小。
 
 双版 Electron 存储夹具的临时目录 `dshu-electron-coexist-native-3kmre543.yxc` 的递归清理被自动审批以 `blocked by policy` 拒绝。目录与验收回执保留，拒绝记录为 `20261118/windows-electron-coexist-cleanup-rejected.json`。
