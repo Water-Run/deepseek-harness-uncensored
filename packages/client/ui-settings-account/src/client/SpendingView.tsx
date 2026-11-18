@@ -140,14 +140,15 @@ export function SpendingBanner({
   // Requests waiting only on reservations can continue even with automatic recovery disabled.
   const manual = pause.requiresManualResume === true || data.paused
   const exceedsLimit = pause.exceedsLimit === true
+  const waitingForReservations = !manual && !exceedsLimit && pause.resumeAt === null && data.pending > 0
   const message = state.failed ? t('spending.failed') : exceedsLimit ? t('spending.bannerOverLimit') : manual ? t('spending.bannerManual')
-    : pause.resumeAt == null ? t('spending.bannerPending')
+    : waitingForReservations ? t('spending.bannerPending') : pause.resumeAt == null ? t('spending.bannerRechecking')
       : pause.resumeAt <= data.updatedAt ? t('spending.bannerResuming')
         : t('spending.bannerAutomatic', { time: new Date(pause.resumeAt).toLocaleString() })
   return <section className={css.banner} role="status" aria-live="polite">
     <span className={css.noticeIcon}><LimitIcon /></span>
     <div className={css.noticeText}><span>{t('spending.bannerTitle')}</span><p>{message}</p></div>
-    <div className={css.windowActions}>
+    {(!waitingForReservations || state.failed) && <div className={css.windowActions}>
       {state.failed ? <Button size="sm" onClick={refreshSpending}>{t('spending.retry')}</Button>
         : exceedsLimit ? openBudgetSettings !== undefined
           && <Button size="sm" variant="outline" onClick={openBudgetSettings}>{t('spending.bannerOpenLimits')}</Button>
@@ -155,7 +156,7 @@ export function SpendingBanner({
             {manual && <Button size="sm" variant="ghost" disabled={state.saving} onClick={() => { void resumeSpending() }}>{t('spending.resume')}</Button>}
             <Button size="sm" variant="outline" disabled={state.saving} onClick={() => { void resetSpending() }}>{t('spending.bannerReset')}</Button>
           </>}
-    </div>
+    </div>}
   </section>
 }
 

@@ -49,9 +49,19 @@ it.each([false, true])('shows pending reservations independently of automatic re
   render(<SpendingBanner {...props} sessionId={SessionId('current')} />)
   expect(screen.getByRole('status').textContent).toContain(en['spending.bannerPending'])
   expect(screen.queryByRole('button', { name: en['spending.resume'] })).toBeNull()
+  expect(screen.queryByRole('button', { name: en['spending.bannerReset'] })).toBeNull()
   act(() => { state.set({ ...state.getSnapshot(), failed: true }) })
   expect(screen.getByRole('button', { name: en['spending.retry'] })).toBeTruthy()
   expect(screen.queryByRole('button', { name: en['spending.bannerReset'] })).toBeNull()
+})
+
+it('shows a budget recheck when a pause reports neither an estimate nor an active reservation', () => {
+  const { props, state } = fixture(['5h'], false)
+  const data = state.getSnapshot().data!
+  state.set({ ...state.getSnapshot(), data: { ...data,
+    pausedSessions: [{ sessionId: SessionId('current'), state: 'blocked', resumeAt: null }] } })
+  render(<SpendingBanner {...props} sessionId={SessionId('current')} />)
+  expect(screen.getByRole('status').textContent).toContain('Waiting for the next budget check.')
 })
 
 it('offers manual recovery for a legacy pause while automatic recovery is enabled', async () => {

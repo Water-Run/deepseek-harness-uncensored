@@ -132,6 +132,7 @@ it.each(['settled expense', 'active reservation'] as const)('shows a real admiss
     } else {
       expect(await banner.textContent()).toContain('Waiting for in-flight requests to settle')
       expect(await banner.getByRole('button', { name: 'Resume', exact: true }).count()).toBe(0)
+      expect(await banner.getByRole('button', { name: 'Reset limits and continue', exact: true }).count()).toBe(0)
       ledger.settle(reserved.id, 0)
     }
     await page.getByText('LIGHTHOUSE', { exact: true }).waitFor()
