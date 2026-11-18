@@ -36,6 +36,12 @@
     "sha256": "731d2f298c322c6bc349c4bba17bdccde980acc3830fc7eec0b037c76b860365"
   },
   {
+    "packages": ["fontkit@2.0.4"],
+    "file": "fontkit-2.0.4-base64-arraybuffer-MIT.txt",
+    "source": "https://raw.githubusercontent.com/niklasvh/base64-arraybuffer/e9457ccb7b140f5ae54a2880c8e9b967ffb03a7d/LICENSE-MIT",
+    "sha256": "f3eca6ff762533fa5a77caf954a143e48afa204668cf97dce758c45a9e006be3"
+  },
+  {
     "packages": ["frida@17.23.2"],
     "file": "frida-gum-17.23.2-COPYING.txt",
     "source": "https://raw.githubusercontent.com/frida/frida-gum/2b0e6a661702097d77474223ebc429ece092cb46/COPYING",

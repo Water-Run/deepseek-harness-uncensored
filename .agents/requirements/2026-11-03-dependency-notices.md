@@ -100,6 +100,10 @@ Windows 安装器现随包附带实际编译工具集的 `COPYING` 原文，文�
 
 八张源表的标准头部还包含商标、免责声明和原始数据说明。重新读取的文件均与既有映射证据的摘要一致，去掉注释前缀和行尾空白后，八份头部逐字相同。现将这段原文一并保留在精确匹配 `fontkit@2.0.4` 的补充声明中，文件 SHA-256 为 `731d2f298c322c6bc349c4bba17bdccde980acc3830fc7eec0b037c76b860365`。Windows `.6` 和 Linux `.5` 实包清单复算通过，分别仍有 7 和 9 项待核查，两个临时投影均已清理。12 项清点器测试通过，新文本待下次打包分发。复算入口与原文比对在 `.dsh-build/license-gaps-20261111/`。[Croatian 源表标准头部](https://www.unicode.org/Public/MAPPINGS/VENDORS/APPLE/CROATIAN.TXT) · [Inuit 源表标准头部](https://www.unicode.org/Public/MAPPINGS/VENDORS/APPLE/INUIT.TXT)
 
+Fontkit 2.0.4 的发布源码注明 Base64 解码器改编自 `base64-arraybuffer`。锁定的 npm 归档与 Windows 18.11 实装包中，解码源文件和四个分发入口逐文件字节相同。各入口的解码写入表达式与 `base64-arraybuffer` v0.1.5 固定源码一致。按 `fontkit@2.0.4` 随包保留该实现的 MIT 许可与版权原文。[Fontkit 发布源码](https://github.com/foliojs/fontkit/blob/fbf3b9ef21eebd219eb73e666faed573af0fba09/src/utils.js) · [解码器固定源码](https://github.com/niklasvh/base64-arraybuffer/blob/e9457ccb7b140f5ae54a2880c8e9b967ffb03a7d/lib/base64-arraybuffer.js) · [MIT 原文](https://github.com/niklasvh/base64-arraybuffer/blob/e9457ccb7b140f5ae54a2880c8e9b967ffb03a7d/LICENSE-MIT)
+
+用 Windows 18.11 的 920 个包复算，继 Frida 例外声明后只增加一份 Fontkit 声明，合计 25 份，待核查仍为 6 项。19 项清点器测试通过，实装 ASAR 摘要一致。两份新声明待下次打包分发。复算回执位于 `%USERPROFILE%/DSHU-Deliveries/20261118/license-review/fontkit-base64/fontkit-base64-2.0.4-notice-projection.json`。
+
 ## Brotli 编码器内嵌的 Emscripten 运行时（2026-11-11）
 
 按 npm 发布完整性校验 Brotli 1.3.0、1.3.1、1.3.2 和 1.3.3 的归档，四版的 `build/encode.js` 与 `build/mem.js` 逐字相同，最早比对的发行日期为 2016 年 9 月 11 日。Windows `.6` 的这两个文件及包装代码 `compress.js`、`enc/pre.js` 与 1.3.3 归档一致。发行源码的 Makefile 使用 `emcc`，编译结果保留三个可在同时期 Emscripten 运行时源码中核对的字符串。[Brotli 构建规则](https://github.com/foliojs/brotli.js/blob/e36051345f6d27a56e5f39ea70d2f789b8574046/Makefile) · [Emscripten 运行时源码](https://github.com/emscripten-core/emscripten/blob/365212e71060771e167e88e9d0d337684f7587c5/src/shell.js)
@@ -185,7 +189,7 @@ Linux `.3` 实包原清单为 861 个 npm 包和 12 项待核查。`@deepseek-ai
 | --- | --- | --- |
 | brotli 1.3.3 | Windows/Linux | 已补 Google 解码器、固定子模块和 Emscripten 运行时声明，包装代码原始署名、精确编译器版本及链接组件清单待核对 |
 | dfa 1.2.0 | Windows/Linux | npm 包及固定源提交没有独立许可原文 |
-| fontkit 2.0.4 | Windows/Linux | 已补八张 Mac 编码表的归属声明。该版本的完整许可原文与 Apple 数据分发条款仍待核对 |
+| fontkit 2.0.4 | Windows/Linux | 已补八张 Mac 编码表的归属声明和 Base64 解码器的 MIT 原文。Fontkit 本体原文与 Apple 数据分发条款仍待核对 |
 | frida 17.23.2 | Windows/Linux | 版本及源码链已核对，Node 绑定和预构建组件的完整署名仍待核查 |
 | minimisted 2.0.1 | Windows/Linux | REA 明确记录的上游原文/署名缺项，保留待核查 |
 | proxy-agent-negotiate 1.1.0 | Windows/Linux | 发布包与对应 tag 没有本包许可文件；相邻代理包文件不能未经核准直接替用 |
