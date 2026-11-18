@@ -3150,7 +3150,7 @@ describe('desktop main startup', () => {
     expect(window.urls).toEqual(['dsh-app://app/'])
     harness.hosts[0]!.ready.resolve()
     await Promise.all([retry, secondRetry, harness.navigated.promise])
-    expect(harness.applyRelease).toHaveBeenCalledTimes(1)
+    expect(harness.applyRelease).toHaveBeenCalledExactlyOnceWith('1.0.0')
     expect(harness.hosts[0]).toMatchObject({
       node: process.execPath,
       runtime: join(harness.app.getAppPath(), 'dsh'),

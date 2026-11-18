@@ -194,16 +194,20 @@ describe('desktop external plugin profile', () => {
     expect(readFileSync(patchPath, 'utf8')).toBe(patch)
   })
 
-  it('rejects an unsupported runtime descriptor before initializing the profile', async () => {
+  it.each(['descriptor', 'shell version'] as const)('keeps the profile intact on a runtime %s mismatch', async (failure) => {
     const { manager } = setup()
     const { dsh } = manager.runtime
     const descriptor = readDesktopRuntime(dsh)
-    writeFileSync(join(dsh, DESKTOP_RUNTIME_FILE), JSON.stringify({ ...descriptor, schemaVersion: 2 }))
+    if (failure === 'descriptor') {
+      writeFileSync(join(dsh, DESKTOP_RUNTIME_FILE), JSON.stringify({ ...descriptor, schemaVersion: 2 }))
+    }
     mkdirSync(manager.paths.profile, { recursive: true })
     const patch = '# user profile\n[]\n'
     writeFileSync(join(manager.paths.profile, 'cordis.patch.yml'), patch)
 
-    await expect(manager.applyRelease()).rejects.toThrow('unsupported descriptor schema version')
+    const expectedVersion = failure === 'shell version' ? '2.0.0' : undefined
+    await expect(manager.applyRelease(expectedVersion)).rejects.toThrow(failure === 'descriptor'
+      ? 'unsupported descriptor schema version' : 'bundled 1.0.0 is not the expected 2.0.0')
     expect(readdirSync(manager.paths.profile)).toEqual(['cordis.patch.yml'])
     expect(readFileSync(join(manager.paths.profile, 'cordis.patch.yml'), 'utf8')).toBe(patch)
   })

@@ -413,6 +413,7 @@ async function main(): Promise<void> {
   const resources = runtimeResources()
   const paths = resolveDesktopPaths(harnessHome)
   const development = !app.isPackaged
+  const installedVersion = development ? undefined : app.getVersion()
   const primaryRuntime = development
     ? developmentPrimaryRuntime()
     : join(process.resourcesPath, 'runtime', 'primary-runtime')
@@ -736,7 +737,7 @@ async function main(): Promise<void> {
     startup ??= (async () => {
       await navigateMain(applicationUrl)
       await backend.start(async () => {
-        await Promise.all([manager.applyRelease(), prepareHostEnvironment()])
+        await Promise.all([manager.applyRelease(installedVersion), prepareHostEnvironment()])
       })
       if (backend.host !== undefined) await openInitialWindow()
       if (backend.host !== undefined) updateJournal?.action('workspace-ready')
@@ -1644,7 +1645,7 @@ async function main(): Promise<void> {
     mandatoryPolicy = new DesktopMandatoryUpdatePolicy(policyConfig, {
       platform: process.platform as 'win32' | 'darwin' | 'linux', arch: process.arch as 'x64' | 'arm64',
       get channel() { return updates.selectedChannel },
-      bundledDshVersion: readDesktopRuntimeForStartup(resources.dsh).release.engineVersion,
+      bundledDshVersion: readDesktopRuntimeForStartup(resources.dsh, installedVersion).release.engineVersion,
     }, (state) => {
       if (state.error !== 'authentication-required') policyAuthenticationQueued = false
       if (state.blocking) {

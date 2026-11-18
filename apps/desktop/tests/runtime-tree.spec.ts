@@ -103,9 +103,11 @@ it('binds shared engine packages to the engine version instead of the product ve
   writeFileSync(path, JSON.stringify({ ...descriptor, release: { ...descriptor.release, engineVersion: '0.1.0' } }))
   expect(() => readDesktopRuntime(dsh)).toThrow(/mismatched @deepseek-ai\/dsh/u)
 })
-it('checks the bundled version only during build verification', async () => {
+it('rejects a runtime from another product version when the shell version is known', async () => {
   const dsh = join(fixture(), 'dsh')
   expect(readDesktopRuntime(dsh).release.version).toBe('1.0.0')
+  expect(readDesktopRuntimeForStartup(dsh, '1.0.0').release.version).toBe('1.0.0')
+  expect(() => readDesktopRuntimeForStartup(dsh, '2.0.0')).toThrow(/bundled 1\.0\.0 is not the expected 2\.0\.0/u)
   await expect(verifyDesktopRuntime(dsh, '2.0.0')).rejects.toThrow(/bundled 1\.0\.0 is not the expected 2\.0\.0/u)
 })
 it.each([
@@ -115,13 +117,14 @@ it.each([
   { release: { hostProtocolVersion: 999 } },
   { release: { nodeVersion: 'invalid' } },
   { release: { pnpmVersion: 'invalid' } },
-])('checks release compatibility only during build verification: %j', async (patch) => {
+])('checks release compatibility at startup and during build verification: %j', async (patch) => {
   const dsh = join(fixture(), 'dsh')
   const path = join(dsh, DESKTOP_RUNTIME_FILE)
   const original = readDesktopRuntime(dsh)
   const descriptor = { ...original, ...patch, release: { ...original.release, ...patch.release } }
   writeFileSync(path, JSON.stringify(descriptor))
   expect(readDesktopRuntime(dsh)).toEqual(descriptor)
+  expect(() => readDesktopRuntimeForStartup(dsh)).toThrow(/invalid|incompatible/u)
   await expect(verifyDesktopRuntime(dsh, '1.0.0')).rejects.toThrow(/invalid|incompatible/u)
 })
 it.each(['missing', 'invalid-json', 'mismatched'])('checks %s shared manifests only during build verification', async (operation) => {

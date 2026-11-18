@@ -77,10 +77,11 @@ export class DesktopProjectManager {
   }
 
   /**
-   * Verify the bundled Host entry files before preparing the external plugin profile.
+   * Verify the bundled runtime before preparing the external plugin profile.
+   * @param expectedVersion - Version of the installed shell, when packaged.
    */
-  async applyRelease(): Promise<void> {
-    readDesktopRuntimeForStartup(this.runtime.dsh)
+  async applyRelease(expectedVersion?: string): Promise<void> {
+    readDesktopRuntimeForStartup(this.runtime.dsh, expectedVersion)
     await this.withLock(() => {
       migrateProfileSettings(this.paths.profile)
       createPluginProfile(this.paths.profile)

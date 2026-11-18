@@ -205,14 +205,28 @@ export function readDesktopRuntime(root: string): DesktopRuntimeDescriptor {
     arch: value.arch, sharedPackages, files }
 }
 
+function validateRuntimeCompatibility(
+  descriptor: DesktopRuntimeDescriptor, target: { platform: NodeJS.Platform; arch: string }, expectedVersion?: string,
+): void {
+  if (descriptor.platform !== target.platform || descriptor.arch !== target.arch) {
+    throw new Error(`desktop runtime: incompatible platform/architecture (${descriptor.platform}/${descriptor.arch}, expected ${target.platform}/${target.arch})`)
+  }
+  const release = parseDesktopRelease(descriptor.release)
+  if (expectedVersion !== undefined && release.version !== expectedVersion) {
+    throw new Error(`desktop runtime: bundled ${release.version} is not the expected ${expectedVersion}`)
+  }
+}
+
 /**
- * Verify the packaged Host entry points against their recorded bytes before preparing the plugin profile.
+ * Verify runtime compatibility and the Host entry files before preparing the plugin profile.
  * @param root - Current application's bundled runtime directory.
+ * @param expectedVersion - Version of the installed shell, when launching a packaged application.
  * @returns Metadata for a runtime with a readable descriptor and intact Host entry files.
  */
-export function readDesktopRuntimeForStartup(root: string): DesktopRuntimeDescriptor {
+export function readDesktopRuntimeForStartup(root: string, expectedVersion?: string): DesktopRuntimeDescriptor {
   try {
     const descriptor = readDesktopRuntime(root)
+    validateRuntimeCompatibility(descriptor, process, expectedVersion)
     for (const entry of DESKTOP_HOST_RUNTIME_FILES) {
       const path = `node_modules/${DESKTOP_HOST_PACKAGE}/${entry}`
       const [expected, duplicate] = descriptor.files.filter(file => record(file) && file.path === path)
@@ -247,11 +261,7 @@ export async function verifyDesktopRuntime(
   root: string, expectedVersion: string, target: { platform: NodeJS.Platform; arch: string } = process,
 ): Promise<DesktopRuntimeDescriptor> {
   const descriptor = readDesktopRuntime(root)
-  if (descriptor.platform !== target.platform || descriptor.arch !== target.arch) {
-    throw new Error('desktop runtime: incompatible platform/architecture')
-  }
-  const release = parseDesktopRelease(descriptor.release)
-  if (release.version !== expectedVersion) throw new Error(`desktop runtime: bundled ${release.version} is not the expected ${expectedVersion}`)
+  validateRuntimeCompatibility(descriptor, target, expectedVersion)
   for (const entry of descriptor.sharedPackages) {
     const manifest: unknown = JSON.parse(readFileSync(join(runtimePath(root, entry.path), 'package.json'), 'utf8'))
     if (!record(manifest) || manifest.name !== entry.name || manifest.version !== entry.version) {
