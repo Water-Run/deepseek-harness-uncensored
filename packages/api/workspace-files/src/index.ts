@@ -393,7 +393,7 @@ export class WorkspaceFiles extends TypertRemoteService {
    * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
    * @param path - target path; the Host determines its type and confines directories to the workspace.
    * @param signal - generation cancellation.
-   * @returns `ready` once the target watch is active, then current metadata for queued and live invalidations.
+   * @returns `ready` once the target watch is active, then current metadata for coalesced target invalidations.
    * @throws RemoteError when watching is unavailable or a directory is outside the workspace.
    */
   @Remote({ mode: 'stream' })

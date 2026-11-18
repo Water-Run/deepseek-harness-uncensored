@@ -65,7 +65,7 @@ kind: "package-reference"
 
 ### 变更流
 
-`changes` 是 `stream` 模式的 Remote，只接受目标路径。Host 从 `stat` 取得实际目标类型；只要当前类型是目录，就要求位于工作区内，目标类型变化后也执行该检查。一代流先注册观察队列、解析目标并建立 `fs.watch`，然后产出 `{ kind: 'ready' }`。随后产出 `{ kind: 'change', change }`，其中 `change` 为当前 stat 元数据 `{ absolutePath, version }` 或 `{ absolutePath, absent: true }`。本地提供方使用 Chokidar，目录仅监听直接子项。匹配目标的 `fs/observed` 也触发失效。流在初始化期间排队变化。取消会独立于消费方拉取帧的进度关闭 watcher，流或插件拆除等待关闭完成。父目录保持存在时，缺失文件仍可监听同一路径的重建。
+`changes` 是 `stream` 模式的 Remote，接受一个目标路径。Host 先解析目标，检查目录是否位于工作区内，并建立 `fs.watch`，然后产出 `{ kind: 'ready' }`。收到 `ready` 后调用 `stat` 获取初始元数据。解析后的匹配原生变更和 `fs/observed` 事件会设置一个待刷新标记，监听器初始化期间也会保留该标记。下次拉取时读取当前元数据，产出 `{ kind: 'change', change }`，其中 `change` 为 `{ absolutePath, version }` 或 `{ absolutePath, absent: true }`。两次拉取之间的密集变更合并为一次刷新。本地提供方使用 Chokidar 监听目录直接子项。取消时会关闭监听器，流或插件拆除时会等待它关闭。父目录保持存在时，缺失文件仍可监听同一路径的重建。
 
 ### 配置
 

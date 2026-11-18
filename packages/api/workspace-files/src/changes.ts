@@ -1,17 +1,13 @@
 /**
  * Target-scoped filesystem watches and `fs/observed` invalidations for `changes`.
  * Each generation sends `ready` after watcher initialization, then reads current
- * target metadata for matching queued and live invalidations.
+ * target metadata for coalesced invalidations of that target.
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import { Deque } from '@deepseek-ai/dsh-deque'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
-import type { FsObservation, FsTarget } from '@deepseek-ai/dsh-fs'
+import type { FsTargetKey } from '@deepseek-ai/dsh-fs'
 import type { WorkspaceFileWatchFrame } from './types.ts'
-
-/** One target invalidation, optionally carrying its instrumented observation. */
-type Observed = readonly [target: FsTarget, observation?: FsObservation]
 
 /** Owns target watches, instrumented observations, and every open `changes` generation. */
 export class WorkspaceChangeFeed {
@@ -19,8 +15,8 @@ export class WorkspaceChangeFeed {
 
   /** @param ctx - Host context carrying the filesystem the observations come from. */
   constructor(private readonly ctx: Context) {
-    ctx.on('fs/observed', (target, observation) => {
-      for (const follower of this.followers) follower.push([target, observation])
+    ctx.on('fs/observed', ({ targetKey }) => {
+      for (const follower of this.followers) follower.invalidate(targetKey)
     })
     ctx.effect(() => async () => {
       const followers = [...this.followers]
@@ -34,11 +30,10 @@ export class WorkspaceChangeFeed {
    * @param workspaceRoot - the session's workspace root path.
    * @param path - target path, resolved relative to the workspace root; Host metadata determines its type.
    * @param signal - generation cancellation.
-   * @returns `ready` after watching starts, then current metadata for target invalidations.
+   * @returns `ready` after watching starts, then current metadata for coalesced target invalidations.
    */
   async *follow(workspaceRoot: string, path: string, signal: AbortSignal): AsyncIterable<WorkspaceFileWatchFrame> {
     signal.throwIfAborted()
-    // Instrumented observations remain queued while the target resolves.
     const follower = new ChangeFollower(() => {
       signal.removeEventListener('abort', cancel)
       this.followers.delete(follower)
@@ -57,12 +52,13 @@ export class WorkspaceChangeFeed {
         if (aborted()) return undefined
         throw error
       })
-      if (root === undefined || aborted() || follower.isClosed) return
+      if (root === undefined || aborted()) return
       const target = await this.ctx.fs.resolve(path, { cwd: workspaceRoot, signal }).catch((error: unknown) => {
         if (aborted()) return undefined
         throw error
       })
       if (target === undefined || aborted()) return
+      follower.targetKey = target.targetKey
       const stat = async () => {
         const info = await this.ctx.fs.stat(target, signal).catch((error: unknown) => {
           if (aborted()) return undefined
@@ -78,7 +74,7 @@ export class WorkspaceChangeFeed {
       try {
         unwatch = await this.ctx.fs.watch(target, (error) => {
           if (error !== undefined) follower.fail(error)
-          else if (!follower.isClosed) follower.push([target])
+          else follower.invalidate(target.targetKey)
         }, signal)
         if (follower.error !== undefined) throw follower.error
       } catch (error) {
@@ -90,8 +86,8 @@ export class WorkspaceChangeFeed {
       follower.initialized.resolve(unwatch)
       if (aborted()) return
       yield { kind: 'ready' }
-      for await (const [observed] of follower.read()) {
-        if (observed.targetKey !== target.targetKey) continue
+      while (await follower.waitForChange()) {
+        if (aborted()) return
         const info = await stat()
         if (aborted()) return
         const absolutePath = this.ctx.fs.processPath(target)
@@ -109,32 +105,29 @@ export class WorkspaceChangeFeed {
   }
 }
 
-/** One generation's queue: observations wait here until its consumer pulls them. */
+/** One pending refresh for a resolved target, owned by its watch generation. */
 class ChangeFollower {
   readonly controller = new AbortController()
   readonly initialized = Promise.withResolvers<(() => Promise<void>) | undefined>()
   error: Error | undefined
-  private readonly queue = new Deque<Observed>()
+  targetKey: FsTargetKey | undefined
+  private pending = false
   private wake: (() => void) | undefined
   private closed = false
   private closing: Promise<void> | undefined
 
   constructor(private readonly release: () => void) {}
 
-  /** Whether this generation has stopped accepting invalidations. */
-  get isClosed(): boolean {
-    return this.closed
-  }
-
-  push(observed: Observed): void {
-    if (this.closed) return
-    this.queue.pushBack(observed)
+  invalidate(key: FsTargetKey): void {
+    if (this.closed || key !== this.targetKey || this.pending) return
+    this.pending = true
     this.wake?.()
   }
 
   close(): Promise<void> {
     if (this.closing !== undefined) return this.closing
     this.closed = true
+    this.pending = false
     this.closing = this.initialized.promise.then(unwatch => unwatch?.()).finally(this.release)
     this.controller.abort()
     this.wake?.()
@@ -146,17 +139,15 @@ class ChangeFollower {
     this.controller.abort()
   }
 
-  /** Drain until closed or aborted; anything still queued then is dropped with the generation. */
-  async *read(): AsyncIterable<Observed> {
-    while (!this.closed) {
-      const observed = this.queue.popFront()
-      if (observed !== undefined) {
-        yield observed
-        continue
-      }
+  /** Consume a pending refresh or wait until the generation closes. */
+  async waitForChange(): Promise<boolean> {
+    while (!this.closed && !this.pending) {
       await new Promise<void>((resolve) => { this.wake = resolve })
       this.wake = undefined
     }
     if (this.error !== undefined) throw this.error
+    if (this.closed) return false
+    this.pending = false
+    return true
   }
 }

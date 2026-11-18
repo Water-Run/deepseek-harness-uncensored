@@ -2049,9 +2049,6 @@ importers:
 
   packages/api/workspace-files:
     dependencies:
-      '@deepseek-ai/dsh-deque':
-        specifier: workspace:*
-        version: link:../../util/deque
       '@deepseek-ai/dsh-typert-protocol':
         specifier: workspace:*
         version: link:../../typert/protocol

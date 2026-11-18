@@ -4,6 +4,7 @@ import type { Mock, MockInstance } from 'vitest'
 import { mkdir, rename, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { performance } from 'node:perf_hooks'
+import { setImmediate as nextTurn } from 'node:timers/promises'
 import type { Context } from '@deepseek-ai/cordis'
 import type { FileSystem, FsObservation, FsTarget } from '@deepseek-ai/dsh-fs'
 import { FsVersion } from '@deepseek-ai/dsh-fs'
@@ -86,7 +87,7 @@ async function ownedEndpoint() {
 }
 
 describe('workspaceFiles.changes — target frames', () => {
-  it('acknowledges readiness before draining target observations queued during root resolution', async () => {
+  it('starts with a fresh stat after readiness and skips observations before the target resolves', async () => {
     const path = join(harness.workspace, 'early.txt')
     await writeFile(path, 'current contents')
     const service = harness.endpoint()
@@ -116,12 +117,15 @@ describe('workspaceFiles.changes — target frames', () => {
       expect(watch).not.toHaveBeenCalled()
       release.resolve(undefined)
       await expect(first).resolves.toEqual({ done: false, value: { kind: 'ready' } })
-      for (let index = 0; index < 2; index++) {
-        await expect(stream.next()).resolves.toEqual({
-          done: false,
-          value: { kind: 'change', change: { absolutePath: current.absolutePath, version: current.version } },
-        })
-      }
+      const stat = vi.spyOn(fs, 'stat')
+      const pending = stream.next()
+      await nextTurn()
+      expect(stat).not.toHaveBeenCalled()
+      await observe(path, present('after-ready'))
+      await expect(pending).resolves.toEqual({
+        done: false,
+        value: { kind: 'change', change: { absolutePath: current.absolutePath, version: current.version } },
+      })
     } finally {
       release.resolve(undefined)
     }
@@ -219,26 +223,64 @@ describe('workspaceFiles.changes — target frames', () => {
     })
   })
 
-  it('stats each queued invalidation when pulled instead of replaying its observed version', async () => {
+  it('coalesces a burst into one fresh stat and keeps later invalidations', async () => {
     const path = join(harness.workspace, 'queued.txt')
     await writeFile(path, 'first')
     const service = harness.endpoint()
     const stream = open(service, path)
     await ready(stream)
-    await observe(path, present('queued-one'))
-    await observe(path, present('queued-two'))
+    const target = await harness.ctx.fs.resolve(path)
+    const stat = vi.spyOn(harness.ctx.fs, 'stat')
+    for (let index = 0; index < 256; index++) harness.ctx.emit('fs/observed', target, present('stale'), undefined)
     const first = await service.stat(harness.scope, path, stream.controller.signal)
+    stat.mockClear()
     await expect(stream.next()).resolves.toEqual({
       done: false,
       value: { kind: 'change', change: { absolutePath: first.absolutePath, version: first.version } },
     })
+    expect(stat).toHaveBeenCalledTimes(1)
+    const pending = stream.next()
+    await nextTurn()
+    expect(stat).toHaveBeenCalledTimes(1)
     await writeFile(path, 'a longer second version')
     const second = await service.stat(harness.scope, path, stream.controller.signal)
     expect(second.version).not.toBe(first.version)
-    await expect(stream.next()).resolves.toEqual({
+    await observe(path, present('new-change'))
+    await expect(pending).resolves.toEqual({
       done: false,
       value: { kind: 'change', change: { absolutePath: second.absolutePath, version: second.version } },
     })
+  })
+
+  it('keeps an invalidation received during an in-flight stat for the next refresh', async () => {
+    const path = join(harness.workspace, 'in-flight.txt')
+    await writeFile(path, 'initial version')
+    const service = harness.endpoint()
+    const stream = open(service, path)
+    await ready(stream)
+    const fs = harness.ctx.fs
+    const target = await fs.resolve(path)
+    const old = await fs.stat(target)
+    if (old === undefined) throw new Error('Expected an existing fixture file')
+    const entered = Promise.withResolvers<undefined>()
+    const release = Promise.withResolvers<undefined>()
+    vi.spyOn(fs, 'stat').mockImplementationOnce(async () => {
+      entered.resolve(undefined)
+      await release.promise
+      return old
+    })
+    try {
+      const first = stream.next()
+      await observe(path, present('first-change'))
+      await entered.promise
+      await writeFile(path, 'a longer, newer version')
+      const current = await service.stat(harness.scope, path, stream.controller.signal)
+      expect(current.version).not.toBe(old.version)
+      await observe(path, present('second-change'))
+      release.resolve(undefined)
+      await expect(first).resolves.toMatchObject({ value: { change: { version: old.version } } })
+      await expect(stream.next()).resolves.toMatchObject({ value: { change: { version: current.version } } })
+    } finally { release.resolve(undefined) }
   })
 
   it('keeps another generation of the same target live after one leaves', async () => {
