@@ -4,3 +4,8 @@
   config:
     searchProvider: deepseek-search-api
     fetchProvider: http
+
+- insert:
+    - id: replay-acl-skill
+      name: '../../../packages/test-support/session-snapshot/tests/fixtures/replay-acl-skill.mjs'
+      disabled: !!js process.platform !== 'win32'
