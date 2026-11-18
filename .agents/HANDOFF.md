@@ -18,7 +18,7 @@
 
 ## Linux 测试与 WSL 状态
 
-后续 Linux 测试转到用户指定的 Fedora 45 x86_64 实体设备，通过既有 Windows SSH 跳板的 `fedora` 别名访问。连接和部署信息在 `%USERPROFILE%/DSHU-Deliveries/20261118/linux-test-connection.json`；CLI、版本身份和 SDK 导入已经通过，图形界面与门户尚未验收。18.7 构建进程已启动并确认进入依赖安装。随后转发间歇拒绝连接或握手超时，构建终态和原生桌面待回读。[设备与回收记录](requirements/2026-11-18-linux-test-host.md)
+后续 Linux 测试转到用户指定的 Fedora 45 x86_64 实体设备，通过既有 Windows SSH 跳板的 `fedora` 别名访问。连接和部署信息在 `%USERPROFILE%/DSHU-Deliveries/20261118/linux-test-connection.json`；CLI、版本身份和 SDK 导入已经通过，图形界面与门户尚未验收。18.7 的依赖安装和 Frida 官方预构建核验已通过。打包预检因缺少 `musl-gcc` 退出。已校验私有工具链的源归档，转发恢复后继续设备端打包和原生桌面验收。[设备与回收记录](requirements/2026-11-18-linux-test-host.md)
 
 本机 WSL 的 DSHU 专用缓存已经归档并清理，文件系统净增加约 153.2 GiB 空闲。三个工作区及 32 条 stash 已验证可恢复，备份在 `%USERPROFILE%/DSHU-Backups/20261118-wsl-retirement/`，恢复时须同时保留归档和 `borrowed-objects/`。旧 `/home/linzh/.cache/dshu-verification` 路径已移除，不再启动本机 WSL 或调用旧 Linux 构建脚本。
 
