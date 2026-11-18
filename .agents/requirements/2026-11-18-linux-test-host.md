@@ -32,7 +32,7 @@ Windows 跳板上的嵌套 SSH 不使用管道传入 Python 程序；该方式�
 
 同一进程的依赖日志显示，Frida 17.23.2 的预构建下载中止，安装器转入源码构建，下载工具链与 SDK 后开始克隆 Frida Core。已取得与官方 SHA-256 一致的 Linux x64 预构建归档，并确认其中的绑定与 17.8 Linux 归档内的二进制一致。校验归档已暂存于 Windows 跳板。[Frida 官方版本](https://github.com/frida/frida/releases/tag/17.23.2)
 
-Fedora 已接收预构建缓存准备脚本。设备端操作回读期间连接重置，缓存 SHA-256 和构建终态待复核。证据为 `license-review/frida-linux-prebuild-18-7-boundary-verification.json`、`fedora-rc4-18-7-resume-observation-with-tail.log` 和 `fedora-rc4-18-7-frida-prebuild-fetch.log`。
+Fedora 的作业私有缓存已回读 SHA-256，与官方预构建一致。同一次回读确认原进程 `3553433` 仍在依赖阶段，进程树包含 Frida 源码构建。转发随后再次中断，尚未收到使用预构建继续依赖安装的回执。证据为 `license-review/frida-linux-prebuild-18-7-boundary-verification.json`、`fedora-rc4-18-7-next-live-process.log` 和 `fedora-rc4-18-7-resume-one-connection.log`。
 
 ## WSL 开发状态保全
 
