@@ -256,7 +256,7 @@ The Windows installer checks for a running application at startup and after dest
 
 To repair a registered installation with a missing executable, run the installer for the same version. Setup requires a known installed version and matching install and uninstall paths before it replaces the files. The same-path replacement preserves application data.
 
-After extraction, Setup checks that the staged executable and `resources/app.asar` are nonempty regular files. An invalid entry aborts installation before directory replacement and saves the affected path and Windows error in `payload-failure-<id>.log` under the installer logs directory.
+After extraction, Setup checks that the staged application executable, `resources/app.asar`, and uninstaller are nonempty regular files. An invalid entry aborts installation before directory replacement and saves the affected path and Windows error in `payload-failure-<id>.log` under the installer logs directory.
 
 Setup verifies the registered installation path and both uninstall commands before recording the displayed version and discarding the previous installation backup. If registration fails, Setup exits with code 2 and keeps the promoted directory and any previous backup. The installer logs directory contains a `registration-failure-<id>.log` with the affected registry value and the paths available for recovery.
 

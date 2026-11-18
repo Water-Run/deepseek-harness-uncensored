@@ -10,14 +10,17 @@ LangString decompressionFailed ${LANG_ENGLISH} "Payload extraction failed"
 !define DSH_STDUTILS_SOURCE "${__FILEDIR__}\..\..\..\..\LICENSES\installer\StdUtils-1.14-sources.tbz2"
 !define DSH_UAC_LICENSE "${__FILEDIR__}\..\..\..\..\LICENSES\installer\UAC-0.2.4c-LICENSE.txt"
 !define APP_EXECUTABLE_FILENAME "asset.txt"
+!define UNINSTALL_FILENAME "Uninstall Fixture.exe"
 !ifdef REGISTRATION_FAILED
   !define INSTALL_REGISTRY_KEY "${REGISTRATION_TEST_KEY}\Install"
   !define UNINSTALL_REGISTRY_KEY "${REGISTRATION_TEST_KEY}\Uninstall"
-  !define UNINSTALL_FILENAME "Uninstall Fixture.exe"
 !endif
 
 !macro installApplicationFiles
   !insertmacro dshExtractPayload "${PAYLOAD_FILE}"
+  !ifndef MISSING_UNINSTALLER
+    File "/oname=${UNINSTALL_FILENAME}" "${__FILE__}"
+  !endif
 !macroend
 !ifdef SOURCE_DLL
   LoadLanguageFile "${NSISDIR}\Contrib\Language files\SimpChinese.nlf"

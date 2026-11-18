@@ -47,7 +47,7 @@ try {
   $emptyArchive = Join-Path $scratch 'empty-asar.7z'
   Invoke-Checked $SevenZip @('a', '-bd', '-t7z', $emptyArchive, "$incompletePayload/*")
 
-  $cases = @('locked-promoted', 'abort-promoted', 'first', 'upgrade', 'transient-lock', 'locked', 'locked-stage',
+  $cases = @('missing-uninstaller', 'locked-promoted', 'abort-promoted', 'first', 'upgrade', 'transient-lock', 'locked', 'locked-stage',
       'missing-stage', 'restore-conflict', 'broken', 'incomplete-payload', 'empty-asar', 'cancelled')
   if ($FrameLibrary) { $cases += 'registration-failed' }
   foreach ($mode in $cases) {
@@ -74,6 +74,7 @@ try {
     $reportDir = Join-Path $caseRoot 'installer-logs'
     $compileArgs = @('/V2', "/DOUTPUT_FILE=$probe", "/DPAYLOAD_FILE=$caseArchive", "/DTARGET_DIR=$target", "/DDSH_SEVENZIP_PATH=$SevenZip")
     if ($FrameLibrary) { $compileArgs += @("/DSOURCE_DLL=$FrameLibrary", "/DREPORT_DIR=$reportDir", "/DINSTALLER_STRINGS_FILE=$installerStrings") }
+    if ($mode -eq 'missing-uninstaller') { $compileArgs += '/DMISSING_UNINSTALLER' }
     if ($mode -eq 'missing-stage') { $compileArgs += '/DMISSING_STAGE' }
     if ($mode -eq 'locked-stage') { $compileArgs += '/DLOCKED_STAGE' }
     if ($mode -eq 'restore-conflict') { $compileArgs += '/DRESTORE_CONFLICT' }
@@ -215,14 +216,15 @@ try {
         foreach ($expected in @('Result: 7-Zip exit code 2 (fatal error)', "Archive: $caseArchive", 'Cannot open the file as [7z] archive')) {
           if (-not $report.Contains($expected)) { throw "Directory smoke $mode report lacks '$expected'" }
         }
-      } elseif ($mode -in @('incomplete-payload', 'empty-asar')) {
+      } elseif ($mode -in @('incomplete-payload', 'empty-asar', 'missing-uninstaller')) {
         if ($reports.Count -ne 1 -or $reports[0].Name -notlike 'payload-failure-*.log') {
           throw "Directory smoke $mode did not save exactly one payload failure report"
         }
         $report = Get-Content -LiteralPath $reports[0].FullName -Raw
         $expectedError = if ($mode -eq 'empty-asar') { '13' } else { '[23]' }
-        if ($report -notmatch "Invalid staged application file \($expectedError\): .*\\resources\\app\.asar") {
-          throw "Directory smoke $mode did not report the invalid runtime file"
+        $expectedFile = if ($mode -eq 'missing-uninstaller') { 'Uninstall Fixture.exe' } else { 'resources\app.asar' }
+        if ($report -notmatch "Invalid staged application file \($expectedError\): .*\\$([regex]::Escape($expectedFile))") {
+          throw "Directory smoke $mode did not report the invalid file $expectedFile"
         }
       } elseif ($mode -in @('locked', 'locked-stage', 'missing-stage')) {
         if ($reports.Count -ne 1 -or $reports[0].Name -notmatch '^directory-failure-20\d{6}-\d{6}\.log$') {

@@ -134,6 +134,8 @@ Var dshRecoveryStopped
   Call dshCheckStagedFile
   Push "resources\app.asar"
   Call dshCheckStagedFile
+  Push "${UNINSTALL_FILENAME}"
+  Call dshCheckStagedFile
   StrCpy $INSTDIR $dshFinalDirectory
   SetOutPath $PLUGINSDIR
 !macroend
