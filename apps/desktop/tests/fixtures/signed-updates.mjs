@@ -1,7 +1,7 @@
 /** Actual Electron download, checksum, Authenticode, and coordinator recovery; installer execution is forbidden. */
 import assert from 'node:assert/strict'
 import { copyFile, mkdir, readdir, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { app } from 'electron'
 import updaterModule from 'electron-updater'
 import { DesktopUpdateCoordinator } from '../../lib/types/update-coordinator.js'
@@ -156,6 +156,39 @@ async function main() {
           fullSize: server.artifacts.signed.size })
         report.cases.push(name)
       }
+    }
+    for (const [name, expectedPublisher, failure, verifierUnavailable] of [
+      ['cached-signed-installer-rechecked-before-handoff', publisher, undefined],
+      ['cached-installer-with-wrong-publisher-refuses-handoff', 'CN=Other,O=Other,C=US', /does not match the configured publisher/u],
+      ['cached-installer-refuses-handoff-when-signature-check-is-unavailable', publisher, /signature inspection could not complete/u, true],
+    ]) {
+      const f = await fixture(expectedPublisher)
+      const pending = join(f.directory, 'cache', 'pending')
+      await mkdir(pending, { recursive: true })
+      const cachedFile = basename(unsigned.updater.installerPath)
+      await copyFile(unsigned.updater.installerPath, join(pending, cachedFile))
+      await copyFile(join(dirname(unsigned.updater.installerPath), 'update-info.json'), join(pending, 'update-info.json'))
+      server.select('signed')
+      const before = server.requests.length
+      assert.equal((await download(f)).phase, 'ready')
+      assert.equal(server.requests.length - before, 1, 'Only the feed is fetched for a pending cache hit')
+      const handoffs = installed
+      f.authorize()
+      const systemRoot = process.env.SystemRoot
+      assert.ok(systemRoot)
+      if (verifierUnavailable) process.env.SystemRoot = join(f.directory, 'absent-system-directory')
+      const state = await f.coordinator.install('1.0.1-nightly.1').finally(() => { process.env.SystemRoot = systemRoot })
+      assert.ok(f.logs.some(line => line.startsWith('Verifying signature ')))
+      if (failure === undefined) {
+        assert.equal(state.phase, 'installing')
+        assert.equal(installed, handoffs + 1)
+      } else {
+        assert.equal(state.preparationFailure, 'installer-integrity')
+        assert.match(state.technicalDetails, failure)
+        assert.equal(f.updater.installerPath, null)
+        assert.equal(installed, handoffs)
+      }
+      report.cases.push(name)
     }
     assert.ok(fixtures.every(f => !f.logs.some(line => line.includes('Ignoring signature validation'))))
     assert.deepEqual(server.failures, [])

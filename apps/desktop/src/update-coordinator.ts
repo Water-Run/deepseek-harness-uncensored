@@ -13,6 +13,7 @@ import type { DesktopUpdateChannel } from './update-channel.ts'
 import { selectUpdateChannel } from './updates/electron-updater/channel.ts'
 import { discardDesktopUpdate } from './updates/electron-updater/discard.ts'
 import { verifyWindowsUpdateInstaller } from './updates/electron-updater/verify-installer.ts'
+import { verifyWindowsUpdatePublisher } from './updates/electron-updater/windows-publisher.ts'
 
 const { autoUpdater, NsisUpdater } = electronUpdater
 
@@ -81,6 +82,12 @@ export class DesktopUpdateCoordinator {
         Number(process.env.DSH_DESKTOP_UPDATE_HTTP_IDLE_TIMEOUT_MS ?? 60_000),
         (authInfo, callback) => { updater.emit('login', authInfo, callback) },
       )
+    }
+    if (updater instanceof NsisUpdater) {
+      updater.verifyUpdateCodeSignature = (publishers, file) => {
+        updater.logger?.info('Verifying signature for Windows update')
+        return verifyWindowsUpdatePublisher(publishers, file)
+      }
     }
     this.updater.autoDownload = false
     this.updater.autoInstallOnAppQuit = false
