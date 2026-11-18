@@ -33,6 +33,8 @@ Codex 的自动连接会在关闭后重新唤起 Ubuntu，需用户在连接设�
 
 ## 仍有效的执行验收
 
+Windows 18.2 的本地文件保护冷重启通过：完全保护拒绝读写、审计只读、测试写入和清空规则后的新写入均由实际提供方执行并独立回读。规则修订 2 与 27 条审计在新 Host 保留。没有改用户配置，不代表系统重启或远端/数据库冷重启，见[记录](requirements/2026-11-18-protection-cold-restart.md)。
+
 [SSH 资源匹配回执](requirements/2026-11-17-ssh-resource-receipts.md)和[数据库资源关联](requirements/2026-11-17-database-resource-bindings.md)已随本地 17.6 交付并保留在本包。SSH 客户端/helper 使用协议 4，需配套部署和更新固定摘要；持久化字段及原始 Session 录制未改变。
 
 [PostgreSQL 16.15 与 MySQL 8.0.46](requirements/2026-11-17-native-database-engines.md)共 14 个实际引擎场景通过，含独立数据回读、存储重开及正常退出。远端物理身份、其他协议与实体平台仍按 TODO 保留范围，不重复这轮引擎验收。

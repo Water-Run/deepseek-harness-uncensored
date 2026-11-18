@@ -59,7 +59,7 @@ Windows 当前为 18.2；Linux 新包尚未完成，已验证历史产物仍为 
 ## 进行中（9 项）
 
 - [ ] **Linux x64 Desktop**（02.09、17.07）：归档与运行检查通过；实际归档中的启动 404 修复、X11/Wayland 主界面和重载已复验。用户指定的 Fedora 45 实体机已通过 CLI、版本身份和 SDK 导入检查；后续 Linux 测试转该机。剩原生门户、实体桌面交互及发行验收。[计划](requirements/desktop-installer-plan.md)
-- [ ] **真实目标保护**（09.01–09.11、05.06、10.05）：默认关闭；Inspector 可选入口已随包，Cua Driver 独立归档准入已验收，桌面包仍不分发该提供方。SSH 映射、PostgreSQL/MySQL 中央关联及未知路径拒绝已进入本地 17.6。剩余入站、冷重启、部署、其他协议、远端物理身份与实体服务器验收。[数据库关联](requirements/2026-11-17-database-resource-bindings.md) · [执行层](requirements/2026-11-02-native-execution.md)
+- [ ] **真实目标保护**（09.01–09.11、05.06、10.05）：默认关闭；Inspector 可选入口已随包，Cua Driver 独立归档准入已验收，桌面包仍不分发该提供方。SSH 映射、PostgreSQL/MySQL 中央关联及未知路径拒绝已进入本地 17.6。Windows 本地文件规则与审计已通过独立 Host 冷重启及真实读写核验；远端/数据库重启、入站、部署、其他协议、物理身份与实体服务器验收继续保留。[本地冷重启](requirements/2026-11-18-protection-cold-restart.md) · [数据库关联](requirements/2026-11-17-database-resource-bindings.md) · [执行层](requirements/2026-11-02-native-execution.md)
 - [ ] **网安特化与独立代理**（10.01–10.08）：正式 npm 四包的安装及注册、Codex 移除回装和不兼容恢复已验收；流量筛选、详情、清理和连接重置竞态已修复，完整脱敏 JSON 导出已通过定向及实包下载验证并随 18.2 安装，正式插件更高版本升级通过；继续完成进阶保护及更广的桌面联动验收。[流量查看与导出](requirements/2026-11-18-proxy-traffic-requests.md) · [原始记录](requirements/2026-11-03-browser-proxy.md)
 - [ ] **官方版并存与桌面交付**（02.02、02.04、02.06、02.09、02.12、17.07）：保留数据更新已通过；剩余自动回退、系统重启、签名及正式在线升级。[记录](HANDOFF.md)
 - [ ] **构建产物清理**（17.09）：WSL 专用缓存已归档并清理，三个工作区及 32 条 stash 已验证可恢复，Linux 文件系统净空闲增加约 153.2 GiB。Codex 自动重连和磁盘压缩 UAC 仍待用户处理，尚未把全部空闲返还 D 盘。此前自动审批拒绝的 Windows 目录保留且不重试。[设备与回收](requirements/2026-11-18-linux-test-host.md) · [约束](HANDOFF.md#清理与工作约束)
