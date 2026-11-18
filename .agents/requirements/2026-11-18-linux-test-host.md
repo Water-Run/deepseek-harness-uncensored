@@ -36,6 +36,8 @@ Fedora 的作业私有缓存已回读 SHA-256，与官方预构建一致。续�
 
 第二次尝试在打包预检因缺少 `musl-gcc` 退出，日志为 `fedora-rc4-18-7-preflight-failure-readback.log`。用于作业私有工具链的 musl 1.2.6 源归档已按发行版记录核对 SHA-512 并暂存到跳板。转发拒绝连接，设备端工具链和 Linux 18.7 安装包仍待交付。用户安排等设备晚上上线后继续。[musl 发布公告](https://www.openwall.com/lists/musl/2026/03/20/1) · [归档摘要](https://github.com/alpinelinux/aports/blob/master/main/musl/APKBUILD)
 
+源码的 Linux 打包预检对 `musl-gcc` 增加静态程序与共享对象链接检查，并使用构建所选的 `PATH`。Windows 定向夹具复现了旧预检在工具能报告版本、但缺少静态链接库时通过的情况。修复后返回链接诊断，成功用例核对两类产物与临时目录清理。Fedora 私有工具链和原生构建仍需在设备上验收。[打包预检说明](../../apps/desktop/packaging/README.zh.md)
+
 ## WSL 开发状态保全
 
 本机 `/home/linzh/.cache/dshu-verification` 的三个工作区、Git 元数据、reflog 和 32 条 stash 已归档。226,715 个文件或链接逐项核对通过，三个 Git 元数据副本经过实际恢复、stash 核对和连通性检查。共享对象独立保存；浅克隆信息和原始对象编码保留。

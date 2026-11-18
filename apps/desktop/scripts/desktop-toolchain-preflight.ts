@@ -1,7 +1,7 @@
-/** Check archive round trips and Windows native preparation without modifying installed tools. */
+/** Check archive round trips and native toolchain preparation without modifying installed tools. */
 
 import { execFile } from 'node:child_process'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 import { promisify } from 'node:util'
@@ -104,10 +104,36 @@ async function probeWindowsToolchain(environment: NodeJS.ProcessEnv): Promise<De
   return failures
 }
 
+async function probeLinuxMusl(environment: NodeJS.ProcessEnv): Promise<string | undefined> {
+  const directory = await mkdtemp(join(tmpdir(), 'dsh-musl-probe-'))
+  try {
+    const source = join(directory, 'probe.c')
+    await writeFile(source, `#include <stdio.h>
+#ifdef __GLIBC__
+#error Expected musl development headers
+#endif
+int main(void) { return puts("musl preflight") < 0; }
+`)
+    for (const [name, flags] of [['probe', ['-static']], ['probe.so', ['-fPIC', '-shared', '-Wl,-z,defs']]] as const) {
+      const output = join(directory, name)
+      await run('musl-gcc', ['-std=c11', ...flags, '-o', output, source],
+        { cwd: directory, env: environment, windowsHide: true, timeout: 20_000, maxBuffer: 64 * 1024 })
+      const file = await stat(output)
+      if (!file.isFile() || file.size === 0) throw new Error(`musl-gcc did not produce ${name}`)
+    }
+    return undefined
+  } catch (error) {
+    return 'Linux native packaging requires musl-gcc with static and shared linking. Check the musl development headers and libraries. '
+      + (error instanceof Error ? error.message : String(error))
+  } finally {
+    await rm(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+  }
+}
+
 /**
- * Probe archive access and Windows native preparation before packaging.
+ * Probe archive access and the target's native toolchain before packaging.
  * @param platform - Target platform; a Windows target already requires a Windows build host.
- * @param environment - Packaging environment used to locate Windows tooling.
+ * @param environment - Packaging environment used for the native toolchain.
  * @returns Every failed probe; successful preparation does not replace compilation and packaged-runtime checks.
  */
 export async function probeDesktopToolchain(
@@ -119,13 +145,13 @@ export async function probeDesktopToolchain(
   if (tar !== undefined) failures.push({ tool: 'tar', detail: tar })
   if (platform === 'win32') failures.push(...await probeWindowsToolchain(environment))
   if (platform === 'linux') {
-    for (const tool of ['cc', 'musl-gcc']) {
-      try { await run(tool, ['--version'], { env: environment, windowsHide: true, timeout: 20_000 }) }
-      catch (error) {
-        failures.push({ tool, detail: `Linux native packaging requires ${tool}. Install the C compiler and musl development tools. `
-          + (error instanceof Error ? error.message : String(error)) })
-      }
+    try { await run('cc', ['--version'], { env: environment, windowsHide: true, timeout: 20_000 }) }
+    catch (error) {
+      failures.push({ tool: 'cc', detail: 'Linux native packaging requires cc. Install the C compiler and musl development tools. '
+        + (error instanceof Error ? error.message : String(error)) })
     }
+    const musl = await probeLinuxMusl(environment)
+    if (musl !== undefined) failures.push({ tool: 'musl-gcc', detail: musl })
   }
   return failures
 }
@@ -134,7 +160,7 @@ export async function probeDesktopToolchain(
  * Probe the toolchain and fail with every problem the host has.
  * Windows directory and preparation-only builds also require the native runtime toolchain.
  * @param platform - Target platform; a Windows target already requires a Windows build host.
- * @param environment - Packaging environment used to locate Windows tooling.
+ * @param environment - Packaging environment used for the native toolchain.
  * @returns Resolves when every probe passes.
  */
 export async function requireDesktopToolchain(

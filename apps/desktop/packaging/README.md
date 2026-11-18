@@ -139,7 +139,7 @@ These commands ignore `.env.macos` and inherited release settings, use `com.deep
 
 ## Linux x64 inspection packages
 
-Build on Linux x64 with Node 24, the locked pnpm version, Git, tar, a C compiler, and musl development tools (`build-essential` and `musl-tools` on Ubuntu). Electron also needs the desktop libraries for the distribution. The preflight checks `cc` and `musl-gcc`; the build compiles and packs the local Linux native payload before assembling the runtime.
+Build on Linux x64 with Node 24, the locked pnpm version, Git, tar, a C compiler, and musl development tools (`build-essential` and `musl-tools` on Ubuntu). Electron also needs the desktop libraries for the distribution. The preflight checks `cc` and uses `musl-gcc` on the build's `PATH` to link a small static program and shared object. It reports link failures and removes the temporary probe outputs. The build then compiles and packs the local Linux native payload before assembling the runtime.
 
 ```sh
 pnpm run package:desktop:linux:x64:unsigned --check

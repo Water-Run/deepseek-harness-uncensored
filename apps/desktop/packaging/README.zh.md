@@ -139,7 +139,7 @@ pnpm run package:desktop:mac:x64:unsigned
 
 ## Linux x64 检查包
 
-在 Linux x64 上构建，准备 Node 24、锁定版本的 pnpm、Git、tar、C 编译器和 musl 开发工具（Ubuntu 的 `build-essential` 与 `musl-tools`）。Electron 还需要发行版的桌面库。预检检查 `cc` 和 `musl-gcc`，构建在组装运行时前编译并打包本地 Linux 原生组件。
+在 Linux x64 上构建，准备 Node 24、锁定版本的 pnpm、Git、tar、C 编译器和 musl 开发工具（Ubuntu 的 `build-essential` 与 `musl-tools`）。Electron 还需要发行版的桌面库。预检检查 `cc`，并使用构建 `PATH` 中的 `musl-gcc` 链接一个小型静态程序和共享对象。预检报告链接失败并清理临时产物。构建随后在组装运行时前编译并打包本地 Linux 原生组件。
 
 ```sh
 pnpm run package:desktop:linux:x64:unsigned --check

@@ -1,6 +1,6 @@
-/** Windows preparation failures stop packaging without retaining probe outputs. */
+/** Native preparation failures stop packaging without retaining probe outputs. */
 import type { ExecFileOptions } from 'node:child_process'
-import { readFile, stat } from 'node:fs/promises'
+import { readFile, stat, writeFile } from 'node:fs/promises'
 import { basename, dirname } from 'node:path'
 import { afterEach, expect, it, vi } from 'vitest'
 import { probeDesktopToolchain, requireDesktopToolchain } from '../scripts/desktop-toolchain-preflight.ts'
@@ -88,7 +88,41 @@ it('checks the Linux C and musl compilers before building native payloads', asyn
     return { stdout: file === 'tar' ? 'probe.txt' : 'compiler version', stderr: '' }
   })
   expect(await probeDesktopToolchain('linux', { PATH: 'build-tools' })).toEqual([
-    { tool: 'musl-gcc', detail: 'Linux native packaging requires musl-gcc. Install the C compiler and musl development tools. musl-gcc not found' },
+    { tool: 'musl-gcc', detail: expect.stringContaining('musl-gcc not found') },
   ])
   expect(execute.mock.calls.some(([file]) => file === 'cc')).toBe(true)
+})
+
+it('rejects a musl compiler that reports a version but cannot link the static program', async () => {
+  execute.mockImplementation(async (file, args) => {
+    if (file === 'musl-gcc' && args.includes('-static')) throw new Error('cannot find the musl static library')
+    return { stdout: file === 'tar' ? 'probe.txt' : 'compiler available', stderr: '' }
+  })
+  await expect(probeDesktopToolchain('linux', { PATH: 'build-tools' })).resolves.toEqual([
+    { tool: 'musl-gcc', detail: expect.stringContaining('cannot find the musl static library') },
+  ])
+})
+
+it('links both Linux musl outputs using the selected PATH and cleans the probe directory', async () => {
+  const environment = { PATH: 'private-build-tools' }
+  const invocations: { args: readonly string[]; source: string }[] = []
+  execute.mockImplementation(async (file, args, options) => {
+    if (file === 'tar') return { stdout: 'probe.txt', stderr: '' }
+    expect(options.env).toEqual(environment)
+    if (file === 'cc') {
+      expect(args).toEqual(['--version'])
+      return { stdout: 'compiler version', stderr: '' }
+    }
+    expect(file).toBe('musl-gcc')
+    const source = args.at(-1)!
+    expect(await readFile(source, 'utf8')).toContain('#ifdef __GLIBC__')
+    await writeFile(args[args.indexOf('-o') + 1]!, 'fixture output')
+    invocations.push({ args, source })
+    return { stdout: '', stderr: '' }
+  })
+  await expect(probeDesktopToolchain('linux', environment)).resolves.toEqual([])
+  expect(invocations).toHaveLength(2)
+  expect(invocations[0]!.args).toContain('-static')
+  expect(invocations[1]!.args).toEqual(expect.arrayContaining(['-shared', '-fPIC', '-Wl,-z,defs']))
+  await expect(stat(dirname(invocations[0]!.source))).rejects.toMatchObject({ code: 'ENOENT' })
 })
