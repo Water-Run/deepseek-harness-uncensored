@@ -3,9 +3,13 @@ import { ElectronHttpExecutor } from 'electron-updater/out/electronHttpExecutor.
 import type { ClientRequest, IncomingMessage } from 'electron'
 import type { RequestOptions } from 'node:http'
 
+type ApiRequestToken = Parameters<ElectronHttpExecutor['doApiRequest']>[1]
+type ApiRequestProcessor = Parameters<ElectronHttpExecutor['doApiRequest']>[2]
+
 /** Retains electron-updater transport and proxy handling while bounding silent connections. */
 export class DesktopUpdateHttpExecutor extends ElectronHttpExecutor {
   private readonly redirects = new WeakMap<RequestOptions, number>()
+  private readonly cancellationOwners = new WeakMap<ApiRequestToken, ApiRequestToken>()
 
   /**
    * @param idleTimeoutMs - Maximum silence before headers or between response chunks, not a total download deadline.
@@ -16,6 +20,19 @@ export class DesktopUpdateHttpExecutor extends ElectronHttpExecutor {
     if (!Number.isSafeInteger(idleTimeoutMs) || idleTimeoutMs < 1000 || idleTimeoutMs > 2_147_483_647) {
       throw new Error('desktop update: HTTP idle timeout must be an integer from 1000 through 2147483647')
     }
+  }
+
+  override async doApiRequest(options: RequestOptions, token: ApiRequestToken, requestProcessor: ApiRequestProcessor,
+    redirectCount?: number): Promise<string> {
+    // The pinned executor recurses with the previous hop's token after aborting its request.
+    const previousOwner = this.cancellationOwners.get(token)
+    if (previousOwner !== undefined) token.dispose()
+    const owner = previousOwner ?? token
+    const Token = owner.constructor as new(parent: ApiRequestToken) => ApiRequestToken
+    const hopToken = new Token(owner)
+    this.cancellationOwners.set(hopToken, owner)
+    try { return await super.doApiRequest(options, hopToken, requestProcessor, redirectCount) }
+    finally { hopToken.dispose() }
   }
 
   protected override addRedirectHandlers(request: ClientRequest, options: RequestOptions, reject: (error: Error) => void,
@@ -37,6 +54,7 @@ export class DesktopUpdateHttpExecutor extends ElectronHttpExecutor {
       clearTimeout(timer)
       request.off('response', onResponse)
       request.off('abort', stop)
+      request.off('redirect', stop)
       request.off('error', stop)
       response?.off('data', refresh)
       response?.off('end', stop)
@@ -60,6 +78,7 @@ export class DesktopUpdateHttpExecutor extends ElectronHttpExecutor {
     request.once('response', onResponse)
     // Electron 44 can emit writable close after finish, before response headers arrive.
     request.once('abort', stop)
+    request.once('redirect', stop)
     request.once('error', stop)
     refresh()
   }

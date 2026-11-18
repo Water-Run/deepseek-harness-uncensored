@@ -144,17 +144,60 @@ async function main() {
       const executor = f.updater.httpExecutor
       const execute = executor.doApiRequest
       const tokens = new Set()
+      let peakListeners = 0
       executor.doApiRequest = function (options, token, ...args) {
         tokens.add(token)
-        return execute.call(this, options, token, ...args)
+        const result = execute.call(this, options, token, ...args)
+        peakListeners = Math.max(peakListeners, ...Array.from(tokens, current => current.listenerCount('cancel')))
+        return result
       }
       const before = server.requests.length
       const failure = await f.coordinator.check(true).finally(() => { executor.doApiRequest = execute })
       assert.equal(failure.failedOperation, 'check')
       assert.match(failure.message, /too many redirects/i)
       assert.equal(server.requests.length - before, 11)
-      assert.equal(tokens.size, 1)
+      assert.equal(tokens.size, 11)
+      assert.equal(peakListeners, 1)
       for (const token of tokens) assert.equal(token.listenerCount('cancel'), 0)
+      server.select('healthy')
+      assert.equal((await f.coordinator.check(true)).phase, 'available')
+    })
+    await scenario('cancelling-a-redirected-feed-check-aborts-only-the-current-hop', async () => {
+      const f = await fixture('feed-redirect-hold')
+      const executor = f.updater.httpExecutor
+      const execute = executor.doApiRequest
+      const create = executor.createRequest
+      const requests = []
+      let owner
+      executor.doApiRequest = function (options, token, ...args) {
+        owner ??= token
+        return execute.call(this, options, token, ...args)
+      }
+      executor.createRequest = function (...args) {
+        const request = create.apply(this, args)
+        const abort = request.abort.bind(request)
+        const record = { aborts: 0 }
+        requests.push(record)
+        request.abort = () => { record.aborts++; abort() }
+        return request
+      }
+      const checking = f.coordinator.check(true)
+      try {
+        await server.arrived()
+        assert.equal(owner.listenerCount('cancel'), 1)
+        assert.deepEqual(requests.map(record => record.aborts), [1, 1, 0])
+        owner.cancel()
+        const failure = await checking
+        assert.equal(failure.failedOperation, 'check')
+        assert.match(failure.message, /cancelled/u)
+        assert.equal(owner.listenerCount('cancel'), 0)
+        assert.deepEqual(requests.map(record => record.aborts), [1, 1, 1])
+      } finally {
+        server.release()
+        executor.doApiRequest = execute
+        executor.createRequest = create
+        await checking
+      }
       server.select('healthy')
       assert.equal((await f.coordinator.check(true)).phase, 'available')
     })

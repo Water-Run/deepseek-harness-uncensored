@@ -37,11 +37,11 @@ export async function createUpdateServer() {
         } : { code: 0, data: { biz_code: 0, biz_data: null } }))
         return
       }
-      const redirectFixture = (path === '/nightly.yml' && selectedMode === 'feed-redirect-chain')
+      const redirectFixture = (path === '/nightly.yml' && ['feed-redirect-chain', 'feed-redirect-hold'].includes(selectedMode))
         || (path === '/payload.exe' && selectedMode === 'download-redirect-chain')
       if (redirectFixture) {
         const hop = Number(url.searchParams.get('hop') ?? 0)
-        if (hop < 11) {
+        if (hop < (selectedMode === 'feed-redirect-hold' ? 2 : 11)) {
           url.searchParams.set('hop', String(hop + 1))
           response.writeHead(302, { Location: url.href }).end()
           return
@@ -52,7 +52,11 @@ export async function createUpdateServer() {
         if (selectedMode === 'feed-404') { response.writeHead(404).end(); return }
         if (selectedMode === 'feed-408') { response.writeHead(408).end(); return }
         if (selectedMode === 'invalid-yaml') { response.end('files: ['); return }
-        if (selectedMode === 'hold-check') { arrived.resolve(); await selectedGate.promise }
+        if (selectedMode === 'hold-check' || selectedMode === 'feed-redirect-hold') {
+          arrived.resolve()
+          await selectedGate.promise
+          if (response.destroyed) return
+        }
         response.setHeader('Content-Type', 'application/yaml')
         response.end(dump({ version, files: [{ url: `${origin}/payload.exe`, size: payload.length, sha512 }],
           path: 'payload.exe', sha512, releaseDate: '2026-09-10T00:00:00.000Z' }))

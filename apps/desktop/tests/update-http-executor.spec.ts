@@ -36,7 +36,7 @@ describe('Electron updater inactivity deadline', () => {
     expect(response.listenerCount('data')).toBe(0)
   })
 
-  it.each(['abort', 'error'])('removes the deadline on request %s', async (event) => {
+  it.each(['abort', 'error', 'redirect'])('removes the deadline on request %s', async (event) => {
     const { request, reject } = fixture()
     request.emit(event, new Error('transport failure'))
     const count = reject.mock.calls.length
