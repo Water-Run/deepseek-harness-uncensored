@@ -61,7 +61,7 @@ export interface TargetSnapshot {
 
 /** Transport identity; callers obtain these facts from execution, never model assertions. */
 export interface NetworkTarget {
-  /** Requested hostname and verified DNS aliases; no credentials or URL query. */
+  /** Requested hostname first, followed by verified DNS aliases. Credentials and URL queries are excluded. */
   names: readonly string[]
   /** Whether the executor verified the complete name chain used for this connection. */
   nameResolution: 'verified' | 'unknown'

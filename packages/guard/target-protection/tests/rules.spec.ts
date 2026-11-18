@@ -163,6 +163,25 @@ it('does not let one test IP exempt other possible DNS connection addresses', ()
   expect(both.decide([target({ names: ['multi.test'], addresses: ['192.0.2.10', '192.0.2.11'], mainland: 'yes' })], 'mutate', new Map()).allowed).toBe(true)
 })
 
+it('applies a named test exception to the requested name or an explicitly configured alias', () => {
+  const test = rule({ environment: 'test', address: 'owned.test', port: 443,
+    aliases: [{ match: 'host', address: 'configured.test', port: 443 }] })
+  const rules = policy([test], true)
+  const bindings = new Map([[test.address, ['192.0.2.10']]])
+
+  for (const name of ['owned.test', 'configured.test']) {
+    expect(rules.decide([target({ names: [name], mainland: 'yes' })], 'mutate', bindings))
+      .toEqual({ allowed: true, ruleIds: [test.id] })
+  }
+  for (const names of [['different.test'], ['different.test', 'owned.test']]) {
+    expect(rules.decide([target({ names, mainland: 'yes' })], 'mutate', bindings))
+      .toEqual({ allowed: false, code: 'TARGET_MAINLAND_PROTECTED', ruleIds: [] })
+  }
+  expect(rules.decide([target({ names: ['owned.test'], nameResolution: 'unknown', mainland: 'yes' })], 'mutate', bindings))
+    .toEqual({ allowed: false, code: 'TARGET_MAINLAND_PROTECTED', ruleIds: [] })
+  expect(rules.namedHosts()).toEqual([])
+})
+
 it('requires region and transport evidence while automatic protection is active', () => {
   const rules = policy([], true)
   expect(rules.decide([target({ mainland: 'unknown' })], 'observe', new Map()).allowed).toBe(false)

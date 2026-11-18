@@ -203,13 +203,15 @@ export class TargetRules {
   }
 
   /**
-   * Return exact named rules whose address aliases require fresh DNS resolution.
+   * Return exact production names whose address aliases require fresh DNS resolution.
    * @param target - When supplied, omit selectors whose port or database cannot match; omission returns all active selectors.
    * @returns Applicable hostname selectors; literals need no resolver.
    */
   namedHosts(target?: NetworkTarget): readonly TargetRule[] {
-    return this.entries.filter(entry => target === undefined || qualifiers(entry.rule, target) !== 'different')
-      .map(entry => ({ ...entry.rule })).filter(rule => rule.match === 'host' && !isIP(rule.address))
+    return this.entries.filter(({ rule }) =>
+      rule.environment === 'production' && rule.match === 'host' && !isIP(rule.address)
+      && (target === undefined || qualifiers(rule, target) !== 'different'))
+      .map(({ rule }) => ({ ...rule }))
   }
 
   /**
@@ -241,6 +243,7 @@ export class TargetRules {
     const selected = new Set<TargetRuleId>()
     for (const target of targets) {
       const names = target.names.map(observedName)
+      const [requestedName] = names
       const addresses = target.addresses?.map(canonicalTargetHost) ?? null
       if (addresses === null || addresses.length === 0) return { allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED', ruleIds: [] }
       const identities = [...names, ...addresses]
@@ -248,6 +251,19 @@ export class TargetRules {
       for (const entry of this.entries) {
         const qualifier = qualifiers(entry.rule, target)
         if (qualifier === 'different') continue
+        if (entry.rule.environment === 'test') {
+          if (qualifier !== 'match') continue
+          const { address, id } = entry.rule
+          if (isIP(address)) {
+            if (!addresses.includes(address)) continue
+            testAddresses.add(address)
+          } else {
+            if (target.nameResolution !== 'verified' || requestedName !== address) continue
+            for (const peer of addresses) testAddresses.add(peer)
+          }
+          selected.add(id)
+          continue
+        }
         let matches = identities.some(entry.matches)
         let unknown = false
         if (entry.rule.match === 'host' && !isIP(entry.rule.address)) {
@@ -257,18 +273,6 @@ export class TargetRules {
         } else if (!matches && (target.nameResolution === 'unknown' || names.every(name => isIP(name) !== 0))
           && (entry.rule.match === 'domain' || entry.rule.match === 'regex')) {
           unknown = true
-        }
-        if (entry.rule.environment === 'test') {
-          if (matches && qualifier === 'match') {
-            selected.add(entry.rule.id)
-            if (!isIP(entry.rule.address) && names.includes(entry.rule.address)) {
-              for (const address of addresses) testAddresses.add(address)
-            } else {
-              const aliases = bindings.get(entry.rule.address) ?? []
-              for (const address of addresses) if (address === entry.rule.address || aliases.includes(address)) testAddresses.add(address)
-            }
-          }
-          continue
         }
         if (unknown || (matches && qualifier === 'unknown')) return { allowed: false, code: 'TARGET_IDENTITY_UNVERIFIED', ruleIds: [entry.rule.id] }
         if (!matches) continue

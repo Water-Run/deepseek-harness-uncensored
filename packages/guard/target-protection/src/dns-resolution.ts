@@ -25,6 +25,7 @@ export interface TargetDnsOptions {
 /** Verified names and addresses from one resolution; no unrelated answer records are included. */
 export interface TargetDnsResolution {
   hostname: string
+  /** The requested hostname comes first, followed by verified aliases. */
   names: readonly string[]
   addresses: readonly { address: string; family: 4 | 6 }[]
   source: 'literal' | 'localhost' | 'hosts' | 'dns'
