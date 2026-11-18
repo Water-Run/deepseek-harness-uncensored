@@ -217,6 +217,19 @@ describe('desktop update coordinator', () => {
     expect(f.downloadUpdate).not.toHaveBeenCalled()
   })
 
+  it.each([false, true])('rechecks a previously shown target after a failed refresh (manual: %s)', async (manual) => {
+    const f = fixture()
+    const original = '1.1.0-rc.2'
+    const replacement = '1.1.0-rc.3'
+    await f.coordinator.check()
+    f.checkForUpdates.mockRejectedValueOnce(new Error('metadata unavailable'))
+    expect(await f.coordinator.check(manual)).toMatchObject({ phase: 'error', failedOperation: 'check' })
+    f.checkForUpdates.mockResolvedValueOnce({ isUpdateAvailable: true, updateInfo: { version: replacement } })
+    expect(await f.coordinator.download(original)).toEqual({ phase: 'available', version: replacement })
+    expect(f.checkForUpdates).toHaveBeenCalledTimes(3)
+    expect(f.downloadUpdate).not.toHaveBeenCalled()
+  })
+
   it.each(['1.0.0', '1.1.0-alpha.1', 'invalid'])('does not download or install inapplicable version %s', async (version) => {
     const f = fixture()
     f.checkForUpdates.mockResolvedValue({ isUpdateAvailable: true, updateInfo: { version } })

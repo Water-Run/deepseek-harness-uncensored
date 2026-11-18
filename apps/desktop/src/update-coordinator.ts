@@ -20,7 +20,7 @@ const { autoUpdater, NsisUpdater } = electronUpdater
 /** Owns one updater target until its download and installation settle. */
 export class DesktopUpdateCoordinator {
   private current: DesktopUpdateState = { phase: 'idle' }
-  private release: { kind: 'none' } | { kind: 'checked' | 'downloaded' | 'handed-off'; version: string } = { kind: 'none' }
+  private release: { kind: 'none' } | { kind: 'checked' | 'stale' | 'downloaded' | 'handed-off'; version: string } = { kind: 'none' }
   private disposed = false
   private generation = 0
   private switching = 0
@@ -197,8 +197,8 @@ export class DesktopUpdateCoordinator {
       if (check?.phase === 'error') return this.setState(check)
       if (this.candidate === undefined) throw new Error('desktop update: no checked update is available')
       if (version !== this.candidate) throw new Error('desktop update: download confirmation is stale')
-      if (this.current.phase === 'error' && (this.current.failedOperation === 'download'
-        || this.current.preparationFailure === 'installer-integrity')) {
+      if (this.release.kind === 'stale' || (this.current.phase === 'error' && (this.current.failedOperation === 'download'
+        || this.current.preparationFailure === 'installer-integrity'))) {
         this.setState({ phase: 'checking' })
         const refreshed = await this.doCheck()
         if (!this.isActiveGeneration(generation)) return this.current
@@ -320,6 +320,7 @@ export class DesktopUpdateCoordinator {
       return this.setState(this.candidate === undefined ? { phase: 'idle' } : { phase: 'available', version })
     } catch (error) {
       if (!this.isActiveGeneration(generation)) return this.current
+      if (this.release.kind === 'checked') this.release = { kind: 'stale', version: this.release.version }
       return this.failure(error, 'check')
     }
   }

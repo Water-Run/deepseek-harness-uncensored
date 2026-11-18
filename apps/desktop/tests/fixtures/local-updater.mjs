@@ -292,6 +292,20 @@ async function main() {
       assert.equal((await f.coordinator.download(next)).phase, 'ready')
       assert.equal(f.installations.length, 0)
     })
+    await scenario('failed-feed-refresh-rechecks-before-downloading', async () => {
+      const f = await fixture()
+      const { version } = await f.coordinator.check(true)
+      server.select('feed-404')
+      assert.equal((await f.coordinator.check()).failedOperation, 'check')
+      const before = server.requests.length
+      const next = '1.0.1-nightly.2'
+      server.select('healthy', next)
+      assert.deepEqual(await f.coordinator.download(version), { phase: 'available', version: next })
+      assert.deepEqual(server.requests.slice(before), ['/nightly.yml'])
+      assert.equal(f.updater.installerPath, null)
+      assert.equal((await f.coordinator.download(next)).phase, 'ready')
+      assert.equal(f.installations.length, 0)
+    })
     await scenario('download-write-enospc-clears-partial-file-and-retries', async () => {
       const f = await fixture()
       const available = await f.coordinator.check()
