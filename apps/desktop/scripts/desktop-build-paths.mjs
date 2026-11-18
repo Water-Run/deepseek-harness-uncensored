@@ -49,7 +49,8 @@ export function desktopTargetBuildPaths(target, environment = process.env) {
   }
   const root = join(BUILD_ROOT, 'targets', target)
   const packed = join(root, 'packed')
-  const runId = environment.DSH_DESKTOP_PACKAGING_RUN_DIR === undefined ? undefined : basename(environment.DSH_DESKTOP_PACKAGING_RUN_DIR)
+  const runDirectory = environment.DSH_DESKTOP_PACKAGING_RUN_DIR
+  const runId = runDirectory === undefined ? undefined : basename(runDirectory)
   if (runId !== undefined && !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/u.test(runId)) {
     throw new Error('desktop build paths: invalid packaging journal directory name')
   }
@@ -62,7 +63,7 @@ export function desktopTargetBuildPaths(target, environment = process.env) {
     packageSet: join(root, 'package-set'),
     dsh: join(root, 'dsh'),
     dshPnpm: join(root, 'dsh-pnpm'),
-    electron: runId === undefined ? join(root, 'electron') : join(root, 'electron-preparations', runId),
+    electron: runDirectory === undefined ? join(root, 'electron') : resolve(runDirectory, 'electron', target),
     packedDsh: join(packed, 'dsh'),
     packedVendor: join(packed, 'vendor'),
     packedLandlock: join(packed, 'landlock'),

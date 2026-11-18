@@ -7,6 +7,8 @@ import { withMacOSNotarizationProxy } from '../scripts/macos-notarization-proxy.
 import { packageMacOSArtifacts } from '../scripts/package-macos.ts'
 import { withWindowsSigningStage } from '../scripts/windows-signing-stage.mjs'
 import { prepareWindowsSignatureCacheDirectory } from '../scripts/windows-signature-cache-directory.mjs'
+import { recordPackagingEvent } from '../scripts/packaging-run.mjs'
+import { removeOwnedDirectory } from '../src/owned-directory.ts'
 
 vi.mock('../scripts/macos-notarization-proxy.ts', () => ({
   withMacOSNotarizationProxy: vi.fn(async (_proxy: string | undefined, action: () => Promise<void>) => action()),
@@ -21,6 +23,11 @@ vi.mock('../scripts/windows-signature-cache-directory.mjs', () => ({
   prepareWindowsSignatureCacheDirectory: vi.fn(async () => {}),
   resolveWindowsSignatureCacheDirectory: vi.fn(() => 'C:\\fixture-cache'),
 }))
+vi.mock('../scripts/packaging-run.mjs', async importOriginal => ({
+  ...await importOriginal<typeof import('../scripts/packaging-run.mjs')>(),
+  recordPackagingEvent: vi.fn(),
+}))
+vi.mock('../src/owned-directory.ts', () => ({ removeOwnedDirectory: vi.fn() }))
 
 // Keep the real orchestration and manifest reads; this suite owns no release directories or subprocesses.
 vi.mock('node:fs', async importOriginal => ({
@@ -211,6 +218,10 @@ it('requires one signing preflight before building, then records only the comple
     }
   }
   expect(writeFileSync).toHaveBeenCalledOnce()
+  const staging = resolve(run.directory, 'electron', 'win-x64')
+  expect(removeOwnedDirectory).toHaveBeenCalledExactlyOnceWith(staging)
+  expect(recordPackagingEvent).toHaveBeenCalledWith(run.directory, { type: 'electron-cleanup', directory: staging, status: 'removed' })
+  expect(vi.mocked(removeOwnedDirectory).mock.invocationCallOrder[0]).toBeGreaterThan(run.run.mock.invocationCallOrder.at(-1)!)
   const record = JSON.parse(vi.mocked(writeFileSync).mock.calls[0]![1] as string) as { publicUrl: string }
   expect(record.publicUrl).toBe('https://github.com/Water-Run/deepseek-harness-uncensored/releases/latest/download/')
 })
@@ -262,6 +273,7 @@ it.each(['preflight:windows-signing', 'run build:official', 'run sign:primary-ru
   expect(stages.at(-1)).toBe(failure)
   expect(stages.filter(stage => stage === failure)).toHaveLength(1)
   expect(writeFileSync).not.toHaveBeenCalled()
+  expect(removeOwnedDirectory).not.toHaveBeenCalled()
 })
 
 it.each(['--unsigned', '--prepare-only'])('keeps %s hardware-free and creates no release record', async (mode) => {
@@ -274,7 +286,20 @@ it.each(['--unsigned', '--prepare-only'])('keeps %s hardware-free and creates no
   expect(withWindowsSigningStage).not.toHaveBeenCalled()
   for (const call of run.run.mock.calls) expect(call[3].env).not.toHaveProperty('DSH_DESKTOP_WINDOWS_TOKEN_PIN')
   expect(writeFileSync).not.toHaveBeenCalled()
+  expect(vi.mocked(removeOwnedDirectory).mock.calls).toHaveLength(mode === '--unsigned' ? 1 : 0)
   expect(stages.includes('exec tsx scripts/smoke-packaged-runtime.ts --unsigned')).toBe(mode === '--unsigned')
+})
+
+it('records an incomplete Electron cleanup without failing otherwise verified packaging', async () => {
+  const { run } = supervisor()
+  const locked = new Error('fixture staging file busy')
+  vi.mocked(removeOwnedDirectory).mockImplementationOnce(() => { throw locked })
+  await packageTarget(parseDesktopPackageInvocation(['win-x64'], 'win32', 'x64'), environment, run)
+  expect(recordPackagingEvent).toHaveBeenCalledWith(run.directory, {
+    type: 'electron-cleanup', directory: resolve(run.directory, 'electron', 'win-x64'), status: 'retained',
+    error: expect.stringContaining(locked.message),
+  })
+  expect(writeFileSync).toHaveBeenCalledOnce()
 })
 
 it.each(['mac-arm64', 'mac-x64', 'win-x64'] as const)('selects branding from the signing mode for %s', async (target) => {

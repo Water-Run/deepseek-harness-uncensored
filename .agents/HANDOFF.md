@@ -54,6 +54,8 @@ Windows 构建使用 `VCToolsVersion=14.52.36629`、`MSVCPreviewEnabled=true`。
 
 11 月 19 日另核验 `apps/desktop/.desktop-build/targets/win-x64/electron-preparations` 的 38 份 Electron 44.7.0 预备目录。各相对文件路径、长度和 SHA-256 摘要一致，检查时没有相关构建进程。自动审批以 `blocked by policy` 拒绝删除 36 份旧副本，约 12.93 GiB。进程未启动，38 份全部保留，此次释放 0 字节。当前安装、18.10 回退包、18.11 安装包及原始 Electron 归档摘要均回读一致。审计和拒绝回执见 `%USERPROFILE%/DSHU-Deliveries/20261119/electron-preparation-duplicates-{audit,rejected}.json`。
 
+新增打包任务在本次记录目录解压 Electron，组装及产物校验成功后只清理该任务的副本。仅准备与构建或校验失败时保留现场，共享下载归档继续复用。78 项定向测试通过，真实打包空间回收待下次构建验证。旧预备目录全部保留。日志为 `%USERPROFILE%/DSHU-Deliveries/20261119/electron-preparation-lifecycle-tests.log`。[打包说明](../apps/desktop/packaging/README.zh.md)
+
 18.11 首轮失败的安装器及 `.blockmap` 已清理，D 盘实测增加 441,376,768 字节，约 421 MiB。交付版 18.11 和回退版 18.10 的安装器、索引均通过 SHA-256 回读。失败日志、原件摘要和清理回执位于 `20261118/windows-18-11-attempt-1-*`。
 
 自动审批以 `blocked by policy` 拒绝递归清理失败批次的 `D:/DSHU-Delivery-Work/20261118/source-fc4c9ddf7b/apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/runs/2026-11-18T12-12-38.795Z-aNm4a0/win-unpacked`。目录内 16,416 个文件、1,590,480,253 字节保留。检查未发现联接或活动引用。拒绝回执为 `20261118/windows-18-11-attempt-1-runtime-cleanup-rejected.json`。保留该目录的拒绝记录，不重试或清理其父目录。

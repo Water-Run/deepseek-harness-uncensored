@@ -28,6 +28,7 @@ import { desktopBuildCommitEnvironment, readDesktopBuildCommit, resolveDesktopBu
 import { requireDesktopToolchain } from './desktop-toolchain-preflight.ts'
 import { withMacOSNotarizationProxy } from './macos-notarization-proxy.ts'
 import { readPreparedEngineVersion } from './prepare-runtime-release.ts'
+import { removeOwnedDirectory } from '../src/owned-directory.ts'
 
 const APP_ROOT = resolve(import.meta.dirname, '..')
 const REPOSITORY_ROOT = resolve(APP_ROOT, '..', '..')
@@ -601,6 +602,12 @@ export async function packageTarget(
     }
     await execute(['exec', 'tsx', 'scripts/smoke-packaged-runtime.ts',
       ...(invocation.unsigned ? ['--unsigned'] : []), ...(invocation.skipNotarization ? ['--skip-notarization'] : [])], targetEnv)
+  }
+  if (run !== undefined) {
+    let cleanup: { status: 'removed' } | { status: 'retained'; error: string } = { status: 'removed' }
+    try { removeOwnedDirectory(buildPaths.electron) }
+    catch (error) { cleanup = { status: 'retained', error: packagingErrorDetails(error, []) } }
+    recordPackagingEvent(run.directory, { type: 'electron-cleanup', directory: buildPaths.electron, ...cleanup })
   }
   if (!invocation.directory && !invocation.unsigned && !invocation.skipNotarization) {
     writeReleaseRecord(target, electronBuilderEnv, buildPaths.artifacts)
