@@ -30,6 +30,10 @@ Windows 跳板上的嵌套 SSH 不使用管道传入 Python 程序；该方式�
 
 随后转发出现握手超时和拒绝连接，构建终态尚未回读。再连接时以同一进程和作业的 `status.json` 为准。源码、暂存、启动及读回证据位于本地交付目录的 `fedora-rc4-18-7-*.log`。已验证 Linux 归档仍为 17.8。
 
+同一进程的依赖日志显示，Frida 17.23.2 的预构建下载中止，安装器转入源码构建，下载工具链与 SDK 后开始克隆 Frida Core。已取得与官方 SHA-256 一致的 Linux x64 预构建归档，并确认其中的绑定与 17.8 Linux 归档内的二进制一致。校验归档已暂存于 Windows 跳板。[Frida 官方版本](https://github.com/frida/frida/releases/tag/17.23.2)
+
+Fedora 已接收预构建缓存准备脚本。设备端操作回读期间连接重置，缓存 SHA-256 和构建终态待复核。证据为 `license-review/frida-linux-prebuild-18-7-boundary-verification.json`、`fedora-rc4-18-7-resume-observation-with-tail.log` 和 `fedora-rc4-18-7-frida-prebuild-fetch.log`。
+
 ## WSL 开发状态保全
 
 本机 `/home/linzh/.cache/dshu-verification` 的三个工作区、Git 元数据、reflog 和 32 条 stash 已归档。226,715 个文件或链接逐项核对通过，三个 Git 元数据副本经过实际恢复、stash 核对和连通性检查。共享对象独立保存；浅克隆信息和原始对象编码保留。
