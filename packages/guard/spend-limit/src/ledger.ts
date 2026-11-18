@@ -46,6 +46,10 @@ type Settings = z.infer<typeof settingsSchema>
 /** Admission result; a waiting result has no network or reservation side effects. */
 export type SpendAdmission = { kind: 'disabled' } | { kind: 'reserved'; id: SpendReservationId } | { kind: 'waiting'; reason: 'paused' | 'limit' } | { kind: 'too-large' }
 
+function exceedsEnabledLimit(required: number, preferences: SpendPreferences): boolean {
+  return preferences.enabledPeriods.some(period => required > Math.round(preferences.limits[period] * MICRO_CNY))
+}
+
 function alive(pid: number): boolean {
   try { process.kill(pid, 0); return true }
   catch (error) { if ((error as NodeJS.ErrnoException).code === 'ESRCH') return false; return true }
@@ -155,6 +159,7 @@ export class SpendLedger {
       }
       return { sessionId: brandString<SessionId>(row.session_id), state,
         ...(row.manual_only !== 0 ? { requiresManualResume: true } : {}),
+        ...(exceedsEnabledLimit(row.required, settings.preferences) ? { exceedsLimit: true } : {}),
         resumeAt: this.resumeAt(row, time, settings, entries, exclusions) }
     }).sort((left, right) => left.sessionId < right.sessionId ? -1 : left.sessionId > right.sessionId ? 1 : 0)
   }
@@ -228,7 +233,7 @@ export class SpendLedger {
       if (settings.preferences.enabledPeriods.length === 0) return { kind: 'disabled' }
       const time = this.now(), snapshot = this.snapshotAt(time, settings, this.entries(time), 0)
       const active = snapshot.windows.filter(window => window.enabled)
-      if (active.some(window => microCny > Math.round(window.limit * MICRO_CNY))) return { kind: 'too-large' }
+      if (exceedsEnabledLimit(microCny, settings.preferences)) return { kind: 'too-large' }
       if (settings.paused) return { kind: 'waiting', reason: 'paused' }
       if (active.some(window => microCny > Math.round(window.remaining * MICRO_CNY))) {
         const exhausted = active.some(window =>
@@ -364,6 +369,7 @@ export class SpendLedger {
       const pauses = this.pauseRows()
       const active = snapshot.windows.filter(window => window.enabled)
       if (enabled && !settings.preferences.autoResume && pauses.some(row => row.state === 'blocked' && row.manual_only === 0
+        && !exceedsEnabledLimit(row.required, settings.preferences)
         && active.some(window => Math.round(window.spent * MICRO_CNY) + row.required > Math.round(window.limit * MICRO_CNY)))) {
         this.writeSettings({ ...settings, paused: true })
         return []

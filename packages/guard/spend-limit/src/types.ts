@@ -43,6 +43,8 @@ export interface SpendPausedSession {
   state: 'waiting' | 'blocked'
   /** This pause needs an explicit resume even when automatic recovery is enabled. */
   requiresManualResume?: boolean
+  /** At least one enabled window is smaller than the original reservation, even when empty. */
+  exceedsLimit?: boolean
   /** Estimated automatic admission time at current usage; null means manual recovery or unresolved reservations. Older Hosts omit it. */
   resumeAt?: number | null
 }

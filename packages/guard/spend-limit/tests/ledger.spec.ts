@@ -58,6 +58,26 @@ it('does not invent a recovery time while in-flight reservations prevent admissi
   expect(ledger.snapshot().pausedSessions[0]?.resumeAt).toBeNull()
 })
 
+it('reports when a lower enabled limit prevents a blocked request from continuing', async () => {
+  const ledger = await setup()
+  enable(ledger)
+  const sessionId = SessionId('waiting')
+  const id = ledger.waitForSession(sessionId, 2 * MICRO_CNY)
+  ledger.blockSession(id)
+  const lowered = ledger.configureWindow({ period: '15m', limit: 1 })
+  expect(lowered.pausedSessions).toEqual([{ sessionId, state: 'blocked', resumeAt: null, exceedsLimit: true }])
+  ledger.reset('15m')
+  expect(ledger.snapshot().pausedSessions[0]).toMatchObject({ exceedsLimit: true })
+  ledger.setAutoResume(false)
+  expect(ledger.claimBlockedSessions()).toEqual([])
+  expect(ledger.snapshot().paused).toBe(false)
+  ledger.settle(reservation(ledger.reserve(MICRO_CNY)), 0)
+  ledger.setAutoResume(true)
+  ledger.configureWindow({ period: '15m', limit: 3 })
+  expect(ledger.snapshot().pausedSessions).toEqual([{ sessionId, state: 'blocked', resumeAt: 1000 }])
+  expect(ledger.claimBlockedSessions()).toEqual([{ id, sessionId }])
+})
+
 it('reserves against all windows and charges only complete reported usage', async () => {
   const ledger = await setup()
   enable(ledger)

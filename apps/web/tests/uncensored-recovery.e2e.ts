@@ -137,5 +137,18 @@ it.each(['settled expense', 'active reservation'] as const)('shows a real admiss
     await page.getByText('LIGHTHOUSE', { exact: true }).waitFor()
     await banner.waitFor({ state: 'detached' })
     expect((await scaffold.ctx.spendLimit.get()).pausedSessions).toEqual([])
+    if (!spent) {
+      const session = scaffold.ctx.sessions.list().find(value => value.snapshotEvents().some(event => event.type === 'assistant/message'))
+      if (session === undefined) throw new Error('The fixture did not record its answer')
+      ledger.blockSession(ledger.waitForSession(session.id, 5_000_000))
+      try {
+        ledger.configureWindow({ period: '5h', limit: 1 })
+        await banner.getByText(/This request requires more budget/).waitFor()
+        expect((await scaffold.ctx.spendLimit.get()).paused).toBe(false)
+        expect(await banner.getByRole('button', { name: 'Reset limits and continue', exact: true }).count()).toBe(0)
+        await banner.getByRole('button', { name: 'Adjust limits', exact: true }).click()
+        await page.getByRole('dialog', { name: 'Settings', exact: true }).getByRole('heading', { name: 'Budget', exact: true }).waitFor()
+      } finally { ledger.clearSession(session.id) }
+    }
   } finally { await browser.close() }
 })

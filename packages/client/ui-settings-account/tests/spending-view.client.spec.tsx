@@ -65,6 +65,19 @@ it('offers manual recovery for a legacy pause while automatic recovery is enable
   expect(resumeSpending).toHaveBeenCalledOnce()
 })
 
+it('offers limit settings when a blocked request exceeds an enabled limit', () => {
+  const { props, state } = fixture(['5h'], false)
+  const openBudgetSettings = vi.fn()
+  const data = state.getSnapshot().data!
+  state.set({ ...state.getSnapshot(), data: { ...data,
+    pausedSessions: [{ sessionId: SessionId('current'), state: 'blocked', resumeAt: null, exceedsLimit: true }] } })
+  render(<SpendingBanner {...props} openBudgetSettings={openBudgetSettings} sessionId={SessionId('current')} />)
+  expect(screen.getByRole('status').textContent).toContain('This request requires more budget than an enabled limit allows.')
+  expect(screen.getAllByRole('button')).toHaveLength(1)
+  fireEvent.click(screen.getByRole('button', { name: 'Adjust limits' }))
+  expect(openBudgetSettings).toHaveBeenCalledOnce()
+})
+
 it('starts with only five-hour and weekly controls expanded and all windows off', async () => {
   fixture()
   expect(screen.getAllByRole('spinbutton')).toHaveLength(2)

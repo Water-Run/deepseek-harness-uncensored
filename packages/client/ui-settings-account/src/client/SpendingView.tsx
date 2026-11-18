@@ -130,14 +130,17 @@ export function SpendingToast({ useSpending, dismissSpendingToast, t }: PropsRun
  * @param props - Session-owned admission state and recovery actions.
  * @returns A persistent banner while this conversation waits for budget.
  */
-export function SpendingBanner({ sessionId, useSpending, resetSpending, resumeSpending, refreshSpending, t }: Pick<PropsRuntime<'conversation.input.dock'>, 'sessionId'> & Common) {
+export function SpendingBanner({
+  sessionId, useSpending, resetSpending, resumeSpending, refreshSpending, openBudgetSettings, t,
+}: Pick<PropsRuntime<'conversation.input.dock'>, 'sessionId'> & Common & { openBudgetSettings?: () => void }) {
   const state = useSpending(value => value)
   const data = state.data
   const pause = data?.pausedSessions.find(row => row.sessionId === sessionId)
   if (pause === undefined || data === undefined) return null
   // Requests waiting only on reservations can continue even with automatic recovery disabled.
   const manual = pause.requiresManualResume === true || data.paused
-  const message = state.failed ? t('spending.failed') : manual ? t('spending.bannerManual')
+  const exceedsLimit = pause.exceedsLimit === true
+  const message = state.failed ? t('spending.failed') : exceedsLimit ? t('spending.bannerOverLimit') : manual ? t('spending.bannerManual')
     : pause.resumeAt == null ? t('spending.bannerPending')
       : pause.resumeAt <= data.updatedAt ? t('spending.bannerResuming')
         : t('spending.bannerAutomatic', { time: new Date(pause.resumeAt).toLocaleString() })
@@ -145,10 +148,13 @@ export function SpendingBanner({ sessionId, useSpending, resetSpending, resumeSp
     <span className={css.noticeIcon}><LimitIcon /></span>
     <div className={css.noticeText}><span>{t('spending.bannerTitle')}</span><p>{message}</p></div>
     <div className={css.windowActions}>
-      {state.failed ? <Button size="sm" onClick={refreshSpending}>{t('spending.retry')}</Button> : <>
-        {manual && <Button size="sm" variant="ghost" disabled={state.saving} onClick={() => { void resumeSpending() }}>{t('spending.resume')}</Button>}
-        <Button size="sm" variant="outline" disabled={state.saving} onClick={() => { void resetSpending() }}>{t('spending.bannerReset')}</Button>
-      </>}
+      {state.failed ? <Button size="sm" onClick={refreshSpending}>{t('spending.retry')}</Button>
+        : exceedsLimit ? openBudgetSettings !== undefined
+          && <Button size="sm" variant="outline" onClick={openBudgetSettings}>{t('spending.bannerOpenLimits')}</Button>
+          : <>
+            {manual && <Button size="sm" variant="ghost" disabled={state.saving} onClick={() => { void resumeSpending() }}>{t('spending.resume')}</Button>}
+            <Button size="sm" variant="outline" disabled={state.saving} onClick={() => { void resetSpending() }}>{t('spending.bannerReset')}</Button>
+          </>}
     </div>
   </section>
 }
