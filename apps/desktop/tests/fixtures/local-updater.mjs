@@ -221,6 +221,56 @@ async function main() {
       assert.equal((await f.coordinator.check()).version, '1.0.1-nightly.2')
       await assert.rejects(f.coordinator.download('1.0.1-nightly.1'), /stale/)
     })
+    await scenario('cancelled-download-aborts-its-request-and-closes-the-file-before-retry', async () => {
+      const f = await fixture('hold-download')
+      const { version } = await f.coordinator.check()
+      const executor = f.updater.httpExecutor
+      const createRequest = executor.createRequest
+      const downloadUpdate = f.updater.downloadUpdate
+      const createWriteStream = fs.createWriteStream
+      const writing = Promise.withResolvers()
+      let token
+      let writer
+      let aborts = 0
+      executor.createRequest = function (...args) {
+        const request = createRequest.apply(this, args)
+        const abort = request.abort.bind(request)
+        request.abort = () => { aborts++; abort() }
+        return request
+      }
+      f.updater.downloadUpdate = function (cancellation) {
+        token = cancellation
+        return downloadUpdate.call(this, cancellation)
+      }
+      fs.createWriteStream = function (path, ...args) {
+        const stream = createWriteStream.call(this, path, ...args)
+        if (typeof path === 'string' && path.startsWith(f.directory + sep)) {
+          writer = stream
+          stream.once('open', writing.resolve)
+        }
+        return stream
+      }
+      const download = f.coordinator.download(version)
+      try {
+        await writing.promise
+        token.cancel()
+        const result = await download
+        assert.equal(result.failedOperation, 'download')
+        assert.equal(aborts, 1)
+        assert.equal(writer.closed, true)
+        assert.equal(f.updater.installerPath, null)
+      } finally {
+        server.release()
+        writer?.destroy()
+        fs.createWriteStream = createWriteStream
+        executor.createRequest = createRequest
+        f.updater.downloadUpdate = downloadUpdate
+      }
+      server.select('healthy')
+      assert.equal((await f.coordinator.download(version)).phase, 'ready')
+      assert.deepEqual(await readFile(f.updater.installerPath), server.payload)
+      assert.equal(f.installations.length, 0)
+    })
     await scenario('user-download-progress-hash-and-separate-install', async () => {
       const f = await fixture('hold-download')
       const before = server.requests.length

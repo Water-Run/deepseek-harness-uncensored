@@ -742,6 +742,9 @@ importers:
       '@deepseek-ai/dsh-product-version':
         specifier: workspace:*
         version: link:../../packages/util/product-version
+      builder-util-runtime:
+        specifier: 9.7.0
+        version: 9.7.0(supports-color@9.4.0)
       electron-updater:
         specifier: ^6.8.9
         version: 6.8.9(supports-color@9.4.0)

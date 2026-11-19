@@ -18,6 +18,8 @@ GitHub HTTP 429、主额度耗尽的响应头或数字 `Retry-After` 会产生�
 
 重定向注销上一跳的超时计时和取消监听。真实 Electron 超限重定向场景中，取消令牌的监听数峰值为 1，结束后为零。最后一跳暂停时取消检查，只中止当前请求一次，随后可正常检查。21 项传输、7 项签名场景及 75 项定向单测通过，复验回执在 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-redirect-cancellation/`。
 
+取消正在写入磁盘的更新下载会中止当前请求，并在返回前关闭临时文件。真实 Electron 夹具分别确认旧流程未中止请求、仅中止请求仍有文件未关闭。修复后同版本可显式重试，下载内容与服务端逐字一致，安装入口未执行。24 项传输场景通过。依赖使用锁中已有的 `builder-util-runtime@9.7.0`，冻结锁通过供应链校验。回执为 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-download-cancel-{before,abort-only,final}.log`。[桌面更新说明](../../apps/desktop/README.zh.md#updates)
+
 ## Windows 差分索引核验
 
 完整 Windows 打包在写入成功回执前核验最终安装器和外部 `.blockmap`。定向用例覆盖等长安装器的错配索引、损坏索引，以及校验失败后中止并保留发布回执为缺失状态。86 项打包与发布材料测试通过。用该校验器复算当前 18.10 未签名安装器的实际索引，内容一致，回执为 `candidate-2026.11.18.10/installer-blockmap-verification.json`。真实签名安装器和在线升级仍待验收。[打包说明](../../apps/desktop/packaging/README.zh.md)

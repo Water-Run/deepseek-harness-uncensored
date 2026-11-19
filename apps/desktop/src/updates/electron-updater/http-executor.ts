@@ -1,15 +1,23 @@
 /** Electron-native inactivity deadlines for updater checks, full downloads, and blockmap requests. */
 import { ElectronHttpExecutor } from 'electron-updater/out/electronHttpExecutor.js'
+import { configureRequestOptions, configureRequestUrl, DigestTransform, ProgressCallbackTransform,
+  safeGetHeader, type DownloadOptions } from 'builder-util-runtime'
 import type { ClientRequest, IncomingMessage } from 'electron'
+import fs from 'node:fs'
 import type { RequestOptions } from 'node:http'
+import type { Transform } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 
 type ApiRequestToken = Parameters<ElectronHttpExecutor['doApiRequest']>[1]
 type ApiRequestProcessor = Parameters<ElectronHttpExecutor['doApiRequest']>[2]
+type DownloadCall = Parameters<ElectronHttpExecutor['doDownload']>[1]
+type ResponseCallback = Parameters<ElectronHttpExecutor['createRequest']>[1]
 
 /** Retains electron-updater transport and proxy handling while bounding silent connections. */
 export class DesktopUpdateHttpExecutor extends ElectronHttpExecutor {
   private readonly redirects = new WeakMap<RequestOptions, number>()
   private readonly cancellationOwners = new WeakMap<ApiRequestToken, ApiRequestToken>()
+  private readonly downloadCancellations = new WeakMap<RequestOptions, DownloadCall['onCancel']>()
 
   /**
    * @param idleTimeoutMs - Maximum silence before headers or between response chunks, not a total download deadline.
@@ -33,6 +41,60 @@ export class DesktopUpdateHttpExecutor extends ElectronHttpExecutor {
     this.cancellationOwners.set(hopToken, owner)
     try { return await super.doApiRequest(options, hopToken, requestProcessor, redirectCount) }
     finally { hopToken.dispose() }
+  }
+
+  protected override doDownload(options: RequestOptions, call: DownloadCall, redirectCount: number): void {
+    if (call.options.cancellationToken.cancelled) return
+    this.downloadCancellations.set(options, call.onCancel)
+    try { super.doDownload(options, call, redirectCount) }
+    finally { this.downloadCancellations.delete(options) }
+  }
+
+  override createRequest(options: RequestOptions, callback: ResponseCallback): ClientRequest {
+    const request = super.createRequest(options, callback)
+    // The pinned download promise exposes a single cancellation callback for the current request.
+    this.downloadCancellations.get(options)?.(() => { request.abort() })
+    return request
+  }
+
+  override async download(url: URL, destination: string, options: DownloadOptions): Promise<string> {
+    const request = { headers: options.headers ?? undefined, redirect: 'manual' }
+    configureRequestUrl(url, request)
+    configureRequestOptions(request)
+    const transfer = new AbortController()
+    let writing: Promise<void> | undefined
+    try {
+      return await options.cancellationToken.createPromise<string>((resolve, reject, onCancel) => {
+        this.doDownload(request, {
+          destination, options, onCancel,
+          callback: (error) => { if (error == null) resolve(destination); else reject(error) },
+          responseHandler: (response, complete) => {
+            const checksum: unknown = safeGetHeader(response, 'x-checksum-sha2')
+            if (checksum != null && options.sha2 != null && checksum !== options.sha2) {
+              response.resume()
+              complete(new Error('Desktop update X-Checksum-Sha2 header mismatch'))
+              return
+            }
+            const length = Number(response.headers['content-length'])
+            const transforms: Transform[] = []
+            if (options.onProgress !== undefined && Number.isSafeInteger(length) && length > 0) {
+              transforms.push(new ProgressCallbackTransform(length, options.cancellationToken, options.onProgress))
+            }
+            if (options.sha512 != null) {
+              transforms.push(new DigestTransform(options.sha512, 'sha512', /^[0-9a-f]{128}$/iu.test(options.sha512) ? 'hex' : 'base64'))
+            } else if (options.sha2 != null) {
+              transforms.push(new DigestTransform(options.sha2, 'sha256', 'hex'))
+            }
+            writing = pipeline([response, ...transforms, fs.createWriteStream(destination)], { signal: transfer.signal })
+              .then(() => { complete(null) }, (error: unknown) => { complete(error instanceof Error ? error : new Error(String(error))) })
+          },
+        }, 0)
+      })
+    } finally {
+      transfer.abort()
+      // Cancellation rejects the library promise before the pipeline has released its destination.
+      await writing
+    }
   }
 
   protected override addRedirectHandlers(request: ClientRequest, options: RequestOptions, reject: (error: Error) => void,
