@@ -94,6 +94,12 @@ Windows 更新下载使用系统 Authenticode 验证发布者，安装交接前�
 
 安装启动失败后，向正在销毁的窗口发送更新状态曾中断 Host 恢复。窗口和强更覆盖层的投递失败现分别记入壳日志。普通和强制更新的主进程回归均注入了窗口发送失败，确认仍能重建 Host、重载工作区并读取替代 Host 的启动地址。267 项定向测试及桌面构建通过。回执位于 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-update-recovery-delivery/`。本轮使用主进程替身，已安装资料的端到端回读仍待验收。
 
+## 候选签名与摘要回执（2026-11-19）
+
+只读验签脚本要求安装器携带有效的内嵌 Authenticode 签名、核定证书和时间戳。提供预期 SHA-256 后，脚本持有禁止写入和删除的文件句柄，在核对签名期间读取同一文件并生成回执。过去的脚本曾接受只依赖本机 Windows 签名目录验证的文件。[首发安装器核验](windows-x64-first-release.md#核对候选安装器)
+
+PowerShell 7 用微软签名的 PowerShell 文件通过验签和摘要核对，原有两参数调用保持无输出。仅目录签名、错误证书、错误摘要、无签名及文件正被写入均被拒绝。Windows PowerShell 5.1 也生成了正确的样本回执。现有样本内容经摘要复核。结果位于 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-candidate-signature-receipt/result.json`。正式 DSHU 签名候选仍待验收。
+
 ## 验收
 
 - 两个所属测试文件在 Windows/Linux 各 28 项通过，覆盖 403/429、主/次级期限、重叠期限、无效数值、普通拒绝、不会自动重试，以及中英文弹窗关闭/重开和到期后的显式重试。

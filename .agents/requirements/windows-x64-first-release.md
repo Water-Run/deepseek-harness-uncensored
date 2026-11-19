@@ -41,38 +41,25 @@ $product.rea | Select-Object version, commit, repository
 
 ## 核对候选安装器
 
-对已获验收资格的 Windows x64 安装器运行以下只读检查。使用签名完成后的最终文件，并将输出同构建回执对照。
+对已获验收资格的 Windows x64 安装器运行以下只读检查。指纹从核定的公开发布证书取得，预期 SHA-256 从独立保存的候选回执取得。核对同一最终文件上的内嵌 Authenticode 签名、时间戳和摘要后，保存输出的 JSON 回执。
 
 ```powershell
 $installer = Get-Item -LiteralPath '<最终安装器绝对路径>'
-$signature = Get-AuthenticodeSignature -LiteralPath $installer.FullName
-$sha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $installer.FullName).Hash.ToLowerInvariant()
-$stream = [IO.File]::OpenRead($installer.FullName)
-try {
-    $sha512 = [Convert]::ToBase64String([Security.Cryptography.SHA512]::HashData($stream))
-} finally {
-    $stream.Dispose()
-}
-[pscustomobject]@{
-    File = $installer.Name
-    Size = $installer.Length
-    ProductVersion = $installer.VersionInfo.ProductVersion
-    FileVersion = $installer.VersionInfo.FileVersion
-    Signature = $signature.Status
-    Publisher = $signature.SignerCertificate.Subject
-    SHA256 = $sha256
-    SHA512 = $sha512
-}
-'{0}  {1}' -f $sha256, $installer.Name
+$thumbprint = '<核定的公开发布证书指纹>'
+$expectedSha256 = '<验收记录中的候选 SHA-256>'
+$receipt = & ./apps/desktop/scripts/verify-published-windows.ps1 `
+    -Installer $installer.FullName -Thumbprint $thumbprint -ExpectedSha256 $expectedSha256
+$receipt | ConvertTo-Json
+'{0}  {1}' -f $receipt.SHA256, $receipt.File
 ```
 
 分别登记 `ProductVersion`、`FileVersion` 和构建清单中的内部分发版本，再核对用户看到的日期版本。18.11 历史检查包的两项文件资源值分别为 `2026.1118.11` 和 `2026.11.18.11`。
 
-正式签名候选应显示有效签名，发布者与核定的 DSHU 发布者一致。将最后一行放入本版本的 `SHA256SUMS.txt`。如果发行包含在线升级，核对 `latest.yml` 宣告的内部版本、安装器文件名、大小和 SHA-512，并确认配套的 `.blockmap` 对应这一个签名安装器。签名或重新生成文件之后重新检查全部摘要和配套文件，再安排实装。未签名检查包记录自己的验证结果。
+将最后一行放入本版本的 `SHA256SUMS.txt`。签名或摘要核对失败时不会生成回执。依赖 Windows 签名目录（Catalog）的文件会被拒绝，安装器需携带可独立验证的内嵌签名。签名或重新生成文件之后重新检查全部摘要和配套文件，再安排实装。未签名检查包记录自己的验证结果。[只读验签场景](2026-11-16-release-check.md#候选签名与摘要回执2026-11-19)
 
 [Microsoft 签名校验](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/get-authenticodesignature) · [Microsoft 文件摘要](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/get-filehash) · [更新验收](2026-11-16-release-check.md)
 
-候选包含更新清单与差分索引时，可在仓库根目录执行批次复核。沿用上面选定的 `$installer`。索引用完整安装器文件名加 `.blockmap` 后缀，放在同一目录。摘要文件应有与安装器文件名完全一致的一行。
+候选包含更新清单与差分索引时，可在仓库根目录执行批次复核，核对 `latest.yml` 的内部分发版本、文件名、大小和 SHA-512。沿用上面选定的 `$installer`。索引用完整安装器文件名加 `.blockmap` 后缀，放在同一目录。摘要文件应有与安装器文件名完全一致的一行。
 
 ```powershell
 $feed = Join-Path $installer.DirectoryName 'latest.yml'
