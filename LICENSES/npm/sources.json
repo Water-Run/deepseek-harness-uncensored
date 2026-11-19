@@ -54,6 +54,12 @@
     "sha256": "f3eca6ff762533fa5a77caf954a143e48afa204668cf97dce758c45a9e006be3"
   },
   {
+    "packages": ["fontkit@2.0.4"],
+    "file": "fontkit-2.0.4-Unicode-12.0.0-NOTICE.txt",
+    "source": "https://raw.githubusercontent.com/unicode-org/icu/2f2aec5f91cffe49b7526d9b0d18a9acbdd0cc89/icu4c/LICENSE",
+    "sha256": "b26e098f12566c73d89c69b7e14524f614c5d9dd4035976a38a6f2b8a41423b3"
+  },
+  {
     "packages": ["frida@17.23.2"],
     "file": "frida-gum-17.23.2-COPYING.txt",
     "source": "https://raw.githubusercontent.com/frida/frida-gum/2b0e6a661702097d77474223ebc429ece092cb46/COPYING",

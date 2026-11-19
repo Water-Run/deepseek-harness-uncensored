@@ -38,6 +38,14 @@ Frida 17.23.2 的 Gum 构建配置与 SDK 同时固定 Capstone 提交 `d536b157
 
 清点器对该精确版本继续保留待核查标记。基于同一 Windows 18.11 实装的 920 个包复算，补充声明合计 34 份，待核查仍为 6 项，ASAR 摘要一致。19 项定向测试通过。源码比对与清点回执位于 `%USERPROFILE%/DSHU-Deliveries/20261119/proxy-negotiate-notices/`。新增文本待候选安装包核验分发。
 
+## Fontkit 2.0.4 的 Unicode 12.0 数据署名（2026-11-19）
+
+Windows 18.11 实装的 121 个 `src/` 文件及 4 个入口与锁定的 npm 归档逐字一致。对应发布提交包含其中 116 个 `src/` 文件，其余 5 个由发布脚本生成。对照后来加入 `LICENSE` 的上游提交，只有 3 个文件的路径和 Git blob 同时一致。2.0.4 本体的完整许可与 Apple 编码表的分发条款仍待核查。[npm 发布源码](https://github.com/foliojs/fontkit/tree/fbf3b9ef21eebd219eb73e666faed573af0fba09) · [后续许可提交](https://github.com/foliojs/fontkit/pull/300)
+
+发布提交的锁文件固定 `codepoints@1.3.0`。其 13 个数据文件与 Unicode 12.0.0 官方 UCD 归档逐字一致。分别用两组数据运行发布脚本，生成的 `data.trie`、`indic.trie`、`use.trie`、`indic.json` 和 `use.json` 均与实装字节匹配。补充声明保留 Unicode Consortium 在 ICU 64.1 发布中附带的 Unicode 12 数据版权与许可正文。[发布锁文件](https://github.com/foliojs/fontkit/blob/fbf3b9ef21eebd219eb73e666faed573af0fba09/package-lock.json) · [官方 UCD 12.0.0](https://www.unicode.org/Public/zipped/12.0.0/UCD.zip) · [同期 Unicode 许可](https://github.com/unicode-org/icu/blob/2f2aec5f91cffe49b7526d9b0d18a9acbdd0cc89/icu4c/LICENSE)
+
+使用 920 个实装依赖复算后，补充声明合计 35 份，待核查仍为 6 项，ASAR 摘要一致。19 项定向测试通过。生成数据、文件摘要和清点回执在 `%USERPROFILE%/DSHU-Deliveries/20261119/fontkit-license-provenance/`。新增声明待候选安装包核验分发。[声明清单](../../LICENSES/npm/sources.json)
+
 ## Windows 18.4 实装依赖路径
 
 实装中 LibreOffice Kit 0.2.3 引入 Fontkit 2.0.4，后者引入 Brotli 1.3.3 和 dfa 1.2.0。HTTP 与 HTTPS Proxy Agent 9.1.0 均引入 proxy-agent-negotiate 1.1.0。REA 6.9.0 引入 Frida 17.23.2，isomorphic-git 1.38.7 引入 minimisted 2.0.1。入口分别对应 Office、代理、REA 和 Git，后续替换须验证受影响的功能。实装清单与路径回执位于 `%USERPROFILE%/DSHU-Deliveries/20261118/candidate-2026.11.18.4/installed-notice-inventory.json`。
@@ -213,7 +221,7 @@ Linux `.3` 实包原清单为 861 个 npm 包和 12 项待核查。`@deepseek-ai
 | --- | --- | --- |
 | brotli 1.3.3 | Windows/Linux | 已补 Google 解码器、固定子模块和 Emscripten 运行时声明，包装代码原始署名、精确编译器版本及链接组件清单待核对 |
 | dfa 1.2.0 | Windows/Linux | 已补 PEG.js 0.10.0 解析器许可原文。dfa 本体署名仍待核对 |
-| fontkit 2.0.4 | Windows/Linux | 已补八张 Mac 编码表的归属声明和 Base64 解码器的 MIT 原文。Fontkit 本体原文与 Apple 数据分发条款仍待核对 |
+| fontkit 2.0.4 | Windows/Linux | 已补八张 Mac 编码表的归属、Base64 解码器的 MIT 和生成整形数据的 Unicode 12.0 声明。Fontkit 本体原文与 Apple 数据分发条款仍待核对 |
 | frida 17.23.2 | Windows/Linux | 已补 QuickJS、V8、Capstone 与所附 LLVM 声明。Node 绑定和其余内嵌组件的完整署名仍待核查 |
 | minimisted 2.0.1 | Windows/Linux | REA 明确记录的上游原文/署名缺项，保留待核查 |
 | proxy-agent-negotiate 1.1.0 | Windows/Linux | 已留存可追溯的原始 HTTP 代理实现版权和 MIT 原文，独立包的完整署名待核查 |
