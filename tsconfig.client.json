@@ -40,6 +40,7 @@
     // Client package outside packages/client with a local CSS module face.
     "packages/extensions/ui-cordis/src/css-modules.d.ts",
     "packages/client/tsdown.client.ts",
+    "packages/client/ui-settings-account/tsdown.config.ts",
     "scripts/client-build-environment.ts",
     "scripts/shipped-locales.ts",
     "scripts/bundle-input-isolation.ts",

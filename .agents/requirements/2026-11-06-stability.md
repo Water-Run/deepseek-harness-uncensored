@@ -157,6 +157,8 @@ Host 启动入口缺失或被目录替代时，Desktop 在修改插件资料前�
 
 缺少 `DSH_CLIENT_VERSION` 时，在创建主窗口和准备插件资料前进入安装文件恢复。Windows 的隔离 Electron 44.7.0 场景验证只提供退出与诊断报告，用户补丁原样保留。证据位于 `%USERPROFILE%/DSHU-Deliveries/20261119/client-metadata-recovery/`。验收中超时的两项安装交接测试已修复模拟交接并重新通过。启动修复待下次打包。[恢复说明](../../apps/desktop/docs/diagnostics/README.zh.md#recovery) · [交接校验](2026-11-16-release-check.md#windows-更新交接校验)
 
+单独构建账号包会在缺少客户端版本时使用仓库元数据。19 项定向测试通过，覆盖缺省和显式提供版本的配置。清空进程中的客户端构建变量后实际生成了包含 `0.2.2-rc.5` 的账号模块，Chromium 中余额加载与曲线操作通过。证据位于 `%USERPROFILE%/DSHU-Deliveries/20261119/scoped-account-client-version/`。完整构建仍单独记录整组产物身份与摘要。
+
 启动复用打包阶段的平台、架构、Host 协议和发行元数据校验，实装应用再比对桌面壳版本。七个不兼容描述的反例修复前均可通过启动预检，修复后全部拒绝。302 项定向测试通过。隔离 Electron 用真实 18.11 运行时和模拟 19.1 桌面壳验证拒绝启动、诊断报告和补丁保全，实装 ASAR 摘要一致。回执位于 `%USERPROFILE%/DSHU-Deliveries/20261119/desktop-runtime-compatibility/result.json`。[恢复说明](../../apps/desktop/docs/diagnostics/README.zh.md#recovery)
 
 Windows 同版修复可在主程序丢失时使用两处一致的安装登记确认目标，已安装版本仍须有效。隔离静默测试用两种语言恢复了缺失的程序和损坏的许可声明，核对恢复字节、版本与六类测试资料。版本缺失或登记路径冲突时均拒绝替换。旧逻辑的拒绝与修复后的通过分别记录在 `windows-same-version-repair-silent-final.log` 和 `windows-same-version-repair-verified.log`。修复进入下一次打包。[打包说明](../../apps/desktop/packaging/README.zh.md)

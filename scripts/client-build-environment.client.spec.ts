@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   assertClientBuildEnvironment,
@@ -69,6 +69,17 @@ function repositoryFixture(version = '1.2.3-rc.4'): string {
 }
 
 describe('client build environment', () => {
+  it.each([undefined, '1.2.3'])('embeds account bundle metadata with supplied version %s', async (suppliedVersion) => {
+    const versionKey = 'process.env.DSH_CLIENT_VERSION'
+    try {
+      vi.stubEnv('DSH_CLIENT_VERSION', suppliedVersion)
+      // Tsdown loads the package config after its build environment is set.
+      const { default: accountBundle } = await import('../packages/client/ui-settings-account/tsdown.config.ts')
+      const version = JSON.stringify(suppliedVersion ?? repositoryVersion(resolve(import.meta.dirname, '..')))
+      expect(accountBundle({}).map(config => config.define?.[versionKey])).toEqual([version, version])
+    } finally { vi.unstubAllEnvs() }
+  })
+
   it('records the pinned REA source and rejects a metadata/package version mismatch', () => {
     const root = repositoryFixture()
     const rea = { version: '6.8.0', commit: COMMIT_HASH, commitTime: '2026-10-25T08:35:15Z', repository: 'https://github.com/morluto/rea' }

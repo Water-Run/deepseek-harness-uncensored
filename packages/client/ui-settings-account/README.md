@@ -54,7 +54,7 @@ The sidebar and Account settings display circular profile images with diameters 
 
 The section registers through settings.section and uses the account Remote namespace. The stream survives carrier reconnects through the shared Remote supervisor. The page renders feature-owned English and Chinese copy and keeps API keys separate from account state.
 
-Account operations carry this UI's client identity to the Host: build version, active language, and the current UTC offset in seconds sampled as the operation is issued.
+Account operations send the UI build version, active language, and current UTC offset in seconds to the Host. A scoped bundle uses the repository's client metadata when the build supplies no version. The complete repository build records the metadata and hashes for the whole client artifact set.
 
 Balances use Platform Web currency formatting: two decimal places and digit grouping, positive amounts truncated to cents, positive sub-cent amounts shown as <0.01, and negative amounts rounded with a minimum displayed magnitude of 0.01. Raw Host balance strings remain unchanged. The sidebar period row names the current pricing window and, on the same line, counts down to that window's end in Beijing time (`HH:MM:SS`, refreshed every second independently of the sampling cadence); a window the included holiday calendar cannot classify shows no countdown.
 
