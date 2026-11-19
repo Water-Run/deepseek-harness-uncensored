@@ -69,7 +69,16 @@ export function directoryInstallSection(source) {
 !macroend`)
   result = replaceOnce(result, '!insertmacro setLinkVars', `!insertmacro setLinkVars
 !insertmacro dshStageApplication`)
-  result = replaceOnce(result, '!insertmacro installApplicationFiles', 'Call dshPromoteDirectories\nIfErrors 0 +3\n  SetErrorLevel 2\n  Quit')
+  result = replaceOnce(result, '!insertmacro installApplicationFiles', `Push $1
+Push $2
+Call InstallerRegisteredDirectory
+StrCpy $dshRegisteredDirectory $1
+Pop $2
+Pop $1
+Call dshPromoteDirectories
+IfErrors 0 +3
+  SetErrorLevel 2
+  Quit`)
   result = replaceOnce(result, '!ifdef UNINSTALLER_ICON\n  File /oname=uninstallerIcon.ico "${UNINSTALLER_ICON}"\n!endif\n', '')
   // The staging macro uses the upstream installer macro, including its signed uninstaller.
   return result

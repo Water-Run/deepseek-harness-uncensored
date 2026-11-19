@@ -52,6 +52,7 @@ it.each(['allowOnlyOneInstallerInstance.nsh', 'installUtil.nsh'])('cleans staged
 it('stages before stopping the application and promotes before registering the installation', () => {
   const result = directoryInstallSection(section)
   expect(result.indexOf('!insertmacro dshStageApplication')).toBeLessThan(result.indexOf('!insertmacro CHECK_APP_RUNNING'))
+  expect(result).toContain('Call InstallerRegisteredDirectory\nStrCpy $dshRegisteredDirectory $1\nPop $2\nPop $1\nCall dshPromoteDirectories')
   expect(result.indexOf('Call dshPromoteDirectories')).toBeLessThan(result.indexOf('!insertmacro registryAddInstallInfo'))
   expect(result).toContain('!insertmacro addStartMenuLink $keepShortcuts')
   expect(result).toContain('!insertmacro addDesktopLink $keepShortcuts')

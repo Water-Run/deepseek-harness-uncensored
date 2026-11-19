@@ -47,14 +47,14 @@ try {
   $emptyArchive = Join-Path $scratch 'empty-asar.7z'
   Invoke-Checked $SevenZip @('a', '-bd', '-t7z', $emptyArchive, "$incompletePayload/*")
 
-  $cases = @('missing-uninstaller', 'locked-promoted', 'abort-promoted', 'first', 'upgrade', 'transient-lock', 'locked', 'locked-stage',
+  $cases = @('occupied-late', 'missing-uninstaller', 'locked-promoted', 'abort-promoted', 'first', 'upgrade', 'transient-lock', 'locked', 'locked-stage',
       'missing-stage', 'restore-conflict', 'broken', 'incomplete-payload', 'empty-asar', 'cancelled')
   if ($FrameLibrary) { $cases += 'registration-failed' }
   foreach ($mode in $cases) {
     $caseRoot = Join-Path $scratch $mode
     $target = Join-Path $caseRoot 'Application'
     New-Item -ItemType Directory -Path $caseRoot | Out-Null
-    if ($mode -ne 'first') {
+    if ($mode -notin @('first', 'occupied-late')) {
       New-Item -ItemType Directory -Path $target | Out-Null
       [System.IO.File]::WriteAllText((Join-Path $target 'asset.txt'), 'old asset')
       [System.IO.File]::WriteAllText((Join-Path $target 'obsolete.txt'), 'old only')
@@ -74,6 +74,7 @@ try {
     $reportDir = Join-Path $caseRoot 'installer-logs'
     $compileArgs = @('/V2', "/DOUTPUT_FILE=$probe", "/DPAYLOAD_FILE=$caseArchive", "/DTARGET_DIR=$target", "/DDSH_SEVENZIP_PATH=$SevenZip")
     if ($FrameLibrary) { $compileArgs += @("/DSOURCE_DLL=$FrameLibrary", "/DREPORT_DIR=$reportDir", "/DINSTALLER_STRINGS_FILE=$installerStrings") }
+    if ($mode -eq 'occupied-late') { $compileArgs += '/DOCCUPIED_LATE' }
     if ($mode -eq 'missing-uninstaller') { $compileArgs += '/DMISSING_UNINSTALLER' }
     if ($mode -eq 'missing-stage') { $compileArgs += '/DMISSING_STAGE' }
     if ($mode -eq 'locked-stage') { $compileArgs += '/DLOCKED_STAGE' }
@@ -186,6 +187,26 @@ try {
         $report = Get-Content -LiteralPath $reports[0].FullName -Raw -Encoding UTF8
         foreach ($expected in @('promote: Windows error: 183', 'restore: Windows error: 183', 'Restoration error: 183', "Preserved backup: $($backups[0].FullName)")) {
           if (-not $report.Contains($expected)) { throw "Failed restoration report lacks '$expected'" }
+        }
+      }
+      Write-Output "Directory replacement smoke passed: $mode"
+      continue
+    }
+    if ($mode -eq 'occupied-late') {
+      $surviving = @(Get-ChildItem -LiteralPath $target -Force)
+      if ($surviving.Count -ne 1 -or $surviving[0].Name -ne 'unrelated.txt' -or
+          [IO.File]::ReadAllText($surviving[0].FullName) -ne 'unrelated file') {
+        throw 'The newly occupied directory did not retain its original file'
+      }
+      if (@(Get-ChildItem -LiteralPath $caseRoot -Directory -Filter 'Application.*-*').Count -ne 0) {
+        throw 'The rejected install left transaction directories behind'
+      }
+      if ($FrameLibrary) {
+        $reports = @(Get-ChildItem -LiteralPath $reportDir -File -Filter 'directory-failure-*.log')
+        if ($reports.Count -ne 1) { throw 'The rejected install did not save one directory report' }
+        $report = Get-Content -LiteralPath $reports[0].FullName -Raw -Encoding UTF8
+        if ($report -notmatch 'Operation: RemoveDirectoryW\r?\nWindows error: 145\b') {
+          throw 'The directory report did not identify the occupied destination'
         }
       }
       Write-Output "Directory replacement smoke passed: $mode"

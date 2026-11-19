@@ -231,6 +231,9 @@ ManifestDPIAware true
   StrCpy $3 "$(INSTALLER_DIRECTORY_HINT)"
   ${If} $dshRestoreError != 0
     StrCpy $3 "$(INSTALLER_DIRECTORY_RESTORE_HINT)"
+  ${ElseIf} $dshDirectoryError == 145
+  ${AndIf} $dshDirectoryDestination == ""
+    StrCpy $3 "$(INSTALLER_PATH_OWNERSHIP)"
   ${EndIf}
   System::Call '$PLUGINSDIR\window-frame.dll::InstallerReportDirectoryFailure(p $HWNDPARENT, i $dshDirectoryError, w "$dshDirectorySource", w "$dshDirectoryDestination", i $dshRestoreError, w "$dshOldDirectory", w "$PLUGINSDIR\directory-operations.log", w r0, i r1, w "$(^SetupCaption)", w "$(INSTALLER_DIRECTORY_FAILED)", w r3, w "$(INSTALLER_EXTRACT_COPY)", w "$(INSTALLER_EXTRACT_EXPAND)", w "$(INSTALLER_EXTRACT_COLLAPSE)", w "$(INSTALLER_EXTRACT_SAVED)", w "$(INSTALLER_EXTRACT_UNSAVED)", w "$(INSTALLER_EXTRACT_COPIED)") i.r2 ?c'
   ${If} $2 == 1

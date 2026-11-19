@@ -1,6 +1,7 @@
 !include "LogicLib.nsh"
 
 Var dshFinalDirectory
+Var dshRegisteredDirectory
 Var dshNewDirectory
 Var dshOldDirectory
 Var dshOldMoved
@@ -239,7 +240,8 @@ Function dshPromoteDirectories
   ; SetOutPath opens a directory handle; release it before either rename.
   SetOutPath $PLUGINSDIR
   ClearErrors
-  ${If} ${FileExists} "$dshFinalDirectory\*.*"
+  ${If} $dshRegisteredDirectory == $dshFinalDirectory
+  ${AndIf} ${FileExists} "$dshFinalDirectory\*.*"
     StrCpy $dshDirectorySource $dshFinalDirectory
     StrCpy $dshDirectoryDestination $dshOldDirectory
     !insertmacro dshDirectoryOperation "$dshDirectorySource" "$dshDirectoryDestination" $dshDirectoryError "backup"
@@ -251,7 +253,7 @@ Function dshPromoteDirectories
     ${EndIf}
     StrCpy $dshOldMoved "1"
   ${Else}
-    ; NSIS can create the destination before the install section starts.
+    ; A fresh destination may be absent or empty. Removing it atomically refuses a late arrival.
     StrCpy $dshDirectorySource $dshFinalDirectory
     StrCpy $dshDirectoryDestination ""
     !insertmacro dshDirectoryOperation "$dshDirectorySource" "" $dshDirectoryError "remove-empty"

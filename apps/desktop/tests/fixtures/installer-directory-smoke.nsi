@@ -42,6 +42,16 @@ Section
   !endif
   StrCpy $INSTDIR "${TARGET_DIR}"
   !insertmacro dshStageApplication
+  !ifdef OCCUPIED_LATE
+    CreateDirectory $dshFinalDirectory
+    FileOpen $0 "$dshFinalDirectory\unrelated.txt" w
+    FileWrite $0 "unrelated file"
+    FileClose $0
+  !else
+    ${If} ${FileExists} "$dshFinalDirectory\*.*"
+      StrCpy $dshRegisteredDirectory $dshFinalDirectory
+    ${EndIf}
+  !endif
   !ifdef RESTORE_CONFLICT
     Rename $dshFinalDirectory $dshOldDirectory
     StrCpy $dshOldMoved "1"

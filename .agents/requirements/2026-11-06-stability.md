@@ -131,6 +131,8 @@ Platform 在清理成功后释放对应跟踪记录。重开、退出和安装�
 
 ## Windows 更新交接与目录回退（2026-11-18）
 
+首次安装的目标目录在解包期间被写入时，安装器停止并保留原文件。原生夹具在解包完成后写入一份无关文件，旧版错误地返回成功。修复后返回 2，文件内容不变，报告记录 `RemoveDirectoryW` 和错误 145，无残留事务目录。16 项原生目录检查、32 项中英文静默安装器检查和 8 项构建适配测试通过。测试只运行隔离载荷；实装 18.11 的 ASAR 摘要一致。回执为 `%USERPROFILE%/DSHU-Deliveries/20261119/installer-late-occupation-{before,after}.log` 和 `windows-standalone-installer-occupation-guard.log`。[打包说明](../../apps/desktop/packaging/README.zh.md)
+
 应用等待退出期间，再次请求安装同一版本会复用当前的安装状态。重复请求只执行一次 Host 停止准备和一次安装器交接。旧实现的回归用例失败，修复后更新协调器和目录安装模板共 50 项通过，Electron 44.7.0 回环共 15 场景通过。回环用例替换平台安装调用，不执行安装器。源码构建的 10 项检查通过，修复已随 [Windows 18.5](2026-11-18.5-delivery.md) 实装。
 
 Windows 原生 NSIS 隔离夹具通过 11 个目录替换场景。待安装目录缺失或被锁定时恢复旧目录，回退目标被占用时保留旧目录备份及占用方文件。用例覆盖切换新目录后的取消和文件占用。回退先整体移回新目录，受阻时完整保留两版并写入故障报告。修复已随 [Windows 18.9](2026-11-18.9-delivery.md) 实装。启动时配置损坏的恢复见[实包验证](2026-11-18.9-delivery.md#启动时的配置恢复)。日志为 `windows-directory-rollback-before.log` 与 `windows-directory-rollback-after.log`。
