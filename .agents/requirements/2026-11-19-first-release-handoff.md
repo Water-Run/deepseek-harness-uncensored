@@ -8,7 +8,7 @@
 
 | 对象 | 截至 2026-11-19 的核对结果 |
 | --- | --- |
-| 功能源码 | 接手时用 `git ls-remote origin refs/heads/main` 核对远端。流量详情修复及这里的验证记录随同一提交推送。构建回执填写候选实际采用的完整提交。 |
+| 功能源码 | 交接核对点为 `b80484c4cee6d8341a45bf7406513fc2f3c9cd8e`。相对 18.11 的实装源码，该核对点多 118 个提交。接手时用 `git ls-remote origin refs/heads/main` 核对当前远端，并为候选单独记录实际采用的完整提交。 |
 | 本机实装 | `2026.11.18.11`，源码 `5f9a129fedc44de85bb6a405b4ae60a866820ead`，DSH `0.2.2-rc.4`。本轮复核主程序文件版本和实装 ASAR，摘要与交付回执一致。[实装记录](2026-11-18.11-delivery.md) |
 | 上游与依赖 | 当前源码含 DSH `0.2.2-rc.5`，提交 `9c2670d3bce5275e0d1610272958121af87787bb`。用户要求暂缓 rc.5 实装，候选开始前先落实内核基线。REA 固定 `6.9.0`，提交 `d74549e495c58eb4a560279fd9f05508401ea0a0`。[产品元数据](../../product.json) |
 | 公开预发布 | 已在 Water-Run 仓库回读 `v2026.11.17.5`，含 Windows 未签名安装器、两个 Linux 归档和 `SHA256SUMS.txt`。正式 Release 由用户审核后手动发布。[预发布](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5) |
@@ -66,7 +66,12 @@ $receipt | ConvertTo-Json
 - 实装基线见 `%USERPROFILE%/DSHU-Deliveries/20261118/current-windows-manifest.json`。ASAR 摘要为 `46347fc5aa713aa0eafc9b94d006ba9c2fad8cadf335273d95c79a242a0f43b6`。
 - 原始升级前资料备份在 `%USERPROFILE%/DSHU-Backups/20261118T124812Z-before-20261118-11-data/`，7,428 个文件已逐一核对摘要。回退前另存新版资料，选用与旧版匹配的资料副本。证据及恢复顺序见[18.11 交付记录](2026-11-18.11-delivery.md#安装与恢复)。
 - 本轮复核 18.11 检查包 SHA-256 为 `779031592f854cc51c4d69e41cf91ac46043a80f94a4ff52217f1867a66aedaa`。18.10 回退包 SHA-256 为 `e1b58e8f97099826ccfbf7c88cfe21ada70635bbde82c642cad883f4f3aa7685`。[18.10 回退记录](2026-11-18.10-delivery.md#安装包与恢复)
-- 最近源码验证保存在 `%USERPROFILE%/DSHU-Deliveries/20261119/` 的 `traffic-debug-details/`、`side-clear-reconciliation/`、`sqlite-companion-policy/`、`spending-narrow-recovery/`、`windows-update-embedded-signature/` 和 `windows-update-journal/`。
+- 安装延续核对见 `%USERPROFILE%/DSHU-Deliveries/20261119/first-release-continuity/baseline.json`。实装程序、ASAR、Node 和第三方声明以及 18.11、18.10 两个历史安装器的摘要均匹配。备份目录仍存在，7,428 个备份文件的逐项摘要使用此前独立的完整复核记录。
+- 最近源码验证保存在 `%USERPROFILE%/DSHU-Deliveries/20261119/` 的 `minimisted-runtime-review/`、`traffic-debug-details/`、`side-clear-reconciliation/`、`sqlite-companion-policy/`、`spending-narrow-recovery/`、`windows-update-embedded-signature/` 和 `windows-update-journal/`。
 - README 使用用户确认的「更自由的探索未至之境」。正文为四种模式、其它增强、文档导航和 Credit。浅色模式与功能配图预览在 `%USERPROFILE%/DSHU-Deliveries/20261119/readme-sections-light/`，备用素材总索引在同级的 `readme-screenshot-assets/README.md`。
 
-接手时先核对当前 `main`、本机实装、备份和候选内核基线。用上面的缺口表分配下一步工作，并把验收结果回填到[首发验收单](windows-x64-first-release.md#同一候选的验收单)。
+## 接手顺序
+
+1. 对照当前 `main` 和本机实装提交，确定首发实际采用的 DSH 内核。若候选沿用 rc.4，逐项核对实装之后的修复是否已移入候选。候选版本以构建回执为准。
+2. 核对候选应装配的功能和依赖。接续三组可选保护时先补目标判定及资源执行保护，再验收审计、模式设置和代理联动。六项第三方声明分别保留证据和结论。
+3. 用[候选回执模板](windows-x64-first-release.md#候选回执模板)登记同一包的签名、实装和回退结果。历史验证记录可供复现，正式候选的验收结果需绑定其自己的 SHA-256。
