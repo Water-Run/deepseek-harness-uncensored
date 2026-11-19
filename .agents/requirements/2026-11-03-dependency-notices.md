@@ -46,6 +46,14 @@ Windows 18.11 实装的 121 个 `src/` 文件及 4 个入口与锁定的 npm 归
 
 使用 920 个实装依赖复算后，补充声明合计 35 份，待核查仍为 6 项，ASAR 摘要一致。19 项定向测试通过。生成数据、文件摘要和清点回执在 `%USERPROFILE%/DSHU-Deliveries/20261119/fontkit-license-provenance/`。新增声明待候选安装包核验分发。[声明清单](../../LICENSES/npm/sources.json)
 
+## minimisted 与 Git 运行入口（2026-11-19）
+
+`minimisted@2.0.1` 的 npm 归档通过 SHA-512 核验，入口 `index.js` 同时匹配 Windows 准备树的 SHA-256 和发布提交的 Git blob。发布提交的九个文件没有独立许可或版权文件，README 和 npm 元数据均声明 MIT。上游仓库已归档，待核查标记保留。[发布源码](https://github.com/kt3k/minimisted/tree/95fdfb8d6efb9546c1117854fe3a58105f6332ce) · [npm 发布记录](https://www.npmjs.com/package/minimisted/v/2.0.1)
+
+Windows 准备树中，REA 的参考资料导入调用 `isomorphic-git@1.38.7` 的 `resolveRef` 和 `getConfig`。在本地合成仓库中阻止加载 `minimisted` 后，两项读取均通过。同一探针运行 `isogit` 命令行入口时命中阻止条件。复核对象是准备树的库入口，正式候选仍需实测参考资料导入。上游 `isomorphic-git@1.44.17` 的发布元数据仍声明该依赖。[新版发布清单](https://github.com/isomorphic-git/isomorphic-git/blob/514544e88230197e101c07f082cf26902503f4f0/package.json) · [新版发行记录](https://github.com/isomorphic-git/isomorphic-git/releases/tag/v1.44.17)
+
+先核实候选是否需要提供 `isogit` 命令。保留该命令时继续核对原始署名。若候选仅需 Git 库接口，评估在同一构建中排除命令行入口及其依赖，并验证参考资料导入、产物依赖图和清点结果。本轮未调整依赖。复验记录位于 `%USERPROFILE%/DSHU-Deliveries/20261119/minimisted-runtime-review/result.json`。
+
 ## Windows 18.4 实装依赖路径
 
 实装中 LibreOffice Kit 0.2.3 引入 Fontkit 2.0.4，后者引入 Brotli 1.3.3 和 dfa 1.2.0。HTTP 与 HTTPS Proxy Agent 9.1.0 均引入 proxy-agent-negotiate 1.1.0。REA 6.9.0 引入 Frida 17.23.2，isomorphic-git 1.38.7 引入 minimisted 2.0.1。入口分别对应 Office、代理、REA 和 Git，后续替换须验证受影响的功能。实装清单与路径回执位于 `%USERPROFILE%/DSHU-Deliveries/20261118/candidate-2026.11.18.4/installed-notice-inventory.json`。
