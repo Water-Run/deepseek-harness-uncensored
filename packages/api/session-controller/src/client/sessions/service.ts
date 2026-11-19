@@ -4,7 +4,7 @@ import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
 import { SessionSeq, type SessionId } from '@deepseek-ai/dsh-session/types'
 import { workspaceTitleOf } from '@deepseek-ai/dsh-util-workspace-path'
 import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
-import { SESSION_SEARCH_RESULT_LIMIT } from '../../types.ts'
+import { SESSION_SEARCH_RESULT_LIMIT, type SessionDeleteValue } from '../../types.ts'
 import type { SessionProjectionSummaryValues } from '@deepseek-ai/dsh-session-projection/types'
 import {
   createSnapshotStore, notifySubscribers, type ObservableSnapshot, type SnapshotStore,
@@ -271,7 +271,7 @@ export class ClientSessions implements ISessions {
    */
   constructor(
     private readonly rootCtx: Context,
-    remote: SessionRemotes,
+    private readonly remote: SessionRemotes,
   ) {
     this.manager = new SessionManager(remote)
     this.list = createSnapshotStore<SessionListState>({
@@ -373,6 +373,14 @@ export class ClientSessions implements ISessions {
     return this.manager.refreshList()
   }
 
+  async delete(sessionId: SessionId): Promise<RemoteResult<SessionDeleteValue>> {
+    const result = await this.remote.session.delete({ sessionId })
+    const deleted = result.ok ? result.value
+      : result.error.code === 'session/delete-incomplete' ? result.error.details : undefined
+    for (const id of deleted?.deletedSessionIds ?? []) this.handleSessionDeleted(id)
+    return result
+  }
+
   /**
    * Search the Host's visible message-content index. Results stay
    * request-local; the list snapshot remains the metadata authority.
@@ -412,11 +420,18 @@ export class ClientSessions implements ISessions {
   }
 
   /**
-   * Retire the local history and catalog entry after permanent deletion.
+   * Retire a confirmed identity from the catalog, history and views once.
    * @param sessionId - Deleted identity.
-   * @returns Completion after its history transport stops.
    */
-  handleSessionDeleted(sessionId: SessionId): Promise<void> { return this.manager.handleSessionDeleted(sessionId) }
+  handleSessionDeleted(sessionId: SessionId): void {
+    if (this.closed) return
+    const cleanup = this.manager.handleSessionDeleted(sessionId)
+    if (cleanup === undefined) return
+    void cleanup.catch((error: unknown) => { this.rootCtx.logger.warn('Deleted Session stream cleanup failed.', error) })
+    void this.rootCtx.parallel('client-session/deleted', sessionId).catch((error: unknown) => {
+      this.rootCtx.logger.warn('Deleted Session view cleanup failed.', error)
+    })
+  }
 
   /**
    * Apply one remotely forwarded running-state change.

@@ -4,6 +4,8 @@
 
 ## 已完成
 
+- [x] **漏收实时删除通知后的回执处理（2026-11-19）**。客户端按成功或部分清理回执撤掉确认已删除的会话。通知与回执重复到达时，只释放一次。组装 Web 屏蔽实时删除通知后，旧版旁问仍显示，修复版关闭旁问、移除会话行并保留清理重试。253 项定向检查通过，浏览器回执为 `session-delete-receipt-{before,web-final}.log`。新版实装待验收。[会话删除](../../packages/api/session-controller/README.zh.md)
+
 - [x] **持久删除后的通知故障（2026-11-19）**。在真实 Host 回归中，监听器抛错曾把已提交的会话删除误报为清理未完成。修复后，抛错或拒绝的监听器仍会被记录，其余监听器能收到主会话和旁问的删除通知。24 项 Host 与 JSONL 定向测试通过。日志为 `session-delete-observer-{before,final}.log`。新版实装待验收。[会话删除](../../packages/api/session-controller/README.zh.md)
 
 - [x] **会话删除后的界面导航（2026-11-19）**。删除当前会话后，对话区切到其他普通会话或新会话页面，独立功能页和已发起的导航继续保留。新增两个回归场景，覆盖存在候补会话和没有候补会话，修复前均因删除取消导航而失败。修复后工作区相关 47 项定向测试通过。组装 Web 验证自动化任务页保持打开，删除提示正常，持久会话已移除。回执为 `%USERPROFILE%/DSHU-Deliveries/20261119/session-delete-preserve-panel-web-final.log`。新版实装待验收。[工作区说明](../../packages/client/ui-workspace/README.zh.md)

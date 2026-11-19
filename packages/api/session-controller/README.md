@@ -39,6 +39,8 @@ Permanent conversation deletion stops API-owned work, drains owned children and 
 
 Deletion notifications reach each listener for each removed Session. A listener failure goes to the Host log. The deletion result reflects committed removal and derived cleanup.
 
+The initiating Client also retires every identity confirmed in the deletion response, including the identities listed in a partial cleanup error. A repeated confirmation leaves the same local state. Conversation views and open asides close through the Client's deletion notification.
+
 Prompt retries use the request identity in the first committed inbox insertion, including after the message is claimed or removed. Admission checks again after asynchronous attachment preparation, so concurrent retries accept one input. Acceptance acknowledges insertion, not execution or completion.
 
 The controller reads a Session's recorded preset through the optional `agentPresets.presetForSession(session)` service method. A null result means no preset was recorded; an absent service means preset identity is unavailable to the controller.

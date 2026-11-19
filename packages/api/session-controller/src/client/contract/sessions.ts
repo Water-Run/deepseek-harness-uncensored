@@ -15,6 +15,7 @@ import type { SessionBinding, SessionListState } from '../sessions/service.ts'
 import type { SessionFace } from './session.ts'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { SessionReferenceSource } from '../index.ts'
+import type { SessionDeleteValue } from '../../types.ts'
 
 export type { AgentContext } from '../scope.ts'
 
@@ -110,6 +111,12 @@ export interface ISessions {
    * @returns completion of the current or newly started Session-list refresh.
    */
   refresh(): Promise<void>
+  /**
+   * Request permanent removal and retire identities confirmed by the Host response.
+   * @param sessionId - Conversation selected for deletion.
+   * @returns The Host's result, including any remaining cleanup failure.
+   */
+  delete(sessionId: SessionId): Promise<RemoteResult<SessionDeleteValue>>
   /**
    * Search the Host's visible message-content index. Results stay
    * request-local; the list snapshot remains the metadata authority.

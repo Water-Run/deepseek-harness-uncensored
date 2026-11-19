@@ -40,7 +40,7 @@ afterEach(cleanup)
 beforeEach(() => { localStorage.clear() })
 
 /** Runtime with the locale face installed (the browser entry declares `locale:` — zh default backs the t seat). */
-async function createRuntime(withSessionNamespace = true): Promise<SlotTestRuntime> {
+async function createRuntime(): Promise<SlotTestRuntime> {
   const runtime = await SlotTestRuntime.create()
   runtime.ctx.provide('shortcuts', { register: () => () => {}, catalog: createSnapshotStore([]) })
   runtime.ctx.provide('layout', { selectPanel: vi.fn(), beginNavigation: () => new AbortController().signal })
@@ -48,7 +48,7 @@ async function createRuntime(withSessionNamespace = true): Promise<SlotTestRunti
   // The rename flow never picks a directory; the namespace only has to be there
   // for ui-workspace's inject to settle.
   const directoryPicker = {}
-  runtime.remote.provideNamespaces({ directoryPicker, ...withSessionNamespace ? { session: {} } : {} })
+  runtime.remote.provideNamespaces({ directoryPicker })
   const locale = new LocaleRuntime(runtime.ctx)
   runtime.ctx.provide('locale', locale)
   runtime.slots.installLocale(locale)
@@ -90,7 +90,7 @@ async function seedWorkspace(runtime: SlotTestRuntime): Promise<void> {
 
 describe('session rename through the assembled browser', () => {
   it('keeps delete confirmation alive after its row disappears and sends only after confirmation', async () => {
-    const runtime = await createRuntime(false)
+    const runtime = await createRuntime()
     const finish = Promise.withResolvers<undefined>()
     onTestFinished(async () => { finish.resolve(undefined); await runtime.dispose() })
     runtime.ctx.effect(() => runtime.ctx.locale.register('common', { zh: commonZh, en: commonEn }))
@@ -99,12 +99,11 @@ describe('session rename through the assembled browser', () => {
       summary: { title: '删除验收', displayTitle: '删除验收', cwd: '/w/alpha', blank: false } })
     await runtime.sessions.retainFor(runtime.ctx, SID, { source: 'mainView' }).ready
     await seedWorkspace(runtime)
-    const remove = vi.fn(async ({ sessionId }: { sessionId: SessionId }) => {
+    const deleteSession = runtime.sessions.delete.bind(runtime.sessions)
+    const remove = vi.spyOn(runtime.sessions, 'delete').mockImplementation(async (sessionId) => {
       await finish.promise
-      await runtime.sessions.remove(sessionId)
-      return { ok: true as const, value: { deletedSessionIds: [sessionId] } }
+      return deleteSession(sessionId)
     })
-    runtime.remote.provideNamespaces({ session: { delete: remove } })
     await declareFrame(runtime)
     await runtime.mount({ inject: [...inject], apply })
     const view = runtime.renderRoot()
@@ -121,7 +120,7 @@ describe('session rename through the assembled browser', () => {
     await openDelete()
     fireEvent.click(view.getByRole('button', { name: '停止并删除' }))
     expect(remove).toHaveBeenCalledOnce()
-    expect(remove).toHaveBeenCalledWith({ sessionId: SID })
+    expect(remove).toHaveBeenCalledWith(SID)
     expect(view.getByRole('button', { name: '停止并删除' })).toHaveProperty('disabled', true)
     const deletion = runtime.ctx.slots.entries('shell.overlay').find(entry => entry.options.id === 'session-delete')!
     const controller = deletion.inject!().controller

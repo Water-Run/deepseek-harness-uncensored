@@ -4,6 +4,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-agent/types'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
 import type {} from '@deepseek-ai/dsh-client-file-upload/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { typertOwnedValue } from '@deepseek-ai/dsh-typert-protocol'
 import { createSessionControlStream } from './transport.ts'
 import { ClientSessions } from './sessions/service.ts'
@@ -92,6 +93,14 @@ declare module '@deepseek-ai/cordis' {
     /** Client Session object layer and Agent scope owner. */
     sessions: import('./contract/sessions.ts').ISessions
   }
+  interface Events {
+    /**
+     * The Client retired a Session confirmed permanently deleted by the Host.
+     * @mode parallel
+     * @param sessionId - Deleted identity whose views can be closed.
+     */
+    'client-session/deleted'(sessionId: SessionId): void
+  }
 }
 
 /** Required Remote and Context projection services. */
@@ -115,9 +124,7 @@ export function apply(ctx: Context): void {
   const sessions = new ClientSessions(ctx, remotes)
   ctx.remote.$on('api-session/added', (summary) => { sessions.handleSessionAdded(summary) })
   ctx.remote.$on('api-session/removed', (sessionId) => { sessions.handleSessionRemoved(sessionId) })
-  ctx.remote.$on('api-session/deleted', (sessionId) => {
-    void sessions.handleSessionDeleted(sessionId).catch((error: unknown) => { ctx.logger.warn('Deleted Session stream cleanup failed.', error) })
-  })
+  ctx.remote.$on('api-session/deleted', (sessionId) => { sessions.handleSessionDeleted(sessionId) })
   ctx.remote.$on('api-session/status', (sessionId, running) => {
     sessions.handleSessionStatus(sessionId, running)
   })

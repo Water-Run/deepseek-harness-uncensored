@@ -714,9 +714,10 @@ export class SessionManager {
   /**
    * Remove a permanently deleted identity, including addressed subagents and prepared UI projections.
    * @param sessionId - Deleted identity.
-   * @returns Completion after its live history stream has stopped.
+   * @returns History cleanup on the first confirmation, or undefined for a duplicate.
    */
-  async handleSessionDeleted(sessionId: SessionId): Promise<void> {
+  handleSessionDeleted(sessionId: SessionId): Promise<void> | undefined {
+    if (this.deleted.has(sessionId)) return undefined
     this.deleted.add(sessionId)
     this.recordMutation({ kind: 'remove', sessionId })
     this.addresses.delete(sessionId)
@@ -726,9 +727,9 @@ export class SessionManager {
     this.projectionLoads.delete(sessionId)
     this.engagedSessions.delete(sessionId)
     const retirement = this.sessions.get(sessionId)?.handleDeleted()
-    if (retirement === undefined) return
+    if (retirement === undefined) return Promise.resolve()
     this.sessionDisposals.add(retirement)
-    try { await retirement } finally { this.sessionDisposals.delete(retirement) }
+    return retirement.finally(() => { this.sessionDisposals.delete(retirement) })
   }
 
   /**

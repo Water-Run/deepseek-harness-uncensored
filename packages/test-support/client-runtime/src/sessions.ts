@@ -324,7 +324,7 @@ export class TestSessions implements ISessions {
 
   /** Calls observed on the service-level face, newest last. */
   readonly calls: {
-    method: 'create' | 'refreshProjections' | 'refresh' | 'search' | 'fork'
+    method: 'create' | 'refreshProjections' | 'refresh' | 'search' | 'fork' | 'delete'
     args: unknown[]
   }[] = []
 
@@ -661,6 +661,18 @@ export class TestSessions implements ISessions {
   refresh(): Promise<void> {
     this.calls.push({ method: 'refresh', args: [] })
     return Promise.resolve()
+  }
+
+  /**
+   * Retire one fixture identity and publish its local deletion.
+   * @param sessionId - Fixture conversation to remove.
+   * @returns A successful deletion receipt for that identity.
+   */
+  async delete(sessionId: SessionId): ReturnType<ISessions['delete']> {
+    this.calls.push({ method: 'delete', args: [sessionId] })
+    await this.remove(sessionId)
+    await this.rootCtx.parallel('client-session/deleted', sessionId)
+    return { ok: true, value: { deletedSessionIds: [sessionId] } }
   }
 
   /**

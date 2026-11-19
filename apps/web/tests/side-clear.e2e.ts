@@ -143,6 +143,9 @@ it('sends side images and clears only the side context', async () => {
 
       const currentSide = await api.aside({ sessionId, kind: 'side' })
       const cleanup = vi.spyOn(scaffold.ctx.sessionQuery, 'forgetSessions').mockRejectedValueOnce(new Error('fixture cleanup interruption'))
+      const dispatch = scaffold.ctx.events.dispatch.bind(scaffold.ctx.events)
+      const notifications = vi.spyOn(scaffold.ctx.events, 'dispatch').mockImplementation((mode, args) =>
+        args[0] === 'api-session/deleted' ? [] : dispatch(mode, args))
       try {
         const row = page.locator(`[data-row-key="session:${sessionId}"]`)
         await row.hover()
@@ -154,11 +157,15 @@ it('sends side images and clears only the side context', async () => {
         expect(await scaffold.ctx.sessionPersistence.stat(sessionId)).toBeUndefined()
         expect(await scaffold.ctx.sessionPersistence.stat(currentSide.sessionId)).toBeUndefined()
         await page.getByRole('tab').filter({ hasText: 'Side question' }).waitFor({ state: 'detached', timeout: 5_000 })
+        await row.waitFor({ state: 'detached', timeout: 5_000 })
         await deletion.getByRole('button', { name: 'Retry', exact: true }).click()
         await deletion.waitFor({ state: 'hidden' })
         await page.getByRole('alert').filter({ hasText: 'Conversation deleted' }).waitFor()
         expect(workspace.sessionIds).not.toContain(sessionId)
-      } finally { cleanup.mockRestore() }
+      } finally {
+        notifications.mockRestore()
+        cleanup.mockRestore()
+      }
     } finally { await browser.close() }
   } finally { await scaffold.close() }
 })

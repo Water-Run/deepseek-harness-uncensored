@@ -164,7 +164,7 @@ async function bench(access: 'fake' | 'static' = 'fake') {
   } as never)
   const pickDirectory = vi.fn(() => Promise.resolve({ ok: true as const, value: '/projects/picked' }))
   const directoryPicker = { pick: pickDirectory }
-  const remote = new TestRemote(ctx, { directoryPicker, session: {} })
+  new TestRemote(ctx, { directoryPicker, session: {} })
   const locale = new LocaleRuntime(ctx)
   // These specs assert the shipped Chinese copy. There is no jsdom `window`
   // in this lane, so browser-language detection never runs and the locale
@@ -174,7 +174,7 @@ async function bench(access: 'fake' | 'static' = 'fake') {
   return {
     ctx, slots: ctx.get('slots') as SlotRegistry, locale, create, rename, commands, accessSource, whenResourceAccess, stopGuard,
     retain, using, selectPanel, search, renameSession, binding, fork, pickDirectory, pinSession, unpinSession,
-    workspacesSubscribe, initializeDefault, history, scope, sessionOf, remote,
+    workspacesSubscribe, initializeDefault, history, scope, sessionOf,
     setWorkspaces: (snapshot: WorkspaceSnapshot): void => { workspaceSnapshot = snapshot },
     setSessions: (snapshot: SessionListState): void => { sessionSnapshot = snapshot },
   }
@@ -245,7 +245,7 @@ describe('ui-workspace apply', () => {
 
   it('declares the services it drives', () => {
     expect(inject).toEqual(['contextMenus',
-      'slots', 'sessions', 'workspaces', 'locale', 'remote', 'remote.session', 'remote.directoryPicker', 'layout', 'shortcuts', 'remoteAccess',
+      'slots', 'sessions', 'workspaces', 'locale', 'remote', 'remote.directoryPicker', 'layout', 'shortcuts', 'remoteAccess',
     ])
   })
 
@@ -543,7 +543,7 @@ describe('ui-workspace apply', () => {
     const create = Promise.withResolvers<SessionId>()
     const request = vi.spyOn(b.ctx.sessions, 'create').mockReturnValueOnce(create.promise)
     const opening = b.ctx.uiWorkspace.openWorkspace(null)
-    b.remote.emit('api-session/deleted', [sid('deleted')])
+    await b.ctx.parallel('client-session/deleted', sid('deleted'))
     const panelChangesDuringDeletion = b.selectPanel.mock.calls.length
     const selectionAfterDeletion = b.retain.mock.calls.at(-1)?.[0]
 

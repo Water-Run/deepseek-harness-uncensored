@@ -51,6 +51,37 @@ function makeManager(
 }
 
 describe('SessionManager instances', () => {
+  it('retires only identities confirmed by deletion receipts and ignores duplicate notifications', async ({ mock, remote, start }) => {
+    mock.load(sessionWorld)
+    remote.session.list.mockResolvedValue(ok({ items: [summary(S1), summary(S2)] }))
+    const client = await start()
+    const ctx = new Context()
+    onTestFinished(() => ctx.fiber.dispose())
+    const sessions = new ClientSessions(ctx, client.ctx.remote)
+    const retired = vi.fn<(id: SessionId) => void>()
+    ctx.on('client-session/deleted', retired)
+    await sessions.refresh()
+
+    remote.session.delete.mockResolvedValueOnce(err(new RemoteError('session/delete-timeout', 'still stopping', { sessionId: S1 })))
+    await expect(sessions.delete(S1)).resolves.toMatchObject({ ok: false, error: { code: 'session/delete-timeout' } })
+    expect(retired).not.toHaveBeenCalled()
+    expect(sessions.list.getSnapshot().ids).toEqual([S1, S2])
+
+    const partial = new RemoteError('session/delete-incomplete', 'cleanup deferred', { deletedSessionIds: [S1] })
+    remote.session.delete.mockResolvedValueOnce(err(partial))
+    await expect(sessions.delete(S1)).resolves.toMatchObject({ ok: false, error: partial })
+    sessions.handleSessionDeleted(S1)
+    expect(retired).toHaveBeenCalledExactlyOnceWith(S1)
+    expect(sessions.list.getSnapshot().ids).toEqual([S2])
+
+    sessions.handleSessionDeleted(S2)
+    remote.session.delete.mockResolvedValueOnce(ok({ deletedSessionIds: [S1, S2] }))
+    await expect(sessions.delete(S1)).resolves.toEqual(ok({ deletedSessionIds: [S1, S2] }))
+    await sessions.refresh()
+    expect(retired.mock.calls).toEqual([[S1], [S2]])
+    expect(sessions.list.getSnapshot().ids).toEqual([])
+  })
+
   it('keeps a deleted conversation absent when stale lists, projections and status frames arrive', async ({ mock, remote }) => {
     const manager = makeManager(mock, remote)
     onTestFinished(() => manager.dispose())

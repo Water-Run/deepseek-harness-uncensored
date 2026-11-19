@@ -136,7 +136,7 @@ const NS = 'workspace'
  * declaration through `slots.inject()` instead of assuming order.
  */
 export const inject = ['contextMenus',
-  'slots', 'sessions', 'workspaces', 'locale', 'remote', 'remote.session', 'remote.directoryPicker', 'layout', 'shortcuts', 'remoteAccess',
+  'slots', 'sessions', 'workspaces', 'locale', 'remote', 'remote.directoryPicker', 'layout', 'shortcuts', 'remoteAccess',
 ]
 
 /**
@@ -161,11 +161,8 @@ export function apply(ctx: Context): void {
     ctx, ctx.remote.directoryPicker, workspaces, sessions, viewInstance.actions, notify,
   )
   installDesktopNavigation(ctx, sessions, uiWorkspace)
-  const stopDeletedNavigation = ctx.remote.$on('api-session/deleted', (id) => { uiWorkspace.handleDeletedSession(id) })
-  const deletion = new DeleteSessionController(id => ctx.remote.session.delete({ sessionId: id }), async (ids) => {
-    for (const id of ids) uiWorkspace.handleDeletedSession(id)
-    await sessions.refresh()
-  })
+  const stopDeletedNavigation = ctx.on('client-session/deleted', (id) => { uiWorkspace.handleDeletedSession(id) })
+  const deletion = new DeleteSessionController(id => sessions.delete(id), () => sessions.refresh())
   ctx.effect(() => async () => { stopDeletedNavigation(); await deletion.dispose() }, 'workspace: permanent deletion')
   const deleteInjected = (): DeleteSessionInjected => ({ controller: deletion, hooks: { deletion: deletion.state } })
   ctx.slots.inject('sidebar.workspaces.session.menu.item', () => ctx.slots.register({

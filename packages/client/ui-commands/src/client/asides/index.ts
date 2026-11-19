@@ -198,7 +198,7 @@ export function registerAsides(ctx: Context): void {
       if (!result.ok) throw result.error
     })
     scope.effect(() => () => inline.dispose(), 'conversation: inline questions')
-    scope.effect(() => scope.remote.$on('api-session/deleted', (id) => {
+    scope.on('client-session/deleted', (id) => {
       inline.hide(id)
       for (const [parent, state] of inline.state.getSnapshot()) {
         if (state.status === 'ready' && state.reference.sessionId === id) inline.hide(parent)
@@ -210,7 +210,7 @@ export function registerAsides(ctx: Context): void {
       for (const tab of scope.sidebarRight.openTabs.getSnapshot()) {
         if (tab.sessionId === id || (tab.sessionId === parent && tab.kind === 'aside')) scope.sidebarRight.close(tab.tabId)
       }
-    }), 'conversation: deleted aside resources')
+    })
     const provider: ResourceProvider<'aside'> = {
       protocol: 'aside',
       async *open(address, { signal }) {
