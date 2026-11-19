@@ -61,8 +61,9 @@ function Wait-Exit {
         Start-Sleep -Milliseconds 100
     }
 }
-function Assert-ShortcutIdentity {
+function Assert-ShortcutIdentity([string]$Location = $installPath) {
     $shell = New-Object -ComObject Shell.Application
+    $app = Join-Path $Location ($ProductName + '.exe')
     try {
         foreach ($path in $shortcutPaths) {
             if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Shortcut is missing: $path" }
@@ -73,6 +74,9 @@ function Assert-ShortcutIdentity {
                 $item = $folder.ParseName([IO.Path]::GetFileName($path))
                 if ($null -eq $item -or $item.ExtendedProperty('System.AppUserModel.ID') -cne $appId) {
                     throw "Shortcut AppID differs: $path"
+                }
+                if ($item.ExtendedProperty('System.Link.TargetParsingPath') -ne $app) {
+                    throw "Shortcut target differs: $path"
                 }
             } finally {
                 if ($null -ne $item) { [void][Runtime.InteropServices.Marshal]::ReleaseComObject($item) }
@@ -89,8 +93,8 @@ function Assert-SeededFile([string]$Path, [string]$Content, [bool]$Retained, [st
         throw "Retained file contents changed for $Case at $Path"
     }
 }
-function Invoke-SilentSetup([int]$ExpectedExitCode, [string]$Options = '') {
-    $setup = Start-Process -FilePath $Installer -ArgumentList ("/S $Options /D=" + $installPath) -PassThru -WindowStyle Hidden
+function Invoke-SilentSetup([int]$ExpectedExitCode, [string]$Options = '', [string]$Destination = $installPath) {
+    $setup = Start-Process -FilePath $Installer -ArgumentList ("/S $Options /D=" + $Destination) -PassThru -WindowStyle Hidden
     try {
         if (-not $setup.WaitForExit(30000)) { $setup.Kill(); $setup.WaitForExit(); throw 'Setup timed out' }
         if ($setup.ExitCode -ne $ExpectedExitCode) {
@@ -178,6 +182,67 @@ function Assert-VersionGuard {
     }
 }
 
+function Assert-Relocation {
+    $runtime = 'resources/app.asar'
+    $original = [IO.File]::ReadAllText((Join-Path $installPath $runtime))
+    Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
+
+public static class InstallerDirectoryLock {
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern SafeFileHandle CreateFile(
+        string path, uint access, uint share, IntPtr security, uint disposition, uint flags, IntPtr template);
+}
+'@
+    $locked = Join-Path $OutputDirectory 'Locked installation'
+    [void][IO.Directory]::CreateDirectory($locked)
+    $handle = [InstallerDirectoryLock]::CreateFile($locked, 1, 3, [IntPtr]::Zero, 3, 0x02000000, [IntPtr]::Zero)
+    try {
+        if ($handle.IsInvalid) { throw "Could not lock the fixture destination: $([Runtime.InteropServices.Marshal]::GetLastWin32Error())" }
+        Invoke-SilentSetup 2 -Destination $locked
+    } finally {
+        $handle.Dispose()
+    }
+    $reports = @(Get-ChildItem -LiteralPath (Join-Path $cachePath 'installer-logs') -File -Filter 'directory-failure-*.log')
+    if ($reports.Count -ne 1) { throw 'The failed promotion did not write one directory report' }
+    $report = Get-Content -LiteralPath $reports[0].FullName -Raw -Encoding UTF8
+    if (-not $report.Contains('Operation: RemoveDirectoryW') -or -not $report.Contains("Source: $locked")) {
+        throw 'The failure report does not identify the blocked destination'
+    }
+    Assert-SeededFile (Join-Path $installPath $runtime) $original $true 'blocked relocation'
+    if ((Get-ItemPropertyValue -LiteralPath $entryKey -Name InstallLocation) -ne $installPath) {
+        throw 'Failed promotion changed the original registration'
+    }
+    Write-Output 'passed: failed promotion kept the original installation and registration'
+
+    $nested = Join-Path $installPath 'Nested installation'
+    Invoke-SilentSetup 2 -Destination $nested
+    Assert-SeededFile (Join-Path $installPath $runtime) $original $true 'nested relocation'
+    if (((Test-Path -LiteralPath $nested) -and @(Get-ChildItem -LiteralPath $nested -Force).Count -ne 0) -or
+        (Get-ItemPropertyValue -LiteralPath $entryKey -Name InstallLocation) -ne $installPath) {
+        throw 'Rejected relocation installed files or changed the original registration'
+    }
+    Write-Output 'passed: refused nested relocation and preserved the old payload'
+
+    $destination = "$installPath moved"
+    Invoke-SilentSetup 0 -Destination $destination
+    Assert-SeededFile (Join-Path $destination $runtime) $original $true 'disjoint relocation'
+    if ((Test-Path -LiteralPath $installPath) -or
+        (Get-ItemPropertyValue -LiteralPath $entryKey -Name InstallLocation) -ne $destination) {
+        throw 'Relocation did not retire the old installation and register the new destination'
+    }
+    Assert-ShortcutIdentity $destination
+    Invoke-SilentSetup 0
+    Assert-SeededFile (Join-Path $installPath $runtime) $original $true 'return relocation'
+    Assert-SeededFile (Join-Path $homePath 'session.txt') 'keep session' $true 'disjoint relocation'
+    Assert-SeededFile (Join-Path $officialHomePath 'session.txt') 'keep official session' $true 'disjoint relocation'
+    if (Test-Path -LiteralPath $destination) { throw 'Return relocation left the other installation in place' }
+    Assert-ShortcutIdentity
+    Write-Output 'passed: relocated to a sibling directory and back with the same data and correct shortcuts'
+}
+
 try {
     Assert-VersionResource $Installer
     foreach ($mode in $expected.cases) {
@@ -211,6 +276,7 @@ try {
             $env:DSH_UNCENSORED_HOME = $homePath
             $env:DSH_HOME = $officialHomePath
             Assert-VersionGuard
+            Assert-Relocation
         }
         Copy-Item -LiteralPath (Join-Path $installPath ('Uninstall ' + $ProductName + '.exe')) -Destination $uninstaller -Force
         Assert-VersionResource $uninstaller

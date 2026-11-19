@@ -47,7 +47,7 @@ export function directoryInstallerShortcuts(source) {
 /**
  * Preserve upstream registration and uninstall UI while replacing payload installation.
  * @param {string} source - Pinned electron-builder installSection.nsh contents.
- * @returns {string} Section with staging before shutdown and directory promotion before registration.
+ * @returns {string} Section that stages before shutdown and promotes before uninstalling a separate installation.
  */
 export function directoryInstallSection(source) {
   let result = source.replaceAll('\r\n', '\n')
@@ -69,7 +69,8 @@ export function directoryInstallSection(source) {
 !macroend`)
   result = replaceOnce(result, '!insertmacro setLinkVars', `!insertmacro setLinkVars
 !insertmacro dshStageApplication`)
-  result = replaceOnce(result, '!insertmacro installApplicationFiles', `Push $1
+  result = replaceOnce(result, '!insertmacro installApplicationFiles', '')
+  result = replaceOnce(result, '!insertmacro uninstallOldVersion SHELL_CONTEXT', `Push $1
 Push $2
 Call InstallerRegisteredDirectory
 StrCpy $dshRegisteredDirectory $1
@@ -78,7 +79,8 @@ Pop $1
 Call dshPromoteDirectories
 IfErrors 0 +3
   SetErrorLevel 2
-  Quit`)
+  Quit
+!insertmacro uninstallOldVersion SHELL_CONTEXT`)
   result = replaceOnce(result, '!ifdef UNINSTALLER_ICON\n  File /oname=uninstallerIcon.ico "${UNINSTALLER_ICON}"\n!endif\n', '')
   // The staging macro uses the upstream installer macro, including its signed uninstaller.
   return result

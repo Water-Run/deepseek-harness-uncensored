@@ -138,6 +138,16 @@ Function InstallerPreflight
     StrCpy $INSTDIR $InstallerPath
     Call InstallerRegisteredDirectory
     ${If} $1 != $INSTDIR
+        ReadRegStr $2 HKCU "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+        ${If} $2 != ""
+            System::Call 'shlwapi::PathIsPrefixW(w r2, w "$INSTDIR") i.r3'
+            System::Call 'shlwapi::PathIsPrefixW(w "$INSTDIR", w r2) i.r4'
+            ${If} $3 != 0
+            ${OrIf} $4 != 0
+                StrCpy $InstallerError "$(INSTALLER_PATH_OWNERSHIP)"
+                Return
+            ${EndIf}
+        ${EndIf}
         FindFirst $0 $1 "$INSTDIR\*.*"
         ${DoWhile} $1 != ""
             ${If} $1 != "."
