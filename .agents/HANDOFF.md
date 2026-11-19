@@ -16,6 +16,8 @@
 
 当前交付 [Windows x64 首发打包交接](requirements/windows-x64-first-release.md)。首发完整候选仍待构建与实装，rc.5 升级暂缓。真实目标保护、资源物理身份、关机与重启以及许可证事项按清单推进。内核和界面验证见 [rc.5 适配](requirements/2026-11-18-dsh-rc4.md#上游-rc5-对照2026-11-19)与[可选运行时反馈](requirements/2026-11-18-optional-runtime-feedback.md)。
 
+已复核当前实装、历史安装器和回退文件的摘要。[同一候选的验收单](requirements/windows-x64-first-release.md#同一候选的验收单)列出每项已有证据及需要候选实包验证的内容。
+
 ## Linux 测试与 WSL 状态
 
 Linux x64 验收列入后续版本。继续时使用用户指定的 Fedora 45 x86_64 实体机，经既有 Windows SSH 跳板的 `fedora` 别名访问。连接记录在 `%USERPROFILE%/DSHU-Deliveries/20261118/linux-test-connection.json`。CLI、版本身份、SDK 导入、18.7 依赖及 Frida 预构建已通过，图形界面与门户待验收。打包预检因缺少 `musl-gcc` 退出，工具链源归档已校验。[设备与回收记录](requirements/2026-11-18-linux-test-host.md)
