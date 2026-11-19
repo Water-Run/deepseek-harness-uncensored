@@ -56,12 +56,22 @@ async function main() {
     updater.on('error', error => errors.push(error.code))
     updater.quitAndInstall = forbidden
     let authorized = false
+    let waitForLaunch = async () => {}
+    const handoffOrder = []
     const coordinator = new DesktopUpdateCoordinator(state => { states.push(state); return state },
-      async () => authorized, updater, () => true, () => '1.0.0', undefined, 'nightly', undefined, readSource, undefined, {
-        async launch(file) { assert.equal(file, updater.installerPath); installed++ },
-        quit() {},
+      async () => authorized, updater, () => true, () => '1.0.0', undefined, 'nightly', undefined, readSource,
+      () => () => { handoffOrder.push('quit ownership transferred') }, {
+        async launch(file) {
+          assert.equal(file, updater.installerPath)
+          handoffOrder.push('launch requested')
+          await waitForLaunch()
+          installed++
+          handoffOrder.push('launch acknowledged by fixture')
+        },
+        quit() { handoffOrder.push('quit requested') },
       })
-    const f = { coordinator, updater, logs, errors, states, directory, authorize: () => { authorized = true } }
+    const f = { coordinator, updater, logs, errors, states, directory, handoffOrder,
+      authorize: () => { authorized = true }, holdLaunch: handler => { waitForLaunch = handler } }
     fixtures.push(f)
     return f
   }
@@ -79,6 +89,7 @@ async function main() {
     assert.ok(f.errors.includes(code), `Expected updater rejection ${code}, received ${f.errors}`)
     assert.ok(!f.states.some(item => item.phase === 'ready'))
     await assert.rejects(f.coordinator.install('1.0.1-nightly.1'), /not ready/u)
+    assert.deepEqual(f.handoffOrder, [])
     const cache = await readdir(join(f.directory, 'cache'), { recursive: true })
     assert.ok(!cache.some(file => file.endsWith('.exe')), 'Rejected executables must be removed from cache')
     const count = server.requests.length
@@ -116,8 +127,31 @@ async function main() {
     assert.equal((await unsigned.coordinator.install('1.0.1-nightly.1')).phase, 'ready')
     assert.equal(installed, 0)
     unsigned.authorize()
-    assert.equal((await unsigned.coordinator.install('1.0.1-nightly.1')).phase, 'installing')
+    const launchRequested = Promise.withResolvers()
+    const launchAllowed = Promise.withResolvers()
+    const countSignatureChecks = () => unsigned.logs.filter(line => line.startsWith('Verifying signature ')).length
+    const checksBeforeInstall = countSignatureChecks()
+    unsigned.holdLaunch(() => { launchRequested.resolve(); return launchAllowed.promise })
+    const installing = unsigned.coordinator.install('1.0.1-nightly.1')
+    let installation
+    try {
+      await Promise.race([
+        launchRequested.promise,
+        installing.then(() => { throw new Error('Expected an installer launch request') }),
+      ])
+      assert.equal(countSignatureChecks(), checksBeforeInstall + 1)
+      assert.deepEqual(unsigned.handoffOrder, ['launch requested'])
+      assert.equal(installed, 0)
+    } finally {
+      launchAllowed.resolve()
+      installation = await installing
+    }
+    assert.equal(installation.phase, 'installing')
+    assert.deepEqual(unsigned.handoffOrder, [
+      'launch requested', 'launch acknowledged by fixture', 'quit ownership transferred', 'quit requested',
+    ])
     assert.equal(installed, 1, 'Installation handoff requires separate approval')
+    report.verifiedHandoffOrder = unsigned.handoffOrder
     report.cases.push('explicit-retry-signed-ready-and-separate-install-handoff')
     if (server.artifacts.old) {
       report.differential = []
@@ -190,6 +224,7 @@ async function main() {
         assert.match(state.technicalDetails, failure)
         assert.equal(f.updater.installerPath, null)
         assert.equal(installed, handoffs)
+        assert.deepEqual(f.handoffOrder, [])
         assert.deepEqual(await readdir(pending), [cachedFile])
         const retryStart = server.requests.length
         const retry = await f.coordinator.download('1.0.1-nightly.1')
