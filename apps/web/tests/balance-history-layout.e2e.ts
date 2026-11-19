@@ -117,5 +117,9 @@ describe.each([{ name: 'Chromium', engine: chromium }, { name: 'WebKit', engine:
       await plot.dispatchEvent('pointerout', { pointerType: 'mouse' })
       await tip.waitFor({ state: 'hidden' })
     }
+    await dialog.getByRole('switch', { name: '显示余额并采样' }).click()
+    await plot.waitFor({ state: 'hidden' })
+    await dialog.getByText('余额显示与采样已关闭', { exact: true }).waitFor()
+    await dialog.screenshot({ path: join(screenshots, `${name}-disabled.png`) })
   })
 })

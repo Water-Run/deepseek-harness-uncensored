@@ -119,8 +119,9 @@ export function BalanceSettings({ useBalance, useBalancePreferences, refresh, sa
           onChange={(value) => { void save('source', value) }} />
         <Button variant="ghost" size="sm" disabled={state.loading || !preferences.enabled} onClick={refresh}><IconRefreshOutlineRegular />{t('balance.refresh')}</Button>
       </div>
-      {state.failed && <p role="alert" className={css.error}>{t('balance.failed')}</p>}
-      <BalanceDetails data={state.data} refreshing={state.loading && state.data !== undefined} t={t} />
+      {preferences.enabled && state.failed && <p role="alert" className={css.error}>{t('balance.failed')}</p>}
+      {preferences.enabled ? <BalanceDetails data={state.data} refreshing={state.loading && state.data !== undefined} t={t} />
+        : <p className={css.hint}>{t('balance.disabled')}</p>}
     </div>
     <details className={css.preferences}><summary>{t('balance.sampling')}</summary>
       <PreferenceControlRow title={t('balance.interval')}>

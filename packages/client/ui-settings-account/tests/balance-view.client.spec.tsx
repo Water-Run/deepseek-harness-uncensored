@@ -25,7 +25,7 @@ function fixture(granted = '0') {
     t: (key: keyof typeof en, params?: Record<string, string | number>) =>
       en[key].replace(/\{(\w+)\}/gu, (_, name: string) => String(params?.[name] ?? '')),
   } as Parameters<typeof BalanceSettings>[0]
-  return { props, state }
+  return { props, state, form }
 }
 
 it('keeps the last balance and curve on refresh failure, and omits an empty grant', () => {
@@ -56,6 +56,19 @@ it('links invalid refresh intervals to the field and never saves them', async ()
   fireEvent.change(interval, { target: { value: '3' } })
   await act(async () => { fireEvent.blur(interval) })
   expect(props.save).toHaveBeenCalledWith('refreshSeconds', 3)
+  expect(screen.queryByRole('alert')).toBeNull()
+})
+
+it('shows the disabled message instead of a previous observation or error', () => {
+  const { props, state, form } = fixture()
+  render(<BalanceSettings {...props} />)
+  expect(screen.getByRole('slider', { name: en['balance.curve'] })).toBeTruthy()
+  act(() => {
+    state.set({ ...state.getSnapshot(), failed: true })
+    form.publish({ value: { enabled: false, source: 'api', refreshSeconds: 15 } })
+  })
+  expect(screen.getByText(en['balance.disabled'])).toBeTruthy()
+  expect(screen.queryByRole('slider')).toBeNull()
   expect(screen.queryByRole('alert')).toBeNull()
 })
 

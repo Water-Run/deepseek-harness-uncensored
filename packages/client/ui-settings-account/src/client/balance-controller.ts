@@ -35,11 +35,15 @@ export class BalanceController {
     this.refresh()
   }
 
-  /** Request a refresh; repeated requests coalesce behind the active query. */
+  /** Coalesce repeated reads and hide the observation as soon as sampling is disabled. */
   readonly refresh = (): void => {
     if (this.lifetime.signal.aborted) return
     clearTimeout(this.timer)
     this.revision++
+    if (!this.preferences.getSnapshot().value?.enabled) {
+      this.state.set({ ...this.state.getSnapshot(), data: undefined, loading: false, failed: false })
+      return
+    }
     if (this.pending !== undefined) return
     this.pending = this.run().finally(() => {
       this.pending = undefined
@@ -55,13 +59,8 @@ export class BalanceController {
   }
 
   private async run(): Promise<void> {
-    while (!this.lifetime.signal.aborted) {
+    while (!this.lifetime.signal.aborted && this.preferences.getSnapshot().value?.enabled) {
       const generation = this.revision
-      const preferences = this.preferences.getSnapshot().value
-      if (!preferences?.enabled) {
-        this.state.set({ ...this.state.getSnapshot(), data: undefined, loading: false })
-        return
-      }
       this.state.set({ ...this.state.getSnapshot(), loading: true, failed: false })
       try {
         const data = await this.query()

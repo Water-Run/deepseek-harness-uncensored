@@ -62,3 +62,24 @@ it('coalesces pending refreshes and never republishes the previous account after
   }
   expect(vi.getTimerCount()).toBe(0)
 })
+
+it('hides saved observations immediately when disabled during a refresh', async () => {
+  vi.useFakeTimers()
+  const inFlight = Promise.withResolvers<BalanceSnapshot>()
+  const query = vi.fn().mockResolvedValueOnce(sample('10.00')).mockReturnValue(inFlight.promise)
+  const form = preferences()
+  const controller = new BalanceController(form.scope, query)
+  try {
+    await vi.advanceTimersByTimeAsync(0)
+    controller.refresh()
+    expect(query).toHaveBeenCalledTimes(2)
+    expect(controller.state.getSnapshot().loading).toBe(true)
+    form.publish({ value: { enabled: false, source: 'api', refreshSeconds: 15 } })
+    expect(controller.state.getSnapshot()).toMatchObject({ data: undefined, loading: false, failed: false })
+
+    inFlight.resolve(sample('9.00'))
+    await vi.advanceTimersByTimeAsync(15_000)
+    expect(controller.state.getSnapshot()).toMatchObject({ data: undefined, loading: false, failed: false })
+    expect(query).toHaveBeenCalledTimes(2)
+  } finally { inFlight.resolve(sample('9.00')); await controller.dispose() }
+})
