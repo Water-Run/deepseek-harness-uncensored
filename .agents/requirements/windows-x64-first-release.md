@@ -25,7 +25,9 @@ rc.5 同步提交 `cb93054364cdb4bf16236ae013bcb8b31f70f3ef` 的直接父提交�
 
 在 `75a724026557ccd1c86230bcf211e690600a7fae` 复核 43 份源码的 340 处直接相对路径或工作区别名引用，全部能定位到文件。其中 10 个依赖文件与当前源码有差异。编译夹具确认 rc.4 的旧声明缺少两种安装失败状态及两项额度暂停属性。补齐 `packages/client/ui-settings-general/src/types.ts` 和 `packages/guard/spend-limit/src/types.ts` 的当前声明后，夹具通过，扩到 47 个文件的补丁也通过文本应用检查。三个回执在同一目录的 `direct-import-check.json`、`declarations-compiler-fixture.json` 和 `expanded-text-check.json`。
 
-接手时对照直接引用回执核对其余 8 个依赖差异，再按首发需求补齐其余待迁移项。对实际纳入的源码、依赖锁、类型声明、原生资源和测试一起验收，把结果填入[同一候选的验收单](#同一候选的验收单)。当前通过的是文本应用检查和两份声明的编译夹具，完整 rc.4 候选的类型检查、构建和实装仍待完成。
+其余 8 个文件差异已在 `1d6dfb8e51016ca1c651c65b45083ce25ffdb19e` 核对。迁移选区需补充 6 个桌面文件 `about.ts`、`client-metadata.ts`、`project-manager.ts`、`runtime-tree.ts`、`update-presentation.ts` 和 `update-source.ts`。当前主进程会将安装版本传给运行时读取和项目准备，rc.4 的旧签名缺少这两个参数。`startup-error.ts` 只有注释差异。流量记录使用的 `WebError` 和 `WebFetchResult` 的声明与导出相同，这两个依赖可以沿用 rc.4 基线。
+
+扩到 53 个文件后，文本应用检查通过。对选区的 359 处直接相对路径或工作区别名引用复核后，均可定位，除上述两处可沿用的依赖外未发现新的直接源码差异。回执见同目录的 `desktop-support-check.json`。接手时仍需按首发清单补齐其他功能及传递依赖，并对选定源码、依赖锁、原生资源和测试执行完整候选的类型检查、构建和实装。结果填入[同一候选的验收单](#同一候选的验收单)。
 
 ## 打包前确认
 
