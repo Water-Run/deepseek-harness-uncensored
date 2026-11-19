@@ -90,6 +90,30 @@
     "sha256": "4af93c12062c58058378de2397dc1c92bbff9ddfb1d583a01c84127557ce97ca"
   },
   {
+    "packages": ["frida@17.23.2"],
+    "file": "frida-17.23.2-Capstone-LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/frida/capstone/d536b1577fd033a31d75f48fd183aa425256cc18/LICENSE.TXT",
+    "sha256": "65e9ed46a59976eda8f5bd1ea79a680dea38dd299c760bc9a8d87a764ef5029b"
+  },
+  {
+    "packages": ["frida@17.23.2"],
+    "file": "frida-17.23.2-Capstone-LLVM-LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/frida/capstone/d536b1577fd033a31d75f48fd183aa425256cc18/LICENSE_LLVM.TXT",
+    "sha256": "dfdca2d7fdbabfd937f9dc41b7f61647b0e6cb1f9ee767ecb4520f979ebe91da"
+  },
+  {
+    "packages": ["frida@17.23.2"],
+    "file": "frida-17.23.2-V8-fdlibm-LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/frida/v8/a07af892420dfd873b33bd4ce4ba9d963072e1b9/LICENSE.fdlibm",
+    "sha256": "e7115e18444dae09d17f361ddc365fb1d342640fe500796209c63f7c80dfae10"
+  },
+  {
+    "packages": ["frida@17.23.2"],
+    "file": "frida-17.23.2-V8-strongtalk-LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/frida/v8/a07af892420dfd873b33bd4ce4ba9d963072e1b9/LICENSE.strongtalk",
+    "sha256": "6a585a9f466654abc8fc0829d56b1bc987e3a073d31faa03bba37d33640a23cd"
+  },
+  {
     "packages": ["@aws-sdk/credential-provider-http@3.972.82", "@aws-sdk/credential-provider-login@3.972.87", "@aws-sdk/nested-clients@3.997.54"],
     "file": "aws-sdk-js-v3-Apache-2.0.txt",
     "source": "https://raw.githubusercontent.com/aws/aws-sdk-js-v3/258c14447eefd8e028db1a50ab49aac8312c0af9/LICENSE",

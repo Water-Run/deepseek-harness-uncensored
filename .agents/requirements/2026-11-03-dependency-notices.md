@@ -26,6 +26,12 @@ Windows 与 Linux x64 的 Frida 17.23.2 预构建归档均与官方发行摘要�
 
 用 Windows 18.11 的 920 个实装依赖复算，包含此前待分发的文本，补充声明合计 29 份。19 项清点器测试通过，实装 ASAR 摘要一致。Frida 仍保留待核查标记，Windows 待核查共 6 项。回执及复算脚本位于 `%USERPROFILE%/DSHU-Deliveries/20261119/frida-runtime-notices/`。新增文本已进入后续源码打包路径。
 
+### Capstone 与 V8 衍生代码原文
+
+Frida 17.23.2 的 Gum 构建配置与 SDK 同时固定 Capstone 提交 `d536b1577f`。Windows 和 Linux x64 的官方归档均复核摘要，两个二进制均含 Capstone 和 V8 标识。为该版本补入 Capstone 本体与所附 LLVM 声明，以及固定 V8 提交的 fdlibm、Strongtalk 声明。四份文件与对应 Git blob 逐字一致。[Gum 固定配置](https://raw.githubusercontent.com/frida/frida-gum/2b0e6a661702097d77474223ebc429ece092cb46/subprojects/capstone.wrap) · [V8 声明](https://raw.githubusercontent.com/frida/v8/a07af892420dfd873b33bd4ce4ba9d963072e1b9/LICENSE) · [声明来源清单](../../LICENSES/npm/sources.json)
+
+用 Windows 18.11 的 920 个实装依赖复算，补充声明合计 33 份，待核查仍为 6 项。19 项清点器测试通过，实装 ASAR 摘要一致。新增声明的实包分发及其余 Frida 组件署名仍待核查。回执为 `%USERPROFILE%/DSHU-Deliveries/20261119/frida-derived-notices/`。
+
 ## Windows 18.4 实装依赖路径
 
 实装中 LibreOffice Kit 0.2.3 引入 Fontkit 2.0.4，后者引入 Brotli 1.3.3 和 dfa 1.2.0。HTTP 与 HTTPS Proxy Agent 9.1.0 均引入 proxy-agent-negotiate 1.1.0。REA 6.9.0 引入 Frida 17.23.2，isomorphic-git 1.38.7 引入 minimisted 2.0.1。入口分别对应 Office、代理、REA 和 Git，后续替换须验证受影响的功能。实装清单与路径回执位于 `%USERPROFILE%/DSHU-Deliveries/20261118/candidate-2026.11.18.4/installed-notice-inventory.json`。
@@ -202,7 +208,7 @@ Linux `.3` 实包原清单为 861 个 npm 包和 12 项待核查。`@deepseek-ai
 | brotli 1.3.3 | Windows/Linux | 已补 Google 解码器、固定子模块和 Emscripten 运行时声明，包装代码原始署名、精确编译器版本及链接组件清单待核对 |
 | dfa 1.2.0 | Windows/Linux | 已补 PEG.js 0.10.0 解析器许可原文。dfa 本体署名仍待核对 |
 | fontkit 2.0.4 | Windows/Linux | 已补八张 Mac 编码表的归属声明和 Base64 解码器的 MIT 原文。Fontkit 本体原文与 Apple 数据分发条款仍待核对 |
-| frida 17.23.2 | Windows/Linux | 已补 QuickJS 与 V8 原文。Node 绑定和其余内嵌组件的完整署名仍待核查 |
+| frida 17.23.2 | Windows/Linux | 已补 QuickJS、V8、Capstone 与所附 LLVM 声明。Node 绑定和其余内嵌组件的完整署名仍待核查 |
 | minimisted 2.0.1 | Windows/Linux | REA 明确记录的上游原文/署名缺项，保留待核查 |
 | proxy-agent-negotiate 1.1.0 | Windows/Linux | 发布包与对应 tag 没有本包许可文件；相邻代理包文件不能未经核准直接替用 |
 | @img/sharp-libvips-linux-x64 1.3.4 | Linux | 已补 Sharp 第三方清单及匹配的 libvips 原文；内嵌库署名与发行要求仍待复核 |
