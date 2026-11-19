@@ -72,6 +72,24 @@
     "sha256": "8147956dd2d78744a052bc0d6490bbefe21e18b325a096fb13b3768b74458b55"
   },
   {
+    "packages": ["frida@17.23.2"],
+    "file": "frida-17.23.2-QuickJS-MIT.txt",
+    "source": "https://raw.githubusercontent.com/frida/quickjs/247bfdcbd3c58171af060351d7587541d05989fd/LICENSE",
+    "sha256": "598fd7fc928e4350abce36e337ba5a1346923c5c692f5be92c3d8e29ddd7c18d"
+  },
+  {
+    "packages": ["frida@17.23.2"],
+    "file": "frida-17.23.2-V8-LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/frida/v8/a07af892420dfd873b33bd4ce4ba9d963072e1b9/LICENSE",
+    "sha256": "ac83eb3d4373deb63bbbd834f2fc355a70de18375c49d310b09d9ff7ffb14229"
+  },
+  {
+    "packages": ["frida@17.23.2"],
+    "file": "frida-17.23.2-V8-LICENSE.v8.txt",
+    "source": "https://raw.githubusercontent.com/frida/v8/a07af892420dfd873b33bd4ce4ba9d963072e1b9/LICENSE.v8",
+    "sha256": "4af93c12062c58058378de2397dc1c92bbff9ddfb1d583a01c84127557ce97ca"
+  },
+  {
     "packages": ["@aws-sdk/credential-provider-http@3.972.82", "@aws-sdk/credential-provider-login@3.972.87", "@aws-sdk/nested-clients@3.997.54"],
     "file": "aws-sdk-js-v3-Apache-2.0.txt",
     "source": "https://raw.githubusercontent.com/aws/aws-sdk-js-v3/258c14447eefd8e028db1a50ab49aac8312c0af9/LICENSE",
