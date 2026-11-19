@@ -1,6 +1,6 @@
 # DSHU 开发交接
 
-**本地 2026.11.18.11 已保留资料安装并启动。** 当前 36 项完成、9 项进行中及 3 项未来计划。[开发清单](TODO.md)
+**本地 2026.11.18.11 已保留资料安装并启动。** 首次正式发布计划为 Windows x64。当前 36 项完成、8 项进行中、4 项列入后续版本。[开发清单](TODO.md)
 
 ## 当前交付
 
@@ -14,11 +14,11 @@
 
 ## 当前开发
 
-保护文件监听的原生触发与规则撤销见 [Windows 18.3 实包记录](requirements/2026-11-18.3-delivery.md)。rc.4 的 Linux 新包及实体机图形和门户验收仍待进行。其余保护执行、资源物理身份、关机/重启、发行与许可证事项继续按完整清单推进。内核和界面改动的边界及验证见 [rc.4 适配](requirements/2026-11-18-dsh-rc4.md)与[可选运行时反馈](requirements/2026-11-18-optional-runtime-feedback.md)。
+当前优先推进 Windows rc.5 候选、实装回归与发行材料。真实目标保护、资源物理身份、关机与重启以及许可证事项按清单推进。内核和界面验证见 [rc.5 适配](requirements/2026-11-18-dsh-rc4.md#上游-rc5-对照2026-11-19)与[可选运行时反馈](requirements/2026-11-18-optional-runtime-feedback.md)。
 
 ## Linux 测试与 WSL 状态
 
-后续 Linux 测试转到用户指定的 Fedora 45 x86_64 实体设备，通过既有 Windows SSH 跳板的 `fedora` 别名访问。连接和部署信息在 `%USERPROFILE%/DSHU-Deliveries/20261118/linux-test-connection.json`；CLI、版本身份和 SDK 导入已经通过，图形界面与门户尚未验收。18.7 的依赖安装和 Frida 官方预构建核验已通过。打包预检因缺少 `musl-gcc` 退出。已校验私有工具链的源归档，按用户安排等设备晚上上线后继续打包和原生桌面验收。[设备与回收记录](requirements/2026-11-18-linux-test-host.md)
+Linux x64 验收列入后续版本。继续时使用用户指定的 Fedora 45 x86_64 实体机，经既有 Windows SSH 跳板的 `fedora` 别名访问。连接记录在 `%USERPROFILE%/DSHU-Deliveries/20261118/linux-test-connection.json`。CLI、版本身份、SDK 导入、18.7 依赖及 Frida 预构建已通过，图形界面与门户待验收。打包预检因缺少 `musl-gcc` 退出，工具链源归档已校验。[设备与回收记录](requirements/2026-11-18-linux-test-host.md)
 
 本机 WSL 的 DSHU 专用缓存已经归档并清理，文件系统净增加约 153.2 GiB 空闲。三个工作区及 32 条 stash 已验证可恢复，备份在 `%USERPROFILE%/DSHU-Backups/20261118-wsl-retirement/`，恢复时须同时保留归档和 `borrowed-objects/`。旧 `/home/linzh/.cache/dshu-verification` 路径已移除，不再启动本机 WSL 或调用旧 Linux 构建脚本。
 

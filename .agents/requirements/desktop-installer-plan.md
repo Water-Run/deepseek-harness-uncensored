@@ -1,10 +1,10 @@
 # 桌面安装器计划
 
-更新：2026-11-11。对应 [完整编号清单](development-checklist.md) 的 `02.04`、`02.06`、`02.09` 及 [02.11](2026-11-01-upstream-installer.md#0211-安装器明确属于独立-dshu)。Windows 现有安装器继续完善，Linux x64 正在适配与验收。全新安装器架构和 Android 草案仍为计划。
+更新：2026-11-19。对应 [完整编号清单](development-checklist.md) 的 `02.04`、`02.06`、`02.09` 及 [02.11](2026-11-01-upstream-installer.md#0211-安装器明确属于独立-dshu)。首次正式发布计划交付 Windows x64，继续使用现有 NSIS 安装器。
 
 ## 交付矩阵
 
-优先级固定为 Windows x64 Desktop → Linux x64 Desktop → macOS ARM Desktop → Android＋PRoot Fedora。Windows 已完成多轮本机检查版交付。Linux 已完成干净源码打包与 Ubuntu WSL2 的 deb 验收。macOS 和 Android 尚未完成桌面发行验收。Android 草案与验收项见 [追加需求](2026-10-25-followups.md#平台交付矩阵)。
+首次正式发布计划为 Windows x64 Desktop，待办见 [Windows 首发缺口](../TODO.md#windows-首发缺口)。Linux x64 Desktop 列入后续版本，已有历史包及 Ubuntu WSL2 的 deb 验收记录，下一阶段在 Fedora 实体机验收。macOS ARM Desktop、Android＋PRoot Fedora 和全新安装器仍在后续计划。Android 草案见 [追加需求](2026-10-25-followups.md#平台交付矩阵)。
 
 ## 目标
 
@@ -12,7 +12,7 @@
 - 每一阶段留下可复核的证据；证据缺失的阶段不算完成，也不许用 Web 页面替代桌面验收。
 - 打包、签名、上传、发布是四个不同动作，本计划默认停在「本机可安装」，越界需要单独授权。
 
-## 本轮本机交付
+## 2026-11-11 本机交付记录
 
 Windows 已安装检查版 `0.1.0-test.20261111.7`，源码 `21b1f17ae0`，产品版本 0.1.0、内核 DSH 0.2.2-rc.1、内置 REA 6.8.0。原位升级后重新打开，7,270 个用户文件及官方版 EXE/ASAR 哈希一致。实际安装器两层归档、声明文本和完整运行时校验通过。系统安装目录通过四模式就绪、新建会话及命令执行测试，独立卸载项、深链与快捷方式正确。上轮 `.6` 已验收桌面侧栏和三个浏览器的 HTTPS 正反例、终端代理及 SSH 回环；同内核检查包回退与再升级亦有记录。跨数据格式回退、系统重启、签名更新与全新电脑仍待验收。产物、备份与验证记录见 [HANDOFF](../HANDOFF.md)。
 
