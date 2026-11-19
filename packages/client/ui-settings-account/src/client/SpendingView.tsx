@@ -169,7 +169,12 @@ export function SpendingSidebar({ useSpending, wide, resumeSpending, refreshSpen
   const blocked = data !== undefined && hasBlockedSessions(data)
   const label = t(state.failed ? 'spending.failedShort' : blocked
     ? (data.waiting > 0 ? 'spending.pausedWaiting' : 'spending.pausedShort') : 'spending.waiting', { count: data?.waiting ?? 0 })
-  if (!wide) return <Tooltip label={label}><button className={css.railStatus} aria-label={blocked ? t('spending.resume') : t('spending.retry')} disabled={state.saving} onClick={() => { if (blocked && !state.failed) void resumeSpending(); else refreshSpending() }}><LimitIcon /></button></Tooltip>
+  if (!wide) {
+    const canResume = blocked && !state.failed
+    const action = t(state.failed ? 'spending.retry' : canResume ? 'spending.resume' : 'spending.refresh')
+    return <Tooltip label={label}><button className={css.railStatus} aria-label={action} disabled={state.saving}
+      onClick={canResume ? () => { void resumeSpending() } : refreshSpending}><LimitIcon /></button></Tooltip>
+  }
   return <div className={css.sidebar} data-failed={state.failed} role="status">
     <span className={css.noticeIcon}><LimitIcon /></span><span className={css.noticeText}>{label}</span>
     {state.failed ? <Button size="sm" variant="ghost" onClick={refreshSpending}>{t('spending.retry')}</Button> : blocked && <Button size="sm" variant="ghost" disabled={state.saving} onClick={() => { void resumeSpending() }}>{t('spending.resume')}</Button>}

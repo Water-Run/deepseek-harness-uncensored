@@ -154,3 +154,23 @@ it('keeps the waiting count and recovery action in the compact sidebar notice', 
   fireEvent.click(screen.getByRole('button', { name: en['spending.resume'] }))
   expect(resumeSpending).toHaveBeenCalledOnce()
 })
+
+it('labels the narrow sidebar action as a retry after a failed read of a paused ledger', () => {
+  const { state, props, refreshSpending, resumeSpending } = fixture(['5h'], false)
+  const data = state.getSnapshot().data!
+  state.set({ ...state.getSnapshot(), failed: true, data: { ...data, paused: true, waiting: 1 } })
+  render(<SpendingSidebar {...props} wide={false} />)
+  fireEvent.click(screen.getByRole('button', { name: en['spending.retry'] }))
+  expect(refreshSpending).toHaveBeenCalledOnce()
+  expect(resumeSpending).not.toHaveBeenCalled()
+})
+
+it('offers a status refresh while the narrow sidebar is only waiting for reservations', () => {
+  const { state, props, refreshSpending, resumeSpending } = fixture(['5h'], false)
+  const data = state.getSnapshot().data!
+  state.set({ ...state.getSnapshot(), data: { ...data, pending: 1, waiting: 1 } })
+  render(<SpendingSidebar {...props} wide={false} />)
+  fireEvent.click(screen.getByRole('button', { name: 'Refresh limit status' }))
+  expect(refreshSpending).toHaveBeenCalledOnce()
+  expect(resumeSpending).not.toHaveBeenCalled()
+})

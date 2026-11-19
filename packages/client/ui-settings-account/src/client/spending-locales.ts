@@ -39,6 +39,7 @@ export const spendingEn = {
   'spending.resume': 'Resume', 'spending.reset': 'Reset statistics', 'spending.resetConfirm': 'Confirm reset', 'spending.resetHint': 'Clear completed estimates and the manual pause. Active requests keep their reservations.',
   'spending.cancel': 'Cancel', 'spending.save': 'Save limits', 'spending.invalid': 'Enter an amount from 0.000001 to 1,000,000 CNY',
   'spending.failed': 'Could not read spending limits. Retry; displayed data may be stale.', 'spending.retry': 'Retry',
+  'spending.refresh': 'Refresh limit status',
   'spending.saved': 'Spending limits updated', 'spending.saveFailed': 'Could not update spending limits. Retry.', 'spending.loading': 'Loading spending limits',
 } as const
 /** Simplified Chinese spending labels. */
@@ -82,5 +83,6 @@ export const spendingZh: Record<keyof typeof spendingEn, string> = {
   'spending.resume': '恢复请求', 'spending.reset': '重置统计', 'spending.resetConfirm': '确认重置', 'spending.resetHint': '清除已完成的费用估算和手动暂停状态。在途请求仍保留预留额度。',
   'spending.cancel': '取消', 'spending.save': '保存限额', 'spending.invalid': '请输入 0.000001 至 1,000,000 元的金额',
   'spending.failed': '无法读取额度限制，请重试；当前显示的数据可能已过期', 'spending.retry': '重试',
+  'spending.refresh': '刷新额度状态',
   'spending.saved': '额度限制已更新', 'spending.saveFailed': '额度限制更新失败，请重试', 'spending.loading': '正在读取额度限制',
 }
