@@ -31,6 +31,10 @@ rc.5 同步提交 `cb93054364cdb4bf16236ae013bcb8b31f70f3ef` 的直接父提交�
 
 在独立 Windows 临时目录中，用 rc.4 基线的四个支持文件，配合 `0b8c1dcd39a6b4bf0f31ce11bdf88d00c49a7c8d` 的运行时树和客户端元数据修复，运行了两个所属测试文件。35 项全部通过，覆盖运行时平台、版本、Host 入口内容校验及客户端版本缺失处理。运行时外部依赖 `semver` 与两个提交的锁文件一致。逐文件 Git blob 和测试汇总见同目录的 `desktop-runtime-fixture.json`。验收范围是两个模块及测试依赖。
 
+更新下载器新增了对 `builder-util-runtime@9.7.0` 的直接引用。迁移时同时更新 `apps/desktop/package.json` 和 rc.4 锁文件的 `apps/desktop` importer，锁定 `9.7.0(supports-color@9.4.0)`。rc.4 已经通过 `electron-updater` 锁定同一版本。原有包记录、完整性值和快照与 `81f637fa88906218bc5313728da21100b05408e2` 一致，可复用。桌面清单补丁也通过了应用检查。
+
+使用该依赖和选定的 rc.4 源码组合隔离运行了 61 项测试，覆盖 Windows 发布者配置、更新提示、频道切换、下载与独立安装确认。协调器测试使用模拟更新器。结果与逐文件来源见同目录的 `desktop-update-fixture.json`。实际签名、在线更新和实装仍填入候选验收单。
+
 ## 打包前确认
 
 1. 固定 DSHU 的源码提交和依赖锁。记录 Windows x64 构建环境、日期版本、上游 DSH 和 REA 的版本及提交。关于页、CLI、安装器与 Windows 登记应显示同一个 DSHU 日期版本。
