@@ -1,6 +1,6 @@
 import { mkdtemp, rm } from 'node:fs/promises'
 import { createServer, request as httpRequest, type Server } from 'node:http'
-import { getGlobalDispatcher, ProxyAgent } from 'undici'
+import { getGlobalDispatcher, ProxyAgent, Response } from 'undici'
 import { connect as netConnect, type Socket } from 'node:net'
 import type { Duplex } from 'node:stream'
 import { tmpdir } from 'node:os'
@@ -390,6 +390,57 @@ describe('capture controls', () => {
       })
     } finally {
       await target.close()
+    }
+  })
+
+  it('keeps HTTP metadata when the forwarded response fails after a chunk', async () => {
+    const capture = new CaptureStore(() => ({ maxFlows: 50, maxBodyBytes: 4_096, retentionMs: 600_000 }))
+    const fail = Promise.withResolvers<boolean>()
+    const chunk = new TextEncoder().encode('sample')
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) { controller.enqueue(chunk) },
+      async pull(controller) {
+        await fail.promise
+        controller.error(new Error('Fixture response stopped'))
+      },
+    })
+    const proxy = await SessionChainProxy.start({
+      sessionId: 'fixture',
+      tool: () => 'fixture',
+      signal: () => new AbortController().signal,
+      retainExecution: () => () => {},
+      requestHttp: async () => ({
+        response: new Response(stream, { status: 200, headers: { 'content-type': 'text/plain', 'set-cookie': 'session=fixture' } }),
+        close: async () => {},
+      }),
+      openTunnel: async () => { throw new Error('Fixture only serves HTTP') },
+      capture,
+      paused: undefined,
+      timeoutMs: 4_000,
+    })
+    try {
+      const status = await new Promise<number>((resolve, reject) => {
+        const request = httpRequest({ host: '127.0.0.1', port: proxy.port, path: 'http://fixture.test/' }, (response) => {
+          response.once('data', () => { fail.resolve(true) })
+          response.once('error', () => { resolve(response.statusCode ?? 0) })
+          response.once('end', () => { reject(new Error('Fixture expected an incomplete response')) })
+        })
+        request.on('error', reject)
+        request.setTimeout(4_000, () => { request.destroy(new Error('Fixture request timed out')) })
+        request.end()
+      })
+      expect(status).toBe(200)
+      const [detail] = capture.snapshot({}, false).flows
+      expect(detail).toMatchObject({
+        status: 200,
+        outcome: 'error',
+        responseBytes: chunk.byteLength,
+        responseBody: null,
+        responseHeaders: expect.arrayContaining([{ name: 'set-cookie', value: '[redacted]' }]),
+      })
+    } finally {
+      fail.resolve(true)
+      await proxy.close()
     }
   })
 })

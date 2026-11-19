@@ -193,6 +193,8 @@ export class SessionChainProxy {
     }
     const headers = forwardHeaders(request.headers)
     let body: Buffer | undefined
+    let upstreamResponse: PinnedResponse['response'] | undefined
+    let responseBytes = 0
     let release: (() => void) | undefined
     const disconnected = new AbortController()
     const onClose = () => { if (!response.writableFinished) disconnected.abort(new Error('Proxy caller disconnected.')) }
@@ -210,14 +212,13 @@ export class SessionChainProxy {
         headers,
         ...body === undefined ? {} : { body: new Uint8Array(body) },
       }, signal)
-      const upstreamResponse = exchange.response
+      upstreamResponse = exchange.response
       try {
         const responseHeaders = Object.fromEntries(
           [...upstreamResponse.headers].filter(([name]) => !HOP_BY_HOP.has(name.toLowerCase()) && name.toLowerCase() !== 'content-encoding' && name.toLowerCase() !== 'content-length'),
         )
         response.writeHead(upstreamResponse.status, responseHeaders)
         const captured: Uint8Array[] = []
-        let responseBytes = 0
         let capturedBytes = 0
         const maxCapture = 1_048_576
         if (upstreamResponse.body !== null) {
@@ -263,7 +264,13 @@ export class SessionChainProxy {
       } finally { await exchange.close() }
     } catch (error: unknown) {
       const failure = error instanceof UpstreamFailure ? error : new UpstreamFailure('unreachable', describeFailure(error), { cause: error })
-      this.record(errorInput(this.options, started, parsed.toString(), request, startedAt, body, failure, error))
+      this.record({
+        ...errorInput(this.options, started, parsed.toString(), request, startedAt, body, failure, error),
+        status: upstreamResponse?.status ?? null,
+        responseBytes,
+        responseHeaders: upstreamResponse === undefined ? [] : [...upstreamResponse.headers],
+        contentType: upstreamResponse?.headers.get('content-type') ?? null,
+      })
       if (response.headersSent) response.destroy()
       else {
         response.writeHead(policyStatus(error), { 'content-type': 'text/plain; charset=utf-8' })

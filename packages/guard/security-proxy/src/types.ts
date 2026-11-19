@@ -143,7 +143,7 @@ export interface SecurityProxyFlowSummary {
   readonly method: string
   /** Absolute URL for `http` flows; `host:port` for tunnels. */
   readonly target: string
-  /** Response status; null for tunnels and unfinished exchanges. */
+  /** HTTP status received from upstream, including responses that fail after headers. Null when unavailable or for tunnels. */
   readonly status: number | null
   readonly durationMs: number | null
   readonly requestBytes: number
