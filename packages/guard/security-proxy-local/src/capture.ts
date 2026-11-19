@@ -11,6 +11,7 @@
 
 import { randomUUID } from 'node:crypto'
 import type {
+  SecurityProxyBodyLimits,
   SecurityProxyFlowDetail,
   SecurityProxyCaptureExport,
   SecurityProxyExportQuery,
@@ -67,6 +68,7 @@ export interface CapturedExchange {
   readonly requestBody: string | null
   readonly responseBody: string | null
   readonly bodyTruncated: boolean
+  readonly bodyLimits?: SecurityProxyBodyLimits
   readonly contentType: string | null
 }
 
@@ -244,16 +246,25 @@ export class CaptureStore {
     this.prune(limits)
     const requestContentType = input.requestHeaders.find(([name]) => name.toLowerCase() === 'content-type')?.[1] ?? null
     const requestBody = prepareBody(requestContentType, input.requestBody, limits.maxBodyBytes)
-    const responseBody = prepareBody(input.contentType, input.responseBody, limits.maxBodyBytes, input.bodyTruncated)
+    const { responseCaptureLimit, ...exchange } = input
+    const responseTruncated = responseCaptureLimit !== undefined || input.bodyTruncated === true
+    const responseBody = prepareBody(input.contentType, input.responseBody, limits.maxBodyBytes, responseTruncated)
+    const hasBodyLimits = requestBody.truncated || responseBody.truncated || responseCaptureLimit !== undefined
+    const bodyLimits: SecurityProxyBodyLimits = {
+      ...requestBody.truncated ? { requestStorage: true } : {},
+      ...responseBody.truncated ? { responseStorage: true } : {},
+      ...responseCaptureLimit !== undefined ? { responseCapture: responseCaptureLimit } : {},
+    }
     const flow: CapturedExchange = {
-      ...input,
+      ...exchange,
       id: randomUUID(),
       target: redactUrl(input.target),
       requestHeaders: redactHeaders(input.requestHeaders),
       responseHeaders: redactHeaders(input.responseHeaders),
       requestBody: requestBody.body,
       responseBody: responseBody.body,
-      bodyTruncated: input.bodyTruncated === true || requestBody.truncated || responseBody.truncated,
+      bodyTruncated: responseTruncated || hasBodyLimits,
+      ...hasBodyLimits ? { bodyLimits } : {},
     }
     this.entries.push(flow)
     this.total += 1
@@ -347,7 +358,8 @@ export class CaptureStore {
 /** Project a stored exchange without reintroducing raw transport values. */
 function detailOf(flow: CapturedExchange): SecurityProxyFlowDetail {
   return { ...summaryOf(flow), requestHeaders: flow.requestHeaders, responseHeaders: flow.responseHeaders,
-    requestBody: flow.requestBody, responseBody: flow.responseBody, bodyTruncated: flow.bodyTruncated, contentType: flow.contentType }
+    requestBody: flow.requestBody, responseBody: flow.responseBody, bodyTruncated: flow.bodyTruncated, contentType: flow.contentType,
+    ...flow.bodyLimits === undefined ? {} : { bodyLimits: flow.bodyLimits } }
 }
 
 /** Captured body bytes one flow contributes to the memory total. */

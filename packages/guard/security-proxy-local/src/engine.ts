@@ -956,7 +956,7 @@ export class SecurityProxyEngine {
     contentType: string | null,
     decoded: string | null,
     error: unknown,
-    bodyTruncated = false,
+    readTruncated = false,
   ): void {
     this.record({
       at,
@@ -976,7 +976,7 @@ export class SecurityProxyEngine {
       responseHeaders,
       requestBody: null,
       responseBody: decoded,
-      bodyTruncated,
+      ...readTruncated ? { responseCaptureLimit: 'read' as const } : {},
       contentType,
     })
   }

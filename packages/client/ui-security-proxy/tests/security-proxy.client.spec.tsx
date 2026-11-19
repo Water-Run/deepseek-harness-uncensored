@@ -595,6 +595,21 @@ describe('settings surface', () => {
     expect(within(dialog).getByText('Failed', { exact: true })).toBeTruthy()
   })
 
+  it('shows the capped body and each preceding capture limit in one note', () => {
+    renderSection({ ...READY, detail: { ...DETAIL, bodyTruncated: true,
+      bodyLimits: { requestStorage: true, responseCapture: 'read', responseStorage: true } } })
+    expect(screen.getByText(
+      'The request body exceeded the storage limit. The response body exceeded the read limit. '
+      + 'The response body exceeded the storage limit.',
+    )).toBeTruthy()
+    expect(screen.queryByText(en['securityProxy.detail.truncated'])).toBeNull()
+  })
+
+  it('shows the general truncation note when the capture stage is unavailable', () => {
+    renderSection({ ...READY, detail: { ...DETAIL, bodyTruncated: true } })
+    expect(screen.getByText(en['securityProxy.detail.truncated'])).toBeTruthy()
+  })
+
   it('marks a tunnel row as metadata only', () => {
     const tunnel: SecurityProxyFlowSummary = { ...FLOW, id: 'tunnel-1', kind: 'tunnel', method: 'CONNECT', status: null, note: 'tunnel-metadata-only' }
     renderSection({ ...READY, flows: [tunnel], detail: { ...DETAIL, ...tunnel, requestBody: null, responseBody: null } })

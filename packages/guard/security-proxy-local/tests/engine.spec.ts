@@ -365,7 +365,9 @@ describe('capture controls', () => {
       const result = await h.engine.fetchTarget(subject('sess-a'), target.url, new AbortController().signal)
       expect(result.truncated).toBe(true)
       const [flow] = h.engine.list()
-      expect(h.engine.detail(flow?.id ?? '')).toMatchObject({ responseBody: 'x'.repeat(64), bodyTruncated: true })
+      expect(h.engine.detail(flow?.id ?? '')).toMatchObject({
+        responseBody: 'x'.repeat(64), bodyTruncated: true, bodyLimits: { responseCapture: 'read' },
+      })
     } finally {
       await target.close()
     }
@@ -386,7 +388,7 @@ describe('capture controls', () => {
       expect(detail?.responseBody).toHaveLength(maxCapture)
       expect(h.engine.exportCapture({})).toMatchObject({
         kind: 'ready',
-        data: { flows: [{ id: flow?.id, bodyTruncated: true }] },
+        data: { flows: [{ id: flow?.id, bodyTruncated: true, bodyLimits: { responseCapture: 'relay' } }] },
       })
     } finally {
       await target.close()

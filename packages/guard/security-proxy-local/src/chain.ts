@@ -258,7 +258,7 @@ export class SessionChainProxy {
           responseHeaders: [...upstreamResponse.headers],
           requestBody: body === undefined ? null : new TextDecoder().decode(body),
           responseBody: new TextDecoder().decode(concat(captured)),
-          bodyTruncated: responseBytes > capturedBytes,
+          ...responseBytes > capturedBytes ? { responseCaptureLimit: 'relay' as const } : {},
           contentType: upstreamResponse.headers.get('content-type'),
         })
       } finally { await exchange.close() }

@@ -157,6 +157,15 @@ describe('capture store', () => {
     expect(lengthened?.bodyTruncated).toBe(true)
   })
 
+  it('reports storage clipping on each body alongside earlier response clipping', () => {
+    const store = new CaptureStore(() => limits({ maxBodyBytes: 32 }))
+    store.append(exchange({ requestBody: 'x'.repeat(35), responseBody: 'x'.repeat(40), responseCaptureLimit: 'read' }))
+    const [detail] = store.snapshot({}, false).flows
+    expect(detail).toMatchObject({
+      bodyTruncated: true, bodyLimits: { requestStorage: true, responseCapture: 'read', responseStorage: true },
+    })
+  })
+
   it('omits a partial JSON response and preserves a complete JSON prefix from a capped read', () => {
     const store = new CaptureStore(() => limits())
     const contentType = 'application/json'

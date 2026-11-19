@@ -344,6 +344,12 @@ function DetailDialog({ detail, failed, onClose, t }: {
   t: SecurityProxySectionProps['t']
 }) {
   const open = detail !== null || failed
+  const limits = detail?.bodyLimits
+  const truncation = [
+    limits?.requestStorage && t('securityProxy.detail.requestStorageLimit'),
+    limits?.responseCapture === undefined ? undefined : t(`securityProxy.detail.responseCaptureLimit.${limits.responseCapture}`),
+    limits?.responseStorage && t('securityProxy.detail.responseStorageLimit'),
+  ].filter(Boolean).join(' ') || (detail?.bodyTruncated ? t('securityProxy.detail.truncated') : '')
   return <Modal open={open} onClose={onClose} title={t('securityProxy.detail.title')} closeLabel={t('securityProxy.detail.close')}>
     {failed
       ? <p role="alert">{t('securityProxy.detail.failed')}</p>
@@ -360,7 +366,7 @@ function DetailDialog({ detail, failed, onClose, t }: {
         <HeaderTable title={t('securityProxy.detail.responseHeaders')} headers={detail.responseHeaders} />
         <BodyBlock title={t('securityProxy.detail.requestBody')} body={detail.requestBody} t={t} />
         <BodyBlock title={t('securityProxy.detail.responseBody')} body={detail.responseBody} t={t} />
-        {detail.bodyTruncated && <p className={css.hint}>{t('securityProxy.detail.truncated')}</p>}
+        {truncation && <p className={css.hint}>{truncation}</p>}
         <p className={css.hint}>{t('securityProxy.detail.redacted')}</p>
       </>}
   </Modal>

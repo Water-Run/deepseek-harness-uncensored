@@ -153,6 +153,19 @@ export interface SecurityProxyFlowSummary {
   readonly note: string | null
 }
 
+/** Response capture stage at which content was cut before storage. */
+export type SecurityProxyResponseCaptureLimit = 'read' | 'relay'
+
+/** Size limits applied to the bodies retained for an exchange. */
+export interface SecurityProxyBodyLimits {
+  /** Storage shortened or omitted the request body. */
+  readonly requestStorage?: boolean
+  /** Storage shortened or omitted the response body. */
+  readonly responseStorage?: boolean
+  /** The controlled reader or proxy capture had already shortened the response. */
+  readonly responseCapture?: SecurityProxyResponseCaptureLimit
+}
+
 /** Detail view of one captured exchange. */
 export interface SecurityProxyFlowDetail extends SecurityProxyFlowSummary {
   readonly requestHeaders: readonly SecurityProxyHeader[]
@@ -163,6 +176,8 @@ export interface SecurityProxyFlowDetail extends SecurityProxyFlowSummary {
   readonly responseBody: string | null
   /** Whether a byte limit shortened or omitted a captured body. */
   readonly bodyTruncated: boolean
+  /** Known cap stages, omitted if nothing was capped or the stage is unavailable. */
+  readonly bodyLimits?: SecurityProxyBodyLimits
   /** Media type as reported by the response, when known. */
   readonly contentType: string | null
 }

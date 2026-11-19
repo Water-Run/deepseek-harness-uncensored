@@ -26,6 +26,7 @@ import type {
   SecurityProxyFlowDetail,
   SecurityProxyFlowQuery,
   SecurityProxyFlowsResult,
+  SecurityProxyResponseCaptureLimit,
   SecurityProxySettingsPatch,
   SecurityProxyState,
   SecurityProxyTestResult,
@@ -56,11 +57,13 @@ export interface SecurityProxyRoute {
 
 /** Host-only raw exchange; the proxy owner assigns identity and redacts it before storage. */
 export type SecurityProxyCaptureInput = Omit<SecurityProxyFlowDetail,
-  'id' | 'requestHeaders' | 'responseHeaders' | 'bodyTruncated'> & {
+  'id' | 'requestHeaders' | 'responseHeaders' | 'bodyTruncated' | 'bodyLimits'> & {
     readonly requestHeaders: readonly (readonly [string, string])[]
     readonly responseHeaders: readonly (readonly [string, string])[]
     /** Whether an upstream read or relay capture limit already shortened the response body. */
     readonly bodyTruncated?: boolean
+    /** Which capture limit shortened the response body before storage, when known. */
+    readonly responseCaptureLimit?: SecurityProxyResponseCaptureLimit
   }
 
 /** Host-only upstream snapshot. Credentials must never enter a Remote result or diagnostic. */

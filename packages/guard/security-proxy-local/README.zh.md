@@ -38,7 +38,7 @@ kind: "package-reference"
 
 上游密码通过 `ctx.credentials` 保存在 `DSH_SECURITY_PROXY_PASSWORD` 下，并在每次操作时解析。它不会写入设置文件、流量记录或错误文案。
 
-仅应用所有者可调用 Remote 方法 `exportCapture`，读取带版本的 `dshu-security-proxy-capture` JSON 快照，包含符合筛选的全部留存详情，按最新优先排序。快照沿用存储时的脱敏和截断标记，保持 CONNECT 隧道的元数据性质，只记录是否筛选，不回显搜索原文。截断标记覆盖代理采集、受控响应读取和准备保存时的正文大小限制。达到读取上限后的 JSON 响应如果无法解析以处理敏感字段，记录会显示正文省略标记。提供方配置 `maxExportBytes` 默认 134217728 字节（128 MiB），接受 1024–536870912 字节，计入紧凑 UTF-8 JSON 和一个末尾换行。超限返回 `security-proxy/export-too-large`，不返回部分文档；不改变捕获保留策略和已保存设置。
+仅应用所有者可调用 Remote 方法 `exportCapture`，读取带版本的 `dshu-security-proxy-capture` JSON 快照，包含符合筛选的全部留存详情，按最新优先排序。快照沿用存储时的脱敏和截断标记，保持 CONNECT 隧道的元数据性质，只记录是否筛选，不回显搜索原文。截断标记覆盖代理采集、受控响应读取和准备保存时的正文大小限制。阶段已知时，详情和导出会包含 `bodyLimits`，记录请求和响应各自的保存上限标记，以及响应的采集阶段。达到读取上限后的 JSON 响应如果无法解析以处理敏感字段，记录会显示正文省略标记。提供方配置 `maxExportBytes` 默认 134217728 字节（128 MiB），接受 1024–536870912 字节，计入紧凑 UTF-8 JSON 和一个末尾换行。超限返回 `security-proxy/export-too-large`，不返回部分文档；不改变捕获保留策略和已保存设置。
 
 -----
 
