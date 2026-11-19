@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { chromium, type Route } from 'playwright'
 import { expect, it, vi } from 'vitest'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import { MockAdapter, textResponse } from '../../../packages/core/agent-loop/tests/mock-adapter.ts'
 import { launchWebScaffold, watchConsole } from './scaffold.ts'
 import { newEnglishPage, openSettings } from './support.ts'
@@ -76,9 +77,20 @@ it('sends side images and clears only the side context', async () => {
       expect(commandImage.attachment.name).toBe('command.png')
       expect(Buffer.from((await scaffold.ctx.attachments.readImage(commandImage.attachment)).data)).toEqual(png)
       const sideInput = side.locator('[data-composer-input][contenteditable="true"]')
-      await sideInput.fill('/clear')
-      await sideInput.press('Enter')
-      await expect.poll(() => side.getByText('OLD_SIDE_732', { exact: true }).count()).toBe(0)
+      const reset = api.resetAside.bind(api)
+      const publish = scaffold.ctx.events.dispatch.bind(scaffold.ctx.events)
+      const resetEvent = vi.spyOn(scaffold.ctx.events, 'dispatch').mockImplementation((mode, args) =>
+        args[0] === 'api-session/side-reset' ? [] : publish(mode, args))
+      const resetReply = vi.spyOn(api, 'resetAside').mockImplementationOnce(async (request) => {
+        await reset(request)
+        throw new RemoteError('gateway/internal', 'fixture reset reply unavailable', {})
+      })
+      try {
+        await sideInput.fill('/clear')
+        await sideInput.press('Enter')
+        await expect.poll(() => side.getByText('OLD_SIDE_732', { exact: true }).count()).toBe(0)
+        expect(resetReply).toHaveBeenCalledOnce()
+      } finally { resetReply.mockRestore(); resetEvent.mockRestore() }
       await sideInput.waitFor()
       await sideInput.fill('NEW_SIDE_593')
       await sideInput.evaluate((surface, bytes) => {

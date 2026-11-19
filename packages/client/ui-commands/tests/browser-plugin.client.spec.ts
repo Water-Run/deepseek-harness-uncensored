@@ -11,6 +11,7 @@ import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { TestSessions } from '@deepseek-ai/dsh-client-test-runtime'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import type { InputTriggerSource } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
 import type { CommandUiContract } from '../src/client/contract.ts'
 import type { PopupSelectInjected } from '../src/client/PopupSelectView.tsx'
@@ -64,7 +65,7 @@ async function bench() {
 }
 
 describe('apply', () => {
-  it('offers /clear only in the side, replaces its retained resource, and reacts only to actual tab closure', async () => {
+  it('reopens the published side after an uncertain clear and keeps /clear scoped to that side', async () => {
     const { ctx, sources, sessions, fiber } = await bench()
     await sessions.add({ id: 'side-one' })
     await sessions.add({ id: 'side-two' })
@@ -79,8 +80,10 @@ describe('apply', () => {
         if (++cleared === 1) {
           resetEntered.resolve(undefined)
           await releaseReset.promise
+          child = sid('side-two')
+          return { ok: false as const, error: new RemoteError('gateway/internal', 'fixture reply unavailable', {}) }
         }
-        child = sid(cleared === 1 ? 'side-two' : 'side-three')
+        child = sid('side-three')
       }
       return { ok: true as const, value: { sessionId: child } }
     })
@@ -112,6 +115,7 @@ describe('apply', () => {
       expect(aside).toHaveBeenCalledTimes(1)
       releaseReset.resolve(undefined)
       expect((await opening).value).toMatchObject({ ok: true, value: { reference: { sessionId: 'side-two' } } })
+      expect(aside).toHaveBeenCalledTimes(3)
       reopenAbort.abort()
       await reopened.return?.()
       expect((await stream.next()).value).toMatchObject({ ok: true, value: { reference: { sessionId: 'side-two' } } })

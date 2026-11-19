@@ -134,8 +134,13 @@ export function registerAsides(ctx: Context): void {
           await resets.get(parent)
           const child = typeof target === 'string' ? target : (await target).sessionId
           if (isClosed()) return { kind: 'error', text: t('aside.clearFailed') }
-          const result = await scope.remote.session.resetAside({ sessionId: child, cause })
-          if (!result.ok) return { kind: 'error', text: t('aside.clearFailed') }
+          let result = await scope.remote.session.resetAside({ sessionId: child, cause }).catch(_replyUnavailable => undefined)
+          if (result?.ok !== true) {
+            if (cause === 'close' || isClosed()) return { kind: 'error', text: t('aside.clearFailed') }
+            // The Host may have published a successor before the reset reply failed.
+            result = await scope.remote.session.aside({ sessionId: parent, kind: 'side' })
+            if (!result.ok || result.value.sessionId === child) return { kind: 'error', text: t('aside.clearFailed') }
+          }
           if (result.value.sessionId !== child && !isClosed()) {
             adoptSide(parent, result.value.sessionId)
             notifySide(parent)
