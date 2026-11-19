@@ -1,7 +1,7 @@
 <div align="center">
   <img src="apps/desktop/resources/icon.svg" width="112" alt="DSHU 黑底白鲸标志">
   <h1>DeepSeek Harness Uncensored</h1>
-  <p><b>更自由地，探索未至之境</b></p>
+  <p><b>更自由的探索未至之境</b></p>
   <p>WaterRun · Windows / Linux Desktop · 源码基于 DeepSeek Harness 0.2.2-rc.5</p>
 </div>
 
@@ -88,9 +88,19 @@ DSHU 是面向开发、网安、逆向与写作的智能体工作台。它在 De
 <details>
 <summary>网安独立代理与可选目标保护</summary>
 
-独立代理仅用于网安模式，覆盖受控抓取、遵守代理变量的命令与终端、桌面侧栏及以 launch 方式运行的 Playwright MCP、Chrome DevTools MCP 和 Stagehand。不透明 HTTPS 隧道记录连接元数据。[进阶目标保护](packages/guard/target-protection/README.zh.md)可为指定工具启用 HTTP/1.1 检查并脱敏记录正文。桌面侧栏和三个启动型浏览器提供方使用各自的会话信任，命令行客户端可显式使用监听器的公开证书。网安可启用未开代理的顶部提醒。
+**独立代理**
 
-境内、手动目标及生产资源规则由[可选保护配置](apps/cli/config/examples/target-protection.yml)接入，默认关闭。已覆盖的后端支持真实执行拦截与审计，设置页分别显示 HTTP、本机文件、命令/终端、SSH 和数据库的覆盖。SSH 显示已验证连接，数据库显示配置数，连接和权限在执行时核验。原生入站隔离、其他协议和部分远端资源仍在开发。
+- **覆盖范围**　独立代理仅用于网安模式，覆盖受控抓取、遵守代理变量的命令与终端、桌面侧栏及以 `launch` 方式运行的 Playwright MCP、Chrome DevTools MCP 和 Stagehand。
+- **流量记录**　不透明 HTTPS 隧道记录连接元数据。[进阶目标保护](packages/guard/target-protection/README.zh.md)可为指定工具启用 HTTP/1.1 检查并脱敏记录正文。
+- **会话信任**　桌面侧栏和三个启动型浏览器提供方使用各自的会话信任，命令行客户端可显式使用监听器的公开证书。
+- **顶部提醒**　网安可启用未开代理的顶部提醒。
+
+**可选目标保护**
+
+- **规则与默认值**　境内、手动目标及生产资源规则由[可选保护配置](apps/cli/config/examples/target-protection.yml)接入，默认关闭。
+- **拦截与审计**　已覆盖的后端支持真实执行拦截与审计，设置页分别显示 HTTP、本机文件、命令/终端、SSH 和数据库的覆盖。
+- **连接与权限**　SSH 显示已验证连接，数据库显示配置数，连接和权限在执行时核验。
+- **开发中**　原生入站隔离、其他协议和部分远端资源仍在开发。
 
 </details>
 

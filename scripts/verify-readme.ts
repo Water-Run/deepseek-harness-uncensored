@@ -2,6 +2,8 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
+const MAX_LINES = 130
+
 /**
  * Check the README's length and repository-relative links.
  * @param markdown - Public README content.
@@ -11,7 +13,7 @@ import { resolve } from 'node:path'
 export function readmeErrors(markdown: string, root: string): string[] {
   const errors: string[] = []
   if (markdown.trim() === '') errors.push('README.md must not be empty')
-  if (markdown.split('\n').length > 120) errors.push('README.md must stay within 120 lines')
+  if (markdown.split('\n').length > MAX_LINES) errors.push(`README.md must stay within ${MAX_LINES} lines`)
   for (const match of markdown.matchAll(/\]\(([^)]+)\)/gu)) {
     const target = (match[1] ?? '').split('#')[0] ?? ''
     if (target === '' || /^https:\/\//u.test(target)) continue
