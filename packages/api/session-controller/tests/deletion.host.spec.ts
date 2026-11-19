@@ -4,6 +4,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { setTimeout as delay } from 'node:timers/promises'
 import { DatabaseSync } from 'node:sqlite'
 import Storage from '@deepseek-ai/dsh-storage'
 import * as JsonStorage from '@deepseek-ai/dsh-storage-json'
@@ -306,6 +307,44 @@ it('preserves a cold conversation when deletion preparation overlaps controller 
     await deletion.close()
     suspended.mockRestore()
   }
+})
+
+it.each(['stop', 'activity'] as const)('reports a stalled %s without dropping deletion ownership or deleting later', async (phase) => {
+  const { ctx, api, cwd } = await setup()
+  const lifecycle = new ApiSessionAgentController(ctx, { sideContextBytes: 65536, btwContextBytes: 8192 })
+  const id = SessionId(`delete-stalled-${phase}`)
+  await lifecycle.createOwned({ sessionId: id, meta: { cwd }, agentOptions: { provider: 'mock', model: 'mock' } })
+  await lifecycle.disposeOwned(id)
+  const entered = Promise.withResolvers<undefined>(), release = Promise.withResolvers<undefined>()
+  const hold = async (): Promise<void> => { entered.resolve(undefined); await release.promise }
+  const remove = phase === 'stop'
+    ? ctx.on('workspace/session-stop', async ({ sessionId }) => { if (sessionId === id) await hold() })
+    : ctx.on('workspace/session-activity', async ({ sessionId }, next) => {
+      if (sessionId === id) await hold()
+      return next()
+    })
+  const deletion = new SessionDeletionController(ctx, lifecycle, { drainTimeoutMs: 500, pollMs: 20 }, () => {})
+  const watchdog = new AbortController()
+  const outcome = deletion.delete(id, () => true).then(result => ({ result }), (error: unknown) => ({ error }))
+  try {
+    await Promise.race([entered.promise, outcome.then(() => { throw new Error('Missing drain barrier') })])
+    const missing = { error: new Error('Delete did not report its timeout while the provider was still pending') }
+    await expect(Promise.race([outcome, delay(2000, missing, { signal: watchdog.signal, ref: false })]))
+      .resolves.toMatchObject({ error: { code: 'session/delete-timeout' } })
+    await expect(deletion.delete(id, () => true)).rejects.toMatchObject({
+      code: 'session/agent-busy', details: { reason: 'deleting' },
+    })
+    expect(await ctx.sessionPersistence.stat(id)).toBeDefined()
+  } finally {
+    watchdog.abort()
+    remove()
+    release.resolve(undefined)
+    await outcome
+    await deletion.close()
+  }
+  expect(await ctx.sessionPersistence.stat(id)).toBeDefined()
+  expect(await ctx.sessionPersistence.deletedSessionIds()).not.toContain(id)
+  await expect(api.delete({ sessionId: id })).resolves.toEqual({ deletedSessionIds: [id] })
 })
 
 it('preserves a live writer owned outside this API controller', async () => {

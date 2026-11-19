@@ -9,11 +9,21 @@ import type {} from '@deepseek-ai/dsh-session-projection-cache'
 import type {} from '@deepseek-ai/dsh-subagent'
 import type {} from '@deepseek-ai/dsh-jobs'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
+import { deadline } from '@deepseek-ai/dsh-timeout'
 import type { ApiSessionAgentController } from './agent.ts'
 import { nativeAsideKind } from './aside-context.ts'
 import type { SessionDeleteValue } from './types.ts'
 
 interface DeletionPlan { ids: Set<SessionId>; delegated: Set<SessionId>; removed: Set<SessionId> }
+
+/** Keep deletion ownership until every started provider settles. */
+async function finishBatch<T>(tasks: readonly Promise<T>[]): Promise<T[]> {
+  try { return await Promise.all(tasks) }
+  catch (error) {
+    await Promise.allSettled(tasks)
+    throw error
+  }
+}
 
 /** Root-owned coordinator; retries retain the exact family through partial cleanup failures. */
 export class SessionDeletionController {
@@ -38,6 +48,7 @@ export class SessionDeletionController {
 
   /**
    * Delete one conversation after confirmation; overlapping requests are refused.
+   * A task-drain timeout reports before cleanup settles and leaves the durable logs in place.
    * @param root - Ordinary conversation selected by the user.
    * @param allows - Authorization captured from this exact Remote invocation.
    * @returns Removed identities after physical and derived cleanup complete.
@@ -54,8 +65,9 @@ export class SessionDeletionController {
     ])
     this.assertOpen()
     if (this.pending.has(root)) return Promise.reject(new RemoteError('session/agent-busy', 'Session deletion is in progress.', { reason: 'deleting' }))
+    const expired = Promise.withResolvers<never>()
     const operation = this.agents.withDeletion(root, include =>
-      persistence.withCatalogMutation(root, () => this.run(root, include, allows, persistence))).catch((error: unknown) => {
+      persistence.withCatalogMutation(root, () => this.run(root, include, allows, persistence, expired.reject))).catch((error: unknown) => {
       if (error instanceof SessionAlreadyOwnedError) {
         throw new RemoteError('session/writer-held', error.message, { sessionId: error.sessionId }, { cause: error })
       }
@@ -64,7 +76,8 @@ export class SessionDeletionController {
     this.pending.set(root, operation)
     const settle = (): void => { if (this.pending.get(root) === operation) this.pending.delete(root) }
     void operation.then(settle, settle)
-    return operation
+    // The caller may time out before the stopped providers release their resources.
+    return Promise.race([operation, expired.promise])
   }
 
   private assertOpen(): void {
@@ -144,8 +157,11 @@ export class SessionDeletionController {
     return { ids: [...ids], delegated }
   }
 
-  private async run(root: SessionId, include: (ids: readonly SessionId[]) => void,
-    allows: (id: SessionId) => boolean, persistence: SessionPersistence): Promise<SessionDeleteValue> {
+  private async run(
+    root: SessionId, include: (ids: readonly SessionId[]) => void,
+    allows: (id: SessionId) => boolean, persistence: SessionPersistence,
+    reportTimeout: (error: RemoteError) => void,
+  ): Promise<SessionDeleteValue> {
     const { SessionAlreadyOwnedError, SessionDeletionUnsupportedError } = await import('@deepseek-ai/dsh-session-persistence')
     this.authorize([root], allows)
     const plan = this.plans.get(root) ?? { ids: new Set<SessionId>([root]), delegated: new Set<SessionId>(), removed: new Set<SessionId>() }
@@ -166,17 +182,36 @@ export class SessionDeletionController {
       const agent = this.ctx.agents.get(id)
       if (agent !== undefined) parents.push(agent)
     }
-    await Promise.all([...plan.ids].map(sessionId => this.ctx.parallel('workspace/session-stop', { sessionId })))
-    await this.ctx.get('subagents')?.drainDescendants(parents)
-    await collect()
-    await Promise.all([...plan.ids].map(sessionId => this.ctx.parallel('workspace/session-stop', { sessionId })))
-    const deadline = performance.now() + this.policy.drainTimeoutMs
-    for (;;) {
-      const activities = await Promise.all([...plan.ids].map(sessionId =>
-        this.ctx.waterfall('workspace/session-activity', { sessionId }, () => Promise.resolve([]))))
-      if (activities.every(activity => activity.length === 0)) break
-      if (performance.now() >= deadline) throw new RemoteError('session/delete-timeout', 'Tasks have not stopped. Wait for them to finish and retry deletion.', { sessionId: root })
-      await delay(this.policy.pollMs)
+    {
+      const end = performance.now() + this.policy.drainTimeoutMs
+      using drain = deadline(undefined, this.policy.drainTimeoutMs, 'SESSION_DELETE_DRAIN_TIMEOUT')
+      const timeout = new RemoteError('session/delete-timeout', 'Tasks have not stopped. Wait for them to finish and retry deletion.', { sessionId: root })
+      const onTimeout = (): void => { reportTimeout(timeout) }
+      const checkTime = (): void => {
+        if (!drain.signal.aborted && performance.now() < end) return
+        onTimeout()
+        throw timeout
+      }
+      const stopSessions = () => finishBatch([...plan.ids].map(sessionId => this.ctx.parallel('workspace/session-stop', { sessionId })))
+      drain.signal.addEventListener('abort', onTimeout, { once: true })
+      try {
+        await stopSessions()
+        checkTime()
+        await this.ctx.get('subagents')?.drainDescendants(parents)
+        checkTime()
+        await collect()
+        checkTime()
+        await stopSessions()
+        checkTime()
+        for (;;) {
+          const activities = await finishBatch([...plan.ids].map(sessionId =>
+            this.ctx.waterfall('workspace/session-activity', { sessionId }, () => Promise.resolve([]))))
+          checkTime()
+          if (activities.every(activity => activity.length === 0)) break
+          await delay(Math.min(this.policy.pollMs, Math.max(0, end - performance.now())))
+          checkTime()
+        }
+      } finally { drain.signal.removeEventListener('abort', onTimeout) }
     }
     const ids = [...plan.ids].filter(id => id !== root).reverse().concat(root)
     this.stopHistory(ids)
