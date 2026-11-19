@@ -123,16 +123,19 @@ export default class SqliteDatabase extends Service {
    * Execute an atomic batch against one configured database with engine-level authorization.
    * @param name - Owner-configured database name.
    * @param request - One or more parameterized statements; transaction and cross-file control are unsupported.
-   * @param signal - Caller cancellation; after commit authorization, native completion still owns cleanup.
+   * @param signal - Caller cancellation, combined with the bound audit Session before commit authorization.
    * @returns Bounded rows after confirmed commit; unknown outcomes reject and must not be replayed automatically.
    */
-  execute(name: string, request: SqliteRequest, signal: AbortSignal): Promise<SqliteResult> {
+  async execute(name: string, request: SqliteRequest, signal: AbortSignal): Promise<SqliteResult> {
     if (this.pending.size + this.quarantined.size >= this.config.maxPending) {
-      return Promise.reject(new HarnessError('SQLite request capacity is full; wait for active work or confirmed helper cleanup.', 'SQLITE_BUSY'))
+      throw new HarnessError('SQLite request capacity is full; wait for active work or confirmed helper cleanup.', 'SQLITE_BUSY')
     }
-    const operation = this.run(name, request, signal)
+    const sessionId = this.protection.currentAuditSessionId()
+    const operation = sessionId === null ? this.run(name, request, signal)
+      : this.protection.bindAuditSession(sessionId)(lifetime => this.run(name, request, AbortSignal.any([signal, lifetime])))
     this.pending.add(operation)
-    return operation.finally(() => { this.pending.delete(operation) })
+    try { return await operation }
+    finally { this.pending.delete(operation) }
   }
 
   private async run(name: string, raw: SqliteRequest, signal: AbortSignal): Promise<SqliteResult> {

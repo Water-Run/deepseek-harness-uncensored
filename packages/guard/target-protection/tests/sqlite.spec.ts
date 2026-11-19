@@ -20,17 +20,21 @@ import SandboxPolicy from '@deepseek-ai/dsh-sandbox-policy'
 import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import * as SqliteAgent from '../src/sqlite-agent.ts'
 import SessionProjections from '@deepseek-ai/dsh-session-projection'
+import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import { LocalSubprocessRuntime } from '@deepseek-ai/dsh-subprocess-local'
 import type { SubprocessHandle } from '@deepseek-ai/dsh-subprocess'
+import { canonicalLocalPath } from '../src/file-identity.ts'
 
 const supported = 'setAuthorizer' in DatabaseSync.prototype
-async function harness(protection: 'full' | 'audit' | 'test' = 'test', limits = {}) {
+async function harness(protection: 'full' | 'audit' | 'test' = 'test', limits = {}, audit = false) {
   const root = await mkdtemp(join(tmpdir(), 'dshu-native-sqlite-'))
   const path = join(root, 'data.sqlite'), ctx = new Context()
   onTestFinished(async () => { await ctx.fiber.dispose(); await rm(root, { recursive: true, force: true }) })
   const db = new DatabaseSync(path)
   try { db.exec('CREATE TABLE data (id INTEGER PRIMARY KEY, value TEXT); INSERT INTO data VALUES(1, \'keep\')') } finally { db.close() }
-  const owner = await ctx.plugin(Protection, { path: join(root, 'rules.sqlite'), hostsFile: '' })
+  if (audit) await ctx.plugin(SessionStore)
+  const owner = await ctx.plugin(Protection, { path: join(root, 'rules.sqlite'), hostsFile: '',
+    ...(audit ? { auditPath: join(root, 'audit.sqlite') } : {}) })
   const rule = { id: brandString<TargetRuleId>(randomUUID()), name: 'owned database', kind: 'database' as const,
     enabled: true, match: 'path' as const, address: path, environment: protection === 'test' ? 'test' as const : 'production' as const,
     protection: protection === 'audit' ? 'audit' as const : 'full' as const }
@@ -96,6 +100,37 @@ it.skipIf(!supported)('rolls back a write when another database name is linked b
   onTestFinished(() => { spy.mockRestore() })
   await expect(h.query("UPDATE data SET value='changed'")).rejects.toMatchObject({ code: 'TARGET_IDENTITY_UNVERIFIED' })
   expect(h.value()).toBe('keep')
+})
+
+it.skipIf(!supported)('cancels the bound SQLite batch when its audit Session closes before commit', async () => {
+  const h = await harness('test', {}, true), id = SessionId('closing-sqlite-owner')
+  const session = h.ctx.sessions.prepare(id), detach = h.ctx.sessions.enter(session)
+  onTestFinished(detach)
+  h.ctx.sessions.announce(session)
+  const entered = Promise.withResolvers<AbortSignal>(), release = Promise.withResolvers<undefined>()
+  onTestFinished(() => { release.resolve(undefined) })
+  const target = canonicalLocalPath(h.path)
+  const check = h.ctx.targetProtection.checkLocalFile.bind(h.ctx.targetProtection)
+  let reads = 0
+  const observer = vi.spyOn(h.ctx.targetProtection, 'checkLocalFile').mockImplementation(async (path, effect, signal) => {
+    if (path === target && effect === 'read' && ++reads === 2) {
+      entered.resolve(signal)
+      await release.promise
+    }
+    return check(path, effect, signal)
+  })
+  onTestFinished(() => { observer.mockRestore() })
+  const run = h.ctx.targetProtection.bindAuditSession(id)
+  const outcome = Promise.allSettled([run(() => h.query("UPDATE data SET value='pending'"))])
+  const signal = await entered.promise
+  detach()
+  const replacement = h.ctx.sessions.create(id)
+  try { expect(signal.aborted).toBe(true) }
+  finally { release.resolve(undefined); await outcome }
+  expect(await outcome).toMatchObject([{ status: 'rejected', reason: { code: 'SQLITE_CANCELLED' } }])
+  expect(h.value()).toBe('keep')
+  expect(h.ctx.targetProtection.auditHistory().state).toBe('ready')
+  expect(replacement.snapshotEvents()).toEqual([])
 })
 
 it.skipIf(!supported).each([false, true])('reports actual commit state when rule cleanup fails (cancel=%s)', async (cancel) => {
