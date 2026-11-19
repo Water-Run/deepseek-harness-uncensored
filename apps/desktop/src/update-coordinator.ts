@@ -237,7 +237,7 @@ export class DesktopUpdateCoordinator {
     if (revision !== this.generation) return this.current
     if (this.configurationError !== undefined || this.switching > 0) throw new Error('desktop update: channel selection is not ready')
     if (!this.downloaded || this.downloadOperation !== undefined || version !== this.candidate) throw new Error('desktop update: confirmed target is not ready')
-    if (this.release.kind === 'handed-off' && this.current.phase === 'installing') return this.current
+    if (this.release.kind === 'handed-off') return this.current
     this.installOperation ??= Promise.resolve().then(async () => {
       this.setState({ phase: 'installing', version })
       try {
@@ -250,7 +250,7 @@ export class DesktopUpdateCoordinator {
         this.updater.quitAndInstall(true, true)
         return this.current
       } catch (error) {
-        if (error instanceof DesktopUpdatePreparationError && error.kind === 'installer-integrity') {
+        if (this.release.kind !== 'handed-off' && error instanceof DesktopUpdatePreparationError && error.kind === 'installer-integrity') {
           this.release = { kind: 'checked', version }
         }
         if (this.current.phase === 'error' && this.current.failedOperation === 'install') return this.current
@@ -291,13 +291,14 @@ export class DesktopUpdateCoordinator {
   }
 
   private failure(error: unknown, failedOperation: 'check' | 'download' | 'install'): DesktopUpdateState {
+    const preparation = error instanceof DesktopUpdatePreparationError ? error : undefined
+    const preparationFailure = failedOperation === 'install' && this.release.kind === 'handed-off'
+      ? 'installer-handoff' : preparation?.kind
     return { phase: 'error', ...this.target(), failedOperation,
       message: error instanceof Error ? error.message : String(error),
       ...(failedOperation === 'download' ? downloadFailureDetails(error) : {}),
-      ...(error instanceof DesktopUpdatePreparationError ? {
-        preparationFailure: error.kind,
-        ...(error.technicalDetails === undefined ? {} : { technicalDetails: error.technicalDetails }),
-      } : {}) }
+      ...preparationFailure === undefined ? {} : { preparationFailure },
+      ...preparation?.technicalDetails === undefined ? {} : { technicalDetails: preparation.technicalDetails } }
   }
 
   private target(): { version?: string } {

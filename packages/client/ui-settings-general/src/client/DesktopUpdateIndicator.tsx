@@ -44,8 +44,9 @@ function updateCopy(state: DesktopUpdatePresentation, t: SettingsTranslate): { l
       'tasks-unavailable': t('desktop.update.tasksUnavailable'),
       'fullscreen-timeout': t('desktop.update.fullscreenTimeout'),
       'installer-integrity': t('desktop.update.installerIntegrityFailed'),
+      'installer-handoff': t('desktop.update.installerHandoffUnconfirmed'),
     }
-    return { label, detail: failures[state.failure ?? 'install'] }
+    return { label: state.failure === 'installer-handoff' ? t('desktop.update.details') : label, detail: failures[state.failure ?? 'install'] }
   }
   if (state.phase === 'downloading' && state.version !== undefined) {
     return { label, detail: t('desktop.update.downloadDetail', { percent: state.percent ?? 0, version: state.version }) }

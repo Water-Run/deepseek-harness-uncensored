@@ -669,18 +669,22 @@ async function main(): Promise<void> {
     else if (!shuttingDown) backendReady = state.phase === 'ready'
   })
 
-  const updateErrors = new WeakMap<DesktopUpdateState, Promise<void>>()
-  const showUpdateFailure = (state: DesktopUpdateState): Promise<void> => {
+  const updateErrors = new WeakMap<DesktopUpdateState, { result: Promise<void>; settled: boolean }>()
+  const showUpdateFailure = (state: DesktopUpdateState, reopen = false): Promise<void> => {
     if (state.phase !== 'error') return Promise.resolve()
     if (isMandatory()) { mandatoryUI?.sync(); return Promise.resolve() }
     let shown = updateErrors.get(state)
-    if (shown === undefined) {
-      shown = ordinaryMessageBox({ type: 'error', title: locale.messages.updateFailedTitle,
+    if (shown === undefined || (reopen && shown.settled)) {
+      const result = ordinaryMessageBox({ type: 'error', title: locale.messages.updateFailedTitle,
         message: desktopUpdateErrorSummary(state, locale.messages),
         technicalDetails: state.technicalDetails ?? state.message ?? '' }).then(() => {})
-      updateErrors.set(state, shown)
+      const dialog = { result, settled: false }
+      const settle = (): void => { dialog.settled = true }
+      void result.then(settle, settle)
+      updateErrors.set(state, dialog)
+      shown = dialog
     }
-    return shown
+    return shown.result
   }
   const publishUpdate = (state: DesktopUpdateState): DesktopUpdateState => {
     updateJournal?.state(state)
@@ -1107,6 +1111,7 @@ async function main(): Promise<void> {
       let progress: Promise<unknown> | undefined
       try {
         let state = updates.state
+        if (state.preparationFailure === 'installer-handoff') { await showUpdateFailure(state, true); return }
         const revision = updates.revision
         if (manual || state.phase === 'idle' || (state.phase === 'error' && state.failedOperation === 'check')) {
           controller = new AbortController()
@@ -1121,7 +1126,10 @@ async function main(): Promise<void> {
         }
         if (revision !== updates.revision) return
         if (isMandatory()) { mandatoryUI?.focus(); return }
-        if (state.phase === 'error' && state.failedOperation === 'check') { await showUpdateFailure(state); return }
+        if (state.phase === 'error' && (state.failedOperation === 'check' || state.preparationFailure === 'installer-handoff')) {
+          await showUpdateFailure(state)
+          return
+        }
         if (state.phase === 'idle') {
           await ordinaryMessageBox({ type: 'info', title: locale.messages.updateCheckTitle,
             message: locale.messages.updateCurrent,

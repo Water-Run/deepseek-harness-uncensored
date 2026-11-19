@@ -42,6 +42,7 @@ export function desktopUpdateErrorSummary(state: DesktopUpdateState, messages: D
     'tasks-unavailable': messages.updateTasksUnavailable,
     'fullscreen-timeout': messages.updateFullscreenTimeout,
     'installer-integrity': messages.updateInstallerIntegrityFailed,
+    'installer-handoff': messages.updateInstallerHandoffUnconfirmed,
   }
   return summaries[kind]
 }

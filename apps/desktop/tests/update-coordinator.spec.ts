@@ -113,13 +113,21 @@ describe('desktop update coordinator', () => {
     expect(f.quitAndInstall).not.toHaveBeenCalled()
   })
 
-  it('retains an asynchronous installer failure after quitAndInstall returns', async () => {
+  it.each(['thrown', 'reported'] as const)('retains a %s handoff error without requesting installation again', async (source) => {
     const f = fixture()
+    const version = '1.1.0-rc.2'
     await f.coordinator.check()
-    await f.coordinator.download('1.1.0-rc.2')
-    await f.coordinator.install('1.1.0-rc.2')
-    f.events.emit('error', new Error('installer could not start'))
-    expect(f.coordinator.state).toMatchObject({ phase: 'error', failedOperation: 'install', message: 'installer could not start' })
+    await f.coordinator.download(version)
+    const error = new Error('installer handoff failed')
+    if (source === 'thrown') f.quitAndInstall.mockImplementationOnce(() => { throw error })
+    await f.coordinator.install(version)
+    if (source === 'reported') f.events.emit('error', error)
+    const failed = f.coordinator.state
+    await f.coordinator.install(version)
+    expect(f.quitAndInstall).toHaveBeenCalledOnce()
+    expect(f.beforeRestart).toHaveBeenCalledOnce()
+    expect(f.coordinator.state).toBe(failed)
+    expect(failed).toMatchObject({ phase: 'error', failedOperation: 'install', preparationFailure: 'installer-handoff', message: error.message })
   })
 
   it('returns the existing installation state after handoff without preparing the Host again', async () => {

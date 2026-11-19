@@ -2276,6 +2276,31 @@ describe('desktop main startup', () => {
     expect(harness.updateDownload).not.toHaveBeenCalled()
   })
 
+  it('opens handoff details again without resuming installation', async () => {
+    await readyForUpdate()
+    const failure: DesktopUpdateState = { phase: 'error', version: '1.0.1-nightly.1', failedOperation: 'install',
+      preparationFailure: 'installer-handoff', message: 'native handoff diagnostic' }
+    const response = Promise.withResolvers<Electron.MessageBoxReturnValue>()
+    harness.dialog.showMessageBox.mockClear().mockReturnValueOnce(response.promise).mockResolvedValue({ response: 0 })
+    harness.updateState = failure
+    harness.publishUpdate(failure)
+    const opening = Promise.resolve(invoke(DESKTOP_IPC.updatesOpen, 'app'))
+    try {
+      await vi.advanceTimersByTimeAsync(0)
+      expect(harness.dialog.showMessageBox).toHaveBeenCalledOnce()
+    } finally {
+      response.resolve({ response: 0, checkboxChecked: false })
+      await opening
+    }
+    await invoke(DESKTOP_IPC.updatesOpen, 'app')
+    expect(harness.dialog.showMessageBox).toHaveBeenCalledTimes(2)
+    expect(harness.dialog.showMessageBox).toHaveBeenLastCalledWith(expect.objectContaining({
+      message: en.updateInstallerHandoffUnconfirmed, technicalDetails: failure.message,
+    }))
+    expect(harness.updateInstall).not.toHaveBeenCalled()
+    expect(harness.updateDownload).not.toHaveBeenCalled()
+  })
+
   it('reports a stale download confirmation as a download failure', async () => {
     await readyForUpdate()
     harness.updateCheck.mockResolvedValueOnce({ phase: 'available', version: '1.0.1-nightly.1' })

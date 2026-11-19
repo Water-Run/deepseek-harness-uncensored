@@ -202,6 +202,19 @@ it('localizes fullscreen timeout guidance and preserves the retry action', async
 })
 
 
+it('offers details while the installation result is unconfirmed', async () => {
+  const f = fixture()
+  try {
+    await f.emit({ phase: 'error', failure: 'installer-handoff', version: available.version })
+    const details = screen.getByRole('button', { name: zh['desktop.update.details'] })
+    fireEvent.focus(details)
+    expect((await screen.findByRole('tooltip')).textContent).toBe(zh['desktop.update.installerHandoffUnconfirmed'])
+    expect(screen.queryByRole('button', { name: zh['desktop.update.retry'] })).toBeNull()
+    fireEvent.click(details)
+    expect(f.open).toHaveBeenCalledOnce()
+  } finally { f.view.unmount(); f.status.resolve(available) }
+})
+
 it('keeps a configuration error actionable while download progress continues', async () => {
   const f = fixture()
   await f.emit({ phase: 'idle', configurationError: 'format' })

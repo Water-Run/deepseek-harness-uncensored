@@ -52,7 +52,8 @@ export const DESKTOP_IPC = {
 } as const
 
 /** Desktop release update state rendered by desktop-owned UI. */
-export type DesktopUpdatePreparationFailureKind = 'stop-failed' | 'tasks-changed' | 'tasks-unavailable' | 'fullscreen-timeout' | 'installer-integrity'
+export type DesktopUpdatePreparationFailureKind =
+  'stop-failed' | 'tasks-changed' | 'tasks-unavailable' | 'fullscreen-timeout' | 'installer-integrity' | 'installer-handoff'
 
 export interface DesktopUpdateState {
   readonly phase: 'idle' | 'checking' | 'available' | 'downloading' | 'verifying' | 'installing' | 'ready' | 'error'
@@ -62,7 +63,7 @@ export interface DesktopUpdateState {
   readonly technicalDetails?: string
   readonly percent?: number
   readonly failedOperation?: 'check' | 'download' | 'install' | 'configuration'
-  /** Main-owned preparation cause; UI wording is selected by the active locale. */
+  /** Main-owned preparation or handoff state. The active locale supplies the UI wording. */
   readonly preparationFailure?: DesktopUpdatePreparationFailureKind
   /** Current filesystem failure, independent of previous cache cleanup attempts. */
   readonly downloadFailure?: 'space' | 'permission' | 'busy'
@@ -80,11 +81,7 @@ export type DesktopUpdateFailureKind =
   | 'download-busy'
   | 'install'
   | 'install-network'
-  | 'stop-failed'
-  | 'tasks-changed'
-  | 'tasks-unavailable'
-  | 'fullscreen-timeout'
-  | 'installer-integrity'
+  | DesktopUpdatePreparationFailureKind
 
 /** Semantic status content; actions open main-process confirmation dialogs only. */
 export interface DesktopUpdatePresentation {

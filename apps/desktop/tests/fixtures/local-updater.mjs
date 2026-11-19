@@ -650,6 +650,14 @@ async function main() {
         await handoff.promise
         assert.deepEqual(f.installations, [[true, true]])
         assert.equal(policy.state.blocking, true)
+        f.updater.emit('error', new Error('installer result could not be confirmed'))
+        modal.sync()
+        const failure = f.coordinator.state
+        assert.equal(failure.preparationFailure, 'installer-handoff')
+        await until(`document.getElementById('error').textContent === ${JSON.stringify(messages.updateInstallerHandoffUnconfirmed)}
+          && document.getElementById('update').hidden`)
+        assert.equal(await f.coordinator.install(failure.version), failure)
+        assert.deepEqual(f.installations, [[true, true]])
         server.policy('clear')
         const closed = process.platform === 'win32' ? undefined : once(contents, 'destroyed')
         await policy.check('manual', true)
