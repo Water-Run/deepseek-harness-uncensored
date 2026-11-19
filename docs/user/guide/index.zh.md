@@ -25,6 +25,7 @@ Agent（智能体）可以读取和编辑工作区文件、运行命令、委派
 ## 继续使用
 
 - [DSHU 使用手册](./dshu.zh.md)
+- [DSHU 细节功能索引](./dshu-features.zh.md)
 - [配置模型](./providers.zh.md)
 - [使用 Python SDK](./python-sdk.zh.md)
 - [在反向代理之后发布 Web UI](./public-deployments.zh.md)

@@ -15,7 +15,7 @@ DSHU 是面向开发、网安、逆向与写作的智能体工作台。它在 De
 
 版本采用 `YYYY.MM.DD.N`，最后一项为当天构建序号。关于页、CLI、安装包和 Windows 登记使用相同日期版本；DSH 内核与 REA 的来源独立记录。打包与更新规则见[打包指南](apps/desktop/packaging/README.zh.md)。
 
-[开始使用](#开始使用) · [四种模式](#四种模式) · [通用增强](#通用增强) · [使用手册](docs/user/guide/dshu.zh.md) · [安装与开发](#安装与开发) · [开发进度](.agents/TODO.md) · [English](docs/user/guide/dshu.md)
+[开始使用](#开始使用) · [通用增强](#通用增强) · [界面预览](#界面预览) · [四种模式](#四种模式) · [细节功能索引](docs/user/guide/dshu-features.zh.md) · [安装与开发](#安装与开发) · [English](docs/user/guide/dshu.md)
 
 ## 开始使用
 
@@ -33,13 +33,25 @@ DSHU 是面向开发、网安、逆向与写作的智能体工作台。它在 De
 | **记忆和输入预测** | 结构化记忆可按范围检索和编辑，自动提炼默认关闭。输入预测默认开启，主线、旁问和随问各自预测，按 Tab 填入。启用的预测与提炼会调用当前模型，按提供方规则计入用量。 |
 | **会话和外观** | 支持会话删除、项目内进行中会话入口、工作区搜索和插话发送。主题色随模式变化，侧栏色条标识会话模式。外观支持日出日落、跟随系统、浅色和深色。 |
 
-旁问关闭默认保留历史，`/clear` 只在旁问内可用；主线可主动查看相关旁问。余额是账户采样，对话费用是本地估算，充值或赠金会使两者不同。限额与进阶保护默认关闭，输入预测默认开启且可能产生模型费用。完整的上下文规则、独立限额、恢复方式与默认值见[使用手册](docs/user/guide/dshu.zh.md)。
+会话删除、归档、置顶、消息分叉和工作区搜索的具体入口与影响见[细节功能索引](docs/user/guide/dshu-features.zh.md)。
+
+## 界面预览
+
+### 主线与右侧工具区
+
+![DSHU 工作区示例，左侧是会话列表，右侧提供工作区文件、终端和旁问入口](docs/assets/dshu/workspace-sidebar.png)
+
+右侧面板可以在主线会话保持打开时进入文件、终端和旁问。[会话与输入区细节](docs/user/guide/dshu-features.zh.md#composer)
+
+### 余额曲线与限额
+
+![额度设置示例，余额图悬浮提示显示采样时间与精确金额，下方是独立限额](docs/assets/dshu/balance-history.png)
+
+示例使用测试采样。余额曲线可查看具体时点和金额，独立限额位于同一设置页。[余额、费用与限额](docs/user/guide/dshu-features.zh.md#usage)
 
 ## 四种模式
 
 新对话从缺省开始，发送前可切换。已有对话默认锁定。四种模式共用内置破甲提示词，回答仍由模型生成。
-
-设置 → 模式中的“模式说明”介绍能力、工具、流程与验证，“如何使用”提供任务示例、准备材料和交付检查。每种模式各有七节说明、三组示例，使用对应主题色；查看指南不会改变当前模式。
 
 ### 缺省 · 开发与日常任务
 
@@ -82,15 +94,6 @@ DSHU 是面向开发、网安、逆向与写作的智能体工作台。它在 De
 
 </details>
 
-## 常见问题
-
-| 情况 | 处理方式 |
-| --- | --- |
-| 只想临时问一句，不打断主线 | 使用 `/btw 问题`；需要连续讨论或传图时使用 `/side 问题`。旁问清理只清自己的历史，仍能参考主线。 |
-| 工作暂停，担心程序卡住 | 先查看额度暂停横幅和底栏限额状态。可重置对应窗口，或开启自动恢复并等待恢复时间；余额变化不能代替费用账本。 |
-| REA 连接成功，却不能使用某个引擎 | 连接与目录发现不代表外部引擎就绪。检查对应引擎、运行环境及许可证；内置 REA 无需另装，Ghidra、IDA 等按需配置。 |
-| 阅读说明或调整模式资料后，对话没换模式 | 指南与资料配置是独立入口。新对话在发送前选模式；已有对话需在设置里临时允许切换，并处于空闲状态。 |
-
 ## 安装与开发
 
 - **桌面**　Windows x64 与 Linux x64 的当前公开预发布均为 `2026.11.17.5`，提供 exe、deb、tar.gz 和 SHA256SUMS.txt。Windows 已保留数据更新；Linux 已检查实际归档及隔离 API，并保留 X11/Wayland 主界面、重载和渲染沙箱的验收记录。原生门户、Debian/Fedora 和实体桌面仍待验收。签名与正式在线升级单独跟进，当前通过本仓库 [GitHub Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5) 手动下载安装。macOS arm64、Android＋PRoot Fedora 和全新安装器仅保留未来计划。
@@ -101,7 +104,7 @@ DSHU 是面向开发、网安、逆向与写作的智能体工作台。它在 De
 
 ## 文档导航
 
-[使用手册](docs/user/guide/dshu.zh.md)覆盖首次配置、模式、上下文、费用、默认值与排错；[模型配置](docs/user/guide/providers.zh.md)说明提供方与自定义接口；[打包指南](apps/desktop/packaging/README.zh.md)面向开发与交付。[TODO](.agents/TODO.md)维护完成情况，[完整需求](.agents/requirements/development-checklist.md)保留原始编号，[HANDOFF](.agents/HANDOFF.md)记录实际产物、验证与恢复入口。
+[使用手册](docs/user/guide/dshu.zh.md)介绍首次配置与常用工作流程。[细节功能索引](docs/user/guide/dshu-features.zh.md)按操作入口列出具体行为。[模型配置](docs/user/guide/providers.zh.md)说明提供方与自定义接口。[Windows 首发操作说明](.agents/requirements/windows-x64-first-release.md)记录候选验收、回退和手动发布步骤。[开发清单](.agents/TODO.md)维护进度，[交付记录](.agents/HANDOFF.md)记录实际产物与恢复入口。
 
 ## Credit
 

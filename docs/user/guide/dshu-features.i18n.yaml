@@ -1,0 +1,31 @@
+# Bilingual-pair consistency record for dshu-features.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/user/guide/dshu-features.md
+/:
+  en: 887f7c8e441fdafa
+  zh: 4cf0c0d29bf25928
+/dshu-feature-reference:
+  en: 46cf61312ac215b9
+  zh: 70e1ea48680dbb2d
+/dshu-feature-reference/summary:
+  en: 2e0efa44f4d5441e
+  zh: b8e4778339cb1de8
+/dshu-feature-reference/table-of-contents:
+  en: 7fd4436d7359e749
+  zh: 12305a0bb02b2839
+/dshu-feature-reference/conversations-and-workspaces:
+  en: bd2c8d1f5aba8ebe
+  zh: 5c5d8ac3bc08980e
+/dshu-feature-reference/side-questions-quick-questions-and-the-composer:
+  en: 258990ea23e4d47e
+  zh: 14a4499e8973156f
+/dshu-feature-reference/balance-fees-and-limits:
+  en: 3e7b275171b12df9
+  zh: 5f61c9c45f034492
+/dshu-feature-reference/modes-materials-tools-and-memory:
+  en: 81d1d35127691f12
+  zh: d02d06ebea151dcc
+/dshu-feature-reference/settings-data-and-recovery:
+  en: c2ca4ef41045c28f
+  zh: 544e1062e0ee9426
