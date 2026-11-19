@@ -127,6 +127,23 @@ describe('installed-update qualification materials', () => {
     })
   })
 
+  it('requires another download request when a retry fails before readiness', async () => {
+    await fixture(async (directory) => {
+      const journal = new DesktopUpdateJournal(directory, versions[0])
+      failedDownload(journal)
+      journal.action('download-requested')
+      journal.state({ phase: 'error', failedOperation: 'download', version: versions[1] })
+      journal.state({ phase: 'ready', version: versions[1] })
+      journal.action('install-confirmed')
+      journal.action('quit-requested')
+      new DesktopUpdateJournal(directory, versions[1]).action('workspace-ready')
+
+      const evidence = await inspectInstalledUpdateJournals(directory, versions)
+      expect(evidence.recordedFlow).toBe('incomplete')
+      expect(evidence.missing).toContain('manual-retry')
+    })
+  })
+
   it('reports absent evidence as incomplete', async () => {
     await fixture(async (directory) => {
       const result = await inspectInstalledUpdateJournals(directory, versions)

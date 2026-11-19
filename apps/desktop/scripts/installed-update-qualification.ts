@@ -205,14 +205,15 @@ async function readJournalRuns(directory: string, versions: readonly [string, st
 
 function inspectJournalRuns(runs: readonly JournalRun[], versions: readonly [string, string]): InstalledUpdateEvidence {
   let milestones: Record<string, InstalledUpdateObservation> = {}
+  const retryStage = STAGES.indexOf('manual-retry')
   // A retry and installation authorization must belong to the same original process.
   for (const run of runs.filter(run => run.records[0]!.version === versions[0])) {
     const candidate: Record<string, InstalledUpdateObservation> = {}
     let stage = 0
     for (const record of run.records) {
-      if (stage >= 6 && (record.event === 'download-requested' || (record.event === 'state' && record.phase === 'error'))) {
-        for (const key of STAGES.slice(4)) delete candidate[key]
-        stage = 4
+      if (stage > retryStage && (record.event === 'download-requested' || (record.event === 'state' && record.phase === 'error'))) {
+        for (const key of STAGES.slice(retryStage)) delete candidate[key]
+        stage = retryStage
       }
       const matches = [record.event === 'workspace-ready', record.event === 'download-requested',
         record.event === 'state' && record.phase === 'downloading' && record.targetVersion === versions[1]

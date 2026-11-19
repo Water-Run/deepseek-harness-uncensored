@@ -97,7 +97,7 @@ node --import tsx apps/desktop/scripts/verify-installed-update-package.ts "<run.
 node --import tsx apps/desktop/scripts/prepare-installed-update.ts inspect 0.1.6-alpha.1.20260916.1 0.1.6-alpha.1.20260916.2 "<journal-directory>"
 ```
 
-退出码 0 表示按序日志标记齐全；退出码 2 表示缺少标记；退出码 1 表示输入或命令验证失败。失败重试序列不能拼接不同版本 1 进程。早于原进程退出就启动的后继进程不计入；系统时间变化可能导致证据不完整，需要调查。`recordedFlow: complete` 不等于整体验收通过。报告始终要求独立人工检查发布时间、网络失败与恢复、安装器完成与路径、数据保留以及截图和确认。
+退出码 0 表示按序日志标记齐全；退出码 2 表示缺少标记；退出码 1 表示输入或命令验证失败。失败重试序列不能拼接不同版本 1 进程。再次失败后，日志必须记录新的显式下载请求，后续的就绪事件才可计入。早于原进程退出就启动的后继进程不计入；系统时间变化可能导致证据不完整，需要调查。`recordedFlow: complete` 不等于整体验收通过。报告始终要求独立人工检查发布时间、网络失败与恢复、安装器完成与路径、数据保留以及截图和确认。
 
 使用 `collect` 及匹配安装应用的 `dsh-update-qualification/<run-id>/journals` 目录保存本地日志快照与报告。它先验证所有选中记录，再在物料批次下创建新的 `evidence/collection-*`。复制的日志与 `report.json` 描述同一份内存快照，包含 SHA-256 和 `operatorAcceptance: pending`；原文件保持不变。不收集其他文件、设置、会话、构建输出或凭据。将这些另外审查过的证据与报告一同保留，不放进日志目录。
 
