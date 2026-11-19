@@ -822,9 +822,8 @@ async function main(): Promise<void> {
     updateChannel,
     undefined, undefined,
     () => {
-      if (quitting) return false
-      shellInstallerOwnsQuit = true
-      return true
+      if (quitting) return undefined
+      return () => { if (!quitting) shellInstallerOwnsQuit = true }
     },
   )
 

@@ -51,7 +51,7 @@ const harness = await vi.hoisted(async () => {
   const handlers = new Map<string, InvokeHandler>()
   let pluginsEnabled = false
   let prepareUpdate: (() => Promise<boolean>) | undefined
-  let beginUpdateHandoff: (() => boolean) | undefined
+  let prepareUpdateHandoff: (() => (() => void) | undefined) | undefined
   let publishUpdate: ((state: DesktopUpdateState) => DesktopUpdateState) | undefined
   let preparing = deferred()
   let prepared = deferred()
@@ -250,8 +250,8 @@ const harness = await vi.hoisted(async () => {
     set updateState(value: DesktopUpdateState) { updateState = value },
     get prepareUpdate() { return prepareUpdate! },
     set prepareUpdate(value: () => Promise<boolean>) { prepareUpdate = value },
-    get beginUpdateHandoff() { return beginUpdateHandoff! },
-    set beginUpdateHandoff(value: () => boolean) { beginUpdateHandoff = value },
+    get prepareUpdateHandoff() { return prepareUpdateHandoff! },
+    set prepareUpdateHandoff(value: () => (() => void) | undefined) { prepareUpdateHandoff = value },
     get publishUpdate() { return publishUpdate! },
     set publishUpdate(value: (state: DesktopUpdateState) => DesktopUpdateState) { publishUpdate = value },
     dialog: { showOpenDialog: vi.fn(), showErrorBox: vi.fn(), showMessageBox: vi.fn() },
@@ -289,7 +289,7 @@ const harness = await vi.hoisted(async () => {
       pluginsEnabled = false
       closeWindowsOnQuit = false
       prepareUpdate = undefined
-      beginUpdateHandoff = undefined
+      prepareUpdateHandoff = undefined
       publishUpdate = undefined
       updateState = { phase: 'idle' }
       updateCheck.mockReset().mockImplementation(async () => updateState)
@@ -391,10 +391,10 @@ vi.mock('../src/update-coordinator.ts', () => ({ DesktopUpdateCoordinator: class
   configurationFailure: 'startup' | 'cleanup' | undefined
   constructor(publish: (state: DesktopUpdateState) => DesktopUpdateState, beforeRestart: () => Promise<boolean>,
     _updater: unknown, _enabled: unknown, _version: unknown, _downloadResult: unknown, channel: 'nightly' | 'latest',
-    _discard: unknown, _readSource: unknown, beginHandoff: () => boolean) {
+    _discard: unknown, _readSource: unknown, prepareHandoff: () => (() => void) | undefined) {
     this.selectedChannel = channel
     harness.prepareUpdate = beforeRestart
-    harness.beginUpdateHandoff = beginHandoff
+    harness.prepareUpdateHandoff = prepareHandoff
     harness.publishUpdate = publish
   }
   async switchChannel(channel: 'nightly' | 'latest', persist: () => Promise<void>) {
@@ -2107,6 +2107,7 @@ describe('desktop main startup', () => {
       installCleanup.resolve()
       host.exited.resolve()
       await expect(preparing).resolves.toBe(false)
+      expect(harness.prepareUpdateHandoff()).toBeUndefined()
       expect(harness.app.quit).toHaveBeenCalledOnce()
       expect(harness.platformDispose).toHaveBeenCalledOnce()
     } finally {
@@ -2702,7 +2703,12 @@ describe('desktop main startup', () => {
       await host.stopping.promise
       host.exited.resolve()
       await expect(preparing).resolves.toBe(true)
-      expect(harness.beginUpdateHandoff()).toBe(true)
+      const transferQuit = harness.prepareUpdateHandoff()
+      if (transferQuit === undefined) throw new Error('Expected the shell to accept an installer handoff')
+      const beforeLaunch = { preventDefault: vi.fn() }
+      harness.app.emit('before-quit', beforeLaunch)
+      expect(beforeLaunch.preventDefault).toHaveBeenCalledOnce()
+      transferQuit()
       harness.closeWindowsOnQuit = true
       harness.app.quit()
       expect(modal.isDestroyed()).toBe(true)

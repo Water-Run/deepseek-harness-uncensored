@@ -66,7 +66,7 @@ export class DesktopUpdateCoordinator {
    * @param channel - Installed package channel; omitted test/local callers retain nightly.
    * @param discard - Clears settled library targets and platform resources before another channel is used.
    * @param readSource - Installed update configuration, read and validated before any network request.
-   * @param beginHandoff - Transfers quit ownership if the shell is still running.
+   * @param prepareHandoff - Supplies a callback that transfers quit ownership when the shell is able to start the handoff.
    * @param windowsHandoff - Starts the verified Windows installer and requests quit after it starts.
    */
   constructor(
@@ -79,7 +79,7 @@ export class DesktopUpdateCoordinator {
     private channel: DesktopUpdateChannel = 'nightly',
     private readonly discard: (updater: AppUpdater) => Promise<void> = discardDesktopUpdate,
     private readonly readSource: () => Promise<unknown> = readInstalledUpdateSource,
-    private readonly beginHandoff: () => boolean = () => true,
+    private readonly prepareHandoff: () => (() => void) | undefined = () => () => {},
     private readonly windowsHandoff: WindowsUpdateHandoff = {
       launch: launchWindowsUpdateInstaller,
       quit() {
@@ -259,11 +259,18 @@ export class DesktopUpdateCoordinator {
         this.assertLive()
         const installer = this.updater instanceof NsisUpdater ? await verifyWindowsUpdateInstaller(this.updater) : undefined
         this.assertLive()
-        if (!this.beginHandoff()) return this.setState({ phase: 'ready', version })
-        if (installer !== undefined) await this.windowsHandoff.launch(installer)
-        this.release = { kind: 'handed-off', version }
-        if (installer === undefined) this.updater.quitAndInstall(true, true)
-        else this.windowsHandoff.quit()
+        const transferQuit = this.prepareHandoff()
+        if (transferQuit === undefined) return this.setState({ phase: 'ready', version })
+        if (installer === undefined) {
+          transferQuit()
+          this.release = { kind: 'handed-off', version }
+          this.updater.quitAndInstall(true, true)
+        } else {
+          await this.windowsHandoff.launch(installer)
+          this.release = { kind: 'handed-off', version }
+          transferQuit()
+          this.windowsHandoff.quit()
+        }
         return this.current
       } catch (error) {
         if (this.release.kind !== 'handed-off' && error instanceof DesktopUpdatePreparationError && error.kind === 'installer-integrity') {

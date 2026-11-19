@@ -62,7 +62,8 @@ async function main() {
     const installations = []
     const states = []
     let restart = async () => true
-    let handoff = () => true
+    let transfers = 0
+    let prepareHandoff = () => () => { transfers++ }
     let quits = 0
     updater.quitAndInstall = forbidden
     const windowsHandoff = {
@@ -73,9 +74,11 @@ async function main() {
       quit() { quits++ },
     }
     const coordinator = new DesktopUpdateCoordinator(state => { states.push(state); return state },
-      () => restart(), updater, () => true, () => '1.0.0', undefined, 'nightly', undefined, readSource, () => handoff(), windowsHandoff)
+      () => restart(), updater, () => true, () => '1.0.0', undefined, 'nightly', undefined,
+      readSource, () => prepareHandoff(), windowsHandoff)
     const result = { updater, coordinator, installations, states, directory, windowsHandoff, get quits() { return quits },
-      restart: handler => { restart = handler }, handoff: handler => { handoff = handler } }
+      get transfers() { return transfers },
+      restart: handler => { restart = handler }, handoff: handler => { prepareHandoff = handler } }
     fixtures.push(result)
     return result
   }
@@ -105,7 +108,7 @@ async function main() {
         assert.deepEqual(server.requests.slice(before), ['/nightly.yml', '/payload.exe'])
         assert.deepEqual(await readFile(f.updater.installerPath), server.payload)
         f.restart(async () => true)
-        f.handoff(() => true)
+        f.handoff(() => () => {})
         assert.equal((await f.coordinator.install(version)).phase, 'installing')
         assert.deepEqual(f.installations, [f.updater.installerPath])
       })
@@ -125,16 +128,19 @@ async function main() {
       try {
         assert.equal(await entered.promise, f.updater.installerPath)
         assert.equal(f.quits, 0)
+        assert.equal(f.transfers, 0)
       } finally { launch.reject(new Error('OS rejected fixture startup')) }
       const failure = await installing
       assert.equal(failure.failedOperation, 'install')
       assert.equal(failure.preparationFailure, undefined)
       assert.equal(f.quits, 0)
+      assert.equal(f.transfers, 0)
       assert.equal(f.installations.length, 0)
       f.windowsHandoff.launch = record
       assert.equal((await f.coordinator.install(version)).phase, 'installing')
       assert.deepEqual(f.installations, [f.updater.installerPath])
       assert.equal(f.quits, 1)
+      assert.equal(f.transfers, 1)
     })
     await scenario('same-version-no-update', async () => {
       const f = await fixture()
@@ -419,7 +425,7 @@ async function main() {
       f.handoff(() => {
         assert.equal(f.installations.length, 0)
         choices.push(allowHandoff)
-        return allowHandoff
+        return allowHandoff ? () => { assert.deepEqual(f.installations, [f.updater.installerPath]) } : undefined
       })
       assert.equal((await f.coordinator.install(version)).phase, 'ready')
       assert.equal(f.installations.length, 0)

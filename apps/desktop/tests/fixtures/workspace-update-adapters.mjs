@@ -24,10 +24,10 @@ export class DesktopFatalRecovery extends Recovery {
   }
 }
 export class DesktopUpdateCoordinator extends Coordinator {
-  constructor(publish, beforeRestart, _updater, _enabled, _version, _downloadResult, _channel, _discard, _readSource, beginHandoff) {
+  constructor(publish, beforeRestart, _updater, _enabled, _version, _downloadResult, _channel, _discard, _readSource, prepareHandoff) {
     super(state => { fixture.states.push(state); return publish(state) },
       beforeRestart, fixture.updater, () => true, () => '0.1.5-rc.1', undefined, 'nightly', undefined,
-      fixture.readUpdateSource, beginHandoff, fixture.windowsHandoff)
+      fixture.readUpdateSource, prepareHandoff, fixture.windowsHandoff)
     fixture.coordinator = this
   }
 }
