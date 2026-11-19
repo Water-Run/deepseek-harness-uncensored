@@ -122,6 +122,8 @@ describe('release installer SHA-256 companion', () => {
   it.each([
     { failure: 'missing', message: 'manifest omits the installer' },
     { failure: 'duplicate', message: 'duplicate SHA-256 entry' },
+    { failure: 'case-duplicate', message: 'duplicate SHA-256 entry' },
+    { failure: 'wrong-case', message: 'manifest omits the installer' },
     { failure: 'bad-digest', message: 'SHA-256 differs from the manifest' },
     { failure: 'malformed', message: 'malformed SHA-256 manifest' },
     { failure: 'changed-installer', message: 'installer changed after blockmap verification' },
@@ -134,6 +136,8 @@ describe('release installer SHA-256 companion', () => {
       let text = `${hash}  ${installer.name}\n`
       if (failure === 'missing') text = `${hash}  another.exe\n`
       if (failure === 'duplicate') text += text
+      if (failure === 'case-duplicate') text = `${'0'.repeat(64)}  ${installer.name.toUpperCase()}\n${text}`
+      if (failure === 'wrong-case') text = `${hash}  ${installer.name.toUpperCase()}\n`
       if (failure === 'bad-digest') text = `${'0'.repeat(64)}  ${installer.name}\n`
       if (failure === 'malformed') text = `${hash} ${installer.name}\n`
       await writeFile(checksums, text)

@@ -73,7 +73,7 @@ $receipt | ConvertTo-Json
 
 [Microsoft 签名校验](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/get-authenticodesignature) · [Microsoft 文件摘要](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/get-filehash) · [更新验收](2026-11-16-release-check.md)
 
-候选包含更新清单与差分索引时，可在仓库根目录执行批次复核，核对 `latest.yml` 的内部分发版本、文件名、大小和 SHA-512。沿用上面选定的 `$installer`。索引用完整安装器文件名加 `.blockmap` 后缀，放在同一目录。摘要文件应有与安装器文件名完全一致的一行。
+候选包含更新清单与差分索引时，可在仓库根目录执行批次复核，核对 `latest.yml` 的内部分发版本、文件名、大小和 SHA-512。沿用上面选定的 `$installer`。索引用完整安装器文件名加 `.blockmap` 后缀，放在同一目录。摘要文件应有与安装器文件名完全一致的一行。仅大小写不同的文件名也按重复条目拒绝。
 
 ```powershell
 $feed = Join-Path $installer.DirectoryName 'latest.yml'

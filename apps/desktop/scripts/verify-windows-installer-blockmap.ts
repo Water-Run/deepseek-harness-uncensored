@@ -88,7 +88,8 @@ export async function verifyWindowsInstallerUpdate(
 }
 
 /**
- * Check the installer entry in a SHA-256 manifest against the bytes already verified for updates.
+ * Check the uniquely named installer entry in a SHA-256 manifest against the bytes already verified for updates.
+ * Windows filenames that differ only in casing count as duplicate entries.
  * @param installer - Installer path, with its exact public filename.
  * @param manifest - UTF-8 SHA-256 manifest using the sha256sum text or binary marker.
  * @param verified - Installer digest from blockmap verification.
@@ -99,16 +100,18 @@ export async function verifyWindowsInstallerChecksum(installer: string, manifest
   const text = bytes.toString('utf8')
   if (!Buffer.from(text).equals(bytes)) throw new Error('desktop installer: SHA-256 manifest must use valid UTF-8')
   const filename = basename(installer)
-  let expected: string | undefined
+  const windowsFilename = filename.toLowerCase()
+  let selected: { name: string; sha256: string } | undefined
   for (const line of text.replace(/^\uFEFF/u, '').split(/\r?\n/u)) {
     if (line.trim() === '') continue
     const parsed = /^([0-9a-f]{64}) [ *](.+)$/iu.exec(line)
     if (parsed === null) throw new Error('desktop installer: malformed SHA-256 manifest entry')
-    if (parsed[2] !== filename) continue
-    if (expected !== undefined) throw new Error('desktop installer: duplicate SHA-256 entry for the installer')
-    expected = parsed[1]!.toLowerCase()
+    const entryName = parsed[2]!
+    if (entryName.toLowerCase() !== windowsFilename) continue
+    if (selected !== undefined) throw new Error('desktop installer: duplicate SHA-256 entry for the installer')
+    selected = { name: entryName, sha256: parsed[1]!.toLowerCase() }
   }
-  if (expected === undefined) throw new Error('desktop installer: SHA-256 manifest omits the installer')
+  if (selected?.name !== filename) throw new Error('desktop installer: SHA-256 manifest omits the installer with the exact filename')
   const sha256 = createHash('sha256'), sha512 = createHash('sha512')
   for await (const chunk of createReadStream(installer)) {
     sha256.update(chunk)
@@ -118,7 +121,7 @@ export async function verifyWindowsInstallerChecksum(installer: string, manifest
     throw new Error('desktop installer: installer changed after blockmap verification')
   }
   const actual = sha256.digest('hex')
-  if (actual !== expected) throw new Error('desktop installer: installer SHA-256 differs from the manifest')
+  if (actual !== selected.sha256) throw new Error('desktop installer: installer SHA-256 differs from the manifest')
   return actual
 }
 
