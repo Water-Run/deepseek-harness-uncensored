@@ -1,13 +1,14 @@
 import { createHash } from 'node:crypto'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { gunzipSync, gzipSync } from 'node:zlib'
 import { buildBlockMap } from 'app-builder-lib/out/targets/blockmap/blockmap.js'
 import { describe, expect, it } from 'vitest'
 import { load } from 'js-yaml'
 import { createInstalledUpdateRun } from '../scripts/installed-update-qualification.ts'
 import { planInstalledUpdateDistribution } from '../scripts/installed-update-distribution.ts'
+import { verifyWindowsInstallerChecksum } from '../scripts/verify-windows-installer-blockmap.ts'
 
 const versions = ['0.1.6-nightly.20260914.1', '0.1.6-nightly.20260914.2'] as const
 
@@ -105,4 +106,38 @@ describe('qualification distribution file planning', () => {
       })
     },
   )
+})
+
+describe('release installer SHA-256 companion', () => {
+  it('matches the exact installer in a Windows-formatted checksum list', async () => {
+    await fixture(async (manifest) => {
+      const installer = (await planInstalledUpdateDistribution(manifest, versions[0])).binaries[0]!
+      const checksums = join(dirname(installer.path), 'SHA256SUMS.txt')
+      const hash = createHash('sha256').update(await readFile(installer.path)).digest('hex')
+      await writeFile(checksums, `\uFEFF${hash}  another.exe\r\n${hash.toUpperCase()} *${installer.name}\r\n`)
+      await expect(verifyWindowsInstallerChecksum(installer.path, checksums, installer)).resolves.toBe(hash)
+    })
+  })
+
+  it.each([
+    { failure: 'missing', message: 'manifest omits the installer' },
+    { failure: 'duplicate', message: 'duplicate SHA-256 entry' },
+    { failure: 'bad-digest', message: 'SHA-256 differs from the manifest' },
+    { failure: 'malformed', message: 'malformed SHA-256 manifest' },
+    { failure: 'changed-installer', message: 'installer changed after blockmap verification' },
+  ])('refuses $failure', async ({ failure, message }) => {
+    await fixture(async (manifest) => {
+      const installer = (await planInstalledUpdateDistribution(manifest, versions[0])).binaries[0]!
+      const checksums = join(dirname(installer.path), 'SHA256SUMS.txt')
+      if (failure === 'changed-installer') await writeFile(installer.path, 'different installer')
+      const hash = createHash('sha256').update(await readFile(installer.path)).digest('hex')
+      let text = `${hash}  ${installer.name}\n`
+      if (failure === 'missing') text = `${hash}  another.exe\n`
+      if (failure === 'duplicate') text += text
+      if (failure === 'bad-digest') text = `${'0'.repeat(64)}  ${installer.name}\n`
+      if (failure === 'malformed') text = `${hash} ${installer.name}\n`
+      await writeFile(checksums, text)
+      await expect(verifyWindowsInstallerChecksum(installer.path, checksums, installer)).rejects.toThrow(message)
+    })
+  })
 })

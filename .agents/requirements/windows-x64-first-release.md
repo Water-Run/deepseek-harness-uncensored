@@ -70,6 +70,17 @@ try {
 
 [Microsoft 签名校验](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/get-authenticodesignature) · [Microsoft 文件摘要](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/get-filehash) · [更新验收](2026-11-16-release-check.md)
 
+候选包含更新清单与差分索引时，可在仓库根目录执行批次复核。沿用上面选定的 `$installer`。索引用完整安装器文件名加 `.blockmap` 后缀，放在同一目录。摘要文件应有与安装器文件名完全一致的一行。
+
+```powershell
+$feed = Join-Path $installer.DirectoryName 'latest.yml'
+$checksums = Join-Path $installer.DirectoryName 'SHA256SUMS.txt'
+$version = '<构建清单的内部分发版本>'
+pnpm --dir apps/desktop exec tsx scripts/verify-windows-installer-blockmap.ts --feed $feed --version $version --checksums $checksums $installer.FullName
+```
+
+若仅复核已有安装器、差分索引和摘要，可同时省略 `--feed` 和 `--version`。成功时保存输出的 `file-integrity-only` JSON 回执。缺少或重复的安装器摘要、内容不一致或索引批次错配会返回非零。签名、装配完整性与实装结果分别留档。
+
 ## 同一候选的验收单
 
 下面各项均在待验状态。开始验收时填入候选版本、完整源码提交和安装器 SHA-256。每一行保留实测结果及回执路径，确保所有通过项指向同一份安装器。

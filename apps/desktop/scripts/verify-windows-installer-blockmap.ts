@@ -1,5 +1,6 @@
-/** Verify a final Windows installer against its blockmap and optional update feed. */
+/** Verify a final Windows installer against its blockmap, optional update feed and SHA-256 manifest. */
 import { createHash } from 'node:crypto'
+import { createReadStream } from 'node:fs'
 import { mkdtemp, readFile, rm, rmdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
@@ -86,15 +87,57 @@ export async function verifyWindowsInstallerUpdate(
   return { ...verified, feed: { contents, sha512: createHash('sha512').update(bytes).digest('base64') } }
 }
 
+/**
+ * Check the installer entry in a SHA-256 manifest against the bytes already verified for updates.
+ * @param installer - Installer path, with its exact public filename.
+ * @param manifest - UTF-8 SHA-256 manifest using the sha256sum text or binary marker.
+ * @param verified - Installer digest from blockmap verification.
+ * @returns The matched lowercase hexadecimal SHA-256.
+ */
+export async function verifyWindowsInstallerChecksum(installer: string, manifest: string, verified: FileDigest): Promise<string> {
+  const bytes = await readFile(manifest)
+  const text = bytes.toString('utf8')
+  if (!Buffer.from(text).equals(bytes)) throw new Error('desktop installer: SHA-256 manifest must use valid UTF-8')
+  const filename = basename(installer)
+  let expected: string | undefined
+  for (const line of text.replace(/^\uFEFF/u, '').split(/\r?\n/u)) {
+    if (line.trim() === '') continue
+    const parsed = /^([0-9a-f]{64}) [ *](.+)$/iu.exec(line)
+    if (parsed === null) throw new Error('desktop installer: malformed SHA-256 manifest entry')
+    if (parsed[2] !== filename) continue
+    if (expected !== undefined) throw new Error('desktop installer: duplicate SHA-256 entry for the installer')
+    expected = parsed[1]!.toLowerCase()
+  }
+  if (expected === undefined) throw new Error('desktop installer: SHA-256 manifest omits the installer')
+  const sha256 = createHash('sha256'), sha512 = createHash('sha512')
+  for await (const chunk of createReadStream(installer)) {
+    sha256.update(chunk)
+    sha512.update(chunk)
+  }
+  if (sha512.digest('base64') !== verified.sha512) {
+    throw new Error('desktop installer: installer changed after blockmap verification')
+  }
+  const actual = sha256.digest('hex')
+  if (actual !== expected) throw new Error('desktop installer: installer SHA-256 differs from the manifest')
+  return actual
+}
+
 if (process.argv[1] !== undefined && import.meta.filename === resolve(process.argv[1])) {
   const { values, positionals } = parseArgs({ allowPositionals: true, options: {
-    feed: { type: 'string' }, version: { type: 'string' },
+    feed: { type: 'string' }, version: { type: 'string' }, checksums: { type: 'string' },
   } })
   const [installer] = positionals
   if (installer === undefined || positionals.length !== 1) throw new Error('desktop installer: expected one installer filename')
-  if (values.feed === undefined && values.version === undefined) await verifyWindowsInstallerBlockmap(resolve(installer))
-  else {
-    if (values.feed === undefined || values.version === undefined) throw new Error('desktop installer: --feed and --version must be supplied together')
-    await verifyWindowsInstallerUpdate(resolve(installer), resolve(values.feed), values.version)
+  const { feed, version, checksums } = values
+  if ((feed === undefined) !== (version === undefined)) throw new Error('desktop installer: --feed and --version must be supplied together')
+  const path = resolve(installer)
+  const verified: VerifiedWindowsInstaller & { readonly feed?: { readonly sha512: string } } = feed === undefined || version === undefined
+    ? await verifyWindowsInstallerBlockmap(path)
+    : await verifyWindowsInstallerUpdate(path, resolve(feed), version)
+  if (checksums !== undefined) {
+    const sha256 = await verifyWindowsInstallerChecksum(path, resolve(checksums), verified.digest)
+    console.log(JSON.stringify({ installer: basename(path), ...verified.digest, sha256, blockmap: verified.map,
+      ...feed !== undefined && verified.feed !== undefined ? { feed: { name: basename(feed), sha512: verified.feed.sha512 } } : {},
+      verified: 'file-integrity-only' }))
   }
 }
