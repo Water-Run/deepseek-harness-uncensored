@@ -4,7 +4,7 @@
 
 ## 交付矩阵
 
-首次正式发布计划为 Windows x64 Desktop，装配核对和验收见 [首发打包交接](windows-x64-first-release.md)。Linux x64 Desktop 列入后续版本，已有历史包及 Ubuntu WSL2 的 deb 验收记录，下一阶段在 Fedora 实体机验收。macOS ARM Desktop、Android＋PRoot Fedora 和全新安装器仍在后续计划。Android 草案见 [追加需求](2026-10-25-followups.md#平台交付矩阵)。
+首次正式发布为 Windows x64 Desktop 完整交付，装配核对和验收见 [首发打包交接](windows-x64-first-release.md)。Linux x64 Desktop 列入后续版本，已有历史包及 Ubuntu WSL2 的 deb 验收记录，下一阶段在 Fedora 实体机验收。macOS ARM Desktop、Android＋PRoot Fedora 和全新安装器仍在后续计划。Android 草案见 [追加需求](2026-10-25-followups.md#平台交付矩阵)。
 
 ## 目标
 
