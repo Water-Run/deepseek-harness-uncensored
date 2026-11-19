@@ -4,6 +4,8 @@
 
 ## 已完成
 
+- [x] **会话删除后的界面导航（2026-11-19）**。删除当前会话后，对话区切到其他普通会话或新会话页面，独立功能页和已发起的导航继续保留。新增两个回归场景，覆盖存在候补会话和没有候补会话，修复前均因删除取消导航而失败。修复后工作区相关 47 项定向测试通过。组装 Web 验证自动化任务页保持打开，删除提示正常，持久会话已移除。回执为 `%USERPROFILE%/DSHU-Deliveries/20261119/session-delete-preserve-panel-web-final.log`。新版实装待验收。[工作区说明](../../packages/client/ui-workspace/README.zh.md)
+
 - [x] **新建会话后的工作区关联错误（2026-11-19）**。Host 已发布会话后，工作区关联失败仍可取得原会话 ID。当前导航打开该会话并执行草稿准备；稍后的导航保留当前视图，提示提供「打开会话」。236 项定向测试通过。真实 Web 复现关联错误并核对可选中同一已持久化会话，打开提示中的会话时创建请求总数保持为 1。日志为 `%USERPROFILE%/DSHU-Deliveries/20261119/create-workspace-attachment-web-final.log`。[工作区说明](../../packages/client/ui-workspace/README.zh.md)
 
 - [x] **旧版限额暂停的手动恢复入口（2026-11-19）**。旧账本迁移出的暂停由 Host 返回手动恢复状态。自动恢复开启时，会话横幅仍显示「恢复」；单项重置保留确认要求，点击恢复后继续检查所有启用窗口。账本、横幅和会话恢复共 51 项测试通过。Web 的实际等待、390px 横幅与重置续跑用例通过，日志为 `%USERPROFILE%/DSHU-Deliveries/20261119/legacy-quota-resume-web.log`。[限额后端](../../packages/guard/spend-limit/README.md)

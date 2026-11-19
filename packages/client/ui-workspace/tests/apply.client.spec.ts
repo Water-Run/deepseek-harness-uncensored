@@ -164,7 +164,7 @@ async function bench(access: 'fake' | 'static' = 'fake') {
   } as never)
   const pickDirectory = vi.fn(() => Promise.resolve({ ok: true as const, value: '/projects/picked' }))
   const directoryPicker = { pick: pickDirectory }
-  new TestRemote(ctx, { directoryPicker, session: {} })
+  const remote = new TestRemote(ctx, { directoryPicker, session: {} })
   const locale = new LocaleRuntime(ctx)
   // These specs assert the shipped Chinese copy. There is no jsdom `window`
   // in this lane, so browser-language detection never runs and the locale
@@ -174,7 +174,7 @@ async function bench(access: 'fake' | 'static' = 'fake') {
   return {
     ctx, slots: ctx.get('slots') as SlotRegistry, locale, create, rename, commands, accessSource, whenResourceAccess, stopGuard,
     retain, using, selectPanel, search, renameSession, binding, fork, pickDirectory, pinSession, unpinSession,
-    workspacesSubscribe, initializeDefault, history, scope, sessionOf,
+    workspacesSubscribe, initializeDefault, history, scope, sessionOf, remote,
     setWorkspaces: (snapshot: WorkspaceSnapshot): void => { workspaceSnapshot = snapshot },
     setSessions: (snapshot: SessionListState): void => { sessionSnapshot = snapshot },
   }
@@ -526,6 +526,35 @@ describe('ui-workspace apply', () => {
     pin.unpinSession(sid('one'))
     await vi.waitFor(() => { expect(toast.hooks.toast.getSnapshot()).toEqual({ kind: 'unpinFailed', seq: 2 }) })
     expect(view.getSnapshot().sessionOrderByAccount).toEqual({})
+  })
+
+  it.each([true, false])('keeps an explicit opening pending when the current Session is deleted (fallback: %s)', async (fallback) => {
+    const b = await bench()
+    onTestFinished(() => b.ctx.fiber.dispose())
+    b.setSessions(sessionState([summary('deleted', 2), ...fallback ? [summary('other', 1)] : []]))
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    b.ctx.uiWorkspace.openSession(sid('deleted'))
+    const current = b.retain.mock.results.at(-1)!.value
+    b.selectPanel.mockClear()
+
+    const navigation = new AbortController()
+    vi.spyOn(b.ctx.layout, 'beginNavigation').mockReturnValueOnce(navigation.signal)
+    b.selectPanel.mockImplementation(() => navigation.abort())
+    const create = Promise.withResolvers<SessionId>()
+    const request = vi.spyOn(b.ctx.sessions, 'create').mockReturnValueOnce(create.promise)
+    const opening = b.ctx.uiWorkspace.openWorkspace(null)
+    b.remote.emit('api-session/deleted', [sid('deleted')])
+    const panelChangesDuringDeletion = b.selectPanel.mock.calls.length
+    const selectionAfterDeletion = b.retain.mock.calls.at(-1)?.[0]
+
+    create.resolve(sid('created'))
+    await opening
+    expect(panelChangesDuringDeletion).toBe(0)
+    expect(current.release).toHaveBeenCalledOnce()
+    expect(selectionAfterDeletion).toBe(fallback ? 'other' : 'deleted')
+    expect(request).toHaveBeenCalledOnce()
+    expect(b.retain).toHaveBeenLastCalledWith('created', { source: 'mainView' })
+    expect(b.selectPanel).toHaveBeenCalledExactlyOnceWith(null)
   })
 
   it('archives through the navigation service and raises the archived notice; Host rejections are console diagnostics', async () => {

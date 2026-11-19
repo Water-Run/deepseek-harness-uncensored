@@ -98,7 +98,8 @@ export interface UiWorkspace {
    */
   archiveSession(sessionId: SessionId, options?: { readonly stopActivity?: boolean }): Promise<void>
   /**
-   * Release a deleted current conversation and move to another ordinary conversation or the new-conversation view.
+   * Replace a deleted selection with another ordinary conversation or the new-conversation view.
+   * Preserve the active panel and any pending navigation.
    * @param sessionId - Permanently deleted identity.
    */
   handleDeletedSession(sessionId: SessionId): void
@@ -436,9 +437,8 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     const list = this.sessions.list.getSnapshot()
     const archived = this.workspaces.list.getSnapshot().archivedSessionIds
     const next = list.ids.find(id => id !== sessionId && !archived.includes(id) && list.byId[id]?.parentId === undefined)
-    this.clearMain()
-    if (next !== undefined) this.openSession(next)
-    else this.startSession()
+    if (next === undefined) this.clearMain('preserve')
+    else this.replaceMain(next, this.lifetime.signal, 'preserve')
   }
 
   async unarchiveSession(sessionId: SessionId): Promise<void> {
@@ -569,12 +569,12 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     return true
   }
 
-  private clearMain(): void {
+  private clearMain(panel: 'reveal' | 'preserve' = 'reveal'): void {
     const previous = this.mainReference
     this.mainReference = undefined
     this.selection.set({})
     previous?.release()
-    this.ctx.layout.selectPanel(null)
+    if (panel === 'reveal') this.ctx.layout.selectPanel(null)
   }
 
   private replaceMain(
