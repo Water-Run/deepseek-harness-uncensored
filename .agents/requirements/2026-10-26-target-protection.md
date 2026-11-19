@@ -116,6 +116,7 @@
 - [x] 本机文件、命令和终端的提供方状态接入同一面板。准入检查与两种原生网络策略分别显示，原生初始化失败不发布状态，卸载会撤下。普通可选 Web 配置和 Windows 原生两种配置均已验证，旧 Host 缺少新字段时保留原有显示。
 - [x] 主线、旁问、随问和子任务的进程内审计归属。四个真实 AgentLoop 并发执行，各会话只接收自己的判定；后台无 Agent 调用不推断归属。
 - [x] SQLite 批次绑定发起会话的审计生命周期。隔离数据库在提交前关闭会话，触发原生执行取消，数据保持原值，替代会话没有获得旧记录。本机用 20 秒单项测试门限复验，31 项 SQLite 与审计绑定测试通过。Windows 录制回放在 Bash 基线与 PowerShell 工具声明差异处失败，未改历史夹具。回执为 `sqlite-audit-owner-{before,native-verified,snapshot}.log`。
+- [x] Windows 复验 `sqlite-target-protection` 与 `sqlite-commit-cleanup` 两条录制。夹具禁用录制未调用的 Bash 和 PowerShell，刷新工具及提示头部，保留数据库工具、原录制、写入结果与工作区预期。普通回放两条均通过，回执为 `sqlite-windows-replay-final.log`。
 - [x] PostgreSQL 与 MySQL 执行请求继承发起会话的审计生命周期。隔离回环验证 MySQL 握手随会话关闭取消并关闭连接，PostgreSQL 在驱动清理期间关闭会话会丢弃尚未返回的审计结果。同 ID 的替代会话没有收到旧记录。两个提供方与 Loader 共 59 项定向测试通过。回执为 `network-database-audit-owner-{before,final}.log`。
 - [x] 浏览器资源启动、执行租约及排队操作绑定确切 Agent。工具调用前的 MCP 发现拒绝也记录所属会话，两个并发启动不会丢失来源；外层作用域恢复。真实 Chromium 代理导航、两平台核心回归与 Linux 录制回放通过。
 - [x] 独立代理 HTTP/CONNECT 监听器绑定准确的存活 Session，两个独立 Node 进程并发访问各自监听器，主线和旁问分别记录；Host 探测不归属对话。关闭/替换会话或离开网安时撤销，退休监听器及尚未就绪的地址不再接收新转发。
