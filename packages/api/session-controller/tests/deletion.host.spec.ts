@@ -98,6 +98,28 @@ it('deletes through a dependency-checked scope with optional persistence', async
   expect(await ctx.sessionPersistence.stat(id)).toBeUndefined()
 })
 
+it('reports every durable deletion when a notification listener fails', async () => {
+  const { ctx, api, cwd } = await setup()
+  const { sessionId } = await api.create({ cwd })
+  const side = await api.aside({ sessionId, kind: 'side' })
+  const failure = new Error('deletion notification fixture')
+  const threw = vi.fn<(id: SessionId) => void>(() => { throw failure })
+  const rejected = vi.fn<(id: SessionId) => Promise<never>>(() => Promise.reject(failure))
+  const observed = vi.fn<(id: SessionId) => void>()
+  ctx.on('api-session/deleted', threw)
+  ctx.on('api-session/deleted', rejected)
+  ctx.on('api-session/deleted', observed)
+
+  const result = await api.delete({ sessionId })
+  const expected = new Set([sessionId, side.sessionId])
+  expect(new Set(result.deletedSessionIds)).toEqual(expected)
+  for (const listener of [threw, rejected, observed]) {
+    expect(listener).toHaveBeenCalledTimes(expected.size)
+    expect(new Set(listener.mock.calls.map(call => call[0]))).toEqual(expected)
+  }
+  expect(await ctx.sessionPersistence.list()).toEqual([])
+})
+
 it('deletes native asides and derived data while preserving independent forks and workspace files', async () => {
   const { ctx, api, cwd, cache } = await setup()
   const workspace = await ctx.workspaceRegistry.create(cwd)

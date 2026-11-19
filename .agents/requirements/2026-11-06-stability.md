@@ -4,6 +4,8 @@
 
 ## 已完成
 
+- [x] **持久删除后的通知故障（2026-11-19）**。在真实 Host 回归中，监听器抛错曾把已提交的会话删除误报为清理未完成。修复后，抛错或拒绝的监听器仍会被记录，其余监听器能收到主会话和旁问的删除通知。24 项 Host 与 JSONL 定向测试通过。日志为 `session-delete-observer-{before,final}.log`。新版实装待验收。[会话删除](../../packages/api/session-controller/README.zh.md)
+
 - [x] **会话删除后的界面导航（2026-11-19）**。删除当前会话后，对话区切到其他普通会话或新会话页面，独立功能页和已发起的导航继续保留。新增两个回归场景，覆盖存在候补会话和没有候补会话，修复前均因删除取消导航而失败。修复后工作区相关 47 项定向测试通过。组装 Web 验证自动化任务页保持打开，删除提示正常，持久会话已移除。回执为 `%USERPROFILE%/DSHU-Deliveries/20261119/session-delete-preserve-panel-web-final.log`。新版实装待验收。[工作区说明](../../packages/client/ui-workspace/README.zh.md)
 
 - [x] **新建会话后的工作区关联错误（2026-11-19）**。Host 已发布会话后，工作区关联失败仍可取得原会话 ID。当前导航打开该会话并执行草稿准备；稍后的导航保留当前视图，提示提供「打开会话」。236 项定向测试通过。真实 Web 复现关联错误并核对可选中同一已持久化会话，打开提示中的会话时创建请求总数保持为 1。日志为 `%USERPROFILE%/DSHU-Deliveries/20261119/create-workspace-attachment-web-final.log`。[工作区说明](../../packages/client/ui-workspace/README.zh.md)

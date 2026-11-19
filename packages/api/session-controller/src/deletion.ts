@@ -264,7 +264,21 @@ export class SessionDeletionController {
       if (failures.length > 1) throw new AggregateError(failures, 'Derived Session cleanup failed.')
     } finally {
       // Catalog removal is durable even when derived cleanup needs a retry.
-      for (const id of ids) this.ctx.emit('api-session/deleted', id)
+      for (const id of ids) this.notifyDeleted(id)
+    }
+  }
+
+  private notifyDeleted(id: SessionId): void {
+    const warn = (error: unknown): void => {
+      this.ctx.logger.warn('session-controller: deletion notification listener failed for %s', id, error)
+    }
+    for (const listener of this.ctx.events.dispatch('emit', ['api-session/deleted', id])) {
+      try {
+        const result: unknown = listener(id)
+        void Promise.resolve(result).catch(warn)
+      } catch (error) {
+        warn(error)
+      }
     }
   }
 

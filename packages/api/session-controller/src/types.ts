@@ -734,6 +734,7 @@ declare module '@deepseek-ai/cordis' {
     'api-session/removed'(sessionId: SessionId): void
     /**
      * A Session was permanently removed from the persistence catalog.
+     * Listener failures are logged independently of deletion and delivery to other listeners.
      * @mode emit
      * @param sessionId - Deleted identity; clients must release views and related resources.
      */
