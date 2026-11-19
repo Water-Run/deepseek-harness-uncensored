@@ -4,6 +4,8 @@ import { createHash, randomBytes } from 'node:crypto'
 import { mkdir, mkdtemp, readFile, readdir, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { gt, valid } from 'semver'
+import { DESKTOP_UPDATE_ERROR_CODES, DESKTOP_UPDATE_OPERATIONS } from '../src/ipc.ts'
+import { DESKTOP_UPDATE_JOURNAL_ACTIONS } from '../src/update-journal.ts'
 
 /** Source identifiers exclude file contents, configuration values, and credentials. */
 export interface InstalledUpdateSource {
@@ -134,12 +136,10 @@ export interface InstalledUpdateEvidence {
 
 const FIELDS = new Set(['schemaVersion', 'sequence', 'time', 'pid', 'version', 'event', 'phase',
   'targetVersion', 'percent', 'failedOperation', 'errorCode'])
-const ACTIONS = new Set(['started', 'workspace-ready', 'workspace-failed', 'check-requested',
-  'download-requested', 'install-confirmed', 'quit-requested', 'state'])
+const ACTIONS = new Set<string>([...DESKTOP_UPDATE_JOURNAL_ACTIONS, 'state'])
 const PHASES = new Set(['idle', 'checking', 'available', 'downloading', 'verifying', 'installing', 'ready', 'error'])
-const OPERATIONS = new Set(['check', 'download', 'install'])
-const ERROR_CODES = new Set(['ETIMEDOUT', 'ENOSPC', 'ERR_INTERNET_DISCONNECTED', 'ERR_CONNECTION_RESET',
-  'ERR_CONNECTION_CLOSED', 'ERR_NAME_NOT_RESOLVED', 'ERR_UPDATER_INVALID_SIGNATURE', 'ERR_UPDATER_CHECKSUM_MISMATCH', 'UNCLASSIFIED'])
+const OPERATIONS = new Set<string>(DESKTOP_UPDATE_OPERATIONS)
+const ERROR_CODES = new Set<string>([...DESKTOP_UPDATE_ERROR_CODES, 'UNCLASSIFIED'])
 const STAGES = ['original-workspace', 'first-download', 'transfer-started', 'download-failed',
   'manual-retry', 'download-ready', 'install-confirmed', 'original-quit', 'successor-started', 'successor-workspace'] as const
 

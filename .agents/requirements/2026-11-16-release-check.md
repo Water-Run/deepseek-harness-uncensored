@@ -106,6 +106,10 @@ Windows 更新在下载时和启动安装器前都核对内嵌 Authenticode 签�
 
 56 项定向测试通过，覆盖缺少字段、时间戳缺失、目录签名及原有协调器行为。使用带内嵌签名的微软 PowerShell 文件，在真实 Electron 环回复验 7 个场景，包括下载、缓存复验及已确认的模拟交接。证据位于 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-update-embedded-signature/`。正式 DSHU 签名实装和在线链路待验收。
 
+## 更新验收日志（2026-11-19）
+
+验收检查器识别应用发出的配置失败和策略登录事件。更新失败码直接取自本次失败并按固定列表写入，历史日志仍可读取。真实 Electron 环回的损坏下载记录了 `ERR_CHECKSUM_MISMATCH`。7 个环回场景和 83 项定向测试通过，日志与进程回执位于 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-update-journal/`。[验收日志说明](../../apps/desktop/tests/installed-update/README.zh.md)
+
 ## 验收
 
 - 两个所属测试文件在 Windows/Linux 各 28 项通过，覆盖 403/429、主/次级期限、重叠期限、无效数值、普通拒绝、不会自动重试，以及中英文弹窗关闭/重开和到期后的显式重试。

@@ -4,13 +4,13 @@ import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
 import type { DesktopUpdateState } from './ipc.ts'
 
-/** User and process milestones that connect update states across application restarts. */
-export type DesktopUpdateJournalAction = 'started' | 'workspace-ready' | 'workspace-failed'
-  | 'check-requested' | 'download-requested' | 'install-confirmed' | 'quit-requested'
-  | 'policy-login-opened' | 'policy-login-returned' | 'policy-login-cancelled' | 'policy-login-failed'
+/** Fixed action names shared by the qualification journal writer and reader. */
+export const DESKTOP_UPDATE_JOURNAL_ACTIONS = ['started', 'workspace-ready', 'workspace-failed', 'check-requested',
+  'download-requested', 'install-confirmed', 'quit-requested', 'policy-login-opened', 'policy-login-returned',
+  'policy-login-cancelled', 'policy-login-failed'] as const
 
-const ERROR_CODES = ['ETIMEDOUT', 'ENOSPC', 'ERR_INTERNET_DISCONNECTED', 'ERR_CONNECTION_RESET',
-  'ERR_CONNECTION_CLOSED', 'ERR_NAME_NOT_RESOLVED', 'ERR_UPDATER_INVALID_SIGNATURE', 'ERR_UPDATER_CHECKSUM_MISMATCH'] as const
+/** User and process milestones that connect update states across application restarts. */
+export type DesktopUpdateJournalAction = typeof DESKTOP_UPDATE_JOURNAL_ACTIONS[number]
 
 /**
  * Whitelist one update state for disk; neither error text nor unexpected object fields survive.
@@ -24,7 +24,7 @@ export function desktopUpdateJournalState(state: DesktopUpdateState): object {
     ...(state.phase === 'downloading' && state.percent !== undefined ? { percent: Math.floor(state.percent) } : {}),
     ...(state.phase === 'error' ? {
       failedOperation: state.failedOperation,
-      errorCode: ERROR_CODES.find(code => state.message?.includes(code)) ?? 'UNCLASSIFIED',
+      errorCode: state.errorCode ?? 'UNCLASSIFIED',
     } : {}),
   }
 }

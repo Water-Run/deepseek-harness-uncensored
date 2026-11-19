@@ -5,6 +5,7 @@ import { basename, dirname, join } from 'node:path'
 import { app } from 'electron'
 import updaterModule from 'electron-updater'
 import { DesktopUpdateCoordinator } from '../../lib/types/update-coordinator.js'
+import { desktopUpdateJournalState } from '../../lib/types/update-journal.js'
 import { DesktopUpdateHttpExecutor } from '../../lib/types/updates/electron-updater/http-executor.js'
 import { resolveWindowsUpdatePublisher } from '../../scripts/windows-sign.mjs'
 import { artifactDigest, createArtifactUpdateServer } from './artifact-update-server.mjs'
@@ -113,6 +114,8 @@ async function main() {
     const corrupt = await fixture()
     await rejected(corrupt, 'ERR_CHECKSUM_MISMATCH')
     assert.ok(!corrupt.logs.some(line => line.startsWith('Verifying signature ')), 'Corrupt bytes must fail before signature verification')
+    report.corruptDownloadJournal = desktopUpdateJournalState(corrupt.coordinator.state)
+    assert.equal(report.corruptDownloadJournal.errorCode, 'ERR_CHECKSUM_MISMATCH')
     report.cases.push('corrupt-transfer-rejected-before-signature')
 
     server.select('signed')

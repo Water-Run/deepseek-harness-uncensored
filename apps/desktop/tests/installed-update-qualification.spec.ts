@@ -25,7 +25,7 @@ function failedDownload(journal: DesktopUpdateJournal): void {
   journal.action('workspace-ready')
   journal.action('download-requested')
   journal.state({ phase: 'downloading', version: versions[1], percent: 1 })
-  journal.state({ phase: 'error', version: versions[1], failedOperation: 'download', message: 'ERR_CONNECTION_RESET secret' })
+  journal.state({ phase: 'error', version: versions[1], failedOperation: 'download', errorCode: 'ERR_CONNECTION_RESET', message: 'secret' })
 }
 
 function completeRetry(journal: DesktopUpdateJournal): void {
@@ -81,7 +81,11 @@ describe('installed-update qualification materials', () => {
   it('reads real journal output while keeping observed flow separate from installation and data acceptance', async () => {
     await fixture(async (directory) => {
       const original = new DesktopUpdateJournal(directory, versions[0])
+      original.action('policy-login-opened')
+      original.action('policy-login-returned')
+      original.state({ phase: 'error', failedOperation: 'configuration' })
       failedDownload(original)
+      original.state({ phase: 'error', version: versions[1], failedOperation: 'download', errorCode: 'ERR_CHECKSUM_MISMATCH' })
       completeRetry(original)
       const successor = new DesktopUpdateJournal(directory, versions[1])
       successor.action('workspace-ready')

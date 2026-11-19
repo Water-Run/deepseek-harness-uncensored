@@ -91,7 +91,7 @@ Proceed manually only after preparation passes. Use disposable test conversation
 
 The intentional 404 is a check-failure case, not the later interrupted-download case. A browser response alone does not prove application behavior. Keep each observation's URL, UTC time, HTTP status, feed body/hash when present, screenshot, and journal snapshot together. The journal inspector does not certify the two feed cases or record raw HTTP diagnostics; the operator supplies those observations. A later successful manual check must recover without restarting the application.
 
-Retain the manifest, build records, original feeds, binary hashes, publication receipts and readbacks, fault setup/removal evidence, screenshots, and all process journals. Installer logs and test data may contain private paths or content; review before sharing. The inspector is read-only and copies only milestone references, not raw diagnostics. Replace the directory placeholder and use the manifest's exact versions:
+Retain the manifest, build records, original feeds, binary hashes, publication receipts and readbacks, fault setup/removal evidence, screenshots, and all process journals. Review installer logs and test data for private paths and content before sharing. The qualification journal retains allowlisted updater codes, including checksum failures, plus configuration failures and policy sign-in events. The inspector reads those records and reports milestone references without raw diagnostics. Replace the directory placeholder and use the manifest's exact versions.
 
 ```powershell
 node --import tsx apps/desktop/scripts/prepare-installed-update.ts inspect 0.1.6-alpha.1.20260916.1 0.1.6-alpha.1.20260916.2 "<journal-directory>"

@@ -55,6 +55,14 @@ export const DESKTOP_IPC = {
 export type DesktopUpdatePreparationFailureKind =
   'stop-failed' | 'tasks-changed' | 'tasks-unavailable' | 'fullscreen-timeout' | 'installer-integrity' | 'installer-handoff'
 
+/** Update operation names shared by the state and qualification journal. */
+export const DESKTOP_UPDATE_OPERATIONS = ['check', 'download', 'install', 'configuration'] as const
+
+/** Structured updater codes retained in qualification logs, including the historical checksum code. */
+export const DESKTOP_UPDATE_ERROR_CODES = ['ETIMEDOUT', 'ENOSPC', 'ERR_INTERNET_DISCONNECTED', 'ERR_CONNECTION_RESET',
+  'ERR_CONNECTION_CLOSED', 'ERR_NAME_NOT_RESOLVED', 'ERR_UPDATER_INVALID_SIGNATURE', 'ERR_CHECKSUM_MISMATCH',
+  'ERR_UPDATER_CHECKSUM_MISMATCH'] as const
+
 export interface DesktopUpdateState {
   readonly phase: 'idle' | 'checking' | 'available' | 'downloading' | 'verifying' | 'installing' | 'ready' | 'error'
   readonly version?: string
@@ -62,7 +70,9 @@ export interface DesktopUpdateState {
   /** Main-owned diagnostics without subprocess output or credentials; hidden until expanded. */
   readonly technicalDetails?: string
   readonly percent?: number
-  readonly failedOperation?: 'check' | 'download' | 'install' | 'configuration'
+  readonly failedOperation?: typeof DESKTOP_UPDATE_OPERATIONS[number]
+  /** Known machine code supplied by the current failure, independent of its display message. */
+  readonly errorCode?: typeof DESKTOP_UPDATE_ERROR_CODES[number]
   /** Main-owned preparation or handoff state. The active locale supplies the UI wording. */
   readonly preparationFailure?: DesktopUpdatePreparationFailureKind
   /** Current filesystem failure, independent of previous cache cleanup attempts. */

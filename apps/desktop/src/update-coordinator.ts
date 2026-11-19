@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { app, autoUpdater as nativeAutoUpdater } from 'electron'
 import electronUpdater, { type AppUpdater, type ProgressInfo, type UpdateInfo, type UpdateCheckResult } from 'electron-updater'
 import { gt, valid } from 'semver'
-import type { DesktopUpdateState } from './ipc.ts'
+import { DESKTOP_UPDATE_ERROR_CODES, type DesktopUpdateState } from './ipc.ts'
 import { forkUpdateSource, readInstalledUpdateSource } from './update-source.ts'
 import { DesktopUpdateHttpExecutor } from './updates/electron-updater/http-executor.ts'
 import { DesktopUpdatePreparationError, downloadFailureDetails } from './update-error.ts'
@@ -315,10 +315,13 @@ export class DesktopUpdateCoordinator {
 
   private failure(error: unknown, failedOperation: 'check' | 'download' | 'install'): DesktopUpdateState {
     const preparation = error instanceof DesktopUpdatePreparationError ? error : undefined
+    const code = error instanceof Error && 'code' in error ? error.code : undefined
+    const errorCode = DESKTOP_UPDATE_ERROR_CODES.find(candidate => candidate === code)
     const preparationFailure = failedOperation === 'install' && this.release.kind === 'handed-off'
       ? 'installer-handoff' : preparation?.kind
     return { phase: 'error', ...this.target(), failedOperation,
       message: error instanceof Error ? error.message : String(error),
+      ...errorCode === undefined ? {} : { errorCode },
       ...(failedOperation === 'download' ? downloadFailureDetails(error) : {}),
       ...preparationFailure === undefined ? {} : { preparationFailure },
       ...preparation?.technicalDetails === undefined ? {} : { technicalDetails: preparation.technicalDetails } }

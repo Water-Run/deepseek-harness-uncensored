@@ -12,7 +12,7 @@ describe('desktop qualification update journal', () => {
       old.action('download-requested')
       old.state({ phase: 'downloading', version: '1.0.0-nightly.2', percent: 42.1 })
       old.state({ phase: 'downloading', version: '1.0.0-nightly.2', percent: 42.9 })
-      old.state({ phase: 'error', version: '1.0.0-nightly.2', failedOperation: 'download', message: 'ETIMEDOUT private-data' })
+      old.state({ phase: 'error', version: '1.0.0-nightly.2', failedOperation: 'download', errorCode: 'ETIMEDOUT', message: 'private-data' })
       old.action('download-requested')
       old.state({ phase: 'ready', version: '1.0.0-nightly.2' })
       old.action('install-confirmed')
@@ -31,7 +31,7 @@ describe('desktop qualification update journal', () => {
 
   it('drops detailed errors and unexpected fields instead of trying to redact arbitrary text', () => {
     const state = { phase: 'error' as const, failedOperation: 'download' as const, version: '1.2.3',
-      message: 'https://user:password@example.test/file?token=secret', technicalDetails: 'password', extra: 'secret' }
+      message: 'ERR_CHECKSUM_MISMATCH https://user:password@example.test/file?token=secret', technicalDetails: 'password', extra: 'secret' }
     expect(desktopUpdateJournalState(state)).toEqual({ phase: 'error', targetVersion: '1.2.3',
       failedOperation: 'download', errorCode: 'UNCLASSIFIED' })
     expect(desktopUpdateJournalState({ phase: 'idle' })).toEqual({ phase: 'idle' })
