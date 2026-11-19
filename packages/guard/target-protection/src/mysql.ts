@@ -172,7 +172,7 @@ export default class MysqlAuditService extends Service {
    * @returns Verified identity and bounded table metadata.
    */
   inspect(name: string, signal: AbortSignal): Promise<MysqlAudit> {
-    return this.enqueue(() => this.run(name, signal, undefined, async (query, identity) => {
+    return this.enqueue(signal, scoped => this.run(name, scoped, undefined, async (query, identity) => {
       const rows = z.array(z.tuple([z.string(), z.string(), z.string().nullable()])).parse(await query(
         'SELECT TABLE_NAME,TABLE_TYPE,ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() ORDER BY TABLE_NAME LIMIT ?',
         [this.config.maxRows + 1],
@@ -195,7 +195,7 @@ export default class MysqlAuditService extends Service {
       throw new HarnessError('Use a bounded MySQL mutation with simple identifiers and a nonempty update or delete filter.', 'MYSQL_INVALID_WRITE')
     }
     const write = parsed.data
-    return this.enqueue(() => this.run(name, signal, write.table, async (query, identity, binding) => {
+    return this.enqueue(signal, scoped => this.run(name, scoped, write.table, async (query, identity, binding) => {
       checkMysqlWriteGrants(await query('SHOW GRANTS FOR CURRENT_USER'), binding, write)
       const statement = mysqlWriteStatement(binding.database, write, this.config.maxRows + 1)
       const tableSql = 'SELECT TABLE_TYPE,ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA=? AND TABLE_NAME=?'
@@ -226,13 +226,16 @@ export default class MysqlAuditService extends Service {
     }))
   }
 
-  private enqueue<T>(start: () => Promise<T>): Promise<T> {
+  private async enqueue<T>(signal: AbortSignal, start: (scoped: AbortSignal) => Promise<T>): Promise<T> {
     if (this.pending.size >= this.config.maxPending) {
-      return Promise.reject(new HarnessError('MySQL operation capacity is full.', 'MYSQL_BUSY'))
+      throw new HarnessError('MySQL operation capacity is full.', 'MYSQL_BUSY')
     }
-    const operation = start()
+    const sessionId = this.protection.currentAuditSessionId()
+    const operation = sessionId === null ? start(signal)
+      : this.protection.bindAuditSession(sessionId)(lifetime => start(AbortSignal.any([signal, lifetime])))
     this.pending.add(operation)
-    return operation.finally(() => { this.pending.delete(operation) })
+    try { return await operation }
+    finally { this.pending.delete(operation) }
   }
 
   private async run<T>(name: string, caller: AbortSignal, table: string | undefined,

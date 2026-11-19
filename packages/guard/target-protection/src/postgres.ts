@@ -155,7 +155,7 @@ export default class PostgresAuditService extends Service {
    * @returns Verified identity, table metadata and selected security settings; no arbitrary SQL is accepted.
    */
   inspect(name: string, signal: AbortSignal): Promise<PostgresAudit> {
-    return this.enqueue(() => this.run(name, signal, { kind: 'audit' }, async (query, identity) => {
+    return this.enqueue(signal, scoped => this.run(name, scoped, { kind: 'audit' }, async (query, identity) => {
       const { rows: tableRows } = await query("SELECT n.nspname::text,c.relname::text,c.relkind::text,c.relrowsecurity::text FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname NOT IN ('pg_catalog','information_schema') AND n.nspname NOT LIKE 'pg_toast%' AND c.relkind IN ('r','p','v','m','f') ORDER BY n.nspname,c.relname LIMIT $1", [this.config.maxRows + 1])
       const { rows: settingRows } = await query('SELECT name,setting,unit FROM pg_catalog.pg_settings WHERE name=ANY($1::text[]) ORDER BY name',
         [['ssl', 'password_encryption', 'default_transaction_read_only', 'log_connections', 'log_statement', 'search_path']])
@@ -181,7 +181,7 @@ export default class PostgresAuditService extends Service {
       || Buffer.byteLength(JSON.stringify(values.data)) > this.config.maxSqlBytes || !testStatement.test(sql.trimStart())) {
       throw new HarnessError('Use one supported PostgreSQL statement with bounded JSON parameters.', 'POSTGRES_INVALID_SQL')
     }
-    return this.enqueue(() => this.run(name, signal, { kind: 'dedicated' }, query => query(sql, values.data, true)))
+    return this.enqueue(signal, scoped => this.run(name, scoped, { kind: 'dedicated' }, query => query(sql, values.data, true)))
   }
 
   /**
@@ -197,15 +197,18 @@ export default class PostgresAuditService extends Service {
       throw new HarnessError('Use a bounded PostgreSQL test mutation with a schema, table and scalar fields.', 'POSTGRES_INVALID_WRITE')
     }
     const { schema, mutation } = parsed.data
-    return this.enqueue(() => this.run(name, signal, { kind: 'shared', schema, table: mutation.table },
+    return this.enqueue(signal, scoped => this.run(name, scoped, { kind: 'shared', schema, table: mutation.table },
       query => postgresWrite(query, parsed.data, this.config.maxRows)))
   }
 
-  private enqueue<T>(start: () => Promise<T>): Promise<T> {
-    if (this.pending.size >= this.config.maxPending) return Promise.reject(new HarnessError('PostgreSQL operation capacity is full.', 'POSTGRES_BUSY'))
-    const operation = start()
+  private async enqueue<T>(signal: AbortSignal, start: (scoped: AbortSignal) => Promise<T>): Promise<T> {
+    if (this.pending.size >= this.config.maxPending) throw new HarnessError('PostgreSQL operation capacity is full.', 'POSTGRES_BUSY')
+    const sessionId = this.protection.currentAuditSessionId()
+    const operation = sessionId === null ? start(signal)
+      : this.protection.bindAuditSession(sessionId)(lifetime => start(AbortSignal.any([signal, lifetime])))
     this.pending.add(operation)
-    return operation.finally(() => { this.pending.delete(operation) })
+    try { return await operation }
+    finally { this.pending.delete(operation) }
   }
 
   private async run<T>(

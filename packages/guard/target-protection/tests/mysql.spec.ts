@@ -1,6 +1,7 @@
 /** MySQL verifies admissions before TCP and releases active handshakes on policy changes. */
 import { Context } from '@deepseek-ai/cordis'
 import Credentials from '@deepseek-ai/dsh-credentials-local'
+import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import { createServer, type Socket } from 'node:net'
@@ -8,14 +9,14 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { expect, it, onTestFinished } from 'vitest'
+import { expect, it, onTestFinished, vi } from 'vitest'
 import TargetProtection from '../src/index.ts'
 import MysqlAudit from '../src/mysql.ts'
 import { TargetStore } from '../src/store.ts'
 import { checkMysqlWriteGrants, mysqlWriteInput, mysqlWriteStatement } from '../src/mysql-write.ts'
 import type { TargetRuleId } from '../src/types.ts'
 
-async function fixture(holdHandshake = false) {
+async function fixture(holdHandshake = false, audit = false) {
   const root = await mkdtemp(join(tmpdir(), 'dshu-mysql-policy-'))
   const ctx = new Context()
   const sockets = new Set<Socket>()
@@ -47,8 +48,10 @@ async function fixture(holdHandshake = false) {
   const endpoint = server.address()
   if (endpoint === null || typeof endpoint === 'string') throw new Error('Missing fixture listener')
   await ctx.plugin(Credentials, { path: join(root, 'credentials.yml'), dshHome: root, watch: false })
+  if (audit) await ctx.plugin(SessionStore)
   const rulesPath = join(root, 'rules.sqlite')
-  const owner = await ctx.plugin(TargetProtection, { path: rulesPath, hostsFile: '' })
+  const owner = await ctx.plugin(TargetProtection, { path: rulesPath, hostsFile: '',
+    ...audit ? { auditPath: join(root, 'audit.sqlite') } : {} })
   const binding = { name: 'owned', hostname: '127.0.0.1', tlsServerName: 'mysql.fixture.test', port: endpoint.port,
     database: 'fixture', username: 'audit', accountHost: '%', passwordRef: 'DSHU_FIXTURE_MYSQL' }
   const rule = (address: string) => ({ id: brandString<TargetRuleId>(randomUUID()), name: 'owned production fixture', enabled: true,
@@ -171,6 +174,38 @@ it('retains MySQL audit policy until a pending handshake closes', async () => {
   }
   await expect(ctx.mysqlAudit.inspect('owned', AbortSignal.timeout(5_000))).rejects.toMatchObject({ code: 'TARGET_FULLY_PROTECTED' })
   expect(connections()).toBe(1)
+})
+
+it('closes the MySQL handshake when the initiating audit Session closes', async () => {
+  const { ctx, binding, accepted, closed } = await fixture(true, true)
+  await ctx.credentials.set(credentialRef(binding.passwordRef), 'owned fixture password')
+  await ctx.plugin(MysqlAudit, { databases: [binding] })
+  const id = SessionId('mysql-audit-closing')
+  const source = ctx.sessions.prepare(id), detach = ctx.sessions.enter(source)
+  onTestFinished(detach)
+  ctx.sessions.announce(source)
+  const check = ctx.targetProtection.checkConnection.bind(ctx.targetProtection)
+  let operationSignal: AbortSignal | undefined
+  const observed = vi.spyOn(ctx.targetProtection, 'checkConnection').mockImplementation((...args) => {
+    operationSignal = args[5]
+    return check(...args)
+  })
+  const controller = new AbortController(), run = ctx.targetProtection.bindAuditSession(id)
+  const result = run(() => ctx.mysqlAudit.inspect('owned', controller.signal)).catch((error: unknown) => error)
+  try {
+    await Promise.race([accepted, result.then(() => { throw new Error('Missing MySQL handshake barrier') })])
+    detach()
+    const replacement = ctx.sessions.create(id)
+    expect(operationSignal?.aborted).toBe(true)
+    await expect(result).resolves.toMatchObject({ code: 'MYSQL_CANCELLED' })
+    await closed
+    expect(replacement.snapshotEvents()).toEqual([])
+    expect(ctx.targetProtection.auditHistory().state).toBe('ready')
+  } finally {
+    controller.abort()
+    await result
+    observed.mockRestore()
+  }
 })
 
 const mutation = { operation: 'update', table: 'items', values: { name: 'a?; --' }, where: { id: 7 } }

@@ -2,6 +2,7 @@
 import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import { Context } from '@deepseek-ai/cordis'
 import Credentials from '@deepseek-ai/dsh-credentials-local'
+import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { createServer, type Socket } from 'node:net'
 import { TLSSocket, createSecureContext } from 'node:tls'
@@ -381,6 +382,33 @@ it('withholds a completed PostgreSQL audit when rules change during connection c
   } finally {
     finishClose.resolve(undefined)
     await Promise.allSettled([operation, saving])
+    end.mockRestore()
+  }
+})
+
+it('withholds a completed PostgreSQL audit when its audit Session closes during cleanup', async () => {
+  const h = await harness({ hold: false, resourceMapping: true, identity: ['fixture', 'fixture', '18.4', 'on'] })
+  await h.ctx.plugin(SessionStore)
+  const id = SessionId('postgres-audit-closing')
+  const source = h.ctx.sessions.prepare(id), detach = h.ctx.sessions.enter(source)
+  onTestFinished(detach)
+  h.ctx.sessions.announce(source)
+  const closing = Promise.withResolvers<undefined>(), finish = Promise.withResolvers<undefined>()
+  const prototype: { end(): Promise<void> } = pg.Client.prototype
+  const end = vi.spyOn(prototype, 'end').mockImplementation(async () => { closing.resolve(undefined); await finish.promise })
+  const run = h.ctx.targetProtection.bindAuditSession(id)
+  const result = run(() => h.ctx.postgresAudit.inspect('owned', new AbortController().signal)).catch((error: unknown) => error)
+  try {
+    await Promise.race([closing.promise, result.then(() => { throw new Error('Missing PostgreSQL cleanup barrier') })])
+    detach()
+    const replacement = h.ctx.sessions.create(id)
+    finish.resolve(undefined)
+    await expect(result).resolves.toMatchObject({ code: 'POSTGRES_CANCELLED' })
+    expect(replacement.snapshotEvents()).toEqual([])
+    expect(h.ctx.targetProtection.auditHistory().state).toBe('ready')
+  } finally {
+    finish.resolve(undefined)
+    await result
     end.mockRestore()
   }
 })
