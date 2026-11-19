@@ -711,6 +711,9 @@ describe('desktop main startup', () => {
 
   it('rereads a repaired file without writing it or restarting the shell', async () => {
     configureTestAuthPopup(false)
+    harness.embeddedPolicy = { origin: 'https://policy.example.com', allowedPageOrigins: ['https://downloads.example.com'] }
+    const request = vi.fn<typeof fetch>().mockImplementation(async () => Response.json({ code: 0, data: { biz_code: 0, biz_data: null } }))
+    vi.stubGlobal('fetch', request)
     const path = join(harness.app.getPath('userData'), 'desktop', 'settings.json')
     writeFileSync(path, '{broken')
     await readyForUpdate()
@@ -727,6 +730,10 @@ describe('desktop main startup', () => {
     const state = await invoke(DESKTOP_IPC.updatesChannelGet, 'app')
     expect(state).toMatchObject({ channel: 'latest', changing: false })
     expect(state).not.toHaveProperty('error')
+    await vi.waitFor(() => {
+      expect(request.mock.calls.some(([url, options]) => url instanceof URL && url.searchParams.get('scenario') === 'channel-change'
+        && new Headers(options?.headers).get('x-client-update-channel') === 'latest')).toBe(true)
+    })
   })
 
   it('shows the invalid startup field and file path until a valid channel is applied', async () => {

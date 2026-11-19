@@ -41,7 +41,7 @@ import { readDeviceInfo } from './device-info.ts'
 import { desktopUpdateReadyConfirmation, formatDesktopMessage, resolveDesktopLocale, resolveDesktopStartupLocale } from './locale.ts'
 import type { DesktopMessages } from './locale.ts'
 import { claimDesktopSingleInstance } from './single-instance.ts'
-import { desktopUpdateChannel } from './update-channel.ts'
+import { desktopUpdateChannel, type DesktopUpdateChannel } from './update-channel.ts'
 import { DesktopUpdateCoordinator } from './update-coordinator.ts'
 import { prepareDesktopUpdateWindow } from './update-window.ts'
 import { DesktopCommandManager } from './command-management.ts'
@@ -990,6 +990,11 @@ async function main(): Promise<void> {
     assertProductSender(event)
     return channelState
   })
+  const switchUpdateChannel = async (channel: DesktopUpdateChannel, persist: () => Promise<void>) => {
+    const kind = await updates.switchChannel(channel, persist)
+    if (kind === 'applied') void mandatoryPolicy?.check('channel-change', true).catch((error: unknown) => { console.error(error) })
+    return kind
+  }
   let channelRequests = 0
   ipcMain.handle(DESKTOP_IPC.updatesChannelSet, async (event, channel: unknown): Promise<DesktopChannelChangeResult> => {
     assertProductSender(event)
@@ -998,7 +1003,7 @@ async function main(): Promise<void> {
     channelRequests++
     publishChannel({ ...channelState, changing: true })
     try {
-      const kind = await updates.switchChannel(channel, async () => {
+      const kind = await switchUpdateChannel(channel, async () => {
         try { await channelSettings.save(channel) } catch (error) {
           if (channelSaveFailure(error) === 'uncertain') {
             updates.suspendConfiguration('desktop update: settings save outcome is unknown')
@@ -1007,7 +1012,6 @@ async function main(): Promise<void> {
           throw error
         }
       })
-      if (kind === 'applied') void mandatoryPolicy?.check('channel-change', true).catch((error: unknown) => { console.error(error) })
       return { kind, state: publishChannel({ channel: updates.selectedChannel, packagedChannel, changing: --channelRequests > 0 }) }
     } catch (error) {
       console.error('desktop update: channel change failed', error)
@@ -1068,7 +1072,7 @@ async function main(): Promise<void> {
                   publishChannel({ ...channelState, changing: true, error: configurationFailure(loaded.error) })
                   return false
                 }
-                await updates.switchChannel(loaded.channel, async () => {})
+                await switchUpdateChannel(loaded.channel, async () => {})
                 publishChannel({ channel: updates.selectedChannel, packagedChannel, changing: true })
                 return true
               } catch (error) {

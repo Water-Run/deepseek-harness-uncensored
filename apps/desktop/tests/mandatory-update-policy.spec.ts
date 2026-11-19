@@ -77,22 +77,33 @@ describe('mandatory update policy', () => {
     expect(headers[1]).toMatchObject({ 'x-client-locale': 'zh_CN', 'x-client-timezone-offset': '28800' })
   })
 
-  it('checks the selected channel after an old-channel request finishes', async () => {
+  it.each([false, true])('ignores the old channel decision after switching (previously blocked: %s)', async (blocked) => {
     let channel: 'nightly' | 'latest' = 'nightly'
     const old = Promise.withResolvers<Response>()
-    const request = vi.fn<typeof fetch>().mockReturnValueOnce(old.promise).mockResolvedValue(Response.json(clear))
+    const next = Promise.withResolvers<Response>()
+    const request = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json(blocked ? force : clear))
+      .mockReturnValueOnce(old.promise).mockReturnValueOnce(next.promise)
+    const publish = vi.fn()
     const policy = new DesktopMandatoryUpdatePolicy(resolveDesktopPolicyConfig(deployment)!,
-      { ...identity, get channel() { return channel } }, () => {}, request, () => client)
+      { ...identity, get channel() { return channel } }, publish, request, () => client)
     instances.push(policy)
-    const first = policy.check('launch')
+    await policy.check('launch')
+    const first = policy.check('manual', true)
+    await Promise.resolve()
+    const previousBlock = policy.state.blocking
+    publish.mockClear()
     channel = 'latest'
     const second = policy.check('channel-change', true)
-    old.resolve(Response.json(force))
-    await first
+    old.resolve(Response.json(blocked ? clear : force))
+    const staleResult = await first
+    const statesBeforeLatest = publish.mock.calls.map(([state]) => state.blocking)
+    next.resolve(Response.json(clear))
     expect(await second).toMatchObject({ blocking: false })
-    expect(request).toHaveBeenCalledTimes(2)
+    expect(previousBlock).toBe(blocked)
+    expect(staleResult.blocking).toBe(blocked)
+    expect(statesBeforeLatest).not.toContain(!blocked)
     expect(request.mock.calls.map(([, options]) => new Headers(options?.headers).get('x-client-update-channel')))
-      .toEqual(['nightly', 'latest'])
+      .toEqual(['nightly', 'nightly', 'latest'])
   })
 
   it('coalesces manual checks and honors the interval on foreground/resume', async () => {

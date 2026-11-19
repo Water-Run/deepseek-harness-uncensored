@@ -14,6 +14,8 @@ GitHub HTTP 429、主额度耗尽的响应头或数字 `Retry-After` 会产生�
 
 普通检查读取配置时切换渠道，旧检查在发出请求前结束，过期错误被舍弃。定向回归复现修复前一次多余的旧渠道请求，修复后只请求新渠道，并保留其检查结果。更新协调器、定时检查与下载缓存清理共 66 项测试通过。此修复进入下一次打包。[桌面更新说明](../../apps/desktop/README.zh.md)
 
+强更检查在渠道切换后舍弃旧渠道的迟到结果。上一条有效决定保留到新渠道提供有效结果。修复配置后重新读取与从设置切换均会重新检查强更策略。两种迟到结果和修复文件后的漏查均在旧实现上复现。36 项定向测试通过，证据位于 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-policy-channel/`。[桌面更新说明](../../apps/desktop/README.zh.md#updates)
+
 清单检查和完整包下载跨请求保留重定向次数。Electron 44.7.0 的回环场景确认，两条路径均在第 11 次重定向时返回错误。完整包下载失败后没有可安装目标，恢复正常响应后可显式重试。首轮回环出现上游的 `MaxListenersExceededWarning`，请求结束后取消令牌的监听数回到零。首轮 17 个传输场景与 54 项定向单测的回执在 `apps/desktop/.desktop-build/qualification/local-updater-aj6Yvz/`。
 
 重定向注销上一跳的超时计时和取消监听。真实 Electron 超限重定向场景中，取消令牌的监听数峰值为 1，结束后为零。最后一跳暂停时取消检查，只中止当前请求一次，随后可正常检查。21 项传输、7 项签名场景及 75 项定向单测通过，复验回执在 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-redirect-cancellation/`。

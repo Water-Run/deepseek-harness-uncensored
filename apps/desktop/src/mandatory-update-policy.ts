@@ -171,6 +171,7 @@ export class DesktopMandatoryUpdatePolicy {
 
   /**
    * Check immediately when manual, otherwise only when due; matching concurrent callers share one request.
+   * Only a response for the selected channel may replace the last decision.
    * @param scenario - Trigger recorded in the query, independent of backend matching.
    * @param manual - Bypass interval/backoff without bypassing request coalescing.
    * @returns Current decision or retained decision with an error; disposed instances reject.
@@ -195,6 +196,7 @@ export class DesktopMandatoryUpdatePolicy {
         const response = await this.request(url, { headers: this.requestHeaders(channel), signal: controller.signal,
           credentials: this.config.authentication === 'feishu-test' ? 'include' : 'omit', cache: 'no-store', redirect: 'error' })
         const body: unknown = await response.json()
+        if (this.identity.channel !== channel) return this.current
         if (this.config.authentication === 'feishu-test' && response.status === 401
           && record(record(body)?.error)?.code === 'UNAUTHENTICATED') {
           this.failures++
@@ -205,6 +207,7 @@ export class DesktopMandatoryUpdatePolicy {
         this.failures = 0
         this.setState(state)
       } catch {
+        if (this.identity.channel !== channel) return this.current
         // Transport, JSON, and protocol failures retain any previously established block.
         this.failures++
         this.setState({ ...this.current, checking: false, error: 'unavailable' })
