@@ -161,7 +161,7 @@ export interface SecurityProxyFlowDetail extends SecurityProxyFlowSummary {
   readonly requestBody: string | null
   /** Decoded response body, or null when absent or not captured. */
   readonly responseBody: string | null
-  /** Whether a stored body was cut at the captured byte cap. */
+  /** Whether a byte limit shortened or omitted a captured body. */
   readonly bodyTruncated: boolean
   /** Media type as reported by the response, when known. */
   readonly contentType: string | null

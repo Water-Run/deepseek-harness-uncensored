@@ -36,9 +36,9 @@
 | 09.04–09.07 | 本机文件、SQLite 和已接入的 SSH、PostgreSQL、MySQL 路径已有完全保护、只读审计及明确测试例外的验证。SQLite 辅助文件保护通过 48 项源码定向测试。 | 确认远端物理资源身份及命令和文件范围。新 SQLite 规则需随正式候选实装复验。 |
 | 05.06、09.09–09.11、10.05 | 已有执行校验、规则状态、会话归属、审计、责任确认与代理联动的部分证据。 | 先补齐前两组的入口覆盖，再验证缺失入口的实际拦截、审计与界面状态。远端 Worker、未接入协议和入站仍留在原清单。 |
 
-**本地流量调试（10.03）**　18.2 已交付仅所有者可读的列表、详情和 JSON 导出。当前源码中，详情分别显示 HTTP 状态码与传输结果，截断标记按正文准备保存时的大小限制计算。两份定向测试文件共 54 项通过，包含 HTTP 200 后传输失败和 UTF-8 截断。认证令牌、Cookie 与代理认证字段保持脱敏。
+**本地流量调试（10.03）**　18.2 已交付仅所有者可读的列表、详情和 JSON 导出。当前源码中，详情分别显示 HTTP 状态码与传输结果。截断标记覆盖受控读取、回环代理采集及正文准备保存时的大小限制。81 项定向测试通过，包含 HTTP 200 后传输失败、UTF-8 截断、前置截断及导出。认证令牌、Cookie 与代理认证字段保持脱敏。
 
-**待验收**　用同一 Windows 候选、本机受控服务和无凭据样例，核对详情与导出是否一致，并检查请求和响应各自的大小限制、失败阶段、时序以及仅有隧道信息的记录。当前标记覆盖保存阶段，前置传输阶段的截断原因仍待补充。
+**待验收**　用同一 Windows 候选、本机受控服务和无凭据样例，核对详情与导出是否一致，并检查请求和响应各自的大小限制、失败阶段、时序以及仅有隧道信息的记录。当前提示使用一个截断标记，各阶段和各正文的具体截断原因仍未分别展示。
 
 ## Windows Release 核验顺序
 
@@ -67,7 +67,7 @@ $receipt | ConvertTo-Json
 - 原始升级前资料备份在 `%USERPROFILE%/DSHU-Backups/20261118T124812Z-before-20261118-11-data/`，7,428 个文件已逐一核对摘要。回退前另存新版资料，选用与旧版匹配的资料副本。证据及恢复顺序见[18.11 交付记录](2026-11-18.11-delivery.md#安装与恢复)。
 - 本轮复核 18.11 检查包 SHA-256 为 `779031592f854cc51c4d69e41cf91ac46043a80f94a4ff52217f1867a66aedaa`。18.10 回退包 SHA-256 为 `e1b58e8f97099826ccfbf7c88cfe21ada70635bbde82c642cad883f4f3aa7685`。[18.10 回退记录](2026-11-18.10-delivery.md#安装包与恢复)
 - 安装延续核对见 `%USERPROFILE%/DSHU-Deliveries/20261119/first-release-continuity/baseline.json`。实装程序、ASAR、Node 和第三方声明以及 18.11、18.10 两个历史安装器的摘要均匹配。备份目录仍存在，7,428 个备份文件的逐项摘要使用此前独立的完整复核记录。
-- 最近源码验证保存在 `%USERPROFILE%/DSHU-Deliveries/20261119/` 的 `minimisted-runtime-review/`、`traffic-debug-details/`、`side-clear-reconciliation/`、`sqlite-companion-policy/`、`spending-narrow-recovery/`、`windows-update-embedded-signature/` 和 `windows-update-journal/`。
+- 最近源码验证保存在 `%USERPROFILE%/DSHU-Deliveries/20261119/` 的 `traffic-read-limit-details/`、`minimisted-runtime-review/`、`traffic-debug-details/`、`side-clear-reconciliation/`、`sqlite-companion-policy/`、`spending-narrow-recovery/`、`windows-update-embedded-signature/` 和 `windows-update-journal/`。
 - README 使用用户确认的「更自由的探索未至之境」。正文为四种模式、其它增强、文档导航和 Credit。浅色模式与功能配图预览在 `%USERPROFILE%/DSHU-Deliveries/20261119/readme-sections-light/`，备用素材总索引在同级的 `readme-screenshot-assets/README.md`。
 
 ## 接手顺序

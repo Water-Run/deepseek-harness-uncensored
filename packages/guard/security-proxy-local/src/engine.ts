@@ -881,7 +881,9 @@ export class SecurityProxyEngine {
         const decoded = decoder.decode(bytes)
         const truncatedByChars = decoded.length > this.options.maxBodyChars
         const content = truncatedByChars ? decoded.slice(0, this.options.maxBodyChars) : decoded
-        this.recordResponse(at, startedAt, sessionId, tool, current, response.status, [...response.headers], contentType, decoded, null)
+        this.recordResponse(
+          at, startedAt, sessionId, tool, current, response.status, [...response.headers], contentType, decoded, null, truncatedByBytes,
+        )
         return {
           url: current.toString(),
           statusCode: response.status,
@@ -954,6 +956,7 @@ export class SecurityProxyEngine {
     contentType: string | null,
     decoded: string | null,
     error: unknown,
+    bodyTruncated = false,
   ): void {
     this.record({
       at,
@@ -973,6 +976,7 @@ export class SecurityProxyEngine {
       responseHeaders,
       requestBody: null,
       responseBody: decoded,
+      bodyTruncated,
       contentType,
     })
   }

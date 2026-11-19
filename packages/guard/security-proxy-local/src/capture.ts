@@ -251,7 +251,7 @@ export class CaptureStore {
       responseHeaders: redactHeaders(input.responseHeaders),
       requestBody: requestBody.body,
       responseBody: responseBody.body,
-      bodyTruncated: requestBody.truncated || responseBody.truncated,
+      bodyTruncated: input.bodyTruncated === true || requestBody.truncated || responseBody.truncated,
     }
     this.entries.push(flow)
     this.total += 1

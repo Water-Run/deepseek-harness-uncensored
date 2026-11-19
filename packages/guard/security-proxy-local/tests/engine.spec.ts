@@ -357,6 +357,41 @@ describe('capture controls', () => {
       await bigTarget.close()
     }
   })
+
+  it('flags a streamed response cut by the controlled read limit before storage', async () => {
+    const h = await build({ maxResponseBytes: 64 })
+    const target = await startLocalTarget('x'.repeat(100))
+    try {
+      const result = await h.engine.fetchTarget(subject('sess-a'), target.url, new AbortController().signal)
+      expect(result.truncated).toBe(true)
+      const [flow] = h.engine.list()
+      expect(h.engine.detail(flow?.id ?? '')).toMatchObject({ responseBody: 'x'.repeat(64), bodyTruncated: true })
+    } finally {
+      await target.close()
+    }
+  })
+
+  it('flags a response clipped for capture while forwarding the full body', async () => {
+    const maxCapture = 1_048_576
+    const capture = new CaptureStore(() => ({ maxFlows: 50, maxBodyBytes: maxCapture, retentionMs: 600_000 }))
+    const h = await build({ capture })
+    const body = 'x'.repeat(maxCapture + 1)
+    const target = await startLocalTarget(body)
+    try {
+      const response = await throughChain(h.chainPort, target.url)
+      expect(response.body).toBe(body)
+      const [flow] = h.engine.list()
+      const detail = h.engine.detail(flow?.id ?? '')
+      expect(detail).toMatchObject({ responseBytes: body.length, bodyTruncated: true })
+      expect(detail?.responseBody).toHaveLength(maxCapture)
+      expect(h.engine.exportCapture({})).toMatchObject({
+        kind: 'ready',
+        data: { flows: [{ id: flow?.id, bodyTruncated: true }] },
+      })
+    } finally {
+      await target.close()
+    }
+  })
 })
 
 describe('cancellation and shutdown', () => {
