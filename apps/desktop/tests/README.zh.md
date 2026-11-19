@@ -101,7 +101,7 @@ Chromium headless shell revision 1228 已安装在忽略目录 `.desktop-build/p
 
 [签名下载运行器](../scripts/test-signed-updates.mjs) 连接真实 Electron HTTP、`NsisUpdater`、Windows Authenticode 和构建后的协调器。七个场景涵盖发布者错误、未签名、传输损坏、显式重试后签名文件就绪，以及缓存发布者匹配、不匹配和验签程序不可用。正向场景记录启动前的第二次验签。夹具延迟返回模拟的启动确认，核对确认返回后才移交退出处理并请求退出。被拒绝的可执行文件缓存为空，已准备的下载保持可用，原始输入的 SHA-512 保持一致。合成清单和启动替身覆盖下载与交接，实装应用及 Host 启动需另行验收。
 
-提供旧安装器和两个原始 blockmap 后，同一运行器还会验证单段 Range、多段 Range 重建、缺少旧 blockmap 时回退，以及 Range 被拒绝时回退。重建的可执行文件通过 SHA-512 和 Authenticode 检查。请求记录区分差分负载字节与全量下载；全量回退不能满足差分成功断言。这些回环结果不证明 CDN Range 支持或已安装应用的缓存可用。
+提供旧可执行文件和与两份文件各自匹配的 blockmap 后，同一运行器验证单段 Range、多段 Range 重建、缺少旧 blockmap 时回退，以及 Range 被拒绝时回退。重建的可执行文件通过 SHA-512 和 Authenticode 检查。单段 Range 场景另行批准交接，核对模拟启动前的再次验签及退出顺序。请求记录区分差分负载字节与整包下载。CDN Range 支持与实装缓存可用性需另行验收。
 
 <a id="verification-open"></a>
 

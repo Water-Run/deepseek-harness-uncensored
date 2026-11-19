@@ -75,6 +75,7 @@ async function main() {
     fixtures.push(f)
     return f
   }
+  const signatureChecks = f => f.logs.filter(line => line.startsWith('Verifying signature ')).length
   async function download(f) {
     const count = server.requests.length
     assert.equal((await f.coordinator.check(true)).phase, 'available')
@@ -129,8 +130,7 @@ async function main() {
     unsigned.authorize()
     const launchRequested = Promise.withResolvers()
     const launchAllowed = Promise.withResolvers()
-    const countSignatureChecks = () => unsigned.logs.filter(line => line.startsWith('Verifying signature ')).length
-    const checksBeforeInstall = countSignatureChecks()
+    const checksBeforeInstall = signatureChecks(unsigned)
     unsigned.holdLaunch(() => { launchRequested.resolve(); return launchAllowed.promise })
     const installing = unsigned.coordinator.install('1.0.1-nightly.1')
     let installation
@@ -139,7 +139,7 @@ async function main() {
         launchRequested.promise,
         installing.then(() => { throw new Error('Expected an installer launch request') }),
       ])
-      assert.equal(countSignatureChecks(), checksBeforeInstall + 1)
+      assert.equal(signatureChecks(unsigned), checksBeforeInstall + 1)
       assert.deepEqual(unsigned.handoffOrder, ['launch requested'])
       assert.equal(installed, 0)
     } finally {
@@ -166,10 +166,11 @@ async function main() {
         await copyFile(server.artifacts.old.file, join(f.directory, 'cache', 'installer.exe'))
         server.select('signed', false, fault)
         const start = server.requests.length
+        const handoffsBeforeDownload = installed
         assert.equal((await download(f)).phase, 'ready')
         assert.equal(await artifactDigest(f.updater.installerPath), server.artifacts.signed.sha512)
         assert.ok(f.logs.some(line => line.startsWith('Verifying signature ')))
-        assert.equal(installed, 1, 'Download must not invoke another installer handoff')
+        assert.equal(installed, handoffsBeforeDownload, 'Download must not invoke another installer handoff')
         const requests = server.requests.slice(start)
         const payload = requests.filter(request => request.path.endsWith('.exe'))
         const fallback = f.logs.some(line => line.includes('fallback to full download'))
@@ -191,6 +192,15 @@ async function main() {
         report.differential.push({ name, requests, fallback,
           payloadBytes: payload.reduce((bytes, request) => bytes + request.bytes, 0),
           fullSize: server.artifacts.signed.size })
+        if (name === 'single-range-reconstruction') {
+          const beforeInstall = signatureChecks(f)
+          f.authorize()
+          assert.equal((await f.coordinator.install('1.0.1-nightly.1')).phase, 'installing')
+          assert.equal(signatureChecks(f), beforeInstall + 1)
+          assert.deepEqual(f.handoffOrder, report.verifiedHandoffOrder)
+          assert.equal(installed, handoffsBeforeDownload + 1)
+          report.differentialHandoff = { name, order: f.handoffOrder }
+        }
         report.cases.push(name)
       }
     }
