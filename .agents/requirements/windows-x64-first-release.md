@@ -17,6 +17,14 @@
 
 2026-11-19 对照源码 `1ed6ee5571`，只读复核了实装的四个关键文件、18.11 安装器和 18.10 回退安装器。六项 SHA-256 均与历史回执一致，升级前备份目录仍存在。此次检查覆盖文件摘要和备份目录的存在性。回执为 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-first-release-baseline/installed-and-rollback.json`。当前[公开预发布](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5)为 17.5。
 
+### 沿用 rc.4 的源码基线
+
+rc.5 同步提交 `cb93054364cdb4bf16236ae013bcb8b31f70f3ef` 的直接父提交是 `a25afc41b8fd12c0777ab235186db4e8101a4cb4`。该基线的根 `package.json` 和 `product.json` 均为 DSH `0.2.2-rc.4`，上游提交为 `3f321d32bfe382212a8ed8785c1d47a5a300aa23`，REA 为 `6.9.0`。如继续暂缓 rc.5，后续迁移以该 rc.4 源码为起点，保留 18.11 实装为历史验证对象。
+
+以 `09a5979693811de58a992997695616f18f98a3ae` 为差异终点，在隔离 Git 索引中对四组改动执行了 `git apply --cached --check`。Windows 更新与验签 14 个文件、额度与余额 10 个、会话与旁问 14 个、流量记录 7 个均通过。合并后的 45 个文件也通过文本应用检查。完整选区与核对结果见 `%USERPROFILE%/DSHU-Deliveries/20261119/rc4-candidate-source/result.json`。
+
+接手时按首发需求逐项核对这四组及其余待迁移改动。对实际纳入的文件连同依赖锁、类型声明、原生资源和测试一起验证，候选检查结果填入[同一候选的验收单](#同一候选的验收单)。上述检查的范围是补丁能否应用到 rc.4 源文件。
+
 ## 打包前确认
 
 1. 固定 DSHU 的源码提交和依赖锁。记录 Windows x64 构建环境、日期版本、上游 DSH 和 REA 的版本及提交。关于页、CLI、安装器与 Windows 登记应显示同一个 DSHU 日期版本。
