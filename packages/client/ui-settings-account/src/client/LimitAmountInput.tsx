@@ -24,9 +24,16 @@ export function LimitAmountInput({ id, value, label, increase, decrease, disable
     onChange(String(next))
   }
   return <div className={css.amountGroup}>
-    <Input id={id} className={css.amountInput ?? ''} icon={<span aria-hidden="true">¥</span>} type="number" min={0.000001} max={1_000_000} step={1}
+    <Input id={id} className={css.amountInput ?? ''} icon={<span aria-hidden="true">¥</span>} type="number" min={0.000001} max={1_000_000} step="any"
       value={value} aria-label={label} aria-invalid={invalid} aria-describedby={descriptionId} disabled={disabled}
-      onChange={(event) => { onChange(event.target.value) }} />
+      onChange={(event) => { onChange(event.target.value) }}
+      onKeyDown={(event) => {
+        if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.nativeEvent.isComposing) return
+        const direction = event.key === 'ArrowUp' ? 1 : event.key === 'ArrowDown' ? -1 : 0
+        if (direction === 0) return
+        event.preventDefault()
+        step(direction)
+      }} />
     <div className={css.steps}>
       <Tooltip label={increase}><button type="button" aria-label={increase} aria-controls={id} disabled={disabled || number >= 1_000_000}
         onMouseDown={(event) => { event.preventDefault() }} onClick={() => { step(1) }}>
