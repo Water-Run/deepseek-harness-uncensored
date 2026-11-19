@@ -63,10 +63,18 @@ async function main() {
     const states = []
     let restart = async () => true
     let handoff = () => true
-    updater.quitAndInstall = (...args) => { installations.push(args) }
+    let quits = 0
+    updater.quitAndInstall = forbidden
+    const windowsHandoff = {
+      async launch(file) {
+        assert.equal(file, updater.installerPath)
+        installations.push(file)
+      },
+      quit() { quits++ },
+    }
     const coordinator = new DesktopUpdateCoordinator(state => { states.push(state); return state },
-      () => restart(), updater, () => true, () => '1.0.0', undefined, 'nightly', undefined, readSource, () => handoff())
-    const result = { updater, coordinator, installations, states, directory,
+      () => restart(), updater, () => true, () => '1.0.0', undefined, 'nightly', undefined, readSource, () => handoff(), windowsHandoff)
+    const result = { updater, coordinator, installations, states, directory, windowsHandoff, get quits() { return quits },
       restart: handler => { restart = handler }, handoff: handler => { handoff = handler } }
     fixtures.push(result)
     return result
@@ -75,13 +83,14 @@ async function main() {
   try {
     for (const [name, change] of [
       ['modified', path => writeFile(path, Buffer.alloc(server.payload.length))],
-      ['missing', unlink],
+      ['missing', path => unlink(path)],
+      ['requires-elevation', (_path, updater) => { updater.downloadedUpdateHelper.downloadedFileInfo.isAdminRightsRequired = true }],
     ]) {
       await scenario(`${name}-installer-refuses-handoff-and-redownloads`, async () => {
         const f = await fixture()
         const { version } = await f.coordinator.check(true)
         assert.equal((await f.coordinator.download(version)).phase, 'ready')
-        f.restart(async () => { await change(f.updater.installerPath); return true })
+        f.restart(async () => { await change(f.updater.installerPath, f.updater); return true })
         f.handoff(() => { throw new Error('Handoff was requested before package verification') })
         const failure = await f.coordinator.install(version)
         assert.equal(failure.failedOperation, 'install')
@@ -98,9 +107,35 @@ async function main() {
         f.restart(async () => true)
         f.handoff(() => true)
         assert.equal((await f.coordinator.install(version)).phase, 'installing')
-        assert.deepEqual(f.installations, [[true, true]])
+        assert.deepEqual(f.installations, [f.updater.installerPath])
       })
     }
+    await scenario('windows-waits-for-installer-start-and-allows-retry-after-launch-failure', async () => {
+      const f = await fixture()
+      const { version } = await f.coordinator.check(true)
+      assert.equal((await f.coordinator.download(version)).phase, 'ready')
+      const entered = Promise.withResolvers()
+      const launch = Promise.withResolvers()
+      const record = f.windowsHandoff.launch
+      f.windowsHandoff.launch = (file) => {
+        entered.resolve(file)
+        return launch.promise
+      }
+      const installing = f.coordinator.install(version)
+      try {
+        assert.equal(await entered.promise, f.updater.installerPath)
+        assert.equal(f.quits, 0)
+      } finally { launch.reject(new Error('OS rejected fixture startup')) }
+      const failure = await installing
+      assert.equal(failure.failedOperation, 'install')
+      assert.equal(failure.preparationFailure, undefined)
+      assert.equal(f.quits, 0)
+      assert.equal(f.installations.length, 0)
+      f.windowsHandoff.launch = record
+      assert.equal((await f.coordinator.install(version)).phase, 'installing')
+      assert.deepEqual(f.installations, [f.updater.installerPath])
+      assert.equal(f.quits, 1)
+    })
     await scenario('same-version-no-update', async () => {
       const f = await fixture()
       server.select('healthy', '1.0.0')
@@ -372,7 +407,7 @@ async function main() {
       assert.equal(handoff.phase, 'installing')
       assert.equal(await f.coordinator.install(available.version), handoff)
       assert.equal(preparations, 1)
-      assert.deepEqual(f.installations, [[true, true]])
+      assert.deepEqual(f.installations, [f.updater.installerPath])
       presentations.push(...f.states.map(state => ({ phase: state.phase, ...presentDesktopUpdate(state) })))
     })
     await scenario('installer-requires-shell-handoff-after-package-verification', async () => {
@@ -391,7 +426,7 @@ async function main() {
       allowHandoff = true
       assert.equal((await f.coordinator.install(version)).phase, 'installing')
       assert.deepEqual(choices, [false, true])
-      assert.deepEqual(f.installations, [[true, true]])
+      assert.deepEqual(f.installations, [f.updater.installerPath])
     })
     for (const mode of ['download-404', 'corrupt', 'disconnect', 'download-stall']) {
       await scenario(`${mode}-explicit-retry`, async () => {
@@ -640,15 +675,15 @@ async function main() {
         assert.equal(policy.state.blocking, true)
         assert.equal(f.installations.length, 0)
         const handoff = Promise.withResolvers()
-        const recordInstall = f.updater.quitAndInstall
-        f.updater.quitAndInstall = (...args) => { recordInstall(...args); handoff.resolve() }
+        const recordQuit = f.windowsHandoff.quit
+        f.windowsHandoff.quit = () => { recordQuit(); handoff.resolve() }
         f.restart(() => modal.confirm(f.coordinator.state.version, true))
         await contents.executeJavaScript("document.getElementById('update').click()")
         await until(taskConfirmation)
         assert.equal(f.installations.length, 0)
         await contents.executeJavaScript("document.getElementById('update').click()")
         await handoff.promise
-        assert.deepEqual(f.installations, [[true, true]])
+        assert.deepEqual(f.installations, [f.updater.installerPath])
         assert.equal(policy.state.blocking, true)
         f.updater.emit('error', new Error('installer result could not be confirmed'))
         modal.sync()
@@ -657,7 +692,7 @@ async function main() {
         await until(`document.getElementById('error').textContent === ${JSON.stringify(messages.updateInstallerHandoffUnconfirmed)}
           && document.getElementById('update').hidden`)
         assert.equal(await f.coordinator.install(failure.version), failure)
-        assert.deepEqual(f.installations, [[true, true]])
+        assert.deepEqual(f.installations, [f.updater.installerPath])
         server.policy('clear')
         const closed = process.platform === 'win32' ? undefined : once(contents, 'destroyed')
         await policy.check('manual', true)

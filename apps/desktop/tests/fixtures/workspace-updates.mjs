@@ -58,7 +58,14 @@ updater.httpExecutor = new DesktopUpdateHttpExecutor(interactive ? 600_000 : 10_
 updater.disableDifferentialDownload = true
 updater.disableWebInstaller = true
 fixture.readUpdateSource = fixtureUpdateFeed(updater, server.url)
-updater.quitAndInstall = (...args) => { fixture.installations.push(args) }
+updater.quitAndInstall = forbidden
+fixture.windowsHandoff = {
+  async launch(file) {
+    assert.equal(file, updater.installerPath)
+    fixture.installations.push(file)
+  },
+  quit() {},
+}
 fixture.updater = updater
 
 async function observed(window, subject, operation) {

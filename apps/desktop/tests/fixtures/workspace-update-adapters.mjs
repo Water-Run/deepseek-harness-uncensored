@@ -6,7 +6,7 @@ import { DesktopBackendController as Backend } from '../../lib/types/backend-con
 export { DesktopHostFatalError, DesktopHostUncleanExitError } from '../../lib/types/host-process.js'
 export { DesktopUpdatePreparationError } from '../../lib/types/update-error.js'
 
-export const fixture = { updater: undefined, readUpdateSource: undefined, coordinator: undefined, host: undefined,
+export const fixture = { updater: undefined, readUpdateSource: undefined, windowsHandoff: undefined, coordinator: undefined, host: undefined,
   ready: Promise.withResolvers(), failed: Promise.withResolvers(), fatalFailure: undefined,
   readyHosts: new WeakSet(), states: [], installations: [], taskQueries: [], backendStates: [], hostStarts: [] }
 export class DesktopBackendController extends Backend {
@@ -26,7 +26,8 @@ export class DesktopFatalRecovery extends Recovery {
 export class DesktopUpdateCoordinator extends Coordinator {
   constructor(publish, beforeRestart, _updater, _enabled, _version, _downloadResult, _channel, _discard, _readSource, beginHandoff) {
     super(state => { fixture.states.push(state); return publish(state) },
-      beforeRestart, fixture.updater, () => true, () => '0.1.5-rc.1', undefined, 'nightly', undefined, fixture.readUpdateSource, beginHandoff)
+      beforeRestart, fixture.updater, () => true, () => '0.1.5-rc.1', undefined, 'nightly', undefined,
+      fixture.readUpdateSource, beginHandoff, fixture.windowsHandoff)
     fixture.coordinator = this
   }
 }

@@ -1,7 +1,7 @@
 /** Recheck the pending Windows installer before passing control to NSIS. */
 import { createHash } from 'node:crypto'
 import { open, realpath, rm, stat } from 'node:fs/promises'
-import { join, resolve } from 'node:path'
+import { isAbsolute, join, resolve } from 'node:path'
 import type { AppUpdater } from 'electron-updater'
 import { DesktopUpdatePreparationError } from '../../update-error.ts'
 
@@ -9,9 +9,9 @@ import { DesktopUpdatePreparationError } from '../../update-error.ts'
  * Verify the standalone installer's publisher and SHA-512 again before handoff, including cached downloads.
  * A failed verification retires the in-memory target and the owned pending cache index.
  * @param updater - Settled NSIS updater with automatic installation disabled.
- * @returns When the installer is readable and matches the checked feed digest.
+ * @returns The absolute installer path after publisher, identity and digest checks.
  */
-export async function verifyWindowsUpdateInstaller(updater: AppUpdater): Promise<void> {
+export async function verifyWindowsUpdateInstaller(updater: AppUpdater): Promise<string> {
   // Electron-updater's NSIS signature method uses the publisher from the installed configuration.
   const internal = updater as object as {
     downloadedUpdateHelper: AppUpdater['downloadedUpdateHelper']
@@ -21,8 +21,11 @@ export async function verifyWindowsUpdateInstaller(updater: AppUpdater): Promise
   const file = pending?.file
   const expectedHash = pending?.downloadedFileInfo?.sha512
   try {
-    if (file == null || pending?.packageFile !== null || expectedHash === undefined) {
+    if (file == null || !isAbsolute(file) || pending?.packageFile !== null || expectedHash === undefined) {
       throw new Error('desktop update: missing standalone installer metadata')
+    }
+    if (pending.downloadedFileInfo?.isAdminRightsRequired === true) {
+      throw new Error('desktop update: the release requires an elevated installer')
     }
     const handle = await open(file, 'r')
     try {
@@ -41,6 +44,7 @@ export async function verifyWindowsUpdateInstaller(updater: AppUpdater): Promise
     } finally {
       await handle.close()
     }
+    return file
   } catch (error) {
     internal.downloadedUpdateHelper = null
     let details = error instanceof Error ? error.message : undefined

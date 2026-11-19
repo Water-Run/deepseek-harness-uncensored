@@ -99,7 +99,7 @@ export async function qualifyUpdateDialogs(root, fixture, hiddenWindows) {
       assert.equal(result.phase, active ? 'installing' : 'ready')
       assert.equal(f.installations.length, active ? 1 : 0)
     }
-    assert.deepEqual(f.installations, [[true, true]])
+    assert.deepEqual(f.installations, [f.updater.installerPath])
     const created = once(app, 'web-contents-created', { signal: AbortSignal.timeout(10_000) })
     const diagnostics = 'exit 0; shutdown acknowledged false\n' + 'at internal/diagnostic/path\n'.repeat(1000)
     const pending = dialogs.show(parent, { title: messages.updateFailedTitle, message: messages.updateStopFailed,
@@ -123,7 +123,7 @@ export async function qualifyUpdateDialogs(root, fixture, hiddenWindows) {
       const name = expanded ? 'update-error-expanded.png' : 'update-error-collapsed.png'
       await capture(errorWindow.webContents, name)
     }
-    assert.deepEqual(f.installations, [[true, true]])
+    assert.deepEqual(f.installations, [f.updater.installerPath])
     const closedError = once(errorWindow.webContents, 'destroyed', { signal: AbortSignal.timeout(10_000) })
     const [errorResult] = await Promise.all([pending, closedError, escape(errorWindow.webContents)])
     assert.equal(errorResult.response, 0)

@@ -16,9 +16,8 @@ export async function runInteractiveUpdates({ mainWindow, server, fixture, check
   panel.once('closed', finish)
   app.once('before-quit', finish)
   let closing = false
-  const originalInstall = fixture.updater.quitAndInstall
-  fixture.updater.quitAndInstall = (...args) => {
-    fixture.installations.push(args)
+  const originalQuit = fixture.windowsHandoff.quit
+  fixture.windowsHandoff.quit = () => {
     void dialog.showMessageBox(panel, { type: 'info', title: '本地验收结束',
       message: '已完成下载、校验、安装确认和任务收尾。',
       detail: '安装器调用已拦截，未安装或重启到新版本。确认后退出本轮演练；重新运行命令可开始下一轮。',
@@ -74,7 +73,7 @@ export async function runInteractiveUpdates({ mainWindow, server, fixture, check
       interceptedInstallations: fixture.installations.length, phases: fixture.states.map(state => state.phase) }, null, 2) + '\n')
   } finally {
     closing = true
-    fixture.updater.quitAndInstall = originalInstall
+    fixture.windowsHandoff.quit = originalQuit
     app.off('before-quit', finish)
     panel.off('closed', finish)
     if (!panel.isDestroyed()) panel.destroy()

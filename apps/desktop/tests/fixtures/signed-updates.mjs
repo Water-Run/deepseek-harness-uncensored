@@ -54,10 +54,13 @@ async function main() {
     updater.disableWebInstaller = true
     const readSource = fixtureUpdateFeed(updater, server.url, multipleRanges)
     updater.on('error', error => errors.push(error.code))
-    updater.quitAndInstall = () => { installed++ }
+    updater.quitAndInstall = forbidden
     let authorized = false
     const coordinator = new DesktopUpdateCoordinator(state => { states.push(state); return state },
-      async () => authorized, updater, () => true, () => '1.0.0', undefined, 'nightly', undefined, readSource)
+      async () => authorized, updater, () => true, () => '1.0.0', undefined, 'nightly', undefined, readSource, undefined, {
+        async launch(file) { assert.equal(file, updater.installerPath); installed++ },
+        quit() {},
+      })
     const f = { coordinator, updater, logs, errors, states, directory, authorize: () => { authorized = true } }
     fixtures.push(f)
     return f

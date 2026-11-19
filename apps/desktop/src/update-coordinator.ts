@@ -2,7 +2,7 @@
 
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { app } from 'electron'
+import { app, autoUpdater as nativeAutoUpdater } from 'electron'
 import electronUpdater, { type AppUpdater, type ProgressInfo, type UpdateInfo, type UpdateCheckResult } from 'electron-updater'
 import { gt, valid } from 'semver'
 import type { DesktopUpdateState } from './ipc.ts'
@@ -13,9 +13,15 @@ import type { DesktopUpdateChannel } from './update-channel.ts'
 import { selectUpdateChannel } from './updates/electron-updater/channel.ts'
 import { discardDesktopUpdate } from './updates/electron-updater/discard.ts'
 import { verifyWindowsUpdateInstaller } from './updates/electron-updater/verify-installer.ts'
+import { launchWindowsUpdateInstaller } from './updates/electron-updater/launch-installer.ts'
 import { verifyWindowsUpdatePublisher } from './updates/electron-updater/windows-publisher.ts'
 
 const { autoUpdater, NsisUpdater } = electronUpdater
+
+interface WindowsUpdateHandoff {
+  launch(file: string): Promise<void>
+  quit(): void
+}
 
 /** Owns one updater target until its download and installation settle. */
 export class DesktopUpdateCoordinator {
@@ -61,6 +67,7 @@ export class DesktopUpdateCoordinator {
    * @param discard - Clears settled library targets and platform resources before another channel is used.
    * @param readSource - Installed update configuration, read and validated before any network request.
    * @param beginHandoff - Transfers quit ownership if the shell is still running.
+   * @param windowsHandoff - Starts the verified Windows installer and requests quit after it starts.
    */
   constructor(
     private readonly publish: (state: DesktopUpdateState) => DesktopUpdateState,
@@ -73,6 +80,13 @@ export class DesktopUpdateCoordinator {
     private readonly discard: (updater: AppUpdater) => Promise<void> = discardDesktopUpdate,
     private readonly readSource: () => Promise<unknown> = readInstalledUpdateSource,
     private readonly beginHandoff: () => boolean = () => true,
+    private readonly windowsHandoff: WindowsUpdateHandoff = {
+      launch: launchWindowsUpdateInstaller,
+      quit() {
+        nativeAutoUpdater.emit('before-quit-for-update')
+        app.quit()
+      },
+    },
   ) {
     if (updater === autoUpdater) {
       // electron-updater omits this internal transport property from its public declarations.
@@ -243,11 +257,13 @@ export class DesktopUpdateCoordinator {
       try {
         if (!await this.beforeRestart()) return this.setState({ phase: 'ready', version })
         this.assertLive()
-        if (this.updater instanceof NsisUpdater) await verifyWindowsUpdateInstaller(this.updater)
+        const installer = this.updater instanceof NsisUpdater ? await verifyWindowsUpdateInstaller(this.updater) : undefined
         this.assertLive()
         if (!this.beginHandoff()) return this.setState({ phase: 'ready', version })
+        if (installer !== undefined) await this.windowsHandoff.launch(installer)
         this.release = { kind: 'handed-off', version }
-        this.updater.quitAndInstall(true, true)
+        if (installer === undefined) this.updater.quitAndInstall(true, true)
+        else this.windowsHandoff.quit()
         return this.current
       } catch (error) {
         if (this.release.kind !== 'handed-off' && error instanceof DesktopUpdatePreparationError && error.kind === 'installer-integrity') {
