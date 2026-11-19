@@ -36,6 +36,12 @@
     "sha256": "e56890ff38a31e1adc0617f57c23056289dd27a9ff6263eaf6137dacd1253d9d"
   },
   {
+    "packages": ["proxy-agent-negotiate@1.1.0"],
+    "file": "proxy-agent-negotiate-1.1.0-http-origin-MIT.txt",
+    "source": "https://raw.githubusercontent.com/TooTallNate/proxy-agents/663669853ea993d66da628aea9f9902e1a6916d8/packages/http-proxy-agent/LICENSE",
+    "sha256": "71368fd0f5b4129191e9afcd1e1ef2dc89a9090d3e4d80bbab92dafd032b3bef"
+  },
+  {
     "packages": ["fontkit@2.0.4"],
     "file": "fontkit-2.0.4-Apple-mappings-NOTICE.txt",
     "source": "https://www.unicode.org/Public/MAPPINGS/VENDORS/APPLE/",

@@ -32,6 +32,12 @@ Frida 17.23.2 的 Gum 构建配置与 SDK 同时固定 Capstone 提交 `d536b157
 
 用 Windows 18.11 的 920 个实装依赖复算，补充声明合计 33 份，待核查仍为 6 项。19 项清点器测试通过，实装 ASAR 摘要一致。新增声明的实包分发及其余 Frida 组件署名仍待核查。回执为 `%USERPROFILE%/DSHU-Deliveries/20261119/frida-derived-notices/`。
 
+## 代理认证实现的原始许可（2026-11-19）
+
+`proxy-agent-negotiate@1.1.0` 的 `createNegotiateAuth` 来自上游 PR #420 的 HTTP 代理实现。去除导出修饰、注释和排版后，函数与拆分后的声明一致，拆分提交与发布提交的入口源码逐字一致。npm 发布归档通过 SHA-512 校验，Windows 18.11 实装的 `dist/index.js` 与归档逐字一致。源码清单关联该原始实现所属的版权和 MIT 原文，独立包的完整署名仍待核查。[上游 PR](https://github.com/TooTallNate/proxy-agents/pull/420) · [固定许可原文](https://github.com/TooTallNate/proxy-agents/blob/663669853ea993d66da628aea9f9902e1a6916d8/packages/http-proxy-agent/LICENSE)
+
+清点器对该精确版本继续保留待核查标记。基于同一 Windows 18.11 实装的 920 个包复算，补充声明合计 34 份，待核查仍为 6 项，ASAR 摘要一致。19 项定向测试通过。源码比对与清点回执位于 `%USERPROFILE%/DSHU-Deliveries/20261119/proxy-negotiate-notices/`。新增文本待候选安装包核验分发。
+
 ## Windows 18.4 实装依赖路径
 
 实装中 LibreOffice Kit 0.2.3 引入 Fontkit 2.0.4，后者引入 Brotli 1.3.3 和 dfa 1.2.0。HTTP 与 HTTPS Proxy Agent 9.1.0 均引入 proxy-agent-negotiate 1.1.0。REA 6.9.0 引入 Frida 17.23.2，isomorphic-git 1.38.7 引入 minimisted 2.0.1。入口分别对应 Office、代理、REA 和 Git，后续替换须验证受影响的功能。实装清单与路径回执位于 `%USERPROFILE%/DSHU-Deliveries/20261118/candidate-2026.11.18.4/installed-notice-inventory.json`。
@@ -210,7 +216,7 @@ Linux `.3` 实包原清单为 861 个 npm 包和 12 项待核查。`@deepseek-ai
 | fontkit 2.0.4 | Windows/Linux | 已补八张 Mac 编码表的归属声明和 Base64 解码器的 MIT 原文。Fontkit 本体原文与 Apple 数据分发条款仍待核对 |
 | frida 17.23.2 | Windows/Linux | 已补 QuickJS、V8、Capstone 与所附 LLVM 声明。Node 绑定和其余内嵌组件的完整署名仍待核查 |
 | minimisted 2.0.1 | Windows/Linux | REA 明确记录的上游原文/署名缺项，保留待核查 |
-| proxy-agent-negotiate 1.1.0 | Windows/Linux | 发布包与对应 tag 没有本包许可文件；相邻代理包文件不能未经核准直接替用 |
+| proxy-agent-negotiate 1.1.0 | Windows/Linux | 已留存可追溯的原始 HTTP 代理实现版权和 MIT 原文，独立包的完整署名待核查 |
 | @img/sharp-libvips-linux-x64 1.3.4 | Linux | 已补 Sharp 第三方清单及匹配的 libvips 原文；内嵌库署名与发行要求仍待复核 |
 | sherpa-onnx-linux-x64 1.13.8 | Linux | 已补 Sherpa-ONNX 及匹配的 ONNX Runtime 原文；内嵌库署名与发行要求仍待复核 |
 
