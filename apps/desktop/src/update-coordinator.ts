@@ -208,7 +208,10 @@ export class DesktopUpdateCoordinator {
       }
       this.setState({ phase: 'downloading', version, percent: 0 })
       try {
-        await this.updater.downloadUpdate(this.cancellation)
+        const token = this.cancellation
+        const download = () => this.updater.downloadUpdate(token)
+        const transport = (this.updater as AppUpdater & { httpExecutor?: DesktopUpdateHttpExecutor }).httpExecutor
+        await (transport instanceof DesktopUpdateHttpExecutor ? transport.runDownload(token, download) : download())
         if (!this.isActiveGeneration(generation)) return this.current
         if (!this.downloaded) throw new Error('desktop update: platform preparation did not report readiness')
         this.downloadResult?.(true)

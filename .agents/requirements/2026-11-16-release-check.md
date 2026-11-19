@@ -20,6 +20,8 @@ GitHub HTTP 429、主额度耗尽的响应头或数字 `Retry-After` 会产生�
 
 取消正在写入磁盘的更新下载会中止当前请求，并在返回前关闭临时文件。真实 Electron 夹具分别确认旧流程未中止请求、仅中止请求仍有文件未关闭。修复后同版本可显式重试，下载内容与服务端逐字一致，安装入口未执行。24 项传输场景通过。依赖使用锁中已有的 `builder-util-runtime@9.7.0`，冻结锁通过供应链校验。回执为 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-download-cancel-{before,abort-only,final}.log`。[桌面更新说明](../../apps/desktop/README.zh.md#updates)
 
+差分下载的直接 Range 请求也使用本次下载的取消令牌。真实 Electron 在收到部分数据后暂停回环响应，修复前切换一直等待该响应。修复后旧请求只中止一次，发出新清单请求前重建文件描述符已关闭。显式重试以单段 Range 重建出与基线完全一致的载荷，没有回退到全量下载。25 项传输场景和 51 项定向测试通过。回执为 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-range-cancellation-{inflight-before,final}.log`，夹具未执行安装器。[桌面更新说明](../../apps/desktop/README.zh.md#updates)
+
 ## Windows 差分索引核验
 
 完整 Windows 打包在写入成功回执前核验最终安装器和外部 `.blockmap`。定向用例覆盖等长安装器的错配索引、损坏索引，以及校验失败后中止并保留发布回执为缺失状态。86 项打包与发布材料测试通过。用该校验器复算当前 18.10 未签名安装器的实际索引，内容一致，回执为 `candidate-2026.11.18.10/installer-blockmap-verification.json`。真实签名安装器和在线升级仍待验收。[打包说明](../../apps/desktop/packaging/README.zh.md)

@@ -1,8 +1,9 @@
-/** Electron-native inactivity deadlines for updater checks, full downloads, and blockmap requests. */
+/** Electron-native inactivity deadlines and cancellation for updater requests. */
 import { ElectronHttpExecutor } from 'electron-updater/out/electronHttpExecutor.js'
-import { configureRequestOptions, configureRequestUrl, DigestTransform, ProgressCallbackTransform,
+import { CancellationError, configureRequestOptions, configureRequestUrl, DigestTransform, ProgressCallbackTransform,
   safeGetHeader, type DownloadOptions } from 'builder-util-runtime'
 import type { ClientRequest, IncomingMessage } from 'electron'
+import { AsyncLocalStorage } from 'node:async_hooks'
 import fs from 'node:fs'
 import type { RequestOptions } from 'node:http'
 import type { Transform } from 'node:stream'
@@ -18,6 +19,8 @@ export class DesktopUpdateHttpExecutor extends ElectronHttpExecutor {
   private readonly redirects = new WeakMap<RequestOptions, number>()
   private readonly cancellationOwners = new WeakMap<ApiRequestToken, ApiRequestToken>()
   private readonly downloadCancellations = new WeakMap<RequestOptions, DownloadCall['onCancel']>()
+  private readonly downloadScope = new AsyncLocalStorage<ApiRequestToken | undefined>()
+  private readonly rangeOwners = new WeakMap<ClientRequest, ApiRequestToken>()
 
   /**
    * @param idleTimeoutMs - Maximum silence before headers or between response chunks, not a total download deadline.
@@ -28,6 +31,16 @@ export class DesktopUpdateHttpExecutor extends ElectronHttpExecutor {
     if (!Number.isSafeInteger(idleTimeoutMs) || idleTimeoutMs < 1000 || idleTimeoutMs > 2_147_483_647) {
       throw new Error('desktop update: HTTP idle timeout must be an integer from 1000 through 2147483647')
     }
+  }
+
+  /**
+   * Associate direct differential requests with the pending installer download.
+   * @param token - Cancellation token for the selected installer.
+   * @param download - Library operation that owns reconstruction and closing its files.
+   * @returns The library operation, including its file cleanup.
+   */
+  runDownload<T>(token: ApiRequestToken | undefined, download: () => Promise<T>): Promise<T> {
+    return this.downloadScope.run(token, download)
   }
 
   override async doApiRequest(options: RequestOptions, token: ApiRequestToken, requestProcessor: ApiRequestProcessor,
@@ -52,8 +65,14 @@ export class DesktopUpdateHttpExecutor extends ElectronHttpExecutor {
 
   override createRequest(options: RequestOptions, callback: ResponseCallback): ClientRequest {
     const request = super.createRequest(options, callback)
+    const cancelDownload = this.downloadCancellations.get(options)
+    const rangeOwner = this.downloadScope.getStore()
+    const { headers } = options
     // The pinned download promise exposes a single cancellation callback for the current request.
-    this.downloadCancellations.get(options)?.(() => { request.abort() })
+    if (cancelDownload !== undefined) cancelDownload(() => { request.abort() })
+    else if (rangeOwner !== undefined && headers !== undefined && ('range' in headers || 'Range' in headers)) {
+      this.rangeOwners.set(request, rangeOwner)
+    }
     return request
   }
 
@@ -110,17 +129,19 @@ export class DesktopUpdateHttpExecutor extends ElectronHttpExecutor {
   override addErrorAndTimeoutHandlers(request: ClientRequest, reject: (error: Error) => void): void {
     // The upstream socket timer is for Node HTTP; Electron ClientRequest has response/close events instead.
     super.addErrorAndTimeoutHandlers(request, reject, this.idleTimeoutMs)
+    const rangeOwner = this.rangeOwners.get(request)
     let response: IncomingMessage | undefined
     let timer: ReturnType<typeof setTimeout>
     const stop = (): void => {
       clearTimeout(timer)
       request.off('response', onResponse)
       request.off('abort', stop)
-      request.off('redirect', stop)
+      request.off('redirect', redirect)
       request.off('error', stop)
       response?.off('data', refresh)
       response?.off('end', stop)
       response?.off('error', stop)
+      rangeOwner?.removeListener('cancel', abortRange)
     }
     const refresh = (): void => {
       clearTimeout(timer)
@@ -137,11 +158,23 @@ export class DesktopUpdateHttpExecutor extends ElectronHttpExecutor {
       response.once('error', stop)
       refresh()
     }
+    const redirect = (): void => {
+      // Direct Range requests can follow redirects on the same ClientRequest.
+      if (rangeOwner === undefined) stop()
+      else refresh()
+    }
+    const abortRange = (): void => {
+      stop()
+      reject(new CancellationError())
+      request.abort()
+    }
     request.once('response', onResponse)
     // Electron 44 can emit writable close after finish, before response headers arrive.
     request.once('abort', stop)
-    request.once('redirect', stop)
+    request.on('redirect', redirect)
     request.once('error', stop)
     refresh()
+    if (rangeOwner?.cancelled) abortRange()
+    else rangeOwner?.once('cancel', abortRange)
   }
 }

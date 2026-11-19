@@ -271,6 +271,69 @@ async function main() {
       assert.deepEqual(await readFile(f.updater.installerPath), server.payload)
       assert.equal(f.installations.length, 0)
     })
+    await scenario('channel-switch-cancels-the-range-and-releases-the-reconstruction', async () => {
+      const f = await fixture('range-hold')
+      f.updater.disableDifferentialDownload = false
+      const cache = join(f.directory, 'cache')
+      await mkdir(cache, { recursive: true })
+      await writeFile(join(cache, 'installer.exe'), server.previousPayload)
+      const { version } = await f.coordinator.check()
+      const executor = f.updater.httpExecutor
+      const createRequest = executor.createRequest
+      const createWriteStream = fs.createWriteStream
+      const wait = (promise, message) => Promise.race([promise, delay(10_000, undefined, { ref: false }).then(() => { throw new Error(message) })])
+      const received = Promise.withResolvers()
+      let descriptor
+      let closedBeforeCheck = false
+      let aborts = 0
+      executor.createRequest = function (options, ...args) {
+        if (options.path?.split('?')[0] === '/latest.yml') {
+          assert.equal(typeof descriptor, 'number')
+          assert.throws(() => fs.fstatSync(descriptor), { code: 'EBADF' })
+          closedBeforeCheck = true
+        }
+        const request = createRequest.call(this, options, ...args)
+        if (options.headers?.range) {
+          request.once('response', response => { response.once('data', received.resolve) })
+          const abort = request.abort.bind(request)
+          request.abort = () => { aborts++; abort() }
+        }
+        return request
+      }
+      fs.createWriteStream = function (path, options, ...args) {
+        if (typeof path === 'string' && path.startsWith(f.directory + sep) && typeof options?.fd === 'number') descriptor = options.fd
+        return createWriteStream.call(this, path, options, ...args)
+      }
+      const initialRequests = server.requests.length
+      const initialRanges = server.ranges.length
+      const download = f.coordinator.download(version)
+      let switched
+      try {
+        await wait(Promise.all([server.arrived(), received.promise]), 'Differential download did not receive the first range bytes')
+        switched = f.coordinator.switchChannel('latest', async () => {})
+        assert.equal(await wait(switched, 'The old range blocked the channel switch'), 'applied')
+        assert.equal(aborts, 1)
+        assert.equal(closedBeforeCheck, true)
+        assert.equal(f.updater.installerPath, null)
+        assert.equal(f.states.some(state => state.phase === 'ready'), false)
+        assert.equal(server.requests.slice(initialRequests).filter(path => path.endsWith('.exe')).length, 1)
+        assert.equal(server.ranges.length - initialRanges, 1)
+        assert.equal(server.requests.at(-1), '/latest.yml')
+      } finally {
+        server.release()
+        await Promise.allSettled([download, switched])
+        fs.createWriteStream = createWriteStream
+        executor.createRequest = createRequest
+      }
+      server.select('range-healthy')
+      const retryStart = server.requests.length
+      const retryRanges = server.ranges.length
+      assert.equal((await f.coordinator.download(version)).phase, 'ready')
+      assert.deepEqual(await readFile(f.updater.installerPath), server.payload)
+      assert.equal(server.ranges.length - retryRanges, 1)
+      assert.equal(server.requests.slice(retryStart).filter(path => path.endsWith('.exe')).length, 1)
+      assert.equal(f.installations.length, 0)
+    })
     await scenario('user-download-progress-hash-and-separate-install', async () => {
       const f = await fixture('hold-download')
       const before = server.requests.length
