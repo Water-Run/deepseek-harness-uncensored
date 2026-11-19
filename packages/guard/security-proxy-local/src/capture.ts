@@ -118,21 +118,21 @@ export function redactHeaders(headers: readonly (readonly [string, string])[]): 
  *
  * JSON objects keep their keys and lose secret values; form-encoded bodies drop
  * the same names; any other textual media type is stored verbatim (it carries no
- * name/value structure to match). A body that does not parse as the media type it
- * claims is left untouched rather than mangled.
+ * name/value structure to match). Malformed JSON from a capped read is omitted.
+ * Other text that fails to parse stays available for diagnosis.
  * @param contentType - response or request media type, when known.
  * @param text - decoded body text.
+ * @param readTruncated - whether a byte limit shortened the body before redaction.
  * @returns the body to store.
  */
-export function redactBody(contentType: string | null, text: string): string {
+export function redactBody(contentType: string | null, text: string, readTruncated = false): string {
   const media = (contentType ?? '').toLowerCase()
   if (media.includes('json')) {
     try {
       const parsed: unknown = JSON.parse(text)
       return JSON.stringify(redactJson(parsed, 0))
     } catch {
-      // Not valid JSON despite the media type: store the text unchanged.
-      return text
+      return readTruncated ? '[incomplete JSON body omitted]' : text
     }
   }
   if (media.includes('application/x-www-form-urlencoded')) {
@@ -181,12 +181,14 @@ export function truncateBody(text: string, maxBytes: number): { text: string; tr
  * @param contentType - media type the body carries.
  * @param text - decoded text, or null when the caller kept no text.
  * @param maxBytes - capture cap in bytes.
+ * @param readTruncated - whether a byte limit shortened the supplied text.
  * @returns the stored body and whether a cap cut it.
  */
 export function prepareBody(
   contentType: string | null,
   text: string | null,
   maxBytes: number,
+  readTruncated = false,
 ): { body: string | null; truncated: boolean } {
   if (text === null) return { body: null, truncated: false }
   if (Buffer.byteLength(text, 'utf8') > MAX_DECODED_BODY_BYTES) {
@@ -195,7 +197,7 @@ export function prepareBody(
   if (contentType !== null && isBinaryMedia(contentType)) {
     return { body: `[binary body omitted: ${contentType}]`, truncated: false }
   }
-  const redacted = redactBody(contentType, text)
+  const redacted = redactBody(contentType, text, readTruncated)
   const cut = truncateBody(redacted, maxBytes)
   return { body: cut.text, truncated: cut.truncated }
 }
@@ -242,7 +244,7 @@ export class CaptureStore {
     this.prune(limits)
     const requestContentType = input.requestHeaders.find(([name]) => name.toLowerCase() === 'content-type')?.[1] ?? null
     const requestBody = prepareBody(requestContentType, input.requestBody, limits.maxBodyBytes)
-    const responseBody = prepareBody(input.contentType, input.responseBody, limits.maxBodyBytes)
+    const responseBody = prepareBody(input.contentType, input.responseBody, limits.maxBodyBytes, input.bodyTruncated)
     const flow: CapturedExchange = {
       ...input,
       id: randomUUID(),

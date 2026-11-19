@@ -157,6 +157,18 @@ describe('capture store', () => {
     expect(lengthened?.bodyTruncated).toBe(true)
   })
 
+  it('omits a partial JSON response and preserves a complete JSON prefix from a capped read', () => {
+    const store = new CaptureStore(() => limits())
+    const contentType = 'application/json'
+    store.append(exchange({ contentType, bodyTruncated: true, responseBody: '{"token":"fixture' }))
+    store.append(exchange({ contentType, bodyTruncated: true, responseBody: '{"token":"fixture","label":"sample"}' }))
+
+    const [complete, incomplete] = store.snapshot({}, false).flows
+    expect(complete).toMatchObject({ bodyTruncated: true, responseBody: '{"token":"[redacted]","label":"sample"}' })
+    expect(incomplete).toMatchObject({ bodyTruncated: true, responseBody: '[incomplete JSON body omitted]' })
+    expect(store.detail(incomplete?.id ?? '')?.responseBody).toBe(incomplete?.responseBody)
+  })
+
   it('clears everything and keeps the lifetime total', () => {
     const store = new CaptureStore(() => limits())
     store.append(exchange())

@@ -59,7 +59,7 @@ export type SecurityProxyCaptureInput = Omit<SecurityProxyFlowDetail,
   'id' | 'requestHeaders' | 'responseHeaders' | 'bodyTruncated'> & {
     readonly requestHeaders: readonly (readonly [string, string])[]
     readonly responseHeaders: readonly (readonly [string, string])[]
-    /** Whether an upstream read or relay capture limit already shortened a body. */
+    /** Whether an upstream read or relay capture limit already shortened the response body. */
     readonly bodyTruncated?: boolean
   }
 
