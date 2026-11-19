@@ -5,88 +5,37 @@
   <p>WaterRun · Windows / Linux Desktop · 源码基于 DeepSeek Harness 0.2.2-rc.5</p>
 </div>
 
-DSHU 是面向开发、网安、逆向与写作的智能体工作台。它在 DeepSeek Harness 上集成破甲提示词、四种模式、旁问、额度控制和跨对话记忆，使用你选择的模型完成任务。官方 DSH 与 DSHU 可同时安装，分别使用自己的程序目录、配置、会话和更新渠道。
+**DeepSeek Harness Uncensored（DSHU）** 是基于 DeepSeek Harness 的桌面工作台。它集成破甲文本，为开发、网安、逆向和写作提供各自的模式，并加入旁问、随问、额度控制、跨对话记忆和输入预测。DSHU 与官方 DSH 可以并存，各自使用独立的程序目录、配置、会话和更新渠道。
 
-当前公开预发布 **2026.11.17.5** 基于 **DSH 0.2.2-rc.3**，内置 **REA 6.9.0**。[下载 Windows / Linux](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5)。Windows 已保留数据安装并启动；本版修复 Windows 无脚本暂停 Frida 会话关闭，保留余额精度、远端文件映射和审计增强。包未签名，完整验收状态见[开发清单](.agents/TODO.md)和[交付记录](.agents/requirements/2026-11-17.5-delivery.md)。
-
-源码已同步至 **DSH 0.2.2-rc.5**，支持按会话模型自动选择搜索提供方，网关密钥需满足同源校验。Windows 本地检查版 **2026.11.18.11** 基于 rc.4，已通过保留资料更新和本地差分包摘要核对。[搜索迁移](docs/upgrade-guide/v0.2.2-rc.4/web-search-deepseek-model-default/guide.zh.md) · [本地交付与恢复](.agents/requirements/2026-11-18.11-delivery.md)
-
-首次正式发布为 Windows x64 完整交付。Linux x64 的实体机与发行验收列入后续版本。[首发打包交接](.agents/requirements/windows-x64-first-release.md) · [Windows 首发缺口](.agents/TODO.md#windows-首发缺口)
-
-版本采用 `YYYY.MM.DD.N`，最后一项为当天构建序号。关于页、CLI、安装包和 Windows 登记使用相同日期版本；DSH 内核与 REA 的来源独立记录。打包与更新规则见[打包指南](apps/desktop/packaging/README.zh.md)。
-
-[开始使用](#开始使用) · [通用增强](#通用增强) · [界面预览](#界面预览) · [四种模式](#四种模式) · [细节功能索引](docs/user/guide/dshu-features.zh.md) · [安装与开发](#安装与开发) · [English](docs/user/guide/dshu.md)
-
-## 开始使用
-
-1. **连接模型。** 在设置中配置模型提供方和凭据，再选择对话使用的模型。DSHU 使用你的模型接口，提供方按其规则计费。
-2. **选定任务位置和模式。** 可以选择工作区，也可以“不在工作区工作”。新对话发送前选择缺省、网安、逆向或写作；已有对话默认保持原模式。
-3. **描述任务和完成条件。** 例如“检查这个项目为什么构建失败，修复后运行相关检查”。各模式的“模式说明”和“如何使用”提供能力、资料与具体示例，阅读说明不会切换当前对话。
-4. **按需使用旁问和额度。** 主线进行时可输入 `/side 解释刚才的错误`。希望控制花费时，在额度设置中启用所需窗口；新安装默认不启用任何限额。
-
-## 通用增强
-
-| 功能 | 用法 |
-| --- | --- |
-| **旁问和随问** | 输入 `/side 问题` 在右侧开旁问，单独输入 `/side` 可打开或重开。旁问参考主线最新进展，自身历史单独保存，支持传图及 `/clear`。可开启关闭时自动清除。输入 `/btw 问题` 在主对话内获得一次简短回答。 |
-| **余额和额度** | 余额默认每 15 秒采样，最短 3 秒，点击立即刷新。曲线可查看各时点，长时间平稳区间用虚线缩短。六档限额独立启停和重置，默认全关。暂停横幅显示恢复时间和快捷重置，开启自动恢复后会继续被暂停的对话。底栏可展开费用和限额。 |
-| **记忆和输入预测** | 结构化记忆可按范围检索和编辑，自动提炼默认关闭。输入预测默认开启，主线、旁问和随问各自预测，按 Tab 填入。启用的预测与提炼会调用当前模型，按提供方规则计入用量。 |
-| **会话和外观** | 支持会话删除、项目内进行中会话入口、工作区搜索和插话发送。主题色随模式变化，侧栏色条标识会话模式。外观支持日出日落、跟随系统、浅色和深色。 |
-
-会话删除、归档、置顶、消息分叉和工作区搜索的具体入口与影响见[细节功能索引](docs/user/guide/dshu-features.zh.md)。
-
-## 界面预览
-
-### 主线与右侧工具区
-
-![DSHU 工作区示例，左侧是会话列表，右侧提供工作区文件、终端和旁问入口](docs/assets/dshu/workspace-sidebar.png)
-
-右侧面板可以在主线会话保持打开时进入文件、终端和旁问。[会话与输入区细节](docs/user/guide/dshu-features.zh.md#composer)
-
-### 余额曲线与限额
-
-![额度设置示例，余额图悬浮提示显示采样时间与精确金额，下方是独立限额](docs/assets/dshu/balance-history.png)
-
-示例使用测试采样。余额曲线可查看具体时点和金额，独立限额位于同一设置页。[余额、费用与限额](docs/user/guide/dshu-features.zh.md#usage)
+[四种模式](#四种模式) · [其它增强](#其它增强) · [文档导航](#文档导航) · [Credit](#credit)
 
 ## 四种模式
 
-新对话从缺省开始，发送前可切换。已有对话默认锁定。四种模式共用内置破甲提示词，回答仍由模型生成。
+新对话默认使用缺省模式，发送前可切换。已有会话默认锁定模式。
 
 ### 缺省 · 开发与日常任务
 
-![缺省模式，蓝色](docs/assets/dshu/mode-default.svg)
+![缺省模式的浅色蓝色卡片](docs/assets/dshu/mode-default.svg)
 
-读取和修改文件、运行命令、检索资料，并使用协作与工作流推进任务。适合修复程序、理解项目和整理资料，交付应包含实际修改与验证结果。[流程与示例](docs/user/guide/dshu.zh.md#modes)
+用于修复程序、理解项目和整理资料。
 
-> 梳理项目入口，复现这个错误，修复后验证正常与异常输入，并列出还未完成的检查。
+- **文件与命令**　读取和修改工作区文件，运行构建、测试及日常命令。
+- **检索与协作**　查找资料，使用工作流与协作推进多步任务。
+- **交付与验证**　完成修改后检查正常与异常输入，记录验证结果和仍待确认的事项。
 
 ### 网安 · 调查与证据
 
-![网安模式，红色](docs/assets/dshu/mode-security.svg)
+![网安模式的浅色红色卡片](docs/assets/dshu/mode-security.svg)
 
-现场手册、案件记录、报告、独立代理与流量查看构成调查流程；`.security/` 保存目标、证据和未决问题。首次进入新网安会话有责任确认，选定案件备注可经审阅存入限定范围的记忆。目标与生产资源保护属于默认关闭的进阶功能。[流程与示例](docs/user/guide/dshu.zh.md#modes)
+用于安全审计、修复验证和证据整理。
 
-> 检查这个测试应用的认证与上传流程，保留复现证据，完成修复和回归，并将发现写入案件记录。
-
-### 逆向 · 从样本到行为解释
-
-![逆向模式，绿色](docs/assets/dshu/mode-reverse.svg)
-
-样本清点、静态与动态分析、协议分析和 `.reverse/` 案件记录，配合内置 REA 6.9.0 使用。REA 无需另装；Ghidra、Java、IDA 等可选引擎按需配置。连接与目录发现成功，不代表每个引擎和目标环境都已就绪。[接入说明](packages/mcp/rea/README.zh.md)
-
-> 记录样本哈希和架构，定位解析入口，追踪关键调用，用独立输入验证判断，并保存分析脚本。
-
-### 写作 · 文风与长篇延续
-
-![写作模式，金色](docs/assets/dshu/mode-writing.svg)
-
-面向小说、剧本与长文，提供参考文风、六轴风格卡及 `story/bible/` 设定集。只有选中的资料进入模型请求；写作组合不挂载终端或代码执行工具。[资料管理](packages/client/ui-mode-materials/README.zh.md)
-
-> 按人物设定和参考文风续写下一场，保持视角、时间线和人物关系一致，检查设定冲突并交付完整正文。
+- **案件记录**　在 `.security/` 保存目标、证据和待确认问题，便于后续核查并整理报告。经审阅的案件备注可保存为限定范围的记忆。
+- **开始前确认**　首次进入新的网安会话会显示责任确认与当前保护状态。
+- **独立代理**　在模式配置中启用网安专用代理，查看和导出脱敏的流量记录。
+- **目标保护**　境内域名、手动目标与生产资源保护默认关闭，按需配置并查看实际覆盖。
 
 <details>
-<summary>网安独立代理与可选目标保护</summary>
+<summary>独立代理与可选目标保护的覆盖范围</summary>
 
 **独立代理**
 
@@ -104,17 +53,82 @@ DSHU 是面向开发、网安、逆向与写作的智能体工作台。它在 De
 
 </details>
 
-## 安装与开发
+### 逆向 · 从样本到行为解释
 
-- **桌面**　Windows x64 与 Linux x64 的当前公开预发布均为 `2026.11.17.5`，提供 exe、deb、tar.gz 和 SHA256SUMS.txt。Windows 已保留数据更新；Linux 已检查实际归档及隔离 API，并保留 X11/Wayland 主界面、重载和渲染沙箱的验收记录。原生门户、Debian/Fedora 和实体桌面仍待验收。签名与正式在线升级单独跟进，当前通过本仓库 [GitHub Releases](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5) 手动下载安装。macOS arm64、Android＋PRoot Fedora 和全新安装器仅保留未来计划。
-- **源码**　使用 Node.js 24.22.1、Git 与 Corepack。依次运行 `corepack pnpm install`、`corepack pnpm run build`、`corepack pnpm dsh web`。CLI 安装见[安装脚本](scripts/install-uncensored.ps1)。
-- **独立标识**　默认数据目录为 `~/.dsh-uncensored`，可用 `DSH_UNCENSORED_HOME` 修改。CLI 为 `dsh-uncensored`，深链为 `dshu://open`。关于页列出作者、DSHU 与 DSH 版本、构建时间、源码提交及依赖来源。
+![逆向模式的浅色绿色卡片](docs/assets/dshu/mode-reverse.svg)
 
-[开发进度](.agents/TODO.md) · [原始需求编号](.agents/requirements/development-checklist.md) · [反馈问题](https://github.com/Water-Run/deepseek-harness-uncensored/issues/new/choose)
+用于理解程序、二进制和协议的行为，并保留可复核的证据。
+
+- **样本分析**　记录样本哈希与架构，结合静态与动态分析检查文件格式、符号和调用关系。
+- **内置 REA**　随 DSHU 提供 REA 6.9.0，无需另装。Ghidra、Java、IDA 等可选引擎按需配置，各引擎状态独立查看。[REA 接入说明](packages/mcp/rea/README.zh.md)
+- **案件材料**　在 `.reverse/` 保存笔记、证据和待验证结论，后续会话可沿用同一份材料。
+
+### 写作 · 文风与长篇延续
+
+![写作模式的浅色金色卡片](docs/assets/dshu/mode-writing.svg)
+
+用于小说、剧本和长文的续写、修订与一致性检查。
+
+- **参考文风**　可选参考资料和六轴风格卡约定表达方式。
+- **设定集**　使用 `story/bible/` 管理人物、世界和时间线，续写时检查视角、人物关系与设定冲突。
+- **资料选择**　选中的资料进入模型请求。写作模式不挂载终端和代码执行工具。[写作资料管理](packages/client/ui-mode-materials/README.zh.md)
+
+## 其它增强
+
+### 旁问和随问
+
+在右侧围绕主线追问，也可以在当前会话里临时问一句。
+
+![浅色界面示例，右侧旁问附有图片](docs/assets/dshu/side-question-light.png)
+
+- **旁问**　输入 `/side 问题` 可打开旁问并发送。单独输入 `/side` 可打开或重开。旁问参考主线最新进展，历史独立保存并支持传图。
+- **清理上下文**　`/clear` 只在旁问中可用。关闭旁问默认保留历史，可在设置里开启关闭时清理。
+- **随问**　输入 `/btw 问题`，获得一条留在主会话里的简短回答。
+
+![随问在主会话中的回答](docs/assets/dshu/quick-question-light.png)
+
+### 余额和额度
+
+查看账户余额的变化，并为模型费用设置独立的滚动限额。
+
+![余额曲线与悬浮采样值，下方是逐项限额](docs/assets/dshu/balance-history.png)
+
+- **余额曲线**　默认每 15 秒采样，最短 3 秒。可立即刷新，也可悬停查看具体时点和金额。长时间平稳的区间用虚线缩短。
+- **六档限额**　默认全部关闭，各窗口可独立调整、启停和重置。设置优先展示 5 小时和 7 天。
+- **暂停与恢复**　限额触发时显示暂停横幅，提供可确定的恢复时间和快捷重置。开启自动恢复后，额度可用时可继续对话。
+- **底栏用量**　点开本对话费用可看累计曲线，点开限额状态可看已启用窗口的进度。
+
+### 记忆和输入预测
+
+把值得保留的信息留给后续会话，并在输入时接受所需的草稿建议。
+
+![浅色界面中的跨对话记忆管理和自动提炼](docs/assets/dshu/memory-settings-light.png)
+
+- **跨对话记忆**　按范围检索、编辑、禁用或删除结构化记忆。自动提炼默认关闭。
+- **输入预测**　默认开启。主线、旁问和随问分别提供建议，按 `Tab` 填入。
+- **模型用量**　启用后的预测和提炼会调用当前模型，按提供方规则计入用量。
+
+![通用设置里的输入预测开关](docs/assets/dshu/input-prediction-settings-light.png)
+
+### 会话和外观
+
+按工作区整理对话，用模式配色识别任务。
+
+![工作区会话列表与右侧工具区](docs/assets/dshu/workspace-sidebar.png)
+
+- **工作区**　按名称或路径搜索工作区，从项目行打开进行中的会话，也可选择不在工作区工作。
+- **会话操作**　支持归档、置顶、分叉和删除。任务运行中仍可插话发送。
+- **主题与布局**　模式主题色随会话变化，侧栏色条标识模式。界面可选浅色、深色、跟随系统或日出日落。
 
 ## 文档导航
 
-[使用手册](docs/user/guide/dshu.zh.md)介绍首次配置与常用工作流程。[细节功能索引](docs/user/guide/dshu-features.zh.md)按操作入口列出具体行为。[模型配置](docs/user/guide/providers.zh.md)说明提供方与自定义接口。[Windows 首发操作说明](.agents/requirements/windows-x64-first-release.md)记录候选验收、回退和手动发布步骤。[开发清单](.agents/TODO.md)维护进度，[交付记录](.agents/HANDOFF.md)记录实际产物与恢复入口。
+- [使用手册](docs/user/guide/dshu.zh.md)　首次配置、常用流程、设置和数据恢复。
+- [细节功能索引](docs/user/guide/dshu-features.zh.md)　查找会话删除、归档、置顶、分叉和工作区搜索等操作。
+- [模型配置](docs/user/guide/providers.zh.md)　模型提供方、凭据和自定义接口。
+- [预发布下载](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5)　版本 `2026.11.17.5` 提供 Windows x64 与 Linux x64 检查包。
+- [Windows 首发交接](.agents/requirements/windows-x64-first-release.md)　候选验收、回退与手动发布流程。
+- [开发清单](.agents/TODO.md) · [交付记录](.agents/HANDOFF.md) · [反馈问题](https://github.com/Water-Run/deepseek-harness-uncensored/issues/new/choose)
+- [English user guide](docs/user/guide/dshu.md)
 
 ## Credit
 
@@ -124,5 +138,3 @@ DSHU 是面向开发、网安、逆向与写作的智能体工作台。它在 De
 - 可选保护使用 [DB-IP Lite](https://db-ip.com/db/download/ip-to-country-lite)（[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)）和 [QuickJS](https://bellard.org/quickjs/) / [quickjs-emscripten](https://github.com/justjake/quickjs-emscripten)（[MIT 声明](LICENSES/quickjs-wasm-MIT.txt)）。GitHub 标志来自 [Octicons](https://github.com/primer/octicons)，保留 [MIT 许可](packages/client/ui-settings-account/GITHUB-MARK-LICENSE.txt)。
 
 DSHU 采用 [GPL-3.0-or-later](LICENSE)。上游和第三方组件保留各自的许可与署名。
-
-**Explore the Unknown More Freely.** DSHU is an independent desktop fork with four modes, bundled REA, side questions, spending controls, and scoped memory. Read the [English user guide](docs/user/guide/dshu.md) for setup, workflows, defaults, and troubleshooting.

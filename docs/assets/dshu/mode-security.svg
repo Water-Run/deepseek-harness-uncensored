@@ -1,8 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="520" height="92" viewBox="0 0 520 92" role="img" aria-labelledby="title">
   <title id="title">网安 · Security</title>
-  <rect width="520" height="92" rx="16" fill="#351b26"/>
-  <rect width="5" height="56" x="0" y="18" rx="2.5" fill="#f28b98"/>
-  <path d="m46 27 17 7v13c0 11-8 17-17 22-9-5-17-11-17-22V34z" fill="none" stroke="#f28b98" stroke-width="2.4" stroke-linejoin="round"/>
-  <text x="86" y="47" fill="#fff5f6" font-family="Segoe UI,Microsoft YaHei,sans-serif" font-size="25" font-weight="600">网安</text>
-  <text x="86" y="71" fill="#e3b4bd" font-family="Segoe UI,sans-serif" font-size="14">Security · Investigate &amp; verify</text>
+  <defs>
+    <clipPath id="card"><rect x="0.5" y="0.5" width="519" height="91" rx="16"/></clipPath>
+  </defs>
+  <rect x="0.5" y="0.5" width="519" height="91" rx="16" fill="#fdf2f2" stroke="#e08383"/>
+  <rect x="0.5" y="0.5" width="4" height="91" fill="#dc2626" clip-path="url(#card)"/>
+  <g fill="none" stroke="#dc2626" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m46 27 17 7v13c0 11-8 17-17 22-9-5-17-11-17-22V34z"/></g>
+  <text x="86" y="47" fill="#0f1115" font-family="Segoe UI,Microsoft YaHei,PingFang SC,sans-serif" font-size="25" font-weight="500">网安</text>
+  <text x="86" y="69" fill="#60666e" font-family="Segoe UI,sans-serif" font-size="14">Security</text>
 </svg>

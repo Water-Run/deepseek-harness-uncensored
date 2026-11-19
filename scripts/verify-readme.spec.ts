@@ -3,7 +3,7 @@ import { readmeErrors } from './verify-readme.ts'
 
 it('rejects empty, oversized, and broken local documentation', () => {
   expect(readmeErrors('', import.meta.dirname)).not.toEqual([])
-  expect(readmeErrors('line\n'.repeat(130), import.meta.dirname)).toEqual(['README.md must stay within 130 lines'])
+  expect(readmeErrors('line\n'.repeat(145), import.meta.dirname)).toEqual(['README.md must stay within 145 lines'])
   expect(readmeErrors('[旧网站](removed-website/index.md)', import.meta.dirname)).toEqual([
     'README.md: missing link target removed-website/index.md',
   ])

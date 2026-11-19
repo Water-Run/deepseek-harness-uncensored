@@ -1,8 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="520" height="92" viewBox="0 0 520 92" role="img" aria-labelledby="title">
   <title id="title">缺省 · Default</title>
-  <rect width="520" height="92" rx="16" fill="#12233f"/>
-  <rect width="5" height="56" x="0" y="18" rx="2.5" fill="#77a7ff"/>
-  <g fill="none" stroke="#77a7ff" stroke-width="2.4" stroke-linecap="round"><path d="M42 28 35 64m23-36-7 36M30 40h34M27 53h34"/></g>
-  <text x="86" y="47" fill="#f4f7fd" font-family="Segoe UI,Microsoft YaHei,sans-serif" font-size="25" font-weight="600">缺省</text>
-  <text x="86" y="71" fill="#abc3e7" font-family="Segoe UI,sans-serif" font-size="14">Default · Develop &amp; explore</text>
+  <defs>
+    <clipPath id="card"><rect x="0.5" y="0.5" width="519" height="91" rx="16"/></clipPath>
+  </defs>
+  <rect x="0.5" y="0.5" width="519" height="91" rx="16" fill="#f2f6fe" stroke="#83a3e8"/>
+  <rect x="0.5" y="0.5" width="4" height="91" fill="#2563eb" clip-path="url(#card)"/>
+  <g fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M42 28 35 64m23-36-7 36M30 40h34M27 53h34"/></g>
+  <text x="86" y="47" fill="#0f1115" font-family="Segoe UI,Microsoft YaHei,PingFang SC,sans-serif" font-size="25" font-weight="500">缺省</text>
+  <text x="86" y="69" fill="#60666e" font-family="Segoe UI,sans-serif" font-size="14">Default</text>
 </svg>
