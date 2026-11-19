@@ -8,7 +8,7 @@
 
 | 对象 | 截至 2026-11-19 的核对结果 |
 | --- | --- |
-| 功能源码 | `main` 上的 `fc510f3e16c914dbafba75a212f1cde4c769e192`。构建候选时重新记录实际采用的完整提交。 |
+| 功能源码 | 接手时用 `git ls-remote origin refs/heads/main` 核对远端。流量详情修复及这里的验证记录随同一提交推送。构建回执填写候选实际采用的完整提交。 |
 | 本机实装 | `2026.11.18.11`，源码 `5f9a129fedc44de85bb6a405b4ae60a866820ead`，DSH `0.2.2-rc.4`。本轮复核主程序文件版本和实装 ASAR，摘要与交付回执一致。[实装记录](2026-11-18.11-delivery.md) |
 | 上游与依赖 | 当前源码含 DSH `0.2.2-rc.5`，提交 `9c2670d3bce5275e0d1610272958121af87787bb`。用户要求暂缓 rc.5 实装，候选开始前先落实内核基线。REA 固定 `6.9.0`，提交 `d74549e495c58eb4a560279fd9f05508401ea0a0`。[产品元数据](../../product.json) |
 | 公开预发布 | 已在 Water-Run 仓库回读 `v2026.11.17.5`，含 Windows 未签名安装器、两个 Linux 归档和 `SHA256SUMS.txt`。正式 Release 由用户审核后手动发布。[预发布](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5) |
@@ -33,10 +33,12 @@
 | 编号 | 当前覆盖 | 仍需推进 |
 | --- | --- | --- |
 | 09.01–09.03、09.08 | 域名、主机、正则规则已接通配置和真实匹配。已有受控 HTTP 的逐跳重定向、名称及地址别名判断。默认关闭。 | 扩展尚缺的执行入口、协议、入站和远端资源身份核验。 |
-| 09.04–09.07 | 本机文件、SQLite 和已接入的 SSH、PostgreSQL、MySQL 路径已有完全保护、只读审计及明确测试例外的验证。SQLite 已验证文件名旁的辅助文件保护已在源码通过 48 项定向测试。 | 确认远端物理资源身份及命令和文件范围。新 SQLite 规则需随正式候选实装复验。 |
+| 09.04–09.07 | 本机文件、SQLite 和已接入的 SSH、PostgreSQL、MySQL 路径已有完全保护、只读审计及明确测试例外的验证。SQLite 辅助文件保护通过 48 项源码定向测试。 | 确认远端物理资源身份及命令和文件范围。新 SQLite 规则需随正式候选实装复验。 |
 | 05.06、09.09–09.11、10.05 | 已有执行校验、规则状态、会话归属、审计、责任确认与代理联动的部分证据。 | 先补齐前两组的入口覆盖，再验证缺失入口的实际拦截、审计与界面状态。远端 Worker、未接入协议和入站仍留在原清单。 |
 
-**本地流量调试（10.03）**　用户希望调试记录能提供足够完整的请求和响应。18.2 已交付仅所有者可读的列表、详情和 JSON 导出，现行记录保留脱敏和大小限制。后续核对非敏感头字段、正文截断位置和原因、时序、响应码及失败信息。用本机受控服务和无凭据样例验收可读性。认证令牌、Cookie 与代理认证字段保持脱敏。
+**本地流量调试（10.03）**　18.2 已交付仅所有者可读的列表、详情和 JSON 导出。当前源码中，详情分别显示 HTTP 状态码与传输结果，截断标记按正文准备保存时的大小限制计算。两份定向测试文件共 54 项通过，包含 HTTP 200 后传输失败和 UTF-8 截断。认证令牌、Cookie 与代理认证字段保持脱敏。
+
+**待验收**　用同一 Windows 候选、本机受控服务和无凭据样例，核对详情与导出是否一致，并检查请求和响应各自的大小限制、失败阶段、时序以及仅有隧道信息的记录。当前标记覆盖保存阶段，前置传输阶段的截断原因仍待补充。
 
 ## Windows Release 核验顺序
 
@@ -64,7 +66,7 @@ $receipt | ConvertTo-Json
 - 实装基线见 `%USERPROFILE%/DSHU-Deliveries/20261118/current-windows-manifest.json`。ASAR 摘要为 `46347fc5aa713aa0eafc9b94d006ba9c2fad8cadf335273d95c79a242a0f43b6`。
 - 原始升级前资料备份在 `%USERPROFILE%/DSHU-Backups/20261118T124812Z-before-20261118-11-data/`，7,428 个文件已逐一核对摘要。回退前另存新版资料，选用与旧版匹配的资料副本。证据及恢复顺序见[18.11 交付记录](2026-11-18.11-delivery.md#安装与恢复)。
 - 本轮复核 18.11 检查包 SHA-256 为 `779031592f854cc51c4d69e41cf91ac46043a80f94a4ff52217f1867a66aedaa`。18.10 回退包 SHA-256 为 `e1b58e8f97099826ccfbf7c88cfe21ada70635bbde82c642cad883f4f3aa7685`。[18.10 回退记录](2026-11-18.10-delivery.md#安装包与恢复)
-- 最近源码验证保存在 `%USERPROFILE%/DSHU-Deliveries/20261119/` 的 `side-clear-reconciliation/`、`sqlite-companion-policy/`、`spending-narrow-recovery/`、`windows-update-embedded-signature/` 和 `windows-update-journal/`。
+- 最近源码验证保存在 `%USERPROFILE%/DSHU-Deliveries/20261119/` 的 `traffic-debug-details/`、`side-clear-reconciliation/`、`sqlite-companion-policy/`、`spending-narrow-recovery/`、`windows-update-embedded-signature/` 和 `windows-update-journal/`。
 - README 使用用户确认的「更自由的探索未至之境」。正文为四种模式、其它增强、文档导航和 Credit。浅色模式与功能配图预览在 `%USERPROFILE%/DSHU-Deliveries/20261119/readme-sections-light/`，备用素材总索引在同级的 `readme-screenshot-assets/README.md`。
 
 接手时先核对当前 `main`、本机实装、备份和候选内核基线。用上面的缺口表分配下一步工作，并把验收结果回填到[首发验收单](windows-x64-first-release.md#同一候选的验收单)。

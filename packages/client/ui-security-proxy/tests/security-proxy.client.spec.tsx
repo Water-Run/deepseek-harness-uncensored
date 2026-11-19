@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { allowAllAccess, bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
@@ -585,6 +585,14 @@ describe('settings surface', () => {
     expect(screen.getByText(en['securityProxy.detail.title'])).toBeTruthy()
     expect(screen.getByText('target body')).toBeTruthy()
     expect(screen.getByText(en['securityProxy.detail.redacted'])).toBeTruthy()
+  })
+
+  it('shows a failed transfer separately from its HTTP response status', () => {
+    renderSection({ ...READY, detail: { ...DETAIL, status: 200, outcome: 'error' } })
+    const dialog = screen.getByRole('dialog', { name: en['securityProxy.detail.title'] })
+    expect(within(dialog).getByText('200')).toBeTruthy()
+    expect(within(dialog).getByText('Transport result')).toBeTruthy()
+    expect(within(dialog).getByText('Failed', { exact: true })).toBeTruthy()
   })
 
   it('marks a tunnel row as metadata only', () => {

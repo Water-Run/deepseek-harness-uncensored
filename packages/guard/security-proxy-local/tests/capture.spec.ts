@@ -93,6 +93,10 @@ describe('body preparation', () => {
     expect(truncateBody('abc', 3)).toEqual({ text: 'abc', truncated: false })
   })
 
+  it('preserves an original replacement character at the UTF-8 capture boundary', () => {
+    expect(truncateBody('\uFFFD尾', 3)).toEqual({ text: '\uFFFD', truncated: true })
+  })
+
   it('describes binary media instead of storing bytes', () => {
     expect(prepareBody('image/png', 'raw', 1_024)).toEqual({ body: '[binary body omitted: image/png]', truncated: false })
   })
@@ -142,6 +146,15 @@ describe('capture store', () => {
     const detail = store.detail(row?.id ?? '')
     expect(detail).toMatchObject({ target: 'http://target.test/', status: 200, contentType: 'text/plain', responseBody: 'hello' })
     expect(detail?.responseHeaders).toContainEqual({ name: 'set-cookie', value: '[redacted]' })
+  })
+
+  it('reports clipping from the stored body after redaction changes its length', () => {
+    const store = new CaptureStore(() => limits({ maxBodyBytes: 32 }))
+    store.append(exchange({ contentType: 'application/json', responseBody: JSON.stringify({ token: 'x', label: 'test' }) }))
+    store.append(exchange({ contentType: 'application/json', responseBody: JSON.stringify({ token: 'x'.repeat(80) }) }))
+    const [shortened, lengthened] = store.snapshot({}, false).flows
+    expect(shortened).toMatchObject({ responseBody: '{"token":"[redacted]"}', bodyTruncated: false })
+    expect(lengthened?.bodyTruncated).toBe(true)
   })
 
   it('clears everything and keeps the lifetime total', () => {

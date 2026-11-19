@@ -163,16 +163,16 @@ function redactJson(value: unknown, depth: number): unknown {
 /**
  * Cut text at a UTF-8 byte budget without splitting a character.
  * @param text - text to cut.
- * @param maxBytes - inclusive byte budget.
+ * @param maxBytes - inclusive byte budget as a nonnegative integer.
  * @returns the prefix and whether anything was dropped.
  */
 export function truncateBody(text: string, maxBytes: number): { text: string; truncated: boolean } {
   const bytes = Buffer.byteLength(text, 'utf8')
   if (bytes <= maxBytes) return { text, truncated: false }
-  const decoded = Buffer.from(text, 'utf8').subarray(0, maxBytes).toString('utf8')
-  // A cut multi-byte character decodes as U+FFFD at the tail; drop that one unit so
-  // the stored body never ends in a replacement character introduced by the cap.
-  return { text: decoded.endsWith('\uFFFD') ? decoded.slice(0, -1) : decoded, truncated: true }
+  const encoded = Buffer.from(text, 'utf8')
+  let end = maxBytes
+  while (end > 0 && ((encoded[end] ?? 0) & 0xc0) === 0x80) end--
+  return { text: encoded.subarray(0, end).toString('utf8'), truncated: true }
 }
 
 /**
@@ -240,15 +240,18 @@ export class CaptureStore {
   append(input: CapturedExchangeInput): CapturedExchange | undefined {
     const limits = this.limits()
     this.prune(limits)
+    const requestContentType = input.requestHeaders.find(([name]) => name.toLowerCase() === 'content-type')?.[1] ?? null
+    const requestBody = prepareBody(requestContentType, input.requestBody, limits.maxBodyBytes)
+    const responseBody = prepareBody(input.contentType, input.responseBody, limits.maxBodyBytes)
     const flow: CapturedExchange = {
       ...input,
       id: randomUUID(),
       target: redactUrl(input.target),
       requestHeaders: redactHeaders(input.requestHeaders),
       responseHeaders: redactHeaders(input.responseHeaders),
-      requestBody: prepareBody(input.requestHeaders.find(([name]) => name.toLowerCase() === 'content-type')?.[1] ?? null, input.requestBody, limits.maxBodyBytes).body,
-      responseBody: prepareBody(input.contentType, input.responseBody, limits.maxBodyBytes).body,
-      bodyTruncated: isBodyTruncated(input, limits.maxBodyBytes),
+      requestBody: requestBody.body,
+      responseBody: responseBody.body,
+      bodyTruncated: requestBody.truncated || responseBody.truncated,
     }
     this.entries.push(flow)
     this.total += 1
@@ -348,14 +351,6 @@ function detailOf(flow: CapturedExchange): SecurityProxyFlowDetail {
 /** Captured body bytes one flow contributes to the memory total. */
 function flowBytes(flow: CapturedExchange): number {
   return Buffer.byteLength(flow.requestBody ?? '', 'utf8') + Buffer.byteLength(flow.responseBody ?? '', 'utf8')
-}
-
-/** Whether either stored body was cut by the capture cap. */
-function isBodyTruncated(input: CapturedExchangeInput, maxBytes: number): boolean {
-  for (const body of [input.requestBody, input.responseBody]) {
-    if (body !== null && Buffer.byteLength(body, 'utf8') > maxBytes) return true
-  }
-  return false
 }
 
 /** Project the list row of one stored flow. */

@@ -38,7 +38,7 @@ The feature is off by default. Settings, status, the connection check, the traff
 
 The upstream password is stored through `ctx.credentials` under `DSH_SECURITY_PROXY_PASSWORD` and resolved per operation. It is never written to the settings file, a flow, or an error message.
 
-The owner-only `exportCapture` Remote method returns a versioned `dshu-security-proxy-capture` JSON snapshot with all matching retained details, newest first. It uses stored redaction and truncation markers, keeps opaque CONNECT traffic as metadata, and records whether a filter was applied without echoing its search text. `maxExportBytes` in the provider config defaults to 134217728 bytes (128 MiB), accepts 1024–536870912 bytes, and counts compact UTF-8 JSON plus one trailing newline. Larger results fail with `security-proxy/export-too-large`; no partial document is returned. It does not change capture retention or persisted settings.
+The owner-only `exportCapture` Remote method returns a versioned `dshu-security-proxy-capture` JSON snapshot with all matching retained details, newest first. It uses stored redaction and truncation markers, keeps opaque CONNECT traffic as metadata, and records whether a filter was applied without echoing its search text. The truncation marker reports whether a size limit shortened or omitted the body when preparing it for storage. `maxExportBytes` in the provider config defaults to 134217728 bytes (128 MiB), accepts 1024–536870912 bytes, and counts compact UTF-8 JSON plus one trailing newline. Larger results fail with `security-proxy/export-too-large`; no partial document is returned. It does not change capture retention or persisted settings.
 
 -----
 

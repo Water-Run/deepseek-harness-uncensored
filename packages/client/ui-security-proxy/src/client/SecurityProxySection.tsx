@@ -351,6 +351,7 @@ function DetailDialog({ detail, failed, onClose, t }: {
         <dl className={css.meta}>
           <div><dt>{t('securityProxy.capture.target')}</dt><dd>{detail.method} {detail.target}</dd></div>
           <div><dt>{t('securityProxy.capture.status')}</dt><dd>{detail.status ?? '—'}</dd></div>
+          <div><dt>{t('securityProxy.detail.outcome')}</dt><dd>{t(`securityProxy.detail.outcome.${detail.outcome}`)}</dd></div>
           <div><dt>{t('securityProxy.capture.duration')}</dt><dd>{durationText(detail.durationMs, t)}</dd></div>
           <div><dt>{t('securityProxy.capture.size')}</dt><dd>{sizeText(detail)}</dd></div>
         </dl>
