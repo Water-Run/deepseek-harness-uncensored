@@ -11,7 +11,7 @@ DSHU 是面向开发、网安、逆向与写作的智能体工作台。它在 De
 
 源码已同步至 **DSH 0.2.2-rc.5**，支持按会话模型自动选择搜索提供方，网关密钥需满足同源校验。Windows 本地检查版 **2026.11.18.11** 基于 rc.4，已通过保留资料更新和本地差分包摘要核对。[搜索迁移](docs/upgrade-guide/v0.2.2-rc.4/web-search-deepseek-model-default/guide.zh.md) · [本地交付与恢复](.agents/requirements/2026-11-18.11-delivery.md)
 
-首次正式发布计划交付 Windows x64。Linux x64 的实体机与发行验收列入后续版本。[Windows 首发缺口](.agents/TODO.md#windows-首发缺口)
+首次正式发布计划交付 Windows x64。Linux x64 的实体机与发行验收列入后续版本。[首发打包交接](.agents/requirements/windows-x64-first-release.md) · [Windows 首发缺口](.agents/TODO.md#windows-首发缺口)
 
 版本采用 `YYYY.MM.DD.N`，最后一项为当天构建序号。关于页、CLI、安装包和 Windows 登记使用相同日期版本；DSH 内核与 REA 的来源独立记录。打包与更新规则见[打包指南](apps/desktop/packaging/README.zh.md)。
 

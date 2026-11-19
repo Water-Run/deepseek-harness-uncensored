@@ -14,7 +14,7 @@
 
 ## 当前开发
 
-当前优先推进 Windows rc.5 候选、实装回归与发行材料。真实目标保护、资源物理身份、关机与重启以及许可证事项按清单推进。内核和界面验证见 [rc.5 适配](requirements/2026-11-18-dsh-rc4.md#上游-rc5-对照2026-11-19)与[可选运行时反馈](requirements/2026-11-18-optional-runtime-feedback.md)。
+当前交付 [Windows x64 首发打包交接](requirements/windows-x64-first-release.md)，候选装配与实装仍待执行。真实目标保护、资源物理身份、关机与重启以及许可证事项按清单推进。内核和界面验证见 [rc.5 适配](requirements/2026-11-18-dsh-rc4.md#上游-rc5-对照2026-11-19)与[可选运行时反馈](requirements/2026-11-18-optional-runtime-feedback.md)。
 
 ## Linux 测试与 WSL 状态
 
