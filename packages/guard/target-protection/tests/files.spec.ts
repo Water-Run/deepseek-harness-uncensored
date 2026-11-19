@@ -306,6 +306,23 @@ it('keeps a separate test database writable while protecting another resource in
   expect(await readFile(production, 'utf8')).toBe('production')
 })
 
+it.runIf(process.platform === 'win32')('retains a database rule for companion files belonging to verified aliases', async () => {
+  const h = await harness()
+  const database = join(h.workspace, 'primary.sqlite'), alias = join(h.workspace, 'archive.sqlite')
+  await writeFile(database, 'fixture database')
+  await link(database, alias)
+  const resource = rule(database)
+  await h.configure([resource])
+  const signal = new AbortController().signal
+  for (const suffix of ['-wal', '-shm', '-journal']) {
+    const decision = await h.ctx.targetProtection.checkLocalFile(alias + suffix, 'metadata', signal)
+    expect(decision.decision).toMatchObject({ allowed: false, code: 'TARGET_FULLY_PROTECTED', ruleIds: [resource.id] })
+  }
+  await h.configure([{ ...resource, protection: 'audit' }])
+  const decision = await h.ctx.targetProtection.checkLocalFile(alias + '-journal', 'mutate', signal)
+  expect(decision.decision).toMatchObject({ allowed: false, code: 'TARGET_READ_ONLY', ruleIds: [resource.id] })
+})
+
 it('resolves directory links, changed ancestors and direct hard links before access', async () => {
   const h = await harness(), production = join(h.workspace, 'prod'), safe = join(h.workspace, 'test')
   await mkdir(production); await mkdir(safe)

@@ -45,6 +45,19 @@ it.runIf(process.platform === 'win32')('protects every hard-link name outside a 
   expect(result.readwritePaths).toEqual([h.workspace])
 })
 
+it.runIf(process.platform === 'win32')('includes companion files for verified database names in the native policy', async () => {
+  const h = await fixture()
+  const database = join(h.production, 'primary.sqlite'), alias = join(h.workspace, 'archive.sqlite')
+  await writeFile(database, 'fixture database')
+  await link(database, alias)
+  const result = await compileNativeFilePolicy({ revision: 12, entries: [
+    { path: database, access: 'deny', database: true },
+  ] }, h.grants, new AbortController().signal)
+  for (const name of [database, alias]) {
+    expect(result.deniedPaths).toEqual(expect.arrayContaining([name, `${name}-wal`, `${name}-shm`, `${name}-journal`]))
+  }
+})
+
 it('terminates directory link cycles without dropping the linked target restriction', async () => {
   const h = await fixture()
   await symlink(h.production, join(h.production, 'cycle'), process.platform === 'win32' ? 'junction' : 'dir')

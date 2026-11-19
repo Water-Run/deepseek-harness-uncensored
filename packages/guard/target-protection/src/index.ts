@@ -18,7 +18,7 @@ import { HarnessError } from '@deepseek-ai/dsh-llm'
 import type {} from './country-provider.ts'
 import { resolveTargetDns, systemHostsFile, type TargetDnsResolution } from './dns-resolution.ts'
 import { parseDnsServer } from './dns-transport.ts'
-import { canonicalLocalPath, resolveLocalPathIdentity, localPathContains, localIdentityPaths } from './file-identity.ts'
+import { canonicalLocalPath, resolveLocalPathIdentity, localPathContains, localIdentityPaths, localDatabaseCompanionPaths } from './file-identity.ts'
 import { decideLocalTarget, type LocalTargetOperation } from './file-rules.ts'
 import type { NetworkTarget, TargetDecision, TargetDenialCode, TargetEffect, TargetPreferences, TargetSnapshot, TargetSshCoverage, TargetRuleId } from './types.ts'
 import { projectDatabaseResources, type DatabaseResourceBinding } from './database-resources.ts'
@@ -497,9 +497,8 @@ export default class TargetProtection extends Service {
       for (const rule of expandTargetRules(snapshot.preferences).filter(rule => rule.enabled && rule.match === 'path')) {
         const identity = await resolveLocalPathIdentity(rule.address, timeout.signal)
         rules.push({ rule, identity })
-        if (rule.kind === 'database' && !identity.directory) {
-          for (const suffix of ['-wal', '-shm', '-journal']) {
-            const address = rule.address + suffix
+        if (rule.kind === 'database') {
+          for (const address of localDatabaseCompanionPaths(identity)) {
             rules.push({ rule: { ...rule, address }, identity: await resolveLocalPathIdentity(address, timeout.signal) })
           }
         }

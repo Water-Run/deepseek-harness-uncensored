@@ -1,7 +1,7 @@
 /** Expand owner file restrictions into native path policies without losing file aliases. @module */
 import { opendir, stat } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import { canonicalLocalPath, localIdentityPaths, localPathContains, resolveLocalPathIdentity } from './file-identity.ts'
+import { canonicalLocalPath, localDatabaseCompanionPaths, localIdentityPaths, localPathContains, resolveLocalPathIdentity, type LocalPathIdentity } from './file-identity.ts'
 import { TargetProtectionError } from './errors.ts'
 
 /** A restriction supplied by the rule owner, never by a command argument. */
@@ -65,18 +65,18 @@ export async function compileNativeFilePolicy(
     if (++entries > grants.maxEntries) throw new TargetProtectionError('unavailable', 'Native file policy exceeded its entry limit; increase the configured scan budget.')
     return resolveLocalPathIdentity(path, signal)
   }
-  const walk = async (path: string, access: NativeFileConstraint['access']): Promise<void> => {
+  const walk = async (path: string, access: NativeFileConstraint['access']): Promise<LocalPathIdentity> => {
     const identity = await inspect(path)
     const selected = access === 'deny' ? denied : readonly
     for (const alias of localIdentityPaths(identity)) add(selected, alias)
     if (identity.multipleLinks && identity.aliases === undefined) {
       throw new TargetProtectionError('unavailable', 'Native execution requires complete file alias information on this platform.')
     }
-    if (!identity.directory) return
+    if (!identity.directory) return identity
     if (identity.fileId === undefined) throw new TargetProtectionError('unavailable', 'A protected directory has no stable native identity.')
     const seen = visited.get(access) ?? new Set<string>()
     visited.set(access, seen)
-    if (seen.has(identity.fileId)) return
+    if (seen.has(identity.fileId)) return identity
     seen.add(identity.fileId)
     const before = await stat(identity.canonical, { bigint: true })
     const directory = await opendir(identity.canonical)
@@ -85,11 +85,12 @@ export async function compileNativeFilePolicy(
     if (after.dev !== before.dev || after.ino !== before.ino || after.mtimeNs !== before.mtimeNs || after.ctimeNs !== before.ctimeNs) {
       throw new TargetProtectionError('unavailable', 'A protected directory changed during policy construction; retry after the change finishes.')
     }
+    return identity
   }
   for (const entry of constraints.entries) {
-    await walk(entry.path, entry.access)
-    if (entry.database && !(await inspect(entry.path)).directory) {
-      for (const suffix of ['-wal', '-shm', '-journal']) await walk(entry.path + suffix, entry.access)
+    const identity = await walk(entry.path, entry.access)
+    if (entry.database) {
+      for (const companion of localDatabaseCompanionPaths(identity)) await walk(companion, entry.access)
     }
   }
   const restrictionReadPaths = [...readonly]

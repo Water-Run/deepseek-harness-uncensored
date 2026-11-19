@@ -24,6 +24,16 @@ export function localIdentityPaths(identity: LocalPathIdentity): readonly string
 }
 
 /**
+ * Include SQLite companion names beside each verified identity of a database file.
+ * @param identity - The database file identity used to admit the main file.
+ * @returns Distinct companion paths. Directory rules already include their descendants.
+ */
+export function localDatabaseCompanionPaths(identity: LocalPathIdentity): string[] {
+  if (identity.directory) return []
+  return [...new Set(localIdentityPaths(identity))].flatMap(path => ['-wal', '-shm', '-journal'].map(suffix => path + suffix))
+}
+
+/**
  * Validate an absolute host path without resolving links. Windows device, UNC and alternate streams are refused.
  * @param value - Owner or executor path in the host filesystem.
  * @returns Normalized absolute path preserving the spelling used for filesystem I/O.
