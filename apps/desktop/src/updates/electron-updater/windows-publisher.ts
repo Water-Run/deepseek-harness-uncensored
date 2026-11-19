@@ -1,4 +1,4 @@
-/** Check Windows Authenticode and bind the result to the packaged publisher. */
+/** Check the installer's embedded Authenticode signature, timestamp and publisher. */
 import { execFile } from 'node:child_process'
 import { X509Certificate } from 'node:crypto'
 import { isAbsolute, join } from 'node:path'
@@ -13,14 +13,19 @@ $signature = Get-AuthenticodeSignature -LiteralPath $env:DSHU_UPDATE_SIGNATURE_F
 $certificate = if ($signature.Status -eq 'Valid' -and $null -ne $signature.SignerCertificate) {
   [Convert]::ToBase64String($signature.SignerCertificate.RawData)
 }
-[pscustomobject]@{ status = [string]$signature.Status; certificate = $certificate } | ConvertTo-Json -Compress
+[pscustomobject]@{
+  status = [string]$signature.Status
+  signatureType = [string]$signature.SignatureType
+  timestamped = $null -ne $signature.TimeStamperCertificate
+  certificate = $certificate
+} | ConvertTo-Json -Compress
 `
 
 /**
  * Inspect the installer as data with Windows PowerShell and compare the signer certificate.
  * @param publisherNames - Publisher identities provisioned by the installed application.
  * @param path - Installer path passed to PowerShell as data.
- * @returns Null only for a valid signature from a configured publisher, otherwise a diagnostic.
+ * @returns Null for a valid embedded signature and timestamp from a configured publisher, otherwise a diagnostic.
  */
 export async function verifyWindowsUpdatePublisher(publisherNames: readonly string[], path: string): Promise<string | null> {
   const systemRoot = process.env.SystemRoot ?? process.env.WINDIR
@@ -33,12 +38,16 @@ export async function verifyWindowsUpdatePublisher(publisherNames: readonly stri
       env: { ...process.env, PSModulePath: '', DSHU_UPDATE_SIGNATURE_FILE: path },
     })
     const result: unknown = JSON.parse(stdout)
-    if (stderr || typeof result !== 'object' || result === null || !('status' in result)) {
+    if (stderr || typeof result !== 'object' || result === null || !('status' in result)
+      || !('signatureType' in result) || typeof result.signatureType !== 'string'
+      || !('timestamped' in result) || typeof result.timestamped !== 'boolean') {
       return 'Invalid Windows signature inspection response'
     }
     if (result.status !== 'Valid' || !('certificate' in result) || typeof result.certificate !== 'string') {
       return 'Windows did not validate the installer signature'
     }
+    if (result.signatureType !== 'Authenticode') return 'Installer must carry an embedded Authenticode signature'
+    if (!result.timestamped) return 'Installer has no verified signing timestamp'
     const { subject } = new X509Certificate(Buffer.from(result.certificate, 'base64')).toLegacyObject()
     const identity = ['CN', 'O', 'C'].map((key) => {
       const value: unknown = subject[key]

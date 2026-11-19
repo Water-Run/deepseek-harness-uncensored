@@ -4,6 +4,14 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { resolveWindowsUpdatePublisher } from '../scripts/windows-sign.mjs'
+import { verifyWindowsUpdatePublisher } from '../src/updates/electron-updater/windows-publisher.ts'
+
+const inspectSignature = vi.hoisted(() => vi.fn<() => Promise<{ stdout: string; stderr: string }>>())
+
+vi.mock('node:child_process', async importOriginal => ({
+  ...await importOriginal<typeof import('node:child_process')>(),
+  execFile: Object.assign(vi.fn(), { [Symbol.for('nodejs.util.promisify.custom')]: inspectSignature }),
+}))
 
 vi.mock('../scripts/windows-sign.mjs', async importOriginal => ({
   ...await importOriginal<typeof import('../scripts/windows-sign.mjs')>(),
@@ -49,6 +57,7 @@ async function withCertificate(subject: unknown, action: (file: string, signTool
 
 describe('Windows update publisher', () => {
   beforeAll(() => {
+    vi.stubEnv('SystemRoot', join(tmpdir(), 'windows-signature-inspection'))
     vi.stubEnv('DSH_DESKTOP_APP_ID', 'com.example.publisher-test')
     vi.stubEnv('DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN', 'https://policy.example.com')
     vi.stubEnv('DSH_DESKTOP_MANDATORY_UPDATE_CONFIG', JSON.stringify({ allowedAuthOrigins: ['https://login.example.com'] }))
@@ -56,6 +65,21 @@ describe('Windows update publisher', () => {
     vi.stubEnv('DSH_DESKTOP_UNSIGNED', '1')
   })
   afterAll(() => vi.unstubAllEnvs())
+
+  it.each([
+    { signatureType: 'Authenticode', timestamped: true, diagnostic: null },
+    { signatureType: 'Catalog', timestamped: true, diagnostic: 'Installer must carry an embedded Authenticode signature' },
+    { signatureType: 'Authenticode', timestamped: false, diagnostic: 'Installer has no verified signing timestamp' },
+    { signatureType: undefined, timestamped: true, diagnostic: 'Invalid Windows signature inspection response' },
+  ])('evaluates the Windows verification record (%j)', async ({ signatureType, timestamped, diagnostic }) => {
+    const subject = { CN: 'Publisher', O: 'Company', C: 'CN' }
+    const certificate = Buffer.from(JSON.stringify(subject)).toString('base64')
+    inspectSignature.mockResolvedValueOnce({
+      stdout: JSON.stringify({ status: 'Valid', signatureType, timestamped, certificate }), stderr: '',
+    })
+    await expect(verifyWindowsUpdatePublisher(['CN=Publisher,O=Company,C=CN'], join(tmpdir(), 'installer.exe')))
+      .resolves.toBe(diagnostic)
+  })
 
   it('preserves organization identity and escapes DN delimiters using the updater parser', async () => {
     const subject = { CN: '测试 "Publisher", Inc;+\\', O: ' Leading=org ', C: 'CN', ST: 'State' }

@@ -100,6 +100,12 @@ Windows 更新下载使用系统 Authenticode 验证发布者，安装交接前�
 
 PowerShell 7 用微软签名的 PowerShell 文件通过验签和摘要核对，原有两参数调用保持无输出。仅目录签名、错误证书、错误摘要、无签名及文件正被写入均被拒绝。Windows PowerShell 5.1 也生成了正确的样本回执。现有样本内容经摘要复核。结果位于 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-candidate-signature-receipt/result.json`。正式 DSHU 签名候选仍待验收。
 
+## 桌面更新的内嵌签名与时间戳（2026-11-19）
+
+Windows 更新在下载时和启动安装器前都核对内嵌 Authenticode 签名、时间戳和已配置的发布者，包含复用缓存的路径。原先可通过发布者核对的真实 Windows 目录签名样本已被拒绝。缺少时间戳或验签结果不完整也会拒绝交接，下载缓存按现有路径处理。[签名配置](../../apps/desktop/windows-signing/README.zh.md#signing-configuration)
+
+56 项定向测试通过，覆盖缺少字段、时间戳缺失、目录签名及原有协调器行为。使用带内嵌签名的微软 PowerShell 文件，在真实 Electron 环回复验 7 个场景，包括下载、缓存复验及已确认的模拟交接。证据位于 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-update-embedded-signature/`。正式 DSHU 签名实装和在线链路待验收。
+
 ## 验收
 
 - 两个所属测试文件在 Windows/Linux 各 28 项通过，覆盖 403/429、主/次级期限、重叠期限、无效数值、普通拒绝、不会自动重试，以及中英文弹窗关闭/重开和到期后的显式重试。

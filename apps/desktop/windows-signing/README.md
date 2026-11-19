@@ -68,7 +68,7 @@ The PIN cannot contain `]`, a quote, or a line break because those characters de
 
 Signed Windows configuration derives the updater's `publisherName` from the same public certificate's `CN`, `O`, and `C` attributes. Each must be present, nonempty, and single-valued. These identity attributes allow certificate renewal without pinning a leaf thumbprint. The installed application requires one complete publisher identity in `app-update.yml` before contacting the update feed. Unsigned test builds omit updater configuration. See the [signature qualification record](../tests/README.md) for real-file verification and its limits.
 
-Desktop uses Windows Authenticode to check the downloaded installer and compare its signer with the configured publisher. It repeats both the publisher and SHA-512 checks before installation, including for a cached installer. An unavailable or failed signature check stops the handoff. [Windows signature inspection](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/get-authenticodesignature?view=powershell-5.1)
+Desktop requires a valid embedded Authenticode signature and timestamp on the downloaded installer and compares its signer with the configured publisher. A file trusted through a local Windows catalog cannot enter the update flow. Desktop repeats the signature, timestamp, publisher and SHA-512 checks before installation, including for cached files. An unavailable or failed check stops the handoff. [Windows signature inspection](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/get-authenticodesignature?view=powershell-5.1)
 
 <a id="windows-ev-signing"></a>
 

@@ -68,7 +68,7 @@ PIN 不能包含 `]`、引号或换行，因为这些字符用于分隔 SafeNet 
 
 签名 Windows 配置从同一份公开证书的 `CN`、`O` 和 `C` 属性生成 updater 的 `publisherName`。每个属性都必须存在、非空且只有一个值。这些身份属性允许证书续期，无需固定叶证书指纹。已安装应用在联系更新源前，要求本地 `app-update.yml` 提供一份完整的发布者身份。未签名测试构建省略 updater 配置。真实文件验证及其限制见[签名验收记录](../tests/README.zh.md)。
 
-Desktop 通过 Windows Authenticode 验证下载的安装器，并将签名者与已配置的发布者比较。启动安装器前再次核对发布者及 SHA-512，复用缓存时同样适用。验签不可用或校验失败会阻止交接。[Windows 签名检查](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/get-authenticodesignature?view=powershell-5.1)
+桌面端要求下载的安装器携带有效的内嵌 Authenticode 签名与时间戳，并将签名者与已配置的发布者比较。依赖本机 Windows 签名目录验证的文件无法进入更新流程。启动安装器前再次核对签名、时间戳、发布者及 SHA-512，复用缓存时同样适用。检查不可用或失败会阻止交接。[Windows 签名检查](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/get-authenticodesignature?view=powershell-5.1)
 
 <a id="windows-ev-signing"></a>
 
