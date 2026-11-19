@@ -90,6 +90,10 @@ Windows 更新下载使用系统 Authenticode 验证发布者，安装交接前�
 
 单段重建产物通过 SHA-512 和 Authenticode 校验。另行批准安装时再次验签，模拟启动确认后移交退出。系统原文件和测试副本的 SHA-256 均保持一致。输入清单和回执为 `%USERPROFILE%/DSHU-Deliveries/20261119/signed-differential-replay/` 下的 `inputs.json`、`result.json` 和 `process.json`。正式签名包、实装缓存和在线服务仍待验收。
 
+## 窗口投递失败后的 Host 恢复（2026-11-19）
+
+安装启动失败后，向正在销毁的窗口发送更新状态曾中断 Host 恢复。窗口和强更覆盖层的投递失败现分别记入壳日志。普通和强制更新的主进程回归均注入了窗口发送失败，确认仍能重建 Host、重载工作区并读取替代 Host 的启动地址。267 项定向测试及桌面构建通过。回执位于 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-update-recovery-delivery/`。本轮使用主进程替身，已安装资料的端到端回读仍待验收。
+
 ## 验收
 
 - 两个所属测试文件在 Windows/Linux 各 28 项通过，覆盖 403/429、主/次级期限、重叠期限、无效数值、普通拒绝、不会自动重试，以及中英文弹窗关闭/重开和到期后的显式重试。

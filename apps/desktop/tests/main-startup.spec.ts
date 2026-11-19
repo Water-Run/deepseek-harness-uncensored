@@ -2747,7 +2747,18 @@ describe('desktop main startup', () => {
     await expect(preparing).resolves.toBe(true)
     harness.dialog.showMessageBox.mockResolvedValue({ response: 1 })
     const restarted = harness.nextHostStart()
-    harness.publishUpdate({ phase: 'error', version: '1.0.1-nightly.1', failedOperation: 'install', message: 'Installer failed' })
+    const contents = harness.windows[0]!.webContents
+    const send = contents.send.getMockImplementation()!
+    const deliveryError = new Error('Object has been destroyed')
+    contents.send.mockImplementation((channel, ...args) => {
+      if (channel === DESKTOP_IPC.updatesPresentation) throw deliveryError
+      return send(channel, ...args)
+    })
+    try {
+      expect(() => harness.publishUpdate({ phase: 'error', version: '1.0.1-nightly.1',
+        failedOperation: 'install', message: 'Installer failed' })).not.toThrow()
+      expect(console.error).toHaveBeenCalledWith('desktop: update status delivery failed', deliveryError)
+    } finally { contents.send.mockImplementation(send) }
     await restarted
     expect(fileDrag.install).toHaveBeenCalledTimes(2)
     const replacement = harness.hosts[1]!

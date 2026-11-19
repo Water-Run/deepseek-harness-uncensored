@@ -26,6 +26,7 @@ import {
   shell,
   type IpcMainInvokeEvent,
   type MenuItemConstructorOptions,
+  type WebContents,
 } from 'electron'
 import { resolveDesktopPaths } from './paths.ts'
 import { DesktopProjectManager } from './project-manager.ts'
@@ -669,10 +670,25 @@ async function main(): Promise<void> {
     else if (!shuttingDown) backendReady = state.phase === 'ready'
   })
 
+  const notifyUpdateWindows = (notify: (contents: WebContents) => void): void => {
+    for (const window of BrowserWindow.getAllWindows()) {
+      try {
+        if (window.isDestroyed()) continue
+        const contents = window.webContents
+        if (!contents.isDestroyed()) notify(contents)
+      } catch (error) {
+        console.error('desktop: update status delivery failed', error)
+      }
+    }
+  }
+  const syncUpdateOverlay = (): void => {
+    try { mandatoryUI?.sync() }
+    catch (error) { console.error('desktop: update overlay delivery failed', error) }
+  }
   const updateErrors = new WeakMap<DesktopUpdateState, { result: Promise<void>; settled: boolean }>()
   const showUpdateFailure = (state: DesktopUpdateState, reopen = false): Promise<void> => {
     if (state.phase !== 'error') return Promise.resolve()
-    if (isMandatory()) { mandatoryUI?.sync(); return Promise.resolve() }
+    if (isMandatory()) { syncUpdateOverlay(); return Promise.resolve() }
     let shown = updateErrors.get(state)
     if (shown === undefined || (reopen && shown.settled)) {
       const result = ordinaryMessageBox({ type: 'error', title: locale.messages.updateFailedTitle,
@@ -689,10 +705,9 @@ async function main(): Promise<void> {
   const publishUpdate = (state: DesktopUpdateState): DesktopUpdateState => {
     updateJournal?.state(state)
     updateState = state
-    mandatoryUI?.sync()
-    for (const window of BrowserWindow.getAllWindows()) {
-      window.webContents.send(DESKTOP_IPC.updatesPresentation, updatePresentation(state))
-    }
+    syncUpdateOverlay()
+    const presentation = updatePresentation(state)
+    notifyUpdateWindows((contents) => { contents.send(DESKTOP_IPC.updatesPresentation, presentation) })
     if (state.phase === 'error' && state.failedOperation !== 'check' && state.failedOperation !== 'configuration') {
       if (state.failedOperation === 'install' && fileDragStopped && !quitting) {
         fileDragCleanups.add(installFileDrag())
@@ -830,10 +845,11 @@ async function main(): Promise<void> {
   if (initialChannel.kind === 'error') updates.suspendConfiguration(initialChannel.error.path)
   const publishChannel = (state: DesktopChannelState): DesktopChannelState => {
     channelState = state
-    for (const window of BrowserWindow.getAllWindows()) {
-      window.webContents.send(DESKTOP_IPC.updatesChannelChanged, state)
-      window.webContents.send(DESKTOP_IPC.updatesPresentation, updatePresentation(updates.state))
-    }
+    const presentation = updatePresentation(updates.state)
+    notifyUpdateWindows((contents) => {
+      contents.send(DESKTOP_IPC.updatesChannelChanged, state)
+      contents.send(DESKTOP_IPC.updatesPresentation, presentation)
+    })
     return state
   }
 
