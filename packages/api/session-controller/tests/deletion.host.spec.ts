@@ -319,7 +319,7 @@ it('preserves a live writer owned outside this API controller', async () => {
   expect(await ctx.sessionPersistence.stat(foreign.id)).toBeDefined()
 })
 
-it('recovers derived cleanup after restart without restoring deleted conversation files', async () => {
+it.each(['search', 'workspace'] as const)('continues independent cleanup and recovers a failed %s after restart', async (phase) => {
   const { root, ctx, api, cwd } = await setup()
   const { sessionId } = await api.create({ cwd })
   const workspace = await ctx.workspaceRegistry.create(cwd)
@@ -327,7 +327,10 @@ it('recovers derived cleanup after restart without restoring deleted conversatio
   await ctx.workspaceRegistry.pinSession(sessionId)
   const deleted = vi.fn()
   ctx.on('api-session/deleted', deleted)
-  const cleanup = vi.spyOn(ctx.sessionQuery, 'forgetSessions').mockRejectedValueOnce(new Error('cleanup interrupted'))
+  const cleanup = phase === 'search'
+    ? vi.spyOn(ctx.sessionQuery, 'forgetSessions')
+    : vi.spyOn(ctx.workspaceRegistry, 'forgetSessions')
+  cleanup.mockRejectedValueOnce(new Error('cleanup interrupted'))
   await expect(api.delete({ sessionId })).rejects.toMatchObject({
     code: 'session/delete-incomplete', details: { deletedSessionIds: [sessionId] },
   })
@@ -335,7 +338,8 @@ it('recovers derived cleanup after restart without restoring deleted conversatio
   cleanup.mockRestore()
   expect(await ctx.sessionPersistence.stat(sessionId)).toBeUndefined()
   expect(deleted).toHaveBeenCalledExactlyOnceWith(sessionId)
-  expect(ctx.workspaceRegistry.pinnedSessionIds).toContain(sessionId)
+  expect(workspace.sessionIds.includes(sessionId)).toBe(phase === 'workspace')
+  expect(ctx.workspaceRegistry.pinnedSessionIds.includes(sessionId)).toBe(phase === 'workspace')
   await ctx.fiber.dispose()
   const restored = await setup(undefined, root)
   await restored.api.list({}, new AbortController().signal)
