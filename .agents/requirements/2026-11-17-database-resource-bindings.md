@@ -24,6 +24,10 @@
 
 材料在 `%USERPROFILE%/DSHU-Deliveries/20261117/`，前缀 `database-resources-`，主要为 `native-scope.log`、`linux-final.log`、`snapshots-final.log`、`build.log`、`built-smoke.log`、`declarations.log`、`contracts.log`、`lint-corrected.log`、`negative-policy.log` 与 `negative-policy-restored.json`。
 
+## Windows 录制兼容复验
+
+当前 Windows 源码 `5e78ec0755` 在会话取消修复后重新通过 `postgres-target-protection`、`postgres-shared-write-protection`、`mysql-test-write-protection` 三条既有回放。普通回放核对会话输出、工具声明和完整工作区结果。使用隔离夹具，保留原录制和 writer 预期。会话关闭时的取消由[定向测试](2026-10-26-target-protection.md#audit-and-execution)单独覆盖。Windows 回执为 `%USERPROFILE%/DSHU-Deliveries/20261119/windows-network-database-session-replay.log`，新版实装验收仍待完成。
+
 ## 只读审计的规则修订（2026-11-19）
 
 PostgreSQL 和 MySQL 的只读审计在连接前持有已核验的规则修订。规则服务保存新版本前会取消在途连接并等待清理，其他规则库连接在租约期间写入会收到忙状态。PostgreSQL TLS 夹具验证清理期间收到撤销时丢弃尚未交付的结果。MySQL 握手夹具验证保存后连接已关闭。69 项定向测试和 PostgreSQL 录制回放通过，证据为 `%USERPROFILE%/DSHU-Deliveries/20261118/database-audit-rule-retention-verified.log` 与 `database-audit-rule-retention-replay.log`。本轮使用隔离协议夹具，修复待下次打包。
