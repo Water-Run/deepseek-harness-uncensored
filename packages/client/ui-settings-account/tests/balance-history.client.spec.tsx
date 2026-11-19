@@ -152,7 +152,7 @@ it('keeps the sample bubble inside a resized plot without another pointer move',
   expect(tip.style.left).toBe('32px')
 })
 
-it('fits scaled content and ignores observers from an earlier pointer position or a removed chart', () => {
+it('reuses the mounted bubble observer across pointer movement and stops it on unmount', () => {
   const observers: RecordingObserver[] = []
   class RecordingObserver implements ResizeObserver {
     observe = vi.fn()
@@ -184,22 +184,21 @@ it('fits scaled content and ignores observers from an earlier pointer position o
   expect(first.observe).toHaveBeenCalledWith(slider)
   expect(first.observe).toHaveBeenCalledWith(tip)
   move(360)
-  const latest = observers.at(-1)!
-  expect(first.disconnect).toHaveBeenCalledOnce()
+  expect(observers).toEqual([first])
+  expect(first.disconnect).not.toHaveBeenCalled()
   width = 170
-  latest.notify()
+  first.notify()
   expect(tip.style.left).toBe('32px')
   size = 140
-  latest.notify()
+  first.notify()
   expect(tip.style.left).toBe('12px')
   left = 0
   fireEvent(window, new Event('scroll'))
   expect(tip.style.left).toBe('30px')
+  view.unmount()
+  expect(first.disconnect).toHaveBeenCalledOnce()
   width = 240
   first.notify()
-  expect(tip.style.left).toBe('30px')
-  view.unmount()
-  expect(latest.disconnect).toHaveBeenCalledOnce()
-  latest.notify()
+  fireEvent(window, new Event('scroll'))
   expect(tip.style.left).toBe('30px')
 })

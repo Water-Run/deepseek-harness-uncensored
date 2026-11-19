@@ -1,5 +1,5 @@
 /** Sample inspection uses the original observations, independently of curve downsampling. */
-import { useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useId, useMemo, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
 import { Big } from 'big.js'
 import { balanceChart, nearestBalanceSample, retainedBalanceSample, type BalanceChartSample } from './balance-chart.ts'
@@ -17,6 +17,7 @@ function besidePointer(pointer: number, span: number, size: number): number {
 /**
  * Inspect sampled balances by pointer, touch, or arrow keys.
  * Pointer bubbles refit to layout changes without changing the selected observation.
+ * The mounted bubble keeps one set of layout observers while the pointer moves.
  * @param props - Ordered observations, currency symbol and localized labels.
  * @returns The chart and its selected observation, or null without samples.
  */
@@ -29,10 +30,49 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
   stepIncreases?: boolean
   compressionHint?: string
 }) {
-  const [hover, setHover] = useState<{ sample: BalanceChartSample; x: number; y: number } | null>(null)
+  const [hover, setHover] = useState<BalanceChartSample | null>(null)
   const [cursor, setCursor] = useState<BalanceChartSample | null>(null)
   const [focused, setFocused] = useState(false)
-  const releaseTip = useRef<(() => void) | null>(null)
+  const pointer = useRef<{ x: number; y: number } | null>(null)
+  const tipPlacement = useRef<{ place(): void; dispose(): void } | null>(null)
+  const attachTip = useCallback((element: HTMLDivElement | null): void => {
+    tipPlacement.current?.dispose()
+    tipPlacement.current = null
+    const plot = element?.parentElement
+    if (element === null || plot == null) return
+    let attached = true
+    const place = (): void => {
+      if (!attached) return
+      const point = pointer.current
+      if (point === null) {
+        element.style.left = ''
+        element.style.top = ''
+        return
+      }
+      const rect = plot.getBoundingClientRect()
+      const width = plot.clientWidth, height = plot.clientHeight
+      const tipWidth = element.offsetWidth, tipHeight = element.offsetHeight
+      // Localized text determines the bubble size; layout changes retain the selected sample.
+      const x = (point.x - rect.left) * width / Math.max(rect.width, 1)
+      const y = (point.y - rect.top) * height / Math.max(rect.height, 1)
+      element.style.left = `${besidePointer(x, width, tipWidth)}px`
+      element.style.top = `${besidePointer(y, height, tipHeight)}px`
+    }
+    place()
+    const win = plot.ownerDocument.defaultView
+    const Observer = win?.ResizeObserver
+    const observer = Observer === undefined ? undefined : new Observer(place)
+    observer?.observe(plot)
+    observer?.observe(element)
+    win?.addEventListener('resize', place)
+    win?.addEventListener('scroll', place, true)
+    tipPlacement.current = { place, dispose() {
+      attached = false
+      observer?.disconnect()
+      win?.removeEventListener('resize', place)
+      win?.removeEventListener('scroll', place, true)
+    } }
+  }, [])
   const id = useId()
   const compressFlat = compressionHint !== undefined
   const geometry = useMemo(() => balanceChart(samples, { stepIncreases, compressFlat }), [samples, stepIncreases, compressFlat])
@@ -40,7 +80,7 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
   if (first === undefined || last === undefined || range === undefined) return null
   const axisDigits = range.low === range.high ? 2 : Math.max(2, Math.min(8, 1 - Math.floor(Math.log10(range.high - range.low))))
   const format = formatValue ?? ((value: number): string => formatBalanceDetail(new Big(value).toFixed(axisDigits), symbol))
-  const inspected = hover?.sample ?? cursor
+  const inspected = hover ?? cursor
   const selected = inspected === null ? samples.length - 1 : retainedBalanceSample(samples, inspected)
   const sample = samples[selected] ?? last
   const sampleAmount = formatValue?.(sample.value) ?? formatBalanceDetail(sample.exactValue ?? new Big(sample.value).toString(), symbol)
@@ -54,43 +94,15 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
     const x = (event.clientX - rect.left) / Math.max(rect.width, 1)
     const index = nearestBalanceSample(geometry.positions, (x * 264 - 6) / 252)
     const sample = samples[index] ?? last
-    setHover({ sample, x: event.clientX, y: event.clientY })
+    pointer.current = { x: event.clientX, y: event.clientY }
+    tipPlacement.current?.place()
+    setHover(sample)
     if (event.pointerType !== 'mouse') setCursor(sample)
   }
-  const placeTip = (element: HTMLDivElement | null): void => {
-    releaseTip.current?.()
-    releaseTip.current = null
-    const plot = element?.parentElement
-    if (element === null || plot == null) return
-    if (hover === null) {
-      element.style.left = ''; element.style.top = ''
-      return
-    }
-    let active = true
-    const place = (): void => {
-      if (!active) return
-      const rect = plot.getBoundingClientRect()
-      const width = plot.clientWidth, height = plot.clientHeight
-      const tipWidth = element.offsetWidth, tipHeight = element.offsetHeight
-      // Localized text determines the bubble size; layout changes retain the selected sample.
-      const x = (hover.x - rect.left) * width / Math.max(rect.width, 1)
-      const y = (hover.y - rect.top) * height / Math.max(rect.height, 1)
-      element.style.left = `${besidePointer(x, width, tipWidth)}px`
-      element.style.top = `${besidePointer(y, height, tipHeight)}px`
-    }
-    place()
-    const win = plot.ownerDocument.defaultView
-    const Observer = win?.ResizeObserver
-    const observer = Observer === undefined ? undefined : new Observer(place)
-    observer?.observe(plot); observer?.observe(element)
-    win?.addEventListener('resize', place)
-    win?.addEventListener('scroll', place, true)
-    releaseTip.current = () => {
-      active = false
-      observer?.disconnect()
-      win?.removeEventListener('resize', place)
-      win?.removeEventListener('scroll', place, true)
-    }
+  const clearHover = (): void => {
+    pointer.current = null
+    tipPlacement.current?.place()
+    setHover(null)
   }
   return <div className={css.history}>
     <div className={css.plot}>
@@ -100,14 +112,16 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
       <div className={css.plotControl} role="slider" tabIndex={0} aria-label={label} aria-describedby={compressed ? `${id} ${id}-compressed` : id}
         aria-valuemin={0} aria-valuemax={samples.length - 1} aria-valuenow={selected}
         aria-valuetext={`${new Date(sample.time).toLocaleString()} · ${sampleAmount}`}
-        onPointerMove={inspect} onPointerDown={inspect} onPointerLeave={() => { setHover(null) }} onPointerCancel={() => { setHover(null) }}
-        onFocus={() => { setFocused(true) }} onBlur={() => { setFocused(false); setHover(null) }}
+        onPointerMove={inspect} onPointerDown={inspect} onPointerLeave={clearHover} onPointerCancel={clearHover}
+        onFocus={() => { setFocused(true) }} onBlur={() => { setFocused(false); clearHover() }}
         onKeyDown={(event) => {
           const next = event.key === 'Home' ? 0 : event.key === 'End' ? samples.length - 1
             : event.key === 'ArrowLeft' || event.key === 'ArrowDown' ? selected - 1
               : event.key === 'ArrowRight' || event.key === 'ArrowUp' ? selected + 1 : undefined
           if (next === undefined) return
-          event.preventDefault(); setHover(null); setCursor(samples[Math.max(0, Math.min(samples.length - 1, next))] ?? last)
+          event.preventDefault()
+          clearHover()
+          setCursor(samples[Math.max(0, Math.min(samples.length - 1, next))] ?? last)
         }}>
         <svg className={css.chart} viewBox="46 0 264 110" preserveAspectRatio="none" aria-hidden="true">
           <path d="M52 12H304 M52 55H304 M52 98H304" className={css.axis} />
@@ -118,7 +132,7 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
           {active && <path d={`M${x} 8V102`} className={css.crosshair} />}
         </svg>
         {(active || geometry.kind === 'single') && <span className={css.samplePoint} style={{ left: `${(x - 46) / 264 * 100}%`, top: `${y / 110 * 100}%` }} />}
-        {active && <div className={css.sampleTip} data-follow-pointer={hover !== null} ref={placeTip} role="status">
+        {active && <div className={css.sampleTip} data-follow-pointer={hover !== null} ref={attachTip} role="status">
           <time dateTime={new Date(sample.time).toISOString()}>{new Date(sample.time).toLocaleString()}</time>
           <strong>{sampleAmount}</strong>
         </div>}
