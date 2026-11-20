@@ -1,5 +1,21 @@
 /** Localized update preparation failures with separately displayed diagnostics. */
-import type { DesktopUpdatePreparationFailureKind, DesktopUpdateState } from './ipc.ts'
+import { DESKTOP_UPDATE_ERROR_CODES, type DesktopUpdatePreparationFailureKind, type DesktopUpdateState } from './ipc.ts'
+
+/**
+ * Attach the whitelisted machine code for a failure whose message names one.
+ *
+ * Qualification evidence and the renderer both consume this state, so classification happens once
+ * at the main boundary: only codes listed by `DESKTOP_UPDATE_ERROR_CODES` are ever emitted, and the
+ * journal keeps refusing to parse free text of its own.
+ * @param state - Main-process-owned update state.
+ * @returns The same state, with `errorCode` filled in when its message names a listed code.
+ */
+export function withUpdateErrorCode(state: DesktopUpdateState): DesktopUpdateState {
+  if (state.phase !== 'error' || state.errorCode !== undefined) return state
+  const message = state.message ?? ''
+  const errorCode = DESKTOP_UPDATE_ERROR_CODES.find(code => message.includes(code))
+  return errorCode === undefined ? state : { ...state, errorCode }
+}
 
 /** Only explicitly safe main-process facts may be exposed as technical details. */
 export class DesktopUpdatePreparationError extends Error {

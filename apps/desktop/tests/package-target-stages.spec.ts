@@ -1,7 +1,8 @@
-import { writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { setImmediate } from 'node:timers/promises'
 import { afterEach, expect, it, vi } from 'vitest'
+import { displayProductVersion, runtimeProductVersion } from '@deepseek-ai/dsh-product-version/bootstrap'
 import { packageTarget, parseDesktopPackageInvocation } from '../scripts/package-target.ts'
 import { withMacOSNotarizationProxy } from '../scripts/macos-notarization-proxy.ts'
 import { packageMacOSArtifacts } from '../scripts/package-macos.ts'
@@ -28,6 +29,17 @@ vi.mock('../scripts/packaging-run.mjs', async importOriginal => ({
   recordPackagingEvent: vi.fn(),
 }))
 vi.mock('../src/owned-directory.ts', () => ({ removeOwnedDirectory: vi.fn() }))
+
+/**
+ * Packaging rejects build versions older than the checkout's product version, so every fixture
+ * version derives from `product.json` instead of a date that goes stale.
+ */
+const fixtureProductVersion = (JSON.parse(
+  readFileSync(resolve(import.meta.dirname, '../../../product.json'), 'utf8'),
+) as { version: string }).version
+const fixtureBuild = displayProductVersion(fixtureProductVersion)
+const fixtureRuntimeBuild = runtimeProductVersion(fixtureProductVersion)
+const fixtureBuildPattern = fixtureBuild.replaceAll('.', '\\.')
 
 // Keep the real orchestration and manifest reads; this suite owns no release directories or subprocesses.
 vi.mock('node:fs', async importOriginal => ({
@@ -146,11 +158,11 @@ it('stops full Linux packaging when the portable archive fails verification', as
   const stage = 'exec tsx scripts/verify-linux-portable-archive.ts'
   const { run, stages } = supervisor(stage)
   const invocation = parseDesktopPackageInvocation(['linux-x64', '--unsigned'], 'linux', 'x64')
-  await expect(packageTarget(invocation, { ...environment, DSH_DESKTOP_BUILD_VERSION: '2026.11.18.11' }, run))
+  await expect(packageTarget(invocation, { ...environment, DSH_DESKTOP_BUILD_VERSION: fixtureBuild }, run))
     .rejects.toThrow('stage refused')
   const verification = run.run.mock.calls.find(([name]) => name.startsWith(stage))!
   expect(verification[2].at(-2)?.replaceAll('\\', '/'))
-    .toMatch(/\/unsigned-artifacts\/runs\/fixture-record\/deepseek-harness-uncensored-2026\.11\.18\.11-linux-x64-unsigned\.tar\.gz$/u)
+    .toMatch(new RegExp(`/unsigned-artifacts/runs/fixture-record/deepseek-harness-uncensored-${fixtureBuildPattern}-linux-x64-unsigned\\.tar\\.gz$`, 'u'))
   expect(verification[2].at(-1)).toMatch(/linux-unpacked$/u)
   expect(stages.at(-1)).toBe(verification[0])
   expect(writeFileSync).not.toHaveBeenCalled()
@@ -160,11 +172,11 @@ it('checks the Debian package before recording full Linux packaging success', as
   const stage = 'exec tsx scripts/verify-linux-debian-archive.ts'
   const { run, stages } = supervisor(stage)
   const invocation = parseDesktopPackageInvocation(['linux-x64', '--unsigned'], 'linux', 'x64')
-  await expect(packageTarget(invocation, { ...environment, DSH_DESKTOP_BUILD_VERSION: '2026.11.18.11' }, run))
+  await expect(packageTarget(invocation, { ...environment, DSH_DESKTOP_BUILD_VERSION: fixtureBuild }, run))
     .rejects.toThrow('stage refused')
   const verification = run.run.mock.calls.find(([name]) => name.startsWith(stage))!
   expect(verification[2].at(-2)?.replaceAll('\\', '/'))
-    .toMatch(/\/unsigned-artifacts\/runs\/fixture-record\/deepseek-harness-uncensored-2026\.11\.18\.11-linux-amd64-unsigned\.deb$/u)
+    .toMatch(new RegExp(`/unsigned-artifacts/runs/fixture-record/deepseek-harness-uncensored-${fixtureBuildPattern}-linux-amd64-unsigned\\.deb$`, 'u'))
   expect(verification[2].at(-1)).toMatch(/linux-unpacked$/u)
   expect(stages.at(-2)).toMatch(/^exec tsx scripts\/verify-linux-portable-archive\.ts/u)
   expect(stages.at(-1)).toBe(verification[0])
@@ -240,13 +252,13 @@ it('checks the signed feed against the final installer before recording a releas
   const stage = 'exec tsx scripts/verify-windows-installer-blockmap.ts'
   const { run, stages } = supervisor(stage)
   const invocation = parseDesktopPackageInvocation(['win-x64'], 'win32', 'x64')
-  const settings = { ...environment, DSH_DESKTOP_BUILD_VERSION: '2026.11.18.10' }
+  const settings = { ...environment, DSH_DESKTOP_BUILD_VERSION: fixtureBuild }
   await expect(packageTarget(invocation, settings, run)).rejects.toThrow('stage refused')
   const verification = run.run.mock.calls.find(([name]) => name.startsWith(stage))!
   expect(verification[2].at(-5)).toBe('--feed')
   expect(verification[2].at(-4)).toMatch(/[\\/]latest\.yml$/u)
-  expect(verification[2].slice(-3, -1)).toEqual(['--version', '2026.1118.10'])
-  expect(verification[2].at(-1)).toMatch(/[\\/]deepseek-harness-uncensored-2026\.11\.18\.10-win-x64\.exe$/u)
+  expect(verification[2].slice(-3, -1)).toEqual(['--version', fixtureRuntimeBuild])
+  expect(verification[2].at(-1)).toMatch(new RegExp(`[\\\\/]deepseek-harness-uncensored-${fixtureBuildPattern}-win-x64\\.exe$`, 'u'))
   expect(verification[3].env).not.toHaveProperty('DSH_DESKTOP_WINDOWS_TOKEN_PIN')
   expect(stages.at(-1)).toBe(verification[0])
   expect(writeFileSync).not.toHaveBeenCalled()
@@ -255,12 +267,12 @@ it('checks the signed feed against the final installer before recording a releas
 it('checks the unsigned installer in the active supervised run output', async () => {
   const { run } = supervisor()
   const invocation = parseDesktopPackageInvocation(['win-x64', '--unsigned'], 'win32', 'x64')
-  await packageTarget(invocation, { ...environment, DSH_DESKTOP_BUILD_VERSION: '2026.11.18.11',
+  await packageTarget(invocation, { ...environment, DSH_DESKTOP_BUILD_VERSION: fixtureBuild,
     DSH_DESKTOP_PACKAGING_RUN_DIR: 'stale-record' }, run)
   const verification = run.run.mock.calls.find(([name]) => name.startsWith('exec tsx scripts/verify-windows-installer-blockmap.ts '))!
   expect(verification[2]).not.toContain('--feed')
   expect(verification[2].at(-1)?.replaceAll('\\', '/'))
-    .toMatch(/\/unsigned-artifacts\/runs\/fixture-record\/deepseek-harness-uncensored-2026\.11\.18\.11-win-x64-unsigned\.exe$/u)
+    .toMatch(new RegExp(`/unsigned-artifacts/runs/fixture-record/deepseek-harness-uncensored-${fixtureBuildPattern}-win-x64-unsigned\\.exe$`, 'u'))
   expect(writeFileSync).not.toHaveBeenCalled()
 })
 

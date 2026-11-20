@@ -54,7 +54,7 @@ import { openWelcomeWindow } from './welcome-window.ts'
 import { WELCOME_IPC, needsWelcome, type WelcomeNotice } from './welcome-api.ts'
 import { connectDesktopWelcome, type DesktopWelcomeBackend } from './welcome-backend.ts'
 import { DesktopUpdateJournal } from './update-journal.ts'
-import { DesktopUpdatePreparationError } from './update-error.ts'
+import { DesktopUpdatePreparationError, withUpdateErrorCode } from './update-error.ts'
 import { DesktopUpdateSchedule, resolveDesktopUpdateScheduleConfig } from './update-schedule.ts'
 import { desktopUpdateErrorSummary, presentDesktopUpdate } from './update-presentation.ts'
 import { desktopErrorState } from './startup-error.ts'
@@ -702,7 +702,8 @@ async function main(): Promise<void> {
     }
     return shown.result
   }
-  const publishUpdate = (state: DesktopUpdateState): DesktopUpdateState => {
+  const publishUpdate = (incoming: DesktopUpdateState): DesktopUpdateState => {
+    const state = withUpdateErrorCode(incoming)
     updateJournal?.state(state)
     updateState = state
     syncUpdateOverlay()

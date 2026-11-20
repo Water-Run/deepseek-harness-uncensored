@@ -323,6 +323,8 @@ export class SessionController extends TypertRemoteService {
         }
       }, id => this.agents.owns(id)), 'session-controller: spending continuation')
       child.on('api-session/deleted', (id) => {
+        // Derived cleanup may still need a retry; its pause stays usable until that settles.
+        if (this.deletions.hasPendingCleanup(id)) return
         void child.spendLimit.forgetSession(id).catch((error: unknown) => { child.logger.error('session-controller: spending pause cleanup failed'); child.logger.error(error) })
       })
       child.effect(() => {

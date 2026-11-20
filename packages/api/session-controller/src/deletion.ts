@@ -29,6 +29,7 @@ async function finishBatch<T>(tasks: readonly Promise<T>[]): Promise<T[]> {
 export class SessionDeletionController {
   private readonly plans = new Map<SessionId, DeletionPlan>()
   private readonly pending = new Map<SessionId, Promise<SessionDeleteValue>>()
+  private readonly cleanupPending = new Set<SessionId>()
   private closed = false
   private recovery: Promise<void> | undefined
 
@@ -241,8 +242,16 @@ export class SessionDeletionController {
     return { deletedSessionIds: ids }
   }
 
+  /**
+   * Report whether a removed Session still awaits derived cleanup.
+   * @param id - Identity whose catalog removal already completed.
+   * @returns Whether the last cleanup attempt failed; a retry or startup recovery finishes it.
+   */
+  hasPendingCleanup(id: SessionId): boolean { return this.cleanupPending.has(id) }
+
   private async clean(ids: readonly SessionId[]): Promise<void> {
     if (ids.length === 0) return
+    const failures: unknown[] = []
     try {
       const steps = [
         () => this.ctx.sessionQuery.forgetSessions(ids),
@@ -255,7 +264,6 @@ export class SessionDeletionController {
           }
         },
       ]
-      const failures: unknown[] = []
       for (const step of steps) {
         try { await step() }
         catch (error) { failures.push(error) }
@@ -263,8 +271,13 @@ export class SessionDeletionController {
       if (failures.length === 1) throw failures[0]
       if (failures.length > 1) throw new AggregateError(failures, 'Derived Session cleanup failed.')
     } finally {
-      // Catalog removal is durable even when derived cleanup needs a retry.
-      for (const id of ids) this.notifyDeleted(id)
+      // Catalog removal is durable even when derived cleanup needs a retry. Consumers that outlive
+      // the removed Session's data keep their state until this controller reports completion.
+      for (const id of ids) {
+        if (failures.length === 0) this.cleanupPending.delete(id)
+        else this.cleanupPending.add(id)
+        this.notifyDeleted(id)
+      }
     }
   }
 
