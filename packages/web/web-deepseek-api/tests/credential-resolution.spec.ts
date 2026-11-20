@@ -4,11 +4,13 @@
  * operation would send.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Context, FiberState } from '@deepseek-ai/cordis'
+import { Context, FiberState, Service } from '@deepseek-ai/cordis'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { DeepSeekAccount } from '@deepseek-ai/dsh-deepseek-account'
 import { DSH_LAUNCH_ENVIRONMENT_KEY, createLaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
+import type {} from '@deepseek-ai/dsh-llm-deepseek-api-key'
+import { activeDeepSeekApiKeyOptions } from '@deepseek-ai/dsh-llm-deepseek-api-key/src/route.ts'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import WebRuntime from '@deepseek-ai/dsh-web'
@@ -18,16 +20,15 @@ import { provideRoutes, type RouteRow } from './routes.ts'
 /** A value the API-key route resolver throws instead of resolving; undefined lets it resolve normally. */
 const resolverThrow = vi.hoisted(() => ({ value: undefined as string | undefined }))
 
-vi.mock('@deepseek-ai/dsh-llm-deepseek-api-key', async (importOriginal) => {
-  const original = await importOriginal<typeof import('@deepseek-ai/dsh-llm-deepseek-api-key')>()
-  return {
-    ...original,
-    activeDeepSeekApiKeyOptions: (...args: Parameters<typeof original.activeDeepSeekApiKeyOptions>) => {
-      if (resolverThrow.value !== undefined) throw resolverThrow.value
-      return original.activeDeepSeekApiKeyOptions(...args)
-    },
+/** Stands in for the API-key plugin: publishes the route service that the web providers read. */
+class TestApiKeyRoute extends Service {
+  constructor(ctx: Context) { super(ctx, 'deepseekApiKeyRoute') }
+
+  activeOptions() {
+    if (resolverThrow.value !== undefined) throw resolverThrow.value
+    return activeDeepSeekApiKeyOptions(this.ctx)
   }
-})
+}
 
 type Operation = 'search' | 'fetch'
 
@@ -84,6 +85,7 @@ async function mount(setup: Setup): Promise<{ ctx: Context; sent: () => Sent[] }
   if (setup.account !== undefined) ctx.provide('deepseekAccount', setup.account as DeepSeekAccount)
   if (setup.credentials !== undefined) ctx.provide('credentials', setup.credentials as never)
   if (setup.routes !== undefined) provideRoutes(ctx, setup.routes)
+  new TestApiKeyRoute(ctx)
   await ctx.plugin(SessionStore)
   await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)

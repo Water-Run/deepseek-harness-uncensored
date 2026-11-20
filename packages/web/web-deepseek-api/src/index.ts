@@ -28,7 +28,7 @@ import {
 import {
   plainAccountOptions, resolveAccountOptions, type Config as AccountRouteConfig,
 } from '@deepseek-ai/dsh-llm-deepseek-account'
-import { activeDeepSeekApiKeyOptions } from '@deepseek-ai/dsh-llm-deepseek-api-key'
+import type {} from '@deepseek-ai/dsh-llm-deepseek-api-key'
 import type { Session } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-web'
 import { DeepSeekFetchApiProvider } from './fetch.ts'
@@ -263,7 +263,7 @@ function ruleSources(ctx: Context, capability: Capability, rule: Rule): DeepSeek
  */
 function officialSource(ctx: Context, capability: Capability): DeepSeekWebAuthSource {
   try {
-    const resolved = activeDeepSeekApiKeyOptions(ctx)
+    const resolved = ctx.get('deepseekApiKeyRoute')?.activeOptions()
     return resolved === undefined
       ? apiKeySource(ctx, DEEPSEEK_WEB_API_BASE_URL, DEEPSEEK_API_KEY)
       : apiKeySource(ctx, toolsBase(resolved.baseURL), resolved.apiKeyEnv)

@@ -37,7 +37,7 @@ Authentication resolution returns the validated API key in `x-api-key` for both 
 
 The endpoint and credential reference come from one configuration resolution. In-flight requests retain that snapshot; subsequent updates affect subsequent calls. Account login state cannot change this route’s credential.
 
-Web providers can read the active route’s endpoint and credential reference through `activeDeepSeekApiKeyOptions(ctx)`. This read resolves the same live settings and makes no network request.
+Web providers read the active route’s endpoint and credential reference through the `deepseekApiKeyRoute` service (`ctx.get('deepseekApiKeyRoute')?.activeOptions()`). This read resolves the same live settings and makes no network request.
 
 `models` is an independently configurable catalog for this provider; defaults and protocol capabilities come from the shared transport. While `models` equals the built-in catalog and the Messages origin is the official API, `https://api.deepseek.com`, the route serves the official `GET https://api.deepseek.com/models` listing instead. Listing requests carry the API key in `x-api-key` and the harness `User-Agent`, and reject redirects; without an API key the route requests nothing. Any other endpoint, including one named by `baseURL` or `$DEEPSEEK_BASE_URL`, serves `models` and requests no listing. Discovery does not probe inference endpoints.
 

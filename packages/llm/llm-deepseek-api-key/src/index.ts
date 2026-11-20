@@ -1,5 +1,5 @@
 /** API-key authentication, credential-gated discovery, and the official model listing for the official DeepSeek route. */
-import { FiberState, type Context } from '@deepseek-ai/cordis'
+import type { Context } from '@deepseek-ai/cordis'
 import { APP_IDENTITY, LlmError } from '@deepseek-ai/dsh-llm'
 import type { LlmModelBadge } from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/cordis-plugin-loader'
@@ -10,6 +10,7 @@ import {
 } from '@deepseek-ai/dsh-llm-deepseek'
 import type { CatalogRefusal, DeepSeekCatalogModel, ListingView, ModelListing } from '@deepseek-ai/dsh-llm-deepseek'
 import { Config, plainOptions, resolveAdapterOptions } from './config.ts'
+import { DeepSeekApiKeyRoute, PROVIDER } from './route.ts'
 import type { ResolvedDeepSeekOptions } from './config.ts'
 
 export { Config, plainOptions, resolveAdapterOptions } from './config.ts'
@@ -17,24 +18,6 @@ export type { Options, ResolvedDeepSeekOptions } from './config.ts'
 export const name = 'llm-deepseek-api-key'
 export const inject = ['llm']
 
-const PROVIDER = 'deepseek-official'
-const PACKAGE_NAME = '@deepseek-ai/dsh-llm-deepseek-api-key'
-
-/**
- * Resolve the endpoint and credential reference of the active API-key route.
- * @param ctx - context with the model directory and Loader.
- * @returns a settings snapshot, or undefined when this package owns no active route.
- */
-export function activeDeepSeekApiKeyOptions(ctx: Context): ResolvedDeepSeekOptions | undefined {
-  const llm = ctx.get('llm')
-  const loader = ctx.get('loader')
-  if (llm === undefined || loader === undefined || !llm.listProviders().some(row => row.id === PROVIDER)) return undefined
-  const directory = llm.listConfigurableProviders().find(row => row.provider === PROVIDER)
-  if (directory === undefined || directory.settingsPath.length !== 0) return undefined
-  const entry = [...loader.entries()].find(row => row.options.id === directory.settingsNs && row.options.name === PACKAGE_NAME)
-  if (entry?.fiber?.state !== FiberState.ACTIVE) return undefined
-  return resolveAdapterOptions(plainOptions(entry.fiber.effectiveConfig as Config), launchEnvironmentOf(ctx))
-}
 
 /** Console tag of listing diagnostics; product profiles mount no console exporter for `ctx.logger`. */
 const LOG_TAG = '[llm-deepseek-api-key]'
@@ -50,6 +33,8 @@ interface OfficialConnection extends ResolvedDeepSeekOptions {
 }
 
 export function apply(ctx: Context, config: Config): void {
+  // Registered first: other packages read the active route through this service.
+  new DeepSeekApiKeyRoute(ctx)
   const options = () => resolveAdapterOptions(plainOptions(config), launchEnvironmentOf(ctx))
   options()
   const resolveApiKey = async (connection: ResolvedDeepSeekOptions): Promise<string> => {

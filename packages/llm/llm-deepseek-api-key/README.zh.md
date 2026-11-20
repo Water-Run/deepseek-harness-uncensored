@@ -37,7 +37,7 @@ kind: "package-reference"
 
 端点和凭据引用来自同一次配置解析；进行中的请求保留该快照，后续配置更新仅影响后续请求。账号登录态不影响该路由使用的凭据。
 
-网页提供方可通过 `activeDeepSeekApiKeyOptions(ctx)` 读取当前路由的端点与凭据引用。此读取解析同一套实时设置，全程在本机完成。
+网页提供方通过 `deepseekApiKeyRoute` 服务（`ctx.get('deepseekApiKeyRoute')?.activeOptions()`）读取当前路由的端点与凭据引用。此读取解析同一套实时设置，全程在本机完成。
 
 `models` 是该 provider 独立的可配置目录；默认值和协议能力来自共享传输包。当 `models` 等于内置目录、且 Messages 的 origin 是官方 API `https://api.deepseek.com` 时，路由改为提供官方 `GET https://api.deepseek.com/models` 列表。列表请求用 `x-api-key` 携带 API key，带上 harness 的 `User-Agent`，并拒绝重定向；没有 API key 时不发任何请求。其他端点，包括由 `baseURL` 或 `$DEEPSEEK_BASE_URL` 指定的端点，提供 `models`，不请求列表。目录判断不探测推理端点。
 

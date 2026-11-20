@@ -19,7 +19,7 @@ import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
 import {
   deepSeekApiKeyConfigured, rejectDeepSeekAccountToken, resolveDeepSeekAccountToken, resolveDeepSeekApiKey,
 } from '@deepseek-ai/dsh-llm-deepseek'
-import { activeDeepSeekApiKeyOptions, resolveAdapterOptions } from '@deepseek-ai/dsh-llm-deepseek-api-key'
+import { resolveAdapterOptions } from '@deepseek-ai/dsh-llm-deepseek-api-key'
 import type {} from '@deepseek-ai/dsh-session'
 import { WebError } from '@deepseek-ai/dsh-web'
 import {
@@ -133,7 +133,7 @@ function resolveOptions(
   let keyError: WebError | undefined
   if (literalApiKey === undefined) {
     try {
-      const model = activeDeepSeekApiKeyOptions(ctx) ?? (environment.get('DEEPSEEK_BASE_URL') === undefined
+      const model = ctx.get('deepseekApiKeyRoute')?.activeOptions() ?? (environment.get('DEEPSEEK_BASE_URL') === undefined
         ? undefined : resolveAdapterOptions({}, environment))
       if (model !== undefined) {
         const modelOrigin = new URL(model.baseURL).origin

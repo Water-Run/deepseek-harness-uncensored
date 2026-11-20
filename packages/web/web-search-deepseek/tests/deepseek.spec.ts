@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { Context } from '@deepseek-ai/cordis'
+import { Context, Service } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
@@ -21,6 +21,14 @@ import * as deepseekPlugin from '@deepseek-ai/dsh-web-search-deepseek'
 import { citationSnippets, mapAnthropicResponse } from '../src/provider.ts'
 import type { AnthropicResponse } from '@deepseek-ai/dsh-web-search-deepseek/src/types.ts'
 import { provideRoutes } from '../../web-deepseek-api/tests/routes.ts'
+import { activeDeepSeekApiKeyOptions } from '@deepseek-ai/dsh-llm-deepseek-api-key/src/route.ts'
+
+/** Stands in for the API-key plugin: publishes the route service the search provider reads. */
+class TestApiKeyRoute extends Service {
+  constructor(ctx: Context) { super(ctx, 'deepseekApiKeyRoute') }
+
+  activeOptions() { return activeDeepSeekApiKeyOptions(this.ctx) }
+}
 
 /** Construct the provider over a fixed options value; production passes a live thunk. */
 import type { DeepSeekSearchProviderOptions } from '@deepseek-ai/dsh-web-search-deepseek'
@@ -921,6 +929,7 @@ describe('web-search-deepseek search readiness', () => {
   async function compose(setup: Setup = {}): Promise<Context> {
     const ctx = new Context()
     mounted.push(ctx)
+    new TestApiKeyRoute(ctx)
     if (setup.environment !== undefined) {
       ctx.provide(DSH_LAUNCH_ENVIRONMENT_KEY, createLaunchEnvironmentSnapshot([{ source: 'process', values: setup.environment }]))
     }
