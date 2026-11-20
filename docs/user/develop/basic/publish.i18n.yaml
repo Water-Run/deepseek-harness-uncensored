@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/user/develop/basic/publish.md
 /package-and-install-a-plugin:
-  en: ff71c74dd278f341
-  zh: ac431c6acfcde68d
+  en: 59501dc7ea44df28
+  zh: b53a3004e14eac20
 /package-and-install-a-plugin/two-concepts-two-manifests:
   en: 341c334cee646f58
   zh: 1ac8f40609a71123

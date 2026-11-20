@@ -3,68 +3,68 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/user/guide/dshu.md
 /:
-  en: b0122ddea7a5b5ff
-  zh: 3dadee98e2c1212e
+  en: 1df5541c11f3a2c0
+  zh: 5efcf5e069224828
 /dshu-user-guide:
   en: 3a810a23b0327c26
   zh: 34a364f7fc82935a
 /dshu-user-guide/summary:
   en: 33124e5745b83f70
-  zh: 21f7dc8aa02e60cd
+  zh: bfe69ac7a1907a2b
 /dshu-user-guide/table-of-contents:
   en: 597ddfa30925e743
-  zh: 4d9a4aaf27662a92
+  zh: b1688eee5dd4327a
 /dshu-user-guide/complete-your-first-task:
-  en: 2b83e5bee052bdcc
-  zh: ec7ffed856ffe45f
+  en: 7e9c28d0f79b1f2f
+  zh: 43aa587d4d8d4843
 /dshu-user-guide/choose-a-mode:
   en: 13b1dfcd96b7b13f
-  zh: 9e1dca21278e00a8
+  zh: 45fc5c6e618de9a0
 /dshu-user-guide/choose-a-mode/default-development-and-everyday-tasks:
-  en: 4f14ae1ed5b76ce2
-  zh: 14dc675653d611b1
+  en: 4eb69317ea8b20ef
+  zh: c19d779cdab3f205
 /dshu-user-guide/choose-a-mode/security-investigation-evidence-and-verification:
-  en: 35d90c5a9bdeede7
-  zh: 9c4acb28cd68e249
+  en: e45c85b229a40984
+  zh: 6871e042c0d73ec1
 /dshu-user-guide/choose-a-mode/reverse-samples-call-paths-and-protocols:
-  en: 99841a11d3299c3b
-  zh: 7d2eb26f9fde29b4
+  en: ec9db849209017ff
+  zh: 915a7b25486f7033
 /dshu-user-guide/choose-a-mode/writing-setting-voice-and-long-form-continuity:
-  en: 5fec89ae17597523
-  zh: 6e42b7e1832fdf5a
+  en: 4dffcdbd4a3494e1
+  zh: 9478f0e02e17f3b1
 /dshu-user-guide/main-side-and-quick-questions:
-  en: df2d8b706a6e57f1
-  zh: 5fbeacac6feaa91b
+  en: cf78617952dd694f
+  zh: 013f500fe3acf684
 /dshu-user-guide/balance-session-cost-and-spending-limits:
   en: b624524b330f62d5
-  zh: 518d7c24b4ad0e92
+  zh: 38813fc076cba983
 /dshu-user-guide/balance-session-cost-and-spending-limits/inspect-balance-and-history:
   en: b9bd5e0085290d7e
-  zh: 65df8467debf1556
+  zh: dfc951c86aba3467
 /dshu-user-guide/balance-session-cost-and-spending-limits/configure-independent-limits:
   en: fcd994130e75c61d
-  zh: 0ed068feaed70d1a
+  zh: f4d13ad42972825d
 /dshu-user-guide/balance-session-cost-and-spending-limits/when-a-limit-is-reached:
   en: 8f3c354242c0b61a
-  zh: a1317f7e02a5d587
+  zh: 11b7fffefe288838
 /dshu-user-guide/memory-materials-and-input-prediction:
-  en: d34b77636b8cddf9
-  zh: b82f4bfa365db58b
+  en: ee36fa9f10eaa62b
+  zh: c2bf68fcfa24229e
 /dshu-user-guide/tools-plugins-and-rea:
   en: d7160e9832e03304
-  zh: 293a566193339b1d
+  zh: 0b8b53c2b8faa04b
 /dshu-user-guide/appearance-and-defaults:
   en: 5d42ebc26f0417f8
-  zh: 85a3fbeaf0b74dd6
+  zh: 52bcc48184f031dc
 /dshu-user-guide/data-updates-and-recovery:
   en: 9e878a7f2d7c84a0
-  zh: d7bcaf5b49163bff
+  zh: 8da0f016789c5f5f
 /dshu-user-guide/troubleshooting:
   en: 436ac95617229284
-  zh: 43a3c239507305c1
+  zh: 677ee81372fd0cd7
 /dshu-user-guide/further-exploration:
   en: 6222f5d4a99d0a16
-  zh: 7e5ac471a9da2c33
+  zh: 2fc04a2351d6daaf
 /dshu-user-guide/dev-note:
   en: e013beb1cd742448
-  zh: b9158a2766afdac3
+  zh: 5ebaff692881c98c

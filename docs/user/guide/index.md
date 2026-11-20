@@ -2,7 +2,7 @@
 
 English | [中文](index.zh.md)
 
-Start the Web UI through the [root README](../../../README.md#安装与开发); the command prints its URL. This guide begins after that server is running. For the fork's modes, side conversations, spending controls, and defaults, use the [DSHU user guide](dshu.md). A fresh Web UI has no selected project; you can add one or choose to work without a workspace.
+Start the Web UI through the [development guide](../../development.md#application-commands); the command prints its URL. This guide begins after that server is running. For the fork's modes, side conversations, spending controls, and defaults, use the [DSHU user guide](dshu.md). A fresh Web UI has no selected project; you can add one or choose to work without a workspace.
 
 ## Configure a model
 

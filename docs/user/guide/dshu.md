@@ -1,5 +1,5 @@
 ---
-description: "DSHU user guide covering setup, four modes, side and quick questions, balance and spending limits, memory, tools, and troubleshooting."
+description: "DSHU user guide covering setup, the four modes, side and quick questions, balance and spending limits, memory, tools, data recovery, and troubleshooting."
 ---
 
 # DSHU user guide
@@ -29,12 +29,12 @@ DSHU is an independent DeepSeek Harness fork maintained by WaterRun, with built-
 <a id="first-task"></a>
 ## Complete your first task
 
-Start with a bounded task whose result you can check. Prepare model credentials and the required materials, verify the connection, and then expand the task.
+For your first task, pick something bounded whose result you can check. Confirm that the model connection works before widening the scope.
 
 1. Open **Settings → Models**, configure the provider, endpoint, and credentials, save, and select a model. Third-party endpoints also require the correct protocol and model ID; see [model configuration](providers.md).
 2. Create a session and choose a workspace. Select the project directory for file tasks; for general questions, choose **Work without a workspace** instead of creating a directory just to send a message.
 3. Select a mode before the first message. Default supports general tasks; Security, Reverse, and Writing add their own materials and workflows. Existing sessions keep their original mode by default.
-4. Describe the inputs, expected result, and verification method, then send. Include required files or images; do not assume the model has read materials you have not supplied.
+4. Describe the inputs, expected result, and verification method, then send. Attach required files or images; the model cannot read materials you have not supplied.
 5. Review actual changes, execution results, and remaining work. Preserve tool errors, missing dependencies, and unexecuted checks as follow-up items.
 
 For example, send this in an existing project workspace:
@@ -50,43 +50,43 @@ Modes select specialized materials, workflows, and tool combinations. All four s
 
 ### Default: development and everyday tasks
 
-![Default mode, blue](../../assets/dshu/mode-default.svg)
+![Default mode, theme color blue](../../assets/dshu/mode-default.svg)
 
 Default can read and edit files, run commands, retrieve information, and use collaboration and workflows as needed. Use it for fixes, repository exploration, research organization, and executable deliverables. Supply the project path, observed failure, and completion criteria before asking the agent to investigate, change, and verify.
 
 > Reproduce this endpoint error, find the cause, and verify normal and invalid inputs after fixing it. Distinguish code-based inference from checks that actually ran.
 
-**Check the delivery:** changed files, trigger conditions, verification commands, and results are present; unexecuted checks have an explicit reason.
+**What to check:** changed files, trigger conditions, verification commands, and results are present; unexecuted checks have an explicit reason.
 
 ### Security: investigation, evidence, and verification
 
-![Security mode, red](../../assets/dshu/mode-security.svg)
+![Security mode, theme color red](../../assets/dshu/mode-security.svg)
 
 Security provides seven field-manual areas, case records, reports, and an independent proxy. New Security sessions require responsibility confirmation. Cases under `.security/` can preserve targets, evidence, findings, and pending work for later conversations. Providers, models, and execution environments determine which tasks can run; manuals do not install external tools.
 
 > Review authentication and uploads in this test application, reproduce suspected issues locally, identify affected locations, fix and test them, and save evidence and unresolved questions in the case record.
 
-**Check the delivery:** findings identify targets, locations, and reproduction conditions, and distinguish observations, hypotheses, and unexecuted checks. Enable the proxy separately when needed; its disabled-state reminder is configurable. Target, server, and database protections default to off, and selecting Security does not enable them. Review [execution coverage and limitations](../../../packages/guard/target-protection/README.md) before enabling protection.
+**What to check:** findings identify targets, locations, and reproduction conditions, and distinguish observations, hypotheses, and unexecuted checks. Enable the proxy separately when needed; its disabled-state reminder is configurable. Target, server, and database protections default to off, and selecting Security does not enable them. Review [execution coverage and limitations](../../../packages/guard/target-protection/README.md) before enabling protection.
 
 ### Reverse: samples, call paths, and protocols
 
-![Reverse mode, green](../../assets/dshu/mode-reverse.svg)
+![Reverse mode, theme color green](../../assets/dshu/mode-reverse.svg)
 
 Reverse provides eight analysis-manual areas, `.reverse/` case records, and bundled REA. Investigate program behavior, file formats, protocols, and runtime observations. Preserve the original sample, supply platform and architecture clues and representative inputs, and choose suitable tools; keep modified samples and outputs separately.
 
 > Record this sample's hash and architecture, locate the parser entry point, trace important calls, verify conclusions with independent inputs, and save scripts and unresolved hypotheses.
 
-**Check the delivery:** sample identity, addresses or offsets, call or runtime evidence, reusable scripts, and uncertainty are clear. REA is bundled; optional engines such as Ghidra, Java, IDA, and Hopper require separate configuration. A successful connection check does not establish that every engine, license, or target process is ready.
+**What to check:** sample identity, addresses or offsets, call or runtime evidence, reusable scripts, and uncertainty are clear. REA is bundled; optional engines such as Ghidra, Java, IDA, and Hopper require separate configuration. A successful connection check does not establish that every engine, license, or target process is ready.
 
 ### Writing: setting, voice, and long-form continuity
 
-![Writing mode, gold](../../assets/dshu/mode-writing.svg)
+![Writing mode, theme color gold](../../assets/dshu/mode-writing.svg)
 
 Writing supports fiction, scripts, and long-form text through style references, a six-axis style card, and `story/bible/` materials. Only selected materials enter model requests. Manage references and settings in mode configuration, and continue later conversations from retained materials. The Writing composition does not mount terminal or code-execution tools.
 
 > Continue the next scene using the selected character materials and style reference. Preserve viewpoint, chronology, and available information, check setting conflicts, and deliver the complete scene.
 
-**Check the delivery:** the text follows the requested length, viewpoint, and relationships; setting conflicts and unresolved details are identified separately. For a long work, establish characters, chronology, and world rules before proceeding scene by scene.
+**What to check:** the text follows the requested length, viewpoint, and relationships; setting conflicts and unresolved details are identified separately. For a long work, establish characters, chronology, and world rules before proceeding scene by scene.
 
 <a id="conversations"></a>
 ## Main, side, and quick questions
@@ -105,6 +105,8 @@ Each side question can reference newly completed main progress and retains indep
 Closing a side conversation preserves its history by default. Enable **Clear side context on close** in Settings to clear it automatically; this defaults to off. `/clear` works only inside the side conversation and cannot clear the main conversation.
 
 Side questions support image attachments. Describe the location or symptom to inspect and use an image-capable model; successfully attaching a file does not establish provider support for its type.
+
+![A quick-question answer shown in the main conversation](../../assets/dshu/quick-question-light.png)
 
 <a id="spending"></a>
 ## Balance, session cost, and spending limits
@@ -140,6 +142,8 @@ Cross-session memory stores retrievable long-term information, while mode materi
 - **Input prediction:** defaults to on and predicts separately for main, side, and quick-question drafts. Gray text is a suggestion; Tab inserts it, and you decide whether to send. Prediction calls the selected model and can incur charges.
 
 If replies reuse incorrect context, inspect selected materials, memory scope, and side history before editing memory, deselecting materials, or using side `/clear`. Deleting a session and editing long-term memory are separate operations.
+
+![The input prediction switch in General settings](../../assets/dshu/input-prediction-settings-light.png)
 
 <a id="tools"></a>
 ## Tools, plugins, and REA

@@ -194,6 +194,7 @@ PTC mode 演示启用代码式工具展示，并运行同一个 headless profile
 pnpm run demo:ptc -- "summarize this workspace"
 ```
 
+<a id="application-commands"></a>
 ### 应用命令
 
 Web 与 Desktop 共用同一对命令。`start:*` 启动上一次 `pnpm run build` 或 `build:artifacts` 的产物；`dev:*` 先执行 `build:artifacts` 再启动。Web 还会在源码修改时持续重建 client bundle，因为它的 Host 从源码运行，而浏览器加载的是构建产物：

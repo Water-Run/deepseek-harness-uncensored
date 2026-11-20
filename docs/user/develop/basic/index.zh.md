@@ -2,7 +2,7 @@
 
 [English](index.md) | 中文
 
-本教程会创建一个最小的 Harness 插件，并将其加载到 Web UI 中。请从已完成[从源码运行路径](../../../../README.md#安装与开发)的仓库检出开始。
+本教程会创建一个最小的 Harness 插件，并将其加载到 Web UI 中。请从已完成[从源码运行路径](../../../development.zh.md#setup-tutorial)的仓库检出开始。
 
 ## 创建本地项目
 

@@ -2,7 +2,7 @@
 
 English | [中文](index.zh.md)
 
-This tutorial creates a minimal Harness plugin and loads it into the Web UI. Start from a repository checkout that has completed the [run-from-source path](../../../../README.md#安装与开发).
+This tutorial creates a minimal Harness plugin and loads it into the Web UI. Start from a repository checkout that has completed the [run-from-source path](../../../development.md#setup-tutorial).
 
 ## Create a local project
 
