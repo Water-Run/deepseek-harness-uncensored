@@ -27,7 +27,6 @@ const UPSTREAM_GAPS = new Set([
   'dfa@1.2.0',
   'fontkit@2.0.4',
   'frida@17.23.2',
-  'minimisted@2.0.1',
   'proxy-agent-negotiate@1.1.0',
   'sherpa-onnx-linux-x64@1.13.8',
 ])

@@ -364,5 +364,11 @@
     "file": "sqlite-wasm-3.54.1-build1-Emscripten-LICENSE.txt",
     "source": "https://raw.githubusercontent.com/emscripten-core/emscripten/5.0.5/LICENSE",
     "sha256": "2fd38dc06e484cdd7a3f1e2f6577f5d53062052a2fd85131b56b89fbd673731c"
+  },
+  {
+    "packages": ["minimisted@2.0.1"],
+    "file": "minimisted-2.0.1-MIT.txt",
+    "source": "https://github.com/kt3k/minimisted/blob/95fdfb8d6efb9546c1117854fe3a58105f6332ce/package.json",
+    "sha256": "ad1197090954e1b96c02c66266900198cf27ab60047446435dc159e679f2f4b5"
   }
 ]

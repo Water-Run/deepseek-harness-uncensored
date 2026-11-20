@@ -59,7 +59,7 @@ it('inventories scoped and nested packages without treating internal package mar
   expect(readFileSync(join(root, 'third-party-runtime.json'), 'utf8')).toBe(first)
 })
 
-it('requires exact aggregate versions and keeps documented upstream notice gaps visible', async () => {
+it('requires exact aggregate versions and copies pinned supplements over the aggregate', async () => {
   const root = fixture()
   add(root, 'rea-agents', 'rea-agents', '6.8.0', { LICENSE: 'REA notice',
     'licenses/npm-runtime-notices.txt': [
@@ -80,7 +80,13 @@ it('requires exact aggregate versions and keeps documented upstream notice gaps 
     },
     expect.objectContaining({ path: 'node_modules/rea-agents/licenses/npm-runtime-notices.txt' }),
   ] })
-  expect(packages.find(pkg => pkg.name === 'minimisted')).toMatchObject({ reviewRequired: true })
+  expect(packages.find(pkg => pkg.name === 'minimisted')).toMatchObject({ reviewRequired: false, notices: [
+    {
+      path: 'licenses/minimisted-2.0.1-MIT.txt',
+      sha256: 'ad1197090954e1b96c02c66266900198cf27ab60047446435dc159e679f2f4b5',
+    },
+    expect.objectContaining({ path: 'node_modules/rea-agents/licenses/npm-runtime-notices.txt' }),
+  ] })
 })
 
 it.each([
