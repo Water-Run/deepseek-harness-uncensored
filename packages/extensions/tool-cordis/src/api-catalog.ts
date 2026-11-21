@@ -4160,7 +4160,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       {
         signature: 'describe(options?: SettingsDescribeOptions): SettingsDescriptor[]',
         description: 'Read active plugin schemas and their live values.',
-        parameters: [{ name: 'options', description: 'Redaction required for remote callers.' }],
+        parameters: [{ name: 'options', description: 'Whether a read strips schema-declared secret fields.' }],
         returns: 'Forms keyed by unique profile entry ids.',
       },
       {
@@ -4175,7 +4175,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: 'async mutate(ns: string, ops: readonly SettingsPathOp[], expectedRevision?: number): Promise<void>',
-        description: 'Apply field edits without restating redacted secrets; unsetting an array index removes its element.',
+        description: 'Apply field edits without restating the section; unsetting an array index removes its element.',
         parameters: [{ name: 'ns', description: 'Profile entry id.' }, { name: 'ops', description: 'Ordered form edits.' }, { name: 'expectedRevision', description: 'Revision returned by describe.' }],
       },
     ],
@@ -4187,7 +4187,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     methods: [
       {
         signature: '@Remote describe(): SettingsDescribeValue',
-        description: 'Describe every registered namespace for a configuration page: layered layered values plus the serialized schema the page renders its form from.',
+        description: 'Describe every registered namespace for a configuration page: resolved layered values plus the serialized schema the page renders its form from.',
         parameters: [],
         returns: 'provider writability, local-document presence, and one view per namespace.',
         throws: ['RemoteError when no settings provider is mounted.'],

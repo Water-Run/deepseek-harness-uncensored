@@ -69,8 +69,8 @@ declare module '@deepseek-ai/cordis' {
 /**
  * Host service backing the generated `ctx.remote.settings` namespace. Every
  * remote read carries the values the settings service holds. Writes expose the
- * settings service's merge, replacement,
- * and path-addressed operations, and classify every provider refusal as
+ * settings service's merge, replacement, and path-addressed operations, and
+ * classify every provider refusal as
  * `settings/conflict` or `settings/rejected` with the service's message.
  */
 export class SettingsController extends TypertRemoteService {
@@ -89,7 +89,7 @@ export class SettingsController extends TypertRemoteService {
   }
 
   /**
-   * Describe every registered namespace for a configuration page: layered
+   * Describe every registered namespace for a configuration page: resolved
    * layered values plus the serialized schema the page renders its form from.
    * @returns provider writability, local-document presence, and one view per namespace.
    * @throws RemoteError when no settings provider is mounted.

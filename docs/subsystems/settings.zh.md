@@ -43,7 +43,7 @@ configure(presentation: { auto?: boolean }, owner: Fiber = this.ctx.fiber): () =
 prepareDocument(): Promise<string>
 
 /** Read active plugin schemas and their live values.
- * @param options Redaction required for remote callers.
+ * @param options Whether a read strips schema-declared secret fields.
  * @returns Forms keyed by unique profile entry ids.
  */
 describe(options?: SettingsDescribeOptions): SettingsDescriptor[]
@@ -62,7 +62,7 @@ async update(ns: string, patch: object, expectedRevision?: number): Promise<void
  */
 async replace(ns: string, section: object, expectedRevision?: number): Promise<void>
 
-/** Apply field edits without restating redacted secrets; unsetting an array index removes its element.
+/** Apply field edits without restating the section; unsetting an array index removes its element.
  * @param ns Profile entry id.
  * @param ops Ordered form edits.
  * @param expectedRevision Revision returned by describe.
@@ -76,11 +76,11 @@ Source: [`packages/settings/settings/src/index.ts`](../../packages/settings/sett
 
 ### `ctx.settingsController` — `SettingsController`
 
-Host service backing the generated `ctx.remote.settings` namespace. Every remote read uses `redactSecrets: true`, so a `role('secret')` field cannot ride a response. Writes expose the settings service's merge, replacement, and path-addressed operations, and classify every provider refusal as `settings/conflict` or `settings/rejected` with the service's message.
+Host service backing the generated `ctx.remote.settings` namespace. Every remote read carries the values the settings service holds. Writes expose the settings service's merge, replacement, and path-addressed operations, and classify every provider refusal as `settings/conflict` or `settings/rejected` with the service's message.
 
 ```ts cordis-catalog
 /**
- * Describe every registered namespace for a configuration page: redacted
+ * Describe every registered namespace for a configuration page: resolved
  * layered values plus the serialized schema the page renders its form from.
  * @returns provider writability, local-document presence, and one view per namespace.
  * @throws RemoteError when no settings provider is mounted.
@@ -92,7 +92,7 @@ Host service backing the generated `ctx.remote.settings` namespace. Every remote
  * @param ns - namespace key to write.
  * @param patch - fields to merge into the user section.
  * @param expectedRevision - revision the caller read; `undefined` writes unconditionally.
- * @returns the namespace's redacted view after the write.
+ * @returns the namespace's view after the write.
  * @throws RemoteError when the request is invalid, no provider is mounted, or the provider refuses the write.
  */
 @Remote update( ns: string, patch: Record<string, JsonValue>, expectedRevision: number | undefined, ): Promise<SettingsNamespaceView>
@@ -102,7 +102,7 @@ Host service backing the generated `ctx.remote.settings` namespace. Every remote
  * @param ns - namespace key to write.
  * @param section - complete replacement user section.
  * @param expectedRevision - revision the caller read; `undefined` writes unconditionally.
- * @returns the namespace's redacted view after the write.
+ * @returns the namespace's view after the write.
  * @throws RemoteError when the request is invalid, no provider is mounted, or the provider refuses the write.
  */
 @Remote replace( ns: string, section: Record<string, JsonValue>, expectedRevision: number | undefined, ): Promise<SettingsNamespaceView>
@@ -110,11 +110,11 @@ Host service backing the generated `ctx.remote.settings` namespace. Every remote
 /**
  * Apply path-addressed edits to one namespace's user section, resolved against
  * the section as stored rather than against whatever the caller last read,
- * then answer with that namespace's new redacted view.
+ * then answer with that namespace's new view.
  * @param ns - namespace key to write.
  * @param ops - the edits to apply, in order.
  * @param expectedRevision - revision the caller read; `undefined` writes unconditionally.
- * @returns the namespace's redacted view after the write.
+ * @returns the namespace's view after the write.
  * @throws RemoteError when the request is invalid, no provider is mounted, or the provider refuses the write.
  */
 @Remote async mutate( ns: string, ops: SettingsPathOpView[], expectedRevision: number | undefined, ): Promise<SettingsNamespaceView>

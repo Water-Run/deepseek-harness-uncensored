@@ -73,10 +73,10 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 /**
  * One path-addressed edit to a namespace's user section. Path mutation exists
  * for a caller holding an INCOMPLETE view of the section — a configuration UI
- * reads the redacted descriptor, which by construction never received the
+ * reads a redacted descriptor, which by construction never received the
  * `role('secret')` fields. Such a caller can name the field it means without
- * restating the section: a wholesale `replace` rebuilt from a redacted
- * document silently deletes every secret the wire never returned.
+ * restating the section: a wholesale `replace` rebuilt from such a document
+ * silently deletes every secret the wire never returned.
  */
 export type SettingsPathOp =
   | { op: 'set'; path: readonly string[]; value: unknown }
@@ -296,7 +296,7 @@ export class SettingsForms extends Service {
   prepareDocument(): Promise<string> { return Promise.resolve(this.documentPath) }
 
   /** Read active plugin schemas and their live values.
-   * @param options Redaction required for remote callers.
+   * @param options Whether a read strips schema-declared secret fields.
    * @returns Forms keyed by unique profile entry ids.
    */
   describe(options?: SettingsDescribeOptions): SettingsDescriptor[] {
@@ -360,7 +360,7 @@ export class SettingsForms extends Service {
     await this.write(ns, (_current, base) => mergeLayers(base, input) as Record<string, unknown>, expectedRevision)
   }
 
-  /** Apply field edits without restating redacted secrets; unsetting an array index removes its element.
+  /** Apply field edits without restating the section; unsetting an array index removes its element.
    * @param ns Profile entry id.
    * @param ops Ordered form edits.
    * @param expectedRevision Revision returned by describe.
