@@ -1090,6 +1090,8 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   SecurityProxyFlowsResult: 'SecurityProxyFlowsResult fields and operation guarantees are owned by packages/guard/security-proxy/README.md',
   SecurityProxyFlowDetail: 'SecurityProxyFlowDetail fields and operation guarantees are owned by packages/guard/security-proxy/README.md',
   SecurityProxyCaptureStats: 'SecurityProxyCaptureStats fields and operation guarantees are owned by packages/guard/security-proxy/README.md',
+  SecurityProxyCaptureExport: 'SecurityProxyCaptureExport fields and operation guarantees are owned by packages/guard/security-proxy/README.md',
+  SecurityProxyExportQuery: 'SecurityProxyExportQuery fields and operation guarantees are owned by packages/guard/security-proxy/README.md',
   SpendContinuationHandler: 'SpendContinuationHandler fields and operation guarantees are owned by packages/guard/spend-limit/README.md',
   SpendSnapshot: 'SpendSnapshot fields and operation guarantees are owned by packages/guard/spend-limit/README.md',
   SessionSpendUsage: 'SessionSpendUsage fields and operation guarantees are owned by packages/guard/spend-limit/README.md',

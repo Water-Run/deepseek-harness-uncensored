@@ -9,8 +9,8 @@
   en: 1387c4505dde2faf
   zh: 48570fa1c13d6910
 /session-persistence-event-catalog/persistence-type-fingerprints:
-  en: b2a871d796326661
-  zh: 832960eb9a14274e
+  en: d4366aa0b1150706
+  zh: 1771635e24460aec
 /session-persistence-event-catalog/event-envelope:
   en: 189352d7a3bba620
   zh: 5361f42035034672
@@ -237,8 +237,8 @@
   en: afdc5856460178f1
   zh: afdc5856460178f1
 /session-persistence-event-catalog/events/target/target-admission-log-only:
-  en: 040d865da2f62a49
-  zh: 537a8bd1459c2283
+  en: 596f95c64c4c2644
+  zh: 52e5377532bab802
 /session-persistence-event-catalog/events/team:
   en: a640800a38b3c874
   zh: a640800a38b3c874
@@ -1425,11 +1425,11 @@
   en: 94876079d6696df9
   zh: d25c7ad9f5054eb7
 /session-persistence-event-catalog/resolved-persistence-types/systempromptmessagesource:
-  en: 301f0d0016549784
-  zh: d1bad7d79d1e90cf
+  en: ca7cec12e1a165d9
+  zh: bc4991bb7e6d8bca
 /session-persistence-event-catalog/resolved-persistence-types/targetauditentry:
-  en: c8c08682e8588280
-  zh: 568fcbf51d834c97
+  en: ea0f312d3df97f53
+  zh: 995237276d447aab
 /session-persistence-event-catalog/resolved-persistence-types/teammemberphase:
   en: bf78ae1a14d64469
   zh: 0d5c34aff23a133c
@@ -1533,8 +1533,8 @@
   en: cd7d1ce97fc0d12f
   zh: 90e0dbfd2df0f5ef
 /session-persistence-event-catalog/resolved-persistence-types/string:
-  en: 119a4753887bcc01
-  zh: 584adf54a603c19b
+  en: 90407c730dc258be
+  zh: 558d466f9c059b74
 /session-persistence-event-catalog/resolved-persistence-types/string~2:
   en: 0089620bf4638263
   zh: 1922bef1713094bb
@@ -2433,11 +2433,11 @@
   en: 9dd6539f4a5d9d16
   zh: d886630b70a4bce8
 /session-persistence-event-catalog/resolved-persistence-types/type-system-message:
-  en: bfc7ffd6b835b314
-  zh: 11b75c73f0684f8b
+  en: e7f3f165e9348950
+  zh: 2cbf42ac335a3bd0
 /session-persistence-event-catalog/resolved-persistence-types/type-target-admission:
-  en: 194b67252a2a539d
-  zh: d6bae004bfc83aa1
+  en: 467aab75139ef851
+  zh: f9db5d2c969234d8
 /session-persistence-event-catalog/resolved-persistence-types/type-team-member:
   en: d21fd23a5254e74f
   zh: effe5a8971aaeef5

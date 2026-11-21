@@ -30,7 +30,7 @@ async function fixture(limit = 10) {
   return { ctx, root, auditPath, config, owner }
 }
 
-it('persists exact revisions, redacts targets and records a production denial before TCP', async () => {
+it('persists exact revisions, readable targets and records a production denial before TCP', async () => {
   const h = await fixture()
   const listener = createServer()
   let connections = 0
@@ -59,7 +59,9 @@ it('persists exact revisions, redacts targets and records a production denial be
   const original = h.ctx.targetProtection.auditHistory()
   expect(original.entries[0]).toMatchObject({ revision: 2, phase: 'preflight', operation: 'http',
     decision: 'deny', code: 'TARGET_FULLY_PROTECTED', ruleIds: [ruleId] })
-  expect(JSON.stringify(original)).not.toMatch(/private|never-store|127\.0\.0\.1/u)
+  expect(JSON.stringify(original)).toContain('private-bearer.txt')
+  expect(JSON.stringify(original)).toContain('127.0.0.1')
+  expect(JSON.stringify(original)).not.toContain('never-store-this')
   await h.owner.dispose()
   await h.ctx.plugin(Protection, h.config)
   expect(h.ctx.targetProtection.auditHistory()).toEqual(original)

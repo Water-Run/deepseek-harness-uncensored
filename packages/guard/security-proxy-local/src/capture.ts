@@ -1,11 +1,11 @@
 /**
  * Bounded capture store for the security-mode egress proxy: flow identity,
- * default redaction, body caps, retention, and the list/detail reads the
- * settings surface performs.
+ * body caps, retention, and the list/detail reads the settings surface
+ * performs.
  *
- * Redaction happens once, when a flow is appended. Everything downstream — the
- * list, the detail view, exports, and diagnostics — reads the stored value, so a
- * second presentation path cannot re-expose a credential.
+ * Exchanges are stored exactly as the transport observed them: headers, target
+ * URLs, and bodies keep their original bytes up to the configured body cap, so
+ * the viewer shows what actually crossed the wire.
  * @module @deepseek-ai/dsh-security-proxy-local/capture
  */
 
@@ -22,28 +22,6 @@ import type {
   SecurityProxyHeader,
 } from '@deepseek-ai/dsh-security-proxy/types'
 import type { SecurityProxyCaptureInput } from '@deepseek-ai/dsh-security-proxy'
-
-/** Header names whose values never reach the store. */
-const SECRET_HEADERS = new Set([
-  'authorization',
-  'proxy-authorization',
-  'cookie',
-  'set-cookie',
-  'x-api-key',
-  'api-key',
-  'x-auth-token',
-  'x-csrf-token',
-])
-const URL_HEADERS = new Set(['location', 'content-location', 'referer'])
-
-/** Field names whose values are replaced before an exchange is stored. */
-const SECRET_FIELDS = /^(?:pass(?:word|wd)?|secret|token|api[-_]?key|authorization|cookie|access[-_]?token|refresh[-_]?token)$/i
-
-/** The marker stored in place of a redacted header or field value. */
-const REDACTED = '[redacted]'
-
-/** Bodies this large are described rather than decoded. */
-const MAX_DECODED_BODY_BYTES = 1_048_576
 
 /** One completed or in-flight exchange as the store keeps it. */
 export interface CapturedExchange {
@@ -79,87 +57,16 @@ export interface CaptureLimits {
   readonly retentionMs: number
 }
 
-/** Everything an append supplies; identity, outcome, and redaction are the store's. */
+/** Everything an append supplies; identity and outcome are the store's. */
 export type CapturedExchangeInput = SecurityProxyCaptureInput
 
-function redactUrlFields(fields: string): string {
-  // Preserve the original encoding and order of unmasked fields, including duplicate keys.
-  return fields.split('&').map((field) => {
-    const separator = field.indexOf('=')
-    if (separator === -1) return field
-    const name = field.slice(0, separator)
-    const key = new URLSearchParams(name).keys().next().value
-    return key !== undefined && SECRET_FIELDS.test(key) ? `${name}=${encodeURIComponent(REDACTED)}` : field
-  }).join('&')
-}
-
-function redactUrl(value: string): string {
-  const fragmentAt = value.indexOf('#')
-  const address = fragmentAt === -1 ? value : value.slice(0, fragmentAt)
-  const fragment = fragmentAt === -1 ? '' : `#${redactUrlFields(value.slice(fragmentAt + 1))}`
-  const queryAt = address.indexOf('?')
-  const base = queryAt === -1 ? address : address.slice(0, queryAt)
-  const query = queryAt === -1 ? '' : `?${redactUrlFields(address.slice(queryAt + 1))}`
-  return base.replace(/^(\s*(?:https?:)?\/\/)[^/?#]*@/iu, '$1') + query + fragment
-}
-
 /**
- * Redact one header list.
+ * Project one header list in peer order.
  * @param headers - raw header entries in peer order.
- * @returns the entries with secret-bearing values replaced.
+ * @returns the entries stored as they were observed.
  */
-export function redactHeaders(headers: readonly (readonly [string, string])[]): SecurityProxyHeader[] {
-  return headers.map(([name, value]) => {
-    const field = name.toLowerCase()
-    return { name, value: SECRET_HEADERS.has(field) ? REDACTED : URL_HEADERS.has(field) ? redactUrl(value) : value }
-  })
-}
-
-/**
- * Redact common secret fields in a textual body.
- *
- * JSON objects keep their keys and lose secret values; form-encoded bodies drop
- * the same names; any other textual media type is stored verbatim (it carries no
- * name/value structure to match). Malformed JSON from a capped read is omitted.
- * Other text that fails to parse stays available for diagnosis.
- * @param contentType - response or request media type, when known.
- * @param text - decoded body text.
- * @param readTruncated - whether a byte limit shortened the body before redaction.
- * @returns the body to store.
- */
-export function redactBody(contentType: string | null, text: string, readTruncated = false): string {
-  const media = (contentType ?? '').toLowerCase()
-  if (media.includes('json')) {
-    try {
-      const parsed: unknown = JSON.parse(text)
-      return JSON.stringify(redactJson(parsed, 0))
-    } catch {
-      return readTruncated ? '[incomplete JSON body omitted]' : text
-    }
-  }
-  if (media.includes('application/x-www-form-urlencoded')) {
-    try {
-      const params = new URLSearchParams(text)
-      for (const key of [...params.keys()]) {
-        if (SECRET_FIELDS.test(key)) params.set(key, REDACTED)
-      }
-      return params.toString()
-    } catch {
-      return text
-    }
-  }
-  return text
-}
-
-/** Recursively replace secret-looking object values; depth is bounded by the body cap. */
-function redactJson(value: unknown, depth: number): unknown {
-  if (depth > 32 || value === null || typeof value !== 'object') return value
-  if (Array.isArray(value)) return value.map(entry => redactJson(entry, depth + 1))
-  const result: Record<string, unknown> = {}
-  for (const [key, entry] of Object.entries(value)) {
-    result[key] = SECRET_FIELDS.test(key) ? REDACTED : redactJson(entry, depth + 1)
-  }
-  return result
+export function headerEntries(headers: readonly (readonly [string, string])[]): SecurityProxyHeader[] {
+  return headers.map(([name, value]) => ({ name, value }))
 }
 
 /**
@@ -178,49 +85,22 @@ export function truncateBody(text: string, maxBytes: number): { text: string; tr
 }
 
 /**
- * Present a body for storage: binary media types are described, textual ones are
- * redacted and cut at the capture cap.
- * @param contentType - media type the body carries.
+ * Present a body for storage: kept verbatim and cut at the capture cap.
  * @param text - decoded text, or null when the caller kept no text.
  * @param maxBytes - capture cap in bytes.
- * @param readTruncated - whether a byte limit shortened the supplied text.
  * @returns the stored body and whether a cap cut it.
  */
-export function prepareBody(
-  contentType: string | null,
-  text: string | null,
-  maxBytes: number,
-  readTruncated = false,
-): { body: string | null; truncated: boolean } {
+export function prepareBody(text: string | null, maxBytes: number): { body: string | null; truncated: boolean } {
   if (text === null) return { body: null, truncated: false }
-  if (Buffer.byteLength(text, 'utf8') > MAX_DECODED_BODY_BYTES) {
-    return { body: `[body omitted: ${String(Buffer.byteLength(text, 'utf8'))} bytes]`, truncated: true }
-  }
-  if (contentType !== null && isBinaryMedia(contentType)) {
-    return { body: `[binary body omitted: ${contentType}]`, truncated: false }
-  }
-  const redacted = redactBody(contentType, text, readTruncated)
-  const cut = truncateBody(redacted, maxBytes)
+  const cut = truncateBody(text, maxBytes)
   return { body: cut.text, truncated: cut.truncated }
-}
-
-/** Whether a media type is clearly not text. */
-function isBinaryMedia(contentType: string): boolean {
-  const media = contentType.toLowerCase()
-  return media.startsWith('image/')
-    || media.startsWith('audio/')
-    || media.startsWith('video/')
-    || media.includes('octet-stream')
-    || media.includes('application/pdf')
-    || media.includes('application/zip')
 }
 
 /**
  * Ring buffer of captured exchanges for one Host.
  *
  * The store keeps at most `maxFlows` entries and prunes by age; every append and
- * read prunes first, so a stale entry cannot outlive its retention window. Bodies
- * are already capped and redacted by {@link prepareBody} and {@link redactHeaders}.
+ * read prunes first, so a stale entry cannot outlive its retention window.
  */
 export class CaptureStore {
   private entries: CapturedExchange[] = []
@@ -237,18 +117,17 @@ export class CaptureStore {
   ) {}
 
   /**
-   * Append one exchange, applying redaction and every storage cap.
+   * Append one exchange, applying every storage cap.
    * @param input - the exchange the transport observed.
    * @returns the stored flow, or undefined when capture is paused.
    */
   append(input: CapturedExchangeInput): CapturedExchange | undefined {
     const limits = this.limits()
     this.prune(limits)
-    const requestContentType = input.requestHeaders.find(([name]) => name.toLowerCase() === 'content-type')?.[1] ?? null
-    const requestBody = prepareBody(requestContentType, input.requestBody, limits.maxBodyBytes)
+    const requestBody = prepareBody(input.requestBody, limits.maxBodyBytes)
     const { responseCaptureLimit, ...exchange } = input
     const responseTruncated = responseCaptureLimit !== undefined || input.bodyTruncated === true
-    const responseBody = prepareBody(input.contentType, input.responseBody, limits.maxBodyBytes, responseTruncated)
+    const responseBody = prepareBody(input.responseBody, limits.maxBodyBytes)
     const hasBodyLimits = requestBody.truncated || responseBody.truncated || responseCaptureLimit !== undefined
     const bodyLimits: SecurityProxyBodyLimits = {
       ...requestBody.truncated ? { requestStorage: true } : {},
@@ -258,9 +137,8 @@ export class CaptureStore {
     const flow: CapturedExchange = {
       ...exchange,
       id: randomUUID(),
-      target: redactUrl(input.target),
-      requestHeaders: redactHeaders(input.requestHeaders),
-      responseHeaders: redactHeaders(input.responseHeaders),
+      requestHeaders: headerEntries(input.requestHeaders),
+      responseHeaders: headerEntries(input.responseHeaders),
       requestBody: requestBody.body,
       responseBody: responseBody.body,
       bodyTruncated: responseTruncated || hasBodyLimits,
@@ -308,7 +186,7 @@ export class CaptureStore {
 
   /**
    * Snapshot every matching retained record and its capture counters in one turn.
-   * @param query - Filters over stored, redacted targets.
+   * @param query - Filters over stored targets.
    * @param paused - Current capture setting.
    * @returns Versioned download data, newest first, without list pagination.
    */
@@ -355,7 +233,7 @@ export class CaptureStore {
   }
 }
 
-/** Project a stored exchange without reintroducing raw transport values. */
+/** Project the complete stored value of one flow. */
 function detailOf(flow: CapturedExchange): SecurityProxyFlowDetail {
   return { ...summaryOf(flow), requestHeaders: flow.requestHeaders, responseHeaders: flow.responseHeaders,
     requestBody: flow.requestBody, responseBody: flow.responseBody, bodyTruncated: flow.bodyTruncated, contentType: flow.contentType,

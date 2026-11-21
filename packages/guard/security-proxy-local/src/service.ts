@@ -188,7 +188,7 @@ export class SecurityProxyService extends TypertRemoteService {
   /**
    * Export all matching stored records for the application owner.
    * @param query - Session, kind and text filters without pagination.
-   * @returns Complete redacted snapshot; oversized exports fail without returning records.
+   * @returns Complete stored snapshot; oversized exports fail without returning records.
    */
   @Remote
   async exportCapture(query: SecurityProxyExportQuery): Promise<SecurityProxyCaptureExport> {

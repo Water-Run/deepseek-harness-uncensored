@@ -3434,6 +3434,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'the detail, or null when pruned or unknown.',
       },
       {
+        signature: 'abstract exportCapture(query: SecurityProxyExportQuery): Promise<SecurityProxyCaptureExport>',
+        description: 'Export all retained records matching the filters as one redacted JSON snapshot.',
+        parameters: [{ name: 'query', description: 'Session, kind and text filters; list pagination does not apply.' }],
+        returns: 'Complete snapshot; exceeding the deployment byte budget rejects without a partial export.',
+      },
+      {
         signature: 'abstract clear(): Promise<SecurityProxyCaptureStats>',
         description: 'Drop every retained flow.',
         parameters: [],
@@ -4177,11 +4183,11 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
   {
     key: 'settingsController',
     summary: 'Host service backing the generated `ctx.remote.settings` namespace.',
-    description: 'Host service backing the generated `ctx.remote.settings` namespace. Every remote read uses `redactSecrets: true`, so a `role(\'secret\')` field cannot ride a response. Writes expose the settings service\'s merge, replacement, and path-addressed operations, and classify every provider refusal as `settings/conflict` or `settings/rejected` with the service\'s message.',
+    description: 'Host service backing the generated `ctx.remote.settings` namespace. Every remote read carries the values the settings service holds. Writes expose the settings service\'s merge, replacement, and path-addressed operations, and classify every provider refusal as `settings/conflict` or `settings/rejected` with the service\'s message.',
     methods: [
       {
         signature: '@Remote describe(): SettingsDescribeValue',
-        description: 'Describe every registered namespace for a configuration page: redacted layered values plus the serialized schema the page renders its form from.',
+        description: 'Describe every registered namespace for a configuration page: layered layered values plus the serialized schema the page renders its form from.',
         parameters: [],
         returns: 'provider writability, local-document presence, and one view per namespace.',
         throws: ['RemoteError when no settings provider is mounted.'],
@@ -4190,21 +4196,21 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         signature: '@Remote update( ns: string, patch: Record<string, JsonValue>, expectedRevision: number | undefined, ): Promise<SettingsNamespaceView>',
         description: 'Merge a patch into one namespace\'s stored user section.',
         parameters: [{ name: 'ns', description: 'namespace key to write.' }, { name: 'patch', description: 'fields to merge into the user section.' }, { name: 'expectedRevision', description: 'revision the caller read; `undefined` writes unconditionally.' }],
-        returns: 'the namespace\'s redacted view after the write.',
+        returns: 'the namespace\'s view after the write.',
         throws: ['RemoteError when the request is invalid, no provider is mounted, or the provider refuses the write.'],
       },
       {
         signature: '@Remote replace( ns: string, section: Record<string, JsonValue>, expectedRevision: number | undefined, ): Promise<SettingsNamespaceView>',
         description: 'Replace one namespace\'s stored user section wholesale.',
         parameters: [{ name: 'ns', description: 'namespace key to write.' }, { name: 'section', description: 'complete replacement user section.' }, { name: 'expectedRevision', description: 'revision the caller read; `undefined` writes unconditionally.' }],
-        returns: 'the namespace\'s redacted view after the write.',
+        returns: 'the namespace\'s view after the write.',
         throws: ['RemoteError when the request is invalid, no provider is mounted, or the provider refuses the write.'],
       },
       {
         signature: '@Remote async mutate( ns: string, ops: SettingsPathOpView[], expectedRevision: number | undefined, ): Promise<SettingsNamespaceView>',
-        description: 'Apply path-addressed edits to one namespace\'s user section, resolved against the section as stored rather than against whatever the caller last read, then answer with that namespace\'s new redacted view.',
+        description: 'Apply path-addressed edits to one namespace\'s user section, resolved against the section as stored rather than against whatever the caller last read, then answer with that namespace\'s new view.',
         parameters: [{ name: 'ns', description: 'namespace key to write.' }, { name: 'ops', description: 'the edits to apply, in order.' }, { name: 'expectedRevision', description: 'revision the caller read; `undefined` writes unconditionally.' }],
-        returns: 'the namespace\'s redacted view after the write.',
+        returns: 'the namespace\'s view after the write.',
         throws: ['RemoteError when the request is invalid, no provider is mounted, or the provider refuses the write.'],
       },
       {
@@ -4491,9 +4497,9 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'Configured database names.',
       },
       {
-        signature: 'execute(name: string, request: SqliteRequest, signal: AbortSignal): Promise<SqliteResult>',
+        signature: 'async execute(name: string, request: SqliteRequest, signal: AbortSignal): Promise<SqliteResult>',
         description: 'Execute an atomic batch against one configured database with engine-level authorization.',
-        parameters: [{ name: 'name', description: 'Owner-configured database name.' }, { name: 'request', description: 'One or more parameterized statements; transaction and cross-file control are unsupported.' }, { name: 'signal', description: 'Caller cancellation; after commit authorization, native completion still owns cleanup.' }],
+        parameters: [{ name: 'name', description: 'Owner-configured database name.' }, { name: 'request', description: 'One or more parameterized statements; transaction and cross-file control are unsupported.' }, { name: 'signal', description: 'Caller cancellation, combined with the bound audit Session before commit authorization.' }],
         returns: 'Bounded rows after confirmed commit; unknown outcomes reject and must not be replayed automatically.',
       },
     ],
@@ -4843,10 +4849,17 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'A request runner retaining the exact Session and checking its membership on each invocation.',
       },
       {
+        signature: 'auditWriteState(): TargetAuditHistory[\'state\']',
+        description: 'Read audit write availability without loading stored decisions.',
+        parameters: [],
+        returns: 'Off for unconfigured auditing, or the current writer state.',
+      },
+      {
         signature: 'auditHistory(): TargetAuditHistory',
         description: 'Read the local protection admission log without exposing raw targets or the fingerprint key.',
         parameters: [],
         returns: 'The audit state and up to 100 newest accepted records.',
+        throws: ['When the stored records cannot be read or validated.'],
       },
       {
         signature: 'auditRemoteFile<T>(identity: readonly (string | number | undefined)[], effect: \'observe\' | \'mutate\', signal: AbortSignal, execute: (signal: AbortSignal, reportMatches: (ids: readonly TargetRuleId[]) => void) => Promise<T>): Promise<T>',
@@ -4964,9 +4977,10 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: '@Remote auditHistory(): TargetAuditHistory',
-        description: 'Read recent redacted protection decisions for the authenticated owner.',
+        description: 'Read recent protection decisions for the authenticated owner.',
         parameters: [],
         returns: 'The audit availability and latest decisions, newest first.',
+        throws: ['When the stored records cannot be read or validated.'],
       },
       {
         signature: '@Remote async configure(update: TargetProtectionSettingsUpdate): Promise<TargetProtectionSettingsState>',
@@ -5775,7 +5789,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         signature: '@Remote({ mode: \'stream\' }) changes(workspaceFileScope: WorkspaceFileScope, path: string, signal: AbortSignal): AsyncIterable<WorkspaceFileWatchFrame>',
         description: 'Watch one file or a directory\'s direct entries in the Session\'s filesystem. Files use the backend\'s read authority; directories remain workspace-scoped.',
         parameters: [{ name: 'workspaceFileScope', description: 'header-derived workspace root for the Session identity on the wire.' }, { name: 'path', description: 'target path; the Host determines its type and confines directories to the workspace.' }, { name: 'signal', description: 'generation cancellation.' }],
-        returns: '`ready` once the target watch is active, then current metadata for queued and live invalidations.',
+        returns: '`ready` once the target watch is active, then current metadata for coalesced target invalidations.',
         throws: ['RemoteError when watching is unavailable or a directory is outside the workspace.'],
       },
     ],
@@ -6037,7 +6051,7 @@ export const EVENT_API: readonly EventApiEntry[] = [
     mode: 'emit',
     signature: '\'api-session/deleted\'(sessionId: SessionId): void',
     summary: 'A Session was permanently removed from the persistence catalog.',
-    description: 'A Session was permanently removed from the persistence catalog.',
+    description: 'A Session was permanently removed from the persistence catalog. Listener failures are logged independently of deletion and delivery to other listeners.',
     parameters: [{ name: 'sessionId', description: 'Deleted identity; clients must release views and related resources.' }],
   },
   {
@@ -6564,8 +6578,8 @@ export const EVENT_API: readonly EventApiEntry[] = [
     name: 'target-protection/execution-changed',
     mode: 'emit',
     signature: '\'target-protection/execution-changed\'(): void',
-    summary: 'Notify owner settings when live execution coverage changes.',
-    description: 'Notify owner settings when live execution coverage changes.',
+    summary: 'Notify owner settings when execution coverage or audit write availability changes.',
+    description: 'Notify owner settings when execution coverage or audit write availability changes.',
     parameters: [],
   },
   {
@@ -10189,8 +10203,16 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SecurityProtectionStatus {\n    readonly state: SecurityProtectionState;\n    readonly revision: number;\n    readonly capabilities: readonly SecurityProtectionCapability[];\n}',
   },
   {
+    name: 'SecurityProxyBodyLimits',
+    declaration: 'export interface SecurityProxyBodyLimits {\n    readonly requestStorage?: boolean;\n    readonly responseStorage?: boolean;\n    readonly responseCapture?: SecurityProxyResponseCaptureLimit;\n}',
+  },
+  {
+    name: 'SecurityProxyCaptureExport',
+    declaration: 'export interface SecurityProxyCaptureExport {\n    readonly format: \'dshu-security-proxy-capture\';\n    readonly version: 1;\n    readonly exportedAt: number;\n    readonly filtered: boolean;\n    readonly capture: SecurityProxyCaptureStats;\n    readonly flows: readonly SecurityProxyFlowDetail[];\n}',
+  },
+  {
     name: 'SecurityProxyCaptureInput',
-    declaration: 'export type SecurityProxyCaptureInput = Omit<SecurityProxyFlowDetail, \'id\' | \'requestHeaders\' | \'responseHeaders\' | \'bodyTruncated\'> & {\n    readonly requestHeaders: readonly (readonly [\n        string,\n        string\n    ])[];\n    readonly responseHeaders: readonly (readonly [\n        string,\n        string\n    ])[];\n};',
+    declaration: 'export type SecurityProxyCaptureInput = Omit<SecurityProxyFlowDetail, \'id\' | \'requestHeaders\' | \'responseHeaders\' | \'bodyTruncated\' | \'bodyLimits\'> & {\n    readonly requestHeaders: readonly (readonly [\n        string,\n        string\n    ])[];\n    readonly responseHeaders: readonly (readonly [\n        string,\n        string\n    ])[];\n    readonly bodyTruncated?: boolean;\n    readonly responseCaptureLimit?: SecurityProxyResponseCaptureLimit;\n};',
   },
   {
     name: 'SecurityProxyCaptureStats',
@@ -10209,12 +10231,16 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SecurityProxyEgressLease {\n    readonly upstream: SecurityProxyUpstream;\n    readonly signal: AbortSignal;\n    readonly capture: {\n        append(input: SecurityProxyCaptureInput): SecurityProxyFlowDetail | undefined;\n    };\n    paused(): boolean;\n    release(failure?: {\n        readonly error: unknown;\n    }): void;\n}',
   },
   {
+    name: 'SecurityProxyExportQuery',
+    declaration: 'export type SecurityProxyExportQuery = Pick<SecurityProxyFlowQuery, \'sessionId\' | \'kind\' | \'text\'>;',
+  },
+  {
     name: 'SecurityProxyFailure',
     declaration: 'export type SecurityProxyFailure = \'invalid-config\' | \'unreachable\' | \'timeout\' | \'auth\' | \'tls\' | \'unknown\';',
   },
   {
     name: 'SecurityProxyFlowDetail',
-    declaration: 'export interface SecurityProxyFlowDetail extends SecurityProxyFlowSummary {\n    readonly requestHeaders: readonly SecurityProxyHeader[];\n    readonly responseHeaders: readonly SecurityProxyHeader[];\n    readonly requestBody: string | null;\n    readonly responseBody: string | null;\n    readonly bodyTruncated: boolean;\n    readonly contentType: string | null;\n}',
+    declaration: 'export interface SecurityProxyFlowDetail extends SecurityProxyFlowSummary {\n    readonly requestHeaders: readonly SecurityProxyHeader[];\n    readonly responseHeaders: readonly SecurityProxyHeader[];\n    readonly requestBody: string | null;\n    readonly responseBody: string | null;\n    readonly bodyTruncated: boolean;\n    readonly bodyLimits?: SecurityProxyBodyLimits;\n    readonly contentType: string | null;\n}',
   },
   {
     name: 'SecurityProxyFlowKind',
@@ -10243,6 +10269,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SecurityProxyProtocol',
     declaration: 'export type SecurityProxyProtocol = \'http\' | \'https\';',
+  },
+  {
+    name: 'SecurityProxyResponseCaptureLimit',
+    declaration: 'export type SecurityProxyResponseCaptureLimit = \'read\' | \'relay\';',
   },
   {
     name: 'SecurityProxyRoute',
@@ -11254,7 +11284,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SpendPausedSession',
-    declaration: 'export interface SpendPausedSession {\n    sessionId: SessionId;\n    state: \'waiting\' | \'blocked\';\n    resumeAt?: number | null;\n}',
+    declaration: 'export interface SpendPausedSession {\n    sessionId: SessionId;\n    state: \'waiting\' | \'blocked\';\n    requiresManualResume?: boolean;\n    exceedsLimit?: boolean;\n    resumeAt?: number | null;\n}',
   },
   {
     name: 'SpendPauseId',

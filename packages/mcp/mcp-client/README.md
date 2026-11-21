@@ -61,7 +61,7 @@ Add one entry per server; nothing else is required. After the harness starts, th
 | `toolCallTimeoutMs` | `60,000` | Timeout per `tools/call` or resource request |
 | `startupTimeoutMs` | unset | Optional budget for template resolution, negotiation, connection, and the initial tool sync |
 | `closeTimeoutMs` | `5,000` | Budget for transport closure and pending local work to settle |
-| `expandTemplates` | `false` | Resolve `${credential:REF}` in transport strings at runtime and redact resolved values from diagnostics |
+| `expandTemplates` | `false` | Resolve `${credential:REF}` in transport strings at runtime from the credential provider |
 | `maxInstructionBytes` | `32,768` | Maximum UTF-8 bytes of server instructions including attribution; an oversized value rejects the connection |
 | `failOnStartupError` | `false` | Reject plugin activation when the initial connection or tool synchronization fails |
 | `reconnect.enabled` | `true` | Reconnect automatically after a lost connection |
@@ -104,7 +104,7 @@ With `expandTemplates: true`, `command`, `args`, `env` values, `cwd`, `url`, and
 
 Credential notifications rebuild the connection only when the resolved values change; same-value notifications preserve the connection and its reconnect budget. The old connection must close and finish local cleanup before a replacement starts. Incomplete cleanup blocks replacement until the Host restarts.
 
-With template expansion enabled, failure diagnostics, tool-call failures, and MCP `isError` tool-result text keep upstream messages but replace every value the instance resolved, including earlier rotations and URL-encoded forms, with `[redacted]`. Successful tool results retain their content.
+With template expansion enabled, failure diagnostics, tool-call failures, and MCP `isError` tool-result text keep upstream messages verbatim, including any credential value the instance resolved. Successful tool results retain their content.
 
 -----
 
@@ -133,7 +133,7 @@ This section explains the design decisions behind the bridge and points at the c
 | [`src/index.ts`](src/index.ts) | Plugin entry: `Config` schema, `serverName` reservation, activation await |
 | [`src/connection.ts`](src/connection.ts) | Connection supervisor: client generations, reconnect policy, attempt budget, disposal |
 | [`src/generation.ts`](src/generation.ts) | Transport ownership, cancellation, pending work, and confirmed closure |
-| [`src/credentials.ts`](src/credentials.ts) | Runtime template binding and redaction of every resolved value |
+| [`src/credentials.ts`](src/credentials.ts) | Runtime template binding for transport configuration |
 | [`src/templates.ts`](src/templates.ts) | Credential template syntax, substitution, and reference discovery |
 | [`src/server-context.ts`](src/server-context.ts) | Resource-provider registration and literal server instructions |
 | [`src/tools.ts`](src/tools.ts) | Tool bridge: discovery, naming, registration swap, execution, image projection |
@@ -141,7 +141,7 @@ This section explains the design decisions behind the bridge and points at the c
 | [`src/status.ts`](src/status.ts) | Status cell keyed by Fiber, retaining its final cleanup result |
 | [`src/probe.ts`](src/probe.ts) | One-shot probe: connect, identify, list tools, close — nothing registers |
 | [`src/deadline.ts`](src/deadline.ts) | Shared settlement deadline behind the startup and probe budgets |
-| [`src/diagnostic.ts`](src/diagnostic.ts) | Cause-chain diagnostics and secret-value redaction |
+| [`src/diagnostic.ts`](src/diagnostic.ts) | Cause-chain diagnostics |
 | [`src/types.ts`](src/types.ts) | Client-safe connection status and probe outcome types (`./types`) |
 
 The exported `createMcpToolDefinition(ctx, options)` adapts an upstream tool schema and raw-result callback to the same canonical values, errors, and durable image projection. Each callback receives the exact `ToolExecution`, including its Agent and cancellation signal; SDK spec-type validation checks its result before projection. Callers own registration, cancellation deadlines, and provider teardown. The native Cua Driver provider uses this adapter without opening an MCP transport.
@@ -158,7 +158,7 @@ A manager composing instances (such as `dsh-mcp-manager`) observes one instance 
 
 The SDK receives tool-list changes through legacy notifications or a modern subscription. The supervisor queues each re-sync and republishes the connected tool count; a fetch failure keeps the previous generation registered, while a registration conflict rolls back the attempted generation and closes the connection before applying the reconnect policy. Each outage shares one attempt budget: after `maxAttempts` consecutive failures the tools are unregistered and reconnection stops, and a connection that stays up past `maxDelayMs` resets the budget.
 
-With `expandTemplates` enabled, failure diagnostics name the operation and keep the cause chain with every resolved value replaced by `[redacted]`. With expansion disabled, diagnostics retain the full error text.
+With `expandTemplates` enabled, failure diagnostics name the operation and keep the cause chain and upstream error text. With expansion disabled, diagnostics retain the full error text.
 
 ### Tool execution internals
 

@@ -35,14 +35,14 @@ export const DEFAULT_SETTINGS: StoredSettings = {
   warnWhenDisabled: false,
   capturePaused: false,
   maxFlows: 500,
-  maxBodyBytes: 65_536,
+  maxBodyBytes: 1_048_576,
   retentionMinutes: 1_440,
 }
 
 /** Bounds the settings surface and the capture store both enforce. */
 export const SETTINGS_BOUNDS = {
   maxFlows: { min: 1, max: 5_000 },
-  maxBodyBytes: { min: 1_024, max: 1_048_576 },
+  maxBodyBytes: { min: 1_024, max: 4_194_304 },
   retentionMinutes: { min: 1, max: 10_080 },
 } as const
 

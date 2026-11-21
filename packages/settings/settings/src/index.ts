@@ -30,7 +30,7 @@ export interface SettingsDescriptor {
   secrets?: RedactedSecret[]
 }
 
-/** Wire readers always request secret redaction. */
+/** Whether a read strips schema-declared secret fields from the returned value. */
 export interface SettingsDescribeOptions {
   redactSecrets?: boolean
 }

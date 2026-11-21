@@ -101,7 +101,7 @@ export async function hasProviderApiKey(ctx: Context): Promise<boolean> {
   if (settings === undefined || credentials === undefined) {
     throw new RemoteError('session/provider-credentials-unavailable', 'provider credentials are unavailable', {})
   }
-  const namespaces = settings.describe({ redactSecrets: true })
+  const namespaces = settings.describe({})
   for (const provider of ctx.llm.listConfigurableProviders()) {
     if (provider.provider === 'deepseek-account') continue
     let profile = namespaces.find(namespace => namespace.ns === provider.settingsNs)?.value

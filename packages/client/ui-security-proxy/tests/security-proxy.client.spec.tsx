@@ -580,11 +580,11 @@ describe('settings surface', () => {
     expect(screen.getByRole('alert').textContent).toContain(en['securityProxy.failure.unreachable'])
   })
 
-  it('renders one exchange detail with redacted headers and its body', () => {
+  it('renders one exchange detail with its headers and its body', () => {
     renderSection({ ...READY, detail: DETAIL })
     expect(screen.getByText(en['securityProxy.detail.title'])).toBeTruthy()
     expect(screen.getByText('target body')).toBeTruthy()
-    expect(screen.getByText(en['securityProxy.detail.redacted'])).toBeTruthy()
+    expect(screen.getByText('dshu-test')).toBeTruthy()
   })
 
   it('shows a failed transfer separately from its HTTP response status', () => {

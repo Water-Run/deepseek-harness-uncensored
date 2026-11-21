@@ -17,6 +17,7 @@ const recordSchema = z.object({
   at: z.number().int().nonnegative(), revision: z.number().int().positive().nullable(),
   operation: operationSchema, effect: effectSchema, phase: z.enum(['preflight', 'execution']),
   fingerprint: z.string().regex(/^[a-f0-9]{64}$/u).nullable(), peerFingerprint: z.string().regex(/^[a-f0-9]{64}$/u).nullable(),
+  target: z.string().nullable().default(null), peers: z.string().nullable().default(null),
   decision: z.enum(['allow', 'deny', 'cancelled', 'error']),
   code: z.enum(['TARGET_FULLY_PROTECTED', 'TARGET_READ_ONLY', 'TARGET_IDENTITY_UNVERIFIED', 'TARGET_MAINLAND_PROTECTED',
     'TARGET_OWNER_RESOURCE', 'TARGET_EXECUTION_UNCONFINED', 'TARGET_CHECK_CANCELLED', 'TARGET_SETTINGS_CHANGED',
@@ -25,7 +26,7 @@ const recordSchema = z.object({
   source: z.object({ sessionId: sessionIdSchema, parentSessionId: sessionIdSchema.optional() }).strict().optional(),
 }).strict()
 
-/** Typed audit outcome. A fingerprint is keyed to the local audit store and carries no raw target. */
+/** Typed audit outcome. Both a readable target and a store-keyed fingerprint are recorded. */
 export type TargetAuditRecord = z.infer<typeof recordSchema>
 
 /** Stable row identity within its owning audit database. */
@@ -36,7 +37,7 @@ export type TargetAuditEntry = TargetAuditRecord & { id: TargetAuditId }
 
 declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
-    /** Redacted execution admission recorded by the optional target audit owner; never model-visible. */
+    /** Execution admission recorded by the optional target audit owner; never model-visible. */
     'target/admission': TargetAuditEntry
   }
 }
@@ -99,18 +100,22 @@ export class TargetAuditStore {
 
   /**
    * Persist one decision and remove records beyond the retention limit in the same transaction.
-   * @param subject - Execution stage and identities to fingerprint.
-   * @param outcome - Stable rule decision or redacted check failure.
+   * @param subject - Execution stage and identities to record and fingerprint.
+   * @param outcome - Stable rule decision or check failure.
    * @param source - Exact initiating Session and its recorded parent; absent for agentless calls.
-   * @returns The committed redacted entry, including its database identity.
+   * @returns The committed entry, including its database identity.
    */
   append(subject: AuditSubject, outcome: Outcome, source?: TargetAuditRecord['source']): TargetAuditEntry {
     const fingerprint = (identity: readonly (string | number | undefined)[]) =>
       createHmac('sha256', this.secret).update(JSON.stringify(identity)).digest('hex')
+    const describe = (identity: readonly (string | number | undefined)[]) =>
+      identity.filter(entry => entry !== undefined).map(entry => String(entry)).join(' ')
     const { operation, effect, phase, identity, peers } = subject
     const record = recordSchema.parse({ at: Date.now(), operation, effect, phase, ...outcome, ...source === undefined ? {} : { source },
       fingerprint: identity === undefined ? null : fingerprint(identity),
       peerFingerprint: peers === undefined ? null : fingerprint(['peers', ...new Set(peers.toSorted())]),
+      target: identity === undefined ? null : describe(identity),
+      peers: peers === undefined ? null : [...new Set(peers.toSorted())].join(' '),
       ruleIds: outcome.ruleIds.slice(0, 64), matchedRules: outcome.ruleIds.length })
     this.db.exec('BEGIN IMMEDIATE')
     try {

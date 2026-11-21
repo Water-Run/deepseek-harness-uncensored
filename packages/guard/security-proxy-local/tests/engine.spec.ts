@@ -174,7 +174,7 @@ describe('covered retrieval', () => {
     })
     const detail = h.engine.detail(flows[0]?.id ?? '')
     expect(detail?.responseBody).toBe('target body')
-    expect(detail?.responseHeaders).toContainEqual({ name: 'set-cookie', value: '[redacted]' })
+    expect(detail?.responseHeaders).toContainEqual({ name: 'set-cookie', value: 'session=secret-cookie' })
   })
 
   it('lets a non-security session keep the direct path', async () => {
@@ -438,7 +438,7 @@ describe('capture controls', () => {
         outcome: 'error',
         responseBytes: chunk.byteLength,
         responseBody: null,
-        responseHeaders: expect.arrayContaining([{ name: 'set-cookie', value: '[redacted]' }]),
+        responseHeaders: expect.arrayContaining([{ name: 'set-cookie', value: 'session=fixture' }]),
       })
     } finally {
       fail.resolve(true)

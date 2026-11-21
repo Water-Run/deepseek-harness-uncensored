@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/guard/security-proxy-local/README.md
 /:
-  en: 1a074da4e8e49099
-  zh: 98b13d2f7d940544
+  en: 0bb9eaca85658bd6
+  zh: f21067ab514507e0
 /deepseek-ai-dsh-security-proxy-local:
   en: 7889a940fe29013d
   zh: f37800ec7d574ba5
@@ -15,11 +15,11 @@
   en: d152484eb41ac6b4
   zh: f14f34fce35a8d90
 /deepseek-ai-dsh-security-proxy-local/use-this-package:
-  en: c0b1c3321b395b7b
-  zh: f9abfd152e0794fa
+  en: 30240c0c4a00f606
+  zh: 43c5827ff94a3777
 /deepseek-ai-dsh-security-proxy-local/understand-the-implementation:
-  en: 8f224627f34e7080
-  zh: 4e5502e2d714b233
+  en: 7963435db8af4a10
+  zh: 84398bd4a677a54d
 /deepseek-ai-dsh-security-proxy-local/further-exploration:
   en: 0e221a15eeed8c8f
   zh: 214e5a6e26c40cb1

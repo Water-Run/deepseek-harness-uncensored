@@ -37,7 +37,7 @@ import type {
 } from '@deepseek-ai/dsh-security-proxy/types'
 import type { SecurityProxyEgressLease } from '@deepseek-ai/dsh-security-proxy'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import { CaptureStore, prepareBody, redactHeaders, type CapturedExchangeInput } from './capture.ts'
+import { CaptureStore, type CapturedExchangeInput } from './capture.ts'
 import { SessionChainProxy, type ChainOptions } from './chain.ts'
 import { applyPatch, assertUpstream, SettingsStore, type StoredSettings } from './settings.ts'
 import {
@@ -469,7 +469,7 @@ export class SecurityProxyEngine {
   }
 
   /**
-   * Retain this owner's upstream and redacted capture for native enforcement.
+   * Retain this owner's upstream and capture for native enforcement.
    * @param subject - Actual executing conversation; absent or uncovered subjects acquire nothing.
    * @param tool - Attribution bound to the returned capture writer.
    * @param stop - Stop and join all delegated resources when the lease is revoked.
@@ -1049,4 +1049,4 @@ function toWebError(error: unknown, signal: AbortSignal, timeout: AbortSignal): 
 }
 
 /** Re-export the body preparation helpers the service uses for its own tests. */
-export { prepareBody, redactHeaders }
+export { headerEntries, prepareBody } from './capture.ts'

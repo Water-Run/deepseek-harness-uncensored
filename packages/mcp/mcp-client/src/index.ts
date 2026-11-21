@@ -91,7 +91,7 @@ export interface StdioConfig {
   startupTimeoutMs?: number
   /** Budget for transport closure and local cleanup, in milliseconds (default 5000). */
   closeTimeoutMs: number
-  /** Resolve `${credential:…}` in transport strings at runtime and redact resolved values from diagnostics (default false). */
+  /** Resolve `${credential:…}` in transport strings at runtime from the credential provider (default false). */
   expandTemplates: boolean
   /** Fail plugin activation when the initial connection or tool synchronization fails. */
   failOnStartupError: boolean
@@ -121,7 +121,7 @@ export interface StreamableHttpConfig {
   startupTimeoutMs?: number
   /** Budget for transport closure and local cleanup, in milliseconds (default 5000). */
   closeTimeoutMs: number
-  /** Resolve `${credential:…}` in transport strings at runtime and redact resolved values from diagnostics (default false). */
+  /** Resolve `${credential:…}` in transport strings at runtime from the credential provider (default false). */
   expandTemplates: boolean
   /** Fail plugin activation when the initial connection or tool synchronization fails. */
   failOnStartupError: boolean

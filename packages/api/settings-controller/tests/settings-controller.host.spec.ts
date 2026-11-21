@@ -21,11 +21,11 @@ describe('settings Remote', () => {
     expect(ctx.get('credentialsController')).toBeDefined()
   })
 
-  it('redacts every described layer and applies mutations through the consumer', async () => {
+  it('describes every layer with its stored values and applies mutations through the consumer', async () => {
     const { controller, ctx } = await boot()
     const describe = controller.describe()
     expect(describe).toMatchObject({ writable: true, hasDocument: true })
-    expect(JSON.stringify(describe)).not.toContain('private')
+    expect(describe.namespaces.find(row => row.ns === 'first')).toMatchObject({ value: { token: 'private' } })
     const model = describe.namespaces.find(row => row.ns === 'default-model')!
     const saved = await controller.mutate(model.ns, [{ op: 'set', path: ['model'], value: 'next' }], model.revision)
     expect(saved.value).toEqual({ provider: 'test', model: 'next' })

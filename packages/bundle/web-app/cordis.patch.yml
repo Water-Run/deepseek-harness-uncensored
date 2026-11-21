@@ -438,11 +438,6 @@
     - id: ui-reference
       name: '@deepseek-ai/dsh-client-ui-reference'
 
-    # Display masking for recognized credentials in sent user text; remove
-    # this entry to draw credentials as written.
-    - id: ui-secret-mask
-      name: '@deepseek-ai/dsh-client-ui-secret-mask'
-
     # Background jobs: the session-header roster with on-demand streaming
     # record panels over the session job-output service.
     - id: ui-jobs

@@ -6,7 +6,7 @@ import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 /** Nominal id of one profile plugin entry. */
 export type SettingsNamespace = Branded<'SettingsNamespace'>
 
-/** One schema-declared secret slot inside a redacted namespace value. */
+/** One schema-declared secret slot a redacting read removed from a namespace value. */
 export interface SettingsSecretView {
   /** Path from the section root to the removed field. */
   path: string[]
@@ -15,7 +15,7 @@ export interface SettingsSecretView {
 }
 
 /**
- * Wire view of one profile plugin entry, always read under `redactSecrets`. The
+ * Wire view of one profile plugin entry. The
  * JSON-valued fields are `JsonValue` rather than the descriptor's `unknown`
  * because the Remote boundary admits no unconstrained data.
  */
@@ -26,15 +26,15 @@ export interface SettingsNamespaceView {
   ns: string
   /** Serialized schemastery schema envelope (`schema.toJSON()`); rehydrate with `new Schema(json)`. */
   schema: JsonValue
-  /** Redacted resolved value (schema defaults → composition base → user layer). */
+  /** Resolved value (schema defaults → composition base → user layer). */
   value: JsonValue
-  /** Redacted composition base layer, with defaults resolved. */
+  /** Composition base layer, with defaults resolved. */
   base?: JsonValue
-  /** Redacted raw user section, when one exists; a field's presence here marks it user-overridden. */
+  /** Raw user section, when one exists; a field's presence here marks it user-overridden. */
   user?: JsonValue
   /** When the owner applies changes. */
   applies: 'live'
-  /** Every schema-declared secret slot with its configured state. */
+  /** Every schema-declared secret slot a redacting read removed, with its configured state. */
   secrets: SettingsSecretView[]
   /**
    * Monotonic revision of the raw entry configuration this view was read at. Send it

@@ -25,7 +25,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-把本包与 `dsh-client-ui-conversation` 一起挂载。Web 应用 bundle 默认挂载本包；移除该行后凭据按原样显示。[UserText Factory](../ui-conversation/README.zh.md#sent-user-text) 的每个调用方都会遮挡：消息气泡、插话消息、发送中回显、排队消息以及 `/goal` 输入气泡。
+把本包与 `dsh-client-ui-conversation` 一起挂载。本 bundle 不挂载它，因此发送的文本按原样显示凭据；加上对应的行才会遮挡。[UserText Factory](../ui-conversation/README.zh.md#sent-user-text) 的每个调用方都会遮挡：消息气泡、插话消息、发送中回显、排队消息以及 `/goal` 输入气泡。
 
 凭据默认使用等宽回退字体，使 ASCII 遮罩与明文宽度对齐；显式的代码字体偏好仍然生效。交互文本（即已发送消息或已接纳的插话消息）会在每段末尾加一个眼睛控件。该控件显示或隐藏这一个值，每次挂载都从遮挡状态开始。其他调用方只显示遮挡后的值，不带控件。
 

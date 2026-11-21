@@ -1,4 +1,4 @@
-/** Real contained commands and ConPTY share Security mode's configured upstream and redacted traffic list. */
+/** Real contained commands and ConPTY share Security mode's configured upstream and captured traffic list. */
 import { Context } from '@deepseek-ai/cordis'
 import Credentials from '@deepseek-ai/dsh-credentials-local'
 import * as ProxyHost from '@deepseek-ai/dsh-security-proxy-local'
@@ -204,8 +204,8 @@ describe.skipIf(!supported)('native Security proxy integration', () => {
           "kind": "http",
           "method": "POST",
           "origin": "proxy",
-          "requestBody": "{"password":"[redacted]","message":"owned"}",
-          "responseBody": "{"token":"[redacted]","message":"owned"}",
+          "requestBody": "{"password":"private-request","message":"owned"}",
+          "responseBody": "{"token":"private-response","message":"owned"}",
           "sessionId": "native-proxy-owner",
           "status": 200,
           "tool": "subprocess",

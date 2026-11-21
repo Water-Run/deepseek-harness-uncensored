@@ -232,7 +232,7 @@ it.skipIf(typeof tls.setDefaultCACertificates !== 'function')('inspects HTTPS on
   expect(h.tunnels).toEqual([`127.0.0.1:${h.port}`])
   const flow = (await h.ctx.securityProxy.list({})).flows.find(row => row.kind === 'http' && row.status === 200)
   expect(flow).toMatchObject({ sessionId: h.agent.id, tool: 'fixture', outcome: 'complete' })
-  expect(flow?.target).not.toContain('fixture-secret')
+  expect(flow?.target).toBe(target)
   tls.setDefaultCACertificates(original)
   expect(await processTraffic(inspected, 'https', target)).toMatchObject({ status: 502 })
   const admitted = h.counts()

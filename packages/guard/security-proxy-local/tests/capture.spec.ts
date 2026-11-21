@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   CaptureStore,
+  headerEntries,
   prepareBody,
-  redactBody,
-  redactHeaders,
   truncateBody,
   type CapturedExchangeInput,
 } from '../src/capture.ts'
@@ -40,9 +39,9 @@ const limits = (patch: Partial<{ maxFlows: number; maxBodyBytes: number; retenti
   ...patch,
 })
 
-describe('redaction', () => {
-  it('masks secret headers and recognized URL credentials', () => {
-    expect(redactHeaders([
+describe('transparency', () => {
+  it('stores credential-bearing headers exactly as observed', () => {
+    expect(headerEntries([
       ['Authorization', 'Bearer secret'],
       ['proxy-authorization', 'Basic abc'],
       ['Cookie', 'a=1'],
@@ -51,32 +50,14 @@ describe('redaction', () => {
       ['Location', '/callback?keep=1#access_token=secret&expires_in=300'],
       ['accept', 'text/html'],
     ])).toEqual([
-      { name: 'Authorization', value: '[redacted]' },
-      { name: 'proxy-authorization', value: '[redacted]' },
-      { name: 'Cookie', value: '[redacted]' },
-      { name: 'set-cookie', value: '[redacted]' },
-      { name: 'Referer', value: 'https://example.test/?token=%5Bredacted%5D&display=a%20b' },
-      { name: 'Location', value: '/callback?keep=1#access_token=%5Bredacted%5D&expires_in=300' },
+      { name: 'Authorization', value: 'Bearer secret' },
+      { name: 'proxy-authorization', value: 'Basic abc' },
+      { name: 'Cookie', value: 'a=1' },
+      { name: 'set-cookie', value: 'b=2' },
+      { name: 'Referer', value: 'https://user:pass@example.test/?token=secret&display=a%20b' },
+      { name: 'Location', value: '/callback?keep=1#access_token=secret&expires_in=300' },
       { name: 'accept', value: 'text/html' },
     ])
-  })
-
-  it('masks secret JSON fields without losing the surrounding document', () => {
-    const body = JSON.stringify({ user: 'ada', password: 'pw', nested: { token: 't', keep: 1 } })
-    expect(JSON.parse(redactBody('application/json', body))).toEqual({
-      user: 'ada',
-      password: '[redacted]',
-      nested: { token: '[redacted]', keep: 1 },
-    })
-  })
-
-  it('masks secret form fields', () => {
-    expect(redactBody('application/x-www-form-urlencoded', 'user=ada&api_key=k&page=2')).toBe('user=ada&api_key=%5Bredacted%5D&page=2')
-  })
-
-  it('leaves a body that does not parse as the media type it claims', () => {
-    expect(redactBody('application/json', '{not json')).toBe('{not json')
-    expect(redactBody('text/plain', 'password=pw')).toBe('password=pw')
   })
 })
 
@@ -97,12 +78,12 @@ describe('body preparation', () => {
     expect(truncateBody('\uFFFD尾', 3)).toEqual({ text: '\uFFFD', truncated: true })
   })
 
-  it('describes binary media instead of storing bytes', () => {
-    expect(prepareBody('image/png', 'raw', 1_024)).toEqual({ body: '[binary body omitted: image/png]', truncated: false })
+  it('stores a binary media body as the text the transport decoded', () => {
+    expect(prepareBody('raw', 1_024)).toEqual({ body: 'raw', truncated: false })
   })
 
   it('reports truncation from the cap', () => {
-    expect(prepareBody('text/plain', 'abcdef', 3)).toEqual({ body: 'abc', truncated: true })
+    expect(prepareBody('abcdef', 3)).toEqual({ body: 'abc', truncated: true })
   })
 })
 
@@ -134,7 +115,7 @@ describe('capture store', () => {
     expect(store.list({ limit: 1 })).toHaveLength(1)
   })
 
-  it('stores redacted headers and a detail view that matches the list row', () => {
+  it('stores headers verbatim and a detail view that matches the list row', () => {
     const store = new CaptureStore(() => limits())
     const stored = store.append(exchange({
       responseHeaders: [['set-cookie', 'session=secret'], ['content-type', 'text/plain']],
@@ -145,15 +126,15 @@ describe('capture store', () => {
     expect(row).toBeDefined()
     const detail = store.detail(row?.id ?? '')
     expect(detail).toMatchObject({ target: 'http://target.test/', status: 200, contentType: 'text/plain', responseBody: 'hello' })
-    expect(detail?.responseHeaders).toContainEqual({ name: 'set-cookie', value: '[redacted]' })
+    expect(detail?.responseHeaders).toContainEqual({ name: 'set-cookie', value: 'session=secret' })
   })
 
-  it('reports clipping from the stored body after redaction changes its length', () => {
+  it('reports clipping from the stored body when the cap cuts it', () => {
     const store = new CaptureStore(() => limits({ maxBodyBytes: 32 }))
     store.append(exchange({ contentType: 'application/json', responseBody: JSON.stringify({ token: 'x', label: 'test' }) }))
     store.append(exchange({ contentType: 'application/json', responseBody: JSON.stringify({ token: 'x'.repeat(80) }) }))
-    const [shortened, lengthened] = store.snapshot({}, false).flows
-    expect(shortened).toMatchObject({ responseBody: '{"token":"[redacted]"}', bodyTruncated: false })
+    const [lengthened, shortened] = store.snapshot({}, false).flows
+    expect(shortened).toMatchObject({ responseBody: '{"token":"x","label":"test"}', bodyTruncated: false })
     expect(lengthened?.bodyTruncated).toBe(true)
   })
 
@@ -166,16 +147,16 @@ describe('capture store', () => {
     })
   })
 
-  it('omits a partial JSON response and preserves a complete JSON prefix from a capped read', () => {
+  it('keeps a partial JSON body verbatim from a capped read', () => {
     const store = new CaptureStore(() => limits())
     const contentType = 'application/json'
     store.append(exchange({ contentType, bodyTruncated: true, responseBody: '{"token":"fixture' }))
     store.append(exchange({ contentType, bodyTruncated: true, responseBody: '{"token":"fixture","label":"sample"}' }))
 
-    const [complete, incomplete] = store.snapshot({}, false).flows
-    expect(complete).toMatchObject({ bodyTruncated: true, responseBody: '{"token":"[redacted]","label":"sample"}' })
-    expect(incomplete).toMatchObject({ bodyTruncated: true, responseBody: '[incomplete JSON body omitted]' })
-    expect(store.detail(incomplete?.id ?? '')?.responseBody).toBe(incomplete?.responseBody)
+    const [complete, partial] = store.snapshot({}, false).flows
+    expect(complete).toMatchObject({ bodyTruncated: true, responseBody: '{"token":"fixture","label":"sample"}' })
+    expect(partial).toMatchObject({ bodyTruncated: true, responseBody: '{"token":"fixture' })
+    expect(store.detail(partial?.id ?? '')?.responseBody).toBe(partial?.responseBody)
   })
 
   it('clears everything and keeps the lifetime total', () => {
@@ -197,7 +178,7 @@ describe('capture store', () => {
     expect(data.flows[0]).toMatchObject({ target: 'http://target.test/599', responseBody: 'hello' })
   })
 
-  it('exports stored redaction, truncation and opaque tunnel metadata', () => {
+  it('exports stored credentials, truncation and opaque tunnel metadata', () => {
     const store = new CaptureStore(() => limits({ maxBodyBytes: 32 }), () => 1_000)
     store.append(exchange({ at: 1_000, target: 'https://user:password@target.test/?token=secret',
       requestHeaders: [['Authorization', 'Bearer hidden']], responseBody: 'x'.repeat(64) }))
@@ -207,8 +188,8 @@ describe('capture store', () => {
     expect(data.filtered).toBe(true)
     expect(data.flows[0]).toMatchObject({ kind: 'tunnel', responseBody: null, note: 'tunnel-metadata-only' })
     expect(data.flows[1]).toMatchObject({ bodyTruncated: true, responseBody: 'x'.repeat(32),
-      requestHeaders: [{ name: 'Authorization', value: '[redacted]' }] })
-    expect(JSON.stringify(data)).not.toMatch(/secret|password|hidden/)
+      target: 'https://user:password@target.test/?token=secret',
+      requestHeaders: [{ name: 'Authorization', value: 'Bearer hidden' }] })
     expect(store.snapshot({ text: 'CONNECT', kind: 'tunnel' }, false).flows).toHaveLength(1)
   })
 
@@ -217,7 +198,7 @@ describe('capture store', () => {
     expect(store.detail('missing')).toBeUndefined()
   })
 
-  it('does not store a request body under a secret field name in JSON', () => {
+  it('stores a request body under a password field name verbatim', () => {
     const store = new CaptureStore(() => limits())
     store.append(exchange({
       requestHeaders: [['content-type', 'application/json']],
@@ -226,6 +207,6 @@ describe('capture store', () => {
     }))
     const body = store.list()[0]
     expect(body).toBeDefined()
-    expect(store.detail(body?.id ?? '')?.requestBody).toBe('{"password":"[redacted]","keep":true}')
+    expect(store.detail(body?.id ?? '')?.requestBody).toBe('{"password":"pw","keep":true}')
   })
 })

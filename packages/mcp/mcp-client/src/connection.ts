@@ -254,7 +254,6 @@ export function startConnection(
             assertInstructions(routed)
             return routed.callCatalogTool(tool, args, exec)
           } },
-          ...config.expandTemplates ? { redact: (text: string) => binding.redact(text) } : {},
         }, disposers, () => isCurrent(record))
       })
     })

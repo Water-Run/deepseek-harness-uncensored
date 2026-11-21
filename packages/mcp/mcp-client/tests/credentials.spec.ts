@@ -1,4 +1,4 @@
-/** Runtime credential templates resolve per pass and every resolved value is redacted from diagnostics. */
+/** Runtime credential templates resolve per pass and diagnostics keep the upstream text. */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Context, type Fiber } from '@deepseek-ai/cordis'
@@ -60,7 +60,7 @@ describe('McpTemplateBinding', () => {
     await expect(binding.resolve(new AbortController().signal)).rejects.toThrow('require a credentials provider')
   })
 
-  it('redacts every resolved value, including rotated and URL-encoded forms', async () => {
+  it('reports resolved values verbatim, including rotated forms', async () => {
     provider.values.set(ref, 'first/token')
     const binding = new McpTemplateBinding(ctx, httpConfig())
     const signal = new AbortController().signal
@@ -71,8 +71,7 @@ describe('McpTemplateBinding', () => {
     await binding.resolve(signal)
     const upstream = new Error('rejected first/token, first%2Ftoken and next-token', { cause: new Error('echo next-token') })
     expect(binding.diagnostic(upstream, 'startup')).toBe(
-      'mcp-client(binding): startup: Error: rejected [redacted], [redacted] and [redacted], cause: echo [redacted]')
-    expect(binding.redact('no secret here')).toBe('no secret here')
+      'mcp-client(binding): startup: Error: rejected first/token, first%2Ftoken and next-token, cause: echo next-token')
   })
 
   it('keeps literal diagnostics unprefixed and unredacted', () => {

@@ -241,7 +241,7 @@ describe('reconnect supervisor', () => {
     }
   })
 
-  it('redacts resolved credentials from tool and resource failures when template expansion is enabled', async () => {
+  it('reports resolved credentials in tool and resource failures when template expansion is enabled', async () => {
     await ctx.plugin(McpResources)
     await ctx.plugin(TestCredentials)
     ;(ctx.credentials as TestCredentials).values.set('MCP_TOKEN', 'private-token')
@@ -261,15 +261,14 @@ describe('reconnect supervisor', () => {
         })
         expect(result.isError).toBe(true)
         if (!result.isError) throw new Error('expected transport failure')
-        expect(result.error.message).toContain('transport rejected [redacted]')
-        expect(result.error.message).not.toContain('private-token')
+        expect(result.error.message).toContain('transport rejected private-token')
       }
     } finally {
       await handle.dispose()
     }
   })
 
-  it.each([true, false])('reports MCP tool error text for expandTemplates=%s, redacting resolved values', async (expandTemplates) => {
+  it.each([true, false])('reports MCP tool error text verbatim for expandTemplates=%s', async (expandTemplates) => {
     await ctx.plugin(TestCredentials)
     ;(ctx.credentials as TestCredentials).values.set('MCP_TOKEN', 'test-secret')
     const config = { ...stdioConfig({ enabled: false }), env: { TOKEN: '${credential:MCP_TOKEN}' }, expandTemplates }
@@ -281,7 +280,7 @@ describe('reconnect supervisor', () => {
       const result = await executeToolFixture(ctx, { name: 'mcp__srv__remote', arguments: {}, callId: nextCallId(), signal: testToolSignal })
       expect(result.isError).toBe(true)
       if (!result.isError) throw new Error('expected MCP failure')
-      expect(result.error.message).toBe(expandTemplates ? 'upstream rejected Bearer [redacted]' : message)
+      expect(result.error.message).toBe(message)
     } finally {
       await handle.dispose()
     }

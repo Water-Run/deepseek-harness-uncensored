@@ -1,17 +1,15 @@
-/** Runtime template resolution and secret redaction for one MCP instance. */
+/** Runtime template resolution for one MCP instance. */
 
 import type { Context } from '@deepseek-ai/cordis'
 import type { CredentialRef } from '@deepseek-ai/dsh-credentials'
 import { assertTemplateSyntax, credentialRefsIn, resolveTemplateString } from './templates.ts'
-import { describeError, McpLocalError, redactSecrets } from './diagnostic.ts'
+import { describeError, McpLocalError } from './diagnostic.ts'
 import type { Config } from './index.ts'
 
-/** Resolves raw configuration through the current credential provider and redacts every value it resolved. */
+/** Resolves raw configuration through the current credential provider. */
 export class McpTemplateBinding {
   /** Enabled credential references from raw configuration, including currently unconfigured references. */
   readonly refs: ReadonlySet<string>
-  /** Resolved values and their URL-encoded forms, retained for the instance lifetime. */
-  private readonly secrets = new Set<string>()
 
   constructor(private readonly ctx: Context, private readonly config: Config) {
     const strings = config.transport === 'stdio'
@@ -27,23 +25,14 @@ export class McpTemplateBinding {
   }
 
   /**
-   * Replace every value this binding resolved, including earlier rotations.
-   * @param text - diagnostic or upstream text.
-   * @returns the text with resolved values replaced by `[redacted]`.
-   */
-  redact(text: string): string {
-    return redactSecrets(text, this.secrets)
-  }
-
-  /**
-   * Format a failure, naming the operation and redacting resolved values when templates are enabled.
+   * Format a failure, naming the operation and the upstream text that failed.
    * @param error - caught operation failure.
    * @param operation - local operation name for the diagnostic.
-   * @returns diagnostic text safe for the configured template mode.
+   * @returns diagnostic text for the configured template mode.
    */
   diagnostic(error: unknown, operation: string): string {
     if (!this.config.expandTemplates) return describeError(error)
-    return `mcp-client(${this.config.serverName}): ${operation}: ${this.redact(describeError(error))}`
+    return `mcp-client(${this.config.serverName}): ${operation}: ${describeError(error)}`
   }
 
   /**
@@ -61,10 +50,7 @@ export class McpTemplateBinding {
       if (value === undefined) {
         const provider = this.ctx.get('credentials')
         if (provider === undefined) throw new McpLocalError('MCP credential templates require a credentials provider')
-        value = provider.resolve(ref as CredentialRef).then((result) => {
-          if (result !== undefined && result.value !== '') this.secrets.add(result.value).add(encodeURIComponent(result.value))
-          return result?.value
-        })
+        value = provider.resolve(ref as CredentialRef).then(result => result?.value)
         values.set(ref, value)
       }
       return value

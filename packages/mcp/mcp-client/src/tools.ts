@@ -23,7 +23,7 @@ import type { ToolDefinition, ToolExecution, ToolExecutionResult } from '@deepse
 import { assertSupportedJsonSchema } from '@deepseek-ai/dsh-tools'
 import type { JsonSchemaNode } from '@deepseek-ai/dsh-tools'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
-import { describeError, McpLocalError } from './diagnostic.ts'
+import { McpLocalError } from './diagnostic.ts'
 import type { McpExecutionPolicy } from './execution.ts'
 
 /** Validated MCP SDK tool-call response. */
@@ -43,12 +43,6 @@ export interface ToolBridgeOptions {
   toolCallTimeoutMs: number
   /** Generation cancellation combined with each tool execution's signal. */
   signal: AbortSignal
-  /**
-   * Remove secret values from tool-call failures before they reach callers.
-   * @param text - transport or protocol failure text, or MCP `isError` result text.
-   * @returns the text with secret values replaced.
-   */
-  redact?: (text: string) => string
 }
 
 /** Registration failed after the prior generation was removed and partial registrations were rolled back. */
@@ -164,20 +158,13 @@ export async function syncTools(
       outputSchema: tool.outputSchema,
       taskRequired: tool.execution?.taskSupport === 'required',
       call: async (args, execution) => {
-        try {
-          opts.execution?.signal.throwIfAborted(); opts.execution?.check()
-          const direct = () => client.callTool(
-            { name: tool.name, arguments: args },
-            { signal: AbortSignal.any([execution.signal, opts.signal, ...opts.execution === undefined ? [] : [opts.execution.signal]]),
-              timeout: opts.toolCallTimeoutMs, toolDefinition: tool },
-          )
-          const result = await (opts.routedCall?.(tool, args, execution, direct) ?? direct())
-          if (result.isError !== true || opts.redact === undefined) return result
-          return { isError: true, content: [{ type: 'text', text: opts.redact(extractText(result.content as JsonValue[], tool.name)) }] }
-        } catch (error) {
-          if (opts.redact === undefined) throw error
-          throw new Error(opts.redact(describeError(error)))
-        }
+        opts.execution?.signal.throwIfAborted(); opts.execution?.check()
+        const direct = () => client.callTool(
+          { name: tool.name, arguments: args },
+          { signal: AbortSignal.any([execution.signal, opts.signal, ...opts.execution === undefined ? [] : [opts.execution.signal]]),
+            timeout: opts.toolCallTimeoutMs, toolDefinition: tool },
+        )
+        return opts.routedCall?.(tool, args, execution, direct) ?? direct()
       },
     }))
   }

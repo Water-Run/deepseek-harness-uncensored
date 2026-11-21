@@ -45,8 +45,8 @@ function AuditEntry({ entry, t }: { entry: TargetAuditEntry; t: TargetAuditSecti
       <div><dt>{t('audit.session')}</dt><dd><code>{entry.source?.sessionId ?? t('audit.sourceUnknown')}</code></dd></div>
       {entry.source?.parentSessionId !== undefined && <div><dt>{t('audit.parent')}</dt><dd><code>{entry.source.parentSessionId}</code></dd></div>}
       {entry.code !== null && <div><dt>{t('audit.code')}</dt><dd><code>{entry.code}</code></dd></div>}
-      <div><dt>{t('audit.target')}</dt><dd><code>{entry.fingerprint ?? t('audit.none')}</code></dd></div>
-      {entry.peerFingerprint !== null && <div><dt>{t('audit.peer')}</dt><dd><code>{entry.peerFingerprint}</code></dd></div>}
+      <div><dt>{t('audit.target')}</dt><dd><code>{entry.target ?? entry.fingerprint ?? t('audit.none')}</code></dd></div>
+      {entry.peers !== null && <div><dt>{t('audit.peer')}</dt><dd><code>{entry.peers}</code></dd></div>}
       <div><dt>{t('audit.rules')}</dt><dd>
         <span>{t('audit.matches', { count: entry.matchedRules })}</span>
         {entry.ruleIds.length > 0 && <ul className={css.ruleIds}>{entry.ruleIds.map(id => <li key={id}><code>{id}</code></li>)}</ul>}
@@ -59,7 +59,7 @@ function AuditEntry({ entry, t }: { entry: TargetAuditEntry; t: TargetAuditSecti
 }
 
 /**
- * Expand recent audit checks without exposing raw targets or credentials.
+ * Expand recent audit checks with the targets each check saw.
  * @param props - Current mode, audit snapshot, visibility and refresh callbacks, and localized copy.
  * @returns The Security-mode audit panel, or null for other modes.
  */

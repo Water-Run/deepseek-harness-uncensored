@@ -380,7 +380,7 @@ describe('mcp-manager', () => {
     expect(ctx.tools.get('mcp__srv__remote')).toBeDefined()
   })
 
-  it('rechecks a queued credential update after provider failure without logging a resolved secret', async () => {
+  it('rechecks a queued credential update after provider failure and logs the provider message', async () => {
     const { ctx, manager, credentials } = await mountWorld({
       withCredentials: true,
       settingsDoc: { mcp: { servers: { srv: stdioEntry({ env: { TOKEN: '${credential:MCP_SPEC_RECHECK}' } }) } } },
@@ -406,8 +406,7 @@ describe('mcp-manager', () => {
       await waitForState(manager, 'srv', 'connected')
       expect(resolve.mock.calls.length).toBeGreaterThanOrEqual(3)
       expect(errors.some(line => line.includes('credential refresh failed'))).toBe(true)
-      expect(errors.join('\n')).toContain('[redacted]')
-      expect(errors.join('\n')).not.toContain('first-secret')
+      expect(errors.join('\n')).toContain('provider response included first-secret')
       expect(mockConnect).toHaveBeenCalledTimes(2)
     } finally {
       gate.resolve()

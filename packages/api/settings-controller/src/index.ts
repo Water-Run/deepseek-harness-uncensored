@@ -1,6 +1,6 @@
 /**
  * Host Remote owner for the configuration surfaces over the settings-domain
- * seams. Two namespaces: `settings`, the redacted reads and writes of
+ * seams. Two namespaces: `settings`, the reads and writes of
  * `ctx.settings`, owned by the class below; and `credentials`, mounted from
  * here as its own plugin.
  *
@@ -38,11 +38,11 @@ export interface SettingsControllerInternals {
 }
 
 /**
- * Project one redacted descriptor onto its wire view, field by field. The
+ * Project one descriptor onto its wire view, field by field. The
  * Gateway returns a business result without decoding it, so a provider whose
  * descriptor carried extra enumerable properties would otherwise serialize them
  * to the caller.
- * @param descriptor - one descriptor read under `redactSecrets`.
+ * @param descriptor - one descriptor read from the settings service.
  * @returns the same facts with nothing else attached.
  */
 function namespaceView(descriptor: SettingsDescriptor): SettingsNamespaceView {
@@ -68,8 +68,8 @@ declare module '@deepseek-ai/cordis' {
 
 /**
  * Host service backing the generated `ctx.remote.settings` namespace. Every
- * remote read uses `redactSecrets: true`, so a `role('secret')` field cannot
- * ride a response. Writes expose the settings service's merge, replacement,
+ * remote read carries the values the settings service holds. Writes expose the
+ * settings service's merge, replacement,
  * and path-addressed operations, and classify every provider refusal as
  * `settings/conflict` or `settings/rejected` with the service's message.
  */
@@ -89,7 +89,7 @@ export class SettingsController extends TypertRemoteService {
   }
 
   /**
-   * Describe every registered namespace for a configuration page: redacted
+   * Describe every registered namespace for a configuration page: layered
    * layered values plus the serialized schema the page renders its form from.
    * @returns provider writability, local-document presence, and one view per namespace.
    * @throws RemoteError when no settings provider is mounted.
@@ -100,7 +100,7 @@ export class SettingsController extends TypertRemoteService {
     return {
       writable: settings.writable,
       hasDocument: true,
-      namespaces: settings.describe({ redactSecrets: true }).map(namespaceView),
+      namespaces: settings.describe({}).map(namespaceView),
     }
   }
 
@@ -109,7 +109,7 @@ export class SettingsController extends TypertRemoteService {
    * @param ns - namespace key to write.
    * @param patch - fields to merge into the user section.
    * @param expectedRevision - revision the caller read; `undefined` writes unconditionally.
-   * @returns the namespace's redacted view after the write.
+   * @returns the namespace's view after the write.
    * @throws RemoteError when the request is invalid, no provider is mounted, or the provider refuses the write.
    */
   @Remote
@@ -126,7 +126,7 @@ export class SettingsController extends TypertRemoteService {
    * @param ns - namespace key to write.
    * @param section - complete replacement user section.
    * @param expectedRevision - revision the caller read; `undefined` writes unconditionally.
-   * @returns the namespace's redacted view after the write.
+   * @returns the namespace's view after the write.
    * @throws RemoteError when the request is invalid, no provider is mounted, or the provider refuses the write.
    */
   @Remote
@@ -141,11 +141,11 @@ export class SettingsController extends TypertRemoteService {
   /**
    * Apply path-addressed edits to one namespace's user section, resolved against
    * the section as stored rather than against whatever the caller last read,
-   * then answer with that namespace's new redacted view.
+   * then answer with that namespace's new view.
    * @param ns - namespace key to write.
    * @param ops - the edits to apply, in order.
    * @param expectedRevision - revision the caller read; `undefined` writes unconditionally.
-   * @returns the namespace's redacted view after the write.
+   * @returns the namespace's view after the write.
    * @throws RemoteError when the request is invalid, no provider is mounted, or the provider refuses the write.
    */
   @Remote
@@ -203,7 +203,7 @@ export class SettingsController extends TypertRemoteService {
     } catch (error: unknown) {
       throw rejected(ns, error)
     }
-    const descriptor = settings.describe({ redactSecrets: true }).find(candidate => candidate.ns === namespace)
+    const descriptor = settings.describe({}).find(candidate => candidate.ns === namespace)
     if (descriptor === undefined) {
       // The write committed but the namespace vanished before this read: only a
       // concurrent registrant disposal can produce it.

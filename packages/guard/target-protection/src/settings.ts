@@ -192,7 +192,7 @@ export default class TargetProtectionSettings extends TypertRemoteService {
   }
 
   /**
-   * Read recent redacted protection decisions for the authenticated owner.
+   * Read recent protection decisions for the authenticated owner.
    * @returns The audit availability and latest decisions, newest first.
    * @throws When the stored records cannot be read or validated.
    */

@@ -122,7 +122,7 @@ export interface SecurityProxyTestResult {
   readonly state: SecurityProxyState
 }
 
-/** One header as captured, after default redaction. */
+/** One header as captured. */
 export interface SecurityProxyHeader {
   readonly name: string
   readonly value: string
@@ -195,7 +195,7 @@ export interface SecurityProxyFlowQuery {
 /** Filters for exporting every matching retained record, without the list row cap. */
 export type SecurityProxyExportQuery = Pick<SecurityProxyFlowQuery, 'sessionId' | 'kind' | 'text'>
 
-/** Versioned JSON download containing only stored, redacted capture values. */
+/** Versioned JSON download containing the stored capture values. */
 export interface SecurityProxyCaptureExport {
   readonly format: 'dshu-security-proxy-capture'
   readonly version: 1

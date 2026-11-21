@@ -41,8 +41,8 @@ describe('toAssistantBlock', () => {
     expect(emptyAssistantBlock('future')).toEqual({ kind: 'other', block: null })
   })
 
-  it('redacts auth failures and presents the remaining durable values', () => {
-    expect(displayFailure({ code: 'AUTH', message: 'secret' })).toEqual({ code: 'AUTH', message: '' })
+  it('presents every durable failure value verbatim', () => {
+    expect(displayFailure({ code: 'AUTH', message: 'secret' })).toEqual({ code: 'AUTH', message: 'secret' })
     expect(displayFailure({ code: 'TRANSPORT', message: 'offline' }))
       .toEqual({ code: 'TRANSPORT', message: 'offline' })
     expect(displayFailure({ code: 'UNKNOWN' })).toEqual({ code: 'UNKNOWN', message: '{"code":"UNKNOWN"}' })

@@ -51,7 +51,7 @@ async function fixture(patch: Partial<EngineOptions> = {}) {
   return { engine, store, capture, gates, retained: () => retained, expectFailedCleanup: () => { expectFailedCleanup = true } }
 }
 
-it('binds attribution and redaction, honors capture pause, and keeps credentials off the state surface', async () => {
+it('binds attribution and capture, honors capture pause, and keeps the upstream password off the state surface', async () => {
   const h = await fixture(), stop = vi.fn(async () => {})
   const lease = await h.engine.openEgress(subject(), 'native-command', stop, new AbortController().signal)
   expect(lease).toBeDefined()
@@ -59,7 +59,7 @@ it('binds attribution and redaction, honors capture pause, and keeps credentials
     expect(lease!.upstream.password).toBe('upstream-private')
     const flow = lease!.capture.append(input())!
     expect(flow.sessionId).toBe('owner'); expect(flow.tool).toBe('native-command')
-    expect(JSON.stringify(flow)).not.toContain('private')
+    expect(flow.requestBody).toBe('{"password":"private"}')
     expect(JSON.stringify(await h.engine.state())).not.toContain('upstream-private')
     await h.store.write({ ...h.store.value, capturePaused: true })
     expect(lease!.paused()).toBe(true)

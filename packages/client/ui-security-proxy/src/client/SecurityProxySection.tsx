@@ -367,7 +367,6 @@ function DetailDialog({ detail, failed, onClose, t }: {
         <BodyBlock title={t('securityProxy.detail.requestBody')} body={detail.requestBody} t={t} />
         <BodyBlock title={t('securityProxy.detail.responseBody')} body={detail.responseBody} t={t} />
         {truncation && <p className={css.hint}>{truncation}</p>}
-        <p className={css.hint}>{t('securityProxy.detail.redacted')}</p>
       </>}
   </Modal>
 }

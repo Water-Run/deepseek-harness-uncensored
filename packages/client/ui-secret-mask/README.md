@@ -25,7 +25,7 @@ Use `dsh-client-ui-secret-mask` when Web users paste API keys, tokens, or passwo
 <a id="use-this-package"></a>
 ## Use this package
 
-Mount the package beside `dsh-client-ui-conversation`. The Web app bundle mounts it by default; removing its row draws credentials as written. Every caller of the [UserText Factory](../ui-conversation/README.md#sent-user-text) masks: message bubbles, steering messages, pending echoes, queued messages, and `/goal` input bubbles.
+Mount the package beside `dsh-client-ui-conversation`. This bundle does not mount it, so sent text draws credentials as written; adding its row turns masking on. Every caller of the [UserText Factory](../ui-conversation/README.md#sent-user-text) masks: message bubbles, steering messages, pending echoes, queued messages, and `/goal` input bubbles.
 
 Credentials use a monospace fallback by default, keeping ASCII mask and reveal widths aligned. An explicit code-font preference is honored. Interactive text, which is a sent message or an admitted steering message, adds an eye control at the end of each run. The control reveals or hides that one value, and every mount starts masked. Other callers draw the masked value without a control.
 

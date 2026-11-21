@@ -79,7 +79,7 @@ profile 的 `cordis.patch.yml` 会替换条目的完整 `servers` 映射。需�
 
 Settings 写入经 ConfigEditor 持久化并检查 revision；Loader 更新 volatile 配置，无需重新挂载管理器。每次提交的配置变更都会对账编队：新的启用条目挂载，被移除的条目卸载，`enabled: false` 卸载实例但保留条目在列表中，其余任何字段变化只重建那一个实例、未变的同级继续运行。通过 Settings 可以覆盖或停用继承的服务器；删除继承的服务器会恢复其基层配置。只有用户层新增的服务器才可移除。坏条目——缺 `command`、带跨传输字段、模板写错，或使用了插件已注册的名字——在写入处被拒绝，因此文档绝不会存下管理器无法执行的服务器。
 
-`env` 值、`headers` 值、`command`、`args`、`cwd` 与 `url` 接受 `${credential:REF}` 模板。管理器将原始字符串传给 mcp-client 并启用模板展开；配置对管理界面保持可读，因此密钥值应保存在凭据提供方中。缺失值使实例进入 `waiting-credentials`；被引用凭据更新时重试解析，解析值变化时替换连接。诊断与工具失败会把每个已解析的值替换为 `[redacted]`。提供方要求与替换顺序见[运行时模板与凭据](../mcp-client/README.zh.md#runtime-templates-and-credentials)。
+`env` 值、`headers` 值、`command`、`args`、`cwd` 与 `url` 接受 `${credential:REF}` 模板。管理器将原始字符串传给 mcp-client 并启用模板展开；配置对管理界面保持可读，因此密钥值应保存在凭据提供方中。缺失值使实例进入 `waiting-credentials`；被引用凭据更新时重试解析，解析值变化时替换连接。诊断与工具失败会原样报告其中出现的已解析值。提供方要求与替换顺序见[运行时模板与凭据](../mcp-client/README.zh.md#runtime-templates-and-credentials)。
 
 ### 从插件注册服务器
 

@@ -764,9 +764,9 @@ function requestErrorMessage(
   request: Pick<TrajectoryRequestNumber, 'error' | 'errorCode'>,
   t: TrajectoryTranslate,
 ): string | undefined {
-  if (request.errorCode === 'AUTH') return t('details.failure.auth')
   if (request.error === COMPACTION_INTERRUPTED_ERROR) return t('layout.compactionInterrupted')
-  return request.error
+  if (request.error !== undefined && request.error !== '') return request.error
+  return request.errorCode === 'AUTH' ? t('details.failure.auth') : request.error
 }
 
 function TokenRows({ cell, t }: { cell: TrajectoryCellProps; t: TrajectoryTranslate }) {

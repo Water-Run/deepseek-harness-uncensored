@@ -29,7 +29,7 @@ async function fixture() {
   return { root, ctx, owner, auditPath, protection: ctx.targetProtection }
 }
 
-it('records real refusals and returned results with stable redacted identity and captured Session', async () => {
+it('records real refusals and returned results with readable targets and captured Session', async () => {
   const h = await fixture(), first = h.ctx.sessions.create(SessionId('remote-first')), second = h.ctx.sessions.create(SessionId('remote-second'))
   const identity = ['ssh', 'private-host.example', 22, '/private/file.txt']
   const entered = Promise.withResolvers<undefined>(), release = Promise.withResolvers<undefined>()
@@ -52,7 +52,9 @@ it('records real refusals and returned results with stable redacted identity and
     ruleIds: [firstRule], matchedRules: 1, source: { sessionId: first.id } })
   expect(entries[1]).toMatchObject({ effect: 'observe', decision: 'allow', ruleIds: [secondRule], source: { sessionId: second.id } })
   expect(entries[0]?.fingerprint).toBe(entries[1]?.fingerprint)
-  expect(JSON.stringify(entries)).not.toMatch(/private-host|file\.txt|private contents/u)
+  expect(entries[0]?.target).toBe(entries[1]?.target)
+  expect(JSON.stringify(entries)).toContain('ssh private-host.example 22 /private/file.txt')
+  expect(JSON.stringify(entries)).not.toContain('private contents')
   expect(first.snapshotEvents().filter(event => event.type === 'target/admission')).toHaveLength(1)
   expect(second.snapshotEvents().filter(event => event.type === 'target/admission')).toHaveLength(1)
 })

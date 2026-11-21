@@ -61,7 +61,7 @@ kind: "package-reference"
 | `toolCallTimeoutMs` | `60,000` | 每次 `tools/call` 或资源请求的超时 |
 | `startupTimeoutMs` | 未设置 | 模板解析、协商、连接及初次工具同步的可选预算 |
 | `closeTimeoutMs` | `5,000` | 传输关闭与待处理本地工作完全结算的预算 |
-| `expandTemplates` | `false` | 在运行时解析传输字符串中的 `${credential:REF}`，并在诊断中替换已解析的值 |
+| `expandTemplates` | `false` | 在运行时从凭据提供方解析传输字符串中的 `${credential:REF}` |
 | `maxInstructionBytes` | `32,768` | 包括服务器归属信息在内的服务器指令 UTF-8 字节上限；超出时连接失败 |
 | `failOnStartupError` | `false` | 初始连接或工具同步失败时拒绝插件激活 |
 | `reconnect.enabled` | `true` | 连接丢失后自动重新连接 |
@@ -104,7 +104,7 @@ kind: "package-reference"
 
 凭据通知只有在解析值变化时才重建连接；值相同的通知保留连接及其重连预算。替代连接启动前，旧连接必须关闭并完成本地清理。清理未完成会阻止替换，直到宿主重启。
 
-启用模板展开时，失败诊断、工具调用失败与 MCP `isError` 工具结果文本保留上游消息，但会把本实例解析过的每个值（包括此前轮换的值及其 URL 编码形式）替换为 `[redacted]`。成功工具结果保留原始内容。
+启用模板展开时，失败诊断、工具调用失败与 MCP `isError` 工具结果文本原样保留上游消息，包括实例解析出的凭据值。成功工具结果保留原始内容。
 
 -----
 
@@ -133,7 +133,7 @@ kind: "package-reference"
 | [`src/index.ts`](src/index.ts) | 插件入口：`Config` schema、`serverName` 预留、激活等待 |
 | [`src/connection.ts`](src/connection.ts) | 连接监督器：客户端世代、重连策略、尝试预算、dispose（资源释放） |
 | [`src/generation.ts`](src/generation.ts) | 传输归属、取消、待处理工作与关闭确认 |
-| [`src/credentials.ts`](src/credentials.ts) | 运行时模板绑定，并替换每个已解析的值 |
+| [`src/credentials.ts`](src/credentials.ts) | 运行时模板绑定，生成传输配置 |
 | [`src/templates.ts`](src/templates.ts) | 凭据模板语法、替换与引用发现 |
 | [`src/server-context.ts`](src/server-context.ts) | 资源提供方注册与字面服务器指令 |
 | [`src/tools.ts`](src/tools.ts) | 工具桥接：发现、命名、注册交换、执行、图片投影 |
@@ -141,7 +141,7 @@ kind: "package-reference"
 | [`src/status.ts`](src/status.ts) | 以 Fiber 为键的状态单元，保留最终清理结果 |
 | [`src/probe.ts`](src/probe.ts) | 一次性探测：连接、取身份、列工具、关闭——不注册任何东西 |
 | [`src/deadline.ts`](src/deadline.ts) | 启动与探测预算共用的结算截止器 |
-| [`src/diagnostic.ts`](src/diagnostic.ts) | 原因链诊断与密钥值替换 |
+| [`src/diagnostic.ts`](src/diagnostic.ts) | 原因链诊断 |
 | [`src/types.ts`](src/types.ts) | 客户端可用的连接状态与探测结果类型（`./types`） |
 
 导出的 `createMcpToolDefinition(ctx, options)` 将上游工具 schema 和原始结果回调适配到相同的规范值、错误和持久化图像投影。每次回调都收到原样的 `ToolExecution`，包括其 Agent 和取消信号；SDK 的规范类型校验会在投影前检查返回结果。调用方负责注册、取消截止时间和提供方卸载。原生 Cua Driver 提供方使用此适配函数，无需打开 MCP 传输。
@@ -158,7 +158,7 @@ kind: "package-reference"
 
 SDK 通过旧版通知或现代协议订阅接收工具列表变化。监督器将每次重新同步排队并重新发布已连接的工具数；获取失败时保留之前的注册代，注册冲突则回滚本次尝试并关闭连接，再按重连策略处理。每次故障共享一个尝试预算：连续失败达到 `maxAttempts` 后注销工具并停止重连；连接持续超过 `maxDelayMs` 则重置预算。
 
-启用 `expandTemplates` 时，失败诊断标明操作名称并保留原因链，其中每个已解析的值都替换为 `[redacted]`。未启用模板展开的配置保留完整错误诊断。
+启用 `expandTemplates` 时，失败诊断标明操作名称并保留原因链与上游错误文本。未启用模板展开的配置保留完整错误诊断。
 
 ### 工具执行内部细节
 
