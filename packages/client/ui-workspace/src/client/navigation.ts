@@ -197,7 +197,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     private readonly directoryPicker: ClientRemote['directoryPicker'],
     private readonly workspaces: IWorkspaces,
     private readonly sessions: ISessions,
-    private readonly view: Pick<WorkspaceViewStoreActions, 'pinSessionOrder'>,
+    private readonly view: Pick<WorkspaceViewStoreActions, 'pinSessionOrder' | 'leadSession'>,
     private readonly notify: (toast: RowToast) => void,
   ) {
     super(ctx, 'uiWorkspace')
@@ -346,6 +346,9 @@ class UiWorkspaceService extends Service implements UiWorkspace {
         sessionId, increaseTitle: true, ...request,
         onCreated: (childId) => {
           fork.child = childId
+          // The child holds no saved manual position, so Manual order would
+          // supplement it after every saved one; leading keeps it findable.
+          this.view.leadSession(childId)
           if (navigation?.aborted === false) {
             this.replaceMain(childId, navigation, 'reveal')
             fork.opened = true

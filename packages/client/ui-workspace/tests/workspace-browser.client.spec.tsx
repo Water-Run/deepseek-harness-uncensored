@@ -924,7 +924,6 @@ describe('WorkspaceBrowser', () => {
       running: true, pendingInteraction: undefined, completionUnread: false,
     }])))
     rerender(b, {
-      useSessions: hook(sessionState(items, { main: sid('session-53') })),
       useSessionStatus: hook<SessionStatusSnapshot>(new Map([
         [sid('session-55'), { running: true, pendingInteraction: undefined, completionUnread: false }],
         [sid('session-56'), { running: false, pendingInteraction: undefined, completionUnread: true }],
@@ -935,7 +934,7 @@ describe('WorkspaceBrowser', () => {
       ])),
     })
     expect(screen.queryByText('session-6')).toBeNull()
-    for (const id of ['session-53', 'session-55', 'session-56', 'session-57']) expect(screen.queryByText(id)).toBeNull()
+    for (const id of ['session-55', 'session-56', 'session-57']) expect(screen.queryByText(id)).toBeNull()
     rerender(b, { useSessionStatus: running('session-50', 'session-55') })
     expect(screen.getByText('session-50')).toBeTruthy()
     expect(screen.queryByText('session-51')).toBeNull()
@@ -944,6 +943,60 @@ describe('WorkspaceBrowser', () => {
     expect(screen.queryByText('session-56')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: '展开其余 5 个会话' }))
     expect(screen.getByText('session-60')).toBeTruthy()
+  })
+
+  it('shows the open Session however deep it sits, while attention stays capped', () => {
+    const items = Array.from({ length: 60 }, (_, index) => summary(`session-${index + 1}`, 60 - index))
+    const b = mount({
+      useSessions: hook(sessionState(items)),
+      useWorkspaces: hook(workspaceState([workspace('alpha', items.map(item => item.id))])),
+    })
+    fireEvent.click(screen.getByText('alpha'))
+    expect(screen.queryByText('session-53')).toBeNull()
+    rerender(b, { useSessions: hook(sessionState(items, { main: sid('session-53') })) })
+    expect(screen.getByText('session-53')).toBeTruthy()
+    expect(screen.queryByText('session-54')).toBeNull()
+    expect(screen.getByRole('button', { name: '展开其余 7 个会话' })).toBeTruthy()
+  })
+
+  it('reveals a branch that a saved manual order appends past the fold once it opens', () => {
+    // A fork created today gets no saved position, so Manual order supplements it
+    // after every saved position — here past both the five-row fold and the
+    // automatic attention cap. Opening it must still put its row in the list,
+    // which is what a freshly created branch does.
+    const items = Array.from({ length: 60 }, (_, index) => summary(`session-${index + 1}`, 60 - index))
+    const branch = summary('branch', 100)
+    const all = [...items, branch]
+    const b = mount({
+      useSessions: hook(sessionState(all)),
+      useWorkspaces: hook(workspaceState([workspace('alpha', all.map(item => item.id))])),
+    })
+    b.store.actions.setSessionOrder('alpha', items.map(item => item.id), {})
+    fireEvent.click(screen.getByText('alpha'))
+    expect(screen.queryByText('branch')).toBeNull()
+    rerender(b, { useSessions: hook(sessionState(all, { main: branch.id })) })
+    expect(screen.getByText('branch')).toBeTruthy()
+  })
+
+  it('leads a freshly created branch until a saved position places it', () => {
+    const items = Array.from({ length: 8 }, (_, index) => summary(`session-${index + 1}`, 8 - index))
+    const branch = summary('branch', 100)
+    const all = [...items, branch]
+    const visible = () => screen.getAllByRole('treeitem')
+      .map(row => within(row).getByText(/^(alpha|branch|session-\d+)$/u).textContent)
+    const b = mount({
+      useSessions: hook(sessionState(all)),
+      useWorkspaces: hook(workspaceState([workspace('alpha', all.map(item => item.id))])),
+    })
+    // The saved order predates the branch, so Manual supplementation ends it last.
+    b.store.actions.setSessionOrder('alpha', items.map(item => item.id), {})
+    fireEvent.click(screen.getByText('alpha'))
+    expect(visible()).toEqual(['alpha', 'session-1', 'session-2', 'session-3', 'session-4', 'session-5'])
+    act(() => { b.store.actions.leadSession('branch') })
+    expect(visible()).toEqual(['alpha', 'branch', 'session-1', 'session-2', 'session-3', 'session-4'])
+    // A saved position supersedes the lead, so a drag decides where it lives.
+    act(() => { b.store.actions.setSessionOrder('alpha', [...items.map(item => item.id), 'branch'], {}) })
+    expect(visible()).toEqual(['alpha', 'session-1', 'session-2', 'session-3', 'session-4', 'session-5'])
   })
 
   it('covers the current session and a parent with a running child', () => {

@@ -28,6 +28,11 @@ type WorkspaceViewState = {
   sessionOrderByAccount: Record<string, string[]>
   /** Archived-row visibility; omitted in pre-filter v5 snapshots and read as 'default'. */
   archivedFilter?: ArchivedFilter
+  /**
+   * Sessions this browser created that no saved manual position has placed yet,
+   * in creation order. Absent in v5 snapshots written before it existed.
+   */
+  leadingSessionIds?: string[]
 }
 
 type SessionOrderSource = {
@@ -66,6 +71,7 @@ type WorkspaceViewActions = {
     source: SessionOrderSource,
   ) => void
   setArchivedFilter: (draft: WorkspaceViewState, filter: ArchivedFilter) => void
+  leadSession: (draft: WorkspaceViewState, sessionId: string) => void
 }
 
 /** Copy read-only projections into the persisted mutable store representation. */
@@ -87,6 +93,7 @@ export function createWorkspaceViewStore(): EngineStoreHandle<WorkspaceViewState
       groupExpansion: {},
       sessionOrderByAccount: {},
       archivedFilter: 'default',
+      leadingSessionIds: [],
     }),
     persist: 'dsh.workspace.view.v5',
     actions: {
@@ -125,6 +132,10 @@ export function createWorkspaceViewStore(): EngineStoreHandle<WorkspaceViewState
         }))
       },
       setArchivedFilter: (d, filter: ArchivedFilter) => { d.archivedFilter = filter },
+      leadSession: (d, sessionId) => {
+        const leading = (d.leadingSessionIds ??= [])
+        if (!leading.includes(sessionId)) leading.push(sessionId)
+      },
     },
   })
 }

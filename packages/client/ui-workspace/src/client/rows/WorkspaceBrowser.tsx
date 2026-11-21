@@ -35,7 +35,7 @@ import type { WorkspaceBrowserProps } from '../contract/slots.ts'
 import type { ArchivedFilter, GroupNode, SessionNode, SessionOrderBy, SessionRowState } from '../tree.ts'
 import {
   deriveFlat, deriveGroups, deriveSearchResults, orderByRecency, owningGroupKey, owningParentFolder,
-  pinCurrentBlank, reconcileManualOrder, sessionMemberIds, UNGROUPED_KEY,
+  pinCurrentBlank, pinLeadingSessions, reconcileManualOrder, sessionMemberIds, UNGROUPED_KEY,
 } from '../tree.ts'
 import { ProjectRowItem, SearchResultItem, SessionNodeItem } from './Rows.tsx'
 import { FLAT_SESSION_ORDER_KEY, type SessionGroupBy } from '../stores.ts'
@@ -53,8 +53,14 @@ const SEARCH_DEBOUNCE_MS = 250
 const SEARCH_QUERY_MAX_CODE_UNITS = 500
 /** Non-blank Session rows visible per Workspace while no Session raises its watermark. */
 const SESSION_WATERMARK_BASE = 5
-/** Highest watermark that attention-bearing Sessions raise automatically; Show more and search reveals may exceed it. */
+/**
+ * Highest watermark that running, child-bearing, awaiting, or unread-completion
+ * Sessions raise automatically; Show more, the open Session, and search reveals
+ * may exceed it.
+ */
 const SESSION_WATERMARK_AUTO_MAX = 50
+/** Ordering input for accounts whose order mode leads nothing. */
+const EMPTY_LEADS: readonly SessionId[] = []
 
 /** Show the blank row plus the first `watermark` non-blank rows, in list order. */
 function watermarkRows(sessions: readonly SessionNode[], watermark: number): {
@@ -72,7 +78,10 @@ function watermarkRows(sessions: readonly SessionNode[], watermark: number): {
 
 /**
  * Smallest watermark that covers every non-blank row within the automatic maximum that is running, has a running
- * child, awaits the user, carries an unread completion, or is current, and the reveal target at any position.
+ * child, awaits the user, or carries an unread completion, plus the open Session and the reveal target at any
+ * position. Automatic attention stops at the cap so a long group does not unfold itself; the Session the user is
+ * looking at never folds away, which is how a Session appended to the end of a long saved order — a new branch in
+ * Manual order — stays visible right after it is created.
  */
 function requiredWatermark(
   sessions: readonly SessionNode[],
@@ -86,9 +95,9 @@ function requiredWatermark(
     index += 1
     const attention = index <= SESSION_WATERMARK_AUTO_MAX && (
       session.running || session.runningSubagentCount > 0 || session.pendingInteraction !== undefined
-      || session.completed || session.id === current
+      || session.completed
     )
-    if (attention || session.id === revealSessionId) required = index
+    if (attention || session.id === current || session.id === revealSessionId) required = index
   }
   return required
 }
@@ -976,6 +985,21 @@ export function WorkspaceBrowser({
   const archivedFilter = useStore(s => s.archivedFilter ?? 'default')
   const groupExpansion = useStore(s => s.groupExpansion)
   const sessionOrderByAccount = useStore(s => s.sessionOrderByAccount)
+  // View blobs written before this field existed rehydrate without it.
+  const leadingSessionIds = useStore(s => s.leadingSessionIds ?? EMPTY_LEADS)
+  /**
+   * Sessions this browser created that a saved manual position has not placed
+   * yet. Manual order supplements them after every saved one, which buries a
+   * fresh branch past a long group's fold, so they lead their section until an
+   * order write records a position. Last updated keeps its strict recency order.
+   */
+  const leadsFor = useCallback((accountKey: string): readonly SessionId[] => {
+    if (orderBy !== 'manual') return EMPTY_LEADS
+    const saved = sessionOrderByAccount[accountKey]
+    return saved === undefined
+      ? leadingSessionIds as readonly SessionId[]
+      : leadingSessionIds.filter(id => !saved.includes(id)) as readonly SessionId[]
+  }, [leadingSessionIds, orderBy, sessionOrderByAccount])
   // Archived sessions are not openable: the row stays visible under the
   // filter but a click explains instead of navigating.
   const guardedOpen = (sessionId: SessionId): void => {
@@ -1009,7 +1033,10 @@ export function WorkspaceBrowser({
     const memberIds = workspace.sessionIds
     const baseOrder = orderBy === 'updated'
       ? orderByRecency(memberIds, list.byId)
-      : reconcileManualOrder(memberIds, sessionOrderByAccount[workspace.workspaceId], list.byId, orderState)
+      : pinLeadingSessions(
+        reconcileManualOrder(memberIds, sessionOrderByAccount[workspace.workspaceId], list.byId, orderState),
+        leadsFor(workspace.workspaceId),
+      )
     return {
       ...workspace,
       sessionIds: pinCurrentBlank(
@@ -1017,25 +1044,31 @@ export function WorkspaceBrowser({
         currentBlank !== undefined && memberIds.includes(currentBlank) ? currentBlank : undefined,
       ),
     }
-  }), [currentBlank, list.byId, orderBy, orderState, sessionOrderByAccount, workspaces])
+  }), [currentBlank, leadsFor, list.byId, orderBy, orderState, sessionOrderByAccount, workspaces])
   const orderedUngroupedSessionIds = useMemo(() => {
     const baseOrder = orderBy === 'updated'
       ? orderByRecency(ungroupedMemberIds, list.byId)
-      : reconcileManualOrder(ungroupedMemberIds, sessionOrderByAccount[UNGROUPED_KEY], list.byId, orderState)
+      : pinLeadingSessions(
+        reconcileManualOrder(ungroupedMemberIds, sessionOrderByAccount[UNGROUPED_KEY], list.byId, orderState),
+        leadsFor(UNGROUPED_KEY),
+      )
     return pinCurrentBlank(
       baseOrder,
       currentBlank !== undefined && ungroupedMemberIds.includes(currentBlank) ? currentBlank : undefined,
     )
-  }, [currentBlank, list.byId, orderBy, orderState, sessionOrderByAccount, ungroupedMemberIds])
+  }, [currentBlank, leadsFor, list.byId, orderBy, orderState, sessionOrderByAccount, ungroupedMemberIds])
   const orderedFlatSessionIds = useMemo(() => {
     const baseOrder = orderBy === 'updated'
       ? orderByRecency(flatMemberIds, list.byId)
-      : reconcileManualOrder(flatMemberIds, sessionOrderByAccount[FLAT_SESSION_ORDER_KEY], list.byId, orderState)
+      : pinLeadingSessions(
+        reconcileManualOrder(flatMemberIds, sessionOrderByAccount[FLAT_SESSION_ORDER_KEY], list.byId, orderState),
+        leadsFor(FLAT_SESSION_ORDER_KEY),
+      )
     return pinCurrentBlank(
       baseOrder,
       currentBlank !== undefined && flatMemberIds.includes(currentBlank) ? currentBlank : undefined,
     )
-  }, [currentBlank, flatMemberIds, list.byId, orderBy, orderState, sessionOrderByAccount])
+  }, [currentBlank, flatMemberIds, leadsFor, list.byId, orderBy, orderState, sessionOrderByAccount])
   const activeSessionOrders = useMemo<Readonly<Record<string, readonly SessionId[]>>>(() => Object.fromEntries([
     ...orderedWorkspaces.map(workspace => [workspace.workspaceId, workspace.sessionIds] as const),
     [UNGROUPED_KEY, orderedUngroupedSessionIds] as const,

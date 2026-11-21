@@ -12,7 +12,7 @@ import type { SessionProjectionSnapshot } from '@deepseek-ai/dsh-api-session-con
 import {
   type ArchivedFilter,
   deriveFlat, deriveGroups, deriveSearchResults, orderByRecency, owningGroupKey, owningParentFolder,
-  pinCurrentBlank, reconcileManualOrder, sessionMemberIds, visibleSessionIds, workspaceLabel, UNGROUPED_KEY,
+  pinCurrentBlank, pinLeadingSessions, reconcileManualOrder, sessionMemberIds, visibleSessionIds, workspaceLabel, UNGROUPED_KEY,
 } from '../src/client/tree.ts'
 import { createWorkspaceViewStore } from '../src/client/stores.ts'
 
@@ -284,6 +284,15 @@ describe('Session ordering', () => {
       .toEqual([sid('blank'), sid('newer'), sid('older')])
     expect(pinCurrentBlank([sid('newer'), sid('older')], undefined))
       .toEqual([sid('newer'), sid('older')])
+  })
+
+  it('leads freshly created Sessions ahead of the base order without adding or repeating rows', () => {
+    const order = [sid('one'), sid('two'), sid('three')]
+    expect(pinLeadingSessions(order, [])).toEqual(order)
+    expect(pinLeadingSessions(order, [sid('three')])).toEqual([sid('three'), sid('one'), sid('two')])
+    // Ids outside this account and duplicates in the lead list never add a row.
+    expect(pinLeadingSessions(order, ['three', 'elsewhere', 'three']))
+      .toEqual([sid('three'), sid('one'), sid('two')])
   })
 })
 

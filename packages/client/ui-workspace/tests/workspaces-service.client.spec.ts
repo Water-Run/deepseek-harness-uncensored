@@ -599,6 +599,8 @@ describe('UiWorkspaceService', () => {
       ...allowMigration === undefined ? {} : { allowMigration },
     })
     expect(onCreated).toHaveBeenCalledExactlyOnceWith(sid('forked'))
+    // The child holds no saved manual position, so the browser leads it.
+    expect(b.view.getSnapshot().leadingSessionIds).toEqual(['forked'])
     expect(b.sessions.retain).not.toHaveBeenCalled()
     expect(b.selectPanel).not.toHaveBeenCalled()
   })
@@ -647,6 +649,8 @@ describe('UiWorkspaceService', () => {
     await expect(pending).resolves.toBe(child)
     expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('chosen'), { source: 'mainView' })
     expect(b.notify).toHaveBeenCalledExactlyOnceWith({ kind: 'forkCreated', sessionId: child, workspaceAttachmentFailed: true })
+    // A branch published before its attachment failed is still leadable.
+    expect(b.view.getSnapshot().leadingSessionIds).toEqual([child])
   })
 
   it.each([

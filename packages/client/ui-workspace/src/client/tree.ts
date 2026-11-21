@@ -227,6 +227,29 @@ export function pinCurrentBlank(
 }
 
 /**
+ * Move freshly created Sessions ahead of either base order in their own
+ * relative order.
+ *
+ * Manual order supplements a Session that holds no saved position after every
+ * saved one, so a branch created today would otherwise sit past the fold of a
+ * long group. Leading the section keeps it findable until a Session-order write
+ * gives it a saved position. Ids outside this account's membership are ignored.
+ * @param order - recency or reconciled manual order.
+ * @param leading - Sessions this browser created that still hold no saved position.
+ * @returns a copy with the leading members first and no duplicate slot.
+ */
+export function pinLeadingSessions(
+  order: readonly SessionId[],
+  leading: readonly SessionId[],
+): SessionId[] {
+  const present = new Set(order)
+  const heads = leading.filter((id, index) => present.has(id) && leading.indexOf(id) === index)
+  if (heads.length === 0) return [...order]
+  const pinned = new Set(heads)
+  return [...heads, ...order.filter(id => !pinned.has(id))]
+}
+
+/**
  * Archived-row visibility choice: the default hides archived rows, `show`
  * mixes them into their kept slots, and `only` restricts the view (and
  * search) to archived rows.
