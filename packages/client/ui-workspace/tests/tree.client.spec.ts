@@ -291,7 +291,7 @@ describe('Session ordering', () => {
     expect(pinLeadingSessions(order, [])).toEqual(order)
     expect(pinLeadingSessions(order, [sid('three')])).toEqual([sid('three'), sid('one'), sid('two')])
     // Ids outside this account and duplicates in the lead list never add a row.
-    expect(pinLeadingSessions(order, ['three', 'elsewhere', 'three']))
+    expect(pinLeadingSessions(order, [sid('three'), sid('elsewhere'), sid('three')]))
       .toEqual([sid('three'), sid('one'), sid('two')])
   })
 })
