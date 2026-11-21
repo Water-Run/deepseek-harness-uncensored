@@ -98,7 +98,7 @@ describe('documentation staging', () => {
   it('publishes the generated index for the repository guides', async () => {
     const destination = join(temporaryRoot(), 'cli', 'docs')
     await stageDshDocs(join(import.meta.dirname, '..', 'docs'), destination)
-    for (const file of ['user/guide/dshu.md', 'assets/dshu/modes-overview.webp']) {
+    for (const file of ['user/guide/dshu.md', 'assets/dshu/modes-overview-light.webp']) {
       expect(existsSync(join(destination, file))).toBe(true)
     }
     const index = readFileSync(join(destination, 'upgrade-guide/README.md'), 'utf8')
