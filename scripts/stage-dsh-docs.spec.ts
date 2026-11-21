@@ -98,7 +98,7 @@ describe('documentation staging', () => {
   it('publishes the generated index for the repository guides', async () => {
     const destination = join(temporaryRoot(), 'cli', 'docs')
     await stageDshDocs(join(import.meta.dirname, '..', 'docs'), destination)
-    for (const file of ['user/guide/dshu.md', 'user/guide/dshu.zh.md', 'assets/dshu/mode-default.svg', 'assets/dshu/mode-security.svg', 'assets/dshu/mode-reverse.svg', 'assets/dshu/mode-writing.svg']) {
+    for (const file of ['user/guide/dshu.md', 'assets/dshu/mode-default.svg', 'assets/dshu/mode-security.svg', 'assets/dshu/mode-reverse.svg', 'assets/dshu/mode-writing.svg']) {
       expect(existsSync(join(destination, file))).toBe(true)
     }
     const index = readFileSync(join(destination, 'upgrade-guide/README.md'), 'utf8')
@@ -134,7 +134,6 @@ describe('documentation staging', () => {
     expect(published.has('architecture.md')).toBe(true)
     expect(published.has('architecture.zh.md')).toBe(true)
     expect(published.has('user/guide/dshu.md')).toBe(true)
-    expect(published.has('user/guide/dshu.zh.md')).toBe(true)
     for (const excluded of ['AGENTS.md', 'testing.md', 'postmortem/README.md', 'persistence-changes/README.md', 'i18n/README.md']) {
       expect(published.has(excluded)).toBe(false)
     }

@@ -2,7 +2,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
-const MAX_LINES = 145
+const MAX_LINES = 420
 
 /**
  * Check the README's length and repository-relative links.

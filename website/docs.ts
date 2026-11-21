@@ -131,14 +131,6 @@ const homeAndGuide = pairedPages([
     order: 2,
   },
   {
-    source: 'docs/user/guide/dshu.md',
-    route: 'guide/dshu.md',
-    label: { root: 'DSHU 使用手册', en: 'DSHU user guide' },
-    sidebar: { root: 'zh-guide', en: 'en-guide' },
-    section: { root: '入门', en: 'Guide' },
-    order: 2.5,
-  },
-  {
     source: 'docs/user/guide/network-proxy.md',
     route: 'guide/network-proxy.md',
     label: { root: '网络代理', en: 'Network proxy' },
@@ -203,6 +195,17 @@ const homeAndGuide = pairedPages([
     order: 1,
   },
 ])
+
+/** The DSHU guide is maintained in Chinese only, so both locales publish the same page. */
+const dshuGuide = mirroredPages([{
+  source: 'docs/user/guide/dshu.md',
+  route: 'guide/dshu.md',
+  contentLocale: 'zh-CN',
+  label: { root: 'DSHU 使用手册', en: 'DSHU user guide' },
+  sidebar: { root: 'zh-guide', en: 'en-guide' },
+  section: { root: '入门', en: 'Guide' },
+  order: 2.5,
+}])
 
 const develop = pairedPages([
   {
@@ -555,6 +558,7 @@ export function sectionSpec(locale: DocsLocale, label: string): DocsSection & { 
 /** Every canonical page published by the documentation website. */
 export const docsPages: DocsPage[] = [
   ...homeAndGuide,
+  ...dshuGuide,
   ...develop,
   ...cordisTutorial,
   ...cordisPrimerReference,

@@ -16,6 +16,7 @@
     "packages/context/uncensored-armor/README.md",
     "packages/credentials/balance/README.md",
     "packages/guard/spend-limit/README.md",
-    "packages/memory/memory/README.md"
+    "packages/memory/memory/README.md",
+    "docs/user/guide/dshu.md"
   ]
 }

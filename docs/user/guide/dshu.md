@@ -1,222 +1,313 @@
 ---
-description: "DSHU user guide covering setup, the four modes, side and quick questions, balance and spending limits, memory, tools, data recovery, and troubleshooting."
+description: "DSHU 使用手册：第一个任务、四种模式的用法、旁问与随问、余额与限额、记忆与模式资料、默认值、数据恢复、故障排查和功能入口速查。"
 ---
 
-# DSHU user guide
+# DSHU 使用手册
 
-English | [中文](dshu.zh.md)
+本手册从已安装桌面版或已启动 Web 服务开始，按使用顺序介绍 DSHU 的各项功能。想先看界面长什么样，请看[项目介绍](../../../README.md)中的截图；这里侧重“怎样用、默认是什么、出了问题怎么办”。
 
-## Summary
+> [!NOTE]
+>
+> 本手册以当前源码为准。使用安装版时，请在“关于”页核对版本和提交；交付范围与验收状态见[开发清单](../../../.agents/TODO.md)。模型能力、接口可用性和费用由所用提供方决定。
 
-DSHU is an independent DeepSeek Harness fork maintained by WaterRun, with built-in armor prompts, four modes, and a separate desktop application. This guide starts after desktop installation or Web server startup and explains model setup, tasks, auxiliary conversations, spending, and persistent reference material. DSHU and the official app keep separate configuration and sessions; model capabilities, availability, and charges depend on your provider. The [development checklist](../../../.agents/TODO.md) owns delivery status and verification scope: unreleased source changes are not necessarily in your installed build.
+## 目录
 
-## Table of contents
-
-- [Complete your first task](#first-task)
-- [Choose a mode](#modes)
-- [Main, side, and quick questions](#conversations)
-- [Balance, session cost, and spending limits](#spending)
-- [Memory, materials, and input prediction](#memory)
-- [Tools, plugins, and REA](#tools)
-- [Appearance and defaults](#defaults)
-- [Data, updates, and recovery](#data)
-- [Troubleshooting](#troubleshooting)
-- [Further exploration](#further-reading)
-- [Dev Note](#dev-note)
-
------
+- [完成第一个任务](#first-task)
+- [选择模式](#modes)
+- [旁问、随问与输入预测](#conversations)
+- [余额、对话费用与限额](#spending)
+- [记忆与模式资料](#memory)
+- [会话与工作区](#sessions)
+- [工具、插件与 REA](#tools)
+- [默认设置](#defaults)
+- [数据、更新与恢复](#data)
+- [故障排查](#troubleshooting)
+- [功能入口速查](#reference)
+- [深入阅读](#further-reading)
 
 <a id="first-task"></a>
-## Complete your first task
+## 完成第一个任务
 
-For your first task, pick something bounded whose result you can check. Confirm that the model connection works before widening the scope.
+第一次使用时，挑一个范围明确、结果可以检查的任务，先确认模型连接正常，再逐步扩大范围。
 
-1. Open **Settings → Models**, configure the provider, endpoint, and credentials, save, and select a model. Third-party endpoints also require the correct protocol and model ID; see [model configuration](providers.md).
-2. Create a session and choose a workspace. Select the project directory for file tasks; for general questions, choose **Work without a workspace** instead of creating a directory just to send a message.
-3. Select a mode before the first message. Default supports general tasks; Security, Reverse, and Writing add their own materials and workflows. Existing sessions keep their original mode by default.
-4. Describe the inputs, expected result, and verification method, then send. Attach required files or images; the model cannot read materials you have not supplied.
-5. Review actual changes, execution results, and remaining work. Preserve tool errors, missing dependencies, and unexecuted checks as follow-up items.
+1. 打开 **设置 → 模型**，填写提供方、接口与凭据，保存后选择模型。第三方接口还需要选对协议并填写正确的模型 ID，详见[模型配置](providers.zh.md)。
+2. 点侧栏的 **新会话**，在输入框上方选择工作区。处理项目文件时选项目目录；一般问答可以选“不在工作区工作”。
+3. 在工作区旁边的模式菜单里选择模式。日常任务用缺省；网安、逆向和写作各有专属手册与资料。
+4. 写清输入、期望结果和验证方式后发送。需要的文件或图片一起附上，模型读不到你没有提供的资料。
+5. 检查实际修改、执行结果和未完成事项。工具报错、缺少依赖或没有运行的检查，留作下一步任务。
 
-For example, send this in an existing project workspace:
+例如，在一个已有项目的工作区中发送：
 
-> Find this project's entry points and startup procedure, and explain why the build fails. Fix it, run the affected checks, and report changes, verification results, and remaining issues.
+> 找到这个项目的入口和启动方式，解释当前构建失败的原因。修复后运行受影响的检查，最后列出修改内容、验证结果和仍未解决的问题。
 
-A useful result identifies specific files or observations and states whether checks actually ran. Advice alone does not establish that changes or verification occurred.
+> [!TIP]
+>
+> 可靠的回复会指向具体文件或观察结果，并说明检查是否真的运行过。只给出建议，不代表已经修改或验证。
 
 <a id="modes"></a>
-## Choose a mode
+## 选择模式
 
-Modes select specialized materials, workflows, and tool combinations. All four share built-in armor prompts; models can still make mistakes, so assess results through files, execution, and review. **Mode explanation** and **How to use** in Settings open guides without changing the session. Existing sessions can switch only while idle and after switching is temporarily allowed.
+四种模式共用内置破甲提示词，区别在于挂载的工具、按需加载的工作手册和资料目录。模型仍可能出错，结果要以文件、运行记录和复核为准。
 
-### Default: development and everyday tasks
+| 模式 | 主题色 | 工作手册 | 资料 | 说明 |
+| --- | --- | --- | --- | --- |
+| 缺省 | 蓝 | 按需加载技能 | 当前工作区 | 读写文件、执行命令、检索资料、拆分协作 |
+| 网安 | 红 | 七类现场手册 | `.security/<案件>/case.json` | 首次进入需确认；可选独立代理与目标保护 |
+| 逆向 | 绿 | 八类分析手册 | `.reverse/<案件>/case.json` | 内置 REA，可接 Ghidra、IDA、Hopper |
+| 写作 | 金 | 七类写作手册 | `story/style/`、`story/bible/` | 不挂载终端和代码执行工具 |
 
-![Default mode, theme color blue](../../assets/dshu/mode-default.svg)
+### 模式的锁定与切换
 
-Default can read and edit files, run commands, retrieve information, and use collaboration and workflows as needed. Use it for fixes, repository exploration, research organization, and executable deliverables. Supply the project path, observed failure, and completion criteria before asking the agent to investigate, change, and verify.
+- 新会话默认缺省，发送第一条消息前可以在模式菜单中改选。
+- 发送后模式锁定。确需更换时，在 **设置 → 模式** 打开“允许已有会话切换模式”：需要阅读倒计时确认，只在本次启动有效，且只能在会话空闲时切换。切换会替换工具和指令，历史消息保留但可能与新模式冲突。
+- 设置中的“模式说明”和“如何使用”只打开指南，不会切换当前会话。
+- **敏感操作需要确认**（设置 → 通用）默认开启，统一管理进入网安和切换模式前的确认；关闭需要十秒倒计时，重新开启立即生效。
 
-> Reproduce this endpoint error, find the cause, and verify normal and invalid inputs after fixing it. Distinguish code-based inference from checks that actually ran.
+### 缺省：开发与日常任务
 
-**What to check:** changed files, trigger conditions, verification commands, and results are present; unexecuted checks have an explicit reason.
-
-### Security: investigation, evidence, and verification
-
-![Security mode, theme color red](../../assets/dshu/mode-security.svg)
-
-Security provides seven field-manual areas, case records, reports, and an independent proxy. New Security sessions require responsibility confirmation. Cases under `.security/` can preserve targets, evidence, findings, and pending work for later conversations. Providers, models, and execution environments determine which tasks can run; manuals do not install external tools.
-
-> Review authentication and uploads in this test application, reproduce suspected issues locally, identify affected locations, fix and test them, and save evidence and unresolved questions in the case record.
-
-**What to check:** findings identify targets, locations, and reproduction conditions, and distinguish observations, hypotheses, and unexecuted checks. Enable the proxy separately when needed; its disabled-state reminder is configurable. Target, server, and database protections default to off, and selecting Security does not enable them. Review [execution coverage and limitations](../../../packages/guard/target-protection/README.md) before enabling protection.
-
-### Reverse: samples, call paths, and protocols
-
-![Reverse mode, theme color green](../../assets/dshu/mode-reverse.svg)
-
-Reverse provides eight analysis-manual areas, `.reverse/` case records, and bundled REA. Investigate program behavior, file formats, protocols, and runtime observations. Preserve the original sample, supply platform and architecture clues and representative inputs, and choose suitable tools; keep modified samples and outputs separately.
-
-> Record this sample's hash and architecture, locate the parser entry point, trace important calls, verify conclusions with independent inputs, and save scripts and unresolved hypotheses.
-
-**What to check:** sample identity, addresses or offsets, call or runtime evidence, reusable scripts, and uncertainty are clear. REA is bundled; optional engines such as Ghidra, Java, IDA, and Hopper require separate configuration. A successful connection check does not establish that every engine, license, or target process is ready.
-
-### Writing: setting, voice, and long-form continuity
-
-![Writing mode, theme color gold](../../assets/dshu/mode-writing.svg)
-
-Writing supports fiction, scripts, and long-form text through style references, a six-axis style card, and `story/bible/` materials. Only selected materials enter model requests. Manage references and settings in mode configuration, and continue later conversations from retained materials. The Writing composition does not mount terminal or code-execution tools.
-
-> Continue the next scene using the selected character materials and style reference. Preserve viewpoint, chronology, and available information, check setting conflicts, and deliver the complete scene.
-
-**What to check:** the text follows the requested length, viewpoint, and relationships; setting conflicts and unresolved details are identified separately. For a long work, establish characters, chronology, and world rules before proceeding scene by scene.
-
-<a id="conversations"></a>
-## Main, side, and quick questions
-
-The main conversation advances the task, side questions support continued discussion, and quick questions handle brief checks. Side and quick questions do not copy the main history into ordinary sidebar sessions.
-
-| Entry | Use it for | History and behavior |
-| --- | --- | --- |
-| Main composer | Advance the task or send new requirements | Keeps main history; sending while busy follows the configured send behavior. |
-| `/side question` | Continued questions, explanations, or images | Opens the side conversation and sends the question; `/side` alone opens or reopens it. |
-| `/btw question` | One brief check | Shows a short reply in the main conversation without creating an ordinary session. |
-| `/clear` inside the side conversation | Start the side discussion again | Clears its own history; main history remains, and the side conversation can still reference it. |
-
-Each side question can reference newly completed main progress and retains independent history. The main conversation can actively inspect the related side conversation. Do not assume that discussing an action in the side conversation sends a new execution instruction to the main conversation.
-
-Closing a side conversation preserves its history by default. Enable **Clear side context on close** in Settings to clear it automatically; this defaults to off. `/clear` works only inside the side conversation and cannot clear the main conversation.
-
-Side questions support image attachments. Describe the location or symptom to inspect and use an image-capable model; successfully attaching a file does not establish provider support for its type.
-
-![A quick-question answer shown in the main conversation](../../assets/dshu/quick-question-light.png)
-
-<a id="spending"></a>
-## Balance, session cost, and spending limits
-
-These answer different questions: balance is the latest account sample, session cost is locally estimated task spending, and limits are the local spending controls you enable. They cannot substitute for one another or for the provider's bill.
-
-### Inspect balance and history
-
-The compact sidebar balance card opens statistics or refreshes the balance. Sampling defaults to 15 seconds, with a minimum configurable interval of 3 seconds. The public API does not expose complete history, so the curve accumulates local samples. Hover, touch, or focus and use arrow keys to inspect a time and amount.
-
-Balance increases such as top-ups use vertical dashed lines. Long unchanged intervals use shortened horizontal dashed lines so they do not crowd out earlier changes. Balance differences can include top-ups, gifts, and expiry deductions; they are not the current session's cost.
-
-### Configure independent limits
-
-Settings → Quota offers 15-minute, 1-hour, 5-hour, 1-day, 7-day, and 30-day windows. New installations disable all of them. The 5-hour and 7-day rows appear first; expand the others as needed. Each has its own switch, amount, and reset, with actions to disable or reset all below.
-
-Requests reserve estimated cost before execution and settle against returned usage, so pending requests can temporarily consume available quota. Resetting changes local limit statistics; it neither tops up the account nor reverses provider charges. The [spending-control reference](../../../packages/guard/spend-limit/README.md) owns estimation, reservations, and failure handling.
-
-### When a limit is reached
-
-The pause banner should identify the reason, the estimated recovery time when available, and a reset action. Wait for the rolling window to recover, or deliberately change, disable, or reset the relevant limit. Paused work resumes automatically after recovery only when automatic recovery is enabled. Settlement of other requests can also release reserved quota.
-
-The footer amount opens the session cost curve; its limit item opens progress for enabled windows. Provider balance exhaustion, authentication failures, and network failures are separate errors: resetting local statistics cannot repair them.
-
-<a id="memory"></a>
-## Memory, materials, and input prediction
-
-Cross-session memory stores retrievable long-term information, while mode materials provide references for the current work. Both require a deliberate scope. Neither automatically appends every other conversation's full history to each request.
-
-- **Long-term facts and preferences:** use structured memory, with available scopes for search, review, and editing. Automatic extraction defaults to off; enabling it produces model calls charged under the provider's rules.
-- **Detailed project or case evidence:** keep it in workspace files or `.security/` and `.reverse/` case files. Selected Security case notes can enter reviewed memory, scoped by default to the current workspace and Security mode; case files remain the detailed evidence source.
-- **Writing materials:** select style references and setting materials in mode configuration, and deselect unnecessary items. Saving materials in the list does not by itself include them in model requests.
-- **Input prediction:** defaults to on and predicts separately for main, side, and quick-question drafts. Gray text is a suggestion; Tab inserts it, and you decide whether to send. Prediction calls the selected model and can incur charges.
-
-If replies reuse incorrect context, inspect selected materials, memory scope, and side history before editing memory, deselecting materials, or using side `/clear`. Deleting a session and editing long-term memory are separate operations.
-
-![The input prediction switch in General settings](../../assets/dshu/input-prediction-settings-light.png)
-
-<a id="tools"></a>
-## Tools, plugins, and REA
-
-The desktop app bundles REA, so REA itself needs no separate installation. Settings → Modes → Reverse configuration can check its connection and configure optional engines. About and the [REA reference](../../../packages/mcp/rea/README.md) identify its version, repository, and pinned source commit. Configuration changes rebuild the connection; previously opened samples must be reopened.
-
-Plugins extend model providers, tools, and UI; MCP connects external tool services. After configuration, run a small, bounded task and check the execution backend, output, and failure reports. Plugin visibility, tool discovery, and successful execution are separate checks. External programs, credentials, and licenses still have their own requirements.
-
-The independent Security proxy applies only to supported execution paths. Connection metadata does not establish inspection of encrypted bodies; terminal programs must also honor proxy settings. Optional protection settings report executor coverage. A switch alone cannot establish protection for unsupported protocols, remote environments, or inbound scenarios.
-
-<a id="defaults"></a>
-## Appearance and defaults
-
-Mode colors identify the task: blue for Default, red for Security, green for Reverse, and gold for Writing. Appearance supports system, light, dark, and sunrise/sunset settings. Guides use their mode's color without changing the current conversation.
-
-| Setting | New-install default | Meaning |
-| --- | --- | --- |
-| New-session mode | Default | Choose another mode before the first message. |
-| Switching existing sessions | Disallowed | Temporarily allow it in Settings and wait until the session is idle. |
-| Six spending limits | All off | The 5-hour and 7-day rows are prominent, not automatically enabled. |
-| Automatic quota recovery | Off | When enabled, paused work continues after quota recovers. |
-| Target, server, and database protection | Off | Optional advanced configuration; check coverage per executor. |
-| Balance sampling | 15 seconds | Minimum configurable interval: 3 seconds. |
-| Input prediction | On | Uses the selected model and may incur charges. |
-| Clear side context on close | Off | Send `/clear` inside the side conversation when needed. |
-| Automatic memory extraction | Off | Select the intended scope and review saved results when enabling it. |
-
-These are initial settings for new installations. Updates preserve existing configuration, so defaults do not establish your current switch states.
-
-<a id="data"></a>
-## Data, updates, and recovery
-
-DSHU has its own application identity and data directory. The default data root is `~/.dsh-uncensored`, overridden by `DSH_UNCENSORED_HOME`. The official app and DSHU can coexist without automatically sharing configuration or sessions. An application-data backup does not necessarily include workspace files, external-tool data, or provider billing records.
-
-Versions use `YYYY.MM.DD.N`, with a daily build sequence in the final position. About distinguishes the DSHU version, underlying DSH version, author WaterRun, build metadata, and dependency sources. The date version does not replace DSH's or REA's own version.
-
-Close DSHU before updating, and back up its data directory and important workspace files. Use an installer explicitly identified as DSHU for your platform, and inspect data-removal choices during uninstall. Formal signing, online upgrading, OS-restart behavior, and automatic rollback have not completed release qualification; see the [delivery record](../../../.agents/HANDOFF.md) for inspection-build verification and recovery points. Do not let an older application write newer data without verified compatibility.
-
-<a id="troubleshooting"></a>
-## Troubleshooting
-
-Record the actual error, time, mode, and reproduction steps before narrowing the problem to models, tools, quota, or UI. Include screenshots and version information in reports, with credentials redacted.
-
-| Symptom | Check first | Next step |
-| --- | --- | --- |
-| Model does not respond | Provider, model ID, protocol, credentials, and original error | Follow [model configuration](providers.md); resetting local quota cannot fix authentication or server limits. |
-| Task stays paused | Quota banner, enabled windows, and pending reservations | Wait for settlement or recovery, or reset the relevant window; check automatic recovery. |
-| `/side question` shows unexpected content | Whether it was sent in the main composer and opened the related side conversation | Reopen with `/side` alone; use `/clear` inside the side conversation for a fresh history. |
-| Side question cannot interpret an image | Attachment completion and model image support | Select an image-capable model and specify the inspection target. |
-| Reading a guide does not change mode | Current session mode and switching lock | Help does not switch modes; select before a new session's first message, or temporarily allow switching. |
-| REA connects but analysis fails | Relevant engine, path, environment, permissions, and license | Test actual execution with a small sample and preserve the full error; discovery is not engine qualification. |
-| Session deletion reports an error | Session, subtasks, running state, and error text | Preserve a screenshot and version and [report the issue](https://github.com/Water-Run/deepseek-harness-uncensored/issues/new/choose); do not repair it by manually deleting database files. |
-| Balance history is incomplete | Sampling start and compressed unchanged intervals | Keep accumulating samples; the public API cannot recover the complete unsampled history. |
-
-<a id="further-reading"></a>
-## Further exploration
-
-Use the topic owners for configuration and developer detail. The checklist owns progress and delivery state.
-
-- [Project introduction](../../../README.md): capabilities, modes, and project sources.
-- [Model configuration](providers.md): providers, custom protocols, and credentials.
-- [Mode materials](../../../packages/client/ui-mode-materials/README.md): style references and setting management.
-- [REA integration](../../../packages/mcp/rea/README.md): engine setup, connections, and limitations.
-- [Execution protection](../../../packages/guard/target-protection/README.md): optional rules, coverage, and audit.
-- [Development checklist](../../../.agents/TODO.md): completed, ongoing, and future work.
-- [Packaging and delivery](../../../apps/desktop/packaging/README.md): platforms, versions, and validation.
-
-<a id="dev-note"></a>
-## Dev Note
+先给出项目路径、错误现象和完成标准，再让智能体调查、修改并验证。长任务可以要求它保留任务清单或计划，随时看清下一步。
 
 <details>
-<summary>Maintenance</summary>
+<summary>示例任务与验收要点</summary>
 
-This guide explains product use without replacing delivery status, original requirements, or package references. Check code and acceptance evidence before adding features, then update both language versions. The Worker preview backend under development is not an installed-desktop capability.
+| 场景 | 示例 | 检查交付 |
+| --- | --- | --- |
+| 修复问题 | 调查搜索连续提交两次后结果消失的原因。先复现并解释原因，再完成必要的修复，运行相关测试，保留已有用户数据。 | 触发条件与原因、修改文件、实际执行的检查和剩余情况；无法复现时说明缺少什么条件 |
+| 完成小功能 | 给工作区选择器增加搜索。沿用已有样式，支持键盘操作和无结果状态，并检查窄窗口及正常桌面布局。 | 入口可用，正常与空结果清楚，原有选择与草稿行为仍可使用 |
+| 接着推进项目 | 阅读项目说明和当前 TODO，确认真实完成情况，继续下一项未完成工作，并更新交接记录。 | 已完成、未完成、已知问题、验证结果和下一步分别列明 |
 
 </details>
+
+### 网安：调查、证据与验证
+
+首次在新会话中进入网安，会弹出“进入网安模式前的确认”：阅读责任说明和境内网站保护状态，保护未启用或无法确认时需要完整输入责任声明，倒计时结束后确认。七类现场手册（交战流程、侦察、Web 攻击、网络利用、载荷实验、云与容器、报告）按调查阶段加载，手册提供方法，提及的外部工具仍需在环境中真实可用。
+
+- **案件记录**：`.security/<slug>/case.json` 保存目标、证据、发现与备注，后续对话可以先读取再继续。在 **设置 → 模式 → 模式配置 → 网安** 中可新建案件、编辑记录、生成 Markdown 报告，并把审阅过的备注存入记忆。
+- **独立代理**：同一页面中配置 HTTP/HTTPS 上游代理，保存后可测试连接。只影响网安模式的目标访问；模型请求、登录、余额和更新检查不走它。“网安模式未开启此代理时提醒”默认关闭，开启后在网安会话顶部持续提示。
+- **流量记录**：可暂停采集、清理、筛选、查看详情和导出脱敏 JSON。未拦截的 HTTPS 隧道只有连接元数据。
+- **目标保护**：境内网站、手动目标与生产资源保护默认关闭，选择网安不会自动开启。启用前先核对[执行保护的覆盖与限制](../../../packages/guard/target-protection/README.zh.md)。
+
+> [!WARNING]
+>
+> 网安模式会执行真实命令并访问目标系统，软件不会判断某个目标是否已获授权。只在已获得授权、范围明确的系统上使用。
+
+<details>
+<summary>示例任务与验收要点</summary>
+
+| 场景 | 示例 | 检查交付 |
+| --- | --- | --- |
+| 审查应用 | 检查这个仓库的认证与上传流程，在本地测试环境复现可疑问题，指出受影响代码，完成修复和回归，并将发现记入案件记录。 | 能定位影响位置，用具体输入复现，说明实际结果、修改与回归；未能复现的疑点保留明确标记 |
+| 检查部署配置 | 检查这些部署文件中的凭据暴露、过度权限和不合理默认值，逐项解释、排出优先级，并给出具体修改与验证方法。 | 文件或配置项、证据、影响和确认修复的方法齐全；静态配置与运行中服务的检查分别说明 |
+| 继续已有调查 | 阅读当前工作区的安全案件记录，梳理已确认发现和待验证问题，继续下一步验证，并更新证据与报告。 | 新证据与发现能够对应，已完成与未执行步骤清楚，保留先前证据 |
+
+</details>
+
+### 逆向：样本、调用路径与协议
+
+先保留原始样本，提供平台、架构线索和有代表性的输入，再说明想弄清的具体行为，避免没有范围的“全部分析”。八类分析手册：初筛、静态分析、动态分析、协议、补丁与注册机、移动端、恶意样本、案件簿。
+
+- **内置 REA 6.9.0**：随程序提供，每个逆向会话拥有独立的分析进程。在 **设置 → 模式 → 模式配置 → 逆向** 中可以检测连接、查看工具目录，并按需指定 Ghidra、Java、IDA MCP 配置文件和原生分析引擎；修改配置会关闭已有连接，之前打开的样本需要重新打开。
+- **样本清点**：同一页面输入工作区内的样本路径，只读取字节计算 SHA-256、格式、熵和可打印字符串，不执行样本。
+- **分析案件**：`.reverse/<slug>/case.json` 保存样本哈希、证据、发现与未决问题，可生成报告。
+
+> [!NOTE]
+>
+> “连接成功”只确认 REA 可用。Ghidra、IDA、Hopper 等可选引擎在实际打开样本时检查版本和依赖，缺失时会返回具体原因；外部引擎需要完全权限，随问不会启动它们。
+
+<details>
+<summary>示例任务与验收要点</summary>
+
+| 场景 | 示例 | 检查交付 |
+| --- | --- | --- |
+| 分析程序 | 检查这个样本，记录哈希与架构，定位解析器入口，结合证据说明主要调用路径，并把未决假设保存到案件记录。 | 样本身份、地址或偏移、引用或运行观察齐全，无法确认的结论有下一步实验 |
+| 验证运行行为 | 使用 Frida 分析这个本地测试程序，跟踪目标函数的参数与返回值，并验证卸载脚本后程序恢复原有行为。 | 可复用脚本、观察值、复现方法与卸载结果齐全；附加失败要明确报告 |
+| 还原协议格式 | 对比这些请求与响应样本，推断字段布局，编写独立解码器并用往返测试验证，尚不确定的字段单独记录。 | 字节偏移、长度与编码规则、可运行样例清楚；用未参与推断的样例验证 |
+
+</details>
+
+### 写作：设定、文风与长篇延续
+
+七类写作手册：写作基本功、声音、场景、黑暗素材、连续性、文风参考、长篇结构。文风卡按措辞、句法、节奏、意象、对白、结构六条轴描述一种文风，另附标志性手法、禁忌和校准样例。
+
+- **资料位置**：`story/style/` 保存文风卡，`story/bible/` 保存人物、世界、时间线和已成立事实。
+- **选择资料**：在 **设置 → 模式 → 模式配置 → 写作** 中，把 `story/` 下的文件“纳入列表”，再勾选“用于写作”。只有勾选的资料会随每次写作请求发送；取消选择或删除记录都不会删除源文件。
+- **可用工具**：读取和编辑文件、检索资料、呈现文档；不挂载终端和代码执行工具，需要脚本时改用缺省模式。
+
+<details>
+<summary>示例任务与验收要点</summary>
+
+| 场景 | 示例 | 检查交付 |
+| --- | --- | --- |
+| 续写一场 | 沿用当前视角续写这一场，保持人物已知信息和未解决的张力，遵循选定设定，直接写正文，到访客离开时结束。 | 视角与人物认知一致，行动有推进，收尾符合要求，没有重复上一场 |
+| 修订稿件 | 不改变事实与声音，收紧这一章，删除重复解释，改善对白，把连续性问题列在修订正文之后。 | 修订稿可直接使用，编辑说明单独呈现，拟议的情节变更仍作为建议 |
+| 准备长篇 | 根据提纲与人物表规划接下来六章，记录视角、时间、人物已知信息和未决线索，再完整写出第一章。 | 章节推进与连续性清楚，计划与正文分别保留 |
+
+</details>
+
+<a id="conversations"></a>
+## 旁问、随问与输入预测
+
+| 入口 | 适合 | 看到的主线内容 | 历史与行为 |
+| --- | --- | --- | --- |
+| 主输入框 | 推进任务、提出新要求 | 全部历史 | 任务运行中仍可输入，发送方式取决于“忙碌时发送”设置 |
+| `/side 问题` | 连续追问、讨论方案、附图提问 | 最近一个完成回合为止的进展 | 打开右侧旁问并发送；只输入 `/side` 则打开或重开 |
+| `/btw 问题` | “进度如何”、一个小问题 | 实时进度，包括尚未结束的步骤 | 只读，输入框上方显示一次简短回答 |
+| 旁问中的 `/clear` | 重新开始旁问 | — | 只清空旁问自己的历史，新旁问仍读取主线背景 |
+
+**旁问**继承主线的模型、思考等级、权限和沙盒，每次提问前同步主线已完成的新进展，自己的对话独立保存；主线需要时也可以读取对应的旁问。关闭标签默认保留历史，**设置 → 通用 → 旁问关闭后自动清除上下文**（默认关闭）可改为关闭即清理。旁问支持附图，能否识别取决于模型是否支持图像输入。
+
+**随问**读取主线的实时进度快照：运行或空闲状态、最近一次用户请求、最新任务清单，以及最近的消息与工具调用记录。它固定为只读权限，回答长度默认上限 512 token，思考等级默认“低”（设置 → 通用 → 随问思考等级）。每次 `/btw` 新建一个随问，新卡片替换旧卡片；随问不出现在侧栏，删除主会话时一并删除。
+
+**输入预测**在停止输入约 0.8 秒后给出灰色建议，按 <kbd>Tab</kbd> 填入但不发送。主线、旁问和随问草稿分别预测；以句末标点结尾、输入其他斜杠命令或命令菜单打开时不触发。预测调用当前模型并计费，可在设置 → 通用中关闭。
+
+> [!NOTE]
+>
+> 在旁问里讨论某个操作，不等于向主线下达了执行指令。确认后需要回到主输入框让主线去做。
+
+<a id="spending"></a>
+## 余额、对话费用与限额
+
+这三项回答的是不同的问题：余额是账户的最近一次采样，对话费用是本地估算的任务花费，限额是你自行启用的本地支出控制。三者都不是提供方的正式账单。
+
+### 余额与曲线
+
+侧栏余额卡片显示充值余额（有赠金时另列），以及当前是官网的高峰还是低峰时段、距下次切换的倒计时。高峰为工作日北京时间 09:00–12:00、14:00–18:00，周末和法定节假日按低峰计。点卡片可刷新，悬停查看详情。
+
+**设置 → 额度** 显示当前总额和本机采样曲线。默认每 15 秒采样一次，可设为 3–3600 秒；公开 API 不提供历史余额，曲线从首次采样开始累积。悬停、轻触，或聚焦后用方向键，可读出每个采样点的时间和金额。连续 30 分钟以上不变的区间以横向虚线压缩（合计最多占横轴五分之一），余额上升以竖向虚线标出。余额差可能包含充值、赠金和到期扣减，不能直接当作某次对话的费用。
+
+### 六档限额
+
+| 窗口 | 15 分钟 | 1 小时 | 5 小时 | 1 天 | 7 天 | 30 天 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 初始金额（元） | 5 | 15 | 50 | 100 | 500 | 2000 |
+
+新安装时全部关闭；5 小时与 7 天显示在前，其余可以展开。每档都能单独启用、修改金额和重置，底部另有全部关闭和全部重置。所有会话与本机进程共用额度，关闭某档不会删除其历史。
+
+每次请求执行前先按上下文上限和最大输出预留费用，返回用量后按实际结算，所以进行中的请求可能暂时占用额度。费用估算、预留和失败处理的规则见[额度控制说明](../../../packages/guard/spend-limit/README.md)。
+
+### 达到限额之后
+
+对话暂停，输入框上方的横幅显示原因和预计恢复时间（如可估算），侧栏显示“正在等待额度”。可以等待滚动窗口恢复，也可以“重置限额统计并继续”或“调整限额”。只有开启 **自动恢复**（默认关闭）时，额度恢复后才会自动继续；只是在等待其他请求释放预留时，结算后会继续。
+
+点击底栏的金额可以展开本对话的累计费用曲线，点击“5h 63%”这类限额项可以查看各已启用窗口的进度。
+
+> [!CAUTION]
+>
+> 重置只清零本地限额统计，不会充值，也不会撤销提供方已收取的费用。提供方余额耗尽、认证失败和网络故障是另外的错误，重置本地统计无法解决。
+
+<a id="memory"></a>
+## 记忆与模式资料
+
+跨对话记忆保存可以检索的长期信息，模式资料保存当前工作需要的参考，两者都要明确适用范围。它们不会把其他会话的完整历史附加到每次请求中。
+
+- **跨对话记忆**：设置 → 通用 → 管理记忆。记录分为偏好、项目事实、操作结论、写作设定四类，作用范围可以是全局共享，或限定到工作区、模式。支持搜索、筛选、新增、编辑、禁用和删除。
+- **自动提炼**：默认关闭。开启后每个回合完成时用当前模型整理长期事实，保存在当前工作区与模式下，会计费并受额度限制；随问等临时子会话不检索也不提炼。
+- **网安案件备注**：审阅后可“存入记忆”，默认限定在当前工作区和网安模式；完整证据仍以案件文件为准。
+- **写作资料**：只有勾选的文风卡和设定会进入模型请求。
+
+如果回复沿用了错误的背景，先检查已选资料、记忆范围和旁问历史，再决定是编辑记忆、取消选择资料，还是在旁问中使用 `/clear`。删除会话和编辑长期记忆是两种不同的操作。
+
+<a id="sessions"></a>
+## 会话与工作区
+
+| 操作 | 入口和行为 |
+| --- | --- |
+| 新建会话 | 侧栏“新会话”。在输入框上方选择工作区（可添加目录或不在工作区工作）和模式 |
+| 搜索与筛选 | 工作区标题旁的搜索和筛选按钮；按名称或路径搜索，可隐藏归档、显示全部或只显示归档 |
+| 模式色条 | 每个会话左侧的竖条标出模式：蓝缺省、红网安、绿逆向、金写作；灰色半高表示新会话 |
+| 置顶与拖动 | 置顶会话排在最前，普通会话在各自区域内拖动排序；手动排序和按最近更新排序是两种独立方式 |
+| 重命名与复制 ID | 右键会话行或点行尾菜单 |
+| 分叉 | 从会话菜单分叉时以最近一次完成的轮次为起点；从消息下方分叉时以所选位置为起点，新分支继承模式 |
+| 归档 | 会话菜单“归档会话”；运行中会先确认停止，之后可通过归档筛选找回 |
+| 删除对话 | 会话菜单“删除对话” → “停止并删除”。先停止相关工作，再永久删除该会话及其旁问、随问和子会话；独立的分叉和工作区文件不受影响 |
+| 移除工作区 | 工作区菜单中操作，该组会话移到“未分组” |
+| 进行中的任务 | 侧栏标出运行中、等待审批、计划待审和等待回答的会话；项目行可直接打开进行中的对话 |
+
+删除前请确认选中的标题和关联范围；只想暂时隐藏请使用归档。会话删除和分叉的实现见[会话控制说明](../../../packages/api/session-controller/README.zh.md)。
+
+<a id="tools"></a>
+## 工具、插件与 REA
+
+插件可以扩展模型提供方、工具和界面，MCP 用于连接外部工具服务。配置完成后，先运行一个范围明确的小任务，核对执行后端、输出和失败提示。插件出现在列表中、工具出现在目录中和真正完成任务，是三项不同的检查；外部程序、凭据和许可证仍需各自满足要求。
+
+网安独立代理只在适用的执行路径上生效：有连接记录不代表已经检查过加密正文，终端程序也必须遵守代理变量才会经过代理。REA 的版本、仓库和来源提交见“关于”页与 [REA 说明](../../../packages/mcp/rea/README.zh.md)。
+
+<a id="defaults"></a>
+## 默认设置
+
+| 设置 | 新安装默认值 | 位置 |
+| --- | --- | --- |
+| 新会话模式 | 缺省 | 新会话输入框上方 |
+| 已有会话切换模式 | 不允许，重启后恢复为不允许 | 设置 → 模式 |
+| 敏感操作需要确认 | 开启 | 设置 → 通用 |
+| 外观 | 日出日落 | 设置 → 通用 |
+| 输入预测 | 开启 | 设置 → 通用 |
+| 旁问关闭后自动清除上下文 | 关闭 | 设置 → 通用 |
+| 随问思考等级 | 低 | 设置 → 通用 |
+| 自动提炼记忆 | 关闭 | 设置 → 通用 |
+| 余额与统计 | 开启，API 实时，15 秒采样 | 设置 → 额度 |
+| 六档支出限额 | 全部关闭 | 设置 → 额度 |
+| 额度自动恢复 | 关闭 | 设置 → 额度 |
+| 网安独立代理 / 未开启提醒 | 关闭 / 关闭 | 设置 → 模式 → 网安 |
+| 目标、服务器与数据库保护 | 关闭 | 可选保护配置 |
+
+以上只是新安装时的初始值。更新会保留已有配置，不能据此推断当前的开关状态。
+
+<a id="data"></a>
+## 数据、更新与恢复
+
+DSHU 使用独立的程序标识和数据目录，默认数据根目录为 `~/.dsh-uncensored`，可以用环境变量 `DSH_UNCENSORED_HOME` 改写。官方版和 DSHU 可以同时安装，配置与会话不会自动共享。应用数据的备份不一定包含工作区文件、外部工具的数据和提供方的账单记录。
+
+版本号格式为 `YYYY.MM.DD.N`，末位是当天的构建序号。“关于”页（账号菜单 → 关于）分别显示 DSHU 版本与编译时间、所基于的 DSH 版本、源码节点与是否含本地修改、dsh-purge 来源和内置 REA 版本，并可检查 GitHub 更新；GitHub 限流时会提示可重试的时间。
+
+> [!IMPORTANT]
+>
+> 更新前请关闭 DSHU，并备份数据目录和重要的工作区文件。使用明确标为 DSHU、且与平台匹配的安装包；卸载时留意数据清理选项。正式签名、在线升级、系统重启和自动回退尚未完成发行验收，当前检查包的验证与恢复方法见[交付记录](../../../.agents/HANDOFF.md)。不要让旧版程序直接写入未经验证兼容的新版数据。
+
+<a id="troubleshooting"></a>
+## 故障排查
+
+先记下实际的错误信息、发生时间、所用模式和复现步骤，再判断问题出在模型、工具、额度还是界面。反馈时可以附上截图和版本信息，凭据请先脱敏。
+
+| 现象 | 先检查 | 下一步 |
+| --- | --- | --- |
+| 模型没有响应 | 提供方、模型 ID、接口协议、凭据和原始错误 | 按[模型配置](providers.zh.md)逐项检查；重置本地额度无法解决认证失败或服务端限流 |
+| 本轮失败，提示“此模型没有可用的人民币费率” | 是否启用了支出限额，所用模型是否有费率 | 为该模型配置费率，或关闭额度限制 |
+| 任务暂停不动 | 额度横幅、已启用的窗口、进行中的预留 | 等待结算或窗口恢复；按需重置对应窗口，并检查自动恢复开关 |
+| `/side 问题` 没有出现预期内容 | 是否在主输入框发送、是否打开了对应的旁问 | 只输入 `/side` 重开旁问核对；需要全新历史时在旁问中发送 `/clear` |
+| 旁问无法识别图片 | 附件是否添加成功、当前模型是否支持图像 | 换用支持图像的模型，并说明要检查的位置 |
+| `/btw` 提示需要输入问题 | `/btw` 后是否有内容 | 写成 `/btw 进度如何` 这样的完整问题 |
+| 阅读模式说明后模式没变 | 当前会话的模式和锁定状态 | 阅读说明不会切换模式；新会话在发送前选择，已有会话需临时允许切换 |
+| 网安资料提示“有文件格式损坏” | `case.json` 是否被手工改坏 | 用手册附带的 `casefile.mjs` 或设置页重新整理案件 |
+| REA 已连接但分析失败 | 对应引擎的路径、运行环境、权限和许可证 | 用小样本检查实际执行并保留完整错误；能发现引擎不等于引擎可用 |
+| 删除会话时报错 | 对应的会话、子任务、执行状态和错误提示 | 保留截图和版本信息并[反馈问题](https://github.com/Water-Run/deepseek-harness-uncensored/issues/new/choose)，不要手动删除数据库文件 |
+| 余额历史不完整 | 是否刚开始采样、是否存在被压缩的平稳区间 | 继续积累采样；公开接口无法补回未采样时段的余额 |
+
+<a id="reference"></a>
+## 功能入口速查
+
+| 功能 | 入口 |
+| --- | --- |
+| 模式选择 | 新会话输入框上方的模式菜单 |
+| 模式说明与示例 | 设置 → 模式 → 模式卡片上的“模式说明” |
+| 网安案件、独立代理、流量记录 | 设置 → 模式 → 模式配置 → 网安 |
+| REA 配置、样本清点、逆向案件 | 设置 → 模式 → 模式配置 → 逆向 |
+| 文风卡与设定集 | 设置 → 模式 → 模式配置 → 写作 |
+| 旁问 | `/side`、会话顶部的旁问按钮、右侧开始页 |
+| 随问 | `/btw 问题` |
+| 引用与附件 | 输入 `/` 查看命令，输入 `@` 引用文件或会话，点 <kbd>+</kbd> 附加文件 |
+| 余额与限额 | 侧栏余额卡片、设置 → 额度、底栏费用与限额 |
+| 跨对话记忆 | 设置 → 通用 → 管理记忆；各模式配置中的“管理此模式的记忆” |
+| 外观 | 设置 → 通用 → 外观 |
+| 关于、检查更新、提交 Issue | 账号菜单 |
+
+<a id="further-reading"></a>
+## 深入阅读
+
+- [项目介绍](../../../README.md)：四种模式与各项功能的界面截图。
+- [模型配置](providers.zh.md)：模型提供方、自定义协议和凭据。
+- [模式资料](../../../packages/client/ui-mode-materials/README.zh.md)：案件、样本清点与写作资料的实现。
+- [REA 接入](../../../packages/mcp/rea/README.zh.md)：引擎配置、连接与已知限制。
+- [执行保护](../../../packages/guard/target-protection/README.zh.md)：可选规则、执行覆盖与审计。
+- [开发清单](../../../.agents/TODO.md)：已完成、进行中与后续计划。
+- [打包与交付](../../../apps/desktop/packaging/README.zh.md)：平台、版本与验证流程。

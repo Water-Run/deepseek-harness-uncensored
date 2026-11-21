@@ -2,7 +2,7 @@
 
 [English](index.md) | 中文
 
-请先按照[开发指南](../../development.zh.md#application-commands)中的说明启动 Web UI；命令会打印其访问地址。本指南从服务器已经运行的状态开始。分支特有的模式、旁问、额度控制与默认设置见 [DSHU 使用手册](dshu.zh.md)。全新的 Web UI 尚未选中项目，可添加项目或选择不在工作区工作。
+请先按照[开发指南](../../development.zh.md#application-commands)中的说明启动 Web UI；命令会打印其访问地址。本指南从服务器已经运行的状态开始。分支特有的模式、旁问、额度控制与默认设置见 [DSHU 使用手册](dshu.md)。全新的 Web UI 尚未选中项目，可添加项目或选择不在工作区工作。
 
 ## 配置模型
 
@@ -24,8 +24,7 @@ Agent（智能体）可以读取和编辑工作区文件、运行命令、委派
 
 ## 继续使用
 
-- [DSHU 使用手册](./dshu.zh.md)
-- [DSHU 细节功能索引](./dshu-features.zh.md)
+- [DSHU 使用手册](./dshu.md)
 - [配置模型](./providers.zh.md)
 - [使用 Python SDK](./python-sdk.zh.md)
 - [在反向代理之后发布 Web UI](./public-deployments.zh.md)
