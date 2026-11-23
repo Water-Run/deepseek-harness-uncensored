@@ -274,7 +274,7 @@
 
 | 项目 | 说明 |
 | --- | --- |
-| 下载 | [正式版 2026.11.23.0](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.23.0)：Windows x64（exe）、Linux x64（deb / rpm）、Linux arm64（deb）、macOS arm64（dmg），一个安装格式一个 zip |
+| 下载 | [正式版 2026.11.23.0](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.23.0)：Windows x64（exe）、Linux x64（deb / rpm）、Linux arm64（deb）、macOS arm64（dmg） |
 | 首次配置 | 设置 → 模型中填写提供方与凭据，详见[模型配置](docs/user/guide/providers.zh.md) |
 | 版本号 | `YYYY.MM.DD.N`，末位是当天的构建序号，每天第一个构建为 `0`，可在关于页核对 |
 | 数据目录 | 默认 `~/.dsh-uncensored`，可用环境变量 `DSH_UNCENSORED_HOME` 修改 |
