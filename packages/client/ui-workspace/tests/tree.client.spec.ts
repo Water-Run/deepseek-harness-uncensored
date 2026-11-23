@@ -111,6 +111,35 @@ describe('session mode markers', () => {
     expect(visibleSessionIds(sessions, noArchive, 'default')).toEqual([parent.id, fork.id])
     expect(visibleSessionIds(sessions, noArchive, 'show')).toEqual([parent.id, fork.id])
   })
+  it('reports a running side conversation on its parent row only', () => {
+    const parent = summary('parent', 1)
+    const sideId = `session-side-${'b'.repeat(64)}`
+    const quickId = 'session-btw-87654321-4321-4123-8123-abcdefabcdef'
+    const side = { ...summary(sideId, 3), parentId: parent.id, running: false }
+    // A quick question answers inside the current view, so its run never marks the row.
+    const quick = { ...summary(quickId, 4), parentId: parent.id, running: true }
+    const sessions = withMain(list(parent, side, quick), parent.id)
+    const groups = (statuses: SessionStatusSnapshot) => deriveGroups(
+      sessions, [workspace('first', ['parent', sideId, quickId])], noRows, statuses, view(['first']),
+    )[0]!.sessions
+
+    const running = new Map<SessionId, SessionStatus>([[sid(sideId), status(undefined, { running: true })]])
+    expect(groups(running).map(node => [node.id, node.asideRunning])).toEqual([[parent.id, true]])
+    expect(deriveFlat(sessions, [parent.id], noRows, running)[0]).toMatchObject({ asideRunning: true })
+    expect(deriveSearchResults(
+      sessions, [], 'parent', noArchive, 'default', running, { items: [], hasMore: false }, 10,
+    ).items[0]).toMatchObject({ asideRunning: true })
+
+    // The summary's own state serves until a UI status arrives for the child.
+    const unobserved = withMain(list(parent, { ...side, running: true }, quick), parent.id)
+    expect(deriveFlat(unobserved, [parent.id], noRows, noAttention)[0]).toMatchObject({ asideRunning: true })
+    const stopped = new Map<SessionId, SessionStatus>([
+      [sid(sideId), status(undefined, { running: false })],
+      [sid(quickId), status(undefined, { running: true })],
+    ])
+    expect(groups(stopped)[0]).toMatchObject({ asideRunning: false })
+  })
+
   it.each(['standard', 'security', 'reverse', 'writing'] as const)('keeps the known mode for an established %s session', (mode) => {
     const item = { ...summary('one', 1), projectionValues: { agentPreset: mode } }
     const state = list(item)
@@ -435,8 +464,8 @@ describe('deriveGroups', () => {
 
     expect(groups[0]!.sessions.map(node => node.id)).toEqual([parent.id, fork.id])
     expect(groups[0]!.sessionCount).toBe(2)
-    expect(groups[0]!.sessions[0]).toMatchObject({ running: false, runningSubagentCount: 1 })
-    expect(groups[0]!.sessions[1]).toMatchObject({ running: false, runningSubagentCount: 1 })
+    expect(groups[0]!.sessions[0]).toMatchObject({ running: false, runningSubagentCount: 1, asideRunning: false })
+    expect(groups[0]!.sessions[1]).toMatchObject({ running: false, runningSubagentCount: 1, asideRunning: false })
     expect(deriveFlat(sessions, visibleSessionIds(sessions, noArchive, 'default'), noRows, noAttention)
       .map(node => [node.id, node.runningSubagentCount])).toEqual([
       [parent.id, 1], [fork.id, 1],
@@ -444,7 +473,7 @@ describe('deriveGroups', () => {
     expect(deriveSearchResults(
       sessions, [workspace('first', ['parent', 'fork'])], 'parent', noArchive, 'default',
       noAttention, { items: [], hasMore: false }, 10,
-    ).items[0]).toMatchObject({ id: parent.id, runningSubagentCount: 1 })
+    ).items[0]).toMatchObject({ id: parent.id, runningSubagentCount: 1, asideRunning: false })
   })
 
   it('uses current child status only for members of the direct parent catalog', () => {
@@ -795,7 +824,7 @@ describe('deriveSearchResults', () => {
           title: 'Needle title',
           workspace: 'Alpha',
           running: false,
-          runningSubagentCount: 0,
+          runningSubagentCount: 0, asideRunning: false,
           pendingInteraction: 'plan-review',
           completed: false,
           archived: false,
@@ -806,7 +835,7 @@ describe('deriveSearchResults', () => {
           title: 'Ordinary title',
           workspace: 'Needle Workspace',
           running: false,
-          runningSubagentCount: 0,
+          runningSubagentCount: 0, asideRunning: false,
           completed: false,
           archived: false,
         },
@@ -815,7 +844,7 @@ describe('deriveSearchResults', () => {
           title: 'content-hit',
           workspace: 'c',
           running: false,
-          runningSubagentCount: 0,
+          runningSubagentCount: 0, asideRunning: false,
           completed: false,
           archived: false,
           snippet: 'body needle excerpt',

@@ -38,30 +38,40 @@ function pinSpinner(element: SVGSVGElement): void {
  * @param props.state - which of `done`, `warning`, `ongoing`, `error`, or `idle` to show.
  * @param props.size - outer diameter in px; defaults to 14 for ongoing and 10 for solid states.
  * @param props.className - extra class for layout placement.
- * @param props.appearance - compact dot by default; step uses a filled check or hollow pending circle.
+ * @param props.appearance - compact dot by default; step uses a filled check or hollow
+ * pending circle; dashed draws the ongoing ring as short dashes for work that belongs to
+ * a dependent conversation rather than the subject itself.
  * @returns the dot element (aria-hidden; pair with text for accessibility).
  */
 export function StateDot({ state, size, className, appearance = 'dot' }: {
   state: StateDotState
   size?: number | undefined
   className?: string | undefined
-  appearance?: 'dot' | 'step'
+  appearance?: 'dot' | 'step' | 'dashed'
 }) {
   const edge = size ?? (state === 'ongoing' ? 14 : 10)
   if (state === 'ongoing') {
+    const dashed = appearance === 'dashed'
     return (
       <svg
         ref={syncSpinner}
         className={clsx(css.spinner, className)}
         data-state="ongoing"
+        data-appearance={dashed ? 'dashed' : undefined}
         width={edge}
         height={edge}
         viewBox="0 0 24 24"
         aria-hidden="true"
       >
         <g className={css.spinnerMotion}>
-          <circle className={css.spinnerTrack} cx="12" cy="12" r="9.5" />
-          <circle className={css.spinnerArc} cx="12" cy="12" r="9.5" />
+          {dashed
+            ? <circle className={css.spinnerDashed} cx="12" cy="12" r="9.5" />
+            : (
+              <>
+                <circle className={css.spinnerTrack} cx="12" cy="12" r="9.5" />
+                <circle className={css.spinnerArc} cx="12" cy="12" r="9.5" />
+              </>
+            )}
         </g>
       </svg>
     )

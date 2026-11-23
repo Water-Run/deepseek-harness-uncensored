@@ -397,6 +397,8 @@ function assertNever(value: never): never {
 
 interface SessionStatus {
   state: StateDotState
+  /** Draws the ongoing ring dashed: the work belongs to the Session's side conversation. */
+  dashed?: boolean
   label: string
   /** Compact text that replaces the Session row's update time. */
   trailingLabel?: string
@@ -404,10 +406,12 @@ interface SessionStatus {
 
 /**
  * Session status presentation; pending interaction is primary and live activity
- * outranks completion reminders.
+ * outranks completion reminders. Activity is the row's own or delegated work,
+ * shown as the solid loader; when only the Session's side conversation is
+ * working, the same loader turns dashed and the row keeps its idle time.
  */
 function sessionStatuses(
-  node: Pick<SessionNode, 'pendingInteraction' | 'running' | 'runningSubagentCount' | 'completed'>,
+  node: Pick<SessionNode, 'pendingInteraction' | 'running' | 'runningSubagentCount' | 'asideRunning' | 'completed'>,
   t: RowTranslate,
 ): readonly [SessionStatus, ...SessionStatus[]] {
   const subagents: SessionStatus | undefined = node.runningSubagentCount === 0
@@ -454,15 +458,26 @@ function sessionStatuses(
     return subagents === undefined ? [primary] : [primary, subagents]
   }
   if (subagents !== undefined) return [subagents]
+  if (node.asideRunning) return [{ state: 'ongoing', dashed: true, label: t('status.asideRunning') }]
   if (node.completed) return [{ state: 'done', label: t('status.completed') }]
   return [{ state: 'idle', label: t('status.idle') }]
+}
+
+/**
+ * One status glyph. The dashed appearance belongs to the side-conversation
+ * status and leaves every other state's solid drawing untouched.
+ * @param props.status - the status to draw.
+ * @returns the status dot element.
+ */
+function SessionStatusDot({ status }: { status: SessionStatus }) {
+  return <StateDot state={status.state} appearance={status.dashed === true ? 'dashed' : 'dot'} />
 }
 
 /** Primary status dot plus every status's screen-reader label, shared by the search and session rows. */
 function SessionStatusDots({ statuses }: { statuses: readonly [SessionStatus, ...SessionStatus[]] }) {
   return (
     <>
-      <StateDot state={statuses[0].state} />
+      <SessionStatusDot status={statuses[0]} />
       {statuses.map(status => (
         <span className={css.visuallyHidden} key={status.label}>{status.label}</span>
       ))}
@@ -507,7 +522,7 @@ function SessionHoverContent({ node, cwd, now, renderSlot, t }: {
       {renderSlot('sidebar.session.row.hover', { sessionId: node.id })}
       {statuses.map(status => (
         <div className={css.hoverStatus} key={status.label}>
-          <StateDot state={status.state} />
+          <SessionStatusDot status={status} />
           <span>{status.label}</span>
         </div>
       ))}
@@ -732,11 +747,11 @@ export function SessionNodeItem({
           drag.drop(rowHalf(e))
         }}
     >
-      {/* Pending interaction and own or descendant activity outrank the
-          finished-but-unviewed reminder, which returns after activity stops
-          and is cleared by opening the session. Archived rows keep the slot
-          blank — the grayed row carries the archived look — and their live
-          status stays on the hover card only. */}
+      {/* Pending interaction and own, delegated, or side-conversation activity
+          outrank the finished-but-unviewed reminder, which returns after
+          activity stops and is cleared by opening the session. Archived rows
+          keep the slot blank — the grayed row carries the archived look — and
+          their live status stays on the hover card only. */}
       <span className={css.slot}>
         <span className={css.modeStrip} aria-hidden="true" />
         {!row.archived && !row.blank && (showStatus

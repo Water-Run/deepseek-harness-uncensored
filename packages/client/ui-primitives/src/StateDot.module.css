@@ -61,6 +61,16 @@
   animation: dsh-state-dot-dash 1.5s ease-in-out infinite;
 }
 
+/* Dependent activity: the subject itself is idle, so the ring drops the track
+ * and the travelling arc for an even dashed circumference. It keeps the shared
+ * rotation and phase, and reduced motion leaves the dashes standing still. */
+.spinnerDashed {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+}
+
 @keyframes dsh-state-dot-spin {
   to { transform: rotate(360deg); }
 }

@@ -28,6 +28,21 @@ describe('StateDot', () => {
     expect([...rings].map(ring => ring.getAttribute('r'))).toEqual(['9.5', '9.5'])
   })
 
+  it('draws the dashed appearance as one dashed ring without the track', () => {
+    const { container, rerender } = render(<StateDot state="ongoing" appearance="dashed" />)
+    const spinner = container.firstElementChild as SVGSVGElement
+    expect(spinner.getAttribute('data-state')).toBe('ongoing')
+    expect(spinner.getAttribute('data-appearance')).toBe('dashed')
+    expect(spinner.getAttribute('aria-hidden')).toBe('true')
+    expect(spinner.getAttribute('width')).toBe('14')
+    const rings = spinner.querySelectorAll('circle')
+    expect(rings).toHaveLength(1)
+    expect(rings[0]!.getAttribute('r')).toBe('9.5')
+    rerender(<StateDot state="ongoing" />)
+    expect(container.firstElementChild?.getAttribute('data-appearance')).toBeNull()
+    expect(container.querySelectorAll('circle')).toHaveLength(2)
+  })
+
   it('sizes via the size prop in both shapes', () => {
     const { container, rerender } = render(<StateDot state="done" size={12} />)
     const dot = container.firstElementChild as HTMLElement

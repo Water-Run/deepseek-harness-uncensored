@@ -58,6 +58,8 @@ export interface SessionNode {
   running: boolean
   /** Running direct children in the loaded subagent catalog. */
   runningSubagentCount: number
+  /** The Session's persistent side conversation is working; a quick question never counts. */
+  asideRunning: boolean
   /** Finished running while not selected and not yet opened (the green "done" reminder dot). */
   completed: boolean
   /** In the registry-global pin set: leads its section, reorderable only among pinned rows. */
@@ -108,6 +110,8 @@ export interface SearchResultNode {
   running: boolean
   /** Running direct children in the loaded subagent catalog. */
   runningSubagentCount: number
+  /** The Session's persistent side conversation is working; a quick question never counts. */
+  asideRunning: boolean
   /** Finished running while not selected and not yet opened (the green "done" reminder dot). */
   completed: boolean
   /** In the registry-global archive set: shown grayed and not openable. */
@@ -257,10 +261,30 @@ export function pinLeadingSessions(
 export type ArchivedFilter = 'default' | 'show' | 'only'
 
 /**
+ * Native aside identities: a persistent side question or a one-shot quick
+ * question. Only a recorded direct parent makes the shape meaningful, so an
+ * identically named top-level Session stays ordinary.
+ */
+const NATIVE_ASIDE_ID = /^session-(side-[0-9a-f]{64}(?:-[1-9][0-9]*)?|btw-[0-9a-f-]{36})$/u
+
+/**
+ * Classify a child Session that carries native aside identity.
+ * @param session - list row candidate.
+ * @returns aside kind, or undefined for ordinary conversations, forks, and subagents.
+ */
+function nativeAsideKind(session: Pick<SessionSummary, 'id' | 'parentId'>): 'side' | 'btw' | undefined {
+  if (session.parentId === undefined) return undefined
+  const [, kind] = NATIVE_ASIDE_ID.exec(session.id) ?? []
+  if (kind === undefined) return undefined
+  return kind.startsWith('side-') ? 'side' : 'btw'
+}
+
+/**
  * Ordinary sessions are visible; among blank sessions, only the current one
  * is visible. Subagent children use their parent header catalog; archived
  * sessions follow the archived filter, while their accounting slots remain
- * either way so unarchiving restores position.
+ * either way so unarchiving restores position. Native asides stay off the list
+ * and report their activity on the parent row instead.
  */
 function sessionVisible(
   session: SessionSummary,
@@ -269,7 +293,7 @@ function sessionVisible(
   archivedFilter: ArchivedFilter,
 ): boolean {
   if (session.origin === 'subagent') return false
-  if (session.parentId !== undefined && /^session-(?:side-[0-9a-f]{64}(?:-[1-9][0-9]*)?|btw-[0-9a-f-]{36})$/u.test(session.id)) return false
+  if (nativeAsideKind(session) !== undefined) return false
   if (session.blank && session.id !== current) return false
   switch (archivedFilter) {
     case 'default':
@@ -423,6 +447,26 @@ function runningChildCount(list: SessionListState, parentId: SessionId, statuses
 }
 
 /**
+ * Parents whose persistent side conversation is working. A side conversation
+ * runs as its own child Session, which the list hides; the owning row reports
+ * that activity instead. Quick questions answer inside the current view, so
+ * they stay out of the row.
+ * @param list - Session list authority.
+ * @param statuses - unified UI status by Session.
+ * @returns parents with at least one running native side conversation.
+ */
+function asideRunningParents(list: SessionListState, statuses: SessionStatuses): ReadonlySet<SessionId> {
+  const parents = new Set<SessionId>()
+  for (const id of list.ids) {
+    const session = list.byId[id]
+    const parent = session?.parentId
+    if (session === undefined || parent === undefined || nativeAsideKind(session) !== 'side') continue
+    if (statuses.get(id)?.running ?? session.running) parents.add(parent)
+  }
+  return parents
+}
+
+/**
  * Choose the running session a folded project can open directly.
  * Archived rows stay listed but are not openable. The current main session is omitted.
  * @param sessions - Complete group membership, including sessions hidden by a folded header.
@@ -453,6 +497,7 @@ function sessionNode(
   statuses: SessionStatuses,
   pinned: ReadonlySet<SessionId>,
   archived: ReadonlySet<SessionId>,
+  asideRunning: ReadonlySet<SessionId>,
 ): SessionNode {
   const status = statuses.get(s.id)
   const pendingInteraction = visiblePendingKind(status?.pendingInteraction?.kind)
@@ -464,6 +509,7 @@ function sessionNode(
     blank: s.blank,
     running: status?.running ?? s.running,
     runningSubagentCount: runningChildCount(list, s.id, statuses),
+    asideRunning: asideRunning.has(s.id),
     completed: status?.completionUnread === true,
     pinned: !archived.has(s.id) && pinned.has(s.id),
     archived: archived.has(s.id),
@@ -508,6 +554,7 @@ export function deriveGroups(
   const archived = new Set(rowState.archivedSessionIds)
   const pinned = new Set(rowState.pinnedSessionIds)
   const expandedGroups = new Set(view.expandedGroups)
+  const asideRunning = asideRunningParents(list, statuses)
   const current = mainSessionId(list)
   const currentGroup = current === undefined
     ? undefined
@@ -527,7 +574,7 @@ export function deriveGroups(
       containsCurrent: g.key === currentGroup,
       sessions: expanded
         ? sectionMembers(g.sessions, pinned, archived)
-          .map(session => sessionNode(session, list, statuses, pinned, archived))
+          .map(session => sessionNode(session, list, statuses, pinned, archived, asideRunning))
         : [],
       ...(runningSessionId === undefined ? {} : { runningSessionId }),
     })
@@ -582,6 +629,7 @@ export function deriveFlat(
   const archived = new Set(rowState.archivedSessionIds)
   const pinned = new Set(rowState.pinnedSessionIds)
   const current = mainSessionId(list)
+  const asideRunning = asideRunningParents(list, statuses)
   const members = sessionIds.flatMap((id) => {
     const session = list.byId[id]
     return session !== undefined && sessionVisible(session, current, archived, rowState.archivedFilter)
@@ -589,7 +637,7 @@ export function deriveFlat(
       : []
   })
   return sectionMembers(members, pinned, archived)
-    .map(session => sessionNode(session, list, statuses, pinned, archived))
+    .map(session => sessionNode(session, list, statuses, pinned, archived, asideRunning))
 }
 
 /**
@@ -620,6 +668,7 @@ export function deriveSearchResults(
   if (q === '') return { items: [], hasMore: false }
   const archived = new Set(archivedSessionIds)
   const current = mainSessionId(list)
+  const asideRunning = asideRunningParents(list, statuses)
 
   const workspaceBySession = new Map<SessionId, string>()
   for (const workspace of workspaces) {
@@ -678,6 +727,7 @@ export function deriveSearchResults(
         workspace: labelOf(summary),
         running: status?.running ?? summary.running,
         runningSubagentCount: runningChildCount(list, summary.id, statuses),
+        asideRunning: asideRunning.has(summary.id),
         ...(pendingInteraction === undefined
           ? {}
           : { pendingInteraction }),

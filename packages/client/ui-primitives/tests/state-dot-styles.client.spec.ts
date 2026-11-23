@@ -42,6 +42,12 @@ describe('StateDot.module.css', () => {
     expect(css).toContain('stroke-dashoffset: -6')
   })
 
+  it('draws dependent activity as a dashed circumference without the track', () => {
+    expect(css).toMatch(/\.spinnerDashed\s*\{[^}]*stroke: currentColor/su)
+    expect(css).toMatch(/\.spinnerDashed\s*\{[^}]*stroke-dasharray: 4 4/su)
+    expect(css).not.toMatch(/\.spinnerDashed[^{]*\{[^}]*opacity/su)
+  })
+
   it('stops both animations and retains an intermediate arc for reduced motion', () => {
     const reduced = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'))
     expect(reduced).toContain('.spinnerMotion,')

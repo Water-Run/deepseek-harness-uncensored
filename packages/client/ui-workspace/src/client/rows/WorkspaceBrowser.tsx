@@ -54,7 +54,7 @@ const SEARCH_QUERY_MAX_CODE_UNITS = 500
 /** Non-blank Session rows visible per Workspace while no Session raises its watermark. */
 const SESSION_WATERMARK_BASE = 5
 /**
- * Highest watermark that running, child-bearing, awaiting, or unread-completion
+ * Highest watermark that running, child-bearing, side-working, awaiting, or unread-completion
  * Sessions raise automatically; Show more, the open Session, and search reveals
  * may exceed it.
  */
@@ -78,10 +78,10 @@ function watermarkRows(sessions: readonly SessionNode[], watermark: number): {
 
 /**
  * Smallest watermark that covers every non-blank row within the automatic maximum that is running, has a running
- * child, awaits the user, or carries an unread completion, plus the open Session and the reveal target at any
- * position. Automatic attention stops at the cap so a long group does not unfold itself; the Session the user is
- * looking at never folds away, which is how a Session appended to the end of a long saved order — a new branch in
- * Manual order — stays visible right after it is created.
+ * child, works on its side conversation, awaits the user, or carries an unread completion, plus the open Session
+ * and the reveal target at any position. Automatic attention stops at the cap so a long group does not unfold
+ * itself; the Session the user is looking at never folds away, which is how a Session appended to the end of a long
+ * saved order — a new branch in Manual order — stays visible right after it is created.
  */
 function requiredWatermark(
   sessions: readonly SessionNode[],
@@ -94,7 +94,7 @@ function requiredWatermark(
     if (session.blank) continue
     index += 1
     const attention = index <= SESSION_WATERMARK_AUTO_MAX && (
-      session.running || session.runningSubagentCount > 0 || session.pendingInteraction !== undefined
+      session.running || session.runningSubagentCount > 0 || session.asideRunning || session.pendingInteraction !== undefined
       || session.completed
     )
     if (attention || session.id === current || session.id === revealSessionId) required = index
