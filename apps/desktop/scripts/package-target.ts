@@ -528,9 +528,10 @@ export async function packageTarget(
       '--pack-destination',
       buildPaths.packedLandlock,
     ], buildEnv, REPOSITORY_ROOT)
-    if (target.platform === 'linux') {
+    // Windows has no system native variant; every other target packs its own for the runtime closure.
+    if (target.platform !== 'win32') {
       await executePreparation(['--dir', 'native/system', 'run', 'build:native'], buildEnv, REPOSITORY_ROOT)
-      await executePreparation(['--dir', `native/system/packages/linux-${target.arch}`, 'pack',
+      await executePreparation(['--dir', `native/system/packages/${target.platform === 'darwin' ? 'darwin' : 'linux'}-${target.arch}`, 'pack',
         '--pack-destination', buildPaths.packedLandlock], buildEnv, REPOSITORY_ROOT)
     }
   }
