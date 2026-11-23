@@ -58,8 +58,17 @@
   to { opacity: 1; transform: none; }
 }
 
+/* A card wide enough for the 3% scale to read as a jump (the 940px About page moves
+  28px sideways) fades in instead of resizing. */
+.dialog[data-enter='fade'] { animation: dialogFade 160ms ease-out; }
+
+@keyframes dialogFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .mask::after, .dialog { animation: none; }
+  .mask::after, .dialog, .dialog[data-enter='fade'] { animation: none; }
 }
 
 .dialog:focus {

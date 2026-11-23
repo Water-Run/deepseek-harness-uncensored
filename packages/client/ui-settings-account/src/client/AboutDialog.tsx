@@ -76,7 +76,7 @@ export function AboutDialog({ t, close, open = true }: { t: AccountMenuProps['t'
     const timer = setTimeout(() => { setNow(Date.now()) }, Math.max(0, Math.min(notice.retryAt - Date.now(), 2 ** 31 - 1)))
     return () => { clearTimeout(timer) }
   }, [open, notice.retryAt, now])
-  return <Modal open={open} onClose={close} closeLabel={t('close')} title={t('about')} className={css.dialog ?? ''} contentClassName={css.scrollContent ?? ''}>
+  return <Modal open={open} onClose={close} closeLabel={t('close')} title={t('about')} enter="fade" className={css.dialog ?? ''} contentClassName={css.scrollContent ?? ''}>
     <div className={css.content}>
       <section className={css.identity} aria-label={t('aboutIdentity')}>
         <div className={css.brandRow}><div className={css.logo}><FishLogo size={56} /></div>

@@ -221,3 +221,10 @@ it('gives a new modal Escape ahead of an older menu', () => {
   expect(menuClosed).toBe(false)
   expect(childClosed).toBe(true)
 })
+
+it('rises by default and fades in when the caller opts out of resizing', () => {
+  const view = render(<Modal open title="Default" closeLabel="Close" onClose={() => {}} />)
+  expect(screen.getByRole('dialog').getAttribute('data-enter')).toBe('rise')
+  view.rerender(<Modal open enter="fade" title="Wide" closeLabel="Close" onClose={() => {}} />)
+  expect(screen.getByRole('dialog').getAttribute('data-enter')).toBe('fade')
+})

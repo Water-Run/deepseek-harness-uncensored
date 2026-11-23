@@ -20,6 +20,7 @@ interface ModalBaseProps {
   shortcutModal?: string
   onKeyDownCapture?: KeyboardEventHandler<HTMLDivElement>
   backdropBlur?: boolean
+  enter?: 'rise' | 'fade'
 }
 
 type ModalProps = ModalBaseProps & (
@@ -42,6 +43,9 @@ type ModalProps = ModalBaseProps & (
  * @param props.footer - action row (Cancel / Create).
  * @param props.contentClassName - optional class for a scrollable content region.
  * @param props.backdropBlur - disable when the caller already blurs the page; defaults to true.
+ * @param props.enter - entrance motion: "rise" lifts and scales the card, sized for a
+ * narrow dialog; "fade" only fades, so a card wide enough for the 3% scale to read as a
+ * 28px jump opts out. Defaults to "rise".
  * @param props.shortcutModal - command scope allowed by shortcut owners; unnamed
  * dialogs block application commands unless their owner allows the "other" scope.
  * @param props.headless - render children directly in the card (no default
@@ -51,7 +55,7 @@ type ModalProps = ModalBaseProps & (
  */
 export function Modal({
   open, onClose, title, closeLabel, description, children, footer, className, contentClassName,
-  onKeyDownCapture, headless = false, backdropBlur = true, shortcutModal, tone,
+  onKeyDownCapture, headless = false, backdropBlur = true, shortcutModal, tone, enter = 'rise',
 }: ModalProps) {
   const dialog = useRef<HTMLDivElement>(null)
   const root = useRef<HTMLDivElement>(null)
@@ -74,6 +78,7 @@ export function Modal({
         ref={dialog}
         tabIndex={-1}
         data-shortcut-modal={shortcutModal}
+        data-enter={enter}
         className={clsx(css.dialog, !headless && tone === 'warning' && css.warning, className)}
         role={open ? 'dialog' : undefined}
         aria-modal={open || undefined}

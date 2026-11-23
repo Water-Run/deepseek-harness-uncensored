@@ -89,3 +89,11 @@ it.each([en, zh])('shows the maintainer and separates product and foundation ver
   expect(screen.getByRole('link', { name: 'abc1234' }).getAttribute('href')).toMatch(/\/commit\/abc1234$/u)
   expect(await screen.findByText(locale.aboutNoRelease)).toBeTruthy()
 })
+
+it('fades in instead of resizing the 940px card', async () => {
+  vi.stubEnv('DSH_CLIENT_FORK_VERSION', '0.1.0')
+  vi.stubGlobal('fetch', vi.fn(async () => Response.json([])))
+  render(<AboutDialog t={makeTranslate(en)} close={vi.fn()} />)
+  expect(screen.getByRole('dialog').getAttribute('data-enter')).toBe('fade')
+  expect(await screen.findByText(en.aboutNoRelease)).toBeTruthy()
+})
