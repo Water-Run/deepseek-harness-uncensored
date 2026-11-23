@@ -270,13 +270,20 @@ export function createElectronBuilderConfig(
       syncDesktopName: true,
       icon: fileURLToPath(new URL('../resources/icon.png', import.meta.url)),
       category: 'Development',
-      target: ['deb', 'tar.gz'],
+      target: ['deb', 'rpm', 'tar.gz'],
     },
     deb: {
       // A custom list replaces electron-builder's defaults. Electron also links ALSA and GBM.
       depends: [
         'libgtk-3-0', 'libnotify4', 'libnss3', 'libxss1', 'libxtst6', 'xdg-utils',
         'libatspi2.0-0', 'libuuid1', 'libsecret-1-0', 'libasound2t64 | libasound2', 'libgbm1',
+      ],
+    },
+    rpm: {
+      // Fedora/RHEL package names for the same runtime libraries the deb list declares.
+      depends: [
+        'gtk3', 'libnotify', 'nss', 'libXScrnSaver', 'libXtst', 'xdg-utils',
+        'at-spi2-core', 'libuuid', 'libsecret', 'alsa-lib', 'mesa-libgbm',
       ],
     },
     nsis: {
