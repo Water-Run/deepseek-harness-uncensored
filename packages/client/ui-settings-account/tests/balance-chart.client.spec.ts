@@ -43,6 +43,7 @@ it('keeps a fully sampled stretch solid however far it is reduced', () => {
   const samples = Array.from({ length: 2000 }, (_, index) => ({ time: index * 15_000, value: 10 + index % 7 }))
   expect(balanceChart(samples, { stepIncreases: true, dashes: true }).gaps).toBe('')
   expect(balanceChart([{ time: 0, value: 1 }, { time: 86_400_000, value: 2 }], { dashes: true }).gaps).toBeUndefined()
+  expect(balanceChart([{ time: 0, value: 1 }, { time: 0, value: 2 }], { dashes: true }).gaps).toBeUndefined()
 })
 
 it('snaps across currency marks and keeps two decimals while rolling', () => {
