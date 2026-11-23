@@ -89,7 +89,7 @@ function BalanceDetails({ data, refreshing = false, t }: { data: BalanceSnapshot
       <span>{t('balance')} <b>{amount(wallet.toppedUp, currency)}</b></span>
     </div>}
     <BalanceHistory samples={samples} symbol={currency === 'CNY' ? '¥' : '$'} label={t('balance.curve')}
-      help={t('balance.historyHelp')} compressionHint={t('balance.compressionHint')} stepIncreases />
+      help={t('balance.historyHelp')} dashHint={t('balance.dashHint')} stepIncreases />
     {samples.length === 1 && <p className={css.hint}>{t('balance.single')}</p>}
     <dl className={css.stats}>
       <div><dt>{t('balance.change')}</dt><dd>{formatBalanceDetail(total(wallet).minus(first === undefined ? total(wallet) : total(first)).toString(), currency === 'CNY' ? '¥' : '$')}</dd></div>

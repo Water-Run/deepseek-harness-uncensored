@@ -18,7 +18,9 @@ it('reveals distinct sub-cent balances while moving across the original observat
     expect(slider.getAttribute('aria-valuenow')).toBe(String(index))
   }
   expect(screen.getByText('¥63.8899')).toBeTruthy()
-  expect(screen.getByText('¥63.88')).toBeTruthy()
+  const tip = screen.getByRole('status')
+  expect(tip.querySelector('strong')?.textContent).toBe('¥63.88')
+  expect(tip.textContent).toContain('¥63.880017')
 })
 
 it('inspects original samples by keyboard and clears the tooltip after losing focus', () => {
@@ -57,7 +59,8 @@ it.each(['pointer', 'keyboard'] as const)('keeps the selected %s observation as 
   expect(tip.querySelector('time')?.dateTime).toBe(new Date(1000).toISOString())
   expect(slider.getAttribute('aria-valuenow')).toBe('0')
   view.rerender(chart([{ time: 1000, value: 8.0001, exactValue: '8.000100000000000001' }, ...samples.slice(1)]))
-  expect(tip.querySelector('strong')?.textContent).toBe('¥8.0001')
+  expect(tip.querySelector('strong')?.textContent).toBe('¥8.00')
+  expect(tip.textContent).toContain('¥8.0001')
   expect(slider.getAttribute('aria-valuenow')).toBe('1')
   view.rerender(chart([{ time: 2000, value: 7 }, { time: 3000, value: 6 }, { time: 4000, value: 5 }]))
   expect(tip.querySelector('time')?.dateTime).toBe(new Date(2000).toISOString())
@@ -83,13 +86,26 @@ it('shortens the flat run while keeping earlier changes and the original samples
   expect(axis.positions).toEqual([0, .4, .5, .6, 1])
   expect(axis.compressed).toMatch(/^M[^ ]+ H[^ ]+$/u)
   expect(axis.path?.match(/L/gu)).toHaveLength(2)
-  render(<BalanceHistory samples={samples} symbol="¥" label="History" help="Inspect samples" compressionHint="Shortened time" stepIncreases />)
+  render(<BalanceHistory samples={samples} symbol="¥" label="History" help="Inspect samples" dashHint="Shortened time" stepIncreases />)
   expect(screen.getByText('Shortened time')).toBeTruthy()
   const slider = screen.getByRole('slider', { name: 'History' })
   Object.defineProperty(slider, 'getBoundingClientRect', { value: () => new DOMRect(0, 0, 264, 110) })
   fireEvent(slider, new MouseEvent('pointermove', { bubbles: true, clientX: 132, clientY: 55 }))
   expect(slider.getAttribute('aria-valuenow')).toBe('2')
   expect(screen.getByRole('status').querySelector('time')?.dateTime).toBe(new Date(samples[2]!.time).toISOString())
+})
+
+it('marks a stretch without samples as dashed and explains the dashes', () => {
+  const dense = Array.from({ length: 8 }, (_, index) => ({ time: index * 15_000, value: 10 + index / 100 }))
+  const observed = render(<BalanceHistory samples={dense} symbol="¥" label="History" help="Inspect samples" dashHint="Dashes mean no sample" />)
+  expect(screen.queryByText('Dashes mean no sample')).toBeNull()
+  observed.unmount()
+  render(<BalanceHistory samples={[...dense, { time: 7 * 15_000 + 4 * 3_600_000, value: 9.5 }]}
+    symbol="¥" label="History" help="Inspect samples" dashHint="Dashes mean no sample" />)
+  const hint = screen.getByText('Dashes mean no sample')
+  const describedBy = screen.getByRole('slider', { name: 'History' }).getAttribute('aria-describedby')?.split(' ') ?? []
+  expect(describedBy).toContain(hint.id)
+  expect(describedBy).toHaveLength(2)
 })
 
 it('follows the pointer between samples and flips inside the plot at its edges', () => {

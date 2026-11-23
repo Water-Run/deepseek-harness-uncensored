@@ -60,10 +60,11 @@
 .plotControl:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 4px; }
 .crosshair { stroke: var(--dsw-alias-label-secondary); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
 .increase { stroke-dasharray: 3 4; }
-.compressed { stroke-dasharray: 5 4; }
-.compressionHint { margin: 4px 0 0; color: var(--dsw-alias-label-secondary); font-size: 11px; line-height: 1.5; }
+.dashed { stroke-dasharray: 5 4; }
+.dashHint { margin: 4px 0 0; color: var(--dsw-alias-label-secondary); font-size: 11px; line-height: 1.5; }
 .sampleTip { position: absolute; right: 8px; top: 0; max-width: calc(100% - 16px); display: grid; gap: 2px; padding: 6px 10px; border-radius: var(--dsw-radius-sm); background: var(--dsw-alias-bg-layer-2); box-shadow: var(--dsw-elevation-panel); color: var(--dsw-alias-label-primary); font-size: 11px; font-variant-numeric: tabular-nums; pointer-events: none; }
 .sampleTip strong { font-size: 13px; font-weight: 500; }
+.sampleExact { color: var(--dsw-alias-label-secondary); }
 .sampleTip[data-follow-pointer='true'] { box-sizing: border-box; right: auto; width: max-content; max-width: 100%; overflow-wrap: anywhere; }
 .chartHelp { margin: 8px 0 0; color: var(--dsw-alias-label-secondary); font-size: 11px; line-height: 1.5; }
 .samplePoint { position: absolute; width: 6px; height: 6px; border-radius: 50%; corner-shape: round; transform: translate(-50%, -50%); background: var(--dsw-alias-state-business-primary); pointer-events: none; }

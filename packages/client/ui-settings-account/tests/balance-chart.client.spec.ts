@@ -28,6 +28,22 @@ it('draws nothing, one dot, or a bounded curve', () => {
   expect(long.points.endsWith('304,12')).toBe(true)
 })
 
+it('dashes the connector across an interval without a sample', () => {
+  const dense = Array.from({ length: 10 }, (_, index) => ({ time: index * 15_000, value: 100 - index }))
+  const resumed = [...dense, { time: dense[9]!.time + 2 * 3_600_000, value: 80 }]
+  const chart = balanceChart(resumed, { stepIncreases: true })
+  expect(chart.gaps).toMatch(/^M[\d.]+,[\d.]+ L304,98$/u)
+  expect(chart.path).toMatch(/ M304,98$/u)
+  expect(chart.increases).toBe('')
+  expect(balanceChart(resumed).gaps).toMatch(/^M[\d.]+,[\d.]+ L304,98$/u)
+})
+
+it('keeps a fully sampled stretch solid however far it is reduced', () => {
+  const samples = Array.from({ length: 2000 }, (_, index) => ({ time: index * 15_000, value: 10 + index % 7 }))
+  expect(balanceChart(samples, { stepIncreases: true }).gaps).toBe('')
+  expect(balanceChart([{ time: 0, value: 1 }, { time: 86_400_000, value: 2 }]).gaps).toBeUndefined()
+})
+
 it('snaps across currency marks and keeps two decimals while rolling', () => {
   expect(amountPrefix('¥12.00')).toBe('¥')
   expect(amountPrefix('$12.00')).toBe('$')

@@ -18,6 +18,8 @@ export interface BalanceChartGeometry {
   readonly increases?: string
   /** Horizontal dashed connectors replacing compressed flat runs. */
   readonly compressed?: string
+  /** Dashed connectors spanning intervals the samples do not cover. */
+  readonly gaps?: string
   readonly dot?: { readonly x: number; readonly y: number }
   /** Observed value bounds; the vertical axis labels them. */
   readonly range?: { readonly low: number; readonly high: number }
@@ -30,6 +32,9 @@ const TOP = 12
 const BOTTOM = 98
 const MAX_POINTS = 120
 const FLAT_THRESHOLD_MS = 30 * 60_000
+/** Sample intervals above this multiple of the usual cadence carry no observation. */
+const GAP_FACTOR = 3
+const MIN_GAP_MS = 5 * 60_000
 
 interface FlatRun { start: number; end: number; duration: number }
 
@@ -50,6 +55,39 @@ function flatRuns(samples: readonly BalanceChartSample[]): FlatRun[] {
     start = end
   }
   return runs
+}
+
+/**
+ * Interval above which a connector means the samples do not cover it.
+ * The usual cadence comes from the lower quartile of positive intervals, so an
+ * outage elsewhere in the history cannot raise its own threshold.
+ * @param samples - Observations in time order.
+ * @returns Milliseconds above which consecutive observations count as separated.
+ */
+function gapThreshold(samples: readonly BalanceChartSample[]): number {
+  const intervals: number[] = []
+  for (let index = 1; index < samples.length; index += 1) {
+    const interval = atIndex(samples, index).time - atIndex(samples, index - 1).time
+    if (interval > 0) intervals.push(interval)
+  }
+  if (intervals.length === 0) return Number.POSITIVE_INFINITY
+  intervals.sort((left, right) => left - right)
+  return Math.max(MIN_GAP_MS, GAP_FACTOR * atIndex(intervals, Math.floor((intervals.length - 1) / 4)))
+}
+
+/**
+ * Count the observation gaps ending at or before each observation.
+ * @param samples - Observations in time order.
+ * @param threshold - Interval above which consecutive observations count as separated.
+ * @returns One running total per observation, so a drawn pair spans a gap when its totals differ.
+ */
+function gapEnds(samples: readonly BalanceChartSample[], threshold: number): number[] {
+  const counts = [0]
+  for (let index = 1; index < samples.length; index += 1) {
+    const interval = atIndex(samples, index).time - atIndex(samples, index - 1).time
+    counts.push(atIndex(counts, index - 1) + (interval > threshold ? 1 : 0))
+  }
+  return counts
 }
 
 function timeAxis(samples: readonly BalanceChartSample[], compress: boolean) {
@@ -81,6 +119,8 @@ function timeAxis(samples: readonly BalanceChartSample[], compress: boolean) {
 
 /**
  * Project samples into the fixed balance chart view box.
+ * Connectors between observations the samples do not cover become dashed, so a
+ * long stretch without an update never reads as an observed balance.
  * @param samples - Observations for one currency, in time order.
  * @param options - Draw discrete increases and optionally compress unchanged balance runs of at least 30 minutes.
  * @returns Empty, one dot, or a downsampled curve with positions for every original observation.
@@ -120,20 +160,25 @@ export function balanceChart(
   const first = atIndex(coords, 0)
   if (coords.length === 1) return { kind: 'single', points: '', dot: { x: first.x, y: first.y }, range, positions }
   const points = coords.map(point => `${point.x},${point.y}`).join(' ')
-  if (!stepIncreases && runs.length === 0) return { kind: 'series', points, range, positions }
-  let path = `M${first.x},${first.y}`, increases = '', compressed = ''
+  const gaps = gapEnds(samples, gapThreshold(samples))
+  let path = `M${first.x},${first.y}`, increases = '', compressed = '', missing = ''
   let previous = first
   for (const current of coords.slice(1)) {
     if (compressedEnds.has(current.index)) {
       path += ` M${current.x},${current.y}`
       compressed += `M${previous.x},${previous.y} H${current.x} `
+    } else if (atIndex(gaps, current.index) !== atIndex(gaps, previous.index)) {
+      path += ` M${current.x},${current.y}`
+      missing += `M${previous.x},${previous.y} L${current.x},${current.y} `
     } else if (stepIncreases && current.y < previous.y) {
       path += ` H${current.x} M${current.x},${current.y}`
       increases += `M${current.x},${previous.y} V${current.y} `
     } else path += ` L${current.x},${current.y}`
     previous = current
   }
-  return { kind: 'series', points, path, increases: increases.trimEnd(), compressed: compressed.trimEnd(), range, positions }
+  const series = { kind: 'series' as const, points, range, positions }
+  if (!stepIncreases && runs.length === 0 && missing === '') return series
+  return { ...series, path, increases: increases.trimEnd(), compressed: compressed.trimEnd(), gaps: missing.trimEnd() }
 }
 
 function downsample(items: readonly BalanceChartSample[], max: number): number[] {

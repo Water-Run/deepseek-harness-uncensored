@@ -3,7 +3,7 @@ import { useCallback, useId, useMemo, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
 import { Big } from 'big.js'
 import { balanceChart, nearestBalanceSample, retainedBalanceSample, type BalanceChartSample } from './balance-chart.ts'
-import { formatBalanceDetail } from './formatBalance.ts'
+import { formatBalance, formatBalanceDetail } from './formatBalance.ts'
 import css from './BalanceView.module.css'
 
 function besidePointer(pointer: number, span: number, size: number): number {
@@ -21,14 +21,14 @@ function besidePointer(pointer: number, span: number, size: number): number {
  * @param props - Ordered observations, currency symbol and localized labels.
  * @returns The chart and its selected observation, or null without samples.
  */
-export function BalanceHistory({ samples, symbol, label, help, formatValue, stepIncreases = false, compressionHint }: {
+export function BalanceHistory({ samples, symbol, label, help, formatValue, stepIncreases = false, dashHint }: {
   samples: readonly BalanceChartSample[]
   symbol: '¥' | '$'
   label: string
   help: string
   formatValue?: (value: number) => string
   stepIncreases?: boolean
-  compressionHint?: string
+  dashHint?: string
 }) {
   const [hover, setHover] = useState<BalanceChartSample | null>(null)
   const [cursor, setCursor] = useState<BalanceChartSample | null>(null)
@@ -74,7 +74,7 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
     } }
   }, [])
   const id = useId()
-  const compressFlat = compressionHint !== undefined
+  const compressFlat = dashHint !== undefined
   const geometry = useMemo(() => balanceChart(samples, { stepIncreases, compressFlat }), [samples, stepIncreases, compressFlat])
   const first = samples[0], last = samples.at(-1), range = geometry.range
   if (first === undefined || last === undefined || range === undefined) return null
@@ -83,12 +83,16 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
   const inspected = hover ?? cursor
   const selected = inspected === null ? samples.length - 1 : retainedBalanceSample(samples, inspected)
   const sample = samples[selected] ?? last
-  const sampleAmount = formatValue?.(sample.value) ?? formatBalanceDetail(sample.exactValue ?? new Big(sample.value).toString(), symbol)
+  const exact = new Big(sample.exactValue ?? sample.value).toString()
+  const detail = formatBalanceDetail(exact, symbol)
+  // The bubble leads with the two-decimal display; extra digits appear only when they differ.
+  const sampleAmount = formatValue?.(sample.value) ?? formatBalance(exact, symbol)
+  const precise = formatValue === undefined && detail !== sampleAmount ? detail : undefined
   const active = hover !== null || focused
   const ratio = geometry.positions[selected] ?? 0
   const x = 52 + ratio * 252
   const y = range.low === range.high ? 55 : 98 - (sample.value - range.low) * 86 / (range.high - range.low)
-  const compressed = Boolean(geometry.compressed)
+  const dashed = Boolean(geometry.compressed) || Boolean(geometry.gaps)
   const inspect = (event: PointerEvent<HTMLDivElement>): void => {
     const rect = event.currentTarget.getBoundingClientRect()
     const x = (event.clientX - rect.left) / Math.max(rect.width, 1)
@@ -109,9 +113,9 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
       <div className={css.axisLabels} data-flat={range.low === range.high} aria-hidden="true">
         <span>{format(range.high)}</span>{range.low !== range.high && <span>{format(range.low)}</span>}
       </div>
-      <div className={css.plotControl} role="slider" tabIndex={0} aria-label={label} aria-describedby={compressed ? `${id} ${id}-compressed` : id}
+      <div className={css.plotControl} role="slider" tabIndex={0} aria-label={label} aria-describedby={dashed ? `${id} ${id}-dashed` : id}
         aria-valuemin={0} aria-valuemax={samples.length - 1} aria-valuenow={selected}
-        aria-valuetext={`${new Date(sample.time).toLocaleString()} · ${sampleAmount}`}
+        aria-valuetext={`${new Date(sample.time).toLocaleString()} · ${precise ?? sampleAmount}`}
         onPointerMove={inspect} onPointerDown={inspect} onPointerLeave={clearHover} onPointerCancel={clearHover}
         onFocus={() => { setFocused(true) }} onBlur={() => { setFocused(false); clearHover() }}
         onKeyDown={(event) => {
@@ -128,18 +132,20 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
           {geometry.kind === 'series' && (geometry.path === undefined
             ? <polyline points={geometry.points} className={css.line} />
             : <><path d={geometry.path} className={css.line} /><path d={geometry.increases} className={`${css.line} ${css.increase}`} /></>)}
-          {compressed && <path d={geometry.compressed} className={`${css.line} ${css.compressed}`} />}
+          {geometry.compressed !== undefined && geometry.compressed !== '' && <path d={geometry.compressed} className={`${css.line} ${css.dashed}`} />}
+          {geometry.gaps !== undefined && geometry.gaps !== '' && <path d={geometry.gaps} className={`${css.line} ${css.dashed}`} />}
           {active && <path d={`M${x} 8V102`} className={css.crosshair} />}
         </svg>
         {(active || geometry.kind === 'single') && <span className={css.samplePoint} style={{ left: `${(x - 46) / 264 * 100}%`, top: `${y / 110 * 100}%` }} />}
         {active && <div className={css.sampleTip} data-follow-pointer={hover !== null} ref={attachTip} role="status">
           <time dateTime={new Date(sample.time).toISOString()}>{new Date(sample.time).toLocaleString()}</time>
           <strong>{sampleAmount}</strong>
+          {precise !== undefined && <span className={css.sampleExact}>{precise}</span>}
         </div>}
       </div>
     </div>
     <div className={css.timeRange}><time dateTime={new Date(first.time).toISOString()}>{new Date(first.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time><time dateTime={new Date(last.time).toISOString()}>{new Date(last.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time></div>
-    {compressed && <p id={`${id}-compressed`} className={css.compressionHint}>{compressionHint}</p>}
+    {dashed && <p id={`${id}-dashed`} className={css.dashHint}>{dashHint}</p>}
     <p id={id} className={css.chartHelp}>{help}</p>
   </div>
 }
