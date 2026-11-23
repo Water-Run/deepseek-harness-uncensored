@@ -26,6 +26,7 @@ import { resolveDesktopBuildCommit } from './desktop-build-commit.mjs'
 import { uncensoredUpdateConfig } from './uncensored-update.mjs'
 import { resolveDesktopBuildVersion } from './desktop-build-version.mjs'
 import { desktopArtifactFilename, desktopArtifactOutput, desktopTargetBuildPaths, resolveDesktopBuildTarget } from './desktop-build-paths.mjs'
+import { linuxPackageFormats } from './linux-package-settings.mjs'
 import { installWindowsDirectoryInstaller } from './windows-directory-installer.mjs'
 import { preserveWindowsRuntimeSignature, signWindowsCode } from './windows-runtime-signature.mjs'
 import { prepareWindowsAsarUnpack, verifyWindowsAsarUnpack } from './windows-asar-unpack.mjs'
@@ -103,7 +104,10 @@ export function createElectronBuilderConfig(
   if (windowsSigner !== undefined) {
     installWindowsNsisBootstrapSigner({ sign: windowsSigner })
   }
-  const update = unsigned ? undefined : uncensoredUpdateConfig(resolvedPlatform, resolvedArch)
+  // Every shipped package carries the update feed, so an installed application can update itself.
+  // An unsigned package declares no Windows publisher, and electron-updater then skips installer
+  // signature checks while the feed's SHA-512 still binds the download to the published metadata.
+  const update = uncensoredUpdateConfig(resolvedPlatform, resolvedArch)
   if (preparedRuntime !== undefined) buildPaths.dsh = preparedRuntime
   // electron-builder merges extraMetadata into the packaged manifest, so a build version here reaches
   // the artifact names, the update feed, and the installed app.getVersion() the updater compares against.
@@ -122,7 +126,7 @@ export function createElectronBuilderConfig(
       dshDesktopAppId: appId,
       dshDisplayVersion: displayVersion,
       ...(calendarVersion === undefined ? {} : { shortVersionWindows: displayVersion }),
-      dshDesktopUpdateChannel: update?.channel ?? 'nightly',
+      dshDesktopUpdateChannel: update.channel,
       ...buildVersion === productVersion ? {} : { version: buildVersion },
       ...packaged === undefined ? {} : { dshBuildCommit: packaged.commit, dshBuildDirty: packaged.dirty, dshBuildDate: packaged.date },
     },
@@ -194,7 +198,8 @@ export function createElectronBuilderConfig(
       // Prepared runtime files retain their signatures; PAK resources are sealed by their enclosing bundle.
       signIgnore: ['/Contents/Resources/app\\.asar\\.unpacked/dsh(?:/|$)', '/Contents/Resources/runtime/primary-runtime(?:/|$)', '\\.pak$'],
       notarize: !unsigned && !skipNotarization,
-      target: unsigned ? ['dmg'] : ['dmg', 'zip'],
+      // Squirrel.Mac installs updates from a ZIP; the disk image alone cannot update in place.
+      target: ['dmg', 'zip'],
     },
     dmg: {
       format: 'ULMO',
@@ -270,7 +275,7 @@ export function createElectronBuilderConfig(
       syncDesktopName: true,
       icon: fileURLToPath(new URL('../resources/icon.png', import.meta.url)),
       category: 'Development',
-      target: ['deb', 'rpm', 'tar.gz'],
+      target: linuxPackageFormats(resolvedArch),
     },
     deb: {
       // A custom list replaces electron-builder's defaults. Electron also links ALSA and GBM.
@@ -299,6 +304,8 @@ export function createElectronBuilderConfig(
       differentialPackage: true,
     },
     detectUpdateChannel: false,
-    publish: update === undefined ? null : [{ provider: 'generic', url: update.publicUrl, channel: update.channel }],
+    // Written into resources/app-update.yml; electron-builder uploads nothing because packaging
+    // always passes --publish never, so the feed files stay in the artifact directory for upload.
+    publish: [{ provider: 'generic', url: update.publicUrl, channel: update.channel }],
   }
 }

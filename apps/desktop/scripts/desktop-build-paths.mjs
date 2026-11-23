@@ -4,14 +4,14 @@ import { basename, isAbsolute, join, resolve } from 'node:path'
 
 const APP_ROOT = resolve(import.meta.dirname, '..')
 const BUILD_ROOT = join(APP_ROOT, '.desktop-build')
-const SUPPORTED_TARGETS = new Set(['mac-arm64', 'mac-x64', 'win-x64', 'linux-x64'])
+const SUPPORTED_TARGETS = new Set(['mac-arm64', 'mac-x64', 'win-x64', 'linux-x64', 'linux-arm64'])
 
 /**
  * Resolve the fixed build target selected by a packaging environment.
  * @param {NodeJS.ProcessEnv} env - Packaging environment.
  * @param {NodeJS.Platform} hostPlatform - Build-host platform used when no target override exists.
  * @param {string} hostArch - Build-host architecture used when no target override exists.
- * @returns {'mac-arm64' | 'mac-x64' | 'win-x64' | 'linux-x64'} Supported Desktop target name.
+ * @returns {'mac-arm64' | 'mac-x64' | 'win-x64' | 'linux-x64' | 'linux-arm64'} Supported Desktop target name.
  */
 export function resolveDesktopBuildTarget(
   env = process.env,
@@ -26,7 +26,7 @@ export function resolveDesktopBuildTarget(
   if (!SUPPORTED_TARGETS.has(target)) {
     throw new Error(`desktop build paths: unsupported target ${target}`)
   }
-  return /** @type {'mac-arm64' | 'mac-x64' | 'win-x64' | 'linux-x64'} */ (target)
+  return /** @type {'mac-arm64' | 'mac-x64' | 'win-x64' | 'linux-x64' | 'linux-arm64'} */ (target)
 }
 
 function assertSupportedTarget(target) {
@@ -37,7 +37,7 @@ function assertSupportedTarget(target) {
 
 /**
  * Return the mutable preparation and artifact directories owned by one release target.
- * @param {'mac-arm64' | 'mac-x64' | 'win-x64' | 'linux-x64'} target - Supported Desktop target name.
+ * @param {'mac-arm64' | 'mac-x64' | 'win-x64' | 'linux-x64' | 'linux-arm64'} target - Supported Desktop target name.
  * @param {NodeJS.ProcessEnv} environment - Packaging environment with optional absolute cache and per-run journal directories.
  * @returns {{ root: string, artifacts: string, unsignedArtifacts: string, unnotarizedArtifacts: string, runtime: string, packageSet: string, dsh: string, dshPnpm: string, electron: string, packedDsh: string, packedVendor: string, packedLandlock: string, downloads: string, pnpmStore: string }} Target paths plus shared download and package caches.
  */
@@ -75,7 +75,7 @@ export function desktopTargetBuildPaths(target, environment = process.env) {
 /**
  * Return the platform and architecture of the payload one release target prepares.
  * Windows is prepared as x64 only, so this differs from the build host on an arm64 Windows machine.
- * @param {'mac-arm64' | 'mac-x64' | 'win-x64' | 'linux-x64'} target - Supported Desktop target name.
+ * @param {'mac-arm64' | 'mac-x64' | 'win-x64' | 'linux-x64' | 'linux-arm64'} target - Supported Desktop target name.
  * @returns {{ platform: 'darwin' | 'win32' | 'linux', arch: 'arm64' | 'x64' }} Platform and architecture of the prepared payload.
  */
 export function desktopTargetPlatform(target) {
@@ -85,6 +85,7 @@ export function desktopTargetPlatform(target) {
     'mac-x64': { platform: 'darwin', arch: 'x64' },
     'win-x64': { platform: 'win32', arch: 'x64' },
     'linux-x64': { platform: 'linux', arch: 'x64' },
+    'linux-arm64': { platform: 'linux', arch: 'arm64' },
   })
   return targets[target]
 }
@@ -144,4 +145,30 @@ export function desktopArtifactOutput(paths, mode) {
  */
 export function desktopArtifactFilename(version, os, arch, suffix, extension) {
   return `deepseek-harness-uncensored-${version}-${os}-${arch}${suffix}.${extension}`
+}
+
+/**
+ * Return the architecture segment electron-builder writes into a Linux artifact filename.
+ * Debian and RPM artifacts use distribution architecture names rather than the Node architecture.
+ * @param {'arm64' | 'x64'} arch - Payload architecture.
+ * @param {string} extension - Artifact extension without the leading dot.
+ * @returns Architecture segment of the final artifact filename.
+ */
+export function desktopArtifactArch(arch, extension) {
+  if (extension === 'deb') return arch === 'x64' ? 'amd64' : 'arm64'
+  if (extension === 'rpm') return arch === 'x64' ? 'x86_64' : 'aarch64'
+  return arch
+}
+
+/**
+ * Return the directory electron-builder unpacks one target's application into.
+ * electron-builder omits the architecture from x64 Linux and Intel macOS directory names.
+ * @param {'mac-arm64' | 'mac-x64' | 'win-x64' | 'linux-x64' | 'linux-arm64'} target - Supported Desktop target name.
+ * @returns Directory name inside the target's artifact root.
+ */
+export function desktopUnpackedDirectory(target) {
+  const { platform, arch } = desktopTargetPlatform(target)
+  if (platform === 'win32') return 'win-unpacked'
+  if (platform === 'darwin') return arch === 'arm64' ? 'mac-arm64' : 'mac'
+  return arch === 'x64' ? 'linux-unpacked' : `linux-${arch}-unpacked`
 }

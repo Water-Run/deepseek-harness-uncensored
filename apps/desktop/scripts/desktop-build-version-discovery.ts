@@ -11,7 +11,7 @@ const ARTIFACT =
   /^deepseek-harness-uncensored-(?<version>.+)-(?:mac|win|linux)-(?:arm64|x64)(?:-unsigned|-unnotarized)?\.(?:exe|dmg|zip|deb|tar\.gz)$/u
 
 const DELIVERY_ARTIFACT =
-  /^DSHU-(?<version>\d{4}\.\d{2}\.\d{2}\.[1-9]\d*)-core-.+-(?:win|linux|mac)-(?:arm64|x64)-[a-f0-9]+\.(?:exe|dmg|zip|deb|tar\.gz)$/u
+  /^DSHU-(?<version>\d{4}\.\d{2}\.\d{2}\.(?:0|[1-9]\d*))-core-.+-(?:win|linux|mac)-(?:arm64|x64)-[a-f0-9]+\.(?:exe|dmg|zip|deb|tar\.gz)$/u
 
 /** Inputs that decide which versions are already taken. */
 export interface DesktopBuildVersionSuggestionOptions {
@@ -89,8 +89,11 @@ export async function suggestDesktopBuildVersion(options: DesktopBuildVersionSug
   const calendar = parseCalendarVersion(options.productVersion)
   const candidates = calendar === undefined ? taken : taken.filter(version => parseCalendarVersion(version) !== undefined)
   const used = sequenceNumbers(candidates, prefix)
-  const minimum = calendar !== undefined && prefix === desktopBuildVersionPrefix(options.productVersion) ? calendar.sequence : 1
-  const next = Math.max(minimum, used.length === 0 ? 1 : Math.max(...used) + 1)
+  // Calendar days number from 0, and the checkout's own product version is the
+  // floor for its day. Legacy semantic builds keep their positive numbering.
+  const ownDay = calendar !== undefined && prefix === desktopBuildVersionPrefix(options.productVersion)
+  const minimum = calendar === undefined ? 1 : ownDay ? calendar.sequence : 0
+  const next = Math.max(minimum, used.length === 0 ? 0 : Math.max(...used) + 1)
   const suggestion = validateDesktopBuildVersion(`${prefix}${String(next)}`, options.productVersion)
   const display = displayProductVersion(suggestion)
   const displayPrefix = calendar === undefined ? prefix : display.slice(0, display.lastIndexOf('.') + 1)

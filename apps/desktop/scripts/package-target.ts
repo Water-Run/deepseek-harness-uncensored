@@ -9,7 +9,9 @@ import {
   desktopBuildRecordFilename,
 } from './desktop-auto-update-environment.mjs'
 import { uncensoredUpdateConfig } from './uncensored-update.mjs'
-import { desktopArtifactFilename, desktopArtifactOutput, desktopTargetBuildPaths } from './desktop-build-paths.mjs'
+import {
+  desktopArtifactArch, desktopArtifactFilename, desktopArtifactOutput, desktopTargetBuildPaths, desktopUnpackedDirectory,
+} from './desktop-build-paths.mjs'
 import { packageMacOSArtifacts, type DesktopPrepackagedArtifact } from './package-macos.ts'
 import { loadDesktopPackageEnvironment, localUnsignedPackageEnvironment, validateDesktopPackageEnvironment } from './desktop-package-environment.mjs'
 import { createPackagingRun, recordPackagingEvent } from './packaging-run.mjs'
@@ -18,7 +20,7 @@ import { prepareWindowsSignatureCacheDirectory, resolveWindowsSignatureCacheDire
 import { withMacOSSigningKeychain } from './macos-signing-keychain.mjs'
 import { macOSDownloadEnvironment, resolveMacOSPackageSettings } from './macos-package-settings.mjs'
 import { resolveWindowsPackageSettings } from './windows-package-settings.mjs'
-import { resolveLinuxPackageSettings } from './linux-package-settings.mjs'
+import { linuxPackageFormats, resolveLinuxPackageSettings } from './linux-package-settings.mjs'
 import { packagingErrorDetails, packagingStep } from './packaging-step.mjs'
 import { notarizeMacOS } from './notarize-macos.mjs'
 import { resolveMacOSNotarizationEnvironment } from './desktop-release-environment.mjs'
@@ -51,8 +53,15 @@ const DESKTOP_UPLOAD_CREDENTIAL_ENV_NAMES = new Set([
 /** `--build-version` value that numbers a build after the ones already taken. */
 const AUTOMATIC_BUILD_VERSION = 'auto'
 
+/** Script that reads each Linux installer format back and compares it with the assembled application. */
+const LINUX_VERIFIERS = {
+  deb: 'debian-archive.ts',
+  rpm: 'rpm-archive.ts',
+  'tar.gz': 'portable-archive.ts',
+} as const
+
 /** Fixed platform and architecture identifiers exposed by package scripts. */
-export type DesktopPackageTargetName = 'mac-arm64' | 'mac-x64' | 'win-x64' | 'linux-x64'
+export type DesktopPackageTargetName = 'mac-arm64' | 'mac-x64' | 'win-x64' | 'linux-x64' | 'linux-arm64'
 
 /** One supported release target and its electron-builder selectors. */
 export interface DesktopPackageTarget {
@@ -66,6 +75,9 @@ export interface DesktopPackageTarget {
 const TARGETS: Record<DesktopPackageTargetName, DesktopPackageTarget> = {
   'linux-x64': {
     name: 'linux-x64', platform: 'linux', arch: 'x64', builderPlatform: '--linux', builderArch: '--x64',
+  },
+  'linux-arm64': {
+    name: 'linux-arm64', platform: 'linux', arch: 'arm64', builderPlatform: '--linux', builderArch: '--arm64',
   },
   'mac-arm64': {
     name: 'mac-arm64',
@@ -185,8 +197,8 @@ export function resolveDesktopPackageTarget(
     throw new Error(`desktop package: unsupported target ${JSON.stringify(name)}; expected ${Object.keys(TARGETS).join(', ')}`)
   }
   const target = TARGETS[name]
-  if (target.platform === 'linux' && (hostPlatform !== 'linux' || hostArch !== 'x64')) {
-    throw new Error('desktop package: linux-x64 requires a Linux x64 build host')
+  if (target.platform === 'linux' && (hostPlatform !== 'linux' || hostArch !== target.arch)) {
+    throw new Error(`desktop package: ${name} requires a Linux ${target.arch} build host`)
   }
   if (target.platform === 'win32' && (hostPlatform !== 'win32' || hostArch !== 'x64')) {
     throw new Error('desktop package: win-x64 requires a Windows x64 build host')
@@ -587,18 +599,19 @@ export async function packageTarget(
       const displayVersion = displayProductVersion(version)
       if (target.platform === 'win32') {
         const name = desktopArtifactFilename(displayVersion, 'win', target.arch, artifactSuffix, 'exe')
-        const feedArguments = invocation.unsigned ? [] : [
+        // The feed is packaged for every build, so it is verified against the installer it ships with.
+        const feedArguments = [
           '--feed', join(artifactsRoot, `${uncensoredUpdateConfig(target.platform, target.arch).channel}.yml`),
           '--version', version,
         ]
         await execute(['exec', 'tsx', 'scripts/verify-windows-installer-blockmap.ts', ...feedArguments, join(artifactsRoot, name)], targetEnv)
       } else {
-        const name = desktopArtifactFilename(displayVersion, 'linux', target.arch, artifactSuffix, 'tar.gz')
-        // electron-builder expands the Debian architecture macro to amd64 for this x64 target.
-        const deb = desktopArtifactFilename(displayVersion, 'linux', 'amd64', artifactSuffix, 'deb')
-        const application = join(artifactsRoot, 'linux-unpacked')
-        await execute(['exec', 'tsx', 'scripts/verify-linux-portable-archive.ts', join(artifactsRoot, name), application], targetEnv)
-        await execute(['exec', 'tsx', 'scripts/verify-linux-debian-archive.ts', join(artifactsRoot, deb), application], targetEnv)
+        const application = join(artifactsRoot, desktopUnpackedDirectory(target.name))
+        for (const format of linuxPackageFormats(target.arch)) {
+          const archive = join(artifactsRoot,
+            desktopArtifactFilename(displayVersion, 'linux', desktopArtifactArch(target.arch, format), artifactSuffix, format))
+          await execute(['exec', 'tsx', `scripts/verify-linux-${LINUX_VERIFIERS[format]}`, archive, application], targetEnv)
+        }
       }
     }
     await execute(['exec', 'tsx', 'scripts/smoke-packaged-runtime.ts',

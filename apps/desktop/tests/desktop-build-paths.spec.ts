@@ -1,8 +1,10 @@
 import { join, resolve, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
+  desktopArtifactArch,
   desktopTargetBuildPaths,
   desktopTargetPlatform,
+  desktopUnpackedDirectory,
   developmentRuntimeDirectory,
   resolveDesktopBuildTarget,
   resolveDesktopTargetBuildPaths,
@@ -92,7 +94,8 @@ describe('desktop build paths', () => {
     expect(desktopTargetPlatform('mac-x64')).toEqual({ platform: 'darwin', arch: 'x64' })
     expect(desktopTargetPlatform('win-x64')).toEqual({ platform: 'win32', arch: 'x64' })
     expect(desktopTargetPlatform('linux-x64')).toEqual({ platform: 'linux', arch: 'x64' })
-    expect(() => desktopTargetPlatform('linux-arm64' as 'mac-x64')).toThrow(/unsupported target/u)
+    expect(desktopTargetPlatform('linux-arm64')).toEqual({ platform: 'linux', arch: 'arm64' })
+    expect(() => desktopTargetPlatform('linux-ia32' as 'mac-x64')).toThrow(/unsupported target/u)
   })
 
   it('resolves environment overrides and rejects unsupported targets', () => {
@@ -102,7 +105,24 @@ describe('desktop build paths', () => {
     }, 'darwin', 'arm64')).toBe('mac-x64')
     expect(resolveDesktopBuildTarget({}, 'win32', 'x64')).toBe('win-x64')
     expect(resolveDesktopBuildTarget({}, 'linux', 'x64')).toBe('linux-x64')
-    expect(() => resolveDesktopBuildTarget({}, 'linux', 'arm64')).toThrow(/unsupported target/u)
-    expect(() => desktopTargetBuildPaths('linux-arm64' as 'mac-x64')).toThrow(/unsupported target/u)
+    expect(resolveDesktopBuildTarget({}, 'linux', 'arm64')).toBe('linux-arm64')
+    expect(() => resolveDesktopBuildTarget({}, 'linux', 'ia32')).toThrow(/unsupported target/u)
+    expect(() => desktopTargetBuildPaths('linux-ia32' as 'mac-x64')).toThrow(/unsupported target/u)
+  })
+
+  it('names Debian and RPM artifacts after distribution architectures', () => {
+    expect(desktopArtifactArch('x64', 'deb')).toBe('amd64')
+    expect(desktopArtifactArch('arm64', 'deb')).toBe('arm64')
+    expect(desktopArtifactArch('x64', 'rpm')).toBe('x86_64')
+    expect(desktopArtifactArch('arm64', 'rpm')).toBe('aarch64')
+    expect(desktopArtifactArch('arm64', 'tar.gz')).toBe('arm64')
+  })
+
+  it('names the unpacked directory electron-builder creates for each target', () => {
+    expect(desktopUnpackedDirectory('win-x64')).toBe('win-unpacked')
+    expect(desktopUnpackedDirectory('linux-x64')).toBe('linux-unpacked')
+    expect(desktopUnpackedDirectory('linux-arm64')).toBe('linux-arm64-unpacked')
+    expect(desktopUnpackedDirectory('mac-arm64')).toBe('mac-arm64')
+    expect(desktopUnpackedDirectory('mac-x64')).toBe('mac')
   })
 })

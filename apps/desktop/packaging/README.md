@@ -39,7 +39,7 @@ Set `DSH_DESKTOP_PACKAGE_CACHE_DIR` to an absolute build-cache directory for reu
 
 ## Release versions
 
-DSHU displays calendar versions as `YYYY.MM.DD.N`, for example `2026.11.14.1`. The final field is the daily build sequence. The DSH engine and bundled REA retain their own upstream versions. Packaging within existing authorization needs no extra confirmation; publishing a public release still requires separate authorization.
+DSHU displays calendar versions as `YYYY.MM.DD.N`, for example `2026.11.14.1`. The final field is the daily build sequence; the first build of each day uses `0`. The DSH engine and bundled REA retain their own upstream versions. Packaging within existing authorization needs no extra confirmation; publishing a public release still requires separate authorization.
 
 The package manifests and Electron update feed encode the same identity as `YYYY.MMDD.N`, for example `2026.1114.1`. This preserves numeric ordering in existing SemVer update engines. About, CLI output, installer filenames and Windows registration display the four-field date. The Windows installer and uninstaller use that date in both the version labels and the fixed numeric version resources. The independent product version in `apps/desktop/package.json` is the earliest accepted calendar build for the checkout.
 
@@ -47,7 +47,7 @@ The CLI package, Desktop runtime descriptor and primary payload record the selec
 
 Packaging preflight and runtime preparation require `product.json` to declare the same upstream version as the root DSH package and a full upstream commit ID. About uses this source identity. The bundled CLI and Host manifests are checked against the selected engine version during assembly.
 
-Omitting `--build-version`, or passing `auto`, uses the Asia/Shanghai day and the next sequence found in this target's local artifacts and `%USERPROFILE%/DSHU-Deliveries/YYYYMMDD`, including retained run and closeout directories. Keep delivery records when clearing build caches so numbering continues. An explicit public version such as `--build-version 2026.11.14.2` selects one build for the Windows/Linux matrix. Old semantic build identifiers remain readable for earlier checkouts.
+Omitting `--build-version`, or passing `auto`, uses the Asia/Shanghai day and the next sequence found in this target's local artifacts and `%USERPROFILE%/DSHU-Deliveries/YYYYMMDD`, including retained run and closeout directories. A day with nothing retained starts at `0`. Keep delivery records when clearing build caches so numbering continues. An explicit public version such as `--build-version 2026.11.14.2` selects one build for the Windows/Linux matrix. Old semantic build identifiers remain readable for earlier checkouts.
 
 ```sh
 pnpm --dir apps/desktop run package:win:x64:unsigned --build-version auto

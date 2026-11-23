@@ -24,7 +24,10 @@ export async function readInstalledUpdateSource(resourcesDirectory = process.res
     const publisher = typeof configuration === 'object' && configuration !== null && 'publisherName' in configuration
       ? configuration.publisherName : undefined
     const name: unknown = Array.isArray(publisher) && publisher.length === 1 ? publisher[0] : publisher
-    if (typeof name !== 'string' || !WINDOWS_PUBLISHER.test(name)) {
+    // A signed build declares its publisher and must declare it correctly. An unsigned build declares
+    // none: electron-updater then skips installer signature checks and the feed's SHA-512 is the only
+    // binding, which is why the feed may only come from this fork's HTTPS release assets.
+    if (name !== undefined && (typeof name !== 'string' || !WINDOWS_PUBLISHER.test(name))) {
       throw new Error('desktop update: installed Windows publisher must specify one CN, O, and C')
     }
   }

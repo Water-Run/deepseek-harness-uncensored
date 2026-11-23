@@ -6,7 +6,11 @@ import type { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { list } from 'tar'
 
-const PORTABLE_FILES = ['deepseek-harness-uncensored', 'resources/app.asar', 'resources/runtime/cli/bin/dsh-uncensored'] as const
+/** Application files every Linux package must carry, relative to the application directory. */
+export const LINUX_APPLICATION_FILES = ['deepseek-harness-uncensored', 'resources/app.asar', 'resources/runtime/cli/bin/dsh-uncensored'] as const
+
+/** Install directory the packaged application occupies inside a Linux system package. */
+export const LINUX_APPLICATION_DIRECTORY = 'opt/DeepSeek Harness Uncensored'
 
 interface PortableFingerprint {
   readonly path: string
@@ -25,7 +29,7 @@ interface PortableFingerprint {
 export async function readLinuxArchiveFiles(
   source: Readable, label: string, applicationPrefix?: string,
 ): Promise<readonly PortableFingerprint[]> {
-  const expected = new Set<string>(PORTABLE_FILES)
+  const expected = new Set<string>(LINUX_APPLICATION_FILES)
   const records: { root: string; path: string; type: string; size: number; bytes: number; sha256: string; executable: boolean }[] = []
   await pipeline(source, list({ strict: true, onReadEntry(entry) {
     const name = entry.path.replace(/^\.\//u, '')

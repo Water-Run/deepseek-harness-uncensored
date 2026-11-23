@@ -3,7 +3,10 @@ import { desktopBuildRecordFilename, desktopUpdateMetadataFilename, resolveDeskt
   resolveDesktopAutoUpdateTarget, resolveDesktopUpdateChannel } from '../scripts/desktop-auto-update-environment.mjs'
 import { uncensoredUpdateConfig } from '../scripts/uncensored-update.mjs'
 
-it.each([['darwin', 'arm64', 'mac-arm64'], ['darwin', 'x64', 'mac-x64'], ['win32', 'x64', 'win-x64'], ['linux', 'x64', 'linux-x64']] as const)
+it.each([
+  ['darwin', 'arm64', 'mac-arm64'], ['darwin', 'x64', 'mac-x64'], ['win32', 'x64', 'win-x64'],
+  ['linux', 'x64', 'linux-x64'], ['linux', 'arm64', 'linux-arm64'],
+] as const)
 ('keeps %s %s release records independent from the upstream service', (platform, arch, target) => {
   expect(resolveDesktopAutoUpdateTarget(platform, arch)).toBe(target)
   expect(desktopBuildRecordFilename(target)).toBe(`${target}-release.json`)
@@ -15,8 +18,8 @@ it('retains policy selection without resolving storage credentials or origins', 
   expect(resolveDesktopAutoUpdateEnvironment({})).toBe('test')
   expect(resolveDesktopAutoUpdateEnvironment({ DSH_DESKTOP_AUTO_UPDATE_ENV: 'production' })).toBe('production')
   expect(() => resolveDesktopAutoUpdateEnvironment({ DSH_DESKTOP_AUTO_UPDATE_ENV: 'staging' })).toThrow(/test.*production/u)
-  expect(() => resolveDesktopAutoUpdateTarget('linux', 'arm64')).toThrow(/unsupported target/u)
-  expect(() => desktopBuildRecordFilename('linux-arm64' as 'mac-arm64')).toThrow(/unsupported target/u)
+  expect(() => resolveDesktopAutoUpdateTarget('linux', 'ia32')).toThrow(/unsupported target/u)
+  expect(() => desktopBuildRecordFilename('linux-ia32' as 'mac-arm64')).toThrow(/unsupported target/u)
 })
 
 it('preserves channel metadata names for release and preview versions', () => {

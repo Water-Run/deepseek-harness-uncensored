@@ -5,10 +5,10 @@ import { resolve } from 'node:path'
 import type { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { getPath7za } from 'app-builder-lib/out/toolsets/7zip.js'
-import { compareLinuxArchiveFiles, readLinuxArchiveFiles } from './verify-linux-portable-archive.ts'
+import { compareLinuxArchiveFiles, LINUX_APPLICATION_DIRECTORY, readLinuxArchiveFiles } from './verify-linux-portable-archive.ts'
 
 const LABEL = 'Linux Debian package'
-const APPLICATION_PREFIX = 'opt/DeepSeek Harness Uncensored/'
+const APPLICATION_PREFIX = `${LINUX_APPLICATION_DIRECTORY}/`
 const AR_MAGIC = Buffer.from('!<arch>\n')
 
 async function dataMember(file: FileHandle): Promise<{ start: number; end: number; xz: boolean }> {

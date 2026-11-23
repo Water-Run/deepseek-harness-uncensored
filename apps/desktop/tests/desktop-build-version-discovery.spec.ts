@@ -122,6 +122,15 @@ it('numbers calendar builds from public artifact names across formats and keeps 
   await expect(suggestDesktopBuildVersion({ productVersion: '2026.1114.1', date: '20261114', artifactsRoot }))
     .resolves.toBe('2026.1114.11')
   await expect(suggestDesktopBuildVersion({ productVersion: '2026.1114.1', date: '20261115', artifactsRoot }))
+    .resolves.toBe('2026.1115.0')
+})
+
+it('numbers the first build of a calendar day from 0 and continues after it', async () => {
+  const artifactsRoot = await artifactsWith([])
+  await expect(suggestDesktopBuildVersion({ productVersion: '2026.1114.1', date: '20261115', artifactsRoot }))
+    .resolves.toBe('2026.1115.0')
+  await writeFile(join(artifactsRoot, 'deepseek-harness-uncensored-2026.11.15.0-win-x64-unsigned.exe'), '')
+  await expect(suggestDesktopBuildVersion({ productVersion: '2026.1114.1', date: '20261115', artifactsRoot }))
     .resolves.toBe('2026.1115.1')
 })
 
@@ -130,6 +139,13 @@ it('continues after retained deliveries when disposable build output was cleaned
   const deliveredArtifactsRoot = await artifactsWith(['DSHU-2026.11.14.7-core-0.2.2-rc.3-REA-6.9.0-win-x64-d98db9f.exe'])
   await expect(suggestDesktopBuildVersion({ productVersion: '2026.1114.1', date: '20261114', artifactsRoot, deliveredArtifactsRoot }))
     .resolves.toBe('2026.1114.8')
+})
+
+it('reads a retained zero-sequence delivery as the day\'s first build', async () => {
+  const artifactsRoot = await artifactsWith([])
+  const deliveredArtifactsRoot = await artifactsWith(['DSHU-2026.11.15.0-core-0.2.2-rc.3-REA-6.9.0-win-x64-d98db9f.exe'])
+  await expect(suggestDesktopBuildVersion({ productVersion: '2026.1114.1', date: '20261115', artifactsRoot, deliveredArtifactsRoot }))
+    .resolves.toBe('2026.1115.1')
 })
 
 it('respects the checkout calendar floor and ignores malformed calendar artifact revisions', async () => {

@@ -31,7 +31,7 @@ it('rejects an overridden GitHub host and unknown provider', () => {
   expect(() => forkUpdateSource({ provider: 's3' })).toThrow()
 })
 
-it('requires a single complete publisher in installed Windows configuration', async () => {
+it('accepts a publisher-free unsigned install and requires a complete publisher when one is declared', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'dshu-update-source-'))
   const path = join(directory, 'app-update.yml')
   const source = { provider: 'github', owner: 'Water-Run', repo: 'deepseek-harness-uncensored' }
@@ -39,7 +39,8 @@ it('requires a single complete publisher in installed Windows configuration', as
   await writeFile(path, JSON.stringify(source))
   try {
     await expect(readInstalledUpdateSource(directory, 'linux')).resolves.toEqual(source)
-    await expect(readInstalledUpdateSource(directory, 'win32')).rejects.toThrow(/installed Windows publisher/u)
+    // An unsigned Windows build declares no publisher; electron-updater then skips signature checks.
+    await expect(readInstalledUpdateSource(directory, 'win32')).resolves.toEqual(source)
     for (const publisherName of [null, [], [''], 'CN=Fixture', [publisher, publisher], `${publisher},O=Other`]) {
       await writeFile(path, JSON.stringify({ ...source, publisherName }))
       await expect(readInstalledUpdateSource(directory, 'win32')).rejects.toThrow(/installed Windows publisher/u)

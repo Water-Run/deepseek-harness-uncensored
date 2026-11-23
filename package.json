@@ -206,6 +206,9 @@
     "verify-provider-data": "tsx packages/llm/llm-pi-ai/scripts/gen-provider-data.ts --check",
     "verify-product-use": "tsx scripts/verify-product-use.ts",
     "package:desktop:linux:x64:unsigned": "pnpm --dir apps/desktop run package:linux:x64:unsigned",
+    "package:desktop:linux:arm64": "pnpm --dir apps/desktop run package:linux:arm64",
+    "package:desktop:linux:arm64:unsigned": "pnpm --dir apps/desktop run package:linux:arm64:unsigned",
+    "package:desktop:deliver": "pnpm --dir apps/desktop run deliver",
     "render:artwork": "tsx apps/desktop/scripts/render-uncensored-artwork.ts"
   },
   "devDependencies": {

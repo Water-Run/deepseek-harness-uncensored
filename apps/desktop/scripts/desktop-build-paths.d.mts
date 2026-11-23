@@ -97,3 +97,20 @@ export function desktopArtifactOutput(
  * @returns Filename used in the build output.
  */
 export function desktopArtifactFilename(version: string, os: string, arch: string, suffix: string, extension: string): string
+
+/**
+ * Return the architecture segment electron-builder writes into a Linux artifact filename.
+ * Debian and RPM artifacts use distribution architecture names rather than the Node architecture.
+ * @param arch - Payload architecture.
+ * @param extension - Artifact extension without the leading dot.
+ * @returns Architecture segment of the final artifact filename.
+ */
+export function desktopArtifactArch(arch: 'arm64' | 'x64', extension: string): string
+
+/**
+ * Return the directory electron-builder unpacks one target's application into.
+ * electron-builder omits the architecture from x64 Linux and Intel macOS directory names.
+ * @param target - Supported Desktop target name.
+ * @returns Directory name inside the target's artifact root.
+ */
+export function desktopUnpackedDirectory(target: DesktopAutoUpdateTarget): string

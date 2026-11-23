@@ -178,7 +178,21 @@ it('checks the Debian package before recording full Linux packaging success', as
   expect(verification[2].at(-2)?.replaceAll('\\', '/'))
     .toMatch(new RegExp(`/unsigned-artifacts/runs/fixture-record/deepseek-harness-uncensored-${fixtureBuildPattern}-linux-amd64-unsigned\\.deb$`, 'u'))
   expect(verification[2].at(-1)).toMatch(/linux-unpacked$/u)
-  expect(stages.at(-2)).toMatch(/^exec tsx scripts\/verify-linux-portable-archive\.ts/u)
+  expect(stages.at(-1)).toBe(verification[0])
+  expect(writeFileSync).not.toHaveBeenCalled()
+})
+
+it('checks the RPM package before the portable archive', async () => {
+  const stage = 'exec tsx scripts/verify-linux-rpm-archive.ts'
+  const { run, stages } = supervisor(stage)
+  const invocation = parseDesktopPackageInvocation(['linux-x64', '--unsigned'], 'linux', 'x64')
+  await expect(packageTarget(invocation, { ...environment, DSH_DESKTOP_BUILD_VERSION: fixtureBuild }, run))
+    .rejects.toThrow('stage refused')
+  const verification = run.run.mock.calls.find(([name]) => name.startsWith(stage))!
+  expect(verification[2].at(-2)?.replaceAll('\\', '/'))
+    .toMatch(new RegExp(`/unsigned-artifacts/runs/fixture-record/deepseek-harness-uncensored-${fixtureBuildPattern}-linux-x86_64-unsigned\\.rpm$`, 'u'))
+  expect(verification[2].at(-1)).toMatch(/linux-unpacked$/u)
+  expect(stages.at(-2)).toMatch(/^exec tsx scripts\/verify-linux-debian-archive\.ts/u)
   expect(stages.at(-1)).toBe(verification[0])
   expect(writeFileSync).not.toHaveBeenCalled()
 })
@@ -270,7 +284,10 @@ it('checks the unsigned installer in the active supervised run output', async ()
   await packageTarget(invocation, { ...environment, DSH_DESKTOP_BUILD_VERSION: fixtureBuild,
     DSH_DESKTOP_PACKAGING_RUN_DIR: 'stale-record' }, run)
   const verification = run.run.mock.calls.find(([name]) => name.startsWith('exec tsx scripts/verify-windows-installer-blockmap.ts '))!
-  expect(verification[2]).not.toContain('--feed')
+  // Every package carries the update feed, so the unsigned installer is checked against it too.
+  const feedIndex = verification[2].indexOf('--feed')
+  expect(feedIndex).toBeGreaterThan(-1)
+  expect(verification[2][feedIndex + 1]?.replaceAll('\\', '/')).toMatch(/\/latest\.yml$/u)
   expect(verification[2].at(-1)?.replaceAll('\\', '/'))
     .toMatch(new RegExp(`/unsigned-artifacts/runs/fixture-record/deepseek-harness-uncensored-${fixtureBuildPattern}-win-x64-unsigned\\.exe$`, 'u'))
   expect(writeFileSync).not.toHaveBeenCalled()

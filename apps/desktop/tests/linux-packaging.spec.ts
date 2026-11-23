@@ -7,7 +7,7 @@ import { parseDesktopPackageInvocation, resolveDesktopPackageTarget } from '../s
 import { desktopTargetBuildPaths } from '../scripts/desktop-build-paths.mjs'
 import { createElectronBuilderConfig } from '../scripts/electron-builder-config.mjs'
 import { loadDesktopPackageEnvironment, localUnsignedPackageEnvironment, validateDesktopPackageEnvironment } from '../scripts/desktop-package-environment.mjs'
-import { resolveLinuxPackageSettings } from '../scripts/linux-package-settings.mjs'
+import { linuxPackageFormats, resolveLinuxPackageSettings } from '../scripts/linux-package-settings.mjs'
 import { presentCommandManagement } from '../src/command-management.ts'
 import { en, zh } from '../src/locale.ts'
 
@@ -22,9 +22,22 @@ it('selects a native Linux x64 target with independent outputs and product ident
   expect(desktopTargetBuildPaths('linux-x64').runtime).not.toBe(desktopTargetBuildPaths('win-x64').runtime)
   const config = createElectronBuilderConfig({ DSH_DESKTOP_UNSIGNED: '1' }, 'linux', 'x64')
   expect(config.appId).toBe('com.deepseek.dsh.uncensored')
-  expect(config.linux).toMatchObject({ executableName: 'deepseek-harness-uncensored', syncDesktopName: true, target: ['deb', 'tar.gz'] })
+  expect(config.linux).toMatchObject({ executableName: 'deepseek-harness-uncensored', syncDesktopName: true, target: ['deb', 'rpm', 'tar.gz'] })
   expect(config.protocols).toEqual([{ name: 'DeepSeek Harness Uncensored', schemes: ['dshu'] }])
-  expect(config.publish).toBeNull()
+  expect(config.publish).toEqual([{ provider: 'generic', url: 'https://github.com/Water-Run/deepseek-harness-uncensored/releases/latest/download/', channel: 'latest' }])
+})
+
+it('selects a native Linux arm64 target that publishes the Debian package without RPM', () => {
+  expect(resolveDesktopPackageTarget('linux-arm64', 'linux', 'arm64')).toMatchObject({
+    platform: 'linux', arch: 'arm64', builderPlatform: '--linux', builderArch: '--arm64',
+  })
+  expect(parseDesktopPackageInvocation([], 'linux', 'arm64')).toMatchObject({ target: { name: 'linux-arm64' } })
+  expect(desktopTargetBuildPaths('linux-arm64').runtime).not.toBe(desktopTargetBuildPaths('linux-x64').runtime)
+  const config = createElectronBuilderConfig({ DSH_DESKTOP_UNSIGNED: '1' }, 'linux', 'arm64')
+  expect(config.linux).toMatchObject({ target: ['deb', 'tar.gz'] })
+  expect(linuxPackageFormats('x64')).toEqual(['deb', 'rpm', 'tar.gz'])
+  expect(linuxPackageFormats('arm64')).toEqual(['deb', 'tar.gz'])
+  expect(() => linuxPackageFormats('ia32')).toThrow('unsupported Linux architecture')
 })
 
 it('reads Linux settings without borrowing Apple or Windows signing configuration', async () => {

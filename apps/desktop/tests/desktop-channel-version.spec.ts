@@ -51,8 +51,9 @@ it('accepts a calendar revision in an unsigned Windows x64 configuration', () =>
     DSH_DESKTOP_MANDATORY_UPDATE_PROD_ORIGIN: 'https://policy.example.com',
     DSH_DESKTOP_UNSIGNED: '1',
   }, 'win32', 'x64')
-  expect(config.extraMetadata).toMatchObject({ version })
-  expect(config.publish).toBeNull()
+  expect(config.extraMetadata).toMatchObject({ version, dshDesktopUpdateChannel: 'latest' })
+  // An unsigned package still ships the feed; it simply declares no Windows publisher.
+  expect(config.publish).toEqual([{ provider: 'generic', url: 'https://github.com/Water-Run/deepseek-harness-uncensored/releases/latest/download/', channel: 'latest' }])
 })
 
 it('requires an assigned daily sequence for calendar CI retries and supports public manual versions', () => {

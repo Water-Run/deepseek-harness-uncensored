@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-desktop",
   "description": "DeepSeek Harness Uncensored (DSHU) desktop application",
-  "version": "2026.1123.1",
+  "version": "2026.1123.0",
   "private": true,
   "license": "GPL-3.0-or-later",
   "author": {
@@ -43,7 +43,10 @@
     "package:win:x64:dir": "tsx scripts/package-target.ts win-x64 --dir",
     "render:installer-brand": "tsx scripts/render-installer-brand.ts",
     "package:linux:x64:unsigned": "tsx scripts/package-target.ts linux-x64 --unsigned",
-    "package:linux:x64": "tsx scripts/package-target.ts linux-x64"
+    "package:linux:x64": "tsx scripts/package-target.ts linux-x64",
+    "package:linux:arm64": "tsx scripts/package-target.ts linux-arm64",
+    "package:linux:arm64:unsigned": "tsx scripts/package-target.ts linux-arm64 --unsigned",
+    "deliver": "tsx scripts/collect-release.ts"
   },
   "dependencies": {
     "@deepseek-ai/cordis": "workspace:~",

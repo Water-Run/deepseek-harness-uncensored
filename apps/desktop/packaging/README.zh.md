@@ -39,7 +39,7 @@ description: "在本地生成 DSHU Desktop 安装包，选择部署与签名模�
 
 ## 发布版本
 
-DSHU 使用 `YYYY.MM.DD.N` 日期版本，例如 `2026.11.14.1`，最后一项为当天构建序号。DSH 内核和内置 REA 保留各自的上游版本。在既有授权范围内打包无需重复确认；公开发行仍需单独的发布授权。
+DSHU 使用 `YYYY.MM.DD.N` 日期版本，例如 `2026.11.14.1`，最后一项为当天构建序号，每天的第一个构建为 `0`。DSH 内核和内置 REA 保留各自的上游版本。在既有授权范围内打包无需重复确认；公开发行仍需单独的发布授权。
 
 包声明和 Electron 更新元数据将同一版本表示为 `YYYY.MMDD.N`，例如 `2026.1114.1`，使现有 SemVer 更新引擎可以按数字排序。关于页、CLI、安装包文件名和 Windows 卸载登记展示四段日期。Windows 安装器和卸载器的版本文字及固定数值资源均使用该日期。`apps/desktop/package.json` 中的独立产品版本是当前源码允许的最早日期构建。
 
@@ -47,7 +47,7 @@ CLI 包、桌面运行时描述和主运行时载荷记录本次选定的构建�
 
 打包预检与运行时准备要求 `product.json` 的上游版本和根目录 DSH 包版本一致，并记录完整的上游提交 ID。关于页使用这份源码信息。组装时再核对内置 CLI 和 Host 的包版本是否与所选内核一致。
 
-省略 `--build-version` 或传入 `auto` 时，按 Asia/Shanghai 日期，从本目标的本地产物及 `%USERPROFILE%/DSHU-Deliveries/YYYYMMDD`（含保留的 run 和 closeout 目录）取得下一个序号。清理构建缓存时保留交付记录，编号即可接续。明确传入 `--build-version 2026.11.14.2` 可为 Windows/Linux 矩阵指定同一构建。旧语义版本编号仍用于读取此前版本。
+省略 `--build-version` 或传入 `auto` 时，按 Asia/Shanghai 日期，从本目标的本地产物及 `%USERPROFILE%/DSHU-Deliveries/YYYYMMDD`（含保留的 run 和 closeout 目录）取得下一个序号，当天没有留存产物时从 `0` 开始。清理构建缓存时保留交付记录，编号即可接续。明确传入 `--build-version 2026.11.14.2` 可为 Windows/Linux 矩阵指定同一构建。旧语义版本编号仍用于读取此前版本。
 
 ```sh
 pnpm --dir apps/desktop run package:win:x64:unsigned --build-version auto
