@@ -6,9 +6,9 @@
 
 **更自由的探索未至之境**
 
-[![预发布](https://img.shields.io/badge/%E9%A2%84%E5%8F%91%E5%B8%83-2026.11.17.5-2563EB?style=flat-square)](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5) [![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Windows%20x64-0F172A?style=flat-square)](#安装与数据) [![基于](https://img.shields.io/badge/%E5%9F%BA%E4%BA%8E-DeepSeek%20Harness%200.2.2--rc.5-15803D?style=flat-square)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.5) [![许可](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-GPL--3.0--or--later-A16207?style=flat-square)](LICENSE)
+[![正式版](https://img.shields.io/badge/%E6%AD%A3%E5%BC%8F%E7%89%88-2026.11.23.0-2563EB?style=flat-square)](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.23.0) [![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Windows%20%C2%B7%20Linux%20%C2%B7%20macOS-0F172A?style=flat-square)](#安装与数据) [![架构](https://img.shields.io/badge/%E6%9E%B6%E6%9E%84-x64%20%C2%B7%20arm64-334155?style=flat-square)](#安装与数据) [![基于](https://img.shields.io/badge/%E5%9F%BA%E4%BA%8E-DeepSeek%20Harness%200.2.2--rc.5-15803D?style=flat-square)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.5) [![许可](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-GPL--3.0--or--later-A16207?style=flat-square)](LICENSE)
 
-[四种模式](#四种模式) · [旁问与随问](#旁问与随问) · [余额与限额](#余额与额度限制) · [记忆与预测](#跨对话记忆) · [使用手册](docs/user/guide/dshu.md) · [下载](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5)
+[四种模式](#四种模式) · [旁问与随问](#旁问与随问) · [余额与限额](#余额与额度限制) · [记忆与预测](#跨对话记忆) · [使用手册](docs/user/guide/dshu.md) · [下载](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.23.0)
 
 </div>
 
@@ -274,9 +274,9 @@
 
 | 项目 | 说明 |
 | --- | --- |
-| 下载 | [预发布 2026.11.17.5](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5)：Windows x64 为首发平台，Linux x64 提供检查包 |
+| 下载 | [正式版 2026.11.23.0](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.23.0)：Windows x64（exe）、Linux x64（deb / rpm）、Linux arm64（deb）、macOS arm64（dmg），一个安装格式一个 zip |
 | 首次配置 | 设置 → 模型中填写提供方与凭据，详见[模型配置](docs/user/guide/providers.zh.md) |
-| 版本号 | `YYYY.MM.DD.N`，末位是当天的构建序号，可在关于页核对 |
+| 版本号 | `YYYY.MM.DD.N`，末位是当天的构建序号，每天第一个构建为 `0`，可在关于页核对 |
 | 数据目录 | 默认 `~/.dsh-uncensored`，可用环境变量 `DSH_UNCENSORED_HOME` 修改 |
 | 与官方版并存 | 程序、配置、会话和更新渠道各自独立 |
 
@@ -298,7 +298,7 @@
 
 | 组成 | 基线 |
 | --- | --- |
-| DSHU | 最新公开预发布 `2026.11.17.5` |
+| DSHU | 最新正式版 `2026.11.23.0` |
 | DeepSeek Harness | 源码基于 [0.2.2-rc.5](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.5) |
 | 破甲提示词 | dsh-purge 的 [MIT 历史版本 e1d8e590](https://github.com/Water-Run/dsh-purge/tree/e1d8e59087857fa86d0ef2bb9878800274b13a29) |
 | REA | [6.9.0 · d74549e495c5](https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0) |
