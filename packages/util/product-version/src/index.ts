@@ -32,7 +32,7 @@ export const runtimeProductVersion: (value: string) => string = calendar.runtime
 /**
  * Construct a runtime version from an explicit day and daily build sequence.
  * @param date - Eight-digit YYYYMMDD day.
- * @param sequence - Positive daily build number, at most 65535.
+ * @param sequence - Daily build number, 0 for the day's first build, at most 65535.
  * @returns Runtime version.
  * @throws When the date or sequence is invalid.
  */

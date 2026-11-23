@@ -4,7 +4,7 @@
  * @property {number} year Calendar year.
  * @property {number} month Calendar month.
  * @property {number} day Calendar day.
- * @property {number} sequence Daily sequence.
+ * @property {number} sequence Daily sequence, whose first build is 0.
  * @property {string} display Public YYYY.MM.DD.N version.
  * @property {string} runtime Ordered YYYY.MMDD.N package version.
  */
@@ -15,8 +15,8 @@
  * @returns {CalendarVersion | undefined} Validated date and both representations.
  */
 export function parseCalendarVersion(value) {
-  const display = /^(\d{4})\.(\d{2})\.(\d{2})\.([1-9]\d*)$/u.exec(value)
-  const runtime = display === null ? /^(\d{4})\.([1-9]\d*)\.([1-9]\d*)$/u.exec(value) : null
+  const display = /^(\d{4})\.(\d{2})\.(\d{2})\.(0|[1-9]\d*)$/u.exec(value)
+  const runtime = display === null ? /^(\d{4})\.([1-9]\d*)\.(0|[1-9]\d*)$/u.exec(value) : null
   if (display === null && runtime === null) return undefined
   const year = Number((display ?? runtime)[1])
   const monthDay = runtime === null ? 0 : Number(runtime[2])
@@ -54,7 +54,7 @@ export function runtimeProductVersion(value) {
 /**
  * Construct the runtime version for an explicit calendar day and build sequence.
  * @param {string} date - Eight-digit YYYYMMDD day.
- * @param {number} sequence - Positive daily sequence, at most 65535.
+ * @param {number} sequence - Daily sequence from 0 for the day's first build, at most 65535.
  * @returns {string} Sortable runtime version.
  * @throws {Error} When the date or sequence is invalid.
  */
