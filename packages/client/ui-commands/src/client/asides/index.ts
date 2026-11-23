@@ -267,7 +267,11 @@ export function registerAsides(ctx: Context): void {
     }), 'conversation: side tab')
     scope.slots.inject('conversation.session.header.utilities', () => scope.slots.register({
       name: 'conversation.session.header.utilities', id: 'side-question', order: 100, locale: 'command',
-      inject: () => ({ open: () => { scope.sidebarRight.openTab('aside') } }),
+      inject: () => ({
+        open: () => { scope.sidebarRight.openTab('aside') },
+        // The status light reports the Session's latest persistent side conversation.
+        sideOf: (parent: SessionId) => lastSide.get(parent),
+      }),
     }, AsideHeaderAction))
     scope.slots.inject('sidebar.right.pane.tab', () => scope.slots.register({ name: 'sidebar.right.pane.tab', key: TYPE, locale: 'command',
       children: { 'sidebar.aside.conversation': { kind: 'single', scope: 'session' } } }, SidebarAsidePanel))

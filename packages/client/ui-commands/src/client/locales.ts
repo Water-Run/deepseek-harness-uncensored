@@ -10,6 +10,8 @@ import { builtinCommandTokens } from '@deepseek-ai/dsh-commands/builtin'
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
   'aside.side': '旁问',
+  'aside.status.running': '旁问进行中',
+  'aside.status.stopped': '旁问已停止',
   'aside.btw': '随问',
   'aside.sideDescription': '在右侧接着当前上下文提问；关闭后可继续',
   'aside.btwDescription': '任务进行中只读地问一句进度或小问题，快速回答一次',
@@ -77,6 +79,8 @@ export type CommandKey = keyof typeof zh
 /** English dictionary, checked complete against the zh key set. */
 export const en = {
   'aside.side': 'Side question',
+  'aside.status.running': 'Side question is working',
+  'aside.status.stopped': 'Side question is stopped',
   'aside.btw': 'Quick question',
   'aside.sideDescription': 'Ask in the right panel with the current context; reopen to continue',
   'aside.btwDescription': 'Ask one read-only question while a task runs; answered once and briefly',

@@ -2,8 +2,10 @@
 import type { PropsRuntime, PropsRenderFactories, PropsRenderSlots, PropsLocale, InjectFace } from '@deepseek-ai/dsh-client-ui-slots'
 import { IconCloseOutlineRegular, IconNewChatOutlineRegular, IconLoadingOutlineRegular, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ConversationViewsProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { InlineAsideController } from './controller.ts'
 import { AsideIcon } from './AsideIcon.tsx'
+import { AsideStatusLight } from './AsideStatusLight.tsx'
 import { asideAddress, asideParent } from './address.ts'
 import css from './AsidePanel.module.css'
 
@@ -78,9 +80,25 @@ export function AsideTitle({ t }: PropsRuntime<'sidebar.right.pane.tab.title'> &
   return <><AsideIcon size={16} />{t('aside.side')}</>
 }
 
-/** @param props - Current-session action and localized title. @returns Side-question shortcut beside header utilities. */
-export function AsideHeaderAction({ open, t }: PropsRuntime<'conversation.session.header.utilities'> & PropsLocale<'command'> & { open: () => void }) {
-  return <Tooltip label={t('aside.side')} side="bottom" portal>
-    <button type="button" className={css.launcher} onClick={open} aria-label={t('aside.side')}><AsideIcon size={16} /></button>
-  </Tooltip>
+/**
+ * Render the side-question shortcut and the state of the Session's side conversation.
+ * @param props - the current Session, its side-conversation lookup, the open action and localized titles.
+ * @returns the status light while the side conversation has a prompt, then the launcher.
+ */
+export function AsideHeaderAction({ sessionId, useSessions, open, sideOf, t }: PropsRuntime<'conversation.session.header.utilities'> & PropsLocale<'command'> & {
+  /** Open the side-conversation panel for the current Session. */
+  open: () => void
+  /** The Session's current persistent side conversation, when one exists. */
+  sideOf: (parent: SessionId) => SessionId | undefined
+}) {
+  const sideId = sideOf(sessionId)
+  // A side conversation with no prompt of its own reports no state yet.
+  const blank = useSessions(list => sideId === undefined || list.byId[sideId]?.blank !== false)
+  const running = useSessions(list => sideId !== undefined && list.byId[sideId]?.running === true)
+  return <>
+    {!blank && <AsideStatusLight running={running} label={t(running ? 'aside.status.running' : 'aside.status.stopped')} />}
+    <Tooltip label={t('aside.side')} side="bottom" portal>
+      <button type="button" className={css.launcher} onClick={open} aria-label={t('aside.side')}><AsideIcon size={16} /></button>
+    </Tooltip>
+  </>
 }
