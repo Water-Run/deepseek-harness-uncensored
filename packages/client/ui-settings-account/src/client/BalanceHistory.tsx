@@ -74,8 +74,8 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
     } }
   }, [])
   const id = useId()
-  const compressFlat = dashHint !== undefined
-  const geometry = useMemo(() => balanceChart(samples, { stepIncreases, compressFlat }), [samples, stepIncreases, compressFlat])
+  const dashes = dashHint !== undefined
+  const geometry = useMemo(() => balanceChart(samples, { stepIncreases, dashes }), [samples, stepIncreases, dashes])
   const first = samples[0], last = samples.at(-1), range = geometry.range
   if (first === undefined || last === undefined || range === undefined) return null
   const axisDigits = range.low === range.high ? 2 : Math.max(2, Math.min(8, 1 - Math.floor(Math.log10(range.high - range.low))))
@@ -93,6 +93,7 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
   const x = 52 + ratio * 252
   const y = range.low === range.high ? 55 : 98 - (sample.value - range.low) * 86 / (range.high - range.low)
   const dashed = Boolean(geometry.compressed) || Boolean(geometry.gaps)
+
   const inspect = (event: PointerEvent<HTMLDivElement>): void => {
     const rect = event.currentTarget.getBoundingClientRect()
     const x = (event.clientX - rect.left) / Math.max(rect.width, 1)

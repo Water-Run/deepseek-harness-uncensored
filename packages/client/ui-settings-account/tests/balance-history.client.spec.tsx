@@ -82,7 +82,7 @@ it('shortens the flat run while keeping earlier changes and the original samples
     { time: 0, value: 12 }, { time: 60_000, value: 10 }, { time: 7_260_000, value: 10 },
     { time: 14_460_000, value: 10 }, { time: 14_520_000, value: 9 },
   ]
-  const axis = balanceChart(samples, { compressFlat: true, stepIncreases: true })
+  const axis = balanceChart(samples, { dashes: true, stepIncreases: true })
   expect(axis.positions).toEqual([0, .4, .5, .6, 1])
   expect(axis.compressed).toMatch(/^M[^ ]+ H[^ ]+$/u)
   expect(axis.path?.match(/L/gu)).toHaveLength(2)

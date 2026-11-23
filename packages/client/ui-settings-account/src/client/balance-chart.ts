@@ -119,18 +119,16 @@ function timeAxis(samples: readonly BalanceChartSample[], compress: boolean) {
 
 /**
  * Project samples into the fixed balance chart view box.
- * Connectors between observations the samples do not cover become dashed, so a
- * long stretch without an update never reads as an observed balance.
  * @param samples - Observations for one currency, in time order.
- * @param options - Draw discrete increases and optionally compress unchanged balance runs of at least 30 minutes.
+ * @param options - Draw discrete increases and, with `dashes`, mark shortened unchanged runs and unobserved intervals.
  * @returns Empty, one dot, or a downsampled curve with positions for every original observation.
  */
 export function balanceChart(
-  samples: readonly BalanceChartSample[], options: { stepIncreases?: boolean; compressFlat?: boolean } = {},
+  samples: readonly BalanceChartSample[], options: { stepIncreases?: boolean; dashes?: boolean } = {},
 ): BalanceChartGeometry {
-  const { stepIncreases = false, compressFlat = false } = options
+  const { stepIncreases = false, dashes = false } = options
   if (samples.length === 0) return { kind: 'empty', points: '', positions: [] }
-  const { positions, runs } = timeAxis(samples, compressFlat)
+  const { positions, runs } = timeAxis(samples, dashes)
   const kept = new Set(downsample(samples, MAX_POINTS))
   if (stepIncreases) {
     for (let index = 1; index < samples.length; index += 1) {
@@ -160,14 +158,14 @@ export function balanceChart(
   const first = atIndex(coords, 0)
   if (coords.length === 1) return { kind: 'single', points: '', dot: { x: first.x, y: first.y }, range, positions }
   const points = coords.map(point => `${point.x},${point.y}`).join(' ')
-  const gaps = gapEnds(samples, gapThreshold(samples))
+  const gaps = dashes ? gapEnds(samples, gapThreshold(samples)) : undefined
   let path = `M${first.x},${first.y}`, increases = '', compressed = '', missing = ''
   let previous = first
   for (const current of coords.slice(1)) {
     if (compressedEnds.has(current.index)) {
       path += ` M${current.x},${current.y}`
       compressed += `M${previous.x},${previous.y} H${current.x} `
-    } else if (atIndex(gaps, current.index) !== atIndex(gaps, previous.index)) {
+    } else if (gaps !== undefined && atIndex(gaps, current.index) !== atIndex(gaps, previous.index)) {
       path += ` M${current.x},${current.y}`
       missing += `M${previous.x},${previous.y} L${current.x},${current.y} `
     } else if (stepIncreases && current.y < previous.y) {
