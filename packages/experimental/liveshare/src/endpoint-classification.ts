@@ -96,6 +96,7 @@ export const VIEWER_ENDPOINT_CLASSES = {
   'agentPresets/sensitiveConfirmationPolicy': 'owner-only',
   'agentPresets/switchPolicy': 'owner-only',
   'balance/get': 'owner-only',
+  'balance/clear': 'owner-only',
   'memory/configureExtraction': 'owner-only',
   'memory/create': 'owner-only',
   'memory/deleteRecord': 'owner-only',
