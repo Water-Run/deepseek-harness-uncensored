@@ -80,3 +80,23 @@
 四台远程机的构建冒烟均在打包阶段通过：CLI 与主载荷版本一致、四预设就绪、REA 6.9.0 与 255 工具、Office 技能列出并加载、DOCX/XLSX/PPTX 转换与重算。
 
 自动更新清单随构建产出：`latest.yml`、`latest-linux.yml`、`latest-linux-arm64.yml`、`latest-mac.yml`，其 `url`/`path` 与上传的 `-unsigned` 文件名一致。
+## 2026.11.24.3 已发布
+
+- 标签：`v2026.11.24.3`（指向 `7eaeddc605`），非草稿、非预发布，`releases/latest` 已指向它。
+- 附件 10 件：五平台安装包 + 四个更新清单，全部 `uploaded`。
+- 四个 feed 从 `releases/latest/download/<name>` 实测 200，版本 `2026.1124.3`，文件名与 sha512 与附件一致；Windows 安装包地址 302 到 CDN 正常。
+
+### SHA-256
+
+| 产物 | SHA-256 |
+| --- | --- |
+| `...-win-x64-unsigned.exe` | `A84001B8EC3D64AE4452833D8FDD018857900A772BE366488DE2F219334B5B30` |
+| `...-linux-amd64-unsigned.deb` | `871F1E23207B6D3AED717CA175ADF5963153F48E54A4FCA790D21ABBA15F5807` |
+| `...-linux-x86_64-unsigned.rpm` | `BEBD5E958996C18A77CB8BB9D415CDA57DAAE3400DA8EB5AE55A833BE6537DC1` |
+| `...-linux-arm64-unsigned.deb` | `75E288AA37E376CCE828DD84979FCE975093F7E1AA8F34FC5A44A9FA2FFCADB0` |
+| `...-mac-arm64-unsigned.dmg` | `CE723062EE9A0A10468343C3DC3703AC445BE8DB63A57CB42E2E94C8BB9F639C` |
+| `...-mac-arm64-unsigned.zip` | `D51C6DFBA7EEDBDE8449A48A0F9E8D0C285F3688ADDBD3362079D7ACD8390B0F` |
+
+### 待验
+
+- 程序内升级的端到端实测：Windows 与 Linux 的链路按代码成立（未签名构建由 feed SHA-512 绑定），macOS 由 Squirrel 用已安装应用签名校验替换包，未签名包这条路径尚未实测。
