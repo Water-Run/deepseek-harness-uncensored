@@ -107,7 +107,7 @@ export function apply(ctx: ClientContext): void {
   const desktopUpdate = new DesktopUpdateSource(carrier?.protocolVersion === 1 ? carrier.updates : undefined)
   ctx.effect(() => () => { desktopUpdate.dispose() }, 'ui-settings-general: desktop update carrier')
   const channelBridge = carrier?.protocolVersion === 1 ? carrier.updates?.channels : undefined
-  if (channelBridge !== undefined) {
+  if (process.env.DSH_CLIENT_FORK_VERSION === undefined && channelBridge !== undefined) {
     const channel = new DesktopChannelSource(channelBridge)
     ctx.effect(() => () => { channel.dispose() }, 'ui-settings-general: desktop channel')
     ctx.slots.inject('settings.general.item', () => ctx.slots.register({

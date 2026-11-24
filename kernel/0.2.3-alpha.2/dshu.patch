@@ -699,6 +699,722 @@ index 824fd37a99cb6cc511ef156e7d3913c0012092de..54c7eb796967c3e640e65b6f23f31873
  | `session` | `@deepseek-ai/dsh-session` |
  | `session-log-deepseek` | `@deepseek-ai/dsh-session-log-deepseek` |
  | `typert` | `@deepseek-ai/dsh-typert-registry` |
+diff --git a/apps/desktop/README.i18n.yaml b/apps/desktop/README.i18n.yaml
+index 1336a701c617d5f35477c8bc0082d6ae25996fcf..edd5efcac4404f9cff458f71f51e2e4deb59c45b 100644
+--- a/apps/desktop/README.i18n.yaml
++++ b/apps/desktop/README.i18n.yaml
+@@ -60,8 +60,8 @@
+   en: 8b0b9efeb83727ef
+   zh: 5ee95de48ceab392
+ /deepseek-harness-desktop/updates/local-desktop-settings:
+-  en: dbe57394894b7368
+-  zh: a3bb788c2ce631a4
++  en: c4384915bee9209f
++  zh: eef9ac69d1e3e2cf
+ /deepseek-harness-desktop/updates/mandatory-update-policy:
+   en: 182a9c6705213e13
+   zh: 681762f83490f4c6
+diff --git a/apps/desktop/README.md b/apps/desktop/README.md
+index af6f44dd177d452eef214f20de3ae784cd5612cd..9279b0113ff96d4bab66b20fc9c2f70479ea7ede 100644
+--- a/apps/desktop/README.md
++++ b/apps/desktop/README.md
+@@ -313,13 +313,7 @@ On first launch, including after an upgrade, Desktop creates this document if it
+ 
+ Startup loading never overwrites existing documents; an omitted `updates` object or field resolves to `false`. Set the field to `true` to permit test authentication dialogs, then fully quit and restart the application. Set it back to `false` and restart to suppress them again. Creation, read, or validation failures use the default `false` without blocking startup. Desktop attempts to warn through the Electron console with the file path; unavailable logging does not block startup. Correct the file and restart to apply an explicit setting. Unknown fields are preserved. Installation updates retain this user-data file; Windows uninstallation removes it under the [uninstall rules](#windows-uninstall-rules).
+ 
+-In Desktop **Settings → General → Update channel**, **Stable** selects `stable` and **Development** selects `nightly`. Publishers choose versions for each channel independently of version suffixes; Stable can also deliver alpha or RC versions. The main process saves `updates.channel` in this same file and applies the choice immediately through IPC; no Host settings service is involved. An omitted channel uses the build-injected package default. External edits and deletion are read only on the next launch; no file watcher runs. The authentication-popup setting remains startup-only. UI writes retain unrelated fields from the latest valid document; external editors must not write concurrently with a UI save.
+-
+-During a UI switch, the selector shows the pending choice with a loading indicator. Failure restores the actual runtime selection and shows a short toast; ordinary save failures keep the current channel and update target accessible. Invalid startup settings or failure to retire the previous update suspends update operations; without a mandatory policy block, the application remains usable. Startup settings errors show a non-blocking ten-second toast with a details action. The update indicator retains the suspension reason independently of download progress; open it for recovery guidance and a button to reveal the settings file. Fix the file, then choose **Reload settings** in the error details or restart; this explicit reload applies only update settings and never rewrites the file. The reload button shows a busy indicator for at least half a second and rejects repeated clicks. Invalid files keep updates paused. Selecting a valid channel in Settings can also recover an invalid channel; malformed JSON must be repaired first. A known mandatory-update block remains enforced; its configuration-error action opens the same file-location and reload dialog. Successful channel changes trigger a fresh mandatory-policy check, waiting for an older channel’s in-flight check if necessary. Successful switching retires pending checks, downloads and installation eligibility before checking the new feed, including when both feeds advertise the same version. Switching never downgrades or installs automatically. Installation preparation rejects UI switches; once `quitAndInstall()` hands off, file edits cannot cancel that installation.
+-
+-The shared settings storage distinguishes missing files, read failures, malformed JSON, invalid document structure and invalid individual fields. Popup and channel fields are validated independently with Zod; an invalid popup field does not invalidate a valid channel, and vice versa. Reads never create files; startup initialization is explicit and shares the writer lock with saves. A save preserves unknown and unrelated invalid fields. Write diagnostics distinguish no write, uncertain completion and a committed write followed by lock-cleanup failure; the last case is not a rollback.
+-
+-Once installation eligibility is revoked, obsolete-file removal failures do not block switching. They are flushed to `update-cleanup.jsonl` in Electron’s logs directory with the time, operation, path and filesystem error; inability to write that log falls back to stderr. Later download failures are reported independently and are not attributed to an earlier cleanup warning. Structured filesystem errors distinguish insufficient space, denied writes and busy files; the error dialog retains the current error code and supplied file paths in its details. Errors without structured evidence keep the generic download-failure guidance.
++Desktop checks the release feed specified by the installed package. A saved `updates.channel` does not alter update checks or installation.
+ 
+ Updater adapter compatibility and platform version records are documented in [Electron updater compatibility](tests/updates/electron-updater/README.md).
+ 
+diff --git a/apps/desktop/README.zh.md b/apps/desktop/README.zh.md
+index 56161096b2f742f2c592b7b87f8693a8ceb8989a..32d901f460dcf8efc2dacf3b63fb9b42a7b4d64d 100644
+--- a/apps/desktop/README.zh.md
++++ b/apps/desktop/README.zh.md
+@@ -313,13 +313,7 @@ Electron 主进程在启动时读取一次 `app.getPath('userData')/desktop/sett
+ 
+ 启动读取不会覆盖已有文件；缺少 `updates` 对象或该字段时均按 `false` 处理。将字段设为 `true` 后完全退出并重启应用，即可允许测试鉴权弹窗。改回 `false` 并重启即可再次禁止。创建、读取或校验失败时使用默认值 `false`，不阻止启动。Desktop 尝试在 Electron 控制台记录包含文件路径的警告；日志不可用也不阻止启动。修正文件并重启后才会应用显式设置。未知字段会保留。安装更新保留此用户数据文件；Windows 卸载按[卸载规则](#windows-uninstall-rules)删除它。
+ 
+-在桌面版**设置 → 通用设置 → 更新渠道**中，**正式版**选择 `stable`，**开发版**选择 `nightly`。发布者独立于版本后缀为各渠道选择版本；正式版渠道也可以提供 alpha 或 RC 版本。主进程在同一文件中保存 `updates.channel`，并通过 IPC 立即应用选择，不依赖 Host 设置服务。省略 channel 时使用打包注入的包内默认值。外部编辑和删除仅在下次启动读取，不运行文件监听器。鉴权弹窗设置仍须重启生效。UI 写入保留最新有效文件中的其他字段；外部编辑器不能与 UI 保存同时写入。
+-
+-UI 切换期间，选择器显示待应用选项和加载指示；失败时恢复实际运行渠道，并显示简短 toast。普通保存失败不会阻止使用当前渠道及旧更新目标。启动配置无效或无法撤销旧更新安装资格会暂停更新操作；没有强更策略阻塞时，主应用仍可使用。启动配置错误会显示持续十秒、可查看详情的非阻塞提示。更新入口独立于下载进度保留暂停原因；打开后可查看恢复指引、配置路径并在系统文件管理器中定位文件。修正文件后，可在错误详情中选择**重新读取配置**或重启；显式重读只应用更新配置，不改写文件。重读按钮至少显示半秒加载指示，期间不接受重复点击；文件仍无效时继续暂停更新。在设置中选择有效渠道也可恢复无效渠道；JSON 损坏须先修复文件。已知强更阻塞继续生效；强更页面的配置异常入口可打开同一文件定位和重读对话框。渠道切换成功后立即重新检查强更策略；如旧渠道的检查仍在进行，则等待其完成后检查新渠道。切换成功时先收尾检查、下载并撤销安装资格，再检查新渠道；两个渠道版本号相同也遵循该规则。切换不降级，也不自动安装。安装准备期间拒绝 UI 切换；调用 `quitAndInstall()` 交接后，编辑文件不能取消本次安装。
+-
+-共享设置存储区分文件缺失、读取失败、JSON 损坏、文档结构无效和单项字段无效。鉴权开关与渠道字段分别通过 Zod 校验；鉴权开关无效不会使有效渠道失效，反之亦然。读取不创建文件；启动初始化是显式操作，并与保存共用写锁。保存保留未知字段和无关的无效字段。写入诊断区分未写入、完成情况不确定，以及写入已提交但释放锁失败；最后一种情况不表示文件已回滚。
+-
+-撤销安装资格后，旧文件删除失败不阻止渠道切换。失败时间、操作、路径及文件系统错误会刷新写入 Electron 日志目录的 `update-cleanup.jsonl`；日志本身无法写入时回退到标准错误输出。后续下载失败独立报告，不归因于之前的清理警告。有结构化文件系统错误时，区分空间不足、无法写入和文件占用；错误弹窗详情保留当次错误码及已提供的文件路径。没有结构化依据时保留通用下载失败提示。
++桌面版按安装包中声明的发行源检查更新。旧设置文件中的 `updates.channel` 不影响检查更新或安装。
+ 
+ 更新适配层兼容性和平台版本记录见 [Electron updater 兼容性](tests/updates/electron-updater/README.zh.md)。
+ 
+diff --git a/apps/desktop/src/ipc.ts b/apps/desktop/src/ipc.ts
+index 83ebe7415a9931f5d1ed769cf68f5f70eb534246..7b33f5312d9f724b6902c4ed62faeafb0761bfd9 100644
+--- a/apps/desktop/src/ipc.ts
++++ b/apps/desktop/src/ipc.ts
+@@ -2,7 +2,7 @@ import type { DesktopFileActions } from '@deepseek-ai/dsh-client-ui-file-actions
+ /** Typed preload operations exposed only by the Electron shell. */
+ 
+ export type { DesktopChannelState, DesktopChannelChangeResult } from '@deepseek-ai/dsh-client-ui-settings-general/types'
+-import type { DesktopChannelBridge, DesktopChannelState } from '@deepseek-ai/dsh-client-ui-settings-general/types'
++import type { DesktopChannelState } from '@deepseek-ai/dsh-client-ui-settings-general/types'
+ import type { DesktopKeyboardApi, DesktopShortcutsApi } from '@deepseek-ai/dsh-client-shortcuts/protocol'
+ import type { IpcMainInvokeEvent } from 'electron'
+ import type { DesktopBrowserBridge } from '@deepseek-ai/dsh-client-ui-sidebar-browser/types'
+@@ -34,9 +34,6 @@ export const DESKTOP_IPC = {
+   deviceInfo: 'dsh-desktop:device-info',
+   localeBootstrap: 'dsh-desktop:locale-bootstrap',
+   localeChanged: 'dsh-desktop:locale-changed',
+-  updatesChannelGet: 'dsh-desktop:updates-channel-get',
+-  updatesChannelSet: 'dsh-desktop:updates-channel-set',
+-  updatesChannelChanged: 'dsh-desktop:updates-channel-changed',
+   updatesStatus: 'dsh-desktop:updates-status',
+   updatesOpen: 'dsh-desktop:updates-open',
+   updatesPresentation: 'dsh-desktop:updates-presentation',
+@@ -103,7 +100,6 @@ export interface DshDesktopProductApi {
+    */
+   deviceInfo(): Promise<string>
+   readonly updates: {
+-    readonly channels: DesktopChannelBridge
+     status(): Promise<DesktopUpdatePresentation>
+     open(): Promise<void>
+     subscribe(listener: (state: DesktopUpdatePresentation) => void): () => void
+diff --git a/apps/desktop/src/locale.ts b/apps/desktop/src/locale.ts
+index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..0ac4c9ab831698b7c9af61e89a4030741339f23a 100644
+--- a/apps/desktop/src/locale.ts
++++ b/apps/desktop/src/locale.ts
+@@ -109,7 +109,7 @@ export const en = {
+   reloadPageMenu: 'Reload Page',
+   toggleDevToolsMenu: 'Developer tools',
+   restartAppHostMenu: 'Restart App and Host',
+-  updateConfigurationFailed: 'Update settings could not be applied. Fix the configuration file and restart, or select an update channel in Settings.',
++  updateConfigurationFailed: 'The update configuration could not be applied. Check the installation and restart the app.',
+   updateConfigurationRead: 'Settings file error; updates are paused',
+   updateConfigurationFormat: 'Settings file error; updates are paused',
+   updateConfigurationChannel: 'Settings file error; updates are paused',
+@@ -305,7 +305,7 @@ export const zh = {
+   reloadPageMenu: '刷新页面',
+   toggleDevToolsMenu: '开发者工具',
+   restartAppHostMenu: '重启应用与 Host',
+-  updateConfigurationFailed: '更新配置无法应用。请修正配置文件并重启，或在设置中选择更新渠道。',
++  updateConfigurationFailed: '无法应用更新配置。请检查安装并重启应用。',
+   updateConfigurationRead: '配置文件异常，更新已暂停',
+   updateConfigurationFormat: '配置文件异常，更新已暂停',
+   updateConfigurationChannel: '配置文件异常，更新已暂停',
+@@ -499,7 +499,7 @@ export const ja = {
+   reloadPageMenu: 'ページを再読み込み',
+   toggleDevToolsMenu: '開発者ツール',
+   restartAppHostMenu: 'アプリとホストを再起動',
+-  updateConfigurationFailed: '更新設定を適用できませんでした。設定ファイルを修正して再起動するか、設定で更新チャンネルを選択してください。',
++  updateConfigurationFailed: '更新設定を適用できませんでした。インストール状態を確認してアプリを再起動してください。',
+   updateConfigurationRead: '設定ファイルに問題があるため、更新を停止しています',
+   updateConfigurationFormat: '設定ファイルに問題があるため、更新を停止しています',
+   updateConfigurationChannel: '設定ファイルに問題があるため、更新を停止しています',
+@@ -693,7 +693,7 @@ export const es = {
+   reloadPageMenu: 'Recargar página',
+   toggleDevToolsMenu: 'Herramientas de desarrollo',
+   restartAppHostMenu: 'Reiniciar la aplicación y el host',
+-  updateConfigurationFailed: 'No se pudo aplicar la configuración de actualización. Corrige el archivo y reinicia, o selecciona un canal en Ajustes.',
++  updateConfigurationFailed: 'No se pudo aplicar la configuración de actualización. Comprueba la instalación y reinicia la aplicación.',
+   updateConfigurationRead: 'Error en el archivo de ajustes; actualizaciones pausadas',
+   updateConfigurationFormat: 'Error en el archivo de ajustes; actualizaciones pausadas',
+   updateConfigurationChannel: 'Error en el archivo de ajustes; actualizaciones pausadas',
+@@ -887,7 +887,7 @@ export const fr = {
+   reloadPageMenu: 'Recharger la page',
+   toggleDevToolsMenu: 'Outils de développement',
+   restartAppHostMenu: "Redémarrez l'application et l'hôte",
+-  updateConfigurationFailed: 'Impossible d’appliquer les paramètres de mise à jour. Corrigez le fichier et redémarrez, ou sélectionnez un canal dans les paramètres.',
++  updateConfigurationFailed: 'Impossible d’appliquer les paramètres de mise à jour. Vérifiez l’installation et redémarrez l’application.',
+   updateConfigurationRead: 'Erreur du fichier de paramètres ; mises à jour suspendues',
+   updateConfigurationFormat: 'Erreur du fichier de paramètres ; mises à jour suspendues',
+   updateConfigurationChannel: 'Erreur du fichier de paramètres ; mises à jour suspendues',
+@@ -1081,7 +1081,7 @@ export const de = {
+   reloadPageMenu: 'Seite neu laden',
+   toggleDevToolsMenu: 'Entwicklertools',
+   restartAppHostMenu: 'Anwendung und Host neu starten',
+-  updateConfigurationFailed: 'Die Update-Einstellungen konnten nicht angewendet werden. Korrigiere die Datei und starte neu, oder wähle in den Einstellungen einen Update-Kanal.',
++  updateConfigurationFailed: 'Die Update-Einstellungen konnten nicht angewendet werden. Prüfe die Installation und starte die App neu.',
+   updateConfigurationRead: 'Fehler in der Einstellungsdatei; Updates pausiert',
+   updateConfigurationFormat: 'Fehler in der Einstellungsdatei; Updates pausiert',
+   updateConfigurationChannel: 'Fehler in der Einstellungsdatei; Updates pausiert',
+@@ -1275,7 +1275,7 @@ export const ru = {
+   reloadPageMenu: 'Обновить страницу',
+   toggleDevToolsMenu: 'Инструменты разработчика',
+   restartAppHostMenu: 'Перезапустите приложение и хост.',
+-  updateConfigurationFailed: 'Не удалось применить настройки обновления. Исправьте файл и перезапустите приложение или выберите канал в настройках.',
++  updateConfigurationFailed: 'Не удалось применить настройки обновления. Проверьте установку и перезапустите приложение.',
+   updateConfigurationRead: 'Ошибка файла настроек; обновления приостановлены',
+   updateConfigurationFormat: 'Ошибка файла настроек; обновления приостановлены',
+   updateConfigurationChannel: 'Ошибка файла настроек; обновления приостановлены',
+@@ -1469,7 +1469,7 @@ export const pt = {
+   reloadPageMenu: 'Recarregar página',
+   toggleDevToolsMenu: 'Ferramentas do desenvolvedor',
+   restartAppHostMenu: 'Reinicie o aplicativo e o host',
+-  updateConfigurationFailed: 'Não foi possível aplicar as configurações de atualização. Corrija o arquivo e reinicie, ou selecione um canal nas configurações.',
++  updateConfigurationFailed: 'Não foi possível aplicar as configurações de atualização. Verifique a instalação e reinicie o aplicativo.',
+   updateConfigurationRead: 'Erro no arquivo de configurações; atualizações pausadas',
+   updateConfigurationFormat: 'Erro no arquivo de configurações; atualizações pausadas',
+   updateConfigurationChannel: 'Erro no arquivo de configurações; atualizações pausadas',
+diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
+index 291ed084761945a494c5ee76c1bfc11637c26469..338c1dde6eec0498ed5cc1b3fc92534d4e917fe8 100644
+--- a/apps/desktop/src/main.ts
++++ b/apps/desktop/src/main.ts
+@@ -1,10 +1,6 @@
+ /** Electron shell: desktop project ownership, custom protocol, windows, and lifecycle. */
+ 
+ import { installFileActions } from './file-actions.ts'
+-import { configurationFailure, channelSaveFailure, configurationMessage } from './update-configuration.ts'
+-import type { DesktopChannelState, DesktopChannelChangeResult } from '@deepseek-ai/dsh-client-ui-settings-general/types'
+-import { DesktopUpdateSettings } from './update-settings.ts'
+-import { isDesktopUpdateChannel } from './settings-file.ts'
+ import type { ProductEventMap, ProductEvent } from '@deepseek-ai/dsh-client-product-analytics/types'
+ import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
+ import { access, readFile, writeFile } from 'node:fs/promises'
+@@ -435,9 +431,6 @@ async function main(): Promise<void> {
+   let updateStoppedHost = false
+   let updateStopFailure: DesktopHostUncleanExitError | undefined
+   let updateState: DesktopUpdateState = { phase: 'idle' }
+-  let channelState: DesktopChannelState | undefined
+-  const updatePresentation = (state: DesktopUpdateState) => ({ ...presentDesktopUpdate(state),
+-    ...(channelState?.error === undefined ? {} : { configurationError: channelState.error }) })
+   const systemLanguages = app.getPreferredSystemLanguages()
+   let locale = windowsLanguage === undefined
+     ? resolveDesktopStartupLocale(null, systemLanguages) : resolveDesktopLocale(windowsLanguage)
+@@ -637,7 +630,7 @@ async function main(): Promise<void> {
+     updateState = state
+     mandatoryUI?.sync()
+     for (const window of BrowserWindow.getAllWindows()) {
+-      window.webContents.send(DESKTOP_IPC.updatesPresentation, updatePresentation(state))
++      window.webContents.send(DESKTOP_IPC.updatesPresentation, presentDesktopUpdate(state))
+     }
+     if (state.phase === 'error' && state.failedOperation !== 'check' && state.failedOperation !== 'configuration') {
+       if (state.failedOperation === 'install' && fileDragStopped && !quitting) {
+@@ -701,13 +694,7 @@ async function main(): Promise<void> {
+   }
+ 
+   const manifest: unknown = JSON.parse(await readFile(join(app.getAppPath(), 'package.json'), 'utf8'))
+-  const packagedChannel = desktopUpdateChannel(manifest)
+-  const channelSettings = new DesktopUpdateSettings(app.getPath('userData'), packagedChannel)
+-  const initialChannel = await channelSettings.load()
+-  channelState = { channel: initialChannel.kind === 'ready' ? initialChannel.channel : null,
+-    packagedChannel, changing: false,
+-    ...(initialChannel.kind === 'error' ? { error: configurationFailure(initialChannel.error) } : {}) }
+-  const updateChannel = initialChannel.kind === 'ready' ? initialChannel.channel : packagedChannel
++  const updateChannel = desktopUpdateChannel(manifest)
+   const updates = new DesktopUpdateCoordinator(
+     publishUpdate,
+     async () => {
+@@ -768,16 +755,6 @@ async function main(): Promise<void> {
+     updateChannel,
+   )
+ 
+-  if (initialChannel.kind === 'error') updates.suspendConfiguration(initialChannel.error.path)
+-  const publishChannel = (state: DesktopChannelState): DesktopChannelState => {
+-    channelState = state
+-    for (const window of BrowserWindow.getAllWindows()) {
+-      window.webContents.send(DESKTOP_IPC.updatesChannelChanged, state)
+-      window.webContents.send(DESKTOP_IPC.updatesPresentation, updatePresentation(updates.state))
+-    }
+-    return state
+-  }
+-
+   const updateSchedule = new DesktopUpdateSchedule(updates, resolveDesktopUpdateScheduleConfig(process.env))
+ 
+   const downloadUpdate = async (version: string, revision = updates.revision): Promise<DesktopUpdateState> => {
+@@ -911,39 +888,9 @@ async function main(): Promise<void> {
+     windowsLanguage = locale.id
+     refreshApplicationMenu()
+   })
+-  ipcMain.handle(DESKTOP_IPC.updatesChannelGet, (event) => {
+-    assertProductSender(event)
+-    return channelState
+-  })
+-  let channelRequests = 0
+-  ipcMain.handle(DESKTOP_IPC.updatesChannelSet, async (event, channel: unknown): Promise<DesktopChannelChangeResult> => {
+-    assertProductSender(event)
+-    if (!isDesktopUpdateChannel(channel)) throw new Error('desktop update: unsupported channel')
+-    if (channelState === undefined) throw new Error('desktop update: settings are not initialized')
+-    channelRequests++
+-    publishChannel({ ...channelState, changing: true })
+-    try {
+-      const kind = await updates.switchChannel(channel, async () => {
+-        try { await channelSettings.save(channel) } catch (error) {
+-          if (channelSaveFailure(error) === 'uncertain') {
+-            updates.suspendConfiguration('desktop update: settings save outcome is unknown')
+-            publishChannel({ channel: updates.selectedChannel, packagedChannel, changing: true, error: 'read' })
+-          }
+-          throw error
+-        }
+-      })
+-      if (kind === 'applied') void mandatoryPolicy?.check('channel-change', true).catch((error: unknown) => { console.error(error) })
+-      return { kind, state: publishChannel({ channel: updates.selectedChannel, packagedChannel, changing: --channelRequests > 0 }) }
+-    } catch (error) {
+-      console.error('desktop update: channel change failed', error)
+-      const state = publishChannel({ ...channelState, changing: --channelRequests > 0,
+-        ...(updates.configurationFailure === 'cleanup' ? { error: 'cleanup' as const } : {}) })
+-      return { kind: 'failed', state, reason: channelSaveFailure(error) }
+-    }
+-  })
+   ipcMain.handle(DESKTOP_IPC.updatesStatus, (event) => {
+     assertProductSender(event)
+-    return updatePresentation(updates.state)
++    return presentDesktopUpdate(updates.state)
+   })
+   ipcMain.handle(DESKTOP_IPC.deviceInfo, (event) => {
+     assertProductSender(event)
+@@ -969,52 +916,10 @@ async function main(): Promise<void> {
+     await openUpdatePrompt()
+   })
+ 
+-  let configurationPrompt: Promise<void> | undefined
+-  const showConfigurationError = (): Promise<void> => {
+-    configurationPrompt ??= Promise.resolve().then(async () => {
+-      while (channelState?.error !== undefined) {
+-        const result = await ordinaryMessageBox({ type: 'error', title: locale.messages.updateFailedTitle,
+-          message: configurationMessage(channelState.error, locale.messages),
+-          ...{ detail: channelSettings.path,
+-            buttons: [locale.messages.updateReloadSettings, locale.messages.updateShowSettingsFile, locale.messages.updateClose],
+-            defaultId: 0, cancelId: 2,
+-            keepOpenAction: { index: 1, run: () => { shell.showItemInFolder(channelSettings.path) } },
+-            action: { index: 0, run: async () => {
+-              if (channelRequests > 0 || channelState === undefined) return false
+-              channelRequests++
+-              publishChannel({ ...channelState, changing: true })
+-              try {
+-                const loaded = await channelSettings.load()
+-                if (loaded.kind === 'error') {
+-                  publishChannel({ ...channelState, changing: true, error: configurationFailure(loaded.error) })
+-                  return false
+-                }
+-                await updates.switchChannel(loaded.channel, async () => {})
+-                publishChannel({ channel: updates.selectedChannel, packagedChannel, changing: true })
+-                return true
+-              } catch (error) {
+-                console.error('desktop update: settings reload failed', error)
+-                publishChannel({ ...channelState,
+-                  ...(updates.configurationFailure === 'cleanup' ? { error: 'cleanup' as const } : {}) })
+-                return false
+-              } finally {
+-                publishChannel({ ...channelState, changing: --channelRequests > 0 })
+-              }
+-            } } },
+-        }, mandatoryUI?.confirmationWindow ?? currentDialogWindow())
+-        if (result.response !== 0) return
+-      }
+-    }).finally(() => { configurationPrompt = undefined })
+-    return configurationPrompt
+-  }
+-
+   let promptOperation: Promise<void> | undefined
+   let policyAuthenticationQueued = false
+   /** Present check results only while their captured channel revision remains current. */
+   const openUpdatePrompt = (manual = false): Promise<void> => {
+-    if (channelState?.error !== undefined) {
+-      return showConfigurationError()
+-    }
+     if (authenticationOperation !== undefined) {
+       policyAuth?.focus(); updateDialog.focus()
+     }
+@@ -1595,8 +1500,7 @@ async function main(): Promise<void> {
+       allowedPageOrigins: policyConfig.allowedPageOrigins, parent: () => mainWindow,
+       policy: () => policy.state, update: () => updates.state,
+       refresh: async () => {
+-        if (channelState?.error !== undefined) await showConfigurationError()
+-        if (channelState?.error === undefined) await Promise.all([checkPolicyManually(), updateSchedule.check(true)])
++        await Promise.all([checkPolicyManually(), updateSchedule.check(true)])
+       },
+       download: downloadUpdate, install: version => updates.install(version),
+     })
+diff --git a/apps/desktop/src/preload-app.ts b/apps/desktop/src/preload-app.ts
+index 6b4e989614375d5582275fb03c46a9506cea3ba9..26266b4f1c8a497c3cc5c94d19a06a4b5ee3bf49 100644
+--- a/apps/desktop/src/preload-app.ts
++++ b/apps/desktop/src/preload-app.ts
+@@ -1,7 +1,6 @@
+ import type { FileSaveResult } from '@deepseek-ai/dsh-client-ui-file-actions/types'
+ /** Origin-scoped boot, native directory selection, host paths of picked files, and update presentation with native confirmation actions. */
+ 
+-import type { DesktopChannelState, DesktopChannelChangeResult } from '@deepseek-ai/dsh-client-ui-settings-general/types'
+ import type { DesktopShortcutInput, ShortcutConfigSnapshot, ShortcutSaveResult } from '@deepseek-ai/dsh-client-shortcuts/protocol'
+ import { contextBridge, ipcRenderer, webUtils } from 'electron'
+ import { DESKTOP_IPC, SCHEME, type DshDesktopProductApi, type DesktopUpdatePresentation } from './ipc.ts'
+@@ -66,15 +65,6 @@ function createProductApi(): DshDesktopProductApi {
+       },
+     },
+     updates: {
+-      channels: {
+-        get: () => ipcRenderer.invoke(DESKTOP_IPC.updatesChannelGet) as Promise<DesktopChannelState>,
+-        set: channel => ipcRenderer.invoke(DESKTOP_IPC.updatesChannelSet, channel) as Promise<DesktopChannelChangeResult>,
+-        subscribe(listener) {
+-          const handle = (_event: Electron.IpcRendererEvent, state: DesktopChannelState): void => { listener(state) }
+-          ipcRenderer.on(DESKTOP_IPC.updatesChannelChanged, handle)
+-          return () => { ipcRenderer.off(DESKTOP_IPC.updatesChannelChanged, handle) }
+-        },
+-      },
+       status: () => ipcRenderer.invoke(DESKTOP_IPC.updatesStatus) as Promise<DesktopUpdatePresentation>,
+       open: () => ipcRenderer.invoke(DESKTOP_IPC.updatesOpen) as Promise<void>,
+       subscribe(listener) {
+diff --git a/apps/desktop/src/update-channel.ts b/apps/desktop/src/update-channel.ts
+index 85f5e10da15bd5cd3cc7b7d3eef1c206245f41c0..cfd5747ccfcf8a32eb147fc4440fccb6810bd5c2 100644
+--- a/apps/desktop/src/update-channel.ts
++++ b/apps/desktop/src/update-channel.ts
+@@ -5,13 +5,13 @@ import type { DesktopUpdatePreferences } from './settings-file.ts'
+ export type DesktopUpdateChannel = DesktopUpdatePreferences['channel']
+ 
+ /**
+- * Read the packaged channel; older manifests retain their existing nightly behavior.
++ * Read the packaged update feed. A manifest without an explicit feed uses the release index.
+  * @param manifest Parsed application manifest.
+  * @returns Validated channel. Invalid explicit values reject instead of changing feeds.
+  */
+ export function desktopUpdateChannel(manifest: unknown): DesktopUpdateChannel {
+   if (typeof manifest !== 'object' || manifest === null) throw new Error('desktop update: invalid application manifest')
+-  if (!('dshDesktopUpdateChannel' in manifest)) return 'nightly'
++  if (!('dshDesktopUpdateChannel' in manifest)) return 'stable'
+   const channel = manifest.dshDesktopUpdateChannel
+   if (channel !== 'nightly' && channel !== 'stable') throw new Error('desktop update: invalid packaged channel')
+   return channel
+diff --git a/apps/desktop/tests/main-startup.spec.ts b/apps/desktop/tests/main-startup.spec.ts
+index e689f3e67299fbc63ef0cb13bf680efc13115c7b..6a3912fc325ddcfec7951b688155333761984c3d 100644
+--- a/apps/desktop/tests/main-startup.spec.ts
++++ b/apps/desktop/tests/main-startup.spec.ts
+@@ -247,6 +247,7 @@ const harness = await vi.hoisted(async () => {
+     ipcOn: vi.fn<(channel: string, listener: (event: { sender: unknown; senderFrame: unknown }, ...args: unknown[]) => void) => void>(),
+     get updateState() { return updateState },
+     set updateState(value: DesktopUpdateState) { updateState = value },
++    openFeed: vi.fn<(channel: string) => void>(),
+     get prepareUpdate() { return prepareUpdate! },
+     set prepareUpdate(value: () => Promise<boolean>) { prepareUpdate = value },
+     get publishUpdate() { return publishUpdate! },
+@@ -388,6 +389,7 @@ vi.mock('../src/update-coordinator.ts', () => ({ DesktopUpdateCoordinator: class
+   constructor(publish: (state: DesktopUpdateState) => DesktopUpdateState, beforeRestart: () => Promise<boolean>,
+     _updater: unknown, _enabled: unknown, _version: unknown, _downloadResult: unknown, channel: 'nightly' | 'stable') {
+     this.selectedChannel = channel
++    harness.openFeed(channel)
+     harness.prepareUpdate = beforeRestart
+     harness.publishUpdate = publish
+   }
+@@ -524,219 +526,19 @@ describe('desktop main startup', () => {
+     })
+   })
+ 
+-  it('persists a channel through product IPC and ignores external edits during the process', async () => {
+-    configureTestAuthPopup(true)
+-    await readyForUpdate()
+-    expect(await invoke(DESKTOP_IPC.updatesChannelGet, 'app')).toMatchObject({ channel: 'nightly', changing: false })
+-    expect(await invoke(DESKTOP_IPC.updatesChannelSet, 'app', 'stable')).toEqual({ kind: 'applied', state: { channel: 'stable', packagedChannel: 'nightly', changing: false } })
+-    const path = join(harness.app.getPath('userData'), 'desktop', 'settings.json')
+-    expect(JSON.parse(readFileSync(path, 'utf8'))).toEqual({ updates: { allowTestAuthPopupWindow: true, channel: 'stable' } })
+-    writeFileSync(path, JSON.stringify({ updates: { channel: 'nightly' } }))
+-    expect(await invoke(DESKTOP_IPC.updatesChannelGet, 'app')).toMatchObject({ channel: 'stable' })
+-    expect(harness.windows[0]!.webContents.send).toHaveBeenCalledWith(DESKTOP_IPC.updatesChannelChanged,
+-      { channel: 'stable', packagedChannel: 'nightly', changing: false })
+-    await expect(invoke(DESKTOP_IPC.updatesChannelSet, 'app', 'alpha')).rejects.toThrow('unsupported channel')
+-    expect(await invoke(DESKTOP_IPC.updatesChannelGet, 'app')).toMatchObject({ channel: 'stable' })
+-  })
+-
+-  it('reports a corrupt document without replacing it or pretending a UI save succeeded', async () => {
++  it.each(['nightly', 'stable', 'retired'])('uses the packaged feed with a saved %s preference', async (channel) => {
++    const directory = join(harness.app.getPath('userData'), 'desktop')
++    mkdirSync(directory, { recursive: true })
++    const path = join(directory, 'settings.json')
++    const saved = JSON.stringify({ updates: { channel, allowTestAuthPopupWindow: false } })
++    writeFileSync(path, saved)
+     await readyForUpdate()
+-    const path = join(harness.app.getPath('userData'), 'desktop', 'settings.json')
+-    writeFileSync(path, '{broken')
+-    expect(await invoke(DESKTOP_IPC.updatesChannelSet, 'app', 'stable')).toMatchObject({ kind: 'failed', reason: 'format', state: { channel: 'nightly', changing: false } })
+-    expect(readFileSync(path, 'utf8')).toBe('{broken')
++    expect(harness.openFeed).toHaveBeenCalledWith('stable')
++    expect(harness.handlers.has('dsh-desktop:updates-channel-set')).toBe(false)
+     expect(await invoke(DESKTOP_IPC.updatesStatus, 'app')).not.toHaveProperty('configurationError')
+-  })
+-
+-  it('applies a committed selection even when storage lock release fails', async () => {
+-    await readyForUpdate()
+-    const { DesktopSettingsFile, DesktopSettingsFileError } = await import('../src/settings-file.ts')
+-    const save = vi.spyOn(DesktopSettingsFile.prototype, 'saveUpdates').mockRejectedValueOnce(
+-      new DesktopSettingsFileError({ kind: 'write', operation: 'save', effect: 'written' }, '/settings.json'))
+-    try {
+-      expect(await invoke(DESKTOP_IPC.updatesChannelSet, 'app', 'stable')).toMatchObject({
+-        kind: 'applied', state: { channel: 'stable', changing: false },
+-      })
+-      expect(save).toHaveBeenCalledTimes(1)
+-    } finally { save.mockRestore() }
+-  })
+-
+-  it('suspends updates after an uncertain save and leaves recovery explicit', async () => {
+-    await readyForUpdate()
+-    harness.updateState = { phase: 'ready', version: '1.0.1' }
+-    const { DesktopUpdateSettings } = await import('../src/update-settings.ts')
+-    const { DesktopSettingsFileError } = await import('../src/settings-file.ts')
+-    const save = vi.spyOn(DesktopUpdateSettings.prototype, 'save').mockRejectedValueOnce(
+-      new DesktopSettingsFileError({ kind: 'write', operation: 'save', effect: 'unknown' }, '/settings.json'))
+-    try {
+-      expect(await invoke(DESKTOP_IPC.updatesChannelSet, 'app', 'stable')).toMatchObject({
+-        kind: 'failed', reason: 'uncertain', state: { channel: 'nightly', changing: false, error: 'read' },
+-      })
+-      expect(harness.updateState).toMatchObject({ phase: 'error', failedOperation: 'configuration' })
+-      expect(harness.updateInstall).not.toHaveBeenCalled()
+-      expect(save).toHaveBeenCalledTimes(1)
+-      const path = join(harness.app.getPath('userData'), 'desktop', 'settings.json')
+-      const disk = JSON.stringify({ updates: { channel: 'stable' }, keep: true })
+-      writeFileSync(path, disk)
+-      harness.dialog.showMessageBox.mockImplementationOnce(async (options: import('../src/update-dialog.ts').UpdateDialogOptions) => {
+-        expect(await options.action!.run()).toBe(true)
+-        return { response: 0 }
+-      })
+-      await invoke(DESKTOP_IPC.updatesOpen, 'app')
+-      const recovered = await invoke(DESKTOP_IPC.updatesChannelGet, 'app')
+-      expect(recovered).toMatchObject({ channel: 'stable', changing: false })
+-      expect(recovered).not.toHaveProperty('error')
+-      expect(readFileSync(path, 'utf8')).toBe(disk)
+-      expect(save).toHaveBeenCalledTimes(1)
+-    } finally { save.mockRestore() }
+-  })
+-
+-  it('keeps the previous ready update installable after a channel save fails', async () => {
+-    await readyForUpdate()
+-    harness.updateState = { phase: 'ready', version: '1.0.1' }
+-    writeFileSync(join(harness.app.getPath('userData'), 'desktop', 'settings.json'), '{broken')
+-    await invoke(DESKTOP_IPC.updatesChannelSet, 'app', 'stable')
+-    await invoke(DESKTOP_IPC.updatesOpen, 'app')
+-    expect(harness.updateInstall).toHaveBeenCalledWith('1.0.1', 0)
+-  })
+-
+-  it('keeps startup channel errors visible and recovers after a valid UI selection', async () => {
+-    configureTestAuthPopup(false)
+-    const path = join(harness.app.getPath('userData'), 'desktop', 'settings.json')
+-    writeFileSync(path, JSON.stringify({ updates: { channel: 'unknown' } }))
+-    await readyForUpdate()
+-    expect(await invoke(DESKTOP_IPC.updatesChannelGet, 'app')).toMatchObject({ channel: null, error: 'channel' })
+-    expect(harness.hosts).toHaveLength(1)
+-    expect(await invoke(DESKTOP_IPC.updatesChannelSet, 'app', 'stable')).toEqual({ kind: 'applied', state: { channel: 'stable', packagedChannel: 'nightly', changing: false } })
+-  })
+-
+-  it('keeps committed settings after apply failure and recovers through explicit reload', async () => {
+-    await readyForUpdate()
+-    const { DesktopUpdateCoordinator } = await import('../src/update-coordinator.ts')
+-    vi.spyOn(DesktopUpdateCoordinator.prototype, 'switchChannel').mockImplementationOnce(async function (this: InstanceType<typeof DesktopUpdateCoordinator>, _channel, persist) {
+-      await persist()
+-      this.suspendConfiguration('cache retirement failed', 'cleanup')
+-      throw new Error('cache retirement failed')
+-    })
+-    expect(await invoke(DESKTOP_IPC.updatesChannelSet, 'app', 'stable')).toMatchObject({
+-      kind: 'failed', reason: 'apply', state: { channel: 'nightly', error: 'cleanup' },
+-    })
+-    expect(await invoke(DESKTOP_IPC.updatesStatus, 'app')).toMatchObject({ configurationError: 'cleanup' })
+-    await invoke(DESKTOP_IPC.updatesOpen, 'app')
+-    const options = harness.dialog.showMessageBox.mock.lastCall![0] as import('../src/update-dialog.ts').UpdateDialogOptions
+-    expect(options.message).toBe(en.updateConfigurationCleanup)
+-    const path = join(harness.app.getPath('userData'), 'desktop', 'settings.json')
+-    expect(options.detail).toBe(path)
+-    const saved = readFileSync(path, 'utf8')
+-    expect(JSON.parse(saved)).toMatchObject({ updates: { channel: 'stable' } })
+-    expect(await options.action!.run()).toBe(true)
+-    expect(await invoke(DESKTOP_IPC.updatesChannelGet, 'app')).toMatchObject({ channel: 'stable', changing: false })
+-    expect(await invoke(DESKTOP_IPC.updatesChannelGet, 'app')).not.toHaveProperty('error')
+     expect(readFileSync(path, 'utf8')).toBe(saved)
+   })
+ 
+-  it('recovers invalid settings from the mandatory block without bypassing that block', async () => {
+-    configureTestAuthPopup(false)
+-    const path = join(harness.app.getPath('userData'), 'desktop', 'settings.json')
+-    writeFileSync(path, '{broken')
+-    harness.embeddedPolicy = { origin: 'https://policy.example.com', allowedPageOrigins: ['https://downloads.example.com'] }
+-    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockImplementation(async () => Response.json({ code: 40005,
+-      data: { show_content: { title: 'Update', detail: 'Required' }, desktop_app_link: 'https://downloads.example.com/' } })))
+-    await readyForUpdate()
+-    await harness.policyBlocked.promise
+-    const modal = harness.windows[0]!
+-    const owned = { sender: modal.webContents, senderFrame: modal.webContents.mainFrame }
+-    harness.dialog.showMessageBox.mockImplementationOnce(async (options: import('../src/update-dialog.ts').UpdateDialogOptions) => {
+-      options.keepOpenAction!.run()
+-      return { response: 2 }
+-    })
+-    await harness.handlers.get(MANDATORY_IPC.action)!(owned, 'refresh')
+-    expect(harness.showItemInFolder).toHaveBeenCalledWith(path)
+-    expect(harness.updateDownload).not.toHaveBeenCalled()
+-    harness.dialog.showMessageBox.mockImplementationOnce(async (options: import('../src/update-dialog.ts').UpdateDialogOptions) => {
+-      expect(options.detail).toBe(path)
+-      expect(await options.action!.run()).toBe(false)
+-      writeFileSync(path, JSON.stringify({ updates: { channel: 'stable' } }))
+-      expect(await options.action!.run()).toBe(true)
+-      return { response: 0 }
+-    })
+-    await harness.handlers.get(MANDATORY_IPC.action)!(owned, 'refresh')
+-    expect(await invoke(DESKTOP_IPC.updatesChannelGet, 'app')).toMatchObject({ channel: 'stable' })
+-    expect(harness.handlers.get(MANDATORY_IPC.status)!(owned)).toMatchObject({ policy: { blocking: true } })
+-    expect(harness.updateDownload).not.toHaveBeenCalled()
+-  })
+-
+-  it('checks mandatory policy immediately after a successful channel switch', async () => {
+-    harness.embeddedPolicy = { origin: 'https://policy.example.com', allowedPageOrigins: ['https://downloads.example.com'] }
+-    const checked = Promise.withResolvers<undefined>()
+-    const request = vi.fn<typeof fetch>().mockImplementation(async (url, options) => {
+-      if (url instanceof URL && url.searchParams.get('scenario') === 'channel-change') {
+-        expect(new Headers(options?.headers).get('x-client-update-channel')).toBe('stable')
+-        checked.resolve(undefined)
+-      }
+-      return Response.json({ code: 0, data: { biz_code: 0 } })
+-    })
+-    vi.stubGlobal('fetch', request)
+-    await readyForUpdate()
+-    expect(await invoke(DESKTOP_IPC.updatesChannelSet, 'app', 'stable')).toMatchObject({ kind: 'applied' })
+-    await checked.promise
+-  })
+-
+-  it('offers the actual settings file for malformed JSON without suggesting channel reselection', async () => {
+-    configureTestAuthPopup(false)
+-    const path = join(harness.app.getPath('userData'), 'desktop', 'settings.json')
+-    writeFileSync(path, '{broken')
+-    await readyForUpdate()
+-    harness.dialog.showMessageBox.mockImplementationOnce(async (options: import('../src/update-dialog.ts').UpdateDialogOptions) => {
+-      options.keepOpenAction!.run()
+-      return { response: 2 }
+-    })
+-    await invoke(DESKTOP_IPC.updatesOpen, 'app')
+-    expect(harness.dialog.showMessageBox.mock.lastCall![0]).toMatchObject({
+-      message: en.updateConfigurationFormat, detail: path,
+-      buttons: [en.updateReloadSettings, en.updateShowSettingsFile, en.updateClose], cancelId: 2,
+-    })
+-    expect(en.updateConfigurationFormat).not.toContain('select')
+-    expect(harness.showItemInFolder).toHaveBeenCalledWith(path)
+-    expect(readFileSync(path, 'utf8')).toBe('{broken')
+-  })
+-
+-  it('rereads a repaired file without writing it or restarting the shell', async () => {
+-    configureTestAuthPopup(false)
+-    const path = join(harness.app.getPath('userData'), 'desktop', 'settings.json')
+-    writeFileSync(path, '{broken')
+-    await readyForUpdate()
+-    harness.dialog.showMessageBox.mockImplementationOnce(async (options: import('../src/update-dialog.ts').UpdateDialogOptions) => {
+-      expect(await options.action!.run()).toBe(false)
+-      expect(await invoke(DESKTOP_IPC.updatesChannelGet, 'app')).toMatchObject({ error: 'format', changing: false })
+-      const repaired = JSON.stringify({ updates: { channel: 'stable' }, retained: 'keep' })
+-      writeFileSync(path, repaired)
+-      expect(await options.action!.run()).toBe(true)
+-      expect(readFileSync(path, 'utf8')).toBe(repaired)
+-      return { response: 0 }
+-    })
+-    await invoke(DESKTOP_IPC.updatesOpen, 'app')
+-    const state = await invoke(DESKTOP_IPC.updatesChannelGet, 'app')
+-    expect(state).toMatchObject({ channel: 'stable', changing: false })
+-    expect(state).not.toHaveProperty('error')
+-  })
+-
+-  it('shows the invalid startup field and file path until a valid channel is applied', async () => {
+-    configureTestAuthPopup(false)
+-    const path = join(harness.app.getPath('userData'), 'desktop', 'settings.json')
+-    writeFileSync(path, JSON.stringify({ updates: { channel: 'unknown' } }))
+-    await readyForUpdate()
+-    await invoke(DESKTOP_IPC.updatesOpen, 'app')
+-    expect(harness.dialog.showMessageBox.mock.lastCall![0]).toMatchObject({
+-      message: en.updateConfigurationChannel, detail: path,
+-    })
+-    writeFileSync(path, '{broken')
+-    expect(await invoke(DESKTOP_IPC.updatesChannelSet, 'app', 'stable')).toMatchObject({
+-      kind: 'failed', reason: 'format', state: { channel: null, error: 'channel' },
+-    })
+-    expect(await invoke(DESKTOP_IPC.updatesStatus, 'app')).toMatchObject({ configurationError: 'channel' })
+-  })
+-
+   it('starts the Host without resolving Kit or writing a diagnostic file', async () => {
+     const root = mkdtempSync(join(tmpdir(), 'dsh-main-office-'))
+     onTestFinished(() => { rmSync(root, { recursive: true, force: true }) })
+@@ -1139,7 +941,7 @@ describe('desktop main startup', () => {
+   it('accepts product IPC only from the current application top frame in the owned main window', async () => {
+     await readyForUpdate()
+     const sender = harness.windows[0]!.webContents
+-    for (const channel of [DESKTOP_IPC.updatesStatus, DESKTOP_IPC.updatesChannelGet, DESKTOP_IPC.deviceInfo]) {
++    for (const channel of [DESKTOP_IPC.updatesStatus, DESKTOP_IPC.deviceInfo]) {
+       const handler = harness.handlers.get(channel)!
+       expect(() => handler({ sender, senderFrame: sender.mainFrame })).not.toThrow()
+       for (const event of [
+@@ -2141,7 +1943,7 @@ describe('desktop main startup', () => {
+     expect(host.stop).not.toHaveBeenCalled()
+     expect(request.mock.calls[0]![1]!.headers).toMatchObject({
+       'x-client-bundle-id': '', 'x-client-platform': 'desktop-win', 'x-client-version': '1.2.3',
+-      'x-client-arch': 'x64', 'x-client-update-channel': 'nightly', 'x-client-bundled-dsh-version': '1.0.0',
++      'x-client-arch': 'x64', 'x-client-update-channel': 'stable', 'x-client-bundled-dsh-version': '1.0.0',
+       'x-client-locale': 'en_US', 'x-client-timezone-offset': String(-new Date().getTimezoneOffset() * 60),
+     })
+   })
+@@ -2178,28 +1980,6 @@ describe('desktop main startup', () => {
+     }))
+   })
+ 
+-  it.each([
+-    { phase: 'available', version: '1.0.3' },
+-    { phase: 'idle' },
+-    { phase: 'error', failedOperation: 'check', message: 'Old feed unavailable' },
+-  ] satisfies DesktopUpdateState[])('discards a manual check result after switching channel: $phase', async (result) => {
+-    await readyForUpdate()
+-    const checked = Promise.withResolvers<DesktopUpdateState>()
+-    const requested = Promise.withResolvers<undefined>()
+-    harness.updateCheck.mockImplementationOnce(() => { requested.resolve(undefined); return checked.promise })
+-    harness.dialog.showMessageBox.mockResolvedValue({ response: 0 })
+-    const action = applicationMenuItems().find(item => item.label === 'Check for Updates…')
+-    Reflect.apply(action!.click!, undefined, [])
+-    const prompt = Promise.resolve(invoke(DESKTOP_IPC.updatesOpen, 'app'))
+-    await requested.promise
+-    await invoke(DESKTOP_IPC.updatesChannelSet, 'app', 'stable')
+-    checked.resolve(result)
+-    await prompt
+-    expect(harness.dialog.showMessageBox).toHaveBeenCalledTimes(1)
+-    expect(harness.updateDownload).not.toHaveBeenCalled()
+-    expect(harness.updateInstall).not.toHaveBeenCalled()
+-  })
+-
+   it('reports a manual check failure without offering a download', async () => {
+     await readyForUpdate()
+     harness.updateCheck.mockResolvedValueOnce({ phase: 'error', failedOperation: 'check', message: 'Feed unavailable' })
+diff --git a/apps/desktop/tests/preload-app.spec.ts b/apps/desktop/tests/preload-app.spec.ts
+index fa3d2386f0ea2f45cb37b0c392f45d9bafd59209..02de12899eb64be1d090380878a82da76e3e4823 100644
+--- a/apps/desktop/tests/preload-app.spec.ts
++++ b/apps/desktop/tests/preload-app.spec.ts
+@@ -294,20 +294,12 @@ void imageProtocol
+ void imageProtocolBack
+ 
+ 
+-it('exposes channel choices and scoped subscriptions without exposing updater objects', async () => {
++it('exposes update status and actions for the single product feed', async () => {
+   vi.stubGlobal('location', new URL('dsh-app://app/index.html'))
+   await import('../src/preload-app.ts')
+   const api = electron.contextBridge.exposeInMainWorld.mock.calls.find(([name]) => name === 'dshDesktop')?.[1] as DshDesktopProductApi
+-  await api.updates.channels.get()
+-  await api.updates.channels.set('stable')
+-  expect(electron.ipcRenderer.invoke.mock.calls).toEqual([[DESKTOP_IPC.updatesChannelGet], [DESKTOP_IPC.updatesChannelSet, 'stable']])
+-  const listener = vi.fn()
+-  const dispose = api.updates.channels.subscribe(listener)
+-  const handler = electron.ipcRenderer.on.mock.calls.find(([channel]) => channel === DESKTOP_IPC.updatesChannelChanged)?.[1] as
+-    (event: unknown, state: unknown) => void
+-  const state = { channel: 'stable', packagedChannel: 'nightly', changing: false }
+-  handler({}, state)
+-  expect(listener).toHaveBeenCalledWith(state)
+-  dispose()
+-  expect(electron.ipcRenderer.off).toHaveBeenCalledWith(DESKTOP_IPC.updatesChannelChanged, handler)
++  expect(api.updates).not.toHaveProperty('channels')
++  await api.updates.status()
++  await api.updates.open()
++  expect(electron.ipcRenderer.invoke.mock.calls).toEqual([[DESKTOP_IPC.updatesStatus], [DESKTOP_IPC.updatesOpen]])
+ })
+diff --git a/apps/desktop/tests/update-channel.spec.ts b/apps/desktop/tests/update-channel.spec.ts
+index 191cd8e5d92e8e9049a26e4cdf2ee3737ef0f25f..5b0875141354981acd9019cb34fd873b774f2b5d 100644
+--- a/apps/desktop/tests/update-channel.spec.ts
++++ b/apps/desktop/tests/update-channel.spec.ts
+@@ -4,7 +4,7 @@ import { desktopUpdateChannel } from '../src/update-channel.ts'
+ it('reads the installed channel independently from the current version', () => {
+   expect(desktopUpdateChannel({ version: '1.0.0', dshDesktopUpdateChannel: 'nightly' })).toBe('nightly')
+   expect(desktopUpdateChannel({ version: '1.0.0', dshDesktopUpdateChannel: 'stable' })).toBe('stable')
+-  expect(desktopUpdateChannel({ version: '1.0.0' })).toBe('nightly')
++  expect(desktopUpdateChannel({ version: '1.0.0' })).toBe('stable')
+   expect(() => desktopUpdateChannel({ dshDesktopUpdateChannel: 'latest' })).toThrow(/channel/u)
+   expect(() => desktopUpdateChannel({ dshDesktopUpdateChannel: 'beta' })).toThrow(/channel/u)
+   expect(() => desktopUpdateChannel(null)).toThrow(/manifest/u)
 diff --git a/apps/web/tests/agent-preset-authoring.e2e.ts b/apps/web/tests/agent-preset-authoring.e2e.ts
 index 0727af2cab4cdbe1c74092c4a353e34f6521c869..18f239cf3a12ccf79d9bc6ba8990d1b53f45dada 100644
 --- a/apps/web/tests/agent-preset-authoring.e2e.ts
@@ -712,6 +1428,111 @@ index 0727af2cab4cdbe1c74092c4a353e34f6521c869..18f239cf3a12ccf79d9bc6ba8990d1b5
      const snapshot = await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd)
      await compareOrRefreshGolden(join(EXPECTED, 'section.expected.md'), snapshot, mode)
      expect(snapshot).toContain('让 Agent 帮我创建预设模式')
+diff --git a/apps/web/tests/desktop-channel.e2e.ts b/apps/web/tests/desktop-channel.e2e.ts
+index a1f3f7cfff42f59e4dfd36ccb4ca1ec10703598a..50962538366914120a36dbaa65155d5ce6813c1f 100644
+--- a/apps/web/tests/desktop-channel.e2e.ts
++++ b/apps/web/tests/desktop-channel.e2e.ts
+@@ -1,76 +1,41 @@
+-/** Built settings UI uses the shell file API; external edits wait for a new shell startup. */
+-import { readFile, writeFile } from 'node:fs/promises'
+-import { join } from 'node:path'
++/** DSHU General settings on a Desktop shell carrying a legacy channel preference. */
++import { mkdir } from 'node:fs/promises'
+ import { fileURLToPath } from 'node:url'
+ import { chromium } from 'playwright'
+ import { expect, it } from 'vitest'
+-import { DesktopUpdateSettings } from '../../desktop/src/update-settings.ts'
+-import type { DesktopChannelState, DesktopChannelChangeResult } from '../../desktop/src/ipc.ts'
+-import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode } from './scaffold.ts'
+-import { openSettings } from './support.ts'
++import { launchWebScaffold, watchConsole } from './scaffold.ts'
++import { openSettings, ZH_BROWSER_LOCALE } from './support.ts'
+ 
+-it('persists a Desktop channel from Settings and keeps external edits startup-only', async () => {
++it('shows the DSHU version without querying the legacy update selector', async () => {
+   const scaffold = await launchWebScaffold({})
+   try {
+     const browser = await chromium.launch()
+     try {
+-      const settings = new DesktopUpdateSettings(join(scaffold.harnessHome, 'shell'), 'nightly')
+-      await settings.save('nightly')
+-      let state: DesktopChannelState = { channel: 'nightly', packagedChannel: 'nightly', changing: false }
+-      const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, locale: 'en-US' })
++      const page = await browser.newPage({ viewport: { width: 1280, height: 840 }, locale: ZH_BROWSER_LOCALE })
+       const tripwire = watchConsole(page)
+-      let detailOpens = 0
+-      await page.exposeFunction('openUpdateDetails', () => { detailOpens++ })
+-      await page.exposeFunction('readChannel', () => state)
+-      await page.exposeFunction('setChannel', async (channel: 'nightly' | 'stable'): Promise<DesktopChannelChangeResult> => {
+-        try {
+-          await settings.save(channel)
+-          state = { ...state, channel, error: undefined }
+-          return { kind: 'applied', state }
+-        } catch (_error) { return { kind: 'failed', state, reason: 'format' } }
++      let reads = 0
++      await page.exposeFunction('readLegacyChannel', () => {
++        reads++
++        return { channel: 'nightly', packagedChannel: 'stable', changing: false }
+       })
+       await page.addInitScript(() => {
+-        const bridge = globalThis as typeof globalThis & {
+-          readChannel(): Promise<DesktopChannelState>
+-          openUpdateDetails(): Promise<void>
+-          setChannel(channel: 'nightly' | 'stable'): Promise<DesktopChannelChangeResult>
+-        }
++        const bridge = globalThis as typeof globalThis & { readLegacyChannel(): Promise<object> }
+         Object.assign(globalThis, { dshDesktop: { protocolVersion: 1, updates: {
+-          status: async () => ({ phase: 'idle' }), open: () => bridge.openUpdateDetails(), subscribe: () => () => {},
+-          channels: { get: () => bridge.readChannel(), set: (channel: 'nightly' | 'stable') => bridge.setChannel(channel),
+-            subscribe: () => () => {} },
++          status: async () => ({ phase: 'idle' }), open: async () => {}, subscribe: () => () => {},
++          channels: { get: () => bridge.readLegacyChannel(), subscribe: () => () => {} },
+         } } })
+       })
+-      await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
+-      await openSettings(page, 'en')
+-      const row = page.getByRole('group', { name: 'Update channel', exact: true })
+-      await row.getByText('Development', { exact: true }).waitFor()
+-      await row.getByRole('button', { name: 'Update channel', exact: true }).click()
+-      await page.getByRole('menuitem', { name: 'Stable', exact: true }).click()
+-      await row.getByText('Stable', { exact: true }).waitFor()
+-      await page.getByText('Update channel changed', { exact: true }).waitFor()
+-      expect(JSON.parse(await readFile(settings.path, 'utf8'))).toMatchObject({ updates: { channel: 'stable' } })
+-      await compareOrRefreshGolden(fileURLToPath(new URL('./expected/desktop-channel/stable.expected.md', import.meta.url)),
+-        await captureStableAria(page, '[role="group"][aria-label="Update channel"]', scaffold.workspaceCwd), webSnapshotMode())
+-      await writeFile(settings.path, JSON.stringify({ updates: { channel: 'nightly' } }))
+-      expect(await row.getByText('Stable', { exact: true }).count()).toBe(1)
+-      expect(await settings.load()).toEqual({ kind: 'ready', channel: 'nightly' })
+-      await writeFile(settings.path, '{broken')
+-      await row.getByRole('button', { name: 'Update channel', exact: true }).click()
+-      await page.getByRole('menuitem', { name: 'Development', exact: true }).click()
+-      await page.getByText('Could not save: invalid settings file', { exact: true }).waitFor()
+-      await row.getByText('Stable', { exact: true }).waitFor()
+-      expect(await row.getByText('Stable', { exact: true }).count()).toBe(1)
+-      expect(await readFile(settings.path, 'utf8')).toBe('{broken')
+-      await compareOrRefreshGolden(fileURLToPath(new URL('./expected/desktop-channel/save-error.expected.md', import.meta.url)),
+-        await captureStableAria(page, '[role="group"][aria-label="Update channel"]', scaffold.workspaceCwd) + '\n'
+-          + await captureStableAria(page, '[role="alert"]', scaffold.workspaceCwd), webSnapshotMode())
+-      state = { ...state, error: 'format' }
+-      await page.reload({ waitUntil: 'load' })
+-      await page.getByRole('alert').filter({ hasText: 'Settings file error; updates are paused' }).waitFor()
+-      await page.getByRole('button', { name: 'View details', exact: true }).click()
+-      await expect.poll(() => detailOpens).toBe(1)
+-      expect(await readFile(settings.path, 'utf8')).toBe('{broken')
++      await page.goto(scaffold.authenticatedUrl)
++      await openSettings(page, 'zh')
++      const dialog = page.getByRole('dialog', { name: '设置' })
++      const version = dialog.getByText(/^当前版本：\s*\d/u)
++      await version.scrollIntoViewIfNeeded()
++      expect(await dialog.getByText('更新渠道', { exact: true }).count()).toBe(0)
++      expect(await dialog.getByText('正式版', { exact: true }).count()).toBe(0)
++      expect(reads).toBe(0)
++      const output = new URL('../../../.artifacts/screenshots/dshu-update-feed/', import.meta.url)
++      await mkdir(fileURLToPath(output), { recursive: true })
++      await dialog.screenshot({ path: fileURLToPath(new URL('general-zh.png', output)) })
+       expect(tripwire.pageErrors).toEqual([])
+       expect(tripwire.warnings).toEqual([])
+     } finally { await browser.close() }
 diff --git a/apps/web/tests/expected/agent-preset-authoring/section.expected.md b/apps/web/tests/expected/agent-preset-authoring/section.expected.md
 index f859dab99c83852141884f1913a27c7d642fdaf2..374aa2fdee18a3d37c4710a137145633bdb22817 100644
 --- a/apps/web/tests/expected/agent-preset-authoring/section.expected.md
@@ -748,6 +1569,25 @@ index 4372c504c0bb53b95095f9931971041551043a20..d12de0d72da3ed7a1e288e70f593a7b9
    - menuitem "Minimal mode The agent uses a terminal and image reading, with context compaction. Useful for testing and comparing its basic performance."
    - menuitem "Creator mode Customize DSH through conversation. Let the agent write plugins that add features or UI, or combine tools and prompts to create your own mode."
 +  - menuitem "Writing Write with the selected voice cards and story bible."
+diff --git a/apps/web/tests/expected/desktop-channel/save-error.expected.md b/apps/web/tests/expected/desktop-channel/save-error.expected.md
+deleted file mode 100644
+index 00b18387558fa569be79a963efee131262f6c349..0000000000000000000000000000000000000000
+--- a/apps/web/tests/expected/desktop-channel/save-error.expected.md
++++ /dev/null
+@@ -1,4 +0,0 @@
+-- group "Update channel":
+-  - text: Update channel Stable is suitable for everyday use. Development offers early access to new features but may be unstable.
+-  - button "Update channel": Stable
+-- alert: "Could not save: invalid settings file"
+diff --git a/apps/web/tests/expected/desktop-channel/stable.expected.md b/apps/web/tests/expected/desktop-channel/stable.expected.md
+deleted file mode 100644
+index 4f93fab271b145af7f273b4369682eaabec8ee43..0000000000000000000000000000000000000000
+--- a/apps/web/tests/expected/desktop-channel/stable.expected.md
++++ /dev/null
+@@ -1,3 +0,0 @@
+-- group "Update channel":
+-  - text: Update channel Stable is suitable for everyday use. Development offers early access to new features but may be unstable.
+-  - button "Update channel": Stable
 diff --git a/apps/web/tests/fixtures/writing-spending/rate.overlay.yml b/apps/web/tests/fixtures/writing-spending/rate.overlay.yml
 new file mode 100644
 index 0000000000000000000000000000000000000000..9fbf10f9e2554211b1d8546070afbb9d209b29cf
@@ -950,6 +1790,18 @@ index 62e0f201c21a9d9bbc1c833e68ae821105b8a6d7..ab8d37ca45f7c32f822d8c9623d585e6
      "tests/device-pairing.e2e.ts",
      "tests/pairing-completion.e2e.ts",
      "tests/pairing-recovery.e2e.ts",
+diff --git a/docs/capability-seams.i18n.yaml b/docs/capability-seams.i18n.yaml
+index 961e77f026d9ff080f7f70d8fdc8a8773ebf2968..67879ffe1e875e9a01d88aad07bbc0b8fcc997ca 100644
+--- a/docs/capability-seams.i18n.yaml
++++ b/docs/capability-seams.i18n.yaml
+@@ -6,5 +6,5 @@
+   en: 41d772192075e133
+   zh: 5ef3da69b4de1d8a
+ /capability-seams-and-core-services:
+-  en: 77bc18df64a27395
+-  zh: 70d1ce2b7f29e65a
++  en: 5006d88d90f4db6e
++  zh: 7612973f3fe75ac4
 diff --git a/docs/capability-seams.md b/docs/capability-seams.md
 index 34eb7e70c70aac9c69ea69bfaf7a85de7cd4615f..d2c2278411a65f6c3a11fc4d068ad3567684f470 100644
 --- a/docs/capability-seams.md
@@ -1018,6 +1870,74 @@ index 34eb7e70c70aac9c69ea69bfaf7a85de7cd4615f..d2c2278411a65f6c3a11fc4d068ad356
  | `ctx.remoteConnection` | `service` | [`client-remote-connection`](../packages/client/remote-connection) | - | - | - | Owns QR invitations, approved pairing requests, Remote browser credentials and the anonymous login document; its Client provides approval controls and an independent Token-link shortcut. |
  | `ctx.actionCards` | `service` | [`action-cards`](../packages/interaction/action-cards) | - | [`creation-recommendations`](../packages/extensions/creation-recommendations), [`client-ui-action-cards`](../packages/client/ui-action-cards) | - | Owns card state, user actions and status notices; card kinds register their actions and handlers. |
  | `ctx.pluginRecommendations` | `service` | [`plugin-recommendations`](../packages/extensions/plugin-recommendations) | - | [`client-ui-plugin-recommendations`](../packages/client/ui-plugin-recommendations) | - | Reads the current catalog text of an official plugin card and enables the plugin through the profile plugin manager after a click. |
+diff --git a/docs/capability-seams.zh.md b/docs/capability-seams.zh.md
+index 237bd16bb75669b31cb1141567c825771fad3260..e469620022b5c4cf5d91dbf67f59d408588f05ad 100644
+--- a/docs/capability-seams.zh.md
++++ b/docs/capability-seams.zh.md
+@@ -9,6 +9,13 @@
+ 
+ ```mermaid
+ flowchart LR
++  pkg_api_mode_dossiers["api-mode-dossiers"]
++  svc_modeDossiers["ctx.modeDossiers<br/>Writing materials"]
++  pkg_client_ui_mode_materials["client-ui-mode-materials"]
++  pkg_spend_limit["spend-limit"]
++  svc_spendLimit["ctx.spendLimit<br/>Rolling spending limits"]
++  pkg_api_session_controller["api-session-controller"]
++  pkg_client_ui_settings_account["client-ui-settings-account"]
+   pkg_client_remote_connection["client-remote-connection"]
+   svc_remoteConnection["ctx.remoteConnection<br/>Remote browser login"]
+   pkg_action_cards["action-cards"]
+@@ -97,7 +104,6 @@ flowchart LR
+   pkg_attachment["attachment"]
+   svc_attachments["ctx.attachments<br/>Durable binary attachment storage"]
+   pkg_attachment_local["attachment-local"]
+-  pkg_api_session_controller["api-session-controller"]
+   pkg_llm_pi_ai["llm-pi-ai"]
+   pkg_llm_deepseek["llm-deepseek"]
+   pkg_client_file_upload["client-file-upload"]
+@@ -350,6 +356,7 @@ flowchart LR
+   pkg_agent_team --> svc_agentTeams
+   pkg_api_gateway --> svc_typertGateway
+   pkg_api_job_controller --> svc_jobController
++  pkg_api_mode_dossiers --> svc_modeDossiers
+   pkg_api_remote_access --> svc_remoteAccess
+   pkg_api_session_controller --> svc_sessionController
+   pkg_api_session_controller --> svc_sessionFileReferences
+@@ -484,6 +491,7 @@ flowchart LR
+   pkg_skill_badge --> svc_skills
+   pkg_skill_filesystem --> svc_skills
+   pkg_skill_office --> svc_skills
++  pkg_spend_limit --> svc_spendLimit
+   pkg_spill --> svc_spillStore
+   pkg_spill_local --> svc_spillStore
+   pkg_ssh --> svc_ssh
+@@ -586,6 +594,7 @@ flowchart LR
+   svc_lsp --> pkg_tool_lsp
+   svc_mcpClientHost --> pkg_mcp_manager
+   svc_mcpResources --> pkg_mcp_resources
++  svc_modeDossiers --> pkg_client_ui_mode_materials
+   svc_officeKit --> pkg_client_ui_sidebar_documentpreview
+   svc_officeKit --> pkg_tool_office
+   svc_otel --> pkg_host_product_telemetry_otel
+@@ -640,6 +649,8 @@ flowchart LR
+   svc_shellEnv --> pkg_tool_pwsh
+   svc_skills --> pkg_tool_skill
+   svc_speechToText --> pkg_experimental_api_speech_to_text
++  svc_spendLimit --> pkg_api_session_controller
++  svc_spendLimit --> pkg_client_ui_settings_account
+   svc_spillStore --> pkg_spill_policy
+   svc_ssh --> pkg_fs_ssh
+   svc_ssh --> pkg_sandbox_ssh
+@@ -708,6 +719,8 @@ flowchart LR
+ 
+ | ctx 键 | 角色 | 所属包 | 实现 | 直接消费方 | 配套插件 | 说明 |
+ | --- | --- | --- | --- | --- | --- | --- |
++| `ctx.modeDossiers` | `service` | [`api-mode-dossiers`](../packages/api/mode-dossiers) | - | [`client-ui-mode-materials`](../packages/client/ui-mode-materials) | - | 保存工作区写作资料，将所选资料记录到写作会话。 |
++| `ctx.spendLimit` | `service` | [`spend-limit`](../packages/guard/spend-limit) | - | [`api-session-controller`](../packages/api/session-controller), [`client-ui-settings-account`](../packages/client/ui-settings-account) | - | 保存本机费用预留、滚动窗口统计和待会话控制器恢复的暂停记录。 |
+ | `ctx.remoteConnection` | `service` | [`client-remote-connection`](../packages/client/remote-connection) | - | - | - | 管理二维码邀请、获批的配对申请、Remote 浏览器凭据和匿名登录文档；Client 提供审批控件及独立的 Token 链接入口。 |
+ | `ctx.actionCards` | `service` | [`action-cards`](../packages/interaction/action-cards) | - | [`creation-recommendations`](../packages/extensions/creation-recommendations), [`client-ui-action-cards`](../packages/client/ui-action-cards) | - | 负责卡片状态、用户操作和状态通知；各卡片种类注册自己的动作和处理器。 |
+ | `ctx.pluginRecommendations` | `service` | [`plugin-recommendations`](../packages/extensions/plugin-recommendations) | - | [`client-ui-plugin-recommendations`](../packages/client/ui-plugin-recommendations) | - | 读取官方插件卡片的当前目录文本，并在用户点击后通过配置插件管理器启用该插件。 |
 diff --git a/docs/config-catalog.md b/docs/config-catalog.md
 index eb81a3b5a726553a885bbc99fdf475f0074a0b09..30622a6e3a9d71f5be9ff707903508107b3bb718 100644
 --- a/docs/config-catalog.md
@@ -4284,6 +5204,72 @@ index 585b0dc605f2644d37056c9fa06fcd720f643936..cc444f06d2c81a417b508de9e56bf31b
  <a id="ctxterminalcontroller--terminalcontroller"></a>
  
  ### `ctx.terminalController` — `TerminalController`
+diff --git a/docs/upgrade-guide/v0.2.3-alpha.2/single-update-feed/guide.i18n.yaml b/docs/upgrade-guide/v0.2.3-alpha.2/single-update-feed/guide.i18n.yaml
+new file mode 100644
+index 0000000000000000000000000000000000000000..1e73e4bb2304903d75975659689f4779a7d6aab0
+--- /dev/null
++++ b/docs/upgrade-guide/v0.2.3-alpha.2/single-update-feed/guide.i18n.yaml
+@@ -0,0 +1,16 @@
++# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
++# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
++# After editing either side, bring the other along and re-record with:
++#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.3-alpha.2/single-update-feed/guide.md
++/:
++  en: e8c18461f2023915
++  zh: c31a646c9dc71da8
++/dshu-desktop-updates:
++  en: 760edbe02d71eb4d
++  zh: 95a4273748931d06
++/dshu-desktop-updates/change:
++  en: 5c0410f1dee33ed3
++  zh: 679a197c315cd1d5
++/dshu-desktop-updates/migration:
++  en: 6b51c50fbb306035
++  zh: ffb0328e13f4a1df
+diff --git a/docs/upgrade-guide/v0.2.3-alpha.2/single-update-feed/guide.md b/docs/upgrade-guide/v0.2.3-alpha.2/single-update-feed/guide.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..2dd4a7e62f3d08eb6b06cbd1708080c1b9d6c365
+--- /dev/null
++++ b/docs/upgrade-guide/v0.2.3-alpha.2/single-update-feed/guide.md
+@@ -0,0 +1,16 @@
++---
++kind: upgrade-guide
++description: "Desktop updates use the DSHU release feed selected by the installed package."
++---
++
++# DSHU Desktop updates
++
++English | [中文](guide.zh.md)
++
++## Change
++
++General settings no longer offers Stable and Development. Automatic checks and **Check for Updates** in the application menu use the package's DSHU release feed.
++
++## Migration
++
++No action is required. An existing Development selection also receives the package feed. Desktop retains other preferences and leaves the original file in place. Clients using the Desktop preload API can use `updates.status()`, `updates.open()` and `updates.subscribe()`.
+diff --git a/docs/upgrade-guide/v0.2.3-alpha.2/single-update-feed/guide.zh.md b/docs/upgrade-guide/v0.2.3-alpha.2/single-update-feed/guide.zh.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..3549f5ab5a966096c921aeda552746a152eaa629
+--- /dev/null
++++ b/docs/upgrade-guide/v0.2.3-alpha.2/single-update-feed/guide.zh.md
+@@ -0,0 +1,16 @@
++---
++kind: upgrade-guide
++description: "桌面更新统一使用安装包指定的 DSHU 发行源。"
++---
++
++# DSHU 桌面更新
++
++[English](guide.md) | 中文
++
++## 变更
++
++设置中的正式版和开发版选项已移除。应用菜单的「检查更新」和自动更新均使用 DSHU 安装包的发行源。
++
++## 迁移
++
++升级后无需操作。以前选择开发版的用户自动使用同一发行源，已有桌面设置文件和其他偏好保留原样。接入桌面预加载 API 的客户端应使用 `updates.status()`、`updates.open()` 和 `updates.subscribe()`。
 diff --git a/packages/api/mode-dossiers/README.i18n.yaml b/packages/api/mode-dossiers/README.i18n.yaml
 new file mode 100644
 index 0000000000000000000000000000000000000000..d0dd67499cd330445bb731a269e0f3c0365eb339
@@ -8817,6 +9803,140 @@ index d425a8cdea74f84e657b0b2118472a84b0fa5e23..ba715e5b1010f96531541e4a25f25770
      }
    ]
  }
+diff --git a/packages/client/ui-settings-general/README.i18n.yaml b/packages/client/ui-settings-general/README.i18n.yaml
+index 9979ff80ad6b93b66a2dc12db9adb3ff1ee1b6ef..cd54ad5c2cae3714672d9b580083ca106f66f414 100644
+--- a/packages/client/ui-settings-general/README.i18n.yaml
++++ b/packages/client/ui-settings-general/README.i18n.yaml
+@@ -24,8 +24,8 @@
+   en: 597df68b5913e8d7
+   zh: bc9114f3e877679a
+ /deepseek-ai-dsh-client-ui-settings-general/use-this-package/onboarding-steps:
+-  en: 7600861d064dbc99
+-  zh: a52ba446016e3a21
++  en: 631adb2067f29326
++  zh: 8b77ee4b15d3870b
+ /deepseek-ai-dsh-client-ui-settings-general/understand-the-implementation:
+   en: 2ba62c7be5b79052
+   zh: 9220e867a0e88076
+diff --git a/packages/client/ui-settings-general/README.md b/packages/client/ui-settings-general/README.md
+index efa781c748d682cb79d1be0cd31b05b8f00e44b9..24e3537e76e2af1c5e30d31c3acaec2c3a90c380 100644
+--- a/packages/client/ui-settings-general/README.md
++++ b/packages/client/ui-settings-general/README.md
+@@ -63,7 +63,7 @@ Access: the settings shell and the `settings.open` shortcut are registered only
+ 
+ -----
+ 
+-Desktop also contributes an **Update channel** row to General when the preload exposes the channel API. Selecting the current healthy channel leaves downloads and prepared updates intact without a save or notification. Selecting another channel calls Electron directly and temporarily displays that choice with a spinner. The reply settles the selection against actual shell state; failure rolls it back. A shell-owned toast reports success or a short save failure, including after Settings closes. Startup settings errors use a ten-second toast with a details action; dismissing it does not clear the error. Persistent updater suspensions remain in the update indicator; a failed save does not create one. Ordinary browsers omit this row. File ownership and restart rules are documented in [local desktop settings](../../../apps/desktop/README.md#local-desktop-settings).
++General settings displays the current version. Desktop supplies a single update action. [Desktop settings](../../../apps/desktop/README.md#local-desktop-settings)
+ 
+ <a id="understand-the-implementation"></a>
+ ## Understand the implementation
+diff --git a/packages/client/ui-settings-general/README.zh.md b/packages/client/ui-settings-general/README.zh.md
+index a921a5cdb065691ef5ef1303ef0e61759db0f384..65c20882c7ed0d0067ce8d0df277d11ca4ca47b5 100644
+--- a/packages/client/ui-settings-general/README.zh.md
++++ b/packages/client/ui-settings-general/README.zh.md
+@@ -63,7 +63,7 @@ Web 与桌面端的通用设置底部显示当前发布版本，使用构建注
+ 
+ -----
+ 
+-当预加载提供渠道 API 时，桌面版还会在通用设置中提供**更新渠道**。重复选择当前正常渠道不会保存、提示或影响下载与待安装更新。选择其他渠道直接调用 Electron，等待期间显示所选项和加载指示；返回后按实际运行状态确定选项，失败则回滚。由 shell 持有的 toast 显示成功或简短保存失败，关闭设置后仍可见。启动配置错误使用可查看详情的十秒 toast；提示消失不会清除错误。持续的更新暂停保留在更新入口；保存失败本身不会产生暂停。普通浏览器不显示该行。文件归属和重启规则见[本地桌面设置](../../../apps/desktop/README.zh.md#local-desktop-settings)。
++通用设置显示当前版本。桌面宿主提供统一的更新入口。[桌面设置](../../../apps/desktop/README.zh.md#local-desktop-settings)
+ 
+ <a id="understand-the-implementation"></a>
+ ## 理解实现
+diff --git a/packages/client/ui-settings-general/src/client/index.ts b/packages/client/ui-settings-general/src/client/index.ts
+index ee3bb86d99b5ec164bc8f34914d2978f2a7e5e1c..86a3ec6e301ff5cce0543334921581e8caa25568 100644
+--- a/packages/client/ui-settings-general/src/client/index.ts
++++ b/packages/client/ui-settings-general/src/client/index.ts
+@@ -35,8 +35,6 @@ import { createSettingsShellStore } from './shell-store.ts'
+ import { SettingsRoot } from './SettingsRoot.tsx'
+ import { DesktopUpdateBadge } from './DesktopUpdateIndicator.tsx'
+ import type { DesktopUpdateBridge } from '../types.ts'
+-import { DesktopChannelSource } from './desktop-channel-source.ts'
+-import { DesktopChannelRow, DesktopChannelToast } from './DesktopChannelRow.tsx'
+ import { DesktopUpdateSource } from './desktop-update-source.ts'
+ import { CloseLabel, HeaderContent, TriggerContent } from './chrome.tsx'
+ import { GeneralSection } from './GeneralSection.tsx'
+@@ -107,21 +105,6 @@ export function apply(ctx: ClientContext): void {
+   const carrier = (globalThis as typeof globalThis & { dshDesktop?: { protocolVersion: number; updates?: DesktopUpdateBridge } }).dshDesktop
+   const desktopUpdate = new DesktopUpdateSource(carrier?.protocolVersion === 1 ? carrier.updates : undefined)
+   ctx.effect(() => () => { desktopUpdate.dispose() }, 'ui-settings-general: desktop update carrier')
+-  const channelBridge = carrier?.protocolVersion === 1 ? carrier.updates?.channels : undefined
+-  if (channelBridge !== undefined) {
+-    const channel = new DesktopChannelSource(channelBridge)
+-    ctx.effect(() => () => { channel.dispose() }, 'ui-settings-general: desktop channel')
+-    ctx.slots.inject('settings.general.item', () => ctx.slots.register({
+-      name: 'settings.general.item', id: 'desktop-update-channel', order: 95, locale: NS,
+-      inject: () => ({ hooks: { channel: channel.store }, select: (value: 'nightly' | 'stable') => channel.select(value) }),
+-    }, DesktopChannelRow))
+-    ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+-      name: 'shell.overlay', id: 'desktop-channel-toast', locale: NS,
+-      inject: () => ({ hooks: { channel: channel.store },
+-        dismiss: (sequence: number) => { channel.dismissNotice(sequence) }, openConfiguration: () => { desktopUpdate.open() } }),
+-    }, DesktopChannelToast))
+-  }
+-
+   ctx.slots.inject('sidebar.toggle.badge', () => ctx.slots.register({
+     name: 'sidebar.toggle.badge', locale: NS,
+     inject: () => ({ hooks: { desktopUpdate: desktopUpdate.store, connectionState: connection.state } }),
+diff --git a/packages/client/ui-settings-general/tests/apply.client.spec.ts b/packages/client/ui-settings-general/tests/apply.client.spec.ts
+index 09723981dae0bc7662696b3d5acd536222d8bede..bc62dcf9661490c8f9b0c9e54bea159ecc0a334a 100644
+--- a/packages/client/ui-settings-general/tests/apply.client.spec.ts
++++ b/packages/client/ui-settings-general/tests/apply.client.spec.ts
+@@ -17,8 +17,6 @@ import { inject } from '../src/client/index.ts'
+ import type { DeveloperToolsRowInjected } from '../src/client/DeveloperToolsRow.tsx'
+ import { HostReleasePrompt, type HostReleasePromptInjected } from '../src/client/HostReleasePrompt.tsx'
+ import { CloseLabel, HeaderContent, TriggerContent } from '../src/client/chrome.tsx'
+-import type { DesktopChannelRowInjected, DesktopChannelToastInjected } from '../src/client/DesktopChannelRow.tsx'
+-import type { DesktopChannelBridge } from '../src/types.ts'
+ import { GeneralSection } from '../src/client/GeneralSection.tsx'
+ import { SettingsDocumentAction } from '../src/client/SettingsDocumentAction.tsx'
+ import type { SettingsDocumentActionInjected } from '../src/client/SettingsDocumentAction.tsx'
+@@ -210,36 +208,17 @@ describe('ui-settings-general apply', () => {
+     expect(() => { c.ctx.locale.register(NS, 'en', {})() }).not.toThrow()
+   })
+ 
+-  it('removes the Desktop channel row and shell subscription when its plugin unloads', async ({ mock, start }) => {
+-    const unsubscribe = vi.fn()
+-    const state = { channel: 'nightly', packagedChannel: 'nightly', changing: false } as const
+-    const save = vi.fn(async () => ({ kind: 'applied' as const, state }))
+-    const channels: DesktopChannelBridge = { get: async () => state, set: save,
+-      subscribe: () => unsubscribe }
+-    const open = vi.fn(async () => {})
++  it('ignores channel preferences exposed by an older Desktop shell', async ({ mock, start }) => {
++    const state = { channel: 'nightly', packagedChannel: 'stable', changing: false } as const
++    const channels = { get: vi.fn(async () => state), set: vi.fn(), subscribe: vi.fn(() => () => {}) }
+     vi.stubGlobal('dshDesktop', { protocolVersion: 1, updates: { channels,
+-      status: async () => ({ phase: 'idle' }), open, subscribe: () => () => {} } })
++      status: async () => ({ phase: 'idle' }), open: async () => {}, subscribe: () => () => {} } })
+     onTestFinished(() => { vi.unstubAllGlobals() })
+     const { c } = await client(mock, start)
+-    const row = c.ctx.slots.entries('settings.general.item').find(row => row.options.id === 'desktop-update-channel')!
+-    expect(c.ctx.slots.entries('shell.overlay').some(entry => entry.options.id === 'desktop-channel-toast')).toBe(true)
+-    const select = row.inject!().select as DesktopChannelRowInjected['select']
+-    await select('stable')
+-    expect(save).toHaveBeenCalledWith('stable')
+-    const toast = c.ctx.slots.entries('shell.overlay').find(entry => entry.options.id === 'desktop-channel-toast')!
+-    const injected = toast.inject!()
+-    const hooks = injected.hooks as DesktopChannelToastInjected['hooks']
+-    const dismiss = injected.dismiss as DesktopChannelToastInjected['dismiss']
+-    const openConfiguration = injected.openConfiguration as DesktopChannelToastInjected['openConfiguration']
+-    openConfiguration()
+-    expect(open).toHaveBeenCalledOnce()
+-    expect(hooks.channel.getSnapshot().notice?.outcome).toBe('applied')
+-    dismiss(1)
+-    expect(hooks.channel.getSnapshot().notice).toBeUndefined()
+-    await c.unload(SELF)
+-    await c.flush()
+-    expect(unsubscribe).toHaveBeenCalledOnce()
+-    expect(c.ctx.slots.entries('shell.overlay').some(entry => entry.options.id === 'desktop-channel-toast')).toBe(false)
++    expect(c.ctx.slots.entries('settings.general.item').some(row => row.options.id === 'desktop-update-channel')).toBe(false)
++    expect(c.ctx.slots.entries('shell.overlay').some(row => row.options.id === 'desktop-channel-toast')).toBe(false)
++    expect(channels.get).not.toHaveBeenCalled()
++    expect(channels.subscribe).not.toHaveBeenCalled()
+   })
+ 
+   it('the nav label thunk follows the active locale without re-registration', async ({ mock, start }) => {
 diff --git a/packages/experimental/liveshare/src/endpoint-classification.ts b/packages/experimental/liveshare/src/endpoint-classification.ts
 index 1242197b3b92c42f21e2096e0fdb724fdafaa883..d0c504f15427598e059bd9adb116e807160c481f 100644
 --- a/packages/experimental/liveshare/src/endpoint-classification.ts
@@ -8844,7 +9964,7 @@ index 1242197b3b92c42f21e2096e0fdb724fdafaa883..d0c504f15427598e059bd9adb116e807
    'account/getBalance': 'owner-only', // owner account and sign-in; the served page never reads it
    'account/getProfile': 'owner-only', // owner account and sign-in; the served page never reads it
 diff --git a/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts b/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
-index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..519d4832d9bb9cce04ae83e664c6bd29dea0c948 100644
+index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..403a8c463017837724cc179c53e0ca540909ff9e 100644
 --- a/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
 +++ b/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
 @@ -1512,6 +1512,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
@@ -8855,7 +9975,15 @@ index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..519d4832d9bb9cce04ae83e664c6bd29
        'experimental-client-ui-claude-code-mods Band id \'claude-code-mods\'',
        'experimental-client-ui-forge WorktreeProgress id \'forge-panel.worktree\'',
        'timeline TaskDock id \'timeline\'',
-@@ -4605,8 +4606,10 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+@@ -4147,7 +4148,6 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+       'client-ui-permission-presets PermissionRow id \'permission\'',
+       'client-ui-settings-general DeveloperToolsRow id \'developer-tools\'',
+       'client-ui-settings-general CurrentVersionRow id \'current-version\'',
+-      'client-ui-settings-general DesktopChannelRow id \'desktop-update-channel\'',
+       'client-ui-settings-session-log UploadRow',
+       'client-ui-shortcuts ShortcutsRow id \'shortcuts\'',
+       'client-ui-theme AppearanceRow id \'appearance\'',
+@@ -4605,8 +4605,10 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
      occupants: [
        'client-remote-connection RemoteConnectionSettings id \'remote-connection\'',
        'client-ui-agent-preset AgentPresetSection id \'agent-presets\'',
@@ -8866,14 +9994,15 @@ index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..519d4832d9bb9cce04ae83e664c6bd29
        'client-ui-settings-general GeneralSection id \'general\'',
        'client-ui-settings-models ModelsSection id \'models\'',
      ],
-@@ -4820,6 +4823,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+@@ -4820,7 +4822,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
        'client-ui-schedule ScheduleDeleteToast id \'schedule.delete-toast\'',
        'client-ui-settings-account DesktopOnboardingEntry id \'desktop-onboarding\'',
        'client-ui-settings-account AccountPlatformHost id \'account.platform-page\'',
+-      'client-ui-settings-general DesktopChannelToast id \'desktop-channel-toast\'',
 +      'client-ui-settings-account SpendingToast id \'spending-feedback\'',
-       'client-ui-settings-general DesktopChannelToast id \'desktop-channel-toast\'',
        'client-ui-settings-general HostReleasePrompt id \'host-release-change\'',
        'client-ui-settings-session-log UploadToast id \'session-log-upload-toast\'',
+       'client-ui-shortcuts ShortcutReference id \'shortcuts\'',
 diff --git a/packages/extensions/tool-cordis/src/api-catalog.ts b/packages/extensions/tool-cordis/src/api-catalog.ts
 index 84bf84164a56fd17f6575eeec815ef47f3a55bfb..80c3354da1d9352c2826fb5c03747af6f06ce367 100644
 --- a/packages/extensions/tool-cordis/src/api-catalog.ts

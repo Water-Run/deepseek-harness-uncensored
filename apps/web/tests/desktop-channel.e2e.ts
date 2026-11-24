@@ -1,76 +1,41 @@
-/** Built settings UI uses the shell file API; external edits wait for a new shell startup. */
-import { readFile, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
+/** DSHU General settings on a Desktop shell carrying a legacy channel preference. */
+import { mkdir } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright'
 import { expect, it } from 'vitest'
-import { DesktopUpdateSettings } from '../../desktop/src/update-settings.ts'
-import type { DesktopChannelState, DesktopChannelChangeResult } from '../../desktop/src/ipc.ts'
-import { captureStableAria, compareOrRefreshGolden, launchWebScaffold, watchConsole, webSnapshotMode } from './scaffold.ts'
-import { openSettings } from './support.ts'
+import { launchWebScaffold, watchConsole } from './scaffold.ts'
+import { openSettings, ZH_BROWSER_LOCALE } from './support.ts'
 
-it('persists a Desktop channel from Settings and keeps external edits startup-only', async () => {
+it('shows the DSHU version without querying the legacy update selector', async () => {
   const scaffold = await launchWebScaffold({})
   try {
     const browser = await chromium.launch()
     try {
-      const settings = new DesktopUpdateSettings(join(scaffold.harnessHome, 'shell'), 'nightly')
-      await settings.save('nightly')
-      let state: DesktopChannelState = { channel: 'nightly', packagedChannel: 'nightly', changing: false }
-      const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, locale: 'en-US' })
+      const page = await browser.newPage({ viewport: { width: 1280, height: 840 }, locale: ZH_BROWSER_LOCALE })
       const tripwire = watchConsole(page)
-      let detailOpens = 0
-      await page.exposeFunction('openUpdateDetails', () => { detailOpens++ })
-      await page.exposeFunction('readChannel', () => state)
-      await page.exposeFunction('setChannel', async (channel: 'nightly' | 'latest'): Promise<DesktopChannelChangeResult> => {
-        try {
-          await settings.save(channel)
-          state = { ...state, channel, error: undefined }
-          return { kind: 'applied', state }
-        } catch (_error) { return { kind: 'failed', state, reason: 'format' } }
+      let reads = 0
+      await page.exposeFunction('readLegacyChannel', () => {
+        reads++
+        return { channel: 'nightly', packagedChannel: 'latest', changing: false }
       })
       await page.addInitScript(() => {
-        const bridge = globalThis as typeof globalThis & {
-          readChannel(): Promise<DesktopChannelState>
-          openUpdateDetails(): Promise<void>
-          setChannel(channel: 'nightly' | 'latest'): Promise<DesktopChannelChangeResult>
-        }
+        const bridge = globalThis as typeof globalThis & { readLegacyChannel(): Promise<object> }
         Object.assign(globalThis, { dshDesktop: { protocolVersion: 1, updates: {
-          status: async () => ({ phase: 'idle' }), open: () => bridge.openUpdateDetails(), subscribe: () => () => {},
-          channels: { get: () => bridge.readChannel(), set: (channel: 'nightly' | 'latest') => bridge.setChannel(channel),
-            subscribe: () => () => {} },
+          status: async () => ({ phase: 'idle' }), open: async () => {}, subscribe: () => () => {},
+          channels: { get: () => bridge.readLegacyChannel(), subscribe: () => () => {} },
         } } })
       })
-      await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
-      await openSettings(page, 'en')
-      const row = page.getByRole('group', { name: 'Update channel', exact: true })
-      await row.getByText('Development', { exact: true }).waitFor()
-      await row.getByRole('button', { name: 'Update channel', exact: true }).click()
-      await page.getByRole('menuitem', { name: 'Stable', exact: true }).click()
-      await row.getByText('Stable', { exact: true }).waitFor()
-      await page.getByText('Update channel changed', { exact: true }).waitFor()
-      expect(JSON.parse(await readFile(settings.path, 'utf8'))).toMatchObject({ updates: { channel: 'latest' } })
-      await compareOrRefreshGolden(fileURLToPath(new URL('./expected/desktop-channel/stable.expected.md', import.meta.url)),
-        await captureStableAria(page, '[role="group"][aria-label="Update channel"]', scaffold.workspaceCwd), webSnapshotMode())
-      await writeFile(settings.path, JSON.stringify({ updates: { channel: 'nightly' } }))
-      expect(await row.getByText('Stable', { exact: true }).count()).toBe(1)
-      expect(await settings.load()).toEqual({ kind: 'ready', channel: 'nightly' })
-      await writeFile(settings.path, '{broken')
-      await row.getByRole('button', { name: 'Update channel', exact: true }).click()
-      await page.getByRole('menuitem', { name: 'Development', exact: true }).click()
-      await page.getByText('Could not save: invalid settings file', { exact: true }).waitFor()
-      await row.getByText('Stable', { exact: true }).waitFor()
-      expect(await row.getByText('Stable', { exact: true }).count()).toBe(1)
-      expect(await readFile(settings.path, 'utf8')).toBe('{broken')
-      await compareOrRefreshGolden(fileURLToPath(new URL('./expected/desktop-channel/save-error.expected.md', import.meta.url)),
-        await captureStableAria(page, '[role="group"][aria-label="Update channel"]', scaffold.workspaceCwd) + '\n'
-          + await captureStableAria(page, '[role="alert"]', scaffold.workspaceCwd), webSnapshotMode())
-      state = { ...state, error: 'format' }
-      await page.reload({ waitUntil: 'load' })
-      await page.getByRole('alert').filter({ hasText: 'Settings file error; updates are paused' }).waitFor()
-      await page.getByRole('button', { name: 'View details', exact: true }).click()
-      await expect.poll(() => detailOpens).toBe(1)
-      expect(await readFile(settings.path, 'utf8')).toBe('{broken')
+      await page.goto(scaffold.authenticatedUrl)
+      await openSettings(page, 'zh')
+      const dialog = page.getByRole('dialog', { name: '设置' })
+      const version = dialog.getByText(/^当前版本：\s*\d/u)
+      await version.scrollIntoViewIfNeeded()
+      expect(await dialog.getByText('更新渠道', { exact: true }).count()).toBe(0)
+      expect(await dialog.getByText('正式版', { exact: true }).count()).toBe(0)
+      expect(reads).toBe(0)
+      const output = new URL('../../../.artifacts/screenshots/dshu-update-feed/', import.meta.url)
+      await mkdir(fileURLToPath(output), { recursive: true })
+      await dialog.screenshot({ path: fileURLToPath(new URL('general-zh.png', output)) })
       expect(tripwire.pageErrors).toEqual([])
       expect(tripwire.warnings).toEqual([])
     } finally { await browser.close() }

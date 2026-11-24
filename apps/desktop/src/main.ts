@@ -2,10 +2,6 @@
 import { displayProductVersion } from '@deepseek-ai/dsh-product-version'
 import { assertSeparateDshHome, resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { installFileActions } from './file-actions.ts'
-import { configurationFailure, channelSaveFailure, configurationMessage } from './update-configuration.ts'
-import type { DesktopChannelState, DesktopChannelChangeResult } from '@deepseek-ai/dsh-client-ui-settings-general/types'
-import { DesktopUpdateSettings } from './update-settings.ts'
-import { isDesktopUpdateChannel } from './settings-file.ts'
 import type { ProductEventMap, ProductEvent } from '@deepseek-ai/dsh-client-product-analytics/types'
 import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
 import { access, readFile, writeFile } from 'node:fs/promises'
@@ -41,7 +37,7 @@ import { readDeviceInfo } from './device-info.ts'
 import { desktopUpdateReadyConfirmation, formatDesktopMessage, resolveDesktopLocale, resolveDesktopStartupLocale } from './locale.ts'
 import type { DesktopMessages } from './locale.ts'
 import { claimDesktopSingleInstance } from './single-instance.ts'
-import { desktopUpdateChannel, type DesktopUpdateChannel } from './update-channel.ts'
+import { desktopUpdateChannel } from './update-channel.ts'
 import { DesktopUpdateCoordinator } from './update-coordinator.ts'
 import { prepareDesktopUpdateWindow } from './update-window.ts'
 import { DesktopCommandManager } from './command-management.ts'
@@ -464,9 +460,6 @@ async function main(): Promise<void> {
   let updateStoppedHost = false
   let updateStopFailure: DesktopHostUncleanExitError | undefined
   let updateState: DesktopUpdateState = { phase: 'idle' }
-  let channelState: DesktopChannelState | undefined
-  const updatePresentation = (state: DesktopUpdateState) => ({ ...presentDesktopUpdate(state),
-    ...(channelState?.error === undefined ? {} : { configurationError: channelState.error }) })
   const systemLanguages = app.getPreferredSystemLanguages()
   let locale = windowsLanguage === undefined
     ? resolveDesktopStartupLocale(null, systemLanguages) : resolveDesktopLocale(windowsLanguage)
@@ -707,7 +700,7 @@ async function main(): Promise<void> {
     updateJournal?.state(state)
     updateState = state
     syncUpdateOverlay()
-    const presentation = updatePresentation(state)
+    const presentation = presentDesktopUpdate(state)
     notifyUpdateWindows((contents) => { contents.send(DESKTOP_IPC.updatesPresentation, presentation) })
     if (state.phase === 'error' && state.failedOperation !== 'check' && state.failedOperation !== 'configuration') {
       if (state.failedOperation === 'install' && fileDragStopped && !quitting) {
@@ -771,13 +764,7 @@ async function main(): Promise<void> {
   }
 
   const manifest: unknown = JSON.parse(await readFile(join(app.getAppPath(), 'package.json'), 'utf8'))
-  const packagedChannel = desktopUpdateChannel(manifest)
-  const channelSettings = new DesktopUpdateSettings(app.getPath('userData'), packagedChannel)
-  const initialChannel = await channelSettings.load()
-  channelState = { channel: initialChannel.kind === 'ready' ? initialChannel.channel : null,
-    packagedChannel, changing: false,
-    ...(initialChannel.kind === 'error' ? { error: configurationFailure(initialChannel.error) } : {}) }
-  const updateChannel = initialChannel.kind === 'ready' ? initialChannel.channel : packagedChannel
+  const updateChannel = desktopUpdateChannel(manifest)
   const updates = new DesktopUpdateCoordinator(
     publishUpdate,
     async () => {
@@ -842,17 +829,6 @@ async function main(): Promise<void> {
       return () => { if (!quitting) shellInstallerOwnsQuit = true }
     },
   )
-
-  if (initialChannel.kind === 'error') updates.suspendConfiguration(initialChannel.error.path)
-  const publishChannel = (state: DesktopChannelState): DesktopChannelState => {
-    channelState = state
-    const presentation = updatePresentation(updates.state)
-    notifyUpdateWindows((contents) => {
-      contents.send(DESKTOP_IPC.updatesChannelChanged, state)
-      contents.send(DESKTOP_IPC.updatesPresentation, presentation)
-    })
-    return state
-  }
 
   const updateSchedule = new DesktopUpdateSchedule(updates, resolveDesktopUpdateScheduleConfig(process.env))
 
@@ -987,43 +963,9 @@ async function main(): Promise<void> {
     windowsLanguage = locale.id
     refreshApplicationMenu()
   })
-  ipcMain.handle(DESKTOP_IPC.updatesChannelGet, (event) => {
-    assertProductSender(event)
-    return channelState
-  })
-  const switchUpdateChannel = async (channel: DesktopUpdateChannel, persist: () => Promise<void>) => {
-    const kind = await updates.switchChannel(channel, persist)
-    if (kind === 'applied') void mandatoryPolicy?.check('channel-change', true).catch((error: unknown) => { console.error(error) })
-    return kind
-  }
-  let channelRequests = 0
-  ipcMain.handle(DESKTOP_IPC.updatesChannelSet, async (event, channel: unknown): Promise<DesktopChannelChangeResult> => {
-    assertProductSender(event)
-    if (!isDesktopUpdateChannel(channel)) throw new Error('desktop update: unsupported channel')
-    if (channelState === undefined) throw new Error('desktop update: settings are not initialized')
-    channelRequests++
-    publishChannel({ ...channelState, changing: true })
-    try {
-      const kind = await switchUpdateChannel(channel, async () => {
-        try { await channelSettings.save(channel) } catch (error) {
-          if (channelSaveFailure(error) === 'uncertain') {
-            updates.suspendConfiguration('desktop update: settings save outcome is unknown')
-            publishChannel({ channel: updates.selectedChannel, packagedChannel, changing: true, error: 'read' })
-          }
-          throw error
-        }
-      })
-      return { kind, state: publishChannel({ channel: updates.selectedChannel, packagedChannel, changing: --channelRequests > 0 }) }
-    } catch (error) {
-      console.error('desktop update: channel change failed', error)
-      const state = publishChannel({ ...channelState, changing: --channelRequests > 0,
-        ...(updates.configurationFailure === 'cleanup' ? { error: 'cleanup' as const } : {}) })
-      return { kind: 'failed', state, reason: channelSaveFailure(error) }
-    }
-  })
   ipcMain.handle(DESKTOP_IPC.updatesStatus, (event) => {
     assertProductSender(event)
-    return updatePresentation(updates.state)
+    return presentDesktopUpdate(updates.state)
   })
   ipcMain.handle(DESKTOP_IPC.deviceInfo, (event) => {
     assertProductSender(event)
@@ -1053,52 +995,10 @@ async function main(): Promise<void> {
     await openUpdatePrompt()
   })
 
-  let configurationPrompt: Promise<void> | undefined
-  const showConfigurationError = (): Promise<void> => {
-    configurationPrompt ??= Promise.resolve().then(async () => {
-      while (channelState?.error !== undefined) {
-        const result = await ordinaryMessageBox({ type: 'error', title: locale.messages.updateFailedTitle,
-          message: configurationMessage(channelState.error, locale.messages),
-          ...{ detail: channelSettings.path,
-            buttons: [locale.messages.updateReloadSettings, locale.messages.updateShowSettingsFile, locale.messages.updateClose],
-            defaultId: 0, cancelId: 2,
-            keepOpenAction: { index: 1, run: () => { shell.showItemInFolder(channelSettings.path) } },
-            action: { index: 0, run: async () => {
-              if (channelRequests > 0 || channelState === undefined) return false
-              channelRequests++
-              publishChannel({ ...channelState, changing: true })
-              try {
-                const loaded = await channelSettings.load()
-                if (loaded.kind === 'error') {
-                  publishChannel({ ...channelState, changing: true, error: configurationFailure(loaded.error) })
-                  return false
-                }
-                await switchUpdateChannel(loaded.channel, async () => {})
-                publishChannel({ channel: updates.selectedChannel, packagedChannel, changing: true })
-                return true
-              } catch (error) {
-                console.error('desktop update: settings reload failed', error)
-                publishChannel({ ...channelState,
-                  ...(updates.configurationFailure === 'cleanup' ? { error: 'cleanup' as const } : {}) })
-                return false
-              } finally {
-                publishChannel({ ...channelState, changing: --channelRequests > 0 })
-              }
-            } } },
-        }, mandatoryUI?.confirmationWindow ?? currentDialogWindow())
-        if (result.response !== 0) return
-      }
-    }).finally(() => { configurationPrompt = undefined })
-    return configurationPrompt
-  }
-
   let promptOperation: Promise<void> | undefined
   let policyAuthenticationQueued = false
   /** Present check results only while their captured channel revision remains current. */
   const openUpdatePrompt = (manual = false): Promise<void> => {
-    if (channelState?.error !== undefined) {
-      return showConfigurationError()
-    }
     if (authenticationOperation !== undefined) {
       policyAuth?.focus(); updateDialog.focus()
     }
@@ -1691,8 +1591,7 @@ async function main(): Promise<void> {
       allowedPageOrigins: policyConfig.allowedPageOrigins, parent: () => mainWindow,
       policy: () => policy.state, update: () => updates.state,
       refresh: async () => {
-        if (channelState?.error !== undefined) await showConfigurationError()
-        if (channelState?.error === undefined) await Promise.all([checkPolicyManually(), updateSchedule.check(true)])
+        await Promise.all([checkPolicyManually(), updateSchedule.check(true)])
       },
       download: downloadUpdate, install: version => updates.install(version),
     })

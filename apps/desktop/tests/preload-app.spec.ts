@@ -310,20 +310,12 @@ void imageProtocol
 void imageProtocolBack
 
 
-it('exposes channel choices and scoped subscriptions without exposing updater objects', async () => {
+it('exposes update status and actions for the single product feed', async () => {
   vi.stubGlobal('location', new URL('dsh-app://app/index.html'))
   await import('../src/preload-app.ts')
   const api = electron.contextBridge.exposeInMainWorld.mock.calls.find(([name]) => name === 'dshDesktop')?.[1] as DshDesktopProductApi
-  await api.updates.channels.get()
-  await api.updates.channels.set('latest')
-  expect(electron.ipcRenderer.invoke.mock.calls).toEqual([[DESKTOP_IPC.updatesChannelGet], [DESKTOP_IPC.updatesChannelSet, 'latest']])
-  const listener = vi.fn()
-  const dispose = api.updates.channels.subscribe(listener)
-  const handler = electron.ipcRenderer.on.mock.calls.find(([channel]) => channel === DESKTOP_IPC.updatesChannelChanged)?.[1] as
-    (event: unknown, state: unknown) => void
-  const state = { channel: 'latest', packagedChannel: 'nightly', changing: false }
-  handler({}, state)
-  expect(listener).toHaveBeenCalledWith(state)
-  dispose()
-  expect(electron.ipcRenderer.off).toHaveBeenCalledWith(DESKTOP_IPC.updatesChannelChanged, handler)
+  expect(api.updates).not.toHaveProperty('channels')
+  await api.updates.status()
+  await api.updates.open()
+  expect(electron.ipcRenderer.invoke.mock.calls).toEqual([[DESKTOP_IPC.updatesStatus], [DESKTOP_IPC.updatesOpen]])
 })

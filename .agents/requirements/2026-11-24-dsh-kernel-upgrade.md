@@ -85,6 +85,20 @@ Windows x64 已用上述候选完成冻结安装、8 项产物构建和 2 项聚
 
 Chromium 通过宽屏浅色和窄屏深色的设置检查，验证两笔金额显示为 `¥0.00 / ¥50.00` 和 `¥0.00 / ¥500.00`。15 项预设测试核对了中英文界面的新入口。一次联合回归中，宿主已接受任务时，测试尚未观测到账本写入，随后遗留的完成监听在清理阶段报错。测试改为等待对应的账本状态，在最后一个窗口解除时才同时监听并触发继续。修正后的暂停、恢复、写作撤回及冷会话接续流程在三个独立测试进程中连续通过。复验使用本地适配器，无服务商调用。
 
+### 桌面统一更新源与旧设置
+
+主线提交 `2a5cdc6b8d` 移除了通用设置中的更新渠道和桌面切换接口。正式安装包从自身配置读取 DSHU 的 `latest` 源。旧设置文件中的 `nightly`、`latest` 和无效字符串均覆盖在启动测试中，测试同时核对安装源、原文件内容和更新状态。5 个测试文件共 225 项通过，中文 Chromium 设置页显示当前版本，旧渠道接口的读取次数为零。Windows x64 主线产物构建 8 项和聚合类型检查 2 项通过。
+
+固定标签候选也仅从安装包读取更新源。复验发现，旧桌面壳仍提供渠道接口时，候选会重新注册选择行。移除注册前，相关测试观察到了这行；移除后，设置注册与生命周期的 12 项测试通过。候选的桌面启动、预加载与源选择共 200 项通过。使用同一份候选产物串行运行下列五个 Web 测试文件，18 项全部通过，其中包括带旧桌面接口的中文设置页、预设选择、写作资料撤回、滚动额度和冷会话恢复。
+
+```sh
+pnpm exec vitest run --config vitest.web.config.ts --maxWorkers=1 apps/web/tests/desktop-channel.e2e.ts apps/web/tests/writing-spending.e2e.ts apps/web/tests/writing-spending-settings.e2e.ts apps/web/tests/agent-preset-authoring.e2e.ts apps/web/tests/agent-preset-selection.e2e.ts
+```
+
+最终候选基于上游提交 `4b399c39a6d1`，完整 Git 树为 `4c9d5218f2b68813b27376a39c131c28edfc4251`。从主线清单和补丁在全新目录还原后，检出提交、索引树和工作区内容均已核对。Windows x64 该目录的离线缓存缺少一个依赖归档，使用同一锁文件联网执行 `pnpm install --frozen-lockfile` 后成功。
+
+最终候选的产物构建 8 项及聚合类型检查 2 项通过。该树的 `pnpm run doc-sync` 并行运行 43 项，42 项通过，包含双语配对、升级指南、持久化目录及客户端组件目录。CLI 帮助生成子进程达到原有 30 秒超时。原参数单独执行 `pnpm run verify-cli-help`，7 份帮助页全部与生成结果一致。
+
 ### 剩余验收与交付责任
 
 | 项目 | 接手人和完成条件 |
@@ -93,6 +107,12 @@ Chromium 通过宽屏浅色和窄屏深色的设置检查，验证两笔金额�
 | 全产品范围与发行 | 产品维护者确认模式清单、旧会话的打开方式、CLI 和桌面的交付范围。现有专项模式中涉及漏洞利用或自动化攻击的执行链保留为范围缺口。 |
 | 桌面与其他系统 | 打包维护者核对 Electron 内置 Node、ABI、原生模块、关于页及安装器身份，在 Windows 实装验证升级、修复与卸载；Linux 和 macOS 分平台记录。 |
 | 真实计费 | 具备测试账户的维护者用受控额度核对服务商用量与本地估算，包括 DSHU 的记忆提炼费用。Web 回归使用可复核的本地模型适配器。 |
+
+### macOS 首装与应用内更新
+
+已核对 [2026.11.23.0 发行附件](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.23.0)。手动安装入口指向 DMG。线上 [macOS 更新索引](https://github.com/Water-Run/deepseek-harness-uncensored/releases/download/v2026.11.23.0/latest-mac.yml) 的 `files` 与 `path` 均指向同一个 497,240,952 字节的 ZIP，附件大小与索引相符。当前 macOS 更新器选择 ZIP，并排除 DMG。移走当前 ZIP 会中断该索引的下载。[更新器实现](https://github.com/electron-userland/electron-builder/blob/master/packages/electron-updater/src/MacUpdater.ts)
+
+若以后需要公开附件列表仅保留安装包，发行维护者需先提供持续可访问的更新包地址，在候选索引中核对地址、大小与 SHA-512，再用上一版已安装的 macOS 客户端完成检查、下载、安装及重启。确认旧索引和回退地址仍可用后，再切换公开入口。
 
 ## 已有会话兼容性缺口
 
