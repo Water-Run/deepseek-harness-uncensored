@@ -752,6 +752,86 @@ index 56161096b2f742f2c592b7b87f8693a8ceb8989a..32d901f460dcf8efc2dacf3b63fb9b42
  
  更新适配层兼容性和平台版本记录见 [Electron updater 兼容性](tests/updates/electron-updater/README.zh.md)。
  
+diff --git a/apps/desktop/packaging/README.i18n.yaml b/apps/desktop/packaging/README.i18n.yaml
+index 228f07da880b886dd478781fc5cd56399d4f1488..42560b8d14badaadf32c2d1153e1a3777ce451ba 100644
+--- a/apps/desktop/packaging/README.i18n.yaml
++++ b/apps/desktop/packaging/README.i18n.yaml
+@@ -30,8 +30,8 @@
+   en: b7c6668f451d2e16
+   zh: d3125c2bb6cf8e7b
+ /desktop-packaging/unsigned-windows-test-installer:
+-  en: f429bc0c280e2dfa
+-  zh: 4adbcc9e906bdf80
++  en: 5cf06bcceb801c90
++  zh: 036bac56c61b4a5c
+ /desktop-packaging/local-macos-dmg-without-release-signing:
+   en: 1146bbc11be43960
+   zh: 7c13543a0513c059
+diff --git a/apps/desktop/packaging/README.md b/apps/desktop/packaging/README.md
+index d8aa7714ee03dac6fa90d35027488ebc595e3881..069713fa35f88ee950bc5069f8347401d6ddf1fc 100644
+--- a/apps/desktop/packaging/README.md
++++ b/apps/desktop/packaging/README.md
+@@ -159,7 +159,7 @@ On Windows x64, use the complete unsigned packaging command for local installati
+ pnpm run package:desktop:win:x64:unsigned
+ ```
+ 
+-The command reads `.env.windows` and requires `DSH_DESKTOP_APP_ID` and the [mandatory-update policy settings](../README.md#mandatory-update-policy), including a real HTTPS service origin. The local run and CI use Node 24; the remaining tools are the root `packageManager` version of pnpm, Git, PowerShell 7 (`pwsh`), tar, Python, Visual C++ Build Tools and a Windows SDK. Set `PYTHON` when Python is absent from `PATH`. It writes the installer to `.desktop-build/targets/win-x64/unsigned-artifacts/`, omits ordinary automatic-update configuration, strips signing credentials, and creates no release completion record. EV and upload credentials are unnecessary. Signed packaging and upload retain their release requirements.
++The command reads `.env.windows` and requires `DSH_DESKTOP_APP_ID` and the [mandatory-update policy settings](../README.md#mandatory-update-policy), including a real HTTPS service origin. The local run and CI use Node 24; the remaining tools are the root `packageManager` version of pnpm, Git, PowerShell 7 (`pwsh`), tar, Python, Visual C++ Build Tools and a Windows SDK. Tool discovery includes Visual Studio Insiders installations with the x86/x64 C++ tools. Set `PYTHON` when Python is absent from `PATH`. It writes the installer to `.desktop-build/targets/win-x64/unsigned-artifacts/`, omits ordinary automatic-update configuration, strips signing credentials, and creates no release completion record. EV and upload credentials are unnecessary. Signed packaging and upload retain their release requirements.
+ 
+ Run `pnpm install --frozen-lockfile`, then `pnpm run package:desktop:win:x64:unsigned --check` to validate configuration and tooling before the full command above. Packaging performs its own complete build and isolated runtime smoke without an online model. Stage logs remain under `.desktop-build/packaging-runs/`; a successful build alone does not qualify the installer. Dependency installation and runtime preparation need access to npm, GitHub release assets and nodejs.org; use the existing registry and proxy configuration when the network requires it. Caches and tool locations belong to the build machine, not tracked personal paths.
+ 
+diff --git a/apps/desktop/packaging/README.zh.md b/apps/desktop/packaging/README.zh.md
+index bdffd46c99697416431fc74e5a783725529c1034..6705637dce101b189122cbd618a28f9dc1edeb65 100644
+--- a/apps/desktop/packaging/README.zh.md
++++ b/apps/desktop/packaging/README.zh.md
+@@ -159,7 +159,7 @@ bash apps/desktop/scripts/macos-runner-service.sh status "$HOME/dsh-ci/runner"
+ pnpm run package:desktop:win:x64:unsigned
+ ```
+ 
+-该命令读取 `.env.windows`，要求设置 `DSH_DESKTOP_APP_ID` 和[强制更新策略配置](../README.zh.md#mandatory-update-policy)，包括真实的 HTTPS 服务 origin。本机验收和 CI 使用 Node 24；其他工具为根 `packageManager` 固定版本的 pnpm、Git、PowerShell 7（`pwsh`）、tar、Python、Visual C++ Build Tools 和 Windows SDK。Python 不在 `PATH` 中时设置 `PYTHON`。命令将安装包写入 `.desktop-build/targets/win-x64/unsigned-artifacts/`，省略普通自动更新配置，清除签名凭据，且不生成发布完成记录。无需 EV 或上传凭据。签名打包和上传仍遵循正式发布要求。
++该命令读取 `.env.windows`，要求设置 `DSH_DESKTOP_APP_ID` 和[强制更新策略配置](../README.zh.md#mandatory-update-policy)，包括真实的 HTTPS 服务 origin。本机验收和 CI 使用 Node 24；其他工具为根 `packageManager` 固定版本的 pnpm、Git、PowerShell 7（`pwsh`）、tar、Python、Visual C++ Build Tools 和 Windows SDK。工具探测也识别装有 x86/x64 C++ 工具的 Visual Studio Insiders。Python 不在 `PATH` 中时设置 `PYTHON`。命令将安装包写入 `.desktop-build/targets/win-x64/unsigned-artifacts/`，省略普通自动更新配置，清除签名凭据，且不生成发布完成记录。无需 EV 或上传凭据。签名打包和上传仍遵循正式发布要求。
+ 
+ 先运行 `pnpm install --frozen-lockfile`，再运行 `pnpm run package:desktop:win:x64:unsigned --check` 校验配置和工具，最后执行上面的完整命令。打包自行执行完整构建和隔离的运行时 smoke，不调用在线模型。阶段日志保留在 `.desktop-build/packaging-runs/`；仅构建成功不代表安装包验证通过。依赖安装和运行时准备需要访问 npm、GitHub release 资源和 nodejs.org；网络需要时使用现有 registry 和代理配置。缓存与工具位置属于构建机器配置，不在跟踪文件中固定个人路径。
+ 
+diff --git a/apps/desktop/scripts/desktop-toolchain-preflight.ts b/apps/desktop/scripts/desktop-toolchain-preflight.ts
+index da0f06a8ecd798ce20e3db5244a9a6b340448423..992d22d6b7a1a2bb27e9302ea8c361f9a72253cf 100644
+--- a/apps/desktop/scripts/desktop-toolchain-preflight.ts
++++ b/apps/desktop/scripts/desktop-toolchain-preflight.ts
+@@ -64,7 +64,7 @@ async function probeWindowsInstallerToolchain(environment: NodeJS.ProcessEnv): P
+   }
+   else {
+     try {
+-      const located = await run(vswhere, ['-latest', '-products', '*',
++      const located = await run(vswhere, ['-latest', '-prerelease', '-products', '*',
+         '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64', '-property', 'installationPath'],
+       { windowsHide: true, timeout: 30_000 })
+       if (located.stdout.trim() === '') {
+diff --git a/apps/desktop/scripts/prepare-windows-installer.ps1 b/apps/desktop/scripts/prepare-windows-installer.ps1
+index e073e169260edaa4058a31e0443ab4fce8975a36..58dfcda28fcff5d465416f72b2dc324cbf863ccb 100644
+--- a/apps/desktop/scripts/prepare-windows-installer.ps1
++++ b/apps/desktop/scripts/prepare-windows-installer.ps1
+@@ -10,7 +10,7 @@ $source = Join-Path $installerRoot 'window-frame.cpp'
+ $library = Join-Path $output 'window-frame.dll'
+ $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+ if (-not (Test-Path -LiteralPath $vswhere)) { throw 'Windows installer preparation requires Visual Studio C++ Build Tools and a Windows SDK.' }
+-$visualStudio = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
++$visualStudio = & $vswhere -latest -prerelease -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+ if (-not $visualStudio) { throw 'Visual Studio C++ Build Tools are missing.' }
+ $vcvars = Join-Path $visualStudio 'VC/Auxiliary/Build/vcvars32.bat'
+ $compileScript = Join-Path $output 'compile-frame.cmd'
+diff --git a/apps/desktop/scripts/start-windows-packaging-runner.ps1 b/apps/desktop/scripts/start-windows-packaging-runner.ps1
+index a0242960240ad3bde84e900a67b2fd30a94284de..a3afd852e0a4a7ceafdb872b4fc87add3060e9bd 100644
+--- a/apps/desktop/scripts/start-windows-packaging-runner.ps1
++++ b/apps/desktop/scripts/start-windows-packaging-runner.ps1
+@@ -31,7 +31,7 @@ if($LASTEXITCODE -ne 0){throw 'Node probe failed'}
+ & python --version
+ if($LASTEXITCODE -ne 0){throw 'Python probe failed'}
+ $vswhere=Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+-$visualStudio=& $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
++$visualStudio=& $vswhere -latest -prerelease -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+ if($LASTEXITCODE -ne 0 -or -not $visualStudio){throw 'Visual C++ tools unavailable'}
+ Write-Output 'Visual C++ tools located.'
+ Wait-RunnerNetwork $network
 diff --git a/apps/desktop/src/ipc.ts b/apps/desktop/src/ipc.ts
 index 83ebe7415a9931f5d1ed769cf68f5f70eb534246..7b33f5312d9f724b6902c4ed62faeafb0761bfd9 100644
 --- a/apps/desktop/src/ipc.ts
@@ -1415,6 +1495,19 @@ index 191cd8e5d92e8e9049a26e4cdf2ee3737ef0f25f..5b0875141354981acd9019cb34fd873b
    expect(() => desktopUpdateChannel({ dshDesktopUpdateChannel: 'latest' })).toThrow(/channel/u)
    expect(() => desktopUpdateChannel({ dshDesktopUpdateChannel: 'beta' })).toThrow(/channel/u)
    expect(() => desktopUpdateChannel(null)).toThrow(/manifest/u)
+diff --git a/apps/desktop/tests/windows-cli-signals.spec.ts b/apps/desktop/tests/windows-cli-signals.spec.ts
+index 1387bae7fbb94331312350e1a58141006df876ea..86d01dbd356409ffc7a4000ad4b94b26f5dbf253 100644
+--- a/apps/desktop/tests/windows-cli-signals.spec.ts
++++ b/apps/desktop/tests/windows-cli-signals.spec.ts
+@@ -25,7 +25,7 @@ describe.skipIf(process.platform !== 'win32')('Windows Electron console signals'
+     const programFiles = process.env['ProgramFiles(x86)']
+     if (programFiles === undefined || process.env.ComSpec === undefined) throw new Error('Windows compiler environment is unavailable')
+     const vswhere = join(programFiles, 'Microsoft Visual Studio', 'Installer', 'vswhere.exe')
+-    const vs = (await execute(vswhere, ['-latest', '-products', '*', '-requires',
++    const vs = (await execute(vswhere, ['-latest', '-prerelease', '-products', '*', '-requires',
+       'Microsoft.VisualStudio.Component.VC.Tools.x86.x64', '-property', 'installationPath'], { windowsHide: true })).stdout.trim()
+     const quote = (value: string) => '"' + value.replaceAll('%', '%%') + '"'
+     probe = join(root, 'console-probe.exe')
 diff --git a/apps/web/tests/agent-preset-authoring.e2e.ts b/apps/web/tests/agent-preset-authoring.e2e.ts
 index 0727af2cab4cdbe1c74092c4a353e34f6521c869..18f239cf3a12ccf79d9bc6ba8990d1b53f45dada 100644
 --- a/apps/web/tests/agent-preset-authoring.e2e.ts
@@ -14750,6 +14843,95 @@ index d6eda7ae2dc4aad7dffd73248ca6e1a9a01d1828..65bc3741d74b8939cb3a10a0059b5525
  | `@deepseek-ai/dsh-tool-call-timeout-policy` | no | Tool-call timeout policy: a tools/execute wrapper that arms a per-tool deadline on exec.signal and returns TOOL_TIMEOUT when it wins |
  
  ## host
+diff --git a/packages/subprocess/subprocess-local/README.i18n.yaml b/packages/subprocess/subprocess-local/README.i18n.yaml
+index b81bef5b961bb1a0793ca14a25ffb3789891381d..148f0acd8527237a10072f070fa57182831f3f6c 100644
+--- a/packages/subprocess/subprocess-local/README.i18n.yaml
++++ b/packages/subprocess/subprocess-local/README.i18n.yaml
+@@ -63,8 +63,8 @@
+   en: e290ccc9b3c92c08
+   zh: d75d48f485447a74
+ /deepseek-ai-dsh-subprocess-local/known-limitations-and-deferred-work:
+-  en: 4b45e4e4ca67af72
+-  zh: 5185485974cd3fa0
++  en: 51104170ec113114
++  zh: 797f7ce20cd99423
+ /deepseek-ai-dsh-subprocess-local/known-limitations-and-deferred-work/dev-note:
+   en: e67f633dc6fe7773
+   zh: 3bb0c20c93f16f98
+diff --git a/packages/subprocess/subprocess-local/README.md b/packages/subprocess/subprocess-local/README.md
+index 6ede37c8d1ca3da9e33f2a76156c1cb72542ef00..b7fd1242077c51ffa1ca7aeb63cd2800433c2bcd 100644
+--- a/packages/subprocess/subprocess-local/README.md
++++ b/packages/subprocess/subprocess-local/README.md
+@@ -150,7 +150,7 @@ These limits define when the provider is a poor fit or needs special operational
+ - **Native selection has bounded per-spawn costs** — Linux checks the bootstrap entry, libc `execve`/`fcntl` bindings, reachable user manager, and literal-argv scope probe on the first eligible ordinary or terminal spawn and keeps that verdict, including a failed or timed-out probe. The user manager is identified by the process listening on `$XDG_RUNTIME_DIR/systemd/private`, the socket `systemd-run --user` connects through, as listed in the kernel's unix socket table (`/proc/net/unix`) for the same network namespace; reading the table costs time proportional to its size. After a positive verdict, each eligible spawn probes again when the `systemd-run` found through `PATH` has a different device, inode, size, or modification time, and otherwise confirms the manager: a listener confirms it without a child process; otherwise one `systemctl --user show` query decides, and that spawn uses the fallback when the query fails. A scope launch whose bootstrap never consumed its launch request, such as one sent to a hung manager that still listens, fails that command, as do scope launches issued before that failure arrives, and the next eligible spawn probes again. After a negative verdict, the provider probes again only when a different listener appears, so a manager that starts later is used without a restart. Windows rechecks the runner entry, bindings, and current Job support before every ordinary spawn. Fallback-warning de-duplication also persists for the provider lifetime. All probes finish before the user command can run; each child-process probe has a 5-second timeout, and a `systemd-run` that rejects `--expand-environment=no` is probed once more without it. Each Linux launch creates a private request directory, checks unresolved scope establishment every 50 milliseconds, then exponentially backs off an established active scope to at most 5 seconds between queries; a Windows ordinary launch keeps one runner and IPC channel until the Job reports zero active processes. Target standard handles are inherited directly, with no named-pipe stdio or result files.
+ - **Windows Job inheritance has defined exclusions** — ordinary descendants inherit the Job by default, but breakaway processes are outside the guarantee. The target starts only after Job assignment; external termination of the runner in the narrow create-to-assignment interval can leave a suspended target behind.
+ - **Windows terminal signalling is console-wide** — SIGINT is delivered as a `\x03` Ctrl-C input write that the console host turns into a console-wide CTRL_C event (on Windows that host is node-pty's bundled OpenConsole); SIGTSTP and SIGHUP are rejected as unavailable; a `taskkill` without `/F` does not terminate console processes, so the teardown TERM tier is a grace wait before the `/F` escalation. Windows readiness has no exact stdin-wait tier: the prompt-marker fast path compares the shell pid as the pseudo foreground group, and silence/timing tiers cover the rest.
+-- **Windows terminal allocation requires node-pty's bundled console host assets** — every Windows terminal is spawned with `useConptyDll: true`, so allocation resolves `conpty/conpty.dll` and `OpenConsole.exe` relative to node-pty's own addon; an asset that is missing or unpacked wrong makes `spawnTerminal` throw instead of falling back to the operating system console host. node-pty marks the option experimental, so a node-pty upgrade can change this behaviour. See the [bundled console host note](../../../.agents/notes/implemented/bug-fix/2026-09-28-pty-bundled-console-host.md).
++- **Windows terminal allocation requires node-pty's bundled console host assets** — every Windows terminal is spawned with `useConptyDll: true`, so allocation resolves `conpty/conpty.dll` and `OpenConsole.exe` relative to node-pty's own addon; an asset that is missing or unpacked wrong makes `spawnTerminal` throw instead of falling back to the operating system console host. node-pty marks the option experimental, so a node-pty upgrade can change this behaviour. When terminal output closes, its forwarding worker drains and releases the pipe so the host can exit. See the [bundled console host note](../../../.agents/notes/implemented/bug-fix/2026-09-28-pty-bundled-console-host.md).
+ - **Fallback terminal ownership remains observational** — on macOS or Linux without usable user-systemd, a child that reparents before any foreground-inspection snapshot or leaves the owned terminal session can escape the process-table scan. The local provider does not add a continuous process-table monitor; supported Linux native mode instead retains these descendants through scope membership.
+ - **In-process cleanup requires a JavaScript-observable exit** — direct `process.exit()`, default uncaught exceptions, and default unhandled rejections emit Node's synchronous `exit` event. The default OS disposition for an unhandled `SIGTERM`, `SIGINT`, or `SIGHUP` bypasses that event; an application covers those signals only by installing a handler that performs normal disposal or calls `process.exit()`. `SIGKILL`, fatal OOM, `process.abort()`, native crashes, power loss, and any failure that cannot run JavaScript require an external supervisor, container init, or equivalent OS owner.
+ - **The credential scrub is a name heuristic** — `*KEY*`/`*PASSWORD*`/`*SECRET*`/`*TOKEN*` only; differently named secrets (for example `*PASSPHRASE*`) pass through, and a whitelist for over-scrubbed variables is noted future work.
+diff --git a/packages/subprocess/subprocess-local/README.zh.md b/packages/subprocess/subprocess-local/README.zh.md
+index 0240ea3c50021c2e0483fb327adace35df164ab2..f43ade7b3399b36f6c910f44b0bd7bd3d183bb33 100644
+--- a/packages/subprocess/subprocess-local/README.zh.md
++++ b/packages/subprocess/subprocess-local/README.zh.md
+@@ -150,7 +150,7 @@ spill 文件以 `0600` 权限、`O_EXCL` 与随机名称在 `0700` 每进程目
+ - **native 选择具有有界的每次 spawn 成本**——Linux 在第一次符合条件的普通命令或终端 spawn 时检查 bootstrap 入口、libc `execve`/`fcntl` bindings、可连接的 user manager 与 literal-argv scope 支持，并保留这一结论，探测失败或超时的结论也是如此。user manager 以内核 unix socket 表（`/proc/net/unix`）中同一网络命名空间里在 `$XDG_RUNTIME_DIR/systemd/private`（`systemd-run --user` 连接 manager 所用的 socket）上监听的进程来识别；读取该表的耗时与表的大小成正比。结论为可用时，若经 `PATH` 找到的 `systemd-run` 的设备号、inode、大小或修改时间发生变化，下一次符合条件的 spawn 会重新探测；否则每次都会确认 manager：有监听者时无需子进程即可确认；否则由一次 `systemctl --user show` 查询决定，查询失败时这次 spawn 使用 fallback。bootstrap 从未消费 launch request 的 scope 启动（例如发给卡死但仍在监听的 manager）会让这条命令失败，在该失败到达之前发起的 scope 启动也会失败，下一次符合条件的 spawn 会重新探测。结论为不可用时，只有出现不同的监听者才会重新探测，因此之后才启动的 manager 无需重启即可被使用。Windows 会在每次普通 spawn 前重新检查 runner 入口、bindings 与当前 Job 支持。fallback 告警去重同样在提供方生命周期内持续保留。所有探测都会在用户命令可能运行前完成；每次子进程探测的超时为 5 秒，`systemd-run` 拒绝 `--expand-environment=no` 时会去掉该选项再探测一次。每次 Linux 启动都会创建私有请求目录，以 50 毫秒间隔检查尚未确定的 scope 建立状态；scope 已建立且仍 active 后，查询间隔按指数增长，最多为 5 秒。Windows 普通命令会保留一个 runner 与一条 IPC 通道，直到 Job 报告活动进程数为零。目标会直接继承标准句柄，不使用 named-pipe stdio 或结果文件。
+ - **Windows Job inheritance 有明确排除项**——普通后代默认继承 Job，但 breakaway 进程不在保证范围。目标只在 Job 分配后启动；runner 若在 create-to-assignment 极窄区间遭外力终止，可能留下 suspended target。
+ - **Windows 终端信号是控制台级的**——SIGINT 以 `\x03` Ctrl-C 输入写入投递，由控制台宿主（Windows 上为 node-pty 自带的 OpenConsole）转为控制台级 CTRL_C 事件；SIGTSTP 与 SIGHUP 被拒绝（不可用）；不带 `/F` 的 `taskkill` 无法终止控制台进程，因此拆卸的 TERM 档是 `/F` 升级前的宽限等待。Windows 就绪没有精确的 stdin-wait 档：prompt-marker 快路径把 shell pid 作为伪前台进程组比较，其余由静默与计时档覆盖。
+-- **Windows 终端分配依赖 node-pty 自带的控制台宿主资产**——每个 Windows 终端都以 `useConptyDll: true` 启动，分配时按 node-pty 自身 addon 的相对位置解析 `conpty/conpty.dll` 与 `OpenConsole.exe`；资产缺失或解包错误会让 `spawnTerminal` 抛错，而不是回退到操作系统控制台宿主。node-pty 把该选项标为实验性，升级 node-pty 可能改变这一行为。见[自带控制台宿主说明](../../../.agents/notes/implemented/bug-fix/2026-09-28-pty-bundled-console-host.zh.md)。
++- **Windows 终端分配依赖 node-pty 自带的控制台宿主资产**——每个 Windows 终端都以 `useConptyDll: true` 启动，分配时按 node-pty 自身 addon 的相对位置解析 `conpty/conpty.dll` 与 `OpenConsole.exe`；资产缺失或解包错误会让 `spawnTerminal` 抛错，而不是回退到操作系统控制台宿主。node-pty 把该选项标为实验性，升级 node-pty 可能改变这一行为。终端输出关闭后，转发线程排空并释放管道，宿主可以正常退出。见[自带控制台宿主说明](../../../.agents/notes/implemented/bug-fix/2026-09-28-pty-bundled-console-host.zh.md)。
+ - **fallback 终端 ownership 仍依赖观察**——在 macOS 或缺少可用 user-systemd 的 Linux 上，子进程如果在任何前台检查快照之前重新设定父进程，或离开自有终端会话，就可能逃出进程表扫描。本地提供方不会新增持续进程表监视器；受支持的 Linux native 模式改由 scope membership 持有这些后代。
+ - **进程内清理要求退出阶段仍能执行 JavaScript**——直接 `process.exit()`、默认未捕获异常和默认未处理 rejection 会发出 Node 同步 `exit` 事件。未安装 handler 时，`SIGTERM`、`SIGINT` 或 `SIGHUP` 的默认 OS 处置不会发出该事件；应用只有安装执行正常 dispose 或调用 `process.exit()` 的 handler 才能覆盖这些信号。`SIGKILL`、fatal OOM、`process.abort()`、native crash、断电，以及任何无法运行 JavaScript 的故障，都需要外部 supervisor、容器 init 或等价的 OS owner 负责。
+ - **凭据清除依赖名称启发式规则**——只匹配 `*KEY*`／`*PASSWORD*`／`*SECRET*`／`*TOKEN*`；名称不同的 secret（例如 `*PASSPHRASE*`）会继续传递，对误删变量引入白名单属于已记录的后续工作。
+diff --git a/packages/subprocess/subprocess-local/tests/fixtures/terminal-output-exit.ts b/packages/subprocess/subprocess-local/tests/fixtures/terminal-output-exit.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..8a0825450fc6db5f0846a5c0efdb1d7224a00f04
+--- /dev/null
++++ b/packages/subprocess/subprocess-local/tests/fixtures/terminal-output-exit.ts
+@@ -0,0 +1,25 @@
++/** Windows terminal hosts must exit naturally once the output of each child has drained. */
++import assert from 'node:assert/strict'
++import { text } from 'node:stream/consumers'
++import { Context } from '@deepseek-ai/cordis'
++import LocalSubprocessRuntime from '@deepseek-ai/dsh-subprocess-local'
++
++const ctx = new Context()
++await ctx.plugin(LocalSubprocessRuntime)
++try {
++  for (const scenario of [
++    { script: 'console.log("one reply")', code: 0, lines: ['one reply'] },
++    { script: 'process.exitCode = 7', code: 7, lines: [] },
++    { script: 'for (let i=0;i<256;i++) console.log("line-"+i+"-end")', code: 0,
++      lines: Array.from({ length: 256 }, (_, i) => 'line-' + i + '-end') },
++  ]) {
++    const handle = await ctx.subprocess.spawnTerminal({ argv: [process.execPath, '-e', scenario.script],
++      cwd: process.cwd(), rows: 24, cols: 80, terminalType: 'dumb', graceMs: 1000 })
++    const [outcome, output] = await Promise.all([handle.done, text(handle.output)])
++    assert.equal(outcome.exitCode, scenario.code)
++    const lines = output.match(/one reply|line-\d+-end/gu) ?? []
++    assert.deepEqual(lines, scenario.lines)
++    await handle.terminate()
++  }
++} finally { await ctx.fiber.dispose() }
++console.log('Released terminal handles')
+diff --git a/packages/subprocess/subprocess-local/tests/process-exit.spec.ts b/packages/subprocess/subprocess-local/tests/process-exit.spec.ts
+index 2c15ee4d6cf2f2c6e2d2c1920c6c4f139d9f6518..56c5f67bdaaa2a018a3fb34e6372ab9777ae5fb8 100644
+--- a/packages/subprocess/subprocess-local/tests/process-exit.spec.ts
++++ b/packages/subprocess/subprocess-local/tests/process-exit.spec.ts
+@@ -173,3 +173,12 @@ describe('synchronous cleanup on host exit', () => {
+     })
+   })
+ })
++
++it.runIf(process.platform === 'win32')('exits after draining natural terminal exits, including a silent child', async () => {
++  const launch = resolveExampleLaunch({ srcBin: fileURLToPath(new URL('./fixtures/terminal-output-exit.ts', import.meta.url)),
++    mode: 'src', tsconfigPath: join(repoRoot, 'tsconfig.json') })
++  const result = await execa(launch.command, launch.args, {
++    cwd: repoRoot, env: launch.env, timeout: scenarioTimeoutMs, windowsHide: true,
++  })
++  expect(result.stdout).toContain('Released terminal handles')
++}, testTimeoutMs)
 diff --git a/packages/web/web-search-deepseek/README.i18n.yaml b/packages/web/web-search-deepseek/README.i18n.yaml
 index 2999d22d4bc9b64e13118027b888b0bfd940d8c2..37950f430bfce4289187a1da26a8e45264d35131 100644
 --- a/packages/web/web-search-deepseek/README.i18n.yaml
@@ -14881,10 +15063,47 @@ index 56ddd668b1958ec02698e9ed485217a6fbef0d62..6fa060605ff6e82ae87c1b47a7de256e
    content?: ContentBlock[]
  }
  
+diff --git a/patches/node-pty@1.2.0-beta.15.patch b/patches/node-pty@1.2.0-beta.15.patch
+index 68e7f032cb3b63ef1c4f09d592321a9144400141..13d56812ef0ea53bbcf605f7ad1e58afef6fd009 100644
+--- a/patches/node-pty@1.2.0-beta.15.patch
++++ b/patches/node-pty@1.2.0-beta.15.patch
+@@ -31,10 +31,21 @@ index af2d24c39deb60e77ad16e6b864f37a7ef58881c..2ece2590445dc1ecce167b8ba4710c31
+  var DEFAULT_NAME = 'xterm';
+  var DESTROY_SOCKET_TIMEOUT_MS = 200;
+ diff --git a/lib/windowsPtyAgent.js b/lib/windowsPtyAgent.js
+-index 90ffd8fb69764052b0714cfb2b1213c073603c28..399861d7bbd0fb733fa032e923efa8b6aab8e62b 100644
++index 90ffd8fb69764052b0714cfb2b1213c073603c28..46fbb318a83956beef2eca0ba2c8b42d60b52f5b 100644
+ --- a/lib/windowsPtyAgent.js
+ +++ b/lib/windowsPtyAgent.js
+-@@ -207,6 +207,8 @@ var WindowsPtyAgent = /** @class */ (function () {
++@@ -90,6 +90,10 @@
++             writable: true
++         });
++         this._inSocket.setEncoding('utf8');
+++        // Once the output pipe closes, the worker cannot deliver more terminal data.
+++        this._outSocket.once('close', function () {
+++            _this._conoutSocketWorker.dispose();
+++        });
++     }
++     Object.defineProperty(WindowsPtyAgent.prototype, "onError", {
++         get: function () { return this._onError.event; },
++@@ -207,6 +211,8 @@
+              // Close the input write handle to signal the end of session.
+              this._inSocket.destroy();
+              this._ptyNative.kill(this._pty, this._useConptyDll);
 diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
-index 774164ab6d006ce397a2f47f6ba84592519d80d6..1e97c216b95a36dca6dd99e535d7caafc361a1b4 100644
+index 774164ab6d006ce397a2f47f6ba84592519d80d6..acbc73f726980a48e8fba3212b79195618656644 100644
 --- a/pnpm-lock.yaml
 +++ b/pnpm-lock.yaml
+@@ -24,7 +24,7 @@ patchedDependencies:
+   lexical@0.49.0: 54c4413db208cf234cb68c6a837f2523d3b319aa17911f1da385af08362e1356
+   mdast-util-gfm-autolink-literal@2.0.1: 7fa6fc7927128a45c3f148d31faf388806895e2de39c14a144200edbc1e7aaa0
+   micromark-extension-gfm-autolink-literal@2.1.0: 906ae7c0cd1f69e7ee308a41bc0542e0085276ac7517e56e96f0ccaf5a89327d
+-  node-pty@1.2.0-beta.15: 9d30053266d0f39d3debe894c675867f6782da6bcadbc94a693b3cfb9eff8ed0
++  node-pty@1.2.0-beta.15: 2038556f5e206a6c84b60af1ac65fbf3b2b279f470de2b31f33d3f6aee2ce3a0
+ 
+ importers:
+ 
 @@ -1587,6 +1587,55 @@ importers:
          specifier: workspace:*
          version: link:../../typert/registry
@@ -15129,6 +15348,24 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..1e97c216b95a36dca6dd99e535d7caaf
    packages/guard/timeout-policy:
      devDependencies:
        '@deepseek-ai/cordis':
+@@ -19182,7 +19349,7 @@ importers:
+         version: 3.1.1
+       node-pty:
+         specifier: 1.2.0-beta.15
+-        version: 1.2.0-beta.15(patch_hash=9d30053266d0f39d3debe894c675867f6782da6bcadbc94a693b3cfb9eff8ed0)
++        version: 1.2.0-beta.15(patch_hash=2038556f5e206a6c84b60af1ac65fbf3b2b279f470de2b31f33d3f6aee2ce3a0)
+     devDependencies:
+       '@deepseek-ai/cordis':
+         specifier: workspace:~
+@@ -35270,7 +35437,7 @@ snapshots:
+ 
+   node-int64@0.4.0: {}
+ 
+-  node-pty@1.2.0-beta.15(patch_hash=9d30053266d0f39d3debe894c675867f6782da6bcadbc94a693b3cfb9eff8ed0):
++  node-pty@1.2.0-beta.15(patch_hash=2038556f5e206a6c84b60af1ac65fbf3b2b279f470de2b31f33d3f6aee2ce3a0):
+     dependencies:
+       node-addon-api: 7.1.1
+ 
 diff --git a/scripts/gen-cordis-catalog.ts b/scripts/gen-cordis-catalog.ts
 index e4885eec6cc42ff69745e01724a887da0e1ea966..f097cfefcdd5a886fbedb6681d4d757802bb6168 100644
 --- a/scripts/gen-cordis-catalog.ts
