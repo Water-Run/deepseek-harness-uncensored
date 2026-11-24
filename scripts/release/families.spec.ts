@@ -248,7 +248,9 @@ describe('release families', () => {
     const root = buildFixture({ DSH_CLIENT_VERSION: '1.2.3' })
     vi.stubEnv('DSH_CLIENT_COMMIT_HASH', '0123456')
     write(join(root, 'product.json'), JSON.stringify({ version: '0.1.0', upstreamVersion: '1.2.3',
-      purge: { commit: '0123456', commitTime: '2026-10-22T00:00:00.000Z' } }))
+      purge: { repository: 'https://github.com/kingcharleslzy-ai/dsh-purge', tag: 'v1.7.20', version: '1.7.20',
+        commit: '0123456', commitTime: '2026-10-22T00:00:00.000Z',
+        artifact: { name: 'dsh-purge-community-1.7.20.tgz', sha256: '5b3d66e804ea0b1cf6ef01035a292755ab9fea771b8f5338000954075dd6b45a' } } }))
     write(join(root, 'apps/desktop/package.json'), JSON.stringify({ version: '0.1.0' }))
     write(join(root, 'apps/cli/package.json'), JSON.stringify({ dshProductVersion: '0.1.0' }))
     const environment = officialClientBuildEnvironment(root, {

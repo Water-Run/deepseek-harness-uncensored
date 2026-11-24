@@ -5,9 +5,15 @@
   "upstreamCommit": "9c2670d3bce5275e0d1610272958121af87787bb",
   "repository": "https://github.com/Water-Run/deepseek-harness-uncensored",
   "purge": {
-    "repository": "https://github.com/Water-Run/dsh-purge",
-    "commit": "19082c2b9788039fa7f8888c4a69086f43adc1ff",
-    "commitTime": "2026-10-22T15:22:15+08:00",
+    "repository": "https://github.com/kingcharleslzy-ai/dsh-purge",
+    "tag": "v1.7.20",
+    "version": "1.7.20",
+    "commit": "e519253d5b01344056055af9d2041dcafa42fed3",
+    "commitTime": "2026-11-18T10:24:44Z",
+    "artifact": {
+      "name": "dsh-purge-community-1.7.20.tgz",
+      "sha256": "5b3d66e804ea0b1cf6ef01035a292755ab9fea771b8f5338000954075dd6b45a"
+    },
     "licensedContentCommit": "e1d8e59087857fa86d0ef2bb9878800274b13a29",
     "licensedContentLicense": "MIT"
   },

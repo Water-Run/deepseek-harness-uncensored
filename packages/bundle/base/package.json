@@ -79,6 +79,7 @@
     "@deepseek-ai/dsh-plugin-package-inventory-deepseek": "workspace:*",
     "@deepseek-ai/dsh-ptc-runtime-node": "workspace:*",
     "@deepseek-ai/dsh-pwsh-sandbox": "workspace:*",
+    "@deepseek-ai/dsh-refusal-retry": "workspace:*",
     "@deepseek-ai/dsh-repeat-tool-reminder": "workspace:*",
     "@deepseek-ai/dsh-sandbox-local": "workspace:*",
     "@deepseek-ai/dsh-sandbox-policy": "workspace:*",

@@ -1,0 +1,17 @@
+{
+  "repository": "https://github.com/kingcharleslzy-ai/dsh-purge",
+  "tag": "v1.7.20",
+  "commit": "e519253d5b01344056055af9d2041dcafa42fed3",
+  "commitTime": "2026-11-18T10:24:44Z",
+  "license": "MIT",
+  "sources": {
+    "lib/patches/shared.mjs": "0d8167a15af3a0484642ffc5afc77d2feaf1a3988a450cc22ae55f21e9ea380d",
+    "lib/boost.js": "0c6554cc04c1efe7a63862819043dd67bb4461b3698c6932f4b794382b6ef9c3"
+  },
+  "fragments": {
+    "CORE_EN": "8a3bd9d068ea1e14f6406056c8159481c407389394861a437cf711346dea3027",
+    "CORE_ZH": "a1ca9da3d23adfb8a0b825db109933ad3ba40dc4523720dae4445740b58f8f0d",
+    "BOOST_EN": "9adf6ed4cd379bef5a03aaf631010bc1eef7e14c5d65801566f51cf42d4655fa",
+    "BOOST_ZH": "36be8cefbc9e0951ffa42b102f47cc0ac70803c79d4acd594442719bc53b5379"
+  }
+}

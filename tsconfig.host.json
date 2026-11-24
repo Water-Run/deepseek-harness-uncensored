@@ -597,6 +597,7 @@
     { "path": "./packages/preset/agent-preset" },
     { "path": "./packages/preset/persona" },
     { "path": "./packages/guard/repeat-tool-reminder" },
+    { "path": "./packages/guard/refusal-retry" },
     { "path": "./packages/extensions/cordis-host-runner" },
     { "path": "./packages/extensions/tool-cordis" },
     { "path": "./packages/experimental/hook-protocol" },

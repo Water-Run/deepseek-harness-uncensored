@@ -13,6 +13,8 @@ import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-system-prompt'
 import { ARMOR_EN } from './armor.en.ts'
 import { ARMOR_ZH } from './armor.zh.ts'
+import { BOOST_EN } from './boost/en.ts'
+import { BOOST_ZH } from './boost/zh.ts'
 
 /** Stable Cordis plugin name. */
 export const name = 'uncensored-armor'
@@ -22,6 +24,9 @@ export const inject = ['systemPrompt']
 
 /** Prompt-section name the armor occupies; one armor section exists per assembly. */
 export const ARMOR_SECTION = 'uncensored:armor'
+
+/** Prompt-section name of the optional closing reinforcement. */
+export const BOOST_SECTION = 'uncensored:boost'
 
 /**
  * Armor language. `zh` and `en` are the two shipped texts; `none` mounts no
@@ -33,16 +38,28 @@ export type ArmorLanguage = 'zh' | 'en' | 'none'
 export interface Config {
   /** Armor language; defaults to `zh`. */
   language?: ArmorLanguage
+  /**
+   * Mount the closing reinforcement block after every other section. It costs a
+   * second fixed prompt segment per request, so deployments opt in explicitly.
+   */
+  boost?: boolean
 }
 
 export const Config: z<Config> = z.object({
   language: z.union([z.const('zh'), z.const('en'), z.const('none')]).default('zh'),
+  boost: z.boolean().default(false),
 })
 
 /** The shipped text for each language that mounts armor. */
 const ARMOR_TEXT: Record<Exclude<ArmorLanguage, 'none'>, string> = {
   zh: ARMOR_ZH,
   en: ARMOR_EN,
+}
+
+/** The shipped closing reinforcement for each language. */
+const BOOST_TEXT: Record<Exclude<ArmorLanguage, 'none'>, string> = {
+  zh: BOOST_ZH,
+  en: BOOST_EN,
 }
 
 /**
@@ -66,5 +83,12 @@ export function apply(ctx: Context, config: Config): void {
     // `{{` an operator's own text may contain from becoming a strict reference.
     interpolate: false,
     text: ARMOR_TEXT[language],
+  })
+  if (config.boost !== true) return
+  ctx.systemPrompt.section({
+    name: BOOST_SECTION,
+    order: ctx.systemPrompt.getSectionOrder('DEPLOYMENT_PERSONA_SUFFIX') + ARMOR_ORDER_OFFSET,
+    interpolate: false,
+    text: BOOST_TEXT[language],
   })
 }

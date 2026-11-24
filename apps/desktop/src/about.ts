@@ -25,6 +25,8 @@ export function desktopAboutDetails(manifest: unknown, version: string, messages
     date: text(record.dshBuildDate ?? process.env.DSH_CLIENT_COMMIT_DATE),
     purge: text(purge.commit ?? process.env.DSH_CLIENT_PURGE_COMMIT),
     purgeDate: text(purge.commitTime ?? process.env.DSH_CLIENT_PURGE_DATE),
+    purgeVersion: text(purge.version ?? process.env.DSH_CLIENT_PURGE_VERSION),
+    purgeRepository: text(purge.repository ?? process.env.DSH_CLIENT_PURGE_REPO),
     buildTime: text(record.dshBuildTime ?? process.env.DSH_CLIENT_BUILD_TIME),
     rea: text(rea.version ?? process.env.DSH_CLIENT_REA_VERSION),
     reaCommit: text(rea.commit ?? process.env.DSH_CLIENT_REA_COMMIT),

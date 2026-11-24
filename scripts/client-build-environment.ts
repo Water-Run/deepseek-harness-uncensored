@@ -36,6 +36,7 @@ const CLIENT_BUILD_RECORD_FORMAT = 1
 const FORK_BUILD_KEYS = ['DSH_CLIENT_FORK_VERSION', 'DSH_CLIENT_UPSTREAM_VERSION', 'DSH_CLIENT_UPSTREAM_COMMIT',
   'DSH_CLIENT_SOURCE_COMMIT', 'DSH_CLIENT_COMMIT_DATE',
   'DSH_CLIENT_BUILD_TIME', 'DSH_CLIENT_PURGE_COMMIT', 'DSH_CLIENT_PURGE_DATE',
+  'DSH_CLIENT_PURGE_REPO', 'DSH_CLIENT_PURGE_VERSION',
   'DSH_CLIENT_REA_VERSION', 'DSH_CLIENT_REA_COMMIT', 'DSH_CLIENT_REA_DATE', 'DSH_CLIENT_REA_REPOSITORY'] as const
 
 /** Product-owned fork labels; repositories without product.json retain their selected build identity. */
@@ -50,8 +51,13 @@ function forkBuildEnvironment(root: string, environment: NodeJS.ProcessEnv): Cli
   if (upstreamCommit !== undefined && (typeof upstreamCommit !== 'string' || !/^[a-f0-9]{40}$/u.test(upstreamCommit))) {
     throw new Error('product.json upstreamCommit must be a full commit hash')
   }
-  if (!isObject(product.purge) || typeof product.purge.commit !== 'string' || typeof product.purge.commitTime !== 'string') {
-    throw new Error('product.json must record the incorporated purge commit and commitTime')
+  if (!isObject(product.purge) || typeof product.purge.commit !== 'string' || typeof product.purge.commitTime !== 'string'
+    || typeof product.purge.repository !== 'string'
+    || !/^https:\/\/github\.com\/[\w.-]+\/[\w.-]+$/u.test(product.purge.repository)
+    || typeof product.purge.tag !== 'string' || typeof product.purge.version !== 'string'
+    || !isObject(product.purge.artifact) || typeof product.purge.artifact.name !== 'string'
+    || typeof product.purge.artifact.sha256 !== 'string' || !/^[a-f0-9]{64}$/u.test(product.purge.artifact.sha256)) {
+    throw new Error('product.json must record the incorporated purge repository, tag, version, commit, commitTime and artifact digest')
   }
   const rea: Record<string, string> = {}
   if (product.rea !== undefined) {
@@ -91,6 +97,8 @@ function forkBuildEnvironment(root: string, environment: NodeJS.ProcessEnv): Cli
     DSH_CLIENT_BUILD_TIME: buildTime,
     DSH_CLIENT_PURGE_COMMIT: product.purge.commit,
     DSH_CLIENT_PURGE_DATE: product.purge.commitTime,
+    DSH_CLIENT_PURGE_REPO: product.purge.repository,
+    DSH_CLIENT_PURGE_VERSION: product.purge.version,
     ...(date.status === 0 ? { DSH_CLIENT_COMMIT_DATE: date.stdout.trim() } : {}),
   }
 }

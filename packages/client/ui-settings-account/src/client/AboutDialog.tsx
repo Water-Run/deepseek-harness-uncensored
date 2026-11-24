@@ -9,6 +9,7 @@ import css from './AboutDialog.module.css'
 
 const REPOSITORY = 'https://github.com/Water-Run/deepseek-harness-uncensored'
 const UPSTREAM_REPOSITORY = 'https://github.com/deepseek-ai/deepseek-harness'
+const PURGE_REPOSITORY = process.env.DSH_CLIENT_PURGE_REPO ?? 'https://github.com/kingcharleslzy-ai/dsh-purge'
 
 function recorded(value: string | undefined, unknown: string): string {
   return value === undefined || value === '' ? unknown : value
@@ -114,7 +115,8 @@ export function AboutDialog({ t, close, open = true }: { t: AccountMenuProps['t'
         <section className={css.group}>
           <h3><span className={css.sectionMark} aria-hidden="true" />{t('aboutPurge')}</h3>
           <dl className={css.metadata}>
-            <dt>{t('purgeCommit')}</dt><dd>{process.env.DSH_CLIENT_PURGE_COMMIT === undefined ? t('unknownBuild') : <a href={`https://github.com/Water-Run/dsh-purge/commit/${process.env.DSH_CLIENT_PURGE_COMMIT}`} target="_blank" rel="noreferrer">{process.env.DSH_CLIENT_PURGE_COMMIT.slice(0, 12)}</a>}</dd>
+            <dt>{t('purgeVersion')}</dt><dd>{recorded(process.env.DSH_CLIENT_PURGE_VERSION, t('unknownBuild'))}</dd>
+            <dt>{t('purgeCommit')}</dt><dd>{process.env.DSH_CLIENT_PURGE_COMMIT === undefined ? t('unknownBuild') : <a href={`${PURGE_REPOSITORY}/commit/${process.env.DSH_CLIENT_PURGE_COMMIT}`} target="_blank" rel="noreferrer">{process.env.DSH_CLIENT_PURGE_COMMIT.slice(0, 12)}</a>}</dd>
             <dt>{t('purgeDate')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_PURGE_DATE, t('unknownBuild'), t)}</dd>
           </dl>
         </section>

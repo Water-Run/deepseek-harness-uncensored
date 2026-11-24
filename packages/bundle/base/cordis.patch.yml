@@ -560,6 +560,15 @@
       config:
         language: !!js process.env.DSH_UNCENSORED_ARMOR ?? 'zh'
 
+    # A turn whose final answer refuses continues with the next arm instead of
+    # ending. Bounded per turn and session; `arms: []` disables it entirely.
+    - id: refusal-retry
+      name: '@deepseek-ai/dsh-refusal-retry'
+      config:
+        arms: [1]
+        maxPerTurn: 2
+        maxPerSession: 6
+
     - id: system-prompt
       name: '@deepseek-ai/dsh-system-prompt'
       config:

@@ -21,6 +21,15 @@ import { clientBundle } from '../packages/client/tsdown.client.ts'
 
 const PROBE_NAME = 'DSH_CLIENT_BUILD_TEST'
 const COMMIT_HASH = '0123456789abcdef0123456789abcdef01234567'
+/** Complete `product.json` purge record required by the fork build environment. */
+const PURGE_FIXTURE = {
+  repository: 'https://github.com/kingcharleslzy-ai/dsh-purge',
+  tag: 'v1.7.20',
+  version: '1.7.20',
+  commit: COMMIT_HASH,
+  commitTime: '2026-10-22T00:00:00Z',
+  artifact: { name: 'dsh-purge-community-1.7.20.tgz', sha256: '5b3d66e804ea0b1cf6ef01035a292755ab9fea771b8f5338000954075dd6b45a' },
+}
 const PROBE_KEY = `process.env.${PROBE_NAME}`
 const originalProbe = process.env[PROBE_NAME]
 const roots: string[] = []
@@ -83,8 +92,7 @@ describe('client build environment', () => {
   it('records the pinned REA source and rejects a metadata/package version mismatch', () => {
     const root = repositoryFixture()
     const rea = { version: '6.8.0', commit: COMMIT_HASH, commitTime: '2026-10-25T08:35:15Z', repository: 'https://github.com/morluto/rea' }
-    const product = { version: '0.1.0', upstreamVersion: '1.2.3', upstreamCommit: COMMIT_HASH, rea,
-      purge: { commit: COMMIT_HASH, commitTime: '2026-10-22T00:00:00Z' } }
+    const product = { version: '0.1.0', upstreamVersion: '1.2.3', upstreamCommit: COMMIT_HASH, rea, purge: PURGE_FIXTURE }
     write(join(root, 'product.json'), JSON.stringify(product))
     write(join(root, 'apps/desktop/package.json'), JSON.stringify({ version: '0.1.0' }))
     write(join(root, 'apps/cli/package.json'), JSON.stringify({ dshProductVersion: '0.1.0' }))
@@ -104,7 +112,7 @@ describe('client build environment', () => {
   it('preserves a supplied fork build timestamp and rejects invalid values', () => {
     const root = repositoryFixture()
     write(join(root, 'product.json'), JSON.stringify({ version: '0.1.0', upstreamVersion: '1.2.3-rc.4',
-      purge: { commit: COMMIT_HASH, commitTime: '2026-10-22T00:00:00.000Z' } }))
+      purge: PURGE_FIXTURE }))
     write(join(root, 'apps/desktop/package.json'), JSON.stringify({ version: '0.1.0' }))
     write(join(root, 'apps/cli/package.json'), JSON.stringify({ dshProductVersion: '0.1.0' }))
     const time = '2026-10-24T00:00:00.000Z'

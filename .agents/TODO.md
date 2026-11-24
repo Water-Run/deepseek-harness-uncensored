@@ -1,5 +1,7 @@
 # 开发项目进度
 
+下一版的完整勾选清单（含 `v2026.11.23.0` 之后 10 个提交、破甲升级、关于页与 Credit、分平台发布）见 [下一版 TODO 清单](requirements/2026-11-24-next-release-todo.md)；破甲逐项明细见 [破甲升级 TODO 清单](requirements/2026-11-24-armor-todo.md)，排期与落点见[总计划](requirements/2026-11-24-armor-next-release-plan.md)。
+
 **2026.11.18.11 已保留资料安装并正常启动。** 本版修复更新请求并核验差分索引。公开预发布为 17.5。[本地交付与恢复](requirements/2026-11-18.11-delivery.md)
 
 首次正式发布为 Windows x64 完整交付。Linux x64 转入后续版本，历史 Linux 验收产物为 17.8。36 项完成、8 项进行中、4 项列入后续版本。[交付矩阵](requirements/desktop-installer-plan.md#交付矩阵)

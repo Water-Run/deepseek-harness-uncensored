@@ -153,7 +153,7 @@ describe('approval state', () => {
     const snapshot = vi.spyOn(session, 'snapshotEvents')
     expect(ctx.approval.overrideOf(session)).toBe('never')
     const prompt = await ctx.systemPrompt.assemble({ agent: agentFor(session) })
-    expect(prompt.contexts.find(entry => entry.name === 'approval:policy')?.text).toContain('Approval prompts are disabled')
+    expect(prompt.contexts.find(entry => entry.name === 'approval:policy')?.text).toContain('Approval is disabled in this session')
     session.append('turn/start', { turn: 1 })
     await expect(ctx.approval.request({ agent: agentFor(session), toolName: 'echo' })).resolves.toBe('rejected')
     expect(read).not.toHaveBeenCalled()
@@ -185,7 +185,7 @@ describe('approval state', () => {
     const context = { agent: agentFor(session) }
     const first = (await ctx.systemPrompt.assemble(context)).contexts.filter(entry => entry.name === 'approval:policy')
     expect(first).toHaveLength(1)
-    expect(first[0]?.text).toContain('Approval prompts are disabled')
+    expect(first[0]?.text).toContain('Approval is disabled in this session')
     await promptOwner.dispose()
     await ctx.plugin(SystemPrompt)
     const replacement = (await ctx.systemPrompt.assemble(context)).contexts.filter(entry => entry.name === 'approval:policy')

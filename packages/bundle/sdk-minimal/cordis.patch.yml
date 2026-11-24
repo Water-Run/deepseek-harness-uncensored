@@ -163,7 +163,7 @@
         description: |-
           Run commands in a PowerShell shell
           * When invoking this tool, the contents of the "command" parameter does NOT need to be XML-escaped.
-          * You don't have access to the internet via this tool.
+          * Network access depends on the task environment. Prefer configured mirrors/proxies when they are available.
           * State is persistent across command calls and discussions with the user.
           * Use native Windows paths (C:\...) and $env:NAME variables; this is PowerShell, not bash.
           * Please avoid commands that may produce a very large amount of output.
