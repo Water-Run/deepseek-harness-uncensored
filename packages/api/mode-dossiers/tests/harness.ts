@@ -11,6 +11,9 @@ import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import { LocalFileSystem } from '@deepseek-ai/dsh-fs-local'
 import { WorkspaceId } from '@deepseek-ai/dsh-workspace'
+import SessionStore from '@deepseek-ai/dsh-session'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
+import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
 import { ModeDossiers } from '../src/index.ts'
 
 /** Workspace identity the fixture registers. */
@@ -37,19 +40,23 @@ export async function openHarness(prefix: string): Promise<Harness> {
   const workspace = join(root, 'workspace')
   await mkdir(workspace, { recursive: true })
   const ctx = new Context()
-  const fiber = await ctx.plugin(LocalFileSystem, { cwd: workspace })
+  await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
+  await ctx.plugin(TypertRegistry)
+  await ctx.plugin(LocalFileSystem, { cwd: workspace })
   ctx.provide('workspaceRegistry', {
     get: (id: string) => (id === WORKSPACE_ID
       ? { id: WorkspaceId(WORKSPACE_ID), title: 'Fixture workspace', path: workspace }
       : undefined),
   } as never)
-  const service = new ModeDossiers(ctx, { contextBytes: 4096, sampleBytes: 64 * 1024, maxCases: 50 })
+  await ctx.plugin(ModeDossiers, { contextBytes: 4096, sampleBytes: 64 * 1024, maxCases: 50 })
+  const service = ctx.modeDossiers
   return {
     workspace,
     ctx,
     service,
     dispose: async () => {
-      await fiber.dispose()
+      await ctx.fiber.dispose()
       await rm(root, { recursive: true, force: true })
     },
   }

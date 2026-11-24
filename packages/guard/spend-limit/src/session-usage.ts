@@ -1,6 +1,6 @@
 /** Session-local estimates from durable usage; independent of whether admission limits are enabled. */
 import { lastAssistantStreamChunk } from '@deepseek-ai/dsh-llm'
-import type { SessionEvent } from '@deepseek-ai/dsh-session'
+import type { SessionEvent, SessionLogOffset } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-llm-retry/types'
 import type { MemoryExtractionId, MemoryExtractionRequest } from '@deepseek-ai/dsh-memory/types'
 import { usageCost } from './pricing.ts'
@@ -13,18 +13,20 @@ const MAX_POINTS = 240
  * Estimate this Session's own model responses and retries at the configured rates.
  * @param events - Durable events including route headers and optional inherited prefix.
  * @param rates - Current deployment rates; missing rates remain explicitly unpriced.
+ * @param inheritedEventCount - Session-validated length of the full inherited prefix, including ancestors.
  * @returns CNY totals, coverage counts and a bounded cumulative curve.
  */
-export function sessionSpendUsage(events: readonly SessionEvent[], rates: readonly SpendRate[]): SessionSpendUsage {
+export function sessionSpendUsage(
+  events: readonly SessionEvent[], rates: readonly SpendRate[], inheritedEventCount: SessionLogOffset,
+): SessionSpendUsage {
   let route: { provider: string; model: string } | undefined
   let total = 0, unknown = 0, requests = 0
   let last: { turn: number; step: number; cost: number; unknown: number } | undefined
   let points: SessionSpendUsage['points'] = []
   const extractions = new Map<MemoryExtractionId, MemoryExtractionRequest>()
-  const inherited = events.findIndex(event => event.type === 'session/end-seed' && event.data.inherited)
   for (const event of events) {
     if (event.type === 'request/header') route = event.data.header.config
-    if (event.seq <= inherited) continue
+    if (event.seq < inheritedEventCount) continue
     if (event.type === 'memory/extraction') {
       if (event.data.phase === 'request') { extractions.set(event.data.requestId, event.data); continue }
       const request = extractions.get(event.data.requestId)

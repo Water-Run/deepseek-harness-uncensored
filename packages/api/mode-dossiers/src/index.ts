@@ -17,15 +17,10 @@
  * @module @deepseek-ai/dsh-api-mode-dossiers
  */
 
-import type { Context } from '@deepseek-ai/cordis'
+import { Service, type Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { Remote, RemoteError, TypertRemoteService, principalOf } from '@deepseek-ai/dsh-typert-protocol'
-import type { FileSystem, FsTarget, FsVersion } from '@deepseek-ai/dsh-fs'
-import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { ContextFormed } from '@deepseek-ai/dsh-llm'
-import type {} from '@deepseek-ai/dsh-agent-preset-registry'
-import type {} from '@deepseek-ai/dsh-sandbox-policy'
+import type { FsTarget, FsVersion } from '@deepseek-ai/dsh-fs'
 import { WorkspaceId } from '@deepseek-ai/dsh-workspace'
 import type {
   CaseCollectionView,
@@ -73,7 +68,6 @@ import {
   adoptStoryEntry,
   createStoryEntry,
   listStory,
-  readSelectedMaterials,
   readStoryEntry,
   removeStoryEntry,
   setStorySelection,
@@ -89,15 +83,11 @@ import type {} from '@deepseek-ai/dsh-rea'
 import type {} from '@deepseek-ai/dsh-api-remote-access'
 import type { ReaOptions, ReaProbe } from '@deepseek-ai/dsh-rea/types'
 
+import { installWritingContext } from './writing-context.ts'
+
+export { writingMaterialsText } from './writing-context.ts'
 export type * from './types.ts'
 export { renderCaseReport } from './casefile.ts'
-
-declare module '@deepseek-ai/dsh-llm' {
-  interface MessageSourceMap {
-    /** Durable context this service injected on the user's behalf. */
-    'mode-dossiers': { readonly kind: 'mode-dossiers' } & ContextFormed
-  }
-}
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface RemoteErrorDetailsMap {
@@ -121,33 +111,6 @@ declare module '@deepseek-ai/cordis' {
     /** Host owner of the `modeDossiers` Remote namespace. */
     modeDossiers: ModeDossiers
   }
-}
-
-/** Agent preset whose requests receive the selected writing materials. */
-const WRITING_PRESET = 'writing'
-
-/**
- * Render the writing materials one request should receive.
- *
- * Only a Writing-mode request carries materials, and only the documents the
- * registry marks as selected are read: a file under `story/` that the user did
- * not select never reaches the model through this path.
- * @param fs - composed filesystem.
- * @param rootPath - the session's workspace directory.
- * @param preset - the preset composed for the agent.
- * @param budget - inclusive byte budget; 0 disables the context.
- * @param signal - request cancellation.
- * @returns the context text, or an empty string when nothing applies.
- */
-export async function writingMaterialsText(
-  fs: FileSystem,
-  rootPath: string,
-  preset: string | undefined,
-  budget: number,
-  signal: AbortSignal,
-): Promise<string> {
-  if (preset !== WRITING_PRESET || budget <= 0) return ''
-  return readSelectedMaterials(fs, rootPath, budget, signal)
 }
 
 /** Remote failure code per reported problem. */
@@ -186,7 +149,7 @@ interface LoadedCase {
 
 /** Host service behind the generated `ctx.remote.modeDossiers` namespace. */
 export class ModeDossiers extends TypertRemoteService {
-  static inject = ['fs', 'typert']
+  static inject = ['fs', 'typert', 'sessionProjections']
 
   static Config: z<Config, ResolvedConfig> = z.object({
     contextBytes: z.natural().min(0).default(16 * 1024),
@@ -203,10 +166,10 @@ export class ModeDossiers extends TypertRemoteService {
   constructor(ctx: Context, config: Config = {}) {
     super(ctx, 'modeDossiers')
     this.config = ModeDossiers.Config(config)
-    ctx.on('agent/pre-step', async (
-      { agent, signal }: { agent: Agent; signal: AbortSignal },
-      next: () => Promise<PreStepDecision>,
-    ): Promise<PreStepDecision> => await this.extendRequest(ctx, agent, signal, next))
+  }
+
+  protected async [Service.init](): Promise<void> {
+    await installWritingContext(this.ctx, this.config.contextBytes)
   }
 
   /**
@@ -270,48 +233,6 @@ export class ModeDossiers extends TypertRemoteService {
       throw new RemoteError('remote-access/denied', 'Only the application owner can configure REA.', {
         action: 'modeDossiers/reaSettings', reason: 'owner-only',
       })
-    }
-  }
-
-  /**
-   * Add the selected writing materials before one request.
-   * @param ctx - Host context.
-   * @param agent - agent whose step is being prepared.
-   * @param signal - step cancellation.
-   * @param next - the remaining pre-step chain.
-   * @returns the decision, with the materials appended when this is a Writing step with a selection.
-   */
-  private async extendRequest(
-    ctx: Context,
-    agent: Agent,
-    signal: AbortSignal,
-    next: () => Promise<PreStepDecision>,
-  ): Promise<PreStepDecision> {
-    const decision = await next()
-    if (decision.kind === 'reject' || signal.aborted || this.config.contextBytes === 0) return decision
-    if (ctx.get('agentPresets')?.composedPreset(agent.ctx) !== WRITING_PRESET) return decision
-    const rootPath = agent.session.header.cwd ?? ctx.get('sandboxPolicy')?.workspaceRoot
-    if (rootPath === undefined) return decision
-    let text: string
-    try {
-      text = await writingMaterialsText(ctx.fs, rootPath, WRITING_PRESET, this.config.contextBytes, signal)
-    } catch (error: unknown) {
-      // Selected materials are optional context: a broken store must not fail the turn it would have joined.
-      ctx.logger.warn('mode-dossiers: writing materials could not be read: %o', error)
-      return decision
-    }
-    if (signal.aborted) return decision
-    const previous = agent.session.deriveMessages().findLast(message => message.role === 'user' && message.source.kind === 'mode-dossiers')
-    if (!text && !previous) return decision
-    const current = text || 'No writing materials are currently selected. Disregard earlier writing-material instructions.'
-    const block = previous?.content[0]
-    if (block?.type === 'text' && block.text === current) return decision
-    return {
-      ...decision,
-      messages: [...decision.messages, createUserMessage({
-        content: [{ type: 'text', text: current }],
-        source: { kind: 'mode-dossiers', form: 'instructions' },
-      })],
     }
   }
 

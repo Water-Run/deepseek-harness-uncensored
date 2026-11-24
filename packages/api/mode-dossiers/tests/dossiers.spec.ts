@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { agentEvents, type Agent } from '@deepseek-ai/dsh-agent'
 import { createUserMessage, type UserMessage } from '@deepseek-ai/dsh-llm'
-import SessionStore from '@deepseek-ai/dsh-session'
+import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import { writingMaterialsText } from '../src/index.ts'
 import { failureCodeOf, openHarness, signal, WORKSPACE_ID, type Harness } from './harness.ts'
 
@@ -166,12 +166,13 @@ describe('writing materials', () => {
 
   it('reissues selected material after compaction and records clearing and reselecting it', async () => {
     const { service, workspace, ctx } = await open('dsh-story-')
-    await ctx.plugin(SessionStore)
     ctx.provide('agentPresets', { composedPreset: () => 'writing' } as never)
     const session = ctx.sessions.create(undefined, { meta: { cwd: workspace } })
     const agent = { ctx, session, id: session.id } as Agent
-    const step = async () => {
-      const decision = await agentEvents(ctx, agent).waterfall('agent/pre-step', {
+    const events: SessionEvent[] = []
+    ctx.on('session/event', (_session, event) => { events.push(event) })
+    const step = async (current = agent) => {
+      const decision = await agentEvents(current.ctx, current).waterfall('agent/pre-step', {
         turn: 1, step: 1, messages: [], signal: signal(), modelSelection: { provider: 'fixture', model: 'writing' },
       }, () => Promise.resolve({ kind: 'enter' as const, messages: [] as UserMessage[] }))
       if (decision.kind === 'reject') throw new Error('Writing step rejected')
@@ -191,8 +192,21 @@ describe('writing materials', () => {
     })
     const [reissued] = await step()
     expect(reissued?.content).toEqual(first?.content)
-    session.append('user/message', reissued!, { surfaceOp: 'append' })
+    const repeated = session.append('user/message', reissued!, { surfaceOp: 'append' })
+    session.append('user/message', createUserMessage({ content: [{ type: 'text', text: 'Synopsis retaining old canon' }],
+      source: { kind: 'user' } }), {
+      surfaceOp: { op: 'replace', startSeq: repeated.seq, endSeq: repeated.seq }, sourceEventSeqs: [repeated.seq],
+    })
     await service.selectStory({ workspaceId: WORKSPACE_ID, selected: [] }, signal())
+    const reopened = await openHarness('dsh-story-reopen-')
+    try {
+      reopened.ctx.provide('agentPresets', { composedPreset: () => 'writing' } as never)
+      const replay = reopened.ctx.sessions.create(session.id, { meta: { cwd: workspace }, seed: structuredClone(events) })
+      const [withdrawal] = await step({ ctx: reopened.ctx, session: replay, id: replay.id } as Agent)
+      expect(withdrawal?.content[0]).toMatchObject({ text: expect.stringContaining('Disregard earlier writing-material instructions') })
+    } finally {
+      await reopened.dispose()
+    }
     const [cleared] = await step()
     expect(cleared?.content).toMatchInlineSnapshot(`
       [

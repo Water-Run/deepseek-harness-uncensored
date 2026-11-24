@@ -79,7 +79,7 @@ export class SpendLimitRemote extends TypertRemoteService {
     const query = this.ctx.get('sessionQuery')
     if (query === undefined) throw new RemoteError('gateway/internal', 'Session history is unavailable.', {})
     using source = await query.observeSession(sessionId)
-    return (await this.runtime.ready).sessionUsage(source.events)
+    return (await this.runtime.ready).sessionUsage(source.events, source.inheritedEventCount)
   }
   /**
    * Save user preferences across local processes.

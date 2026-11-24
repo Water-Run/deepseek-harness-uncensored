@@ -72,7 +72,7 @@ Storage conditions arrive as reported problems on `inventory` — no workspace, 
 <a id="model-experience"></a>
 ## Model Experience
 
-The package contributes one model-visible input: a Writing-mode request whose registry holds a non-empty selection receives a user-role message listing the selected documents under `### <path>` headings. The message is ordinary session history — it persists, replays, and compacts like any other user message — and is reissued when compaction removes the latest selection. Clearing the selection records a withdrawal in the conversation. Documents that are not selected are never read into it, and an unreadable store leaves the request unchanged. Token cost is bounded by `contextBytes` (16 KiB by default) with a per-document cap, and a cut document is marked as truncated.
+The package contributes one model-visible input: a Writing-mode request whose registry holds a non-empty selection receives a user-role message listing the selected documents under `### <path>` headings. The message is ordinary session history — it persists, replays, and compacts like any other user message — and is reissued when compaction removes the latest selection. Clearing the selection records a withdrawal even after compaction has replaced the original materials with a summary. The host-only session projection remembers whether materials have ever been admitted, including after reopening a conversation. Documents that are not selected are never read into it, and an unreadable store leaves the request unchanged. Token cost is bounded by `contextBytes` (16 KiB by default) with a per-document cap, and a cut document is marked as truncated.
 
 <a id="known-limitations-and-deferred-work"></a>
 ## Known Limitations and Deferred Work

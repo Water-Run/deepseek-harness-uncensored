@@ -12,7 +12,8 @@
     "src/casefile.ts",
     "src/story.ts",
     "src/sample.ts",
-    "src/tools.ts"
+    "src/tools.ts",
+    "src/writing-context.ts"
   ],
   "references": [
     {
@@ -53,6 +54,9 @@
     },
     {
       "path": "../remote-access/tsconfig.host.json"
+    },
+    {
+      "path": "../../session/session-projection"
     }
   ]
 }
