@@ -6,7 +6,7 @@ import type { ConversationViewsProps } from '@deepseek-ai/dsh-client-ui-conversa
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { InlineAsideController } from './controller.ts'
 import { AsideIcon } from './AsideIcon.tsx'
-import { newestSide, sideMetadata, type AsideReads } from './read-status.ts'
+import { canClearSide, newestSide, sideMetadata, type AsideReads } from './read-status.ts'
 import { asideAddress, asideParent } from './address.ts'
 import css from './AsidePanel.module.css'
 
@@ -58,13 +58,15 @@ export function AsideConversation({ renderFactorySlot, t, kind, fromSeq }: Props
 }
 
 /** Bind a sidebar resource to the child session; resource failures stay visible in the panel. */
-export function SidebarAsidePanel({ sessionId, useSessions, useTabInfo, useResource, SessionProvider, renderSlot, t, markRead }:
+export function SidebarAsidePanel({ sessionId, useSessions, useTabInfo, useResource, SessionProvider, renderSlot, t, markRead, clear }:
   PropsRuntime<'sidebar.right.pane.tab'> & PropsRenderSlots<'sidebar.aside.conversation'> & PropsLocale<'command'>
-  & { markRead: (child: SessionId, seq: number) => void }) {
+  & { markRead: (child: SessionId, seq: number) => void; clear: (child: SessionId) => void }) {
   const { tab } = useTabInfo()
   const resource = useResource<'aside'>(asideParent(tab.contentId) === undefined ? asideAddress(sessionId) : tab.contentId)
   const child = resource.value?.reference.sessionId
   const seq = useSessions(list => sideMetadata(list, child)?.result?.seq)
+  const asked = useSessions(list => sideMetadata(list, child)?.asked === true)
+  const clearable = canClearSide(child, asked)
   useEffect(() => {
     if (!tab.visible || resource.status !== 'live' || child === undefined || seq === undefined) return
     const acknowledge = () => { if (document.visibilityState === 'visible') markRead(child, seq) }
@@ -73,7 +75,11 @@ export function SidebarAsidePanel({ sessionId, useSessions, useTabInfo, useResou
     return () => document.removeEventListener('visibilitychange', acknowledge)
   }, [child, seq, tab.visible, resource.status, markRead])
   return <section className={css.sidebar} aria-label={t('aside.side')} data-aside="side">
-    <div className={css.context}>{t('aside.inherited')}</div>
+    <div className={css.context}>
+      <span>{t('aside.inherited')}</span>
+      <button type="button" className={css.clearHistory} disabled={!clearable}
+        onClick={() => { if (child !== undefined && clearable) clear(child) }}>{t('aside.clearHistory')}</button>
+    </div>
     {resource.status === 'failed' && resource.value !== undefined && <p role="alert" className={css.notice}>{t('aside.failed')}</p>}
     {resource.value === undefined
       ? resource.status === 'failed'

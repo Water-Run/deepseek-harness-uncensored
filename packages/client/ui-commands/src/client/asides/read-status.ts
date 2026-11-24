@@ -73,3 +73,13 @@ export function newestSide(list: SessionListState, parent: SessionId): SessionId
   }
   return current
 }
+
+/**
+ * A side conversation can only be cleared once it holds something to clear.
+ * @param child - Resident side generation, when one is open.
+ * @param asked - Whether that generation already received a prompt.
+ * @returns Whether clearing it would change anything.
+ */
+export function canClearSide(child: SessionId | undefined, asked: boolean | undefined): boolean {
+  return child !== undefined && asked === true
+}

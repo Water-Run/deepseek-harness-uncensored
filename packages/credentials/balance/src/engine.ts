@@ -2,7 +2,7 @@
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import type { AccountClientMetadata } from '@deepseek-ai/dsh-deepseek-account/types'
-import type { BalanceSample, BalanceSnapshot, BalanceWallet } from './types.ts'
+import type { BalanceAutoCleanup, BalanceCleanupRequest, BalanceSample, BalanceSnapshot, BalanceWallet } from './types.ts'
 
 /** One credential generation resolved on the Host. */
 export interface BalanceIdentity {
@@ -10,6 +10,13 @@ export interface BalanceIdentity {
   readonly account: 'account' | 'api-key'
   readonly query: (signal: AbortSignal) => Promise<readonly BalanceWallet[] | null>
   readonly current: () => Promise<boolean>
+}
+
+/** Runtime retention policy read from the live sampling preferences. */
+export interface BalanceRetention {
+  readonly mode: BalanceAutoCleanup
+  readonly count: number
+  readonly days: number
 }
 
 /** IO owned by one installed balance provider. */
@@ -20,7 +27,53 @@ export interface BalanceEngineOptions {
   readonly limit: number
   readonly timeoutMs: number
   readonly displayLimit: number
+  readonly retention: () => BalanceRetention
   readonly now: () => number
+}
+
+/** Milliseconds in one retained day. */
+const DAY_MS = 86_400_000
+
+/**
+ * Apply the automatic retention policy to samples about to be written.
+ * An age window always keeps the newest sample, so history never empties itself
+ * merely because sampling paused for longer than the window.
+ * @param samples - Samples that would otherwise be stored, oldest first.
+ * @param retention - Live policy from the sampling preferences.
+ * @param now - Sampling instant used as the age cutoff.
+ * @returns The samples to store.
+ */
+export function retainSamples(samples: readonly BalanceSample[], retention: BalanceRetention, now: number): readonly BalanceSample[] {
+  if (retention.mode === 'count') return samples.slice(-Math.max(2, Math.floor(retention.count)))
+  if (retention.mode === 'age') {
+    const cutoff = now - Math.max(1, Math.floor(retention.days)) * DAY_MS
+    const kept = samples.filter(sample => sample.time >= cutoff)
+    return kept.length > 0 ? kept : samples.slice(-1)
+  }
+  return samples
+}
+
+/**
+ * Apply one manual cleanup request.
+ * @param samples - Stored samples, oldest first.
+ * @param request - Requested cleanup mode and its bound.
+ * @param now - Cleanup instant used as the age cutoff.
+ * @returns The samples to keep.
+ */
+export function cleanSamples(samples: readonly BalanceSample[], request: BalanceCleanupRequest, now: number): readonly BalanceSample[] {
+  switch (request.mode) {
+    case 'all': return []
+    case 'count': return samples.slice(-Math.max(1, Math.floor(request.keep)))
+    case 'age': {
+      const cutoff = now - Math.max(1, Math.floor(request.days)) * DAY_MS
+      const kept = samples.filter(sample => sample.time >= cutoff)
+      return kept.length > 0 ? kept : samples.slice(-1)
+    }
+    default: {
+      const unreachable: never = request
+      return unreachable
+    }
+  }
 }
 
 /** Accepted API decimal strings, bounded before numeric chart conversion. */
@@ -113,8 +166,9 @@ export class BalanceEngine {
       const wallets = await identity.query(AbortSignal.any([this.lifetime.signal, AbortSignal.timeout(this.options.timeoutMs)]))
       this.lifetime.signal.throwIfAborted()
       if (wallets === null || !await identity.current()) return { status: 'unavailable', source, account: null, samples: [], error: 'changed' }
-      const sample = balanceSample.parse({ time: this.options.now(), wallets })
-      const next = [...samples, sample].slice(-this.options.limit)
+      const now = this.options.now()
+      const sample = balanceSample.parse({ time: now, wallets })
+      const next = retainSamples([...samples, sample].slice(-this.options.limit), this.options.retention(), now)
       failure = 'storage'
       this.lifetime.signal.throwIfAborted()
       await this.options.write(identity.key, next)
@@ -126,4 +180,36 @@ export class BalanceEngine {
 
   /** Stop admission and await every query and durable write before storage closes. @returns Quiescent completion. */
   async close(): Promise<void> { this.lifetime.abort(); await this.tail }
+
+  /**
+   * Remove stored samples under the current identity.
+   * @param client - Request identity used by the account provider.
+   * @param request - Cleanup mode and its bound.
+   * @returns The remaining history under the same shape as a local read.
+   */
+  clear(client: AccountClientMetadata, request: BalanceCleanupRequest): Promise<BalanceSnapshot> {
+    const operation = this.tail.then(() => this.remove(client, request)).then(result => ({
+      ...result,
+      sampleCount: result.samples.length,
+      samples: displaySamples(result.samples, this.options.displayLimit),
+    }))
+    this.tail = operation.then(() => undefined, () => undefined)
+    return operation
+  }
+
+  private async remove(client: AccountClientMetadata, request: BalanceCleanupRequest): Promise<Omit<BalanceSnapshot, 'sampleCount'>> {
+    let samples: readonly BalanceSample[] = []
+    try {
+      this.lifetime.signal.throwIfAborted()
+      const identity = await this.options.identify(client, false)
+      if (identity === null) return { status: 'signed-out', source: 'local', account: null, samples }
+      samples = this.options.read(identity.key) ?? []
+      const next = cleanSamples(samples, request, this.options.now())
+      this.lifetime.signal.throwIfAborted()
+      await this.options.write(identity.key, next)
+      return { status: next.length === 0 ? 'empty' : 'ready', source: 'local', account: identity.account, samples: next }
+    } catch (_error) {
+      return { status: 'unavailable', source: 'local', account: null, samples: [], error: 'storage' }
+    }
+  }
 }

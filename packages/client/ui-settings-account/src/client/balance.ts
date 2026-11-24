@@ -21,6 +21,11 @@ export function registerBalance(ctx: Context, account: HostObservable<AccountSna
         const result = await scope.remote.balance.get(client)
         if (!result.ok) throw result.error
         return result.value
+      }, async (request) => {
+        const client = accountClientMetadata(scope.locale.getSnapshot().active, process.env.DSH_CLIENT_VERSION)
+        const result = await scope.remote.balance.clear(client, request)
+        if (!result.ok) throw result.error
+        return result.value
       })
       yield scope.effect(() => () => controller.dispose(), 'account: balance polling')
       yield scope.effect(() => {
@@ -38,7 +43,7 @@ export function registerBalance(ctx: Context, account: HostObservable<AccountSna
         return Promise.resolve()
       })
       const injected = (): BalanceInjected => ({ hooks: { balance: controller.state, balancePreferences: form },
-        refresh: controller.refresh, save: controller.save, dismissToast: controller.dismissToast })
+        refresh: controller.refresh, save: controller.save, clear: controller.clear, dismissToast: controller.dismissToast })
       yield scope.slots.inject('sidebar.footer.budget', () => scope.slots.register({ name: 'sidebar.footer.budget', id: 'balance', order: 10,
         locale: 'settings.account', inject: injected }, BalanceSidebar))
       yield scope.slots.inject('settings.budget.item', () => {

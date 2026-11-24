@@ -1,7 +1,7 @@
 /** One polling lifetime shared by the balance settings page and sidebar. */
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
-import type { BalancePreferences, BalanceSnapshot } from '@deepseek-ai/dsh-balance/types'
+import type { BalanceCleanupRequest, BalancePreferences, BalanceSnapshot } from '@deepseek-ai/dsh-balance/types'
 
 /** Current query, clock, and settings-write feedback. */
 export interface BalanceViewState {
@@ -10,7 +10,8 @@ export interface BalanceViewState {
   readonly failed: boolean
   readonly now: number
   readonly saving: boolean
-  readonly toast: 'saved' | 'saveFailed' | null
+  readonly clearing: boolean
+  readonly toast: 'saved' | 'saveFailed' | 'cleared' | 'clearFailed' | null
   readonly toastId: number
 }
 
@@ -18,7 +19,7 @@ export interface BalanceViewState {
 export class BalanceController {
   /** Shared polling state and feedback for the sidebar and settings views. */
   readonly state = createSnapshotStore<BalanceViewState>({
-    data: undefined, loading: false, failed: false, now: Date.now(), saving: false, toast: null, toastId: 0,
+    data: undefined, loading: false, failed: false, now: Date.now(), saving: false, clearing: false, toast: null, toastId: 0,
   })
   private readonly lifetime = new AbortController()
   private revision = 0
@@ -28,8 +29,13 @@ export class BalanceController {
   private readonly stopPreferences: () => void
   private readonly saves = new Set<Promise<boolean>>()
 
-  /** @param preferences - Shared Host-backed form. @param query - Authenticated balance query. */
-  constructor(readonly preferences: ConfigForm<BalancePreferences>, private readonly query: () => Promise<BalanceSnapshot>) {
+  /**
+   * @param preferences - Shared Host-backed form.
+   * @param query - Authenticated balance query.
+   * @param clearSamples - Authenticated stored-sample cleanup.
+   */
+  constructor(readonly preferences: ConfigForm<BalancePreferences>, private readonly query: () => Promise<BalanceSnapshot>,
+    private readonly clearSamples: (request: BalanceCleanupRequest) => Promise<BalanceSnapshot>) {
     this.stopPreferences = preferences.subscribe(() => { this.refresh() })
     this.clock = setInterval(() => { this.state.set({ ...this.state.getSnapshot(), now: Date.now() }) }, 60_000)
     this.refresh()
@@ -56,6 +62,31 @@ export class BalanceController {
   readonly invalidate = (): void => {
     this.state.set({ ...this.state.getSnapshot(), data: undefined, failed: false })
     this.refresh()
+  }
+
+  /**
+   * Remove stored samples under the current account and publish the remaining history.
+   * @param request - Cleanup mode and its bound.
+   * @returns Whether the Host accepted the cleanup.
+   */
+  readonly clear = async (request: BalanceCleanupRequest): Promise<boolean> => {
+    if (this.lifetime.signal.aborted) return false
+    this.state.set({ ...this.state.getSnapshot(), clearing: true })
+    let accepted = false
+    try {
+      const data = await this.clearSamples(request)
+      accepted = true
+      if (!this.lifetime.signal.aborted) {
+        this.state.set({ ...this.state.getSnapshot(), data, failed: false, loading: false, now: Date.now() })
+      }
+    } catch (_error) {
+      accepted = false
+    }
+    if (!this.lifetime.signal.aborted) {
+      this.state.set({ ...this.state.getSnapshot(), clearing: false,
+        toast: accepted ? 'cleared' : 'clearFailed', toastId: this.state.getSnapshot().toastId + 1 })
+    }
+    return accepted
   }
 
   private async run(): Promise<void> {

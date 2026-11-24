@@ -281,7 +281,15 @@ export function registerAsides(ctx: Context): void {
       }),
     }, AsideHeaderAction))
     scope.slots.inject('sidebar.right.pane.tab', () => scope.slots.register({ name: 'sidebar.right.pane.tab', key: TYPE, locale: 'command',
-      inject: (parent: SessionId) => ({ markRead: (child: SessionId, seq: number) => reads.mark(parent, child, seq) }),
+      inject: (parent: SessionId) => ({
+        markRead: (child: SessionId, seq: number) => reads.mark(parent, child, seq),
+        clear: (child: SessionId) => {
+          if (isClosed()) return
+          void resetSide(parent, child, 'manual').then((outcome) => {
+            if (outcome.kind === 'error' && !closed) reportResetFailure(child, t('aside.clearFailed'))
+          }).catch((error: unknown) => { scope.logger.warn(error) })
+        },
+      }),
       children: { 'sidebar.aside.conversation': { kind: 'single', scope: 'session' } } }, SidebarAsidePanel))
     scope.slots.inject('sidebar.right.pane.tab.title', () => scope.slots.register({ name: 'sidebar.right.pane.tab.title', key: TYPE, locale: 'command' }, AsideTitle))
     scope.slots.inject('sidebar.aside.conversation', () => scope.slots.register({ name: 'sidebar.aside.conversation', locale: 'command', inject: () => ({ kind: 'side' as const }) }, AsideConversation))

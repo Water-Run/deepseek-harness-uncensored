@@ -15,13 +15,13 @@ function fixture(granted = '0') {
   const data: BalanceSnapshot = { status: 'ready', source: 'api', account: 'api-key', sampleCount: 2,
     samples: [0, 60_000].map(time => ({ time, wallets: [{ currency: 'CNY', toppedUp: '12.50', granted }] })) }
   const state = createSnapshotStore<BalanceViewState>({
-    data, loading: false, failed: false, now: 0, saving: false, toast: null, toastId: 0,
+    data, loading: false, failed: false, now: 0, saving: false, clearing: false, toast: null, toastId: 0,
   })
   const form = stubConfigForm<BalancePreferences>()
-  form.publish({ status: 'ready', value: { enabled: true, source: 'api', refreshSeconds: 15 }, writable: true })
+  form.publish({ status: 'ready', value: { enabled: true, source: 'api', refreshSeconds: 15, autoCleanup: 'off', retainCount: 2000, retainDays: 30 }, writable: true })
   const props = {
     useBalance: bindSnapshotSelector(state), useBalancePreferences: bindSnapshotSelector(form.scope),
-    refresh: vi.fn(), save: vi.fn(async () => true), dismissToast: vi.fn(),
+    refresh: vi.fn(), save: vi.fn(async () => true), clear: vi.fn(async () => true), dismissToast: vi.fn(),
     t: (key: keyof typeof en, params?: Record<string, string | number>) =>
       en[key].replace(/\{(\w+)\}/gu, (_, name: string) => String(params?.[name] ?? '')),
   } as Parameters<typeof BalanceSettings>[0]
@@ -65,7 +65,7 @@ it('shows the disabled message instead of a previous observation or error', () =
   expect(screen.getByRole('slider', { name: en['balance.curve'] })).toBeTruthy()
   act(() => {
     state.set({ ...state.getSnapshot(), failed: true })
-    form.publish({ value: { enabled: false, source: 'api', refreshSeconds: 15 } })
+    form.publish({ value: { enabled: false, source: 'api', refreshSeconds: 15, autoCleanup: 'off', retainCount: 2000, retainDays: 30 } })
   })
   expect(screen.getByText(en['balance.disabled'])).toBeTruthy()
   expect(screen.queryByRole('slider')).toBeNull()

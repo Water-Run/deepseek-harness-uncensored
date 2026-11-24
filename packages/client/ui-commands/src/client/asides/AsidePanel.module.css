@@ -26,7 +26,11 @@
 .notice { margin: 0; padding: 8px 12px; color: var(--dsw-alias-label-secondary); font-size: 12px; line-height: 1.6; }
 .content > *, .sidebar > :last-child { flex: 1; min-height: 0; min-width: 0; }
 .sidebar { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; min-width: 0; }
-.context { padding: 12px 16px; font-size: 13px; color: var(--dsw-alias-label-secondary); border-bottom: 0.5px solid var(--dsw-alias-border-l3); }
+.context { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 12px 16px; font-size: 13px; color: var(--dsw-alias-label-secondary); border-bottom: 0.5px solid var(--dsw-alias-border-l3); }
+.clearHistory { flex: none; margin-left: auto; padding: 0; border: 0; background: none; font: inherit; color: var(--dsh-mode-accent); cursor: pointer; border-radius: var(--dsw-radius-xs); }
+.clearHistory:disabled { color: var(--dsw-alias-label-tertiary); cursor: default; }
+.clearHistory:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 3px; }
+@media (hover: hover) { .clearHistory:not(:disabled):hover { text-decoration: underline; } }
 .content :global([data-composer-seat]), .sidebar :global([data-composer-seat]) { margin-top: auto; }
 .content :global([data-composer-seat]) { --dsh-composer-text-max-height: 120px; }
 .state { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; padding: 20px; font-size: 13px; }

@@ -11,7 +11,7 @@ import type {} from '@deepseek-ai/dsh-settings'
 import type { AccountClientMetadata } from '@deepseek-ai/dsh-deepseek-account/types'
 import { BalanceEngine, balanceAmount, balanceSample, balanceStorageKey } from './engine.ts'
 import type { BalanceIdentity } from './engine.ts'
-import type { BalanceSample, BalanceSnapshot } from './types.ts'
+import type { BalanceAutoCleanup, BalanceSample, BalanceCleanupRequest, BalanceSnapshot } from './types.ts'
 export type * from './types.ts'
 
 /** Deployment and live user preferences for balance queries. */
@@ -32,6 +32,12 @@ export interface Config {
   historyLimit: number
   /** Maximum observations included in one client snapshot. */
   displayLimit: number
+  /** Automatic cleanup applied while sampling: off, by count, or by age. */
+  autoCleanup: Volatile<BalanceAutoCleanup>
+  /** Samples kept, newest first, when `autoCleanup` is `count`. */
+  retainCount: Volatile<number>
+  /** Days of history kept when `autoCleanup` is `age`. */
+  retainDays: Volatile<number>
 }
 /** Validated sampling preferences and bounded provider requests. */
 export const Config = schema.object({
@@ -43,6 +49,9 @@ export const Config = schema.object({
   timeoutMs: schema.number().step(1).min(1000).max(60000).default(10000),
   historyLimit: schema.number().step(1).min(2).max(40320).default(10080),
   displayLimit: schema.number().step(1).min(2).max(1000).default(240),
+  autoCleanup: schema.union(['off', 'count', 'age'] as const).default('off').volatile(),
+  retainCount: schema.number().step(1).min(2).max(40320).default(2000).volatile(),
+  retainDays: schema.number().step(1).min(1).max(3650).default(30).volatile(),
 })
 export const name = 'balance'
 export const inject = ['storage', 'storageDomain', 'deepseekAccount', 'credentials', 'settings']
@@ -52,6 +61,11 @@ const domainSpec = defineDomain({ name: 'uncensored_balance', version: 1, layout
 const responseSchema = z.object({ balance_infos: z.array(z.object({
   currency: z.enum(['CNY', 'USD']), topped_up_balance: balanceAmount, granted_balance: balanceAmount,
 })).max(2) })
+const cleanupSchema = z.discriminatedUnion('mode', [
+  z.object({ mode: z.literal('all') }).strict(),
+  z.object({ mode: z.literal('count'), keep: z.number().int().min(1).max(40320) }).strict(),
+  z.object({ mode: z.literal('age'), days: z.number().int().min(1).max(3650) }).strict(),
+])
 
 declare module '@deepseek-ai/cordis' { interface Context { uncensoredBalance: BalanceRemote } }
 
@@ -73,6 +87,17 @@ export class BalanceRemote extends TypertRemoteService {
     const enabled = isVolatile(configured.enabled) ? configured.enabled.get() : configured.enabled
     return enabled ? this.options.engine.read(client, source)
       : Promise.resolve({ status: 'disabled', source, account: null, samples: [], sampleCount: 0 })
+  }
+
+  /**
+   * Remove stored samples for the current account.
+   * @param client - Platform request metadata.
+   * @param request - Cleanup mode and its bound.
+   * @returns The remaining history.
+   */
+  @Remote
+  clear(client: AccountClientMetadata, request: BalanceCleanupRequest): Promise<BalanceSnapshot> {
+    return this.options.engine.clear(client, cleanupSchema.parse(request))
   }
 }
 
@@ -126,7 +151,12 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     }
   }
   const engine = new BalanceEngine({ identify, read: key => table.get(key), write: (key, samples) => table.put(key, samples),
-    limit: config.historyLimit, displayLimit: config.displayLimit, timeoutMs: config.timeoutMs, now: Date.now })
+    limit: config.historyLimit, displayLimit: config.displayLimit, timeoutMs: config.timeoutMs, now: Date.now,
+    retention: () => ({
+      mode: isVolatile(config.autoCleanup) ? config.autoCleanup.get() : config.autoCleanup,
+      count: isVolatile(config.retainCount) ? config.retainCount.get() : config.retainCount,
+      days: isVolatile(config.retainDays) ? config.retainDays.get() : config.retainDays,
+    }) })
   const service = ctx.plugin(BalanceRemote, { engine, config })
   ctx.effect(() => async () => {
     await engine.close()

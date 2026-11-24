@@ -1,5 +1,5 @@
 /** Actual Web commands, context replacement, preference persistence and reconnect. */
-import { readFile } from 'node:fs/promises'
+import { mkdir, readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { chromium, type Route } from 'playwright'
 import { expect, it, vi } from 'vitest'
@@ -71,6 +71,10 @@ it('sends side images and clears only the side context', async () => {
       await mainInput.press('Enter')
       const side = page.locator('[data-aside="side"]:visible')
       await side.getByText('Side fixture answer', { exact: true }).waitFor()
+      const clearHistory = side.getByRole('button', { name: 'Clear conversation history', exact: true })
+      await expect.poll(() => clearHistory.isEnabled()).toBe(true)
+      await mkdir(fileURLToPath(new URL('../../../.artifacts/screenshots/side-clear-history', import.meta.url)), { recursive: true })
+      await side.screenshot({ path: fileURLToPath(new URL('../../../.artifacts/screenshots/side-clear-history/panel.png', import.meta.url)) })
       const commandRequest = adapter.requests.findLast(request => JSON.stringify(request.messages).includes('OLD_SIDE_732'))
       const commandImage = commandRequest?.messages.flatMap(message => message.content).find(part => part.type === 'image')
       if (commandImage?.type !== 'image') throw new Error('Side command did not deliver an image to the adapter')

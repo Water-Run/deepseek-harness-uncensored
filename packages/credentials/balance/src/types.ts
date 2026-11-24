@@ -11,11 +11,26 @@ export interface BalanceSample {
   readonly wallets: readonly BalanceWallet[]
 }
 
+/** Automatic retention applied when a new sample is written. */
+export type BalanceAutoCleanup = 'off' | 'count' | 'age'
+
+/** How one manual cleanup removes stored samples. */
+export type BalanceCleanupRequest =
+  | { readonly mode: 'all' }
+  | { readonly mode: 'count'; readonly keep: number }
+  | { readonly mode: 'age'; readonly days: number }
+
 /** Local sampling preferences persisted with the application's settings. */
 export interface BalancePreferences {
   readonly enabled: boolean
   readonly refreshSeconds: number
   readonly source: 'local' | 'api'
+  /** Automatic cleanup mode applied while sampling. */
+  readonly autoCleanup: BalanceAutoCleanup
+  /** Samples kept, newest first, when `autoCleanup` is `count`. */
+  readonly retainCount: number
+  /** Days of history kept when `autoCleanup` is `age`. */
+  readonly retainDays: number
 }
 
 /** Query state retains prior observations when the API or storage is unavailable. */

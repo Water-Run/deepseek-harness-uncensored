@@ -6,7 +6,7 @@ import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-cli
 import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { BalancePreferences, BalanceSnapshot, BalanceWallet } from '@deepseek-ai/dsh-balance/types'
+import type { BalanceCleanupRequest, BalancePreferences, BalanceSnapshot, BalanceWallet } from '@deepseek-ai/dsh-balance/types'
 import type { BalanceController, BalanceViewState } from './balance-controller.ts'
 import { BalanceHistory } from './BalanceHistory.tsx'
 import { balancePeriod, balancePeriodEnd } from './balance-hours.ts'
@@ -19,6 +19,7 @@ export interface BalanceInjected {
   hooks: { balance: SnapshotStore<BalanceViewState>; balancePreferences: ConfigForm<BalancePreferences> }
   refresh: () => void
   save: BalanceController['save']
+  clear: BalanceController['clear']
   dismissToast: (id: number) => void
 }
 type SharedProps = PropsLocale<'settings.account'> & InjectFace<BalanceInjected>
@@ -100,16 +101,47 @@ function BalanceDetails({ data, refreshing = false, t }: { data: BalanceSnapshot
   </div>
 }
 
+/** Cleanup modes offered for stored samples. */
+type CleanupMode = BalanceCleanupRequest['mode']
+
+/** Toast copy per controller outcome. */
+const TOAST_KEYS = {
+  saved: 'balance.saved',
+  saveFailed: 'balance.saveFailed',
+  cleared: 'balance.cleared',
+  clearFailed: 'balance.clearFailed',
+} as const
+
 /** @param props - Shared balance state and live preferences. @returns The built-in settings section. */
-export function BalanceSettings({ useBalance, useBalancePreferences, refresh, save, t }: BalanceSettingsProps) {
+export function BalanceSettings({ useBalance, useBalancePreferences, refresh, save, clear, t }: BalanceSettingsProps) {
   const state = useBalance(value => value)
   const form = useBalancePreferences(value => value)
   const preferences = form.value
   const [draft, setDraft] = useState<string | null>(null)
+  const [retainDraft, setRetainDraft] = useState<string | null>(null)
+  const [cleanupMode, setCleanupMode] = useState<CleanupMode>('age')
+  const [cleanupDraft, setCleanupDraft] = useState('30')
+  const [armed, setArmed] = useState(false)
   const id = useId()
+  useEffect(() => {
+    if (!armed) return
+    const timer = window.setTimeout(() => { setArmed(false) }, 5_000)
+    return () => { window.clearTimeout(timer) }
+  }, [armed])
   if (preferences === undefined) return null
   const interval = draft ?? String(preferences.refreshSeconds)
   const invalid = draft !== null && (!Number.isInteger(Number(draft)) || Number(draft) < 3 || Number(draft) > 3600)
+  const retainField = preferences.autoCleanup === 'count' ? 'retainCount' : 'retainDays'
+  const retainLimit = preferences.autoCleanup === 'count' ? 40320 : 3650
+  const retainValue = retainDraft ?? String(preferences[retainField])
+  const retainInvalid = retainDraft !== null && (!Number.isInteger(Number(retainDraft))
+    || Number(retainDraft) < (preferences.autoCleanup === 'count' ? 2 : 1) || Number(retainDraft) > retainLimit)
+  const cleanupValue = Number(cleanupDraft)
+  const cleanupInvalid = cleanupMode !== 'all'
+    && (!Number.isInteger(cleanupValue) || cleanupValue < 1 || cleanupValue > (cleanupMode === 'count' ? 40320 : 3650))
+  const request: BalanceCleanupRequest = cleanupMode === 'all' ? { mode: 'all' }
+    : cleanupMode === 'count' ? { mode: 'count', keep: cleanupValue } : { mode: 'age', days: cleanupValue }
+  const busy = state.saving || state.clearing
   return <section className={css.settings}>
     <header className={css.sectionHead}><h3>{t('balance.title')}</h3><Switch label={t('balance.enabled')} checked={preferences.enabled} busy={state.saving} disabled={!form.writable} onChange={(value) => { void save('enabled', value) }} /></header>
     <div className={css.observation}>
@@ -129,6 +161,40 @@ export function BalanceSettings({ useBalance, useBalancePreferences, refresh, sa
           onChange={(event) => { setDraft(event.target.value) }} onBlur={() => { if (!invalid && draft !== null) void save('refreshSeconds', Number(draft)).then((ok) => { if (ok) setDraft(null) }) }} /></div>
       </PreferenceControlRow>
       {invalid && <p id={`${id}-error`} role="alert" className={css.error}>{t('balance.intervalError')}</p>}
+      <PreferenceControlRow title={t('balance.cleanup')}>
+        <div className={css.cleanup}>
+          <Select label={t('balance.cleanup')} value={cleanupMode} disabled={busy || !preferences.enabled}
+            options={[{ value: 'age', label: t('balance.cleanupByAge') }, { value: 'count', label: t('balance.cleanupByCount') }, { value: 'all', label: t('balance.cleanupAll') }]}
+            onChange={(value) => { setCleanupMode(value); setArmed(false) }} />
+          {cleanupMode !== 'all' && <div className={css.interval}><Input id={`${id}-cleanup`} aria-label={t(cleanupMode === 'count' ? 'balance.keepCount' : 'balance.keepDays')} type="number" min={1} max={cleanupMode === 'count' ? 40320 : 3650} step={1}
+            value={cleanupDraft} aria-invalid={cleanupInvalid} aria-describedby={cleanupInvalid ? `${id}-cleanup-error` : undefined} disabled={busy || !preferences.enabled}
+            onChange={(event) => { setCleanupDraft(event.target.value); setArmed(false) }} /></div>}
+          <Button size="sm" variant={armed ? 'primary' : 'outline'} disabled={cleanupInvalid || busy || !preferences.enabled}
+            onClick={() => {
+              if (cleanupMode === 'all' && !armed) { setArmed(true); return }
+              setArmed(false)
+              void clear(request)
+            }}>{armed ? t('balance.cleanupConfirm') : t('balance.cleanupNow')}</Button>
+        </div>
+      </PreferenceControlRow>
+      {cleanupInvalid && <p id={`${id}-cleanup-error`} role="alert" className={css.error}>{t(cleanupMode === 'count' ? 'balance.keepCountError' : 'balance.keepDaysError')}</p>}
+      <p className={css.hint}>{t('balance.cleanupHint')}</p>
+      <PreferenceControlRow title={t('balance.autoCleanup')}>
+        <div className={css.cleanup}>
+          <Select label={t('balance.autoCleanup')} value={preferences.autoCleanup} disabled={state.saving || !form.writable}
+            options={[{ value: 'off', label: t('balance.autoOff') }, { value: 'count', label: t('balance.cleanupByCount') }, { value: 'age', label: t('balance.cleanupByAge') }]}
+            onChange={(value) => { setRetainDraft(null); void save('autoCleanup', value) }} />
+          {preferences.autoCleanup !== 'off' && <div className={css.interval}><Input id={`${id}-retain`} aria-label={t(preferences.autoCleanup === 'count' ? 'balance.keepCount' : 'balance.keepDays')} type="number" min={preferences.autoCleanup === 'count' ? 2 : 1} max={retainLimit} step={1}
+            value={retainValue} aria-invalid={retainInvalid} aria-describedby={retainInvalid ? `${id}-retain-error` : undefined} disabled={state.saving || !form.writable}
+            onChange={(event) => { setRetainDraft(event.target.value) }}
+            onBlur={() => {
+              if (retainInvalid || retainDraft === null) return
+              void save(retainField, Number(retainDraft)).then((ok) => { if (ok) setRetainDraft(null) })
+            }} /></div>}
+        </div>
+      </PreferenceControlRow>
+      {retainInvalid && <p id={`${id}-retain-error`} role="alert" className={css.error}>{t(preferences.autoCleanup === 'count' ? 'balance.keepCountError' : 'balance.keepDaysError')}</p>}
+      <p className={css.hint}>{t('balance.autoCleanupHint')}</p>
       <p className={css.hint}>{t(preferences.source === 'api' ? 'balance.apiHint' : 'balance.localHint')}</p>
       <a href="https://api-docs.deepseek.com/quick_start/pricing/" target="_blank" rel="noreferrer">{t('balance.pricing')}</a>
     </details>
@@ -148,7 +214,7 @@ export function BalanceSidebar({ wide, useBalance, useBalancePreferences, refres
   const endsAt = balancePeriodEnd(now)
   const left = endsAt === undefined ? undefined : remainingTime(endsAt - now)
   return <>
-    {state.toast !== null && <Toast key={state.toastId} text={t(state.toast === 'saved' ? 'balance.saved' : 'balance.saveFailed')} onDone={() => { dismissToast(state.toastId) }} />}
+    {state.toast !== null && <Toast key={state.toastId} text={t(TOAST_KEYS[state.toast])} onDone={() => { dismissToast(state.toastId) }} />}
     {enabled && wallet !== undefined && <div className={css.sidebar}>
       <HoverCard inline anchor={<button type="button" onClick={refresh} className={css.summary} data-period={period} data-wide={wide} data-failed={state.failed}
         aria-label={t('balance.title')} aria-busy={state.loading}>

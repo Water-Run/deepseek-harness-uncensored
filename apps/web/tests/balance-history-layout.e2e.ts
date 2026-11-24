@@ -24,6 +24,7 @@ it('keeps sub-cent observations and a small rise visible in a dense history in b
   const engine = new BalanceEngine({
     identify: async () => ({ key: 'balance-fixture', account: 'api-key', query: async () => null, current: async () => true }),
     read: () => samples, write: async () => {}, limit: samples.length, displayLimit: 240, timeoutMs: 1000, now: Date.now,
+    retention: () => ({ mode: 'off', count: 2000, days: 30 }),
   })
   onTestFinished(() => engine.close())
   const balance = vi.spyOn(scaffold.ctx.uncensoredBalance, 'get').mockImplementation(client => engine.read(client, 'local'))

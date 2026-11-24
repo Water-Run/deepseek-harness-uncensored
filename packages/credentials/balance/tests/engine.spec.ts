@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { BalanceEngine, balanceStorageKey } from '../src/engine.ts'
+import { BalanceEngine, balanceStorageKey, cleanSamples, retainSamples } from '../src/engine.ts'
 import type { BalanceIdentity } from '../src/engine.ts'
 import type { BalanceSample } from '../src/types.ts'
 
@@ -11,10 +11,11 @@ function setup(seed: readonly BalanceSample[] = [], displayLimit = 3) {
   const rows = new Map<string, readonly BalanceSample[]>([['one', seed]])
   const identity: BalanceIdentity = { key: 'one', account: 'api-key', current: vi.fn(async () => true),
     query: vi.fn(async () => [{ currency: 'CNY' as const, toppedUp: '23.50', granted: '5' }]) }
-  const identify = vi.fn(async () => identity)
+  const identify = vi.fn<() => Promise<BalanceIdentity | null>>(async () => identity)
   const write = vi.fn(async (key: string, value: readonly BalanceSample[]) => { rows.set(key, value) })
   const engine = new BalanceEngine({ identify, read: key => rows.get(key), write,
-    limit: 5, displayLimit, timeoutMs: 1000, now: () => 100 })
+    limit: 5, displayLimit, timeoutMs: 1000, now: () => 100,
+    retention: () => ({ mode: 'off', count: 2000, days: 30 }) })
   engines.push(engine)
   return { engine, rows, identity, identify, write }
 }
@@ -87,4 +88,43 @@ it('waits for an admitted query during disposal and prevents its late write', as
 it('uses opaque, identity-specific storage keys', () => {
   expect(balanceStorageKey('private-secret')).toMatch(/^[0-9a-f]{64}$/u)
   expect(balanceStorageKey('one')).not.toBe(balanceStorageKey('two'))
+})
+
+const DAY = 86_400_000
+const wallets = [{ currency: 'CNY' as const, toppedUp: '10', granted: '0' }]
+const spaced = (count: number): readonly BalanceSample[] =>
+  Array.from({ length: count }, (_value, index) => ({ time: index * DAY, wallets }))
+
+it('applies automatic retention by count, by age, or not at all', () => {
+  const samples = spaced(6)
+  expect(retainSamples(samples, { mode: 'off', count: 2, days: 2 }, 6 * DAY)).toEqual(samples)
+  expect(retainSamples(samples, { mode: 'count', count: 2, days: 2 }, 6 * DAY).map(sample => sample.time)).toEqual([4 * DAY, 5 * DAY])
+  expect(retainSamples(samples, { mode: 'age', count: 2, days: 2 }, 6 * DAY).map(sample => sample.time)).toEqual([4 * DAY, 5 * DAY])
+  expect(retainSamples(samples, { mode: 'age', count: 2, days: 1 }, 100 * DAY).map(sample => sample.time)).toEqual([5 * DAY])
+})
+
+it('cleans stored samples by age, by count, or completely', () => {
+  const samples = spaced(4)
+  expect(cleanSamples(samples, { mode: 'all' }, 4 * DAY)).toEqual([])
+  expect(cleanSamples(samples, { mode: 'count', keep: 2 }, 4 * DAY).map(sample => sample.time)).toEqual([2 * DAY, 3 * DAY])
+  expect(cleanSamples(samples, { mode: 'age', days: 2 }, 4 * DAY).map(sample => sample.time)).toEqual([2 * DAY, 3 * DAY])
+  expect(cleanSamples(samples, { mode: 'age', days: 1 }, 100 * DAY).map(sample => sample.time)).toEqual([3 * DAY])
+})
+
+it('writes the cleaned history and reports it as a local snapshot', async () => {
+  const prior = spaced(4)
+  const b = setup(prior)
+  const cleared = await b.engine.clear(client, { mode: 'count', keep: 2 })
+  expect(b.rows.get('one')?.map(sample => sample.time)).toEqual([2 * DAY, 3 * DAY])
+  expect(cleared).toMatchObject({ status: 'ready', source: 'local', account: 'api-key', sampleCount: 2 })
+  const emptied = await b.engine.clear(client, { mode: 'all' })
+  expect(b.rows.get('one')).toEqual([])
+  expect(emptied).toMatchObject({ status: 'empty', sampleCount: 0 })
+})
+
+it('reports a cleanup against a signed-out account without touching storage', async () => {
+  const b = setup(spaced(2))
+  b.identify.mockResolvedValueOnce(null)
+  expect(await b.engine.clear(client, { mode: 'all' })).toMatchObject({ status: 'signed-out', sampleCount: 0 })
+  expect(b.write).not.toHaveBeenCalled()
 })
