@@ -1762,12 +1762,16 @@ index 0000000000000000000000000000000000000000..39232c1ec1842713c612da20295ca814
 +}, 120_000)
 diff --git a/apps/web/tests/writing-spending.e2e.ts b/apps/web/tests/writing-spending.e2e.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..fba0c46014b3821790bc6629d92b3b45bf807164
+index 0000000000000000000000000000000000000000..124210d8ee71c134dd81f6ec0bdea25a02f55beb
 --- /dev/null
 +++ b/apps/web/tests/writing-spending.e2e.ts
-@@ -0,0 +1,104 @@
+@@ -0,0 +1,151 @@
 +/** Writing materials and concurrent rolling limits through the shipped Web Host. */
 +import { fileURLToPath } from 'node:url'
++import { mkdir } from 'node:fs/promises'
++import { join } from 'node:path'
++import { chromium, type Page } from 'playwright'
++import { newEnglishPage } from './support.ts'
 +import { expect, it } from 'vitest'
 +import { brandString } from '@deepseek-ai/dsh-brand'
 +import { LlmAdapter, type GenerateOptions, type StreamChunk } from '@deepseek-ai/dsh-llm'
@@ -1788,9 +1792,20 @@ index 0000000000000000000000000000000000000000..fba0c46014b3821790bc6629d92b3b45
 +  }
 +}
 +
++async function selectConversation(page: Page, id: SessionId): Promise<void> {
++  const row = page.locator('[data-row-key="session:' + id + '"]')
++  await expect.poll(async () => {
++    if (await row.isVisible()) return true
++    const group = page.locator('[role="treeitem"][aria-expanded="false"]').first()
++    if (await group.isVisible()) await group.click()
++    return row.isVisible()
++  }, { timeout: 15_000 }).toBe(true)
++  await row.click()
++}
++
 +it('admits selected style and canon only after both windows recover and logs each withdrawal', async () => {
 +  const scaffold = await launchWebScaffold({
-+    extraOverlayPath: fileURLToPath(new URL('./fixtures/writing-spending/rate.overlay.yml', import.meta.url)),
++    extraOverlayPath: ['./pin-browse-picker.overlay.yml', './fixtures/writing-spending/rate.overlay.yml'].map(path => fileURLToPath(new URL(path, import.meta.url))),
 +  })
 +  const { ctx } = scaffold
 +  try {
@@ -1844,6 +1859,38 @@ index 0000000000000000000000000000000000000000..fba0c46014b3821790bc6629d92b3b45
 +    const logged = observed.events.filter(event => event.type === 'user/message' && event.data.source.kind === 'mode-dossiers')
 +    expect(logged.map(event => event.data)).toEqual(materials(adapter.requests[2]!))
 +    expect((await ctx.spendLimit.sessionUsage(sessionId)).requests).toBe(2)
++
++    const browser = await chromium.launch()
++    try {
++      const page = await newEnglishPage(browser)
++      await page.emulateMedia({ reducedMotion: 'reduce' })
++      await page.goto(scaffold.authenticatedUrl)
++      await selectConversation(page, standard.sessionId)
++      await page.getByRole('button', { name: 'Conversation cost: ￥1.00', exact: true }).waitFor()
++      await selectConversation(page, sessionId)
++      const reading = page.getByRole('button', { name: 'Conversation cost: ￥0.000216', exact: true })
++      const output = fileURLToPath(new URL('../../../.artifacts/screenshots/writing-spending', import.meta.url))
++      await mkdir(output, { recursive: true })
++      for (const width of [1280, 390]) {
++        await page.setViewportSize({ width, height: 840 })
++        await reading.click()
++        const detail = page.getByRole('dialog', { name: 'Conversation cost' })
++        await detail.getByText('2 recorded model requests', { exact: true }).waitFor()
++        const slider = detail.getByRole('slider', { name: 'Cumulative estimated cost' })
++        await slider.press('Home')
++        expect(await slider.getAttribute('aria-valuenow')).toBe('0')
++        await slider.press('End')
++        expect(await slider.getAttribute('aria-valuenow')).toBe('1')
++        const box = await detail.boundingBox()
++        expect(box).not.toBeNull()
++        expect(box!.x).toBeGreaterThanOrEqual(0)
++        expect(box!.x + box!.width).toBeLessThanOrEqual(width)
++        await page.screenshot({ path: join(output, 'cost-' + width + '.png') })
++        await slider.press('Escape')
++        await detail.waitFor({ state: 'hidden' })
++        expect(await reading.evaluate(element => element === document.activeElement)).toBe(true)
++      }
++    } finally { await browser.close() }
 +
 +    const coldId = brandString<SessionId>('writing-disposed-while-waiting')
 +    const handle = await ctx.agents.create({
@@ -11045,11 +11092,330 @@ index 0000000000000000000000000000000000000000..7aa03cebc166f1d04de1f058a5e4a3db
 +import { clientBundle } from '../tsdown.client.ts'
 +
 +export default clientBundle(import.meta.dirname, ['lib/types/index.js'])
+diff --git a/packages/client/ui-primitives/README.i18n.yaml b/packages/client/ui-primitives/README.i18n.yaml
+index 61b3e617fc8de35d84ec9c94299d5de269fd0f60..fb8d39342f2c58eda6e732b88020835eb2b3a764 100644
+--- a/packages/client/ui-primitives/README.i18n.yaml
++++ b/packages/client/ui-primitives/README.i18n.yaml
+@@ -9,8 +9,8 @@
+   en: e39769cae26393b8
+   zh: 8743c8cf561fec35
+ /deepseek-ai-dsh-client-ui-primitives/summary:
+-  en: a05472dce901d64f
+-  zh: 6747ad81824a5c0d
++  en: 2eb2581700ba4861
++  zh: c29d45bb6625c96c
+ /deepseek-ai-dsh-client-ui-primitives/table-of-contents:
+   en: d152484eb41ac6b4
+   zh: 09388d293f9be9cb
+diff --git a/packages/client/ui-primitives/README.md b/packages/client/ui-primitives/README.md
+index de08307ab88aa3735106f18068f3a6be88bc54bb..20607f264379c93473ecf610b4cf6078047a07bd 100644
+--- a/packages/client/ui-primitives/README.md
++++ b/packages/client/ui-primitives/README.md
+@@ -9,6 +9,8 @@ English | [中文](README.zh.md)
+ 
+ ## Summary
+ 
++StatPopover opens footer statistics in a viewport-fitting panel. Escape and outside clicks close it and return focus to the reading.
++
+ Use `dsh-client-ui-primitives` to build web-client controls and render agent output with shared React UI. It includes standard controls, icons, anchored overlays, and renderers for Markdown with TeX, terminal output, file reads, diffs, search, web retrieval, and JSON. The renderers handle untrusted model output by dropping raw HTML, restricting links, and parsing ANSI escape sequences. The components import no Cordis runtime; callers supply localized labels, and theme-facing colors use `--dsw-*` design tokens.
+ 
+ ## Table of Contents
+diff --git a/packages/client/ui-primitives/README.zh.md b/packages/client/ui-primitives/README.zh.md
+index efbfbf3cf2745249bd9a7c0efabbe2c395402f13..b5a9675b2961540ea833eff5546868c357adb8e7 100644
+--- a/packages/client/ui-primitives/README.zh.md
++++ b/packages/client/ui-primitives/README.zh.md
+@@ -9,6 +9,8 @@ kind: "package-library"
+ 
+ ## 概述
+ 
++StatPopover 在可视区域内展开底栏统计。按 Escape 或点击外部关闭后，焦点返回原读数。
++
+ 使用 `dsh-client-ui-primitives`，通过共享 React UI 构建 Web 客户端控件并渲染 agent 输出。它提供标准控件、图标、锚定浮层，以及用于带 TeX 公式的 Markdown、终端输出、文件读取、差异、搜索、网页检索和 JSON 的渲染器。这些渲染器会丢弃原始 HTML、限制链接并解析 ANSI 转义序列，以处理不受信任的模型输出。组件不 import Cordis 运行时；调用方提供本地化 label，主题相关颜色使用 `--dsw-*` 设计 token。
+ 
+ ## 目录
+diff --git a/packages/client/ui-primitives/src/StatPopover.module.css b/packages/client/ui-primitives/src/StatPopover.module.css
+new file mode 100644
+index 0000000000000000000000000000000000000000..69cc30b7d95e206cf6d27bd770120eb9983a25b6
+--- /dev/null
++++ b/packages/client/ui-primitives/src/StatPopover.module.css
+@@ -0,0 +1,9 @@
++.root { display: inline-flex; min-width: 0; font-size: calc(var(--dsh-content-font-size-secondary, 13px) - 1px); line-height: calc(20px + var(--dsh-content-font-delta-secondary, 0px)); }
++.trigger { display: inline-flex; align-items: center; gap: 6px; min-width: 0; border: 0; border-radius: var(--dsw-radius-sm); background: transparent; font-size: 12px; cursor: pointer; padding: 1px 8px; color: var(--dsw-alias-label-tertiary); font: inherit; line-height: inherit; font-variant-numeric: tabular-nums; white-space: nowrap; }
++.trigger svg { flex: none; width: 14px; height: 14px; }
++.trigger:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 2px; }
++.trigger[aria-expanded='true'] { background: var(--dsw-alias-interactive-bg-hover); color: var(--dsw-alias-label-secondary); }
++.panel { position: fixed; z-index: 1100; box-sizing: border-box; width: min(360px, calc(100vw - 24px)); max-height: calc(100dvh - max(12px, var(--dsh-frame-overlay-top, 12px)) - 12px); overflow: auto; padding: 16px; box-shadow: var(--dsw-elevation-prominent); color: var(--dsw-alias-label-primary); font-size: 12px; line-height: 1.5; --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2); --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2); }
++.title { margin: 0 0 12px; font-size: 14px; font-weight: 500; }
++.panel[data-exiting] { pointer-events: none; }
++@media (hover: hover) { .trigger:hover { background: var(--dsw-alias-interactive-bg-hover); } }
+diff --git a/packages/client/ui-primitives/src/StatPopover.tsx b/packages/client/ui-primitives/src/StatPopover.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..4c05f143c6ea7e2fdcd4653d0a74570cad36c1a0
+--- /dev/null
++++ b/packages/client/ui-primitives/src/StatPopover.tsx
+@@ -0,0 +1,39 @@
++/** Click-open statistics panel using the shared placement, dismissal and menu material. */
++import { useRef, useState } from 'react'
++import type { ReactNode } from 'react'
++import { createPortal } from 'react-dom'
++import { useAnchoredPosition } from './useAnchoredPosition.ts'
++import { useDismissOnOutsidePointer } from './useDismissOnOutsidePointer.ts'
++import { MenuSurface } from './MenuSurface.tsx'
++import { useOverlayPresence } from './useOverlayPresence.ts'
++import { useModalLayer } from './useModalLayer.ts'
++import { focusWithoutRing } from './focus.ts'
++import css from './StatPopover.module.css'
++
++/**
++ * Render a footer reading whose viewport-fitting details return focus to their trigger.
++ * @param props - Localized reading, panel title, decorative icon and details.
++ * @returns Clickable reading and its keyboard-accessible details.
++ */
++export function StatPopover({ label, title, icon, children }: { label: string; title: string; icon: ReactNode; children: ReactNode }) {
++  const [open, setOpen] = useState(false)
++  const present = useOverlayPresence(open)
++  const root = useRef<HTMLSpanElement>(null)
++  const panel = useRef<HTMLDivElement>(null)
++  const position = useAnchoredPosition({ open: present, anchorRef: root, panelRef: panel, side: 'top', gap: 8, margin: 12 })
++  useDismissOnOutsidePointer(root, open, setOpen, panel)
++  useModalLayer(panel, open && position !== null, () => { setOpen(false) })
++  return <span ref={root} className={css.root}>
++    <button type="button" className={css.trigger} aria-label={`${title}: ${label}`} aria-haspopup="dialog" aria-expanded={open}
++      onClick={(event) => {
++        const control = event.currentTarget
++        if (!open && control.ownerDocument.activeElement !== control) focusWithoutRing(control, { preventScroll: true })
++        setOpen(value => !value)
++      }}>{icon}<span>{label}</span></button>
++    {present && createPortal(<MenuSurface ref={panel} phase={open ? 'enter' : 'dismiss'} tabIndex={-1} className={css.panel} role={open ? 'dialog' : undefined} aria-modal={open || undefined} aria-label={title}
++      {...(open ? {} : { inert: '' })} aria-hidden={!open || undefined} data-exiting={!open || undefined}
++      style={position ?? { visibility: 'hidden', left: 0, top: 0 }}>
++      <h3 className={css.title}>{title}</h3>{children}
++    </MenuSurface>, document.body)}
++  </span>
++}
+diff --git a/packages/client/ui-primitives/src/index.ts b/packages/client/ui-primitives/src/index.ts
+index c8b7bf521e2a5d3d29b9628c575ce42578c8d665..95030a96258a9c467484694b69e88e2c0e4a5de2 100644
+--- a/packages/client/ui-primitives/src/index.ts
++++ b/packages/client/ui-primitives/src/index.ts
+@@ -35,6 +35,7 @@ export { Checkbox } from './Checkbox.tsx'
+ export { Input } from './Input.tsx'
+ export { InlineEditor } from './InlineEditor.tsx'
+ export { Menu, MenuItemButton } from './Menu.tsx'
++export { StatPopover } from './StatPopover.tsx'
+ export { MenuSurface, MENU_TRANSITION_MS } from './MenuSurface.tsx'
+ export type { MenuSurfaceProps } from './MenuSurface.tsx'
+ export { MenuGroup, observeStickyMenuGroups } from './MenuGroup.tsx'
+diff --git a/packages/client/ui-primitives/src/useAnchoredPosition.ts b/packages/client/ui-primitives/src/useAnchoredPosition.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..61a891e5a98212571162efa58183d72e8b18b4a2
+--- /dev/null
++++ b/packages/client/ui-primitives/src/useAnchoredPosition.ts
+@@ -0,0 +1,120 @@
++/** Synchronous placement for body-portaled panels with a viewport fixed-position containing block. */
++import { useLayoutEffect, useState, type CSSProperties, type RefObject } from 'react'
++import { overlayTopMargin } from './overlay-top-margin.ts'
++
++/** Inputs for {@link useAnchoredPosition}. */
++export interface AnchoredPositionOptions {
++  /** Whether the panel is mounted and should track its anchor. */
++  open: boolean
++  /** Element whose viewport rect anchors the panel. */
++  anchorRef: RefObject<HTMLElement | null>
++  /** Body-portaled, fixed-position panel; its ancestors must not establish a containing block. */
++  panelRef: RefObject<HTMLElement | null>
++  /** Preferred anchor edge; right-side panels align their top edges. */
++  side?: 'top' | 'bottom' | 'right'
++  /** Horizontal alignment for panels above or below the anchor. */
++  align?: 'start' | 'end'
++  /** Distance from the preferred anchor edge, in CSS pixels. */
++  gap: number
++  /** Minimum viewport inset; desktop frame clearance can increase the top inset. */
++  margin: number
++  /** Reserve desktop frame clearance in addition to the margin; false keeps only the viewport margin. Defaults to true. */
++  frameClearance?: boolean
++  /** Host-supplied client rect; null hides the panel until the anchor is available. */
++  getAnchorRect?: () => DOMRect | null
++  /** Re-measure a committed content change before paint. */
++  layoutKey?: string | number
++  /** Minimum panel width follows the anchor, bounded by the visible viewport. */
++  minWidthFromAnchor?: boolean
++}
++
++/**
++ * Keep a fixed panel aligned and constrained to the visible viewport.
++ * Panel CSS consumes `--dsh-anchored-max-width` and `--dsh-anchored-max-height` for size limits.
++ * The hook owns those inline variables and optional min-width while open, restoring them on cleanup.
++ * @param options - Open state, element refs, placement, and optional host rect or content change key.
++ * @returns Fixed left/top coordinates, or null while closed or awaiting an anchor; the first measurement completes before paint.
++ */
++export function useAnchoredPosition(options: AnchoredPositionOptions): CSSProperties | null {
++  const { open, anchorRef, panelRef, side = 'bottom', align = 'start', gap, margin,
++    getAnchorRect, layoutKey, minWidthFromAnchor = false, frameClearance = true } = options
++  const [position, setPosition] = useState<CSSProperties | null>(null)
++  useLayoutEffect(() => {
++    if (!open) {
++      setPosition(null)
++      return
++    }
++    const anchor = anchorRef.current
++    const panel = panelRef.current
++    if (anchor === null || panel === null) return
++    const win = anchor.ownerDocument.defaultView
++    if (win === null) return
++    const viewport = win.visualViewport
++    // WebKit client rects use the visual origin; viewport-fixed CSS uses the layout origin.
++    const visualOrigin = typeof win.CSS !== 'undefined' && win.CSS.supports('-webkit-backdrop-filter', 'none')
++    const properties = ['--dsh-anchored-max-width', '--dsh-anchored-max-height', ...minWidthFromAnchor ? ['min-width'] : []]
++    const previous = properties.map(name => [name, panel.style.getPropertyValue(name), panel.style.getPropertyPriority(name)] as const)
++    let active = true
++    let lastRect: Pick<DOMRect, 'x' | 'y' | 'width' | 'height'> | null = null
++    const readRect = () => getAnchorRect === undefined ? anchor.getBoundingClientRect() : getAnchorRect()
++    const place = (rect: DOMRect | null): void => {
++      lastRect = rect === null ? null : { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
++      let next: CSSProperties | null = null
++      if (rect !== null) {
++        const x = viewport?.offsetLeft ?? 0
++        const y = viewport?.offsetTop ?? 0
++        const width = viewport?.width ?? (anchor.ownerDocument.documentElement.clientWidth || win.innerWidth)
++        const height = viewport?.height ?? (anchor.ownerDocument.documentElement.clientHeight || win.innerHeight)
++        const topMargin = frameClearance ? overlayTopMargin(margin, rect, gap) : margin
++        const maxWidth = Math.max(0, width - margin * 2)
++        panel.style.setProperty('--dsh-anchored-max-width', `${maxWidth}px`)
++        panel.style.setProperty('--dsh-anchored-max-height', `${Math.max(0, height - topMargin - margin)}px`)
++        if (minWidthFromAnchor) panel.style.minWidth = `${Math.min(rect.width, maxWidth)}px`
++        const panelWidth = panel.offsetWidth
++        const panelHeight = panel.offsetHeight
++        const offsetX = visualOrigin ? x : 0
++        const offsetY = visualOrigin ? y : 0
++        const left = offsetX + (side === 'right' ? rect.right + gap : align === 'end' ? rect.right - panelWidth : rect.left)
++        const top = offsetY + (side === 'right' ? rect.top : side === 'top' ? rect.top - gap - panelHeight : rect.bottom + gap)
++        next = {
++          left: Math.max(x + margin, Math.min(left, x + width - margin - panelWidth)),
++          top: Math.max(y + topMargin, Math.min(top, y + height - margin - panelHeight)),
++        }
++      }
++      setPosition(current => current?.left === next?.left && current?.top === next?.top ? current : next)
++    }
++    const update = (): void => {
++      if (!active) return
++      place(readRect())
++    }
++    update()
++    win.addEventListener('scroll', update, true)
++    win.addEventListener('resize', update)
++    viewport?.addEventListener('scroll', update)
++    viewport?.addEventListener('resize', update)
++    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update)
++    observer?.observe(anchor)
++    observer?.observe(panel)
++    // Transforms and surrounding layout can move an anchor without resizing either element.
++    let frame = 0
++    const track = (): void => {
++      if (!active) return
++      const rect = readRect()
++      if (rect?.x !== lastRect?.x || rect?.y !== lastRect?.y
++        || rect?.width !== lastRect?.width || rect?.height !== lastRect?.height) place(rect)
++      frame = win.requestAnimationFrame(track)
++    }
++    frame = win.requestAnimationFrame(track)
++    return () => {
++      active = false
++      win.cancelAnimationFrame(frame)
++      observer?.disconnect()
++      win.removeEventListener('scroll', update, true)
++      win.removeEventListener('resize', update)
++      viewport?.removeEventListener('scroll', update)
++      viewport?.removeEventListener('resize', update)
++      for (const [name, value, priority] of previous) panel.style.setProperty(name, value, priority)
++    }
++  }, [open, anchorRef, panelRef, side, align, gap, margin, getAnchorRect, layoutKey, minWidthFromAnchor, frameClearance])
++  return position
++}
+diff --git a/packages/client/ui-primitives/src/useOverlayPresence.ts b/packages/client/ui-primitives/src/useOverlayPresence.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..de43b8f94534f46c6040793fd0755ca099d793c6
+--- /dev/null
++++ b/packages/client/ui-primitives/src/useOverlayPresence.ts
+@@ -0,0 +1,21 @@
++/** Briefly retains dismissed overlay paint after its interaction and focus ownership ends. */
++import { useEffect, useState } from 'react'
++
++import { MENU_TRANSITION_MS } from './MenuSurface.tsx'
++
++/**
++ * Keep an overlay mounted for its exit fade; reopening cancels pending removal.
++ * @param open - Whether the overlay owns input and focus.
++ * @returns Whether its visual tree is still present. Closed trees must be inert and aria-hidden.
++ */
++export function useOverlayPresence(open: boolean): boolean {
++  const [retained, setRetained] = useState(open)
++  useEffect(() => {
++    if (open) { setRetained(true); return }
++    if (!retained) return
++    if (typeof window.matchMedia !== 'function' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { setRetained(false); return }
++    const timer = window.setTimeout(() => { setRetained(false) }, MENU_TRANSITION_MS.dismiss)
++    return () => { window.clearTimeout(timer) }
++  }, [open, retained])
++  return open || retained
++}
+diff --git a/packages/client/ui-primitives/tests/stat-popover.client.spec.tsx b/packages/client/ui-primitives/tests/stat-popover.client.spec.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..0d65bb8222137c219eded6098fc0eb7c979081ca
+--- /dev/null
++++ b/packages/client/ui-primitives/tests/stat-popover.client.spec.tsx
+@@ -0,0 +1,39 @@
++// @vitest-environment jsdom
++import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
++import { afterEach, expect, it } from 'vitest'
++import { StatPopover } from '../src/StatPopover.tsx'
++
++afterEach(cleanup)
++
++it('opens details from a reading and releases focus on Escape or outside pointer', async () => {
++  render(<StatPopover label="5h 98%" title="Spending limits" icon={<svg />}><button>Settings</button></StatPopover>)
++  const trigger = screen.getByRole('button', { name: 'Spending limits: 5h 98%' })
++  trigger.focus()
++  fireEvent.click(trigger)
++  await waitFor(() => { expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Settings' })) })
++  fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
++  expect(screen.queryByRole('dialog')).toBeNull()
++  expect(document.activeElement).toBe(trigger)
++  fireEvent.click(trigger)
++  await waitFor(() => { expect(screen.getByRole('dialog')).toBeTruthy() })
++  fireEvent.click(trigger)
++  expect(screen.queryByRole('dialog')).toBeNull()
++  fireEvent.click(trigger)
++  await waitFor(() => { expect(screen.getByRole('dialog')).toBeTruthy() })
++  fireEvent.pointerDown(document.body)
++  expect(screen.queryByRole('dialog')).toBeNull()
++})
++
++it('returns focus to the reading when pointer activation leaves focus elsewhere', async () => {
++  render(<>
++    <input aria-label="Composer" />
++    <StatPopover label="￥0.22" title="Conversation cost" icon={<svg />}><button>Details</button></StatPopover>
++  </>)
++  screen.getByRole('textbox', { name: 'Composer' }).focus()
++  const trigger = screen.getByRole('button', { name: 'Conversation cost: ￥0.22' })
++  fireEvent.click(trigger)
++  await waitFor(() => { expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Details' })) })
++  fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
++  expect(screen.queryByRole('dialog')).toBeNull()
++  expect(document.activeElement).toBe(trigger)
++})
 diff --git a/packages/client/ui-settings-account/README.i18n.yaml b/packages/client/ui-settings-account/README.i18n.yaml
-index 217a3754e16c0f3effcb7b80ccadbcf7e5ff3f67..444f7db7a25291c0e133e6b18361d53adf4b836d 100644
+index 217a3754e16c0f3effcb7b80ccadbcf7e5ff3f67..37dc22ea6991318c63fb303993ad8b6bf5fbb0b2 100644
 --- a/packages/client/ui-settings-account/README.i18n.yaml
 +++ b/packages/client/ui-settings-account/README.i18n.yaml
-@@ -15,8 +15,8 @@
+@@ -9,14 +9,14 @@
+   en: 9ff7ac2d70f70b59
+   zh: ded522c4cfd6e040
+ /deepseek-ai-dsh-client-ui-settings-account/summary:
+-  en: 54da65ea807d7af1
+-  zh: 359f85d16724d71d
++  en: 9e94e739cb7cfc5d
++  zh: 9f8075636d051061
+ /deepseek-ai-dsh-client-ui-settings-account/table-of-contents:
    en: c26f81e8adf0128b
    zh: e11ab371f51f66bc
  /deepseek-ai-dsh-client-ui-settings-account/use-this-package:
@@ -11061,10 +11427,19 @@ index 217a3754e16c0f3effcb7b80ccadbcf7e5ff3f67..444f7db7a25291c0e133e6b18361d53a
    en: b17e3d33f66af025
    zh: 780f813205d955d9
 diff --git a/packages/client/ui-settings-account/README.md b/packages/client/ui-settings-account/README.md
-index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..d69f2a247f6ce45e715ad402cf29ed1aae42a9a8 100644
+index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..9fcdec4150a9cc39b402181ea8df7ce8ab61133c 100644
 --- a/packages/client/ui-settings-account/README.md
 +++ b/packages/client/ui-settings-account/README.md
-@@ -28,6 +28,8 @@ A new account-model sign-in-required event displays “Model unavailable. Please
+@@ -13,6 +13,8 @@ Server-expired account credentials clear the displayed account details and emit
+ 
+ ## Summary
+ 
++An active conversation shows its estimated cost and shared spending limits below the composer. Open a reading to inspect cumulative cost or each enabled window. Unpriced requests are counted separately.
++
+ The Account settings section displays DeepSeek login state and offers browser sign-in and cancellation; the sidebar account menu provides Platform sign-out. Desktop users also receive a resumable introduction to account credit and presentation preferences.
+ 
+ The sign-in dialog offers network troubleshooting only for `no-response` failures. HTTP, business, response-validation, storage, and account-stream failures retain the generic retry message.
+@@ -28,6 +30,8 @@ A new account-model sign-in-required event displays “Model unavailable. Please
  <a id="use-this-package"></a>
  ## Use this package
  
@@ -11074,10 +11449,19 @@ index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..d69f2a247f6ce45e715ad402cf29ed1a
  
  Desktop and plain Web clients both mount the sidebar account launcher, Account settings, the sign-in step of model onboarding, and the account-state subscription. Desktop main opens the authorization page in the system browser. A plain Web client, identified by the absent Desktop preload bridge, sends `login_source` web with its own origin as the callback origin, preopens a tab during the sign-in click, navigates it to the authorization URL with the same `theme` parameter once its attempt receives one, and closes it on failure, expiry, or cancellation; a blocked popup leaves the copy-link route. Embedded Platform pages, Desktop onboarding, and the native device reader stay Desktop-only, so Web Platform links open new tabs.
 diff --git a/packages/client/ui-settings-account/README.zh.md b/packages/client/ui-settings-account/README.zh.md
-index 7ea45f5067591a84fb43ef786026cc0c1246729b..18dbe3e96fb53535e4814a511f703ae9c74ab635 100644
+index 7ea45f5067591a84fb43ef786026cc0c1246729b..631648dc28dbec00064600e277bcd24c4d9672a6 100644
 --- a/packages/client/ui-settings-account/README.zh.md
 +++ b/packages/client/ui-settings-account/README.zh.md
-@@ -28,6 +28,8 @@ kind: "package-reference"
+@@ -13,6 +13,8 @@ kind: "package-reference"
+ 
+ ## 概述
+ 
++有内容的对话在输入框下方显示本对话估算费用及共用额度。点击读数可查看累计费用曲线或各启用窗口的占用，缺少用量或费率的请求单列数量。
++
+ 设置中的账号页面显示 DeepSeek 登录状态，并提供浏览器登录和取消；侧边栏账号菜单提供 Platform 退出登录。Desktop 用户还会进入可恢复的引导，了解账号额度并选择展示偏好。
+ 
+ 登录弹窗仅对 `no-response` 失败提示检查网络。HTTP、业务、响应校验、存储和账号状态流失败仍显示通用重试提示。
+@@ -28,6 +30,8 @@ kind: "package-reference"
  <a id="use-this-package"></a>
  ## 使用此包
  
@@ -11087,28 +11471,237 @@ index 7ea45f5067591a84fb43ef786026cc0c1246729b..18dbe3e96fb53535e4814a511f703ae9
  
  Desktop 与普通 Web 客户端都挂载侧边栏账号菜单、账号设置、模型引导中的登录步骤，并订阅账号状态。Desktop 主进程在系统浏览器中打开授权页面。普通 Web 客户端（以缺少 Desktop preload 桥接识别）以 `login_source` web 发起登录，并以自身 origin 作为回调 origin；它在点击登录时预先打开一个标签页，本次尝试获得授权 URL 后带上相同的 `theme` 参数导航该标签页，并在失败、过期或取消时关闭它；弹窗被拦截时仍可使用复制链接。内嵌 Platform 页面、Desktop 引导和原生设备信息读取器仅在 Desktop 中提供，因此 Web 中的 Platform 链接在新标签页打开。
 diff --git a/packages/client/ui-settings-account/package.json b/packages/client/ui-settings-account/package.json
-index 1b9612ca205da42b52a6c6d7b625231b5bfd4800..1b9420fe8b41a7e96f4ea1b83232092d9dd820a8 100644
+index 1b9612ca205da42b52a6c6d7b625231b5bfd4800..689af3731d9b5a468d41c52c1af7949ac19f595e 100644
 --- a/packages/client/ui-settings-account/package.json
 +++ b/packages/client/ui-settings-account/package.json
-@@ -71,7 +71,9 @@
+@@ -71,7 +71,13 @@
      "@deepseek-ai/dsh-client-ui-settings-models": "workspace:*",
      "@deepseek-ai/dsh-host-webserver": "workspace:*",
      "big.js": "^7.0.1",
 -    "@deepseek-ai/dsh-client-product-analytics": "workspace:*"
 +    "@deepseek-ai/dsh-client-product-analytics": "workspace:*",
 +    "@deepseek-ai/dsh-spend-limit": "workspace:*",
-+    "@deepseek-ai/dsh-client-ui-conversation": "workspace:*"
++    "@deepseek-ai/dsh-client-ui-conversation": "workspace:*",
++    "@deepseek-ai/dsh-brand": "workspace:*",
++    "@deepseek-ai/dsh-session": "workspace:*",
++    "@deepseek-ai/dsh-token-meter": "workspace:*",
++    "@deepseek-ai/dsh-client-resources": "workspace:*"
    },
    "files": [
      "locale/*.json",
+diff --git a/packages/client/ui-settings-account/src/client/BalanceHistory.module.css b/packages/client/ui-settings-account/src/client/BalanceHistory.module.css
+new file mode 100644
+index 0000000000000000000000000000000000000000..ab47b7dbae0b162b7c7618591ab9f7a394b6d410
+--- /dev/null
++++ b/packages/client/ui-settings-account/src/client/BalanceHistory.module.css
+@@ -0,0 +1,19 @@
++.history { min-width: 0; }
++.plot { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px; height: 112px; }
++.axisLabels { display: flex; flex-direction: column; justify-content: space-between; padding-block: 4px; font-size: 11px; line-height: 16px; color: var(--dsw-alias-label-secondary); font-variant-numeric: tabular-nums; }
++.axisLabels[data-flat='true'] { justify-content: center; }
++.chart { display: block; width: 100%; height: 100%; min-width: 0; overflow: visible; }
++.axis { stroke: var(--dsw-alias-border-l2); stroke-width: .5; stroke-dasharray: 3 4; vector-effect: non-scaling-stroke; }
++.line { fill: none; stroke: var(--dsw-alias-state-business-primary); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
++.timeRange { display: flex; justify-content: space-between; gap: 12px; padding-top: 4px; font-size: 11px; color: var(--dsw-alias-label-secondary); font-variant-numeric: tabular-nums; }
++.plotControl { position: relative; min-width: 0; height: 112px; cursor: crosshair; touch-action: pan-y; border-radius: var(--dsw-radius-sm); }
++.plotControl:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 4px; }
++.crosshair { stroke: var(--dsw-alias-label-secondary); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
++.increase { stroke-dasharray: 3 4; }
++.dashHint { margin: 4px 0 0; color: var(--dsw-alias-label-secondary); font-size: 11px; line-height: 1.5; }
++.sampleTip { position: absolute; right: 8px; top: 0; max-width: calc(100% - 16px); display: grid; gap: 2px; padding: 6px 10px; border-radius: var(--dsw-radius-sm); background: var(--dsw-alias-bg-layer-2); box-shadow: var(--dsw-elevation-panel); color: var(--dsw-alias-label-primary); font-size: 11px; font-variant-numeric: tabular-nums; pointer-events: none; }
++.sampleTip strong { font-size: 13px; font-weight: 500; }
++.sampleExact { color: var(--dsw-alias-label-secondary); }
++.sampleTip[data-follow-pointer='true'] { box-sizing: border-box; right: auto; width: max-content; max-width: 100%; overflow-wrap: anywhere; }
++.chartHelp { margin: 8px 0 0; color: var(--dsw-alias-label-secondary); font-size: 11px; line-height: 1.5; }
++.samplePoint { position: absolute; width: 6px; height: 6px; border-radius: 50%; corner-shape: round; transform: translate(-50%, -50%); background: var(--dsw-alias-state-business-primary); pointer-events: none; }
+diff --git a/packages/client/ui-settings-account/src/client/BalanceHistory.tsx b/packages/client/ui-settings-account/src/client/BalanceHistory.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..31d9c19e73181c70d22b5678780943bddf2e2796
+--- /dev/null
++++ b/packages/client/ui-settings-account/src/client/BalanceHistory.tsx
+@@ -0,0 +1,166 @@
++/** Sample inspection uses the original observations, independently of curve downsampling. */
++import { useCallback, useId, useMemo, useRef, useState } from 'react'
++import type { PointerEvent } from 'react'
++import { Big } from 'big.js'
++import { BALANCE_DASH_ARRAY, balanceChart, nearestBalanceSample, retainedBalanceSample, type BalanceChartSample } from './balance-chart.ts'
++import { formatBalance, formatBalanceDetail } from './formatBalance.ts'
++import css from './BalanceHistory.module.css'
++
++function besidePointer(pointer: number, span: number, size: number): number {
++  const gap = 8
++  const end = Math.max(0, span - size)
++  const after = pointer + gap
++  const before = pointer - size - gap
++  return Math.min(end, Math.max(0, after <= end ? after : before))
++}
++
++/**
++ * Inspect sampled balances by pointer, touch, or arrow keys.
++ * Pointer bubbles refit to layout changes without changing the selected observation.
++ * The mounted bubble keeps one set of layout observers while the pointer moves.
++ * @param props - Ordered observations, currency symbol and localized labels.
++ * @returns The chart and its selected observation, or null without samples.
++ */
++export function BalanceHistory({ samples, symbol, label, help, formatValue, stepIncreases = false, dashHint }: {
++  samples: readonly BalanceChartSample[]
++  symbol: '¥' | '$'
++  label: string
++  help: string
++  formatValue?: (value: number) => string
++  stepIncreases?: boolean
++  dashHint?: string
++}) {
++  const [hover, setHover] = useState<BalanceChartSample | null>(null)
++  const [cursor, setCursor] = useState<BalanceChartSample | null>(null)
++  const [focused, setFocused] = useState(false)
++  const pointer = useRef<{ x: number; y: number } | null>(null)
++  const tipPlacement = useRef<{ place(): void; dispose(): void } | null>(null)
++  const attachTip = useCallback((element: HTMLDivElement | null): void => {
++    tipPlacement.current?.dispose()
++    tipPlacement.current = null
++    const plot = element?.parentElement
++    if (element === null || plot == null) return
++    let attached = true
++    const place = (): void => {
++      if (!attached) return
++      const point = pointer.current
++      if (point === null) {
++        element.style.left = ''
++        element.style.top = ''
++        return
++      }
++      const rect = plot.getBoundingClientRect()
++      const width = plot.clientWidth, height = plot.clientHeight
++      const tipWidth = element.offsetWidth, tipHeight = element.offsetHeight
++      // Localized text determines the bubble size; layout changes retain the selected sample.
++      const x = (point.x - rect.left) * width / Math.max(rect.width, 1)
++      const y = (point.y - rect.top) * height / Math.max(rect.height, 1)
++      element.style.left = `${besidePointer(x, width, tipWidth)}px`
++      element.style.top = `${besidePointer(y, height, tipHeight)}px`
++    }
++    place()
++    const win = plot.ownerDocument.defaultView
++    const Observer = win?.ResizeObserver
++    const observer = Observer === undefined ? undefined : new Observer(place)
++    observer?.observe(plot)
++    observer?.observe(element)
++    win?.addEventListener('resize', place)
++    win?.addEventListener('scroll', place, true)
++    tipPlacement.current = { place, dispose() {
++      attached = false
++      observer?.disconnect()
++      win?.removeEventListener('resize', place)
++      win?.removeEventListener('scroll', place, true)
++    } }
++  }, [])
++  const id = useId()
++  const dashes = dashHint !== undefined
++  const [size, setSize] = useState({ plotWidth: 264, plotHeight: 110 })
++  const plotObserver = useRef<ResizeObserver | null>(null)
++  const observePlot = useCallback((plot: HTMLDivElement | null) => {
++    plotObserver.current?.disconnect()
++    plotObserver.current = null
++    if (plot === null || typeof ResizeObserver === 'undefined') return
++    const observer = new ResizeObserver(([entry]) => {
++      if (entry && entry.contentRect.width > 0 && entry.contentRect.height > 0) {
++        setSize({ plotWidth: entry.contentRect.width, plotHeight: entry.contentRect.height })
++      }
++    })
++    plotObserver.current = observer
++    observer.observe(plot)
++  }, [])
++  const geometry = useMemo(() => balanceChart(samples, { stepIncreases, dashes, ...size }), [samples, stepIncreases, dashes, size])
++  const first = samples[0], last = samples.at(-1), range = geometry.range
++  if (first === undefined || last === undefined || range === undefined) return null
++  const axisDigits = range.low === range.high ? 2 : Math.max(2, Math.min(8, 1 - Math.floor(Math.log10(range.high - range.low))))
++  const format = formatValue ?? ((value: number): string => formatBalanceDetail(new Big(value).toFixed(axisDigits), symbol))
++  const inspected = hover ?? cursor
++  const selected = inspected === null ? samples.length - 1 : retainedBalanceSample(samples, inspected)
++  const sample = samples[selected] ?? last
++  const exact = new Big(sample.exactValue ?? sample.value).toString()
++  const detail = formatBalanceDetail(exact, symbol)
++  // The bubble leads with the two-decimal display; extra digits appear only when they differ.
++  const sampleAmount = formatValue?.(sample.value) ?? formatBalance(exact, symbol)
++  const precise = formatValue === undefined && detail !== sampleAmount ? detail : undefined
++  const active = hover !== null || focused
++  const ratio = geometry.positions[selected] ?? 0
++  const x = 52 + ratio * 252
++  const y = range.low === range.high ? 55 : 98 - (sample.value - range.low) * 86 / (range.high - range.low)
++  const dashed = Boolean(geometry.compressed) || Boolean(geometry.gaps)
++
++  const inspect = (event: PointerEvent<HTMLDivElement>): void => {
++    const rect = event.currentTarget.getBoundingClientRect()
++    const x = (event.clientX - rect.left) / Math.max(rect.width, 1)
++    const index = nearestBalanceSample(geometry.positions, (x * 264 - 6) / 252)
++    const sample = samples[index] ?? last
++    pointer.current = { x: event.clientX, y: event.clientY }
++    tipPlacement.current?.place()
++    setHover(sample)
++    if (event.pointerType !== 'mouse') setCursor(sample)
++  }
++  const clearHover = (): void => {
++    pointer.current = null
++    tipPlacement.current?.place()
++    setHover(null)
++  }
++  return <div className={css.history}>
++    <div className={css.plot}>
++      <div className={css.axisLabels} data-flat={range.low === range.high} aria-hidden="true">
++        <span>{format(range.high)}</span>{range.low !== range.high && <span>{format(range.low)}</span>}
++      </div>
++      <div ref={dashes ? observePlot : undefined} className={css.plotControl} role="slider" tabIndex={0} aria-label={label} aria-describedby={dashed ? `${id} ${id}-dashed` : id}
++        aria-valuemin={0} aria-valuemax={samples.length - 1} aria-valuenow={selected}
++        aria-valuetext={`${new Date(sample.time).toLocaleString()} · ${precise ?? sampleAmount}`}
++        onPointerMove={inspect} onPointerDown={inspect} onPointerLeave={clearHover} onPointerCancel={clearHover}
++        onFocus={() => { setFocused(true) }} onBlur={() => { setFocused(false); clearHover() }}
++        onKeyDown={(event) => {
++          const next = event.key === 'Home' ? 0 : event.key === 'End' ? samples.length - 1
++            : event.key === 'ArrowLeft' || event.key === 'ArrowDown' ? selected - 1
++              : event.key === 'ArrowRight' || event.key === 'ArrowUp' ? selected + 1 : undefined
++          if (next === undefined) return
++          event.preventDefault()
++          clearHover()
++          setCursor(samples[Math.max(0, Math.min(samples.length - 1, next))] ?? last)
++        }}>
++        <svg className={css.chart} viewBox="46 0 264 110" preserveAspectRatio="none" aria-hidden="true">
++          <path d="M52 12H304 M52 55H304 M52 98H304" className={css.axis} />
++          {geometry.kind === 'series' && (geometry.path === undefined
++            ? <polyline points={geometry.points} className={css.line} />
++            : <><path d={geometry.path} className={css.line} /><path d={geometry.increases} className={`${css.line} ${css.increase}`} /></>)}
++          {geometry.compressed && <path d={geometry.compressed} className={css.line} strokeDasharray={BALANCE_DASH_ARRAY} />}
++          {geometry.gaps && <path d={geometry.gaps} className={css.line} strokeDasharray={BALANCE_DASH_ARRAY} />}
++          {active && <path d={`M${x} 8V102`} className={css.crosshair} />}
++        </svg>
++        {(active || geometry.kind === 'single') && <span className={css.samplePoint} style={{ left: `${(x - 46) / 264 * 100}%`, top: `${y / 110 * 100}%` }} />}
++        {active && <div className={css.sampleTip} data-follow-pointer={hover !== null} ref={attachTip} role="status">
++          <time dateTime={new Date(sample.time).toISOString()}>{new Date(sample.time).toLocaleString()}</time>
++          <strong>{sampleAmount}</strong>
++          {precise !== undefined && <span className={css.sampleExact}>{precise}</span>}
++        </div>}
++      </div>
++    </div>
++    <div className={css.timeRange}><time dateTime={new Date(first.time).toISOString()}>{new Date(first.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time><time dateTime={new Date(last.time).toISOString()}>{new Date(last.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time></div>
++    {dashed && <p id={`${id}-dashed`} className={css.dashHint}>{dashHint}</p>}
++    <p id={id} className={css.chartHelp}>{help}</p>
++  </div>
++}
 diff --git a/packages/client/ui-settings-account/src/client/BudgetIcons.tsx b/packages/client/ui-settings-account/src/client/BudgetIcons.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..d1b69ebb333ffd45bbcf694ff17a0e78b8583048
+index 0000000000000000000000000000000000000000..0be56b76f1afe2321419d68f951dd5012e20ce2c
 --- /dev/null
 +++ b/packages/client/ui-settings-account/src/client/BudgetIcons.tsx
-@@ -0,0 +1,9 @@
+@@ -0,0 +1,17 @@
 +/** Independent wallet and limit-dial artwork on the shared 16px control grid. */
 +import type { IconProps } from '@deepseek-ai/dsh-client-ui-primitives'
++
++/** @param props - Shared icon size and styling. @returns Decorative conversation-cost wallet. */
++export function ExpenseIcon({ size = 16, className }: IconProps) {
++  return <svg width={size} height={size} viewBox="0 0 16 16" fill="none" className={className} aria-hidden="true">
++    <path d="M12 4V2.5L3.5 4A1.8 1.8 0 0 0 2 5.8V12a1.5 1.5 0 0 0 1.5 1.5h9A1.5 1.5 0 0 0 14 12V5.5A1.5 1.5 0 0 0 12.5 4H4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
++    <path d="M14 7.5h-3a1.5 1.5 0 0 0 0 3h3" stroke="currentColor" strokeWidth="1.2" /><circle cx="11" cy="9" r=".6" fill="currentColor" />
++  </svg>
++}
 +
 +/** @param props - Shared icon size and styling. @returns Three usage bars below a fixed limit. */
 +export function LimitIcon({ size = 16, className }: IconProps) {
@@ -11166,6 +11759,101 @@ index 0000000000000000000000000000000000000000..500f299d1c763be9c71aa4c8b0afc661
 +        onMouseDown={(event) => { event.preventDefault() }} onClick={() => { step(-1) }}>
 +        <IconChevronDownOutlineRegular size={12} /></button></Tooltip>
 +    </div>
++  </div>
++}
+diff --git a/packages/client/ui-settings-account/src/client/SessionSpending.module.css b/packages/client/ui-settings-account/src/client/SessionSpending.module.css
+new file mode 100644
+index 0000000000000000000000000000000000000000..7eaca6902a23069dbd645cd9d01e183a64c2f137
+--- /dev/null
++++ b/packages/client/ui-settings-account/src/client/SessionSpending.module.css
+@@ -0,0 +1,10 @@
++.pills { display: inline-flex; flex: none; align-items: center; gap: 8px; }
++.total { margin-bottom: 12px; font-size: 24px; line-height: 1.2; font-weight: 500; font-variant-numeric: tabular-nums; }
++.hint { margin: 8px 0 0; font-size: 11px; line-height: 1.55; color: var(--dsw-alias-label-secondary); }
++.window { margin-top: 12px; }
++.row { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 8px; font-size: 12px; font-variant-numeric: tabular-nums; }
++.track { margin-top: 6px; height: 4px; border-radius: var(--dsw-radius-xs); background: var(--dsw-alias-border-l2); overflow: hidden; }
++.track > span { display: block; height: 100%; background: var(--dsw-alias-state-business-primary); transition: width 240ms var(--ds-ease-in-out); }
++.track > span[data-full='true'] { background: var(--dsw-alias-state-error-primary); }
++@media (prefers-reduced-motion: reduce) { .track > span { transition: none; } }
++.paused { color: var(--dsw-alias-state-error-primary); }
+diff --git a/packages/client/ui-settings-account/src/client/SessionSpending.tsx b/packages/client/ui-settings-account/src/client/SessionSpending.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..6e3a93bd55db9b4b0b27769a67a163c5a0f547fd
+--- /dev/null
++++ b/packages/client/ui-settings-account/src/client/SessionSpending.tsx
+@@ -0,0 +1,73 @@
++/** Session cost and active-window readings in the conversation footer. */
++import { useState } from 'react'
++import { Button, StatPopover } from '@deepseek-ai/dsh-client-ui-primitives'
++import type { ResourceSnapshot } from '@deepseek-ai/dsh-client-resources/client'
++import type { InjectFace, PropsRuntime, ResourceProtocolMap, Translate } from '@deepseek-ai/dsh-client-ui-slots'
++import type { SessionSpendUsage, SpendWindow } from '@deepseek-ai/dsh-spend-limit/types'
++import type {} from '@deepseek-ai/dsh-token-meter/client'
++import type { spendingEn } from './spending-locales.ts'
++import type { SpendingInjected } from './SpendingView.tsx'
++import { BalanceHistory } from './BalanceHistory.tsx'
++import { ExpenseIcon, LimitIcon } from './BudgetIcons.tsx'
++import css from './SessionSpending.module.css'
++
++declare module '@deepseek-ai/dsh-client-ui-slots' {
++  interface ResourceProtocolMap { 'session-cost': SessionSpendUsage }
++}
++
++const amount = (value: number): string => `￥${value.toFixed(value > 0 && value < 0.01 ? 6 : 2)}`
++const occupancy = (window: SpendWindow): number => (window.spent + window.reserved) / window.limit * 100
++
++/** @param props - Current Session, cost resource and global limit snapshot. @returns Two expandable footer readings. */
++export function SessionSpending({ sessionId, useSession, useProjection, useResource, useSpending, t }:
++Pick<PropsRuntime<'conversation.composer.dock'>, 'sessionId' | 'useSession' | 'useProjection'> &
++Pick<InjectFace<SpendingInjected>, 'useSpending'> &
++{ t: Translate<keyof typeof spendingEn>; useResource<P extends 'session-cost'>(address: string): ResourceSnapshot<ResourceProtocolMap[P]> }) {
++  const blank = useSession(value => value.blank)
++  const running = useSession(value => value.running)
++  const usage = useProjection('tokenUsage')
++  const [revision, refresh] = useState(0)
++  const meter = usage === undefined ? 'none' : [usage.uncachedInputTokens, usage.outputTokens, usage.cacheReadTokens, usage.cacheWriteTokens].join('-')
++  const result = useResource<'session-cost'>(blank ? '' : `dsh-resource://session-cost/${encodeURIComponent(sessionId)}?v=${meter}-${String(running)}-${revision}`)
++  const limitState = useSpending(value => value)
++  const limits = limitState.data
++  if (blank) return null
++  const cost = result.value
++  const partial = cost !== undefined && cost.unpricedRequests > 0
++  const label = cost === undefined ? '—' : (partial ? '≥ ' : '') + amount(cost.total)
++  const activeWindows = limits?.windows.filter(window => window.enabled) ?? []
++  const enabled = activeWindows.length > 0
++  const paused = enabled && (limits?.paused === true || limits?.pausedSessions.some(value => value.state === 'blocked') === true)
++  const nearest = activeWindows.reduce<SpendWindow | undefined>((best, window) =>
++    best === undefined || occupancy(window) > occupancy(best) ? window : best, undefined)
++  const percent = nearest === undefined ? 0 : occupancy(nearest)
++  const shownPercent = percent < 100 ? Math.min(99, Math.round(percent)) : Math.round(percent)
++  const nearestLabel = nearest === undefined ? '—' : `${nearest.period} ${shownPercent}%`
++  return <div className={css.pills}>
++    <StatPopover title={t('spending.sessionCost')} label={label} icon={<ExpenseIcon />}>
++      {cost === undefined ? <p className={css.hint}>{t(result.status === 'failed' ? 'spending.sessionFailed' : 'spending.loading')}</p> : <>
++        <div className={css.total}>{partial ? '≥ ' : ''}{amount(cost.total)}</div>
++        <BalanceHistory samples={cost.points.map(point => ({ time: point.time, value: point.total }))} symbol="¥"
++          label={t('spending.sessionCurve')} help={t('spending.historyHelp')} formatValue={amount} />
++        <p className={css.hint}>{t('spending.sessionRequests', { count: cost.requests })}</p>
++        {partial && <p className={css.hint}>{t('spending.sessionPartial', { count: cost.unpricedRequests })}</p>}
++      </>}
++      {result.status === 'failed' && <Button size="sm" onClick={() => { refresh(value => value + 1) }}>{t('spending.retry')}</Button>}
++      <p className={css.hint}>{t('spending.sessionHint')}</p>
++    </StatPopover>
++    <StatPopover title={t('spending.title')} label={limitState.failed || limits === undefined ? '—'
++      : enabled ? nearestLabel : t('spending.offShort')} icon={<LimitIcon className={paused ? css.paused : undefined} />}>
++      <p className={css.hint}>{t(limitState.failed || limits === undefined ? 'spending.failed' : paused ? 'spending.paused' : enabled ? 'spending.active' : 'spending.off')}</p>
++      {activeWindows.map((window) => {
++        const percent = occupancy(window)
++        return <div className={css.window} key={window.period}>
++          <div className={css.row}><span>{t(`spending.${window.period}`)}</span><span>{percent.toFixed(1)}% · {amount(window.spent + window.reserved)} / {amount(window.limit)}</span></div>
++          <div className={css.track} role="progressbar" aria-label={t(`spending.${window.period}`)} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, percent)}>
++            <span style={{ width: `${Math.min(100, percent)}%` }} data-full={percent >= 100} />
++          </div>
++        </div>
++      })}
++      <p className={css.hint}>{t('spending.footerHint')}</p>
++    </StatPopover>
 +  </div>
 +}
 diff --git a/packages/client/ui-settings-account/src/client/SpendingView.module.css b/packages/client/ui-settings-account/src/client/SpendingView.module.css
@@ -11394,6 +12082,284 @@ index 0000000000000000000000000000000000000000..86e8064fe880c2b9764e3692cd7f012e
 +    </div>}
 +  </section>
 +}
+diff --git a/packages/client/ui-settings-account/src/client/balance-chart.ts b/packages/client/ui-settings-account/src/client/balance-chart.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..7f20df664d87506b470aef548609b3554420d33d
+--- /dev/null
++++ b/packages/client/ui-settings-account/src/client/balance-chart.ts
+@@ -0,0 +1,252 @@
++/** Geometry for the local balance sample curve. Sampling and rates stay elsewhere. */
++
++/** One plotted observation. */
++export interface BalanceChartSample {
++  readonly time: number
++  readonly value: number
++  /** Original decimal amount retained for inspection; geometry uses value. */
++  readonly exactValue?: string
++}
++
++/** Drawable curve and original sample positions on its displayed time axis. */
++export interface BalanceChartGeometry {
++  readonly kind: 'empty' | 'single' | 'series'
++  readonly points: string
++  readonly positions: readonly number[]
++  /** Solid runs and vertical jumps when balance increases are drawn as discrete events. */
++  readonly path?: string
++  readonly increases?: string
++  /** Horizontal dashed connectors replacing compressed flat runs. */
++  readonly compressed?: string
++  /** Dashed connectors spanning intervals the samples do not cover. */
++  readonly gaps?: string
++  readonly dot?: { readonly x: number; readonly y: number }
++  /** Observed value bounds; the vertical axis labels them. */
++  readonly range?: { readonly low: number; readonly high: number }
++}
++
++/** Plot area: a left gutter carries the vertical axis labels. */
++const LEFT = 52
++const WIDTH = 252
++const TOP = 12
++const BOTTOM = 98
++const MAX_POINTS = 120
++const FLAT_THRESHOLD_MS = 30 * 60_000
++/** Sample intervals above this multiple of the usual cadence carry no observation. */
++const GAP_FACTOR = 3
++const MIN_GAP_MS = 5 * 60_000
++const DASH_PX = 5
++const GAP_PX = 4
++/** SVG dash pattern in CSS pixels for non-scaling balance connectors. */
++export const BALANCE_DASH_ARRAY = `${DASH_PX} ${GAP_PX}`
++
++interface FlatRun { start: number; end: number; duration: number }
++
++function atIndex<T>(items: readonly T[], index: number): T {
++  const value = items[index]
++  if (value === undefined) throw new RangeError(`Balance chart index ${index} is out of range`)
++  return value
++}
++
++function flatRuns(samples: readonly BalanceChartSample[]): FlatRun[] {
++  const runs: FlatRun[] = []
++  let start = 0
++  for (let end = 1; end <= samples.length; end += 1) {
++    const first = atIndex(samples, start)
++    if (samples[end]?.value === first.value) continue
++    const duration = atIndex(samples, end - 1).time - first.time
++    if (duration >= FLAT_THRESHOLD_MS) runs.push({ start, end: end - 1, duration })
++    start = end
++  }
++  return runs
++}
++
++/**
++ * Interval above which a connector means the samples do not cover it.
++ * The usual cadence comes from the lower quartile of positive intervals, so an
++ * outage elsewhere in the history cannot raise its own threshold.
++ * @param samples - Observations in time order.
++ * @returns Milliseconds above which consecutive observations count as separated.
++ */
++function gapThreshold(samples: readonly BalanceChartSample[]): number {
++  const intervals: number[] = []
++  for (let index = 1; index < samples.length; index += 1) {
++    const interval = atIndex(samples, index).time - atIndex(samples, index - 1).time
++    if (interval > 0) intervals.push(interval)
++  }
++  if (intervals.length === 0) return Number.POSITIVE_INFINITY
++  intervals.sort((left, right) => left - right)
++  return Math.max(MIN_GAP_MS, GAP_FACTOR * atIndex(intervals, Math.floor((intervals.length - 1) / 4)))
++}
++
++/**
++ * Count the observation gaps ending at or before each observation.
++ * @param samples - Observations in time order.
++ * @param threshold - Interval above which consecutive observations count as separated.
++ * @returns One running total per observation, so a drawn pair spans a gap when its totals differ.
++ */
++function gapEnds(samples: readonly BalanceChartSample[], threshold: number): number[] {
++  const counts = [0]
++  for (let index = 1; index < samples.length; index += 1) {
++    const interval = atIndex(samples, index).time - atIndex(samples, index - 1).time
++    counts.push(atIndex(counts, index - 1) + (interval > threshold ? 1 : 0))
++  }
++  return counts
++}
++
++function timeAxis(samples: readonly BalanceChartSample[], compress: boolean) {
++  const start = atIndex(samples, 0).time
++  const span = atIndex(samples, samples.length - 1).time - start
++  const candidates = compress ? flatRuns(samples) : []
++  const active = span - candidates.reduce((total, run) => total + run.duration, 0)
++  // Together the compressed runs occupy at most a fifth of the remaining axis.
++  const cap = active / (4 * Math.max(1, candidates.length))
++  const runs = active > 0 ? candidates.filter(run => run.duration > cap) : []
++  const displayed = span - runs.reduce((total, run) => total + run.duration - cap, 0)
++  let runIndex = 0
++  let removed = 0
++  const positions = samples.map((sample, index) => {
++    let run = runs[runIndex]
++    if (run !== undefined && index > run.end) {
++      removed += run.duration - cap
++      run = runs[++runIndex]
++    }
++    const offset = sample.time - start - removed
++    if (run !== undefined && index >= run.start) {
++      const elapsed = sample.time - atIndex(samples, run.start).time
++      return (offset - elapsed + elapsed / run.duration * cap) / displayed
++    }
++    return displayed === 0 ? index / Math.max(1, samples.length - 1) : offset / displayed
++  })
++  return { positions, runs }
++}
++
++/**
++ * Project samples into the fixed balance chart view box.
++ * @param samples - Observations for one currency, in time order.
++ * @param options - Draw discrete increases and, with `dashes`, mark shortened unchanged runs and unobserved intervals.
++ * @returns Empty, one dot, or a downsampled curve with positions for every original observation.
++ */
++export function balanceChart(
++  samples: readonly BalanceChartSample[],
++  options: { stepIncreases?: boolean; dashes?: boolean; plotWidth?: number; plotHeight?: number } = {},
++): BalanceChartGeometry {
++  const { stepIncreases = false, dashes = false, plotWidth = 264, plotHeight = 110 } = options
++  if (samples.length === 0) return { kind: 'empty', points: '', positions: [] }
++  const { positions, runs } = timeAxis(samples, dashes)
++  const kept = new Set(downsample(samples, MAX_POINTS))
++  if (stepIncreases) {
++    for (let index = 1; index < samples.length; index += 1) {
++      if (atIndex(samples, index).value <= atIndex(samples, index - 1).value) continue
++      kept.add(index - 1)
++      kept.add(index)
++    }
++  }
++  const compressedEnds = new Set<number>()
++  for (const run of runs) {
++    kept.add(run.start)
++    kept.add(run.end)
++    compressedEnds.add(run.end)
++    for (let index = run.start + 1; index < run.end; index += 1) kept.delete(index)
++  }
++  const picked = [...kept].sort((a, b) => a - b)
++  const values = picked.map(index => atIndex(samples, index).value)
++  const low = Math.min(...values)
++  const high = Math.max(...values)
++  const range = { low, high }
++  const coords = picked.map((index) => {
++    const sample = atIndex(samples, index)
++    const x = LEFT + atIndex(positions, index) * WIDTH
++    const y = high === low ? (TOP + BOTTOM) / 2 : BOTTOM - ((sample.value - low) * (BOTTOM - TOP)) / (high - low)
++    return { x, y, index }
++  })
++  const first = atIndex(coords, 0)
++  if (coords.length === 1) return { kind: 'single', points: '', dot: { x: first.x, y: first.y }, range, positions }
++  const points = coords.map(point => `${point.x},${point.y}`).join(' ')
++  const gaps = dashes ? gapEnds(samples, gapThreshold(samples)) : undefined
++  let path = `M${first.x},${first.y}`, increases = '', compressed = '', missing = ''
++  let previous = first
++  for (const current of coords.slice(1)) {
++    const flat = compressedEnds.has(current.index)
++    if (flat || (gaps !== undefined && atIndex(gaps, current.index) !== atIndex(gaps, previous.index))) {
++      const length = Math.hypot((current.x - previous.x) * plotWidth / 264, (current.y - previous.y) * plotHeight / 110)
++      if (length < 2 * DASH_PX + GAP_PX) path += ` L${current.x},${current.y}`
++      else {
++        path += ` M${current.x},${current.y}`
++        if (flat) compressed += `M${previous.x},${previous.y} H${current.x} `
++        else missing += `M${previous.x},${previous.y} L${current.x},${current.y} `
++      }
++    } else if (stepIncreases && current.y < previous.y) {
++      path += ` H${current.x} M${current.x},${current.y}`
++      increases += `M${current.x},${previous.y} V${current.y} `
++    } else path += ` L${current.x},${current.y}`
++    previous = current
++  }
++  const series = { kind: 'series' as const, points, range, positions }
++  if (!stepIncreases && runs.length === 0 && missing === '') return series
++  return { ...series, path, increases: increases.trimEnd(), compressed: compressed.trimEnd(), gaps: missing.trimEnd() }
++}
++
++function downsample(items: readonly BalanceChartSample[], max: number): number[] {
++  if (items.length <= max) return items.map((_sample, index) => index)
++  const last = items.length - 1
++  const picked = [0]
++  const buckets = Math.floor((max - 2) / 2)
++  for (let bucket = 0; bucket < buckets; bucket += 1) {
++    const start = 1 + Math.floor(bucket * (last - 1) / buckets)
++    const end = 1 + Math.floor((bucket + 1) * (last - 1) / buckets)
++    let low: { index: number; sample: BalanceChartSample } | undefined
++    let high: { index: number; sample: BalanceChartSample } | undefined
++    for (const [index, sample] of items.slice(start, end).entries()) {
++      if (low === undefined || sample.value < low.sample.value) low = { index, sample }
++      if (high === undefined || sample.value > high.sample.value) high = { index, sample }
++    }
++    if (low === undefined || high === undefined) continue
++    if (low.index === high.index) picked.push(start + low.index)
++    else picked.push(start + Math.min(low.index, high.index), start + Math.max(low.index, high.index))
++  }
++  picked.push(last)
++  return picked
++}
++
++/**
++ * Find the original observation nearest to a horizontal position in the plot.
++ * @param positions - Fractions along the displayed axis, one per original observation.
++ * @param fraction - Pointer position on that axis, clamped to its ends.
++ * @returns Original sample index, including observations omitted from the drawn polyline.
++ */
++export function nearestBalanceSample(positions: readonly number[], fraction: number): number {
++  if (positions.length === 0) return 0
++  const position = Math.max(0, Math.min(1, fraction))
++  let low = 0, high = positions.length - 1
++  while (low < high) {
++    const middle = Math.floor((low + high) / 2)
++    if (atIndex(positions, middle) < position) low = middle + 1
++    else high = middle
++  }
++  const previous = positions[low - 1]
++  return previous !== undefined && position - previous <= atIndex(positions, low) - position ? low - 1 : low
++}
++
++/**
++ * Keep an inspected observation across replacements of the chart history.
++ * @param samples - Current observations in ascending time order.
++ * @param observation - The previously selected time and amount.
++ * @returns Its current index or the closest retained time; zero if the observations are empty.
++ */
++export function retainedBalanceSample(samples: readonly BalanceChartSample[], observation: BalanceChartSample): number {
++  let low = 0, high = samples.length
++  while (low < high) {
++    const middle = Math.floor((low + high) / 2)
++    if (atIndex(samples, middle).time < observation.time) low = middle + 1
++    else high = middle
++  }
++  for (let index = low; index < samples.length; index += 1) {
++    const candidate = atIndex(samples, index)
++    if (candidate.time !== observation.time) break
++    if (candidate.value === observation.value && candidate.exactValue === observation.exactValue) return index
++  }
++  const previous = samples[low - 1], next = samples[low]
++  if (next === undefined) return Math.max(0, low - 1)
++  return previous !== undefined && observation.time - previous.time <= next.time - observation.time ? low - 1 : low
++}
+diff --git a/packages/client/ui-settings-account/src/client/formatBalance.ts b/packages/client/ui-settings-account/src/client/formatBalance.ts
+index d04ea53f90fe09f7fb733bfe627fdd39e6229c63..0c194b11c8b66290786c63cf84bf1549c6e9f70f 100644
+--- a/packages/client/ui-settings-account/src/client/formatBalance.ts
++++ b/packages/client/ui-settings-account/src/client/formatBalance.ts
+@@ -19,3 +19,15 @@ function addCommas(value: string): string {
+   const [integer, fraction] = value.split('.')
+   return `${Number(integer).toLocaleString()}.${fraction}`
+ }
++
++/**
++ * Preserve the sampled decimal amount for history inspection, with at least two decimal places.
++ * @param amount - Original decimal observation or exact interval change.
++ * @param symbol - Currency symbol.
++ * @returns Grouped currency text without discarding sub-cent changes.
++ */
++export function formatBalanceDetail(amount: string, symbol: '¥' | '$'): string {
++  const value = new Big(amount)
++  const [integer, fraction = ''] = value.abs().toFixed().split('.')
++  return `${value.lt(0) ? '-' : ''}${symbol}${Number(integer).toLocaleString()}.${fraction.padEnd(2, '0')}`
++}
 diff --git a/packages/client/ui-settings-account/src/client/index.ts b/packages/client/ui-settings-account/src/client/index.ts
 index e680e1cb3210fbf10b1cc5969d72920de8b7d011..225df38ebdd8b7fda6a4c8c678187bb732290acf 100644
 --- a/packages/client/ui-settings-account/src/client/index.ts
@@ -11492,10 +12458,10 @@ index 0000000000000000000000000000000000000000..fd960e1191e33abab8ef182259e84eeb
 +}
 diff --git a/packages/client/ui-settings-account/src/client/spending-locales.ts b/packages/client/ui-settings-account/src/client/spending-locales.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..5098d8e74b150076319dd82d34108e769727ee3d
+index 0000000000000000000000000000000000000000..f304d4d893f8d267aa3f208d827f28663afe0d48
 --- /dev/null
 +++ b/packages/client/ui-settings-account/src/client/spending-locales.ts
-@@ -0,0 +1,88 @@
+@@ -0,0 +1,90 @@
 +/** English spending labels; amounts refer to conservative local estimates. */
 +export const spendingEn = {
 +  'spending.bannerTitle': 'Conversation paused for budget',
@@ -11515,15 +12481,16 @@ index 0000000000000000000000000000000000000000..5098d8e74b150076319dd82d34108e76
 +  'spending.other': 'Other limits', 'spending.otherEnabled': 'Other limits · {count} active',
 +  'spending.explanation': 'Accounting details', 'spending.failedShort': 'Limit status unavailable',
 +  'spending.pausedWaiting': 'Budget paused · waiting: {count}',
++  'spending.historyHelp': 'Hover or touch to inspect a sample. Use arrow keys when focused.',
 +  'spending.sessionCost': 'Conversation cost', 'spending.sessionCurve': 'Cumulative estimated cost',
 +  'spending.sessionFailed': 'Could not read this conversation’s usage',
 +  'spending.sessionRequests': '{count} recorded model requests',
 +  'spending.sessionPartial': '{count} requests have missing usage or rates; only known costs are shown.',
-+  'spending.sessionHint': 'Estimated from this conversation’s recorded responses and retries at current configured rates. Inherited messages, separate side questions and auxiliary requests are excluded. This is not an invoice.',
++  'spending.sessionHint': 'Uses current rates for this conversation’s recorded responses, retries and memory extraction. Forks and side questions have their own totals.',
 +  'spending.occupancy': 'Limits · {percent}%',
 +  'spending.limitUnknown': 'Limits unavailable', 'spending.pausedShort': 'Limits paused',
 +  'spending.offShort': 'Off',
-+  'spending.footerHint': 'Shared across conversations. Occupancy includes settled estimates and in-flight reservations. Configure windows in Settings → Budget.',
++  'spending.footerHint': 'Shared across conversations. Occupancy includes settled estimates and in-flight reservations. Configure windows in Settings → Spending limits.',
 +  'spending.title': 'Spending limits', 'spending.enabled': 'Limit model spending', 'spending.auto': 'Resume automatically',
 +  'spending.autoHint': 'When on, a paused conversation continues after the window rolls forward or you resume it. When off, an exhausted limit waits for Resume or Reset. A request waiting only for another reservation continues when that reservation settles.',
 +  'spending.summary': 'Each window is independent and off by default. Limits are shared across conversations and local processes; disabling a window keeps its history.',
@@ -11559,15 +12526,16 @@ index 0000000000000000000000000000000000000000..5098d8e74b150076319dd82d34108e76
 +  'spending.other': '其他限制', 'spending.otherEnabled': '其他限制 · {count} 项已开启',
 +  'spending.explanation': '计费与统计说明', 'spending.failedShort': '额度状态暂不可用',
 +  'spending.pausedWaiting': '额度暂停 · {count} 个请求',
++  'spending.historyHelp': '悬停或轻触查看采样，聚焦后可用方向键逐点查看。',
 +  'spending.sessionCost': '本对话费用', 'spending.sessionCurve': '累计费用估算',
 +  'spending.sessionFailed': '无法读取本对话用量',
 +  'spending.sessionRequests': '已记录 {count} 次模型请求',
 +  'spending.sessionPartial': '{count} 次请求缺少用量或费率，仅显示已知费用',
-+  'spending.sessionHint': '按本对话记录的回答与重试用量、当前配置费率估算；不含继承的消息、独立旁问及辅助请求，不作为账单。',
++  'spending.sessionHint': '按当前费率估算本对话已记录的回答、重试与记忆提炼费用。分叉与旁问的费用分别统计。',
 +  'spending.occupancy': '限额 · {percent}%',
 +  'spending.limitUnknown': '限额状态未知', 'spending.pausedShort': '限额暂停',
 +  'spending.offShort': '未启用',
-+  'spending.footerHint': '所有对话共用，比例包含已结算估算与在途预留。可在设置 → 额度调整各窗口。',
++  'spending.footerHint': '所有对话共用，比例包含已结算估算与在途预留。可在设置的「额度限制」中调整各窗口。',
 +  'spending.title': '额度限制', 'spending.enabled': '限制模型支出', 'spending.auto': '自动恢复',
 +  'spending.autoHint': '开启后，额度恢复或你手动恢复时，被暂停的对话会继续执行。关闭时，额度耗尽需要点恢复或重置。只是等待其他请求释放预留额时，会在结算后继续。',
 +  'spending.summary': '每项独立生效，默认全部关闭。所有会话与本机进程共用额度；关闭单项不会删除其历史。',
@@ -11586,13 +12554,17 @@ index 0000000000000000000000000000000000000000..5098d8e74b150076319dd82d34108e76
 +}
 diff --git a/packages/client/ui-settings-account/src/client/spending.ts b/packages/client/ui-settings-account/src/client/spending.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..725fe80ffcd6442ad3bf2ea8ec2cb1c89bd80273
+index 0000000000000000000000000000000000000000..0eff9cae0c2f54b883580b4023070072a724ab62
 --- /dev/null
 +++ b/packages/client/ui-settings-account/src/client/spending.ts
-@@ -0,0 +1,55 @@
+@@ -0,0 +1,76 @@
 +/** Assemble the shared spending controls over the built-in Host ledger. */
 +import type { Context } from '@deepseek-ai/cordis'
-+import { type RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
++import { RemoteError, remoteErrorOf, type RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
++import { brandString } from '@deepseek-ai/dsh-brand'
++import type { SessionId } from '@deepseek-ai/dsh-session/types'
++import type { ResourceProvider } from '@deepseek-ai/dsh-client-resources/client'
++import { SessionSpending } from './SessionSpending.tsx'
 +import type { SpendSnapshot } from '@deepseek-ai/dsh-spend-limit/types'
 +import { SpendingController } from './spending-controller.ts'
 +import { SpendingSettings, SpendingToast, SpendingBanner } from './SpendingView.tsx'
@@ -11642,14 +12614,412 @@ index 0000000000000000000000000000000000000000..725fe80ffcd6442ad3bf2ea8ec2cb1c8
 +          return { ...inject(), ...settings === undefined ? {} : { openBudgetSettings: () => settings.openSection('spending') } }
 +        },
 +      }, SpendingBanner))
++      const resources = scope.inject(['resources'], (child) => {
++        const provider: ResourceProvider<'session-cost'> = { protocol: 'session-cost', async *open(address, { signal }) {
++          try {
++            const id = decodeURIComponent(new URL(address).pathname.slice(1))
++            if (!id) throw new Error('Missing session identity')
++            const result = await child.remote.spending.sessionUsage(brandString<SessionId>(id))
++            if (!signal.aborted) yield result
++          } catch (error) {
++            if (!signal.aborted) yield { ok: false, error: remoteErrorOf(error) ?? new RemoteError('gateway/internal', 'Session cost is unavailable.', {}) }
++          }
++        } }
++        child.effect(() => child.resources.register(provider), 'account: session cost resource')
++        child.slots.inject('conversation.composer.dock', () => child.slots.register({
++          name: 'conversation.composer.dock', id: 'spending', order: 3, locale: 'settings.spending', inject,
++        }, SessionSpending))
++      })
++      yield () => { void resources.dispose() }
 +    })
 +  })
 +}
+diff --git a/packages/client/ui-settings-account/tests/access-revocation.client.spec.ts b/packages/client/ui-settings-account/tests/access-revocation.client.spec.ts
+index 01a599b981b35335d233fe0657b22db71386a7d3..204d00cf4840b18a07f82dd658fe41dead47f49f 100644
+--- a/packages/client/ui-settings-account/tests/access-revocation.client.spec.ts
++++ b/packages/client/ui-settings-account/tests/access-revocation.client.spec.ts
+@@ -46,6 +46,7 @@ it('withdraws every account surface and the account stream on revocation, and re
+   const streams: { readonly signal: AbortSignal; readonly accepted: Promise<undefined> }[] = []
+   const lifetime: (() => void)[] = []
+   const ctx = {
++    inject: (services: readonly string[]) => { expect(services).toEqual(['remote.spending']) },
+     on: () => () => {}, provide: () => {}, emit: () => {}, parallel: async () => [],
+     effect: (install: () => (() => void) | undefined) => { const dispose = install(); if (dispose) lifetime.push(dispose) },
+     locale: { register: () => () => {}, bind: () => (key: string) => key, getSnapshot: () => ({ active: 'en' }) },
+@@ -125,6 +126,7 @@ it('drops reads a revoked grant started, and the next grant shows no account sec
+   const firstFrames: { release: () => void; accepted: Promise<undefined> }[] = []
+   const lifetime: (() => void)[] = []
+   const ctx = {
++    inject: (services: readonly string[]) => { expect(services).toEqual(['remote.spending']) },
+     on: () => () => {}, provide: () => {}, emit: () => {}, parallel: async () => [],
+     effect: (install: () => (() => void) | undefined) => { const dispose = install(); if (dispose) lifetime.push(dispose) },
+     locale: { register: () => () => {}, bind: () => (key: string) => key, getSnapshot: () => ({ active: 'en' }) },
+@@ -218,6 +220,7 @@ function revocationHarness(scripts: StreamScript[]) {
+   const getNotifications = vi.fn(async () => ({ ok: true, value: null }))
+   const startSignIn = vi.fn<() => Promise<{ ok: false }>>()
+   const ctx = {
++    inject: (services: readonly string[]) => { expect(services).toEqual(['remote.spending']) },
+     on: () => () => {}, provide: () => {}, emit: () => {}, parallel: async () => [],
+     effect: (install: () => (() => void) | undefined) => { const dispose = install(); if (dispose) lifetime.push(dispose) },
+     locale: { register: () => () => {}, bind: () => (key: string) => key, getSnapshot: () => ({ active: 'en' }) },
+diff --git a/packages/client/ui-settings-account/tests/balance-chart.client.spec.ts b/packages/client/ui-settings-account/tests/balance-chart.client.spec.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..32b44ca420e1a45db59ecadc7bebca1741c5d1e5
+--- /dev/null
++++ b/packages/client/ui-settings-account/tests/balance-chart.client.spec.ts
+@@ -0,0 +1,72 @@
++import { expect, it } from 'vitest'
++import { balanceChart } from '../src/client/balance-chart.ts'
++
++it('draws additions vertically at the new sample time while preserving declines and expense curves', () => {
++  const samples = [{ time: 0, value: 10 }, { time: 10, value: 0 }, { time: 20, value: 10 }, { time: 30, value: 5 }]
++  const balance = balanceChart(samples, { stepIncreases: true })
++  expect(balance.path).toBe('M52,12 L136,98 H220 M220,12 L304,55')
++  expect(balance.increases).toBe('M220,98 V12')
++  expect(balanceChart(samples).path).toBeUndefined()
++  expect(balanceChart([{ time: 0, value: 10 }, { time: 10, value: 10 }], { stepIncreases: true }).increases).toBe('')
++})
++
++it('draws nothing, one dot, or a bounded curve', () => {
++  expect(balanceChart([])).toEqual({ kind: 'empty', points: '', positions: [] })
++  const single = balanceChart([{ time: 10, value: 4 }])
++  expect(single.kind).toBe('single')
++  expect(single.dot).toEqual({ x: 52, y: 55 })
++  expect(single.range).toEqual({ low: 4, high: 4 })
++  const series = balanceChart([{ time: 0, value: 1 }, { time: 10, value: 3 }])
++  expect(series.kind).toBe('series')
++  expect(series.points.split(' ')).toHaveLength(2)
++  expect(series.range).toEqual({ low: 1, high: 3 })
++  const long = balanceChart(Array.from({ length: 500 }, (_, index) => ({ time: index, value: index })))
++  expect(long.kind).toBe('series')
++  expect(long.points.split(' ').length).toBeLessThanOrEqual(121)
++  expect(long.points.startsWith('52,')).toBe(true)
++  expect(long.points.endsWith('304,12')).toBe(true)
++})
++
++it('dashes the connector across an interval without a sample', () => {
++  const dense = Array.from({ length: 10 }, (_, index) => ({ time: index * 15_000, value: 100 - index }))
++  const resumed = [...dense, { time: dense[9]!.time + 2 * 3_600_000, value: 80 }]
++  const chart = balanceChart(resumed, { stepIncreases: true, dashes: true })
++  expect(chart.gaps).toMatch(/^M[\d.]+,[\d.]+ L304,98$/u)
++  expect(chart.path).toMatch(/ M304,98$/u)
++  expect(chart.increases).toBe('')
++  expect(balanceChart(resumed, { dashes: true }).gaps).toMatch(/^M[\d.]+,[\d.]+ L304,98$/u)
++  expect(balanceChart(resumed, { stepIncreases: true }).gaps).toBe('')
++})
++
++it('requires two complete dashes at the rendered size before breaking the solid path', () => {
++  const samples = [0, 600_000, 630_000, 660_000].map((time, index) => ({ time, value: index < 2 ? 1 : 0 }))
++  const widthAtTwoDashes = 14 * 264 / (252 * 10 / 11)
++  const draw = (plotWidth: number) => balanceChart(samples, { stepIncreases: true, dashes: true, plotWidth })
++  expect(draw(widthAtTwoDashes - 0.01).gaps).toBe('')
++  expect(draw(widthAtTwoDashes - 0.01).path).toMatch(/^M[^M]+$/u)
++  expect(draw(widthAtTwoDashes).gaps).toContain(' L')
++})
++
++it('keeps a fully sampled stretch solid however far it is reduced', () => {
++  const samples = Array.from({ length: 2000 }, (_, index) => ({ time: index * 15_000, value: 10 + index % 7 }))
++  expect(balanceChart(samples, { stepIncreases: true, dashes: true }).gaps).toBe('')
++  expect(balanceChart([{ time: 0, value: 1 }, { time: 86_400_000, value: 2 }], { dashes: true }).gaps).toBeUndefined()
++  expect(balanceChart([{ time: 0, value: 1 }, { time: 0, value: 2 }], { dashes: true }).gaps).toBeUndefined()
++})
++
++it('preserves brief balance peaks and troughs when reducing long histories', () => {
++  const data = Array.from({ length: 5000 }, (_, time) => ({ time, value: time === 2513 ? 100 : time === 3517 ? -100 : 0 }))
++  const points = balanceChart(data).points.split(' ')
++  expect(points.length).toBeLessThanOrEqual(120)
++  expect(points.some(point => point.endsWith(',12'))).toBe(true)
++  expect(points.some(point => point.endsWith(',98'))).toBe(true)
++})
++
++it('draws a small rise at its actual time even between the bucket extrema', () => {
++  const samples = Array.from({ length: 500 }, (_, time) => ({ time, value: 500 - time + (time === 4 ? 2 : 0) }))
++  const chart = balanceChart(samples, { stepIncreases: true })
++  const x = 52 + 4 / 499 * 252
++  const y = (value: number): number => 98 - (value - 1) * 86 / 499
++  expect(chart.increases).toBe(`M${x},${y(497)} V${y(498)}`)
++  expect(chart.path).toContain(`H${x} M${x},${y(498)}`)
++})
+diff --git a/packages/client/ui-settings-account/tests/balance-history.client.spec.tsx b/packages/client/ui-settings-account/tests/balance-history.client.spec.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..691560a5e90717ae2909f8c3e6ddc7ee6ac772b6
+--- /dev/null
++++ b/packages/client/ui-settings-account/tests/balance-history.client.spec.tsx
+@@ -0,0 +1,220 @@
++// @vitest-environment jsdom
++import { cleanup, fireEvent, render, screen } from '@testing-library/react'
++import { afterEach, expect, it, vi } from 'vitest'
++import { BalanceHistory } from '../src/client/BalanceHistory.tsx'
++import { balanceChart, nearestBalanceSample } from '../src/client/balance-chart.ts'
++
++afterEach(() => { cleanup(); vi.unstubAllGlobals() })
++
++it('reveals distinct sub-cent balances while moving across the original observations', () => {
++  const values = ['63.889919', '63.885418', '63.880017']
++  render(<BalanceHistory samples={values.map((exactValue, index) => ({ time: index * 1000, value: Number(exactValue), exactValue }))}
++    symbol="¥" label="History" help="Inspect samples" />)
++  const slider = screen.getByRole('slider', { name: 'History' })
++  Object.defineProperty(slider, 'getBoundingClientRect', { value: () => new DOMRect(0, 0, 264, 110) })
++  for (const [index, clientX] of [6, 132, 258].entries()) {
++    fireEvent(slider, new MouseEvent('pointermove', { bubbles: true, clientX, clientY: 55 }))
++    expect(screen.getByRole('status').textContent).toContain(`¥${values[index]}`)
++    expect(slider.getAttribute('aria-valuenow')).toBe(String(index))
++  }
++  expect(screen.getByText('¥63.8899')).toBeTruthy()
++  const tip = screen.getByRole('status')
++  expect(tip.querySelector('strong')?.textContent).toBe('¥63.88')
++  expect(tip.textContent).toContain('¥63.880017')
++})
++
++it('inspects original samples by keyboard and clears the tooltip after losing focus', () => {
++  const samples = Array.from({ length: 500 }, (_, index) => ({ time: index * 1000, value: 500 - index }))
++  render(<BalanceHistory samples={samples} symbol="¥" label="History" help="Inspect samples" />)
++  const slider = screen.getByRole('slider', { name: 'History' })
++  fireEvent.focus(slider)
++  expect(slider.getAttribute('aria-valuenow')).toBe('499')
++  fireEvent.keyDown(slider, { key: 'Home' })
++  expect(slider.getAttribute('aria-valuetext')).toContain('¥500.00')
++  fireEvent.keyDown(slider, { key: 'ArrowRight' })
++  expect(slider.getAttribute('aria-valuetext')).toContain('¥499.00')
++  expect(screen.getByRole('status').textContent).toContain('¥499.00')
++  fireEvent.keyDown(slider, { key: 'End' })
++  expect(slider.getAttribute('aria-valuetext')).toContain('¥1.00')
++  fireEvent.blur(slider)
++  expect(screen.queryByRole('status')).toBeNull()
++})
++
++it.each(['pointer', 'keyboard'] as const)('keeps the selected %s observation as old samples roll out', (mode) => {
++  const samples = [{ time: 0, value: 9 }, { time: 1000, value: 8.0001, exactValue: '8.0001' }, { time: 2000, value: 7 }]
++  const chart = (observations: typeof samples) => <BalanceHistory samples={observations} symbol="¥" label="History" help="Inspect samples" />
++  const view = render(chart(samples))
++  const slider = screen.getByRole('slider', { name: 'History' })
++  if (mode === 'keyboard') {
++    fireEvent.focus(slider)
++    fireEvent.keyDown(slider, { key: 'ArrowLeft' })
++  } else {
++    Object.defineProperty(slider, 'getBoundingClientRect', { value: () => new DOMRect(0, 0, 264, 110) })
++    fireEvent(slider, new MouseEvent('pointermove', { bubbles: true, clientX: 132, clientY: 55 }))
++  }
++  const tip = screen.getByRole('status')
++  expect(tip.textContent).toContain('¥8.0001')
++  view.rerender(chart([...samples.slice(1).map(sample => ({ ...sample })), { time: 3000, value: 6 }]))
++  expect(tip.textContent).toContain('¥8.0001')
++  expect(tip.querySelector('time')?.dateTime).toBe(new Date(1000).toISOString())
++  expect(slider.getAttribute('aria-valuenow')).toBe('0')
++  view.rerender(chart([{ time: 1000, value: 8.0001, exactValue: '8.000100000000000001' }, ...samples.slice(1)]))
++  expect(tip.querySelector('strong')?.textContent).toBe('¥8.00')
++  expect(tip.textContent).toContain('¥8.0001')
++  expect(slider.getAttribute('aria-valuenow')).toBe('1')
++  view.rerender(chart([{ time: 2000, value: 7 }, { time: 3000, value: 6 }, { time: 4000, value: 5 }]))
++  expect(tip.querySelector('time')?.dateTime).toBe(new Date(2000).toISOString())
++})
++
++it('chooses the nearest time, clamps pointer edges and handles coincident observations', () => {
++  const samples = [{ time: 0, value: 1 }, { time: 90, value: 2 }, { time: 100, value: 3 }]
++  const { positions } = balanceChart(samples)
++  expect(nearestBalanceSample(positions, -1)).toBe(0)
++  expect(nearestBalanceSample(positions, .89)).toBe(1)
++  expect(nearestBalanceSample(positions, .99)).toBe(2)
++  expect(nearestBalanceSample(positions, 2)).toBe(2)
++  expect(nearestBalanceSample(balanceChart(samples.map(sample => ({ ...sample, time: 0 }))).positions, .5)).toBe(1)
++  expect(nearestBalanceSample([], .5)).toBe(0)
++})
++
++it('shortens the flat run while keeping earlier changes and the original samples inspectable', () => {
++  const samples = [
++    { time: 0, value: 12 }, { time: 60_000, value: 10 }, { time: 7_260_000, value: 10 },
++    { time: 14_460_000, value: 10 }, { time: 14_520_000, value: 9 },
++  ]
++  const axis = balanceChart(samples, { dashes: true, stepIncreases: true })
++  expect(axis.positions).toEqual([0, .4, .5, .6, 1])
++  expect(axis.compressed).toMatch(/^M[^ ]+ H[^ ]+$/u)
++  expect(axis.path?.match(/L/gu)).toHaveLength(2)
++  render(<BalanceHistory samples={samples} symbol="¥" label="History" help="Inspect samples" dashHint="Shortened time" stepIncreases />)
++  expect(screen.getByText('Shortened time')).toBeTruthy()
++  const slider = screen.getByRole('slider', { name: 'History' })
++  Object.defineProperty(slider, 'getBoundingClientRect', { value: () => new DOMRect(0, 0, 264, 110) })
++  fireEvent(slider, new MouseEvent('pointermove', { bubbles: true, clientX: 132, clientY: 55 }))
++  expect(slider.getAttribute('aria-valuenow')).toBe('2')
++  expect(screen.getByRole('status').querySelector('time')?.dateTime).toBe(new Date(samples[2]!.time).toISOString())
++})
++
++it('marks a stretch without samples as dashed and explains the dashes', () => {
++  const dense = Array.from({ length: 8 }, (_, index) => ({ time: index * 15_000, value: 10 + index / 100 }))
++  const observed = render(<BalanceHistory samples={dense} symbol="¥" label="History" help="Inspect samples" dashHint="Dashes mean no sample" />)
++  expect(screen.queryByText('Dashes mean no sample')).toBeNull()
++  observed.unmount()
++  render(<BalanceHistory samples={[...dense, { time: 7 * 15_000 + 4 * 3_600_000, value: 9.5 }]}
++    symbol="¥" label="History" help="Inspect samples" dashHint="Dashes mean no sample" />)
++  const hint = screen.getByText('Dashes mean no sample')
++  const describedBy = screen.getByRole('slider', { name: 'History' }).getAttribute('aria-describedby')?.split(' ') ?? []
++  expect(describedBy).toContain(hint.id)
++  expect(describedBy).toHaveLength(2)
++})
++
++it('follows the pointer between samples and flips inside the plot at its edges', () => {
++  render(<BalanceHistory samples={[{ time: 0, value: 1 }, { time: 100, value: 2 }]} symbol="¥" label="History" help="Inspect samples" />)
++  const slider = screen.getByRole('slider', { name: 'History' })
++  fireEvent.focus(slider)
++  const tip = screen.getByRole('status')
++  Object.defineProperties(slider, {
++    clientWidth: { value: 240 }, clientHeight: { value: 110 },
++    getBoundingClientRect: { value: () => new DOMRect(40, 60, 240, 110) },
++  })
++  Object.defineProperties(tip, { offsetWidth: { value: 120 }, offsetHeight: { value: 40 } })
++  function move(clientX: number, clientY: number): void {
++    const event = new MouseEvent('pointermove', { bubbles: true, clientX, clientY })
++    Object.defineProperty(event, 'pointerType', { value: 'mouse' })
++    fireEvent(slider, event)
++  }
++  move(50, 68)
++  expect(tip.style.left).toBe('18px')
++  expect(tip.style.top).toBe('16px')
++  expect(tip.textContent).toContain('¥1.00')
++  move(54, 74)
++  expect(tip.style.left).toBe('22px')
++  expect(tip.style.top).toBe('22px')
++  expect(tip.textContent).toContain('¥1.00')
++  move(278, 168)
++  expect(tip.style.left).toBe('110px')
++  expect(tip.style.top).toBe('60px')
++  expect(tip.textContent).toContain('¥2.00')
++  fireEvent.keyDown(slider, { key: 'Home' })
++  expect(tip.style.left).toBe('')
++  expect(tip.style.top).toBe('')
++  expect(tip.textContent).toContain('¥1.00')
++})
++
++it('keeps the sample bubble inside a resized plot without another pointer move', () => {
++  const view = render(<BalanceHistory samples={[{ time: 0, value: 1 }, { time: 100, value: 2 }]} symbol="¥" label="History" help="Inspect samples" />)
++  const slider = screen.getByRole('slider', { name: 'History' })
++  fireEvent.focus(slider)
++  const tip = screen.getByRole('status')
++  let width = 480
++  Object.defineProperties(slider, {
++    clientWidth: { get: () => width }, clientHeight: { value: 110 },
++    getBoundingClientRect: { value: () => new DOMRect(40, 60, width, 110) },
++  })
++  Object.defineProperties(tip, { offsetWidth: { value: 120 }, offsetHeight: { value: 40 } })
++  const pointer = new MouseEvent('pointermove', { bubbles: true, clientX: 200, clientY: 80 })
++  Object.defineProperty(pointer, 'pointerType', { value: 'mouse' })
++  fireEvent(slider, pointer)
++  expect(tip.style.left).toBe('168px')
++  const selected = slider.getAttribute('aria-valuenow')
++  width = 170
++  fireEvent(window, new Event('resize'))
++  expect(Number.parseFloat(tip.style.left) + tip.offsetWidth).toBeLessThanOrEqual(width)
++  expect(tip.style.left).toBe('32px')
++  expect(slider.getAttribute('aria-valuenow')).toBe(selected)
++  view.unmount()
++  width = 480
++  fireEvent(window, new Event('resize'))
++  expect(tip.style.left).toBe('32px')
++})
++
++it('reuses the mounted bubble observer across pointer movement and stops it on unmount', () => {
++  const observers: RecordingObserver[] = []
++  class RecordingObserver implements ResizeObserver {
++    observe = vi.fn()
++    unobserve = vi.fn()
++    disconnect = vi.fn()
++    constructor(private readonly callback: ResizeObserverCallback) { observers.push(this) }
++    notify(): void { this.callback([], this) }
++  }
++  vi.stubGlobal('ResizeObserver', RecordingObserver)
++  const view = render(<BalanceHistory samples={[{ time: 0, value: 1 }, { time: 100, value: 2 }]} symbol="¥" label="History" help="Inspect samples" />)
++  const slider = screen.getByRole('slider', { name: 'History' })
++  fireEvent.focus(slider)
++  const tip = screen.getByRole('status')
++  let width = 240, size = 120, left = 40
++  Object.defineProperties(slider, {
++    clientWidth: { get: () => width }, clientHeight: { value: 110 },
++    getBoundingClientRect: { value: () => new DOMRect(left, 60, width * 2, 220) },
++  })
++  Object.defineProperties(tip, { offsetWidth: { get: () => size }, offsetHeight: { value: 40 } })
++  const move = (clientX: number): void => {
++    const event = new MouseEvent('pointermove', { bubbles: true, clientX, clientY: 76 })
++    Object.defineProperty(event, 'pointerType', { value: 'mouse' })
++    fireEvent(slider, event)
++  }
++  move(60)
++  expect(tip.style.left).toBe('18px')
++  expect(tip.style.top).toBe('16px')
++  const first = observers[0]!
++  expect(first.observe).toHaveBeenCalledWith(slider)
++  expect(first.observe).toHaveBeenCalledWith(tip)
++  move(360)
++  expect(observers).toEqual([first])
++  expect(first.disconnect).not.toHaveBeenCalled()
++  width = 170
++  first.notify()
++  expect(tip.style.left).toBe('32px')
++  size = 140
++  first.notify()
++  expect(tip.style.left).toBe('12px')
++  left = 0
++  fireEvent(window, new Event('scroll'))
++  expect(tip.style.left).toBe('30px')
++  view.unmount()
++  expect(first.disconnect).toHaveBeenCalledOnce()
++  width = 240
++  first.notify()
++  fireEvent(window, new Event('scroll'))
++  expect(tip.style.left).toBe('30px')
++})
+diff --git a/packages/client/ui-settings-account/tests/session-spending.client.spec.tsx b/packages/client/ui-settings-account/tests/session-spending.client.spec.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..77f223f029d6df2f8271f7d8b7f2fce279f8b83b
+--- /dev/null
++++ b/packages/client/ui-settings-account/tests/session-spending.client.spec.tsx
+@@ -0,0 +1,43 @@
++// @vitest-environment jsdom
++import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
++import { afterEach, expect, it } from 'vitest'
++import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
++import { bindSnapshotSelector, makeTranslate, sessionSnapshot } from '@deepseek-ai/dsh-client-test-runtime'
++import { SessionId } from '@deepseek-ai/dsh-session/types'
++import type { SpendingState } from '../src/client/spending-controller.ts'
++import { SessionSpending } from '../src/client/SessionSpending.tsx'
++import { spendingEn } from '../src/client/spending-locales.ts'
++
++afterEach(cleanup)
++
++it('summarizes and expands only enabled windows, ignoring a fuller disabled window', () => {
++  const sessionId = SessionId('cost-test')
++  const session = createSnapshotStore(sessionSnapshot(sessionId))
++  const state = createSnapshotStore<SpendingState>({ failed: false, saving: false, toast: null, data: {
++    preferences: { enabledPeriods: ['5h', '7d'], autoResume: false, limits: { '15m': 5, '1h': 15, '5h': 50, '1d': 100, '7d': 500, '30d': 2000 } },
++    paused: false, pending: 0, waiting: 0, pausedSessions: [], nextExpiry: null, updatedAt: 0,
++    windows: [
++      { period: '15m', enabled: false, limit: 5, spent: 5, reserved: 0, remaining: 0, uncertain: 0 },
++      { period: '5h', enabled: true, limit: 50, spent: 49, reserved: 0, remaining: 1, uncertain: 0 },
++      { period: '7d', enabled: true, limit: 500, spent: 50, reserved: 0, remaining: 450, uncertain: 0 },
++    ],
++  } })
++  const props = { sessionId, useSession: bindSnapshotSelector(session), useSpending: bindSnapshotSelector(state),
++    useProjection: () => undefined,
++    useResource: () => ({ status: 'live' as const, failure: undefined, value: { total: 0.22, requests: 1, unpricedRequests: 0, points: [{ time: 1000, total: 0.22 }] } }),
++    t: makeTranslate(spendingEn),
++  } satisfies Parameters<typeof SessionSpending>[0]
++  render(<SessionSpending {...props} />)
++  expect(screen.getByRole('button', { name: 'Conversation cost: ￥0.22' })).toBeTruthy()
++  fireEvent.click(screen.getByRole('button', { name: 'Spending limits: 5h 98%' }))
++  expect(screen.getAllByRole('progressbar')).toHaveLength(2)
++  expect(screen.queryByRole('progressbar', { name: '15 minutes' })).toBeNull()
++  act(() => {
++    const data = state.getSnapshot().data!
++    state.set({ ...state.getSnapshot(), data: { ...data,
++      preferences: { ...data.preferences, enabledPeriods: [] }, windows: data.windows.map(window => ({ ...window, enabled: false })),
++    } })
++  })
++  expect(screen.getByRole('button', { name: 'Spending limits: Off' })).toBeTruthy()
++  expect(screen.queryAllByRole('progressbar')).toHaveLength(0)
++})
 diff --git a/packages/client/ui-settings-account/tsconfig.json b/packages/client/ui-settings-account/tsconfig.json
-index d425a8cdea74f84e657b0b2118472a84b0fa5e23..ba715e5b1010f96531541e4a25f2577025628f1c 100644
+index d425a8cdea74f84e657b0b2118472a84b0fa5e23..964a375942a6ad3b9c4cad411d04099611d5af9b 100644
 --- a/packages/client/ui-settings-account/tsconfig.json
 +++ b/packages/client/ui-settings-account/tsconfig.json
-@@ -58,6 +58,12 @@
+@@ -58,6 +58,24 @@
      },
      {
        "path": "../product-analytics/tsconfig.client.json"
@@ -11659,6 +13029,18 @@ index d425a8cdea74f84e657b0b2118472a84b0fa5e23..ba715e5b1010f96531541e4a25f25770
 +    },
 +    {
 +      "path": "../ui-conversation/tsconfig.client.json"
++    },
++    {
++      "path": "../../util/brand"
++    },
++    {
++      "path": "../../core/session"
++    },
++    {
++      "path": "../../llm/token-meter"
++    },
++    {
++      "path": "../resources"
      }
    ]
  }
@@ -15092,7 +16474,7 @@ index 68e7f032cb3b63ef1c4f09d592321a9144400141..13d56812ef0ea53bbcf605f7ad1e58af
               this._inSocket.destroy();
               this._ptyNative.kill(this._pty, this._useConptyDll);
 diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
-index 774164ab6d006ce397a2f47f6ba84592519d80d6..acbc73f726980a48e8fba3212b79195618656644 100644
+index 774164ab6d006ce397a2f47f6ba84592519d80d6..8ef578be4f19ff810aa66ae74714e7277d031c59 100644
 --- a/pnpm-lock.yaml
 +++ b/pnpm-lock.yaml
 @@ -24,7 +24,7 @@ patchedDependencies:
@@ -15278,7 +16660,26 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..acbc73f726980a48e8fba3212b791956
    packages/client/ui-model-selection:
      devDependencies:
        '@deepseek-ai/cordis':
-@@ -6578,6 +6696,9 @@ importers:
+@@ -6563,12 +6681,18 @@ importers:
+       '@deepseek-ai/dsh-api-remotes':
+         specifier: workspace:*
+         version: link:../../api/remotes
++      '@deepseek-ai/dsh-brand':
++        specifier: workspace:*
++        version: link:../../util/brand
+       '@deepseek-ai/dsh-client-locale':
+         specifier: workspace:*
+         version: link:../locale
+       '@deepseek-ai/dsh-client-product-analytics':
+         specifier: workspace:*
+         version: link:../product-analytics
++      '@deepseek-ai/dsh-client-resources':
++        specifier: workspace:*
++        version: link:../resources
+       '@deepseek-ai/dsh-client-store':
+         specifier: workspace:*
+         version: link:../store
+@@ -6578,6 +6702,9 @@ importers:
        '@deepseek-ai/dsh-client-ui-chat':
          specifier: workspace:*
          version: link:../ui-chat
@@ -15288,17 +16689,26 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..acbc73f726980a48e8fba3212b791956
        '@deepseek-ai/dsh-client-ui-layout':
          specifier: workspace:*
          version: link:../ui-layout
-@@ -6608,6 +6729,9 @@ importers:
+@@ -6605,9 +6732,18 @@ importers:
+       '@deepseek-ai/dsh-host-webserver':
+         specifier: workspace:*
+         version: link:../../host/webserver
++      '@deepseek-ai/dsh-session':
++        specifier: workspace:*
++        version: link:../../core/session
        '@deepseek-ai/dsh-settings':
          specifier: workspace:*
          version: link:../../settings/settings
 +      '@deepseek-ai/dsh-spend-limit':
 +        specifier: workspace:*
 +        version: link:../../guard/spend-limit
++      '@deepseek-ai/dsh-token-meter':
++        specifier: workspace:*
++        version: link:../../llm/token-meter
        '@testing-library/react':
          specifier: ^16.3.3
          version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-@@ -14340,6 +14464,49 @@ importers:
+@@ -14340,6 +14476,49 @@ importers:
          specifier: workspace:*
          version: link:../../core/tools
  
@@ -15348,7 +16758,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..acbc73f726980a48e8fba3212b791956
    packages/guard/timeout-policy:
      devDependencies:
        '@deepseek-ai/cordis':
-@@ -19182,7 +19349,7 @@ importers:
+@@ -19182,7 +19361,7 @@ importers:
          version: 3.1.1
        node-pty:
          specifier: 1.2.0-beta.15
@@ -15357,7 +16767,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..acbc73f726980a48e8fba3212b791956
      devDependencies:
        '@deepseek-ai/cordis':
          specifier: workspace:~
-@@ -35270,7 +35437,7 @@ snapshots:
+@@ -35270,7 +35449,7 @@ snapshots:
  
    node-int64@0.4.0: {}
  
