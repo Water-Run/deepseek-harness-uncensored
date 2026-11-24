@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { cleanup, render } from '@testing-library/react'
+import { cleanup, fireEvent, render } from '@testing-library/react'
 import { afterEach, expect, it, vi } from 'vitest'
 import type { SessionListState, SessionSummary } from '@deepseek-ai/dsh-api-session-controller/client'
 import { SessionId } from '@deepseek-ai/dsh-session/types'
 import { AsideHeaderAction } from '../src/client/asides/AsidePanel.tsx'
+import { AsideReads, newestSide } from '../src/client/asides/read-status.ts'
 
 afterEach(cleanup)
 
@@ -22,12 +23,14 @@ function listWith(side: Partial<SessionSummary> | undefined): SessionListState {
   } as SessionListState
 }
 
-function props(side: Partial<SessionSummary> | undefined, sideId: SessionId | undefined = side === undefined ? undefined : SIDE) {
+function props(side: Partial<SessionSummary> | undefined, seq?: number) {
   return {
     sessionId: PARENT,
     t: (key: string) => key,
     open: vi.fn(),
-    sideOf: () => sideId,
+    useSessionStatus: (select: (statuses: Map<SessionId, never>) => unknown) => select(new Map<SessionId, never>()),
+    useAsideRead: (select: (read: { child: SessionId; seq: number } | null) => unknown) =>
+      select(seq === undefined ? null : { child: SIDE, seq }),
     useSessions: (selector: (state: SessionListState) => unknown) => selector(listWith(side)),
   } as Parameters<typeof AsideHeaderAction>[0]
 }
@@ -47,18 +50,43 @@ it('leaves an unasked side conversation without a light', () => {
   expect(statusOf(view.container)).toBeUndefined()
 })
 
-it('breathes beside the launcher for a stopped side conversation', () => {
-  const view = render(<AsideHeaderAction {...props({ blank: false, running: false })} />)
-  const light = view.container.querySelector('[data-aside-status]')
-  expect(light?.getAttribute('data-aside-status')).toBe('stopped')
-  // Decorative chrome: the accessible tree skips the dot itself.
-  expect(light?.getAttribute('aria-hidden')).toBe('true')
-  const launcher = view.container.querySelector('button')
-  if (light === null || launcher === null) throw new Error('light or launcher missing')
-  expect(light.compareDocumentPosition(launcher) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+it.each([
+  [false, true, false, undefined, undefined],
+  [true, true, true, 9, 'running'],
+  [true, false, false, 8, 'unread'],
+  [true, false, false, 9, 'read'],
+  [true, false, true, 9, 'interrupted'],
+] as const)('renders asked=%s running=%s interrupted=%s read=%s as %s', (asked, running, interrupted, seq, expected) => {
+  const metadata = { blank: false, lastPromptAt: 0, side: { generation: 0, fromSeq: 0, asked, result: { seq: 9, interrupted } } }
+  const input = props({ running, projectionValues: { sessionListMetadata: metadata } }, seq)
+  const view = render(<AsideHeaderAction {...input} />)
+  expect(statusOf(view.container)).toBe(expected)
+  const button = view.getByRole('button', { name: 'aside.side' })
+  if (expected) {
+    const light = button.querySelector('[data-aside-status]')!
+    expect(light.getAttribute('aria-hidden')).toBe('true')
+    expect(button.getAttribute('aria-description')).toBe(`aside.status.${expected}`)
+    fireEvent.click(light)
+    expect(input.open).toHaveBeenCalledOnce()
+  }
 })
 
-it('blinks while the side conversation works', () => {
-  const view = render(<AsideHeaderAction {...props({ blank: false, running: true })} />)
-  expect(statusOf(view.container)).toBe('running')
+it('uses the newest generation even when the previous side has newer activity', () => {
+  const side = { generation: 0, fromSeq: 0, asked: true }
+  const row = { projectionValues: { sessionListMetadata: { blank: false, lastPromptAt: 9, side } } }
+  const list = listWith(row), next = SessionId('session-side-new')
+  const successor = { ...list.byId[SIDE]!, id: next, updatedAt: 1, projectionValues: {
+    sessionListMetadata: { blank: true, lastPromptAt: null, side: { generation: 1, fromSeq: 0, asked: false } },
+  } }
+  expect(newestSide({ ...list, ids: [next, ...list.ids], byId: { ...list.byId, [next]: successor } }, PARENT)).toBe(next)
+})
+
+it('restores the read result after reload and drops it when its parent is deleted', () => {
+  const reads = new AsideReads()
+  try {
+    reads.mark(PARENT, SIDE, 9)
+    reads.mark(PARENT, SIDE, 7)
+    expect(new AsideReads().for(PARENT).getSnapshot()).toEqual({ child: SIDE, seq: 9 })
+  } finally { reads.forget(PARENT) }
+  expect(new AsideReads().for(PARENT).getSnapshot()).toBeNull()
 })

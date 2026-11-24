@@ -3,6 +3,9 @@
 import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
+import { agentEvents, type Agent } from '@deepseek-ai/dsh-agent'
+import { createUserMessage, type UserMessage } from '@deepseek-ai/dsh-llm'
+import SessionStore from '@deepseek-ai/dsh-session'
 import { writingMaterialsText } from '../src/index.ts'
 import { failureCodeOf, openHarness, signal, WORKSPACE_ID, type Harness } from './harness.ts'
 
@@ -144,6 +147,68 @@ describe('case ledger', () => {
 })
 
 describe('writing materials', () => {
+  it('budgets the complete context and preserves Chinese and emoji at the byte limit', async () => {
+    const { service, workspace, ctx } = await open('dsh-story-')
+    await service.createStory({ workspaceId: WORKSPACE_ID, section: 'style', name: 'voice',
+      title: 'Voice', markdown: '月光🌙'.repeat(4000) }, signal())
+    for (const budget of [320, 321, 322, 323]) {
+      const text = await writingMaterialsText(ctx.fs, workspace, 'writing', budget, signal())
+      expect(Buffer.byteLength(text)).toBeLessThanOrEqual(budget)
+      expect(text).toContain('月光🌙')
+      expect(text).not.toContain('\uFFFD')
+      expect(text).toMatch(/\[truncated\]$/u)
+    }
+    const path = join(workspace, 'story/materials.json')
+    const registry = JSON.parse(await readFile(path, 'utf8'))
+    await writeFile(path, JSON.stringify({ ...registry, selected: ['notes.md'] }))
+    await expect(writingMaterialsText(ctx.fs, workspace, 'writing', 4096, signal())).rejects.toThrow('unregistered')
+  })
+
+  it('reissues selected material after compaction and records clearing and reselecting it', async () => {
+    const { service, workspace, ctx } = await open('dsh-story-')
+    await ctx.plugin(SessionStore)
+    ctx.provide('agentPresets', { composedPreset: () => 'writing' } as never)
+    const session = ctx.sessions.create(undefined, { meta: { cwd: workspace } })
+    const agent = { ctx, session, id: session.id } as Agent
+    const step = async () => {
+      const decision = await agentEvents(ctx, agent).waterfall('agent/pre-step', {
+        turn: 1, step: 1, messages: [], signal: signal(), modelSelection: { provider: 'fixture', model: 'writing' },
+      }, () => Promise.resolve({ kind: 'enter' as const, messages: [] as UserMessage[] }))
+      if (decision.kind === 'reject') throw new Error('Writing step rejected')
+      return decision.messages
+    }
+    const card = await service.createStory({ workspaceId: WORKSPACE_ID, section: 'style', name: 'voice',
+      title: 'Voice', markdown: 'VOICE' }, signal())
+    await service.createStory({ workspaceId: WORKSPACE_ID, section: 'bible', name: 'canon',
+      title: 'Canon', markdown: 'CANON' }, signal())
+    const [first] = await step()
+    expect(first?.content[0]).toMatchObject({ text: expect.stringContaining('VOICE') })
+    expect(first?.content[0]).toMatchObject({ text: expect.stringContaining('CANON') })
+    const admitted = session.append('user/message', first!, { surfaceOp: 'append' })
+    expect(await step()).toEqual([])
+    session.append('user/message', createUserMessage({ content: [{ type: 'text', text: 'Summary' }], source: { kind: 'user' } }), {
+      surfaceOp: { op: 'replace', startSeq: admitted.seq, endSeq: admitted.seq }, sourceEventSeqs: [admitted.seq],
+    })
+    const [reissued] = await step()
+    expect(reissued?.content).toEqual(first?.content)
+    session.append('user/message', reissued!, { surfaceOp: 'append' })
+    await service.selectStory({ workspaceId: WORKSPACE_ID, selected: [] }, signal())
+    const [cleared] = await step()
+    expect(cleared?.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "No writing materials are currently selected. Disregard earlier writing-material instructions.",
+          "type": "text",
+        },
+      ]
+    `)
+    session.append('user/message', cleared!, { surfaceOp: 'append' })
+    expect(await step()).toEqual([])
+    await service.selectStory({ workspaceId: WORKSPACE_ID, selected: [card.path] }, signal())
+    const [restored] = await step()
+    expect(restored?.content[0]).toMatchObject({ text: expect.stringContaining('VOICE') })
+    expect(restored?.content[0]).not.toMatchObject({ text: expect.stringContaining('CANON') })
+  })
   it('creates, selects, adopts, and removes records without deleting documents', async () => {
     const { service, workspace } = await open('dsh-dossiers-')
     const created = await service.createStory({

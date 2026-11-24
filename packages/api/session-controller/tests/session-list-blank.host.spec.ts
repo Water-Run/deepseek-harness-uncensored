@@ -29,6 +29,7 @@ import type {} from '@deepseek-ai/dsh-permission-presets'
 import type {} from '@deepseek-ai/dsh-sandbox-policy'
 import type { SessionSummary } from '../src/types.ts'
 import { createSessionTestRemote, type TestSessionRemote } from './test-remote.ts'
+import { sideIdentity } from '../src/aside-identity.ts'
 
 const ownedContexts = new Set<Context>()
 const ownedRoots = new Set<string>()
@@ -75,6 +76,28 @@ async function listBlank(remote: TestSessionRemote, id: string): Promise<boolean
 }
 
 describe('summary blank = conversation not started', () => {
+  it('tracks the latest own prompt and interrupted or completed result of a side generation', async () => {
+    const { ctx, remote, attach } = await harness()
+    try {
+      const parent = ctx.sessions.create()
+      const session = ctx.sessions.create(sideIdentity(parent.id, 2), { meta: { parentSession: parent.id } })
+      await attach(session)
+      const side = async () => {
+        const result = await remote.list({})
+        if (!result.ok) throw result.error
+        return result.value.items.find(item => item.sessionId === session.id)?.projections?.values.sessionListMetadata?.side
+      }
+      expect(await side()).toMatchObject({ generation: 2, asked: false })
+      session.append('turn/start', { turn: 1 })
+      const question = createUserMessage({ content: [{ type: 'text', text: 'Question' }], source: { kind: 'user' } })
+      session.append('user/message', question, { surfaceOp: 'append' })
+      const stop = session.append('turn/end', { turn: 1, reason: { kind: 'aborted', reason: { kind: 'user' } } })
+      expect(await side()).toMatchObject({ asked: true, result: { seq: stop.seq, interrupted: true } })
+      session.append('turn/start', { turn: 2 })
+      const done = session.append('turn/end', { turn: 2, reason: { kind: 'completed' } })
+      expect(await side()).toMatchObject({ asked: true, result: { seq: done.seq, interrupted: false } })
+    } finally { await ctx.fiber.dispose() }
+  })
   it('reports a failed turn from durable events and clears it when another turn starts', async () => {
     const { ctx, remote, attach } = await harness()
     try {

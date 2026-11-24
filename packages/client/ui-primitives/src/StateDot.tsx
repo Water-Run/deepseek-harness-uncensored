@@ -65,7 +65,7 @@ export function StateDot({ state, size, className, appearance = 'dot' }: {
       >
         <g className={css.spinnerMotion}>
           {dashed
-            ? <circle className={css.spinnerDashed} cx="12" cy="12" r="9.5" />
+            ? <circle className={css.spinnerDashed} cx="12" cy="12" r="9.5" pathLength="64" />
             : (
               <>
                 <circle className={css.spinnerTrack} cx="12" cy="12" r="9.5" />

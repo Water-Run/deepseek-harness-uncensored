@@ -46,6 +46,23 @@ it('estimates admission only when every enabled window can fit the waiting reque
   expect(ledger.reserve(4 * MICRO_CNY).kind).toBe('reserved')
 })
 
+it('claims a blocked conversation only after the last limiting window expires', async () => {
+  let now = 1000
+  const ledger = await setup(':memory:', () => now)
+  ledger.configure({ ...DEFAULT_PREFERENCES, enabledPeriods: ['15m', '1h'], autoResume: true,
+    limits: { ...DEFAULT_PREFERENCES.limits, '15m': 5, '1h': 5 } })
+  ledger.settle(reservation(ledger.reserve(4 * MICRO_CNY)), 4 * MICRO_CNY)
+  const sessionId = SessionId('two-windows')
+  const id = ledger.waitForSession(sessionId, 2 * MICRO_CNY)
+  ledger.blockSession(id)
+  now += 15 * 60_000
+  expect(ledger.claimBlockedSessions()).toEqual([])
+  expect(ledger.reserve(2 * MICRO_CNY)).toMatchObject({ kind: 'waiting' })
+  now += 45 * 60_000
+  expect(ledger.claimBlockedSessions()).toEqual([{ id, sessionId }])
+  expect(ledger.claimBlockedSessions()).toEqual([])
+})
+
 it('does not invent a recovery time while in-flight reservations prevent admission', async () => {
   const ledger = await setup()
   enable(ledger)

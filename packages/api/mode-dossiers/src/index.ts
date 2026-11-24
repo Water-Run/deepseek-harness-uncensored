@@ -76,7 +76,6 @@ import {
   readSelectedMaterials,
   readStoryEntry,
   removeStoryEntry,
-  renderMaterials,
   setStorySelection,
   writeStoryEntry,
 } from './story.ts'
@@ -148,7 +147,7 @@ export async function writingMaterialsText(
   signal: AbortSignal,
 ): Promise<string> {
   if (preset !== WRITING_PRESET || budget <= 0) return ''
-  return renderMaterials(await readSelectedMaterials(fs, rootPath, budget, signal))
+  return readSelectedMaterials(fs, rootPath, budget, signal)
 }
 
 /** Remote failure code per reported problem. */
@@ -196,8 +195,6 @@ export class ModeDossiers extends TypertRemoteService {
   })
 
   private readonly config: ResolvedConfig
-  /** Last context block injected per session, so an unchanged selection is not repeated. */
-  private readonly injected = new WeakMap<object, string>()
 
   /**
    * @param ctx - Host context carrying the filesystem.
@@ -291,7 +288,7 @@ export class ModeDossiers extends TypertRemoteService {
     next: () => Promise<PreStepDecision>,
   ): Promise<PreStepDecision> {
     const decision = await next()
-    if (decision.kind === 'reject' || signal.aborted) return decision
+    if (decision.kind === 'reject' || signal.aborted || this.config.contextBytes === 0) return decision
     if (ctx.get('agentPresets')?.composedPreset(agent.ctx) !== WRITING_PRESET) return decision
     const rootPath = agent.session.header.cwd ?? ctx.get('sandboxPolicy')?.workspaceRoot
     if (rootPath === undefined) return decision
@@ -303,12 +300,16 @@ export class ModeDossiers extends TypertRemoteService {
       ctx.logger.warn('mode-dossiers: writing materials could not be read: %o', error)
       return decision
     }
-    if (text.length === 0 || this.injected.get(agent.session) === text) return decision
-    this.injected.set(agent.session, text)
+    if (signal.aborted) return decision
+    const previous = agent.session.deriveMessages().findLast(message => message.role === 'user' && message.source.kind === 'mode-dossiers')
+    if (!text && !previous) return decision
+    const current = text || 'No writing materials are currently selected. Disregard earlier writing-material instructions.'
+    const block = previous?.content[0]
+    if (block?.type === 'text' && block.text === current) return decision
     return {
       ...decision,
       messages: [...decision.messages, createUserMessage({
-        content: [{ type: 'text', text }],
+        content: [{ type: 'text', text: current }],
         source: { kind: 'mode-dossiers', form: 'instructions' },
       })],
     }

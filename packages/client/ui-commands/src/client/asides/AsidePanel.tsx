@@ -1,11 +1,12 @@
 /** Native inline and sidebar hosts for the shared Conversation factory. */
+import { useEffect } from 'react'
 import type { PropsRuntime, PropsRenderFactories, PropsRenderSlots, PropsLocale, InjectFace } from '@deepseek-ai/dsh-client-ui-slots'
 import { IconCloseOutlineRegular, IconNewChatOutlineRegular, IconLoadingOutlineRegular, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ConversationViewsProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { InlineAsideController } from './controller.ts'
 import { AsideIcon } from './AsideIcon.tsx'
-import { AsideStatusLight } from './AsideStatusLight.tsx'
+import { newestSide, sideMetadata, type AsideReads } from './read-status.ts'
 import { asideAddress, asideParent } from './address.ts'
 import css from './AsidePanel.module.css'
 
@@ -57,9 +58,20 @@ export function AsideConversation({ renderFactorySlot, t, kind, fromSeq }: Props
 }
 
 /** Bind a sidebar resource to the child session; resource failures stay visible in the panel. */
-export function SidebarAsidePanel({ sessionId, useTabInfo, useResource, SessionProvider, renderSlot, t }: PropsRuntime<'sidebar.right.pane.tab'> & PropsRenderSlots<'sidebar.aside.conversation'> & PropsLocale<'command'>) {
+export function SidebarAsidePanel({ sessionId, useSessions, useTabInfo, useResource, SessionProvider, renderSlot, t, markRead }:
+  PropsRuntime<'sidebar.right.pane.tab'> & PropsRenderSlots<'sidebar.aside.conversation'> & PropsLocale<'command'>
+  & { markRead: (child: SessionId, seq: number) => void }) {
   const { tab } = useTabInfo()
   const resource = useResource<'aside'>(asideParent(tab.contentId) === undefined ? asideAddress(sessionId) : tab.contentId)
+  const child = resource.value?.reference.sessionId
+  const seq = useSessions(list => sideMetadata(list, child)?.result?.seq)
+  useEffect(() => {
+    if (!tab.visible || resource.status !== 'live' || child === undefined || seq === undefined) return
+    const acknowledge = () => { if (document.visibilityState === 'visible') markRead(child, seq) }
+    acknowledge()
+    document.addEventListener('visibilitychange', acknowledge)
+    return () => document.removeEventListener('visibilitychange', acknowledge)
+  }, [child, seq, tab.visible, resource.status, markRead])
   return <section className={css.sidebar} aria-label={t('aside.side')} data-aside="side">
     <div className={css.context}>{t('aside.inherited')}</div>
     {resource.status === 'failed' && resource.value !== undefined && <p role="alert" className={css.notice}>{t('aside.failed')}</p>}
@@ -82,23 +94,24 @@ export function AsideTitle({ t }: PropsRuntime<'sidebar.right.pane.tab.title'> &
 
 /**
  * Render the side-question shortcut and the state of the Session's side conversation.
- * @param props - the current Session, its side-conversation lookup, the open action and localized titles.
- * @returns the status light while the side conversation has a prompt, then the launcher.
+ * @param props - the current Session, read position, open action and localized titles.
+ * @returns the launcher with a status light after its side conversation receives a prompt.
  */
-export function AsideHeaderAction({ sessionId, useSessions, open, sideOf, t }: PropsRuntime<'conversation.session.header.utilities'> & PropsLocale<'command'> & {
-  /** Open the side-conversation panel for the current Session. */
-  open: () => void
-  /** The Session's current persistent side conversation, when one exists. */
-  sideOf: (parent: SessionId) => SessionId | undefined
-}) {
-  const sideId = sideOf(sessionId)
-  // A side conversation with no prompt of its own reports no state yet.
-  const blank = useSessions(list => sideId === undefined || list.byId[sideId]?.blank !== false)
-  const running = useSessions(list => sideId !== undefined && list.byId[sideId]?.running === true)
-  return <>
-    {!blank && <AsideStatusLight running={running} label={t(running ? 'aside.status.running' : 'aside.status.stopped')} />}
-    <Tooltip label={t('aside.side')} side="bottom" portal>
-      <button type="button" className={css.launcher} onClick={open} aria-label={t('aside.side')}><AsideIcon size={16} /></button>
-    </Tooltip>
-  </>
+export function AsideHeaderAction({ sessionId, useSessions, useSessionStatus, useAsideRead, open, t }:
+  PropsRuntime<'conversation.session.header.utilities'> & PropsLocale<'command'>
+  & InjectFace<{ hooks: { asideRead: ReturnType<AsideReads['for']> }; open: () => void }>) {
+  const child = useSessions(list => newestSide(list, sessionId))
+  const side = useSessions(list => sideMetadata(list, child))
+  const running = useSessionStatus(statuses => child !== undefined && statuses.get(child)?.running)
+  const listedRunning = useSessions(list => child !== undefined && list.byId[child]?.running)
+  const read = useAsideRead(value => value)
+  const state = !side?.asked ? undefined : (running ?? listedRunning) ? 'running' : side.result?.interrupted ? 'interrupted'
+    : side.result && !(read && read.child === child && read.seq >= side.result.seq) ? 'unread' : 'read'
+  const label = state ? t(`aside.status.${state}`) : t('aside.side')
+  return <Tooltip label={label} side="bottom" portal>
+    <button type="button" className={css.launcher} onClick={open} aria-label={t('aside.side')} aria-description={state && label}>
+      <AsideIcon size={16} />
+      {state && <span aria-hidden="true" className={css.light} data-aside-status={state} />}
+    </button>
+  </Tooltip>
 }

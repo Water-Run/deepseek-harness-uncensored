@@ -14,6 +14,13 @@ it('sends side arguments and collapses on close', async () => {
     extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
   onTestFinished(() => scaffold.close())
   const browser = await chromium.launch()
+  const finish = Promise.withResolvers<undefined>()
+  const release = scaffold.ctx.on('llm/stream', async function* (_options, next) {
+    for await (const chunk of next()) {
+      if (chunk.type === 'finish') await finish.promise
+      yield chunk
+    }
+  })
   try {
     const page = await newConversationReplayPage(browser)
     page.setDefaultTimeout(15000)
@@ -21,6 +28,15 @@ it('sends side arguments and collapses on close', async () => {
     const mainInput = page.locator('[data-composer-input][contenteditable="true"]').first()
     await mainInput.waitFor()
     const parent = scaffold.ctx.agents.list()[0]!
+    parent.session.append('turn/start', { turn: 1 })
+    parent.session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
+    await scaffold.ctx.sessions.flush(parent.session)
+    await page.reload()
+    await mainInput.waitFor()
+    const launcher = page.getByRole('button', { name: 'Side question', exact: true }).first()
+    await launcher.waitFor()
+    const light = launcher.locator('[data-aside-status]')
+    expect(await light.count()).toBe(0)
     await mainInput.fill('/side 现在情况如何')
     await mainInput.press('Enter')
     const side = page.locator('[data-aside="side"]')
@@ -32,15 +48,56 @@ it('sends side arguments and collapses on close', async () => {
       && event.data.source.kind === 'user')).toBe(false)
     const child = scaffold.ctx.sessions.list().find(session => session.header.parentSession === parent.session.id)!
     expect(child.snapshotEvents().filter(event => event.type === 'user/message').map(event => JSON.stringify(event.data)).join('')).toContain('现在情况如何')
+    await expect.poll(() => light.getAttribute('data-aside-status')).toBe('running')
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    expect(await light.evaluate(node => getComputedStyle(node).animationName)).not.toBe('none')
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    expect(await light.evaluate(node => getComputedStyle(node).animationName)).toBe('none')
+    finish.resolve(undefined)
     await expect.poll(() => scaffold.ctx.agents.get(child.id)?.status).toBe('idle')
+    const end = child.snapshotEvents().findLast(event => event.type === 'turn/end')
+    const settled = end?.type === 'turn/end' && end.data.reason.kind === 'completed' ? 'read' : 'interrupted'
+    await expect.poll(() => light.getAttribute('data-aside-status')).toBe(settled)
+    const screenshots = fileURLToPath(new URL('../../../.artifacts/screenshots/aside-launcher', import.meta.url))
+    await mkdir(screenshots, { recursive: true })
+    for (const preference of ['light', 'dark'] as const) {
+      await scaffold.ctx.settings.update('ui-theme', { preference })
+      await expect.poll(() => page.locator('body').getAttribute('data-ds-dark-theme').then(value => value !== null)).toBe(preference === 'dark')
+      await launcher.hover()
+      const bounds = await launcher.boundingBox(), dot = await light.boundingBox()
+      if (!bounds || !dot) throw new Error('Side status light is outside the layout')
+      expect(dot.x).toBeLessThanOrEqual(bounds.x)
+      expect(dot.x + dot.width).toBeGreaterThan(bounds.x)
+      expect(dot.y).toBeLessThanOrEqual(bounds.y)
+      expect(dot.y + dot.height).toBeGreaterThan(bounds.y)
+      await page.screenshot({ path: join(screenshots, `${preference}.png`), clip: {
+        x: Math.max(0, bounds.x - 80), y: Math.max(0, bounds.y - 8), width: 120, height: 60,
+      } })
+      await launcher.focus()
+      expect(await launcher.evaluate(node => node.matches(':focus'))).toBe(true)
+    }
     await page.getByRole('button', { name: 'Close', exact: true }).last().click()
     await expect.poll(() => page.locator('[class*="frame"]').first().getAttribute('data-rightbar-collapsed')).toBe('true')
+    child.append('turn/start', { turn: 2 })
+    child.append('turn/end', { turn: 2, reason: { kind: 'completed' } })
+    await expect.poll(() => light.getAttribute('data-aside-status')).toBe('unread')
     await mainInput.fill('/side')
     await mainInput.press('Enter')
     await side.waitFor()
+    await expect.poll(() => light.getAttribute('data-aside-status')).toBe('read')
+    child.append('turn/start', { turn: 3 })
+    child.append('turn/end', { turn: 3, reason: { kind: 'aborted', reason: { kind: 'user' } } })
+    await expect.poll(() => light.getAttribute('data-aside-status')).toBe('interrupted')
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.getByRole('button', { name: 'Close', exact: true }).last().click()
+    await launcher.waitFor()
+    const narrow = await launcher.boundingBox()
+    expect(narrow && narrow.x >= 0 && narrow.x + narrow.width <= 390).toBe(true)
     expect(scaffold.ctx.sessions.list().filter(session => session.header.parentSession === parent.session.id)).toHaveLength(1)
     expect(child.snapshotEvents().filter(event => event.type === 'user/message' && event.data.source.kind === 'user')).toHaveLength(1)
   } finally {
+    finish.resolve(undefined)
+    release()
     await browser.close()
   }
 })

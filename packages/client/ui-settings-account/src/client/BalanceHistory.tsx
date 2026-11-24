@@ -2,7 +2,7 @@
 import { useCallback, useId, useMemo, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
 import { Big } from 'big.js'
-import { balanceChart, nearestBalanceSample, retainedBalanceSample, type BalanceChartSample } from './balance-chart.ts'
+import { BALANCE_DASH_ARRAY, balanceChart, nearestBalanceSample, retainedBalanceSample, type BalanceChartSample } from './balance-chart.ts'
 import { formatBalance, formatBalanceDetail } from './formatBalance.ts'
 import css from './BalanceView.module.css'
 
@@ -75,7 +75,21 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
   }, [])
   const id = useId()
   const dashes = dashHint !== undefined
-  const geometry = useMemo(() => balanceChart(samples, { stepIncreases, dashes }), [samples, stepIncreases, dashes])
+  const [size, setSize] = useState({ plotWidth: 264, plotHeight: 110 })
+  const plotObserver = useRef<ResizeObserver | null>(null)
+  const observePlot = useCallback((plot: HTMLDivElement | null) => {
+    plotObserver.current?.disconnect()
+    plotObserver.current = null
+    if (plot === null || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry && entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+        setSize({ plotWidth: entry.contentRect.width, plotHeight: entry.contentRect.height })
+      }
+    })
+    plotObserver.current = observer
+    observer.observe(plot)
+  }, [])
+  const geometry = useMemo(() => balanceChart(samples, { stepIncreases, dashes, ...size }), [samples, stepIncreases, dashes, size])
   const first = samples[0], last = samples.at(-1), range = geometry.range
   if (first === undefined || last === undefined || range === undefined) return null
   const axisDigits = range.low === range.high ? 2 : Math.max(2, Math.min(8, 1 - Math.floor(Math.log10(range.high - range.low))))
@@ -114,7 +128,7 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
       <div className={css.axisLabels} data-flat={range.low === range.high} aria-hidden="true">
         <span>{format(range.high)}</span>{range.low !== range.high && <span>{format(range.low)}</span>}
       </div>
-      <div className={css.plotControl} role="slider" tabIndex={0} aria-label={label} aria-describedby={dashed ? `${id} ${id}-dashed` : id}
+      <div ref={dashes ? observePlot : undefined} className={css.plotControl} role="slider" tabIndex={0} aria-label={label} aria-describedby={dashed ? `${id} ${id}-dashed` : id}
         aria-valuemin={0} aria-valuemax={samples.length - 1} aria-valuenow={selected}
         aria-valuetext={`${new Date(sample.time).toLocaleString()} · ${precise ?? sampleAmount}`}
         onPointerMove={inspect} onPointerDown={inspect} onPointerLeave={clearHover} onPointerCancel={clearHover}
@@ -133,8 +147,8 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
           {geometry.kind === 'series' && (geometry.path === undefined
             ? <polyline points={geometry.points} className={css.line} />
             : <><path d={geometry.path} className={css.line} /><path d={geometry.increases} className={`${css.line} ${css.increase}`} /></>)}
-          {geometry.compressed !== undefined && geometry.compressed !== '' && <path d={geometry.compressed} className={`${css.line} ${css.dashed}`} />}
-          {geometry.gaps !== undefined && geometry.gaps !== '' && <path d={geometry.gaps} className={`${css.line} ${css.dashed}`} />}
+          {geometry.compressed && <path d={geometry.compressed} className={css.line} strokeDasharray={BALANCE_DASH_ARRAY} />}
+          {geometry.gaps && <path d={geometry.gaps} className={css.line} strokeDasharray={BALANCE_DASH_ARRAY} />}
           {active && <path d={`M${x} 8V102`} className={css.crosshair} />}
         </svg>
         {(active || geometry.kind === 'single') && <span className={css.samplePoint} style={{ left: `${(x - 46) / 264 * 100}%`, top: `${y / 110 * 100}%` }} />}

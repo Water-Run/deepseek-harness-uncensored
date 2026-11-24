@@ -37,6 +37,7 @@ describe('StateDot', () => {
     expect(spinner.getAttribute('width')).toBe('14')
     const rings = spinner.querySelectorAll('circle')
     expect(rings).toHaveLength(1)
+    expect(rings[0]!.getAttribute('pathLength')).toBe('64')
     expect(rings[0]!.getAttribute('r')).toBe('9.5')
     rerender(<StateDot state="ongoing" />)
     expect(container.firstElementChild?.getAttribute('data-appearance')).toBeNull()

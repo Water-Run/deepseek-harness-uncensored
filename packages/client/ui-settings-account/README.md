@@ -13,7 +13,7 @@ Server-expired account credentials clear the displayed account details and emit 
 
 ## Summary
 
-Balance increases use a vertical dashed jump at the new sample time. Unchanged periods of at least 30 minutes can be shortened, and a stretch the samples do not cover is drawn dashed instead of as a continuous line. Hover, touch or keyboard inspection still reads the original timestamps and amounts. Cumulative conversation spending uses its original continuous time axis.
+Balance increases use a vertical dashed jump at the new sample time. Unchanged periods of at least 30 minutes can be shortened. Shortened periods and sampling gaps use a dashed connector when two full dashes fit at the current plot size. Shorter connectors stay solid. Hover, touch or keyboard inspection still reads the original timestamps and amounts. Cumulative conversation spending uses its original continuous time axis.
 
 The About dialog separates a dark product identity panel from source records. Its accent follows the current conversation mode. REA records include its version, repository and full commit link; optional engine requirements and third-party licenses remain accessible. It displays the maintainer, independent version, build time, underlying DSH version and source commits. The columns stack in narrow windows and entrance motion respects reduced-motion preferences.
 

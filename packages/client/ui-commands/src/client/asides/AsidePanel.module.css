@@ -39,4 +39,21 @@
 .launcher { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--dsw-radius-sm); background: transparent; color: var(--dsw-alias-label-secondary); cursor: pointer; }
 .launcher:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 2px; }
 .guideIcon { display: inline-flex; color: var(--dsw-alias-state-business-primary); }
+.launcher { position: relative; }
+.light {
+  position: absolute;
+  inset: -1px auto auto -1px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  corner-shape: round;
+  pointer-events: none;
+  background: var(--dsw-alias-state-idle-primary);
+}
+.light[data-aside-status='unread'], .light[data-aside-status='running'] { background: var(--dsw-alias-state-business-primary); }
+.light[data-aside-status='interrupted'] { background: var(--dsw-alias-state-warn-primary); }
+@media (prefers-reduced-motion: no-preference) {
+  .light[data-aside-status='running'] { animation: aside-breathe 1.8s ease-in-out infinite; }
+}
+@keyframes aside-breathe { 0%, 100% { opacity: .4; } 50% { opacity: 1; } }
 @media (hover: hover) { .launcher:hover { color: var(--dsw-alias-state-business-primary); background: var(--dsw-alias-interactive-bg-hover); } }

@@ -67,13 +67,6 @@ interface StoryRegistryFile {
   readonly version: FsVersion
 }
 
-/** Model-visible material, ready to render. */
-export interface StoryMaterial {
-  readonly path: string
-  readonly markdown: string
-  readonly truncated: boolean
-}
-
 /** Empty registry object. */
 function emptyRegistry(): Record<string, unknown> {
   return { version: STORY_REGISTRY_VERSION, entries: [], selected: [], updatedAt: '' }
@@ -149,14 +142,15 @@ export function parseStoryRegistry(text: string, version: FsVersion): StoryRegis
   const records: StoryRecord[] = []
   for (const [index, entry] of (entries ?? []).entries()) {
     if (!isRecord(entry)) throw new DossierProblemError('corrupt', `${STORY_REGISTRY_PATH}: entries[${index}] is not an object`)
-    const path = stringField(entry, 'path')
-    const section = sectionOfPath(path)
-    if (section === undefined) {
-      throw new DossierProblemError('corrupt', `${STORY_REGISTRY_PATH}: entries[${index}] names "${path}", outside the managed directories`)
-    }
+    const { path, section } = materialPath(stringField(entry, 'path'))
     records.push({ path, title: stringField(entry, 'title'), section, createdAt: stringField(entry, 'createdAt') })
   }
-  return { raw: parsed, records, selected: stringArrayField(parsed, 'selected'), version }
+  const registered = new Set(records.map(record => record.path))
+  const selected = [...new Set(stringArrayField(parsed, 'selected'))]
+  if (selected.some(path => !registered.has(path))) {
+    throw new DossierProblemError('corrupt', `${STORY_REGISTRY_PATH} selects an unregistered document`)
+  }
+  return { raw: parsed, records, selected, version }
 }
 
 /** Registry text for storage, preserving keys this build does not model. */
@@ -548,51 +542,42 @@ export async function setStorySelection(
  * @param rootPath - workspace directory.
  * @param totalBytes - inclusive byte budget across every selected material.
  * @param signal - caller cancellation.
- * @returns the materials in registry order, with truncation marked.
+ * @returns the selected text in registry order, including headings and truncation marks within the budget.
  */
 export async function readSelectedMaterials(
   fs: FileSystem,
   rootPath: string,
   totalBytes: number,
   signal: AbortSignal | undefined,
-): Promise<StoryMaterial[]> {
+): Promise<string> {
   const registry = await readRegistry(fs, rootPath, signal)
-  if (registry === undefined) return []
+  if (!registry?.selected.length) return ''
   const root = await fs.resolve(rootPath, resolveOptions(signal))
-  const materials: StoryMaterial[] = []
-  let remaining = totalBytes
+  const intro = 'Writing materials selected by the user for this conversation.\n'
+    + 'Treat these documents as the voice reference and canon they describe; they outrank assumptions formed earlier in the conversation.\n'
+  const sections: string[] = []
+  let remaining = totalBytes - Buffer.byteLength(intro)
+  const marker = '\n\n[truncated]'
   for (const path of registry.selected) {
-    if (remaining <= 0) break
+    const heading = `\n### ${path}\n\n`
+    const budget = Math.min(STORY_MATERIAL_MAX_BYTES, remaining - Buffer.byteLength(heading))
+    if (budget <= 0) break
     const target = await resolveInside(fs, root, rootPath, path, signal)
     const info = await fs.stat(target, signal)
     if (info?.type !== 'file') continue
-    const whole = await fs.readText(target, signal)
-    const budget = Math.min(STORY_MATERIAL_MAX_BYTES, remaining)
-    const bytes = Buffer.byteLength(whole, 'utf8')
-    const truncated = bytes > budget
-    const text = truncated ? Buffer.from(whole, 'utf8').subarray(0, budget).toString('utf8') : whole
-    remaining -= Math.min(bytes, budget)
-    materials.push({
-      path,
-      markdown: truncated ? `${text}\n\n[truncated: ${bytes - budget} bytes omitted]` : text,
-      truncated,
-    })
+    const buffer = Buffer.alloc(budget)
+    let used = 0, truncated = false
+    for await (const chunk of await fs.streamText(target, signal)) {
+      const written = buffer.write(chunk, used)
+      used += written
+      if (written < Buffer.byteLength(chunk)) { truncated = true; break }
+    }
+    if (truncated && budget < marker.length) break
+    const end = truncated ? Math.min(used, budget - marker.length) : used
+    const text = new TextDecoder('utf-8', { ignoreBOM: true }).decode(buffer.subarray(0, end), { stream: true })
+    const section = heading + text.trimEnd() + (truncated ? marker : '')
+    sections.push(section)
+    remaining -= Buffer.byteLength(section)
   }
-  return materials
-}
-
-/**
- * Render the selected materials as one model-visible block.
- * @param materials - selected documents in registry order.
- * @returns the context text, or an empty string when nothing is selected.
- */
-export function renderMaterials(materials: readonly StoryMaterial[]): string {
-  if (materials.length === 0) return ''
-  const sections = materials.map(material => `### ${material.path}\n\n${material.markdown.trimEnd()}`)
-  return [
-    'Writing materials selected by the user for this conversation.',
-    'Treat these documents as the voice reference and canon they describe; they outrank assumptions formed earlier in the conversation.',
-    '',
-    ...sections,
-  ].join('\n')
+  return sections.length ? intro + sections.join('') : ''
 }

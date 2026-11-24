@@ -11,6 +11,7 @@ import type { PromptContentPart, SessionForkValue } from '@deepseek-ai/dsh-api-s
 import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import { AsideConversation, AsideTitle, AsideHeaderAction, InlineAsidePanel, SidebarAsidePanel, type InlineAsideInjected } from './AsidePanel.tsx'
 import { InlineAsideController } from './controller.ts'
+import { AsideReads } from './read-status.ts'
 import { AsideIcon, AsideGuideIcon } from './AsideIcon.tsx'
 import { ASIDE_PREFIX, asideParent } from './address.ts'
 import { AsideReasoningRow } from './ReasoningSettings.tsx'
@@ -82,6 +83,12 @@ export function registerAsides(ctx: Context): void {
     const parents = new Map<SessionId, SessionId>()
     const sides = new Set<SessionId>()
     const lastSide = new Map<SessionId, SessionId>()
+    const reads = new AsideReads()
+    if (typeof window !== 'undefined') scope.effect(() => {
+      const sync = (event: StorageEvent) => reads.sync(event)
+      window.addEventListener('storage', sync)
+      return () => window.removeEventListener('storage', sync)
+    }, 'conversation: side read positions')
     const openingSides = new Map<SessionId, Promise<SessionForkValue>>()
     const resets = new Map<SessionId, Promise<SubmitOutcome>>()
     const changes = new Map<SessionId, Set<() => void>>()
@@ -204,6 +211,7 @@ export function registerAsides(ctx: Context): void {
     })
     scope.effect(() => () => inline.dispose(), 'conversation: inline questions')
     scope.on('client-session/deleted', (id) => {
+      reads.forget(id)
       inline.hide(id)
       for (const [parent, state] of inline.state.getSnapshot()) {
         if (state.status === 'ready' && state.reference.sessionId === id) inline.hide(parent)
@@ -267,13 +275,13 @@ export function registerAsides(ctx: Context): void {
     }), 'conversation: side tab')
     scope.slots.inject('conversation.session.header.utilities', () => scope.slots.register({
       name: 'conversation.session.header.utilities', id: 'side-question', order: 100, locale: 'command',
-      inject: () => ({
+      inject: (parent: SessionId) => ({
         open: () => { scope.sidebarRight.openTab('aside') },
-        // The status light reports the Session's latest persistent side conversation.
-        sideOf: (parent: SessionId) => lastSide.get(parent),
+        hooks: { asideRead: reads.for(parent) },
       }),
     }, AsideHeaderAction))
     scope.slots.inject('sidebar.right.pane.tab', () => scope.slots.register({ name: 'sidebar.right.pane.tab', key: TYPE, locale: 'command',
+      inject: (parent: SessionId) => ({ markRead: (child: SessionId, seq: number) => reads.mark(parent, child, seq) }),
       children: { 'sidebar.aside.conversation': { kind: 'single', scope: 'session' } } }, SidebarAsidePanel))
     scope.slots.inject('sidebar.right.pane.tab.title', () => scope.slots.register({ name: 'sidebar.right.pane.tab.title', key: TYPE, locale: 'command' }, AsideTitle))
     scope.slots.inject('sidebar.aside.conversation', () => scope.slots.register({ name: 'sidebar.aside.conversation', locale: 'command', inject: () => ({ kind: 'side' as const }) }, AsideConversation))

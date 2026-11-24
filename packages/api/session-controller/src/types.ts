@@ -37,6 +37,13 @@ export interface SessionListMetadata {
   readonly lastPromptAt: number | null
   /** Latest completed turn failed; cleared when the next turn starts. Older hints may omit it. */
   readonly lastTurnFailed?: boolean | undefined
+  /** Native side generation and its latest own result. The inherited prefix precedes fromSeq. */
+  readonly side?: {
+    readonly generation: number
+    readonly fromSeq: number
+    readonly asked: boolean
+    readonly result?: { readonly seq: number; readonly interrupted: boolean } | undefined
+  } | undefined
 }
 
 /**

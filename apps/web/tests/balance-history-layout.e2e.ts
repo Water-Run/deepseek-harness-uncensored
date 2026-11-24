@@ -70,8 +70,9 @@ describe.each([{ name: 'Chromium', engine: chromium }, { name: 'WebKit', engine:
       { op: 'set', path: ['step'], value: 'done' }, { op: 'set', path: ['completion'], value: 'completed' },
     ])
     const balance = vi.spyOn(scaffold.ctx.uncensoredBalance, 'get').mockResolvedValue({
-      status: 'ready', source: 'api', account: 'api-key', sampleCount: 2,
-      samples: [128.50, 128.30].map((amount, index) => ({ time: Date.UTC(2026, 10, 11, 0, index),
+      status: 'ready', source: 'api', account: 'api-key', sampleCount: 4,
+      samples: ([[0, 128.50], [1, 128.40], [181, 128.40], [182, 128.30]] as const).map(([minute, amount]) => ({
+        time: Date.UTC(2026, 10, 11, 0, minute),
         wallets: [{ currency: 'CNY', toppedUp: amount.toFixed(2), granted: '0' }] })),
     })
     onTestFinished(() => { balance.mockRestore() })
@@ -98,7 +99,13 @@ describe.each([{ name: 'Chromium', engine: chromium }, { name: 'WebKit', engine:
       const tip = plot.getByRole('status')
       await tip.waitFor()
       const selected = await plot.getAttribute('aria-valuenow')
+      const connector = plot.locator('path[stroke-dasharray]')
+      await connector.waitFor({ state: 'attached' })
+      await plot.evaluate((node) => { node.style.width = '68px' })
+      await connector.waitFor({ state: 'detached' })
+      expect(await plot.locator('path[class*="line"]').first().getAttribute('d')).toMatch(/^M[^M]+$/u)
       await plot.evaluate((node) => { node.style.width = '100px' })
+      await connector.waitFor({ state: 'attached' })
       await expect.poll(() => plot.evaluate((node) => {
         const bubble = node.querySelector('[role="status"]')
         if (bubble === null) return false

@@ -35,6 +35,10 @@ const FLAT_THRESHOLD_MS = 30 * 60_000
 /** Sample intervals above this multiple of the usual cadence carry no observation. */
 const GAP_FACTOR = 3
 const MIN_GAP_MS = 5 * 60_000
+const DASH_PX = 5
+const GAP_PX = 4
+/** SVG dash pattern in CSS pixels for non-scaling balance connectors. */
+export const BALANCE_DASH_ARRAY = `${DASH_PX} ${GAP_PX}`
 
 interface FlatRun { start: number; end: number; duration: number }
 
@@ -124,9 +128,10 @@ function timeAxis(samples: readonly BalanceChartSample[], compress: boolean) {
  * @returns Empty, one dot, or a downsampled curve with positions for every original observation.
  */
 export function balanceChart(
-  samples: readonly BalanceChartSample[], options: { stepIncreases?: boolean; dashes?: boolean } = {},
+  samples: readonly BalanceChartSample[],
+  options: { stepIncreases?: boolean; dashes?: boolean; plotWidth?: number; plotHeight?: number } = {},
 ): BalanceChartGeometry {
-  const { stepIncreases = false, dashes = false } = options
+  const { stepIncreases = false, dashes = false, plotWidth = 264, plotHeight = 110 } = options
   if (samples.length === 0) return { kind: 'empty', points: '', positions: [] }
   const { positions, runs } = timeAxis(samples, dashes)
   const kept = new Set(downsample(samples, MAX_POINTS))
@@ -162,12 +167,15 @@ export function balanceChart(
   let path = `M${first.x},${first.y}`, increases = '', compressed = '', missing = ''
   let previous = first
   for (const current of coords.slice(1)) {
-    if (compressedEnds.has(current.index)) {
-      path += ` M${current.x},${current.y}`
-      compressed += `M${previous.x},${previous.y} H${current.x} `
-    } else if (gaps !== undefined && atIndex(gaps, current.index) !== atIndex(gaps, previous.index)) {
-      path += ` M${current.x},${current.y}`
-      missing += `M${previous.x},${previous.y} L${current.x},${current.y} `
+    const flat = compressedEnds.has(current.index)
+    if (flat || (gaps !== undefined && atIndex(gaps, current.index) !== atIndex(gaps, previous.index))) {
+      const length = Math.hypot((current.x - previous.x) * plotWidth / 264, (current.y - previous.y) * plotHeight / 110)
+      if (length < 2 * DASH_PX + GAP_PX) path += ` L${current.x},${current.y}`
+      else {
+        path += ` M${current.x},${current.y}`
+        if (flat) compressed += `M${previous.x},${previous.y} H${current.x} `
+        else missing += `M${previous.x},${previous.y} L${current.x},${current.y} `
+      }
     } else if (stepIncreases && current.y < previous.y) {
       path += ` H${current.x} M${current.x},${current.y}`
       increases += `M${current.x},${previous.y} V${current.y} `

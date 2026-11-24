@@ -66,7 +66,7 @@ StatPopover 为点击展开的统计信息复用定位、菜单材质与焦点�
 | `SegmentedTabs` | 受控的等宽分段标签，支持滑动指示条及左／右方向键、Home、End 导航。调用方提供文案、标签与面板 id，以及面板内容。默认 `size="md"` 总高 42px、内边距 4px；`size="sm"` 总高 34px、内边距 2px。 |
 | `Tag` | 只读胶囊徽章；`tone` 选择八种配色之一。 |
 | `PathLabel` | 单行文件路径：目录使用弱化颜色，文件名使用主色，悬停可查看完整路径。空间足够时靠左显示；溢出时保留尾部并在左侧渐隐，路径或尺寸变化时更新。 |
-| `StateDot` | 10px 槽内的绿色 `done`、琥珀色 `warning`、红色 `error`、中性灰色 `idle` 圆点，以及 tertiary 灰色 14px 旋转 `ongoing` loading，其动画在挂载时以及每次动画重启（如列表重排）时固定到文档时间零点，所以所有可见 loading 同相旋转。它是 `aria-hidden` 的，名称由渲染点提供。 `appearance="step"` 以实心勾表示完成、空心圆表示等待。 `appearance="dashed"` 把 `ongoing` 画成一个旋转的虚线圆环且不画底环，用于属于下属对话的工作。 |
+| `StateDot` | 10px 槽内的绿色 `done`、琥珀色 `warning`、红色 `error`、中性灰色 `idle` 圆点，以及 tertiary 灰色 14px 旋转 `ongoing` loading，其动画在挂载时以及每次动画重启（如列表重排）时固定到文档时间零点，所以所有可见 loading 同相旋转。它是 `aria-hidden` 的，名称由渲染点提供。 `appearance="step"` 以实心勾表示完成、空心圆表示等待。 `appearance="dashed"` 把 `ongoing` 画成八段等长虚线组成的旋转圆环，用于属于下属对话的工作。 |
 | `ConnectionIndicator` | 行内连接恢复控件，覆盖断线、重试与已恢复三种状态。 |
 | `DisclosureRow` | 24px 紧凑折叠行，标题与内容左右排列。标题行默认使用 tertiary，悬停时使用 secondary；文字与图标继承该颜色，不受能否展开及开合状态影响，调用方可提供功能专属覆盖。语义状态色保持显式指定。收起时悬停预览向下箭头，展开后持续显示向上箭头。`headerAccessory` 将独立操作放在折叠触发区域和流光之外；有此操作时，标题行收窄到内容宽度。使用浅层 prop 比较进行 memo；内容未变时，保持回调与 React 节点 prop 的引用稳定。 |
 | `AnimatedRows` | 带键列表的位移动画：移动为 200 ms，进出淡变为 100 ms。列表内发生指针或键盘输入后才启用，遵循减少动态效果设置，加载或替换视图时直接完成。只有同时与列表和浏览器窗口相交的行才做动画，所有行仍保持挂载。为行标记 `data-row-key` 并传入对应的 `rowKeys`，为父容器设置定位以承载不可交互的退出层；`role` 和 `label` 由调用方提供。 |

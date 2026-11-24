@@ -39,6 +39,15 @@ it('dashes the connector across an interval without a sample', () => {
   expect(balanceChart(resumed, { stepIncreases: true }).gaps).toBe('')
 })
 
+it('requires two complete dashes at the rendered size before breaking the solid path', () => {
+  const samples = [0, 600_000, 630_000, 660_000].map((time, index) => ({ time, value: index < 2 ? 1 : 0 }))
+  const widthAtTwoDashes = 14 * 264 / (252 * 10 / 11)
+  const draw = (plotWidth: number) => balanceChart(samples, { stepIncreases: true, dashes: true, plotWidth })
+  expect(draw(widthAtTwoDashes - 0.01).gaps).toBe('')
+  expect(draw(widthAtTwoDashes - 0.01).path).toMatch(/^M[^M]+$/u)
+  expect(draw(widthAtTwoDashes).gaps).toContain(' L')
+})
+
 it('keeps a fully sampled stretch solid however far it is reduced', () => {
   const samples = Array.from({ length: 2000 }, (_, index) => ({ time: index * 15_000, value: 10 + index % 7 }))
   expect(balanceChart(samples, { stepIncreases: true, dashes: true }).gaps).toBe('')

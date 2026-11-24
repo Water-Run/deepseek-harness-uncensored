@@ -11,6 +11,7 @@ import type {} from '@deepseek-ai/dsh-session-projection-cache'
 import { SessionQueryError, type SessionRecord, type SessionSearchCursor } from '@deepseek-ai/dsh-session-query'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import { z } from 'zod'
+import { sideGeneration } from './aside-identity.ts'
 import {
   SESSION_SEARCH_RESULT_LIMIT,
   SESSION_SEARCH_SNIPPET_MAX_CODE_POINTS,
@@ -28,6 +29,10 @@ const sessionListMetadataSchema: z.ZodType<SessionListMetadata> = z.object({
   blank: z.boolean(),
   lastPromptAt: z.number().nullable(),
   lastTurnFailed: z.boolean().optional(),
+  side: z.object({
+    generation: z.number().int().nonnegative(), fromSeq: z.number().int().nonnegative(), asked: z.boolean(),
+    result: z.object({ seq: z.number().int().nonnegative(), interrupted: z.boolean() }).optional(),
+  }).optional(),
 })
 
 const imageLimitsSchema = z.object({
@@ -55,9 +60,14 @@ export function applySessionListMetadata(
     : state.lastPromptAt
   const lastTurnFailed = event.type === 'turn/end' ? event.data.reason.kind === 'error'
     : event.type === 'turn/start' ? false : state.lastTurnFailed
-  return blank === state.blank && lastPromptAt === state.lastPromptAt && lastTurnFailed === state.lastTurnFailed
+  let side = state.side
+  if (side && event.seq >= side.fromSeq) {
+    if (!side.asked && event.type === 'user/message' && event.data.source.kind === 'user') side = { ...side, asked: true }
+    if (event.type === 'turn/end') side = { ...side, result: { seq: event.seq, interrupted: event.data.reason.kind !== 'completed' } }
+  }
+  return blank === state.blank && lastPromptAt === state.lastPromptAt && lastTurnFailed === state.lastTurnFailed && side === state.side
     ? state
-    : { blank, lastPromptAt, ...(lastTurnFailed === undefined ? {} : { lastTurnFailed }) }
+    : { blank, lastPromptAt, ...(lastTurnFailed === undefined ? {} : { lastTurnFailed }), ...(side && { side }) }
 }
 
 /**
@@ -95,10 +105,13 @@ export class ApiSessionList {
     this.listMetadata = await this.ctx.sessionProjections.register<'sessionListMetadata', SessionListMetadata>({
       key: 'sessionListMetadata',
       stateSchema: sessionListMetadataSchema,
-      init: () => ({ blank: true, lastPromptAt: null }),
+      init: (header, fromSeq) => {
+        const generation = header.parentSession === undefined ? undefined : sideGeneration(header.id, header.parentSession)
+        return { blank: true, lastPromptAt: null, ...(generation === undefined ? {} : { side: { generation, fromSeq, asked: false } }) }
+      },
       apply: applySessionListMetadata,
       wire: { viewSchema: sessionListMetadataSchema, view: state => state },
-      stateVersion: 2,
+      stateVersion: 3,
     })
     await this.ctx.sessionProjections.register<'imageLimits', null>({
       key: 'imageLimits',
