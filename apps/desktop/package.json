@@ -46,7 +46,8 @@
     "package:linux:x64": "tsx scripts/package-target.ts linux-x64",
     "package:linux:arm64": "tsx scripts/package-target.ts linux-arm64",
     "package:linux:arm64:unsigned": "tsx scripts/package-target.ts linux-arm64 --unsigned",
-    "deliver": "tsx scripts/collect-release.ts"
+    "deliver": "tsx scripts/collect-release.ts",
+    "deliver:github": "tsx scripts/stage-github-release.ts"
   },
   "dependencies": {
     "@deepseek-ai/cordis": "workspace:~",

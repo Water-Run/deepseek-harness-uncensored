@@ -9,6 +9,8 @@ import { createReadStream, readFileSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
+import yaml from 'js-yaml'
+import { z } from 'zod'
 import { writeStoredZip } from './release-zip.ts'
 
 /** Installer container a collected artifact uses. */
@@ -73,6 +75,7 @@ function formatOf(path: string): ReleaseArtifactFormat {
 }
 
 function platformOf(target: string): ReleaseArtifactPlatform {
+  if (!/^(?:win|mac|linux)-(?:x64|arm64)$/u.test(target)) throw new Error(`release collect: unsupported target ${JSON.stringify(target)}`)
   if (target.startsWith('win-')) return 'win32'
   if (target.startsWith('mac-')) return 'darwin'
   if (target.startsWith('linux-')) return 'linux'
@@ -249,19 +252,26 @@ export async function collectRelease(options: CollectReleaseOptions): Promise<re
   for (const entry of options.artifacts) {
     const source = resolve(entry.path)
     const format = formatOf(source)
+    const platform = platformOf(entry.target)
     const file = await stat(source)
     if (!file.isFile() || file.size === 0) throw new Error(`release collect: ${source} is not a nonempty file`)
     await SIGNATURES[format](source, file.size).catch((error: unknown) => {
       throw new Error(`release collect: ${basename(source)} ${error instanceof Error ? error.message : String(error)}`)
     })
     artifacts.push({
-      target: entry.target, platform: platformOf(entry.target), arch: archOf(entry.target), format,
+      target: entry.target, platform, arch: archOf(entry.target), format,
       name: releaseName(version, entry.target, format), source, bytes: file.size, sha256: await sha256File(source),
     })
   }
   const duplicated = artifacts.filter((artifact, index) => artifacts.findIndex(other => other.name === artifact.name) !== index)
   if (duplicated.length > 0) throw new Error(`release collect: more than one artifact for ${duplicated.map(it => it.name).join(', ')}`)
 
+  const extras = (options.auxiliary ?? []).map(entry => entry.name)
+  const publicNames = [...artifacts.map(artifact => artifact.name), ...extras, ...(options.feeds ?? []).map(path => basename(path))]
+  if (extras.some(name => !/^[A-Za-z0-9][A-Za-z0-9._-]*\.zip$/u.test(name)) ||
+      new Set(publicNames.map(name => name.toLowerCase())).size !== publicNames.length) {
+    throw new Error('release collect: expected distinct installer, update ZIP and index filenames')
+  }
   await mkdir(out, { recursive: true })
   const existing = new Set(await readdir(out))
   for (const artifact of artifacts) {
@@ -285,23 +295,15 @@ export async function collectRelease(options: CollectReleaseOptions): Promise<re
   }
   const licenseHash = await sha256File(join(out, 'LICENSE'))
 
-  // A feed names the packager's file; the release publishes its own names, so each reference is
-  // resolved back through the artifact it describes.
-  const publishedNameFor = (os: string, arch: string, extension: string): string | undefined => {
-    const target = `${os}-${arch === 'amd64' ? 'x64' : arch === 'x86_64' ? 'x64' : arch === 'aarch64' ? 'arm64' : arch}`
-    const format = extension === 'zip' ? undefined : extension
-    const artifact = artifacts.find(candidate => candidate.target === target && candidate.format === format)
-    if (artifact !== undefined) return artifact.name
-    return extension === 'zip' ? auxiliary.find(entry => entry.name.endsWith('.zip'))?.name : undefined
-  }
+  const publishedNames = new Map(artifacts.map(artifact => [basename(artifact.source), artifact.name]))
   const feeds: { name: string; bytes: number; sha256: string }[] = []
-  // The feed names the installer by the packager's filename; the release renames every artifact,
-  // so the copied feed must name the file this release actually publishes.
   const auxiliary: { name: string; bytes: number; sha256: string }[] = []
   for (const entry of options.auxiliary ?? []) {
     const source = resolve(entry.path)
     const { size } = await stat(source)
     if (size === 0) throw new Error(`release collect: ${source} is empty`)
+    if (publishedNames.has(basename(source))) throw new Error(`release collect: ambiguous source name ${basename(source)}`)
+    publishedNames.set(basename(source), entry.name)
     await copyFile(source, join(out, entry.name))
     auxiliary.push({ name: entry.name, bytes: size, sha256: await sha256File(join(out, entry.name)) })
   }
@@ -316,10 +318,11 @@ export async function collectRelease(options: CollectReleaseOptions): Promise<re
     const source = resolve(feed)
     const { size } = await stat(source)
     if (size === 0) throw new Error(`release collect: ${source} is empty`)
-    let text = await readFile(source, 'utf8')
-    text = text.replace(/deepseek-harness-uncensored-[\w.+-]+-(win|mac|linux)-([\w]+)-unsigned\.(exe|deb|rpm|dmg|zip)/gu,
-      (match: string, os: string, arch: string, extension: string) => publishedNameFor(os, arch, extension) ?? match)
-    await writeFile(join(out, name), text)
+    const feedData = z.looseObject({ path: z.string(), files: z.array(z.looseObject({ url: z.string() })) })
+      .parse(yaml.load(await readFile(source, 'utf8')))
+    feedData.path = publishedNames.get(feedData.path) ?? feedData.path
+    for (const file of feedData.files) file.url = publishedNames.get(file.url) ?? file.url
+    await writeFile(join(out, name), yaml.dump(feedData, { lineWidth: -1 }))
     feeds.push({ name, bytes: (await stat(join(out, name))).size, sha256: await sha256File(join(out, name)) })
   }
 

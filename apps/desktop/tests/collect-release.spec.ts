@@ -3,9 +3,29 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, it, onTestFinished } from 'vitest'
+import yaml from 'js-yaml'
 import { collectRelease } from '../scripts/collect-release.ts'
 
 const VERSION = '2026.11.23.2'
+
+it('matches the macOS index to its own source ZIP across architectures', async () => {
+  const root = await workspace(), out = join(root, 'collected')
+  const path = join(root, 'build.dmg')
+  await writeFile(path, payload('dmg'))
+  const auxiliary = []
+  for (const arch of ['x64', 'arm64']) {
+    const source = join(root, 'electron-' + arch + '.zip')
+    await writeFile(source, 'bytes-' + arch)
+    auxiliary.push({ name: `DSHU-${VERSION}-mac-${arch}.zip`, path: source })
+  }
+  const feed = join(root, 'latest-mac.yml')
+  await writeFile(feed, yaml.dump({ path: 'electron-arm64.zip', files: [{ url: 'electron-arm64.zip', size: 11 }] }))
+  await collectRelease({ version: VERSION, out, artifacts: [{ target: 'mac-arm64', path }], auxiliary, feeds: [feed] })
+  const expected = `DSHU-${VERSION}-mac-arm64.zip`
+  expect(yaml.load(await readFile(join(out, 'latest-mac.yml'), 'utf8'))).toEqual({ path: expected, files: [{ url: expected, size: 11 }] })
+  await expect(collectRelease({ version: VERSION, out, artifacts: [{ target: 'mac-arm64', path }], auxiliary: [{ name: '../other.zip', path }] })).rejects.toThrow('distinct')
+  await expect(collectRelease({ version: VERSION, out, artifacts: [{ target: 'mac-../../outside-arm64', path }] })).rejects.toThrow('unsupported target')
+})
 
 function payload(kind: 'deb' | 'dmg' | 'exe' | 'rpm' | 'tar.gz'): Buffer {
   switch (kind) {

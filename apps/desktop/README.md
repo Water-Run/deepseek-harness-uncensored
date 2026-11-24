@@ -300,6 +300,10 @@ Use `pnpm --dir apps/desktop run test:installer --uninstall-only --silent-only` 
 
 ## Updates
 
+Collect the five platform installers with `pnpm --dir apps/desktop run deliver`. Run `pnpm --dir apps/desktop run deliver:github --from <collected-directory> --out <new-directory>` and use the entries in `upload-files.txt` as the full attachment list. Use `release-notes.md` as the release body, keeping its hidden installer checksums. New clients check GitHub's latest public release, compare its calendar version and verify the matching installer. On macOS the client prepares the signed app from the DMG for Squirrel.Mac.
+
+For the transition release, collect the four `latest*.yml` indexes and the macOS ZIP in addition to the installers, and add `--bridge` to `deliver:github`. Its ten attachments let older clients upgrade while that release is marked Latest. Anyone who chose the former development channel must first switch it back to the public release in Settings. After a newer installer-only release becomes Latest, users still on the old updater can install the current release manually once.
+
 While the installer has control and the app is waiting to close, another request for the same version returns the current installation status. It reuses the same Host shutdown and installer handoff.
 
 Before Windows hands off to the installer, Desktop rechecks the pending file's signature and SHA-512. If verification fails, Desktop restores the workspace, retires the cache entry, and asks the user to download again. Retrying a failed download refreshes the feed first. A different version requires a new download choice.

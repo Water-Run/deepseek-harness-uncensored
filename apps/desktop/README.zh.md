@@ -300,6 +300,10 @@ Windows 卸载默认保留用户资料与更新缓存，静默卸载也适用。
 
 ## 更新
 
+用 `pnpm --dir apps/desktop run deliver` 收集五个平台安装包，再运行 `pnpm --dir apps/desktop run deliver:github --from <收集目录> --out <新目录>`。`upload-files.txt` 列出全部上传附件。使用 `release-notes.md` 作为发行正文，保留其中隐藏的安装包摘要。新客户端查询 GitHub 的最新公开正式版，比较日期版本并校验对应的安装包。macOS 从 DMG 中取出已签名的应用，交给 Squirrel.Mac 更新。
+
+过渡版另收集四个 `latest*.yml` 索引和 macOS 更新 ZIP，在 `deliver:github` 末尾加 `--bridge`。过渡版标为 Latest 期间，旧客户端可通过这十个附件完成应用内升级。旧版中曾手选开发版的用户，需先在设置中切回正式版。当下一份仅含安装包的发行版成为 Latest 时，仍使用旧更新器的用户可手动安装一次当时的最新版。
+
 安装器接手后、应用退出前，再次请求安装同一版本会返回当前安装状态，并复用已完成的 Host 停止与安装交接。
 
 Windows 在启动安装器前重新校验待执行文件的签名和 SHA-512。校验失败时，Desktop 会恢复工作区，撤销该缓存记录，并提示重新下载。重试失败的下载时会先刷新更新清单。清单提供其他版本时，需要再次选择下载。

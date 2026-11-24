@@ -7,6 +7,8 @@ import electronUpdater, { type AppUpdater, type ProgressInfo, type UpdateInfo, t
 import { gt, valid } from 'semver'
 import { DESKTOP_UPDATE_ERROR_CODES, type DesktopUpdateState } from './ipc.ts'
 import { forkUpdateSource, readInstalledUpdateSource } from './update-source.ts'
+import { DmgMacUpdater } from './updates/electron-updater/mac-dmg.ts'
+import { GithubInstallerProvider } from './updates/github-release.ts'
 import { DesktopUpdateHttpExecutor } from './updates/electron-updater/http-executor.ts'
 import { DesktopUpdatePreparationError, downloadFailureDetails } from './update-error.ts'
 import type { DesktopUpdateChannel } from './update-channel.ts'
@@ -16,7 +18,8 @@ import { verifyWindowsUpdateInstaller } from './updates/electron-updater/verify-
 import { launchWindowsUpdateInstaller } from './updates/electron-updater/launch-installer.ts'
 import { verifyWindowsUpdatePublisher } from './updates/electron-updater/windows-publisher.ts'
 
-const { autoUpdater, NsisUpdater } = electronUpdater
+const { NsisUpdater } = electronUpdater
+const autoUpdater = process.platform === 'darwin' && electronUpdater.MacUpdater ? new DmgMacUpdater() : electronUpdater.autoUpdater
 
 interface WindowsUpdateHandoff {
   launch(file: string): Promise<void>
@@ -63,7 +66,7 @@ export class DesktopUpdateCoordinator {
    * @param enabled - Whether this process has a packaged update source.
    * @param currentVersion - Actual installed application version.
    * @param downloadResult - Once per completed download attempt, including platform preparation failures.
-   * @param channel - Installed package channel; omitted test/local callers retain nightly.
+   * @param channel - Installed package channel; defaults to the public release.
    * @param discard - Clears settled library targets and platform resources before another channel is used.
    * @param readSource - Installed update configuration, read and validated before any network request.
    * @param prepareHandoff - Supplies a callback that transfers quit ownership when the shell is able to start the handoff.
@@ -76,7 +79,7 @@ export class DesktopUpdateCoordinator {
     private readonly enabled: () => boolean = () => app.isPackaged && existsSync(join(process.resourcesPath, 'app-update.yml')),
     private readonly currentVersion: () => string = () => app.getVersion(),
     private readonly downloadResult?: (success: boolean, reason?: string) => void,
-    private channel: DesktopUpdateChannel = 'nightly',
+    private channel: DesktopUpdateChannel = 'latest',
     private readonly discard: (updater: AppUpdater) => Promise<void> = discardDesktopUpdate,
     private readonly readSource: () => Promise<unknown> = readInstalledUpdateSource,
     private readonly prepareHandoff: () => (() => void) | undefined = () => () => {},
@@ -338,7 +341,10 @@ export class DesktopUpdateCoordinator {
       if (!this.enabled()) throw new Error('desktop update: this application has no packaged update source')
       const configuration = await this.readSource()
       if (!this.isActiveGeneration(generation)) return this.current
-      this.updater.setFeedURL(forkUpdateSource(configuration))
+      const source = forkUpdateSource(configuration)
+      const publicRelease = source.provider === 'github' || new URL(source.url).pathname.replace(/\/$/u, '').endsWith('/releases/latest/download')
+      this.updater.disableDifferentialDownload = publicRelease
+      this.updater.setFeedURL(publicRelease ? { provider: 'custom', updateProvider: GithubInstallerProvider } : source)
       const result = await this.updater.checkForUpdates()
       if (!this.isActiveGeneration(generation)) return this.current
       if (result === null) throw new Error('desktop update: no check result was returned')

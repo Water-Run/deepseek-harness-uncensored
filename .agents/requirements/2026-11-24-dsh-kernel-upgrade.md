@@ -168,9 +168,11 @@ pnpm exec vitest run packages/subprocess/subprocess-local/tests/process-exit.spe
 
 ### macOS 首装与应用内更新
 
-已核对 [2026.11.23.0 发行附件](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.23.0)。手动安装入口指向 DMG。线上 [macOS 更新索引](https://github.com/Water-Run/deepseek-harness-uncensored/releases/download/v2026.11.23.0/latest-mac.yml) 的 `files` 与 `path` 均指向同一个 497,240,952 字节的 ZIP，附件大小与索引相符。当前 macOS 更新器选择 ZIP，并排除 DMG。移走当前 ZIP 会中断该索引的下载。[更新器实现](https://github.com/electron-userland/electron-builder/blob/master/packages/electron-updater/src/MacUpdater.ts)
+已核对 [2026.11.23.0 发行附件](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.23.0)。手动安装入口指向 DMG。线上 [macOS 更新索引](https://github.com/Water-Run/deepseek-harness-uncensored/releases/download/v2026.11.23.0/latest-mac.yml) 的 `files` 与 `path` 均指向同一个 497,240,952 字节的 ZIP，附件大小与索引相符。该已发行版本的 macOS 更新器选择 ZIP，并排除 DMG。移走当前 ZIP 会中断该索引的下载。[更新器实现](https://github.com/electron-userland/electron-builder/blob/master/packages/electron-updater/src/MacUpdater.ts)
 
-若以后需要公开附件列表仅保留安装包，发行维护者需先提供持续可访问的更新包地址，在候选索引中核对地址、大小与 SHA-512，再用上一版已安装的 macOS 客户端完成检查、下载、安装及重启。确认旧索引和回退地址仍可用后，再切换公开入口。
+DSHU 主线的过渡版使用 `deliver:github --bridge` 整理五个安装包、四个 `latest*.yml` 索引和一个 macOS ZIP。以后常规发行只上传五个安装包。每个公开正式版按发布顺序接替 GitHub Latest。过渡版仍为 Latest 时，旧安装可以在应用内升级；曾手选开发版的用户须先切回正式版。错过窗口的旧安装需要手动安装一次当前版本。
+
+新版查询本仓库最新正式 Release，按标签比较日期版本，核对附件的固定标签地址、大小和 GitHub SHA-256，并用正文携带的 SHA-512 校验下载。macOS 从校验后的 DMG 在本机准备 Squirrel.Mac 所需的归档。Windows 上已重放五个平台目标，验证旧索引、五附件发行、签名失败与卸载卷失败，以及冻结更新库的本机 HTTP 归档交接。正式签名安装、重启和资料保留仍需在各目标平台验收。候选内核使用独立验证壳，产品打包时需接入主线桌面更新入口与 DSHU 日期版本。[发行整理说明](../../apps/desktop/README.zh.md)
 
 ## 已有会话兼容性缺口
 

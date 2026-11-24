@@ -13,4 +13,4 @@ General settings no longer offers Stable and Development. Automatic checks and *
 
 ## Migration
 
-No action is required. An existing Development selection also receives the package feed. Desktop retains other preferences and leaves the original file in place. Clients using the Desktop preload API can use `updates.status()`, `updates.open()` and `updates.subscribe()`.
+In an older installation, choose **Check for Updates** while the transition release is marked Latest on GitHub. If you previously selected Development, first change it back to the public release in Settings. Once a newer release becomes Latest, install its platform package manually to leave the old updater. Confirm the installed version in Settings. The transition release and subsequent versions check the latest public GitHub Release directly. Desktop keeps the existing preferences file. Clients using the Desktop preload API can use `updates.status()`, `updates.open()` and `updates.subscribe()`.

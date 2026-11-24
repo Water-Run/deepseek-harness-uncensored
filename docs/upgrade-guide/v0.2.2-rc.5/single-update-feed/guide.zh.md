@@ -13,4 +13,4 @@ description: "桌面更新统一使用安装包指定的 DSHU 发行源。"
 
 ## 迁移
 
-升级后无需操作。以前选择开发版的用户自动使用同一发行源，已有桌面设置文件和其他偏好保留原样。接入桌面预加载 API 的客户端应使用 `updates.status()`、`updates.open()` 和 `updates.subscribe()`。
+过渡版在 GitHub 标为 Latest 期间，旧安装可直接点「检查更新」。如果以前手动选过开发版，先在设置中切回正式版。当后续发行版成为 Latest 时，仍用旧更新器的用户可手动安装一次对应平台的最新安装包。安装后在设置中核对当前版本。过渡版和后续版本会直接查询 GitHub 的最新公开正式版，并保留已有桌面设置文件。接入桌面预加载 API 的客户端应使用 `updates.status()`、`updates.open()` 和 `updates.subscribe()`。
