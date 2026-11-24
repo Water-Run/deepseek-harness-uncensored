@@ -65,3 +65,18 @@
 - 任何目标的源码都从本机 `git archive HEAD` 投送，不在目标机依赖 GitHub git 协议。
 - Electron 一律带 `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/`。
 - 主运行时下载是当前唯一未被绕过的网络依赖。
+## 五平台构建与安装验证 2026-11-24.3（完成）
+
+主运行时缓存从各机旧树 `~/dshu-src/apps/desktop/.desktop-build/downloads` 复制到新树同路径后，`prepare:runtime` 不再依赖外网；Electron 统一走 `ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/`。四条远程构建命令一律显式传 `--build-version 2026.11.24.3`。
+
+| 目标 | 产物 | 大小 | 安装验证 |
+| --- | --- | --- | --- |
+| Windows x64 | `deepseek-harness-uncensored-2026.11.24.3-win-x64-unsigned.exe` | 443,927,890 | `192.168.10.104` 静默安装，注册表 `2026.11.24.3`，asar 标记齐全 |
+| Linux x64 · RPM | `...-linux-x86_64-unsigned.rpm` | 322,953,689 | `.40` `rpm -U` 成功，包版本 `2026.1124.3-1.x86_64` |
+| Linux x64 · DEB | `...-linux-amd64-unsigned.deb` | 392,353,472 | `.57` `apt-get install` 成功，`dpkg -l` 显示 `2026.1124.3 amd64` |
+| Linux arm64 | `...-linux-arm64-unsigned.deb` | 363,015,196 | `dgxspark` `apt-get install` 成功，`dpkg -l` 显示 `2026.1124.3 arm64` |
+| macOS arm64 | `...-mac-arm64-unsigned.dmg` / `.zip` | 377,415,202 / 497,255,372 | `yymacstudio` 挂载 DMG，`CFBundleShortVersionString = 2026.1124.3` |
+
+四台远程机的构建冒烟均在打包阶段通过：CLI 与主载荷版本一致、四预设就绪、REA 6.9.0 与 255 工具、Office 技能列出并加载、DOCX/XLSX/PPTX 转换与重算。
+
+自动更新清单随构建产出：`latest.yml`、`latest-linux.yml`、`latest-linux-arm64.yml`、`latest-mac.yml`，其 `url`/`path` 与上传的 `-unsigned` 文件名一致。
