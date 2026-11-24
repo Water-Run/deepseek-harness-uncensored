@@ -1,0 +1,269 @@
+/** Each checkout runs this fixture from its scripts directory with its own source and dependencies. */
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { expect, it } from 'vitest'
+import { Context } from '@deepseek-ai/cordis'
+import { brandString, type Branded } from '@deepseek-ai/dsh-brand'
+import { LocalFileSystem } from '@deepseek-ai/dsh-fs-local'
+import { createAssistantMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
+import SessionStore, { Session, type SessionEvent, type SessionId, type SessionLogOffset } from '@deepseek-ai/dsh-session'
+import * as jsonl from '@deepseek-ai/dsh-session-persistence-jsonl'
+import Storage from '@deepseek-ai/dsh-storage'
+import * as domains from '@deepseek-ai/dsh-storage-domain'
+import * as jsonStorage from '@deepseek-ai/dsh-storage-json'
+import WorkspaceRegistry from '@deepseek-ai/dsh-workspace'
+import { writingMaterialsText } from '../packages/api/mode-dossiers/src/index.ts'
+import { createStoryEntry, listStory, setStorySelection } from '../packages/api/mode-dossiers/src/story.ts'
+import { DEFAULT_PREFERENCES, MICRO_CNY, SpendLedger } from '../packages/guard/spend-limit/src/ledger.ts'
+import { DEFAULT_RATES } from '../packages/guard/spend-limit/src/pricing.ts'
+import { sessionSpendUsage } from '../packages/guard/spend-limit/src/session-usage.ts'
+
+const phase = process.env.DSHU_VERIFY_PHASE
+const directory = process.env.DSHU_VERIFY_DATA
+if (!directory || !['write', 'read', 'reopen'].includes(phase ?? '')) throw new Error('Run with the released-data verifier')
+if (process.env.DSHU_VERIFY_ELECTRON === '1') {
+  const desktop = JSON.parse(await readFile(new URL('../apps/desktop/node_modules/electron/package.json', import.meta.url), 'utf8'))
+  expect(process.versions.electron).toBe(desktop.version)
+  console.log('Candidate reader runtime', process.versions.electron, process.versions.node, process.versions.modules)
+}
+const workspace = join(directory, 'workspace')
+const money = join(directory, 'storages', 'spending.sqlite')
+const historicalTime = 1_795_000_000_000
+const style = 'story/style/voice.md'
+const bible = 'story/bible/city.md'
+const unused = 'story/style/unused.md'
+const estimateUsage: (events: readonly SessionEvent[], rates: typeof DEFAULT_RATES,
+  inherited: SessionLogOffset) => ReturnType<typeof sessionSpendUsage> = sessionSpendUsage
+
+it('preserves a released writing workspace, rolling ledger and compressed v4 Session', async () => {
+  await mkdir(workspace, { recursive: true })
+  const ctx = new Context()
+  const ledger = await SpendLedger.open(money, () => historicalTime)
+  const id = brandString<SessionId>('released-writing')
+  try {
+    await ctx.plugin(LocalFileSystem, { cwd: workspace })
+    await ctx.plugin(jsonl, { root: join(directory, 'sessions'), compression: 'zstd' })
+    const signal = new AbortController().signal
+    if (phase === 'write') {
+      await createStoryEntry(ctx.fs, workspace, 'style', 'voice', 'Voice', '句子要短。', signal)
+      await createStoryEntry(ctx.fs, workspace, 'bible', 'city', 'City', '城里只有一座钟楼。', signal)
+      await createStoryEntry(ctx.fs, workspace, 'style', 'unused', 'Unused', 'UNSELECTED DRAFT', signal)
+      await setStorySelection(ctx.fs, workspace, [bible, style], signal)
+      ledger.configure({ ...DEFAULT_PREFERENCES, autoResume: true, enabledPeriods: ['5h', '7d'],
+        limits: { ...DEFAULT_PREFERENCES.limits, '5h': 2, '7d': 3 } })
+      const charge = ledger.reserve(MICRO_CNY)
+      if (charge.kind !== 'reserved') throw new Error('Expected a reservation from the release writer')
+      ledger.settle(charge.id, MICRO_CNY)
+      ledger.reset('5h')
+      ledger.blockSession(ledger.waitForSession(id, 2 * MICRO_CNY))
+
+      const session = Session.create(id)
+      const header = { ...session.header, cwd: workspace, agentPreset: 'writing' }
+      const admission = await writingMaterialsText(ctx.fs, workspace, 'writing', 4096, signal)
+      session.append('turn/start', { turn: 1 })
+      session.append('user/message', createUserMessage({ source: { kind: 'mode-dossiers', form: 'instructions' },
+        content: [{ type: 'text', text: admission }] }), { surfaceOp: 'append' })
+      session.append('user/message', createUserMessage({ source: { kind: 'user' },
+        content: [{ type: 'text', text: '写一段清晨的街景。' }] }), { surfaceOp: 'append' })
+      const route = { provider: 'deepseek-official', model: 'deepseek-flash' }
+      session.append('step/start', { turn: 1, step: 1 })
+      session.append('request/header', { reason: 'initial', header: { config: route } })
+      session.append('assistant/message', { turn: 1, step: 1,
+        message: createAssistantMessage({ source: route, content: [{ type: 'text', text: '钟声响了。' }] }),
+        usage: { inputTokens: 100, outputTokens: 20 }, stream: [],
+      }, { surfaceOp: 'append' })
+      session.append('step/end', { turn: 1, step: 1 })
+      session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
+      const handle = await ctx.sessionPersistence.create(header)
+      try {
+        await handle.append(session.snapshotEvents())
+        await handle.flush()
+      } finally { await handle.close() }
+    }
+
+    const registry = await listStory(ctx.fs, workspace, signal)
+    const hasBible = phase !== 'reopen'
+    expect(registry.selected).toEqual(hasBible ? [bible, style] : [style])
+    expect(registry.entries.map(e => [e.path, e.selected, e.missing]).sort()).toEqual([
+      [bible, hasBible, false], [unused, false, false], [style, true, false],
+    ])
+    const material = await writingMaterialsText(ctx.fs, workspace, 'writing', 4096, signal)
+    expect(material).toContain('句子要短。')
+    if (hasBible) {
+      expect(material).toContain('城里只有一座钟楼。')
+      expect(material.indexOf('城里只有一座钟楼。')).toBeLessThan(material.indexOf('句子要短。'))
+    } else { expect(material).not.toContain('钟楼') }
+    expect(material).not.toContain('UNSELECTED DRAFT')
+
+    const state = ledger.snapshot()
+    expect(state.preferences).toMatchObject({ enabledPeriods: ['5h', '7d'], autoResume: true, limits: { '5h': 2, '7d': 3 } })
+    expect(state.windows.find(window => window.period === '5h')?.spent).toBe(0)
+    expect(state.windows.find(window => window.period === '7d')?.spent).toBe(1)
+    expect(state.pausedSessions).toMatchObject(phase === 'reopen' ? [] : [{ sessionId: id, state: 'blocked' }])
+    const handle = await ctx.sessionPersistence.open(id, 'read')
+    try {
+      const { events } = await handle.read()
+      const receipt = join(directory, 'released.json')
+      const observed = { header: handle.header, events }
+      if (phase === 'write') await writeFile(receipt, JSON.stringify(observed))
+      else expect(observed).toEqual(JSON.parse(await readFile(receipt, 'utf8')))
+      expect(handle.header).toMatchObject({ version: 4, cwd: workspace, agentPreset: 'writing' })
+      const session = Session.create(id, events, handle.header, handle.inheritedEventCount)
+      expect(session.deriveMessages().map(message => message.content)).toEqual([
+        [{ type: 'text', text: expect.stringContaining('城里只有一座钟楼。') }], [{ type: 'text', text: '写一段清晨的街景。' }],
+        [{ type: 'text', text: '钟声响了。' }],
+      ])
+      expect(estimateUsage(events, DEFAULT_RATES, handle.inheritedEventCount))
+        .toMatchObject({ total: 0.00036, requests: 1, unpricedRequests: 0 })
+    } finally { await handle.close() }
+    if (phase === 'read') {
+      const [claim] = ledger.claimBlockedSessions()
+      if (!claim) throw new Error('Released pause was not available to the candidate')
+      expect(claim.sessionId).toBe(id)
+      expect(ledger.claimBlockedSessions()).toEqual([])
+      ledger.completeClaim(claim.id)
+      await setStorySelection(ctx.fs, workspace, [style], signal)
+      const revised = await writingMaterialsText(ctx.fs, workspace, 'writing', 4096, signal)
+      expect(revised).toContain('句子要短。')
+      expect(revised).not.toContain('钟楼')
+    }
+  } finally {
+    ledger.close()
+    await ctx.fiber.dispose()
+  }
+}, 30_000)
+
+it('reopens the released workspace index with the same order, membership, pins and archive', async () => {
+  const ctx = new Context()
+  const home = join(directory, 'workspace-profile')
+  const first = join(home, 'writing')
+  const second = join(home, 'notes')
+  const pinned = brandString<SessionId>('pinned-story')
+  const archived = brandString<SessionId>('archived-story')
+  const receipt = join(home, 'workspace-receipt.json')
+  try {
+    await ctx.plugin(Storage)
+    await ctx.plugin(jsonStorage, { root: join(home, 'storages') })
+    await ctx.plugin(domains, { backend: 'json' })
+    await ctx.plugin(jsonl, { root: join(home, 'sessions'), compression: 'zstd' })
+    if (phase === 'write') {
+      await mkdir(first, { recursive: true })
+      await mkdir(second, { recursive: true })
+      for (const id of [pinned, archived]) {
+        const session = Session.create(id)
+        session.append('user/message', createUserMessage({ source: { kind: 'user' },
+          content: [{ type: 'text', text: 'My writing notes' }] }), { surfaceOp: 'append' })
+        const handle = await ctx.sessionPersistence.create({ ...session.header, cwd: first, agentPreset: 'writing' })
+        try { await handle.append(session.snapshotEvents()) } finally { await handle.close() }
+      }
+    }
+    await ctx.plugin(WorkspaceRegistry)
+    const registry = ctx.workspaceRegistry
+    const writing = await registry.resolveByPath(first)
+    if (!writing) throw new Error('Workspace of released writing sessions is missing')
+    if (phase === 'write') {
+      const notes = await registry.create(second, 'Research notes')
+      await registry.insertBefore(notes.id, writing.id)
+      await writing.insertSessionBefore(archived, pinned)
+      await registry.pinSession(pinned)
+      await registry.archiveSession(archived)
+    }
+    const order = registry.list().map(row => ({ id: row.id, title: row.title, path: row.path, members: row.sessionIds }))
+    if (phase === 'write') await writeFile(receipt, JSON.stringify(order))
+    else expect(order).toEqual(JSON.parse(await readFile(receipt, 'utf8')))
+    expect(order[0]?.title).toBe('Research notes')
+    expect(writing.sessionIds).toEqual([archived, pinned])
+    expect(registry.pinnedSessionIds).toEqual([pinned])
+    expect(registry.archivedSessionIds).toEqual(phase === 'reopen' ? [] : [archived])
+    if (phase === 'read') await registry.unarchiveSession(archived)
+  } finally { await ctx.fiber.dispose() }
+}, 30_000)
+
+it('attributes only the new model work after reopening two generations of released forks', async () => {
+  const ctx = new Context()
+  const ids = ['original', 'child', 'grandchild'].map(value => brandString<SessionId>(value))
+  const route = { provider: 'deepseek-official', model: 'deepseek-flash' }
+  try {
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(jsonl, { root: join(directory, 'sessions'), compression: 'zstd' })
+    if (phase === 'write') {
+      let parent: Session | undefined
+      for (const [index, id] of ids.entries()) {
+        const turn = index + 1
+        const session: Session = parent ? ctx.sessions.fork(parent, undefined, id) : ctx.sessions.create(id)
+        session.append('turn/start', { turn })
+        session.append('step/start', { turn, step: 1 })
+        if (!parent) session.append('request/header', { reason: 'initial', header: { config: route } })
+        session.append('assistant/message', { turn, step: 1, stream: [],
+          usage: { inputTokens: turn * 100, outputTokens: 20 },
+          message: createAssistantMessage({ source: route, content: [{ type: 'text', text: String(id) }] }),
+        }, { surfaceOp: 'append' })
+        session.append('step/end', { turn, step: 1 })
+        session.append('turn/end', { turn, reason: { kind: 'completed' } })
+        const writer = await ctx.sessionPersistence.create(session.header, { inheritedEventCount: session.inheritedEventCount })
+        try {
+          await writer.append(session.snapshotEvents())
+          await writer.flush()
+        } finally { await writer.close() }
+        parent = session
+      }
+    }
+    let previous = 0
+    for (const [index, id] of ids.entries()) {
+      const handle = await ctx.sessionPersistence.open(id, 'read')
+      try {
+        const { events } = await handle.read()
+        expect(handle.inheritedEventCount).toBe(previous)
+        previous = events.length
+        expect(events.filter(event => event.type === 'assistant/message')).toHaveLength(index + 1)
+        if (phase !== 'write') {
+          expect(estimateUsage(events, DEFAULT_RATES, handle.inheritedEventCount)).toMatchObject({
+            requests: 1, unpricedRequests: 0, total: [0.00036, 0.00056, 0.00076][index],
+          })
+        }
+      } finally { await handle.close() }
+    }
+  } finally { await ctx.fiber.dispose() }
+}, 30_000)
+
+it('replays the released memory context and prices its separate extraction call once', async () => {
+  const ctx = new Context()
+  const id = brandString<SessionId>('released-memory-fee')
+  const memory = brandString<Branded<'MemoryId'>>('writing-preference')
+  const preference = 'Use short sentences.'
+  const question = 'Write a paragraph about the city.'
+  const context = { kind: 'memory-context', form: 'snapshot', sections: [{ name: 'Memory', text: preference }],
+    entries: [{ id: memory, version: 2 }] } as const
+  try {
+    await ctx.plugin(jsonl, { root: join(directory, 'sessions'), compression: 'zstd' })
+    if (phase === 'write') {
+      const log = Session.create(id)
+      log.append('turn/start', { turn: 1 })
+      log.append('user/message', createUserMessage({ source: context, content: [{ type: 'text', text: preference }] }), { surfaceOp: 'append' })
+      log.append('user/message', createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: question }] }), { surfaceOp: 'append' })
+      log.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
+      const request = { requestId: brandString<Branded<'MemoryExtractionId'>>('released-extraction'), turn: 1, throughSeq: 3 }
+      log.append('memory/extraction', { ...request, phase: 'request', scope: { global: false, mode: 'writing' },
+        provider: 'deepseek-official', model: 'deepseek-flash', maxTokens: 100,
+        message: createUserMessage({ source: { kind: 'memory-extraction', form: 'instructions' },
+          content: [{ type: 'text', text: 'Extract the writing preference.' }] }) })
+      log.append('memory/extraction', { ...request, phase: 'result', outcome: 'completed', saved: [{ id: memory, version: 3 }],
+        usage: { inputTokens: 100, outputTokens: 20 } })
+      const writer = await ctx.sessionPersistence.create({ ...log.header, agentPreset: 'writing' })
+      try { await writer.append(log.snapshotEvents()) } finally { await writer.close() }
+    }
+    const handle = await ctx.sessionPersistence.open(id, 'read')
+    try {
+      const { events } = await handle.read()
+      expect(events.filter(event => event.type === 'memory/extraction').map(event => event.data.phase)).toEqual(['request', 'result'])
+      const log = Session.create(id, events, handle.header, handle.inheritedEventCount)
+      expect(log.deriveMessages().map(({ source, content }) => ({ source, content }))).toEqual([
+        { source: context, content: [{ type: 'text', text: preference }] },
+        { source: { kind: 'user' }, content: [{ type: 'text', text: question }] },
+      ])
+      expect(estimateUsage(events, DEFAULT_RATES, handle.inheritedEventCount)).toMatchObject({
+        requests: 1, unpricedRequests: 0, total: 0.00036, points: [{ total: 0.00036 }],
+      })
+    } finally { await handle.close() }
+  } finally { await ctx.fiber.dispose() }
+}, 30_000)
