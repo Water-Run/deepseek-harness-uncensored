@@ -25,3 +25,6 @@ locales.ts dsh-review-layer=test
 snapshots/** dsh-review-layer=test
 *.i18n.yaml dsh-review-layer=test
 packages/*/*/src/types.ts dsh-review-layer=interface
+
+# Git patches contain a single space on unchanged blank context lines.
+kernel/*/dshu.patch whitespace=-blank-at-eol
