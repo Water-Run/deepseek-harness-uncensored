@@ -1,5 +1,7 @@
 # DSHU 开发交接
 
+[当前四模式新版接手文档](requirements/2026-11-25-release-handoff.md)列出主线与候选的区别、七项需求、旧资料验证、分平台验收和维护者分工。下列为 2026-11-18 至 19 日交付记录。
+
 [Windows x64 首发交接与缺口清单](requirements/2026-11-19-first-release-handoff.md)记录当前源码和实装的对应关系、剩余任务、Release 核验与资料回退。
 
 **本地 2026.11.18.11 已保留资料安装并启动。** 首次正式发布计划为 Windows x64。当前 36 项完成、8 项进行中、4 项列入后续版本。[开发清单](TODO.md)
@@ -12,7 +14,7 @@
 
 18.1 rc.3 候选已验证但未安装；17.7 失败候选仍隔离保留。检查实际外部插件导入 SDK client 和注册情况，不能只以包内文件存在代替运行通过。[历史 18.1](requirements/2026-11-18.1-delivery.md) · [历史 17.8](requirements/2026-11-17.8-delivery.md)
 
-[公开预发布 17.5](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.17.5) 保持不变。本次没有创建 Release、修改公开资产或上传文件。源码已经推送；远端没有 CI 运行记录，不能记作 CI 通过。
+17.5 在此交付记录当时为预发布版本。该旧草稿的清理与本地备份见[新版接手文档](requirements/2026-11-25-release-handoff.md#release-维护记录)。本次没有创建 Release、修改公开资产或上传文件。源码已经推送；远端没有 CI 运行记录，不能记作 CI 通过。
 
 ## 当前开发
 

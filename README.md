@@ -294,7 +294,7 @@
 | [使用手册](docs/user/guide/dshu.md) | 第一个任务、各模式用法、默认值、数据恢复、故障排查和功能入口速查 |
 | [模型配置](docs/user/guide/providers.zh.md) | 模型提供方、凭据与自定义接口 |
 | [模式资料](packages/client/ui-mode-materials/README.zh.md) · [REA 接入](packages/mcp/rea/README.zh.md) · [执行保护](packages/guard/target-protection/README.zh.md) | 专项功能的技术说明 |
-| [开发清单](.agents/TODO.md) · [交付记录](.agents/HANDOFF.md) | 功能进度、验收状态与发布流程 |
+| [新版接手文档](.agents/requirements/2026-11-25-release-handoff.md) · [开发清单](.agents/TODO.md) · [交付记录](.agents/HANDOFF.md) | 功能进度、验收状态与发布流程 |
 | [反馈问题](https://github.com/Water-Run/deepseek-harness-uncensored/issues/new/choose) | 缺陷报告与功能建议 |
 
 ## 版本基线
