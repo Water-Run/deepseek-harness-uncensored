@@ -11,6 +11,8 @@ English | [中文](README.zh.md)
 
 The root service owns REA launch preferences and external processes. The `./agent` consumer is mounted only by the Reverse preset. REA is enabled by default and starts only when used. Saved opt-outs remain disabled; configuring it neither downloads software nor changes another client's settings.
 
+With REA enabled, the first model request includes a file-header reader. Paste the first bytes of an ELF or PE file on their own lines as hex and ask for its format and CPU architecture in ordinary language. The reader accepts up to 4096 bytes, uses REA’s fixed-header decoders locally, and works in read-only mode. An unknown machine returns its numeric identifier, and incomplete headers report the missing data.
+
 ## Configuration
 
 Open Settings → Mode → Reverse configuration. The bundled REA works without executable paths. Desktop supplies Node 24.22.1; source launches use their Node process or `DSH_REA_NODE_PATH`. Custom Node and CLI paths are optional overrides. Save and check the connection. Optional fields select Ghidra, Java, an IDA MCP configuration, and a native provider. The check starts a temporary MCP process, reports its version and tools, checks configured paths, then closes it. A successful handshake does not certify an optional engine; engine versions and dependencies are checked when a sample is opened.

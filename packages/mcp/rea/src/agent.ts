@@ -6,6 +6,7 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import { createMcpToolDefinition, publicToolName } from '@deepseek-ai/dsh-mcp-client'
 import type {} from '@deepseek-ai/dsh-sandbox-policy'
 import type {} from '@deepseek-ai/dsh-working-directory'
+import { registerHeaderIdentification } from './header-identification.ts'
 import type {} from './index.ts'
 
 /** Cordis diagnostics name. */
@@ -27,6 +28,7 @@ interface Owner {
  * @param ctx - Reverse preset context; no other preset mounts this consumer.
  */
 export function apply(ctx: Context): void {
+  registerHeaderIdentification(ctx)
   const owners = new Map<Agent, Owner>()
   const cleanups = new Map<Agent, () => Promise<void>>()
   let stopped = false

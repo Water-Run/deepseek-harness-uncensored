@@ -132,6 +132,24 @@ pnpm run test:web:built apps/web/tests/about-dialog-fit.e2e.ts apps/web/tests/ag
 | 关于页 | [弹窗](../../packages/client/ui-settings-account/src/client/AboutDialog.tsx)、[样式](../../packages/client/ui-settings-account/src/client/AboutDialog.module.css)、[尺寸与焦点回归](../../apps/web/tests/about-dialog-fit.e2e.ts) | 检查桌面渐变贴齐三边，移动端贴齐顶部，关闭按钮和键盘焦点可达。检查标题可供辅助技术读取且没有独立可见标题栏。 |
 | 模式设置与左侧导航 | [模式设置界面](../../packages/client/ui-agent-preset/src/client/AgentPresetSection.tsx)、[模式设置回归](../../apps/web/tests/agent-preset-authoring.e2e.ts)、[导航入口回归](../../apps/web/tests/entry-customization.e2e.ts) | 检查外观、选中态、窄屏和插件入口；保留账号菜单的关于入口。四模式的业务验收单独由对应维护者登记。 |
 
+## Issue 22 的首轮文件头识别
+
+[Issue #22](https://github.com/Water-Run/deepseek-harness-uncensored/issues/22) 反馈用户必须明确说出 REA，模型才会考虑使用它。DSHU 主线已在启用 REA 的逆向会话中加入首轮文件头识别。该入口面向“这是哪种文件、面向哪种 CPU”一类问题，使用固定版本 REA 的 ELF 和 PE 文件头解码器。通用 alpha 内核候选仍以其关于页的组件状态为准。
+
+1. 启用 REA，打开新的逆向会话。将下方合成文件头连同“这是什么格式、面向哪种 CPU 架构？”作为一条消息发送。问题中无需工具名。用例只使用十六进制数据，无需外部样本或引擎。
+2. 首轮系统提示和工具声明中可以看到 `rea_identify_header`。模型调用的参数为 `{}`。工具从当前会话的消息投影中读取最近一条用户原文，只接受一个单行或连续多行的十六进制片段，上限 4096 字节。这样保留重复的零字节，也避免把其他会话、工具输出或系统注入的文字当成样本。
+3. 核对工具结果为 ELF、机器编号 183、架构 arm64。PE 用例核对 x86_64。未知格式返回空的身份字段，截断、奇数位十六进制和多个分离的片段返回输入错误。关闭 REA 后再次开始一轮，识别工具和提示均应消失。
+4. 主线定向测试覆盖原生解码、工具首轮声明、关闭选项与只读权限，并检查没有启动引擎进程。另在隔离的工具集合中用 DeepSeek V4 Flash 和合成文件头做了一次真实选择：用户问题未写 REA，模型自动选择无参数入口，收到工具数据后回答 ELF、ARM64。其他输入、模型和整个工具目录的选择率尚未测量。Issue 保持开放。
+
+```text
+7f 45 4c 46 02 01 01 00 00 00 00 00 00 00 00 00
+00 00 b7 00 01 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 00 00 00 40 00 00 00 00 00 00 00 00 00 00 00
+```
+
+在主线根目录执行 `pnpm exec vitest run packages/mcp/rea/tests/rea.spec.ts -t "header identification|format and architecture"`。[首轮说明与识别实现](../../packages/mcp/rea/src/header-identification.ts) · [行为用例](../../packages/mcp/rea/tests/rea.spec.ts) · [文件头结果快照](../../packages/mcp/rea/tests/expected/file-header.json)
+
 ## 旧资料与问题 20
 
 用户在 macOS 上报告应用启动后无法使用，涉及 `workspaceController`。保留资料时，旧 profile 中直接声明的包可能遮蔽桌面 Host 自带的 DSH 服务。修复涵盖 ESM、CommonJS 和插件目录解析，同时保留外部插件使用自己依赖的行为。报告目前仍开放。[Issue #20](https://github.com/Water-Run/deepseek-harness-uncensored/issues/20) · [解析实现](../../packages/boot/app-boot/src/profile-resolution/resolver.ts) · [回归用例](../../packages/boot/app-boot/tests/profile-resolution.spec.ts)

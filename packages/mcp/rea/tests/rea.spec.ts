@@ -5,11 +5,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Context } from '@deepseek-ai/cordis'
-import { afterEach, expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { SessionId } from '@deepseek-ai/dsh-session'
-import { ToolCallId } from '@deepseek-ai/dsh-llm'
+import { createUserMessage, ToolCallId } from '@deepseek-ai/dsh-llm'
 import SandboxPolicy from '@deepseek-ai/dsh-sandbox-policy'
 import ReaService, { Config } from '../src/index.ts'
 import * as ReaAgent from '../src/agent.ts'
@@ -36,6 +36,48 @@ async function harness(enabled = true, mode: 'read-only' | 'danger-full-access' 
   })
   return { ctx, agent, cwd, call }
 }
+
+it('offers read-only format and architecture identification on the first step without starting an engine', async () => {
+  const { ctx, agent } = await harness(true, 'read-only')
+  const connect = vi.spyOn(ctx.rea, 'connect')
+  const signal = new AbortController().signal
+  const tools = await ctx.tools.resolve({ agent, signal, modelSelection: { provider: 'mock', model: 'mock' } })
+  try {
+    const firstPrompt = await ctx.systemPrompt.assemble({ scope: agent })
+    expect(firstPrompt.sections.find(section => section.name === 'rea:file-identification')?.text).toContain('rea_identify_header')
+    const definition = tools.view(agent).get('rea_identify_header')
+    expect(definition?.description).toContain('file format')
+    const read = (hex: string) => {
+      agent.session.append('user/message', createUserMessage({ source: { kind: 'user' },
+        content: [{ type: 'text', text: '这段文件头是什么格式，面向哪种 CPU 架构？\n' + hex }] }), { surfaceOp: 'append' })
+      return executeToolFixture(ctx, {
+        name: 'rea_identify_header', arguments: {}, agent, signal, toolSet: tools, callId: ToolCallId('header'),
+      })
+    }
+    const elf = Buffer.alloc(64)
+    elf.set([127, 69, 76, 70, 2, 1, 1]); elf.writeUInt16LE(183, 18); elf.writeUInt32LE(1, 20); elf.writeUInt16LE(64, 52)
+    const identified = await read(elf.toString('hex'))
+    await expect(JSON.stringify(identified, null, 2)).toMatchFileSnapshot('./expected/file-header.json')
+    const pe = Buffer.alloc(88)
+    pe.write('MZ'); pe.writeUInt32LE(64, 60); pe.write('PE', 64); pe.writeUInt16LE(0x8664, 68)
+    expect(JSON.stringify(await read(pe.toString('hex')))).toContain('x86_64')
+    expect(JSON.stringify(await read('00 11'))).toContain('"format":null')
+    for (const hex of ['abc', 'xyz0', '00 11\n\n22 33', '00'.repeat(4097), '7f454c46', '4d5a', pe.subarray(0, 64).toString('hex'), pe.subarray(0, 68).toString('hex')]) {
+      expect((await read(hex)).isError).toBe(true)
+    }
+    expect(connect).not.toHaveBeenCalled()
+  } finally { tools.dispose() }
+})
+
+it('omits header identification from the model request when REA is disabled', async () => {
+  const { ctx, agent } = await harness(false)
+  const tools = await ctx.tools.resolve({ agent, signal: new AbortController().signal, modelSelection: { provider: 'mock', model: 'mock' } })
+  try {
+    expect(tools.view(agent).has('rea_identify_header')).toBe(false)
+    const prompt = await ctx.systemPrompt.assemble({ scope: agent })
+    expect(prompt.sections.some(section => section.text.includes('rea_identify_header'))).toBe(false)
+  } finally { tools.dispose() }
+})
 
 it('discovers lazily, validates selected tool arguments and keeps analysis state separate', async () => {
   const { ctx, agent, cwd, call } = await harness()
