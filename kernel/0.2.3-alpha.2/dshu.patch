@@ -713,9 +713,20 @@ index 7664fb11d460ed9cd72274f3105cb782bc0d462e..a2e50daf0e267e4c067b6af167d1bdfa
    reportSkippedBundles('dsh', profile)
    const application = runProfile({
 diff --git a/apps/desktop/README.i18n.yaml b/apps/desktop/README.i18n.yaml
-index 1336a701c617d5f35477c8bc0082d6ae25996fcf..edd5efcac4404f9cff458f71f51e2e4deb59c45b 100644
+index 1336a701c617d5f35477c8bc0082d6ae25996fcf..ffdf22b9d5487fe8f4239ee5cc5391063c66d144 100644
 --- a/apps/desktop/README.i18n.yaml
 +++ b/apps/desktop/README.i18n.yaml
+@@ -15,8 +15,8 @@
+   en: 127ea90553cb6af7
+   zh: 7b1c5aec8558c684
+ /deepseek-harness-desktop/application-overview:
+-  en: 7414f87908fbffaf
+-  zh: 8ff4fc1d83879c25
++  en: 4bfa6f3cf6dc5331
++  zh: 09ad17cadeff934d
+ /deepseek-harness-desktop/terminal-command:
+   en: 988bf8bb84cf7c9a
+   zh: 28cefc949c7f52ce
 @@ -60,8 +60,8 @@
    en: 8b0b9efeb83727ef
    zh: 5ee95de48ceab392
@@ -728,9 +739,18 @@ index 1336a701c617d5f35477c8bc0082d6ae25996fcf..edd5efcac4404f9cff458f71f51e2e4d
    en: 182a9c6705213e13
    zh: 681762f83490f4c6
 diff --git a/apps/desktop/README.md b/apps/desktop/README.md
-index af6f44dd177d452eef214f20de3ae784cd5612cd..9279b0113ff96d4bab66b20fc9c2f70479ea7ede 100644
+index af6f44dd177d452eef214f20de3ae784cd5612cd..4d24e70c38929790bfcccb5ef133d1be13a628db 100644
 --- a/apps/desktop/README.md
 +++ b/apps/desktop/README.md
+@@ -43,7 +43,7 @@ Electron generates a fresh random credential for each owned Host process. After
+ 
+ Desktop binds `127.0.0.1`, the address Electron dials for the ready URL and the WebSocket credential filter. WebSocket streams use `ws:` or `wss:` according to the Host listener; credentials require matching authority and scheme.
+ 
+-The first application-menu command, **About DeepSeek Harness**, opens Electron's native About panel with the application icon, product name, and installed release version. The menu follows the Desktop shell locale. On macOS, Hide, Hide Others, Show All, and Quit use localized labels; Hide and Quit include the DeepSeek Harness product name. These commands retain their native actions and shortcuts. macOS reads the icon from its application bundle, so an unpackaged development launch displays Electron's icon; Windows receives the packaged PNG.
++**About DeepSeek Harness Uncensored** opens the same product dialog as the account menu when the current workspace is ready. While About is open, Desktop hides any embedded Platform page and restores that page on dismissal. During startup or recovery the application menu opens Electron’s native About panel with the application icon, name and installed version. The menu follows the Desktop shell locale. On macOS, Hide, Hide Others, Show All, and Quit use localized labels; Hide and Quit include the DeepSeek Harness product name. These commands retain their native actions and shortcuts. macOS reads the icon from its application bundle, so an unpackaged development launch displays Electron's icon; Windows receives the packaged PNG.
+ 
+ Desktop’s local native directory flow opens an Electron folder dialog attached to the application window, restoring, showing, and focusing that window first. Concurrent requests share one dialog; cancellation returns no path and failures remain retryable. Ordinary Web uses the Host chooser. Browse mode lists Host directories. On Linux without zenity or kdialog, automatic selection uses browse instead of the Electron dialog.
+ 
 @@ -313,13 +313,7 @@ On first launch, including after an upgrade, Desktop creates this document if it
  
  Startup loading never overwrites existing documents; an omitted `updates` object or field resolves to `false`. Set the field to `true` to permit test authentication dialogs, then fully quit and restart the application. Set it back to `false` and restart to suppress them again. Creation, read, or validation failures use the default `false` without blocking startup. Desktop attempts to warn through the Electron console with the file path; unavailable logging does not block startup. Correct the file and restart to apply an explicit setting. Unknown fields are preserved. Installation updates retain this user-data file; Windows uninstallation removes it under the [uninstall rules](#windows-uninstall-rules).
@@ -747,9 +767,18 @@ index af6f44dd177d452eef214f20de3ae784cd5612cd..9279b0113ff96d4bab66b20fc9c2f704
  Updater adapter compatibility and platform version records are documented in [Electron updater compatibility](tests/updates/electron-updater/README.md).
  
 diff --git a/apps/desktop/README.zh.md b/apps/desktop/README.zh.md
-index 56161096b2f742f2c592b7b87f8693a8ceb8989a..32d901f460dcf8efc2dacf3b63fb9b42a7b4d64d 100644
+index 56161096b2f742f2c592b7b87f8693a8ceb8989a..885bca2b1f532e2bcee4c8a597dabcd12ee0899e 100644
 --- a/apps/desktop/README.zh.md
 +++ b/apps/desktop/README.zh.md
+@@ -43,7 +43,7 @@ Electron 为每个自行启动的 Host 进程生成新的随机凭据。收到
+ 
+ Desktop 绑定 `127.0.0.1`，即 Electron 为就绪 URL 与 WebSocket 凭据过滤器拨号的地址。WebSocket 流按 Host 监听器使用 `ws:` 或 `wss:`；附加凭据要求 authority 与 scheme 均匹配。
+ 
+-应用菜单第一项“**关于 DeepSeek Harness**”打开 Electron 原生关于面板，展示应用图标、产品名称和当前安装的发布版本。菜单文案跟随桌面壳的语言。macOS 的隐藏、隐藏其他、显示全部和退出条目使用本地化文案，隐藏和退出条目包含 DeepSeek Harness 产品名称。这些条目保留原生动作和快捷键。macOS 从应用包读取图标，因此未打包的开发启动会显示 Electron 图标；Windows 使用随包分发的 PNG。
++工作区就绪后，应用菜单的**关于 DeepSeek Harness Uncensored**与账号菜单打开同一个关于页。打开时，桌面壳暂时隐藏内嵌的 Platform 页面，关闭后恢复原页面。启动或恢复期间，该菜单打开 Electron 原生关于面板，展示应用图标、名称和安装版本。菜单文案跟随桌面壳的语言。macOS 的隐藏、隐藏其他、显示全部和退出条目使用本地化文案，隐藏和退出条目包含 DeepSeek Harness 产品名称。这些条目保留原生动作和快捷键。macOS 从应用包读取图标，因此未打包的开发启动会显示 Electron 图标；Windows 使用随包分发的 PNG。
+ 
+ Desktop 的本地原生目录流程打开绑定应用窗口的 Electron 文件夹对话框，并先恢复、显示和聚焦该窗口。并发请求共用一个对话框；取消不返回路径，失败后可以重试。普通 Web 使用 Host 选择器。浏览模式列出 Host 目录。Linux 缺少 zenity 或 kdialog 时，自动选择使用浏览模式，不使用 Electron 对话框。
+ 
 @@ -313,13 +313,7 @@ Electron 主进程在启动时读取一次 `app.getPath('userData')/desktop/sett
  
  启动读取不会覆盖已有文件；缺少 `updates` 对象或该字段时均按 `false` 处理。将字段设为 `true` 后完全退出并重启应用，即可允许测试鉴权弹窗。改回 `false` 并重启即可再次禁止。创建、读取或校验失败时使用默认值 `false`，不阻止启动。Desktop 尝试在 Electron 控制台记录包含文件路径的警告；日志不可用也不阻止启动。修正文件并重启后才会应用显式设置。未知字段会保留。安装更新保留此用户数据文件；Windows 卸载按[卸载规则](#windows-uninstall-rules)删除它。
@@ -846,7 +875,7 @@ index a0242960240ad3bde84e900a67b2fd30a94284de..a3afd852e0a4a7ceafdb872b4fc87add
  Write-Output 'Visual C++ tools located.'
  Wait-RunnerNetwork $network
 diff --git a/apps/desktop/src/ipc.ts b/apps/desktop/src/ipc.ts
-index 83ebe7415a9931f5d1ed769cf68f5f70eb534246..7b33f5312d9f724b6902c4ed62faeafb0761bfd9 100644
+index 83ebe7415a9931f5d1ed769cf68f5f70eb534246..be734bf67c9f219b2724a11051ffdfb48518098b 100644
 --- a/apps/desktop/src/ipc.ts
 +++ b/apps/desktop/src/ipc.ts
 @@ -2,7 +2,7 @@ import type { DesktopFileActions } from '@deepseek-ai/dsh-client-ui-file-actions
@@ -858,8 +887,12 @@ index 83ebe7415a9931f5d1ed769cf68f5f70eb534246..7b33f5312d9f724b6902c4ed62faeafb
  import type { DesktopKeyboardApi, DesktopShortcutsApi } from '@deepseek-ai/dsh-client-shortcuts/protocol'
  import type { IpcMainInvokeEvent } from 'electron'
  import type { DesktopBrowserBridge } from '@deepseek-ai/dsh-client-ui-sidebar-browser/types'
-@@ -34,9 +34,6 @@ export const DESKTOP_IPC = {
+@@ -32,11 +32,10 @@ export const DESKTOP_IPC = {
+   fileDragStart: 'dsh-desktop:file-drag-start',
+   fileDragRelease: 'dsh-desktop:file-drag-release',
    deviceInfo: 'dsh-desktop:device-info',
++  aboutOpen: 'dshu-desktop:about-open',
++  aboutState: 'dshu-desktop:about-state',
    localeBootstrap: 'dsh-desktop:locale-bootstrap',
    localeChanged: 'dsh-desktop:locale-changed',
 -  updatesChannelGet: 'dsh-desktop:updates-channel-get',
@@ -868,7 +901,21 @@ index 83ebe7415a9931f5d1ed769cf68f5f70eb534246..7b33f5312d9f724b6902c4ed62faeafb
    updatesStatus: 'dsh-desktop:updates-status',
    updatesOpen: 'dsh-desktop:updates-open',
    updatesPresentation: 'dsh-desktop:updates-presentation',
-@@ -103,7 +100,6 @@ export interface DshDesktopProductApi {
+@@ -93,6 +92,13 @@ export interface DesktopUpdatePresentation {
+ export interface DshDesktopProductApi {
+   readonly fileActions: DesktopFileActions
+   readonly protocolVersion: 1
++  /** Product-owned About presentation; no metadata or URLs cross this interface. */
++  readonly about: {
++    /** @param listener - Native-menu request. @returns Releases presentation readiness. */
++    subscribe(listener: () => void): () => void
++    /** @param visible - Whether the product About dialog is open. */
++    visible(visible: boolean): void
++  }
+   readonly browser: DesktopBrowserBridge
+   readonly fileDrag: DesktopFileDrag
+   readonly keyboard: DesktopKeyboardApi
+@@ -103,7 +109,6 @@ export interface DshDesktopProductApi {
     */
    deviceInfo(): Promise<string>
    readonly updates: {
@@ -877,9 +924,21 @@ index 83ebe7415a9931f5d1ed769cf68f5f70eb534246..7b33f5312d9f724b6902c4ed62faeafb
      open(): Promise<void>
      subscribe(listener: (state: DesktopUpdatePresentation) => void): () => void
 diff --git a/apps/desktop/src/locale.ts b/apps/desktop/src/locale.ts
-index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..0ac4c9ab831698b7c9af61e89a4030741339f23a 100644
+index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..70e15ac36aa25971cda1f1ac726e5211da02070e 100644
 --- a/apps/desktop/src/locale.ts
 +++ b/apps/desktop/src/locale.ts
+@@ -31,9 +31,9 @@ export const en = {
+   application: 'Application',
+   fileMenu: 'File',
+   closePage: 'Close Page or Window',
+-  aboutMenu: 'About DeepSeek Harness',
++  aboutMenu: 'About DeepSeek Harness Uncensored',
+   settingsMenu: 'Settings…',
+-  aboutProduct: 'DeepSeek Harness',
++  aboutProduct: 'DeepSeek Harness Uncensored',
+   aboutVersion: 'Version V{version}',
+   hideApplication: 'Hide DeepSeek Harness',
+   hideOtherApplications: 'Hide Others',
 @@ -109,7 +109,7 @@ export const en = {
    reloadPageMenu: 'Reload Page',
    toggleDevToolsMenu: 'Developer tools',
@@ -889,6 +948,18 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..0ac4c9ab831698b7c9af61e89a403074
    updateConfigurationRead: 'Settings file error; updates are paused',
    updateConfigurationFormat: 'Settings file error; updates are paused',
    updateConfigurationChannel: 'Settings file error; updates are paused',
+@@ -227,9 +227,9 @@ export const zh = {
+   application: '应用',
+   fileMenu: '文件',
+   closePage: '关闭页面或窗口',
+-  aboutMenu: '关于 DeepSeek Harness',
++  aboutMenu: '关于 DeepSeek Harness Uncensored',
+   settingsMenu: '设置…',
+-  aboutProduct: 'DeepSeek Harness',
++  aboutProduct: 'DeepSeek Harness Uncensored',
+   aboutVersion: '版本 V{version}',
+   hideApplication: '隐藏 DeepSeek Harness',
+   hideOtherApplications: '隐藏其他',
 @@ -305,7 +305,7 @@ export const zh = {
    reloadPageMenu: '刷新页面',
    toggleDevToolsMenu: '开发者工具',
@@ -898,6 +969,18 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..0ac4c9ab831698b7c9af61e89a403074
    updateConfigurationRead: '配置文件异常，更新已暂停',
    updateConfigurationFormat: '配置文件异常，更新已暂停',
    updateConfigurationChannel: '配置文件异常，更新已暂停',
+@@ -421,9 +421,9 @@ export const ja = {
+   application: 'アプリケーション',
+   fileMenu: 'ファイル',
+   closePage: 'ページまたはウィンドウを閉じる',
+-  aboutMenu: 'DeepSeek Harness について',
++  aboutMenu: 'DeepSeek Harness Uncensored について',
+   settingsMenu: '設定…',
+-  aboutProduct: 'DeepSeek Harness',
++  aboutProduct: 'DeepSeek Harness Uncensored',
+   aboutVersion: 'バージョン V{version}',
+   hideApplication: 'DeepSeek Harness を隠す',
+   hideOtherApplications: 'ほかを隠す',
 @@ -499,7 +499,7 @@ export const ja = {
    reloadPageMenu: 'ページを再読み込み',
    toggleDevToolsMenu: '開発者ツール',
@@ -907,6 +990,18 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..0ac4c9ab831698b7c9af61e89a403074
    updateConfigurationRead: '設定ファイルに問題があるため、更新を停止しています',
    updateConfigurationFormat: '設定ファイルに問題があるため、更新を停止しています',
    updateConfigurationChannel: '設定ファイルに問題があるため、更新を停止しています',
+@@ -615,9 +615,9 @@ export const es = {
+   application: 'Solicitud',
+   fileMenu: 'Archivo',
+   closePage: 'Cerrar página o ventana',
+-  aboutMenu: 'Acerca de DeepSeek Harness',
++  aboutMenu: 'Acerca de DeepSeek Harness Uncensored',
+   settingsMenu: 'Configuración…',
+-  aboutProduct: 'DeepSeek Harness',
++  aboutProduct: 'DeepSeek Harness Uncensored',
+   aboutVersion: 'Versión V{version}',
+   hideApplication: 'Ocultar DeepSeek Harness',
+   hideOtherApplications: 'Ocultar otros',
 @@ -693,7 +693,7 @@ export const es = {
    reloadPageMenu: 'Recargar página',
    toggleDevToolsMenu: 'Herramientas de desarrollo',
@@ -916,6 +1011,18 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..0ac4c9ab831698b7c9af61e89a403074
    updateConfigurationRead: 'Error en el archivo de ajustes; actualizaciones pausadas',
    updateConfigurationFormat: 'Error en el archivo de ajustes; actualizaciones pausadas',
    updateConfigurationChannel: 'Error en el archivo de ajustes; actualizaciones pausadas',
+@@ -809,9 +809,9 @@ export const fr = {
+   application: 'Application',
+   fileMenu: 'Fichier',
+   closePage: 'Fermer la page ou la fenêtre',
+-  aboutMenu: 'À propos de DeepSeek Harness',
++  aboutMenu: 'À propos de DeepSeek Harness Uncensored',
+   settingsMenu: 'Paramètres…',
+-  aboutProduct: 'DeepSeek Harness',
++  aboutProduct: 'DeepSeek Harness Uncensored',
+   aboutVersion: 'VersionV{version}',
+   hideApplication: 'Masquer DeepSeek Harness',
+   hideOtherApplications: 'Masquer les autres',
 @@ -887,7 +887,7 @@ export const fr = {
    reloadPageMenu: 'Recharger la page',
    toggleDevToolsMenu: 'Outils de développement',
@@ -925,6 +1032,18 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..0ac4c9ab831698b7c9af61e89a403074
    updateConfigurationRead: 'Erreur du fichier de paramètres ; mises à jour suspendues',
    updateConfigurationFormat: 'Erreur du fichier de paramètres ; mises à jour suspendues',
    updateConfigurationChannel: 'Erreur du fichier de paramètres ; mises à jour suspendues',
+@@ -1003,9 +1003,9 @@ export const de = {
+   application: 'Anwendung',
+   fileMenu: 'Datei',
+   closePage: 'Seite oder Fenster schließen',
+-  aboutMenu: 'Über DeepSeek Harness',
++  aboutMenu: 'Über DeepSeek Harness Uncensored',
+   settingsMenu: 'Einstellungen…',
+-  aboutProduct: 'DeepSeek Harness',
++  aboutProduct: 'DeepSeek Harness Uncensored',
+   aboutVersion: 'Version V{version}',
+   hideApplication: 'DeepSeek Harness ausblenden',
+   hideOtherApplications: 'Andere ausblenden',
 @@ -1081,7 +1081,7 @@ export const de = {
    reloadPageMenu: 'Seite neu laden',
    toggleDevToolsMenu: 'Entwicklertools',
@@ -934,6 +1053,18 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..0ac4c9ab831698b7c9af61e89a403074
    updateConfigurationRead: 'Fehler in der Einstellungsdatei; Updates pausiert',
    updateConfigurationFormat: 'Fehler in der Einstellungsdatei; Updates pausiert',
    updateConfigurationChannel: 'Fehler in der Einstellungsdatei; Updates pausiert',
+@@ -1197,9 +1197,9 @@ export const ru = {
+   application: 'Приложение',
+   fileMenu: 'Файл',
+   closePage: 'Закрыть страницу или окно',
+-  aboutMenu: 'О DeepSeek Harness',
++  aboutMenu: 'О DeepSeek Harness Uncensored',
+   settingsMenu: 'Настройки…',
+-  aboutProduct: 'DeepSeek Harness',
++  aboutProduct: 'DeepSeek Harness Uncensored',
+   aboutVersion: 'Версия V{version}',
+   hideApplication: 'Скрыть DeepSeek Harness',
+   hideOtherApplications: 'Скрыть других',
 @@ -1275,7 +1275,7 @@ export const ru = {
    reloadPageMenu: 'Обновить страницу',
    toggleDevToolsMenu: 'Инструменты разработчика',
@@ -943,6 +1074,18 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..0ac4c9ab831698b7c9af61e89a403074
    updateConfigurationRead: 'Ошибка файла настроек; обновления приостановлены',
    updateConfigurationFormat: 'Ошибка файла настроек; обновления приостановлены',
    updateConfigurationChannel: 'Ошибка файла настроек; обновления приостановлены',
+@@ -1391,9 +1391,9 @@ export const pt = {
+   application: 'Aplicativo',
+   fileMenu: 'Arquivo',
+   closePage: 'Fechar página ou janela',
+-  aboutMenu: 'Sobre DeepSeek Harness',
++  aboutMenu: 'Sobre DeepSeek Harness Uncensored',
+   settingsMenu: 'Configurações…',
+-  aboutProduct: 'DeepSeek Harness',
++  aboutProduct: 'DeepSeek Harness Uncensored',
+   aboutVersion: 'Versão V{version}',
+   hideApplication: 'Ocultar DeepSeek Harness',
+   hideOtherApplications: 'Ocultar outros',
 @@ -1469,7 +1469,7 @@ export const pt = {
    reloadPageMenu: 'Recarregar página',
    toggleDevToolsMenu: 'Ferramentas do desenvolvedor',
@@ -953,7 +1096,7 @@ index ea261784b1cb11fb0ba97bacf20273b73a88e7ce..0ac4c9ab831698b7c9af61e89a403074
    updateConfigurationFormat: 'Erro no arquivo de configurações; atualizações pausadas',
    updateConfigurationChannel: 'Erro no arquivo de configurações; atualizações pausadas',
 diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
-index 291ed084761945a494c5ee76c1bfc11637c26469..338c1dde6eec0498ed5cc1b3fc92534d4e917fe8 100644
+index 291ed084761945a494c5ee76c1bfc11637c26469..a96034dad5e4bac8d4bcc28c02415c4dc428c6bf 100644
 --- a/apps/desktop/src/main.ts
 +++ b/apps/desktop/src/main.ts
 @@ -1,10 +1,6 @@
@@ -967,7 +1110,15 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..338c1dde6eec0498ed5cc1b3fc92534d
  import type { ProductEventMap, ProductEvent } from '@deepseek-ai/dsh-client-product-analytics/types'
  import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
  import { access, readFile, writeFile } from 'node:fs/promises'
-@@ -435,9 +431,6 @@ async function main(): Promise<void> {
+@@ -34,6 +30,7 @@ import { installDesktopFileDrag } from './file-drag.ts'
+ import { installDesktopDirectoryPicker } from './directory-picker.ts'
+ import { installMicrophonePermissions } from './microphone-permissions.ts'
+ import { DesktopBackendController } from './backend-controller.ts'
++import { DesktopAboutRouting } from './about-routing.ts'
+ import { DESKTOP_IPC, SCHEME, assertDesktopSender, type DesktopUpdateState } from './ipc.ts'
+ import { readDeviceInfo } from './device-info.ts'
+ import { desktopUpdateReadyConfirmation, formatDesktopMessage, resolveDesktopLocale, resolveDesktopStartupLocale } from './locale.ts'
+@@ -435,9 +432,6 @@ async function main(): Promise<void> {
    let updateStoppedHost = false
    let updateStopFailure: DesktopHostUncleanExitError | undefined
    let updateState: DesktopUpdateState = { phase: 'idle' }
@@ -977,7 +1128,40 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..338c1dde6eec0498ed5cc1b3fc92534d
    const systemLanguages = app.getPreferredSystemLanguages()
    let locale = windowsLanguage === undefined
      ? resolveDesktopStartupLocale(null, systemLanguages) : resolveDesktopLocale(windowsLanguage)
-@@ -637,7 +630,7 @@ async function main(): Promise<void> {
+@@ -472,6 +466,7 @@ async function main(): Promise<void> {
+   // Copy comes from the same locale as the update prompts so the dialog
+   // chrome and its content never mix languages.
+   const showAbout = async (): Promise<void> => {
++    if (aboutRouting.request()) return
+     await ordinaryMessageBox({ type: 'info', title: locale.messages.aboutMenu, message: locale.messages.aboutProduct,
+       detail: formatDesktopMessage(locale.messages.aboutVersion, { version: app.getVersion() }),
+       buttons: [locale.messages.updateAcknowledge], cancelId: 0 })
+@@ -531,6 +526,24 @@ async function main(): Promise<void> {
+   const platformView = new DesktopPlatformView(join(app.getAppPath(), 'lib', 'preload-platform-account.cjs'),
+     () => locale.id === 'zh-CN' ? 'zh_CN' : 'en_US', process.platform === 'win32' ? 'win32' : 'darwin',
+     owner => isMandatory() || updateOverlays.input(owner).blocked)
++  const aboutRouting = new DesktopAboutRouting({
++    canPresent: () => enteredWorkspace && mainWindow !== undefined && !mainWindow.isDestroyed()
++      && !mainWindow.webContents.isDestroyed() && !recovery.active && !isMandatory() && !updateOverlays.input(mainWindow).blocked,
++    request: () => { focusPrimaryWindow(); mainWindow?.webContents.focus(); mainWindow?.webContents.send(DESKTOP_IPC.aboutOpen) },
++    platformHidden: (hidden) => { platformView.setProductOverlay(hidden) },
++  })
++  ipcMain.on(DESKTOP_IPC.aboutState, (event, state: unknown) => {
++    try {
++      assertDesktopSender(event, ['app'])
++      if (mainWindow === undefined || event.sender !== mainWindow.webContents
++        || event.senderFrame !== mainWindow.webContents.mainFrame) throw new Error('desktop About: rejected sender')
++      if (typeof state !== 'object' || state === null || !('ready' in state) || typeof state.ready !== 'boolean'
++        || !('visible' in state) || typeof state.visible !== 'boolean' || (!state.ready && state.visible)) {
++        throw new Error('desktop About: invalid presentation state')
++      }
++      aboutRouting.synchronize(state.ready, state.visible)
++    } catch (error) { console.warn('desktop About state rejected', error) }
++  })
+   const backend = new DesktopBackendController((onFailure) => {
+     const hostInspectPort = developmentHostInspectPort(development)
+     const host = new DesktopHostProcess(resources.node, resources.dsh, activeProject,
+@@ -637,7 +650,7 @@ async function main(): Promise<void> {
      updateState = state
      mandatoryUI?.sync()
      for (const window of BrowserWindow.getAllWindows()) {
@@ -986,7 +1170,7 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..338c1dde6eec0498ed5cc1b3fc92534d
      }
      if (state.phase === 'error' && state.failedOperation !== 'check' && state.failedOperation !== 'configuration') {
        if (state.failedOperation === 'install' && fileDragStopped && !quitting) {
-@@ -701,13 +694,7 @@ async function main(): Promise<void> {
+@@ -701,13 +714,7 @@ async function main(): Promise<void> {
    }
  
    const manifest: unknown = JSON.parse(await readFile(join(app.getAppPath(), 'package.json'), 'utf8'))
@@ -1001,7 +1185,7 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..338c1dde6eec0498ed5cc1b3fc92534d
    const updates = new DesktopUpdateCoordinator(
      publishUpdate,
      async () => {
-@@ -768,16 +755,6 @@ async function main(): Promise<void> {
+@@ -768,16 +775,6 @@ async function main(): Promise<void> {
      updateChannel,
    )
  
@@ -1018,7 +1202,7 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..338c1dde6eec0498ed5cc1b3fc92534d
    const updateSchedule = new DesktopUpdateSchedule(updates, resolveDesktopUpdateScheduleConfig(process.env))
  
    const downloadUpdate = async (version: string, revision = updates.revision): Promise<DesktopUpdateState> => {
-@@ -911,39 +888,9 @@ async function main(): Promise<void> {
+@@ -911,39 +908,9 @@ async function main(): Promise<void> {
      windowsLanguage = locale.id
      refreshApplicationMenu()
    })
@@ -1059,7 +1243,7 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..338c1dde6eec0498ed5cc1b3fc92534d
    })
    ipcMain.handle(DESKTOP_IPC.deviceInfo, (event) => {
      assertProductSender(event)
-@@ -969,52 +916,10 @@ async function main(): Promise<void> {
+@@ -969,52 +936,10 @@ async function main(): Promise<void> {
      await openUpdatePrompt()
    })
  
@@ -1112,7 +1296,52 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..338c1dde6eec0498ed5cc1b3fc92534d
      if (authenticationOperation !== undefined) {
        policyAuth?.focus(); updateDialog.focus()
      }
-@@ -1595,8 +1500,7 @@ async function main(): Promise<void> {
+@@ -1164,8 +1089,8 @@ async function main(): Promise<void> {
+   const applicationIconPath = development ? join(app.getAppPath(), 'resources', 'icon-windows.png')
+     : join(process.resourcesPath, 'icon.png')
+   app.setAboutPanelOptions({
+-    applicationName: 'DeepSeek Harness',
+-    applicationVersion: app.getVersion(),
++    applicationName: locale.messages.aboutProduct,
++    applicationVersion: process.env.DSH_CLIENT_FORK_VERSION ?? app.getVersion(),
+     // The release has no separate build number; omit Electron's bundle version.
+     version: '',
+     copyright: '',
+@@ -1207,12 +1132,8 @@ async function main(): Promise<void> {
+       { role: 'unhide', label: currentDesktopLocale().messages.showAllApplications }, { type: 'separator' }]
+     : []
+   const applicationItems = (): MenuItemConstructorOptions[] => [
+-    // Windows has no system About panel; Electron's fallback is a plain
+-    // message box, so the shell shows its own dimmed dialog instead.
+-    process.platform === 'win32'
+-      ? { label: currentDesktopLocale().messages.aboutMenu,
+-        click: () => { void showAbout().catch((error: unknown) => { console.error(error) }) } }
+-      : { label: currentDesktopLocale().messages.aboutMenu, role: 'about' },
++    { label: currentDesktopLocale().messages.aboutMenu,
++      click: () => { void showAbout().catch((error: unknown) => { console.error(error) }) } },
+     { type: 'separator' },
+     shortcuts.settingsMenuItem(currentDesktopLocale().messages.settingsMenu,
+       enteredWorkspace && !isMandatory(), () => { focusPrimaryWindow() }),
+@@ -1360,6 +1281,10 @@ async function main(): Promise<void> {
+       if (details.level !== 'error') return
+       rendererConsole.push(`${details.sourceId}:${String(details.lineNumber)} ${details.message}`)
+     })
++    window.webContents.on('did-start-navigation', (_event, _url, inPlace, isMainFrame) => {
++      if (isMainFrame && !inPlace) aboutRouting.reset()
++    })
++    window.webContents.once('destroyed', () => { aboutRouting.reset() })
+     window.webContents.on('did-fail-load', (_event, code, description, url, isMainFrame) => {
+       if (isMainFrame && code !== -3 && !quitting && !window.isDestroyed()) {
+         reportFatal(new Error(`Desktop page failed to load: ${url} (${String(code)}: ${description})`), 'renderer')
+@@ -1369,6 +1294,7 @@ async function main(): Promise<void> {
+       if (!quitting && !window.isDestroyed()) reportFatal(error, 'renderer')
+     })
+     window.webContents.on('render-process-gone', (_event, details) => {
++      aboutRouting.reset()
+       navigation = undefined
+       if (!quitting && !window.isDestroyed() && details.reason !== 'clean-exit') {
+         reportFatal(new Error(`Desktop renderer exited: ${details.reason}`), 'renderer')
+@@ -1595,8 +1521,7 @@ async function main(): Promise<void> {
        allowedPageOrigins: policyConfig.allowedPageOrigins, parent: () => mainWindow,
        policy: () => policy.state, update: () => updates.state,
        refresh: async () => {
@@ -1123,7 +1352,7 @@ index 291ed084761945a494c5ee76c1bfc11637c26469..338c1dde6eec0498ed5cc1b3fc92534d
        download: downloadUpdate, install: version => updates.install(version),
      })
 diff --git a/apps/desktop/src/preload-app.ts b/apps/desktop/src/preload-app.ts
-index 6b4e989614375d5582275fb03c46a9506cea3ba9..26266b4f1c8a497c3cc5c94d19a06a4b5ee3bf49 100644
+index 6b4e989614375d5582275fb03c46a9506cea3ba9..f98cc31233c2671b406d0708682de120c4613b7c 100644
 --- a/apps/desktop/src/preload-app.ts
 +++ b/apps/desktop/src/preload-app.ts
 @@ -1,7 +1,6 @@
@@ -1134,7 +1363,28 @@ index 6b4e989614375d5582275fb03c46a9506cea3ba9..26266b4f1c8a497c3cc5c94d19a06a4b
  import type { DesktopShortcutInput, ShortcutConfigSnapshot, ShortcutSaveResult } from '@deepseek-ai/dsh-client-shortcuts/protocol'
  import { contextBridge, ipcRenderer, webUtils } from 'electron'
  import { DESKTOP_IPC, SCHEME, type DshDesktopProductApi, type DesktopUpdatePresentation } from './ipc.ts'
-@@ -66,15 +65,6 @@ function createProductApi(): DshDesktopProductApi {
+@@ -10,12 +9,20 @@ import { markDocumentPlatform, syncWindowFullscreen } from './preload-platform.t
+ import { syncNativeTheme } from './preload-theme.ts'
+ import { syncWindowsAppearance } from './preload-windows.ts'
+ import { installMandatoryUpdateOverlay } from './preload-mandatory-overlay.ts'
++import { createAboutBridge } from './preload-about.ts'
+ import { createDesktopBrowserBridge } from './preload-browser.ts'
+ import type { FileDragHandle } from '@deepseek-ai/dsh-util-file-drag'
+ 
+ function createProductApi(): DshDesktopProductApi {
+   return {
+     protocolVersion: 1,
++    about: createAboutBridge({
++      listen: (listener) => {
++        ipcRenderer.on(DESKTOP_IPC.aboutOpen, listener)
++        return () => { ipcRenderer.off(DESKTOP_IPC.aboutOpen, listener) }
++      },
++      publish: (ready, visible) => { ipcRenderer.send(DESKTOP_IPC.aboutState, { ready, visible }) },
++    }),
+     fileActions: {
+       save: request => ipcRenderer.invoke(DESKTOP_IPC.fileSave, request) as Promise<FileSaveResult>,
+       readClipboardImage: url => ipcRenderer.invoke(DESKTOP_IPC.clipboardImageRead, url) as
+@@ -66,15 +73,6 @@ function createProductApi(): DshDesktopProductApi {
        },
      },
      updates: {
@@ -1171,10 +1421,18 @@ index 85f5e10da15bd5cd3cc7b7d3eef1c206245f41c0..cfd5747ccfcf8a32eb147fc4440fccb6
    if (channel !== 'nightly' && channel !== 'stable') throw new Error('desktop update: invalid packaged channel')
    return channel
 diff --git a/apps/desktop/tests/main-startup.spec.ts b/apps/desktop/tests/main-startup.spec.ts
-index e689f3e67299fbc63ef0cb13bf680efc13115c7b..6a3912fc325ddcfec7951b688155333761984c3d 100644
+index e689f3e67299fbc63ef0cb13bf680efc13115c7b..47d01599c9c3f0cce44420b0e31ef772eb501090 100644
 --- a/apps/desktop/tests/main-startup.spec.ts
 +++ b/apps/desktop/tests/main-startup.spec.ts
-@@ -247,6 +247,7 @@ const harness = await vi.hoisted(async () => {
+@@ -231,6 +231,7 @@ const harness = await vi.hoisted(async () => {
+     menu, popup, socketHeaders: vi.fn(), connectWelcome: vi.fn(), removeLegacyHostCookies: vi.fn(async () => {}), hostCookies: {},
+     loginShell, readLoginShell, updateCheck, updateDownload, updateInstall,
+     platformDispose,
++    platformOverlay: vi.fn<(active: boolean) => void>(),
+     platformCloseAndWait,
+ 
+     get analyticsEnabled() { return analyticsEnabled },
+@@ -247,6 +248,7 @@ const harness = await vi.hoisted(async () => {
      ipcOn: vi.fn<(channel: string, listener: (event: { sender: unknown; senderFrame: unknown }, ...args: unknown[]) => void) => void>(),
      get updateState() { return updateState },
      set updateState(value: DesktopUpdateState) { updateState = value },
@@ -1182,7 +1440,7 @@ index e689f3e67299fbc63ef0cb13bf680efc13115c7b..6a3912fc325ddcfec7951b6881553337
      get prepareUpdate() { return prepareUpdate! },
      set prepareUpdate(value: () => Promise<boolean>) { prepareUpdate = value },
      get publishUpdate() { return publishUpdate! },
-@@ -388,6 +389,7 @@ vi.mock('../src/update-coordinator.ts', () => ({ DesktopUpdateCoordinator: class
+@@ -388,6 +390,7 @@ vi.mock('../src/update-coordinator.ts', () => ({ DesktopUpdateCoordinator: class
    constructor(publish: (state: DesktopUpdateState) => DesktopUpdateState, beforeRestart: () => Promise<boolean>,
      _updater: unknown, _enabled: unknown, _version: unknown, _downloadResult: unknown, channel: 'nightly' | 'stable') {
      this.selectedChannel = channel
@@ -1190,7 +1448,15 @@ index e689f3e67299fbc63ef0cb13bf680efc13115c7b..6a3912fc325ddcfec7951b6881553337
      harness.prepareUpdate = beforeRestart
      harness.publishUpdate = publish
    }
-@@ -524,219 +526,19 @@ describe('desktop main startup', () => {
+@@ -414,6 +417,7 @@ vi.mock('../src/platform-view.ts', async importOriginal => ({
+   ...await importOriginal<typeof import('../src/platform-view.ts')>(),
+   DesktopPlatformView: class {
+     notifyLocaleChanged() {}
++    setProductOverlay = harness.platformOverlay
+     setSession() {}
+     setBounds() {}
+     close() {}
+@@ -524,219 +528,19 @@ describe('desktop main startup', () => {
      })
    })
  
@@ -1418,7 +1684,51 @@ index e689f3e67299fbc63ef0cb13bf680efc13115c7b..6a3912fc325ddcfec7951b6881553337
    it('starts the Host without resolving Kit or writing a diagnostic file', async () => {
      const root = mkdtempSync(join(tmpdir(), 'dsh-main-office-'))
      onTestFinished(() => { rmSync(root, { recursive: true, force: true }) })
-@@ -1139,7 +941,7 @@ describe('desktop main startup', () => {
+@@ -861,6 +665,27 @@ describe('desktop main startup', () => {
+     expect(harness.windows[0]!.options).toMatchObject({ webPreferences: { devTools: true } })
+   })
+ 
++  it('opens the product dialog only for the active main document and returns to the shell during navigation', async () => {
++    await readyForUpdate()
++    const window = harness.windows[0]!
++    await window.shown.promise
++    const receive = harness.ipcOn.mock.calls.find(([channel]) => channel === DESKTOP_IPC.aboutState)![1]
++    const sender = { sender: window.webContents, senderFrame: window.webContents.mainFrame }
++    const about = applicationMenuItems()[0]!.click as () => void
++    receive(sender, { ready: true, visible: false })
++    about()
++    await vi.advanceTimersByTimeAsync(0)
++    expect(window.webContents.send).toHaveBeenCalledWith(DESKTOP_IPC.aboutOpen)
++    receive(sender, { ready: true, visible: true })
++    expect(harness.platformOverlay).toHaveBeenLastCalledWith(true)
++    window.webContents.emit('did-start-navigation', {}, 'dsh-app://app/', false, true)
++    expect(harness.platformOverlay).toHaveBeenLastCalledWith(false)
++    receive({ ...sender, senderFrame: {} }, { ready: true, visible: false })
++    about()
++    await vi.advanceTimersByTimeAsync(0)
++    expect(harness.dialog.showMessageBox).toHaveBeenCalledWith(expect.objectContaining({ message: 'DeepSeek Harness Uncensored' }))
++  })
++
+   it.each([
+     ['darwin', true, 'en-US'],
+     ['darwin', false, 'zh-CN'],
+@@ -881,14 +706,12 @@ describe('desktop main startup', () => {
+       .toEqual(expected[`${platform}:${locale}`])
+     expect(options.iconPath).toBe(packaged ? join('desktop-test-resources', 'icon.png')
+       : join('desktop-test-app', 'resources', 'icon-windows.png'))
+-    if (platform !== 'win32') { expect(about!.click).toBeUndefined(); return }
+-    // Windows reuses the dimmed update dialog because Electron's fallback is a bare message box.
+     harness.dialog.showMessageBox.mockResolvedValueOnce({ response: 0 })
+     ;(about!.click as () => void)()
+     await vi.advanceTimersByTimeAsync(0)
+     const zh = locale === 'zh-CN'
+     expect(harness.dialog.showMessageBox).toHaveBeenLastCalledWith(expect.objectContaining({
+-      type: 'info', title: zh ? '关于 DeepSeek Harness' : 'About DeepSeek Harness', message: 'DeepSeek Harness',
++      type: 'info', title: zh ? '关于 DeepSeek Harness Uncensored' : 'About DeepSeek Harness Uncensored', message: 'DeepSeek Harness Uncensored',
+       detail: zh ? '版本 V1.0.0' : 'Version V1.0.0', buttons: [zh ? '确定' : 'OK'], cancelId: 0,
+     }))
+     // A dialog that cannot open is logged, not surfaced as an unhandled rejection.
+@@ -1139,7 +962,7 @@ describe('desktop main startup', () => {
    it('accepts product IPC only from the current application top frame in the owned main window', async () => {
      await readyForUpdate()
      const sender = harness.windows[0]!.webContents
@@ -1427,7 +1737,27 @@ index e689f3e67299fbc63ef0cb13bf680efc13115c7b..6a3912fc325ddcfec7951b6881553337
        const handler = harness.handlers.get(channel)!
        expect(() => handler({ sender, senderFrame: sender.mainFrame })).not.toThrow()
        for (const event of [
-@@ -2141,7 +1943,7 @@ describe('desktop main startup', () => {
+@@ -1397,7 +1220,7 @@ describe('desktop main startup', () => {
+     expect(() => handler(event, 'application', NaN, 34)).toThrow('invalid popup request')
+     const application = handler(event, 'application', 48, 34)
+     expect(harness.menu.buildFromTemplate.mock.lastCall![0].map(item => item.label ?? item.type)).toEqual([
+-      '关于 DeepSeek Harness', 'separator', '设置…', 'separator', '检查更新…', '管理 dsh 命令…', 'separator', zh.toggleDevToolsMenu, 'separator', '退出',
++      '关于 DeepSeek Harness Uncensored', 'separator', '设置…', 'separator', '检查更新…', '管理 dsh 命令…', 'separator', zh.toggleDevToolsMenu, 'separator', '退出',
+     ])
+     expect(harness.popup.mock.lastCall![0]).toMatchObject({ window, x: 48, y: 34 })
+     expect(harness.popup.mock.lastCall![0].callback).toBeTypeOf('function')
+@@ -1445,8 +1268,8 @@ describe('desktop main startup', () => {
+       : undefined)
+     const application = template[0]!.submenu as MenuItemConstructorOptions[]
+     expect(application.filter(item => item.visible !== false).map(describeItem)).toEqual(platform === 'darwin'
+-      ? ['about', 'separator', en.settingsMenu, 'separator', en.checkUpdatesMenu, en.cliCommandMenu, 'separator', 'toggleDevTools', 'separator', 'hide', 'hideOthers', 'unhide', 'separator', 'quit']
+-      : ['about', 'separator', en.settingsMenu, 'separator', en.checkUpdatesMenu, 'separator', 'toggleDevTools', 'separator', 'quit'])
++      ? [en.aboutMenu, 'separator', en.settingsMenu, 'separator', en.checkUpdatesMenu, en.cliCommandMenu, 'separator', 'toggleDevTools', 'separator', 'hide', 'hideOthers', 'unhide', 'separator', 'quit']
++      : [en.aboutMenu, 'separator', en.settingsMenu, 'separator', en.checkUpdatesMenu, 'separator', 'toggleDevTools', 'separator', 'quit'])
+     expect(harness.menu.setApplicationMenu).toHaveBeenCalledOnce()
+   })
+ 
+@@ -2141,7 +1964,7 @@ describe('desktop main startup', () => {
      expect(host.stop).not.toHaveBeenCalled()
      expect(request.mock.calls[0]![1]!.headers).toMatchObject({
        'x-client-bundle-id': '', 'x-client-platform': 'desktop-win', 'x-client-version': '1.2.3',
@@ -1436,7 +1766,7 @@ index e689f3e67299fbc63ef0cb13bf680efc13115c7b..6a3912fc325ddcfec7951b6881553337
        'x-client-locale': 'en_US', 'x-client-timezone-offset': String(-new Date().getTimezoneOffset() * 60),
      })
    })
-@@ -2178,28 +1980,6 @@ describe('desktop main startup', () => {
+@@ -2178,28 +2001,6 @@ describe('desktop main startup', () => {
      }))
    })
  
@@ -1466,10 +1796,33 @@ index e689f3e67299fbc63ef0cb13bf680efc13115c7b..6a3912fc325ddcfec7951b6881553337
      await readyForUpdate()
      harness.updateCheck.mockResolvedValueOnce({ phase: 'error', failedOperation: 'check', message: 'Feed unavailable' })
 diff --git a/apps/desktop/tests/preload-app.spec.ts b/apps/desktop/tests/preload-app.spec.ts
-index fa3d2386f0ea2f45cb37b0c392f45d9bafd59209..02de12899eb64be1d090380878a82da76e3e4823 100644
+index fa3d2386f0ea2f45cb37b0c392f45d9bafd59209..7fe16ed798ad3339a515d11e8ee6593a29947ad5 100644
 --- a/apps/desktop/tests/preload-app.spec.ts
 +++ b/apps/desktop/tests/preload-app.spec.ts
-@@ -294,20 +294,12 @@ void imageProtocol
+@@ -71,6 +71,22 @@ it('limits product documents to update status and a native confirmation action',
+   expect(electron.ipcRenderer.off).toHaveBeenCalledWith(DESKTOP_IPC.updatesPresentation, handler)
+ })
+ 
++it('forwards native About requests and releases its presentation state on unsubscribe', async () => {
++  vi.stubGlobal('location', new URL('dsh-app://app/'))
++  await import('../src/preload-app.ts')
++  const api = electron.contextBridge.exposeInMainWorld.mock.calls.find(([name]) => name === 'dshDesktop')?.[1] as DshDesktopProductApi
++  const listener = vi.fn()
++  const off = api.about.subscribe(listener)
++  expect(electron.ipcRenderer.send).toHaveBeenLastCalledWith(DESKTOP_IPC.aboutState, { ready: true, visible: false })
++  const request = electron.ipcRenderer.on.mock.calls.find(([channel]) => channel === DESKTOP_IPC.aboutOpen)![1] as () => void
++  request()
++  expect(listener).toHaveBeenCalledOnce()
++  api.about.visible(true)
++  expect(electron.ipcRenderer.send).toHaveBeenLastCalledWith(DESKTOP_IPC.aboutState, { ready: true, visible: true })
++  off()
++  expect(electron.ipcRenderer.send).toHaveBeenLastCalledWith(DESKTOP_IPC.aboutState, { ready: false, visible: false })
++})
++
+ it.each(['dsh-app://shell/plugin-manager.html', 'dsh-app://other/index.html', 'https://shell/startup.html', 'http://example.com/'])('exposes only the carrier marker to %s', async (url) => {
+   vi.stubGlobal('location', new URL(url))
+   await import('../src/preload-app.ts')
+@@ -294,20 +310,12 @@ void imageProtocol
  void imageProtocolBack
  
  
@@ -1522,10 +1875,33 @@ index 1387bae7fbb94331312350e1a58141006df876ea..86d01dbd356409ffc7a4000ad4b94b26
      const quote = (value: string) => '"' + value.replaceAll('%', '%%') + '"'
      probe = join(root, 'console-probe.exe')
 diff --git a/apps/web/tests/agent-preset-authoring.e2e.ts b/apps/web/tests/agent-preset-authoring.e2e.ts
-index 0727af2cab4cdbe1c74092c4a353e34f6521c869..18f239cf3a12ccf79d9bc6ba8990d1b53f45dada 100644
+index 0727af2cab4cdbe1c74092c4a353e34f6521c869..4f109b49d86ee3d26421c06d52f1508e087b0055 100644
 --- a/apps/web/tests/agent-preset-authoring.e2e.ts
 +++ b/apps/web/tests/agent-preset-authoring.e2e.ts
-@@ -29,7 +29,7 @@ describe('web e2e: preset roster guidance', () => {
+@@ -1,5 +1,6 @@
+ /** The preset settings page selects a preset and shows what it declares; creating one starts a Creator-mode task. */
+ import { fileURLToPath } from 'node:url'
++import { mkdir } from 'node:fs/promises'
+ import { join } from 'node:path'
+ import type { Browser, Page } from 'playwright'
+ import { chromium } from 'playwright'
+@@ -16,20 +17,20 @@ describe('web e2e: preset roster guidance', () => {
+   let page: Page
+   let tripwire: ReturnType<typeof watchConsole>
+   beforeAll(async () => {
+-    scaffold = await launchWebScaffold({ profile: { packages: [] } })
++    scaffold = await launchWebScaffold({ profile: { packages: [] }, extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
+     browser = await chromium.launch()
+     page = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE })
+     tripwire = watchConsole(page)
+     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
+     await openSettings(page, 'zh')
+-    await page.getByRole('dialog', { name: '设置' }).getByRole('button', { name: 'Agent 预设' }).click()
+-    await page.getByRole('heading', { name: 'Agent 预设' }).waitFor()
++    await page.getByRole('dialog', { name: '设置' }).getByRole('button', { name: '模式' }).click()
++    await page.getByRole('heading', { name: '模式' }).waitFor()
+   }, 120_000)
+   afterAll(async () => { await browser?.close(); await scaffold?.close() })
  
    it('shows the shipped roster with mode help and a read-only view, and no editing actions', async () => {
      onTestFailed(() => saveFailureShot(page, 'preset-roster-section'))
@@ -1534,6 +1910,42 @@ index 0727af2cab4cdbe1c74092c4a353e34f6521c869..18f239cf3a12ccf79d9bc6ba8990d1b5
      const snapshot = await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd)
      await compareOrRefreshGolden(join(EXPECTED, 'section.expected.md'), snapshot, mode)
      expect(snapshot).toContain('让 Agent 帮我创建预设模式')
+@@ -40,6 +41,26 @@ describe('web e2e: preset roster guidance', () => {
+     expect(snapshot).not.toContain('删除')
+   })
+ 
++  it('keeps the selected mode and its actions within the settings pane at desktop and phone widths', async () => {
++    const shots = fileURLToPath(new URL('../../../.artifacts/screenshots/modes', import.meta.url))
++    await mkdir(shots, { recursive: true })
++    const settings = page.getByRole('dialog', { name: '设置' })
++    const row = settings.locator('[data-agent-preset-id="standard"]')
++    try {
++      for (const width of [1280, 390]) {
++        await page.setViewportSize({ width, height: 820 })
++        await row.scrollIntoViewIfNeeded()
++        const card = await row.boundingBox()
++        const frame = await settings.boundingBox()
++        if (!card || !frame) throw new Error('Missing mode settings layout')
++        expect(card.x).toBeGreaterThanOrEqual(frame.x)
++        expect(card.x + card.width).toBeLessThanOrEqual(frame.x + frame.width + 1)
++        expect(await row.getByRole('button', { pressed: true }).count()).toBe(1)
++        await settings.screenshot({ path: join(shots, String(width) + '.png') })
++      }
++    } finally { await page.setViewportSize({ width: 1680, height: 1000 }) }
++  })
++
+   it('reads mode details and examples without changing the new-task default', async () => {
+     onTestFailed(() => saveFailureShot(page, 'preset-roster-guide'))
+     const settings = page.getByRole('dialog', { name: '设置' })
+@@ -94,7 +115,7 @@ describe('web e2e: preset roster guidance', () => {
+     await connectFreshWorkspaceZh(page, scaffold.workspaceCwd)
+     await openSettings(page, 'zh')
+     const settings = page.getByRole('dialog', { name: '设置' })
+-    await settings.getByRole('button', { name: 'Agent 预设' }).click()
++    await settings.getByRole('button', { name: '模式' }).click()
+     await settings.getByRole('button', { name: '让 Agent 帮我创建预设模式', exact: true }).click()
+     await settings.waitFor({ state: 'detached', timeout: 10_000 })
+     await expect.poll(async () => {
 diff --git a/apps/web/tests/desktop-channel.e2e.ts b/apps/web/tests/desktop-channel.e2e.ts
 index a1f3f7cfff42f59e4dfd36ccb4ca1ec10703598a..50962538366914120a36dbaa65155d5ce6813c1f 100644
 --- a/apps/web/tests/desktop-channel.e2e.ts
@@ -1640,20 +2052,26 @@ index a1f3f7cfff42f59e4dfd36ccb4ca1ec10703598a..50962538366914120a36dbaa65155d5c
        expect(tripwire.warnings).toEqual([])
      } finally { await browser.close() }
 diff --git a/apps/web/tests/expected/agent-preset-authoring/section.expected.md b/apps/web/tests/expected/agent-preset-authoring/section.expected.md
-index f859dab99c83852141884f1913a27c7d642fdaf2..25fede8bdba4f7ad21dbf2c75df3c7abf8f052f0 100644
+index f859dab99c83852141884f1913a27c7d642fdaf2..64604d0530412b86acb75ba16b794c6f529df6db 100644
 --- a/apps/web/tests/expected/agent-preset-authoring/section.expected.md
 +++ b/apps/web/tests/expected/agent-preset-authoring/section.expected.md
-@@ -3,8 +3,10 @@
+@@ -3,12 +3,14 @@
    - navigation:
      - button "通用设置"
      - button "模型"
 +    - button "额度"
      - button "插件管理"
-     - button "Agent 预设"
+-    - button "Agent 预设"
++    - button "模式"
 +    - button "写作资料"
      - button "远程连接"
    - button "打开配置文件"
    - button "关闭"
+-  - heading "Agent 预设" [level=2]
++  - heading "模式" [level=2]
+   - paragraph: 选择 Agent 的工具和工作方式。日常任务用「标准模式」，扩展 DSH 的能力用「创造模式」。
+   - heading "内置" [level=3]
+   - list:
 @@ -44,5 +46,11 @@
        - 'button "模式说明: 创造模式"': 模式说明
        - 'button "如何使用: 创造模式"': 如何使用
@@ -1931,13 +2349,14 @@ index 0000000000000000000000000000000000000000..124210d8ee71c134dd81f6ec0bdea25a
 +  } finally { await scaffold.close() }
 +}, 120_000)
 diff --git a/apps/web/tsconfig.json b/apps/web/tsconfig.json
-index 62e0f201c21a9d9bbc1c833e68ae821105b8a6d7..9795c6e100d2d24854ca9abac6fed65d8a2c9894 100644
+index 62e0f201c21a9d9bbc1c833e68ae821105b8a6d7..45383e1bf42df1bab9c0b32c2d5587fc8b0a1e4a 100644
 --- a/apps/web/tsconfig.json
 +++ b/apps/web/tsconfig.json
-@@ -23,6 +23,11 @@
+@@ -23,6 +23,12 @@
    // this client-registered project must not also hold them (one program
    // cannot see both sides of the cordis Context merges).
    "exclude": [
++    "tests/about-dialog-fit.e2e.ts",
 +    "tests/balance-cleanup.e2e.ts",
 +    "tests/balance-history-layout.e2e.ts",
 +    "tests/memory-preference.e2e.ts",
@@ -9492,7 +9911,7 @@ index 0000000000000000000000000000000000000000..c3325b1e9bd8c7684302717b1399a13e
 +              - id: command-compact
 +                name: '@deepseek-ai/dsh-command-compact'
 diff --git a/packages/client/ui-agent-preset/src/client/locales.ts b/packages/client/ui-agent-preset/src/client/locales.ts
-index 67329c8ff3e62663846b89e2bcc5d764479a9632..983c2910b1e5437bd54a5c51a4265acdf6299f8c 100644
+index 67329c8ff3e62663846b89e2bcc5d764479a9632..d1f79adda4048e226c6b12c9dd5169ba762b5ef2 100644
 --- a/packages/client/ui-agent-preset/src/client/locales.ts
 +++ b/packages/client/ui-agent-preset/src/client/locales.ts
 @@ -13,6 +13,7 @@ export type AgentPresetSettingsKey =
@@ -9503,7 +9922,13 @@ index 67329c8ff3e62663846b89e2bcc5d764479a9632..983c2910b1e5437bd54a5c51a4265acd
    | 'presetStandardName'
    | 'presetStandardDescription'
    | 'presetPtcName'
-@@ -47,6 +48,8 @@ export const en: Record<AgentPresetSettingsKey, string> = {
+@@ -42,11 +43,13 @@ export const en: Record<AgentPresetSettingsKey, string> = {
+ 
+   seatHint: 'Choose the agent preset for your new task',
+   headerHint: 'The agent preset chosen when this task started',
+-  nav: 'Agent presets',
++  nav: 'Modes',
+ 
    setDefault: 'Set as new task default',
    view: 'View configuration',
  
@@ -9512,7 +9937,13 @@ index 67329c8ff3e62663846b89e2bcc5d764479a9632..983c2910b1e5437bd54a5c51a4265acd
    presetStandardName: 'Standard mode',
    presetStandardDescription:
      'Work with code, files, and information. Suitable for most tasks, with search, editing, terminal commands, and other tools available as needed.',
-@@ -92,6 +95,8 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
+@@ -87,11 +90,13 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
+ 
+   seatHint: '选择新任务使用的 Agent 预设',
+   headerHint: '本任务的 Agent 预设，在任务开始时确定',
+-  nav: 'Agent 预设',
++  nav: '模式',
+ 
    setDefault: '设为新任务默认',
    view: '查看配置',
  
@@ -9521,8 +9952,12 @@ index 67329c8ff3e62663846b89e2bcc5d764479a9632..983c2910b1e5437bd54a5c51a4265acd
    presetStandardName: '标准模式',
    presetStandardDescription: '处理代码、文件和资料，适合大多数任务。Agent 会按需使用检索、编辑和终端等工具。',
    presetPtcName: 'PTC 模式',
-@@ -137,6 +142,8 @@ export const ja = {
-   'nav': 'エージェントプリセット',
+@@ -134,9 +139,11 @@ export const ja = {
+   'sectionIntro': 'エージェントのツールと動作を選択します。日々のタスクには標準モードを、DSH に機能を追加するにはクリエイターモードを使用してください。',
+   'seatHint': '新しいタスクで使用するエージェントプリセットを選択',
+   'headerHint': 'このタスクの開始時に選択されたエージェントプリセット',
+-  'nav': 'エージェントプリセット',
++  nav: 'モード',
    'setDefault': '新しいタスクの既定に設定',
    'view': '設定を表示',
 +  presetWritingName: '執筆モード',
@@ -9530,7 +9965,13 @@ index 67329c8ff3e62663846b89e2bcc5d764479a9632..983c2910b1e5437bd54a5c51a4265acd
    'presetStandardName': '標準モード',
    'presetStandardDescription': 'コード、ファイル、情報を扱います。検索、編集、ターミナルコマンドなどのツールを必要に応じて利用でき、ほとんどのタスクに適しています。',
    'presetPtcName': 'PTC モード',
-@@ -172,6 +179,8 @@ export const es = {
+@@ -167,11 +174,13 @@ export const es = {
+ 
+   seatHint: 'Elija el agente preestablecido para su nueva tarea',
+   headerHint: 'El agente preestablecido elegido cuando comenzó esta tarea',
+-  nav: 'Ajustes preestablecidos del agente',
++  nav: 'Modos',
+ 
    setDefault: 'Establecer como nueva tarea predeterminada',
    view: 'Ver configuración',
  
@@ -9539,7 +9980,13 @@ index 67329c8ff3e62663846b89e2bcc5d764479a9632..983c2910b1e5437bd54a5c51a4265acd
    presetStandardName: 'Modo estándar',
    presetStandardDescription:
      'Trabaje con código, archivos e información. Adecuado para la mayoría de las tareas, con búsqueda, edición, comandos de terminal y otras herramientas disponibles según sea necesario.',
-@@ -217,6 +226,8 @@ export const fr = {
+@@ -212,11 +221,13 @@ export const fr = {
+ 
+   seatHint: "Choisissez le préréglage d'agent pour votre nouvelle tâche",
+   headerHint: "Le préréglage d'agent choisi au démarrage de cette tâche",
+-  nav: "Préréglages d'agent",
++  nav: 'Modes',
+ 
    setDefault: 'Définir comme nouvelle tâche par défaut',
    view: 'Afficher la configuration',
  
@@ -9548,7 +9995,13 @@ index 67329c8ff3e62663846b89e2bcc5d764479a9632..983c2910b1e5437bd54a5c51a4265acd
    presetStandardName: 'Mode standard',
    presetStandardDescription:
      'Travaillez avec du code, des fichiers et des informations. Convient à la plupart des tâches, avec recherche, édition, commandes de terminal et autres outils disponibles selon les besoins.',
-@@ -262,6 +273,8 @@ export const de = {
+@@ -257,11 +268,13 @@ export const de = {
+ 
+   seatHint: 'Wählen Sie die Agentenvoreinstellung für Ihre neue Aufgabe',
+   headerHint: 'Die Agentenvoreinstellung, die beim Start dieser Aufgabe ausgewählt wurde',
+-  nav: 'Agentenvoreinstellungen',
++  nav: 'Modi',
+ 
    setDefault: 'Als Standard für neue Aufgabe festlegen',
    view: 'Konfiguration anzeigen',
  
@@ -9557,7 +10010,13 @@ index 67329c8ff3e62663846b89e2bcc5d764479a9632..983c2910b1e5437bd54a5c51a4265acd
    presetStandardName: 'Standardmodus',
    presetStandardDescription:
      'Arbeiten Sie mit Code, Dateien und Informationen. Geeignet für die meisten Aufgaben, da bei Bedarf Suche, Bearbeitung, Terminalbefehle und andere Tools verfügbar sind.',
-@@ -307,6 +320,8 @@ export const ru = {
+@@ -302,11 +315,13 @@ export const ru = {
+ 
+   seatHint: 'Выберите предустановку агента для вашей новой задачи',
+   headerHint: 'Предварительная настройка агента, выбранная при запуске этой задачи',
+-  nav: 'Настройки агента',
++  nav: 'Режимы',
+ 
    setDefault: 'Установить в качестве новой задачи по умолчанию',
    view: 'Посмотреть конфигурацию',
  
@@ -9566,7 +10025,13 @@ index 67329c8ff3e62663846b89e2bcc5d764479a9632..983c2910b1e5437bd54a5c51a4265acd
    presetStandardName: 'Стандартный режим',
    presetStandardDescription:
      'Работайте с кодом, файлами и информацией. Подходит для большинства задач, с поиском, редактированием, командами терминала и другими инструментами, доступными по мере необходимости.',
-@@ -352,6 +367,8 @@ export const pt = {
+@@ -347,11 +362,13 @@ export const pt = {
+ 
+   seatHint: 'Escolha a predefinição de agente para sua nova tarefa',
+   headerHint: 'A predefinição do agente escolhida quando esta tarefa foi iniciada',
+-  nav: 'Predefinições de agente',
++  nav: 'Modos',
+ 
    setDefault: 'Definir como nova tarefa padrão',
    view: 'Ver configuração',
  
@@ -11590,7 +12055,7 @@ index 0000000000000000000000000000000000000000..0d65bb8222137c219eded6098fc0eb7c
 +  expect(document.activeElement).toBe(trigger)
 +})
 diff --git a/packages/client/ui-settings-account/README.i18n.yaml b/packages/client/ui-settings-account/README.i18n.yaml
-index 217a3754e16c0f3effcb7b80ccadbcf7e5ff3f67..c595dbce2db18c17d9add862830d4ae6a8dd512c 100644
+index 217a3754e16c0f3effcb7b80ccadbcf7e5ff3f67..e1187a7d10d4a6d53f32dd7657f9a2977ba0e811 100644
 --- a/packages/client/ui-settings-account/README.i18n.yaml
 +++ b/packages/client/ui-settings-account/README.i18n.yaml
 @@ -9,14 +9,14 @@
@@ -11607,13 +12072,13 @@ index 217a3754e16c0f3effcb7b80ccadbcf7e5ff3f67..c595dbce2db18c17d9add862830d4ae6
  /deepseek-ai-dsh-client-ui-settings-account/use-this-package:
 -  en: 51864317e5c33943
 -  zh: c0507f3448859ef0
-+  en: 47ab42de0eb7f1ff
-+  zh: 27aa98d52e9b4846
++  en: b08736a3155148e4
++  zh: 1685e803c5aaa50f
  /deepseek-ai-dsh-client-ui-settings-account/use-this-package/desktop-onboarding:
    en: b17e3d33f66af025
    zh: 780f813205d955d9
 diff --git a/packages/client/ui-settings-account/README.md b/packages/client/ui-settings-account/README.md
-index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..c4b2ef66fff5bacb70d670dd0ea214dbdaf271b5 100644
+index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..da45168168a053ef7c18941cb4c4004694556ef9 100644
 --- a/packages/client/ui-settings-account/README.md
 +++ b/packages/client/ui-settings-account/README.md
 @@ -13,6 +13,8 @@ Server-expired account credentials clear the displayed account details and emit
@@ -11625,17 +12090,19 @@ index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..c4b2ef66fff5bacb70d670dd0ea214db
  The Account settings section displays DeepSeek login state and offers browser sign-in and cancellation; the sidebar account menu provides Platform sign-out. Desktop users also receive a resumable introduction to account credit and presentation preferences.
  
  The sign-in dialog offers network troubleshooting only for `no-response` failures. HTTP, business, response-validation, storage, and account-stream failures retain the generic retry message.
-@@ -28,6 +30,8 @@ A new account-model sign-in-required event displays “Model unavailable. Please
+@@ -28,6 +30,10 @@ A new account-model sign-in-required event displays “Model unavailable. Please
  <a id="use-this-package"></a>
  ## Use this package
  
++The account menu offers **About** before and after sign-in. On wide screens the brand panel fills the left edge of the dialog. On narrow screens it spans the top. The left panel displays the DSHU calendar version and UTC build time. The right panel identifies the kernel, base commit and date, source tree, release component pins and licenses, with links to the candidate manifest, notices and official DSHU releases. Escape returns focus to the account menu.
++
 +Open **Budget** in Settings to inspect balance samples, adjust the two ends of the time range, set rolling limits, or reset a window. New samples use a 30-day retention policy by default. Sidebar visibility is independent of sampling, and its chart can show 24 hours, 7 days (default), or 30 days. A paused conversation shows its status above the input.
 +
  Settings, feedback and sign-in actions use 14px shared Regular icons with 1px strokes. The package-local logout icon uses the same size and fixed stroke weight without a separately positioned inner SVG. The sign-in dialog aligns the trailing edges of its close button and footer actions with a shared 24px inset.
  
  Desktop and plain Web clients both mount the sidebar account launcher, Account settings, the sign-in step of model onboarding, and the account-state subscription. Desktop main opens the authorization page in the system browser. A plain Web client, identified by the absent Desktop preload bridge, sends `login_source` web with its own origin as the callback origin, preopens a tab during the sign-in click, navigates it to the authorization URL with the same `theme` parameter once its attempt receives one, and closes it on failure, expiry, or cancellation; a blocked popup leaves the copy-link route. Embedded Platform pages, Desktop onboarding, and the native device reader stay Desktop-only, so Web Platform links open new tabs.
 diff --git a/packages/client/ui-settings-account/README.zh.md b/packages/client/ui-settings-account/README.zh.md
-index 7ea45f5067591a84fb43ef786026cc0c1246729b..6a764c5232800ff462d62dc81f1bfece2271df3f 100644
+index 7ea45f5067591a84fb43ef786026cc0c1246729b..b67d3a2e56b4fa45ddfa973d20b3ae02f8c6a8fa 100644
 --- a/packages/client/ui-settings-account/README.zh.md
 +++ b/packages/client/ui-settings-account/README.zh.md
 @@ -13,6 +13,8 @@ kind: "package-reference"
@@ -11647,10 +12114,12 @@ index 7ea45f5067591a84fb43ef786026cc0c1246729b..6a764c5232800ff462d62dc81f1bfece
  设置中的账号页面显示 DeepSeek 登录状态，并提供浏览器登录和取消；侧边栏账号菜单提供 Platform 退出登录。Desktop 用户还会进入可恢复的引导，了解账号额度并选择展示偏好。
  
  登录弹窗仅对 `no-response` 失败提示检查网络。HTTP、业务、响应校验、存储和账号状态流失败仍显示通用重试提示。
-@@ -28,6 +30,8 @@ kind: "package-reference"
+@@ -28,6 +30,10 @@ kind: "package-reference"
  <a id="use-this-package"></a>
  ## 使用此包
  
++登录前后均可从账号菜单打开**关于**。宽屏的渐变铺满弹窗左侧，窄屏铺满顶部。左侧展示 DSHU 日期版本和 UTC 编译时间。右侧列出内核版本、基线提交及时间、候选源码树、发行版组件版本与许可，可打开候选清单、第三方许可和 DSHU 正式发行页。按 Escape 后焦点回到账号菜单。
++
 +在设置的「额度」中可查看余额采样、拖动时间范围的两端、调整各档滚动上限或单独重置窗口。保存新采样时默认保留 30 天，侧栏显示与采样单独设置。侧栏图表可选短（24 小时）、中（默认 7 天）、长（30 天）。暂停状态显示在对应会话的输入框上方。
 +
  设置、意见反馈和登录操作使用共享的 14px Regular 图标，描边为 1px。包内的退出登录图标采用相同的尺寸和固定描边粗细，无需单独定位内层 SVG。 登录弹窗的关闭按钮与底部操作按钮按外框右边缘对齐，共用 24px 内缩。
@@ -12566,13 +13035,16 @@ index d04ea53f90fe09f7fb733bfe627fdd39e6229c63..0c194b11c8b66290786c63cf84bf1549
 +  return `${value.lt(0) ? '-' : ''}${symbol}${Number(integer).toLocaleString()}.${fraction.padEnd(2, '0')}`
 +}
 diff --git a/packages/client/ui-settings-account/src/client/index.ts b/packages/client/ui-settings-account/src/client/index.ts
-index e680e1cb3210fbf10b1cc5969d72920de8b7d011..dfb514ad5129157e62da52ac3a8860cf6e4cd520 100644
+index e680e1cb3210fbf10b1cc5969d72920de8b7d011..54f119ff24d2f0bc834f492037ccae48bce14523 100644
 --- a/packages/client/ui-settings-account/src/client/index.ts
 +++ b/packages/client/ui-settings-account/src/client/index.ts
-@@ -24,6 +24,12 @@ import { AccountNotices } from './AccountNotices.tsx'
+@@ -24,6 +24,15 @@ import { AccountNotices } from './AccountNotices.tsx'
  import { createPlatformPages, type PlatformPages } from './platform-pages.ts'
  import { AccountSection, type AccountSnapshot, type AccountSectionInjected } from './AccountSection.tsx'
  import { accountClientMetadata } from './client-metadata.ts'
++import { AboutController } from './about-controller.ts'
++import { AboutOverlay, type AboutOverlayInjected } from './AboutOverlay.tsx'
++import type { DesktopAboutBridge } from '../about-types.ts'
 +import { registerBalance } from './balance.ts'
 +import { BudgetSection } from './BudgetSection.tsx'
 +import { BudgetSidebar } from './BudgetSidebar.tsx'
@@ -12582,7 +13054,7 @@ index e680e1cb3210fbf10b1cc5969d72920de8b7d011..dfb514ad5129157e62da52ac3a8860cf
  import { en, ja, es, fr, de, ru, pt, zh, type AccountKey } from './locales.ts'
  import { AccountQuotaNotice, type AccountQuotaNoticeInjected } from './AccountQuotaNotice.tsx'
  import { DESKTOP_ONBOARDING_NAMESPACE, type OnboardingSettings } from '../onboarding-settings.ts'
-@@ -40,6 +46,12 @@ export type { AccountUi, AccountUiState, AccountNotificationsOwnerProps } from '
+@@ -40,6 +49,12 @@ export type { AccountUi, AccountUiState, AccountNotificationsOwnerProps } from '
  
  declare module '@deepseek-ai/dsh-client-ui-slots' {
    interface LocaleNamespaceMap { 'settings.account': AccountKey }
@@ -12595,7 +13067,21 @@ index e680e1cb3210fbf10b1cc5969d72920de8b7d011..dfb514ad5129157e62da52ac3a8860cf
  }
  
  /** Services required by account settings. */
-@@ -312,6 +324,16 @@ export function apply(ctx: Context): void {
+@@ -47,6 +62,13 @@ export const inject = ['slots', 'locale', 'remote', 'remote.account', 'remote.se
+ /** Register account UI in Desktop and plain Web clients. @param ctx - client plugin context. */
+ export function apply(ctx: Context): void {
+   const desktop = 'dshDesktop' in globalThis
++  const carrier = (globalThis as typeof globalThis & { dshDesktop?: { protocolVersion: number; about?: DesktopAboutBridge } }).dshDesktop
++  const about = new AboutController(carrier?.protocolVersion === 1 ? carrier.about : undefined)
++  ctx.effect(() => { about.start(); return () => about.dispose() }, 'account: About presentation')
++  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
++    name: 'shell.overlay', id: 'product-about', locale: 'settings.account',
++    inject: (): AboutOverlayInjected => ({ hooks: { about: about.state }, close: about.close }),
++  }, AboutOverlay))
+   ctx.effect(() => ctx.locale.register('settings.account', { en, zh, ja, es, fr, de, ru, pt }), 'account: dictionaries')
+   const t = ctx.locale.bind('settings.account')
+   const page = globalThis as Partial<Record<typeof CONTACT_CONFIG_GLOBAL, unknown>>
+@@ -312,8 +334,18 @@ export function apply(ctx: Context): void {
        }),
      }, AccountPlatformHost))
    }
@@ -12610,8 +13096,11 @@ index e680e1cb3210fbf10b1cc5969d72920de8b7d011..dfb514ad5129157e62da52ac3a8860cf
 +    label: () => t('budget.title'), children: { 'settings.budget.item': { kind: 'list', scope: 'root' } },
 +  }, BudgetSection)))
    ctx.remoteAccess.whenAccess('account/watch', () => ctx.slots.inject('settings.launcher', () => ctx.slots.register({
-     name: 'settings.launcher', locale: 'settings.account', inject: () => operations,
+-    name: 'settings.launcher', locale: 'settings.account', inject: () => operations,
++    name: 'settings.launcher', locale: 'settings.account', inject: () => ({ ...operations, openAbout: about.open }),
    }, AccountMenu)))
+   ctx.remoteAccess.whenAccess('account/watch', () => ctx.slots.inject('settings.notice', () => ctx.slots.register({
+     name: 'settings.notice', inject: () => operations,
 diff --git a/packages/client/ui-settings-account/src/client/spending-controller.ts b/packages/client/ui-settings-account/src/client/spending-controller.ts
 new file mode 100644
 index 0000000000000000000000000000000000000000..fd960e1191e33abab8ef182259e84eeb245e7723
@@ -17308,19 +17797,20 @@ index bf8bbdc9b0254c65ebd9034685501eb5a68a5fae..6bca6183a8a1866faadebc907dc21408
      key: 'remoteConnection',
      pkg: 'client-remote-connection',
 diff --git a/tsconfig.base.json b/tsconfig.base.json
-index 38bced25a37b280e8059d528139f3e4c4654c988..4e026a330f770e7b88905579f769ab35be379f97 100644
+index 38bced25a37b280e8059d528139f3e4c4654c988..5e8af7e362f39ec318cd7c0bc941d9dea5199fcc 100644
 --- a/tsconfig.base.json
 +++ b/tsconfig.base.json
-@@ -54,6 +54,8 @@
+@@ -54,6 +54,9 @@
        "@deepseek-ai/dsh-otel": ["./packages/telemetry/otel/src"],
        "@deepseek-ai/dsh-client-ui-account-notifications": ["./packages/client/ui-account-notifications/src/index.ts"],
        "@deepseek-ai/dsh-client-ui-account-notifications/client": ["./packages/client/ui-account-notifications/src/client/index.ts"],
 +      "@deepseek-ai/dsh-client-ui-mode-materials": ["./packages/client/ui-mode-materials/src/index.ts"],
 +      "@deepseek-ai/dsh-client-ui-mode-materials/client": ["./packages/client/ui-mode-materials/src/client/index.ts"],
++      "@deepseek-ai/dsh-client-ui-settings-account/src/about-types.ts": ["./packages/client/ui-settings-account/src/about-types.ts"],
        "@deepseek-ai/dsh-client-ui-settings-account": ["./packages/client/ui-settings-account/src/index.ts"],
        "@deepseek-ai/dsh-client-ui-settings-account/client": ["./packages/client/ui-settings-account/src/client/index.ts"],
        "@deepseek-ai/dsh-api-gateway/stream-protocol": ["./packages/api/gateway/src/stream-protocol.ts"],
-@@ -152,6 +154,8 @@
+@@ -152,6 +155,8 @@
        "@deepseek-ai/dsh-api-job-controller": ["./packages/api/job-controller/src/index.ts"],
        "@deepseek-ai/dsh-api-job-controller/client": ["./packages/api/job-controller/src/client/index.ts"],
        "@deepseek-ai/dsh-api-job-controller/types": ["./packages/api/job-controller/src/types.ts"],
@@ -17329,7 +17819,7 @@ index 38bced25a37b280e8059d528139f3e4c4654c988..4e026a330f770e7b88905579f769ab35
        "@deepseek-ai/dsh-api-session-controller": ["./packages/api/session-controller/src/index.ts"],
        "@deepseek-ai/dsh-api-session-controller/client": ["./packages/api/session-controller/src/client/index.ts"],
        "@deepseek-ai/dsh-api-session-controller/types": ["./packages/api/session-controller/src/types.ts"],
-@@ -602,6 +606,17 @@
+@@ -602,6 +607,17 @@
        "@deepseek-ai/dsh-skill-badge": ["./packages/experimental/skill-badge/src"],
        "@deepseek-ai/dsh-skill-filesystem": ["./packages/skill/skill-filesystem/src"],
        "@deepseek-ai/dsh-skill-office": ["./packages/skill/skill-office/src"],
@@ -17361,13 +17851,16 @@ index d6a347c5aa4b45367dcb616971d4cd4f90543f4e..7b5f5791535b79789ba8deb36f564a1a
      { "path": "./packages/client/ui-account-notifications" },
      // Shared leaf: web e2e boots the real host webserver (fixture + real-host
 diff --git a/tsconfig.host.json b/tsconfig.host.json
-index f2046d341293cb0adb504e754b87f31918b2e424..32f7f1d15c7c0b83ed8e2ef6d2f253554670dd44 100644
+index f2046d341293cb0adb504e754b87f31918b2e424..158301e60a1367bf21f6d453bcefa861d8cc5f72 100644
 --- a/tsconfig.host.json
 +++ b/tsconfig.host.json
-@@ -8,6 +8,11 @@
+@@ -7,7 +7,14 @@
+     "noEmit": true,
      "rewriteRelativeImportExtensions": false
    },
++  "files": ["packages/client/ui-settings-account/src/about-types.ts"],
    "include": [
++    "apps/web/tests/about-dialog-fit.e2e.ts",
 +    "apps/web/tests/balance-cleanup.e2e.ts",
 +    "apps/web/tests/balance-history-layout.e2e.ts",
 +    "apps/web/tests/memory-preference.e2e.ts",
@@ -17376,7 +17869,7 @@ index f2046d341293cb0adb504e754b87f31918b2e424..32f7f1d15c7c0b83ed8e2ef6d2f25355
      "apps/web/tests/device-pairing.e2e.ts",
      "apps/web/tests/pairing-completion.e2e.ts",
      "apps/web/tests/pairing-recovery.e2e.ts",
-@@ -359,6 +364,7 @@
+@@ -359,6 +366,7 @@
      { "path": "./packages/experimental/browser-use-playwright-mcp" },
      { "path": "./packages/experimental/browser-use-chrome-devtools-mcp" },
      { "path": "./packages/experimental/browser-use-stagehand-native" },
@@ -17384,7 +17877,7 @@ index f2046d341293cb0adb504e754b87f31918b2e424..32f7f1d15c7c0b83ed8e2ef6d2f25355
      { "path": "./packages/api/terminal-controller/tsconfig.host.json" },
      { "path": "./packages/computer-use/computer-use" },
      { "path": "./packages/experimental/computer-use-cua-driver-mcp" },
-@@ -576,6 +582,10 @@
+@@ -576,6 +584,10 @@
      { "path": "./packages/spill/spill" },
      { "path": "./packages/spill/spill-local" },
      { "path": "./packages/spill/spill-policy" },
@@ -25008,79 +25501,88 @@ index 0000000000000000000000000000000000000000..9024200b25bd2dd5d1dceebcde3b1baf
 +  })
 +}
 diff --git a/packages/client/ui-settings-account/src/client/locales.ts b/packages/client/ui-settings-account/src/client/locales.ts
-index 1e5efc5bbfb775560b0eeec2c34f2b2633554bd1..70a117893fe95c8b75c2c23c57ae558e87986e26 100644
+index 1e5efc5bbfb775560b0eeec2c34f2b2633554bd1..9c740906a7cb6ce572400930b08f7d1759037c66 100644
 --- a/packages/client/ui-settings-account/src/client/locales.ts
 +++ b/packages/client/ui-settings-account/src/client/locales.ts
-@@ -1,8 +1,11 @@
+@@ -1,8 +1,13 @@
  /** Account settings copy, owned by the account feature. */
++import { aboutEn, aboutZh, aboutJa, aboutEs, aboutFr, aboutDe, aboutRu, aboutPt } from './about-locales.ts'
 +import { balanceEn, balanceZh } from './balance-locales.ts'
  import { onboardingZh, onboardingEn, onboardingJa, onboardingEs, onboardingFr, onboardingDe, onboardingRu, onboardingPt } from './locales/onboarding.ts'
  
  /** English account dictionary. */
  export const en = {
++  ...aboutEn,
 +  ...balanceEn,
 +  'budget.title': 'Budget',
    modelSignInRequired: 'Model unavailable. Please sign in and try again.',
    sessionExpired: 'You have signed out of your account, please log in again.',
    ...onboardingEn,
-@@ -38,6 +41,8 @@ export const en = {
+@@ -38,6 +43,9 @@ export const en = {
  export type AccountKey = keyof typeof en
  /** Chinese account settings copy. */
  export const zh: Record<AccountKey, string> = {
++  ...aboutZh,
 +  ...balanceZh,
 +  'budget.title': '额度',
    modelSignInRequired: '当前模型暂不可用，请登录后再试',
    sessionExpired: '登录信息已失效，请重新登录',
    ...onboardingZh,
-@@ -72,6 +77,8 @@ export const zh: Record<AccountKey, string> = {
+@@ -72,6 +80,9 @@ export const zh: Record<AccountKey, string> = {
  
  /** Japanese copy, checked against the English keys. */
  export const ja = {
++  ...aboutJa,
 +  ...balanceEn,
 +  'budget.title': '予算',
    ...onboardingJa,
    'modelSignInRequired': 'モデルを利用できません。ログインしてから再試行してください。',
    'sessionExpired': 'アカウントからログアウトしました。もう一度ログインしてください。',
-@@ -131,6 +138,8 @@ export const ja = {
+@@ -131,6 +142,9 @@ export const ja = {
  
  /** Spanish dictionary, checked against the English keys. */
  export const es = {
++  ...aboutEs,
 +  ...balanceEn,
 +  'budget.title': 'Presupuesto',
    modelSignInRequired: 'Modelo no disponible. Por favor inicia sesión y vuelve a intentarlo.',
    sessionExpired: 'Has cerrado sesión en tu cuenta, inicia sesión nuevamente.',
    ...onboardingEs,
-@@ -165,6 +174,8 @@ export const es = {
+@@ -165,6 +179,9 @@ export const es = {
  
  /** French dictionary, checked against the English keys. */
  export const fr = {
++  ...aboutFr,
 +  ...balanceEn,
 +  'budget.title': 'Budget',
    modelSignInRequired: 'Modèle indisponible. Veuillez vous connecter et réessayer.',
    sessionExpired: 'Vous vous êtes déconnecté de votre compte, veuillez vous reconnecter.',
    ...onboardingFr,
-@@ -199,6 +210,8 @@ export const fr = {
+@@ -199,6 +216,9 @@ export const fr = {
  
  /** German dictionary, checked against the English keys. */
  export const de = {
++  ...aboutDe,
 +  ...balanceEn,
 +  'budget.title': 'Budget',
    modelSignInRequired: 'Modell nicht verfügbar. Bitte melden Sie sich an und versuchen Sie es erneut.',
    sessionExpired: 'Sie haben sich von Ihrem Konto abgemeldet. Bitte melden Sie sich erneut an.',
    ...onboardingDe,
-@@ -233,6 +246,8 @@ export const de = {
+@@ -233,6 +253,9 @@ export const de = {
  
  /** Russian dictionary, checked against the English keys. */
  export const ru = {
++  ...aboutRu,
 +  ...balanceEn,
 +  'budget.title': 'Бюджет',
    modelSignInRequired: 'Модель недоступна. Пожалуйста, войдите в систему и повторите попытку.',
    sessionExpired: 'Вы вышли из своей учетной записи, пожалуйста, войдите снова.',
    ...onboardingRu,
-@@ -267,6 +282,8 @@ export const ru = {
+@@ -267,6 +290,9 @@ export const ru = {
  
  /** Portuguese dictionary, checked against the English keys. */
  export const pt = {
++  ...aboutPt,
 +  ...balanceEn,
 +  'budget.title': 'Orçamento',
    modelSignInRequired: 'Modelo indisponível. Faça login e tente novamente.',
@@ -26266,3 +26768,1871 @@ index 0000000000000000000000000000000000000000..6421434359d1400a49d72e2ec665716b
 +    }
 +  ]
 +}
+diff --git a/apps/desktop/package.json b/apps/desktop/package.json
+index bc3faafabbf221d80ef72a5bc20ca30f24627a62..894dbcfc787eee2ae717a25ee4f34a851c9b1586 100644
+--- a/apps/desktop/package.json
++++ b/apps/desktop/package.json
+@@ -2,6 +2,7 @@
+   "name": "@deepseek-ai/dsh-desktop",
+   "description": "Electron desktop shell for a bundled dsh runtime and external plugins",
+   "version": "0.2.3-alpha.2",
++  "dshuVersion": "2026.11.23.0",
+   "private": true,
+   "license": "MIT",
+   "author": {
+diff --git a/apps/desktop/src/about-routing.ts b/apps/desktop/src/about-routing.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..2a20ccbdb815a5565b64b1da67e1570c6f25efd8
+--- /dev/null
++++ b/apps/desktop/src/about-routing.ts
+@@ -0,0 +1,34 @@
++/** Native-menu routing and renderer lifetime for the shared product About page. @module */
++
++/** Shell operations owned by the main application window. */
++export interface AboutRouting {
++  /** @returns Whether the main product document can currently present a dialog. */
++  canPresent(): boolean
++  /** Focus the main window and notify its About listener. */
++  request(): void
++  /** @param hidden - Temporarily hide native Platform content without destroying its page. */
++  platformHidden(hidden: boolean): void
++}
++
++/** Keeps availability separate from visibility; navigation revokes both. */
++export class DesktopAboutRouting {
++  private ready = false
++  /** @param operations - Current main-window operations. */
++  constructor(private readonly operations: AboutRouting) {}
++
++  /** @returns Whether the product renderer accepted presentation routing. */
++  request(): boolean {
++    if (!this.ready || !this.operations.canPresent()) return false
++    this.operations.request()
++    return true
++  }
++
++  /** @param ready - Trusted document has a listener. @param visible - Its shared dialog is open. */
++  synchronize(ready: boolean, visible: boolean): void {
++    this.ready = ready
++    this.operations.platformHidden(ready && visible)
++  }
++
++  /** Revoke availability after navigation, renderer failure, or window destruction. */
++  reset(): void { this.synchronize(false, false) }
++}
+diff --git a/apps/desktop/src/platform-view.ts b/apps/desktop/src/platform-view.ts
+index 7cc85e8cf60fb37c6164ecb16391114411d9bcb7..8359d6df1e0f7e184b1fade3c3e90afbd2527dec 100644
+--- a/apps/desktop/src/platform-view.ts
++++ b/apps/desktop/src/platform-view.ts
+@@ -41,6 +41,13 @@ type PlatformSender = { sender: object; senderFrame: Pick<WebFrameMain, 'url'> |
+ /** Native view and its credential snapshot are discarded together. */
+ export class DesktopPlatformView {
+   private account: PlatformSession | null = null
++  /** @param active - Whether a product dialog covers the native account view. */
++  setProductOverlay(active: boolean): void {
++    this.productOverlay = active
++    this.view?.setVisible(this.loaded && !active)
++  }
++  private productOverlay = false
++  private loaded = false
+   private view: WebContentsView | undefined
+   private owner: PlatformOwner | undefined
+   private releaseOwner: (() => void) | undefined
+@@ -145,6 +152,7 @@ export class DesktopPlatformView {
+       additionalArguments: [`--dsh-platform-origin=${account.origin}`],
+       nodeIntegration: false, webSecurity: true,
+     } })
++    this.loaded = false
+     this.view = view
+     // External payment and documentation pages open without the embedded session or token.
+     view.webContents.setWindowOpenHandler(({ url }) => {
+@@ -184,7 +192,10 @@ export class DesktopPlatformView {
+         throw error
+       }
+     }
+-    if (generation === this.generation && this.view === view) view.setVisible(true)
++    if (generation === this.generation && this.view === view) {
++      this.loaded = true
++      view.setVisible(!this.productOverlay)
++    }
+   }
+ 
+   /** @param bounds - current application viewport rectangle. */
+@@ -217,6 +228,7 @@ export class DesktopPlatformView {
+   close(): void {
+     this.generation++
+     const view = this.view
++    this.loaded = false
+     this.view = undefined
+     this.releaseOwner?.()
+     this.releaseOwner = undefined
+diff --git a/apps/desktop/src/preload-about.ts b/apps/desktop/src/preload-about.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..88e18145f50b13e2ada2cb2e7e378529589a0853
+--- /dev/null
++++ b/apps/desktop/src/preload-about.ts
+@@ -0,0 +1,30 @@
++/** Presentation-only About bridge for the trusted product document. @module */
++import type { DshDesktopProductApi } from './ipc.ts'
++
++/** IPC operations supplied by the isolated preload. */
++export interface AboutTransport {
++  /** @param listener - Native request callback. @returns Listener cleanup. */
++  listen(listener: () => void): () => void
++  /** @param ready - Whether a product listener exists. @param visible - Whether its dialog is open. */
++  publish(ready: boolean, visible: boolean): void
++}
++
++/** @param transport - Document-owned IPC operations. @returns A bridge whose last listener releases native visibility. */
++export function createAboutBridge(transport: AboutTransport): DshDesktopProductApi['about'] {
++  let listeners = 0
++  let shown = false
++  return {
++    subscribe(listener) {
++      const off = transport.listen(listener)
++      try { if (++listeners === 1) transport.publish(true, shown) }
++      catch (error) { listeners--; off(); throw error }
++      let active = true
++      return () => {
++        if (!active) return
++        active = false; off()
++        if (--listeners === 0) { shown = false; transport.publish(false, false) }
++      }
++    },
++    visible(value) { shown = value; transport.publish(listeners > 0, listeners > 0 && shown) },
++  }
++}
+diff --git a/apps/desktop/tests/about-routing.spec.ts b/apps/desktop/tests/about-routing.spec.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..c850eaae9d2a991fea179a23e18a11963eeeca61
+--- /dev/null
++++ b/apps/desktop/tests/about-routing.spec.ts
+@@ -0,0 +1,55 @@
++import { expect, it, vi } from 'vitest'
++import { DesktopAboutRouting } from '../src/about-routing.ts'
++import { createAboutBridge } from '../src/preload-about.ts'
++import type { DesktopAboutBridge } from '@deepseek-ai/dsh-client-ui-settings-account/src/about-types.ts'
++import type { DshDesktopProductApi } from '../src/ipc.ts'
++
++it('routes only while the product document is ready and releases native content on navigation', () => {
++  let available = true
++  const request = vi.fn(), platformHidden = vi.fn()
++  const routing = new DesktopAboutRouting({ canPresent: () => available, request, platformHidden })
++  expect(routing.request()).toBe(false)
++  routing.synchronize(true, false)
++  expect(routing.request()).toBe(true)
++  expect(request).toHaveBeenCalledOnce()
++  routing.synchronize(true, true)
++  expect(platformHidden).toHaveBeenLastCalledWith(true)
++  available = false
++  expect(routing.request()).toBe(false)
++  routing.reset()
++  expect(platformHidden).toHaveBeenLastCalledWith(false)
++  available = true
++  expect(routing.request()).toBe(false)
++})
++
++it('keeps independent subscriptions and releases visibility when the last listener leaves', () => {
++  const off = vi.fn(), listen = vi.fn(() => off), publish = vi.fn()
++  const bridge = createAboutBridge({ listen, publish })
++  const handler = vi.fn()
++  const first = bridge.subscribe(handler), second = bridge.subscribe(handler)
++  expect(publish).toHaveBeenCalledExactlyOnceWith(true, false)
++  bridge.visible(true)
++  expect(publish).toHaveBeenLastCalledWith(true, true)
++  first(); first()
++  expect(off).toHaveBeenCalledOnce()
++  expect(publish).toHaveBeenLastCalledWith(true, true)
++  second()
++  expect(off).toHaveBeenCalledTimes(2)
++  expect(publish).toHaveBeenLastCalledWith(false, false)
++  bridge.visible(true)
++  expect(publish).toHaveBeenLastCalledWith(false, false)
++})
++
++it('releases its listener if readiness cannot be published', () => {
++  const off = vi.fn(), publish = vi.fn().mockImplementationOnce(() => { throw new Error('carrier closed') })
++  const bridge = createAboutBridge({ listen: () => off, publish })
++  expect(() => bridge.subscribe(() => {})).toThrow('carrier closed')
++  expect(off).toHaveBeenCalledOnce()
++  const stop = bridge.subscribe(() => {})
++  expect(publish).toHaveBeenLastCalledWith(true, false)
++  stop()
++})
++
++const client = (value: DshDesktopProductApi['about']): DesktopAboutBridge => value
++const carrier = (value: DesktopAboutBridge): DshDesktopProductApi['about'] => value
++void client; void carrier
+diff --git a/apps/desktop/tests/expected/about-panel.json b/apps/desktop/tests/expected/about-panel.json
+index 8dc6ee90632bbab44957e49729a661964225e6df..54f845535f8e99a469d91ca9e5ffadd2d4453463 100644
+--- a/apps/desktop/tests/expected/about-panel.json
++++ b/apps/desktop/tests/expected/about-panel.json
+@@ -1,11 +1,11 @@
+ {
+   "darwin:en-US": {
+     "menu": [
+-      { "label": "About DeepSeek Harness", "role": "about" },
++      { "label": "About DeepSeek Harness Uncensored" },
+       { "type": "separator" }
+     ],
+     "options": {
+-      "applicationName": "DeepSeek Harness",
++      "applicationName": "DeepSeek Harness Uncensored",
+       "applicationVersion": "1.0.0",
+       "version": "",
+       "copyright": "",
+@@ -14,11 +14,11 @@
+   },
+   "darwin:zh-CN": {
+     "menu": [
+-      { "label": "关于 DeepSeek Harness", "role": "about" },
++      { "label": "关于 DeepSeek Harness Uncensored" },
+       { "type": "separator" }
+     ],
+     "options": {
+-      "applicationName": "DeepSeek Harness",
++      "applicationName": "DeepSeek Harness Uncensored",
+       "applicationVersion": "1.0.0",
+       "version": "",
+       "copyright": "",
+@@ -27,11 +27,11 @@
+   },
+   "win32:zh-CN": {
+     "menu": [
+-      { "label": "关于 DeepSeek Harness" },
++      { "label": "关于 DeepSeek Harness Uncensored" },
+       { "type": "separator" }
+     ],
+     "options": {
+-      "applicationName": "DeepSeek Harness",
++      "applicationName": "DeepSeek Harness Uncensored",
+       "applicationVersion": "1.0.0",
+       "version": "",
+       "copyright": "",
+@@ -40,11 +40,11 @@
+   },
+   "win32:en-US": {
+     "menu": [
+-      { "label": "About DeepSeek Harness" },
++      { "label": "About DeepSeek Harness Uncensored" },
+       { "type": "separator" }
+     ],
+     "options": {
+-      "applicationName": "DeepSeek Harness",
++      "applicationName": "DeepSeek Harness Uncensored",
+       "applicationVersion": "1.0.0",
+       "version": "",
+       "copyright": "",
+diff --git a/apps/desktop/tests/expected/application-menu-en-US.json b/apps/desktop/tests/expected/application-menu-en-US.json
+index 8ed5ca42ea9596774a5d6b41409b9b3d88fed88a..e577492c8132674597d440f5aa12ae62786e4fc1 100644
+--- a/apps/desktop/tests/expected/application-menu-en-US.json
++++ b/apps/desktop/tests/expected/application-menu-en-US.json
+@@ -1,7 +1,6 @@
+ [
+   {
+-    "label": "About DeepSeek Harness",
+-    "role": "about"
++    "label": "About DeepSeek Harness Uncensored"
+   },
+   {
+     "type": "separator"
+diff --git a/apps/desktop/tests/expected/application-menu-zh-CN.json b/apps/desktop/tests/expected/application-menu-zh-CN.json
+index 978bf0d7eed9cd70ac7ea489eda4036db0891b77..2f16fb2003408f52b38e4b669a3484d5752d7025 100644
+--- a/apps/desktop/tests/expected/application-menu-zh-CN.json
++++ b/apps/desktop/tests/expected/application-menu-zh-CN.json
+@@ -1,7 +1,6 @@
+ [
+   {
+-    "label": "关于 DeepSeek Harness",
+-    "role": "about"
++    "label": "关于 DeepSeek Harness Uncensored"
+   },
+   {
+     "type": "separator"
+diff --git a/apps/desktop/tests/platform-view.spec.ts b/apps/desktop/tests/platform-view.spec.ts
+index 708e471278a9ce653c8c3bdfa86a4445bd0db0d6..8a1b167c4d309d3870da41aac612d98949ac3a91 100644
+--- a/apps/desktop/tests/platform-view.spec.ts
++++ b/apps/desktop/tests/platform-view.spec.ts
+@@ -189,6 +189,36 @@ it('opens HTTPS payment links in the system browser without an embedded child wi
+   manager.close()
+ })
+ 
++it('hides a loaded Platform page for About and restores the same document', async () => {
++  const { manager, owner } = setup()
++  try {
++    await manager.open(owner, 'usage', bounds)
++    const current = view()
++    manager.setProductOverlay(true)
++    expect(current.setVisible).toHaveBeenLastCalledWith(false)
++    manager.setProductOverlay(false)
++    expect(current.setVisible).toHaveBeenLastCalledWith(true)
++    expect(current.webContents.close).not.toHaveBeenCalled()
++    expect(state.views).toHaveLength(1)
++  } finally { await manager.dispose() }
++})
++
++it('keeps a late-loading native page hidden until About closes', async () => {
++  const { manager, owner } = setup()
++  const finish = Promise.withResolvers<undefined>()
++  state.loadBarrier = finish.promise
++  const pending = manager.open(owner, 'usage', bounds)
++  try {
++    await vi.waitFor(() => { expect(state.views).toHaveLength(1) })
++    manager.setProductOverlay(true)
++    finish.resolve(undefined)
++    await pending
++    expect(view().setVisible).toHaveBeenLastCalledWith(false)
++    manager.setProductOverlay(false)
++    expect(view().setVisible).toHaveBeenLastCalledWith(true)
++  } finally { finish.resolve(undefined); await pending; await manager.dispose() }
++})
++
+ it('reveals a loaded document only after loading finishes', async () => {
+   const { manager, owner } = setup()
+   const loaded = Promise.withResolvers<undefined>()
+diff --git a/apps/desktop/tsdown.config.ts b/apps/desktop/tsdown.config.ts
+index ddf9c2d6db33e22d7a5922c322b12ff08ff23e0f..703e38c49db92925d553f09116a0652c010a9dbc 100644
+--- a/apps/desktop/tsdown.config.ts
++++ b/apps/desktop/tsdown.config.ts
+@@ -29,8 +29,11 @@ const clientEnvironment = resolveClientBuildEnvironment(process.env.DSH_CLIENT_V
+ const clientVersion = clientEnvironment.DSH_CLIENT_VERSION
+ if (clientVersion === undefined) throw new Error('desktop build: the client environment carries no DSH_CLIENT_VERSION')
+ 
+-/** Inline the one public build value the Node entry reads; every other variable stays a runtime lookup. */
+-const clientVersionDefine = { 'process.env.DSH_CLIENT_VERSION': JSON.stringify(clientVersion) }
++/** Versions visible in account requests and the native About fallback. */
++const clientVersionDefine = {
++  'process.env.DSH_CLIENT_VERSION': JSON.stringify(clientVersion),
++  'process.env.DSH_CLIENT_FORK_VERSION': JSON.stringify(clientEnvironment.DSH_CLIENT_FORK_VERSION) ?? 'undefined',
++}
+ 
+ export default defineConfig([
+   {
+diff --git a/apps/web/tests/about-dialog-fit.e2e.ts b/apps/web/tests/about-dialog-fit.e2e.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..fc4a0ec8e1cdb85fc7d0827ecc57dcbcca93e14a
+--- /dev/null
++++ b/apps/web/tests/about-dialog-fit.e2e.ts
+@@ -0,0 +1,82 @@
++/** The About dialog fits a full-screen window without a vertical scrollbar. */
++import { fileURLToPath } from 'node:url'
++import { mkdir } from 'node:fs/promises'
++import { join } from 'node:path'
++import { chromium, type Locator } from 'playwright'
++import { expect, it } from 'vitest'
++import { launchWebScaffold, watchConsole } from './scaffold.ts'
++
++/** Scrollable descendants of the dialog, named by class for a readable failure. */
++async function scrollableDescendants(dialog: Locator): Promise<string[]> {
++  return dialog.evaluate((node: Element) => [node, ...node.querySelectorAll('*')]
++    .filter((element): element is HTMLElement => element instanceof HTMLElement)
++    .filter((element) => {
++      const style = getComputedStyle(element)
++      return (style.overflowY === 'auto' || style.overflowY === 'scroll') && element.scrollHeight > element.clientHeight + 1
++    })
++    .map(element => `${element.className || element.tagName}:${element.scrollHeight}/${element.clientHeight}`))
++}
++
++it.each([
++  { locale: 'zh-CN', account: '账号菜单', about: '关于' },
++  { locale: 'en-US', account: 'Account menu', about: 'About' },
++])('keeps the About dialog scroll-free at full-screen heights ($locale)', async (labels) => {
++  const scaffold = await launchWebScaffold({ extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
++  const browser = await chromium.launch()
++  try {
++    const page = await browser.newPage({ locale: labels.locale, viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' })
++    const consoleWatch = watchConsole(page)
++    await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
++    await page.getByRole('button', { name: labels.account, exact: true }).click()
++    await page.getByRole('menuitem', { name: labels.about, exact: true }).click()
++    const dialog = page.getByRole('dialog', { name: labels.about, exact: true })
++    await dialog.waitFor()
++    const identity = dialog.getByRole('region').first()
++    expect(await identity.getByText('2026.11.23.0', { exact: true }).count()).toBe(1)
++    expect(await identity.getByText(/0\.2\.3-alpha\.2/u).count()).toBe(0)
++    expect(await identity.getByText(/\d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC/u).count()).toBe(1)
++    expect(await dialog.getByRole('link', { name: /DeepSeek Harness 0\.2\.3-alpha\.2/u }).count()).toBe(1)
++    expect(await dialog.getByRole('link', { name: 'REA 6.9.0', exact: true }).count()).toBe(1)
++    expect(await dialog.getByRole('link', { name: 'dsh-purge Community 1.7.20', exact: true }).count()).toBe(1)
++    expect(await dialog.getByText(labels.about, { exact: true }).count()).toBe(0)
++
++    const shots = fileURLToPath(new URL('../../../.artifacts/screenshots/about', import.meta.url))
++    await mkdir(shots, { recursive: true })
++    for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 720 }]) {
++      await page.setViewportSize(viewport)
++      await expect.poll(() => scrollableDescendants(dialog), { timeout: 5000 }).toEqual([])
++      const frame = await dialog.boundingBox()
++      const brand = await dialog.getByRole('region').first().boundingBox()
++      if (!frame || !brand) throw new Error('About layout is missing')
++      expect(brand.x).toBeCloseTo(frame.x, 0)
++      expect(brand.y).toBeCloseTo(frame.y, 0)
++      expect(brand.height).toBeCloseTo(frame.height, 0)
++      await dialog.screenshot({ path: join(shots, labels.locale + '-' + viewport.width + '.png') })
++    }
++    await page.keyboard.press('Escape')
++    await dialog.waitFor({ state: 'detached' })
++    const accountMenu = page.getByRole('button', { name: labels.account, exact: true })
++    await expect.poll(() => accountMenu.evaluate(node => node === document.activeElement)).toBe(true)
++    await accountMenu.press('Enter')
++    await page.getByRole('menuitem', { name: labels.about, exact: true }).press('Enter')
++    await dialog.waitFor()
++    await page.setViewportSize({ width: 390, height: 760 })
++    await scaffold.ctx.settings.update('ui-theme', { preference: 'dark' })
++    await expect.poll(() => page.evaluate(() => document.body.hasAttribute('data-ds-dark-theme'))).toBe(true)
++    const banner = dialog.getByRole('region').first()
++    const frame = await dialog.boundingBox()
++    const brand = await banner.boundingBox()
++    if (!frame || !brand) throw new Error('About banner is missing')
++    expect(brand.x).toBeCloseTo(frame.x, 0)
++    expect(brand.y).toBeCloseTo(frame.y, 0)
++    expect(brand.width).toBeCloseTo(frame.width, 0)
++    await dialog.screenshot({ path: join(shots, labels.locale + '-390.png') })
++    await dialog.getByRole('link', { name: labels.locale === 'zh-CN' ? '第三方组件与许可' : 'Third-party notices' }).scrollIntoViewIfNeeded()
++    await dialog.getByRole('button', { name: labels.locale === 'zh-CN' ? '关闭' : 'Close', exact: true }).click()
++    await dialog.waitFor({ state: 'detached' })
++    expect(consoleWatch.pageErrors).toEqual([])
++  } finally {
++    await browser.close()
++    await scaffold.close()
++  }
++})
+diff --git a/apps/web/tests/agent-preset-selection.e2e.ts b/apps/web/tests/agent-preset-selection.e2e.ts
+index 2d2d675ae3c36e5f212ff87b6b9d0de90bf20d2f..a81b49598cc47aa8a14b841773ed4ef2995759b7 100644
+--- a/apps/web/tests/agent-preset-selection.e2e.ts
++++ b/apps/web/tests/agent-preset-selection.e2e.ts
+@@ -271,7 +271,7 @@ describe('web e2e: agent-preset selection', () => {
+     await openSettings(page, 'en')
+     await codingTools.click()
+     await expect.poll(() => codingTools.getAttribute('aria-checked')).toBe('true')
+-    await dialog.getByRole('button', { name: 'Agent presets' }).click()
++    await dialog.getByRole('button', { name: 'Modes' }).click()
+     await dialog.getByRole('button', { name: 'New task default: Standard mode' }).waitFor({ timeout: 10_000 })
+     expect(await dialog.getByRole('switch').count()).toBe(0)
+     await dialog.getByRole('button', { name: 'Set as new task default: Minimal mode' }).waitFor({ timeout: 10_000 })
+@@ -364,7 +364,7 @@ describe('web e2e: agent-preset selection', () => {
+ 
+     await openSettings(page, 'en')
+     const dialog = page.getByRole('dialog', { name: 'Settings' })
+-    await dialog.getByRole('button', { name: 'Agent presets' }).click()
++    await dialog.getByRole('button', { name: 'Modes' }).click()
+     await dialog.getByRole('button', { name: 'Set as new task default: Minimal mode' }).click()
+     await dialog.getByRole('button', { name: 'New task default: Minimal mode' }).waitFor({ timeout: 10_000 })
+     await expect.poll(() => livePreset(scaffold), { timeout: 15_000 }).toBe('minimal')
+@@ -408,7 +408,7 @@ describe('web e2e: agent-preset selection', () => {
+     await expect.poll(() => reopenedDeveloperTools.getAttribute('aria-checked')).toBe('false')
+     await reopenedDeveloperTools.click()
+     await expect.poll(() => reopenedDeveloperTools.getAttribute('aria-checked')).toBe('true')
+-    await reopened.getByRole('button', { name: 'Agent presets' }).click()
++    await reopened.getByRole('button', { name: 'Modes' }).click()
+     await reopened.getByRole('button', { name: 'New task default: Standard mode' }).waitFor({ timeout: 10_000 })
+     await reopened.getByRole('button', { name: 'Set as new task default: Minimal mode' }).waitFor({ timeout: 10_000 })
+     await reopened.getByRole('button', { name: 'Close' }).last().click()
+diff --git a/apps/web/tests/developer-tools-settings.e2e.ts b/apps/web/tests/developer-tools-settings.e2e.ts
+index c230423c36dc8d9c04f1c5932cf82a0c31dd9758..7cae376080422d3e12ac0d5a62675331f4697ae5 100644
+--- a/apps/web/tests/developer-tools-settings.e2e.ts
++++ b/apps/web/tests/developer-tools-settings.e2e.ts
+@@ -30,21 +30,21 @@ it('persists Coding Tools and limits the built-in PTC and Minimal choices in ses
+   await openSettings(page, 'en')
+   await expect.poll(() => toggle.getAttribute('aria-checked')).toBe('false')
+ 
+-  await page.getByRole('button', { name: 'Agent presets', exact: true }).click()
+-  await expect.poll(() => page.getByRole('heading', { name: 'Agent presets', exact: true }).count()).toBe(1)
++  await page.getByRole('button', { name: 'Modes', exact: true }).click()
++  await expect.poll(() => page.getByRole('heading', { name: 'Modes', exact: true }).count()).toBe(1)
+   const settings = page.getByRole('dialog', { name: 'Settings', exact: true })
+   expect(await settings.getByRole('switch').count()).toBe(0)
+   const visiblePresets = () => settings.locator('[data-agent-preset-id]').evaluateAll(cards => cards.map(card => card.getAttribute('data-agent-preset-id')))
+-  await expect.poll(visiblePresets).toEqual(['standard', 'cordis', 'custom'])
++  await expect.poll(visiblePresets).toEqual(['standard', 'cordis', 'writing', 'custom'])
+   await settings.getByRole('button', { name: 'Set as new task default: Custom mode', exact: true }).click()
+   await settings.getByRole('button', { name: 'New task default: Custom mode', exact: true }).waitFor()
+   await scaffold.ctx.settings.update('ui-settings', { enabled: true })
+-  await expect.poll(visiblePresets).toEqual(['standard', 'ptc', 'minimal', 'cordis', 'custom'])
++  await expect.poll(visiblePresets).toEqual(['standard', 'ptc', 'minimal', 'cordis', 'writing', 'custom'])
+   expect((await scaffold.ctx.agentPresets.remoteExportList()).presets.find(preset => preset.isDefault)?.id).toBe('custom')
+   await settings.getByRole('button', { name: 'Set as new task default: Minimal mode', exact: true }).click()
+   await settings.getByRole('button', { name: 'New task default: Minimal mode', exact: true }).waitFor()
+   await scaffold.ctx.settings.update('ui-settings', { enabled: false })
+-  await expect.poll(visiblePresets).toEqual(['standard', 'cordis', 'custom'])
++  await expect.poll(visiblePresets).toEqual(['standard', 'cordis', 'writing', 'custom'])
+   await settings.getByRole('button', { name: 'New task default: Standard mode', exact: true }).waitFor()
+   await expect.poll(async () => (await scaffold.ctx.agentPresets.remoteExportList()).presets.find(preset => preset.isDefault)?.id).toBe('standard')
+   await expect.poll(() => settings.getByRole('button', { name: 'Let the agent help me create a preset', exact: true }).isEnabled()).toBe(true)
+@@ -54,7 +54,7 @@ it('persists Coding Tools and limits the built-in PTC and Minimal choices in ses
+ 
+   const menu = page.getByRole('menu')
+   await page.getByRole('button', { name: 'Standard mode', exact: true }).click()
+-  await expect.poll(() => menu.getByRole('menuitem').count()).toBe(3)
++  await expect.poll(() => menu.getByRole('menuitem').count()).toBe(4)
+   expect(await menu.getByRole('menuitem', { name: /^PTC mode|^Minimal mode/ }).count()).toBe(0)
+   expect(await menu.getByRole('menuitem', { name: /^Custom mode/ }).count()).toBe(1)
+   await menu.getByRole('menuitem', { name: /^Creator mode/ }).click()
+@@ -65,7 +65,7 @@ it('persists Coding Tools and limits the built-in PTC and Minimal choices in ses
+   await scaffold.ctx.settings.update('ui-settings', { enabled: true })
+   await menu.waitFor({ state: 'detached' })
+   await page.getByRole('button', { name: 'Creator mode', exact: true }).click()
+-  await expect.poll(() => menu.getByRole('menuitem').count()).toBe(5)
++  await expect.poll(() => menu.getByRole('menuitem').count()).toBe(6)
+   expect(await menu.getByRole('menuitem', { name: /^PTC mode/ }).count()).toBe(1)
+   expect(await menu.getByRole('menuitem', { name: /^Minimal mode/ }).count()).toBe(1)
+   expect(await livePresets()).toEqual(['cordis'])
+@@ -84,7 +84,7 @@ it('persists Coding Tools and limits the built-in PTC and Minimal choices in ses
+   await menu.waitFor({ state: 'detached' })
+   expect(await livePresets()).toEqual(['ptc'])
+   await page.getByRole('button', { name: 'PTC mode', exact: true }).click()
+-  await expect.poll(() => menu.getByRole('menuitem').count()).toBe(3)
++  await expect.poll(() => menu.getByRole('menuitem').count()).toBe(4)
+   expect(await menu.getByRole('menuitem', { name: /^PTC mode|^Minimal mode/ }).count()).toBe(0)
+   await menu.getByRole('menuitem', { name: /^Standard mode/ }).click()
+   await expect.poll(livePresets, { timeout: 15_000 }).toEqual(['standard'])
+@@ -93,13 +93,13 @@ it('persists Coding Tools and limits the built-in PTC and Minimal choices in ses
+   // The sessionless preset chip is replaced when the saved Session is restored.
+   await page.locator('[data-composer-input][contenteditable="true"]').waitFor()
+   await page.getByRole('button', { name: 'Standard mode', exact: true }).click()
+-  await expect.poll(() => menu.getByRole('menuitem').count()).toBe(3)
++  await expect.poll(() => menu.getByRole('menuitem').count()).toBe(4)
+   await page.keyboard.press('Escape')
+   await openSettings(page, 'en')
+   await settings.getByRole('button', { name: 'General', exact: true }).click()
+   await expect.poll(() => toggle.getAttribute('aria-checked')).toBe('false')
+-  await settings.getByRole('button', { name: 'Agent presets', exact: true }).click()
+-  await expect.poll(visiblePresets).toEqual(['standard', 'cordis', 'custom'])
++  await settings.getByRole('button', { name: 'Modes', exact: true }).click()
++  await expect.poll(visiblePresets).toEqual(['standard', 'cordis', 'writing', 'custom'])
+   await settings.getByRole('button', { name: 'New task default: Standard mode', exact: true }).waitFor()
+   await settings.getByRole('button', { name: 'Let the agent help me create a preset', exact: true }).click()
+   await settings.waitFor({ state: 'detached' })
+diff --git a/apps/web/tests/expected/deepseek-messages-settings/cards.expected.md b/apps/web/tests/expected/deepseek-messages-settings/cards.expected.md
+index 5adffff1963731f08ce82f703aeeb5ac86f9200b..b7136ed012dd83d451c35d1ecb5337a66dd26258 100644
+--- a/apps/web/tests/expected/deepseek-messages-settings/cards.expected.md
++++ b/apps/web/tests/expected/deepseek-messages-settings/cards.expected.md
+@@ -4,7 +4,7 @@
+     - button "通用设置"
+     - button "模型"
+     - button "插件管理"
+-    - button "Agent 预设"
++    - button "模式"
+     - button "远程连接"
+   - button "打开配置文件"
+   - button "关闭"
+diff --git a/apps/web/tests/expected/deepseek-messages-settings/clear-key.expected.md b/apps/web/tests/expected/deepseek-messages-settings/clear-key.expected.md
+index a69d4b479cc6ba44370b4196994d811357667654..fff4e834289a336e429d1c0d8d9b517d100df7f3 100644
+--- a/apps/web/tests/expected/deepseek-messages-settings/clear-key.expected.md
++++ b/apps/web/tests/expected/deepseek-messages-settings/clear-key.expected.md
+@@ -4,7 +4,7 @@
+     - button "通用设置"
+     - button "模型"
+     - button "插件管理"
+-    - button "Agent 预设"
++    - button "模式"
+     - button "远程连接"
+   - button "打开配置文件"
+   - button "关闭"
+diff --git a/apps/web/tests/expected/desktop-locale/automatic.expected.md b/apps/web/tests/expected/desktop-locale/automatic.expected.md
+index 7f3c40fb01c3be36513e945d67e5b79438389a22..084ed5ef90cf604c133cf2490e60fa9b7dd57ded 100644
+--- a/apps/web/tests/expected/desktop-locale/automatic.expected.md
++++ b/apps/web/tests/expected/desktop-locale/automatic.expected.md
+@@ -4,7 +4,7 @@
+     - button "通用设置"
+     - button "模型"
+     - button "插件管理"
+-    - button "Agent 预设"
++    - button "模式"
+   - button "打开配置文件"
+   - button "关闭"
+   - text: 权限 选择新会话的默认权限模式
+diff --git a/apps/web/tests/expected/desktop-locale/selected.expected.md b/apps/web/tests/expected/desktop-locale/selected.expected.md
+index 65a16962525580773dd0681b3ba01f645119a857..60931fbe2f3f0f7c36d7bece5e11da7dd7e3ecf5 100644
+--- a/apps/web/tests/expected/desktop-locale/selected.expected.md
++++ b/apps/web/tests/expected/desktop-locale/selected.expected.md
+@@ -4,7 +4,7 @@
+     - button "General"
+     - button "Models"
+     - button "Plugins"
+-    - button "Agent presets"
++    - button "Modes"
+   - button "Open configuration file"
+   - button "Close"
+   - text: Permission Choose the default permission mode for new sessions
+diff --git a/apps/web/tests/expected/models-settings-recovery/stored-error.expected.md b/apps/web/tests/expected/models-settings-recovery/stored-error.expected.md
+index 02708d5b6a26e4f92c0984d9cafe32f1a9712fcb..1da636ad6e5260087bb33d01f86fd6529610cfbc 100644
+--- a/apps/web/tests/expected/models-settings-recovery/stored-error.expected.md
++++ b/apps/web/tests/expected/models-settings-recovery/stored-error.expected.md
+@@ -4,7 +4,7 @@
+     - button "通用设置"
+     - button "模型"
+     - button "插件管理"
+-    - button "Agent 预设"
++    - button "模式"
+     - button "远程连接"
+   - button "打开配置文件"
+   - button "关闭"
+diff --git a/apps/web/tests/expected/models-settings/catalog-inputs.expected.md b/apps/web/tests/expected/models-settings/catalog-inputs.expected.md
+index d1fe7f99577ae92b3d09e7c2e3a8f2c9ba8d24d4..6c230f69e4702cb8d9794f8f733b24c20f72160e 100644
+--- a/apps/web/tests/expected/models-settings/catalog-inputs.expected.md
++++ b/apps/web/tests/expected/models-settings/catalog-inputs.expected.md
+@@ -4,7 +4,7 @@
+     - button "通用设置"
+     - button "模型"
+     - button "插件管理"
+-    - button "Agent 预设"
++    - button "模式"
+     - button "远程连接"
+   - button "打开配置文件"
+   - button "关闭"
+diff --git a/apps/web/tests/expected/models-settings/configured.expected.md b/apps/web/tests/expected/models-settings/configured.expected.md
+index f045159473fb7be8dda5689bb2e2f22674bb09a1..bbab572980b59777c45d38d1423abcd92fec03b7 100644
+--- a/apps/web/tests/expected/models-settings/configured.expected.md
++++ b/apps/web/tests/expected/models-settings/configured.expected.md
+@@ -4,7 +4,7 @@
+     - button "通用设置"
+     - button "模型"
+     - button "插件管理"
+-    - button "Agent 预设"
++    - button "模式"
+     - button "远程连接"
+   - button "打开配置文件"
+   - button "关闭"
+diff --git a/apps/web/tests/expected/models-settings/declared-edit.expected.md b/apps/web/tests/expected/models-settings/declared-edit.expected.md
+index 286787f63eeb3b86206ed071030161d36ea7cecb..5d006c860e6f9cd0932b3c3174308fb86404c929 100644
+--- a/apps/web/tests/expected/models-settings/declared-edit.expected.md
++++ b/apps/web/tests/expected/models-settings/declared-edit.expected.md
+@@ -4,7 +4,7 @@
+     - button "通用设置"
+     - button "模型"
+     - button "插件管理"
+-    - button "Agent 预设"
++    - button "模式"
+     - button "远程连接"
+   - button "打开配置文件"
+   - button "关闭"
+diff --git a/apps/web/tests/expected/models-settings/declared.expected.md b/apps/web/tests/expected/models-settings/declared.expected.md
+index 8eecd849a2279df07fec612b51a3255d3f668ada..fa3600aaa4bab9cf654db4e7d11be542f5d2162b 100644
+--- a/apps/web/tests/expected/models-settings/declared.expected.md
++++ b/apps/web/tests/expected/models-settings/declared.expected.md
+@@ -4,7 +4,7 @@
+     - button "通用设置"
+     - button "模型"
+     - button "插件管理"
+-    - button "Agent 预设"
++    - button "模式"
+     - button "远程连接"
+   - button "打开配置文件"
+   - button "关闭"
+diff --git a/apps/web/tests/expected/models-settings/empty.expected.md b/apps/web/tests/expected/models-settings/empty.expected.md
+index 54862e95ebec82f4d43fa2524a23d200033bdc53..0167beba1ee3dc7bfb3bd058cbdc956bbbfeb83d 100644
+--- a/apps/web/tests/expected/models-settings/empty.expected.md
++++ b/apps/web/tests/expected/models-settings/empty.expected.md
+@@ -4,7 +4,7 @@
+     - button "通用设置"
+     - button "模型"
+     - button "插件管理"
+-    - button "Agent 预设"
++    - button "模式"
+     - button "远程连接"
+   - button "打开配置文件"
+   - button "关闭"
+diff --git a/apps/web/tests/expected/models-settings/image-only.expected.md b/apps/web/tests/expected/models-settings/image-only.expected.md
+index 5fe634a9ae7969ab6268c206e8c692ca6ccf9c8c..c6c3098b2bc14caabffdff91206363fc076901a5 100644
+--- a/apps/web/tests/expected/models-settings/image-only.expected.md
++++ b/apps/web/tests/expected/models-settings/image-only.expected.md
+@@ -4,7 +4,7 @@
+     - button "通用设置"
+     - button "模型"
+     - button "插件管理"
+-    - button "Agent 预设"
++    - button "模式"
+     - button "远程连接"
+   - button "打开配置文件"
+   - button "关闭"
+diff --git a/apps/web/tests/expected/models-settings/mobile-collapsed.expected.md b/apps/web/tests/expected/models-settings/mobile-collapsed.expected.md
+index 710844e180d810d5775979a80697a29f56025b5b..6ec3b67bd943e39d5211e32a347245448400a39e 100644
+--- a/apps/web/tests/expected/models-settings/mobile-collapsed.expected.md
++++ b/apps/web/tests/expected/models-settings/mobile-collapsed.expected.md
+@@ -4,7 +4,7 @@
+     - button "通用设置"
+     - button "模型"
+     - button "插件管理"
+-    - button "Agent 预设"
++    - button "模式"
+     - button "远程连接"
+   - button "打开配置文件"
+   - button "关闭"
+diff --git a/apps/web/tests/expected/models-settings/mobile-expanded.expected.md b/apps/web/tests/expected/models-settings/mobile-expanded.expected.md
+index 33245a63e9c5652aef0f375df6d7cf7d7ca410e1..4535a1c35bac77479fa3f84129b4fbdb9dd99a0e 100644
+--- a/apps/web/tests/expected/models-settings/mobile-expanded.expected.md
++++ b/apps/web/tests/expected/models-settings/mobile-expanded.expected.md
+@@ -4,7 +4,7 @@
+     - button "通用设置"
+     - button "模型"
+     - button "插件管理"
+-    - button "Agent 预设"
++    - button "模式"
+     - button "远程连接"
+   - button "打开配置文件"
+   - button "关闭"
+diff --git a/apps/web/tests/expected/models-settings/native-keyless.expected.md b/apps/web/tests/expected/models-settings/native-keyless.expected.md
+index 6259a3868bcbe7ae46cb41d3385b2340b8e6f935..da127e7a86bc76d7327b6ea3e33eb0854010cc2e 100644
+--- a/apps/web/tests/expected/models-settings/native-keyless.expected.md
++++ b/apps/web/tests/expected/models-settings/native-keyless.expected.md
+@@ -4,7 +4,7 @@
+     - button "通用设置"
+     - button "模型"
+     - button "插件管理"
+-    - button "Agent 预设"
++    - button "模式"
+     - button "远程连接"
+   - button "打开配置文件"
+   - button "关闭"
+diff --git a/apps/web/tests/expected/models-settings/refreshing.expected.md b/apps/web/tests/expected/models-settings/refreshing.expected.md
+index 5c51468570f03a41e230e4548fd0becab0a21302..749b7f88b7a6bdcba01c36a64abad50a14a10486 100644
+--- a/apps/web/tests/expected/models-settings/refreshing.expected.md
++++ b/apps/web/tests/expected/models-settings/refreshing.expected.md
+@@ -4,7 +4,7 @@
+     - button "通用设置"
+     - button "模型"
+     - button "插件管理"
+-    - button "Agent 预设"
++    - button "模式"
+     - button "远程连接"
+   - button "打开配置文件"
+   - button "关闭"
+diff --git a/apps/web/tests/expected/onboarding-deepseek-config/default-models.expected.md b/apps/web/tests/expected/onboarding-deepseek-config/default-models.expected.md
+index c3e1379c00c069de5d9abffac436cfca4c4ada54..a935687d7b2412335ab5b1b4542804c676d380a1 100644
+--- a/apps/web/tests/expected/onboarding-deepseek-config/default-models.expected.md
++++ b/apps/web/tests/expected/onboarding-deepseek-config/default-models.expected.md
+@@ -4,7 +4,7 @@
+     - button "通用设置"
+     - button "模型"
+     - button "插件管理"
+-    - button "Agent 预设"
++    - button "模式"
+     - button "远程连接"
+   - button "打开配置文件"
+   - button "关闭"
+diff --git a/apps/web/tests/expected/onboarding-deepseek-config/models.expected.md b/apps/web/tests/expected/onboarding-deepseek-config/models.expected.md
+index 3c4f94d6bee8a3569502e79ff48317dd96c0ea14..13bc95f05674f1731a5a40b66c3d9a38f6bdee88 100644
+--- a/apps/web/tests/expected/onboarding-deepseek-config/models.expected.md
++++ b/apps/web/tests/expected/onboarding-deepseek-config/models.expected.md
+@@ -4,7 +4,7 @@
+     - button "通用设置"
+     - button "模型"
+     - button "插件管理"
+-    - button "Agent 预设"
++    - button "模式"
+     - button "远程连接"
+   - button "打开配置文件"
+   - button "关闭"
+diff --git a/apps/web/tests/expected/onboarding-native/models-desktop.expected.md b/apps/web/tests/expected/onboarding-native/models-desktop.expected.md
+index d50d11199fd1ad9e445ec6609d3bb1129176416d..da4d56672387646d80693628fcc742535e5d94e1 100644
+--- a/apps/web/tests/expected/onboarding-native/models-desktop.expected.md
++++ b/apps/web/tests/expected/onboarding-native/models-desktop.expected.md
+@@ -4,7 +4,7 @@
+     - button "通用设置"
+     - button "模型"
+     - button "插件管理"
+-    - button "Agent 预设"
++    - button "模式"
+   - button "打开配置文件"
+   - button "关闭"
+   - heading "模型" [level=2]
+diff --git a/apps/web/tests/expected/onboarding-native/models.expected.md b/apps/web/tests/expected/onboarding-native/models.expected.md
+index bfc363765b845c4ceac44d6beb547442ffa4796c..5d8946f637429c035cb424d9952562d9e2b56d77 100644
+--- a/apps/web/tests/expected/onboarding-native/models.expected.md
++++ b/apps/web/tests/expected/onboarding-native/models.expected.md
+@@ -4,7 +4,7 @@
+     - button "通用设置"
+     - button "模型"
+     - button "插件管理"
+-    - button "Agent 预设"
++    - button "模式"
+     - button "远程连接"
+   - button "打开配置文件"
+   - button "关闭"
+diff --git a/apps/web/tests/expected/onboarding-usable-provider/dismissed.expected.md b/apps/web/tests/expected/onboarding-usable-provider/dismissed.expected.md
+index d3a6f91fdad075102aa23075fb3d00bce144252c..2daba027b6ff7c1b07453a083fd023410111c2bc 100644
+--- a/apps/web/tests/expected/onboarding-usable-provider/dismissed.expected.md
++++ b/apps/web/tests/expected/onboarding-usable-provider/dismissed.expected.md
+@@ -4,7 +4,7 @@
+     - button "通用设置"
+     - button "模型"
+     - button "插件管理"
+-    - button "Agent 预设"
++    - button "模式"
+     - button "远程连接"
+   - button "打开配置文件"
+   - button "关闭"
+diff --git a/apps/web/tests/expected/settings-chrome/dialog-en.expected.md b/apps/web/tests/expected/settings-chrome/dialog-en.expected.md
+index 00a87b9b4e2a850b78f36e776da008d73db88929..944f70231f4849d860260bb8eb88554a22114d34 100644
+--- a/apps/web/tests/expected/settings-chrome/dialog-en.expected.md
++++ b/apps/web/tests/expected/settings-chrome/dialog-en.expected.md
+@@ -4,7 +4,7 @@
+     - button "General"
+     - button "Models"
+     - button "Plugins"
+-    - button "Agent presets"
++    - button "Modes"
+     - button "Remote connection"
+   - button "Open configuration file"
+   - button "Close"
+diff --git a/apps/web/tests/expected/settings-chrome/dialog-no-browser.expected.md b/apps/web/tests/expected/settings-chrome/dialog-no-browser.expected.md
+index 00a87b9b4e2a850b78f36e776da008d73db88929..944f70231f4849d860260bb8eb88554a22114d34 100644
+--- a/apps/web/tests/expected/settings-chrome/dialog-no-browser.expected.md
++++ b/apps/web/tests/expected/settings-chrome/dialog-no-browser.expected.md
+@@ -4,7 +4,7 @@
+     - button "General"
+     - button "Models"
+     - button "Plugins"
+-    - button "Agent presets"
++    - button "Modes"
+     - button "Remote connection"
+   - button "Open configuration file"
+   - button "Close"
+diff --git a/apps/web/tests/expected/settings-chrome/dialog.expected.md b/apps/web/tests/expected/settings-chrome/dialog.expected.md
+index 3732853089fa445720e124986147494c7ff2ceb9..d6d97a14558a0d306213a10b02d13fbe15cee811 100644
+--- a/apps/web/tests/expected/settings-chrome/dialog.expected.md
++++ b/apps/web/tests/expected/settings-chrome/dialog.expected.md
+@@ -4,7 +4,7 @@
+     - button "通用设置"
+     - button "模型"
+     - button "插件管理"
+-    - button "Agent 预设"
++    - button "模式"
+     - button "远程连接"
+   - button "打开配置文件"
+   - button "关闭"
+diff --git a/apps/web/tests/remote-connection.e2e.ts b/apps/web/tests/remote-connection.e2e.ts
+index 435c9556d378521c69fa471a3b0bef2934d4cd0f..6a8fd1ce0181a5f66c95f28b77507aa61470de83 100644
+--- a/apps/web/tests/remote-connection.e2e.ts
++++ b/apps/web/tests/remote-connection.e2e.ts
+@@ -571,9 +571,9 @@ describe('web e2e: one-use QR browser login', () => {
+           await mkdir(screenshots, { recursive: true })
+           await page.screenshot({ path: join(screenshots, `typography-models-${suffix}.png`) })
+         }
+-        await dialog.getByRole('button', { name: 'Agent 预设', exact: true }).click()
++        await dialog.getByRole('button', { name: '模式', exact: true }).click()
+         await dialog.locator('[data-agent-preset-id]').first().waitFor()
+-        expect(await headingTypography(dialog.getByRole('heading', { name: 'Agent 预设', level: 2, exact: true }), 4)).toEqual(models)
++        expect(await headingTypography(dialog.getByRole('heading', { name: '模式', level: 2, exact: true }), 4)).toEqual(models)
+         if (screenshots !== undefined) await page.screenshot({ path: join(screenshots, `typography-presets-${suffix}.png`) })
+         await dialog.getByRole('button', { name: '远程连接', exact: true }).click()
+         const section = dialog.getByRole('region', { name: '远程连接', exact: true })
+diff --git a/apps/web/tests/settings-appearance.e2e.ts b/apps/web/tests/settings-appearance.e2e.ts
+index ec2451dec4a9eb3261745539bf2112afc8f6d620..c993f413c9ece16158da6d2d94dbb560ab33ac2a 100644
+--- a/apps/web/tests/settings-appearance.e2e.ts
++++ b/apps/web/tests/settings-appearance.e2e.ts
+@@ -109,7 +109,7 @@ it('shows complete English settings navigation across sidebar and narrow layouts
+         })
+         expect(reachable, `${palette} ${width}px ${label.label}`).toBe(true)
+         expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
+-        if (screenshots && label.label === 'Agent presets' && width === 1200) {
++        if (screenshots && label.label === 'Modes' && width === 1200) {
+           await dialog.screenshot({ path: join(screenshots, `english-presets-${palette}.png`) })
+         }
+       }
+@@ -269,7 +269,7 @@ it('shares settings card materials and control sizes in both palettes', async ()
+     await compareOrRefreshGolden(join(EXPECTED, 'account.expected.md'),
+       await captureStableAria(page, 'section[aria-label="账号与余额"]', scaffold.workspaceCwd), webSnapshotMode())
+ 
+-    await dialog.getByRole('button', { name: 'Agent 预设', exact: true }).click()
++    await dialog.getByRole('button', { name: '模式', exact: true }).click()
+     const preset = dialog.locator('li').first()
+     await preset.waitFor()
+     expect((await appearance(preset)).radius).toBe('20px')
+diff --git a/apps/web/tests/settings-chrome.e2e.ts b/apps/web/tests/settings-chrome.e2e.ts
+index dea15ef68487602da9fa63273174831eb8aa1f2c..79caefe480c435deec4d34311b03c49178ba55a0 100644
+--- a/apps/web/tests/settings-chrome.e2e.ts
++++ b/apps/web/tests/settings-chrome.e2e.ts
+@@ -159,7 +159,7 @@ describe('web e2e: settings modal and General preferences', () => {
+     const sections = await dialog.getByRole('navigation').getByRole('button').allTextContents()
+     // The entry holds the position between Models and Agent presets.
+     expect(sections.indexOf('插件管理')).toBe(sections.indexOf('模型') + 1)
+-    expect(sections.indexOf('Agent 预设')).toBe(sections.indexOf('插件管理') + 1)
++    expect(sections.indexOf('模式')).toBe(sections.indexOf('插件管理') + 1)
+     await dialog.getByRole('button', { name: '插件管理', exact: true }).click()
+     await expect.poll(() => dialog.count(), { timeout: 5_000 }).toBe(0)
+     const pluginsEntry = linkPage.getByRole('navigation', { name: '全局面板' }).getByRole('button', { name: '插件', exact: true })
+@@ -928,7 +928,7 @@ describe('web e2e: settings modal and General preferences', () => {
+       await dialog.waitFor({ timeout: 10_000 })
+       await dialog.getByRole('button', { name: 'English' }).waitFor({ timeout: 10_000 })
+       // A locale-owned nav label proves the dictionaries resolved to en.
+-      await dialog.getByRole('button', { name: 'Agent presets' }).waitFor({ timeout: 10_000 })
++      await dialog.getByRole('button', { name: 'Modes' }).waitFor({ timeout: 10_000 })
+       // The markup already ships `en`, so this alone cannot prove the sync ran
+       // — the zh scenario above is the discriminating half. Asserted here too
+       // so a future change that resolves en but writes the wrong tag is caught.
+diff --git a/packages/client/ui-agent-preset/README.i18n.yaml b/packages/client/ui-agent-preset/README.i18n.yaml
+index 709242e57c8067fe1eda664e9cd53216c680c051..82a93de6702c3836d89323e80e9f0dcfdcc70782 100644
+--- a/packages/client/ui-agent-preset/README.i18n.yaml
++++ b/packages/client/ui-agent-preset/README.i18n.yaml
+@@ -15,8 +15,8 @@
+   en: d152484eb41ac6b4
+   zh: b3ad7867f23dad1c
+ /deepseek-ai-dsh-client-ui-agent-preset/use-this-package:
+-  en: f112d6ad327249f0
+-  zh: 7625fca0c15a3843
++  en: ff8adde2ef28bff5
++  zh: 27f6000f85bf31e0
+ /deepseek-ai-dsh-client-ui-agent-preset/understand-the-implementation:
+   en: 0373c5425a952881
+   zh: 609c5829283f515d
+diff --git a/packages/client/ui-agent-preset/README.md b/packages/client/ui-agent-preset/README.md
+index 45f970c69b383e11578d5c6410dbb8eabcf7e6f4..fc71ea4746cff4784f6d47f4f5f2f159cbbb7aa8 100644
+--- a/packages/client/ui-agent-preset/README.md
++++ b/packages/client/ui-agent-preset/README.md
+@@ -25,7 +25,7 @@ Choose Agent presets and the new-task default in Web, read what each mode does a
+ <a id="use-this-package"></a>
+ ## Use this package
+ 
+-The section heading and introduction form one group above the rosters; built-in and custom rosters retain a larger separation than their internal card spacing.
++In **Settings → Modes**, the default has an accent border and a status label. The roster fits a single column on a narrow screen; long mode names wrap.
+ 
+ Settings shows the built-in and custom card groups with default highlighting and card-body selection; a group without presets is omitted, except the custom group, which keeps its Creator entry on screen. Coarse-pointer devices show complete card descriptions; other devices clamp descriptions to four lines with the full text available on hover. Every card offers “View configuration”, which opens the preset's declared plugin list as read-only YAML in the Loader's own dialect (`!!js` conditions included); a failed preset stays readable because its diagnostic points into that YAML. Escape closes only the viewer and returns focus to its card; leaving Settings clears the viewer, and a late read does not reopen it. The page edits nothing: the Creator entry starts a Creator-mode task that authors or overrides a preset as a bundle, offered while the `cordis` preset is on the roster and a conversation flow exists.
+ 
+diff --git a/packages/client/ui-agent-preset/README.zh.md b/packages/client/ui-agent-preset/README.zh.md
+index 4ed8583157a7e1d0342ffd9d4dc3b39d9d1c0fe9..85053a8f44dc473334cbfdf97dec847ac536bf29 100644
+--- a/packages/client/ui-agent-preset/README.zh.md
++++ b/packages/client/ui-agent-preset/README.zh.md
+@@ -25,7 +25,7 @@ kind: "package-reference"
+ <a id="use-this-package"></a>
+ ## 使用此包
+ 
+-分区标题与说明在预设列表上方组成一组；内置与自定义列表之间的距离大于各列表内部的卡片间距。
++在**设置 → 模式**中，新任务的默认模式带有主题色边框与状态标签。窄屏使用单列列表，较长的模式名称可以换行。
+ 
+ 设置页显示内置与自定义卡片分组、默认项高亮和点击卡片选择；没有 preset 的分组不显示，但自定义分组会保留其创造入口。粗指针设备完整显示卡片描述；其他设备最多显示四行描述，悬停可查看全文。每张卡片都提供「查看配置」，以只读 YAML 打开该 preset 声明的插件列表，使用 Loader 自己的方言（含 `!!js` 条件）；加载失败的 preset 同样可读，因为其诊断信息正指向这份 YAML。Escape 只关闭查看器并将焦点还给卡片；离开设置页会清空查看器，迟到的读取结果不会重新打开它。本页不编辑任何内容：创造入口启动一个创造模式任务，以 bundle 形式创建或覆盖 preset；当 `cordis` preset 在列表中且存在会话流程时提供。
+ 
+diff --git a/packages/client/ui-agent-preset/src/client/AgentPresetSection.module.css b/packages/client/ui-agent-preset/src/client/AgentPresetSection.module.css
+index e3817df5072ddec777efc4dcde00ed0a93718da8..3732de965bdae74cb50ca8723e31e60484d71b2c 100644
+--- a/packages/client/ui-agent-preset/src/client/AgentPresetSection.module.css
++++ b/packages/client/ui-agent-preset/src/client/AgentPresetSection.module.css
+@@ -8,9 +8,10 @@
+ 
+ .title {
+   margin: 0;
+-  font-size: 16px;
+-  font-weight: 500;
+-  line-height: 24px;
++  font-size: 22px;
++  font-weight: 600;
++  letter-spacing: -.025em;
++  line-height: 1.3;
+ }
+ 
+ .intro {
+@@ -20,8 +21,6 @@
+   line-height: 22px;
+ }
+ 
+-/* Cards, not rows: a preset is a thing you pick, and the description is the
+-   part that tells them apart — a row would bury it beside the actions. */
+ .group {
+   display: flex;
+   flex-direction: column;
+@@ -45,13 +44,14 @@
+   margin: 0;
+   padding: 0;
+   display: grid;
+-  grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
++  grid-template-columns: repeat(auto-fill, minmax(min(100%, 255px), 1fr));
+   /* Match neighboring cards within a row, without stretching shorter rows. */
+   gap: 12px;
+ }
+ 
+ .card {
+-  border: 0.5px solid var(--dsw-alias-settings-card-stroke);
++  min-width: 0;
++  border: 1px solid var(--dsw-alias-settings-card-stroke);
+   border-radius: var(--dsw-radius-xl);
+   display: flex;
+   flex-direction: column;
+@@ -69,8 +69,8 @@
+ /* The default preset reads as selected exactly like the Appearance cubes:
+    platform fill + the selected border. */
+ .cardActive {
+-  background: var(--dsw-alias-bg-module-platform);
+-  border-color: var(--dsw-alias-border-selected);
++  background: linear-gradient(140deg, color-mix(in srgb, var(--dsw-alias-state-business-primary) 8%, var(--dsw-alias-bg-module-platform)), var(--dsw-alias-bg-module-platform) 80%);
++  border-color: color-mix(in srgb, var(--dsw-alias-state-business-primary) 46%, var(--dsw-alias-border-l2));
+ }
+ 
+ /* Mode selection is off, not the preset itself: mute only the selectable
+@@ -187,7 +187,7 @@
+   display: flex;
+   flex-direction: column;
+   gap: 12px;
+-  padding: 14px 16px 12px;
++  padding: 18px 18px 14px;
+   border-radius: var(--dsw-radius-xl) var(--dsw-radius-xl) 0 0;
+ }
+ 
+@@ -229,6 +229,11 @@
+   white-space: nowrap;
+ }
+ 
++@media (max-width: 600px) {
++  .cardIdentity { flex-wrap: wrap; }
++  .cardName { white-space: normal; overflow-wrap: anywhere; }
++}
++
+ /* Bounded to four lines. A preset publishes its own description, so one long
+    one would otherwise stretch every card in its grid row. Clamping is CSS
+    alone: the whole text stays in the DOM for assistive
+@@ -271,13 +276,15 @@
+   flex-wrap: wrap;
+   justify-content: flex-end;
+   gap: 2px;
+-  padding: 6px 10px;
+-  border-top: 0.5px solid var(--dsw-alias-border-l2);
++  margin: 0 14px;
++  padding: 5px 0;
++  border-top: 1px solid var(--dsw-alias-border-l2);
+ }
+ 
+ .cardHelp {
+   display: flex;
+   align-items: center;
++  flex-wrap: wrap;
+   gap: 4px;
+   margin-right: auto;
+ }
+diff --git a/packages/client/ui-agent-preset/tests/apply.client.spec.ts b/packages/client/ui-agent-preset/tests/apply.client.spec.ts
+index 1e977ae0aea8ab54197732ccbfff2714286ce9bc..3577cf36bca3d6d61d25a20fda7a045cba786cc9 100644
+--- a/packages/client/ui-agent-preset/tests/apply.client.spec.ts
++++ b/packages/client/ui-agent-preset/tests/apply.client.spec.ts
+@@ -366,7 +366,7 @@ describe('ui-agent-preset apply', () => {
+     expect(section.component).toBe(AgentPresetSection)
+     expect(section.options).toMatchObject({ id: 'agent-presets', order: 20 })
+     // The nav label is a locale-following thunk; owners resolve it at read time.
+-    expect(resolveSlotLabel(section.options.label)).toBe('Agent 预设')
++    expect(resolveSlotLabel(section.options.label)).toBe('模式')
+   })
+ 
+   it('registers into a declaration that arrives after apply', async () => {
+diff --git a/packages/client/ui-settings-account/src/about-types.ts b/packages/client/ui-settings-account/src/about-types.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..7a4c4453cf5c96d401ac3a0f8c6045e15d0b6a29
+--- /dev/null
++++ b/packages/client/ui-settings-account/src/about-types.ts
+@@ -0,0 +1,9 @@
++/** Presentation-only Desktop capability shared by the About page and carrier checks. @module */
++
++/** Optional preload interface; metadata and URLs stay in the product page. */
++export interface DesktopAboutBridge {
++  /** @param listener - Native menu request. @returns Releases presentation readiness. */
++  subscribe(listener: () => void): () => void
++  /** @param visible - Whether About currently covers the main product document. */
++  visible(visible: boolean): void
++}
+diff --git a/packages/client/ui-settings-account/src/client/AboutDialog.module.css b/packages/client/ui-settings-account/src/client/AboutDialog.module.css
+new file mode 100644
+index 0000000000000000000000000000000000000000..c6bf393121d7a6d834822d3a8925d51bf57592ce
+--- /dev/null
++++ b/packages/client/ui-settings-account/src/client/AboutDialog.module.css
+@@ -0,0 +1,97 @@
++/* The dialog clips both surfaces to one outer edge. Its close control stays available while the body scrolls. */
++.dialog[role='dialog'] { width: min(960px, 100%); max-height: 100%; padding: 0; gap: 0; }
++.content {
++  display: grid;
++  grid-template-columns: minmax(0, .83fr) minmax(0, 1.17fr);
++  min-height: 0;
++  overflow-y: auto;
++  overscroll-behavior: contain;
++  color: var(--dsw-alias-label-primary);
++}
++.close {
++  position: absolute;
++  z-index: 2;
++  inset: 14px 14px auto auto;
++  display: grid;
++  place-items: center;
++  width: 32px;
++  height: 32px;
++  padding: 0;
++  border: 0;
++  border-radius: 50%;
++  background: var(--dsw-alias-bg-layer-2);
++  color: var(--dsw-alias-label-secondary);
++  cursor: pointer;
++}
++.identity {
++  position: relative;
++  isolation: isolate;
++  display: flex;
++  flex-direction: column;
++  align-items: flex-start;
++  min-width: 0;
++  gap: 14px;
++  padding: 32px;
++  overflow: hidden;
++  color: var(--dsw-static-neutral-bluish-00);
++  background: radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--dsh-mode-accent, var(--dsw-alias-state-business-primary)) 44%, transparent), transparent 67%),
++    linear-gradient(155deg, var(--dsw-static-neutral-bluish-900), var(--dsw-static-neutral-bluish-1000));
++}
++.identity::after { content: ''; position: absolute; z-index: -1; width: 280px; height: 280px; right: -170px; top: 90px; border: 1px solid color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 8%, transparent); border-radius: 50%; corner-shape: round; box-shadow: 0 0 0 42px color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 2%, transparent), 0 0 0 84px color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 2%, transparent); pointer-events: none; }
++.brandRow { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
++.logo { display: flex; align-items: center; }
++.logo svg { width: 40px; height: 40px; }
++.edition { font-size: 12px; font-weight: 600; letter-spacing: .18em; }
++.product { margin: 0; max-width: 14em; font-size: clamp(28px, 3vw, 36px); line-height: 1.07; letter-spacing: -.04em; font-weight: 550; text-wrap: balance; overflow-wrap: anywhere; }
++.slogan { margin: 0; font-size: 14px; line-height: 1.55; color: color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 77%, transparent); }
++.author, .github { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 13px; }
++.author > span, .build dt { color: color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 70%, transparent); }
++.build { width: 100%; margin: auto 0 0; padding-top: 18px; }
++.build > div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; font-size: 12px; }
++.build .versionRow { display: grid; gap: 6px; margin-bottom: 14px; }
++.build dd, .metadata dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
++.version { font-size: clamp(26px, 2.8vw, 34px); line-height: 1.1; letter-spacing: -.04em; font-weight: 500; }
++.update { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 18%, transparent); width: 100%; font-size: 12px; }
++.update a { color: inherit; border-color: color-mix(in srgb, currentColor 26%, transparent); background: transparent; }
++.details { min-width: 0; padding: 30px 32px; }
++
++.details h3 { margin: 0 0 8px; font-size: 14px; line-height: 1.4; font-weight: 550; }
++.foundationGroup { padding-inline-end: 24px; }
++.foundationGroup h3 { margin-bottom: 4px; color: var(--dsw-alias-label-secondary); font-size: 12px; font-weight: 400; }
++.foundation { margin: 0; font-size: clamp(18px, 2vw, 22px); font-weight: 500; letter-spacing: -.035em; line-height: 1.3; }
++.licenses { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 12px; color: var(--dsw-alias-label-secondary); }
++.sourceGroup { margin-top: 19px; padding-top: 17px; border-top: 1px solid var(--dsw-alias-border-l2); }
++.dependencies { margin-top: 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
++.group { min-width: 0; }
++.componentNote, .group time, .licenseName { margin: 0; color: var(--dsw-alias-label-secondary); font-size: 12px; line-height: 1.5; }
++.group time { display: block; font-variant-numeric: tabular-nums; }
++.revision { font: 12px/1.6 var(--ds-font-family-code, monospace); }
++.metadata { display: grid; align-content: start; gap: 2px; font-size: 13px; line-height: 1.4; margin: 0; }
++.metadata dt { font-size: 11px; color: var(--dsw-alias-label-secondary); }
++.metadata dt:not(:first-child) { margin-top: 7px; }
++.sourceGroup .metadata { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 18px; }
++.sourceGroup .metadata dt { margin-top: 0; }
++.modified { display: block; margin-top: 1px; color: var(--dsw-alias-label-secondary); font-size: 11px; }
++.dependencyHeading { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; font-size: 14px; font-weight: 500; }
++.content a { color: inherit; text-decoration: none; text-underline-offset: 3px; border-radius: var(--dsw-radius-xs); }
++.metadata dd a { font-family: var(--ds-font-family-code, monospace); }
++.content a:focus-visible, .close:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 3px; }
++@media (hover: hover) {
++  .close:hover { background: var(--dsw-alias-interactive-bg-hover); }
++  .content a:hover { text-decoration: underline; }
++  .details a:hover { color: var(--dsw-alias-link); }
++}
++@media (max-width: 740px) {
++  .content { display: block; }
++  .identity, .details { padding: 24px; }
++  .identity { gap: 10px; }
++  .brandRow { margin-bottom: 2px; }
++  .build { padding-top: 8px; }
++  .build .versionRow { display: flex; margin-bottom: 6px; }
++  .close { background: var(--dsw-static-neutral-bluish-1000); color: var(--dsw-static-neutral-bluish-00); }
++}
++@media (max-width: 440px) {
++  .dependencies { grid-template-columns: minmax(0, 1fr); gap: 18px; }
++  .sourceGroup .metadata { display: grid; grid-auto-flow: row; grid-template-columns: 1fr; grid-template-rows: none; }
++  .sourceGroup .metadata dt:not(:first-child) { margin-top: 7px; }
++}
+diff --git a/packages/client/ui-settings-account/src/client/AboutDialog.tsx b/packages/client/ui-settings-account/src/client/AboutDialog.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..0deb5971cace9c74d73646c3fc5de67ba2b80f74
+--- /dev/null
++++ b/packages/client/ui-settings-account/src/client/AboutDialog.tsx
+@@ -0,0 +1,77 @@
++/**
++ * Product identity displayed by the verified kernel candidate in Web and Desktop.
++ * @module
++ */
++import { FishLogo, IconCloseOutlineRegular, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
++import type { AccountMenuProps } from './AccountMenu.tsx'
++import { GitHubIcon } from './GitHubIcon.tsx'
++import { releaseComponents } from './release-components.ts'
++import css from './AboutDialog.module.css'
++
++const repository = 'https://github.com/Water-Run/deepseek-harness-uncensored'
++const upstream = 'https://github.com/deepseek-ai/deepseek-harness'
++
++function utc(value: string | undefined, missing: string): string {
++  if (!value) return missing
++  const timestamp = Date.parse(value)
++  if (!Number.isFinite(timestamp)) return missing
++  return new Date(timestamp).toISOString().slice(0, 16).replace('T', ' ') + ' UTC'
++}
++
++/** @param props - Visibility, dismissal and translated labels. @returns The candidate's version and source information. */
++export function AboutDialog({ t, close, open }: { t: AccountMenuProps['t']; close: () => void; open: boolean }) {
++  const version = process.env.DSH_CLIENT_VERSION
++  const productVersion = process.env.DSH_CLIENT_FORK_VERSION
++  const tree = process.env.DSH_CLIENT_CANDIDATE_TREE
++  const missing = t('aboutUnknown')
++  const revision = process.env.DSH_CLIENT_UPSTREAM_COMMIT ?? process.env.DSH_CLIENT_COMMIT_HASH
++  const baseUrl = revision ? upstream + '/commit/' + revision : upstream
++  return <Modal open={open} onClose={close} headless title={t('about')} className={css.dialog ?? ''}>
++    <button type="button" className={css.close} aria-label={t('close')} onClick={close}><IconCloseOutlineRegular size={16} /></button>
++    <div className={css.content}>
++      <section className={css.identity} aria-label={t('aboutIdentity')}>
++        <div className={css.brandRow}><div className={css.logo}><FishLogo size={56} /></div><span className={css.edition}>DSHU</span></div>
++        <h2 className={css.product}>DeepSeek Harness Uncensored</h2>
++        <p className={css.slogan}>{t('aboutSlogan')}</p>
++        <div className={css.author}><span>{t('aboutAuthor')}</span><a href="https://github.com/Water-Run" target="_blank" rel="noreferrer">WaterRun</a></div>
++        <dl className={css.build}>
++          <div className={css.versionRow}><dt>{t('aboutProductVersion')}</dt><dd className={css.version}>{productVersion ?? missing}</dd></div>
++          <div><dt>{t('aboutBuildTime')}</dt><dd>{utc(process.env.DSH_CLIENT_BUILD_TIME, missing)}</dd></div>
++        </dl>
++        <a className={css.github} href={repository} target="_blank" rel="noreferrer"><GitHubIcon />{t('aboutRepo')}</a>
++        <div className={css.update}><span>{t('aboutCandidate')}</span><a href={repository + '/releases/latest'} target="_blank" rel="noreferrer">{t('aboutReleases')}</a></div>
++      </section>
++      <div className={css.details}>
++        <section className={css.foundationGroup}>
++          <h3>{t('aboutFoundation')}</h3>
++          <p className={css.foundation}><a href={baseUrl} target="_blank" rel="noreferrer">{t('aboutBasedOn', { version: version ?? '' })}</a></p>
++          <div className={css.licenses}>
++            <a href={repository + '/blob/main/LICENSE'} target="_blank" rel="noreferrer">{t('aboutForkLicense')} · GPL-3.0-or-later</a>
++            <a href={upstream + '/blob/' + (revision ?? 'master') + '/LICENSE'} target="_blank" rel="noreferrer">{t('aboutUpstreamLicense')} · MIT</a>
++          </div>
++        </section>
++        <section className={css.sourceGroup}><h3>{t('aboutSource')}</h3>
++          <dl className={css.metadata}>
++            <div><dt>{t('aboutCommit')}</dt><dd><a href={baseUrl} title={revision} target="_blank" rel="noreferrer">{revision?.slice(0, 12) ?? missing}</a></dd></div>
++            <div><dt>{t('aboutDate')}</dt><dd>{utc(process.env.DSH_CLIENT_UPSTREAM_DATE, missing)}</dd></div>
++            <div><dt>{t('aboutTree')}</dt><dd><code title={tree}>{tree?.slice(0, 12) ?? t('aboutWorking')}</code></dd></div>
++          </dl>
++        </section>
++        <section className={css.sourceGroup}><h3>{t('aboutComponents')}</h3><p className={css.componentNote}>{t('aboutNotBundled')}</p>
++          <div className={css.dependencies}>{releaseComponents.map(component => <div className={css.group} key={component.name}>
++            <a className={css.dependencyHeading} href={component.repository} target="_blank" rel="noreferrer">{component.name} {component.version}</a>
++            <div className={css.licenseName}>{component.license}</div>
++            <a className={css.revision} href={component.repository + '/commit/' + component.commit} title={component.commit}
++              target="_blank" rel="noreferrer">{component.commit.slice(0, 12)}</a>
++            <time dateTime={component.time}>{utc(component.time, missing)}</time>
++          </div>)}</div>
++        </section>
++        <section className={css.sourceGroup}><h3>{t('aboutCandidateSource')}</h3><div className={css.licenses}>
++          {version && <a href={repository + '/blob/main/kernel/' + version + '/source.json'} target="_blank" rel="noreferrer">{t('aboutManifest')}</a>}
++          <a href={repository + '/blob/main/docs/user/guide/dshu.md'} target="_blank" rel="noreferrer">{t('aboutGuide')}</a>
++          <a href={upstream + '/blob/' + (revision ?? 'master') + '/THIRD_PARTY_NOTICES.md'} target="_blank" rel="noreferrer">{t('aboutThirdParty')}</a>
++        </div></section>
++      </div>
++    </div>
++  </Modal>
++}
+diff --git a/packages/client/ui-settings-account/src/client/AboutOverlay.tsx b/packages/client/ui-settings-account/src/client/AboutOverlay.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..bf02f1f695a486acfc343da513745c6e229bd1e7
+--- /dev/null
++++ b/packages/client/ui-settings-account/src/client/AboutOverlay.tsx
+@@ -0,0 +1,14 @@
++/** Frame-owned About dialog shared by product entry points. @module */
++import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
++import type { AboutController } from './about-controller.ts'
++import { AboutDialog } from './AboutDialog.tsx'
++
++/** State and dismissal supplied by the feature owner. */
++export interface AboutOverlayInjected { hooks: { about: AboutController['state'] }; close: () => void }
++
++/** @param props - Root-owned dialog state and labels. @returns The common About page when requested. */
++export function AboutOverlay({ useAbout, close, t }: PropsRuntime<'shell.overlay'> & PropsLocale<'settings.account'>
++  & InjectFace<AboutOverlayInjected>) {
++  const open = useAbout(value => value)
++  return <AboutDialog open={open} t={t} close={close} />
++}
+diff --git a/packages/client/ui-settings-account/src/client/AccountMenu.tsx b/packages/client/ui-settings-account/src/client/AccountMenu.tsx
+index 1972e80bfddf31baa74336496474f5f25eeec5cc..f37ea860ead4d31f6829340e1d1b79049e2c6cbb 100644
+--- a/packages/client/ui-settings-account/src/client/AccountMenu.tsx
++++ b/packages/client/ui-settings-account/src/client/AccountMenu.tsx
+@@ -1,7 +1,7 @@
+ /** Sidebar account launcher and locally authoritative sign-out action. */
+ import { useEffect, useRef, useState } from 'react'
+ import {
+-  Toast, Menu, IconEllipsisOutlineMedium, IconPaperPlaneOutlineRegular, IconSettingsOutlineRegular, IconUserOutlineRegular,
++  Toast, Menu, IconEllipsisOutlineMedium, IconInfoOutlineRegular, IconPaperPlaneOutlineRegular, IconSettingsOutlineRegular, IconUserOutlineRegular,
+ } from '@deepseek-ai/dsh-client-ui-primitives'
+ import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+ import type { AccountSectionInjected } from './AccountSection.tsx'
+@@ -13,7 +13,7 @@ import type {} from './account-ui.ts'
+ import css from './AccountMenu.module.css'
+ 
+ /** Account launcher composed by the settings shell. */
+-export type AccountMenuProps = PropsRuntime<'settings.launcher'> & PropsLocale<'settings.account'> & InjectFace<AccountSectionInjected>
++export type AccountMenuProps = PropsRuntime<'settings.launcher'> & PropsLocale<'settings.account'> & InjectFace<AccountSectionInjected> & { openAbout: () => void }
+ 
+ /** The signed-in label stays empty while the profile loads.
+  * @param props - sidebar geometry, settings navigation and account operations.
+@@ -22,7 +22,7 @@ export type AccountMenuProps = PropsRuntime<'settings.launcher'> & PropsLocale<'
+ export function AccountMenu({
+   subscribeSessionExpired, subscribeModelSignInRequired, wide, settingsShortcut, openSettings, openOnboarding, settingsOpen,
+   useAccount, useTheme, signOut, hasRunningAccountTasks, refreshAccount,
+-  contactUs, showLogin, start, cancel, avatarFailed, t,
++  contactUs, openAbout, showLogin, start, cancel, avatarFailed, t,
+ }: AccountMenuProps) {
+   // The launcher outlives the panel, so a false-to-true edge is one Settings entry:
+   // re-renders, section switches and tab switches inside one open must not read again.
+@@ -69,6 +69,7 @@ export function AccountMenu({
+       items={[
+         { id: 'settings', label: t('settings'), icon: <IconSettingsOutlineRegular size={14} />,
+           ...(settingsShortcut === undefined ? {} : { shortcut: settingsShortcut }) },
++        { id: 'about', label: t('about'), icon: <IconInfoOutlineRegular size={14} /> },
+         { id: 'contact', label: t('contactUs'), icon: <IconPaperPlaneOutlineRegular size={14} /> },
+         ...(signedIn ? [{ id: 'signout', label: t('signOut'), icon: <LogoutIcon />, disabled: busy }]
+           : [{ id: 'signin', label: t('signIn'), icon: <IconUserOutlineRegular size={14} /> }]),
+@@ -76,6 +77,7 @@ export function AccountMenu({
+       onClose={() => { setOpen(false) }}
+       onSelect={(id) => {
+         if (id === 'settings') { setOpen(false); trigger.current?.focus(); openSettings() }
++        else if (id === 'about') { setOpen(false); trigger.current?.focus(); openAbout() }
+         else if (id === 'contact') { setOpen(false); contactUs() }
+         else if (id === 'signin') beginSignIn()
+         else void requestSignOut()
+diff --git a/packages/client/ui-settings-account/src/client/GitHubIcon.tsx b/packages/client/ui-settings-account/src/client/GitHubIcon.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..2f999cccbff07322849e5c564b8a8426a7659623
+--- /dev/null
++++ b/packages/client/ui-settings-account/src/client/GitHubIcon.tsx
+@@ -0,0 +1,6 @@
++/** GitHub's Octicons mark; MIT license in GITHUB-MARK-LICENSE.txt. */
++
++/** @returns Decorative GitHub mark, inheriting the menu's icon color. */
++export function GitHubIcon() {
++  return <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M6.766 11.328c-2.063-.25-3.516-1.734-3.516-3.656 0-.781.281-1.625.75-2.188-.203-.515-.172-1.609.063-2.062.625-.078 1.468.25 1.968.703.594-.187 1.219-.281 1.985-.281.765 0 1.39.094 1.953.265.484-.437 1.344-.765 1.969-.687.218.422.25 1.515.046 2.047.5.593.766 1.39.766 2.203 0 1.922-1.453 3.375-3.547 3.64.531.344.89 1.094.89 1.954v1.625c0 .468.391.734.86.547C13.781 14.359 16 11.53 16 8.03 16 3.61 12.406 0 7.984 0 3.563 0 0 3.61 0 8.031a7.88 7.88 0 0 0 5.172 7.422c.422.156.828-.125.828-.547v-1.25c-.219.094-.5.156-.75.156-1.031 0-1.64-.562-2.078-1.609-.172-.422-.36-.672-.719-.719-.187-.015-.25-.093-.25-.187 0-.188.313-.328.625-.328.453 0 .844.281 1.25.86.313.452.64.655 1.031.655s.641-.14 1-.5c.266-.265.47-.5.657-.656"/></svg>
++}
+diff --git a/packages/client/ui-settings-account/src/client/about-controller.ts b/packages/client/ui-settings-account/src/client/about-controller.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..b36d4dc51c8ab7edcbf778235212da23ad736c1b
+--- /dev/null
++++ b/packages/client/ui-settings-account/src/client/about-controller.ts
+@@ -0,0 +1,40 @@
++/** One About surface shared by the sidebar and optional Desktop menu. @module */
++import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
++import type { DesktopAboutBridge } from '../about-types.ts'
++
++/** Owns the dialog independently from a menu or sidebar layout. */
++export class AboutController {
++  /** Root overlay observation. */
++  readonly state = createSnapshotStore(false)
++  private unsubscribe: (() => void) | undefined
++  private closed = false
++
++  /** @param bridge - Desktop carrier, absent in a browser or an older carrier. */
++  constructor(private readonly bridge?: DesktopAboutBridge) {}
++
++  /** Attach the carrier inside the owning plugin's effect. */
++  start(): void {
++    if (!this.closed && this.unsubscribe === undefined) this.unsubscribe = this.bridge?.subscribe(this.open)
++  }
++
++  /** Open the existing dialog or present it once. */
++  readonly open = (): void => {
++    if (this.closed || this.state.getSnapshot()) return
++    this.state.set(true)
++    this.bridge?.visible(true)
++  }
++
++  /** Release modality immediately when the user dismisses the dialog. */
++  readonly close = (): void => {
++    if (this.closed || !this.state.getSnapshot()) return
++    this.state.set(false)
++    this.bridge?.visible(false)
++  }
++
++  /** Release carrier state and suppress requests after plugin teardown. */
++  dispose(): void {
++    if (this.closed) return
++    try { this.close() }
++    finally { this.closed = true; this.unsubscribe?.() }
++  }
++}
+diff --git a/packages/client/ui-settings-account/src/client/about-locales.ts b/packages/client/ui-settings-account/src/client/about-locales.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..aa363948d66eb83a873ff9f7ec18d9f2a1360de4
+--- /dev/null
++++ b/packages/client/ui-settings-account/src/client/about-locales.ts
+@@ -0,0 +1,249 @@
++/** Product identity, source and license labels. */
++
++/** English About labels. */
++export const aboutEn = {
++  aboutProductVersion: "DSHU version",
++  aboutBuildTime: "Built at",
++  aboutDate: "Commit date",
++  aboutTree: "Candidate tree",
++  aboutComponents: "Release component references",
++  aboutNotBundled: "This source candidate excludes these two components.",
++  aboutUnknown: "Not recorded",
++  aboutWorking: "Modified working tree",
++  about: "About",
++  aboutIdentity: "Build information",
++  aboutSlogan: "Explore the unknown more freely",
++  aboutAuthor: "Author",
++  aboutKernel: "Kernel version",
++  aboutCandidate: "Source build",
++  aboutRepo: "GitHub repository",
++  aboutReleases: "Official releases",
++  aboutFoundation: "Kernel and license",
++  aboutBasedOn: "Based on DeepSeek Harness {version}",
++  aboutSource: "Source",
++  aboutCommit: "Base revision",
++  aboutModified: "Local changes",
++  aboutForkLicense: "Fork license",
++  aboutUpstreamLicense: "Upstream license",
++  aboutThirdParty: "Third-party notices",
++  aboutCandidateSource: "Candidate source",
++  aboutManifest: "Build manifest",
++  aboutGuide: "User guide",
++} as const
++
++/** Simplified Chinese About labels. */
++export const aboutZh = {
++  aboutProductVersion: "DSHU 版本",
++  aboutBuildTime: "编译时间",
++  aboutDate: "提交时间",
++  aboutTree: "候选源码树",
++  aboutComponents: "发行版组件参考",
++  aboutNotBundled: "此源码候选未包含以下两个组件。",
++  aboutUnknown: "未记录",
++  aboutWorking: "工作区含未暂存修改",
++  about: "关于",
++  aboutIdentity: "产品信息",
++  aboutSlogan: "更自由的探索未至之境",
++  aboutAuthor: "作者",
++  aboutKernel: "内核版本",
++  aboutCandidate: "开发候选",
++  aboutRepo: "GitHub 仓库",
++  aboutReleases: "查看正式版本",
++  aboutFoundation: "基础与许可",
++  aboutBasedOn: "基于 DeepSeek Harness {version}",
++  aboutSource: "源码",
++  aboutCommit: "基线提交",
++  aboutModified: "含本地修改",
++  aboutForkLicense: "衍生版许可",
++  aboutUpstreamLicense: "上游许可",
++  aboutThirdParty: "第三方组件与许可",
++  aboutCandidateSource: "候选源码",
++  aboutManifest: "构建清单",
++  aboutGuide: "使用手册",
++} satisfies Record<keyof typeof aboutEn, string>
++
++/** Japanese About labels. */
++export const aboutJa = {
++  aboutProductVersion: "DSHU バージョン",
++  aboutBuildTime: "ビルド日時",
++  aboutDate: "コミット日時",
++  aboutTree: "候補ツリー",
++  aboutComponents: "リリース構成部品",
++  aboutNotBundled: "このソース候補には次の 2 つのコンポーネントは含まれていません。",
++  aboutUnknown: "記録なし",
++  aboutWorking: "作業ツリーに変更あり",
++  about: "このアプリについて",
++  aboutIdentity: "製品情報",
++  aboutSlogan: "未知をもっと自由に探る",
++  aboutAuthor: "作者",
++  aboutKernel: "カーネルバージョン",
++  aboutCandidate: "開発候補版",
++  aboutRepo: "GitHub リポジトリ",
++  aboutReleases: "正式リリース",
++  aboutFoundation: "基盤とライセンス",
++  aboutBasedOn: "DeepSeek Harness {version} ベース",
++  aboutSource: "ソース",
++  aboutCommit: "ベースコミット",
++  aboutModified: "ローカル変更あり",
++  aboutForkLicense: "派生版のライセンス",
++  aboutUpstreamLicense: "上流のライセンス",
++  aboutThirdParty: "サードパーティ通知",
++  aboutCandidateSource: "候補版のソース",
++  aboutManifest: "ビルドマニフェスト",
++  aboutGuide: "ユーザーガイド",
++} satisfies Record<keyof typeof aboutEn, string>
++
++/** Spanish About labels. */
++export const aboutEs = {
++  aboutProductVersion: "Versión de DSHU",
++  aboutBuildTime: "Compilación",
++  aboutDate: "Fecha del commit",
++  aboutTree: "Árbol candidato",
++  aboutComponents: "Componentes de la distribución",
++  aboutNotBundled: "Esta compilación de código fuente excluye estos dos componentes.",
++  aboutUnknown: "Sin registrar",
++  aboutWorking: "Árbol de trabajo modificado",
++  about: "Acerca de",
++  aboutIdentity: "Información del producto",
++  aboutSlogan: "Explora con más libertad",
++  aboutAuthor: "Autor",
++  aboutKernel: "Versión del núcleo",
++  aboutCandidate: "Versión candidata",
++  aboutRepo: "Repositorio de GitHub",
++  aboutReleases: "Versiones oficiales",
++  aboutFoundation: "Base y licencias",
++  aboutBasedOn: "Basado en DeepSeek Harness {version}",
++  aboutSource: "Código fuente",
++  aboutCommit: "Revisión base",
++  aboutModified: "Cambios locales",
++  aboutForkLicense: "Licencia de la variante",
++  aboutUpstreamLicense: "Licencia original",
++  aboutThirdParty: "Avisos de terceros",
++  aboutCandidateSource: "Código candidato",
++  aboutManifest: "Manifiesto de compilación",
++  aboutGuide: "Guía de uso",
++} satisfies Record<keyof typeof aboutEn, string>
++
++/** French About labels. */
++export const aboutFr = {
++  aboutProductVersion: "Version de DSHU",
++  aboutBuildTime: "Compilation",
++  aboutDate: "Date du commit",
++  aboutTree: "Arbre candidat",
++  aboutComponents: "Composants de distribution",
++  aboutNotBundled: "Ces deux composants sont absents de cette version source.",
++  aboutUnknown: "Non renseigné",
++  aboutWorking: "Arbre de travail modifié",
++  about: "À propos",
++  aboutIdentity: "Informations sur le produit",
++  aboutSlogan: "Explorer plus librement",
++  aboutAuthor: "Auteur",
++  aboutKernel: "Version du noyau",
++  aboutCandidate: "Version candidate",
++  aboutRepo: "Dépôt GitHub",
++  aboutReleases: "Versions officielles",
++  aboutFoundation: "Base et licences",
++  aboutBasedOn: "Basé sur DeepSeek Harness {version}",
++  aboutSource: "Code source",
++  aboutCommit: "Révision de base",
++  aboutModified: "Modifications locales",
++  aboutForkLicense: "Licence du dérivé",
++  aboutUpstreamLicense: "Licence amont",
++  aboutThirdParty: "Mentions tierces",
++  aboutCandidateSource: "Source candidate",
++  aboutManifest: "Manifeste de compilation",
++  aboutGuide: "Guide utilisateur",
++} satisfies Record<keyof typeof aboutEn, string>
++
++/** German About labels. */
++export const aboutDe = {
++  aboutProductVersion: "DSHU-Version",
++  aboutBuildTime: "Build-Zeit",
++  aboutDate: "Commit-Datum",
++  aboutTree: "Quellbaum",
++  aboutComponents: "Komponenten der Distribution",
++  aboutNotBundled: "Diese beiden Komponenten sind im Quellkandidaten nicht enthalten.",
++  aboutUnknown: "Nicht erfasst",
++  aboutWorking: "Arbeitsbaum geändert",
++  about: "Info",
++  aboutIdentity: "Produktinformationen",
++  aboutSlogan: "Freier entdecken",
++  aboutAuthor: "Autor",
++  aboutKernel: "Kernelversion",
++  aboutCandidate: "Entwicklungsversion",
++  aboutRepo: "GitHub-Repository",
++  aboutReleases: "Offizielle Versionen",
++  aboutFoundation: "Grundlage und Lizenzen",
++  aboutBasedOn: "Basiert auf DeepSeek Harness {version}",
++  aboutSource: "Quellcode",
++  aboutCommit: "Basisrevision",
++  aboutModified: "Lokale Änderungen",
++  aboutForkLicense: "Lizenz des Forks",
++  aboutUpstreamLicense: "Upstream-Lizenz",
++  aboutThirdParty: "Drittanbieterhinweise",
++  aboutCandidateSource: "Quellcode des Kandidaten",
++  aboutManifest: "Build-Manifest",
++  aboutGuide: "Benutzerhandbuch",
++} satisfies Record<keyof typeof aboutEn, string>
++
++/** Russian About labels. */
++export const aboutRu = {
++  aboutProductVersion: "Версия DSHU",
++  aboutBuildTime: "Время сборки",
++  aboutDate: "Дата коммита",
++  aboutTree: "Дерево исходников",
++  aboutComponents: "Компоненты дистрибутива",
++  aboutNotBundled: "Два указанных компонента отсутствуют в этой сборке.",
++  aboutUnknown: "Нет данных",
++  aboutWorking: "Рабочее дерево изменено",
++  about: "О приложении",
++  aboutIdentity: "Информация о продукте",
++  aboutSlogan: "Исследуйте свободнее",
++  aboutAuthor: "Автор",
++  aboutKernel: "Версия ядра",
++  aboutCandidate: "Тестовая сборка",
++  aboutRepo: "Репозиторий GitHub",
++  aboutReleases: "Официальные выпуски",
++  aboutFoundation: "Основа и лицензии",
++  aboutBasedOn: "На основе DeepSeek Harness {version}",
++  aboutSource: "Исходный код",
++  aboutCommit: "Базовая ревизия",
++  aboutModified: "Локальные изменения",
++  aboutForkLicense: "Лицензия форка",
++  aboutUpstreamLicense: "Лицензия оригинала",
++  aboutThirdParty: "Уведомления о сторонних компонентах",
++  aboutCandidateSource: "Код кандидата",
++  aboutManifest: "Манифест сборки",
++  aboutGuide: "Руководство",
++} satisfies Record<keyof typeof aboutEn, string>
++
++/** Portuguese About labels. */
++export const aboutPt = {
++  aboutProductVersion: "Versão do DSHU",
++  aboutBuildTime: "Compilação",
++  aboutDate: "Data do commit",
++  aboutTree: "Árvore candidata",
++  aboutComponents: "Componentes da distribuição",
++  aboutNotBundled: "Esta compilação de código-fonte não inclui estes dois componentes.",
++  aboutUnknown: "Sem registro",
++  aboutWorking: "Árvore de trabalho modificada",
++  about: "Sobre",
++  aboutIdentity: "Informações do produto",
++  aboutSlogan: "Explore com mais liberdade",
++  aboutAuthor: "Autor",
++  aboutKernel: "Versão do núcleo",
++  aboutCandidate: "Versão candidata",
++  aboutRepo: "Repositório GitHub",
++  aboutReleases: "Versões oficiais",
++  aboutFoundation: "Base e licenças",
++  aboutBasedOn: "Baseado no DeepSeek Harness {version}",
++  aboutSource: "Código-fonte",
++  aboutCommit: "Revisão base",
++  aboutModified: "Alterações locais",
++  aboutForkLicense: "Licença da variante",
++  aboutUpstreamLicense: "Licença original",
++  aboutThirdParty: "Avisos de terceiros",
++  aboutCandidateSource: "Código candidato",
++  aboutManifest: "Manifesto da compilação",
++  aboutGuide: "Guia do usuário",
++} satisfies Record<keyof typeof aboutEn, string>
+diff --git a/packages/client/ui-settings-account/src/client/release-components.ts b/packages/client/ui-settings-account/src/client/release-components.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..6196e2197bab2d0ec5fa8cafe85334ca4ed97976
+--- /dev/null
++++ b/packages/client/ui-settings-account/src/client/release-components.ts
+@@ -0,0 +1,19 @@
++/** Component references from the DSHU release manifest, displayed separately from installed software. */
++export const releaseComponents = [
++  {
++    "name": "dsh-purge Community",
++    "repository": "https://github.com/kingcharleslzy-ai/dsh-purge",
++    "version": "1.7.20",
++    "commit": "e519253d5b01344056055af9d2041dcafa42fed3",
++    "time": "2026-11-18T10:24:44Z",
++    "license": "MIT"
++  },
++  {
++    "name": "REA",
++    "repository": "https://github.com/morluto/rea",
++    "version": "6.9.0",
++    "commit": "d74549e495c58eb4a560279fd9f05508401ea0a0",
++    "time": "2026-11-12T08:58:30Z",
++    "license": "MIT"
++  }
++] as const
+diff --git a/packages/client/ui-settings-account/tests/about-controller.client.spec.ts b/packages/client/ui-settings-account/tests/about-controller.client.spec.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..072c97453e9732df96021abc4c74d1fbeec55ae3
+--- /dev/null
++++ b/packages/client/ui-settings-account/tests/about-controller.client.spec.ts
+@@ -0,0 +1,37 @@
++import { expect, it, vi } from 'vitest'
++import { AboutController } from '../src/client/about-controller.ts'
++
++it('shares one dialog across sidebar and native requests and releases it on teardown', () => {
++  let request: (() => void) | undefined
++  const unsubscribe = vi.fn(), visible = vi.fn()
++  const controller = new AboutController({ subscribe: (listener) => { request = listener; return unsubscribe }, visible })
++  controller.start(); controller.start()
++  request!()
++  controller.open()
++  expect(controller.state.getSnapshot()).toBe(true)
++  expect(visible).toHaveBeenCalledExactlyOnceWith(true)
++  controller.close(); controller.close()
++  expect(controller.state.getSnapshot()).toBe(false)
++  request!()
++  controller.dispose(); controller.dispose()
++  expect(unsubscribe).toHaveBeenCalledOnce()
++  expect(visible).toHaveBeenLastCalledWith(false)
++  request!(); controller.open()
++  expect(controller.state.getSnapshot()).toBe(false)
++})
++
++it('works without Desktop and still detaches if the carrier closes first', () => {
++  const browser = new AboutController()
++  browser.start()
++  browser.open(); browser.dispose()
++  expect(browser.state.getSnapshot()).toBe(false)
++  const off = vi.fn(), visible = vi.fn()
++  const desktop = new AboutController({ subscribe: () => off, visible })
++  desktop.start()
++  desktop.open()
++  visible.mockImplementationOnce(() => { throw new Error('carrier closed') })
++  expect(() => { desktop.dispose() }).toThrow('carrier closed')
++  expect(off).toHaveBeenCalledOnce()
++  desktop.open()
++  expect(desktop.state.getSnapshot()).toBe(false)
++})
+diff --git a/packages/client/ui-settings-account/tests/account.client.spec.tsx b/packages/client/ui-settings-account/tests/account.client.spec.tsx
+index dd93b8fa7956658f90ad9d7876619fe894aee2b5..6bb952f4e40acf5391816556af7cb03be0ca3aac 100644
+--- a/packages/client/ui-settings-account/tests/account.client.spec.tsx
++++ b/packages/client/ui-settings-account/tests/account.client.spec.tsx
+@@ -25,8 +25,10 @@ const themeOf = (colorScheme: 'light' | 'dark'): ThemeSnapshot => ({
+   active: { id: colorScheme, colorScheme, tokens: {} }, themes: [], revision: 0,
+ })
+ 
++type AccountTestOperations = AccountSectionInjected & Pick<AccountMenuProps, 'openAbout'>
++
+ function operationsOf(state: Omit<AccountView, 'links'>, details?: Partial<AccountDetails>, pages?: PlatformPages,
+-  avatar?: AccountAvatarSnapshot): AccountSectionInjected {
++  avatar?: AccountAvatarSnapshot): AccountTestOperations {
+   return {
+     ...pages === undefined ? {} : { openPlatformPage: pages.open },
+     hooks: {
+@@ -37,7 +39,7 @@ function operationsOf(state: Omit<AccountView, 'links'>, details?: Partial<Accou
+       theme: { getSnapshot: () => themeOf('light'), subscribe: () => () => {} },
+     },
+     hasRunningAccountTasks: vi.fn(async () => false),
+-    contactUs: vi.fn(), showLogin: vi.fn(), setOnboarding: vi.fn(),
++    openAbout: vi.fn(), contactUs: vi.fn(), showLogin: vi.fn(), setOnboarding: vi.fn(),
+     refreshAccount: vi.fn(() => Promise.resolve()),
+     avatarFailed: vi.fn(),
+     start: vi.fn(() => Promise.resolve()), cancel: vi.fn(() => Promise.resolve()), signOut: vi.fn(() => Promise.resolve()),
+@@ -93,7 +95,7 @@ function SharedPlatformHost({ Globals, pages, platform, copy, refreshAccount }:
+  * @param settingsOpen - whether the settings panel covers the sidebar.
+  * @returns the sidebar launcher with its framework hooks wired to the test face.
+  */
+-async function accountMenu(operations: AccountSectionInjected, snapshot: () => AccountSnapshot, settingsOpen: boolean) {
++async function accountMenu(operations: AccountTestOperations, snapshot: () => AccountSnapshot, settingsOpen: boolean) {
+   const { AccountMenu } = await import('../src/client/AccountMenu.tsx')
+   return <AccountMenu {...({} as GlobalStandardProps)} {...operations}
+     settingsOpen={settingsOpen} useAccount={selector => selector(snapshot())} wide
+@@ -134,8 +136,11 @@ it.each([en, zh].flatMap(copy => ([false, true, 'unknown'] as const).map(running
+     useTheme={selector => selector(operations.hooks.theme.getSnapshot())} wide openOnboarding={() => {}} openSettings={openSettings}
+     t={key => key in copy ? copy[key as AccountKey] : key} />)
+   fireEvent.click(screen.getByRole('button', { name: copy.menu }))
+-  expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual([copy.settings, copy.contactUs, copy.signOut])
++  expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual([copy.settings, copy.about, copy.contactUs, copy.signOut])
+   await expect(`${screen.getByRole('menu').textContent}\n`).toMatchFileSnapshot(`./expected/menu-${copy === en ? 'en' : 'zh'}.txt`)
++  fireEvent.click(screen.getByRole('menuitem', { name: copy.about }))
++  expect(operations.openAbout).toHaveBeenCalledOnce()
++  fireEvent.click(screen.getByRole('button', { name: copy.menu }))
+   fireEvent.click(screen.getByRole('menuitem', { name: copy.settings }))
+   expect(openSettings).toHaveBeenCalledOnce()
+   fireEvent.click(screen.getByRole('button', { name: copy.menu }))
+@@ -192,8 +197,11 @@ it.each([en, zh])('offers settings, contact and sign-in from the signed-out acco
+   expect(trigger.textContent).toBe(copy.more)
+   expect(trigger.querySelector('svg')).not.toBeNull()
+   fireEvent.click(trigger)
+-  expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual([copy.settings, copy.contactUs, copy.signIn])
++  expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual([copy.settings, copy.about, copy.contactUs, copy.signIn])
+   await expect(`${screen.getByRole('menu').textContent}\n`).toMatchFileSnapshot(`./expected/menu-signed-out-${copy === en ? 'en' : 'zh'}.txt`)
++  fireEvent.click(screen.getByRole('menuitem', { name: copy.about }))
++  expect(operations.openAbout).toHaveBeenCalledOnce()
++  fireEvent.click(screen.getByRole('button', { name: copy.menu }))
+   fireEvent.click(screen.getByRole('menuitem', { name: copy.settings }))
+   expect(openSettings).toHaveBeenCalledOnce()
+   fireEvent.click(screen.getByRole('button', { name: copy.menu }))
+diff --git a/packages/client/ui-settings-account/tests/expected/menu-en.txt b/packages/client/ui-settings-account/tests/expected/menu-en.txt
+index 1addd6d26a728171b3a6542c57f7da9318a23415..c7c16e729d1731f0ee797d0477441b7e61b9cf76 100644
+--- a/packages/client/ui-settings-account/tests/expected/menu-en.txt
++++ b/packages/client/ui-settings-account/tests/expected/menu-en.txt
+@@ -1 +1 @@
+-SettingsFeedbackSign out
++SettingsAboutFeedbackSign out
+diff --git a/packages/client/ui-settings-account/tests/expected/menu-signed-out-en.txt b/packages/client/ui-settings-account/tests/expected/menu-signed-out-en.txt
+index 947880e76d8137b7d81df0e4af8a09471a3b3716..0ff61efcbc2a065d919f5c9ab6894375e42f5eaa 100644
+--- a/packages/client/ui-settings-account/tests/expected/menu-signed-out-en.txt
++++ b/packages/client/ui-settings-account/tests/expected/menu-signed-out-en.txt
+@@ -1 +1 @@
+-SettingsFeedbackSign in
++SettingsAboutFeedbackSign in
+diff --git a/packages/client/ui-settings-account/tests/expected/menu-signed-out-zh.txt b/packages/client/ui-settings-account/tests/expected/menu-signed-out-zh.txt
+index 602b203cbb68377d905df0ec78eae57527d41990..4023a5e51646660a1fcb515cb7b861734b97603c 100644
+--- a/packages/client/ui-settings-account/tests/expected/menu-signed-out-zh.txt
++++ b/packages/client/ui-settings-account/tests/expected/menu-signed-out-zh.txt
+@@ -1 +1 @@
+-设置意见反馈登录
++设置关于意见反馈登录
+diff --git a/packages/client/ui-settings-account/tests/expected/menu-zh.txt b/packages/client/ui-settings-account/tests/expected/menu-zh.txt
+index be4f55f3b6656fbfa3e9f533dd9258ee61d44ec8..1e303f0677ce8c6bbf1228fbd23e07f6ebe07e0f 100644
+--- a/packages/client/ui-settings-account/tests/expected/menu-zh.txt
++++ b/packages/client/ui-settings-account/tests/expected/menu-zh.txt
+@@ -1 +1 @@
+-设置意见反馈退出登录
++设置关于意见反馈退出登录
+diff --git a/scripts/client-build-environment.client.spec.ts b/scripts/client-build-environment.client.spec.ts
+index 4348284834920bf70bb757cf29963d5eadaa440c..a4fc3205ec870ce7e87e55dd98cd2f7a231c5089 100644
+--- a/scripts/client-build-environment.client.spec.ts
++++ b/scripts/client-build-environment.client.spec.ts
+@@ -81,6 +81,20 @@ function repositoryFixture(version = '1.2.3-rc.4'): string {
+ }
+ 
+ describe('client build environment', () => {
++  it('keeps the DSHU calendar version separate from its kernel and exposes only a matching source tree', () => {
++    const root = repositoryFixture('0.2.3-alpha.2')
++    write(join(root, 'apps/desktop/package.json'), JSON.stringify({ dshuVersion: '2026.11.23.0' }))
++    git(root, ['add', 'apps/desktop/package.json'])
++    const local = repositoryClientBuildEnvironment(root, { DSH_CLIENT_BUILD_TIME: '2026-11-25T00:00:00.000Z' })
++    expect(local.DSH_CLIENT_FORK_VERSION).toBe('2026.11.23.0')
++    expect(local.DSH_CLIENT_VERSION).toBe('0.2.3-alpha.2')
++    expect(local.DSH_CLIENT_UPSTREAM_COMMIT).toBe(git(root, ['rev-parse', 'HEAD']))
++    expect(local.DSH_CLIENT_CANDIDATE_TREE).toBe(git(root, ['write-tree']))
++    expect(resolveClientBuildEnvironment(local, 'official').DSH_CLIENT_BUILD_TIME).toBe('2026-11-25T00:00:00.000Z')
++    write(join(root, 'tracked.txt'), 'working changes')
++    expect(repositoryClientBuildEnvironment(root, {}).DSH_CLIENT_CANDIDATE_TREE).toBeUndefined()
++  })
++
+   it('requires an exact public environment for a named artifact profile', () => {
+     const expected = {
+       DSH_CLIENT_BUILD_PROFILE: 'official',
+diff --git a/scripts/client-build-environment.ts b/scripts/client-build-environment.ts
+index 6eed371b08d156b0a307d45c9dd6644ba871bb30..6ae9d4f297be86476fea2bda4a7e8b053cbcc646 100644
+--- a/scripts/client-build-environment.ts
++++ b/scripts/client-build-environment.ts
+@@ -41,6 +41,31 @@ const CLIENT_ARTIFACT_PATTERNS = [
+   'packages/*/*/lib/assets/**/*',
+ ] as const
+ 
++const candidateKeys = ['DSH_CLIENT_FORK_VERSION', 'DSH_CLIENT_BUILD_TIME', 'DSH_CLIENT_UPSTREAM_COMMIT',
++  'DSH_CLIENT_UPSTREAM_DATE', 'DSH_CLIENT_CANDIDATE_TREE'] as const
++
++function candidateBuildEnvironment(root: string, environment: NodeJS.ProcessEnv): ClientBuildEnvironment {
++  const path = resolve(root, 'apps/desktop/package.json')
++  if (!existsSync(path)) return {}
++  const manifest: unknown = JSON.parse(readFileSync(path, 'utf8'))
++  if (!isObject(manifest) || manifest.dshuVersion === undefined) return {}
++  if (typeof manifest.dshuVersion !== 'string' || !/^\d{4}\.\d{2}\.\d{2}\.\d+$/u.test(manifest.dshuVersion)) {
++    throw new Error('apps/desktop/package.json must declare a DSHU calendar version')
++  }
++  const buildTime = environment.DSH_CLIENT_BUILD_TIME ?? new Date().toISOString()
++  if (!Number.isFinite(Date.parse(buildTime)) || new Date(buildTime).toISOString() !== buildTime) {
++    throw new Error('DSH_CLIENT_BUILD_TIME must be an ISO UTC timestamp')
++  }
++  const git = (...args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim()
++  const [commit, date] = git('show', '-s', '--format=%H%n%cI', 'HEAD').split(/\r?\n/u)
++  const matchesIndex = git('diff', '--name-only') === '' && git('ls-files', '--others', '--exclude-standard') === ''
++  return {
++    DSH_CLIENT_FORK_VERSION: manifest.dshuVersion, DSH_CLIENT_BUILD_TIME: buildTime,
++    DSH_CLIENT_UPSTREAM_COMMIT: commit!, DSH_CLIENT_UPSTREAM_DATE: date!,
++    ...(matchesIndex ? { DSH_CLIENT_CANDIDATE_TREE: git('write-tree') } : {}),
++  }
++}
++
+ /** Public values embedded in one set of client artifacts. */
+ export type ClientBuildEnvironment = Readonly<Record<string, string>>
+ 
+@@ -123,10 +148,12 @@ export function repositoryClientBuildEnvironment(
+   const inherited = { ...clientBuildEnvironment(environment) }
+   delete inherited.DSH_CLIENT_COMMIT_HASH
+   delete inherited.DSH_CLIENT_GIT_DIRTY
++  for (const key of candidateKeys) delete inherited[key]
+   delete inherited.DSH_CLIENT_VERSION
+   const dirty = repositoryGitDirty(root)
+   return {
+     ...inherited,
++    ...candidateBuildEnvironment(root, environment),
+     DSH_CLIENT_COMMIT_HASH: repositoryCommitHash(root, environment),
+     ...(dirty === true ? { DSH_CLIENT_GIT_DIRTY: 'true' } : {}),
+     DSH_CLIENT_VERSION: repositoryVersion(root),
+@@ -147,6 +174,7 @@ export function officialClientBuildEnvironment(
+     DSH_CLIENT_COMMIT_HASH: repositoryCommitHash(root, environment),
+     DSH_CLIENT_VERSION: repositoryVersion(root),
+     ...OFFICIAL_CLIENT_BUILD_ENVIRONMENT,
++    ...candidateBuildEnvironment(root, environment),
+   }
+ }
+ 
+@@ -202,6 +230,7 @@ export function resolveClientBuildEnvironment(
+       throw new Error(`${CLIENT_VERSION_VARIABLE} is required for the ${profile} client build profile`)
+     }
+     return {
++      ...Object.fromEntries(candidateKeys.flatMap(key => environment[key] === undefined ? [] : [[key, environment[key]]])),
+       DSH_CLIENT_COMMIT_HASH: commitHash,
+       DSH_CLIENT_VERSION: version,
+       ...(profile === 'official' ? OFFICIAL_CLIENT_BUILD_ENVIRONMENT : {

@@ -102,6 +102,27 @@ pnpm exec vitest run --maxWorkers=2 packages/credentials/balance/tests packages/
 pnpm run test:web:built apps/web/tests/balance-cleanup.e2e.ts apps/web/tests/balance-history-layout.e2e.ts apps/web/tests/entry-customization.e2e.ts apps/web/tests/writing-spending-settings.e2e.ts --maxWorkers=1
 ```
 
+### 关于页与模式设置的候选验收
+
+候选树为 `9a040762398793a9e8e29c8c2c243f167e9fda04`。从账号菜单打开关于页，登录前后都能使用。桌面左侧的渐变贴齐弹窗上、下、左三边，窄屏改为顶部横幅。弹窗通过辅助技术名称标识，右上角关闭按钮固定可达。桌面用 Escape 关闭后，焦点回到账号菜单，可以直接按 Enter 再次打开。[候选桌面实拍](../../docs/assets/dshu/about-candidate.webp) · [候选窄屏实拍](../../docs/assets/dshu/about-candidate-mobile.webp)
+
+| 关于页字段 | 当前候选数据与核对方法 |
+| --- | --- |
+| DSHU 版本与编译时间 | 左侧显示 `2026.11.23.0`，沿用 DSHU 源码产品版本。候选构建从 `apps/desktop/package.json` 的 `dshuVersion` 读取公开日期格式。编译时间以 UTC 显示，显式传入 `DSH_CLIENT_BUILD_TIME` 时必须使用带毫秒的 ISO UTC 时间。GitHub 最新安装包有独立的发行版本。 |
+| DSH 内核与源码 | 右侧显示运行内核 `0.2.3-alpha.2`、固定上游提交及其时间。候选源码树取构建时的 Git 暂存树；工作区存在未暂存修改或非忽略的未跟踪文件时，会显示工作区状态。还原后用 `git write-tree` 核对清单。 |
+| 组件与许可 | 分别展示 DSHU 和上游许可。dsh-purge Community 1.7.20 与 REA 6.9.0 各自列有许可、来源提交及时间。两项标为发行版清单参考，当前通用源码候选未装配这两个组件。正式安装包另须核对实际载荷。 |
+| 桌面原生菜单 | 工作区就绪时通过当前主文档打开同一页面，内嵌的 Platform 视图在关闭后恢复；启动和恢复期间使用原生关于面板。测试覆盖失效文档、延迟加载、订阅清理和菜单回退。设备上的原生安装验收单独记录。 |
+
+设置 → 模式用边框和文字同时标记新任务默认值。可在窄屏查看模式说明、配置和默认状态。关闭开发工具时，写作模式仍可选择。浏览器测试涵盖中英文关于页的 1440、1280、390 像素视口，模式设置的宽窄屏、查看说明、默认值、创建入口和开发工具开关。
+
+在还原并构建的候选根目录运行：
+
+```sh
+pnpm exec vitest run --maxWorkers=2 apps/desktop/tests/about-routing.spec.ts apps/desktop/tests/main-startup.spec.ts apps/desktop/tests/platform-view.spec.ts apps/desktop/tests/preload-app.spec.ts packages/client/ui-settings-account/tests/about-controller.client.spec.ts packages/client/ui-settings-account/tests/account.client.spec.tsx packages/client/ui-agent-preset/tests/section.client.spec.tsx packages/client/ui-agent-preset/tests/apply.client.spec.ts
+pnpm exec vitest run --maxWorkers=1 scripts/client-build-environment.client.spec.ts
+pnpm run test:web:built apps/web/tests/about-dialog-fit.e2e.ts apps/web/tests/agent-preset-authoring.e2e.ts apps/web/tests/developer-tools-settings.e2e.ts --maxWorkers=1
+```
+
 ### 通用界面的代码入口与正式版复验
 
 | 功能 | 主线实现与用例 | 在候选上需补的证据 |
@@ -153,7 +174,7 @@ node scripts/verify-kernel-released-data.mjs .artifacts/review-old .artifacts/re
 
 | 里程碑 | 责任与验收 | 可以交接的证据 |
 | --- | --- | --- |
-| 内核与通用功能 | 固定候选已接入记忆、账户余额、额度设置与左侧导航。接下来由通用维护者接入关于页，核对模式设置界面，并检查桌面集成。按正常 Web/桌面入口检验，不同账户和工作区分别使用测试资料。 | 可还原的补丁和树、冻结安装、构建、定向测试、页面实拍、旧资料复验结果。 |
+| 内核与通用功能 | 固定候选已接入记忆、账户余额、额度设置与左侧导航。关于页、模式设置和桌面菜单已在源码候选接入。下一步由打包维护者在实际安装产物上核对日期版本、内核版本和组件。按正常 Web/桌面入口检验，不同账户和工作区分别使用测试资料。 | 可还原的补丁和树、冻结安装、构建、定向测试、页面实拍、旧资料复验结果。 |
 | 四模式与已有会话 | 产品维护者接手专项执行链。逐项核对四种模式的产品入口、选中状态、既有会话标识和用户资料。历史会话须保留原模式，异常应能定位。 | 各模式对应的负责人、源码或构建标识、保留资料测试结果、剩余缺口。专项执行链的实现和验证由其维护者负责。 |
 | 安装升级 | 各平台维护者使用同一源码提交生成候选，完成上表对应操作。 | 安装器清单、摘要、系统版本、签名状态、旧版到候选的升级记录及恢复验证。 |
 | 文档与发布 | 发行维护者核对 README 的默认值、截图和真实附件名，确认关于页与应用报告的版本一致，并检查 Release 更新索引。 | 已核对的正式标签、附件清单、升级指南和各平台结果。验收缺项记录在[交付清单](../TODO.md)。 |
