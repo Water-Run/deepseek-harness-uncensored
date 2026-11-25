@@ -3689,10 +3689,10 @@ index 237bd16bb75669b31cb1141567c825771fad3260..ae557bd1a56b591465600b24e060ddf5
  | `ctx.settingsController` | `core` | [`api-settings-controller`](../packages/api/settings-controller) | - | - | - | 把用户设置 seam 投影到生成的 Remote namespace：读取一律脱敏，所有拒绝在这里分类，而不在 seam Definition 上。 |
  | `ctx.workspaceFiles` | `core` | [`api-workspace-files`](../packages/api/workspace-files) | - | - | - | 为会话工作区根内的文件提供 stat、分页文本、字节窗口、目录列举与变更流，经 lstat、包含关系与 stat 重检限定。 |
 diff --git a/docs/config-catalog.md b/docs/config-catalog.md
-index eb81a3b5a726553a885bbc99fdf475f0074a0b09..1898c1d7111cbc6e97a9942212d323b92c53d9f4 100644
+index eb81a3b5a726553a885bbc99fdf475f0074a0b09..222b83bb555cd866f50b73702b492435940652c7 100644
 --- a/docs/config-catalog.md
 +++ b/docs/config-catalog.md
-@@ -268,21 +268,64 @@ export interface Config {
+@@ -268,21 +268,66 @@ export interface Config {
  ```
  <!-- END GENERATED config-catalog:@deepseek-ai/dsh-api-job-controller -->
  
@@ -3721,7 +3721,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..1898c1d7111cbc6e97a9942212d323b9
  - `inject`: `agentDefaultModel` · `agents` · `attachments` · `fileUploads` · `fs` · `llm` · `remoteAccess` · `sessions` · `sessionProjections` · `sessionQuery` · `typert` · `typertGateway` · `workspaceRegistry`
 -- `source`: [`packages/api/session-controller/src/index.ts:83`](../packages/api/session-controller/src/index.ts)
 +- `refs`: `Volatile` (`@deepseek-ai/cordis`)
-+- `source`: [`packages/api/session-controller/src/index.ts:119`](../packages/api/session-controller/src/index.ts)
++- `source`: [`packages/api/session-controller/src/index.ts:121`](../packages/api/session-controller/src/index.ts)
  
  ```ts config-catalog
 +/** Configuration accepted by the constructor and the Loader. */
@@ -3733,6 +3733,8 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..1898c1d7111cbc6e97a9942212d323b9
    readonly nativeOpen?: boolean
    /** Positive integral milliseconds of list work before yielding between complete rows. */
    readonly listWorkSliceMs?: number
++  /** Maximum UTF-8 bytes from completed main turns supplied to a persistent side conversation. */
++  readonly sideContextBytes?: number
 +  /** Maximum UTF-8 bytes of parent progress supplied to a quick question. */
 +  readonly btwContextBytes?: number
 +  /** Maximum output tokens in a one-shot answer. */
@@ -3758,7 +3760,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..1898c1d7111cbc6e97a9942212d323b9
  }
  ```
  <!-- END GENERATED config-catalog:@deepseek-ai/dsh-api-session-controller -->
-@@ -459,6 +502,54 @@ export interface Config {
+@@ -459,6 +504,54 @@ export interface Config {
  ```
  <!-- END GENERATED config-catalog:@deepseek-ai/dsh-attachment-local -->
  
@@ -3813,7 +3815,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..1898c1d7111cbc6e97a9942212d323b9
  <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-bash-local -->
  <a id="deepseek-aidsh-bash-local"></a>
  
-@@ -760,6 +851,8 @@ export interface ContactConfig {
+@@ -760,6 +853,8 @@ export interface ContactConfig {
    contactFormUrl: string
    /** Questionnaire source option; empty until Harness is supported by the form. */
    contactSource: string
@@ -3822,7 +3824,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..1898c1d7111cbc6e97a9942212d323b9
  }
  
  /** Persisted steps; a native top-up page leaves the durable step at credit. */
-@@ -843,13 +936,15 @@ export interface ExcelLimits {
+@@ -843,13 +938,15 @@ export interface ExcelLimits {
  ## `@deepseek-ai/dsh-client-ui-theme`
  
  - `refs`: `Volatile` (`@deepseek-ai/cordis`)
@@ -3839,7 +3841,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..1898c1d7111cbc6e97a9942212d323b9
    /** Browser font size in pixels. */
    fontSize: Volatile<number>
    /** Code-block font size in pixels. */
-@@ -866,6 +961,9 @@ export interface Config {
+@@ -866,6 +963,9 @@ export interface Config {
  
  /** Theme preference persisted by the product Appearance row. */
  export type ThemePreference = typeof THEME_PREFERENCES[number]
@@ -3849,7 +3851,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..1898c1d7111cbc6e97a9942212d323b9
  ```
  <!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-ui-theme -->
  
-@@ -3887,6 +3985,49 @@ export type PythonEnvironment = 'workspace-dependencies' | 'user'
+@@ -3887,6 +3987,49 @@ export type PythonEnvironment = 'workspace-dependencies' | 'user'
  ```
  <!-- END GENERATED config-catalog:@deepseek-ai/dsh-skill-office -->
  
@@ -3899,7 +3901,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..1898c1d7111cbc6e97a9942212d323b9
  <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-spill-local -->
  <a id="deepseek-aidsh-spill-local"></a>
  
-@@ -5449,7 +5590,7 @@ export interface Config {
+@@ -5449,7 +5592,7 @@ export interface Config {
  
  - `inject`: `web` · `deepseekAuth`
  - `refs`: `Volatile` (`@deepseek-ai/cordis`)
@@ -3908,7 +3910,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..1898c1d7111cbc6e97a9942212d323b9
  
  ```ts config-catalog
  /** Plugin config (all optional — `apply` fills env-var and constant defaults). */
-@@ -5593,6 +5734,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
+@@ -5593,6 +5736,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
  | --- | --- | --- |
  | `@deepseek-ai/dsh-acp-app` | `cmdlineArgs` | [`packages/bundle/acp-app/src/index.ts`](../packages/bundle/acp-app/src/index.ts) |
  | `@deepseek-ai/dsh-agent` | `sessionProjections` | [`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts) |
@@ -3916,7 +3918,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..1898c1d7111cbc6e97a9942212d323b9
  | `@deepseek-ai/dsh-api-remote-access` | — | [`packages/api/remote-access/src/index.ts`](../packages/api/remote-access/src/index.ts) |
  | `@deepseek-ai/dsh-api-remotes` | `typertGateway` | [`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts) |
  | `@deepseek-ai/dsh-authorization` | `credentials` | [`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts) |
-@@ -5627,6 +5769,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
+@@ -5627,6 +5771,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
  | `@deepseek-ai/dsh-client-ui-jobs` | — | [`packages/client/ui-jobs/src/index.ts`](../packages/client/ui-jobs/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-layout` | — | [`packages/client/ui-layout/src/index.ts`](../packages/client/ui-layout/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-message-feedback` | — | [`packages/client/ui-message-feedback/src/index.ts`](../packages/client/ui-message-feedback/src/index.ts) |
@@ -3924,7 +3926,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..1898c1d7111cbc6e97a9942212d323b9
  | `@deepseek-ai/dsh-client-ui-model-selection` | — | [`packages/client/ui-model-selection/src/index.ts`](../packages/client/ui-model-selection/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-open-in-app` | — | [`packages/client/ui-open-in-app/src/index.ts`](../packages/client/ui-open-in-app/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-permission-presets` | — | [`packages/client/ui-permission-presets/src/index.ts`](../packages/client/ui-permission-presets/src/index.ts) |
-@@ -5643,6 +5786,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
+@@ -5643,6 +5788,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
  | `@deepseek-ai/dsh-client-ui-settings` | — | [`packages/client/ui-settings/src/index.ts`](../packages/client/ui-settings/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-agent-loop` | — | [`packages/client/ui-settings-agent-loop/src/index.ts`](../packages/client/ui-settings-agent-loop/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-general` | — | [`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts) |
@@ -3932,7 +3934,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..1898c1d7111cbc6e97a9942212d323b9
  | `@deepseek-ai/dsh-client-ui-settings-session-log` | — | [`packages/client/ui-settings-session-log/src/index.ts`](../packages/client/ui-settings-session-log/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-shell` | — | [`packages/client/ui-settings-shell/src/index.ts`](../packages/client/ui-settings-shell/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-subagent` | — | [`packages/client/ui-settings-subagent/src/index.ts`](../packages/client/ui-settings-subagent/src/index.ts) |
-@@ -5789,12 +5933,14 @@ Imported as libraries by other packages; a `cordis.yml` cannot load them.
+@@ -5789,12 +5935,14 @@ Imported as libraries by other packages; a `cordis.yml` cannot load them.
  | `@deepseek-ai/dsh-llm-deepseek` | — | [`packages/llm/llm-deepseek/src/index.ts`](../packages/llm/llm-deepseek/src/index.ts) |
  | `@deepseek-ai/dsh-llm-mock-server` | — | [`packages/test-support/llm-mock-server/src/index.ts`](../packages/test-support/llm-mock-server/src/index.ts) |
  | `@deepseek-ai/dsh-loader-smoke` | — | [`packages/test-support/loader-smoke/src/index.ts`](../packages/test-support/loader-smoke/src/index.ts) |
@@ -3948,10 +3950,10 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..1898c1d7111cbc6e97a9942212d323b9
  | `@deepseek-ai/dsh-sandbox-windows-acl` | — | [`packages/sandbox/sandbox-windows-acl/src/index.ts`](../packages/sandbox/sandbox-windows-acl/src/index.ts) |
  | `@deepseek-ai/dsh-scope` | — | [`packages/core/scope/src/index.ts`](../packages/core/scope/src/index.ts) |
 diff --git a/docs/config-catalog.zh.md b/docs/config-catalog.zh.md
-index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..9dcf84b09d396779d52ee4107f3bd1af4763c0f0 100644
+index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..59fe4db5766a02830c322e0d4826d117d8a4351e 100644
 --- a/docs/config-catalog.zh.md
 +++ b/docs/config-catalog.zh.md
-@@ -270,21 +270,64 @@ export interface Config {
+@@ -270,21 +270,66 @@ export interface Config {
  ```
  <!-- END GENERATED config-catalog:@deepseek-ai/dsh-api-job-controller -->
  
@@ -3980,7 +3982,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..9dcf84b09d396779d52ee4107f3bd1af
  - `inject`: `agentDefaultModel` · `agents` · `attachments` · `fileUploads` · `fs` · `llm` · `remoteAccess` · `sessions` · `sessionProjections` · `sessionQuery` · `typert` · `typertGateway` · `workspaceRegistry`
 -- `source`: [`packages/api/session-controller/src/index.ts:83`](../packages/api/session-controller/src/index.ts)
 +- `refs`: `Volatile` (`@deepseek-ai/cordis`)
-+- `source`: [`packages/api/session-controller/src/index.ts:119`](../packages/api/session-controller/src/index.ts)
++- `source`: [`packages/api/session-controller/src/index.ts:121`](../packages/api/session-controller/src/index.ts)
  
  ```ts config-catalog
 +/** Configuration accepted by the constructor and the Loader. */
@@ -3992,6 +3994,8 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..9dcf84b09d396779d52ee4107f3bd1af
    readonly nativeOpen?: boolean
    /** Positive integral milliseconds of list work before yielding between complete rows. */
    readonly listWorkSliceMs?: number
++  /** Maximum UTF-8 bytes from completed main turns supplied to a persistent side conversation. */
++  readonly sideContextBytes?: number
 +  /** Maximum UTF-8 bytes of parent progress supplied to a quick question. */
 +  readonly btwContextBytes?: number
 +  /** Maximum output tokens in a one-shot answer. */
@@ -4017,7 +4021,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..9dcf84b09d396779d52ee4107f3bd1af
  }
  ```
  <!-- END GENERATED config-catalog:@deepseek-ai/dsh-api-session-controller -->
-@@ -461,6 +504,54 @@ export interface Config {
+@@ -461,6 +506,54 @@ export interface Config {
  ```
  <!-- END GENERATED config-catalog:@deepseek-ai/dsh-attachment-local -->
  
@@ -4072,7 +4076,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..9dcf84b09d396779d52ee4107f3bd1af
  <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-bash-local -->
  <a id="deepseek-aidsh-bash-local"></a>
  
-@@ -762,6 +853,8 @@ export interface ContactConfig {
+@@ -762,6 +855,8 @@ export interface ContactConfig {
    contactFormUrl: string
    /** Questionnaire source option; empty until Harness is supported by the form. */
    contactSource: string
@@ -4081,7 +4085,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..9dcf84b09d396779d52ee4107f3bd1af
  }
  
  /** Persisted steps; a native top-up page leaves the durable step at credit. */
-@@ -845,13 +938,15 @@ export interface ExcelLimits {
+@@ -845,13 +940,15 @@ export interface ExcelLimits {
  ## `@deepseek-ai/dsh-client-ui-theme`
  
  - `refs`: `Volatile` (`@deepseek-ai/cordis`)
@@ -4098,7 +4102,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..9dcf84b09d396779d52ee4107f3bd1af
    /** Browser font size in pixels. */
    fontSize: Volatile<number>
    /** Code-block font size in pixels. */
-@@ -868,6 +963,9 @@ export interface Config {
+@@ -868,6 +965,9 @@ export interface Config {
  
  /** Theme preference persisted by the product Appearance row. */
  export type ThemePreference = typeof THEME_PREFERENCES[number]
@@ -4108,7 +4112,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..9dcf84b09d396779d52ee4107f3bd1af
  ```
  <!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-ui-theme -->
  
-@@ -3889,6 +3987,49 @@ export type PythonEnvironment = 'workspace-dependencies' | 'user'
+@@ -3889,6 +3989,49 @@ export type PythonEnvironment = 'workspace-dependencies' | 'user'
  ```
  <!-- END GENERATED config-catalog:@deepseek-ai/dsh-skill-office -->
  
@@ -4158,7 +4162,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..9dcf84b09d396779d52ee4107f3bd1af
  <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-spill-local -->
  <a id="deepseek-aidsh-spill-local"></a>
  
-@@ -5451,7 +5592,7 @@ export interface Config {
+@@ -5451,7 +5594,7 @@ export interface Config {
  
  - `inject`: `web` · `deepseekAuth`
  - `refs`: `Volatile` (`@deepseek-ai/cordis`)
@@ -4167,7 +4171,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..9dcf84b09d396779d52ee4107f3bd1af
  
  ```ts config-catalog
  /** Plugin config (all optional — `apply` fills env-var and constant defaults). */
-@@ -5595,6 +5736,7 @@ export interface Config {
+@@ -5595,6 +5738,7 @@ export interface Config {
  | --- | --- | --- |
  | `@deepseek-ai/dsh-acp-app` | `cmdlineArgs` | [`packages/bundle/acp-app/src/index.ts`](../packages/bundle/acp-app/src/index.ts) |
  | `@deepseek-ai/dsh-agent` | `sessionProjections` | [`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts) |
@@ -4175,7 +4179,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..9dcf84b09d396779d52ee4107f3bd1af
  | `@deepseek-ai/dsh-api-remote-access` | — | [`packages/api/remote-access/src/index.ts`](../packages/api/remote-access/src/index.ts) |
  | `@deepseek-ai/dsh-api-remotes` | `typertGateway` | [`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts) |
  | `@deepseek-ai/dsh-authorization` | `credentials` | [`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts) |
-@@ -5629,6 +5771,7 @@ export interface Config {
+@@ -5629,6 +5773,7 @@ export interface Config {
  | `@deepseek-ai/dsh-client-ui-jobs` | — | [`packages/client/ui-jobs/src/index.ts`](../packages/client/ui-jobs/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-layout` | — | [`packages/client/ui-layout/src/index.ts`](../packages/client/ui-layout/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-message-feedback` | — | [`packages/client/ui-message-feedback/src/index.ts`](../packages/client/ui-message-feedback/src/index.ts) |
@@ -4183,7 +4187,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..9dcf84b09d396779d52ee4107f3bd1af
  | `@deepseek-ai/dsh-client-ui-model-selection` | — | [`packages/client/ui-model-selection/src/index.ts`](../packages/client/ui-model-selection/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-open-in-app` | — | [`packages/client/ui-open-in-app/src/index.ts`](../packages/client/ui-open-in-app/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-permission-presets` | — | [`packages/client/ui-permission-presets/src/index.ts`](../packages/client/ui-permission-presets/src/index.ts) |
-@@ -5645,6 +5788,7 @@ export interface Config {
+@@ -5645,6 +5790,7 @@ export interface Config {
  | `@deepseek-ai/dsh-client-ui-settings` | — | [`packages/client/ui-settings/src/index.ts`](../packages/client/ui-settings/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-agent-loop` | — | [`packages/client/ui-settings-agent-loop/src/index.ts`](../packages/client/ui-settings-agent-loop/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-general` | — | [`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts) |
@@ -4191,7 +4195,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..9dcf84b09d396779d52ee4107f3bd1af
  | `@deepseek-ai/dsh-client-ui-settings-session-log` | — | [`packages/client/ui-settings-session-log/src/index.ts`](../packages/client/ui-settings-session-log/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-shell` | — | [`packages/client/ui-settings-shell/src/index.ts`](../packages/client/ui-settings-shell/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-subagent` | — | [`packages/client/ui-settings-subagent/src/index.ts`](../packages/client/ui-settings-subagent/src/index.ts) |
-@@ -5791,12 +5935,14 @@ export interface Config {
+@@ -5791,12 +5937,14 @@ export interface Config {
  | `@deepseek-ai/dsh-llm-deepseek` | — | [`packages/llm/llm-deepseek/src/index.ts`](../packages/llm/llm-deepseek/src/index.ts) |
  | `@deepseek-ai/dsh-llm-mock-server` | — | [`packages/test-support/llm-mock-server/src/index.ts`](../packages/test-support/llm-mock-server/src/index.ts) |
  | `@deepseek-ai/dsh-loader-smoke` | — | [`packages/test-support/loader-smoke/src/index.ts`](../packages/test-support/loader-smoke/src/index.ts) |
@@ -12354,10 +12358,10 @@ index 0fdca788608e752c8f32f5f94f262bfa7b37dc58..dc77003aa21dca0d3de2863b04053805
    ]
  }
 diff --git a/packages/api/session-controller/package.json b/packages/api/session-controller/package.json
-index 75a00397a784ea9f7d35f9d753e7d3a604aed09d..ef3260f47cd1bfe6df22892f1976b7eb50222d78 100644
+index 75a00397a784ea9f7d35f9d753e7d3a604aed09d..0397ca30c0cd3ff7c489115e7fb526874b161e7d 100644
 --- a/packages/api/session-controller/package.json
 +++ b/packages/api/session-controller/package.json
-@@ -117,7 +117,10 @@
+@@ -117,7 +117,12 @@
      "@deepseek-ai/dsh-util-values": "workspace:*",
      "@deepseek-ai/dsh-util-workspace-path": "workspace:*",
      "@deepseek-ai/dsh-workspace": "workspace:*",
@@ -12365,11 +12369,13 @@ index 75a00397a784ea9f7d35f9d753e7d3a604aed09d..ef3260f47cd1bfe6df22892f1976b7eb
 +    "@deepseek-ai/dsh-working-directory": "workspace:*",
 +    "@deepseek-ai/dsh-tool-todo": "workspace:*",
 +    "@deepseek-ai/dsh-system-prompt": "workspace:*",
-+    "@deepseek-ai/dsh-permission-presets": "workspace:*"
++    "@deepseek-ai/dsh-permission-presets": "workspace:*",
++    "@deepseek-ai/dsh-sandbox-policy": "workspace:*",
++    "@deepseek-ai/dsh-user-approval": "workspace:*"
    },
    "peerDependenciesMeta": {
      "@deepseek-ai/dsh-session-persistence": {
-@@ -131,6 +134,7 @@
+@@ -131,6 +136,7 @@
      }
    },
    "devDependencies": {
@@ -12377,7 +12383,7 @@ index 75a00397a784ea9f7d35f9d753e7d3a604aed09d..ef3260f47cd1bfe6df22892f1976b7eb
      "@deepseek-ai/dsh-api-remote-access": "workspace:*",
      "@deepseek-ai/cordis": "workspace:~",
      "@deepseek-ai/dsh-agent": "workspace:*",
-@@ -176,6 +180,8 @@
+@@ -176,6 +182,8 @@
      "@deepseek-ai/dsh-util-workspace-path": "workspace:*",
      "@deepseek-ai/dsh-workspace": "workspace:*",
      "@types/mime-types": "^3.0.1",
@@ -12388,7 +12394,7 @@ index 75a00397a784ea9f7d35f9d753e7d3a604aed09d..ef3260f47cd1bfe6df22892f1976b7eb
    }
  }
 diff --git a/packages/api/session-controller/src/index.ts b/packages/api/session-controller/src/index.ts
-index 3fb061e5851996ba7147127f388e211ad5eb080d..753bed033921cac6cbdb6bc1b1c5634ea4657a14 100644
+index 3fb061e5851996ba7147127f388e211ad5eb080d..420af603cca15a8e5b2b7f05907c31d0177fa40d 100644
 --- a/packages/api/session-controller/src/index.ts
 +++ b/packages/api/session-controller/src/index.ts
 @@ -4,7 +4,7 @@ import { hostname } from 'node:os'
@@ -12414,7 +12420,7 @@ index 3fb061e5851996ba7147127f388e211ad5eb080d..753bed033921cac6cbdb6bc1b1c5634e
    ApiSessionAgentController,
    type ApiSessionAgentResult,
  } from './agent.ts'
-+import { QuickQuestionSessions } from './quick-questions.ts'
++import { AsideSessions } from './aside-sessions.ts'
  import { SessionCommandController, hasPromptContent } from './commands.ts'
  import { resolveSessionResource } from './session-resource.ts'
  import { SessionControlController } from './control.ts'
@@ -12445,10 +12451,12 @@ index 3fb061e5851996ba7147127f388e211ad5eb080d..753bed033921cac6cbdb6bc1b1c5634e
    SessionPromptRequest,
    SessionPromptValue,
    SessionRenameRequest,
-@@ -85,10 +91,37 @@ export interface Config {
+@@ -85,10 +91,39 @@ export interface Config {
    readonly nativeOpen?: boolean
    /** Positive integral milliseconds of list work before yielding between complete rows. */
    readonly listWorkSliceMs?: number
++  /** Maximum UTF-8 bytes from completed main turns supplied to a persistent side conversation. */
++  readonly sideContextBytes?: number
 +  /** Maximum UTF-8 bytes of parent progress supplied to a quick question. */
 +  readonly btwContextBytes?: number
 +  /** Maximum output tokens in a one-shot answer. */
@@ -12484,10 +12492,11 @@ index 3fb061e5851996ba7147127f388e211ad5eb080d..753bed033921cac6cbdb6bc1b1c5634e
  
  /** Host integrations replaceable by direct unit tests. */
  export interface SessionControllerInternals {
-@@ -124,6 +157,14 @@ export class SessionController extends TypertRemoteService {
+@@ -124,6 +159,15 @@ export class SessionController extends TypertRemoteService {
  
    static Config: z<Config, ResolvedConfig> = z.object({
      nativeOpen: z.boolean(),
++    sideContextBytes: z.natural().min(1024).max(1048576).default(65536),
 +    btwContextBytes: z.natural().min(1024).max(65536).default(8192),
 +    btwMaxTokens: z.natural().min(64).max(8192).default(512),
 +    btwReasoningEffort: z.union(['off', 'low', 'high', 'max']).default('low').volatile(),
@@ -12499,17 +12508,17 @@ index 3fb061e5851996ba7147127f388e211ad5eb080d..753bed033921cac6cbdb6bc1b1c5634e
      listWorkSliceMs: z.natural().min(1).default(16),
    })
  
-@@ -140,6 +181,9 @@ export class SessionController extends TypertRemoteService {
+@@ -140,6 +184,9 @@ export class SessionController extends TypertRemoteService {
    private readonly openFileApplication: typeof openNativeFileApplication
    private readonly revealPath: (path: string, signal: AbortSignal) => Promise<void>
    private readonly canOpenPath: () => boolean
-+  private questions!: QuickQuestionSessions
++  private asides!: AsideSessions
 +  private readonly predictions = new PredictionRequests()
 +  private readonly predictionPolicy: ResolvedConfig
    private readonly listWorkSliceMs: number
    private readonly promotions = new Set<Promise<void>>()
  
-@@ -148,9 +192,10 @@ export class SessionController extends TypertRemoteService {
+@@ -148,9 +195,10 @@ export class SessionController extends TypertRemoteService {
     * @param config - native-opener and list-scheduling deployment policy.
     * @param internals - host integrations replaceable by direct unit tests.
     */
@@ -12522,22 +12531,23 @@ index 3fb061e5851996ba7147127f388e211ad5eb080d..753bed033921cac6cbdb6bc1b1c5634e
      this.fileApplications = internals.fileApplications ?? nativeFileApplications
      this.openFileApplication = internals.openFileApplication ?? openNativeFileApplication
      this.openPath = internals.openPath ?? openNativeAssociatedPath
-@@ -162,7 +207,13 @@ export class SessionController extends TypertRemoteService {
+@@ -162,7 +210,14 @@ export class SessionController extends TypertRemoteService {
    protected async [Service.init](): Promise<void> {
      const ctx = this.ctx
      ctx.typert.resources.register('session', { resolve: resolveSessionResource })
 -    this.agents = new ApiSessionAgentController(ctx)
 +    this.agents = new ApiSessionAgentController(ctx, {
++      sideContextBytes: this.predictionPolicy.sideContextBytes,
 +      btwContextBytes: this.predictionPolicy.btwContextBytes, btwMaxTokens: this.predictionPolicy.btwMaxTokens,
-+      retain: (handle) => { this.questions.retain(handle) },
++      retain: (handle) => { this.asides.retain(handle) },
 +    })
-+    this.questions = new QuickQuestionSessions(ctx, this.agents, this.predictionPolicy.btwMaxTokens,
++    this.asides = new AsideSessions(ctx, this.agents, this.predictionPolicy.btwMaxTokens,
 +      () => this.predictionPolicy.btwReasoningEffort.get())
-+    ctx.effect(() => () => this.questions.close(), 'session-controller: quick questions')
++    ctx.effect(() => () => this.asides.close(), 'session-controller: asides')
      this.agents.initialize()
      this.commands = new SessionCommandController(ctx, this.agents, process.cwd())
      ctx.effect(() => ctx.fileUploads.registerAgentResolver(async (sessionId) => {
-@@ -179,6 +230,8 @@ export class SessionController extends TypertRemoteService {
+@@ -179,6 +234,8 @@ export class SessionController extends TypertRemoteService {
      // Assistant-stream observation must be live before the list read yields: an Agent's
      // opening frame arriving during that await would otherwise have no listener.
      this.historyController = new HistoryController(ctx)
@@ -12546,7 +12556,7 @@ index 3fb061e5851996ba7147127f388e211ad5eb080d..753bed033921cac6cbdb6bc1b1c5634e
      this.stateController = new StateController(ctx, this.historyController)
      this.webController = new WebController(ctx, this.historyController, (observation) => { this.promote(observation) })
      this.listState = new ApiSessionList(ctx, this.listWorkSliceMs)
-@@ -194,6 +247,37 @@ export class SessionController extends TypertRemoteService {
+@@ -194,6 +251,37 @@ export class SessionController extends TypertRemoteService {
      // answer the Workspace registry's archive-admission events.
      ctx.plugin(ArchivedSessionGate)
  
@@ -12584,17 +12594,17 @@ index 3fb061e5851996ba7147127f388e211ad5eb080d..753bed033921cac6cbdb6bc1b1c5634e
      ctx.on('session/created', (session) => {
        ctx.emit('api-session/added', this.listState.summaryFor(session))
      })
-@@ -432,6 +516,62 @@ export class SessionController extends TypertRemoteService {
+@@ -432,6 +520,62 @@ export class SessionController extends TypertRemoteService {
      return this.commands.fork(request)
    }
  
-+  /** Create an independent quick-question Session, without submitting a main turn.
-+   * @param request - Main Session and one-shot question kind.
-+   * @returns The new child identity.
++  /** Open the current side conversation or a fresh quick question.
++   * @param request - Main Session and requested kind of discussion.
++   * @returns The independent child identity.
 +   */
 +  @Remote('aside')
 +  aside(request: SessionAsideRequest): Promise<SessionForkValue> {
-+    return this.questions.open(request.sessionId)
++    return this.asides.open(request)
 +  }
 +
 +  /**
@@ -12648,22 +12658,23 @@ index 3fb061e5851996ba7147127f388e211ad5eb080d..753bed033921cac6cbdb6bc1b1c5634e
     * Admit one prompt after explicitly resuming its Session.
     * @param request - Session identity, prompt content, source metadata, and delivery mode.
 diff --git a/packages/api/session-controller/tsconfig.host.json b/packages/api/session-controller/tsconfig.host.json
-index c4011222a900e1abb11e8595b5fb2caecd211c7e..6fb9f68d97fbc75c5332193696ebaf4aa8413206 100644
+index c4011222a900e1abb11e8595b5fb2caecd211c7e..50daf0f1b458908d990f735dba8c3f5367b252b7 100644
 --- a/packages/api/session-controller/tsconfig.host.json
 +++ b/packages/api/session-controller/tsconfig.host.json
-@@ -14,6 +14,11 @@
+@@ -14,6 +14,12 @@
      "src/assistant-stream.ts",
      "src/catalog.ts",
      "src/commands.ts",
 +    "src/aside-identity.ts",
 +    "src/aside-main-context.ts",
 +    "src/aside-question-context.ts",
-+    "src/quick-questions.ts",
++    "src/aside-prompt.ts",
++    "src/aside-sessions.ts",
 +    "src/prediction.ts",
      "src/control.ts",
      "src/file-references.ts",
      "src/history.ts",
-@@ -30,6 +35,12 @@
+@@ -30,6 +36,12 @@
      "src/continuation.ts"
    ],
    "references": [
@@ -12676,13 +12687,19 @@ index c4011222a900e1abb11e8595b5fb2caecd211c7e..6fb9f68d97fbc75c5332193696ebaf4a
      {
        "path": "../gateway/tsconfig.host.json"
      },
-@@ -131,6 +142,9 @@
+@@ -131,6 +143,15 @@
      },
      {
        "path": "../../util/brand"
 +    },
 +    {
 +      "path": "../../guard/spend-limit"
++    },
++    {
++      "path": "../../sandbox/sandbox-policy"
++    },
++    {
++      "path": "../../interaction/user-approval"
      }
    ]
  }
@@ -17452,7 +17469,7 @@ index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..fba7cdc505d2fce4ef6f15704d5c66be
      example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'sidebar.panellist.actions\', () => ctx.slots.register(\n      { name: \'sidebar.panellist.actions\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
      source: 'packages/client/ui-sidebar/src/client/contract/slots.ts:63',
 diff --git a/packages/extensions/tool-cordis/src/api-catalog.ts b/packages/extensions/tool-cordis/src/api-catalog.ts
-index 84bf84164a56fd17f6575eeec815ef47f3a55bfb..79055f98dfc04c07dcf82429ee01f5e9ee528448 100644
+index 84bf84164a56fd17f6575eeec815ef47f3a55bfb..2cec3b006914bc7cb85aa7678580a29c89901fd3 100644
 --- a/packages/extensions/tool-cordis/src/api-catalog.ts
 +++ b/packages/extensions/tool-cordis/src/api-catalog.ts
 @@ -2704,6 +2704,179 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
@@ -17697,9 +17714,9 @@ index 84bf84164a56fd17f6575eeec815ef47f3a55bfb..79055f98dfc04c07dcf82429ee01f5e9
        },
 +      {
 +        signature: '@Remote(\'aside\') aside(request: SessionAsideRequest): Promise<SessionForkValue>',
-+        description: 'Create an independent quick-question Session, without submitting a main turn.',
-+        parameters: [{ name: 'request', description: 'Main Session and one-shot question kind.' }],
-+        returns: 'The new child identity.',
++        description: 'Open the current side conversation or a fresh quick question.',
++        parameters: [{ name: 'request', description: 'Main Session and requested kind of discussion.' }],
++        returns: 'The independent child identity.',
 +      },
 +      {
 +        signature: '@Remote(\'predict\') async predict(request: SessionPredictionRequest, signal: AbortSignal): Promise<SessionPredictionValue>',
@@ -17835,6 +17852,15 @@ index 84bf84164a56fd17f6575eeec815ef47f3a55bfb..79055f98dfc04c07dcf82429ee01f5e9
    {
      name: 'AnyConnectorAccountView',
      declaration: 'export type AnyConnectorAccountView = ConnectorAccountView<unknown, string, string>;',
+@@ -6536,7 +6867,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
+   },
+   {
+     name: 'ApiSessionAgentError',
+-    declaration: 'export type ApiSessionAgentError = RemoteError<\'session/not-found\' | \'session/agent-busy\' | \'session/writer-held\' | \'gateway/internal\'>;',
++    declaration: 'export type ApiSessionAgentError = RemoteError<\'remote-access/denied\' | \'session/not-found\' | \'session/agent-busy\' | \'session/writer-held\' | \'gateway/internal\'>;',
+   },
+   {
+     name: 'ApiSessionAgentResult',
 @@ -6702,6 +7033,26 @@ export const TYPE_API: readonly TypeApiEntry[] = [
      name: 'BackendRegistry',
      declaration: 'export class BackendRegistry {\n    register(name: string, backend: StorageBackend): () => void;\n    get(name: string): StorageBackend;\n    names(): string[];\n}',
@@ -18064,7 +18090,7 @@ index 84bf84164a56fd17f6575eeec815ef47f3a55bfb..79055f98dfc04c07dcf82429ee01f5e9
    },
 +  {
 +    name: 'SessionAsideRequest',
-+    declaration: 'export interface SessionAsideRequest {\n    readonly sessionId: SessionId;\n    readonly kind: \'btw\';\n}',
++    declaration: 'export interface SessionAsideRequest {\n    readonly sessionId: SessionId;\n    readonly kind: \'side\' | \'btw\';\n}',
 +  },
    {
      name: 'SessionAssistantStreamAttempt',
@@ -21065,7 +21091,7 @@ index 68e7f032cb3b63ef1c4f09d592321a9144400141..13d56812ef0ea53bbcf605f7ad1e58af
               this._inSocket.destroy();
               this._ptyNative.kill(this._pty, this._useConptyDll);
 diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
-index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717fd7a2a337 100644
+index 774164ab6d006ce397a2f47f6ba84592519d80d6..5333e47c944948fe46bc9964358a33c479f0fe95 100644
 --- a/pnpm-lock.yaml
 +++ b/pnpm-lock.yaml
 @@ -24,7 +24,7 @@ patchedDependencies:
@@ -21201,7 +21227,23 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
        '@deepseek-ai/dsh-subagent':
          specifier: workspace:*
          version: link:../../subagent/subagent
-@@ -1886,6 +1975,9 @@ importers:
+@@ -1774,9 +1863,15 @@ importers:
+       '@deepseek-ai/dsh-deque':
+         specifier: workspace:*
+         version: link:../../util/deque
++      '@deepseek-ai/dsh-sandbox-policy':
++        specifier: workspace:*
++        version: link:../../sandbox/sandbox-policy
+       '@deepseek-ai/dsh-timeout':
+         specifier: workspace:*
+         version: link:../../util/timeout
++      '@deepseek-ai/dsh-user-approval':
++        specifier: workspace:*
++        version: link:../../interaction/user-approval
+       '@deepseek-ai/schemastery':
+         specifier: link:../../../vendor/schemastery
+         version: link:../../../vendor/schemastery
+@@ -1886,6 +1981,9 @@ importers:
        '@deepseek-ai/dsh-skill':
          specifier: workspace:*
          version: link:../../skill/skill
@@ -21211,7 +21253,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
        '@deepseek-ai/dsh-storage':
          specifier: workspace:*
          version: link:../../storage/storage
-@@ -1898,6 +1990,12 @@ importers:
+@@ -1898,6 +1996,12 @@ importers:
        '@deepseek-ai/dsh-subagent':
          specifier: workspace:*
          version: link:../../subagent/subagent
@@ -21224,7 +21266,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
        '@deepseek-ai/dsh-typert-protocol':
          specifier: workspace:*
          version: link:../../typert/protocol
-@@ -2698,6 +2796,9 @@ importers:
+@@ -2698,6 +2802,9 @@ importers:
        '@deepseek-ai/dsh-mcp-resources':
          specifier: workspace:*
          version: link:../../mcp/mcp-resources
@@ -21234,7 +21276,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
        '@deepseek-ai/dsh-otel':
          specifier: workspace:*
          version: link:../../telemetry/otel
-@@ -2770,6 +2871,9 @@ importers:
+@@ -2770,6 +2877,9 @@ importers:
        '@deepseek-ai/dsh-skill-filesystem':
          specifier: workspace:*
          version: link:../../skill/skill-filesystem
@@ -21244,7 +21286,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
        '@deepseek-ai/dsh-spill-local':
          specifier: workspace:*
          version: link:../../spill/spill-local
-@@ -3167,6 +3271,12 @@ importers:
+@@ -3167,6 +3277,12 @@ importers:
        '@deepseek-ai/dsh-api-job-controller':
          specifier: workspace:*
          version: link:../../api/job-controller
@@ -21257,7 +21299,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
        '@deepseek-ai/dsh-api-remotes':
          specifier: workspace:*
          version: link:../../api/remotes
-@@ -3188,6 +3298,9 @@ importers:
+@@ -3188,6 +3304,9 @@ importers:
        '@deepseek-ai/dsh-app-boot':
          specifier: workspace:*
          version: link:../../boot/app-boot
@@ -21267,7 +21309,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
        '@deepseek-ai/dsh-client-connection':
          specifier: workspace:*
          version: link:../../client/connection
-@@ -3290,6 +3403,9 @@ importers:
+@@ -3290,6 +3409,9 @@ importers:
        '@deepseek-ai/dsh-client-ui-message-feedback':
          specifier: workspace:*
          version: link:../../client/ui-message-feedback
@@ -21277,7 +21319,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
        '@deepseek-ai/dsh-client-ui-model-selection':
          specifier: workspace:*
          version: link:../../client/ui-model-selection
-@@ -3341,6 +3457,9 @@ importers:
+@@ -3341,6 +3463,9 @@ importers:
        '@deepseek-ai/dsh-client-ui-settings-general':
          specifier: workspace:*
          version: link:../../client/ui-settings-general
@@ -21287,7 +21329,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
        '@deepseek-ai/dsh-client-ui-settings-models':
          specifier: workspace:*
          version: link:../../client/ui-settings-models
-@@ -3473,6 +3592,9 @@ importers:
+@@ -3473,6 +3598,9 @@ importers:
        '@deepseek-ai/dsh-mcp-manager':
          specifier: workspace:*
          version: link:../../mcp/mcp-manager
@@ -21297,7 +21339,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
        '@deepseek-ai/dsh-message-feedback':
          specifier: workspace:*
          version: link:../../feedback/message-feedback
-@@ -4647,6 +4769,9 @@ importers:
+@@ -4647,6 +4775,9 @@ importers:
        '@deepseek-ai/dsh-client-test-runtime':
          specifier: workspace:*
          version: link:../../test-support/client-runtime
@@ -21307,7 +21349,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
        '@deepseek-ai/dsh-client-ui-conversation':
          specifier: workspace:*
          version: link:../ui-conversation
-@@ -4662,6 +4787,12 @@ importers:
+@@ -4662,6 +4793,12 @@ importers:
        '@deepseek-ai/dsh-client-ui-session':
          specifier: workspace:*
          version: link:../ui-session
@@ -21320,7 +21362,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
        '@deepseek-ai/dsh-client-ui-slots':
          specifier: workspace:*
          version: link:../ui-slots
-@@ -4671,6 +4802,9 @@ importers:
+@@ -4671,6 +4808,9 @@ importers:
        '@deepseek-ai/dsh-session':
          specifier: workspace:*
          version: link:../../core/session
@@ -21330,7 +21372,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
        '@deepseek-ai/dsh-util-text-search':
          specifier: workspace:*
          version: link:../../util/text-search
-@@ -5582,6 +5716,57 @@ importers:
+@@ -5582,6 +5722,57 @@ importers:
          specifier: ^18.2.0
          version: 18.3.1(react@18.3.1)
  
@@ -21388,7 +21430,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
    packages/client/ui-model-selection:
      devDependencies:
        '@deepseek-ai/cordis':
-@@ -6563,12 +6748,21 @@ importers:
+@@ -6563,12 +6754,21 @@ importers:
        '@deepseek-ai/dsh-api-remotes':
          specifier: workspace:*
          version: link:../../api/remotes
@@ -21410,7 +21452,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
        '@deepseek-ai/dsh-client-store':
          specifier: workspace:*
          version: link:../store
-@@ -6578,6 +6772,9 @@ importers:
+@@ -6578,6 +6778,9 @@ importers:
        '@deepseek-ai/dsh-client-ui-chat':
          specifier: workspace:*
          version: link:../ui-chat
@@ -21420,7 +21462,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
        '@deepseek-ai/dsh-client-ui-layout':
          specifier: workspace:*
          version: link:../ui-layout
-@@ -6593,6 +6790,9 @@ importers:
+@@ -6593,6 +6796,9 @@ importers:
        '@deepseek-ai/dsh-client-ui-settings-models':
          specifier: workspace:*
          version: link:../ui-settings-models
@@ -21430,7 +21472,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
        '@deepseek-ai/dsh-client-ui-slots':
          specifier: workspace:*
          version: link:../ui-slots
-@@ -6605,15 +6805,33 @@ importers:
+@@ -6605,15 +6811,33 @@ importers:
        '@deepseek-ai/dsh-host-webserver':
          specifier: workspace:*
          version: link:../../host/webserver
@@ -21464,7 +21506,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
        big.js:
          specifier: ^7.0.1
          version: 7.0.1
-@@ -6623,6 +6841,9 @@ importers:
+@@ -6623,6 +6847,9 @@ importers:
        react-dom:
          specifier: ^18.2.0
          version: 18.3.1(react@18.3.1)
@@ -21474,7 +21516,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
  
    packages/client/ui-settings-agent-loop:
      devDependencies:
-@@ -6736,6 +6957,51 @@ importers:
+@@ -6736,6 +6963,51 @@ importers:
          specifier: ^18.2.0
          version: 18.3.1(react@18.3.1)
  
@@ -21526,7 +21568,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
    packages/client/ui-settings-models:
      dependencies:
        '@deepseek-ai/schemastery':
-@@ -9402,6 +9668,40 @@ importers:
+@@ -9402,6 +9674,40 @@ importers:
          specifier: workspace:*
          version: link:../../util/error
  
@@ -21567,7 +21609,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
    packages/credentials/credentials:
      dependencies:
        '@deepseek-ai/dsh-brand':
-@@ -14340,6 +14640,52 @@ importers:
+@@ -14340,6 +14646,52 @@ importers:
          specifier: workspace:*
          version: link:../../core/tools
  
@@ -21620,7 +21662,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
    packages/guard/timeout-policy:
      devDependencies:
        '@deepseek-ai/cordis':
-@@ -15796,6 +16142,64 @@ importers:
+@@ -15796,6 +16148,64 @@ importers:
          specifier: workspace:*
          version: link:../../core/tools
  
@@ -21685,7 +21727,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
    packages/plan/plan-mode:
      dependencies:
        '@deepseek-ai/dsh-brand':
-@@ -19182,7 +19586,7 @@ importers:
+@@ -19182,7 +19592,7 @@ importers:
          version: 3.1.1
        node-pty:
          specifier: 1.2.0-beta.15
@@ -21694,7 +21736,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
      devDependencies:
        '@deepseek-ai/cordis':
          specifier: workspace:~
-@@ -20083,6 +20487,12 @@ importers:
+@@ -20083,6 +20493,12 @@ importers:
          specifier: ^7.8.0
          version: 7.8.0
  
@@ -21707,7 +21749,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
    packages/util/ripgrep:
      dependencies:
        '@vscode/ripgrep':
-@@ -20753,6 +21163,9 @@ importers:
+@@ -20753,6 +21169,9 @@ importers:
        '@deepseek-ai/dsh-mcp-client':
          specifier: workspace:*
          version: link:../../packages/mcp/mcp-client
@@ -21717,7 +21759,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..0c79ef9ccf48decbbcc214dbe057717f
        '@deepseek-ai/dsh-message-feedback':
          specifier: workspace:*
          version: link:../../packages/feedback/message-feedback
-@@ -35270,7 +35683,7 @@ snapshots:
+@@ -35270,7 +35689,7 @@ snapshots:
  
    node-int64@0.4.0: {}
  
@@ -40119,7 +40161,7 @@ index 0000000000000000000000000000000000000000..dd4e29172ec6ee3b680023f35d8f2f9c
 +
 +无。
 diff --git a/packages/api/session-controller/README.i18n.yaml b/packages/api/session-controller/README.i18n.yaml
-index a0a541daaeb7ed4811f1c602d94f99f6a82a24e4..82d592440559c71a140f317793777c83c2f149b4 100644
+index a0a541daaeb7ed4811f1c602d94f99f6a82a24e4..33e4be4573d9ecaf8ee5542f0438e936d8ade39c 100644
 --- a/packages/api/session-controller/README.i18n.yaml
 +++ b/packages/api/session-controller/README.i18n.yaml
 @@ -15,8 +15,8 @@
@@ -40128,20 +40170,22 @@ index a0a541daaeb7ed4811f1c602d94f99f6a82a24e4..82d592440559c71a140f317793777c83
  /session-controller/use-this-package:
 -  en: 958951f6e7fdc5de
 -  zh: 73d73a5d51b45eba
-+  en: e6626df67996fab5
-+  zh: 2834d92523fae4a6
++  en: 89d9a63e3c906bd7
++  zh: 311b1b82fd527b2f
  /session-controller/client-references:
    en: 8c9fb80b590c47ff
    zh: db2902daf76e46f8
 diff --git a/packages/api/session-controller/README.md b/packages/api/session-controller/README.md
-index a510935e0b54b78f2193e5f98892080e0d1c0413..50277f583260659fe8dfde0097f2f0191933c4f9 100644
+index a510935e0b54b78f2193e5f98892080e0d1c0413..e8932b1f4aa7ac383373bd0471234c42df25f854 100644
 --- a/packages/api/session-controller/README.md
 +++ b/packages/api/session-controller/README.md
-@@ -27,6 +27,14 @@ Desktop analytics follows the [product collection policy](../../client/product-a
+@@ -27,6 +27,16 @@ Desktop analytics follows the [product collection policy](../../client/product-a
  <a id="use-this-package"></a>
  ## Use this package
  
 +`session/aside` creates a read-only Session for each quick question using the model selected in the main conversation. Each request reads a bounded progress summary from the parent. Quick answers default to 512 output tokens and use the General Settings reasoning effort when the model supports it.
++
++`session/aside` with `kind: 'side'` opens one persistent discussion per main conversation. Opening it again returns the most recent generation, including side conversations saved by released desktop versions. Earlier generations are readable history. Each follow-up reads completed turns from the main conversation, up to `sideContextBytes` (65,536 bytes by default). The parent receives no side messages.
 +
 +The session/predict endpoint requests a suffix for an unsent draft from the current Session model. The Session records the exact outgoing message, route, request ID and outcome. Accepted suggestions remain editable. Prediction records written by released desktop versions remain readable.
 +
@@ -40153,14 +40197,16 @@ index a510935e0b54b78f2193e5f98892080e0d1c0413..50277f583260659fe8dfde0097f2f019
  
  Prompt retries use the request identity in the first committed inbox insertion, including after the message is claimed or removed. Admission checks again after asynchronous attachment preparation, so concurrent retries accept one input. Acceptance acknowledges insertion, not execution or completion.
 diff --git a/packages/api/session-controller/README.zh.md b/packages/api/session-controller/README.zh.md
-index 8b2fdea121d6c76cbcd8a85dd7ed173b8ca1a422..bde2a7e85035f00d9a920fb0463045ba3b1f765f 100644
+index 8b2fdea121d6c76cbcd8a85dd7ed173b8ca1a422..22b477108c96e72235e3acc38f6ecd64b82c3a1a 100644
 --- a/packages/api/session-controller/README.zh.md
 +++ b/packages/api/session-controller/README.zh.md
-@@ -27,6 +27,14 @@ kind: "package-reference"
+@@ -27,6 +27,16 @@ kind: "package-reference"
  <a id="use-this-package"></a>
  ## 使用本包
  
 +`session/aside` 为每个随问创建独立的只读会话，继承主对话的模型。每次请求从父会话读取有长度限制的进展。随问默认最多输出 512 个 token，并在模型支持时采用通用设置中的思考等级。
++
++`session/aside` 接收 `kind: 'side'` 时，打开主会话专属的旁问。再次打开会找回最近一次清理之后的讨论，也可继续旧正式版保存的旁问。清理之前的记录仍可查阅。每次续问只读取主会话已结束的轮次，上限由 `sideContextBytes` 指定（默认 65,536 字节）。旁问消息保存在旁问自己的记录中。
 +
 +通过 session/predict 可为草稿请求后缀。Host 使用当前会话所选的模型，将实际发出的消息、路由、请求标识和返回状态记录到原会话。用户采纳建议后可以继续编辑。旧版会话中的输入预测记录可继续读取。
 +
@@ -40172,7 +40218,7 @@ index 8b2fdea121d6c76cbcd8a85dd7ed173b8ca1a422..bde2a7e85035f00d9a920fb0463045ba
  
  提示重试按首次已提交入队记录中的请求标识去重，消息被领取或删除后仍然有效。异步附件准备结束后再次检查，因此并发重试只接受一条输入。接受确认入队，不代表执行或完成。
 diff --git a/packages/api/session-controller/src/types.ts b/packages/api/session-controller/src/types.ts
-index 6adc036941141bb295de1a45e9b8fdfd01e8134b..d26ea1fbf32df861ef10f624bb553c5a67ab4481 100644
+index 6adc036941141bb295de1a45e9b8fdfd01e8134b..8342681e60e8d5a4e37b040467edc0ffe7d75dc8 100644
 --- a/packages/api/session-controller/src/types.ts
 +++ b/packages/api/session-controller/src/types.ts
 @@ -7,7 +7,7 @@ import type {
@@ -40188,10 +40234,10 @@ index 6adc036941141bb295de1a45e9b8fdfd01e8134b..d26ea1fbf32df861ef10f624bb553c5a
    readonly seq: number
  }
  
-+/** Main Session for a one-shot quick question. */
++/** Main Session for a persistent side conversation or one-shot quick question. */
 +export interface SessionAsideRequest {
 +  readonly sessionId: SessionId
-+  readonly kind: 'btw'
++  readonly kind: 'side' | 'btw'
 +}
 +
  /** Session fork request. */
@@ -46391,16 +46437,16 @@ index 0000000000000000000000000000000000000000..319842725b8e9c49ef9a737fdbc89dec
 +
 +无。
 diff --git a/docs/subsystems/session.md b/docs/subsystems/session.md
-index 7668299e77771c50e7ac1f1bcdab0ec11a07e53d..a08ca3fe69c98303a5865cd8bf595f4cdfb7c41a 100644
+index 7668299e77771c50e7ac1f1bcdab0ec11a07e53d..b506d31b4e85f1ca35cd996d47f5b0ac9c305256 100644
 --- a/docs/subsystems/session.md
 +++ b/docs/subsystems/session.md
 @@ -987,6 +987,20 @@ workspaceDesktop(): { name: string; available: boolean; fileManager: 'finder' |
   */
  @Remote('fork') async fork(request: SessionForkRequest): Promise<SessionForkValue>
  
-+/** Create an independent quick-question Session, without submitting a main turn.
-+ * @param request - Main Session and one-shot question kind.
-+ * @returns The new child identity.
++/** Open the current side conversation or a fresh quick question.
++ * @param request - Main Session and requested kind of discussion.
++ * @returns The independent child identity.
 + */
 +@Remote('aside') aside(request: SessionAsideRequest): Promise<SessionForkValue>
 +
@@ -46416,16 +46462,16 @@ index 7668299e77771c50e7ac1f1bcdab0ec11a07e53d..a08ca3fe69c98303a5865cd8bf595f4c
   * Admit one prompt after explicitly resuming its Session.
   * @param request - Session identity, prompt content, source metadata, and delivery mode.
 diff --git a/docs/subsystems/session.zh.md b/docs/subsystems/session.zh.md
-index bef86c7bb32481f7f4f58e030a57c6cc0ce2d226..992b454945ea8ccc75362b170315f26b9a208bc1 100644
+index bef86c7bb32481f7f4f58e030a57c6cc0ce2d226..2f65f1fadbe8f259ad45f795478ad3b77e341508 100644
 --- a/docs/subsystems/session.zh.md
 +++ b/docs/subsystems/session.zh.md
 @@ -987,6 +987,20 @@ workspaceDesktop(): { name: string; available: boolean; fileManager: 'finder' |
   */
  @Remote('fork') async fork(request: SessionForkRequest): Promise<SessionForkValue>
  
-+/** Create an independent quick-question Session, without submitting a main turn.
-+ * @param request - Main Session and one-shot question kind.
-+ * @returns The new child identity.
++/** Open the current side conversation or a fresh quick question.
++ * @param request - Main Session and requested kind of discussion.
++ * @returns The independent child identity.
 + */
 +@Remote('aside') aside(request: SessionAsideRequest): Promise<SessionForkValue>
 +
@@ -46442,14 +46488,16 @@ index bef86c7bb32481f7f4f58e030a57c6cc0ce2d226..992b454945ea8ccc75362b170315f26b
   * @param request - Session identity, prompt content, source metadata, and delivery mode.
 diff --git a/packages/api/session-controller/src/aside-identity.ts b/packages/api/session-controller/src/aside-identity.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..cf54168b95a6621e61f2be42bd4104c8f18c247a
+index 0000000000000000000000000000000000000000..c187f91635a0dae82d9d843ab66f1de16f83aa7f
 --- /dev/null
 +++ b/packages/api/session-controller/src/aside-identity.ts
-@@ -0,0 +1,43 @@
+@@ -0,0 +1,73 @@
 +/** Native aside identities and their append-only context generations. */
 +import { createHash } from 'node:crypto'
++import type { Context } from '@deepseek-ai/cordis'
 +import { brandString } from '@deepseek-ai/dsh-brand'
-+import type { SessionId } from '@deepseek-ai/dsh-session'
++import type { SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
++import type {} from '@deepseek-ai/dsh-session-query'
 +
 +/**
 + * Derive one parent's canonical side context identity.
@@ -46488,6 +46536,34 @@ index 0000000000000000000000000000000000000000..cf54168b95a6621e61f2be42bd4104c8
 +  if (parent === undefined) return undefined
 +  if (sideGeneration(id, parent) !== undefined) return 'side'
 +  return /^session-btw-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(id) ? 'btw' : undefined
++}
++
++/**
++ * Read the latest context from durable headers and exact live Sessions, without resuming an Agent.
++ * @param ctx - Host query service.
++ * @param parent - Owning main conversation.
++ * @returns The highest published generation, or undefined before any side was opened.
++ */
++export async function currentSide(ctx: Context, parent: SessionId): Promise<{ id: SessionId; generation: number } | undefined> {
++  return selectCurrentSide((await ctx.sessionQuery.listSessions()).map(entry => entry.header), parent)
++}
++
++/**
++ * Select the latest published side context from observed Session headers.
++ * @param headers - Durable and exact live Session headers.
++ * @param parent - Owning main conversation.
++ * @returns The highest published generation, or undefined before any side was opened.
++ */
++export function selectCurrentSide(headers: readonly SessionHeader[], parent: SessionId): { id: SessionId; generation: number } | undefined {
++  let current: { id: SessionId; generation: number } | undefined
++  for (const header of headers) {
++    if (header.parentSession !== parent) continue
++    const generation = sideGeneration(header.id, parent)
++    if (generation !== undefined && (current === undefined || generation > current.generation)) {
++      current = { id: header.id, generation }
++    }
++  }
++  return current
 +}
 diff --git a/packages/api/session-controller/src/aside-main-context.ts b/packages/api/session-controller/src/aside-main-context.ts
 new file mode 100644
@@ -46613,18 +46689,10 @@ index 7ba34a5ad8b4f19a2702106757bad00ad89ee7de..323ff8d986057bd5a0a44f9bef0ae43e
     * Resolve one stored image into browser-consumable bytes using this Session's gateway permission scope.
     * @param attachment - complete image reference from the folded session log.
 diff --git a/packages/api/session-controller/src/commands.ts b/packages/api/session-controller/src/commands.ts
-index d97ffc85322b74ec9ac349cde34f5a3029fe39ed..15dd6113f8b75a48d740925bdd2c88162f12dc29 100644
+index d97ffc85322b74ec9ac349cde34f5a3029fe39ed..bce513a90d2af5c6974a54a3109d3a94ff18c1a9 100644
 --- a/packages/api/session-controller/src/commands.ts
 +++ b/packages/api/session-controller/src/commands.ts
-@@ -3,6 +3,7 @@
- import type { ProjectionHandle } from '@deepseek-ai/dsh-session-projection'
- import { continuationProjectionDefinition, type ContinuationState } from './continuation.ts'
- 
-+import { nativeAsideKind } from './aside-identity.ts'
- import { modelAvailable } from './catalog.ts'
- import { randomUUID } from 'node:crypto'
- import type { Context } from '@deepseek-ai/cordis'
-@@ -69,11 +70,13 @@ export function hasPromptContent(content: readonly PromptContentCandidate[]): bo
+@@ -69,11 +69,13 @@ export function hasPromptContent(content: readonly PromptContentCandidate[]): bo
  }
  
  /**
@@ -46642,19 +46710,6 @@ index d97ffc85322b74ec9ac349cde34f5a3029fe39ed..15dd6113f8b75a48d740925bdd2c8816
    if (lastTurnEnd === undefined) return undefined
    let boundary = lastTurnEnd.seq
    for (const next of events.slice(boundary + 1)) {
-@@ -322,6 +325,12 @@ export class SessionCommandController {
-    */
-   async prompt(request: SessionPromptRequest, source: MessageSource): Promise<SessionPromptValue> {
-     const agent = await this.resolveAgent(request.sessionId)
-+    if (agent.id.startsWith('session-btw-')) {
-+      const parent = agent.session.header.parentSession
-+      if (parent !== undefined && nativeAsideKind(agent.id, parent) === 'btw' && !this.ctx.remoteAccess.allows({ kind: 'session', id: parent })) {
-+        throw new RemoteError('remote-access/denied', 'Access to the main conversation is required.', { action: 'session/prompt', reason: 'no-allow' })
-+      }
-+    }
-     if (this.hasPromptRequest(agent.session, request.requestId)) return { accepted: true }
-     if (request.content.length === 0) {
-       try {
 diff --git a/packages/api/session-controller/src/prediction.ts b/packages/api/session-controller/src/prediction.ts
 new file mode 100644
 index 0000000000000000000000000000000000000000..6dc7b7079705066dc6e7f8af24dce8a13a1cf457
@@ -48250,7 +48305,7 @@ index 0000000000000000000000000000000000000000..0e366f6f29a1a640724b95fd55335e85
 +  } finally { await scaffold.close() }
 +}, 90_000)
 diff --git a/packages/api/session-controller/src/agent.ts b/packages/api/session-controller/src/agent.ts
-index 57288f5e2225019adb1018061ce72a5da50ad075..dc8474465e997f72235ef6fa5b6c3b8b045933b8 100644
+index 57288f5e2225019adb1018061ce72a5da50ad075..7dc05ec9ab2e2bf886f7062d7396e4cee64841a7 100644
 --- a/packages/api/session-controller/src/agent.ts
 +++ b/packages/api/session-controller/src/agent.ts
 @@ -4,7 +4,7 @@ import type {} from '@deepseek-ai/dsh-fs'
@@ -48266,13 +48321,22 @@ index 57288f5e2225019adb1018061ce72a5da50ad075..dc8474465e997f72235ef6fa5b6c3b8b
  import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
  import type {} from '@deepseek-ai/dsh-typert-registry'
  
-+import { nativeAsideKind } from './aside-identity.ts'
-+import { configureQuickQuestion } from './quick-questions.ts'
++import { currentSide, nativeAsideKind } from './aside-identity.ts'
++import { configureAsidePrompt } from './aside-prompt.ts'
 +
  /** Cold Session identity absent from persistence. */
  export class ApiSessionNotFound extends Error {}
  
-@@ -119,8 +122,15 @@ export class ApiSessionAgentController {
+@@ -84,7 +87,7 @@ interface ApiSessionComposition {
+ }
+ 
+ /** Failures produced while resolving one ordinary Session identity to its live Agent. */
+-export type ApiSessionAgentError = RemoteError<'session/not-found' | 'session/agent-busy' | 'session/writer-held' | 'gateway/internal'>
++export type ApiSessionAgentError = RemoteError<'remote-access/denied' | 'session/not-found' | 'session/agent-busy' | 'session/writer-held' | 'gateway/internal'>
+ 
+ /** Result of resolving one ordinary Session identity to its live Agent. */
+ export type ApiSessionAgentResult =
+@@ -119,8 +122,16 @@ export class ApiSessionAgentController {
    private readonly claims = new Map<SessionId, Promise<void>>()
    private readonly imageAdmissionChains = new WeakMap<Agent, Promise<void>>()
  
@@ -48283,6 +48347,7 @@ index 57288f5e2225019adb1018061ce72a5da50ad075..dc8474465e997f72235ef6fa5b6c3b8b
 +   * @param questionPolicy - Limits and ownership for one-shot question Agents.
 +   */
 +  constructor(private readonly ctx: Context, private readonly questionPolicy?: {
++    sideContextBytes: number
 +    btwContextBytes: number
 +    btwMaxTokens: number
 +    retain(handle: AgentHandle): void
@@ -48290,7 +48355,27 @@ index 57288f5e2225019adb1018061ce72a5da50ad075..dc8474465e997f72235ef6fa5b6c3b8b
  
    /**
     * Configure Session and Agent lookups for Typert.
-@@ -261,15 +271,17 @@ export class ApiSessionAgentController {
+@@ -166,6 +177,19 @@ export class ApiSessionAgentController {
+     sessionId: SessionId,
+     observation?: SessionObservation,
+   ): Promise<ApiSessionAgentResult> {
++    if (sessionId.startsWith('session-side-') || sessionId.startsWith('session-btw-')) {
++      const header = observation?.header ?? this.ctx.sessions.get(sessionId)?.header ?? (await this.ctx.get('sessionPersistence')?.stat(sessionId))?.header
++      const parent = header?.parentSession
++      const kind = nativeAsideKind(sessionId, parent)
++      if (parent !== undefined && kind !== undefined) {
++        if (!this.ctx.remoteAccess.allows({ kind: 'session', id: parent })) {
++          return { error: new RemoteError('remote-access/denied', 'Access to the main conversation is required.', { action: 'session/prompt', reason: 'no-allow' }) }
++        }
++        if (kind === 'side' && (await currentSide(this.ctx, parent))?.id !== sessionId) {
++          return { error: new RemoteError('session/agent-busy', 'This side context was cleared. Reopen the side conversation.', { reason: 'side-context-cleared' }) }
++        }
++      }
++    }
+     const live = this.liveAgent(sessionId)
+     if (live !== undefined) return live
+     const attached = this.ctx.sessions.get(sessionId)
+@@ -261,15 +285,19 @@ export class ApiSessionAgentController {
     */
    async composeAgent(presetId: string | undefined): Promise<ApiSessionComposition> {
      const presets = this.ctx.get('agentPresets')
@@ -48308,19 +48393,22 @@ index 57288f5e2225019adb1018061ce72a5da50ad075..dc8474465e997f72235ef6fa5b6c3b8b
 -        await presets.mount(agentCtx, resolvedId)
 +        if (presets !== undefined && resolvedId !== undefined) await presets.mount(agentCtx, resolvedId)
 +        const parent = agent.session.header.parentSession
-+        if (parent !== undefined && nativeAsideKind(agent.id, parent) === 'btw') {
-+          if (!this.questionPolicy) throw new Error('Quick-question context settings are unavailable.')
-+          configureQuickQuestion(agentCtx, agent, parent, this.ctx.sessionQuery, this.questionPolicy.btwContextBytes)
++        const kind = nativeAsideKind(agent.id, parent)
++        if (parent !== undefined && kind !== undefined) {
++          if (!this.questionPolicy) throw new Error('Aside context settings are unavailable.')
++          const contextBytes = kind === 'side' ? this.questionPolicy.sideContextBytes : this.questionPolicy.btwContextBytes
++          configureAsidePrompt(agentCtx, agent, parent, kind, this.ctx.sessionQuery, contextBytes)
 +        }
        },
      }
    }
-@@ -311,11 +323,14 @@ export class ApiSessionAgentController {
+@@ -311,11 +339,15 @@ export class ApiSessionAgentController {
      if (published !== undefined && hasApiSessionSubagentOwner(published)) {
        throw new ApiSessionSubagentOwnership(sessionId)
      }
 -    return (await this.ctx.agents.resume({
-+    const question = nativeAsideKind(sessionId, observation.header.parentSession) === 'btw' ? this.questionPolicy : undefined
++    const aside = nativeAsideKind(sessionId, observation.header.parentSession)
++    const question = aside === 'btw' ? this.questionPolicy : undefined
 +    const handle = await this.ctx.agents.resume({
        resumeSessionId: sessionId,
 -      agentOptions: this.agentOptions(),
@@ -48328,13 +48416,13 @@ index 57288f5e2225019adb1018061ce72a5da50ad075..dc8474465e997f72235ef6fa5b6c3b8b
        setup: composition.setup,
 -    })).agent
 +    })
-+    question?.retain(handle)
++    if (aside !== undefined) this.questionPolicy?.retain(handle)
 +    return handle.agent
    }
  
    private async inOrder<Value>(sessionId: SessionId, operation: () => Promise<Value>): Promise<Value> {
 diff --git a/packages/api/session-controller/src/archived-session-gate.ts b/packages/api/session-controller/src/archived-session-gate.ts
-index b1f556b397b330871b804bb5383f8d0c484601d6..bcbd8eb1e10f8e446787ab86664657145df47801 100644
+index b1f556b397b330871b804bb5383f8d0c484601d6..1ecd9a8ee3f215bf35ec2d1447980d865b334f3c 100644
 --- a/packages/api/session-controller/src/archived-session-gate.ts
 +++ b/packages/api/session-controller/src/archived-session-gate.ts
 @@ -13,6 +13,7 @@ import type { Context, Plugin } from '@deepseek-ai/cordis'
@@ -48350,7 +48438,7 @@ index b1f556b397b330871b804bb5383f8d0c484601d6..bcbd8eb1e10f8e446787ab8666465714
   * Whether the Agent's Session, or a Session above it in its subagent lineage,
   * is archived. This header-only check follows the durable fields through
 - * subagent-origin Sessions only: a fork of an archived Session is an
-+ * subagent and quick-question Sessions. A regular fork of an archived Session is an
++ * subagent and native aside Sessions. A regular fork of an archived Session is an
   * independent conversation. The Subagent runtime separately checks managed
   * ancestry when an intermediate Session is unavailable here.
   * @param ctx - Host context.
@@ -48359,7 +48447,7 @@ index b1f556b397b330871b804bb5383f8d0c484601d6..bcbd8eb1e10f8e446787ab8666465714
      if (archived.includes(header.id)) return true
      visited.add(header.id)
 -    if (header.origin !== 'subagent' || header.parentSession === undefined) return false
-+    if (header.parentSession === undefined || (header.origin !== 'subagent' && nativeAsideKind(header.id, header.parentSession) !== 'btw')) return false
++    if (header.parentSession === undefined || (header.origin !== 'subagent' && nativeAsideKind(header.id, header.parentSession) === undefined)) return false
      const parent = ctx.sessions.get(header.parentSession)
      if (parent === undefined) return archived.includes(header.parentSession)
      header = parent.header
@@ -48588,175 +48676,8 @@ index 0a6604f4368f79a5db29f10cb24d1769b5d94304..09cdbc6908e5ebc2a4bb2c15ee10fbe8
      const reference = this.retainScope(id, source, heldFacets(facets), connected)
      try {
        reference.attachOpening(connected ? this.manager.get(id).open() : Promise.resolve(), signal)
-diff --git a/packages/api/session-controller/src/quick-questions.ts b/packages/api/session-controller/src/quick-questions.ts
-new file mode 100644
-index 0000000000000000000000000000000000000000..b866ad68c95885afa8a3a40d4b3b51ed4616f0e2
---- /dev/null
-+++ b/packages/api/session-controller/src/quick-questions.ts
-@@ -0,0 +1,161 @@
-+/** Creation and prompt context for independent one-shot questions. */
-+import { randomUUID } from 'node:crypto'
-+import type { Context } from '@deepseek-ai/cordis'
-+import type { Agent, AgentHandle, ModelSelection } from '@deepseek-ai/dsh-agent'
-+import { brandString } from '@deepseek-ai/dsh-brand'
-+import { errorChain, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
-+import type {} from '@deepseek-ai/dsh-permission-presets'
-+import type { SessionId } from '@deepseek-ai/dsh-session'
-+import type {} from '@deepseek-ai/dsh-system-prompt'
-+import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
-+import type { ApiSessionAgentController } from './agent.ts'
-+import { quickQuestionContext } from './aside-question-context.ts'
-+import type { SessionForkValue } from './types.ts'
-+
-+/** Install the released quick-question instructions in the child Agent's own scope.
-+ * @param ctx - Unpublished child Agent context.
-+ * @param agent - Independent question Session.
-+ * @param parent - Main Session whose live progress supplies background.
-+ * @param readParent - Read parent progress through the Session Controller's Host query service.
-+ * @param contextBytes - Maximum bytes of parent progress per request.
-+ */
-+export function configureQuickQuestion(ctx: Context, agent: Agent, parent: SessionId, readParent: Context['sessionQuery'], contextBytes: number): void {
-+  const presets = ctx.get('permissionPresets')
-+  if (presets === undefined) throw new Error('A quick question requires the read-only permission preset.')
-+  presets.set(agent.session, 'read-only')
-+  ctx.effect(() => ctx.systemPrompt.section({ name: 'conversation:aside',
-+    order: ctx.systemPrompt.getSectionOrder('DEPLOYMENT_PERSONA_SUFFIX'), interpolate: false,
-+    text: 'Answer the quick question in the user’s language using the supplied main-conversation progress as background. Give at most three short sentences or five short progress bullets. Do not call tools, continue the main task, or ask a follow-up. If the snapshot does not contain the answer, say so in one sentence.',
-+  }), 'quick question: instructions')
-+  ctx.on('system-prompt/assemble', async (_assembly, context, next) => {
-+    const result = await next()
-+    context.signal?.throwIfAborted()
-+    using source = await readParent.observeSession(parent, { projectionMode: 'none', ...(context.signal === undefined ? {} : { signal: context.signal }) })
-+    context.signal?.throwIfAborted()
-+    const text = quickQuestionContext(parent, source.events, contextBytes)
-+    if (text) result.contexts.push({ name: 'conversation:main-progress', text, interpolate: false })
-+    return result
-+  })
-+}
-+
-+/** Owns fresh quick-question Agents and drains admissions when the Host stops. */
-+export class QuickQuestionSessions {
-+  private readonly handles = new Map<SessionId, AgentHandle>()
-+  private readonly pending = new Set<Promise<SessionForkValue>>()
-+  private readonly retiring = new Set<Promise<void>>()
-+  private closed = false
-+
-+  /** @param ctx - Host Session services.
-+   * @param agents - Shared preset composition and recorded model selection.
-+   * @param maxTokens - Output limit for one question.
-+   * @param effort - Live requested reasoning level.
-+   */
-+  constructor(private readonly ctx: Context, private readonly agents: ApiSessionAgentController,
-+    private readonly maxTokens: number, private readonly effort: () => string) {
-+    ctx.on('agent/disposed', ({ agent }) => {
-+      if (this.handles.get(agent.id)?.agent === agent) this.handles.delete(agent.id)
-+    })
-+    ctx.on('agent/status', ({ agent, status }) => {
-+      const handle = this.handles.get(agent.id)
-+      if (status !== 'idle' || this.closed || handle?.agent !== agent) return
-+      const task = this.releaseWhenDurable(handle).catch((error: unknown) => {
-+        if (!this.closed) this.ctx.logger.warn(`Could not release quick question "${agent.id}": ${errorChain(error)}`)
-+      })
-+      this.retiring.add(task)
-+      void task.then(() => { this.retiring.delete(task) })
-+    })
-+    ctx.on('workspace/session-stop', ({ sessionId }) => {
-+      for (const { agent } of this.handles.values()) {
-+        if (agent.session.header.parentSession === sessionId && agent.status === 'running') agent.cancel({ kind: 'user' })
-+      }
-+    })
-+  }
-+
-+  /** Retain a live child until its answer reaches persistence.
-+   * @param handle - Child owned by this Host.
-+   */
-+  retain(handle: AgentHandle): void {
-+    this.handles.set(handle.agent.id, handle)
-+  }
-+
-+  private async releaseWhenDurable(handle: AgentHandle): Promise<void> {
-+    const { agent } = handle
-+    await agent.whenIdle()
-+    if (this.closed || this.handles.get(agent.id) !== handle || !this.ctx.get('sessionPersistence')) return
-+    if (await this.ctx.sessions.flush(agent.session) && agent.status === 'idle' && this.handles.get(agent.id) === handle) {
-+      await handle.dispose()
-+    }
-+  }
-+
-+  /** Create a fresh child without submitting a turn to either conversation.
-+   * @param parent - Main Session chosen by the user.
-+   * @returns Identity of the published child.
-+   */
-+  open(parent: SessionId): Promise<SessionForkValue> {
-+    if (this.closed) return Promise.reject(new RemoteError('gateway/internal', 'Session service is closing', {}))
-+    const operation = this.create(parent)
-+    this.pending.add(operation)
-+    const settled = (): void => { this.pending.delete(operation) }
-+    void operation.then(settled, settled)
-+    return operation
-+  }
-+
-+  private async create(parent: SessionId): Promise<SessionForkValue> {
-+    const child = brandString<SessionId>(`session-btw-${randomUUID()}`)
-+    for (const id of [parent, child]) {
-+      if (!this.ctx.remoteAccess.allows({ kind: 'session', id })) {
-+        throw new RemoteError('remote-access/denied', 'Quick-question access denied.', { action: 'session/aside', reason: 'no-allow' })
-+      }
-+    }
-+    if (this.ctx.workspaceRegistry.archivedSessionIds.includes(parent)) {
-+      throw new RemoteError('session/fork-unavailable', 'Restore the main conversation before asking a quick question.', { sessionId: parent })
-+    }
-+    const live = this.ctx.sessions.get(parent)
-+    if (live !== undefined) await this.ctx.sessions.flush(live)
-+    using source = await this.ctx.sessionQuery.observeSession(parent, { projectionMode: 'all' })
-+    const composition = await this.agents.composeAgent(this.agents.presetForObservation(source))
-+    const route = this.ctx.agents.get(parent)?.model.current() ?? source.projections?.values.modelSelection?.next
-+      ?? source.events.findLast(event => event.type === 'request/header')?.data.header.config
-+    const inherited: ModelSelection = route === undefined ? this.ctx.agentDefaultModel.currentSelection() : {
-+      provider: route.provider, model: route.model,
-+      ...(route.reasoningEffort === undefined ? {} : { reasoningEffort: ReasoningEffortId(route.reasoningEffort) }),
-+    }
-+    const selection = await this.selectEffort(inherited)
-+    const handle = await this.ctx.agents.create({ sessionId: child,
-+      meta: { parentSession: parent, ...(source.header.cwd === undefined ? {} : { cwd: source.header.cwd }),
-+        ...(composition.agentPreset === undefined ? {} : { agentPreset: composition.agentPreset }) },
-+      agentOptions: { ...selection, maxTokens: this.maxTokens }, setup: composition.setup,
-+    })
-+    try {
-+      handle.agent.model.select(selection)
-+      this.retain(handle)
-+      if (await this.ctx.sessions.flush(handle.agent.session) && this.ctx.get('sessionPersistence')) {
-+        await handle.dispose()
-+      }
-+      return { sessionId: child }
-+    } catch (error) {
-+      await handle.dispose()
-+      throw error
-+    }
-+  }
-+
-+  private async selectEffort(inherited: ModelSelection): Promise<ModelSelection> {
-+    try {
-+      const model = await this.ctx.llm.resolveModelInfo(inherited.provider, inherited.model)
-+      const effort = this.effort()
-+      return model.reasoning?.efforts.some(entry => entry.id === effort)
-+        ? { ...inherited, reasoningEffort: ReasoningEffortId(effort) } : inherited
-+    } catch (error) {
-+      this.ctx.logger.warn(`Quick-question model lookup failed: ${errorChain(error)}`)
-+      return inherited
-+    }
-+  }
-+
-+  /** Finish admitted publications before releasing child Agents. */
-+  async close(): Promise<void> {
-+    this.closed = true
-+    await Promise.allSettled([...this.pending])
-+    await Promise.all([...this.handles.values()].map(handle => handle.dispose()))
-+    await Promise.allSettled([...this.retiring])
-+  }
-+}
 diff --git a/packages/api/session-controller/src/web/controller.ts b/packages/api/session-controller/src/web/controller.ts
-index 7e849e4cca5e503f9169bb3c0cef136fcba13b27..6f800cb2b9ba30a3a001ad9616fcbbd3a797e699 100644
+index 7e849e4cca5e503f9169bb3c0cef136fcba13b27..2d72f5ba1a53400c3b9e615bda2032ffcfd454bb 100644
 --- a/packages/api/session-controller/src/web/controller.ts
 +++ b/packages/api/session-controller/src/web/controller.ts
 @@ -1,5 +1,6 @@
@@ -48772,7 +48693,7 @@ index 7e849e4cca5e503f9169bb3c0cef136fcba13b27..6f800cb2b9ba30a3a001ad9616fcbbd3
      if (request.activate === true && !signal.aborted
 -      && observation.header.origin !== 'subagent' && observation.source === 'prepared') {
 +      && observation.header.origin !== 'subagent' && observation.source === 'prepared'
-+      && nativeAsideKind(sessionId, observation.header.parentSession) !== 'btw') {
++      && nativeAsideKind(sessionId, observation.header.parentSession) === undefined) {
        const promotion = observation.retain()
        observation[Symbol.dispose]()
        try {
@@ -50296,3 +50217,283 @@ index dae2e1b7ef139fee5963889e9fbacf023d4e79c7..35799f25db9bf60f96ae4355ff67042b
    it('shows only the current blank session in its Workspace count and tree', () => {
      const currentBlank = { ...summary('current-blank', 5), blank: true, retainedBy: { mainView: 1 } }
      const staleBlank = { ...summary('stale-blank', 4), blank: true }
+diff --git a/packages/api/session-controller/src/aside-prompt.ts b/packages/api/session-controller/src/aside-prompt.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..cb140921f3d3b7954264b9337f8c5e8191054a2f
+--- /dev/null
++++ b/packages/api/session-controller/src/aside-prompt.ts
+@@ -0,0 +1,42 @@
++/** Scoped instructions and recorded parent context for native side conversations and quick questions. */
++import type { Context } from '@deepseek-ai/cordis'
++import type { Agent } from '@deepseek-ai/dsh-agent'
++import type { SessionId } from '@deepseek-ai/dsh-session'
++import type {} from '@deepseek-ai/dsh-permission-presets'
++import type {} from '@deepseek-ai/dsh-system-prompt'
++import { mainProgressContext } from './aside-main-context.ts'
++import { quickQuestionContext } from './aside-question-context.ts'
++import { completedPredictionEvents } from './prediction.ts'
++
++/** Restore the aside's own prompt on both creation and cold resume.
++ * @param ctx - Unpublished child Agent scope.
++ * @param agent - Child whose Session records each model request.
++ * @param parent - Owning main conversation.
++ * @param kind - Persistent discussion or one-shot question.
++ * @param readParent - Owning Host's Session query service.
++ * @param contextBytes - Maximum bytes of parent context in each request.
++ */
++export function configureAsidePrompt(ctx: Context, agent: Agent, parent: SessionId, kind: 'side' | 'btw',
++  readParent: Context['sessionQuery'], contextBytes: number): void {
++  if (kind === 'btw') {
++    const presets = ctx.get('permissionPresets')
++    if (presets === undefined) throw new Error('A quick question requires the read-only permission preset.')
++    presets.set(agent.session, 'read-only')
++  }
++  ctx.effect(() => ctx.systemPrompt.section({ name: 'conversation:aside',
++    order: ctx.systemPrompt.getSectionOrder('DEPLOYMENT_PERSONA_SUFFIX'), interpolate: false,
++    text: kind === 'side'
++      ? 'Answer the question asked in this independent side conversation. Use completed main-conversation messages as background. Side messages belong to this discussion.'
++      : 'Answer the quick question in the user’s language using the supplied main-conversation progress as background. Give at most three short sentences or five short progress bullets. Do not call tools, continue the main task, or ask a follow-up. If the snapshot does not contain the answer, say so in one sentence.',
++  }), 'conversation: aside instructions')
++  ctx.on('system-prompt/assemble', async (_assembly, context, next) => {
++    const result = await next()
++    context.signal?.throwIfAborted()
++    using source = await readParent.observeSession(parent, { projectionMode: 'none', ...(context.signal === undefined ? {} : { signal: context.signal }) })
++    context.signal?.throwIfAborted()
++    const text = kind === 'btw' ? quickQuestionContext(parent, source.events, contextBytes)
++      : mainProgressContext(parent, completedPredictionEvents(source.events), contextBytes)
++    if (text) result.contexts.push({ name: 'conversation:main-progress', text, interpolate: false })
++    return result
++  })
++}
+diff --git a/packages/api/session-controller/src/aside-sessions.ts b/packages/api/session-controller/src/aside-sessions.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..687f0c733a6852fddb9c212e62b181d19967751f
+--- /dev/null
++++ b/packages/api/session-controller/src/aside-sessions.ts
+@@ -0,0 +1,168 @@
++/** Publication and lifetime of native side conversations and one-shot questions. */
++import { randomUUID } from 'node:crypto'
++import type { Context } from '@deepseek-ai/cordis'
++import type { AgentHandle, ModelSelection } from '@deepseek-ai/dsh-agent'
++import { brandString } from '@deepseek-ai/dsh-brand'
++import { errorChain, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
++import { setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy'
++import { setApprovalPolicy } from '@deepseek-ai/dsh-user-approval'
++import type { SessionId } from '@deepseek-ai/dsh-session'
++import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
++import type { ApiSessionAgentController } from './agent.ts'
++import { currentSide, sideIdentity } from './aside-identity.ts'
++import type { SessionAsideRequest, SessionForkValue } from './types.ts'
++
++/** Owns independent aside Agents and drains admissions when the Host stops. */
++export class AsideSessions {
++  private readonly handles = new Map<SessionId, AgentHandle>()
++  private readonly pending = new Set<Promise<SessionForkValue>>()
++  private readonly retiring = new Set<Promise<void>>()
++  private readonly openingSides = new Map<SessionId, Promise<SessionForkValue>>()
++  private closed = false
++
++  /** @param ctx - Host Session services.
++   * @param agents - Shared preset composition and recorded model selection.
++   * @param maxTokens - Output limit for one question.
++   * @param effort - Live requested reasoning level.
++   */
++  constructor(private readonly ctx: Context, private readonly agents: ApiSessionAgentController,
++    private readonly maxTokens: number, private readonly effort: () => string) {
++    ctx.on('agent/disposed', ({ agent }) => {
++      if (this.handles.get(agent.id)?.agent === agent) this.handles.delete(agent.id)
++    })
++    ctx.on('agent/status', ({ agent, status }) => {
++      const handle = this.handles.get(agent.id)
++      if (status !== 'idle' || this.closed || handle?.agent !== agent) return
++      const task = this.releaseWhenDurable(handle).catch((error: unknown) => {
++        if (!this.closed) this.ctx.logger.warn(`Could not release aside "${agent.id}": ${errorChain(error)}`)
++      })
++      this.retiring.add(task)
++      void task.then(() => { this.retiring.delete(task) })
++    })
++    ctx.on('workspace/session-stop', ({ sessionId }) => {
++      for (const { agent } of this.handles.values()) {
++        if (agent.session.header.parentSession === sessionId && agent.status === 'running') agent.cancel({ kind: 'user' })
++      }
++    })
++  }
++
++  /** Retain a live child until its answer reaches persistence.
++   * @param handle - Child owned by this Host.
++   */
++  retain(handle: AgentHandle): void {
++    this.handles.set(handle.agent.id, handle)
++  }
++
++  private async releaseWhenDurable(handle: AgentHandle): Promise<void> {
++    const { agent } = handle
++    await agent.whenIdle()
++    if (this.closed || this.handles.get(agent.id) !== handle || !this.ctx.get('sessionPersistence')) return
++    if (await this.ctx.sessions.flush(agent.session) && agent.status === 'idle' && this.handles.get(agent.id) === handle) {
++      await handle.dispose()
++    }
++  }
++
++  /** Open the current side conversation or create a fresh quick question, without submitting a turn.
++   * @param request - Owning main Session and the requested kind of discussion.
++   * @returns Identity of the published child.
++   */
++  async open(request: SessionAsideRequest): Promise<SessionForkValue> {
++    if (this.closed) throw new RemoteError('gateway/internal', 'Session service is closing', {})
++    const { sessionId: parent, kind } = request
++    this.authorize(parent)
++    if (this.ctx.workspaceRegistry.archivedSessionIds.includes(parent)) {
++      throw new RemoteError('session/fork-unavailable', 'Restore the main conversation before opening an aside.', { sessionId: parent })
++    }
++    const pending = kind === 'side' ? this.openingSides.get(parent) : undefined
++    if (pending !== undefined) {
++      const result = await pending
++      this.authorize(result.sessionId)
++      return result
++    }
++    const operation = this.openChild(parent, kind)
++    if (kind === 'side') this.openingSides.set(parent, operation)
++    this.pending.add(operation)
++    try {
++      return await operation
++    } finally {
++      this.pending.delete(operation)
++      if (this.openingSides.get(parent) === operation) this.openingSides.delete(parent)
++    }
++  }
++
++  private authorize(id: SessionId): void {
++    if (!this.ctx.remoteAccess.allows({ kind: 'session', id })) {
++      throw new RemoteError('remote-access/denied', 'Aside access denied.', { action: 'session/aside', reason: 'no-allow' })
++    }
++  }
++
++  private async openChild(parent: SessionId, kind: SessionAsideRequest['kind']): Promise<SessionForkValue> {
++    const live = this.ctx.sessions.get(parent)
++    if (live !== undefined) await this.ctx.sessions.flush(live)
++    using source = await this.ctx.sessionQuery.observeSession(parent, { projectionMode: 'all' })
++    const current = kind === 'side' ? await currentSide(this.ctx, source.header.id) : undefined
++    const child = current?.id ?? (kind === 'side' ? sideIdentity(parent) : brandString<SessionId>(`session-btw-${randomUUID()}`))
++    this.authorize(child)
++    if (current !== undefined) return { sessionId: current.id }
++    const composition = await this.agents.composeAgent(this.agents.presetForObservation(source))
++    const route = this.ctx.agents.get(parent)?.model.current() ?? source.projections?.values.modelSelection?.next
++      ?? source.events.findLast(event => event.type === 'request/header')?.data.header.config
++    const inherited: ModelSelection = route === undefined ? this.ctx.agentDefaultModel.currentSelection() : {
++      provider: route.provider, model: route.model,
++      ...(route.reasoningEffort === undefined ? {} : { reasoningEffort: ReasoningEffortId(route.reasoningEffort) }),
++    }
++    const selection = kind === 'btw' ? await this.selectEffort(inherited) : inherited
++    const preset = source.projections?.values.permissions?.currentValue
++    const sandbox = source.events.findLast(event => event.type === 'sandbox/mode')
++    const approval = source.events.findLast(event => event.type === 'approval/policy')
++    const handle = await this.ctx.agents.create({ sessionId: child,
++      meta: { parentSession: parent, ...(source.header.cwd === undefined ? {} : { cwd: source.header.cwd }),
++        ...(composition.agentPreset === undefined ? {} : { agentPreset: composition.agentPreset }) },
++      agentOptions: kind === 'btw' ? { ...selection, maxTokens: this.maxTokens } : selection,
++      setup: async (ctx, agent) => {
++        const commit = await composition.setup(ctx, agent)
++        if (kind === 'side') {
++          if (preset !== undefined && preset !== 'custom') {
++            const presets = ctx.get('permissionPresets')
++            if (!presets) throw new Error('The permission preset recorded by the main conversation is unavailable.')
++            presets.set(agent.session, preset)
++          }
++          if (sandbox !== undefined) setSandboxMode(agent.session, sandbox.data.mode)
++          if (approval !== undefined) setApprovalPolicy(agent.session, approval.data.policy)
++        }
++        return commit
++      },
++    })
++    try {
++      handle.agent.model.select(selection)
++      this.retain(handle)
++      if (await this.ctx.sessions.flush(handle.agent.session) && this.ctx.get('sessionPersistence')) {
++        await handle.dispose()
++      }
++      return { sessionId: child }
++    } catch (error) {
++      await handle.dispose()
++      throw error
++    }
++  }
++
++  private async selectEffort(inherited: ModelSelection): Promise<ModelSelection> {
++    try {
++      const model = await this.ctx.llm.resolveModelInfo(inherited.provider, inherited.model)
++      const effort = this.effort()
++      return model.reasoning?.efforts.some(entry => entry.id === effort)
++        ? { ...inherited, reasoningEffort: ReasoningEffortId(effort) } : inherited
++    } catch (error) {
++      this.ctx.logger.warn(`Quick-question model lookup failed: ${errorChain(error)}`)
++      return inherited
++    }
++  }
++
++  /** Finish admitted publications before releasing child Agents. */
++  async close(): Promise<void> {
++    this.closed = true
++    await Promise.allSettled([...this.pending])
++    await Promise.all([...this.handles.values()].map(handle => handle.dispose()))
++    await Promise.allSettled([...this.retiring])
++  }
++}
+diff --git a/packages/api/session-controller/tests/side-session.host.spec.ts b/packages/api/session-controller/tests/side-session.host.spec.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..8b52b7a00fb404db1023772fd05804763c62ea8d
+--- /dev/null
++++ b/packages/api/session-controller/tests/side-session.host.spec.ts
+@@ -0,0 +1,52 @@
++/** Persistent native side discussions opened through the Host Session API. */
++import { Context } from '@deepseek-ai/cordis'
++import { brandString } from '@deepseek-ai/dsh-brand'
++import { mountAgentLoopTestDependencies, mountAgentLoopTestHarness } from '@deepseek-ai/dsh-agent-loop-testkit'
++import type { SessionId } from '@deepseek-ai/dsh-session'
++import { expect, it, vi } from 'vitest'
++import { MockAdapter, textResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
++import type { SessionRequestId } from '../src/types.ts'
++import { sideIdentity } from '../src/aside-identity.ts'
++import { createSessionTestController } from './test-remote.ts'
++
++it('reuses one side per parent, inherits its model and permissions, and authorizes follow-ups', async () => {
++  const ctx = new Context()
++  const parent = brandString<SessionId>('writing-draft')
++  const archived: SessionId[] = []
++  const selection = { provider: 'writing-fixture', model: 'draft' }
++  const adapter = new MockAdapter([textResponse('An independent answer.')])
++  try {
++    await mountAgentLoopTestDependencies(ctx)
++    const harness = await mountAgentLoopTestHarness(ctx)
++    ctx.provide('workspaceRegistry', { list: () => [], archivedSessionIds: archived } as never)
++    ctx.llm.registerAdapter([selection.provider], adapter)
++    const controller = await createSessionTestController(ctx, { defaultModelSelection: () => selection, cwd: '/writing' })
++    const main = await harness.create(parent, selection, { cwd: '/writing' })
++    main.session.append('sandbox/mode', { mode: 'read-only' })
++    main.session.append('approval/policy', { policy: 'ask' })
++    const open = () => controller.aside({ sessionId: parent, kind: 'side' })
++    const [first, second] = await Promise.all([open(), open()])
++    expect(first.sessionId).toBe(sideIdentity(parent))
++    expect(second.sessionId).toBe(first.sessionId)
++    const side = ctx.agents.get(first.sessionId)!
++    expect(side.session.header).toMatchObject({ cwd: '/writing', parentSession: parent })
++    expect(side.model.current()).toMatchObject(selection)
++    expect(side.session.snapshotEvents().findLast(event => event.type === 'sandbox/mode')?.data.mode).toBe('read-only')
++    expect(side.session.snapshotEvents().findLast(event => event.type === 'approval/policy')?.data.policy).toBe('ask')
++    const prompt = () => controller.prompt({ sessionId: side.id, requestId: brandString<SessionRequestId>('side-question'),
++      mode: 'queue', content: [{ type: 'text', text: 'Suggest a chapter title.' }] }, new AbortController().signal)
++    const allow = vi.spyOn(ctx.remoteAccess, 'allows')
++    allow.mockImplementation(resource => resource.kind !== 'session' || resource.id !== parent)
++    await expect(open()).rejects.toMatchObject({ code: 'remote-access/denied' })
++    await expect(prompt()).rejects.toMatchObject({ code: 'remote-access/denied' })
++    expect(adapter.requests).toHaveLength(0)
++    allow.mockRestore()
++    await expect(prompt()).resolves.toEqual({ accepted: true })
++    await side.whenIdle()
++    expect(adapter.requests).toHaveLength(1)
++    expect(JSON.stringify(side.session.deriveMessages())).toContain('An independent answer.')
++    expect(main.session.deriveMessages()).toEqual([])
++    archived.push(parent)
++    await expect(open()).rejects.toMatchObject({ code: 'session/fork-unavailable' })
++  } finally { await ctx.fiber.dispose() }
++})

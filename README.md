@@ -187,6 +187,8 @@ https://github.com/user-attachments/assets/69f74147-3377-461c-8ec2-17169bd3ba71
 
 想从头开始，在旁问里发 `/clear`；也可以在 *设置 → 通用* 打开“旁问关闭后自动清除上下文”，关掉标签就清空。
 
+新版内核候选的 Host 已可找回旧版旁问，接着最近一次清理后的讨论继续提问。右侧面板、清理开关及安装包的验收进度见[新版接手文档](.agents/requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表)。
+
 <img src="docs/assets/dshu/side-question.webp" alt="旁问：主线写好发布说明草案，右侧旁问讨论第二条怎样写得更易懂">
 <p align="center"><sub>主线写好草案，旁问里讨论其中一条的写法</sub></p>
 

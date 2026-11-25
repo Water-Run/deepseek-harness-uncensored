@@ -203,6 +203,28 @@ it('reopens and continues a released conversation containing an unsent composer 
   } finally { await ctx.fiber.dispose() }
 })
 
+async function mountConversationHost(runtime: Context, adapter: MockAdapter) {
+  await mountAgentLoopTestDependencies(runtime)
+  const harness = await mountAgentLoopTestHarness(runtime)
+  runtime.provide('shell', {
+    sandboxMode: 'workspace-write',
+    resolve() { throw new Error('Unexpected shell use') },
+    run() { throw new Error('Unexpected shell use') },
+    start() { throw new Error('Unexpected shell use') },
+  })
+  runtime.provide('approval', { config: { policy: 'ask' } })
+  const bundle = loadCordisYaml(await readFile(new URL('../packages/bundle/base/cordis.patch.yml', import.meta.url), 'utf8'))
+  const rows = (bundle as { insert: { id: string; config?: Record<string, unknown> }[] }[])[0]?.insert
+  const permission = rows?.find(row => row.id === 'permission')?.config
+  if (!permission) throw new Error('The release bundle has no permission preset configuration')
+  await liveConfig(runtime, PermissionPresets, permission)
+  runtime.provide('workspaceRegistry', { list: () => [], archivedSessionIds: [] } as never)
+  const model = { provider: 'mock', model: 'mock' }
+  runtime.llm.registerAdapter(['mock'], adapter)
+  const controller = await createSessionTestController(runtime, { defaultModelSelection: () => model, cwd: workspace })
+  return { harness, controller, model }
+}
+
 it('reopens the released quick question with its own answer, permissions and recorded parent context', async () => {
   const store = new Context()
   const parentId = brandString<SessionId>('released-question-parent')
@@ -216,28 +238,11 @@ it('reopens the released quick question with its own answer, permissions and rec
     if (phase === 'write') {
       const runtime = new Context()
       try {
-        await mountAgentLoopTestDependencies(runtime)
-        const harness = await mountAgentLoopTestHarness(runtime)
-        runtime.provide('shell', {
-          sandboxMode: 'workspace-write',
-          resolve() { throw new Error('Unexpected shell use') },
-          run() { throw new Error('Unexpected shell use') },
-          start() { throw new Error('Unexpected shell use') },
-        })
-        runtime.provide('approval', { config: { policy: 'ask' } })
-        const bundle = loadCordisYaml(await readFile(new URL('../packages/bundle/base/cordis.patch.yml', import.meta.url), 'utf8'))
-        const rows = (bundle as { insert: { id: string; config?: Record<string, unknown> }[] }[])[0]?.insert
-        const permission = rows?.find(row => row.id === 'permission')?.config
-        if (!permission) throw new Error('The release bundle has no permission preset configuration')
-        await liveConfig(runtime, PermissionPresets, permission)
-        runtime.provide('workspaceRegistry', { list: () => [], archivedSessionIds: [] } as never)
-        const model = { provider: 'mock', model: 'mock' }
         const adapter = new MockAdapter([textResponse(mainAnswer), textResponse(answer)], {
           efforts: ['off', 'low', 'high'].map(id => ({ id: ReasoningEffortId(id), name: id })),
           defaultEffort: ReasoningEffortId('high'),
         })
-        runtime.llm.registerAdapter(['mock'], adapter)
-        const controller = await createSessionTestController(runtime, { defaultModelSelection: () => model, cwd: workspace })
+        const { harness, controller, model } = await mountConversationHost(runtime, adapter)
         const parent = await harness.create(parentId, model, { cwd: workspace })
         const prompt = (text: string) => createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text }] })
         parent.followup(prompt(mainRequest))
@@ -281,6 +286,100 @@ it('reopens the released quick question with its own answer, permissions and rec
     }
   } finally { await store.fiber.dispose() }
 })
+
+it('continues a released side conversation with fresh completed parent context after a cold start', async () => {
+  const ctx = new Context()
+  const parentId = brandString<SessionId>('released-side-parent')
+  const receipt = join(directory, 'side-conversation.json')
+  const mainQuestion = 'Describe a public garden.'
+  const mainAnswer = 'The garden has a fountain.'
+  const firstQuestion = 'Suggest a name for the fountain.'
+  const firstAnswer = 'The Silver Spring.'
+  const mainUpdate = 'The opening date is now September 8.'
+  const secondQuestion = 'What name did we choose, and when will the garden open?'
+  const secondAnswer = 'The Silver Spring opens September 8.'
+  const prompt = (text: string) => createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text }] })
+  try {
+    await ctx.plugin(jsonl, { root: join(directory, 'sessions'), compression: 'zstd' })
+    const adapter = new MockAdapter((phase === 'write' ? [mainAnswer, 'The retired discussion is complete.', firstAnswer, mainUpdate] : [secondAnswer]).map(textResponse))
+    const { harness, controller, model } = await mountConversationHost(ctx, adapter)
+    if (phase === 'write') {
+      const main = await harness.create(parentId, model, { cwd: workspace })
+      main.followup(prompt(mainQuestion))
+      await main.whenIdle()
+      const original = await controller.aside({ sessionId: parentId, kind: 'side' })
+      const retired = ctx.agents.get(original.sessionId)
+      if (!retired) throw new Error('The released Host did not create the initial side conversation')
+      retired.followup(prompt('An earlier question in the retired discussion.'))
+      await retired.whenIdle()
+      const { sessionId } = await controller.resetAside({ sessionId: original.sessionId, cause: 'manual' })
+      expect(sessionId).not.toBe(original.sessionId)
+      const side = ctx.agents.get(sessionId)
+      if (!side) throw new Error('The released Host did not open the side conversation')
+      side.followup(prompt(firstQuestion))
+      await side.whenIdle()
+      main.followup(prompt('Record the opening date.'))
+      await main.whenIdle()
+      expect(adapter.requests).toHaveLength(4)
+      expect(JSON.stringify(adapter.requests[1]?.messages)).toContain(mainAnswer)
+      expect(JSON.stringify(adapter.requests[3]?.messages)).not.toContain(firstQuestion)
+      expect(await ctx.sessions.flush(side.session)).toBe(true)
+      expect(await ctx.sessions.flush(main.session)).toBe(true)
+      await writeFile(receipt, JSON.stringify({ current: sessionId, retired: original.sessionId }))
+      return
+    }
+    const { current: saved, retired } = JSON.parse(await readFile(receipt, 'utf8')) as { current: SessionId; retired: SessionId }
+    const openings = await Promise.all([1, 2].map(() => controller.aside({ sessionId: parentId, kind: 'side' })))
+    expect(openings.map(item => item.sessionId)).toEqual([saved, saved])
+    using retiredLog = await ctx.sessionQuery.observeSession(retired)
+    expect(JSON.stringify(retiredLog.events)).toContain('An earlier question in the retired discussion.')
+    await expect(controller.prompt({
+      sessionId: retired, requestId: brandString<Branded<'session-request-id'>>('retired-side'), mode: 'queue',
+      content: [{ type: 'text', text: 'Do not append this to the retired discussion.' }],
+    }, new AbortController().signal)).rejects.toMatchObject({ code: 'session/agent-busy', details: { reason: 'side-context-cleared' } })
+    expect(ctx.agents.get(retired)).toBeUndefined()
+    expect(adapter.requests).toHaveLength(0)
+    if (phase === 'read') {
+      const mainHandle = await ctx.sessionPersistence.open(parentId, 'write')
+      try {
+        const { events } = await mainHandle.read()
+        const restored = Session.fromRestore(parentId, events, mainHandle.header, mainHandle.inheritedEventCount, 'detached')
+        restored.append('turn/start', { turn: 3 })
+        restored.append('user/message', prompt('UNFINISHED PRIVATE DRAFT'), { surfaceOp: 'append' })
+        await mainHandle.append(restored.snapshotEvents().slice(events.length))
+        await mainHandle.flush()
+      } finally { await mainHandle.close() }
+      const accepted = await controller.prompt({
+        sessionId: saved, requestId: brandString<Branded<'session-request-id'>>('continue-side'), mode: 'queue',
+        content: [{ type: 'text', text: secondQuestion }],
+      }, new AbortController().signal)
+      expect(accepted).toEqual({ accepted: true })
+      const side = ctx.agents.get(saved)
+      if (!side) throw new Error('Candidate did not resume the saved side conversation')
+      await side.whenIdle()
+      const outgoing = JSON.stringify(adapter.requests.at(-1)?.messages)
+      for (const text of [firstQuestion, firstAnswer, mainUpdate, secondQuestion]) expect(outgoing).toContain(text)
+      expect(outgoing).not.toContain('UNFINISHED PRIVATE DRAFT')
+      expect(outgoing).not.toContain('An earlier question in the retired discussion.')
+      expect(await ctx.sessions.flush(side.session)).toBe(true)
+    }
+    for (const id of [parentId, saved]) {
+      using observation = await ctx.sessionQuery.observeSession(id)
+      const users = observation.events.filter(event => event.type === 'user/message' && event.data.source.kind === 'user')
+      const transcript = JSON.stringify(users)
+      if (id === saved) {
+        expect(observation.header.parentSession).toBe(parentId)
+        expect(transcript).toContain(firstQuestion)
+        expect(transcript).toContain(secondQuestion)
+        expect(JSON.stringify(observation.events.filter(event => event.type === 'assistant/message'))).toContain(secondAnswer)
+      } else {
+        expect(transcript).toContain(mainQuestion)
+        expect(transcript).not.toContain(firstQuestion)
+        expect(transcript).not.toContain(secondQuestion)
+      }
+    }
+  } finally { await ctx.fiber.dispose() }
+}, 30_000)
 
 it('recovers a rejected MCP declaration from a released v4 log and reopens the same conversation', async () => {
   await mkdir(workspace, { recursive: true })
