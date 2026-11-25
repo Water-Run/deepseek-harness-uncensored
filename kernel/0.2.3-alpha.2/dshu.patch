@@ -29297,9 +29297,20 @@ index 9c706a68cd147e15103f42346ae328705cbace9d..2304f92ffe0492407a7b10f4d60b5aa0
 +it.each([['63.88541800', '¥63.885418'], ['-0.005871', '-¥0.005871'], ['0E-16', '¥0.00'], ['1E-8', '¥0.00000001']])(
 +  'preserves the exact inspected amount %s', (amount, expected) => { expect(formatBalanceDetail(amount, '¥')).toBe(expected) })
 diff --git a/packages/client/ui-sidebar/README.i18n.yaml b/packages/client/ui-sidebar/README.i18n.yaml
-index 7d7a31ef1a42331abdbafd146efebb58b6e0f87f..9300913783d64a7c3f5037cc9a52e340fac09fc9 100644
+index 7d7a31ef1a42331abdbafd146efebb58b6e0f87f..01573becd64b1eeb49548132552321ea37f612ef 100644
 --- a/packages/client/ui-sidebar/README.i18n.yaml
 +++ b/packages/client/ui-sidebar/README.i18n.yaml
+@@ -15,8 +15,8 @@
+   en: d152484eb41ac6b4
+   zh: 09388d293f9be9cb
+ /deepseek-ai-dsh-client-ui-sidebar/use-this-package:
+-  en: bbd3b8e6b9d87124
+-  zh: 9d387d1925599c13
++  en: cb75f73b338f11d1
++  zh: ba3ae14689d12e59
+ /deepseek-ai-dsh-client-ui-sidebar/use-this-package/brand-and-new-session:
+   en: 6bc49e22f0f73f07
+   zh: 10883997ccb7d145
 @@ -33,8 +33,8 @@
    en: dd59917acefeab78
    zh: 28d70c963795c0a0
@@ -29312,10 +29323,19 @@ index 7d7a31ef1a42331abdbafd146efebb58b6e0f87f..9300913783d64a7c3f5037cc9a52e340
    en: 4d08c745534fc8f4
    zh: 164418412f91c02a
 diff --git a/packages/client/ui-sidebar/README.md b/packages/client/ui-sidebar/README.md
-index 76cfeb907ce93b966db64e05f01d0e30a74153d4..fd5291d1c758e4089cceca58da10b3d92ce36bb7 100644
+index 76cfeb907ce93b966db64e05f01d0e30a74153d4..01264ed42e8ff55b08778c864b8fba7c85166eea 100644
 --- a/packages/client/ui-sidebar/README.md
 +++ b/packages/client/ui-sidebar/README.md
-@@ -72,7 +72,7 @@ On Desktop, the official navigation controls report `sidebar_menu_click` with `m
+@@ -27,6 +27,8 @@ The dsh web client sidebar lets users recognize the active build, start a new se
+ <a id="use-this-package"></a>
+ ## Use this package
+ 
++In DSHU, the expanded sidebar displays the product name and date version. Clicking the version copies the displayed value.
++
+ The sidebar is the navigation shell: users see the brand, start new sessions, collapse the rail, and reach Settings. Feature plugins fill its seats — ui-workspace fills `sidebar.workspaces`, ui-settings registers the trigger row and settings panel at `sidebar.settings`.
+ 
+ Below 768px, without a native Windows caption, the sidebar keeps its expanded content mounted inside the frame's drawer. The drawer initially focuses its collapse toggle, traps keyboard focus, closes with Escape or a mask press, and restores the invoking control unless a foreground dialog remains open. When an open drawer becomes a collapsed rail, focus remaining in its wide content transfers to the rail toggle before that content unmounts. When a collapsed rail becomes a hidden drawer, the sidebar transfers its own focus to its header opener, preserving focus elsewhere and in foreground dialogs. This includes focus in a global menu identified by the original sidebar control's `aria-controls`. Returning from a closed drawer renders the compact rail immediately, without a crossfade. Its toggle tooltip renders outside the drawer. Opening it does not resize the conversation.
+@@ -72,7 +74,7 @@ On Desktop, the official navigation controls report `sidebar_menu_click` with `m
  - The expanded brand and the New Session button report `menu_name=new_session` with `position=sidebar`. While the Windows caption hosts the collapsed New Session button, that button reports `position=titlebar`; the macOS New Session control beside the traffic lights also reports `position=titlebar`.
  - The **Plugins** and **Automation tasks** rows report `menu_name=plugin` and `menu_name=cron` with `position=sidebar`. Other panel rows report nothing.
  - Each **More** button click reports `menu_name=more` with `position=sidebar`, whether it opens or closes the menu.
@@ -29325,10 +29345,19 @@ index 76cfeb907ce93b966db64e05f01d0e30a74153d4..fd5291d1c758e4089cceca58da10b3d9
  -----
  
 diff --git a/packages/client/ui-sidebar/README.zh.md b/packages/client/ui-sidebar/README.zh.md
-index 0d76837aca6432003d817c3bb45ce7c8c2b25939..42f82b1547ee04c203ad24f24995e200029b67b4 100644
+index 0d76837aca6432003d817c3bb45ce7c8c2b25939..ff7f4c0b07d1a9595aad6f0dfe17be96b74dc26a 100644
 --- a/packages/client/ui-sidebar/README.zh.md
 +++ b/packages/client/ui-sidebar/README.zh.md
-@@ -72,7 +72,7 @@ root 作用域的 `sidebar.session.action` 是包裹新建会话行内容的 HOC
+@@ -27,6 +27,8 @@ dsh Web 客户端的侧边栏让用户识别当前构建、启动新会话、将
+ <a id="use-this-package"></a>
+ ## 使用本包
+ 
++在 DSHU 中，展开的侧栏显示产品名称和日期版本，点击版本号可以复制所示数值。
++
+ 侧边栏是导航外壳：用户看到品牌、启动新会话、折叠轨道并到达 Settings。功能插件填充它的席位——ui-workspace 填充 `sidebar.workspaces`，ui-settings 在 `sidebar.settings` 注册触发行与设置面板。
+ 
+ 宽度低于 768px 且没有原生 Windows 顶栏时，侧边栏在框架抽屉内保留展开内容。抽屉首先聚焦收起按钮，并限制键盘焦点范围，支持 Escape 和点击蒙层关闭，并在没有上层弹窗时将焦点还给打开它的控件。打开的抽屉切换为收起图标栏时，仍在展开内容中的焦点会在该内容卸载前转交给图标栏开关。收起的图标栏变为隐藏抽屉时，侧栏将自身焦点转交给顶部展开按钮，保留其他区域和上层弹窗的焦点。这也包括由原侧栏控件的 `aria-controls` 标识的全局菜单中的焦点。关闭的抽屉切回图标栏时，立即使用紧凑布局，不播放交叉淡入淡出。开关的提示气泡在抽屉外渲染。打开抽屉不改变会话宽度。
+@@ -72,7 +74,7 @@ root 作用域的 `sidebar.session.action` 是包裹新建会话行内容的 HOC
  - 展开态品牌与新建会话按钮上报 `menu_name=new_session`、`position=sidebar`。Windows 顶栏承载收起态新建会话按钮时，该按钮上报 `position=titlebar`；macOS 红绿灯旁的新建会话控件同样上报 `position=titlebar`。
  - **插件**与**自动化任务**面板行分别上报 `menu_name=plugin` 与 `menu_name=cron`，`position=sidebar`。其他面板行不上报。
  - 每次点击**更多**按钮都上报 `menu_name=more`、`position=sidebar`，无论打开还是关闭菜单。
@@ -30527,10 +30556,10 @@ index ddf9c2d6db33e22d7a5922c322b12ff08ff23e0f..703e38c49db92925d553f09116a0652c
    {
 diff --git a/apps/web/tests/about-dialog-fit.e2e.ts b/apps/web/tests/about-dialog-fit.e2e.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..004a83930b37b8f60a5cdc12b276e9c2ffad91e7
+index 0000000000000000000000000000000000000000..b02989c8467b5fada5cd1cb1e301a0b2c9318925
 --- /dev/null
 +++ b/apps/web/tests/about-dialog-fit.e2e.ts
-@@ -0,0 +1,105 @@
+@@ -0,0 +1,108 @@
 +/** The About dialog fits a full-screen window without a vertical scrollbar. */
 +import { readFileSync } from 'node:fs'
 +import { fileURLToPath } from 'node:url'
@@ -30570,6 +30599,9 @@ index 0000000000000000000000000000000000000000..004a83930b37b8f60a5cdc12b276e9c2
 +    })
 +    const consoleWatch = watchConsole(page)
 +    await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
++    await expect.poll(() => page.title()).toContain('DeepSeek Harness Uncensored')
++    await page.locator('[data-copy-version]').getByText(cliMetadata.dshuVersion, { exact: true }).waitFor()
++    await page.locator('[data-copy-version]').getByText('DeepSeek Harness Uncensored', { exact: true }).waitFor()
 +    await page.getByRole('button', { name: labels.account, exact: true }).click()
 +    await page.getByRole('menuitem', { name: labels.about, exact: true }).click()
 +    const dialog = page.getByRole('dialog', { name: labels.about, exact: true })
@@ -32212,7 +32244,7 @@ index be4f55f3b6656fbfa3e9f533dd9258ee61d44ec8..1e303f0677ce8c6bbf1228fbd23e07f6
 -设置意见反馈退出登录
 +设置关于意见反馈退出登录
 diff --git a/scripts/client-build-environment.client.spec.ts b/scripts/client-build-environment.client.spec.ts
-index 4348284834920bf70bb757cf29963d5eadaa440c..195886aa1b312e6719d1fd94a0ea88cce494a68e 100644
+index 4348284834920bf70bb757cf29963d5eadaa440c..ae81f3c2c9e5e5412cab8ab54021fd22b4323f85 100644
 --- a/scripts/client-build-environment.client.spec.ts
 +++ b/scripts/client-build-environment.client.spec.ts
 @@ -11,6 +11,7 @@ import {
@@ -32223,7 +32255,7 @@ index 4348284834920bf70bb757cf29963d5eadaa440c..195886aa1b312e6719d1fd94a0ea88cc
    repositoryClientBuildEnvironment,
    repositoryCommitHash,
    repositoryGitDirty,
-@@ -81,6 +82,35 @@ function repositoryFixture(version = '1.2.3-rc.4'): string {
+@@ -81,6 +82,39 @@ function repositoryFixture(version = '1.2.3-rc.4'): string {
  }
  
  describe('client build environment', () => {
@@ -32233,6 +32265,10 @@ index 4348284834920bf70bb757cf29963d5eadaa440c..195886aa1b312e6719d1fd94a0ea88cc
 +    git(root, ['add', 'apps/cli/package.json'])
 +    const local = repositoryClientBuildEnvironment(root, { DSH_CLIENT_BUILD_TIME: '2026-11-25T00:00:00.000Z' })
 +    expect(local.DSH_CLIENT_FORK_VERSION).toBe('2026.11.23.0')
++    expect(local.DSH_CLIENT_TITLE).toBe('DeepSeek Harness Uncensored')
++    for (const profile of ['local', 'official']) {
++      expect(resolveClientBuildEnvironment(local, profile).DSH_CLIENT_TITLE).toBe(local.DSH_CLIENT_TITLE)
++    }
 +    expect(local.DSH_CLIENT_VERSION).toBe('0.2.3-alpha.2')
 +    expect(local.DSH_CLIENT_UPSTREAM_COMMIT).toBe(git(root, ['rev-parse', 'HEAD']))
 +    expect(local.DSH_CLIENT_CANDIDATE_TREE).toBe(git(root, ['write-tree']))
@@ -32260,10 +32296,18 @@ index 4348284834920bf70bb757cf29963d5eadaa440c..195886aa1b312e6719d1fd94a0ea88cc
      const expected = {
        DSH_CLIENT_BUILD_PROFILE: 'official',
 diff --git a/scripts/client-build-environment.ts b/scripts/client-build-environment.ts
-index 6eed371b08d156b0a307d45c9dd6644ba871bb30..348279f490c32782f463c7f3a249927e6ca6c7f5 100644
+index 6eed371b08d156b0a307d45c9dd6644ba871bb30..adadc82fd9e7234957989c6da7228b4836d72369 100644
 --- a/scripts/client-build-environment.ts
 +++ b/scripts/client-build-environment.ts
-@@ -41,6 +41,32 @@ const CLIENT_ARTIFACT_PATTERNS = [
+@@ -12,6 +12,7 @@ import { dirname, resolve } from 'node:path'
+ 
+ /** Prefix reserved for build-time values that may be embedded in browser artifacts. */
+ const CLIENT_BUILD_ENV_PREFIX = 'DSH_CLIENT_'
++const DSHU_TITLE = 'DeepSeek Harness Uncensored'
+ 
+ /** Non-public selector used by build orchestration to request a named client profile. */
+ export const CLIENT_BUILD_PROFILE_SELECTOR = 'DSH_BUILD_CLIENT_PROFILE'
+@@ -41,6 +42,33 @@ const CLIENT_ARTIFACT_PATTERNS = [
    'packages/*/*/lib/assets/**/*',
  ] as const
  
@@ -32287,6 +32331,7 @@ index 6eed371b08d156b0a307d45c9dd6644ba871bb30..348279f490c32782f463c7f3a249927e
 +  if (!commit || !date) throw new Error('Git did not return the candidate commit and timestamp')
 +  const matchesIndex = git('diff', '--name-only') === '' && git('ls-files', '--others', '--exclude-standard') === ''
 +  return {
++    DSH_CLIENT_TITLE: DSHU_TITLE,
 +    DSH_CLIENT_FORK_VERSION: manifest.dshuVersion, DSH_CLIENT_BUILD_TIME: buildTime,
 +    DSH_CLIENT_UPSTREAM_COMMIT: commit, DSH_CLIENT_UPSTREAM_DATE: date,
 +    ...(matchesIndex ? { DSH_CLIENT_CANDIDATE_TREE: git('write-tree') } : {}),
@@ -32296,7 +32341,7 @@ index 6eed371b08d156b0a307d45c9dd6644ba871bb30..348279f490c32782f463c7f3a249927e
  /** Public values embedded in one set of client artifacts. */
  export type ClientBuildEnvironment = Readonly<Record<string, string>>
  
-@@ -120,13 +146,12 @@ export function repositoryClientBuildEnvironment(
+@@ -120,13 +148,12 @@ export function repositoryClientBuildEnvironment(
    root: string,
    environment: NodeJS.ProcessEnv = process.env,
  ): ClientBuildEnvironment {
@@ -32313,7 +32358,7 @@ index 6eed371b08d156b0a307d45c9dd6644ba871bb30..348279f490c32782f463c7f3a249927e
      DSH_CLIENT_COMMIT_HASH: repositoryCommitHash(root, environment),
      ...(dirty === true ? { DSH_CLIENT_GIT_DIRTY: 'true' } : {}),
      DSH_CLIENT_VERSION: repositoryVersion(root),
-@@ -147,6 +172,7 @@ export function officialClientBuildEnvironment(
+@@ -147,6 +174,7 @@ export function officialClientBuildEnvironment(
      DSH_CLIENT_COMMIT_HASH: repositoryCommitHash(root, environment),
      DSH_CLIENT_VERSION: repositoryVersion(root),
      ...OFFICIAL_CLIENT_BUILD_ENVIRONMENT,
@@ -32321,7 +32366,7 @@ index 6eed371b08d156b0a307d45c9dd6644ba871bb30..348279f490c32782f463c7f3a249927e
    }
  }
  
-@@ -202,6 +228,7 @@ export function resolveClientBuildEnvironment(
+@@ -202,12 +230,14 @@ export function resolveClientBuildEnvironment(
        throw new Error(`${CLIENT_VERSION_VARIABLE} is required for the ${profile} client build profile`)
      }
      return {
@@ -32329,7 +32374,14 @@ index 6eed371b08d156b0a307d45c9dd6644ba871bb30..348279f490c32782f463c7f3a249927e
        DSH_CLIENT_COMMIT_HASH: commitHash,
        DSH_CLIENT_VERSION: version,
        ...(profile === 'official' ? OFFICIAL_CLIENT_BUILD_ENVIRONMENT : {
-@@ -345,6 +372,25 @@ export function readClientBuildRecord(
+         DSH_CLIENT_BUILD_PROFILE: 'local',
+         ...(environment.DSH_CLIENT_GIT_DIRTY === 'true' ? { DSH_CLIENT_GIT_DIRTY: 'true' } : {}),
+       }),
++      ...(environment.DSH_CLIENT_FORK_VERSION === undefined ? {} : { DSH_CLIENT_TITLE: DSHU_TITLE }),
+     }
+   }
+   throw new Error(`unknown client build profile ${JSON.stringify(profile)}; expected "official" or "local"`)
+@@ -345,6 +375,25 @@ export function readClientBuildRecord(
    return record
  }
  
@@ -44495,3 +44547,135 @@ index 0ef9e97c3535941c62311bcb8e722ff4e9ddce81..cddedafe3ea613e76054e5ce2f3dd7c3
    it('does not announce a generation synchronously stopped by a generation subscriber', async () => {
      ;(globalThis as Win).location = { hostname: 'localhost' }
      const handle = await mount()
+diff --git a/packages/client/ui-brand-official/README.i18n.yaml b/packages/client/ui-brand-official/README.i18n.yaml
+index ae7e1f61bca08a426f7a924683954d6f07da659f..577c9ff3aa5a5ddfb4daefbf29723e8121820f1a 100644
+--- a/packages/client/ui-brand-official/README.i18n.yaml
++++ b/packages/client/ui-brand-official/README.i18n.yaml
+@@ -9,8 +9,8 @@
+   en: 7cee1be833cea807
+   zh: 9953e1b38cb23d34
+ /deepseek-ai-dsh-client-ui-brand-official/summary:
+-  en: 784b8216e88b0578
+-  zh: 70165dea21d9a2ab
++  en: b1d654d5ba1cc84f
++  zh: 881b73c61db34a74
+ /deepseek-ai-dsh-client-ui-brand-official/table-of-contents:
+   en: d152484eb41ac6b4
+   zh: 09388d293f9be9cb
+@@ -18,8 +18,8 @@
+   en: 8144a213ca978516
+   zh: 43dfefbd708d87bf
+ /deepseek-ai-dsh-client-ui-brand-official/use-this-package/choosing-the-profile:
+-  en: 876e7a0e21eaa396
+-  zh: 596fcdec565e3eae
++  en: c8f53c4d39b5a106
++  zh: 82e32d01d8e03096
+ /deepseek-ai-dsh-client-ui-brand-official/use-this-package/home-feedback:
+   en: f79f52c71a3d1491
+   zh: bda67c8b4050316a
+diff --git a/packages/client/ui-brand-official/README.md b/packages/client/ui-brand-official/README.md
+index 42df3551123bc5272bf698546bc3136b0a2f58c4..895cb5f566aaf8de70e7ff41fbe76fbeba59c221 100644
+--- a/packages/client/ui-brand-official/README.md
++++ b/packages/client/ui-brand-official/README.md
+@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
+ 
+ ## Summary
+ 
+-This package supplies a click-triggered pixel whale on the blank home and gives an `official` client build the DeepSeek Harness sidebar artwork. The shipped Web and Desktop compositions load it by default. Other build profiles retain their existing branding. The hero mark stays on its animated fish fallback. The background owns only temporary canvas resources and adds no model requests.
++This package supplies a click-triggered pixel whale on the blank home and gives upstream `official` client builds the DeepSeek Harness sidebar artwork. The shipped Web and Desktop compositions load it by default. Other build profiles retain their existing branding. The hero mark stays on its animated fish fallback. The background owns only temporary canvas resources and adds no model requests.
+ 
+ ## Table of Contents
+ 
+@@ -29,7 +29,7 @@ The shipped Web and Desktop compositions already mount this plugin. Home feedbac
+ 
+ ### Choosing the profile
+ 
+-`DSH_CLIENT_BUILD_PROFILE` selects which brand renders. An `official` build shows the official sidebar mark and name; any other value leaves the shell fallbacks — the fish mark and the local-build label — in place. The conversation hero shows the animated hero fish from `dsh-client-ui-conversation` regardless of profile, because that fallback is already the official mark. The plugin still loads and validates in both cases; only the sidebar artwork registration is profile-gated; the home background is shared across build profiles.
++`DSH_CLIENT_BUILD_PROFILE` selects which brand renders. DSHU builds use the fork identity in the sidebar. An upstream `official` build shows the official sidebar mark and name; any other value leaves the shell fallbacks — the fish mark and the local-build label — in place. The conversation hero shows the animated hero fish from `dsh-client-ui-conversation` regardless of profile, because that fallback is already the official mark. The plugin still loads and validates in both cases; only the sidebar artwork registration is profile-gated; the home background is shared across build profiles.
+ 
+ ### Home feedback
+ 
+diff --git a/packages/client/ui-brand-official/README.zh.md b/packages/client/ui-brand-official/README.zh.md
+index 5ef55832a4d919dfee565d32673dfcede1ba853e..edf08a7f71b74e974c55d5d14aae7cdbad4d5ab3 100644
+--- a/packages/client/ui-brand-official/README.zh.md
++++ b/packages/client/ui-brand-official/README.zh.md
+@@ -9,7 +9,7 @@ kind: "package-reference"
+ 
+ ## 概述
+ 
+-本包在空白首页提供点击浮出的像素鲸鱼，并让以 `official` profile 构建的客户端显示 DeepSeek Harness 侧栏品牌图形。随产品提供的 Web 与 Desktop 组合默认加载本包。其他构建 profile 保留原有品牌。首屏标志仍使用动画鱼回退。背景只持有临时 Canvas 资源，不增加模型请求。
++本包在空白首页提供点击浮出的像素鲸鱼，并让上游以 `official` profile 构建的客户端显示 DeepSeek Harness 侧栏品牌图形。随产品提供的 Web 与 Desktop 组合默认加载本包。其他构建 profile 保留原有品牌。首屏标志仍使用动画鱼回退。背景只持有临时 Canvas 资源，不增加模型请求。
+ 
+ ## 目录
+ 
+@@ -29,7 +29,7 @@ kind: "package-reference"
+ 
+ ### 选择 profile
+ 
+-`DSH_CLIENT_BUILD_PROFILE` 决定渲染哪个品牌。`official` 构建显示官方侧栏标志和名称；任何其他取值都让外壳回退——鱼形标志与本地构建标签——保持原样。会话首屏无论 profile 如何都显示来自 `dsh-client-ui-conversation` 的动画首屏鱼，因为这个回退本身就是官方标志。两种情况下插件都会照常加载并通过校验；只有侧栏图形注册受 profile 门控；各构建 profile 共用首页背景。
++`DSH_CLIENT_BUILD_PROFILE` 决定渲染哪个品牌。DSHU 构建在侧栏保留衍生版标识。上游的 `official` 构建显示官方侧栏标志和名称；任何其他取值都让外壳回退——鱼形标志与本地构建标签——保持原样。会话首屏无论 profile 如何都显示来自 `dsh-client-ui-conversation` 的动画首屏鱼，因为这个回退本身就是官方标志。两种情况下插件都会照常加载并通过校验；只有侧栏图形注册受 profile 门控；各构建 profile 共用首页背景。
+ 
+ ### 首页反馈
+ 
+diff --git a/packages/client/ui-brand-official/src/client/index.ts b/packages/client/ui-brand-official/src/client/index.ts
+index e5dc78b0990398e5308dcd232880f748c333c914..b41708fbc3510890fcf5cf4a999f7a091176251d 100644
+--- a/packages/client/ui-brand-official/src/client/index.ts
++++ b/packages/client/ui-brand-official/src/client/index.ts
+@@ -18,7 +18,7 @@ export function apply(ctx: ClientContext): void {
+     name: 'conversation.hero.frame',
+     id: 'pixel-whale',
+   }, PixelWhale))
+-  if (process.env.DSH_CLIENT_BUILD_PROFILE !== 'official') return
++  if (process.env.DSH_CLIENT_BUILD_PROFILE !== 'official' || process.env.DSH_CLIENT_FORK_VERSION !== undefined) return
+   ctx.slots.inject('sidebar.brand.mark', () =>
+     ctx.slots.inject('sidebar.brand.name', function* () {
+       yield ctx.slots.register({ name: 'sidebar.brand.mark' }, OfficialBrandMark)
+diff --git a/packages/client/ui-brand-official/tests/browser-plugin.client.spec.tsx b/packages/client/ui-brand-official/tests/browser-plugin.client.spec.tsx
+index 306023be8ffd29ab16b1358194572b9c293d84a4..da3886ab3528e041773c325603f16967734c86dd 100644
+--- a/packages/client/ui-brand-official/tests/browser-plugin.client.spec.tsx
++++ b/packages/client/ui-brand-official/tests/browser-plugin.client.spec.tsx
+@@ -46,8 +46,9 @@ describe('official browser-brand plugin', () => {
+     expect(inject).toEqual(['slots'])
+   })
+ 
+-  it('keeps local sidebar branding and provides the same blank-home feedback', async () => {
+-    vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', 'local')
++  it.each([['local', undefined], ['official', '2026.11.25.0']] as const)('keeps the sidebar identity for %s with fork version %s', async (profile, forkVersion) => {
++    vi.stubEnv('DSH_CLIENT_BUILD_PROFILE', profile)
++    vi.stubEnv('DSH_CLIENT_FORK_VERSION', forkVersion)
+     const subject = await bench()
+     await subject.ctx.plugin({ inject: [...inject], apply }).await()
+     expect(subject.slots.entries('sidebar.brand.mark')).toHaveLength(0)
+diff --git a/packages/client/ui-sidebar/src/client/SidebarRoot.tsx b/packages/client/ui-sidebar/src/client/SidebarRoot.tsx
+index 2be8c6218265c4dcc4210643a4e8419f7560b40a..f1fad32593b080a9bd24bc2f84bf0eded971a687 100644
+--- a/packages/client/ui-sidebar/src/client/SidebarRoot.tsx
++++ b/packages/client/ui-sidebar/src/client/SidebarRoot.tsx
+@@ -40,6 +40,7 @@ const COLLAPSE_SETTLE_MS = 150
+ 
+ /** Format complete-build metadata for the local brand badge. */
+ function localBuildVersion(): string | undefined {
++  if (process.env.DSH_CLIENT_FORK_VERSION !== undefined) return process.env.DSH_CLIENT_FORK_VERSION
+   const version = process.env.DSH_CLIENT_VERSION
+   if (version === undefined) return undefined
+   const commit = process.env.DSH_CLIENT_COMMIT_HASH
+@@ -237,6 +238,7 @@ export function SidebarRoot({
+   }
+ 
+   const buildVersion = localBuildVersion()
++  const productTitle = process.env.DSH_CLIENT_TITLE ?? t('brand.localBuild')
+   // The local-build fallbacks copy the badge text; the brand button below
+   // skips New Session for clicks inside them. The click still bubbles, so
+   // document-level outside-click listeners see it.
+@@ -316,10 +318,10 @@ export function SidebarRoot({
+               <span className={css.brandName}>
+                 {renderSlot('sidebar.brand.name', {}, {
+                   fallback: buildVersion === undefined
+-                    ? <span className={css.fallbackBrandName}>{t('brand.localBuild')}</span>
++                    ? <span className={css.fallbackBrandName}>{productTitle}</span>
+                     : (
+                       <span className={clsx(css.localBuildBrand, css.copyVersion)} data-copy-version onClick={copyVersion(buildVersion)}>
+-                        <span className={css.localBuildTitle}>{t('brand.localBuild')}</span>
++                        <span className={css.localBuildTitle}>{productTitle}</span>
+                         <span className={css.buildVersion}>{buildVersion}</span>
+                       </span>
+                     ),
