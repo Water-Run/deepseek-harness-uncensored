@@ -12,10 +12,19 @@
 
 </div>
 
+**DSHU 功能演示**（2 分 39 秒，中文配音与字幕）。片中展示了写作、旁问与随问、输入预测、余额曲线和跨对话记忆。[视频制作与素材](https://github.com/Water-Run/ft)
+
+https://github.com/user-attachments/assets/69f74147-3377-461c-8ec2-17169bd3ba71
+
+<details>
+<summary>查看新会话界面截图</summary>
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/dshu/hero-dark.webp">
   <img src="docs/assets/dshu/hero-light.webp" alt="DSHU 新会话首页：更自由的探索未至之境">
 </picture>
+
+</details>
 
 **DeepSeek Harness Uncensored（DSHU）** 是基于 DeepSeek Harness 的桌面智能体工作台。破甲提示词已经内置，装好就是**开箱即用的破甲体验**，不用再自己找提示词、改配置。软件开发、网络安全、逆向工程和创作写作各有一套专属模式，选好模式就能直接上手。
 
