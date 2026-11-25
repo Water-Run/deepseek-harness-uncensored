@@ -1096,7 +1096,7 @@ index 228f07da880b886dd478781fc5cd56399d4f1488..54e237fdd92769bbe5cfbc0da326bda5
  /desktop-packaging/desktop-runtime-preparation:
    en: 84be38ab3136fff7
 diff --git a/apps/desktop/packaging/README.md b/apps/desktop/packaging/README.md
-index d8aa7714ee03dac6fa90d35027488ebc595e3881..77681373cd338add0bbd2c702e80fec3ec9dbe7c 100644
+index d8aa7714ee03dac6fa90d35027488ebc595e3881..c173133e2ed14e84bc14260f4b6fae6f04b6d40b 100644
 --- a/apps/desktop/packaging/README.md
 +++ b/apps/desktop/packaging/README.md
 @@ -38,25 +38,20 @@ Set `DSH_DESKTOP_PACKAGE_CACHE_DIR` to an absolute build-cache directory for reu
@@ -1104,7 +1104,7 @@ index d8aa7714ee03dac6fa90d35027488ebc595e3881..77681373cd338add0bbd2c702e80fec3
  ## Release versions
  
 -Before each Desktop packaging run, first confirm the complete version string with the current user. Check the selected deployment, dsh base version, retained release records, and published objects, then propose the exact version for approval. Do not start packaging until the user confirms that version; the deployment setting alone does not authorize a version choice.
-+The public DSHU version comes from `apps/cli/package.json` (`dshuVersion`). The CLI, About dialog, Windows installer and download filename use the four-part date. Electron and the updater compare the ordered three-part version. The bundled runtime is verified separately against the DSH kernel version. The desktop application lists WaterRun as its author. Installed resources contain the DSHU GPL text in `LICENSE` and the upstream MIT text and dependency notices in `LICENSES/DeepSeek-Harness/`.
++The public DSHU version comes from `apps/cli/package.json` (`dshuVersion`). The CLI, About dialog, Windows installer and download filename use the four-part date. Electron and the updater compare the ordered three-part version. The bundled runtime is verified separately against the DSH kernel version. The desktop application lists WaterRun as its author. Installed resources contain the DSHU GPL text in `LICENSE` and the upstream MIT text and dependency notices in `LICENSES/DeepSeek-Harness/`. Windows can repair a missing executable when the installation and uninstall registrations for the current user identify the same directory. A different installation directory must be empty.
  
 -Record the current dsh version as the base. A production Desktop release uses that exact version, including any `alpha`, `beta`, or `rc` identifiers. A test release preserves the complete prerelease base and appends `.YYYYMMDD.index`; a stable base uses `-test.YYYYMMDD.index` instead.
 -
@@ -1170,7 +1170,7 @@ index d8aa7714ee03dac6fa90d35027488ebc595e3881..77681373cd338add0bbd2c702e80fec3
  Windows packaging fixes the 7-Zip filter to `BCJ` for compatibility with the bundled NSIS decoder. This preserves ARM64 binaries carried by dependencies in x64 installers; automatic ARM64 filtering produces entries that this decoder cannot extract.
  
 diff --git a/apps/desktop/packaging/README.zh.md b/apps/desktop/packaging/README.zh.md
-index bdffd46c99697416431fc74e5a783725529c1034..778fcc5090152663c22dca1441d5884aa1c62b55 100644
+index bdffd46c99697416431fc74e5a783725529c1034..7972fce583c18ac58582553611b1af13d5c55598 100644
 --- a/apps/desktop/packaging/README.zh.md
 +++ b/apps/desktop/packaging/README.zh.md
 @@ -38,25 +38,20 @@ description: "在本地或 Windows／macOS Actions 中生成 Desktop 安装包
@@ -1178,7 +1178,7 @@ index bdffd46c99697416431fc74e5a783725529c1034..778fcc5090152663c22dca1441d5884a
  ## 发布版本
  
 -每次 Desktop 打包前，第一步都要与当前用户确认完整版本号。检查所选部署环境、dsh 基础版本、保留的发布记录和已发布对象，再提出准确版本供用户确认。用户确认前不得启动打包；仅选择部署环境不代表用户已认可版本号。
-+DSHU 公开版本取自 `apps/cli/package.json` 的 `dshuVersion`。CLI、关于页、Windows 安装程序和下载文件名使用四段日期。Electron 和更新器使用可比较的三段版本。随包运行时按 DSH 内核版本独立校验。桌面应用的作者为 WaterRun。安装目录的资源中，`LICENSE` 为 DSHU 的 GPL 许可，`LICENSES/DeepSeek-Harness/` 包含上游 MIT 许可及依赖声明。
++DSHU 公开版本取自 `apps/cli/package.json` 的 `dshuVersion`。CLI、关于页、Windows 安装程序和下载文件名使用四段日期。Electron 和更新器使用可比较的三段版本。随包运行时按 DSH 内核版本独立校验。桌面应用的作者为 WaterRun。安装目录的资源中，`LICENSE` 为 DSHU 的 GPL 许可，`LICENSES/DeepSeek-Harness/` 包含上游 MIT 许可及依赖声明。 Windows 的当前用户安装登记和卸载登记指向同一目录时，可用同版安装器补回缺失的主程序。改装到其他目录时，目标目录须为空。
  
 -记录当前 dsh 版本作为基础版本。production Desktop 使用完全相同的版本，包括其中的 `alpha`、`beta` 或 `rc` 标识。test 发布保留完整的预发布基础版本并追加 `.YYYYMMDD.index`；稳定基础版本则追加 `-test.YYYYMMDD.index`。
 -
@@ -34262,7 +34262,7 @@ index fca85421adcff16cd26dcde5c0c9728125f7970b..75f5c702bc977223061d1cff8125b6a8
    } finally { await rm(extracted, { recursive: true, force: true }) }
  }
 diff --git a/apps/desktop/scripts/windows-directory-installer.mjs b/apps/desktop/scripts/windows-directory-installer.mjs
-index 45c890712c21ca9a75da78931dbb40f734a4c2c8..1d408c2e3c675563ee5ce050286b6c1c5b01d0c4 100644
+index 45c890712c21ca9a75da78931dbb40f734a4c2c8..36cd7cdc9ad59f9cd363da65766ef03bd915a86a 100644
 --- a/apps/desktop/scripts/windows-directory-installer.mjs
 +++ b/apps/desktop/scripts/windows-directory-installer.mjs
 @@ -1,4 +1,5 @@
@@ -34271,7 +34271,27 @@ index 45c890712c21ca9a75da78931dbb40f734a4c2c8..1d408c2e3c675563ee5ce050286b6c1c
  import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
  import { createRequire } from 'node:module'
  import { dirname, join } from 'node:path'
-@@ -72,6 +73,25 @@ export function installWindowsDirectoryInstaller() {
+@@ -37,7 +38,18 @@ export function directoryInstallSection(source) {
+ !macroend`)
+   result = replaceOnce(result, '!insertmacro setLinkVars', `!insertmacro setLinkVars
+ !insertmacro dshStageApplication`)
+-  result = replaceOnce(result, '!insertmacro installApplicationFiles', 'Call dshPromoteDirectories\nIfErrors 0 +3\n  SetErrorLevel 2\n  Quit')
++  result = replaceOnce(result, '!insertmacro installApplicationFiles', '')
++  result = replaceOnce(result, '!insertmacro uninstallOldVersion SHELL_CONTEXT', `Push $1
++Push $2
++Call InstallerRegisteredDirectory
++StrCpy $dshRegisteredDirectory $1
++Pop $2
++Pop $1
++Call dshPromoteDirectories
++IfErrors 0 +3
++  SetErrorLevel 2
++  Quit
++!insertmacro uninstallOldVersion SHELL_CONTEXT`)
+   result = replaceOnce(result, '!ifdef UNINSTALLER_ICON\n  File /oname=uninstallerIcon.ico "${UNINSTALLER_ICON}"\n!endif\n', '')
+   // The staging macro uses the upstream installer macro, including its signed uninstaller.
+   return result
+@@ -72,6 +84,25 @@ export function installWindowsDirectoryInstaller() {
    const prototype = NsisTarget.prototype
    if (prototype[patched]) return
    prototype[patched] = true
@@ -35355,3 +35375,150 @@ index cf5e4ca9d316fb79c75c1e9847563be9cc69a688..57f186faf72d45e53e1e45ca51fa337b
    }
  
    /**
+diff --git a/apps/desktop/installer/path.nsh b/apps/desktop/installer/path.nsh
+index 01aafe135f45fdc26b36aa40047628ed992519cf..f2236993c37990dbaa465450cfc230bc9ab97ac9 100644
+--- a/apps/desktop/installer/path.nsh
++++ b/apps/desktop/installer/path.nsh
+@@ -117,16 +117,37 @@ FunctionEnd
+ !macroend
+ !insertmacro InstallerValidatePathFunction ""
+ 
+-; A new installation requires an empty directory; updates require the registered executable.
++; Return the installed directory in $1. Repair without the executable requires agreement between both registrations.
++Function InstallerRegisteredDirectory
++    ReadRegStr $1 HKCU "${INSTALL_REGISTRY_KEY}" "InstallLocation"
++    ${If} $1 != ""
++    ${AndIfNot} ${FileExists} "$1\${APP_EXECUTABLE_FILENAME}"
++        ReadRegStr $2 HKCU "${UNINSTALL_REGISTRY_KEY}" "InstallLocation"
++        ${If} $2 != $1
++            StrCpy $1 ""
++        ${EndIf}
++    ${EndIf}
++FunctionEnd
++
++; Setup may replace files in the registered directory. A different destination must be empty.
+ Function InstallerPreflight
+     Call InstallerValidatePath
+     ${If} $InstallerError != ""
+         Return
+     ${EndIf}
+     StrCpy $INSTDIR $InstallerPath
+-    ReadRegStr $0 HKCU "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+-    ${If} $0 != $INSTDIR
+-    ${OrIfNot} ${FileExists} "$INSTDIR\${APP_EXECUTABLE_FILENAME}"
++    Call InstallerRegisteredDirectory
++    ${If} $1 != $INSTDIR
++        ReadRegStr $2 HKCU "${INSTALL_REGISTRY_KEY}" "InstallLocation"
++        ${If} $2 != ""
++            System::Call 'shlwapi::PathIsPrefixW(w r2, w "$INSTDIR") i.r3'
++            System::Call 'shlwapi::PathIsPrefixW(w "$INSTDIR", w r2) i.r4'
++            ${If} $3 != 0
++            ${OrIf} $4 != 0
++                StrCpy $InstallerError "$(INSTALLER_PATH_OWNERSHIP)"
++                Return
++            ${EndIf}
++        ${EndIf}
+         FindFirst $0 $1 "$INSTDIR\*.*"
+         ${DoWhile} $1 != ""
+             ${If} $1 != "."
+diff --git a/apps/desktop/scripts/installer-directories.nsh b/apps/desktop/scripts/installer-directories.nsh
+index e189f787f8219a1180353d4ef34f6a92a4357ed3..f108a5b5b8b1c628550a4d4a4ffa8984befc60de 100644
+--- a/apps/desktop/scripts/installer-directories.nsh
++++ b/apps/desktop/scripts/installer-directories.nsh
+@@ -1,6 +1,7 @@
+ !include "LogicLib.nsh"
+ 
+ Var dshFinalDirectory
++Var dshRegisteredDirectory
+ Var dshNewDirectory
+ Var dshOldDirectory
+ Var dshOldMoved
+@@ -174,7 +175,8 @@ Function dshPromoteDirectories
+   ; SetOutPath opens a directory handle; release it before either rename.
+   SetOutPath $PLUGINSDIR
+   ClearErrors
+-  ${If} ${FileExists} "$dshFinalDirectory\*.*"
++  ${If} $dshRegisteredDirectory == $dshFinalDirectory
++  ${AndIf} ${FileExists} "$dshFinalDirectory\*.*"
+     StrCpy $dshDirectorySource $dshFinalDirectory
+     StrCpy $dshDirectoryDestination $dshOldDirectory
+     !insertmacro dshDirectoryOperation "$dshDirectorySource" "$dshDirectoryDestination" $dshDirectoryError "backup"
+diff --git a/apps/desktop/scripts/smoke-installer-directories.ps1 b/apps/desktop/scripts/smoke-installer-directories.ps1
+index 35bd4ba8cc53544d302e25b27cd85b8277aa8871..16d7299ab9552a154ae21512e0d988c8e27b7873 100644
+--- a/apps/desktop/scripts/smoke-installer-directories.ps1
++++ b/apps/desktop/scripts/smoke-installer-directories.ps1
+@@ -29,11 +29,11 @@ try {
+   $brokenArchive = Join-Path $scratch 'broken.7z'
+   [System.IO.File]::WriteAllText($brokenArchive, 'invalid archive')
+ 
+-  foreach ($mode in @('first', 'upgrade', 'transient-lock', 'locked', 'locked-stage', 'missing-stage', 'restore-conflict', 'broken', 'cancelled')) {
++  foreach ($mode in @('occupied-late', 'first', 'upgrade', 'transient-lock', 'locked', 'locked-stage', 'missing-stage', 'restore-conflict', 'broken', 'cancelled')) {
+     $caseRoot = Join-Path $scratch $mode
+     $target = Join-Path $caseRoot 'Application'
+     New-Item -ItemType Directory -Path $caseRoot | Out-Null
+-    if ($mode -ne 'first') {
++    if ($mode -notin @('first','occupied-late')) {
+       New-Item -ItemType Directory -Path $target | Out-Null
+       [System.IO.File]::WriteAllText((Join-Path $target 'asset.txt'), 'old asset')
+       [System.IO.File]::WriteAllText((Join-Path $target 'obsolete.txt'), 'old only')
+@@ -46,6 +46,7 @@ try {
+     $reportDir = Join-Path $caseRoot 'installer-logs'
+     $compileArgs = @('/V2', "/DOUTPUT_FILE=$probe", "/DPAYLOAD_FILE=$caseArchive", "/DTARGET_DIR=$target", "/DDSH_SEVENZIP_PATH=$SevenZip")
+     if ($FrameLibrary) { $compileArgs += @("/DSOURCE_DLL=$FrameLibrary", "/DREPORT_DIR=$reportDir") }
++    if ($mode -eq 'occupied-late') { $compileArgs += '/DOCCUPIED_LATE' }
+     if ($mode -eq 'missing-stage') { $compileArgs += '/DMISSING_STAGE' }
+     if ($mode -eq 'locked-stage') { $compileArgs += '/DLOCKED_STAGE' }
+     if ($mode -eq 'restore-conflict') { $compileArgs += '/DRESTORE_CONFLICT' }
+@@ -119,6 +120,18 @@ try {
+       Write-Output "Directory replacement smoke passed: $mode"
+       continue
+     }
++    if ($mode -eq 'occupied-late') {
++      $surviving = @(Get-ChildItem -LiteralPath $target -Force)
++      if ($surviving.Count -ne 1 -or $surviving[0].Name -ne 'unrelated.txt' -or
++          [IO.File]::ReadAllText($surviving[0].FullName) -ne 'unrelated file') {
++        throw 'The newly occupied directory did not retain its original file'
++      }
++      if (@(Get-ChildItem -LiteralPath $caseRoot -Directory -Filter 'Application.*-*').Count -ne 0) {
++        throw 'The rejected install left transaction directories behind'
++      }
++      Write-Output "Directory replacement smoke passed: $mode"
++      continue
++    }
+     $expectedAsset = if ($mode -in @('first', 'upgrade', 'transient-lock')) { 'new asset' } else { 'old asset' }
+     if ([System.IO.File]::ReadAllText((Join-Path $target 'asset.txt')) -ne $expectedAsset) {
+       throw "Directory smoke $mode changed the wrong version"
+diff --git a/apps/desktop/tests/fixtures/installer-directory-smoke.nsi b/apps/desktop/tests/fixtures/installer-directory-smoke.nsi
+index d80deb974839dcd8bafef921724a35703eb54d97..cad4c799b14aaf671eaac8b4724d6c5f3dd4ac88 100644
+--- a/apps/desktop/tests/fixtures/installer-directory-smoke.nsi
++++ b/apps/desktop/tests/fixtures/installer-directory-smoke.nsi
+@@ -30,6 +30,16 @@ Section
+   !endif
+   StrCpy $INSTDIR "${TARGET_DIR}"
+   !insertmacro dshStageApplication
++  !ifdef OCCUPIED_LATE
++    CreateDirectory $dshFinalDirectory
++    FileOpen $0 "$dshFinalDirectory\unrelated.txt" w
++    FileWrite $0 "unrelated file"
++    FileClose $0
++  !else
++    ${If} ${FileExists} "$dshFinalDirectory\*.*"
++      StrCpy $dshRegisteredDirectory $dshFinalDirectory
++    ${EndIf}
++  !endif
+   !ifdef RESTORE_CONFLICT
+     Rename $dshFinalDirectory $dshOldDirectory
+     StrCpy $dshOldMoved "1"
+diff --git a/apps/desktop/tests/windows-directory-installer.spec.ts b/apps/desktop/tests/windows-directory-installer.spec.ts
+index ccbd392c8d92d4daffd3cc31b31549bfef631bd1..174edf82b1f86041e0ddee380e57d44e8e4e90a0 100644
+--- a/apps/desktop/tests/windows-directory-installer.spec.ts
++++ b/apps/desktop/tests/windows-directory-installer.spec.ts
+@@ -56,6 +56,8 @@ it.each(['allowOnlyOneInstallerInstance.nsh', 'installUtil.nsh'])('cleans staged
+ it('stages before stopping the application and promotes before registering the installation', () => {
+   const result = directoryInstallSection(section)
+   expect(result.indexOf('!insertmacro dshStageApplication')).toBeLessThan(result.indexOf('!insertmacro CHECK_APP_RUNNING'))
++  expect(result).toContain('Call InstallerRegisteredDirectory\nStrCpy $dshRegisteredDirectory $1\nPop $2\nPop $1\nCall dshPromoteDirectories')
++  expect(result.indexOf('Call dshPromoteDirectories')).toBeLessThan(result.indexOf('!insertmacro uninstallOldVersion SHELL_CONTEXT'))
+   expect(result.indexOf('Call dshPromoteDirectories')).toBeLessThan(result.indexOf('!insertmacro registryAddInstallInfo'))
+   expect(result).toContain('!insertmacro addStartMenuLink $keepShortcuts')
+   expect(result).toContain('!insertmacro addDesktopLink $keepShortcuts')

@@ -221,7 +221,7 @@ pnpm exec vitest run --maxWorkers=2 apps/desktop/tests/cli-launcher.spec.ts apps
 
 ### Windows 安装器与版本身份
 
-本轮 Windows 候选从新目录还原出的 Git 树为 `4dad339f3e2e8e3d6a92fffac7e971be750f0f1e`，与 [source.json](../../kernel/0.2.3-alpha.2/source.json) 一致。Windows x64 的 Visual Studio C++ 构建环境使用下列入口。日历版本来自候选 `apps/cli/package.json` 的 `dshuVersion`。本轮候选 `2026.11.25.0` 对应 Electron 更新器比较的 `2026.1125.0`。关于页的右栏和包内的 DSH 运行时保留 `0.2.3-alpha.2`。安装应用标识使用 `com.deepseek.dsh.uncensored`。
+本轮 Windows 候选从新目录还原出的 Git 树为 `107a386c789706f8571e2916b103cdd4c77af80e`，与 [source.json](../../kernel/0.2.3-alpha.2/source.json) 一致。Windows x64 的 Visual Studio C++ 构建环境使用下列入口。日历版本来自候选 `apps/cli/package.json` 的 `dshuVersion`。本轮候选 `2026.11.25.0` 对应 Electron 更新器比较的 `2026.1125.0`。关于页的右栏和包内的 DSH 运行时保留 `0.2.3-alpha.2`。安装应用标识使用 `com.deepseek.dsh.uncensored`。
 
 ```sh
 pnpm --dir apps/desktop run check:package win-x64 --unsigned
@@ -266,14 +266,19 @@ $program.VersionInfo | Select-Object ProductVersion, FileVersion, CompanyName
 
 | 实物或操作 | 验收结果 |
 | --- | --- |
-| 候选安装器 | `deepseek-harness-uncensored-2026.11.25.0-win-x64-unsigned.exe`，325,243,875 字节，SHA-256 `2b0602e102a3459b79529627c4f742639c695f5af378b3b5b5b6e11c7ccde54e`。本地未签名测试包。 |
-| 增量映射 | 同名 `.exe.blockmap` 的 SHA-256 为 `0deed031e5c8c6c8a44cb90b3cf5601caf3eaeab6889a56e455ce322d39c343a`。 |
+| 候选安装器 | `deepseek-harness-uncensored-2026.11.25.0-win-x64-unsigned.exe`，325,244,022 字节，SHA-256 `ac80a1099ce11086d642bf0c0f64ecc2acdfa459dd361f44aed7eb093c144cc0`。本地未签名测试包。 |
+| 增量映射 | 同名 `.exe.blockmap` 的 SHA-256 为 `fba6b8a241b5869b2616ddab17b79e0a9207f69cb0e844b06a9cead9d93d9b84`。 |
 | 版本和安装归属 | 旧版 `2026.11.24.3` 与候选使用同一 HKCU 卸载项 `4bbab420-ba6b-5135-af15-70ac616e0cb2` 和同一安装目录。安装器、已安装主程序、CLI 与系统登记均为 `2026.11.25.0`。包内 Electron 应用版本 `2026.1125.0`，DSH 内核 `0.2.3-alpha.2`，Electron `44.11.5`。已从实装资源读取 GPL、上游 MIT 及第三方声明。 |
 | 保留旧资料 | 旧版写入的工作区和写作会话均通过 ID 和标题核对。升级后创建第二条写作会话，新进程能读回两条标题。旧工作区控制器的 37 个原文件、desktop profile 配置及独立官方目录的标记文件均通过 SHA-256 核对。 |
 | 桌面窗口 | 从安装后的程序跳过凭据设置，打开账号菜单中的关于页，看到 DSHU 日期版本、DSH 内核版本及本次源码树。 |
+| 同版修复 | 移出已安装的主程序并保存其 SHA-256。两条安装登记不一致时，安装器返回 2，未接管其他目录。登记恢复一致后，运行同一 EXE 补回主程序，字节摘要与原件完全相同。冷启动仍能读取升级前后的两条写作会话。 |
 | 保留资料卸载并重装 | 使用 `/KEEP_APP_DATA` 后主程序和卸载登记均已移除。重新安装后，从冷启动的桌面 Host 再次读取两个标题，逐项复核旧文件与官方标记。 |
 
-同版损坏修复仍有一个失败场景。移开此候选已安装的主 EXE 后，同一份安装器静默重装返回 2。测试保留并按 SHA-256 恢复了原件。下个安装器节点须分别验证两条 DSHU 登记指向同一目录及登记不一致的情况。
+Windows 同版修复的关键是目录归属。安装登记与卸载登记均由当前用户持有，主程序缺失时两条登记仍须指向同一安装目录。迁移到其他位置时，另一个目录必须为空。安装开始后出现其他文件时，安装器会停止，并保留原文件。
+
+重复同版修复验收时，先在专用 Windows 测试账户写入资料，正常退出后将主程序移到安装目录外，保留原件及其摘要。在该账户中临时让两条登记指向不同目录，在第二个目录写入可校验的标记。安装器应返回 2，两个目录均须保持原状。恢复测试登记后再次运行同一安装器，核对主程序摘要、卸载登记和两条写作会话，再按上表检查保留资料重装。
+
+隔离目录替换用例在候选的 `apps/desktop/scripts/smoke-installer-directories.ps1` 中。传入锁定版本的 `-Makensis` 和 `-SevenZip` 可检查 10 个场景，包括首次安装、覆盖、文件锁、取消、解压失败及目标目录在安装途中被占用。检查原生解压和失败报告时，另在一份还原的测试源码中，将打包生成的 `installer-ui/strings.nsh` 复制到 `apps/desktop/installer/strings.nsh`，并通过 `-FrameLibrary` 传入同一构建的 `window-frame.dll`。两种解压方式各自的 10 个场景均已在 Windows x64 运行。
 
 ## 桌面与平台验收
 
