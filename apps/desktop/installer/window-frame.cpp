@@ -88,11 +88,11 @@ bool NormalizeInstallerCalendar(std::wstring_view version, std::wstring& normali
         const auto part = TakeVersionIdentifier(version);
         if (part.empty() || part.size() > 5 || !std::all_of(part.begin(), part.end(), VersionDigit)) return false;
         if ((index == 0 && part.size() != 4) || ((index == 1 || index == 2) && part.size() != 2)
-            || (index == 3 && part.front() == L'0')) return false;
+            || (index == 3 && part.size() > 1 && part.front() == L'0')) return false;
         for (const auto digit : part) fields[index] = fields[index] * 10 + static_cast<unsigned>(digit - L'0');
     }
     const unsigned year = fields[0], month = fields[1], day = fields[2], sequence = fields[3];
-    if (year < 2000 || year > 9999 || month < 1 || month > 12 || sequence == 0 || sequence > 65535) return false;
+    if (year < 2000 || year > 9999 || month < 1 || month > 12 || sequence > 65535) return false;
     const unsigned days[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
     const bool leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
     if (day < 1 || day > days[month - 1] + (month == 2 && leap ? 1 : 0)) return false;

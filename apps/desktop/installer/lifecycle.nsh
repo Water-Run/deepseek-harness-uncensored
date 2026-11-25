@@ -13,9 +13,17 @@ Function InstallerRequireCurrentVersion
         Return
     ${EndIf}
     ${If} $1 == 1
+        StrCpy $2 "downgrade"
         MessageBox MB_OK|MB_ICONEXCLAMATION "$(INSTALLER_DOWNGRADE)$\r$\n$0 → ${DSHU_DISPLAY_VERSION}" /SD IDOK
     ${Else}
+        StrCpy $2 "invalid-version"
         MessageBox MB_OK|MB_ICONEXCLAMATION "$(INSTALLER_VERSION_UNKNOWN)" /SD IDOK
+    ${EndIf}
+    CreateDirectory "${DSH_INSTALLER_LOG_DIR}"
+    FileOpen $3 "${DSH_INSTALLER_LOG_DIR}\version-check.log" w
+    ${IfNot} ${Errors}
+        FileWrite $3 "reason=$2$\r$\ncandidate=${DSHU_DISPLAY_VERSION}$\r$\n"
+        FileClose $3
     ${EndIf}
     SetErrorLevel 2
     Quit

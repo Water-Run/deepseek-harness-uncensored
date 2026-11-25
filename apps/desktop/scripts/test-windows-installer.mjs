@@ -25,7 +25,7 @@ const id = guid.replaceAll('-', '')
 const productName = `Harness Installer Test ${id.slice(0, 8)}`
 // Scoped like the shipped package so Electron user data nests under a scope directory; the scope is unique per run.
 const packageName = `@harness-installer-test-${id.slice(0, 8)}/app-${id}`
-const version = '2026.1118.9'
+const version = '2026.1124.3'
 const displayVersion = displayProductVersion(version)
 const uninstallOnly = process.argv.includes('--uninstall-only')
 const silentOnly = process.argv.includes('--silent-only')

@@ -287,6 +287,8 @@
 
 > [!IMPORTANT]
 >
+> Windows x64 用户从 `2026.11.23.0` 静默升级到已发布的 `2026.11.24.3` 会遇到退出码 `2`，旧版文件和安装登记保留。含修复的正式安装包尚待发布。[Issue #24](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24)
+>
 > 更新前请先关闭 DSHU，备份数据目录和重要的工作区文件。正式签名、在线升级和自动回退还在验收中，进度见[开发清单](.agents/TODO.md)。
 
 ## 文档导航

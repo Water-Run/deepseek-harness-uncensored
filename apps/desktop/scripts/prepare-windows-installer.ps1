@@ -20,15 +20,15 @@ $compileLines = @('@echo off', ('call "{0}" >nul' -f $vcvars), 'if errorlevel 1 
 [IO.File]::WriteAllLines($compileScript, $compileLines, [Text.Encoding]::Default)
 & $env:ComSpec /d /c $compileScript
 if ($LASTEXITCODE -ne 0) { throw 'Native installer helper compilation failed.' }
+$versionSource = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../tests/windows-installer-version.cpp'))
+$versionExecutable = Join-Path $output 'version-test.exe'
+$versionScript = Join-Path $output 'compile-version-test.cmd'
+[IO.File]::WriteAllLines($versionScript, @('@echo off', ('call "{0}" >nul' -f $vcvars), 'if errorlevel 1 exit /b %errorlevel%', ('cl /nologo /MT /W4 /WX /EHsc "{0}" /Fo"{1}" /Fe"{2}" /link "{3}"' -f $versionSource, (Join-Path $output 'version-test.obj'), $versionExecutable, (Join-Path $output 'window-frame.lib'))), [Text.Encoding]::Default)
+& $env:ComSpec /d /c $versionScript
+if ($LASTEXITCODE -ne 0) { throw 'Version test compilation failed.' }
+& $versionExecutable
+if ($LASTEXITCODE -ne 0) { throw 'Installer version regression failed.' }
 if ($TestProgress -or $CompileProgressOnly) {
-    $versionSource = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../tests/windows-installer-version.cpp'))
-    $versionExecutable = Join-Path $output 'version-test.exe'
-    $versionScript = Join-Path $output 'compile-version-test.cmd'
-    [IO.File]::WriteAllLines($versionScript, @('@echo off', ('call "{0}" >nul' -f $vcvars), 'if errorlevel 1 exit /b %errorlevel%', ('cl /nologo /MT /W4 /WX /EHsc "{0}" /Fo"{1}" /Fe"{2}" /link "{3}"' -f $versionSource, (Join-Path $output 'version-test.obj'), $versionExecutable, (Join-Path $output 'window-frame.lib'))), [Text.Encoding]::Default)
-    & $env:ComSpec /d /c $versionScript
-    if ($LASTEXITCODE -ne 0) { throw 'Version test compilation failed.' }
-    & $versionExecutable
-    if ($LASTEXITCODE -ne 0) { throw 'Installer version regression failed.' }
     $cleanupSource = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../tests/windows-uninstall-data.cpp'))
     # UAC installer detection demands elevation from unmanifested executables named after installation.
     $cleanupExecutable = Join-Path $output 'data-cleanup-test.exe'

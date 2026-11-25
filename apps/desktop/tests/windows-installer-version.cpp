@@ -8,6 +8,14 @@ extern "C" __declspec(dllimport) int __cdecl InstallerCheckVersion(LPCWSTR insta
 
 int wmain() {
     const struct { LPCWSTR installed; LPCWSTR candidate; int result; } cases[] = {
+        { L"2026.11.23.0", L"2026.1124.3", 0 },
+        { L"2026.11.24.3", L"2026.11.23.0", 1 },
+        { L"2026.1123.0", L"2026.11.23.0", 0 },
+        { L"2026.11.23.0", L"2026.11.23.1", 0 },
+        { L"2026.11.23.1", L"2026.11.23.0", 1 },
+        { L"2026.11.23.65535", L"2026.11.24.0", 0 },
+        { L"2026.11.23.00", L"2026.1124.3", -1 },
+        { L"2026.1123.0", L"2026.11.24.00", -1 },
         { L"2026.11.14.9", L"2026.1114.10", 0 },
         { L"2026.11.14.10", L"2026.1114.9", 1 },
         { L"2026.1114.10", L"2026.11.14.10", 0 },
@@ -56,8 +64,11 @@ int wmain() {
         { L"0.1.0", L" 0.1.0", -1 },
     };
     for (const auto& test : cases) {
-        if (InstallerCheckVersion(test.installed, test.candidate) != test.result) {
-            std::fprintf(stderr, "Unexpected installer version decision\n");
+        const int actual = InstallerCheckVersion(test.installed, test.candidate);
+        if (actual != test.result) {
+            std::fprintf(stderr, "Installed %ls, candidate %ls: expected %d, got %d\n",
+                         test.installed ? test.installed : L"(null)", test.candidate ? test.candidate : L"(null)",
+                         test.result, actual);
             return 1;
         }
     }

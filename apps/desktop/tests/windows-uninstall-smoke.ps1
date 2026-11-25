@@ -116,17 +116,23 @@ function Assert-VersionResource([string]$Path) {
 function Assert-VersionGuard {
     $sentinel = Join-Path $installPath 'preserve-on-rejection.txt'
     [IO.File]::WriteAllText($sentinel, 'installed files')
+    $report = Join-Path $cachePath 'installer-logs\version-check.log'
     $cases = @(
-        @{ Name = 'later day'; Installed = '2026.11.19.1'; Options = '' },
-        @{ Name = 'later build in runtime format'; Installed = '2026.1118.10'; Options = '--updated /currentuser' },
-        @{ Name = 'later build in display format'; Installed = '2026.11.18.10'; Options = '' },
-        @{ Name = 'invalid version'; Installed = '2026.02.30.1'; Options = '' },
-        @{ Name = 'missing version'; Installed = ''; Options = '' }
+        @{ Name = 'later day'; Installed = '2026.11.25.0'; Options = ''; Reason = 'downgrade' },
+        @{ Name = 'later build in runtime format'; Installed = '2026.1124.10'; Options = '--updated /currentuser'; Reason = 'downgrade' },
+        @{ Name = 'later build in display format'; Installed = '2026.11.24.10'; Options = ''; Reason = 'downgrade' },
+        @{ Name = 'invalid version'; Installed = '2026.02.30.1'; Options = ''; Reason = 'invalid-version' },
+        @{ Name = 'missing version'; Installed = ''; Options = ''; Reason = 'invalid-version' }
     )
     try {
         foreach ($case in $cases) {
+            if (Test-Path -LiteralPath $report) { Remove-Item -LiteralPath $report }
             Set-ItemProperty -LiteralPath $entryKey -Name DisplayVersion -Value $case.Installed
             Invoke-SilentSetup 2 $case.Options
+            $lines = [IO.File]::ReadAllLines($report)
+            if ($lines -cnotcontains "reason=$($case.Reason)" -or $lines -cnotcontains "candidate=$Version") {
+                throw "Missing version rejection diagnostic: $($case.Name)"
+            }
             if ((Get-ItemPropertyValue -LiteralPath $entryKey -Name DisplayVersion) -cne $case.Installed) {
                 throw "A rejected setup changed the installed version: $($case.Name)"
             }
@@ -136,6 +142,12 @@ function Assert-VersionGuard {
         }
         Set-ItemProperty -LiteralPath $entryKey -Name DisplayVersion -Value '0.1.0-test.20261111.8'
         Invoke-SilentSetup 0 '--updated /currentuser'
+        Set-ItemProperty -LiteralPath $entryKey -Name DisplayVersion -Value '2026.11.23.0'
+        Invoke-SilentSetup 0 '--updated'
+        if ((Get-ItemPropertyValue -LiteralPath $entryKey -Name DisplayVersion) -cne $Version) {
+            throw 'Silent update from 2026.11.23.0 did not register the candidate'
+        }
+        Write-Output "passed: silent update from 2026.11.23.0 to $Version"
 
         $program = Join-Path $installPath ($ProductName + '.exe')
         $notice = Join-Path $installPath $nsisNoticeName
