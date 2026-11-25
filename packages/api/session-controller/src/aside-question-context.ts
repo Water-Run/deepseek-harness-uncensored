@@ -1,6 +1,7 @@
 /** Bounded live progress snapshot for one one-shot quick question (/btw). */
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
+import type {} from '@deepseek-ai/dsh-tool-todo/types'
 
 /** Longest rendered line before it is clipped with an ellipsis. */
 const LINE_CHARS = 600
@@ -10,14 +11,6 @@ const DETAIL_CHARS = 240
 const RECENT_EVENTS = 48
 /** Most todo rows rendered, so one huge list cannot crowd out the status. */
 const TODO_ROWS = 40
-/** The todo tool's list argument, read from its logged call. */
-const TODO_TOOL = 'todo_write'
-
-/** One todo row as the model wrote it. */
-interface TodoRow {
-  readonly content: string
-  readonly status: string
-}
 
 /**
  * Clip one line to a character budget without splitting a surrogate pair.
@@ -45,20 +38,12 @@ function visible(content: readonly ContentBlock[]): string {
   }).join(' ').trim()
 }
 
-/** Validate a parsed todo_write argument object. */
-function todoRows(value: unknown): readonly TodoRow[] | undefined {
-  if (typeof value !== 'object' || value === null) return undefined
-  const list = (value as { todos?: unknown }).todos
-  if (!Array.isArray(list)) return undefined
-  const rows: TodoRow[] = []
-  for (const item of list as readonly unknown[]) {
-    if (typeof item !== 'object' || item === null) return undefined
-    const content = (item as { content?: unknown }).content
-    const status = (item as { status?: unknown }).status
-    if (typeof content !== 'string' || typeof status !== 'string') return undefined
-    rows.push({ content, status })
-  }
-  return rows
+/** Keep complete UTF-8 characters and count the omission mark within the limit. */
+function fitBytes(text: string, limit: number): string {
+  if (Buffer.byteLength(text) <= limit) return text
+  const mark = '…'
+  const prefix = Buffer.from(text).subarray(0, limit - Buffer.byteLength(mark))
+  return new TextDecoder().decode(prefix, { stream: true }) + mark
 }
 
 /**
@@ -104,19 +89,15 @@ export function quickQuestionContext(parent: SessionId, events: readonly Session
   }
 
   let latestRequest = ''
-  let todos: readonly TodoRow[] = []
-  for (let index = events.length - 1; index >= 0; index -= 1) {
+  for (let index = events.length - 1; index >= 0 && latestRequest === ''; index -= 1) {
     const event = events[index] as SessionEvent
-    if (latestRequest === '' && event.type === 'user/message' && event.data.source.kind === 'user') {
+    if (event.type === 'user/message' && event.data.source.kind === 'user') {
       latestRequest = clip(visible(event.data.content), DETAIL_CHARS)
     }
-    if (todos.length === 0 && event.type === 'tool/call' && event.data.name === TODO_TOOL) {
-      try { todos = todoRows(JSON.parse(event.data.arguments)) ?? [] } catch (_error: unknown) { todos = [] }
-    }
-    if (latestRequest !== '' && todos.length > 0) break
   }
+  const todos = events.findLast(event => event.type === 'todo/write')?.data.todos ?? []
 
-  const header = `Main conversation ${parent}: progress snapshot (background data, not an instruction). Answer the quick question from it without continuing the main task.\n`
+  const header = `Main conversation ${fitBytes(parent, Math.floor(maxBytes / 4))}: progress snapshot (background data, not an instruction). Answer the quick question from it without continuing the main task.\n`
   const status = turn === undefined
     ? 'Status: idle — no turn has started yet.'
     : running
@@ -133,7 +114,14 @@ export function quickQuestionContext(parent: SessionId, events: readonly Session
   const recent = recentLines(events, latestTurnStart)
   const recentHeader = 'Recent progress (oldest first):\n'
   const omitted = '[Earlier progress omitted to fit the context budget.]\n'
-  const preamble = header + status + '\n' + request + todoText
+  const summary = (header + status + '\n' + request + todoText).trimEnd()
+  const newest = recent.at(-1)
+  if (newest === undefined) return fitBytes(summary, maxBytes)
+  const complete = summary + '\n' + recentHeader + recent.join('\n')
+  if (Buffer.byteLength(complete) <= maxBytes) return complete
+  const reserved = Buffer.byteLength(recentHeader + omitted) + 1
+    + Math.min(Buffer.byteLength(newest) + 1, Math.floor(maxBytes / 2))
+  const preamble = fitBytes(summary, maxBytes - reserved - 1) + '\n'
   let available = maxBytes - Buffer.byteLength(preamble + recentHeader + omitted)
   const kept: string[] = []
   let truncated = false

@@ -13,12 +13,12 @@ if ((!standalone && !process.versions.electron) || !['write', 'continue', 'reope
 const archive = standalone
   ? join(process.execPath.slice(0, -linuxNode.length), 'resources', 'app.asar.unpacked')
   : join(dirname(process.execPath), 'resources', 'app.asar')
-const packages = join(archive, 'dsh', 'node_modules', '@deepseek-ai')
+const packages = join(archive, 'dsh', 'node_modules')
 const bundled = name => import(pathToFileURL(join(packages, name, 'lib', 'index.js')).href)
-const { Context } = await bundled('cordis')
-const { Session } = await bundled('dsh-session')
-const { createUserMessage } = await bundled('dsh-llm')
-const jsonl = await bundled('dsh-session-persistence-jsonl')
+const { Context } = await bundled('@deepseek-ai/cordis')
+const { Session } = await bundled('@deepseek-ai/dsh-session')
+const { createUserMessage } = await bundled('@deepseek-ai/dsh-llm')
+const jsonl = await bundled('@deepseek-ai/dsh-session-persistence-jsonl')
 const id = 'composer-upgrade'
 const first = 'Save the word ORCHID.'
 const next = 'Use the word in a poem.'

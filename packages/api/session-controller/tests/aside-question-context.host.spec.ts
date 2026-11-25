@@ -55,13 +55,13 @@ function turnEnd(seq: number, turn: number, reason: TurnEndReason): SessionEvent
 }
 
 it('reports the in-flight turn, latest request, todos, and recent work', () => {
-  const events = [
+  const todos = [{ content: '重建索引', status: 'in_progress' as const }, { content: '核对结果', status: 'pending' as const }]
+  const events: SessionEvent[] = [
     turnStart(1, 1), user(2, 'old instruction'), assistant(3, 'old reply'), turnEnd(4, 1, { kind: 'completed' }),
     turnStart(5, 2), stepStart(6, 2, 1), user(7, '把索引重建完'), assistant(8, '先看目录结构'),
-    toolCall(9, 'todo_write', {
-      todos: [{ content: '重建索引', status: 'in_progress' }, { content: '核对结果', status: 'pending' }],
-    }),
-    toolResult(10, 'index rebuilt'), stepStart(11, 2, 2), toolCall(12, 'exec_command', { command: 'ls' }),
+    toolCall(9, 'todo_write', { todos }),
+    { type: 'todo/write', seq: SessionSeq(10), time: 10, data: { todos } },
+    toolResult(11, 'index rebuilt'), stepStart(12, 2, 2), toolCall(13, 'exec_command', { command: 'ls' }),
   ]
   const text = quickQuestionContext(parent, events, 8192)
   expect(text).toContain('Status: running — turn 2, step 2 has not ended.')
@@ -106,4 +106,29 @@ it('returns no context before any progress and tolerates malformed todo argument
   const text = quickQuestionContext(parent, [malformed], 8192)
   expect(text).toContain('Status: idle — no turn has started yet.')
   expect(text).not.toContain('Current todos')
+})
+
+it.each([1024, 8192])('fits the whole snapshot into %i UTF-8 bytes with a large task list', (budget) => {
+  const todos = Array.from({ length: 40 }, (_, index) => ({ content: `第${index}项${'📘'.repeat(230)}`, status: 'pending' as const }))
+  const events: SessionEvent[] = [
+    turnStart(1, 1), user(2, '📗'.repeat(240)), toolCall(3, 'todo_write', { todos }),
+    { type: 'todo/write', seq: SessionSeq(4), time: 4, data: { todos } },
+    assistant(5, '已完成第一章。'),
+  ]
+  const text = quickQuestionContext(parent, events, budget)
+  expect(Buffer.byteLength(text)).toBeLessThanOrEqual(budget)
+  expect(text).toContain('Status: running')
+  expect(text).toContain('已完成第一章。')
+  expect(text).not.toContain('\uFFFD')
+})
+
+it('keeps a cleared task list empty when a later tool call has not committed', () => {
+  const todos = [{ content: '上一次清单', status: 'completed' as const }]
+  const events: SessionEvent[] = [
+    toolCall(1, 'todo_write', { todos }),
+    { type: 'todo/write', seq: SessionSeq(2), time: 2, data: { todos } },
+    { type: 'todo/write', seq: SessionSeq(3), time: 3, data: { todos: [] } },
+    toolCall(4, 'todo_write', { todos: [{ content: '等待批准', status: 'pending' }] }),
+  ]
+  expect(quickQuestionContext(parent, events, 1024)).not.toContain('Current todos')
 })

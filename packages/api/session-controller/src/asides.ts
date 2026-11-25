@@ -205,8 +205,7 @@ export class SessionAsideController {
     if (effort === '') return inherited
     try {
       const info = await this.ctx.llm.resolveModelInfo(inherited.provider, inherited.model)
-      const efforts = info.reasoning?.efforts
-      if (efforts !== undefined && !efforts.some(entry => String(entry.id) === effort)) return inherited
+      if (!info.reasoning?.efforts.some(entry => String(entry.id) === effort)) return inherited
     } catch (error: unknown) {
       this.ctx.logger.warn(`session-controller: quick-question reasoning lookup failed: ${errorChain(error)}`)
       return inherited

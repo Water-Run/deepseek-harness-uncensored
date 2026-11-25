@@ -10,17 +10,18 @@ import { latestCompletedPrefixBoundary } from '../src/commands.ts'
 import { ReasoningEffortId, createUserMessage } from '@deepseek-ai/dsh-llm'
 import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import { installAsideContext } from '../src/aside-context.ts'
+import { quickQuestionContext } from '../src/aside-question-context.ts'
 import { ApiSessionAgentController } from '../src/agent.ts'
 import { SessionAsideController } from '../src/asides.ts'
 import { createSessionTestRemote } from './test-remote.ts'
 
 const prompt = (text: string) => createUserMessage({ content: [{ type: 'text', text }], source: { kind: 'user' } })
 
-async function fixture(ctx: Context, withPermissions = true) {
+async function fixture(ctx: Context, withPermissions = true, model: 'plain' | 'reasoning' = 'reasoning') {
   await mountAgentLoopTestDependencies(ctx)
   const harness = await mountAgentLoopTestHarness(ctx)
   const script: ConstructorParameters<typeof MockAdapter>[0] = Array.from({ length: 8 }, () => textResponse('fixture reply'))
-  const adapter = new MockAdapter(script, {
+  const adapter = new MockAdapter(script, model === 'plain' ? undefined : {
     efforts: ['off', 'low', 'high', 'max'].map(id => ({ id: ReasoningEffortId(id), name: id })),
     defaultEffort: ReasoningEffortId('high'),
   })
@@ -314,12 +315,35 @@ describe('native side conversations', () => {
     } finally { await ctx.fiber.dispose() }
   })
 
+  it('answers a quick question on a model without reasoning settings', async () => {
+    const ctx = new Context()
+    try {
+      const { parent, adapter, controller } = await fixture(ctx, true, 'plain')
+      parent.followup(prompt('Write the opening scene'))
+      await parent.whenIdle()
+      const { sessionId } = await controller.open({ sessionId: parent.id, kind: 'btw' })
+      const question = ctx.agents.get(sessionId)!
+      question.followup(prompt('Which part is ready?'))
+      await question.whenIdle()
+      expect(question.session.snapshotEvents().findLast(event => event.type === 'turn/end')?.data.reason).toEqual({ kind: 'completed' })
+      expect(adapter.requests).toHaveLength(2)
+      expect(adapter.requests.at(-1)?.reasoningEffort).toBeUndefined()
+      expect(adapter.requests.at(-1)?.maxTokens).toBe(512)
+    } finally { await ctx.fiber.dispose() }
+  })
+
   it('creates a fresh btw every time with only the bounded parent progress snapshot', async () => {
     const ctx = new Context()
     try {
       const { parent, adapter, controller } = await fixture(ctx)
       parent.followup(prompt('parent secret marker'))
       await parent.whenIdle()
+      parent.session.append('todo/write', { todos: Array.from({ length: 40 }, (_, index) => ({
+        content: `Chapter ${index} ${'📘'.repeat(230)}`, status: 'pending',
+      })) })
+      using observed = await ctx.sessionQuery.observeSession(parent.id)
+      const progress = quickQuestionContext(parent.id, observed.events, 8192)
+      expect(Buffer.byteLength(progress)).toBeLessThanOrEqual(8192)
       const first = await controller.open({ sessionId: parent.id, kind: 'btw' })
       const child = ctx.agents.get(first.sessionId)!
       child.followup(prompt('first btw marker'))
@@ -327,6 +351,7 @@ describe('native side conversations', () => {
       // The parent's work arrives as a labeled, bounded snapshot — not as
       // conversation turns the quick question could continue.
       const firstRequest = JSON.stringify(adapter.requests.at(-1))
+      expect(firstRequest).toContain(JSON.stringify(progress).slice(1, -1))
       expect(firstRequest).toContain('progress snapshot')
       expect(firstRequest).toContain('parent secret marker')
       expect(firstRequest).toContain('at most three short sentences')
@@ -335,6 +360,7 @@ describe('native side conversations', () => {
       expect(child.session.deriveMessages()
         .filter(message => message.role === 'user' && 'source' in message && message.source?.kind === 'user'))
         .toHaveLength(1)
+      parent.session.append('todo/write', { todos: [] })
       const second = await controller.open({ sessionId: parent.id, kind: 'btw' })
       expect(second.sessionId).not.toBe(first.sessionId)
       const fresh = ctx.agents.get(second.sessionId)!
@@ -342,6 +368,7 @@ describe('native side conversations', () => {
       await fresh.whenIdle()
       const messages = JSON.stringify(adapter.requests.at(-1)?.messages)
       expect(messages).not.toContain('first btw marker')
+      expect(messages).not.toContain('Current todos')
       expect(messages).toContain('second btw marker')
       await controller.close()
       await expect(controller.open({ sessionId: parent.id, kind: 'btw' })).rejects.toMatchObject({ code: 'gateway/internal' })

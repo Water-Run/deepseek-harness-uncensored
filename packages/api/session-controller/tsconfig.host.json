@@ -110,6 +110,9 @@
       "path": "../../session-query/session-query"
     },
     {
+      "path": "../../todo/tool-todo"
+    },
+    {
       "path": "../../skill/skill"
     },
     {

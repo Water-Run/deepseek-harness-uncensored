@@ -2,11 +2,13 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { expect, it } from 'vitest'
+import { loadCordisYaml } from './cordis-yaml.ts'
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import { Context } from '@deepseek-ai/cordis'
+import { mountAgentLoopTestDependencies, mountAgentLoopTestHarness } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { brandString, type Branded } from '@deepseek-ai/dsh-brand'
 import { LocalFileSystem } from '@deepseek-ai/dsh-fs-local'
-import { createAssistantMessage, createDeveloperMessage, createUserMessage, projectToolUpdates } from '@deepseek-ai/dsh-llm'
+import { createAssistantMessage, createDeveloperMessage, createUserMessage, projectToolUpdates, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import SessionStore, { Session, type SessionEvent, type SessionId, type SessionLogOffset } from '@deepseek-ai/dsh-session'
 import * as jsonl from '@deepseek-ai/dsh-session-persistence-jsonl'
 import MemoryService from '@deepseek-ai/dsh-memory'
@@ -14,6 +16,10 @@ import Storage from '@deepseek-ai/dsh-storage'
 import * as domains from '@deepseek-ai/dsh-storage-domain'
 import * as jsonStorage from '@deepseek-ai/dsh-storage-json'
 import WorkspaceRegistry from '@deepseek-ai/dsh-workspace'
+import PermissionPresets from '@deepseek-ai/dsh-permission-presets'
+import { liveConfig } from '../packages/settings/settings/tests/live-config.ts'
+import { createSessionTestController } from '../packages/api/session-controller/tests/test-remote.ts'
+import { MockAdapter, textResponse } from '../packages/core/agent-loop/tests/mock-adapter.ts'
 import { writingMaterialsText } from '../packages/api/mode-dossiers/src/index.ts'
 import { createStoryEntry, listStory, setStorySelection } from '../packages/api/mode-dossiers/src/story.ts'
 import { DEFAULT_PREFERENCES, MICRO_CNY, SpendLedger } from '../packages/guard/spend-limit/src/ledger.ts'
@@ -195,6 +201,85 @@ it('reopens and continues a released conversation containing an unsent composer 
       )
     } finally { await handle.close() }
   } finally { await ctx.fiber.dispose() }
+})
+
+it('reopens the released quick question with its own answer, permissions and recorded parent context', async () => {
+  const store = new Context()
+  const parentId = brandString<SessionId>('released-question-parent')
+  const identity = join(directory, 'quick-question.json')
+  const mainRequest = 'Write a scene at the CLOCKTOWER.'
+  const mainAnswer = 'The market opened at dawn.'
+  const question = 'Which part is ready?'
+  const answer = 'The opening scene is ready.'
+  try {
+    await store.plugin(jsonl, { root: join(directory, 'sessions'), compression: 'zstd' })
+    if (phase === 'write') {
+      const runtime = new Context()
+      try {
+        await mountAgentLoopTestDependencies(runtime)
+        const harness = await mountAgentLoopTestHarness(runtime)
+        runtime.provide('shell', {
+          sandboxMode: 'workspace-write',
+          resolve() { throw new Error('Unexpected shell use') },
+          run() { throw new Error('Unexpected shell use') },
+          start() { throw new Error('Unexpected shell use') },
+        })
+        runtime.provide('approval', { config: { policy: 'ask' } })
+        const bundle = loadCordisYaml(await readFile(new URL('../packages/bundle/base/cordis.patch.yml', import.meta.url), 'utf8'))
+        const rows = (bundle as { insert: { id: string; config?: Record<string, unknown> }[] }[])[0]?.insert
+        const permission = rows?.find(row => row.id === 'permission')?.config
+        if (!permission) throw new Error('The release bundle has no permission preset configuration')
+        await liveConfig(runtime, PermissionPresets, permission)
+        runtime.provide('workspaceRegistry', { list: () => [], archivedSessionIds: [] } as never)
+        const model = { provider: 'mock', model: 'mock' }
+        const adapter = new MockAdapter([textResponse(mainAnswer), textResponse(answer)], {
+          efforts: ['off', 'low', 'high'].map(id => ({ id: ReasoningEffortId(id), name: id })),
+          defaultEffort: ReasoningEffortId('high'),
+        })
+        runtime.llm.registerAdapter(['mock'], adapter)
+        const controller = await createSessionTestController(runtime, { defaultModelSelection: () => model, cwd: workspace })
+        const parent = await harness.create(parentId, model, { cwd: workspace })
+        const prompt = (text: string) => createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text }] })
+        parent.followup(prompt(mainRequest))
+        await parent.whenIdle()
+        const opened = await controller.aside({ sessionId: parent.id, kind: 'btw' })
+        const child = runtime.agents.get(opened.sessionId)
+        if (!child) throw new Error('The release did not publish the question')
+        child.followup(prompt(question))
+        await child.whenIdle()
+        expect(child.session.snapshotEvents().findLast(event => event.type === 'turn/end')?.data.reason).toEqual({ kind: 'completed' })
+        expect(adapter.requests).toHaveLength(2)
+        expect(JSON.stringify(adapter.requests[1]?.messages)).toContain(mainAnswer)
+        expect(runtime.permissionPresets.current(child.session)).toBe('read-only')
+        for (const session of [parent.session, child.session]) {
+          const handle = await store.sessionPersistence.create(session.header)
+          try {
+            await handle.append(session.snapshotEvents())
+            await handle.flush()
+          } finally { await handle.close() }
+        }
+        await writeFile(identity, JSON.stringify(child.id))
+      } finally { await runtime.fiber.dispose() }
+    }
+    const childId = JSON.parse(await readFile(identity, 'utf8')) as SessionId
+    for (const id of [parentId, childId]) {
+      const handle = await store.sessionPersistence.open(id, 'read')
+      try {
+        const { events } = await handle.read()
+        const restored = Session.create(id, events, handle.header, handle.inheritedEventCount)
+        const human = restored.deriveMessages().filter(message => message.role === 'user' && message.source.kind === 'user')
+        expect(human.map(message => message.content)).toEqual([[{ type: 'text', text: id === parentId ? mainRequest : question }]])
+        expect(restored.deriveMessages().filter(message => message.role === 'assistant').at(-1)?.content)
+          .toEqual([{ type: 'text', text: id === parentId ? mainAnswer : answer }])
+        if (id === childId) {
+          expect(handle.header.parentSession).toBe(parentId)
+          expect(events.findLast(event => event.type === 'permission/preset')?.data.preset).toBe('read-only')
+          const recorded = restored.deriveMessages().filter(message => message.role === 'user' && message.source.kind === 'runtime-context')
+          expect(JSON.stringify(recorded)).toContain(mainAnswer)
+        }
+      } finally { await handle.close() }
+    }
+  } finally { await store.fiber.dispose() }
 })
 
 it('recovers a rejected MCP declaration from a released v4 log and reopens the same conversation', async () => {

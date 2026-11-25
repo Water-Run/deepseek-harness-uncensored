@@ -40,7 +40,7 @@
 | --- | --- | --- | --- |
 | 原会话输入建议 | 两个正式版可写出含输入建议的压缩会话。 | 候选安装后能续写，重启后读回同一条建议与消息。[Windows 回执](#含输入建议的旧会话) · [Linux 复验](#在-linux-安装目录复验旧会话) | 当前两模式候选已有实测；最终四模式包待复验。 |
 | 输入预测的生成与采纳 | 默认启用，输入框能生成建议，用户可以采纳、忽略或关闭预测。[旧版键盘交互用例](https://github.com/Water-Run/deepseek-harness-uncensored/blob/7eaeddc6050ee60e114cc3ef0d81de9c1371aacd/packages/client/ui-conversation/tests/prediction-keymap.client.spec.tsx) | 候选主输入框已恢复生成建议、Tab 采纳、继续输入忽略和持久化开关。实际浏览器走 Host RPC 与可控模型，已验证以上四项。 | 最终包在旁问、随问补齐后复验，并重开正式版留下的会话。 |
-| 旁问与随问 | 支持 `/side`、`/btw`、会话顶部及右侧开始页入口。[旧版控制器用例](https://github.com/Water-Run/deepseek-harness-uncensored/blob/7eaeddc6050ee60e114cc3ef0d81de9c1371aacd/packages/client/ui-commands/tests/asides-controller.client.spec.ts) | 候选未包含旧版的 `ui-commands/src/client/asides/` 或 `session-controller/src/asides.ts`。还未取得等价交互的回执。 | 待补齐并核对新建、返回主会话、清理偏好和旧旁问重开。 |
+| 旁问与随问 | 支持 `/side`、`/btw`、会话顶部及右侧开始页入口。[旧版控制器用例](https://github.com/Water-Run/deepseek-harness-uncensored/blob/7eaeddc6050ee60e114cc3ef0d81de9c1371aacd/packages/client/ui-commands/tests/asides-controller.client.spec.ts) | 候选内核可读取两个正式版随问的父子关系、独立问答、只读权限和保存的主线进展。候选界面还缺少新建随问和旁问入口。 | 待补齐并核对新建、返回主会话、清理偏好和旧旁问重开。 |
 | 日出日落外观 | 新装默认 `sun`，可以选择浅色、深色、跟随系统或日出日落。[旧版主题设置](https://github.com/Water-Run/deepseek-harness-uncensored/blob/7eaeddc6050ee60e114cc3ef0d81de9c1371aacd/packages/client/ui-theme/src/theme-settings.ts) | 较早的 Linux 实装树只接受三个选项。候选树 `06ded7caa7a9` 已恢复日出日落默认值、手选城市、时区估算、首屏及欢迎页外观。 | 126 项定向测试、完整构建 10 项通过。真实设置页验证新装、修改城市、重载及 390 像素宽的深色切换。最终安装包仍须独立核对。 |
 | 关于页检查更新 | 可在应用内检查 GitHub 更新。 | 新内核的关于页已恢复自动查询、手动重查和发行说明。桌面左侧及移动端顶部显示 DSHU 产品版本，右侧来源区显示 DSH 内核。比较使用产品日期版本，区分开发候选领先、已是最新版、有新版、离线与请求失败。 | 38 项定向测试通过。构建后的中英文页面以受控 GitHub 响应验证初次检查、手动查到新版与发行说明地址，覆盖 1440、1280 和 390 像素宽。最终签名包的真实在线升级仍待实测，见 [#24](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24)。 |
 | 填入具体入口、设置或稳定标识 | 填旧包版本、前置配置、用户操作与实际结果 | 填新包的同一操作、结果和差异，附回执或截图位置 | 填最终包 SHA-256、平台、负责人、四种结论之一 |
@@ -51,6 +51,10 @@
 
 - [ ] **旁问与主对话并行。** 从会话顶部、右侧开始页及 `/side` 打开同一旁问，先在主对话完成一轮，再在旁问发送文字和图片。确认主对话继续运行，旁问只获得已完成的进展，同一父会话的并发打开只请求 Host 一次。关闭再打开保留旁问自己的记录。分别验证手动 `/clear` 和“关闭后自动清除上下文”。参照主线的 `packages/api/session-controller/tests/asides.host.spec.ts`、`packages/client/ui-commands/tests/browser-plugin.client.spec.ts` 和 `apps/web/tests/side-clear.e2e.ts`。
 - [ ] **随问。** 在主输入框发送 `/btw 进度如何`，验证可获取当时的进展、可关闭回答、主会话没有额外发送动作。再次提问时核对上下文和两次回答的归属。分别检查空问题和主会话仍在运行两种状态。旧版可复验的输入与上下文用例在 `packages/api/session-controller/tests/aside-question-context.host.spec.ts`。
+
+主线回归样本包含 40 条带表情符号的长待办、一个中文进度回复和一条长输入。修复前，配置 1,024 或 8,192 字节时，同一个随问快照均达到 38,595 字节。修复后，两种配置下整个快照均在上限以内，并保留当前运行状态、最新进展和完整的 UTF-8 字符。另一个样本先保存待办，再清空清单并发起尚未执行的写入，随问从已提交的 `todo/write` 读取当前清单。会话循环测试在模型适配器收到的请求中核对了完整快照。模型没有声明思考等级时，以前会因 `UNSUPPORTED_REASONING_EFFORT` 在调用适配器前失败。现有主线用例验证这类模型可以回答随问，并保留 512 token 的默认输出上限。候选界面接通后，须通过随问入口复验上述三种情况。
+
+**旧随问读取实测。** [跨版数据用例](../../kernel/0.2.3-alpha.2/verification/released-data.spec.ts.in) 在 `2026.11.23.0` 和 `2026.11.24.3` 的生产会话控制器中分别创建随问，各自使用原版基础配置中的权限预设、实际会话循环和可控模型，保存主线与随问的 zstd 日志。树 `d26870c07a074e70d3a913ee8904e4c5eeda981b` 在两个独立读进程中核对父会话 ID、双方各自的真人消息和回答、只读预设，以及随问记录中的父会话进展。每版各有 33 个原始文件的 SHA-256 一致。此项验收覆盖已保存的记录；在新候选里提问并获取当下的主线进展仍待接入。
 - [x] **主输入框预测。** 树 `d26870c07a074e70d3a913ee8904e4c5eeda981b` 中，新用户默认开启输入预测。Web 界面从缺省工作区发出普通消息，再对两份草稿各生成一次建议。第一次继续打字，第二次按 Tab，Host 只收到最初那条用户消息。随后从“设置 → 通用”关闭输入预测，重新加载后开关仍然关闭，再打字没有新增请求。
 - [ ] **最终安装包与旁问、随问。** 在最终包中分别从主输入框、旁问和随问触发预测，检查上下文归属、费用和 Tab 的行为。用旧版写出的 gzip、zstd 会话分别续写一轮，再次重启核对原预测、已发送消息与费用记录。记录安装器 SHA-256、系统和设置值。
 
