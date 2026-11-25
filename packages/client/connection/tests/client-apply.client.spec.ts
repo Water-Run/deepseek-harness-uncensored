@@ -312,6 +312,27 @@ describe('connection client apply', () => {
     }
   })
 
+  it('keeps the locally owned Host connected across offline startup and network changes', async () => {
+    const browser = new BrowserNetworkProbe()
+    browser.setOnline(false)
+    vi.stubGlobal('window', browser)
+    vi.stubGlobal('location', { hostname: 'app' })
+    vi.stubGlobal('__DSH_TRANSPORT__', { ownsHost: true })
+    const handle = await mount()
+    installGeneration(handle)
+    const loop = handle.start({})
+    try {
+      await vi.waitFor(() => { expect(handle.state.getSnapshot()).toBe('connected') })
+      const generation = handle.generation.getSnapshot()
+      browser.setOnline(true)
+      browser.setOnline(false)
+      expect(handle.state.getSnapshot()).toBe('connected')
+      expect(handle.generation.getSnapshot()).toBe(generation)
+    } finally {
+      loop.stop()
+    }
+  })
+
   it('does not announce a generation synchronously stopped by a generation subscriber', async () => {
     ;(globalThis as Win).location = { hostname: 'localhost' }
     const handle = await mount()

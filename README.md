@@ -288,6 +288,8 @@
 > [!IMPORTANT]
 >
 > Windows x64 用户从 `2026.11.23.0` 静默升级到已发布的 `2026.11.24.3` 会遇到退出码 `2`，旧版文件和安装登记保留。未签名的缺省与写作候选 `2026.11.25.0` 已分别从两个正式版完成离线升级。正式签名包的在线更新仍待验证。[Issue #24](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24)
+
+Windows x64 正式版 `2026.11.24.3` 有启动后静置卡死的用户报告，停用第三方插件后仍会发生。新版源码已修复同一会话并发打开旁问时的重复请求，以及断网时暂停连接本机 Host 的问题。启动后连接持续增长的根因仍在排查。[Issue #26](https://github.com/Water-Run/deepseek-harness-uncensored/issues/26) · [Windows 实装采样](.agents/requirements/2026-11-25-release-handoff.md#issue-26-的-windows-静置卡死)
 >
 > 更新前请先关闭 DSHU，备份数据目录和重要的工作区文件。正式签名、在线升级和自动回退还在验收中，进度见[开发清单](.agents/TODO.md)。
 
@@ -311,8 +313,8 @@
 | --- | --- |
 | DSHU | 最新正式版 `2026.11.24.3` |
 | DeepSeek Harness | 源码基于 [0.2.2-rc.5](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.5) |
-| 新内核候选 | DSHU `2026.11.25.0` 使用 DSH `0.2.3-alpha.2`，目前只含缺省与写作。跨对话记忆、余额历史和模式设置已接入。关于页左侧显示 DSHU 日期版本，右侧列出内核、源码与组件信息。[桌面](docs/assets/dshu/about-candidate.webp) · [窄屏](docs/assets/dshu/about-candidate-mobile.webp) |
-| 与正式版的差异 | 新内核源码已恢复默认的日出日落主题、城市选择和昼夜切换。较早的 Linux 验收包仍使用旧候选树。关于页内的更新检查、旁问、随问和新输入预测列入完整发行前的回归修复。[逐项对照与现有证据](.agents/requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表) |
+| 新内核候选 | DSHU `2026.11.25.0` 使用 DSH `0.2.3-alpha.2`，目前只含缺省与写作。跨对话记忆、余额历史和模式设置已接入。关于页左侧显示 DSHU 日期版本，右侧列出内核、源码与组件信息。[桌面](docs/assets/dshu/about-candidate-updates.webp) · [窄屏](docs/assets/dshu/about-candidate-updates-mobile.webp) |
+| 与正式版的差异 | 新内核源码已恢复日出日落、城市选择和关于页内的检查更新。打开关于页会按 DSHU 日期版本查询正式发行，发现新版时可查看发行说明。已实装验收的 Linux 包早于这两项改动。旁问、随问和输入框生成新建议仍待补齐。[逐项对照与现有证据](.agents/requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表) |
 | Windows x64 候选 | 未签名安装器已从首发版和上一正式版完成静默升级，已验证降级保护、无效登记拦截和旧写作会话保留。[版本身份](.agents/requirements/2026-11-25-release-handoff.md#windows-安装器与版本身份) · [安装包摘要与升级结果](.agents/requirements/2026-11-25-release-handoff.md#issue-24-的首发版静默升级) |
 | Linux 候选 | x64 的 deb、RPM、tar.gz 已逐包核验。Debian 13 和 Fedora 44 已验证安装、同版重装和两代旧会话，Fedora 45 已启动桌面和便携 CLI。arm64 已接入打包，待原生验收。[安装包摘要与实测范围](.agents/requirements/2026-11-25-release-handoff.md#linux-x64-未签名安装包与回执) |
 | 破甲提示词 | dsh-purge Community [v1.7.20](https://github.com/kingcharleslzy-ai/dsh-purge/releases/tag/v1.7.20) |

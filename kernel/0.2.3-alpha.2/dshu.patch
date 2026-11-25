@@ -3687,7 +3687,7 @@ index 237bd16bb75669b31cb1141567c825771fad3260..ae557bd1a56b591465600b24e060ddf5
  | `ctx.settingsController` | `core` | [`api-settings-controller`](../packages/api/settings-controller) | - | - | - | 把用户设置 seam 投影到生成的 Remote namespace：读取一律脱敏，所有拒绝在这里分类，而不在 seam Definition 上。 |
  | `ctx.workspaceFiles` | `core` | [`api-workspace-files`](../packages/api/workspace-files) | - | - | - | 为会话工作区根内的文件提供 stat、分页文本、字节窗口、目录列举与变更流，经 lstat、包含关系与 stat 重检限定。 |
 diff --git a/docs/config-catalog.md b/docs/config-catalog.md
-index eb81a3b5a726553a885bbc99fdf475f0074a0b09..895be1a6c1423c9917d71d8c7167e98d326fb1c9 100644
+index eb81a3b5a726553a885bbc99fdf475f0074a0b09..3a6ca97c3a3c1cab6e99519e5b39192da3600b02 100644
 --- a/docs/config-catalog.md
 +++ b/docs/config-catalog.md
 @@ -268,13 +268,30 @@ export interface Config {
@@ -3777,7 +3777,43 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..895be1a6c1423c9917d71d8c7167e98d
  <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-bash-local -->
  <a id="deepseek-aidsh-bash-local"></a>
  
-@@ -3887,6 +3952,49 @@ export type PythonEnvironment = 'workspace-dependencies' | 'user'
+@@ -760,6 +825,8 @@ export interface ContactConfig {
+   contactFormUrl: string
+   /** Questionnaire source option; empty until Harness is supported by the form. */
+   contactSource: string
++  /** Deadline for one GitHub release check, including response parsing. */
++  releaseCheckTimeoutMs: number
+ }
+ 
+ /** Persisted steps; a native top-up page leaves the durable step at credit. */
+@@ -843,13 +910,15 @@ export interface ExcelLimits {
+ ## `@deepseek-ai/dsh-client-ui-theme`
+ 
+ - `refs`: `Volatile` (`@deepseek-ai/cordis`)
+-- `source`: [`packages/client/ui-theme/src/index.ts:20`](../packages/client/ui-theme/src/index.ts)
++- `source`: [`packages/client/ui-theme/src/index.ts:21`](../packages/client/ui-theme/src/index.ts)
+ 
+ ```ts config-catalog
+ /** Runtime preferences projected to the browser. */
+ export interface Config {
+   /** Browser palette preference. */
+   preference: Volatile<ThemePreference>
++  /** Location of the `sun` preference. */
++  sunLocation: Volatile<SunLocation>
+   /** Browser font size in pixels. */
+   fontSize: Volatile<number>
+   /** Code-block font size in pixels. */
+@@ -866,6 +935,9 @@ export interface Config {
+ 
+ /** Theme preference persisted by the product Appearance row. */
+ export type ThemePreference = typeof THEME_PREFERENCES[number]
++
++/** Persisted location setting. */
++export type SunLocation = typeof SUN_LOCATIONS[number]
+ ```
+ <!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-ui-theme -->
+ 
+@@ -3887,6 +3959,49 @@ export type PythonEnvironment = 'workspace-dependencies' | 'user'
  ```
  <!-- END GENERATED config-catalog:@deepseek-ai/dsh-skill-office -->
  
@@ -3827,7 +3863,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..895be1a6c1423c9917d71d8c7167e98d
  <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-spill-local -->
  <a id="deepseek-aidsh-spill-local"></a>
  
-@@ -5449,7 +5557,7 @@ export interface Config {
+@@ -5449,7 +5564,7 @@ export interface Config {
  
  - `inject`: `web` · `deepseekAuth`
  - `refs`: `Volatile` (`@deepseek-ai/cordis`)
@@ -3836,7 +3872,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..895be1a6c1423c9917d71d8c7167e98d
  
  ```ts config-catalog
  /** Plugin config (all optional — `apply` fills env-var and constant defaults). */
-@@ -5593,6 +5701,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
+@@ -5593,6 +5708,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
  | --- | --- | --- |
  | `@deepseek-ai/dsh-acp-app` | `cmdlineArgs` | [`packages/bundle/acp-app/src/index.ts`](../packages/bundle/acp-app/src/index.ts) |
  | `@deepseek-ai/dsh-agent` | `sessionProjections` | [`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts) |
@@ -3844,7 +3880,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..895be1a6c1423c9917d71d8c7167e98d
  | `@deepseek-ai/dsh-api-remote-access` | — | [`packages/api/remote-access/src/index.ts`](../packages/api/remote-access/src/index.ts) |
  | `@deepseek-ai/dsh-api-remotes` | `typertGateway` | [`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts) |
  | `@deepseek-ai/dsh-authorization` | `credentials` | [`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts) |
-@@ -5627,6 +5736,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
+@@ -5627,6 +5743,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
  | `@deepseek-ai/dsh-client-ui-jobs` | — | [`packages/client/ui-jobs/src/index.ts`](../packages/client/ui-jobs/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-layout` | — | [`packages/client/ui-layout/src/index.ts`](../packages/client/ui-layout/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-message-feedback` | — | [`packages/client/ui-message-feedback/src/index.ts`](../packages/client/ui-message-feedback/src/index.ts) |
@@ -3852,7 +3888,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..895be1a6c1423c9917d71d8c7167e98d
  | `@deepseek-ai/dsh-client-ui-model-selection` | — | [`packages/client/ui-model-selection/src/index.ts`](../packages/client/ui-model-selection/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-open-in-app` | — | [`packages/client/ui-open-in-app/src/index.ts`](../packages/client/ui-open-in-app/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-permission-presets` | — | [`packages/client/ui-permission-presets/src/index.ts`](../packages/client/ui-permission-presets/src/index.ts) |
-@@ -5643,6 +5753,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
+@@ -5643,6 +5760,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
  | `@deepseek-ai/dsh-client-ui-settings` | — | [`packages/client/ui-settings/src/index.ts`](../packages/client/ui-settings/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-agent-loop` | — | [`packages/client/ui-settings-agent-loop/src/index.ts`](../packages/client/ui-settings-agent-loop/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-general` | — | [`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts) |
@@ -3860,7 +3896,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..895be1a6c1423c9917d71d8c7167e98d
  | `@deepseek-ai/dsh-client-ui-settings-session-log` | — | [`packages/client/ui-settings-session-log/src/index.ts`](../packages/client/ui-settings-session-log/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-shell` | — | [`packages/client/ui-settings-shell/src/index.ts`](../packages/client/ui-settings-shell/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-subagent` | — | [`packages/client/ui-settings-subagent/src/index.ts`](../packages/client/ui-settings-subagent/src/index.ts) |
-@@ -5789,6 +5900,7 @@ Imported as libraries by other packages; a `cordis.yml` cannot load them.
+@@ -5789,12 +5907,14 @@ Imported as libraries by other packages; a `cordis.yml` cannot load them.
  | `@deepseek-ai/dsh-llm-deepseek` | — | [`packages/llm/llm-deepseek/src/index.ts`](../packages/llm/llm-deepseek/src/index.ts) |
  | `@deepseek-ai/dsh-llm-mock-server` | — | [`packages/test-support/llm-mock-server/src/index.ts`](../packages/test-support/llm-mock-server/src/index.ts) |
  | `@deepseek-ai/dsh-loader-smoke` | — | [`packages/test-support/loader-smoke/src/index.ts`](../packages/test-support/loader-smoke/src/index.ts) |
@@ -3868,8 +3904,15 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..895be1a6c1423c9917d71d8c7167e98d
  | `@deepseek-ai/dsh-native-command` | — | [`packages/util/native-command/src/index.ts`](../packages/util/native-command/src/index.ts) |
  | `@deepseek-ai/dsh-official-bundles` | — | [`packages/util/official-bundles/src/index.ts`](../packages/util/official-bundles/src/index.ts) |
  | `@deepseek-ai/dsh-output-retention` | — | [`packages/util/output-retention/src/index.ts`](../packages/util/output-retention/src/index.ts) |
+ | `@deepseek-ai/dsh-package-manifest` | — | [`packages/util/package-manifest/src/index.ts`](../packages/util/package-manifest/src/index.ts) |
+ | `@deepseek-ai/dsh-plugin-detail` | — | [`packages/util/plugin-detail/src/index.ts`](../packages/util/plugin-detail/src/index.ts) |
+ | `@deepseek-ai/dsh-plugin-market-index` | — | [`packages/util/plugin-market-index/src/index.ts`](../packages/util/plugin-market-index/src/index.ts) |
++| `@deepseek-ai/dsh-product-version` | — | [`packages/util/product-version/src/index.ts`](../packages/util/product-version/src/index.ts) |
+ | `@deepseek-ai/dsh-remote-mock` | — | [`packages/test-support/remote-mock/src/index.ts`](../packages/test-support/remote-mock/src/index.ts) |
+ | `@deepseek-ai/dsh-sandbox-windows-acl` | — | [`packages/sandbox/sandbox-windows-acl/src/index.ts`](../packages/sandbox/sandbox-windows-acl/src/index.ts) |
+ | `@deepseek-ai/dsh-scope` | — | [`packages/core/scope/src/index.ts`](../packages/core/scope/src/index.ts) |
 diff --git a/docs/config-catalog.zh.md b/docs/config-catalog.zh.md
-index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..1dfb11fea50e244da038454ba917e9152a1059d9 100644
+index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..42df741cc4b2cd234c39a25f52c07052a3bcbbf4 100644
 --- a/docs/config-catalog.zh.md
 +++ b/docs/config-catalog.zh.md
 @@ -270,13 +270,30 @@ export interface Config {
@@ -3959,7 +4002,43 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..1dfb11fea50e244da038454ba917e915
  <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-bash-local -->
  <a id="deepseek-aidsh-bash-local"></a>
  
-@@ -3889,6 +3954,49 @@ export type PythonEnvironment = 'workspace-dependencies' | 'user'
+@@ -762,6 +827,8 @@ export interface ContactConfig {
+   contactFormUrl: string
+   /** Questionnaire source option; empty until Harness is supported by the form. */
+   contactSource: string
++  /** Deadline for one GitHub release check, including response parsing. */
++  releaseCheckTimeoutMs: number
+ }
+ 
+ /** Persisted steps; a native top-up page leaves the durable step at credit. */
+@@ -845,13 +912,15 @@ export interface ExcelLimits {
+ ## `@deepseek-ai/dsh-client-ui-theme`
+ 
+ - `refs`: `Volatile` (`@deepseek-ai/cordis`)
+-- `source`: [`packages/client/ui-theme/src/index.ts:20`](../packages/client/ui-theme/src/index.ts)
++- `source`: [`packages/client/ui-theme/src/index.ts:21`](../packages/client/ui-theme/src/index.ts)
+ 
+ ```ts config-catalog
+ /** Runtime preferences projected to the browser. */
+ export interface Config {
+   /** Browser palette preference. */
+   preference: Volatile<ThemePreference>
++  /** Location of the `sun` preference. */
++  sunLocation: Volatile<SunLocation>
+   /** Browser font size in pixels. */
+   fontSize: Volatile<number>
+   /** Code-block font size in pixels. */
+@@ -868,6 +937,9 @@ export interface Config {
+ 
+ /** Theme preference persisted by the product Appearance row. */
+ export type ThemePreference = typeof THEME_PREFERENCES[number]
++
++/** Persisted location setting. */
++export type SunLocation = typeof SUN_LOCATIONS[number]
+ ```
+ <!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-ui-theme -->
+ 
+@@ -3889,6 +3961,49 @@ export type PythonEnvironment = 'workspace-dependencies' | 'user'
  ```
  <!-- END GENERATED config-catalog:@deepseek-ai/dsh-skill-office -->
  
@@ -4009,7 +4088,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..1dfb11fea50e244da038454ba917e915
  <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-spill-local -->
  <a id="deepseek-aidsh-spill-local"></a>
  
-@@ -5451,7 +5559,7 @@ export interface Config {
+@@ -5451,7 +5566,7 @@ export interface Config {
  
  - `inject`: `web` · `deepseekAuth`
  - `refs`: `Volatile` (`@deepseek-ai/cordis`)
@@ -4018,7 +4097,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..1dfb11fea50e244da038454ba917e915
  
  ```ts config-catalog
  /** Plugin config (all optional — `apply` fills env-var and constant defaults). */
-@@ -5595,6 +5703,7 @@ export interface Config {
+@@ -5595,6 +5710,7 @@ export interface Config {
  | --- | --- | --- |
  | `@deepseek-ai/dsh-acp-app` | `cmdlineArgs` | [`packages/bundle/acp-app/src/index.ts`](../packages/bundle/acp-app/src/index.ts) |
  | `@deepseek-ai/dsh-agent` | `sessionProjections` | [`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts) |
@@ -4026,7 +4105,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..1dfb11fea50e244da038454ba917e915
  | `@deepseek-ai/dsh-api-remote-access` | — | [`packages/api/remote-access/src/index.ts`](../packages/api/remote-access/src/index.ts) |
  | `@deepseek-ai/dsh-api-remotes` | `typertGateway` | [`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts) |
  | `@deepseek-ai/dsh-authorization` | `credentials` | [`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts) |
-@@ -5629,6 +5738,7 @@ export interface Config {
+@@ -5629,6 +5745,7 @@ export interface Config {
  | `@deepseek-ai/dsh-client-ui-jobs` | — | [`packages/client/ui-jobs/src/index.ts`](../packages/client/ui-jobs/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-layout` | — | [`packages/client/ui-layout/src/index.ts`](../packages/client/ui-layout/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-message-feedback` | — | [`packages/client/ui-message-feedback/src/index.ts`](../packages/client/ui-message-feedback/src/index.ts) |
@@ -4034,7 +4113,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..1dfb11fea50e244da038454ba917e915
  | `@deepseek-ai/dsh-client-ui-model-selection` | — | [`packages/client/ui-model-selection/src/index.ts`](../packages/client/ui-model-selection/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-open-in-app` | — | [`packages/client/ui-open-in-app/src/index.ts`](../packages/client/ui-open-in-app/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-permission-presets` | — | [`packages/client/ui-permission-presets/src/index.ts`](../packages/client/ui-permission-presets/src/index.ts) |
-@@ -5645,6 +5755,7 @@ export interface Config {
+@@ -5645,6 +5762,7 @@ export interface Config {
  | `@deepseek-ai/dsh-client-ui-settings` | — | [`packages/client/ui-settings/src/index.ts`](../packages/client/ui-settings/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-agent-loop` | — | [`packages/client/ui-settings-agent-loop/src/index.ts`](../packages/client/ui-settings-agent-loop/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-general` | — | [`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts) |
@@ -4042,7 +4121,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..1dfb11fea50e244da038454ba917e915
  | `@deepseek-ai/dsh-client-ui-settings-session-log` | — | [`packages/client/ui-settings-session-log/src/index.ts`](../packages/client/ui-settings-session-log/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-shell` | — | [`packages/client/ui-settings-shell/src/index.ts`](../packages/client/ui-settings-shell/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-subagent` | — | [`packages/client/ui-settings-subagent/src/index.ts`](../packages/client/ui-settings-subagent/src/index.ts) |
-@@ -5791,6 +5902,7 @@ export interface Config {
+@@ -5791,12 +5909,14 @@ export interface Config {
  | `@deepseek-ai/dsh-llm-deepseek` | — | [`packages/llm/llm-deepseek/src/index.ts`](../packages/llm/llm-deepseek/src/index.ts) |
  | `@deepseek-ai/dsh-llm-mock-server` | — | [`packages/test-support/llm-mock-server/src/index.ts`](../packages/test-support/llm-mock-server/src/index.ts) |
  | `@deepseek-ai/dsh-loader-smoke` | — | [`packages/test-support/loader-smoke/src/index.ts`](../packages/test-support/loader-smoke/src/index.ts) |
@@ -4050,6 +4129,13 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..1dfb11fea50e244da038454ba917e915
  | `@deepseek-ai/dsh-native-command` | — | [`packages/util/native-command/src/index.ts`](../packages/util/native-command/src/index.ts) |
  | `@deepseek-ai/dsh-official-bundles` | — | [`packages/util/official-bundles/src/index.ts`](../packages/util/official-bundles/src/index.ts) |
  | `@deepseek-ai/dsh-output-retention` | — | [`packages/util/output-retention/src/index.ts`](../packages/util/output-retention/src/index.ts) |
+ | `@deepseek-ai/dsh-package-manifest` | — | [`packages/util/package-manifest/src/index.ts`](../packages/util/package-manifest/src/index.ts) |
+ | `@deepseek-ai/dsh-plugin-detail` | — | [`packages/util/plugin-detail/src/index.ts`](../packages/util/plugin-detail/src/index.ts) |
+ | `@deepseek-ai/dsh-plugin-market-index` | — | [`packages/util/plugin-market-index/src/index.ts`](../packages/util/plugin-market-index/src/index.ts) |
++| `@deepseek-ai/dsh-product-version` | — | [`packages/util/product-version/src/index.ts`](../packages/util/product-version/src/index.ts) |
+ | `@deepseek-ai/dsh-remote-mock` | — | [`packages/test-support/remote-mock/src/index.ts`](../packages/test-support/remote-mock/src/index.ts) |
+ | `@deepseek-ai/dsh-sandbox-windows-acl` | — | [`packages/sandbox/sandbox-windows-acl/src/index.ts`](../packages/sandbox/sandbox-windows-acl/src/index.ts) |
+ | `@deepseek-ai/dsh-scope` | — | [`packages/core/scope/src/index.ts`](../packages/core/scope/src/index.ts) |
 diff --git a/docs/event-producer-consumer.md b/docs/event-producer-consumer.md
 index 89b6c354586e750c62d891a17758d1367fa42a5a..0c965e7b41b520805cc521a3e4782279c10513f7 100644
 --- a/docs/event-producer-consumer.md
@@ -14389,7 +14475,7 @@ index 0000000000000000000000000000000000000000..0d65bb8222137c219eded6098fc0eb7c
 +  expect(document.activeElement).toBe(trigger)
 +})
 diff --git a/packages/client/ui-settings-account/README.i18n.yaml b/packages/client/ui-settings-account/README.i18n.yaml
-index 217a3754e16c0f3effcb7b80ccadbcf7e5ff3f67..e1187a7d10d4a6d53f32dd7657f9a2977ba0e811 100644
+index 217a3754e16c0f3effcb7b80ccadbcf7e5ff3f67..09c94b018f9e5369aa277af4fbc2eaee6ee84964 100644
 --- a/packages/client/ui-settings-account/README.i18n.yaml
 +++ b/packages/client/ui-settings-account/README.i18n.yaml
 @@ -9,14 +9,14 @@
@@ -14398,36 +14484,43 @@ index 217a3754e16c0f3effcb7b80ccadbcf7e5ff3f67..e1187a7d10d4a6d53f32dd7657f9a297
  /deepseek-ai-dsh-client-ui-settings-account/summary:
 -  en: 54da65ea807d7af1
 -  zh: 359f85d16724d71d
-+  en: 9e94e739cb7cfc5d
-+  zh: 9f8075636d051061
++  en: 9b45dd5d16b8c45e
++  zh: 3da0c720fdd234e8
  /deepseek-ai-dsh-client-ui-settings-account/table-of-contents:
    en: c26f81e8adf0128b
    zh: e11ab371f51f66bc
  /deepseek-ai-dsh-client-ui-settings-account/use-this-package:
 -  en: 51864317e5c33943
 -  zh: c0507f3448859ef0
-+  en: b08736a3155148e4
-+  zh: 1685e803c5aaa50f
++  en: 344430dcdfbbcf56
++  zh: a5c11928ac80795b
  /deepseek-ai-dsh-client-ui-settings-account/use-this-package/desktop-onboarding:
    en: b17e3d33f66af025
    zh: 780f813205d955d9
 diff --git a/packages/client/ui-settings-account/README.md b/packages/client/ui-settings-account/README.md
-index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..da45168168a053ef7c18941cb4c4004694556ef9 100644
+index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..fc9abe6384333c04141e27ff6685faed751eca7f 100644
 --- a/packages/client/ui-settings-account/README.md
 +++ b/packages/client/ui-settings-account/README.md
-@@ -13,6 +13,8 @@ Server-expired account credentials clear the displayed account details and emit
+@@ -13,9 +13,11 @@ Server-expired account credentials clear the displayed account details and emit
  
  ## Summary
  
+-The Account settings section displays DeepSeek login state and offers browser sign-in and cancellation; the sidebar account menu provides Platform sign-out. Desktop users also receive a resumable introduction to account credit and presentation preferences.
++Opening About checks this repository’s GitHub releases using the DSHU product version. The dialog shows the result and supports a manual retry. A rate-limited response displays when a retry is available.
+ 
+-The sign-in dialog offers network troubleshooting only for `no-response` failures. HTTP, business, response-validation, storage, and account-stream failures retain the generic retry message.
 +An active conversation shows its estimated cost and shared spending limits below the composer. Open a reading to inspect cumulative cost or each enabled window. Unpriced requests are counted separately.
 +
- The Account settings section displays DeepSeek login state and offers browser sign-in and cancellation; the sidebar account menu provides Platform sign-out. Desktop users also receive a resumable introduction to account credit and presentation preferences.
++The Account settings section displays DeepSeek login state and offers browser sign-in and cancellation; the sidebar account menu provides Platform sign-out. Desktop users also receive a resumable introduction to account credit and presentation preferences.
  
- The sign-in dialog offers network troubleshooting only for `no-response` failures. HTTP, business, response-validation, storage, and account-stream failures retain the generic retry message.
-@@ -28,6 +30,10 @@ A new account-model sign-in-required event displays “Model unavailable. Please
+ ## Table of Contents
+ 
+@@ -28,6 +30,12 @@ A new account-model sign-in-required event displays “Model unavailable. Please
  <a id="use-this-package"></a>
  ## Use this package
  
++The sign-in dialog offers network troubleshooting only for `no-response` failures. HTTP, business, response-validation, storage, and account-stream failures retain the generic retry message.
++
 +The account menu offers **About** before and after sign-in. On wide screens the brand panel fills the left edge of the dialog. On narrow screens it spans the top. The left panel displays the DSHU calendar version and UTC build time. The right panel identifies the kernel, base commit and date, source tree, release component pins and licenses, with links to the candidate manifest, notices and official DSHU releases. Escape returns focus to the account menu.
 +
 +Open **Budget** in Settings to inspect balance samples, adjust the two ends of the time range, set rolling limits, or reset a window. New samples use a 30-day retention policy by default. Sidebar visibility is independent of sampling, and its chart can show 24 hours, 7 days (default), or 30 days. A paused conversation shows its status above the input.
@@ -14436,22 +14529,29 @@ index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..da45168168a053ef7c18941cb4c40046
  
  Desktop and plain Web clients both mount the sidebar account launcher, Account settings, the sign-in step of model onboarding, and the account-state subscription. Desktop main opens the authorization page in the system browser. A plain Web client, identified by the absent Desktop preload bridge, sends `login_source` web with its own origin as the callback origin, preopens a tab during the sign-in click, navigates it to the authorization URL with the same `theme` parameter once its attempt receives one, and closes it on failure, expiry, or cancellation; a blocked popup leaves the copy-link route. Embedded Platform pages, Desktop onboarding, and the native device reader stay Desktop-only, so Web Platform links open new tabs.
 diff --git a/packages/client/ui-settings-account/README.zh.md b/packages/client/ui-settings-account/README.zh.md
-index 7ea45f5067591a84fb43ef786026cc0c1246729b..b67d3a2e56b4fa45ddfa973d20b3ae02f8c6a8fa 100644
+index 7ea45f5067591a84fb43ef786026cc0c1246729b..3a96144fd1fa134e5b865f3c2864ad92a062eee8 100644
 --- a/packages/client/ui-settings-account/README.zh.md
 +++ b/packages/client/ui-settings-account/README.zh.md
-@@ -13,6 +13,8 @@ kind: "package-reference"
+@@ -13,9 +13,11 @@ kind: "package-reference"
  
  ## 概述
  
+-设置中的账号页面显示 DeepSeek 登录状态，并提供浏览器登录和取消；侧边栏账号菜单提供 Platform 退出登录。Desktop 用户还会进入可恢复的引导，了解账号额度并选择展示偏好。
++打开关于页会按 DSHU 产品版本检查本仓库的 GitHub Release。可以在弹窗中查看结果和手动重试。触发 GitHub 限流时，页面显示可再次检查的时间。
+ 
+-登录弹窗仅对 `no-response` 失败提示检查网络。HTTP、业务、响应校验、存储和账号状态流失败仍显示通用重试提示。
 +有内容的对话在输入框下方显示本对话估算费用及共用额度。点击读数可查看累计费用曲线或各启用窗口的占用，缺少用量或费率的请求单列数量。
 +
- 设置中的账号页面显示 DeepSeek 登录状态，并提供浏览器登录和取消；侧边栏账号菜单提供 Platform 退出登录。Desktop 用户还会进入可恢复的引导，了解账号额度并选择展示偏好。
++设置中的账号页面显示 DeepSeek 登录状态，并提供浏览器登录和取消；侧边栏账号菜单提供 Platform 退出登录。Desktop 用户还会进入可恢复的引导，了解账号额度并选择展示偏好。
  
- 登录弹窗仅对 `no-response` 失败提示检查网络。HTTP、业务、响应校验、存储和账号状态流失败仍显示通用重试提示。
-@@ -28,6 +30,10 @@ kind: "package-reference"
+ ## 目录
+ 
+@@ -28,6 +30,12 @@ kind: "package-reference"
  <a id="use-this-package"></a>
  ## 使用此包
  
++登录弹窗仅对 `no-response` 失败提示检查网络。HTTP、业务、响应校验、存储和账号状态流失败仍显示通用重试提示。
++
 +登录前后均可从账号菜单打开**关于**。宽屏的渐变铺满弹窗左侧，窄屏铺满顶部。左侧展示 DSHU 日期版本和 UTC 编译时间。右侧列出内核版本、基线提交及时间、候选源码树、发行版组件版本与许可，可打开候选清单、第三方许可和 DSHU 正式发行页。按 Escape 后焦点回到账号菜单。
 +
 +在设置的「额度」中可查看余额采样、拖动时间范围的两端、调整各档滚动上限或单独重置窗口。保存新采样时默认保留 30 天，侧栏显示与采样单独设置。侧栏图表可选短（24 小时）、中（默认 7 天）、长（30 天）。暂停状态显示在对应会话的输入框上方。
@@ -14460,10 +14560,20 @@ index 7ea45f5067591a84fb43ef786026cc0c1246729b..b67d3a2e56b4fa45ddfa973d20b3ae02
  
  Desktop 与普通 Web 客户端都挂载侧边栏账号菜单、账号设置、模型引导中的登录步骤，并订阅账号状态。Desktop 主进程在系统浏览器中打开授权页面。普通 Web 客户端（以缺少 Desktop preload 桥接识别）以 `login_source` web 发起登录，并以自身 origin 作为回调 origin；它在点击登录时预先打开一个标签页，本次尝试获得授权 URL 后带上相同的 `theme` 参数导航该标签页，并在失败、过期或取消时关闭它；弹窗被拦截时仍可使用复制链接。内嵌 Platform 页面、Desktop 引导和原生设备信息读取器仅在 Desktop 中提供，因此 Web 中的 Platform 链接在新标签页打开。
 diff --git a/packages/client/ui-settings-account/package.json b/packages/client/ui-settings-account/package.json
-index 1b9612ca205da42b52a6c6d7b625231b5bfd4800..55d70902fe28d0bb1372439b58fba8402debbc8b 100644
+index 1b9612ca205da42b52a6c6d7b625231b5bfd4800..5988043ac563b9889b9e5e807c4bfd27bf6ef5c6 100644
 --- a/packages/client/ui-settings-account/package.json
 +++ b/packages/client/ui-settings-account/package.json
-@@ -60,10 +60,13 @@
+@@ -49,6 +49,9 @@
+     "@deepseek-ai/cordis": "workspace:~"
+   },
+   "devDependencies": {
++    "@deepseek-ai/dsh-product-version": "workspace:*",
++    "@types/semver": "^7.8.0",
++    "semver": "^7.8.5",
+     "@deepseek-ai/cordis": "workspace:~",
+     "@deepseek-ai/dsh-api-remote-access": "workspace:*",
+     "@deepseek-ai/dsh-api-remotes": "workspace:*",
+@@ -60,10 +63,13 @@
      "@deepseek-ai/dsh-client-ui-primitives": "workspace:*",
      "@deepseek-ai/dsh-client-ui-renderer": "workspace:*",
      "@deepseek-ai/dsh-client-ui-settings": "workspace:*",
@@ -14477,7 +14587,7 @@ index 1b9612ca205da42b52a6c6d7b625231b5bfd4800..55d70902fe28d0bb1372439b58fba840
      "@testing-library/react": "^16.3.3",
      "@types/big.js": "^6.2.2",
      "react": "^18.2.0",
-@@ -71,7 +74,13 @@
+@@ -71,7 +77,13 @@
      "@deepseek-ai/dsh-client-ui-settings-models": "workspace:*",
      "@deepseek-ai/dsh-host-webserver": "workspace:*",
      "big.js": "^7.0.1",
@@ -16114,7 +16224,7 @@ index 0000000000000000000000000000000000000000..77f223f029d6df2f8271f7d8b7f2fce2
 +  expect(screen.queryAllByRole('progressbar')).toHaveLength(0)
 +})
 diff --git a/packages/client/ui-settings-account/tsconfig.json b/packages/client/ui-settings-account/tsconfig.json
-index d425a8cdea74f84e657b0b2118472a84b0fa5e23..5431d66228c0cd3b796eb72b9071bdae4dda8e3a 100644
+index d425a8cdea74f84e657b0b2118472a84b0fa5e23..c09b172f836e405092b11b2e6a6b41f31d12ff6f 100644
 --- a/packages/client/ui-settings-account/tsconfig.json
 +++ b/packages/client/ui-settings-account/tsconfig.json
 @@ -35,6 +35,9 @@
@@ -16127,7 +16237,7 @@ index d425a8cdea74f84e657b0b2118472a84b0fa5e23..5431d66228c0cd3b796eb72b9071bdae
      {
        "path": "../../account/deepseek-account"
      },
-@@ -58,6 +61,24 @@
+@@ -58,6 +61,27 @@
      },
      {
        "path": "../product-analytics/tsconfig.client.json"
@@ -16137,6 +16247,9 @@ index d425a8cdea74f84e657b0b2118472a84b0fa5e23..5431d66228c0cd3b796eb72b9071bdae
 +    },
 +    {
 +      "path": "../ui-conversation/tsconfig.client.json"
++    },
++    {
++      "path": "../../util/product-version"
 +    },
 +    {
 +      "path": "../../util/brand"
@@ -20098,7 +20211,7 @@ index 68e7f032cb3b63ef1c4f09d592321a9144400141..13d56812ef0ea53bbcf605f7ad1e58af
               this._inSocket.destroy();
               this._ptyNative.kill(this._pty, this._useConptyDll);
 diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
-index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13ba69ab96e 100644
+index 774164ab6d006ce397a2f47f6ba84592519d80d6..341630d78f4c521b6a19ccc3b87fbd6cef89a84c 100644
 --- a/pnpm-lock.yaml
 +++ b/pnpm-lock.yaml
 @@ -24,7 +24,7 @@ patchedDependencies:
@@ -20110,7 +20223,17 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
  
  importers:
  
-@@ -1587,6 +1587,80 @@ importers:
+@@ -999,6 +999,9 @@ importers:
+ 
+   apps/desktop-publisher:
+     dependencies:
++      '@deepseek-ai/dsh-product-version':
++        specifier: workspace:*
++        version: link:../../packages/util/product-version
+       cos-nodejs-sdk-v5:
+         specifier: 3.0.0
+         version: 3.0.0
+@@ -1587,6 +1590,80 @@ importers:
          specifier: workspace:*
          version: link:../../typert/registry
  
@@ -20191,7 +20314,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
    packages/api/remote-access:
      dependencies:
        '@deepseek-ai/dsh-typert-protocol':
-@@ -1627,6 +1701,9 @@ importers:
+@@ -1627,6 +1704,9 @@ importers:
          specifier: workspace:*
          version: link:../../util/values
      devDependencies:
@@ -20201,7 +20324,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
        '@deepseek-ai/cordis':
          specifier: workspace:~
          version: link:../../../vendor/cordis
-@@ -1648,6 +1725,12 @@ importers:
+@@ -1648,6 +1728,12 @@ importers:
        '@deepseek-ai/dsh-api-job-controller':
          specifier: workspace:*
          version: link:../job-controller
@@ -20214,7 +20337,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
        '@deepseek-ai/dsh-api-session-controller':
          specifier: workspace:*
          version: link:../session-controller
-@@ -1747,6 +1830,9 @@ importers:
+@@ -1747,6 +1833,9 @@ importers:
        '@deepseek-ai/dsh-settings':
          specifier: workspace:*
          version: link:../../settings/settings
@@ -20224,7 +20347,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
        '@deepseek-ai/dsh-subagent':
          specifier: workspace:*
          version: link:../../subagent/subagent
-@@ -1886,6 +1972,9 @@ importers:
+@@ -1886,6 +1975,9 @@ importers:
        '@deepseek-ai/dsh-skill':
          specifier: workspace:*
          version: link:../../skill/skill
@@ -20234,7 +20357,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
        '@deepseek-ai/dsh-storage':
          specifier: workspace:*
          version: link:../../storage/storage
-@@ -2698,6 +2787,9 @@ importers:
+@@ -2698,6 +2790,9 @@ importers:
        '@deepseek-ai/dsh-mcp-resources':
          specifier: workspace:*
          version: link:../../mcp/mcp-resources
@@ -20244,7 +20367,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
        '@deepseek-ai/dsh-otel':
          specifier: workspace:*
          version: link:../../telemetry/otel
-@@ -2770,6 +2862,9 @@ importers:
+@@ -2770,6 +2865,9 @@ importers:
        '@deepseek-ai/dsh-skill-filesystem':
          specifier: workspace:*
          version: link:../../skill/skill-filesystem
@@ -20254,7 +20377,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
        '@deepseek-ai/dsh-spill-local':
          specifier: workspace:*
          version: link:../../spill/spill-local
-@@ -3149,6 +3244,9 @@ importers:
+@@ -3149,6 +3247,9 @@ importers:
  
    packages/bundle/web-app:
      dependencies:
@@ -20264,7 +20387,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
        '@deepseek-ai/dsh-action-cards':
          specifier: workspace:*
          version: link:../../interaction/action-cards
-@@ -3167,6 +3265,12 @@ importers:
+@@ -3167,6 +3268,12 @@ importers:
        '@deepseek-ai/dsh-api-job-controller':
          specifier: workspace:*
          version: link:../../api/job-controller
@@ -20277,7 +20400,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
        '@deepseek-ai/dsh-api-remotes':
          specifier: workspace:*
          version: link:../../api/remotes
-@@ -3290,6 +3394,9 @@ importers:
+@@ -3290,6 +3397,9 @@ importers:
        '@deepseek-ai/dsh-client-ui-message-feedback':
          specifier: workspace:*
          version: link:../../client/ui-message-feedback
@@ -20287,7 +20410,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
        '@deepseek-ai/dsh-client-ui-model-selection':
          specifier: workspace:*
          version: link:../../client/ui-model-selection
-@@ -3341,6 +3448,9 @@ importers:
+@@ -3341,6 +3451,9 @@ importers:
        '@deepseek-ai/dsh-client-ui-settings-general':
          specifier: workspace:*
          version: link:../../client/ui-settings-general
@@ -20297,7 +20420,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
        '@deepseek-ai/dsh-client-ui-settings-models':
          specifier: workspace:*
          version: link:../../client/ui-settings-models
-@@ -3473,6 +3583,9 @@ importers:
+@@ -3473,6 +3586,9 @@ importers:
        '@deepseek-ai/dsh-mcp-manager':
          specifier: workspace:*
          version: link:../../mcp/mcp-manager
@@ -20307,7 +20430,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
        '@deepseek-ai/dsh-message-feedback':
          specifier: workspace:*
          version: link:../../feedback/message-feedback
-@@ -5582,6 +5695,57 @@ importers:
+@@ -5582,6 +5698,57 @@ importers:
          specifier: ^18.2.0
          version: 18.3.1(react@18.3.1)
  
@@ -20365,20 +20488,13 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
    packages/client/ui-model-selection:
      devDependencies:
        '@deepseek-ai/cordis':
-@@ -6554,6 +6718,9 @@ importers:
-         specifier: link:../../../vendor/schemastery
-         version: link:../../../vendor/schemastery
-     devDependencies:
-+      '@deepseek-ai/dsh-balance':
-+        specifier: workspace:*
-+        version: link:../../credentials/balance
-       '@deepseek-ai/cordis':
-         specifier: workspace:~
-         version: link:../../../vendor/cordis
-@@ -6563,12 +6730,18 @@ importers:
+@@ -6563,12 +6730,21 @@ importers:
        '@deepseek-ai/dsh-api-remotes':
          specifier: workspace:*
          version: link:../../api/remotes
++      '@deepseek-ai/dsh-balance':
++        specifier: workspace:*
++        version: link:../../credentials/balance
 +      '@deepseek-ai/dsh-brand':
 +        specifier: workspace:*
 +        version: link:../../util/brand
@@ -20394,7 +20510,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
        '@deepseek-ai/dsh-client-store':
          specifier: workspace:*
          version: link:../store
-@@ -6578,6 +6751,9 @@ importers:
+@@ -6578,6 +6754,9 @@ importers:
        '@deepseek-ai/dsh-client-ui-chat':
          specifier: workspace:*
          version: link:../ui-chat
@@ -20404,7 +20520,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
        '@deepseek-ai/dsh-client-ui-layout':
          specifier: workspace:*
          version: link:../ui-layout
-@@ -6593,6 +6769,9 @@ importers:
+@@ -6593,6 +6772,9 @@ importers:
        '@deepseek-ai/dsh-client-ui-settings-models':
          specifier: workspace:*
          version: link:../ui-settings-models
@@ -20414,10 +20530,13 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
        '@deepseek-ai/dsh-client-ui-slots':
          specifier: workspace:*
          version: link:../ui-slots
-@@ -6605,9 +6784,21 @@ importers:
+@@ -6605,15 +6787,33 @@ importers:
        '@deepseek-ai/dsh-host-webserver':
          specifier: workspace:*
          version: link:../../host/webserver
++      '@deepseek-ai/dsh-product-version':
++        specifier: workspace:*
++        version: link:../../util/product-version
 +      '@deepseek-ai/dsh-session':
 +        specifier: workspace:*
 +        version: link:../../core/session
@@ -20436,7 +20555,26 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
        '@testing-library/react':
          specifier: ^16.3.3
          version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-@@ -6736,6 +6927,51 @@ importers:
+       '@types/big.js':
+         specifier: ^6.2.2
+         version: 6.2.2
++      '@types/semver':
++        specifier: ^7.8.0
++        version: 7.8.0
+       big.js:
+         specifier: ^7.0.1
+         version: 7.0.1
+@@ -6623,6 +6823,9 @@ importers:
+       react-dom:
+         specifier: ^18.2.0
+         version: 18.3.1(react@18.3.1)
++      semver:
++        specifier: ^7.8.5
++        version: 7.8.5
+ 
+   packages/client/ui-settings-agent-loop:
+     devDependencies:
+@@ -6736,6 +6939,51 @@ importers:
          specifier: ^18.2.0
          version: 18.3.1(react@18.3.1)
  
@@ -20488,7 +20626,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
    packages/client/ui-settings-models:
      dependencies:
        '@deepseek-ai/schemastery':
-@@ -9402,6 +9638,40 @@ importers:
+@@ -9402,6 +9650,40 @@ importers:
          specifier: workspace:*
          version: link:../../util/error
  
@@ -20529,7 +20667,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
    packages/credentials/credentials:
      dependencies:
        '@deepseek-ai/dsh-brand':
-@@ -14340,6 +14610,52 @@ importers:
+@@ -14340,6 +14622,52 @@ importers:
          specifier: workspace:*
          version: link:../../core/tools
  
@@ -20582,7 +20720,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
    packages/guard/timeout-policy:
      devDependencies:
        '@deepseek-ai/cordis':
-@@ -15796,6 +16112,64 @@ importers:
+@@ -15796,6 +16124,64 @@ importers:
          specifier: workspace:*
          version: link:../../core/tools
  
@@ -20647,7 +20785,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
    packages/plan/plan-mode:
      dependencies:
        '@deepseek-ai/dsh-brand':
-@@ -19182,7 +19556,7 @@ importers:
+@@ -19182,7 +19568,7 @@ importers:
          version: 3.1.1
        node-pty:
          specifier: 1.2.0-beta.15
@@ -20656,7 +20794,20 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
      devDependencies:
        '@deepseek-ai/cordis':
          specifier: workspace:~
-@@ -20753,6 +21127,9 @@ importers:
+@@ -20083,6 +20469,12 @@ importers:
+         specifier: ^7.8.0
+         version: 7.8.0
+ 
++  packages/util/product-version:
++    devDependencies:
++      '@deepseek-ai/cordis':
++        specifier: workspace:~
++        version: link:../../../vendor/cordis
++
+   packages/util/ripgrep:
+     dependencies:
+       '@vscode/ripgrep':
+@@ -20753,6 +21145,9 @@ importers:
        '@deepseek-ai/dsh-mcp-client':
          specifier: workspace:*
          version: link:../../packages/mcp/mcp-client
@@ -20666,7 +20817,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13b
        '@deepseek-ai/dsh-message-feedback':
          specifier: workspace:*
          version: link:../../packages/feedback/message-feedback
-@@ -35270,7 +35647,7 @@ snapshots:
+@@ -35270,7 +35665,7 @@ snapshots:
  
    node-int64@0.4.0: {}
  
@@ -20827,7 +20978,7 @@ index bf8bbdc9b0254c65ebd9034685501eb5a68a5fae..180594565b08855d0ad9a0f3615725b3
      key: 'credentialsController',
      pkg: 'api-settings-controller',
 diff --git a/tsconfig.base.json b/tsconfig.base.json
-index 38bced25a37b280e8059d528139f3e4c4654c988..759726f5a0d3f6abb4be1dee41e52bc12548399f 100644
+index 38bced25a37b280e8059d528139f3e4c4654c988..4ad7cf2637495d082d68a8c3a0f97630a6e193b0 100644
 --- a/tsconfig.base.json
 +++ b/tsconfig.base.json
 @@ -54,6 +54,9 @@
@@ -20888,7 +21039,15 @@ index 38bced25a37b280e8059d528139f3e4c4654c988..759726f5a0d3f6abb4be1dee41e52bc1
        "@deepseek-ai/dsh-message-feedback": ["./packages/feedback/message-feedback/src"],
        "@deepseek-ai/dsh-message-quotes": ["./packages/session/message-quotes/src"],
        "@deepseek-ai/dsh-native-command": ["./packages/util/native-command/src"],
-@@ -602,6 +618,7 @@
+@@ -555,6 +571,7 @@
+       "@deepseek-ai/dsh-plugin-market": ["./packages/boot/plugin-market/src"],
+       "@deepseek-ai/dsh-plugin-market-index": ["./packages/util/plugin-market-index/src"],
+       "@deepseek-ai/dsh-plugin-package-inventory-deepseek": ["./packages/llm/plugin-package-inventory-deepseek/src"],
++      "@deepseek-ai/dsh-product-version": ["./packages/util/product-version/src"],
+       "@deepseek-ai/dsh-ptc-runtime": ["./packages/ptc-runtime/ptc-runtime/src"],
+       "@deepseek-ai/dsh-ptc-runtime-node": ["./packages/ptc-runtime/ptc-runtime-node/src"],
+       "@deepseek-ai/dsh-pwsh-sandbox": ["./packages/shell/pwsh-sandbox/src"],
+@@ -602,6 +619,7 @@
        "@deepseek-ai/dsh-skill-badge": ["./packages/experimental/skill-badge/src"],
        "@deepseek-ai/dsh-skill-filesystem": ["./packages/skill/skill-filesystem/src"],
        "@deepseek-ai/dsh-skill-office": ["./packages/skill/skill-office/src"],
@@ -20910,7 +21069,7 @@ index d6a347c5aa4b45367dcb616971d4cd4f90543f4e..7b5f5791535b79789ba8deb36f564a1a
      { "path": "./packages/client/ui-account-notifications" },
      // Shared leaf: web e2e boots the real host webserver (fixture + real-host
 diff --git a/tsconfig.host.json b/tsconfig.host.json
-index f2046d341293cb0adb504e754b87f31918b2e424..57dfaac7e91d96413c6b89bbc2d1f60f2b54a0de 100644
+index f2046d341293cb0adb504e754b87f31918b2e424..62f572f94c77250150ce5001c63c877b1c563abb 100644
 --- a/tsconfig.host.json
 +++ b/tsconfig.host.json
 @@ -7,7 +7,15 @@
@@ -20937,7 +21096,15 @@ index f2046d341293cb0adb504e754b87f31918b2e424..57dfaac7e91d96413c6b89bbc2d1f60f
      { "path": "./packages/api/terminal-controller/tsconfig.host.json" },
      { "path": "./packages/computer-use/computer-use" },
      { "path": "./packages/experimental/computer-use-cua-driver-mcp" },
-@@ -576,6 +585,10 @@
+@@ -389,6 +398,7 @@
+     { "path": "./packages/boot/hmr" },
+     { "path": "./vendor/logger-console" },
+     { "path": "./packages/util/brand" },
++    { "path": "./packages/util/product-version" },
+     { "path": "./packages/util/error" },
+     { "path": "./packages/util/package-manifest" },
+     { "path": "./packages/util/plugin-detail" },
+@@ -576,6 +586,10 @@
      { "path": "./packages/spill/spill" },
      { "path": "./packages/spill/spill-local" },
      { "path": "./packages/spill/spill-policy" },
@@ -30360,10 +30527,10 @@ index ddf9c2d6db33e22d7a5922c322b12ff08ff23e0f..703e38c49db92925d553f09116a0652c
    {
 diff --git a/apps/web/tests/about-dialog-fit.e2e.ts b/apps/web/tests/about-dialog-fit.e2e.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..9c1f4389088b7e50f09e34e1e8474a8621a9576d
+index 0000000000000000000000000000000000000000..004a83930b37b8f60a5cdc12b276e9c2ffad91e7
 --- /dev/null
 +++ b/apps/web/tests/about-dialog-fit.e2e.ts
-@@ -0,0 +1,85 @@
+@@ -0,0 +1,105 @@
 +/** The About dialog fits a full-screen window without a vertical scrollbar. */
 +import { readFileSync } from 'node:fs'
 +import { fileURLToPath } from 'node:url'
@@ -30394,6 +30561,13 @@ index 0000000000000000000000000000000000000000..9c1f4389088b7e50f09e34e1e8474a86
 +  const browser = await chromium.launch()
 +  try {
 +    const page = await browser.newPage({ locale: labels.locale, viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce' })
++    let published = 'v2026.11.24.3'
++    let checks = 0
++    await page.route('https://api.github.com/repos/Water-Run/deepseek-harness-uncensored/releases?*', async route => {
++      checks += 1
++      await route.fulfill({ json: [{ tag_name: published, prerelease: false, draft: false,
++        html_url: 'https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/' + published }] })
++    })
 +    const consoleWatch = watchConsole(page)
 +    await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
 +    await page.getByRole('button', { name: labels.account, exact: true }).click()
@@ -30401,6 +30575,19 @@ index 0000000000000000000000000000000000000000..9c1f4389088b7e50f09e34e1e8474a86
 +    const dialog = page.getByRole('dialog', { name: labels.about, exact: true })
 +    await dialog.waitFor()
 +    const identity = dialog.getByRole('region').first()
++    const status = identity.getByRole('status')
++    await expect.poll(() => status.getAttribute('data-phase')).toBe('ahead')
++    expect(await status.textContent()).toContain(published)
++    expect(checks).toBe(1)
++    published = 'v2099.01.01.0'
++    await identity.getByRole('button', { name: labels.locale === 'zh-CN' ? '检查更新' : 'Check for updates' }).click()
++    await expect.poll(() => status.getAttribute('data-phase')).toBe('available')
++    expect(await identity.getByRole('link', { name: labels.locale === 'zh-CN' ? '查看发行说明' : 'Release notes' })
++      .getAttribute('href')).toBe('https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/' + published)
++    expect(checks).toBe(2)
++    published = 'v2026.11.24.3'
++    await identity.getByRole('button', { name: labels.locale === 'zh-CN' ? '检查更新' : 'Check for updates' }).click()
++    await expect.poll(() => status.getAttribute('data-phase')).toBe('ahead')
 +    expect(await identity.getByText(cliMetadata.dshuVersion, { exact: true }).count()).toBe(1)
 +    expect(await identity.getByText(/0\.2\.3-alpha\.2/u).count()).toBe(0)
 +    expect(await identity.getByText(/\d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC/u).count()).toBe(1)
@@ -31136,10 +31323,10 @@ index 0000000000000000000000000000000000000000..7a4c4453cf5c96d401ac3a0f8c6045e1
 +}
 diff --git a/packages/client/ui-settings-account/src/client/AboutDialog.module.css b/packages/client/ui-settings-account/src/client/AboutDialog.module.css
 new file mode 100644
-index 0000000000000000000000000000000000000000..c6bf393121d7a6d834822d3a8925d51bf57592ce
+index 0000000000000000000000000000000000000000..16e987694d95bb91699603b95cfb0e000f7792f5
 --- /dev/null
 +++ b/packages/client/ui-settings-account/src/client/AboutDialog.module.css
-@@ -0,0 +1,97 @@
+@@ -0,0 +1,100 @@
 +/* The dialog clips both surfaces to one outer edge. Its close control stays available while the body scrolls. */
 +.dialog[role='dialog'] { width: min(960px, 100%); max-height: 100%; padding: 0; gap: 0; }
 +.content {
@@ -31195,6 +31382,9 @@ index 0000000000000000000000000000000000000000..c6bf393121d7a6d834822d3a8925d51b
 +.version { font-size: clamp(26px, 2.8vw, 34px); line-height: 1.1; letter-spacing: -.04em; font-weight: 500; }
 +.update { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--dsw-static-neutral-bluish-00) 18%, transparent); width: 100%; font-size: 12px; }
 +.update a { color: inherit; border-color: color-mix(in srgb, currentColor 26%, transparent); background: transparent; }
++.status { flex-basis: 100%; margin: 0; line-height: 1.4; }
++.statusDot { display: inline-block; width: 5px; height: 5px; margin-inline-end: 6px; border-radius: 50%; background: currentColor; }
++.update button { color: inherit; }
 +.details { min-width: 0; padding: 30px 32px; }
 +
 +.details h3 { margin: 0 0 8px; font-size: 14px; line-height: 1.4; font-weight: 550; }
@@ -31239,15 +31429,18 @@ index 0000000000000000000000000000000000000000..c6bf393121d7a6d834822d3a8925d51b
 +}
 diff --git a/packages/client/ui-settings-account/src/client/AboutDialog.tsx b/packages/client/ui-settings-account/src/client/AboutDialog.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..0deb5971cace9c74d73646c3fc5de67ba2b80f74
+index 0000000000000000000000000000000000000000..9c37edec486c5dca4680dc0f31dd8a7819600d4e
 --- /dev/null
 +++ b/packages/client/ui-settings-account/src/client/AboutDialog.tsx
-@@ -0,0 +1,77 @@
+@@ -0,0 +1,125 @@
 +/**
 + * Product identity displayed by the verified kernel candidate in Web and Desktop.
 + * @module
 + */
-+import { FishLogo, IconCloseOutlineRegular, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
++import { useEffect, useRef, useState } from 'react'
++import { loadForkRelease, type ReleaseNotice } from './release-status.ts'
++import { publicContactConfig } from './public-config.ts'
++import { Button, FishLogo, IconCloseOutlineRegular, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 +import type { AccountMenuProps } from './AccountMenu.tsx'
 +import { GitHubIcon } from './GitHubIcon.tsx'
 +import { releaseComponents } from './release-components.ts'
@@ -31255,6 +31448,24 @@ index 0000000000000000000000000000000000000000..0deb5971cace9c74d73646c3fc5de67b
 +
 +const repository = 'https://github.com/Water-Run/deepseek-harness-uncensored'
 +const upstream = 'https://github.com/deepseek-ai/deepseek-harness'
++
++function statusText(notice: ReleaseNotice, t: AccountMenuProps['t']): string {
++  switch (notice.phase) {
++    case 'checking': return t('aboutChecking')
++    case 'latest': return t('aboutLatest')
++    case 'ahead': return t('aboutAhead', { version: notice.version ?? '' })
++    case 'available': return t(notice.severity === 'major' ? 'aboutMajor' : notice.severity === 'minor' ? 'aboutMinor' : 'aboutPatch')
++    case 'unpublished': return t('aboutNoRelease')
++    case 'offline': return t('aboutOffline')
++    case 'failed': return notice.message === 'rate-limited'
++      ? notice.retryAt === undefined ? t('aboutRateLimited') : t('aboutRateLimitedUntil', { time: new Date(notice.retryAt).toLocaleString() })
++      : t(notice.message === 'http-403' ? 'aboutForbidden' : 'aboutFailed')
++    default: {
++      const unreachable: never = notice.phase
++      return unreachable
++    }
++  }
++}
 +
 +function utc(value: string | undefined, missing: string): string {
 +  if (!value) return missing
@@ -31271,6 +31482,29 @@ index 0000000000000000000000000000000000000000..0deb5971cace9c74d73646c3fc5de67b
 +  const missing = t('aboutUnknown')
 +  const revision = process.env.DSH_CLIENT_UPSTREAM_COMMIT ?? process.env.DSH_CLIENT_COMMIT_HASH
 +  const baseUrl = revision ? upstream + '/commit/' + revision : upstream
++  const [notice, setNotice] = useState<ReleaseNotice>({ phase: 'checking' })
++  const [check, setCheck] = useState(0)
++  const [now, setNow] = useState(Date.now)
++  const retryDeadline = useRef(0)
++  useEffect(() => {
++    if (!open || retryDeadline.current > Date.now()) return
++    const controller = new AbortController()
++    setNotice({ phase: 'checking' })
++    void loadForkRelease(fetch, productVersion ?? '', { signal: controller.signal, timeoutMs: publicContactConfig().releaseCheckTimeoutMs }).then((next) => {
++      if (!controller.signal.aborted) {
++        retryDeadline.current = next.retryAt ?? 0
++        setNotice(next)
++        setNow(Date.now())
++      }
++    })
++    return () => { controller.abort() }
++  }, [productVersion, check, open])
++  useEffect(() => {
++    if (!open || notice.retryAt === undefined || notice.retryAt <= now) return
++    // Browser timers use a signed 32-bit delay; a distant server deadline must not overflow it.
++    const timer = setTimeout(() => { setNow(Date.now()) }, Math.max(0, Math.min(notice.retryAt - Date.now(), 2 ** 31 - 1)))
++    return () => { clearTimeout(timer) }
++  }, [open, notice.retryAt, now])
 +  return <Modal open={open} onClose={close} headless title={t('about')} className={css.dialog ?? ''}>
 +    <button type="button" className={css.close} aria-label={t('close')} onClick={close}><IconCloseOutlineRegular size={16} /></button>
 +    <div className={css.content}>
@@ -31284,7 +31518,11 @@ index 0000000000000000000000000000000000000000..0deb5971cace9c74d73646c3fc5de67b
 +          <div><dt>{t('aboutBuildTime')}</dt><dd>{utc(process.env.DSH_CLIENT_BUILD_TIME, missing)}</dd></div>
 +        </dl>
 +        <a className={css.github} href={repository} target="_blank" rel="noreferrer"><GitHubIcon />{t('aboutRepo')}</a>
-+        <div className={css.update}><span>{t('aboutCandidate')}</span><a href={repository + '/releases/latest'} target="_blank" rel="noreferrer">{t('aboutReleases')}</a></div>
++        <div className={css.update}>
++          <p className={css.status} data-phase={notice.phase} role="status"><span className={css.statusDot} aria-hidden="true" />{statusText(notice, t)}{notice.phase === 'available' && notice.version !== undefined ? ` · ${notice.version}` : ''}</p>
++          <Button size="sm" variant="outline" disabled={notice.phase === 'checking' || (notice.retryAt !== undefined && notice.retryAt > now)} onClick={() => { setCheck(value => value + 1) }}>{t('aboutCheck')}</Button>
++          {notice.url !== undefined && <a href={notice.url} target="_blank" rel="noreferrer">{t('aboutReadRelease')}</a>}
++        </div>
 +      </section>
 +      <div className={css.details}>
 +        <section className={css.foundationGroup}>
@@ -31447,14 +31685,28 @@ index 0000000000000000000000000000000000000000..b36d4dc51c8ab7edcbf778235212da23
 +}
 diff --git a/packages/client/ui-settings-account/src/client/about-locales.ts b/packages/client/ui-settings-account/src/client/about-locales.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..aa363948d66eb83a873ff9f7ec18d9f2a1360de4
+index 0000000000000000000000000000000000000000..f878baf2eb1b03cbbec2380fc59ff4c8066cd81e
 --- /dev/null
 +++ b/packages/client/ui-settings-account/src/client/about-locales.ts
-@@ -0,0 +1,249 @@
+@@ -0,0 +1,361 @@
 +/** Product identity, source and license labels. */
 +
 +/** English About labels. */
 +export const aboutEn = {
++  aboutAhead: "This build is newer than the published {version}",
++  aboutChecking: "Checking for updates…",
++  aboutLatest: "Up to date",
++  aboutMajor: "New major version available",
++  aboutMinor: "New minor version available",
++  aboutPatch: "Update available",
++  aboutNoRelease: "No applicable release",
++  aboutOffline: "Offline",
++  aboutRateLimited: "GitHub rate limit reached",
++  aboutRateLimitedUntil: "Retry after {time}",
++  aboutForbidden: "GitHub refused the request",
++  aboutFailed: "Could not check for updates",
++  aboutCheck: "Check for updates",
++  aboutReadRelease: "Release notes",
 +  aboutProductVersion: "DSHU version",
 +  aboutBuildTime: "Built at",
 +  aboutDate: "Commit date",
@@ -31486,6 +31738,20 @@ index 0000000000000000000000000000000000000000..aa363948d66eb83a873ff9f7ec18d9f2
 +
 +/** Simplified Chinese About labels. */
 +export const aboutZh = {
++  aboutAhead: "当前构建高于已发布的 {version}",
++  aboutChecking: "正在检查更新…",
++  aboutLatest: "当前已是最新版本",
++  aboutMajor: "发现主版本更新",
++  aboutMinor: "发现次版本更新",
++  aboutPatch: "有可用更新",
++  aboutNoRelease: "暂无适用的已发布版本",
++  aboutOffline: "网络离线",
++  aboutRateLimited: "GitHub 请求已限流",
++  aboutRateLimitedUntil: "{time} 后可重试",
++  aboutForbidden: "GitHub 拒绝了本次检查",
++  aboutFailed: "更新检查失败",
++  aboutCheck: "检查更新",
++  aboutReadRelease: "查看发行说明",
 +  aboutProductVersion: "DSHU 版本",
 +  aboutBuildTime: "编译时间",
 +  aboutDate: "提交时间",
@@ -31517,6 +31783,20 @@ index 0000000000000000000000000000000000000000..aa363948d66eb83a873ff9f7ec18d9f2
 +
 +/** Japanese About labels. */
 +export const aboutJa = {
++  aboutAhead: "このビルドは公開版 {version} より新しいです",
++  aboutChecking: "更新を確認中…",
++  aboutLatest: "最新です",
++  aboutMajor: "メジャー更新があります",
++  aboutMinor: "マイナー更新があります",
++  aboutPatch: "更新があります",
++  aboutNoRelease: "対象のリリースがありません",
++  aboutOffline: "オフライン",
++  aboutRateLimited: "GitHub の利用制限に達しました",
++  aboutRateLimitedUntil: "{time} 以降に再試行",
++  aboutForbidden: "GitHub が要求を拒否しました",
++  aboutFailed: "更新を確認できませんでした",
++  aboutCheck: "更新を確認",
++  aboutReadRelease: "リリースノート",
 +  aboutProductVersion: "DSHU バージョン",
 +  aboutBuildTime: "ビルド日時",
 +  aboutDate: "コミット日時",
@@ -31548,6 +31828,20 @@ index 0000000000000000000000000000000000000000..aa363948d66eb83a873ff9f7ec18d9f2
 +
 +/** Spanish About labels. */
 +export const aboutEs = {
++  aboutAhead: "Esta compilación es posterior a {version}",
++  aboutChecking: "Buscando actualizaciones…",
++  aboutLatest: "Está al día",
++  aboutMajor: "Nueva versión principal",
++  aboutMinor: "Nueva versión secundaria",
++  aboutPatch: "Actualización disponible",
++  aboutNoRelease: "No hay una versión aplicable",
++  aboutOffline: "Sin conexión",
++  aboutRateLimited: "Límite de GitHub alcanzado",
++  aboutRateLimitedUntil: "Reintentar después de {time}",
++  aboutForbidden: "GitHub rechazó la solicitud",
++  aboutFailed: "No se pudo comprobar",
++  aboutCheck: "Buscar actualizaciones",
++  aboutReadRelease: "Notas de la versión",
 +  aboutProductVersion: "Versión de DSHU",
 +  aboutBuildTime: "Compilación",
 +  aboutDate: "Fecha del commit",
@@ -31579,6 +31873,20 @@ index 0000000000000000000000000000000000000000..aa363948d66eb83a873ff9f7ec18d9f2
 +
 +/** French About labels. */
 +export const aboutFr = {
++  aboutAhead: "Cette version est plus récente que {version}",
++  aboutChecking: "Recherche en cours…",
++  aboutLatest: "À jour",
++  aboutMajor: "Nouvelle version majeure",
++  aboutMinor: "Nouvelle version mineure",
++  aboutPatch: "Mise à jour disponible",
++  aboutNoRelease: "Aucune version applicable",
++  aboutOffline: "Hors ligne",
++  aboutRateLimited: "Limite de GitHub atteinte",
++  aboutRateLimitedUntil: "Réessayer après {time}",
++  aboutForbidden: "GitHub a refusé la demande",
++  aboutFailed: "Échec de la vérification",
++  aboutCheck: "Vérifier les mises à jour",
++  aboutReadRelease: "Notes de version",
 +  aboutProductVersion: "Version de DSHU",
 +  aboutBuildTime: "Compilation",
 +  aboutDate: "Date du commit",
@@ -31610,6 +31918,20 @@ index 0000000000000000000000000000000000000000..aa363948d66eb83a873ff9f7ec18d9f2
 +
 +/** German About labels. */
 +export const aboutDe = {
++  aboutAhead: "Dieser Build ist neuer als die veröffentlichte Version {version}",
++  aboutChecking: "Suche nach Updates…",
++  aboutLatest: "Aktuell",
++  aboutMajor: "Neue Hauptversion verfügbar",
++  aboutMinor: "Neue Nebenversion verfügbar",
++  aboutPatch: "Update verfügbar",
++  aboutNoRelease: "Keine passende Version",
++  aboutOffline: "Offline",
++  aboutRateLimited: "GitHub-Anfragelimit erreicht",
++  aboutRateLimitedUntil: "Nach {time} erneut versuchen",
++  aboutForbidden: "GitHub hat die Anfrage abgelehnt",
++  aboutFailed: "Updateprüfung fehlgeschlagen",
++  aboutCheck: "Nach Updates suchen",
++  aboutReadRelease: "Versionshinweise",
 +  aboutProductVersion: "DSHU-Version",
 +  aboutBuildTime: "Build-Zeit",
 +  aboutDate: "Commit-Datum",
@@ -31641,6 +31963,20 @@ index 0000000000000000000000000000000000000000..aa363948d66eb83a873ff9f7ec18d9f2
 +
 +/** Russian About labels. */
 +export const aboutRu = {
++  aboutAhead: "Эта сборка новее опубликованной версии {version}",
++  aboutChecking: "Проверка обновлений…",
++  aboutLatest: "Установлена актуальная версия",
++  aboutMajor: "Доступна новая основная версия",
++  aboutMinor: "Доступна новая минорная версия",
++  aboutPatch: "Доступно обновление",
++  aboutNoRelease: "Подходящей версии нет",
++  aboutOffline: "Нет сети",
++  aboutRateLimited: "Достигнут лимит запросов GitHub",
++  aboutRateLimitedUntil: "Повторите после {time}",
++  aboutForbidden: "GitHub отклонил запрос",
++  aboutFailed: "Не удалось проверить обновления",
++  aboutCheck: "Проверить обновления",
++  aboutReadRelease: "Описание выпуска",
 +  aboutProductVersion: "Версия DSHU",
 +  aboutBuildTime: "Время сборки",
 +  aboutDate: "Дата коммита",
@@ -31672,6 +32008,20 @@ index 0000000000000000000000000000000000000000..aa363948d66eb83a873ff9f7ec18d9f2
 +
 +/** Portuguese About labels. */
 +export const aboutPt = {
++  aboutAhead: "Esta compilação é posterior à versão publicada {version}",
++  aboutChecking: "A procurar atualizações…",
++  aboutLatest: "Atualizado",
++  aboutMajor: "Nova versão principal",
++  aboutMinor: "Nova versão secundária",
++  aboutPatch: "Atualização disponível",
++  aboutNoRelease: "Sem versão aplicável",
++  aboutOffline: "Sem ligação",
++  aboutRateLimited: "Limite de pedidos do GitHub atingido",
++  aboutRateLimitedUntil: "Tentar depois de {time}",
++  aboutForbidden: "O GitHub recusou o pedido",
++  aboutFailed: "Falha ao verificar atualizações",
++  aboutCheck: "Verificar atualizações",
++  aboutReadRelease: "Notas da versão",
 +  aboutProductVersion: "Versão do DSHU",
 +  aboutBuildTime: "Compilação",
 +  aboutDate: "Data do commit",
@@ -34195,10 +34545,18 @@ index 0000000000000000000000000000000000000000..3060583451d9933a5e2c6aa3365cab97
 +
 +</details>
 diff --git a/scripts/verify-package-readme-model-experience.ts b/scripts/verify-package-readme-model-experience.ts
-index 2e5184e084e215d3e0dacca1e5eb303e1e18b7e4..ee6ddaec460f705e72714f8dcbdcdea3e6f92f67 100644
+index 2e5184e084e215d3e0dacca1e5eb303e1e18b7e4..d37b5ed3ab806c51b49f894a26f47db5f03dad7e 100644
 --- a/scripts/verify-package-readme-model-experience.ts
 +++ b/scripts/verify-package-readme-model-experience.ts
-@@ -50,6 +50,9 @@ const NO_MODEL_EXPERIENCE_SECTION: Readonly<Record<string, string>> = {
+@@ -35,6 +35,7 @@ const NO_MODEL_EXPERIENCE_SECTION: Readonly<Record<string, string>> = {
+   'packages/core/scope': 'The package is a model-agnostic registration and lifecycle primitive; model-facing consumers own any context selection.',
+   'packages/experimental/liveshare-protocol': 'The package only defines wire frames and identity values that its consumers exchange; it registers nothing model-facing.',
+   'packages/util/brand': 'The package only constructs plain string values and registers nothing model-facing.',
++  'packages/util/product-version': 'The updater and packagers share date-format helpers that register no model input.',
+   'packages/util/error': 'The package only defines the HarnessError base class; packages that throw it own any model-facing text.',
+   'packages/util/home-paths': 'The package only resolves harness-owned host paths; model-facing consumers own any rendered use.',
+   'packages/util/launch-environment': 'The package only resolves host environment values; model-facing consumers own any rendered use.',
+@@ -50,6 +51,9 @@ const NO_MODEL_EXPERIENCE_SECTION: Readonly<Record<string, string>> = {
   * blocks. A package moves on or off this list with its context behavior.
   */
  const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
@@ -35108,45 +35466,13 @@ index 0000000000000000000000000000000000000000..906e3195e969c2e8bc48b5e4d178a2dd
 +export function desktopArtifactBase(version: string, target: string): string
 diff --git a/apps/desktop-publisher/src/dshu-version.mjs b/apps/desktop-publisher/src/dshu-version.mjs
 new file mode 100644
-index 0000000000000000000000000000000000000000..e95963ed92d36b43746fa924124f52d0d938161c
+index 0000000000000000000000000000000000000000..34d4bd7b530660b7e937cb6f8b68dec9218cad53
 --- /dev/null
 +++ b/apps/desktop-publisher/src/dshu-version.mjs
-@@ -0,0 +1,46 @@
-+/** Public DSHU release dates and artifact names shared by packagers and publishers. */
-+
-+/**
-+ * @typedef {object} CalendarVersion
-+ * @property {number} year Calendar year.
-+ * @property {number} month Calendar month.
-+ * @property {number} day Calendar day.
-+ * @property {number} sequence Daily sequence, whose first build is 0.
-+ * @property {string} display Public YYYY.MM.DD.N version.
-+ * @property {string} runtime Ordered YYYY.MMDD.N package version.
-+ */
-+
-+/**
-+ * Parse public YYYY.MM.DD.N or internal YYYY.MMDD.N calendar versions.
-+ * @param {string} value - Exact version without a tag prefix.
-+ * @returns {CalendarVersion | undefined} Validated date and both representations.
-+ */
-+export function parseCalendarVersion(value) {
-+  const display = /^(\d{4})\.(\d{2})\.(\d{2})\.(0|[1-9]\d*)$/u.exec(value)
-+  const runtime = display === null ? /^(\d{4})\.([1-9]\d*)\.(0|[1-9]\d*)$/u.exec(value) : null
-+  if (display === null && runtime === null) return undefined
-+  const year = Number((display ?? runtime)[1])
-+  const monthDay = runtime === null ? 0 : Number(runtime[2])
-+  const month = display === null ? Math.floor(monthDay / 100) : Number(display[2])
-+  const day = display === null ? monthDay % 100 : Number(display[3])
-+  const sequence = Number(display === null ? runtime[3] : display[4])
-+  if (year < 2000 || year > 9999 || month < 1 || month > 12 || day < 1 || day > 31
-+    || !Number.isSafeInteger(sequence) || sequence > 65535) return undefined
-+  const date = new Date(Date.UTC(year, month - 1, day))
-+  if (date.getUTCMonth() + 1 !== month || date.getUTCDate() !== day) return undefined
-+  return Object.freeze({ year, month, day, sequence,
-+    display: `${year}.${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}.${sequence}`,
-+    runtime: `${year}.${month * 100 + day}.${sequence}`,
-+  })
-+}
+@@ -0,0 +1,14 @@
++/** Calendar versions and artifact names used by Desktop publishers. */
++import { parseCalendarVersion } from '@deepseek-ai/dsh-product-version/bootstrap'
++export { parseCalendarVersion } from '@deepseek-ai/dsh-product-version/bootstrap'
 +
 +/**
 + * Name a desktop download before the signing suffix and extension.
@@ -40702,7 +41028,7 @@ index 528bf6971f2c0522a51a6373e928f01fa408c247..7ca3d7f3e6724cddea6abf7b6714a65d
      document.body.style.setProperty('--foreign', 'kept')
      const presenter = new ThemePresenter()
 diff --git a/packages/client/ui-theme/README.i18n.yaml b/packages/client/ui-theme/README.i18n.yaml
-index a8f01b8a2bd3f1f7ef46100c87cb79bf470a1521..aef32e0ccae72c641850967304705696927f86d3 100644
+index a8f01b8a2bd3f1f7ef46100c87cb79bf470a1521..6f27141f71694de3e8f30b386ca99a58d402e862 100644
 --- a/packages/client/ui-theme/README.i18n.yaml
 +++ b/packages/client/ui-theme/README.i18n.yaml
 @@ -9,32 +9,32 @@
@@ -40711,8 +41037,8 @@ index a8f01b8a2bd3f1f7ef46100c87cb79bf470a1521..aef32e0ccae72c641850967304705696
  /deepseek-ai-dsh-client-ui-theme/summary:
 -  en: d9832b31c4cb3ca4
 -  zh: f2ec42bb5ae66188
-+  en: 37ed04c2ccc07961
-+  zh: 326dfd2ab0c97327
++  en: b2761d676acd4439
++  zh: b511c9dc501f1eab
  /deepseek-ai-dsh-client-ui-theme/table-of-contents:
    en: d152484eb41ac6b4
    zh: 09388d293f9be9cb
@@ -40737,13 +41063,13 @@ index a8f01b8a2bd3f1f7ef46100c87cb79bf470a1521..aef32e0ccae72c641850967304705696
  /deepseek-ai-dsh-client-ui-theme/use-this-package/pre-plugin-palette:
 -  en: 18f62cd5e6d32570
 -  zh: 728ddd17d7610470
-+  en: 6fbd2f37c0f1eeae
-+  zh: c2b4360eb60c8a1b
++  en: 0c7cf4db5b6044cf
++  zh: 4bdb1aa0f6cac169
  /deepseek-ai-dsh-client-ui-theme/understand-the-implementation:
 -  en: 875bd262240187c1
 -  zh: 32ffb98f502ed042
-+  en: 24ac886ce704b1c6
-+  zh: 52c15ae4b896acef
++  en: 8b54ce38afd70a46
++  zh: b5e21879e6b72a7a
  /deepseek-ai-dsh-client-ui-theme/understand-the-implementation/stylesheets:
 -  en: 148903d8cd6580f5
 -  zh: 7ff2ff90954798b8
@@ -40764,7 +41090,7 @@ index a8f01b8a2bd3f1f7ef46100c87cb79bf470a1521..aef32e0ccae72c641850967304705696
    en: 3120df665299c634
    zh: 1d9f365d091d0d2a
 diff --git a/packages/client/ui-theme/README.md b/packages/client/ui-theme/README.md
-index d49f0b138a40879cb74a947d4ddaf916eab34d23..c823e3c1809c976b190259372a34bee38971a782 100644
+index d49f0b138a40879cb74a947d4ddaf916eab34d23..8781c68c6a5a38d0838e4aa7f4db1ead250e1f33 100644
 --- a/packages/client/ui-theme/README.md
 +++ b/packages/client/ui-theme/README.md
 @@ -9,7 +9,7 @@ English | [中文](README.zh.md)
@@ -40772,7 +41098,7 @@ index d49f0b138a40879cb74a947d4ddaf916eab34d23..c823e3c1809c976b190259372a34bee3
  ## Summary
  
 -`dsh-client-ui-theme` lets Web GUI users choose `light`, `dark`, or `system`, and set the font and font size of text, code, and the terminal separately in Settings. Every authenticated browser stores these values in the `ui-theme` settings namespace, which the local provider persists in `$DSH_HOME/cordis.patch.yml` by default. The plugin resolves `system` through `prefers-color-scheme` and publishes immutable `ThemeSnapshot`s; ui-layout applies each snapshot to the document. The package also ships the `--dsw-*` token stylesheets and injects a synchronous bootstrap so the selected palette, font size, and fonts apply before the shell loads. Third-party themes can register alias-token overrides through `ctx.theme`.
-+`dsh-client-ui-theme` lets Web GUI users choose `sun` (sunrise and sunset, the default), `system`, `light`, or `dark`, and set the font and font size of text, code, and the terminal separately in Settings. Every authenticated browser stores these values in the `ui-theme` settings namespace, which the local provider persists in `$DSH_HOME/cordis.patch.yml` by default. The plugin resolves `system` through `prefers-color-scheme` and `sun` through the estimated daylight of a location, and publishes immutable `ThemeSnapshot`s; ui-layout applies each snapshot to the document. The package also ships the `--dsw-*` token stylesheets and injects a synchronous bootstrap so the selected palette, font size, and fonts apply before the shell loads. Third-party themes can register alias-token overrides through `ctx.theme`. Every row this package contributes renders through the shared preference row, so the theme choices sit in the same cell as the other Settings controls.
++The default theme switches between light and dark at local sunrise and sunset. In General settings, choose a city, follow the system palette, or keep a fixed light or dark theme. Text, code, and terminal fonts and sizes can be set independently. Saved preferences apply before the shell appears on the next launch.
  
  ## Table of Contents
  
@@ -40800,7 +41126,7 @@ index d49f0b138a40879cb74a947d4ddaf916eab34d23..c823e3c1809c976b190259372a34bee3
  Three rows set the text font (interface and conversation text), the code font (code blocks, inline code, and other `--ds-font-family-code` text), and the sidebar terminal font independently. Each field takes comma-separated family names and commits on blur or Enter; an empty field restores the built-in stack. The service normalizes each list by dropping quotes, backslashes, angle brackets, and control characters and double-quoting every name except CSS generic families, then stores it in `textFontFamily`, `codeFontFamily`, or `terminalFontFamily`. The user list precedes the role's built-in stack, so a font missing on the machine falls back to the default. The field accepts any installed font name; it does not enumerate local fonts.
  
  ### Registering a theme
-@@ -45,14 +47,16 @@ A composition can register a third-party theme id with alias-token overrides thr
+@@ -45,14 +47,19 @@ A composition can register a third-party theme id with alias-token overrides thr
  
  ### Pre-plugin palette
  
@@ -40809,17 +41135,20 @@ index d49f0b138a40879cb74a947d4ddaf916eab34d23..c823e3c1809c976b190259372a34bee3
  
  -----
  
- <a id="understand-the-implementation"></a>
 +A low-specificity motion rule supplies short paint transitions to buttons, tabs, tree rows, links and text inputs. Specialized controls keep their own transitions. Mode selection spreads the new accent from its control with a brief saturation highlight; reduced motion bypasses these effects.
++
+ <a id="understand-the-implementation"></a>
 +
  ## Understand the implementation
  
 -Shared menus use `--dsw-menu-surface-fill` and blur through `MenuSurface`; platform code must preserve those token values. Sticky menu group headings can use `--dsw-alias-menu-group-header-fill`, a 94%-opaque light or dark fill, independently of the menu material. Other overlays consume `--dsw-specific-menu`, which keeps a nearly opaque macOS fill without a menu backing. The enforced source rules are defined in the [styling reference](../../../docs/web-styling.md#component-rules). Modal masks retain their dark translucent fill without background blur.
++Authenticated browsers save preferences in the `ui-theme` namespace. The local provider writes them to `$DSH_HOME/cordis.patch.yml` by default. The layout applies immutable `ThemeSnapshot` values to the document. Plugins can register alias tokens through `ctx.theme`.
++
 +Shared menus use `--dsw-menu-surface-fill` and blur through `MenuSurface`; platform code must preserve those token values. Sticky menu group headings can use `--dsw-alias-menu-group-header-fill`, a 94%-opaque light or dark fill, independently of the menu material. Other overlays consume `--dsw-specific-menu`, which keeps a nearly opaque macOS fill without a menu backing. Modal masks retain their dark translucent fill without background blur.
  
  <details>
  <summary>Implementation internals — click to expand</summary>
-@@ -65,9 +69,11 @@ The service owns theme, font-size, and font-family state and publishes snapshots
+@@ -65,9 +72,11 @@ The service owns theme, font-size, and font-family state and publishes snapshots
  
  The style installer publishes `--dsh-hairline-width` on the document root and updates it through one device-pixel-ratio listener when the document has a window. Documents without a window receive the stylesheets and use the CSS fallback width. Its width matches a 0.5px border rounded down to whole device pixels, with a one-device-pixel minimum. Only styles that explicitly consume this variable use the width; plugin disposal releases the listener and restores the previous root declaration.
  
@@ -40833,7 +41162,7 @@ index d49f0b138a40879cb74a947d4ddaf916eab34d23..c823e3c1809c976b190259372a34bee3
  
  [`focus.css`](src/styles/focus.css) provides a `:focus-visible` fallback that names the ring colour through `var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary))` and the standard width through `--dsw-focus-ring-width`, never the outline style — so a control that disables its outline stays paintless, and one that declares no ring keeps the standard geometry instead of Chromium's `auto 1px`. The theme resolves this blue to `#4176E6` in light mode and `#7AAAFF` in dark mode. Component outlines and focus-ring shadows use the same colour expression, including rings on descendants and pseudo-elements. `--dsw-focus-ring-width` (2px) is the standard width; dense tables and toolbars may keep 1px, and offsets remain component-owned.
  
-@@ -89,7 +95,7 @@ The `--dsw-alias-turn-trigger-*` tokens provide separate resting and hover backg
+@@ -89,7 +98,7 @@ The `--dsw-alias-turn-trigger-*` tokens provide separate resting and hover backg
  
  `corner-shape.css` smooths every rounded corner: inside `@supports (corner-shape: superellipse(1.5))` it defines `--dsw-corner-shape` and applies it to all elements and their `::before`/`::after` through the universal selector, so engines without `corner-shape` keep circular corners. Full-round shapes — `border-radius: 50%` circles and pill radii — pair `corner-shape: round` with their radius in the owning component sheet because a superellipse deforms them; the corner-shape stylesheet spec enforces that pairing across every package stylesheet.
  
@@ -40842,7 +41171,7 @@ index d49f0b138a40879cb74a947d4ddaf916eab34d23..c823e3c1809c976b190259372a34bee3
  
  `brand-font.css` references the bundled `montserrat-regular.woff2` / `montserrat-light.woff2` / `montserrat-medium.woff2`, Montserrat Regular, Light, and Medium under the SIL Open Font License shipped with the stylesheet and WOFF2 under `lib/styles/`. `--dsw-font-family-brand` selects this face for brand text; ordinary UI keeps the system font stack. The source is Google Fonts' Montserrat distribution. The Web entry imports the package's `./brand-font.css` export so Vite emits and resolves the font asset; the Web build also includes its license. The Web application, including Desktop onboarding, loads the font offline. The native credential welcome retains its system font.
  
-@@ -115,7 +121,6 @@ These pages cover the layout presenter, the token consumers, and the styling rul
+@@ -115,7 +124,6 @@ These pages cover the layout presenter, the token consumers, and the styling rul
  - [ui-layout](../ui-layout/README.md) — the presenter that applies the resolved theme snapshot.
  - [ui-sidebar](../ui-sidebar/README.md) — a consumer of the scrollbar rebinding contract.
  - [ui-conversation](../ui-conversation/README.md) — a consumer of `--dsh-scrollbar-width` for the composer seat.
@@ -40851,7 +41180,7 @@ index d49f0b138a40879cb74a947d4ddaf916eab34d23..c823e3c1809c976b190259372a34bee3
  
  -----
 diff --git a/packages/client/ui-theme/README.zh.md b/packages/client/ui-theme/README.zh.md
-index 806a7c5e5785f98879ab188c4df54382f46fa3f8..5a0d09bcf3a0d02c4e9a34174d7bc2a0dcdca64e 100644
+index 806a7c5e5785f98879ab188c4df54382f46fa3f8..aea2d582a6b371e63e2116ff8e45b6a1a57343f6 100644
 --- a/packages/client/ui-theme/README.zh.md
 +++ b/packages/client/ui-theme/README.zh.md
 @@ -9,7 +9,7 @@ kind: "package-reference"
@@ -40859,7 +41188,7 @@ index 806a7c5e5785f98879ab188c4df54382f46fa3f8..5a0d09bcf3a0d02c4e9a34174d7bc2a0
  ## 概述
  
 -`dsh-client-ui-theme` 让 Web GUI 用户在设置中选择 `light`、`dark` 或 `system`，并分别设置正文、代码与终端的字体和字号。每个已认证浏览器都把这些值存入 `ui-theme` 设置命名空间，本地提供方默认将其持久化到 `$DSH_HOME/cordis.patch.yml`。插件通过 `prefers-color-scheme` 解析 `system` 并发布不可变的 `ThemeSnapshot`；ui-layout 把每份快照应用到文档。本包还提供 `--dsw-*` token 样式表，并注入同步引导，使所选调色板、字号与字体在外壳加载前生效。第三方主题可通过 `ctx.theme` 注册别名 token 覆盖。
-+`dsh-client-ui-theme` 让 Web GUI 用户在设置中选择 `sun`（日出日落，默认）、`system`、`light` 或 `dark`，并分别设置正文、代码与终端的字体和字号。每个已认证浏览器都把这些值存入 `ui-theme` 设置命名空间，本地提供方默认将其持久化到 `$DSH_HOME/cordis.patch.yml`。插件通过 `prefers-color-scheme` 解析 `system`，通过某一位置的估算日照解析 `sun`，并发布不可变的 `ThemeSnapshot`；ui-layout 把每份快照应用到文档。本包还提供 `--dsw-*` token 样式表，并注入同步引导，使所选调色板、字号与字体在外壳加载前生效。第三方主题可通过 `ctx.theme` 注册别名 token 覆盖。本包贡献的每一行走共享的偏好行，因此主题选项与设置页其余控件坐在同一种行里。
++默认按日出日落切换浅色与深色，也可以固定一种外观或跟随系统。设置中的通用页可以选择城市，为正文、代码和终端分别调整字体与字号。这些设置在下次启动时生效，首屏即采用所选外观。
  
  ## 目录
  
@@ -40887,7 +41216,7 @@ index 806a7c5e5785f98879ab188c4df54382f46fa3f8..5a0d09bcf3a0d02c4e9a34174d7bc2a0
  三行分别独立设置正文字体（界面与会话正文）、代码字体（代码块、行内代码及其他使用 `--ds-font-family-code` 的文本）与侧栏终端字体。每个输入框接受逗号分隔的字体名，失焦或按 Enter 时提交；清空输入框即恢复内置字体栈。服务会规范化每个列表：去掉引号、反斜杠、尖括号与控制字符，并给 CSS 通用字体族以外的名称加双引号，然后存入 `textFontFamily`、`codeFontFamily` 或 `terminalFontFamily`。用户列表排在该类内置字体栈之前，因此本机缺少的字体会回退到默认字体。输入框接受任何已安装字体的名称，但不枚举本地字体。
  
  ### 注册主题
-@@ -45,14 +47,16 @@ Desktop 的固定快捷键 `Cmd`/`Ctrl` + `+`（或 `=`）和 `Cmd`/`Ctrl` + `-`
+@@ -45,14 +47,19 @@ Desktop 的固定快捷键 `Cmd`/`Ctrl` + `+`（或 `=`）和 `Cmd`/`Ctrl` + `-`
  
  ### 插件前调色板
  
@@ -40896,17 +41225,20 @@ index 806a7c5e5785f98879ab188c4df54382f46fa3f8..5a0d09bcf3a0d02c4e9a34174d7bc2a0
  
  -----
  
- <a id="understand-the-implementation"></a>
 +低优先级动效规则为按钮、标签页、树节点、链接和文字输入提供短颜色过渡，专用控件保留自身动画。模式选择从操作位置扩散新主题色并短暂增强饱和度；减少动态效果时跳过。
++
+ <a id="understand-the-implementation"></a>
 +
  ## 理解实现
  
 -公共菜单通过 `MenuSurface` 共享 `--dsw-menu-surface-fill` 和模糊，平台代码须保留这些 token 值。菜单吸顶分组标题可使用 `--dsw-alias-menu-group-header-fill`，其浅／深色填充均为 94% 不透明度，独立于菜单材质。其他浮层使用 `--dsw-specific-menu`，在没有菜单底层时保留 macOS 上接近不透明的填充。源码约束见[样式参考](../../../docs/web-styling.zh.md#component-rules)。 模态遮罩保留黑色半透明填充，不模糊背景。
++登录后，浏览器通过 `ui-theme` 保存设置，本地提供方默认写入 `$DSH_HOME/cordis.patch.yml`。主题服务发布只读的 `ThemeSnapshot`，由布局应用到文档。插件可通过 `ctx.theme` 注册 `--dsw-*` 别名变量。
++
 +公共菜单通过 `MenuSurface` 共享 `--dsw-menu-surface-fill` 和模糊，平台代码须保留这些 token 值。菜单吸顶分组标题可使用 `--dsw-alias-menu-group-header-fill`，其浅／深色填充均为 94% 不透明度，独立于菜单材质。其他浮层使用 `--dsw-specific-menu`，在没有菜单底层时保留 macOS 上接近不透明的填充。模态遮罩保留黑色半透明填充，不模糊背景。
  
  <details>
  <summary>实现细节——点击展开</summary>
-@@ -65,9 +69,11 @@ Desktop 的固定快捷键 `Cmd`/`Ctrl` + `+`（或 `=`）和 `Cmd`/`Ctrl` + `-`
+@@ -65,9 +72,11 @@ Desktop 的固定快捷键 `Cmd`/`Ctrl` + `+`（或 `=`）和 `Cmd`/`Ctrl` + `-`
  
  当 document 有关联的 window 时，样式安装器在 document 根节点发布 `--dsh-hairline-width`，并通过一个设备像素比监听器更新它。没有 window 的文档仍安装样式表，并使用 CSS fallback 宽度。该宽度对应 0.5px 边框向下取整到整物理像素后的结果，最小为一个物理像素。只有显式读取该变量的样式会使用这一宽度；插件卸载时释放监听器并恢复根节点上原有的声明。
  
@@ -40920,7 +41252,7 @@ index 806a7c5e5785f98879ab188c4df54382f46fa3f8..5a0d09bcf3a0d02c4e9a34174d7bc2a0
  
  [`focus.css`](src/styles/focus.css) 提供 `:focus-visible` 兜底：通过 `var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary))` 声明焦点环颜色，并通过 `--dsw-focus-ring-width` 声明标准宽度，但不声明轮廓样式——因此禁用轮廓的控件仍然不绘制，而没有自有焦点环的控件保持标准几何，而不是落到 Chromium 的 `auto 1px`。主题将该蓝色解析为浅色模式的 `#4176E6` 和深色模式的 `#7AAAFF`。组件轮廓与焦点环阴影使用同一颜色表达式，包括后代和伪元素上的环。`--dsw-focus-ring-width`（2px）是标准宽度；密集表格与工具栏可以保留 1px，offset 仍由组件决定。
  
-@@ -89,7 +95,7 @@ Desktop 的固定快捷键 `Cmd`/`Ctrl` + `+`（或 `=`）和 `Cmd`/`Ctrl` + `-`
+@@ -89,7 +98,7 @@ Desktop 的固定快捷键 `Cmd`/`Ctrl` + `+`（或 `=`）和 `Cmd`/`Ctrl` + `-`
  
  `corner-shape.css` 平滑所有圆角：在 `@supports (corner-shape: superellipse(1.5))` 内定义 `--dsw-corner-shape`，并通过通配选择器应用到所有元素及其 `::before`/`::after`，因此不支持 `corner-shape` 的引擎保持普通圆弧。正圆形状——`border-radius: 50%` 的圆与胶囊半径——因超级椭圆会使其变形，须在所属组件样式表中把 `corner-shape: round` 与半径声明配对；corner-shape 样式表 spec 跨全部包样式表强制这一配对。
  
@@ -40929,7 +41261,7 @@ index 806a7c5e5785f98879ab188c4df54382f46fa3f8..5a0d09bcf3a0d02c4e9a34174d7bc2a0
  
  `brand-font.css` 引用随包提供的 `montserrat-regular.woff2` / `montserrat-light.woff2` / `montserrat-medium.woff2`，其中包含 Montserrat Regular、Light 和 Medium 字体，SIL Open Font License 与样式表和 WOFF2 一同随包保存在 `lib/styles/`。`--dsw-font-family-brand` 为品牌文字选择该字体，普通界面仍使用系统字体栈。源文件来自 Google Fonts 的 Montserrat 发布。Web 入口导入包的 `./brand-font.css` 导出，由 Vite 输出并解析字体资源，Web 构建也包含其许可。Web 应用（包括 Desktop 引导）可离线加载字体；原生凭证欢迎页保留系统字体。
  
-@@ -115,7 +121,6 @@ Desktop 的固定快捷键 `Cmd`/`Ctrl` + `+`（或 `=`）和 `Cmd`/`Ctrl` + `-`
+@@ -115,7 +124,6 @@ Desktop 的固定快捷键 `Cmd`/`Ctrl` + `+`（或 `=`）和 `Cmd`/`Ctrl` + `-`
  - [ui-layout](../ui-layout/README.zh.md)——应用解析后主题快照的展示转换器。
  - [ui-sidebar](../ui-sidebar/README.zh.md)——滚动条重新绑定约定的消费方。
  - [ui-conversation](../ui-conversation/README.zh.md)——为 composer 席位消费 `--dsh-scrollbar-width` 的消费方。
@@ -43267,3 +43599,899 @@ index 74607e4a8471b106f502c7460363fb3a0b692bef..a127307d760ba2138bf01bffbe4c2705
      active: { id: 'light', colorScheme: 'light', tokens: {} }, themes: [], revision: 0,
    }
    const detach = vi.fn()
+diff --git a/apps/desktop-publisher/package.json b/apps/desktop-publisher/package.json
+index fa96d4b36dd2e2eb19fd87fc3f86857b0b24b19c..39d0e3d7a09eca6cfb7843d128cc04e240990ac0 100644
+--- a/apps/desktop-publisher/package.json
++++ b/apps/desktop-publisher/package.json
+@@ -9,6 +9,7 @@
+     "./*": "./src/*"
+   },
+   "dependencies": {
++    "@deepseek-ai/dsh-product-version": "workspace:*",
+     "zod": "4.6.6",
+     "js-yaml": "^4.3.2",
+     "semver": "^7.8.5",
+diff --git a/packages/client/tsdown.client.ts b/packages/client/tsdown.client.ts
+index 42817527cea8b4609aa1dc032202694eb9f8bb09..a0b1c53c0affb49169793ee752827536913dde39 100644
+--- a/packages/client/tsdown.client.ts
++++ b/packages/client/tsdown.client.ts
+@@ -97,7 +97,7 @@ function compiledClientStyle(
+  * Everything else under @deepseek-ai/* is either a module-table entry
+  * (external) or a leak the purity gate rejects.
+  */
+-export const INLINE_SAFE = /^(?:@deepseek-ai\/dsh-(?:file-reference|fs-patch|session|llm|tools|brand|error|official-bundles|deque|output-retention|typert-protocol|util-crypto|util-text-search|util-time|util-values|util-workspace-path)(?:\/|$)|@deepseek-ai\/dsh-util-file-drag$|@deepseek-ai\/dsh-token-meter\/client$|@deepseek-ai\/dsh-commands\/builtin$|@deepseek-ai\/dsh-native-command\/types$|@deepseek-ai\/dsh-host-open-in-app\/shared$|@deepseek-ai\/dsh-plugin-manager\/registry$|@deepseek-ai\/dsh-plugin-market-index\/source$|@deepseek-ai\/dsh-agent-preset-registry\/display$|@deepseek-ai\/dsh-api-workspace-controller\/default-workspace$|@deepseek-ai\/dsh-api-session-controller\/client\/directories$|@deepseek-ai\/dsh-spill-policy\/notice$)/
++export const INLINE_SAFE = /^(?:@deepseek-ai\/dsh-(?:file-reference|fs-patch|session|llm|tools|brand|error|official-bundles|deque|output-retention|typert-protocol|util-crypto|util-text-search|util-time|util-values|util-workspace-path)(?:\/|$)|@deepseek-ai\/dsh-product-version$|@deepseek-ai\/dsh-util-file-drag$|@deepseek-ai\/dsh-token-meter\/client$|@deepseek-ai\/dsh-commands\/builtin$|@deepseek-ai\/dsh-native-command\/types$|@deepseek-ai\/dsh-host-open-in-app\/shared$|@deepseek-ai\/dsh-plugin-manager\/registry$|@deepseek-ai\/dsh-plugin-market-index\/source$|@deepseek-ai\/dsh-agent-preset-registry\/display$|@deepseek-ai\/dsh-api-workspace-controller\/default-workspace$|@deepseek-ai\/dsh-api-session-controller\/client\/directories$|@deepseek-ai\/dsh-spill-policy\/notice$)/
+ 
+ /**
+  * Vendored framework libraries: rescoped into @deepseek-ai, so the gate below
+diff --git a/packages/client/ui-settings-account/src/client/public-config.ts b/packages/client/ui-settings-account/src/client/public-config.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..a1c17c5905021726fe3fc4b0bfaa969e0148606f
+--- /dev/null
++++ b/packages/client/ui-settings-account/src/client/public-config.ts
+@@ -0,0 +1,11 @@
++/** Read account UI options from the Host's public bootstrap data. */
++import { ContactConfig, CONTACT_CONFIG_GLOBAL } from '../contact-config.ts'
++
++/**
++ * Resolve public bootstrap options for the account UI.
++ * @returns Validated options with deployment defaults; contains no credentials.
++ */
++export function publicContactConfig(): ContactConfig {
++  const page = globalThis as Partial<Record<typeof CONTACT_CONFIG_GLOBAL, unknown>>
++  return ContactConfig(page[CONTACT_CONFIG_GLOBAL] ?? {})
++}
+diff --git a/packages/client/ui-settings-account/src/client/release-status.ts b/packages/client/ui-settings-account/src/client/release-status.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..f8f725264d461a99c8a0949b702ab8e2193002df
+--- /dev/null
++++ b/packages/client/ui-settings-account/src/client/release-status.ts
+@@ -0,0 +1,158 @@
++/** GitHub Releases status for this fork. Official DeepSeek and COS hosts are not update sources. */
++import { displayProductVersion, runtimeProductVersion, parseCalendarVersion } from '@deepseek-ai/dsh-product-version'
++import { compare, parse, type SemVer } from 'semver'
++
++/** Observable update state. A failed or offline check is never reported as current. */
++export type ReleasePhase = 'checking' | 'latest' | 'ahead' | 'available' | 'unpublished' | 'failed' | 'offline'
++
++/** How strongly a newer release should be announced. */
++export type ReleaseSeverity = 'patch' | 'minor' | 'major'
++
++/** One published GitHub release after the response has been read. */
++export interface ReleaseRecord {
++  readonly version: string
++  readonly prerelease: boolean
++  readonly url: string
++}
++
++/** What the About page and startup reminder may show. */
++export interface ReleaseNotice {
++  readonly phase: ReleasePhase
++  readonly severity?: ReleaseSeverity
++  readonly version?: string
++  readonly url?: string
++  readonly message?: string
++  /** Epoch milliseconds before which the client must not repeat a rate-limited check. */
++  readonly retryAt?: number
++}
++
++const FORK_RELEASE_HOST = 'api.github.com'
++const FORK_RELEASE_PATH = '/repos/Water-Run/deepseek-harness-uncensored/releases'
++
++/** Releases API for this repository. No other host is an update source. */
++export const FORK_RELEASES_URL = `https://${FORK_RELEASE_HOST}${FORK_RELEASE_PATH}?per_page=100`
++
++function releaseFailure(response: Response): ReleaseNotice {
++  if (response.status !== 403 && response.status !== 429) return { phase: 'failed', message: `http-${response.status}` }
++  const now = Date.now()
++  const seconds = (value: string | null): number | undefined => value !== null && /^\d+$/u.test(value)
++    && Number.isFinite(Number(value)) ? Number(value) : undefined
++  const retryAfter = seconds(response.headers.get('retry-after'))
++  const exhausted = response.headers.get('x-ratelimit-remaining') === '0'
++  if (response.status !== 429 && !exhausted && retryAfter === undefined) return { phase: 'failed', message: 'http-403' }
++  const reset = exhausted ? seconds(response.headers.get('x-ratelimit-reset')) : undefined
++  const deadlines = [retryAfter === undefined ? undefined : now + retryAfter * 1000,
++    reset === undefined ? undefined : reset * 1000]
++    .filter((value): value is number => value !== undefined && value >= now && value <= 8.64e15)
++  // GitHub requires at least one minute before retrying a rate limit without a usable deadline.
++  // https://docs.github.com/en/rest/using-the-rest-api/troubleshooting-the-rest-api#rate-limit-errors
++  return { phase: 'failed', message: 'rate-limited', retryAt: deadlines.length === 0 ? now + 60_000 : Math.max(...deadlines) }
++}
++
++/**
++ * Reject official and object-storage hosts before any update request is sent.
++ * @param url - Candidate update or release URL.
++ */
++export function assertForkReleaseUrl(url: string): void {
++  const parsed = new URL(url)
++  const host = parsed.host.toLowerCase()
++  if (host === 'download.deepseek.com' || host === 'myqcloud.com' || host.endsWith('.myqcloud.com')) {
++    throw new Error('this fork does not use the official DeepSeek or COS update host')
++  }
++  if (parsed.origin !== `https://${FORK_RELEASE_HOST}` || parsed.username !== '' || parsed.password !== ''
++    || parsed.hash !== '' || parsed.pathname !== FORK_RELEASE_PATH) {
++    throw new Error('update discovery only reads this repository on GitHub')
++  }
++}
++
++function versionParts(value: string): SemVer | undefined {
++  return parse(runtimeProductVersion(value.trim().replace(/^(?:desktop|dshu)-/u, '').replace(/^v/u, ''))) ?? undefined
++}
++
++function compareRelease(left: SemVer, right: SemVer): number { return compare(left, right) }
++
++function severity(current: SemVer, next: SemVer): ReleaseSeverity {
++  if (parseCalendarVersion(next.version) !== undefined) return 'patch'
++  if (next.major !== current.major) return 'major'
++  if (next.minor !== current.minor) return 'minor'
++  return 'patch'
++}
++
++/**
++ * Compare published releases with the running version.
++ * A prerelease is ignored unless the running build is itself a prerelease.
++ * No successful comparison can describe a transport failure as up to date.
++ * @param current - Running product version.
++ * @param releases - Releases returned by GitHub.
++ * @returns The notice to display.
++ */
++export function classifyReleases(current: string, releases: readonly ReleaseRecord[]): ReleaseNotice {
++  const currentParts = versionParts(current)
++  if (currentParts === undefined) return { phase: 'failed', message: 'unrecorded-version' }
++  let best: { readonly parts: SemVer; readonly release: ReleaseRecord } | undefined
++  for (const release of releases) {
++    const parts = versionParts(release.version)
++    if (parts === undefined) continue
++    if ((parts.prerelease.length > 0 || release.prerelease) && currentParts.prerelease.length === 0) continue
++    if (best === undefined || compareRelease(parts, best.parts) > 0) best = { parts, release }
++  }
++  if (best === undefined) return { phase: 'unpublished', message: 'no-release' }
++  const order = compareRelease(best.parts, currentParts)
++  if (order === 0) return { phase: 'latest', version: current }
++  if (order < 0) return { phase: 'ahead', version: best.release.version, url: best.release.url }
++  return {
++    phase: 'available',
++    severity: severity(currentParts, best.parts),
++    version: parseCalendarVersion(best.parts.version) === undefined ? best.release.version : displayProductVersion(best.parts.version),
++    url: best.release.url,
++  }
++}
++
++/**
++ * Read this repository's releases. Network loss is offline. Any other failure stays failed.
++ * @param fetchImpl - HTTP implementation, replaceable in tests.
++ * @param current - Running product version.
++ * @param options - Caller cancellation and deployment request deadline.
++ * @returns A notice that never calls a failed check current.
++ */
++export async function loadForkRelease(
++  fetchImpl: typeof fetch, current: string, options: { signal?: AbortSignal; timeoutMs: number },
++): Promise<ReleaseNotice> {
++  if (versionParts(current) === undefined) return { phase: 'failed', message: 'unrecorded-version' }
++  const controller = new AbortController()
++  const timer = setTimeout(() => { controller.abort(new DOMException('Release check timed out.', 'TimeoutError')) }, options.timeoutMs)
++  const signal = options.signal === undefined ? controller.signal : AbortSignal.any([controller.signal, options.signal])
++  try {
++    signal.throwIfAborted()
++    const releases: ReleaseRecord[] = []
++    let page: string | undefined = FORK_RELEASES_URL
++    const visited = new Set<string>()
++    while (page !== undefined) {
++      assertForkReleaseUrl(page)
++      if (visited.has(page)) return { phase: 'failed', message: 'repeated-release-page' }
++      visited.add(page)
++      const response: Response = await fetchImpl(page, { headers: { accept: 'application/vnd.github+json' }, signal, redirect: 'error' })
++      if (!response.ok) return releaseFailure(response)
++      const body: unknown = await response.json()
++      signal.throwIfAborted()
++      if (!Array.isArray(body)) return { phase: 'failed', message: 'invalid-body' }
++      for (const entry of body) {
++        if (typeof entry !== 'object' || entry === null) return { phase: 'failed', message: 'invalid-body' }
++        const record = entry as { tag_name?: unknown; prerelease?: unknown; html_url?: unknown; draft?: unknown }
++        if (record.draft === true) continue
++        if (typeof record.tag_name !== 'string' || typeof record.html_url !== 'string' || typeof record.prerelease !== 'boolean') return { phase: 'failed', message: 'invalid-body' }
++        const url = new URL(record.html_url)
++        if (url.origin !== 'https://github.com' || url.username !== '' || url.password !== ''
++        || !url.pathname.startsWith('/Water-Run/deepseek-harness-uncensored/releases/tag/')) return { phase: 'failed', message: 'invalid-release-link' }
++        releases.push({ version: record.tag_name, prerelease: record.prerelease, url: record.html_url })
++      }
++      const link = response.headers.get('link') ?? ''
++      page = /<([^>]+)>;\s*rel="next"/u.exec(link)?.[1]
++      if (page === undefined && /rel="next"/u.test(link)) return { phase: 'failed', message: 'invalid-release-page' }
++    }
++    return classifyReleases(current, releases)
++  } catch (error) {
++    if (signal.aborted) return { phase: 'failed', message: controller.signal.aborted ? 'timeout' : 'cancelled' }
++    return { phase: error instanceof TypeError ? 'offline' : 'failed', message: 'release-check-failed' }
++  } finally { clearTimeout(timer) }
++}
+diff --git a/packages/client/ui-settings-account/src/contact-config.ts b/packages/client/ui-settings-account/src/contact-config.ts
+index 234e758b9f0b42d7d3a43f8eaf72a5dc2beb7f1a..589f81b38990e4d302b6e20097dc34c69da73bef 100644
+--- a/packages/client/ui-settings-account/src/contact-config.ts
++++ b/packages/client/ui-settings-account/src/contact-config.ts
+@@ -7,11 +7,14 @@ export interface ContactConfig {
+   contactFormUrl: string
+   /** Questionnaire source option; empty until Harness is supported by the form. */
+   contactSource: string
++  /** Deadline for one GitHub release check, including response parsing. */
++  releaseCheckTimeoutMs: number
+ }
+ /** Validate public questionnaire options. */
+ export const ContactConfigFields = {
+-  contactFormUrl: z.string().pattern(/^https:\/\/[^/\s]+\//).default('https://trtgsjkv6r.feishu.cn/share/base/form/shrcnlCoGElW7MQznGy9r3YYXcg?hide_uid=1&hide_device_info=1&hide_harness_version=1'),
++  contactFormUrl: z.string().pattern(/^https:\/\/[^/\s]+\//).default('https://github.com/Water-Run/deepseek-harness-uncensored/issues/new/choose'),
+   contactSource: z.string().default(''),
++  releaseCheckTimeoutMs: z.natural().min(100).max(60_000).default(10_000),
+ }
+ /** Validate public questionnaire options. */
+ export const ContactConfig: z<Partial<ContactConfig>, ContactConfig> = z.object(ContactConfigFields)
+diff --git a/packages/client/ui-settings-account/src/index.ts b/packages/client/ui-settings-account/src/index.ts
+index 326da6d0cc11e69b05efd316f6d128af1de31166..365f1f6b25c5a40c9d79e95a0db333398d99b5b8 100644
+--- a/packages/client/ui-settings-account/src/index.ts
++++ b/packages/client/ui-settings-account/src/index.ts
+@@ -27,6 +27,7 @@ export interface Config extends ContactConfig {
+ export const Config = z.object({
+   contactFormUrl: ContactConfigFields.contactFormUrl,
+   contactSource: ContactConfigFields.contactSource,
++  releaseCheckTimeoutMs: ContactConfigFields.releaseCheckTimeoutMs,
+   version: OnboardingSettingsFields.version.volatile(),
+   step: OnboardingSettingsFields.step.volatile(),
+   purpose: OnboardingSettingsFields.purpose.volatile(),
+@@ -47,7 +48,7 @@ export function apply(ctx: Context, config: Config): void {
+   })
+   ctx.on('webserver/index-inject', (table) => {
+     table.push({ kind: 'global', name: CONTACT_CONFIG_GLOBAL, value: {
+-      contactFormUrl: config.contactFormUrl, contactSource: config.contactSource,
++      contactFormUrl: config.contactFormUrl, contactSource: config.contactSource, releaseCheckTimeoutMs: config.releaseCheckTimeoutMs,
+     } satisfies ContactConfig })
+   })
+ }
+diff --git a/packages/client/ui-settings-account/tests/release-status.client.spec.ts b/packages/client/ui-settings-account/tests/release-status.client.spec.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..76f4f7181e1386c1fea1166eff804a3f47ab610b
+--- /dev/null
++++ b/packages/client/ui-settings-account/tests/release-status.client.spec.ts
+@@ -0,0 +1,122 @@
++import { afterEach, expect, it, vi } from 'vitest'
++import { assertForkReleaseUrl, classifyReleases, FORK_RELEASES_URL, loadForkRelease } from '../src/client/release-status.ts'
++
++const release = (version: string, prerelease = false) => ({ version, prerelease, url: `https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/${version}` })
++afterEach(() => { vi.useRealTimers() })
++
++it('rejects official and object-storage update hosts', () => {
++  expect(() => { assertForkReleaseUrl('https://download.deepseek.com/dsh-desk/feeds/win-x64/') }).toThrow(/official DeepSeek/u)
++  expect(() => { assertForkReleaseUrl('https://bucket.cos.ap-beijing.myqcloud.com/feed') }).toThrow(/official DeepSeek/u)
++  expect(() => { assertForkReleaseUrl(FORK_RELEASES_URL) }).not.toThrow()
++})
++
++it('distinguishes latest, severity, prerelease, and a missing feed', () => {
++  expect(classifyReleases('0.1.0', [release('0.1.0')]).phase).toBe('latest')
++  expect(classifyReleases('2026.11.25.0', [release('v2026.11.24.3')])).toMatchObject({ phase: 'ahead', version: 'v2026.11.24.3' })
++  expect(classifyReleases('0.1.0', [release('0.1.1')])).toMatchObject({ phase: 'available', severity: 'patch' })
++  expect(classifyReleases('0.1.0', [release('0.2.0')])).toMatchObject({ severity: 'minor' })
++  expect(classifyReleases('0.1.0', [release('1.0.0')])).toMatchObject({ severity: 'major' })
++  expect(classifyReleases('0.1.0', [release('0.2.0-rc.1', true)])).toMatchObject({ phase: 'unpublished', message: 'no-release' })
++  expect(classifyReleases('0.2.0-rc.1', [release('0.2.0-rc.2', true)])).toMatchObject({ phase: 'available', severity: 'patch' })
++  expect(classifyReleases('dev', [])).toMatchObject({ phase: 'failed', message: 'unrecorded-version' })
++  expect(classifyReleases('0.1.0+local', [release('desktop-v0.2.0')])).toMatchObject({ severity: 'minor' })
++  expect(classifyReleases('0.2.0-rc.9', [release('v0.2.0-rc.10', true)])).toMatchObject({ phase: 'available' })
++})
++
++it('keeps a failed or offline check from looking current', async () => {
++  const failed = await loadForkRelease(async () => new Response('missing', { status: 404 }), '0.1.0', { timeoutMs: 1000 })
++  expect(failed.phase).toBe('failed')
++  const offline = await loadForkRelease(async () => { throw new TypeError('Failed to fetch') }, '0.1.0', { timeoutMs: 1000 })
++  expect(offline.phase).toBe('offline')
++})
++
++it.each([403, 429])('retains the primary rate limit deadline for HTTP %i', async (status) => {
++  vi.useFakeTimers()
++  vi.setSystemTime(new Date('2026-11-16T10:00:00Z'))
++  const retryAt = Date.now() + 3600_000
++  expect(await loadForkRelease(async () => new Response(null, { status, headers: {
++    'x-ratelimit-remaining': '0', 'x-ratelimit-reset': String(retryAt / 1000),
++  } }), '2026.11.16.3', { timeoutMs: 1000 })).toEqual({ phase: 'failed', message: 'rate-limited', retryAt })
++})
++
++it('honors the later deadline when primary and secondary rate limits overlap', async () => {
++  vi.useFakeTimers()
++  vi.setSystemTime(new Date('2026-11-16T10:00:00Z'))
++  const retryAt = Date.now() + 3600_000
++  expect(await loadForkRelease(async () => new Response(null, { status: 403, headers: {
++    'retry-after': '90', 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': String(retryAt / 1000),
++  } }), '2026.11.16.3', { timeoutMs: 1000 })).toMatchObject({ message: 'rate-limited', retryAt })
++})
++
++it('recognizes a secondary rate limit without an exhausted primary allowance', async () => {
++  vi.useFakeTimers()
++  vi.setSystemTime(new Date('2026-11-16T10:00:00Z'))
++  expect(await loadForkRelease(async () => new Response(null, { status: 403, headers: {
++    'retry-after': '90', 'x-ratelimit-remaining': '57',
++  } }), '2026.11.16.3', { timeoutMs: 1000 })).toEqual({ phase: 'failed', message: 'rate-limited', retryAt: Date.now() + 90_000 })
++})
++
++it.each(['-1', '1.5', 'Infinity', 'invalid', '8640000000001'])('uses GitHub fallback waiting for an unusable retry deadline: %s', async (value) => {
++  vi.useFakeTimers()
++  vi.setSystemTime(new Date('2026-11-16T10:00:00Z'))
++  expect(await loadForkRelease(async () => new Response(null, { status: 429, headers: {
++    'retry-after': value, 'x-ratelimit-remaining': '0', 'x-ratelimit-reset': value,
++  } }), '2026.11.16.3', { timeoutMs: 1000 })).toEqual({ phase: 'failed', message: 'rate-limited', retryAt: Date.now() + 60_000 })
++})
++
++it('does not infer a rate limit from a bare forbidden response', async () => {
++  expect(await loadForkRelease(async () => new Response(null, { status: 403 }), '2026.11.16.3', { timeoutMs: 1000 }))
++    .toEqual({ phase: 'failed', message: 'http-403' })
++})
++
++it('never retries a rate-limited request automatically', async () => {
++  vi.useFakeTimers()
++  const fetcher = vi.fn<typeof fetch>(async () => new Response(null, { status: 429 }))
++  const result = await loadForkRelease(fetcher, '2026.11.16.3', { timeoutMs: 1000 })
++  expect(result).toMatchObject({ phase: 'failed', message: 'rate-limited' })
++  await vi.advanceTimersByTimeAsync(120_000)
++  expect(fetcher).toHaveBeenCalledTimes(1)
++})
++
++it.each([
++  'http://api.github.com/repos/Water-Run/deepseek-harness-uncensored/releases',
++  'https://api.github.com/repos/Water-Run/deepseek-harness-uncensored/releases-other',
++  'https://user:pass@api.github.com/repos/Water-Run/deepseek-harness-uncensored/releases',
++])('rejects a changed API destination %s', (url) => { expect(() => { assertForkReleaseUrl(url) }).toThrow() })
++
++it('validates release links and does not call a truncated release list current', async () => {
++  const body = [{ tag_name: '0.1.0', prerelease: false, draft: false, html_url: release('0.1.0').url }]
++  expect(await loadForkRelease(async () => Response.json(body), '0.1.0', { timeoutMs: 1000 })).toMatchObject({ phase: 'latest' })
++  expect(await loadForkRelease(async () => Response.json(body, { headers: { link: '<https://elsewhere.invalid/>; rel="next"' } }), '0.1.0', { timeoutMs: 1000 })).toMatchObject({ phase: 'failed' })
++  expect(await loadForkRelease(async () => Response.json([{ ...body[0], html_url: 'https://elsewhere.invalid/release' }]), '0.1.0', { timeoutMs: 1000 })).toMatchObject({ phase: 'failed' })
++  expect(await loadForkRelease(async () => Response.json([{ ...body[0], draft: true, tag_name: '1.0.0' }]), '0.1.0', { timeoutMs: 1000 })).toMatchObject({ phase: 'unpublished', message: 'no-release' })
++})
++
++it('follows validated release pages and rejects a pagination loop', async () => {
++  const next = `${FORK_RELEASES_URL}&page=2`
++  const fetcher = vi.fn<typeof fetch>(async url => url === next
++    ? Response.json([{ tag_name: 'desktop-v1.0.0', html_url: release('desktop-v1.0.0').url, prerelease: false }])
++    : Response.json([], { headers: { link: `<${next}>; rel="next"` } }))
++  expect(await loadForkRelease(fetcher, '0.1.0', { timeoutMs: 1000 })).toMatchObject({ phase: 'available', severity: 'major' })
++  expect(fetcher).toHaveBeenCalledTimes(2)
++  expect(await loadForkRelease(async () => Response.json([], { headers: { link: `<${FORK_RELEASES_URL}>; rel="next"` } }), '0.1.0', { timeoutMs: 1000 })).toMatchObject({ phase: 'failed', message: 'repeated-release-page' })
++})
++
++it('ends a hung request at its deadline', async () => {
++  vi.useFakeTimers()
++  const pending = loadForkRelease(async (_url, init) => new Promise<Response>((_resolve, reject) => {
++    init?.signal?.addEventListener('abort', () => { reject(new DOMException('Request aborted', 'AbortError')) }, { once: true })
++  }), '0.1.0', { timeoutMs: 100 })
++  await vi.advanceTimersByTimeAsync(100)
++  expect(await pending).toMatchObject({ phase: 'failed', message: 'timeout' })
++})
++
++it('orders calendar tags numerically and presents ordinary date updates without semantic-version warnings', () => {
++  expect(classifyReleases('2026.11.14.9', [release('dshu-2026.11.14.10'), release('2026.11.14.2')]))
++    .toMatchObject({ phase: 'available', severity: 'patch', version: '2026.11.14.10' })
++  expect(classifyReleases('2026.1231.5', [release('v2027.01.01.1')]))
++    .toMatchObject({ phase: 'available', severity: 'patch', version: '2027.01.01.1' })
++  expect(classifyReleases('0.1.0-test.20261113.5', [release('2026.11.14.1')]).phase).toBe('available')
++  expect(classifyReleases('2026.11.14.10', [release('2026.1114.10')]).phase).toBe('latest')
++  expect(classifyReleases('2026.11.14.1', [release('2026.02.30.99')]).phase).toBe('unpublished')
++})
+diff --git a/packages/util/product-version/README.i18n.yaml b/packages/util/product-version/README.i18n.yaml
+new file mode 100644
+index 0000000000000000000000000000000000000000..d8134c374f5bb087e0336506ab74580be3bc2789
+--- /dev/null
++++ b/packages/util/product-version/README.i18n.yaml
+@@ -0,0 +1,25 @@
++# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
++# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
++# After editing either side, bring the other along and re-record with:
++#   pnpm run verify-translation-pairing --write packages/util/product-version/README.md
++/:
++  en: 58550e51e24b1ac7
++  zh: 6e5533ab11f535ca
++/product-calendar-versions:
++  en: 884934d3e4d29359
++  zh: 16180721e1f91038
++/product-calendar-versions/summary:
++  en: 8d4c63fe13efdbad
++  zh: f0ebfdb2f0abb431
++/product-calendar-versions/table-of-contents:
++  en: d2f09029bb49c4b4
++  zh: 7a4e6ab5ca8a940a
++/product-calendar-versions/use-this-package:
++  en: b5c4f562a25f9948
++  zh: 4f0a4d65cd7f1520
++/product-calendar-versions/known-limitations-and-deferred-work:
++  en: ed91c05f4774b72e
++  zh: 347fb95d53a923f8
++/product-calendar-versions/dev-note:
++  en: eccfe26aff16807b
++  zh: 032f3ed1e46d2984
+diff --git a/packages/util/product-version/README.md b/packages/util/product-version/README.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..6522e6c61dad9308136616112c924117fac9d504
+--- /dev/null
++++ b/packages/util/product-version/README.md
+@@ -0,0 +1,38 @@
++---
++kind: package-library
++description: "Parse calendar product versions and map them to an ordered package-manager representation."
++---
++
++# Product calendar versions
++
++English | [中文](README.zh.md)
++
++## Summary
++
++DSHU displays `YYYY.MM.DD.N`; the first build of each day uses `N` = `0`, so `2026.11.14.10` follows `2026.11.14.9`. The updater and package manifests carry `YYYY.MMDD.N` so existing SemVer engines compare dates and sequences numerically. Windows file resources and product displays use the four-field date.
++
++## Table of Contents
++
++- [Use this package](#use-this-package)
++- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
++- [Dev Note](#dev-note)
++
++<a id="use-this-package"></a>
++
++## Use this package
++
++`parseCalendarVersion()` validates both representations and returns their date, sequence and formatted values. Years range from 2000 to 9999; valid calendar days and sequences from 0 to 65535 keep Windows version fields representable. `calendarBuildVersion()` accepts an explicit `YYYYMMDD` day and sequence. These functions do not read a clock or allocate build numbers.
++
++`displayProductVersion()` and `runtimeProductVersion()` preserve legacy strings. Callers that accept legacy versions must validate them with their existing version parser. Packaging scripts can import `@deepseek-ai/dsh-product-version/bootstrap` before artifacts exist; runtime consumers use the package entry point.
++
++<a id="known-limitations-and-deferred-work"></a>
++
++## Known Limitations and Deferred Work
++
++- Daily sequences end at 65535. The release pipeline assigns the next sequence for each date.
++
++<a id="dev-note"></a>
++
++## Dev Note
++
++The date mapping preserves comparison across daily revisions, months and years. Tests cover leap dates, invalid components, legacy values and ordered upgrades. The DSH engine and REA keep their own upstream versions.
+diff --git a/packages/util/product-version/README.zh.md b/packages/util/product-version/README.zh.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..61126c190a9aabf58ec1cefd59d9b6b261fcd184
+--- /dev/null
++++ b/packages/util/product-version/README.zh.md
+@@ -0,0 +1,38 @@
++---
++kind: package-library
++description: "解析日期产品版本，并转换为可排序的包管理器版本。"
++---
++
++# 产品日期版本
++
++[English](README.md) | 中文
++
++## 概述
++
++DSHU 展示 `YYYY.MM.DD.N`，最后一项是当天构建序号，每天的第一个构建从 `0` 开始，`2026.11.14.10` 晚于 `2026.11.14.9`。更新器和包声明使用 `YYYY.MMDD.N`，由现有 SemVer 引擎按数字比较日期和序号。Windows 文件资源和产品界面使用四段日期。
++
++## 目录
++
++- [使用方式](#use-this-package)
++- [已知限制与后续工作](#known-limitations-and-deferred-work)
++- [开发备注](#dev-note)
++
++<a id="use-this-package"></a>
++
++## 使用方式
++
++`parseCalendarVersion()` 校验两种表示，返回日期、序号及格式化结果。年份为 2000 至 9999，日期必须真实有效，序号为 0 至 65535，以兼容 Windows 版本字段。`calendarBuildVersion()` 接受明确的 `YYYYMMDD` 日期和序号；这些函数不读取时钟或分配构建号。
++
++`displayProductVersion()` 和 `runtimeProductVersion()` 保留旧格式字符串；接受旧版本的调用方仍使用原有解析器校验。打包脚本可在构建产物生成前导入 `@deepseek-ai/dsh-product-version/bootstrap`；运行时消费者使用包入口。
++
++<a id="known-limitations-and-deferred-work"></a>
++
++## 已知限制与后续工作
++
++- 日期版本的当天序号上限为 65535。发布流水线负责分配同日序号。
++
++<a id="dev-note"></a>
++
++## 开发备注
++
++日期映射保持同日修订、跨月和跨年的比较顺序。测试覆盖闰日、非法字段、旧版本与升级排序。DSH 内核和 REA 保留各自的上游版本。
+diff --git a/packages/util/product-version/package.json b/packages/util/product-version/package.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..8e004a8b5f66fe1ef32d5961b5774a2b47c7faf7
+--- /dev/null
++++ b/packages/util/product-version/package.json
+@@ -0,0 +1,42 @@
++{
++  "name": "@deepseek-ai/dsh-product-version",
++  "description": "Calendar product versions and their ordered package-manager representation",
++  "version": "0.2.3-alpha.2",
++  "publishConfig": {
++    "access": "public"
++  },
++  "repository": {
++    "type": "git",
++    "url": "git+https://github.com/Water-Run/deepseek-harness-uncensored.git",
++    "directory": "packages/util/product-version"
++  },
++  "type": "module",
++  "main": "lib/index.js",
++  "types": "lib/types/index.d.ts",
++  "exports": {
++    ".": {
++      "types": "./lib/types/index.d.ts",
++      "default": "./lib/index.js"
++    },
++    "./src/*": "./src/*",
++    "./package.json": "./package.json",
++    "./bootstrap": {
++      "types": "./src/bootstrap.d.mts",
++      "default": "./src/calendar.mjs"
++    }
++  },
++  "files": [
++    "lib/index.js",
++    "lib/types/**/*.d.ts",
++    "lib/types/**/*.d.ts.map",
++    "lib/**/*.js.map",
++    "src"
++  ],
++  "license": "MIT",
++  "peerDependencies": {
++    "@deepseek-ai/cordis": "workspace:~"
++  },
++  "devDependencies": {
++    "@deepseek-ai/cordis": "workspace:~"
++  }
++}
+diff --git a/packages/util/product-version/src/bootstrap.d.mts b/packages/util/product-version/src/bootstrap.d.mts
+new file mode 100644
+index 0000000000000000000000000000000000000000..6d5395223a516bdee04aa1071eafa7cb94238cb7
+--- /dev/null
++++ b/packages/util/product-version/src/bootstrap.d.mts
+@@ -0,0 +1,17 @@
++/** Calendar identity read by source-only packaging scripts. */
++export interface CalendarVersion {
++  readonly year: number
++  readonly month: number
++  readonly day: number
++  readonly sequence: number
++  readonly display: string
++  readonly runtime: string
++}
++/** @param value Exact version. @returns Calendar identity, or undefined for other or invalid formats. */
++export function parseCalendarVersion(value: string): CalendarVersion | undefined
++/** @param value Calendar or legacy version. @returns Public calendar version, preserving legacy strings. */
++export function displayProductVersion(value: string): string
++/** @param value Calendar or legacy version. @returns Ordered runtime version, preserving legacy strings. */
++export function runtimeProductVersion(value: string): string
++/** @param date YYYYMMDD day. @param sequence Positive daily build number. @returns Runtime version. */
++export function calendarBuildVersion(date: string, sequence: number): string
+diff --git a/packages/util/product-version/src/calendar.mjs b/packages/util/product-version/src/calendar.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..0f9aa623d76defdb7b408d2806fba7d7d12732e8
+--- /dev/null
++++ b/packages/util/product-version/src/calendar.mjs
+@@ -0,0 +1,66 @@
++/** Calendar identity with a sortable, stable SemVer representation for package managers. */
++/**
++ * @typedef {object} CalendarVersion
++ * @property {number} year Calendar year.
++ * @property {number} month Calendar month.
++ * @property {number} day Calendar day.
++ * @property {number} sequence Daily sequence, whose first build is 0.
++ * @property {string} display Public YYYY.MM.DD.N version.
++ * @property {string} runtime Ordered YYYY.MMDD.N package version.
++ */
++
++/**
++ * Parse public YYYY.MM.DD.N or internal YYYY.MMDD.N calendar versions.
++ * @param {string} value - Exact version without a tag prefix.
++ * @returns {CalendarVersion | undefined} Validated date and both representations.
++ */
++export function parseCalendarVersion(value) {
++  const display = /^(\d{4})\.(\d{2})\.(\d{2})\.(0|[1-9]\d*)$/u.exec(value)
++  const runtime = display === null ? /^(\d{4})\.([1-9]\d*)\.(0|[1-9]\d*)$/u.exec(value) : null
++  if (display === null && runtime === null) return undefined
++  const year = Number((display ?? runtime)[1])
++  const monthDay = runtime === null ? 0 : Number(runtime[2])
++  const month = display === null ? Math.floor(monthDay / 100) : Number(display[2])
++  const day = display === null ? monthDay % 100 : Number(display[3])
++  const sequence = Number(display === null ? runtime[3] : display[4])
++  if (year < 2000 || year > 9999 || month < 1 || month > 12 || day < 1 || day > 31
++    || !Number.isSafeInteger(sequence) || sequence > 65535) return undefined
++  const date = new Date(Date.UTC(year, month - 1, day))
++  if (date.getUTCMonth() + 1 !== month || date.getUTCDate() !== day) return undefined
++  return Object.freeze({ year, month, day, sequence,
++    display: `${year}.${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}.${sequence}`,
++    runtime: `${year}.${month * 100 + day}.${sequence}`,
++  })
++}
++
++/**
++ * Format a product version for people, retaining legacy version strings.
++ * @param {string} value - Calendar or legacy version.
++ * @returns {string} Public calendar version or the unchanged legacy value.
++ */
++export function displayProductVersion(value) {
++  return parseCalendarVersion(value)?.display ?? value
++}
++
++/**
++ * Normalize calendar versions for SemVer-based dependencies and update engines.
++ * @param {string} value - Calendar or legacy version.
++ * @returns {string} Runtime calendar version or the unchanged legacy value; callers validate legacy formats.
++ */
++export function runtimeProductVersion(value) {
++  return parseCalendarVersion(value)?.runtime ?? value
++}
++
++/**
++ * Construct the runtime version for an explicit calendar day and build sequence.
++ * @param {string} date - Eight-digit YYYYMMDD day.
++ * @param {number} sequence - Daily sequence from 0 for the day's first build, at most 65535.
++ * @returns {string} Sortable runtime version.
++ * @throws {Error} When the date or sequence is invalid.
++ */
++export function calendarBuildVersion(date, sequence) {
++  const parts = /^(\d{4})(\d{2})(\d{2})$/u.exec(date)
++  const parsed = parts === null ? undefined : parseCalendarVersion(`${parts[1]}.${parts[2]}.${parts[3]}.${sequence}`)
++  if (parsed === undefined) throw new Error('product version: invalid calendar day or daily build sequence')
++  return parsed.runtime
++}
+diff --git a/packages/util/product-version/src/index.ts b/packages/util/product-version/src/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..56de8a4d9bd47bc4d98f17fccef7755a6a1720d8
+--- /dev/null
++++ b/packages/util/product-version/src/index.ts
+@@ -0,0 +1,39 @@
++/** Calendar product identities shared by displays and package-manager readers. @module @deepseek-ai/dsh-product-version */
++import * as calendar from './calendar.mjs'
++
++/** Validated calendar day, daily sequence, and both version representations. */
++export interface CalendarVersion {
++  readonly year: number
++  readonly month: number
++  readonly day: number
++  readonly sequence: number
++  readonly display: string
++  readonly runtime: string
++}
++
++/**
++ * Parse public or runtime calendar versions without accepting tag prefixes.
++ * @param value - Exact version to validate.
++ * @returns Calendar identity, or undefined for other or invalid formats.
++ */
++export const parseCalendarVersion: (value: string) => CalendarVersion | undefined = calendar.parseCalendarVersion
++/**
++ * Format a product version for display while preserving legacy strings.
++ * @param value - Calendar or legacy version.
++ * @returns Public calendar version or the unchanged legacy value.
++ */
++export const displayProductVersion: (value: string) => string = calendar.displayProductVersion
++/**
++ * Map calendar versions to their sortable package representation.
++ * @param value - Calendar or legacy version; callers validate legacy formats.
++ * @returns Ordered runtime version or the unchanged legacy value.
++ */
++export const runtimeProductVersion: (value: string) => string = calendar.runtimeProductVersion
++/**
++ * Construct a runtime version from an explicit day and daily build sequence.
++ * @param date - Eight-digit YYYYMMDD day.
++ * @param sequence - Daily build number, 0 for the day's first build, at most 65535.
++ * @returns Runtime version.
++ * @throws When the date or sequence is invalid.
++ */
++export const calendarBuildVersion: (date: string, sequence: number) => string = calendar.calendarBuildVersion
+diff --git a/packages/util/product-version/tests/calendar.spec.ts b/packages/util/product-version/tests/calendar.spec.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..d50e4706a402bed3cff07b7e2154c47e00b15b3e
+--- /dev/null
++++ b/packages/util/product-version/tests/calendar.spec.ts
+@@ -0,0 +1,33 @@
++import { describe, expect, it } from 'vitest'
++import { compare } from 'semver'
++import { calendarBuildVersion, displayProductVersion, parseCalendarVersion, runtimeProductVersion } from '../src/index.ts'
++
++describe('calendar product versions', () => {
++  it.each(['2026.11.14.1', '2026.1114.1'])('normalizes %s to one identity', (value) => {
++    expect(parseCalendarVersion(value)).toEqual({ year: 2026, month: 11, day: 14, sequence: 1,
++      display: '2026.11.14.1', runtime: '2026.1114.1' })
++  })
++  it.each(['2026.11.14.0', '2026.1114.0'])('starts a day at sequence 0 for %s', (value) => {
++    expect(parseCalendarVersion(value)).toEqual({ year: 2026, month: 11, day: 14, sequence: 0,
++      display: '2026.11.14.0', runtime: '2026.1114.0' })
++  })
++  it.each(['2026.02.29.1', '2026.04.31.1', '2026.00.14.1', '2026.13.01.1',
++    '2026.11.14.01', '2026.11.14.65536', '2026.1114.1+metadata', '0.1.0', '2026.1.2.1'])('rejects %s as calendar identity', (value) => {
++    expect(parseCalendarVersion(value)).toBeUndefined()
++  })
++  it('keeps daily, monthly and yearly builds ordered by the updater', () => {
++    const values = ['2026.01.01.0', '2026.01.01.1', '2026.01.01.9', '2026.01.01.10', '2026.01.02.0', '2026.02.01.1', '2027.01.01.1']
++    for (let i = 1; i < values.length; i++) {
++      expect(compare(runtimeProductVersion(values[i]!), runtimeProductVersion(values[i - 1]!))).toBe(1)
++    }
++    expect(compare(runtimeProductVersion(values[0]!), '0.1.0-test.20261113.5')).toBe(1)
++  })
++  it('preserves legacy values and formats leap days and Windows-sized build fields', () => {
++    expect(displayProductVersion('0.1.0-test.20261113.5')).toBe('0.1.0-test.20261113.5')
++    expect(runtimeProductVersion('0.1.0')).toBe('0.1.0')
++    expect(displayProductVersion(calendarBuildVersion('20280229', 65535))).toBe('2028.02.29.65535')
++    expect(displayProductVersion(calendarBuildVersion('20261114', 0))).toBe('2026.11.14.0')
++    expect(() => calendarBuildVersion('20260229', 1)).toThrow(/invalid calendar/)
++    expect(() => calendarBuildVersion('20261114', -1)).toThrow(/invalid calendar/)
++  })
++})
+diff --git a/packages/util/product-version/tsconfig.json b/packages/util/product-version/tsconfig.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..86a6f8132a946d3821f6c1013878c3492d4e8b02
+--- /dev/null
++++ b/packages/util/product-version/tsconfig.json
+@@ -0,0 +1,12 @@
++{
++  "extends": "../../../tsconfig.base.json",
++  "compilerOptions": {
++    "rootDir": "src",
++    "outDir": "lib/types",
++    "types": [],
++    "allowJs": true
++  },
++  "include": [
++    "src"
++  ]
++}
+diff --git a/packages/extensions/cordis-client-runner/src/client/api-catalog.ts b/packages/extensions/cordis-client-runner/src/client/api-catalog.ts
+index fbfffa75046bf231357eea8f8faced14f4d6da0f..8faf434d60243b086e9f3750b97d41f89f948fb2 100644
+--- a/packages/extensions/cordis-client-runner/src/client/api-catalog.ts
++++ b/packages/extensions/cordis-client-runner/src/client/api-catalog.ts
+@@ -1075,6 +1075,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
+     name: 'SubmissionHandle',
+     declaration: 'export interface SubmissionHandle {\n    readonly requestId: SessionRequestId;\n    abandon(): void;\n}',
+   },
++  {
++    name: 'SunCitySource',
++    declaration: 'export type SunCitySource = \'manual\' | \'zone\' | \'offset\';',
++  },
++  {
++    name: 'SunEstimate',
++    declaration: 'export interface SunEstimate {\n    cityId: string;\n    source: SunCitySource;\n    daylight: boolean;\n    interval?: readonly [\n        number,\n        number\n    ];\n}',
++  },
++  {
++    name: 'SunLocation',
++    declaration: 'export type SunLocation = typeof SUN_LOCATIONS[number];',
++  },
+   {
+     name: 'ThemeDefinition',
+     declaration: 'export interface ThemeDefinition {\n    id: string;\n    colorScheme: \'light\' | \'dark\';\n    tokens: ThemeTokens;\n    icons?: IconReplacements | undefined;\n}',
+@@ -1085,7 +1097,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
+   },
+   {
+     name: 'ThemeSnapshot',
+-    declaration: 'export interface ThemeSnapshot {\n    preference: ThemePreference;\n    fontSizes: FontSizes;\n    fontFamilies: FontFamilies;\n    active: ThemeDefinition;\n    themes: readonly ThemeDefinition[];\n    revision: number;\n}',
++    declaration: 'export interface ThemeSnapshot {\n    preference: ThemePreference;\n    sunLocation: SunLocation;\n    sun?: SunEstimate;\n    fontSizes: FontSizes;\n    fontFamilies: FontFamilies;\n    active: ThemeDefinition;\n    themes: readonly ThemeDefinition[];\n    revision: number;\n}',
+   },
+   {
+     name: 'ThemeTokenModes',
+diff --git a/scripts/doc-standard.spec.ts b/scripts/doc-standard.spec.ts
+index a9a31a0b9d1eb380a7f39b2a54f5ef1630461d60..5668202d67ca75c3ddcaf56e2f0311b9929af9c0 100644
+--- a/scripts/doc-standard.spec.ts
++++ b/scripts/doc-standard.spec.ts
+@@ -93,6 +93,7 @@ const PACKAGE_LIBRARIES: Readonly<Record<string, string>> = {
+   'packages/typert/protocol': 'Compiler-independent protocol declarations.',
+   'packages/util/atomic-write': 'Zero-dependency filesystem write utility.',
+   'packages/util/brand': 'Stateless nominal-string and canonical-key constructors.',
++  'packages/util/product-version': 'Pure calendar-version parsing and formatting for the updater and packagers.',
+   'packages/util/crypto': 'Zero-dependency identifier minting utility.',
+   'packages/util/error': 'Zero-dependency HarnessError base class.',
+   'packages/util/text-search': 'In-memory search filtering library.',
+diff --git a/scripts/persistence-schema.ts b/scripts/persistence-schema.ts
+index ecdf22e1c609f694981db42d2a6257d7700ec7d0..87f34fb509b6000a43353d2ccdb983413e4aaf1d 100644
+--- a/scripts/persistence-schema.ts
++++ b/scripts/persistence-schema.ts
+@@ -84,6 +84,8 @@ export function extractPersistenceSchema(root: string): PersistenceSchemaInvento
+     ...hostSourceFiles(root, configPath),
+     ...events.map(event => resolve(root, event.source.slice(0, event.source.lastIndexOf(':')))),
+   ])]
++  // Referenced Host projects may explicitly admit JavaScript source roots.
++  options.allowJs ||= files.some(file => /\.[cm]?js$/u.test(file))
+   const program = ts.createProgram({ rootNames: [filename, ...files], options, host })
+   const rootSource = program.getSourceFile(filename)
+   if (rootSource === undefined) throw new PersistenceSchemaError('persistence schema: compiler omitted the requested roots')
+diff --git a/packages/client/connection/README.i18n.yaml b/packages/client/connection/README.i18n.yaml
+index 710416ca1ad6a3ad6535459965935ba7ac2b6a9f..d187115480638614445ef25f6c70306354f69f93 100644
+--- a/packages/client/connection/README.i18n.yaml
++++ b/packages/client/connection/README.i18n.yaml
+@@ -21,8 +21,8 @@
+   en: 22e629db9745aae9
+   zh: 7004b8b10f2f031d
+ /deepseek-ai-dsh-client-connection/connection-generation:
+-  en: d23cf1cd3830e886
+-  zh: ef8f899080e638d6
++  en: 696f1822379b98b2
++  zh: e2b7e1dbb65b6a3b
+ /deepseek-ai-dsh-client-connection/model-experience:
+   en: 88bbc33fe9ae9df8
+   zh: bfbab6d51b4abd40
+diff --git a/packages/client/connection/README.md b/packages/client/connection/README.md
+index c0da1f74e677e30265e75b28ee1abc030a11c28b..727b4cad24b8926b2f1681eb72be7af08be64c12 100644
+--- a/packages/client/connection/README.md
++++ b/packages/client/connection/README.md
+@@ -61,6 +61,8 @@ Authenticated shared HTTP requests pass through the `connection/request` waterfa
+ 
+ An ended `$events` stream, a Remote stream error, a non-ready opening item, or a malformed event item invalidates the current generation. A pending handshake logs a slow-Host warning after 3 seconds and logs the readiness timeout and aborts after 15 seconds by default, including time spent waiting for the physical socket. The source must stop delivery, release resources, and settle after cancellation before a replacement starts; late readiness from a cancelled source cannot publish a generation. While the browser reports network availability, the controller publishes `connecting` and retries with 50%–100% jitter under caps of 500ms, 1s, 2s, 4s, 8s, and 10s, continuing at the final cap until recovery. Every retry asks Gateway to replace the physical WebSocket once and reopens `$events`.
+ 
++Desktop and worker transports that own a local Host keep their connection when the operating system goes offline. A remote web client still suspends retries until the network returns.
++
+ `ctx.connection.reconnect()` interrupts active work, resets the sequence, and starts retry 1 immediately. Browser `offline` aborts active work, publishes `disconnected`, and suspends automatic attempts; the next `online` transition resets the sequence and starts at the 500ms tier. Only a ready item publishes `connected`. Gateway mux owns no independent retry schedule.
+ 
+ Set the Host Connection row's `config.recovery` to override retry caps, the growth factor, or handshake warning and cancellation times; the [configuration catalog](../../../docs/config-catalog.md#deepseek-aidsh-client-connection) lists accepted fields. `recovery` reaches the browser through the plugin's [synced Config](../modules/README.md#synced-plugin-configuration). The Host validates the values when the plugin loads. The Client reads them once when its plugin activates, validates them before providing Connection, and uses them as defaults when Gateway starts its loop; a page that receives no value uses the built-in timing above, and explicit `start()` timing overrides take precedence. The growth factor must be finite and at least one. Readiness, failure, cancellation, or a hard deadline that occurs before the warning cancels that warning. A change takes effect on the next page load or plugin reactivation.
+diff --git a/packages/client/connection/README.zh.md b/packages/client/connection/README.zh.md
+index 636ccafeb93f1ed5488f7048fa7bcd99663dbd5d..5e7d9dab11bfff669ddfd46edf3ac53b962d11b8 100644
+--- a/packages/client/connection/README.zh.md
++++ b/packages/client/connection/README.zh.md
+@@ -61,6 +61,8 @@ Token 插件拥有供 API 调用方使用的 `GET /connect?token=...&interaction
+ 
+ `$events` 结束、Remote 流报错、收到非 ready 首项或畸形事件项，都会使当前 generation 失效。默认情况下，挂起的握手在 3 秒后记录 Host 响应缓慢告警，在 15 秒后记录就绪超时并中止，包含等待物理 socket 的时间。取消后，source 必须停止投递、释放资源并结束，替换 source 才能启动；已取消 source 迟到的 ready 不能发布 generation。浏览器报告网络可用时，Controller 发布 `connecting`，并在 500ms、1s、2s、4s、8s 与 10s 上限内采用 50%–100% 抖动重试，达到终档后继续尝试直到恢复。每次重试都要求 Gateway 替换一次物理 WebSocket，再重开 `$events`。
+ 
++桌面和工作线程直接拥有本地 Host，系统断网后仍可打开本地工作区和会话。连接远程 Host 的网页在断网时暂停自动重试，网络恢复后继续。
++
+ `ctx.connection.reconnect()` 会中断活动工作、重置序列，并立即开始 retry 1。浏览器 `offline` 会中断活动工作、发布 `disconnected` 并暂停自动尝试；下一次 `online` 转换会重置序列并从 500ms 档开始。只有 ready 项会发布 `connected`。Gateway mux 不拥有独立重试调度。
+ 
+ 可通过 Host Connection 行的 `config.recovery` 覆盖重试上限、增长因子或握手告警与取消时间；[配置目录](../../../docs/config-catalog.zh.md#deepseek-aidsh-client-connection)列出接受的字段。`recovery` 通过插件的[同步配置](../modules/README.zh.md#synced-plugin-configuration)送达浏览器。Host 在插件加载时校验这些值。Client 在其插件激活时读取一次，在提供 Connection 前校验，并在 Gateway 启动循环时将其作为默认值；未收到值的页面使用上述内置时序，显式传给 `start()` 的时序覆盖优先。增长因子必须是至少为一的有限数。若就绪、失败、取消或硬期限先于告警发生，该告警会被取消。修改在下次页面加载或插件重新激活时生效。
+diff --git a/packages/client/connection/src/client/index.ts b/packages/client/connection/src/client/index.ts
+index cc8e39beb73392e8b2405565464a8f40d861726c..8fd7bcbef4f3a17b3d67c1e65005a667435f88ae 100644
+--- a/packages/client/connection/src/client/index.ts
++++ b/packages/client/connection/src/client/index.ts
+@@ -206,10 +206,11 @@ interface BrowserNetworkTarget {
+   removeEventListener(type: 'online' | 'offline', listener: () => void): void
+ }
+ 
+-function watchBrowserNetwork(controller: ConnectionController): () => void {
++function watchBrowserNetwork(controller: ConnectionController, transport: ClientTransportHooks | undefined): () => void {
+   const browser = (globalThis as { readonly window?: BrowserNetworkTarget }).window
+   const initiallyAvailable = browser?.navigator?.onLine
+-  if (browser === undefined || initiallyAvailable === undefined) return () => {}
++  // The desktop's loopback Host and the page's worker Host remain reachable without a network adapter.
++  if (transport?.ownsHost === true || browser === undefined || initiallyAvailable === undefined) return () => {}
+   const online = (): void => { controller.setNetworkAvailable(true) }
+   const offline = (): void => { controller.setNetworkAvailable(false) }
+   controller.setNetworkAvailable(initiallyAvailable)
+@@ -326,7 +327,7 @@ export function installConnection(ctx: Context, options: ConnectionInstallOption
+           sinks.onStateChange?.(state)
+         },
+       }, { ...recovery, ...config })
+-      const current = { token, source, controller, stopNetworkWatch: watchBrowserNetwork(controller) }
++      const current = { token, source, controller, stopNetworkWatch: watchBrowserNetwork(controller, transport) }
+       owner = current
+       controller.start()
+       return {
+diff --git a/packages/client/connection/tests/client-apply.client.spec.ts b/packages/client/connection/tests/client-apply.client.spec.ts
+index 0ef9e97c3535941c62311bcb8e722ff4e9ddce81..cddedafe3ea613e76054e5ce2f3dd7c3f23b86c7 100644
+--- a/packages/client/connection/tests/client-apply.client.spec.ts
++++ b/packages/client/connection/tests/client-apply.client.spec.ts
+@@ -310,6 +310,27 @@ describe('connection client apply', () => {
+     }
+   })
+ 
++  it('keeps the locally owned Host connected across offline startup and network changes', async () => {
++    const browser = new BrowserNetworkProbe()
++    browser.setOnline(false)
++    vi.stubGlobal('window', browser)
++    vi.stubGlobal('location', { hostname: 'app' })
++    vi.stubGlobal('__DSH_TRANSPORT__', { ownsHost: true })
++    const handle = await mount()
++    installGeneration(handle)
++    const loop = handle.start({})
++    try {
++      await vi.waitFor(() => { expect(handle.state.getSnapshot()).toBe('connected') })
++      const generation = handle.generation.getSnapshot()
++      browser.setOnline(true)
++      browser.setOnline(false)
++      expect(handle.state.getSnapshot()).toBe('connected')
++      expect(handle.generation.getSnapshot()).toBe(generation)
++    } finally {
++      loop.stop()
++    }
++  })
++
+   it('does not announce a generation synchronously stopped by a generation subscriber', async () => {
+     ;(globalThis as Win).location = { hostname: 'localhost' }
+     const handle = await mount()

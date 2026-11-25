@@ -205,10 +205,11 @@ interface BrowserNetworkTarget {
   removeEventListener(type: 'online' | 'offline', listener: () => void): void
 }
 
-function watchBrowserNetwork(controller: ConnectionController): () => void {
+function watchBrowserNetwork(controller: ConnectionController, transport: ClientTransportHooks | undefined): () => void {
   const browser = (globalThis as { readonly window?: BrowserNetworkTarget }).window
   const initiallyAvailable = browser?.navigator?.onLine
-  if (browser === undefined || initiallyAvailable === undefined) return () => {}
+  // The desktop's loopback Host and the page's worker Host remain reachable without a network adapter.
+  if (transport?.ownsHost === true || browser === undefined || initiallyAvailable === undefined) return () => {}
   const online = (): void => { controller.setNetworkAvailable(true) }
   const offline = (): void => { controller.setNetworkAvailable(false) }
   controller.setNetworkAvailable(initiallyAvailable)
@@ -325,7 +326,7 @@ export function installConnection(ctx: Context, options: ConnectionInstallOption
           sinks.onStateChange?.(state)
         },
       }, { ...recovery, ...config })
-      const current = { token, source, controller, stopNetworkWatch: watchBrowserNetwork(controller) }
+      const current = { token, source, controller, stopNetworkWatch: watchBrowserNetwork(controller, transport) }
       owner = current
       controller.start()
       return {
