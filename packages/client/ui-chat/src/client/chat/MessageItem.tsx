@@ -141,6 +141,11 @@ function TurnErrorItem({ node, t }: {
         <span className={css.turnErrorMessage}>{failureMessage(node.message, node.code, t)}</span>
       </div>
       {node.code !== undefined && node.code !== 'INTERRUPTED' && <code className={css.turnErrorCode}>{node.code}</code>}
+      {node.rejectedMcpTool !== undefined && <details className={css.turnErrorHint}>
+        <summary>{t('message.failure.recoverConversation')}</summary>
+        <div>{t('message.failure.mcpSchemaHint')}</div>
+        {node.rejectedMcpTool.startsWith('mcp__rea__') && <div>{t('message.failure.reaSchemaHint')}</div>}
+      </details>}
     </div>
   )
 }

@@ -2677,6 +2677,25 @@ describe('ChatView', () => {
     expect(within(cancelledDisclosure).getByRole('status').textContent).toContain('重试已取消')
   })
 
+  it('opens recovery instructions for the named MCP service in the failed turn', () => {
+    const nodes = ['mcp__notes__lookup', 'mcp__rea__example'].map((name, index) => ({
+      ...turnError(index + 2, 'INVALID_REQUEST'),
+      message: `Invalid schema for function '${name}': invalid pattern`, rejectedMcpTool: name,
+    }))
+    const h = makeHarness({ nodes: [user(1, 'hello'), ...nodes, turnError(4, 'INVALID_REQUEST')] })
+    const view = render(<h.ChatView {...h.props} />)
+    const entries = view.getAllByText('如何恢复此对话')
+    expect(entries).toHaveLength(2)
+    for (const [index, summary] of entries.entries()) {
+      const details = summary.closest('details')!
+      expect(details.open).toBe(false)
+      fireEvent.click(summary)
+      expect(details.open).toBe(true)
+      expect(details.textContent).toContain(index ? '关闭 REA 并保存' : 'MCP 服务配置')
+      expect(details.textContent).toContain('其他对话')
+    }
+  })
+
   it('renders every terminal failure inline with neutral quota copy and no transient notice', () => {
     const h = makeHarness({ nodes: [
       user(1, 'try'), turnError(2, 'AUTH'), turnError(3), turnError(4, 'QUOTA'), turnError(5, 'ACCOUNT_QUOTA'),

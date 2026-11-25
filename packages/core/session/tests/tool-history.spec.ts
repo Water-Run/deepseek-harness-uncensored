@@ -186,6 +186,42 @@ describe('Session.toolHistory', () => {
       .toEqual({ tools: [search, fetch], messages: [removed] })
   })
 
+  it('keeps unrelated inactive declarations when a provider rejects two tools in successive turns', () => {
+    const notes = { ...fetch, name: 'mcp__notes__read' }
+    const clock = { ...fetch, name: 'mcp__clock__read' }
+    const session = opened([search, fetch, notes, clock])
+    header(session, [search, notes, clock])
+    const healthyRemoval = update(session, [remove(fetch.name)])
+    for (const [i, name] of [notes.name, clock.name].entries()) {
+      const turn = i + 1
+      session.append('step/end', { turn, step: 1 })
+      session.append('turn/end', { turn, reason: { kind: 'error', error: {
+        code: 'INVALID_REQUEST', status: 400, message: `Invalid schema for function '${name}': invalid pattern`,
+      } } })
+      session.append('turn/start', { turn: turn + 1 })
+      session.append('step/start', { turn: turn + 1, step: 1 })
+      const active = i === 0 ? [search, clock] : [search]
+      header(session, active)
+      update(session, [remove(name)], undefined, turn + 1)
+      const restored = Session.fromRestore(session.id, session.snapshotEvents(), session.header, SessionLogOffset(0), 'shared-frozen')
+      expect(projectToolUpdates(restored.deriveMessages(), active, 'in-history', restored.toolHistory())).toEqual({
+        tools: i === 0 ? [search, fetch, clock] : [search, fetch], messages: [healthyRemoval],
+      })
+    }
+  })
+
+  it('ignores a provider-named tool absent from the declaration series', () => {
+    const session = opened([search, fetch])
+    header(session, [search])
+    const healthyRemoval = update(session, [remove(fetch.name)])
+    session.append('step/end', { turn: 1, step: 1 })
+    session.append('turn/end', { turn: 1, reason: { kind: 'error', error: {
+      code: 'INVALID_REQUEST', status: 400, message: "Invalid schema for function 'absent': invalid pattern",
+    } } })
+    expect(projectToolUpdates(session.deriveMessages(), [search], 'in-history', session.toolHistory()))
+      .toEqual({ tools: [search, fetch], messages: [healthyRemoval] })
+  })
+
   it('reconstructs inherited history on restore and continues from live events', () => {
     const session = opened([search])
     const headerSeq = header(session, [search, fetch])

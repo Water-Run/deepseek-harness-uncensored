@@ -1,6 +1,7 @@
 /** Stateful reconstruction of historical tool definitions for request projection. */
 
 import type { ToolHistory, ToolSchema } from '@deepseek-ai/dsh-llm'
+import { rejectedSchemaToolName } from '@deepseek-ai/dsh-llm/schema-error'
 import { deepFreeze } from '@deepseek-ai/dsh-util-values'
 import type { SessionEvent, SessionSeq } from './types.ts'
 
@@ -16,7 +17,7 @@ export class ToolHistoryProjection {
   private available = new Set<string>()
   /** Header that starts the current declaration series; absent before the first header. */
   private baselineSeq: SessionSeq | undefined
-  private lastRequestRejected = false
+  private lastRejectionUnnamed = false
   /** Immutable request snapshot of the current baseline and resolved updates. */
   private history: ToolHistory = deepFreeze({ tools: [], updates: [] })
 
@@ -27,8 +28,11 @@ export class ToolHistoryProjection {
   apply(event: SessionEvent): void {
     if (event.type === 'turn/end') {
       const reason = event.data.reason
-      this.lastRequestRejected = reason.kind === 'error' && reason.error.code === 'INVALID_REQUEST'
-      if (this.lastRequestRejected) this.retireInactive(this.active)
+      const failure = reason.kind === 'error' && reason.error.code === 'INVALID_REQUEST' ? reason.error : undefined
+      const named = failure && rejectedSchemaToolName(failure)
+      this.lastRejectionUnnamed = failure !== undefined && named === undefined
+      if (named !== undefined && this.declared.has(named)) this.retire([named])
+      if (this.lastRejectionUnnamed) this.retireInactive(this.active)
     } else if (event.type === 'request/header') {
       const tools = event.data.header.tools ?? []
       this.headers.set(event.seq, tools)
@@ -43,10 +47,10 @@ export class ToolHistoryProjection {
         this.declared = new Map(tools.map(tool => [tool.name, tool]))
         this.history = deepFreeze({ tools, updates: [] })
         this.available = new Set(tools.map(tool => tool.name))
-      } else if (this.lastRequestRejected) {
+      } else if (this.lastRejectionUnnamed) {
         this.retireInactive(tools)
       }
-      this.lastRequestRejected = false
+      this.lastRejectionUnnamed = false
       this.active = tools
     } else if (event.type === 'developer/message') {
       const { message, headerSeq } = event.data
@@ -71,9 +75,14 @@ export class ToolHistoryProjection {
 
   private retireInactive(tools: readonly ToolSchema[]): void {
     const active = new Set(tools.map(tool => tool.name))
-    const disabledAfterRejection = [...this.declared.keys()].filter(name => !active.has(name))
-    if (disabledAfterRejection.length > 0) {
-      this.history = deepFreeze({ ...this.history, disabledAfterRejection })
+    this.retire([...this.declared.keys()].filter(name => !active.has(name)))
+  }
+
+  private retire(names: readonly string[]): void {
+    const previous = this.history.disabledAfterRejection ?? []
+    const retired = new Set([...previous, ...names])
+    if (retired.size !== previous.length) {
+      this.history = deepFreeze({ ...this.history, disabledAfterRejection: [...retired] })
     }
   }
 

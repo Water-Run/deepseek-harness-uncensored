@@ -3219,14 +3219,15 @@ index 0000000000000000000000000000000000000000..124210d8ee71c134dd81f6ec0bdea25a
 +  } finally { await scaffold.close() }
 +}, 120_000)
 diff --git a/apps/web/tsconfig.json b/apps/web/tsconfig.json
-index 62e0f201c21a9d9bbc1c833e68ae821105b8a6d7..45383e1bf42df1bab9c0b32c2d5587fc8b0a1e4a 100644
+index 62e0f201c21a9d9bbc1c833e68ae821105b8a6d7..2c38ad214e0d28c40d47882b778265398491e15c 100644
 --- a/apps/web/tsconfig.json
 +++ b/apps/web/tsconfig.json
-@@ -23,6 +23,12 @@
+@@ -23,6 +23,13 @@
    // this client-registered project must not also hold them (one program
    // cannot see both sides of the cordis Context merges).
    "exclude": [
 +    "tests/about-dialog-fit.e2e.ts",
++    "tests/mcp-schema-recovery.e2e.ts",
 +    "tests/balance-cleanup.e2e.ts",
 +    "tests/balance-history-layout.e2e.ts",
 +    "tests/memory-preference.e2e.ts",
@@ -13271,18 +13272,24 @@ index 7ea45f5067591a84fb43ef786026cc0c1246729b..b67d3a2e56b4fa45ddfa973d20b3ae02
  
  Desktop 与普通 Web 客户端都挂载侧边栏账号菜单、账号设置、模型引导中的登录步骤，并订阅账号状态。Desktop 主进程在系统浏览器中打开授权页面。普通 Web 客户端（以缺少 Desktop preload 桥接识别）以 `login_source` web 发起登录，并以自身 origin 作为回调 origin；它在点击登录时预先打开一个标签页，本次尝试获得授权 URL 后带上相同的 `theme` 参数导航该标签页，并在失败、过期或取消时关闭它；弹窗被拦截时仍可使用复制链接。内嵌 Platform 页面、Desktop 引导和原生设备信息读取器仅在 Desktop 中提供，因此 Web 中的 Platform 链接在新标签页打开。
 diff --git a/packages/client/ui-settings-account/package.json b/packages/client/ui-settings-account/package.json
-index 1b9612ca205da42b52a6c6d7b625231b5bfd4800..ba320e977b824cdd8a34f96da471a5e069c01801 100644
+index 1b9612ca205da42b52a6c6d7b625231b5bfd4800..55d70902fe28d0bb1372439b58fba8402debbc8b 100644
 --- a/packages/client/ui-settings-account/package.json
 +++ b/packages/client/ui-settings-account/package.json
-@@ -63,6 +63,7 @@
+@@ -60,10 +60,13 @@
+     "@deepseek-ai/dsh-client-ui-primitives": "workspace:*",
+     "@deepseek-ai/dsh-client-ui-renderer": "workspace:*",
+     "@deepseek-ai/dsh-client-ui-settings": "workspace:*",
++    "@deepseek-ai/dsh-client-ui-sidebar": "workspace:*",
      "@deepseek-ai/dsh-client-ui-slots": "workspace:*",
      "@deepseek-ai/dsh-client-ui-theme": "workspace:*",
      "@deepseek-ai/dsh-deepseek-account": "workspace:*",
 +    "@deepseek-ai/dsh-balance": "workspace:*",
      "@deepseek-ai/dsh-settings": "workspace:*",
++    "@deepseek-ai/dsh-typert-protocol": "workspace:*",
      "@testing-library/react": "^16.3.3",
      "@types/big.js": "^6.2.2",
-@@ -71,7 +72,13 @@
+     "react": "^18.2.0",
+@@ -71,7 +74,13 @@
      "@deepseek-ai/dsh-client-ui-settings-models": "workspace:*",
      "@deepseek-ai/dsh-host-webserver": "workspace:*",
      "big.js": "^7.0.1",
@@ -14501,22 +14508,45 @@ index 0000000000000000000000000000000000000000..5dcdd27076f42d096621c8edef03f26a
 +  })
 +}
 diff --git a/packages/client/ui-settings-account/tests/access-revocation.client.spec.ts b/packages/client/ui-settings-account/tests/access-revocation.client.spec.ts
-index 01a599b981b35335d233fe0657b22db71386a7d3..204d00cf4840b18a07f82dd658fe41dead47f49f 100644
+index 01a599b981b35335d233fe0657b22db71386a7d3..d474173b85b43e5bdc792ee073631b76272d0c2f 100644
 --- a/packages/client/ui-settings-account/tests/access-revocation.client.spec.ts
 +++ b/packages/client/ui-settings-account/tests/access-revocation.client.spec.ts
+@@ -16,11 +16,11 @@ interface Guard {
+ }
+ 
+ /**
+- * Install every guard's current effect.
++ * Grant account access independently of permission to read spending.
+  * @param guards - Guards registering this run's access controllers.
+  */
+ function grant(guards: readonly Guard[]): void {
+-  for (const guard of guards) {
++  for (const guard of guards.filter(guard => guard.action === 'account/watch')) {
+     const effect = guard.install()
+     guard.installed = typeof effect === 'function' ? [effect] : [...effect]
+   }
 @@ -46,6 +46,7 @@ it('withdraws every account surface and the account stream on revocation, and re
    const streams: { readonly signal: AbortSignal; readonly accepted: Promise<undefined> }[] = []
    const lifetime: (() => void)[] = []
    const ctx = {
-+    inject: (services: readonly string[]) => { expect(services).toEqual(['remote.spending']) },
++    inject: (services: readonly string[]) => { expect([['remote.balance'], ['remote.spending']]).toContainEqual(services) },
      on: () => () => {}, provide: () => {}, emit: () => {}, parallel: async () => [],
      effect: (install: () => (() => void) | undefined) => { const dispose = install(); if (dispose) lifetime.push(dispose) },
      locale: { register: () => () => {}, bind: () => (key: string) => key, getSnapshot: () => ({ active: 'en' }) },
+@@ -96,7 +97,7 @@ it('withdraws every account surface and the account stream on revocation, and re
+   )
+   try {
+     apply(ctx as never)
+-    expect(new Set(guards.map(guard => guard.action))).toEqual(new Set(['account/watch']))
++    expect(new Set(guards.map(guard => guard.action))).toEqual(new Set(['account/watch', 'spending/get']))
+     grant(guards)
+     await streams[0]!.accepted
+     expect(surfaces()).toEqual({ 'settings.launcher': 1, 'settings.notice': 1, 'shell.quota-notice': 1, 'settings.models.sign-in': 1, 'settings.section': 1 })
 @@ -125,6 +126,7 @@ it('drops reads a revoked grant started, and the next grant shows no account sec
    const firstFrames: { release: () => void; accepted: Promise<undefined> }[] = []
    const lifetime: (() => void)[] = []
    const ctx = {
-+    inject: (services: readonly string[]) => { expect(services).toEqual(['remote.spending']) },
++    inject: (services: readonly string[]) => { expect([['remote.balance'], ['remote.spending']]).toContainEqual(services) },
      on: () => () => {}, provide: () => {}, emit: () => {}, parallel: async () => [],
      effect: (install: () => (() => void) | undefined) => { const dispose = install(); if (dispose) lifetime.push(dispose) },
      locale: { register: () => () => {}, bind: () => (key: string) => key, getSnapshot: () => ({ active: 'en' }) },
@@ -14524,7 +14554,7 @@ index 01a599b981b35335d233fe0657b22db71386a7d3..204d00cf4840b18a07f82dd658fe41de
    const getNotifications = vi.fn(async () => ({ ok: true, value: null }))
    const startSignIn = vi.fn<() => Promise<{ ok: false }>>()
    const ctx = {
-+    inject: (services: readonly string[]) => { expect(services).toEqual(['remote.spending']) },
++    inject: (services: readonly string[]) => { expect([['remote.balance'], ['remote.spending']]).toContainEqual(services) },
      on: () => () => {}, provide: () => {}, emit: () => {}, parallel: async () => [],
      effect: (install: () => (() => void) | undefined) => { const dispose = install(); if (dispose) lifetime.push(dispose) },
      locale: { register: () => () => {}, bind: () => (key: string) => key, getSnapshot: () => ({ active: 'en' }) },
@@ -18875,7 +18905,7 @@ index 68e7f032cb3b63ef1c4f09d592321a9144400141..13d56812ef0ea53bbcf605f7ad1e58af
               this._inSocket.destroy();
               this._ptyNative.kill(this._pty, this._useConptyDll);
 diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
-index 774164ab6d006ce397a2f47f6ba84592519d80d6..da854b439c0b4b96a22ab173f4a16ca9c02e85c5 100644
+index 774164ab6d006ce397a2f47f6ba84592519d80d6..9c186e6711b43ecef206a1c6bf97e13ba69ab96e 100644
 --- a/pnpm-lock.yaml
 +++ b/pnpm-lock.yaml
 @@ -24,7 +24,7 @@ patchedDependencies:
@@ -19181,7 +19211,17 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..da854b439c0b4b96a22ab173f4a16ca9
        '@deepseek-ai/dsh-client-ui-layout':
          specifier: workspace:*
          version: link:../ui-layout
-@@ -6605,9 +6781,18 @@ importers:
+@@ -6593,6 +6769,9 @@ importers:
+       '@deepseek-ai/dsh-client-ui-settings-models':
+         specifier: workspace:*
+         version: link:../ui-settings-models
++      '@deepseek-ai/dsh-client-ui-sidebar':
++        specifier: workspace:*
++        version: link:../ui-sidebar
+       '@deepseek-ai/dsh-client-ui-slots':
+         specifier: workspace:*
+         version: link:../ui-slots
+@@ -6605,9 +6784,21 @@ importers:
        '@deepseek-ai/dsh-host-webserver':
          specifier: workspace:*
          version: link:../../host/webserver
@@ -19197,10 +19237,13 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..da854b439c0b4b96a22ab173f4a16ca9
 +      '@deepseek-ai/dsh-token-meter':
 +        specifier: workspace:*
 +        version: link:../../llm/token-meter
++      '@deepseek-ai/dsh-typert-protocol':
++        specifier: workspace:*
++        version: link:../../typert/protocol
        '@testing-library/react':
          specifier: ^16.3.3
          version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-@@ -6736,6 +6921,51 @@ importers:
+@@ -6736,6 +6927,51 @@ importers:
          specifier: ^18.2.0
          version: 18.3.1(react@18.3.1)
  
@@ -19252,7 +19295,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..da854b439c0b4b96a22ab173f4a16ca9
    packages/client/ui-settings-models:
      dependencies:
        '@deepseek-ai/schemastery':
-@@ -9402,6 +9632,40 @@ importers:
+@@ -9402,6 +9638,40 @@ importers:
          specifier: workspace:*
          version: link:../../util/error
  
@@ -19293,7 +19336,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..da854b439c0b4b96a22ab173f4a16ca9
    packages/credentials/credentials:
      dependencies:
        '@deepseek-ai/dsh-brand':
-@@ -14340,6 +14604,52 @@ importers:
+@@ -14340,6 +14610,52 @@ importers:
          specifier: workspace:*
          version: link:../../core/tools
  
@@ -19346,7 +19389,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..da854b439c0b4b96a22ab173f4a16ca9
    packages/guard/timeout-policy:
      devDependencies:
        '@deepseek-ai/cordis':
-@@ -15796,6 +16106,64 @@ importers:
+@@ -15796,6 +16112,64 @@ importers:
          specifier: workspace:*
          version: link:../../core/tools
  
@@ -19411,7 +19454,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..da854b439c0b4b96a22ab173f4a16ca9
    packages/plan/plan-mode:
      dependencies:
        '@deepseek-ai/dsh-brand':
-@@ -19182,7 +19550,7 @@ importers:
+@@ -19182,7 +19556,7 @@ importers:
          version: 3.1.1
        node-pty:
          specifier: 1.2.0-beta.15
@@ -19420,7 +19463,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..da854b439c0b4b96a22ab173f4a16ca9
      devDependencies:
        '@deepseek-ai/cordis':
          specifier: workspace:~
-@@ -20753,6 +21121,9 @@ importers:
+@@ -20753,6 +21127,9 @@ importers:
        '@deepseek-ai/dsh-mcp-client':
          specifier: workspace:*
          version: link:../../packages/mcp/mcp-client
@@ -19430,7 +19473,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..da854b439c0b4b96a22ab173f4a16ca9
        '@deepseek-ai/dsh-message-feedback':
          specifier: workspace:*
          version: link:../../packages/feedback/message-feedback
-@@ -35270,7 +35641,7 @@ snapshots:
+@@ -35270,7 +35647,7 @@ snapshots:
  
    node-int64@0.4.0: {}
  
@@ -19591,7 +19634,7 @@ index bf8bbdc9b0254c65ebd9034685501eb5a68a5fae..180594565b08855d0ad9a0f3615725b3
      key: 'credentialsController',
      pkg: 'api-settings-controller',
 diff --git a/tsconfig.base.json b/tsconfig.base.json
-index 38bced25a37b280e8059d528139f3e4c4654c988..2eaeb0f612503b1498b8db416e80ffd7d2d260e3 100644
+index 38bced25a37b280e8059d528139f3e4c4654c988..759726f5a0d3f6abb4be1dee41e52bc12548399f 100644
 --- a/tsconfig.base.json
 +++ b/tsconfig.base.json
 @@ -54,6 +54,9 @@
@@ -19613,7 +19656,15 @@ index 38bced25a37b280e8059d528139f3e4c4654c988..2eaeb0f612503b1498b8db416e80ffd7
        "@deepseek-ai/dsh-api-session-controller": ["./packages/api/session-controller/src/index.ts"],
        "@deepseek-ai/dsh-api-session-controller/client": ["./packages/api/session-controller/src/client/index.ts"],
        "@deepseek-ai/dsh-api-session-controller/types": ["./packages/api/session-controller/src/types.ts"],
-@@ -459,6 +464,14 @@
+@@ -217,6 +222,7 @@
+       "@deepseek-ai/dsh-workflow/types": ["./packages/workflow/workflow/src/types.ts"],
+       "@deepseek-ai/dsh-tool-workflow/types": ["./packages/workflow/tool-workflow/src/types.ts"],
+       "@deepseek-ai/dsh-llm/message": ["./packages/llm/llm/src/message.ts"],
++      "@deepseek-ai/dsh-llm/schema-error": ["./packages/llm/llm/src/schema-error.ts"],
+       "@deepseek-ai/dsh-commands/builtin": ["./packages/interaction/commands/src/builtin.ts"],
+       "@deepseek-ai/dsh-commands/types": ["./packages/interaction/commands/src/types.ts"],
+       "@deepseek-ai/dsh-jobs/types": ["./packages/jobs/jobs/src/types.ts"],
+@@ -459,6 +465,14 @@
        "@deepseek-ai/dsh-ptc-runtime-node/configuration": ["./packages/ptc-runtime/ptc-runtime-node/src/configuration.ts"],
        "@deepseek-ai/dsh-message-feedback/types": ["./packages/feedback/message-feedback/src/types.ts"],
        "@deepseek-ai/dsh-webhook/types": ["./packages/experimental/webhook/src/types.ts"],
@@ -19628,7 +19679,7 @@ index 38bced25a37b280e8059d528139f3e4c4654c988..2eaeb0f612503b1498b8db416e80ffd7
        // BEGIN generated package aliases — pnpm run gen-tsconfig-paths
        "@deepseek-ai/dsh-acp": ["./packages/acp/acp/src"],
        "@deepseek-ai/dsh-acp-app": ["./packages/bundle/acp-app/src"],
-@@ -476,6 +489,7 @@
+@@ -476,6 +490,7 @@
        "@deepseek-ai/dsh-attachment": ["./packages/attachment/attachment/src"],
        "@deepseek-ai/dsh-attachment-local": ["./packages/attachment/attachment-local/src"],
        "@deepseek-ai/dsh-authorization": ["./packages/credentials/authorization/src"],
@@ -19636,7 +19687,7 @@ index 38bced25a37b280e8059d528139f3e4c4654c988..2eaeb0f612503b1498b8db416e80ffd7
        "@deepseek-ai/dsh-base": ["./packages/bundle/base/src"],
        "@deepseek-ai/dsh-bash-local": ["./packages/shell/bash-local/src"],
        "@deepseek-ai/dsh-bash-sandbox": ["./packages/shell/bash-sandbox/src"],
-@@ -540,6 +554,7 @@
+@@ -540,6 +555,7 @@
        "@deepseek-ai/dsh-mcp-client": ["./packages/mcp/mcp-client/src"],
        "@deepseek-ai/dsh-mcp-manager": ["./packages/mcp/mcp-manager/src"],
        "@deepseek-ai/dsh-mcp-resources": ["./packages/mcp/mcp-resources/src"],
@@ -19644,7 +19695,7 @@ index 38bced25a37b280e8059d528139f3e4c4654c988..2eaeb0f612503b1498b8db416e80ffd7
        "@deepseek-ai/dsh-message-feedback": ["./packages/feedback/message-feedback/src"],
        "@deepseek-ai/dsh-message-quotes": ["./packages/session/message-quotes/src"],
        "@deepseek-ai/dsh-native-command": ["./packages/util/native-command/src"],
-@@ -602,6 +617,7 @@
+@@ -602,6 +618,7 @@
        "@deepseek-ai/dsh-skill-badge": ["./packages/experimental/skill-badge/src"],
        "@deepseek-ai/dsh-skill-filesystem": ["./packages/skill/skill-filesystem/src"],
        "@deepseek-ai/dsh-skill-office": ["./packages/skill/skill-office/src"],
@@ -19666,16 +19717,17 @@ index d6a347c5aa4b45367dcb616971d4cd4f90543f4e..7b5f5791535b79789ba8deb36f564a1a
      { "path": "./packages/client/ui-account-notifications" },
      // Shared leaf: web e2e boots the real host webserver (fixture + real-host
 diff --git a/tsconfig.host.json b/tsconfig.host.json
-index f2046d341293cb0adb504e754b87f31918b2e424..158301e60a1367bf21f6d453bcefa861d8cc5f72 100644
+index f2046d341293cb0adb504e754b87f31918b2e424..57dfaac7e91d96413c6b89bbc2d1f60f2b54a0de 100644
 --- a/tsconfig.host.json
 +++ b/tsconfig.host.json
-@@ -7,7 +7,14 @@
+@@ -7,7 +7,15 @@
      "noEmit": true,
      "rewriteRelativeImportExtensions": false
    },
 +  "files": ["packages/client/ui-settings-account/src/about-types.ts"],
    "include": [
 +    "apps/web/tests/about-dialog-fit.e2e.ts",
++    "apps/web/tests/mcp-schema-recovery.e2e.ts",
 +    "apps/web/tests/balance-cleanup.e2e.ts",
 +    "apps/web/tests/balance-history-layout.e2e.ts",
 +    "apps/web/tests/memory-preference.e2e.ts",
@@ -19684,7 +19736,7 @@ index f2046d341293cb0adb504e754b87f31918b2e424..158301e60a1367bf21f6d453bcefa861
      "apps/web/tests/device-pairing.e2e.ts",
      "apps/web/tests/pairing-completion.e2e.ts",
      "apps/web/tests/pairing-recovery.e2e.ts",
-@@ -359,6 +366,7 @@
+@@ -359,6 +367,7 @@
      { "path": "./packages/experimental/browser-use-playwright-mcp" },
      { "path": "./packages/experimental/browser-use-chrome-devtools-mcp" },
      { "path": "./packages/experimental/browser-use-stagehand-native" },
@@ -19692,7 +19744,7 @@ index f2046d341293cb0adb504e754b87f31918b2e424..158301e60a1367bf21f6d453bcefa861
      { "path": "./packages/api/terminal-controller/tsconfig.host.json" },
      { "path": "./packages/computer-use/computer-use" },
      { "path": "./packages/experimental/computer-use-cua-driver-mcp" },
-@@ -576,6 +584,10 @@
+@@ -576,6 +585,10 @@
      { "path": "./packages/spill/spill" },
      { "path": "./packages/spill/spill-local" },
      { "path": "./packages/spill/spill-policy" },
@@ -35917,7 +35969,7 @@ index 4e338532721aae17610b3234468c6e7069fb665f..8e2b539334b36572925e902368d396a9
    await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'extract:electron', () => extractZip(archive, { dir: BUILD_PATHS.electron }))
    const executable = join(BUILD_PATHS.electron, platform === 'win32' ? 'electron.exe' : 'Electron.app/Contents/MacOS/Electron')
 diff --git a/packages/core/session/README.i18n.yaml b/packages/core/session/README.i18n.yaml
-index ffdb0a7a4925a51bad46c5378d11e81d6bfad49d..a4ae6f640894883542b1789a4134ceba6fd88fbd 100644
+index ffdb0a7a4925a51bad46c5378d11e81d6bfad49d..ff7ae49543153250c5169a7fbef23eaf16990e07 100644
 --- a/packages/core/session/README.i18n.yaml
 +++ b/packages/core/session/README.i18n.yaml
 @@ -96,8 +96,8 @@
@@ -35926,13 +35978,13 @@ index ffdb0a7a4925a51bad46c5378d11e81d6bfad49d..a4ae6f640894883542b1789a4134ceba
  /deepseek-ai-dsh-session/model-experience/logged-request-header/what-the-model-sees:
 -  en: cfb4fd90e1982948
 -  zh: fefc01118b2a5c07
-+  en: 027df3b853791a7e
-+  zh: f0309eb8f90a03ef
++  en: aa5d84379c316d9c
++  zh: d7741e3360bd3c4e
  /deepseek-ai-dsh-session/model-experience/logged-request-header/token-effect:
    en: 310b8f36a86443e5
    zh: 906c4da8d03c5966
 diff --git a/packages/core/session/README.md b/packages/core/session/README.md
-index a1db5e2d0c0459de9db97b85305404a6445626e0..076ce3a81a649ee31afea903423cc4dea9b1057f 100644
+index a1db5e2d0c0459de9db97b85305404a6445626e0..3f44319691fa52459f8dbf74b14dccb9ac6b13a2 100644
 --- a/packages/core/session/README.md
 +++ b/packages/core/session/README.md
 @@ -199,7 +199,7 @@ Append-only; newly visible content follows the reusable request prefix and does
@@ -35940,12 +35992,12 @@ index a1db5e2d0c0459de9db97b85305404a6445626e0..076ce3a81a649ee31afea903423cc4de
  #### What the model sees
  
 -The session reconstructs active tool schemas and call config from request headers; provider-specific deferred and retained declarations are derived at dispatch. `toolHistory()` caches a stateful fold over committed headers and developer messages, consuming only unseen events on subsequent reads. It resolves additions through their historical `headerSeq`, returns immutable snapshots, and restarts declarations on an explicit request series or a changed retained definition. Restoring a retained name with an unchanged definition continues the series; the recorded addition re-offers it. Both loop requests and compaction calls use this state. Headers lacking matching update records use complete active declarations. Same-name schema changes are allowed and invalidate prefix reuse even on `in-history` routes; registration-time rejection against historical tools is deferred ([rationale](../../../.agents/notes/implemented/architecture/2026-09-20-dynamic-tool-updates.md)). The system prompt remains part of `deriveMessages()`; header events add no message or prompt copy.
-+The session reconstructs active tool schemas and call config from request headers; provider-specific deferred and retained declarations are derived at dispatch. `toolHistory()` caches a stateful fold over committed headers and developer messages, consuming only unseen events on subsequent reads. It resolves additions through their historical `headerSeq`, returns immutable snapshots, and restarts declarations on an explicit request series or a changed retained definition. Restoring a retained name with an unchanged definition continues the series; the recorded addition re-offers it. Both loop requests and compaction calls use this state. Headers lacking matching update records use complete active declarations. Same-name schema changes are allowed and invalidate prefix reuse even on `in-history` routes; registration-time rejection against historical tools is deferred ([rationale](../../../.agents/notes/implemented/architecture/2026-09-20-dynamic-tool-updates.md)). The system prompt remains part of `deriveMessages()`; header events add no message or prompt copy. When a turn ends with `INVALID_REQUEST`, the tool history records which historical declarations are inactive at rejection or missing from the next header.
++The session reconstructs active tool schemas and call config from request headers; provider-specific deferred and retained declarations are derived at dispatch. `toolHistory()` caches a stateful fold over committed headers and developer messages, consuming only unseen events on subsequent reads. It resolves additions through their historical `headerSeq`, returns immutable snapshots, and restarts declarations on an explicit request series or a changed retained definition. Restoring a retained name with an unchanged definition continues the series; the recorded addition re-offers it. Both loop requests and compaction calls use this state. Headers lacking matching update records use complete active declarations. Same-name schema changes are allowed and invalidate prefix reuse even on `in-history` routes; registration-time rejection against historical tools is deferred ([rationale](../../../.agents/notes/implemented/architecture/2026-09-20-dynamic-tool-updates.md)). The system prompt remains part of `deriveMessages()`; header events add no message or prompt copy. When an HTTP 400 identifies a rejected tool schema by its quoted name, the projection marks that declaration in the current series. If the tool becomes inactive, subsequent requests omit it and preserve unrelated tool history. A name absent from the series has no effect. For an unnamed `INVALID_REQUEST`, recovery still uses declarations inactive at rejection or missing from the next header.
  
  #### Token effect
  
 diff --git a/packages/core/session/README.zh.md b/packages/core/session/README.zh.md
-index d9567bb3c7a231e98090ed48ce836ca33898647d..0d5a855b27f221d99a6c633bea06ac4f6c4a817d 100644
+index d9567bb3c7a231e98090ed48ce836ca33898647d..34a08d4cc6264cfc0550eefc0777808595d2d46b 100644
 --- a/packages/core/session/README.zh.md
 +++ b/packages/core/session/README.zh.md
 @@ -199,7 +199,7 @@ surface 事件（`system/message`、`developer/message`、`user/message`、`assi
@@ -35953,47 +36005,58 @@ index d9567bb3c7a231e98090ed48ce836ca33898647d..0d5a855b27f221d99a6c633bea06ac4f
  #### 模型看到什么
  
 -会话从请求头重建有效工具模式和调用配置；提供方专用的延迟声明与保留声明在分发时派生。`toolHistory()` 缓存对已提交请求头和 developer 消息的有状态归约，后续读取仅处理新增事件。它通过历史 `headerSeq` 解析添加定义，返回不可变快照，并在显式新请求序列或保留定义发生变化时重新建立声明。以未变化的定义恢复保留名称时序列继续，由记录的添加重新提供该工具。循环请求和压缩调用均使用此状态。 请求头缺少对应更新记录时，使用完整有效声明。 允许同名工具的 schema 变化，即使在 `in-history` 路由上也会使前缀复用失效；注册时对照历史工具进行拒绝检查留待后续实现（[原因](../../../.agents/notes/implemented/architecture/2026-09-20-dynamic-tool-updates.zh.md)）。系统提示词仍属于 `deriveMessages()`；请求头事件不添加消息或提示词副本。
-+会话从请求头重建有效工具模式和调用配置；提供方专用的延迟声明与保留声明在分发时派生。`toolHistory()` 缓存对已提交请求头和 developer 消息的有状态归约，后续读取仅处理新增事件。它通过历史 `headerSeq` 解析添加定义，返回不可变快照，并在显式新请求序列或保留定义发生变化时重新建立声明。以未变化的定义恢复保留名称时序列继续，由记录的添加重新提供该工具。循环请求和压缩调用均使用此状态。 请求头缺少对应更新记录时，使用完整有效声明。 允许同名工具的 schema 变化，即使在 `in-history` 路由上也会使前缀复用失效；注册时对照历史工具进行拒绝检查留待后续实现（[原因](../../../.agents/notes/implemented/architecture/2026-09-20-dynamic-tool-updates.zh.md)）。系统提示词仍属于 `deriveMessages()`；请求头事件不添加消息或提示词副本。 当轮次以 `INVALID_REQUEST` 结束时，工具历史会记录在拒绝时已停用或在下一个请求头中消失的历史声明。
++会话从请求头重建有效工具模式和调用配置；提供方专用的延迟声明与保留声明在分发时派生。`toolHistory()` 缓存对已提交请求头和 developer 消息的有状态归约，后续读取仅处理新增事件。它通过历史 `headerSeq` 解析添加定义，返回不可变快照，并在显式新请求序列或保留定义发生变化时重新建立声明。以未变化的定义恢复保留名称时序列继续，由记录的添加重新提供该工具。循环请求和压缩调用均使用此状态。 请求头缺少对应更新记录时，使用完整有效声明。 允许同名工具的 schema 变化，即使在 `in-history` 路由上也会使前缀复用失效；注册时对照历史工具进行拒绝检查留待后续实现（[原因](../../../.agents/notes/implemented/architecture/2026-09-20-dynamic-tool-updates.zh.md)）。系统提示词仍属于 `deriveMessages()`；请求头事件不添加消息或提示词副本。 如果 HTTP 400 用单引号点名声明被拒绝的工具，投影会在当前声明序列中标记它。一旦该工具停用，后续请求便排除它并保留其他工具的历史。序列中不存在的名称会被忽略。对于未点名的 `INVALID_REQUEST`，恢复仍依据拒绝时已停用或下个请求头中消失的声明。
  
  #### Token 影响
  
 diff --git a/packages/core/session/src/tool-history.ts b/packages/core/session/src/tool-history.ts
-index 90c28dab06aedda41dbe60cc93481551ca3dc392..445bb0976ce537649f2c01fd0e8462c6d263c907 100644
+index 90c28dab06aedda41dbe60cc93481551ca3dc392..a689f0054bf43358d6a9d23169956f23e52e6924 100644
 --- a/packages/core/session/src/tool-history.ts
 +++ b/packages/core/session/src/tool-history.ts
-@@ -16,6 +16,7 @@ export class ToolHistoryProjection {
+@@ -1,6 +1,7 @@
+ /** Stateful reconstruction of historical tool definitions for request projection. */
+ 
+ import type { ToolHistory, ToolSchema } from '@deepseek-ai/dsh-llm'
++import { rejectedSchemaToolName } from '@deepseek-ai/dsh-llm/schema-error'
+ import { deepFreeze } from '@deepseek-ai/dsh-util-values'
+ import type { SessionEvent, SessionSeq } from './types.ts'
+ 
+@@ -16,6 +17,7 @@ export class ToolHistoryProjection {
    private available = new Set<string>()
    /** Header that starts the current declaration series; absent before the first header. */
    private baselineSeq: SessionSeq | undefined
-+  private lastRequestRejected = false
++  private lastRejectionUnnamed = false
    /** Immutable request snapshot of the current baseline and resolved updates. */
    private history: ToolHistory = deepFreeze({ tools: [], updates: [] })
  
-@@ -24,7 +25,11 @@ export class ToolHistoryProjection {
+@@ -24,7 +26,14 @@ export class ToolHistoryProjection {
     * @param event - a session event, including inherited events during restoration.
     */
    apply(event: SessionEvent): void {
 -    if (event.type === 'request/header') {
 +    if (event.type === 'turn/end') {
 +      const reason = event.data.reason
-+      this.lastRequestRejected = reason.kind === 'error' && reason.error.code === 'INVALID_REQUEST'
-+      if (this.lastRequestRejected) this.retireInactive(this.active)
++      const failure = reason.kind === 'error' && reason.error.code === 'INVALID_REQUEST' ? reason.error : undefined
++      const named = failure && rejectedSchemaToolName(failure)
++      this.lastRejectionUnnamed = failure !== undefined && named === undefined
++      if (named !== undefined && this.declared.has(named)) this.retire([named])
++      if (this.lastRejectionUnnamed) this.retireInactive(this.active)
 +    } else if (event.type === 'request/header') {
        const tools = event.data.header.tools ?? []
        this.headers.set(event.seq, tools)
        // A retained name cannot acquire a different definition without losing
-@@ -38,7 +43,10 @@ export class ToolHistoryProjection {
+@@ -38,7 +47,10 @@ export class ToolHistoryProjection {
          this.declared = new Map(tools.map(tool => [tool.name, tool]))
          this.history = deepFreeze({ tools, updates: [] })
          this.available = new Set(tools.map(tool => tool.name))
-+      } else if (this.lastRequestRejected) {
++      } else if (this.lastRejectionUnnamed) {
 +        this.retireInactive(tools)
        }
-+      this.lastRequestRejected = false
++      this.lastRejectionUnnamed = false
        this.active = tools
      } else if (event.type === 'developer/message') {
        const { message, headerSeq } = event.data
-@@ -55,12 +63,20 @@ export class ToolHistoryProjection {
+@@ -55,12 +67,25 @@ export class ToolHistoryProjection {
          else if (block.type === 'tool-removal') this.available.delete(block.toolName)
        }
        this.history = deepFreeze({
@@ -36006,9 +36069,14 @@ index 90c28dab06aedda41dbe60cc93481551ca3dc392..445bb0976ce537649f2c01fd0e8462c6
  
 +  private retireInactive(tools: readonly ToolSchema[]): void {
 +    const active = new Set(tools.map(tool => tool.name))
-+    const disabledAfterRejection = [...this.declared.keys()].filter(name => !active.has(name))
-+    if (disabledAfterRejection.length > 0) {
-+      this.history = deepFreeze({ ...this.history, disabledAfterRejection })
++    this.retire([...this.declared.keys()].filter(name => !active.has(name)))
++  }
++
++  private retire(names: readonly string[]): void {
++    const previous = this.history.disabledAfterRejection ?? []
++    const retired = new Set([...previous, ...names])
++    if (retired.size !== previous.length) {
++      this.history = deepFreeze({ ...this.history, disabledAfterRejection: [...retired] })
 +    }
 +  }
 +
@@ -36016,7 +36084,7 @@ index 90c28dab06aedda41dbe60cc93481551ca3dc392..445bb0976ce537649f2c01fd0e8462c6
     * Read an immutable snapshot; subsequent events do not mutate it.
     * @returns initial declarations and historically resolved additions for the current series.
 diff --git a/packages/core/session/tests/tool-history.spec.ts b/packages/core/session/tests/tool-history.spec.ts
-index 4f25146adf1df942ae29c09e019c0f6bb01f96ad..530b492b01372317e2d2af710b8f65796f1c4cc2 100644
+index 4f25146adf1df942ae29c09e019c0f6bb01f96ad..c6011658ce39dacf517454e116bf03368abea5df 100644
 --- a/packages/core/session/tests/tool-history.spec.ts
 +++ b/packages/core/session/tests/tool-history.spec.ts
 @@ -27,10 +27,10 @@ function header(session: Session, tools: ToolSchema[], extra: { reason?: 'change
@@ -36032,7 +36100,7 @@ index 4f25146adf1df942ae29c09e019c0f6bb01f96ad..530b492b01372317e2d2af710b8f6579
    }, { surfaceOp: 'append' })
    return message
  }
-@@ -133,6 +133,60 @@ describe('Session.toolHistory', () => {
+@@ -133,6 +133,96 @@ describe('Session.toolHistory', () => {
      expect(session.toolHistory()).toEqual({ tools: [search], updates: [] })
    })
  
@@ -36090,11 +36158,47 @@ index 4f25146adf1df942ae29c09e019c0f6bb01f96ad..530b492b01372317e2d2af710b8f6579
 +      .toEqual({ tools: [search, fetch], messages: [removed] })
 +  })
 +
++  it('keeps unrelated inactive declarations when a provider rejects two tools in successive turns', () => {
++    const notes = { ...fetch, name: 'mcp__notes__read' }
++    const clock = { ...fetch, name: 'mcp__clock__read' }
++    const session = opened([search, fetch, notes, clock])
++    header(session, [search, notes, clock])
++    const healthyRemoval = update(session, [remove(fetch.name)])
++    for (const [i, name] of [notes.name, clock.name].entries()) {
++      const turn = i + 1
++      session.append('step/end', { turn, step: 1 })
++      session.append('turn/end', { turn, reason: { kind: 'error', error: {
++        code: 'INVALID_REQUEST', status: 400, message: `Invalid schema for function '${name}': invalid pattern`,
++      } } })
++      session.append('turn/start', { turn: turn + 1 })
++      session.append('step/start', { turn: turn + 1, step: 1 })
++      const active = i === 0 ? [search, clock] : [search]
++      header(session, active)
++      update(session, [remove(name)], undefined, turn + 1)
++      const restored = Session.fromRestore(session.id, session.snapshotEvents(), session.header, SessionLogOffset(0), 'shared-frozen')
++      expect(projectToolUpdates(restored.deriveMessages(), active, 'in-history', restored.toolHistory())).toEqual({
++        tools: i === 0 ? [search, fetch, clock] : [search, fetch], messages: [healthyRemoval],
++      })
++    }
++  })
++
++  it('ignores a provider-named tool absent from the declaration series', () => {
++    const session = opened([search, fetch])
++    header(session, [search])
++    const healthyRemoval = update(session, [remove(fetch.name)])
++    session.append('step/end', { turn: 1, step: 1 })
++    session.append('turn/end', { turn: 1, reason: { kind: 'error', error: {
++      code: 'INVALID_REQUEST', status: 400, message: "Invalid schema for function 'absent': invalid pattern",
++    } } })
++    expect(projectToolUpdates(session.deriveMessages(), [search], 'in-history', session.toolHistory()))
++      .toEqual({ tools: [search, fetch], messages: [healthyRemoval] })
++  })
++
    it('reconstructs inherited history on restore and continues from live events', () => {
      const session = opened([search])
      const headerSeq = header(session, [search, fetch])
 diff --git a/packages/llm/llm-deepseek/tests/adapter.spec.ts b/packages/llm/llm-deepseek/tests/adapter.spec.ts
-index 6d3ffed9131f22bc7aa73c51ccbb3d7a612864cb..b6bc35811dcd9d2063ec30a55680f5865d37c9d3 100644
+index 6d3ffed9131f22bc7aa73c51ccbb3d7a612864cb..0d91b187121bf2137dd495df7949541792072e22 100644
 --- a/packages/llm/llm-deepseek/tests/adapter.spec.ts
 +++ b/packages/llm/llm-deepseek/tests/adapter.spec.ts
 @@ -3,6 +3,7 @@ import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
@@ -36113,30 +36217,41 @@ index 6d3ffed9131f22bc7aa73c51ccbb3d7a612864cb..b6bc35811dcd9d2063ec30a55680f586
  import ToolRuntime from '@deepseek-ai/dsh-tools'
  import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
  import { brandString } from '@deepseek-ai/dsh-brand'
-@@ -402,6 +404,47 @@ describe('Cordis provider composition', () => {
+@@ -402,6 +404,66 @@ describe('Cordis provider composition', () => {
      return { ctx, http }
    }
  
-+  it('continues the original conversation after the Host disables an MCP tool rejected by the provider', async () => {
++  it.each(['deepseek-official', 'deepseek-account'])('resumes the %s conversation after disabling a rejected tool', async (provider) => {
++    const model = 'deepseek-flash'
 +    const name = 'mcp__notes__lookup'
 +    const invalidPattern = '^[^\\uD800-\\uDFFF]*$'
 +    const invalidSchema = { type: 'object', properties: { label: { type: 'string', pattern: invalidPattern } } }
 +    const { ctx, http } = await boot((response, count) => {
 +      const tools = http.requests[count - 1]?.body.tools
-+      if (Array.isArray(tools) && tools.some((tool: unknown) => object(tool).name === name && isDeepStrictEqual(object(tool).input_schema, invalidSchema))) {
++      const rejected = Array.isArray(tools) && tools.some((tool: unknown) =>
++        object(tool).name === name && isDeepStrictEqual(object(tool).input_schema, invalidSchema))
++      if (rejected) {
 +        response.writeHead(400, { 'content-type': 'application/json' })
-+        response.end(JSON.stringify({ error: { type: 'invalid_request_error', message: 'Invalid schema for function ' + name } }))
++        response.end(JSON.stringify({ error: { type: 'invalid_request_error', message: `Invalid schema for function '${name}': invalid pattern` } }))
 +      } else {
 +        response.end(sse(textEvents))
 +      }
-+    })
-+    await ctx.settings.update(Messages.name, { models: [{ id: MODEL, toolUpdate: 'in-history' }] })
++    }, { data: [{ id: model, api_capabilities: { anthropic_messages: { tool_update: 'in-history' } } }] })
++    const rejectToken = vi.fn(async (_token: string) => {})
++    if (provider === 'deepseek-account') {
++      ctx.provide('deepseekAccount', accountStub({ token: () => 'fixture-token', reject: rejectToken }))
++    } else {
++      await ctx.settings.update(Messages.name, { models: [{ id: model, toolUpdate: 'in-history' }] })
++    }
 +    const fixture = (name: string) => defineContentToolFixture({
 +      name, description: 'Test lookup.', parameters: {}, execute: async () => [],
 +    })
 +    ctx.tools.register(fixture('clock'))
-+    const agent = await ctx.agentLoop.create(brandString<SessionId>('schema-recovery'), { provider: 'deepseek-official', model: MODEL })
++    const inactive = 'mcp__notes__list'
++    const removeList = ctx.tools.register(fixture(inactive))
++    const agent = await ctx.agentLoop.create(brandString<SessionId>('schema-recovery'), { provider, model })
 +    await send(agent, 'Remember the date.')
++    removeList()
 +    const disable = ctx.tools.register({
 +      ...fixture(name), parameters: invalidSchema,
 +    })
@@ -36151,8 +36266,16 @@ index 6d3ffed9131f22bc7aa73c51ccbb3d7a612864cb..b6bc35811dcd9d2063ec30a55680f586
 +    await send(agent, 'What did we discuss?')
 +    await send(agent, 'Continue without the notebook.')
 +    expect(http.requests).toHaveLength(5)
++    expect(rejectToken).not.toHaveBeenCalled()
++    for (const { headers } of http.requests) {
++      expect(headers['x-dsh-auth-token']).toBe(provider === 'deepseek-account' ? 'fixture-token' : undefined)
++    }
 +    for (const { body } of http.requests.slice(3)) {
-+      expect(body.tools).toMatchObject([{ name: 'clock' }])
++      expect(body.tools).toEqual(http.requests[0]?.body.tools)
++      expect(body.tools).toMatchObject([{ name: 'clock' }, { name: inactive }])
++      expect(body.messages).toContainEqual(expect.objectContaining({
++        role: 'system', content: [{ type: 'tool_removal', tool: { type: 'tool_reference', name: inactive } }],
++      }))
 +      expect(JSON.stringify(body.messages)).not.toContain(name)
 +      expect(JSON.stringify(body.messages)).toContain('Remember the date.')
 +    }
@@ -36162,7 +36285,7 @@ index 6d3ffed9131f22bc7aa73c51ccbb3d7a612864cb..b6bc35811dcd9d2063ec30a55680f586
      { provider, body: JSON.stringify({ error: { type: 'authentication_error', message: 'API key is invalid' } }) },
      { provider, body: JSON.stringify({ error: { message: 'Authentication Fails (invalid dsh token)' } }) },
 diff --git a/packages/llm/llm/README.i18n.yaml b/packages/llm/llm/README.i18n.yaml
-index 0432b669559ba67ce0fc37d4fb176cabbd99490a..ad293bf7398189ef0a1cdf476dc57dd99873fbee 100644
+index 0432b669559ba67ce0fc37d4fb176cabbd99490a..b7f60b526c5732384b3cd1afb2da94a402f92caf 100644
 --- a/packages/llm/llm/README.i18n.yaml
 +++ b/packages/llm/llm/README.i18n.yaml
 @@ -54,8 +54,8 @@
@@ -36171,13 +36294,13 @@ index 0432b669559ba67ce0fc37d4fb176cabbd99490a..ad293bf7398189ef0a1cdf476dc57dd9
  /deepseek-ai-dsh-llm/known-limitations-and-deferred-work:
 -  en: 3dc4b5997e71996f
 -  zh: 082a1226bf4c7ea5
-+  en: bb2f8613cd28e121
-+  zh: ea7c92dae5134c9c
++  en: aac4bb0b2ebc7b59
++  zh: cc4668db9cad2c72
  /deepseek-ai-dsh-llm/known-limitations-and-deferred-work/dev-note:
    en: ecbc333b88e14d88
    zh: 77c725d92efd8646
 diff --git a/packages/llm/llm/README.md b/packages/llm/llm/README.md
-index c7f3c02333bd4d4f6dff124bdf0b6c1b92b4f9e7..65d977ac630e3294f6eda85a3008681cc42933b9 100644
+index c7f3c02333bd4d4f6dff124bdf0b6c1b92b4f9e7..b9a8b9b1b0a03196e2981f0657ebdbabcb14ea26 100644
 --- a/packages/llm/llm/README.md
 +++ b/packages/llm/llm/README.md
 @@ -186,7 +186,7 @@ These limits define where this service stops and other packages or future work b
@@ -36185,12 +36308,12 @@ index c7f3c02333bd4d4f6dff124bdf0b6c1b92b4f9e7..65d977ac630e3294f6eda85a3008681c
  - **`BlockAssembler` handles core block kinds only** — a plugin-added block type whose stream is never closed by `block-end` makes `blocks()` throw.
  - **`GenerateOptions.sessionId` is a locally-declared brand** — importing dsh-session's `SessionId` would create a dependency cycle.
 -- **Tool updates require session history** — `GenerateOptions.tools` contains active definitions. `toolHistory` supplies the initial declarations and historically resolved additions from `Session.toolHistory()`. At adapter dispatch, `projectToolUpdates` constructs deferred declarations and retains removed definitions for `in-history`; `addition-only` omits removed definitions and removal messages. Removing any tool or adding tools to an empty set on an addition-only route rebuilds the baseline from the declarations available after that update. Deferred declarations count as existing tools. Superseded tool blocks are omitted while unrelated content survives; subsequent additions remain deferred. Unsupported routes receive active tools without developer messages or `deferLoading`. Missing history or a request prefix omitting recorded updates falls back to current declarations without developer messages. Explicitly deferred tools become immediate during a rebuild only if an addition has already activated them; unactivated declarations remain deferred.
-+- **Tool updates require session history** — `GenerateOptions.tools` contains active definitions. `toolHistory` supplies the initial declarations and historically resolved additions from `Session.toolHistory()`. At adapter dispatch, `projectToolUpdates` constructs deferred declarations and retains removed definitions for `in-history`; `addition-only` omits removed definitions and removal messages. Removing any tool or adding tools to an empty set on an addition-only route rebuilds the baseline from the declarations available after that update. Deferred declarations count as existing tools. Superseded tool blocks are omitted while unrelated content survives; subsequent additions remain deferred. Unsupported routes receive active tools without developer messages or `deferLoading`. Missing history or a request prefix omitting recorded updates falls back to current declarations without developer messages. Explicitly deferred tools become immediate during a rebuild only if an addition has already activated them; unactivated declarations remain deferred. Following an invalid request, an in-history route omits disabled declarations identified by Session and their activation and removal references. Other tools, user messages and past call results remain available.
++- **Tool updates require session history** — `GenerateOptions.tools` contains active definitions. `toolHistory` supplies the initial declarations and historically resolved additions from `Session.toolHistory()`. At adapter dispatch, `projectToolUpdates` constructs deferred declarations and retains removed definitions for `in-history`; `addition-only` omits removed definitions and removal messages. Removing any tool or adding tools to an empty set on an addition-only route rebuilds the baseline from the declarations available after that update. Deferred declarations count as existing tools. Superseded tool blocks are omitted while unrelated content survives; subsequent additions remain deferred. Unsupported routes receive active tools without developer messages or `deferLoading`. Missing history or a request prefix omitting recorded updates falls back to current declarations without developer messages. Explicitly deferred tools become immediate during a rebuild only if an addition has already activated them; unactivated declarations remain deferred. Following an invalid request, an in-history route omits disabled declarations identified by Session and their activation and removal references. A named schema rejection preserves other inactive declarations and their removal records. User messages and past call results remain available.
  
  <a id="dev-note"></a>
  ### Dev Note
 diff --git a/packages/llm/llm/README.zh.md b/packages/llm/llm/README.zh.md
-index 4e5545e36e7b69924d896a3d9aeae6cb4d1c5fa7..652d6633b4b81b4abf07defcfe4e26e3844041ea 100644
+index 4e5545e36e7b69924d896a3d9aeae6cb4d1c5fa7..133bb2ca4e7ceba0f152308bb64d203fc7c596f9 100644
 --- a/packages/llm/llm/README.zh.md
 +++ b/packages/llm/llm/README.zh.md
 @@ -186,7 +186,7 @@ const configure = (maxTokens: number): ConfigureCall =>
@@ -36198,7 +36321,7 @@ index 4e5545e36e7b69924d896a3d9aeae6cb4d1c5fa7..652d6633b4b81b4abf07defcfe4e26e3
  - **`BlockAssembler` 只处理核心块类型**——插件添加块类型的流若从未由 `block-end` 关闭，`blocks()` 会抛出异常。
  - **`GenerateOptions.sessionId` 是本地声明的品牌类型**——导入 dsh-session 的 `SessionId` 会产生依赖循环。
 -- **工具更新需要会话历史** — `GenerateOptions.tools` 包含当前有效定义。`toolHistory` 提供 `Session.toolHistory()` 派生的初始声明及已解析历史定义的添加记录。适配器分发时，`projectToolUpdates` 构造延迟声明，并在 `in-history` 模式保留已移除定义；`addition-only` 省略已移除定义和移除消息。在 addition-only 路由移除任何工具或向空工具集添加工具时，使用该次更新后的可用声明重建基线。延迟声明也计入已有工具。已被取代的工具块会被省略，其他内容保留；后续添加仍保持延迟加载。不支持更新的路由接收有效工具，不携带 developer 消息或 `deferLoading`。缺少历史或请求前缀遗漏已记录更新时，回退为当前声明且不发送 developer 消息。显式延迟工具仅在已有添加记录将其激活时，才会在重建时变为立即加载；尚未激活的声明仍保持延迟加载。
-+- **工具更新需要会话历史** — `GenerateOptions.tools` 包含当前有效定义。`toolHistory` 提供 `Session.toolHistory()` 派生的初始声明及已解析历史定义的添加记录。适配器分发时，`projectToolUpdates` 构造延迟声明，并在 `in-history` 模式保留已移除定义；`addition-only` 省略已移除定义和移除消息。在 addition-only 路由移除任何工具或向空工具集添加工具时，使用该次更新后的可用声明重建基线。延迟声明也计入已有工具。已被取代的工具块会被省略，其他内容保留；后续添加仍保持延迟加载。不支持更新的路由接收有效工具，不携带 developer 消息或 `deferLoading`。缺少历史或请求前缀遗漏已记录更新时，回退为当前声明且不发送 developer 消息。显式延迟工具仅在已有添加记录将其激活时，才会在重建时变为立即加载；尚未激活的声明仍保持延迟加载。 请求被判无效后，支持历史工具更新的路由会跳过会话记录中已停用的声明及其启用和移除引用，其他工具、用户消息和过去的调用结果仍可用。
++- **工具更新需要会话历史** — `GenerateOptions.tools` 包含当前有效定义。`toolHistory` 提供 `Session.toolHistory()` 派生的初始声明及已解析历史定义的添加记录。适配器分发时，`projectToolUpdates` 构造延迟声明，并在 `in-history` 模式保留已移除定义；`addition-only` 省略已移除定义和移除消息。在 addition-only 路由移除任何工具或向空工具集添加工具时，使用该次更新后的可用声明重建基线。延迟声明也计入已有工具。已被取代的工具块会被省略，其他内容保留；后续添加仍保持延迟加载。不支持更新的路由接收有效工具，不携带 developer 消息或 `deferLoading`。缺少历史或请求前缀遗漏已记录更新时，回退为当前声明且不发送 developer 消息。显式延迟工具仅在已有添加记录将其激活时，才会在重建时变为立即加载；尚未激活的声明仍保持延迟加载。 请求被判无效后，支持历史工具更新的路由会跳过会话记录中已停用的声明及其启用和移除引用，如果错误点名了工具，其他已停用工具的声明和移除记录会保留。用户消息和已有的调用结果仍可用。
  
  <a id="dev-note"></a>
  ### 开发备注
@@ -36229,15 +36352,492 @@ index f658fe43217bd5a5c701d5f4a0d56764b3f7eba1..f40bd49fbfce9d18be298439b357cd7f
          default:
            // Other core and plugin-defined blocks retain their content and order.
 diff --git a/packages/llm/llm/src/types.ts b/packages/llm/llm/src/types.ts
-index 915769532472cee790ccf8931a744be761a2c198..0866c76861b84c2d8aa2264a153bef007536c75f 100644
+index 915769532472cee790ccf8931a744be761a2c198..6ca4c25beeda3a68cf8af4f1f120c4afa7da01b3 100644
 --- a/packages/llm/llm/src/types.ts
 +++ b/packages/llm/llm/src/types.ts
 @@ -542,6 +542,8 @@ export type RequestMessage = Message | RequestUserInput
  export interface ToolHistory {
    /** Complete active declarations at the start of this history. */
    readonly tools: readonly ToolSchema[]
-+  /** Historical tools disabled at or after an invalid request. Omit their declarations and update references while inactive. */
++  /** Declarations identified by a request rejection. Omit these names and their update references while inactive. */
 +  readonly disabledAfterRejection?: readonly string[]
    /** Ordered developer messages, with additions resolved from their historical headers. */
    readonly updates: readonly {
      /** Identity used to locate this update in the derived request history. */
+diff --git a/apps/web/tests/mcp-schema-recovery.e2e.ts b/apps/web/tests/mcp-schema-recovery.e2e.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..4e197741dc84f7c6c46afe94de42520a0e7488f0
+--- /dev/null
++++ b/apps/web/tests/mcp-schema-recovery.e2e.ts
+@@ -0,0 +1,49 @@
++/** Reopen a failed conversation and read its server-level recovery instructions without submitting a turn. */
++import { readFile } from 'node:fs/promises'
++import { join } from 'node:path'
++import { fileURLToPath } from 'node:url'
++import { chromium } from 'playwright'
++import { expect, it, onTestFailed } from 'vitest'
++import { assertFixtureInventory, launchWebScaffold, seedSession } from './scaffold.ts'
++import { newEnglishPage, saveFailureShot } from './support.ts'
++
++const directory = fileURLToPath(new URL('../../../snapshots/web/mcp-schema-recovery/', import.meta.url))
++
++it('opens the recorded MCP recovery instructions on desktop and a narrow screen', async () => {
++  const scaffold = await launchWebScaffold({ extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
++  try {
++    await seedSession(scaffold, await readFile(join(directory, 'session.v4.jsonl'), 'utf8'), 'mcp-schema-recovery')
++    const browser = await chromium.launch()
++    try {
++      const page = await newEnglishPage(browser)
++      onTestFailed(() => saveFailureShot(page, 'mcp-schema-recovery'))
++      await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
++      await page.locator('[role="treeitem"]').first().click()
++      await page.locator('[data-row-key="session:mcp-schema-recovery"]').click()
++      const summary = page.getByText('How to recover this conversation', { exact: true })
++      await summary.waitFor()
++      const details = page.locator('details').filter({ has: summary })
++      const expected = (await readFile(join(directory, 'recovery.expected.txt'), 'utf8')).trimEnd().split(/\r?\n/u)
++      for (const width of [1280, 390]) {
++        await page.setViewportSize({ width, height: 780 })
++        await summary.click({ trial: true, position: { x: 6, y: 6 } })
++        await summary.focus()
++        await summary.press('Enter')
++        await expect.poll(() => details.getAttribute('open')).not.toBeNull()
++        expect((await details.innerText()).split(/\n+/u)).toEqual(expected)
++        const box = await details.boundingBox()
++        expect(box).not.toBeNull()
++        expect(box!.x).toBeGreaterThanOrEqual(0)
++        expect(box!.x + box!.width).toBeLessThanOrEqual(width + 1)
++        await page.screenshot({ animations: 'disabled', path: join(process.cwd(), '.artifacts', `mcp-schema-recovery-${width}.png`) })
++        await summary.press('Space')
++        await expect.poll(() => details.getAttribute('open')).toBeNull()
++      }
++      await assertFixtureInventory(directory, ['session.v4.jsonl', 'recovery.expected.txt'])
++    } finally {
++      await browser.close()
++    }
++  } finally {
++    await scaffold.close()
++  }
++}, 120_000)
+diff --git a/packages/client/ui-chat/README.i18n.yaml b/packages/client/ui-chat/README.i18n.yaml
+index 8fec8b9b650f83c8e50e8e5439a8237f33b5e651..d162d046797e1b0f9aa12509d6c1b452fceccc79 100644
+--- a/packages/client/ui-chat/README.i18n.yaml
++++ b/packages/client/ui-chat/README.i18n.yaml
+@@ -9,8 +9,8 @@
+   en: 02bd72c12ada3218
+   zh: 331b3a38b3ddfc6e
+ /deepseek-ai-dsh-client-ui-chat/summary:
+-  en: 4f2d50107db6c4f8
+-  zh: ea7ccfcce8f1849e
++  en: a3659e1e5cf7ff2d
++  zh: d9495544b967857e
+ /deepseek-ai-dsh-client-ui-chat/table-of-contents:
+   en: 5ee429751fcbeb4f
+   zh: 981a37018b6cae3a
+diff --git a/packages/client/ui-chat/README.md b/packages/client/ui-chat/README.md
+index 6532aeb5beefe284126e834f75660c564844b22c..82f7dc208e1e6b4ece9df633928bb716a09e9d62 100644
+--- a/packages/client/ui-chat/README.md
++++ b/packages/client/ui-chat/README.md
+@@ -12,6 +12,8 @@ Desktop product events use the optional [product analytics service](../product-a
+ 
+ Use this package to render a browser chat from recorded Session conversations, including historical images, localized actions, and restored scroll position. Work-details modes control reasoning previews and process visibility without hiding Assistant replies; Verbose keeps completed-turn process rows visible. Local transcript and steering submissions appear immediately, remain in their original surface, and disappear atomically when authoritative Session records arrive, while queued submissions stay outside Chat. The package does not assemble or modify model requests.
+ 
++A recorded HTTP 400 naming an MCP tool schema offers recovery instructions beside the original error. Expanding them leaves the conversation and server settings untouched.
++
+ File-mention providers receive the viewed Session ID with the closing-turn owner, so links into inherited history can address the fork itself.
+ 
+ ## Table of Contents
+diff --git a/packages/client/ui-chat/README.zh.md b/packages/client/ui-chat/README.zh.md
+index 2517157458f862d4fa02c3aad7ddbe16fc1460cf..1119454f92649314b560b06ba673b8b35e1ff482 100644
+--- a/packages/client/ui-chat/README.zh.md
++++ b/packages/client/ui-chat/README.zh.md
+@@ -12,6 +12,8 @@ kind: "package-reference"
+ 
+ 使用本包可在浏览器中渲染已记录的 Session 对话，包括历史图片、本地化操作和滚动位置恢复。工作步骤展示模式控制思考预览与过程显隐，不隐藏 Assistant 回复；完全展开模式保持已完成轮次的过程行可见。本地 transcript（文本记录）与 steering（中途引导）提交会立即显示并保留在原区域，在权威会话记录到达时原子地消失，而排队中的提交始终不进入 Chat。本包不组装或修改模型请求。
+ 
++如果记录的 HTTP 400 点名了 MCP 工具声明，用户可以在原始错误下面展开恢复说明。展开说明时不会发送消息或变更服务设置。
++
+ 文件提及提供方同时接收当前查看的会话 ID 与收尾轮次的属主信息，因此继承历史中的链接可以指向 fork 自身。
+ 
+ ## 目录
+diff --git a/packages/client/ui-chat/src/client/chat/MessageItem.module.css b/packages/client/ui-chat/src/client/chat/MessageItem.module.css
+index 7e6ce479f60229cc3b37f74341eb360601af17f6..b70fa7f56e5592d49f839971495ea9c6e573190b 100644
+--- a/packages/client/ui-chat/src/client/chat/MessageItem.module.css
++++ b/packages/client/ui-chat/src/client/chat/MessageItem.module.css
+@@ -292,6 +292,17 @@
+   color: var(--dsw-alias-label-secondary);
+ }
+ 
++.turnErrorHint {
++  grid-column: 2 / -1;
++  overflow-wrap: anywhere;
++  color: var(--dsw-alias-label-secondary);
++}
++
++.turnErrorHint summary {
++  width: fit-content;
++  cursor: pointer;
++}
++
+ .turnErrorCode {
+   color: var(--dsw-alias-label-tertiary);
+   font: var(--dsw-font-markdown-code-block-small);
+diff --git a/packages/client/ui-chat/src/client/chat/MessageItem.tsx b/packages/client/ui-chat/src/client/chat/MessageItem.tsx
+index 05a6171631a9762f3040b59ee2f4387ee8539450..6aa9c2ce3038f989d236ad8769c8630f0de24e9d 100644
+--- a/packages/client/ui-chat/src/client/chat/MessageItem.tsx
++++ b/packages/client/ui-chat/src/client/chat/MessageItem.tsx
+@@ -142,6 +142,11 @@ function TurnErrorItem({ node, t }: {
+         <span className={css.turnErrorMessage}>{failureMessage(node.message, node.code, t)}</span>
+       </div>
+       {node.code !== undefined && node.code !== 'INTERRUPTED' && <code className={css.turnErrorCode}>{node.code}</code>}
++      {node.rejectedMcpTool !== undefined && <details className={css.turnErrorHint}>
++        <summary>{t('message.failure.recoverConversation')}</summary>
++        <div>{t('message.failure.mcpSchemaHint')}</div>
++        {node.rejectedMcpTool.startsWith('mcp__rea__') && <div>{t('message.failure.reaSchemaHint')}</div>}
++      </details>}
+     </div>
+   )
+ }
+diff --git a/packages/client/ui-chat/src/client/conversation-nodes/turn-error.ts b/packages/client/ui-chat/src/client/conversation-nodes/turn-error.ts
+index 902382666da6992f70093262ab699c4ea9e32964..a71f1b225d953285e2187705c0173750ac8ec261 100644
+--- a/packages/client/ui-chat/src/client/conversation-nodes/turn-error.ts
++++ b/packages/client/ui-chat/src/client/conversation-nodes/turn-error.ts
+@@ -3,6 +3,7 @@ import type {
+   ConversationMatch, ConversationNodeContext, ConversationNodeDefinition, TurnErrorNode,
+ } from '@deepseek-ai/dsh-client-ui-conversation/client'
+ import type { TurnEndReason } from '@deepseek-ai/dsh-session/types'
++import { rejectedSchemaToolName } from '@deepseek-ai/dsh-llm/schema-error'
+ import { chatNode } from './common.ts'
+ import { displayFailure } from './event-projection.ts'
+ 
+@@ -20,6 +21,7 @@ interface TurnErrorState {
+     readonly time: number
+     readonly message: string
+     readonly code?: string
++    readonly rejectedMcpTool?: string
+   }
+ }
+ 
+@@ -33,7 +35,7 @@ function lastStep(context: ConversationNodeContext<TurnErrorState>): number {
+  * Failure shown for a turn ending: a recorded error, a sign-out cancellation,
+  * or a turn that restart recovery closed because the DSH process exited mid-turn.
+  */
+-function endFailure(reason: TurnEndReason): { readonly message: string; readonly code?: string } | undefined {
++function endFailure(reason: TurnEndReason): { readonly message: string; readonly code?: string; readonly status?: number } | undefined {
+   switch (reason.kind) {
+     case 'error':
+       return reason.error
+@@ -55,11 +57,13 @@ function failureFrom(match: ConversationMatch): TurnErrorState['failure'] | unde
+   const failure = endFailure(match.event.data.reason)
+   if (failure === undefined) return undefined
+   const display = displayFailure(failure)
++  const named = rejectedSchemaToolName(failure)
+   return {
+     seq: match.event.seq,
+     time: match.event.time,
+     message: display.message,
+     ...(display.code === undefined ? {} : { code: display.code }),
++    ...(named?.startsWith('mcp__') ? { rejectedMcpTool: named } : {}),
+   }
+ }
+ 
+@@ -106,6 +110,7 @@ export const turnErrorDefinition: ConversationNodeDefinition<TurnErrorState> = {
+       step: lastStep(context),
+       message: failure.message,
+       ...failure.code === undefined ? {} : { code: failure.code },
++      ...failure.rejectedMcpTool === undefined ? {} : { rejectedMcpTool: failure.rejectedMcpTool },
+     }
+     return chatNode(context, 'turn-error', node.seq, node, { groupTree: 'turn' })
+   },
+diff --git a/packages/client/ui-chat/src/client/locale.ts b/packages/client/ui-chat/src/client/locale.ts
+index cff9c4e1df1a4a35d1548f2a352d5209ed8037b8..30eec83252d6af66b996c82be2a361732934154e 100644
+--- a/packages/client/ui-chat/src/client/locale.ts
++++ b/packages/client/ui-chat/src/client/locale.ts
+@@ -184,6 +184,9 @@ export const zh = {
+   'message.retry.delay': '重试延迟：',
+   'message.retry.failure': '失败原因：',
+   'message.failure.auth': 'API 密钥无效',
++  'message.failure.recoverConversation': '如何恢复此对话',
++  'message.failure.mcpSchemaHint': '在 MCP 服务配置中停用提供这个工具的服务，再回到此对话重新发送消息。使用同一服务的其他对话也会受影响。',
++  'message.failure.reaSchemaHint': '如果工具来自内置 REA，可到设置 → 模式 → 模式配置 → 逆向，关闭 REA 并保存。',
+   'message.taskStopped': '任务已停止',
+   'message.failure.accountSignedOut': '任务已因退出 DeepSeek 登录而停止。',
+   'message.failure.interrupted': 'DSH 进程在本轮完成前退出（例如被强制结束、崩溃或关闭超时），重新启动后本轮已中止。未完成的工具调用结果未知。',
+@@ -401,6 +404,9 @@ export const en = {
+   'message.retry.delay': 'Retry delay: ',
+   'message.retry.failure': 'Failure reason: ',
+   'message.failure.auth': 'API key is invalid',
++  'message.failure.recoverConversation': 'How to recover this conversation',
++  'message.failure.mcpSchemaHint': 'Disable the MCP server that provides this tool, then resend your message in this conversation. Other conversations using that server are affected too.',
++  'message.failure.reaSchemaHint': 'For bundled REA, open Settings → Modes → Mode configuration → Reverse, turn off REA and save.',
+   'message.taskStopped': 'Task stopped',
+   'message.failure.accountSignedOut': 'Stopped because you signed out of DeepSeek.',
+   'message.failure.interrupted': 'The DSH process exited before this turn finished (for example, it was killed, crashed, or timed out while shutting down), so the turn was closed when DSH restarted. Unfinished tool calls have unknown outcomes.',
+@@ -615,6 +621,9 @@ export const ja = {
+   'message.retry.delay': '再試行までの待機時間: ',
+   'message.retry.failure': '失敗理由: ',
+   'message.failure.auth': 'APIキーが無効です',
++  'message.failure.recoverConversation': 'この会話を再開する方法',
++  'message.failure.mcpSchemaHint': 'このツールを提供する MCP サーバーを無効にし、この会話でメッセージを再送してください。同じサーバーを使う他の会話にも影響します。',
++  'message.failure.reaSchemaHint': '内蔵 REA の場合は、設定のモード構成からリバースモードを開き、REA をオフにして保存してください。',
+   'message.taskStopped': 'タスクを停止しました',
+   'message.failure.accountSignedOut': 'DeepSeekからログアウトしたため停止しました。',
+   'message.failure.interrupted': 'このターンが完了する前にDSHプロセスが終了したため（強制終了、クラッシュ、シャットダウン中のタイムアウトなど）、DSHの再起動時にターンは閉じられました。未完了のツール呼び出しの結果は不明です。',
+@@ -829,6 +838,9 @@ export const es = {
+   'message.retry.delay': 'Retraso de reintento: ',
+   'message.retry.failure': 'Razón del fracaso: ',
+   'message.failure.auth': 'La clave API no es válida',
++  'message.failure.recoverConversation': 'Cómo recuperar esta conversación',
++  'message.failure.mcpSchemaHint': 'Desactiva el servidor MCP que ofrece esta herramienta y vuelve a enviar el mensaje en esta conversación. Esto también afecta a otras conversaciones que usan el mismo servidor.',
++  'message.failure.reaSchemaHint': 'Para REA integrado, abre la configuración del modo de ingeniería inversa, desactiva REA y guarda los cambios.',
+   'message.taskStopped': 'Tarea detenida',
+   'message.failure.accountSignedOut': 'Se detuvo porque cerró sesión en DeepSeek.',
+   'message.failure.interrupted': 'El proceso DSH salió antes de que terminara este turno (por ejemplo, se detuvo, se estrelló o se agotó el tiempo de espera mientras se apagaba), por lo que el turno se cerró cuando se reinició DSH. Las llamadas a herramientas inacabadas tienen resultados desconocidos.',
+@@ -1043,6 +1055,9 @@ export const fr = {
+   'message.retry.delay': 'Délai de nouvelle tentative : ',
+   'message.retry.failure': "Raison de l'échec : ",
+   'message.failure.auth': "La clé API n'est pas valide",
++  'message.failure.recoverConversation': 'Comment reprendre cette conversation',
++  'message.failure.mcpSchemaHint': 'Désactivez le serveur MCP qui fournit cet outil, puis renvoyez votre message dans cette conversation. Les autres conversations utilisant ce serveur seront également affectées.',
++  'message.failure.reaSchemaHint': 'Pour REA intégré, ouvrez la configuration du mode de rétro-ingénierie, désactivez REA et enregistrez.',
+   'message.taskStopped': 'Tâche arrêtée',
+   'message.failure.accountSignedOut': 'Arrêté car vous vous êtes déconnecté de DeepSeek.',
+   'message.failure.interrupted': "Le processus DSH s'est terminé avant la fin de ce tour (par exemple, il a été arrêté, s'est écrasé ou a expiré lors de l'arrêt), de sorte que le tour a été fermé lorsque DSH a redémarré. Les appels d’outils inachevés ont des résultats inconnus.",
+@@ -1257,6 +1272,9 @@ export const de = {
+   'message.retry.delay': 'Wiederholungsverzögerung: ',
+   'message.retry.failure': 'Fehlergrund: ',
+   'message.failure.auth': 'Der API-Schlüssel ist ungültig',
++  'message.failure.recoverConversation': 'Diese Unterhaltung fortsetzen',
++  'message.failure.mcpSchemaHint': 'Deaktiviere den MCP-Server für dieses Werkzeug und sende die Nachricht in dieser Unterhaltung erneut. Dies betrifft auch andere Unterhaltungen, die diesen Server verwenden.',
++  'message.failure.reaSchemaHint': 'Für das integrierte REA öffne die Einstellungen des Reverse-Engineering-Modus, deaktiviere REA und speichere.',
+   'message.taskStopped': 'Aufgabe gestoppt',
+   'message.failure.accountSignedOut': 'Gestoppt, weil Sie sich von DeepSeek abgemeldet haben.',
+   'message.failure.interrupted': 'Der DSH-Prozess wurde beendet, bevor dieser Zug beendet war (z. B. wurde er beendet, stürzte ab oder es kam zu einer Zeitüberschreitung beim Herunterfahren), sodass der Zug geschlossen wurde, als DSH neu gestartet wurde. Unvollendete Werkzeugaufrufe haben unbekannte Ergebnisse.',
+@@ -1471,6 +1489,9 @@ export const ru = {
+   'message.retry.delay': 'Задержка повтора: ',
+   'message.retry.failure': 'Причина неисправности: ',
+   'message.failure.auth': 'Ключ API недействителен.',
++  'message.failure.recoverConversation': 'Как продолжить эту беседу',
++  'message.failure.mcpSchemaHint': 'Отключите сервер MCP, предоставляющий этот инструмент, и отправьте сообщение ещё раз в этой беседе. Это затронет и другие беседы, использующие тот же сервер.',
++  'message.failure.reaSchemaHint': 'Для встроенного REA откройте настройки режима обратной разработки, отключите REA и сохраните изменения.',
+   'message.taskStopped': 'Задача остановлена',
+   'message.failure.accountSignedOut': 'Остановлено, поскольку вы вышли из DeepSeek.',
+   'message.failure.interrupted': 'Процесс DSH завершился до завершения этого хода (например, был завершен, произошел сбой или истекло время ожидания при завершении работы), поэтому ход был закрыт при перезапуске DSH. Незавершенные вызовы инструментов имеют неизвестные результаты.',
+@@ -1685,6 +1706,9 @@ export const pt = {
+   'message.retry.delay': 'Atraso na nova tentativa: ',
+   'message.retry.failure': 'Motivo da falha: ',
+   'message.failure.auth': 'A chave API é inválida',
++  'message.failure.recoverConversation': 'Como retomar esta conversa',
++  'message.failure.mcpSchemaHint': 'Desative o servidor MCP que fornece a ferramenta e reenvie a mensagem nesta conversa. A mudança também afeta outras conversas que usam o mesmo servidor.',
++  'message.failure.reaSchemaHint': 'Para o REA integrado, abra as configurações do modo de engenharia reversa, desative o REA e salve.',
+   'message.taskStopped': 'Tarefa interrompida',
+   'message.failure.accountSignedOut': 'Interrompido porque você saiu de DeepSeek.',
+   'message.failure.interrupted': 'O processo DSH foi encerrado antes do término deste turno (por exemplo, ele foi eliminado, travou ou expirou durante o desligamento), portanto, o turno foi encerrado quando DSH foi reiniciado. Chamadas de ferramentas inacabadas têm resultados desconhecidos.',
+diff --git a/packages/client/ui-chat/tests/chat-view.client.spec.tsx b/packages/client/ui-chat/tests/chat-view.client.spec.tsx
+index 22eea617b7857c254b8d571869e54485b8f7a7be..f84373b7d21133b3989d21853491aaeb22caacec 100644
+--- a/packages/client/ui-chat/tests/chat-view.client.spec.tsx
++++ b/packages/client/ui-chat/tests/chat-view.client.spec.tsx
+@@ -2697,6 +2697,25 @@ describe('ChatView', () => {
+     expect(within(cancelledDisclosure).getByRole('status').textContent).toContain('重试已取消')
+   })
+ 
++  it('opens recovery instructions for the named MCP service in the failed turn', () => {
++    const nodes = ['mcp__notes__lookup', 'mcp__rea__example'].map((name, index) => ({
++      ...turnError(index + 2, 'INVALID_REQUEST'),
++      message: `Invalid schema for function '${name}': invalid pattern`, rejectedMcpTool: name,
++    }))
++    const h = makeHarness({ nodes: [user(1, 'hello'), ...nodes, turnError(4, 'INVALID_REQUEST')] })
++    const view = render(<h.ChatView {...h.props} />)
++    const entries = view.getAllByText('如何恢复此对话')
++    expect(entries).toHaveLength(2)
++    for (const [index, summary] of entries.entries()) {
++      const details = summary.closest('details')!
++      expect(details.open).toBe(false)
++      fireEvent.click(summary)
++      expect(details.open).toBe(true)
++      expect(details.textContent).toContain(index ? '关闭 REA 并保存' : 'MCP 服务配置')
++      expect(details.textContent).toContain('其他对话')
++    }
++  })
++
+   it('renders every terminal failure inline with neutral quota copy and no transient notice', () => {
+     const h = makeHarness({ nodes: [
+       user(1, 'try'), turnError(2, 'AUTH'), turnError(3), turnError(4, 'QUOTA'), turnError(5, 'ACCOUNT_QUOTA'),
+diff --git a/packages/client/ui-chat/tests/conversation-node-definitions.client.spec.ts b/packages/client/ui-chat/tests/conversation-node-definitions.client.spec.ts
+index cccde9ac18564ff20cad5516c71f8b93a5b4d284..b71d672e25bf448921f8b8f2d02117e16d9be951 100644
+--- a/packages/client/ui-chat/tests/conversation-node-definitions.client.spec.ts
++++ b/packages/client/ui-chat/tests/conversation-node-definitions.client.spec.ts
+@@ -168,6 +168,22 @@ function snapshot(value: ConversationNodeAssembler): ChatSnapshot {
+   return current
+ }
+ 
++it.each([
++  { status: 400, code: 'INVALID_REQUEST', message: "Invalid schema for function 'mcp__notes__read': invalid pattern", named: 'mcp__notes__read' },
++  { status: 400, code: 'INVALID_REQUEST', message: "Invalid schema for function 'clock': invalid pattern" },
++  { status: 400, code: 'INVALID_REQUEST', message: "Other error mentioning Invalid schema for function 'mcp__notes__read': invalid pattern" },
++  { status: 429, code: 'RATE_LIMIT', message: "Invalid schema for function 'mcp__notes__read': invalid pattern" },
++])('identifies the external tool in a recorded $code failure: $message', ({ status, code, message, named }) => {
++  const view = assembler([
++    at(1, 'turn/start', { turn: 1 }),
++    at(2, 'turn/end', { turn: 1, reason: { kind: 'error', error: { status, code, message } } }),
++  ])
++  const failure = node(snapshot(view), 'turn-error')?.data
++  expect(failure).toMatchObject({ code, message })
++  if (named === undefined) expect(failure).not.toHaveProperty('rejectedMcpTool')
++  else expect(failure).toHaveProperty('rejectedMcpTool', named)
++})
++
+ function node(value: ChatSnapshot, kind: string): ChatConversationViewNode | undefined {
+   return value.nodes.values().find(candidate => candidate.kind === kind)
+ }
+diff --git a/packages/client/ui-conversation/src/client/contract/records.ts b/packages/client/ui-conversation/src/client/contract/records.ts
+index f20f24e0791a49523a5a9d382a3d3e87b4d75726..33418a39e0d06808c39678ff4fc691f51c03117a 100644
+--- a/packages/client/ui-conversation/src/client/contract/records.ts
++++ b/packages/client/ui-conversation/src/client/contract/records.ts
+@@ -131,6 +131,8 @@ export type ModelRetryNode = LlmRetryEventData & {
+  * chain renders separately and never replaces this node.
+  */
+ export interface TurnErrorNode {
++  /** MCP tool named in the provider's schema-validation HTTP 400, when present. */
++  rejectedMcpTool?: string
+   kind: 'turn-error'
+   /** Seq of the owning turn/end event. */
+   seq: number
+diff --git a/packages/llm/llm/package.json b/packages/llm/llm/package.json
+index eaa37da71acf228fded2818864e9c0b0faaac603..60fa23b23f758cc14dcb9bb02c883a6e067b8c9f 100644
+--- a/packages/llm/llm/package.json
++++ b/packages/llm/llm/package.json
+@@ -14,6 +14,10 @@
+   "main": "lib/index.js",
+   "types": "lib/types/index.d.ts",
+   "exports": {
++    "./schema-error": {
++      "types": "./lib/types/schema-error.d.ts",
++      "default": "./lib/types/schema-error.js"
++    },
+     ".": {
+       "types": "./lib/types/index.d.ts",
+       "default": "./lib/index.js"
+diff --git a/packages/llm/llm/src/schema-error.ts b/packages/llm/llm/src/schema-error.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..26cbb6275907b0c5fefe109225ee7f3ec14d7502
+--- /dev/null
++++ b/packages/llm/llm/src/schema-error.ts
+@@ -0,0 +1,11 @@
++/** Provider-reported tool identity shared by the Session reader and the error row. */
++
++/**
++ * Read the exact tool name quoted by a schema-validation HTTP 400. Callers that change declaration history must match it locally.
++ * @param failure - recorded provider failure including the original message.
++ * @returns the named tool when the failure begins with the provider's schema diagnostic.
++ */
++export function rejectedSchemaToolName(failure: { code?: string; status?: number; message: string }): string | undefined {
++  if (failure.code !== 'INVALID_REQUEST' || failure.status !== 400) return undefined
++  return /^Invalid schema for function '([A-Za-z0-9_-]{1,64})'(?=:|$)/u.exec(failure.message)?.[1]
++}
+diff --git a/snapshots/web/mcp-schema-recovery/recovery.expected.txt b/snapshots/web/mcp-schema-recovery/recovery.expected.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..1dcb439063705c8883bd32ef461bd44c6d95a790
+--- /dev/null
++++ b/snapshots/web/mcp-schema-recovery/recovery.expected.txt
+@@ -0,0 +1,2 @@
++How to recover this conversation
++Disable the MCP server that provides this tool, then resend your message in this conversation. Other conversations using that server are affected too.
+diff --git a/snapshots/web/mcp-schema-recovery/session.v4.jsonl b/snapshots/web/mcp-schema-recovery/session.v4.jsonl
+new file mode 100644
+index 0000000000000000000000000000000000000000..e8671658da8c172e627169134a90eb2e047d6b3e
+--- /dev/null
++++ b/snapshots/web/mcp-schema-recovery/session.v4.jsonl
+@@ -0,0 +1,8 @@
++{"version":4,"isSeeded":false,"createdAt":0,"cwd":"{{cwd}}","delegationDepth":0,"type":"session","id":"{{session:1}}"}
++{"type":"turn/start","data":{"turn":1}}
++{"type":"step/start","data":{"turn":1,"step":1}}
++{"type":"system/message","data":{"turn":1,"step":1,"message":{"role":"system","content":[{"type":"text","text":"{{system}}"}],"source":{"kind":"system-prompt"},"id":"{{message:1}}"}},"surfaceOp":"append"}
++{"type":"user/message","data":{"content":[{"type":"text","text":"Read my meeting notes."}],"source":{"kind":"user","rpcId":"{{rpc:1}}"},"role":"user","id":"{{message:2}}"},"surfaceOp":"append"}
++{"type":"request/header","data":{"header":{"config":{"provider":"deepseek-account","model":"deepseek-flash"},"tools":"{{tools}}"},"reason":"initial"}}
++{"type":"step/end","data":{"turn":1,"step":1}}
++{"type":"turn/end","data":{"turn":1,"reason":{"kind":"error","error":{"message":"Invalid schema for function 'mcp__notes__lookup': invalid pattern","code":"INVALID_REQUEST","status":400}}}}
+diff --git a/snapshots/web/mcp-schema-recovery/snapshot.yml b/snapshots/web/mcp-schema-recovery/snapshot.yml
+new file mode 100644
+index 0000000000000000000000000000000000000000..d2850f0bcec1cfc23bc6a445088a9fc51a4ccf44
+--- /dev/null
++++ b/snapshots/web/mcp-schema-recovery/snapshot.yml
+@@ -0,0 +1,7 @@
++version: 1
++scenario: mcp-schema-recovery
++profile: web
++composition: web-default
++recording: authored
++header:
++  class: web-default
+diff --git a/scripts/package-dependency-policy.ts b/scripts/package-dependency-policy.ts
+index 8dade0e31c93a9f89fbd9512c2fa0286aeb71a5f..defdaa85ca651d268dfec0b8a58038317dd0dd41 100644
+--- a/scripts/package-dependency-policy.ts
++++ b/scripts/package-dependency-policy.ts
+@@ -66,6 +66,8 @@ const SAFE_HOST_DEPENDENCY_EXPORTS = {
+   '@deepseek-ai/dsh-official-bundles': ['PROFILE_TEMPLATES'],
+   // Messages and assembled blocks are plain data. Each caller owns its assembler.
+   '@deepseek-ai/dsh-llm': ['BlockAssembler', 'callConfigEquals', 'createUserMessage'],
++  // Schema diagnostics read only the caller's failure fields.
++  '@deepseek-ai/dsh-llm/schema-error': ['rejectedSchemaToolName'],
+   '@deepseek-ai/dsh-session-format': ['sessionFormatLogFilename'],
+   '@deepseek-ai/dsh-storage-domain': ['defineDomain'],
+   '@deepseek-ai/dsh-timeout': ['MAX_TIMER_DELAY_MS'],
+diff --git a/packages/client/ui-settings-account/tests/apply.client.spec.ts b/packages/client/ui-settings-account/tests/apply.client.spec.ts
+index cadea02dfe7952676bf1151a5237bde29ec8ea1f..8921790afc0e9755fd02c6a7b12580799613ac25 100644
+--- a/packages/client/ui-settings-account/tests/apply.client.spec.ts
++++ b/packages/client/ui-settings-account/tests/apply.client.spec.ts
+@@ -24,6 +24,7 @@ import type { AccountQuotaNoticeInjected } from '../src/client/AccountQuotaNotic
+ 
+ const it = createClientTest({ roster: webApp })
+ const withoutAccountAccess = createClientTest({ roster: webApp }, { access: action => action !== 'account/watch' })
++const withoutSpendingAccess = createClientTest({ roster: webApp }, { access: action => action !== 'spending/get' })
+ const SELF = '@deepseek-ai/dsh-client-ui-settings-account'
+ const view: AccountView = {
+   status: 'signed-out', attempt: null,
+@@ -76,6 +77,13 @@ withoutAccountAccess('opens no account stream and registers no account surface w
+   expect(quotaNoticeEntry(c)).toBeUndefined()
+   expect(c.ctx.slots.entries('settings.models.sign-in')).toHaveLength(0)
+   expect(c.ctx.slots.entries('settings.section').some(entry => entry.options.id === 'account')).toBe(false)
++  expect(c.ctx.slots.entries('settings.section').some(entry => entry.options.id === 'spending')).toBe(true)
++}, 60_000)
++
++withoutSpendingAccess('keeps the account launcher available when the spending section is denied', async ({ start }) => {
++  const c = await start()
++  expect(c.ctx.slots.entries('settings.section').some(entry => entry.options.id === 'spending')).toBe(false)
++  expect(c.ctx.slots.entries('settings.launcher')).toHaveLength(1)
+ }, 60_000)
+ 
+ it('claims account balance notices from the frame-wide quota chain and declines generic quota', async ({ start }) => {
+@@ -97,7 +105,9 @@ it('shares account actions across seats, publishes dialog ownership, and opens c
+   vi.stubGlobal('dshDesktop', {})
+   const c = await start()
+   const actions = operations(c)
+-  expect(c.ctx.slots.entries('settings.models.sign-in')[0]!.inject!()).toBe(actions)
++  const signIn = c.ctx.slots.entries('settings.models.sign-in')[0]!.inject!()
++  expect(actions).toMatchObject(signIn)
++  expect(actions.hooks).toBe(signIn['hooks'])
+   // The account UI follows the live theme service through the framework hook channel.
+   const theme = c.ctx.get('theme') as ThemeRuntime
+   const onTheme = vi.fn()
+@@ -127,7 +137,7 @@ it('shares account actions across seats, publishes dialog ownership, and opens c
+   c.mock.streams.push('account/watch', { type: 'snapshot', state: stored })
+   await vi.waitFor(() => { expect(actions.hooks.account.getSnapshot().details?.profile).toEqual(profile) })
+   const entry = c.ctx.slots.entries('settings.section').find(entry => entry.options.id === 'account')!
+-  expect(entry.inject!()).toBe(actions)
++  expect(entry.inject!()).toBe(signIn)
+   expect(resolveSlotLabel(entry.options.label)).toBe('Account')
+   actions.contactUs()
+   const support = new URL(String(open.mock.calls.at(-1)![0]))
+diff --git a/packages/client/ui-settings-account/tests/initialization.client.spec.ts b/packages/client/ui-settings-account/tests/initialization.client.spec.ts
+index a6f1d82767edf6f212af5a58ae6db80651a02bf5..f88613a529e3b0c081f83abc13f34373069a4d05 100644
+--- a/packages/client/ui-settings-account/tests/initialization.client.spec.ts
++++ b/packages/client/ui-settings-account/tests/initialization.client.spec.ts
+@@ -29,6 +29,7 @@ it.each(['accepted', 'refused', 'disconnected', 'pending'] as const)('initialize
+   const disposers: (() => void)[] = []
+   let operations: AccountSectionInjected | undefined
+   const ctx = {
++    inject: (services: readonly string[]) => { expect([['remote.balance'], ['remote.spending']]).toContainEqual(services) },
+     on: () => () => {}, provide: () => {}, emit: () => {}, parallel: async () => [],
+     effect: (install: () => (() => void) | undefined) => { const dispose = install(); if (dispose) disposers.push(dispose) },
+     locale: { register: () => () => {}, bind: () => (key: string) => key, getSnapshot: () => ({ active: 'en' }) },

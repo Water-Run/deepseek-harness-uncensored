@@ -67,6 +67,8 @@ const SAFE_HOST_DEPENDENCY_EXPORTS = {
   '@deepseek-ai/dsh-official-bundles': ['PROFILE_TEMPLATES'],
   '@deepseek-ai/dsh-llm': ['callConfigEquals'],
   '@deepseek-ai/dsh-session': ['SessionId'],
+  // Schema diagnostics read only the caller's failure fields.
+  '@deepseek-ai/dsh-llm/schema-error': ['rejectedSchemaToolName'],
   '@deepseek-ai/dsh-session-format': ['sessionFormatLogFilename'],
   '@deepseek-ai/dsh-storage-domain': ['defineDomain'],
   '@deepseek-ai/dsh-timeout': ['MAX_TIMER_DELAY_MS'],

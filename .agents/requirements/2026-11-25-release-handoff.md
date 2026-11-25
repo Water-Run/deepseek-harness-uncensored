@@ -212,6 +212,30 @@ if ($LASTEXITCODE -ne 0) { throw "会话恢复检查失败，退出码 $LASTEXIT
 | 跨供应商与嵌套字段 | 检查根及嵌套属性、数组项、组合与引用定义。按实际供应商结果处理表达式。再测两个有问题的工具、同名工具更换 schema、插件重启及并发窗口，核对停用归属。 |
 | 相邻报告 | [#22](https://github.com/Water-Run/deepseek-harness-uncensored/issues/22) 验证工具发现。[#23](https://github.com/Water-Run/deepseek-harness-uncensored/issues/23) 单独验证缓存，固定供应商、模型、消息前缀及工具顺序，比较未变、更改和停用工具三种情况下的请求声明及供应商缓存读数。供应商不报告缓存用量时标为未知。切勿由单次 400 推断缓存失效或改为全量注册。 |
 
+### 点名拒绝后的恢复与缓存排查
+
+主线和内核候选从已记录的错误读取工具名。HTTP 400、`INVALID_REQUEST` 和供应商的具名 schema 诊断须同时匹配。会话只标记已声明且被点名的工具，停用后才排除其声明与启停引用。连续点名不同工具时分别保留记录。如果会话从未声明过该名称，保留原请求历史。没有点名的旧错误继续沿用旧会话恢复行为。[错误解析](../../packages/llm/llm/src/schema-error.ts) · [会话投影](../../packages/core/session/src/tool-history.ts)
+
+| 复验入口 | 操作与通过条件 |
+| --- | --- |
+| 会话与 HTTP | 运行下列第一行。笔记查询连续两次被拒绝，停用后原会话连续两次成功。API Key 和测试账号分别检查请求。恢复请求里的时钟、无关的笔记列表声明、声明顺序、原移除消息和用户文字均须保留。认证失败、429 和未知工具名单独对照。 |
+| 用户可见的旧会话 | 先完成构建，再运行第二行。浏览器从 v4 日志重新打开旧会话，在 1280 和 390 像素宽度以键盘展开和收起指引。错误原文保留，提示说明关闭共享服务的影响。复验只用虚构的笔记工具。 |
+| 产物和安装器 | 在还原的候选根目录执行上文的 `mcp-schema-probe.mjs`。同一脚本也支持已安装的 Electron。除三条普通恢复结果外，具名拒绝场景须输出 `named-rejection`，并保留 `clock`、`mcp__notes__list`。 |
+| 第三方缓存 | 使用报告中的服务及其实际模型，保存脱敏的连续请求，比较消息和完整工具声明，再记录供应商返回的缓存读取与写入用量。回环对照证明请求没有丢掉无关声明。服务商未返回缓存用量时，实际命中情况仍为未知。[Issue #23](https://github.com/Water-Run/deepseek-harness-uncensored/issues/23) |
+
+```sh
+pnpm exec vitest run packages/core/session/tests/tool-history.spec.ts packages/llm/llm-deepseek/tests/adapter.spec.ts packages/client/ui-chat/tests/chat-view.client.spec.tsx packages/client/ui-chat/tests/conversation-node-definitions.client.spec.ts
+pnpm run test:web:built apps/web/tests/mcp-schema-recovery.e2e.ts
+```
+
+在候选 `971ebe0266acd923d40b57265c6d4c5575e38939` 上使用官方 API Key 复验，带坏声明的原请求返回 400 并点名笔记工具。停用后，同一个会话返回 200，答出先前的标签 `ORCHID`。这一次响应报告 `input_tokens=135`、`cache_read_input_tokens=128`、`cache_creation_input_tokens=0`。探针保留供应商给出的零值，缺失字段输出 `null`。这组数字仅对应这一次官方请求。复核第三方报告时取同一供应商的原始响应，特别注意会话统计显示的是多次请求的累计值。[复验脚本](../../kernel/0.2.3-alpha.2/verification/mcp-schema-probe.mjs)
+
+`2026.11.23.0` 和 `2026.11.24.3` 各自在独立目录写入 28 份资料，候选 `971ebe02` 继续原对话并冷重启，全部原件 SHA-256 保持一致。后续在新目录从冻结锁文件离线安装，补齐额度设置包的侧栏和支出类型协议两项开发依赖。主线 100 个包、候选 105 个包通过发布依赖检查。候选 `5a851855e0f1ad3086f965d3412a4e4ca2a4cc31` 还更新了账户授权测试。账户和额度的读权限可以分别撤销，账户菜单和登录入口共享账户操作。35 份测试共 767 项通过，覆盖额度设置、会话、请求及聊天界面。[候选源码身份](../../kernel/0.2.3-alpha.2/source.json)
+
+当前错误提示说明共享服务的停用办法，用户保存设置后自行重发。后续验收单会话停用时，准备两条使用同一服务的会话。在第一条执行停用，既要检查发出的声明，也要检查该会话对工具的调用资格。第二条应能继续使用同一工具，第一条在重开后仍保持停用。现有 `ToolsService.restrict` 只筛选继承的工具，本地注册项也必须接受同一停用决定。验收使用合成工具即可，无需运行第三方引擎。
+
+**仓库检查。** 上述四份测试在主线通过 351 项，在新版内核通过 366 项。两份源码都已用真实 Chromium 重放 v4 会话。主线 `pnpm run hygiene` 另报六项既有失败，在修复前的提交 `3b08af3080` 上分别重跑也能复现。发行前需核对产品包分类、客户端插槽目录、插件语言元数据、Cordis 配置解析、Session 校验中的类型断言和插件入口导出。复验命令分别是 `pnpm run verify-product-use`、`pnpm run verify-client-catalog`、`pnpm run verify-locale-metadata`、`pnpm run verify-cordis-config`、`pnpm run verify-no-unknown-casts` 和 `pnpm run verify-plugin-entry-exports`。
+
 ## 旧资料与问题 20
 
 用户在 macOS 上报告应用启动后无法使用，涉及 `workspaceController`。保留资料时，旧 profile 中直接声明的包可能遮蔽桌面 Host 自带的 DSH 服务。修复涵盖 ESM、CommonJS 和插件目录解析，同时保留外部插件使用自己依赖的行为。报告目前仍开放。[Issue #20](https://github.com/Water-Run/deepseek-harness-uncensored/issues/20) · [解析实现](../../packages/boot/app-boot/src/profile-resolution/resolver.ts) · [回归用例](../../packages/boot/app-boot/tests/profile-resolution.spec.ts)

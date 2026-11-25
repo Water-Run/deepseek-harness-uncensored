@@ -3,6 +3,7 @@ import type {
   ConversationMatch, ConversationNodeContext, ConversationNodeDefinition, TurnErrorNode,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { TurnEndReason } from '@deepseek-ai/dsh-session/types'
+import { rejectedSchemaToolName } from '@deepseek-ai/dsh-llm/schema-error'
 import { chatNode } from './common.ts'
 import { displayFailure } from './event-projection.ts'
 
@@ -20,6 +21,7 @@ interface TurnErrorState {
     readonly time: number
     readonly message: string
     readonly code?: string
+    readonly rejectedMcpTool?: string
   }
 }
 
@@ -33,7 +35,7 @@ function lastStep(context: ConversationNodeContext<TurnErrorState>): number {
  * Failure shown for a turn ending: a recorded error, a sign-out cancellation,
  * or a turn that restart recovery closed because the DSH process exited mid-turn.
  */
-function endFailure(reason: TurnEndReason): { readonly message: string; readonly code?: string } | undefined {
+function endFailure(reason: TurnEndReason): { readonly message: string; readonly code?: string; readonly status?: number } | undefined {
   switch (reason.kind) {
     case 'error':
       return reason.error
@@ -55,11 +57,13 @@ function failureFrom(match: ConversationMatch): TurnErrorState['failure'] | unde
   const failure = endFailure(match.event.data.reason)
   if (failure === undefined) return undefined
   const display = displayFailure(failure)
+  const named = rejectedSchemaToolName(failure)
   return {
     seq: match.event.seq,
     time: match.event.time,
     message: display.message,
     ...(display.code === undefined ? {} : { code: display.code }),
+    ...(named?.startsWith('mcp__') ? { rejectedMcpTool: named } : {}),
   }
 }
 
@@ -106,6 +110,7 @@ export const turnErrorDefinition: ConversationNodeDefinition<TurnErrorState> = {
       step: lastStep(context),
       message: failure.message,
       ...failure.code === undefined ? {} : { code: failure.code },
+      ...failure.rejectedMcpTool === undefined ? {} : { rejectedMcpTool: failure.rejectedMcpTool },
     }
     return chatNode(context, 'turn-error', node.seq, node, { groupTree: 'turn' })
   },

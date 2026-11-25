@@ -22,6 +22,10 @@
       "types": "./lib/types/types.d.ts",
       "default": "./lib/types/types.js"
     },
+    "./schema-error": {
+      "types": "./lib/types/schema-error.d.ts",
+      "default": "./lib/types/schema-error.js"
+    },
     "./brand": {
       "types": "./lib/types/brand.d.ts",
       "default": "./lib/types/brand.js"

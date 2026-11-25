@@ -177,6 +177,7 @@
     "apps/web/tests/present-svg.e2e.ts",
     "apps/web/tests/present-after-closing-reply.e2e.ts",
     "apps/web/tests/autolink-cjk-punctuation.e2e.ts",
+    "apps/web/tests/mcp-schema-recovery.e2e.ts",
     "apps/web/tests/composer-draft-scroll.e2e.ts",
     "apps/web/tests/composer-focus.e2e.ts",
     "apps/web/tests/composer-placeholder.e2e.ts",

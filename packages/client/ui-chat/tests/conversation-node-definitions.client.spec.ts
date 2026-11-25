@@ -165,6 +165,22 @@ function snapshot(value: ConversationNodeAssembler): ChatSnapshot {
   return current
 }
 
+it.each([
+  { status: 400, code: 'INVALID_REQUEST', message: "Invalid schema for function 'mcp__notes__read': invalid pattern", named: 'mcp__notes__read' },
+  { status: 400, code: 'INVALID_REQUEST', message: "Invalid schema for function 'clock': invalid pattern" },
+  { status: 400, code: 'INVALID_REQUEST', message: "Other error mentioning Invalid schema for function 'mcp__notes__read': invalid pattern" },
+  { status: 429, code: 'RATE_LIMIT', message: "Invalid schema for function 'mcp__notes__read': invalid pattern" },
+])('identifies the external tool in a recorded $code failure: $message', ({ status, code, message, named }) => {
+  const view = assembler([
+    at(1, 'turn/start', { turn: 1 }),
+    at(2, 'turn/end', { turn: 1, reason: { kind: 'error', error: { status, code, message } } }),
+  ])
+  const failure = node(snapshot(view), 'turn-error')?.data
+  expect(failure).toMatchObject({ code, message })
+  if (named === undefined) expect(failure).not.toHaveProperty('rejectedMcpTool')
+  else expect(failure).toHaveProperty('rejectedMcpTool', named)
+})
+
 function node(value: ChatSnapshot, kind: string): ChatConversationViewNode | undefined {
   return value.nodes.values().find(candidate => candidate.kind === kind)
 }

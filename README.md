@@ -291,7 +291,7 @@
 >
 > 更新前请先关闭 DSHU，备份数据目录和重要的工作区文件。正式签名、在线升级和自动回退还在验收中，进度见[开发清单](.agents/TODO.md)。
 
-> 正式版 `2026.11.24.3` 中，一个工具的声明被供应商拒绝后，原对话可能连续返回 400。主线已修复关闭 REA 后仍发送已选工具的问题。Windows 缺省与写作候选已实装确认，恢复后的请求会排除停用工具并保留原消息。通过官方 API Key 复验时，同一对话已能继续回答。桌面账号真实登录仍待验证。[Issue #25](https://github.com/Water-Run/deepseek-harness-uncensored/issues/25) · [复验结果与范围](.agents/requirements/2026-11-25-release-handoff.md#issue-25-的工具声明与会话恢复)
+> 在正式版 `2026.11.24.3`，供应商拒绝一个工具的声明后，原对话可能连续返回 400。新版源码会在点名 MCP 工具的错误下显示“如何恢复此对话”。按提示停用相应服务，再回到原对话发送消息。服务开关会影响使用它的其他对话。恢复请求保留原消息，以及与这次拒绝无关的历史工具声明。Windows 缺省与写作候选已验证停用后的会话恢复，桌面账号实际登录仍待复验。[Issue #25](https://github.com/Water-Run/deepseek-harness-uncensored/issues/25) · [复验结果与安装包范围](.agents/requirements/2026-11-25-release-handoff.md#issue-25-的工具声明与会话恢复)
 
 ## 文档导航
 

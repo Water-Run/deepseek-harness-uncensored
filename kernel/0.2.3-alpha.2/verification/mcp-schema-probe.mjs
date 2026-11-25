@@ -1,5 +1,6 @@
 /** Compare tool declarations after removal, and optionally probe DeepSeek with synthetic note labels. */
 import { dirname, join, resolve } from 'node:path'
+import { deepStrictEqual } from 'node:assert'
 import { pathToFileURL } from 'node:url'
 
 const args = process.argv.slice(2)
@@ -59,7 +60,15 @@ async function request(sample, body) {
   const data = await response.json()
   const namedSchemaError = response.status === 400 && data.error?.message?.includes("Invalid schema for function '" + name + "'") === true
   const text = data.content?.filter(block => block.type === 'text').map(block => block.text).join('')
-  console.log(JSON.stringify({ sample, status: response.status, namedSchemaError }))
+  const count = value => Number.isSafeInteger(value) && value >= 0 ? value : null
+  console.log(JSON.stringify({
+    sample, status: response.status, namedSchemaError,
+    ...(response.ok && {
+      inputTokens: count(data.usage?.input_tokens),
+      cacheReadTokens: count(data.usage?.cache_read_input_tokens),
+      cacheWriteTokens: count(data.usage?.cache_creation_input_tokens),
+    }),
+  }))
   if (!response.ok && !namedSchemaError) throw new Error(sample + ' failed. HTTP ' + response.status)
   return { status: response.status, text }
 }
@@ -126,3 +135,34 @@ for (const mode of [undefined, 'addition-only', 'in-history']) {
     if (answer.status !== 200 || !answer.text?.includes('ORCHID')) throw new Error('Recovered reply did not recall the label.')
   }
 }
+
+const list = { ...clock, name: 'mcp__notes__list', description: 'List note labels.' }
+const named = Session.create('mcp-schema-named-rejection')
+named.append('turn/start', { turn: 1 })
+named.append('step/start', { turn: 1, step: 1 })
+named.append('request/header', { reason: 'initial', header: { config, tools: [clock, list, lookup] } })
+input(named, 'Keep my note.')
+const initialTools = wire(named, [clock, list, lookup], 'in-history').tools
+function removeTools(session, turn, tools, removedName) {
+  session.append('request/header', { reason: 'resume', header: { config, tools } })
+  session.append('developer/message', { turn, step: 1, message: createDeveloperMessage({
+    source: { kind: 'tool-registry' }, content: [{ type: 'tool-removal', toolName: removedName }],
+  }) }, { surfaceOp: 'append' })
+}
+removeTools(named, 1, [clock, lookup], list.name)
+named.append('step/end', { turn: 1, step: 1 })
+named.append('turn/end', { turn: 1, reason: { kind: 'error', error: {
+  code: 'INVALID_REQUEST', status: 400, message: `Invalid schema for function '${name}': invalid pattern`,
+} } })
+const reopened = Session.fromRestore(named.id, named.snapshotEvents(), named.header, 0, 'shared-frozen')
+reopened.append('turn/start', { turn: 2 })
+reopened.append('step/start', { turn: 2, step: 1 })
+removeTools(reopened, 2, [clock], name)
+input(reopened, 'Continue.')
+const recovered = wire(reopened, [clock], 'in-history')
+deepStrictEqual(recovered.tools, initialTools.filter(tool => tool.name !== name))
+const history = JSON.stringify(recovered.messages)
+if (!history.includes(list.name) || history.includes(name) || !history.includes('Keep my note.')) {
+  throw new Error('Named-schema recovery changed unrelated tool history or user text.')
+}
+console.log(JSON.stringify({ scenario: 'named-rejection', runtime: installed ? 'installed' : 'source', retained: recovered.tools.map(tool => tool.name) }))

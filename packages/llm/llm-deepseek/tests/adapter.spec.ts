@@ -383,7 +383,7 @@ describe('Cordis provider composition', () => {
         object(tool).name === name && isDeepStrictEqual(object(tool).input_schema, invalidSchema))
       if (rejected) {
         response.writeHead(400, { 'content-type': 'application/json' })
-        response.end(JSON.stringify({ error: { type: 'invalid_request_error', message: 'Invalid schema for function ' + name } }))
+        response.end(JSON.stringify({ error: { type: 'invalid_request_error', message: `Invalid schema for function '${name}': invalid pattern` } }))
       } else {
         response.end(sse(textEvents))
       }
@@ -401,8 +401,11 @@ describe('Cordis provider composition', () => {
       name, description: 'Test lookup.', parameters: {}, execute: async () => [],
     })
     ctx.tools.register(fixture('clock'))
+    const inactive = 'mcp__notes__list'
+    const removeList = ctx.tools.register(fixture(inactive))
     const agent = await ctx.agentLoop.create(SessionId('schema-recovery'), { provider, model })
     await send(agent, 'Remember the date.')
+    removeList()
     const disable = ctx.tools.register({
       ...fixture(name), parameters: invalidSchema,
     })
@@ -422,7 +425,11 @@ describe('Cordis provider composition', () => {
       expect(headers['x-dsh-auth-token']).toBe(provider === 'deepseek-account' ? 'fixture-token' : undefined)
     }
     for (const { body } of http.requests.slice(3)) {
-      expect(body.tools).toMatchObject([{ name: 'clock' }])
+      expect(body.tools).toEqual(http.requests[0]?.body.tools)
+      expect(body.tools).toMatchObject([{ name: 'clock' }, { name: inactive }])
+      expect(body.messages).toContainEqual(expect.objectContaining({
+        role: 'system', content: [{ type: 'tool_removal', tool: { type: 'tool_reference', name: inactive } }],
+      }))
       expect(JSON.stringify(body.messages)).not.toContain(name)
       expect(JSON.stringify(body.messages)).toContain('Remember the date.')
     }

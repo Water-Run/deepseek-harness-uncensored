@@ -192,6 +192,7 @@
     "tests/present-svg.e2e.ts",
     "tests/present-after-closing-reply.e2e.ts",
     "tests/autolink-cjk-punctuation.e2e.ts",
+    "tests/mcp-schema-recovery.e2e.ts",
     "tests/composer-draft-scroll.e2e.ts",
     "tests/composer-focus.e2e.ts",
     "tests/composer-placeholder.e2e.ts",

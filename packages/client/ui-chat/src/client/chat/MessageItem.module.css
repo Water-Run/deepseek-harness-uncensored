@@ -294,6 +294,17 @@
   color: var(--dsw-alias-label-secondary);
 }
 
+.turnErrorHint {
+  grid-column: 2 / -1;
+  overflow-wrap: anywhere;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.turnErrorHint summary {
+  width: fit-content;
+  cursor: pointer;
+}
+
 .turnErrorCode {
   color: var(--dsw-alias-label-tertiary);
   font: var(--dsw-font-markdown-code-block-small);
