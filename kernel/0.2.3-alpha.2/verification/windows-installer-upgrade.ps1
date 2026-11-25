@@ -4,13 +4,40 @@ param(
     [Parameter(Mandatory)][string]$PreviousInstaller,
     [Parameter(Mandatory)][string]$PreviousVersion,
     [Parameter(Mandatory)][string]$CandidateInstaller,
-    [Parameter(Mandatory)][string]$CandidateVersion
+    [Parameter(Mandatory)][string]$CandidateVersion,
+    [string]$ComposerSample = (Join-Path $PSScriptRoot '../../../packages/sdk/client/tests/expected/input-prediction-projection.json')
 )
 $ErrorActionPreference = 'Stop'
 $entry = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\4bbab420-ba6b-5135-af15-70ac616e0cb2'
 $report = Join-Path $env:LOCALAPPDATA 'deepseek-harness-uncensored-updater\installer-logs\version-check.log'
 if ($env:USERNAME -ne 'WDAGUtilityAccount' -or (Test-Path -LiteralPath $entry)) {
     throw 'Use a fresh Windows Sandbox. These checks install DSHU and change its test registration.'
+}
+$composerProbe = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot 'installed-composer-session.mjs')).Path
+$composerSamplePath = (Resolve-Path -LiteralPath $ComposerSample).Path
+$composerData = Join-Path $env:TEMP ('dshu-composer-' + [guid]::NewGuid())
+
+function Invoke-Composer($Installation, [string]$Phase) {
+    $start = New-Object System.Diagnostics.ProcessStartInfo
+    $start.FileName = Join-Path $Installation.Location 'DeepSeek Harness Uncensored.exe'
+    $start.Arguments = '--expose-internals "{0}" {1} "{2}" "{3}"' -f $composerProbe, $Phase, $composerData, $composerSamplePath
+    $start.UseShellExecute = $false
+    $start.CreateNoWindow = $true
+    $start.EnvironmentVariables['ELECTRON_RUN_AS_NODE'] = '1'
+    $start.RedirectStandardOutput = $true
+    $start.RedirectStandardError = $true
+    $probe = [Diagnostics.Process]::Start($start)
+    try {
+        $stdout = $probe.StandardOutput.ReadToEndAsync()
+        $stderr = $probe.StandardError.ReadToEndAsync()
+        if (-not $probe.WaitForExit(60000)) {
+            $probe.Kill()
+            throw "Installed composer Session check timed out during $Phase"
+        }
+        if ($probe.ExitCode -ne 0 -or $stdout.Result.Trim() -cne "composer-upgrade $Phase") {
+            throw "Installed composer Session check failed during $Phase (exit $($probe.ExitCode)). $($stderr.Result) $($stdout.Result)"
+        }
+    } finally { $probe.Dispose() }
 }
 
 function Invoke-Setup([string]$File, [string]$Options, [int]$Expected) {
@@ -47,12 +74,14 @@ $previous = Get-Installation
 if ($previous.Version -cne $PreviousVersion -or $previous.ExecutableVersion -cne $PreviousVersion) {
     throw "Previous installation differs from $PreviousVersion"
 }
+Invoke-Composer $previous 'write'
 Invoke-Setup $CandidateInstaller '--updated /S' 0
 $candidate = Get-Installation
 if ($candidate.Version -cne $CandidateVersion -or $candidate.ExecutableVersion -cne $CandidateVersion -or
     $candidate.Location -ne $previous.Location -or $candidate.AsarHash -eq $previous.AsarHash) {
     throw "Expected $CandidateVersion in the original installation with the new app.asar"
 }
+Invoke-Composer $candidate 'continue'
 
 foreach ($case in @(
     @{Version = '9999.12.31.65535'; Reason = 'downgrade'},
@@ -69,6 +98,7 @@ foreach ($case in @(
 Set-ItemProperty -LiteralPath $entry -Name DisplayVersion -Value $CandidateVersion
 Invoke-Setup $CandidateInstaller '--updated /S' 0
 Assert-Preserved $candidate $CandidateVersion
+Invoke-Composer $candidate 'reopen'
 
 [ordered]@{
     PreviousInstallerHash = (Get-FileHash -LiteralPath $PreviousInstaller).Hash
@@ -79,4 +109,5 @@ Assert-Preserved $candidate $CandidateVersion
     DowngradeExit = 2
     InvalidVersionExit = 2
     SameVersionExit = 0
+    Composer = @('write', 'continue', 'reopen')
 } | ConvertTo-Json -Depth 3

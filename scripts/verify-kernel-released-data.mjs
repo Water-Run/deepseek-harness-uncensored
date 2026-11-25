@@ -10,14 +10,18 @@ import { fileURLToPath } from 'node:url'
 
 const kernel = fileURLToPath(new URL('../kernel/0.2.3-alpha.2/', import.meta.url))
 const manifest = JSON.parse(await readFile(join(kernel, 'source.json'), 'utf8'))
-const [oldPath, newPath, electronPath, ...extra] = process.argv.slice(2)
-if (!oldPath || !newPath || extra.length) throw new Error('Usage: node scripts/verify-kernel-released-data.mjs <release checkout> <restored candidate> [candidate Electron executable]')
+const [oldPath, newPath, option, ...extra] = process.argv.slice(2)
+const checkEventTypes = option === '--check-event-types'
+if (!oldPath || !newPath || extra.length || (option?.startsWith('--') && !checkEventTypes)) {
+  throw new Error('Usage: node scripts/verify-kernel-released-data.mjs <release checkout> <restored candidate> [candidate Electron executable | --check-event-types]')
+}
+const electronPath = checkEventTypes ? undefined : option
 const writer = resolve(oldPath)
 const reader = resolve(newPath)
 
 function git(cwd, ...args) {
-  const result = spawnSync('git', args, { cwd, encoding: 'utf8' })
-  if (result.status !== 0) throw result.error ?? new Error(result.stderr)
+  const result = spawnSync('git', ['--no-optional-locks', ...args], { cwd, encoding: 'utf8' })
+  if (result.status !== 0) throw result.error ?? new Error(result.stderr.trim() || ('git ' + args.join(' ') + ' failed in ' + cwd))
   return result.stdout.trim()
 }
 
@@ -27,10 +31,24 @@ const releases = new Map([
 ])
 const release = releases.get(git(writer, 'rev-parse', 'HEAD'))
 assert(release, 'Writer must be a supported DSHU release checkout')
-assert.equal(git(writer, 'write-tree'), git(writer, 'rev-parse', 'HEAD^{tree}'))
+git(writer, 'diff', '--cached', '--quiet', 'HEAD', '--')
 assert.equal(git(reader, 'rev-parse', 'HEAD'), manifest.base)
-assert.equal(git(reader, 'write-tree'), manifest.tree)
+git(reader, 'diff', '--cached', '--quiet', manifest.tree, '--')
 for (const root of [writer, reader]) git(root, 'diff', '--quiet')
+
+function knownEventTypes(root) {
+  const result = spawnSync(process.execPath, ['--import', 'tsx/esm', '--input-type=module', '--eval',
+    "import { KNOWN_SESSION_EVENT_TYPES as types } from './packages/core/session/src/known-event-types.ts'; console.log(JSON.stringify([...types]))",
+  ], { cwd: root, encoding: 'utf8', windowsHide: true })
+  if (result.status !== 0) throw result.error ?? new Error(result.stderr)
+  return new Set(JSON.parse(result.stdout))
+}
+const releasedTypes = knownEventTypes(writer)
+const candidateTypes = knownEventTypes(reader)
+const missing = [...releasedTypes].filter(type => !candidateTypes.has(type)).sort()
+console.log(release + ' event types recognized by the candidate: ' + (releasedTypes.size - missing.length) + '/' + releasedTypes.size)
+if (missing.length) console.log('Missing released event types: ' + missing.join(', '))
+if (checkEventTypes) process.exit(missing.length ? 1 : 0)
 
 async function probe(root, phase, active) {
   const name = 'released-data-' + randomUUID() + '.spec.ts'

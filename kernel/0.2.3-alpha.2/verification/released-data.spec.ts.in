@@ -137,6 +137,66 @@ it('preserves a released writing workspace, rolling ledger and compressed v4 Ses
   }
 }, 30_000)
 
+it('reopens and continues a released conversation containing an unsent composer suggestion', async () => {
+  const ctx = new Context()
+  const id = brandString<SessionId>('released-composer')
+  const config = { provider: 'deepseek-official', model: 'deepseek-flash' }
+  const first = 'Save the word ORCHID.'
+  const next = 'Use the word in a poem.'
+  const userText = (text: string) => createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text }] })
+  try {
+    await ctx.plugin(jsonl, { root: join(directory, 'sessions'), compression: 'zstd' })
+    if (phase === 'write') {
+      const session = Session.create(id)
+      session.append('turn/start', { turn: 1 })
+      session.append('user/message', userText(first), { surfaceOp: 'append' })
+      session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
+      const writerModule = '../packages/api/session-controller/src/prediction.ts'
+      const { requestPrediction } = await import(writerModule)
+      const suggestion = await requestPrediction({
+        session, surface: 'main', revision: 3, draft: 'Write', context: 'Notebook', locale: 'en',
+        ...config, signal: new AbortController().signal, maxTokens: 16, maxSuggestionBytes: 64,
+        stream: async function* () {
+          yield { type: 'text-delta', index: 0, text: ' a sentence' }
+          yield { type: 'usage', usage: { inputTokens: 5, outputTokens: 2 } }
+          yield { type: 'finish', reason: { kind: 'stop' } }
+        },
+      })
+      expect(suggestion).toBe(' a sentence')
+      const predictions = session.snapshotEvents().filter(event => event.type === 'input/prediction')
+      expect(predictions).toMatchObject([
+        { data: { phase: 'request', draft: 'Write', request: config } },
+        { data: { phase: 'result', suggestion, usage: { inputTokens: 5, outputTokens: 2 } } },
+      ])
+      await writeFile(join(directory, 'predictions.json'), JSON.stringify(predictions))
+      const handle = await ctx.sessionPersistence.create(session.header)
+      try {
+        await handle.append(session.snapshotEvents())
+        await handle.flush()
+      } finally { await handle.close() }
+      return
+    }
+    const handle = await ctx.sessionPersistence.open(id, phase === 'read' ? 'write' : 'read')
+    try {
+      const { events } = await handle.read()
+      const session = Session.fromRestore(id, events, handle.header, handle.inheritedEventCount, 'detached')
+      expect(events.filter(event => event.type === 'input/prediction'))
+        .toEqual(JSON.parse(await readFile(join(directory, 'predictions.json'), 'utf8')))
+      if (phase === 'read') {
+        expect(session.deriveMessages().map(message => message.content)).toEqual([[{ type: 'text', text: first }]])
+        session.append('turn/start', { turn: 2 })
+        session.append('user/message', userText(next), { surfaceOp: 'append' })
+        session.append('turn/end', { turn: 2, reason: { kind: 'completed' } })
+        await handle.append(session.snapshotEvents().slice(events.length))
+        await handle.flush()
+      }
+      expect(session.deriveMessages().map(message => message.content)).toEqual(
+        [first, next].map(text => [{ type: 'text', text }]),
+      )
+    } finally { await handle.close() }
+  } finally { await ctx.fiber.dispose() }
+})
+
 it('recovers a rejected MCP declaration from a released v4 log and reopens the same conversation', async () => {
   await mkdir(workspace, { recursive: true })
   const ctx = new Context()

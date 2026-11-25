@@ -73,7 +73,9 @@ pnpm exec vitest run --maxWorkers=1 packages/boot/app-boot/tests/profile-resolut
 | `packages/credentials/balance/README.md` | 账户与币种隔离、采样频率、30 天清理、侧栏范围与设置页保留的完整采样。 |
 | `docs/subsystems/memory.zh.md` | 查看记忆服务和管理接口的实际方法签名、源文件位置，再进入对应包的使用说明。 |
 
-在候选根目录执行 `pnpm run doc-sync`，同时检查配对、相对链接、包路径、配置和 API 目录、持久化历史及文档网站。接口类型的引用应落在仓库中的 `src/` 声明。修改记忆或余额的子路径后，应再运行 `pnpm run build`，以覆盖 Web 场景和 Host 的聚合类型检查。当前持久化清单与上个候选的 69 个根、696 个结构节点逐项一致，源文件位置已指回记忆包。
+在候选根目录执行 `pnpm run doc-sync`，同时检查配对、相对链接、包路径、配置和 API 目录、持久化历史及文档网站。接口类型的引用应落在仓库中的 `src/` 声明。修改记忆或余额的子路径后，应再运行 `pnpm run build`，以覆盖 Web 场景和 Host 的聚合类型检查。候选树 `6283464b` 的目录含 70 个根、709 个结构节点，其中包含正式版输入建议事件。此树的 43 项文档检查全部通过。
+
+仓库根目录的同名 `doc-sync` 命令只检查公开 README 的长度与链接。另运行 `pnpm run verify-package-readme-summaries` 可检查 444 份包说明。主线的聊天、账号与额度两份中英文说明已重新配对。包摘要检查从 16 处降为 14 处，余项来自其他包的既有标题或字数问题。
 
 本节对应候选树 `159c46d282214d4071486c719b3469b49ff9dcbf`。Windows x64 已从空目录还原并比对树，在配有依赖的候选目录完成全部 43 项文档检查和 10 项构建检查。两个正式版各用独立资料启动候选 Electron Host 并冷重读，每版的 27 个原始文件均通过 SHA-256 核对。
 
@@ -221,7 +223,7 @@ if ($LASTEXITCODE -ne 0) { throw "会话恢复检查失败，退出码 $LASTEXIT
 | 会话与 HTTP | 运行下列第一行。笔记查询连续两次被拒绝，停用后原会话连续两次成功。API Key 和测试账号分别检查请求。恢复请求里的时钟、无关的笔记列表声明、声明顺序、原移除消息和用户文字均须保留。认证失败、429 和未知工具名单独对照。 |
 | 用户可见的旧会话 | 先完成构建，再运行第二行。浏览器从 v4 日志重新打开旧会话，在 1280 和 390 像素宽度以键盘展开和收起指引。错误原文保留，提示说明关闭共享服务的影响。复验只用虚构的笔记工具。 |
 | 产物和安装器 | 在还原的候选根目录执行上文的 `mcp-schema-probe.mjs`。同一脚本也支持已安装的 Electron。除三条普通恢复结果外，具名拒绝场景须输出 `named-rejection`，并保留 `clock`、`mcp__notes__list`。 |
-| 第三方缓存 | 使用报告中的服务及其实际模型，保存脱敏的连续请求，比较消息和完整工具声明，再记录供应商返回的缓存读取与写入用量。回环对照证明请求没有丢掉无关声明。服务商未返回缓存用量时，实际命中情况仍为未知。[Issue #23](https://github.com/Water-Run/deepseek-harness-uncensored/issues/23) |
+| 第三方缓存 | 回环对照已确认请求保留了无关工具声明。报告所用第三方服务的实际缓存用量未知，本轮验收未测量其命中率。[Issue #23](https://github.com/Water-Run/deepseek-harness-uncensored/issues/23) |
 
 ```sh
 pnpm exec vitest run packages/core/session/tests/tool-history.spec.ts packages/llm/llm-deepseek/tests/adapter.spec.ts packages/client/ui-chat/tests/chat-view.client.spec.tsx packages/client/ui-chat/tests/conversation-node-definitions.client.spec.ts
@@ -276,6 +278,26 @@ node scripts/verify-kernel-released-data.mjs .artifacts/review-old .artifacts/re
 持久化检查另有一项已知缺口。历史 `target/admission` 事件的两个必填字段缺少兼容性声明。当前通用资料样本覆盖工作区、会话与记忆。持久化维护者须在旧资料副本上验证该类历史事件，登记读取决定，再运行目录与变更声明检查。见[已有会话兼容性缺口](2026-11-24-dsh-kernel-upgrade.md#已有会话兼容性缺口)。
 
 主线另有一处持久化目录未同步。`pnpm run verify-persistence-changes` 在 `docs/persistence-schema.json` 报错。在上一节点 `f00eecb` 和本轮工作树中分别生成目录，所得 JSON 的 SHA-256 均为 `16fcf6843376da6b9a145d4d184c641fca699548c609888630406c80134391d7`。#25 的会话恢复使用既有事件，未变更 v4 日志格式。正式发行前逐项审查基线与已提交目录的差异，补齐对应兼容性声明，再生成目录并重跑此检查。
+
+### 含输入建议的旧会话
+
+**触发条件。** 正式版输入框曾为草稿请求过建议，即使用户没有采纳，压缩的 v4 日志也会记录 `input/prediction`。在树 `5a851855` 上，`2026.11.23.0` 写出的会话在打开时抛出 `SessionFormatUnsupportedError`，错误指向日志中第一个输入建议事件。旧候选 Windows 桌面载荷也复现了相同错误。此前的资料样本只写入已提交的用户输入，因此漏过了后台输入建议。这是独立复现的兼容性问题，#20 报告者的原始日志未参与测试。
+
+**读取行为。** 候选树 `6283464b1d8b902a9f3813a1f223e147a367e24c` 按原序号保留建议的请求与结果，包含当时的草稿、建议内容、供应商返回的用量和各条记录的时间。缺少请求标识和用量的旧记录也能续写。只有实际提交的输入进入后续对话。运行时仍拒绝其他未知必读事件。两个正式标签各自登记的 66 种事件中，当前候选能识别 65 种，余下的 `target/admission` 仍待独立验收。
+
+**检查整个已发布事件表。** 在资料验证命令的末尾用 `--check-event-types` 替代 Electron 路径，可直接比较两个实际读取器登记的所有事件名。存在缺项时会列出名称并返回 1。常规资料验证也会打印同一清单，然后继续跑样本。完整发行应对两个正式标签各运行一次清单检查，并保留样本回放来核对同名事件的字段和含义。
+
+**复验。** 分别对上表的两个正式标签运行资料验证器，将目标树和 Electron 可执行文件作为后两个参数。旧端调用已发布的输入建议写入器，测试流返回建议和用量，随后将普通会话写成压缩 v4 文件。候选从副本打开，在同一会话续写一轮，关闭后另启进程再读。两条输入建议事件须与旧端记录逐字段相同，对话中须只看到先后提交的两条消息。两个标签分别通过 Electron 44.11.5 的读取、重开及桌面 Host 检查，每组 30 个原始样本文件的 SHA-256 均一致。还原候选中的 `docs/persistence-changes/2026-11-25-released-composer-predictions.zh.md` 记录 v4 的读取决定。[跨版本资料用例](../../kernel/0.2.3-alpha.2/verification/released-data.spec.ts.in)
+
+**安装验收。** 在独立 Windows Sandbox 中，将旧版及候选安装器与 [Windows 升级脚本](../../kernel/0.2.3-alpha.2/verification/windows-installer-upgrade.ps1)、[安装后会话检查](../../kernel/0.2.3-alpha.2/verification/installed-composer-session.mjs) 一同放入只读输入目录。用 `-ComposerSample` 传入[已发布的输入建议样本](../../packages/sdk/client/tests/expected/input-prediction-projection.json)。旧版安装后用随包的 JSONL 服务写入该样本。升级后用实际安装的 Electron 打开并续写，同版重装后重新读取。每个起始版本的回执须同时包含 `Composer` 的 `write`、`continue`、`reopen` 三项及安装器摘要。日期版本相同的候选可通过安装器摘要或内嵌源码树区分。
+
+| Windows x64 缺省与写作候选 | 实装结果 |
+| --- | --- |
+| 安装器 | DSHU `2026.11.25.0`，DSH `0.2.3-alpha.2`，未签名。325,272,813 字节，SHA-256 `ad437c3bf544e68771ff74c42b65a8488c773d1118cc3052a99cc130b11ad15c`。 |
+| 差分索引 | 338,016 字节，SHA-256 `fa8957778b655551489834cfffc489f6e478dddafa03d90670155a53b8819f4d`。15,543 个分块已逐块重算。 |
+| 首发版升级 | 从 `2026.11.23.0` 静默升级返回 0。候选打开首发版写入的会话并续写，再次同版安装返回 0，冷启动可读回两条输入及原始建议记录。降级、无效版本登记均返回 2。 |
+| 上一正式版升级 | 从 `2026.11.24.3` 在另一台沙盒完成相同流程，四次安装退出码依次为升级 0、降级 2、无效登记 2、同版安装 0。旧候选 `ccf4f669…` 在同一起点的对照中能升级，随后读取建议时报 `SessionFormatUnsupportedError`。 |
+| 安装内容 | 两次安装的 `resources/app.asar` 摘要均为 `973cc4b4cad699b932079a5624de8c6e6c1c27905180734798ef76b00bf95a7b`。两处都通过了 #25 的三种普通投影和具名工具拒绝后续写的回归。 |
 
 ### 已安装的终端命令
 

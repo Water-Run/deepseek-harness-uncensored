@@ -12,11 +12,7 @@ Desktop product events use the optional [product analytics service](../product-a
 
 Use this package to render a browser chat from recorded Session conversations, including historical images, localized actions, and restored scroll position. Work-details modes control reasoning previews and process visibility without hiding Assistant replies; Verbose keeps completed-turn process rows visible. Local transcript and steering submissions appear immediately, remain in their original surface, and disappear atomically when authoritative Session records arrive, while queued submissions stay outside Chat. The package does not assemble or modify model requests.
 
-A recorded HTTP 400 naming an MCP tool schema offers recovery instructions beside the original error. Expanding them leaves the conversation and server settings untouched.
-
 File-mention providers receive the viewed Session ID with the closing-turn owner, so links into inherited history can address the fork itself.
-
-The message footer passes the completed turn's event sequence to [Workspace navigation](../ui-workspace/README.md#use-this-package) when creating a branch.
 
 ## Table of Contents
 
@@ -73,6 +69,8 @@ Text and reasoning contribute to Assistant visibility only when they contain a n
 <a id="command-and-failure-rows"></a>
 ## Command and failure rows
 
+A recorded HTTP 400 naming an MCP tool schema offers recovery instructions beside the original error. Expanding them leaves the conversation and server settings untouched.
+
 Subagent result notices use the Users icon and show only the localized execution outcome in their heading, without a task description or child ID. Completed means that execution ended normally, not that its output passed validation. Historical notices without a readable outcome retain the generic title; unfamiliar outcomes display “Subagent run ended unexpectedly”. Expanded notices preserve their original model-facing body.
 
 Generic command rows retain the ordinary command glyph in every lifecycle state; failure remains explicit through the row state and summary. Every terminal Turn failure renders its inline red-dot row; a quota failure's row states the neutral `message.failure.quota` copy instead of the provider message. The transient notice for a newly appended `QUOTA` or `ACCOUNT_QUOTA` comes from this package's frame-wide entry in `shell.overlay`, which outlives the Chat panel: it offers the one live notice to the `shell.quota-notice` chain and falls back to its own warning Toast, while an entry that claims the code replaces that fallback. Only Sessions this Client has bound and materialized publish; quota failures in Sessions it never opened do not. A newer notice replaces the current one unless a claiming entry retains it with `keepOpen()`: that call returns a release the caller owns and must run on unmount, any live hold keeps the claiming entry mounted and drops later notices, and releasing resumes later notices without replaying the dropped ones. The fallback Toast has no deferral of its own: while the Desktop account's opaque native Platform page covers the document, it still runs underneath and its display timer may elapse unseen, dismissing the notice itself, so only the persistent failure row remains. A release drops only its own hold, so one that runs after a dismissal or a newer hold leaves that newer hold intact. Dismissal and sign-out clear every hold, and dropped notices are not queued while their persistent failure rows still render. History replacement and pagination never publish a notice. Intermediate retries do not create a terminal row; output-token limits use the amber warning dot. A Turn that restart recovery closed as `interrupted` renders a localized stopped row stating that the DSH process exited mid-Turn, without a code chip, and its process summary reads Stopped.
@@ -98,6 +96,8 @@ Preference menus restore focus to their trigger without scrolling before publish
 
 <a id="completed-turn-footer"></a>
 ## Completed-turn footer
+
+The message footer passes the completed turn's event sequence to [Workspace navigation](../ui-workspace/README.md#use-this-package) when creating a branch.
 
 Artifact extensions can subscribe to one Turn and Node kind through `ChatNodeStore.turnDataSource`. The source includes hidden Nodes and exposes their business data in anchor order. Membership updates incrementally; only observed collections materialize ordered arrays, and unrelated Turns or kinds do not notify them.
 
