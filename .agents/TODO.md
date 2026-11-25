@@ -1,6 +1,6 @@
 # 开发项目进度
 
-[当前四模式新版接手文档](requirements/2026-11-25-release-handoff.md)记录里程碑推送、候选复验和平台发行条件。 [候选文档与接口目录](requirements/2026-11-25-release-handoff.md#候选文档与接口目录)列出中英文记忆、余额参考和已复验的源码树。
+[新版发行条件](requirements/2026-11-25-release-handoff.md#正式版接手清单)以 `v2026.11.24.3` 为完整功能基线。[逐项差异表](requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表)记录旧版与最终包的实际行为、权限和限额；[合并后的关于页](requirements/2026-11-25-release-handoff.md#合并后的关于页)列出正式包需要复核的内容。[候选文档与接口目录](requirements/2026-11-25-release-handoff.md#候选文档与接口目录)列出中英文记忆、余额参考和已复验的源码树。
 
 下一版的完整勾选清单（含 `v2026.11.23.0` 之后 10 个提交、破甲升级、关于页与 Credit、分平台发布）见 [下一版 TODO 清单](requirements/2026-11-24-next-release-todo.md)；破甲逐项明细见 [破甲升级 TODO 清单](requirements/2026-11-24-armor-todo.md)，排期与落点见[总计划](requirements/2026-11-24-armor-next-release-plan.md)。
 
@@ -16,7 +16,7 @@
 
 [Issue #22 的只读识别](requirements/2026-11-25-release-handoff.md#issue-22-的首轮文件头识别)已接入主线，模型在用户未提及 REA 时可以从原消息识别 ELF、PE 和单架构 Mach-O 文件头。
 
-[#25 会话恢复](requirements/2026-11-25-release-handoff.md#issue-25-的工具声明与会话恢复)列为下一版优先项。主线关闭 REA 后会停止声明及调用已选外部工具。缺省与写作 Windows 候选 `ccf4f669…` 已从两个正式版升级，安装后通过三种普通投影和具名拒绝恢复。[安装器摘要与回执](requirements/2026-11-25-release-handoff.md#具名工具拒绝修复的-windows-实装验收)。还已核对官方 API 响应、账号路由的回环 HTTP 请求及两个正式版写出的 v4 会话。主线和内核候选已验证[连续具名拒绝、保留无关声明与原会话的恢复提示](requirements/2026-11-25-release-handoff.md#点名拒绝后的恢复与缓存排查)。桌面账号真实登录、单会话单工具停用和标准环境的回放仍待验收。[#23 缓存报告](https://github.com/Water-Run/deepseek-harness-uncensored/issues/23)未核定第三方服务的实际命中率。
+[#25 会话恢复](requirements/2026-11-25-release-handoff.md#issue-25-的工具声明与会话恢复)列为下一版优先项。主线关闭 REA 后会停止声明及调用已选外部工具。缺省与写作 Windows 候选 `ccf4f669…` 已从两个正式版升级，安装后通过三种普通投影和具名拒绝恢复。[安装器摘要与回执](requirements/2026-11-25-release-handoff.md#具名工具拒绝修复的-windows-实装验收)。还已核对官方 API 响应、账号路由的回环 HTTP 请求及两个正式版写出的 v4 会话。主线和内核候选已验证[连续具名拒绝、保留无关声明与原会话的恢复提示](requirements/2026-11-25-release-handoff.md#点名拒绝后的恢复与缓存排查)。新版候选在 Fedora 45 通过 Headless 与 SDK 的两条动态工具回放。旧主线的标准环境回放、桌面账号真实登录和单会话单工具停用仍待验收。[#23 缓存报告](https://github.com/Water-Run/deepseek-harness-uncensored/issues/23)未核定第三方服务的实际命中率。
 
 下一版源码已完成关于页与设置调整、跨对话记忆总开关和余额历史范围选择。Windows x64 上已验收桌面与窄屏布局、余额双端拖动和开关持久化。四组旧版 Web 会话回放在 Windows 上仍有差异，涉及 Unix Shell、平台技能目录和既有系统提示词断言，需在支持的平台复验。[默认值升级说明](../docs/upgrade-guide/v0.2.2-rc.5/memory-and-balance-defaults/guide.zh.md)
 
@@ -24,7 +24,7 @@
 
 旧会话升级已补测输入建议。两个正式版分别调用原版输入建议写入器生成压缩 v4 会话，候选 `6283464b` 续写后冷重开，两组各 30 个原文件的 SHA-256 均一致。缺省与写作的 Windows 安装器 `ad437c3b…` 也已从两个正式版实装升级，用安装后的应用续写旧会话并在同版重装后重新读取。[漏检原因、安装器摘要与复验步骤](requirements/2026-11-25-release-handoff.md#含输入建议的旧会话)
 
-Linux 候选已接入 x64（deb、rpm、tar.gz）与 arm64（deb、tar.gz）的原生打包和逐包校验。Fedora x64 实机通过了编译工具链预检，首次干净构建发现的记忆模块类型导入已改用内核公开入口。[Linux 候选的原生构建](requirements/2026-11-25-release-handoff.md#linux-候选的原生构建)
+Linux 候选已接入 x64（deb、rpm、tar.gz）与 arm64（deb、tar.gz）的原生打包和逐包校验。Fedora 45 x64 实机已生成三种未签名归档，核对桌面关于页、默认工作区和独立 Node。Debian 13、Fedora 44 已分别完成安装及同版重装，并用两个正式版写出的 v4 会话验证续写和重开。旧 Linux 安装包的直接覆盖升级、实体桌面门户、arm64 原生验收待完成。[Linux 候选的原生构建](requirements/2026-11-25-release-handoff.md#linux-候选的原生构建)
 
 当前交付为[Windows x64 首发打包交接](requirements/windows-x64-first-release.md)。应交付功能须在同一候选逐项验证，缺项或待验均使首发保持待交付。
 
@@ -105,7 +105,7 @@ Linux 候选已接入 x64（deb、rpm、tar.gz）与 arm64（deb、tar.gz）的�
 
 ## 后续版本（4 项）
 
-- [ ] **Linux x64 Desktop**（02.09、17.07）：历史归档复验了启动 404 修复、X11/Wayland 主界面和重载。Fedora 45 实体机已通过 CLI、版本身份、SDK 导入及依赖检查。打包预检停在 `musl-gcc`，工具链源归档和 rc.5 源码增量已核对。后续继续原生门户、实体桌面交互及发行验收。[测试记录](requirements/2026-11-18-linux-test-host.md)
+- [ ] **Linux x64 Desktop**（02.09、17.07）：历史归档复验了启动 404 修复、X11/Wayland 主界面和重载。此前的 rc.5 检查停在 `musl-gcc`。新版缺省与写作候选已在 Fedora 45 生成并核验三种归档，deb 和 RPM 均通过安装及同版重装。原生门户、实体桌面交互及完整发行验收仍待完成。[测试记录](requirements/2026-11-18-linux-test-host.md)
 - [ ] **macOS ARM Desktop**。
 - [ ] **Android＋PRoot Fedora**。
 - [ ] **全新独立安装器**；当前继续维护现有 DSHU NSIS 安装器。[计划](requirements/desktop-installer-plan.md)

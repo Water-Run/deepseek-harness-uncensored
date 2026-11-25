@@ -302,7 +302,7 @@
 | [使用手册](docs/user/guide/dshu.md) | 第一个任务、各模式用法、默认值、数据恢复、故障排查和功能入口速查 |
 | [模型配置](docs/user/guide/providers.zh.md) | 模型提供方、凭据与自定义接口 |
 | [模式资料](packages/client/ui-mode-materials/README.zh.md) · [REA 接入](packages/mcp/rea/README.zh.md) · [执行保护](packages/guard/target-protection/README.zh.md) | 专项功能的技术说明 |
-| [新版接手文档](.agents/requirements/2026-11-25-release-handoff.md) · [开发清单](.agents/TODO.md) · [交付记录](.agents/HANDOFF.md) | 功能进度、验收状态与发布流程 |
+| [新版接手文档](.agents/requirements/2026-11-25-release-handoff.md) · [开发清单](.agents/TODO.md) · [交付记录](.agents/HANDOFF.md) | [上一正式版功能对照](.agents/requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表)、[合并后的关于页](.agents/requirements/2026-11-25-release-handoff.md#合并后的关于页)与分平台发行验收 |
 | [反馈问题](https://github.com/Water-Run/deepseek-harness-uncensored/issues/new/choose) | 缺陷报告与功能建议 |
 
 ## 版本基线
@@ -311,7 +311,10 @@
 | --- | --- |
 | DSHU | 最新正式版 `2026.11.24.3` |
 | DeepSeek Harness | 源码基于 [0.2.2-rc.5](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.5) |
-| 新内核候选 | DSHU `2026.11.25.0` 使用 DSH `0.2.3-alpha.2`。缺省与写作已接入跨对话记忆、余额历史和模式设置。关于页左侧显示 DSHU 日期版本，右侧列出内核与组件信息。[桌面](docs/assets/dshu/about-candidate.webp) · [窄屏](docs/assets/dshu/about-candidate-mobile.webp) · [Windows 安装器与版本身份](.agents/requirements/2026-11-25-release-handoff.md#windows-安装器与版本身份)。Windows x64 未签名候选已从首发版和上一正式版完成静默升级，验证了降级保护、无效登记拦截和旧写作会话保留。[安装包摘要与升级结果](.agents/requirements/2026-11-25-release-handoff.md#issue-24-的首发版静默升级)。Linux x64 与 arm64 的源码候选已接入原生打包与逐包校验。[Linux 候选构建与验收](.agents/requirements/2026-11-25-release-handoff.md#linux-候选的原生构建)。四模式正式发行仍在验收。 |
+| 新内核候选 | DSHU `2026.11.25.0` 使用 DSH `0.2.3-alpha.2`，目前只含缺省与写作。跨对话记忆、余额历史和模式设置已接入。关于页左侧显示 DSHU 日期版本，右侧列出内核、源码与组件信息。[桌面](docs/assets/dshu/about-candidate.webp) · [窄屏](docs/assets/dshu/about-candidate-mobile.webp) |
+| 与正式版的差异 | 候选仍缺日出日落主题和关于页内的更新检查。旁问、随问和新输入预测也待补齐并实测。完整四模式版本仍待交付。[逐项对照与现有证据](.agents/requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表) |
+| Windows x64 候选 | 未签名安装器已从首发版和上一正式版完成静默升级，已验证降级保护、无效登记拦截和旧写作会话保留。[版本身份](.agents/requirements/2026-11-25-release-handoff.md#windows-安装器与版本身份) · [安装包摘要与升级结果](.agents/requirements/2026-11-25-release-handoff.md#issue-24-的首发版静默升级) |
+| Linux 候选 | x64 的 deb、RPM、tar.gz 已逐包核验。Debian 13 和 Fedora 44 已验证安装、同版重装和两代旧会话，Fedora 45 已启动桌面和便携 CLI。arm64 已接入打包，待原生验收。[安装包摘要与实测范围](.agents/requirements/2026-11-25-release-handoff.md#linux-x64-未签名安装包与回执) |
 | 破甲提示词 | dsh-purge Community [v1.7.20](https://github.com/kingcharleslzy-ai/dsh-purge/releases/tag/v1.7.20) |
 | REA | [6.9.0 · d74549e495c5](https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0) |
 

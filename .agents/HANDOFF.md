@@ -1,6 +1,8 @@
 # DSHU 开发交接
 
-[当前四模式新版接手文档](requirements/2026-11-25-release-handoff.md)列出主线与候选的区别、七项需求、旧资料验证、分平台验收和维护者分工。下列为 2026-11-18 至 19 日交付记录。
+接手下一正式版请从[发行条件](requirements/2026-11-25-release-handoff.md#正式版接手清单)开始，再填写[上一正式版逐项差异表](requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表)。合并后按[关于页字段和更新入口](requirements/2026-11-25-release-handoff.md#合并后的关于页)与[发布前核对](requirements/2026-11-25-release-handoff.md#发布前最后一次核对)复验最终安装包。当前新内核包仅含缺省与写作，完整四模式发行仍待验收。
+
+下列为 2026-11-18 至 19 日的历史交付记录。
 
 [Windows x64 首发交接与缺口清单](requirements/2026-11-19-first-release-handoff.md)记录当前源码和实装的对应关系、剩余任务、Release 核验与资料回退。
 

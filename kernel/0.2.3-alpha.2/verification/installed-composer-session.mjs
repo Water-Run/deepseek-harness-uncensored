@@ -5,10 +5,15 @@ import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 const [phase, directory, sample, ...extra] = process.argv.slice(2)
-if (!process.versions.electron || !['write', 'continue', 'reopen'].includes(phase) || !directory || !sample || extra.length) {
-  throw new Error('Use the installed desktop Electron executable with write|continue|reopen, a fixture directory and the prediction sample.')
+const linuxNode = '/resources/runtime/primary-runtime/dependencies/node/bin/node'
+const standalone = process.platform === 'linux' && process.execPath.endsWith(linuxNode)
+if ((!standalone && !process.versions.electron) || !['write', 'continue', 'reopen'].includes(phase) || !directory || !sample || extra.length) {
+  throw new Error('Use the packaged Linux Node or the installed desktop Electron with write|continue|reopen, a fixture directory and the prediction sample.')
 }
-const packages = join(dirname(process.execPath), 'resources', 'app.asar', 'dsh', 'node_modules', '@deepseek-ai')
+const archive = standalone
+  ? join(process.execPath.slice(0, -linuxNode.length), 'resources', 'app.asar.unpacked')
+  : join(dirname(process.execPath), 'resources', 'app.asar')
+const packages = join(archive, 'dsh', 'node_modules', '@deepseek-ai')
 const bundled = name => import(pathToFileURL(join(packages, name, 'lib', 'index.js')).href)
 const { Context } = await bundled('cordis')
 const { Session } = await bundled('dsh-session')

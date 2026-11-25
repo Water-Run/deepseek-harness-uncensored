@@ -32150,7 +32150,7 @@ index 6f5233d8fc76621d9d528b257a8e11cfd4284f79..5ca2c7e5ad0577472de6e35b08ea0954
    }
  }
 diff --git a/apps/desktop/scripts/electron-builder-config.mjs b/apps/desktop/scripts/electron-builder-config.mjs
-index a777a0582e8b22e6bee9212188c320b148ea5df5..cfccfa6f2d0fed01a220b60d5c5215ca973fde98 100644
+index a777a0582e8b22e6bee9212188c320b148ea5df5..234f22adbeea67b554659d5c88909bf0691af4dd 100644
 --- a/apps/desktop/scripts/electron-builder-config.mjs
 +++ b/apps/desktop/scripts/electron-builder-config.mjs
 @@ -22,7 +22,9 @@ import {
@@ -32164,7 +32164,7 @@ index a777a0582e8b22e6bee9212188c320b148ea5df5..cfccfa6f2d0fed01a220b60d5c5215ca
  import { resolveDesktopPolicyEnvironment } from './desktop-policy-environment.mjs'
  import { desktopArtifactOutput, desktopTargetBuildPaths, resolveDesktopBuildTarget } from './desktop-build-paths.mjs'
  import { installWindowsDirectoryInstaller } from './windows-directory-installer.mjs'
-@@ -66,7 +68,7 @@ export function createElectronBuilderConfig(
+@@ -66,16 +68,21 @@ export function createElectronBuilderConfig(
    if (skipNotarization && (unsigned || resolvedPlatform !== 'darwin')) throw new Error('Skipping notarization requires a signed macOS build')
    const packagesMacOS = targetPlatform === 'darwin' || (targetPlatform === undefined && hostPlatform === 'darwin')
    const packagesWindows = resolvedPlatform === 'win32'
@@ -32173,23 +32173,28 @@ index a777a0582e8b22e6bee9212188c320b148ea5df5..cfccfa6f2d0fed01a220b60d5c5215ca
    if (resolvedPlatform === 'win32') installWindowsDirectoryInstaller()
    const macOSSigning = packagesMacOS && !unsigned ? resolveMacOSSigningEnvironment(env) : undefined
    if (packagesMacOS && !unsigned && !skipNotarization) resolveMacOSNotarizationEnvironment(env)
-@@ -75,7 +77,8 @@ export function createElectronBuilderConfig(
+   const buildPaths = desktopTargetBuildPaths(resolveDesktopBuildTarget(env, hostPlatform, hostArch), env)
++  if (preparedRuntime !== undefined) buildPaths.dsh = preparedRuntime
+   const output = desktopArtifactOutput(buildPaths, { unsigned, skipNotarization })
    let primaryRuntimeDestination
    let dshDestination
    let windowsCode = []
 -  const unpack = ['**/*.{node,dylib,dll,so,exe}', '**/*.so.*', '**/spawn-helper', '**/@vscode/ripgrep-*/bin/rg',
-+  // Standalone Linux Node reads the Host from disk. ASAR indexes and verifies these same files.
-+  const unpack = [...(resolvedPlatform === 'linux' ? ['dsh/**/*'] : []), '**/*.{node,dylib,dll,so,exe}', '**/*.so.*', '**/spawn-helper', '**/@vscode/ripgrep-*/bin/rg',
++  // electron-builder matches source paths relative to the application, before mapping them into ASAR.
++  const linuxHostFiles = resolvedPlatform === 'linux'
++    ? [relative(fileURLToPath(new URL('..', import.meta.url)), buildPaths.dsh).split(sep).join('/') + '/**/*']
++    : []
++  const unpack = [...linuxHostFiles, '**/*.{node,dylib,dll,so,exe}', '**/*.so.*', '**/spawn-helper', '**/@vscode/ripgrep-*/bin/rg',
      `**/node_modules/@deepseek-ai/libreoffice-kit-${resolvedPlatform}-${resolvedArch}/**/*`,
      // LaunchServices opens the Computer Use helper as an application, so every file of its bundles stays on disk.
      // Both architectures ship: they form one notarized payload whose manifest staging verifies as a whole.
-@@ -99,28 +102,33 @@ export function createElectronBuilderConfig(
+@@ -99,28 +106,32 @@ export function createElectronBuilderConfig(
    if (windowsSigner !== undefined) {
      installWindowsNsisBootstrapSigner({ sign: windowsSigner })
    }
 -  const update = unsigned ? undefined : resolveDesktopAutoUpdateConfig(env, resolvedPlatform, resolvedArch)
+-  if (preparedRuntime !== undefined) buildPaths.dsh = preparedRuntime
 +  const update = unsigned || resolvedPlatform === 'linux' ? undefined : resolveDesktopAutoUpdateConfig(env, resolvedPlatform, resolvedArch)
-   if (preparedRuntime !== undefined) buildPaths.dsh = preparedRuntime
    // electron-builder merges extraMetadata into the packaged manifest, so a build version here reaches
    // the artifact names, the update feed, and the installed app.getVersion() the updater compares against.
 -  const productVersion = JSON.parse(readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8')).version
@@ -32224,7 +32229,7 @@ index a777a0582e8b22e6bee9212188c320b148ea5df5..cfccfa6f2d0fed01a220b60d5c5215ca
      directories: { output: output.directory },
      asar: true,
      electronDist: buildPaths.electron,
-@@ -132,7 +140,7 @@ export function createElectronBuilderConfig(
+@@ -132,7 +143,7 @@ export function createElectronBuilderConfig(
          '-OutputDirectory', join(buildPaths.root, 'installer-ui')], {
          env: scrubWindowsSigningEnvironment(env), windowsHide: true,
        })
@@ -32233,7 +32238,7 @@ index a777a0582e8b22e6bee9212188c320b148ea5df5..cfccfa6f2d0fed01a220b60d5c5215ca
        if (windowsSigner !== undefined) {
          await windowsSigner({ path: join(buildPaths.root, 'installer-ui', 'window-frame.dll'), hash: 'sha256', isNest: false })
        }
-@@ -162,6 +170,9 @@ export function createElectronBuilderConfig(
+@@ -162,6 +173,9 @@ export function createElectronBuilderConfig(
        { from: fileURLToPath(new URL('../resources/icon-windows.png', import.meta.url)), to: 'icon.png' },
        // Windows tray bitmaps; macOS keeps the Dock and ships no menu bar icon.
        ...(packagesWindows ? [{ from: fileURLToPath(new URL('../resources/tray-windows.ico', import.meta.url)), to: 'tray.ico' }] : []),
@@ -32243,16 +32248,19 @@ index a777a0582e8b22e6bee9212188c320b148ea5df5..cfccfa6f2d0fed01a220b60d5c5215ca
      ],
      mac: {
        icon: fileURLToPath(new URL('../resources/icon-macos.png', import.meta.url)),
-@@ -211,7 +222,7 @@ export function createElectronBuilderConfig(
+@@ -210,8 +224,9 @@ export function createElectronBuilderConfig(
+       }
        // The bundled runtime declares whichever version prepared it: the product version for an ordinary
        // release, and a rewritten one for installed-update qualification.
-       await verifyDesktopRuntime(buildPaths.dsh,
+-      await verifyDesktopRuntime(buildPaths.dsh,
 -        preparedRuntimeVersion ?? productVersion, { platform: resolvedPlatform, arch: resolvedArch })
++      const hostRoot = resolvedPlatform === 'linux' ? join(resourcesDir, 'app.asar.unpacked', 'dsh') : buildPaths.dsh
++      await verifyDesktopRuntime(hostRoot,
 +        preparedRuntimeVersion ?? kernelVersion, { platform: resolvedPlatform, arch: resolvedArch })
        // Unsigned Windows builds skip electron-builder's afterSign hook.
        if (packagesWindows && unsigned) await verifyWindowsAsarUnpack(buildPaths.dsh, resourcesDir, windowsCode)
      },
-@@ -255,8 +266,25 @@ export function createElectronBuilderConfig(
+@@ -255,8 +270,25 @@ export function createElectronBuilderConfig(
        target: ['nsis'],
      },
      linux: {
@@ -35227,10 +35235,10 @@ index 2973a6eaccbe3dff5fe807b4ea9bb4f6cad46352..68221537f7eabf9586c577a8c36bebec
      readonly forceCodeSigning: boolean
      readonly signtoolOptions: {
 diff --git a/apps/desktop/package.json b/apps/desktop/package.json
-index bc3faafabbf221d80ef72a5bc20ca30f24627a62..b7270ee6910342467c0317097ff0eb53b5101fed 100644
+index bc3faafabbf221d80ef72a5bc20ca30f24627a62..f1781c2ddead8a1556a225459abe2e6c6d82caee 100644
 --- a/apps/desktop/package.json
 +++ b/apps/desktop/package.json
-@@ -1,12 +1,15 @@
+@@ -1,14 +1,18 @@
  {
    "name": "@deepseek-ai/dsh-desktop",
 -  "description": "Electron desktop shell for a bundled dsh runtime and external plugins",
@@ -35248,8 +35256,11 @@ index bc3faafabbf221d80ef72a5bc20ca30f24627a62..b7270ee6910342467c0317097ff0eb53
 +  "homepage": "https://github.com/Water-Run/deepseek-harness-uncensored",
    "type": "module",
    "main": "lib/main.js",
++  "desktopName": "deepseek-harness-uncensored.desktop",
    "scripts": {
-@@ -30,6 +33,10 @@
+     "test:installer": "node scripts/test-windows-installer.mjs",
+     "build": "tsc -b && pnpm run bundle",
+@@ -30,6 +34,10 @@
      "check:package": "tsx scripts/package-target.ts --check",
      "restore:mac-proxy": "tsx scripts/macos-notarization-proxy.ts",
      "package:dir": "tsx scripts/package-target.ts --dir",
@@ -39710,14 +39721,16 @@ index 0000000000000000000000000000000000000000..4e2e72e6a64d3b9786eac3f4317d114d
 +})
 diff --git a/apps/desktop/tests/linux-packaging.spec.ts b/apps/desktop/tests/linux-packaging.spec.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..5ae6bd159aa00b40a2b95cb28a313e6b3a6db98b
+index 0000000000000000000000000000000000000000..c889d8d37d8f677737e4cf0e63b2b879dc59336e
 --- /dev/null
 +++ b/apps/desktop/tests/linux-packaging.spec.ts
-@@ -0,0 +1,69 @@
+@@ -0,0 +1,77 @@
 +/** Linux target identity, isolated packaging settings and installer formats. */
++import { statSync } from 'node:fs'
++import { FileMatcher } from 'app-builder-lib/out/fileMatcher.js'
 +import { mkdtemp, writeFile, rm } from 'node:fs/promises'
 +import { tmpdir } from 'node:os'
-+import { join } from 'node:path'
++import { join, resolve } from 'node:path'
 +import { expect, it, onTestFinished } from 'vitest'
 +import { parseDesktopPackageInvocation, resolveDesktopPackageTarget } from '../scripts/package-target.ts'
 +import { desktopTargetBuildPaths } from '../scripts/desktop-build-paths.mjs'
@@ -39738,7 +39751,13 @@ index 0000000000000000000000000000000000000000..5ae6bd159aa00b40a2b95cb28a313e6b
 +  expect(config.appId).toBe('com.deepseek.dsh.uncensored')
 +  expect(config.linux).toMatchObject({ executableName: 'deepseek-harness-uncensored', syncDesktopName: true, target: ['deb', 'rpm', 'tar.gz'] })
 +  expect(config.protocols).toEqual([{ name: 'DeepSeek Harness Uncensored', schemes: ['dshu'] }])
-+  expect(config.asarUnpack).toContain('dsh/**/*')
++  const app = resolve(import.meta.dirname, '..')
++  const unpack = new FileMatcher(app, app, pattern => pattern, [...config.asarUnpack]).createFilter()
++  const root = desktopTargetBuildPaths('linux-x64').dsh
++  const file = statSync(process.execPath)
++  expect(unpack(join(root, 'desktop-runtime.json'), file)).toBe(true)
++  expect(unpack(join(root, 'node_modules', '@deepseek-ai', 'dsh-desktop-host', 'lib', 'cli.js'), file)).toBe(true)
++  expect(unpack(join(app, 'lib', 'main.js'), file)).toBe(false)
 +  expect(config.publish).toBeNull()
 +})
 +
