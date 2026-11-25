@@ -14876,7 +14876,7 @@ index 0000000000000000000000000000000000000000..7aa03cebc166f1d04de1f058a5e4a3db
 +
 +export default clientBundle(import.meta.dirname, ['lib/types/index.js'])
 diff --git a/packages/client/ui-primitives/README.i18n.yaml b/packages/client/ui-primitives/README.i18n.yaml
-index 61b3e617fc8de35d84ec9c94299d5de269fd0f60..fb8d39342f2c58eda6e732b88020835eb2b3a764 100644
+index 61b3e617fc8de35d84ec9c94299d5de269fd0f60..757c8ef7b13d22ebfd0f0e721ff2c453defae388 100644
 --- a/packages/client/ui-primitives/README.i18n.yaml
 +++ b/packages/client/ui-primitives/README.i18n.yaml
 @@ -9,8 +9,8 @@
@@ -14890,8 +14890,19 @@ index 61b3e617fc8de35d84ec9c94299d5de269fd0f60..fb8d39342f2c58eda6e732b88020835e
  /deepseek-ai-dsh-client-ui-primitives/table-of-contents:
    en: d152484eb41ac6b4
    zh: 09388d293f9be9cb
+@@ -18,8 +18,8 @@
+   en: f4b8f00c40213dc1
+   zh: 7d12e0b41beabda4
+ /deepseek-ai-dsh-client-ui-primitives/use-this-package/component-catalog:
+-  en: 1f3e18f55d78ba89
+-  zh: f56a2d44e6bc73b1
++  en: 4e858d758e7d6d35
++  zh: 1764e03e242bacb8
+ /deepseek-ai-dsh-client-ui-primitives/use-this-package/controls-and-icons:
+   en: ba57395620c1aab5
+   zh: 551f454132fb4669
 diff --git a/packages/client/ui-primitives/README.md b/packages/client/ui-primitives/README.md
-index de08307ab88aa3735106f18068f3a6be88bc54bb..20607f264379c93473ecf610b4cf6078047a07bd 100644
+index de08307ab88aa3735106f18068f3a6be88bc54bb..13aeb5b60a2a9c38d9d78796f4cd6ba220335b54 100644
 --- a/packages/client/ui-primitives/README.md
 +++ b/packages/client/ui-primitives/README.md
 @@ -9,6 +9,8 @@ English | [中文](README.zh.md)
@@ -14903,8 +14914,17 @@ index de08307ab88aa3735106f18068f3a6be88bc54bb..20607f264379c93473ecf610b4cf6078
  Use `dsh-client-ui-primitives` to build web-client controls and render agent output with shared React UI. It includes standard controls, icons, anchored overlays, and renderers for Markdown with TeX, terminal output, file reads, diffs, search, web retrieval, and JSON. The renderers handle untrusted model output by dropping raw HTML, restricting links, and parsing ANSI escape sequences. The components import no Cordis runtime; callers supply localized labels, and theme-facing colors use `--dsw-*` design tokens.
  
  ## Table of Contents
+@@ -58,7 +60,7 @@ Check this table before writing a control in a feature package. A plugin cannot
+ | `Tag` | Read-only capsule badge; `tone` selects one of eight palettes. |
+ | `PathLabel` | Single-line file path with subdued directories, a primary filename, and the full path on hover. Fitting paths align left; clipped paths preserve their suffix with a left-edge fade that updates on path and size changes. |
+ | `MarqueeText`, `useHoverMarquee` | Single-line text that clips with an ellipsis at rest, and the hook that marquees it: spread the pointer handlers it returns onto the owning row, and while the pointer is on the row a clipped text travels at 30px/s to its far edge and holds there, fading the edges that still hide text; leaving returns it to the start at once. The stylesheet animates the travel, and the hook measures the overflow once per entry. `hold` keeps the text marqueed without the pointer, such as while the row's menu is open. Overflow of at most 8px, touch pointers, and text that fits stay put; reduced motion shows the far edge at once. |
+-| `StateDot` | Solid green `done`, amber `warning`, red `error`, and neutral-grey `idle` marks in a 10px slot, plus a tertiary-grey 14px rotating `ongoing` loader whose animations pin to document time zero on mount and on every animation restart, such as a list reorder, so every visible loader rotates in phase. `aria-hidden`, so the render site owns the name. `appearance="step"` shows a filled check for completion and a hollow pending circle. |
++| `StateDot` | Solid green `done`, amber `warning`, red `error`, and neutral-grey `idle` marks in a 10px slot, plus a tertiary-grey 14px rotating `ongoing` loader whose animations pin to document time zero on mount and on every animation restart, such as a list reorder, so every visible loader rotates in phase. `aria-hidden`, so the render site owns the name. `appearance="step"` shows a filled check for completion and a hollow pending circle. The dashed ongoing ring denotes activity in a side conversation. |
+ | `ConnectionIndicator` | Inline connection-recovery control across outage, retry, and recovered states. |
+ | `DisclosureRow` | 24px compact disclosure that lays title and content side by side. The header supplies tertiary at rest and secondary on hover; text and icons inherit it regardless of expandability or open state unless the caller supplies a feature-specific override. Semantic status colors remain explicit. Collapsed rows preview a down chevron on hover, and expanded rows keep an up chevron visible. `headerAccessory` places an independent action outside the disclosure target and shimmer; with an accessory, the title row shrinks to its content width. Memoized with shallow prop comparison; keep callbacks and React-node props stable when their content is unchanged. |
+ | `AnimatedRows` | Keyed list movement with 200 ms glides and 100 ms entry/exit fades. Starts after local pointer or keyboard input, honors reduced motion, and settles loading or view replacement. Only rows intersecting both the list and the browser window animate; all rows remain mounted. Mark rows with `data-row-key`, supply matching `rowKeys`, and position the parent for the inert exit overlay; `role` and `label` belong to the caller. |
 diff --git a/packages/client/ui-primitives/README.zh.md b/packages/client/ui-primitives/README.zh.md
-index efbfbf3cf2745249bd9a7c0efabbe2c395402f13..b5a9675b2961540ea833eff5546868c357adb8e7 100644
+index efbfbf3cf2745249bd9a7c0efabbe2c395402f13..32c5b9fc0317d33bbbc1f763ac2573467aa0ea95 100644
 --- a/packages/client/ui-primitives/README.zh.md
 +++ b/packages/client/ui-primitives/README.zh.md
 @@ -9,6 +9,8 @@ kind: "package-library"
@@ -14916,6 +14936,15 @@ index efbfbf3cf2745249bd9a7c0efabbe2c395402f13..b5a9675b2961540ea833eff5546868c3
  使用 `dsh-client-ui-primitives`，通过共享 React UI 构建 Web 客户端控件并渲染 agent 输出。它提供标准控件、图标、锚定浮层，以及用于带 TeX 公式的 Markdown、终端输出、文件读取、差异、搜索、网页检索和 JSON 的渲染器。这些渲染器会丢弃原始 HTML、限制链接并解析 ANSI 转义序列，以处理不受信任的模型输出。组件不 import Cordis 运行时；调用方提供本地化 label，主题相关颜色使用 `--dsw-*` 设计 token。
  
  ## 目录
+@@ -58,7 +60,7 @@ kind: "package-library"
+ | `Tag` | 只读胶囊徽章；`tone` 选择八种配色之一。 |
+ | `PathLabel` | 单行文件路径：目录使用弱化颜色，文件名使用主色，悬停可查看完整路径。空间足够时靠左显示；溢出时保留尾部并在左侧渐隐，路径或尺寸变化时更新。 |
+ | `MarqueeText`、`useHoverMarquee` | 静止时以省略号截断的单行文字，以及让它滚动显示的 hook：把 hook 返回的指针处理函数展开到所在的行上，指针停在行上时，被截断的文字以 30px/s 匀速移到末尾并停在那里，仍有文字被遮住的边缘渐隐；离开时立即回到开头。移动由样式表的动画完成，hook 每次进入只测量一次溢出宽度。`hold` 让文字在指针不在行上时也保持滚动显示，例如行的菜单打开期间。溢出不超过 8px、触摸指针以及放得下的文字都不滚动；减少动态效果时直接显示末尾。 |
+-| `StateDot` | 10px 槽内的绿色 `done`、琥珀色 `warning`、红色 `error`、中性灰色 `idle` 圆点，以及 tertiary 灰色 14px 旋转 `ongoing` loading，其动画在挂载时以及每次动画重启（如列表重排）时固定到文档时间零点，所以所有可见 loading 同相旋转。它是 `aria-hidden` 的，名称由渲染点提供。 `appearance="step"` 以实心勾表示完成、空心圆表示等待。 |
++| `StateDot` | 10px 槽内的绿色 `done`、琥珀色 `warning`、红色 `error`、中性灰色 `idle` 圆点，以及 tertiary 灰色 14px 旋转 `ongoing` loading，其动画在挂载时以及每次动画重启（如列表重排）时固定到文档时间零点，所以所有可见 loading 同相旋转。它是 `aria-hidden` 的，名称由渲染点提供。 `appearance="step"` 以实心勾表示完成、空心圆表示等待。 虚线运行圆环表示所属旁问正在运行。 |
+ | `ConnectionIndicator` | 行内连接恢复控件，覆盖断线、重试与已恢复三种状态。 |
+ | `DisclosureRow` | 24px 紧凑折叠行，标题与内容左右排列。标题行默认使用 tertiary，悬停时使用 secondary；文字与图标继承该颜色，不受能否展开及开合状态影响，调用方可提供功能专属覆盖。语义状态色保持显式指定。收起时悬停预览向下箭头，展开后持续显示向上箭头。`headerAccessory` 将独立操作放在折叠触发区域和流光之外；有此操作时，标题行收窄到内容宽度。使用浅层 prop 比较进行 memo；内容未变时，保持回调与 React 节点 prop 的引用稳定。 |
+ | `AnimatedRows` | 带键列表的位移动画：移动为 200 ms，进出淡变为 100 ms。列表内发生指针或键盘输入后才启用，遵循减少动态效果设置，加载或替换视图时直接完成。只有同时与列表和浏览器窗口相交的行才做动画，所有行仍保持挂载。为行标记 `data-row-key` 并传入对应的 `rowKeys`，为父容器设置定位以承载不可交互的退出层；`role` 和 `label` 由调用方提供。 |
 diff --git a/packages/client/ui-primitives/src/StatPopover.module.css b/packages/client/ui-primitives/src/StatPopover.module.css
 new file mode 100644
 index 0000000000000000000000000000000000000000..69cc30b7d95e206cf6d27bd770120eb9983a25b6
@@ -17207,7 +17236,7 @@ index 1242197b3b92c42f21e2096e0fdb724fdafaa883..8fded9b9a9b722aa2c1f9079b0272545
    'account/getBalance': 'owner-only', // owner account and sign-in; the served page never reads it
    'account/getProfile': 'owner-only', // owner account and sign-in; the served page never reads it
 diff --git a/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts b/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
-index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..3b3ad3020ac2731cd17e906dd5b08ef4d8f6da00 100644
+index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..209430ddd2952eba9e3eb9b550e8ccd9bed5ed4a 100644
 --- a/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
 +++ b/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
 @@ -256,7 +256,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
@@ -17546,7 +17575,7 @@ index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..3b3ad3020ac2731cd17e906dd5b08ef4
 +    ],
 +    replaceRisk: 'shadows-shipped-ui',
 +    example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'sidebar.aside.conversation\', () => ctx.slots.register(\n      { name: \'sidebar.aside.conversation\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-+    source: 'packages/client/ui-commands/src/client/asides/side.ts:18',
++    source: 'packages/client/ui-commands/src/client/asides/side.ts:19',
 +  },
    {
      key: 'sidebar.brand.mark',
@@ -17644,7 +17673,7 @@ index 499e54817fd3d4e3b75355ae7c6214b6bfd9aa2a..3b3ad3020ac2731cd17e906dd5b08ef4
        'client-ui-schedule ScheduleTaskTabTitle',
        'client-ui-sidebar-browser BrowserTitle',
 diff --git a/packages/extensions/tool-cordis/src/api-catalog.ts b/packages/extensions/tool-cordis/src/api-catalog.ts
-index 84bf84164a56fd17f6575eeec815ef47f3a55bfb..a0d0965d97173d9f450dc48495583bf7c59b257c 100644
+index 84bf84164a56fd17f6575eeec815ef47f3a55bfb..17f112b319fd9bcda8f8aa2c60a5c5dfe09f9b10 100644
 --- a/packages/extensions/tool-cordis/src/api-catalog.ts
 +++ b/packages/extensions/tool-cordis/src/api-catalog.ts
 @@ -2704,6 +2704,179 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
@@ -18295,6 +18324,15 @@ index 84bf84164a56fd17f6575eeec815ef47f3a55bfb..a0d0965d97173d9f450dc48495583bf7
    {
      name: 'SessionAssistantStreamAttempt',
      declaration: 'export interface SessionAssistantStreamAttempt {\n    readonly attemptId: LlmAttemptId;\n    readonly startedAfterSeq: SessionSeqCursor;\n    readonly turn: number;\n    readonly step: number;\n    readonly nextIndex: number;\n    readonly stream: readonly JsonValue[];\n}',
+@@ -10040,7 +10581,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
+   },
+   {
+     name: 'SessionListMetadata',
+-    declaration: 'export interface SessionListMetadata {\n    readonly blank: boolean;\n    readonly lastPromptAt: number | null;\n}',
++    declaration: 'export interface SessionListMetadata {\n    readonly blank: boolean;\n    readonly lastPromptAt: number | null;\n    readonly lastTurnFailed?: boolean | undefined;\n    readonly side?: {\n        readonly generation: number;\n        readonly fromSeq: number;\n        readonly asked: boolean;\n        readonly result?: {\n            readonly seq: number;\n            readonly interrupted: boolean;\n        } | undefined;\n    } | undefined;\n}',
+   },
+   {
+     name: 'SessionListRequest',
 @@ -10086,6 +10627,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
      name: 'SessionLogUploadRequest',
      declaration: 'export interface SessionLogUploadRequest {\n    readonly sessionId: SessionId;\n    readonly purpose?: string;\n}',
@@ -46789,43 +46827,15 @@ index bef86c7bb32481f7f4f58e030a57c6cc0ce2d226..06b4f278c8f1a3c0fdc8f74672f3ae31
  #### `api-session/status` — emit
 diff --git a/packages/api/session-controller/src/aside-identity.ts b/packages/api/session-controller/src/aside-identity.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..c187f91635a0dae82d9d843ab66f1de16f83aa7f
+index 0000000000000000000000000000000000000000..8cb13161c8c596780f40b355ed6bba862ac681a4
 --- /dev/null
 +++ b/packages/api/session-controller/src/aside-identity.ts
-@@ -0,0 +1,73 @@
+@@ -0,0 +1,45 @@
 +/** Native aside identities and their append-only context generations. */
-+import { createHash } from 'node:crypto'
 +import type { Context } from '@deepseek-ai/cordis'
-+import { brandString } from '@deepseek-ai/dsh-brand'
 +import type { SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
-+import type {} from '@deepseek-ai/dsh-session-query'
-+
-+/**
-+ * Derive one parent's canonical side context identity.
-+ * @param parent - Owning main conversation.
-+ * @param generation - Zero for the original side, increasing after each clear.
-+ * @returns The independent side identity; older generations remain historical records.
-+ */
-+export function sideIdentity(parent: SessionId, generation = 0): SessionId {
-+  const base = `session-side-${createHash('sha256').update(parent).digest('hex')}`
-+  return brandString<SessionId>(generation === 0 ? base : `${base}-${generation}`)
-+}
-+
-+/**
-+ * Recognize only the parent's canonical, bounded context generations.
-+ * @param id - Candidate native side identity.
-+ * @param parent - Recorded direct parent.
-+ * @returns The canonical context generation, or undefined for a different identity.
-+ */
-+export function sideGeneration(id: SessionId, parent: SessionId): number | undefined {
-+  const base = sideIdentity(parent)
-+  if (id === base) return 0
-+  if (!id.startsWith(`${base}-`)) return undefined
-+  const suffix = id.slice(base.length + 1)
-+  if (!/^[1-9][0-9]*$/u.test(suffix)) return undefined
-+  const generation = Number(suffix)
-+  return Number.isSafeInteger(generation) ? generation : undefined
-+}
++import { sideGeneration } from '@deepseek-ai/dsh-session-query'
++export { sideGeneration, sideIdentity } from '@deepseek-ai/dsh-session-query'
 +
 +/**
 + * Classify a reserved aside against its recorded parent.
@@ -49462,7 +49472,7 @@ index 0000000000000000000000000000000000000000..f8796dfddf1a2f51b01e9ec1e896a481
 +  expect(screen.getByRole('alert').textContent).toBe('连接中断')
 +})
 diff --git a/packages/client/ui-commands/README.i18n.yaml b/packages/client/ui-commands/README.i18n.yaml
-index 6b6e6681ffa6e6c66677b8d6ca9c2bd2085af051..fcd8d90aedff32e76beb62bea6d7e1d8d52a4eee 100644
+index 6b6e6681ffa6e6c66677b8d6ca9c2bd2085af051..d4009756c04ac105c56388b22cfc84a385c93b33 100644
 --- a/packages/client/ui-commands/README.i18n.yaml
 +++ b/packages/client/ui-commands/README.i18n.yaml
 @@ -3,23 +3,23 @@
@@ -49487,8 +49497,8 @@ index 6b6e6681ffa6e6c66677b8d6ca9c2bd2085af051..fcd8d90aedff32e76beb62bea6d7e1d8
  /deepseek-ai-dsh-client-ui-commands/use-this-package:
 -  en: c325c9eaca4efe47
 -  zh: dbbc29cc9cec54bc
-+  en: 8dda53cc73b77169
-+  zh: 4b0517bb46af5d1d
++  en: e3caf27c9d3cbc85
++  zh: 46deea33017a5296
  /deepseek-ai-dsh-client-ui-commands/use-this-package/kinds-and-decorations:
 -  en: af1cf6b11bd61331
 -  zh: 9ad85e6dbca1d4ec
@@ -49498,7 +49508,7 @@ index 6b6e6681ffa6e6c66677b8d6ca9c2bd2085af051..fcd8d90aedff32e76beb62bea6d7e1d8
    en: e96156be95ea87e3
    zh: f5350db26483ec9f
 diff --git a/packages/client/ui-commands/README.md b/packages/client/ui-commands/README.md
-index 06af4c2eda554c948c835a6fb7d878afa2fbbe7f..21427e929db84089af784a853709721eab8a7e10 100644
+index 06af4c2eda554c948c835a6fb7d878afa2fbbe7f..004f7b9088706517c1a13d0aa6afff77fc5dff8b 100644
 --- a/packages/client/ui-commands/README.md
 +++ b/packages/client/ui-commands/README.md
 @@ -1,5 +1,5 @@
@@ -49521,7 +49531,7 @@ index 06af4c2eda554c948c835a6fb7d878afa2fbbe7f..21427e929db84089af784a853709721e
  <a id="use-this-package"></a>
  ## Use this package
  
-+Open **Side question** in the conversation header or the right sidebar’s **Start** tab, or enter `/side` in the main composer. A question or image sent with `/side` goes to the side conversation. Its composer supports follow-ups while the main task runs. Closing the tab and opening it again returns to the same discussion. Use `/clear` inside the side conversation or choose **Clear conversation history** to start fresh. The composer reopens when the new discussion is ready. To clear on tab closure, enable **Clear side context when closed** in General settings. Collapsing the sidebar or reloading the page keeps the discussion.
++Open **Side question** in the conversation header or the right sidebar’s **Start** tab, or enter `/side` in the main composer. A question or image sent with `/side` goes to the side conversation. Its composer supports follow-ups while the main task runs. Closing the tab and opening it again returns to the same discussion. Use `/clear` inside the side conversation or choose **Clear conversation history** to start fresh. The composer reopens when the new discussion is ready. To clear on tab closure, enable **Clear side context when closed** in General settings. Collapsing the sidebar or reloading the page keeps the discussion. The header shortcut and tab show whether the side question is running, interrupted, unread, or read. An answer is marked read when its panel is visible. Other windows in the same browser share that read position.
 +
 +Enter `/btw <question>` in the main composer to see an independent answer above it. Each question gets its own Session and can run during the main task. General Settings controls the reasoning effort.
 +
@@ -49535,7 +49545,7 @@ index 06af4c2eda554c948c835a6fb7d878afa2fbbe7f..21427e929db84089af784a853709721e
  A popupSelect spec may supply `searchLabels()` to resolve its placeholder, empty-catalog text, and no-match text for each opening. Omitted labels retain the shell's generic copy; labels from one popup never carry into the next.
  
 diff --git a/packages/client/ui-commands/README.zh.md b/packages/client/ui-commands/README.zh.md
-index 57815c729b07d7d270e002ac9227686134a074fd..69f66e3ab86ae0961b7dc97a6c64718151e791f5 100644
+index 57815c729b07d7d270e002ac9227686134a074fd..f169c546b5889bfcb24c69bd1bc0070713ef9d84 100644
 --- a/packages/client/ui-commands/README.zh.md
 +++ b/packages/client/ui-commands/README.zh.md
 @@ -1,5 +1,5 @@
@@ -49558,7 +49568,7 @@ index 57815c729b07d7d270e002ac9227686134a074fd..69f66e3ab86ae0961b7dc97a6c647181
  <a id="use-this-package"></a>
  ## 使用本包
  
-+点击会话顶部的**旁问**、右侧**开始**页的旁问入口，或在主输入框中输入 `/side`。随命令提交的文字和图片会进入旁问。主任务运行时可以在右侧继续提问，关掉标签再打开可接着原来的讨论。在旁问内输入 `/clear` 或点击**清理对话记录**可重新开始。在通用设置开启**旁问关闭后自动清除上下文**后，关闭旁问标签会清理记录。开始清理后，输入框会在新旁问就绪时重新出现。折叠侧栏或刷新页面会保留旁问。
++点击会话顶部的**旁问**、右侧**开始**页的旁问入口，或在主输入框中输入 `/side`。随命令提交的文字和图片会进入旁问。主任务运行时可以在右侧继续提问，关掉标签再打开可接着原来的讨论。在旁问内输入 `/clear` 或点击**清理对话记录**可重新开始。在通用设置开启**旁问关闭后自动清除上下文**后，关闭旁问标签会清理记录。开始清理后，输入框会在新旁问就绪时重新出现。折叠侧栏或刷新页面会保留旁问。顶部入口和页签会提示旁问正在运行、已中断、结果未读或已读。回答在可见的旁问面板中显示后才会标记为已读，同一浏览器的其他窗口也会同步。
 +
 +在主对话输入 `/btw 问题`，可在输入框上方查看独立回答。每次随问拥有自己的会话，可在主任务进行中使用。思考等级在通用设置中调整。
 +
@@ -50154,7 +50164,7 @@ index 2cadc1328702aabd72e1b685bf67076aa36d5e6e..a10a4fd70e911a6a2f0f5830a7dade64
    ctx.plugin(CommandUiRuntime)
    ctx.inject(['slots', 'commandUi', 'sessions'], (scope: ClientContext) => {
 diff --git a/packages/client/ui-commands/src/client/locales.ts b/packages/client/ui-commands/src/client/locales.ts
-index a0c2f140122024573662fba46e0b0cffea665e56..cc669c4f048c3b6d837d6b2565379c182cb8544f 100644
+index a0c2f140122024573662fba46e0b0cffea665e56..3d3c0e15e42cf44728bfd75504e616acf4eed98e 100644
 --- a/packages/client/ui-commands/src/client/locales.ts
 +++ b/packages/client/ui-commands/src/client/locales.ts
 @@ -9,6 +9,30 @@ import { builtinCommandTokens } from '@deepseek-ai/dsh-commands/builtin'
@@ -50188,11 +50198,15 @@ index a0c2f140122024573662fba46e0b0cffea665e56..cc669c4f048c3b6d837d6b2565379c18
    'section.add': '添加',
    'section.commands': '指令',
    'label.goal': '目标',
-@@ -37,6 +61,13 @@ export const zh = {
+@@ -37,6 +61,17 @@ export const zh = {
    'overlay.aria': '/{command} 选项',
    'listbox.aria': '/{command} 匹配项',
    'notice.attachmentsUnsupported': '/{command} 不接受附件，请先移除附件',
 +  'aside.side': '旁问',
++  'aside.status.running': '旁问进行中',
++  'aside.status.read': '旁问结果已读',
++  'aside.status.unread': '旁问有未读结果',
++  'aside.status.interrupted': '旁问已中断',
 +  'aside.sideDescription': '在右侧接着当前上下文提问；关闭后可继续',
 +  'aside.imageOnly': '/side 仅接受图片附件，请移除其他文件后重试',
 +  'aside.imageModelUnsupported': '当前旁问模型不支持图片，请切换到支持图片的模型',
@@ -50202,7 +50216,7 @@ index a0c2f140122024573662fba46e0b0cffea665e56..cc669c4f048c3b6d837d6b2565379c18
  } satisfies Record<string, string>
  
  /** The command namespace key union. */
-@@ -44,6 +75,30 @@ export type CommandKey = keyof typeof zh
+@@ -44,6 +79,30 @@ export type CommandKey = keyof typeof zh
  
  /** English dictionary, checked complete against the zh key set. */
  export const en = {
@@ -50233,11 +50247,15 @@ index a0c2f140122024573662fba46e0b0cffea665e56..cc669c4f048c3b6d837d6b2565379c18
    'section.add': 'Add',
    'section.commands': 'Commands',
    'label.goal': 'Goal',
-@@ -72,10 +127,48 @@ export const en = {
+@@ -72,10 +131,56 @@ export const en = {
    'overlay.aria': '/{command} options',
    'listbox.aria': '/{command} matches',
    'notice.attachmentsUnsupported': '/{command} does not accept attachments; remove them first',
 +  'aside.side': 'Side question',
++  'aside.status.running': 'Side question is working',
++  'aside.status.read': 'Side question result read',
++  'aside.status.unread': 'Unread side question result',
++  'aside.status.interrupted': 'Side question interrupted',
 +  'aside.sideDescription': 'Ask in the right panel with the current context; reopen to continue',
 +  'aside.imageOnly': '/side accepts image attachments only. Remove other files and try again.',
 +  'aside.imageModelUnsupported': 'Switch the side question to a model that supports images.',
@@ -50249,6 +50267,10 @@ index a0c2f140122024573662fba46e0b0cffea665e56..cc669c4f048c3b6d837d6b2565379c18
  /** Japanese copy, checked against the English keys. */
  export const ja = {
 +  'aside.side': 'サイド質問',
++  'aside.status.running': 'サイド質問を処理中',
++  'aside.status.read': 'サイド質問の回答は既読です',
++  'aside.status.unread': 'サイド質問に未読の回答があります',
++  'aside.status.interrupted': 'サイド質問は中断されました',
 +  'aside.sideDescription': '右のパネルで質問し、後から同じ会話を続けられます',
 +  'aside.imageOnly': '/side に添付できるのは画像だけです。他のファイルを外してください。',
 +  'aside.imageModelUnsupported': '画像に対応するモデルに切り替えてください。',
@@ -50282,11 +50304,15 @@ index a0c2f140122024573662fba46e0b0cffea665e56..cc669c4f048c3b6d837d6b2565379c18
    'section.add': '追加',
    'section.commands': 'コマンド',
    'label.goal': '目標',
-@@ -108,6 +201,37 @@ export const ja = {
+@@ -108,6 +213,41 @@ export const ja = {
  
  /** Spanish dictionary, checked against the English keys. */
  export const es = {
 +  'aside.side': 'Pregunta paralela',
++  'aside.status.running': 'Pregunta paralela en curso',
++  'aside.status.read': 'Respuesta paralela leída',
++  'aside.status.unread': 'Respuesta paralela sin leer',
++  'aside.status.interrupted': 'Pregunta paralela interrumpida',
 +  'aside.sideDescription': 'Pregunta en el panel derecho y retoma la conversación más tarde.',
 +  'aside.imageOnly': '/side solo admite imágenes. Quita los demás archivos.',
 +  'aside.imageModelUnsupported': 'Cambia a un modelo que admita imágenes.',
@@ -50320,11 +50346,15 @@ index a0c2f140122024573662fba46e0b0cffea665e56..cc669c4f048c3b6d837d6b2565379c18
    'section.add': 'Añadir',
    'section.commands': 'Comandos',
    'label.goal': 'Objetivo',
-@@ -140,6 +264,37 @@ export const es = {
+@@ -140,6 +280,41 @@ export const es = {
  
  /** French dictionary, checked against the English keys. */
  export const fr = {
 +  'aside.side': 'Question en parallèle',
++  'aside.status.running': 'Question en parallèle en cours',
++  'aside.status.read': 'Réponse parallèle lue',
++  'aside.status.unread': 'Réponse parallèle non lue',
++  'aside.status.interrupted': 'Question en parallèle interrompue',
 +  'aside.sideDescription': 'Posez une question dans le volet droit et reprenez la discussion plus tard.',
 +  'aside.imageOnly': '/side accepte uniquement les images. Retirez les autres fichiers.',
 +  'aside.imageModelUnsupported': 'Choisissez un modèle compatible avec les images.',
@@ -50358,11 +50388,15 @@ index a0c2f140122024573662fba46e0b0cffea665e56..cc669c4f048c3b6d837d6b2565379c18
    'section.add': 'Ajouter',
    'section.commands': 'Commandes',
    'label.goal': 'Objectif',
-@@ -172,6 +327,37 @@ export const fr = {
+@@ -172,6 +347,41 @@ export const fr = {
  
  /** German dictionary, checked against the English keys. */
  export const de = {
 +  'aside.side': 'Nebenfrage',
++  'aside.status.running': 'Nebenfrage wird bearbeitet',
++  'aside.status.read': 'Antwort auf Nebenfrage gelesen',
++  'aside.status.unread': 'Ungelesene Antwort auf Nebenfrage',
++  'aside.status.interrupted': 'Nebenfrage unterbrochen',
 +  'aside.sideDescription': 'Im rechten Bereich fragen und die Unterhaltung später fortsetzen.',
 +  'aside.imageOnly': '/side unterstützt nur Bilder. Entferne andere Anhänge.',
 +  'aside.imageModelUnsupported': 'Wähle ein Modell, das Bilder unterstützt.',
@@ -50396,11 +50430,15 @@ index a0c2f140122024573662fba46e0b0cffea665e56..cc669c4f048c3b6d837d6b2565379c18
    'section.add': 'Hinzufügen',
    'section.commands': 'Befehle',
    'label.goal': 'Ziel',
-@@ -204,6 +390,37 @@ export const de = {
+@@ -204,6 +414,41 @@ export const de = {
  
  /** Russian dictionary, checked against the English keys. */
  export const ru = {
 +  'aside.side': 'Параллельный вопрос',
++  'aside.status.running': 'Параллельный вопрос обрабатывается',
++  'aside.status.read': 'Ответ на параллельный вопрос прочитан',
++  'aside.status.unread': 'Непрочитанный ответ на параллельный вопрос',
++  'aside.status.interrupted': 'Параллельный вопрос прерван',
 +  'aside.sideDescription': 'Задайте вопрос справа и вернитесь к обсуждению позже.',
 +  'aside.imageOnly': 'К /side можно прикрепить только изображения. Удалите остальные файлы.',
 +  'aside.imageModelUnsupported': 'Выберите модель, которая поддерживает изображения.',
@@ -50434,11 +50472,15 @@ index a0c2f140122024573662fba46e0b0cffea665e56..cc669c4f048c3b6d837d6b2565379c18
    'section.add': 'Добавить',
    'section.commands': 'Команды',
    'label.goal': 'Цель',
-@@ -236,6 +453,37 @@ export const ru = {
+@@ -236,6 +481,41 @@ export const ru = {
  
  /** Portuguese dictionary, checked against the English keys. */
  export const pt = {
 +  'aside.side': 'Pergunta paralela',
++  'aside.status.running': 'Pergunta paralela em andamento',
++  'aside.status.read': 'Resposta paralela lida',
++  'aside.status.unread': 'Resposta paralela não lida',
++  'aside.status.interrupted': 'Pergunta paralela interrompida',
 +  'aside.sideDescription': 'Pergunte no painel direito e retome a conversa mais tarde.',
 +  'aside.imageOnly': '/side aceita apenas imagens. Remova os outros arquivos.',
 +  'aside.imageModelUnsupported': 'Escolha um modelo que aceite imagens.',
@@ -50797,10 +50839,28 @@ index ce880c6109fbf6c9dd624dd45f72ed6bb300bad7..7b8fa3e35a87aeadb6387d8c67c64053
    ]
  }
 diff --git a/packages/client/ui-workspace/src/client/tree.ts b/packages/client/ui-workspace/src/client/tree.ts
-index e432390961f9b4b1aff2c69284cccff23fd11c32..0c59d67e661f052f9dae6bb6dc95a1c5d46788c7 100644
+index e432390961f9b4b1aff2c69284cccff23fd11c32..0bf26cd807ba4978d623e75fb7ffd53ca09dd6fb 100644
 --- a/packages/client/ui-workspace/src/client/tree.ts
 +++ b/packages/client/ui-workspace/src/client/tree.ts
-@@ -239,6 +239,9 @@ function sessionVisible(
+@@ -52,6 +52,8 @@ export interface SessionNode {
+   /** A Session-scoped UI consumer is awaiting this user. */
+   pendingInteraction?: SessionPendingInteractionStatus
+   running: boolean
++  /** Whether a native side discussion is running for this Session. */
++  asideRunning?: true
+   /** Running direct children in the loaded subagent catalog. */
+   runningSubagentCount: number
+   /** Host-confirmed unread completion or explicit unread mark. */
+@@ -97,6 +99,8 @@ export interface SearchResultNode {
+   /** A Session-scoped UI consumer is awaiting this user. */
+   pendingInteraction?: SessionPendingInteractionStatus
+   running: boolean
++  /** Whether a native side discussion is running for this Session. */
++  asideRunning?: true
+   /** Running direct children in the loaded subagent catalog. */
+   runningSubagentCount: number
+   /** Host-confirmed unread completion or explicit unread mark. */
+@@ -239,6 +243,9 @@ function sessionVisible(
    archivedFilter: ArchivedFilter,
  ): boolean {
    if (session.origin === 'subagent') return false
@@ -50810,6 +50870,89 @@ index e432390961f9b4b1aff2c69284cccff23fd11c32..0c59d67e661f052f9dae6bb6dc95a1c5
    if (session.blank && session.id !== current) return false
    switch (archivedFilter) {
      case 'default':
+@@ -391,12 +398,24 @@ function runningChildCount(list: SessionListState, parentId: SessionId, statuses
+   ) ?? 0
+ }
+ 
++function runningSideParents(list: SessionListState, statuses: SessionStatuses): Set<SessionId> {
++  const parents = new Set<SessionId>()
++  for (const id of list.ids) {
++    const session = list.byId[id]
++    if (!session?.parentId || !(statuses.get(id)?.running ?? session.running)) continue
++    const metadata = list.projectionsBySession[id]?.values.sessionListMetadata ?? session.projectionValues?.sessionListMetadata
++    if (metadata?.side) parents.add(session.parentId)
++  }
++  return parents
++}
++
+ function sessionNode(
+   s: SessionSummary,
+   list: SessionListState,
+   statuses: SessionStatuses,
+   pinned: ReadonlySet<SessionId>,
+   archived: ReadonlySet<SessionId>,
++  sideParents: ReadonlySet<SessionId>,
+ ): SessionNode {
+   const status = statuses.get(s.id)
+   const pendingInteraction = visiblePendingKind(status?.pendingInteraction?.kind)
+@@ -408,6 +427,7 @@ function sessionNode(
+     blank: s.blank,
+     running: status?.running ?? s.running,
+     runningSubagentCount: runningChildCount(list, s.id, statuses),
++    ...(sideParents.has(s.id) ? { asideRunning: true as const } : {}),
+     completed: status?.completionUnread === true,
+     failed: status?.completionFailed === true,
+     pinned: !archived.has(s.id) && pinned.has(s.id),
+@@ -448,6 +468,7 @@ export function deriveGroups(
+   const currentGroup = current === undefined
+     ? undefined
+     : owningGroupKey(workspaces, current)
++  const sideParents = runningSideParents(list, statuses)
+   const groups: GroupNode[] = []
+   for (const g of groupByWorkspace(list, workspaces, archived, rowState.archivedFilter, view.ungroupedOrder)) {
+     const expanded = expandedGroups.has(g.key)
+@@ -462,7 +483,7 @@ export function deriveGroups(
+       containsCurrent: g.key === currentGroup,
+       sessions: expanded
+         ? sectionMembers(g.sessions, pinned, archived)
+-          .map(session => sessionNode(session, list, statuses, pinned, archived))
++          .map(session => sessionNode(session, list, statuses, pinned, archived, sideParents))
+         : [],
+     })
+   }
+@@ -516,6 +537,7 @@ export function deriveFlat(
+   const archived = new Set(rowState.archivedSessionIds)
+   const pinned = new Set(rowState.pinnedSessionIds)
+   const current = mainSessionId(list)
++  const sideParents = runningSideParents(list, statuses)
+   const members = sessionIds.flatMap((id) => {
+     const session = list.byId[id]
+     return session !== undefined && sessionVisible(session, current, archived, rowState.archivedFilter)
+@@ -523,7 +545,7 @@ export function deriveFlat(
+       : []
+   })
+   return sectionMembers(members, pinned, archived)
+-    .map(session => sessionNode(session, list, statuses, pinned, archived))
++    .map(session => sessionNode(session, list, statuses, pinned, archived, sideParents))
+ }
+ 
+ /** Display label of each Session's Workspace: its first Workspace's title, else its cwd label. */
+@@ -605,6 +627,7 @@ export function deriveSearchResults(
+ 
+   const orderedLocal = index.search(query)
+ 
++  const sideParents = runningSideParents(list, statuses)
+   const ordered: SessionSummary[] = []
+   const included = new Set<SessionId>()
+   const include = (summary: SessionSummary): void => {
+@@ -629,6 +652,7 @@ export function deriveSearchResults(
+         workspace: labelOf(summary),
+         running: status?.running ?? summary.running,
+         runningSubagentCount: runningChildCount(list, summary.id, statuses),
++        ...(sideParents.has(summary.id) ? { asideRunning: true as const } : {}),
+         ...(pendingInteraction === undefined
+           ? {}
+           : { pendingInteraction }),
 diff --git a/packages/client/ui-workspace/tests/tree.client.spec.ts b/packages/client/ui-workspace/tests/tree.client.spec.ts
 index dae2e1b7ef139fee5963889e9fbacf023d4e79c7..5f5218a67036ec27cb114ba8e80018f3a9e0baf4 100644
 --- a/packages/client/ui-workspace/tests/tree.client.spec.ts
@@ -51302,10 +51445,10 @@ index 0000000000000000000000000000000000000000..08c756d4b45912d8c9e5d99ddae5adc4
 +})
 diff --git a/apps/web/tests/persistent-side.e2e.ts b/apps/web/tests/persistent-side.e2e.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..e57879fa70d035b08f07021ee70cdc3a82b6c08e
+index 0000000000000000000000000000000000000000..11e16c70bacb25a0dcc7c708451f0dd2462f5e66
 --- /dev/null
 +++ b/apps/web/tests/persistent-side.e2e.ts
-@@ -0,0 +1,181 @@
+@@ -0,0 +1,271 @@
 +/** Run the three persistent side-discussion entry points against the Web profile. */
 +import { readFile } from 'node:fs/promises'
 +import { fileURLToPath } from 'node:url'
@@ -51316,7 +51459,7 @@ index 0000000000000000000000000000000000000000..e57879fa70d035b08f07021ee70cdc3a
 +import { MockAdapter, textResponse, toolCallResponse } from '../../../packages/core/agent-loop/tests/mock-adapter.ts'
 +import product from '../../cli/package.json' with { type: 'json' }
 +import { launchWebScaffold } from './scaffold.ts'
-+import { newEnglishPage, openSettings } from './support.ts'
++import { newEnglishPage, openSettings, startWithSessionPanelHidden } from './support.ts'
 +
 +class SideAdapter extends MockAdapter {
 +  override listModels(provider: string) {
@@ -51487,6 +51630,96 @@ index 0000000000000000000000000000000000000000..e57879fa70d035b08f07021ee70cdc3a
 +    } finally { await browser.close(); main.cancel({ kind: 'user' }); await main.whenIdle() }
 +  } finally { await scaffold.close() }
 +}, 90_000)
++
++it('shows a background side answer as unread until its panel is visible, across reload and windows', async () => {
++  const scaffold = await launchWebScaffold({ extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
++  const finish = Promise.withResolvers<void>()
++  class BackgroundAdapter extends SideAdapter {
++    override async *stream(options: Parameters<SideAdapter['stream']>[0]) {
++      if (this.requests.length === 1) await finish.promise
++      yield* super.stream(options)
++    }
++  }
++  try {
++    const ctx = scaffold.ctx
++    const api = ctx.sessionController
++    const adapter = new BackgroundAdapter([textResponse('Notes ready.'), textResponse('Use blue ink.'), 'hang'])
++    ctx.llm.registerAdapter(['binder'], adapter)
++    const { sessionId } = await api.create({ cwd: scaffold.workspaceCwd })
++    const workspace = await ctx.workspaceRegistry.create(scaffold.workspaceCwd)
++    await workspace.setTitle('Print workshop')
++    await workspace.attachSession(sessionId)
++    await api.rename({ sessionId, title: 'Binding notes' })
++    await api.selectModel({ sessionId, provider: 'binder', model: 'mock' })
++    const main = ctx.agents.get(sessionId)!
++    main.followup(createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'Open the notes.' }] }))
++    await main.whenIdle()
++    const browser = await chromium.launch()
++    try {
++      const context = await browser.newContext({ locale: 'en-US', viewport: { width: 1440, height: 900 } })
++      const page = await context.newPage()
++      await startWithSessionPanelHidden(page)
++      await page.addInitScript(() => { localStorage.setItem('dsh.uncensored.prediction', '0') })
++      await page.goto(scaffold.authenticatedUrl)
++      const group = page.getByRole('treeitem').filter({ has: page.getByText('Print workshop', { exact: true }) })
++      if (await group.getAttribute('aria-expanded') === 'false') await group.press('ArrowRight')
++      const row = page.getByRole('treeitem').filter({ has: page.getByText('Binding notes', { exact: true }) }).last()
++      await row.click()
++      const open = page.getByRole('button', { name: 'Side question', exact: true }).first()
++      const panel = page.locator('[data-aside="side"]:visible')
++      const input = panel.locator('[data-composer-input][contenteditable="true"]')
++      const headerLight = open.locator('[data-aside-status]')
++      const tab = page.getByRole('tab').filter({ hasText: 'Side question' })
++      await open.click()
++      await input.waitFor()
++      expect(await headerLight.count()).toBe(0)
++      await input.fill('Which ink should I use?')
++      await input.press('Enter')
++      await expect.poll(() => headerLight.getAttribute('data-aside-status')).toBe('running')
++      await row.getByText('Side question running', { exact: true }).waitFor({ state: 'attached' })
++      await row.locator('[data-state=ongoing][data-appearance=dashed]').waitFor()
++      await page.getByRole('button', { name: 'Collapse right sidebar', exact: true }).click()
++      await panel.waitFor({ state: 'hidden' })
++      finish.resolve()
++      await expect.poll(() => headerLight.getAttribute('data-aside-status')).toBe('unread')
++      const key = 'dshu.aside.read.' + sessionId
++      expect(await page.evaluate(key => localStorage.getItem(key), key)).toBeNull()
++      await page.reload()
++      await expect.poll(() => open.getAttribute('aria-description')).toBe('Unread side question result')
++      await open.click()
++      await panel.getByText('Use blue ink.', { exact: true }).waitFor()
++      await expect.poll(() => headerLight.getAttribute('data-aside-status')).toBe('read')
++      expect(await tab.locator('[data-aside-status]').getAttribute('data-aside-status')).toBe('read')
++      const receipt = await page.evaluate(key => localStorage.getItem(key), key)
++      if (!receipt) throw new Error('The visible result had no read receipt')
++      await page.getByRole('button', { name: 'Collapse right sidebar', exact: true }).click()
++      const other = await context.newPage()
++      const origin = new URL(scaffold.authenticatedUrl).origin
++      await other.route(origin + '/receipt-test', route => route.fulfill({ contentType: 'text/html', body: '<title>Read receipt fixture</title>' }))
++      await other.goto(origin + '/receipt-test')
++      await other.evaluate(key => localStorage.removeItem(key), key)
++      await expect.poll(() => headerLight.getAttribute('data-aside-status')).toBe('unread')
++      await other.evaluate(([key, value]) => localStorage.setItem(key!, value!), [key, receipt])
++      await expect.poll(() => headerLight.getAttribute('data-aside-status')).toBe('read')
++      await other.close()
++      await page.reload()
++      await expect.poll(() => open.getAttribute('aria-description')).toBe('Side question result read')
++      await open.click()
++      await input.fill('Try a second ink.')
++      await input.press('Enter')
++      await expect.poll(() => headerLight.getAttribute('data-aside-status')).toBe('running')
++      const { child } = JSON.parse(receipt) as { child: SessionId }
++      const agent = ctx.agents.get(child)!
++      agent.cancel({ kind: 'user' })
++      await agent.whenIdle()
++      await expect.poll(() => open.getAttribute('aria-description')).toBe('Side question interrupted')
++      await panel.getByRole('button', { name: 'Clear conversation history' }).click()
++      await input.waitFor()
++      await expect.poll(() => headerLight.count()).toBe(0)
++      expect(adapter.requests).toHaveLength(3)
++    } finally { finish.resolve(); await browser.close() }
++  } finally { finish.resolve(); await scaffold.close() }
++}, 90_000)
 diff --git a/packages/client/ui-commands/src/client/asides/AsideIcon.tsx b/packages/client/ui-commands/src/client/asides/AsideIcon.tsx
 new file mode 100644
 index 0000000000000000000000000000000000000000..e8b0b01089c05cebb4215776143048d3041f5b64
@@ -51516,10 +51749,10 @@ index 0000000000000000000000000000000000000000..e8b0b01089c05cebb4215776143048d3
 +export function AsideGuideIcon(props: IconProps) { return <span className={css.guideIcon}><AsideIcon {...props} /></span> }
 diff --git a/packages/client/ui-commands/src/client/asides/SidePanel.module.css b/packages/client/ui-commands/src/client/asides/SidePanel.module.css
 new file mode 100644
-index 0000000000000000000000000000000000000000..eb062931c2ecf41bd1e85ae870fd213f3feb6399
+index 0000000000000000000000000000000000000000..c92c7d3f3fbd7a8607e19d72b0bced50b835458c
 --- /dev/null
 +++ b/packages/client/ui-commands/src/client/asides/SidePanel.module.css
-@@ -0,0 +1,10 @@
+@@ -0,0 +1,27 @@
 +.sidebar { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; min-width: 0; }
 +.context { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; padding: 9px 16px; font-size: 13px; color: var(--dsw-alias-label-secondary); border-bottom: 0.5px solid var(--dsw-alias-border-l3); }
 +.clear { padding: 4px 6px; border: 0; border-radius: var(--dsw-radius-sm); background: transparent; color: inherit; font: inherit; cursor: pointer; }
@@ -51530,19 +51763,38 @@ index 0000000000000000000000000000000000000000..eb062931c2ecf41bd1e85ae870fd213f
 +.launcher:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color); outline-offset: 2px; }
 +.guideIcon { display: inline-flex; color: var(--dsw-alias-state-business-primary); }
 +@media (hover: hover) { .launcher:hover { color: var(--dsw-alias-state-business-primary); background: var(--dsw-alias-interactive-bg-hover); } }
++.statusIcon { display: inline-flex; position: relative; }
++.light {
++  position: absolute;
++  inset: -1px auto auto -1px;
++  width: 6px;
++  height: 6px;
++  border-radius: 50%;
++  corner-shape: round;
++  pointer-events: none;
++  background: var(--dsw-alias-state-idle-primary);
++}
++.light[data-aside-status='unread'], .light[data-aside-status='running'] { background: var(--dsw-alias-state-business-primary); }
++.light[data-aside-status='interrupted'] { background: var(--dsw-alias-state-warn-primary); }
++@media (prefers-reduced-motion: no-preference) {
++  .light[data-aside-status='running'] { animation: aside-breathe 1.8s ease-in-out infinite; }
++}
++@keyframes aside-breathe { 0%, 100% { opacity: .4; } 50% { opacity: 1; } }
 diff --git a/packages/client/ui-commands/src/client/asides/SidePanel.tsx b/packages/client/ui-commands/src/client/asides/SidePanel.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..86f6d34eb33e620a59c9e43418719b66f4eeb84d
+index 0000000000000000000000000000000000000000..9ba5972c45cdccde3c6cd3e66a6ad13925ced538
 --- /dev/null
 +++ b/packages/client/ui-commands/src/client/asides/SidePanel.tsx
-@@ -0,0 +1,61 @@
+@@ -0,0 +1,107 @@
 +/** Native side discussion inside the right sidebar. */
++import { useEffect } from 'react'
 +import type { ConversationViewsProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 +import type { SessionId } from '@deepseek-ai/dsh-session/types'
 +import { Tooltip, IconLoadingOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
-+import type { PropsLocale, PropsRenderFactories, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
++import type { InjectFace, PropsLocale, PropsRenderFactories, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 +import { asideAddress, asideParent } from './address.ts'
 +import { AsideIcon } from './AsideIcon.tsx'
++import { newestSide, sideMetadata, type AsideReads } from './read-status.ts'
 +import css from './SidePanel.module.css'
 +
 +function ChatView({ renderSlot }: ConversationViewsProps) {
@@ -51563,10 +51815,27 @@ index 0000000000000000000000000000000000000000..86f6d34eb33e620a59c9e43418719b66
 + * @param props - Parent Session, resource subscription, locale and nested conversation slot.
 + * @returns The current discussion or its opening state.
 + */
-+export function SidePanel({ sessionId, useTabInfo, useResource, SessionProvider, renderSlot, t, clear }:
-+  PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<'command'> & PropsRenderSlots<'sidebar.aside.conversation'> & { clear: (child: SessionId) => void }) {
++export function SidePanel({ sessionId, useSessions, useTabInfo, useResource, SessionProvider, renderSlot, t, markRead, clear }:
++  PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<'command'> & PropsRenderSlots<'sidebar.aside.conversation'> & { clear: (child: SessionId) => void; markRead: (child: SessionId, seq: number) => void }) {
 +  const { tab } = useTabInfo()
 +  const resource = useResource<'aside'>(asideParent(tab.contentId) === undefined ? asideAddress(sessionId) : tab.contentId)
++  const child = resource.value?.sessionId
++  const events = resource.value?.binding.eventSource
++  const seq = useSessions(list => sideMetadata(list, child)?.result?.seq)
++  useEffect(() => {
++    if (!tab.visible || resource.status !== 'live' || !events || child === undefined || seq === undefined) return
++    let acknowledged = false
++    const acknowledge = () => {
++      if (acknowledged || document.visibilityState !== 'visible') return
++      const received = events.getSnapshot().entries.some(({ event }) => event.seq === seq && event.type === 'turn/end')
++      if (received) { acknowledged = true; markRead(child, seq) }
++    }
++    acknowledge()
++    if (acknowledged) return
++    const release = events.subscribe(acknowledge)
++    document.addEventListener('visibilitychange', acknowledge)
++    return () => { release(); document.removeEventListener('visibilitychange', acknowledge) }
++  }, [child, events, seq, tab.visible, resource.status, markRead])
 +  return <section className={css.sidebar} aria-label={t('aside.side')} data-aside="side">
 +    <div className={css.context}><span>{t('aside.inherited')}</span>
 +      <button type="button" className={css.clear} disabled={!resource.value || resource.status !== 'live'}
@@ -51580,21 +51849,48 @@ index 0000000000000000000000000000000000000000..86f6d34eb33e620a59c9e43418719b66
 +  </section>
 +}
 +
-+/** Render the title of the persistent side tab.
-+ * @param props - Current locale.
-+ * @returns Localized tab title with its icon.
++type StatusProps = PropsRuntime<'sidebar.right.pane.tab.title'> & PropsLocale<'command'>
++  & InjectFace<{ hooks: { asideRead: ReturnType<AsideReads['for']> } }>
++
++function useSideStatus({ sessionId, useSessions, useAsideRead }: Pick<StatusProps, 'sessionId' | 'useSessions' | 'useAsideRead'>) {
++  const child = useSessions(list => newestSide(list, sessionId))
++  const side = useSessions(list => sideMetadata(list, child))
++  const listed = useSessions(list => child !== undefined && list.byId[child]?.running)
++  const read = useAsideRead(value => value)
++  if (!side?.asked) return undefined
++  if (listed) return 'running'
++  if (side.result?.interrupted) return 'interrupted'
++  if (!side.result) return undefined
++  return read && read.child === child && read.seq >= side.result.seq ? 'read' : 'unread'
++}
++
++function StatusIcon({ state, label }: { state: ReturnType<typeof useSideStatus>; label?: string | undefined }) {
++  return <span className={css.statusIcon} role={label ? 'img' : undefined} aria-label={label}><AsideIcon />
++    {state && <span aria-hidden="true" className={css.light} data-aside-status={state} />}
++  </span>
++}
++
++/** Render the title and current result status of the persistent side tab.
++ * @param props - Current parent, read position and locale.
++ * @returns Localized tab title and status.
 + */
-+export function SideTitle({ t }: PropsRuntime<'sidebar.right.pane.tab.title'> & PropsLocale<'command'>) {
-+  return <><AsideIcon />{t('aside.side')}</>
++export function SideTitle(props: StatusProps) {
++  const state = useSideStatus(props)
++  return <><StatusIcon state={state} label={state && props.t(`aside.status.${state}`)} />{props.t('aside.side')}</>
 +}
 +
 +/** Open the persistent discussion from the main conversation header.
-+ * @param props - Parent conversation launch action and locale.
-+ * @returns The header shortcut.
++ * @param props - Current parent, read position, launch action and locale.
++ * @returns The header shortcut with the latest side result status.
 + */
-+export function SideLauncher({ open, t }: PropsRuntime<'conversation.session.header.utilities'> & PropsLocale<'command'> & { open: () => void }) {
-+  return <Tooltip label={t('aside.side')} side="bottom" portal>
-+    <button type="button" className={css.launcher} aria-label={t('aside.side')} onClick={open}><AsideIcon /></button>
++export function SideLauncher(props: PropsRuntime<'conversation.session.header.utilities'> & PropsLocale<'command'>
++  & InjectFace<{ hooks: { asideRead: ReturnType<AsideReads['for']> }; open: () => void }>) {
++  const state = useSideStatus(props)
++  const description = state && props.t(`aside.status.${state}`)
++  return <Tooltip label={description ?? props.t('aside.side')} side="bottom" portal>
++    <button type="button" className={css.launcher} aria-label={props.t('aside.side')} aria-description={description} onClick={props.open}>
++      <StatusIcon state={state} />
++    </button>
 +  </Tooltip>
 +}
 diff --git a/packages/client/ui-commands/src/client/asides/address.ts b/packages/client/ui-commands/src/client/asides/address.ts
@@ -51630,10 +51926,10 @@ index 0000000000000000000000000000000000000000..df880029ad2b2c9e7ce544b22559063f
 +}
 diff --git a/packages/client/ui-commands/src/client/asides/side.ts b/packages/client/ui-commands/src/client/asides/side.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..fea77f5069cade6e6f660061a3720fbbedc7dcb0
+index 0000000000000000000000000000000000000000..4f2a6bb45de7803378d7f6689ddaf93008528b99
 --- /dev/null
 +++ b/packages/client/ui-commands/src/client/asides/side.ts
-@@ -0,0 +1,226 @@
+@@ -0,0 +1,237 @@
 +/** Client entry points and subscriptions for a main conversation's persistent side discussion. */
 +import type { Context } from '@deepseek-ai/cordis'
 +import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -51642,6 +51938,7 @@ index 0000000000000000000000000000000000000000..fea77f5069cade6e6f660061a3720fbb
 +import { remoteErrorOf, RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 +import { ASIDE_PREFIX, asideParent } from './address.ts'
 +import { AsideGuideIcon, AsideIcon } from './AsideIcon.tsx'
++import { AsideReads } from './read-status.ts'
 +import { SideConversation, SideLauncher, SidePanel, SideTitle } from './SidePanel.tsx'
 +
 +declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -51663,6 +51960,12 @@ index 0000000000000000000000000000000000000000..fea77f5069cade6e6f660061a3720fbb
 +export function registerSideConversations(ctx: Context): void {
 +  ctx.inject(['slots', 'locale', 'sessions', 'commandUi', 'resources', 'sidebarRight', 'sidebarRightTabs', 'remote.session'], (scope) => {
 +    const t = scope.locale.bind('command')
++    const reads = new AsideReads()
++    scope.effect(() => {
++      const sync = (event: StorageEvent) => reads.sync(event)
++      window.addEventListener('storage', sync)
++      return () => window.removeEventListener('storage', sync)
++    }, 'side conversation: synchronize read positions')
 +    const bindings = new Map<SessionId, {
 +      ready: Promise<SessionReference>
 +      lifetime: AbortController
@@ -51815,16 +52118,20 @@ index 0000000000000000000000000000000000000000..fea77f5069cade6e6f660061a3720fbb
 +      guide: [{ id: 'aside', order: 30, title: () => t('aside.side'), description: () => t('aside.sideDescription'), icon: AsideGuideIcon }],
 +    }), 'side conversation: tab')
 +    scope.slots.inject('conversation.session.header.utilities', () => scope.slots.register({
-+      name: 'conversation.session.header.utilities', id: 'side-question', order: 100, locale: 'command', inject: () => ({ open }),
++      name: 'conversation.session.header.utilities', id: 'side-question', order: 100, locale: 'command', inject: (parent: SessionId) => ({ open, hooks: { asideRead: reads.for(parent) } }),
 +    }, SideLauncher))
 +    scope.slots.inject('sidebar.right.pane.tab', () => scope.slots.register({
 +      name: 'sidebar.right.pane.tab', key: tabType, locale: 'command',
-+      inject: (parent: SessionId) => ({ clear: (child: SessionId) => { reset(parent, child, 'manual') } }),
++      inject: (parent: SessionId) => ({
++        clear: (child: SessionId) => { reset(parent, child, 'manual') },
++        markRead: (child: SessionId, seq: number) => reads.mark(parent, child, seq),
++      }),
 +      children: { 'sidebar.aside.conversation': { kind: 'single', scope: 'session' } },
 +    }, SidePanel))
 +    scope.slots.inject('sidebar.aside.conversation', () => scope.slots.register({ name: 'sidebar.aside.conversation', locale: 'command' }, SideConversation))
 +    scope.slots.inject('sidebar.right.pane.tab.title', () => scope.slots.register({
 +      name: 'sidebar.right.pane.tab.title', key: tabType, locale: 'command',
++      inject: (parent: SessionId) => ({ hooks: { asideRead: reads.for(parent) } }),
 +    }, SideTitle))
 +    scope.effect(() => scope.commandUi.register({
 +      name: 'clear', label: () => t('aside.clear'), description: () => t('aside.clearDescription'), icon: AsideIcon,
@@ -51873,10 +52180,10 @@ index d0cde177fd9cb8071c7f365adc6074e0c5988feb..9fb3a4b8ef024d9579505614b8cf3ba6
        ? {
          disabled: true,
 diff --git a/packages/client/ui-workspace/README.md b/packages/client/ui-workspace/README.md
-index bdab6499f2c7f49b171d380bc5f36038458ecc9e..c385f2f8dc6ec22223344e0bcafd21362e552953 100644
+index bdab6499f2c7f49b171d380bc5f36038458ecc9e..758ca995997124893f38b9221e5a2ed2d945923c 100644
 --- a/packages/client/ui-workspace/README.md
 +++ b/packages/client/ui-workspace/README.md
-@@ -27,7 +27,7 @@ This package lets users browse grouped or flat Session lists, choose a Workspace
+@@ -27,12 +27,14 @@ This package lets users browse grouped or flat Session lists, choose a Workspace
  <a id="use-this-package"></a>
  ## Use this package
  
@@ -51885,11 +52192,18 @@ index bdab6499f2c7f49b171d380bc5f36038458ecc9e..c385f2f8dc6ec22223344e0bcafd2136
  
  An open Workspace shows its first non-blank Sessions in list order up to a per-Workspace watermark, initially five. The watermark rises to cover the last Session within the first 50 that is running, has a running child, awaits the user, has an unread completion, or is open in the main view; a Session opened from search raises it to that Session at any position. The watermark is a row count that never falls on its own, so the rows stay visible after a run or notification ends; a reorder that moves a Session past the watermark hides it. Each **Show more** click raises it by five, without the 50-row limit, and reveals the rest when five or fewer remain; after the final batch, **Show less** resets it. Folding a Workspace resets its watermark and those of its nested Workspaces; a reset watermark still covers the qualifying Sessions. The selected blank **New Session** is an extra row outside the watermark until its first prompt. Watermarks are not persisted; any unmount of the grouped tree resets them.
  
+ History rows without a stored title use the localized unnamed label (未命名 / Untitled), rather than a directory name. The current blank row remains New Session; other blank rows remain hidden. Rename drafts use the stored title, or start empty when unnamed; unnamed rows do not offer title copying.
+ 
++While a side question runs, its parent Session shows the activity in the Workspace list.
++
+ **Mark as read / Mark as unread** in each Session menu saves shared reading state on the Host; archived Sessions read as read and offer neither. Unread reminders survive browser reloads while the Host runs, and reset on Host restart or plugin reload, appear alongside live activity, and do not imply successful completion. Window focus confirms natural unread content. Manual unread stays until the main view switches to the Session or an explicit read mark arrives, and automatic confirmation always waits for the content to arrive. See [Session status](../ui-session-status/README.md) for synchronization and lifetime limits.
+ 
+ Without hover, Workspace actions appear only while expanded, Session More buttons stay visible, and search-result actions remain visible. Toolbar tooltips render outside the sidebar so its drawer animation does not crop them. Search and rename inputs use 16px text with a coarse pointer; a fine pointer keeps their compact sizes.
 diff --git a/packages/client/ui-workspace/README.zh.md b/packages/client/ui-workspace/README.zh.md
-index 8267968bc7b614b4bc62d12ff270446f18c6c11c..82189151fa2e29841d517f3d2843555ea5e8354a 100644
+index 8267968bc7b614b4bc62d12ff270446f18c6c11c..14be14212ebd44242b55f8b4c84219923ac30cfe 100644
 --- a/packages/client/ui-workspace/README.zh.md
 +++ b/packages/client/ui-workspace/README.zh.md
-@@ -27,7 +27,7 @@ kind: "package-reference"
+@@ -27,12 +27,14 @@ kind: "package-reference"
  <a id="use-this-package"></a>
  ## 使用本包
  
@@ -51898,8 +52212,15 @@ index 8267968bc7b614b4bc62d12ff270446f18c6c11c..82189151fa2e29841d517f3d2843555e
  
  打开的 Workspace 按列表顺序显示前面的非空白 Session，直到该 Workspace 自己的水位线，水位线初始为五。水位线会升高，以覆盖前 50 条中最后一条正在运行、有子会话正在运行、等待用户、有未读完成提醒或在主视图中打开的 Session；从搜索打开的 Session 会把水位线升高到该 Session，无论其位置。水位线是一个行数，不会自行回落，因此运行或通知结束后这些行仍保持可见；重排若把某个 Session 移到水位线之后，该 Session 会被隐藏。每次点击**展开其余**将水位线升高五条，不受 50 行限制；剩余五条或更少时显示全部；最后一批显示后，**收起**重置水位线。折叠 Workspace 会重置其水位线及其嵌套 Workspace 的水位线；重置后的水位线仍覆盖符合条件的 Session。当前选中的空白**新会话**在首条提示词落地前是水位线之外的额外行。水位线不持久化；分组树的任何卸载都会重置水位线。
  
+ 未保存标题的历史会话显示本地化名称「未命名 / Untitled」，不使用目录名兜底。当前空会话仍显示「新会话」，其他空会话仍隐藏。重命名草稿使用已保存标题，无标题时留空；无标题行不提供标题复制。
+ 
++旁问运行时，工作区列表会在所属主会话的行内显示运行提示。
++
+ 会话菜单中的**标为已读／标为未读**将阅读状态保存到宿主，并同步给各前端；已归档的会话按已读处理，不提供这两项。宿主运行期间刷新浏览器会保留未读提醒，宿主重启或插件重载则会重置，可与运行状态同时出现，不表示任务成功。窗口聚焦只确认自然未读。手动未读会保留到主视图切换到该会话或主动标为已读，自动确认始终等待正文到达。同步和生命周期的限制见[会话状态](../ui-session-status/README.zh.md)。
+ 
+ 无 hover 时，工作区操作仅在展开时显示，会话的更多按钮始终显示，搜索结果操作保持可见。工具栏的提示气泡在侧边栏外渲染，避免被抽屉动画裁切。使用粗指针时，搜索和重命名输入框采用 16px 字号；精细指针下保留紧凑字号。
 diff --git a/packages/client/ui-workspace/README.i18n.yaml b/packages/client/ui-workspace/README.i18n.yaml
-index 32b26be6d18f18a0f9ed59ef09d2b5621e722392..c7b67b056f966dc338b851ee9707191adf71b9d5 100644
+index 32b26be6d18f18a0f9ed59ef09d2b5621e722392..99720f7efccfc3c447408e97efc22b1ae7f8111d 100644
 --- a/packages/client/ui-workspace/README.i18n.yaml
 +++ b/packages/client/ui-workspace/README.i18n.yaml
 @@ -15,8 +15,8 @@
@@ -51908,8 +52229,8 @@ index 32b26be6d18f18a0f9ed59ef09d2b5621e722392..c7b67b056f966dc338b851ee9707191a
  /deepseek-ai-dsh-client-ui-workspace/use-this-package:
 -  en: 2e435d7c20a9e549
 -  zh: 7eb26bbdacdc5b54
-+  en: d4f9c66ffa6a165a
-+  zh: d057c9fe175f84ae
++  en: fd8c01443cc7f3d0
++  zh: 99e8d53aaa6d4a23
  /deepseek-ai-dsh-client-ui-workspace/use-this-package/reordering-and-view-options:
    en: a77f25e9153d6782
    zh: 7f60489e53305d20
@@ -52554,3 +52875,697 @@ index b2b85ebe46dd5512dcc3b135e615da3972c1295f..ae06e81352ffe1caa87b7e90400f8c34
 +{"type":"assistant/message","data":{"turn":3,"step":1,"message":{"role":"assistant","content":[{"type":"text","text":"The human user sent this message."}],"source":{"kind":"model","provider":"deepseek-official","model":"deepseek-v4-flash"},"id":"{{message:14}}"},"usage":{"inputTokens":100,"outputTokens":20},"stream":[{"type":"chunk","time":1795633165430,"chunk":{"type":"block-start","index":0,"blockType":"text"}},{"type":"text-chunks","time0":1795633165430,"index":0,"dt":[],"texts":["The human user sent this message."]},{"type":"chunk","time":1795633165430,"chunk":{"type":"block-end","index":0,"block":{"type":"text","text":"The human user sent this message."}}},{"type":"chunk","time":1795633165430,"chunk":{"type":"usage","usage":{"inputTokens":100,"outputTokens":20}}},{"type":"chunk","time":1795633165430,"chunk":{"type":"finish","reason":{"kind":"stop"}}}]},"surfaceOp":"append"}
  {"type":"step/end","data":{"turn":3,"step":1}}
  {"type":"turn/end","data":{"turn":3,"reason":{"kind":"completed"}}}
+diff --git a/packages/api/session-controller/tests/session-list-blank.host.spec.ts b/packages/api/session-controller/tests/session-list-blank.host.spec.ts
+index 6251c415b863eb07a039c0deb65fa72703a0d27c..05de9d4859767f9af77efc430ce6ea2528d15346 100644
+--- a/packages/api/session-controller/tests/session-list-blank.host.spec.ts
++++ b/packages/api/session-controller/tests/session-list-blank.host.spec.ts
+@@ -10,6 +10,7 @@
+  * read before publication.
+  */
+ 
++import { sideIdentity } from '../src/aside-identity.ts'
+ import { afterEach, describe, expect, it } from 'vitest'
+ import { mkdtemp, rm } from 'node:fs/promises'
+ import { tmpdir } from 'node:os'
+@@ -76,6 +77,47 @@ async function listBlank(remote: TestSessionRemote, id: string): Promise<boolean
+ }
+ 
+ describe('summary blank = conversation not started', () => {
++  it('tracks the latest own prompt and interrupted or completed result of a side generation', async () => {
++    const { ctx, remote, attach } = await harness()
++    try {
++      const parent = ctx.sessions.create()
++      const session = ctx.sessions.create(sideIdentity(parent.id, 2), { meta: { parentSession: parent.id } })
++      await attach(session)
++      const side = async () => {
++        const result = await remote.list({})
++        if (!result.ok) throw result.error
++        return result.value.items.find(item => item.sessionId === session.id)?.projections?.values.sessionListMetadata?.side
++      }
++      expect(await side()).toMatchObject({ generation: 2, asked: false })
++      session.append('turn/start', { turn: 1 })
++      const question = createUserMessage({ content: [{ type: 'text', text: 'Question' }], source: { kind: 'user' } })
++      session.append('user/message', question, { surfaceOp: 'append' })
++      const stop = session.append('turn/end', { turn: 1, reason: { kind: 'aborted', reason: { kind: 'user' } } })
++      expect(await side()).toMatchObject({ asked: true, result: { seq: stop.seq, interrupted: true } })
++      session.append('turn/start', { turn: 2 })
++      const done = session.append('turn/end', { turn: 2, reason: { kind: 'completed' } })
++      expect(await side()).toMatchObject({ asked: true, result: { seq: done.seq, interrupted: false } })
++    } finally { await ctx.fiber.dispose() }
++  })
++  it('reports a failed turn from durable events and clears it when another turn starts', async () => {
++    const { ctx, remote, attach } = await harness()
++    try {
++      const session = ctx.sessions.create()
++      await attach(session)
++      const failed = async () => {
++        const result = await remote.list({})
++        if (!result.ok) throw result.error
++        return result.value.items.find(item => item.sessionId === session.id)?.projections?.values.sessionListMetadata?.lastTurnFailed
++      }
++      session.append('turn/start', { turn: 1 })
++      session.append('turn/end', { turn: 1, reason: { kind: 'error', error: { code: 'UNKNOWN', message: 'fixture failure' } } })
++      expect(await failed()).toBe(true)
++      session.append('turn/start', { turn: 2 })
++      expect(await failed()).toBe(false)
++      session.append('turn/end', { turn: 2, reason: { kind: 'completed' } })
++      expect(await failed()).toBe(false)
++    } finally { await ctx.fiber.dispose() }
++  })
+   it('standalone events (command lifecycle, plan/mode, title) keep the session blank', async () => {
+     const { ctx, remote, attach } = await harness()
+     const session = ctx.sessions.create()
+diff --git a/packages/api/session-controller/tests/session-projections.host.spec.ts b/packages/api/session-controller/tests/session-projections.host.spec.ts
+index d6bea0c4b783233e5901bd976dbce640074be740..f731c8fd87edb0cb98b2390373b15d7ee393437f 100644
+--- a/packages/api/session-controller/tests/session-projections.host.spec.ts
++++ b/packages/api/session-controller/tests/session-projections.host.spec.ts
+@@ -488,7 +488,7 @@ describe('session.list projections column', () => {
+     const row = response.value.items.find(item => item.sessionId === session.id)
+     expect(row?.projections?.values['test/last-user']).toEqual({ text: 'm0' })
+     expect(row?.projections?.values.sessionListMetadata).toEqual({
+-      blank: false,
++      blank: false, lastTurnFailed: false,
+       lastPromptAt: session.eventAt(SessionSeq(session.seq - 1))?.time,
+     })
+     expect(row?.projections?.asOfSeq).toBe(session.seq - 1)
+@@ -803,13 +803,13 @@ describe('Session control projection frames', () => {
+       },
+       {
+         type: 'projection', sessionId: session.id, seq: 1, changes: [
+-          { key: 'sessionListMetadata', val: { blank: false, lastPromptAt: 100 } },
++          { key: 'sessionListMetadata', val: { blank: false, lastPromptAt: 100, lastTurnFailed: false } },
+         ],
+       },
+       {
+         type: 'projection', sessionId: session.id, seq: 2, changes: [
+           { key: 'test/last-user', val: { text: 'm0' } },
+-          { key: 'sessionListMetadata', val: { blank: false, lastPromptAt: 300 } },
++          { key: 'sessionListMetadata', val: { blank: false, lastPromptAt: 300, lastTurnFailed: false } },
+         ],
+       },
+     ])
+diff --git a/packages/client/ui-commands/src/client/asides/read-status.ts b/packages/client/ui-commands/src/client/asides/read-status.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..ba2fb10bf6dc962b5bf3e5004679e24653ea5467
+--- /dev/null
++++ b/packages/client/ui-commands/src/client/asides/read-status.ts
+@@ -0,0 +1,129 @@
++/** Read position of the most recently viewed side result for each main conversation. */
++import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
++import type { SessionListMetadata } from '@deepseek-ai/dsh-api-session-controller/types'
++import type { SessionListState } from '@deepseek-ai/dsh-api-session-controller/client'
++import { SessionId } from '@deepseek-ai/dsh-session/types'
++
++const PREFIX = 'dshu.aside.read.'
++type Receipt = { readonly child: SessionId; readonly seq: number }
++
++function sideIdentityParts(id: SessionId): { base: string; generation: number } | undefined {
++  const match = /^(session-side-[0-9a-f]{64})(?:-([1-9][0-9]*))?$/u.exec(id)
++  const base = match?.[1]
++  if (!base) return undefined
++  const generation = Number(match[2] ?? 0)
++  return Number.isSafeInteger(generation) ? { base, generation } : undefined
++}
++
++function decode(raw: string | null): Receipt | null {
++  try {
++    const value: unknown = JSON.parse(raw ?? 'null')
++    if (value && typeof value === 'object' && 'child' in value && typeof value.child === 'string' && sideIdentityParts(SessionId(value.child)) !== undefined
++      && 'seq' in value && typeof value.seq === 'number' && Number.isSafeInteger(value.seq) && value.seq >= 0) {
++      return { child: SessionId(value.child), seq: value.seq }
++    }
++  } catch (_invalidReceipt) { /* An invalid receipt has no read position. */ }
++  return null
++}
++
++/** Browser-local read positions shared by a parent's sidebar and launcher. */
++export class AsideReads {
++  private readonly changes = new EventTarget()
++  private readonly unsaved = new Map<SessionId, string>()
++
++  private load(parent: SessionId): string | null {
++    const fallback = this.unsaved.get(parent)
++    if (fallback !== undefined) return fallback
++    try { return localStorage.getItem(PREFIX + parent) }
++    catch (_storageUnavailable) { return null }
++  }
++
++  /**
++   * Observe the last result read in this browser.
++   * @param parent - Main Session.
++   * @returns Its read position and a subscription scoped to the mounted view.
++   */
++  for(parent: SessionId): ObservableSnapshot<Receipt | null> {
++    let raw: string | null = null
++    let receipt: Receipt | null = null
++    return {
++      getSnapshot: () => {
++        const next = this.load(parent)
++        if (next !== raw) { raw = next; receipt = decode(next) }
++        return receipt
++      },
++      subscribe: listener => {
++        this.changes.addEventListener(PREFIX + parent, listener)
++        this.changes.addEventListener('clear', listener)
++        return () => {
++          this.changes.removeEventListener(PREFIX + parent, listener)
++          this.changes.removeEventListener('clear', listener)
++        }
++      },
++    }
++  }
++
++  /**
++   * Record a result once the visible panel has received it.
++   * @param parent - Main Session.
++   * @param child - Viewed side generation.
++   * @param seq - Sequence of the finished turn.
++   */
++  mark(parent: SessionId, child: SessionId, seq: number): void {
++    const previous = decode(this.load(parent))
++    if (previous) {
++      if (previous.child === child && previous.seq >= seq) return
++      // A delayed acknowledgement from a retired panel may arrive after another window read its successor.
++      const seen = sideIdentityParts(previous.child)
++      const incoming = sideIdentityParts(child)
++      if (seen && incoming && seen.base === incoming.base && seen.generation > incoming.generation) return
++    }
++    const receipt = JSON.stringify({ child, seq })
++    try {
++      localStorage.setItem(PREFIX + parent, receipt)
++      this.unsaved.delete(parent)
++    } catch (_storageUnavailable) { this.unsaved.set(parent, receipt) }
++    this.changes.dispatchEvent(new Event(PREFIX + parent))
++  }
++
++  /**
++   * Notify mounted views when another window updates a receipt.
++   * @param event - Browser storage change.
++   */
++  sync(event: StorageEvent): void {
++    if (event.key === null) {
++      this.unsaved.clear()
++      this.changes.dispatchEvent(new Event('clear'))
++    } else if (event.key.startsWith(PREFIX)) {
++      this.unsaved.delete(SessionId(event.key.slice(PREFIX.length)))
++      this.changes.dispatchEvent(new Event(event.key))
++    }
++  }
++}
++
++/**
++ * Read the side status from the newest available summary.
++ * @param list - Session summaries.
++ * @param child - Side identity.
++ * @returns The generation and latest finished turn, when available.
++ */
++export function sideMetadata(list: SessionListState, child: SessionId | undefined): SessionListMetadata['side'] {
++  if (child === undefined) return undefined
++  return (list.projectionsBySession[child]?.values?.sessionListMetadata ?? list.byId[child]?.projectionValues?.sessionListMetadata)?.side
++}
++
++/**
++ * Select the current side discussion, including an empty successor.
++ * @param list - Session summaries.
++ * @param parent - Main Session.
++ * @returns The newest confirmed side identity.
++ */
++export function newestSide(list: SessionListState, parent: SessionId): SessionId | undefined {
++  let current: SessionId | undefined, generation = -1
++  for (const id of list.ids) {
++    if (list.byId[id]?.parentId !== parent) continue
++    const next = sideMetadata(list, id)?.generation ?? sideIdentityParts(id)?.generation
++    if (next !== undefined && next > generation) { current = id; generation = next }
++  }
++  return current
++}
+diff --git a/packages/client/ui-commands/tests/aside-reads.client.spec.ts b/packages/client/ui-commands/tests/aside-reads.client.spec.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..4e4ebc74926852219a54e75e37e94d6d4b270de3
+--- /dev/null
++++ b/packages/client/ui-commands/tests/aside-reads.client.spec.ts
+@@ -0,0 +1,46 @@
++// @vitest-environment jsdom
++import { expect, it, vi } from 'vitest'
++import { SessionId } from '@deepseek-ai/dsh-session/types'
++import { AsideReads } from '../src/client/asides/read-status.ts'
++
++const parent = SessionId('print-workshop')
++const first = SessionId('session-side-' + 'a'.repeat(64))
++const second = SessionId(first + '-1')
++const key = 'dshu.aside.read.' + parent
++
++it('preserves released receipts and rejects delayed acknowledgements after a clear', () => {
++  const reads = new AsideReads()
++  localStorage.setItem(key, JSON.stringify({ child: first, seq: 99 }))
++  try {
++    const stream = reads.for(parent)
++    const changed = vi.fn()
++    const release = stream.subscribe(changed)
++    expect(stream.getSnapshot()).toEqual({ child: first, seq: 99 })
++    expect(stream.getSnapshot()).toBe(stream.getSnapshot())
++    reads.mark(parent, first, 4)
++    expect(changed).not.toHaveBeenCalled()
++    reads.mark(parent, second, 3)
++    reads.mark(parent, first, 120)
++    expect(changed).toHaveBeenCalledTimes(1)
++    expect(stream.getSnapshot()).toEqual({ child: second, seq: 3 })
++    release()
++    reads.mark(parent, second, 4)
++    expect(changed).toHaveBeenCalledTimes(1)
++    localStorage.setItem(key, 'malformed')
++    expect(stream.getSnapshot()).toBeNull()
++  } finally { localStorage.removeItem(key) }
++})
++
++it('remembers a visible result in the current window when storage is unavailable', () => {
++  const reads = new AsideReads()
++  const load = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('Storage unavailable') })
++  const save = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('Storage unavailable') })
++  try {
++    const stream = reads.for(parent)
++    expect(stream.getSnapshot()).toBeNull()
++    reads.mark(parent, first, 7)
++    expect(stream.getSnapshot()).toEqual({ child: first, seq: 7 })
++    reads.sync(new StorageEvent('storage', { key: null }))
++    expect(stream.getSnapshot()).toBeNull()
++  } finally { load.mockRestore(); save.mockRestore() }
++})
+diff --git a/packages/client/ui-primitives/src/StateDot.module.css b/packages/client/ui-primitives/src/StateDot.module.css
+index 1a692c68924e317e2e044da9db7ac96d5ff49ef2..a2c0475bc3430034213a73010083ef00d47171a7 100644
+--- a/packages/client/ui-primitives/src/StateDot.module.css
++++ b/packages/client/ui-primitives/src/StateDot.module.css
+@@ -61,6 +61,16 @@
+   animation: dsh-state-dot-dash 1.5s ease-in-out infinite;
+ }
+ 
++/* Dependent activity: the subject itself is idle, so the ring drops the track
++ * and the travelling arc for an even dashed circumference. It keeps the shared
++ * rotation and phase, and reduced motion leaves the dashes standing still. */
++.spinnerDashed {
++  fill: none;
++  stroke: currentColor;
++  stroke-width: 2;
++  stroke-dasharray: 4 4;
++}
++
+ @keyframes dsh-state-dot-spin {
+   to { transform: rotate(360deg); }
+ }
+diff --git a/packages/client/ui-primitives/src/StateDot.tsx b/packages/client/ui-primitives/src/StateDot.tsx
+index ec480c69810919601e992b22a187178b3106833d..2bc70b8aa7208c614413991705efaf53d96d77cb 100644
+--- a/packages/client/ui-primitives/src/StateDot.tsx
++++ b/packages/client/ui-primitives/src/StateDot.tsx
+@@ -38,30 +38,40 @@ function pinSpinner(element: SVGSVGElement): void {
+  * @param props.state - which of `done`, `warning`, `ongoing`, `error`, or `idle` to show.
+  * @param props.size - outer diameter in px; defaults to 14 for ongoing and 10 for solid states.
+  * @param props.className - extra class for layout placement.
+- * @param props.appearance - compact dot by default; step uses a filled check or hollow pending circle.
++ * @param props.appearance - compact dot by default; step uses a filled check or hollow
++ * pending circle; dashed draws the ongoing ring as short dashes for work that belongs to
++ * a dependent conversation rather than the subject itself.
+  * @returns the dot element (aria-hidden; pair with text for accessibility).
+  */
+ export function StateDot({ state, size, className, appearance = 'dot' }: {
+   state: StateDotState
+   size?: number | undefined
+   className?: string | undefined
+-  appearance?: 'dot' | 'step'
++  appearance?: 'dot' | 'step' | 'dashed'
+ }) {
+   const edge = size ?? (state === 'ongoing' ? 14 : 10)
+   if (state === 'ongoing') {
++    const dashed = appearance === 'dashed'
+     return (
+       <svg
+         ref={syncSpinner}
+         className={clsx(css.spinner, className)}
+         data-state="ongoing"
++        data-appearance={dashed ? 'dashed' : undefined}
+         width={edge}
+         height={edge}
+         viewBox="0 0 24 24"
+         aria-hidden="true"
+       >
+         <g className={css.spinnerMotion}>
+-          <circle className={css.spinnerTrack} cx="12" cy="12" r="9.5" />
+-          <circle className={css.spinnerArc} cx="12" cy="12" r="9.5" />
++          {dashed
++            ? <circle className={css.spinnerDashed} cx="12" cy="12" r="9.5" pathLength="64" />
++            : (
++              <>
++                <circle className={css.spinnerTrack} cx="12" cy="12" r="9.5" />
++                <circle className={css.spinnerArc} cx="12" cy="12" r="9.5" />
++              </>
++            )}
+         </g>
+       </svg>
+     )
+diff --git a/packages/client/ui-workspace/src/client/locales.ts b/packages/client/ui-workspace/src/client/locales.ts
+index 2316ef503bf60fc21cdaa27edb5626a169436484..4d0f6282ef3c786a0dff570366cd78d786519d2d 100644
+--- a/packages/client/ui-workspace/src/client/locales.ts
++++ b/packages/client/ui-workspace/src/client/locales.ts
+@@ -112,6 +112,7 @@ export const zh = {
+   'actions.newSession': '新会话',
+   'actions.newSession.aria': '在“{name}”中新建会话',
+   'status.running': '进行中',
++  'status.asideRunning': '旁问进行中',
+   'status.subagentsRunning.one': '{n} 个子智能体运行中',
+   'status.subagentsRunning.other': '{n} 个子智能体运行中',
+   'status.idle': '空闲',
+@@ -249,6 +250,7 @@ export const en = {
+   'actions.newSession': 'New session',
+   'actions.newSession.aria': 'New session in {name}',
+   'status.running': 'Running',
++  'status.asideRunning': 'Side question running',
+   'status.subagentsRunning.one': '{n} subagent running',
+   'status.subagentsRunning.other': '{n} subagents running',
+   'status.idle': 'Idle',
+@@ -383,6 +385,7 @@ export const ja = {
+   'actions.newSession': '新しいセッション',
+   'actions.newSession.aria': '{name} で新しいセッション',
+   'status.running': '実行中',
++  'status.asideRunning': 'サイド質問を処理中',
+   'status.subagentsRunning.one': 'サブエージェント {n} 件が実行中',
+   'status.subagentsRunning.other': 'サブエージェント {n} 件が実行中',
+   'status.idle': '待機中',
+@@ -517,6 +520,7 @@ export const es = {
+   'actions.newSession': 'Nueva sesión',
+   'actions.newSession.aria': 'Nueva sesión en {name}',
+   'status.running': 'corriendo',
++  'status.asideRunning': 'Pregunta paralela en curso',
+   'status.subagentsRunning.one': 'Subagente {n} ejecutándose',
+   'status.subagentsRunning.other': 'Subagentes {n} ejecutándose',
+   'status.idle': 'inactivo',
+@@ -651,6 +655,7 @@ export const fr = {
+   'actions.newSession': 'Nouvelle séance',
+   'actions.newSession.aria': 'Nouvelle séance dans {name}',
+   'status.running': 'Courir',
++  'status.asideRunning': 'Question en parallèle en cours',
+   'status.subagentsRunning.one': "Sous-agent {n} en cours d'exécution",
+   'status.subagentsRunning.other': "Sous-agents {n} en cours d'exécution",
+   'status.idle': 'Inactif',
+@@ -785,6 +790,7 @@ export const de = {
+   'actions.newSession': 'Neue Sitzung',
+   'actions.newSession.aria': 'Neue Sitzung in {name}',
+   'status.running': 'Laufen',
++  'status.asideRunning': 'Nebenfrage wird bearbeitet',
+   'status.subagentsRunning.one': '{n}-Subagent läuft',
+   'status.subagentsRunning.other': '{n} Subagenten laufen',
+   'status.idle': 'Leerlauf',
+@@ -919,6 +925,7 @@ export const ru = {
+   'actions.newSession': 'Новая сессия',
+   'actions.newSession.aria': 'Новая сессия в {name}',
+   'status.running': 'Бег',
++  'status.asideRunning': 'Параллельный вопрос обрабатывается',
+   'status.subagentsRunning.one': 'Субагент {n} работает',
+   'status.subagentsRunning.other': 'Субагенты {n} работают',
+   'status.idle': 'Простой',
+@@ -1053,6 +1060,7 @@ export const pt = {
+   'actions.newSession': 'Nova sessão',
+   'actions.newSession.aria': 'Nova sessão em {name}',
+   'status.running': 'Correndo',
++  'status.asideRunning': 'Pergunta paralela em andamento',
+   'status.subagentsRunning.one': '{n} subagente em execução',
+   'status.subagentsRunning.other': '{n} subagentes em execução',
+   'status.idle': 'Inativo',
+diff --git a/packages/client/ui-workspace/src/client/rows/Rows.tsx b/packages/client/ui-workspace/src/client/rows/Rows.tsx
+index b62bf3a09b1c2386de65c018b5ad7f50ae7e7635..ae4baf029f68c7daaa65759d91037ad77bd8815a 100644
+--- a/packages/client/ui-workspace/src/client/rows/Rows.tsx
++++ b/packages/client/ui-workspace/src/client/rows/Rows.tsx
+@@ -286,6 +286,7 @@ function assertNever(value: never): never {
+ 
+ interface SessionStatus {
+   state: StateDotState
++  dashed?: true
+   label: string
+   /** Compact text that replaces the Session row's update time. */
+   trailingLabel?: string
+@@ -296,7 +297,7 @@ interface SessionStatus {
+  * outranks completion reminders.
+  */
+ function sessionStatuses(
+-  node: Pick<SessionNode, 'pendingInteraction' | 'running' | 'runningSubagentCount' | 'completed' | 'failed'>,
++  node: Pick<SessionNode, 'pendingInteraction' | 'running' | 'runningSubagentCount' | 'asideRunning' | 'completed' | 'failed'>,
+   t: RowTranslate,
+ ): readonly [SessionStatus, ...SessionStatus[]] {
+   const subagents: SessionStatus | undefined = node.runningSubagentCount === 0
+@@ -347,6 +348,7 @@ function sessionStatuses(
+     return subagents === undefined ? [primary, ...unread] : [primary, subagents, ...unread]
+   }
+   if (subagents !== undefined) return [subagents, ...unread]
++  if (node.asideRunning) return [{ state: 'ongoing', dashed: true, label: t('status.asideRunning') }, ...unread]
+   if (node.completed) return [completion]
+   return [{ state: 'idle', label: t('status.idle') }]
+ }
+@@ -355,7 +357,7 @@ function sessionStatuses(
+ function SessionStatusDots({ statuses }: { statuses: readonly [SessionStatus, ...SessionStatus[]] }) {
+   return (
+     <>
+-      <StateDot state={statuses[0].state} />
++      <StateDot state={statuses[0].state} appearance={statuses[0].dashed ? 'dashed' : 'dot'} />
+       {statuses.map(status => (
+         <span className={css.visuallyHidden} key={status.label}>{status.label}</span>
+       ))}
+@@ -399,7 +401,7 @@ function SessionHoverContent({ node, cwd, now, renderSlot, t }: {
+       {renderSlot('sidebar.session.row.hover', { sessionId: node.id })}
+       {statuses.map(status => (
+         <div className={css.hoverStatus} key={status.label}>
+-          <StateDot state={status.state} />
++          <StateDot state={status.state} appearance={status.dashed ? 'dashed' : 'dot'} />
+           <span>{status.label}</span>
+         </div>
+       ))}
+diff --git a/packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx b/packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx
+index c1555c682ad25833b947715d147e9668c32e75fc..ece24461dcdda0a1b1f12cd484872b7d03ca8f90 100644
+--- a/packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx
++++ b/packages/client/ui-workspace/src/client/rows/WorkspaceBrowser.tsx
+@@ -85,7 +85,7 @@ function requiredWatermark(
+     if (session.blank) continue
+     index += 1
+     const attention = index <= SESSION_WATERMARK_AUTO_MAX && (
+-      session.running || session.runningSubagentCount > 0 || session.pendingInteraction !== undefined
++      session.running || session.runningSubagentCount > 0 || session.asideRunning || session.pendingInteraction !== undefined
+       || session.completed || session.id === current
+     )
+     if (attention || session.id === revealSessionId) required = index
+diff --git a/packages/session-query/session-query/README.i18n.yaml b/packages/session-query/session-query/README.i18n.yaml
+index 98466afada51b63b47e0e3d2b791d841abc4bfec..3118d7b7e15b26721686272decde3192635ac6b0 100644
+--- a/packages/session-query/session-query/README.i18n.yaml
++++ b/packages/session-query/session-query/README.i18n.yaml
+@@ -42,8 +42,8 @@
+   en: 3254f25af5734621
+   zh: 3f8e8e0bbb83095e
+ /deepseek-ai-dsh-session-query/understand-the-implementation/session-list-metadata:
+-  en: a46a831dce49d0ba
+-  zh: 840d4982f059b41b
++  en: fddb865b6ff78fee
++  zh: 4cb0e57b0d3f7d4f
+ /deepseek-ai-dsh-session-query/understand-the-implementation/observation-cache:
+   en: 6b46e4e42f29aa5b
+   zh: 60312ab81129719a
+diff --git a/packages/session-query/session-query/README.md b/packages/session-query/session-query/README.md
+index cf3b50b9fc8ee09609cf11184a298abc4089faf9..7fcb12dccb8f8af9cde963dd5f4ab317e51c93cc 100644
+--- a/packages/session-query/session-query/README.md
++++ b/packages/session-query/session-query/README.md
+@@ -110,7 +110,7 @@ The decision history lives in the [unified service decision](../../../.agents/no
+ <a id="session-list-metadata"></a>
+ ### Session-list metadata
+ 
+-The service registers the `sessionListMetadata` projection for Session blankness and the latest human-authored prompt time when it starts, and its disposal releases that registration; it therefore requires `sessionProjections`. `getListMetadata(session)` reads the projection synchronously for a live or prepared Session. The Session API and optional [listing tools](../tool-session-list/README.md) read it through `ctx.sessionQuery`.
++The service registers the `sessionListMetadata` projection for Session blankness and the latest human-authored prompt time when it starts, and its disposal releases that registration; it therefore requires `sessionProjections`. `getListMetadata(session)` reads the projection synchronously for a live or prepared Session. For a native side discussion the summary also identifies the generation, whether it received a question and the sequence and interruption status of its latest finished turn. Inherited turns precede this range. The Session API and optional [listing tools](../tool-session-list/README.md) read it through `ctx.sessionQuery`.
+ 
+ ### Observation cache
+ 
+diff --git a/packages/session-query/session-query/README.zh.md b/packages/session-query/session-query/README.zh.md
+index 24805c4144da3f2a6b9c416b3d4a9acce44582f7..fd51aeb4a04cead6fd8f124ea44d84c34f572f98 100644
+--- a/packages/session-query/session-query/README.zh.md
++++ b/packages/session-query/session-query/README.zh.md
+@@ -110,7 +110,7 @@ kind: "package-reference"
+ <a id="session-list-metadata"></a>
+ ### Session 列表元数据
+ 
+-服务启动时注册记录 Session 空白状态与最近人工提示词时间的 `sessionListMetadata` 投影，释放服务时移除该注册；因此服务依赖 `sessionProjections`。`getListMetadata(session)` 同步读取实时或已准备 Session 的该投影。Session API 与可选的[列表工具](../tool-session-list/README.zh.md)通过 `ctx.sessionQuery` 读取。
++服务启动时注册记录 Session 空白状态与最近人工提示词时间的 `sessionListMetadata` 投影，释放服务时移除该注册；因此服务依赖 `sessionProjections`。`getListMetadata(session)` 同步读取实时或已准备 Session 的该投影。原生旁问的摘要还记录当前代、是否收到过问题、最近结束的一轮的序号和中断状态。这些字段只统计旁问自己的记录。Session API 与可选的[列表工具](../tool-session-list/README.zh.md)通过 `ctx.sessionQuery` 读取。
+ 
+ ### 观察缓存
+ 
+diff --git a/packages/session-query/session-query/src/index.ts b/packages/session-query/session-query/src/index.ts
+index d5798fcc55a644702e3b1e92a75797709a214beb..53a3fd52b6eb8f037bb66f1d8619003dab95f55e 100644
+--- a/packages/session-query/session-query/src/index.ts
++++ b/packages/session-query/session-query/src/index.ts
+@@ -64,6 +64,7 @@ import {
+ import * as tracing from './tracing.ts'
+ 
+ export type * from './types.ts'
++export { sideGeneration, sideIdentity } from './side-identity.ts'
+ export { SessionSearchCursor } from './cursor.ts'
+ export type { Config, SessionQueryErrorCode } from './config.ts'
+ export {
+diff --git a/packages/session-query/session-query/src/list-metadata.ts b/packages/session-query/session-query/src/list-metadata.ts
+index 2a4c3fce7175c22f0eb19535763540e24872c3d1..90216fc35599b2909fc85c17aa3c8402a7a112a0 100644
+--- a/packages/session-query/session-query/src/list-metadata.ts
++++ b/packages/session-query/session-query/src/list-metadata.ts
+@@ -3,11 +3,17 @@
+ import type { SessionEvent } from '@deepseek-ai/dsh-session'
+ import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection'
+ import { z } from 'zod'
++import { sideGeneration } from './side-identity.ts'
+ import type { SessionListMetadata } from './types.ts'
+ 
+ const sessionListMetadataSchema: z.ZodType<SessionListMetadata> = z.object({
+   blank: z.boolean(),
+   lastPromptAt: z.number().nullable(),
++  lastTurnFailed: z.boolean().optional(),
++  side: z.object({
++    generation: z.number().int().nonnegative(), fromSeq: z.number().int().nonnegative(), asked: z.boolean(),
++    result: z.object({ seq: z.number().int().nonnegative(), interrupted: z.boolean() }).optional(),
++  }).optional(),
+ })
+ 
+ /** Advance blankness and human-prompt recency without retaining history. */
+@@ -19,17 +25,27 @@ function applySessionListMetadata(
+   const lastPromptAt = event.type === 'user/message' && event.data.source.kind === 'user'
+     ? event.time
+     : state.lastPromptAt
+-  return blank === state.blank && lastPromptAt === state.lastPromptAt
++  const lastTurnFailed = event.type === 'turn/end' ? event.data.reason.kind === 'error'
++    : event.type === 'turn/start' ? false : state.lastTurnFailed
++  let side = state.side
++  if (side && event.seq >= side.fromSeq) {
++    if (!side.asked && event.type === 'user/message' && event.data.source.kind === 'user') side = { ...side, asked: true }
++    if (event.type === 'turn/end') side = { ...side, result: { seq: event.seq, interrupted: event.data.reason.kind !== 'completed' } }
++  }
++  return blank === state.blank && lastPromptAt === state.lastPromptAt && lastTurnFailed === state.lastTurnFailed && side === state.side
+     ? state
+-    : { blank, lastPromptAt }
++    : { blank, lastPromptAt, ...(lastTurnFailed === undefined ? {} : { lastTurnFailed }), ...(side && { side }) }
+ }
+ 
+-/** Blankness and latest human-prompt time folded per Session; persisted at state version 1. */
++/** Summary facts and the last result in a native side discussion’s own history. */
+ export const sessionListMetadataDefinition = {
+   key: 'sessionListMetadata',
+   stateSchema: sessionListMetadataSchema,
+-  init: () => ({ blank: true, lastPromptAt: null }),
++  init: (header, fromSeq) => {
++    const generation = header.parentSession === undefined ? undefined : sideGeneration(header.id, header.parentSession)
++    return { blank: true, lastPromptAt: null, ...(generation === undefined ? {} : { side: { generation, fromSeq, asked: false } }) }
++  },
+   apply: applySessionListMetadata,
+   wire: { viewSchema: sessionListMetadataSchema, view: state => state },
+-  stateVersion: 1,
++  stateVersion: 3,
+ } satisfies ProjectionDefinition<'sessionListMetadata', SessionListMetadata>
+diff --git a/packages/session-query/session-query/src/side-identity.ts b/packages/session-query/session-query/src/side-identity.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..d4bd4d74f8b59057380b6cbf8c48e65d05a82fed
+--- /dev/null
++++ b/packages/session-query/session-query/src/side-identity.ts
+@@ -0,0 +1,31 @@
++/** Canonical identities shared by Session summaries and persistent side discussions. */
++import { createHash } from 'node:crypto'
++import { SessionId } from '@deepseek-ai/dsh-session/types'
++
++/**
++ * Derive one parent's canonical side context identity.
++ * @param parent - Owning main conversation.
++ * @param generation - Zero for the original side, increasing after each clear.
++ * @returns The independent side identity; older generations remain historical records.
++ */
++export function sideIdentity(parent: SessionId, generation = 0): SessionId {
++  const base = `session-side-${createHash('sha256').update(parent).digest('hex')}`
++  return SessionId(generation === 0 ? base : `${base}-${generation}`)
++}
++
++/**
++ * Recognize only the parent's canonical, bounded context generations.
++ * @param id - Candidate native side identity.
++ * @param parent - Recorded direct parent.
++ * @returns The canonical context generation, or undefined for a different identity.
++ */
++export function sideGeneration(id: SessionId, parent: SessionId): number | undefined {
++  if (!id.startsWith('session-side-')) return undefined
++  const base = sideIdentity(parent)
++  if (id === base) return 0
++  if (!id.startsWith(`${base}-`)) return undefined
++  const suffix = id.slice(base.length + 1)
++  if (!/^[1-9][0-9]*$/u.test(suffix)) return undefined
++  const generation = Number(suffix)
++  return Number.isSafeInteger(generation) ? generation : undefined
++}
+diff --git a/packages/session-query/session-query/src/types.ts b/packages/session-query/session-query/src/types.ts
+index 8be1b4bfc6969a124c53e54dda22d0de6e5a54ec..19b0fc4927872662cecb9cdf79324d4a1a9639af 100644
+--- a/packages/session-query/session-query/src/types.ts
++++ b/packages/session-query/session-query/src/types.ts
+@@ -33,6 +33,15 @@ export interface SessionListMetadata {
+   readonly blank: boolean
+   /** Latest human-authored prompt time in the folded prefix. */
+   readonly lastPromptAt: number | null
++  /** Latest completed turn failed; cleared when the next turn starts. Older hints may omit it. */
++  readonly lastTurnFailed?: boolean | undefined
++  /** Native side generation and its latest own result. The inherited prefix precedes fromSeq. */
++  readonly side?: {
++    readonly generation: number
++    readonly fromSeq: number
++    readonly asked: boolean
++    readonly result?: { readonly seq: number; readonly interrupted: boolean } | undefined
++  } | undefined
+ }
+ 
+ /** Whether an event is current model context, replaced context, or raw-log-only. */
+diff --git a/packages/session-query/session-query/tests/list-metadata.spec.ts b/packages/session-query/session-query/tests/list-metadata.spec.ts
+index 14b75460d93d6cc3a7608f50dc9045fe330c62ab..c79268b5022043ac6d440872984236f1fb24d9f4 100644
+--- a/packages/session-query/session-query/tests/list-metadata.spec.ts
++++ b/packages/session-query/session-query/tests/list-metadata.spec.ts
+@@ -38,7 +38,7 @@ describe('Session-list metadata', () => {
+     expect(read(session)).toEqual({ blank: true, lastPromptAt: first.time })
+     session.append('turn/start', { turn: 1 })
+     const active = read(session)
+-    expect(active).toEqual({ blank: false, lastPromptAt: first.time })
++    expect(active).toEqual({ blank: false, lastTurnFailed: false, lastPromptAt: first.time })
+     session.append('turn/start', { turn: 2 })
+     expect(read(session)).toBe(active)
+     session.append('user/message', createUserMessage({
+@@ -47,9 +47,9 @@ describe('Session-list metadata', () => {
+     }), { surfaceOp: 'append' })
+     expect(read(session)).toBe(active)
+     const latest = prompt(session)
+-    expect(read(session)).toEqual({ blank: false, lastPromptAt: latest.time })
++    expect(read(session)).toEqual({ blank: false, lastTurnFailed: false, lastPromptAt: latest.time })
+     expect(ctx.sessionProjections.snapshot(session).values.sessionListMetadata).toEqual(read(session))
+-    expect(ctx.sessionProjections.checkpoint(session).sessionListMetadata?.ver).toBe(1)
++    expect(ctx.sessionProjections.checkpoint(session).sessionListMetadata?.ver).toBe(3)
+   })
+ 
+   it('releases the projection registration when the query service is disposed', async () => {
+@@ -58,7 +58,7 @@ describe('Session-list metadata', () => {
+     const session = ctx.sessions.create()
+     session.append('turn/start', { turn: 1 })
+     expect(ctx.sessionProjections.snapshot(session).values.sessionListMetadata)
+-      .toEqual({ blank: false, lastPromptAt: null })
++      .toEqual({ blank: false, lastTurnFailed: false, lastPromptAt: null })
+ 
+     await fiber.dispose()
+     expect(ctx.sessionProjections.snapshot(session).values).not.toHaveProperty('sessionListMetadata')
+@@ -70,6 +70,6 @@ describe('Session-list metadata', () => {
+     session.append('turn/start', { turn: 1 })
+     const event = prompt(session)
+     await ctx.plugin(TestSessionQueryEngine)
+-    expect(ctx.sessionQuery.getListMetadata(session)).toEqual({ blank: false, lastPromptAt: event.time })
++    expect(ctx.sessionQuery.getListMetadata(session)).toEqual({ blank: false, lastTurnFailed: false, lastPromptAt: event.time })
+   })
+ })
+diff --git a/packages/session-query/tool-session-list/tests/tool-session-list.spec.ts b/packages/session-query/tool-session-list/tests/tool-session-list.spec.ts
+index b9d54912f0064d4798d7b0e1cd23562cc4930620..42fff12cb4afee39d0d7d2c9956fd75237d0fa98 100644
+--- a/packages/session-query/tool-session-list/tests/tool-session-list.spec.ts
++++ b/packages/session-query/tool-session-list/tests/tool-session-list.spec.ts
+@@ -88,7 +88,7 @@ function checkpoint(meta: SessionHeader, title: string | null, lastPromptAt: num
+     },
+     rows: {
+       title: { ver: 1, seq: -1, val: title },
+-      sessionListMetadata: { ver: 1, seq: -1, val: { blank: false, lastPromptAt } },
++      sessionListMetadata: { ver: 3, seq: -1, val: { blank: false, lastPromptAt } },
+     },
+   }
+ }

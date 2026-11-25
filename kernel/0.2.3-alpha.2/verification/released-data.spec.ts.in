@@ -392,6 +392,13 @@ it('continues a released side conversation with fresh completed parent context a
     await ctx.plugin(spending, { path: pausePath }).await()
     const clearedReceipt = join(directory, 'side-cleared-by-candidate.json')
     const expectedCurrent = phase === 'reopen' ? JSON.parse(await readFile(clearedReceipt, 'utf8')) as SessionId : saved
+    using existing = await ctx.sessionQuery.observeSession(saved)
+    const lastSideTurn = existing.events.findLast(event => event.type === 'turn/end')
+    expect(lastSideTurn?.seq).toBeDefined()
+    expect(existing.projections?.values.sessionListMetadata?.side).toEqual({
+      generation: 1, fromSeq: existing.inheritedEventCount, asked: true,
+      result: { seq: lastSideTurn!.seq, interrupted: false },
+    })
     const openings = await Promise.all([1, 2].map(() => controller.aside({ sessionId: parentId, kind: 'side' })))
     expect(openings.map(item => item.sessionId)).toEqual([expectedCurrent, expectedCurrent])
     if (phase === 'read') {
