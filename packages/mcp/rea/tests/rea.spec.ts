@@ -75,6 +75,12 @@ it('offers read-only format and architecture identification on the first step wi
     const pe = Buffer.alloc(88)
     pe.write('MZ'); pe.writeUInt32LE(64, 60); pe.write('PE', 64); pe.writeUInt16LE(0x8664, 68)
     expect(JSON.stringify(await read(pe.toString('hex')))).toContain('x86_64')
+    const armMac = await read('cffaedfe 0c000001 00000000')
+    await expect(JSON.stringify(armMac, null, 2)).toMatchFileSnapshot('./expected/macho-header.json')
+    expect((await read('feedface 00000007 00000003')).value).toEqual({ format: 'Mach-O', machine: 7, architecture: 'i386' })
+    expect((await read('feedface 00000042 00000000')).value).toEqual({ format: 'Mach-O', machine: 66, architecture: null })
+    expect((await read('cffaedfe')).isError).toBe(true)
+    expect((await read('cafebabe 00000034')).value).toEqual({ format: null, machine: null, architecture: null })
     expect(JSON.stringify(await read('00 11'))).toContain('"format":null')
     expect(JSON.stringify(await read('00000000: 61 62 63 64  abcd\n00000004: 01  .'))).toContain('"format":null')
     for (const dump of [xxd.replace('00000010:', '00000011:'), xxd.slice(xxd.indexOf('\n') + 1),

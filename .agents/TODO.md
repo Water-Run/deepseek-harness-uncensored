@@ -14,7 +14,7 @@
 
 桌面读取旧 profile 时，随应用提供的 DSH 包优先于资料目录中的同名副本。已覆盖 ESM、CommonJS 及第三方插件解析。Windows x64 已从正式版样本保留旧 profile，用候选 Electron Host 打开旧会话并新建写作会话。默认资料目录为 `~/.dsh-uncensored`，官方目录及其链接的拒绝路径已验收。macOS arm64 的覆盖安装仍待验收。[复验命令与失败判据](requirements/2026-11-25-release-handoff.md#旧资料与问题-20)[用户报告](https://github.com/Water-Run/deepseek-harness-uncensored/issues/20)
 
-[Issue #22 的只读识别](requirements/2026-11-25-release-handoff.md#issue-22-的首轮文件头识别)已接入主线，模型在用户未提及 REA 时可以从原消息识别 ELF、PE 文件头。
+[Issue #22 的只读识别](requirements/2026-11-25-release-handoff.md#issue-22-的首轮文件头识别)已接入主线，模型在用户未提及 REA 时可以从原消息识别 ELF、PE 和单架构 Mach-O 文件头。
 
 下一版源码已完成关于页与设置调整、跨对话记忆总开关和余额历史范围选择。Windows x64 上已验收桌面与窄屏布局、余额双端拖动和开关持久化。四组旧版 Web 会话回放在 Windows 上仍有差异，涉及 Unix Shell、平台技能目录和既有系统提示词断言，需在支持的平台复验。[默认值升级说明](../docs/upgrade-guide/v0.2.2-rc.5/memory-and-balance-defaults/guide.zh.md)
 

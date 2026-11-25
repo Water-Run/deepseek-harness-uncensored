@@ -1,0 +1,14 @@
+{
+  "isError": false,
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"format\":\"Mach-O\",\"machine\":16777228,\"architecture\":\"arm64\"}"
+    }
+  ],
+  "value": {
+    "format": "Mach-O",
+    "machine": 16777228,
+    "architecture": "arm64"
+  }
+}

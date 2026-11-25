@@ -4,6 +4,8 @@
  */
 import type { Context } from '@deepseek-ai/cordis'
 import { ToolArgsError, defineTool } from '@deepseek-ai/dsh-tools'
+import { readMachoHeaderPrefixFacts } from 'rea-agents/dist/domain/apple/machoContainer.js'
+import { machoArchitectureName } from 'rea-agents/dist/domain/apple/machoCpuIdentity.js'
 import { readElfFixedHeader } from 'rea-agents/dist/domain/elfFixedHeader.js'
 import { readPeCoffHeader } from 'rea-agents/dist/domain/peCoffHeader.js'
 import { decodePeMachine } from 'rea-agents/dist/domain/peMachine.js'
@@ -66,6 +68,13 @@ function identify(input: string) {
       return { format: 'PE', machine: header.value.machine, architecture: machine && !machine.nativeOsOverride ? machine.architecture : null }
     }
   }
+  const macho = readMachoHeaderPrefixFacts(bytes)
+  if (macho.format !== null) {
+    if (macho.identity === null) throw new ToolArgsError(['Supply the first 12 bytes of the Mach-O header to identify its CPU.'])
+    const { cpuType, cpuSubtype } = macho.identity
+    const name = machoArchitectureName(cpuType, cpuSubtype)
+    return { format: 'Mach-O', machine: cpuType, architecture: name.startsWith('cpu-') ? null : name }
+  }
   return { format: null, machine: null, architecture: null }
 }
 
@@ -84,7 +93,7 @@ export function registerHeaderIdentification(ctx: Context): void {
   })
   ctx.effect(() => ctx.tools.register(defineTool({
     name: 'rea_identify_header',
-    description: 'Identify the file format and declared CPU architecture of ELF or Windows PE from a hex prefix or standard xxd output in the current user message.',
+    description: 'Identify the file format and declared CPU architecture of ELF, Windows PE, or single-architecture Mach-O from a hex prefix or standard xxd output in the current user message.',
     parameters: {},
     output: { schema: { type: 'json' }, render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }] },
     execute(_args, { agent }) {

@@ -11,7 +11,7 @@ English | [中文](README.zh.md)
 
 The root service owns REA launch preferences and external processes. The `./agent` consumer is mounted only by the Reverse preset. REA is enabled by default and starts only when used. Saved opt-outs remain disabled; configuring it neither downloads software nor changes another client's settings.
 
-With REA enabled, the first model request includes a file-header reader. Paste the first bytes of an ELF or PE file on their own lines and ask for its format and CPU architecture. Plain hex and consecutive rows from standard `xxd` or `xxd -g 1` starting at offset zero are accepted. The reader accepts up to 4096 bytes, uses REA’s fixed-header decoders locally, and works in read-only mode. An unknown machine returns its numeric identifier, and incomplete headers report the missing data.
+With REA enabled, the first model request includes a file-header reader. Paste the first bytes of an ELF file, a Windows PE file, or a single-architecture Mach-O file on their own lines and ask for its format and CPU architecture. Plain hex and consecutive rows from standard `xxd` or `xxd -g 1` starting at offset zero are accepted. The reader accepts up to 4096 bytes, uses REA’s fixed-header decoders locally, and works in read-only mode. An unknown machine returns its numeric identifier, and incomplete headers report the missing data.
 
 ## Configuration
 
