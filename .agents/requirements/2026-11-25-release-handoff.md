@@ -11,7 +11,7 @@
 | GitHub 正式版 | [v2026.11.24.3](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.24.3) 是 Latest，另有 [v2026.11.23.0](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.23.0)。两版各有 10 个附件。 | 供用户下载、取旧安装器和比对更新入口。安装包的版本与开发截图分别核对。 |
 | DSHU 主线 | [d8798268b4](https://github.com/Water-Run/deepseek-harness-uncensored/commit/d8798268b4acd1f732811320ba946422ce47b4a0) 是本轮界面、记忆总开关、余额历史和旧 profile 解析的起点。根 [product.json](../../product.json) 声明内核 `0.2.2-rc.5`。 | 在仓库根目录启动和构建得到此源码线。主线版本信息只有在实际替换并验收桌面载荷后才能随之更新。 |
 | DSH 新内核 | 目标为上游 [dsh-v0.2.3-alpha.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.3-alpha.2)，固定提交 `4b399c39a6d1479cd84ca591b4d7c88e24d38a96`。 | 已纳入 Git 的候选由 [source.json](../../kernel/0.2.3-alpha.2/source.json) 的 `tree` 唯一标识。上游提交、候选 Git 树、DSHU 日期版本是三种不同的标识。 |
-| 旧资料基准 | [跨版本资料验证器](../../scripts/verify-kernel-released-data.mjs) 接受两个已发布节点，分别是 `v2026.11.24.3` 的 `7eaeddc6050e` 和 `v2026.11.23.0` 的 `95325688c913`。 | 旧版进程写入样本，新版进程读取、修改并冷启动复核。Windows x64 已用 Electron 启动候选桌面 Host。安装器覆盖升级另行验收。 |
+| 旧资料基准 | [跨版本资料验证器](../../scripts/verify-kernel-released-data.mjs) 接受两个已发布节点，分别是 `v2026.11.24.3` 的 `7eaeddc6050e` 和 `v2026.11.23.0` 的 `95325688c913`。 | 旧版进程写入样本，新版进程读取、修改并冷启动复核。Windows x64 已用 Electron 启动候选桌面 Host。Windows 缺省与写作候选的实装覆盖结果见下方“Windows 安装器与版本身份”。 |
 
 ## 七项需求如何验收
 
@@ -120,11 +120,11 @@ pnpm run test:web:built apps/web/tests/balance-cleanup.e2e.ts apps/web/tests/bal
 
 ### 关于页与模式设置的候选验收
 
-关于页截图对应的候选树为 `9a040762398793a9e8e29c8c2c243f167e9fda04`。从账号菜单打开关于页，登录前后都能使用。桌面左侧的渐变贴齐弹窗上、下、左三边，窄屏改为顶部横幅。弹窗通过辅助技术名称标识，右上角关闭按钮固定可达。桌面用 Escape 关闭后，焦点回到账号菜单，可以直接按 Enter 再次打开。[候选桌面实拍](../../docs/assets/dshu/about-candidate.webp) · [候选窄屏实拍](../../docs/assets/dshu/about-candidate-mobile.webp)
+关于页布局首次在候选树 `9a040762398793a9e8e29c8c2c243f167e9fda04` 验收。从账号菜单打开关于页，登录前后都能使用。桌面左侧的渐变贴齐弹窗上、下、左三边，窄屏改为顶部横幅。弹窗通过辅助技术名称标识，右上角关闭按钮固定可达。桌面用 Escape 关闭后，焦点回到账号菜单，可以直接按 Enter 再次打开。[候选桌面实拍](../../docs/assets/dshu/about-candidate.webp) · [候选窄屏实拍](../../docs/assets/dshu/about-candidate-mobile.webp)
 
 | 关于页字段 | 当前候选数据与核对方法 |
 | --- | --- |
-| DSHU 版本与编译时间 | 左侧显示 `2026.11.23.0`，沿用 DSHU 源码产品版本。当前候选的 CLI 与关于页共用 `apps/cli/package.json` 的 `dshuVersion`，插件兼容性依然按内核版本判断。编译时间以 UTC 显示，显式传入 `DSH_CLIENT_BUILD_TIME` 时必须使用带毫秒的 ISO UTC 时间。GitHub 最新安装包有独立的发行版本。 |
+| DSHU 版本与编译时间 | 左侧显示候选的 DSHU 日期版本 `2026.11.25.0`。当前候选的 CLI 与关于页共用 `apps/cli/package.json` 的 `dshuVersion`，插件兼容性依然按内核版本判断。编译时间以 UTC 显示，显式传入 `DSH_CLIENT_BUILD_TIME` 时必须使用带毫秒的 ISO UTC 时间。GitHub 最新安装包有独立的发行版本。 |
 | DSH 内核与源码 | 右侧显示运行内核 `0.2.3-alpha.2`、固定上游提交及其时间。候选源码树取构建时的 Git 暂存树；工作区存在未暂存修改或非忽略的未跟踪文件时，会显示工作区状态。还原后用 `git write-tree` 核对清单。 |
 | 组件与许可 | 分别展示 DSHU 和上游许可。dsh-purge Community 1.7.20 与 REA 6.9.0 各自列有许可、来源提交及时间。两项标为发行版清单参考，当前通用源码候选未装配这两个组件。正式安装包另须核对实际载荷。 |
 | 桌面原生菜单 | 工作区就绪时通过当前主文档打开同一页面，内嵌的 Platform 视图在关闭后恢复；启动和恢复期间使用原生关于面板。测试覆盖失效文档、延迟加载、订阅清理和菜单回退。设备上的原生安装验收单独记录。 |
@@ -219,11 +219,67 @@ Windows x64 的实测使用 Electron `44.11.5`、构建后的桌面 Host 和带�
 pnpm exec vitest run --maxWorkers=2 apps/desktop/tests/cli-launcher.spec.ts apps/desktop/tests/command-path.spec.ts apps/desktop/tests/command-management.spec.ts apps/desktop/tests/command-installation.spec.ts apps/desktop/tests/runtime-preparation.spec.ts apps/desktop/tests/main-startup.spec.ts apps/desktop/tests/desktop-package-environment.spec.ts
 ```
 
+### Windows 安装器与版本身份
+
+本轮 Windows 候选从新目录还原出的 Git 树为 `4dad339f3e2e8e3d6a92fffac7e971be750f0f1e`，与 [source.json](../../kernel/0.2.3-alpha.2/source.json) 一致。Windows x64 的 Visual Studio C++ 构建环境使用下列入口。日历版本来自候选 `apps/cli/package.json` 的 `dshuVersion`。本轮候选 `2026.11.25.0` 对应 Electron 更新器比较的 `2026.1125.0`。关于页的右栏和包内的 DSH 运行时保留 `0.2.3-alpha.2`。安装应用标识使用 `com.deepseek.dsh.uncensored`。
+
+```sh
+pnpm --dir apps/desktop run check:package win-x64 --unsigned
+pnpm --dir apps/desktop run package:win:x64:unsigned
+```
+
+本轮离线安装验收使用 `DSH_PACKAGING_PRESET=test`，`DSH_PACKAGING_CONFIG_DIR` 指向隔离目录，其中 `presets/test.env` 如下。Windows 与 macOS 的模板都填写 DSHU 应用标识。打包入口会报告误填的官方 DSH 标识。测试所用域名为占位值，线上更新与登录需另用相应环境验收。
+
+```dotenv
+DSH_DESKTOP_APP_ID=com.deepseek.dsh.uncensored
+DSH_DESKTOP_AUTO_UPDATE_ENV=test
+DSH_DESKTOP_NPM_REGISTRY=https://registry.npmjs.org
+DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN=https://policy.invalid
+DSH_DESKTOP_MANDATORY_UPDATE_CONFIG={"allowedAuthOrigins":["https://auth.invalid"]}
+DSH_DESKTOP_WINDOWS_PACK_CONCURRENCY=4
+```
+
+配置本机 preset 的字段和外部依赖见还原后候选目录中的 `apps/desktop/packaging/README.zh.md`。本地未签名验收从 `apps/desktop/.desktop-build/targets/win-x64/unsigned-artifacts/` 取 EXE。构建记录在 `apps/desktop/.desktop-build/packaging-runs/`。同一份客户端编译记录保存 UTC 编译时间。打包复用该时间，逐项核对当前源码树、品牌和产物摘要。源码候选正在打包时，文档生成和会留下临时文件的检查应在另一工作树执行。
+
+在独立的 Windows 测试账户中复验以下操作。测试样本只使用本机写作工作区。无需在线模型或用户凭据。
+
+1. 从已发布的 `v2026.11.24.3` 下载 Windows x64 安装包，以 GitHub 附件公布的 SHA-256 校验。安装后记录当前用户“已安装的应用”中的 DSHU 版本、登记项与安装位置。
+2. 启动已安装的桌面程序，让程序创建自己的 desktop profile。在新建的工作区中创建写作对话，设置一个能辨认的标题。正常关闭并重启，确认标题已写入磁盘。记录工作区 ID、会话 ID 和 profile 的 SHA-256。用独立的官方资料目录放置可核对的标记文件。
+3. 在同一账户、同一安装位置运行候选安装器。核对 DSHU 卸载登记项仍为同一项，安装目录、程序文件版本、终端命令与关于页使用预期值。另读安装目录内的 `resources/app.asar/dsh/node_modules/@deepseek-ai/dsh/package.json` 检查内核版本。
+4. 用安装后的桌面 Host 打开旧版写入的资料，逐项核对工作区、会话和标题。创建第二条写作对话，正常关闭，冷启动再读。比对原 profile 与官方标记文件的摘要。旧数据留存、安装器返回值和应用版本分别记录，一项失败即保留对应日志。
+
+在测试账户中保留一份旧版随包的 `@deepseek-ai/dsh-api-workspace-controller` 也是本轮验收条件。先从旧应用的 `resources/app.asar/dsh/node_modules/@deepseek-ai/` 下读取该包，将完整目录复制到测试账户的 `.dsh-uncensored/profiles/desktop/node_modules/@deepseek-ai/` 中。Electron 的文件 API 能读取 ASAR 内的条目。记录相对路径、文件数、包版本及每个普通文件的 SHA-256。用旧 Host 冷启动读取一次，再覆盖安装并用新 Host 复查。这样既能复现旧插件留在用户目录里的情况，也能核对安装器和应用启动时是否改写了它。
+
+在执行安装的同一测试账户中，可用下列 PowerShell 命令核对登记信息、可执行文件版本和 CLI。对安装器运行 `Get-FileHash -Algorithm SHA256`。主程序与安装器的文件属性应显示同一四段 DSHU 版本。安装资源根目录的 `LICENSE` 是 DSHU 的 GPL 许可，`LICENSES/DeepSeek-Harness/` 内另有上游 MIT 许可和第三方声明。
+
+```powershell
+$product = @(Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' |
+    Where-Object DisplayName -like 'DeepSeek Harness Uncensored*')
+if ($product.Count -ne 1) { throw "找到 $($product.Count) 条 DSHU 安装记录" }
+$product | Select-Object PSChildName, DisplayVersion, InstallLocation
+$program = Get-Item (Join-Path $product[0].InstallLocation 'DeepSeek Harness Uncensored.exe')
+$program.VersionInfo | Select-Object ProductVersion, FileVersion, CompanyName
+& (Join-Path $product[0].InstallLocation 'resources\runtime\cli\bin\dsh-uncensored.cmd') --version
+```
+
+本轮在 Windows 11 x64（Windows Sandbox，build 26100）的离线测试账户中，使用 GitHub 正式版安装器直接覆盖升级到缺省与写作候选。旧版安装器的 SHA-256 为 `a84001b8ec3d64ae4452833d8fdd018857900a772be366488de2f219334b5b30`。
+
+| 实物或操作 | 验收结果 |
+| --- | --- |
+| 候选安装器 | `deepseek-harness-uncensored-2026.11.25.0-win-x64-unsigned.exe`，325,243,875 字节，SHA-256 `2b0602e102a3459b79529627c4f742639c695f5af378b3b5b5b6e11c7ccde54e`。本地未签名测试包。 |
+| 增量映射 | 同名 `.exe.blockmap` 的 SHA-256 为 `0deed031e5c8c6c8a44cb90b3cf5601caf3eaeab6889a56e455ce322d39c343a`。 |
+| 版本和安装归属 | 旧版 `2026.11.24.3` 与候选使用同一 HKCU 卸载项 `4bbab420-ba6b-5135-af15-70ac616e0cb2` 和同一安装目录。安装器、已安装主程序、CLI 与系统登记均为 `2026.11.25.0`。包内 Electron 应用版本 `2026.1125.0`，DSH 内核 `0.2.3-alpha.2`，Electron `44.11.5`。已从实装资源读取 GPL、上游 MIT 及第三方声明。 |
+| 保留旧资料 | 旧版写入的工作区和写作会话均通过 ID 和标题核对。升级后创建第二条写作会话，新进程能读回两条标题。旧工作区控制器的 37 个原文件、desktop profile 配置及独立官方目录的标记文件均通过 SHA-256 核对。 |
+| 桌面窗口 | 从安装后的程序跳过凭据设置，打开账号菜单中的关于页，看到 DSHU 日期版本、DSH 内核版本及本次源码树。 |
+| 保留资料卸载并重装 | 使用 `/KEEP_APP_DATA` 后主程序和卸载登记均已移除。重新安装后，从冷启动的桌面 Host 再次读取两个标题，逐项复核旧文件与官方标记。 |
+
+同版损坏修复仍有一个失败场景。移开此候选已安装的主 EXE 后，同一份安装器静默重装返回 2。测试保留并按 SHA-256 恢复了原件。下个安装器节点须分别验证两条 DSHU 登记指向同一目录及登记不一致的情况。
+
 ## 桌面与平台验收
 
 | 目标 | 对照安装形式 | 本轮发行候选验收 |
 | --- | --- | --- |
-| Windows x64 | exe | 从线上版本保留资料升级、附件签名与哈希、实际启动、同版修复、卸载后资料策略。检查短路径和深路径下原生模块与 Office 运行时加载。 |
+| Windows x64 | exe | 缺省与写作的未签名安装器、保留资料及冷启动结果见上表。四模式包、正式签名与真实在线更新仍待验收。 |
 | Linux x64 | deb、rpm 分别验证 | 记录发行版、包管理器和桌面会话。两种包各自安装、启动、保留资料升级并读取历史会话。 |
 | Linux arm64 | deb | 在匹配架构的系统安装，验证随包原生依赖、启动与已有资料。 |
 | macOS arm64 | DMG 手动安装，按旧版实际更新索引验证应用内升级 | 记录签名、公证及 Gatekeeper 结果，再做 Issue #20 的保留资料场景。过渡版本的旧更新器仍可能下载 ZIP。 |
@@ -236,7 +292,7 @@ pnpm exec vitest run --maxWorkers=2 apps/desktop/tests/cli-launcher.spec.ts apps
 
 | 里程碑 | 责任与验收 | 可以交接的证据 |
 | --- | --- | --- |
-| 内核与通用功能 | 固定候选已接入记忆、账户余额、额度设置与左侧导航。关于页、模式设置和桌面菜单已在源码候选接入。下一步由打包维护者在实际安装产物上核对日期版本、内核版本和组件。按正常 Web/桌面入口检验，不同账户和工作区分别使用测试资料。 | 可还原的补丁和树、冻结安装、构建、定向测试、页面实拍、旧资料复验结果。 |
+| 内核与通用功能 | 固定候选已接入记忆、账户余额、额度设置与左侧导航。关于页、模式设置和桌面菜单已在源码候选接入。Windows 缺省与写作安装器已核对产品日期版本、内核版本和许可。其余平台须核对各自的实际产物。按正常 Web/桌面入口检验，不同账户和工作区分别使用测试资料。 | 可还原的补丁和树、冻结安装、构建、定向测试、页面实拍、旧资料复验结果。 |
 | 四模式与已有会话 | 产品维护者接手专项执行链。逐项核对四种模式的产品入口、选中状态、既有会话标识和用户资料。历史会话须保留原模式，异常应能定位。 | 各模式对应的负责人、源码或构建标识、保留资料测试结果、剩余缺口。专项执行链的实现和验证由其维护者负责。 |
 | 安装升级 | 各平台维护者使用同一源码提交生成候选，完成上表对应操作。 | 安装器清单、摘要、系统版本、签名状态、旧版到候选的升级记录及恢复验证。 |
 | 文档与发布 | 发行维护者核对 README 的默认值、截图和真实附件名，确认关于页与应用报告的版本一致，并检查 Release 更新索引。 | 已核对的正式标签、附件清单、升级指南和各平台结果。验收缺项记录在[交付清单](../TODO.md)。 |

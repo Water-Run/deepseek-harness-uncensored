@@ -1051,10 +1051,26 @@ index 56161096b2f742f2c592b7b87f8693a8ceb8989a..1942bb7cde1ce1a940366f86f8b50400
  账号失效并返回 Welcome 时，主进程保留一次性通知，直到渲染器通过所属窗口的 IPC 领取。重新加载 Welcome 不会重复提示；主动退登和冷启动不会生成该通知。
  
 diff --git a/apps/desktop/packaging/README.i18n.yaml b/apps/desktop/packaging/README.i18n.yaml
-index 228f07da880b886dd478781fc5cd56399d4f1488..255278a65b05eadeb5c2e3a8c3d43374e2f96b77 100644
+index 228f07da880b886dd478781fc5cd56399d4f1488..54e237fdd92769bbe5cfbc0da326bda545dbe77b 100644
 --- a/apps/desktop/packaging/README.i18n.yaml
 +++ b/apps/desktop/packaging/README.i18n.yaml
-@@ -30,11 +30,11 @@
+@@ -18,23 +18,23 @@
+   en: 0b35c7471c09b27a
+   zh: cc4a382b99fc3210
+ /desktop-packaging/release-versions:
+-  en: bdee4adb7916e6cc
+-  zh: 2880c3594ebab7ab
++  en: 187ffc74d4531473
++  zh: ee5535409ee08382
+ /desktop-packaging/configuration-and-local-builds:
+   en: 5b4f0f80a117f202
+   zh: ff05be196c181087
+ /desktop-packaging/windows-actions-packaging:
+-  en: b39449c2f945cab9
+-  zh: a742ba9efa282be8
++  en: c28131e9233c0bbf
++  zh: 5538467bb480cef0
+ /desktop-packaging/macos-self-hosted-packaging:
    en: b7c6668f451d2e16
    zh: d3125c2bb6cf8e7b
  /desktop-packaging/unsigned-windows-test-installer:
@@ -1065,16 +1081,65 @@ index 228f07da880b886dd478781fc5cd56399d4f1488..255278a65b05eadeb5c2e3a8c3d43374
  /desktop-packaging/local-macos-dmg-without-release-signing:
 -  en: 1146bbc11be43960
 -  zh: 7c13543a0513c059
-+  en: 4764dbfc0d1c9e23
-+  zh: 7492b655a3223cc3
++  en: c5c3087b757efe90
++  zh: 3e2503183bc4c164
  /desktop-packaging/macos-release-signing-and-diagnostics:
    en: a0b4aa1080ecf6fb
    zh: 37d4b8934f89bee8
+@@ -45,7 +45,7 @@
+   en: b42f103358d0dfd7
+   zh: a534164ad9eb00da
+ /desktop-packaging/runtime-file-selection-and-installation-checks:
+-  en: 1d153e4ba7528414
++  en: d171a0c635bb9217
+   zh: cdf15fb80099ce17
+ /desktop-packaging/desktop-runtime-preparation:
+   en: 84be38ab3136fff7
 diff --git a/apps/desktop/packaging/README.md b/apps/desktop/packaging/README.md
-index d8aa7714ee03dac6fa90d35027488ebc595e3881..c7e1fe1d000436293fd66799c35357eeba901cfb 100644
+index d8aa7714ee03dac6fa90d35027488ebc595e3881..77681373cd338add0bbd2c702e80fec3ec9dbe7c 100644
 --- a/apps/desktop/packaging/README.md
 +++ b/apps/desktop/packaging/README.md
-@@ -159,7 +159,7 @@ On Windows x64, use the complete unsigned packaging command for local installati
+@@ -38,25 +38,20 @@ Set `DSH_DESKTOP_PACKAGE_CACHE_DIR` to an absolute build-cache directory for reu
+ 
+ ## Release versions
+ 
+-Before each Desktop packaging run, first confirm the complete version string with the current user. Check the selected deployment, dsh base version, retained release records, and published objects, then propose the exact version for approval. Do not start packaging until the user confirms that version; the deployment setting alone does not authorize a version choice.
++The public DSHU version comes from `apps/cli/package.json` (`dshuVersion`). The CLI, About dialog, Windows installer and download filename use the four-part date. Electron and the updater compare the ordered three-part version. The bundled runtime is verified separately against the DSH kernel version. The desktop application lists WaterRun as its author. Installed resources contain the DSHU GPL text in `LICENSE` and the upstream MIT text and dependency notices in `LICENSES/DeepSeek-Harness/`.
+ 
+-Record the current dsh version as the base. A production Desktop release uses that exact version, including any `alpha`, `beta`, or `rc` identifiers. A test release preserves the complete prerelease base and appends `.YYYYMMDD.index`; a stable base uses `-test.YYYYMMDD.index` instead.
+-
+-| dsh base | Production Desktop | Test Desktop example |
++| DSHU version | Electron version | Test build example |
+ |---|---|---|
+-| `0.1.6-alpha.1` | `0.1.6-alpha.1` | `0.1.6-alpha.1.20260916.1` |
+-| `0.1.6-beta.2` | `0.1.6-beta.2` | `0.1.6-beta.2.20260916.1` |
+-| `0.1.6-rc.3` | `0.1.6-rc.3` | `0.1.6-rc.3.20260916.1` |
+-| `0.1.6` | `0.1.6` | `0.1.6-test.20260916.1` |
++| `2026.11.25.0` | `2026.1125.0` | `2026.1125.0-test.20261125.1` |
+ 
+ Use the actual creation date in Asia/Shanghai. For each base and date, start the index at 1 and increment after checking retained release records and published objects; never reuse a published version. Test distribution does not publish the corresponding unsuffixed base.
+ 
+-Version mode `build-number` appends the UTC date, workflow run number and attempt (`.YYYYMMDD.run.attempt`, with `-test` for a stable base). For example, `0.2.1-alpha.1.20261008.42.2`. These numbers are not reserved release sequence numbers.
++Version mode `build-number` appends the UTC date, workflow run number and attempt (`.YYYYMMDD.run.attempt`, with `-test` for a stable base). For example, `2026.1125.0-test.20261125.42.2`. These numbers are not reserved release sequence numbers.
+ 
+ Pass the confirmed version to the packaging command as `--build-version`, which reaches the artifact names, the update feed, and the upload validation as one value. The manifests keep the product version, so a test build no longer rewrites the release family and leaves nothing to revert:
+ 
+ ```sh
+-pnpm --dir apps/desktop run package:win:x64 --build-version 0.1.6-alpha.1.20260916.1
++pnpm --dir apps/desktop run package:win:x64 --build-version 2026.1125.0-test.20261125.1
+ ```
+ 
+ `--build-version auto` proposes the next index for today, reading the published objects in the destination bucket and falling back to this target's local output directory when no bucket is configured or the listing cannot finish within its deadline. Confirm the proposal it prints before an upload; a run script forwards `--` on its own, and the packaging entry accepts it either way.
+@@ -109,7 +104,7 @@ Each target owns its packed package inputs, prepared runtime, package set, dsh t
+ 
+ For supervised runner startup and recovery, follow [Windows runner machine setup](../windows-signing/README.md#machine-setup).
+ 
+-The `Package Desktop · Windows · x64` [manual workflow](../../../.github/workflows/windows-package.yml) selects the dedicated Windows x64 runner label `dsh-win-package-trial` and the machine preset `test` or `production`. Choose `signed` (default) or `unsigned`; signed mode uses the existing EV token preflight, signature cache and failure interlock. It does not publish or upload a release. `version_mode` defaults to `default` (`follow-dsh` for production, `build-number` for test); `build-number` uses the CI identifier in [Release versions](#release-versions). `build_version` is required for `manual` and ignored by the other modes; its value may be the checkout's product version or an extended build version such as `0.2.1-alpha.1.20261009.1` for product `0.2.1-alpha.1`. The version prefix must match the selected checkout; validation errors show its current example. Manifests remain unchanged.
++The `Package Desktop · Windows · x64` [manual workflow](../../../.github/workflows/windows-package.yml) selects the dedicated Windows x64 runner label `dsh-win-package-trial` and the machine preset `test` or `production`. Choose `signed` (default) or `unsigned`; signed mode uses the existing EV token preflight, signature cache and failure interlock. It does not publish or upload a release. `version_mode` defaults to `default` (`follow-dsh` for production, `build-number` for test); `build-number` uses the CI identifier in [Release versions](#release-versions). `build_version` is required for `manual` and ignored by the other modes; its value may be the checkout's product version or an extended build version such as `2026.1125.0-test.20261125.1` for product `2026.1125.0`. The version prefix must match the selected checkout; validation errors show its current example. Manifests remain unchanged.
+ 
+ Select the workflow in Actions, choose the source branch, preset, signing mode and version, then click Run workflow. Before merging input changes, test the pushed branch with `gh workflow run windows-package.yml --ref <branch> -f source_ref=<branch> -f preset=test -f signing=unsigned -f version_mode=build-number`; verify the web form after merging. There is no push or PR trigger. Logs and successful EXEs are retained for 14 days. Inspect the retained logs and installer before relying on packaging; installation is separate. Before checkout, Node removes the runner-owned source directory without following dependency junctions; the workflow validates its location and rejects linked ancestors. Never point it at a development checkout. Runs share one concurrency group without cancelling an active build; only one run remains pending, and a newer dispatch replaces it. Diagnostics upload requires a successful clean checkout. Machine settings stay outside the checkout and are never uploaded as artifacts.
+ 
+@@ -159,7 +154,7 @@ On Windows x64, use the complete unsigned packaging command for local installati
  pnpm run package:desktop:win:x64:unsigned
  ```
  
@@ -1083,20 +1148,72 @@ index d8aa7714ee03dac6fa90d35027488ebc595e3881..c7e1fe1d000436293fd66799c35357ee
  
  Run `pnpm install --frozen-lockfile`, then `pnpm run package:desktop:win:x64:unsigned --check` to validate configuration and tooling before the full command above. Packaging performs its own complete build and isolated runtime smoke without an online model. Stage logs remain under `.desktop-build/packaging-runs/`; a successful build alone does not qualify the installer. Dependency installation and runtime preparation need access to npm, GitHub release assets and nodejs.org; use the existing registry and proxy configuration when the network requires it. Caches and tool locations belong to the build machine, not tracked personal paths.
  
-@@ -176,7 +176,7 @@ pnpm run package:desktop:mac:x64:unsigned
+@@ -174,9 +169,9 @@ pnpm run package:desktop:mac:arm64:unsigned
+ pnpm run package:desktop:mac:x64:unsigned
+ ```
  
- Add `--check` to validate local configuration and tools without building, or `--dir` to stop at the unpacked application. The DMG is `apps/desktop/.desktop-build/targets/<target>/unsigned-artifacts/deepseek-harness-<version>-mac-<arch>-unsigned.dmg`. After all checks pass, the command prints `DMG:` followed by its absolute path. Open it and copy the application to a local test directory.
+-Add `--check` to validate local configuration and tools without building, or `--dir` to stop at the unpacked application. The DMG is `apps/desktop/.desktop-build/targets/<target>/unsigned-artifacts/deepseek-harness-<version>-mac-<arch>-unsigned.dmg`. After all checks pass, the command prints `DMG:` followed by its absolute path. Open it and copy the application to a local test directory.
++Add `--check` to validate local configuration and tools without building, or `--dir` to stop at the unpacked application. The DMG is `apps/desktop/.desktop-build/targets/<target>/unsigned-artifacts/deepseek-harness-uncensored-<version>-mac-<arch>-unsigned.dmg`. After all checks pass, the command prints `DMG:` followed by its absolute path. Open it and copy the application to a local test directory.
  
 -These commands ignore `.env.macos` and inherited release settings, use `com.deepseek.harness` as the app ID, and omit automatic-update and mandatory-update configuration. Build tools, standard network proxies, and `DSH_DESKTOP_NPM_REGISTRY` remain available from the shell. They skip Developer ID signing, Apple notarization, temporary signing keychains, and notarization proxy changes. Electron receives a local ad-hoc signature without certificates so the modified executable can run; the DMG is unsigned. Both preparation and the assembled application still run runtime integrity and smoke checks. Local builds omit update feeds, ZIPs, and release completion records, and the upload commands cannot publish them. macOS may require approval in System Settings → Privacy & Security to open an unnotarized application. These builds stage no Computer Use helper, so Computer Use reports the missing helper when it prepares.
 +These commands ignore `.env.macos` and inherited release settings, use `com.deepseek.dsh.uncensored` as the app ID, and omit automatic-update and mandatory-update configuration. Build tools, standard network proxies, and `DSH_DESKTOP_NPM_REGISTRY` remain available from the shell. They skip Developer ID signing, Apple notarization, temporary signing keychains, and notarization proxy changes. Electron receives a local ad-hoc signature without certificates so the modified executable can run; the DMG is unsigned. Both preparation and the assembled application still run runtime integrity and smoke checks. Local builds omit update feeds, ZIPs, and release completion records, and the upload commands cannot publish them. macOS may require approval in System Settings → Privacy & Security to open an unnotarized application. These builds stage no Computer Use helper, so Computer Use reports the missing helper when it prepares.
  
  <a id="macos-release-signing"></a>
  
+@@ -266,7 +261,7 @@ The Windows installer checks for a running application at startup and after dest
+ 
+ Directory renames, empty-destination removal, and restoration retry Windows errors 5, 32, and 33 up to ten attempts, with 250 ms increasing delays (11.25 seconds of total waiting per operation). Other errors stop immediately. A replacement failure reports the Windows error, affected paths, and restoration outcome in `directory-failure-<timestamp>.log` beside extraction reports. If restoration fails, the installer removes unlocked staging files and preserves the backup. After reporting that failure, exit cleanup does not retry restoration. Keep the backup path named in the report and contact support before reinstalling. Silent installs save the same diagnostic without a dialog.
+ 
+-When extraction fails, the installer writes a report with the 7-Zip result and its complete error output to the updater cache directory as `%LOCALAPPDATA%\<package-derived name>-updater\installer-logs\extract-failure-<timestamp>.log` (currently `@deepseek-aidsh-desktop-updater`) and shows the first error line with a **Copy error details** button; silent installs write only the report. Unsigned Windows builds (`DSH_DESKTOP_UNSIGNED=1`) name their installer `deepseek-harness-<version>-win-x64-unsigned.exe` so they cannot be mistaken for release artifacts.
++When extraction fails, the installer writes a report with the 7-Zip result and its complete error output to the updater cache directory as `%LOCALAPPDATA%\<package-derived name>-updater\installer-logs\extract-failure-<timestamp>.log` (currently `@deepseek-aidsh-desktop-updater`) and shows the first error line with a **Copy error details** button; silent installs write only the report. Unsigned Windows builds (`DSH_DESKTOP_UNSIGNED=1`) name their installer `deepseek-harness-uncensored-<version>-win-x64-unsigned.exe` so they cannot be mistaken for release artifacts.
+ 
+ Windows packaging fixes the 7-Zip filter to `BCJ` for compatibility with the bundled NSIS decoder. This preserves ARM64 binaries carried by dependencies in x64 installers; automatic ARM64 filtering produces entries that this decoder cannot extract.
+ 
 diff --git a/apps/desktop/packaging/README.zh.md b/apps/desktop/packaging/README.zh.md
-index bdffd46c99697416431fc74e5a783725529c1034..12d6fa779bcfcc2b4ac99be2f308092b34b4fe26 100644
+index bdffd46c99697416431fc74e5a783725529c1034..778fcc5090152663c22dca1441d5884aa1c62b55 100644
 --- a/apps/desktop/packaging/README.zh.md
 +++ b/apps/desktop/packaging/README.zh.md
-@@ -159,7 +159,7 @@ bash apps/desktop/scripts/macos-runner-service.sh status "$HOME/dsh-ci/runner"
+@@ -38,25 +38,20 @@ description: "在本地或 Windows／macOS Actions 中生成 Desktop 安装包
+ 
+ ## 发布版本
+ 
+-每次 Desktop 打包前，第一步都要与当前用户确认完整版本号。检查所选部署环境、dsh 基础版本、保留的发布记录和已发布对象，再提出准确版本供用户确认。用户确认前不得启动打包；仅选择部署环境不代表用户已认可版本号。
++DSHU 公开版本取自 `apps/cli/package.json` 的 `dshuVersion`。CLI、关于页、Windows 安装程序和下载文件名使用四段日期。Electron 和更新器使用可比较的三段版本。随包运行时按 DSH 内核版本独立校验。桌面应用的作者为 WaterRun。安装目录的资源中，`LICENSE` 为 DSHU 的 GPL 许可，`LICENSES/DeepSeek-Harness/` 包含上游 MIT 许可及依赖声明。
+ 
+-记录当前 dsh 版本作为基础版本。production Desktop 使用完全相同的版本，包括其中的 `alpha`、`beta` 或 `rc` 标识。test 发布保留完整的预发布基础版本并追加 `.YYYYMMDD.index`；稳定基础版本则追加 `-test.YYYYMMDD.index`。
+-
+-| dsh 基础版本 | production Desktop | test Desktop 示例 |
++| DSHU 版本 | Electron 版本 | 测试构建示例 |
+ |---|---|---|
+-| `0.1.6-alpha.1` | `0.1.6-alpha.1` | `0.1.6-alpha.1.20260916.1` |
+-| `0.1.6-beta.2` | `0.1.6-beta.2` | `0.1.6-beta.2.20260916.1` |
+-| `0.1.6-rc.3` | `0.1.6-rc.3` | `0.1.6-rc.3.20260916.1` |
+-| `0.1.6` | `0.1.6` | `0.1.6-test.20260916.1` |
++| `2026.11.25.0` | `2026.1125.0` | `2026.1125.0-test.20261125.1` |
+ 
+ 日期使用实际创建时的 Asia/Shanghai 日期。每个基础版本、每天的序号从 1 开始，检查保留的发布记录与已发布对象后递增；绝不复用已发布版本。test 分发不发布对应的无后缀基础版本。
+ 
+-版本模式 `build-number` 追加 UTC 日期、工作流运行编号和尝试次数（`.YYYYMMDD.run.attempt`，稳定基础版本使用 `-test`）。例如 `0.2.1-alpha.1.20261008.42.2`。这些编号不是预留的发布序号。
++版本模式 `build-number` 追加 UTC 日期、工作流运行编号和尝试次数（`.YYYYMMDD.run.attempt`，稳定基础版本使用 `-test`）。例如 `2026.1125.0-test.20261125.42.2`。这些编号不是预留的发布序号。
+ 
+ 把确认后的版本通过 `--build-version` 传给打包命令，该值同时决定产物文件名、更新 feed 与上传校验。清单保留产品版本，因此 test 打包不再改写发布家族，也不留下需要还原的改动：
+ 
+ ```sh
+-pnpm --dir apps/desktop run package:win:x64 --build-version 0.1.6-alpha.1.20260916.1
++pnpm --dir apps/desktop run package:win:x64 --build-version 2026.1125.0-test.20261125.1
+ ```
+ 
+ `--build-version auto` 会给出当天的下一个序号：读取目标 bucket 中已发布的对象，未配置 bucket 或列举未能在期限内完成时回退到本目标的本地输出目录。上传前请确认它打印的版本号；run script 会自行透传 `--`，打包入口两种写法都接受。
+@@ -109,7 +104,7 @@ macOS 正式发布和本地未签名 DMG 都通过 [electron-builder 配置](../
+ 
+ runner 的受监督启动和恢复见 [Windows runner 机器准备](../windows-signing/README.zh.md#machine-setup)。
+ 
+-`Package Desktop · Windows · x64` [手动工作流](../../../.github/workflows/windows-package.yml) 选择专用 Windows x64 runner 标签 `dsh-win-package-trial`，并使用机器 preset `test` 或 `production`。选择 `signed`（默认）或 `unsigned`；签名模式复用现有 EV token 预检、签名缓存与失败 interlock，不发布或上传 release。`version_mode` 默认为 `default`（production 使用 `follow-dsh`，test 使用 `build-number`）；`build-number` 使用[发布版本](#release-versions)中的 CI 标识。`manual` 模式必须填写 `build_version`，其他模式忽略该字段；其值可以是源码产品版本，或扩展构建版本，例如产品 `0.2.1-alpha.1` 对应 `0.2.1-alpha.1.20261009.1`。版本前缀必须匹配所选源码；校验错误显示其当前示例。manifest 保持不变。
++`Package Desktop · Windows · x64` [手动工作流](../../../.github/workflows/windows-package.yml) 选择专用 Windows x64 runner 标签 `dsh-win-package-trial`，并使用机器 preset `test` 或 `production`。选择 `signed`（默认）或 `unsigned`；签名模式复用现有 EV token 预检、签名缓存与失败 interlock，不发布或上传 release。`version_mode` 默认为 `default`（production 使用 `follow-dsh`，test 使用 `build-number`）；`build-number` 使用[发布版本](#release-versions)中的 CI 标识。`manual` 模式必须填写 `build_version`，其他模式忽略该字段；其值可以是源码产品版本，或扩展构建版本，例如产品 `2026.1125.0` 对应 `2026.1125.0-test.20261125.1`。版本前缀必须匹配所选源码；校验错误显示其当前示例。manifest 保持不变。
+ 
+ 在 Actions 选择工作流、源码分支、preset、签名模式和版本，再点击 Run workflow。输入变更合并前，用 `gh workflow run windows-package.yml --ref <branch> -f source_ref=<branch> -f preset=test -f signing=unsigned -f version_mode=build-number` 测试已推送分支；合并后验证网页表单。它不监听 push 或 PR。日志和成功生成的 EXE 保留 14 天。依赖打包流程前检查日志和安装包；安装是独立操作。检出前，Node 删除 runner 专用源码目录，不跟随依赖 junction；工作流校验目标位置并拒绝链接祖先目录。不得指向日常开发目录。运行共享一个并发组，不取消正在进行的构建；最多保留一个待运行任务，新触发会替换它。仅在成功完成干净检出后上传诊断。机器配置位于 checkout 之外，不作为产物上传。
+ 
+@@ -159,7 +154,7 @@ bash apps/desktop/scripts/macos-runner-service.sh status "$HOME/dsh-ci/runner"
  pnpm run package:desktop:win:x64:unsigned
  ```
  
@@ -1105,9 +1222,12 @@ index bdffd46c99697416431fc74e5a783725529c1034..12d6fa779bcfcc2b4ac99be2f308092b
  
  先运行 `pnpm install --frozen-lockfile`，再运行 `pnpm run package:desktop:win:x64:unsigned --check` 校验配置和工具，最后执行上面的完整命令。打包自行执行完整构建和隔离的运行时 smoke，不调用在线模型。阶段日志保留在 `.desktop-build/packaging-runs/`；仅构建成功不代表安装包验证通过。依赖安装和运行时准备需要访问 npm、GitHub release 资源和 nodejs.org；网络需要时使用现有 registry 和代理配置。缓存与工具位置属于构建机器配置，不在跟踪文件中固定个人路径。
  
-@@ -176,7 +176,7 @@ pnpm run package:desktop:mac:x64:unsigned
+@@ -174,9 +169,9 @@ pnpm run package:desktop:mac:arm64:unsigned
+ pnpm run package:desktop:mac:x64:unsigned
+ ```
  
- 添加 `--check` 仅验证本地配置和工具而不构建，或添加 `--dir` 只生成解包应用。DMG 路径为 `apps/desktop/.desktop-build/targets/<target>/unsigned-artifacts/deepseek-harness-<version>-mac-<arch>-unsigned.dmg`。所有检查通过后，命令打印 `DMG:` 及其绝对路径。打开后将应用复制到本地测试目录。
+-添加 `--check` 仅验证本地配置和工具而不构建，或添加 `--dir` 只生成解包应用。DMG 路径为 `apps/desktop/.desktop-build/targets/<target>/unsigned-artifacts/deepseek-harness-<version>-mac-<arch>-unsigned.dmg`。所有检查通过后，命令打印 `DMG:` 及其绝对路径。打开后将应用复制到本地测试目录。
++添加 `--check` 仅验证本地配置和工具而不构建，或添加 `--dir` 只生成解包应用。DMG 路径为 `apps/desktop/.desktop-build/targets/<target>/unsigned-artifacts/deepseek-harness-uncensored-<version>-mac-<arch>-unsigned.dmg`。所有检查通过后，命令打印 `DMG:` 及其绝对路径。打开后将应用复制到本地测试目录。
  
 -这些命令忽略 `.env.macos` 和继承的发布配置，使用 `com.deepseek.harness` 作为应用 ID，并省略自动更新和强制更新配置。构建工具、标准网络代理与 `DSH_DESKTOP_NPM_REGISTRY` 仍可从 shell 提供。它们跳过 Developer ID 签名、Apple 公证、临时签名钥匙串和公证代理修改。Electron 使用无需证书的本地 ad-hoc 签名，以便修改后的可执行文件能够运行；DMG 不签名。准备阶段和组装后的应用仍执行运行时完整性与冒烟检查。本地构建不生成更新源、ZIP 或发布完成记录，上传命令无法发布这些产物。macOS 可能要求在“系统设置 → 隐私与安全性”中批准打开未经公证的应用。这类构建不放入 Computer Use helper，Computer Use 准备时会报告 helper 缺失。
 +这些命令忽略 `.env.macos` 和继承的发布配置，使用 `com.deepseek.dsh.uncensored` 作为应用 ID，并省略自动更新和强制更新配置。构建工具、标准网络代理与 `DSH_DESKTOP_NPM_REGISTRY` 仍可从 shell 提供。它们跳过 Developer ID 签名、Apple 公证、临时签名钥匙串和公证代理修改。Electron 使用无需证书的本地 ad-hoc 签名，以便修改后的可执行文件能够运行；DMG 不签名。准备阶段和组装后的应用仍执行运行时完整性与冒烟检查。本地构建不生成更新源、ZIP 或发布完成记录，上传命令无法发布这些产物。macOS 可能要求在“系统设置 → 隐私与安全性”中批准打开未经公证的应用。这类构建不放入 Computer Use helper，Computer Use 准备时会报告 helper 缺失。
@@ -28965,17 +29085,20 @@ index ddf9c2d6db33e22d7a5922c322b12ff08ff23e0f..703e38c49db92925d553f09116a0652c
    {
 diff --git a/apps/web/tests/about-dialog-fit.e2e.ts b/apps/web/tests/about-dialog-fit.e2e.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..fc4a0ec8e1cdb85fc7d0827ecc57dcbcca93e14a
+index 0000000000000000000000000000000000000000..9c1f4389088b7e50f09e34e1e8474a8621a9576d
 --- /dev/null
 +++ b/apps/web/tests/about-dialog-fit.e2e.ts
-@@ -0,0 +1,82 @@
+@@ -0,0 +1,85 @@
 +/** The About dialog fits a full-screen window without a vertical scrollbar. */
++import { readFileSync } from 'node:fs'
 +import { fileURLToPath } from 'node:url'
 +import { mkdir } from 'node:fs/promises'
 +import { join } from 'node:path'
 +import { chromium, type Locator } from 'playwright'
 +import { expect, it } from 'vitest'
 +import { launchWebScaffold, watchConsole } from './scaffold.ts'
++
++const cliMetadata = JSON.parse(readFileSync(new URL('../../cli/package.json', import.meta.url), 'utf8')) as { dshuVersion: string }
 +
 +/** Scrollable descendants of the dialog, named by class for a readable failure. */
 +async function scrollableDescendants(dialog: Locator): Promise<string[]> {
@@ -29003,7 +29126,7 @@ index 0000000000000000000000000000000000000000..fc4a0ec8e1cdb85fc7d0827ecc57dcbc
 +    const dialog = page.getByRole('dialog', { name: labels.about, exact: true })
 +    await dialog.waitFor()
 +    const identity = dialog.getByRole('region').first()
-+    expect(await identity.getByText('2026.11.23.0', { exact: true }).count()).toBe(1)
++    expect(await identity.getByText(cliMetadata.dshuVersion, { exact: true }).count()).toBe(1)
 +    expect(await identity.getByText(/0\.2\.3-alpha\.2/u).count()).toBe(0)
 +    expect(await identity.getByText(/\d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC/u).count()).toBe(1)
 +    expect(await dialog.getByRole('link', { name: /DeepSeek Harness 0\.2\.3-alpha\.2/u }).count()).toBe(1)
@@ -30402,10 +30525,18 @@ index be4f55f3b6656fbfa3e9f533dd9258ee61d44ec8..1e303f0677ce8c6bbf1228fbd23e07f6
 -设置意见反馈退出登录
 +设置关于意见反馈退出登录
 diff --git a/scripts/client-build-environment.client.spec.ts b/scripts/client-build-environment.client.spec.ts
-index 4348284834920bf70bb757cf29963d5eadaa440c..adae12182fa2d72419c9de157a6016e4dff00928 100644
+index 4348284834920bf70bb757cf29963d5eadaa440c..195886aa1b312e6719d1fd94a0ea88cce494a68e 100644
 --- a/scripts/client-build-environment.client.spec.ts
 +++ b/scripts/client-build-environment.client.spec.ts
-@@ -81,6 +81,20 @@ function repositoryFixture(version = '1.2.3-rc.4'): string {
+@@ -11,6 +11,7 @@ import {
+   clientBuildValueDefines,
+   officialClientBuildEnvironment,
+   readClientBuildRecord,
++  readPackagedClientBuild,
+   repositoryClientBuildEnvironment,
+   repositoryCommitHash,
+   repositoryGitDirty,
+@@ -81,6 +82,35 @@ function repositoryFixture(version = '1.2.3-rc.4'): string {
  }
  
  describe('client build environment', () => {
@@ -30423,14 +30554,29 @@ index 4348284834920bf70bb757cf29963d5eadaa440c..adae12182fa2d72419c9de157a6016e4
 +    expect(repositoryClientBuildEnvironment(root, {}).DSH_CLIENT_CANDIDATE_TREE).toBeUndefined()
 +  })
 +
++  it.each(['local', 'official'] as const)('verifies the %s compilation time in a later packaging process', (profile) => {
++    const root = repositoryFixture('0.2.3-alpha.2')
++    write(join(root, '.gitignore'), '.dsh-build/\ndist/\n')
++    write(join(root, 'apps/cli/package.json'), JSON.stringify({ dshuVersion: '2026.11.25.0' }))
++    git(root, ['add', '.gitignore', 'apps/cli/package.json'])
++    write(join(root, 'apps/web/dist/index.html'), '<main></main>')
++    const time = '2026-11-25T00:00:00.000Z'
++    const environment = resolveClientBuildEnvironment(repositoryClientBuildEnvironment(root, { DSH_CLIENT_BUILD_TIME: time }), profile)
++    writeClientBuildRecord(root, environment)
++    expect(readPackagedClientBuild(root, profile, {}).environment.DSH_CLIENT_BUILD_TIME).toBe(time)
++    expect(() => readPackagedClientBuild(root, profile, { DSH_CLIENT_BUILD_TIME: '2026-11-26T00:00:00.000Z' })).toThrow(/DSH_CLIENT_BUILD_TIME/u)
++    write(join(root, 'tracked.txt'), 'new edits')
++    expect(() => readPackagedClientBuild(root, profile, {})).toThrow(/DSH_CLIENT_CANDIDATE_TREE/u)
++  })
++
    it('requires an exact public environment for a named artifact profile', () => {
      const expected = {
        DSH_CLIENT_BUILD_PROFILE: 'official',
 diff --git a/scripts/client-build-environment.ts b/scripts/client-build-environment.ts
-index 6eed371b08d156b0a307d45c9dd6644ba871bb30..934efa736614b901672ddfe683ce44a83ed52f37 100644
+index 6eed371b08d156b0a307d45c9dd6644ba871bb30..348279f490c32782f463c7f3a249927e6ca6c7f5 100644
 --- a/scripts/client-build-environment.ts
 +++ b/scripts/client-build-environment.ts
-@@ -41,6 +41,31 @@ const CLIENT_ARTIFACT_PATTERNS = [
+@@ -41,6 +41,32 @@ const CLIENT_ARTIFACT_PATTERNS = [
    'packages/*/*/lib/assets/**/*',
  ] as const
  
@@ -30451,10 +30597,11 @@ index 6eed371b08d156b0a307d45c9dd6644ba871bb30..934efa736614b901672ddfe683ce44a8
 +  }
 +  const git = (...args: string[]) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim()
 +  const [commit, date] = git('show', '-s', '--format=%H%n%cI', 'HEAD').split(/\r?\n/u)
++  if (!commit || !date) throw new Error('Git did not return the candidate commit and timestamp')
 +  const matchesIndex = git('diff', '--name-only') === '' && git('ls-files', '--others', '--exclude-standard') === ''
 +  return {
 +    DSH_CLIENT_FORK_VERSION: manifest.dshuVersion, DSH_CLIENT_BUILD_TIME: buildTime,
-+    DSH_CLIENT_UPSTREAM_COMMIT: commit!, DSH_CLIENT_UPSTREAM_DATE: date!,
++    DSH_CLIENT_UPSTREAM_COMMIT: commit, DSH_CLIENT_UPSTREAM_DATE: date,
 +    ...(matchesIndex ? { DSH_CLIENT_CANDIDATE_TREE: git('write-tree') } : {}),
 +  }
 +}
@@ -30462,12 +30609,16 @@ index 6eed371b08d156b0a307d45c9dd6644ba871bb30..934efa736614b901672ddfe683ce44a8
  /** Public values embedded in one set of client artifacts. */
  export type ClientBuildEnvironment = Readonly<Record<string, string>>
  
-@@ -123,10 +148,12 @@ export function repositoryClientBuildEnvironment(
-   const inherited = { ...clientBuildEnvironment(environment) }
-   delete inherited.DSH_CLIENT_COMMIT_HASH
-   delete inherited.DSH_CLIENT_GIT_DIRTY
-+  for (const key of candidateKeys) delete inherited[key]
-   delete inherited.DSH_CLIENT_VERSION
+@@ -120,13 +146,12 @@ export function repositoryClientBuildEnvironment(
+   root: string,
+   environment: NodeJS.ProcessEnv = process.env,
+ ): ClientBuildEnvironment {
+-  const inherited = { ...clientBuildEnvironment(environment) }
+-  delete inherited.DSH_CLIENT_COMMIT_HASH
+-  delete inherited.DSH_CLIENT_GIT_DIRTY
+-  delete inherited.DSH_CLIENT_VERSION
++  const owned = new Set<string>([CLIENT_COMMIT_HASH_VARIABLE, 'DSH_CLIENT_GIT_DIRTY', CLIENT_VERSION_VARIABLE, ...candidateKeys])
++  const inherited = Object.fromEntries(Object.entries(clientBuildEnvironment(environment)).filter(([key]) => !owned.has(key)))
    const dirty = repositoryGitDirty(root)
    return {
      ...inherited,
@@ -30475,7 +30626,7 @@ index 6eed371b08d156b0a307d45c9dd6644ba871bb30..934efa736614b901672ddfe683ce44a8
      DSH_CLIENT_COMMIT_HASH: repositoryCommitHash(root, environment),
      ...(dirty === true ? { DSH_CLIENT_GIT_DIRTY: 'true' } : {}),
      DSH_CLIENT_VERSION: repositoryVersion(root),
-@@ -147,6 +174,7 @@ export function officialClientBuildEnvironment(
+@@ -147,6 +172,7 @@ export function officialClientBuildEnvironment(
      DSH_CLIENT_COMMIT_HASH: repositoryCommitHash(root, environment),
      DSH_CLIENT_VERSION: repositoryVersion(root),
      ...OFFICIAL_CLIENT_BUILD_ENVIRONMENT,
@@ -30483,7 +30634,7 @@ index 6eed371b08d156b0a307d45c9dd6644ba871bb30..934efa736614b901672ddfe683ce44a8
    }
  }
  
-@@ -202,6 +230,7 @@ export function resolveClientBuildEnvironment(
+@@ -202,6 +228,7 @@ export function resolveClientBuildEnvironment(
        throw new Error(`${CLIENT_VERSION_VARIABLE} is required for the ${profile} client build profile`)
      }
      return {
@@ -30491,6 +30642,32 @@ index 6eed371b08d156b0a307d45c9dd6644ba871bb30..934efa736614b901672ddfe683ce44a8
        DSH_CLIENT_COMMIT_HASH: commitHash,
        DSH_CLIENT_VERSION: version,
        ...(profile === 'official' ? OFFICIAL_CLIENT_BUILD_ENVIRONMENT : {
+@@ -345,6 +372,25 @@ export function readClientBuildRecord(
+   return record
+ }
+ 
++/**
++ * Verify local or official artifacts against this checkout, retaining the time recorded by the build.
++ * @param root - Checkout containing the prepared client artifacts.
++ * @param profile - Build profile required by the package operation.
++ * @param environment - Current build overrides, including any explicitly pinned build time.
++ * @returns Verified build record with the original compilation time.
++ */
++export function readPackagedClientBuild(
++  root: string, profile: 'local' | 'official', environment: NodeJS.ProcessEnv = process.env,
++): ClientBuildRecord {
++  const record = readClientBuildRecord(root)
++  const inputs = { ...environment, DSH_CLIENT_BUILD_TIME: environment.DSH_CLIENT_BUILD_TIME ?? record.environment.DSH_CLIENT_BUILD_TIME }
++  const expected = profile === 'official'
++    ? officialClientBuildEnvironment(root, inputs)
++    : resolveClientBuildEnvironment(repositoryClientBuildEnvironment(root, inputs), profile)
++  assertClientBuildEnvironment(record.environment, expected)
++  return record
++}
++
+ /** Return the deterministic digest of every artifact affected by the public client environment. */
+ function clientArtifactDigest(root: string): ClientArtifactDigest {
+   const paths = globSync([...CLIENT_ARTIFACT_PATTERNS], { cwd: root })
 diff --git a/apps/cli/src/bin.ts b/apps/cli/src/bin.ts
 index 1ae0c4a59182c3ebe7dd38fcc17292e185332cdc..085ee244ea5e01cb4170022d07c44f60e5397b58 100644
 --- a/apps/cli/src/bin.ts
@@ -30665,20 +30842,43 @@ index 6f5233d8fc76621d9d528b257a8e11cfd4284f79..5ca2c7e5ad0577472de6e35b08ea0954
    }
  }
 diff --git a/apps/desktop/scripts/electron-builder-config.mjs b/apps/desktop/scripts/electron-builder-config.mjs
-index a777a0582e8b22e6bee9212188c320b148ea5df5..b5d403f095ba0ba68f57498ffe2a743aad076e6d 100644
+index a777a0582e8b22e6bee9212188c320b148ea5df5..e87b3a3a6c0b674bad7444a751365baf7da4cbce 100644
 --- a/apps/desktop/scripts/electron-builder-config.mjs
 +++ b/apps/desktop/scripts/electron-builder-config.mjs
-@@ -108,7 +108,7 @@ export function createElectronBuilderConfig(
+@@ -22,7 +22,8 @@ import {
+ } from './windows-sign.mjs'
+ import { resolveDesktopAutoUpdateConfig } from '@deepseek-ai/dsh-desktop-publisher/desktop-auto-update-environment.mjs'
+ import { resolveDesktopBuildCommit } from './desktop-build-commit.mjs'
+-import { resolveDesktopBuildVersion } from './desktop-build-version.mjs'
++import { desktopArtifactBase } from '@deepseek-ai/dsh-desktop-publisher/dshu-version.mjs'
++import { desktopDisplayVersion, desktopProductVersion, resolveDesktopBuildVersion } from './desktop-build-version.mjs'
+ import { resolveDesktopPolicyEnvironment } from './desktop-policy-environment.mjs'
+ import { desktopArtifactOutput, desktopTargetBuildPaths, resolveDesktopBuildTarget } from './desktop-build-paths.mjs'
+ import { installWindowsDirectoryInstaller } from './windows-directory-installer.mjs'
+@@ -103,24 +104,29 @@ export function createElectronBuilderConfig(
+   if (preparedRuntime !== undefined) buildPaths.dsh = preparedRuntime
+   // electron-builder merges extraMetadata into the packaged manifest, so a build version here reaches
+   // the artifact names, the update feed, and the installed app.getVersion() the updater compares against.
+-  const productVersion = JSON.parse(readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8')).version
+-  const buildVersion = resolveDesktopBuildVersion(env, productVersion)
++  const kernelVersion = JSON.parse(readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8')).version
++  const buildVersion = preparedRuntimeVersion ?? resolveDesktopBuildVersion(env, desktopProductVersion())
++  const displayVersion = desktopDisplayVersion(buildVersion)
    const packaged = resolveDesktopBuildCommit(env)
    return {
      appId,
 -    protocols: [{ name: 'DeepSeek Harness', schemes: ['dsh'] }],
 +    protocols: [{ name: 'DeepSeek Harness Uncensored', schemes: ['dshu'] }],
++    ...(displayVersion === buildVersion ? {} : { buildVersion: displayVersion }),
      extraMetadata: {
++      name: 'deepseek-harness-uncensored',
        dshDesktopAppId: appId,
++      dshDisplayVersion: displayVersion,
++      ...(displayVersion === buildVersion ? {} : { shortVersionWindows: displayVersion }),
        dshDesktopUpdateChannel: update?.channel ?? 'nightly',
-@@ -116,7 +116,7 @@ export function createElectronBuilderConfig(
-       ...buildVersion === productVersion ? {} : { version: buildVersion },
+       ...(policy === undefined ? {} : { dshMandatoryUpdatePolicy: policy }),
+-      ...buildVersion === productVersion ? {} : { version: buildVersion },
++      version: buildVersion,
        ...packaged === undefined ? {} : { dshBuildCommit: packaged.commit, dshBuildDirty: packaged.dirty },
      },
 -    productName: 'DeepSeek Harness',
@@ -30686,6 +30886,39 @@ index a777a0582e8b22e6bee9212188c320b148ea5df5..b5d403f095ba0ba68f57498ffe2a743a
      // The default copyright uses author.name; this line names the product instead.
      copyright: `Copyright © ${new Date().getFullYear()} \${productName}`,
      // Unsigned builds carry their own suffix so a shared file can never pass for a release artifact.
+-    artifactName: `deepseek-harness-\${version}-\${os}-\${arch}${output.suffix}.\${ext}`,
++    artifactName: `${desktopArtifactBase(buildVersion, '${os}-${arch}')}${output.suffix}.\${ext}`,
+     directories: { output: output.directory },
+     asar: true,
+     electronDist: buildPaths.electron,
+@@ -132,7 +138,7 @@ export function createElectronBuilderConfig(
+         '-OutputDirectory', join(buildPaths.root, 'installer-ui')], {
+         env: scrubWindowsSigningEnvironment(env), windowsHide: true,
+       })
+-      await writeFile(join(buildPaths.root, 'installer-ui', 'strings.nsh'), renderInstallerStrings(readInstallerLocales()), 'utf8')
++      await writeFile(join(buildPaths.root, 'installer-ui', 'strings.nsh'), `!define DSHU_DISPLAY_VERSION "${displayVersion}"\n${renderInstallerStrings(readInstallerLocales())}`, 'utf8')
+       if (windowsSigner !== undefined) {
+         await windowsSigner({ path: join(buildPaths.root, 'installer-ui', 'window-frame.dll'), hash: 'sha256', isNest: false })
+       }
+@@ -162,6 +168,9 @@ export function createElectronBuilderConfig(
+       { from: fileURLToPath(new URL('../resources/icon-windows.png', import.meta.url)), to: 'icon.png' },
+       // Windows tray bitmaps; macOS keeps the Dock and ships no menu bar icon.
+       ...(packagesWindows ? [{ from: fileURLToPath(new URL('../resources/tray-windows.ico', import.meta.url)), to: 'tray.ico' }] : []),
++      { from: fileURLToPath(new URL('../../../LICENSES/DSHU-GPL-3.0.txt', import.meta.url)), to: 'LICENSE' },
++      { from: fileURLToPath(new URL('../../../LICENSE', import.meta.url)), to: 'LICENSES/DeepSeek-Harness/LICENSE' },
++      { from: fileURLToPath(new URL('../../../THIRD_PARTY_NOTICES.md', import.meta.url)), to: 'LICENSES/DeepSeek-Harness/THIRD_PARTY_NOTICES.md' },
+     ],
+     mac: {
+       icon: fileURLToPath(new URL('../resources/icon-macos.png', import.meta.url)),
+@@ -211,7 +220,7 @@ export function createElectronBuilderConfig(
+       // The bundled runtime declares whichever version prepared it: the product version for an ordinary
+       // release, and a rewritten one for installed-update qualification.
+       await verifyDesktopRuntime(buildPaths.dsh,
+-        preparedRuntimeVersion ?? productVersion, { platform: resolvedPlatform, arch: resolvedArch })
++        preparedRuntimeVersion ?? kernelVersion, { platform: resolvedPlatform, arch: resolvedArch })
+       // Unsigned Windows builds skip electron-builder's afterSign hook.
+       if (packagesWindows && unsigned) await verifyWindowsAsarUnpack(buildPaths.dsh, resourcesDir, windowsCode)
+     },
 diff --git a/apps/desktop/tests/development-app.spec.ts b/apps/desktop/tests/development-app.spec.ts
 index 2f718b7bc5feaebd4e655eb9a878aae6342babbb..206535cf0754ec08e02cd2d63574fce03bfd49fb 100644
 --- a/apps/desktop/tests/development-app.spec.ts
@@ -32577,14 +32810,14 @@ index 3c62793f4b9cfd0584ea9d7dd6719defd8b1a4da..4298c7ff9f41df54b84581dce0f39bf3
  配置树以空根为起点，依次叠加以下配置层：
  - `dsh.profile.bundles` 中各组合包的 patch
 diff --git a/apps/cli/package.json b/apps/cli/package.json
-index 07dd27c73da8d5b98c590b6ef0c8ea99bb7f4e08..d19875a34c0d4bd581616a84cd4c1e15e78c664c 100644
+index 07dd27c73da8d5b98c590b6ef0c8ea99bb7f4e08..17b69b713225946f7caf3524750aeeaf063cdb33 100644
 --- a/apps/cli/package.json
 +++ b/apps/cli/package.json
 @@ -2,6 +2,7 @@
    "name": "@deepseek-ai/dsh",
    "description": "dsh CLI: profile launch, plugin management, and configuration inspection",
    "version": "0.2.3-alpha.2",
-+  "dshuVersion": "2026.11.23.0",
++  "dshuVersion": "2026.11.25.0",
    "publishConfig": {
      "access": "public"
    },
@@ -33240,3 +33473,1885 @@ index 5da6e9815d0b170142b274db59eda3d49bacf10a..5b634780fa0b60ac42ffae7a46372a73
    expect(readFileSync(join(runtime, 'cli', 'command-manager.js'), 'utf8')).toBe('command manager fixture')
    expect(existsSync(join(runtime, 'cli', 'command-path.ps1'))).toBe(true)
    expect(JSON.parse(readFileSync(join(runtime, 'versions.json'), 'utf8'))).toEqual({
+diff --git a/apps/desktop-publisher/src/desktop-rollout.ts b/apps/desktop-publisher/src/desktop-rollout.ts
+index 257830b1a3f75e8f5e4b1dd13f89b06d44b2b3a6..b6e1c587f872912794e592546dbfb42061624d1a 100644
+--- a/apps/desktop-publisher/src/desktop-rollout.ts
++++ b/apps/desktop-publisher/src/desktop-rollout.ts
+@@ -1,4 +1,5 @@
+ /** Change only the rollout percentage of an already published Desktop update feed. */
++import { desktopArtifactBase } from './dshu-version.mjs'
+ import { createHash } from 'node:crypto'
+ import { readFile } from 'node:fs/promises'
+ import { join } from 'node:path'
+@@ -54,7 +55,7 @@ export async function prepareDesktopRollout(directory: string, manifest: Desktop
+     throw new Error('desktop rollout: retained update metadata differs from manifest')
+   }
+   const parsed = metadata(contents)
+-  const payload = `deepseek-harness-${source.version}-${source.target}.${windows ? 'exe' : 'zip'}`
++  const payload = `${desktopArtifactBase(source.version, source.target)}.${windows ? 'exe' : 'zip'}`
+   const file = manifest.files.find(entry => entry.name === payload)
+   const entry = parsed.files[0]
+   if (parsed.version !== source.version || entry.url !== payload || !file
+diff --git a/apps/desktop-publisher/src/desktop-website-installer.ts b/apps/desktop-publisher/src/desktop-website-installer.ts
+index f98cb20252441a1c6b2b1ef31be9ac714c9cc5be..f3e51aed47dd76411abc5a2cda1462f5c9217d82 100644
+--- a/apps/desktop-publisher/src/desktop-website-installer.ts
++++ b/apps/desktop-publisher/src/desktop-website-installer.ts
+@@ -1,4 +1,5 @@
+ /** Validate one production installer and hold its file handle through COS publication. */
++import { desktopArtifactBase } from './dshu-version.mjs'
+ import { createHash } from 'node:crypto'
+ import { open, lstat, type FileHandle } from 'node:fs/promises'
+ import { join } from 'node:path'
+@@ -41,7 +42,7 @@ export async function prepareWebsiteInstaller(directory: string, manifest: Deskt
+     throw new Error('website installer: build identity or production qualification mismatch')
+   }
+   const windows = route.target === 'win-x64'
+-  const filename = `deepseek-harness-${source.version}-${route.target}.${windows ? 'exe' : 'dmg'}`
++  const filename = `${desktopArtifactBase(source.version, route.target)}.${windows ? 'exe' : 'dmg'}`
+   const file = manifest.files.find(item => item.name === filename)
+   if (!file) throw new Error('website installer: selected installer is absent from build manifest')
+   const path = join(directory, file.name)
+diff --git a/apps/desktop-publisher/src/dshu-version.d.mts b/apps/desktop-publisher/src/dshu-version.d.mts
+new file mode 100644
+index 0000000000000000000000000000000000000000..906e3195e969c2e8bc48b5e4d178a2dd9c142759
+--- /dev/null
++++ b/apps/desktop-publisher/src/dshu-version.d.mts
+@@ -0,0 +1,22 @@
++/** Public calendar date and its ordered application version. */
++interface CalendarVersion {
++  readonly year: number
++  readonly month: number
++  readonly day: number
++  readonly sequence: number
++  readonly display: string
++  readonly runtime: string
++}
++
++/**
++ * @param value - Public calendar date or ordered application version.
++ * @returns Valid date fields and both spellings when the date exists.
++ */
++export function parseCalendarVersion(value: string): CalendarVersion | undefined
++
++/**
++ * @param version - Ordered application version or test build version.
++ * @param target - Platform and architecture used in the download filename.
++ * @returns DSHU download basename before the signing suffix and extension.
++ */
++export function desktopArtifactBase(version: string, target: string): string
+diff --git a/apps/desktop-publisher/src/dshu-version.mjs b/apps/desktop-publisher/src/dshu-version.mjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..e95963ed92d36b43746fa924124f52d0d938161c
+--- /dev/null
++++ b/apps/desktop-publisher/src/dshu-version.mjs
+@@ -0,0 +1,46 @@
++/** Public DSHU release dates and artifact names shared by packagers and publishers. */
++
++/**
++ * @typedef {object} CalendarVersion
++ * @property {number} year Calendar year.
++ * @property {number} month Calendar month.
++ * @property {number} day Calendar day.
++ * @property {number} sequence Daily sequence, whose first build is 0.
++ * @property {string} display Public YYYY.MM.DD.N version.
++ * @property {string} runtime Ordered YYYY.MMDD.N package version.
++ */
++
++/**
++ * Parse public YYYY.MM.DD.N or internal YYYY.MMDD.N calendar versions.
++ * @param {string} value - Exact version without a tag prefix.
++ * @returns {CalendarVersion | undefined} Validated date and both representations.
++ */
++export function parseCalendarVersion(value) {
++  const display = /^(\d{4})\.(\d{2})\.(\d{2})\.(0|[1-9]\d*)$/u.exec(value)
++  const runtime = display === null ? /^(\d{4})\.([1-9]\d*)\.(0|[1-9]\d*)$/u.exec(value) : null
++  if (display === null && runtime === null) return undefined
++  const year = Number((display ?? runtime)[1])
++  const monthDay = runtime === null ? 0 : Number(runtime[2])
++  const month = display === null ? Math.floor(monthDay / 100) : Number(display[2])
++  const day = display === null ? monthDay % 100 : Number(display[3])
++  const sequence = Number(display === null ? runtime[3] : display[4])
++  if (year < 2000 || year > 9999 || month < 1 || month > 12 || day < 1 || day > 31
++    || !Number.isSafeInteger(sequence) || sequence > 65535) return undefined
++  const date = new Date(Date.UTC(year, month - 1, day))
++  if (date.getUTCMonth() + 1 !== month || date.getUTCDate() !== day) return undefined
++  return Object.freeze({ year, month, day, sequence,
++    display: `${year}.${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}.${sequence}`,
++    runtime: `${year}.${month * 100 + day}.${sequence}`,
++  })
++}
++
++/**
++ * Name a desktop download before the signing suffix and extension.
++ * @param {string} version - Ordered application version or test build version.
++ * @param {string} target - Platform and architecture as used in the download filename.
++ * @returns {string} DSHU artifact basename including its public version.
++ */
++export function desktopArtifactBase(version, target) {
++  const display = parseCalendarVersion(version)?.display ?? version
++  return `deepseek-harness-uncensored-${display}-${target}`
++}
+diff --git a/apps/desktop-publisher/tests/desktop-website-installer.spec.ts b/apps/desktop-publisher/tests/desktop-website-installer.spec.ts
+index 56a717f2a32c928e33443dad800cd0395b686c3f..cf14f72c8f240c3e44e30a6b186426622b80d905 100644
+--- a/apps/desktop-publisher/tests/desktop-website-installer.spec.ts
++++ b/apps/desktop-publisher/tests/desktop-website-installer.spec.ts
+@@ -18,7 +18,7 @@ async function fixture(target: DesktopPublishRoute['target'] = 'mac-arm64') {
+   const bytes = Buffer.from('final installer bytes')
+   const route: DesktopPublishRoute = { runId: '12', attempt: '1', commit: 'a'.repeat(40), sourceRef: 'master',
+     channel: 'nightly', runnerName: 'mini', runnerLabel: 'dsh-mini', target, preset: 'production' }
+-  const filename = `deepseek-harness-0.2.1-rc.5-${target}.${target === 'win-x64' ? 'exe' : 'dmg'}`
++  const filename = `deepseek-harness-uncensored-0.2.1-rc.5-${target}.${target === 'win-x64' ? 'exe' : 'dmg'}`
+   await writeFile(join(directory, filename), bytes)
+   const manifest: DesktopRetainedManifest = { schemaVersion: 1, source: {
+     runId: route.runId, attempt: route.attempt, commit: route.commit, sourceRef: route.sourceRef,
+diff --git a/apps/desktop-publisher/tests/publish-website-ci.spec.ts b/apps/desktop-publisher/tests/publish-website-ci.spec.ts
+index 19da5408bde01caf5dd423ff712dfda00ace1ded..28570b9ee70772acdfb087365ace1e8ad5ff734f 100644
+--- a/apps/desktop-publisher/tests/publish-website-ci.spec.ts
++++ b/apps/desktop-publisher/tests/publish-website-ci.spec.ts
+@@ -30,7 +30,7 @@ it.each(['accepted', 'unconfirmed', 'incomplete', 'wrong-journal', 'upload', 'pu
+     const manifest = { schemaVersion: 1, source: { repository: 'owner/repo', runId: '12', attempt: '1', commit: route.commit,
+       workflowCommit: route.commit, sourceRef: 'master', channel: route.channel, runnerName: 'mini', target: 'mac-arm64',
+       preset: 'production', productVersion: '1.0.0', version: '1.0.0', testReleaseId: null, qualification: 'notarized' },
+-    files: [{ name: 'deepseek-harness-1.0.0-mac-arm64.dmg', size: 1, sha512: createHash('sha512').update('x').digest('base64') }] }
++    files: [{ name: 'deepseek-harness-uncensored-1.0.0-mac-arm64.dmg', size: 1, sha512: createHash('sha512').update('x').digest('base64') }] }
+     await writeFile(join(root, 'releases', '12', '1', 'manifest.json'), JSON.stringify(manifest))
+     const approval = websiteApproval(manifest, 'production-123')
+     await writeFile(join(records, 'state.json'), JSON.stringify({ approval, upload: 'uploaded' }))
+diff --git a/apps/desktop/.env.macos.example b/apps/desktop/.env.macos.example
+index 7d2336d546f2ce50e01a6bb6f1bdd1cc5302a2c9..1270ee0fd34e41f9ac9a6d5bc9330576d7808d80 100644
+--- a/apps/desktop/.env.macos.example
++++ b/apps/desktop/.env.macos.example
+@@ -1,7 +1,7 @@
+ # Release configuration only; local --unsigned builds ignore this file.
+ # Copy to .env.macos (Git ignored). Use UTF-8 and quote secrets containing # or spaces.
+ # Paths may be absolute or relative to apps/desktop. Values are not shell-expanded.
+-DSH_DESKTOP_APP_ID=com.deepseek.dsh
++DSH_DESKTOP_APP_ID=com.deepseek.dsh.uncensored
+ DSH_DESKTOP_AUTO_UPDATE_ENV=test
+ DOWNLOAD_TEST_ORIGIN=
+ # Required for test releases: 32 lowercase hexadecimal characters from a secure random generator.
+diff --git a/apps/desktop/.env.windows.example b/apps/desktop/.env.windows.example
+index fd45f0cb3292f6e47a3feab4284c78fd4e95b5db..a3fa40888536ea8d0d673c7ff8d610e1c24b3e43 100644
+--- a/apps/desktop/.env.windows.example
++++ b/apps/desktop/.env.windows.example
+@@ -1,6 +1,6 @@
+ # Copy to .env.windows (Git ignored). Use UTF-8 and quote secrets containing # or spaces.
+ # Credential file paths may be absolute or relative to apps/desktop. Values are not shell-expanded.
+-DSH_DESKTOP_APP_ID=com.deepseek.dsh
++DSH_DESKTOP_APP_ID=com.deepseek.dsh.uncensored
+ DSH_DESKTOP_AUTO_UPDATE_ENV=test
+ DOWNLOAD_TEST_ORIGIN=
+ # Required for test releases: 32 lowercase hexadecimal characters from a secure random generator.
+diff --git a/apps/desktop/config/macos-packaging/production.env.example b/apps/desktop/config/macos-packaging/production.env.example
+index a5a5477fbe7d6f888f5e9dd30118111a8b3c68c1..57d5af3abc1936dba478662bfb7c30e7903e0bd2 100644
+--- a/apps/desktop/config/macos-packaging/production.env.example
++++ b/apps/desktop/config/macos-packaging/production.env.example
+@@ -1,5 +1,5 @@
+ # Copy to production.env and configure the production service before selecting this preset.
+-DSH_DESKTOP_APP_ID=com.deepseek.dsh
++DSH_DESKTOP_APP_ID=com.deepseek.dsh.uncensored
+ DSH_DESKTOP_AUTO_UPDATE_ENV=production
+ DSH_DESKTOP_MANDATORY_UPDATE_PROD_ORIGIN=
+ DSH_DESKTOP_MACOS_PACK_CONCURRENCY=4
+diff --git a/apps/desktop/config/macos-packaging/test.env.example b/apps/desktop/config/macos-packaging/test.env.example
+index 4c5de070a5b5410b82b8b1804e5d936f08077b51..4ac5ea127b866d3f89cce710f92ba8e163afed82 100644
+--- a/apps/desktop/config/macos-packaging/test.env.example
++++ b/apps/desktop/config/macos-packaging/test.env.example
+@@ -1,5 +1,5 @@
+ # Copy to test.env; paths in secret configuration resolve beside macos-signing.env.
+-DSH_DESKTOP_APP_ID=com.deepseek.dsh
++DSH_DESKTOP_APP_ID=com.deepseek.dsh.uncensored
+ DSH_DESKTOP_AUTO_UPDATE_ENV=test
+ DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN=
+ DSH_DESKTOP_MANDATORY_UPDATE_CONFIG='{"allowedAuthOrigins":["https://login.example.com"]}'
+diff --git a/apps/desktop/config/windows-packaging/production.env.example b/apps/desktop/config/windows-packaging/production.env.example
+index dbbcfb73d50f141658ab9bc81ed05bd49f8e1989..ca674d57c3f0f11137805f4817e027470e44b16f 100644
+--- a/apps/desktop/config/windows-packaging/production.env.example
++++ b/apps/desktop/config/windows-packaging/production.env.example
+@@ -1,5 +1,5 @@
+ # Copy to production.env in the same machine configuration directory and fill in the values.
+-DSH_DESKTOP_APP_ID=com.deepseek.dsh
++DSH_DESKTOP_APP_ID=com.deepseek.dsh.uncensored
+ DSH_DESKTOP_AUTO_UPDATE_ENV=production
+ DSH_DESKTOP_MANDATORY_UPDATE_PROD_ORIGIN=
+ DSH_DESKTOP_MANDATORY_UPDATE_CONFIG='{}'
+diff --git a/apps/desktop/config/windows-packaging/test.env.example b/apps/desktop/config/windows-packaging/test.env.example
+index 5a4e2ccf9019e3835d4d7a30acf4476bbb3fe6da..376d9b3e1750e08f63c121801bef6c05e7e8e0c0 100644
+--- a/apps/desktop/config/windows-packaging/test.env.example
++++ b/apps/desktop/config/windows-packaging/test.env.example
+@@ -1,6 +1,6 @@
+ # Copy to test.env in the same machine configuration directory and fill in the values.
+ # Public test configuration. No PIN or upload credentials belong here.
+-DSH_DESKTOP_APP_ID=com.deepseek.dsh
++DSH_DESKTOP_APP_ID=com.deepseek.dsh.uncensored
+ DSH_DESKTOP_AUTO_UPDATE_ENV=test
+ DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN=
+ # Replace login.example.com with the real login origin before packaging.
+diff --git a/apps/desktop/electron-builder.config.d.mts b/apps/desktop/electron-builder.config.d.mts
+index 2973a6eaccbe3dff5fe807b4ea9bb4f6cad46352..9d0e92f13891ec0973658b46409fbbbd6c4fdf0a 100644
+--- a/apps/desktop/electron-builder.config.d.mts
++++ b/apps/desktop/electron-builder.config.d.mts
+@@ -5,7 +5,7 @@ export interface DesktopElectronBuilderConfig {
+   readonly appId: string
+   readonly copyright: string
+   readonly artifactName: string
+-  readonly protocols: readonly [{ readonly name: 'DeepSeek Harness'; readonly schemes: readonly ['dsh'] }]
++  readonly protocols: readonly [{ readonly name: 'DeepSeek Harness Uncensored'; readonly schemes: readonly ['dshu'] }]
+   readonly directories: {
+     readonly output: string
+   }
+@@ -14,12 +14,15 @@ export interface DesktopElectronBuilderConfig {
+     { readonly from: string, readonly to: 'dsh', readonly filter: readonly ['**/*'] },
+     { readonly from: string, readonly to: 'dsh/node_modules', readonly filter: readonly ['**/*'] },
+   ]
+-  readonly extraMetadata: { readonly dshDesktopAppId: string }
++  readonly extraMetadata: { readonly dshDesktopAppId: string; readonly dshDisplayVersion: string; readonly version: string }
+   readonly asarUnpack: readonly string[]
+   readonly extraResources: readonly [
+     { readonly from: string, readonly to: 'runtime' },
+     { readonly from: string, readonly to: 'icon.png' },
+     ...{ readonly from: string, readonly to: 'tray.ico' }[],
++    { readonly from: string, readonly to: 'LICENSE' },
++    { readonly from: string, readonly to: 'LICENSES/DeepSeek-Harness/LICENSE' },
++    { readonly from: string, readonly to: 'LICENSES/DeepSeek-Harness/THIRD_PARTY_NOTICES.md' },
+   ]
+   readonly mac: {
+     readonly extendInfo: {
+diff --git a/apps/desktop/package.json b/apps/desktop/package.json
+index bc3faafabbf221d80ef72a5bc20ca30f24627a62..e1a2388850a318cce05360effb69b89f1848be7d 100644
+--- a/apps/desktop/package.json
++++ b/apps/desktop/package.json
+@@ -1,12 +1,14 @@
+ {
+   "name": "@deepseek-ai/dsh-desktop",
+-  "description": "Electron desktop shell for a bundled dsh runtime and external plugins",
++  "description": "DeepSeek Harness Uncensored (DSHU) desktop application",
+   "version": "0.2.3-alpha.2",
+   "private": true,
+-  "license": "MIT",
++  "license": "GPL-3.0-or-later",
+   "author": {
+-    "name": "Hangzhou DeepSeek Artificial Intelligence Co., Ltd."
++    "name": "WaterRun",
++    "url": "https://github.com/Water-Run"
+   },
++  "homepage": "https://github.com/Water-Run/deepseek-harness-uncensored",
+   "type": "module",
+   "main": "lib/main.js",
+   "scripts": {
+diff --git a/apps/desktop/scripts/desktop-build-version-discovery.ts b/apps/desktop/scripts/desktop-build-version-discovery.ts
+index d9e87b6965ec560c122745a827116fc5acbd5e7e..4d4e9ea2f2ff298d3531257327cdadf2ad18c431 100644
+--- a/apps/desktop/scripts/desktop-build-version-discovery.ts
++++ b/apps/desktop/scripts/desktop-build-version-discovery.ts
+@@ -31,7 +31,8 @@ const LISTING_DEADLINE_MS = 8_000
+ const LISTING_PAGE_SIZE = 1000
+ 
+ /** Artifact name electron-builder writes for one build, on either platform; unsigned and unnotarized builds add a suffix. */
+-const ARTIFACT = /(?:^|\/)deepseek-harness-(?<version>.+)-(?:mac|win)-(?:arm64|x64)(?:-unsigned|-unnotarized)?\.(?:exe|dmg|zip)$/u
++const ARTIFACT =
++  /(?:^|\/)deepseek-harness-uncensored-(?<version>.+)-(?:mac|win)-(?:arm64|x64)(?:-unsigned|-unnotarized)?\.(?:exe|dmg|zip)$/u
+ 
+ /** Inputs that decide which versions are already taken. */
+ export interface DesktopBuildVersionSuggestionOptions {
+@@ -107,7 +108,7 @@ async function remoteVersions(options: DesktopBuildVersionSuggestionOptions): Pr
+         new Promise<{ keys: string[]; next: string | undefined }>((resolveListing, rejectListing) => {
+           cos.getBucket({
+             Bucket: update.bucket, Region: DESKTOP_COS_REGION, MaxKeys: LISTING_PAGE_SIZE,
+-            Prefix: `${update.binaryKeyPrefix}/deepseek-harness-`, ...marker === undefined ? {} : { Marker: marker },
++            Prefix: `${update.binaryKeyPrefix}/deepseek-harness-uncensored-`, ...marker === undefined ? {} : { Marker: marker },
+           }, (error, data) => {
+             if (error !== null && error !== undefined) rejectListing(error instanceof Error ? error : new Error(String(error)))
+             else {
+diff --git a/apps/desktop/scripts/desktop-build-version.d.mts b/apps/desktop/scripts/desktop-build-version.d.mts
+index 969b60104329dc48b6924532346d0884e5e811d5..d35c7c6757bd6a29b7e255e7805c7e2f82682bdb 100644
+--- a/apps/desktop/scripts/desktop-build-version.d.mts
++++ b/apps/desktop/scripts/desktop-build-version.d.mts
+@@ -23,3 +23,15 @@ export function resolveDesktopBuildVersion(env: NodeJS.ProcessEnv, productVersio
+  * @returns The prefix shared by every build version of that product version.
+  */
+ export function desktopBuildVersionPrefix(productVersion: string): string
++
++/**
++ * @param manifest - CLI manifest belonging to the packaged checkout.
++ * @returns Sortable Electron version read from the DSHU CLI manifest.
++ */
++export function desktopProductVersion(manifest?: string | URL): string
++
++/**
++ * @param version - Sortable build version.
++ * @returns Public calendar or qualification version.
++ */
++export function desktopDisplayVersion(version: string): string
+diff --git a/apps/desktop/scripts/desktop-build-version.mjs b/apps/desktop/scripts/desktop-build-version.mjs
+index 5a75253f5cdd30ab16a86de252a4ef7a1432dfc5..2c9d0e5be96ac394740a21d5434455de39c3ae9a 100644
+--- a/apps/desktop/scripts/desktop-build-version.mjs
++++ b/apps/desktop/scripts/desktop-build-version.mjs
+@@ -5,8 +5,7 @@
+  * Desktop CI version mode `build-number` uses UTC date, workflow run number and attempt as
+  * `.YYYYMMDD.run.attempt`; these identify unpublished builds, not release sequences.
+  *
+- * A production release publishes the version in the manifests, aligned with the
+- * `dsh` npm package. A test build publishes a version that appends a date and a
++ * A production release uses the DSHU calendar version. A test build publishes a version that appends a date and a
+  * sequence number, so one test feed can carry several builds of a single
+  * product version: `0.1.6-alpha.1.20260916.1` from a prerelease base and
+  * `0.1.6-test.20260916.1` from a stable one, as the release versions table in
+@@ -23,6 +22,8 @@
+  * test feed that never serves the production release.
+  */
+ 
++import { readFileSync } from 'node:fs'
++import { parseCalendarVersion } from '@deepseek-ai/dsh-desktop-publisher/dshu-version.mjs'
+ import { parse } from 'semver'
+ 
+ /** Environment variable that carries the build version through one packaging and upload run. */
+@@ -102,3 +103,24 @@ export function desktopBuildVersionPrefix(productVersion) {
+   const [release] = product.version.split('-')
+   return `${release}-${requiredFields(product).join('.')}.`
+ }
++
++/**
++ * Return the sortable Electron application version for the CLI's public DSHU date.
++ * @param {string | URL} [manifest] - CLI manifest belonging to the packaged checkout.
++ * @returns {string} The year, month-day and daily sequence as three numeric fields.
++ */
++export function desktopProductVersion(manifest = new URL('../../cli/package.json', import.meta.url)) {
++  const { dshuVersion } = JSON.parse(readFileSync(manifest, 'utf8'))
++  const calendar = typeof dshuVersion === 'string' && parseCalendarVersion(dshuVersion)
++  if (!calendar || calendar.display !== dshuVersion) throw new Error('desktop package: the CLI must declare a valid DSHU calendar version')
++  return calendar.runtime
++}
++
++/**
++ * Format a packaged application version for its installer and human-readable filename.
++ * @param {string} version - Sortable application or qualification version.
++ * @returns {string} Public calendar date or the exact qualification version.
++ */
++export function desktopDisplayVersion(version) {
++  return parseCalendarVersion(version)?.display ?? version
++}
+diff --git a/apps/desktop/scripts/desktop-release-environment.mjs b/apps/desktop/scripts/desktop-release-environment.mjs
+index 635a57a3c9cab8848eadb9fb302d26117d4fb475..805265b116a19990b965bf178bcdbc588ab20a13 100644
+--- a/apps/desktop/scripts/desktop-release-environment.mjs
++++ b/apps/desktop/scripts/desktop-release-environment.mjs
+@@ -65,6 +65,9 @@ export function resolveDesktopAppId(env) {
+   if (!/^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/u.test(appId)) {
+     throw new Error(`desktop release environment: ${DESKTOP_APP_ID_ENV} must be a reverse-DNS identifier`)
+   }
++  if (appId.toLowerCase() === 'com.deepseek.dsh') {
++    throw new Error(`desktop release environment: ${DESKTOP_APP_ID_ENV} belongs to the official DSH app. Use com.deepseek.dsh.uncensored for DSHU.`)
++  }
+   return appId
+ }
+ 
+diff --git a/apps/desktop/scripts/desktop-upload-plan.ts b/apps/desktop/scripts/desktop-upload-plan.ts
+index 2e57bdb4c24364b58127e218d5e21fd3cec34507..9157415f4d0a4d2925d4081dd0628e1edabe0721 100644
+--- a/apps/desktop/scripts/desktop-upload-plan.ts
++++ b/apps/desktop/scripts/desktop-upload-plan.ts
+@@ -1,5 +1,6 @@
+ /** Validate packaged Desktop update artifacts before any network upload begins. */
+ 
++import { desktopArtifactBase } from '@deepseek-ai/dsh-desktop-publisher/dshu-version.mjs'
+ import type { DesktopPackageTargetName } from './package-target.ts'
+ import type { DesktopUploadArtifact, DesktopUploadPlan } from '@deepseek-ai/dsh-desktop-publisher/desktop-upload-types.ts'
+ import { createHash } from 'node:crypto'
+@@ -14,7 +15,7 @@ import {
+   resolveDesktopUploadConfig,
+ } from '@deepseek-ai/dsh-desktop-publisher/desktop-auto-update-environment.mjs'
+ import { desktopTargetBuildPaths } from './desktop-build-paths.mjs'
+-import { validateDesktopBuildVersion } from './desktop-build-version.mjs'
++import { desktopProductVersion, validateDesktopBuildVersion } from './desktop-build-version.mjs'
+ 
+ export type { DesktopUploadArtifact, DesktopUploadPlan } from '@deepseek-ai/dsh-desktop-publisher/desktop-upload-types.ts'
+ 
+@@ -173,6 +174,7 @@ export async function createDesktopUploadPlan(
+     throw new Error(`desktop upload: desktop version ${desktopVersion} does not match current dsh version ${dshVersion}`)
+   }
+ 
++  const productVersion = options.packagedProductVersion ?? desktopProductVersion(join(repositoryRoot, 'apps/cli/package.json'))
+   const update = resolveDesktopUploadConfig(environment, target.platform, target.arch)
+   const buildRecord = await jsonFile(
+     join(artifactsRoot, desktopBuildRecordFilename(targetName)),
+@@ -182,10 +184,10 @@ export async function createDesktopUploadPlan(
+   const recordedVersion = stringField(buildRecord.version, `${targetName} package completion record.version`)
+   let buildVersion: string
+   try {
+-    buildVersion = validateDesktopBuildVersion(recordedVersion, dshVersion)
++    buildVersion = validateDesktopBuildVersion(recordedVersion, productVersion)
+   }
+   catch (error) {
+-    throw new Error(`desktop upload: ${targetName} package completion record holds ${recordedVersion}, which is not a build of dsh ${dshVersion}: ${
++    throw new Error(`desktop upload: ${targetName} package completion record holds ${recordedVersion}, which is not a build of DSHU ${productVersion}: ${
+       error instanceof Error ? error.message : String(error)}`)
+   }
+   if (buildRecord.schemaVersion !== 1
+@@ -214,7 +216,7 @@ export async function createDesktopUploadPlan(
+     throw new Error(`desktop upload: ${metadataFilename}.files must contain exactly one target update file`)
+   }
+ 
+-  const base = `deepseek-harness-${buildVersion}-${target.os}-${target.arch}`
++  const base = desktopArtifactBase(buildVersion, `${target.os}-${target.arch}`)
+   const updaterExtension = target.platform === 'darwin' ? 'zip' : 'exe'
+   const updaterInfo = updateFileInfo(metadata.files[0], `${metadataFilename}.files[0]`, `${base}.${updaterExtension}`)
+   const updaterPath = await verifyChecksummedArtifact(artifactsRoot, updaterInfo)
+diff --git a/apps/desktop/scripts/installed-update-distribution.ts b/apps/desktop/scripts/installed-update-distribution.ts
+index 3738fda13fb337730921355a09ed48abd630bea0..2db4cb9ae9a5b656f70c638eb52fc7cd06ea45d9 100644
+--- a/apps/desktop/scripts/installed-update-distribution.ts
++++ b/apps/desktop/scripts/installed-update-distribution.ts
+@@ -1,4 +1,5 @@
+ /** Validate local qualification payload bytes and prepare separate binary and fixed-feed operations. */
++import { desktopArtifactBase } from '@deepseek-ai/dsh-desktop-publisher/dshu-version.mjs'
+ import { createHash } from 'node:crypto'
+ import { createReadStream } from 'node:fs'
+ import { readFile, stat } from 'node:fs/promises'
+@@ -52,7 +53,7 @@ export async function planInstalledUpdateDistribution(manifest: string, version:
+     throw new Error('installed update: feed must describe exactly the selected version and installer')
+   }
+   const info = record(metadata.files[0])
+-  const filename = `deepseek-harness-${version}-win-x64.exe`
++  const filename = `${desktopArtifactBase(version, 'win-x64')}.exe`
+   if (info.url !== filename || (metadata.path !== undefined && metadata.path !== filename)) {
+     throw new Error('installed update: feed filename must identify the selected local Windows installer')
+   }
+diff --git a/apps/desktop/scripts/installer.nsh b/apps/desktop/scripts/installer.nsh
+index 35047710567843527d5f968df414b3787163389c..e02686885f082388b54daab976344f416c42737b 100644
+--- a/apps/desktop/scripts/installer.nsh
++++ b/apps/desktop/scripts/installer.nsh
+@@ -12,6 +12,7 @@ ManifestDPIAware true
+ !macro customHeader
+   !define /ifndef INSTALLER_STRINGS_FILE "${INSTALLER_BUILD_DIR}\strings.nsh"
+   !include "${INSTALLER_STRINGS_FILE}"
++  !define /ifndef DSHU_DISPLAY_VERSION "${VERSION}"
+   !ifdef BUILD_UNINSTALLER
+     BrandingText " "
+     SetFont "Segoe UI" 9
+@@ -261,6 +262,7 @@ ManifestDPIAware true
+   ${EndIf}
+   ; Standard uninstall-entry metadata read by inventory tools; the upstream template records it only under its private key.
+   WriteRegStr SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY}" InstallLocation "$INSTDIR"
++  WriteRegStr SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY}" DisplayVersion "${DSHU_DISPLAY_VERSION}"
+   ${If} $0 == 1
+     SetErrors
+   ${Else}
+diff --git a/apps/desktop/scripts/pack-local-packages.ts b/apps/desktop/scripts/pack-local-packages.ts
+index 79136479f078e86647d799cd52788931644ba2a1..5f795360bf2a0bdcdd6a2b55ff1162b9d1bc103d 100644
+--- a/apps/desktop/scripts/pack-local-packages.ts
++++ b/apps/desktop/scripts/pack-local-packages.ts
+@@ -2,11 +2,7 @@
+ 
+ import { resolve } from 'node:path'
+ import { parseArgs } from 'node:util'
+-import {
+-  readClientBuildRecord,
+-  repositoryClientBuildEnvironment,
+-  resolveClientBuildEnvironment,
+-} from '../../../scripts/client-build-environment.ts'
++import { readPackagedClientBuild } from '../../../scripts/client-build-environment.ts'
+ import { releaseFamily } from '../../../scripts/release/families.ts'
+ import { packFamilyMembers, parsePackConcurrency } from '../../../scripts/release/pack.ts'
+ 
+@@ -18,8 +14,7 @@ async function main(): Promise<void> {
+   if (values.out === undefined) throw new Error('desktop local pack: --out must name the package staging directory')
+   const concurrency = parsePackConcurrency(values.concurrency)
+   const root = process.cwd()
+-  const environment = resolveClientBuildEnvironment(repositoryClientBuildEnvironment(root), 'local')
+-  readClientBuildRecord(root, environment)
++  readPackagedClientBuild(root, 'local')
+   const destination = resolve(root, values.out)
+   const packed = await packFamilyMembers(root, releaseFamily('dsh'), destination, concurrency)
+   console.log(`desktop local pack: ${String(packed.length)} tarball(s) in ${destination}`)
+diff --git a/apps/desktop/scripts/package-macos.ts b/apps/desktop/scripts/package-macos.ts
+index 23087c72e6f324e3625db6410773d30619bb0a24..8b53f24a38bfc11a51be48c834d2f49a1bd00fd9 100644
+--- a/apps/desktop/scripts/package-macos.ts
++++ b/apps/desktop/scripts/package-macos.ts
+@@ -1,5 +1,6 @@
+ /** Build the ZIP and DMG from separate signed application copies with overlapping notarization. */
+ 
++import { desktopArtifactBase } from '@deepseek-ai/dsh-desktop-publisher/dshu-version.mjs'
+ import { execFile } from 'node:child_process'
+ import { mkdtemp, rename, rm, stat } from 'node:fs/promises'
+ import { basename, dirname, join } from 'node:path'
+@@ -78,7 +79,7 @@ export async function packageMacOSArtifacts(
+   const expected = resolveMacOSSigningEnvironment(environment)
+   const credentials = resolveMacOSNotarizationEnvironment(environment)
+   const update = resolveDesktopAutoUpdateConfig(environment, 'darwin', arch)
+-  const appPath = join(artifactsRoot, arch === 'arm64' ? 'mac-arm64' : 'mac', 'DeepSeek Harness.app')
++  const appPath = join(artifactsRoot, arch === 'arm64' ? 'mac-arm64' : 'mac', 'DeepSeek Harness Uncensored.app')
+   const root = await mkdtemp(join(dirname(artifactsRoot), 'notarization-'))
+   const zipApp = join(root, 'zip', basename(appPath))
+   const dmgApp = join(root, 'dmg', basename(appPath))
+@@ -110,7 +111,7 @@ export async function packageMacOSArtifacts(
+     await verifyMacOSAppUpdateConfig(dmgApp, update)
+     apple.verifySignature(zipApp, expected)
+     apple.verifySignature(dmgApp, expected)
+-    const base = `deepseek-harness-${version}-mac-${arch}`
++    const base = desktopArtifactBase(version, `mac-${arch}`)
+     const artifacts = [
+       [dmgOutput, `${base}.dmg`],
+       [zipOutput, `${base}.zip`],
+diff --git a/apps/desktop/scripts/package-target.ts b/apps/desktop/scripts/package-target.ts
+index ea244526d5186c5b50256297491d483589a694d5..e01b871ce13ed79b6a5ba8ea912ab76e5eeee35d 100644
+--- a/apps/desktop/scripts/package-target.ts
++++ b/apps/desktop/scripts/package-target.ts
+@@ -1,5 +1,6 @@
+ /** Build one release target with matching Electron and dsh architecture. */
+ 
++import { desktopArtifactBase } from '@deepseek-ai/dsh-desktop-publisher/dshu-version.mjs'
+ import { spawn } from 'node:child_process'
+ import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+ import { parseArgs } from 'node:util'
+@@ -20,7 +21,7 @@ import { resolveWindowsPackageSettings } from './windows-package-settings.mjs'
+ import { packagingErrorDetails, packagingStep } from './packaging-step.mjs'
+ import { notarizeMacOS } from './notarize-macos.mjs'
+ import { resolveMacOSNotarizationEnvironment } from './desktop-release-environment.mjs'
+-import { DESKTOP_BUILD_VERSION_ENV, resolveDesktopBuildVersion, validateDesktopBuildVersion } from './desktop-build-version.mjs'
++import { DESKTOP_BUILD_VERSION_ENV, desktopProductVersion, resolveDesktopBuildVersion, validateDesktopBuildVersion } from './desktop-build-version.mjs'
+ import { suggestDesktopBuildVersion } from './desktop-build-version-discovery.ts'
+ import { desktopBuildCommitEnvironment, readDesktopBuildCommit, resolveDesktopBuildCommit } from './desktop-build-commit.mjs'
+ import { requireDesktopToolchain } from './desktop-toolchain-preflight.ts'
+@@ -144,7 +145,7 @@ function writeReleaseRecord(
+   if (desktopVersion !== dshVersion) {
+     throw new Error(`desktop package: desktop version ${desktopVersion} does not match dsh version ${dshVersion}`)
+   }
+-  const buildVersion = resolveDesktopBuildVersion(environment, dshVersion)
++  const buildVersion = resolveDesktopBuildVersion(environment, desktopProductVersion())
+   const packaged = resolveDesktopBuildCommit(environment)
+   const update = resolveDesktopAutoUpdateConfig(environment, target.platform, target.arch)
+   const recordPath = join(artifactsRoot, desktopBuildRecordFilename(target.name))
+@@ -349,7 +350,7 @@ async function main(): Promise<void> {
+     : loadDesktopPackageEnvironment(target.platform, process.env, APP_ROOT, {
+       unsigned: invocation.unsigned, prepareOnly: invocation.prepareOnly,
+     })
+-  const productVersion = packageVersion(join(APP_ROOT, 'package.json'), 'desktop package')
++  const productVersion = desktopProductVersion()
+   // Release settings come from the selected configuration files, so the version this run publishes is an
+   // argument; the environment variable below only carries it to the child processes that build.
+   const buildVersion = await resolveRequestedBuildVersion(invocation, productVersion, environment)
+@@ -402,7 +403,7 @@ async function main(): Promise<void> {
+   if (success && target.platform === 'darwin' && !invocation.directory && !invocation.prepareOnly) {
+     const paths = desktopTargetBuildPaths(target.name, environment)
+     const output = desktopArtifactOutput(paths, invocation)
+-    const filename = `deepseek-harness-${buildVersion}-mac-${target.arch}${output.suffix}.dmg`
++    const filename = `${desktopArtifactBase(buildVersion, `mac-${target.arch}`)}${output.suffix}.dmg`
+     console.log(`DMG: ${join(output.directory, filename)}`)
+   }
+ }
+@@ -538,20 +539,20 @@ export async function packageTarget(
+     await withMacOSNotarizationProxy(mac?.notarizationProxy, () => packageMacOSArtifacts({
+       arch: target.arch,
+       // electron-builder named these artifacts after the published version, so locating them uses the same identifier.
+-      version: resolveDesktopBuildVersion(environment, packageVersion(join(APP_ROOT, 'package.json'), 'desktop package')),
++      version: resolveDesktopBuildVersion(environment, desktopProductVersion()),
+       artifactsRoot: buildPaths.artifacts,
+       environment: electronBuilderEnv,
+     }, buildMacArtifact), undefined, undefined, proxyEvent)
+   } else if (target.platform === 'darwin' && !invocation.unsigned && !invocation.skipNotarization) {
+     await execute([...desktopElectronBuilderArguments(target, true), '--config.mac.notarize=false'], electronBuilderEnv)
+     await execute(['exec', 'tsx', 'scripts/smoke-packaged-runtime.ts'], targetEnv)
+-    const appPath = join(buildPaths.artifacts, target.arch === 'arm64' ? 'mac-arm64' : 'mac', 'DeepSeek Harness.app')
++    const appPath = join(buildPaths.artifacts, target.arch === 'arm64' ? 'mac-arm64' : 'mac', 'DeepSeek Harness Uncensored.app')
+     await withMacOSNotarizationProxy(mac?.notarizationProxy,
+       () => notarizeMacOS({ appPath, ...resolveMacOSNotarizationEnvironment(environment) }), undefined, undefined, proxyEvent)
+   } else {
+     if (target.platform === 'darwin' && invocation.skipNotarization && !invocation.directory) {
+       await execute(desktopElectronBuilderArguments(target, true), electronBuilderEnv)
+-      const appPath = join(artifactsRoot, target.arch === 'arm64' ? 'mac-arm64' : 'mac', 'DeepSeek Harness.app')
++      const appPath = join(artifactsRoot, target.arch === 'arm64' ? 'mac-arm64' : 'mac', 'DeepSeek Harness Uncensored.app')
+       for (const format of ['dmg', 'zip'] as const) {
+         await buildMacArtifact({ format, appPath, output: artifactsRoot })
+       }
+diff --git a/apps/desktop/scripts/packaged-smoke-path.ts b/apps/desktop/scripts/packaged-smoke-path.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..0d4e3bc27515c306584fc32583184b2be9611948
+--- /dev/null
++++ b/apps/desktop/scripts/packaged-smoke-path.ts
+@@ -0,0 +1,25 @@
++/** Short Windows paths for native DLL loading during packaged-runtime verification. */
++import { cp, mkdtemp, rm } from 'node:fs/promises'
++import { tmpdir } from 'node:os'
++import { dirname, join, resolve } from 'node:path'
++
++/**
++ * Verify a temporary copy at a short path without modifying the assembled application.
++ * Windows native loaders exceed path limits in nested build journals; junctions are insufficient
++ * because Electron and Office resolve them back to the original path.
++ * @param application - Assembled application directory.
++ * @param verify - Verification that drains its child processes before returning.
++ * @returns The verification result, after removing the private temporary copy.
++ */
++export async function withPackagedSmokePath<T>(application: string, verify: (path: string) => Promise<T>): Promise<T> {
++  const temporary = resolve(tmpdir())
++  const parent = await mkdtemp(join(temporary, 'dsh-smoke-'))
++  if (dirname(parent) !== temporary) throw new Error('Packaged smoke directory is outside the temporary root')
++  const alias = join(parent, 'app')
++  try {
++    await cp(resolve(application), alias, { recursive: true, dereference: true, preserveTimestamps: true })
++    return await verify(alias)
++  } finally {
++    await rm(parent, { recursive: true, force: true })
++  }
++}
+diff --git a/apps/desktop/scripts/prepare-macos-ci.mjs b/apps/desktop/scripts/prepare-macos-ci.mjs
+index 6484a038fc937492ddf5eef2796371b1b8481e0c..ff0123fbbff2107c321453af6a64f37a35852da2 100644
+--- a/apps/desktop/scripts/prepare-macos-ci.mjs
++++ b/apps/desktop/scripts/prepare-macos-ci.mjs
+@@ -1,5 +1,6 @@
+ /** Validate machine-owned macOS signing settings and record a manual Actions build version. */
+-import { appendFileSync, readFileSync } from 'node:fs'
++import { desktopProductVersion } from './desktop-build-version.mjs'
++import { appendFileSync } from 'node:fs'
+ import { resolve } from 'node:path'
+ import { execFileSync } from 'node:child_process'
+ import { desktopTargetPlatform, resolveDesktopBuildTarget } from './desktop-build-paths.mjs'
+@@ -9,8 +10,7 @@ import { loadDesktopPackageEnvironment, validateDesktopPackageEnvironment } from
+ const target = desktopTargetPlatform(resolveDesktopBuildTarget(process.env))
+ if (target.platform !== 'darwin') throw new Error('macOS CI requires a macOS target')
+ const appRoot = resolve(import.meta.dirname, '..')
+-const product = JSON.parse(readFileSync(resolve(appRoot, 'package.json'), 'utf8'))
+-const version = desktopCiVersion(process.env, product.version)
++const version = desktopCiVersion(process.env, desktopProductVersion())
+ if (!process.env.DSH_PACKAGING_PRESET) throw new Error('Select a machine preset')
+ const skipNotarization = process.env.PACKAGE_SKIP_NOTARIZATION === 'true'
+ if (!['true', 'false', undefined].includes(process.env.PACKAGE_SKIP_NOTARIZATION)) throw new Error('Invalid skip notarization selection')
+diff --git a/apps/desktop/scripts/prepare-windows-ci.mjs b/apps/desktop/scripts/prepare-windows-ci.mjs
+index b89227885a7d54809496739d8063e8c600bc7623..152dc00d5419e8e48d5355c60bf9f6626bce43bd 100644
+--- a/apps/desktop/scripts/prepare-windows-ci.mjs
++++ b/apps/desktop/scripts/prepare-windows-ci.mjs
+@@ -1,5 +1,6 @@
+ /** Resolve a manual Windows build version and validate the selected machine preset. */
+-import { appendFileSync, readFileSync } from 'node:fs'
++import { desktopProductVersion } from './desktop-build-version.mjs'
++import { appendFileSync } from 'node:fs'
+ import { resolve } from 'node:path'
+ import { execFileSync } from 'node:child_process'
+ import { desktopCiVersion as windowsCiVersion } from './desktop-ci-version.mjs'
+@@ -9,8 +10,7 @@ import { resolveWindowsPackageSettings } from './windows-package-settings.mjs'
+ 
+ if (process.argv[1] !== undefined && resolve(process.argv[1]) === import.meta.filename) {
+   const appRoot = resolve(import.meta.dirname, '..')
+-  const product = JSON.parse(readFileSync(resolve(appRoot, 'package.json'), 'utf8'))
+-  const version = windowsCiVersion(process.env, product.version)
++  const version = windowsCiVersion(process.env, desktopProductVersion())
+   const mode = process.env.PACKAGE_SIGNING
+   if (mode !== 'unsigned' && mode !== 'signed') throw new Error('Select unsigned or signed packaging')
+   if (!process.env.DSH_PACKAGING_PRESET) throw new Error('Select a machine preset')
+diff --git a/apps/desktop/scripts/retain-desktop-ci.ts b/apps/desktop/scripts/retain-desktop-ci.ts
+index d26e6a068c2777a8ca92a0c526a2cf553a64bd91..09eab5f6427096c3f19033a4ea3e701a44bc0063 100644
+--- a/apps/desktop/scripts/retain-desktop-ci.ts
++++ b/apps/desktop/scripts/retain-desktop-ci.ts
+@@ -1,12 +1,13 @@
+ /** Retain completed CI packages for later manual publication. */
+-import { appendFile, readFile } from 'node:fs/promises'
++import { desktopArtifactBase } from '@deepseek-ai/dsh-desktop-publisher/dshu-version.mjs'
++import { appendFile } from 'node:fs/promises'
+ import { join, resolve } from 'node:path'
+ import { desktopTargetBuildPaths, resolveDesktopBuildTarget } from './desktop-build-paths.mjs'
+ import { desktopReleasesRoot } from '@deepseek-ai/dsh-desktop-publisher/desktop-releases-root.ts'
+ import { desktopBuildRecordFilename, desktopUpdateMetadataFilename, resolveDesktopUpdateChannel } from '@deepseek-ai/dsh-desktop-publisher/desktop-auto-update-environment.mjs'
+ import { loadDesktopPackageEnvironment } from './desktop-package-environment.mjs'
+ import { retainDesktopRelease, type DesktopRetainedSource } from '@deepseek-ai/dsh-desktop-publisher/desktop-release-store.ts'
+-import { validateDesktopBuildVersion } from './desktop-build-version.mjs'
++import { desktopProductVersion, validateDesktopBuildVersion } from './desktop-build-version.mjs'
+ import { desktopPublishRunnersSchema } from '@deepseek-ai/dsh-desktop-publisher/desktop-publish-targets.ts'
+ import { desktopPublishQualificationError } from '@deepseek-ai/dsh-desktop-publisher/desktop-publish-qualification.mjs'
+ 
+@@ -52,14 +53,14 @@ export async function retainDesktopCi(env: NodeJS.ProcessEnv, appRoot = resolve(
+   if (!windows && !['true', 'false'].includes(env.PACKAGE_SKIP_NOTARIZATION ?? '')) throw new Error('desktop retention: invalid notarization selection')
+   const qualification = windows ? (env.PACKAGE_SIGNING === 'signed' ? 'signed' : 'unsigned')
+     : (env.PACKAGE_SKIP_NOTARIZATION === 'true' ? 'unnotarized' : 'notarized')
+-  const product: { version: string } = JSON.parse(await readFile(join(appRoot, 'package.json'), 'utf8'))
+-  const version = validateDesktopBuildVersion(required(env, 'PACKAGE_VERSION'), product.version)
++  const productVersion = desktopProductVersion(join(appRoot, '../cli/package.json'))
++  const version = validateDesktopBuildVersion(required(env, 'PACKAGE_VERSION'), productVersion)
+   const source: DesktopRetainedSource = {
+     repository: required(env, 'GITHUB_REPOSITORY'), runId: required(env, 'GITHUB_RUN_ID'),
+     attempt: required(env, 'GITHUB_RUN_ATTEMPT'), commit: required(env, 'PACKAGE_SOURCE_SHA'),
+     workflowCommit: required(env, 'GITHUB_SHA'), sourceRef: required(env, 'PACKAGE_SOURCE_REF'),
+     channel: resolveDesktopUpdateChannel(settings),
+-    runnerName: required(env, 'RUNNER_NAME'), target, preset, productVersion: product.version, version,
++    runnerName: required(env, 'RUNNER_NAME'), target, preset, productVersion, version,
+     testReleaseId: preset === 'test' ? (settings.DOWNLOAD_TEST_RELEASE_ID || null) : null,
+     qualification,
+   }
+@@ -68,7 +69,7 @@ export async function retainDesktopCi(env: NodeJS.ProcessEnv, appRoot = resolve(
+   const mode = qualification === 'unsigned' ? 'unsigned-artifacts' : qualification === 'unnotarized' ? 'unnotarized-artifacts' : 'artifacts'
+   const artifacts = appRoot === resolve(import.meta.dirname, '..')
+     ? join(paths.root, mode) : join(appRoot, '.desktop-build', 'targets', target, mode)
+-  const base = `deepseek-harness-${version}-${windows ? 'win-x64' : target}`
++  const base = desktopArtifactBase(version, windows ? 'win-x64' : target)
+   const debugSuffix = qualification === 'unnotarized' ? '-unnotarized' : qualification === 'unsigned' ? '-unsigned' : ''
+   const names = windows ? [`${base}${debugSuffix}.exe`] : [`${base}${debugSuffix}.dmg`, `${base}${debugSuffix}.zip`]
+   if (qualification === 'signed' || qualification === 'notarized') {
+diff --git a/apps/desktop/scripts/smoke-packaged-runtime.ts b/apps/desktop/scripts/smoke-packaged-runtime.ts
+index 6c3c12c8572593a1f038ed39f4ff3da898cecf70..9c376aaf9a222c4e7ad78b3a2fc905736a92c5ef 100644
+--- a/apps/desktop/scripts/smoke-packaged-runtime.ts
++++ b/apps/desktop/scripts/smoke-packaged-runtime.ts
+@@ -4,6 +4,7 @@ import { parseArgs } from 'node:util'
+ import { desktopArtifactOutput, resolveDesktopBuildTarget, resolveDesktopTargetBuildPaths } from './desktop-build-paths.mjs'
+ import { readDesktopRuntime, verifyDesktopRuntime } from '../src/runtime-tree.ts'
+ import { verifyWindowsCode } from './windows-runtime-signature.mjs'
++import { withPackagedSmokePath } from './packaged-smoke-path.ts'
+ import { smokePreparedRuntime } from './smoke-prepared-runtime.ts'
+ import { resolveDesktopPackageTarget } from './package-target.ts'
+ 
+@@ -13,10 +14,14 @@ const target = resolveDesktopBuildTarget()
+ const windows = target === 'win-x64'
+ const artifacts = desktopArtifactOutput(paths, { unsigned: values.unsigned, skipNotarization: values['skip-notarization'] }).directory
+ const application = windows ? join(artifacts, 'win-unpacked')
+-  : join(artifacts, target === 'mac-arm64' ? 'mac-arm64' : 'mac', 'DeepSeek Harness.app', 'Contents')
+-const resources = join(application, windows ? 'resources' : 'Resources')
+-const executable = windows ? join(application, 'DeepSeek Harness.exe') : join(application, 'MacOS', 'DeepSeek Harness')
++  : join(artifacts, target === 'mac-arm64' ? 'mac-arm64' : 'mac', 'DeepSeek Harness Uncensored.app', 'Contents')
+ const descriptor = await verifyDesktopRuntime(paths.dsh, readDesktopRuntime(paths.dsh).release.version,
+   resolveDesktopPackageTarget(target))
+ if (windows && !values.unsigned) await verifyWindowsCode(application)
+-await smokePreparedRuntime(join(resources, 'app.asar', 'dsh'), executable, join(resources, 'runtime'), descriptor)
++const verify = async (path: string): Promise<void> => {
++  const resources = join(path, windows ? 'resources' : 'Resources')
++  const executable = windows ? join(path, 'DeepSeek Harness Uncensored.exe') : join(path, 'MacOS', 'DeepSeek Harness Uncensored')
++  await smokePreparedRuntime(join(resources, 'app.asar', 'dsh'), executable, join(resources, 'runtime'), descriptor)
++}
++if (windows) await withPackagedSmokePath(application, verify)
++else await verify(application)
+diff --git a/apps/desktop/scripts/smoke-runtime.ts b/apps/desktop/scripts/smoke-runtime.ts
+index e06f95c7747bb5900268bc3701976f70349a98af..e12ab73d3a9d70d443f35f3f6d893125fe700c7f 100644
+--- a/apps/desktop/scripts/smoke-runtime.ts
++++ b/apps/desktop/scripts/smoke-runtime.ts
+@@ -38,11 +38,12 @@ export function assertOfficeSkillsLoadable(results: ReadonlyArray<{ readonly nam
+ export async function smokeDesktopRuntime(
+   root: string, node: string, runtime: DesktopRuntimeDescriptor, environment: NodeJS.ProcessEnv, resourcesRuntime: string,
+ ): Promise<void> {
+-  const home = mkdtempSync(join(tmpdir(), 'dsh-desktop-smoke-'))
++  const user = mkdtempSync(join(tmpdir(), 'dsh-desktop-smoke-'))
++  const home = join(user, '.dsh-uncensored')
+   const profile = join(home, 'profiles', 'desktop')
+   const hostEnvironment = {
+     ...Object.fromEntries(Object.entries(environment).filter(([name]) => !/^(?:npm|pnpm|corepack)_/iu.test(name))),
+-    DSH_HOME: home, HOME: home, USERPROFILE: home,
++    DSH_UNCENSORED_HOME: home, DSH_HOME: home, HOME: user, USERPROFILE: user,
+     XDG_CONFIG_HOME: home, XDG_CACHE_HOME: home, XDG_STATE_HOME: home,
+     APPDATA: home, LOCALAPPDATA: home,
+     npm_config_userconfig: join(home, 'npmrc'), npm_config_globalconfig: join(home, 'npmrc'),
+@@ -53,6 +54,7 @@ export async function smokeDesktopRuntime(
+     { pnpm: join(resourcesRuntime, 'primary-runtime', 'dependencies', 'pnpm', 'bin', 'pnpm.mjs'), nodeBin: join(resourcesRuntime, 'bin') })
+   let timer: ReturnType<typeof setTimeout> | undefined
+   try {
++    mkdirSync(home)
+     writeFileSync(join(home, 'npmrc'), '')
+     createPluginProfile(profile)
+     const pluginName = 'desktop-runtime-smoke-plugin'
+@@ -232,7 +234,7 @@ export function apply(ctx) {
+   } finally {
+     clearTimeout(timer)
+     try { await host.stop() } finally {
+-      await rm(home, { recursive: true, force: true, maxRetries: 20, retryDelay: 50 })
++      await rm(user, { recursive: true, force: true, maxRetries: 20, retryDelay: 50 })
+     }
+   }
+ }
+diff --git a/apps/desktop/scripts/verify-retained-desktop.ts b/apps/desktop/scripts/verify-retained-desktop.ts
+index fca85421adcff16cd26dcde5c0c9728125f7970b..75f5c702bc977223061d1cff8125b6a8120b2099 100644
+--- a/apps/desktop/scripts/verify-retained-desktop.ts
++++ b/apps/desktop/scripts/verify-retained-desktop.ts
+@@ -39,6 +39,6 @@ export async function verifyRetainedDesktopSignatures(
+   const extracted = await mkdtemp(join(tmpdir(), 'desktop-publish-verify-'))
+   try {
+     run('/usr/bin/ditto', ['-x', '-k', zipPath, extracted])
+-    verifyMacOSNotarizedApplication(join(extracted, 'DeepSeek Harness.app'), config.macOS)
++    verifyMacOSNotarizedApplication(join(extracted, 'DeepSeek Harness Uncensored.app'), config.macOS)
+   } finally { await rm(extracted, { recursive: true, force: true }) }
+ }
+diff --git a/apps/desktop/scripts/windows-directory-installer.mjs b/apps/desktop/scripts/windows-directory-installer.mjs
+index 45c890712c21ca9a75da78931dbb40f734a4c2c8..1d408c2e3c675563ee5ce050286b6c1c5b01d0c4 100644
+--- a/apps/desktop/scripts/windows-directory-installer.mjs
++++ b/apps/desktop/scripts/windows-directory-installer.mjs
+@@ -1,4 +1,5 @@
+ /** Adapt the pinned NSIS template to stage and rename complete application directories. */
++import { parseCalendarVersion } from '@deepseek-ai/dsh-desktop-publisher/dshu-version.mjs'
+ import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
+ import { createRequire } from 'node:module'
+ import { dirname, join } from 'node:path'
+@@ -72,6 +73,25 @@ export function installWindowsDirectoryInstaller() {
+   const prototype = NsisTarget.prototype
+   if (prototype[patched]) return
+   prototype[patched] = true
++  const execute = prototype.executeMakensis
++  prototype.executeMakensis = function (defines, commands, ...args) {
++    const version = parseCalendarVersion(this.packager.appInfo.version)
++    if (version === undefined) return execute.call(this, defines, commands, ...args)
++    if (!Array.isArray(commands.VIAddVersionKey)) throw new Error('Desktop NSIS version resources changed')
++    const fields = new Set()
++    const versionKeys = commands.VIAddVersionKey.map((entry) => {
++      const match = /^(\/LANG=\d+ (ProductVersion|FileVersion)) "[^"]*"$/u.exec(entry)
++      if (match === null) return entry
++      fields.add(match[2])
++      return `${match[1]} "${version.display}"`
++    })
++    if (fields.size !== 2) throw new Error('Desktop NSIS version resources changed')
++    return execute.call(this, defines, {
++      ...commands,
++      VIProductVersion: version.display,
++      VIAddVersionKey: versionKeys,
++    }, ...args)
++  }
+   const compute = prototype.computeFinalScript
+   prototype.computeFinalScript = async function (source, ...args) {
+     const directory = join(this.outDir, '.nsis-directory-installer')
+diff --git a/apps/desktop/tests/desktop-build-version-discovery.spec.ts b/apps/desktop/tests/desktop-build-version-discovery.spec.ts
+index 0fe063d1e2351189389c1ac6500d4b95e1460350..9d3bf5a286f072a54efd532220a237ae625a1d38 100644
+--- a/apps/desktop/tests/desktop-build-version-discovery.spec.ts
++++ b/apps/desktop/tests/desktop-build-version-discovery.spec.ts
+@@ -36,16 +36,16 @@ describe('desktop build version discovery', () => {
+   })
+ 
+   it('numbers a stable product version under the documented test prerelease', async () => {
+-    const artifactsRoot = await artifactsWith([`deepseek-harness-${STABLE}-test.${DATE}.4-win-x64.exe`])
++    const artifactsRoot = await artifactsWith([`deepseek-harness-uncensored-${STABLE}-test.${DATE}.4-win-x64.exe`])
+     await expect(suggestDesktopBuildVersion({ productVersion: STABLE, target: 'win-x64', environment: {}, date: DATE, artifactsRoot }))
+       .resolves.toBe(`${STABLE}-test.${DATE}.5`)
+   })
+ 
+   it('numbers after the highest local artifact for the same date', async () => {
+     const artifactsRoot = await artifactsWith([
+-      `deepseek-harness-${PRERELEASE}.${DATE}.1-win-x64.exe`,
+-      `deepseek-harness-${PRERELEASE}.${DATE}.2-win-x64.exe`,
+-      `deepseek-harness-${PRERELEASE}.${DATE}.10-win-x64.exe`,
++      `deepseek-harness-uncensored-${PRERELEASE}.${DATE}.1-win-x64.exe`,
++      `deepseek-harness-uncensored-${PRERELEASE}.${DATE}.2-win-x64.exe`,
++      `deepseek-harness-uncensored-${PRERELEASE}.${DATE}.10-win-x64.exe`,
+     ])
+     await expect(suggestDesktopBuildVersion({ productVersion: PRERELEASE, target: 'win-x64', environment: {}, date: DATE, artifactsRoot }))
+       .resolves.toBe(`${PRERELEASE}.${DATE}.11`)
+@@ -53,9 +53,9 @@ describe('desktop build version discovery', () => {
+ 
+   it('ignores artifacts from another date or product version', async () => {
+     const artifactsRoot = await artifactsWith([
+-      `deepseek-harness-${PRERELEASE}.20260920.7-win-x64.exe`,
+-      `deepseek-harness-0.1.5-alpha.1.${DATE}.9-win-x64.exe`,
+-      `deepseek-harness-${PRERELEASE}-win-x64.exe`,
++      `deepseek-harness-uncensored-${PRERELEASE}.20260920.7-win-x64.exe`,
++      `deepseek-harness-uncensored-0.1.5-alpha.1.${DATE}.9-win-x64.exe`,
++      `deepseek-harness-uncensored-${PRERELEASE}-win-x64.exe`,
+       'unrelated.exe',
+     ])
+     await expect(suggestDesktopBuildVersion({ productVersion: PRERELEASE, target: 'win-x64', environment: {}, date: DATE, artifactsRoot }))
+@@ -64,8 +64,8 @@ describe('desktop build version discovery', () => {
+ 
+   it('reads macOS artifact names too', async () => {
+     const artifactsRoot = await artifactsWith([
+-      `deepseek-harness-${PRERELEASE}.${DATE}.3-mac-arm64.dmg`,
+-      `deepseek-harness-${PRERELEASE}.${DATE}.3-mac-arm64.zip`,
++      `deepseek-harness-uncensored-${PRERELEASE}.${DATE}.3-mac-arm64.dmg`,
++      `deepseek-harness-uncensored-${PRERELEASE}.${DATE}.3-mac-arm64.zip`,
+     ])
+     await expect(suggestDesktopBuildVersion({ productVersion: PRERELEASE, target: 'mac-arm64', environment: {}, date: DATE, artifactsRoot }))
+       .resolves.toBe(`${PRERELEASE}.${DATE}.4`)
+@@ -73,9 +73,9 @@ describe('desktop build version discovery', () => {
+ 
+   it('numbers after existing unnotarized DMG and ZIP artifacts', async () => {
+     const artifactsRoot = await artifactsWith([
+-      `deepseek-harness-${PRERELEASE}.${DATE}.2-mac-arm64-unnotarized.dmg`,
+-      `deepseek-harness-${PRERELEASE}.${DATE}.4-mac-arm64-unnotarized.zip`,
+-      `deepseek-harness-${PRERELEASE}.${DATE}.9-mac-arm64-unnotarized.zip.blockmap`,
++      `deepseek-harness-uncensored-${PRERELEASE}.${DATE}.2-mac-arm64-unnotarized.dmg`,
++      `deepseek-harness-uncensored-${PRERELEASE}.${DATE}.4-mac-arm64-unnotarized.zip`,
++      `deepseek-harness-uncensored-${PRERELEASE}.${DATE}.9-mac-arm64-unnotarized.zip.blockmap`,
+     ])
+     await expect(suggestDesktopBuildVersion({ productVersion: PRERELEASE, target: 'mac-arm64', environment: {}, date: DATE, artifactsRoot }))
+       .resolves.toBe(`${PRERELEASE}.${DATE}.5`)
+@@ -83,8 +83,8 @@ describe('desktop build version discovery', () => {
+ 
+   it('counts unsigned Windows artifacts written under their own suffix', async () => {
+     const artifactsRoot = await artifactsWith([
+-      `deepseek-harness-${PRERELEASE}.${DATE}.2-win-x64-unsigned.exe`,
+-      `deepseek-harness-${PRERELEASE}.${DATE}.5-win-x64-unsigned.exe.blockmap`,
++      `deepseek-harness-uncensored-${PRERELEASE}.${DATE}.2-win-x64-unsigned.exe`,
++      `deepseek-harness-uncensored-${PRERELEASE}.${DATE}.5-win-x64-unsigned.exe.blockmap`,
+     ])
+     await expect(suggestDesktopBuildVersion({ productVersion: PRERELEASE, target: 'win-x64', environment: {}, date: DATE, artifactsRoot }))
+       .resolves.toBe(`${PRERELEASE}.${DATE}.3`)
+diff --git a/apps/desktop/tests/desktop-publication-preflight.spec.ts b/apps/desktop/tests/desktop-publication-preflight.spec.ts
+index dd6e2e7f41ced9ed44cb868c2d907e46fd2d7359..e9be2c749849c7e3ef8c383a23cdfe70b48d652b 100644
+--- a/apps/desktop/tests/desktop-publication-preflight.spec.ts
++++ b/apps/desktop/tests/desktop-publication-preflight.spec.ts
+@@ -17,41 +17,43 @@ it.each(['mac-arm64', 'win-x64'] as const)('preflights a complete retained %s bu
+     await mkdir(artifacts, { recursive: true })
+     await mkdir(join(configRoot, 'presets'), { recursive: true })
+     await mkdir(join(configRoot, 'publishing'))
+-    await writeFile(join(app, 'package.json'), JSON.stringify({ version: '1.0.0' }))
++    await mkdir(join(root, 'cli'))
++    await writeFile(join(root, 'cli/package.json'), JSON.stringify({ dshuVersion: '2026.11.25.0' }))
+     const releaseId = 'a'.repeat(32)
+     await writeFile(join(configRoot, 'presets/test.env'), `DSH_DESKTOP_AUTO_UPDATE_ENV=test\nDOWNLOAD_TEST_RELEASE_ID=${releaseId}\n`)
+     await writeFile(join(configRoot, 'publishing/test.json'), JSON.stringify({
+       bucket: 'fixture-1250000000', origin: 'https://EXAMPLE.com:443/', credentialsFile: join(root, 'absent-credentials.json'),
+     }))
+     const commit = 'b'.repeat(40)
+-    const base = `deepseek-harness-1.0.0-${target}`
++    const base = `deepseek-harness-uncensored-2026.11.25.0-${target}`
+     const extension = target === 'win-x64' ? 'exe' : 'zip'
+     const bytes = 'fixture installer bytes'
+     await writeFile(join(artifacts, `${base}.${extension}`), bytes)
+     await writeFile(join(artifacts, `${base}.${extension}.blockmap`), 'fixture blockmap')
+     if (target !== 'win-x64') await writeFile(join(artifacts, `${base}.dmg`), 'fixture DMG')
+     await writeFile(join(artifacts, `${target}-release.json`), JSON.stringify({
+-      schemaVersion: 1, target, environment: 'test', version: '1.0.0', commit, dirty: false,
++      schemaVersion: 1, target, environment: 'test', version: '2026.1125.0', commit, dirty: false,
+       publicUrl: `https://example.com/dsh-desk/${releaseId}/feeds/${target}/`,
+     }))
+     await writeFile(join(artifacts, target === 'win-x64' ? 'nightly.yml' : 'nightly-mac.yml'), JSON.stringify({
+-      version: '1.0.0', files: [{ url: `${base}.${extension}`, size: Buffer.byteLength(bytes),
++      version: '2026.1125.0', files: [{ url: `${base}.${extension}`, size: Buffer.byteLength(bytes),
+         sha512: createHash('sha512').update(bytes).digest('base64') }],
+     }))
+     const env = {
+       DSH_PACKAGING_CONFIG_DIR: configRoot, DSH_PACKAGING_PRESET: 'test',
+       DESKTOP_PUBLISH_RUNNERS: JSON.stringify({ 'fixture-runner': { label: 'dsh-fixture', target: [target] } }),
+       DSH_DESKTOP_TARGET_PLATFORM: target === 'win-x64' ? 'win32' : 'darwin', DSH_DESKTOP_TARGET_ARCH: target === 'win-x64' ? 'x64' : 'arm64',
+-      PACKAGE_SOURCE_REF: 'master', PACKAGE_SOURCE_SHA: 'b'.repeat(40), PACKAGE_VERSION: '1.0.0', PACKAGE_SIGNING: 'signed', PACKAGE_SKIP_NOTARIZATION: 'false',
++      PACKAGE_SOURCE_REF: 'master', PACKAGE_SOURCE_SHA: 'b'.repeat(40), PACKAGE_VERSION: '2026.1125.0', PACKAGE_SIGNING: 'signed', PACKAGE_SKIP_NOTARIZATION: 'false',
+       GITHUB_RUN_ID: '10', GITHUB_RUN_ATTEMPT: '2', GITHUB_REPOSITORY: 'owner/repo', GITHUB_SHA: commit, RUNNER_NAME: 'fixture-runner',
+       DESKTOP_PUBLISH_ROUTE: JSON.stringify({ sourceRef: 'master', channel: 'nightly', runId: '10', attempt: '2', commit, runnerName: 'fixture-runner', target, preset: 'test' }),
+     }
+     const retained = await retainDesktopCi(env, app)
+     await rm(app, { recursive: true })
++    await rm(join(root, 'cli'), { recursive: true })
+     let signatureChecks = 0
+     const signature = async () => { signatureChecks++ }
+     const prepared = await prepareDesktopPublication(env, signature)
+-    expect(prepared.plan.version).toBe('1.0.0')
++    expect(prepared.plan.version).toBe('2026.1125.0')
+     expect(prepared.plan.artifacts.every(file => file.path.startsWith(retained))).toBe(true)
+     expect(signatureChecks).toBe(1)
+     const summary = await desktopPublicationSummary(prepared.manifest.source, prepared.plan, 'c'.repeat(64), false)
+diff --git a/apps/desktop/tests/desktop-publication-summary.spec.ts b/apps/desktop/tests/desktop-publication-summary.spec.ts
+index c23273f7b5aba654b109ce1e3b126d26e8b16fbd..16653ba70b61368bd9015df3cfcccf39a32d9dcc 100644
+--- a/apps/desktop/tests/desktop-publication-summary.spec.ts
++++ b/apps/desktop/tests/desktop-publication-summary.spec.ts
+@@ -13,7 +13,7 @@ const plan: DesktopUploadPlan = {
+   environment: 'production', target: 'win-x64', version: '1.0.0', bucket: 'production-1234567890',
+   publicUrl: 'https://download.example.com/dsh-desk/feeds/win-x64/', secretIdEnvName: 'SECRET_ID', secretKeyEnvName: 'SECRET_KEY',
+   artifacts: [
+-    { path: '/not-read/installer.exe', filename: 'deepseek-harness-1.0.0-win-x64.exe', key: 'dsh-desk/bin/win-x64/stable/deepseek-harness-1.0.0-win-x64.exe',
++    { path: '/not-read/installer.exe', filename: 'deepseek-harness-uncensored-1.0.0-win-x64.exe', key: 'dsh-desk/bin/win-x64/stable/deepseek-harness-uncensored-1.0.0-win-x64.exe',
+       contents: 'installer bytes', contentType: 'application/octet-stream', channelMetadata: false },
+     { path: '/not-read/stable.yml', filename: 'stable.yml', key: 'dsh-desk/feeds/win-x64/stable.yml',
+       contents: 'version: 1.0.0\n', contentType: 'application/yaml', channelMetadata: true },
+@@ -23,7 +23,7 @@ const plan: DesktopUploadPlan = {
+ it('shows production destinations and tag after approval with upload-byte fingerprints', async () => {
+   const summary = await desktopPublicationSummary(source, plan, 'c'.repeat(64), false)
+   await expect(summary).toMatchFileSnapshot('./expected/publication-production.md')
+-  expect(summary).toContain('/stable/deepseek-harness-1.0.0-win-x64.exe')
++  expect(summary).toContain('/stable/deepseek-harness-uncensored-1.0.0-win-x64.exe')
+   expect(summary).toContain('https&#58;//download.example.com/dsh-desk/feeds/win-x64/stable.yml')
+   expect(summary).toContain(createHash('sha256').update('version: 1.0.0\n').digest('hex'))
+   expect(summary).not.toContain('测试 release ID |')
+diff --git a/apps/desktop/tests/desktop-rollout.spec.ts b/apps/desktop/tests/desktop-rollout.spec.ts
+index 06a57a2239804925dbcd185fe2a82d403d30eda1..9503da3c73929760e768f89d4339d42ed4ce27f9 100644
+--- a/apps/desktop/tests/desktop-rollout.spec.ts
++++ b/apps/desktop/tests/desktop-rollout.spec.ts
+@@ -31,7 +31,7 @@ async function fixture(target: 'mac-arm64' | 'mac-x64' | 'win-x64' = 'mac-arm64'
+     const directory = join(root, 'releases', '42', '1')
+     await mkdir(directory, { recursive: true })
+     const version = '0.2.2-rc.1'
+-    const payload = `deepseek-harness-${version}-${target}.${target === 'win-x64' ? 'exe' : 'zip'}`
++    const payload = `deepseek-harness-uncensored-${version}-${target}.${target === 'win-x64' ? 'exe' : 'zip'}`
+     const contents = dump({ version, files: [{ url: payload, ...digest('installer') }],
+       path: payload, sha512: digest('installer').sha512, releaseDate: '2026-11-04T00:00:00.000Z' })
+     const filename = `${channel}${target === 'win-x64' ? '' : '-mac'}.yml`
+@@ -339,7 +339,7 @@ it('runs the real route CLI without gh and emits the selected route and preset',
+ it.each(['mac-arm64', 'win-x64'] as const)('accepts %s metadata produced by the original full upload planner', async (target) => {
+   const f = await fixture(target)
+   try {
+-    const base = `deepseek-harness-${f.manifest.source.version}-${target}`
++    const base = `deepseek-harness-uncensored-${f.manifest.source.version}-${target}`
+     const extension = target === 'win-x64' ? 'exe' : 'zip'
+     await writeFile(join(f.directory, `${base}.${extension}`), 'installer')
+     await writeFile(join(f.directory, `${base}.${extension}.blockmap`), 'blockmap')
+diff --git a/apps/desktop/tests/desktop-upload-plan.spec.ts b/apps/desktop/tests/desktop-upload-plan.spec.ts
+index 144b249fb4d235fdd45d77c24eb60143af99ee81..e6cc2bb4ee890be053647f72389150570a8657a3 100644
+--- a/apps/desktop/tests/desktop-upload-plan.spec.ts
++++ b/apps/desktop/tests/desktop-upload-plan.spec.ts
+@@ -36,7 +36,7 @@ function digest(contents: string): string {
+ 
+ async function fixture(
+   target: DesktopPackageTargetName,
+-  version = '1.2.3',
++  version = '2026.1125.0',
+   environment: 'test' | 'production' = 'test',
+   channel: 'nightly' | 'stable' = 'nightly',
+ ): Promise<Fixture> {
+@@ -50,7 +50,11 @@ async function fixture(
+   await writeFile(join(appRoot, 'package.json'), `${JSON.stringify({ version })}\n`)
+ 
+   const [os, arch] = target.split('-') as ['mac' | 'win', 'arm64' | 'x64']
+-  const base = `deepseek-harness-${version}-${os}-${arch}`
++  const productDate = version.startsWith('2026.1126.') ? '2026.11.26.0' : '2026.11.25.0'
++  await mkdir(join(repositoryRoot, 'apps/cli'))
++  await writeFile(join(repositoryRoot, 'apps/cli/package.json'), JSON.stringify({ dshuVersion: productDate }))
++  const downloadVersion = version.includes('-') ? version : productDate
++  const base = `deepseek-harness-uncensored-${downloadVersion}-${os}-${arch}`
+   const origin = environment === 'test'
+     ? TEST_ORIGIN
+     : 'https://download.deepseek.com'
+@@ -121,7 +125,7 @@ describe('desktop upload plan', () => {
+     const published = []
+     for (const environment of ['production', 'test'] as const) {
+       for (const target of ['mac-arm64', 'mac-x64', 'win-x64'] as const) {
+-        const paths = await fixture(target, '1.2.3', environment)
++        const paths = await fixture(target, '2026.1125.0', environment)
+         const plan = await createDesktopUploadPlan(target, { ...paths, latest: true })
+         const loopback = await startCosLoopback()
+         try {
+@@ -135,7 +139,7 @@ describe('desktop upload plan', () => {
+           expect(request.method).toBe('PUT')
+           expect(request.path).toBe(`/${artifact.key}`)
+           expect(request.body).toEqual(await readFile(artifact.path))
+-          expect(request.headers['content-disposition']).toBe(`attachment; filename="deepseek-harness-1.2.3-${target}.${target === 'win-x64' ? 'exe' : 'dmg'}"`)
++          expect(request.headers['content-disposition']).toBe(`attachment; filename="deepseek-harness-uncensored-2026.11.25.0-${target}.${target === 'win-x64' ? 'exe' : 'dmg'}"`)
+           expect(JSON.parse(await readFile(join(directory, 'result.json'), 'utf8'))).toMatchObject({
+             success: true, confirmedPuts: 1, publicReadback: 'not-performed',
+           })
+@@ -151,26 +155,26 @@ describe('desktop upload plan', () => {
+   })
+ 
+   it('allows an explicitly selected production prerelease at the fixed installer URL', async () => {
+-    const paths = await fixture('win-x64', '1.2.3-alpha.4', 'production')
++    const paths = await fixture('win-x64', '2026.1125.0-test.20261125.4', 'production')
+     const plan = await createDesktopUploadPlan('win-x64', { ...paths, latest: true })
+-    expect(plan.version).toBe('1.2.3-alpha.4')
++    expect(plan.version).toBe('2026.1125.0-test.20261125.4')
+     expect(plan.artifacts).toHaveLength(1)
+     expect(plan.artifacts[0]).toMatchObject({
+-      path: join(paths.artifactsRoot, 'deepseek-harness-1.2.3-alpha.4-win-x64.exe'),
++      path: join(paths.artifactsRoot, 'deepseek-harness-uncensored-2026.1125.0-test.20261125.4-win-x64.exe'),
+       key: 'desktop/dsh-latest-windows-x64.exe', channelMetadata: false,
+-      contentDisposition: 'attachment; filename="deepseek-harness-1.2.3-alpha.4-win-x64.exe"',
++      contentDisposition: 'attachment; filename="deepseek-harness-uncensored-2026.1125.0-test.20261125.4-win-x64.exe"',
+     })
+   })
+ 
+   it.each(['completion', 'deployment', 'checksum'] as const)('rejects invalid %s before planning a latest upload', async (failure) => {
+-    const paths = await fixture('win-x64', '1.2.3', 'production')
++    const paths = await fixture('win-x64', '2026.1125.0', 'production')
+     if (failure === 'completion') await rm(join(paths.artifactsRoot, 'win-x64-release.json'))
+     if (failure === 'deployment') Object.assign(paths.environment, {
+       DSH_DESKTOP_AUTO_UPDATE_ENV: 'test', DOWNLOAD_TEST_ORIGIN: TEST_ORIGIN,
+       DOWNLOAD_TEST_RELEASE_ID: RELEASE_ID, DOWNLOAD_TEST_COS_BUCKET: TEST_BUCKET,
+     })
+     if (failure === 'checksum') {
+-      const path = join(paths.artifactsRoot, 'deepseek-harness-1.2.3-win-x64.exe')
++      const path = join(paths.artifactsRoot, 'deepseek-harness-uncensored-2026.11.25.0-win-x64.exe')
+       await writeFile(path, Buffer.alloc((await readFile(path)).length))
+     }
+     await expect(createDesktopUploadPlan('win-x64', { ...paths, latest: true }))
+@@ -178,8 +182,8 @@ describe('desktop upload plan', () => {
+   })
+ 
+   it.each(['test', 'production'] as const)('isolates stable-channel packages from nightly in %s', async (environment) => {
+-    const nightly = await createDesktopUploadPlan('win-x64', { ...await fixture('win-x64', '1.2.3', environment, 'nightly'), stagingPercentage: 10 })
+-    const stable = await createDesktopUploadPlan('win-x64', { ...await fixture('win-x64', '1.2.3', environment, 'stable'), stagingPercentage: 10 })
++    const nightly = await createDesktopUploadPlan('win-x64', { ...await fixture('win-x64', '2026.1125.0', environment, 'nightly'), stagingPercentage: 10 })
++    const stable = await createDesktopUploadPlan('win-x64', { ...await fixture('win-x64', '2026.1125.0', environment, 'stable'), stagingPercentage: 10 })
+     expect(stable.artifacts.filter(file => file.channelMetadata).map(file => file.filename)).toEqual(['stable.yml'])
+     expect(nightly.artifacts.filter(file => file.channelMetadata).map(file => file.filename)).toEqual(['nightly.yml'])
+     expect(stable.artifacts.every(file => !nightly.artifacts.some(other => other.key === file.key))).toBe(true)
+@@ -191,7 +195,7 @@ describe('desktop upload plan', () => {
+   it.each(['mac-arm64', 'mac-x64', 'win-x64'] as const)('publishes manually selected prereleases on stable for %s', async (target) => {
+     const summaries: { environment: string; version: string; keys: string[] }[] = []
+     for (const environment of ['test', 'production'] as const) {
+-      for (const version of ['1.2.3-alpha.1', '1.2.3-rc.1']) {
++      for (const version of ['2026.1125.0-test.20261125.1', '2026.1125.0-test.20261125.2']) {
+         const plan = await createDesktopUploadPlan(target, await fixture(target, version, environment, 'stable'))
+         expect(plan.version).toBe(version)
+         const feed = plan.artifacts.find(file => file.channelMetadata)!
+@@ -208,17 +212,17 @@ describe('desktop upload plan', () => {
+   })
+ 
+   it('publishes fixed feeds referencing versioned binaries without overriding CDN cache policy', async () => {
+-    const paths = await fixture('win-x64', '1.2.3', 'production')
++    const paths = await fixture('win-x64', '2026.1125.0', 'production')
+     const plan = await createDesktopUploadPlan('win-x64', paths)
+     expect(plan.artifacts.map(artifact => artifact.key)).toEqual([
+-      'dsh-desk/bin/win-x64/deepseek-harness-1.2.3-win-x64.exe',
+-      'dsh-desk/bin/win-x64/deepseek-harness-1.2.3-win-x64.exe.blockmap',
++      'dsh-desk/bin/win-x64/deepseek-harness-uncensored-2026.11.25.0-win-x64.exe',
++      'dsh-desk/bin/win-x64/deepseek-harness-uncensored-2026.11.25.0-win-x64.exe.blockmap',
+       'dsh-desk/feeds/win-x64/nightly.yml',
+     ])
+     expect(load(plan.artifacts[2]!.contents!)).toMatchObject({
+-      version: '1.2.3',
++      version: '2026.1125.0',
+       files: [{
+-        url: 'https://download.deepseek.com/dsh-desk/bin/win-x64/deepseek-harness-1.2.3-win-x64.exe',
++        url: 'https://download.deepseek.com/dsh-desk/bin/win-x64/deepseek-harness-uncensored-2026.11.25.0-win-x64.exe',
+         sha512: digest('signed NSIS executable fixture'),
+       }],
+     })
+@@ -230,14 +234,14 @@ describe('desktop upload plan', () => {
+     const plan = await createDesktopUploadPlan('mac-arm64', paths)
+     expect(plan).toMatchObject({
+       environment: 'test',
+-      version: '1.2.3',
++      version: '2026.1125.0',
+       publicUrl: `https://desktop-updates.example.com/dsh-desk/${RELEASE_ID}/feeds/mac-arm64/`,
+       bucket: TEST_BUCKET,
+     })
+     expect(plan.artifacts.map(artifact => artifact.filename)).toEqual([
+-      'deepseek-harness-1.2.3-mac-arm64.dmg',
+-      'deepseek-harness-1.2.3-mac-arm64.zip',
+-      'deepseek-harness-1.2.3-mac-arm64.zip.blockmap',
++      'deepseek-harness-uncensored-2026.11.25.0-mac-arm64.dmg',
++      'deepseek-harness-uncensored-2026.11.25.0-mac-arm64.zip',
++      'deepseek-harness-uncensored-2026.11.25.0-mac-arm64.zip.blockmap',
+       'nightly-mac.yml',
+     ])
+     expect(plan.artifacts.at(-1)).toMatchObject({
+@@ -274,22 +278,22 @@ describe('desktop upload plan', () => {
+   })
+ 
+   it('uploads the prerelease channel metadata emitted by electron-builder', async () => {
+-    const paths = await fixture('mac-arm64', '1.2.3-alpha.4')
++    const paths = await fixture('mac-arm64', '2026.1125.0-test.20261125.4')
+     const plan = await createDesktopUploadPlan('mac-arm64', paths)
+     expect(plan.artifacts.map(artifact => artifact.filename)).toEqual([
+-      'deepseek-harness-1.2.3-alpha.4-mac-arm64.dmg',
+-      'deepseek-harness-1.2.3-alpha.4-mac-arm64.zip',
+-      'deepseek-harness-1.2.3-alpha.4-mac-arm64.zip.blockmap',
++      'deepseek-harness-uncensored-2026.1125.0-test.20261125.4-mac-arm64.dmg',
++      'deepseek-harness-uncensored-2026.1125.0-test.20261125.4-mac-arm64.zip',
++      'deepseek-harness-uncensored-2026.1125.0-test.20261125.4-mac-arm64.zip.blockmap',
+       'nightly-mac.yml',
+     ])
+   })
+ 
+   it('validates the Windows installer with the emitted external blockmap and production destination', async () => {
+-    const paths = await fixture('win-x64', '2.0.0', 'production')
++    const paths = await fixture('win-x64', '2026.1126.0', 'production')
+     const plan = await createDesktopUploadPlan('win-x64', paths)
+     expect(plan.artifacts.map(artifact => artifact.filename)).toEqual([
+-      'deepseek-harness-2.0.0-win-x64.exe',
+-      'deepseek-harness-2.0.0-win-x64.exe.blockmap',
++      'deepseek-harness-uncensored-2026.11.26.0-win-x64.exe',
++      'deepseek-harness-uncensored-2026.11.26.0-win-x64.exe.blockmap',
+       'nightly.yml',
+     ])
+     expect(plan).toMatchObject({
+@@ -300,7 +304,7 @@ describe('desktop upload plan', () => {
+ 
+   it.each(['missing', 'empty'])('rejects a %s Windows blockmap before publishing its feed', async (condition) => {
+     const paths = await fixture('win-x64')
+-    const path = join(paths.artifactsRoot, 'deepseek-harness-1.2.3-win-x64.exe.blockmap')
++    const path = join(paths.artifactsRoot, 'deepseek-harness-uncensored-2026.11.25.0-win-x64.exe.blockmap')
+     if (condition === 'missing') await rm(path)
+     else await writeFile(path, '')
+     await expect(createDesktopUploadPlan('win-x64', paths)).rejects.toThrow(/missing or empty artifact.*\.exe\.blockmap/u)
+@@ -308,11 +312,10 @@ describe('desktop upload plan', () => {
+ 
+   it('rejects a completed build from another dsh version or deployment', async () => {
+     const paths = await fixture('mac-x64')
+-    await writeFile(join(paths.repositoryRoot, 'package.json'), '{"version":"1.2.4"}\n')
+-    await writeFile(join(paths.appRoot, 'package.json'), '{"version":"1.2.4"}\n')
+-    await expect(createDesktopUploadPlan('mac-x64', paths)).rejects.toThrow(/completion record.*1\.2\.4/u)
++    await writeFile(join(paths.repositoryRoot, 'apps/cli/package.json'), '{"dshuVersion":"2026.11.25.1"}')
++    await expect(createDesktopUploadPlan('mac-x64', paths)).rejects.toThrow(/completion record.*2026\.1125\.1/u)
+ 
+-    const productionPaths = await fixture('mac-x64', '1.2.3', 'production')
++    const productionPaths = await fixture('mac-x64', '2026.1125.0', 'production')
+     await expect(createDesktopUploadPlan('mac-x64', {
+       ...productionPaths,
+       environment: {
+@@ -325,31 +328,30 @@ describe('desktop upload plan', () => {
+   })
+ 
+   it('validates retained builds against their original product version after the checkout advances', async () => {
+-    const paths = await fixture('mac-arm64', '1.2.3')
+-    await writeFile(join(paths.repositoryRoot, 'package.json'), '{"version":"2.0.0"}\n')
+-    await writeFile(join(paths.appRoot, 'package.json'), '{"version":"2.0.0"}\n')
++    const paths = await fixture('mac-arm64', '2026.1125.0')
++    await writeFile(join(paths.repositoryRoot, 'apps/cli/package.json'), '{"dshuVersion":"2026.11.26.0"}')
+     await expect(createDesktopUploadPlan('mac-arm64', paths)).rejects.toThrow(/completion record/u)
+-    const plan = await createDesktopUploadPlan('mac-arm64', { ...paths, packagedProductVersion: '1.2.3' })
+-    expect(plan.version).toBe('1.2.3')
+-    await expect(createDesktopUploadPlan('mac-arm64', { ...paths, packagedProductVersion: '1.2.4' }))
++    const plan = await createDesktopUploadPlan('mac-arm64', { ...paths, packagedProductVersion: '2026.1125.0' })
++    expect(plan.version).toBe('2026.1125.0')
++    await expect(createDesktopUploadPlan('mac-arm64', { ...paths, packagedProductVersion: '2026.1125.1' }))
+       .rejects.toThrow(/completion record/u)
+-    await writeFile(join(paths.artifactsRoot, 'deepseek-harness-1.2.3-mac-arm64.zip'), 'tampered')
+-    await expect(createDesktopUploadPlan('mac-arm64', { ...paths, packagedProductVersion: '1.2.3' }))
++    await writeFile(join(paths.artifactsRoot, 'deepseek-harness-uncensored-2026.11.25.0-mac-arm64.zip'), 'tampered')
++    await expect(createDesktopUploadPlan('mac-arm64', { ...paths, packagedProductVersion: '2026.1125.0' }))
+       .rejects.toThrow(/size.*metadata/u)
+   })
+ 
+   it('rejects stale architecture metadata and modified updater bytes', async () => {
+     const paths = await fixture('mac-arm64')
+     const metadataPath = join(paths.artifactsRoot, 'nightly-mac.yml')
+-    const zipPath = join(paths.artifactsRoot, 'deepseek-harness-1.2.3-mac-arm64.zip')
++    const zipPath = join(paths.artifactsRoot, 'deepseek-harness-uncensored-2026.11.25.0-mac-arm64.zip')
+     await writeFile(zipPath, 'modified')
+     await expect(createDesktopUploadPlan('mac-arm64', paths)).rejects.toThrow(/size.*metadata/u)
+ 
+     const x64 = 'wrong architecture'
+     await writeFile(metadataPath, `${JSON.stringify({
+-      version: '1.2.3',
++      version: '2026.1125.0',
+       files: [{
+-        url: 'deepseek-harness-1.2.3-mac-x64.zip',
++        url: 'deepseek-harness-uncensored-2026.11.25.0-mac-x64.zip',
+         size: Buffer.byteLength(x64),
+         sha512: digest(x64),
+       }],
+diff --git a/apps/desktop/tests/desktop-upload-run.spec.ts b/apps/desktop/tests/desktop-upload-run.spec.ts
+index 775bc8e9b8357e810357eba6688f1f5d488730a6..162d5bf3767084e47e36b42cc70045f261f73734 100644
+--- a/apps/desktop/tests/desktop-upload-run.spec.ts
++++ b/apps/desktop/tests/desktop-upload-run.spec.ts
+@@ -196,7 +196,7 @@ describe('release upload audit with the real COS SDK and an isolated loopback or
+ 
+ it('sends the fixed-download save filename through the real COS SDK', async () => {
+   const f = await fixture('production')
+-  const contentDisposition = 'attachment; filename="deepseek-harness-1.2.3-rc.5-win-x64.exe"'
++  const contentDisposition = 'attachment; filename="deepseek-harness-uncensored-1.2.3-rc.5-win-x64.exe"'
+   const plan = { ...f.plan, artifacts: [{ ...f.plan.artifacts[0]!, key: 'desktop/dsh-latest-windows-x64.exe', contentDisposition }] }
+   const { cos, loopback } = await transport()
+   await uploadDesktopRelease(plan, cos, f.records)
+diff --git a/apps/desktop/tests/expected/publication-mac-arm64.md b/apps/desktop/tests/expected/publication-mac-arm64.md
+index f97515488745fb843ec9f8f2e5e19ca1e10bddd1..3bf353622cec9dbe5dc3ee0eab5306e0357770a1 100644
+--- a/apps/desktop/tests/expected/publication-mac-arm64.md
++++ b/apps/desktop/tests/expected/publication-mac-arm64.md
+@@ -6,12 +6,12 @@
+ | 项目 | 发布信息 |
+ | --- | --- |
+ | 发布环境 | <code>test</code> |
+-| 版本号 | <code>1.0.0</code> |
++| 版本号 | <code>2026.1125.0</code> |
+ | 升级通道 | <code>nightly</code> |
+ | 更新灰度比例 | 全量（未设置） |
+ | 平台 | <code>mac-arm64</code> |
+ | 测试 release ID | <code>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</code><br>测试下载路径的随机前缀，用于降低地址被猜到的可能性；连续升级测试需使用相同值。 |
+-| 下载地址预览 | <a href="https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bin/mac-arm64/deepseek-harness-1.0.0-mac-arm64.dmg">https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bin/mac-arm64/deepseek-harness-1.0.0-mac-arm64.dmg</a><br>发布后的目标地址，审批前不保证可下载。 |
++| 下载地址预览 | <a href="https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bin/mac-arm64/deepseek-harness-uncensored-2026.11.25.0-mac-arm64.dmg">https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bin/mac-arm64/deepseek-harness-uncensored-2026.11.25.0-mac-arm64.dmg</a><br>发布后的目标地址，审批前不保证可下载。 |
+ | 升级 YAML | <a href="https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/feeds/mac-arm64/nightly-mac.yml">https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/feeds/mac-arm64/nightly-mac.yml</a><br>本次发布将更新此文件；审批前可能不存在或仍指向旧版本。 |
+ | 打包来源 | <a href="https&#58;//github.com/owner/repo/actions/runs/10/attempts/2">查看打包运行 #10 · 第 2 次尝试</a><br>源码：<code>master @ bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb</code><br>打包机器：<code>fixture-runner</code> |
+ | 签名与公证 | DMG 校验通过<br>ZIP 内应用校验通过 |
+@@ -38,10 +38,10 @@ release ID 取自原打包产物清单。打包时优先使用表单 `test_relea
+ 
+ | 文件 | 大小 | SHA-256 |
+ | --- | --- | --- |
+-| <a href="https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bin/mac-arm64/deepseek-harness-1.0.0-mac-arm64.dmg">deepseek-harness-1.0.0-mac-arm64.dmg</a> | 11 字节 | <code>eac5da462cb16554774d722fa4093739ffc9ade2f4c6e8ee54041e71908f1408</code> |
+-| <a href="https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bin/mac-arm64/deepseek-harness-1.0.0-mac-arm64.zip">deepseek-harness-1.0.0-mac-arm64.zip</a> | 23 字节 | <code>7039e7b3e00d39fbfb2948ba31b6216ac9ffff01b4117a1cec08025255d9ad10</code> |
+-| <a href="https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bin/mac-arm64/deepseek-harness-1.0.0-mac-arm64.zip.blockmap">deepseek-harness-1.0.0-mac-arm64.zip.blockmap</a> | 16 字节 | <code>4fd6c7d73e713d7f54f173dfc845d046d267f9e62c80a92670b0696131bfb74a</code> |
+-| <a href="https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/feeds/mac-arm64/nightly-mac.yml">nightly-mac.yml</a> | 276 字节 | <code>86180a8b9207744d8300e993040f28ad8812f16cf30367b2f04f5dcfadb87452</code> |
++| <a href="https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bin/mac-arm64/deepseek-harness-uncensored-2026.11.25.0-mac-arm64.dmg">deepseek-harness-uncensored-2026.11.25.0-mac-arm64.dmg</a> | 11 字节 | <code>eac5da462cb16554774d722fa4093739ffc9ade2f4c6e8ee54041e71908f1408</code> |
++| <a href="https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bin/mac-arm64/deepseek-harness-uncensored-2026.11.25.0-mac-arm64.zip">deepseek-harness-uncensored-2026.11.25.0-mac-arm64.zip</a> | 23 字节 | <code>7039e7b3e00d39fbfb2948ba31b6216ac9ffff01b4117a1cec08025255d9ad10</code> |
++| <a href="https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bin/mac-arm64/deepseek-harness-uncensored-2026.11.25.0-mac-arm64.zip.blockmap">deepseek-harness-uncensored-2026.11.25.0-mac-arm64.zip.blockmap</a> | 16 字节 | <code>4fd6c7d73e713d7f54f173dfc845d046d267f9e62c80a92670b0696131bfb74a</code> |
++| <a href="https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/feeds/mac-arm64/nightly-mac.yml">nightly-mac.yml</a> | 300 字节 | <code>98255354d8c0b5510eba3cdafbe8c6e47a54fcd979b6ee4ef2e7f3a6ec23022d</code> |
+ 
+ </details>
+ 
+diff --git a/apps/desktop/tests/expected/publication-production-website.md b/apps/desktop/tests/expected/publication-production-website.md
+index 4ba276895c7d72fce0c9ad99fa107b0e9b2f2615..4f93fc04cc1f80fc09b6df537dae1bd357943316 100644
+--- a/apps/desktop/tests/expected/publication-production-website.md
++++ b/apps/desktop/tests/expected/publication-production-website.md
+@@ -10,7 +10,7 @@
+ | 升级通道 | <code>stable</code> |
+ | 更新灰度比例 | 全量（未设置） |
+ | 平台 | <code>win-x64</code> |
+-| 下载地址预览 | <a href="https&#58;//download.example.com/dsh-desk/bin/win-x64/stable/deepseek-harness-1.0.0-win-x64.exe">https&#58;//download.example.com/dsh-desk/bin/win-x64/stable/deepseek-harness-1.0.0-win-x64.exe</a><br>发布后的目标地址，审批前不保证可下载。 |
++| 下载地址预览 | <a href="https&#58;//download.example.com/dsh-desk/bin/win-x64/stable/deepseek-harness-uncensored-1.0.0-win-x64.exe">https&#58;//download.example.com/dsh-desk/bin/win-x64/stable/deepseek-harness-uncensored-1.0.0-win-x64.exe</a><br>发布后的目标地址，审批前不保证可下载。 |
+ | 升级 YAML | <a href="https&#58;//download.example.com/dsh-desk/feeds/win-x64/stable.yml">https&#58;//download.example.com/dsh-desk/feeds/win-x64/stable.yml</a><br>本次发布将更新此文件；审批前可能不存在或仍指向旧版本。 |
+ | 打包来源 | <a href="https&#58;//github.com/owner/repo/actions/runs/20/attempts/3">查看打包运行 #20 · 第 3 次尝试</a><br>源码：<code>dsh-v1.0.0 @ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</code><br>打包机器：<code>windows-publisher</code> |
+ | 签名与公证 | EXE 签名校验通过 |
+@@ -35,7 +35,7 @@ COS 存储桶：<code>production-1234567890</code>
+ 
+ | 文件 | 大小 | SHA-256 |
+ | --- | --- | --- |
+-| <a href="https&#58;//download.example.com/dsh-desk/bin/win-x64/stable/deepseek-harness-1.0.0-win-x64.exe">deepseek-harness-1.0.0-win-x64.exe</a> | 15 字节 | <code>e34210a6de4f653edf588301431c3d69a633638cbf587345cc50a7fed9f38f4c</code> |
++| <a href="https&#58;//download.example.com/dsh-desk/bin/win-x64/stable/deepseek-harness-uncensored-1.0.0-win-x64.exe">deepseek-harness-uncensored-1.0.0-win-x64.exe</a> | 15 字节 | <code>e34210a6de4f653edf588301431c3d69a633638cbf587345cc50a7fed9f38f4c</code> |
+ | <a href="https&#58;//download.example.com/dsh-desk/feeds/win-x64/stable.yml">stable.yml</a> | 15 字节 | <code>8850e6075dda0080c526269a4de29848c32c2a65e3d81f4a64ed8ce53d4b47c1</code> |
+ 
+ </details>
+diff --git a/apps/desktop/tests/expected/publication-production.md b/apps/desktop/tests/expected/publication-production.md
+index 716e499d5ef1b5342063473dd4a05596badc6997..84d958d0bf219b43e5934572b0ae63856c92dd7e 100644
+--- a/apps/desktop/tests/expected/publication-production.md
++++ b/apps/desktop/tests/expected/publication-production.md
+@@ -10,7 +10,7 @@
+ | 升级通道 | <code>stable</code> |
+ | 更新灰度比例 | 全量（未设置） |
+ | 平台 | <code>win-x64</code> |
+-| 下载地址预览 | <a href="https&#58;//download.example.com/dsh-desk/bin/win-x64/stable/deepseek-harness-1.0.0-win-x64.exe">https&#58;//download.example.com/dsh-desk/bin/win-x64/stable/deepseek-harness-1.0.0-win-x64.exe</a><br>发布后的目标地址，审批前不保证可下载。 |
++| 下载地址预览 | <a href="https&#58;//download.example.com/dsh-desk/bin/win-x64/stable/deepseek-harness-uncensored-1.0.0-win-x64.exe">https&#58;//download.example.com/dsh-desk/bin/win-x64/stable/deepseek-harness-uncensored-1.0.0-win-x64.exe</a><br>发布后的目标地址，审批前不保证可下载。 |
+ | 升级 YAML | <a href="https&#58;//download.example.com/dsh-desk/feeds/win-x64/stable.yml">https&#58;//download.example.com/dsh-desk/feeds/win-x64/stable.yml</a><br>本次发布将更新此文件；审批前可能不存在或仍指向旧版本。 |
+ | 打包来源 | <a href="https&#58;//github.com/owner/repo/actions/runs/20/attempts/3">查看打包运行 #20 · 第 3 次尝试</a><br>源码：<code>dsh-v1.0.0 @ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</code><br>打包机器：<code>windows-publisher</code> |
+ | 签名与公证 | EXE 签名校验通过 |
+@@ -34,7 +34,7 @@ COS 存储桶：<code>production-1234567890</code>
+ 
+ | 文件 | 大小 | SHA-256 |
+ | --- | --- | --- |
+-| <a href="https&#58;//download.example.com/dsh-desk/bin/win-x64/stable/deepseek-harness-1.0.0-win-x64.exe">deepseek-harness-1.0.0-win-x64.exe</a> | 15 字节 | <code>e34210a6de4f653edf588301431c3d69a633638cbf587345cc50a7fed9f38f4c</code> |
++| <a href="https&#58;//download.example.com/dsh-desk/bin/win-x64/stable/deepseek-harness-uncensored-1.0.0-win-x64.exe">deepseek-harness-uncensored-1.0.0-win-x64.exe</a> | 15 字节 | <code>e34210a6de4f653edf588301431c3d69a633638cbf587345cc50a7fed9f38f4c</code> |
+ | <a href="https&#58;//download.example.com/dsh-desk/feeds/win-x64/stable.yml">stable.yml</a> | 15 字节 | <code>8850e6075dda0080c526269a4de29848c32c2a65e3d81f4a64ed8ce53d4b47c1</code> |
+ 
+ </details>
+diff --git a/apps/desktop/tests/expected/publication-win-x64.md b/apps/desktop/tests/expected/publication-win-x64.md
+index 65684cf866eff618f399f6c919355a7881952a65..2fe7720529d8528e20ef3cd0b196e010d0cf4699 100644
+--- a/apps/desktop/tests/expected/publication-win-x64.md
++++ b/apps/desktop/tests/expected/publication-win-x64.md
+@@ -6,12 +6,12 @@
+ | 项目 | 发布信息 |
+ | --- | --- |
+ | 发布环境 | <code>test</code> |
+-| 版本号 | <code>1.0.0</code> |
++| 版本号 | <code>2026.1125.0</code> |
+ | 升级通道 | <code>nightly</code> |
+ | 更新灰度比例 | 全量（未设置） |
+ | 平台 | <code>win-x64</code> |
+ | 测试 release ID | <code>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</code><br>测试下载路径的随机前缀，用于降低地址被猜到的可能性；连续升级测试需使用相同值。 |
+-| 下载地址预览 | <a href="https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bin/win-x64/deepseek-harness-1.0.0-win-x64.exe">https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bin/win-x64/deepseek-harness-1.0.0-win-x64.exe</a><br>发布后的目标地址，审批前不保证可下载。 |
++| 下载地址预览 | <a href="https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bin/win-x64/deepseek-harness-uncensored-2026.11.25.0-win-x64.exe">https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bin/win-x64/deepseek-harness-uncensored-2026.11.25.0-win-x64.exe</a><br>发布后的目标地址，审批前不保证可下载。 |
+ | 升级 YAML | <a href="https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/feeds/win-x64/nightly.yml">https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/feeds/win-x64/nightly.yml</a><br>本次发布将更新此文件；审批前可能不存在或仍指向旧版本。 |
+ | 打包来源 | <a href="https&#58;//github.com/owner/repo/actions/runs/10/attempts/2">查看打包运行 #10 · 第 2 次尝试</a><br>源码：<code>master @ bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb</code><br>打包机器：<code>fixture-runner</code> |
+ | 签名与公证 | EXE 签名校验通过 |
+@@ -38,9 +38,9 @@ release ID 取自原打包产物清单。打包时优先使用表单 `test_relea
+ 
+ | 文件 | 大小 | SHA-256 |
+ | --- | --- | --- |
+-| <a href="https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bin/win-x64/deepseek-harness-1.0.0-win-x64.exe">deepseek-harness-1.0.0-win-x64.exe</a> | 23 字节 | <code>7039e7b3e00d39fbfb2948ba31b6216ac9ffff01b4117a1cec08025255d9ad10</code> |
+-| <a href="https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bin/win-x64/deepseek-harness-1.0.0-win-x64.exe.blockmap">deepseek-harness-1.0.0-win-x64.exe.blockmap</a> | 16 字节 | <code>4fd6c7d73e713d7f54f173dfc845d046d267f9e62c80a92670b0696131bfb74a</code> |
+-| <a href="https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/feeds/win-x64/nightly.yml">nightly.yml</a> | 272 字节 | <code>faccf50f8398d6781568114dda9a678751e4c01044dd9424d00237c69e58cb59</code> |
++| <a href="https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bin/win-x64/deepseek-harness-uncensored-2026.11.25.0-win-x64.exe">deepseek-harness-uncensored-2026.11.25.0-win-x64.exe</a> | 23 字节 | <code>7039e7b3e00d39fbfb2948ba31b6216ac9ffff01b4117a1cec08025255d9ad10</code> |
++| <a href="https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bin/win-x64/deepseek-harness-uncensored-2026.11.25.0-win-x64.exe.blockmap">deepseek-harness-uncensored-2026.11.25.0-win-x64.exe.blockmap</a> | 16 字节 | <code>4fd6c7d73e713d7f54f173dfc845d046d267f9e62c80a92670b0696131bfb74a</code> |
++| <a href="https&#58;//example.com/dsh-desk/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/feeds/win-x64/nightly.yml">nightly.yml</a> | 296 字节 | <code>746df471df5b590f9b30bd9741e255a85091db379a6dfb1d7a5d8deb93db3877</code> |
+ 
+ </details>
+ 
+diff --git a/apps/desktop/tests/expected/stable-prerelease-mac-arm64.json b/apps/desktop/tests/expected/stable-prerelease-mac-arm64.json
+index 97afcbe70e1f27b1c5bab939479572c71a0af479..da84de9a3a679f2ac6bc7df18756781211913460 100644
+--- a/apps/desktop/tests/expected/stable-prerelease-mac-arm64.json
++++ b/apps/desktop/tests/expected/stable-prerelease-mac-arm64.json
+@@ -1,41 +1,41 @@
+ [
+   {
+     "environment": "test",
+-    "version": "1.2.3-alpha.1",
++    "version": "2026.1125.0-test.20261125.1",
+     "keys": [
+-      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/stable/deepseek-harness-1.2.3-alpha.1-mac-arm64.dmg",
+-      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/stable/deepseek-harness-1.2.3-alpha.1-mac-arm64.zip",
+-      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/stable/deepseek-harness-1.2.3-alpha.1-mac-arm64.zip.blockmap",
++      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.1-mac-arm64.dmg",
++      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.1-mac-arm64.zip",
++      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.1-mac-arm64.zip.blockmap",
+       "dsh-desk/0123456789abcdef0123456789abcdef/feeds/mac-arm64/stable-mac.yml"
+     ]
+   },
+   {
+     "environment": "test",
+-    "version": "1.2.3-rc.1",
++    "version": "2026.1125.0-test.20261125.2",
+     "keys": [
+-      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/stable/deepseek-harness-1.2.3-rc.1-mac-arm64.dmg",
+-      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/stable/deepseek-harness-1.2.3-rc.1-mac-arm64.zip",
+-      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/stable/deepseek-harness-1.2.3-rc.1-mac-arm64.zip.blockmap",
++      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.2-mac-arm64.dmg",
++      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.2-mac-arm64.zip",
++      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.2-mac-arm64.zip.blockmap",
+       "dsh-desk/0123456789abcdef0123456789abcdef/feeds/mac-arm64/stable-mac.yml"
+     ]
+   },
+   {
+     "environment": "production",
+-    "version": "1.2.3-alpha.1",
++    "version": "2026.1125.0-test.20261125.1",
+     "keys": [
+-      "dsh-desk/bin/mac-arm64/stable/deepseek-harness-1.2.3-alpha.1-mac-arm64.dmg",
+-      "dsh-desk/bin/mac-arm64/stable/deepseek-harness-1.2.3-alpha.1-mac-arm64.zip",
+-      "dsh-desk/bin/mac-arm64/stable/deepseek-harness-1.2.3-alpha.1-mac-arm64.zip.blockmap",
++      "dsh-desk/bin/mac-arm64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.1-mac-arm64.dmg",
++      "dsh-desk/bin/mac-arm64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.1-mac-arm64.zip",
++      "dsh-desk/bin/mac-arm64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.1-mac-arm64.zip.blockmap",
+       "dsh-desk/feeds/mac-arm64/stable-mac.yml"
+     ]
+   },
+   {
+     "environment": "production",
+-    "version": "1.2.3-rc.1",
++    "version": "2026.1125.0-test.20261125.2",
+     "keys": [
+-      "dsh-desk/bin/mac-arm64/stable/deepseek-harness-1.2.3-rc.1-mac-arm64.dmg",
+-      "dsh-desk/bin/mac-arm64/stable/deepseek-harness-1.2.3-rc.1-mac-arm64.zip",
+-      "dsh-desk/bin/mac-arm64/stable/deepseek-harness-1.2.3-rc.1-mac-arm64.zip.blockmap",
++      "dsh-desk/bin/mac-arm64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.2-mac-arm64.dmg",
++      "dsh-desk/bin/mac-arm64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.2-mac-arm64.zip",
++      "dsh-desk/bin/mac-arm64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.2-mac-arm64.zip.blockmap",
+       "dsh-desk/feeds/mac-arm64/stable-mac.yml"
+     ]
+   }
+diff --git a/apps/desktop/tests/expected/stable-prerelease-mac-x64.json b/apps/desktop/tests/expected/stable-prerelease-mac-x64.json
+index 45e103bb574f680424b4b7bf4a3ffc3bc13ca0e5..fb1214b9242e4883a134f1aef6efe93d3c47d3c8 100644
+--- a/apps/desktop/tests/expected/stable-prerelease-mac-x64.json
++++ b/apps/desktop/tests/expected/stable-prerelease-mac-x64.json
+@@ -1,41 +1,41 @@
+ [
+   {
+     "environment": "test",
+-    "version": "1.2.3-alpha.1",
++    "version": "2026.1125.0-test.20261125.1",
+     "keys": [
+-      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/stable/deepseek-harness-1.2.3-alpha.1-mac-x64.dmg",
+-      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/stable/deepseek-harness-1.2.3-alpha.1-mac-x64.zip",
+-      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/stable/deepseek-harness-1.2.3-alpha.1-mac-x64.zip.blockmap",
++      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.1-mac-x64.dmg",
++      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.1-mac-x64.zip",
++      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.1-mac-x64.zip.blockmap",
+       "dsh-desk/0123456789abcdef0123456789abcdef/feeds/mac-x64/stable-mac.yml"
+     ]
+   },
+   {
+     "environment": "test",
+-    "version": "1.2.3-rc.1",
++    "version": "2026.1125.0-test.20261125.2",
+     "keys": [
+-      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/stable/deepseek-harness-1.2.3-rc.1-mac-x64.dmg",
+-      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/stable/deepseek-harness-1.2.3-rc.1-mac-x64.zip",
+-      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/stable/deepseek-harness-1.2.3-rc.1-mac-x64.zip.blockmap",
++      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.2-mac-x64.dmg",
++      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.2-mac-x64.zip",
++      "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.2-mac-x64.zip.blockmap",
+       "dsh-desk/0123456789abcdef0123456789abcdef/feeds/mac-x64/stable-mac.yml"
+     ]
+   },
+   {
+     "environment": "production",
+-    "version": "1.2.3-alpha.1",
++    "version": "2026.1125.0-test.20261125.1",
+     "keys": [
+-      "dsh-desk/bin/mac-x64/stable/deepseek-harness-1.2.3-alpha.1-mac-x64.dmg",
+-      "dsh-desk/bin/mac-x64/stable/deepseek-harness-1.2.3-alpha.1-mac-x64.zip",
+-      "dsh-desk/bin/mac-x64/stable/deepseek-harness-1.2.3-alpha.1-mac-x64.zip.blockmap",
++      "dsh-desk/bin/mac-x64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.1-mac-x64.dmg",
++      "dsh-desk/bin/mac-x64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.1-mac-x64.zip",
++      "dsh-desk/bin/mac-x64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.1-mac-x64.zip.blockmap",
+       "dsh-desk/feeds/mac-x64/stable-mac.yml"
+     ]
+   },
+   {
+     "environment": "production",
+-    "version": "1.2.3-rc.1",
++    "version": "2026.1125.0-test.20261125.2",
+     "keys": [
+-      "dsh-desk/bin/mac-x64/stable/deepseek-harness-1.2.3-rc.1-mac-x64.dmg",
+-      "dsh-desk/bin/mac-x64/stable/deepseek-harness-1.2.3-rc.1-mac-x64.zip",
+-      "dsh-desk/bin/mac-x64/stable/deepseek-harness-1.2.3-rc.1-mac-x64.zip.blockmap",
++      "dsh-desk/bin/mac-x64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.2-mac-x64.dmg",
++      "dsh-desk/bin/mac-x64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.2-mac-x64.zip",
++      "dsh-desk/bin/mac-x64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.2-mac-x64.zip.blockmap",
+       "dsh-desk/feeds/mac-x64/stable-mac.yml"
+     ]
+   }
+diff --git a/apps/desktop/tests/expected/stable-prerelease-win-x64.json b/apps/desktop/tests/expected/stable-prerelease-win-x64.json
+index f1174feee98942771d4300d1389fbebc3eefa792..545626e58b3cb08c5d445daa515c2a7bf7ac6d96 100644
+--- a/apps/desktop/tests/expected/stable-prerelease-win-x64.json
++++ b/apps/desktop/tests/expected/stable-prerelease-win-x64.json
+@@ -1,37 +1,37 @@
+ [
+   {
+     "environment": "test",
+-    "version": "1.2.3-alpha.1",
++    "version": "2026.1125.0-test.20261125.1",
+     "keys": [
+-      "dsh-desk/0123456789abcdef0123456789abcdef/bin/win-x64/stable/deepseek-harness-1.2.3-alpha.1-win-x64.exe",
+-      "dsh-desk/0123456789abcdef0123456789abcdef/bin/win-x64/stable/deepseek-harness-1.2.3-alpha.1-win-x64.exe.blockmap",
++      "dsh-desk/0123456789abcdef0123456789abcdef/bin/win-x64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.1-win-x64.exe",
++      "dsh-desk/0123456789abcdef0123456789abcdef/bin/win-x64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.1-win-x64.exe.blockmap",
+       "dsh-desk/0123456789abcdef0123456789abcdef/feeds/win-x64/stable.yml"
+     ]
+   },
+   {
+     "environment": "test",
+-    "version": "1.2.3-rc.1",
++    "version": "2026.1125.0-test.20261125.2",
+     "keys": [
+-      "dsh-desk/0123456789abcdef0123456789abcdef/bin/win-x64/stable/deepseek-harness-1.2.3-rc.1-win-x64.exe",
+-      "dsh-desk/0123456789abcdef0123456789abcdef/bin/win-x64/stable/deepseek-harness-1.2.3-rc.1-win-x64.exe.blockmap",
++      "dsh-desk/0123456789abcdef0123456789abcdef/bin/win-x64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.2-win-x64.exe",
++      "dsh-desk/0123456789abcdef0123456789abcdef/bin/win-x64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.2-win-x64.exe.blockmap",
+       "dsh-desk/0123456789abcdef0123456789abcdef/feeds/win-x64/stable.yml"
+     ]
+   },
+   {
+     "environment": "production",
+-    "version": "1.2.3-alpha.1",
++    "version": "2026.1125.0-test.20261125.1",
+     "keys": [
+-      "dsh-desk/bin/win-x64/stable/deepseek-harness-1.2.3-alpha.1-win-x64.exe",
+-      "dsh-desk/bin/win-x64/stable/deepseek-harness-1.2.3-alpha.1-win-x64.exe.blockmap",
++      "dsh-desk/bin/win-x64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.1-win-x64.exe",
++      "dsh-desk/bin/win-x64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.1-win-x64.exe.blockmap",
+       "dsh-desk/feeds/win-x64/stable.yml"
+     ]
+   },
+   {
+     "environment": "production",
+-    "version": "1.2.3-rc.1",
++    "version": "2026.1125.0-test.20261125.2",
+     "keys": [
+-      "dsh-desk/bin/win-x64/stable/deepseek-harness-1.2.3-rc.1-win-x64.exe",
+-      "dsh-desk/bin/win-x64/stable/deepseek-harness-1.2.3-rc.1-win-x64.exe.blockmap",
++      "dsh-desk/bin/win-x64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.2-win-x64.exe",
++      "dsh-desk/bin/win-x64/stable/deepseek-harness-uncensored-2026.1125.0-test.20261125.2-win-x64.exe.blockmap",
+       "dsh-desk/feeds/win-x64/stable.yml"
+     ]
+   }
+diff --git a/apps/desktop/tests/expected/test-release-upload-mac-arm64.json b/apps/desktop/tests/expected/test-release-upload-mac-arm64.json
+index 69af29ec0161b43324b96760f33d530259efe2f3..aef20e00c35e275fb70651606d0442cd6067fc3e 100644
+--- a/apps/desktop/tests/expected/test-release-upload-mac-arm64.json
++++ b/apps/desktop/tests/expected/test-release-upload-mac-arm64.json
+@@ -1,15 +1,15 @@
+ [
+   {
+-    "key": "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/deepseek-harness-1.2.3-mac-arm64.dmg"
++    "key": "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/deepseek-harness-uncensored-2026.11.25.0-mac-arm64.dmg"
+   },
+   {
+-    "key": "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/deepseek-harness-1.2.3-mac-arm64.zip"
++    "key": "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/deepseek-harness-uncensored-2026.11.25.0-mac-arm64.zip"
+   },
+   {
+-    "key": "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/deepseek-harness-1.2.3-mac-arm64.zip.blockmap"
++    "key": "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/deepseek-harness-uncensored-2026.11.25.0-mac-arm64.zip.blockmap"
+   },
+   {
+     "key": "dsh-desk/0123456789abcdef0123456789abcdef/feeds/mac-arm64/nightly-mac.yml",
+-    "contents": "version: 1.2.3\npath: >-\n  https://desktop-updates.example.com/dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/deepseek-harness-1.2.3-mac-arm64.zip\nfiles:\n  - url: >-\n      https://desktop-updates.example.com/dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/deepseek-harness-1.2.3-mac-arm64.zip\n    size: 24\n    sha512: >-\n      IgtiHRPFjickTxiSTW6k0ltyBNOF/gpMGj/xflzVV2iRIzUSFPY6BG45u9fR4GmAJSVtN+FMh3NZx7mddUfJLw==\n"
++    "contents": "version: 2026.1125.0\npath: >-\n  https://desktop-updates.example.com/dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/deepseek-harness-uncensored-2026.11.25.0-mac-arm64.zip\nfiles:\n  - url: >-\n      https://desktop-updates.example.com/dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-arm64/deepseek-harness-uncensored-2026.11.25.0-mac-arm64.zip\n    size: 24\n    sha512: >-\n      IgtiHRPFjickTxiSTW6k0ltyBNOF/gpMGj/xflzVV2iRIzUSFPY6BG45u9fR4GmAJSVtN+FMh3NZx7mddUfJLw==\n"
+   }
+ ]
+diff --git a/apps/desktop/tests/expected/test-release-upload-mac-x64.json b/apps/desktop/tests/expected/test-release-upload-mac-x64.json
+index 2c085140ce68a8bf05b1ff273c63e2bd2164554c..ac05e00a20132bc9565f994a34a820658f4982b0 100644
+--- a/apps/desktop/tests/expected/test-release-upload-mac-x64.json
++++ b/apps/desktop/tests/expected/test-release-upload-mac-x64.json
+@@ -1,15 +1,15 @@
+ [
+   {
+-    "key": "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/deepseek-harness-1.2.3-mac-x64.dmg"
++    "key": "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/deepseek-harness-uncensored-2026.11.25.0-mac-x64.dmg"
+   },
+   {
+-    "key": "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/deepseek-harness-1.2.3-mac-x64.zip"
++    "key": "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/deepseek-harness-uncensored-2026.11.25.0-mac-x64.zip"
+   },
+   {
+-    "key": "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/deepseek-harness-1.2.3-mac-x64.zip.blockmap"
++    "key": "dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/deepseek-harness-uncensored-2026.11.25.0-mac-x64.zip.blockmap"
+   },
+   {
+     "key": "dsh-desk/0123456789abcdef0123456789abcdef/feeds/mac-x64/nightly-mac.yml",
+-    "contents": "version: 1.2.3\npath: >-\n  https://desktop-updates.example.com/dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/deepseek-harness-1.2.3-mac-x64.zip\nfiles:\n  - url: >-\n      https://desktop-updates.example.com/dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/deepseek-harness-1.2.3-mac-x64.zip\n    size: 24\n    sha512: >-\n      IgtiHRPFjickTxiSTW6k0ltyBNOF/gpMGj/xflzVV2iRIzUSFPY6BG45u9fR4GmAJSVtN+FMh3NZx7mddUfJLw==\n"
++    "contents": "version: 2026.1125.0\npath: >-\n  https://desktop-updates.example.com/dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/deepseek-harness-uncensored-2026.11.25.0-mac-x64.zip\nfiles:\n  - url: >-\n      https://desktop-updates.example.com/dsh-desk/0123456789abcdef0123456789abcdef/bin/mac-x64/deepseek-harness-uncensored-2026.11.25.0-mac-x64.zip\n    size: 24\n    sha512: >-\n      IgtiHRPFjickTxiSTW6k0ltyBNOF/gpMGj/xflzVV2iRIzUSFPY6BG45u9fR4GmAJSVtN+FMh3NZx7mddUfJLw==\n"
+   }
+ ]
+diff --git a/apps/desktop/tests/expected/test-release-upload-win-x64.json b/apps/desktop/tests/expected/test-release-upload-win-x64.json
+index 9c7db67400b67b50802d26fe67c6110048f91c58..e34c638587020ec2034f16b9f874404b1ebc2e4f 100644
+--- a/apps/desktop/tests/expected/test-release-upload-win-x64.json
++++ b/apps/desktop/tests/expected/test-release-upload-win-x64.json
+@@ -1,12 +1,12 @@
+ [
+   {
+-    "key": "dsh-desk/0123456789abcdef0123456789abcdef/bin/win-x64/deepseek-harness-1.2.3-win-x64.exe"
++    "key": "dsh-desk/0123456789abcdef0123456789abcdef/bin/win-x64/deepseek-harness-uncensored-2026.11.25.0-win-x64.exe"
+   },
+   {
+-    "key": "dsh-desk/0123456789abcdef0123456789abcdef/bin/win-x64/deepseek-harness-1.2.3-win-x64.exe.blockmap"
++    "key": "dsh-desk/0123456789abcdef0123456789abcdef/bin/win-x64/deepseek-harness-uncensored-2026.11.25.0-win-x64.exe.blockmap"
+   },
+   {
+     "key": "dsh-desk/0123456789abcdef0123456789abcdef/feeds/win-x64/nightly.yml",
+-    "contents": "version: 1.2.3\npath: >-\n  https://desktop-updates.example.com/dsh-desk/0123456789abcdef0123456789abcdef/bin/win-x64/deepseek-harness-1.2.3-win-x64.exe\nfiles:\n  - url: >-\n      https://desktop-updates.example.com/dsh-desk/0123456789abcdef0123456789abcdef/bin/win-x64/deepseek-harness-1.2.3-win-x64.exe\n    size: 30\n    sha512: >-\n      eVumVOW1yvT3fAgGKUnliEzSfhmn8jUfzpNaUPufU1yekWrwJe8wRPC+JOrHH2Hmc/eLynwxjX1yIiER8tVOTA==\n"
++    "contents": "version: 2026.1125.0\npath: >-\n  https://desktop-updates.example.com/dsh-desk/0123456789abcdef0123456789abcdef/bin/win-x64/deepseek-harness-uncensored-2026.11.25.0-win-x64.exe\nfiles:\n  - url: >-\n      https://desktop-updates.example.com/dsh-desk/0123456789abcdef0123456789abcdef/bin/win-x64/deepseek-harness-uncensored-2026.11.25.0-win-x64.exe\n    size: 30\n    sha512: >-\n      eVumVOW1yvT3fAgGKUnliEzSfhmn8jUfzpNaUPufU1yekWrwJe8wRPC+JOrHH2Hmc/eLynwxjX1yIiER8tVOTA==\n"
+   }
+ ]
+diff --git a/apps/desktop/tests/fixtures/installed-update-packaging.mjs b/apps/desktop/tests/fixtures/installed-update-packaging.mjs
+index bf9d1070eba58204f978af4be7fa532610eea437..13949d3d6bae7c534c8ace00a174d75f99fbb33f 100644
+--- a/apps/desktop/tests/fixtures/installed-update-packaging.mjs
++++ b/apps/desktop/tests/fixtures/installed-update-packaging.mjs
+@@ -10,7 +10,7 @@ if (process.env.DSH_TEST_PACKAGING_FAIL === '1') process.exitCode = 2
+ else {
+   const directory = join(run.root, version, 'installer')
+   await mkdir(directory, { recursive: true })
+-  const filename = `deepseek-harness-${version}-win-x64.exe`
++  const filename = `deepseek-harness-uncensored-${version}-win-x64.exe`
+   const bytes = Buffer.from('inert test bytes, not an installer')
+   await writeFile(join(directory, filename), bytes)
+   await writeFile(join(directory, `${filename}.blockmap`), 'inert test map')
+diff --git a/apps/desktop/tests/installed-update-distribution.spec.ts b/apps/desktop/tests/installed-update-distribution.spec.ts
+index 100a9723ec089ff3ce28504d3fc2e1ae3dc007ed..1558877fbcd29c80620c1e17d540bc675e582f78 100644
+--- a/apps/desktop/tests/installed-update-distribution.spec.ts
++++ b/apps/desktop/tests/installed-update-distribution.spec.ts
+@@ -16,7 +16,7 @@ async function fixture<T>(body: (manifest: string) => Promise<T>): Promise<T> {
+     for (const version of versions) {
+       const output = join(run.root, version, 'installer')
+       await mkdir(output, { recursive: true })
+-      const filename = `deepseek-harness-${version}-win-x64.exe`
++      const filename = `deepseek-harness-uncensored-${version}-win-x64.exe`
+       const body = Buffer.from(`inert fixture ${version}`)
+       await writeFile(join(output, filename), body)
+       await writeFile(join(output, `${filename}.blockmap`), 'inert map')
+diff --git a/apps/desktop/tests/installed-update-package-content.spec.ts b/apps/desktop/tests/installed-update-package-content.spec.ts
+index 1b87283f80676273e0c4a463a147ca53bfebbaa2..28aa8d4e5cce5697d6317161c810b2edaf4c32c5 100644
+--- a/apps/desktop/tests/installed-update-package-content.spec.ts
++++ b/apps/desktop/tests/installed-update-package-content.spec.ts
+@@ -225,7 +225,7 @@ describe('installed update verification records', () => {
+         const root = join(manifest, '..')
+         const output = join(root, version, 'installer')
+         await mkdir(output)
+-        const name = `deepseek-harness-${version}-win-x64.exe`
++        const name = `deepseek-harness-uncensored-${version}-win-x64.exe`
+         const bytes = Buffer.from('inert installer fixture, never executed')
+         const installer = join(output, name)
+         await writeFile(installer, bytes)
+diff --git a/apps/desktop/tests/installed-update-publication.spec.ts b/apps/desktop/tests/installed-update-publication.spec.ts
+index 8c6bc4f0cadad8cd631c154f5347eefe6f3de09b..f3a407da8bc148350f4357116156746c9b859075 100644
+--- a/apps/desktop/tests/installed-update-publication.spec.ts
++++ b/apps/desktop/tests/installed-update-publication.spec.ts
+@@ -52,7 +52,7 @@ async function fixture(body: (context: {
+     for (const version of run.versions) {
+       const directory = join(run.root, version, 'installer')
+       await mkdir(directory, { recursive: true })
+-      const name = `deepseek-harness-${version}-win-x64.exe`
++      const name = `deepseek-harness-uncensored-${version}-win-x64.exe`
+       const bytes = Buffer.from(`inert installer ${version}`)
+       await writeFile(join(directory, name), bytes)
+       await writeFile(join(directory, `${name}.blockmap`), 'inert map')
+diff --git a/apps/desktop/tests/installer-packaging.spec.ts b/apps/desktop/tests/installer-packaging.spec.ts
+index 1e438dedf4ea74d2991fcbe30692507f33dae824..81543e0d2765755fc5c0cf67c4c790d48a7ce7a7 100644
+--- a/apps/desktop/tests/installer-packaging.spec.ts
++++ b/apps/desktop/tests/installer-packaging.spec.ts
+@@ -51,10 +51,18 @@ describe('installer preparation preserves application dependencies', () => {
+         metadata: { value: metadata },
+       })
+       const appInfo = new AppInfo(metadataPackager, undefined)
+-      expect(appInfo.companyName).toBe('Hangzhou DeepSeek Artificial Intelligence Co., Ltd.')
+-      expect(appInfo.copyright).toBe(`Copyright © ${new Date().getFullYear()} DeepSeek Harness`)
++      const cli = JSON.parse(readFileSync(new URL('../../cli/package.json', import.meta.url), 'utf8')) as { dshuVersion: string }
++      const [year, month, day, revision] = cli.dshuVersion.split('.')
++      expect(config.extraMetadata.version).toBe(`${year}.${Number(month) * 100 + Number(day)}.${revision}`)
++      expect(config.extraMetadata.dshDisplayVersion).toBe(cli.dshuVersion)
++      expect(appInfo.companyName).toBe('WaterRun')
++      const resources = new Map(config.extraResources.map(resource => [resource.to, resource.from]))
++      expect(readFileSync(resources.get('LICENSE')!, 'utf8')).toContain('GNU GENERAL PUBLIC LICENSE')
++      expect(readFileSync(resources.get('LICENSES/DeepSeek-Harness/LICENSE')!, 'utf8')).toContain('MIT License')
++      expect(readFileSync(resources.get('LICENSES/DeepSeek-Harness/THIRD_PARTY_NOTICES.md')!, 'utf8')).toContain('Third-Party Notices')
++      expect(appInfo.copyright).toBe(`Copyright © ${new Date().getFullYear()} DeepSeek Harness Uncensored`)
+       if (platform === 'win32') {
+-        expect(expandMacro(config.nsis.uninstallDisplayName, null, appInfo, {}, false)).toBe('DeepSeek Harness')
++        expect(expandMacro(config.nsis.uninstallDisplayName, null, appInfo, {}, false)).toBe('DeepSeek Harness Uncensored')
+         expect(config.nsis.installerLanguages).toEqual(readInstallerLocales().map(locale => locale.id))
+       }
+       const aboutIcon = config.extraResources.find(resource => resource.to === 'icon.png')
+@@ -99,7 +107,7 @@ describe('installer preparation preserves application dependencies', () => {
+       DSH_DESKTOP_TARGET_ARCH: 'x64',
+       DSH_DESKTOP_UNSIGNED: '1',
+     }, 'win32', 'x64')
+-    expect(config.artifactName).toBe('deepseek-harness-${version}-${os}-${arch}-unsigned.${ext}')
++    expect(config.artifactName).toBe(`deepseek-harness-uncensored-${config.extraMetadata.dshDisplayVersion}-\${os}-\${arch}-unsigned.\${ext}`)
+   })
+ 
+   it('packages every preload entry point the shell loads', async () => {
+diff --git a/apps/desktop/tests/macos-signature.spec.ts b/apps/desktop/tests/macos-signature.spec.ts
+index 261e755c3032253ed28b0a12ffada62d2b57cc62..33ee625c26d3001b26826b3571c32a920e720283 100644
+--- a/apps/desktop/tests/macos-signature.spec.ts
++++ b/apps/desktop/tests/macos-signature.spec.ts
+@@ -49,7 +49,7 @@ describe('desktop macOS release signature', () => {
+   it('loads release identifiers from the environment and requires code signing', async () => {
+     const { createElectronBuilderConfig } = await import('../electron-builder.config.mjs')
+     const config = createElectronBuilderConfig(RELEASE_ENVIRONMENT, 'darwin', 'arm64')
+-    expect(config.protocols).toEqual([{ name: 'DeepSeek Harness', schemes: ['dsh'] }])
++    expect(config.protocols).toEqual([{ name: 'DeepSeek Harness Uncensored', schemes: ['dshu'] }])
+     expect(portablePath(config.directories.output)).toContain('/.desktop-build/targets/mac-arm64/artifacts')
+     expect(config.mac.extendInfo.NSMicrophoneUsageDescription).toContain('microphone')
+     expect(config.mac.extendInfo.CFBundleLocalizations).toEqual(SHIPPED_LOCALE_IDS.map(id => id === 'zh' ? 'zh_CN' : id))
+@@ -59,7 +59,7 @@ describe('desktop macOS release signature', () => {
+       'com.apple.security.cs.disable-library-validation', 'com.apple.security.device.audio-input']) {
+       expect(entitlements).toContain(`<key>${key}</key>\n    <true/>`)
+     }
+-    expect(config.extraResources).toHaveLength(2)
++    expect(config.extraResources).toHaveLength(5)
+     expect(config.extraResources[0]?.to).toBe('runtime')
+     expect(portablePath(config.extraResources[0]?.from ?? '')).toContain('/.desktop-build/targets/mac-arm64/runtime')
+     const [dshFiles, dshNodeModules] = config.files.slice(-2)
+@@ -163,7 +163,7 @@ describe('desktop macOS release signature', () => {
+       DSH_DESKTOP_UNSIGNED: '1',
+     }, 'darwin', arch)
+     expect(portablePath(config.directories.output)).toContain(`/targets/mac-${arch}/unsigned-artifacts`)
+-    expect(config.artifactName).toBe('deepseek-harness-${version}-${os}-${arch}-unsigned.${ext}')
++    expect(config.artifactName).toBe(`deepseek-harness-uncensored-${config.extraMetadata.dshDisplayVersion}-\${os}-\${arch}-unsigned.\${ext}`)
+     expect(config.mac).toMatchObject({ identity: '-', forceCodeSigning: false, notarize: false, target: ['dmg'] })
+     expect(config.dmg).toMatchObject({ sign: false, writeUpdateInfo: false })
+     expect(config.publish).toBeNull()
+@@ -233,6 +233,8 @@ describe('desktop macOS release signature', () => {
+   })
+ 
+   it('rejects missing and malformed release identifiers', () => {
++    expect(() => resolveDesktopAppId({ DSH_DESKTOP_APP_ID: 'com.DeepSeek.dsh' })).toThrow(/official DSH/u)
++    expect(resolveDesktopAppId({ DSH_DESKTOP_APP_ID: 'com.deepseek.dsh.uncensored' })).toBe('com.deepseek.dsh.uncensored')
+     expect(() => resolveDesktopAppId({})).toThrow(/DSH_DESKTOP_APP_ID/u)
+     expect(() => resolveDesktopAppId({ DSH_DESKTOP_APP_ID: 'not-a-bundle-id' })).toThrow(/reverse-DNS/u)
+     expect(() => resolveMacOSSigningEnvironment({})).toThrow(/DSH_DESKTOP_MACOS_SIGNING_IDENTITY/u)
+diff --git a/apps/desktop/tests/package-macos.spec.ts b/apps/desktop/tests/package-macos.spec.ts
+index e8fb5dcf34a40053200744c7271b0076fc8cd3e8..487158f729ae51b7bbd411a12cadb65af71a973d 100644
+--- a/apps/desktop/tests/package-macos.spec.ts
++++ b/apps/desktop/tests/package-macos.spec.ts
+@@ -29,14 +29,14 @@ function barrier() {
+ async function fixture(arch: 'arm64' | 'x64' = 'arm64') {
+   const root = await mkdtemp(join(tmpdir(), 'desktop-parallel-notarization-'))
+   const artifactsRoot = join(root, 'artifacts')
+-  const appPath = join(artifactsRoot, arch === 'arm64' ? 'mac-arm64' : 'mac', 'DeepSeek Harness.app')
++  const appPath = join(artifactsRoot, arch === 'arm64' ? 'mac-arm64' : 'mac', 'DeepSeek Harness Uncensored.app')
+   await mkdir(join(appPath, 'Contents', 'Resources'), { recursive: true })
+   await writeFile(join(appPath, 'payload'), 'signed content')
+   await writeMacOSAppUpdateConfig(join(appPath, 'Contents', 'Resources'), {
+     publicUrl: `https://desktop-updates.example.com/dsh-desk/0123456789abcdef0123456789abcdef/feeds/mac-${arch}/`,
+   }, 'deepseek-harness-updater')
+   const version = '1.2.3-alpha.1'
+-  const base = `deepseek-harness-${version}-mac-${arch}`
++  const base = `deepseek-harness-uncensored-${version}-mac-${arch}`
+   const request = { arch, artifactsRoot, version, environment }
+   const apple: MacOSArtifactOperations = {
+     copyApp: async (source, destination) => {
+@@ -196,7 +196,7 @@ describe('parallel macOS artifacts', () => {
+   it('passes the actual App and isolated output directory to each single-target builder', () => {
+     const target = resolveDesktopPackageTarget('mac-arm64', 'darwin', 'arm64')
+     for (const format of ['zip', 'dmg'] as const) {
+-      const appPath = join('private build', format, 'DeepSeek Harness.app')
++      const appPath = join('private build', format, 'DeepSeek Harness Uncensored.app')
+       const output = join(dirname(appPath), 'artifacts')
+       expect(desktopElectronBuilderArguments(target, false, { format, appPath, output })).toEqual([
+         'exec', 'electron-builder', '--config', 'electron-builder.config.mjs',
+diff --git a/apps/desktop/tests/packaged-smoke-path.spec.ts b/apps/desktop/tests/packaged-smoke-path.spec.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..eb23a4fd9797f2c15caf37ef4e5d10bbeb60a917
+--- /dev/null
++++ b/apps/desktop/tests/packaged-smoke-path.spec.ts
+@@ -0,0 +1,29 @@
++import { mkdtemp, readFile, realpath, rmdir, unlink, writeFile } from 'node:fs/promises'
++import { dirname, join } from 'node:path'
++import { tmpdir } from 'node:os'
++import { expect, it } from 'vitest'
++import { withPackagedSmokePath } from '../scripts/packaged-smoke-path.ts'
++
++it.each([false, true])('removes its private copy while retaining the original application on failure=%s', async (fail) => {
++  const original = await mkdtemp(join(tmpdir(), 'dsh-smoke-target-'))
++  const file = join(original, 'payload.txt')
++  let alias = ''
++  try {
++    await writeFile(file, 'retained application')
++    const operation = withPackagedSmokePath(original, async (path) => {
++      alias = path
++      expect(await realpath(path)).not.toBe(await realpath(original))
++      expect(await readFile(join(path, 'payload.txt'), 'utf8')).toBe('retained application')
++      if (fail) throw new Error('verification failed')
++      return 'verified'
++    })
++    if (fail) await expect(operation).rejects.toThrow('verification failed')
++    else await expect(operation).resolves.toBe('verified')
++    await expect(realpath(alias)).rejects.toMatchObject({ code: 'ENOENT' })
++    await expect(realpath(dirname(alias))).rejects.toMatchObject({ code: 'ENOENT' })
++    expect(await readFile(file, 'utf8')).toBe('retained application')
++  } finally {
++    await unlink(file)
++    await rmdir(original)
++  }
++})
+diff --git a/apps/desktop/tests/retain-desktop-ci.spec.ts b/apps/desktop/tests/retain-desktop-ci.spec.ts
+index 8fbd7b61a30c47799a60c19dfdfb933d0f5f1639..d2a443569ca211e6655d8bd2eac3e263b43430b3 100644
+--- a/apps/desktop/tests/retain-desktop-ci.spec.ts
++++ b/apps/desktop/tests/retain-desktop-ci.spec.ts
+@@ -21,16 +21,17 @@ async function retainedFixture(target: 'win-x64' | 'mac-x64' | 'mac-arm64', qual
+   const artifacts = join(appRoot, '.desktop-build', 'targets', target, debug ? `${qualification}-artifacts` : 'artifacts')
+   await mkdir(artifacts, { recursive: true })
+   await mkdir(join(config, 'presets'), { recursive: true })
+-  await writeFile(join(appRoot, 'package.json'), '{"version":"1.0.0"}')
++  await mkdir(join(appRoot, '../cli'))
++  await writeFile(join(appRoot, '../cli/package.json'), '{"dshuVersion":"2026.11.25.0"}')
+   await writeFile(join(config, 'presets/test.env'), `DSH_DESKTOP_AUTO_UPDATE_ENV=test\nDOWNLOAD_TEST_RELEASE_ID=${'a'.repeat(32)}\n`)
+-  const names = debug ? (target === 'win-x64' ? [`deepseek-harness-1.0.0-win-x64-${qualification}.exe`]
+-    : [`deepseek-harness-1.0.0-${target}-${qualification}.dmg`, `deepseek-harness-1.0.0-${target}-${qualification}.zip`]) : target === 'win-x64'
+-    ? ['deepseek-harness-1.0.0-win-x64.exe', 'deepseek-harness-1.0.0-win-x64.exe.blockmap', 'win-x64-release.json', 'nightly.yml']
+-    : [`deepseek-harness-1.0.0-${target}.dmg`, `deepseek-harness-1.0.0-${target}.zip`, `deepseek-harness-1.0.0-${target}.zip.blockmap`, `${target}-release.json`, 'nightly-mac.yml']
++  const names = debug ? (target === 'win-x64' ? [`deepseek-harness-uncensored-2026.11.25.0-win-x64-${qualification}.exe`]
++    : [`deepseek-harness-uncensored-2026.11.25.0-${target}-${qualification}.dmg`, `deepseek-harness-uncensored-2026.11.25.0-${target}-${qualification}.zip`]) : target === 'win-x64'
++    ? ['deepseek-harness-uncensored-2026.11.25.0-win-x64.exe', 'deepseek-harness-uncensored-2026.11.25.0-win-x64.exe.blockmap', 'win-x64-release.json', 'nightly.yml']
++    : [`deepseek-harness-uncensored-2026.11.25.0-${target}.dmg`, `deepseek-harness-uncensored-2026.11.25.0-${target}.zip`, `deepseek-harness-uncensored-2026.11.25.0-${target}.zip.blockmap`, `${target}-release.json`, 'nightly-mac.yml']
+   await Promise.all(names.map(name => writeFile(join(artifacts, name), `fixture ${name}`)))
+   const env = {
+     DSH_DESKTOP_RELEASES_DIR: '', DSH_PACKAGING_CONFIG_DIR: config, DSH_PACKAGING_PRESET: 'test', DSH_DESKTOP_TARGET_PLATFORM: target === 'win-x64' ? 'win32' : 'darwin',
+-    DSH_DESKTOP_TARGET_ARCH: target === 'mac-arm64' ? 'arm64' : 'x64', PACKAGE_SOURCE_REF: 'master', PACKAGE_SOURCE_SHA: 'b'.repeat(40), PACKAGE_VERSION: '1.0.0',
++    DSH_DESKTOP_TARGET_ARCH: target === 'mac-arm64' ? 'arm64' : 'x64', PACKAGE_SOURCE_REF: 'master', PACKAGE_SOURCE_SHA: 'b'.repeat(40), PACKAGE_VERSION: '2026.1125.0',
+     PACKAGE_SIGNING: qualification === 'unsigned' ? 'unsigned' : 'signed', PACKAGE_SKIP_NOTARIZATION: qualification === 'unnotarized' ? 'true' : 'false', GITHUB_RUN_ID: '123', GITHUB_RUN_ATTEMPT: '2',
+     GITHUB_STEP_SUMMARY: join(root, 'summary.md'),
+     DESKTOP_PUBLISH_RUNNERS: JSON.stringify({ dedicated: { label: 'dsh-dedicated', target: [target] } }),
+@@ -130,7 +131,7 @@ it.runIf(process.platform === 'darwin' || process.platform === 'win32').each([
+ ] as const)('splits %s %s installers without changing retained publication inputs', async (target, qualification) => {
+   const { root, directory, archiveEnv, names, env } = await retainedFixture(target, qualification)
+   const original = await verifyRetainedDesktopRelease(desktopReleasesRoot(env), '123', '2')
+-  const base = `macos-${target.slice(4)}-${qualification === 'notarized' ? 'signed' : 'unnotarized-debug'}-1.0.0-123-2`
++  const base = `macos-${target.slice(4)}-${qualification === 'notarized' ? 'signed' : 'unnotarized-debug'}-2026.1125.0-123-2`
+   for (const attempt of ['3', '4']) {
+     const output = join(root, `archive-output-${attempt}`)
+     execFileSync(process.execPath, ['--import', 'tsx', archiveScript, '--split-macos'], {
+diff --git a/apps/desktop/tests/windows-update-publisher.spec.ts b/apps/desktop/tests/windows-update-publisher.spec.ts
+index a1af8d5416708f93bd530877aad00540fce7d991..8381beac13b8c9993b4a94ed9535762369fb893d 100644
+--- a/apps/desktop/tests/windows-update-publisher.spec.ts
++++ b/apps/desktop/tests/windows-update-publisher.spec.ts
+@@ -90,7 +90,7 @@ describe('Windows update publisher', () => {
+         DSH_DESKTOP_AUTO_UPDATE_ENV: 'production',
+       }, 'win32', 'x64')
+       expect(config.win.forceCodeSigning).toBe(true)
+-      expect(config.artifactName).toBe('deepseek-harness-${version}-${os}-${arch}.${ext}')
++      expect(config.artifactName).toBe(`deepseek-harness-uncensored-${config.extraMetadata.dshDisplayVersion}-\${os}-\${arch}.\${ext}`)
+       expect(typeof config.win.signtoolOptions.sign).toBe('function')
+       const manager = new WindowsSignToolManager({ platformSpecificBuildOptions: config.win, getCscLink: () => undefined })
+       expect(await manager.computedPublisherName.value).toEqual(['CN=Publisher,O=Company,C=CN'])
+diff --git a/scripts/release/families.spec.ts b/scripts/release/families.spec.ts
+index 61725569b0b3d1076a35c0714caa1e5104f80909..af769a09dd8aa2fed00a246f77cd9975dd2b9945 100644
+--- a/scripts/release/families.spec.ts
++++ b/scripts/release/families.spec.ts
+@@ -223,9 +223,10 @@ describe('release families', () => {
+   it('requires a current official client build only for dsh artifacts', () => {
+     const dsh = releaseFamily('dsh')
+     const vendor = releaseFamily('vendor')
+-    const officialEnvironment = officialClientBuildEnvironment(resolve(import.meta.dirname, '../..'))
+-    vi.stubEnv('DSH_CLIENT_COMMIT_HASH', officialEnvironment.DSH_CLIENT_COMMIT_HASH)
+-    const official = buildFixture(officialEnvironment)
++    vi.stubEnv('DSH_CLIENT_COMMIT_HASH', 'a'.repeat(40))
++    const official = buildFixture({})
++    const officialEnvironment = officialClientBuildEnvironment(official)
++    writeClientBuildRecord(official, officialEnvironment)
+     const defaultBuild = buildFixture({})
+     const missing = join(defaultBuild, 'missing')
+     write(join(missing, 'package.json'), `${JSON.stringify({ version: officialEnvironment.DSH_CLIENT_VERSION })}\n`)
+diff --git a/scripts/release/families.ts b/scripts/release/families.ts
+index cf5e4ca9d316fb79c75c1e9847563be9cc69a688..57f186faf72d45e53e1e45ca51fa337bbedf0da7 100644
+--- a/scripts/release/families.ts
++++ b/scripts/release/families.ts
+@@ -12,8 +12,7 @@
+ import { globSync, readFileSync } from 'node:fs'
+ import { resolve } from 'node:path'
+ import {
+-  officialClientBuildEnvironment,
+-  readClientBuildRecord,
++  readPackagedClientBuild,
+ } from '../client-build-environment.ts'
+ import { ON_DEMAND_BUNDLES } from '../../packages/util/official-bundles/src/bundles.ts'
+ 
+@@ -354,7 +353,7 @@ class DshFamily extends ReleaseFamily {
+ 
+   /** Require current artifacts from a complete official client build. */
+   override verifyBuildArtifacts(root: string): void {
+-    readClientBuildRecord(root, officialClientBuildEnvironment(root))
++    readPackagedClientBuild(root, 'official')
+   }
+ 
+   /**

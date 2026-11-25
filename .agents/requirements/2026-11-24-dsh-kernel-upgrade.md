@@ -167,7 +167,7 @@ pnpm exec vitest run packages/subprocess/subprocess-local/tests/process-exit.spe
 | --- | --- |
 | DSHU 历史资料原地升级 | 正式版生成的写作资料、滚动账本、普通模型会话、两次连续分叉、工作区索引和记忆提炼事件已在副本上跨版本复验。记忆资料库、作用域检索、修改后的冷重启已用旧端生成的资料在 Node 和 Electron 下复验，共 16 份原文件摘要匹配。持久化维护者继续用真实桌面备份检查其他历史扩展事件和安装器原地升级。[复现命令与记录](2026-11-25-release-handoff.md#跨对话记忆的候选验收) |
 | 全产品范围与发行 | 产品维护者已确认正式版保留四种模式，专项执行链由维护者接手。完整旧会话、CLI 和桌面发行仍待验收。现有专项模式中涉及漏洞利用或自动化攻击的执行链保留为范围缺口。 |
-| 桌面与其他系统 | Windows x64 已验证 Electron 内置 Node、ABI、SQLite 和 Zstandard。打包维护者还需核对随包原生模块、关于页及安装器身份，在 Windows 实装验证升级、修复与卸载；Linux 和 macOS 分平台记录。 |
+| 桌面与其他系统 | Windows x64 已验证 Electron 内置 Node、ABI、SQLite 和 Zstandard。缺省与写作的未签名 Windows 安装器已完成正式版覆盖升级、旧 profile 读取及冷启动，见[实装记录](2026-11-25-release-handoff.md#windows-安装器与版本身份)。完整四模式、签名、Linux 和 macOS 的发行验收仍待完成。 |
 | 真实计费 | 具备测试账户的维护者用受控额度核对服务商用量与本地估算，包括 DSHU 的记忆提炼费用。Web 回归使用可复核的本地模型适配器。 |
 
 ### macOS 首装与应用内更新
@@ -176,7 +176,7 @@ pnpm exec vitest run packages/subprocess/subprocess-local/tests/process-exit.spe
 
 DSHU 主线的过渡版使用 `deliver:github --bridge` 整理五个安装包、四个 `latest*.yml` 索引和一个 macOS ZIP。以后常规发行只上传五个安装包。每个公开正式版按发布顺序接替 GitHub Latest。过渡版仍为 Latest 时，旧安装可以在应用内升级；曾手选开发版的用户须先切回正式版。错过窗口的旧安装需要手动安装一次当前版本。
 
-新版查询本仓库最新正式 Release，按标签比较日期版本，核对附件的固定标签地址、大小和 GitHub SHA-256，并用正文携带的 SHA-512 校验下载。macOS 从校验后的 DMG 在本机准备 Squirrel.Mac 所需的归档。Windows 上已重放五个平台目标，验证旧索引、五附件发行、签名失败与卸载卷失败，以及冻结更新库的本机 HTTP 归档交接。正式签名安装、重启和资料保留仍需在各目标平台验收。候选内核使用独立验证壳，产品打包时需接入主线桌面更新入口与 DSHU 日期版本。[发行整理说明](../../apps/desktop/README.zh.md)
+新版查询本仓库最新正式 Release，按标签比较日期版本，核对附件的固定标签地址、大小和 GitHub SHA-256，并用正文携带的 SHA-512 校验下载。macOS 从校验后的 DMG 在本机准备 Squirrel.Mac 所需的归档。Windows 上已重放五个平台目标，验证旧索引、五附件发行、签名失败与卸载卷失败，以及冻结更新库的本机 HTTP 归档交接。正式签名安装、重启和资料保留仍需在各目标平台验收。候选内核使用独立验证壳，缺省与写作的 Windows 安装器已采用 DSHU 日期版本。正式发行的桌面更新入口仍需核对。[发行整理说明](../../apps/desktop/README.zh.md)
 
 ## 已有会话兼容性缺口
 
