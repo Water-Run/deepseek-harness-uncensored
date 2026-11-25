@@ -39,7 +39,7 @@
 | 项目 | 旧版实际行为 | 当前候选与证据 | 最终包、平台、负责人和结论 |
 | --- | --- | --- | --- |
 | 原会话输入建议 | 两个正式版可写出含输入建议的压缩会话。 | 候选安装后能续写，重启后读回同一条建议与消息。[Windows 回执](#含输入建议的旧会话) · [Linux 复验](#在-linux-安装目录复验旧会话) | 当前两模式候选已有实测；最终四模式包待复验。 |
-| 输入预测的生成与采纳 | 默认启用，输入框能生成建议，用户可以采纳、忽略或关闭预测。[旧版键盘交互用例](https://github.com/Water-Run/deepseek-harness-uncensored/blob/7eaeddc6050ee60e114cc3ef0d81de9c1371aacd/packages/client/ui-conversation/tests/prediction-keymap.client.spec.tsx) | 候选保留了旧事件的读取。旧版输入框的预测偏好与键盘交互文件均未出现在候选目录，未取得新建议的界面回执。 | 待补齐并从输入框验证一次采纳、一次放弃，再关闭开关冷启动复验。 |
+| 输入预测的生成与采纳 | 默认启用，输入框能生成建议，用户可以采纳、忽略或关闭预测。[旧版键盘交互用例](https://github.com/Water-Run/deepseek-harness-uncensored/blob/7eaeddc6050ee60e114cc3ef0d81de9c1371aacd/packages/client/ui-conversation/tests/prediction-keymap.client.spec.tsx) | 候选主输入框已恢复生成建议、Tab 采纳、继续输入忽略和持久化开关。实际浏览器走 Host RPC 与可控模型，已验证以上四项。 | 最终包在旁问、随问补齐后复验，并重开正式版留下的会话。 |
 | 旁问与随问 | 支持 `/side`、`/btw`、会话顶部及右侧开始页入口。[旧版控制器用例](https://github.com/Water-Run/deepseek-harness-uncensored/blob/7eaeddc6050ee60e114cc3ef0d81de9c1371aacd/packages/client/ui-commands/tests/asides-controller.client.spec.ts) | 候选未包含旧版的 `ui-commands/src/client/asides/` 或 `session-controller/src/asides.ts`。还未取得等价交互的回执。 | 待补齐并核对新建、返回主会话、清理偏好和旧旁问重开。 |
 | 日出日落外观 | 新装默认 `sun`，可以选择浅色、深色、跟随系统或日出日落。[旧版主题设置](https://github.com/Water-Run/deepseek-harness-uncensored/blob/7eaeddc6050ee60e114cc3ef0d81de9c1371aacd/packages/client/ui-theme/src/theme-settings.ts) | 较早的 Linux 实装树只接受三个选项。候选树 `06ded7caa7a9` 已恢复日出日落默认值、手选城市、时区估算、首屏及欢迎页外观。 | 126 项定向测试、完整构建 10 项通过。真实设置页验证新装、修改城市、重载及 390 像素宽的深色切换。最终安装包仍须独立核对。 |
 | 关于页检查更新 | 可在应用内检查 GitHub 更新。 | 新内核的关于页已恢复自动查询、手动重查和发行说明。桌面左侧及移动端顶部显示 DSHU 产品版本，右侧来源区显示 DSH 内核。比较使用产品日期版本，区分开发候选领先、已是最新版、有新版、离线与请求失败。 | 38 项定向测试通过。构建后的中英文页面以受控 GitHub 响应验证初次检查、手动查到新版与发行说明地址，覆盖 1440、1280 和 390 像素宽。最终签名包的真实在线升级仍待实测，见 [#24](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24)。 |
@@ -51,7 +51,12 @@
 
 - [ ] **旁问与主对话并行。** 从会话顶部、右侧开始页及 `/side` 打开同一旁问，先在主对话完成一轮，再在旁问发送文字和图片。确认主对话继续运行，旁问只获得已完成的进展，同一父会话的并发打开只请求 Host 一次。关闭再打开保留旁问自己的记录。分别验证手动 `/clear` 和“关闭后自动清除上下文”。参照主线的 `packages/api/session-controller/tests/asides.host.spec.ts`、`packages/client/ui-commands/tests/browser-plugin.client.spec.ts` 和 `apps/web/tests/side-clear.e2e.ts`。
 - [ ] **随问。** 在主输入框发送 `/btw 进度如何`，验证可获取当时的进展、可关闭回答、主会话没有额外发送动作。再次提问时核对上下文和两次回答的归属。分别检查空问题和主会话仍在运行两种状态。旧版可复验的输入与上下文用例在 `packages/api/session-controller/tests/aside-question-context.host.spec.ts`。
-- [ ] **新预测与历史。** 在主输入框、旁问和随问分别以可控模型响应产生一条新建议。验证 Tab 只采纳，继续输入可以忽略建议，修改草稿后晚到的旧建议不会覆盖当前文字。关闭预测偏好后冷启动，确认不再产生后台请求。用旧版保存的两种压缩会话继续发送普通消息，再次重启核对费用记录和实际发给模型的消息。主线的 `prediction.host.spec.ts`、`prediction-lifetime.host.spec.ts`、`prediction-keymap.client.spec.tsx` 与 `prediction-preference.client.spec.ts` 分别覆盖 Host、请求取消、键盘和偏好。
+- [x] **主输入框预测。** 树 `d26870c07a074e70d3a913ee8904e4c5eeda981b` 中，新用户默认开启输入预测。Web 界面从缺省工作区发出普通消息，再对两份草稿各生成一次建议。第一次继续打字，第二次按 Tab，Host 只收到最初那条用户消息。随后从“设置 → 通用”关闭输入预测，重新加载后开关仍然关闭，再打字没有新增请求。
+- [ ] **最终安装包与旁问、随问。** 在最终包中分别从主输入框、旁问和随问触发预测，检查上下文归属、费用和 Tab 的行为。用旧版写出的 gzip、zstd 会话分别续写一轮，再次重启核对原预测、已发送消息与费用记录。记录安装器 SHA-256、系统和设置值。
+
+在还原后的候选目录运行 `pnpm exec vitest run --config vitest.web.config.ts apps/web/tests/input-prediction.e2e.ts` 可从页面复验。这个用例通过实际的会话 RPC 与录制的模型响应运行，无需密钥。Host 用例 `packages/api/session-controller/tests/prediction.host.spec.ts` 按旧版样本核对写入的消息、路由、结果和 token 用量；`packages/client/ui-conversation/tests/input-bar.client.spec.tsx` 检查草稿过期、界面重新绑定、输入锁定和访问权限。Tab 在光标处于末尾时采纳，补全菜单优先，输入法组字期间保持原有键盘行为。设置保存失败会提示用户。
+
+跨版本读写另有独立回执。两套正式版写入器分别创建旧资料，再由包含新预测实现的树 `56c4022f165e67dbaf5c8b3fe86a5bec0b2cb4f9` 读取、续写和重开。`2026.11.23.0`、`2026.11.24.3` 两组各核对了 30 个原始文件的 SHA-256。到上述候选树之间的差异只涉及网页测试和队列快照。已有 Windows 安装验收包早于此次输入框接入，正式安装包仍须从真实输入框复验。
 - [ ] **合并与实装。** 新内核将会话列表元数据放在 `packages/session-query/session-query`，输入栏在 `packages/client/ui-conversation/src/client/skeleton/InputBar.tsx`。沿用新内核的会话归属、工作区选择、草稿迁移和输入权限。装包后从原有写作会话重开旁问，关闭所有视图，记录用户入口、会话历史及本机资源采样，再更新上表结论。
 
 ### 合并后的关于页
@@ -331,6 +336,17 @@ pnpm run test:web:built apps/web/tests/mcp-schema-recovery.e2e.ts
 报告者于 2026-11-25 22:02（北京时间）自行关闭了 Issue，时间线中没有补充原因、修复版本或复验结果。发行清单保留这项独立验收。[GitHub 时间线](https://api.github.com/repos/Water-Run/deepseek-harness-uncensored/issues/26/timeline)
 
 主线排查中修复了一处可以独立验证的重复请求。同一父会话的两个旁问订阅同时进入时，现在只发起一次 Host 打开请求及一次会话刷新，各自保留和释放自己的引用。组合用例覆盖同时打开、重设上下文、重开及关闭，连同随问控制器共 13 项通过。另有连接重建、资源订阅、桌面转发三组 66 项测试通过。上述证据覆盖旁问并发路径；启动后没有打开旁问时的整机增长仍待查明。
+
+**输入框重复请求。** 草稿没有改变时，界面重新绑定回调曾再次启动 800 毫秒定时器。针对同一草稿和一次重新绑定的回归用例，在修复前观测到两次预测请求，修复后为一次，已有建议仍可采纳。修改草稿、关闭开关或卸载输入框仍会取消旧请求。主线及新内核都已覆盖此例。该缺陷需要一个可预测的输入框，不能独自解释报告中程序启动后每秒出现数百个本机连接的现象。
+
+**原版安装器对照。** 从 GitHub 正式发行版取 Windows x64 安装包 `2026.11.24.3`，文件 SHA-256 为 `a84001b8ec3d64ae4452833d8fdd018857900a772be366488de2f219334b5b30`。在两次独立的 Windows Sandbox 10.0.26100 x64 启动中，网络适配器均已启用，首次启动前均没有 DSHU 资料目录。以普通安装后的入口启动，无调试器，未操作窗口。每次从进程启动开始静置三分钟，各取 13 个样本。报告者使用的是 Windows 11 Build 26300，并曾使用过旧版。两次沙盒实测均未出现报告中的持续增长。[原版安装包](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.24.3) · [第二次实测的逐进程原始数据](../../kernel/0.2.3-alpha.2/verification/windows-idle-v2026.11.24.3.json)
+
+| 原版实测 | 约 15 秒、30 秒、180 秒的进程树专用内存 | 约 15 秒、180 秒的进程树句柄 | 连接观测 |
+| --- | --- | --- | --- |
+| 第一次启动 | 671.1、667.1、532.5 MiB | 2,766 → 2,756 | 在同一快照中能按监听端口归属的客户端连接为 0 至 4 条。 |
+| 第二次启动 | 663.5、665.1、534.9 MiB | 2,746 → 2,740 | 进程树内所有已建立的回环 TCP 端点最多 9 个。180 秒时仍有 6 个端点，其中按监听端口统计的客户端连接为 0。 |
+
+采样脚本的 `establishedClients` 统计连接到同一快照中本进程树监听端口的客户端。监听端口未被观测到时，该值可以为零。`loopbackEstablishedEndpoints` 独立记录所有属于进程树的已建立回环端点，并按 PID 拆分。一条连接的两端如果都属于进程树，会计两次。脚本识别通配监听地址、IPv4 回环网段和 IPv4 映射的 IPv6 地址。以上两次使用空资料，均未操作旁问；带保留资料的工作区和旁问仍需独立复验。
 
 **Windows 空资料实测。** 在 Windows Sandbox 10.0.26100 x64 的两个独立账户安装缺省与写作候选 `2026.11.25.0`，安装器 SHA-256 为 `ad437c3bf544e68771ff74c42b65a8488c773d1118cc3052a99cc130b11ad15c`。第一组启动后无操作，第二组选择 API Key、跳过配置并进入工作区外壳。每组七次采样，统计主进程及其子进程的专用内存、句柄和本机已建立的 TCP 连接。连接按客户端到同一进程树监听端口的方向计数。
 

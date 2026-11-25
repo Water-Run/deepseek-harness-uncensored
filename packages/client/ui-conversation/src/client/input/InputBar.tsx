@@ -178,24 +178,38 @@ export const InputBar = memo(function InputBar({
   const suggestion = predictionEnabled && editable && !commandMenuOpen && prediction !== undefined && prediction.sessionId === sessionId
     && prediction.draft === draft ? prediction.text : ''
 
+  // Slot rebinding can replace callbacks while the same draft and model request remain current.
+  const predictionCallbacks = useRef({ predictDraft, showToast, t })
+  useLayoutEffect(() => {
+    predictionCallbacks.current = { predictDraft, showToast, t }
+  }, [predictDraft, showToast, t])
+  const canPredict = predictionEnabled && predictDraft !== undefined && editable && !commandMenuOpen
+    && !(running && draft.trim() === '')
+
   useEffect(() => {
     setPrediction(undefined)
     if (!predictionEnabled) predictionFailureShown.current = false
-    if (!predictionEnabled || predictDraft === undefined || !editable || commandMenuOpen || (running && draft.trim() === '')) return
-    if (/[!?！？。]$/u.test(draft.trimEnd())) return
+    if (!canPredict || /[!?！？。]$/u.test(draft.trimEnd())) return
     if (draft.trimStart().startsWith('/') && !/^\/btw(?:\s|$)/u.test(draft.trimStart())) return
     const controller = new AbortController()
     const timer = setTimeout(() => {
-      void predictDraft(draft, controller.signal).then((text) => {
-        if (!controller.signal.aborted) { setPrediction({ draft, sessionId, text }); predictionFailureShown.current = false }
+      const request = predictionCallbacks.current.predictDraft
+      if (request === undefined) return
+      void request(draft, controller.signal).then((text) => {
+        if (controller.signal.aborted) return
+        setPrediction({ draft, sessionId, text })
+        predictionFailureShown.current = false
       }).catch((error: unknown) => {
         if (controller.signal.aborted) return
         console.warn('[prediction] request failed', error)
-        if (!predictionFailureShown.current) { predictionFailureShown.current = true; showToast(t('input.predictionFailed')) }
+        if (predictionFailureShown.current) return
+        predictionFailureShown.current = true
+        const feedback = predictionCallbacks.current
+        feedback.showToast(feedback.t('input.predictionFailed'))
       })
     }, 800)
     return () => { controller.abort(); clearTimeout(timer) }
-  }, [draft, predictDraft, predictionEnabled, sessionId, editable, commandMenuOpen, running, showToast, t])
+  }, [draft, sessionId, predictionEnabled, canPredict])
 
   useEffect(() => {
     if (input === undefined || inputActions === undefined) return

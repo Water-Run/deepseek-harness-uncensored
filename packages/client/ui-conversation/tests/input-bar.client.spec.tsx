@@ -297,6 +297,18 @@ describe('input suggestions', () => {
     })
   }
 
+  it('keeps one prediction for an unchanged draft when slot callbacks are rebound', async () => {
+    enable()
+    const read = vi.fn<NonNullable<InputBarProps['predictDraft']>>().mockResolvedValue(' next')
+    const b = bench({ draft: 'Please', predictDraft: read })
+    await act(async () => { await vi.advanceTimersByTimeAsync(800) })
+    expect(read).toHaveBeenCalledOnce()
+    b.view.rerender(<InputBar {...b.props} predictDraft={(draft, signal) => read(draft, signal)} />)
+    await act(async () => { await vi.advanceTimersByTimeAsync(2400) })
+    expect(read).toHaveBeenCalledOnce()
+    expect(b.textarea.style.getPropertyValue('--dsh-composer-prediction')).toBe('" next"')
+  })
+
   it('cancels obsolete requests and accepts only the suffix for the current draft', async () => {
     enable()
     const first = Promise.withResolvers<string>(), second = Promise.withResolvers<string>()

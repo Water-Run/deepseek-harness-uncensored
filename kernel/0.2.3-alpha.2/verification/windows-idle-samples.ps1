@@ -7,6 +7,13 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+function Test-LoopbackAddress([string]$Address) {
+    $ip = $null
+    if (![Net.IPAddress]::TryParse($Address, [ref]$ip)) { return $false }
+    if ($ip.IsIPv4MappedToIPv6) { $ip = $ip.MapToIPv4() }
+    return [Net.IPAddress]::IsLoopback($ip)
+}
+
 $root = Get-Process -Id $RootProcessId
 $started = $root.StartTime
 $version = $root.MainModule.FileVersionInfo.ProductVersion
@@ -40,13 +47,21 @@ $samples = for ($index = 0; $index -lt $SampleCount; $index++) {
             handles = $row.HandleCount
         }
     })
-    $local = @(Get-NetTCPConnection | Where-Object {
-        $family.Contains($_.OwningProcess) -and $_.LocalAddress -in '127.0.0.1', '::1'
+    $ownedSockets = @(Get-NetTCPConnection | Where-Object { $family.Contains($_.OwningProcess) })
+    $listeners = @($ownedSockets | Where-Object {
+        $_.State -eq 'Listen' -and ($_.LocalAddress -in '0.0.0.0', '::' -or (Test-LoopbackAddress $_.LocalAddress))
+    } | Select-Object -ExpandProperty LocalPort -Unique)
+    $endpoints = @($ownedSockets | Where-Object {
+        $_.State -eq 'Established' -and (Test-LoopbackAddress $_.LocalAddress) -and (Test-LoopbackAddress $_.RemoteAddress)
     })
-    $listeners = @($local | Where-Object State -eq Listen | Select-Object -ExpandProperty LocalPort -Unique)
-    $clients = @($local | Where-Object {
-        $_.State -eq 'Established' -and $_.RemoteAddress -in '127.0.0.1', '::1' -and $_.RemotePort -in $listeners
-    })
+    $clients = @($endpoints | Where-Object { $_.RemotePort -in $listeners })
+    $endpointCounts = @{}
+    foreach ($endpoint in $endpoints) {
+        $endpointCounts[[int]$endpoint.OwningProcess]++
+    }
+    foreach ($process in $processes) {
+        $process | Add-Member -NotePropertyName loopbackEstablishedEndpoints -NotePropertyValue ([int]$endpointCounts[[int]$process.pid])
+    }
     [pscustomobject]@{
         observedAtUtc = [datetime]::UtcNow.ToString('o')
         elapsedSeconds = [math]::Round($timer.Elapsed.TotalSeconds, 1)
@@ -54,6 +69,7 @@ $samples = for ($index = 0; $index -lt $SampleCount; $index++) {
         handles = ($processes | Measure-Object handles -Sum).Sum
         listenerPorts = $listeners
         establishedClients = $clients.Count
+        loopbackEstablishedEndpoints = $endpoints.Count
         processes = $processes
     }
 }

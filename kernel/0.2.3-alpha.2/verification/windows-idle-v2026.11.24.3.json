@@ -1,0 +1,239 @@
+{
+  "rootPid": 5676,
+  "productVersion": "2026.11.24.3",
+  "osVersion": "Microsoft Windows NT 10.0.26100.0",
+  "samples": [
+    {
+      "observedAtUtc": "2026-11-25T15:33:51.7291022Z",
+      "elapsedSeconds": 1.7,
+      "privateBytes": 95543296,
+      "handles": 264,
+      "listenerPorts": [],
+      "establishedClients": 0,
+      "loopbackEstablishedEndpoints": 0,
+      "processes": [
+        {"pid": 5676, "parentPid": 6520, "role": "main", "privateBytes": 95543296, "handles": 264, "loopbackEstablishedEndpoints": 0}
+      ]
+    },
+    {
+      "observedAtUtc": "2026-11-25T15:34:05.3642629Z",
+      "elapsedSeconds": 15.4,
+      "privateBytes": 695758848,
+      "handles": 2746,
+      "listenerPorts": [],
+      "establishedClients": 0,
+      "loopbackEstablishedEndpoints": 7,
+      "processes": [
+        {"pid": 5676, "parentPid": 6520, "role": "main", "privateBytes": 174481408, "handles": 1026, "loopbackEstablishedEndpoints": 2},
+        {"pid": 7472, "parentPid": 5676, "role": "gpu-process", "privateBytes": 27930624, "handles": 443, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6168, "parentPid": 5676, "role": "utility", "privateBytes": 13815808, "handles": 386, "loopbackEstablishedEndpoints": 1},
+        {"pid": 7224, "parentPid": 5676, "role": "renderer", "privateBytes": 112881664, "handles": 332, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6780, "parentPid": 5676, "role": "DeepSeek Harness Uncensored.exe", "privateBytes": 333508608, "handles": 264, "loopbackEstablishedEndpoints": 4},
+        {"pid": 7052, "parentPid": 5676, "role": "renderer", "privateBytes": 33140736, "handles": 295, "loopbackEstablishedEndpoints": 0}
+      ]
+    },
+    {
+      "observedAtUtc": "2026-11-25T15:34:20.1642164Z",
+      "elapsedSeconds": 30.2,
+      "privateBytes": 697372672,
+      "handles": 2746,
+      "listenerPorts": [],
+      "establishedClients": 0,
+      "loopbackEstablishedEndpoints": 6,
+      "processes": [
+        {"pid": 5676, "parentPid": 6520, "role": "main", "privateBytes": 174968832, "handles": 1026, "loopbackEstablishedEndpoints": 1},
+        {"pid": 7472, "parentPid": 5676, "role": "gpu-process", "privateBytes": 27930624, "handles": 443, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6168, "parentPid": 5676, "role": "utility", "privateBytes": 13815808, "handles": 386, "loopbackEstablishedEndpoints": 1},
+        {"pid": 7224, "parentPid": 5676, "role": "renderer", "privateBytes": 113057792, "handles": 332, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6780, "parentPid": 5676, "role": "DeepSeek Harness Uncensored.exe", "privateBytes": 334458880, "handles": 264, "loopbackEstablishedEndpoints": 4},
+        {"pid": 7052, "parentPid": 5676, "role": "renderer", "privateBytes": 33140736, "handles": 295, "loopbackEstablishedEndpoints": 0}
+      ]
+    },
+    {
+      "observedAtUtc": "2026-11-25T15:34:35.1511626Z",
+      "elapsedSeconds": 45.2,
+      "privateBytes": 563568640,
+      "handles": 2775,
+      "listenerPorts": [],
+      "establishedClients": 0,
+      "loopbackEstablishedEndpoints": 7,
+      "processes": [
+        {"pid": 5676, "parentPid": 6520, "role": "main", "privateBytes": 159780864, "handles": 1026, "loopbackEstablishedEndpoints": 2},
+        {"pid": 7472, "parentPid": 5676, "role": "gpu-process", "privateBytes": 27975680, "handles": 443, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6168, "parentPid": 5676, "role": "utility", "privateBytes": 13750272, "handles": 376, "loopbackEstablishedEndpoints": 1},
+        {"pid": 7224, "parentPid": 5676, "role": "renderer", "privateBytes": 105742336, "handles": 332, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6780, "parentPid": 5676, "role": "DeepSeek Harness Uncensored.exe", "privateBytes": 222146560, "handles": 275, "loopbackEstablishedEndpoints": 4},
+        {"pid": 7052, "parentPid": 5676, "role": "renderer", "privateBytes": 34172928, "handles": 323, "loopbackEstablishedEndpoints": 0}
+      ]
+    },
+    {
+      "observedAtUtc": "2026-11-25T15:34:50.1729968Z",
+      "elapsedSeconds": 60.2,
+      "privateBytes": 558678016,
+      "handles": 2767,
+      "listenerPorts": [],
+      "establishedClients": 0,
+      "loopbackEstablishedEndpoints": 7,
+      "processes": [
+        {"pid": 5676, "parentPid": 6520, "role": "main", "privateBytes": 154824704, "handles": 1018, "loopbackEstablishedEndpoints": 2},
+        {"pid": 7472, "parentPid": 5676, "role": "gpu-process", "privateBytes": 27975680, "handles": 443, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6168, "parentPid": 5676, "role": "utility", "privateBytes": 13750272, "handles": 376, "loopbackEstablishedEndpoints": 1},
+        {"pid": 7224, "parentPid": 5676, "role": "renderer", "privateBytes": 106209280, "handles": 332, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6780, "parentPid": 5676, "role": "DeepSeek Harness Uncensored.exe", "privateBytes": 221745152, "handles": 275, "loopbackEstablishedEndpoints": 4},
+        {"pid": 7052, "parentPid": 5676, "role": "renderer", "privateBytes": 34172928, "handles": 323, "loopbackEstablishedEndpoints": 0}
+      ]
+    },
+    {
+      "observedAtUtc": "2026-11-25T15:35:05.2065091Z",
+      "elapsedSeconds": 75.2,
+      "privateBytes": 558927872,
+      "handles": 2765,
+      "listenerPorts": [
+        55705
+      ],
+      "establishedClients": 0,
+      "loopbackEstablishedEndpoints": 5,
+      "processes": [
+        {"pid": 5676, "parentPid": 6520, "role": "main", "privateBytes": 155619328, "handles": 1018, "loopbackEstablishedEndpoints": 1},
+        {"pid": 7472, "parentPid": 5676, "role": "gpu-process", "privateBytes": 27783168, "handles": 443, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6168, "parentPid": 5676, "role": "utility", "privateBytes": 13479936, "handles": 376, "loopbackEstablishedEndpoints": 1},
+        {"pid": 7224, "parentPid": 5676, "role": "renderer", "privateBytes": 106217472, "handles": 332, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6780, "parentPid": 5676, "role": "DeepSeek Harness Uncensored.exe", "privateBytes": 221655040, "handles": 273, "loopbackEstablishedEndpoints": 3},
+        {"pid": 7052, "parentPid": 5676, "role": "renderer", "privateBytes": 34172928, "handles": 323, "loopbackEstablishedEndpoints": 0}
+      ]
+    },
+    {
+      "observedAtUtc": "2026-11-25T15:35:20.1455117Z",
+      "elapsedSeconds": 90.2,
+      "privateBytes": 557879296,
+      "handles": 2765,
+      "listenerPorts": [],
+      "establishedClients": 0,
+      "loopbackEstablishedEndpoints": 6,
+      "processes": [
+        {"pid": 5676, "parentPid": 6520, "role": "main", "privateBytes": 154628096, "handles": 1018, "loopbackEstablishedEndpoints": 2},
+        {"pid": 7472, "parentPid": 5676, "role": "gpu-process", "privateBytes": 27783168, "handles": 443, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6168, "parentPid": 5676, "role": "utility", "privateBytes": 13479936, "handles": 376, "loopbackEstablishedEndpoints": 1},
+        {"pid": 7224, "parentPid": 5676, "role": "renderer", "privateBytes": 105869312, "handles": 332, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6780, "parentPid": 5676, "role": "DeepSeek Harness Uncensored.exe", "privateBytes": 221933568, "handles": 273, "loopbackEstablishedEndpoints": 3},
+        {"pid": 7052, "parentPid": 5676, "role": "renderer", "privateBytes": 34185216, "handles": 323, "loopbackEstablishedEndpoints": 0}
+      ]
+    },
+    {
+      "observedAtUtc": "2026-11-25T15:35:35.1479284Z",
+      "elapsedSeconds": 105.2,
+      "privateBytes": 558252032,
+      "handles": 2764,
+      "listenerPorts": [
+        59766
+      ],
+      "establishedClients": 1,
+      "loopbackEstablishedEndpoints": 6,
+      "processes": [
+        {"pid": 5676, "parentPid": 6520, "role": "main", "privateBytes": 155000832, "handles": 1018, "loopbackEstablishedEndpoints": 2},
+        {"pid": 7472, "parentPid": 5676, "role": "gpu-process", "privateBytes": 27783168, "handles": 443, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6168, "parentPid": 5676, "role": "utility", "privateBytes": 13479936, "handles": 376, "loopbackEstablishedEndpoints": 1},
+        {"pid": 7224, "parentPid": 5676, "role": "renderer", "privateBytes": 105877504, "handles": 332, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6780, "parentPid": 5676, "role": "DeepSeek Harness Uncensored.exe", "privateBytes": 222523392, "handles": 272, "loopbackEstablishedEndpoints": 3},
+        {"pid": 7052, "parentPid": 5676, "role": "renderer", "privateBytes": 33587200, "handles": 323, "loopbackEstablishedEndpoints": 0}
+      ]
+    },
+    {
+      "observedAtUtc": "2026-11-25T15:35:50.1454138Z",
+      "elapsedSeconds": 120.2,
+      "privateBytes": 559636480,
+      "handles": 2764,
+      "listenerPorts": [],
+      "establishedClients": 0,
+      "loopbackEstablishedEndpoints": 7,
+      "processes": [
+        {"pid": 5676, "parentPid": 6520, "role": "main", "privateBytes": 155000832, "handles": 1018, "loopbackEstablishedEndpoints": 2},
+        {"pid": 7472, "parentPid": 5676, "role": "gpu-process", "privateBytes": 27783168, "handles": 443, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6168, "parentPid": 5676, "role": "utility", "privateBytes": 13479936, "handles": 376, "loopbackEstablishedEndpoints": 1},
+        {"pid": 7224, "parentPid": 5676, "role": "renderer", "privateBytes": 106405888, "handles": 332, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6780, "parentPid": 5676, "role": "DeepSeek Harness Uncensored.exe", "privateBytes": 223379456, "handles": 272, "loopbackEstablishedEndpoints": 4},
+        {"pid": 7052, "parentPid": 5676, "role": "renderer", "privateBytes": 33587200, "handles": 323, "loopbackEstablishedEndpoints": 0}
+      ]
+    },
+    {
+      "observedAtUtc": "2026-11-25T15:36:05.1259900Z",
+      "elapsedSeconds": 135.1,
+      "privateBytes": 558657536,
+      "handles": 2740,
+      "listenerPorts": [],
+      "establishedClients": 0,
+      "loopbackEstablishedEndpoints": 8,
+      "processes": [
+        {"pid": 5676, "parentPid": 6520, "role": "main", "privateBytes": 154632192, "handles": 1008, "loopbackEstablishedEndpoints": 3},
+        {"pid": 7472, "parentPid": 5676, "role": "gpu-process", "privateBytes": 27713536, "handles": 443, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6168, "parentPid": 5676, "role": "utility", "privateBytes": 13332480, "handles": 364, "loopbackEstablishedEndpoints": 1},
+        {"pid": 7224, "parentPid": 5676, "role": "renderer", "privateBytes": 106700800, "handles": 332, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6780, "parentPid": 5676, "role": "DeepSeek Harness Uncensored.exe", "privateBytes": 222691328, "handles": 270, "loopbackEstablishedEndpoints": 4},
+        {"pid": 7052, "parentPid": 5676, "role": "renderer", "privateBytes": 33587200, "handles": 323, "loopbackEstablishedEndpoints": 0}
+      ]
+    },
+    {
+      "observedAtUtc": "2026-11-25T15:36:20.1129366Z",
+      "elapsedSeconds": 150.1,
+      "privateBytes": 560492544,
+      "handles": 2742,
+      "listenerPorts": [],
+      "establishedClients": 0,
+      "loopbackEstablishedEndpoints": 9,
+      "processes": [
+        {"pid": 5676, "parentPid": 6520, "role": "main", "privateBytes": 155820032, "handles": 1009, "loopbackEstablishedEndpoints": 3},
+        {"pid": 7472, "parentPid": 5676, "role": "gpu-process", "privateBytes": 27713536, "handles": 443, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6168, "parentPid": 5676, "role": "utility", "privateBytes": 13332480, "handles": 364, "loopbackEstablishedEndpoints": 1},
+        {"pid": 7224, "parentPid": 5676, "role": "renderer", "privateBytes": 106704896, "handles": 332, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6780, "parentPid": 5676, "role": "DeepSeek Harness Uncensored.exe", "privateBytes": 223334400, "handles": 271, "loopbackEstablishedEndpoints": 5},
+        {"pid": 7052, "parentPid": 5676, "role": "renderer", "privateBytes": 33587200, "handles": 323, "loopbackEstablishedEndpoints": 0}
+      ]
+    },
+    {
+      "observedAtUtc": "2026-11-25T15:36:35.1476851Z",
+      "elapsedSeconds": 165.2,
+      "privateBytes": 561463296,
+      "handles": 2740,
+      "listenerPorts": [
+        59766
+      ],
+      "establishedClients": 1,
+      "loopbackEstablishedEndpoints": 7,
+      "processes": [
+        {"pid": 5676, "parentPid": 6520, "role": "main", "privateBytes": 156332032, "handles": 1008, "loopbackEstablishedEndpoints": 2},
+        {"pid": 7472, "parentPid": 5676, "role": "gpu-process", "privateBytes": 27713536, "handles": 443, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6168, "parentPid": 5676, "role": "utility", "privateBytes": 13332480, "handles": 364, "loopbackEstablishedEndpoints": 1},
+        {"pid": 7224, "parentPid": 5676, "role": "renderer", "privateBytes": 107110400, "handles": 332, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6780, "parentPid": 5676, "role": "DeepSeek Harness Uncensored.exe", "privateBytes": 223387648, "handles": 270, "loopbackEstablishedEndpoints": 4},
+        {"pid": 7052, "parentPid": 5676, "role": "renderer", "privateBytes": 33587200, "handles": 323, "loopbackEstablishedEndpoints": 0}
+      ]
+    },
+    {
+      "observedAtUtc": "2026-11-25T15:36:50.1426419Z",
+      "elapsedSeconds": 180.2,
+      "privateBytes": 560873472,
+      "handles": 2740,
+      "listenerPorts": [],
+      "establishedClients": 0,
+      "loopbackEstablishedEndpoints": 6,
+      "processes": [
+        {"pid": 5676, "parentPid": 6520, "role": "main", "privateBytes": 155750400, "handles": 1008, "loopbackEstablishedEndpoints": 2},
+        {"pid": 7472, "parentPid": 5676, "role": "gpu-process", "privateBytes": 27713536, "handles": 443, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6168, "parentPid": 5676, "role": "utility", "privateBytes": 13332480, "handles": 364, "loopbackEstablishedEndpoints": 1},
+        {"pid": 7224, "parentPid": 5676, "role": "renderer", "privateBytes": 107118592, "handles": 332, "loopbackEstablishedEndpoints": 0},
+        {"pid": 6780, "parentPid": 5676, "role": "DeepSeek Harness Uncensored.exe", "privateBytes": 223371264, "handles": 270, "loopbackEstablishedEndpoints": 3},
+        {"pid": 7052, "parentPid": 5676, "role": "renderer", "privateBytes": 33587200, "handles": 323, "loopbackEstablishedEndpoints": 0}
+      ]
+    }
+  ],
+  "phase": "retail-first-launch-no-interaction",
+  "networkAdapters": [
+    {
+      "Name": "以太网",
+      "Status": "Up"
+    }
+  ],
+  "windowTitle": "",
+  "installerSha256": "a84001b8ec3d64ae4452833d8fdd018857900a772be366488de2f219334b5b30",
+  "profilePresentBeforeLaunch": false
+}
