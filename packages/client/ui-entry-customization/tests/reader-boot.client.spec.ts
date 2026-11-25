@@ -8,5 +8,6 @@ const withoutPluginManager = createClientTest({ roster: webApp }, { access: acti
 withoutPluginManager('boots the shipped Web client without the Plugins page navigation', async ({ start }) => {
   const c = await start()
   expect(c.ctx.get('pluginNavigation')).toBeUndefined()
-  expect(c.ctx.slots.entries('sidebar.panellist.actions').map(entry => entry.options.id)).toContain('entry-customization')
+  expect(c.ctx.slots.entries('sidebar.panellist.actions')).toHaveLength(0)
+  expect(c.ctx.slots.entries('conversation.session.header.views.actions').map(entry => entry.options.id)).toContain('entry-customization')
 }, 60_000)

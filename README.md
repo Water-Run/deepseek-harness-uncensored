@@ -303,7 +303,7 @@
 | --- | --- |
 | DSHU | 最新正式版 `2026.11.24.3` |
 | DeepSeek Harness | 源码基于 [0.2.2-rc.5](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.5) |
-| 新内核候选 | [0.2.3-alpha.2 接手与验收](.agents/requirements/2026-11-25-release-handoff.md#固定内核候选)；缺省和写作已验证跨对话记忆，四模式发行验收进行中 |
+| 新内核候选 | [0.2.3-alpha.2 接手与验收](.agents/requirements/2026-11-25-release-handoff.md#固定内核候选)；缺省和写作已接入跨对话记忆，设置已接入余额历史，四模式发行验收进行中 |
 | 破甲提示词 | dsh-purge Community [v1.7.20](https://github.com/kingcharleslzy-ai/dsh-purge/releases/tag/v1.7.20) |
 | REA | [6.9.0 · d74549e495c5](https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0) |
 
