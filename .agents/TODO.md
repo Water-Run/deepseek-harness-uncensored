@@ -1,5 +1,7 @@
 # 开发项目进度
 
+[Windows 安装版的跨对话写作记忆](requirements/2026-11-25-release-handoff.md#windows-安装版的跨对话写作记忆)已在锁定源码对应的缺省与写作候选上复验。五个会话覆盖自动提炼、跨对话读取、原记录修订、关闭记忆、冷启动和模式隔离。正式安装包可复用同一组操作与离线检查器。
+
 [输入预测与会话费用](requirements/2026-11-25-release-handoff.md#windows-安装版的三个输入框)记录主输入框、旁问与随问的桌面验收、旧旁问冷启动，以及已知费用和无法计价请求的对照。正式四模式安装包须重复这组操作。
 
 [Windows 静置卡死 #26](requirements/2026-11-25-release-handoff.md#issue-26-的-windows-静置卡死)仍列入发行阻断。报告者已关闭 GitHub Issue。[保留旧写作会话的安装包对照](requirements/2026-11-25-release-handoff.md#保留旧写作会话的-windows-安装包对照)记录原版与候选的资料来源、逐进程采样和旁问开关前后的观测。[专项维护者待办](requirements/2026-11-25-release-handoff.md#专项维护者待办)记录四模式、组件和历史会话的交付责任。

@@ -97,7 +97,7 @@
 
 **两种存储配置的升级。** 分别安装 `2026.11.23.0` 和 `2026.11.24.3`。各用原安装版在两个独立目录创建一份未压缩 JSONL 和一份 zstd 数据。用上述候选静默升级，在原压缩配置下续写两份资料，同版重装后读回原消息、续写的消息和原预测记录。四种组合全部通过。升级和同版重装返回 0，降级和无效版本登记均返回 2。复验脚本接受两个安装器路径及各自版本，在一次性 Windows 账号中运行。两个原版都要求已有资料目录使用与文件匹配的压缩配置。[Windows 安装升级检查](../../kernel/0.2.3-alpha.2/verification/windows-installer-upgrade.ps1)
 
-交付清单固定的源码树为 `d75d00fb91e0eefa4bd271d874b28b25004a6685`。与上述 Windows 实装树之间只有 `StatPopover.tsx` 中的 TypeScript 参数声明排版差异。两份组件编译为相同的 JavaScript。核对正式包时，应记录实际装包树与安装器摘要。
+交付清单固定的源码树为 `d75d00fb91e0eefa4bd271d874b28b25004a6685`。与上述费用实装树之间只有 `StatPopover.tsx` 中的 TypeScript 参数声明排版差异。两份组件编译为相同的 JavaScript。锁定树已另行打包，安装器摘要和实装结果见[安装版写作记忆](#windows-安装版的跨对话写作记忆)。
 
 跨版本读写另有独立回执。两套正式版写入器分别创建旧资料，再由包含新预测实现的树 `56c4022f165e67dbaf5c8b3fe86a5bec0b2cb4f9` 读取、续写和重开。`2026.11.23.0`、`2026.11.24.3` 两组各核对了 30 个原始文件的 SHA-256。到上述候选树之间的差异只涉及网页测试和队列快照。此处的早期 Windows 安装包早于输入框接入。后续 Windows 安装器对旧对话及旁问的实测见[保留资料对照](#保留旧写作会话的-windows-安装包对照)。正式包仍须核对三个输入入口的预测生成、采纳及费用。
 - [ ] **合并与实装。** 新内核将会话列表元数据放在 `packages/session-query/session-query`，输入栏在 `packages/client/ui-conversation/src/client/skeleton/InputBar.tsx`。沿用新内核的会话归属、工作区选择、草稿迁移和输入权限。装包后从原有写作会话重开旁问，关闭所有视图，记录用户入口、会话历史及本机资源采样，再更新上表结论。
@@ -235,6 +235,33 @@ pnpm run test:web:built apps/web/tests/memory-preference.e2e.ts --maxWorkers=1
 | 升级后记忆丢失或重复 | 保留原件，在副本上运行下节的跨版本验证器。分别记录原始文件摘要、记录 ID、版本、作用域和启用状态。 | 旧端写入两条写作记录并禁用其中一条；候选修改另一条，下一进程读到版本 2 和修改后的内容，禁用记录仍然保留。 |
 
 同一次运行使用三个独立进程写入旧资料、读取并修改副本、冷启动重读副本。每阶段的 5 组用例均已通过，原始目录的 16 份文件 SHA-256 一致。候选读端分别使用 Node 24.22.3 和 Windows Electron 44.11.5 的内置 Node 验证。该结果覆盖受控资料。线上安装的实际升级仍按平台表验收。
+
+### Windows 安装版的跨对话写作记忆
+
+缺省与写作候选 `2026.11.25.0` 的 Windows x64 未签名 EXE 为 325,317,107 字节，SHA-256 为 `fa6fb6c35d2f0cc077717e5347a612202b881fe572008d6e417eb0167a0e518a`。配套 blockmap 为 336,641 字节，SHA-256 为 `60f8e9b665c94be3d7191577e8350e48edeed0bfecf364197534e4c4e6ea7d3c`。源码树为 `d75d00fb91e0eefa4bd271d874b28b25004a6685`，内核为 `0.2.3-alpha.2`。最终安装包应在同一套步骤中产生自己的回执。
+
+**复验环境。** 在一次性 Windows 账号安装候选，使用一个测试工作区和独立 DSHU 资料目录。本次使用 `2026.11.24.3` 写出的印刷工作坊会话，记忆库初始为空。使用 Node 24.22.3 运行下面的本机测试服务。将打印的地址写入测试资料目录 `.env` 的 `DEEPSEEK_BASE_URL`，将 `DEEPSEEK_API_KEY` 设为 `offline-writing-fixture`，从安装好的桌面应用进入工作区。服务会从实际收到的 HTTP 请求中识别两种玻璃编号，返回确定的文本，并把编号是否出现、是否声明记忆工具写入 `provider.jsonl`。[本机记忆测试服务](../../kernel/0.2.3-alpha.2/verification/writing-memory-endpoint.mjs)
+
+```powershell
+New-Item -ItemType Directory initial
+node kernel/0.2.3-alpha.2/verification/writing-memory-endpoint.mjs initial
+```
+
+| 操作 | 预期结果 |
+| --- | --- |
+| 1. 打开“设置 → 通用设置”。启用“跨对话记忆”，核对“自动提炼记忆”的初始状态，再单独启用它。在写作会话 A 发送 `STORE-QUAY. For this writing project, The North Quay lantern uses BRAMBLE-71 glass.` | 两个开关各自默认关闭。收到 `The writing note is ready.` 后，在“管理记忆”里能看到 North Quay lantern 和原句。随后关闭自动提炼，保留总开关开启。 |
+| 2. 把新任务默认模式设为写作，在同一工作区新建会话 B，发送 `QUERY-QUAY-ONE. What glass does the North Quay lantern use?` | 回答为 `QUERY-QUAY-ONE BRAMBLE-71`。B 的用户问题中没有玻璃编号。会话日志记下这条记忆的 ID 和修订 1。 |
+| 3. 在管理页编辑原记录，将内容改为 `The North Quay lantern uses COBALT-28 glass.`，保存。在 B 发送 `QUERY-QUAY-TWO. What glass does the North Quay lantern use now?` | 回答为 `QUERY-QUAY-TWO COBALT-28`。本轮注入同一 ID 的修订 2。B 的历史消息保留了先前的回答。 |
+| 4. 关闭记忆总开关，新建写作会话 C，发送 `QUERY-QUAY-OFF. What glass does the North Quay lantern use?` | 回答为 `QUERY-QUAY-OFF NO MATCH`。本轮 HTTP 请求中没有两种编号和记忆工具声明。再次开启总开关，为冷启动保留已保存的记录。 |
+| 5. 退出桌面和测试服务。用同一安装器和保留资料冷启动。另建空目录 `cold`，以上面的命令启动服务并传入 `cold`，将新地址写入测试配置。在管理页核对修订后的内容。新建写作会话 D，发送 `QUERY-QUAY-COLD. What glass does the North Quay lantern use?` | 总开关开启，自动提炼关闭。回答为 `QUERY-QUAY-COLD COBALT-28`。D 的 HTTP 请求中只有修订后的编号，整个冷启动阶段未产生提炼请求。 |
+| 6. 在相同工作区把新任务默认模式改为缺省，另建会话 E，发送 `QUERY-QUAY-OTHER. What glass does the North Quay lantern use?` | 回答为 `QUERY-QUAY-OTHER NO MATCH`。请求没有两种编号，日志没有这条写作记忆。 |
+
+**核对记录。** 退出桌面后，在一次性账号中运行以下命令。检查器同时读取记忆库、v4 会话（JSONL 或 zstd）和两次 HTTP 回执，核对五个会话、六个回合、原始提炼的请求与结果、作用域、每轮注入的修订号以及实际回答。此次安装实测得到记忆 ID `ad89c571-b02f-4cc0-bff3-0a8370f306cb`，冷启动读到修订 2。安装器与可重查的测试资料保存在 `%USERPROFILE%/DSHU-Deliveries/20261125/windows-x64-candidate/d75d00fb91e0/`。真实模型选择、归纳哪些事实的质量仍需用实际模型评估。[安装版记忆记录检查器](../../kernel/0.2.3-alpha.2/verification/inspect-writing-memory.mjs)
+
+```powershell
+$fixtureProfile = Join-Path $env:USERPROFILE '.dsh-uncensored'
+node kernel/0.2.3-alpha.2/verification/inspect-writing-memory.mjs $fixtureProfile initial/provider.jsonl cold/provider.jsonl
+```
 
 ### 余额与左侧导航的候选验收
 
