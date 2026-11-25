@@ -43,6 +43,7 @@
 | 旁问与随问 | 支持 `/side`、`/btw`、会话顶部及右侧开始页入口。[旧版控制器用例](https://github.com/Water-Run/deepseek-harness-uncensored/blob/7eaeddc6050ee60e114cc3ef0d81de9c1371aacd/packages/client/ui-commands/tests/asides-controller.client.spec.ts) | 候选 Web 可发起随问，从三个入口打开同一旁问，发送图片并在窄屏重开续聊。Host 可按父会话找回上次清理后的旁问。 | 手动清理和按设置在关闭后清理均已在候选 Web 版验收。主线主动读取当前旁问已通过浏览器验收。顶部入口、页签和工作区父行的状态提示已接入。最终安装包仍需复验两类问答。用例和验收步骤见下文。 |
 | 日出日落外观 | 新装默认 `sun`，可以选择浅色、深色、跟随系统或日出日落。[旧版主题设置](https://github.com/Water-Run/deepseek-harness-uncensored/blob/7eaeddc6050ee60e114cc3ef0d81de9c1371aacd/packages/client/ui-theme/src/theme-settings.ts) | 较早的 Linux 实装树只接受三个选项。候选树 `06ded7caa7a9` 已恢复日出日落默认值、手选城市、时区估算、首屏及欢迎页外观。 | 126 项定向测试、完整构建 10 项通过。真实设置页验证新装、修改城市、重载及 390 像素宽的深色切换。最终安装包仍须独立核对。 |
 | 关于页检查更新 | 可在应用内检查 GitHub 更新。 | 新内核的关于页已恢复自动查询、手动重查和发行说明。桌面左侧及移动端顶部显示 DSHU 产品版本，右侧来源区显示 DSH 内核。比较使用产品日期版本，区分开发候选领先、已是最新版、有新版、离线与请求失败。 | 38 项定向测试通过。构建后的中英文页面以受控 GitHub 响应验证初次检查、手动查到新版与发行说明地址，覆盖 1440、1280 和 390 像素宽。最终签名包的真实在线升级仍待实测，见 [#24](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24)。 |
+| 已配置插件的只读清单 | 上一正式版通过“设置 → 插件 → 插件列表”按模式或全局配置查看实例。 | 新内核的插件管理页接回“插件列表”标签，保留原配置行 ID。安装与开关仍由插件管理页负责。[插件列表复验](#插件列表与插件管理) | 最终四模式安装包须按自己的安装器摘要复验。 |
 | 填入具体入口、设置或稳定标识 | 填旧包版本、前置配置、用户操作与实际结果 | 填新包的同一操作、结果和差异，附回执或截图位置 | 填最终包 SHA-256、平台、负责人、四种结论之一 |
 
 #### 旁问、随问与输入预测的功能回归
@@ -97,7 +98,7 @@
 
 **两种存储配置的升级。** 分别安装 `2026.11.23.0` 和 `2026.11.24.3`。各用原安装版在两个独立目录创建一份未压缩 JSONL 和一份 zstd 数据。用上述候选静默升级，在原压缩配置下续写两份资料，同版重装后读回原消息、续写的消息和原预测记录。四种组合全部通过。升级和同版重装返回 0，降级和无效版本登记均返回 2。复验脚本接受两个安装器路径及各自版本，在一次性 Windows 账号中运行。两个原版都要求已有资料目录使用与文件匹配的压缩配置。[Windows 安装升级检查](../../kernel/0.2.3-alpha.2/verification/windows-installer-upgrade.ps1)
 
-交付清单固定的源码树为 `d75d00fb91e0eefa4bd271d874b28b25004a6685`。与上述费用实装树之间只有 `StatPopover.tsx` 中的 TypeScript 参数声明排版差异。两份组件编译为相同的 JavaScript。锁定树已另行打包，安装器摘要和实装结果见[安装版写作记忆](#windows-安装版的跨对话写作记忆)。
+跨对话记忆安装验收锁定的源码树为 `d75d00fb91e0eefa4bd271d874b28b25004a6685`。与上述费用实装树之间只有 `StatPopover.tsx` 中的 TypeScript 参数声明排版差异。两份组件编译为相同的 JavaScript。锁定树已另行打包，安装器摘要和实装结果见[安装版写作记忆](#windows-安装版的跨对话写作记忆)。
 
 跨版本读写另有独立回执。两套正式版写入器分别创建旧资料，再由包含新预测实现的树 `56c4022f165e67dbaf5c8b3fe86a5bec0b2cb4f9` 读取、续写和重开。`2026.11.23.0`、`2026.11.24.3` 两组各核对了 30 个原始文件的 SHA-256。到上述候选树之间的差异只涉及网页测试和队列快照。此处的早期 Windows 安装包早于输入框接入。后续 Windows 安装器对旧对话及旁问的实测见[保留资料对照](#保留旧写作会话的-windows-安装包对照)。正式包仍须核对三个输入入口的预测生成、采纳及费用。
 - [ ] **合并与实装。** 新内核将会话列表元数据放在 `packages/session-query/session-query`，输入栏在 `packages/client/ui-conversation/src/client/skeleton/InputBar.tsx`。沿用新内核的会话归属、工作区选择、草稿迁移和输入权限。装包后从原有写作会话重开旁问，关闭所有视图，记录用户入口、会话历史及本机资源采样，再更新上表结论。
@@ -180,6 +181,8 @@ pnpm run verify-upgrade-guides
 上述首个里程碑在 Windows x64 上通过 429 项定向测试、主线构建 10 项以及 Git 推送前类型检查 5 项。浏览器已实际检查关于页布局、两个范围把手和记忆开关。四组旧 Web 录制回放在 Windows 未全绿，差异包括 `bash` 与 `pwsh`、平台技能目录及既有系统提示词断言。应在支持的 Unix 平台独立运行这些场景并检查实际差异。保留原始失败日志与对应提交，避免把一个平台的录制覆盖到所有平台。
 
 ### 固定内核候选
+
+在能创建符号链接的 Windows 文件系统上，还原器会为新目录启用 Git 原生符号链接。检查 `apps/cli/tests/profiles/acp/cordis.yml` 时应能读到它所引用的会话测试配置。若文件只包含一行相对路径，核对检出目录的 `core.symlinks` 和当前 Windows 账号创建符号链接的权限。
 
 在主线根目录执行还原脚本。脚本要求新目录，校验固定上游提交，应用已提交补丁，并比较还原出的 Git 树。候选使用 Node `24.22.3`、pnpm `11.28.5`。本机其他仓库的全局依赖不作为验收依据。
 
@@ -283,6 +286,43 @@ Windows x64 下，冻结锁文件校验通过，完整构建 10 项通过。余�
 pnpm exec vitest run --maxWorkers=2 packages/credentials/balance/tests packages/client/ui-settings-account/tests/balance- packages/client/ui-settings-account/tests/rolling-amount packages/client/ui-settings-account/tests/formatBalance packages/client/ui-entry-customization/tests packages/experimental/liveshare/tests/endpoint-classification
 pnpm run test:web:built apps/web/tests/balance-cleanup.e2e.ts apps/web/tests/balance-history-layout.e2e.ts apps/web/tests/entry-customization.e2e.ts apps/web/tests/writing-spending-settings.e2e.ts --maxWorkers=1
 ```
+
+### 插件列表与插件管理
+
+上一正式版在设置内显示插件清单。新版 DSH 将插件管理移到独立页面，候选树 `d75d00fb91e0` 的 Host 提供清单接口，但客户端没有注册查看清单的标签。插件管理中的“已安装”列出可管理的插件包，一份插件包可以包含多个配置实例。核对两个视图的入口及内容时，分别选择一个随包组件和一个预设中的配置实例。
+
+| 操作 | 验收结果 |
+| --- | --- |
+| 从中文的“设置 → 插件管理”打开插件页，也从侧栏的“插件”进入一次 | 两条入口都能打开“插件列表”。“已安装”仍可访问。工作区左侧全局面板没有插件“更多”启动按钮。 |
+| 在“插件列表”搜索 `@deepseek-ai/dsh-client-ui-settings-plugin-inventory`，展开全局结果 | 显示完整模块名、稳定实例 ID、配置启用状态和运行状态。在桌面宽度及 390 像素窄屏分别用键盘或指针访问搜索框、查看详情。 |
+| 清空搜索，查看会话插件，从当前预设切换到写作；再输入一个不存在的模块名 | 写作预设显示自己的配置实例，默认预设和已有会话的模式不受影响。无匹配时有明确提示，清空即可恢复。 |
+| 在一次性资料副本中保留旧配置行 `ui-settings-plugin-inventory` 的显式 `disabled: true`，冷启动再从设置进入插件管理 | 插件管理仍可访问，清单标签依用户设置隐藏。复验使用独立账号或资料副本。 |
+
+在还原并构建好的候选目录运行下列检查。组件用例覆盖加载失败重试、预设加载错误、本页模块重试、搜索状态和完整实例 ID。浏览器用例通过已组装的 Web Host 读取真实清单，核对桌面浅色与 390 像素深色布局、搜索框的可点击区域、实例展开、无匹配和写作预设切换。
+
+```sh
+pnpm exec vitest run --maxWorkers=2 packages/client/ui-settings-plugin-inventory/tests
+pnpm run test:web:built apps/web/tests/entry-customization.e2e.ts --maxWorkers=1
+```
+
+在 Windows 安装版做对照时，用各自独立的临时账户安装同一架构的 EXE，打开同一份中文测试资料的副本。从账号菜单进入设置，上一正式版的分类名为“插件”，新版为“插件管理”。展开全局实例后核对“完整名称”“配置状态”和“运行状态”。另用一份资料副本，将下列内容写入用户目录下的 `.dsh-uncensored/profiles/desktop/cordis.patch.yml` 后冷启动。插件页应仍能打开“已安装”和“添加插件”，同时隐藏用户停用的“插件列表”。
+
+```yaml
+- id: ui-settings-plugin-inventory
+  name: '@deepseek-ai/dsh-client-ui-settings-plugin-inventory'
+  disabled: true
+```
+
+2026 年 11 月 26 日在断网 Windows x64 沙盒用中文界面完成下列对照。每次先核对 EXE 摘要，再静默安装、核对登记版本并启动桌面。四次使用各自的测试资料副本。[安装文件、对照结果与截图摘要](../../kernel/0.2.3-alpha.2/verification/windows-plugin-inventory-6ecb056c.json)
+
+| 安装文件和配置 | 从桌面看到的结果 |
+| --- | --- |
+| 正式版 `2026.11.24.3` | 设置中能搜索并查看全局清单插件本身。 |
+| 树 `d75d00fb91e0`，默认配置 | 插件页显示“添加插件”，缺少“插件列表”。仅检查插件管理页能打开会遗漏这一回归。 |
+| 树 `6ecb056c6cc5`，默认配置 | 全局实例显示完整模块名、“已启用”和“运行中”。切换到写作预设后渲染出 6 个插件实例。打开关于页，左侧显示 DSHU `2026.11.25.0`、作者与编译时间，右侧显示 DSH `0.2.3-alpha.2`、两份许可和源码信息。 |
+| 同一 EXE，使用上面的停用配置 | 插件管理及“添加插件”可打开，“插件列表”按旧设置隐藏。两个沙盒安装后的 `resources/app.asar` 摘要一致。 |
+
+本机安装文件与截图保存在 `%USERPROFILE%/DSHU-Deliveries/20261125/windows-x64-candidate/6ecb056c6cc5/`。EXE 为 325,353,923 字节，SHA-256 为 `f80e40181935e66c44178e04ce221de9599597d78fece6d1b7ddb58298f01864`。差分索引的 15,524 个块已逐块与 EXE 核对。此未签名包覆盖缺省和写作。合并后还须对拟发行安装包及各自实际包含的模式重复本节操作。
 
 ### 关于页与模式设置的候选验收
 

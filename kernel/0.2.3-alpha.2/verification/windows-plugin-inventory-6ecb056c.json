@@ -1,0 +1,67 @@
+{
+  "observedOn": "2026-11-26",
+  "windowsBuild": "10.0.26100.0",
+  "architecture": "AMD64",
+  "network": "offline",
+  "version": "2026.11.25.0",
+  "kernel": "0.2.3-alpha.2",
+  "presets": [
+    "default",
+    "writing"
+  ],
+  "package": {
+    "tree": "6ecb056c6cc5af876f673e277c01f6d90419015f",
+    "blocks": 15524,
+    "artifacts": [
+      {
+        "name": "deepseek-harness-uncensored-2026.11.25.0-win-x64-unsigned.exe",
+        "size": 325353923,
+        "sha256": "f80e40181935e66c44178e04ce221de9599597d78fece6d1b7ddb58298f01864"
+      },
+      {
+        "name": "deepseek-harness-uncensored-2026.11.25.0-win-x64-unsigned.exe.blockmap",
+        "size": 337476,
+        "sha256": "3cd548bff5838506cc3c0918cb3f09cab82bace48d2f242449669cee6a894430"
+      }
+    ]
+  },
+  "installedAsarSHA256": "8d73493b128c21161233b202d218eae69f2a5aa818f4293d679dbae10a6d0639",
+  "controls": {
+    "released": {
+      "stage": "released",
+      "checks": [
+        "published Settings plugin inventory read from the host"
+      ],
+      "installerSHA256": "a84001b8ec3d64ae4452833d8fdd018857900a772be366488de2f219334b5b30",
+      "version": "2026.11.24.3"
+    },
+    "baseline": {
+      "stage": "baseline",
+      "checks": [
+        "previous candidate has no inventory tab"
+      ],
+      "installerSHA256": "fa6fb6c35d2f0cc077717e5347a612202b881fe572008d6e417eb0167a0e518a",
+      "tree": "d75d00fb91e0eefa4bd271d874b28b25004a6685"
+    }
+  },
+  "stock": {
+    "stage": "stock",
+    "checks": [
+      "settings opened inventory; expanded global module; writing composition visible; plugin More absent",
+      "About shows DSHU 2026.11.25.0 and author on the left; DSH 0.2.3-alpha.2 and both licenses in the details"
+    ],
+    "globalEntry": "插件列表\n查看全局和各模式的插件、启用状态与加载错误。\nui-settings-plugin-inventory\ninclude:ui-settings-plugin-inventory\n完整名称\n@deepseek-ai/dsh-client-ui-settings-plugin-inventory\n配置状态\n已启用\n运行状态\n运行中",
+    "writingRows": 6
+  },
+  "disabled": {
+    "stage": "disabled",
+    "checks": [
+      "installed page reachable; inventory absent with the saved disabled row"
+    ]
+  },
+  "screenshots": {
+    "released-list.png": "a34449b927fdcbb104560227c1ba20c45b9f11b192c35bcd0a12c959cc963b5e",
+    "installed-inventory.png": "430eb47a0cdadefd335274147c2e08b5752b7091c4a60273779b4aa51872e04f",
+    "installed-about.png": "84e7be5ad3e9c47d98d2abad31663c2d20ee0b665680ab8f63bee45ad30e7efc"
+  }
+}

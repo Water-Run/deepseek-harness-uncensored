@@ -1,6 +1,6 @@
 /** Materialize the pinned kernel or check the version information embedded by its client build. */
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, symlinkSync, unlinkSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -49,6 +49,19 @@ if (existsSync(destination)) throw new Error('Choose a new destination. Existing
 mkdirSync(destination, { recursive: true })
 git(destination, 'init', '--quiet')
 git(destination, 'config', 'core.longpaths', 'true')
+if (process.platform === 'win32') {
+  // Git for Windows can default to text placeholders even on a symlink-capable volume.
+  const probe = resolve(destination, '.git', 'dshu-symlink-check')
+  try {
+    symlinkSync('HEAD', probe, 'file')
+  } catch (error) {
+    if (!['EPERM', 'EACCES', 'ENOTSUP', 'EINVAL'].includes(error.code)) throw error
+  }
+  if (existsSync(probe)) {
+    unlinkSync(probe)
+    git(destination, 'config', 'core.symlinks', 'true')
+  }
+}
 const cached = spawnSync('git', ['-C', root, 'cat-file', '-e', manifest.base + '^{commit}'], { stdio: 'ignore' })
 git(destination, 'fetch', '--quiet', '--depth=1', '--no-tags', cached.status === 0 ? root : manifest.upstream,
   cached.status === 0 ? manifest.base : 'refs/tags/' + manifest.tag)
