@@ -19,7 +19,7 @@ import WorkspaceRegistry from '@deepseek-ai/dsh-workspace'
 import PermissionPresets from '@deepseek-ai/dsh-permission-presets'
 import { liveConfig } from '../packages/settings/settings/tests/live-config.ts'
 import { createSessionTestController } from '../packages/api/session-controller/tests/test-remote.ts'
-import { MockAdapter, textResponse } from '../packages/core/agent-loop/tests/mock-adapter.ts'
+import { MockAdapter, textResponse, toolCallResponse } from '../packages/core/agent-loop/tests/mock-adapter.ts'
 import { writingMaterialsText } from '../packages/api/mode-dossiers/src/index.ts'
 import { createStoryEntry, listStory, setStorySelection } from '../packages/api/mode-dossiers/src/story.ts'
 import { DEFAULT_PREFERENCES, MICRO_CNY, SpendLedger } from '../packages/guard/spend-limit/src/ledger.ts'
@@ -287,6 +287,56 @@ it('reopens the released quick question with its own answer, permissions and rec
     }
   } finally { await store.fiber.dispose() }
 })
+
+it('reads the released side answer on demand and reopens the recorded tool result without waking the side', async () => {
+  const ctx = new Context()
+  const receipt = join(directory, 'side-reader.json')
+  const answer = 'The pattern is called Silver Birch.'
+  try {
+    await ctx.plugin(jsonl, { root: join(directory, 'sessions'), compression: 'zstd' })
+    const adapter = new MockAdapter(phase === 'write' ? [textResponse('The book is ready.'), textResponse(answer)]
+      : [toolCallResponse('read-pattern', 'read_side_context', {}), textResponse('Use Silver Birch.')])
+    const { controller } = await mountConversationHost(ctx, adapter)
+    if (phase === 'write') {
+      const { sessionId: parent } = await controller.create({ cwd: workspace })
+      const main = ctx.agents.get(parent)!
+      main.followup(createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'Write the book.' }] }))
+      await main.whenIdle()
+      const declaration = adapter.requests[0]?.tools?.find(tool => tool.name === 'read_side_context')
+      expect(declaration).toBeDefined()
+      const opened = await controller.aside({ sessionId: parent, kind: 'side' })
+      const side = ctx.agents.get(opened.sessionId)!
+      side.followup(createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: 'Name the cover pattern.' }] }))
+      await side.whenIdle()
+      expect(await ctx.sessions.flush(main.session)).toBe(true)
+      expect(await ctx.sessions.flush(side.session)).toBe(true)
+      await writeFile(receipt, JSON.stringify({ parent, declaration }))
+      return
+    }
+    const { parent, declaration } = JSON.parse(await readFile(receipt, 'utf8')) as { parent: SessionId; declaration: object }
+    const [side] = (await ctx.sessionQuery.listSessions()).filter(entry => entry.header.parentSession === parent)
+    if (!side) throw new Error('Released side discussion is missing')
+    using before = await ctx.sessionQuery.observeSession(side.header.id)
+    if (phase === 'read') {
+      await controller.prompt({ sessionId: parent, requestId: brandString<Branded<'session-request-id'>>('read-saved-side'),
+        mode: 'queue', content: [{ type: 'text', text: 'Read the side conversation for the pattern.' }] }, new AbortController().signal)
+      const writer = ctx.agents.get(parent)!
+      await writer.whenIdle()
+      expect(adapter.requests).toHaveLength(2)
+      expect(adapter.requests[0]?.tools?.find(tool => tool.name === 'read_side_context')).toEqual(declaration)
+      expect(JSON.stringify(adapter.requests[0]?.messages)).not.toContain(answer)
+      expect(JSON.stringify(adapter.requests[1]?.messages)).toContain(answer)
+      expect(await ctx.sessions.flush(writer.session)).toBe(true)
+    } else expect(adapter.requests).toHaveLength(0)
+    using main = await ctx.sessionQuery.observeSession(parent)
+    const reads = main.events.filter(event => event.type === 'tool/result')
+    expect(reads).toHaveLength(1)
+    expect(JSON.stringify(reads[0]?.data.message.content)).toContain(answer)
+    expect(ctx.agents.get(side.header.id)).toBeUndefined()
+    using after = await ctx.sessionQuery.observeSession(side.header.id)
+    expect(after.events).toEqual(before.events)
+  } finally { await ctx.fiber.dispose() }
+}, 30_000)
 
 it('continues a released side conversation with fresh completed parent context after a cold start', async () => {
   const ctx = new Context()
