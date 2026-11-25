@@ -30871,10 +30871,67 @@ index 435c9556d378521c69fa471a3b0bef2934d4cd0f..6a8fd1ce0181a5f66c95f28b77507aa6
          await dialog.getByRole('button', { name: '远程连接', exact: true }).click()
          const section = dialog.getByRole('region', { name: '远程连接', exact: true })
 diff --git a/apps/web/tests/settings-appearance.e2e.ts b/apps/web/tests/settings-appearance.e2e.ts
-index ec2451dec4a9eb3261745539bf2112afc8f6d620..c993f413c9ece16158da6d2d94dbb560ab33ac2a 100644
+index ec2451dec4a9eb3261745539bf2112afc8f6d620..72e68d4ee24f5b41800b28c1bae76e9df11fe75a 100644
 --- a/apps/web/tests/settings-appearance.e2e.ts
 +++ b/apps/web/tests/settings-appearance.e2e.ts
-@@ -109,7 +109,7 @@ it('shows complete English settings navigation across sidebar and narrow layouts
+@@ -44,6 +44,39 @@ function rowGeometry(control: Locator) {
+   })
+ }
+ 
++it('restores the sunrise preference and saved city after reopening settings', async () => {
++  const scaffold = await launchWebScaffold({ developerTools: false,
++    extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
++  onTestFinished(() => scaffold.close())
++  const browser = await chromium.launch()
++  onTestFinished(() => browser.close())
++  const page = await browser.newPage({ locale: 'zh-CN', viewport: { width: 1200, height: 900 } })
++  await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
++  await openSettings(page, 'zh')
++  const dialog = page.getByRole('dialog', { name: '设置', exact: true })
++  const sun = dialog.getByRole('radio', { name: /日出日落/u })
++  await expect.poll(() => sun.getAttribute('aria-checked')).toBe('true')
++  expect(await dialog.getByRole('radio').filter({ hasText: /日出日落|跟随系统|浅色|深色/u }).count()).toBe(4)
++  await dialog.getByRole('button', { name: '位置' }).click()
++  await page.getByRole('menuitem', { name: '北京', exact: true }).click()
++  await expect.poll(() => dialog.getByText(/按北京估算/u).count()).toBe(1)
++  await page.reload({ waitUntil: 'load' })
++  await openSettings(page, 'zh')
++  await expect.poll(() => sun.getAttribute('aria-checked')).toBe('true')
++  await expect.poll(() => dialog.getByText(/按北京估算/u).count()).toBe(1)
++  await page.setViewportSize({ width: 390, height: 844 })
++  await dialog.getByRole('radio', { name: /始终深色/u }).click()
++  await expect.poll(() => page.locator('body').getAttribute('data-ds-dark-theme')).not.toBeNull()
++  const shots = process.env.DSH_SETTINGS_NAV_SCREENSHOTS
++  if (shots) {
++    await mkdir(shots, { recursive: true })
++    await sun.click()
++    await dialog.screenshot({ path: join(shots, 'sun-390.png') })
++    await page.setViewportSize({ width: 1200, height: 900 })
++    await dialog.screenshot({ path: join(shots, 'sun-1200.png') })
++  }
++})
++
+ it('shows complete English settings navigation across sidebar and narrow layouts', async () => {
+   const scaffold = await launchWebScaffold({ developerTools: false })
+   onTestFinished(() => scaffold.close())
+@@ -62,11 +95,12 @@ it('shows complete English settings navigation across sidebar and narrow layouts
+   for (const palette of ['light', 'dark'] as const) {
+     await page.setViewportSize({ width: 1200, height: 1000 })
+     await navigation.getByRole('button', { name: 'General', exact: true }).click()
+-    await dialog.getByRole('button', { name: palette === 'light' ? 'Light' : 'Dark', exact: true }).click()
++    await dialog.getByRole('radio', { name: palette === 'light' ? /^Light/ : /^Dark/ }).click()
+     await expect.poll(() => page.evaluate(() => document.body.hasAttribute('data-ds-dark-theme'))).toBe(palette === 'dark')
+-    const themeTops = await Promise.all(['Light', 'Dark', 'System'].map(name =>
+-      dialog.getByRole('button', { name, exact: true }).evaluate(button => button.getBoundingClientRect().top)))
+-    expect(Math.max(...themeTops) - Math.min(...themeTops), `${palette} desktop appearance row`).toBeLessThan(1)
++    const cards = dialog.getByRole('radiogroup').getByRole('radio')
++    expect(await cards.count()).toBe(4)
++    const selectedTheme = dialog.locator('[data-theme-card=' + palette + ']')
++    await expect.poll(() => selectedTheme.getAttribute('aria-checked')).toBe('true')
+     if (screenshots) await dialog.screenshot({ path: join(screenshots, `english-general-${palette}.png`) })
+     await navigation.getByRole('button', { name: 'Remote connection', exact: true }).click()
+     const selected = await navigation.getByRole('button', { name: 'Remote connection', exact: true }).elementHandle()
+@@ -109,7 +143,7 @@ it('shows complete English settings navigation across sidebar and narrow layouts
          })
          expect(reachable, `${palette} ${width}px ${label.label}`).toBe(true)
          expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
@@ -30883,7 +30940,7 @@ index ec2451dec4a9eb3261745539bf2112afc8f6d620..c993f413c9ece16158da6d2d94dbb560
            await dialog.screenshot({ path: join(screenshots, `english-presets-${palette}.png`) })
          }
        }
-@@ -269,7 +269,7 @@ it('shares settings card materials and control sizes in both palettes', async ()
+@@ -269,7 +303,7 @@ it('shares settings card materials and control sizes in both palettes', async ()
      await compareOrRefreshGolden(join(EXPECTED, 'account.expected.md'),
        await captureStableAria(page, 'section[aria-label="账号与余额"]', scaffold.workspaceCwd), webSnapshotMode())
  
@@ -31712,10 +31769,15 @@ index 0000000000000000000000000000000000000000..072c97453e9732df96021abc4c74d1fb
 +  expect(desktop.state.getSnapshot()).toBe(false)
 +})
 diff --git a/packages/client/ui-settings-account/tests/account.client.spec.tsx b/packages/client/ui-settings-account/tests/account.client.spec.tsx
-index dd93b8fa7956658f90ad9d7876619fe894aee2b5..6bb952f4e40acf5391816556af7cb03be0ca3aac 100644
+index dd93b8fa7956658f90ad9d7876619fe894aee2b5..2ef8190c549bf5cc72888e3bfc74076acefd5c67 100644
 --- a/packages/client/ui-settings-account/tests/account.client.spec.tsx
 +++ b/packages/client/ui-settings-account/tests/account.client.spec.tsx
-@@ -25,8 +25,10 @@ const themeOf = (colorScheme: 'light' | 'dark'): ThemeSnapshot => ({
+@@ -21,12 +21,14 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals() })
+ 
+ /** One resolved theme snapshot per scheme; the slot's theme hook serves these in the application. */
+ const themeOf = (colorScheme: 'light' | 'dark'): ThemeSnapshot => ({
+-  preference: colorScheme, fontSizes: { text: 14, code: 11, terminal: 13 }, fontFamilies: { text: '', code: '', terminal: '' },
++  preference: colorScheme, sunLocation: 'auto', fontSizes: { text: 14, code: 11, terminal: 13 }, fontFamilies: { text: '', code: '', terminal: '' },
    active: { id: colorScheme, colorScheme, tokens: {} }, themes: [], revision: 0,
  })
  
@@ -40138,3 +40200,3070 @@ index 5d16769ab4062aa2c8c6acadf713ab625c8dc9f5..de9ea59ded08da23e57abf5a10435aee
 -  console.log('desktop pnpm: offline installation and Electron Node package script passed')
 +  console.log('desktop pnpm: offline installation and Host Node package script passed')
  }
+diff --git a/apps/desktop/src/preload-theme.ts b/apps/desktop/src/preload-theme.ts
+index 5091984fdb01f3dbeff89db56ff96ffb2f003362..f26bed4d92157783c26ab3ed8aae5414a204e216 100644
+--- a/apps/desktop/src/preload-theme.ts
++++ b/apps/desktop/src/preload-theme.ts
+@@ -6,6 +6,9 @@ import { DESKTOP_IPC } from './ipc.ts'
+ /** Root attribute written by the Web UI's theme bootstrap and presenter (ui-theme / ui-layout). */
+ const THEME_SOURCE_ATTRIBUTE = 'data-ds-theme-source'
+ 
++/** Root attribute marking a running light/dark view transition (ui-layout's theme presenter). */
++const THEME_REVEAL_ATTRIBUTE = 'data-dsh-theme-reveal'
++
+ /**
+  * Watches `html[data-ds-theme-source]` and forwards each value to the main
+  * process, which sets `nativeTheme.themeSource`. Native chrome and renderer
+@@ -14,17 +17,28 @@ const THEME_SOURCE_ATTRIBUTE = 'data-ds-theme-source'
+  * following the OS; the macOS sidebar vibrancy material is one such consumer.
+  * The main process reads the same value back as `shouldUseDarkColors` when a
+  * Platform login link needs the resolved palette.
++ *
++ * A light/dark change runs inside a view transition: the page repaints itself
++ * over the reveal, while the native title bar cannot animate at all. Forwarding
++ * the new source at the start of the transition therefore repaints the window
++ * buttons ahead of the content. The forward waits for the reveal to end, so
++ * the native chrome changes together with the palette it now matches.
+  */
+ export function syncNativeTheme(): void {
+   let sent: string | undefined
++  let pending: string | undefined
+   const send = (): void => {
+     const value = document.documentElement.getAttribute(THEME_SOURCE_ATTRIBUTE)
+-    if (value === null || value === sent) return
+-    sent = value
+-    ipcRenderer.send(DESKTOP_IPC.nativeThemeSet, value)
++    if (value !== null) pending = value
++    if (document.documentElement.hasAttribute(THEME_REVEAL_ATTRIBUTE)) return
++    if (pending === undefined || pending === sent) return
++    sent = pending
++    ipcRenderer.send(DESKTOP_IPC.nativeThemeSet, pending)
+   }
+   const observe = (): void => {
+-    new MutationObserver(send).observe(document.documentElement, { attributeFilter: [THEME_SOURCE_ATTRIBUTE] })
++    new MutationObserver(send).observe(document.documentElement, {
++      attributeFilter: [THEME_SOURCE_ATTRIBUTE, THEME_REVEAL_ATTRIBUTE],
++    })
+     send()
+   }
+   // The preload runs before the document root exists; the theme bootstrap
+diff --git a/apps/desktop/src/welcome-backend.ts b/apps/desktop/src/welcome-backend.ts
+index 1c8fd919d05f5372e0b4f8089a81024dfdbd54cf..9edba91845f66d44596042e7b455b5d38ed4ffd4 100644
+--- a/apps/desktop/src/welcome-backend.ts
++++ b/apps/desktop/src/welcome-backend.ts
+@@ -2,6 +2,7 @@ import type { ProductEvent } from '@deepseek-ai/dsh-client-product-analytics/typ
+ /** Native welcome operations using the shared Web authentication and RPC APIs. */
+ 
+ import { randomUUID } from 'node:crypto'
++import { isSunLocation, resolveSunCity, SUN_LOCATION_AUTO, sunPhase } from '@deepseek-ai/dsh-client-ui-theme/src/sun.ts'
+ import { desktopAccountBackend, type DesktopAccountBackend } from './account-backend.ts'
+ 
+ /** Metadata needed before the native entry or workspace becomes visible. */
+@@ -10,7 +11,7 @@ export interface WelcomeState {
+   readonly hasApiKey: boolean
+   readonly writable: boolean
+   readonly localePreference: string | null
+-  /** Effective Host theme preference; absent or invalid optional theme settings use system appearance. */
++  /** Native appearance at read time; sun uses the selected city, unavailable or invalid settings use the system. */
+   readonly themePreference: 'light' | 'dark' | 'system'
+ }
+ 
+@@ -90,8 +91,19 @@ export function connectDesktopWelcome(
+   const themePreference = (namespaces: unknown[]): WelcomeState['themePreference'] => {
+     const theme = namespaces.find(item => record(item) && item.ns === 'ui-theme')
+     if (theme === undefined) return 'system'
+-    const preference = record(theme) && record(theme.value) ? theme.value.preference : undefined
++    const appearance = record(theme) && record(theme.value) ? theme.value : undefined
++    const preference = appearance?.preference
+     if (preference === 'light' || preference === 'dark' || preference === 'system') return preference
++    if (preference === 'sun') {
++      const storedLocation = appearance?.sunLocation
++      const location = storedLocation === undefined ? SUN_LOCATION_AUTO : storedLocation
++      if (isSunLocation(location)) {
++        const at = Date.now()
++        const city = resolveSunCity(location, Intl.DateTimeFormat().resolvedOptions().timeZone, at)?.city
++        if (city === undefined) return 'system'
++        return sunPhase(at, city.latitude, city.longitude).daylight ? 'light' : 'dark'
++      }
++    }
+     console.warn('desktop appearance: invalid Host theme preference; using system appearance')
+     return 'system'
+   }
+diff --git a/apps/desktop/tests/preload-theme.client.spec.ts b/apps/desktop/tests/preload-theme.client.spec.ts
+index 2f0da9b97a595c7165691ab0f2ef46b9ab5b3dc1..7e07052c581076c792138d6289115ae6b0781712 100644
+--- a/apps/desktop/tests/preload-theme.client.spec.ts
++++ b/apps/desktop/tests/preload-theme.client.spec.ts
+@@ -22,6 +22,7 @@ afterEach(() => {
+   for (const observer of observers) observer.disconnect()
+   observers.clear()
+   document.documentElement.removeAttribute('data-ds-theme-source')
++  document.documentElement.removeAttribute('data-dsh-theme-reveal')
+   vi.unstubAllGlobals()
+   vi.restoreAllMocks()
+   send.mockClear()
+@@ -48,3 +49,20 @@ it('defers observation until the document root exists', () => {
+   window.dispatchEvent(new Event('DOMContentLoaded'))
+   expect(send).toHaveBeenCalledExactlyOnceWith(DESKTOP_IPC.nativeThemeSet, 'light')
+ })
++
++it('holds the native theme until a light/dark reveal ends', async () => {
++  vi.stubGlobal('MutationObserver', TrackedMutationObserver)
++  vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
++  document.documentElement.setAttribute('data-ds-theme-source', 'light')
++  syncNativeTheme()
++  expect(send).toHaveBeenCalledExactlyOnceWith(DESKTOP_IPC.nativeThemeSet, 'light')
++
++  document.documentElement.setAttribute('data-dsh-theme-reveal', 'circle')
++  document.documentElement.setAttribute('data-ds-theme-source', 'dark')
++  await vi.waitFor(() => { expect(document.documentElement.getAttribute('data-ds-theme-source')).toBe('dark') })
++  expect(send).toHaveBeenCalledTimes(1)
++
++  document.documentElement.removeAttribute('data-dsh-theme-reveal')
++  await vi.waitFor(() => { expect(send).toHaveBeenLastCalledWith(DESKTOP_IPC.nativeThemeSet, 'dark') })
++  expect(send).toHaveBeenCalledTimes(2)
++})
+diff --git a/apps/desktop/tests/welcome-host.spec.ts b/apps/desktop/tests/welcome-host.spec.ts
+index 5f96a75bd82f29fd9eb5a961d857b918f628a791..524252b66a8c7a07cc0a9e39daacdc3e23531117 100644
+--- a/apps/desktop/tests/welcome-host.spec.ts
++++ b/apps/desktop/tests/welcome-host.spec.ts
+@@ -52,6 +52,61 @@ describe('desktop welcome Web operations', () => {
+     } finally { warn.mockRestore() }
+   })
+ 
++  it.each([
++    { at: Date.UTC(2026, 10, 13, 4), expected: 'light' },
++    { at: Date.UTC(2026, 10, 13, 16), expected: 'dark' },
++  ])('resolves the selected sun city to $expected at $at', async ({ at, expected }) => {
++    const host = transport()
++    const theme = { preference: 'sun', sunLocation: 'beijing' }
++    host.namespaces.push({ ns: 'ui-theme', value: theme })
++    const clock = vi.spyOn(Date, 'now').mockReturnValue(at)
++    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
++    try {
++      expect(await connectDesktopWelcome(url, cookie, host.send).read()).toMatchObject({ themePreference: expected })
++      expect(warn).not.toHaveBeenCalled()
++    } finally { clock.mockRestore(); warn.mockRestore() }
++  })
++
++  it('observes sun location changes without recreating the welcome backend', async () => {
++    const host = transport()
++    const theme = { preference: 'sun', sunLocation: 'new-york' }
++    host.namespaces.push({ ns: 'ui-theme', value: theme })
++    const clock = vi.spyOn(Date, 'now').mockReturnValue(Date.UTC(2026, 10, 13, 4))
++    try {
++      const backend = connectDesktopWelcome(url, cookie, host.send)
++      expect(await backend.read()).toMatchObject({ themePreference: 'dark' })
++      theme.sunLocation = 'beijing'
++      expect(await backend.read()).toMatchObject({ themePreference: 'light' })
++    } finally { clock.mockRestore() }
++  })
++
++  it.each([
++    { zone: 'Asia/Shanghai', expected: 'light' },
++    { zone: 'Asia/Kathmandu', expected: 'system' },
++  ])('resolves an omitted sun location from $zone', async ({ zone, expected }) => {
++    const host = transport()
++    host.namespaces.push({ ns: 'ui-theme', value: { preference: 'sun' } })
++    const options = new Intl.DateTimeFormat().resolvedOptions()
++    const timezone = vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({ ...options, timeZone: zone })
++    const clock = vi.spyOn(Date, 'now').mockReturnValue(Date.UTC(2026, 10, 13, 4))
++    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
++    try {
++      expect(await connectDesktopWelcome(url, cookie, host.send).read()).toMatchObject({ themePreference: expected })
++      expect(warn).not.toHaveBeenCalled()
++    } finally { timezone.mockRestore(); clock.mockRestore(); warn.mockRestore() }
++  })
++
++  it('keeps an invalid sun location visible as a configuration warning', async () => {
++    const host = transport()
++    const theme = { preference: 'sun', sunLocation: 'unknown-city' }
++    host.namespaces.push({ ns: 'ui-theme', value: theme })
++    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
++    try {
++      expect(await connectDesktopWelcome(url, cookie, host.send).read()).toMatchObject({ themePreference: 'system' })
++      expect(warn).toHaveBeenCalledOnce()
++    } finally { warn.mockRestore() }
++  })
++
+   it('authenticates with the explicit Host cookie and stores only through the configured credential reference', async () => {
+     const host = transport()
+     const backend = connectDesktopWelcome(url, cookie, host.send)
+diff --git a/apps/desktop/tsconfig.host.json b/apps/desktop/tsconfig.host.json
+index 92ec6931656fd41423136e509ef4f54c02d7867e..f079e153c4c7c489eeb19dfe5a5c31f99830cb7a 100644
+--- a/apps/desktop/tsconfig.host.json
++++ b/apps/desktop/tsconfig.host.json
+@@ -44,6 +44,9 @@
+     {
+       "path": "../../packages/client/ui-settings-general/tsconfig.host.json"
+     },
++    {
++      "path": "../../packages/client/ui-theme/tsconfig.host.json"
++    },
+     {
+       "path": "../../packages/client/ui-file-actions"
+     }
+diff --git a/packages/client/ui-layout/src/client/theme-presenter.ts b/packages/client/ui-layout/src/client/theme-presenter.ts
+index b5e1e9064a5143c877360ef2a81679f6c0a3067a..6728c2ee51cba582f4234ae17c36ff1a285e2c1a 100644
+--- a/packages/client/ui-layout/src/client/theme-presenter.ts
++++ b/packages/client/ui-layout/src/client/theme-presenter.ts
+@@ -9,7 +9,10 @@
+  * for native-chrome mirroring, and one presenter-owned
+  * `meta[name="theme-color"]` for surrounding browser UI. Pure DOM writes, no
+  * React involvement; the presenter only ever retracts what it wrote itself,
+- * so foreign attributes, metadata, and inline styles survive.
++ * so foreign attributes, metadata, and inline styles survive. A light/dark
++ * change after the first apply runs inside a view transition: a circle spreads
++ * from a pointer press made within the last two seconds, otherwise the palettes
++ * cross-fade. Reduced motion and engines without view transitions switch at once.
+  */
+ import type { FontRole, ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
+ 
+@@ -21,9 +24,10 @@ export const DARK_ATTRIBUTE = 'data-ds-dark-theme'
+  * for host shells that mirror it into the native theme (the Electron preload
+  * forwards it to `nativeTheme.themeSource`, so native chrome, renderer
+  * `prefers-color-scheme` queries, and Platform login links follow the app
+- * palette on every platform). `system` only when the preference is `system`;
+- * a fixed preference (including registered theme ids) publishes its resolved
+- * scheme.
++ * palette on every platform). `system` only while the palette follows the
++ * operating system: the `system` preference, or `sun` without a location
++ * estimate; any other preference (including registered theme ids) publishes
++ * its resolved scheme.
+  */
+ export const THEME_SOURCE_ATTRIBUTE = 'data-ds-theme-source'
+ 
+@@ -44,6 +48,12 @@ const FONT_FAMILY_VARIABLES = {
+   terminal: '--dsh-font-family-terminal',
+ } as const satisfies Record<FontRole, string>
+ 
++/** Root attribute marking a running light/dark view transition: `circle` or `fade`. */
++export const THEME_REVEAL_ATTRIBUTE = 'data-dsh-theme-reveal'
++
++/** A pointer press this recent places the circle's center; an older one cross-fades instead. */
++const POINTER_ORIGIN_MS = 2000
++
+ /** Applies theme snapshots to the document; one instance per plugin fiber. */
+ export class ThemePresenter {
+   /** Token names this presenter wrote in the last apply (its retraction set). */
+@@ -51,11 +61,20 @@ export class ThemePresenter {
+   /** The single metadata node this presenter inserts and removes. */
+   private readonly themeColorMeta: HTMLMetaElement
+   private styleObserver: MutationObserver | undefined
++  /** Scheme written by the last apply; undefined before the first. */
++  private scheme: 'light' | 'dark' | undefined
++  private pointer: { x: number; y: number; at: number } | undefined
++  private reveal: ViewTransition | undefined
++  private revision = 0
++  private readonly press = (event: PointerEvent): void => {
++    this.pointer = { x: event.clientX, y: event.clientY, at: performance.now() }
++  }
+ 
+   /** Create the presenter-owned metadata node before the first snapshot arrives. */
+   constructor() {
+     this.themeColorMeta = document.createElement('meta')
+     this.themeColorMeta.name = 'theme-color'
++    document.addEventListener('pointerdown', this.press, { capture: true, passive: true })
+   }
+ 
+   /** Observe stylesheet installation and replacement after theme initialization. */
+@@ -79,10 +98,55 @@ export class ThemePresenter {
+    * @param snapshot - resolved theme snapshot from ctx.theme.
+    */
+   apply(snapshot: ThemeSnapshot): void {
++    const current = ++this.revision
++    this.reveal?.skipTransition()
++    this.reveal = undefined
++    this.clearReveal()
++    const previous = this.scheme
++    const scheme = snapshot.active.colorScheme
++    this.scheme = scheme
++    if (previous === undefined || previous === scheme || typeof document.startViewTransition !== 'function'
++      || (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches)) {
++      this.write(snapshot)
++      return
++    }
++    const root = document.documentElement
++    const pointer = this.pointer !== undefined && performance.now() - this.pointer.at < POINTER_ORIGIN_MS ? this.pointer : undefined
++    this.pointer = undefined
++    if (pointer === undefined) root.setAttribute(THEME_REVEAL_ATTRIBUTE, 'fade')
++    else {
++      const radius = Math.hypot(Math.max(pointer.x, innerWidth - pointer.x), Math.max(pointer.y, innerHeight - pointer.y))
++      root.setAttribute(THEME_REVEAL_ATTRIBUTE, 'circle')
++      root.style.setProperty('--dsh-theme-reveal-x', `${String(pointer.x)}px`)
++      root.style.setProperty('--dsh-theme-reveal-y', `${String(pointer.y)}px`)
++      root.style.setProperty('--dsh-theme-reveal-radius', `${String(Math.ceil(radius))}px`)
++    }
++    const transition = document.startViewTransition(() => { if (this.revision === current) this.write(snapshot) })
++    this.reveal = transition
++    // Skipping visual capture rejects ready independently of the completed state update.
++    void transition.ready.catch((_skippedTransition: unknown) => undefined)
++    void transition.updateCallbackDone.catch((error: unknown) => {
++      console.warn('Could not apply the theme:', error)
++    })
++    // A skipped transition can finish after its replacement has started.
++    void transition.finished.catch(() => undefined).finally(() => {
++      if (this.reveal !== transition) return
++      this.reveal = undefined
++      this.clearReveal()
++    })
++  }
++
++  private clearReveal(): void {
++    const root = document.documentElement
++    root.removeAttribute(THEME_REVEAL_ATTRIBUTE)
++    for (const name of ['--dsh-theme-reveal-x', '--dsh-theme-reveal-y', '--dsh-theme-reveal-radius']) root.style.removeProperty(name)
++  }
++
++  private write(snapshot: ThemeSnapshot): void {
+     const scheme = snapshot.active.colorScheme
++    const followsSystem = snapshot.preference === 'system' || (snapshot.preference === 'sun' && snapshot.sun === undefined)
+     document.documentElement.style.colorScheme = scheme
+-    document.documentElement.setAttribute(THEME_SOURCE_ATTRIBUTE,
+-      snapshot.preference === 'system' ? 'system' : scheme)
++    document.documentElement.setAttribute(THEME_SOURCE_ATTRIBUTE, followsSystem ? 'system' : scheme)
+     const body = document.body
+     if (scheme === 'dark') body.setAttribute(DARK_ATTRIBUTE, '')
+     else body.removeAttribute(DARK_ATTRIBUTE)
+@@ -110,11 +174,17 @@ export class ThemePresenter {
+ 
+   /**
+    * Retract root color-scheme, the theme-source attribute, the palette
+-   * attribute, token variables, the font sizes, font lists, and the owned metadata node.
++   * attribute, token variables, the font sizes, font lists, the owned metadata node,
++   * and any running light/dark transition.
+    */
+   dispose(): void {
+     this.styleObserver?.disconnect()
+     this.styleObserver = undefined
++    this.revision += 1
++    document.removeEventListener('pointerdown', this.press, { capture: true })
++    this.reveal?.skipTransition()
++    this.reveal = undefined
++    this.clearReveal()
+     document.documentElement.style.removeProperty('color-scheme')
+     document.documentElement.removeAttribute(THEME_SOURCE_ATTRIBUTE)
+     const body = document.body
+diff --git a/packages/client/ui-layout/tests/theme-presenter.client.spec.ts b/packages/client/ui-layout/tests/theme-presenter.client.spec.ts
+index 528bf6971f2c0522a51a6373e928f01fa408c247..7ca3d7f3e6724cddea6abf7b6714a65d66e8e59d 100644
+--- a/packages/client/ui-layout/tests/theme-presenter.client.spec.ts
++++ b/packages/client/ui-layout/tests/theme-presenter.client.spec.ts
+@@ -3,7 +3,9 @@
+ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+ import type { FontFamilies, ThemePreference, ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
+ import { fontFamilyVariable } from '@deepseek-ai/dsh-client-ui-theme/src/theme-settings.ts'
+-import { DARK_ATTRIBUTE, THEME_SOURCE_ATTRIBUTE, ThemePresenter } from '@deepseek-ai/dsh-client-ui-layout/src/client/theme-presenter.ts'
++import {
++  DARK_ATTRIBUTE, THEME_REVEAL_ATTRIBUTE, THEME_SOURCE_ATTRIBUTE, ThemePresenter,
++} from '@deepseek-ai/dsh-client-ui-layout/src/client/theme-presenter.ts'
+ 
+ const LIGHT_THEME_COLOR = 'rgb(255, 255, 255)'
+ const DARK_THEME_COLOR = 'rgb(21, 21, 23)'
+@@ -17,7 +19,9 @@ function snapshot(
+ ): ThemeSnapshot {
+   // The presenter must key off colorScheme, not the id — keep them distinct.
+   const active = { id: `${colorScheme}-test`, colorScheme, tokens }
+-  return { preference, fontSizes: { text: fontSize, code: 11, terminal: 13 }, fontFamilies, active, themes: [active], revision: 1 }
++  return {
++    preference, sunLocation: 'auto', fontSizes: { text: fontSize, code: 11, terminal: 13 }, fontFamilies, active, themes: [active], revision: 1,
++  }
+ }
+ 
+ function clearThemePresentation(): void {
+@@ -46,6 +50,34 @@ beforeEach(() => {
+ afterEach(clearThemePresentation)
+ 
+ describe('ThemePresenter', () => {
++  it('ignores delayed theme writes after replacement or disposal', () => {
++    const updates: (() => void)[] = []
++    Object.assign(document, {
++      startViewTransition: (update: () => void) => {
++        updates.push(update)
++        return { ready: Promise.resolve(), updateCallbackDone: Promise.resolve(), finished: Promise.resolve(), skipTransition: vi.fn() }
++      },
++    })
++    vi.stubGlobal('matchMedia', () => ({ matches: false }))
++    const presenter = new ThemePresenter()
++    try {
++      presenter.apply(snapshot('light'))
++      presenter.apply(snapshot('dark'))
++      presenter.apply(snapshot('dark', {}, 20))
++      for (const update of updates.splice(0)) update()
++      expect(document.body.style.getPropertyValue('--dsh-content-font-size')).toBe('20px')
++      presenter.apply(snapshot('light'))
++      presenter.dispose()
++      for (const update of updates) update()
++      expect(document.documentElement.style.colorScheme).toBe('')
++      expect(themeColorMeta()).toBeNull()
++    } finally {
++      presenter.dispose()
++      Reflect.deleteProperty(document, 'startViewTransition')
++      vi.unstubAllGlobals()
++    }
++  })
++
+   it('light scheme sets root color-scheme and leaves the dark attribute absent', () => {
+     const presenter = new ThemePresenter()
+     presenter.apply(snapshot('light'))
+@@ -188,6 +220,96 @@ describe('ThemePresenter', () => {
+     expect(document.documentElement.hasAttribute(THEME_SOURCE_ATTRIBUTE)).toBe(false)
+   })
+ 
++  it('publishes system for the sun preference until it has a location estimate', () => {
++    const presenter = new ThemePresenter()
++    presenter.apply(snapshot('dark', {}, 14, 'sun'))
++    expect(document.documentElement.getAttribute(THEME_SOURCE_ATTRIBUTE)).toBe('system')
++    presenter.apply({ ...snapshot('dark', {}, 14, 'sun'), sun: { cityId: 'beijing', source: 'manual', daylight: false } })
++    expect(document.documentElement.getAttribute(THEME_SOURCE_ATTRIBUTE)).toBe('dark')
++    presenter.dispose()
++  })
++
++  it('handles a skipped capture without an unhandled rejection', async () => {
++    Object.assign(document, {
++      startViewTransition: (update: () => void) => {
++        update()
++        const ready = Promise.withResolvers<undefined>()
++        return {
++          ready: ready.promise, updateCallbackDone: Promise.resolve(), finished: Promise.resolve(),
++          skipTransition: () => { ready.reject(new DOMException('Transition was skipped', 'AbortError')) },
++        }
++      },
++    })
++    vi.stubGlobal('matchMedia', () => ({ matches: false }))
++    const presenter = new ThemePresenter()
++    try {
++      presenter.apply(snapshot('light'))
++      presenter.apply(snapshot('dark'))
++      presenter.apply(snapshot('light'))
++      expect(document.body.hasAttribute(DARK_ATTRIBUTE)).toBe(false)
++    } finally {
++      presenter.dispose()
++      Reflect.deleteProperty(document, 'startViewTransition')
++      vi.unstubAllGlobals()
++    }
++    await Promise.resolve()
++    expect(document.documentElement.hasAttribute(THEME_REVEAL_ATTRIBUTE)).toBe(false)
++  })
++
++  it('reports a failed theme update and releases the reveal', async () => {
++    const error = new Error('Theme update failed')
++    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
++    Object.assign(document, { startViewTransition: () => ({
++      ready: Promise.reject(error), updateCallbackDone: Promise.reject(error), finished: Promise.reject(error), skipTransition: vi.fn(),
++    }) })
++    vi.stubGlobal('matchMedia', () => ({ matches: false }))
++    const presenter = new ThemePresenter()
++    try {
++      presenter.apply(snapshot('light'))
++      presenter.apply(snapshot('dark'))
++      await vi.waitFor(() => { expect(document.documentElement.hasAttribute(THEME_REVEAL_ATTRIBUTE)).toBe(false) })
++      expect(warning).toHaveBeenCalledExactlyOnceWith('Could not apply the theme:', error)
++    } finally {
++      presenter.dispose()
++      warning.mockRestore()
++      Reflect.deleteProperty(document, 'startViewTransition')
++      vi.unstubAllGlobals()
++    }
++  })
++
++  it('runs a light/dark change in a view transition: a circle from a recent press, a fade otherwise', async () => {
++    const transitions: { finished: PromiseWithResolvers<undefined> }[] = []
++    Object.assign(document, {
++      startViewTransition: vi.fn((update: () => void) => {
++        update()
++        const finished = Promise.withResolvers<undefined>()
++        transitions.push({ finished })
++        return { ready: Promise.resolve(), updateCallbackDone: Promise.resolve(), finished: finished.promise, skipTransition: vi.fn() }
++      }),
++    })
++    vi.stubGlobal('matchMedia', () => ({ matches: false }))
++    try {
++      const presenter = new ThemePresenter()
++      presenter.apply(snapshot('light'))
++      expect(transitions).toHaveLength(0)
++      presenter.apply(snapshot('dark'))
++      expect(document.documentElement.getAttribute(THEME_REVEAL_ATTRIBUTE)).toBe('fade')
++      expect(document.body.hasAttribute(DARK_ATTRIBUTE)).toBe(true)
++      transitions[0]?.finished.resolve(undefined)
++      await vi.waitFor(() => { expect(document.documentElement.hasAttribute(THEME_REVEAL_ATTRIBUTE)).toBe(false) })
++      document.dispatchEvent(new MouseEvent('pointerdown', { clientX: 12, clientY: 34 }))
++      presenter.apply(snapshot('light'))
++      expect(document.documentElement.getAttribute(THEME_REVEAL_ATTRIBUTE)).toBe('circle')
++      expect(document.documentElement.style.getPropertyValue('--dsh-theme-reveal-x')).toBe('12px')
++      presenter.dispose()
++      expect(document.documentElement.hasAttribute(THEME_REVEAL_ATTRIBUTE)).toBe(false)
++      expect(document.documentElement.style.getPropertyValue('--dsh-theme-reveal-x')).toBe('')
++    } finally {
++      Reflect.deleteProperty(document, 'startViewTransition')
++      vi.unstubAllGlobals()
++    }
++  })
++
+   it('dispose removes color-scheme, the attribute, the font-size axis, and every applied variable, sparing foreign inline styles', () => {
+     document.body.style.setProperty('--foreign', 'kept')
+     const presenter = new ThemePresenter()
+diff --git a/packages/client/ui-theme/README.i18n.yaml b/packages/client/ui-theme/README.i18n.yaml
+index a8f01b8a2bd3f1f7ef46100c87cb79bf470a1521..aef32e0ccae72c641850967304705696927f86d3 100644
+--- a/packages/client/ui-theme/README.i18n.yaml
++++ b/packages/client/ui-theme/README.i18n.yaml
+@@ -9,32 +9,32 @@
+   en: 06c7d7624947a72a
+   zh: ac4ca82984564825
+ /deepseek-ai-dsh-client-ui-theme/summary:
+-  en: d9832b31c4cb3ca4
+-  zh: f2ec42bb5ae66188
++  en: 37ed04c2ccc07961
++  zh: 326dfd2ab0c97327
+ /deepseek-ai-dsh-client-ui-theme/table-of-contents:
+   en: d152484eb41ac6b4
+   zh: 09388d293f9be9cb
+ /deepseek-ai-dsh-client-ui-theme/use-this-package:
+-  en: 5a279269e31713c1
+-  zh: dcd5c31fbdfd63e2
++  en: b11bced0a58499d2
++  zh: 4d1e6e6befa9dcbe
+ /deepseek-ai-dsh-client-ui-theme/use-this-package/appearance-and-font-size:
+-  en: 7dff01929847efd1
+-  zh: ec04b4c4485aba96
++  en: efcb61401d80158c
++  zh: 743ebb376c4240a0
+ /deepseek-ai-dsh-client-ui-theme/use-this-package/fonts:
+-  en: b45d5b48ca799c3a
+-  zh: af65514b3759204f
++  en: ac01c084971aff51
++  zh: fc46c032a6dc3162
+ /deepseek-ai-dsh-client-ui-theme/use-this-package/registering-a-theme:
+   en: 5244fc168d0a03f8
+   zh: c7ab12fdf8c6c55b
+ /deepseek-ai-dsh-client-ui-theme/use-this-package/pre-plugin-palette:
+-  en: 18f62cd5e6d32570
+-  zh: 728ddd17d7610470
++  en: 6fbd2f37c0f1eeae
++  zh: c2b4360eb60c8a1b
+ /deepseek-ai-dsh-client-ui-theme/understand-the-implementation:
+-  en: 875bd262240187c1
+-  zh: 32ffb98f502ed042
++  en: 24ac886ce704b1c6
++  zh: 52c15ae4b896acef
+ /deepseek-ai-dsh-client-ui-theme/understand-the-implementation/stylesheets:
+-  en: 148903d8cd6580f5
+-  zh: 7ff2ff90954798b8
++  en: 610215f77a2f0778
++  zh: 83f28385f7d2247c
+ /deepseek-ai-dsh-client-ui-theme/understand-the-implementation/scrollbar-rebinding:
+   en: 3448f0857e398018
+   zh: 0b5078286134b8e9
+@@ -42,8 +42,8 @@
+   en: b1f0b0bce5e53bae
+   zh: 26ded298f85834ae
+ /deepseek-ai-dsh-client-ui-theme/further-exploration:
+-  en: 7d5b953aaeeaf591
+-  zh: ff4bccb0f196f2b9
++  en: 86e0be5b9137a796
++  zh: 54da8f86b5873304
+ /deepseek-ai-dsh-client-ui-theme/model-experience:
+   en: 3120df665299c634
+   zh: 1d9f365d091d0d2a
+diff --git a/packages/client/ui-theme/README.md b/packages/client/ui-theme/README.md
+index d49f0b138a40879cb74a947d4ddaf916eab34d23..c823e3c1809c976b190259372a34bee38971a782 100644
+--- a/packages/client/ui-theme/README.md
++++ b/packages/client/ui-theme/README.md
+@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
+ 
+ ## Summary
+ 
+-`dsh-client-ui-theme` lets Web GUI users choose `light`, `dark`, or `system`, and set the font and font size of text, code, and the terminal separately in Settings. Every authenticated browser stores these values in the `ui-theme` settings namespace, which the local provider persists in `$DSH_HOME/cordis.patch.yml` by default. The plugin resolves `system` through `prefers-color-scheme` and publishes immutable `ThemeSnapshot`s; ui-layout applies each snapshot to the document. The package also ships the `--dsw-*` token stylesheets and injects a synchronous bootstrap so the selected palette, font size, and fonts apply before the shell loads. Third-party themes can register alias-token overrides through `ctx.theme`.
++`dsh-client-ui-theme` lets Web GUI users choose `sun` (sunrise and sunset, the default), `system`, `light`, or `dark`, and set the font and font size of text, code, and the terminal separately in Settings. Every authenticated browser stores these values in the `ui-theme` settings namespace, which the local provider persists in `$DSH_HOME/cordis.patch.yml` by default. The plugin resolves `system` through `prefers-color-scheme` and `sun` through the estimated daylight of a location, and publishes immutable `ThemeSnapshot`s; ui-layout applies each snapshot to the document. The package also ships the `--dsw-*` token stylesheets and injects a synchronous bootstrap so the selected palette, font size, and fonts apply before the shell loads. Third-party themes can register alias-token overrides through `ctx.theme`. Every row this package contributes renders through the shared preference row, so the theme choices sit in the same cell as the other Settings controls.
+ 
+ ## Table of Contents
+ 
+@@ -25,18 +25,20 @@ English | [中文](README.zh.md)
+ <a id="use-this-package"></a>
+ ## Use this package
+ 
++The sunrise/sunset location selector uses the shared application menu. Running-reasoning text, its whale icon and shimmer follow the current mode accent in both light and dark themes.
++
+ Users switch the color scheme, font sizes, and fonts from rows in Settings (General section); the choices persist across restarts in every authenticated browser. Feature plugins consume the current snapshot through `ctx.theme` and read the `--dsw-*` tokens in CSS; they do not manage theme state themselves.
+ 
+ ### Appearance and font size
+ 
+-In narrow browser settings, the three Appearance choices share one row and font-size labels use a smaller gutter. At viewport widths up to 767 CSS px, including narrow desktop windows, font-family rows stack each title, description, and full-width field vertically. Font-size steppers stay to the right of their labels. Wider viewports retain horizontal font-family rows. Windows and macOS desktop windows retain wrapping Appearance choices and standard font-size label spacing. Font-family fields use 16 px text on devices with a coarse primary pointer.
+-
+-The plugin registers Appearance preference cubes and the text font-size stepper in the General section. A More font settings button after the stepper expands a region below it, collapsed on every settings open, with a font row for each of text, code, and the terminal, plus the code and terminal font-size steppers. The text stepper accepts integer values from 10 through 22 px and defaults to 14 px. It changes conversation headings and base text by the same increment, including the user bubble and composer draft; flow-row titles, summaries, and tables follow one step under the body size, while small text keeps a fixed size. The code stepper (10–16 px, default 11) sets the code-block size; inline code stays 1 px larger, and the small tool-output variant uses the same size. The terminal stepper (10–20 px, default 13) sets the sidebar terminal cell font size; changing it keeps the shell and output and refits the grid. Each accepted change writes through the Host settings API. Rapid changes serialize in gesture order with namespace revisions, and a rejected latest write reloads the durable values.
++The plugin registers four Appearance preview cards and the text font-size stepper in the General section. Each card previews the palettes it can show, light beside dark for `sun` and `system`, and the selected card carries the accent border and a filled radio. Choosing `sun` reveals its location picker: `auto` uses the representative city of the browser's time zone, or of a listed zone with the same UTC offset, and every listed city can be chosen instead. The row states which city the estimate uses and today's estimated sunrise and sunset. A time zone names a region rather than a position, so the times are estimates for that city; a zone that matches no city follows `system` until a city is chosen. The runtime rechecks at each estimated sunrise and sunset, at least every six hours, and whenever the page becomes visible or focused. A More font settings button after the stepper expands a region below it, collapsed on every settings open, with a font row for each of text, code, and the terminal, plus the code and terminal font-size steppers. The text stepper accepts integer values from 10 through 22 px and defaults to 14 px. It changes conversation headings and base text by the same increment, including the user bubble and composer draft; flow-row titles, summaries, and tables follow one step under the body size, while small text keeps a fixed size. The code stepper (10–16 px, default 11) sets the code-block size; inline code stays 1 px larger, and the small tool-output variant uses the same size. The terminal stepper (10–20 px, default 13) sets the sidebar terminal cell font size; changing it keeps the shell and output and refits the grid. Each accepted change writes through the Host settings API. Rapid changes serialize in gesture order with namespace revisions, and a rejected latest write reloads the durable values.
+ 
+ Desktop's fixed `Cmd`/`Ctrl` + `+` (or `=`) and `Cmd`/`Ctrl` + `-` shortcuts change the text, code, and terminal font sizes together by 1 px, each within its own range. Each physical key press saves the changed fields in one settings mutation; holding a key does not repeat the adjustment. The actions appear in the shortcut reference and work in the main document, including dialogs and text inputs, unless a local control consumes the input; terminal input retains its own key handling. Web retains the browser's zoom shortcuts.
+ 
+ ### Fonts
+ 
++Font-family fields share the Settings row and stack below their copy at viewport widths of 767px and below. Wider layouts keep them beside the copy, while font-size steppers stay on the right at every width. Resizing retains focus and uncommitted text.
++
+ Three rows set the text font (interface and conversation text), the code font (code blocks, inline code, and other `--ds-font-family-code` text), and the sidebar terminal font independently. Each field takes comma-separated family names and commits on blur or Enter; an empty field restores the built-in stack. The service normalizes each list by dropping quotes, backslashes, angle brackets, and control characters and double-quoting every name except CSS generic families, then stores it in `textFontFamily`, `codeFontFamily`, or `terminalFontFamily`. The user list precedes the role's built-in stack, so a font missing on the machine falls back to the default. The field accepts any installed font name; it does not enumerate local fonts.
+ 
+ ### Registering a theme
+@@ -45,14 +47,16 @@ A composition can register a third-party theme id with alias-token overrides thr
+ 
+ ### Pre-plugin palette
+ 
+-When the host composition includes an HTTP server, the host half embeds the registered `ui-theme` settings, or schema defaults, into each index response. Head CSS selects the document canvas color scheme before any script runs, including a `prefers-color-scheme` query for the `system` preference. A body script then sets `body[data-ds-dark-theme]`, `--dsh-content-font-size`, `--dsh-code-font-size`, `--dsh-terminal-font-size`, and each non-empty `--dsh-font-family-<role>` list before the loading page and application scripts, so the first paint uses the selected palette and text and code sizes, and `ThemeRuntime` starts from the saved preference, sizes, and fonts instead of rendering the defaults first.
++When the host composition includes an HTTP server, the host half embeds the registered `ui-theme` settings, or schema defaults, into each index response. Head CSS selects the document canvas color scheme before any script runs, including a `prefers-color-scheme` query for the `system` preference. For `sun`, the Host estimates daylight intervals around the render instant for its own time zone or the chosen city and embeds them; the body script classifies the browser's current time against them, and without a match the bootstrap follows `system`. A body script then sets `body[data-ds-dark-theme]`, `--dsh-content-font-size`, `--dsh-code-font-size`, `--dsh-terminal-font-size`, and each non-empty `--dsh-font-family-<role>` list before the loading page and application scripts, so the first paint uses the selected palette and text and code sizes, and `ThemeRuntime` starts from the saved preference, sizes and fonts instead of rendering the defaults first.
+ 
+ -----
+ 
+ <a id="understand-the-implementation"></a>
++A low-specificity motion rule supplies short paint transitions to buttons, tabs, tree rows, links and text inputs. Specialized controls keep their own transitions. Mode selection spreads the new accent from its control with a brief saturation highlight; reduced motion bypasses these effects.
++
+ ## Understand the implementation
+ 
+-Shared menus use `--dsw-menu-surface-fill` and blur through `MenuSurface`; platform code must preserve those token values. Sticky menu group headings can use `--dsw-alias-menu-group-header-fill`, a 94%-opaque light or dark fill, independently of the menu material. Other overlays consume `--dsw-specific-menu`, which keeps a nearly opaque macOS fill without a menu backing. The enforced source rules are defined in the [styling reference](../../../docs/web-styling.md#component-rules). Modal masks retain their dark translucent fill without background blur.
++Shared menus use `--dsw-menu-surface-fill` and blur through `MenuSurface`; platform code must preserve those token values. Sticky menu group headings can use `--dsw-alias-menu-group-header-fill`, a 94%-opaque light or dark fill, independently of the menu material. Other overlays consume `--dsw-specific-menu`, which keeps a nearly opaque macOS fill without a menu backing. Modal masks retain their dark translucent fill without background blur.
+ 
+ <details>
+ <summary>Implementation internals — click to expand</summary>
+@@ -65,9 +69,11 @@ The service owns theme, font-size, and font-family state and publishes snapshots
+ 
+ The style installer publishes `--dsh-hairline-width` on the document root and updates it through one device-pixel-ratio listener when the document has a window. Documents without a window receive the stylesheets and use the CSS fallback width. Its width matches a 0.5px border rounded down to whole device pixels, with a one-device-pixel minimum. Only styles that explicitly consume this variable use the width; plugin disposal releases the listener and restores the previous root declaration.
+ 
+-`base.css` owns the shared radius scale, the font tokens, and settings-card material aliases. `--dsh-font-family-text-default` and `--dsh-font-family-code-default` hold the built-in stacks on `:root`; on `body`, `--dsw-font-family` and `--ds-font-family-code` place `--dsh-font-family-text` and `--dsh-font-family-code` ahead of those stacks, and an unset list resolves to the built-in stack (repeated once, which font matching ignores). The material aliases resolve on `body`, alongside the active palette. Follow [Web styling](../../../docs/web-styling.md#corner-radii-and-settings-cards) when choosing component radii.
++`base.css` owns the shared radius scale, the font tokens, and settings-card material aliases. `--dsh-font-family-text-default` and `--dsh-font-family-code-default` hold the built-in stacks on `:root`; on `body`, `--dsw-font-family` and `--ds-font-family-code` place `--dsh-font-family-text` and `--dsh-font-family-code` ahead of those stacks, and an unset list resolves to the built-in stack (repeated once, which font matching ignores). The material aliases resolve on `body`, alongside the active palette.
++
++`src/styles/` holds ten sheets imported in order by ui-theme's dynamic client entry: `base.css`, `corner-shape.css`, `design-platform.css`, `mode-accent.css`, `motion.css`, `focus.css`, `onboarding.css`, `scrollbar.css`, `gradient-shadow-text.css`, and `shiki.css`. The client bundle compiles and injects them as plugin-owned global styles, so unload and HMR remove them with ui-theme. `scrollbar.css` consumes the `--dsw-alias-scrollbar-*` tokens and must follow `design-platform.css`, which declares them. Status marks use their own semantic state tokens. `--dsw-alias-bg-document-selection` supplies selection fills over original document colors; the active mode palette can override it. `design-platform.css` also owns the code-diff fill aliases and their static alpha palette entries, plus the `--dsw-alias-file-diff-*` code, gutter, and marker palette for file comparisons; `shiki.css` owns syntax colors.
+ 
+-`src/styles/` holds eight sheets imported in order by ui-theme's dynamic client entry: `base.css`, `corner-shape.css`, `design-platform.css`, `focus.css`, `onboarding.css`, `scrollbar.css`, `gradient-shadow-text.css`, and `shiki.css`. The client bundle compiles and injects them as plugin-owned global styles, so unload and HMR remove them with ui-theme. `scrollbar.css` consumes the `--dsw-alias-scrollbar-*` tokens and must follow `design-platform.css`, which declares them. Status marks use their own semantic state tokens; `--dsw-alias-state-done-primary` marks finished work, such as a merged change request, with violet-600 in the light palette and violet-400 in the dark palette. `--dsw-alias-bg-document-selection` uses blue-500 at 40% opacity in both themes for selections over original document colors. `design-platform.css` also owns the code-diff fill aliases and their static alpha palette entries, plus the `--dsw-alias-file-diff-*` code, gutter, and marker palette for file comparisons; `shiki.css` owns syntax colors.
++`base.css` also holds the four conversation-mode palettes (`--dsw-brand-*` marker colors with their `-ink`, and `--dsw-mode-<mode>-accent`, `-accent-dark`, `-press`, and `-press-dark`). [`mode-accent.css`](src/styles/mode-accent.css) maps them onto the platform accent while `body[data-dsh-mode]` names a mode: `--dsw-alias-state-business-primary`, the brand accent, the info button fill and hover, and the tinted tertiary and sidebar-active fills follow the mode, so selection, focus rings, the model badge, and the send button change together. `ui-agent-preset` writes that attribute for the main view's conversation, including a mode picked for a new conversation; without it every token keeps its platform value. The intermediate colors are registered `<color>` properties transitioning on `body`, so a mode or light/dark change fades every use at once; `html[data-dsh-mode-reveal]` and `html[data-dsh-theme-reveal]` suspend that fade while a view transition captures the final colors. `mode-accent.css` animates the circle that spreads a changed mode, and [`motion.css`](src/styles/motion.css) the circle or cross-fade of a light/dark change that ui-layout's presenter starts. Reduced motion disables the fade.
+ 
+ [`focus.css`](src/styles/focus.css) provides a `:focus-visible` fallback that names the ring colour through `var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary))` and the standard width through `--dsw-focus-ring-width`, never the outline style — so a control that disables its outline stays paintless, and one that declares no ring keeps the standard geometry instead of Chromium's `auto 1px`. The theme resolves this blue to `#4176E6` in light mode and `#7AAAFF` in dark mode. Component outlines and focus-ring shadows use the same colour expression, including rings on descendants and pseudo-elements. `--dsw-focus-ring-width` (2px) is the standard width; dense tables and toolbars may keep 1px, and offsets remain component-owned.
+ 
+@@ -89,7 +95,7 @@ The `--dsw-alias-turn-trigger-*` tokens provide separate resting and hover backg
+ 
+ `corner-shape.css` smooths every rounded corner: inside `@supports (corner-shape: superellipse(1.5))` it defines `--dsw-corner-shape` and applies it to all elements and their `::before`/`::after` through the universal selector, so engines without `corner-shape` keep circular corners. Full-round shapes — `border-radius: 50%` circles and pill radii — pair `corner-shape: round` with their radius in the owning component sheet because a superellipse deforms them; the corner-shape stylesheet spec enforces that pairing across every package stylesheet.
+ 
+-`gradient-shadow-text.css` derives `--dsh-content-font-delta` from `--dsh-content-font-size` and shifts the Markdown heading and base-text ladder by that increment. It also derives the secondary tier `--dsh-content-font-size-secondary` (setting −1 at ≤14, setting −2 above; 13px at the default) with its own `--dsh-content-font-delta-secondary` for the table variants and the flow rows one step under the body. Dense small variants stay fixed. The code variants (`--dsw-font-markdown-code`, `-code-block`, `-code-block-small`) shift size and line height by `--dsh-code-font-delta`, the difference between `--dsh-code-font-size` and 11 px. Outside the ladder, the user bubble and composer draft read the body pair directly, and flow-row titles and summaries read the secondary pair. The sheet also owns the shadow scale (`--dsw-shadow-lv*`), the translucent-menu `--dsw-menu-backdrop-filter`, and the elevation tokens: `--dsw-elevation-stroke` draws a 0.5px hairline through the rebindable `--dsw-elevation-stroke-color`, and `--dsw-elevation-panel`/`--dsw-elevation-prominent`/`--dsw-elevation-soft` (the composer's larger-blur, lower-alpha tier) layer two faint soft shadows over that stroke, so elevated surfaces set `border: 0` and carry no layout-consuming outline; the derived tokens are re-declared per element so a surface's stroke-color rebind takes effect. An elevated surface that paints `--dsw-specific-menu` also applies `backdrop-filter: var(--dsw-menu-backdrop-filter)` ([styling reference](../../../docs/web-styling.md#component-rules)). Light menus use a 70%-opaque fill and dark menus use a 64%-opaque fill; dark menus use the `border-l3` stroke and light menus use `border-l1`.
++`gradient-shadow-text.css` derives `--dsh-content-font-delta` from `--dsh-content-font-size` and shifts the Markdown heading and base-text ladder by that increment. It also derives the secondary tier `--dsh-content-font-size-secondary` (setting −1 at ≤14, setting −2 above; 13px at the default) with its own `--dsh-content-font-delta-secondary` for the table variants and the flow rows one step under the body. Dense small variants stay fixed. The code variants (`--dsw-font-markdown-code`, `-code-block`, `-code-block-small`) shift size and line height by `--dsh-code-font-delta`, the difference between `--dsh-code-font-size` and 11 px. Outside the ladder, the user bubble and composer draft read the body pair directly, and flow-row titles and summaries read the secondary pair. The sheet also owns the shadow scale (`--dsw-shadow-lv*`), the translucent-menu `--dsw-menu-backdrop-filter`, and the elevation tokens: `--dsw-elevation-stroke` draws a 0.5px hairline through the rebindable `--dsw-elevation-stroke-color`, and `--dsw-elevation-panel`/`--dsw-elevation-prominent`/`--dsw-elevation-soft` (the composer's larger-blur, lower-alpha tier) layer two faint soft shadows over that stroke, so elevated surfaces set `border: 0` and carry no layout-consuming outline; the derived tokens are re-declared per element so a surface's stroke-color rebind takes effect. An elevated surface that paints `--dsw-specific-menu` also applies `backdrop-filter: var(--dsw-menu-backdrop-filter)` ([styling reference](https://github.com/deepseek-ai/deepseek-harness/blob/66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db/docs/web-styling.md#component-rules)). Light menus use a 70%-opaque fill and dark menus use a 64%-opaque fill; dark menus use the `border-l3` stroke and light menus use `border-l1`.
+ 
+ `brand-font.css` references the bundled `montserrat-regular.woff2` / `montserrat-light.woff2` / `montserrat-medium.woff2`, Montserrat Regular, Light, and Medium under the SIL Open Font License shipped with the stylesheet and WOFF2 under `lib/styles/`. `--dsw-font-family-brand` selects this face for brand text; ordinary UI keeps the system font stack. The source is Google Fonts' Montserrat distribution. The Web entry imports the package's `./brand-font.css` export so Vite emits and resolves the font asset; the Web build also includes its license. The Web application, including Desktop onboarding, loads the font offline. The native credential welcome retains its system font.
+ 
+@@ -115,7 +121,6 @@ These pages cover the layout presenter, the token consumers, and the styling rul
+ - [ui-layout](../ui-layout/README.md) — the presenter that applies the resolved theme snapshot.
+ - [ui-sidebar](../ui-sidebar/README.md) — a consumer of the scrollbar rebinding contract.
+ - [ui-conversation](../ui-conversation/README.md) — a consumer of `--dsh-scrollbar-width` for the composer seat.
+-- [Web styling](../../../docs/web-styling.md) — the authoritative styling rules for web client components.
+ - [Authenticated-browser Host preferences](../../../.agents/notes/implemented/bug-fix/2026-09-15-authenticated-browser-host-preferences.md) — the persistence policy decision.
+ 
+ -----
+diff --git a/packages/client/ui-theme/README.zh.md b/packages/client/ui-theme/README.zh.md
+index 806a7c5e5785f98879ab188c4df54382f46fa3f8..5a0d09bcf3a0d02c4e9a34174d7bc2a0dcdca64e 100644
+--- a/packages/client/ui-theme/README.zh.md
++++ b/packages/client/ui-theme/README.zh.md
+@@ -9,7 +9,7 @@ kind: "package-reference"
+ 
+ ## 概述
+ 
+-`dsh-client-ui-theme` 让 Web GUI 用户在设置中选择 `light`、`dark` 或 `system`，并分别设置正文、代码与终端的字体和字号。每个已认证浏览器都把这些值存入 `ui-theme` 设置命名空间，本地提供方默认将其持久化到 `$DSH_HOME/cordis.patch.yml`。插件通过 `prefers-color-scheme` 解析 `system` 并发布不可变的 `ThemeSnapshot`；ui-layout 把每份快照应用到文档。本包还提供 `--dsw-*` token 样式表，并注入同步引导，使所选调色板、字号与字体在外壳加载前生效。第三方主题可通过 `ctx.theme` 注册别名 token 覆盖。
++`dsh-client-ui-theme` 让 Web GUI 用户在设置中选择 `sun`（日出日落，默认）、`system`、`light` 或 `dark`，并分别设置正文、代码与终端的字体和字号。每个已认证浏览器都把这些值存入 `ui-theme` 设置命名空间，本地提供方默认将其持久化到 `$DSH_HOME/cordis.patch.yml`。插件通过 `prefers-color-scheme` 解析 `system`，通过某一位置的估算日照解析 `sun`，并发布不可变的 `ThemeSnapshot`；ui-layout 把每份快照应用到文档。本包还提供 `--dsw-*` token 样式表，并注入同步引导，使所选调色板、字号与字体在外壳加载前生效。第三方主题可通过 `ctx.theme` 注册别名 token 覆盖。本包贡献的每一行走共享的偏好行，因此主题选项与设置页其余控件坐在同一种行里。
+ 
+ ## 目录
+ 
+@@ -25,18 +25,20 @@ kind: "package-reference"
+ <a id="use-this-package"></a>
+ ## 使用本包
+ 
++日出日落的位置选择器使用共享应用菜单。深度思考状态的文字、鲸尾图标与流光在浅色和深色主题下均跟随当前模式强调色。
++
+ 用户从设置（「通用」分区）的各行中切换配色方案、字号与字体；在每个已认证浏览器中，这些选择都会跨重启持久化。功能插件通过 `ctx.theme` 消费当前快照，并在 CSS 中读取 `--dsw-*` token；它们不自行管理主题状态。
+ 
+ ### 外观与字号
+ 
+-窄屏浏览器设置中，三个外观选项同排显示，字号标签使用较小的间距。视口宽度不超过 767 CSS px 时（包括窄桌面窗口），字体输入行按标题、说明、输入框纵向排列，输入框占满可用宽度；字号步进器保持在标签右侧。更宽的视口保留字体输入行的横向排列。Windows 和 macOS 桌面窗口的外观选项保留换行，字号标签保留标准间距。主指针精度较低的设备上，字体输入框使用 16 px 文字。
+-
+-插件在「通用」分区注册外观偏好方块与正文字号步进器。步进器后的「更多字体设置」按钮在其下方展开一个区域，每次打开设置时均为折叠状态，其中包含正文、代码与终端各自的字体行，以及代码与终端的字号步进器。正文步进器接受 10 至 22 px 的整数，默认值为 14 px。它以相同增量调整会话标题与基础文本，包括用户气泡与 composer 草稿；流内行的标题、摘要与表格跟随比正文低一档的字号，小号文本保持固定字号。代码步进器（10–16 px，默认 11）设置代码块字号；行内代码保持大 1 px，工具输出的小号变体使用相同字号。终端步进器（10–20 px，默认 13）设置侧栏终端的单元格字号；修改后保留 shell 与输出，并重新适配网格。每次通过的变更都经 Host settings API 写入。连续快速变更按操作顺序携带命名空间 revision 串行写入，最新写入被拒时重新加载持久值。
++插件在「通用」分区注册四张外观预览卡与正文字号步进器。每张卡片预览它可能显示的调色板，`sun` 与 `system` 并排显示浅色和深色；选中的卡片带强调色边框与实心单选标记。选择 `sun` 后显示位置选择：`auto` 使用浏览器时区的代表城市，或 UTC 偏移相同的已列出时区的城市；也可以改选任一列出的城市。该行说明估算使用哪个城市以及今天估算的日出日落时间。时区只表示区域而非位置，因此时间是对该城市的估算；无法对应任何城市的时区在选择城市前跟随 `system`。运行时在每次估算的日出、日落时重新判断，至少每六小时一次，页面重新可见或获得焦点时也会重新判断。步进器后的「更多字体设置」按钮在其下方展开一个区域，每次打开设置时均为折叠状态，其中包含正文、代码与终端各自的字体行，以及代码与终端的字号步进器。正文步进器接受 10 至 22 px 的整数，默认值为 14 px。它以相同增量调整会话标题与基础文本，包括用户气泡与 composer 草稿；流内行的标题、摘要与表格跟随比正文低一档的字号，小号文本保持固定字号。代码步进器（10–16 px，默认 11）设置代码块字号；行内代码保持大 1 px，工具输出的小号变体使用相同字号。终端步进器（10–20 px，默认 13）设置侧栏终端的单元格字号；修改后保留 shell 与输出，并重新适配网格。每次通过的变更都经 Host settings API 写入。连续快速变更按操作顺序携带命名空间 revision 串行写入，最新写入被拒时重新加载持久值。
+ 
+ Desktop 的固定快捷键 `Cmd`/`Ctrl` + `+`（或 `=`）和 `Cmd`/`Ctrl` + `-` 同时将正文、代码与终端字号增减 1 px，各自沿用其取值范围。每次实际按下按键，通过一次设置操作保存变化字段；长按不会连续调整字号。这些操作显示在快捷键参考中，可在主文档的对话框和文本输入框内使用，但会让已消费输入的本地控件先处理；终端输入保留自身的按键处理。Web 保留浏览器的缩放快捷键。
+ 
+ ### 字体
+ 
++字体输入框复用共享设置行，在 767px 及以下的窗口中排在说明下方，较宽时与说明并排。字号步进器在各宽度下均保留在右侧。调整窗口大小时保留焦点和未提交文字。
++
+ 三行分别独立设置正文字体（界面与会话正文）、代码字体（代码块、行内代码及其他使用 `--ds-font-family-code` 的文本）与侧栏终端字体。每个输入框接受逗号分隔的字体名，失焦或按 Enter 时提交；清空输入框即恢复内置字体栈。服务会规范化每个列表：去掉引号、反斜杠、尖括号与控制字符，并给 CSS 通用字体族以外的名称加双引号，然后存入 `textFontFamily`、`codeFontFamily` 或 `terminalFontFamily`。用户列表排在该类内置字体栈之前，因此本机缺少的字体会回退到默认字体。输入框接受任何已安装字体的名称，但不枚举本地字体。
+ 
+ ### 注册主题
+@@ -45,14 +47,16 @@ Desktop 的固定快捷键 `Cmd`/`Ctrl` + `+`（或 `=`）和 `Cmd`/`Ctrl` + `-`
+ 
+ ### 插件前调色板
+ 
+-当主机组合包含 HTTP 服务器时，宿主侧会把已注册的 `ui-theme` 设置或 schema 默认值嵌入每份 index 响应。head CSS 会在任何脚本运行前选择文档画布的配色方案，其中 `system` 偏好使用 `prefers-color-scheme` 查询；随后，body 脚本会在加载页面和应用脚本之前设置 `body[data-ds-dark-theme]`、`--dsh-content-font-size`、`--dsh-code-font-size`、`--dsh-terminal-font-size` 以及每个非空的 `--dsh-font-family-<role>` 列表，因此首帧绘制就采用所选调色板与正文、代码字号，`ThemeRuntime` 也从已保存的主题偏好、字号与字体开始，不会先渲染默认值。
++当主机组合包含 HTTP 服务器时，宿主侧会把已注册的 `ui-theme` 设置或 schema 默认值嵌入每份 index 响应。head CSS 会在任何脚本运行前选择文档画布的配色方案，其中 `system` 偏好使用 `prefers-color-scheme` 查询；`sun` 偏好由 Host 按自身时区或所选城市估算渲染时刻前后的日照区间并嵌入，body 脚本按浏览器当前时间判断，无法对应城市时引导阶段跟随 `system`；随后，body 脚本会在加载页面和应用脚本之前设置 `body[data-ds-dark-theme]`、`--dsh-content-font-size`、`--dsh-code-font-size`、`--dsh-terminal-font-size` 以及每个非空的 `--dsh-font-family-<role>` 列表，因此首帧绘制就采用所选调色板与正文、代码字号，`ThemeRuntime` 也从已保存的主题偏好、字号与字体开始，不会先渲染默认值。
+ 
+ -----
+ 
+ <a id="understand-the-implementation"></a>
++低优先级动效规则为按钮、标签页、树节点、链接和文字输入提供短颜色过渡，专用控件保留自身动画。模式选择从操作位置扩散新主题色并短暂增强饱和度；减少动态效果时跳过。
++
+ ## 理解实现
+ 
+-公共菜单通过 `MenuSurface` 共享 `--dsw-menu-surface-fill` 和模糊，平台代码须保留这些 token 值。菜单吸顶分组标题可使用 `--dsw-alias-menu-group-header-fill`，其浅／深色填充均为 94% 不透明度，独立于菜单材质。其他浮层使用 `--dsw-specific-menu`，在没有菜单底层时保留 macOS 上接近不透明的填充。源码约束见[样式参考](../../../docs/web-styling.zh.md#component-rules)。 模态遮罩保留黑色半透明填充，不模糊背景。
++公共菜单通过 `MenuSurface` 共享 `--dsw-menu-surface-fill` 和模糊，平台代码须保留这些 token 值。菜单吸顶分组标题可使用 `--dsw-alias-menu-group-header-fill`，其浅／深色填充均为 94% 不透明度，独立于菜单材质。其他浮层使用 `--dsw-specific-menu`，在没有菜单底层时保留 macOS 上接近不透明的填充。模态遮罩保留黑色半透明填充，不模糊背景。
+ 
+ <details>
+ <summary>实现细节——点击展开</summary>
+@@ -65,9 +69,11 @@ Desktop 的固定快捷键 `Cmd`/`Ctrl` + `+`（或 `=`）和 `Cmd`/`Ctrl` + `-`
+ 
+ 当 document 有关联的 window 时，样式安装器在 document 根节点发布 `--dsh-hairline-width`，并通过一个设备像素比监听器更新它。没有 window 的文档仍安装样式表，并使用 CSS fallback 宽度。该宽度对应 0.5px 边框向下取整到整物理像素后的结果，最小为一个物理像素。只有显式读取该变量的样式会使用这一宽度；插件卸载时释放监听器并恢复根节点上原有的声明。
+ 
+-`base.css` 持有共享圆角尺度、字体 token 与设置卡片材质别名。`--dsh-font-family-text-default` 与 `--dsh-font-family-code-default` 在 `:root` 上保存内置字体栈；在 `body` 上，`--dsw-font-family` 与 `--ds-font-family-code` 把 `--dsh-font-family-text` 与 `--dsh-font-family-code` 排在这些字体栈之前，未设置的列表解析为内置字体栈（重复一次，字体匹配会忽略重复项）。材质别名在 `body` 上随当前色板解析。组件圆角选择遵循 [Web 样式参考](../../../docs/web-styling.zh.md#corner-radii-and-settings-cards)。
++`base.css` 持有共享圆角尺度、字体 token 与设置卡片材质别名。`--dsh-font-family-text-default` 与 `--dsh-font-family-code-default` 在 `:root` 上保存内置字体栈；在 `body` 上，`--dsw-font-family` 与 `--ds-font-family-code` 把 `--dsh-font-family-text` 与 `--dsh-font-family-code` 排在这些字体栈之前，未设置的列表解析为内置字体栈（重复一次，字体匹配会忽略重复项）。材质别名在 `body` 上随当前色板解析。
++
++`src/styles/` 下有十张样式表，由 ui-theme 的动态客户端 entry 依次导入：`base.css`、`corner-shape.css`、`design-platform.css`、`mode-accent.css`、`motion.css`、`focus.css`、`onboarding.css`、`scrollbar.css`、`gradient-shadow-text.css` 与 `shiki.css`。客户端 bundle 将其编译并注入为插件持有的全局样式，因此卸载与 HMR（热模块替换）会随 ui-theme 一同移除。`scrollbar.css` 消费 `--dsw-alias-scrollbar-*` token，必须排在声明这些 token 的 `design-platform.css` 之后。状态标记使用各自的语义状态 token。`--dsw-alias-bg-document-selection` 为保留文档原色的选区提供底色，当前模式配色可以覆盖它。`design-platform.css` 还负责代码差异底色的别名及其静态透明度色阶，以及文件对比所用的 `--dsw-alias-file-diff-*` 代码区、行号区和标记配色；`shiki.css` 负责语法颜色。
+ 
+-`src/styles/` 下有八张样式表，由 ui-theme 的动态客户端 entry 依次导入：`base.css`、`corner-shape.css`、`design-platform.css`、`focus.css`、`onboarding.css`、`scrollbar.css`、`gradient-shadow-text.css` 与 `shiki.css`。客户端 bundle 将其编译并注入为插件持有的全局样式，因此卸载与 HMR（热模块替换）会随 ui-theme 一同移除。`scrollbar.css` 消费 `--dsw-alias-scrollbar-*` token，必须排在声明这些 token 的 `design-platform.css` 之后。状态标记使用各自的语义状态 token；`--dsw-alias-state-done-primary` 标记已完成的工作（例如已合并的变更请求），浅色主题为 violet-600，深色主题为 violet-400。`--dsw-alias-bg-document-selection` 在两种主题中均使用 40% 不透明度的 blue-500，供保留文档原色的选区使用。`design-platform.css` 还负责代码差异底色的别名及其静态透明度色阶，以及文件对比所用的 `--dsw-alias-file-diff-*` 代码区、行号区和标记配色；`shiki.css` 负责语法颜色。
++`base.css` 还保存四种对话模式的配色（`--dsw-brand-*` 标记色及其 `-ink`，以及 `--dsw-mode-<mode>-accent`、`-accent-dark`、`-press` 与 `-press-dark`）。当 `body[data-dsh-mode]` 指定某一模式时，[`mode-accent.css`](src/styles/mode-accent.css) 把它们映射到平台强调色：`--dsw-alias-state-business-primary`、品牌强调色、info 按钮的填充与悬停色，以及第三层浅色底和侧栏选中底色都随模式变化，因此选中态、焦点环、模型徽标与发送按钮一起改变。`ui-agent-preset` 为主视图的对话写入该属性，包括为新对话选择的模式；没有该属性时所有 token 保持平台原值。中间颜色是注册为 `<color>` 的属性，在 `body` 上过渡，因此切换模式或明暗时所有用处一起渐变；`html[data-dsh-mode-reveal]` 与 `html[data-dsh-theme-reveal]` 在视图过渡捕获最终颜色时暂停渐变。`mode-accent.css` 负责同一对话切换模式时扩散的圆形动画，[`motion.css`](src/styles/motion.css) 负责 ui-layout presenter 发起的明暗切换圆形展开或交叉淡化。开启减少动态效果时不做渐变。
+ 
+ [`focus.css`](src/styles/focus.css) 提供 `:focus-visible` 兜底：通过 `var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary))` 声明焦点环颜色，并通过 `--dsw-focus-ring-width` 声明标准宽度，但不声明轮廓样式——因此禁用轮廓的控件仍然不绘制，而没有自有焦点环的控件保持标准几何，而不是落到 Chromium 的 `auto 1px`。主题将该蓝色解析为浅色模式的 `#4176E6` 和深色模式的 `#7AAAFF`。组件轮廓与焦点环阴影使用同一颜色表达式，包括后代和伪元素上的环。`--dsw-focus-ring-width`（2px）是标准宽度；密集表格与工具栏可以保留 1px，offset 仍由组件决定。
+ 
+@@ -89,7 +95,7 @@ Desktop 的固定快捷键 `Cmd`/`Ctrl` + `+`（或 `=`）和 `Cmd`/`Ctrl` + `-`
+ 
+ `corner-shape.css` 平滑所有圆角：在 `@supports (corner-shape: superellipse(1.5))` 内定义 `--dsw-corner-shape`，并通过通配选择器应用到所有元素及其 `::before`/`::after`，因此不支持 `corner-shape` 的引擎保持普通圆弧。正圆形状——`border-radius: 50%` 的圆与胶囊半径——因超级椭圆会使其变形，须在所属组件样式表中把 `corner-shape: round` 与半径声明配对；corner-shape 样式表 spec 跨全部包样式表强制这一配对。
+ 
+-`gradient-shadow-text.css` 从 `--dsh-content-font-size` 派生 `--dsh-content-font-delta`，并以该增量移动 Markdown 标题与基础文本阶梯。它同时派生低一档变量 `--dsh-content-font-size-secondary`（设置 ≤14 时为设置值 −1，>14 时为设置值 −2；默认设置下为 13 px）及配套的 `--dsh-content-font-delta-secondary`，供表格变体与比正文低一档的流内行使用。紧凑的小号文本变体保持固定字号。代码变体（`--dsw-font-markdown-code`、`-code-block`、`-code-block-small`）按 `--dsh-code-font-delta`（`--dsh-code-font-size` 与 11 px 之差）调整字号与行高。阶梯之外，用户气泡与 composer 草稿直接读取正文字号变量对，流内行的标题及摘要读取低一档变量对。该表还持有阴影阶（`--dsw-shadow-lv*`）、半透明菜单使用的 `--dsw-menu-backdrop-filter` 与 elevation token：`--dsw-elevation-stroke` 经可重绑的 `--dsw-elevation-stroke-color` 画 0.5 px 发丝描边，`--dsw-elevation-panel`/`--dsw-elevation-prominent`/`--dsw-elevation-soft`（composer 专用的更大模糊、更低透明度档）在描边之上叠两层极淡柔光，因此高层级表面设 `border: 0`，不会产生占布局的轮廓；派生 token 逐元素重声明，使表面对描边色的重绑真实生效。绘制 `--dsw-specific-menu` 的高层级表面还会应用 `backdrop-filter: var(--dsw-menu-backdrop-filter)`（[样式参考](../../../docs/web-styling.zh.md#component-rules)）。 浅色菜单使用不透明度为 70% 的填充，深色菜单使用不透明度为 64% 的填充；深色菜单使用 `border-l3` 描边，浅色菜单使用 `border-l1` 描边。
++`gradient-shadow-text.css` 从 `--dsh-content-font-size` 派生 `--dsh-content-font-delta`，并以该增量移动 Markdown 标题与基础文本阶梯。它同时派生低一档变量 `--dsh-content-font-size-secondary`（设置 ≤14 时为设置值 −1，>14 时为设置值 −2；默认设置下为 13 px）及配套的 `--dsh-content-font-delta-secondary`，供表格变体与比正文低一档的流内行使用。紧凑的小号文本变体保持固定字号。代码变体（`--dsw-font-markdown-code`、`-code-block`、`-code-block-small`）按 `--dsh-code-font-delta`（`--dsh-code-font-size` 与 11 px 之差）调整字号与行高。阶梯之外，用户气泡与 composer 草稿直接读取正文字号变量对，流内行的标题及摘要读取低一档变量对。该表还持有阴影阶（`--dsw-shadow-lv*`）、半透明菜单使用的 `--dsw-menu-backdrop-filter` 与 elevation token：`--dsw-elevation-stroke` 经可重绑的 `--dsw-elevation-stroke-color` 画 0.5 px 发丝描边，`--dsw-elevation-panel`/`--dsw-elevation-prominent`/`--dsw-elevation-soft`（composer 专用的更大模糊、更低透明度档）在描边之上叠两层极淡柔光，因此高层级表面设 `border: 0`，不会产生占布局的轮廓；派生 token 逐元素重声明，使表面对描边色的重绑真实生效。绘制 `--dsw-specific-menu` 的高层级表面还会应用 `backdrop-filter: var(--dsw-menu-backdrop-filter)`（[样式参考](https://github.com/deepseek-ai/deepseek-harness/blob/66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db/docs/web-styling.md#component-rules)）。 浅色菜单使用不透明度为 70% 的填充，深色菜单使用不透明度为 64% 的填充；深色菜单使用 `border-l3` 描边，浅色菜单使用 `border-l1` 描边。
+ 
+ `brand-font.css` 引用随包提供的 `montserrat-regular.woff2` / `montserrat-light.woff2` / `montserrat-medium.woff2`，其中包含 Montserrat Regular、Light 和 Medium 字体，SIL Open Font License 与样式表和 WOFF2 一同随包保存在 `lib/styles/`。`--dsw-font-family-brand` 为品牌文字选择该字体，普通界面仍使用系统字体栈。源文件来自 Google Fonts 的 Montserrat 发布。Web 入口导入包的 `./brand-font.css` 导出，由 Vite 输出并解析字体资源，Web 构建也包含其许可。Web 应用（包括 Desktop 引导）可离线加载字体；原生凭证欢迎页保留系统字体。
+ 
+@@ -115,7 +121,6 @@ Desktop 的固定快捷键 `Cmd`/`Ctrl` + `+`（或 `=`）和 `Cmd`/`Ctrl` + `-`
+ - [ui-layout](../ui-layout/README.zh.md)——应用解析后主题快照的展示转换器。
+ - [ui-sidebar](../ui-sidebar/README.zh.md)——滚动条重新绑定约定的消费方。
+ - [ui-conversation](../ui-conversation/README.zh.md)——为 composer 席位消费 `--dsh-scrollbar-width` 的消费方。
+-- [Web 样式](../../../docs/web-styling.zh.md)——Web 客户端组件的权威样式规则。
+ - [已认证浏览器 Host 偏好](../../../.agents/notes/implemented/bug-fix/2026-09-15-authenticated-browser-host-preferences.zh.md)——持久化策略决策。
+ 
+ -----
+diff --git a/packages/client/ui-theme/src/boot-theme.ts b/packages/client/ui-theme/src/boot-theme.ts
+index fa7f1c281e8aaef1ec666d652a4a7bf3c66e21b7..4553eed956703d2143673d5116b79a914c4ec802 100644
+--- a/packages/client/ui-theme/src/boot-theme.ts
++++ b/packages/client/ui-theme/src/boot-theme.ts
+@@ -3,7 +3,9 @@
+  * render embeds the current durable built-in preference, font sizes, and
+  * font-family lists. Head CSS colors the document canvas before script
+  * execution; the body script installs the palette selector and font variables
+- * that the client presenters adopt.
++ * that the client presenters adopt. The `sun` preference embeds the daylight
++ * intervals the Host estimated for its location; without them it behaves as
++ * `system` until the client runtime resolves its own location.
+  */
+ 
+ import type { IndexInjection } from '@deepseek-ai/dsh-host-webserver'
+@@ -15,17 +17,27 @@ import {
+ const LIGHT_BACKGROUND = '#fff'
+ const DARK_BACKGROUND = '#151517'
+ 
++/** Daylight intervals, half-open epoch-millisecond `[sunrise, sunset)` pairs, around the render instant. */
++export type BootDaylight = readonly (readonly [number, number])[]
++
++function inDaylight(daylight: BootDaylight, at: number): boolean {
++  return daylight.some(([start, end]) => start <= at && at < end)
++}
++
+ /** CSS that colors the document canvas before any script executes. */
+-function bootThemeStyle(preference: ThemePreference): string {
++function bootThemeStyle(preference: ThemePreference, daylight: BootDaylight | undefined, at: number): string {
+   const light = `:root{color-scheme:light}body{background-color:${LIGHT_BACKGROUND};--dsh-boot-bg:${LIGHT_BACKGROUND}}`
+   const dark = `:root{color-scheme:dark}body{background-color:${DARK_BACKGROUND};--dsh-boot-bg:${DARK_BACKGROUND}}`
+   if (preference === 'light') return light
+   if (preference === 'dark') return dark
++  if (preference === 'sun' && daylight !== undefined) return inDaylight(daylight, at) ? light : dark
+   return `${light}@media(prefers-color-scheme:dark){${dark}}`
+ }
+ 
+ /** Build the body script that installs the palette selector and font variables. */
+-function bootThemeBodyScript(preference: ThemePreference, fontSizes: FontSizes, fontFamilies: FontFamilies): string {
++function bootThemeBodyScript(
++  preference: ThemePreference, fontSizes: FontSizes, fontFamilies: FontFamilies, daylight: BootDaylight | undefined,
++): string {
+   const sizes = FONT_ROLES.map(role =>
+     `\n  document.body.style.setProperty(${JSON.stringify(FONT_SIZE_SPECS[role].variable)}, ${JSON.stringify(`${fontSizes[role]}px`)})`).join('')
+   const families = FONT_ROLES.flatMap((kind) => {
+@@ -34,11 +46,15 @@ function bootThemeBodyScript(preference: ThemePreference, fontSizes: FontSizes,
+   }).join('')
+   return `(() => {
+   const preference = ${JSON.stringify(preference)}
+-  const systemDark = preference === 'system'
++  const daylight = ${JSON.stringify(preference === 'sun' ? daylight ?? null : null)}
++  const follows = preference === 'system' || (preference === 'sun' && daylight === null)
++  const now = Date.now()
++  const systemDark = follows
+     && typeof matchMedia !== 'undefined'
+     && matchMedia('(prefers-color-scheme: dark)').matches
+-  const dark = preference === 'dark' || systemDark
+-  document.documentElement.dataset.dsThemeSource = preference
++  const sunDark = !follows && preference === 'sun' && !daylight.some(([start, end]) => now >= start && end > now)
++  const dark = preference === 'dark' || systemDark || sunDark
++  document.documentElement.dataset.dsThemeSource = follows ? 'system' : preference === 'sun' ? (dark ? 'dark' : 'light') : preference
+   document.body.toggleAttribute('data-ds-dark-theme', dark)${sizes}${families}
+ })()`
+ }
+@@ -50,15 +66,19 @@ function bootThemeBodyScript(preference: ThemePreference, fontSizes: FontSizes,
+  * @param preference - Current Host-backed built-in preference.
+  * @param fontSizes - Current Host-backed font sizes in px by role.
+  * @param fontFamilies - Current Host-backed font lists; each is normalized before embedding.
++ * @param daylight - Daylight intervals around `at` for the `sun` preference; absent when no location resolved.
++ * @param at - Render instant the head CSS classifies.
+  * @returns head and body script rows in execution order.
+  */
+ export function bootThemeInjections(
+   preference: ThemePreference = DEFAULT_PREFERENCE,
+   fontSizes: FontSizes = DEFAULT_FONT_SIZES,
+   fontFamilies: FontFamilies = { text: '', code: '', terminal: '' },
++  daylight?: BootDaylight,
++  at: number = Date.now(),
+ ): IndexInjection[] {
+   return [
+-    { kind: 'style', text: bootThemeStyle(preference) },
+-    { kind: 'script', placement: 'body', text: bootThemeBodyScript(preference, fontSizes, fontFamilies) },
++    { kind: 'style', text: bootThemeStyle(preference, daylight, at) },
++    { kind: 'script', placement: 'body', text: bootThemeBodyScript(preference, fontSizes, fontFamilies, daylight) },
+   ]
+ }
+diff --git a/packages/client/ui-theme/src/client/AppearanceRow.module.css b/packages/client/ui-theme/src/client/AppearanceRow.module.css
+index ec6251d9d47cda9e612fa8dd32876faa1cdb6451..cdb396c106ebabba509c30406b59903ba00e81b3 100644
+--- a/packages/client/ui-theme/src/client/AppearanceRow.module.css
++++ b/packages/client/ui-theme/src/client/AppearanceRow.module.css
+@@ -1,5 +1,7 @@
+-/* Appearance row (figma 'Frame 2117131228': title + cube row, column gap 8,
+- * pad 16/0, hairline separator; the section column strips it when last). */
++/* Appearance row: title, description, four preview cards, and the sun
++ * location details; hairline separator, the section column strips it when last.
++ * Preview panes paint fixed light and dark palettes so each card shows what it
++ * selects whatever theme is active; the accent bar takes the mode marker color. */
+ 
+ .group {
+   display: flex;
+@@ -16,45 +18,205 @@
+   color: var(--dsw-alias-label-primary);
+ }
+ 
+-.cubeRow {
+-  display: flex;
+-  align-items: stretch;
+-  gap: 8px;
+-  flex-wrap: wrap;
++.description {
++  margin: 0;
++  font-size: 13px;
++  line-height: 20px;
++  color: var(--dsw-alias-label-secondary);
++}
++
++.cards {
++  display: grid;
++  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
++  gap: 12px;
++  margin-top: 4px;
+ }
+ 
+-/* Appearance cube (figma '.Selector Cube' 276x82, pad 20/32, centered
+- * icon-over-label column, gap 4); flexed down from the figma width so all
+- * three sit on one row at the panel's default width, wrapping when narrower. */
+-.themeCube {
++.card {
+   box-sizing: border-box;
+-  flex: 1 1 180px;
+   display: flex;
+   flex-direction: column;
+-  align-items: center;
+-  justify-content: center;
+-  gap: 4px;
+-  padding: 20px 32px;
++  min-width: 0;
++  padding: 0;
++  overflow: hidden;
+   border: 0.5px solid var(--dsw-alias-border-l4);
+-  border-radius: var(--dsw-radius-xl);
+-  background: transparent;
++  border-radius: var(--dsw-radius-lg);
++  background: var(--dsw-alias-bg-layer-1);
+   font: inherit;
+-  font-size: 14px;
+-  line-height: 22px;
+   color: var(--dsw-alias-label-primary);
++  text-align: start;
+   cursor: pointer;
++  transition:
++    border-color var(--ds-transition-duration) var(--ds-ease-in-out),
++    box-shadow var(--ds-transition-duration) var(--ds-ease-in-out),
++    transform var(--ds-transition-duration) var(--ds-ease-in-out);
+ }
+ 
+ @media (hover: hover) {
+-  .themeCube:hover:not(.selected) {
+-    background: var(--dsw-alias-interactive-bg-hover);
++  .card:hover:not(.selected) {
++    transform: translateY(-1px);
++    box-shadow: var(--dsw-shadow-lv1);
+   }
+ }
+ 
+-/* Selected cube: platform fill + the selected border. */
++.card:active { transform: scale(0.985); }
++
++.card:focus-visible {
++  outline: 2px solid var(--dsw-focus-ring-color);
++  outline-offset: 2px;
++}
++
+ .selected {
+-  background: var(--dsw-alias-bg-module-platform);
+-  border-color: var(--dsw-alias-border-selected);
++  border-color: var(--dsw-alias-state-business-primary);
++  box-shadow: 0 0 0 1px var(--dsw-alias-state-business-primary);
++}
++
++.preview {
++  display: flex;
++  height: 84px;
++}
++
++.pane {
++  --pane-bg: var(--dsw-alias-appearance-preview-light-surface);
++  --pane-track: var(--dsw-alias-appearance-preview-light-track);
++  --pane-body: var(--dsw-alias-appearance-preview-light-body);
++  flex: 1 1 0;
++  display: flex;
++  flex-direction: column;
++  gap: 8px;
++  min-width: 0;
++  padding: 10px;
++  background: var(--pane-bg);
++}
++
++.pane[data-scheme='dark'] {
++  --pane-bg: var(--dsw-alias-appearance-preview-dark-surface);
++  --pane-track: var(--dsw-alias-appearance-preview-dark-track);
++  --pane-body: var(--dsw-alias-appearance-preview-dark-body);
++}
++
++.paneBar {
++  height: 6px;
++  border-radius: 3px;
++  background: var(--pane-track);
++  overflow: hidden;
++}
++
++.paneAccent {
++  display: block;
++  width: 55%;
++  height: 100%;
++  border-radius: 3px;
++  background: var(--dsh-mode-marker, var(--dsw-brand-blue));
++}
++
++.paneBody {
++  flex: 1;
++  border-radius: 4px;
++  background: var(--pane-body);
++}
++
++.footer {
++  display: flex;
++  align-items: flex-start;
++  gap: 10px;
++  padding: 10px 12px 12px;
++  border-top: 0.5px solid var(--dsw-alias-border-l2);
++}
++
++.radio {
++  flex: none;
++  box-sizing: border-box;
++  width: 16px;
++  height: 16px;
++  margin-top: 3px;
++  border-radius: 50%;
++  corner-shape: round;
++  box-shadow: inset 0 0 0 1.5px var(--dsw-alias-label-tertiary);
++  transition: box-shadow var(--ds-transition-duration) var(--ds-ease-in-out);
++}
++
++.selected .radio {
++  box-shadow:
++    inset 0 0 0 1.5px var(--dsw-alias-state-business-primary),
++    inset 0 0 0 4px var(--dsw-alias-bg-layer-1),
++    inset 0 0 0 8px var(--dsw-alias-state-business-primary);
++}
++
++.text {
++  display: flex;
++  flex-direction: column;
++  min-width: 0;
++}
++
++.cardTitle {
++  font-size: 14px;
++  font-weight: 600;
++  line-height: 22px;
++}
++
++.caption {
++  font-size: 12px;
++  line-height: 18px;
++  color: var(--dsw-alias-label-secondary);
++}
++
++.sun {
++  display: flex;
++  flex-direction: column;
++  gap: 6px;
++  margin-top: 4px;
++  padding: 12px;
++  border-radius: var(--dsw-radius-md);
++  background: var(--dsw-alias-interactive-bg-hover);
++  animation: sun-details-in var(--ds-transition-duration-slow) var(--ds-ease-in-out) both;
++}
++
++@keyframes sun-details-in {
++  from { opacity: 0; transform: translateY(-4px); }
++}
++
++.sunField {
++  display: flex;
++  align-items: center;
++  gap: 12px;
++  flex-wrap: wrap;
++}
++
++.sunLabel {
++  font-size: 13px;
++  line-height: 20px;
++  color: var(--dsw-alias-label-primary);
++}
++
++.select { min-width: min(200px, 100%); font-size: 13px; }
++
++.sunEstimate {
++  display: flex;
++  flex-wrap: wrap;
++  gap: 4px 12px;
++  margin: 0;
++  font-size: 13px;
++  line-height: 20px;
++  color: var(--dsw-alias-label-primary);
++}
++
++.sunTimes {
++  color: var(--dsw-alias-label-secondary);
++  font-variant-numeric: tabular-nums;
++}
++
++.sunNote {
++  margin: 0;
++  font-size: 12px;
++  line-height: 18px;
++  color: var(--dsw-alias-label-tertiary);
++}
++
++@media (prefers-reduced-motion: reduce) {
++  .card, .radio { transition: none; }
++  .card:active { transform: none; }
++  .sun { animation: none; }
+ }
+ 
+ /* Narrow settings panel: all three cubes share one row instead of wrapping to
+diff --git a/packages/client/ui-theme/src/client/AppearanceRow.tsx b/packages/client/ui-theme/src/client/AppearanceRow.tsx
+index d234bd81a5ccacba9fdfc7b629a3b60594d9d94d..0bcae5edf181f99bd3a88c1cab84c1c38ace1581 100644
+--- a/packages/client/ui-theme/src/client/AppearanceRow.tsx
++++ b/packages/client/ui-theme/src/client/AppearanceRow.tsx
+@@ -1,25 +1,26 @@
+ /**
+- * Appearance preference row registered into the General section item slot
+- * (figma 501:30012 'Frame 2117131228'): title + three preference cubes.
+- * Registered by this package — the theme feature owns its own settings
+- * surface. Selection follows the persisted preference, never the resolved
+- * active theme.
++ * Appearance preference row registered into the General section item slot:
++ * title, description, and four preview cards (sunrise and sunset, system,
++ * light, dark), each a miniature of the palettes it can show. The `sun` card
++ * adds its location picker and the current estimate. Selection follows the
++ * persisted preference, never the resolved active theme.
+  */
+ import clsx from 'clsx'
+-import {
+-  IconDarkOutlineMedium, IconFollowsystemOutlineMedium, IconLightOutlineMedium,
+-} from '@deepseek-ai/dsh-client-ui-primitives'
++import { Select } from '@deepseek-ai/dsh-client-ui-primitives'
+ import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
+ import type { ThemePreference } from '../theme-settings.ts'
++import { SUN_CITIES, SUN_LOCATION_AUTO, type SunLocation } from '../sun.ts'
+ import type { ThemeKey } from './locales.ts'
+ import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+ import type { createAppearanceRowStore } from './settings-store.ts'
+ import css from './AppearanceRow.module.css'
+ 
+-/** Injected business face: the preference write (t rides the standard locale seat). */
++/** Injected business face: the preference writes (t rides the standard locale seat). */
+ export interface AppearanceRowInjected {
+   /** Switch the theme preference. */
+   setTheme: (id: ThemePreference) => void
++  /** Choose the location of the `sun` preference. */
++  setSunLocation: (location: SunLocation) => void
+ }
+ 
+ /** Full component props: runtime share + store share + locale seat + injected face. */
+@@ -27,37 +28,96 @@ export type AppearanceRowComponentProps =
+   PropsRuntime<'settings.general.item'> & PropsStore<ReturnType<typeof createAppearanceRowStore>>
+   & PropsLocale<'settings.theme'> & AppearanceRowInjected
+ 
+-/** Cube order and icons (figma 501:30015-30017: Light, Dark, System). */
+-const CUBES: readonly { id: ThemePreference; labelKey: ThemeKey; Icon: typeof IconLightOutlineMedium }[] = [
+-  { id: 'light', labelKey: 'appearance.light', Icon: IconLightOutlineMedium },
+-  { id: 'dark', labelKey: 'appearance.dark', Icon: IconDarkOutlineMedium },
+-  { id: 'system', labelKey: 'appearance.system', Icon: IconFollowsystemOutlineMedium },
++/** Card order with the palettes each preview shows: one palette, or light beside dark. */
++const CARDS: readonly { id: ThemePreference; title: ThemeKey; caption: ThemeKey; preview: 'split' | 'light' | 'dark' }[] = [
++  { id: 'sun', title: 'appearance.sun', caption: 'appearance.sun.caption', preview: 'split' },
++  { id: 'system', title: 'appearance.system', caption: 'appearance.system.caption', preview: 'split' },
++  { id: 'light', title: 'appearance.light', caption: 'appearance.light.caption', preview: 'light' },
++  { id: 'dark', title: 'appearance.dark', caption: 'appearance.dark.caption', preview: 'dark' },
+ ]
+ 
++function PreviewPane({ scheme }: { scheme: 'light' | 'dark' }) {
++  return (
++    <span className={css.pane} data-scheme={scheme}>
++      <span className={css.paneBar}><span className={css.paneAccent} /></span>
++      <span className={css.paneBody} />
++    </span>
++  )
++}
++
++const formatTime = (at: number): string => new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(at)
++
++function SunDetails({ t, useStore, setSunLocation }: Pick<AppearanceRowComponentProps, 't' | 'useStore' | 'setSunLocation'>) {
++  const location = useStore(s => s.sunLocation)
++  const sun = useStore(s => s.sun)
++  const cityName = (id: string): string => t(`sun.city.${id}` as ThemeKey)
++  const estimate = sun === undefined ? t('sun.unresolved')
++    : t(`sun.estimate.${sun.source}`, { city: cityName(sun.cityId) })
++  const times = sun === undefined ? undefined : sun.interval === undefined ? t('sun.noDaylight')
++    : t('sun.times', { sunrise: formatTime(sun.interval[0]), sunset: formatTime(sun.interval[1]) })
++  return (
++    <div className={css.sun}>
++      <label className={css.sunField}>
++        <span className={css.sunLabel}>{t('sun.location')}</span>
++        <Select
++          className={css.select}
++          label={t('sun.location')}
++          value={location}
++          onChange={setSunLocation}
++          options={[{ value: SUN_LOCATION_AUTO, label: t('sun.auto') },
++            ...SUN_CITIES.map(city => ({ value: city.id, label: cityName(city.id) }))]}
++        />
++      </label>
++      <p className={css.sunEstimate} aria-live="polite">
++        {estimate}
++        {times === undefined ? null : <span className={css.sunTimes}>{times}</span>}
++      </p>
++      <p className={css.sunNote}>{t('sun.note')}</p>
++    </div>
++  )
++}
++
+ /**
+  * Render the Appearance row.
+  * @param props - composed slot props.
+  * @returns the row element tree.
+  */
+-export function AppearanceRow({ t, setTheme, useStore }: AppearanceRowComponentProps) {
++export function AppearanceRow({ t, setTheme, setSunLocation, useStore }: AppearanceRowComponentProps) {
+   const preference = useStore(s => s.preference)
+   return (
+     <div className={css.group}>
+       <div className={css.title}>{t('appearance.title')}</div>
+-      <div className={css.cubeRow}>
+-        {CUBES.map(({ id, labelKey, Icon }) => (
+-          <button
+-            key={id}
+-            type="button"
+-            className={clsx(css.themeCube, preference === id && css.selected)}
+-            aria-pressed={preference === id}
+-            onClick={() => { setTheme(id) }}
+-          >
+-            <Icon />
+-            {t(labelKey)}
+-          </button>
+-        ))}
++      <p className={css.description}>{t('appearance.description')}</p>
++      <div className={css.cards} role="radiogroup" aria-label={t('appearance.title')}>
++        {CARDS.map(({ id, title, caption, preview }) => {
++          const selected = preference === id
++          return (
++            <button
++              key={id}
++              type="button"
++              role="radio"
++              aria-checked={selected}
++              className={clsx(css.card, selected && css.selected)}
++              data-theme-card={id}
++              onClick={() => { setTheme(id) }}
++            >
++              <span className={css.preview} aria-hidden="true">
++                {preview === 'split'
++                  ? <><PreviewPane scheme="light" /><PreviewPane scheme="dark" /></>
++                  : <><PreviewPane scheme={preview} /><PreviewPane scheme={preview} /></>}
++              </span>
++              <span className={css.footer}>
++                <span className={css.radio} aria-hidden="true" />
++                <span className={css.text}>
++                  <span className={css.cardTitle}>{t(title)}</span>
++                  <span className={css.caption}>{t(caption)}</span>
++                </span>
++              </span>
++            </button>
++          )
++        })}
+       </div>
++      {preference === 'sun' ? <SunDetails t={t} useStore={useStore} setSunLocation={setSunLocation} /> : null}
+     </div>
+   )
+ }
+diff --git a/packages/client/ui-theme/src/client/FontFamilyRow.module.css b/packages/client/ui-theme/src/client/FontFamilyRow.module.css
+index f5498280b8e608f26c4c4f8f9eb8a0275dcbc02a..e6e744e2c3f057d342d50fe8bdc5b26705469475 100644
+--- a/packages/client/ui-theme/src/client/FontFamilyRow.module.css
++++ b/packages/client/ui-theme/src/client/FontFamilyRow.module.css
+@@ -1,13 +1,16 @@
+-/* Font-family fields; shared row text and separators live in FontSizeRow.module.css. */
++/* Font-family fields inside the shared responsive preference row. */
+ 
+ .field {
+   flex: 0 1 240px;
++  width: 240px;
++  max-width: 100%;
+   min-width: 0;
+ }
+ 
+ @media (max-width: 767px) {
+   .field {
+     flex-basis: auto;
++    width: 100%;
+   }
+ }
+ 
+diff --git a/packages/client/ui-theme/src/client/FontFamilyRow.tsx b/packages/client/ui-theme/src/client/FontFamilyRow.tsx
+index 58e76042b5f86d83b77e364364702b0fdfe46af0..9efcaf8a07e9b1ad33da9cb8f89768cea6bbf098 100644
+--- a/packages/client/ui-theme/src/client/FontFamilyRow.tsx
++++ b/packages/client/ui-theme/src/client/FontFamilyRow.tsx
+@@ -5,13 +5,11 @@
+  * an empty field restores the built-in stack. The field shows the persisted
+  * list and resets whenever that list changes.
+  */
+-import clsx from 'clsx'
+-import { Input } from '@deepseek-ai/dsh-client-ui-primitives'
++import { Input, PreferenceControlRow } from '@deepseek-ai/dsh-client-ui-primitives'
+ import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
+ import { normalizeFontFamily, type FontRole } from '../theme-settings.ts'
+ import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+ import type { createFontRowStore } from './settings-store.ts'
+-import rowCss from './FontSizeRow.module.css'
+ import css from './FontFamilyRow.module.css'
+ 
+ /** Injected business face: the row's font role and its write. */
+@@ -40,11 +38,7 @@ export function FontFamilyRow({ t, role, setFontFamily, useStore }: FontFamilyRo
+     setFontFamily(input.value)
+   }
+   return (
+-    <div className={clsx(rowCss.row, rowCss.stacked)}>
+-      <div className={rowCss.rowText}>
+-        <div className={rowCss.title}>{title}</div>
+-        <div className={rowCss.desc}>{t(`fontFamily.${role}.description`)}</div>
+-      </div>
++    <PreferenceControlRow title={title} description={t(`fontFamily.${role}.description`)} layout="responsive">
+       <Input
+         key={value}
+         className={css.field as string}
+@@ -61,6 +55,6 @@ export function FontFamilyRow({ t, role, setFontFamily, useStore }: FontFamilyRo
+           if (event.key === 'Enter') event.currentTarget.blur()
+         }}
+       />
+-    </div>
++    </PreferenceControlRow>
+   )
+ }
+diff --git a/packages/client/ui-theme/src/client/FontSizeRow.module.css b/packages/client/ui-theme/src/client/FontSizeRow.module.css
+index e5a26d54724105bb28652e0a8b0a2d8f56bd95e2..2801ba53a31c8112d236b3550667b9a69e2ec457 100644
+--- a/packages/client/ui-theme/src/client/FontSizeRow.module.css
++++ b/packages/client/ui-theme/src/client/FontSizeRow.module.css
+@@ -1,54 +1,4 @@
+-/* Font-size row: title + stepper pill, same cell rhythm as the Language and
+- * Enter-behavior rows (gap 8, pad 16/0, hairline separator; the section
+- * column strips the separator on its last child). */
+-
+-.row {
+-  display: flex;
+-  align-items: center;
+-  gap: 8px;
+-  padding: 16px 0;
+-  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+-}
+-
+-.rowText {
+-  flex: 1;
+-  min-width: 0;
+-  display: flex;
+-  flex-direction: column;
+-  gap: 4px;
+-  padding-right: 48px;
+-}
+-
+-@media (max-width: 767px) {
+-  /* The wide-row gutter squeezes labels beside steppers in narrow browser panels. */
+-  :global(html:not([data-windows-titlebar]):not([data-platform='darwin'])) .row:not(.stacked) .rowText {
+-    padding-right: 16px;
+-  }
+-
+-  .stacked {
+-    flex-direction: column;
+-    align-items: stretch;
+-  }
+-
+-  .stacked .rowText {
+-    flex: none;
+-    padding-right: 0;
+-  }
+-}
+-
+-.title {
+-  font-size: 14px;
+-  font-weight: 400;
+-  line-height: 22px;
+-  color: var(--dsw-alias-label-primary);
+-}
+-
+-.desc {
+-  font-size: 12px;
+-  font-weight: 400;
+-  line-height: 18px;
+-  color: var(--dsw-alias-label-tertiary);
+-}
++/* Font-size row: the shared preference row shell plus a stepper pill. */
+ 
+ /* Standard-size stepper with an always-visible arrow column and an external unit label. */
+ .control {
+diff --git a/packages/client/ui-theme/src/client/FontSizeRow.tsx b/packages/client/ui-theme/src/client/FontSizeRow.tsx
+index 93cb009bb12a50c6ffeb54f9586edbb9cffd8910..00e8698f166cfa1c76e73acc2b12ffb06cf8b0be 100644
+--- a/packages/client/ui-theme/src/client/FontSizeRow.tsx
++++ b/packages/client/ui-theme/src/client/FontSizeRow.tsx
+@@ -7,7 +7,7 @@
+  * click echo.
+  */
+ import {
+-  IconChevronDownOutlineRegular, IconChevronUpOutlineRegular,
++  IconChevronDownOutlineRegular, IconChevronUpOutlineRegular, PreferenceControlRow,
+ } from '@deepseek-ai/dsh-client-ui-primitives'
+ import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
+ import { FONT_SIZE_SPECS, type FontRole } from '../theme-settings.ts'
+@@ -50,11 +50,7 @@ export function FontSizeRow({ t, role, setFontSize, useStore, expander }: FontSi
+   const fontSize = useStore(s => s.fontSizes[role])
+   const { min, max } = FONT_SIZE_SPECS[role]
+   return (
+-    <div className={css.row}>
+-      <div className={css.rowText}>
+-        <div className={css.title}>{t(`fontSize.${role}.title`)}</div>
+-        <div className={css.desc}>{t(`fontSize.${role}.description`)}</div>
+-      </div>
++    <PreferenceControlRow title={t(`fontSize.${role}.title`)} description={t(`fontSize.${role}.description`)} layout="inline">
+       <div className={css.control}>
+         <div className={css.stepper}>
+           <span className={css.value}>{fontSize}</span>
+@@ -94,6 +90,6 @@ export function FontSizeRow({ t, role, setFontSize, useStore, expander }: FontSi
+           </button>
+         )}
+       </div>
+-    </div>
++    </PreferenceControlRow>
+   )
+ }
+diff --git a/packages/client/ui-theme/src/client/index.ts b/packages/client/ui-theme/src/client/index.ts
+index 8d58904a9e1e95484ce8503f4b98e9f76b76b9a5..4ad7f116262d186c9c2bc0515586110c9e71be14 100644
+--- a/packages/client/ui-theme/src/client/index.ts
++++ b/packages/client/ui-theme/src/client/index.ts
+@@ -1,7 +1,8 @@
+ /**
+  * Browser theme registry over the `--dsw-*` token stylesheets. The service
+- * owns the live theme preference (light/dark/system), resolves `system` through
+- * `prefers-color-scheme`, and publishes immutable snapshots; it never touches
++ * owns the live theme preference (light/dark/system/sun), resolves `system` through
++ * `prefers-color-scheme` and `sun` through the estimated daylight of the
++ * configured location, and publishes immutable snapshots; it never touches
+  * the DOM — ui-layout's presenter consumes the resolved snapshot. The Host
+  * settings scope loads and stores the preference in the user-settings
+  * document. The plugin also registers the Appearance and font settings rows
+@@ -29,17 +30,25 @@ import { installIconSprite, type IconReplacements } from './icon-sprite.ts'
+ import { installThemeStyles } from './styles.ts'
+ import { en, ja, es, fr, de, ru, pt, zh, type ThemeKey } from './locales.ts'
+ import {
+-  DEFAULT_FONT_SIZES, DEFAULT_PREFERENCE, FONT_FAMILY_FIELDS, FONT_ROLES, FONT_SIZE_SPECS,
++  DEFAULT_FONT_SIZES, DEFAULT_PREFERENCE, DEFAULT_SUN_LOCATION, FONT_FAMILY_FIELDS, FONT_ROLES, FONT_SIZE_SPECS,
+   fontFamilyVariable, isFontSize, isThemePreference, normalizeFontFamily, sectionFontSizes,
+-  THEME_PREFERENCE_FIELD, THEME_SETTINGS_NAMESPACE,
++  SUN_LOCATION_FIELD, THEME_PREFERENCE_FIELD, THEME_SETTINGS_NAMESPACE,
+   type FontFamilies, type FontRole, type FontSizes, type ThemePreference, type ThemeSettings,
+ } from '../theme-settings.ts'
++import { isSunLocation, resolveSunCity, sunPhase, type SunCitySource, type SunLocation } from '../sun.ts'
+ 
+ export type { AppearanceRowComponentProps, AppearanceRowInjected } from './AppearanceRow.tsx'
+ export type { FontSettingsGroupProps, FontSettingsInjected } from './FontSettingsGroup.tsx'
+ export type { AppearanceRowState, FontRowState } from './settings-store.ts'
+ export type { ThemeKey } from './locales.ts'
+ export type { FontFamilies, FontRole, FontSizes, ThemePreference, ThemeSettings } from '../theme-settings.ts'
++export type { SunCitySource, SunLocation } from '../sun.ts'
++
++/** Longest wait between daylight checks, so a suspended timer or a clock change is corrected within hours. */
++const SUN_RECHECK_MS = 6 * 60 * 60 * 1000
++
++/** Delay after an estimated sunrise or sunset before the check, so the boundary instant classifies as the new phase. */
++const SUN_BOUNDARY_MS = 1000
+ 
+ /** Namespace owning this feature's settings-row copy. */
+ export const SETTINGS_NS = 'settings.theme'
+@@ -96,10 +105,29 @@ export interface ThemeDefinition {
+   icons?: IconReplacements | undefined
+ }
+ 
++/** Daylight estimate of the `sun` preference for one city. */
++export interface SunEstimate {
++  /** Listed city the estimate is for. */
++  cityId: string
++  /** How the city was chosen. */
++  source: SunCitySource
++  /** Whether the estimate places the instant between sunrise and sunset. */
++  daylight: boolean
++  /** Current daylight interval, or the next one while dark, in epoch milliseconds; absent through a long polar night. */
++  interval?: readonly [number, number]
++}
++
+ /** Immutable theme state published on every change. */
+ export interface ThemeSnapshot {
+   /** The persisted preference (may be `system`). */
+   preference: ThemePreference
++  /** Persisted location of the `sun` preference. */
++  sunLocation: SunLocation
++  /**
++   * Estimate driving the `sun` preference; absent for other preferences and when
++   * no city matches the time zone, in which case `sun` follows `system`.
++   */
++  sun?: SunEstimate
+   /** Integer px font sizes by role, each within its `FONT_SIZE_SPECS` range (`text` is the conversation content size). */
+   fontSizes: FontSizes
+   /** Normalized user font lists by role; `''` selects the role's built-in stack. */
+@@ -183,6 +211,8 @@ export class ThemeRuntime {
+   private readonly host: ConfigForm<ThemeSettings>
+   private themes: ThemeDefinition[] = [...BUILTIN_THEMES]
+   private preference: ThemePreference
++  private sunLocation: SunLocation = DEFAULT_SUN_LOCATION
++  private sunTimer: ReturnType<typeof setTimeout> | undefined
+   private fontSizes: FontSizes = bootstrapFontSizes()
+   private fontFamilies: FontFamilies = bootstrapFontFamilies()
+   private revision = 0
+@@ -209,7 +239,7 @@ export class ThemeRuntime {
+     if (this.media !== undefined) {
+       const media = this.media
+       const onChange = (): void => {
+-        if (this.preference !== 'system') return
++        if (this.preference !== 'system' && !(this.preference === 'sun' && this.snapshot.sun === undefined)) return
+         this.publish()
+       }
+       ctx.effect(() => {
+@@ -217,6 +247,18 @@ export class ThemeRuntime {
+         return () => { media.removeEventListener('change', onChange) }
+       }, 'ui-theme: prefers-color-scheme listener')
+     }
++    ctx.effect(() => {
++      // A sleeping device can skip a timer past sunrise or sunset; returning to the page rechecks.
++      const recheck = (): void => { this.recheckSun() }
++      if (typeof document !== 'undefined') document.addEventListener('visibilitychange', recheck)
++      if (typeof window !== 'undefined') window.addEventListener('focus', recheck)
++      return () => {
++        if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', recheck)
++        if (typeof window !== 'undefined') window.removeEventListener('focus', recheck)
++        if (this.sunTimer !== undefined) clearTimeout(this.sunTimer)
++        this.sunTimer = undefined
++      }
++    }, 'ui-theme: daylight schedule')
+     ctx.effect(() => host.subscribe(() => { this.adopt() }), 'ui-theme: settings scope adoption')
+     this.adopt()
+     installFontSizeShortcuts(ctx, (delta) => { this.adjustFontSizes(delta) })
+@@ -256,7 +298,7 @@ export class ThemeRuntime {
+    * @param id - a registered theme id or `system`; unknown ids throw.
+    */
+   setTheme(id: string): void {
+-    if (id !== 'system' && !this.themes.some(t => t.id === id)) {
++    if (id !== 'system' && id !== 'sun' && !this.themes.some(t => t.id === id)) {
+       throw new Error(`theme "${id}" is not registered`)
+     }
+     if (this.preference === id) return
+@@ -265,6 +307,19 @@ export class ThemeRuntime {
+     this.publish()
+   }
+ 
++  /**
++   * Change the location the `sun` preference estimates sunrise and sunset for.
++   * Accepted values are written through the settings scope and emit `theme/change`.
++   * @param location - `auto` or a listed city id; other values throw.
++   */
++  setSunLocation(location: string): void {
++    if (!isSunLocation(location)) throw new Error(`sun location "${location}" is not listed`)
++    if (this.sunLocation === location) return
++    this.sunLocation = location
++    this.write(() => this.host.set(SUN_LOCATION_FIELD, location))
++    this.publish()
++  }
++
+   /**
+    * Change one role's font size. Accepted
+    * values are written through the settings scope and emit `theme/change`.
+@@ -333,9 +388,10 @@ export class ThemeRuntime {
+     if (section === undefined) return
+     const fontFamilies = durableFontFamilies(section)
+     const fontSizes = sectionFontSizes(section)
+-    if (this.preference === section.preference
++    if (this.preference === section.preference && this.sunLocation === section.sunLocation
+       && FONT_ROLES.every(role => this.fontSizes[role] === fontSizes[role] && this.fontFamilies[role] === fontFamilies[role])) return
+     this.preference = section.preference
++    this.sunLocation = section.sunLocation
+     this.fontSizes = fontSizes
+     this.fontFamilies = fontFamilies
+     this.publish()
+@@ -352,7 +408,9 @@ export class ThemeRuntime {
+    * unregistered theme.
+    */
+   register(definition: ThemeDefinition): () => void {
+-    if (definition.id === 'system') throw new Error('"system" is a preference, not a registrable theme id')
++    if (definition.id === 'system' || definition.id === 'sun') {
++      throw new Error(`"${definition.id}" is a preference, not a registrable theme id`)
++    }
+     if (this.themes.some(t => t.id === definition.id)) {
+       throw new Error(`theme "${definition.id}" is already registered`)
+     }
+@@ -396,17 +454,61 @@ export class ThemeRuntime {
+     }
+   }
+ 
++  /** Estimate daylight for the configured location; undefined when no city matches the time zone. */
++  private estimateSun(at: number): (SunEstimate & { next?: number }) | undefined {
++    const resolved = resolveSunCity(this.sunLocation, Intl.DateTimeFormat().resolvedOptions().timeZone, at)
++    if (resolved === undefined) return undefined
++    const phase = sunPhase(at, resolved.city.latitude, resolved.city.longitude)
++    return {
++      cityId: resolved.city.id, source: resolved.source, daylight: phase.daylight,
++      ...(phase.interval === undefined ? {} : { interval: phase.interval }),
++      ...(phase.next === undefined ? {} : { next: phase.next }),
++    }
++  }
++
++  /** Re-arm the daylight timer for the published preference. */
++  private scheduleSun(next: number | undefined): void {
++    if (this.sunTimer !== undefined) clearTimeout(this.sunTimer)
++    this.sunTimer = undefined
++    if (this.preference !== 'sun') return
++    const wait = next === undefined ? SUN_RECHECK_MS : Math.min(SUN_RECHECK_MS, Math.max(0, next - Date.now()) + SUN_BOUNDARY_MS)
++    this.sunTimer = setTimeout(() => { this.sunTimer = undefined; this.recheckSun() }, wait)
++  }
++
++  /** Publish when the daylight estimate changed since the last snapshot; otherwise only re-arm the timer. */
++  private recheckSun(): void {
++    if (this.preference !== 'sun') return
++    const estimate = this.estimateSun(Date.now())
++    const current = this.snapshot.sun
++    if (estimate?.daylight === current?.daylight && estimate?.cityId === current?.cityId
++      && estimate?.interval?.[0] === current?.interval?.[0] && estimate?.interval?.[1] === current?.interval?.[1]) {
++      this.scheduleSun(estimate?.next)
++      return
++    }
++    this.publish()
++  }
++
+   private buildSnapshot(): ThemeSnapshot {
+-    const resolvedId = this.preference === 'system'
++    const estimate = this.preference === 'sun' ? this.estimateSun(Date.now()) : undefined
++    this.scheduleSun(estimate?.next)
++    const followsSystem = this.preference === 'system' || (this.preference === 'sun' && estimate === undefined)
++    const resolvedId = followsSystem
+       ? (this.media?.matches === true ? 'dark' : 'light')
+-      : this.preference
++      : this.preference === 'sun' ? (estimate?.daylight === true ? 'light' : 'dark')
++        : this.preference
+     // Both built-ins always exist; a registered preference id resolves or has
+     // been reset by its disposer, so the lookup cannot miss.
+     const active = this.themes.find(t => t.id === resolvedId)
+     /* v8 ignore next 2 -- needs a registry without light/dark, which register()/dispose() cannot produce */
+     if (active === undefined) throw new Error(`theme registry lost "${resolvedId}"`)
++    const sun: SunEstimate | undefined = estimate === undefined ? undefined : {
++      cityId: estimate.cityId, source: estimate.source, daylight: estimate.daylight,
++      ...(estimate.interval === undefined ? {} : { interval: estimate.interval }),
++    }
+     return Object.freeze({
+       preference: this.preference,
++      sunLocation: this.sunLocation,
++      ...(sun === undefined ? {} : { sun: Object.freeze(sun) }),
+       fontSizes: this.fontSizes,
+       fontFamilies: this.fontFamilies,
+       active: this.composeActive(active),
+@@ -614,7 +716,7 @@ export function apply(ctx: ClientContext): void {
+   const fontStore = createFontRowStore()
+   let fontBound: BoundActions<typeof fontStore> | undefined
+   const sync = (snapshot: ThemeSnapshot): void => {
+-    bound?.sync(snapshot.preference, snapshot.revision)
++    bound?.sync(snapshot)
+     fontBound?.sync(snapshot.fontSizes, snapshot.fontFamilies, snapshot.revision)
+   }
+   ctx.on('theme/change', sync)
+@@ -625,6 +727,7 @@ export function apply(ctx: ClientContext): void {
+     sync(theme.getTheme())
+     return {
+       setTheme: (id) => { theme.setTheme(id) },
++      setSunLocation: (location) => { theme.setSunLocation(location) },
+     }
+   }
+   ctx.slots.inject('settings.general.item', () => ctx.slots.register({
+diff --git a/packages/client/ui-theme/src/client/locales.ts b/packages/client/ui-theme/src/client/locales.ts
+index 3e4888aa8cd661b85f48c39e3ce4b6ec59f1d79c..361989533faa08e584e1ec1bc9d9d9f55299a527 100644
+--- a/packages/client/ui-theme/src/client/locales.ts
++++ b/packages/client/ui-theme/src/client/locales.ts
+@@ -3,9 +3,57 @@
+ /** Simplified Chinese dictionary (the key-set source of truth). */
+ export const zh = {
+   'appearance.title': '外观',
++  'appearance.description': '选择界面的明暗主题。',
++  'appearance.sun': '日出日落',
++  'appearance.sun.caption': '按时间',
++  'appearance.system.caption': '同步系统',
+   'appearance.light': '浅色',
++  'appearance.light.caption': '始终浅色',
+   'appearance.dark': '深色',
++  'appearance.dark.caption': '始终深色',
+   'appearance.system': '跟随系统',
++  'sun.location': '位置',
++  'sun.auto': '自动（按时区）',
++  'sun.estimate.zone': '按时区的代表城市{city}估算',
++  'sun.estimate.offset': '当前时区未列出，按 UTC 偏移相同的{city}估算',
++  'sun.estimate.manual': '按{city}估算',
++  'sun.times': '日出 {sunrise} · 日落 {sunset}',
++  'sun.noDaylight': '未来两天没有日出',
++  'sun.unresolved': '当前时区无法对应列出的城市，暂时跟随系统。请手动选择城市。',
++  'sun.note': '时区只能对应代表城市，无法确定实际位置，时间为估算值。',
++  'sun.city.beijing': '北京',
++  'sun.city.shanghai': '上海',
++  'sun.city.guangzhou': '广州',
++  'sun.city.shenzhen': '深圳',
++  'sun.city.chengdu': '成都',
++  'sun.city.chongqing': '重庆',
++  'sun.city.wuhan': '武汉',
++  'sun.city.hangzhou': '杭州',
++  'sun.city.xian': '西安',
++  'sun.city.harbin': '哈尔滨',
++  'sun.city.kunming': '昆明',
++  'sun.city.lhasa': '拉萨',
++  'sun.city.urumqi': '乌鲁木齐',
++  'sun.city.hong-kong': '香港',
++  'sun.city.macau': '澳门',
++  'sun.city.taipei': '台北',
++  'sun.city.tokyo': '东京',
++  'sun.city.seoul': '首尔',
++  'sun.city.singapore': '新加坡',
++  'sun.city.bangkok': '曼谷',
++  'sun.city.new-delhi': '新德里',
++  'sun.city.dubai': '迪拜',
++  'sun.city.moscow': '莫斯科',
++  'sun.city.berlin': '柏林',
++  'sun.city.paris': '巴黎',
++  'sun.city.london': '伦敦',
++  'sun.city.new-york': '纽约',
++  'sun.city.chicago': '芝加哥',
++  'sun.city.denver': '丹佛',
++  'sun.city.los-angeles': '洛杉矶',
++  'sun.city.sao-paulo': '圣保罗',
++  'sun.city.sydney': '悉尼',
++  'sun.city.auckland': '奥克兰',
+   'fontSize.text.title': '字号大小',
+   'fontSize.text.description': '仅影响会话内容的字号',
+   'fontSize.text.increase': '增大字号',
+@@ -35,9 +83,57 @@ export type ThemeKey = keyof typeof zh
+ /** English dictionary, checked complete against the zh key set. */
+ export const en = {
+   'appearance.title': 'Appearance',
++  'appearance.description': 'Choose the light or dark theme for the interface.',
++  'appearance.sun': 'Sunrise & sunset',
++  'appearance.sun.caption': 'By time',
++  'appearance.system.caption': 'Match system',
+   'appearance.light': 'Light',
++  'appearance.light.caption': 'Always light',
+   'appearance.dark': 'Dark',
++  'appearance.dark.caption': 'Always dark',
+   'appearance.system': 'System',
++  'sun.location': 'Location',
++  'sun.auto': 'Automatic (time zone)',
++  'sun.estimate.zone': "Estimated for {city}, the time zone's representative city",
++  'sun.estimate.offset': 'Time zone not listed; estimated for {city}, which shares its UTC offset',
++  'sun.estimate.manual': 'Estimated for {city}',
++  'sun.times': 'Sunrise {sunrise} · Sunset {sunset}',
++  'sun.noDaylight': 'No sunrise in the next two days',
++  'sun.unresolved': 'The time zone does not match a listed city, so the theme follows the system. Choose a city.',
++  'sun.note': 'A time zone only maps to a representative city, not your actual position, so times are estimates.',
++  'sun.city.beijing': 'Beijing',
++  'sun.city.shanghai': 'Shanghai',
++  'sun.city.guangzhou': 'Guangzhou',
++  'sun.city.shenzhen': 'Shenzhen',
++  'sun.city.chengdu': 'Chengdu',
++  'sun.city.chongqing': 'Chongqing',
++  'sun.city.wuhan': 'Wuhan',
++  'sun.city.hangzhou': 'Hangzhou',
++  'sun.city.xian': 'Xi\'an',
++  'sun.city.harbin': 'Harbin',
++  'sun.city.kunming': 'Kunming',
++  'sun.city.lhasa': 'Lhasa',
++  'sun.city.urumqi': 'Ürümqi',
++  'sun.city.hong-kong': 'Hong Kong',
++  'sun.city.macau': 'Macau',
++  'sun.city.taipei': 'Taipei',
++  'sun.city.tokyo': 'Tokyo',
++  'sun.city.seoul': 'Seoul',
++  'sun.city.singapore': 'Singapore',
++  'sun.city.bangkok': 'Bangkok',
++  'sun.city.new-delhi': 'New Delhi',
++  'sun.city.dubai': 'Dubai',
++  'sun.city.moscow': 'Moscow',
++  'sun.city.berlin': 'Berlin',
++  'sun.city.paris': 'Paris',
++  'sun.city.london': 'London',
++  'sun.city.new-york': 'New York',
++  'sun.city.chicago': 'Chicago',
++  'sun.city.denver': 'Denver',
++  'sun.city.los-angeles': 'Los Angeles',
++  'sun.city.sao-paulo': 'São Paulo',
++  'sun.city.sydney': 'Sydney',
++  'sun.city.auckland': 'Auckland',
+   'fontSize.text.title': 'Font size',
+   'fontSize.text.description': 'Only affects conversation content',
+   'fontSize.text.increase': 'Increase font size',
+@@ -63,6 +159,7 @@ export const en = {
+ 
+ /** Japanese copy, checked against the English keys. */
+ export const ja = {
++  ...en,
+   'appearance.title': '外観',
+   'appearance.light': 'ライト',
+   'appearance.dark': 'ダーク',
+@@ -92,6 +189,7 @@ export const ja = {
+ 
+ /** Spanish dictionary, checked against the English keys. */
+ export const es = {
++  ...en,
+   'appearance.title': 'Apariencia',
+   'appearance.light': 'Claro',
+   'appearance.dark': 'Oscuro',
+@@ -121,6 +219,7 @@ export const es = {
+ 
+ /** French dictionary, checked against the English keys. */
+ export const fr = {
++  ...en,
+   'appearance.title': 'Apparence',
+   'appearance.light': 'Clair',
+   'appearance.dark': 'Sombre',
+@@ -150,6 +249,7 @@ export const fr = {
+ 
+ /** German dictionary, checked against the English keys. */
+ export const de = {
++  ...en,
+   'appearance.title': 'Aussehen',
+   'appearance.light': 'Hell',
+   'appearance.dark': 'Dunkel',
+@@ -179,6 +279,7 @@ export const de = {
+ 
+ /** Russian dictionary, checked against the English keys. */
+ export const ru = {
++  ...en,
+   'appearance.title': 'Внешний вид',
+   'appearance.light': 'Светлая',
+   'appearance.dark': 'Тёмная',
+@@ -208,6 +309,7 @@ export const ru = {
+ 
+ /** Portuguese dictionary, checked against the English keys. */
+ export const pt = {
++  ...en,
+   'appearance.title': 'Aparência',
+   'appearance.light': 'Claro',
+   'appearance.dark': 'Escuro',
+diff --git a/packages/client/ui-theme/src/client/settings-store.ts b/packages/client/ui-theme/src/client/settings-store.ts
+index 93cef0efdcb1e03959b2f0d378152d841b107d67..be2a7d61b656c76993d2adb7fb0e2c5cf3e1d645 100644
+--- a/packages/client/ui-theme/src/client/settings-store.ts
++++ b/packages/client/ui-theme/src/client/settings-store.ts
+@@ -4,19 +4,36 @@
+  * row components read via props.useStore.
+  */
+ import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-store'
+-import { DEFAULT_FONT_SIZES, type FontFamilies, type FontSizes, type ThemePreference } from '../theme-settings.ts'
++import {
++  DEFAULT_FONT_SIZES, DEFAULT_PREFERENCE, DEFAULT_SUN_LOCATION,
++  type FontFamilies, type FontSizes, type ThemePreference,
++} from '../theme-settings.ts'
++import type { SunLocation } from '../sun.ts'
++import type { SunEstimate } from './index.ts'
+ 
+ /** Store state mirrored from the theme snapshot. */
+ export interface AppearanceRowState {
+   /** Persisted preference (selection state reads this, never the resolved active theme). */
+   preference: ThemePreference
++  /** Persisted location of the `sun` preference. */
++  sunLocation: SunLocation
++  /** Current estimate of the `sun` preference; absent for other preferences or an unmatched time zone. */
++  sun: SunEstimate | undefined
+   /** Service revision; -1 until first sync so revision 0 lands as a change. */
+   revision: number
+ }
+ 
++/** Theme snapshot fields the Appearance row mirrors. */
++export interface AppearanceRowSnapshot {
++  preference: ThemePreference
++  sunLocation: SunLocation
++  sun?: SunEstimate
++  revision: number
++}
++
+ /** Declared action shape giving the exported factory a stable return type. */
+ type AppearanceRowActions = {
+-  sync: (draft: AppearanceRowState, preference: ThemePreference, revision: number) => void
++  sync: (draft: AppearanceRowState, snapshot: AppearanceRowSnapshot) => void
+ }
+ 
+ /**
+@@ -25,12 +42,14 @@ type AppearanceRowActions = {
+  */
+ export function createAppearanceRowStore(): EngineStoreHandle<AppearanceRowState, AppearanceRowActions> {
+   return defineStore({
+-    init: (): AppearanceRowState => ({ preference: 'system', revision: -1 }),
++    init: (): AppearanceRowState => ({ preference: DEFAULT_PREFERENCE, sunLocation: DEFAULT_SUN_LOCATION, sun: undefined, revision: -1 }),
+     actions: {
+-      sync: (d, preference: ThemePreference, revision: number) => {
+-        if (revision <= d.revision) return
+-        d.preference = preference
+-        d.revision = revision
++      sync: (d, snapshot: AppearanceRowSnapshot) => {
++        if (snapshot.revision <= d.revision) return
++        d.preference = snapshot.preference
++        d.sunLocation = snapshot.sunLocation
++        d.sun = snapshot.sun
++        d.revision = snapshot.revision
+       },
+     },
+   })
+diff --git a/packages/client/ui-theme/src/client/styles.ts b/packages/client/ui-theme/src/client/styles.ts
+index 02130623064f58c02d7f1a870ed0a2b1c8690b74..5b417d881bc571e2fd5ed672356b424ddfd3fde5 100644
+--- a/packages/client/ui-theme/src/client/styles.ts
++++ b/packages/client/ui-theme/src/client/styles.ts
+@@ -3,6 +3,8 @@ import type { Context } from '@deepseek-ai/cordis'
+ import '../styles/base.css'
+ import '../styles/corner-shape.css'
+ import '../styles/design-platform.css'
++import '../styles/mode-accent.css'
++import '../styles/motion.css'
+ import '../styles/focus.css'
+ import '../styles/onboarding.css'
+ import '../styles/scrollbar.css'
+diff --git a/packages/client/ui-theme/src/index.ts b/packages/client/ui-theme/src/index.ts
+index bbc037ef8e8206da0d2dac4c548d0e11d805d3bf..671f02f5185f687d3fd158474d4b8ec6f33e9ac4 100644
+--- a/packages/client/ui-theme/src/index.ts
++++ b/packages/client/ui-theme/src/index.ts
+@@ -8,11 +8,12 @@ import z from '@deepseek-ai/schemastery'
+ import type { Context } from '@deepseek-ai/cordis'
+ import type {} from '@deepseek-ai/dsh-host-webserver'
+ import { bootThemeInjections } from './boot-theme.ts'
+-import { DEFAULT_PREFERENCE, FONT_SIZE_SPECS, fontSizeSchema, THEME_PREFERENCES } from './theme-settings.ts'
++import { daylightIntervals, resolveSunCity, SUN_LOCATIONS, type SunLocation } from './sun.ts'
++import { DEFAULT_PREFERENCE, DEFAULT_SUN_LOCATION, FONT_SIZE_SPECS, fontSizeSchema, THEME_PREFERENCES } from './theme-settings.ts'
+ 
+ export {
+-  DEFAULT_FONT_SIZE, DEFAULT_PREFERENCE, FONT_SIZE_FIELD, FONT_SIZE_MAX, FONT_SIZE_MIN,
+-  THEME_PREFERENCE_FIELD, THEME_PREFERENCES, THEME_SETTINGS_NAMESPACE,
++  DEFAULT_FONT_SIZE, DEFAULT_PREFERENCE, DEFAULT_SUN_LOCATION, FONT_SIZE_FIELD, FONT_SIZE_MAX, FONT_SIZE_MIN,
++  SUN_LOCATION_FIELD, THEME_PREFERENCE_FIELD, THEME_PREFERENCES, THEME_SETTINGS_NAMESPACE,
+   type ThemePreference, type ThemeSettings,
+ } from './theme-settings.ts'
+ 
+@@ -20,6 +21,8 @@ export {
+ export interface Config {
+   /** Browser palette preference. */
+   preference: Volatile<ThemePreference>
++  /** Location of the `sun` preference. */
++  sunLocation: Volatile<SunLocation>
+   /** Browser font size in pixels. */
+   fontSize: Volatile<number>
+   /** Code-block font size in pixels. */
+@@ -37,6 +40,7 @@ export interface Config {
+ /** Live theme and typography preferences. */
+ export const Config = z.object({
+   preference: z.union([...THEME_PREFERENCES]).default(DEFAULT_PREFERENCE).volatile(),
++  sunLocation: z.union([...SUN_LOCATIONS]).default(DEFAULT_SUN_LOCATION).volatile(),
+   fontSize: fontSizeSchema(FONT_SIZE_SPECS.text).volatile(),
+   codeFontSize: fontSizeSchema(FONT_SIZE_SPECS.code).volatile(),
+   terminalFontSize: fontSizeSchema(FONT_SIZE_SPECS.terminal).volatile(),
+@@ -52,6 +56,11 @@ export const Config = z.object({
+ export function apply(ctx: Context, config: Config): void {
+   ctx.inject(['settings'], (child) => { child.effect(() => child.settings.configure({ auto: false }, ctx.fiber)) })
+   ctx.on('webserver/index-inject', (table) => {
++    const at = Date.now()
++    const city = config.preference.get() === 'sun'
++      ? resolveSunCity(config.sunLocation.get(), Intl.DateTimeFormat().resolvedOptions().timeZone, at)?.city
++      : undefined
++    const daylight = city === undefined ? undefined : daylightIntervals(at, city.latitude, city.longitude)
+     table.push(...bootThemeInjections(config.preference.get(), {
+       text: config.fontSize.get(),
+       code: config.codeFontSize.get(),
+@@ -60,6 +69,6 @@ export function apply(ctx: Context, config: Config): void {
+       text: config.textFontFamily.get(),
+       code: config.codeFontFamily.get(),
+       terminal: config.terminalFontFamily.get(),
+-    }))
++    }, daylight, at))
+   }, { prepend: true })
+ }
+diff --git a/packages/client/ui-theme/src/styles/base.css b/packages/client/ui-theme/src/styles/base.css
+index 60a625630ad68b9490061856ad878ba6a5a7ca39..a200c5bd4b89710334c5905891e364ae9921f310 100644
+--- a/packages/client/ui-theme/src/styles/base.css
++++ b/packages/client/ui-theme/src/styles/base.css
+@@ -3,7 +3,54 @@
+  * --dsw-font-* variables resolve and motion rides the upstream curve. Code
+  * font stack deliberately omits a bare `monospace` tail (Windows CJK falls
+  * back to SimSun otherwise). */
++/* Branded panels stay dark, and appearance previews show their named palette in either active theme. */
++body {
++  --dsw-alias-brand-panel-label: var(--dsw-static-neutral-bluish-00);
++  --dsw-alias-brand-panel-border: var(--dsw-static-neutral-bluish-800);
++  --dsw-alias-brand-panel-start: var(--dsw-static-neutral-bluish-900);
++  --dsw-alias-brand-panel-end: var(--dsw-static-neutral-bluish-1000);
++  --dsw-alias-appearance-preview-light-surface: var(--dsw-static-neutral-bluish-00);
++  --dsw-alias-appearance-preview-light-track: var(--dsw-static-neutral-bluish-200);
++  --dsw-alias-appearance-preview-light-body: var(--dsw-static-neutral-bluish-60);
++  --dsw-alias-appearance-preview-dark-surface: var(--dsw-static-neutral-bluish-950);
++  --dsw-alias-appearance-preview-dark-track: var(--dsw-static-neutral-bluish-800);
++  --dsw-alias-appearance-preview-dark-body: var(--dsw-static-neutral-bluish-875);
++}
++
+ :root {
++  /* Mode colors: each `-ink` keeps at least 4.5:1 contrast on its color. */
++  --dsw-brand-blue: #2563eb;
++  --dsw-brand-blue-ink: #ffffff;
++  --dsw-brand-yellow: #f2b200;
++  --dsw-brand-yellow-ink: #101318;
++  --dsw-brand-red: #dc2626;
++  --dsw-brand-red-ink: #ffffff;
++  --dsw-brand-green: #15803d;
++  --dsw-brand-green-ink: #ffffff;
++  /* Mode accents: `-accent` keeps 4.5:1 as text on light surfaces and carries a white glyph as a fill;
++     `-accent-dark` is the text color on dark surfaces; `-press` darkens a hovered fill. */
++  --dsw-mode-standard-accent: #2563eb;
++  --dsw-mode-standard-accent-dark: #6ea2ff;
++  --dsw-mode-standard-press: #1d4ed8;
++  --dsw-mode-standard-press-dark: #3b82f6;
++  --dsw-mode-security-accent: #dc2626;
++  --dsw-mode-security-accent-dark: #f87171;
++  --dsw-mode-security-press: #b91c1c;
++  --dsw-mode-security-press-dark: #ef4444;
++  --dsw-mode-reverse-accent: #15803d;
++  --dsw-mode-reverse-accent-dark: #4ade80;
++  --dsw-mode-reverse-press: #166534;
++  --dsw-mode-reverse-press-dark: #16a34a;
++  --dsw-mode-writing-accent: #a16207;
++  --dsw-mode-writing-accent-dark: #facc15;
++  --dsw-mode-writing-press: #854d0e;
++  --dsw-mode-writing-press-dark: #ca8a04;
++  --dsw-mode-standard-fill: var(--dsw-mode-standard-accent);
++  --dsw-mode-security-fill: var(--dsw-mode-security-accent);
++  --dsw-mode-reverse-fill: var(--dsw-mode-reverse-accent);
++  --dsw-mode-writing-fill: var(--dsw-mode-writing-accent);
++  --dsw-mode-neutral-fill: #4b5563;
++  --dsw-mode-label-ink: #ffffff;
+   --dsh-font-family-text-default: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+     'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+   --dsw-font-family: var(--dsh-font-family-text-default);
+diff --git a/packages/client/ui-theme/src/styles/mode-accent.css b/packages/client/ui-theme/src/styles/mode-accent.css
+new file mode 100644
+index 0000000000000000000000000000000000000000..cc6d46e1727a559c2c6d44100bf8f3f5a5568cb0
+--- /dev/null
++++ b/packages/client/ui-theme/src/styles/mode-accent.css
+@@ -0,0 +1,117 @@
++/* Conversation-mode accent.
++ *
++ * `ui-agent-preset` writes `body[data-dsh-mode]` for the main view's mode,
++ * including a pick staged on a new conversation; without the attribute every
++ * accent keeps its design-platform value. The accent replaces the platform
++ * blue wherever the client uses it: selection, focus, links of state, the
++ * model badge, primary buttons, and tinted backgrounds. The registered colors
++ * interpolate, so a mode or light/dark change fades every use at once.
++ * `html[data-dsh-mode-reveal]` suspends the fade while a view transition
++ * captures the final colors. */
++
++@property --dsh-mode-accent { syntax: '<color>'; inherits: true; initial-value: rgb(65, 118, 230); }
++@property --dsh-mode-fill { syntax: '<color>'; inherits: true; initial-value: rgb(65, 118, 230); }
++@property --dsh-mode-fill-hover { syntax: '<color>'; inherits: true; initial-value: rgb(122, 170, 255); }
++@property --dsh-mode-marker { syntax: '<color>'; inherits: true; initial-value: #2563eb; }
++@property --dsh-mode-marker-ink { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
++
++body {
++  --dsh-mode-accent: var(--dsw-static-deepseek-500);
++  --dsh-mode-fill: var(--dsw-static-deepseek-500);
++  --dsh-mode-fill-hover: var(--dsw-static-deepseek-400);
++  --dsh-mode-marker: var(--dsw-brand-blue);
++  --dsh-mode-marker-ink: var(--dsw-brand-blue-ink);
++  --dsh-mode-fade: 480ms;
++  transition:
++    --dsh-mode-accent var(--dsh-mode-fade) var(--ds-ease-in-out),
++    --dsh-mode-fill var(--dsh-mode-fade) var(--ds-ease-in-out),
++    --dsh-mode-fill-hover var(--dsh-mode-fade) var(--ds-ease-in-out),
++    --dsh-mode-marker var(--dsh-mode-fade) var(--ds-ease-in-out),
++    --dsh-mode-marker-ink var(--dsh-mode-fade) var(--ds-ease-in-out);
++}
++
++body[data-ds-dark-theme] {
++  --dsh-mode-accent: var(--dsw-static-deepseek-400);
++  --dsh-mode-fill: var(--dsw-static-deepseek-400);
++  --dsh-mode-fill-hover: var(--dsw-static-deepseek-500);
++}
++
++body[data-dsh-mode='standard'] {
++  --dsh-mode-accent: var(--dsw-mode-standard-accent);
++  --dsh-mode-fill: var(--dsw-mode-standard-accent);
++  --dsh-mode-fill-hover: var(--dsw-mode-standard-press);
++  --dsh-mode-marker: var(--dsw-brand-blue);
++  --dsh-mode-marker-ink: var(--dsw-brand-blue-ink);
++}
++
++body[data-dsh-mode='security'] {
++  --dsh-mode-accent: var(--dsw-mode-security-accent);
++  --dsh-mode-fill: var(--dsw-mode-security-accent);
++  --dsh-mode-fill-hover: var(--dsw-mode-security-press);
++  --dsh-mode-marker: var(--dsw-brand-red);
++  --dsh-mode-marker-ink: var(--dsw-brand-red-ink);
++}
++
++body[data-dsh-mode='reverse'] {
++  --dsh-mode-accent: var(--dsw-mode-reverse-accent);
++  --dsh-mode-fill: var(--dsw-mode-reverse-accent);
++  --dsh-mode-fill-hover: var(--dsw-mode-reverse-press);
++  --dsh-mode-marker: var(--dsw-brand-green);
++  --dsh-mode-marker-ink: var(--dsw-brand-green-ink);
++}
++
++body[data-dsh-mode='writing'] {
++  --dsh-mode-accent: var(--dsw-mode-writing-accent);
++  --dsh-mode-fill: var(--dsw-mode-writing-accent);
++  --dsh-mode-fill-hover: var(--dsw-mode-writing-press);
++  --dsh-mode-marker: var(--dsw-brand-yellow);
++  --dsh-mode-marker-ink: var(--dsw-brand-yellow-ink);
++}
++
++body[data-ds-dark-theme][data-dsh-mode='standard'] { --dsh-mode-accent: var(--dsw-mode-standard-accent-dark); --dsh-mode-fill-hover: var(--dsw-mode-standard-press-dark); }
++body[data-ds-dark-theme][data-dsh-mode='security'] { --dsh-mode-accent: var(--dsw-mode-security-accent-dark); --dsh-mode-fill-hover: var(--dsw-mode-security-press-dark); }
++body[data-ds-dark-theme][data-dsh-mode='reverse'] { --dsh-mode-accent: var(--dsw-mode-reverse-accent-dark); --dsh-mode-fill-hover: var(--dsw-mode-reverse-press-dark); }
++body[data-ds-dark-theme][data-dsh-mode='writing'] { --dsh-mode-accent: var(--dsw-mode-writing-accent-dark); --dsh-mode-fill-hover: var(--dsw-mode-writing-press-dark); }
++
++html body[data-dsh-mode] {
++  --dsw-alias-label-deep-diving: var(--dsh-mode-accent);
++  --dsw-alias-label-deep-diving-shimmer: color-mix(in srgb, var(--dsh-mode-accent) 55%, var(--dsw-alias-label-primary));
++  --dsw-alias-link: var(--dsh-mode-accent);
++  --dsw-specific-bubble: color-mix(in srgb, var(--dsh-mode-accent) 8%, var(--dsw-alias-bg-base));
++  --dsw-specific-bubble-highlight: color-mix(in srgb, var(--dsh-mode-accent) 18%, var(--dsw-alias-bg-base));
++  --dsw-alias-bg-document-selection: color-mix(in srgb, var(--dsh-mode-accent) 35%, transparent);
++  --dsw-alias-state-business-primary: var(--dsh-mode-accent);
++  --dsw-alias-brand-primary-new-colorprimary-new-color: var(--dsh-mode-accent);
++  --dsw-alias-button-info-fill: var(--dsh-mode-fill);
++  --dsw-alias-button-info-hover: var(--dsh-mode-fill-hover);
++  --dsw-alias-state-business-tertiary: color-mix(in srgb, var(--dsh-mode-accent) 12%, var(--dsw-alias-bg-base));
++  --dsw-specific-sidebar-nav-item-active-accent: color-mix(in srgb, var(--dsh-mode-accent) 12%, var(--dsw-alias-bg-base));
++}
++
++html body[data-ds-dark-theme][data-dsh-mode] {
++  --dsw-alias-state-business-tertiary: color-mix(in srgb, var(--dsh-mode-accent) 20%, var(--dsw-alias-bg-base));
++  --dsw-specific-sidebar-nav-item-active-accent: color-mix(in srgb, var(--dsh-mode-accent) 16%, var(--dsw-alias-bg-base));
++}
++
++html[data-dsh-mode-reveal] body { transition: none; }
++
++/* A changed mode of the same conversation spreads from where it was chosen. */
++html[data-dsh-mode-reveal]::view-transition-old(root),
++html[data-dsh-mode-reveal]::view-transition-new(root) {
++  animation: none;
++  mix-blend-mode: normal;
++}
++
++html[data-dsh-mode-reveal]::view-transition-new(root) {
++  animation: dsh-mode-reveal 760ms cubic-bezier(0.22, 0.8, 0.16, 1) both;
++}
++
++@keyframes dsh-mode-reveal {
++  from { clip-path: circle(0 at var(--dsh-mode-reveal-x, 0) var(--dsh-mode-reveal-y, 0)); filter: saturate(1.35); }
++  to { clip-path: circle(var(--dsh-mode-reveal-radius, 150vmax) at var(--dsh-mode-reveal-x, 0) var(--dsh-mode-reveal-y, 0)); filter: saturate(1); }
++}
++
++@media (prefers-reduced-motion: reduce) {
++  body { transition: none; }
++  html[data-dsh-mode-reveal]::view-transition-old(root), html[data-dsh-mode-reveal]::view-transition-new(root) { animation: none; }
++}
+diff --git a/packages/client/ui-theme/src/styles/motion.css b/packages/client/ui-theme/src/styles/motion.css
+new file mode 100644
+index 0000000000000000000000000000000000000000..6dc6c409e1cc91199f074d9d4893fd776cfbdbc7
+--- /dev/null
++++ b/packages/client/ui-theme/src/styles/motion.css
+@@ -0,0 +1,49 @@
++/* App-wide transitions owned by the theme.
++ *
++ * ui-layout's presenter marks `html[data-dsh-theme-reveal]` while a light/dark
++ * change runs inside a view transition: `circle` spreads the new palette from
++ * the pressed control, `fade` cross-fades a change nobody clicked (a sunrise or
++ * sunset of the `sun` preference, or the operating system). The registered mode
++ * colors stop fading meanwhile, so the captured new state already holds them. */
++
++/* Low specificity preserves each control's geometry and specialized motion. */
++:where(button, [role='button'], [role='tab'], [role='treeitem'], input, textarea, a) {
++  transition: background-color 160ms var(--ds-ease-in-out), color 160ms var(--ds-ease-in-out),
++    border-color 160ms var(--ds-ease-in-out), box-shadow 160ms var(--ds-ease-in-out), opacity 160ms var(--ds-ease-in-out);
++}
++
++html[data-dsh-theme-reveal] body { transition: none; }
++
++html[data-dsh-theme-reveal]::view-transition-old(root),
++html[data-dsh-theme-reveal]::view-transition-new(root) {
++  mix-blend-mode: normal;
++}
++
++html[data-dsh-theme-reveal='fade']::view-transition-old(root) {
++  animation: dsh-theme-fade-out 560ms var(--ds-ease-in-out) both;
++}
++
++html[data-dsh-theme-reveal='fade']::view-transition-new(root) {
++  animation: dsh-theme-fade-in 560ms var(--ds-ease-in-out) both;
++}
++
++html[data-dsh-theme-reveal='circle']::view-transition-old(root) { animation: none; }
++
++html[data-dsh-theme-reveal='circle']::view-transition-new(root) {
++  animation: dsh-theme-reveal 640ms cubic-bezier(0.22, 0.8, 0.16, 1) both;
++}
++
++@keyframes dsh-theme-fade-out { to { opacity: 0; } }
++@keyframes dsh-theme-fade-in { from { opacity: 0; } }
++
++@keyframes dsh-theme-reveal {
++  from { clip-path: circle(0 at var(--dsh-theme-reveal-x, 50%) var(--dsh-theme-reveal-y, 50%)); }
++  to {
++    clip-path: circle(var(--dsh-theme-reveal-radius, 150vmax) at var(--dsh-theme-reveal-x, 50%) var(--dsh-theme-reveal-y, 50%));
++  }
++}
++
++@media (prefers-reduced-motion: reduce) {
++  :where(button, [role='button'], [role='tab'], [role='treeitem'], input, textarea, a) { transition: none; }
++  html[data-dsh-theme-reveal]::view-transition-old(root), html[data-dsh-theme-reveal]::view-transition-new(root) { animation: none; }
++}
+diff --git a/packages/client/ui-theme/src/sun.ts b/packages/client/ui-theme/src/sun.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..af80280af675087d79593b52989a9d3012728e67
+--- /dev/null
++++ b/packages/client/ui-theme/src/sun.ts
+@@ -0,0 +1,214 @@
++/**
++ * Sunrise and sunset estimates for the `sun` theme preference. A time zone
++ * names a region, not a position, so the automatic location is the zone's
++ * representative city; every result is an estimate for that city, not for the
++ * device. Times follow the sunrise equation (about one minute of error at
++ * mid latitudes) with the standard 0.833 degree refraction and solar-disc
++ * allowance.
++ */
++
++/** One selectable city with its position and the IANA zones it represents. */
++export interface SunCity {
++  /** Stable settings identity. */
++  readonly id: string
++  /** Degrees north; south is negative. */
++  readonly latitude: number
++  /** Degrees east; west is negative. */
++  readonly longitude: number
++  /** IANA zones for which this city is the automatic estimate. */
++  readonly zones: readonly string[]
++}
++
++/** Selectable cities: Chinese regions first, then major cities by UTC offset. */
++export const SUN_CITIES = [
++  { id: 'beijing', latitude: 39.9, longitude: 116.4, zones: [] },
++  { id: 'shanghai', latitude: 31.23, longitude: 121.47, zones: ['Asia/Shanghai', 'PRC', 'Asia/Chongqing', 'Asia/Chungking', 'Asia/Harbin'] },
++  { id: 'guangzhou', latitude: 23.13, longitude: 113.26, zones: [] },
++  { id: 'shenzhen', latitude: 22.54, longitude: 114.06, zones: [] },
++  { id: 'chengdu', latitude: 30.57, longitude: 104.07, zones: [] },
++  { id: 'chongqing', latitude: 29.56, longitude: 106.55, zones: [] },
++  { id: 'wuhan', latitude: 30.59, longitude: 114.31, zones: [] },
++  { id: 'hangzhou', latitude: 30.27, longitude: 120.16, zones: [] },
++  { id: 'xian', latitude: 34.34, longitude: 108.94, zones: [] },
++  { id: 'harbin', latitude: 45.8, longitude: 126.53, zones: [] },
++  { id: 'kunming', latitude: 25.04, longitude: 102.71, zones: [] },
++  { id: 'lhasa', latitude: 29.65, longitude: 91.17, zones: [] },
++  { id: 'urumqi', latitude: 43.83, longitude: 87.62, zones: ['Asia/Urumqi', 'Asia/Kashgar'] },
++  { id: 'hong-kong', latitude: 22.32, longitude: 114.17, zones: ['Asia/Hong_Kong', 'Hongkong'] },
++  { id: 'macau', latitude: 22.2, longitude: 113.54, zones: ['Asia/Macau', 'Asia/Macao'] },
++  { id: 'taipei', latitude: 25.03, longitude: 121.57, zones: ['Asia/Taipei', 'ROC'] },
++  { id: 'tokyo', latitude: 35.68, longitude: 139.69, zones: ['Asia/Tokyo', 'Japan'] },
++  { id: 'seoul', latitude: 37.57, longitude: 126.98, zones: ['Asia/Seoul', 'ROK'] },
++  { id: 'singapore', latitude: 1.35, longitude: 103.82, zones: ['Asia/Singapore', 'Singapore', 'Asia/Kuala_Lumpur'] },
++  { id: 'bangkok', latitude: 13.76, longitude: 100.5, zones: ['Asia/Bangkok', 'Asia/Ho_Chi_Minh', 'Asia/Saigon', 'Asia/Jakarta'] },
++  { id: 'new-delhi', latitude: 28.61, longitude: 77.21, zones: ['Asia/Kolkata', 'Asia/Calcutta'] },
++  { id: 'dubai', latitude: 25.2, longitude: 55.27, zones: ['Asia/Dubai'] },
++  { id: 'moscow', latitude: 55.76, longitude: 37.62, zones: ['Europe/Moscow', 'W-SU'] },
++  { id: 'berlin', latitude: 52.52, longitude: 13.4, zones: ['Europe/Berlin', 'Europe/Amsterdam', 'Europe/Vienna', 'Europe/Zurich'] },
++  { id: 'paris', latitude: 48.86, longitude: 2.35, zones: ['Europe/Paris', 'Europe/Brussels', 'Europe/Madrid', 'Europe/Rome'] },
++  { id: 'london', latitude: 51.51, longitude: -0.13, zones: ['Europe/London', 'GB', 'Europe/Dublin', 'Europe/Lisbon'] },
++  { id: 'new-york', latitude: 40.71, longitude: -74.01, zones: ['America/New_York', 'US/Eastern', 'America/Toronto', 'EST5EDT'] },
++  { id: 'chicago', latitude: 41.88, longitude: -87.63, zones: ['America/Chicago', 'US/Central', 'CST6CDT'] },
++  { id: 'denver', latitude: 39.74, longitude: -104.99, zones: ['America/Denver', 'US/Mountain', 'MST7MDT'] },
++  { id: 'los-angeles', latitude: 34.05, longitude: -118.24, zones: ['America/Los_Angeles', 'US/Pacific', 'America/Vancouver', 'PST8PDT'] },
++  { id: 'sao-paulo', latitude: -23.55, longitude: -46.63, zones: ['America/Sao_Paulo', 'Brazil/East'] },
++  { id: 'sydney', latitude: -33.87, longitude: 151.21, zones: ['Australia/Sydney', 'Australia/Melbourne', 'Australia/ACT', 'Australia/NSW'] },
++  { id: 'auckland', latitude: -36.85, longitude: 174.76, zones: ['Pacific/Auckland', 'NZ'] },
++] as const satisfies readonly SunCity[]
++
++/** Identity of one selectable city. */
++export type SunCityId = typeof SUN_CITIES[number]['id']
++
++/** Location setting value that estimates the city from the time zone. */
++export const SUN_LOCATION_AUTO = 'auto'
++
++/** Accepted location settings: automatic, then every city. */
++export const SUN_LOCATIONS = [SUN_LOCATION_AUTO, ...SUN_CITIES.map(city => city.id)] as const
++
++/** Persisted location setting. */
++export type SunLocation = typeof SUN_LOCATIONS[number]
++
++/** How a city was chosen: by the user, by an exact zone match, or by sharing the zone's current UTC offset. */
++export type SunCitySource = 'manual' | 'zone' | 'offset'
++
++/** City used for the estimate and how it was chosen. */
++export interface ResolvedSunCity {
++  readonly city: SunCity
++  readonly source: SunCitySource
++}
++
++const DAY_MS = 86_400_000
++const J1970 = 2440587.5
++const J2000 = 2451545
++const J2000_NOON_MS = Date.UTC(2000, 0, 1, 12)
++const RAD = Math.PI / 180
++const OBLIQUITY = 23.4397 * RAD
++const HORIZON = -0.833 * RAD
++
++/**
++ * Narrow a stored value to a location setting.
++ * @param value - Value read from settings or a control.
++ * @returns whether the value names automatic or a known city.
++ */
++export function isSunLocation(value: unknown): value is SunLocation {
++  return SUN_LOCATIONS.some(location => location === value)
++}
++
++function utcOffset(timeZone: string, at: number): string | undefined {
++  try {
++    return new Intl.DateTimeFormat('en-US', { timeZone, timeZoneName: 'longOffset' })
++      .formatToParts(at).find(part => part.type === 'timeZoneName')?.value
++  } catch (error) {
++    // An unknown zone name throws RangeError; the caller then has no offset to compare.
++    if (error instanceof RangeError) return undefined
++    throw error
++  }
++}
++
++/**
++ * Choose the city for the estimate.
++ * @param location - Stored location setting.
++ * @param timeZone - IANA zone of the device, absent when unknown.
++ * @param at - Instant whose UTC offset an unlisted zone is compared at.
++ * @returns the city and how it was chosen, or undefined when an automatic location matches no city.
++ */
++export function resolveSunCity(location: SunLocation, timeZone: string | undefined, at: number): ResolvedSunCity | undefined {
++  if (location !== SUN_LOCATION_AUTO) {
++    const city = SUN_CITIES.find(candidate => candidate.id === location)
++    return city === undefined ? undefined : { city, source: 'manual' }
++  }
++  if (timeZone === undefined) return undefined
++  const zoned = SUN_CITIES.find(candidate => candidate.zones.some(zone => zone === timeZone))
++  if (zoned !== undefined) return { city: zoned, source: 'zone' }
++  const offset = utcOffset(timeZone, at)
++  if (offset === undefined) return undefined
++  const shared = SUN_CITIES.find((candidate) => {
++    const zone: string | undefined = candidate.zones[0]
++    return zone !== undefined && utcOffset(zone, at) === offset
++  })
++  return shared === undefined ? undefined : { city: shared, source: 'offset' }
++}
++
++/** Sunrise and sunset of one UTC day, or the polar state when the sun stays up or down all day. */
++export type SunDay =
++  | { readonly kind: 'cycle'; readonly sunrise: number; readonly sunset: number }
++  | { readonly kind: 'polar-day' }
++  | { readonly kind: 'polar-night' }
++
++/**
++ * Estimate sunrise and sunset around the solar noon of one UTC day.
++ * @param dayStart - UTC midnight in epoch milliseconds.
++ * @param latitude - Degrees north.
++ * @param longitude - Degrees east.
++ * @returns whole epoch-millisecond sunrise and sunset, or the polar state.
++ */
++export function sunDay(dayStart: number, latitude: number, longitude: number): SunDay {
++  const day = Math.round((dayStart + DAY_MS / 2 - J2000_NOON_MS) / DAY_MS)
++  const meanNoon = day - longitude / 360
++  const anomaly = ((357.5291 + 0.98560028 * meanNoon) % 360) * RAD
++  const center = 1.9148 * Math.sin(anomaly) + 0.02 * Math.sin(2 * anomaly) + 0.0003 * Math.sin(3 * anomaly)
++  const ecliptic = ((anomaly / RAD + center + 180 + 102.9372) % 360) * RAD
++  const transit = J2000 + meanNoon + 0.0053 * Math.sin(anomaly) - 0.0069 * Math.sin(2 * ecliptic)
++  const declination = Math.asin(Math.sin(ecliptic) * Math.sin(OBLIQUITY))
++  const phi = latitude * RAD
++  const cosHour = (Math.sin(HORIZON) - Math.sin(phi) * Math.sin(declination)) / (Math.cos(phi) * Math.cos(declination))
++  if (cosHour > 1) return { kind: 'polar-night' }
++  if (cosHour < -1) return { kind: 'polar-day' }
++  const hour = Math.acos(cosHour) / RAD / 360
++  return {
++    kind: 'cycle',
++    sunrise: Math.round((transit - hour - J1970) * DAY_MS),
++    sunset: Math.round((transit + hour - J1970) * DAY_MS),
++  }
++}
++
++/**
++ * Daylight intervals for the UTC days around an instant, in ascending order.
++ * @param at - Instant the window is centered on.
++ * @param latitude - Degrees north.
++ * @param longitude - Degrees east.
++ * @returns half-open `[start, end)` epoch-millisecond intervals from the day before through two days after.
++ */
++export function daylightIntervals(at: number, latitude: number, longitude: number): [number, number][] {
++  const today = Math.floor(at / DAY_MS) * DAY_MS
++  const intervals: [number, number][] = []
++  for (let offset = -1; offset <= 2; offset++) {
++    const dayStart = today + offset * DAY_MS
++    const day = sunDay(dayStart, latitude, longitude)
++    if (day.kind === 'polar-night') continue
++    const interval: [number, number] = day.kind === 'polar-day' ? [dayStart, dayStart + DAY_MS] : [day.sunrise, day.sunset]
++    const last = intervals.at(-1)
++    if (last !== undefined && interval[0] <= last[1]) last[1] = Math.max(last[1], interval[1])
++    else intervals.push(interval)
++  }
++  return intervals
++}
++
++/** Whether the sun is up and when that next changes. */
++export interface SunPhase {
++  readonly daylight: boolean
++  /** Next sunrise or sunset within the computed window, absent through a long polar period. */
++  readonly next?: number
++  /** The current daylight interval, or the next one while it is dark. */
++  readonly interval?: readonly [number, number]
++}
++
++/**
++ * Classify one instant at a position.
++ * @param at - Instant to classify.
++ * @param latitude - Degrees north.
++ * @param longitude - Degrees east.
++ * @returns daylight state, the next change, and the relevant daylight interval.
++ */
++export function sunPhase(at: number, latitude: number, longitude: number): SunPhase {
++  const intervals = daylightIntervals(at, latitude, longitude)
++  const current = intervals.find(([start, end]) => start <= at && at < end)
++  const upcoming = intervals.find(([start]) => start > at)
++  const next = current?.[1] ?? upcoming?.[0]
++  const interval = current ?? upcoming
++  return {
++    daylight: current !== undefined,
++    ...(next === undefined ? {} : { next }),
++    ...(interval === undefined ? {} : { interval }),
++  }
++}
+diff --git a/packages/client/ui-theme/src/theme-settings.ts b/packages/client/ui-theme/src/theme-settings.ts
+index af7d1d22b61f1d18286b8a17b12185eb4d910ef9..60cdbb42bff7a695d029c638b40749c2bd618f90 100644
+--- a/packages/client/ui-theme/src/theme-settings.ts
++++ b/packages/client/ui-theme/src/theme-settings.ts
+@@ -1,9 +1,13 @@
+ /** Theme preferences stored in the Host user-settings document. */
+ 
+ import z from '@deepseek-ai/schemastery'
++import { SUN_LOCATION_AUTO, SUN_LOCATIONS, type SunLocation } from './sun.ts'
+ 
+-/** Built-in preferences accepted at the registry and settings boundaries. */
+-export const THEME_PREFERENCES = ['light', 'dark', 'system'] as const
++/**
++ * Built-in preferences accepted at the registry and settings boundaries.
++ * `sun` is light between the estimated sunrise and sunset of the configured location.
++ */
++export const THEME_PREFERENCES = ['light', 'dark', 'system', 'sun'] as const
+ 
+ /** Settings namespace owned by the theme plugin. */
+ export const THEME_SETTINGS_NAMESPACE = 'ui-theme'
+@@ -18,7 +22,13 @@ export const FONT_SIZE_FIELD = 'fontSize'
+ export type ThemePreference = typeof THEME_PREFERENCES[number]
+ 
+ /** Default preference when the user-settings document has no override. */
+-export const DEFAULT_PREFERENCE: ThemePreference = 'system'
++export const DEFAULT_PREFERENCE: ThemePreference = 'sun'
++
++/** Field carrying the location the `sun` preference estimates sunrise and sunset for. */
++export const SUN_LOCATION_FIELD = 'sunLocation'
++
++/** Location when the user-settings document has no override: the time zone's representative city. */
++export const DEFAULT_SUN_LOCATION: SunLocation = SUN_LOCATION_AUTO
+ 
+ /** Smallest accepted content font size (px). */
+ export const FONT_SIZE_MIN = 10
+@@ -92,6 +102,8 @@ export type FontFamilies = Readonly<Record<FontRole, string>>
+ export interface ThemeSettings {
+   /** Selected built-in preference. */
+   preference: ThemePreference
++  /** Location of the `sun` preference: `auto` or one listed city. */
++  sunLocation: SunLocation
+   /** Conversation content font size in px (integer within {@link FONT_SIZE_MIN}..{@link FONT_SIZE_MAX}). */
+   fontSize: number
+   /** Code-block font size in px (integer within the {@link FONT_SIZE_SPECS} `code` range). */
+@@ -138,6 +150,7 @@ export function isFontSize(role: FontRole, px: number): boolean {
+ /** Durable theme schema; also the wire envelope the browser scope validates against. */
+ export const ThemeSettingsSchema: z<ThemeSettings> = z.object({
+   [THEME_PREFERENCE_FIELD]: z.union([...THEME_PREFERENCES]).default(DEFAULT_PREFERENCE),
++  [SUN_LOCATION_FIELD]: z.union([...SUN_LOCATIONS]).default(DEFAULT_SUN_LOCATION),
+   [FONT_SIZE_FIELD]: fontSizeSchema(FONT_SIZE_SPECS.text),
+   [FONT_SIZE_SPECS.code.field]: fontSizeSchema(FONT_SIZE_SPECS.code),
+   [FONT_SIZE_SPECS.terminal.field]: fontSizeSchema(FONT_SIZE_SPECS.terminal),
+diff --git a/packages/client/ui-theme/tests/appearance-row.client.spec.tsx b/packages/client/ui-theme/tests/appearance-row.client.spec.tsx
+index 8f459cc39f7c6f5bda61de3a28e483077117adad..f09f60ccc1b08eca1606e93e1ead0c4e5ecfa14f 100644
+--- a/packages/client/ui-theme/tests/appearance-row.client.spec.tsx
++++ b/packages/client/ui-theme/tests/appearance-row.client.spec.tsx
+@@ -10,7 +10,7 @@ import { allowAllAccess, bindSnapshotSelector } from '@deepseek-ai/dsh-client-te
+ import { AppearanceRow } from '../src/client/AppearanceRow.tsx'
+ import type { AppearanceRowComponentProps } from '../src/client/AppearanceRow.tsx'
+ import { createAppearanceRowStore } from '../src/client/settings-store.ts'
+-import type { ThemePreference } from '../src/client/index.ts'
++import type { SunEstimate, ThemePreference } from '../src/client/index.ts'
+ 
+ // Every fixture carries the resource hook the resources plugin merges into GlobalStandardProps.
+ const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined, reload: () => {} })) as GlobalStandardProps['useResource']
+@@ -20,11 +20,22 @@ afterEach(cleanup)
+ 
+ const COPY: Record<string, string> = {
+   'appearance.title': 'Appearance',
++  'appearance.sun': 'Sunrise & sunset',
+   'appearance.light': 'Light',
+   'appearance.dark': 'Dark',
+   'appearance.system': 'System',
++  'sun.location': 'Location',
++  'sun.auto': 'Automatic',
++  'sun.city.beijing': 'Beijing',
++  'sun.city.shanghai': 'Shanghai',
++  'sun.estimate.zone': 'Estimated for {city}',
++  'sun.unresolved': 'Follows the system',
++  'sun.times': 'Sunrise {sunrise} · Sunset {sunset}',
+ }
+ 
++const translate = (key: string, params?: Record<string, string>): string =>
++  (COPY[key] ?? key).replace(/\{(\w+)\}/gu, (_, name: string) => params?.[name] ?? '')
++
+ function emptySessions() {
+   const store = createSnapshotStore<SessionListState>(
+     { ids: [], byId: {}, phase: 'ready', projectionsBySession: {} })
+@@ -41,11 +52,12 @@ type AttentionSnapshot = Parameters<Parameters<AppearanceRowComponentProps['useS
+ const noAttention: AttentionSnapshot = new Map()
+ const useSessionStatus: AppearanceRowComponentProps['useSessionStatus'] = selector => selector(noAttention)
+ 
+-function mount(preference: ThemePreference = 'system') {
++function mount(preference: ThemePreference = 'system', sun?: SunEstimate) {
+   // Real store instance — the sanctioned zero-machinery path for tests.
+   const store = createAppearanceRowStore().create()
+-  store.actions.sync(preference, 0)
++  store.actions.sync({ preference, sunLocation: 'auto', ...(sun === undefined ? {} : { sun }), revision: 0 })
+   const setTheme = vi.fn()
++  const setSunLocation = vi.fn()
+   const props: AppearanceRowComponentProps = {
+     useSessions: emptySessions(),
+     useSessionStatus,
+@@ -55,33 +67,51 @@ function mount(preference: ThemePreference = 'system') {
+     useContextMenu: contextMenuHook(),
+     useStore: bindSnapshotSelector(store),
+     actions: store.actions,
+-    t: (key: string) => COPY[key] ?? key,
++    t: translate as AppearanceRowComponentProps['t'],
+     setTheme,
++    setSunLocation,
+   }
+   render(<AppearanceRow {...props} />)
+-  return { store, setTheme }
++  return { store, setTheme, setSunLocation }
+ }
+ 
+-const pressed = (name: RegExp): string | null =>
+-  screen.getByRole('button', { name }).getAttribute('aria-pressed')
++const checked = (name: RegExp): string | null =>
++  screen.getByRole('radio', { name }).getAttribute('aria-checked')
+ 
+ describe('AppearanceRow', () => {
+-  it('renders the title and three cubes with the preference cube selected', () => {
++  it('renders four preview cards in order with the preference selected', () => {
+     mount('dark')
+     expect(screen.getByText('Appearance')).toBeDefined()
+-    expect(pressed(/Dark/)).toBe('true')
+-    expect(pressed(/Light/)).toBe('false')
+-    expect(pressed(/System/)).toBe('false')
++    expect(screen.getAllByRole('radio').map(card => card.getAttribute('data-theme-card'))).toEqual(['sun', 'system', 'light', 'dark'])
++    expect(checked(/Dark/)).toBe('true')
++    expect(checked(/Light/)).toBe('false')
++    expect(checked(/System/)).toBe('false')
++    expect(screen.queryByLabelText('Location')).toBeNull()
+   })
+ 
+   it('click drives setTheme; selection follows the store mirror, not the click echo', () => {
+     const b = mount('dark')
+-    fireEvent.click(screen.getByRole('button', { name: /Light/ }))
++    fireEvent.click(screen.getByRole('radio', { name: /Light/ }))
+     expect(b.setTheme).toHaveBeenCalledWith('light')
+     // No store write yet: selection is unchanged.
+-    expect(pressed(/Dark/)).toBe('true')
+-    act(() => { b.store.actions.sync('light', 1) })
+-    expect(pressed(/Light/)).toBe('true')
+-    expect(pressed(/Dark/)).toBe('false')
++    expect(checked(/Dark/)).toBe('true')
++    act(() => { b.store.actions.sync({ preference: 'light', sunLocation: 'auto', revision: 1 }) })
++    expect(checked(/Light/)).toBe('true')
++    expect(checked(/Dark/)).toBe('false')
++  })
++
++  it('shows the sunrise and sunset location and estimate only for that preference', () => {
++    const b = mount('sun', { cityId: 'shanghai', source: 'zone', daylight: true, interval: [Date.UTC(2026, 5, 20, 20, 50), Date.UTC(2026, 5, 21, 11, 1)] })
++    expect(checked(/Sunrise/)).toBe('true')
++    expect(screen.getByText(/Estimated for Shanghai/)).toBeDefined()
++    expect(screen.getByText(/^Sunrise .* · Sunset /)).toBeDefined()
++    fireEvent.click(screen.getByLabelText('Location'))
++    fireEvent.click(screen.getByRole('menuitem', { name: 'Beijing' }))
++    expect(b.setSunLocation).toHaveBeenCalledWith('beijing')
++  })
++
++  it('explains the system fallback when the time zone matches no city', () => {
++    mount('sun')
++    expect(screen.getByText('Follows the system')).toBeDefined()
+   })
+ })
+diff --git a/packages/client/ui-theme/tests/apply.client.spec.ts b/packages/client/ui-theme/tests/apply.client.spec.ts
+index 877ce818c30ae1646fb8b9e178fd4dff39572f5d..3a3b32a0a088ff26a7689ac7a07d0b3f5ea7762c 100644
+--- a/packages/client/ui-theme/tests/apply.client.spec.ts
++++ b/packages/client/ui-theme/tests/apply.client.spec.ts
+@@ -35,7 +35,7 @@ async function bench(isLoopback = true) {
+   const locale = new LocaleRuntime(ctx)
+   locale.setLocale('zh')
+   ctx.provide('locale', locale)
+-  const section: Record<string, unknown> = { preference: 'system', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }
++  const section: Record<string, unknown> = { preference: 'system', sunLocation: 'auto', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }
+   const namespace = () => ({
+     ns: THEME_SETTINGS_NAMESPACE,
+     schema: ThemeSettingsSchema.toJSON(),
+@@ -171,7 +171,7 @@ describe('ui-theme apply', () => {
+ 
+   it('adopts all durable font sizes together after a refused batch settles', async () => {
+     const host = stubConfigForm<ThemeSettings>()
+-    const section: ThemeSettings = { preference: 'system', fontSize: 14, codeFontSize: 11, terminalFontSize: 13,
++    const section: ThemeSettings = { preference: 'system', sunLocation: 'auto', fontSize: 14, codeFontSize: 11, terminalFontSize: 13,
+       textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }
+     host.publish({ status: 'ready', value: section, revision: 1, writable: true })
+     const { theme, keyboard } = await keyboardTheme(host)
+@@ -381,7 +381,7 @@ describe('ui-theme apply', () => {
+     const b = await bench()
+     // The shared mirror read once at bench time; a Host-side change reaches it
+     // through the document invalidation, exactly as production announces one.
+-    b.setHostSection({ preference: 'dark', fontSize: 17 })
++    b.setHostSection({ preference: 'dark', sunLocation: 'auto', fontSize: 17 })
+     b.events.emit('settings/document-updated', [THEME_SETTINGS_NAMESPACE, 0])
+     declareItems(b.slots)
+     await b.ctx.plugin({ inject: [...inject], apply }).await()
+diff --git a/packages/client/ui-theme/tests/boot-theme.client.spec.ts b/packages/client/ui-theme/tests/boot-theme.client.spec.ts
+index 7a59de8082851b1f225ccd57ba44bb653d96b9e5..fb2a9e1bd40a5b00d9abdb644c328a8742288091 100644
+--- a/packages/client/ui-theme/tests/boot-theme.client.spec.ts
++++ b/packages/client/ui-theme/tests/boot-theme.client.spec.ts
+@@ -70,12 +70,29 @@ describe('theme bootstrap row', () => {
+     )
+   })
+ 
+-  it('defaults to system and falls back to light when matchMedia is unavailable', () => {
++  it('defaults to sunrise and sunset, which follows the system without a location, and falls back to light without matchMedia', () => {
+     vi.stubGlobal('matchMedia', undefined)
+     executeBootstrap()
++    expect(document.documentElement.dataset.dsThemeSource).toBe('system')
+     expect(document.body.hasAttribute(DARK_ATTRIBUTE)).toBe(false)
+   })
+ 
++  it.each([
++    ['inside', [[-60_000, 60_000]], false, 'light'],
++    ['outside', [[60_000, 120_000]], true, 'dark'],
++  ] as const)('resolves sun with the render instant %s the daylight intervals', (_label, daylight, dark, source) => {
++    mockSystemDark(!dark)
++    const at = 0
++    vi.spyOn(Date, 'now').mockReturnValue(at)
++    const [head, body] = bootThemeInjections('sun', undefined, undefined, daylight, at)
++    if (head?.kind !== 'style' || body?.kind !== 'script') throw new Error('unexpected theme bootstrap rows')
++    expect(head.text).toContain(dark ? 'color-scheme:dark' : 'color-scheme:light')
++    expect(head.text).not.toContain('@media')
++    runInNewContext(body.text, { document, matchMedia: globalThis.matchMedia, Date })
++    expect(document.documentElement.dataset.dsThemeSource).toBe(source)
++    expect(document.body.hasAttribute(DARK_ATTRIBUTE)).toBe(dark)
++  })
++
+   it('writes the durable font sizes and their defaults', () => {
+     mockSystemDark(false)
+     executeBootstrap('light', { text: 22, code: 15, terminal: 18 })
+diff --git a/packages/client/ui-theme/tests/config.host.spec.ts b/packages/client/ui-theme/tests/config.host.spec.ts
+index 0dfd0618835b415d63ed6430edd9f6981f5e788f..a4cec047253aeca95b483e663ea6a14cf289bba9 100644
+--- a/packages/client/ui-theme/tests/config.host.spec.ts
++++ b/packages/client/ui-theme/tests/config.host.spec.ts
+@@ -30,9 +30,12 @@ describe('ui-theme host', () => {
+     const ctx = new Context()
+     const configuration = await liveConfig(ctx, { Config, apply })
+     const { fiber } = configuration
+-    expect(plainConfig(configuration.fiber.effectiveConfig)).toEqual({ preference: DEFAULT_PREFERENCE, fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' })
++    expect(plainConfig(configuration.fiber.effectiveConfig)).toEqual({ preference: DEFAULT_PREFERENCE, sunLocation: 'auto', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' })
+     await configuration.update({ preference: 'dark', fontSize: 10, codeFontSize: 16, codeFontFamily: '"Iosevka"' })
+-    expect(plainConfig(configuration.fiber.effectiveConfig)).toEqual({ preference: 'dark', fontSize: 10, codeFontSize: 16, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '"Iosevka"', terminalFontFamily: '' })
++    expect(plainConfig(configuration.fiber.effectiveConfig)).toEqual({ preference: 'dark', sunLocation: 'auto', fontSize: 10, codeFontSize: 16, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '"Iosevka"', terminalFontFamily: '' })
++    await configuration.update({ sunLocation: 'london' })
++    expect(plainConfig(configuration.fiber.effectiveConfig)).toMatchObject({ sunLocation: 'london' })
++    await expect(configuration.update({ sunLocation: 'atlantis' })).rejects.toThrow()
+     await configuration.update({ fontSize: 22 })
+     expect(plainConfig(configuration.fiber.effectiveConfig)).toMatchObject({ preference: 'dark', fontSize: 22 })
+     await expect(configuration.update({ preference: 'sepia' })).rejects.toThrow()
+@@ -55,9 +58,14 @@ describe('ui-theme host', () => {
+     expect(rows[0]).toMatchObject({ kind: 'style' })
+     expect(rows[1]).toMatchObject({ kind: 'script', placement: 'body' })
+     expect(rows[2]).toMatchObject({ kind: 'script', placement: 'head', text: 'window.afterTheme=true' })
+-    expect(rowText(rows[0])).toContain('@media(prefers-color-scheme:dark)')
+-    expect(rowText(rows[1])).toContain('const preference = "system"')
++    expect(rowText(rows[1])).toContain('const preference = "sun"')
+     expect(rowText(rows[1])).toContain('"14px"')
++    await configuration.update({ preference: 'system' })
++    expect(rowText(collect(ctx)[0])).toContain('@media(prefers-color-scheme:dark)')
++    expect(rowText(collect(ctx)[1])).toContain('const daylight = null')
++    await configuration.update({ preference: 'sun', sunLocation: 'beijing' })
++    expect(rowText(collect(ctx)[0])).not.toContain('@media')
++    expect(rowText(collect(ctx)[1])).toMatch(/const daylight = \[\[\d+,\d+\]/u)
+     expect(rowText(rows[1])).not.toContain('--dsh-font-family')
+     await configuration.update({ preference: 'dark', fontSize: 22, terminalFontSize: 18, terminalFontFamily: 'MesloLGS NF' })
+     expect(rowText(collect(ctx)[1])).toContain('"--dsh-terminal-font-size", "18px"')
+@@ -69,10 +77,10 @@ describe('ui-theme host', () => {
+     expect(collect(ctx)).toEqual([{ kind: 'script', placement: 'head', text: 'window.afterTheme=true' }])
+   })
+ 
+-  it('uses the system preference without a settings provider', async () => {
++  it('uses the sunrise and sunset preference without a settings provider', async () => {
+     const ctx = new Context()
+     await ctx.plugin({ Config, apply }).await()
+-    expect(rowText(collect(ctx)[1])).toContain('const preference = "system"')
++    expect(rowText(collect(ctx)[1])).toContain('const preference = "sun"')
+   })
+ 
+ 
+diff --git a/packages/client/ui-theme/tests/settings-store.client.spec.ts b/packages/client/ui-theme/tests/settings-store.client.spec.ts
+index 25ba008419039377d080d651d9f1c039267f4be9..2f62abdcf9b1083855dd21e374540ed6c0f586a4 100644
+--- a/packages/client/ui-theme/tests/settings-store.client.spec.ts
++++ b/packages/client/ui-theme/tests/settings-store.client.spec.ts
+@@ -3,25 +3,28 @@ import { describe, expect, it } from 'vitest'
+ import { createAppearanceRowStore, createFontRowStore } from '../src/client/settings-store.ts'
+ 
+ describe('createAppearanceRowStore', () => {
+-  it('init shape: system preference with revision at -1', () => {
++  const snapshot = (preference: 'light' | 'dark' | 'system' | 'sun', revision: number) =>
++    ({ preference, sunLocation: 'auto' as const, revision })
++
++  it('init shape: sunrise and sunset preference at the automatic location with revision at -1', () => {
+     const store = createAppearanceRowStore().create()
+-    expect(store.getSnapshot()).toEqual({ preference: 'system', revision: -1 })
++    expect(store.getSnapshot()).toEqual({ preference: 'sun', sunLocation: 'auto', sun: undefined, revision: -1 })
+   })
+ 
+-  it('sync mirrors the preference and advances the revision', () => {
++  it('sync mirrors the preference, location, and estimate and advances the revision', () => {
+     const store = createAppearanceRowStore().create()
+-    store.actions.sync('dark', 0)
+-    expect(store.getSnapshot()).toEqual({ preference: 'dark', revision: 0 })
+-    store.actions.sync('light', 2)
+-    expect(store.getSnapshot().preference).toBe('light')
+-    expect(store.getSnapshot().revision).toBe(2)
++    store.actions.sync(snapshot('dark', 0))
++    expect(store.getSnapshot()).toEqual({ preference: 'dark', sunLocation: 'auto', sun: undefined, revision: 0 })
++    const sun = { cityId: 'beijing', source: 'manual' as const, daylight: true, interval: [1, 2] as const }
++    store.actions.sync({ preference: 'sun', sunLocation: 'beijing', sun, revision: 2 })
++    expect(store.getSnapshot()).toEqual({ preference: 'sun', sunLocation: 'beijing', sun, revision: 2 })
+   })
+ 
+   it('revision guard drops stale and duplicate writes', () => {
+     const store = createAppearanceRowStore().create()
+-    store.actions.sync('dark', 3)
+-    store.actions.sync('system', 2)
+-    store.actions.sync('system', 3)
++    store.actions.sync(snapshot('dark', 3))
++    store.actions.sync(snapshot('system', 2))
++    store.actions.sync(snapshot('system', 3))
+     expect(store.getSnapshot().preference).toBe('dark')
+     expect(store.getSnapshot().revision).toBe(3)
+   })
+diff --git a/packages/client/ui-theme/tests/sun.client.spec.ts b/packages/client/ui-theme/tests/sun.client.spec.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..3c8f3153cffca7d4c573dbcd82ade604a0f2dd30
+--- /dev/null
++++ b/packages/client/ui-theme/tests/sun.client.spec.ts
+@@ -0,0 +1,77 @@
++/** Sunrise and sunset estimates and the city chosen for them. */
++import { describe, expect, it } from 'vitest'
++import { daylightIntervals, isSunLocation, resolveSunCity, SUN_CITIES, SUN_LOCATIONS, sunDay, sunPhase } from '../src/sun.ts'
++
++/** Minutes since local midnight of one instant in a zone. */
++function localMinutes(at: number, timeZone: string): number {
++  const parts = new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(at)
++  const value = (type: string): number => Number(parts.find(part => part.type === type)?.value)
++  return value('hour') * 60 + value('minute')
++}
++
++describe('sunDay', () => {
++  it.each([
++    ['Shanghai, June solstice', 31.23, 121.47, Date.UTC(2026, 5, 21), 'Asia/Shanghai', 4 * 60 + 50, 19 * 60 + 1],
++    ['Beijing, December solstice', 39.9, 116.4, Date.UTC(2026, 11, 21), 'Asia/Shanghai', 7 * 60 + 33, 16 * 60 + 53],
++    ['London, June solstice', 51.51, -0.13, Date.UTC(2026, 5, 21), 'Europe/London', 4 * 60 + 43, 21 * 60 + 21],
++    ['Sydney, June solstice', -33.87, 151.21, Date.UTC(2026, 5, 21), 'Australia/Sydney', 7 * 60, 16 * 60 + 54],
++  ] as const)('matches published times within three minutes: %s', (_name, latitude, longitude, day, zone, sunrise, sunset) => {
++    const result = sunDay(day, latitude, longitude)
++    if (result.kind !== 'cycle') throw new Error(`expected a sunrise and sunset, got ${result.kind}`)
++    expect(Math.abs(localMinutes(result.sunrise, zone) - sunrise)).toBeLessThanOrEqual(3)
++    expect(Math.abs(localMinutes(result.sunset, zone) - sunset)).toBeLessThanOrEqual(3)
++    expect(Number.isInteger(result.sunrise) && Number.isInteger(result.sunset)).toBe(true)
++  })
++
++  it('reports polar day and polar night', () => {
++    expect(sunDay(Date.UTC(2026, 5, 21), 69.65, 18.96)).toEqual({ kind: 'polar-day' })
++    expect(sunDay(Date.UTC(2026, 11, 21), 69.65, 18.96)).toEqual({ kind: 'polar-night' })
++  })
++})
++
++describe('daylight intervals and phase', () => {
++  const noon = Date.UTC(2026, 5, 21, 4)
++  const evening = Date.UTC(2026, 5, 21, 14)
++
++  it('classifies daylight with the current interval and the sunset as the next change', () => {
++    const phase = sunPhase(noon, 31.23, 121.47)
++    expect(phase.daylight).toBe(true)
++    expect(phase.interval?.[0]).toBeLessThan(noon)
++    expect(phase.next).toBe(phase.interval?.[1])
++  })
++
++  it('classifies night with the next interval and its sunrise as the next change', () => {
++    const phase = sunPhase(evening, 31.23, 121.47)
++    expect(phase.daylight).toBe(false)
++    expect(phase.interval?.[0]).toBeGreaterThan(evening)
++    expect(phase.next).toBe(phase.interval?.[0])
++  })
++
++  it('merges adjacent polar days into one interval and omits polar nights', () => {
++    expect(daylightIntervals(Date.UTC(2026, 5, 21, 12), 78.22, 15.65)).toHaveLength(1)
++    expect(daylightIntervals(Date.UTC(2026, 11, 21, 12), 78.22, 15.65)).toEqual([])
++    expect(sunPhase(Date.UTC(2026, 11, 21, 12), 78.22, 15.65)).toEqual({ daylight: false })
++  })
++})
++
++describe('resolveSunCity', () => {
++  it('lists automatic first and accepts only listed locations', () => {
++    expect(SUN_LOCATIONS[0]).toBe('auto')
++    expect(SUN_LOCATIONS).toHaveLength(SUN_CITIES.length + 1)
++    expect(isSunLocation('beijing')).toBe(true)
++    expect(isSunLocation('atlantis')).toBe(false)
++  })
++
++  it('prefers a manual city, then an exact zone, then a shared UTC offset', () => {
++    const at = Date.UTC(2026, 5, 21)
++    expect(resolveSunCity('beijing', 'Europe/London', at)).toMatchObject({ city: { id: 'beijing' }, source: 'manual' })
++    expect(resolveSunCity('auto', 'Asia/Shanghai', at)).toMatchObject({ city: { id: 'shanghai' }, source: 'zone' })
++    expect(resolveSunCity('auto', 'Asia/Chita', at)).toMatchObject({ city: { id: 'tokyo' }, source: 'offset' })
++  })
++
++  it('returns nothing for an unknown or absent zone', () => {
++    expect(resolveSunCity('auto', 'Etc/Unknown', 0)).toBeUndefined()
++    expect(resolveSunCity('auto', undefined, 0)).toBeUndefined()
++    expect(resolveSunCity('auto', 'Pacific/Chatham', Date.UTC(2026, 0, 1))).toBeUndefined()
++  })
++})
+diff --git a/packages/client/ui-theme/tests/theme.client.spec.ts b/packages/client/ui-theme/tests/theme.client.spec.ts
+index c32b128faa18aa22785dd4d4059891a27ff57c96..f34fedfe4b24ef59dbac463b16a161b8291dbc20 100644
+--- a/packages/client/ui-theme/tests/theme.client.spec.ts
++++ b/packages/client/ui-theme/tests/theme.client.spec.ts
+@@ -24,10 +24,12 @@ const make = (host = stubConfigForm<ThemeSettings>()): {
+ }
+ 
+ describe('ThemeRuntime', () => {
+-  it('defaults to the system preference resolved against prefers-color-scheme', () => {
++  it('resolves the system preference against prefers-color-scheme', () => {
+     const { theme } = make()
++    theme.setTheme('system')
+     const snapshot = theme.getTheme()
+     expect(snapshot.preference).toBe('system')
++    expect(snapshot.sun).toBeUndefined()
+     expect(snapshot.fontSizes.text).toBe(14)
+     // jsdom matchMedia is absent; system resolves to light.
+     expect(snapshot.active.id).toBe('light')
+@@ -45,7 +47,7 @@ describe('ThemeRuntime', () => {
+       expect({ preference: theme.getTheme().preference, palette: theme.getTheme().active.colorScheme }).toMatchSnapshot()
+       expect(events).toEqual([])
+       host.publish({ status: 'ready', value: {
+-        preference: 'light', fontSize: 14, codeFontSize: 13, terminalFontSize: 13,
++        preference: 'light', sunLocation: 'auto', fontSize: 14, codeFontSize: 13, terminalFontSize: 13,
+         textFontFamily: '', codeFontFamily: '', terminalFontFamily: '',
+       }, revision: 1, writable: true })
+       expect(theme.getTheme().preference).toBe('light')
+@@ -60,7 +62,7 @@ describe('ThemeRuntime', () => {
+   it('uses the default when the boot preference is invalid', () => {
+     document.documentElement.dataset.dsThemeSource = 'invalid'
+     try {
+-      expect(make().theme.getTheme().preference).toBe('system')
++      expect(make().theme.getTheme().preference).toBe('sun')
+     } finally {
+       delete document.documentElement.dataset.dsThemeSource
+     }
+@@ -123,7 +125,7 @@ describe('ThemeRuntime', () => {
+ 
+   it('adopts a published Host font size without writing it back', () => {
+     const { theme, events, host } = make()
+-    host.publish({ status: 'ready', value: { preference: 'system', fontSize: 12, codeFontSize: 15, terminalFontSize: 18, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }, revision: 1, writable: true })
++    host.publish({ status: 'ready', value: { preference: 'system', sunLocation: 'auto', fontSize: 12, codeFontSize: 15, terminalFontSize: 18, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }, revision: 1, writable: true })
+     expect(theme.getTheme().fontSizes).toEqual({ text: 12, code: 15, terminal: 18 })
+     expect(events).toHaveLength(1)
+     expect(host.set).not.toHaveBeenCalled()
+@@ -153,10 +155,10 @@ describe('ThemeRuntime', () => {
+ 
+   it('adopts published Host font lists, normalizing hand-edited values, without writing them back', () => {
+     const { theme, events, host } = make()
+-    host.publish({ status: 'ready', value: { preference: 'system', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: 'Inter', codeFontFamily: '"Fira Code"', terminalFontFamily: '' }, revision: 1, writable: true })
++    host.publish({ status: 'ready', value: { preference: 'system', sunLocation: 'auto', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: 'Inter', codeFontFamily: '"Fira Code"', terminalFontFamily: '' }, revision: 1, writable: true })
+     expect(theme.getTheme().fontFamilies).toEqual({ text: '"Inter"', code: '"Fira Code"', terminal: '' })
+     expect(events).toHaveLength(1)
+-    host.publish({ value: { preference: 'system', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '"Inter"', codeFontFamily: 'Fira Code', terminalFontFamily: '' }, revision: 2 })
++    host.publish({ value: { preference: 'system', sunLocation: 'auto', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '"Inter"', codeFontFamily: 'Fira Code', terminalFontFamily: '' }, revision: 2 })
+     expect(events).toHaveLength(1)
+     expect(host.set).not.toHaveBeenCalled()
+   })
+@@ -179,17 +181,17 @@ describe('ThemeRuntime', () => {
+ 
+   it('adopts a published Host section without writing it back', () => {
+     const { theme, events, host } = make()
+-    host.publish({ status: 'ready', value: { preference: 'dark', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }, revision: 1, writable: true })
++    host.publish({ status: 'ready', value: { preference: 'dark', sunLocation: 'auto', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }, revision: 1, writable: true })
+     expect(theme.getTheme().preference).toBe('dark')
+     expect(events).toHaveLength(1)
+     expect(host.set).not.toHaveBeenCalled()
+-    host.publish({ value: { preference: 'dark', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }, revision: 2 })
++    host.publish({ value: { preference: 'dark', sunLocation: 'auto', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }, revision: 2 })
+     expect(events).toHaveLength(1)
+   })
+ 
+   it('holds its own changes while writes are pending, then converges on the durable section', async () => {
+     const { theme, host } = make()
+-    const section = { preference: 'system' as const, fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }
++    const section = { preference: 'system' as const, sunLocation: 'auto' as const, fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }
+     host.publish({ status: 'ready', value: section, revision: 1, writable: true })
+     const write = Promise.withResolvers<boolean>()
+     host.set.mockReturnValue(write.promise)
+@@ -204,7 +206,7 @@ describe('ThemeRuntime', () => {
+ 
+   it('adopts a section already standing at construction', () => {
+     const host = stubConfigForm<ThemeSettings>()
+-    host.publish({ status: 'ready', value: { preference: 'dark', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }, revision: 1, writable: true })
++    host.publish({ status: 'ready', value: { preference: 'dark', sunLocation: 'auto', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }, revision: 1, writable: true })
+     const { theme } = make(host)
+     expect(theme.getTheme().preference).toBe('dark')
+   })
+@@ -214,6 +216,7 @@ describe('ThemeRuntime', () => {
+     expect(() => { theme.setTheme('sepia') }).toThrow('not registered')
+     expect(() => theme.register({ id: 'light', colorScheme: 'light', tokens: {} })).toThrow('already registered')
+     expect(() => theme.register({ id: 'system', colorScheme: 'light', tokens: {} })).toThrow('preference')
++    expect(() => theme.register({ id: 'sun', colorScheme: 'light', tokens: {} })).toThrow('preference')
+   })
+ 
+   it('registered themes join the snapshot; disposing the active one resets to default', () => {
+@@ -223,7 +226,7 @@ describe('ThemeRuntime', () => {
+     theme.setTheme('sepia')
+     expect(theme.getTheme().active.tokens['--dsw-alias-bg-base']).toBe('red')
+     dispose()
+-    expect(theme.getTheme().preference).toBe('system')
++    expect(theme.getTheme().preference).toBe('sun')
+     expect(theme.getTheme().themes.map(t => t.id)).toEqual(['light', 'dark'])
+     // Custom ids are in-process extension themes; only the built-in product
+     // preferences cross the Host settings schema.
+@@ -253,6 +256,7 @@ describe('ThemeRuntime', () => {
+ 
+   it('stacks reversible token overrides in call order and selects the active palette value', () => {
+     const { theme } = make()
++    theme.setTheme('light')
+     const firstTokens: ThemeTokenOverrides = {
+       '--shared': { light: 'first-light', dark: 'first-dark' },
+       '--first': { light: 'first-only-light', dark: 'first-only-dark' },
+@@ -281,6 +285,8 @@ describe('ThemeRuntime', () => {
+ 
+   it('replacing one source leaves its stale disposer harmless', () => {
+     const { theme, events } = make()
++    theme.setTheme('light')
++    events.length = 0
+     const stale = theme.overrideTokens('package', {
+       '--old': { light: 'old-light', dark: 'old-dark' },
+     })
+@@ -366,11 +372,11 @@ describe('ThemeRuntime', () => {
+     it('system resolves against the media query and follows OS flips', () => {
+       const media = stubMedia(true)
+       const { theme, events } = make()
+-      expect(theme.getTheme().preference).toBe('system')
++      theme.setTheme('system')
+       expect(theme.getTheme().active.id).toBe('dark')
+       media.flip()
+       expect(theme.getTheme().active.id).toBe('light')
+-      expect(events).toHaveLength(1)
++      expect(events).toHaveLength(2)
+     })
+ 
+     it('OS flips do not republish while a concrete preference is set', () => {
+@@ -391,4 +397,77 @@ describe('ThemeRuntime', () => {
+       expect(media.listenerCount()).toBe(0)
+     })
+   })
++
++  describe('sunrise and sunset preference', () => {
++    const shanghaiNoon = Date.UTC(2026, 5, 21, 4)
++    // Faking Intl would replace the time zone stub below.
++    const fakeClock = (now: number) => { vi.useFakeTimers({ now, toFake: ['Date', 'setTimeout', 'clearTimeout'] }) }
++    const stubZone = (timeZone: string) => {
++      const options = new Intl.DateTimeFormat().resolvedOptions()
++      vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({ ...options, timeZone })
++    }
++
++    afterEach(() => {
++      vi.useRealTimers()
++      vi.restoreAllMocks()
++      vi.unstubAllGlobals()
++    })
++
++    it('defaults to the automatic location and resolves daylight for the time zone city', () => {
++      fakeClock(shanghaiNoon)
++      stubZone('Asia/Shanghai')
++      const { theme } = make()
++      const snapshot = theme.getTheme()
++      expect(snapshot.preference).toBe('sun')
++      expect(snapshot.sunLocation).toBe('auto')
++      expect(snapshot.sun).toMatchObject({ cityId: 'shanghai', source: 'zone', daylight: true })
++      expect(snapshot.active.colorScheme).toBe('light')
++    })
++
++    it('switches to dark at the estimated sunset without a settings write', () => {
++      // 18:59 in Shanghai, two minutes before the 19:01 estimate.
++      fakeClock(Date.UTC(2026, 5, 21, 10, 59))
++      stubZone('Asia/Shanghai')
++      const { theme, events, host } = make()
++      expect(theme.getTheme().active.colorScheme).toBe('light')
++      vi.advanceTimersByTime(3 * 60_000)
++      expect(theme.getTheme().active.colorScheme).toBe('dark')
++      expect(theme.getTheme().sun?.daylight).toBe(false)
++      expect(events).toHaveLength(1)
++      expect(host.set).not.toHaveBeenCalled()
++    })
++
++    it('setSunLocation writes a listed city, republishes, and rejects unlisted ones', () => {
++      fakeClock(shanghaiNoon)
++      stubZone('Asia/Shanghai')
++      const { theme, events, host } = make()
++      theme.setSunLocation('london')
++      expect(host.set).toHaveBeenCalledWith('sunLocation', 'london')
++      // 05:00 in London, after its 04:43 sunrise.
++      expect(theme.getTheme().sun).toMatchObject({ cityId: 'london', source: 'manual', daylight: true })
++      expect(events).toHaveLength(1)
++      theme.setSunLocation('london')
++      expect(events).toHaveLength(1)
++      expect(() => { theme.setSunLocation('atlantis') }).toThrow('not listed')
++    })
++
++    it('follows the system palette when the time zone matches no city', () => {
++      fakeClock(shanghaiNoon)
++      stubZone('Etc/Unknown')
++      vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener: () => {}, removeEventListener: () => {} }))
++      const { theme } = make()
++      expect(theme.getTheme().sun).toBeUndefined()
++      expect(theme.getTheme().active.colorScheme).toBe('dark')
++    })
++
++    it('adopts a published location without writing it back', () => {
++      fakeClock(shanghaiNoon)
++      stubZone('Asia/Shanghai')
++      const { theme, host } = make()
++      host.publish({ status: 'ready', value: { preference: 'sun', sunLocation: 'sydney', fontSize: 14, codeFontSize: 11, terminalFontSize: 13, textFontFamily: '', codeFontFamily: '', terminalFontFamily: '' }, revision: 1, writable: true })
++      // 14:00 in Sydney on the winter solstice.
++      expect(theme.getTheme().sun).toMatchObject({ cityId: 'sydney', source: 'manual', daylight: true })
++      expect(host.set).not.toHaveBeenCalled()
++    })
++  })
+ })
+diff --git a/packages/client/ui-theme/tsconfig.host.json b/packages/client/ui-theme/tsconfig.host.json
+index e98ac786cd2fd680ec4109740d62591521d07396..d63c2218cdca349fb36e4d3ee5e1c7edf835666b 100644
+--- a/packages/client/ui-theme/tsconfig.host.json
++++ b/packages/client/ui-theme/tsconfig.host.json
+@@ -8,6 +8,7 @@
+   "files": [
+     "src/boot-theme.ts",
+     "src/index.ts",
++    "src/sun.ts",
+     "src/theme-settings.ts"
+   ],
+   "references": [
+diff --git a/packages/client/ui-settings-account/tests/onboarding.client.spec.tsx b/packages/client/ui-settings-account/tests/onboarding.client.spec.tsx
+index 21523784dca665af4fd81863cad4cc7f63a182ab..c69d83466d08603d62697793ae8454f3d5ee96c0 100644
+--- a/packages/client/ui-settings-account/tests/onboarding.client.spec.tsx
++++ b/packages/client/ui-settings-account/tests/onboarding.client.spec.tsx
+@@ -13,7 +13,7 @@ import { en } from '../src/client/locales.ts'
+ afterEach(cleanup)
+ 
+ const theme: ThemeSnapshot = {
+-  preference: 'light', fontSizes: { text: 14, code: 11, terminal: 13 }, fontFamilies: { text: '', code: '', terminal: '' },
++  preference: 'light', sunLocation: 'auto', fontSizes: { text: 14, code: 11, terminal: 13 }, fontFamilies: { text: '', code: '', terminal: '' },
+   active: { id: 'light', colorScheme: 'light', tokens: {} }, themes: [], revision: 0,
+ }
+ 
+diff --git a/packages/client/ui-settings-account/tests/quota-notice-hold.client.spec.tsx b/packages/client/ui-settings-account/tests/quota-notice-hold.client.spec.tsx
+index d00a17cf358dbe7568b34346ca3514db1e8716fe..a8513f11d291d128c6e97d67a219c8f8d80d86cb 100644
+--- a/packages/client/ui-settings-account/tests/quota-notice-hold.client.spec.tsx
++++ b/packages/client/ui-settings-account/tests/quota-notice-hold.client.spec.tsx
+@@ -54,7 +54,7 @@ const storedView: AccountView = {
+   links: { usageUrl: 'http://localhost:8081/usage', topUpUrl: 'http://localhost:8081/top_up' },
+ }
+ const theme: ThemeSnapshot = {
+-  preference: 'light', fontSizes: { text: 14, code: 11, terminal: 13 }, fontFamilies: { text: '', code: '', terminal: '' }, active: { id: 'light', colorScheme: 'light', tokens: {} }, themes: [], revision: 0,
++  preference: 'light', sunLocation: 'auto', fontSizes: { text: 14, code: 11, terminal: 13 }, fontFamilies: { text: '', code: '', terminal: '' }, active: { id: 'light', colorScheme: 'light', tokens: {} }, themes: [], revision: 0,
+ }
+ 
+ /** The account settings commands, trimmed to what this composition renders. */
+diff --git a/packages/client/ui-sidebar-terminal/tests/apply.client.spec.ts b/packages/client/ui-sidebar-terminal/tests/apply.client.spec.ts
+index a64bb686774f4c828318e7bf116ff12f03e3d8fe..e67e25d4c10d201cdcd1bd0db1f9893a620c0b4f 100644
+--- a/packages/client/ui-sidebar-terminal/tests/apply.client.spec.ts
++++ b/packages/client/ui-sidebar-terminal/tests/apply.client.spec.ts
+@@ -89,7 +89,7 @@ async function mountPlugin() {
+     bind: () => (key: string) => key,
+     register: (name: string, values: unknown) => { dictionaries.set(name, values); return () => { dictionaries.delete(name) } },
+   } as never)
+-  const theme = { preference: 'light' as const, fontSizes: { text: 14, code: 11, terminal: 13 }, fontFamilies: { text: '', code: '', terminal: '' }, active: { id: 'light', colorScheme: 'light' as const, tokens: {} }, themes: [], revision: 0 }
++  const theme = { preference: 'light' as const, sunLocation: 'auto' as const, fontSizes: { text: 14, code: 11, terminal: 13 }, fontFamilies: { text: '', code: '', terminal: '' }, active: { id: 'light', colorScheme: 'light' as const, tokens: {} }, themes: [], revision: 0 }
+   ctx.provide('theme', { getTheme: () => theme } as never)
+   const fiber = await ctx.plugin({ inject, apply })
+   return {
+diff --git a/packages/client/ui-sidebar-terminal/tests/terminal-body.client.spec.tsx b/packages/client/ui-sidebar-terminal/tests/terminal-body.client.spec.tsx
+index 74607e4a8471b106f502c7460363fb3a0b692bef..a127307d760ba2138bf01bffbe4c2705f36b838f 100644
+--- a/packages/client/ui-sidebar-terminal/tests/terminal-body.client.spec.tsx
++++ b/packages/client/ui-sidebar-terminal/tests/terminal-body.client.spec.tsx
+@@ -73,7 +73,7 @@ function mount(initial: TerminalViewState | undefined = idle, dictionary = en) {
+   let state: TerminalViewState | undefined = initial
+   let visible = true
+   let theme: ThemeSnapshot = {
+-    preference: 'light', fontSizes: { text: 14, code: 11, terminal: 13 }, fontFamilies: { text: '', code: '', terminal: '' },
++    preference: 'light', sunLocation: 'auto', fontSizes: { text: 14, code: 11, terminal: 13 }, fontFamilies: { text: '', code: '', terminal: '' },
+     active: { id: 'light', colorScheme: 'light', tokens: {} }, themes: [], revision: 0,
+   }
+   const detach = vi.fn()

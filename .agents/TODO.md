@@ -1,5 +1,7 @@
 # 开发项目进度
 
+[Windows 静置卡死 #26](requirements/2026-11-25-release-handoff.md#issue-26-的-windows-静置卡死)列入发行阻断，包含用户采样、根因核查与实装验收待办。[专项维护者待办](requirements/2026-11-25-release-handoff.md#专项维护者待办)记录四模式、组件和历史会话的交付责任。
+
 [新版发行条件](requirements/2026-11-25-release-handoff.md#正式版接手清单)以 `v2026.11.24.3` 为完整功能基线。[逐项差异表](requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表)记录旧版与最终包的实际行为、权限和限额；[合并后的关于页](requirements/2026-11-25-release-handoff.md#合并后的关于页)列出正式包需要复核的内容。[候选文档与接口目录](requirements/2026-11-25-release-handoff.md#候选文档与接口目录)列出中英文记忆、余额参考和已复验的源码树。
 
 下一版的完整勾选清单（含 `v2026.11.23.0` 之后 10 个提交、破甲升级、关于页与 Credit、分平台发布）见 [下一版 TODO 清单](requirements/2026-11-24-next-release-todo.md)；破甲逐项明细见 [破甲升级 TODO 清单](requirements/2026-11-24-armor-todo.md)，排期与落点见[总计划](requirements/2026-11-24-armor-next-release-plan.md)。

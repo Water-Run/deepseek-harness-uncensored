@@ -58,6 +58,8 @@ Commands that submit content accept attachments when the Host descriptor declare
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
+Overlapping requests to open the side conversation for one parent share its pending Host request and session list refresh. Separate parents and one-off questions open independently.
+
 Popup selection panels fill the composer overlay's width, matching the slash menu. Popup search fields keep transparent backgrounds and borders in both palettes. Grouped options use [ui-primitives](../ui-primitives/README.md#understand-the-implementation)' shared `MenuGroup` headings and `observeStickyMenuGroups`; an ordinary effect owns the asynchronous observation and rebuilds it when rendered groups change. Menus use the shared `MenuSurface` material, including the macOS backing for background blur; custom content follows the menu rules.
 
 <details>

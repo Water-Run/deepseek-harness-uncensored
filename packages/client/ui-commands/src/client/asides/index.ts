@@ -105,17 +105,18 @@ export function registerAsides(ctx: Context): void {
     const requestChild = async (parent: SessionId, kind: 'side' | 'btw'): Promise<SessionForkValue> => {
       for (let reset = resets.get(parent); reset !== undefined; reset = resets.get(parent)) await reset
       if (isClosed()) throw new Error(t('aside.failed'))
-      const opening = scope.remote.session.aside({ sessionId: parent, kind }).then((result) => {
+      const pendingSide = kind === 'side' ? openingSides.get(parent) : undefined
+      if (pendingSide !== undefined) return pendingSide
+      const opening = scope.remote.session.aside({ sessionId: parent, kind }).then(async (result) => {
         if (!result.ok) throw result.error
         if (kind === 'side') adoptSide(parent, result.value.sessionId)
         else parents.set(result.value.sessionId, parent)
+        await scope.sessions.refresh()
         return result.value
       })
       if (kind === 'side') openingSides.set(parent, opening)
       try {
-        const child = await opening
-        await scope.sessions.refresh()
-        return child
+        return await opening
       } finally {
         if (openingSides.get(parent) === opening) openingSides.delete(parent)
       }

@@ -58,6 +58,8 @@ popupSelect 规格可提供 `searchLabels()`，在每次打开时解析占位文
 <a id="understand-the-implementation"></a>
 ## 理解实现
 
+同一父会话同时打开旁问时，共用一次尚未完成的 Host 请求和会话列表刷新。不同父会话和一次性随问分别打开。
+
 弹窗选择面板撑满 composer 浮层宽度，与斜杠菜单一致。弹窗搜索框在浅／深色主题下均保持背景和边框透明。分组选项使用 [ui-primitives](../ui-primitives/README.zh.md#understand-the-implementation) 共享的 `MenuGroup` 标题与 `observeStickyMenuGroups`；普通 effect 负责异步观察，并在渲染分组变化时清理和重建观察器。菜单采用共享 `MenuSurface` 材质，包括用于背景模糊的 macOS 底层；自定义内容遵循菜单规则。
 
 <details>

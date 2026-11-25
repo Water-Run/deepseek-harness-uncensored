@@ -312,7 +312,7 @@
 | DSHU | 最新正式版 `2026.11.24.3` |
 | DeepSeek Harness | 源码基于 [0.2.2-rc.5](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.5) |
 | 新内核候选 | DSHU `2026.11.25.0` 使用 DSH `0.2.3-alpha.2`，目前只含缺省与写作。跨对话记忆、余额历史和模式设置已接入。关于页左侧显示 DSHU 日期版本，右侧列出内核、源码与组件信息。[桌面](docs/assets/dshu/about-candidate.webp) · [窄屏](docs/assets/dshu/about-candidate-mobile.webp) |
-| 与正式版的差异 | 候选仍缺日出日落主题和关于页内的更新检查。旁问、随问和新输入预测也待补齐并实测。完整四模式版本仍待交付。[逐项对照与现有证据](.agents/requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表) |
+| 与正式版的差异 | 新内核源码已恢复默认的日出日落主题、城市选择和昼夜切换。较早的 Linux 验收包仍使用旧候选树。关于页内的更新检查、旁问、随问和新输入预测列入完整发行前的回归修复。[逐项对照与现有证据](.agents/requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表) |
 | Windows x64 候选 | 未签名安装器已从首发版和上一正式版完成静默升级，已验证降级保护、无效登记拦截和旧写作会话保留。[版本身份](.agents/requirements/2026-11-25-release-handoff.md#windows-安装器与版本身份) · [安装包摘要与升级结果](.agents/requirements/2026-11-25-release-handoff.md#issue-24-的首发版静默升级) |
 | Linux 候选 | x64 的 deb、RPM、tar.gz 已逐包核验。Debian 13 和 Fedora 44 已验证安装、同版重装和两代旧会话，Fedora 45 已启动桌面和便携 CLI。arm64 已接入打包，待原生验收。[安装包摘要与实测范围](.agents/requirements/2026-11-25-release-handoff.md#linux-x64-未签名安装包与回执) |
 | 破甲提示词 | dsh-purge Community [v1.7.20](https://github.com/kingcharleslzy-ai/dsh-purge/releases/tag/v1.7.20) |

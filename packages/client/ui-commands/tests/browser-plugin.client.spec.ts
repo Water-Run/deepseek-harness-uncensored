@@ -102,7 +102,19 @@ describe('apply', () => {
     const reopenAbort = new AbortController()
     const reopened = provider.open(asideAddress(sid('s1')), { signal: reopenAbort.signal })[Symbol.asyncIterator]()
     try {
-      expect((await stream.next()).value).toMatchObject({ ok: true, value: { reference: { sessionId: 'side-one' } } })
+      const refresh = vi.spyOn(sessions, 'refresh')
+      const otherAbort = new AbortController()
+      const other = provider.open(asideAddress(sid('s1')), { signal: otherAbort.signal })[Symbol.asyncIterator]()
+      try {
+        const initial = await Promise.all([stream.next(), other.next()])
+        for (const frame of initial) expect(frame.value).toMatchObject({ ok: true, value: { reference: { sessionId: 'side-one' } } })
+        expect(aside).toHaveBeenCalledOnce()
+        expect(refresh).toHaveBeenCalledOnce()
+      } finally {
+        refresh.mockRestore()
+        otherAbort.abort()
+        await other.return?.()
+      }
       const source = sources.get('/ command')!
       const request = { query: '', position: 'leading' as const, drilled: false, signal: new AbortController().signal }
       expect((await source.candidates({ sessionId: sid('s1') }, request)).some(value => value.name === 'clear')).toBe(false)
