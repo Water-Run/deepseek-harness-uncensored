@@ -311,7 +311,7 @@
 | --- | --- |
 | DSHU | 最新正式版 `2026.11.24.3` |
 | DeepSeek Harness | 源码基于 [0.2.2-rc.5](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.5) |
-| 新内核候选 | DSHU `2026.11.25.0` 使用 DSH `0.2.3-alpha.2`。缺省与写作已接入跨对话记忆、余额历史和模式设置。关于页左侧显示 DSHU 日期版本，右侧列出内核与组件信息。[桌面](docs/assets/dshu/about-candidate.webp) · [窄屏](docs/assets/dshu/about-candidate-mobile.webp) · [Windows 安装器与版本身份](.agents/requirements/2026-11-25-release-handoff.md#windows-安装器与版本身份)。Windows x64 未签名候选已从首发版和上一正式版完成静默升级，验证了降级保护、无效登记拦截和旧写作会话保留。[安装包摘要与升级结果](.agents/requirements/2026-11-25-release-handoff.md#issue-24-的首发版静默升级)。四模式正式发行仍在验收。 |
+| 新内核候选 | DSHU `2026.11.25.0` 使用 DSH `0.2.3-alpha.2`。缺省与写作已接入跨对话记忆、余额历史和模式设置。关于页左侧显示 DSHU 日期版本，右侧列出内核与组件信息。[桌面](docs/assets/dshu/about-candidate.webp) · [窄屏](docs/assets/dshu/about-candidate-mobile.webp) · [Windows 安装器与版本身份](.agents/requirements/2026-11-25-release-handoff.md#windows-安装器与版本身份)。Windows x64 未签名候选已从首发版和上一正式版完成静默升级，验证了降级保护、无效登记拦截和旧写作会话保留。[安装包摘要与升级结果](.agents/requirements/2026-11-25-release-handoff.md#issue-24-的首发版静默升级)。Linux x64 与 arm64 的源码候选已接入原生打包与逐包校验。[Linux 候选构建与验收](.agents/requirements/2026-11-25-release-handoff.md#linux-候选的原生构建)。四模式正式发行仍在验收。 |
 | 破甲提示词 | dsh-purge Community [v1.7.20](https://github.com/kingcharleslzy-ai/dsh-purge/releases/tag/v1.7.20) |
 | REA | [6.9.0 · d74549e495c5](https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0) |
 

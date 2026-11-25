@@ -24,6 +24,8 @@
 
 旧会话升级已补测输入建议。两个正式版分别调用原版输入建议写入器生成压缩 v4 会话，候选 `6283464b` 续写后冷重开，两组各 30 个原文件的 SHA-256 均一致。缺省与写作的 Windows 安装器 `ad437c3b…` 也已从两个正式版实装升级，用安装后的应用续写旧会话并在同版重装后重新读取。[漏检原因、安装器摘要与复验步骤](requirements/2026-11-25-release-handoff.md#含输入建议的旧会话)
 
+Linux 候选已接入 x64（deb、rpm、tar.gz）与 arm64（deb、tar.gz）的原生打包和逐包校验。Fedora x64 实机通过了编译工具链预检，首次干净构建发现的记忆模块类型导入已改用内核公开入口。[Linux 候选的原生构建](requirements/2026-11-25-release-handoff.md#linux-候选的原生构建)
+
 当前交付为[Windows x64 首发打包交接](requirements/windows-x64-first-release.md)。应交付功能须在同一候选逐项验证，缺项或待验均使首发保持待交付。
 
 | 缺口 | 当前状态 |

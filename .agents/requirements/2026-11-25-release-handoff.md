@@ -438,13 +438,31 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows-installer-upgr
 
 验证正式更新时，分别从首发版和上一正式版的原始安装登记开始，通过线上更新渠道下载同一签名候选。记录实际安装器摘要、退出码、原路径、更新前后登记版本及 `resources/app.asar` 摘要，并检查旧资料。上表的本地安装验收未覆盖线上下载和签名。
 
+## Linux 候选的原生构建
+
+使用仓库根目录的 `node scripts/prepare-kernel-candidate.mjs <新目录>` 还原缺省与写作候选。命令最后一行应与 `kernel/0.2.3-alpha.2/source.json` 的 `tree` 字段一致。以下命令在还原后的目录执行。Fedora 45 x86_64 实机使用 Node 24.22.3、pnpm 11.28.5 和安装在用户构建目录的 musl 1.2.6。
+
+| 步骤 | 操作与结果判定 |
+| --- | --- |
+| 构建准备 | 运行 `pnpm install --frozen-lockfile`。同架构 Linux 主机需要 cc、musl-gcc。x64 回读 RPM 还需要 rpm 和 rpm2cpio。 |
+| 工具链预检 | 运行 `pnpm run package:desktop:linux:x64:unsigned --check`。预检实际链接一个静态程序和一个共享对象。arm64 主机将命令中的 `x64` 换为 `arm64`。 |
+| 生成安装包 | 去掉 `--check` 重跑命令。在 `apps/desktop/.desktop-build/packaging-runs/` 查看运行日志。成功后，到 `apps/desktop/.desktop-build/targets/<目标>/unsigned-artifacts/` 读取文件。 |
+| 归档核验 | x64 生成 deb、rpm 和 tar.gz。arm64 生成 deb 和 tar.gz。打包入口从各归档回读桌面程序、`resources/app.asar`、CLI 启动器和独立 Node，逐项对照组装目录核验 SHA-256，并检查三个可执行文件的权限。随后验证 ASAR 索引和运行时清单、PNG 往返、终端、Office 和后台启动。 |
+| 安装升级 | deb 与 rpm 分别在匹配架构的测试系统验证安装、桌面启动和保留资料升级。记录旧版与候选安装包摘要、包管理器读取的版本，并从已安装的应用重开旧会话。 |
+
+Fedora 的首次干净构建在 Host Typert 阶段报错。跨对话记忆的抽取模块引用了新版内核已撤下的 `@deepseek-ai/dsh-llm/brand` 子路径。改从公开的 `@deepseek-ai/dsh-llm/types` 导入相同类型后，Fedora 从源码通过全部 10 个构建检查。重新生成持久化目录仅更新源码位置，70 个根和 709 个结构节点的内容均一致。
+
+在后续 PNG 检查中，Linux Electron 以 Node 模式执行 sharp 0.35.5 时收到 SIGSEGV。在同一台机器上，随包 Node 24.22.3 将 RGB 像素编码成 PNG 后解码，输出字节与输入一致。Linux 后台与 CLI 因此使用这份独立 Node，从 `resources/app.asar.unpacked/dsh` 读取程序包。桌面界面由 Electron 运行。打包前和组装后的冒烟测试均沿用真实的后台解释器。[sharp 的 Linux Electron 兼容性说明](https://sharp.pixelplumbing.com/install/#electron-and-linux)
+
+候选树 `2aad09492786a034c10bae38c1513355e7e56e1b` 的 Fedora x64 运行时已通过 PNG 编解码、PTY 收发、文件搜索、使用随包 pnpm 离线安装与移除插件、启动后台，以及 DOCX、XLSX、PPTX 转 PDF、图像渲染与表格重算。可在专属验证目录 `~/.local/state/dshu-verification/alpha-20261125-4799b8b259b2/` 中查看 `prepared-runtime-2aad094927.log`。这个目录按首次构建命名，复验源码以日志对应的树为准。Windows 端还原补丁后得到相同 Git 树，候选的 10 项构建检查、43 项文档检查均通过。已有 Windows 实装证据对应的安装器见前文。
+
 ## 桌面与平台验收
 
 | 目标 | 对照安装形式 | 本轮发行候选验收 |
 | --- | --- | --- |
 | Windows x64 | exe | 缺省与写作的未签名安装器、保留资料及冷启动结果见上表。四模式包、正式签名与真实在线更新仍待验收。 |
-| Linux x64 | deb、rpm 分别验证 | 当前源码候选的 `apps/desktop/scripts/package-target.ts` 尚缺主线已有的 Linux 目标。接入打包入口后记录发行版、包管理器和桌面会话。两种包各自安装、启动、保留资料升级并读取历史会话。 |
-| Linux arm64 | deb | 候选也须接入 arm64 打包目标。在匹配架构的系统安装，验证随包原生依赖、启动与已有资料。 |
+| Linux x64 | deb、rpm 分别验证 | 已接入两种安装包与 tar.gz 的原生打包和逐包校验。待记录已安装桌面的启动和保留资料升级结果。见[原生构建](#linux-候选的原生构建)。 |
+| Linux arm64 | deb | 已接入 deb 和 tar.gz 打包入口。待原生构建、在包管理器中安装并验证启动与已有资料。 |
 | macOS arm64 | DMG 手动安装，按旧版实际更新索引验证应用内升级 | 记录签名、公证及 Gatekeeper 结果，再做 Issue #20 的保留资料场景。过渡版本的旧更新器仍可能下载 ZIP。 |
 
 交回平台结果时，每个安装格式单列一行，附上操作系统及架构、原安装版本与候选版本、安装包摘要、首次启动结果、升级后的资料数量和恢复演练结果。若失败，记录首次失败的操作和原始错误，将仍可运行的旧版本与对应备份成对保留。
