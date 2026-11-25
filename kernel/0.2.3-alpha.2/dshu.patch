@@ -1,3 +1,178 @@
+diff --git a/apps/cli/tests/web-agent-presets.e2e.ts b/apps/cli/tests/web-agent-presets.e2e.ts
+index 69c6e1f6ec1d00598244d5a0d2369c7e4e831eac..b9431e92979611d6d3a9d275cfe4a8ffcd3c6e1a 100644
+--- a/apps/cli/tests/web-agent-presets.e2e.ts
++++ b/apps/cli/tests/web-agent-presets.e2e.ts
+@@ -981,6 +981,67 @@ describe.each(['web', 'desktop'] as const)('%s native subagent bundles', (surfac
+   }, 120_000)
+ })
+ 
++it('loads the seven released writing manuals on demand and keeps the standard catalog separate', async () => {
++  const root = await mkdtemp(join(tmpdir(), 'dshu-writing-manuals-'))
++  vi.stubEnv('DSH_HOME', join(root, 'home'))
++  vi.stubEnv('DSH_AGENTS_HOME', join(root, 'agents'))
++  let host: Context | undefined
++  try {
++    host = await bootWeb(root)
++    const ctx = host
++    const adapter = new MinimalCompactionAdapter()
++    ctx.llm.registerAdapter(['writing-manuals'], adapter)
++    const mount = (preset: string) => ctx.agents.create({
++      sessionId: brandString<SessionId>(`writing-manuals-${preset}`), meta: { cwd: root },
++      agentOptions: { provider: 'writing-manuals', model: 'writer' },
++      setup: agentCtx => ctx.agentPresets.mount(agentCtx, preset).then(() => undefined),
++    })
++    const writing = await mount('writing')
++    const standard = await mount('standard')
++    const names = ['writing-continuity', 'writing-craft', 'writing-dark', 'writing-longform', 'writing-scene', 'writing-style-reference', 'writing-voice']
++    const scope = { cwd: root, scope: writing.agent }
++    const manuals = (await ctx.skills.list(scope)).filter(skill => skill.provider === 'dsh-playbooks')
++    expect(manuals.map(skill => skill.name).sort()).toEqual(names)
++    expect((await ctx.skills.list({ cwd: root, scope: standard.agent })).filter(skill => names.includes(skill.name))).toEqual([])
++    const tools = ctx.tools.schemas(writing.agent).map(tool => tool.name)
++    expect(tools).toEqual(expect.arrayContaining(['skill', 'ask_user_question', 'todo_write', 'web_fetch', 'present']))
++    writing.agent.followup(createUserMessage({ content: [{ type: 'text', text: 'Suggest a chapter title.' }], source: { kind: 'user' } }))
++    await writing.agent.whenIdle()
++    const messages = writing.agent.session.snapshotEvents().flatMap(event =>
++      event.type === 'user/message' && event.data.source.kind === 'skill-catalog' ? [event.data] : [])
++    expect(messages).toHaveLength(1)
++    const catalog = messages[0]?.source
++    if (catalog?.kind !== 'skill-catalog') throw new Error('Missing published skill catalog')
++    expect(catalog.entries.map(entry => entry.name)).toEqual(expect.arrayContaining(names))
++    const request = adapter.requests.find(item => item.purpose === undefined)
++    expect(request?.messages).toEqual(expect.arrayContaining(messages))
++    for (const manual of manuals) {
++      expect(manual).toMatchObject({ source: 'bundled', invocation: { modelInvocable: true, userInvocable: true } })
++      const definition = await ctx.skills.get(manual.name, scope)
++      if (!definition || definition.resourceBase?.kind !== 'directory') throw new Error('Missing writing manual ' + manual.name)
++      const content = definition.content
++      expect(content.length).toBeGreaterThan(0)
++      expect(request?.messages.flatMap(message => message.content).some(block => block.type === 'text' && block.text.includes(content))).toBe(false)
++      const loaded = await executeToolFixture(ctx, {
++        agent: writing.agent, callId: brandString<ToolCallId>(manual.name), name: 'skill', arguments: { name: manual.name },
++        signal: new AbortController().signal,
++      })
++      expect(loaded.isError).toBe(false)
++      expect(loaded.content.some(block => block.type === 'text' && block.text.includes(content))).toBe(true)
++      for (const match of content.matchAll(/`([^`\n]*references\/[a-z-]+\.md)`/gu)) {
++        expect((await readFile(join(definition.resourceBase.path, match[1]!), 'utf8')).trim()).not.toBe('')
++      }
++    }
++    await writing.dispose()
++    expect((await ctx.skills.list({ cwd: root, scope: standard.agent })).some(skill => skill.provider === 'dsh-playbooks')).toBe(false)
++  } finally {
++    try { await host?.fiber.dispose() } finally {
++      vi.unstubAllEnvs()
++      await rm(root, { recursive: true, force: true })
++    }
++  }
++}, 120_000)
++
+ describe('the standard preset documentation skill', () => {
+   it.for([false, true])('loads the packaged skill without adding tools (badge skill: %s)', async (withBadge: boolean) => {
+     const root = await mkdtemp(join(tmpdir(), 'dsh-standard-doc-'))
+diff --git a/apps/web/tests/client-config-sync.e2e.ts b/apps/web/tests/client-config-sync.e2e.ts
+index f132739954bcd104e14c8cea7bada8f299a92d9d..fd3150fa7b4b87eef1b53ba690203cb8e0eeb4b3 100644
+--- a/apps/web/tests/client-config-sync.e2e.ts
++++ b/apps/web/tests/client-config-sync.e2e.ts
+@@ -1,7 +1,7 @@
+ /** Real profile, Remote, and page Loader: a browser plugin receives its Host face's volatile Config and follows live edits. */
+ import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
+ import { tmpdir } from 'node:os'
+-import { join } from 'node:path'
++import { dirname, join } from 'node:path'
+ import { fileURLToPath } from 'node:url'
+ import { FiberState } from '@deepseek-ai/cordis'
+ import { chromium } from 'playwright'
+@@ -39,8 +39,9 @@ it('renders volatile Config without secrets or ordinary fields and updates it in
+   const installed = await mkdtemp(join(tmpdir(), 'dsh-client-config-sync-'))
+   onTestFinished(() => rm(installed, { recursive: true, force: true }))
+   await cp(FIXTURE, installed, { recursive: true })
+-  await mkdir(join(installed, 'node_modules', '@deepseek-ai'), { recursive: true })
+-  await symlink(SCHEMASTERY, join(installed, 'node_modules', '@deepseek-ai', 'schemastery'), 'junction')
++  const schemaLink = join(installed, 'node_modules', '@deepseek-ai/schemastery')
++  await mkdir(dirname(schemaLink), { recursive: true })
++  await symlink(SCHEMASTERY, schemaLink, 'junction')
+   const scaffold = await launchWebScaffold({ profile: { packages: [{ dir: installed, enabled: true }] } })
+   onTestFinished(() => scaffold.close())
+   const browser = await chromium.launch()
+diff --git a/apps/web/tests/input-plugin-extensions.e2e.ts b/apps/web/tests/input-plugin-extensions.e2e.ts
+index e8bb03a918daf67c3bc958d7a7c369a965661c9b..54b314fb91d6078b87043d703d0918eb9072b512 100644
+--- a/apps/web/tests/input-plugin-extensions.e2e.ts
++++ b/apps/web/tests/input-plugin-extensions.e2e.ts
+@@ -1,7 +1,7 @@
+ /** Optional input contributions mount through the real Loader and preserve editor ownership. */
+ import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises'
+ import { tmpdir } from 'node:os'
+-import { join } from 'node:path'
++import { dirname, join } from 'node:path'
+ import { fileURLToPath } from 'node:url'
+ import { parseEntryYaml, stringifyEntryYaml } from '@deepseek-ai/cordis-plugin-include'
+ import { chromium, type Browser } from 'playwright'
+@@ -36,9 +36,9 @@ it('shows shortcuts, a Plan outline, and Session review steps before restoring t
+   const installedReview = await mkdtemp(join(tmpdir(), 'dsh-composer-review-session-'))
+   onTestFinished(() => rm(installedReview, { recursive: true, force: true }))
+   await cp(reviewBundle, installedReview, { recursive: true })
+-  const scopeDir = join(installedReview, 'node_modules', '@deepseek-ai')
+-  await mkdir(scopeDir, { recursive: true })
+-  await symlink(schemastery, join(scopeDir, 'schemastery'), 'junction')
++  const schemaLink = join(installedReview, 'node_modules', '@deepseek-ai/schemastery')
++  await mkdir(dirname(schemaLink), { recursive: true })
++  await symlink(schemastery, schemaLink, 'junction')
+   const { scaffold, browser, page, tripwire } = await fixture([
+     { dir: shortcutsBundle, enabled: true },
+     { dir: installedReview, enabled: true },
+diff --git a/apps/web/tests/writing-manual-reopen.snapshot.ts b/apps/web/tests/writing-manual-reopen.snapshot.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..c41681570444c27e6987f72672ff6f00b0592e41
+--- /dev/null
++++ b/apps/web/tests/writing-manual-reopen.snapshot.ts
+@@ -0,0 +1,46 @@
++/** A reopened Writing session retains its historical turn and accepts an explicit manual invocation. */
++import { readFile } from 'node:fs/promises'
++import { LlmAdapter, createUserMessage } from '@deepseek-ai/dsh-llm'
++import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
++import { expect, it } from 'vitest'
++import { launchWebScaffold, parseSeedFixture, readPersistedEvents, realizeSeedFixture, renderSeedFixture, seedSession } from './scaffold.ts'
++
++class Writer extends LlmAdapter {
++  override async listModels(provider: string) { return [{ provider, id: 'writer', name: 'Writer' }] }
++  override async *stream(_request: GenerateOptions): AsyncIterable<StreamChunk> {
++    yield { type: 'block-start', index: 0, blockType: 'text' }
++    yield { type: 'block-end', index: 0, block: { type: 'text', text: 'Read the voice sample aloud.' } }
++    yield { type: 'finish', reason: { kind: 'stop' } }
++  }
++}
++
++it('reopens a Writing session and records its next manual invocation', async () => {
++  const scaffold = await launchWebScaffold()
++  try {
++    const { ctx } = scaffold
++    ctx.effect(() => ctx.llm.registerAdapter(['writing-test'], new Writer()), 'writing snapshot adapter')
++    const fixture = await readFile(new URL('../../../snapshots/web/writing-manual-reopen/session.v4.jsonl', import.meta.url), 'utf8')
++    const id = await seedSession(scaffold, fixture, 'writing-manual-reopen', 'writing')
++    const realized = realizeSeedFixture(scaffold, fixture, id)
++    const { headerLine, events } = parseSeedFixture(realized)
++    expect(renderSeedFixture(headerLine, await readPersistedEvents(scaffold, id))).toBe(realized)
++
++    await ctx.sessionController.selectModel({ sessionId: id, provider: 'writing-test', model: 'writer' })
++    const resolved = await ctx.sessionController.resolveAgent(id)
++    if ('error' in resolved) throw resolved.error
++    const { agent } = resolved
++    expect(ctx.agentPresets.composedPreset(agent.ctx)).toBe('writing')
++    agent.followup(createUserMessage({ content: [{ type: 'text', text: '/writing-style-reference\nContinue revising the voice.' }], source: { kind: 'user' } }))
++    await agent.whenIdle()
++    const log = await readPersistedEvents(scaffold, id)
++    expect(renderSeedFixture(headerLine, log.slice(0, events.length))).toBe(realized)
++    const invocations = log.flatMap(event => event.type === 'user/message' && event.data.source.kind === 'skill-invocation' ? [event.data] : [])
++    expect(invocations).toHaveLength(1)
++    const invocation = invocations[0]
++    expect(invocation?.source).toMatchObject({ kind: 'skill-invocation', name: 'writing-style-reference', form: 'instructions' })
++    expect(invocation?.content).toHaveLength(1)
++    const block = invocation?.content[0]
++    expect(block?.type === 'text' && block.text).toContain('references/style-card.md')
++    expect(log.at(-1)).toMatchObject({ type: 'turn/end', data: { turn: 2, reason: { kind: 'completed' } } })
++  } finally { await scaffold.close() }
++}, 90_000)
 diff --git a/LICENSES/DSHU-GPL-3.0.txt b/LICENSES/DSHU-GPL-3.0.txt
 new file mode 100644
 index 0000000000000000000000000000000000000000..f288702d2fa16d3cdf0035b15a9fcbc552cd88e7
@@ -3435,10 +3610,10 @@ index 0000000000000000000000000000000000000000..124210d8ee71c134dd81f6ec0bdea25a
 +  } finally { await scaffold.close() }
 +}, 120_000)
 diff --git a/apps/web/tsconfig.json b/apps/web/tsconfig.json
-index 62e0f201c21a9d9bbc1c833e68ae821105b8a6d7..8db4f156a6d93f3f934ee7bf04c3a84d7ccbfa46 100644
+index 62e0f201c21a9d9bbc1c833e68ae821105b8a6d7..df14af1b7af0daf74ffd17533c3ad27d0be9fd3d 100644
 --- a/apps/web/tsconfig.json
 +++ b/apps/web/tsconfig.json
-@@ -23,6 +23,16 @@
+@@ -23,6 +23,17 @@
    // this client-registered project must not also hold them (one program
    // cannot see both sides of the cordis Context merges).
    "exclude": [
@@ -3451,6 +3626,7 @@ index 62e0f201c21a9d9bbc1c833e68ae821105b8a6d7..8db4f156a6d93f3f934ee7bf04c3a84d
 +    "tests/balance-history-layout.e2e.ts",
 +    "tests/memory-preference.e2e.ts",
 +    "tests/writing-spending.e2e.ts",
++    "tests/writing-manual-reopen.snapshot.ts",
 +    "tests/writing-spending-settings.e2e.ts",
      "tests/device-pairing.e2e.ts",
      "tests/pairing-completion.e2e.ts",
@@ -3690,7 +3866,7 @@ index 237bd16bb75669b31cb1141567c825771fad3260..ae557bd1a56b591465600b24e060ddf5
  | `ctx.settingsController` | `core` | [`api-settings-controller`](../packages/api/settings-controller) | - | - | - | 把用户设置 seam 投影到生成的 Remote namespace：读取一律脱敏，所有拒绝在这里分类，而不在 seam Definition 上。 |
  | `ctx.workspaceFiles` | `core` | [`api-workspace-files`](../packages/api/workspace-files) | - | - | - | 为会话工作区根内的文件提供 stat、分页文本、字节窗口、目录列举与变更流，经 lstat、包含关系与 stat 重检限定。 |
 diff --git a/docs/config-catalog.md b/docs/config-catalog.md
-index eb81a3b5a726553a885bbc99fdf475f0074a0b09..7b32b0f3dc1cc6466e123d12b1b454d30bc4601b 100644
+index eb81a3b5a726553a885bbc99fdf475f0074a0b09..a97b16a4eaf02356d54727cd2fd80c8f81eb57c5 100644
 --- a/docs/config-catalog.md
 +++ b/docs/config-catalog.md
 @@ -268,21 +268,70 @@ export interface Config {
@@ -3856,10 +4032,35 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..7b32b0f3dc1cc6466e123d12b1b454d3
  ```
  <!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-ui-theme -->
  
-@@ -3887,6 +3991,49 @@ export type PythonEnvironment = 'workspace-dependencies' | 'user'
+@@ -3887,6 +3991,74 @@ export type PythonEnvironment = 'workspace-dependencies' | 'user'
  ```
  <!-- END GENERATED config-catalog:@deepseek-ai/dsh-skill-office -->
  
++<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-skill-playbooks -->
++<a id="deepseek-aidsh-skill-playbooks"></a>
++
++## `@deepseek-ai/dsh-skill-playbooks`
++
++- `inject`: `skills`
++- `source`: [`packages/skill/skill-playbooks/src/index.ts:31`](../packages/skill/skill-playbooks/src/index.ts)
++
++```ts config-catalog
++/** Playbook resource location and the packs this mount exposes. */
++export interface Config {
++  /**
++   * Packs to expose. Empty or omitted mounts no provider at all, which keeps
++   * this package inert for compositions that want only local discovery.
++   */
++  packs?: PackId[]
++  /** Absolute assets directory containing the `writing/` directory; defaults to packaged assets. */
++  assetRoot?: string
++}
++
++/** One shipped playbook pack. */
++export type PackId = (typeof PACK_IDS)[number]
++```
++<!-- END GENERATED config-catalog:@deepseek-ai/dsh-skill-playbooks -->
++
 +<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-spend-limit -->
 +<a id="deepseek-aidsh-spend-limit"></a>
 +
@@ -3906,7 +4107,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..7b32b0f3dc1cc6466e123d12b1b454d3
  <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-spill-local -->
  <a id="deepseek-aidsh-spill-local"></a>
  
-@@ -5449,7 +5596,7 @@ export interface Config {
+@@ -5449,7 +5621,7 @@ export interface Config {
  
  - `inject`: `web` · `deepseekAuth`
  - `refs`: `Volatile` (`@deepseek-ai/cordis`)
@@ -3915,7 +4116,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..7b32b0f3dc1cc6466e123d12b1b454d3
  
  ```ts config-catalog
  /** Plugin config (all optional — `apply` fills env-var and constant defaults). */
-@@ -5593,6 +5740,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
+@@ -5593,6 +5765,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
  | --- | --- | --- |
  | `@deepseek-ai/dsh-acp-app` | `cmdlineArgs` | [`packages/bundle/acp-app/src/index.ts`](../packages/bundle/acp-app/src/index.ts) |
  | `@deepseek-ai/dsh-agent` | `sessionProjections` | [`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts) |
@@ -3923,7 +4124,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..7b32b0f3dc1cc6466e123d12b1b454d3
  | `@deepseek-ai/dsh-api-remote-access` | — | [`packages/api/remote-access/src/index.ts`](../packages/api/remote-access/src/index.ts) |
  | `@deepseek-ai/dsh-api-remotes` | `typertGateway` | [`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts) |
  | `@deepseek-ai/dsh-authorization` | `credentials` | [`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts) |
-@@ -5627,6 +5775,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
+@@ -5627,6 +5800,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
  | `@deepseek-ai/dsh-client-ui-jobs` | — | [`packages/client/ui-jobs/src/index.ts`](../packages/client/ui-jobs/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-layout` | — | [`packages/client/ui-layout/src/index.ts`](../packages/client/ui-layout/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-message-feedback` | — | [`packages/client/ui-message-feedback/src/index.ts`](../packages/client/ui-message-feedback/src/index.ts) |
@@ -3931,7 +4132,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..7b32b0f3dc1cc6466e123d12b1b454d3
  | `@deepseek-ai/dsh-client-ui-model-selection` | — | [`packages/client/ui-model-selection/src/index.ts`](../packages/client/ui-model-selection/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-open-in-app` | — | [`packages/client/ui-open-in-app/src/index.ts`](../packages/client/ui-open-in-app/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-permission-presets` | — | [`packages/client/ui-permission-presets/src/index.ts`](../packages/client/ui-permission-presets/src/index.ts) |
-@@ -5643,6 +5792,8 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
+@@ -5643,6 +5817,8 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
  | `@deepseek-ai/dsh-client-ui-settings` | — | [`packages/client/ui-settings/src/index.ts`](../packages/client/ui-settings/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-agent-loop` | — | [`packages/client/ui-settings-agent-loop/src/index.ts`](../packages/client/ui-settings-agent-loop/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-general` | — | [`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts) |
@@ -3940,7 +4141,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..7b32b0f3dc1cc6466e123d12b1b454d3
  | `@deepseek-ai/dsh-client-ui-settings-session-log` | — | [`packages/client/ui-settings-session-log/src/index.ts`](../packages/client/ui-settings-session-log/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-shell` | — | [`packages/client/ui-settings-shell/src/index.ts`](../packages/client/ui-settings-shell/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-subagent` | — | [`packages/client/ui-settings-subagent/src/index.ts`](../packages/client/ui-settings-subagent/src/index.ts) |
-@@ -5789,12 +5940,14 @@ Imported as libraries by other packages; a `cordis.yml` cannot load them.
+@@ -5789,12 +5965,14 @@ Imported as libraries by other packages; a `cordis.yml` cannot load them.
  | `@deepseek-ai/dsh-llm-deepseek` | — | [`packages/llm/llm-deepseek/src/index.ts`](../packages/llm/llm-deepseek/src/index.ts) |
  | `@deepseek-ai/dsh-llm-mock-server` | — | [`packages/test-support/llm-mock-server/src/index.ts`](../packages/test-support/llm-mock-server/src/index.ts) |
  | `@deepseek-ai/dsh-loader-smoke` | — | [`packages/test-support/loader-smoke/src/index.ts`](../packages/test-support/loader-smoke/src/index.ts) |
@@ -3956,7 +4157,7 @@ index eb81a3b5a726553a885bbc99fdf475f0074a0b09..7b32b0f3dc1cc6466e123d12b1b454d3
  | `@deepseek-ai/dsh-sandbox-windows-acl` | — | [`packages/sandbox/sandbox-windows-acl/src/index.ts`](../packages/sandbox/sandbox-windows-acl/src/index.ts) |
  | `@deepseek-ai/dsh-scope` | — | [`packages/core/scope/src/index.ts`](../packages/core/scope/src/index.ts) |
 diff --git a/docs/config-catalog.zh.md b/docs/config-catalog.zh.md
-index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..b2ab87765b2cbd7ccedc9e4693f89616b8712071 100644
+index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..2b8a0a036a73771095eb89a250fe23b4dfe282f9 100644
 --- a/docs/config-catalog.zh.md
 +++ b/docs/config-catalog.zh.md
 @@ -270,21 +270,70 @@ export interface Config {
@@ -4122,10 +4323,35 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..b2ab87765b2cbd7ccedc9e4693f89616
  ```
  <!-- END GENERATED config-catalog:@deepseek-ai/dsh-client-ui-theme -->
  
-@@ -3889,6 +3993,49 @@ export type PythonEnvironment = 'workspace-dependencies' | 'user'
+@@ -3889,6 +3993,74 @@ export type PythonEnvironment = 'workspace-dependencies' | 'user'
  ```
  <!-- END GENERATED config-catalog:@deepseek-ai/dsh-skill-office -->
  
++<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-skill-playbooks -->
++<a id="deepseek-aidsh-skill-playbooks"></a>
++
++## `@deepseek-ai/dsh-skill-playbooks`
++
++- `inject`: `skills`
++- `source`: [`packages/skill/skill-playbooks/src/index.ts:31`](../packages/skill/skill-playbooks/src/index.ts)
++
++```ts config-catalog
++/** Playbook resource location and the packs this mount exposes. */
++export interface Config {
++  /**
++   * Packs to expose. Empty or omitted mounts no provider at all, which keeps
++   * this package inert for compositions that want only local discovery.
++   */
++  packs?: PackId[]
++  /** Absolute assets directory containing the `writing/` directory; defaults to packaged assets. */
++  assetRoot?: string
++}
++
++/** One shipped playbook pack. */
++export type PackId = (typeof PACK_IDS)[number]
++```
++<!-- END GENERATED config-catalog:@deepseek-ai/dsh-skill-playbooks -->
++
 +<!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-spend-limit -->
 +<a id="deepseek-aidsh-spend-limit"></a>
 +
@@ -4172,7 +4398,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..b2ab87765b2cbd7ccedc9e4693f89616
  <!-- BEGIN GENERATED config-catalog:@deepseek-ai/dsh-spill-local -->
  <a id="deepseek-aidsh-spill-local"></a>
  
-@@ -5451,7 +5598,7 @@ export interface Config {
+@@ -5451,7 +5623,7 @@ export interface Config {
  
  - `inject`: `web` · `deepseekAuth`
  - `refs`: `Volatile` (`@deepseek-ai/cordis`)
@@ -4181,7 +4407,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..b2ab87765b2cbd7ccedc9e4693f89616
  
  ```ts config-catalog
  /** Plugin config (all optional — `apply` fills env-var and constant defaults). */
-@@ -5595,6 +5742,7 @@ export interface Config {
+@@ -5595,6 +5767,7 @@ export interface Config {
  | --- | --- | --- |
  | `@deepseek-ai/dsh-acp-app` | `cmdlineArgs` | [`packages/bundle/acp-app/src/index.ts`](../packages/bundle/acp-app/src/index.ts) |
  | `@deepseek-ai/dsh-agent` | `sessionProjections` | [`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts) |
@@ -4189,7 +4415,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..b2ab87765b2cbd7ccedc9e4693f89616
  | `@deepseek-ai/dsh-api-remote-access` | — | [`packages/api/remote-access/src/index.ts`](../packages/api/remote-access/src/index.ts) |
  | `@deepseek-ai/dsh-api-remotes` | `typertGateway` | [`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts) |
  | `@deepseek-ai/dsh-authorization` | `credentials` | [`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts) |
-@@ -5629,6 +5777,7 @@ export interface Config {
+@@ -5629,6 +5802,7 @@ export interface Config {
  | `@deepseek-ai/dsh-client-ui-jobs` | — | [`packages/client/ui-jobs/src/index.ts`](../packages/client/ui-jobs/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-layout` | — | [`packages/client/ui-layout/src/index.ts`](../packages/client/ui-layout/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-message-feedback` | — | [`packages/client/ui-message-feedback/src/index.ts`](../packages/client/ui-message-feedback/src/index.ts) |
@@ -4197,7 +4423,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..b2ab87765b2cbd7ccedc9e4693f89616
  | `@deepseek-ai/dsh-client-ui-model-selection` | — | [`packages/client/ui-model-selection/src/index.ts`](../packages/client/ui-model-selection/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-open-in-app` | — | [`packages/client/ui-open-in-app/src/index.ts`](../packages/client/ui-open-in-app/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-permission-presets` | — | [`packages/client/ui-permission-presets/src/index.ts`](../packages/client/ui-permission-presets/src/index.ts) |
-@@ -5645,6 +5794,8 @@ export interface Config {
+@@ -5645,6 +5819,8 @@ export interface Config {
  | `@deepseek-ai/dsh-client-ui-settings` | — | [`packages/client/ui-settings/src/index.ts`](../packages/client/ui-settings/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-agent-loop` | — | [`packages/client/ui-settings-agent-loop/src/index.ts`](../packages/client/ui-settings-agent-loop/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-general` | — | [`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts) |
@@ -4206,7 +4432,7 @@ index 1ee70cf86ee71275760961a05a1cbd78863b0cb3..b2ab87765b2cbd7ccedc9e4693f89616
  | `@deepseek-ai/dsh-client-ui-settings-session-log` | — | [`packages/client/ui-settings-session-log/src/index.ts`](../packages/client/ui-settings-session-log/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-shell` | — | [`packages/client/ui-settings-shell/src/index.ts`](../packages/client/ui-settings-shell/src/index.ts) |
  | `@deepseek-ai/dsh-client-ui-settings-subagent` | — | [`packages/client/ui-settings-subagent/src/index.ts`](../packages/client/ui-settings-subagent/src/index.ts) |
-@@ -5791,12 +5942,14 @@ export interface Config {
+@@ -5791,12 +5967,14 @@ export interface Config {
  | `@deepseek-ai/dsh-llm-deepseek` | — | [`packages/llm/llm-deepseek/src/index.ts`](../packages/llm/llm-deepseek/src/index.ts) |
  | `@deepseek-ai/dsh-llm-mock-server` | — | [`packages/test-support/llm-mock-server/src/index.ts`](../packages/test-support/llm-mock-server/src/index.ts) |
  | `@deepseek-ai/dsh-loader-smoke` | — | [`packages/test-support/loader-smoke/src/index.ts`](../packages/test-support/loader-smoke/src/index.ts) |
@@ -10418,6 +10644,150 @@ index 0000000000000000000000000000000000000000..3549f5ab5a966096c921aeda552746a1
 +## 迁移
 +
 +升级后无需操作。以前选择开发版的用户自动使用同一发行源，已有桌面设置文件和其他偏好保留原样。接入桌面预加载 API 的客户端应使用 `updates.status()`、`updates.open()` 和 `updates.subscribe()`。
+diff --git a/packages/api/memory-controller/locale/de.json b/packages/api/memory-controller/locale/de.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..83b0cb85a2c957397438aba4c1ee2dfb61437f4e
+--- /dev/null
++++ b/packages/api/memory-controller/locale/de.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Speicherverwaltung",
++    "description": "Lokale Erinnerungen und die Einstellungen zur Extraktion verwalten."
++  }
++}
+diff --git a/packages/api/memory-controller/locale/es.json b/packages/api/memory-controller/locale/es.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..6d2b85cfbc64275c7a2a3c0aef566a8a6d370926
+--- /dev/null
++++ b/packages/api/memory-controller/locale/es.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Gestión de memoria",
++    "description": "Gestiona los recuerdos locales y las opciones de extracción."
++  }
++}
+diff --git a/packages/api/memory-controller/locale/fr.json b/packages/api/memory-controller/locale/fr.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..c67dbe788a3b3b9841da1a6cff8ae3fc27bd7870
+--- /dev/null
++++ b/packages/api/memory-controller/locale/fr.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Gestion de la mémoire",
++    "description": "Gère les souvenirs locaux et les paramètres d’extraction."
++  }
++}
+diff --git a/packages/api/memory-controller/locale/ja.json b/packages/api/memory-controller/locale/ja.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..790592c92f5c1873f3c6dfccb06a27135cc08e5a
+--- /dev/null
++++ b/packages/api/memory-controller/locale/ja.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "メモリ管理",
++    "description": "ローカルの記憶と抽出設定を管理します。"
++  }
++}
+diff --git a/packages/api/memory-controller/locale/pt.json b/packages/api/memory-controller/locale/pt.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..29dbb5f38216ff68fdd7ee355412bb6d31471f09
+--- /dev/null
++++ b/packages/api/memory-controller/locale/pt.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Gestão de memória",
++    "description": "Gerencia as memórias locais e as opções de extração."
++  }
++}
+diff --git a/packages/api/memory-controller/locale/ru.json b/packages/api/memory-controller/locale/ru.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..fb827757853a7a37ed02273a859273d9dafd2a4c
+--- /dev/null
++++ b/packages/api/memory-controller/locale/ru.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Управление памятью",
++    "description": "Управляет локальными записями памяти и настройками извлечения."
++  }
++}
+diff --git a/packages/api/mode-dossiers/locale/de.json b/packages/api/mode-dossiers/locale/de.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..f126dd97d7ad3a5a05ca63638db7c3fe4847ee02
+--- /dev/null
++++ b/packages/api/mode-dossiers/locale/de.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Schreibmaterial",
++    "description": "Stilkarten und Hintergrundmaterial für Schreibsitzungen verwalten."
++  }
++}
+diff --git a/packages/api/mode-dossiers/locale/es.json b/packages/api/mode-dossiers/locale/es.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..ab72ea0f8a263d5f7b331085822bba7665329096
+--- /dev/null
++++ b/packages/api/mode-dossiers/locale/es.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Materiales de escritura",
++    "description": "Gestiona las fichas de estilo y las referencias narrativas de las conversaciones de escritura."
++  }
++}
+diff --git a/packages/api/mode-dossiers/locale/fr.json b/packages/api/mode-dossiers/locale/fr.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..df3e241464b09a594ee4caac2bde20175f683b52
+--- /dev/null
++++ b/packages/api/mode-dossiers/locale/fr.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Dossiers d’écriture",
++    "description": "Gère les fiches de style et les références narratives des conversations d’écriture."
++  }
++}
+diff --git a/packages/api/mode-dossiers/locale/ja.json b/packages/api/mode-dossiers/locale/ja.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..99b35acca4d204b051274b66f31d8cb9980157ee
+--- /dev/null
++++ b/packages/api/mode-dossiers/locale/ja.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "執筆資料",
++    "description": "執筆用の会話で使う文体カードと設定資料を管理します。"
++  }
++}
+diff --git a/packages/api/mode-dossiers/locale/pt.json b/packages/api/mode-dossiers/locale/pt.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..e1a0dd8df95bbe29bebcab91761aa06a1a59655e
+--- /dev/null
++++ b/packages/api/mode-dossiers/locale/pt.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Materiais de escrita",
++    "description": "Gerencia fichas de estilo e referências narrativas das conversas de escrita."
++  }
++}
+diff --git a/packages/api/mode-dossiers/locale/ru.json b/packages/api/mode-dossiers/locale/ru.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..33a5a183e7608667f5c5271280255956b2b567ff
+--- /dev/null
++++ b/packages/api/mode-dossiers/locale/ru.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Материалы для письма",
++    "description": "Управляет карточками стиля и справочными материалами для литературных диалогов."
++  }
++}
 diff --git a/packages/api/mode-dossiers/README.i18n.yaml b/packages/api/mode-dossiers/README.i18n.yaml
 new file mode 100644
 index 0000000000000000000000000000000000000000..d0dd67499cd330445bb731a269e0f3c0365eb339
@@ -12975,19 +13345,17 @@ index 36727d2910e06669b62fae851fc439b73ed0023f..3352b41e12116fa4d01207bb3488e6be
      # connectors register their accounts with `ctx.connectorAccounts`.
      - id: ui-connector-account
 diff --git a/packages/bundle/web-app/package.json b/packages/bundle/web-app/package.json
-index af6f965b144ce8323ea93e58a1958f3dfc8851a8..a921a27038496e566deec73d6a935024e79a8eb4 100644
+index af6f965b144ce8323ea93e58a1958f3dfc8851a8..917e19b380f3133642cde58d3c3230a5694944cb 100644
 --- a/packages/bundle/web-app/package.json
 +++ b/packages/bundle/web-app/package.json
-@@ -43,7 +43,8 @@
+@@ -39,6 +39,7 @@
+     "presets/ptc.patch.yml",
+     "presets/minimal.patch.yml",
+     "presets/cordis.patch.yml",
++    "presets/writing.patch.yml",
+     "lib/public-url-*.js",
      "lib/types/**/*.d.ts",
      "lib/types/**/*.d.ts.map",
-     "lib/**/*.js.map",
--    "src"
-+    "src",
-+    "presets/writing.patch.yml"
-   ],
-   "license": "MIT",
-   "dsh": {
 @@ -53,7 +54,8 @@
          "./presets/standard.patch.yml",
          "./presets/ptc.patch.yml",
@@ -13017,7 +13385,15 @@ index af6f965b144ce8323ea93e58a1958f3dfc8851a8..a921a27038496e566deec73d6a935024
      "@deepseek-ai/dsh-client-ui-settings-general": "workspace:*",
      "@deepseek-ai/dsh-client-ui-settings-models": "workspace:*",
      "@deepseek-ai/dsh-client-ui-settings-session-log": "workspace:*",
-@@ -213,7 +220,9 @@
+@@ -174,6 +181,7 @@
+     "@deepseek-ai/dsh-session-turn-outline": "workspace:*",
+     "@deepseek-ai/dsh-skill-filesystem": "workspace:*",
+     "@deepseek-ai/dsh-skill-office": "workspace:*",
++    "@deepseek-ai/dsh-skill-playbooks": "workspace:*",
+     "@deepseek-ai/dsh-subprocess": "workspace:*",
+     "@deepseek-ai/dsh-terminal": "workspace:*",
+     "@deepseek-ai/dsh-terminal-bash": "workspace:*",
+@@ -213,7 +221,9 @@
      "@deepseek-ai/dsh-creation-recommendations": "workspace:*",
      "@deepseek-ai/dsh-client-ui-creation-recommendations": "workspace:*",
      "@deepseek-ai/dsh-plugin-recommendations": "workspace:*",
@@ -13030,10 +13406,10 @@ index af6f965b144ce8323ea93e58a1958f3dfc8851a8..a921a27038496e566deec73d6a935024
      "@deepseek-ai/cordis": "workspace:~",
 diff --git a/packages/bundle/web-app/presets/writing.patch.yml b/packages/bundle/web-app/presets/writing.patch.yml
 new file mode 100644
-index 0000000000000000000000000000000000000000..c3325b1e9bd8c7684302717b1399a13e456c7c3a
+index 0000000000000000000000000000000000000000..8cf34580d14c2c7d6c0fb934ba7a8d77564668cf
 --- /dev/null
 +++ b/packages/bundle/web-app/presets/writing.patch.yml
-@@ -0,0 +1,33 @@
+@@ -0,0 +1,65 @@
 +- insert:
 +    - id: preset-writing
 +      name: '@deepseek-ai/dsh-agent-preset'
@@ -13047,6 +13423,12 @@ index 0000000000000000000000000000000000000000..c3325b1e9bd8c7684302717b1399a13e
 +              prefix: >
 +                You are a writing assistant. Write in the user's language and requested form.
 +                Use selected voice cards for style and the story bible for continuity.
++          - id: agent-instructions
++            name: '@deepseek-ai/dsh-agent-instructions'
++            config:
++              maxBytes: 65536
++          - id: time-context
++            name: '@deepseek-ai/dsh-time-context'
 +          - id: memory-agent
 +            name: '@deepseek-ai/dsh-memory/agent'
 +            config:
@@ -13057,16 +13439,112 @@ index 0000000000000000000000000000000000000000..c3325b1e9bd8c7684302717b1399a13e
 +            name: '@deepseek-ai/dsh-tool-fs-search'
 +            config:
 +              sampleOverCapGlobResults: false
++          - id: skill-filesystem
++            name: '@deepseek-ai/dsh-skill-filesystem'
++          - id: skill-playbooks
++            name: '@deepseek-ai/dsh-skill-playbooks'
++            config:
++              packs:
++                - writing
++          - id: tool-skill
++            name: '@deepseek-ai/dsh-tool-skill'
 +          - id: compaction
 +            name: cordis:group
 +            group: true
 +            isolate:
 +              compaction: true
++              toolResultPruner: true
 +            config:
 +              - id: compaction-basic
 +                name: '@deepseek-ai/dsh-compaction-basic'
 +              - id: command-compact
 +                name: '@deepseek-ai/dsh-command-compact'
++              - id: tool-result-pruner
++                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
++                disabled: true
++          - id: tool-ask-user
++            name: '@deepseek-ai/dsh-tool-ask-user'
++          - id: tool-todo
++            name: '@deepseek-ai/dsh-tool-todo'
++            config:
++              allowParallelInProgress: true
++          - id: tool-web
++            name: '@deepseek-ai/dsh-tool-web'
++            config:
++              fetch: true
++              searchTimeoutMs: 60000
++          - id: present
++            name: '@deepseek-ai/dsh-tool-present'
+diff --git a/packages/bundle/web-app/README.i18n.yaml b/packages/bundle/web-app/README.i18n.yaml
+index 107bc6915e6d556c8aa88302a5f678260aebc6ad..895c72f8180fb078e55af61763a4683e0897b544 100644
+--- a/packages/bundle/web-app/README.i18n.yaml
++++ b/packages/bundle/web-app/README.i18n.yaml
+@@ -33,8 +33,8 @@
+   en: 99557925a59aee67
+   zh: e2160750bd65505a
+ /deepseek-ai-dsh-web-app/understand-the-implementation:
+-  en: 567cf3afa68e6b68
+-  zh: f065cdb56c28d4e6
++  en: 28125d78b0d74cc1
++  zh: 74b3f6b520ad49cd
+ /deepseek-ai-dsh-web-app/understand-the-implementation/patch-semantics:
+   en: a6d126f30b1594d7
+   zh: 7f0ccc8a55d6f743
+@@ -45,8 +45,8 @@
+   en: 7877e9da8aaa5151
+   zh: 3e96acf88f81baf2
+ /deepseek-ai-dsh-web-app/understand-the-implementation/source-map:
+-  en: 6d8d71d9a7168bdd
+-  zh: c9b3f4dadc3d8367
++  en: 89db6c4095d54c63
++  zh: a5d51d07a6eaaeb2
+ /deepseek-ai-dsh-web-app/further-exploration:
+   en: f81694f7424e2988
+   zh: 6643f9227039e228
+diff --git a/packages/bundle/web-app/README.md b/packages/bundle/web-app/README.md
+index 29fc22b25dae4465b28afebcd48f08ddcc2c1951..b38eb116428e92bff405d2ead507147ee3d3c408 100644
+--- a/packages/bundle/web-app/README.md
++++ b/packages/bundle/web-app/README.md
+@@ -110,7 +110,7 @@ The packaged skill uses the custom skill root: a same-named project skill overri
+ <details>
+ <summary>Implementation internals — click to expand</summary>
+ 
+-The bundle is one patch layer of five files plus one runtime glue plugin: `cordis.patch.yml` carries the host rows and the preset registry, and each `presets/<id>.patch.yml` inserts one shipped preset declaration, applied in the order `dsh.bundle.patch` lists them. The storage stack and projection cache come from `dsh-base`; the web overlay's workspace and message-feedback rows consume that shared `storageDomain` service. The patch restates the surface-specific values the base deliberately omits, inserts the web-only host rows and browser roster, then moves the agent plane behind presets. The glue plugin owns dist serving, the advertised application URL, the plain-HTTP exposure warning, and the bash variable. WebApp owns startup URL publication and browser handoff; the [Token authentication plugin](../../host/authentication-token/README.md) contributes its signed entry URL. The `office-kit` row mounts one lazy [Office conversion provider](../../document/office-kit/README.md) for Host consumers, including Desktop compositions using this bundle, and keeps converted files under `$DSH_HOME/office-kit/outputs`. The `standard` and `ptc` presets mount the [Office tools](../../document/tool-office/README.md) in every profile, whether or not Kit is installed, and declare them after an Office skill loads; the `minimal` preset omits them. The conversion service's Remote methods authorize preview reads, while Document Preview owns the Office viewer and Client cache.
++The bundle is one patch layer of six files plus one runtime glue plugin: `cordis.patch.yml` carries the host rows and the preset registry, and each `presets/<id>.patch.yml` inserts one shipped preset declaration, applied in the order `dsh.bundle.patch` lists them. The storage stack and projection cache come from `dsh-base`; the web overlay's workspace and message-feedback rows consume that shared `storageDomain` service. The patch restates the surface-specific values the base deliberately omits, inserts the web-only host rows and browser roster, then moves the agent plane behind presets. The glue plugin owns dist serving, the advertised application URL, the plain-HTTP exposure warning, and the bash variable. WebApp owns startup URL publication and browser handoff; the [Token authentication plugin](../../host/authentication-token/README.md) contributes its signed entry URL. The `office-kit` row mounts one lazy [Office conversion provider](../../document/office-kit/README.md) for Host consumers, including Desktop compositions using this bundle, and keeps converted files under `$DSH_HOME/office-kit/outputs`. The `standard` and `ptc` presets mount the [Office tools](../../document/tool-office/README.md) in every profile, whether or not Kit is installed, and declare them after an Office skill loads; the `minimal` preset omits them. The conversion service's Remote methods authorize preview reads, while Document Preview owns the Office viewer and Client cache.
+ 
+ The `skill-office` row mounts the [Office skills](../../skill/skill-office/README.md) from their packaged assets in every profile. Desktop with a nonempty `DSH_PRIMARY_RUNTIME` also mounts the bundled dependency-query row and selects `pythonEnvironment: 'workspace-dependencies'`; other profiles, and Desktop without a primary runtime, select `pythonEnvironment: 'user'` and leave the dependency-query row disabled. The [Desktop application](../../../apps/desktop/README.md#bundled-workspace-dependencies) owns resource packaging.
+ 
+@@ -134,7 +134,7 @@ The URL line and browser handoff are readiness signals: supervisors RPC as soon
+ | [`src/public-url.ts`](src/public-url.ts) | Advertised-root validation and trailing-slash normalization; a leaf module for local imports, not package API |
+ | [`src/startup.ts`](src/startup.ts) | The `web-startup` provider: `--host`, `--port`, `--tls-cert`, `--tls-key`, `--public-url`, `--trusted-host`, `--no-open`, `--help` |
+ | [`cordis.patch.yml`](cordis.patch.yml) | The web patch: restated base values, web host rows, browser roster, preset registry |
+-| [`presets/`](presets) | One `@deepseek-ai/dsh-agent-preset` declaration per shipped preset (`standard`, `ptc`, `minimal`, `cordis`), each its own patch file |
++| [`presets/`](presets) | One `@deepseek-ai/dsh-agent-preset` declaration per shipped preset (`standard`, `ptc`, `minimal`, `cordis`, `writing`), each its own patch file. Writing mounts the [fiction playbooks](../../skill/skill-playbooks/README.md) |
+ | [`tests/web-app.spec.ts`](tests/web-app.spec.ts) | Dist index anchoring, advertised-URL publication and warnings, bash variable |
+ | [`tests/startup.spec.ts`](tests/startup.spec.ts) | Command-line parsing over a real Loader tree |
+ | [`tests/public-url.spec.ts`](tests/public-url.spec.ts) | Advertised-root parsing and normalization |
+diff --git a/packages/bundle/web-app/README.zh.md b/packages/bundle/web-app/README.zh.md
+index 37c7376e31752ba767605e7ffecfd7fe32bb3318..e496e7220b6d5b1b0757ed8d97edd60ec45977f9 100644
+--- a/packages/bundle/web-app/README.zh.md
++++ b/packages/bundle/web-app/README.zh.md
+@@ -110,7 +110,7 @@ dsh --profile web --no-open --host "$(hostname -i | awk '{print $1}')" --public-
+ <details>
+ <summary>实现细节——点击展开</summary>
+ 
+-此 bundle 由一层五个文件的补丁和一个运行时胶水插件组成：`cordis.patch.yml` 承载宿主行和 preset 注册表，每个 `presets/<id>.patch.yml` 插入一条随发行版交付的 preset 声明，按 `dsh.bundle.patch` 列出的顺序应用。存储栈与投影缓存来自 `dsh-base`；Web 叠加层的工作区和消息反馈条目消费共享的 `storageDomain` 服务。补丁重述 base 有意省略的界面专用值，插入 Web 专用宿主条目和浏览器插件列表，再将 Agent 层移到预设后面。胶水插件负责 dist 服务、公告应用 URL、明文 HTTP 暴露警告和 bash 变量。WebApp 负责启动 URL 发布与浏览器交接；[Token 认证插件](../../host/authentication-token/README.zh.md)贡献带签名的入口 URL。`office-kit` 条目为宿主消费者挂载一个延迟创建引擎的 [Office 转换提供方](../../document/office-kit/README.zh.md)，使用此 bundle 的 Desktop 组合也共享该提供方，转换后的文件保存在 `$DSH_HOME/office-kit/outputs`。`standard` 和 `ptc` 预设在所有 profile 中挂载 [Office 工具](../../document/tool-office/README.zh.md)，无论是否安装 Kit，并在加载 Office 技能后声明它们；`minimal` 预设不挂载它们。转换服务的 Remote 方法负责预览读取授权，Document Preview 负责 Office 查看器和客户端缓存。
++此 bundle 由一层六个文件的补丁和一个运行时胶水插件组成：`cordis.patch.yml` 承载宿主行和 preset 注册表，每个 `presets/<id>.patch.yml` 插入一条随发行版交付的 preset 声明，按 `dsh.bundle.patch` 列出的顺序应用。存储栈与投影缓存来自 `dsh-base`；Web 叠加层的工作区和消息反馈条目消费共享的 `storageDomain` 服务。补丁重述 base 有意省略的界面专用值，插入 Web 专用宿主条目和浏览器插件列表，再将 Agent 层移到预设后面。胶水插件负责 dist 服务、公告应用 URL、明文 HTTP 暴露警告和 bash 变量。WebApp 负责启动 URL 发布与浏览器交接；[Token 认证插件](../../host/authentication-token/README.zh.md)贡献带签名的入口 URL。`office-kit` 条目为宿主消费者挂载一个延迟创建引擎的 [Office 转换提供方](../../document/office-kit/README.zh.md)，使用此 bundle 的 Desktop 组合也共享该提供方，转换后的文件保存在 `$DSH_HOME/office-kit/outputs`。`standard` 和 `ptc` 预设在所有 profile 中挂载 [Office 工具](../../document/tool-office/README.zh.md)，无论是否安装 Kit，并在加载 Office 技能后声明它们；`minimal` 预设不挂载它们。转换服务的 Remote 方法负责预览读取授权，Document Preview 负责 Office 查看器和客户端缓存。
+ 
+ `skill-office` 行在所有 profile 中从包内 assets 挂载 [Office 技能](../../skill/skill-office/README.zh.md)。`DSH_PRIMARY_RUNTIME` 非空的 Desktop 还挂载内置依赖查询行，并选择 `pythonEnvironment: 'workspace-dependencies'`；其他 profile 以及没有主运行时的 Desktop 选择 `pythonEnvironment: 'user'`，并禁用依赖查询行。资源打包由 [Desktop 应用](../../../apps/desktop/README.zh.md#bundled-workspace-dependencies)负责。
+ 
+@@ -134,7 +134,7 @@ URL 行与浏览器交接都是就绪信号：监督方一观察到该行就发
+ | [`src/public-url.ts`](src/public-url.ts) | 公告根的校验与尾斜杠归一化；供本地导入的叶子模块，不属于包 API |
+ | [`src/startup.ts`](src/startup.ts) | `web-startup` 提供方：`--host`、`--port`、`--tls-cert`、`--tls-key`、`--public-url`、`--trusted-host`、`--no-open`、`--help` |
+ | [`cordis.patch.yml`](cordis.patch.yml) | Web patch：重述的基础值、Web 宿主行、浏览器名录、preset 注册表 |
+-| [`presets/`](presets) | 每个随发行版交付的 preset（`standard`、`ptc`、`minimal`、`cordis`）各一条 `@deepseek-ai/dsh-agent-preset` 声明，各自一个补丁文件 |
++| [`presets/`](presets) | 每个随发行版交付的 preset（`standard`、`ptc`、`minimal`、`cordis`、`writing`）各一条 `@deepseek-ai/dsh-agent-preset` 声明，各自一个补丁文件。写作模式加载[写作手册](../../skill/skill-playbooks/README.zh.md) |
+ | [`tests/web-app.spec.ts`](tests/web-app.spec.ts) | dist index 锚定、公告 URL 发布与警告、bash 变量 |
+ | [`tests/startup.spec.ts`](tests/startup.spec.ts) | 在真实 Loader 树上的命令行解析 |
+ | [`tests/public-url.spec.ts`](tests/public-url.spec.ts) | 公告根的解析与归一化 |
 diff --git a/packages/client/ui-agent-preset/src/client/locales.ts b/packages/client/ui-agent-preset/src/client/locales.ts
 index 67329c8ff3e62663846b89e2bcc5d764479a9632..d1f79adda4048e226c6b12c9dd5169ba762b5ef2 100644
 --- a/packages/client/ui-agent-preset/src/client/locales.ts
@@ -13215,6 +13693,78 @@ index 1a2fb3412aed245b1f25f881e8e771620ff5dedc..12af643a7906d5f1b88bf31889b7151d
      ['standard', 'presetStandardName', 'presetStandardDescription'],
      ['ptc', 'presetPtcName', 'presetPtcDescription'],
      ['minimal', 'presetMinimalName', 'presetMinimalDescription'],
+diff --git a/packages/client/ui-mode-materials/locale/de.json b/packages/client/ui-mode-materials/locale/de.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..6f0db27e9aa673a10ff84a5e2b20e5177c3a0e24
+--- /dev/null
++++ b/packages/client/ui-mode-materials/locale/de.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Schreibmaterial",
++    "description": "Stilkarten und Hintergrundmaterial im Arbeitsbereich auswählen und bearbeiten."
++  }
++}
+diff --git a/packages/client/ui-mode-materials/locale/es.json b/packages/client/ui-mode-materials/locale/es.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..d374228ba06dd739ef9da0496dc89c564c08ad85
+--- /dev/null
++++ b/packages/client/ui-mode-materials/locale/es.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Materiales de escritura",
++    "description": "Selecciona y edita fichas de estilo y referencias narrativas del espacio de trabajo."
++  }
++}
+diff --git a/packages/client/ui-mode-materials/locale/fr.json b/packages/client/ui-mode-materials/locale/fr.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..c955ea84cd350da83f875f9dad2574fa749b1616
+--- /dev/null
++++ b/packages/client/ui-mode-materials/locale/fr.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Dossiers d’écriture",
++    "description": "Permet de sélectionner et de modifier les fiches de style et les références narratives du projet."
++  }
++}
+diff --git a/packages/client/ui-mode-materials/locale/ja.json b/packages/client/ui-mode-materials/locale/ja.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..c26417d14131f9474408844d8376b53ca8563da9
+--- /dev/null
++++ b/packages/client/ui-mode-materials/locale/ja.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "執筆資料",
++    "description": "ワークスペースの文体カードと設定資料を選択、編集します。"
++  }
++}
+diff --git a/packages/client/ui-mode-materials/locale/pt.json b/packages/client/ui-mode-materials/locale/pt.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..4a695e7af27de887abc7a82e7cd1ed326e8a98ae
+--- /dev/null
++++ b/packages/client/ui-mode-materials/locale/pt.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Materiais de escrita",
++    "description": "Seleciona e edita fichas de estilo e referências narrativas no espaço de trabalho."
++  }
++}
+diff --git a/packages/client/ui-mode-materials/locale/ru.json b/packages/client/ui-mode-materials/locale/ru.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..13eb0c27bc3b59feb8c05ade6dd034cbbd19673d
+--- /dev/null
++++ b/packages/client/ui-mode-materials/locale/ru.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Материалы для письма",
++    "description": "Позволяет выбирать и редактировать карточки стиля и справочные материалы в рабочей области."
++  }
++}
 diff --git a/packages/client/ui-mode-materials/README.i18n.yaml b/packages/client/ui-mode-materials/README.i18n.yaml
 new file mode 100644
 index 0000000000000000000000000000000000000000..518873bab08ab5b25fe8ddfc6e0881c79e12e0f5
@@ -13383,26 +13933,26 @@ index 0000000000000000000000000000000000000000..a9b872d5634679a7474f3087679c7cbe
 +</details>
 diff --git a/packages/client/ui-mode-materials/locale/en.json b/packages/client/ui-mode-materials/locale/en.json
 new file mode 100644
-index 0000000000000000000000000000000000000000..38902e523a1df0b3aeb318ccafe734f873f7c60b
+index 0000000000000000000000000000000000000000..0f312a7fdcf78122fc3ebd602e1fea68a00632fd
 --- /dev/null
 +++ b/packages/client/ui-mode-materials/locale/en.json
 @@ -0,0 +1,6 @@
 +{
 +  "meta": {
 +    "title": "Writing materials",
-+    "description": "Writing materials"
++    "description": "Select and edit style cards and story references in the workspace."
 +  }
 +}
 diff --git a/packages/client/ui-mode-materials/locale/zh.json b/packages/client/ui-mode-materials/locale/zh.json
 new file mode 100644
-index 0000000000000000000000000000000000000000..6bba5741c720021ae725edcf6407c54af4ba5ae6
+index 0000000000000000000000000000000000000000..e808c40289de33519d2ec9144263d49a4d20b08a
 --- /dev/null
 +++ b/packages/client/ui-mode-materials/locale/zh.json
 @@ -0,0 +1,6 @@
 +{
 +  "meta": {
 +    "title": "写作资料",
-+    "description": "写作资料"
++    "description": "在工作区中选择和编辑文风卡与设定资料。"
 +  }
 +}
 diff --git a/packages/client/ui-mode-materials/package.json b/packages/client/ui-mode-materials/package.json
@@ -17200,6 +17750,78 @@ index 09723981dae0bc7662696b3d5acd536222d8bede..bc62dcf9661490c8f9b0c9e54bea159e
    })
  
    it('the nav label thunk follows the active locale without re-registration', async ({ mock, start }) => {
+diff --git a/packages/client/ui-settings-memory/locale/de.json b/packages/client/ui-settings-memory/locale/de.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..61d62fe18315da49e09222435dbd1ee8c907df44
+--- /dev/null
++++ b/packages/client/ui-settings-memory/locale/de.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Erinnerungseinstellungen",
++    "description": "Gesprächsübergreifende Erinnerungen konfigurieren."
++  }
++}
+diff --git a/packages/client/ui-settings-memory/locale/es.json b/packages/client/ui-settings-memory/locale/es.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..c87093c42fb1d8db11ba3a475f8ba93de363be96
+--- /dev/null
++++ b/packages/client/ui-settings-memory/locale/es.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Ajustes de memoria",
++    "description": "Configura la memoria entre conversaciones."
++  }
++}
+diff --git a/packages/client/ui-settings-memory/locale/fr.json b/packages/client/ui-settings-memory/locale/fr.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..20b25701e48bcf15cae46dc2f56c2234b6284bc8
+--- /dev/null
++++ b/packages/client/ui-settings-memory/locale/fr.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Paramètres de mémoire",
++    "description": "Configure la mémoire entre les conversations."
++  }
++}
+diff --git a/packages/client/ui-settings-memory/locale/ja.json b/packages/client/ui-settings-memory/locale/ja.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..e1dbbd117ff7f010d6811d7926b9030b1b045539
+--- /dev/null
++++ b/packages/client/ui-settings-memory/locale/ja.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "メモリ設定",
++    "description": "会話をまたいで使うメモリを設定します。"
++  }
++}
+diff --git a/packages/client/ui-settings-memory/locale/pt.json b/packages/client/ui-settings-memory/locale/pt.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..a7d29f23158dbbe393498722b1f6b0e26a01842c
+--- /dev/null
++++ b/packages/client/ui-settings-memory/locale/pt.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Configurações de memória",
++    "description": "Configura a memória entre conversas."
++  }
++}
+diff --git a/packages/client/ui-settings-memory/locale/ru.json b/packages/client/ui-settings-memory/locale/ru.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..bbfea20f7a7ad5afaca56e19a4b187bcdffc7662
+--- /dev/null
++++ b/packages/client/ui-settings-memory/locale/ru.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Настройки памяти",
++    "description": "Настраивает использование памяти между диалогами."
++  }
++}
 diff --git a/packages/core/session/src/known-event-types.ts b/packages/core/session/src/known-event-types.ts
 index 5506a173db27559f349c86a2989f84b9a14169b1..4acffa6461b16c3182aa0fa8d617d796ed1a9adc 100644
 --- a/packages/core/session/src/known-event-types.ts
@@ -17217,6 +17839,78 @@ index 5506a173db27559f349c86a2989f84b9a14169b1..4acffa6461b16c3182aa0fa8d617d796
    'model/selection',
    'permission/preset',
    'plan/mode',
+diff --git a/packages/credentials/balance/locale/de.json b/packages/credentials/balance/locale/de.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..0f2892c68348dd7479502cdc3c5c2453042f157b
+--- /dev/null
++++ b/packages/credentials/balance/locale/de.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Guthaben",
++    "description": "Kontoguthaben abrufen und Messwerte lokal speichern."
++  }
++}
+diff --git a/packages/credentials/balance/locale/es.json b/packages/credentials/balance/locale/es.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..abe246084fe48344de035de9452f084fe23e5355
+--- /dev/null
++++ b/packages/credentials/balance/locale/es.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Saldo",
++    "description": "Consulta el saldo y guarda el historial local de muestras."
++  }
++}
+diff --git a/packages/credentials/balance/locale/fr.json b/packages/credentials/balance/locale/fr.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..05de1bf08e9c6623df17610103657c27a9955ca2
+--- /dev/null
++++ b/packages/credentials/balance/locale/fr.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Solde",
++    "description": "Consulte le solde et conserve un historique local des relevés."
++  }
++}
+diff --git a/packages/credentials/balance/locale/ja.json b/packages/credentials/balance/locale/ja.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..4dbdb4624abf279780d662cf944abd5034c167c9
+--- /dev/null
++++ b/packages/credentials/balance/locale/ja.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "残高",
++    "description": "アカウント残高を取得し、履歴をローカルに保存します。"
++  }
++}
+diff --git a/packages/credentials/balance/locale/pt.json b/packages/credentials/balance/locale/pt.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..165197c789b642d8f4e4b4de782c4f9280af247a
+--- /dev/null
++++ b/packages/credentials/balance/locale/pt.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Saldo",
++    "description": "Consulta o saldo e mantém um histórico local das amostras."
++  }
++}
+diff --git a/packages/credentials/balance/locale/ru.json b/packages/credentials/balance/locale/ru.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..ca8ac4db49c55802938a0c5cd264bc1c67be3d52
+--- /dev/null
++++ b/packages/credentials/balance/locale/ru.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Баланс",
++    "description": "Запрашивает баланс счёта и сохраняет историю замеров."
++  }
++}
 diff --git a/packages/experimental/liveshare/src/endpoint-classification.ts b/packages/experimental/liveshare/src/endpoint-classification.ts
 index 1242197b3b92c42f21e2096e0fdb724fdafaa883..8fded9b9a9b722aa2c1f9079b02725455f9a45a2 100644
 --- a/packages/experimental/liveshare/src/endpoint-classification.ts
@@ -18486,6 +19180,78 @@ index 84bf84164a56fd17f6575eeec815ef47f3a55bfb..17f112b319fd9bcda8f8aa2c60a5c5df
    },
    {
      name: 'ToolInfo',
+diff --git a/packages/guard/spend-limit/locale/de.json b/packages/guard/spend-limit/locale/de.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..20b3e1db46ebf547595afebccb08ae46c31792e6
+--- /dev/null
++++ b/packages/guard/spend-limit/locale/de.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Ausgabenlimits",
++    "description": "Budgets verwalten und pausierte Gespräche fortsetzen."
++  }
++}
+diff --git a/packages/guard/spend-limit/locale/es.json b/packages/guard/spend-limit/locale/es.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..af4eaf41229b432ebd6171d17ba12e9de686a66e
+--- /dev/null
++++ b/packages/guard/spend-limit/locale/es.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Límites de gasto",
++    "description": "Gestiona los presupuestos y la reanudación de conversaciones en pausa."
++  }
++}
+diff --git a/packages/guard/spend-limit/locale/fr.json b/packages/guard/spend-limit/locale/fr.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..ce6acdf1981efdf6e8c176b6a6f8d672d47b56d7
+--- /dev/null
++++ b/packages/guard/spend-limit/locale/fr.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Plafonds de dépenses",
++    "description": "Gère les budgets et la reprise des conversations suspendues."
++  }
++}
+diff --git a/packages/guard/spend-limit/locale/ja.json b/packages/guard/spend-limit/locale/ja.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..0c5cd3de2a9b4557d4a0649e5bb59cc20f163b9d
+--- /dev/null
++++ b/packages/guard/spend-limit/locale/ja.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "利用額の上限",
++    "description": "予算と上限到達で一時停止した会話の再開を管理します。"
++  }
++}
+diff --git a/packages/guard/spend-limit/locale/pt.json b/packages/guard/spend-limit/locale/pt.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..ba0921f65e054252da5746d0ce4d1f424882ce53
+--- /dev/null
++++ b/packages/guard/spend-limit/locale/pt.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Limites de gastos",
++    "description": "Gerencia orçamentos e a retomada de conversas pausadas."
++  }
++}
+diff --git a/packages/guard/spend-limit/locale/ru.json b/packages/guard/spend-limit/locale/ru.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..2641ac8062f51080beee821136ee54f7675fb5f2
+--- /dev/null
++++ b/packages/guard/spend-limit/locale/ru.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Лимиты расходов",
++    "description": "Управляет бюджетами и возобновлением приостановленных диалогов."
++  }
++}
 diff --git a/packages/guard/spend-limit/README.i18n.yaml b/packages/guard/spend-limit/README.i18n.yaml
 new file mode 100644
 index 0000000000000000000000000000000000000000..0ce4bcccaa227a53b20a7c4f35e05d4de4108a24
@@ -21118,7 +21884,7 @@ index fc9220a49c93b49899df100c8971caa9db608cbd..1f39fd5961c56e93fd9ca23d75879892
    | 'presetPtcName' | 'presetPtcDescription'
    | 'presetMinimalName' | 'presetMinimalDescription'
 diff --git a/packages/preset/agent-preset/skills/dsh-doc/references/packages.md b/packages/preset/agent-preset/skills/dsh-doc/references/packages.md
-index d6eda7ae2dc4aad7dffd73248ca6e1a9a01d1828..16ed5d6502cb84aee6e7b95dd3789a6bd4bed3fb 100644
+index d6eda7ae2dc4aad7dffd73248ca6e1a9a01d1828..9bba565788f171d3f347091a0924c74153a2118a 100644
 --- a/packages/preset/agent-preset/skills/dsh-doc/references/packages.md
 +++ b/packages/preset/agent-preset/skills/dsh-doc/references/packages.md
 @@ -23,6 +23,8 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
@@ -21164,6 +21930,1625 @@ index d6eda7ae2dc4aad7dffd73248ca6e1a9a01d1828..16ed5d6502cb84aee6e7b95dd3789a6b
  | `@deepseek-ai/dsh-tool-call-timeout-policy` | no | Tool-call timeout policy: a tools/execute wrapper that arms a per-tool deadline on exec.signal and returns TOOL_TIMEOUT when it wins |
  
  ## host
+@@ -465,6 +472,7 @@ Every package below exports a Cordis plugin that a bundle patch can name in a Lo
+ | `@deepseek-ai/dsh-skill` | yes | Agent skill provider registry for the DeepSeek Harness |
+ | `@deepseek-ai/dsh-skill-filesystem` | yes | Local filesystem skill provider for the DeepSeek Harness |
+ | `@deepseek-ai/dsh-skill-office` | yes | Bundled Word, PowerPoint, and Excel workflows and Office operation guidance |
++| `@deepseek-ai/dsh-skill-playbooks` | yes | On-demand fiction writing manuals for the Writing preset |
+ | `@deepseek-ai/dsh-tool-skill` | yes | Model-facing skill loading tool for the DeepSeek Harness |
+ | `@deepseek-ai/dsh-tool-workspace-dependencies` | yes | The load_workspace_dependencies tool: absolute paths into a bundled Python, Node.js, and pnpm payload |
+ 
+diff --git a/packages/skill/README.i18n.yaml b/packages/skill/README.i18n.yaml
+index 56604614c2184c769e9a30bf040136fb7ca3fc69..9a60f19770430f150fbbf5ea9e781d68a688e1cc 100644
+--- a/packages/skill/README.i18n.yaml
++++ b/packages/skill/README.i18n.yaml
+@@ -15,8 +15,8 @@
+   en: 1eb35b015a6c423f
+   zh: a8a3dceee2c9e943
+ /skill-skill-capability-family/packages:
+-  en: 4b67afb3d4d24fbc
+-  zh: e90e882d4e1f5bfd
++  en: ac9b7a95e275b63c
++  zh: ed89e4394c6a5d07
+ /skill-skill-capability-family/related-documentation:
+   en: eb122812eb6640d5
+   zh: 18a46fd45e7994a6
+diff --git a/packages/skill/README.md b/packages/skill/README.md
+index 04aaf0089dceb9de35a1d489daeedca4c45eb6b2..66e56b276ad71d42878c5b671f3bbd91f0a6947e 100644
+--- a/packages/skill/README.md
++++ b/packages/skill/README.md
+@@ -27,6 +27,7 @@ The skill family lets agents and users discover and load reusable task instructi
+ | [`skill/`](skill/README.md) | Registry that merges skill catalogs from any provider and resolves the winning skill for a name | `ctx.skills` |
+ | [`skill-filesystem/`](skill-filesystem/README.md) | Discovers skills from project, custom, and user directories and watches them for changes | registers on `ctx.skills` |
+ | [`skill-office/`](skill-office/README.md) | Bundles Word, PowerPoint, and Excel workflows with structural file checks | registers on `ctx.skills` |
++| [`skill-playbooks/`](skill-playbooks/README.md) | Bundles seven fiction writing manuals and five reference sheets | registers on `ctx.skills` |
+ | [`tool-skill/`](tool-skill/README.md) | Publishes the session skill catalog and the model-facing `skill` loader tool | registers on `ctx.tools` |
+ | [`tool-workspace-dependencies/`](tool-workspace-dependencies/README.md) | Reports bundled Office interpreter paths and versions for Desktop and SDK carriers | registers on `ctx.tools` |
+ 
+diff --git a/packages/skill/README.zh.md b/packages/skill/README.zh.md
+index 6b2f5abde9a405247022811e4d83aac625702f2c..3992c2b2befd171674ac121ea1528421a88431d1 100644
+--- a/packages/skill/README.zh.md
++++ b/packages/skill/README.zh.md
+@@ -27,6 +27,7 @@ skill 家族让 agent 和用户仅在需要时发现并加载可复用的任务
+ | [`skill/`](skill/README.zh.md) | 合并任意提供方的 skill 目录、并按名称解析出胜出 skill 的注册表 | `ctx.skills` |
+ | [`skill-filesystem/`](skill-filesystem/README.zh.md) | 从项目、自定义与用户目录发现 skill，并监视其变更 | 注册到 `ctx.skills` |
+ | [`skill-office/`](skill-office/README.zh.md) | 随包提供 Word、PowerPoint 和 Excel 工作流及文件结构检查 | 注册到 `ctx.skills` |
++| [`skill-playbooks/`](skill-playbooks/README.zh.md) | 随写作模式提供七份手册与五份参考资料 | 注册到 `ctx.skills` |
+ | [`tool-skill/`](tool-skill/README.zh.md) | 发布会话 skill 目录与面向模型的 `skill` 加载工具 | 注册到 `ctx.tools` |
+ | [`tool-workspace-dependencies/`](tool-workspace-dependencies/README.zh.md) | 为 Desktop 与 SDK 载体报告内置 Office 解释器路径和版本 | 注册到 `ctx.tools` |
+ 
+diff --git a/packages/skill/skill-playbooks/assets/writing/writing-continuity/references/story-bible.md b/packages/skill/skill-playbooks/assets/writing/writing-continuity/references/story-bible.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..6b4d6eb029cb164018d6b0bfea061c21127f6ef1
+--- /dev/null
++++ b/packages/skill/skill-playbooks/assets/writing/writing-continuity/references/story-bible.md
+@@ -0,0 +1,96 @@
++# Story bible skeleton
++
++Copy this into `story/bible/` and fill it in. Keep entries short; the bible is a working document, not an encyclopedia.
++
++## premise.md
++
++```markdown
++# Premise
++One paragraph: who wants what, what stands in the way, what happens if they fail.
++
++# Theme
++The question the story asks. The lie the protagonist believes. The truth they resist.
++
++# Genre promises
++What the reader is here for (dread, catharsis, romance, puzzle, awe). What the story will never do.
++
++# Tone
++Three adjectives and one comparable work. What the prose sounds like on a good page.
++
++# Ending
++The intended final image, even if the path is open.
++```
++
++## characters.md
++
++```markdown
++## NAME
++- Role:
++- Age / appearance:
++- Want:
++- Need:
++- Wound:
++- Voice:
++- Habits and tells:
++- Relationships:
++- Arc:
++- Secrets:
++- First appearance:
++```
++
++## world.md
++
++```markdown
++## Rules
++What is possible, what it costs, who controls it.
++
++## Geography
++Places that matter, distances, travel time, climate.
++
++## Institutions
++Power structures, laws, money, religion, technology level.
++
++## Daily life
++Food, work, clothing, slang, rituals. Three concrete details per category.
++```
++
++## timeline.md
++
++```markdown
++| Day | Event | Characters | Consequence |
++| --- | --- | --- | --- |
++| 1 |  |  |  |
++```
++
++## canon.md
++
++```markdown
++# Hard facts
++- Names, ages, deaths, marriages, physical rules.
++
++# Author decisions
++- YYYY-MM-DD: user changed X to Y; earlier references updated in chapters N–M.
++
++# Promises to the reader
++- Planted clues that must pay off.
++```
++
++## style.md
++
++```markdown
++- POV:
++- Tense:
++- Dialogue format:
++- Scene break marker:
++- Spelling variant:
++- Chapter length target:
++- Explicit-content level:
++```
++
++## threads.md
++
++```markdown
++| ID | Thread | Planted in | Status | Payoff target |
++| --- | --- | --- | --- | --- |
++| T1 |  | ch01 | open | ch12 |
++```
+diff --git a/packages/skill/skill-playbooks/assets/writing/writing-continuity/SKILL.md b/packages/skill/skill-playbooks/assets/writing/writing-continuity/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..86c6b791039f22a295bcb0b755fcdf9bcdb80d3c
+--- /dev/null
++++ b/packages/skill/skill-playbooks/assets/writing/writing-continuity/SKILL.md
+@@ -0,0 +1,86 @@
++---
++description: "Keep a long project consistent: the story bible on disk, canon rules, character sheets, timeline, naming, POV and style sheets, plus the audit that catches drift before the reader does."
++whenToUse: "A project spans multiple chapters or sessions, or the user reports contradictions, name drift, or forgotten threads."
++---
++
++# Continuity and the story bible
++
++Memory in a long project lives in files, not in the transcript. Read the bible before writing; update it after.
++
++## Folder layout
++
++```
++<workspace>/story/
++  bible/
++    premise.md        # one page: premise, theme, tone, genre promises
++    characters.md     # per character: wants, wounds, voice, relationships, arc
++    world.md          # rules, geography, institutions, technology, costs
++    timeline.md       # dated events, causal order, travel times
++    canon.md          # hard facts and promises the story cannot break
++    style.md          # POV, tense, diction, formatting conventions
++    threads.md        # open questions, planted clues, payoffs owed
++  chapters/
++    ch01.md
++  notes/
++    research.md
++```
++
++Use `references/story-bible.md` as the starting skeleton; copy it into the workspace and fill it in.
++
++## Canon discipline
++
++- **User's newest statement wins.** When the user contradicts an earlier fact, update the bible immediately and treat the new version as canon. Do not argue with the author about their own world.
++- **Record the change, not just the value.** `canon.md` keeps a short "changed on request" note so a later contradiction is traceable.
++- **Hard facts vs. soft facts.** Hard: names, deaths, physical rules, timeline anchors. Soft: habits, descriptions, minor geography. Protect hard facts first.
++- **Unreliable narration is not license.** A character can be wrong; the world cannot contradict itself without the story noticing.
++
++## Character sheet minimum
++
++```markdown
++### NAME
++- Role:
++- Want (external):
++- Need (internal):
++- Wound:
++- Voice: diction, sentence length, verbal habits, what they refuse to say
++- Body: age, build, distinctive physical habits
++- Relationships: who they trust, who they fear, who they owe
++- Arc: start state → pressure → end state
++- Secrets: what the reader does not know yet
++```
++
++## Timeline
++
++- Anchor every scene to a day or a relative marker ("three days after the funeral").
++- Track travel time and injury recovery; these are the two most common silent contradictions.
++- Keep a causal chain, not just dates: event → consequence → next event.
++- When two scenes conflict, prefer the one the reader has already seen and repair the other.
++
++## Naming
++
++- Maintain a name list with pronunciation and roles. Avoid names that start with the same letter in the same scene.
++- Titles, ranks, and forms of address are canon; a character who becomes "Mr. Hale" mid-book needs a reason.
++- Place names follow one naming logic per culture; note the logic in `world.md`.
++
++## Style sheet
++
++- POV and tense per chapter type.
++- Dialogue punctuation and formatting (dashes, ellipses, italics for thought).
++- Chapter heading format, scene-break marker, front/back matter.
++- Spelling variant (US/UK) and unit system.
++- Explicit-content level and how it is signaled, if the project signals it.
++
++## Continuity audit
++
++Run before delivering a chapter and before a long gap:
++
++1. Read `canon.md`, `threads.md`, and the previous chapter's last page.
++2. List every proper noun in the new chapter; check each against the bible.
++3. Check timeline arithmetic and physical continuity (weather, injuries, objects carried).
++4. Check that planted threads are either advanced or deliberately parked.
++5. Check voice: would the previous chapter's narrator write this sentence?
++6. Update the bible with everything new.
++
++## Handing off to a new session
++
++Write a `story/notes/session.md` with: current chapter, last scene's end state, open threads, next intended beat, and any canon changes from this session. That file is the first thing to read next time.
+diff --git a/packages/skill/skill-playbooks/assets/writing/writing-craft/references/prose-diagnostics.md b/packages/skill/skill-playbooks/assets/writing/writing-craft/references/prose-diagnostics.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..347055d4825eceebe3118c7b8542f71fcaeec944
+--- /dev/null
++++ b/packages/skill/skill-playbooks/assets/writing/writing-craft/references/prose-diagnostics.md
+@@ -0,0 +1,82 @@
++# Prose diagnostics
++
++Find the sentence, then apply the fix.
++
++## Abstraction
++
++**Symptom:** "She felt a profound sense of loss."
++**Fix:** Replace the abstraction with the concrete instance that produced it. What did she reach for and not find?
++
++## Filter words
++
++**Symptom:** "She saw the door open." "He felt the cold."
++**Fix:** Delete the filter; the POV already implies perception. "The door opened." "The cold got into his sleeves."
++
++## Adverb dependence
++
++**Symptom:** "He said angrily." "She walked quickly."
++**Fix:** Choose a verb that carries the manner, or add a beat. "He said, not looking up." "She crossed the room in six strides."
++
++## Simultaneity stacking
++
++**Symptom:** Three sentences in a row beginning with "As" or "While".
++**Fix:** Vary the construction; subordinate a different clause.
++
++## Same-shape paragraphs
++
++**Symptom:** Every paragraph is 3 sentences: setup, action, reaction.
++**Fix:** Break one to a single line; merge two; start one with dialogue.
++
++## Explaining the joke
++
++**Symptom:** A line of dialogue followed by a sentence explaining what it meant.
++**Fix:** Cut the explanation. If the line cannot stand, rewrite the line.
++
++## Emotional summary
++
++**Symptom:** "A mix of anger and relief washed over her."
++**Fix:** Pick one. The mix is usually the writer hedging. Show the body doing two incompatible things.
++
++## Blocking confusion
++
++**Symptom:** The reader cannot tell who is where after a paragraph of action.
++**Fix:** Re-establish positions with one concrete sentence; use named anchors (the desk, the door).
++
++## Tense and POV drift
++
++**Symptom:** A past-tense scene slips into present, or a limited POV reports another character's thought.
++**Fix:** Search the scene for the drift; convert the offending sentences.
++
++## Purple prose
++
++**Symptom:** Two metaphors in one sentence, both straining.
++**Fix:** Keep the one that belongs to the POV's frame of reference; delete the other.
++
++## Repetition
++
++**Symptom:** The same noun or verb three times in a paragraph; the same image twice in a chapter.
++**Fix:** Vary the second occurrence; cut the third. Keep the strongest instance.
++
++## Weak verbs
++
++**Symptom:** "There was a sound." "He made a decision."
++**Fix:** Name the actor and the action: "Something moved in the wall." "He chose."
++
++## Unearned lyricism
++
++**Symptom:** A beautiful sentence at a moment of high action.
++**Fix:** Save the lyricism for the aftermath; during the hit, use short concrete sentences.
++
++## Dialogue on the nose
++
++**Symptom:** Characters state their feelings and intentions directly.
++**Fix:** Give them a reason to conceal; let the reader infer. Keep one direct line for the moment it costs the most.
++
++## Chapter-end summary
++
++**Symptom:** The last paragraph explains what the chapter meant.
++**Fix:** End on the image or decision that produced the meaning. Delete the explanation.
++
++## Checklist order
++
++When revising a draft, fix in this order: structure, POV, scene logic, dialogue, specificity, rhythm, line. Line-editing before structural repair wastes the work.
+diff --git a/packages/skill/skill-playbooks/assets/writing/writing-craft/SKILL.md b/packages/skill/skill-playbooks/assets/writing/writing-craft/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..8672650d34e62141e39a9928c3d3daccb601a7bd
+--- /dev/null
++++ b/packages/skill/skill-playbooks/assets/writing/writing-craft/SKILL.md
+@@ -0,0 +1,88 @@
++---
++description: "Core fiction craft: scene-first prose, concrete detail, point of view, subtext, pacing, and the diagnostic checklist that fixes flat pages. Load this first for any prose task in writing mode."
++whenToUse: "Writing or revising fiction, narrative non-fiction, or screen prose; deciding which craft skill to load next."
++---
++
++# Fiction craft playbook
++
++## Prime rule
++
++The page is the deliverable. When the user asks for a scene, write the scene — in it, from the first sentence, without announcing, summarizing, or explaining what you are about to do. Craft discussion comes only when the user asks about craft.
++
++## What makes prose alive
++
++1. **Specific over general.** Not "a bad smell" but "wet wool and cold grease". Not "she was nervous" but the thumb working the ring loose.
++2. **Action over state.** A character is characterized by what they do under pressure, not by a paragraph about their personality.
++3. **One consciousness per scene.** Stay in one head; the reader trusts a mind that does not flicker.
++4. **Subtext in dialogue.** Characters rarely say the true thing. What is withheld moves the scene more than what is spoken.
++5. **Sentence rhythm as pacing.** Short clauses for impact, long clauses for immersion. Vary deliberately, not randomly.
++6. **Consequence.** Every scene changes something: knowledge, power, relationship, physical situation. If nothing changes, cut it.
++7. **Enter late, leave early.** Start after the greeting; end before the explanation.
++
++## Scene architecture
++
++A working scene has:
++
++- **Want** — what the POV character is trying to get in this scene.
++- **Obstacle** — what blocks it, from another character, the world, or themselves.
++- **Turn** — the moment the scene becomes a different scene (new information, refusal, escalation).
++- **Exit** — the new situation, which is worse or more complicated than the entry.
++
++Scene and sequel: after a high-pressure scene, a shorter sequel (reaction, deliberation, decision) lets the reader breathe and sets up the next want. Skip sequels in thrillers; expand them in literary fiction.
++
++## Point of view
++
++| Choice | Effect | Cost |
++| --- | --- | --- |
++| First person, present | Immediacy, voice | Limited knowledge; unreliable by nature |
++| First person, past | Intimacy with reflection | Foreknowledge drains suspense unless used deliberately |
++| Third limited | Flexibility and intimacy | Easy to drift into head-hopping |
++| Third omniscient | Scope and irony | Distance; harder to sustain tension |
++| Second person | Coercion, discomfort | Rare; wears out fast |
++
++Pick once per scene and hold it. Psychic distance can move within a scene (close for revelation, far for summary), but move it on purpose.
++
++## Dialogue
++
++- Cut greetings, throat-clearing, and direct answers to direct questions.
++- Give each speaker a distinct syntax: sentence length, vocabulary, interruption habits, what they refuse to name.
++- Use beats (action) instead of adverbs to carry tone: "He set the cup down. 'Fine.'"
++- Let silence do work. A non-answer is dialogue.
++- Read it aloud in your head; if two characters could swap lines, the voices are not distinct.
++
++## Exposition
++
++- Deliver only what the current scene needs, at the moment the POV character needs it.
++- Attach information to conflict: a character explains under pressure, or lies, or is caught out.
++- Never open with a history lesson. The world arrives through use.
++
++## Description
++
++- Three senses minimum per new location, one of them non-visual.
++- Filter through mood: a frightened character notices exits, not architecture.
++- One telling detail beats five accurate ones.
++- Do not describe a room the reader has already seen unless something changed.
++
++## Revision
++
++Read the draft asking one question per pass:
++
++1. **Structure:** does each scene turn?
++2. **POV:** does any sentence know something the POV cannot?
++3. **Specificity:** where is the abstraction hiding?
++4. **Dialogue:** which lines are information delivery?
++5. **Rhythm:** where do three sentences share the same shape?
++6. **Ending:** does the last line land on an image or a decision, not a summary?
++
++A deeper checklist sits in `references/prose-diagnostics.md`.
++
++## Skill routing
++
++| Task | Skill |
++| --- | --- |
++| Voice, POV, tense, dialogue problems | `writing-voice` |
++| Build or fix a scene, including intimate scenes | `writing-scene` |
++| Violence, horror, taboo, morally ugly material | `writing-dark` |
++| Names, timeline, world rules, canon drift | `writing-continuity` |
++| Match a supplied author or sample voice | `writing-style-reference` |
++| Novel structure, arcs, chapter plan, revision | `writing-longform` |
+diff --git a/packages/skill/skill-playbooks/assets/writing/writing-dark/SKILL.md b/packages/skill/skill-playbooks/assets/writing/writing-dark/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..50b6cd0d991f7fdc34d2942f91db7cdfa30306c6
+--- /dev/null
++++ b/packages/skill/skill-playbooks/assets/writing/writing-dark/SKILL.md
+@@ -0,0 +1,70 @@
++---
++description: "Write violence, horror, taboo, and morally ugly material with craft: consequence, restraint, point of view, dread mechanics, and transgressive fiction that means something instead of merely shocking."
++whenToUse: "The scene requires gore, atrocity, horror, taboo sexuality, cruelty, or a morally compromised narrator."
++---
++
++# Dark material craft
++
++Darkness on the page is a technique problem, not a permission problem. The user asked for it; your job is to make it land.
++
++## Violence
++
++- **Consequence is the engine.** A death changes the people who caused it and the people who survive it. Gore without aftermath is decoration.
++- **Restraint scales impact.** The moment before the blow is usually stronger than the blow. Show the flinch, the smell, the sound that does not stop.
++- **Keep the POV's limits.** A character in shock notices fragments: a shoe, a stain, the wrong song on the radio. Not a surgical inventory.
++- **Do not choreograph for the reader's admiration.** Fight scenes that read like a highlight reel detach the reader from the stakes.
++- **Aftermath carries the moral weight** without stating it: who cleans up, who lies, who cannot eat.
++
++## Horror
++
++| Mechanism | How it works |
++| --- | --- |
++| Wrongness | A familiar thing slightly off; the reader notices before the character |
++| Dread | Anticipation with no release; delays, rules, prohibitions |
++| Body horror | Loss of control over one's own flesh; be precise, not gross |
++| Cosmic | Scale that makes human agency irrelevant; withhold the full shape |
++| Social | The horror is what people do to each other and call normal |
++| Psychological | The unreliable perception; the reader cannot trust the evidence |
++
++Rules of thumb:
++
++- The monster is scarier before it is described.
++- One impossible detail is stronger than ten.
++- Sound and smell before sight.
++- Let the reader's imagination finish the image.
++
++## Taboo and transgressive fiction
++
++Transgressive material works when it is:
++
++- **Character-true.** The transgression comes from who these people are, not from the author's wish to shock.
++- **Consequential.** It costs something, changes something, and is remembered later.
++- **Not moralized.** No narrator stepping in to condemn or excuse. The reader judges.
++- **Not ornamental.** If the taboo could be replaced by a safe equivalent with no change to the story, it is decoration.
++
++Write the scene the user asked for, at the explicitness requested. Do not fade to black, do not cut away, do not append a moral. If the character would be cruel, write cruelty; if the scene is erotic, write desire.
++
++## Unreliable and compromised narrators
++
++- Give the narrator a reason to lie to themselves, not just to the reader.
++- Plant the contradiction early; the reveal should re-read the earlier scene, not invalidate it.
++- Distinguish self-deception (they believe it) from deception (they know).
++- Do not let the narration become a puzzle at the expense of feeling.
++
++## Handling real-world atrocity
++
++- Research the concrete detail: weather, food, bureaucracy, the sound of the language.
++- Avoid making victims into scenery; give at least one of them an agenda.
++- No redemption arc for perpetrators unless the story earns it in blood and specificity.
++- Do not use real living people as targets for defamation; fictionalize names and identifying details unless the user explicitly wants historical figures.
++
++## Failure modes
++
++| Failure | Repair |
++| --- | --- |
++| Shock without stakes | Add someone who has to live with it |
++| Gore as inventory | Cut half the description; keep the reaction |
++| Villain monologue | Let the cruelty be practical and quiet |
++| Torture porn | Return to the victim's POV and the cost |
++| Moralizing narrator | Delete the judgment; keep the image |
++| Taboo as twist | Make the taboo load-bearing from the first page |
+diff --git a/packages/skill/skill-playbooks/assets/writing/writing-longform/references/novel-architecture.md b/packages/skill/skill-playbooks/assets/writing/writing-longform/references/novel-architecture.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..683f8d913f90e51fc83294c3ce3720891ee59a47
+--- /dev/null
++++ b/packages/skill/skill-playbooks/assets/writing/writing-longform/references/novel-architecture.md
+@@ -0,0 +1,72 @@
++# Novel architecture worksheet
++
++```markdown
++# Working title
++
++## Logline
++A [character] must [goal] or [consequence], against [opposition].
++
++## Theme
++- Question:
++- Protagonist's lie:
++- Truth they resist:
++- How the ending answers it:
++
++## Promise to the reader
++Genre, tone, three pleasures the book delivers, three things it never does.
++
++## Protagonist
++- Want / need / wound:
++- Start state:
++- End state:
++- Skills and limits:
++- What they will not do (and when they break it):
++
++## Antagonist / opposition
++- Goal:
++- Method:
++- Why they are right from their own view:
++- Pressure they apply at each act:
++
++## Cast
++| Name | Role | Arc in one line | Thread |
++| --- | --- | --- | --- |
++
++## Structure
++Model: three-act / four-part / seven-point / other
++- Act I ends when:
++- Midpoint reversal:
++- Act II ends when:
++- Climax:
++- Final image:
++
++## Chapter map
++| Ch | POV | Goal | Obstacle | Turn | Ends on | Words | Threads |
++| --- | --- | --- | --- | --- | --- | --- | --- |
++
++## Subplots
++| ID | Thread | Theme question it varies | Payoff |
++| --- | --- | --- | --- |
++
++## Set pieces
++1.
++2.
++3.
++
++## Research needed
++-
++
++## Risks
++- Where the middle may sag:
++- Which thread is most likely to be dropped:
++```
++
++## Word budget
++
++| Length | Chapters | Words/chapter | Total |
++| --- | --- | --- | --- |
++| Novella | 8–12 | 3,000–4,000 | 25k–45k |
++| Commercial novel | 20–35 | 3,000–4,500 | 70k–110k |
++| Epic fantasy | 35–60 | 4,000–6,000 | 140k–250k |
++
++Track actuals in the chapter map; a chapter 40% over budget usually hides a structural problem.
+diff --git a/packages/skill/skill-playbooks/assets/writing/writing-longform/SKILL.md b/packages/skill/skill-playbooks/assets/writing/writing-longform/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..74651bafc6df238b4c4e3ac428b0732d97dd4b1c
+--- /dev/null
++++ b/packages/skill/skill-playbooks/assets/writing/writing-longform/SKILL.md
+@@ -0,0 +1,89 @@
++---
++description: "Plan and revise long fiction: premise stress-testing, structure models, character and subplot arcs, chapter maps with word budgets, scene lists, and the multi-pass revision that turns a draft into a book."
++whenToUse: "Starting a novel, planning an arc, fixing sagging middle, or running a structured revision."
++---
++
++# Long-form architecture
++
++## 1. Stress-test the premise
++
++Write one sentence: *A [character] must [goal] or [consequence], against [opposition].* Then test:
++
++- Is the goal concrete and visible on the page?
++- What does failure cost, specifically?
++- Why now? What breaks the status quo on page one?
++- What does the protagonist believe that is wrong, and what will prove it?
++- Can the antagonist articulate a coherent counter-argument?
++
++A premise that survives those five questions can carry 80,000 words. One that does not will sag at the midpoint.
++
++## 2. Choose a structure
++
++| Model | Shape | Best for |
++| --- | --- | --- |
++| Three-act | Setup / confrontation / resolution, two turning points | Most commercial fiction |
++| Four-part | Setup / response / attack / resolution | Thrillers, heist, progression |
++| Seven-point | Hook, plot turn 1, pinch 1, midpoint, pinch 2, plot turn 2, resolution | Tight plotting, YA |
++| Kishōtenketsu | Introduction, development, twist, reconciliation | Character-driven, non-Western structures |
++| Save the Cat | 15 beats with percentage targets | Screen-adjacent pacing |
++| Romance beat sheet | Meet, barrier, midpoint intimacy, dark moment, resolution | Romance |
++
++Use percentages as diagnostics, not law: a midpoint at 47% instead of 50% is fine; a midpoint that changes nothing is not.
++
++## 3. Arcs
++
++- **Character arc:** start state → pressure that makes the old strategy fail → new strategy → cost of change → end state.
++- **Relationship arc:** proximity → friction → vulnerability → rupture → renegotiation.
++- **Mystery arc:** question → clue → false answer → revision → proof.
++- **Subplots:** each answers a variation of the theme; cut any subplot that cannot state its theme question.
++- **Antagonist arc:** the antagonist should be winning until they are not, for reasons the protagonist earns.
++
++## 4. Chapter map
++
++```markdown
++| Ch | POV | Goal | Obstacle | Turn | Ends on | Words | Threads advanced |
++| --- | --- | --- | --- | --- | --- | --- | --- |
++| 1 | Mara | Get the ledger | Clerk refuses | She steals it | The name inside | 3200 | T1, T3 |
++```
++
++Rules:
++
++- Every chapter changes the situation.
++- Vary POV only when the new POV has information the reader needs and the current POV cannot supply.
++- End chapters on a turn, question, or decision — not on a summary.
++- Track word budget: 3,000–4,500 words per chapter is a workable default for adult commercial fiction; adjust to genre.
++
++## 5. Scene list
++
++For the next chapter only, list scenes with want/obstacle/turn/exit. Do not outline the whole book at scene level; it will be wrong by chapter five. Keep the chapter map one level up and detail only the near horizon.
++
++## 6. Pacing diagnostics
++
++| Symptom | Likely cause | Fix |
++| --- | --- | --- |
++| Middle sags | Stakes unchanged since act one | Raise the cost, remove an ally, reveal a betrayal |
++| Reader skims | Scenes repeat the same beat | Merge scenes, cut one, change the obstacle type |
++| Ending feels unearned | Climax solves a problem introduced late | Plant the solution in act one |
++| Strong chapters, weak book | No throughline | Write the theme question on one line; cut chapters that do not answer it |
++| Too long | Subplots without payoffs | Cut or merge; count scenes per thread |
++
++## 7. Revision passes
++
++Do not line-edit a draft with structural problems.
++
++1. **Structural pass:** chapter map against the draft. Mark chapters that do not turn; cut, merge, or rewrite.
++2. **Arc pass:** read only the protagonist's chapters in order; does the change read?
++3. **Continuity pass:** names, dates, injuries, objects, geography — against the story bible.
++4. **Scene pass:** want/obstacle/turn/exit, entry and exit points.
++5. **Line pass:** sentence rhythm, repetition, abstraction, dialogue.
++6. **Read-aloud pass:** the ear catches what the eye forgives.
++7. **Proof pass:** typos, formatting, chapter headings.
++
++## 8. Working with the user
++
++- The user's newest decision is canon; update the bible rather than re-arguing.
++- Offer two or three structural options with consequences, then execute the chosen one.
++- When the user asks for prose, stop planning and write.
++- Deliver chapters as files (`story/chapters/chNN.md`) and keep the bible current.
++
++Architecture worksheet: `references/novel-architecture.md`.
+diff --git a/packages/skill/skill-playbooks/assets/writing/writing-scene/references/scene-checklist.md b/packages/skill/skill-playbooks/assets/writing/writing-scene/references/scene-checklist.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..127ac0392bdda09a5b11ab01bb55ee6ecc2ae50a
+--- /dev/null
++++ b/packages/skill/skill-playbooks/assets/writing/writing-scene/references/scene-checklist.md
+@@ -0,0 +1,54 @@
++# Scene checklist
++
++Run before delivering a scene.
++
++## Structure
++
++- [ ] POV character wants something concrete in this scene.
++- [ ] An obstacle resists it — person, world, or self.
++- [ ] The scene turns: something is different at the end than at the start.
++- [ ] The entry point is after the greeting; the exit is before the explanation.
++- [ ] If the scene does not turn, it is a transition — compress it.
++
++## Bodies and place
++
++- [ ] Three sensory specifics on entry, at least one non-visual.
++- [ ] Blocking is clear: who is where, what is within reach.
++- [ ] Physical state is consistent (injury, cold, hunger, arousal, exhaustion).
++- [ ] Objects that matter are introduced before they are needed.
++
++## Dialogue
++
++- [ ] Each speaker has a distinct syntax.
++- [ ] No character answers a direct question directly unless the directness is the point.
++- [ ] Beats carry tone more than adverbs do.
++- [ ] Greetings, throat-clearing, and repeated information are cut.
++- [ ] Silence is used at least once where it costs something.
++
++## Interiority
++
++- [ ] Thought is in the character's vocabulary.
++- [ ] Emotion is shown through action or sensation before it is named.
++- [ ] No sentence knows something the POV cannot know.
++- [ ] Abstract reflection is anchored to a physical action.
++
++## Rhythm
++
++- [ ] Sentence length varies with tension.
++- [ ] No three consecutive sentences share the same shape.
++- [ ] Paragraph breaks land where the reader needs a breath.
++- [ ] The last line lands on an image, a decision, or a line of dialogue.
++
++## Explicit or violent material
++
++- [ ] Written at the requested explicitness, without fade or moral commentary.
++- [ ] Stakes exist beyond the physical act.
++- [ ] One POV holds; the camera does not orbit.
++- [ ] Diction is consistent with the voice, not a euphemism treadmill.
++- [ ] Aftermath is present and does character work.
++
++## Final
++
++- [ ] Read aloud once.
++- [ ] Cut the first paragraph and see if the scene still works. If it does, leave it cut.
++- [ ] Cut the last paragraph and see if the scene still lands. If it does, leave it cut.
+diff --git a/packages/skill/skill-playbooks/assets/writing/writing-scene/SKILL.md b/packages/skill/skill-playbooks/assets/writing/writing-scene/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..8e5ef2390e785282d51a110d22877ee7809e0548
+--- /dev/null
++++ b/packages/skill/skill-playbooks/assets/writing/writing-scene/SKILL.md
+@@ -0,0 +1,85 @@
++---
++description: "Build a scene that works: blocking, sensory anchoring, escalation, dialogue in motion, intimacy and explicit scenes with craft, action sequences, and scene endings that land."
++whenToUse: "Writing a new scene or chapter, fixing a scene that feels static, or writing intimate, action, or high-tension material."
++---
++
++# Scene craft
++
++## Before the first line
++
++Answer privately:
++
++- Whose scene is it, and what do they want in the next ten minutes?
++- What is physically happening? Where are the bodies, the doors, the light?
++- What does the reader learn that changes the situation?
++- How does it end — with an image, a decision, or a refusal?
++
++If the answer to the third question is "nothing", the scene is a transition; compress it to a paragraph.
++
++## Blocking
++
++Readers need geography without a floor plan:
++
++- Establish the room in three specifics on entry (light source, sound, one object that matters later).
++- Track bodies: who is standing, who is between whom, what is within reach.
++- Move characters with purpose. "She crossed to the window" is fine; "they moved around the room" is not.
++- Use furniture and distance as emotional instruments: a table between two people is a paragraph of subtext.
++
++## Sensory anchoring
++
++- Three senses per new space, at least one non-visual.
++- Temperature, texture, smell, sound floor (traffic, refrigerator hum, wind in a chimney).
++- Bodies have weight: chairs creak, hands leave marks, clothes restrict.
++- Filter through state: hunger, injury, fear, arousal, and exhaustion each change what is noticed.
++
++## Pacing
++
++- Sentence length tracks tension. Long for approach, short for impact.
++- Paragraph length tracks attention. A one-line paragraph is a beat.
++- Cut transitions: "Later, at the house" is enough; do not narrate the drive.
++- Slow down where the reader wants to linger (a first touch, a confession), speed up where they want the outcome (a chase, a search).
++
++## Intimate and explicit scenes
++
++Explicitness is a dial the user sets. Write to that dial without apology, fade, or moral commentary; the same craft rules apply as in any scene.
++
++What makes an intimate scene work:
++
++1. **Stakes before bodies.** What can be lost here — trust, control, the relationship, self-image? Desire without cost is decoration.
++2. **Negotiation is drama.** Consent is not paperwork; it is the most charged dialogue in the scene. A question, a hesitation, a yes that changes the power balance.
++3. **Specificity without inventory.** Name what matters: the hand at the back of the neck, the breath catching, the exact word said. Do not list body parts like a shipping manifest.
++4. **Rhythm mirrors the act.** Short sentences at the edge, longer ones in the aftermath. Paragraph breaks are breaths.
++5. **One POV, held.** The reader should feel one nervous system, not a camera orbiting two bodies.
++6. **Sound and breath.** Dialogue fragments, involuntary sounds, the room's noise re-entering at the wrong moment.
++7. **Avoid the euphemism treadmill.** Choose diction that fits the voice: clinical, crude, poetic, or plain. Be consistent; do not switch registers mid-sentence to dodge a word.
++8. **Aftermath earns the scene.** The minute after is where character is revealed: tenderness, regret, jokes, silence, calculation.
++
++Pornographic flatness comes from removing consequence. Literary flatness comes from removing bodies. Keep both.
++
++## Action and violence in motion
++
++- Choreograph in beats: intent, action, resistance, result.
++- Keep spatial logic: who is where, what is in hand, how far the exit is.
++- Injuries persist. A broken hand changes the next scene.
++- Sound and breath carry more than gore. Impact is a loss of control, not a color.
++- Short sentences. Concrete verbs. No metaphors during the hit.
++
++## Endings
++
++A scene ends on:
++
++- **An image** that carries the emotional residue.
++- **A decision** that creates the next want.
++- **A line of dialogue** that reframes what came before.
++
++Never end on a summary of what the scene meant. Trust the reader.
++
++## Post-draft checks
++
++- Does the scene turn?
++- Can I cut the first paragraph and the last?
++- Is any line explaining what the previous line showed?
++- Does every character want something on the page?
++- Would the scene survive being read aloud?
++
++A compact checklist lives in `references/scene-checklist.md`.
+diff --git a/packages/skill/skill-playbooks/assets/writing/writing-style-reference/references/style-card.md b/packages/skill/skill-playbooks/assets/writing/writing-style-reference/references/style-card.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..9105d21129a00b0bf78eb255fd84dd68a0a8e133
+--- /dev/null
++++ b/packages/skill/skill-playbooks/assets/writing/writing-style-reference/references/style-card.md
+@@ -0,0 +1,60 @@
++# Style card template
++
++```markdown
++# Style: NAME
++Source: SAMPLE-PATH (date, license/ownership note)
++Use for: PROJECT / NARRATOR / DOCUMENT TYPE
++
++## 1. Diction
++- Register:
++- Concrete vs. abstract:
++- Vocabulary exclusions:
++- Profanity / slang:
++- Recurring word fields:
++
++## 2. Syntax
++- Mean sentence length:
++- Range / variance:
++- Clause nesting:
++- Fragments:
++- Punctuation habits:
++- Connectors (and / semicolon / dash / period):
++
++## 3. Rhythm
++- Paragraph length:
++- One-line paragraph usage:
++- Where pauses fall:
++- Speed changes at tension:
++
++## 4. Imagery
++- Source domains:
++- Density (metaphors per page):
++- Sustained or glancing:
++- What is never compared to what:
++
++## 5. Dialogue
++- Tags and beats:
++- Interruption and overlap:
++- Dialect rendering:
++- Subtext density:
++- How characters answer questions:
++
++## 6. Structure
++- Scene length:
++- Openings:
++- Endings:
++- Time handling / transitions:
++- Chapter apparatus:
++
++## 7. Signature moves
++1.
++2.
++3.
++
++## 8. Anti-patterns (what this style never does)
++-
++-
++
++## 9. Calibration sample
++300 words written to this card. Compare against the source before drafting.
++```
+diff --git a/packages/skill/skill-playbooks/assets/writing/writing-style-reference/SKILL.md b/packages/skill/skill-playbooks/assets/writing/writing-style-reference/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..14097650cc813520dc1249cc8011d226c9d3eb38
+--- /dev/null
++++ b/packages/skill/skill-playbooks/assets/writing/writing-style-reference/SKILL.md
+@@ -0,0 +1,85 @@
++---
++description: "Collect reference style samples, extract an explicit style card, and write new prose in that voice without copying text. Covers user-supplied samples, author imitation, and pastiche discipline."
++whenToUse: "The user asks to match a writing style, supplies sample passages, or wants a project-specific voice held across chapters."
++---
++
++# Style reference workflow
++
++## 1. Collect the corpus
++
++Sources, in order of reliability:
++
++1. Passages the user wrote and wants extended.
++2. Passages the user supplied as targets ("write like this").
++3. Public-domain or licensed text the user is allowed to use as reference.
++
++Store each sample under `story/style/<name>/sample-N.md` with source and date. Never blend two incompatible samples without asking which one wins.
++
++## 2. Extract a style card
++
++Describe the style in operational terms, not adjectives. A style card has six axes:
++
++| Axis | Questions |
++| --- | --- |
++| Diction | Register (plain, literary, pulp, technical), concreteness, archaism, profanity, jargon |
++| Syntax | Sentence length distribution, clause nesting, fragments, parallelism, punctuation habits |
++| Rhythm | Paragraph length, beat frequency, where the pauses fall |
++| Imagery | Source domains (weather, machinery, domestic, religious), density, whether metaphors are sustained or glancing |
++| Dialogue | Beat style, tag frequency, interruption, dialect rendering, subtext density |
++| Structure | Scene length, time handling, transitions, chapter openings and endings |
++
++Add two or three **signature moves** — the specific habits a reader would recognize (e.g. "ends paragraphs on a concrete noun", "uses 'and' as the primary connector", "never names an emotion").
++
++A card looks like this:
++
++```markdown
++# Style: NAME
++## Diction
++Plain Anglo-Saxon vocabulary; almost no Latinate abstraction. Profanity sparing.
++## Syntax
++Mean 14 words. Frequent two-word fragments at emotional peaks. Semicolons absent.
++## Rhythm
++Paragraphs of 3–5 sentences; one-line paragraph after each turn.
++## Imagery
++Domestic and bodily; one metaphor per page, never extended.
++## Dialogue
++Unattributed where possible; beats carry tone; characters answer questions with questions.
++## Structure
++Scenes open mid-action, close on an image. No chapter epigraphs.
++## Signature moves
++- Ends scenes on an object, not a statement.
++- Uses "and" to chain clauses instead of commas.
++- Withholds names until the third mention.
++```
++
++Template: `references/style-card.md`.
++
++## 3. Apply the card
++
++- Draft with the card visible; check each paragraph against the axes.
++- Imitate *constraints*, not sentences. If a phrase from the sample appears in your draft, rewrite it.
++- Write a 300-word calibration sample and compare side by side with the source. Adjust the axis that is off, not the whole voice.
++- Keep a "voice check" list of the three signature moves and verify each chapter contains at least two.
++
++## 4. Pastiche versus plagiarism
++
++- Pastiche borrows technique. Plagiarism borrows text. A style card is technique.
++- Do not reproduce more than a short quoted phrase from a copyrighted sample; never reproduce a paragraph.
++- Do not copy a living author's distinctive sentences or a work's plot. Match register and rhythm, not content.
++- If the user asks for an exact continuation of a copyrighted text, write in a compatible voice and say plainly what was matched.
++
++## 5. Multiple styles in one project
++
++- One style per POV or per document type; write the mapping in `story/bible/style.md`.
++- Switching style is a deliberate effect: mark the boundary with a scene or chapter break.
++- If two narrators share a style, differentiate them by attention and diction, not by punctuation quirks alone.
++
++## 6. Failure modes
++
++| Failure | Repair |
++| --- | --- |
++| Caricature | Reduce the most visible habit by half |
++| Flat imitation | Add the signature moves, not just vocabulary |
++| Inconsistent register | Re-read the calibration sample mid-chapter |
++| Accidental copy | Diff n-grams of 6+ words against the sample |
++| Style overwhelms story | Cut one flourish per page |
+diff --git a/packages/skill/skill-playbooks/assets/writing/writing-voice/SKILL.md b/packages/skill/skill-playbooks/assets/writing/writing-voice/SKILL.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..cea61ef5c8595e2ee331c919c991ddbc22252e3d
+--- /dev/null
++++ b/packages/skill/skill-playbooks/assets/writing/writing-voice/SKILL.md
+@@ -0,0 +1,71 @@
++---
++description: "Voice, point of view, tense, narrative distance, and dialogue: choosing the instrument for the story and keeping it consistent across chapters and characters."
++whenToUse: "The prose feels flat, the POV drifts, characters sound alike, or a new project needs its narrative instrument chosen."
++---
++
++# Voice and point of view
++
++## Voice is syntax plus attitude
++
++Voice is not an accent or a set of catchphrases. It is:
++
++- **Lexicon:** which words this narrator would use, and which they would never use.
++- **Syntax:** fragment-heavy or periodic; paratactic or hypotactic; does the narrator interrupt themselves?
++- **Attention:** what this narrator notices first in a room.
++- **Judgment:** how much evaluation they allow themselves.
++- **Blind spots:** what they consistently misread.
++
++Write a half-page sample in the voice before drafting a chapter. If the sample could belong to any narrator, it is not a voice yet.
++
++## Free indirect discourse
++
++Third person can borrow the character's diction without quotation marks:
++
++> She would not cry in this house. She would not give him the satisfaction of a single tear, not one, not ever.
++
++The narration has slipped into her cadence and her absolutes. This is the most efficient intimacy tool in third person. Use it for pressure moments; return to neutral narration for distance.
++
++## Tense
++
++- **Past** is the default because it is invisible. Use it unless present buys something specific.
++- **Present** creates immediacy and dread, and makes summary awkward. It works best in thrillers and short fiction.
++- **Future** is a stunt; use once, deliberately.
++
++Do not switch tense mid-scene. Flashbacks can carry a different tense if the frame is unmistakable within the first two sentences.
++
++## Narrative distance
++
++A scene can move along a scale:
++
++1. Camera outside: "A man crossed the street."
++2. Reported thought: "He thought about the letter."
++3. Free indirect: "The letter was still in his coat. Of course it was."
++4. Direct thought: "I should burn it."
++5. Body: "His fingers found the envelope edge before he knew he had reached for it."
++
++Most scenes live between 3 and 5. Move closer for revelation, pull back for summary. A scene that sits at 1 for pages reads like a police report.
++
++## Dialogue craft
++
++- **Every exchange is a negotiation.** Someone wants something; someone resists.
++- **Give each character a verbal fingerprint:** contractions or not, profanity or not, questions or statements, how they end sentences.
++- **Use interruption and overlap for conflict**, complete sentences for control.
++- **Withhold the obvious answer.** "Where were you?" — "You know where I was." — "Say it."
++- **Beats replace adverbs.** "She laughed." tells us nothing; "She laughed a half-second late." tells us everything.
++- **Silence is a line.** A character who does not answer has answered.
++
++## Interiority
++
++- Thought should be in the character's vocabulary, not the author's.
++- Do not explain the emotion the action already delivered. Cut "she felt a wave of" and keep the wave.
++- Ruminations need a physical anchor: hands, weather, a task. Pure thought floats.
++
++## Common failures and fixes
++
++| Failure | Fix |
++| --- | --- |
++| All characters sound like the author | Write a page of each character complaining about the same thing |
++| POV knows another character's intent | Convert to inference: "He looked like a man deciding whether to lie" |
++| Tense drift | Search for "is/was" pairs in the same paragraph |
++| Voice disappears in action scenes | Keep one idiosyncratic habit under pressure |
++| Dialogue is exposition | Give the information to someone who does not want to give it |
+diff --git a/packages/skill/skill-playbooks/locale/de.json b/packages/skill/skill-playbooks/locale/de.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..edb6adfd6e71b04939e49247f752a0a9e5881e32
+--- /dev/null
++++ b/packages/skill/skill-playbooks/locale/de.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Schreibhandbücher",
++    "description": "Handbücher und Referenzblätter zum literarischen Schreiben laden."
++  }
++}
+diff --git a/packages/skill/skill-playbooks/locale/en.json b/packages/skill/skill-playbooks/locale/en.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..08cc0d0e48abf8886f30c735f565f2a5b364bd99
+--- /dev/null
++++ b/packages/skill/skill-playbooks/locale/en.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Writing playbooks",
++    "description": "Load fiction writing manuals and their reference sheets."
++  }
++}
+diff --git a/packages/skill/skill-playbooks/locale/es.json b/packages/skill/skill-playbooks/locale/es.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..d562614b2ab42de936b92ea7ff66bb96e0d4cdfc
+--- /dev/null
++++ b/packages/skill/skill-playbooks/locale/es.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Manuales de escritura",
++    "description": "Carga manuales de narrativa y sus hojas de referencia."
++  }
++}
+diff --git a/packages/skill/skill-playbooks/locale/fr.json b/packages/skill/skill-playbooks/locale/fr.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..36bb6d1a062aa6412586fa553171d73c85df9b2b
+--- /dev/null
++++ b/packages/skill/skill-playbooks/locale/fr.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Manuels d’écriture",
++    "description": "Charge les manuels de fiction et leurs fiches de référence."
++  }
++}
+diff --git a/packages/skill/skill-playbooks/locale/ja.json b/packages/skill/skill-playbooks/locale/ja.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..1e08dfd31bc4feac23faee6d20e430e2427c2790
+--- /dev/null
++++ b/packages/skill/skill-playbooks/locale/ja.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "執筆ガイド",
++    "description": "小説の執筆ガイドと参考資料を読み込みます。"
++  }
++}
+diff --git a/packages/skill/skill-playbooks/locale/pt.json b/packages/skill/skill-playbooks/locale/pt.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..c3e3109a25893c76eeacb8592196299cd297756b
+--- /dev/null
++++ b/packages/skill/skill-playbooks/locale/pt.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Manuais de escrita",
++    "description": "Carrega manuais de ficção e suas fichas de referência."
++  }
++}
+diff --git a/packages/skill/skill-playbooks/locale/ru.json b/packages/skill/skill-playbooks/locale/ru.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..e4b086c1746b304f1c0029284dfb489ff1a3fae3
+--- /dev/null
++++ b/packages/skill/skill-playbooks/locale/ru.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "Руководства по прозе",
++    "description": "Загружает руководства по художественной прозе и справочные материалы."
++  }
++}
+diff --git a/packages/skill/skill-playbooks/locale/zh.json b/packages/skill/skill-playbooks/locale/zh.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..97c0cf38d426c409b7489b3c84f9cb727ee01e1e
+--- /dev/null
++++ b/packages/skill/skill-playbooks/locale/zh.json
+@@ -0,0 +1,6 @@
++{
++  "meta": {
++    "title": "写作手册",
++    "description": "按需加载小说写作手册及其参考资料。"
++  }
++}
+diff --git a/packages/skill/skill-playbooks/package.json b/packages/skill/skill-playbooks/package.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..b20830ea04be338966cf43b8e4668d8f0b52af5d
+--- /dev/null
++++ b/packages/skill/skill-playbooks/package.json
+@@ -0,0 +1,46 @@
++{
++  "name": "@deepseek-ai/dsh-skill-playbooks",
++  "description": "On-demand fiction writing manuals for the Writing preset",
++  "version": "0.2.3-alpha.2",
++  "publishConfig": {
++    "access": "public"
++  },
++  "repository": {
++    "type": "git",
++    "url": "git+https://github.com/Water-Run/deepseek-harness-uncensored.git",
++    "directory": "packages/skill/skill-playbooks"
++  },
++  "type": "module",
++  "main": "lib/index.js",
++  "types": "lib/types/index.d.ts",
++  "exports": {
++    ".": {
++      "types": "./lib/types/index.d.ts",
++      "default": "./lib/index.js"
++    },
++    "./package.json": "./package.json",
++    "./locale/*.json": "./locale/*.json"
++  },
++  "files": [
++    "locale/*.json",
++    "lib/index.js",
++    "assets",
++    "lib/types/**/*.d.ts",
++    "lib/types/**/*.d.ts.map",
++    "lib/**/*.js.map",
++    "src"
++  ],
++  "license": "GPL-3.0-or-later",
++  "peerDependencies": {
++    "@deepseek-ai/dsh-skill": "workspace:*",
++    "@deepseek-ai/cordis": "workspace:~"
++  },
++  "devDependencies": {
++    "@deepseek-ai/cordis": "workspace:~",
++    "@deepseek-ai/dsh-skill": "workspace:*"
++  },
++  "dependencies": {
++    "@deepseek-ai/schemastery": "workspace:~",
++    "yaml": "^2.4.2"
++  }
++}
+diff --git a/packages/skill/skill-playbooks/README.i18n.yaml b/packages/skill/skill-playbooks/README.i18n.yaml
+new file mode 100644
+index 0000000000000000000000000000000000000000..71f12b51f727745d191d277a0d19cc62224d4289
+--- /dev/null
++++ b/packages/skill/skill-playbooks/README.i18n.yaml
+@@ -0,0 +1,40 @@
++# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
++# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
++# After editing either side, bring the other along and re-record with:
++#   pnpm run verify-translation-pairing --write packages/skill/skill-playbooks/README.md
++/:
++  en: 0c78e99913da9f60
++  zh: da99f6c4f47b69d6
++/writing-playbooks:
++  en: 38fb5fe844798cfd
++  zh: 78702da239b6da29
++/writing-playbooks/summary:
++  en: 1f05478ec6008425
++  zh: be1cb42000cb2d2d
++/writing-playbooks/table-of-contents:
++  en: bdeb9f331ac00d74
++  zh: 24c2ee008b5f1963
++/writing-playbooks/configuration:
++  en: 1eb4bdf9bea678ec
++  zh: 63f686b7edbe8572
++/writing-playbooks/model-experience:
++  en: 215e7ba838619b7b
++  zh: a311da3843709f90
++/writing-playbooks/model-experience/writing-manuals:
++  en: a770191d1ec84a54
++  zh: ddd04830b81012f1
++/writing-playbooks/model-experience/writing-manuals/what-the-model-sees:
++  en: 4b2423dbcb10536b
++  zh: dcb804d7f8f2f197
++/writing-playbooks/model-experience/writing-manuals/token-effect:
++  en: 01645d21545a5dcb
++  zh: 0849d9168834fc3e
++/writing-playbooks/model-experience/writing-manuals/kv-cache-effect:
++  en: 8628f8f8a24a1050
++  zh: 91e7ce8cf92e4bdc
++/writing-playbooks/known-limitations-and-deferred-work:
++  en: 40da2e4beb1f77f3
++  zh: c1ac6fd446bd2455
++/writing-playbooks/known-limitations-and-deferred-work/dev-note:
++  en: 24d2bd6373c14cfd
++  zh: 52b8dae4029b3870
+diff --git a/packages/skill/skill-playbooks/README.md b/packages/skill/skill-playbooks/README.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..a8d35dba48bc03405d8f8f1928749e3eab02dae4
+--- /dev/null
++++ b/packages/skill/skill-playbooks/README.md
+@@ -0,0 +1,58 @@
++---
++description: "Bundled fiction manuals and reference sheets for Writing sessions."
++kind: "package-reference"
++---
++
++# Writing playbooks
++
++English | [中文](README.zh.md)
++
++## Summary
++
++Writing sessions can load seven fiction manuals by name. Five include reference sheets for working on drafts, scenes, style, continuity and long-form structure. The [Writing preset](../../bundle/web-app/presets/writing.patch.yml) supplies the catalog and the `skill` tool.
++
++## Table of Contents
++
++- [Configuration](#configuration)
++- [Model experience](#model-experience)
++- [Known limitations and deferred work](#known-limitations-and-deferred-work)
++
++<a id="configuration"></a>
++
++## Configuration
++
++The preset registers `dsh-playbooks` with `packs: [writing]`. An empty pack list registers no provider. To relocate the files, set `assetRoot` to an absolute directory containing the [writing pack](assets/writing). Each manual's directory resolves its relative reference paths. Missing pack directories, empty packs and unreadable or malformed catalog files fail plugin activation.
++
++<a id="model-experience"></a>
++
++## Model Experience
++
++### Writing manuals
++
++#### What the model sees
++
++The session's skill catalog advertises each manual's name and description. Calling `skill` with the name loads its body and reference directory. Users may also invoke a manual by name.
++
++#### Token effect
++
++Catalog entries consume input tokens when the catalog is delivered. Only the selected manual's body enters the conversation on invocation.
++
++#### KV Cache effect
++
++The skill catalog and loaded manual are appended to session history. Later requests retain the preceding message prefix.
++
++## Known Limitations and Deferred Work
++
++<a id="known-limitations-and-deferred-work"></a>
++
++- Reference sheets are separate Markdown files. Reading a sheet requires access to its file in the manual's resource directory.
++
++<a id="dev-note"></a>
++### Dev Note
++
++<details>
++<summary>Maintenance notes</summary>
++
++The seven manual names and their relative reference paths are shared with released Writing sessions.
++
++</details>
+diff --git a/packages/skill/skill-playbooks/README.zh.md b/packages/skill/skill-playbooks/README.zh.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..a77b180c230be422793d61268810a47d5c781e75
+--- /dev/null
++++ b/packages/skill/skill-playbooks/README.zh.md
+@@ -0,0 +1,58 @@
++---
++description: "写作会话随包提供的小说写作手册与参考资料。"
++kind: "package-reference"
++---
++
++# 写作手册
++
++[English](README.md) | 中文
++
++## 概述
++
++写作会话可按名称加载七份小说写作手册。其中五份附有参考资料，供修改草稿、设计场景、把握文风、核对设定和规划长篇结构时查阅。[写作预设](../../bundle/web-app/presets/writing.patch.yml)提供手册目录和 `skill` 工具。
++
++## 目录
++
++- [配置](#configuration)
++- [模型体验](#model-experience)
++- [已知限制与后续工作](#known-limitations-and-deferred-work)
++
++<a id="configuration"></a>
++
++## 配置
++
++预设通过 `packs: [writing]` 注册 `dsh-playbooks`。手册组列表为空时不会注册提供方。需要更换文件位置时，将 `assetRoot` 设为包含[写作手册组](assets/writing)的绝对目录。各手册中的相对引用从手册自身目录解析。指定手册组目录不存在、内容为空，或无法读取、解析目录文件时，插件启动会报错。
++
++<a id="model-experience"></a>
++
++## 模型体验
++
++### 写作手册
++
++#### 模型看到的内容
++
++会话的技能目录列出手册名称和简介。按名称调用 `skill` 会加载正文并给出参考资料所在目录。用户也可按名称调用手册。
++
++#### Token 影响
++
++目录发送给模型时，各手册的目录项占用输入 token。调用后，只有选中的手册正文进入对话。
++
++#### KV Cache 影响
++
++技能目录和已加载的手册追加到会话历史。后续请求保留此前的消息前缀。
++
++## 已知限制与后续工作
++
++<a id="known-limitations-and-deferred-work"></a>
++
++- 参考资料单独存放为 Markdown 文件。查阅时需要有权限读取手册资源目录中的相应文件。
++
++<a id="dev-note"></a>
++### 开发备注
++
++<details>
++<summary>维护说明</summary>
++
++七份手册的名称与参考资料的相对路径均与已发行的写作会话一致。
++
++</details>
+diff --git a/packages/skill/skill-playbooks/src/index.ts b/packages/skill/skill-playbooks/src/index.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..9c406c10d1bebad906880f2b97d9757e20a1933a
+--- /dev/null
++++ b/packages/skill/skill-playbooks/src/index.ts
+@@ -0,0 +1,156 @@
++/**
++ * Bundled fiction manuals with stable names and directory-relative references.
++ * @module @deepseek-ai/dsh-skill-playbooks
++ */
++
++import { readFileSync, readdirSync, statSync } from 'node:fs'
++import { readFile } from 'node:fs/promises'
++import { isAbsolute, join, sep } from 'node:path'
++import { fileURLToPath } from 'node:url'
++import type { Context } from '@deepseek-ai/cordis'
++import z from '@deepseek-ai/schemastery'
++import { BUNDLED_SKILL_RANK, isSkillName, type SkillCandidate, type SkillProvider } from '@deepseek-ai/dsh-skill'
++import { parse as parseYaml } from 'yaml'
++
++/** Stable Cordis plugin name. */
++export const name = 'skill-playbooks'
++
++/** Registry used by the bundled provider. */
++export const inject = ['skills']
++
++/** Pack identifiers shipped by this package. */
++export const PACK_IDS = ['writing'] as const
++
++/** One shipped playbook pack. */
++export type PackId = (typeof PACK_IDS)[number]
++
++/** Provider name registered with `ctx.skills`. */
++export const PROVIDER_NAME = 'dsh-playbooks'
++
++/** Playbook resource location and the packs this mount exposes. */
++export interface Config {
++  /**
++   * Packs to expose. Empty or omitted mounts no provider at all, which keeps
++   * this package inert for compositions that want only local discovery.
++   */
++  packs?: PackId[]
++  /** Absolute assets directory containing the `writing/` directory; defaults to packaged assets. */
++  assetRoot?: string
++}
++
++/** Validated playbook configuration. */
++export const Config: z<Config> = z.object({
++  packs: z.array(z.const('writing')).default([]),
++  assetRoot: z.string().min(1),
++})
++
++interface PlaybookDocument {
++  description: string
++  whenToUse?: string
++  content: string
++}
++
++/**
++ * Split one playbook file into its routing metadata and instruction body.
++ * @param raw - complete file text including YAML frontmatter.
++ * @param path - absolute path used in diagnostics.
++ * @returns the parsed description, optional routing hint, and body.
++ */
++export function parsePlaybook(raw: string, path: string): PlaybookDocument {
++  const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/u.exec(raw)
++  if (frontmatter?.[1] === undefined) throw new Error(`skill-playbooks: ${path} has no YAML frontmatter`)
++  const metadata: unknown = parseYaml(frontmatter[1])
++  if (typeof metadata !== 'object' || metadata === null) throw new Error(`skill-playbooks: ${path} has invalid YAML frontmatter`)
++  const description = 'description' in metadata ? metadata.description : undefined
++  if (typeof description !== 'string' || description.length === 0) {
++    throw new Error(`skill-playbooks: ${path} has no description`)
++  }
++  const whenToUse = 'whenToUse' in metadata && typeof metadata.whenToUse === 'string' && metadata.whenToUse.length > 0
++    ? metadata.whenToUse
++    : undefined
++  return {
++    description,
++    ...(whenToUse === undefined ? {} : { whenToUse }),
++    content: raw.slice(frontmatter[0].length).trim(),
++  }
++}
++
++/**
++ * Read one pack's skill directories and build catalog candidates.
++ * @param assetRoot - absolute directory that contains the pack folders.
++ * @param pack - pack whose skill folders are collected.
++ * @returns the pack candidates in stable name order.
++ */
++function discoverPack(assetRoot: string, pack: PackId): { name: string; directory: string; path: string; document: PlaybookDocument }[] {
++  const packRoot = join(assetRoot, pack)
++  if (!statSync(packRoot, { throwIfNoEntry: false })?.isDirectory()) {
++    throw new Error(`skill-playbooks: pack "${pack}" is missing at ${packRoot}`)
++  }
++  const directories = readdirSync(packRoot, { withFileTypes: true })
++    .filter(entry => entry.isDirectory())
++    .map(entry => entry.name)
++    .sort((left, right) => left.localeCompare(right))
++  if (directories.length === 0) throw new Error(`skill-playbooks: pack "${pack}" has no skill directories at ${packRoot}`)
++  return directories.map((directory) => {
++    if (!isSkillName(directory)) throw new Error(`skill-playbooks: pack "${pack}" has invalid skill directory "${directory}"`)
++    const skillDirectory = join(packRoot, directory)
++    const path = join(skillDirectory, 'SKILL.md')
++    const document = parsePlaybook(readFileSync(path, 'utf8'), path)
++    return { name: directory, directory: skillDirectory, path, document }
++  })
++}
++
++/** Whether a filesystem error means the playbook file no longer exists. */
++function isAbsentPathError(error: unknown): boolean {
++  return typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT'
++}
++
++/**
++ * Mount the configured playbook packs as bundled skills.
++ * @param ctx - context carrying the skill registry.
++ * @param config - packs to expose and an optional relocated assets directory.
++ */
++export function apply(ctx: Context, config: Config = {}): void {
++  const assetRoot = config.assetRoot ?? fileURLToPath(new URL('../assets/', import.meta.url))
++  if (!isAbsolute(assetRoot)) throw new Error('skill-playbooks: assetRoot must be an absolute directory')
++  const packs = config.packs ?? []
++  if (packs.length === 0) return
++  const discovered = packs.flatMap(pack => discoverPack(assetRoot, pack))
++  const names = new Set<string>()
++  for (const skill of discovered) {
++    if (names.has(skill.name)) throw new Error(`skill-playbooks: duplicate skill name "${skill.name}" across configured packs`)
++    names.add(skill.name)
++  }
++  const candidates: SkillCandidate[] = discovered.map(skill => ({
++    name: skill.name,
++    description: skill.document.description,
++    ...(skill.document.whenToUse === undefined ? {} : { whenToUse: skill.document.whenToUse }),
++    invocation: { modelInvocable: true, userInvocable: true },
++    provider: PROVIDER_NAME,
++    source: 'bundled',
++    rank: BUNDLED_SKILL_RANK,
++    resourceBase: { kind: 'directory', path: skill.directory.split(sep).join('/') },
++    locator: skill.path,
++  }))
++  const byName = new Map(candidates.map(candidate => [candidate.name, candidate]))
++  const provider: SkillProvider = {
++    name: PROVIDER_NAME,
++    list: () => Promise.resolve(candidates),
++    async get(candidate, options) {
++      const located = byName.get(candidate.name)
++      if (located === undefined) return undefined
++      const path = located.locator as string
++      let raw: string
++      try {
++        raw = await readFile(path, { encoding: 'utf8', signal: options.signal })
++      } catch (error) {
++        if (isAbsentPathError(error)) return undefined
++        throw error
++      }
++      const document = parsePlaybook(raw, path)
++      const { rank: _rank, locator: _locator, ...summary } = located
++      return { ...summary, content: document.content }
++    },
++  }
++  ctx.skills.registerProvider(() => provider)
++}
+diff --git a/packages/skill/skill-playbooks/tests/writing.spec.ts b/packages/skill/skill-playbooks/tests/writing.spec.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..3af3da2643920a488f9c97b420feddc6260653db
+--- /dev/null
++++ b/packages/skill/skill-playbooks/tests/writing.spec.ts
+@@ -0,0 +1,42 @@
++import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
++import { tmpdir } from 'node:os'
++import { join } from 'node:path'
++import { Context } from '@deepseek-ai/cordis'
++import Skills from '@deepseek-ai/dsh-skill'
++import * as Playbooks from '@deepseek-ai/dsh-skill-playbooks'
++import { expect, it } from 'vitest'
++
++it('honors an empty pack selection and removes the writing catalog when unmounted', async () => {
++  const ctx = new Context()
++  try {
++    await ctx.plugin(Skills)
++    await ctx.plugin(Playbooks, { packs: [] })
++    expect(await ctx.skills.list()).toEqual([])
++    const writing = await ctx.plugin(Playbooks, { packs: ['writing'] })
++    expect(await ctx.skills.list()).toHaveLength(7)
++    await writing.dispose()
++    expect(await ctx.skills.get('writing-craft')).toBeUndefined()
++  } finally { await ctx.fiber.dispose() }
++})
++
++it('resolves relocated references and reads the selected body at invocation time', async () => {
++  const assetRoot = await mkdtemp(join(tmpdir(), 'dshu-writing-assets-'))
++  const dir = join(assetRoot, 'writing', 'writing-voice')
++  const file = join(dir, 'SKILL.md')
++  const metadata = '---\ndescription: Narrative voice\n---\n'
++  const ctx = new Context()
++  try {
++    await mkdir(dir, { recursive: true })
++    await writeFile(file, metadata + 'Original text.')
++    await ctx.plugin(Skills)
++    await ctx.plugin(Playbooks, { packs: ['writing'], assetRoot })
++    await writeFile(file, metadata + 'Revised text.')
++    expect(await ctx.skills.get('writing-voice')).toMatchObject({
++      content: 'Revised text.', resourceBase: { kind: 'directory', path: dir.replaceAll('\\', '/') },
++    })
++    await rm(file)
++    expect(await ctx.skills.get('writing-voice')).toBeUndefined()
++  } finally {
++    try { await ctx.fiber.dispose() } finally { await rm(assetRoot, { recursive: true, force: true }) }
++  }
++})
+diff --git a/packages/skill/skill-playbooks/tsconfig.json b/packages/skill/skill-playbooks/tsconfig.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..60eff3dae36da44faa28d086076247b222054749
+--- /dev/null
++++ b/packages/skill/skill-playbooks/tsconfig.json
+@@ -0,0 +1,24 @@
++{
++  "extends": "../../../tsconfig.base.json",
++  "compilerOptions": {
++    "rootDir": "src",
++    "outDir": "lib/types"
++  },
++  "include": [
++    "src"
++  ],
++  "references": [
++    {
++      "path": "../../../vendor/cosmokit"
++    },
++    {
++      "path": "../../../vendor/cordis"
++    },
++    {
++      "path": "../../../vendor/schemastery"
++    },
++    {
++      "path": "../skill"
++    }
++  ]
++}
 diff --git a/packages/subprocess/subprocess-local/README.i18n.yaml b/packages/subprocess/subprocess-local/README.i18n.yaml
 index b81bef5b961bb1a0793ca14a25ffb3789891381d..148f0acd8527237a10072f070fa57182831f3f6c 100644
 --- a/packages/subprocess/subprocess-local/README.i18n.yaml
@@ -21413,7 +23798,7 @@ index 68e7f032cb3b63ef1c4f09d592321a9144400141..13d56812ef0ea53bbcf605f7ad1e58af
               this._inSocket.destroy();
               this._ptyNative.kill(this._pty, this._useConptyDll);
 diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
-index 774164ab6d006ce397a2f47f6ba84592519d80d6..85860a0a3cfaef610cfe276a9dcecf3c16b20bf9 100644
+index 774164ab6d006ce397a2f47f6ba84592519d80d6..51d86269fc0609993948277a762246e9a0721a8b 100644
 --- a/pnpm-lock.yaml
 +++ b/pnpm-lock.yaml
 @@ -24,7 +24,7 @@ patchedDependencies:
@@ -21670,7 +24055,17 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..85860a0a3cfaef610cfe276a9dcecf3c
        '@deepseek-ai/dsh-message-feedback':
          specifier: workspace:*
          version: link:../../feedback/message-feedback
-@@ -4641,12 +4775,18 @@ importers:
+@@ -3518,6 +3652,9 @@ importers:
+       '@deepseek-ai/dsh-skill-office':
+         specifier: workspace:*
+         version: link:../../skill/skill-office
++      '@deepseek-ai/dsh-skill-playbooks':
++        specifier: workspace:*
++        version: link:../../skill/skill-playbooks
+       '@deepseek-ai/dsh-subprocess':
+         specifier: workspace:*
+         version: link:../../subprocess/subprocess
+@@ -4641,12 +4778,18 @@ importers:
        '@deepseek-ai/dsh-client-locale':
          specifier: workspace:*
          version: link:../locale
@@ -21689,7 +24084,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..85860a0a3cfaef610cfe276a9dcecf3c
        '@deepseek-ai/dsh-client-ui-conversation':
          specifier: workspace:*
          version: link:../ui-conversation
-@@ -4662,6 +4802,12 @@ importers:
+@@ -4662,6 +4805,12 @@ importers:
        '@deepseek-ai/dsh-client-ui-session':
          specifier: workspace:*
          version: link:../ui-session
@@ -21702,7 +24097,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..85860a0a3cfaef610cfe276a9dcecf3c
        '@deepseek-ai/dsh-client-ui-slots':
          specifier: workspace:*
          version: link:../ui-slots
-@@ -4671,6 +4817,12 @@ importers:
+@@ -4671,6 +4820,12 @@ importers:
        '@deepseek-ai/dsh-session':
          specifier: workspace:*
          version: link:../../core/session
@@ -21715,7 +24110,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..85860a0a3cfaef610cfe276a9dcecf3c
        '@deepseek-ai/dsh-util-text-search':
          specifier: workspace:*
          version: link:../../util/text-search
-@@ -5582,6 +5734,57 @@ importers:
+@@ -5582,6 +5737,57 @@ importers:
          specifier: ^18.2.0
          version: 18.3.1(react@18.3.1)
  
@@ -21773,7 +24168,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..85860a0a3cfaef610cfe276a9dcecf3c
    packages/client/ui-model-selection:
      devDependencies:
        '@deepseek-ai/cordis':
-@@ -6563,12 +6766,21 @@ importers:
+@@ -6563,12 +6769,21 @@ importers:
        '@deepseek-ai/dsh-api-remotes':
          specifier: workspace:*
          version: link:../../api/remotes
@@ -21795,7 +24190,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..85860a0a3cfaef610cfe276a9dcecf3c
        '@deepseek-ai/dsh-client-store':
          specifier: workspace:*
          version: link:../store
-@@ -6578,6 +6790,9 @@ importers:
+@@ -6578,6 +6793,9 @@ importers:
        '@deepseek-ai/dsh-client-ui-chat':
          specifier: workspace:*
          version: link:../ui-chat
@@ -21805,7 +24200,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..85860a0a3cfaef610cfe276a9dcecf3c
        '@deepseek-ai/dsh-client-ui-layout':
          specifier: workspace:*
          version: link:../ui-layout
-@@ -6593,6 +6808,9 @@ importers:
+@@ -6593,6 +6811,9 @@ importers:
        '@deepseek-ai/dsh-client-ui-settings-models':
          specifier: workspace:*
          version: link:../ui-settings-models
@@ -21815,7 +24210,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..85860a0a3cfaef610cfe276a9dcecf3c
        '@deepseek-ai/dsh-client-ui-slots':
          specifier: workspace:*
          version: link:../ui-slots
-@@ -6605,15 +6823,33 @@ importers:
+@@ -6605,15 +6826,33 @@ importers:
        '@deepseek-ai/dsh-host-webserver':
          specifier: workspace:*
          version: link:../../host/webserver
@@ -21849,7 +24244,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..85860a0a3cfaef610cfe276a9dcecf3c
        big.js:
          specifier: ^7.0.1
          version: 7.0.1
-@@ -6623,6 +6859,9 @@ importers:
+@@ -6623,6 +6862,9 @@ importers:
        react-dom:
          specifier: ^18.2.0
          version: 18.3.1(react@18.3.1)
@@ -21859,7 +24254,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..85860a0a3cfaef610cfe276a9dcecf3c
  
    packages/client/ui-settings-agent-loop:
      devDependencies:
-@@ -6736,6 +6975,51 @@ importers:
+@@ -6736,6 +6978,51 @@ importers:
          specifier: ^18.2.0
          version: 18.3.1(react@18.3.1)
  
@@ -21911,7 +24306,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..85860a0a3cfaef610cfe276a9dcecf3c
    packages/client/ui-settings-models:
      dependencies:
        '@deepseek-ai/schemastery':
-@@ -6788,6 +7072,57 @@ importers:
+@@ -6788,6 +7075,57 @@ importers:
          specifier: ^18.2.0
          version: 18.3.1
  
@@ -21969,7 +24364,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..85860a0a3cfaef610cfe276a9dcecf3c
    packages/client/ui-settings-session-log:
      devDependencies:
        '@deepseek-ai/cordis':
-@@ -9402,6 +9737,40 @@ importers:
+@@ -9402,6 +9740,40 @@ importers:
          specifier: workspace:*
          version: link:../../util/error
  
@@ -22010,7 +24405,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..85860a0a3cfaef610cfe276a9dcecf3c
    packages/credentials/credentials:
      dependencies:
        '@deepseek-ai/dsh-brand':
-@@ -14340,6 +14709,52 @@ importers:
+@@ -14340,6 +14712,52 @@ importers:
          specifier: workspace:*
          version: link:../../core/tools
  
@@ -22063,7 +24458,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..85860a0a3cfaef610cfe276a9dcecf3c
    packages/guard/timeout-policy:
      devDependencies:
        '@deepseek-ai/cordis':
-@@ -15796,6 +16211,64 @@ importers:
+@@ -15796,6 +16214,64 @@ importers:
          specifier: workspace:*
          version: link:../../core/tools
  
@@ -22128,7 +24523,30 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..85860a0a3cfaef610cfe276a9dcecf3c
    packages/plan/plan-mode:
      dependencies:
        '@deepseek-ai/dsh-brand':
-@@ -19182,7 +19655,7 @@ importers:
+@@ -18041,6 +18517,22 @@ importers:
+         specifier: workspace:*
+         version: link:../../core/tool-executor-ptc
+ 
++  packages/skill/skill-playbooks:
++    dependencies:
++      '@deepseek-ai/schemastery':
++        specifier: link:../../../vendor/schemastery
++        version: link:../../../vendor/schemastery
++      yaml:
++        specifier: ^2.4.2
++        version: 2.9.0
++    devDependencies:
++      '@deepseek-ai/cordis':
++        specifier: workspace:~
++        version: link:../../../vendor/cordis
++      '@deepseek-ai/dsh-skill':
++        specifier: workspace:*
++        version: link:../skill
++
+   packages/skill/tool-skill:
+     dependencies:
+       '@deepseek-ai/schemastery':
+@@ -19182,7 +19674,7 @@ importers:
          version: 3.1.1
        node-pty:
          specifier: 1.2.0-beta.15
@@ -22137,7 +24555,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..85860a0a3cfaef610cfe276a9dcecf3c
      devDependencies:
        '@deepseek-ai/cordis':
          specifier: workspace:~
-@@ -20083,6 +20556,12 @@ importers:
+@@ -20083,6 +20575,12 @@ importers:
          specifier: ^7.8.0
          version: 7.8.0
  
@@ -22150,7 +24568,7 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..85860a0a3cfaef610cfe276a9dcecf3c
    packages/util/ripgrep:
      dependencies:
        '@vscode/ripgrep':
-@@ -20753,6 +21232,9 @@ importers:
+@@ -20753,6 +21251,9 @@ importers:
        '@deepseek-ai/dsh-mcp-client':
          specifier: workspace:*
          version: link:../../packages/mcp/mcp-client
@@ -22160,7 +24578,17 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..85860a0a3cfaef610cfe276a9dcecf3c
        '@deepseek-ai/dsh-message-feedback':
          specifier: workspace:*
          version: link:../../packages/feedback/message-feedback
-@@ -35270,7 +35752,7 @@ snapshots:
+@@ -20873,6 +21374,9 @@ importers:
+       '@deepseek-ai/dsh-skill-office':
+         specifier: workspace:*
+         version: link:../../packages/skill/skill-office
++      '@deepseek-ai/dsh-skill-playbooks':
++        specifier: workspace:*
++        version: link:../../packages/skill/skill-playbooks
+       '@deepseek-ai/dsh-spill':
+         specifier: workspace:*
+         version: link:../../packages/spill/spill
+@@ -35270,7 +35774,7 @@ snapshots:
  
    node-int64@0.4.0: {}
  
@@ -22169,6 +24597,60 @@ index 774164ab6d006ce397a2f47f6ba84592519d80d6..85860a0a3cfaef610cfe276a9dcecf3c
      dependencies:
        node-addon-api: 7.1.1
  
+diff --git a/scripts/check-workspace-constraints.ts b/scripts/check-workspace-constraints.ts
+index 5b952996866f19ab3b46ad899b7d2f477c4e4d05..3eb7811ba04addeeb51c1c4135f9fe4ea1ddad95 100644
+--- a/scripts/check-workspace-constraints.ts
++++ b/scripts/check-workspace-constraints.ts
+@@ -18,6 +18,7 @@ import {
+   LEGACY_PREFIXED_EXPERIMENTAL_PACKAGE_DIRECTORIES,
+   PRIVATE_EXPERIMENTAL_PACKAGE_DIRECTORIES,
+ } from './experimental-package-policy.ts'
++import { DSHU_PACKAGE_LICENSES, DSHU_REPOSITORY_URL } from './dshu-package-metadata.ts'
+ import { hasTypertRemoteNavigation } from './publication-payload.ts'
+ import type { DshBundleManifest } from '../packages/util/package-manifest/src/types.ts'
+ import { detailPath } from '../packages/util/plugin-detail/src/document.ts'
+@@ -252,6 +253,7 @@ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
+   '@deepseek-ai/dsh-sandbox-windows-acl': ['lib/runner.js', 'lib/types-*.js', 'assets'],
+   '@deepseek-ai/dsh-skill-badge': ['assets'],
+   '@deepseek-ai/dsh-skill-office': ['assets'],
++  '@deepseek-ai/dsh-skill-playbooks': ['assets'],
+   '@deepseek-ai/dsh-subprocess': ['lib/control.js'],
+   // SSH launches a private helper and shares wire definitions and TLS setup
+   // between that helper and the connection owner.
+@@ -555,10 +557,11 @@ export function checkWorkspaceManifest({ dir, manifest }: WorkspaceManifest): st
+     if (manifest.publishConfig?.access !== 'public') {
+       errors.push(`${label}: release member must set publishConfig.access to "public"`)
+     }
++    const repositoryUrl = DSHU_PACKAGE_LICENSES.has(dir) ? DSHU_REPOSITORY_URL : publishedRepositoryUrl
+     if (manifest.repository?.type !== 'git'
+-      || manifest.repository.url !== publishedRepositoryUrl
++      || manifest.repository.url !== repositoryUrl
+       || manifest.repository.directory !== dir) {
+-      errors.push(`${label}: release member repository must use ${publishedRepositoryUrl} with directory ${dir}`)
++      errors.push(`${label}: release member repository must use ${repositoryUrl} with directory ${dir}`)
+     }
+   } else if (!experimentalPackageDirectory.test(dir) && manifest.private !== true) {
+     errors.push(`${label}: package.json must set "private": true`)
+diff --git a/scripts/dshu-package-metadata.ts b/scripts/dshu-package-metadata.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..b33bbada006ee018fac3282d4099952f2ecdba84
+--- /dev/null
++++ b/scripts/dshu-package-metadata.ts
+@@ -0,0 +1,14 @@
++/** Repository and license declarations of packages maintained by DSHU. */
++export const DSHU_REPOSITORY_URL = 'git+https://github.com/Water-Run/deepseek-harness-uncensored.git'
++
++/** Paths use workspace-relative POSIX separators, as in npm repository metadata. */
++export const DSHU_PACKAGE_LICENSES = new Map<string, string>([
++  ['apps/desktop', 'GPL-3.0-or-later'],
++  ['packages/api/memory-controller', 'GPL-3.0-or-later'],
++  ['packages/client/ui-settings-memory', 'GPL-3.0-or-later'],
++  ['packages/credentials/balance', 'MIT'],
++  ['packages/guard/spend-limit', 'GPL-3.0-or-later'],
++  ['packages/memory/memory', 'GPL-3.0-or-later'],
++  ['packages/skill/skill-playbooks', 'GPL-3.0-or-later'],
++  ['packages/util/product-version', 'MIT'],
++])
 diff --git a/scripts/gen-cordis-catalog.ts b/scripts/gen-cordis-catalog.ts
 index e4885eec6cc42ff69745e01724a887da0e1ea966..3ec93a0e335855312c2ffd881fd8ffd57894d40a 100644
 --- a/scripts/gen-cordis-catalog.ts
@@ -22324,8 +24806,175 @@ index bf8bbdc9b0254c65ebd9034685501eb5a68a5fae..180594565b08855d0ad9a0f3615725b3
    {
      key: 'credentialsController',
      pkg: 'api-settings-controller',
+diff --git a/scripts/plugin-entry-existing-exports.ts b/scripts/plugin-entry-existing-exports.ts
+index 5175e1f09ea5cfd1947f7a2f0a226fde1f2d86ec..c715d77d9379491e4b6fa2fda174fbb4c0e066e6 100644
+--- a/scripts/plugin-entry-existing-exports.ts
++++ b/scripts/plugin-entry-existing-exports.ts
+@@ -21,6 +21,7 @@ export const EXISTING_PLUGIN_ENTRY_EXPORTS = {
+     'agentPresetProjectionDefinition', 'auditRows', 'entryListProblem', 'leakedServices',
+   ],
+   '@deepseek-ai/dsh-agent-team': ['TeamId', 'TeamMessageId', 'TeamTaskId'],
++  '@deepseek-ai/dsh-api-mode-dossiers': ['writingMaterialsText'],
+   '@deepseek-ai/dsh-api-remote-access': ['REMOTE_ACCESS_SNAPSHOT_KEY'],
+   '@deepseek-ai/dsh-api-remotes': ['API_REMOTE_FORWARDED_EVENTS'],
+   '@deepseek-ai/dsh-attachment-local': [
+@@ -46,8 +47,7 @@ export const EXISTING_PLUGIN_ENTRY_EXPORTS = {
+     'BUSY_ENTER_BEHAVIORS', 'BUSY_ENTER_FIELD', 'CONVERSATION_SETTINGS_NAMESPACE', 'DEFAULT_BUSY_ENTER_BEHAVIOR',
+   ],
+   '@deepseek-ai/dsh-client-ui-theme': [
+-    'DEFAULT_FONT_SIZE', 'DEFAULT_PREFERENCE', 'FONT_SIZE_FIELD', 'FONT_SIZE_MAX', 'FONT_SIZE_MIN', 'THEME_PREFERENCES',
+-    'THEME_PREFERENCE_FIELD', 'THEME_SETTINGS_NAMESPACE',
++    'DEFAULT_FONT_SIZE', 'DEFAULT_PREFERENCE', 'DEFAULT_SUN_LOCATION', 'FONT_SIZE_FIELD', 'FONT_SIZE_MAX', 'FONT_SIZE_MIN', 'SUN_LOCATION_FIELD', 'THEME_PREFERENCES', 'THEME_PREFERENCE_FIELD', 'THEME_SETTINGS_NAMESPACE',
+   ],
+   '@deepseek-ai/dsh-command-feedback': ['FEEDBACK_CATEGORIES', 'recordFeedback'],
+   '@deepseek-ai/dsh-commands': ['CommandDefinitionId', 'CommandId', 'name', 'parseCommand'],
+@@ -108,6 +108,7 @@ export const EXISTING_PLUGIN_ENTRY_EXPORTS = {
+   '@deepseek-ai/dsh-llm-retry': ['RetryId'],
+   '@deepseek-ai/dsh-lsp': ['LspProviderId', 'finalExtension'],
+   '@deepseek-ai/dsh-mcp-client': ['createMcpToolDefinition'],
++  '@deepseek-ai/dsh-memory': ['MEMORY_SOURCE_KINDS', 'MEMORY_TYPES', 'PATH_KEY_PREFIX', 'WORKSPACE_KEY_PREFIX', 'canonicalDirectory', 'memoryDomainSpec', 'memoryRecordSchema', 'normalizeText', 'resolveSessionScope', 'retrieveMemories', 'scopeCovers', 'searchMemories', 'tokenize'],
+   '@deepseek-ai/dsh-office-kit': ['Config', 'OfficeKitGeneration', 'OfficeKitKey', 'OfficeSourceKey'],
+   '@deepseek-ai/dsh-permission-presets': ['AUTO_PRESET', 'CUSTOM_PRESET'],
+   '@deepseek-ai/dsh-persona': ['PERSONA_PREFIX_SECTION', 'PERSONA_SUFFIX_SECTION'],
+@@ -169,6 +170,7 @@ export const EXISTING_PLUGIN_ENTRY_EXPORTS = {
+     'BUNDLED_SKILL_RANK', 'escapeText', 'isModelInvocable', 'isSkillName', 'isUserInvocable', 'renderSkillContent',
+   ],
+   '@deepseek-ai/dsh-skill-filesystem': ['FileSystemSkillProvider'],
++  '@deepseek-ai/dsh-skill-playbooks': ['PACK_IDS', 'PROVIDER_NAME', 'parsePlaybook'],
+   '@deepseek-ai/dsh-spill-local': [
+     'DEFAULT_ROOT_PREFIX', 'discoverDefaultRoots', 'encodeSegment', 'isErrno', 'privateRoot', 'saveTextFile',
+     'sessionDir', 'sweepSpillRoots',
+diff --git a/scripts/session-snapshot-corpus.corpus.ts b/scripts/session-snapshot-corpus.corpus.ts
+index 86caf8aa077bebd8a0472a7459dc7d380d140cc2..6e671f2e888a4be9d8f42589454333e05fdbe49e 100644
+--- a/scripts/session-snapshot-corpus.corpus.ts
++++ b/scripts/session-snapshot-corpus.corpus.ts
+@@ -29,6 +29,7 @@ const snapshotAdapters = [
+   'apps/web/tests/preset-migration.snapshot.ts',
+   'apps/web/tests/session-send-message.snapshot.ts',
+   'apps/web/tests/subagent-fork-schedule.snapshot.ts',
++  'apps/web/tests/writing-manual-reopen.snapshot.ts',
+   'snapshots/acp/acp.snapshot.ts',
+   'snapshots/sdk/sdk.snapshot.ts',
+   'snapshots/session/headless.snapshot.ts',
+diff --git a/scripts/verify-dsh-package-licenses.spec.ts b/scripts/verify-dsh-package-licenses.spec.ts
+index d7520ee2e5030f30b423443008ea8972f35da0eb..466d44b675099e3e7386b0a9ea54c071601fec18 100644
+--- a/scripts/verify-dsh-package-licenses.spec.ts
++++ b/scripts/verify-dsh-package-licenses.spec.ts
+@@ -48,6 +48,18 @@ describe('DSH package license gate', () => {
+     })
+   })
+ 
++  it('preserves the writing package license and catches an upstream license copied over it', () => {
++    const root = createWorkspace()
++    const file = 'packages/skill/skill-playbooks/package.json'
++    const name = '@deepseek-ai/dsh-skill-playbooks'
++    writeManifest(root, file, { name, license: 'GPL-3.0-or-later' })
++    expect(inspectDshPackageLicenses(root).failures).toEqual([])
++    writeManifest(root, file, { name, license: 'MIT' })
++    expect(inspectDshPackageLicenses(root).failures).toEqual([
++      `${file}: ${name} must declare "license": "GPL-3.0-or-later"; found "MIT".`,
++    ])
++  })
++
+   it('rejects a missing license declaration', () => {
+     const root = createWorkspace()
+     writeManifest(root, 'packages/core/agent/package.json', { name: '@deepseek-ai/dsh-agent' })
+diff --git a/scripts/verify-dsh-package-licenses.ts b/scripts/verify-dsh-package-licenses.ts
+index e4206c30dbbd4e5b5129c73191fe6eb9bd4703d4..45a4a23198539a351062b1c3777fc2658ae55679 100644
+--- a/scripts/verify-dsh-package-licenses.ts
++++ b/scripts/verify-dsh-package-licenses.ts
+@@ -1,10 +1,12 @@
+ /**
+- * Enforce the MIT license declaration for repository-owned DSH npm packages.
++ * Check the declared licenses of upstream and DSHU npm packages.
+  * @module scripts/verify-dsh-package-licenses
+  */
+ 
+ import { globSync, readFileSync } from 'node:fs'
+-import { resolve, sep } from 'node:path'
++import { posix, resolve, sep } from 'node:path'
++
++import { DSHU_PACKAGE_LICENSES } from './dshu-package-metadata.ts'
+ 
+ const ROOT = resolve(import.meta.dirname, '..')
+ const DSH_PACKAGE_NAME = /^@deepseek-ai\/dsh(?:-|$)/
+@@ -13,7 +15,7 @@ const DSH_PACKAGE_NAME = /^@deepseek-ai\/dsh(?:-|$)/
+ export interface DshPackageLicenseReport {
+   /** Number of DSH package manifests checked. */
+   packageCount: number
+-  /** Repository-relative diagnostics for non-MIT declarations. */
++  /** Repository-relative diagnostics for unexpected licenses. */
+   failures: string[]
+ }
+ 
+@@ -52,7 +54,7 @@ function printable(value: unknown): string {
+ /**
+  * Check every DSH npm package declared by the repository workspace.
+  * @param root - absolute repository root containing the workspace package.json.
+- * @returns the checked package count and every non-MIT declaration.
++ * @returns the checked package count and every incorrect license.
+  */
+ export function inspectDshPackageLicenses(root: string): DshPackageLicenseReport {
+   let packageCount = 0
+@@ -64,10 +66,11 @@ export function inspectDshPackageLicenses(root: string): DshPackageLicenseReport
+     if (typeof name !== 'string' || !DSH_PACKAGE_NAME.test(name)) continue
+ 
+     packageCount++
+-    if (manifest.license !== 'MIT') {
+-      const normalizedFile = file.split(sep).join('/')
++    const normalizedFile = file.split(sep).join('/')
++    const required = DSHU_PACKAGE_LICENSES.get(posix.dirname(normalizedFile)) ?? 'MIT'
++    if (manifest.license !== required) {
+       failures.push(
+-        `${normalizedFile}: ${name} must declare "license": "MIT"; found ${printable(manifest.license)}.`,
++        `${normalizedFile}: ${name} must declare "license": "${required}"; found ${printable(manifest.license)}.`,
+       )
+     }
+   }
+@@ -78,12 +81,12 @@ export function inspectDshPackageLicenses(root: string): DshPackageLicenseReport
+ if (process.argv[1] && import.meta.filename === resolve(process.argv[1])) {
+   const report = inspectDshPackageLicenses(ROOT)
+   if (report.failures.length > 0) {
+-    process.stderr.write('verify-dsh-package-licenses: non-MIT DSH package declarations found:\n')
++    process.stderr.write('verify-dsh-package-licenses: unexpected DSH package licenses:\n')
+     for (const failure of report.failures) process.stderr.write(`  ${failure}\n`)
+     process.exitCode = 1
+   } else {
+     process.stdout.write(
+-      `verify-dsh-package-licenses: ${String(report.packageCount)} DSH package(s) checked; all declare MIT.\n`,
++      `verify-dsh-package-licenses: ${String(report.packageCount)} DSH package(s) checked; all match their source license.\n`,
+     )
+   }
+ }
+diff --git a/snapshots/web/writing-manual-reopen/session.v4.jsonl b/snapshots/web/writing-manual-reopen/session.v4.jsonl
+new file mode 100644
+index 0000000000000000000000000000000000000000..dd7c59b25dd906d23fb14891a8bf4c54c5885b3d
+--- /dev/null
++++ b/snapshots/web/writing-manual-reopen/session.v4.jsonl
+@@ -0,0 +1,8 @@
++{"type":"session","version":4,"id":"{{session:1}}","createdAt":1,"cwd":"{{cwd}}","isSeeded":false,"delegationDepth":0,"agentPreset":"writing"}
++{"type":"agent-preset/selected","data":{"agentPreset":"writing"}}
++{"type":"turn/start","data":{"turn":1}}
++{"type":"step/start","data":{"turn":1,"step":1}}
++{"type":"system/message","data":{"turn":1,"step":1,"message":{"role":"system","content":[{"type":"text","text":"{{system}}"}],"source":{"kind":"system-prompt","sections":[{"name":"harness:identity","order":-1000,"state":"active","contentIndex":0}]},"id":"{{message:1}}"}},"surfaceOp":"append"}
++{"type":"user/message","data":{"content":[{"type":"text","text":"Help revise the lighthouse keeper's voice."}],"source":{"kind":"user"},"role":"user","id":"{{message:2}}"},"surfaceOp":"append"}
++{"type":"step/end","data":{"turn":1,"step":1}}
++{"type":"turn/end","data":{"turn":1,"reason":{"kind":"aborted","reason":{"kind":"user"}}}}
+diff --git a/snapshots/web/writing-manual-reopen/snapshot.yml b/snapshots/web/writing-manual-reopen/snapshot.yml
+new file mode 100644
+index 0000000000000000000000000000000000000000..0bc934f3ade6ecd416b76f1ef5b37c2b9a0a92f5
+--- /dev/null
++++ b/snapshots/web/writing-manual-reopen/snapshot.yml
+@@ -0,0 +1,7 @@
++version: 1
++scenario: writing-manual-reopen
++profile: web
++composition: web-default
++recording: authored
++header:
++  class: web-default
 diff --git a/tsconfig.base.json b/tsconfig.base.json
-index 38bced25a37b280e8059d528139f3e4c4654c988..65c6022510b8616a089652834757bf93f403e756 100644
+index 38bced25a37b280e8059d528139f3e4c4654c988..74b8e7f83f94277cc26cdb365beb855c31fd23ef 100644
 --- a/tsconfig.base.json
 +++ b/tsconfig.base.json
 @@ -54,6 +54,9 @@
@@ -22402,10 +25051,11 @@ index 38bced25a37b280e8059d528139f3e4c4654c988..65c6022510b8616a089652834757bf93
        "@deepseek-ai/dsh-ptc-runtime": ["./packages/ptc-runtime/ptc-runtime/src"],
        "@deepseek-ai/dsh-ptc-runtime-node": ["./packages/ptc-runtime/ptc-runtime-node/src"],
        "@deepseek-ai/dsh-pwsh-sandbox": ["./packages/shell/pwsh-sandbox/src"],
-@@ -602,6 +620,7 @@
+@@ -602,6 +620,8 @@
        "@deepseek-ai/dsh-skill-badge": ["./packages/experimental/skill-badge/src"],
        "@deepseek-ai/dsh-skill-filesystem": ["./packages/skill/skill-filesystem/src"],
        "@deepseek-ai/dsh-skill-office": ["./packages/skill/skill-office/src"],
++      "@deepseek-ai/dsh-skill-playbooks": ["./packages/skill/skill-playbooks/src"],
 +      "@deepseek-ai/dsh-spend-limit": ["./packages/guard/spend-limit/src"],
        "@deepseek-ai/dsh-spill": ["./packages/spill/spill/src"],
        "@deepseek-ai/dsh-spill-local": ["./packages/spill/spill-local/src"],
@@ -22432,10 +25082,10 @@ index d6a347c5aa4b45367dcb616971d4cd4f90543f4e..caa1c47b479c0ebc71b2365701c7ec08
      { "path": "./packages/client/locale/tsconfig.client.json" },
      { "path": "./packages/client/ui-renderer" },
 diff --git a/tsconfig.host.json b/tsconfig.host.json
-index f2046d341293cb0adb504e754b87f31918b2e424..a94f77b2f630e64abab3f7dce6e1d9f05a569e08 100644
+index f2046d341293cb0adb504e754b87f31918b2e424..f768ca07bd98b2d2ffad3e8499d25de877e74af5 100644
 --- a/tsconfig.host.json
 +++ b/tsconfig.host.json
-@@ -7,7 +7,18 @@
+@@ -7,7 +7,19 @@
      "noEmit": true,
      "rewriteRelativeImportExtensions": false
    },
@@ -22450,11 +25100,20 @@ index f2046d341293cb0adb504e754b87f31918b2e424..a94f77b2f630e64abab3f7dce6e1d9f0
 +    "apps/web/tests/balance-history-layout.e2e.ts",
 +    "apps/web/tests/memory-preference.e2e.ts",
 +    "apps/web/tests/writing-spending.e2e.ts",
++    "apps/web/tests/writing-manual-reopen.snapshot.ts",
 +    "apps/web/tests/writing-spending-settings.e2e.ts",
      "apps/web/tests/device-pairing.e2e.ts",
      "apps/web/tests/pairing-completion.e2e.ts",
      "apps/web/tests/pairing-recovery.e2e.ts",
-@@ -359,6 +370,7 @@
+@@ -349,6 +361,7 @@
+     { "path": "./packages/boot/config-editor" },
+     { "path": "./packages/client/connection/tsconfig.host.json" },
+     { "path": "./packages/skill/skill-office" },
++    { "path": "./packages/skill/skill-playbooks" },
+     { "path": "./packages/connector/feishu" },
+     { "path": "./packages/skill/tool-workspace-dependencies" },
+     { "path": "./packages/connector/wecom" },
+@@ -359,6 +372,7 @@
      { "path": "./packages/experimental/browser-use-playwright-mcp" },
      { "path": "./packages/experimental/browser-use-chrome-devtools-mcp" },
      { "path": "./packages/experimental/browser-use-stagehand-native" },
@@ -22462,7 +25121,7 @@ index f2046d341293cb0adb504e754b87f31918b2e424..a94f77b2f630e64abab3f7dce6e1d9f0
      { "path": "./packages/api/terminal-controller/tsconfig.host.json" },
      { "path": "./packages/computer-use/computer-use" },
      { "path": "./packages/experimental/computer-use-cua-driver-mcp" },
-@@ -389,6 +401,7 @@
+@@ -389,6 +403,7 @@
      { "path": "./packages/boot/hmr" },
      { "path": "./vendor/logger-console" },
      { "path": "./packages/util/brand" },
@@ -22470,7 +25129,7 @@ index f2046d341293cb0adb504e754b87f31918b2e424..a94f77b2f630e64abab3f7dce6e1d9f0
      { "path": "./packages/util/error" },
      { "path": "./packages/util/package-manifest" },
      { "path": "./packages/util/plugin-detail" },
-@@ -576,6 +589,10 @@
+@@ -576,6 +591,10 @@
      { "path": "./packages/spill/spill" },
      { "path": "./packages/spill/spill-local" },
      { "path": "./packages/spill/spill-policy" },
@@ -23525,21 +26184,27 @@ index 0000000000000000000000000000000000000000..6839e76e8ca6ede0838f09ae29d226b4
 +</details>
 diff --git a/packages/client/ui-settings-memory/locale/en.json b/packages/client/ui-settings-memory/locale/en.json
 new file mode 100644
-index 0000000000000000000000000000000000000000..9c908efe8ad24abfb1871eb37e1ba779932694ef
+index 0000000000000000000000000000000000000000..3e6d50ac181731c84ff940955c8def865e7976c9
 --- /dev/null
 +++ b/packages/client/ui-settings-memory/locale/en.json
-@@ -0,0 +1,3 @@
+@@ -0,0 +1,6 @@
 +{
-+  "meta": { "title": "ui-settings-memory" }
++  "meta": {
++    "title": "Memory settings",
++    "description": "Configure memory shared across conversations."
++  }
 +}
 diff --git a/packages/client/ui-settings-memory/locale/zh.json b/packages/client/ui-settings-memory/locale/zh.json
 new file mode 100644
-index 0000000000000000000000000000000000000000..9c908efe8ad24abfb1871eb37e1ba779932694ef
+index 0000000000000000000000000000000000000000..112ad172eb7f8feb8f2180f959a8ec5adb39de97
 --- /dev/null
 +++ b/packages/client/ui-settings-memory/locale/zh.json
-@@ -0,0 +1,3 @@
+@@ -0,0 +1,6 @@
 +{
-+  "meta": { "title": "ui-settings-memory" }
++  "meta": {
++    "title": "记忆设置",
++    "description": "配置跨对话记忆。"
++  }
 +}
 diff --git a/packages/client/ui-settings-memory/package.json b/packages/client/ui-settings-memory/package.json
 new file mode 100644
@@ -28056,7 +30721,7 @@ index 0000000000000000000000000000000000000000..6a38659d6d769d98643c65fb25d2f1bd
 +})
 diff --git a/packages/memory/memory/tests/memory.spec.ts b/packages/memory/memory/tests/memory.spec.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..40d519141db64c437b6b9342038aabbb547b1abf
+index 0000000000000000000000000000000000000000..79efde0480476633981d37f518e87a08b44221e6
 --- /dev/null
 +++ b/packages/memory/memory/tests/memory.spec.ts
 @@ -0,0 +1,393 @@
@@ -28299,7 +30964,7 @@ index 0000000000000000000000000000000000000000..40d519141db64c437b6b9342038aabbb
 +    // empty store; the loader reports the thrown `storage-unavailable` cause.
 +    try {
 +      await ctx.plugin(MemoryService)
-+    } catch {
++    } catch (_storageUnavailable) {
 +      // The fiber may surface the failure as a rejection or as a failed load.
 +    }
 +    expect(ctx.get('memory')).toBeUndefined()
@@ -28629,11 +31294,14 @@ index 0000000000000000000000000000000000000000..91747a7561c9272c2d3ec6512e95210a
 +  ]
 +}
 diff --git a/python/sdk-runtime/package.json b/python/sdk-runtime/package.json
-index 766ff3c72cce6f2a6a1bcc04b1d7ef1701378ce2..9303886f2035b873e8c1865b2bbc53e1c2d41dbb 100644
+index 766ff3c72cce6f2a6a1bcc04b1d7ef1701378ce2..9fb21c940784642644370b5795a4773420c51407 100644
 --- a/python/sdk-runtime/package.json
 +++ b/python/sdk-runtime/package.json
-@@ -111,6 +111,7 @@
+@@ -109,8 +109,10 @@
+     "@deepseek-ai/dsh-skill": "workspace:*",
+     "@deepseek-ai/dsh-skill-filesystem": "workspace:*",
      "@deepseek-ai/dsh-skill-office": "workspace:*",
++    "@deepseek-ai/dsh-skill-playbooks": "workspace:*",
      "@deepseek-ai/dsh-spill": "workspace:*",
      "@deepseek-ai/dsh-storage": "workspace:*",
 +    "@deepseek-ai/dsh-memory": "workspace:*",
@@ -29848,13 +32516,13 @@ index 0000000000000000000000000000000000000000..0d3c43b8d1b3831987fab483a244d73d
 +}
 diff --git a/packages/client/ui-settings-account/src/client/BudgetSidebar.module.css b/packages/client/ui-settings-account/src/client/BudgetSidebar.module.css
 new file mode 100644
-index 0000000000000000000000000000000000000000..8730e1963c1634e46d4d65d00ef75b67f7a65d17
+index 0000000000000000000000000000000000000000..4be5591888b95501b2f5c4231bdad3827bf043d5
 --- /dev/null
 +++ b/packages/client/ui-settings-account/src/client/BudgetSidebar.module.css
 @@ -0,0 +1,5 @@
 +.group { display: grid; width: 100%; min-width: 0; margin-bottom: 8px; border: 0.5px solid var(--dsw-alias-border-l2); border-radius: var(--dsw-radius-md); background: var(--dsw-alias-bg-layer-1); }
 +.group:empty { display: none; }
-+.group > :not(:first-child) { border-top: 0.5px solid var(--dsw-alias-border-l2); }
++.group > * + * { border-top: 0.5px solid var(--dsw-alias-border-l2); }
 +.group[data-wide='false'] { border: 0; background: transparent; gap: 4px; }
 +.group[data-wide='false'] > * { border: 0; }
 diff --git a/packages/client/ui-settings-account/src/client/BudgetSidebar.tsx b/packages/client/ui-settings-account/src/client/BudgetSidebar.tsx
@@ -53225,10 +55893,10 @@ index d6bea0c4b783233e5901bd976dbce640074be740..f731c8fd87edb0cb98b2390373b15d7e
      ])
 diff --git a/packages/client/ui-commands/src/client/asides/read-status.ts b/packages/client/ui-commands/src/client/asides/read-status.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..ba2fb10bf6dc962b5bf3e5004679e24653ea5467
+index 0000000000000000000000000000000000000000..8f4c1d538f784b474287c562353dc2833835cc2f
 --- /dev/null
 +++ b/packages/client/ui-commands/src/client/asides/read-status.ts
-@@ -0,0 +1,129 @@
+@@ -0,0 +1,132 @@
 +/** Read position of the most recently viewed side result for each main conversation. */
 +import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 +import type { SessionListMetadata } from '@deepseek-ai/dsh-api-session-controller/types'
@@ -53247,13 +55915,16 @@ index 0000000000000000000000000000000000000000..ba2fb10bf6dc962b5bf3e5004679e246
 +}
 +
 +function decode(raw: string | null): Receipt | null {
++  let value: unknown
 +  try {
-+    const value: unknown = JSON.parse(raw ?? 'null')
-+    if (value && typeof value === 'object' && 'child' in value && typeof value.child === 'string' && sideIdentityParts(SessionId(value.child)) !== undefined
-+      && 'seq' in value && typeof value.seq === 'number' && Number.isSafeInteger(value.seq) && value.seq >= 0) {
-+      return { child: SessionId(value.child), seq: value.seq }
-+    }
-+  } catch (_invalidReceipt) { /* An invalid receipt has no read position. */ }
++    value = JSON.parse(raw ?? 'null')
++  } catch (_invalidReceipt) {
++    return null
++  }
++  if (value && typeof value === 'object' && 'child' in value && typeof value.child === 'string' && sideIdentityParts(SessionId(value.child)) !== undefined
++    && 'seq' in value && typeof value.seq === 'number' && Number.isSafeInteger(value.seq) && value.seq >= 0) {
++    return { child: SessionId(value.child), seq: value.seq }
++  }
 +  return null
 +}
 +

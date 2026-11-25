@@ -25,7 +25,7 @@ Memory in a long project lives in files, not in the transcript. Read the bible b
     research.md
 ```
 
-Use `writing-continuity/references/story-bible.md` as the starting skeleton; copy it into the workspace and fill it in.
+Use `references/story-bible.md` as the starting skeleton; copy it into the workspace and fill it in.
 
 ## Canon discipline
 

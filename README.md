@@ -34,7 +34,7 @@ https://github.com/user-attachments/assets/69f74147-3377-461c-8ec2-17169bd3ba71
 
 > [!NOTE]
 >
-> 本文的界面与默认值对应当前源码。下载链接指向正式版 2026.11.24.3。DSH 0.2.3-alpha.2 的接入进度见[内核升级记录](.agents/requirements/2026-11-24-dsh-kernel-upgrade.md)。候选的记忆作用范围、余额留存与复验入口见[接手文档](.agents/requirements/2026-11-25-release-handoff.md#候选文档与接口目录)。
+> 本文的界面与默认值对应当前源码。下载链接指向正式版 2026.11.24.3。DSH 0.2.3-alpha.2 的接入进度见[内核升级记录](.agents/requirements/2026-11-24-dsh-kernel-upgrade.md)。候选的写作手册、跨对话记忆、余额留存与复验入口见[接手文档](.agents/requirements/2026-11-25-release-handoff.md#候选文档与接口目录)。
 >
 > DSHU 有独立的程序目录、配置、会话和更新渠道，可以和官方 DeepSeek Harness 装在同一台机器上，互不影响。
 

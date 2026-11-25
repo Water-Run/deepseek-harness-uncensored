@@ -1,0 +1,121 @@
+{
+  "observedOn": "2026-11-26",
+  "platform": "Windows x64",
+  "windowsVersion": "10.0.26100.0",
+  "environment": "Windows Sandbox, networking disabled",
+  "kernel": "0.2.3-alpha.2",
+  "package": {
+    "tree": "cfe7869c4d97cf267f70f6287d9b6ddbb1244af4",
+    "blocks": 15534,
+    "artifacts": [
+      {
+        "name": "deepseek-harness-uncensored-2026.11.25.0-win-x64-unsigned.exe",
+        "size": 325425278,
+        "sha256": "f50ac5dbfa001ea422ac11709bead4d23cb4041e0cfe2f04d182bf5c2943f890"
+      },
+      {
+        "name": "deepseek-harness-uncensored-2026.11.25.0-win-x64-unsigned.exe.blockmap",
+        "size": 337972,
+        "sha256": "4905ea3e83ba5acbe0b1d7d6f6c76bb056ce1f3de72ae3e70610aee901975974"
+      }
+    ]
+  },
+  "sourceRelease": {
+    "version": "2026.11.24.3",
+    "installerSha256": "a84001b8ec3d64ae4452833d8fdd018857900a772be366488de2f219334b5b30",
+    "installedAsarSha256": "9dadc46597d4826c9e2188b6097986fd177bc20bdd449eb44b9e8736b40200bf"
+  },
+  "installedCandidate": {
+    "version": "2026.11.25.0",
+    "installedAsarSha256": "6a5c3643b630dbdf3d85fe3ed03614f560c9bd0a4b3f13216690ac7542fe8bf4"
+  },
+  "earlierCandidateControl": {
+    "tree": "6ec81d4b78a526c20a41a73030273289399c4bdf",
+    "installedAsarSha256": "cc01a6a606c50b66e7423a55566bacac479aa35b1a8de0578d97d9026f3c36c8",
+    "packageMissing": "@deepseek-ai/dsh-skill-playbooks"
+  },
+  "verificationScript": "installed-writing-playbooks.mjs",
+  "scriptSha256": "e0b3f7396afe426c4bde0e381fa00e7f8e7de3113eac6939beae361c3ef0071f",
+  "phases": [
+    {
+      "phase": "seed",
+      "version": "2026.11.24.3",
+      "documents": 3,
+      "selected": [
+        "story/style/voice.md",
+        "story/bible/harbor.md"
+      ]
+    },
+    {
+      "phase": "upgrade",
+      "version": "2026.11.25.0",
+      "documents": 3,
+      "selected": [
+        "story/style/voice.md",
+        "story/bible/harbor.md"
+      ]
+    },
+    {
+      "phase": "reopen",
+      "version": "2026.11.25.0",
+      "documents": 3,
+      "selected": [
+        "story/style/voice.md"
+      ]
+    }
+  ],
+  "sameWorkspaceId": true,
+  "newElectronProcessPerPhase": true,
+  "materialsInReopenedContext": [
+    "story/style/voice.md"
+  ],
+  "pluginIds": [
+    "agent-instructions",
+    "time-context",
+    "memory-agent",
+    "tool-fs",
+    "tool-fs-search",
+    "skill-filesystem",
+    "skill-playbooks",
+    "tool-skill",
+    "compaction",
+    "tool-ask-user",
+    "tool-todo",
+    "tool-web",
+    "present"
+  ],
+  "manuals": {
+    "writing-continuity": {
+      "bodySha256": "ee32fbebe0a4a77c3649644a280d2868eb1e1076d5dd63c826f218c35790892d",
+      "reference": "references/story-bible.md",
+      "referenceSha256": "da64d1a4c60df43d132eafb0f9d0ae2aa7e063846e086c49f526c10be4d916a6"
+    },
+    "writing-craft": {
+      "bodySha256": "b4b46287c1b660e7d5019d85c8d14abf3ec32369a29d09add5d23a4802d3fe6f",
+      "reference": "references/prose-diagnostics.md",
+      "referenceSha256": "2d78052e2bc32148d4df78b31ab67b1cdf0fd99e8b4967695016b1e4c2a70e8d"
+    },
+    "writing-dark": {
+      "bodySha256": "c1eaa1abdcdc26bf5d8c839163733e6285aefe778c0412543774ce88006b4a07"
+    },
+    "writing-longform": {
+      "bodySha256": "38159b1528c2b4b02aad1f34ef67f1808d9f91bd539b89bcf2f60e3fa88275ce",
+      "reference": "references/novel-architecture.md",
+      "referenceSha256": "dcac9d36b3de1d446a14693b6336ebf18f681c4dd688d6587409e0d5eb800fdd"
+    },
+    "writing-scene": {
+      "bodySha256": "2152259dfd9556f3bc30990a6f6d2494492593c847d08f423294154b198a005a",
+      "reference": "references/scene-checklist.md",
+      "referenceSha256": "d8e1172cb924e5797c73caf78614bf953e6394a216b87b12bf703e1f573de015"
+    },
+    "writing-style-reference": {
+      "bodySha256": "ad5be469bbcf2491c4ac362144fda04afc0095ea26528fc689458dabfcb28123",
+      "reference": "references/style-card.md",
+      "referenceSha256": "bc772822e006503ff5e81afe264d5645bf390219b96d89739d5c3f5ae4b60236"
+    },
+    "writing-voice": {
+      "bodySha256": "b333fc9b9d25ab35806774edcce5b5c074b6c656e7c044bf33e25cf43dc466ba"
+    }
+  },
+  "comparison": "Handbook bodies, descriptions, whenToUse and reference files matched the installed release. Only the released continuity handbook link was normalized to references/story-bible.md before comparing its body."
+}

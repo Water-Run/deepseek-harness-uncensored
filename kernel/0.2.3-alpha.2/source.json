@@ -2,5 +2,5 @@
   "tag": "dsh-v0.2.3-alpha.2",
   "upstream": "https://github.com/deepseek-ai/deepseek-harness.git",
   "base": "4b399c39a6d1479cd84ca591b4d7c88e24d38a96",
-  "tree": "6ec81d4b78a526c20a41a73030273289399c4bdf"
+  "tree": "cfe7869c4d97cf267f70f6287d9b6ddbb1244af4"
 }

@@ -43,6 +43,7 @@
 | 旁问与随问 | 支持 `/side`、`/btw`、会话顶部及右侧开始页入口。[旧版控制器用例](https://github.com/Water-Run/deepseek-harness-uncensored/blob/7eaeddc6050ee60e114cc3ef0d81de9c1371aacd/packages/client/ui-commands/tests/asides-controller.client.spec.ts) | 候选 Web 可发起随问，从三个入口打开同一旁问，发送图片并在窄屏重开续聊。Host 可按父会话找回上次清理后的旁问。 | 手动清理和按设置在关闭后清理均已在候选 Web 版验收。主线主动读取当前旁问已通过浏览器验收。顶部入口、页签和工作区父行的状态提示已接入。最终安装包仍需复验两类问答。用例和验收步骤见下文。 |
 | 日出日落外观 | 新装默认 `sun`，可以选择浅色、深色、跟随系统或日出日落。[旧版主题设置](https://github.com/Water-Run/deepseek-harness-uncensored/blob/7eaeddc6050ee60e114cc3ef0d81de9c1371aacd/packages/client/ui-theme/src/theme-settings.ts) | 较早的 Linux 实装树只接受三个选项。候选树 `06ded7caa7a9` 已恢复日出日落默认值、手选城市、时区估算、首屏及欢迎页外观。 | 126 项定向测试、完整构建 10 项通过。真实设置页验证新装、修改城市、重载及 390 像素宽的深色切换。最终安装包仍须独立核对。 |
 | 关于页检查更新 | 可在应用内检查 GitHub 更新。 | 新内核的关于页已恢复自动查询、手动重查和发行说明。桌面左侧及移动端顶部显示 DSHU 产品版本，右侧来源区显示 DSH 内核。比较使用产品日期版本，区分开发候选领先、已是最新版、有新版、离线与请求失败。 | 38 项定向测试通过。构建后的中英文页面以受控 GitHub 响应验证初次检查、手动查到新版与发行说明地址，覆盖 1440、1280 和 390 像素宽。最终签名包的真实在线升级仍待实测，见 [#24](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24)。 |
+| 写作手册与工具 | 正式版按需加载七份小说写作手册，五份附参考文件。写作可提问、记待办、查阅网页和交付文件。 | 候选恢复相同的手册名、提供方和写作预设配置行，补回设定集模板的相对路径。 | [写作手册、工具与旧资料复验](#写作手册工具与旧资料复验)。 |
 | 已配置插件的只读清单 | 上一正式版通过“设置 → 插件 → 插件列表”按模式或全局配置查看实例。 | 新内核的插件管理页接回“插件列表”标签，保留原配置行 ID。安装与开关仍由插件管理页负责。[插件列表复验](#插件列表与插件管理) | 最终四模式安装包须按自己的安装器摘要复验。 |
 | 填入具体入口、设置或稳定标识 | 填旧包版本、前置配置、用户操作与实际结果 | 填新包的同一操作、结果和差异，附回执或截图位置 | 填最终包 SHA-256、平台、负责人、四种结论之一 |
 
@@ -207,6 +208,8 @@ pnpm exec vitest run --maxWorkers=1 packages/boot/app-boot/tests/profile-resolut
 
 | 候选内的路径 | 在这里核对 |
 | --- | --- |
+| `packages/skill/skill-playbooks/README.md` | 七份手册的按需加载、模型与用户的调用入口、五份参考文件的位置。 |
+| `packages/api/mode-dossiers/README.md` | 文风卡与设定的保存路径、旧资料的勾选状态、同时编辑时的冲突，以及写作上下文的更新。 |
 | `packages/memory/memory/README.md` | 工作区与模式的匹配、记忆何时进入日志、提炼费用、关闭和重试、检索与存储上限。 |
 | `packages/api/memory-controller/README.md` | 管理权限、写入时的修订检查、来源状态和错误返回。 |
 | `packages/client/ui-settings-memory/README.md` | 开关位置、筛选与编辑、冲突后保留草稿，以及从模式设置打开管理页的事件。 |
@@ -218,6 +221,55 @@ pnpm exec vitest run --maxWorkers=1 packages/boot/app-boot/tests/profile-resolut
 仓库根目录的同名 `doc-sync` 命令只检查公开 README 的长度与链接。另运行 `pnpm run verify-package-readme-summaries` 可检查 444 份包说明。主线的聊天、账号与额度两份中英文说明已重新配对。包摘要检查从 16 处降为 14 处，余项来自其他包的既有标题或字数问题。
 
 本节对应候选树 `159c46d282214d4071486c719b3469b49ff9dcbf`。Windows x64 已从空目录还原并比对树，在配有依赖的候选目录完成全部 43 项文档检查和 10 项构建检查。两个正式版各用独立资料启动候选 Electron Host 并冷重读，每版的 27 个原始文件均通过 SHA-256 核对。
+
+### 写作手册、工具与旧资料复验
+
+候选树 `cfe7869c4d97cf267f70f6287d9b6ddbb1244af4` 从写作预设载入 `dsh-playbooks`。七个手册名称为 `writing-craft`、`writing-voice`、`writing-scene`、`writing-dark`、`writing-continuity`、`writing-style-reference` 和 `writing-longform`。五份参考资料分别归属基本功、场景、连续性、文风参考和长篇结构手册。连续性手册引用的模板为自身目录中的 `references/story-bible.md`。写作预设登记了工作区说明、时间上下文、提问、待办、网页和交付文件工具。随包写作手册的许可为 GPL-3.0-or-later。
+
+从已还原且已构建的候选目录运行以下用例。写作用例使用本地测试模型，不需要 API Key。
+
+```sh
+pnpm run test:e2e apps/cli/tests/web-agent-presets.e2e.ts -t "seven released writing manuals"
+pnpm exec vitest run --config vitest.web.config.ts apps/web/tests/writing-manual-reopen.snapshot.ts apps/web/tests/writing-spending.e2e.ts
+pnpm exec vitest run packages/skill/skill-playbooks/tests/writing.spec.ts packages/api/mode-dossiers/tests/writing.spec.ts
+```
+
+第一项从实际预设创建写作与普通会话，检查写作工具清单、模型首次请求和持久化目录。逐份调用 `skill` 应能取回正文，手册中写出的相对路径应能打开对应文件。普通会话不应出现这七项。第二项重新打开一份 v4 写作会话，保留用户中断的原始回合，然后用 `/writing-style-reference` 调用手册并检查新写入的会话事件。资料与额度用例覆盖所选文风卡和设定的注入、取消选择后的撤回，以及滚动预算恢复。第三项检查停用手册组、释放提供方、自定义目录及资料写入冲突。
+
+从主线分别以两份原版检出目录作为写入端运行 `scripts/verify-kernel-released-data.mjs`。来自 `v2026.11.23.0` 和 `v2026.11.24.3` 的资料均通过候选首次读取、修订和冷重开，每组留存的 40 个原始文件都与写入端的 SHA-256 一致。对未勾选的草稿、已撤回的设定和原会话分别作了检查。
+
+旧候选 `6ec81d4b` 已有写作模式入口。实查其 Windows 安装档案（SHA-256 为 `cc01a6a606c50b66e7423a55566bacac479aa35b1a8de0578d97d9026f3c36c8`），其中没有 `@deepseek-ai/dsh-skill-playbooks`。此前的资料升级用例覆盖文风卡和设定的存取，遗漏了随包手册。后续复验应从已安装的软件逐份加载手册并读取参考文件。
+
+**复验 Windows 安装版。** 在隔离的 Windows x64 用户账户中安装 `v2026.11.24.3`，打开 PowerShell，在仓库根目录执行以下命令。保持这个窗口打开，用另一个窗口运行待测安装器。每一步都从注册表的安装目录启动新的 Electron 进程，直接使用该安装内的 Host 包、写作预设和手册资源。检查器使用独立的测试工作区及存储目录，全程可断网。
+
+```powershell
+$probe = (Resolve-Path 'kernel/0.2.3-alpha.2/verification/installed-writing-playbooks.mjs').Path
+$run = New-Item -ItemType Directory -Path (Join-Path $env:TEMP ("dshu-writing-" + [guid]::NewGuid()))
+$fixture = Join-Path $run.FullName 'data'
+function Test-InstalledWriting([string]$phase) {
+    $entry = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' |
+        Where-Object DisplayName -Like 'DeepSeek Harness Uncensored*'
+    $app = Join-Path $entry.InstallLocation 'DeepSeek Harness Uncensored.exe'
+    $prior = $env:ELECTRON_RUN_AS_NODE
+    try {
+        $env:ELECTRON_RUN_AS_NODE = '1'
+        & $app $probe $phase $fixture (Join-Path $run.FullName "$phase.json") | Out-Host
+        if ($LASTEXITCODE -ne 0) { throw "Installed writing check failed in $phase" }
+    } finally { $env:ELECTRON_RUN_AS_NODE = $prior }
+}
+Test-InstalledWriting seed
+# 在另一窗口用候选 EXE 的 --updated /S 参数覆盖安装并等待安装器退出，再执行下列两行。
+Test-InstalledWriting upgrade
+Test-InstalledWriting reopen
+```
+
+`seed` 用原版创建一张文风卡、一份设定和一份未勾选的草稿，选中前两份。首次运行 `upgrade` 应找回同一工作区、三份资料和两个选中项。随后检查器修订文风卡并取消选择设定。`reopen` 冷启动后应仍有三份资料，仅将修订后的文风卡带入写作上下文。检查器逐项比较七份手册的名称、来源、调用方式、说明和正文，并核对五份参考文件的原始字节。连续性手册正文仅归一化前述旧链接后再作比较。[安装版检查器](../../kernel/0.2.3-alpha.2/verification/installed-writing-playbooks.mjs)
+
+**安装结果。** Windows x64 离线沙盒（系统 10.0.26100.0）完成正式版覆盖升级和冷启动。三份资料在三个阶段始终可读，选中项依次为 2、2、1，七份手册和五份参考文件通过摘要核对。最终未签名安装器为 325,425,278 字节，SHA-256 为 `f50ac5dbfa001ea422ac11709bead4d23cb4041e0cfe2f04d182bf5c2943f890`，已逐块核验全部 15,534 个安装块。安装目录的 `app.asar` 与该次构建输出摘要相同。完整安装器和原始回执保存在本机 `%USERPROFILE%/DSHU-Deliveries/20261125/windows-x64-candidate/cfe7869c4d97/`。[Windows 安装回执与手册摘要](../../kernel/0.2.3-alpha.2/verification/windows-writing-playbooks-cfe7869c.json)
+
+**尚待复核的检查。** 写作预设和 v4 恢复这两个新增用例均通过了定向类型感知 lint。全候选运行 `pnpm run lint` 仍报 64 项，涉及 19 个已有文件。客户端 45 项、Web 用例 9 项、写作资料 API 与用例 8 项，记忆和子进程各 1 项。报错行均已存在于上个候选树 `6ec81d4b`。处理客户端问题时，特别复核设置导航的服务类型，以及跨 `await` 的取消检查。全量复验仍以 `pnpm run lint` 的退出状态为准。
+
+写作与额度集成用例在一次并发运行中观察到 5 次请求，预期为 4 次。随后连续六次通过，额外请求的来源尚未确认。若再现，按会话和请求用途记录模型调用，并核对 `writing-disposed-while-waiting` 的恢复事件。重复恢复可能影响计费，保留原有次数断言。
 
 ### 跨对话记忆的候选验收
 
