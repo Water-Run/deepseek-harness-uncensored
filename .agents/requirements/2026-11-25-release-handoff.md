@@ -61,6 +61,22 @@ pnpm exec vitest run --maxWorkers=1 packages/boot/app-boot/tests/profile-resolut
 
 旧 profile 修复对应的候选树 `2eb4efd39dfe10723274f75bae5cdedbad11be35` 在 Windows x64 完成过冻结安装、10 项构建和 234 项解析测试。后续候选变更应分别记录自己的树、构建和受影响的行为测试。源码树与构建结果都不能替代桌面安装验证。
 
+### 候选文档与接口目录
+
+还原候选后，可从下表中任一 README 进入对应参考。表内路径相对于已还原的候选目录。每份 README 同目录的 `README.zh.md` 提供中文，维护时一起更新两端。
+
+| 候选内的路径 | 在这里核对 |
+| --- | --- |
+| `packages/memory/memory/README.md` | 工作区与模式的匹配、记忆何时进入日志、提炼费用、关闭和重试、检索与存储上限。 |
+| `packages/api/memory-controller/README.md` | 管理权限、写入时的修订检查、来源状态和错误返回。 |
+| `packages/client/ui-settings-memory/README.md` | 开关位置、筛选与编辑、冲突后保留草稿，以及从模式设置打开管理页的事件。 |
+| `packages/credentials/balance/README.md` | 账户与币种隔离、采样频率、30 天清理、侧栏范围与设置页保留的完整采样。 |
+| `docs/subsystems/memory.zh.md` | 查看记忆服务和管理接口的实际方法签名、源文件位置，再进入对应包的使用说明。 |
+
+在候选根目录执行 `pnpm run doc-sync`，同时检查配对、相对链接、包路径、配置和 API 目录、持久化历史及文档网站。接口类型的引用应落在仓库中的 `src/` 声明。修改记忆或余额的子路径后，应再运行 `pnpm run build`，以覆盖 Web 场景和 Host 的聚合类型检查。当前持久化清单与上个候选的 69 个根、696 个结构节点逐项一致，源文件位置已指回记忆包。
+
+本节对应候选树 `159c46d282214d4071486c719b3469b49ff9dcbf`。Windows x64 已从空目录还原并比对树，在配有依赖的候选目录完成全部 43 项文档检查和 10 项构建检查。两个正式版各用独立资料启动候选 Electron Host 并冷重读，每版的 27 个原始文件均通过 SHA-256 核对。
+
 ### 跨对话记忆的候选验收
 
 记忆里程碑的 Git 树为 `92f2d6eb4be9ffdb7117fa2db36d95bd4dee683c`。候选在缺省与写作预设接入记忆，用同一个 Host 服务提供存储、设置与管理。Windows x64 已完成冻结安装和 10 项构建检查，8 个测试文件共 59 项通过。真实 Chromium 场景从设置启用记忆，确认自动提炼仍关闭，重载页面后关闭记忆，再打开管理页读取之前的记录。
