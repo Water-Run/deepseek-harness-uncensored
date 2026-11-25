@@ -304,7 +304,7 @@
 | --- | --- |
 | DSHU | 最新正式版 `2026.11.24.3` |
 | DeepSeek Harness | 源码基于 [0.2.2-rc.5](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.5) |
-| 新内核候选 | [0.2.3-alpha.2 接手与验收](.agents/requirements/2026-11-25-release-handoff.md#固定内核候选)；缺省和写作已接入跨对话记忆，已接入余额历史、设置 → 模式和关于页（[桌面](docs/assets/dshu/about-candidate.webp)、[窄屏](docs/assets/dshu/about-candidate-mobile.webp)），四模式发行验收进行中 |
+| 新内核候选 | [0.2.3-alpha.2 接手与验收](.agents/requirements/2026-11-25-release-handoff.md#固定内核候选)；缺省和写作已接入跨对话记忆，已接入余额历史、设置 → 模式和关于页（[桌面](docs/assets/dshu/about-candidate.webp)、[窄屏](docs/assets/dshu/about-candidate-mobile.webp)），Windows x64 已验收候选桌面 Host 保留旧 profile 并打开旧会话，详见[升级实测](.agents/requirements/2026-11-25-release-handoff.md#旧资料与问题-20)。四模式发行验收进行中 |
 | 破甲提示词 | dsh-purge Community [v1.7.20](https://github.com/kingcharleslzy-ai/dsh-purge/releases/tag/v1.7.20) |
 | REA | [6.9.0 · d74549e495c5](https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0) |
 

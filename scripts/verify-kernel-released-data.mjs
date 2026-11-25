@@ -21,7 +21,12 @@ function git(cwd, ...args) {
   return result.stdout.trim()
 }
 
-assert.equal(git(writer, 'rev-parse', 'HEAD'), '95325688c9134480b7289341ed4eda26e40a55d0')
+const releases = new Map([
+  ['95325688c9134480b7289341ed4eda26e40a55d0', 'v2026.11.23.0'],
+  ['7eaeddc6050ee60e114cc3ef0d81de9c1371aacd', 'v2026.11.24.3'],
+])
+const release = releases.get(git(writer, 'rev-parse', 'HEAD'))
+assert(release, 'Writer must be a supported DSHU release checkout')
 assert.equal(git(writer, 'write-tree'), git(writer, 'rev-parse', 'HEAD^{tree}'))
 assert.equal(git(reader, 'rev-parse', 'HEAD'), manifest.base)
 assert.equal(git(reader, 'write-tree'), manifest.tree)
@@ -31,7 +36,8 @@ async function probe(root, phase, active) {
   const name = 'released-data-' + randomUUID() + '.spec.ts'
   const test = join('scripts', name)
   const destination = join(root, test)
-  await copyFile(join(kernel, 'verification', 'released-data.spec.ts.in'), destination, constants.COPYFILE_EXCL)
+  const fixture = phase === 'desktop' ? 'released-desktop.spec.ts.in' : 'released-data.spec.ts.in'
+  await copyFile(join(kernel, 'verification', fixture), destination, constants.COPYFILE_EXCL)
   try {
     const electron = phase !== 'write' && electronPath ? resolve(electronPath) : undefined
     const env = { ...process.env, DSHU_VERIFY_DATA: active, DSHU_VERIFY_PHASE: phase }
@@ -41,7 +47,12 @@ async function probe(root, phase, active) {
     }
     const result = spawnSync(electron ?? process.execPath, [
       join(root, 'node_modules/vitest/vitest.mjs'), 'run', '--maxWorkers=1', test,
-    ], { cwd: root, stdio: 'inherit', windowsHide: true, env })
+    ], { cwd: root, stdio: phase === 'desktop' ? 'pipe' : 'inherit', encoding: 'utf8', windowsHide: true, env })
+    if (phase === 'desktop') {
+      for (const output of [result.stdout, result.stderr]) {
+        if (output) process.stdout.write(output.replace(/([?&]token=)[^\s&]+/gu, '$1[redacted]'))
+      }
+    }
     if (result.status !== 0) throw result.error ?? new Error('Release data check failed during ' + phase)
   } finally { await unlink(destination) }
 }
@@ -74,8 +85,13 @@ try {
   assert.deepEqual(await fileHashes(active), before)
   await probe(reader, 'read', active)
   await probe(reader, 'reopen', active)
+  if (electronPath && ['win32', 'darwin'].includes(process.platform)) {
+    await probe(reader, 'desktop', active)
+    const plugins = join('workspace-profile', 'profiles', 'desktop', 'node_modules')
+    assert.deepEqual(await fileHashes(join(active, plugins)), await fileHashes(join(original, plugins)))
+  }
   assert.deepEqual(await fileHashes(original), before)
-  process.stdout.write('Release and candidate passed. Original files with matching SHA-256: ' + Object.keys(before).length + '\n')
+  process.stdout.write(release + ' and candidate ' + manifest.tree + ' passed. Original files with matching SHA-256: ' + Object.keys(before).length + '\n')
   await rm(root, { recursive: true })
 } catch (error) {
   console.error('Verification data retained at ' + root)

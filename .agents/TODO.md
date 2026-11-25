@@ -12,7 +12,7 @@
 
 源码已合入 DSH `0.2.2-rc.5`，接入自动搜索路由、保护配置与网关凭据同源约束。此前通过 Windows 打包预检及四条搜索和抓取完整回放。本机仍为 rc.4，暂缓 rc.5 升级与实装。[内核记录](requirements/2026-11-18-dsh-rc4.md#上游-rc5-对照2026-11-19)
 
-桌面读取旧 profile 时，随应用提供的 DSH 包优先于资料目录中的同名副本。已覆盖 ESM、CommonJS 及第三方插件解析。Issue #20 的 macOS 保留资料实装仍待验证。[用户报告](https://github.com/Water-Run/deepseek-harness-uncensored/issues/20)
+桌面读取旧 profile 时，随应用提供的 DSH 包优先于资料目录中的同名副本。已覆盖 ESM、CommonJS 及第三方插件解析。Windows x64 已从正式版样本保留旧 profile，用候选 Electron Host 打开旧会话并新建写作会话。macOS arm64 的覆盖安装仍待验收。[复验命令与失败判据](requirements/2026-11-25-release-handoff.md#旧资料与问题-20)[用户报告](https://github.com/Water-Run/deepseek-harness-uncensored/issues/20)
 
 [Issue #22 的只读识别](requirements/2026-11-25-release-handoff.md#issue-22-的首轮文件头识别)已接入主线，模型在用户未提及 REA 时可以从原消息识别 ELF、PE 文件头。
 

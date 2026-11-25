@@ -11,7 +11,7 @@
 | GitHub 正式版 | [v2026.11.24.3](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.24.3) 是 Latest，另有 [v2026.11.23.0](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.23.0)。两版各有 10 个附件。 | 供用户下载、取旧安装器和比对更新入口。安装包的版本与开发截图分别核对。 |
 | DSHU 主线 | [d8798268b4](https://github.com/Water-Run/deepseek-harness-uncensored/commit/d8798268b4acd1f732811320ba946422ce47b4a0) 是本轮界面、记忆总开关、余额历史和旧 profile 解析的起点。根 [product.json](../../product.json) 声明内核 `0.2.2-rc.5`。 | 在仓库根目录启动和构建得到此源码线。主线版本信息只有在实际替换并验收桌面载荷后才能随之更新。 |
 | DSH 新内核 | 目标为上游 [dsh-v0.2.3-alpha.2](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.3-alpha.2)，固定提交 `4b399c39a6d1479cd84ca591b4d7c88e24d38a96`。 | 已纳入 Git 的候选由 [source.json](../../kernel/0.2.3-alpha.2/source.json) 的 `tree` 唯一标识。上游提交、候选 Git 树、DSHU 日期版本是三种不同的标识。 |
-| 旧资料基准 | [跨版本资料验证器](../../scripts/verify-kernel-released-data.mjs) 固定旧端源码节点 `95325688c9134480b7289341ed4eda26e40a55d0`。 | 旧版进程写入样本，新版进程读取、修改并冷启动复核。正式发行还需从当前线上版本的实际安装副本升级。 |
+| 旧资料基准 | [跨版本资料验证器](../../scripts/verify-kernel-released-data.mjs) 接受两个已发布节点，分别是 `v2026.11.24.3` 的 `7eaeddc6050e` 和 `v2026.11.23.0` 的 `95325688c913`。 | 旧版进程写入样本，新版进程读取、修改并冷启动复核。Windows x64 已用 Electron 启动候选桌面 Host。安装器覆盖升级另行验收。 |
 
 ## 七项需求如何验收
 
@@ -158,18 +158,30 @@ pnpm run test:web:built apps/web/tests/about-dialog-fit.e2e.ts apps/web/tests/ag
 2. 保留升级前的安装器和完整资料副本。在另一个目录进行演练。旧 profile 中的插件和锁文件也属于样本，先删掉它们会掩盖问题。
 3. 在 macOS arm64 先走保留资料升级，再走全新资料启动作为对照。检查启动日志中实际解析的 Host 包、工作区列表、能否打开旧会话并在新会话中工作。记录安装包、版本、错误信息与结果。对外共享日志前移除凭据和私人会话内容。
 4. 安装后若发生已知资料只读失败、记录数量异常或工作区无法载入，保留失败副本与日志。用升级前安装器搭配升级前资料副本恢复。已经迁移过的 SQLite 文件不能交给旧版直接写入。
-5. 仓库内的跨版本验证使用受控样本。把旧版 checkout、新还原的候选及可选的 Electron 可执行文件传给验证器。它先校验两个源码目录，创建一次性资料，复制后运行新端，在独立进程中重新打开，并比较原副本的 SHA-256。阶段失败时脚本打印保留目录。
+5. 仓库内的跨版本验证使用两个正式标签各自写出的受控样本。把旧版 checkout、新还原的候选及可选的 Electron 可执行文件传给验证器。它先校验两个源码目录，创建一次性资料，复制后运行新端，在独立进程中重新打开，并比较原副本的 SHA-256。阶段失败时脚本打印保留目录。
 
 ```sh
-git worktree add --detach .artifacts/review-old 95325688c9134480b7289341ed4eda26e40a55d0
+git fetch origin tag v2026.11.24.3
+git worktree add --detach .artifacts/review-old 7eaeddc6050ee60e114cc3ef0d81de9c1371aacd
 cd .artifacts/review-old
 pnpm install --frozen-lockfile
-pnpm run build
 cd ../..
 node scripts/verify-kernel-released-data.mjs .artifacts/review-old .artifacts/review-alpha
 ```
 
-复验 Electron 时，在验证命令末尾追加已核对版本和摘要的 Electron 可执行文件路径。旧端仍用 Node 写入，两个候选读进程使用 Electron 内置 Node。若提示树不匹配，回到还原步骤核对提交与暂存树。验证器会拒绝修改过的旧端和不匹配的候选。
+复验 `v2026.11.23.0` 时，将 fetch 的标签换成该版本，并用 `95325688c9134480b7289341ed4eda26e40a55d0` 创建另一个旧端工作树。候选复用[已还原和构建的目录](#固定内核候选)。若提示树不匹配，先核对旧端提交、候选上游提交和候选暂存树。
+
+在命令末尾追加已核实版本和摘要的 Electron 可执行文件路径，可用 Electron 内置 Node 完成两次候选资料读取。Windows 和 macOS 还会执行一次桌面启动。Windows x64 已用 Electron `44.11.5` 验证候选树 `9a040762398793a9e8e29c8c2c243f167e9fda04`。各阶段操作及失败判据如下。[资料用例](../../kernel/0.2.3-alpha.2/verification/released-data.spec.ts.in) · [桌面 Host 用例](../../kernel/0.2.3-alpha.2/verification/released-desktop.spec.ts.in)
+
+| 阶段 | 可以直接核对的结果 |
+| --- | --- |
+| 旧版写入 | 旧版创建两个工作区、两条有原文的写作会话和桌面 profile。profile 声明一个陈旧的工作区控制器，以及一个依赖该控制器的测试插件。陈旧副本一旦被载入就会抛错。 |
+| 独立读取与重开 | 候选从副本读出工作区顺序、会话归属、置顶、归档、记忆和额度。修改副本后另启进程，复核记忆修订号和取消归档结果。 |
+| 桌面启动 | 桌面项目管理器准备旧 profile，Electron 子进程启动已构建的 Host。用主进程分配的凭据读取首页。第三方插件须通过自己的 HTTP 路由确认它和 Host 看到了同一个工作区服务。 |
+| 用户操作 | 通过客户端使用的 API 打开旧工作区，核对工作区 ID 和会话顺序，分别读回两条会话的原文，再创建一条具有独立标识的写作会话。Host 须确认正常退出。 |
+| 资料保留 | 逐文件比较升级前备份的 SHA-256，并核对本次启动保留了 profile 中的两个插件及其文件。异常时保留复验目录和原副本。 |
+
+本项覆盖 Windows 上的桌面 Host 和合成 profile。macOS arm64 的 DMG 覆盖安装、Gatekeeper 和系统更新器仍需在对应平台完成。
 
 重点核对工作区标识、写作资料选择、滚动额度、会话事件和多代分叉。记忆要同时核对模型请求里的来源记录、资料库里的文本与修订号、禁用状态、作用域及总开关。账单里出现过提炼费用只证明历史事件能被计价，还需要证明确实能打开、检索和修改资料库。[记忆服务](../../packages/memory/memory/README.md) · [账单与迁移记录](2026-11-24-dsh-kernel-upgrade.md)
 

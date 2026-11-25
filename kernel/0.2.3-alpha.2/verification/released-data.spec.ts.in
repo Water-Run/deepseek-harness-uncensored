@@ -19,6 +19,8 @@ import { DEFAULT_PREFERENCES, MICRO_CNY, SpendLedger } from '../packages/guard/s
 import { DEFAULT_RATES } from '../packages/guard/spend-limit/src/pricing.ts'
 import { sessionSpendUsage } from '../packages/guard/spend-limit/src/session-usage.ts'
 
+import { createPluginProfile } from '../apps/desktop/src/project-manager.ts'
+
 const phase = process.env.DSHU_VERIFY_PHASE
 const directory = process.env.DSHU_VERIFY_DATA
 if (!directory || !['write', 'read', 'reopen'].includes(phase ?? '')) throw new Error('Run with the released-data verifier')
@@ -303,3 +305,34 @@ it('opens the released memory collection, preserves disabled records and retains
     }
   } finally { await ctx.fiber.dispose() }
 }, 30_000)
+
+const controller = '@deepseek-ai/dsh-api-workspace-controller'
+const observer = 'dshu-profile-observer'
+
+it.runIf(phase === 'write')('retains a desktop profile with an obsolete controller and an external plugin', async () => {
+  const profile = join(directory, 'workspace-profile', 'profiles', 'desktop')
+  createPluginProfile(profile)
+  const stale = join(profile, 'node_modules', controller)
+  const external = join(profile, 'node_modules', observer)
+  await mkdir(stale, { recursive: true })
+  await mkdir(external, { recursive: true })
+  await writeFile(join(stale, 'package.json'), JSON.stringify({ name: controller, version: '0.0.1', type: 'module', exports: './index.js' }))
+  await writeFile(join(stale, 'index.js'), "throw new Error('Loaded the obsolete profile workspace controller')")
+  await writeFile(join(external, 'package.json'), JSON.stringify({
+    name: observer, version: '1.0.0', type: 'module', exports: './index.js', dsh: { bundle: { patch: './bundle.yml' } },
+  }))
+  await writeFile(join(external, 'bundle.yml'), '- insert:\n    - id: dshu-profile-observer\n      name: dshu-profile-observer\n      inject: [webServer, workspaceController]\n')
+  await writeFile(join(external, 'index.js'), [
+    "import { WorkspaceController } from '@deepseek-ai/dsh-api-workspace-controller'",
+    'export function apply(ctx) {',
+    "  ctx.effect(() => ctx.webServer.register({ kind: 'exact', path: '/profile-observer',",
+    "    handler(_req, res) { res.end(ctx.workspaceController instanceof WorkspaceController ? 'ready' : 'mismatched controller') } }))",
+    '}',
+  ].join('\n'))
+  const path = join(profile, 'package.json')
+  const manifest = JSON.parse(await readFile(path, 'utf8'))
+  manifest.dependencies = { ...manifest.dependencies, [controller]: '0.0.1', [observer]: '1.0.0' }
+  manifest.dsh.profile.bundles.push(observer)
+  await writeFile(path, JSON.stringify(manifest))
+  await writeFile(join(profile, 'cordis.patch.yml'), '- id: webserver\n  config:\n    host: 127.0.0.1\n    port: 0\n')
+})

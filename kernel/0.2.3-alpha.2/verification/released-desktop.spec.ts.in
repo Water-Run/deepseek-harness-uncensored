@@ -1,0 +1,83 @@
+/** Open a released workspace through the built Desktop Host with a retained plugin profile. */
+import { randomUUID } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { expect, it } from 'vitest'
+import { prepareDevelopmentProject } from '../apps/desktop/scripts/development-project.ts'
+import { resolveDesktopBuildTarget } from '../apps/desktop/scripts/desktop-build-paths.mjs'
+import { DESKTOP_HOST_PROTOCOL_VERSION } from '../apps/desktop/src/host-protocol.ts'
+import { DesktopHostProcess, type DesktopHostReady } from '../apps/desktop/src/host-process.ts'
+import { resolveDesktopPaths } from '../apps/desktop/src/paths.ts'
+import { DesktopProjectManager } from '../apps/desktop/src/project-manager.ts'
+
+const repository = fileURLToPath(new URL('../', import.meta.url))
+
+async function rpc(ready: DesktopHostReady, method: string, args: Record<string, object>) {
+  const response = await fetch(new URL('/api/' + method, ready.url), {
+    method: 'POST',
+    headers: { cookie: ready.authenticationCookie, 'content-type': 'application/json' },
+    body: JSON.stringify({ type: 'client-request', rpcId: randomUUID(), method, payload: { args } }),
+    signal: AbortSignal.timeout(30_000),
+  })
+  expect(response.status, method).toBe(200)
+  const { result } = await response.json()
+  expect(result, method).toHaveProperty('value')
+  return result.value
+}
+
+it('opens the released conversations and creates a writing session despite an obsolete profile controller', async () => {
+  const directory = process.env.DSHU_VERIFY_DATA
+  if (!directory || !process.versions.electron) throw new Error('Run with the release verifier and the candidate Electron binary')
+  const home = join(directory, 'workspace-profile')
+  const profile = join(home, 'profiles', 'desktop')
+  const version = async (path: string) => JSON.parse(await readFile(join(repository, path, 'package.json'), 'utf8')).version
+  const runtime = prepareDevelopmentProject({
+    projectDir: join(directory, 'runtime'), cliDir: join(repository, 'apps/cli'), hostDir: join(repository, 'apps/desktop-host'),
+    dependencyDir: join(repository, 'node_modules/.pnpm/node_modules'), target: resolveDesktopBuildTarget({}),
+    release: { schemaVersion: 1, version: await version('apps/desktop'), pnpmVersion: await version('apps/desktop/node_modules/pnpm'),
+      nodeVersion: process.versions.node, hostProtocolVersion: DESKTOP_HOST_PROTOCOL_VERSION },
+  })
+  await new DesktopProjectManager(resolveDesktopPaths(home), { dsh: runtime }).applyRelease()
+  const environment = Object.fromEntries(Object.entries(process.env).filter(([key]) =>
+    /^(?:path|pathext|systemroot|windir|comspec|temp|tmp|lang|lc_all)$/i.test(key)))
+  const host = new DesktopHostProcess(process.execPath, runtime, profile, undefined, {
+    ...environment, DSH_HOME: home, HOME: home, USERPROFILE: home, APPDATA: home, LOCALAPPDATA: home,
+    XDG_CONFIG_HOME: home, XDG_CACHE_HOME: home, XDG_STATE_HOME: home, DSH_TELEMETRY_MODE: 'DISABLED',
+  })
+  let timer: ReturnType<typeof setTimeout> | undefined
+  let verified = false
+  try {
+    const ready = await Promise.race([host.start(), new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('Desktop Host readiness exceeded 120 seconds')), 120_000)
+    })])
+    const getText = async (path: string) => {
+      const response = await fetch(new URL(path, ready.url), {
+        headers: { cookie: ready.authenticationCookie }, signal: AbortSignal.timeout(30_000),
+      })
+      expect(response.status, path).toBe(200)
+      return response.text()
+    }
+    expect(await getText('/')).toContain('<html')
+    expect(await getText('/profile-observer')).toBe('ready')
+    const receipt = JSON.parse(await readFile(join(home, 'workspace-receipt.json'), 'utf8'))
+    const writing = receipt.find((row: { members: string[] }) => row.members.includes('pinned-story'))
+    const workspace = await rpc(ready, 'workspace/create', { request: { path: writing.path } })
+    expect(workspace).toMatchObject({ created: false, workspace: { workspaceId: writing.id, sessionIds: writing.members } })
+    const list = await rpc(ready, 'session/list', { _request: {} })
+    for (const sessionId of writing.members) {
+      expect(list.items).toContainEqual(expect.objectContaining({ sessionId }))
+      const page = await rpc(ready, 'session/events', { request: { address: { kind: 'session', sessionId } } })
+      expect(page.records).toContainEqual(expect.objectContaining({ event: expect.objectContaining({
+        type: 'user/message', data: expect.objectContaining({ content: [{ type: 'text', text: 'My writing notes' }] }),
+      }) }))
+    }
+    const created = await rpc(ready, 'session/create', { request: { workspaceId: writing.id, agentPreset: 'writing' } })
+    expect(created).toMatchObject({ sessionId: expect.any(String), agentPreset: 'writing' })
+    expect(writing.members).not.toContain(created.sessionId)
+    verified = true
+  } finally {
+    clearTimeout(timer)
+    await host.stop(verified)
+  }
+}, 300_000)
