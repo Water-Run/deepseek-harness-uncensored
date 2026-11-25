@@ -574,6 +574,14 @@ class ResolutionRouter {
     const name = barePackageName(request)
     if (name === undefined) return undefined
 
+    const target = resolution.entries.get(name)
+    if (target?.desktopCore) {
+      const after = layer.kind === 'profile' ? layer.after : target.declarer
+      const state: ResolutionRouteState = { route: { kind: 'interception', entry: target, after } }
+      if (memo) requests.set(request, state)
+      return state
+    }
+
     if (parentRoutes.selfReferenceName === undefined || !memo) {
       parentRoutes.selfReferenceName = selfReferenceName(parent)
     }
@@ -585,7 +593,6 @@ class ResolutionRouter {
 
     if (layer.kind === 'linked') return this.routeLinked(request, name, parent, resolution, flavor, cjs)
 
-    const target = resolution.entries.get(name)
     const candidates: string[] = []
     const localSearchPaths: string[] = []
     for (const searchPath of createRequire(parent).resolve.paths(name) as string[]) {

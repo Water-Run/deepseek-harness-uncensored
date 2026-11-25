@@ -12,7 +12,6 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { ContextSnapshotSection, UserMessage } from '@deepseek-ai/dsh-llm'
-import type { Session } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-session-projection'
 import type {} from '@deepseek-ai/dsh-tools'
 import { resolveSessionScope } from './scope.ts'
@@ -77,31 +76,6 @@ function userText(messages: readonly UserMessage[]): string {
     .map(block => block.text)
     .join('\n')
     .trim()
-}
-
-/** Bound on how far back one per-turn dedupe scan reads. */
-const DEDUPE_SCAN_EVENTS = 5000
-
-/**
- * Records this conversation has already received, including any inherited
- * through a side conversation's fork seed.
- * @param session - the conversation whose log is read.
- * @param current - Current durable records, whose revisions may have changed.
- * @returns identities whose current revision is already present in the log.
- */
-function usedMemoryIds(session: Session, current: readonly MemoryRecord[]): MemoryId[] {
-  const versions = new Map<MemoryId, number>()
-  // oxlint-disable-next-line typescript/no-deprecated -- Existing bounded memory-history scan; projection migration is deferred.
-  const events = session.snapshotEvents()
-  const start = Math.max(0, events.length - DEDUPE_SCAN_EVENTS)
-  for (let index = start; index < events.length; index += 1) {
-    const event = events[index]
-    if (event?.type !== 'user/message') continue
-    const source = event.data.source
-    if (source.kind !== 'memory-context') continue
-    for (const entry of source.entries) versions.set(entry.id, entry.version)
-  }
-  return current.filter(record => versions.get(record.id) === record.version).map(record => record.id)
 }
 
 /** Human spelling of one scope for tool results. */
@@ -174,15 +148,17 @@ export async function apply(ctx: Context, config: Config = {}): Promise<void> {
   if (retrieval) {
     ctx.on('agent/pre-step', async ({ agent, messages, step, signal }, next): Promise<PreStepDecision> => {
       const decision = await next()
-      if (decision.kind === 'reject' || signal.aborted || step !== 1) return decision
+      if (decision.kind === 'reject' || signal.aborted || step !== 1 || !ctx.memory.enabled) return decision
       const query = userText(messages)
       if (query === '') return decision
       const session = agent.session
       const scope = await resolveSessionScope(ctx, session, config.mode)
       // A fresh child conversation keeps its own empty context: quick
       // questions and spawned children never inherit the main line's memory.
-      if (scope.freshChild) return decision
-      const outcome = ctx.memory.retrieve({ query, scope, exclude: usedMemoryIds(session, ctx.memory.records()) })
+      if (scope.freshChild || !ctx.memory.enabled) return decision
+      const { injectedVersions } = extraction.stateOf(session)
+      const exclude = ctx.memory.records().filter(record => injectedVersions[record.id] === record.version).map(record => record.id)
+      const outcome = ctx.memory.retrieve({ query, scope, exclude })
       if (outcome.text === '') return decision
       const entries = outcome.selection.entries.map(candidate => ({
         id: candidate.record.id,
@@ -265,6 +241,7 @@ export async function apply(ctx: Context, config: Config = {}): Promise<void> {
       if (exec.agent === undefined) throw new Error('memory_write requires an owning agent session')
       const session = exec.agent.session
       const scope = await resolveSessionScope(ctx, session, config.mode)
+      if (!ctx.memory.enabled) throw new Error('Cross-conversation memory is off')
       const share = args.share ?? 'session'
       const target = memoryScopeFor(share, scope.workspaceKey, scope.mode)
       const result = await ctx.memory.create({
@@ -288,7 +265,7 @@ export async function apply(ctx: Context, config: Config = {}): Promise<void> {
       kind: 'other',
       rawInput: { type: args.type, content: args.content },
     }),
-  }))
+  }), { when: () => ctx.memory.enabled })
 
   ctx.tools.register(defineTool({
     name: 'memory_search',
@@ -342,6 +319,7 @@ export async function apply(ctx: Context, config: Config = {}): Promise<void> {
     async execute(args, exec) {
       if (exec.agent === undefined) throw new Error('memory_search requires an owning agent session')
       const scope = await resolveSessionScope(ctx, exec.agent.session, config.mode)
+      if (!ctx.memory.enabled) throw new Error('Cross-conversation memory is off')
       const result = ctx.memory.search({
         query: args.query,
         scope,
@@ -350,7 +328,7 @@ export async function apply(ctx: Context, config: Config = {}): Promise<void> {
       return { records: result.records.map(candidate => recordView(candidate.record)) }
     },
     presentCall: args => ({ card: 'generic', title: 'Search memory', kind: 'other', rawInput: args.query }),
-  }))
+  }), { when: () => ctx.memory.enabled })
 }
 
 /**

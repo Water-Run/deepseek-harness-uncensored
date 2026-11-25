@@ -11,13 +11,17 @@ import type {} from '@deepseek-ai/dsh-settings'
 import type { AccountClientMetadata } from '@deepseek-ai/dsh-deepseek-account/types'
 import { BalanceEngine, balanceAmount, balanceSample, balanceStorageKey } from './engine.ts'
 import type { BalanceIdentity } from './engine.ts'
-import type { BalanceAutoCleanup, BalanceSample, BalanceCleanupRequest, BalanceSnapshot } from './types.ts'
+import type { BalanceAutoCleanup, BalanceSidebarRange, BalanceSample, BalanceCleanupRequest, BalanceSnapshot } from './types.ts'
 export type * from './types.ts'
 
 /** Deployment and live user preferences for balance queries. */
 export interface Config {
   /** Whether authenticated queries and local sampling are enabled. */
   enabled: Volatile<boolean>
+  /** Display the current balance in the sidebar independently of sampling. */
+  showInSidebar: Volatile<boolean>
+  /** Time window for the sidebar curve. */
+  sidebarDays: Volatile<BalanceSidebarRange>
   /** Interval in seconds used by the shared client polling owner. */
   refreshSeconds: Volatile<number>
   /** Read saved observations or fetch the current balance from the provider. */
@@ -30,7 +34,7 @@ export interface Config {
   timeoutMs: number
   /** Maximum retained samples per account in local storage. */
   historyLimit: number
-  /** Maximum observations included in one client snapshot. */
+  /** Maximum observations included in a compact balance snapshot. */
   displayLimit: number
   /** Automatic cleanup applied while sampling: off, by count, or by age. */
   autoCleanup: Volatile<BalanceAutoCleanup>
@@ -39,17 +43,22 @@ export interface Config {
   /** Days of history kept when `autoCleanup` is `age`. */
   retainDays: Volatile<number>
 }
+// Thirty days at the shortest supported automatic interval, including both endpoints.
+const HISTORY_CAPACITY = 30 * 24 * 3600 / 3 + 1
+
 /** Validated sampling preferences and bounded provider requests. */
 export const Config = schema.object({
   enabled: schema.boolean().default(true).volatile(),
+  showInSidebar: schema.boolean().default(true).volatile(),
+  sidebarDays: schema.union(['1', '7', '30'] as const).default('7').volatile(),
   refreshSeconds: schema.number().step(1).min(3).max(3600).default(15).volatile(),
   source: schema.union(['local', 'api'] as const).default('api').volatile(),
   apiKeyRef: schema.string().default('DEEPSEEK_API_KEY'),
   baseURL: schema.string().default('https://api.deepseek.com'),
   timeoutMs: schema.number().step(1).min(1000).max(60000).default(10000),
-  historyLimit: schema.number().step(1).min(2).max(40320).default(10080),
+  historyLimit: schema.number().step(1).min(2).max(HISTORY_CAPACITY).default(HISTORY_CAPACITY),
   displayLimit: schema.number().step(1).min(2).max(1000).default(240),
-  autoCleanup: schema.union(['off', 'count', 'age'] as const).default('off').volatile(),
+  autoCleanup: schema.union(['off', 'count', 'age'] as const).default('age').volatile(),
   retainCount: schema.number().step(1).min(2).max(40320).default(2000).volatile(),
   retainDays: schema.number().step(1).min(1).max(3650).default(30).volatile(),
 })
@@ -57,7 +66,7 @@ export const name = 'balance'
 export const inject = ['storage', 'storageDomain', 'deepseekAccount', 'credentials', 'settings']
 
 const domainSpec = defineDomain({ name: 'uncensored_balance', version: 1, layout: 'per-record',
-  tables: { samples: domainTable<string, readonly BalanceSample[]>(z.array(balanceSample).max(40320)) } })
+  tables: { samples: domainTable<string, readonly BalanceSample[]>(z.array(balanceSample).max(HISTORY_CAPACITY)) } })
 const responseSchema = z.object({ balance_infos: z.array(z.object({
   currency: z.enum(['CNY', 'USD']), topped_up_balance: balanceAmount, granted_balance: balanceAmount,
 })).max(2) })
@@ -78,14 +87,15 @@ export class BalanceRemote extends TypertRemoteService {
   /**
    * Read balance observations under the current account and sampling preferences.
    * @param client - Platform request metadata.
+   * @param view - Full retained history for settings or a compact sidebar time window.
    * @returns Sanitized current state and local sampling history.
    */
   @Remote
-  get(client: AccountClientMetadata): Promise<BalanceSnapshot> {
+  get(client: AccountClientMetadata, view?: 'history' | BalanceSidebarRange): Promise<BalanceSnapshot> {
     const configured = this.options.config
     const source = isVolatile(configured.source) ? configured.source.get() : configured.source
     const enabled = isVolatile(configured.enabled) ? configured.enabled.get() : configured.enabled
-    return enabled ? this.options.engine.read(client, source)
+    return enabled ? this.options.engine.read(client, source, view)
       : Promise.resolve({ status: 'disabled', source, account: null, samples: [], sampleCount: 0 })
   }
 
@@ -93,11 +103,12 @@ export class BalanceRemote extends TypertRemoteService {
    * Remove stored samples for the current account.
    * @param client - Platform request metadata.
    * @param request - Cleanup mode and its bound.
+   * @param view - History detail requested by the active client view.
    * @returns The remaining history.
    */
   @Remote
-  clear(client: AccountClientMetadata, request: BalanceCleanupRequest): Promise<BalanceSnapshot> {
-    return this.options.engine.clear(client, cleanupSchema.parse(request))
+  clear(client: AccountClientMetadata, request: BalanceCleanupRequest, view?: 'history' | BalanceSidebarRange): Promise<BalanceSnapshot> {
+    return this.options.engine.clear(client, cleanupSchema.parse(request), view)
   }
 }
 

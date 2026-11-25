@@ -56,6 +56,17 @@ it('bounds retained history and transport samples while retaining the first and 
   expect(result.samples.map(sample => sample.time)).toEqual([1, 3, 100])
 })
 
+it('delivers every retained observation in settings and bounds the sidebar by time before downsampling', async () => {
+  const samples = spaced(12)
+  const { engine } = setup(samples, 3)
+  expect((await engine.read(client, 'local', 'history')).samples).toEqual(samples)
+  expect((await engine.read(client, 'local', '1')).samples).toEqual(samples.slice(-2))
+  const week = await engine.read(client, 'local', '7')
+  expect(week.samples[0]).toEqual(samples[4])
+  expect(week.samples).toHaveLength(3)
+  expect((await engine.read(client, 'local', '30')).samples[0]).toEqual(samples[0])
+})
+
 it('keeps the most recent complete rise when the snapshot cannot fit every rise', async () => {
   const amounts = ['63.889919', '63.889912', '63.889913', '63.889900', '63.889901', '63.889899']
   const samples = amounts.map((toppedUp, time) => ({ time, wallets: [{ currency: 'USD' as const, toppedUp, granted: '0' }] }))

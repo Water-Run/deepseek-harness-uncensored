@@ -110,7 +110,8 @@ export class MemoryController extends TypertRemoteService {
     }
     const ns = this.ctx.memory.settingsNamespace()
     const descriptor = ns === undefined ? undefined : this.ctx.get('settings')?.describe().find(row => row.ns === ns)
-    return { totalRecords: records.length, limits: this.ctx.memory.limits(), workspaces, modes: [...modes.values()],
+    return { enabled: this.ctx.memory.enabled, totalRecords: records.length, limits: this.ctx.memory.limits(),
+      workspaces, modes: [...modes.values()],
       extraction: { enabled: this.ctx.memory.extractionOptions().enabled, revision: descriptor?.revision ?? null },
       extractions: this.ctx.memory.extractionStatuses() }
   }
@@ -122,11 +123,21 @@ export class MemoryController extends TypertRemoteService {
    */
   @Remote
   async configureExtraction(request: { enabled: boolean; expectedRevision: number }): Promise<MemoryDescribeValue> {
+    return this.configure({ ...request, preference: 'autoExtract' })
+  }
+
+  /**
+   * Update conversation access or automatic extraction under the revision seen by the owner.
+   * @param request - Preference, new value and expected settings revision.
+   * @returns The current memory settings and extraction outcomes.
+   */
+  @Remote
+  async configure(request: { preference: 'enabled' | 'autoExtract'; enabled: boolean; expectedRevision: number }): Promise<MemoryDescribeValue> {
     this.assertOwner('memory/settings')
     const ns = this.ctx.memory.settingsNamespace()
     const settings = this.ctx.get('settings')
     if (ns === undefined || settings === undefined) throw new RemoteError('memory/unavailable', 'Memory settings are unavailable', { reason: 'settings' })
-    try { await settings.update(ns, { autoExtract: request.enabled }, request.expectedRevision) }
+    try { await settings.update(ns, request.preference === 'enabled' ? { enabled: request.enabled } : { autoExtract: request.enabled }, request.expectedRevision) }
     catch (error) {
       if (error instanceof SettingsConflictError) throw new RemoteError('memory/settings-conflict', 'Memory settings changed',
         { expected: error.expected, actual: error.actual })

@@ -699,6 +699,19 @@ index 824fd37a99cb6cc511ef156e7d3913c0012092de..54c7eb796967c3e640e65b6f23f31873
  | `session` | `@deepseek-ai/dsh-session` |
  | `session-log-deepseek` | `@deepseek-ai/dsh-session-log-deepseek` |
  | `typert` | `@deepseek-ai/dsh-typert-registry` |
+diff --git a/apps/desktop-host/src/index.ts b/apps/desktop-host/src/index.ts
+index 7664fb11d460ed9cd72274f3105cb782bc0d462e..a2e50daf0e267e4c067b6af167d1bdfadc0a13a0 100644
+--- a/apps/desktop-host/src/index.ts
++++ b/apps/desktop-host/src/index.ts
+@@ -42,7 +42,7 @@ async function main(): Promise<void> {
+   const projectDir = process.argv[3] as string
+   // Set before the launch-environment snapshot and profile evaluation; empty means the payload sits beside the runtime directory.
+   process.env.DSH_PRIMARY_RUNTIME = process.argv[4] || join(runtimeDir, '..', 'runtime', 'primary-runtime')
+-  const installAnchor = join(runtimeDir, 'node_modules', '@deepseek-ai', 'dsh', 'package.json')
++  const installAnchor = join(runtimeDir, 'node_modules', '@deepseek-ai', 'dsh-desktop-host', 'package.json')
+   const profile = loadProfileDirectory('dsh', projectDir, installAnchor)
+   reportSkippedBundles('dsh', profile)
+   const application = runProfile({
 diff --git a/apps/desktop/README.i18n.yaml b/apps/desktop/README.i18n.yaml
 index 1336a701c617d5f35477c8bc0082d6ae25996fcf..edd5efcac4404f9cff458f71f51e2e4deb59c45b 100644
 --- a/apps/desktop/README.i18n.yaml
@@ -9193,6 +9206,116 @@ index c4011222a900e1abb11e8595b5fb2caecd211c7e..2af1c08ffd50ca621c44003e19ad64c2
      }
    ]
  }
+diff --git a/packages/boot/app-boot/src/profile-resolution/resolver.ts b/packages/boot/app-boot/src/profile-resolution/resolver.ts
+index 427cc0717a77543f2164b0ed5b78c1d9277adf73..d04a129cb7313bc6bd20f947984d6b50dfc3aa53 100644
+--- a/packages/boot/app-boot/src/profile-resolution/resolver.ts
++++ b/packages/boot/app-boot/src/profile-resolution/resolver.ts
+@@ -574,6 +574,14 @@ class ResolutionRouter {
+     const name = barePackageName(request)
+     if (name === undefined) return undefined
+ 
++    const target = resolution.entries.get(name)
++    if (target?.desktopCore) {
++      const after = layer.kind === 'profile' ? layer.after : target.declarer
++      const state: ResolutionRouteState = { route: { kind: 'interception', entry: target, after } }
++      if (memo) requests.set(request, state)
++      return state
++    }
++
+     if (parentRoutes.selfReferenceName === undefined || !memo) {
+       parentRoutes.selfReferenceName = selfReferenceName(parent)
+     }
+@@ -585,7 +593,6 @@ class ResolutionRouter {
+ 
+     if (layer.kind === 'linked') return this.routeLinked(request, name, parent, resolution, flavor, cjs)
+ 
+-    const target = resolution.entries.get(name)
+     const candidates: string[] = []
+     const localSearchPaths: string[] = []
+     for (const searchPath of createRequire(parent).resolve.paths(name) as string[]) {
+diff --git a/packages/boot/app-boot/src/profile.ts b/packages/boot/app-boot/src/profile.ts
+index 86caac54a00b30898bdab9676aa2f49aa4f8c94a..5553445f22321a56fc0b11388c18f09c8e252753 100644
+--- a/packages/boot/app-boot/src/profile.ts
++++ b/packages/boot/app-boot/src/profile.ts
+@@ -129,6 +129,8 @@ export interface RuntimeResolutionEntry {
+   readonly declarer: string
+   /** Whether every profile or only the active profile receives this entry. */
+   readonly scope: 'installation' | 'profile'
++  /** Desktop Host services and plugins must share one copy of each shipped Harness package. */
++  readonly desktopCore?: true
+ }
+ 
+ /**
+@@ -318,6 +320,7 @@ function profileDependencyNames(manifest: ProfileManifest): string[] {
+ function collectInstallationScopePackages(
+   installAnchor: string, skippedBundles: ReadonlySet<string>,
+ ): {
++  desktopHost: boolean
+   packageNames: ReadonlySet<string>
+   packageDirs: ReadonlyMap<string, string>
+   declarers: ReadonlyMap<string, string>
+@@ -365,7 +368,7 @@ function collectInstallationScopePackages(
+       queue.push({ anchor: manifestPath, manifest })
+     }
+   }
+-  return { packageNames: new Set(links.keys()), packageDirs: links, declarers, versions }
++  return { desktopHost: appManifest.name === '@deepseek-ai/dsh-desktop-host', packageNames: new Set(links.keys()), packageDirs: links, declarers, versions }
+ }
+ 
+ /** Inputs for {@link createRuntimeResolution}. */
+@@ -389,12 +392,14 @@ export async function createRuntimeResolution(
+   const { installAnchor, profile, home = resolveDshHome() } = options
+   const profilesDir = join(home, PROFILES_DIR)
+   const manifest = readOptionalProfileManifest(profile)
+-  const { packageNames, packageDirs, declarers, versions } = collectInstallationScopePackages(
++  const { desktopHost, packageNames, packageDirs, declarers, versions } = collectInstallationScopePackages(
+     installAnchor, new Set(profile?.skippedBundles.map(skipped => skipped.packageName)),
+   )
+   const profileDeclarers = new Map<string, string>()
+   const profileVersions = new Map<string, string | undefined>()
+-  const localPackageNames = profile === undefined ? [] : installedProfilePackageNames(profile, manifest)
++  const desktopCore = (name: string) => desktopHost && packageNames.has(name)
++    && (name === '@deepseek-ai/dsh' || name.startsWith('@deepseek-ai/dsh-') || name === '@deepseek-ai/cordis')
++  const localPackageNames = profile === undefined ? [] : installedProfilePackageNames(profile, manifest).filter(name => !desktopCore(name))
+   const profilePackages: ReadonlyMap<string, string> = profile === undefined
+     ? new Map<string, string>()
+     : collectProfileScopePackages(profile, packageNames, profileDeclarers, profileVersions)
+@@ -409,6 +414,7 @@ export async function createRuntimeResolution(
+       ...[...packageDirs].map(([name, packageDir]) => Object.freeze({
+         name, packageDir, version: versions.get(name),
+         declarer: declarers.get(name) as string, scope: 'installation' as const,
++        ...desktopCore(name) ? { desktopCore: true as const } : {},
+       })),
+       ...[...profilePackages].map(([name, packageDir]) => Object.freeze({
+         name, packageDir, version: profileVersions.get(name),
+diff --git a/packages/boot/app-boot/tests/profile-resolution.spec.ts b/packages/boot/app-boot/tests/profile-resolution.spec.ts
+index b56d1a17748ec7706538d29d717cb0552999ebe4..c71306ea9ded60d4efd166c5c32fbec94ec307dc 100644
+--- a/packages/boot/app-boot/tests/profile-resolution.spec.ts
++++ b/packages/boot/app-boot/tests/profile-resolution.spec.ts
+@@ -227,6 +227,23 @@ function lookupWinner(matrixCase: LookupCase): LookupLayer | 'interception' | 'm
+ }
+ 
+ describe('runtime resolution', { concurrent: false }, () => {
++  it('opens a desktop profile with stale core dependencies and keeps the installed third-party bundle', async () => {
++    const name = '@deepseek-ai/dsh-api-workspace-controller'
++    const f = fixture(name)
++    pkg(dirname(f.installAnchor), '@deepseek-ai/dsh-desktop-host', 5, { [name]: '*' })
++    const local = join(f.profile.dir, 'node_modules')
++    pkg(join(local, name), name, 2)
++    const plugin = 'dsh-better-sidebar'
++    const parent = pkg(join(local, plugin), plugin, 6)
++    file(join(f.profile.dir, 'package.json'), JSON.stringify({ dependencies: { [name]: '2.0.0', [plugin]: '6.0.0' } }))
++    const hook = installRuntimeInterception(await resolutionOf(f))
++    registrations.push(hook)
++    expect(hook.packageDir(name, pathToFileURL(parent).href)).toBe(f.installed)
++    expect((await importFrom(name, pathToFileURL(parent).href)).marker).toBe(1)
++    expect(createRequire(parent)(name)).toMatchObject({ marker: 1 })
++    expect(createRequire(join(f.profile.dir, 'package.json'))(plugin)).toMatchObject({ marker: 6 })
++  })
++
+   it('computes an immutable runtime resolution without writing profile packages', async () => {
+     const f = fixture()
+     const resolution = await resolutionOf(f)
 diff --git a/packages/bundle/base/cordis.patch.yml b/packages/bundle/base/cordis.patch.yml
 index c1aa70ec84899dcf06ca799295351363a2e2deb3..7c130a5dfa7cfa4d85bec7aae34dd7d06c5ef834 100644
 --- a/packages/bundle/base/cordis.patch.yml

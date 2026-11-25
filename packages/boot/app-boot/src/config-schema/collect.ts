@@ -2,7 +2,8 @@
 
 import { readFile, realpath } from 'node:fs/promises'
 import { extname, join } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { includeFilename } from '../include-filename.ts'
+import { pathToFileURL } from 'node:url'
 import * as yaml from 'js-yaml'
 import Loader, { EntryGroup, ModuleLoader, isJsExpr, type EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
 import Group from '@deepseek-ai/cordis-plugin-group'
@@ -126,7 +127,7 @@ export async function collectConfigSchemas(
       if (config === undefined) throw new Error('include config is missing')
       if (!record(config) || isJsExpr(config)) throw new Error('include config must be literal; config expressions are not evaluated')
       if (typeof config.path !== 'string') throw new Error('include path must be literal; config expressions are not evaluated')
-      const filename = fileURLToPath(new URL(config.path, baseUrl))
+      const filename = includeFilename(config.path, baseUrl)
       const extension = extname(filename)
       if (!['.json', '.yaml', '.yml'].includes(extension)) throw new Error(`include extension ${JSON.stringify(extension)} is not supported`)
       let source: unknown

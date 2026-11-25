@@ -20,9 +20,14 @@ export type BalanceCleanupRequest =
   | { readonly mode: 'count'; readonly keep: number }
   | { readonly mode: 'age'; readonly days: number }
 
+/** Period shown in the sidebar balance history, measured from the latest observation. */
+export type BalanceSidebarRange = '1' | '7' | '30'
+
 /** Local sampling preferences persisted with the application's settings. */
 export interface BalancePreferences {
   readonly enabled: boolean
+  readonly showInSidebar: boolean
+  readonly sidebarDays: BalanceSidebarRange
   readonly refreshSeconds: number
   readonly source: 'local' | 'api'
   /** Automatic cleanup mode applied while sampling. */

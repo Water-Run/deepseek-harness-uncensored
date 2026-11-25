@@ -25,6 +25,7 @@
   "exclude": [
     "tests/product-calendar-version.e2e.ts",
     "tests/about-dialog-fit.e2e.ts",
+    "tests/memory-preference.e2e.ts",
     "tests/balance-cleanup.e2e.ts",
     "tests/release-rate-limit.e2e.ts",
     "tests/balance-history-layout.e2e.ts",

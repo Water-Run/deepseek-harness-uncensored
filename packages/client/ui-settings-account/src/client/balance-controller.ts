@@ -1,7 +1,7 @@
 /** One polling lifetime shared by the balance settings page and sidebar. */
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
-import type { BalanceCleanupRequest, BalancePreferences, BalanceSnapshot } from '@deepseek-ai/dsh-balance/types'
+import type { BalanceCleanupRequest, BalancePreferences, BalanceSidebarRange, BalanceSnapshot } from '@deepseek-ai/dsh-balance/types'
 
 /** Current query, clock, and settings-write feedback. */
 export interface BalanceViewState {
@@ -22,6 +22,7 @@ export class BalanceController {
     data: undefined, loading: false, failed: false, now: Date.now(), saving: false, clearing: false, toast: null, toastId: 0,
   })
   private readonly lifetime = new AbortController()
+  private historyViews = 0
   private revision = 0
   private pending: Promise<void> | undefined
   private timer: ReturnType<typeof setTimeout> | undefined
@@ -34,11 +35,22 @@ export class BalanceController {
    * @param query - Authenticated balance query.
    * @param clearSamples - Authenticated stored-sample cleanup.
    */
-  constructor(readonly preferences: ConfigForm<BalancePreferences>, private readonly query: () => Promise<BalanceSnapshot>,
-    private readonly clearSamples: (request: BalanceCleanupRequest) => Promise<BalanceSnapshot>) {
+  constructor(readonly preferences: ConfigForm<BalancePreferences>, private readonly query: (view: BalanceSidebarRange | 'history') => Promise<BalanceSnapshot>,
+    private readonly clearSamples: (request: BalanceCleanupRequest, view: BalanceSidebarRange | 'history') => Promise<BalanceSnapshot>) {
     this.stopPreferences = preferences.subscribe(() => { this.refresh() })
     this.clock = setInterval(() => { this.state.set({ ...this.state.getSnapshot(), now: Date.now() }) }, 60_000)
     this.refresh()
+  }
+
+  /** Request the full series while settings is mounted. @returns Release the full-history request. */
+  readonly inspectHistory = (): (() => void) => {
+    this.historyViews++
+    if (this.historyViews === 1) this.refresh()
+    return () => { this.historyViews-- }
+  }
+
+  private get view(): BalanceSidebarRange | 'history' {
+    return this.historyViews > 0 ? 'history' : this.preferences.getSnapshot().value?.sidebarDays ?? '7'
   }
 
   /** Coalesce repeated reads and hide the observation as soon as sampling is disabled. */
@@ -72,11 +84,12 @@ export class BalanceController {
   readonly clear = async (request: BalanceCleanupRequest): Promise<boolean> => {
     if (this.lifetime.signal.aborted) return false
     this.state.set({ ...this.state.getSnapshot(), clearing: true })
+    const generation = this.revision
     let accepted = false
     try {
-      const data = await this.clearSamples(request)
-      accepted = true
-      if (!this.lifetime.signal.aborted) {
+      const data = await this.clearSamples(request, this.view)
+      accepted = data.status === 'ready' || data.status === 'empty'
+      if (accepted && this.accepts(generation)) {
         this.state.set({ ...this.state.getSnapshot(), data, failed: false, loading: false, now: Date.now() })
       }
     } catch (_error) {
@@ -94,7 +107,7 @@ export class BalanceController {
       const generation = this.revision
       this.state.set({ ...this.state.getSnapshot(), loading: true, failed: false })
       try {
-        const data = await this.query()
+        const data = await this.query(this.view)
         if (this.accepts(generation)) {
           this.state.set({ ...this.state.getSnapshot(), data, loading: false, now: Date.now(), failed: data.status === 'unavailable' })
         }

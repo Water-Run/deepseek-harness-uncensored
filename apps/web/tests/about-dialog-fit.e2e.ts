@@ -1,9 +1,11 @@
 /** The About dialog fits a full-screen window without a vertical scrollbar. */
 import { fileURLToPath } from 'node:url'
+import { mkdir } from 'node:fs/promises'
+import { join } from 'node:path'
 import { chromium, type Locator } from 'playwright'
 import { expect, it } from 'vitest'
 import { launchWebScaffold, watchConsole } from './scaffold.ts'
-import { configureConversationReplay, saveFailureShot } from './support.ts'
+import { configureConversationReplay } from './support.ts'
 
 /** Scrollable descendants of the dialog, named by class for a readable failure. */
 async function scrollableDescendants(dialog: Locator): Promise<string[]> {
@@ -34,12 +36,33 @@ it.each([
     await page.getByRole('menuitem', { name: labels.about, exact: true }).click()
     const dialog = page.getByRole('dialog', { name: labels.about, exact: true })
     await dialog.waitFor()
+    expect(await dialog.getByText(labels.about, { exact: true }).count()).toBe(0)
 
+    const shots = fileURLToPath(new URL('../../../.artifacts/screenshots/about', import.meta.url))
+    await mkdir(shots, { recursive: true })
     for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 720 }]) {
       await page.setViewportSize(viewport)
       await expect.poll(() => scrollableDescendants(dialog), { timeout: 5000 }).toEqual([])
-      await saveFailureShot(page, `screenshots/about-fit-${labels.locale}-${viewport.width}x${viewport.height}`)
+      const frame = await dialog.boundingBox()
+      const brand = await dialog.getByRole('region').first().boundingBox()
+      if (!frame || !brand) throw new Error('About layout is missing')
+      expect(brand.x).toBeCloseTo(frame.x, 0)
+      expect(brand.y).toBeCloseTo(frame.y, 0)
+      expect(brand.height).toBeCloseTo(frame.height, 0)
+      await dialog.screenshot({ path: join(shots, labels.locale + '-' + viewport.width + '.png') })
     }
+    await page.setViewportSize({ width: 390, height: 760 })
+    await scaffold.ctx.settings.update('ui-theme', { preference: 'dark' })
+    await expect.poll(() => page.evaluate(() => document.body.hasAttribute('data-ds-dark-theme'))).toBe(true)
+    const banner = dialog.getByRole('region').first()
+    const frame = await dialog.boundingBox()
+    const brand = await banner.boundingBox()
+    if (!frame || !brand) throw new Error('About banner is missing')
+    expect(brand.width).toBeCloseTo(frame.width, 0)
+    await dialog.screenshot({ path: join(shots, labels.locale + '-390.png') })
+    await dialog.getByRole('link', { name: /^REA /u }).scrollIntoViewIfNeeded()
+    await dialog.getByRole('button', { name: labels.locale === 'zh-CN' ? '关闭' : 'Close', exact: true }).click()
+    await dialog.waitFor({ state: 'detached' })
     expect(consoleWatch.pageErrors).toEqual([])
   } finally {
     await browser.close()

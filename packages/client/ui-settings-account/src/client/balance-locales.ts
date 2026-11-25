@@ -1,5 +1,12 @@
 /** Balance labels are separate from the account authentication copy. */
 export const balanceEn = {
+  'balance.sidebar': 'Show balance in sidebar',
+  'balance.window': 'Sidebar history',
+  'balance.1': 'Short · 24 hours',
+  'balance.7': 'Medium · 7 days',
+  'balance.30': 'Long · 30 days',
+  'balance.start': 'Start of range',
+  'balance.end': 'End of range',
   'balance.title': 'Balance and history', 'balance.enabled': 'Show balance and collect samples',
   'balance.sampling': 'Sampling settings',
   'balance.interval': 'Refresh interval (seconds)', 'balance.intervalError': 'Enter a whole number from 3 to 3600',
@@ -32,6 +39,13 @@ export const balanceEn = {
 } as const
 /** Simplified Chinese balance labels. */
 export const balanceZh: Record<keyof typeof balanceEn, string> = {
+  'balance.sidebar': '侧栏显示余额',
+  'balance.window': '侧栏曲线范围',
+  'balance.1': '短 · 24 小时',
+  'balance.7': '中 · 7 天',
+  'balance.30': '长 · 30 天',
+  'balance.start': '区间起点',
+  'balance.end': '区间终点',
   'balance.title': '余额与统计', 'balance.enabled': '显示余额并采样',
   'balance.sampling': '采样设置',
   'balance.interval': '刷新间隔（秒）', 'balance.intervalError': '请输入 3–3600 之间的整数',

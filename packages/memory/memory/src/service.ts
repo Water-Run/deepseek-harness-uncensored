@@ -62,6 +62,8 @@ const DEFAULT_MAX_CONTENT_CHARS = 4000
 
 /** Retrieval and storage bounds. Every field is deployed through cordis.yml. */
 export interface Config {
+  /** Allow conversations to retrieve, save and extract memory. Defaults to false. */
+  enabled?: boolean
   /** Automatically extract durable facts at successful turn completion; defaults to false. */
   autoExtract?: boolean
   /** Inclusive UTF-8 bound on extraction transcript text; defaults to 24000. */
@@ -85,7 +87,7 @@ export interface Config {
 }
 
 /** Config after defaults are applied. */
-type ResolvedConfig = Required<Omit<Config, 'autoExtract'>> & { autoExtract: Volatile<boolean> }
+type ResolvedConfig = Required<Omit<Config, 'autoExtract' | 'enabled'>> & { autoExtract: Volatile<boolean>; enabled: Volatile<boolean> }
 
 /** Loader-resolved configuration retains the live preference cell. */
 function isResolvedConfig(value: Config | ResolvedConfig): value is ResolvedConfig {
@@ -192,6 +194,7 @@ export class MemoryService extends Service {
   static inject = ['storageDomain']
 
   static Config: z<Config, ResolvedConfig> = z.object({
+    enabled: z.boolean().default(false).volatile(),
     autoExtract: z.boolean().default(false).volatile(),
     extractionInputBytes: z.natural().min(1024).max(1000000).default(24000),
     extractionMaxTokens: z.natural().min(128).max(16000).default(2048),
@@ -241,13 +244,16 @@ export class MemoryService extends Service {
     }, 'memory.extractions')
   }
 
+  /** Whether model requests may use cross-conversation memory. @returns The live opt-in. */
+  get enabled(): boolean { return this.config.enabled.get() }
+
   /**
    * Read the live preference and fixed extraction bounds.
    * @returns Current extraction options.
    */
   extractionOptions(): MemoryExtractionOptions {
     const value = this.config
-    return { enabled: value.autoExtract.get(), inputBytes: value.extractionInputBytes, maxTokens: value.extractionMaxTokens,
+    return { enabled: this.enabled && value.autoExtract.get(), inputBytes: value.extractionInputBytes, maxTokens: value.extractionMaxTokens,
       maxRecords: value.extractionMaxRecords, timeoutMs: value.extractionTimeoutMs }
   }
 
@@ -301,6 +307,7 @@ export class MemoryService extends Service {
    * @returns Completion after its outcome is logged.
    */
   async retryExtraction(id: SessionId): Promise<void> {
+    if (!this.enabled) throw new MemoryError('invalid', 'Enable cross-conversation memory to retry extraction')
     const binding = this.extractors.get(id)
     if (binding === undefined) throw new MemoryError('not-found', 'Open the source conversation before retrying memory extraction')
     await binding.retry()

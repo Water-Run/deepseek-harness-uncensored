@@ -150,9 +150,12 @@ export function balanceChart(
     for (let index = run.start + 1; index < run.end; index += 1) kept.delete(index)
   }
   const picked = [...kept].sort((a, b) => a - b)
-  const values = picked.map(index => atIndex(samples, index).value)
-  const low = Math.min(...values)
-  const high = Math.max(...values)
+  let low = Infinity, high = -Infinity
+  for (const index of picked) {
+    const value = atIndex(samples, index).value
+    low = Math.min(low, value)
+    high = Math.max(high, value)
+  }
   const range = { low, high }
   const coords = picked.map((index) => {
     const sample = atIndex(samples, index)

@@ -10,7 +10,7 @@ const clearSamples = vi.fn(async (_request: BalanceCleanupRequest): Promise<Bala
 
 function preferences() {
   const form = stubConfigForm<BalancePreferences>()
-  form.publish({ status: 'ready', value: { enabled: true, source: 'api', refreshSeconds: 15, autoCleanup: 'off', retainCount: 2000, retainDays: 30 }, writable: true })
+  form.publish({ status: 'ready', value: { enabled: true, source: 'api', refreshSeconds: 15, showInSidebar: true, sidebarDays: '7', autoCleanup: 'off', retainCount: 2000, retainDays: 30 }, writable: true })
   return form
 }
 
@@ -54,7 +54,7 @@ it('coalesces pending refreshes and never republishes the previous account after
     current.resolve(latest)
     await vi.advanceTimersByTimeAsync(0)
     expect(controller.state.getSnapshot().data).toBe(latest)
-    form.publish({ value: { enabled: false, source: 'api', refreshSeconds: 15, autoCleanup: 'off', retainCount: 2000, retainDays: 30 } })
+    form.publish({ value: { enabled: false, source: 'api', refreshSeconds: 15, showInSidebar: true, sidebarDays: '7', autoCleanup: 'off', retainCount: 2000, retainDays: 30 } })
     await vi.advanceTimersByTimeAsync(0)
     expect(controller.state.getSnapshot().data).toBeUndefined()
     expect(query).toHaveBeenCalledTimes(2)
@@ -76,7 +76,7 @@ it('hides saved observations immediately when disabled during a refresh', async 
     controller.refresh()
     expect(query).toHaveBeenCalledTimes(2)
     expect(controller.state.getSnapshot().loading).toBe(true)
-    form.publish({ value: { enabled: false, source: 'api', refreshSeconds: 15, autoCleanup: 'off', retainCount: 2000, retainDays: 30 } })
+    form.publish({ value: { enabled: false, source: 'api', refreshSeconds: 15, showInSidebar: true, sidebarDays: '7', autoCleanup: 'off', retainCount: 2000, retainDays: 30 } })
     expect(controller.state.getSnapshot()).toMatchObject({ data: undefined, loading: false, failed: false })
 
     inFlight.resolve(sample('9.00'))
@@ -95,10 +95,27 @@ it('publishes the remaining history after a cleanup and reports its outcome', as
   try {
     await vi.advanceTimersByTimeAsync(0)
     expect(await controller.clear({ mode: 'count', keep: 500 })).toBe(true)
-    expect(cleanup).toHaveBeenCalledWith({ mode: 'count', keep: 500 })
+    expect(cleanup).toHaveBeenCalledWith({ mode: 'count', keep: 500 }, '7')
     expect(controller.state.getSnapshot()).toMatchObject({
       data: { status: 'empty', sampleCount: 0 }, clearing: false, toast: 'cleared',
     })
+  } finally { await controller.dispose() }
+})
+
+it('keeps the new account visible when an earlier cleanup finishes', async () => {
+  vi.useFakeTimers()
+  const oldCleanup = Promise.withResolvers<BalanceSnapshot>()
+  const current = sample('2.00')
+  const query = vi.fn().mockResolvedValueOnce(sample('10.00')).mockResolvedValue(current)
+  const controller = new BalanceController(preferences().scope, query, () => oldCleanup.promise)
+  try {
+    await vi.advanceTimersByTimeAsync(0)
+    const pending = controller.clear({ mode: 'all' })
+    controller.invalidate()
+    await vi.advanceTimersByTimeAsync(0)
+    oldCleanup.resolve(sample('0.00'))
+    expect(await pending).toBe(true)
+    expect(controller.state.getSnapshot().data).toBe(current)
   } finally { await controller.dispose() }
 })
 

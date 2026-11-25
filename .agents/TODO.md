@@ -2,13 +2,17 @@
 
 下一版的完整勾选清单（含 `v2026.11.23.0` 之后 10 个提交、破甲升级、关于页与 Credit、分平台发布）见 [下一版 TODO 清单](requirements/2026-11-24-next-release-todo.md)；破甲逐项明细见 [破甲升级 TODO 清单](requirements/2026-11-24-armor-todo.md)，排期与落点见[总计划](requirements/2026-11-24-armor-next-release-plan.md)。
 
-**2026.11.18.11 已保留资料安装并正常启动。** 本版修复更新请求并核验差分索引。公开预发布为 17.5。[本地交付与恢复](requirements/2026-11-18.11-delivery.md)
+**2026.11.18.11 已保留资料安装并正常启动。** 本版修复更新请求并核验差分索引。当前公开正式版为 [2026.11.24.3](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.24.3)。[本地交付与恢复](requirements/2026-11-18.11-delivery.md)
 
 首次正式发布为 Windows x64 完整交付。Linux x64 转入后续版本，历史 Linux 验收产物为 17.8。36 项完成、8 项进行中、4 项列入后续版本。[交付矩阵](requirements/desktop-installer-plan.md#交付矩阵)
 
 `0.2.3-alpha.2` 已核对标签并完成试合并。在 Windows x64 已用目标工具链完成上游冻结锁文件安装、ConPTY 子进程检查和构建，10 项构建检查通过。主线已合入并验证会话日志内核、多级分叉计费和写作资料压缩后撤回。固定标签候选源和还原脚本已收录在唯一的 `main` 分支。写作及额度设置已通过真实浏览器操作，双窗口拦截和冷会话恢复连续三次通过。桌面设置已移除渠道选择，旧偏好使用安装包更新源。候选的写作、额度、预设及旧桌面接口联合回归 18 项通过。正式标签生成的 15 份资料文件已跨版本复验，覆盖工作区索引、两代连续分叉和旧写作会话的记忆提炼费用。Windows 候选还修复了终端自然退出后转发线程留存的问题，已用 Electron 运行时复验。完整产品装配与安装器仍待验收。[内核升级计划](requirements/2026-11-24-dsh-kernel-upgrade.md)
 
 源码已合入 DSH `0.2.2-rc.5`，接入自动搜索路由、保护配置与网关凭据同源约束。此前通过 Windows 打包预检及四条搜索和抓取完整回放。本机仍为 rc.4，暂缓 rc.5 升级与实装。[内核记录](requirements/2026-11-18-dsh-rc4.md#上游-rc5-对照2026-11-19)
+
+桌面读取旧 profile 时，随应用提供的 DSH 包优先于资料目录中的同名副本。已覆盖 ESM、CommonJS 及第三方插件解析。Issue #20 的 macOS 保留资料实装仍待验证。[用户报告](https://github.com/Water-Run/deepseek-harness-uncensored/issues/20)
+
+下一版源码已完成关于页与设置调整、跨对话记忆总开关和余额历史范围选择。Windows x64 上已验收桌面与窄屏布局、余额双端拖动和开关持久化。四组旧版 Web 会话回放在 Windows 上仍有差异，涉及 Unix Shell、平台技能目录和既有系统提示词断言，需在支持的平台复验。[默认值升级说明](../docs/upgrade-guide/v0.2.2-rc.5/memory-and-balance-defaults/guide.zh.md)
 
 ## Windows 首发缺口
 

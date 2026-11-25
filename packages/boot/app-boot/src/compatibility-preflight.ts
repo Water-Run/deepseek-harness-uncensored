@@ -7,6 +7,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
 import { applyEntryPatches, entryListSchema, type PatchOptions } from '@deepseek-ai/cordis-plugin-include'
 import { load } from 'js-yaml'
+import { includeFilename } from './include-filename.ts'
 import { resolvePluginResource } from './package-meta.ts'
 import { barePackageName } from './profile-resolution/resolver.ts'
 import type {} from './profile-resolution/service.ts'
@@ -145,7 +146,7 @@ function preflight(
       // A dynamic Include is resolved by the Include plugin itself; this walk cannot judge its rows.
       return undefined
     }
-    const requested = isAbsolute(config.path) ? config.path : fileURLToPath(new URL(config.path, base))
+    const requested = includeFilename(config.path, base)
     const filename = existsSync(requested) ? realpathSync(requested) : requested
     if (includes.has(filename)) return undefined
     includes.add(filename)

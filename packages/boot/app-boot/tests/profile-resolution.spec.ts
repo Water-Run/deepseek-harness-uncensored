@@ -227,6 +227,23 @@ function lookupWinner(matrixCase: LookupCase): LookupLayer | 'interception' | 'm
 }
 
 describe('runtime resolution', { concurrent: false }, () => {
+  it('opens a desktop profile with stale core dependencies and keeps the installed third-party bundle', async () => {
+    const name = '@deepseek-ai/dsh-api-workspace-controller'
+    const f = fixture(name)
+    pkg(dirname(f.installAnchor), '@deepseek-ai/dsh-desktop-host', 5, { [name]: '*' })
+    const local = join(f.profile.dir, 'node_modules')
+    pkg(join(local, name), name, 2)
+    const plugin = 'dsh-better-sidebar'
+    const parent = pkg(join(local, plugin), plugin, 6)
+    file(join(f.profile.dir, 'package.json'), JSON.stringify({ dependencies: { [name]: '2.0.0', [plugin]: '6.0.0' } }))
+    const hook = installRuntimeInterception(await resolutionOf(f))
+    registrations.push(hook)
+    expect(hook.packageDir(name, pathToFileURL(parent).href)).toBe(f.installed)
+    expect((await importFrom(name, pathToFileURL(parent).href)).marker).toBe(1)
+    expect(createRequire(parent)(name)).toMatchObject({ marker: 1 })
+    expect(createRequire(join(f.profile.dir, 'package.json'))(plugin)).toMatchObject({ marker: 6 })
+  })
+
   it('computes an immutable runtime resolution without writing profile packages', async () => {
     const f = fixture()
     const resolution = await resolutionOf(f)

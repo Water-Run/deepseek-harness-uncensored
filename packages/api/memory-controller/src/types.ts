@@ -38,6 +38,8 @@ export interface MemoryScopeOption {
 
 /** Host facts the management page states before it offers any control. */
 export interface MemoryDescribeValue {
+  /** Whether conversations may use memory. */
+  readonly enabled: boolean
   /** Total stored records across all management filters, including disabled records. */
   readonly totalRecords: number
   /** Exact retrieval and storage bounds this deployment runs. */

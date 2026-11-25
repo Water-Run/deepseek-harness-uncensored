@@ -38,7 +38,7 @@ async function bench() {
       limits: { maxEntries: 6, maxEntryChars: 800, maxContextBytes: 4096, minRelevance: 0.2, maxContentChars: 4000 },
       workspaces: [{ value: 'workspace:a', label: '仓库 A' }],
       modes: [{ value: 'standard', label: 'standard' }],
-      extraction: { enabled: false, revision: 1 }, extractions: [],
+      enabled: false, extraction: { enabled: false, revision: 1 }, extractions: [],
     },
   }))
   const listMemory = vi.fn(() => Promise.resolve({ ok: true as const, value: { records: [RECORD], sources: {} } }))

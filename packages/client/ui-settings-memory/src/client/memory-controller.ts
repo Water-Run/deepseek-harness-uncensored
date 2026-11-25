@@ -87,7 +87,7 @@ export interface MemoryRowFace {
   /** Close the manager without discarding its draft. */
   readonly closeManager: () => void
   /** Persist the automatic extraction preference. */
-  readonly configureExtraction: (enabled: boolean) => Promise<void>
+  readonly configure: (preference: 'enabled' | 'autoExtract', enabled: boolean) => Promise<void>
   /** Retry extraction of one live conversation. */
   readonly retryExtraction: (id: SessionId) => Promise<void>
   /** Remove a completed operation notification. */
@@ -301,7 +301,7 @@ export function createMemoryController(ctx: Context): MemoryRowFace {
     },
     closeManager() { store.update((state) => { state.managerOpen = false }) },
     dismissToast(id) { store.update((state) => { if (state.toast?.id === id) state.toast = undefined }) },
-    async configureExtraction(enabled) {
+    async configure(preference, enabled) {
       const state = store.getSnapshot()
       const revision = state.description?.extraction.revision
       if (state.saving || revision === undefined || revision === null) return
@@ -309,7 +309,7 @@ export function createMemoryController(ctx: Context): MemoryRowFace {
       store.update((value) => { value.saving = true })
       let success = false
       try {
-        const result = await remote.configureExtraction({ enabled, expectedRevision: revision })
+        const result = await remote.configure({ preference, enabled, expectedRevision: revision })
         if (result.ok) {
           success = true
           store.update((value) => { value.description = result.value })

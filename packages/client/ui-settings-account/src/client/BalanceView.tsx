@@ -1,12 +1,12 @@
 /** Balance controls, observations and a shared sidebar hover card. */
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { Big } from 'big.js'
 import { Button, HoverCard, IconClockOutlineRegular, IconRefreshOutlineRegular, Input, PreferenceControlRow, Select, Switch, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { BalanceCleanupRequest, BalancePreferences, BalanceSnapshot, BalanceWallet } from '@deepseek-ai/dsh-balance/types'
+import type { BalanceCleanupRequest, BalancePreferences, BalanceSidebarRange, BalanceSnapshot, BalanceWallet } from '@deepseek-ai/dsh-balance/types'
 import type { BalanceController, BalanceViewState } from './balance-controller.ts'
 import { BalanceHistory } from './BalanceHistory.tsx'
 import { balancePeriod, balancePeriodEnd } from './balance-hours.ts'
@@ -17,6 +17,7 @@ import css from './BalanceView.module.css'
 /** Shared data and callbacks supplied by the account plugin. */
 export interface BalanceInjected {
   hooks: { balance: SnapshotStore<BalanceViewState>; balancePreferences: ConfigForm<BalancePreferences> }
+  inspectHistory: BalanceController['inspectHistory']
   refresh: () => void
   save: BalanceController['save']
   clear: BalanceController['clear']
@@ -61,23 +62,37 @@ function remainingTime(ms: number): string {
 function amount(value: string, currency: BalanceWallet['currency']): string { return formatBalance(value, currency === 'CNY' ? '¥' : '$') }
 function total(wallet: BalanceWallet): Big { return new Big(wallet.toppedUp).plus(wallet.granted) }
 
-function BalanceDetails({ data, refreshing = false, t }: { data: BalanceSnapshot | undefined; refreshing?: boolean; t: SharedProps['t'] }) {
+function BalanceDetails({ data, refreshing = false, sidebarDays, t }: { sidebarDays?: BalanceSidebarRange; data: BalanceSnapshot | undefined; refreshing?: boolean; t: SharedProps['t'] }) {
   const [selected, select] = useState<BalanceWallet['currency']>('CNY')
   const latest = data?.samples.at(-1)
   const currency = latest?.wallets.some(wallet => wallet.currency === selected) ? selected : latest?.wallets[0]?.currency ?? 'CNY'
   const wallet = latest?.wallets.find(entry => entry.currency === currency)
+  const series = useMemo(() => {
+    const observations = data?.samples ?? []
+    const cutoff = sidebarDays === undefined ? 0 : (observations.at(-1)?.time ?? 0) - Number(sidebarDays) * 86_400_000
+    return observations.flatMap((sample) => {
+      if (sample.time < cutoff) return []
+      const entry = sample.wallets.find(value => value.currency === currency)
+      if (!entry) return []
+      const value = total(entry)
+      return [{ time: sample.time, value: value.toNumber(), exactValue: value.toString() }]
+    })
+  }, [currency, data?.samples, sidebarDays])
+  const [bounds, setBounds] = useState<{ start?: number | undefined; end?: number | undefined }>({})
+  const lastIndex = Math.max(0, series.length - 1)
+  const { start: from = 0, end: through = Infinity } = bounds
+  const end = Math.max(0, series.findLastIndex(point => point.time <= through))
+  const firstIndex = series.findIndex(point => point.time >= from)
+  const start = Math.min(end, firstIndex < 0 ? lastIndex : firstIndex)
+  const samples = useMemo(() => series.slice(start, end + 1), [series, start, end])
+  const firstVisible = series[start]
+  const lastVisible = series[end]
   if (data?.status === 'signed-out') return <p className={css.hint}>{t('balance.credentials')}</p>
   if (data === undefined || wallet === undefined || latest === undefined) {
     return <p className={css.hint}>{t(data?.status === 'disabled' ? 'balance.disabled' : 'balance.empty')}</p>
   }
-  const samples = data.samples.flatMap((sample) => {
-    const entry = sample.wallets.find(value => value.currency === currency)
-    return entry === undefined ? [] : [{ time: sample.time, value: total(entry).toNumber(), exactValue: total(entry).toString() }]
-  })
-  const first = data.samples.find(sample => sample.wallets.some(entry => entry.currency === currency))
-    ?.wallets.find(entry => entry.currency === currency)
   return <div className={css.details}>
-    {latest.wallets.length > 1 && <div className={css.currencies}>{latest.wallets.map(entry => <Button key={entry.currency} size="sm" aria-pressed={entry.currency === currency} onClick={() => { select(entry.currency) }}>{entry.currency}</Button>)}</div>}
+    {latest.wallets.length > 1 && <div className={css.currencies}>{latest.wallets.map(entry => <Button key={entry.currency} size="sm" aria-pressed={entry.currency === currency} onClick={() => { select(entry.currency); setBounds({}) }}>{entry.currency}</Button>)}</div>}
     <div className={css.total}>
       <span>{t('balance.total')}</span>
       <strong><RollingAmount text={amount(total(wallet).toString(), currency)} /></strong>
@@ -89,11 +104,27 @@ function BalanceDetails({ data, refreshing = false, t }: { data: BalanceSnapshot
       <span>{t('bonusBalance')} <b>{amount(wallet.granted, currency)}</b></span>
       <span>{t('balance')} <b>{amount(wallet.toppedUp, currency)}</b></span>
     </div>}
-    <BalanceHistory samples={samples} symbol={currency === 'CNY' ? '¥' : '$'} label={t('balance.curve')}
+    <div className={css.chartGroup}><BalanceHistory samples={samples} symbol={currency === 'CNY' ? '¥' : '$'} label={t('balance.curve')}
       help={t('balance.historyHelp')} dashHint={t('balance.dashHint')} stepIncreases />
-    {samples.length === 1 && <p className={css.hint}>{t('balance.single')}</p>}
+    {sidebarDays === undefined && lastIndex > 0 && firstVisible && lastVisible && <div className={css.rangeTrack}>
+      <span className={css.rangeSelection} style={{ left: `${start / lastIndex * 100}%`, right: `${(lastIndex - end) / lastIndex * 100}%` }} />
+      <input type="range" aria-label={t('balance.start')} min={0} max={lastIndex} value={start}
+        aria-valuetext={new Date(firstVisible.time).toLocaleString()}
+        onChange={(event) => {
+          const index = Math.min(event.currentTarget.valueAsNumber, Math.max(0, end - 1))
+          setBounds({ ...bounds, start: index === 0 ? undefined : series[index]?.time })
+        }} />
+      <input type="range" aria-label={t('balance.end')} min={0} max={lastIndex} value={end}
+        aria-valuetext={new Date(lastVisible.time).toLocaleString()}
+        onChange={(event) => {
+          const index = Math.max(event.currentTarget.valueAsNumber, Math.min(lastIndex, start + 1))
+          setBounds({ ...bounds, end: index === lastIndex ? undefined : series[index]?.time })
+        }} />
+    </div>}
+    </div>
+    {series.length === 1 && <p className={css.hint}>{t('balance.single')}</p>}
     <dl className={css.stats}>
-      <div><dt>{t('balance.change')}</dt><dd>{formatBalanceDetail(total(wallet).minus(first === undefined ? total(wallet) : total(first)).toString(), currency === 'CNY' ? '¥' : '$')}</dd></div>
+      <div><dt>{t('balance.change')}</dt><dd>{formatBalanceDetail(new Big(samples.at(-1)?.exactValue ?? 0).minus(samples[0]?.exactValue ?? 0).toString(), currency === 'CNY' ? '¥' : '$')}</dd></div>
       <div><dt>{t('balance.samples')}</dt><dd>{data.sampleCount}</dd></div>
       <div><dt>{t('balance.updated')}</dt><dd>{new Date(latest.time).toLocaleString()}</dd></div>
     </dl>
@@ -113,9 +144,10 @@ const TOAST_KEYS = {
 } as const
 
 /** @param props - Shared balance state and live preferences. @returns The built-in settings section. */
-export function BalanceSettings({ useBalance, useBalancePreferences, refresh, save, clear, t }: BalanceSettingsProps) {
+export function BalanceSettings({ useBalance, useBalancePreferences, inspectHistory, refresh, save, clear, t }: BalanceSettingsProps) {
   const state = useBalance(value => value)
   const form = useBalancePreferences(value => value)
+  useEffect(inspectHistory, [inspectHistory])
   const preferences = form.value
   const [draft, setDraft] = useState<string | null>(null)
   const [retainDraft, setRetainDraft] = useState<string | null>(null)
@@ -155,6 +187,17 @@ export function BalanceSettings({ useBalance, useBalancePreferences, refresh, sa
       {preferences.enabled ? <BalanceDetails data={state.data} refreshing={state.loading && state.data !== undefined} t={t} />
         : <p className={css.hint}>{t('balance.disabled')}</p>}
     </div>
+    <div className={css.displayControls}>
+      <PreferenceControlRow title={t('balance.sidebar')}>
+        <Switch label={t('balance.sidebar')} checked={preferences.showInSidebar} disabled={busy || !form.writable}
+          onChange={(value) => { void save('showInSidebar', value) }} />
+      </PreferenceControlRow>
+      {preferences.showInSidebar && <PreferenceControlRow title={t('balance.window')}>
+        <Select label={t('balance.window')} value={preferences.sidebarDays} disabled={busy || !form.writable}
+          options={(['1', '7', '30'] as const).map(value => ({ value, label: t(`balance.${value}`) }))}
+          onChange={(value) => { void save('sidebarDays', value) }} />
+      </PreferenceControlRow>}
+    </div>
     <details className={css.preferences}><summary>{t('balance.sampling')}</summary>
       <PreferenceControlRow title={t('balance.interval')}>
         <div className={css.interval}><Input id={`${id}-interval`} aria-label={t('balance.interval')} type="number" min={3} max={3600} step={1} value={interval} aria-invalid={invalid} aria-describedby={invalid ? `${id}-error` : undefined} disabled={state.saving || !form.writable}
@@ -162,7 +205,7 @@ export function BalanceSettings({ useBalance, useBalancePreferences, refresh, sa
       </PreferenceControlRow>
       {invalid && <p id={`${id}-error`} role="alert" className={css.error}>{t('balance.intervalError')}</p>}
       <PreferenceControlRow title={t('balance.cleanup')}>
-        <div className={css.cleanup}>
+        <div className={css.cleanup} role="group" aria-label={t('balance.cleanup')}>
           <Select label={t('balance.cleanup')} value={cleanupMode} disabled={busy || !preferences.enabled}
             options={[{ value: 'age', label: t('balance.cleanupByAge') }, { value: 'count', label: t('balance.cleanupByCount') }, { value: 'all', label: t('balance.cleanupAll') }]}
             onChange={(value) => { setCleanupMode(value); setArmed(false) }} />
@@ -180,7 +223,7 @@ export function BalanceSettings({ useBalance, useBalancePreferences, refresh, sa
       {cleanupInvalid && <p id={`${id}-cleanup-error`} role="alert" className={css.error}>{t(cleanupMode === 'count' ? 'balance.keepCountError' : 'balance.keepDaysError')}</p>}
       <p className={css.hint}>{t('balance.cleanupHint')}</p>
       <PreferenceControlRow title={t('balance.autoCleanup')}>
-        <div className={css.cleanup}>
+        <div className={css.cleanup} role="group" aria-label={t('balance.autoCleanup')}>
           <Select label={t('balance.autoCleanup')} value={preferences.autoCleanup} disabled={state.saving || !form.writable}
             options={[{ value: 'off', label: t('balance.autoOff') }, { value: 'count', label: t('balance.cleanupByCount') }, { value: 'age', label: t('balance.cleanupByAge') }]}
             onChange={(value) => { setRetainDraft(null); void save('autoCleanup', value) }} />
@@ -204,11 +247,12 @@ export function BalanceSettings({ useBalance, useBalancePreferences, refresh, sa
 /** @param props - Sidebar geometry and shared balance observations. @returns Parallel balances and a keyboard-accessible hover card. */
 export function BalanceSidebar({ wide, useBalance, useBalancePreferences, refresh, dismissToast, t }: BalanceSidebarProps) {
   const state = useBalance(value => value)
-  const enabled = useBalancePreferences(value => value.value?.enabled === true)
+  const preferences = useBalancePreferences(value => value.value)
+  const enabled = preferences?.enabled && preferences.showInSidebar
   const wallet = state.data?.samples.at(-1)?.wallets[0]
   // The row's period and its countdown follow the wall clock, not the slower
   // balance sampling cadence, so crossing a boundary or a tick is immediate.
-  const now = useLiveClock(enabled && wallet !== undefined)
+  const now = useLiveClock(Boolean(enabled && wallet !== undefined))
   const period = balancePeriod(now)
   const periodLabel = t(period === 'peak' ? 'balance.peak' : period === 'valley' ? 'balance.valley' : 'balance.unknownPeriod')
   const endsAt = balancePeriodEnd(now)
@@ -225,7 +269,7 @@ export function BalanceSidebar({ wide, useBalance, useBalancePreferences, refres
         <div className={css.wallets}>{new Big(wallet.granted).gt(0) && <div><span>{t('bonusBalance')}</span><strong><RollingAmount text={amount(wallet.granted, wallet.currency)} /></strong></div>}<div><span>{t('balance')}</span><strong><RollingAmount text={amount(wallet.toppedUp, wallet.currency)} /></strong></div></div>
         </>
           : <strong>{wallet.currency === 'CNY' ? '¥' : '$'}</strong>}
-      </button>} content={<div className={css.hover}><h3>{t('balance.title')}</h3>{state.failed && <p role="alert" className={css.error}>{t('balance.failed')}</p>}<BalanceDetails data={state.data} refreshing={state.loading} t={t} /></div>} />
+      </button>} content={<div className={css.hover}><h3>{t('balance.title')}</h3>{state.failed && <p role="alert" className={css.error}>{t('balance.failed')}</p>}<BalanceDetails data={state.data} refreshing={state.loading} sidebarDays={preferences?.sidebarDays} t={t} /></div>} />
     </div>}
   </>
 }

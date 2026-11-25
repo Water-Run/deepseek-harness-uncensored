@@ -129,6 +129,8 @@ export interface RuntimeResolutionEntry {
   readonly declarer: string
   /** Whether every profile or only the active profile receives this entry. */
   readonly scope: 'installation' | 'profile'
+  /** Desktop Host services and plugins must share one copy of each shipped Harness package. */
+  readonly desktopCore?: true
 }
 
 /**
@@ -318,6 +320,7 @@ function profileDependencyNames(manifest: ProfileManifest): string[] {
 function collectInstallationScopePackages(
   installAnchor: string, skippedBundles: ReadonlySet<string>,
 ): {
+  desktopHost: boolean
   packageNames: ReadonlySet<string>
   packageDirs: ReadonlyMap<string, string>
   declarers: ReadonlyMap<string, string>
@@ -365,7 +368,7 @@ function collectInstallationScopePackages(
       queue.push({ anchor: manifestPath, manifest })
     }
   }
-  return { packageNames: new Set(links.keys()), packageDirs: links, declarers, versions }
+  return { desktopHost: appManifest.name === '@deepseek-ai/dsh-desktop-host', packageNames: new Set(links.keys()), packageDirs: links, declarers, versions }
 }
 
 /** Inputs for {@link createRuntimeResolution}. */
@@ -389,12 +392,14 @@ export async function createRuntimeResolution(
   const { installAnchor, profile, home = resolveDshHome() } = options
   const profilesDir = join(home, PROFILES_DIR)
   const manifest = readOptionalProfileManifest(profile)
-  const { packageNames, packageDirs, declarers, versions } = collectInstallationScopePackages(
+  const { desktopHost, packageNames, packageDirs, declarers, versions } = collectInstallationScopePackages(
     installAnchor, new Set(profile?.skippedBundles.map(skipped => skipped.packageName)),
   )
   const profileDeclarers = new Map<string, string>()
   const profileVersions = new Map<string, string | undefined>()
-  const localPackageNames = profile === undefined ? [] : installedProfilePackageNames(profile, manifest)
+  const desktopCore = (name: string) => desktopHost && packageNames.has(name)
+    && (name === '@deepseek-ai/dsh' || name.startsWith('@deepseek-ai/dsh-') || name === '@deepseek-ai/cordis')
+  const localPackageNames = profile === undefined ? [] : installedProfilePackageNames(profile, manifest).filter(name => !desktopCore(name))
   const profilePackages: ReadonlyMap<string, string> = profile === undefined
     ? new Map<string, string>()
     : collectProfileScopePackages(profile, packageNames, profileDeclarers, profileVersions)
@@ -409,6 +414,7 @@ export async function createRuntimeResolution(
       ...[...packageDirs].map(([name, packageDir]) => Object.freeze({
         name, packageDir, version: versions.get(name),
         declarer: declarers.get(name) as string, scope: 'installation' as const,
+        ...desktopCore(name) ? { desktopCore: true as const } : {},
       })),
       ...[...profilePackages].map(([name, packageDir]) => Object.freeze({
         name, packageDir, version: profileVersions.get(name),

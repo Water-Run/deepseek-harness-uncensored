@@ -6,9 +6,9 @@
 
 **更自由的探索未至之境**
 
-[![正式版](https://img.shields.io/badge/%E6%AD%A3%E5%BC%8F%E7%89%88-2026.11.23.0-2563EB?style=flat-square)](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.23.0) [![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Windows%20%C2%B7%20Linux%20%C2%B7%20macOS-0F172A?style=flat-square)](#安装与数据) [![架构](https://img.shields.io/badge/%E6%9E%B6%E6%9E%84-x64%20%C2%B7%20arm64-334155?style=flat-square)](#安装与数据) [![基于](https://img.shields.io/badge/%E5%9F%BA%E4%BA%8E-DeepSeek%20Harness%200.2.2--rc.5-15803D?style=flat-square)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.5) [![许可](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-GPL--3.0--or--later-A16207?style=flat-square)](LICENSE)
+[![正式版](https://img.shields.io/badge/%E6%AD%A3%E5%BC%8F%E7%89%88-2026.11.24.3-2563EB?style=flat-square)](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.24.3) [![平台](https://img.shields.io/badge/%E5%B9%B3%E5%8F%B0-Windows%20%C2%B7%20Linux%20%C2%B7%20macOS-0F172A?style=flat-square)](#安装与数据) [![架构](https://img.shields.io/badge/%E6%9E%B6%E6%9E%84-x64%20%C2%B7%20arm64-334155?style=flat-square)](#安装与数据) [![基于](https://img.shields.io/badge/%E5%9F%BA%E4%BA%8E-DeepSeek%20Harness%200.2.2--rc.5-15803D?style=flat-square)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.5) [![许可](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-GPL--3.0--or--later-A16207?style=flat-square)](LICENSE)
 
-[四种模式](#四种模式) · [旁问与随问](#旁问与随问) · [余额与限额](#余额与额度限制) · [记忆与预测](#跨对话记忆) · [使用手册](docs/user/guide/dshu.md) · [下载](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.23.0)
+[四种模式](#四种模式) · [旁问与随问](#旁问与随问) · [余额与限额](#余额与额度限制) · [跨对话记忆](#跨对话记忆) · [输入预测](#输入预测) · [使用手册](docs/user/guide/dshu.md) · [下载](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.24.3)
 
 </div>
 
@@ -24,6 +24,8 @@
 标有 ![实验性](https://img.shields.io/badge/%E5%AE%9E%E9%AA%8C%E6%80%A7-D97706?style=flat-square) 的功能还在评估阶段，界面、行为和设置项都可能调整。
 
 > [!NOTE]
+>
+> 本文的界面与默认值对应当前源码。下载链接指向正式版 2026.11.24.3。DSH 0.2.3-alpha.2 的接入进度见[内核升级记录](.agents/requirements/2026-11-24-dsh-kernel-upgrade.md)。
 >
 > DSHU 有独立的程序目录、配置、会话和更新渠道，可以和官方 DeepSeek Harness 装在同一台机器上，互不影响。
 
@@ -131,7 +133,7 @@
 
 ### 模式说明与设置
 
-每种模式都附有说明，分“模式说明”和“如何使用”两页，后者有可以直接复制的示例任务。*设置 → 模式* 集中管理四种模式的说明、资料和切换开关。
+每种模式都附有说明，分“模式说明”和“如何使用”两页，后者有可以直接复制的示例任务。在 *设置 → 模式*，带勾的卡片是当前对话使用的模式。点击卡片底部的“配置”可查看该模式的资料，当前对话继续使用原模式。
 
 <details>
 <summary>查看四种模式的说明弹窗与模式设置页</summary>
@@ -147,7 +149,7 @@
 </tr>
 </table>
 
-<img src="docs/assets/dshu/mode-settings.webp" alt="设置中的模式页">
+<img src="docs/assets/dshu/mode-settings.webp" alt="模式设置页，当前模式带勾，卡片底部提供说明和配置入口">
 
 </details>
 
@@ -200,10 +202,10 @@
 
 ### 余额与额度限制
 
-**余额**：侧栏常驻账户余额，并标出当前是官网的高峰还是低峰时段、离下次切换还有多久。*设置 → 额度* 里有本机采样的余额曲线，默认 15 秒采一次，悬停可以看到每个点的时间和金额；长时间没变化的区间会压缩，能放下两段完整虚线时用虚线标出。
+**余额**默认每 15 秒采样。打开 **设置 → 额度**，拖动曲线下方的左右端点选择时间范围，悬停或使用方向键可查看原始金额和时间。每次保存新采样时默认清理 30 天前的数据，可在“采样设置”更改保留策略。侧栏余额默认显示，中档展示最近 7 天，也可选短档 24 小时或长档 30 天。关闭侧栏显示后仍会继续采样。
 
-<img src="docs/assets/dshu/balance.webp" alt="余额曲线与悬停读数">
-<p align="center"><sub>两天的余额曲线；横向虚线是被压缩的平稳时段</sub></p>
+<img src="docs/assets/dshu/balance.webp" alt="余额设置中的双端时间范围、原始采样读数与侧栏显示偏好">
+<p align="center"><sub>拖动蓝色端点调整区间，悬停查看采样的时间和原始精度</sub></p>
 
 **额度限制**：如果你习惯使用各种 Coding Plan，有看额度百分比的癖好的话，DSHU 也提供了可选的额度限制功能，带来经典的 5h 和周限额，以及其它更多的限额选择。
 
@@ -228,11 +230,11 @@
 
 ### 跨对话记忆
 
-![实验性](https://img.shields.io/badge/%E5%AE%9E%E9%AA%8C%E6%80%A7-D97706?style=flat-square) 说过一次的事，不用每个新对话再说一遍。项目约定、个人偏好、做过的结论、小说设定都可以存成记忆，之后的对话需要时自动检索。每条记忆都有作用范围：全局、某个工作区、某种模式，或两者叠加，不会串到无关的对话里。
+在 **设置 → 通用 → 跨对话记忆** 开启后，对话可以保存项目约定、个人偏好和写作设定，之后按工作区与模式检索。默认关闭。关闭后停止新的检索、保存和提炼，已有记忆仍可手动管理。编辑记忆后，下一次相关提问可以用到新版本。
 
 - 四种类型：偏好、项目事实、操作结论、写作设定。
 - 可以搜索、筛选、编辑、停用、删除；网安案件里审阅过的备注也能直接存入。
-- **自动提炼**默认关闭。打开后每轮对话结束会让模型整理一次，会计费。
+- **自动提炼记忆**有独立开关，默认关闭。开启后，成功回合结束时由当前模型提炼长期事实，费用计入当前对话。
 
 <img src="docs/assets/dshu/memory.webp" alt="跨对话记忆管理">
 <p align="center"><sub>设置 → 通用 → 管理记忆</sub></p>
@@ -248,7 +250,8 @@
 | 彻底删除 | 删除对话会先停下任务，再连同旁问、随问和子会话一起删掉，工作区文件不动 |
 | 日出日落主题 | 默认按所在时区估算日出日落，白天浅色、晚上深色；也可固定浅色、深色或跟随系统 |
 | 敏感操作确认 | 进入网安、切换已有会话的模式前要求确认，默认开启 |
-| 关于与更新 | 关于页列出 DSHU 与 DSH 版本、源码节点、dsh-purge 与 REA 来源，可直接检查 GitHub 更新 |
+| 插件入口 | 从设置 → 插件浏览插件。会话视图和右侧工具区的更多菜单也可浏览或创建插件。 |
+| 关于与更新 | 从账号菜单打开。桌面窗口左侧整幅显示品牌与 DSHU 版本，窄屏改为顶部横幅。来源区列出 DSH 内核、源码提交、dsh-purge、REA 与许可。可手动检查更新。见[桌面预览](docs/assets/dshu/about.webp)和[手机预览](docs/assets/dshu/about-mobile.webp)。 |
 
 <details>
 <summary>查看侧栏、会话菜单、删除确认、外观与关于页</summary>
@@ -264,7 +267,7 @@
 </tr>
 <tr>
 <td width="50%"><img src="docs/assets/dshu/appearance.webp" alt="外观设置"></td>
-<td width="50%"><img src="docs/assets/dshu/about.webp" alt="关于页"></td>
+<td width="50%"><img src="docs/assets/dshu/about.webp" alt="关于窗口，左侧整幅品牌渐变，右侧为内核、来源和组件许可"></td>
 </tr>
 </table>
 
@@ -274,7 +277,7 @@
 
 | 项目 | 说明 |
 | --- | --- |
-| 下载 | [正式版 2026.11.23.0](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.23.0)：Windows x64（exe）、Linux x64（deb / rpm）、Linux arm64（deb）、[macOS arm64（DMG 安装包）](https://github.com/Water-Run/deepseek-harness-uncensored/releases/download/v2026.11.23.0/DSHU-2026.11.23.0-mac-arm64.dmg) |
+| 下载 | [正式版 2026.11.24.3](https://github.com/Water-Run/deepseek-harness-uncensored/releases/tag/v2026.11.24.3)：Windows x64（exe）、Linux x64（deb / rpm）、Linux arm64（deb）、[macOS arm64（DMG 安装包）](https://github.com/Water-Run/deepseek-harness-uncensored/releases/download/v2026.11.24.3/deepseek-harness-uncensored-2026.11.24.3-mac-arm64-unsigned.dmg) |
 | 首次配置 | 设置 → 模型中填写提供方与凭据，详见[模型配置](docs/user/guide/providers.zh.md) |
 | 版本号 | `YYYY.MM.DD.N`，末位是当天的构建序号，每天第一个构建为 `0`，可在关于页核对 |
 | 数据目录 | 默认 `~/.dsh-uncensored`，可用环境变量 `DSH_UNCENSORED_HOME` 修改 |
@@ -298,7 +301,7 @@
 
 | 组成 | 基线 |
 | --- | --- |
-| DSHU | 最新正式版 `2026.11.23.0` |
+| DSHU | 最新正式版 `2026.11.24.3` |
 | DeepSeek Harness | 源码基于 [0.2.2-rc.5](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.5) |
 | 破甲提示词 | dsh-purge Community [v1.7.20](https://github.com/kingcharleslzy-ai/dsh-purge/releases/tag/v1.7.20) |
 | REA | [6.9.0 · d74549e495c5](https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0) |

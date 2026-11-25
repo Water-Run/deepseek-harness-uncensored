@@ -2,7 +2,7 @@
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import type { AccountClientMetadata } from '@deepseek-ai/dsh-deepseek-account/types'
-import type { BalanceAutoCleanup, BalanceCleanupRequest, BalanceSample, BalanceSnapshot, BalanceWallet } from './types.ts'
+import type { BalanceAutoCleanup, BalanceSidebarRange, BalanceCleanupRequest, BalanceSample, BalanceSnapshot, BalanceWallet } from './types.ts'
 
 /** One credential generation resolved on the Host. */
 export interface BalanceIdentity {
@@ -127,6 +127,14 @@ function displaySamples(samples: readonly BalanceSample[], limit: number): reado
   return samples.filter((_sample, index) => selected.has(index))
 }
 
+function snapshotSamples(samples: readonly BalanceSample[], limit: number, view?: 'history' | BalanceSidebarRange) {
+  if (view === 'history') return samples
+  const latest = samples.at(-1)
+  if (view === undefined || latest === undefined) return displaySamples(samples, limit)
+  const cutoff = latest.time - Number(view) * DAY_MS
+  return displaySamples(samples.filter(sample => sample.time >= cutoff), limit)
+}
+
 /** Owns sampling, credential-change checks, and write settlement before disposal. */
 export class BalanceEngine {
   private readonly lifetime = new AbortController()
@@ -138,13 +146,14 @@ export class BalanceEngine {
    * Read cached history or append one successful API sample.
    * @param client - Request identity used by the account provider.
    * @param source - Local history only, or a fresh API observation.
+   * @param view - Full history or the time window to downsample.
    * @returns Credential-free state; failures never fabricate a zero balance.
    */
-  read(client: AccountClientMetadata, source: 'local' | 'api'): Promise<BalanceSnapshot> {
+  read(client: AccountClientMetadata, source: 'local' | 'api', view?: 'history' | BalanceSidebarRange): Promise<BalanceSnapshot> {
     const operation = this.tail.then(() => this.query(client, source)).then(result => ({
       ...result,
       sampleCount: result.samples.length,
-      samples: displaySamples(result.samples, this.options.displayLimit),
+      samples: snapshotSamples(result.samples, this.options.displayLimit, view),
     }))
     this.tail = operation.then(() => undefined, () => undefined)
     return operation
@@ -185,13 +194,14 @@ export class BalanceEngine {
    * Remove stored samples under the current identity.
    * @param client - Request identity used by the account provider.
    * @param request - Cleanup mode and its bound.
+   * @param view - Full history or the time window to downsample.
    * @returns The remaining history under the same shape as a local read.
    */
-  clear(client: AccountClientMetadata, request: BalanceCleanupRequest): Promise<BalanceSnapshot> {
+  clear(client: AccountClientMetadata, request: BalanceCleanupRequest, view?: 'history' | BalanceSidebarRange): Promise<BalanceSnapshot> {
     const operation = this.tail.then(() => this.remove(client, request)).then(result => ({
       ...result,
       sampleCount: result.samples.length,
-      samples: displaySamples(result.samples, this.options.displayLimit),
+      samples: snapshotSamples(result.samples, this.options.displayLimit, view),
     }))
     this.tail = operation.then(() => undefined, () => undefined)
     return operation

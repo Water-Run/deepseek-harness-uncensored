@@ -16,14 +16,14 @@ export function registerBalance(ctx: Context, account: HostObservable<AccountSna
   ctx.inject(['remote.balance'], (scope) => {
     scope.remoteAccess.whenAccess('balance/get', function* () {
       const form = scope.configForms.get<BalancePreferences>('balance')
-      const controller = new BalanceController(form, async () => {
+      const controller = new BalanceController(form, async (view) => {
         const client = accountClientMetadata(scope.locale.getSnapshot().active, process.env.DSH_CLIENT_VERSION)
-        const result = await scope.remote.balance.get(client)
+        const result = await scope.remote.balance.get(client, view)
         if (!result.ok) throw result.error
         return result.value
-      }, async (request) => {
+      }, async (request, view) => {
         const client = accountClientMetadata(scope.locale.getSnapshot().active, process.env.DSH_CLIENT_VERSION)
-        const result = await scope.remote.balance.clear(client, request)
+        const result = await scope.remote.balance.clear(client, request, view)
         if (!result.ok) throw result.error
         return result.value
       })
@@ -43,7 +43,8 @@ export function registerBalance(ctx: Context, account: HostObservable<AccountSna
         return Promise.resolve()
       })
       const injected = (): BalanceInjected => ({ hooks: { balance: controller.state, balancePreferences: form },
-        refresh: controller.refresh, save: controller.save, clear: controller.clear, dismissToast: controller.dismissToast })
+        inspectHistory: controller.inspectHistory, refresh: controller.refresh, save: controller.save,
+        clear: controller.clear, dismissToast: controller.dismissToast })
       yield scope.slots.inject('sidebar.footer.budget', () => scope.slots.register({ name: 'sidebar.footer.budget', id: 'balance', order: 10,
         locale: 'settings.account', inject: injected }, BalanceSidebar))
       yield scope.slots.inject('settings.budget.item', () => {

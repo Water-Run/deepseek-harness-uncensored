@@ -16,9 +16,10 @@ describe('web e2e: preset roster guidance', () => {
   let page: Page
   let tripwire: ReturnType<typeof watchConsole>
   beforeAll(async () => {
-    scaffold = await launchWebScaffold({ profile: { packages: [] } })
+    scaffold = await launchWebScaffold({ profile: { packages: [] },
+      extraOverlayPath: fileURLToPath(new URL('./pin-browse-picker.overlay.yml', import.meta.url)) })
     browser = await chromium.launch()
-    page = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE })
+    page = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE, reducedMotion: 'reduce' })
     tripwire = watchConsole(page)
     await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await openSettings(page, 'zh')
@@ -86,6 +87,20 @@ describe('web e2e: preset roster guidance', () => {
     await settings.getByRole('region', { name: '逆向', exact: true }).waitFor()
     expect(await settings.locator('[data-agent-preset-id="standard"] button[aria-pressed]').getAttribute('aria-pressed')).toBe('true')
     expect(await reverse.locator('button[aria-pressed]').getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('keeps mode names and selection controls accessible at narrow and full widths', async () => {
+    const settings = page.getByRole('dialog', { name: '设置' })
+    for (const [width, preference] of [[390, 'dark'], [1280, 'light']] as const) {
+      await scaffold.ctx.settings.update('ui-theme', { preference })
+      await page.setViewportSize({ width, height: 900 })
+      await expect.poll(() => page.evaluate(() => document.body.hasAttribute('data-ds-dark-theme'))).toBe(preference === 'dark')
+      const standard = settings.locator('[data-agent-preset-id="standard"] button[aria-pressed]')
+      await standard.scrollIntoViewIfNeeded()
+      expect(await standard.isVisible()).toBe(true)
+      expect(await settings.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true)
+      await saveFailureShot(page, `screenshots/mode-settings-${preference}-${width}`)
+    }
   })
 
   it('runs without page errors or model calls', () => { expect(tripwire.pageErrors).toEqual([]) })

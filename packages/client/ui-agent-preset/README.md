@@ -33,7 +33,7 @@ Historical PTC and Minimal conversations retain localized header names even thou
 
 Delayed animation callbacks cannot replace a newer conversation's accent or restore it after this plugin unloads. Activity-only updates retain an in-progress reveal. Skipped captures are handled without an unhandled rejection; a failed state-update callback is reported before reveal cleanup.
 
-Settings highlights the current conversation's mode. The card body changes that selection. New conversations start in Default; the default cannot be changed in Settings. Each card offers a read-only YAML composition viewer. A failed preset remains readable; Escape closes only the viewer and restores focus, while leaving Settings discards late reads. The Creator entry appears only when the deployment supplies `cordis` and a conversation flow.
+In Settings, a check mark and the mode accent identify the current conversation’s selection. The two-column roster becomes a single column in narrow windows. The card body changes that selection. New conversations start in Default; the default cannot be changed in Settings. Each card offers a read-only YAML composition viewer. A failed preset remains readable; Escape closes only the viewer and restores focus, while leaving Settings discards late reads. The Creator entry appears only when the deployment supplies `cordis` and a conversation flow.
 
 Mode configuration uses a shared selector listing the modes that publish panels through `settings.mode.materials`. Each contribution declares the mode it configures. A card's **Configure** action selects that panel without changing the conversation's mode; changing the conversation's mode leaves the chosen configuration panel open. Without configurable modes, the block is absent.
 

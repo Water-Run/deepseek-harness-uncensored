@@ -45,7 +45,7 @@
     - paragraph: 模式资料保存在工作区里。选择工作区后，这里会显示它已有的案件与写作资料。
     - heading "网安资料" [level=3]
     - paragraph: 案件、目标、证据、发现与备注写入 .security/<slug>/case.json，与 casefile.mjs 使用同一格式。
-    - paragraph: 这里的目标只是案件资料。本版本尚未执行境内域名与生产环境保护，记录目标不会阻止任何操作。
+    - paragraph: 案件用于记录目标与证据。执行规则仅约束已启用保护的工具；实际覆盖范围见「目标保护」。
     - button "新建案件" [disabled]
     - paragraph: 这个工作区还没有网安案件。
     - region "网安独立代理":
@@ -86,6 +86,7 @@
       - button "刷新"
       - button "暂停采集"
       - button "清理记录"
+      - button "导出 JSON"
       - textbox "按方法、目标或工具筛选"
       - button "全部"
       - paragraph: 还没有捕获到流量。
@@ -93,7 +94,7 @@
       - heading "目标保护" [level=3]
       - paragraph: 为受控工具和网络入口配置生产保护与测试例外。
       - button "刷新"
-      - status: 无法确认操作结果，请刷新查看已保存的版本
+      - status: 加载可选目标保护配置后，即可在此编辑规则
     - region "准入审计":
       - heading "准入审计" [level=3]
       - paragraph: 查看最近最多 100 条执行前判定，任务结果可在对应对话中查看。

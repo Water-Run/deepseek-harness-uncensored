@@ -92,6 +92,11 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
   const geometry = useMemo(() => balanceChart(samples, { stepIncreases, dashes, ...size }), [samples, stepIncreases, dashes, size])
   const first = samples[0], last = samples.at(-1), range = geometry.range
   if (first === undefined || last === undefined || range === undefined) return null
+  const timeFormat: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' }
+  if (new Date(first.time).toDateString() !== new Date(last.time).toDateString()) {
+    timeFormat.month = 'short'
+    timeFormat.day = 'numeric'
+  }
   const axisDigits = range.low === range.high ? 2 : Math.max(2, Math.min(8, 1 - Math.floor(Math.log10(range.high - range.low))))
   const format = formatValue ?? ((value: number): string => formatBalanceDetail(new Big(value).toFixed(axisDigits), symbol))
   const inspected = hover ?? cursor
@@ -159,7 +164,10 @@ export function BalanceHistory({ samples, symbol, label, help, formatValue, step
         </div>}
       </div>
     </div>
-    <div className={css.timeRange}><time dateTime={new Date(first.time).toISOString()}>{new Date(first.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time><time dateTime={new Date(last.time).toISOString()}>{new Date(last.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time></div>
+    <div className={css.timeRange}>
+      <time dateTime={new Date(first.time).toISOString()}>{new Date(first.time).toLocaleString([], timeFormat)}</time>
+      <time dateTime={new Date(last.time).toISOString()}>{new Date(last.time).toLocaleString([], timeFormat)}</time>
+    </div>
     {dashed && <p id={`${id}-dashed`} className={css.dashHint}>{dashHint}</p>}
     <p id={id} className={css.chartHelp}>{help}</p>
   </div>

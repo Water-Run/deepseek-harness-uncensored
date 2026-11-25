@@ -25,7 +25,7 @@ export async function extractTurn(
   ctx: Context, agent: Agent, mode: string | undefined, signal: AbortSignal, state: MemoryExtractionProjection,
 ): Promise<void> {
   const options = ctx.memory.extractionOptions()
-  if (state.text.trim() === '' || state.throughSeq <= state.lastSavedSeq) return
+  if (!ctx.memory.enabled || state.text.trim() === '' || state.throughSeq <= state.lastSavedSeq) return
   const scope = await resolveSessionScope(ctx, agent.session, mode)
   if (scope.freshChild || (scope.workspaceKey === undefined && scope.mode === undefined)) return
   const target: MemoryScope = { global: false,
@@ -35,6 +35,7 @@ export async function extractTurn(
   if (route === undefined) return
   const transcript = boundedTail(state.text, options.inputBytes)
   await ctx.memory.runExtraction(signal, async (ownedSignal) => {
+    if (!ctx.memory.enabled) return
     const timeout = AbortSignal.timeout(options.timeoutMs)
     const combined = AbortSignal.any([ownedSignal, timeout])
     const requestId = brandString<MemoryExtractionId>(randomUUID())

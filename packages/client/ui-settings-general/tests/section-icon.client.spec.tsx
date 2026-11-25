@@ -44,7 +44,7 @@ it('renders a contributed section icon and restores the default after its plugin
     if (descriptor === undefined) Reflect.deleteProperty(Element.prototype, 'scrollIntoView')
     else Object.defineProperty(Element.prototype, 'scrollIntoView', descriptor)
   })
-  mock.remote.memory.describe.mockResolvedValue({ ok: true, value: { totalRecords: 0, workspaces: [], modes: [],
+  mock.remote.memory.describe.mockResolvedValue({ ok: true, value: { enabled: false, totalRecords: 0, workspaces: [], modes: [],
     limits: { maxEntries: 6, maxEntryChars: 800, maxContextBytes: 4096, minRelevance: 0.2, maxContentChars: 4000 },
     extraction: { enabled: false, revision: null }, extractions: [] } })
   mock.remote.memory.list.mockResolvedValue({ ok: true, value: { records: [], sources: {} } })

@@ -58,6 +58,8 @@ export function MemoryRow(props: MemoryRowProps) {
           <div className={css.rowTitle}>{t('rowTitle')}</div>
           <p className={css.rowDescription}>{t('rowDescription')}</p>
         </div>
+        {state.description && <Switch label={t('rowTitle')} checked={state.description.enabled} busy={state.saving}
+          disabled={state.description.extraction.revision === null} onChange={(enabled) => { void props.configure('enabled', enabled) }} />}
         <Button
           variant="outline"
           size="sm"
@@ -71,10 +73,10 @@ export function MemoryRow(props: MemoryRowProps) {
       <p className={css.rowDescription}>
         {t('count')}: {state.description === undefined ? '—' : String(state.description.totalRecords)}
       </p>
-      {state.description !== undefined && <div className={css.rowHeader}>
+      {state.description?.enabled && <div className={css.rowHeader}>
         <div><span className={css.rowTitle}>{t('autoExtract')}</span><p className={css.rowDescription}>{t('autoExtractHint')}</p></div>
         <Switch label={t('autoExtract')} checked={state.description.extraction.enabled} busy={state.saving}
-          disabled={state.description.extraction.revision === null} onChange={(enabled) => { void props.configureExtraction(enabled) }} />
+          disabled={state.description.extraction.revision === null} onChange={(enabled) => { void props.configure('autoExtract', enabled) }} />
       </div>}
     </div>
   )
@@ -103,7 +105,7 @@ export function MemoryManager(props: PropsRuntime<'shell.overlay'> & PropsLocale
           <p className={css.rowDescription}>{t(status.phase === 'running' ? 'extracting' : status.phase === 'completed' ? 'extracted'
             : status.phase === 'cancelled' ? 'extractionCancelled' : status.failure === 'budget' ? 'extractionBudget'
               : status.failure === 'timeout' ? 'extractionTimeout' : 'extractionFailed', { count: status.saved })}</p></div>
-        {(status.phase === 'failed' || status.phase === 'cancelled') && <Button size="sm" variant="outline" disabled={state.saving}
+        {(status.phase === 'failed' || status.phase === 'cancelled') && <Button size="sm" variant="outline" disabled={state.saving || !state.description?.enabled}
           onClick={() => { void props.retryExtraction(status.sessionId) }}>{t('retry')}</Button>}
       </div>)}</details>}
     <p className={css.hint}>{t('retentionHint')}</p>

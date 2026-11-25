@@ -1,6 +1,6 @@
 /** Build identity and this fork's GitHub release status. */
 import { useEffect, useRef, useState } from 'react'
-import { Button, FishLogo, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, FishLogo, IconCloseOutlineRegular, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { AccountMenuProps } from './AccountMenu.tsx'
 import { GitHubIcon } from './GitHubIcon.tsx'
 import { loadForkRelease, type ReleaseNotice } from './release-status.ts'
@@ -77,7 +77,10 @@ export function AboutDialog({ t, close, open = true }: { t: AccountMenuProps['t'
     const timer = setTimeout(() => { setNow(Date.now()) }, Math.max(0, Math.min(notice.retryAt - Date.now(), 2 ** 31 - 1)))
     return () => { clearTimeout(timer) }
   }, [open, notice.retryAt, now])
-  return <Modal open={open} onClose={close} closeLabel={t('close')} title={t('about')} enter="fade" className={css.dialog ?? ''} contentClassName={css.scrollContent ?? ''}>
+  return <Modal open={open} onClose={close} headless title={t('about')} enter="fade" className={css.dialog ?? ''}>
+    <button type="button" className={css.close} aria-label={t('close')} onClick={close}>
+      <IconCloseOutlineRegular size={16} />
+    </button>
     <div className={css.content}>
       <section className={css.identity} aria-label={t('aboutIdentity')}>
         <div className={css.brandRow}><div className={css.logo}><FishLogo size={56} /></div>
@@ -96,43 +99,47 @@ export function AboutDialog({ t, close, open = true }: { t: AccountMenuProps['t'
           {notice.url !== undefined && <a href={notice.url} target="_blank" rel="noreferrer">{t('aboutReadRelease')}</a>}
         </div>
       </section>
-      <section className={css.details} aria-label={t('aboutSectionSource')}>
-        <section className={css.group}>
-          <h3><span className={css.sectionMark} aria-hidden="true" />{t('aboutFoundation')}</h3>
+      <div className={css.details}>
+        <section className={css.foundationGroup}>
+          <h3>{t('aboutFoundation')}</h3>
           <p className={css.foundation}>{upstreamCommit !== undefined && /^[a-f0-9]{40}$/u.test(upstreamCommit)
             ? <a href={`${UPSTREAM_REPOSITORY}/commit/${upstreamCommit}`} target="_blank" rel="noreferrer">{foundation}</a>
             : foundation}</p>
-          <a href={`${REPOSITORY}/blob/${sourceRevision}/LICENSE`} target="_blank" rel="noreferrer">{t('licenseName')}</a>
-          <a href={`${REPOSITORY}/blob/${sourceRevision}/THIRD_PARTY_NOTICES.md`} target="_blank" rel="noreferrer">{t('aboutThirdParty')}</a>
+          <div className={css.licenses}>
+            <a href={`${REPOSITORY}/blob/${sourceRevision}/LICENSE`} target="_blank" rel="noreferrer">{t('licenseName')}</a>
+            <a href={`${REPOSITORY}/blob/${sourceRevision}/THIRD_PARTY_NOTICES.md`} target="_blank" rel="noreferrer">{t('aboutThirdParty')}</a>
+          </div>
         </section>
-        <section className={css.group}>
-          <h3><span className={css.sectionMark} aria-hidden="true" />{t('aboutSectionSource')}</h3>
+        <section className={css.sourceGroup}>
+          <h3>{t('aboutSectionSource')}</h3>
           <dl className={css.metadata}>
             <dt>{t('buildCommit')}</dt><dd>{sourceRevision === 'main' ? t('unknownBuild') : <a href={`${REPOSITORY}/commit/${sourceRevision}`} target="_blank" rel="noreferrer">{sourceRevision.slice(0, 12)}</a>}{process.env.DSH_CLIENT_GIT_DIRTY === 'true' && <span className={css.modified}>{t('modifiedBuild')}</span>}</dd>
             <dt>{t('commitDate')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_COMMIT_DATE, t('unknownBuild'), t)}</dd>
           </dl>
         </section>
-        <section className={css.group}>
-          <h3><span className={css.sectionMark} aria-hidden="true" />{t('aboutPurge')}</h3>
-          <dl className={css.metadata}>
-            <dt>{t('purgeVersion')}</dt><dd>{recorded(process.env.DSH_CLIENT_PURGE_VERSION, t('unknownBuild'))}</dd>
-            <dt>{t('purgeCommit')}</dt><dd>{process.env.DSH_CLIENT_PURGE_COMMIT === undefined ? t('unknownBuild') : <a href={`${PURGE_REPOSITORY}/commit/${process.env.DSH_CLIENT_PURGE_COMMIT}`} target="_blank" rel="noreferrer">{process.env.DSH_CLIENT_PURGE_COMMIT.slice(0, 12)}</a>}</dd>
-            <dt>{t('purgeDate')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_PURGE_DATE, t('unknownBuild'), t)}</dd>
-          </dl>
-        </section>
-        <section className={css.group}>
-          <h3><span className={css.sectionMark} aria-hidden="true" />{t('aboutRea')}</h3>
-          <div className={css.dependencyHeading}><a href={reaRepository} target="_blank" rel="noreferrer">{t('aboutReaVersion', {
-            version: recorded(process.env.DSH_CLIENT_REA_VERSION, t('unknownBuild')),
-          })}</a>{reaRepository !== undefined && <GitHubIcon />}</div>
-          <dl className={css.metadata}>
-            <dt>{t('buildCommit')}</dt><dd>{reaRepository === undefined || reaCommit === undefined ? t('unknownBuild')
-              : <a href={`${reaRepository}/commit/${reaCommit}`} target="_blank" rel="noreferrer">{reaCommit.slice(0, 12)}</a>}</dd>
-            <dt>{t('commitDate')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_REA_DATE, t('unknownBuild'), t)}</dd>
-          </dl>
-          <p className={css.dependencyNote}>{t('aboutReaEngines')}</p>
-        </section>
-      </section>
+        <div className={css.dependencies}>
+          <section className={css.group}>
+            <h3>{t('aboutPurge')}</h3>
+            <dl className={css.metadata}>
+              <dt>{t('purgeVersion')}</dt><dd>{recorded(process.env.DSH_CLIENT_PURGE_VERSION, t('unknownBuild'))}</dd>
+              <dt>{t('purgeCommit')}</dt><dd>{process.env.DSH_CLIENT_PURGE_COMMIT === undefined ? t('unknownBuild') : <a href={`${PURGE_REPOSITORY}/commit/${process.env.DSH_CLIENT_PURGE_COMMIT}`} target="_blank" rel="noreferrer">{process.env.DSH_CLIENT_PURGE_COMMIT.slice(0, 12)}</a>}</dd>
+              <dt>{t('purgeDate')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_PURGE_DATE, t('unknownBuild'), t)}</dd>
+            </dl>
+          </section>
+          <section className={css.group}>
+            <h3>{t('aboutRea')}</h3>
+            <div className={css.dependencyHeading}><a href={reaRepository} target="_blank" rel="noreferrer">{t('aboutReaVersion', {
+              version: recorded(process.env.DSH_CLIENT_REA_VERSION, t('unknownBuild')),
+            })}</a>{reaRepository !== undefined && <GitHubIcon />}</div>
+            <dl className={css.metadata}>
+              <dt>{t('buildCommit')}</dt><dd>{reaRepository === undefined || reaCommit === undefined ? t('unknownBuild')
+                : <a href={`${reaRepository}/commit/${reaCommit}`} target="_blank" rel="noreferrer">{reaCommit.slice(0, 12)}</a>}</dd>
+              <dt>{t('commitDate')}</dt><dd>{formatWhen(process.env.DSH_CLIENT_REA_DATE, t('unknownBuild'), t)}</dd>
+            </dl>
+            <p className={css.dependencyNote}>{t('aboutReaEngines')}</p>
+          </section>
+        </div>
+      </div>
     </div>
   </Modal>
 }

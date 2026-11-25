@@ -85,7 +85,7 @@ async function harness(script: StreamChunk[][], mode = 'standard', memoryConfig:
   await ctx.plugin(Storage)
   await ctx.plugin(StorageJson, { root: join(cwd, 'storages') })
   await ctx.plugin(StorageDomain, { backend: 'json' })
-  await ctx.plugin(MemoryService, memoryConfig)
+  await ctx.plugin(MemoryService, { enabled: true, ...memoryConfig })
   await ctx.plugin(AgentLoop, { agents: [] })
   await ctx.plugin(MemoryAgent, { mode })
   const adapter = new ScriptedAdapter(script)
@@ -136,6 +136,18 @@ function memoryMessages(agent: Agent): { text: string; entries: readonly { id: s
 }
 
 describe('memory through the real loop', () => {
+  it('omits memory tools, retrieval and extraction while conversation access is off', async () => {
+    const h = await harness([textResponse('OK')], 'standard', { enabled: false, autoExtract: true })
+    await h.ctx.memory.create({ type: 'preference', content: 'Always use teal', scope: { global: true }, source: { kind: 'user', confirmed: true } })
+    const agent = await h.agent('memory-off')
+    send(agent, 'use teal')
+    await agent.whenIdle()
+    expect(h.adapter.requests).toHaveLength(1)
+    expect(h.adapter.requests[0]?.tools ?? []).toEqual([])
+    expect(memoryMessages(agent)).toEqual([])
+    expect(h.ctx.memory.records()).toHaveLength(1)
+  })
+
   it('offers a retry for an interrupted extraction without claiming a live request is running', async () => {
     const h = await harness([textResponse('了解。'), textResponse('{"memories":[]}')])
     const agent = await h.agent('automatic-interrupted')
@@ -380,6 +392,10 @@ describe('memory through the real loop', () => {
     const agent = await h.agent('conversation-dedupe')
     send(agent, '回答使用什么语言？')
     await waitForIdle(h.ctx, agent)
+    for (let i = 0; i < 5001; i++) agent.session.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
+    const projection = await h.ctx.sessionProjections.register(extractionProjection(h.ctx.memory.extractionOptions().inputBytes))
+    const replayed = Session.create(agent.id, [...agent.session.snapshotEvents()], agent.session.header, agent.session.inheritedEventCount)
+    expect(projection.stateOf(replayed).injectedVersions).toEqual({ [h.ctx.memory.records()[0]!.id]: 1 })
     send(agent, '再说一次回答使用什么语言？')
     await waitForIdle(h.ctx, agent)
     expect(memoryMessages(agent)).toHaveLength(1)

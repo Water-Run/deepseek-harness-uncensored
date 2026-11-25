@@ -1,6 +1,6 @@
 # 跨对话记忆
 
-结构化、可管理、可检索的跨对话记忆。`ctx.memory` 提供持久记录、按作用域检索和版本校验的管理写入；每个模式通过 `@deepseek-ai/dsh-memory/agent` 决定是否接收与保存记忆。
+跨对话记忆默认关闭。在设置 → 通用中开启后，对话可以检索和保存记忆。关闭总开关会停止新的记忆注入、记忆工具及提炼，已有记录仍可在管理页查看和编辑。`ctx.memory` 提供持久记录、按作用域检索和版本校验的管理写入；每个模式通过 `@deepseek-ai/dsh-memory/agent` 决定是否接收与保存记忆。
 
 ## 存储
 
@@ -20,7 +20,7 @@
 
 每回合第一步，消费者用用户消息文本对范围内已启用记录打分：拉丁词、汉字单字与相邻双字（中文无需分词服务），范围越具体权重越高。低于 `minRelevance` 的记录不注入；相同内容只保留一条；同一类型、同一范围、同一主题的多条记录由最新一条胜出，被取代的记录只报告 ID。注入受 `maxEntries`、`maxEntryChars`、`maxContextBytes` 限制，超出预算的记录计入“未注入”提示。
 
-注入内容作为 `memory-context` 用户消息写入 Session 日志，来源携带每条记录的 ID 与版本，正文带 `[id@version]` 标记，因此模型实际用到的集合可以从日志重建。相同版本不重复注入，编辑后的版本可在下次相关提问时重新注入；随问与其他新建子会话不注入主线记忆。删除或禁用后不会产生新的命中；历史请求中已记录的内容不会被描述成已撤回。
+注入内容作为 `memory-context` 用户消息写入 Session 日志，来源携带每条记录的 ID 与版本，正文带 `[id@version]` 标记，因此模型实际用到的集合可以从日志重建。会话投影按记录 ID 保留最后注入的版本，冷启动和长对话均可从日志恢复。相同版本不重复注入，编辑后的版本可在下次相关提问时重新注入；随问与其他新建子会话不注入主线记忆。删除或禁用后不会产生新的命中；历史请求中已记录的内容不会被描述成已撤回。
 
 ## 模型工具
 
@@ -40,7 +40,7 @@
 
 `maxEntries`、`maxEntryChars`、`maxContextBytes`、`minRelevance`、`maxContentChars` 在 `cordis.yml` 中部署。记忆管理页展示实际生效的数值。
 
-`autoExtract` 是可即时修改的用户偏好。`extractionInputBytes` 默认 24000 字节，`extractionMaxTokens` 默认 2048，`extractionMaxRecords` 默认 4，`extractionTimeoutMs` 默认 45000 毫秒；超时包含额度等待。
+`autoExtract` 与总开关 `enabled` 均为即时生效的用户偏好，默认都关闭。`extractionInputBytes` 默认 24000 字节，`extractionMaxTokens` 默认 2048，`extractionMaxRecords` 默认 4，`extractionTimeoutMs` 默认 45000 毫秒；超时包含额度等待。
 
 ## Model Experience
 

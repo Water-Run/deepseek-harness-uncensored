@@ -29,7 +29,7 @@ it('cleans stored samples by age, by count, or completely, and keeps automatic r
     return { ...snapshot, status: 'empty', sampleCount: 0, samples: [] }
   })
   onTestFinished(() => { get.mockRestore(); clear.mockRestore() })
-  const browser = await chromium.launch(process.platform === 'win32' ? { channel: 'msedge' } : {})
+  const browser = await chromium.launch()
   onTestFinished(() => browser.close())
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 }, locale: ZH_BROWSER_LOCALE,
     timezoneId: 'Asia/Shanghai', reducedMotion: 'reduce' })
@@ -37,11 +37,14 @@ it('cleans stored samples by age, by count, or completely, and keeps automatic r
   await openSettings(page, 'zh')
   const dialog = page.getByRole('dialog', { name: '设置', exact: true })
   await dialog.getByRole('navigation').getByRole('button', { name: '额度', exact: true }).click()
-  await dialog.getByRole('slider').waitFor()
+  await dialog.getByRole('slider', { name: '总余额采样曲线' }).waitFor()
   await dialog.getByText('采样设置', { exact: true }).click()
 
   const cleanupButton = dialog.getByRole('button').filter({ hasText: /^(清理|确认清理)$/u })
-  const keepDays = dialog.getByRole('spinbutton', { name: '保留天数' })
+  const manual = dialog.getByRole('group', { name: '清理存储的采样' })
+  const automatic = dialog.getByRole('group', { name: '自动清理' })
+  const keepDays = manual.getByRole('spinbutton', { name: '保留天数' })
+  expect(await automatic.getByRole('spinbutton', { name: '保留天数' }).inputValue()).toBe('30')
   await expect.poll(() => cleanupButton.isEnabled()).toBe(true)
 
   const screenshots = fileURLToPath(new URL('../../../.artifacts/screenshots/balance-cleanup', import.meta.url))
@@ -56,14 +59,11 @@ it('cleans stored samples by age, by count, or completely, and keeps automatic r
 
   await cleanupButton.scrollIntoViewIfNeeded()
   await cleanupButton.click({ force: true })
-  await page.waitForTimeout(600)
-
-
   await expect.poll(() => requests).toEqual([{ mode: 'age', days: 7 }])
 
   await dialog.getByRole('button', { name: '清理存储的采样' }).click()
   await page.getByRole('menuitem', { name: '按条数', exact: true }).click()
-  const keepCount = dialog.getByRole('spinbutton', { name: '保留条数' })
+  const keepCount = manual.getByRole('spinbutton', { name: '保留条数' })
   await keepCount.fill('500')
   await cleanupButton.scrollIntoViewIfNeeded()
   await cleanupButton.click({ force: true })
@@ -73,7 +73,6 @@ it('cleans stored samples by age, by count, or completely, and keeps automatic r
   await page.getByRole('menuitem', { name: '全部', exact: true }).click()
   await cleanupButton.scrollIntoViewIfNeeded()
   await cleanupButton.click({ force: true })
-  await page.waitForTimeout(300)
   await expect.poll(() => cleanupButton.textContent()).toContain('确认清理')
   expect(requests.at(-1)).toEqual({ mode: 'count', keep: 500 })
   await cleanupButton.scrollIntoViewIfNeeded()
@@ -82,5 +81,5 @@ it('cleans stored samples by age, by count, or completely, and keeps automatic r
 
   await dialog.getByRole('button', { name: '自动清理' }).click()
   await page.getByRole('menuitem', { name: '按条数', exact: true }).click()
-  await expect.poll(() => dialog.getByRole('spinbutton', { name: '保留条数' }).count()).toBe(1)
+  await expect.poll(() => automatic.getByRole('spinbutton', { name: '保留条数' }).count()).toBe(1)
 })

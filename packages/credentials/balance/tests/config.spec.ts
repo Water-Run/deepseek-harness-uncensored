@@ -6,10 +6,12 @@ import { isVolatile } from '@deepseek-ai/cosmokit'
 describe('balance entry configuration', () => {
   it('loads the built-in entry with bounded refresh and history defaults', () => {
     const config = Config({})
-    expect(config).toMatchObject({ historyLimit: 10080, displayLimit: 240 })
+    expect(config).toMatchObject({ historyLimit: 864001, displayLimit: 240 })
     expect(isVolatile(config.refreshSeconds) ? config.refreshSeconds.get() : config.refreshSeconds).toBe(15)
     expect(isVolatile(config.enabled) ? config.enabled.get() : config.enabled).toBe(true)
     expect(isVolatile(config.source) ? config.source.get() : config.source).toBe('api')
+    expect(isVolatile(config.autoCleanup) ? config.autoCleanup.get() : config.autoCleanup).toBe('age')
+    expect(isVolatile(config.retainDays) ? config.retainDays.get() : config.retainDays).toBe(30)
     expect(() => Config({ refreshSeconds: 0 })).toThrow()
     expect(() => Config({ refreshSeconds: 2 })).toThrow()
     expect(() => Config({ refreshSeconds: 2.5 })).toThrow()

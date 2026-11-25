@@ -6,6 +6,7 @@ import type {} from './extraction-types.ts'
 const stateSchema = z.object({
   turn: z.number().int().nonnegative(), text: z.string(), throughSeq: z.number().int(),
   lastSavedSeq: z.number().int(), phase: z.enum(['none', 'running', 'completed', 'failed', 'cancelled']),
+  injectedVersions: z.record(z.string(), z.number().int().positive()),
   saved: z.number().int().nonnegative(), attemptTurn: z.number().int().nonnegative(),
   userLabel: z.string(), attemptLabel: z.string(),
   failure: z.enum(['model', 'invalid-result', 'storage', 'timeout', 'budget']).nullable(),
@@ -35,10 +36,15 @@ export function boundedTail(text: string, bytes: number): string {
  */
 export function extractionProjection(inputBytes: number): ProjectionDefinition<'memoryExtraction', MemoryExtractionProjection> {
   return {
-    key: 'memoryExtraction', stateSchema, stateVersion: 2,
-    init: () => ({ turn: 0, text: '', throughSeq: -1, lastSavedSeq: -1, phase: 'none', saved: 0,
+    key: 'memoryExtraction', stateSchema, stateVersion: 3,
+    init: () => ({ injectedVersions: {}, turn: 0, text: '', throughSeq: -1, lastSavedSeq: -1, phase: 'none', saved: 0,
       attemptTurn: 0, userLabel: '', attemptLabel: '', failure: null }),
     apply(state, event) {
+      if (event.type === 'user/message' && event.data.source.kind === 'memory-context') {
+        const injectedVersions = { ...state.injectedVersions }
+        for (const entry of event.data.source.entries) injectedVersions[entry.id] = entry.version
+        return { ...state, injectedVersions }
+      }
       if (event.type === 'turn/start') return { ...state, turn: event.data.turn, text: '', userLabel: '', throughSeq: event.seq }
       if (event.type === 'user/message' && event.data.source.kind === 'user') {
         const text = event.data.content.flatMap(block => block.type === 'text' ? [block.text] : []).join('\n')
