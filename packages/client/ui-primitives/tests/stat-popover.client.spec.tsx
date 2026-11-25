@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { StatPopover } from '../src/StatPopover.tsx'
 
 afterEach(cleanup)
 
 it('opens details from a reading and releases focus on Escape or outside pointer', async () => {
-  render(<StatPopover label="5h 98%" title="Spending limits" icon={<svg />}><button>Settings</button></StatPopover>)
+  const onOpen = vi.fn()
+  render(<StatPopover onOpen={onOpen} label="5h 98%" title="Spending limits" icon={<svg />}><button>Settings</button></StatPopover>)
   const trigger = screen.getByRole('button', { name: 'Spending limits: 5h 98%' })
   trigger.focus()
   fireEvent.click(trigger)
@@ -20,6 +21,7 @@ it('opens details from a reading and releases focus on Escape or outside pointer
   expect(screen.queryByRole('dialog')).toBeNull()
   fireEvent.click(trigger)
   await waitFor(() => { expect(screen.getByRole('dialog')).toBeTruthy() })
+  expect(onOpen).toHaveBeenCalledTimes(3)
   fireEvent.pointerDown(document.body)
   expect(screen.queryByRole('dialog')).toBeNull()
 })

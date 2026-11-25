@@ -1,14 +1,15 @@
 /** Exercise the JSONL provider bundled in each desktop installation in an isolated upgrade fixture. */
 import assert from 'node:assert/strict'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-const [phase, directory, sample, ...extra] = process.argv.slice(2)
+const [phase, directory, sample, compression = 'zstd', ...extra] = process.argv.slice(2)
 const linuxNode = '/resources/runtime/primary-runtime/dependencies/node/bin/node'
 const standalone = process.platform === 'linux' && process.execPath.endsWith(linuxNode)
-if ((!standalone && !process.versions.electron) || !['write', 'continue', 'reopen'].includes(phase) || !directory || !sample || extra.length) {
-  throw new Error('Use the packaged Linux Node or the installed desktop Electron with write|continue|reopen, a fixture directory and the prediction sample.')
+if ((!standalone && !process.versions.electron) || !['write', 'continue', 'reopen'].includes(phase) || !directory || !sample
+  || !['none', 'zstd'].includes(compression) || extra.length) {
+  throw new Error('Use the packaged Linux Node or the installed desktop Electron with write|continue|reopen, a fixture directory, the prediction sample and optional released compression (none|zstd).')
 }
 const archive = standalone
   ? join(process.execPath.slice(0, -linuxNode.length), 'resources', 'app.asar.unpacked')
@@ -28,7 +29,8 @@ const predictions = events => events.filter(event => event.type === 'input/predi
 if (phase === 'write') await mkdir(directory)
 const ctx = new Context()
 try {
-  await ctx.plugin(jsonl, { root: join(directory, 'sessions'), compression: 'zstd' })
+  const root = join(directory, 'sessions')
+  await ctx.plugin(jsonl, { root, compression })
   if (phase === 'write') {
     const { auditEvents } = JSON.parse(await readFile(sample, 'utf8'))
     assert.deepEqual(auditEvents.map(event => [event.type, event.data.phase]), [
@@ -45,6 +47,16 @@ try {
       await handle.append(events)
       await handle.flush()
     } finally { await handle.close() }
+    const files = (await readdir(root, { recursive: true })).filter(path => /(?:^|[/\\])session\.v4\.jsonl(?:\.zstd)?$/u.test(path))
+    assert.equal(files.length, 1)
+    const bytes = await readFile(join(root, files[0]))
+    if (compression === 'zstd') {
+      assert(files[0].endsWith('.jsonl.zstd'))
+      assert.equal(bytes.subarray(0, 4).toString('hex'), '28b52ffd')
+    } else {
+      assert(files[0].endsWith('.jsonl'))
+      assert.equal(JSON.parse(bytes.toString('utf8').split('\n')[0]).version, 4)
+    }
     await writeFile(receipt, JSON.stringify(predictions(events)), { flag: 'wx' })
   } else {
     const handle = await ctx.sessionPersistence.open(id, phase === 'continue' ? 'write' : 'read')

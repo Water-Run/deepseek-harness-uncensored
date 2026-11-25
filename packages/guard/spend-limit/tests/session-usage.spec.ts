@@ -5,7 +5,7 @@ import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import { RetryId } from '@deepseek-ai/dsh-llm-retry'
 import { sessionSpendUsage } from '../src/session-usage.ts'
 import { DEFAULT_RATES } from '../src/pricing.ts'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { createUserMessage, MessageId } from '@deepseek-ai/dsh-llm'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import type { MemoryExtractionId } from '@deepseek-ai/dsh-memory/types'
 
@@ -16,6 +16,33 @@ const header = (seq: number, model = 'deepseek-flash'): SessionEvent<'request/he
 const attempt = (seq: number, step = 1, input = 100): SessionEvent<'assistant/attempt'> => ({
   seq: SessionSeq(seq), time: seq * 1000, type: 'assistant/attempt',
   data: { turn: 1, step, stream: [{ type: 'chunk', time: 0, chunk: { type: 'usage', usage: { inputTokens: input, outputTokens: 20 } } }] },
+})
+
+it('prices a prediction on its recorded route while another assistant settlement is pending', () => {
+  const requestId = brandString<NonNullable<SessionEvent<'input/prediction'>['data']['requestId']>>('prediction-1')
+  const common = { surface: 'side', revision: 1, draft: 'Page', instruction: 'Complete', context: 'Proof', suggestion: '', requestId } as const
+  const request: SessionEvent<'input/prediction'> = { type: 'input/prediction', time: 2000, seq: SessionSeq(2),
+    data: { ...common, phase: 'request', request: { provider: 'deepseek-official', model: 'deepseek-flash', maxTokens: 128,
+      message: { id: MessageId('prediction-message'), role: 'user', content: [{ type: 'text', text: 'Complete Page' }],
+        source: { kind: 'user' } } } } }
+  const result: SessionEvent<'input/prediction'> = { type: 'input/prediction', time: 3000, seq: SessionSeq(3),
+    data: { ...common, phase: 'result', outcome: 'completed', suggestion: ' margins.', usage: { inputTokens: 12, outputTokens: 4 } } }
+  const otherId = brandString<typeof requestId>('prediction-2')
+  const other = { ...request, seq: SessionSeq(3), data: { ...common, requestId: otherId, phase: 'request' as const } }
+  const failed = { ...result, seq: SessionSeq(4), data: { ...common, requestId: otherId, phase: 'result' as const, outcome: 'cancelled' as const } }
+  expect(sessionSpendUsage([request, other, failed, { ...result, seq: SessionSeq(5) }], DEFAULT_RATES, SessionLogOffset(0)))
+    .toMatchObject({ total: .000056, requests: 2, unpricedRequests: 1 })
+  const events = [header(0, 'unpriced-model'), attempt(1), request, result, attempt(4)]
+  expect(sessionSpendUsage(events, DEFAULT_RATES, SessionLogOffset(0))).toEqual({
+    total: .000056, requests: 2, unpricedRequests: 1,
+    points: [{ time: 3000, total: .000056 }, { time: 4000, total: .000056 }],
+  })
+  expect(sessionSpendUsage(events, DEFAULT_RATES, SessionLogOffset(3))).toMatchObject({ total: 0, requests: 1, unpricedRequests: 1 })
+  expect(sessionSpendUsage([request], DEFAULT_RATES, SessionLogOffset(0))).toMatchObject({ requests: 1, unpricedRequests: 1 })
+  const { surface, phase, revision, draft, instruction, context, suggestion } = request.data
+  const old = { surface, phase, revision, draft, instruction, context, suggestion }
+  expect(sessionSpendUsage([{ ...request, data: old }, result], DEFAULT_RATES, SessionLogOffset(0)))
+    .toMatchObject({ total: 0, requests: 1, unpricedRequests: 1 })
 })
 
 it('replaces a repeated usage settlement and counts a real retry separately', () => {

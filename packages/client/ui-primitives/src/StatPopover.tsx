@@ -15,7 +15,13 @@ import css from './StatPopover.module.css'
  * @param props - Localized reading, panel title, decorative icon and details.
  * @returns Clickable reading and its keyboard-accessible details.
  */
-export function StatPopover({ label, title, icon, children }: { label: string; title: string; icon: ReactNode; children: ReactNode }) {
+export function StatPopover({ label, title, icon, children, onOpen }: {
+  label: string
+  title: string
+  icon: ReactNode
+  children: ReactNode
+  onOpen?: () => void
+}) {
   const [open, setOpen] = useState(false)
   const present = useOverlayPresence(open)
   const root = useRef<HTMLSpanElement>(null)
@@ -28,6 +34,7 @@ export function StatPopover({ label, title, icon, children }: { label: string; t
       onClick={(event) => {
         const control = event.currentTarget
         if (!open && control.ownerDocument.activeElement !== control) focusWithoutRing(control, { preventScroll: true })
+        if (!open) onOpen?.()
         setOpen(value => !value)
       }}>{icon}<span>{label}</span></button>
     {present && createPortal(<MenuSurface ref={panel} tabIndex={-1} className={css.panel} role={open ? 'dialog' : undefined} aria-modal={open || undefined} aria-label={title}

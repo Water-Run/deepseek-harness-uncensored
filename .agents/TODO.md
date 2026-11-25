@@ -1,5 +1,7 @@
 # 开发项目进度
 
+[输入预测与会话费用](requirements/2026-11-25-release-handoff.md#windows-安装版的三个输入框)记录主输入框、旁问与随问的桌面验收、旧旁问冷启动，以及已知费用和无法计价请求的对照。正式四模式安装包须重复这组操作。
+
 [Windows 静置卡死 #26](requirements/2026-11-25-release-handoff.md#issue-26-的-windows-静置卡死)仍列入发行阻断。报告者已关闭 GitHub Issue。[保留旧写作会话的安装包对照](requirements/2026-11-25-release-handoff.md#保留旧写作会话的-windows-安装包对照)记录原版与候选的资料来源、逐进程采样和旁问开关前后的观测。[专项维护者待办](requirements/2026-11-25-release-handoff.md#专项维护者待办)记录四模式、组件和历史会话的交付责任。
 
 [新版发行条件](requirements/2026-11-25-release-handoff.md#正式版接手清单)以 `v2026.11.24.3` 为完整功能基线。[逐项差异表](requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表)记录旧版与最终包的实际行为、权限和限额；[合并后的关于页](requirements/2026-11-25-release-handoff.md#合并后的关于页)列出正式包需要复核的内容。[候选文档与接口目录](requirements/2026-11-25-release-handoff.md#候选文档与接口目录)列出中英文记忆、余额参考和已复验的源码树。

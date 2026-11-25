@@ -17,10 +17,10 @@ $composerProbe = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot 'installed-
 $composerSamplePath = (Resolve-Path -LiteralPath $ComposerSample).Path
 $composerData = Join-Path $env:TEMP ('dshu-composer-' + [guid]::NewGuid())
 
-function Invoke-Composer($Installation, [string]$Phase) {
+function Invoke-Composer($Installation, [string]$Phase, [string]$Compression) {
     $start = New-Object System.Diagnostics.ProcessStartInfo
     $start.FileName = Join-Path $Installation.Location 'DeepSeek Harness Uncensored.exe'
-    $start.Arguments = '--expose-internals "{0}" {1} "{2}" "{3}"' -f $composerProbe, $Phase, $composerData, $composerSamplePath
+    $start.Arguments = '--expose-internals "{0}" {1} "{2}" "{3}" {4}' -f $composerProbe, $Phase, ($composerData + '-' + $Compression), $composerSamplePath, $Compression
     $start.UseShellExecute = $false
     $start.CreateNoWindow = $true
     $start.EnvironmentVariables['ELECTRON_RUN_AS_NODE'] = '1'
@@ -32,10 +32,10 @@ function Invoke-Composer($Installation, [string]$Phase) {
         $stderr = $probe.StandardError.ReadToEndAsync()
         if (-not $probe.WaitForExit(60000)) {
             $probe.Kill()
-            throw "Installed composer Session check timed out during $Phase"
+            throw "Installed composer Session check timed out during $Phase ($Compression)"
         }
         if ($probe.ExitCode -ne 0 -or $stdout.Result.Trim() -cne "composer-upgrade $Phase") {
-            throw "Installed composer Session check failed during $Phase (exit $($probe.ExitCode)). $($stderr.Result) $($stdout.Result)"
+            throw "Installed composer Session check failed during $Phase ($Compression, exit $($probe.ExitCode)). $($stderr.Result) $($stdout.Result)"
         }
     } finally { $probe.Dispose() }
 }
@@ -74,14 +74,15 @@ $previous = Get-Installation
 if ($previous.Version -cne $PreviousVersion -or $previous.ExecutableVersion -cne $PreviousVersion) {
     throw "Previous installation differs from $PreviousVersion"
 }
-Invoke-Composer $previous 'write'
+$compressions = @('none', 'zstd')
+foreach ($compression in $compressions) { Invoke-Composer $previous 'write' $compression }
 Invoke-Setup $CandidateInstaller '--updated /S' 0
 $candidate = Get-Installation
 if ($candidate.Version -cne $CandidateVersion -or $candidate.ExecutableVersion -cne $CandidateVersion -or
     $candidate.Location -ne $previous.Location -or $candidate.AsarHash -eq $previous.AsarHash) {
     throw "Expected $CandidateVersion in the original installation with the new app.asar"
 }
-Invoke-Composer $candidate 'continue'
+foreach ($compression in $compressions) { Invoke-Composer $candidate 'continue' $compression }
 
 foreach ($case in @(
     @{Version = '9999.12.31.65535'; Reason = 'downgrade'},
@@ -98,7 +99,7 @@ foreach ($case in @(
 Set-ItemProperty -LiteralPath $entry -Name DisplayVersion -Value $CandidateVersion
 Invoke-Setup $CandidateInstaller '--updated /S' 0
 Assert-Preserved $candidate $CandidateVersion
-Invoke-Composer $candidate 'reopen'
+foreach ($compression in $compressions) { Invoke-Composer $candidate 'reopen' $compression }
 
 [ordered]@{
     PreviousInstallerHash = (Get-FileHash -LiteralPath $PreviousInstaller).Hash
@@ -110,4 +111,5 @@ Invoke-Composer $candidate 'reopen'
     InvalidVersionExit = 2
     SameVersionExit = 0
     Composer = @('write', 'continue', 'reopen')
+    ComposerCompression = $compressions
 } | ConvertTo-Json -Depth 3

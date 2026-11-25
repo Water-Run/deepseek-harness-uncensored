@@ -40,7 +40,7 @@ PropsRuntime<'conversation.composer.dock'> & InjectFace<SpendingInjected> & Prop
   const shownPercent = percent < 100 ? Math.min(99, Math.round(percent)) : Math.round(percent)
   const nearestLabel = nearest === undefined ? '—' : `${nearest.period} ${shownPercent}%`
   return <div className={css.pills}>
-    <StatPopover title={t('spending.sessionCost')} label={label} icon={<ExpenseIcon />}>
+    <StatPopover title={t('spending.sessionCost')} label={label} icon={<ExpenseIcon />} onOpen={() => refresh(value => value + 1)}>
       {cost === undefined ? <p className={css.hint}>{t(result.status === 'failed' ? 'spending.sessionFailed' : 'spending.loading')}</p> : <>
         <div className={css.total}>{partial ? '≥ ' : ''}{amount(cost.total)}</div>
         <BalanceHistory samples={cost.points.map(point => ({ time: point.time, value: point.total }))} symbol="¥"

@@ -17,7 +17,7 @@ const packages = join(archive, 'dsh', 'node_modules', '@deepseek-ai')
 const bundled = name => import(pathToFileURL(join(packages, name, 'lib', 'index.js')).href)
 const { Context } = await bundled('cordis')
 const { Session, appendPluginRecord } = await bundled('dsh-session')
-const { createAssistantMessage, createUserMessage } = await bundled('dsh-llm')
+const { createAssistantMessage, createMessage, createUserMessage } = await bundled('dsh-llm')
 const { default: Storage } = await bundled('dsh-storage')
 const storage = await bundled('dsh-storage-json')
 const domains = await bundled('dsh-storage-domain')
@@ -41,9 +41,13 @@ function setTitle(session, title) {
 
 function appendTurn(session, turn, prompt, answer, appendHistory) {
   session.append('turn/start', { turn })
+  session.append('step/start', { turn, step: 1 })
+  if (turn === 1) {
+    const head = createMessage({ role: 'system', content: [], source: { kind: 'system-prompt', sections: [] } })
+    session.append('system/message', { turn, step: 1, message: head }, { surfaceOp: 'append' })
+  }
   const user = createUserMessage({ source: { kind: 'user' }, content: [{ type: 'text', text: prompt }] })
   session.append('user/message', user, { surfaceOp: 'append' })
-  session.append('step/start', { turn, step: 1 })
   appendHistory?.()
   const message = createAssistantMessage({ source: route, content: [{ type: 'text', text: answer }] })
   session.append('assistant/message', { turn, step: 1, stream: [], message }, { surfaceOp: 'append' })
@@ -79,8 +83,8 @@ for (let turn = 1; turn <= turns; turn++) {
 }
 setTitle(side, 'Binder side notes')
 appendTurn(side, 1, 'Which paper did we choose?', 'Use cotton paper for the cover.')
-assert.equal(main.snapshotEvents().length, 2224)
-assert.equal(side.snapshotEvents().length, 7)
+assert.equal(main.snapshotEvents().length, 2225)
+assert.equal(side.snapshotEvents().length, 8)
 
 await mkdir(output)
 await mkdir(cwd, { recursive: true })

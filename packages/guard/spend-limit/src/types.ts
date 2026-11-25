@@ -82,7 +82,7 @@ export interface SpendRate {
   searchRequest: number
 }
 
-/** Session-local model-response estimates at current configured prices, including retries but excluding inherited work. */
+/** Session-local cost of model responses, retries, predictions and memory extractions at current rates. */
 export interface SessionSpendUsage {
   total: number
   requests: number
