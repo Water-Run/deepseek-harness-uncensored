@@ -7,11 +7,11 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-function Test-LoopbackAddress([string]$Address) {
+function Get-LoopbackAddress([string]$Address) {
     $ip = $null
-    if (![Net.IPAddress]::TryParse($Address, [ref]$ip)) { return $false }
+    if (![Net.IPAddress]::TryParse($Address, [ref]$ip)) { return }
     if ($ip.IsIPv4MappedToIPv6) { $ip = $ip.MapToIPv4() }
-    return [Net.IPAddress]::IsLoopback($ip)
+    if ([Net.IPAddress]::IsLoopback($ip)) { return $ip.ToString() }
 }
 
 $root = Get-Process -Id $RootProcessId
@@ -49,15 +49,24 @@ $samples = for ($index = 0; $index -lt $SampleCount; $index++) {
     })
     $ownedSockets = @(Get-NetTCPConnection | Where-Object { $family.Contains($_.OwningProcess) })
     $listeners = @($ownedSockets | Where-Object {
-        $_.State -eq 'Listen' -and ($_.LocalAddress -in '0.0.0.0', '::' -or (Test-LoopbackAddress $_.LocalAddress))
+        $_.State -eq 'Listen' -and ($_.LocalAddress -in '0.0.0.0', '::' -or (Get-LoopbackAddress $_.LocalAddress))
     } | Select-Object -ExpandProperty LocalPort -Unique)
-    $endpoints = @($ownedSockets | Where-Object {
-        $_.State -eq 'Established' -and (Test-LoopbackAddress $_.LocalAddress) -and (Test-LoopbackAddress $_.RemoteAddress)
-    })
-    $clients = @($endpoints | Where-Object { $_.RemotePort -in $listeners })
+    $connections = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $clients = 0
+    $endpoints = 0
     $endpointCounts = @{}
-    foreach ($endpoint in $endpoints) {
-        $endpointCounts[[int]$endpoint.OwningProcess]++
+    foreach ($socket in $ownedSockets) {
+        if ($socket.State -ne 'Established') { continue }
+        $local = Get-LoopbackAddress $socket.LocalAddress
+        $peer = Get-LoopbackAddress $socket.RemoteAddress
+        if (!$local -or !$peer) { continue }
+        $source = "[$local]:$($socket.LocalPort)"
+        $destination = "[$peer]:$($socket.RemotePort)"
+        $key = if ([string]::CompareOrdinal($source, $destination) -le 0) { "$source $destination" } else { "$destination $source" }
+        [void]$connections.Add($key)
+        $endpoints++
+        $endpointCounts[[int]$socket.OwningProcess]++
+        if ($socket.RemotePort -in $listeners) { $clients++ }
     }
     foreach ($process in $processes) {
         $process | Add-Member -NotePropertyName loopbackEstablishedEndpoints -NotePropertyValue ([int]$endpointCounts[[int]$process.pid])
@@ -68,8 +77,9 @@ $samples = for ($index = 0; $index -lt $SampleCount; $index++) {
         privateBytes = ($processes | Measure-Object privateBytes -Sum).Sum
         handles = ($processes | Measure-Object handles -Sum).Sum
         listenerPorts = $listeners
-        establishedClients = $clients.Count
-        loopbackEstablishedEndpoints = $endpoints.Count
+        establishedClients = $clients
+        loopbackEstablishedConnections = $connections.Count
+        loopbackEstablishedEndpoints = $endpoints
         processes = $processes
     }
 }

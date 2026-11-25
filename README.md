@@ -207,7 +207,7 @@ https://github.com/user-attachments/assets/69f74147-3377-461c-8ec2-17169bd3ba71
 
 ### 输入预测
 
-打字停下来一会儿，输入框里会出现灰色的后半句，按 <kbd>Tab</kbd> 采用，不合适就接着打。主线、旁问和随问分别预测。它只管补全，不会替你发送。预测调用当前模型，会计费，不需要可以在 *设置 → 通用* 里关掉。
+打字停下来一会儿，输入框里会出现灰色的后半句，按 <kbd>Tab</kbd> 采用，不合适就接着打。主线、旁问和随问分别预测。主会话已有回复时，打开旁问，即使还没打字，也可能收到一个建议问题。采纳后仍由你发送。预测调用当前模型，会计费，可以在 *设置 → 通用* 里关掉。
 
 <img src="docs/assets/dshu/input-prediction.webp" alt="输入框中的灰色预测文字">
 <p align="center"><sub>灰色部分是预测，按 Tab 填入</sub></p>
@@ -300,7 +300,7 @@ https://github.com/user-attachments/assets/69f74147-3377-461c-8ec2-17169bd3ba71
 >
 > Windows x64 用户从 `2026.11.23.0` 静默升级到已发布的 `2026.11.24.3` 会遇到退出码 `2`，旧版文件和安装登记保留。未签名的缺省与写作候选 `2026.11.25.0` 已分别从两个正式版完成离线升级。正式签名包的在线更新仍待验证。[Issue #24](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24)
 
-Windows x64 正式版 `2026.11.24.3` 有启动后静置卡死的用户报告，停用第三方插件后仍会发生。已修复同一会话并发打开旁问时的重复请求，以及界面重新绑定时对同一草稿重复发起预测的问题。缺省与写作候选也已在断网时实装打开默认工作区，随后的 90 秒内，七次采样均有 3 条本机连接。也用报告中的正式安装包在两个 Windows 空资料环境各静置三分钟，均未复现持续增长；带旧资料的发行验收仍在排查。[Issue #26](https://github.com/Water-Run/deepseek-harness-uncensored/issues/26) · [Windows 实装采样与安装器摘要](.agents/requirements/2026-11-25-release-handoff.md#issue-26-的-windows-静置卡死)
+Windows x64 正式版 `2026.11.24.3` 有启动后静置卡死的用户报告。已修复并发打开同一旁问的重复请求，以及界面重新绑定时对同一草稿重复发起预测的问题。用上一正式版和缺省与写作候选分别打开同一份 2,224 条事件的旧会话，在主会话、旁问打开、旁问关闭三种状态各观察 3 分钟。两版均未复现持续增长，候选的 39 次采样均为 3 至 4 条回环连接。报告所用系统及资料条件仍待复验，此项保留在正式版发行清单中。[Issue #26](https://github.com/Water-Run/deepseek-harness-uncensored/issues/26) · [安装包对照与逐进程数据](.agents/requirements/2026-11-25-release-handoff.md#保留旧写作会话的-windows-安装包对照)
 >
 > 更新前请先关闭 DSHU，备份数据目录和重要的工作区文件。正式签名、在线升级和自动回退还在验收中，进度见[开发清单](.agents/TODO.md)。
 
@@ -325,8 +325,8 @@ Windows x64 正式版 `2026.11.24.3` 有启动后静置卡死的用户报告，�
 | DSHU | 最新正式版 `2026.11.24.3` |
 | DeepSeek Harness | 源码基于 [0.2.2-rc.5](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.5) |
 | 新内核候选 | DSHU `2026.11.25.0` 使用 DSH `0.2.3-alpha.2`，目前只含缺省与写作。跨对话记忆、余额历史和模式设置已接入。关于页左侧显示 DSHU 日期版本，右侧列出内核、源码与组件信息。[桌面](docs/assets/dshu/about-candidate-updates.webp) · [窄屏](docs/assets/dshu/about-candidate-updates-mobile.webp) |
-| 与正式版的差异 | 新内核源码已恢复日出日落、城市选择和关于页内的检查更新，工作区标题与侧栏也已恢复 DSHU 标识。通用设置底部与侧栏均显示 DSHU 产品版本。打开关于页会按这个日期版本查询正式发行。已验收的 Windows 包早于工作区名称修正，Linux 包也早于主题和更新检查的修复。候选 Web 版可生成、忽略、采纳及关闭主输入框预测，可从三个入口打开旁问，也可在主输入框发起随问。旁问支持手动清理、关闭后自动清理及由主会话主动读取。顶部入口和页签显示运行、中断、未读或已读；折叠侧栏时收到的回答重新打开后才会标为已读。最终安装包仍待验收。[逐项对照与现有证据](.agents/requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表) |
-| Windows x64 候选 | 未签名安装器已从首发版和上一正式版完成静默升级，已验证降级保护、无效登记拦截和旧写作会话保留。[版本身份](.agents/requirements/2026-11-25-release-handoff.md#windows-安装器与版本身份) · [安装包摘要与升级结果](.agents/requirements/2026-11-25-release-handoff.md#issue-24-的首发版静默升级) |
+| 与正式版的差异 | 新内核源码已恢复日出日落、城市选择和关于页内的检查更新，工作区标题与侧栏也已恢复 DSHU 标识。通用设置底部与侧栏均显示 DSHU 产品版本。打开关于页会按这个日期版本查询正式发行。Windows 候选已实装显示 DSHU 工作区标识，已测的 Linux 包仍早于日出日落和更新检查的修复。候选 Web 版可生成、忽略、采纳及关闭主输入框预测，可从三个入口打开旁问，也可在主输入框发起随问。旁问支持手动清理、关闭后自动清理及由主会话主动读取。顶部入口和页签显示运行、中断、未读或已读；折叠侧栏时收到的回答重新打开后才会标为已读。最终安装包仍待验收。[逐项对照与现有证据](.agents/requirements/2026-11-25-release-handoff.md#从上一版建立逐项差异表) |
+| Windows x64 候选 | 未签名安装器已分别从首发版和上一正式版静默升级，并通过同版重装、降级保护、无效登记拦截和旧会话续写复验。实装设置中跨对话记忆默认关闭，余额自动清理默认保留 30 天。[当前安装包摘要与实测](.agents/requirements/2026-11-25-release-handoff.md#保留旧写作会话的-windows-安装包对照) · [首发升级问题](.agents/requirements/2026-11-25-release-handoff.md#issue-24-的首发版静默升级) |
 | Linux 候选 | x64 的 deb、RPM、tar.gz 已逐包核验。Debian 13 和 Fedora 44 已验证安装、同版重装和两代旧会话，Fedora 45 已启动桌面和便携 CLI。arm64 已接入打包，待原生验收。[安装包摘要与实测范围](.agents/requirements/2026-11-25-release-handoff.md#linux-x64-未签名安装包与回执) |
 | 破甲提示词 | dsh-purge Community [v1.7.20](https://github.com/kingcharleslzy-ai/dsh-purge/releases/tag/v1.7.20) |
 | REA | [6.9.0 · d74549e495c5](https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0) |

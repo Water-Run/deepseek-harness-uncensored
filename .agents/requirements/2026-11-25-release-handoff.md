@@ -85,7 +85,7 @@
 
 在还原后的候选目录运行 `pnpm exec vitest run --config vitest.web.config.ts apps/web/tests/input-prediction.e2e.ts` 可从页面复验。这个用例通过实际的会话 RPC 与录制的模型响应运行，无需密钥。Host 用例 `packages/api/session-controller/tests/prediction.host.spec.ts` 按旧版样本核对写入的消息、路由、结果和 token 用量；`packages/client/ui-conversation/tests/input-bar.client.spec.tsx` 检查草稿过期、界面重新绑定、输入锁定和访问权限。Tab 在光标处于末尾时采纳，补全菜单优先，输入法组字期间保持原有键盘行为。设置保存失败会提示用户。
 
-跨版本读写另有独立回执。两套正式版写入器分别创建旧资料，再由包含新预测实现的树 `56c4022f165e67dbaf5c8b3fe86a5bec0b2cb4f9` 读取、续写和重开。`2026.11.23.0`、`2026.11.24.3` 两组各核对了 30 个原始文件的 SHA-256。到上述候选树之间的差异只涉及网页测试和队列快照。已有 Windows 安装验收包早于此次输入框接入，正式安装包仍须从真实输入框复验。
+跨版本读写另有独立回执。两套正式版写入器分别创建旧资料，再由包含新预测实现的树 `56c4022f165e67dbaf5c8b3fe86a5bec0b2cb4f9` 读取、续写和重开。`2026.11.23.0`、`2026.11.24.3` 两组各核对了 30 个原始文件的 SHA-256。到上述候选树之间的差异只涉及网页测试和队列快照。此处的早期 Windows 安装包早于输入框接入。后续 Windows 安装器对旧对话及旁问的实测见[保留资料对照](#保留旧写作会话的-windows-安装包对照)。正式包仍须核对三个输入入口的预测生成、采纳及费用。
 - [ ] **合并与实装。** 新内核将会话列表元数据放在 `packages/session-query/session-query`，输入栏在 `packages/client/ui-conversation/src/client/skeleton/InputBar.tsx`。沿用新内核的会话归属、工作区选择、草稿迁移和输入权限。装包后从原有写作会话重开旁问，关闭所有视图，记录用户入口、会话历史及本机资源采样，再更新上表结论。
 
 ### 合并后的关于页
@@ -378,7 +378,7 @@ pnpm run test:web:built apps/web/tests/mcp-schema-recovery.e2e.ts
 | 第一次启动 | 671.1、667.1、532.5 MiB | 2,766 → 2,756 | 在同一快照中能按监听端口归属的客户端连接为 0 至 4 条。 |
 | 第二次启动 | 663.5、665.1、534.9 MiB | 2,746 → 2,740 | 进程树内所有已建立的回环 TCP 端点最多 9 个。180 秒时仍有 6 个端点，其中按监听端口统计的客户端连接为 0。 |
 
-采样脚本的 `establishedClients` 统计连接到同一快照中本进程树监听端口的客户端。监听端口未被观测到时，该值可以为零。`loopbackEstablishedEndpoints` 独立记录所有属于进程树的已建立回环端点，并按 PID 拆分。一条连接的两端如果都属于进程树，会计两次。脚本识别通配监听地址、IPv4 回环网段和 IPv4 映射的 IPv6 地址。以上两次使用空资料，均未操作旁问；带保留资料的工作区和旁问仍需独立复验。
+采样脚本的 `establishedClients` 统计连接到同一快照中本进程树监听端口的客户端。监听端口未被观测到时，该值可以为零。`loopbackEstablishedEndpoints` 独立记录所有属于进程树的已建立回环端点，并按 PID 拆分。一条连接的两端如果都属于进程树，会计两次。脚本识别通配监听地址、IPv4 回环网段和 IPv4 映射的 IPv6 地址。以上两次使用空资料，均未操作旁问。
 
 **Windows 空资料实测。** 在 Windows Sandbox 10.0.26100 x64 的两个独立账户安装缺省与写作候选 `2026.11.25.0`，安装器 SHA-256 为 `ad437c3bf544e68771ff74c42b65a8488c773d1118cc3052a99cc130b11ad15c`。第一组启动后无操作，第二组选择 API Key、跳过配置并进入工作区外壳。每组七次采样，统计主进程及其子进程的专用内存、句柄和本机已建立的 TCP 连接。连接按客户端到同一进程树监听端口的方向计数。
 
@@ -387,7 +387,7 @@ pnpm run test:web:built apps/web/tests/mcp-schema-recovery.e2e.ts
 | 启动后无操作 | 9.0 至 95.1 秒 | 712.7 → 514.2 MiB | 4,462 → 3,083 | 各次为 0 或 1 |
 | 跳过欢迎页后静置 | 11.1 至 95.2 秒 | 668.6 → 511.0 MiB | 2,711 → 2,705 | 各次均为 0 |
 
-第二组工作区出现“连接异常，刷新重试”。旧连接逻辑在系统离线时也暂停了桌面到本机 Host 的连接。主线和新内核现已让自带本机 Host 的客户端在系统断网时继续连接，访问远程 Host 的网页仍会暂停重试。同一项回归在修改前停在 `disconnected`，修改后两条源码线分别通过 58 项连接测试。以上两个旧候选样本均未显示报告中的增长，但第二组没有建立工作区连接。带旧会话、旁问以及最终四模式长期运行的验收仍须单独进行。
+第二组工作区出现“连接异常，刷新重试”。旧连接逻辑在系统离线时也暂停了桌面到本机 Host 的连接。主线和新内核现已让自带本机 Host 的客户端在系统断网时继续连接，访问远程 Host 的网页仍会暂停重试。同一项回归在修改前停在 `disconnected`，修改后两条源码线分别通过 58 项连接测试。以上两个旧候选样本均未显示报告中的增长，但第二组没有建立工作区连接。保留旧会话和旁问的后续结果见下文，最终四模式包仍须独立验收。
 
 **修复后的安装包。** 在新的 Windows x64 沙盒中全新安装候选树 `4d8c520d76bf28f23e4a202f57e5d0ea97d4e2a9` 的未签名 EXE。禁用虚拟网络适配器，跳过 API Key 配置，确认页面报告 `navigator.onLine === false` 且桌面传输拥有本机 Host。默认工作区正常出现，从账号菜单打开关于页并核对 DSHU `2026.11.25.0`、DSH `0.2.3-alpha.2`、候选树及检查更新按钮，然后关闭弹窗并断开界面自动化连接。下表是此后使用仓库采样脚本得到的完整序列。所有七次均有 3 条已建立的本机客户端连接。
 
@@ -396,17 +396,69 @@ pnpm run test:web:built apps/web/tests/mcp-schema-recovery.e2e.ts
 | 进程树专用内存（MiB） | 696.4 | 697.0 | 552.0 | 552.1 | 543.2 | 540.9 | 539.4 |
 | 进程树句柄 | 2,753 | 2,743 | 2,745 | 2,745 | 2,738 | 2,738 | 2,735 |
 
-EXE 为 325,300,939 字节，SHA-256 `fc81c3d72b4fb8a317a1b8938a99ad512c5679427495c1e78e268924a4cbd721`。配套 blockmap 为 337,682 字节，SHA-256 `bdd6d243769150f99d7a2ef98f787bb4e28584684db5ee9e9567939fd864559f`。本机交接目录为 `%USERPROFILE%/DSHU-Deliveries/20261125/windows-x64-candidate/4d8c520d76bf/`，含安装文件、摘要、界面截图和逐进程采样。此前两个独立对照样本在 `%USERPROFILE%/DSHU-Deliveries/20261125/windows-idle/previous-ad437c3bf544/`。当前验证时长为 90 秒，使用空资料及缺省、写作两种模式。
+EXE 为 325,300,939 字节，SHA-256 `fc81c3d72b4fb8a317a1b8938a99ad512c5679427495c1e78e268924a4cbd721`。配套 blockmap 为 337,682 字节，SHA-256 `bdd6d243769150f99d7a2ef98f787bb4e28584684db5ee9e9567939fd864559f`。本机交接目录为 `%USERPROFILE%/DSHU-Deliveries/20261125/windows-x64-candidate/4d8c520d76bf/`，含安装文件、摘要、界面截图和逐进程采样。此前两个独立对照样本在 `%USERPROFILE%/DSHU-Deliveries/20261125/windows-idle/previous-ad437c3bf544/`。这组验证时长为 90 秒，使用空资料及缺省、写作两种模式。
 
 这一份安装器还分别从 `2026.11.23.0`、`2026.11.24.3` 完成保留资料的静默覆盖升级及同版重装，两项退出码均为 0。两台沙盒分别拒绝降级和无效的旧版登记，退出码均为 2。安装后的 `app.asar` SHA-256 同为 `251dd0133f5defc4c7c61abc7e2c778a0c8287d9ef5ccc3fa23e2a6c6e1e25ac`。含输入建议的原会话可继续、冷启动可重开；#25 的具名工具错误恢复在该安装目录复验通过。完整回执是交接目录中的 `first-upgrade.json`、`previous-upgrade.json`。[首发版升级问题](#issue-24-的首发版静默升级) · [会话恢复问题](#issue-25-的工具声明与会话恢复)
 
-复验时记录安装器的 SHA-256、网络状态、资料来源和页面。从任务管理器选取这次启动的 DSHU 主进程 PID，在仓库根目录运行下列命令，将示例 PID 替换为实际值。[Windows 采样脚本](../../kernel/0.2.3-alpha.2/verification/windows-idle-samples.ps1)只读取进程和系统 TCP 表。结果包含每次采样的 UTC 时间、角色、内存、句柄和监听端口。填写工作区结果前先确认应用已加载工作区。在断线界面测得零连接无法代表已连接时的行为。
+### 保留旧写作会话的 Windows 安装包对照
+
+原版使用报告中的 `2026.11.24.3` 安装器。候选从同一安装器以 `--updated /S` 原位升级到 `2026.11.25.0`。两次使用独立的 Windows Sandbox 10.0.26100 x64、6 GiB 内存和已启用的网络适配器，跳过密钥配置，未安装第三方插件。两个账户都在首次启动应用前装入同一份合成资料，安装及复制后逐一核对三份文件的 SHA-256。进入工作区后按顺序加载主会话末条回复、显示旁问末条回复、关闭旁问页签。
+
+候选树为 `b738adb9fcf1e7d16c1857aaf8a5cb8706a64e53`。Windows x64 未签名安装器为 325,314,921 字节，SHA-256 `11b18e03c66142bc14b1920f808f02827cfd9fd9e1de7cd85e517cd98ed02f96`。配套 blockmap 为 336,444 字节，SHA-256 `982aa3d859c7c90e6ec3dcdcfe401fad03e58b15d6a29acb66deb5f249d55ae7`。安装后的 `app.asar` SHA-256 为 `090b0b768e5f43954155e98c3efc3945c0fed99f2c39c290031efe3fa25bc1f9`。
+
+| 已安装版本 | 观察页面 | 进程树专用内存（首末，MiB） | 句柄（首末） | 回环端点（最少–最多） | 去重连接（最少–最多） |
+| --- | --- | --- | --- | --- | --- |
+| 上一正式版 | 主会话 | 764.5 → 585.3 | 2,782 → 2,785 | 7–10 | 此阶段未采集 |
+| 上一正式版 | 旁问已打开 | 582.8 → 554.1 | 2,381 → 2,383 | 6–10 | 单次补测为 4 |
+| 上一正式版 | 旁问已关闭 | 561.3 → 557.1 | 2,385 → 2,385 | 6–8 | 4 |
+| 两模式候选 | 主会话 | 723.6 → 544.1 | 2,794 → 2,801 | 5–7 | 3–4 |
+| 两模式候选 | 旁问已打开 | 539.1 → 507.7 | 2,395 → 2,409 | 5–8 | 3–4 |
+| 两模式候选 | 旁问已关闭 | 519.6 → 518.4 | 2,410 → 2,394 | 5 | 3 |
+
+每个版本在同一进程上连续观察三个阶段，每阶段 3 分钟、13 个样本，共 78 个样本。两个应用在最后一次采样结束后均能继续显示主会话。两组均未观察到报告所述的持续增长。回执保留三份输入文件的摘要、每个 PID 的角色、专用内存、句柄和回环端点序列，以及每阶段有变动的日志。[逐进程采样和旧资料摘要](../../kernel/0.2.3-alpha.2/verification/windows-retained-idle-b738adb9.json)
+
+两版打开旁问后都在其日志追加了一次空草稿预测请求和一条失败结果。对照采样前后的文件摘要并逐条解压，原来的记录均保留。两次都跳过了账号配置，历史中的翻译插件记录也没有对应的运行中插件。报告者在故障期间观察到会话文件完全没有写入，设备为 Windows 11 家庭版 Build 26300。要确认该故障，应在相应系统和资料条件下保留资源增长时的进程树及连接归属。
+
+最后一组采样结束后，用已安装候选的账号菜单打开关于页。深色品牌区贴齐弹窗左边和上边，左侧为 DSHU `2026.11.25.0`，右侧为 DSH `0.2.3-alpha.2`、候选树和两项发行版组件参考。按 Esc 能关闭。设置页的四种外观均可见，默认选中日出日落。跨对话记忆默认关闭，额度页的自动清理已启用并保留 30 天，模式页可见写作。安装器、blockmap、原始逐进程 JSON 和各页截图位于 `%USERPROFILE%/DSHU-Deliveries/20261125/windows-x64-candidate/b738adb9fcf1/`。
+
+同一安装器另用两个离线账户复验了 #24 和 #25。分别从 `2026.11.23.0` 和 `2026.11.24.3` 静默原位升级，两个起点的安装和同版重装退出码均为 0。模拟降级及无效登记均返回 2，原程序和资源摘要保持一致。每组都用安装后的程序续写并重开带输入建议的旧会话，核对三种历史工具声明以及服务商点名拒绝一个工具后保留的无关声明。两份回执位于同一交接目录的 `first-upgrade.json`、`previous-upgrade.json`。正式签名安装器的真实线上升级仍待验证。
+
+### 用上一正式版生成可重复使用的旧资料
+
+在一次性 Windows 测试账户安装 `2026.11.24.3`。从仓库根目录运行以下 PowerShell。脚本调用安装目录里的写作会话、工作区和压缩存储实现，重新读取落盘的两条会话，并核对消息。它会新建输出目录，遇到同名目录立即退出。[写入器](../../kernel/0.2.3-alpha.2/verification/windows-retained-writing.mjs) · [输入建议样本](../../packages/sdk/client/tests/expected/input-prediction-projection.json)
 
 ```powershell
-.\kernel\0.2.3-alpha.2\verification\windows-idle-samples.ps1 -RootProcessId 1234 | Set-Content -Encoding utf8 workspace-idle.json
+$install = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*' |
+    Where-Object DisplayName -Like 'DeepSeek Harness Uncensored*'
+$desktop = Join-Path $install.InstallLocation 'DeepSeek Harness Uncensored.exe'
+$writer = (Resolve-Path 'kernel/0.2.3-alpha.2/verification/windows-retained-writing.mjs').Path
+$prediction = (Resolve-Path 'packages/sdk/client/tests/expected/input-prediction-projection.json').Path
+$fixture = Join-Path $env:TEMP ('dshu-retained-' + [guid]::NewGuid())
+$env:ELECTRON_RUN_AS_NODE = '1'
+try {
+    & $desktop --expose-internals $writer $fixture 'C:\DSHU-workshop' $prediction | Out-Host
+    if ($LASTEXITCODE -ne 0) { throw '旧版未成功生成测试资料' }
+} finally { Remove-Item Env:ELECTRON_RUN_AS_NODE }
 ```
 
-- [ ] Windows 平台维护者在独立测试资料下对照上一正式版及最终候选，分别观察欢迎页、进入工作区后静置、重开旧会话、打开和关闭旁问。保留起止时间、应用版本及同一进程树的内存、句柄和本地 Host 连接采样。按 Host 端口与进程标识归属连接，避免把两端重复计数或把其他应用的流量计入。
+主会话包含 45 次写作问答、218 条输入建议事件、952 条合成的翻译插件历史和 782 条印刷批注。主日志共 2,224 条事件，连同文件头解压为 7,268,008 字节。旁问的 7 条事件连同文件头为 1,298 字节。均使用虚构文本，翻译记录只保存在历史中。每次新建资料时消息标识和时间会变化，比较两个安装包时应复用同一次生成的文件。
+
+1. 保留上述目录作为原件。在两个新测试账户中建立相同路径 `C:\DSHU-workshop`，把原件各复制一份到首次启动前的 `%USERPROFILE%\.dsh-uncensored`。记录 `storages/workspace.json` 及两份 `session.v4.jsonl.zstd` 的 SHA-256。
+2. 在第一个账户使用上一正式版。在第二个账户先安装同一正式版，再以 `--updated /S` 从同一目录覆盖升级。核对产品版本、安装器摘要和三份旧文件的摘要。两次测试分别运行，使用相同的网络和插件配置。
+3. 在工作区 `Retained print workshop` 打开旧主会话，等到末条回复 `Proof 45 is ready for the binder.` 可见。记录第一组。打开旁问，等到 `Use cotton paper for the cover.` 可见，记录第二组。关闭旁问页签，确认主会话仍能操作，记录第三组。
+4. 每组开始前断开界面自动化连接，保持应用运行。每 15 秒读取同一进程树一次，含起始样本共 13 次。每组静置前后比较两条会话日志的文件摘要。记录操作系统、网络状态、是否加载第三方插件及认证方式，以便与故障设备对照。
+
+新版采样器同时给出 `loopbackEstablishedConnections`，将本地和对端的地址、端口规范化，同一 TCP 连接的两个方向只计一次。一端属于进程树即可纳入，两个方向都在树外则排除。即使当前 Windows TCP 快照未列出监听端口，这个指标也可用。原版实测期间有一次 `netstat` 列出了 4 条连接的 8 个端点，同时按监听端口只能识别 0 条客户端连接。早期回执没有独立连接数字段，应保留其原始端点计数。
+
+从任务管理器选取这次启动的 DSHU 主进程 PID，在仓库根目录运行下列命令，将示例 PID 和输出文件名替换为实际值。[Windows 采样脚本](../../kernel/0.2.3-alpha.2/verification/windows-idle-samples.ps1)只读取进程和系统 TCP 表。结果包含每次采样的 UTC 时间、角色、内存、句柄和监听端口。填写工作区结果前先确认应用已加载工作区。
+
+```powershell
+.\kernel\0.2.3-alpha.2\verification\windows-idle-samples.ps1 -RootProcessId 1234 -SampleCount 13 -IntervalSeconds 15 |
+    Set-Content -Encoding utf8 workspace-idle.json
+```
+
+- [x] Windows Build 26100 在两个独立账户上对照上一正式版和两模式候选，使用同一份保留资料，分别测量重开旧会话、打开旁问及关闭旁问。
+- [ ] Windows 平台维护者使用最终候选复验欢迎页和上述三个阶段，优先对照报告中的 Build 26300、已有资料、账号和插件配置。保留起止时间、应用版本及同一进程树的内存、句柄、回环端点和独立连接数。
 - [ ] 按页面和请求类别区分持续订阅、普通 RPC 和重新连接，核对窗口关闭、Host 重新启动及应用退出后资源是否释放。现有通用连接控制器含重连退避，旁问资源生成器在两次更新间等待通知。仅凭报告中的循环或某一次连接的快照无法确定故障源。
 - [ ] 将证实的根因和对应的资源所有者记录在本节，为修复补充可重复的回归检查。使用新资料与保留资料各做一次实装复验，同时检查正常的重连和旁问功能。重装成功或一张低内存截图均不足以关闭该问题。
 
@@ -552,6 +604,8 @@ Windows 同版修复的关键是目录归属。安装登记与卸载登记均由
 
 ### Issue 24 的首发版静默升级
 
+最新 Windows 两模式候选已从首发版和上一正式版分别验证静默升级。[本次安装器摘要及两组回执](#保留旧写作会话的-windows-安装包对照)
+
 首发版 `2026.11.23.0` 与已发布的 `2026.11.24.3` 均取自 GitHub Release。Windows x64 离线沙盒使用独立账户，先以 `/S` 安装首发版，再分别使用 `--updated /S` 运行下表中的安装包。两次升级尝试之间保留原安装登记和文件。[Issue #24](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24)
 
 | 目标安装包 | 退出码 | 安装后结果 |
@@ -597,6 +651,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows-installer-upgr
 差分索引的 15,541 个块均已按 EXE 内容重算。安装后的资源包含源码树 `75172761e1fc84f0e748533c63a6d19104b08909`。两个新的离线 Windows Sandbox 账户分别从上表两份 GitHub 正式包升级至这份 EXE，升级与同版重装的退出码均为 0，降级及无效登记的退出码均为 2。两处安装的资源摘要相同，安装后的 Electron 44.11.5 都通过了[三种模式的同会话恢复检查](#issue-25-的工具声明与会话恢复)。旧写作会话、缓存控制器及卸载重装的数据保全演练使用的是上一个摘要为 `bca91a06…` 的安装包。
 
 #### 具名工具拒绝修复的 Windows 实装验收
+
+[当前 Windows 候选的两组安装回执](#保留旧写作会话的-windows-安装包对照)也覆盖本节的旧会话恢复和具名工具拒绝。
 
 缺省与写作的未签名 Windows x64 候选来自 [源码里程碑 `d4654e563a`](https://github.com/Water-Run/deepseek-harness-uncensored/commit/d4654e563a9c681d5f09ee14e0e0606cad867801)。安装后的资源内嵌候选树 `5a851855e0f1ad3086f965d3412a4e4ca2a4cc31`。以下摘要标识这一份安装器。
 
