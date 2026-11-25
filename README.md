@@ -287,9 +287,11 @@
 
 > [!IMPORTANT]
 >
-> Windows x64 用户从 `2026.11.23.0` 静默升级到已发布的 `2026.11.24.3` 会遇到退出码 `2`，旧版文件和安装登记保留。含修复的正式安装包尚待发布。[Issue #24](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24)
+> Windows x64 用户从 `2026.11.23.0` 静默升级到已发布的 `2026.11.24.3` 会遇到退出码 `2`，旧版文件和安装登记保留。未签名的缺省与写作候选 `2026.11.25.0` 已分别从两个正式版完成离线升级。正式签名包的在线更新仍待验证。[Issue #24](https://github.com/Water-Run/deepseek-harness-uncensored/issues/24)
 >
 > 更新前请先关闭 DSHU，备份数据目录和重要的工作区文件。正式签名、在线升级和自动回退还在验收中，进度见[开发清单](.agents/TODO.md)。
+
+> 正式版用户报告某个 MCP 工具声明被供应商拒绝后，原会话连续返回 400。已用独立的笔记工具确认该约束会被 DeepSeek 拒绝。原会话恢复列入下一版优先验收。[Issue #25](https://github.com/Water-Run/deepseek-harness-uncensored/issues/25) · [复验结果与范围](.agents/requirements/2026-11-25-release-handoff.md#issue-25-的工具声明与会话恢复)
 
 ## 文档导航
 
@@ -307,7 +309,7 @@
 | --- | --- |
 | DSHU | 最新正式版 `2026.11.24.3` |
 | DeepSeek Harness | 源码基于 [0.2.2-rc.5](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.5) |
-| 新内核候选 | DSHU `2026.11.25.0` 使用 DSH `0.2.3-alpha.2`。缺省与写作已接入跨对话记忆、余额历史和模式设置。关于页左侧显示 DSHU 日期版本，右侧列出内核与组件信息。[桌面](docs/assets/dshu/about-candidate.webp) · [窄屏](docs/assets/dshu/about-candidate-mobile.webp) · [Windows 安装器与版本身份](.agents/requirements/2026-11-25-release-handoff.md#windows-安装器与版本身份)。Windows x64 未签名候选已从正式版 2026.11.24.3 保留资料升级，并验证了主程序缺失时的同版修复。四模式正式发行仍在验收。 |
+| 新内核候选 | DSHU `2026.11.25.0` 使用 DSH `0.2.3-alpha.2`。缺省与写作已接入跨对话记忆、余额历史和模式设置。关于页左侧显示 DSHU 日期版本，右侧列出内核与组件信息。[桌面](docs/assets/dshu/about-candidate.webp) · [窄屏](docs/assets/dshu/about-candidate-mobile.webp) · [Windows 安装器与版本身份](.agents/requirements/2026-11-25-release-handoff.md#windows-安装器与版本身份)。Windows x64 未签名候选已从首发版和上一正式版完成静默升级，验证了降级保护、无效登记拦截和旧写作会话保留。[安装包摘要与升级结果](.agents/requirements/2026-11-25-release-handoff.md#issue-24-的首发版静默升级)。四模式正式发行仍在验收。 |
 | 破甲提示词 | dsh-purge Community [v1.7.20](https://github.com/kingcharleslzy-ai/dsh-purge/releases/tag/v1.7.20) |
 | REA | [6.9.0 · d74549e495c5](https://github.com/morluto/rea/commit/d74549e495c58eb4a560279fd9f05508401ea0a0) |
 

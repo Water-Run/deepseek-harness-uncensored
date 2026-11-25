@@ -1051,7 +1051,7 @@ index 56161096b2f742f2c592b7b87f8693a8ceb8989a..1942bb7cde1ce1a940366f86f8b50400
  账号失效并返回 Welcome 时，主进程保留一次性通知，直到渲染器通过所属窗口的 IPC 领取。重新加载 Welcome 不会重复提示；主动退登和冷启动不会生成该通知。
  
 diff --git a/apps/desktop/packaging/README.i18n.yaml b/apps/desktop/packaging/README.i18n.yaml
-index 228f07da880b886dd478781fc5cd56399d4f1488..528e6cd2f0070f8f3702560193c720e0de0ee191 100644
+index 228f07da880b886dd478781fc5cd56399d4f1488..140b5aaaf85fdb248759d3e4690836626a923c10 100644
 --- a/apps/desktop/packaging/README.i18n.yaml
 +++ b/apps/desktop/packaging/README.i18n.yaml
 @@ -18,23 +18,23 @@
@@ -1060,8 +1060,8 @@ index 228f07da880b886dd478781fc5cd56399d4f1488..528e6cd2f0070f8f3702560193c720e0
  /desktop-packaging/release-versions:
 -  en: bdee4adb7916e6cc
 -  zh: 2880c3594ebab7ab
-+  en: f72169a028fdade4
-+  zh: fd5cc49b1955d384
++  en: 0d8dd9cc300328fb
++  zh: d7a497e756d01bf5
  /desktop-packaging/configuration-and-local-builds:
    en: 5b4f0f80a117f202
    zh: ff05be196c181087
@@ -1096,10 +1096,10 @@ index 228f07da880b886dd478781fc5cd56399d4f1488..528e6cd2f0070f8f3702560193c720e0
  /desktop-packaging/desktop-runtime-preparation:
    en: 84be38ab3136fff7
 diff --git a/apps/desktop/packaging/README.md b/apps/desktop/packaging/README.md
-index d8aa7714ee03dac6fa90d35027488ebc595e3881..c173133e2ed14e84bc14260f4b6fae6f04b6d40b 100644
+index d8aa7714ee03dac6fa90d35027488ebc595e3881..da5649811ddea597319fe477d8aae95e0f1bd777 100644
 --- a/apps/desktop/packaging/README.md
 +++ b/apps/desktop/packaging/README.md
-@@ -38,25 +38,20 @@ Set `DSH_DESKTOP_PACKAGE_CACHE_DIR` to an absolute build-cache directory for reu
+@@ -38,25 +38,24 @@ Set `DSH_DESKTOP_PACKAGE_CACHE_DIR` to an absolute build-cache directory for reu
  
  ## Release versions
  
@@ -1107,8 +1107,11 @@ index d8aa7714ee03dac6fa90d35027488ebc595e3881..c173133e2ed14e84bc14260f4b6fae6f
 +The public DSHU version comes from `apps/cli/package.json` (`dshuVersion`). The CLI, About dialog, Windows installer and download filename use the four-part date. Electron and the updater compare the ordered three-part version. The bundled runtime is verified separately against the DSH kernel version. The desktop application lists WaterRun as its author. Installed resources contain the DSHU GPL text in `LICENSE` and the upstream MIT text and dependency notices in `LICENSES/DeepSeek-Harness/`. Windows can repair a missing executable when the installation and uninstall registrations for the current user identify the same directory. A different installation directory must be empty.
  
 -Record the current dsh version as the base. A production Desktop release uses that exact version, including any `alpha`, `beta`, or `rc` identifiers. A test release preserves the complete prerelease base and appends `.YYYYMMDD.index`; a stable base uses `-test.YYYYMMDD.index` instead.
--
++The Electron archive is validated against the SHA-256 list shipped with the locked Electron npm package, including on cache hits.
+ 
 -| dsh base | Production Desktop | Test Desktop example |
++Windows installer preparation checks the native version comparison before building the installer. An installed daily sequence of zero can upgrade normally. Setup rejects a downgrade or an invalid registered version with exit code `2` before replacing files. When the updater cache is writable, `installer-logs/version-check.log` records the reason and candidate version, including during silent updates.
++
 +| DSHU version | Electron version | Test build example |
  |---|---|---|
 -| `0.1.6-alpha.1` | `0.1.6-alpha.1` | `0.1.6-alpha.1.20260916.1` |
@@ -1130,7 +1133,7 @@ index d8aa7714ee03dac6fa90d35027488ebc595e3881..c173133e2ed14e84bc14260f4b6fae6f
  ```
  
  `--build-version auto` proposes the next index for today, reading the published objects in the destination bucket and falling back to this target's local output directory when no bucket is configured or the listing cannot finish within its deadline. Confirm the proposal it prints before an upload; a run script forwards `--` on its own, and the packaging entry accepts it either way.
-@@ -109,7 +104,7 @@ Each target owns its packed package inputs, prepared runtime, package set, dsh t
+@@ -109,7 +108,7 @@ Each target owns its packed package inputs, prepared runtime, package set, dsh t
  
  For supervised runner startup and recovery, follow [Windows runner machine setup](../windows-signing/README.md#machine-setup).
  
@@ -1139,7 +1142,7 @@ index d8aa7714ee03dac6fa90d35027488ebc595e3881..c173133e2ed14e84bc14260f4b6fae6f
  
  Select the workflow in Actions, choose the source branch, preset, signing mode and version, then click Run workflow. Before merging input changes, test the pushed branch with `gh workflow run windows-package.yml --ref <branch> -f source_ref=<branch> -f preset=test -f signing=unsigned -f version_mode=build-number`; verify the web form after merging. There is no push or PR trigger. Logs and successful EXEs are retained for 14 days. Inspect the retained logs and installer before relying on packaging; installation is separate. Before checkout, Node removes the runner-owned source directory without following dependency junctions; the workflow validates its location and rejects linked ancestors. Never point it at a development checkout. Runs share one concurrency group without cancelling an active build; only one run remains pending, and a newer dispatch replaces it. Diagnostics upload requires a successful clean checkout. Machine settings stay outside the checkout and are never uploaded as artifacts.
  
-@@ -159,7 +154,7 @@ On Windows x64, use the complete unsigned packaging command for local installati
+@@ -159,7 +158,7 @@ On Windows x64, use the complete unsigned packaging command for local installati
  pnpm run package:desktop:win:x64:unsigned
  ```
  
@@ -1148,7 +1151,7 @@ index d8aa7714ee03dac6fa90d35027488ebc595e3881..c173133e2ed14e84bc14260f4b6fae6f
  
  Run `pnpm install --frozen-lockfile`, then `pnpm run package:desktop:win:x64:unsigned --check` to validate configuration and tooling before the full command above. Packaging performs its own complete build and isolated runtime smoke without an online model. Stage logs remain under `.desktop-build/packaging-runs/`; a successful build alone does not qualify the installer. Dependency installation and runtime preparation need access to npm, GitHub release assets and nodejs.org; use the existing registry and proxy configuration when the network requires it. Caches and tool locations belong to the build machine, not tracked personal paths.
  
-@@ -174,9 +169,9 @@ pnpm run package:desktop:mac:arm64:unsigned
+@@ -174,9 +173,9 @@ pnpm run package:desktop:mac:arm64:unsigned
  pnpm run package:desktop:mac:x64:unsigned
  ```
  
@@ -1160,7 +1163,7 @@ index d8aa7714ee03dac6fa90d35027488ebc595e3881..c173133e2ed14e84bc14260f4b6fae6f
  
  <a id="macos-release-signing"></a>
  
-@@ -266,7 +261,7 @@ The Windows installer checks for a running application at startup and after dest
+@@ -266,7 +265,7 @@ The Windows installer checks for a running application at startup and after dest
  
  Directory renames, empty-destination removal, and restoration retry Windows errors 5, 32, and 33 up to ten attempts, with 250 ms increasing delays (11.25 seconds of total waiting per operation). Other errors stop immediately. A replacement failure reports the Windows error, affected paths, and restoration outcome in `directory-failure-<timestamp>.log` beside extraction reports. If restoration fails, the installer removes unlocked staging files and preserves the backup. After reporting that failure, exit cleanup does not retry restoration. Keep the backup path named in the report and contact support before reinstalling. Silent installs save the same diagnostic without a dialog.
  
@@ -1170,10 +1173,10 @@ index d8aa7714ee03dac6fa90d35027488ebc595e3881..c173133e2ed14e84bc14260f4b6fae6f
  Windows packaging fixes the 7-Zip filter to `BCJ` for compatibility with the bundled NSIS decoder. This preserves ARM64 binaries carried by dependencies in x64 installers; automatic ARM64 filtering produces entries that this decoder cannot extract.
  
 diff --git a/apps/desktop/packaging/README.zh.md b/apps/desktop/packaging/README.zh.md
-index bdffd46c99697416431fc74e5a783725529c1034..7972fce583c18ac58582553611b1af13d5c55598 100644
+index bdffd46c99697416431fc74e5a783725529c1034..2cae39c69fe9035f4ee0a70c235f609c6c452ddb 100644
 --- a/apps/desktop/packaging/README.zh.md
 +++ b/apps/desktop/packaging/README.zh.md
-@@ -38,25 +38,20 @@ description: "在本地或 Windows／macOS Actions 中生成 Desktop 安装包
+@@ -38,25 +38,24 @@ description: "在本地或 Windows／macOS Actions 中生成 Desktop 安装包
  
  ## 发布版本
  
@@ -1181,8 +1184,11 @@ index bdffd46c99697416431fc74e5a783725529c1034..7972fce583c18ac58582553611b1af13
 +DSHU 公开版本取自 `apps/cli/package.json` 的 `dshuVersion`。CLI、关于页、Windows 安装程序和下载文件名使用四段日期。Electron 和更新器使用可比较的三段版本。随包运行时按 DSH 内核版本独立校验。桌面应用的作者为 WaterRun。安装目录的资源中，`LICENSE` 为 DSHU 的 GPL 许可，`LICENSES/DeepSeek-Harness/` 包含上游 MIT 许可及依赖声明。 Windows 的当前用户安装登记和卸载登记指向同一目录时，可用同版安装器补回缺失的主程序。改装到其他目录时，目标目录须为空。
  
 -记录当前 dsh 版本作为基础版本。production Desktop 使用完全相同的版本，包括其中的 `alpha`、`beta` 或 `rc` 标识。test 发布保留完整的预发布基础版本并追加 `.YYYYMMDD.index`；稳定基础版本则追加 `-test.YYYYMMDD.index`。
--
++打包时使用锁定的 Electron npm 包附带的 SHA-256 清单校验 Electron 压缩包，复用缓存时也会校验。
+ 
 -| dsh 基础版本 | production Desktop | test Desktop 示例 |
++Windows 安装器在打包前检查原生版本比较。当天序号为零的已安装版本可以正常升级。安装器遇到降级或无效的登记版本时，在替换文件前以退出码 `2` 停止。更新缓存可写时，`installer-logs/version-check.log` 会记录拦截原因和目标版本，静默更新也会记录。
++
 +| DSHU 版本 | Electron 版本 | 测试构建示例 |
  |---|---|---|
 -| `0.1.6-alpha.1` | `0.1.6-alpha.1` | `0.1.6-alpha.1.20260916.1` |
@@ -1204,7 +1210,7 @@ index bdffd46c99697416431fc74e5a783725529c1034..7972fce583c18ac58582553611b1af13
  ```
  
  `--build-version auto` 会给出当天的下一个序号：读取目标 bucket 中已发布的对象，未配置 bucket 或列举未能在期限内完成时回退到本目标的本地输出目录。上传前请确认它打印的版本号；run script 会自行透传 `--`，打包入口两种写法都接受。
-@@ -109,7 +104,7 @@ macOS 正式发布和本地未签名 DMG 都通过 [electron-builder 配置](../
+@@ -109,7 +108,7 @@ macOS 正式发布和本地未签名 DMG 都通过 [electron-builder 配置](../
  
  runner 的受监督启动和恢复见 [Windows runner 机器准备](../windows-signing/README.zh.md#machine-setup)。
  
@@ -1213,7 +1219,7 @@ index bdffd46c99697416431fc74e5a783725529c1034..7972fce583c18ac58582553611b1af13
  
  在 Actions 选择工作流、源码分支、preset、签名模式和版本，再点击 Run workflow。输入变更合并前，用 `gh workflow run windows-package.yml --ref <branch> -f source_ref=<branch> -f preset=test -f signing=unsigned -f version_mode=build-number` 测试已推送分支；合并后验证网页表单。它不监听 push 或 PR。日志和成功生成的 EXE 保留 14 天。依赖打包流程前检查日志和安装包；安装是独立操作。检出前，Node 删除 runner 专用源码目录，不跟随依赖 junction；工作流校验目标位置并拒绝链接祖先目录。不得指向日常开发目录。运行共享一个并发组，不取消正在进行的构建；最多保留一个待运行任务，新触发会替换它。仅在成功完成干净检出后上传诊断。机器配置位于 checkout 之外，不作为产物上传。
  
-@@ -159,7 +154,7 @@ bash apps/desktop/scripts/macos-runner-service.sh status "$HOME/dsh-ci/runner"
+@@ -159,7 +158,7 @@ bash apps/desktop/scripts/macos-runner-service.sh status "$HOME/dsh-ci/runner"
  pnpm run package:desktop:win:x64:unsigned
  ```
  
@@ -1222,7 +1228,7 @@ index bdffd46c99697416431fc74e5a783725529c1034..7972fce583c18ac58582553611b1af13
  
  先运行 `pnpm install --frozen-lockfile`，再运行 `pnpm run package:desktop:win:x64:unsigned --check` 校验配置和工具，最后执行上面的完整命令。打包自行执行完整构建和隔离的运行时 smoke，不调用在线模型。阶段日志保留在 `.desktop-build/packaging-runs/`；仅构建成功不代表安装包验证通过。依赖安装和运行时准备需要访问 npm、GitHub release 资源和 nodejs.org；网络需要时使用现有 registry 和代理配置。缓存与工具位置属于构建机器配置，不在跟踪文件中固定个人路径。
  
-@@ -174,9 +169,9 @@ pnpm run package:desktop:mac:arm64:unsigned
+@@ -174,9 +173,9 @@ pnpm run package:desktop:mac:arm64:unsigned
  pnpm run package:desktop:mac:x64:unsigned
  ```
  
@@ -1248,10 +1254,10 @@ index da0f06a8ecd798ce20e3db5244a9a6b340448423..992d22d6b7a1a2bb27e9302ea8c361f9
        { windowsHide: true, timeout: 30_000 })
        if (located.stdout.trim() === '') {
 diff --git a/apps/desktop/scripts/prepare-windows-installer.ps1 b/apps/desktop/scripts/prepare-windows-installer.ps1
-index e073e169260edaa4058a31e0443ab4fce8975a36..58dfcda28fcff5d465416f72b2dc324cbf863ccb 100644
+index e073e169260edaa4058a31e0443ab4fce8975a36..15f9c42920e46dabd78971e9014aec69359ce21d 100644
 --- a/apps/desktop/scripts/prepare-windows-installer.ps1
 +++ b/apps/desktop/scripts/prepare-windows-installer.ps1
-@@ -10,7 +10,7 @@ $source = Join-Path $installerRoot 'window-frame.cpp'
+@@ -10,14 +10,22 @@ $source = Join-Path $installerRoot 'window-frame.cpp'
  $library = Join-Path $output 'window-frame.dll'
  $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
  if (-not (Test-Path -LiteralPath $vswhere)) { throw 'Windows installer preparation requires Visual Studio C++ Build Tools and a Windows SDK.' }
@@ -1260,6 +1266,22 @@ index e073e169260edaa4058a31e0443ab4fce8975a36..58dfcda28fcff5d465416f72b2dc324c
  if (-not $visualStudio) { throw 'Visual Studio C++ Build Tools are missing.' }
  $vcvars = Join-Path $visualStudio 'VC/Auxiliary/Build/vcvars32.bat'
  $compileScript = Join-Path $output 'compile-frame.cmd'
+-$compileLines = @('@echo off', ('call "{0}" >nul' -f $vcvars), 'if errorlevel 1 exit /b %errorlevel%', ('cl /nologo /LD /MT /O1 /W4 /WX /EHsc "{0}" /Fo"{1}" /link /OUT:"{2}" /IMPLIB:"{3}" user32.lib gdi32.lib comdlg32.lib comctl32.lib dwmapi.lib gdiplus.lib ole32.lib shell32.lib uuid.lib advapi32.lib' -f $source, (Join-Path $output 'window-frame.obj'), $library, (Join-Path $output 'window-frame.lib')))
++$compileLines = @('@echo off', ('call "{0}" >nul' -f $vcvars), 'if errorlevel 1 exit /b %errorlevel%', ('cl /nologo /std:c++17 /LD /MT /O1 /W4 /WX /EHsc "{0}" /Fo"{1}" /link /OUT:"{2}" /IMPLIB:"{3}" user32.lib gdi32.lib comdlg32.lib comctl32.lib dwmapi.lib gdiplus.lib ole32.lib shell32.lib uuid.lib advapi32.lib' -f $source, (Join-Path $output 'window-frame.obj'), $library, (Join-Path $output 'window-frame.lib')))
+ [IO.File]::WriteAllLines($compileScript, $compileLines, [Text.Encoding]::Default)
+ & $env:ComSpec /d /c $compileScript
+ if ($LASTEXITCODE -ne 0) { throw 'Native installer helper compilation failed.' }
++$versionSource = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../tests/windows-installer-version.cpp'))
++$versionExecutable = Join-Path $output 'version-test.exe'
++$versionScript = Join-Path $output 'compile-version-test.cmd'
++[IO.File]::WriteAllLines($versionScript, @('@echo off', ('call "{0}" >nul' -f $vcvars), 'if errorlevel 1 exit /b %errorlevel%', ('cl /nologo /MT /W4 /WX /EHsc "{0}" /Fo"{1}" /Fe"{2}" /link "{3}"' -f $versionSource, (Join-Path $output 'version-test.obj'), $versionExecutable, (Join-Path $output 'window-frame.lib'))), [Text.Encoding]::Default)
++& $env:ComSpec /d /c $versionScript
++if ($LASTEXITCODE -ne 0) { throw 'Version test compilation failed.' }
++& $versionExecutable
++if ($LASTEXITCODE -ne 0) { throw 'Installer version regression failed.' }
+ if ($TestProgress -or $CompileProgressOnly) {
+     $cleanupSource = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../tests/windows-uninstall-data.cpp'))
+     # UAC installer detection demands elevation from unmanifested executables named after installation.
 diff --git a/apps/desktop/scripts/start-windows-packaging-runner.ps1 b/apps/desktop/scripts/start-windows-packaging-runner.ps1
 index a0242960240ad3bde84e900a67b2fd30a94284de..a3afd852e0a4a7ceafdb872b4fc87add3060e9bd 100644
 --- a/apps/desktop/scripts/start-windows-packaging-runner.ps1
@@ -33914,7 +33936,7 @@ index 3738fda13fb337730921355a09ed48abd630bea0..2db4cb9ae9a5b656f70c638eb52fc7cd
      throw new Error('installed update: feed filename must identify the selected local Windows installer')
    }
 diff --git a/apps/desktop/scripts/installer.nsh b/apps/desktop/scripts/installer.nsh
-index 35047710567843527d5f968df414b3787163389c..e02686885f082388b54daab976344f416c42737b 100644
+index 35047710567843527d5f968df414b3787163389c..4fa129d1c99f569af18ff5186b71eb63f1365197 100644
 --- a/apps/desktop/scripts/installer.nsh
 +++ b/apps/desktop/scripts/installer.nsh
 @@ -12,6 +12,7 @@ ManifestDPIAware true
@@ -33925,7 +33947,15 @@ index 35047710567843527d5f968df414b3787163389c..e02686885f082388b54daab976344f41
    !ifdef BUILD_UNINSTALLER
      BrandingText " "
      SetFont "Segoe UI" 9
-@@ -261,6 +262,7 @@ ManifestDPIAware true
+@@ -67,6 +68,7 @@ ManifestDPIAware true
+   File "/oname=$PLUGINSDIR\brand-dark.bmp" "${INSTALLER_BUILD_DIR}\brand-dark.bmp"
+   File "/oname=$PLUGINSDIR\brand-dark-2x.bmp" "${INSTALLER_BUILD_DIR}\brand-dark-2x.bmp"
+   File "/oname=$PLUGINSDIR\window-frame.dll" "${INSTALLER_BUILD_DIR}\window-frame.dll"
++  Call InstallerRequireCurrentVersion
+   ${If} ${Silent}
+   ${AndIf} ${isUpdated}
+   ${AndIf} ${isForceRun}
+@@ -261,6 +263,7 @@ ManifestDPIAware true
    ${EndIf}
    ; Standard uninstall-entry metadata read by inventory tools; the upstream template records it only under its private key.
    WriteRegStr SHELL_CONTEXT "${UNINSTALL_REGISTRY_KEY}" InstallLocation "$INSTDIR"
@@ -35522,3 +35552,358 @@ index ccbd392c8d92d4daffd3cc31b31549bfef631bd1..174edf82b1f86041e0ddee380e57d44e
    expect(result.indexOf('Call dshPromoteDirectories')).toBeLessThan(result.indexOf('!insertmacro registryAddInstallInfo'))
    expect(result).toContain('!insertmacro addStartMenuLink $keepShortcuts')
    expect(result).toContain('!insertmacro addDesktopLink $keepShortcuts')
+diff --git a/apps/desktop/installer/lifecycle.nsh b/apps/desktop/installer/lifecycle.nsh
+index a75393e3e0775b758429174af0b5fca18b12e486..5999c1fdf3538e021abac96c2202b8733ded6d52 100644
+--- a/apps/desktop/installer/lifecycle.nsh
++++ b/apps/desktop/installer/lifecycle.nsh
+@@ -1,5 +1,34 @@
+ Var InstallerProgressWindow
+ 
++Function InstallerRequireCurrentVersion
++    ReadRegStr $0 HKCU "${UNINSTALL_REGISTRY_KEY}" "DisplayVersion"
++    ${If} $0 == ""
++        Call InstallerRegisteredDirectory
++        ${If} $1 == ""
++            Return
++        ${EndIf}
++    ${EndIf}
++    System::Call '$PLUGINSDIR\window-frame.dll::InstallerCheckVersion(w r0, w "${VERSION}") i.r1 ?c'
++    ${If} $1 == 0
++        Return
++    ${EndIf}
++    ${If} $1 == 1
++        StrCpy $2 "downgrade"
++        MessageBox MB_OK|MB_ICONEXCLAMATION "$(INSTALLER_DOWNGRADE)$\r$\n$0 → ${DSHU_DISPLAY_VERSION}" /SD IDOK
++    ${Else}
++        StrCpy $2 "invalid-version"
++        MessageBox MB_OK|MB_ICONEXCLAMATION "$(INSTALLER_VERSION_UNKNOWN)" /SD IDOK
++    ${EndIf}
++    CreateDirectory "${DSH_INSTALLER_LOG_DIR}"
++    FileOpen $3 "${DSH_INSTALLER_LOG_DIR}\version-check.log" w
++    ${IfNot} ${Errors}
++        FileWrite $3 "reason=$2$\r$\ncandidate=${DSHU_DISPLAY_VERSION}$\r$\n"
++        FileClose $3
++    ${EndIf}
++    SetErrorLevel 2
++    Quit
++FunctionEnd
++
+ Function InstallerGuiInit
+     HideWindow
+     System::Call 'user32::SetWindowLongW(p $HWNDPARENT, i -16, i 0x800A0000)'
+diff --git a/apps/desktop/installer/locales/de_DE.json b/apps/desktop/installer/locales/de_DE.json
+index aefac91fbba1a39ee913c199c5db1f46e460c862..df629c2010d7921afea4195f28ca310cb971f734 100644
+--- a/apps/desktop/installer/locales/de_DE.json
++++ b/apps/desktop/installer/locales/de_DE.json
+@@ -24,6 +24,8 @@
+     "INSTALLER_PATH_OWNERSHIP": "Wählen Sie einen leeren Ordner oder den registrierten DeepSeek Harness-Installationsordner.",
+     "INSTALLER_PATH_WRITABLE": "Dieser Ort ist nicht beschreibbar. Wählen Sie einen Ordner, der für den aktuellen Benutzer verfügbar ist.",
+     "INSTALLER_DISK_SPACE": "Es ist nicht genügend freier Speicherplatz vorhanden. Wählen Sie einen anderen Standort.",
++    "INSTALLER_DOWNGRADE": "Eine neuere Version von DSHU ist bereits installiert. Verwenden Sie dieselbe oder eine neuere Installationsdatei. Deinstallieren Sie für ein Downgrade zuerst die aktuelle Version.",
++    "INSTALLER_VERSION_UNKNOWN": "Die installierte Version von DSHU konnte nicht geprüft werden. Deinstallieren Sie die aktuelle Version vor der Neuinstallation.",
+     "INSTALLER_PER_USER": "Dieses Installationsprogramm unterstützt nur den aktuellen Benutzer. Deinstallieren Sie zunächst die vorhandene All-User-Installation.",
+     "INSTALLER_EXTRACT_FAILED": "Die Anwendungsdateien konnten nicht extrahiert werden.",
+     "INSTALLER_EXTRACT_HINT": "Möglicherweise hat die Sicherheitssoftware eine Datei blockiert oder die Festplatte ist voll. Schließen Sie dieses Installationsprogramm und versuchen Sie es erneut. Wenn es weiterhin fehlschlägt, senden Sie uns die Fehlerdetails unten.",
+diff --git a/apps/desktop/installer/locales/en_US.json b/apps/desktop/installer/locales/en_US.json
+index 46473f800e2d67d516d2ea28161c7487c89d8e36..86e568c3b7eb2d2ec266c179f457c45894740a50 100644
+--- a/apps/desktop/installer/locales/en_US.json
++++ b/apps/desktop/installer/locales/en_US.json
+@@ -24,6 +24,8 @@
+     "INSTALLER_PATH_OWNERSHIP": "Choose an empty folder or the registered DeepSeek Harness installation folder.",
+     "INSTALLER_PATH_WRITABLE": "This location is not writable. Choose a folder available to the current user.",
+     "INSTALLER_DISK_SPACE": "There is not enough free disk space. Choose another location.",
++    "INSTALLER_DOWNGRADE": "A newer version of DSHU is already installed. Use the same or a newer installer. To go back, uninstall the current version first.",
++    "INSTALLER_VERSION_UNKNOWN": "Could not verify the installed DSHU version. Uninstall the current version before installing again.",
+     "INSTALLER_PER_USER": "This installer supports the current user only. Uninstall the existing all-users installation first.",
+     "INSTALLER_EXTRACT_FAILED": "The application files could not be extracted.",
+     "INSTALLER_EXTRACT_HINT": "Security software may have blocked a file, or the disk may be full. Close this installer and try again. If it keeps failing, send us the error details below.",
+diff --git a/apps/desktop/installer/locales/es_ES.json b/apps/desktop/installer/locales/es_ES.json
+index 9f267f21dc1888db673558cb554c1d9bae7ce1c3..40ab57ddb388314d1579d8caa67015be39b72015 100644
+--- a/apps/desktop/installer/locales/es_ES.json
++++ b/apps/desktop/installer/locales/es_ES.json
+@@ -24,6 +24,8 @@
+     "INSTALLER_PATH_OWNERSHIP": "Elija una carpeta vacía o la carpeta de instalación registrada de DeepSeek Harness.",
+     "INSTALLER_PATH_WRITABLE": "Esta ubicación no se puede escribir. Elija una carpeta disponible para el usuario actual.",
+     "INSTALLER_DISK_SPACE": "No hay suficiente espacio libre en disco. Elija otra ubicación.",
++    "INSTALLER_DOWNGRADE": "Ya hay una versión más reciente de DSHU instalada. Use un instalador de la misma versión o de una versión posterior. Para volver a una anterior, desinstale primero la versión actual.",
++    "INSTALLER_VERSION_UNKNOWN": "No se pudo verificar la versión instalada de DSHU. Desinstale la versión actual antes de volver a instalar.",
+     "INSTALLER_PER_USER": "Este instalador solo admite el usuario actual. Primero desinstale la instalación existente para todos los usuarios.",
+     "INSTALLER_EXTRACT_FAILED": "No se pudieron extraer los archivos de la aplicación.",
+     "INSTALLER_EXTRACT_HINT": "Es posible que el software de seguridad haya bloqueado un archivo o que el disco esté lleno. Cierra este instalador y vuelve a intentarlo. Si sigue fallando, envíenos los detalles del error a continuación.",
+diff --git a/apps/desktop/installer/locales/fr_FR.json b/apps/desktop/installer/locales/fr_FR.json
+index 40936f4bbf14462c6cec2049fa88d3776be60942..786ec2fd46bf97757cf23787b7292417f3babd06 100644
+--- a/apps/desktop/installer/locales/fr_FR.json
++++ b/apps/desktop/installer/locales/fr_FR.json
+@@ -24,6 +24,8 @@
+     "INSTALLER_PATH_OWNERSHIP": "Choisissez un dossier vide ou le dossier d'installation DeepSeek Harness enregistré.",
+     "INSTALLER_PATH_WRITABLE": "Cet emplacement n'est pas accessible en écriture. Choisissez un dossier disponible pour l'utilisateur actuel.",
+     "INSTALLER_DISK_SPACE": "Il n'y a pas assez d'espace disque libre. Choisissez un autre emplacement.",
++    "INSTALLER_DOWNGRADE": "Une version plus récente de DSHU est déjà installée. Utilisez un programme d’installation de la même version ou d’une version plus récente. Pour revenir en arrière, désinstallez d’abord la version actuelle.",
++    "INSTALLER_VERSION_UNKNOWN": "Impossible de vérifier la version installée de DSHU. Désinstallez la version actuelle avant de réinstaller.",
+     "INSTALLER_PER_USER": "Ce programme d'installation prend en charge uniquement l'utilisateur actuel. Désinstallez d’abord l’installation existante pour tous les utilisateurs.",
+     "INSTALLER_EXTRACT_FAILED": "Les fichiers de l'application n'ont pas pu être extraits.",
+     "INSTALLER_EXTRACT_HINT": "Un logiciel de sécurité a peut-être bloqué un fichier ou le disque est peut-être plein. Fermez ce programme d'installation et réessayez. Si l'échec persiste, envoyez-nous les détails de l'erreur ci-dessous.",
+diff --git a/apps/desktop/installer/locales/ja_JP.json b/apps/desktop/installer/locales/ja_JP.json
+index 785bafdd7b1e760c67285e7a2ea917dab9367cac..1b7c745790782437f94fee825783b86861dbbbde 100644
+--- a/apps/desktop/installer/locales/ja_JP.json
++++ b/apps/desktop/installer/locales/ja_JP.json
+@@ -24,6 +24,8 @@
+     "INSTALLER_PATH_OWNERSHIP": "空のフォルダー、または登録済みの DeepSeek Harness インストール先を選択してください。",
+     "INSTALLER_PATH_WRITABLE": "この場所には書き込めません。現在のユーザーが書き込めるフォルダーを選択してください。インストーラーは管理者権限を要求しません。",
+     "INSTALLER_DISK_SPACE": "ディスクの空き容量が不足しています。別の場所を選択してください。",
++    "INSTALLER_DOWNGRADE": "より新しいバージョンの DSHU がインストールされています。同じバージョンまたは新しいバージョンのインストーラーを使用してください。以前のバージョンに戻すには、現在のバージョンを先にアンインストールしてください。",
++    "INSTALLER_VERSION_UNKNOWN": "インストール済みの DSHU のバージョンを確認できませんでした。現在のバージョンをアンインストールしてから再インストールしてください。",
+     "INSTALLER_PER_USER": "このインストーラーは現在のユーザーのみを対象としています。先にすべてのユーザー向けの既存のインストールを削除してください。",
+     "INSTALLER_EXTRACT_FAILED": "アプリケーションのファイルを展開できませんでした。",
+     "INSTALLER_EXTRACT_HINT": "セキュリティソフトがファイルをブロックしたか、ディスクの空き容量が不足している可能性があります。インストーラーを閉じて再試行してください。問題が続く場合は、以下のエラーの詳細をお送りください。",
+diff --git a/apps/desktop/installer/locales/pt_BR.json b/apps/desktop/installer/locales/pt_BR.json
+index 90b3ed8b8ea943abe4ed0c50f97025ab9090c73d..5a77f8cd16a945120c02a226818f719315d1fb17 100644
+--- a/apps/desktop/installer/locales/pt_BR.json
++++ b/apps/desktop/installer/locales/pt_BR.json
+@@ -24,6 +24,8 @@
+     "INSTALLER_PATH_OWNERSHIP": "Escolha uma pasta vazia ou a pasta de instalação DeepSeek Harness registrada.",
+     "INSTALLER_PATH_WRITABLE": "Este local não é gravável. Escolha uma pasta disponível para o usuário atual.",
+     "INSTALLER_DISK_SPACE": "Não há espaço livre suficiente em disco. Escolha outro local.",
++    "INSTALLER_DOWNGRADE": "Uma versão mais recente de DSHU já está instalada. Use um instalador da mesma versão ou de uma versão mais recente. Para voltar, desinstale primeiro a versão atual.",
++    "INSTALLER_VERSION_UNKNOWN": "Não foi possível verificar a versão instalada de DSHU. Desinstale a versão atual antes de instalar novamente.",
+     "INSTALLER_PER_USER": "Este instalador oferece suporte apenas ao usuário atual. Desinstale primeiro a instalação existente para todos os usuários.",
+     "INSTALLER_EXTRACT_FAILED": "Os arquivos do aplicativo não puderam ser extraídos.",
+     "INSTALLER_EXTRACT_HINT": "O software de segurança pode ter bloqueado um arquivo ou o disco pode estar cheio. Feche este instalador e tente novamente. Se continuar falhando, envie-nos os detalhes do erro abaixo.",
+diff --git a/apps/desktop/installer/locales/ru_RU.json b/apps/desktop/installer/locales/ru_RU.json
+index a1f9957dfd1ecc108f10860ee7688fd02f7e3b48..37e9504ec994f2d23267a3f0bd1135eb3054420d 100644
+--- a/apps/desktop/installer/locales/ru_RU.json
++++ b/apps/desktop/installer/locales/ru_RU.json
+@@ -24,6 +24,8 @@
+     "INSTALLER_PATH_OWNERSHIP": "Выберите пустую папку или зарегистрированную папку установки DeepSeek Harness.",
+     "INSTALLER_PATH_WRITABLE": "Это местоположение недоступно для записи. Выберите папку, доступную текущему пользователю.",
+     "INSTALLER_DISK_SPACE": "Недостаточно свободного места на диске. Выберите другое место.",
++    "INSTALLER_DOWNGRADE": "Уже установлена более новая версия DSHU. Используйте установщик той же или более новой версии. Для возврата сначала удалите текущую версию.",
++    "INSTALLER_VERSION_UNKNOWN": "Не удалось проверить установленную версию DSHU. Перед повторной установкой удалите текущую версию.",
+     "INSTALLER_PER_USER": "Этот установщик поддерживает только текущего пользователя. Сначала удалите существующую установку для всех пользователей.",
+     "INSTALLER_EXTRACT_FAILED": "Файлы приложения не удалось извлечь.",
+     "INSTALLER_EXTRACT_HINT": "Возможно, программное обеспечение безопасности заблокировало файл или диск переполнен. Закройте этот установщик и повторите попытку. Если ошибка продолжает возникать, отправьте нам сведения об ошибке ниже.",
+diff --git a/apps/desktop/installer/locales/zh_CN.json b/apps/desktop/installer/locales/zh_CN.json
+index 2f6a9bbec0182680e7243b953b67a88bfc04759a..383b12de1a8b0d1cfba8ec9122e5840dbfb058af 100644
+--- a/apps/desktop/installer/locales/zh_CN.json
++++ b/apps/desktop/installer/locales/zh_CN.json
+@@ -24,6 +24,8 @@
+     "INSTALLER_PATH_OWNERSHIP": "请选择空文件夹，或 DeepSeek Harness 原来的安装目录。",
+     "INSTALLER_PATH_WRITABLE": "无法写入此位置。请选择当前用户可写入的文件夹；安装程序不会申请管理员权限。",
+     "INSTALLER_DISK_SPACE": "此磁盘的可用空间不足，请选择其他位置。",
++    "INSTALLER_DOWNGRADE": "已安装较新版本的 DSHU。请使用同版或更新的安装包。如需回退，请先卸载当前版本。",
++    "INSTALLER_VERSION_UNKNOWN": "无法确认已安装的 DSHU 版本。请先卸载当前版本，再重新安装。",
+     "INSTALLER_PER_USER": "此安装程序仅支持当前用户。请先卸载已有的所有用户安装版本。",
+     "INSTALLER_EXTRACT_FAILED": "无法解压应用程序文件。",
+     "INSTALLER_EXTRACT_HINT": "可能是安全软件拦截了文件，或磁盘空间不足。请关闭安装程序后重试；如仍然失败，请将下方错误信息发送给我们。",
+diff --git a/apps/desktop/installer/version.h b/apps/desktop/installer/version.h
+new file mode 100644
+index 0000000000000000000000000000000000000000..8ed32fda2dda42888672ce9c8faf782fc557f5e7
+--- /dev/null
++++ b/apps/desktop/installer/version.h
+@@ -0,0 +1,96 @@
++// Compare the per-user installed product version with the NSIS candidate before replacing files.
++#pragma once
++#include <windows.h>
++#include <algorithm>
++#include <string>
++#include <string_view>
++
++namespace {
++bool VersionDigit(wchar_t value) { return value >= L'0' && value <= L'9'; }
++
++std::wstring_view TakeVersionIdentifier(std::wstring_view& version) {
++    const auto separator = version.find(L'.');
++    const auto identifier = version.substr(0, separator);
++    version.remove_prefix(separator == std::wstring_view::npos ? version.size() : separator + 1);
++    return identifier;
++}
++
++bool ValidVersionIdentifiers(std::wstring_view version, bool core) {
++    if (version.empty() || version.back() == L'.') return false;
++    unsigned count = 0;
++    while (!version.empty()) {
++        const auto identifier = TakeVersionIdentifier(version);
++        if (identifier.empty()) return false;
++        const bool numeric = std::all_of(identifier.begin(), identifier.end(), VersionDigit);
++        if (numeric && identifier.size() > 1 && identifier.front() == L'0') return false;
++        if (core && !numeric) return false;
++        if (!std::all_of(identifier.begin(), identifier.end(), [](wchar_t value) {
++            return VersionDigit(value) || (value >= L'A' && value <= L'Z') ||
++                (value >= L'a' && value <= L'z') || value == L'-';
++        })) return false;
++        ++count;
++    }
++    return !core || count == 3;
++}
++
++// Calendar display versions map to the same ordered numeric fields used by the updater.
++bool NormalizeInstallerCalendar(std::wstring_view version, std::wstring& normalized) {
++    if (std::count(version.begin(), version.end(), L'.') != 3 || version.find(L'-') != std::wstring_view::npos) {
++        normalized.assign(version);
++        return true;
++    }
++    unsigned fields[4] = {};
++    for (unsigned index = 0; index < 4; ++index) {
++        const auto part = TakeVersionIdentifier(version);
++        if (part.empty() || part.size() > 5 || !std::all_of(part.begin(), part.end(), VersionDigit)) return false;
++        if ((index == 0 && part.size() != 4) || ((index == 1 || index == 2) && part.size() != 2)
++            || (index == 3 && part.size() > 1 && part.front() == L'0')) return false;
++        for (const auto digit : part) fields[index] = fields[index] * 10 + static_cast<unsigned>(digit - L'0');
++    }
++    const unsigned year = fields[0], month = fields[1], day = fields[2], sequence = fields[3];
++    if (year < 2000 || year > 9999 || month < 1 || month > 12 || sequence > 65535) return false;
++    const unsigned days[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
++    const bool leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
++    if (day < 1 || day > days[month - 1] + (month == 2 && leap ? 1 : 0)) return false;
++    normalized = std::to_wstring(year) + L"." + std::to_wstring(month * 100 + day) + L"." + std::to_wstring(sequence);
++    return true;
++}
++
++bool ReadInstallerVersion(std::wstring_view version, std::wstring_view& core, std::wstring_view& prerelease) {
++    const auto separator = version.find(L'-');
++    core = version.substr(0, separator);
++    if (separator != std::wstring_view::npos) prerelease = version.substr(separator + 1);
++    return ValidVersionIdentifiers(core, true) &&
++        (separator == std::wstring_view::npos || ValidVersionIdentifiers(prerelease, false));
++}
++
++int CompareVersionIdentifiers(std::wstring_view left, std::wstring_view right) {
++    while (!left.empty() && !right.empty()) {
++        const auto a = TakeVersionIdentifier(left);
++        const auto b = TakeVersionIdentifier(right);
++        const bool aNumeric = std::all_of(a.begin(), a.end(), VersionDigit);
++        const bool bNumeric = std::all_of(b.begin(), b.end(), VersionDigit);
++        if (aNumeric != bNumeric) return aNumeric ? -1 : 1;
++        if (aNumeric && a.size() != b.size()) return a.size() < b.size() ? -1 : 1;
++        const int comparison = a.compare(b);
++        if (comparison != 0) return comparison;
++    }
++    if (left.empty() == right.empty()) return 0;
++    return left.empty() ? -1 : 1;
++}
++}
++
++// Calendar display versions normalize before SemVer comparison; build metadata is excluded.
++// Returns 0 for an equal or newer candidate, 1 for a downgrade, and -1 for an invalid version.
++extern "C" __declspec(dllexport) int __cdecl InstallerCheckVersion(LPCWSTR installed, LPCWSTR candidate) {
++    if (!installed || !candidate) return -1;
++    std::wstring normalizedInstalled, normalizedCandidate;
++    if (!NormalizeInstallerCalendar(installed, normalizedInstalled) || !NormalizeInstallerCalendar(candidate, normalizedCandidate)) return -1;
++    std::wstring_view installedCore, installedPrerelease, candidateCore, candidatePrerelease;
++    if (!ReadInstallerVersion(normalizedInstalled, installedCore, installedPrerelease) ||
++        !ReadInstallerVersion(normalizedCandidate, candidateCore, candidatePrerelease)) return -1;
++    const int core = CompareVersionIdentifiers(installedCore, candidateCore);
++    if (core != 0) return core > 0 ? 1 : 0;
++    if (installedPrerelease.empty() != candidatePrerelease.empty()) return installedPrerelease.empty() ? 1 : 0;
++    return CompareVersionIdentifiers(installedPrerelease, candidatePrerelease) > 0 ? 1 : 0;
++}
+diff --git a/apps/desktop/installer/window-frame.cpp b/apps/desktop/installer/window-frame.cpp
+index 210f11b2f9ea881c8c9042fe1864d29f793b474c..5ab6e241f6343fff30badbf1f4becd044a6c1883 100644
+--- a/apps/desktop/installer/window-frame.cpp
++++ b/apps/desktop/installer/window-frame.cpp
+@@ -29,6 +29,7 @@ static HRESULT ApplyInstallerDwmFrame(HWND window) {
+ #include "restart-banner.h"
+ #include "restart-status.h"
+ #include "progress.h"
++#include "version.h"
+ #include "extract.h"
+ #include "extract-report.h"
+ #include "directory-report.h"
+diff --git a/apps/desktop/tests/windows-installer-version.cpp b/apps/desktop/tests/windows-installer-version.cpp
+new file mode 100644
+index 0000000000000000000000000000000000000000..c29c3a35d5870d6aef99ae90680f725c7811c9f2
+--- /dev/null
++++ b/apps/desktop/tests/windows-installer-version.cpp
+@@ -0,0 +1,77 @@
++// Native comparison of the independent Desktop product versions read by NSIS.
++#define WIN32_LEAN_AND_MEAN
++#define UNICODE
++#include <windows.h>
++#include <cstdio>
++
++extern "C" __declspec(dllimport) int __cdecl InstallerCheckVersion(LPCWSTR installed, LPCWSTR candidate);
++
++int wmain() {
++    const struct { LPCWSTR installed; LPCWSTR candidate; int result; } cases[] = {
++        { L"2026.11.23.0", L"2026.1124.3", 0 },
++        { L"2026.11.24.3", L"2026.11.23.0", 1 },
++        { L"2026.1123.0", L"2026.11.23.0", 0 },
++        { L"2026.11.23.0", L"2026.11.23.1", 0 },
++        { L"2026.11.23.1", L"2026.11.23.0", 1 },
++        { L"2026.11.23.65535", L"2026.11.24.0", 0 },
++        { L"2026.11.23.00", L"2026.1124.3", -1 },
++        { L"2026.1123.0", L"2026.11.24.00", -1 },
++        { L"2026.11.14.9", L"2026.1114.10", 0 },
++        { L"2026.11.14.10", L"2026.1114.9", 1 },
++        { L"2026.1114.10", L"2026.11.14.10", 0 },
++        { L"2026.12.31.99", L"2027.101.1", 0 },
++        { L"2026.02.29.1", L"2026.301.1", -1 },
++        { L"2028.02.29.1", L"2028.229.1", 0 },
++        { L"2026.00.14.1", L"2026.1114.1", -1 },
++        { L"2026.11.14.01", L"2026.1114.1", -1 },
++        { L"2026.11.14.65536", L"2026.1114.1", -1 },
++        { L"2026.11.14.65535", L"2026.1115.1", 0 },
++        { L"0.1.0-test.20261113.5", L"2026.1114.1", 0 },
++        { L"2026.11.14.1", L"0.1.0", 1 },
++        { L"0.1.0", L"0.1.0", 0 },
++        { L"0.1.0", L"0.1.1", 0 },
++        { L"0.1.1", L"0.1.0", 1 },
++        { L"1.10.0", L"1.9.0", 1 },
++        { L"2.0.0", L"1.99.99", 1 },
++        { L"1.0.0-alpha", L"1.0.0", 0 },
++        { L"1.0.0", L"1.0.0-alpha", 1 },
++        { L"1.0.0-alpha", L"1.0.0-alpha.1", 0 },
++        { L"1.0.0-alpha.1", L"1.0.0-alpha.beta", 0 },
++        { L"1.0.0-beta.11", L"1.0.0-beta.2", 1 },
++        { L"1.0.0-beta.11", L"1.0.0-rc.1", 0 },
++        { L"1.0.0-9", L"1.0.0-alpha", 0 },
++        { L"1.0.0-alpha", L"1.0.0-9", 1 },
++        { L"1.0.0-alpha.1", L"1.0.0-alpha", 1 },
++        { L"1.0.0-Z", L"1.0.0-a", 0 },
++        { L"1.0.0--", L"1.0.0-0", 1 },
++        { L"0.1.0-test.20261111.10", L"0.1.0-test.20261111.9", 1 },
++        { L"0.1.0-test.20261111.9", L"0.1.0-test.20261111.10", 0 },
++        { L"0.1.0-test.999999999999999999999999", L"0.1.0-test.1", 1 },
++        { L"", L"0.1.0", -1 },
++        { nullptr, L"0.1.0", -1 },
++        { L"0.1.0", nullptr, -1 },
++        { L"0.1.0", L"broken", -1 },
++        { L"v0.1.0", L"0.1.0", -1 },
++        { L"0.1", L"0.1.0", -1 },
++        { L"0.1.0.1", L"0.1.0", -1 },
++        { L"00.1.0", L"0.1.0", -1 },
++        { L"0.1.0-", L"0.1.0", -1 },
++        { L"0.1.0-a.", L"0.1.0", -1 },
++        { L"0.1.0-a..1", L"0.1.0", -1 },
++        { L"0.1.0-01", L"0.1.0", -1 },
++        { L"0.1.0-\u4e2d", L"0.1.0", -1 },
++        { L"0.1.0+build", L"0.1.0", -1 },
++        { L"0.1.0", L" 0.1.0", -1 },
++    };
++    for (const auto& test : cases) {
++        const int actual = InstallerCheckVersion(test.installed, test.candidate);
++        if (actual != test.result) {
++            std::fprintf(stderr, "Installed %ls, candidate %ls: expected %d, got %d\n",
++                         test.installed ? test.installed : L"(null)", test.candidate ? test.candidate : L"(null)",
++                         test.result, actual);
++            return 1;
++        }
++    }
++    std::printf("passed: %zu native installer version cases\n", sizeof(cases) / sizeof(cases[0]));
++    return 0;
++}
+diff --git a/apps/desktop/scripts/prepare-runtime.ts b/apps/desktop/scripts/prepare-runtime.ts
+index 4e338532721aae17610b3234468c6e7069fb665f..8e2b539334b36572925e902368d396a9d1ddedba 100644
+--- a/apps/desktop/scripts/prepare-runtime.ts
++++ b/apps/desktop/scripts/prepare-runtime.ts
+@@ -23,8 +23,9 @@ type DesktopTarget = ReturnType<typeof desktopTargetPlatform>
+ async function prepareElectron({ platform, arch }: DesktopTarget): Promise<string> {
+   const require = createRequire(import.meta.url)
+   const { version } = require('electron/package.json') as { version: string }
++  const checksums = require('electron/checksums.json') as Record<string, string>
+   const archive = await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'download:electron',
+-    () => downloadArtifact({ version, platform, arch, artifactName: 'electron', cacheRoot: BUILD_PATHS.downloads }))
++    () => downloadArtifact({ version, platform, arch, artifactName: 'electron', cacheRoot: BUILD_PATHS.downloads, checksums }))
+   rmSync(BUILD_PATHS.electron, { recursive: true, force: true })
+   await packagingStep(process.env.DSH_DESKTOP_PACKAGING_RUN_DIR, 'extract:electron', () => extractZip(archive, { dir: BUILD_PATHS.electron }))
+   const executable = join(BUILD_PATHS.electron, platform === 'win32' ? 'electron.exe' : 'Electron.app/Contents/MacOS/Electron')

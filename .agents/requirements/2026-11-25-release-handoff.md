@@ -166,6 +166,38 @@ pnpm run test:web:built apps/web/tests/about-dialog-fit.e2e.ts apps/web/tests/ag
 
 在主线根目录执行 `pnpm exec vitest run packages/mcp/rea/tests/rea.spec.ts -t "header identification|format and architecture"`。[首轮说明与识别实现](../../packages/mcp/rea/src/header-identification.ts) · [行为用例](../../packages/mcp/rea/tests/rea.spec.ts) · [文件头结果快照](../../packages/mcp/rea/tests/expected/file-header.json)
 
+## Issue 25 的工具声明与会话恢复
+
+[Issue #25](https://github.com/Water-Run/deepseek-harness-uncensored/issues/25) 记录了 Windows 正式版 `2026.11.24.3` 在账号登录路径上连续两次被同一工具声明阻断。新版本将原会话可恢复列为优先验收项。可以独立复现服务端拒绝，也可以在主线和候选复现历史声明残留。账号登录、完整桌面会话、重启后的恢复仍须一起验收。
+
+**服务端对照。** 2026-11-25 通过官方 Messages API、API Key 和 `deepseek-flash` 发送相同的短消息，只替换虚构笔记工具的标签约束。每份声明仅含一个工具，实验无需启动第三方进程。下表为实际 HTTP 结果。[复验脚本](../../kernel/0.2.3-alpha.2/verification/mcp-schema-probe.mjs)
+
+| 发送的工具声明 | HTTP | 观察 |
+| --- | --- | --- |
+| 普通小写字母约束 | 200 | 正常返回消息。 |
+| 排除 NUL 和排除 Unicode 代理区的两个约束，嵌在 `allOf` 内 | 400 | 错误点名笔记工具及代理区表达式。 |
+| 仅排除 Unicode 代理区 | 400 | 同样被拒。Node 的 `RegExp` 可以编译这一表达式。 |
+| 仅排除 NUL | 200 | 正常返回消息。 |
+| 报告中给出的否定前瞻样例 | 200 | 此端点接受该样例。其他供应商及表达式须分别实测。 |
+| 无工具 | 200 | 普通消息通过。此请求没有用户原会话的历史。 |
+
+**历史重放。** 用同一笔记工具构造“声明、停用、继续对话”的历史，分别在主线和内核候选运行实际的 `projectToolUpdates`。停用后，`leading-only` 与 `addition-only` 的请求声明已移除工具，`in-history` 仍会列出历史工具。主循环在发出请求之前写入工具集差异。因此，仅凭两次 400 无法判定“差分没有执行”，也不能以只删当前注册项作为所有路由的修复。复验时同时查看会话事件和发给供应商的最终声明。[主循环](../../packages/core/agent-loop/src/agent.ts) · [请求投影](../../packages/llm/llm/src/content.ts)
+
+在装好依赖的主线根目录运行以下命令。复验还原的候选时，在同一个 PowerShell 窗口切换到候选根目录，再执行第二行。默认只检查本地投影。追加 `--provider` 会用 `DEEPSEEK_API_KEY` 向官方端点发送六个合成请求，输出 HTTP 状态和是否为点名工具的 schema 错误。生产会话及其文件均无需提供。
+
+```powershell
+$probe = (Resolve-Path kernel/0.2.3-alpha.2/verification/mcp-schema-probe.mjs).Path
+node --import tsx/esm $probe
+```
+
+| 发行前验收 | 通过条件 |
+| --- | --- |
+| 在原会话自救 | 拒绝工具声明后，用户可在宿主界面停用该工具，无需模型回复。下一条普通消息成功；冷启动后能继续同一会话，读取原消息并使用其他正常工具。另开一个会话核对隔离。 |
+| 各路由的最终请求 | 首次声明、已有坏历史、重连和不同工具更新模式分别检查。停用后，请求中没有导致拒绝的声明或无效引用，保留已执行调用及其结果。记录实际发送的工具集合，以便回放。 |
+| 识别与错误提示 | 对被明确点名且确实随请求发送的工具显示来源和停用入口。模糊 400、权限不足、限流和断线分别呈现。自动重试如有实现，最多一次，且不重复执行工具。工具的本地输入校验继续生效。 |
+| 跨供应商与嵌套字段 | 检查根及嵌套属性、数组项、组合与引用定义。按实际供应商结果处理表达式。再测两个有问题的工具、同名工具更换 schema、插件重启及并发窗口，核对停用归属。 |
+| 相邻报告 | [#22](https://github.com/Water-Run/deepseek-harness-uncensored/issues/22) 验证工具发现。[#23](https://github.com/Water-Run/deepseek-harness-uncensored/issues/23) 单独验证缓存，固定供应商、模型、消息前缀及工具顺序，比较未变、更改和停用工具三种情况下的请求声明及供应商缓存读数。供应商不报告缓存用量时标为未知。切勿由单次 400 推断缓存失效或改为全量注册。 |
+
 ## 旧资料与问题 20
 
 用户在 macOS 上报告应用启动后无法使用，涉及 `workspaceController`。保留资料时，旧 profile 中直接声明的包可能遮蔽桌面 Host 自带的 DSH 服务。修复涵盖 ESM、CommonJS 和插件目录解析，同时保留外部插件使用自己依赖的行为。报告目前仍开放。[Issue #20](https://github.com/Water-Run/deepseek-harness-uncensored/issues/20) · [解析实现](../../packages/boot/app-boot/src/profile-resolution/resolver.ts) · [回归用例](../../packages/boot/app-boot/tests/profile-resolution.spec.ts)
@@ -221,7 +253,7 @@ pnpm exec vitest run --maxWorkers=2 apps/desktop/tests/cli-launcher.spec.ts apps
 
 ### Windows 安装器与版本身份
 
-本表的 Windows 安装包由[安装器源码提交](https://github.com/Water-Run/deepseek-harness-uncensored/commit/2ddcf2394f273a5aa8d1d8385a8a9d525cbbe9c8)还原并构建。关于页记录应用源码树 `107a386c789706f8571e2916b103cdd4c77af80e`。当前 [source.json](../../kernel/0.2.3-alpha.2/source.json) 的树为 `63c6ea861b584ea39a6caf4cce77c8255150b5a1`，两棵树相差打包 README 的双语段落摘要文件 `apps/desktop/packaging/README.i18n.yaml`。复现安装包的源码身份时，从链接的提交运行还原脚本。
+本表的 Windows 安装包由[安装器源码提交](https://github.com/Water-Run/deepseek-harness-uncensored/commit/2ddcf2394f273a5aa8d1d8385a8a9d525cbbe9c8)还原并构建。关于页记录应用源码树 `107a386c789706f8571e2916b103cdd4c77af80e`。补齐打包 README 的双语段落摘要后，文档节点的树为 `63c6ea861b584ea39a6caf4cce77c8255150b5a1`。当前候选的版本检查与安装结果见下方 [Issue 24](#issue-24-的首发版静默升级)。复现安装包的源码身份时，从链接的提交运行还原脚本。
 
 Windows x64 的 Visual Studio C++ 构建环境使用下列入口。日历版本来自候选 `apps/cli/package.json` 的 `dshuVersion`。本轮候选 `2026.11.25.0` 对应 Electron 更新器比较的 `2026.1125.0`。关于页的右栏和包内的 DSH 运行时保留 `0.2.3-alpha.2`。安装应用标识使用 `com.deepseek.dsh.uncensored`。
 
@@ -301,6 +333,25 @@ Windows 同版修复的关键是目录归属。安装登记与卸载登记均由
 
 宿主机的完整静默测试在卸载阶段有两次残留测试主程序，分别出现在英文和中文测试包。隔离账户的两种语言均完成了相同的卸载用例。宿主机残留原因仍待查，卸载验收保留此项。
 
+新版内核采用独立的 Windows 安装器。上表中的未签名候选可以升级首发版，但在隔离账户内把已安装版本登记为 `9999.12.31.65535` 后，原候选仍以 `0` 退出并覆盖安装。当前 [source.json](../../kernel/0.2.3-alpha.2/source.json) 固定的树 `262735f10a0e611a03a30d6e303466f37c47bea1` 已将版本检查接入交互和静默安装共用的初始化步骤，常规打包会编译并运行原生回归。打包时使用锁定的 Electron npm 包提供的 SHA-256 清单。在禁用下载的检查中，正确缓存可复用，截断样本会被拒绝。
+
+[正式安装包升级检查脚本](../../kernel/0.2.3-alpha.2/verification/windows-installer-upgrade.ps1) 接受两个实际 EXE 及各自的预期 DSHU 版本。将脚本和两份 EXE 只读映射到新的 Windows Sandbox，执行以下命令。每个起始版本各用一个干净账户。脚本先升级真实安装，再在沙盒内模拟较高和无效的登记版本，检查退出码、失败日志与文件摘要，最后恢复候选版登记并复验同版安装。成功时输出两个安装包和已安装文件的 SHA-256。
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\windows-installer-upgrade.ps1 -PreviousInstaller .\old.exe -PreviousVersion 2026.11.23.0 -CandidateInstaller .\candidate.exe -CandidateVersion 2026.11.25.0
+```
+
+修复后的缺省与写作候选仍使用 DSHU `2026.11.25.0`、DSH `0.2.3-alpha.2`。以摘要区分同版本测试包。新 EXE 共 325,249,251 字节，SHA-256 为 `bca91a0693308b81ba338d5077584620d4263db2a056c6f3967ae353eb9a1bc6`。以下两次复验分别使用独立的离线 Windows Sandbox 账户。
+
+| GitHub 起始安装包 | 起始 EXE 的 SHA-256 | 静默升级 / 同版安装 | 较高版本 / 无效登记 |
+| --- | --- | --- | --- |
+| `2026.11.23.0` | `8f54226cc0e43943d4b60c9c5539ee57959d23eb070eee38c2de504f3be66f1a` | 0 / 0 | 2 / 2 |
+| `2026.11.24.3` | `a84001b8ec3d64ae4452833d8fdd018857900a772be366488de2f219334b5b30` | 0 / 0 | 2 / 2 |
+
+两条路径均在原目录完成升级，主程序和卸载登记均显示候选版本，升级后的 `app.asar` SHA-256 均为 `5728017122784009ff9b01584e2b1b22bd4b169ac961c86d468ae63058146326`。两种拒绝各自留下正确原因并保留原程序和数据包摘要。第三个账户从上一正式版升级，核对旧写作会话、工作区、profile、37 个缓存控制器文件及独立官方目录标记。补回缺失主程序、保留资料卸载并重装后，冷启动均能读回升级前后两条写作会话。
+
+打包进程在 EXE 写完、生成差分索引期间中断。已对上述 EXE 用锁定版本的 electron-builder 重新生成索引，复算全部 15,471 个块并核对整包摘要。新 `.blockmap` 的 SHA-256 为 `80ffcbeb743333ac9fa3926274081a5535ade3f13318f73c873060d5acaabeaa`。解包后的运行时通过 CLI、离线插件及文档转换冒烟测试。
+
 验证正式更新时，分别从首发版和上一正式版的原始安装登记开始，通过线上更新渠道下载同一签名候选。记录实际安装器摘要、退出码、原路径、更新前后登记版本及 `resources/app.asar` 摘要，并检查旧资料。上表的本地安装验收未覆盖线上下载和签名。
 
 ## 桌面与平台验收
@@ -308,8 +359,8 @@ Windows 同版修复的关键是目录归属。安装登记与卸载登记均由
 | 目标 | 对照安装形式 | 本轮发行候选验收 |
 | --- | --- | --- |
 | Windows x64 | exe | 缺省与写作的未签名安装器、保留资料及冷启动结果见上表。四模式包、正式签名与真实在线更新仍待验收。 |
-| Linux x64 | deb、rpm 分别验证 | 记录发行版、包管理器和桌面会话。两种包各自安装、启动、保留资料升级并读取历史会话。 |
-| Linux arm64 | deb | 在匹配架构的系统安装，验证随包原生依赖、启动与已有资料。 |
+| Linux x64 | deb、rpm 分别验证 | 当前源码候选的 `apps/desktop/scripts/package-target.ts` 尚缺主线已有的 Linux 目标。接入打包入口后记录发行版、包管理器和桌面会话。两种包各自安装、启动、保留资料升级并读取历史会话。 |
+| Linux arm64 | deb | 候选也须接入 arm64 打包目标。在匹配架构的系统安装，验证随包原生依赖、启动与已有资料。 |
 | macOS arm64 | DMG 手动安装，按旧版实际更新索引验证应用内升级 | 记录签名、公证及 Gatekeeper 结果，再做 Issue #20 的保留资料场景。过渡版本的旧更新器仍可能下载 ZIP。 |
 
 交回平台结果时，每个安装格式单列一行，附上操作系统及架构、原安装版本与候选版本、安装包摘要、首次启动结果、升级后的资料数量和恢复演练结果。若失败，记录首次失败的操作和原始错误，将仍可运行的旧版本与对应备份成对保留。
