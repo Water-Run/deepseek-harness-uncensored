@@ -1,0 +1,99 @@
+{
+  "observedOn": "2026-11-26",
+  "kernel": "0.2.3-alpha.2",
+  "package": {
+    "tree": "6ec81d4b78a526c20a41a73030273289399c4bdf",
+    "blocks": 15555,
+    "artifacts": [
+      {
+        "name": "deepseek-harness-uncensored-2026.11.25.0-win-x64-unsigned.exe",
+        "size": 325354069,
+        "sha256": "68beb9db797725d423c2d4507946542f4a5b27a179ce4a4c47b162e1a4fbced8"
+      },
+      {
+        "name": "deepseek-harness-uncensored-2026.11.25.0-win-x64-unsigned.exe.blockmap",
+        "size": 338556,
+        "sha256": "455417752fe5a9fc195eaa2e353439b146a4666a2ba5ba46b647a6aebe95b9b2"
+      }
+    ]
+  },
+  "samples": {
+    "original": 513,
+    "intervalHours": 2,
+    "currency": "CNY",
+    "source": "fixture account, installed release JSON backend; loopback HTTPS for new observations"
+  },
+  "profiles": {
+    "default": {
+      "upgradeExit": 0,
+      "fixtureSHA256": "a42e5c57eb43d049e485e567f02dbabd2bc22c68182ea58272700d0c7dba31ae",
+      "oldChartPoints": 240,
+      "newChartSamples": 513,
+      "draggedIndices": [
+        124,
+        388
+      ],
+      "retainedOriginal": 360,
+      "savedApiSamples": 2,
+      "afterRestart": {
+        "phase": "reopen",
+        "policy": "default",
+        "oldest": 1793058033778,
+        "latest": 1795646490853,
+        "countBounds": {
+          "manualMinimum": 1,
+          "automaticMinimum": 2,
+          "maximum": 40320
+        }
+      }
+    },
+    "off": {
+      "upgradeExit": 0,
+      "fixtureSHA256": "9aeb5ad51eed348be514eab79f3e328c2303810122a18d95a104956a2ebdfdb1",
+      "oldChartPoints": 240,
+      "newChartSamples": 513,
+      "draggedIndices": [
+        124,
+        388
+      ],
+      "retainedOriginal": 513,
+      "savedApiSamples": 2,
+      "afterRestart": {
+        "phase": "reopen",
+        "policy": "off",
+        "oldest": 1791956552829,
+        "latest": 1795646608474,
+        "windows": [
+          {
+            "days": 1,
+            "first": 1795563752829,
+            "last": 1795646608474
+          },
+          {
+            "days": 7,
+            "first": 1795045352829,
+            "last": 1795646608474
+          },
+          {
+            "days": 30,
+            "first": 1793058152829,
+            "last": 1795646608474
+          }
+        ],
+        "countBounds": {
+          "manualMinimum": 1,
+          "automaticMinimum": 2,
+          "maximum": 40320
+        }
+      }
+    }
+  },
+  "installation": {
+    "os": "10.0.26100.0",
+    "architecture": "AMD64",
+    "installedVersion": "2026.11.25.0",
+    "installedAsarSHA256": "cc01a6a606c50b66e7423a55566bacac479aa35b1a8de0578d97d9026f3c36c8",
+    "previousVersion": "2026.11.24.3",
+    "previousInstallerSHA256": "a84001b8ec3d64ae4452833d8fdd018857900a772be366488de2f219334b5b30"
+  }
+}

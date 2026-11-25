@@ -15250,7 +15250,7 @@ index 0000000000000000000000000000000000000000..cae960bb0440a4401e95175dcddd19f4
 +  expect(document.activeElement).toBe(trigger)
 +})
 diff --git a/packages/client/ui-settings-account/README.i18n.yaml b/packages/client/ui-settings-account/README.i18n.yaml
-index 217a3754e16c0f3effcb7b80ccadbcf7e5ff3f67..09c94b018f9e5369aa277af4fbc2eaee6ee84964 100644
+index 217a3754e16c0f3effcb7b80ccadbcf7e5ff3f67..dd2507492d467a2feea5e55a5086d0dd816dda09 100644
 --- a/packages/client/ui-settings-account/README.i18n.yaml
 +++ b/packages/client/ui-settings-account/README.i18n.yaml
 @@ -9,14 +9,14 @@
@@ -15267,13 +15267,13 @@ index 217a3754e16c0f3effcb7b80ccadbcf7e5ff3f67..09c94b018f9e5369aa277af4fbc2eaee
  /deepseek-ai-dsh-client-ui-settings-account/use-this-package:
 -  en: 51864317e5c33943
 -  zh: c0507f3448859ef0
-+  en: 344430dcdfbbcf56
-+  zh: a5c11928ac80795b
++  en: f2eda3bed72ed382
++  zh: 239672e21dd88a28
  /deepseek-ai-dsh-client-ui-settings-account/use-this-package/desktop-onboarding:
    en: b17e3d33f66af025
    zh: 780f813205d955d9
 diff --git a/packages/client/ui-settings-account/README.md b/packages/client/ui-settings-account/README.md
-index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..fc9abe6384333c04141e27ff6685faed751eca7f 100644
+index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..cb13f6689a6da6899c14d21e955f119b894121ac 100644
 --- a/packages/client/ui-settings-account/README.md
 +++ b/packages/client/ui-settings-account/README.md
 @@ -13,9 +13,11 @@ Server-expired account credentials clear the displayed account details and emit
@@ -15282,10 +15282,10 @@ index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..fc9abe6384333c04141e27ff6685faed
  
 -The Account settings section displays DeepSeek login state and offers browser sign-in and cancellation; the sidebar account menu provides Platform sign-out. Desktop users also receive a resumable introduction to account credit and presentation preferences.
 +Opening About checks this repository’s GitHub releases using the DSHU product version. The dialog shows the result and supports a manual retry. A rate-limited response displays when a retry is available.
++
++An active conversation shows its estimated cost and shared spending limits below the composer. Open a reading to inspect cumulative cost or each enabled window. Unpriced requests are counted separately.
  
 -The sign-in dialog offers network troubleshooting only for `no-response` failures. HTTP, business, response-validation, storage, and account-stream failures retain the generic retry message.
-+An active conversation shows its estimated cost and shared spending limits below the composer. Open a reading to inspect cumulative cost or each enabled window. Unpriced requests are counted separately.
-+
 +The Account settings section displays DeepSeek login state and offers browser sign-in and cancellation; the sidebar account menu provides Platform sign-out. Desktop users also receive a resumable introduction to account credit and presentation preferences.
  
  ## Table of Contents
@@ -15294,7 +15294,7 @@ index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..fc9abe6384333c04141e27ff6685faed
  <a id="use-this-package"></a>
  ## Use this package
  
-+The sign-in dialog offers network troubleshooting only for `no-response` failures. HTTP, business, response-validation, storage, and account-stream failures retain the generic retry message.
++The sign-in dialog offers network troubleshooting only for `no-response` failures. HTTP, business, response-validation, storage, and account-stream failures retain the generic retry message. Manual cleanup can keep one sample. Automatic cleanup by count accepts 2 to 40,320 samples.
 +
 +The account menu offers **About** before and after sign-in. On wide screens the brand panel fills the left edge of the dialog. On narrow screens it spans the top. The left panel displays the DSHU calendar version and UTC build time. The right panel identifies the kernel, base commit and date, source tree, release component pins and licenses, with links to the candidate manifest, notices and official DSHU releases. Escape returns focus to the account menu.
 +
@@ -15304,7 +15304,7 @@ index 5c212e17ffef2eeed85ac56457ab5e9fd62e3a62..fc9abe6384333c04141e27ff6685faed
  
  Desktop and plain Web clients both mount the sidebar account launcher, Account settings, the sign-in step of model onboarding, and the account-state subscription. Desktop main opens the authorization page in the system browser. A plain Web client, identified by the absent Desktop preload bridge, sends `login_source` web with its own origin as the callback origin, preopens a tab during the sign-in click, navigates it to the authorization URL with the same `theme` parameter once its attempt receives one, and closes it on failure, expiry, or cancellation; a blocked popup leaves the copy-link route. Embedded Platform pages, Desktop onboarding, and the native device reader stay Desktop-only, so Web Platform links open new tabs.
 diff --git a/packages/client/ui-settings-account/README.zh.md b/packages/client/ui-settings-account/README.zh.md
-index 7ea45f5067591a84fb43ef786026cc0c1246729b..3a96144fd1fa134e5b865f3c2864ad92a062eee8 100644
+index 7ea45f5067591a84fb43ef786026cc0c1246729b..1d32dc88e9e6d9a04e1439cb277451fdcec3c914 100644
 --- a/packages/client/ui-settings-account/README.zh.md
 +++ b/packages/client/ui-settings-account/README.zh.md
 @@ -13,9 +13,11 @@ kind: "package-reference"
@@ -15313,10 +15313,10 @@ index 7ea45f5067591a84fb43ef786026cc0c1246729b..3a96144fd1fa134e5b865f3c2864ad92
  
 -设置中的账号页面显示 DeepSeek 登录状态，并提供浏览器登录和取消；侧边栏账号菜单提供 Platform 退出登录。Desktop 用户还会进入可恢复的引导，了解账号额度并选择展示偏好。
 +打开关于页会按 DSHU 产品版本检查本仓库的 GitHub Release。可以在弹窗中查看结果和手动重试。触发 GitHub 限流时，页面显示可再次检查的时间。
++
++有内容的对话在输入框下方显示本对话估算费用及共用额度。点击读数可查看累计费用曲线或各启用窗口的占用，缺少用量或费率的请求单列数量。
  
 -登录弹窗仅对 `no-response` 失败提示检查网络。HTTP、业务、响应校验、存储和账号状态流失败仍显示通用重试提示。
-+有内容的对话在输入框下方显示本对话估算费用及共用额度。点击读数可查看累计费用曲线或各启用窗口的占用，缺少用量或费率的请求单列数量。
-+
 +设置中的账号页面显示 DeepSeek 登录状态，并提供浏览器登录和取消；侧边栏账号菜单提供 Platform 退出登录。Desktop 用户还会进入可恢复的引导，了解账号额度并选择展示偏好。
  
  ## 目录
@@ -15325,7 +15325,7 @@ index 7ea45f5067591a84fb43ef786026cc0c1246729b..3a96144fd1fa134e5b865f3c2864ad92
  <a id="use-this-package"></a>
  ## 使用此包
  
-+登录弹窗仅对 `no-response` 失败提示检查网络。HTTP、业务、响应校验、存储和账号状态流失败仍显示通用重试提示。
++登录弹窗仅对 `no-response` 失败提示检查网络。HTTP、业务、响应校验、存储和账号状态流失败仍显示通用重试提示。 手动清理可以只保留 1 条采样。按条数自动清理时，可保留 2 至 40,320 条。
 +
 +登录前后均可从账号菜单打开**关于**。宽屏的渐变铺满弹窗左侧，窄屏铺满顶部。左侧展示 DSHU 日期版本和 UTC 编译时间。右侧列出内核版本、基线提交及时间、候选源码树、发行版组件版本与许可，可打开候选清单、第三方许可和 DSHU 正式发行页。按 Escape 后焦点回到账号菜单。
 +
@@ -28642,10 +28642,10 @@ index 766ff3c72cce6f2a6a1bcc04b1d7ef1701378ce2..9303886f2035b873e8c1865b2bbc53e1
      "@deepseek-ai/dsh-subagent-acp": "workspace:*",
 diff --git a/apps/web/tests/balance-cleanup.e2e.ts b/apps/web/tests/balance-cleanup.e2e.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..c8faeeebbcc220c6ab85524b815fe0200d140f3f
+index 0000000000000000000000000000000000000000..885ec1a823d764449a263e7d7cec49a8adb94af0
 --- /dev/null
 +++ b/apps/web/tests/balance-cleanup.e2e.ts
-@@ -0,0 +1,85 @@
+@@ -0,0 +1,97 @@
 +/** Stored-sample cleanup and automatic retention in the balance sampling settings. */
 +import { mkdir } from 'node:fs/promises'
 +import { fileURLToPath } from 'node:url'
@@ -28712,24 +28712,36 @@ index 0000000000000000000000000000000000000000..c8faeeebbcc220c6ab85524b815fe020
 +  await dialog.getByRole('button', { name: '清理存储的采样' }).click()
 +  await page.getByRole('menuitem', { name: '按条数', exact: true }).click()
 +  const keepCount = manual.getByRole('spinbutton', { name: '保留条数' })
-+  await keepCount.fill('500')
++  await keepCount.fill('0')
++  expect(await keepCount.getAttribute('aria-invalid')).toBe('true')
++  expect(await dialog.getByText('请输入 1–40320 之间的整数', { exact: true }).count()).toBe(1)
++  expect(await cleanupButton.isEnabled()).toBe(false)
++  await keepCount.fill('1')
 +  await cleanupButton.scrollIntoViewIfNeeded()
 +  await cleanupButton.click({ force: true })
-+  await expect.poll(() => requests.at(-1)).toEqual({ mode: 'count', keep: 500 })
++  await expect.poll(() => requests.at(-1)).toEqual({ mode: 'count', keep: 1 })
 +
 +  await dialog.getByRole('button', { name: '清理存储的采样' }).click()
 +  await page.getByRole('menuitem', { name: '全部', exact: true }).click()
 +  await cleanupButton.scrollIntoViewIfNeeded()
 +  await cleanupButton.click({ force: true })
 +  await expect.poll(() => cleanupButton.textContent()).toContain('确认清理')
-+  expect(requests.at(-1)).toEqual({ mode: 'count', keep: 500 })
++  expect(requests.at(-1)).toEqual({ mode: 'count', keep: 1 })
 +  await cleanupButton.scrollIntoViewIfNeeded()
 +  await cleanupButton.click({ force: true })
 +  await expect.poll(() => requests.at(-1)).toEqual({ mode: 'all' })
 +
 +  await dialog.getByRole('button', { name: '自动清理' }).click()
 +  await page.getByRole('menuitem', { name: '按条数', exact: true }).click()
-+  await expect.poll(() => automatic.getByRole('spinbutton', { name: '保留条数' }).count()).toBe(1)
++  const retainedCount = automatic.getByRole('spinbutton', { name: '保留条数' })
++  await retainedCount.fill('1')
++  expect(await retainedCount.getAttribute('aria-invalid')).toBe('true')
++  expect(await dialog.getByText('请输入 2–40320 之间的整数', { exact: true }).count()).toBe(1)
++  await dialog.locator('details[open]').screenshot({ path: join(screenshots, 'count-minimum.png') })
++  await retainedCount.fill('2')
++  await retainedCount.blur()
++  await expect.poll(() => retainedCount.getAttribute('aria-invalid')).toBe('false')
++  await expect.poll(() => retainedCount.inputValue()).toBe('2')
 +})
 diff --git a/apps/web/tests/balance-history-layout.e2e.ts b/apps/web/tests/balance-history-layout.e2e.ts
 new file mode 100644
@@ -29519,10 +29531,10 @@ index 0000000000000000000000000000000000000000..678df5a89e6ec486b3745a61f5b30843
 +.rangeTrack input:focus-visible::-moz-range-thumb { outline: 2px solid var(--dsw-focus-ring-color); }
 diff --git a/packages/client/ui-settings-account/src/client/BalanceView.tsx b/packages/client/ui-settings-account/src/client/BalanceView.tsx
 new file mode 100644
-index 0000000000000000000000000000000000000000..2b3abc0b582a443b3bf25b90b67e37767773205a
+index 0000000000000000000000000000000000000000..cd09709c0367d639ab357c44a064851679b2b1ae
 --- /dev/null
 +++ b/packages/client/ui-settings-account/src/client/BalanceView.tsx
-@@ -0,0 +1,275 @@
+@@ -0,0 +1,277 @@
 +/** Balance controls, observations and a shared sidebar hover card. */
 +import { useEffect, useId, useMemo, useState } from 'react'
 +import { Big } from 'big.js'
@@ -29689,13 +29701,15 @@ index 0000000000000000000000000000000000000000..2b3abc0b582a443b3bf25b90b67e3776
 +  const interval = draft ?? String(preferences.refreshSeconds)
 +  const invalid = draft !== null && (!Number.isInteger(Number(draft)) || Number(draft) < 3 || Number(draft) > 3600)
 +  const retainField = preferences.autoCleanup === 'count' ? 'retainCount' : 'retainDays'
++  const retainMinimum = preferences.autoCleanup === 'count' ? 2 : 1
 +  const retainLimit = preferences.autoCleanup === 'count' ? 40320 : 3650
 +  const retainValue = retainDraft ?? String(preferences[retainField])
 +  const retainInvalid = retainDraft !== null && (!Number.isInteger(Number(retainDraft))
-+    || Number(retainDraft) < (preferences.autoCleanup === 'count' ? 2 : 1) || Number(retainDraft) > retainLimit)
++    || Number(retainDraft) < retainMinimum || Number(retainDraft) > retainLimit)
++  const cleanupLimit = cleanupMode === 'count' ? 40320 : 3650
 +  const cleanupValue = Number(cleanupDraft)
 +  const cleanupInvalid = cleanupMode !== 'all'
-+    && (!Number.isInteger(cleanupValue) || cleanupValue < 1 || cleanupValue > (cleanupMode === 'count' ? 40320 : 3650))
++    && (!Number.isInteger(cleanupValue) || cleanupValue < 1 || cleanupValue > cleanupLimit)
 +  const request: BalanceCleanupRequest = cleanupMode === 'all' ? { mode: 'all' }
 +    : cleanupMode === 'count' ? { mode: 'count', keep: cleanupValue } : { mode: 'age', days: cleanupValue }
 +  const busy = state.saving || state.clearing
@@ -29734,7 +29748,7 @@ index 0000000000000000000000000000000000000000..2b3abc0b582a443b3bf25b90b67e3776
 +          <Select label={t('balance.cleanup')} value={cleanupMode} disabled={busy || !preferences.enabled}
 +            options={[{ value: 'age', label: t('balance.cleanupByAge') }, { value: 'count', label: t('balance.cleanupByCount') }, { value: 'all', label: t('balance.cleanupAll') }]}
 +            onChange={(value) => { setCleanupMode(value); setArmed(false) }} />
-+          {cleanupMode !== 'all' && <div className={css.interval}><Input id={`${id}-cleanup`} aria-label={t(cleanupMode === 'count' ? 'balance.keepCount' : 'balance.keepDays')} type="number" min={1} max={cleanupMode === 'count' ? 40320 : 3650} step={1}
++          {cleanupMode !== 'all' && <div className={css.interval}><Input id={`${id}-cleanup`} aria-label={t(cleanupMode === 'count' ? 'balance.keepCount' : 'balance.keepDays')} type="number" min={1} max={cleanupLimit} step={1}
 +            value={cleanupDraft} aria-invalid={cleanupInvalid} aria-describedby={cleanupInvalid ? `${id}-cleanup-error` : undefined} disabled={busy || !preferences.enabled}
 +            onChange={(event) => { setCleanupDraft(event.target.value); setArmed(false) }} /></div>}
 +          <Button size="sm" variant={armed ? 'primary' : 'outline'} disabled={cleanupInvalid || busy || !preferences.enabled}
@@ -29745,14 +29759,14 @@ index 0000000000000000000000000000000000000000..2b3abc0b582a443b3bf25b90b67e3776
 +            }}>{armed ? t('balance.cleanupConfirm') : t('balance.cleanupNow')}</Button>
 +        </div>
 +      </PreferenceControlRow>
-+      {cleanupInvalid && <p id={`${id}-cleanup-error`} role="alert" className={css.error}>{t(cleanupMode === 'count' ? 'balance.keepCountError' : 'balance.keepDaysError')}</p>}
++      {cleanupInvalid && <p id={`${id}-cleanup-error`} role="alert" className={css.error}>{t('balance.keepRangeError', { min: 1, max: cleanupLimit })}</p>}
 +      <p className={css.hint}>{t('balance.cleanupHint')}</p>
 +      <PreferenceControlRow title={t('balance.autoCleanup')}>
 +        <div className={css.cleanup} role="group" aria-label={t('balance.autoCleanup')}>
 +          <Select label={t('balance.autoCleanup')} value={preferences.autoCleanup} disabled={state.saving || !form.writable}
 +            options={[{ value: 'off', label: t('balance.autoOff') }, { value: 'count', label: t('balance.cleanupByCount') }, { value: 'age', label: t('balance.cleanupByAge') }]}
 +            onChange={(value) => { setRetainDraft(null); void save('autoCleanup', value) }} />
-+          {preferences.autoCleanup !== 'off' && <div className={css.interval}><Input id={`${id}-retain`} aria-label={t(preferences.autoCleanup === 'count' ? 'balance.keepCount' : 'balance.keepDays')} type="number" min={preferences.autoCleanup === 'count' ? 2 : 1} max={retainLimit} step={1}
++          {preferences.autoCleanup !== 'off' && <div className={css.interval}><Input id={`${id}-retain`} aria-label={t(preferences.autoCleanup === 'count' ? 'balance.keepCount' : 'balance.keepDays')} type="number" min={retainMinimum} max={retainLimit} step={1}
 +            value={retainValue} aria-invalid={retainInvalid} aria-describedby={retainInvalid ? `${id}-retain-error` : undefined} disabled={state.saving || !form.writable}
 +            onChange={(event) => { setRetainDraft(event.target.value) }}
 +            onBlur={() => {
@@ -29761,7 +29775,7 @@ index 0000000000000000000000000000000000000000..2b3abc0b582a443b3bf25b90b67e3776
 +            }} /></div>}
 +        </div>
 +      </PreferenceControlRow>
-+      {retainInvalid && <p id={`${id}-retain-error`} role="alert" className={css.error}>{t(preferences.autoCleanup === 'count' ? 'balance.keepCountError' : 'balance.keepDaysError')}</p>}
++      {retainInvalid && <p id={`${id}-retain-error`} role="alert" className={css.error}>{t('balance.keepRangeError', { min: retainMinimum, max: retainLimit })}</p>}
 +      <p className={css.hint}>{t('balance.autoCleanupHint')}</p>
 +      <p className={css.hint}>{t(preferences.source === 'api' ? 'balance.apiHint' : 'balance.localHint')}</p>
 +      <a href="https://api-docs.deepseek.com/quick_start/pricing/" target="_blank" rel="noreferrer">{t('balance.pricing')}</a>
@@ -29794,7 +29808,7 @@ index 0000000000000000000000000000000000000000..2b3abc0b582a443b3bf25b90b67e3776
 +        <div className={css.wallets}>{new Big(wallet.granted).gt(0) && <div><span>{t('bonusBalance')}</span><strong><RollingAmount text={amount(wallet.granted, wallet.currency)} /></strong></div>}<div><span>{t('balance')}</span><strong><RollingAmount text={amount(wallet.toppedUp, wallet.currency)} /></strong></div></div>
 +        </>
 +          : <strong>{wallet.currency === 'CNY' ? '¥' : '$'}</strong>}
-+      </button>} content={<div className={css.hover}><h3>{t('balance.title')}</h3>{state.failed && <p role="alert" className={css.error}>{t('balance.failed')}</p>}<BalanceDetails data={state.data} refreshing={state.loading} sidebarDays={preferences?.sidebarDays} t={t} /></div>} />
++      </button>} content={<div className={css.hover}><h3>{t('balance.title')}</h3>{state.failed && <p role="alert" className={css.error}>{t('balance.failed')}</p>}<BalanceDetails data={state.data} refreshing={state.loading} sidebarDays={preferences.sidebarDays} t={t} /></div>} />
 +    </div>}
 +  </>
 +}
@@ -30157,7 +30171,7 @@ index 0000000000000000000000000000000000000000..9cc4ef9b54a77e40fdfd106abbd925c4
 +}
 diff --git a/packages/client/ui-settings-account/src/client/balance-locales.ts b/packages/client/ui-settings-account/src/client/balance-locales.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..2c56a92aa78217bbf672d3f9c6d37161b998a7af
+index 0000000000000000000000000000000000000000..afb761f1a7bfb20e2e70bacab21eac6ba55bbce3
 --- /dev/null
 +++ b/packages/client/ui-settings-account/src/client/balance-locales.ts
 @@ -0,0 +1,78 @@
@@ -30177,7 +30191,7 @@ index 0000000000000000000000000000000000000000..2c56a92aa78217bbf672d3f9c6d37161
 +  'balance.cleanupAll': 'All samples', 'balance.cleanupNow': 'Clean up', 'balance.cleanupConfirm': 'Confirm cleanup',
 +  'balance.cleanupHint': 'Cleanup removes saved samples on this computer for the current account. The newest sample is kept unless you choose all.',
 +  'balance.keepCount': 'Keep newest samples', 'balance.keepDays': 'Keep days',
-+  'balance.keepCountError': 'Enter a whole number from 1 to 40320', 'balance.keepDaysError': 'Enter a whole number from 1 to 3650',
++  'balance.keepRangeError': 'Enter a whole number from {min} to {max}',
 +  'balance.autoCleanup': 'Automatic cleanup', 'balance.autoOff': 'Off',
 +  'balance.autoCleanupHint': 'Automatic cleanup runs whenever a new sample is saved.',
 +  'balance.cleared': 'Stored samples cleaned up', 'balance.clearFailed': 'Could not clean up stored samples. Try again.',
@@ -30216,7 +30230,7 @@ index 0000000000000000000000000000000000000000..2c56a92aa78217bbf672d3f9c6d37161
 +  'balance.cleanupAll': '全部', 'balance.cleanupNow': '清理', 'balance.cleanupConfirm': '确认清理',
 +  'balance.cleanupHint': '清理只影响这台电脑上、当前账号已保存的采样。除选择全部外，会保留最新一条采样。',
 +  'balance.keepCount': '保留条数', 'balance.keepDays': '保留天数',
-+  'balance.keepCountError': '请输入 1–40320 之间的整数', 'balance.keepDaysError': '请输入 1–3650 之间的整数',
++  'balance.keepRangeError': '请输入 {min}–{max} 之间的整数',
 +  'balance.autoCleanup': '自动清理', 'balance.autoOff': '关闭',
 +  'balance.autoCleanupHint': '自动清理在每次保存新采样时执行。',
 +  'balance.cleared': '已清理存储的采样', 'balance.clearFailed': '清理采样失败，请重试',

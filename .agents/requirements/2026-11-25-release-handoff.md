@@ -287,6 +287,30 @@ pnpm exec vitest run --maxWorkers=2 packages/credentials/balance/tests packages/
 pnpm run test:web:built apps/web/tests/balance-cleanup.e2e.ts apps/web/tests/balance-history-layout.e2e.ts apps/web/tests/entry-customization.e2e.ts apps/web/tests/writing-spending-settings.e2e.ts --maxWorkers=1
 ```
 
+### Windows 安装版的余额历史与清理偏好
+
+分别从上一正式版 `2026.11.24.3` 的 Windows x64 安装器开始。使用两个独立的临时账户，各带入一份写作工作区及旧版余额数据。一组旧配置未指定 `autoCleanup`，另一组显式设置为 `off`。两个账户均使用合成的 API Key 和仅在回环地址监听的余额服务。
+
+| 操作 | 检查点 |
+| --- | --- |
+| 用旧版存储组件生成 513 条人民币采样，每两小时一条，跨度 42 天 16 小时。将数据源设为“本机记录”，启动旧版并打开额度页。 | 旧版曲线显示 240 个点，首尾时间正确。关闭应用后，旧版存储中仍有全部 513 条，金额保留 4 位小数。 |
+| 用候选 EXE 的 `--updated /S` 原位升级。进入“设置 → 额度”，暂时使用本机记录。 | 新图可以检查全部 513 条。用键盘将两端各向内移一条，再用鼠标分别拖动两个把手。用 Home 和 End 读取区间首尾，对照原样本的时间戳。 |
+| 依次选择侧栏短、中、长，最后关闭侧栏余额。检查旧设置对应的清理选项，再切到“API 实时”，出现新金额后切回“本机记录”。 | 默认组显示“按时间”和 30 天；显式停用组显示“关闭”。隐藏侧栏后设置图仍能查看。在下一次成功保存时按该账户自己的策略清理。 |
+| 退出桌面并以同一用户冷启动，检查侧栏开关和已选范围。再次打开侧栏，观察短、中、长三档。 | 侧栏隐藏和长档选择可跨重启保存。显式停用组从工作区侧栏的实际曲线读取三档的首尾时间，分别符合距最新采样 24 小时、7 天、30 天的范围。 |
+| 在“采样设置”分别试验手动和自动的按条数清理。 | 手动填 0 时提示 1–40320，填 1 合法。自动填 1 时提示 2–40320，填 2 后可保存。 |
+
+**复验工具。** 关闭被测桌面，从一次性测试账户启动安装目录内的 `DeepSeek Harness Uncensored.exe`，为该进程设置 `ELECTRON_RUN_AS_NODE=1`。把[余额历史检查器](../../kernel/0.2.3-alpha.2/verification/installed-balance-history.mjs)的路径作为第一个参数，后续参数是操作、测试账户的 `.dsh-uncensored/storages` 绝对路径和原样本 JSON 的绝对路径。使用旧版可执行文件运行 `seed`，再用 `local` 验证原记录。升级采样、冷启动并关闭桌面后，使用新版可执行文件分别运行 `age` 或 `off`。检查器逐项比较原始金额、时间、币种和顺序，并单独核对新增样本。保留同一份原样本 JSON 供复查。
+
+在临时资料的 `profiles/desktop/cordis.patch.yml` 内给 `balance` 设置 `baseURL: 'https://127.0.0.1:19343'`、`source: local` 和 `refreshSeconds: 3600`，为该资料配置 `DEEPSEEK_API_KEY=offline-balance-fixture`。显式停用组另填 `autoCleanup: 'off'`。准备含 IP 地址 `127.0.0.1` 的临时 TLS 证书和 PEM 私钥，向启动的测试桌面进程提供指向证书的 `NODE_EXTRA_CA_CERTS`。[回环余额服务](../../kernel/0.2.3-alpha.2/verification/balance-history-endpoint.mjs)可用下列命令启动。它对本次测试账户返回 CNY 余额 `987.654321`、赠送余额 `0`。正常启动桌面前清除进程的 `ELECTRON_RUN_AS_NODE` 设置。
+
+```sh
+node kernel/0.2.3-alpha.2/verification/balance-history-endpoint.mjs fixture.crt fixture.key
+```
+
+**安装回执。** 候选树 `6ec81d4b78a526c20a41a73030273289399c4bdf` 的未签名 Windows x64 EXE 为 325,354,069 字节，SHA-256 为 `68beb9db797725d423c2d4507946542f4a5b27a179ce4a4c47b162e1a4fbced8`。两次静默覆盖升级都返回 0，安装的 `app.asar` 摘要一致。两个账户在原始 513 条中分别用鼠标选中索引 124 至 388，读出的时间和原样本一致。两组各保存 2 条新采样。默认组冷启动后为 360 条旧采样加 2 条新采样，显式关闭组为 513 条旧采样加 2 条新采样。历史检查器逐条核对了两组的旧记录。[安装文件摘要与两组原始观测](../../kernel/0.2.3-alpha.2/verification/windows-balance-history-6ec81d4b.json)
+
+安装文件及其 15,555 个块均已核验。本机交接目录为 `%USERPROFILE%/DSHU-Deliveries/20261125/windows-x64-candidate/6ec81d4b78a5/`。其中 `verification/balance-history/{default,off}/` 保存了各自的样本 JSON、升级前后存储副本和桌面回执。可将同一安装器中的程序与 `cold-records`、`samples.json` 一起传给检查器重查结果。两份资料交叉使用 `age` 和 `off` 的错误预期时，检查器会报错。正式四模式安装包须从自己的安装文件重复这组升级操作。
+
 ### 插件列表与插件管理
 
 上一正式版在设置内显示插件清单。新版 DSH 将插件管理移到独立页面，候选树 `d75d00fb91e0` 的 Host 提供清单接口，但客户端没有注册查看清单的标签。插件管理中的“已安装”列出可管理的插件包，一份插件包可以包含多个配置实例。核对两个视图的入口及内容时，分别选择一个随包组件和一个预设中的配置实例。

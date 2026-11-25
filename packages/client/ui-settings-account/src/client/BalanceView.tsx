@@ -164,13 +164,15 @@ export function BalanceSettings({ useBalance, useBalancePreferences, inspectHist
   const interval = draft ?? String(preferences.refreshSeconds)
   const invalid = draft !== null && (!Number.isInteger(Number(draft)) || Number(draft) < 3 || Number(draft) > 3600)
   const retainField = preferences.autoCleanup === 'count' ? 'retainCount' : 'retainDays'
+  const retainMinimum = preferences.autoCleanup === 'count' ? 2 : 1
   const retainLimit = preferences.autoCleanup === 'count' ? 40320 : 3650
   const retainValue = retainDraft ?? String(preferences[retainField])
   const retainInvalid = retainDraft !== null && (!Number.isInteger(Number(retainDraft))
-    || Number(retainDraft) < (preferences.autoCleanup === 'count' ? 2 : 1) || Number(retainDraft) > retainLimit)
+    || Number(retainDraft) < retainMinimum || Number(retainDraft) > retainLimit)
+  const cleanupLimit = cleanupMode === 'count' ? 40320 : 3650
   const cleanupValue = Number(cleanupDraft)
   const cleanupInvalid = cleanupMode !== 'all'
-    && (!Number.isInteger(cleanupValue) || cleanupValue < 1 || cleanupValue > (cleanupMode === 'count' ? 40320 : 3650))
+    && (!Number.isInteger(cleanupValue) || cleanupValue < 1 || cleanupValue > cleanupLimit)
   const request: BalanceCleanupRequest = cleanupMode === 'all' ? { mode: 'all' }
     : cleanupMode === 'count' ? { mode: 'count', keep: cleanupValue } : { mode: 'age', days: cleanupValue }
   const busy = state.saving || state.clearing
@@ -209,7 +211,7 @@ export function BalanceSettings({ useBalance, useBalancePreferences, inspectHist
           <Select label={t('balance.cleanup')} value={cleanupMode} disabled={busy || !preferences.enabled}
             options={[{ value: 'age', label: t('balance.cleanupByAge') }, { value: 'count', label: t('balance.cleanupByCount') }, { value: 'all', label: t('balance.cleanupAll') }]}
             onChange={(value) => { setCleanupMode(value); setArmed(false) }} />
-          {cleanupMode !== 'all' && <div className={css.interval}><Input id={`${id}-cleanup`} aria-label={t(cleanupMode === 'count' ? 'balance.keepCount' : 'balance.keepDays')} type="number" min={1} max={cleanupMode === 'count' ? 40320 : 3650} step={1}
+          {cleanupMode !== 'all' && <div className={css.interval}><Input id={`${id}-cleanup`} aria-label={t(cleanupMode === 'count' ? 'balance.keepCount' : 'balance.keepDays')} type="number" min={1} max={cleanupLimit} step={1}
             value={cleanupDraft} aria-invalid={cleanupInvalid} aria-describedby={cleanupInvalid ? `${id}-cleanup-error` : undefined} disabled={busy || !preferences.enabled}
             onChange={(event) => { setCleanupDraft(event.target.value); setArmed(false) }} /></div>}
           <Button size="sm" variant={armed ? 'primary' : 'outline'} disabled={cleanupInvalid || busy || !preferences.enabled}
@@ -220,14 +222,14 @@ export function BalanceSettings({ useBalance, useBalancePreferences, inspectHist
             }}>{armed ? t('balance.cleanupConfirm') : t('balance.cleanupNow')}</Button>
         </div>
       </PreferenceControlRow>
-      {cleanupInvalid && <p id={`${id}-cleanup-error`} role="alert" className={css.error}>{t(cleanupMode === 'count' ? 'balance.keepCountError' : 'balance.keepDaysError')}</p>}
+      {cleanupInvalid && <p id={`${id}-cleanup-error`} role="alert" className={css.error}>{t('balance.keepRangeError', { min: 1, max: cleanupLimit })}</p>}
       <p className={css.hint}>{t('balance.cleanupHint')}</p>
       <PreferenceControlRow title={t('balance.autoCleanup')}>
         <div className={css.cleanup} role="group" aria-label={t('balance.autoCleanup')}>
           <Select label={t('balance.autoCleanup')} value={preferences.autoCleanup} disabled={state.saving || !form.writable}
             options={[{ value: 'off', label: t('balance.autoOff') }, { value: 'count', label: t('balance.cleanupByCount') }, { value: 'age', label: t('balance.cleanupByAge') }]}
             onChange={(value) => { setRetainDraft(null); void save('autoCleanup', value) }} />
-          {preferences.autoCleanup !== 'off' && <div className={css.interval}><Input id={`${id}-retain`} aria-label={t(preferences.autoCleanup === 'count' ? 'balance.keepCount' : 'balance.keepDays')} type="number" min={preferences.autoCleanup === 'count' ? 2 : 1} max={retainLimit} step={1}
+          {preferences.autoCleanup !== 'off' && <div className={css.interval}><Input id={`${id}-retain`} aria-label={t(preferences.autoCleanup === 'count' ? 'balance.keepCount' : 'balance.keepDays')} type="number" min={retainMinimum} max={retainLimit} step={1}
             value={retainValue} aria-invalid={retainInvalid} aria-describedby={retainInvalid ? `${id}-retain-error` : undefined} disabled={state.saving || !form.writable}
             onChange={(event) => { setRetainDraft(event.target.value) }}
             onBlur={() => {
@@ -236,7 +238,7 @@ export function BalanceSettings({ useBalance, useBalancePreferences, inspectHist
             }} /></div>}
         </div>
       </PreferenceControlRow>
-      {retainInvalid && <p id={`${id}-retain-error`} role="alert" className={css.error}>{t(preferences.autoCleanup === 'count' ? 'balance.keepCountError' : 'balance.keepDaysError')}</p>}
+      {retainInvalid && <p id={`${id}-retain-error`} role="alert" className={css.error}>{t('balance.keepRangeError', { min: retainMinimum, max: retainLimit })}</p>}
       <p className={css.hint}>{t('balance.autoCleanupHint')}</p>
       <p className={css.hint}>{t(preferences.source === 'api' ? 'balance.apiHint' : 'balance.localHint')}</p>
       <a href="https://api-docs.deepseek.com/quick_start/pricing/" target="_blank" rel="noreferrer">{t('balance.pricing')}</a>
@@ -269,7 +271,7 @@ export function BalanceSidebar({ wide, useBalance, useBalancePreferences, refres
         <div className={css.wallets}>{new Big(wallet.granted).gt(0) && <div><span>{t('bonusBalance')}</span><strong><RollingAmount text={amount(wallet.granted, wallet.currency)} /></strong></div>}<div><span>{t('balance')}</span><strong><RollingAmount text={amount(wallet.toppedUp, wallet.currency)} /></strong></div></div>
         </>
           : <strong>{wallet.currency === 'CNY' ? '¥' : '$'}</strong>}
-      </button>} content={<div className={css.hover}><h3>{t('balance.title')}</h3>{state.failed && <p role="alert" className={css.error}>{t('balance.failed')}</p>}<BalanceDetails data={state.data} refreshing={state.loading} sidebarDays={preferences?.sidebarDays} t={t} /></div>} />
+      </button>} content={<div className={css.hover}><h3>{t('balance.title')}</h3>{state.failed && <p role="alert" className={css.error}>{t('balance.failed')}</p>}<BalanceDetails data={state.data} refreshing={state.loading} sidebarDays={preferences.sidebarDays} t={t} /></div>} />
     </div>}
   </>
 }
