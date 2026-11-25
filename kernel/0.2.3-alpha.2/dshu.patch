@@ -1051,7 +1051,7 @@ index 56161096b2f742f2c592b7b87f8693a8ceb8989a..1942bb7cde1ce1a940366f86f8b50400
  账号失效并返回 Welcome 时，主进程保留一次性通知，直到渲染器通过所属窗口的 IPC 领取。重新加载 Welcome 不会重复提示；主动退登和冷启动不会生成该通知。
  
 diff --git a/apps/desktop/packaging/README.i18n.yaml b/apps/desktop/packaging/README.i18n.yaml
-index 228f07da880b886dd478781fc5cd56399d4f1488..54e237fdd92769bbe5cfbc0da326bda545dbe77b 100644
+index 228f07da880b886dd478781fc5cd56399d4f1488..528e6cd2f0070f8f3702560193c720e0de0ee191 100644
 --- a/apps/desktop/packaging/README.i18n.yaml
 +++ b/apps/desktop/packaging/README.i18n.yaml
 @@ -18,23 +18,23 @@
@@ -1060,8 +1060,8 @@ index 228f07da880b886dd478781fc5cd56399d4f1488..54e237fdd92769bbe5cfbc0da326bda5
  /desktop-packaging/release-versions:
 -  en: bdee4adb7916e6cc
 -  zh: 2880c3594ebab7ab
-+  en: 187ffc74d4531473
-+  zh: ee5535409ee08382
++  en: f72169a028fdade4
++  zh: fd5cc49b1955d384
  /desktop-packaging/configuration-and-local-builds:
    en: 5b4f0f80a117f202
    zh: ff05be196c181087

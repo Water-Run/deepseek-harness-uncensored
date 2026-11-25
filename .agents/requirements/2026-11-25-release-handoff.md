@@ -221,7 +221,9 @@ pnpm exec vitest run --maxWorkers=2 apps/desktop/tests/cli-launcher.spec.ts apps
 
 ### Windows 安装器与版本身份
 
-本轮 Windows 候选从新目录还原出的 Git 树为 `107a386c789706f8571e2916b103cdd4c77af80e`，与 [source.json](../../kernel/0.2.3-alpha.2/source.json) 一致。Windows x64 的 Visual Studio C++ 构建环境使用下列入口。日历版本来自候选 `apps/cli/package.json` 的 `dshuVersion`。本轮候选 `2026.11.25.0` 对应 Electron 更新器比较的 `2026.1125.0`。关于页的右栏和包内的 DSH 运行时保留 `0.2.3-alpha.2`。安装应用标识使用 `com.deepseek.dsh.uncensored`。
+本表的 Windows 安装包由[安装器源码提交](https://github.com/Water-Run/deepseek-harness-uncensored/commit/2ddcf2394f273a5aa8d1d8385a8a9d525cbbe9c8)还原并构建。关于页记录应用源码树 `107a386c789706f8571e2916b103cdd4c77af80e`。当前 [source.json](../../kernel/0.2.3-alpha.2/source.json) 的树为 `63c6ea861b584ea39a6caf4cce77c8255150b5a1`，两棵树相差打包 README 的双语段落摘要文件 `apps/desktop/packaging/README.i18n.yaml`。复现安装包的源码身份时，从链接的提交运行还原脚本。
+
+Windows x64 的 Visual Studio C++ 构建环境使用下列入口。日历版本来自候选 `apps/cli/package.json` 的 `dshuVersion`。本轮候选 `2026.11.25.0` 对应 Electron 更新器比较的 `2026.1125.0`。关于页的右栏和包内的 DSH 运行时保留 `0.2.3-alpha.2`。安装应用标识使用 `com.deepseek.dsh.uncensored`。
 
 ```sh
 pnpm --dir apps/desktop run check:package win-x64 --unsigned
@@ -279,6 +281,8 @@ Windows 同版修复的关键是目录归属。安装登记与卸载登记均由
 重复同版修复验收时，先在专用 Windows 测试账户写入资料，正常退出后将主程序移到安装目录外，保留原件及其摘要。在该账户中临时让两条登记指向不同目录，在第二个目录写入可校验的标记。安装器应返回 2，两个目录均须保持原状。恢复测试登记后再次运行同一安装器，核对主程序摘要、卸载登记和两条写作会话，再按上表检查保留资料重装。
 
 隔离目录替换用例在候选的 `apps/desktop/scripts/smoke-installer-directories.ps1` 中。传入锁定版本的 `-Makensis` 和 `-SevenZip` 可检查 10 个场景，包括首次安装、覆盖、文件锁、取消、解压失败及目标目录在安装途中被占用。检查原生解压和失败报告时，另在一份还原的测试源码中，将打包生成的 `installer-ui/strings.nsh` 复制到 `apps/desktop/installer/strings.nsh`，并通过 `-FrameLibrary` 传入同一构建的 `window-frame.dll`。两种解压方式各自的 10 个场景均已在 Windows x64 运行。
+
+安装包源码的 10 项构建检查、14 项安装器定向测试以及中英文关于页的桌面和窄屏检查均通过。候选文档检查首轮通过 42 项，随后更新打包 README 的中英文段落摘要，单独重跑余下的配对检查，1,409 组文档全部一致。
 
 ## 桌面与平台验收
 
