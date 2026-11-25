@@ -69,7 +69,7 @@ try {
   await rename(active, original)
   const before = await fileHashes(original)
   assert(Object.keys(before).some(path => path.startsWith('sessions/') && path.endsWith('/session.v4.jsonl.zstd')))
-  assert(before['workspace/story/materials.json'] && before['storages/spending.sqlite'])
+  assert(before['workspace/story/materials.json'] && before['storages/spending.sqlite'] && before['storages/memory.json'])
   await cp(original, active, { recursive: true, errorOnExist: true, force: false })
   assert.deepEqual(await fileHashes(active), before)
   await probe(reader, 'read', active)

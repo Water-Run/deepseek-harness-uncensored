@@ -40,5 +40,5 @@ it('enables conversation memory independently of extraction and keeps saved reco
   await page.getByRole('button', { name: '管理记忆', exact: true }).click()
   const manager = page.getByRole('dialog', { name: '跨对话记忆', exact: true })
   await manager.getByText('使用简体中文', { exact: true }).first().waitFor()
-  await manager.screenshot({ path: join(shots, 'manager.png') })
+  await manager.screenshot({ animations: 'disabled', path: join(shots, 'manager.png') })
 })

@@ -8,6 +8,7 @@ import { LocalFileSystem } from '@deepseek-ai/dsh-fs-local'
 import { createAssistantMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
 import SessionStore, { Session, type SessionEvent, type SessionId, type SessionLogOffset } from '@deepseek-ai/dsh-session'
 import * as jsonl from '@deepseek-ai/dsh-session-persistence-jsonl'
+import MemoryService from '@deepseek-ai/dsh-memory'
 import Storage from '@deepseek-ai/dsh-storage'
 import * as domains from '@deepseek-ai/dsh-storage-domain'
 import * as jsonStorage from '@deepseek-ai/dsh-storage-json'
@@ -265,5 +266,40 @@ it('replays the released memory context and prices its separate extraction call 
         requests: 1, unpricedRequests: 0, total: 0.00036, points: [{ total: 0.00036 }],
       })
     } finally { await handle.close() }
+  } finally { await ctx.fiber.dispose() }
+}, 30_000)
+
+it('opens the released memory collection, preserves disabled records and retains candidate edits after restart', async () => {
+  const ctx = new Context()
+  const topic = '雾港灯塔'
+  const updated = '雾港灯塔使用蓝色灯光。'
+  const scope = { global: false, workspace: 'workspace:harbour', mode: 'writing' } as const
+  const source = { kind: 'user', confirmed: true } as const
+  try {
+    await ctx.plugin(Storage)
+    await ctx.plugin(jsonStorage, { root: join(directory, 'storages') })
+    await ctx.plugin(domains, { backend: 'json' })
+    await ctx.plugin(MemoryService, {})
+    if (phase === 'write') {
+      await ctx.memory.create({ title: topic, content: '雾港灯塔使用白色灯光。', type: 'writing-setting', scope, source })
+      const retired = await ctx.memory.create({ title: '旧地址', content: '雾港灯塔位于旧码头。', type: 'writing-setting', scope, source })
+      await ctx.memory.setStatus(retired.record.id, 'disabled', retired.record.version)
+      return
+    }
+    expect(ctx.memory.enabled).toBe(false)
+    expect(ctx.memory.list()).toHaveLength(2)
+    const [record] = ctx.memory.list({ status: 'enabled' })
+    if (!record) throw new Error('Missing released memory')
+    expect(record).toMatchObject({ title: topic, scope, source })
+    expect(ctx.memory.list({ status: 'disabled' }).map(item => item.title)).toEqual(['旧地址'])
+    const session = { sessionId: brandString<SessionId>('harbour-chapter'), workspaceKeys: [scope.workspace], mode: scope.mode, freshChild: false }
+    expect(ctx.memory.retrieve({ query: topic, scope: session }).text).toContain(record.content)
+    expect(ctx.memory.retrieve({ query: topic, scope: { ...session, mode: 'standard' } }).text).toBe('')
+    if (phase === 'read') {
+      expect(record.version).toBe(1)
+      await ctx.memory.update(record.id, { content: updated }, record.version)
+    } else {
+      expect(record).toMatchObject({ version: 2, content: updated })
+    }
   } finally { await ctx.fiber.dispose() }
 }, 30_000)
