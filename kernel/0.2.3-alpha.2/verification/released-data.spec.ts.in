@@ -23,6 +23,7 @@ import { MockAdapter, textResponse } from '../packages/core/agent-loop/tests/moc
 import { writingMaterialsText } from '../packages/api/mode-dossiers/src/index.ts'
 import { createStoryEntry, listStory, setStorySelection } from '../packages/api/mode-dossiers/src/story.ts'
 import { DEFAULT_PREFERENCES, MICRO_CNY, SpendLedger } from '../packages/guard/spend-limit/src/ledger.ts'
+import * as spending from '../packages/guard/spend-limit/src/index.ts'
 import { DEFAULT_RATES } from '../packages/guard/spend-limit/src/pricing.ts'
 import { sessionSpendUsage } from '../packages/guard/spend-limit/src/session-usage.ts'
 
@@ -316,6 +317,8 @@ it('continues a released side conversation with fresh completed parent context a
       expect(sessionId).not.toBe(original.sessionId)
       const side = ctx.agents.get(sessionId)
       if (!side) throw new Error('The released Host did not open the side conversation')
+      side.session.append('sandbox/mode', { mode: 'read-only' })
+      side.session.append('approval/policy', { policy: 'never' })
       side.followup(prompt(firstQuestion))
       await side.whenIdle()
       main.followup(prompt('Record the opening date.'))
@@ -329,8 +332,25 @@ it('continues a released side conversation with fresh completed parent context a
       return
     }
     const { current: saved, retired } = JSON.parse(await readFile(receipt, 'utf8')) as { current: SessionId; retired: SessionId }
+    const pausePath = join(directory, 'side-clear-budget.sqlite')
+    const ledger = await SpendLedger.open(pausePath)
+    try {
+      ledger.configure({ ...DEFAULT_PREFERENCES, autoResume: false })
+      if (phase === 'read') ledger.blockSession(ledger.waitForSession(parentId, MICRO_CNY))
+      ledger.blockSession(ledger.waitForSession(saved, MICRO_CNY))
+    } finally { ledger.close() }
+    await ctx.plugin(spending, { path: pausePath }).await()
+    const clearedReceipt = join(directory, 'side-cleared-by-candidate.json')
+    const expectedCurrent = phase === 'reopen' ? JSON.parse(await readFile(clearedReceipt, 'utf8')) as SessionId : saved
     const openings = await Promise.all([1, 2].map(() => controller.aside({ sessionId: parentId, kind: 'side' })))
-    expect(openings.map(item => item.sessionId)).toEqual([saved, saved])
+    expect(openings.map(item => item.sessionId)).toEqual([expectedCurrent, expectedCurrent])
+    if (phase === 'read') {
+      const otherWriter = await ctx.sessionPersistence.open(saved, 'write')
+      try {
+        await expect(controller.resetAside({ sessionId: saved, cause: 'manual' })).rejects.toMatchObject({ code: 'session/writer-held' })
+        expect(await controller.aside({ sessionId: parentId, kind: 'side' })).toEqual({ sessionId: saved })
+      } finally { await otherWriter.close() }
+    }
     using retiredLog = await ctx.sessionQuery.observeSession(retired)
     expect(JSON.stringify(retiredLog.events)).toContain('An earlier question in the retired discussion.')
     await expect(controller.prompt({
@@ -362,6 +382,38 @@ it('continues a released side conversation with fresh completed parent context a
       expect(outgoing).not.toContain('UNFINISHED PRIVATE DRAFT')
       expect(outgoing).not.toContain('An earlier question in the retired discussion.')
       expect(await ctx.sessions.flush(side.session)).toBe(true)
+    }
+    expect((await controller.resetAside({ sessionId: saved, cause: 'close' })).sessionId).toBe(expectedCurrent)
+    const reset = await controller.resetAside({ sessionId: saved, cause: 'manual' })
+    expect(reset.sessionId).not.toBe(saved)
+    if (phase === 'read') await writeFile(clearedReceipt, JSON.stringify(reset.sessionId))
+    else expect(reset.sessionId).toBe(expectedCurrent)
+    using fresh = await ctx.sessionQuery.observeSession(reset.sessionId)
+    expect(fresh.header.parentSession).toBe(parentId)
+    expect(fresh.events.findLast(event => event.type === 'sandbox/mode')?.data.mode).toBe('read-only')
+    expect(fresh.events.findLast(event => event.type === 'approval/policy')?.data.policy).toBe('never')
+    expect(fresh.events.filter(event => event.type === 'user/message' && event.data.source.kind === 'user')).toEqual([])
+    await expect.poll(async () => (await ctx.spendLimit.get()).pausedSessions.map(entry => entry.sessionId)).toEqual([parentId])
+    await expect(controller.prompt({
+      sessionId: saved, requestId: brandString<Branded<'session-request-id'>>('closed-candidate-tab'), mode: 'queue',
+      content: [{ type: 'text', text: 'A late submission from a cleared tab.' }],
+    }, new AbortController().signal)).rejects.toMatchObject({ code: 'session/agent-busy', details: { reason: 'side-context-cleared' } })
+    if (phase === 'reopen') {
+      const interrupted = brandString<SessionId>(retired + '-3')
+      const partial = Session.create(interrupted)
+      partial.append('approval/policy', { policy: 'ask' })
+      const interruptedWriter = await ctx.sessionPersistence.create({ ...fresh.header, id: interrupted })
+      try {
+        await interruptedWriter.append(partial.snapshotEvents())
+        await interruptedWriter.flush()
+      } finally { await interruptedWriter.close() }
+      const result = await controller.resolveAgent(interrupted)
+      if ('error' in result) throw result.error
+      expect(result.agent.model.current()).toMatchObject(model)
+      using recovered = await ctx.sessionQuery.observeSession(interrupted)
+      expect(recovered.events.findLast(event => event.type === 'sandbox/mode')?.data.mode).toBe('read-only')
+      expect(recovered.events.findLast(event => event.type === 'approval/policy')?.data.policy).toBe('never')
+      expect(recovered.events.some(event => event.type === 'user/message')).toBe(false)
     }
     for (const id of [parentId, saved]) {
       using observation = await ctx.sessionQuery.observeSession(id)
