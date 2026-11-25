@@ -15,7 +15,7 @@ function headerFromMessage(text: string): string {
   let current: string[] | undefined
   for (const line of text.split(/\r?\n/u)) {
     const trimmed = line.trim()
-    if (trimmed && /^[a-f\d \t]+$/iu.test(trimmed)) {
+    if (/^[a-f\d \t]+$/iu.test(trimmed) || /^[a-f\d]+:\s/iu.test(trimmed) || (trimmed === '*' && current)) {
       if (!current) { current = []; blocks.push(current) }
       current.push(trimmed)
     } else {
@@ -23,8 +23,24 @@ function headerFromMessage(text: string): string {
     }
   }
   const [header] = blocks
-  if (!header || blocks.length !== 1) throw new ToolArgsError(['Include one hex dump on its own lines in the current message.'])
-  return header.join(' ')
+  if (!header || blocks.length !== 1) throw new ToolArgsError(['Paste one hex or xxd dump on its own lines in the current message.'])
+  if (!header.some(line => line.includes(':'))) return header.join(' ')
+
+  let hex = ''
+  for (const line of header) {
+    const [, offset = '', contents = ''] = /^([a-f\d]{8,16}): (.+)$/iu.exec(line) ?? []
+    if (Number.parseInt(offset, 16) !== hex.length / 2) {
+      throw new ToolArgsError(['Use consecutive xxd rows starting at offset zero.'])
+    }
+    const [column = ''] = contents.split(/ {2,}/u, 1)
+    const groups = column.split(' ')
+    if (!groups.every(group => /^(?:[a-f\d]{2}){1,2}$/iu.test(group))) {
+      throw new ToolArgsError(['Paste standard xxd output or use xxd -g 1.'])
+    }
+    hex += groups.join('')
+    if (hex.length > 8192) throw new ToolArgsError(['Supply up to 4096 hexadecimal bytes.'])
+  }
+  return hex
 }
 
 function identify(input: string) {
@@ -62,28 +78,21 @@ export function registerHeaderIdentification(ctx: Context): void {
       name: 'rea:file-identification',
       order: scope.systemPrompt.getSectionOrder('TOOL_READ'),
       text: ({ scope: agent }) => scope.rea.options.enabled && scope.tools.get('rea_identify_header', agent) !== undefined
-        ? 'For questions about a pasted executable header’s file format or CPU architecture, use rea_identify_header. It reads the original bytes from the current user message.'
+        ? 'Use rea_identify_header for format or CPU questions about a pasted executable header. Ask for its hex or xxd prefix if the message has no bytes.'
         : '',
     }))
   })
   ctx.effect(() => ctx.tools.register(defineTool({
     name: 'rea_identify_header',
-    description: 'Identify the file format and declared CPU architecture of pasted ELF or Windows PE header bytes. Use for file identification and architecture questions when the conversation includes the hex prefix.',
+    description: 'Identify the file format and declared CPU architecture of ELF or Windows PE from a hex prefix or standard xxd output in the current user message.',
     parameters: {},
     output: { schema: { type: 'json' }, render: (_args, value) => [{ type: 'text', text: JSON.stringify(value) }] },
-    async execute(_args, { agent }) {
+    execute(_args, { agent }) {
       if (!ctx.rea.options.enabled) throw new ToolArgsError(['REA is disabled in settings.'])
-      const session = agent?.session
-      if (session) {
-        for (let i = session.surface.nodes.length - 1; i >= 0; i--) {
-          const seq = session.surface.nodes[i]
-          const event = seq === undefined ? undefined : session.eventAt(seq)
-          if (event?.type !== 'user/message' || event.data.source.kind !== 'user') continue
-          const userText = event.data.content.flatMap(part => part.type === 'text' ? [part.text] : []).join('\n\n')
-          return identify(headerFromMessage(userText))
-        }
-      }
-      throw new ToolArgsError(['A current user message with a hex dump is required.'])
+      const message = agent?.session.deriveMessages().findLast(item => item.role === 'user' && item.source.kind === 'user')
+      if (!message) throw new ToolArgsError(['A current user message with a hex dump is required.'])
+      const text = message.content.flatMap(part => part.type === 'text' ? [part.text] : []).join('\n\n')
+      return Promise.resolve(identify(headerFromMessage(text)))
     },
   }), { when: () => ctx.rea.options.enabled }))
 }
